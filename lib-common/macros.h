@@ -44,6 +44,6 @@ typedef int bool;
     ptr = NULL;         \
 } while(0)
 
-#define TABLE_SIZE(table) ((int)(sizeof(table)) / sizeof(table[0]))
+#define countof(table) ((int)(sizeof(table)) / sizeof(table[0]))
 
 #endif
