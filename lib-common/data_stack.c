@@ -12,7 +12,6 @@
 
 #define FRAME_COUNT     32
 #define MIN_BLOCK_SIZE  4096
-#define MEM_ALIGN_SIZE  8
 #define MAX_DS_ALLOC    ((size_t)1 << (sizeof(size_t)*8-1))
 
 typedef struct block_t {

@@ -39,6 +39,7 @@ typedef int bool;
 /* Memory functions                                                           */
 /******************************************************************************/
 
+#define MEM_ALIGN_SIZE  8
 #define MEM_ALIGN(size) \
     ( ((size) + MEM_ALIGN_SIZE - 1) & ~((unsigned int) MEM_ALIGN_SIZE-1) )
 
@@ -48,5 +49,12 @@ typedef int bool;
 } while(0)
 
 #define countof(table) ((int)(sizeof(table)) / sizeof(table[0]))
+
+/******************************************************************************/
+/* MISC macros                                                                */
+/******************************************************************************/
+
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) MIN(b, a)
 
 #endif
