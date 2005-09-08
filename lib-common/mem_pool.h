@@ -68,11 +68,19 @@ typedef struct pool_t {
     void * (*realloc0)(void * mem, size_t oldsize, size_t newsize);
 } pool_t;
 
-#define p_new(pool, type, count) (type *)(pool)->calloc(sizeof(type)*(count))
+#define p_new(pool, type, count)  (type *)(pool)->calloc(sizeof(type)*(count))
+#define p_new0(pool, type, count) (type *)(pool)->calloc(sizeof(type)*(count))
+#define p_delete(pool, mem) do {        \
+    mem = pool->free(mem);              \
+} while (0)
 
 /* An implementation of pool_t that uses internally
  * malloc(3), calloc(3), free(3) and realloc(3)
  */
 extern const pool_t * system_pool;
+#define sp_new(type, count)  p_new(system_pool, type, count)
+#define sp_new0(type, count) p_new0(system_pool, type, count)
+#define sp_delete(mem)       p_delete(system_pool, mem)
+
 
 #endif

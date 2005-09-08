@@ -15,9 +15,6 @@
 #define MEM_ALIGN_SIZE  8
 #define MAX_DS_ALLOC    ((size_t)1 << (sizeof(size_t)*8-1))
 
-#define MEM_ALIGN(size) \
-    ( ((size) + MEM_ALIGN_SIZE - 1) & ~((unsigned int) MEM_ALIGN_SIZE-1) )
-
 typedef struct block_t {
     struct block_t * next;
     size_t size, left;
@@ -306,10 +303,10 @@ void ds_deinit()
     }
 
     if (current.block != NULL) {
-        free0(current.block);
+        FREE(current.block);
     }
     if (unused.block  != NULL) {
-        free0(unused.block);
+        FREE(unused.block);
     }
 
     current.fpos   = -1;

@@ -39,7 +39,10 @@ typedef int bool;
 /* Memory functions                                                           */
 /******************************************************************************/
 
-#define free0(ptr) do { \
+#define MEM_ALIGN(size) \
+    ( ((size) + MEM_ALIGN_SIZE - 1) & ~((unsigned int) MEM_ALIGN_SIZE-1) )
+
+#define FREE(ptr) do {  \
     free(ptr);          \
     ptr = NULL;         \
 } while(0)
