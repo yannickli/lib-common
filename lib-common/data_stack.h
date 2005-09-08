@@ -40,12 +40,17 @@ int ds_pop(void);
  *   calls to ds_reget without prior ds_get calls may cause strange behaviours
  *   if misunderstood.
  *
+ * ds_try_reget :
+ *   try to ds_reget, or return NULL if we tried to reget another buffer than
+ *   the last one
+ *
  * ds_tie :
  *   make last get/reget call permanent (until next ds_pop).
  */
-void * ds_get(size_t size);
-void * ds_reget(void * buffer, size_t size);
-void ds_tie(size_t size);
+void * ds_get(ssize_t size);
+void * ds_reget(void * buffer, ssize_t size);
+void * ds_try_reget(void * buffer, ssize_t size);
+void ds_tie(ssize_t size);
 
 /*
  * type safe macros for ds_get/reget

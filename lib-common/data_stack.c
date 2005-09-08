@@ -12,11 +12,11 @@
 
 #define FRAME_COUNT     32
 #define MIN_BLOCK_SIZE  4096
-#define MAX_DS_ALLOC    ((size_t)1 << (sizeof(size_t)*8-1))
+#define MAX_DS_ALLOC    ((ssize_t)1 << (sizeof(ssize_t)*8-1))
 
 typedef struct block_t {
     struct block_t * next;
-    size_t size, left;
+    ssize_t size, left;
 
     /*  unsigned char data[]; */
 } block_t;
@@ -29,7 +29,7 @@ typedef struct block_t {
 typedef struct frame_t {
     struct frame_t * prev;
     block_t * block[FRAME_COUNT];
-    size_t space_left[FRAME_COUNT];
+    ssize_t space_left[FRAME_COUNT];
 } frame_t;
 
 /******************************************************************************/
@@ -42,7 +42,7 @@ static struct {
     block_t * block;    /* current block */
 
     void * buffer;      /* the last data segment returned */
-    size_t size;        /* the last requested size */
+    ssize_t size;        /* the last requested size */
 } current = { -1, NULL, NULL, NULL, 0 };
 
 static struct {
@@ -99,9 +99,9 @@ static void free_next_blocks(block_t * block)
  *
  * returns a pointer to the allocated block_t
  */
-static void * mem_block_alloc(size_t min_size)
+static void * mem_block_alloc(ssize_t min_size)
 {
-    static size_t last_alloc_size = MIN_BLOCK_SIZE;
+    static ssize_t last_alloc_size = MIN_BLOCK_SIZE;
     block_t * block;
 
     min_size += last_alloc_size;
@@ -124,7 +124,7 @@ static void * mem_block_alloc(size_t min_size)
     return block;
 }
 
-/* malloc_real(size_t, permanent)
+/* malloc_real(ssize_t, permanent)
  *
  * the pseudo-allocation function : tries to reuse unused.block, and if not
  * possible, allocate a new block.
@@ -135,7 +135,7 @@ static void * mem_block_alloc(size_t min_size)
  *
  * returns a pointer to the usable buffer.
  */
-static void * malloc_real(size_t size, int permanent)
+static void * malloc_real(ssize_t size, int permanent)
 {
     block_t * block;
     void * ret;
@@ -245,14 +245,14 @@ int ds_pop()
     return ret;
 }
 
-void * ds_get(size_t size)
+void * ds_get(ssize_t size)
 {
     return malloc_real(size, 0);
 }
 
-void * ds_reget(void * buffer, size_t size)
+void * ds_reget(void * buffer, ssize_t size)
 {
-    size_t old_size;
+    ssize_t old_size;
     void * old_buffer;
 
     e_assert(buffer == current.buffer);
@@ -267,7 +267,12 @@ void * ds_reget(void * buffer, size_t size)
     return current.buffer;
 }
 
-void ds_tie(size_t size)
+void * ds_try_reget(void * buffer, ssize_t size)
+{
+    return (buffer == current.buffer) ? ds_reget(buffer, size) : NULL;
+}
+
+void ds_tie(ssize_t size)
 {
     e_assert(current.buffer != NULL);
     e_assert(current.size >= size);
