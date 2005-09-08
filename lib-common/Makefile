@@ -2,7 +2,10 @@ include ../cflags
 
 TARGET=libcommon.a
 
-libcommon_OBJS = data_stack.o err_report.o
+libcommon_OBJS = \
+	err_report.o  \
+	data_stack.o  \
+	mem_system_pool.o
 
 all: $(TARGET)
 
