@@ -26,6 +26,8 @@ typedef struct block_t {
     ((unsigned char *) (block) + SIZEOF_BLOCK) +    \
     (block->size - block->left)
 
+#define BLOCK_PAYLOAD(block) ((unsigned char *)(block) + SIZEOF_BLOCK)
+
 typedef struct frame_t {
     struct frame_t * prev;
     block_t * block[FRAME_COUNT];
@@ -42,7 +44,7 @@ static struct {
     block_t * block;    /* current block */
 
     void * buffer;      /* the last data segment returned */
-    ssize_t size;        /* the last requested size */
+    ssize_t size;       /* the last requested size */
 } current = { -1, NULL, NULL, NULL, 0 };
 
 static struct {
@@ -279,6 +281,30 @@ void ds_tie(ssize_t size)
     e_assert(current.block->left >= size);
 
     malloc_real(size, 1);
+}
+
+ssize_t max_safe_size(void * mem)
+{
+    frame_t * frame = current.frame;
+    int       fpos  = current.fpos;
+
+    unsigned char * ptr = mem;
+
+    while (frame != NULL) {
+        while (fpos >= 0) {
+            block_t * block = frame->block[fpos];
+            unsigned char * bck = BLOCK_PAYLOAD(block);
+
+            if (bck < ptr && ptr < bck + block->size) {
+                return bck + block->size - ptr;
+            }
+            fpos --;
+        }
+        fpos  = FRAME_COUNT;
+        frame = frame->prev;
+    }
+
+    return 0;
 }
 
 void ds_init()

@@ -52,6 +52,15 @@ void * ds_reget(void * buffer, ssize_t size);
 void * ds_try_reget(void * buffer, ssize_t size);
 void ds_tie(ssize_t size);
 
+/* this function returns the maximum length that is safe to read from a pointer
+ * meaning that it will search if the pointer is in a frame, and if yes, will
+ * answer the size until the end of the frame.
+ *
+ * This is useful for internals things with memory management, and direct use of
+ * this function in anything else than memory allocation systems is discouraged.
+ */
+ssize_t max_safe_size(void * mem);
+
 /*
  * type safe macros for ds_get/reget
  */
