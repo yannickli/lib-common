@@ -55,7 +55,7 @@
  *   bytes to 0 (if oldsize < newsize)
  */
 
-typedef struct pool * pool_t;
+typedef struct pool pool_t;
 
 struct pool {
     const char * const name;
@@ -72,5 +72,5 @@ struct pool {
 /* An implementation of pool_t that uses internally
  * malloc(3), calloc(3), free(3) and realloc(3)
  */
-extern const pool_t system_pool;
+extern const pool_t * system_pool;
 

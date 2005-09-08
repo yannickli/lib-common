@@ -81,5 +81,5 @@ static struct pool static_system_pool = {
 /* Public API                                                                 */
 /******************************************************************************/
 
-const pool_t system_pool = &static_system_pool;
+const pool_t * system_pool = &static_system_pool;
 
