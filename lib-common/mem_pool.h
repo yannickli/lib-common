@@ -1,3 +1,6 @@
+#ifdef IS_MEM_POOL_H
+#define IS_MEM_POOL_H
+
 #include <unistd.h>
 
 /* Semantic of a pool :
@@ -74,3 +77,4 @@ struct pool {
  */
 extern const pool_t * system_pool;
 
+#endif
