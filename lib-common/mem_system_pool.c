@@ -16,7 +16,7 @@
         }                                                       \
     } while(0)
 
-static void * sp_malloc(size_t size)
+static void * sp_malloc(ssize_t size)
 {
     void * mem;
 
@@ -29,7 +29,7 @@ static void * sp_malloc(size_t size)
     return mem;
 }
 
-static void * sp_calloc(size_t size)
+static void * sp_calloc(ssize_t size)
 {
     void * mem;
 
@@ -50,14 +50,14 @@ static void * sp_free(void * mem)
     return NULL;
 }
 
-static void * sp_realloc(void * mem, size_t newsize)
+static void * sp_realloc(void * mem, ssize_t newsize)
 {
     mem = realloc(mem, newsize);
     check_enough_mem(mem);
     return mem;
 }
 
-static void * sp_realloc0(void * mem, size_t oldsize, size_t newsize)
+static void * sp_realloc0(void * mem, ssize_t oldsize, ssize_t newsize)
 {
     mem = realloc(mem, newsize);
     check_enough_mem(mem);

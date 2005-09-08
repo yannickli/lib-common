@@ -8,7 +8,7 @@
  * Any implementation of a pool should have the caracteristic that every
  * function never fails but may never return.
  * 
- * pool_t::malloc(size_t size)
+ * pool_t::malloc(ssize_t size)
  * 
  *   allocates size bytes of memory, and returns a pointer to that memory.
  *   the memory is not *necessarily* cleared.
@@ -17,7 +17,7 @@
  *     - pool_t::malloc(0) will return NULL
  *   
  *   
- * pool_t::calloc(size_t size)
+ * pool_t::calloc(ssize_t size)
  * 
  *   same as pool_t::malloc, but the memory is set to 0.
  *
@@ -35,7 +35,7 @@
  *   can work.
  *
  *
- * pool_t::realloc(void * ptr, size_t size)
+ * pool_t::realloc(void * ptr, ssize_t size)
  *
  *   changes the size of the memory block pointed to by ptr to size bytes.
  *   The contents will be unchanged to the minimum of the old and new sizes;
@@ -52,7 +52,7 @@
  *   newly allocated memory will *NOT* be set to 0.
  *
  * 
- * pool_t::realloc0(void * ptr, size_t oldsize, size_t newsize)
+ * pool_t::realloc0(void * ptr, ssize_t oldsize, ssize_t newsize)
  * 
  *   same as pool_t::realloc(ptr, newsize) + sets the last (newsize - oldsize)
  *   bytes to 0 (if oldsize < newsize)
@@ -61,11 +61,11 @@
 typedef struct pool_t {
     const char * const name;
 
-    void * (*malloc)  (size_t size);
-    void * (*calloc)  (size_t size);
+    void * (*malloc)  (ssize_t size);
+    void * (*calloc)  (ssize_t size);
     void * (*free)    (void * mem);
-    void * (*realloc) (void * mem, size_t newsize);
-    void * (*realloc0)(void * mem, size_t oldsize, size_t newsize);
+    void * (*realloc) (void * mem, ssize_t newsize);
+    void * (*realloc0)(void * mem, ssize_t oldsize, ssize_t newsize);
 } pool_t;
 
 #define p_new(pool, type, count)  (type *)(pool)->calloc(sizeof(type)*(count))
@@ -81,6 +81,14 @@ extern const pool_t * system_pool;
 #define sp_new(type, count)  p_new(system_pool, type, count)
 #define sp_new0(type, count) p_new0(system_pool, type, count)
 #define sp_delete(mem)       p_delete(system_pool, mem)
+
+/* An implementation of pool_t that uses internally data stacks
+ * meaning that in particular dsp_delete has no effect
+ */
+extern const pool_t * ds_pool;
+#define dsp_new(type, count)  p_new(ds_pool, type, count)
+#define dsp_new0(type, count) p_new0(ds_pool, type, count)
+#define dsp_delete(mem)       p_delete(ds_pool, mem)
 
 
 #endif
