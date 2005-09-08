@@ -5,7 +5,8 @@ TARGET=libcommon.a
 libcommon_OBJS = \
 	err_report.o  \
 	data_stack.o  \
-	mem_system_pool.o
+	mem_system_pool.o	\
+	blob.o
 
 all: $(TARGET)
 
