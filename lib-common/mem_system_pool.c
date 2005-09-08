@@ -68,7 +68,7 @@ static void * sp_realloc0(void * mem, size_t oldsize, size_t newsize)
 }
 
 
-static struct pool static_system_pool = {
+static pool_t static_system_pool = {
     "system",
     sp_malloc,
     sp_calloc,

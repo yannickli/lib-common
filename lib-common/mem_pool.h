@@ -1,4 +1,4 @@
-#ifdef IS_MEM_POOL_H
+#ifndef IS_MEM_POOL_H
 #define IS_MEM_POOL_H
 
 #include <unistd.h>
@@ -58,9 +58,7 @@
  *   bytes to 0 (if oldsize < newsize)
  */
 
-typedef struct pool pool_t;
-
-struct pool {
+typedef struct pool_t {
     const char * const name;
 
     void * (*malloc)  (size_t size);
@@ -68,7 +66,7 @@ struct pool {
     void * (*free)    (void * mem);
     void * (*realloc) (void * mem, size_t newsize);
     void * (*realloc0)(void * mem, size_t oldsize, size_t newsize);
-};
+} pool_t;
 
 #define p_new(pool, type, count) (type *)(pool)->calloc(sizeof(type)*(count))
 
