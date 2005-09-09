@@ -33,6 +33,10 @@ ssize_t blob_is_cstr(blob_t * blob);
 /* Blob manipulations                                                         */
 /******************************************************************************/
 
+void blob_blit(blob_t * dest, ssize_t pos, blob_t * src);
+void blob_blit_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len);
+void blob_blit_cstr(blob_t * blob, ssize_t pos, const unsigned char * cstr);
+
 void blob_insert(blob_t * dest, ssize_t pos, blob_t * src);
 void blob_insert_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len);
 void blob_insert_cstr(blob_t * blob, ssize_t pos, const unsigned char * cstr);

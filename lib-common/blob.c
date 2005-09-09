@@ -125,6 +125,25 @@ ssize_t blob_is_cstr(blob_t * blob)
 /* Blob manipulations                                                         */
 /******************************************************************************/
 
+void blob_blit(blob_t * dest, ssize_t pos, blob_t * src)
+{
+    blob_blit_data(dest, pos, src, src->len);
+}
+
+void blob_blit_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
+{
+    if (len + pos > blob->len) {
+        blob_resize(blob, pos+len);
+    }
+    memcpy(REAL(blob)->data + pos, data, len);
+}
+
+void blob_blit_cstr(blob_t * blob, ssize_t pos, const unsigned char * cstr)
+{
+    blob_blit_data(blob, pos, cstr, sstrlen(cstr));
+}
+
+
 void blob_insert(blob_t * dest, ssize_t pos, blob_t * src)
 {
     blob_insert_data(dest, pos, src->data, src->len);
@@ -157,6 +176,7 @@ void blob_insert_cstr(blob_t * blob, ssize_t pos, const unsigned char * cstr)
 {
     blob_insert_data(blob, pos, cstr, sstrlen(cstr));
 }
+
 
 #define BLOB_APPEND_DATA(blob, data, data_len)    \
     blob_insert_data((blob), (blob)->len, data, data_len)
