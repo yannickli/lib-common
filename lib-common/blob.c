@@ -7,6 +7,14 @@
 
 #define INITIAL_BUFFER_SIZE 256
 
+/*
+ * a blob has a vital invariant, making every parse function avoid buffer read
+ * overflows.
+ *
+ * there is *always* a \0 in the data at position len.
+ * implyng that size is always >= len+1
+ *
+ */
 typedef struct {
     /* public interface */
     ssize_t len;
@@ -34,6 +42,8 @@ blob_t * blob_new(pool_t * pool)
     blob->data = p_new(pool, unsigned char, blob->size);
     blob->pool = pool;
 
+    blob->data[blob->len] = 0;
+
     return (blob_t*) blob;
 }
 
@@ -47,7 +57,7 @@ blob_t * blob_dup(pool_t * pool, blob_t * blob)
     dst->pool = pool;
 
     dst->data = p_new(pool, unsigned char, src->size);
-    memcpy(dst, src, src->len);
+    memcpy(dst, src, src->len+1); /* +1 for the blob_t \0 */
 
     return (blob_t*)dst;
 }
@@ -71,15 +81,18 @@ void blob_resize(blob_t * blob, ssize_t newlen)
     real_blob_t * rblob = REAL(blob);
     ssize_t newsize;
     
-    if (rblob->size >= newlen) {
+    if (rblob->size > newlen) {
         rblob->len = newlen;
+        rblob->data[rblob->len] = 0;
         return;
     }
 
-    newsize     = MEM_ALIGN(newlen);
+    newsize     = MEM_ALIGN(newlen+1);
     rblob->data = rblob->pool->realloc(rblob->data, newsize);
     rblob->len  = newlen;
     rblob->size = newsize;
+
+    rblob->data[rblob->len] = 0;
 }
 
 /* delete a buffer. the pointer is set to 0 */
