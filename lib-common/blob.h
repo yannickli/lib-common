@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include "mem_pool.h"
+#include "macros.h"
 
 typedef struct {
     const ssize_t len;
@@ -21,6 +22,13 @@ blob_t * blob_cat(pool_t * pool, blob_t * blob1, blob_t * blob2);
 
 void     blob_resize(blob_t * blob, ssize_t newlen);
 void     blob_delete(blob_t ** blob);
+
+/******************************************************************************/
+/* Blob properties                                                            */
+/******************************************************************************/
+
+bool blob_is_cstr(blob_t * blob);
+bool blob_is_cstr_strict(blob_t * blob);
 
 /******************************************************************************/
 /* Blob manipulations                                                         */

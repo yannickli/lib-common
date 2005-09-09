@@ -10,7 +10,7 @@
 typedef struct {
     /* public interface */
     ssize_t len;
-    void * data;
+    unsigned char * data;
 
     /* private interface */
     ssize_t size;  /* allocated size */
@@ -87,6 +87,40 @@ void blob_delete(blob_t ** blob)
 {
     p_delete(REAL(*blob)->pool, REAL(*blob)->data);
     p_delete(REAL(*blob)->pool, *blob);
+}
+
+/******************************************************************************/
+/* Blob properties                                                            */
+/******************************************************************************/
+
+/* returns true if the blob contains a '\0' char (maybe before the end of the
+   buffer ! */
+bool blob_is_cstr(blob_t * blob)
+{
+    ssize_t pos;
+    for (pos = 0; pos < blob->len; pos++) {
+        if (REAL(blob)->data[pos] == '\0') {
+            return true;
+        }
+    }
+    return false;
+}
+
+/* returns true if the blob is a string of strlen blob->len - 1 */
+bool blob_is_cstr_strict(blob_t * blob)
+{
+    ssize_t pos = blob->len - 1;
+
+    if (REAL(blob)->data[blob->len] != '\0') {
+        return false;
+    }
+
+    while (pos >= 0) {
+        if (REAL(blob)->data[pos] == '\0') {
+            return false;
+        }
+    }
+    return true;
 }
 
 /******************************************************************************/
