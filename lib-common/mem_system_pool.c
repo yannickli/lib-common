@@ -1,9 +1,9 @@
 #include <stdlib.h>
-#include <string.h>
 
 #include "macros.h"
 #include "err_report.h"
 #include "mem_pool.h"
+#include "string_is.h"
 
 /******************************************************************************/
 /* Private API                                                                */

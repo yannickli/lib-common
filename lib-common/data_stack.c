@@ -1,10 +1,10 @@
-#include <string.h>
 #include <stdio.h>
 #include <limits.h>
 
 #include "err_report.h"
 #include "data_stack.h"
 #include "macros.h"
+#include "string_is.h"
 
 /******************************************************************************/
 /* private types / macros                                                     */
