@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-ssize_t sstrlen(const unsigned char * str);
+static inline ssize_t sstrlen(const unsigned char * str)
+{
+    return (ssize_t)strlen((const char *)str);
+}
 
 #endif
