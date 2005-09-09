@@ -10,7 +10,7 @@
 typedef struct {
     /* public interface */
     ssize_t len;
-    unsigned char * data;
+    void * data;
 
     /* private interface */
     ssize_t size;  /* allocated size */
@@ -77,7 +77,7 @@ void blob_resize(blob_t * blob, ssize_t newlen)
     }
 
     newsize     = MEM_ALIGN(newlen);
-    rblob->data = (unsigned char *)rblob->pool->realloc(rblob->data, newsize);
+    rblob->data = rblob->pool->realloc(rblob->data, newsize);
     rblob->len  = newlen;
     rblob->size = newsize;
 }

@@ -7,7 +7,7 @@
 
 typedef struct {
     const ssize_t len;
-    const unsigned char * const data;
+    const void * const data;
 } blob_t;
 
 
