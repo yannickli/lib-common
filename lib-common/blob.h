@@ -27,8 +27,7 @@ void     blob_delete(blob_t ** blob);
 /* Blob properties                                                            */
 /******************************************************************************/
 
-bool blob_is_cstr(blob_t * blob);
-bool blob_is_cstr_strict(blob_t * blob);
+ssize_t blob_is_cstr(blob_t * blob);
 
 /******************************************************************************/
 /* Blob manipulations                                                         */
