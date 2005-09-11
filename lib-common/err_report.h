@@ -23,7 +23,7 @@ error_t e_error;
 error_t e_warning;
 error_t e_notice;
 error_t e_info;
-error_t e_debug;
+fatal_t e_debug;
 
 #define E_PREFIX(fmt) \
     ("file %s: line %d (%s): " fmt), __FILE__, __LINE__, __func__
@@ -49,6 +49,8 @@ e_callback_t * e_set_debug_handler   (e_callback_t *);
 void e_init_stderr(void);
 void e_init_file(const char * ident, const char * filename);
 void e_init_syslog(const char * ident, int options, int facility);
+
+void e_set_verbosity(int max_debug_level);
 
 void e_deinit(void);
 #endif

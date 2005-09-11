@@ -20,6 +20,7 @@ struct log_status {
 };
 
 static struct log_status log_state = { false, NULL, NULL };
+static int    verbosity = -1;
 
 static void set_log_ident(const char * ident)
 {
@@ -139,7 +140,12 @@ void e_error   (const char * format, ...) { E_BODY(error);   }
 void e_warning (const char * format, ...) { E_BODY(warning); }
 void e_notice  (const char * format, ...) { E_BODY(notice);  }
 void e_info    (const char * format, ...) { E_BODY(info);    }
-void e_debug   (const char * format, ...) { E_BODY(debug);   }
+
+void e_debug   (int debuglevel, const char * format, ...) {
+    if (debuglevel <= verbosity) {
+        E_BODY(debug);
+    }
+}
 
 /* callback installers */
 
@@ -189,6 +195,10 @@ void e_init_syslog(const char * ident, int options, int facility)
     (void)e_set_notice_handler(&syslog_notice_handler);
     (void)e_set_info_handler(&syslog_info_handler);
     (void)e_set_debug_handler(&syslog_debug_handler);
+}
+
+void e_set_verbosity(int max_debug_level) {
+    verbosity = max_debug_level;
 }
 
 void e_deinit()
