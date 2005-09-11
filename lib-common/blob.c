@@ -159,6 +159,21 @@ blob_insert_data_real(blob_t * blob, ssize_t pos, const void * data, ssize_t len
 }
 
 
+/* map filter to blob->data[start .. end-1]
+   beware that blob->data[end] is not modified !
+ */
+
+static inline void
+blob_map_range_real(blob_t * blob, ssize_t start, ssize_t end, blob_filter_func_t * filter)
+{
+    ssize_t i;
+
+    for ( i = start ; i < end ; i++ ) {
+        REAL(blob)->data[i] = filter(REAL(blob)->data[i]);
+    }
+}
+
+
 /*** blit functions ***/
 
 void blob_blit(blob_t * dest, ssize_t pos, blob_t * src)
@@ -214,6 +229,16 @@ void blob_append_cstr(blob_t * blob, const unsigned char * cstr)
     BLOB_APPEND_DATA_REAL(blob, cstr, sstrlen(cstr));
 }
 
+
+void blob_map(blob_t * blob, blob_filter_func_t filter)
+{
+    blob_map_range_real(blob, 0, blob->len, filter);
+}
+
+void blob_map_range(blob_t * blob, ssize_t start, ssize_t end, blob_filter_func_t * filter)
+{
+    blob_map_range_real(blob, start, end, filter);
+}
 
 /******************************************************************************/
 /* Blob comparisons                                                           */

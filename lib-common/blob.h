@@ -1,6 +1,7 @@
 #ifndef IS_BLOB_H
 #define IS_BLOB_H
 
+#include <ctype.h>
 #include <unistd.h>
 #include <inttypes.h>
 
@@ -45,6 +46,28 @@ void blob_insert_cstr(blob_t * blob, ssize_t pos, const unsigned char * cstr);
 void blob_append(blob_t * dest, blob_t * src);
 void blob_append_data(blob_t * blob, const void * data, ssize_t len);
 void blob_append_cstr(blob_t * blob, const unsigned char * cstr);
+
+typedef int (blob_filter_func_t)(int);
+void blob_map(blob_t * blob, blob_filter_func_t * filter);
+void blob_map_range(blob_t * blob, ssize_t start, ssize_t end, blob_filter_func_t * filter);
+
+static inline void blob_tolower(blob_t * blob)
+{
+    blob_map(blob, &tolower);
+}
+static inline void blob_tolower_range(blob_t * blob, ssize_t start, ssize_t end)
+{
+    blob_map_range(blob, start, end, &tolower);
+}
+
+static inline void blob_toupper(blob_t * blob)
+{
+    blob_map(blob, &toupper);
+}
+static inline void blob_toupper_range(blob_t * blob, ssize_t start, ssize_t end)
+{
+    blob_map_range(blob, start, end, &toupper);
+}
 
 /******************************************************************************/
 /* Blob comparisons                                                           */
