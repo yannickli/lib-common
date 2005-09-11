@@ -2,6 +2,7 @@
 #define IS_BLOB_H
 
 #include <unistd.h>
+#include <inttypes.h>
 
 #include "mem_pool.h"
 #include "macros.h"
@@ -56,9 +57,14 @@ int blob_cmp(blob_t * blob1, blob_t * blob2);
 /******************************************************************************/
 
 enum blob_parse_status {
+    BP_OK     = 0,
     BP_EPARSE = -1,
     BP_ERANGE = -2,
 };
+
+static inline bool blob_eop(blob_t * blob, ssize_t pos) {
+    return blob->len == pos;
+}
 
 /* general things about parsing functions :
  
@@ -85,6 +91,14 @@ Notes:
 ssize_t blob_parse_cstr(blob_t * blob, ssize_t * pos, const unsigned char ** answer);
 int     blob_parse_long(blob_t * blob, ssize_t * pos, int base, long * answer);
 int     blob_parse_double(blob_t * blob, ssize_t * pos, double * answer);
+
+/** wsp types **/
+
+int     blob_parse_uint8 (blob_t * blob, ssize_t *pos, uint8_t  * answer);
+int     blob_parse_uint16(blob_t * blob, ssize_t *pos, uint16_t * answer);
+int     blob_parse_uint32(blob_t * blob, ssize_t *pos, uint32_t * answer);
+int     blob_parse_uintv (blob_t * blob, ssize_t *pos, uint32_t * answer);
+
 
 /******************************************************************************/
 /* Module init                                                                */

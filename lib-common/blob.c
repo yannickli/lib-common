@@ -125,12 +125,10 @@ ssize_t blob_is_cstr(blob_t * blob)
 /* Blob manipulations                                                         */
 /******************************************************************************/
 
-void blob_blit(blob_t * dest, ssize_t pos, blob_t * src)
-{
-    blob_blit_data(dest, pos, src, src->len);
-}
+/*** private inlines ***/
 
-void blob_blit_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
+static inline void
+blob_blit_data_real(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
 {
     if (len + pos > blob->len) {
         blob_resize(blob, pos+len);
@@ -138,25 +136,14 @@ void blob_blit_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
     memcpy(REAL(blob)->data + pos, data, len);
 }
 
-void blob_blit_cstr(blob_t * blob, ssize_t pos, const unsigned char * cstr)
-{
-    blob_blit_data(blob, pos, cstr, sstrlen(cstr));
-}
-
-
-void blob_insert(blob_t * dest, ssize_t pos, blob_t * src)
-{
-    blob_insert_data(dest, pos, src->data, src->len);
-}
-
-        
 /* insert `len' data C octets into a blob.
    `pos' gives the posistion in `blob' where `data' should be inserted.
 
    if the given `pos' is greater than the length of the input octet string,
    the data is appended.
  */
-void blob_insert_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
+static inline void
+blob_insert_data_real(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
 {
     ssize_t oldlen = blob->len;
 
@@ -171,29 +158,60 @@ void blob_insert_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len
     memcpy(REAL(blob)->data + pos, data, len);
 }
 
+
+/*** blit functions ***/
+
+void blob_blit(blob_t * dest, ssize_t pos, blob_t * src)
+{
+    blob_blit_data_real(dest, pos, src, src->len);
+}
+
+void blob_blit_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
+{
+    blob_blit_data_real(blob, pos, data, len);
+}
+
+void blob_blit_cstr(blob_t * blob, ssize_t pos, const unsigned char * cstr)
+{
+    blob_blit_data_real(blob, pos, cstr, sstrlen(cstr));
+}
+
+/*** insert functions ***/
+
+void blob_insert(blob_t * dest, ssize_t pos, blob_t * src)
+{
+    blob_insert_data_real(dest, pos, src->data, src->len);
+}
+
+void blob_insert_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
+{
+    blob_insert_data_real(blob, pos, data, len);
+}
+
 /* don't insert the NUL ! */
 void blob_insert_cstr(blob_t * blob, ssize_t pos, const unsigned char * cstr)
 {
-    blob_insert_data(blob, pos, cstr, sstrlen(cstr));
+    blob_insert_data_real(blob, pos, cstr, sstrlen(cstr));
 }
 
+/*** append functions ***/
 
-#define BLOB_APPEND_DATA(blob, data, data_len)    \
-    blob_insert_data((blob), (blob)->len, data, data_len)
+#define BLOB_APPEND_DATA_REAL(blob, data, data_len)    \
+    blob_insert_data_real((blob), (blob)->len, data, data_len)
 
 void blob_append(blob_t * dest, blob_t * src)
 {
-    BLOB_APPEND_DATA(dest, src->data, src->len);
+    BLOB_APPEND_DATA_REAL(dest, src->data, src->len);
 }
 
 void blob_append_data(blob_t * blob, const void * data, ssize_t len)
 {
-    BLOB_APPEND_DATA(blob, data, len);
+    BLOB_APPEND_DATA_REAL(blob, data, len);
 }
 
 void blob_append_cstr(blob_t * blob, const unsigned char * cstr)
 {
-    BLOB_APPEND_DATA(blob, cstr, sstrlen(cstr));
+    BLOB_APPEND_DATA_REAL(blob, cstr, sstrlen(cstr));
 }
 
 
@@ -279,7 +297,7 @@ int blob_parse_long(blob_t * blob, ssize_t * pos, int base, long * answer)
 
     *answer = number;
     *pos    = endpos;
-    return 0;
+    return BP_OK;
     
 }
 
@@ -301,10 +319,67 @@ int blob_parse_double(blob_t * blob, ssize_t * pos, double * answer)
 
     *answer = number;
     *pos    = endpos;
-    return 0;
+    return BP_OK;
     
 }
 
+/*******************************************************************************
+ * wsp types
+ */
+
+int blob_parse_uint8(blob_t * blob, ssize_t *pos, uint8_t * answer)
+{
+    *answer = REAL(blob)->data[(*pos)++];
+    return BP_OK;
+}
+
+int blob_parse_uint16(blob_t * blob, ssize_t *pos, uint16_t *answer)
+{
+    if (*pos + 2 > blob->len) {
+        return BP_EPARSE;
+    }
+    *answer   = REAL(blob)->data[(*pos)++];
+    *answer <<= 8;
+    *answer  |= REAL(blob)->data[(*pos)++];
+    return BP_OK;
+}
+
+int blob_parse_uint32(blob_t * blob, ssize_t *pos, uint32_t *answer)
+{
+    if (*pos + 4 > blob->len) {
+        return BP_EPARSE;
+    }
+    *answer   = REAL(blob)->data[(*pos)++];
+    *answer <<= 8;
+    *answer  |= REAL(blob)->data[(*pos)++];
+    *answer <<= 8;
+    *answer  |= REAL(blob)->data[(*pos)++];
+    *answer <<= 8;
+    *answer  |= REAL(blob)->data[(*pos)++];
+    return BP_OK;
+}
+
+int blob_parse_uintv (blob_t * blob, ssize_t *pos, uint32_t * answer)
+{
+    uint32_t value = 0;
+    ssize_t  walk  = *pos;
+    int      count = 5;
+
+    while (walk < blob->len && count-- > 0) {
+        int c = REAL(blob)->data[walk++];
+        value  = (value << 7) | (c & 0x7f);
+        if ((c & 0x80) == 0) {
+            *answer = value;
+            *pos    = walk;
+            return BP_OK;
+        }
+        if ((value & 0xfe000000) != 0) {
+            return BP_ERANGE;
+        }
+    }
+
+    return BP_EPARSE;
+}
 
 /******************************************************************************/
 /* Module init                                                                */
