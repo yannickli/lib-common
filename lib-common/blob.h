@@ -11,6 +11,11 @@
 typedef struct {
     const ssize_t len;
     const void * const data;
+
+    /* HERE SO THAT sizeof(array) is ok */
+    unsigned char * const dont_use1;
+    const ssize_t         dont_use2;
+    const pool_t  * const dont_use3;
 } blob_t;
 
 
