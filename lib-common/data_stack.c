@@ -283,6 +283,11 @@ void ds_tie(ssize_t size)
     malloc_real(size, 1);
 }
 
+void * ds_malloc(ssize_t size)
+{
+    return malloc_real(size, 1);
+}
+
 ssize_t max_safe_size(void * mem)
 {
     frame_t * frame = current.frame;

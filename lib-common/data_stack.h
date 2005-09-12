@@ -52,6 +52,9 @@ void * ds_reget(void * buffer, ssize_t size);
 void * ds_try_reget(void * buffer, ssize_t size);
 void ds_tie(ssize_t size);
 
+/* roughly : ds_get followed by ds_tie */
+void * ds_malloc(ssize_t size);
+
 /* this function returns the maximum length that is safe to read from a pointer
  * meaning that it will search if the pointer is in a frame, and if yes, will
  * answer the size until the end of the frame.

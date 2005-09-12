@@ -12,12 +12,12 @@
 
 static void * dsp_malloc(ssize_t size)
 {
-    return ds_get(size);
+    return ds_malloc(size);
 }
 
 static void * dsp_calloc(ssize_t size)
 {
-    void * mem = ds_get(size);
+    void * mem = ds_malloc(size);
 
     memset(mem, 0, size);
     return mem;
@@ -30,26 +30,24 @@ static void * dsp_free(void * mem)
 
 static void * dsp_realloc(void * mem, ssize_t newsize)
 {
-    void * newmem;
-    if ((newmem = ds_try_reget(newmem, newsize)) == NULL) {
-        ssize_t oldsize = max_safe_size(mem);
-        newmem = ds_get(newsize);
-        memcpy(newmem, mem, MIN(oldsize, newsize));
-    }
+    void * newmem = ds_malloc(newsize);
+    ssize_t oldsize = max_safe_size(mem);
+    memcpy(newmem, mem, MIN(oldsize, newsize));
     return newmem;
 }
 
 static void * dsp_realloc0(void * mem, ssize_t oldsize, ssize_t newsize)
 {
-    void * newmem;
-    if ((newmem = ds_try_reget(newmem, newsize)) == NULL) {
-        newmem = ds_get(newsize);
-        memcpy(newmem, mem, MIN(oldsize, newsize));
+    if (oldsize > newsize)
+    {
+        void * newmem = newmem = ds_malloc(newsize);
+        memcpy(newmem, mem, newsize);
+        return newmem;
     }
     if (oldsize < newsize) {
         memset((char *) mem + oldsize, 0, newsize - oldsize);
     }
-    return newmem;
+    return mem;
 }
 
 
