@@ -98,7 +98,7 @@ void blob_resize(blob_t * blob, ssize_t newlen)
     } else {
         unsigned char * old_data = rblob->data;
         rblob->data = rblob->pool->malloc(newsize);
-        memcpy(rblob->data, old_data, blob->len);
+        memcpy(rblob->data, old_data, blob->len+1); /* +1 for the blob_t \0 */
         rblob->pool->free(rblob->area);
     }
     rblob->area = rblob->data;
