@@ -1,12 +1,13 @@
 #include "array.h"
 #include "macros.h"
-#include "mem_pool.h"
 
 struct array
 {
     void ** tab;
     ssize_t len;
     ssize_t size;
+
+    const pool_t * pool;
 };
 
 #define ARRAY_INITIAL_SIZE 32
@@ -32,10 +33,10 @@ array_resize(array_t * array, ssize_t newsize)
 /* Memory management                                                          */
 /******************************************************************************/
 
-array_t * array_new(void)
+array_t * array_new(const pool_t * pool)
 {
-    array_t * array = sp_new(array_t, 1);
-    array->tab  = sp_new0(void*, ARRAY_INITIAL_SIZE);
+    array_t * array = p_new(pool, array_t, 1);
+    array->tab  = p_new0(pool, void*, ARRAY_INITIAL_SIZE);
     array->len  = 0;
     array->size = ARRAY_INITIAL_SIZE;
 
@@ -44,7 +45,7 @@ array_t * array_new(void)
 
 void array_delete(array_t ** array)
 {
-    sp_delete(*array);
+    p_delete((*array)->pool, *array);
 }
 
 void array_delete_all(array_t ** array, array_item_dtor_t * dtor)
@@ -53,7 +54,7 @@ void array_delete_all(array_t ** array, array_item_dtor_t * dtor)
     for ( i = 0 ; i < (*array)->len ; i++ ) {
         dtor((*array)->tab[i]);
     }
-    sp_delete(*array);
+    p_delete((*array)->pool, *array);
 }
 
 /******************************************************************************/
