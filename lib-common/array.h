@@ -5,7 +5,14 @@
 
 #include "mem_pool.h"
 
-typedef struct array array_t;
+typedef struct {
+    void ** const tab;
+    const ssize_t len;
+
+    /* HERE SO THAT sizeof(array) is ok */
+    const ssize_t         dont_use1;
+    const pool_t  * const dont_use2;
+} array_t;
 typedef void array_item_dtor_t(void * item);
 
 /******************************************************************************/
@@ -17,7 +24,7 @@ void array_delete(array_t ** array);
 void array_delete_all(array_t ** array, array_item_dtor_t * dtor);
 
 /******************************************************************************/
-/* Properties                                                                 */
+/* Misc                                                                       */
 /******************************************************************************/
 
 ssize_t array_len(array_t * array);
