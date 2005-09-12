@@ -23,7 +23,8 @@ typedef struct {
     unsigned char * data;
 
     /* private interface */
-    ssize_t size;  /* allocated size */
+    unsigned char * area;  /* originally allocated bloc */
+    ssize_t size;          /* allocated size */
     const pool_t * pool;   /* the pool used for allocation */
 } real_blob_t;
 
@@ -43,6 +44,7 @@ blob_t * blob_new(pool_t * pool)
     blob->size = INITIAL_BUFFER_SIZE;
     blob->data = p_new(pool, unsigned char, blob->size);
     blob->pool = pool;
+    blob->area = blob->data;
 
     blob->data[blob->len] = 0;
 
@@ -55,11 +57,12 @@ blob_t * blob_dup(pool_t * pool, blob_t * blob)
     real_blob_t * dst = p_new(pool, real_blob_t, 1);
     real_blob_t * src = REAL(blob);
     dst->len  = src->len;
-    dst->size = src->size;
+    dst->size = MEM_ALIGN(src->size);
     dst->pool = pool;
 
-    dst->data = p_new(pool, unsigned char, src->size);
-    memcpy(dst, src, src->len+1); /* +1 for the blob_t \0 */
+    dst->data = p_new(pool, unsigned char, dst->size);
+    dst->area = dst->data;
+    memcpy(dst->data, src->data, src->len+1); /* +1 for the blob_t \0 */
 
     return (blob_t*)dst;
 }
@@ -90,7 +93,15 @@ void blob_resize(blob_t * blob, ssize_t newlen)
     }
 
     newsize     = MEM_ALIGN(newlen+1);
-    rblob->data = rblob->pool->realloc(rblob->data, newsize);
+    if (rblob->data == rblob->area) {
+        rblob->data = rblob->pool->realloc(rblob->data, newsize);
+    } else {
+        unsigned char * old_data = rblob->data;
+        rblob->data = rblob->pool->malloc(newsize);
+        memcpy(rblob->data, old_data, blob->len);
+        rblob->pool->free(rblob->area);
+    }
+    rblob->area = rblob->data;
     rblob->len  = newlen;
     rblob->size = newsize;
 
@@ -100,7 +111,7 @@ void blob_resize(blob_t * blob, ssize_t newlen)
 /* delete a buffer. the pointer is set to 0 */
 void blob_delete(blob_t ** blob)
 {
-    p_delete(REAL(*blob)->pool, REAL(*blob)->data);
+    p_delete(REAL(*blob)->pool, REAL(*blob)->area);
     p_delete(REAL(*blob)->pool, *blob);
 }
 
