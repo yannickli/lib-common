@@ -169,21 +169,31 @@ blob_insert_data_real(blob_t * blob, ssize_t pos, const void * data, ssize_t len
     memcpy(REAL(blob)->data + pos, data, len);
 }
 
-
-/* map filter to blob->data[start .. end-1]
-   beware that blob->data[end] is not modified !
- */
-
 static inline void
-blob_map_range_real(blob_t * blob, ssize_t start, ssize_t end, blob_filter_func_t * filter)
+blob_kill_data_real(blob_t * blob, ssize_t pos, ssize_t len)
 {
-    ssize_t i;
+    real_blob_t * rblob = REAL(blob);
+    if (pos > rblob->len) {
+        return;
+    }
 
-    for ( i = start ; i < end ; i++ ) {
-        REAL(blob)->data[i] = filter(REAL(blob)->data[i]);
+    if (pos + len > blob->len) {
+        /* in fact, we are truncating the blob */
+        rblob->len = pos;
+        rblob->data[rblob->len] = '\0';
+    }
+    else if (pos == 0) {
+        /* in fact, we delete chars at the begining */
+        rblob->data += len;
+        rblob->size -= len;
+    }
+    else {
+        /* general case */
+        memmove(rblob->data + pos, rblob->data + pos + len,
+                rblob->len - pos - len + 1); /* +1 for the blob_t \0 */
+        rblob->size -= len;
     }
 }
-
 
 /*** blit functions ***/
 
@@ -240,6 +250,41 @@ void blob_append_cstr(blob_t * blob, const unsigned char * cstr)
     BLOB_APPEND_DATA_REAL(blob, cstr, sstrlen(cstr));
 }
 
+/*** kill functions ***/
+
+void blob_kill_data(blob_t * blob, ssize_t pos, ssize_t len)
+{
+    blob_kill_data_real(blob, pos, len);
+}
+
+void blob_kill_first(blob_t * blob, ssize_t len)
+{
+    blob_kill_data_real(blob, 0, len);
+}
+
+void blob_kill_last(blob_t * blob, ssize_t len)
+{
+    blob_kill_data_real(blob, blob->len - len, len);
+}
+
+/******************************************************************************/
+/* Blob filtering                                                             */
+/******************************************************************************/
+
+/* map filter to blob->data[start .. end-1]
+   beware that blob->data[end] is not modified !
+ */
+
+static inline void
+blob_map_range_real(blob_t * blob, ssize_t start, ssize_t end, blob_filter_func_t * filter)
+{
+    ssize_t i;
+
+    for ( i = start ; i < end ; i++ ) {
+        REAL(blob)->data[i] = filter(REAL(blob)->data[i]);
+    }
+}
+
 
 void blob_map(blob_t * blob, blob_filter_func_t filter)
 {
@@ -250,6 +295,30 @@ void blob_map_range(blob_t * blob, ssize_t start, ssize_t end, blob_filter_func_
 {
     blob_map_range_real(blob, start, end, filter);
 }
+
+
+void blob_ltrim(blob_t * blob)
+{
+    ssize_t i = 0;
+
+    while (isspace(REAL(blob)->data[i]) && i <= blob->len) i++;
+    blob_kill_data_real(blob, 0, i);
+}
+
+void blob_rtrim(blob_t * blob)
+{
+    ssize_t i = blob->len - 1;
+
+    while (isspace(REAL(blob)->data[i]) && i >= 0) i--;
+    blob_kill_data_real(blob, i+1, blob->len);
+}
+
+void blob_trim(blob_t * blob)
+{
+    blob_ltrim(blob);
+    blob_rtrim(blob);
+}
+
 
 /******************************************************************************/
 /* Blob comparisons                                                           */

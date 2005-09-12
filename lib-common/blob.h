@@ -47,9 +47,21 @@ void blob_append(blob_t * dest, blob_t * src);
 void blob_append_data(blob_t * blob, const void * data, ssize_t len);
 void blob_append_cstr(blob_t * blob, const unsigned char * cstr);
 
+void blob_kill_data(blob_t * blob, ssize_t pos, ssize_t len);
+void blob_kill_first(blob_t * blob, ssize_t len);
+void blob_kill_last(blob_t * blob, ssize_t len);
+
+/******************************************************************************/
+/* Blob filtering                                                             */
+/******************************************************************************/
+
 typedef int (blob_filter_func_t)(int);
 void blob_map(blob_t * blob, blob_filter_func_t * filter);
 void blob_map_range(blob_t * blob, ssize_t start, ssize_t end, blob_filter_func_t * filter);
+
+void blob_ltrim(blob_t * blob);
+void blob_rtrim(blob_t * blob);
+void blob_trim(blob_t * blob);
 
 static inline void blob_tolower(blob_t * blob)
 {
