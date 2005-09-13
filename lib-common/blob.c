@@ -340,6 +340,17 @@ int blob_icmp(blob_t * blob1, blob_t * blob2)
     return tolower(s1[pos]) - tolower(s2[pos]);
 }
 
+int blob_is_equal(blob_t * blob1, blob_t * blob2)
+{
+    if (blob1->len != blob2->len) {
+        return false;
+    }
+    if (blob1->data == blob2->data) {
+        /* safe because we know the len are equal */
+        return true;
+    }
+    return (memcmp(blob1->data, blob2->data, blob1->len) == 0);
+}
 
 /******************************************************************************/
 /* Blob parsing                                                               */

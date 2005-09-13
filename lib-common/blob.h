@@ -87,6 +87,8 @@ static inline void blob_toupper_range(blob_t * blob, ssize_t start, ssize_t end)
 int blob_cmp(blob_t * blob1, blob_t * blob2);
 int blob_icmp(blob_t * blob1, blob_t * blob2);
 
+bool blob_is_equal(blob_t * blob1, blob_t * blob2);
+
 /******************************************************************************/
 /* Blob parsing                                                               */
 /******************************************************************************/
