@@ -29,5 +29,7 @@ void array_delete_all(array_t ** array, array_item_dtor_t * dtor);
 
 ssize_t array_len(array_t * array);
 void array_append(array_t * array, void * item);
+void * array_take_real(array_t * array, ssize_t pos);
+#define array_take(type, array, pos) ((type*)(array_take_real(array, pos)))
 
 #endif

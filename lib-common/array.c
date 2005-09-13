@@ -1,3 +1,4 @@
+#include "string_is.h"
 #include "array.h"
 #include "macros.h"
 
@@ -75,4 +76,20 @@ void array_append(array_t * array, void * item)
     array_resize(array, old_len + 1);
     array->tab[old_len] = item;
 }
+
+void * array_take_real(array_t * array, ssize_t pos)
+{
+    void * ptr;
+    if (pos > array->len || pos < 0) {
+        return NULL;
+    }
+
+    ptr = array->tab[pos];
+    memmove(array->tab + pos, array->tab + pos + 1, array->len - pos - 1);
+    REAL(array)->len --;
+
+    return ptr;
+}
+
+
 
