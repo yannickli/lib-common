@@ -8,7 +8,6 @@ typedef struct
     ssize_t len;
 
     ssize_t size;
-    const pool_t * const pool;
 } real_array_t;
 
 #define ARRAY_INITIAL_SIZE 32
@@ -29,7 +28,7 @@ array_resize(array_t * array, ssize_t newsize)
     }
 
     a->size = MEM_ALIGN(newsize);
-    a->tab = system_pool->realloc(a->tab, a->size);
+    a->tab  = mem_realloc(a->tab, a->size);
 }
 
 
@@ -37,10 +36,10 @@ array_resize(array_t * array, ssize_t newsize)
 /* Memory management                                                          */
 /******************************************************************************/
 
-array_t * array_new(const pool_t * const pool)
+array_t * array_new(void)
 {
-    real_array_t * array = p_new(pool, real_array_t, 1);
-    array->tab  = p_new0(pool, void*, ARRAY_INITIAL_SIZE);
+    real_array_t * array = p_new(real_array_t, 1);
+    array->tab  = p_new0(void*, ARRAY_INITIAL_SIZE);
     array->len  = 0;
     array->size = ARRAY_INITIAL_SIZE;
 
@@ -49,7 +48,7 @@ array_t * array_new(const pool_t * const pool)
 
 void array_delete(array_t ** array)
 {
-    p_delete(REAL(*array)->pool, *array);
+    p_delete(*array);
 }
 
 void array_delete_all(array_t ** array, array_item_dtor_t * dtor)
@@ -58,7 +57,7 @@ void array_delete_all(array_t ** array, array_item_dtor_t * dtor)
     for ( i = 0 ; i < (*array)->len ; i++ ) {
         dtor((*array)->tab[i]);
     }
-    p_delete(REAL(*array)->pool, *array);
+    p_delete(*array);
 }
 
 /******************************************************************************/

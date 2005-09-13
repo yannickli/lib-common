@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-#include "mem_pool.h"
+#include "mem.h"
 
 typedef struct {
     void ** const tab;
@@ -11,7 +11,6 @@ typedef struct {
 
     /* HERE SO THAT sizeof(array) is ok */
     const ssize_t         dont_use1;
-    const pool_t  * const dont_use2;
 } array_t;
 typedef void array_item_dtor_t(void * item);
 
@@ -21,7 +20,7 @@ typedef void array_item_dtor_t(void * item);
 /* Memory management                                                          */
 /******************************************************************************/
 
-array_t * array_new(const pool_t * const pool);
+array_t * array_new(void);
 void array_delete(array_t ** array);
 void array_delete_all(array_t ** array, array_item_dtor_t * dtor);
 

@@ -4,8 +4,6 @@ TARGET=libcommon.a
 
 libcommon_OBJS = \
 	err_report.o  \
-	data_stack.o  \
-	mem_system_pool.o mem_datastack_pool.o \
 	array.o \
 	blob.o
 

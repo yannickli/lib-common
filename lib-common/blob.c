@@ -3,9 +3,8 @@
 
 #include "macros.h"
 #include "blob.h"
-#include "mem_pool.h"
+#include "mem.h"
 #include "string_is.h"
-
 
 #define INITIAL_BUFFER_SIZE 256
 
@@ -22,8 +21,6 @@ typedef struct {
     ssize_t len;
     unsigned char * data;
 
-    const pool_t * pool;   /* the pool used for allocation */
-
     /* private interface */
     unsigned char * area;  /* originally allocated bloc */
     ssize_t size;          /* allocated size */
@@ -37,14 +34,13 @@ typedef struct {
 /******************************************************************************/
 
 /* create a new, empty buffer */
-blob_t * blob_new(const pool_t * const pool)
+blob_t * blob_new(void)
 {
-    real_blob_t * blob = p_new(pool, real_blob_t, 1);
+    real_blob_t * blob = p_new(real_blob_t, 1);
 
     blob->len  = 0;
     blob->size = INITIAL_BUFFER_SIZE;
-    blob->data = p_new(pool, unsigned char, blob->size);
-    blob->pool = pool;
+    blob->data = p_new(unsigned char, blob->size);
     blob->area = blob->data;
 
     blob->data[blob->len] = 0;
@@ -53,15 +49,14 @@ blob_t * blob_new(const pool_t * const pool)
 }
 
 /* @see strdup(3) */
-blob_t * blob_dup(const pool_t * const pool, const blob_t * blob)
+blob_t * blob_dup(const blob_t * blob)
 {
-    real_blob_t * dst = p_new(pool, real_blob_t, 1);
+    real_blob_t * dst = p_new(real_blob_t, 1);
     real_blob_t * src = REAL(blob);
     dst->len  = src->len;
     dst->size = MEM_ALIGN(src->size);
-    dst->pool = pool;
 
-    dst->data = p_new(pool, unsigned char, dst->size);
+    dst->data = p_new(unsigned char, dst->size);
     dst->area = dst->data;
     memcpy(dst->data, src->data, src->len+1); /* +1 for the blob_t \0 */
 
@@ -71,9 +66,9 @@ blob_t * blob_dup(const pool_t * const pool, const blob_t * blob)
 /* XXX unlike strcat(3), blob_cat *creates* a new blob that is the
  * concatenation of two blobs.
  */
-blob_t * blob_cat(const pool_t * const pool, blob_t * blob1, blob_t * blob2)
+blob_t * blob_cat(blob_t * blob1, blob_t * blob2)
 {
-    blob_t * res = blob_dup(pool, blob1);
+    blob_t * res = blob_dup(blob1);
     blob_append(res, blob2);
     return res;
 }
@@ -95,12 +90,12 @@ void blob_resize(blob_t * blob, ssize_t newlen)
 
     newsize     = MEM_ALIGN(newlen+1);
     if (rblob->data == rblob->area) {
-        rblob->data = rblob->pool->realloc(rblob->data, newsize);
+        rblob->data = mem_realloc(rblob->data, newsize);
     } else {
         unsigned char * old_data = rblob->data;
-        rblob->data = rblob->pool->malloc(newsize);
+        rblob->data = p_new(unsigned char, newsize);
         memcpy(rblob->data, old_data, blob->len+1); /* +1 for the blob_t \0 */
-        rblob->pool->free(rblob->area);
+        p_delete(rblob->area);
     }
     rblob->area = rblob->data;
     rblob->len  = newlen;
@@ -112,8 +107,8 @@ void blob_resize(blob_t * blob, ssize_t newlen)
 /* delete a buffer. the pointer is set to 0 */
 void blob_delete(blob_t ** blob)
 {
-    p_delete(REAL(*blob)->pool, REAL(*blob)->area);
-    p_delete(REAL(*blob)->pool, *blob);
+    p_delete(REAL(*blob)->area);
+    p_delete(*blob);
 }
 
 /******************************************************************************/
