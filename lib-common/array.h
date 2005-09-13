@@ -21,7 +21,7 @@ typedef void array_item_dtor_t(void * item);
 /* Memory management                                                          */
 /******************************************************************************/
 
-array_t * array_new(const pool_t * pool);
+array_t * array_new(const pool_t * const pool);
 void array_delete(array_t ** array);
 void array_delete_all(array_t ** array, array_item_dtor_t * dtor);
 

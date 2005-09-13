@@ -22,10 +22,11 @@ typedef struct {
     ssize_t len;
     unsigned char * data;
 
+    const pool_t * pool;   /* the pool used for allocation */
+
     /* private interface */
     unsigned char * area;  /* originally allocated bloc */
     ssize_t size;          /* allocated size */
-    const pool_t * pool;   /* the pool used for allocation */
 } real_blob_t;
 
 
@@ -36,7 +37,7 @@ typedef struct {
 /******************************************************************************/
 
 /* create a new, empty buffer */
-blob_t * blob_new(const pool_t * pool)
+blob_t * blob_new(const pool_t * const pool)
 {
     real_blob_t * blob = p_new(pool, real_blob_t, 1);
 
@@ -52,7 +53,7 @@ blob_t * blob_new(const pool_t * pool)
 }
 
 /* @see strdup(3) */
-blob_t * blob_dup(const pool_t * pool, const blob_t * blob)
+blob_t * blob_dup(const pool_t * const pool, const blob_t * blob)
 {
     real_blob_t * dst = p_new(pool, real_blob_t, 1);
     real_blob_t * src = REAL(blob);
@@ -70,7 +71,7 @@ blob_t * blob_dup(const pool_t * pool, const blob_t * blob)
 /* XXX unlike strcat(3), blob_cat *creates* a new blob that is the
  * concatenation of two blobs.
  */
-blob_t * blob_cat(const pool_t * pool, blob_t * blob1, blob_t * blob2)
+blob_t * blob_cat(const pool_t * const pool, blob_t * blob1, blob_t * blob2)
 {
     blob_t * res = blob_dup(pool, blob1);
     blob_append(res, blob2);

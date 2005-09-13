@@ -8,7 +8,7 @@ typedef struct
     ssize_t len;
 
     ssize_t size;
-    const pool_t * pool;
+    const pool_t * const pool;
 } real_array_t;
 
 #define ARRAY_INITIAL_SIZE 32
@@ -37,7 +37,7 @@ array_resize(array_t * array, ssize_t newsize)
 /* Memory management                                                          */
 /******************************************************************************/
 
-array_t * array_new(const pool_t * pool)
+array_t * array_new(const pool_t * const pool)
 {
     real_array_t * array = p_new(pool, real_array_t, 1);
     array->tab  = p_new0(pool, void*, ARRAY_INITIAL_SIZE);

@@ -12,10 +12,11 @@ typedef struct {
     const ssize_t len;
     const void * const data;
 
+    const pool_t  * const pool;
+
     /* HERE SO THAT sizeof(array) is ok */
     unsigned char * const dont_use1;
     const ssize_t         dont_use2;
-    const pool_t  * const dont_use3;
 } blob_t;
 
 
@@ -23,9 +24,9 @@ typedef struct {
 /* Blob creation / deletion                                                   */
 /******************************************************************************/
 
-blob_t * blob_new(const pool_t * pool);
-blob_t * blob_dup(const pool_t * pool, const blob_t * blob);
-blob_t * blob_cat(const pool_t * pool, blob_t * blob1, blob_t * blob2);
+blob_t * blob_new(const pool_t * const pool);
+blob_t * blob_dup(const pool_t * const pool, const blob_t * blob);
+blob_t * blob_cat(const pool_t * const pool, blob_t * blob1, blob_t * blob2);
 
 void     blob_resize(blob_t * blob, ssize_t newlen);
 void     blob_delete(blob_t ** blob);

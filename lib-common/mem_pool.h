@@ -77,7 +77,7 @@ typedef struct pool_t {
 /* An implementation of pool_t that uses internally
  * malloc(3), calloc(3), free(3) and realloc(3)
  */
-extern const pool_t * system_pool;
+extern const pool_t * const system_pool;
 #define sp_new(type, count)  p_new(system_pool, type, count)
 #define sp_new0(type, count) p_new0(system_pool, type, count)
 #define sp_delete(mem)       p_delete(system_pool, mem)
@@ -85,7 +85,7 @@ extern const pool_t * system_pool;
 /* An implementation of pool_t that uses internally data stacks
  * meaning that in particular dsp_delete has no effect
  */
-extern const pool_t * ds_pool;
+extern const pool_t * const ds_pool;
 #define dsp_new(type, count)  p_new(ds_pool, type, count)
 #define dsp_new0(type, count) p_new0(ds_pool, type, count)
 #define dsp_delete(mem)       p_delete(ds_pool, mem)

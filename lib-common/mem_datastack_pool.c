@@ -64,5 +64,5 @@ static pool_t static_ds_pool = {
 /* Public API                                                                 */
 /******************************************************************************/
 
-const pool_t * ds_pool = &static_ds_pool;
+const pool_t * const ds_pool = &static_ds_pool;
 
