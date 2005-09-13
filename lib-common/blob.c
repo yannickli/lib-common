@@ -52,7 +52,7 @@ blob_t * blob_new(const pool_t * pool)
 }
 
 /* @see strdup(3) */
-blob_t * blob_dup(const pool_t * pool, blob_t * blob)
+blob_t * blob_dup(const pool_t * pool, const blob_t * blob)
 {
     real_blob_t * dst = p_new(pool, real_blob_t, 1);
     real_blob_t * src = REAL(blob);

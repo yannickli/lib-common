@@ -24,7 +24,7 @@ typedef struct {
 /******************************************************************************/
 
 blob_t * blob_new(const pool_t * pool);
-blob_t * blob_dup(const pool_t * pool, blob_t * blob);
+blob_t * blob_dup(const pool_t * pool, const blob_t * blob);
 blob_t * blob_cat(const pool_t * pool, blob_t * blob1, blob_t * blob2);
 
 void     blob_resize(blob_t * blob, ssize_t newlen);
