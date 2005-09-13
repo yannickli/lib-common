@@ -15,6 +15,8 @@ typedef struct {
 } array_t;
 typedef void array_item_dtor_t(void * item);
 
+#define array_get(type, array, pos) ((type*)((array)->tab[pos]))
+
 /******************************************************************************/
 /* Memory management                                                          */
 /******************************************************************************/
