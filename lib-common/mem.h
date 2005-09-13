@@ -1,3 +1,6 @@
+#ifndef IS_MEM_H
+#define IS_MEM_H
+
 #include <unistd.h>
 #include <stdlib.h>
 
@@ -73,3 +76,4 @@ void * mem_realloc0(void * mem, ssize_t oldsize, ssize_t newsize)
 #define p_new0(type, count)   (type*)(mem_alloc0(sizeof(type)*(count)))
 #define p_delete(mem)         ((mem) = mem_free(mem))
 
+#endif
