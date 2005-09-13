@@ -323,6 +323,24 @@ int blob_cmp(blob_t * blob1, blob_t * blob2)
     }
 }
 
+
+int blob_icmp(blob_t * blob1, blob_t * blob2)
+{
+    ssize_t len = MIN(blob1->len, blob2->len);
+    ssize_t pos = 0;
+
+    const unsigned char * s1 = REAL(blob1)->data;
+    const unsigned char * s2 = REAL(blob2)->data;
+
+    while (pos < len && tolower(s1[pos]) == tolower(s2[pos])) {
+        pos ++;
+    }
+
+    /* kludge : remember that blob->data[blob->len] == '\0' */
+    return tolower(s1[pos]) - tolower(s2[pos]);
+}
+
+
 /******************************************************************************/
 /* Blob parsing                                                               */
 /******************************************************************************/
