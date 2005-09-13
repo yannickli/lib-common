@@ -348,6 +348,28 @@ int blob_is_equal(blob_t * blob1, blob_t * blob2)
     return (memcmp(blob1->data, blob2->data, blob1->len) == 0);
 }
 
+int blob_is_iequal(blob_t * blob1, blob_t * blob2)
+{
+    ssize_t i;
+
+    if (blob1->len != blob2->len) {
+        return false;
+    }
+    if (blob1->data == blob2->data) {
+        /* safe because we know the len are equal */
+        return true;
+    }
+    
+    /* reverse comp is because strings we compare most often differ at the end
+       than at the beginning */
+    for (i = blob1->len - 1 ; i >= 0 ; i--) {
+        if (tolower(REAL(blob1)->data[i]) != tolower(REAL(blob2)->data[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /******************************************************************************/
 /* Blob parsing                                                               */
 /******************************************************************************/

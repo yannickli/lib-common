@@ -86,6 +86,7 @@ int blob_cmp(blob_t * blob1, blob_t * blob2);
 int blob_icmp(blob_t * blob1, blob_t * blob2);
 
 bool blob_is_equal(blob_t * blob1, blob_t * blob2);
+bool blob_is_iequal(blob_t * blob1, blob_t * blob2);
 
 /******************************************************************************/
 /* Blob parsing                                                               */
