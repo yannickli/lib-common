@@ -116,23 +116,6 @@ void blob_delete(blob_t ** blob)
 }
 
 /******************************************************************************/
-/* Blob properties                                                            */
-/******************************************************************************/
-
-/* returns the position of the first '\0' in the blob, or -1 if the blob has
-   none */
-ssize_t blob_is_cstr(blob_t * blob)
-{
-    ssize_t pos;
-    for (pos = 0; pos < blob->len; pos++) {
-        if (REAL(blob)->data[pos] == '\0') {
-            return pos;
-        }
-    }
-    return -1;
-}
-
-/******************************************************************************/
 /* Blob manipulations                                                         */
 /******************************************************************************/
 
