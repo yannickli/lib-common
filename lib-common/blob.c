@@ -6,7 +6,7 @@
 #include "mem.h"
 #include "string_is.h"
 
-#define INITIAL_BUFFER_SIZE 256
+#define INITIAL_BUFFER_SIZE 32
 
 /*
  * a blob has a vital invariant, making every parse function avoid buffer read
@@ -172,6 +172,25 @@ blob_kill_data_real(blob_t * blob, ssize_t pos, ssize_t len)
                 rblob->len - pos - len + 1); /* +1 for the blob_t \0 */
         rblob->size -= len;
     }
+}
+/*** set functions ***/
+
+void blob_set(blob_t * dest, blob_t * src)
+{
+    blob_resize(dest, 0);
+    blob_blit_data_real(dest, 0, src->data, src->len);
+}
+
+void blob_set_data(blob_t * blob, const void * data, ssize_t len)
+{
+    blob_resize(blob, 0);
+    blob_blit_data_real(blob, 0, data, len);
+}
+
+void blob_set_cstr(blob_t * blob, const unsigned char * cstr)
+{
+    blob_resize(blob, 0);
+    blob_blit_data_real(blob, 0, cstr, sstrlen(cstr));
 }
 
 /*** blit functions ***/
