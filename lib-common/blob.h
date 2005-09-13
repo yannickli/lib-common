@@ -86,11 +86,11 @@ static inline void blob_toupper_range(blob_t * blob, ssize_t start, ssize_t end)
 /* Blob comparisons                                                           */
 /******************************************************************************/
 
-int blob_cmp(blob_t * blob1, blob_t * blob2);
-int blob_icmp(blob_t * blob1, blob_t * blob2);
+int blob_cmp(const blob_t * blob1, const blob_t * blob2);
+int blob_icmp(const blob_t * blob1, const blob_t * blob2);
 
-bool blob_is_equal(blob_t * blob1, blob_t * blob2);
-bool blob_is_iequal(blob_t * blob1, blob_t * blob2);
+bool blob_is_equal(const blob_t * blob1, const blob_t * blob2);
+bool blob_is_iequal(const blob_t * blob1, const blob_t * blob2);
 
 /******************************************************************************/
 /* Blob parsing                                                               */

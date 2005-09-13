@@ -323,7 +323,7 @@ void blob_trim(blob_t * blob)
 /******************************************************************************/
 
 /* @see memcmp(3) */
-int blob_cmp(blob_t * blob1, blob_t * blob2)
+int blob_cmp(const blob_t * blob1, const blob_t * blob2)
 {
     if (blob1->len == blob2->len) {
         return memcmp(blob1, blob2, blob1->len);
@@ -339,7 +339,7 @@ int blob_cmp(blob_t * blob1, blob_t * blob2)
 }
 
 
-int blob_icmp(blob_t * blob1, blob_t * blob2)
+int blob_icmp(const blob_t * blob1, const blob_t * blob2)
 {
     ssize_t len = MIN(blob1->len, blob2->len);
     ssize_t pos = 0;
@@ -355,7 +355,7 @@ int blob_icmp(blob_t * blob1, blob_t * blob2)
     return tolower(s1[pos]) - tolower(s2[pos]);
 }
 
-int blob_is_equal(blob_t * blob1, blob_t * blob2)
+int blob_is_equal(const blob_t * blob1, const blob_t * blob2)
 {
     if (blob1->len != blob2->len) {
         return false;
@@ -367,7 +367,7 @@ int blob_is_equal(blob_t * blob1, blob_t * blob2)
     return (memcmp(blob1->data, blob2->data, blob1->len) == 0);
 }
 
-int blob_is_iequal(blob_t * blob1, blob_t * blob2)
+int blob_is_iequal(const blob_t * blob1, const blob_t * blob2)
 {
     ssize_t i;
 
