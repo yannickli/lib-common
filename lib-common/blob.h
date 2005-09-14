@@ -6,6 +6,7 @@
 #include <inttypes.h>
 
 #include "macros.h"
+#include "mem.h"
 
 typedef struct {
     const ssize_t len;
