@@ -48,7 +48,7 @@ array_t * array_init(array_t * array)
 
 void array_delete(array_t ** array)
 {
-    p_delete(*array);
+    p_delete(array);
 }
 
 void array_delete_all(array_t ** array, array_item_dtor_t * dtor)
@@ -57,7 +57,7 @@ void array_delete_all(array_t ** array, array_item_dtor_t * dtor)
     for ( i = 0 ; i < (*array)->len ; i++ ) {
         dtor((*array)->tab[i]);
     }
-    p_delete(*array);
+    p_delete(array);
 }
 
 /******************************************************************************/

@@ -51,7 +51,7 @@ blob_t * blob_init(blob_t * blob)
 /* delete a buffer. the pointer is set to 0 */
 void blob_deinit(blob_t * blob)
 {
-    p_delete(REAL(blob)->area);
+    p_delete(&(REAL(blob)->area));
 }
 
 /* @see strdup(3) */
@@ -101,7 +101,7 @@ void blob_resize(blob_t * blob, ssize_t newlen)
         unsigned char * old_data = rblob->data;
         rblob->data = p_new_raw(unsigned char, newsize);
         memcpy(rblob->data, old_data, blob->len+1); /* +1 for the blob_t \0 */
-        p_delete(rblob->area);
+        p_delete(&rblob->area);
     }
     rblob->area = rblob->data;
     rblob->len  = newlen;
