@@ -21,7 +21,7 @@ typedef struct {
 /* Blob creation / deletion                                                   */
 /******************************************************************************/
 
-#define  blob_new() blob_init(p_new(blob_t, 1))
+#define  blob_new() blob_init(p_new_raw(blob_t, 1))
 blob_t * blob_init(blob_t * blob);
 blob_t * blob_dup(const blob_t * blob);
 blob_t * blob_cat(blob_t * blob1, blob_t * blob2);

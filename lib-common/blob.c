@@ -40,7 +40,7 @@ blob_t * blob_init(blob_t * blob)
 
     rblob->len  = 0;
     rblob->size = INITIAL_BUFFER_SIZE;
-    rblob->data = p_new(unsigned char, rblob->size);
+    rblob->data = p_new_raw(unsigned char, rblob->size);
     rblob->area = rblob->data;
 
     rblob->data[rblob->len] = 0;
@@ -51,12 +51,12 @@ blob_t * blob_init(blob_t * blob)
 /* @see strdup(3) */
 blob_t * blob_dup(const blob_t * blob)
 {
-    real_blob_t * dst = p_new(real_blob_t, 1);
+    real_blob_t * dst = p_new_raw(real_blob_t, 1);
     real_blob_t * src = REAL(blob);
     dst->len  = src->len;
     dst->size = MEM_ALIGN(src->size);
 
-    dst->data = p_new(unsigned char, dst->size);
+    dst->data = p_new_raw(unsigned char, dst->size);
     dst->area = dst->data;
     memcpy(dst->data, src->data, src->len+1); /* +1 for the blob_t \0 */
 
@@ -93,7 +93,7 @@ void blob_resize(blob_t * blob, ssize_t newlen)
         rblob->data = mem_realloc(rblob->data, newsize);
     } else {
         unsigned char * old_data = rblob->data;
-        rblob->data = p_new(unsigned char, newsize);
+        rblob->data = p_new_raw(unsigned char, newsize);
         memcpy(rblob->data, old_data, blob->len+1); /* +1 for the blob_t \0 */
         p_delete(rblob->area);
     }

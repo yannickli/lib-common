@@ -39,7 +39,7 @@ array_resize(array_t * array, ssize_t newsize)
 array_t * array_init(array_t * array)
 {
     real_array_t * rarray = REAL(rarray);
-    rarray->tab  = p_new0(void*, ARRAY_INITIAL_SIZE);
+    rarray->tab  = p_new(void*, ARRAY_INITIAL_SIZE);
     rarray->len  = 0;
     rarray->size = ARRAY_INITIAL_SIZE;
 
