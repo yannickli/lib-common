@@ -96,15 +96,7 @@ bool blob_is_iequal(const blob_t * blob1, const blob_t * blob2);
 /* Blob parsing                                                               */
 /******************************************************************************/
 
-enum blob_parse_status {
-    BP_OK     = 0,
-    BP_EPARSE = -1,
-    BP_ERANGE = -2,
-};
-
-static inline bool blob_eop(blob_t * blob, ssize_t pos) {
-    return blob->len == pos;
-}
+#include "parse.h"
 
 /* general things about parsing functions :
  

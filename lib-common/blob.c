@@ -405,7 +405,7 @@ int blob_is_iequal(const blob_t * blob1, const blob_t * blob2)
        represent the length of the parsed string (not
        including the leading \0)
 
-     BP_EPARSE
+     PARSE_EPARSE
        no \0 was found before the end of the blob
  */
 
@@ -424,14 +424,14 @@ ssize_t blob_parse_cstr(blob_t * blob, ssize_t * pos, const unsigned char ** ans
         walk ++;
     }
 
-    return BP_EPARSE;
+    return PARSE_EPARSE;
 }
 
 /* @returns :
 
      0         : no error
-     BP_EPARSE : equivalent to EINVAL for strtol(3)
-     BP_ERANGE : resulting value out of range.
+     PARSE_EPARSE : equivalent to EINVAL for strtol(3)
+     PARSE_ERANGE : resulting value out of range.
  */
 
 int blob_parse_long(blob_t * blob, ssize_t * pos, int base, long * answer)
@@ -444,15 +444,15 @@ int blob_parse_long(blob_t * blob, ssize_t * pos, int base, long * answer)
     endpos = (byte *)endptr - blob->data;
 
     if (errno == ERANGE) {
-        return BP_ERANGE;
+        return PARSE_ERANGE;
     }
     if (errno == EINVAL || endpos > blob->len) {
-        return BP_EPARSE;
+        return PARSE_EPARSE;
     }
 
     *answer = number;
     *pos    = endpos;
-    return BP_OK;
+    return PARSE_OK;
     
 }
 
@@ -466,15 +466,15 @@ int blob_parse_double(blob_t * blob, ssize_t * pos, double * answer)
     endpos = (byte *)endptr - blob->data;
 
     if (errno == ERANGE) {
-        return BP_ERANGE;
+        return PARSE_ERANGE;
     }
     if (endpos > blob->len) {
-        return BP_EPARSE;
+        return PARSE_EPARSE;
     }
 
     *answer = number;
     *pos    = endpos;
-    return BP_OK;
+    return PARSE_OK;
     
 }
 
@@ -485,24 +485,24 @@ int blob_parse_double(blob_t * blob, ssize_t * pos, double * answer)
 int blob_parse_uint8(blob_t * blob, ssize_t *pos, uint8_t * answer)
 {
     *answer = REAL(blob)->data[(*pos)++];
-    return BP_OK;
+    return PARSE_OK;
 }
 
 int blob_parse_uint16(blob_t * blob, ssize_t *pos, uint16_t *answer)
 {
     if (*pos + 2 > blob->len) {
-        return BP_EPARSE;
+        return PARSE_EPARSE;
     }
     *answer   = REAL(blob)->data[(*pos)++];
     *answer <<= 8;
     *answer  |= REAL(blob)->data[(*pos)++];
-    return BP_OK;
+    return PARSE_OK;
 }
 
 int blob_parse_uint32(blob_t * blob, ssize_t *pos, uint32_t *answer)
 {
     if (*pos + 4 > blob->len) {
-        return BP_EPARSE;
+        return PARSE_EPARSE;
     }
     *answer   = REAL(blob)->data[(*pos)++];
     *answer <<= 8;
@@ -511,7 +511,7 @@ int blob_parse_uint32(blob_t * blob, ssize_t *pos, uint32_t *answer)
     *answer  |= REAL(blob)->data[(*pos)++];
     *answer <<= 8;
     *answer  |= REAL(blob)->data[(*pos)++];
-    return BP_OK;
+    return PARSE_OK;
 }
 
 int blob_parse_uintv (blob_t * blob, ssize_t *pos, uint32_t * answer)
@@ -526,14 +526,14 @@ int blob_parse_uintv (blob_t * blob, ssize_t *pos, uint32_t * answer)
         if ((c & 0x80) == 0) {
             *answer = value;
             *pos    = walk;
-            return BP_OK;
+            return PARSE_OK;
         }
         if ((value & 0xfe000000) != 0) {
-            return BP_ERANGE;
+            return PARSE_ERANGE;
         }
     }
 
-    return BP_EPARSE;
+    return PARSE_EPARSE;
 }
 
 /******************************************************************************/
