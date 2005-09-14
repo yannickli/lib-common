@@ -98,28 +98,6 @@ bool blob_is_iequal(const blob_t * blob1, const blob_t * blob2);
 
 #include "parse.h"
 
-/* general things about parsing functions :
- 
-Arguments :
-   in case of successful parse, pos is positionned at the octet just after the
-   last parsed octet, or after NULs in case of c-str-like tokens.
-
-   in case of error, pos, answer and other function-modified arguments are never
-   modified.
-
-Return values:
-   
-   negative return values are always an error.
-   0 return value is always a success.
-   positive return values are a success, and generally have a special meaning.
-
-Notes:
-
-   parse function assume pos is in the blob.
-   though, they may return a pos that is equal to blob->len, meaning that the
-   parse has reach its end.
- */
-
 ssize_t blob_parse_cstr(blob_t * blob, ssize_t * pos, const unsigned char ** answer);
 int     blob_parse_long(blob_t * blob, ssize_t * pos, int base, long * answer);
 int     blob_parse_double(blob_t * blob, ssize_t * pos, double * answer);
