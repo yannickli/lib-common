@@ -9,7 +9,7 @@
 
 typedef struct {
     const ssize_t len;
-    const void * const data;
+    const byte * const data;
 
     /* HERE SO THAT sizeof(array) is ok */
     unsigned char * const dont_use1;

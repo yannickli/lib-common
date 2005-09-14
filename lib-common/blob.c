@@ -440,8 +440,8 @@ int blob_parse_long(blob_t * blob, ssize_t * pos, int base, long * answer)
     ssize_t endpos;
     long    number;
     
-    number = strtol(blob->data + *pos, &endptr, base);
-    endpos = (void *)endptr - blob->data;
+    number = strtol((char *)blob->data + *pos, &endptr, base);
+    endpos = (byte *)endptr - blob->data;
 
     if (errno == ERANGE) {
         return BP_ERANGE;
@@ -462,8 +462,8 @@ int blob_parse_double(blob_t * blob, ssize_t * pos, double * answer)
     ssize_t endpos;
     double  number;
     
-    number = strtod(blob->data + *pos, &endptr);
-    endpos = (void *)endptr - blob->data;
+    number = strtod((char *)blob->data + *pos, &endptr);
+    endpos = (byte *)endptr - blob->data;
 
     if (errno == ERANGE) {
         return BP_ERANGE;
