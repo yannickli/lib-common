@@ -20,7 +20,7 @@
 typedef struct {
     /* public interface */
     ssize_t len;
-    unsigned char * data;
+    byte * data;
 
     /* private interface */
     unsigned char * area;  /* originally allocated bloc */
@@ -409,7 +409,7 @@ int blob_is_iequal(const blob_t * blob1, const blob_t * blob2)
        no \0 was found before the end of the blob
  */
 
-ssize_t blob_parse_cstr(blob_t * blob, ssize_t * pos, const unsigned char ** answer)
+ssize_t blob_parse_cstr(blob_t * blob, ssize_t * pos, const char ** answer)
 {
     real_blob_t * rblob = REAL(blob);
     ssize_t walk = *pos;
@@ -417,7 +417,7 @@ ssize_t blob_parse_cstr(blob_t * blob, ssize_t * pos, const unsigned char ** ans
     while (walk < blob->len) {
         if (rblob->data[walk] != '\0') {
             ssize_t len = walk - *pos;
-            *answer = rblob->data + *pos;
+            *answer = (char *)rblob->data + *pos;
             *pos    = walk+1;
             return len;
         }
