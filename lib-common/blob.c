@@ -409,7 +409,7 @@ int blob_is_iequal(const blob_t * blob1, const blob_t * blob2)
        no \0 was found before the end of the blob
  */
 
-ssize_t blob_parse_cstr(blob_t * blob, ssize_t * pos, const char ** answer)
+ssize_t blob_parse_cstr(const blob_t * blob, ssize_t * pos, const char ** answer)
 {
     real_blob_t * rblob = REAL(blob);
     ssize_t walk = *pos;
@@ -434,7 +434,7 @@ ssize_t blob_parse_cstr(blob_t * blob, ssize_t * pos, const char ** answer)
      PARSE_ERANGE : resulting value out of range.
  */
 
-int blob_parse_long(blob_t * blob, ssize_t * pos, int base, long * answer)
+int blob_parse_long(const blob_t * blob, ssize_t * pos, int base, long * answer)
 {
     char *  endptr;
     ssize_t endpos;
@@ -456,7 +456,7 @@ int blob_parse_long(blob_t * blob, ssize_t * pos, int base, long * answer)
     
 }
 
-int blob_parse_double(blob_t * blob, ssize_t * pos, double * answer)
+int blob_parse_double(const blob_t * blob, ssize_t * pos, double * answer)
 {
     char *  endptr;
     ssize_t endpos;
@@ -482,13 +482,13 @@ int blob_parse_double(blob_t * blob, ssize_t * pos, double * answer)
  * wsp types
  */
 
-int blob_parse_uint8(blob_t * blob, ssize_t *pos, uint8_t * answer)
+int blob_parse_uint8(const blob_t * blob, ssize_t *pos, uint8_t * answer)
 {
     *answer = REAL(blob)->data[(*pos)++];
     return PARSE_OK;
 }
 
-int blob_parse_uint16(blob_t * blob, ssize_t *pos, uint16_t *answer)
+int blob_parse_uint16(const blob_t * blob, ssize_t *pos, uint16_t *answer)
 {
     if (*pos + 2 > blob->len) {
         return PARSE_EPARSE;
@@ -499,7 +499,7 @@ int blob_parse_uint16(blob_t * blob, ssize_t *pos, uint16_t *answer)
     return PARSE_OK;
 }
 
-int blob_parse_uint32(blob_t * blob, ssize_t *pos, uint32_t *answer)
+int blob_parse_uint32(const blob_t * blob, ssize_t *pos, uint32_t *answer)
 {
     if (*pos + 4 > blob->len) {
         return PARSE_EPARSE;
@@ -514,7 +514,7 @@ int blob_parse_uint32(blob_t * blob, ssize_t *pos, uint32_t *answer)
     return PARSE_OK;
 }
 
-int blob_parse_uintv (blob_t * blob, ssize_t *pos, uint32_t * answer)
+int blob_parse_uintv (const blob_t * blob, ssize_t *pos, uint32_t * answer)
 {
     uint32_t value = 0;
     ssize_t  walk  = *pos;

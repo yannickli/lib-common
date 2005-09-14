@@ -1,4 +1,8 @@
 /* general things about parsing functions :
+
+
+signed_int_type
+`header'_parse_`what_it_parse' (const blob_t * blob, ssize_t * pos, foo ** answer)
  
 Arguments :
    in case of successful parse, pos is positionned at the octet just after the
@@ -6,6 +10,11 @@ Arguments :
 
    in case of error, pos, answer and other function-modified arguments are never
    modified.
+
+   if answer is a `const foo **' it means that the parse function will return a
+   lazy pointer to a portion of the blob (e.g. const char **).
+   in any other cases, if answer is NULL, a data of type `foo ' is allocated,
+   else, current answer is reused, and assumed to be allocated.
 
 Return values:
    
@@ -15,9 +24,12 @@ Return values:
 
 Notes:
 
-   parse function assume pos is in the blob.
-   though, they may return a pos that is equal to blob->len, meaning that the
-   parse has reach its end.
+   parse function assume pos is in the blob and must ensure that the returned
+   pos is at most equal to blob->len
+
+   a pos value equal to blob->len is legal and mean that end of pars has been
+   reached.
+
  */
 
 #ifndef IS_PARSE_H
