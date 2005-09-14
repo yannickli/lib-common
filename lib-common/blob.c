@@ -48,6 +48,12 @@ blob_t * blob_init(blob_t * blob)
     return (blob_t*) rblob;
 }
 
+/* delete a buffer. the pointer is set to 0 */
+void blob_deinit(blob_t * blob)
+{
+    p_delete(REAL(blob)->area);
+}
+
 /* @see strdup(3) */
 blob_t * blob_dup(const blob_t * blob)
 {
@@ -102,13 +108,6 @@ void blob_resize(blob_t * blob, ssize_t newlen)
     rblob->size = newsize;
 
     rblob->data[rblob->len] = 0;
-}
-
-/* delete a buffer. the pointer is set to 0 */
-void blob_delete(blob_t ** blob)
-{
-    p_delete(REAL(*blob)->area);
-    p_delete(*blob);
 }
 
 /******************************************************************************/

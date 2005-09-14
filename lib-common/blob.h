@@ -23,11 +23,13 @@ typedef struct {
 
 #define  blob_new() blob_init(p_new_raw(blob_t, 1))
 blob_t * blob_init(blob_t * blob);
+void     blob_deinit(blob_t * blob);
+#define  blob_delete(blob)  (blob_deinit(*blob), p_delete(*(blob)))
+
 blob_t * blob_dup(const blob_t * blob);
 blob_t * blob_cat(blob_t * blob1, blob_t * blob2);
 
 void     blob_resize(blob_t * blob, ssize_t newlen);
-void     blob_delete(blob_t ** blob);
 
 /******************************************************************************/
 /* Blob manipulations                                                         */
