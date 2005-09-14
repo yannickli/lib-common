@@ -22,6 +22,9 @@ Return values:
    0 return value is always a success.
    positive return values are a success, and generally have a special meaning.
 
+   parse functions that returns const char ** usualy return the strlen of the
+   char **.
+
 Notes:
 
    parse function assume pos is in the blob and must ensure that the returned
