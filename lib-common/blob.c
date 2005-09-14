@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/param.h>
 
 #include "macros.h"
 #include "blob.h"

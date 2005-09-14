@@ -50,11 +50,4 @@ typedef int bool;
 
 #define countof(table) ((int)(sizeof(table)) / sizeof(table[0]))
 
-/******************************************************************************/
-/* MISC macros                                                                */
-/******************************************************************************/
-
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) MIN(b, a)
-
 #endif
