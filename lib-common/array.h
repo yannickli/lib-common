@@ -7,10 +7,10 @@
 
 typedef struct {
     void ** const tab;
-    const ssize_t len;
+    ssize_t const len;
 
     /* HERE SO THAT sizeof(array) is ok */
-    const ssize_t         dont_use1;
+    ssize_t const __size;
 } array_t;
 typedef void array_item_dtor_t(void * item);
 
@@ -20,7 +20,8 @@ typedef void array_item_dtor_t(void * item);
 /* Memory management                                                          */
 /******************************************************************************/
 
-array_t * array_new(void);
+#define array_new() array_init(p_new(array_t, 1))
+array_t * array_init(array_t * array);
 void array_delete(array_t ** array);
 void array_delete_all(array_t ** array, array_item_dtor_t * dtor);
 

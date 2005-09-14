@@ -11,10 +11,7 @@ Arguments :
    in case of error, pos, answer and other function-modified arguments are never
    modified.
 
-   if answer is a `const foo **' it means that the parse function will return a
-   lazy pointer to a portion of the blob (e.g. const char **).
-   in any other cases, if answer is NULL, a data of type `foo ' is allocated,
-   else, current answer is reused, and assumed to be allocated.
+   output variable answer has to point on a valid *and* initialized value.
 
 Return values:
    

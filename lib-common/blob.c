@@ -27,7 +27,6 @@ typedef struct {
     ssize_t size;          /* allocated size */
 } real_blob_t;
 
-
 #define REAL(blob) ((real_blob_t*)(blob))
 
 /******************************************************************************/
@@ -35,18 +34,18 @@ typedef struct {
 /******************************************************************************/
 
 /* create a new, empty buffer */
-blob_t * blob_new(void)
+blob_t * blob_init(blob_t * blob)
 {
-    real_blob_t * blob = p_new(real_blob_t, 1);
+    real_blob_t * rblob = REAL(blob);
 
-    blob->len  = 0;
-    blob->size = INITIAL_BUFFER_SIZE;
-    blob->data = p_new(unsigned char, blob->size);
-    blob->area = blob->data;
+    rblob->len  = 0;
+    rblob->size = INITIAL_BUFFER_SIZE;
+    rblob->data = p_new(unsigned char, rblob->size);
+    rblob->area = rblob->data;
 
-    blob->data[blob->len] = 0;
+    rblob->data[rblob->len] = 0;
 
-    return (blob_t*) blob;
+    return (blob_t*) rblob;
 }
 
 /* @see strdup(3) */
@@ -534,17 +533,5 @@ int blob_parse_uintv (const blob_t * blob, ssize_t *pos, uint32_t * answer)
     }
 
     return PARSE_EPARSE;
-}
-
-/******************************************************************************/
-/* Module init                                                                */
-/******************************************************************************/
-
-void blob_init(void)
-{
-}
-
-void blob_deinit(void)
-{
 }
 

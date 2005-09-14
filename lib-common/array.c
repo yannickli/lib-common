@@ -36,12 +36,12 @@ array_resize(array_t * array, ssize_t newsize)
 /* Memory management                                                          */
 /******************************************************************************/
 
-array_t * array_new(void)
+array_t * array_init(array_t * array)
 {
-    real_array_t * array = p_new(real_array_t, 1);
-    array->tab  = p_new0(void*, ARRAY_INITIAL_SIZE);
-    array->len  = 0;
-    array->size = ARRAY_INITIAL_SIZE;
+    real_array_t * rarray = REAL(rarray);
+    rarray->tab  = p_new0(void*, ARRAY_INITIAL_SIZE);
+    rarray->len  = 0;
+    rarray->size = ARRAY_INITIAL_SIZE;
 
     return (array_t *)array;
 }

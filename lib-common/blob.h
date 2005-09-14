@@ -21,7 +21,8 @@ typedef struct {
 /* Blob creation / deletion                                                   */
 /******************************************************************************/
 
-blob_t * blob_new(void);
+#define  blob_new() blob_init(p_new(blob_t, 1))
+blob_t * blob_init(blob_t * blob);
 blob_t * blob_dup(const blob_t * blob);
 blob_t * blob_cat(blob_t * blob1, blob_t * blob2);
 
@@ -108,13 +109,5 @@ int     blob_parse_uint8 (const blob_t * blob, ssize_t *pos, uint8_t  * answer);
 int     blob_parse_uint16(const blob_t * blob, ssize_t *pos, uint16_t * answer);
 int     blob_parse_uint32(const blob_t * blob, ssize_t *pos, uint32_t * answer);
 int     blob_parse_uintv (const blob_t * blob, ssize_t *pos, uint32_t * answer);
-
-
-/******************************************************************************/
-/* Module init                                                                */
-/******************************************************************************/
-
-void blob_init(void);
-void blob_deinit(void);
 
 #endif
