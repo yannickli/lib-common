@@ -113,12 +113,12 @@ int     blob_parse_uint16(const blob_t * blob, ssize_t *pos, uint16_t * answer);
 int     blob_parse_uint32(const blob_t * blob, ssize_t *pos, uint32_t * answer);
 int     blob_parse_uintv (const blob_t * blob, ssize_t *pos, uint32_t * answer);
 
-/*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 #include <check.h>
 
 Suite *make_blob_suite(void);
 
 #endif
-/*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
 #endif

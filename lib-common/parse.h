@@ -13,6 +13,8 @@ Arguments :
 
    output variable answer has to point on a valid *and* initialized value.
 
+   if the ponter on the output variable is NULL, data is eaten.
+
 Return values:
    
    negative return values are always an error.
@@ -35,6 +37,8 @@ Notes:
 #ifndef IS_PARSE_H
 #define IS_PARSE_H
 
+#include "blob.h"
+
 enum blob_parse_status {
     PARSE_OK     = 0,
     PARSE_EPARSE = -1,
@@ -44,6 +48,9 @@ enum blob_parse_status {
 static inline bool blob_eop(blob_t * blob, ssize_t pos) {
     return blob->len == pos;
 }
+
+#define PARSE_SET_RESULT(var, value) \
+    if ((var) != NULL) *(var) = (value)
 
 
 #endif
