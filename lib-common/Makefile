@@ -8,4 +8,3 @@ libcommon_OBJS = \
 	blob.o
 
 include ../admin/default.mk
-include ../admin/check.mk
