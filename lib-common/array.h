@@ -22,8 +22,8 @@ typedef void array_item_dtor_t(void * item);
 
 #define array_new() array_init(p_new_raw(array_t, 1))
 array_t * array_init(array_t * array);
-void array_delete(array_t ** array);
-void array_delete_all(array_t ** array, array_item_dtor_t * dtor);
+void array_wipe(array_t * array, array_item_dtor_t * dtor);
+void array_delete(array_t ** array, array_item_dtor_t * dtor);
 
 /******************************************************************************/
 /* Misc                                                                       */
