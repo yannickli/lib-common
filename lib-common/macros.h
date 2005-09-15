@@ -43,7 +43,7 @@ typedef unsigned char byte;
 
 #define MEM_ALIGN_SIZE  8
 #define MEM_ALIGN(size) \
-    ( ((size) + MEM_ALIGN_SIZE - 1) & ~((unsigned int) MEM_ALIGN_SIZE-1) )
+    ( ((size) + MEM_ALIGN_SIZE - 1) & ~((ssize_t) MEM_ALIGN_SIZE-1) )
 
 #define FREE(ptr) do {  \
     free(ptr);          \
