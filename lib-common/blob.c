@@ -51,8 +51,10 @@ blob_t * blob_init(blob_t * blob)
 /* delete a buffer. the pointer is set to 0 */
 void blob_wipe(blob_t * blob)
 {
-    p_delete(&(REAL(blob)->area));
-    REAL(blob)->data = NULL;
+    if (blob) {
+        p_delete(&(REAL(blob)->area));
+        REAL(blob)->data = NULL;
+    }
 }
 
 /* @see strdup(3) */
