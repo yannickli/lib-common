@@ -13,8 +13,8 @@ typedef struct {
     const byte * const data;
 
     /* HERE SO THAT sizeof(array) is ok */
-    unsigned char * const dont_use1;
-    const ssize_t         dont_use2;
+    unsigned char * const __area;
+    const ssize_t         __size;
 } blob_t;
 
 
@@ -113,4 +113,12 @@ int     blob_parse_uint16(const blob_t * blob, ssize_t *pos, uint16_t * answer);
 int     blob_parse_uint32(const blob_t * blob, ssize_t *pos, uint32_t * answer);
 int     blob_parse_uintv (const blob_t * blob, ssize_t *pos, uint32_t * answer);
 
+/*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+#ifdef CHECK
+#include <check.h>
+
+Suite *make_blob_suite(void);
+
+#endif
+/*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 #endif

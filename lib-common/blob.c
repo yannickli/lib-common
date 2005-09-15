@@ -534,3 +534,57 @@ int blob_parse_uintv (const blob_t * blob, ssize_t *pos, uint32_t * answer)
     return PARSE_EPARSE;
 }
 
+/*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+#ifdef CHECK
+
+static inline void ensure_blob_invariants(blob_t * blob)
+{
+    fail_if(blob->data[blob->len] != '\0', \
+            "a blob must have data[len] set to `\0', `%c' found",
+            blob->data[blob->len]);
+    fail_if(blob->len >= REAL(blob)->size,
+            "a blob must have `len < size'. this one has `len = %d' and `size = %d'",
+            blob->len, REAL(blob)->size);
+}
+
+START_TEST (blob_init_deinit)
+{
+    blob_t blob;
+    blob_init(&blob);
+    fail_if(blob.len != 0,      "initalized blob MUST have `len' = 0, but has `len = %d'", blob.len);
+    fail_if(blob.data == NULL,  "initalized blob MUST have a valid `data'");
+    ensure_blob_invariants(&blob);
+
+    blob_deinit(&blob);
+    fail_if(blob.data != NULL,  "deinitialized blob MUST have `data' set to NULL");
+    fail_if(blob.__area != NULL,  "deinitialized blob MUST have `area' set to NULL");
+}
+END_TEST
+
+START_TEST (test_blob_new)
+{
+    blob_t * blob = blob_new();
+    fail_if(blob == NULL,        "no blob was allocated");
+    fail_if(blob->len != 0,      "new blob MUST have `len 0', but has `len = %d'", blob->len);
+    fail_if(blob->data == NULL,  "new blob MUST have a valid `data'");
+    ensure_blob_invariants(blob);
+    blob_delete(&blob);
+}
+END_TEST
+
+
+
+Suite *make_blob_suite(void)
+{
+    Suite *s  = suite_create("Blob");
+    TCase *tc = tcase_create("Core");
+
+    suite_add_tcase(s, tc);
+    tcase_add_test(tc, blob_init_deinit);
+    tcase_add_test(tc, test_blob_new);
+
+    return s;
+}
+
+#endif
+/*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
