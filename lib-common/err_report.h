@@ -52,5 +52,5 @@ void e_init_syslog(const char * ident, int options, int facility);
 
 void e_set_verbosity(int max_debug_level);
 
-void e_deinit(void);
+void e_shutdown(void);
 #endif

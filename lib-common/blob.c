@@ -49,7 +49,7 @@ blob_t * blob_init(blob_t * blob)
 }
 
 /* delete a buffer. the pointer is set to 0 */
-void blob_deinit(blob_t * blob)
+void blob_wipe(blob_t * blob)
 {
     p_delete(&(REAL(blob)->area));
     REAL(blob)->data = NULL;
@@ -548,7 +548,7 @@ static inline void ensure_blob_invariants(blob_t * blob)
             blob->len, REAL(blob)->size);
 }
 
-START_TEST (blob_init_deinit)
+START_TEST (blob_init_wipe)
 {
     blob_t blob;
     blob_init(&blob);
@@ -556,9 +556,9 @@ START_TEST (blob_init_deinit)
     fail_if(blob.data == NULL,  "initalized blob MUST have a valid `data'");
     ensure_blob_invariants(&blob);
 
-    blob_deinit(&blob);
-    fail_if(blob.data != NULL,  "deinitialized blob MUST have `data' set to NULL");
-    fail_if(blob.__area != NULL,  "deinitialized blob MUST have `area' set to NULL");
+    blob_wipe(&blob);
+    fail_if(blob.data != NULL,  "wiped blob MUST have `data' set to NULL");
+    fail_if(blob.__area != NULL,  "wiped blob MUST have `area' set to NULL");
 }
 END_TEST
 
@@ -581,7 +581,7 @@ Suite *make_blob_suite(void)
     TCase *tc = tcase_create("Core");
 
     suite_add_tcase(s, tc);
-    tcase_add_test(tc, blob_init_deinit);
+    tcase_add_test(tc, blob_init_wipe);
     tcase_add_test(tc, test_blob_new);
 
     return s;

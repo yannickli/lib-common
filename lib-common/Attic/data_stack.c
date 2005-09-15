@@ -312,7 +312,7 @@ ssize_t max_safe_size(void * mem)
     return 0;
 }
 
-void ds_init()
+void ds_initialize()
 {
     if (current.fpos >= 0) {
         e_warning(E_PREFIX("ds_init() called twice"));
@@ -323,7 +323,7 @@ void ds_init()
     current.block = mem_block_alloc(MIN_BLOCK_SIZE);
 }
 
-void ds_deinit()
+void ds_shutdown()
 {
     frame_t * frame;
 

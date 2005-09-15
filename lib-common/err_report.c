@@ -91,7 +91,7 @@ static e_c_t * debug_handler   = file_debug_handler;
 
 static void init_file(const char * ident, FILE * file)
 {
-    e_deinit();
+    e_shutdown();
     log_state.fd = (file == NULL) ? stderr : file;
     set_log_ident(ident);
     (void)e_set_fatal_handler(&file_fatal_handler);
@@ -183,7 +183,7 @@ void e_init_file(const char * ident, const char * filename)
 
 void e_init_syslog(const char * ident, int options, int facility)
 {
-    e_deinit();
+    e_shutdown();
 
     openlog(ident, options, facility);
     log_state.is_open = true;
@@ -201,7 +201,7 @@ void e_set_verbosity(int max_debug_level) {
     verbosity = max_debug_level;
 }
 
-void e_deinit()
+void e_shutdown()
 {
     if (log_state.is_open) {
         closelog();
