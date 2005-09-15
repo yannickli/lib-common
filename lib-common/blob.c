@@ -52,6 +52,7 @@ blob_t * blob_init(blob_t * blob)
 void blob_deinit(blob_t * blob)
 {
     p_delete(&(REAL(blob)->area));
+    REAL(blob)->data = NULL;
 }
 
 /* @see strdup(3) */
