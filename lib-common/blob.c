@@ -554,14 +554,15 @@ static inline void ensure_blob_invariants(blob_t * blob)
             blob->data[blob->len]);
 }
 
-static inline void setup(blob_t blob, const char * data)
+static inline void setup(blob_t * blob, const char * data)
 {
-    blob_set_cstr(&blob, data);
+    blob_init(blob);
+    blob_set_cstr(blob, data);
 }
 
-static inline void teardown(blob_t blob, blob_t **blob2)
+static inline void teardown(blob_t * blob, blob_t **blob2)
 {
-    blob_wipe(&blob);
+    blob_wipe(blob);
     if (blob2 && *blob2) {
         blob_delete(blob2);
     }
@@ -624,7 +625,7 @@ START_TEST (test_dup)
     blob_t blob;
     blob_t * bdup; 
 
-    setup(blob, "toto string");
+    setup(&blob, "toto string");
     bdup = blob_dup(&blob);
     ensure_blob_invariants(bdup);
 
@@ -633,7 +634,7 @@ START_TEST (test_dup)
         fail("original and dupped blob don't have the same content");
     }
 
-    teardown(blob, &bdup);
+    teardown(&blob, &bdup);
 }
 END_TEST
 
@@ -643,7 +644,7 @@ START_TEST(test_cat)
     blob_t * bcat;
     const blob_t * b2 = &b1;
 
-    setup(b1, "toto");
+    setup(&b1, "toto");
     bcat = blob_cat(&b1, b2);
     ensure_blob_invariants(bcat);
 
@@ -655,7 +656,7 @@ START_TEST(test_cat)
         fail("blob_cat-ed blob is not the concatenation of the orginal blobs");
     }
 
-    teardown(b1, &bcat);
+    teardown(&b1, &bcat);
 }
 END_TEST
 
