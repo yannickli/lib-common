@@ -117,7 +117,7 @@ int     blob_parse_uintv (const blob_t * blob, ssize_t *pos, uint32_t * answer);
 #ifdef CHECK
 #include <check.h>
 
-Suite *make_blob_suite(void);
+Suite *check_make_blob_suite(void);
 
 #endif
 /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/

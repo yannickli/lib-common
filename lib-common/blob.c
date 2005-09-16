@@ -571,7 +571,7 @@ static inline void teardown(blob_t * blob, blob_t **blob2)
 /*.........................................................................}}}*/
 /* tests legacy functions                                                  {{{*/
 
-START_TEST (blob_init_wipe)
+START_TEST (check_init_wipe)
 {
     blob_t blob;
     blob_init(&blob);
@@ -586,7 +586,7 @@ START_TEST (blob_init_wipe)
 }
 END_TEST
 
-START_TEST (test_blob_new)
+START_TEST (check_blob_new)
 {
     blob_t * blob = blob_new();
 
@@ -603,7 +603,7 @@ END_TEST
 /*.........................................................................}}}*/
 /* test set functions                                                      {{{*/
 
-START_TEST (test_set)
+START_TEST (check_set)
 {
     blob_t blob;
     blob_init (&blob);
@@ -620,7 +620,7 @@ END_TEST
 /*.........................................................................}}}*/
 /* test blob_dup / blob_cat / blob_resize                                  {{{*/
 
-START_TEST (test_dup)
+START_TEST (check_dup)
 {
     blob_t blob;
     blob_t * bdup; 
@@ -638,7 +638,7 @@ START_TEST (test_dup)
 }
 END_TEST
 
-START_TEST(test_cat)
+START_TEST(check_cat)
 {
     blob_t b1;
     blob_t * bcat;
@@ -663,17 +663,17 @@ END_TEST
 /*.........................................................................}}}*/
 /* public testing API                                                      {{{*/
 
-Suite *make_blob_suite(void)
+Suite *check_make_blob_suite(void)
 {
     Suite *s  = suite_create("Blob");
     TCase *tc = tcase_create("Core");
 
     suite_add_tcase(s, tc);
-    tcase_add_test(tc, blob_init_wipe);
-    tcase_add_test(tc, test_blob_new);
-    tcase_add_test(tc, test_set);
-    tcase_add_test(tc, test_dup);
-    tcase_add_test(tc, test_cat);
+    tcase_add_test(tc, check_init_wipe);
+    tcase_add_test(tc, check_blob_new);
+    tcase_add_test(tc, check_set);
+    tcase_add_test(tc, check_dup);
+    tcase_add_test(tc, check_cat);
 
     return s;
 }

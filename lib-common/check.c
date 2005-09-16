@@ -8,7 +8,7 @@ int main(void)
     int nf;
     SRunner * sr = srunner_create(NULL);
 
-    srunner_add_suite(sr, make_blob_suite());
+    srunner_add_suite(sr, check_make_blob_suite());
 
     srunner_run_all(sr, CK_NORMAL);
     nf = srunner_ntests_failed(sr);
