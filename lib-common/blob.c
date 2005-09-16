@@ -23,8 +23,8 @@ typedef struct {
     byte * data;
 
     /* private interface */
-    unsigned char * area;  /* originally allocated bloc */
-    ssize_t size;          /* allocated size */
+    byte * area;   /* originally allocated bloc */
+    ssize_t size;  /* allocated size */
 } real_blob_t;
 
 #define REAL(blob) ((real_blob_t*)(blob))
@@ -40,7 +40,7 @@ blob_t * blob_init(blob_t * blob)
 
     rblob->len  = 0;
     rblob->size = INITIAL_BUFFER_SIZE;
-    rblob->data = p_new_raw(unsigned char, rblob->size);
+    rblob->data = p_new_raw(byte, rblob->size);
     rblob->area = rblob->data;
 
     rblob->data[rblob->len] = 0;
@@ -65,7 +65,7 @@ blob_t * blob_dup(const blob_t * blob)
     dst->len  = src->len;
     dst->size = MEM_ALIGN(src->size);
 
-    dst->data = p_new_raw(unsigned char, dst->size);
+    dst->data = p_new_raw(byte, dst->size);
     dst->area = dst->data;
     memcpy(dst->data, src->data, src->len+1); /* +1 for the blob_t \0 */
 
@@ -75,7 +75,7 @@ blob_t * blob_dup(const blob_t * blob)
 /* XXX unlike strcat(3), blob_cat *creates* a new blob that is the
  * concatenation of two blobs.
  */
-blob_t * blob_cat(blob_t * blob1, blob_t * blob2)
+blob_t * blob_cat(const blob_t * blob1, const blob_t * blob2)
 {
     blob_t * res = blob_dup(blob1);
     blob_append(res, blob2);
@@ -101,8 +101,8 @@ void blob_resize(blob_t * blob, ssize_t newlen)
     if (rblob->data == rblob->area) {
         rblob->data = mem_realloc(rblob->data, newsize);
     } else {
-        unsigned char * old_data = rblob->data;
-        rblob->data = p_new_raw(unsigned char, newsize);
+        byte * old_data = rblob->data;
+        rblob->data = p_new_raw(byte, newsize);
         memcpy(rblob->data, old_data, blob->len+1); /* +1 for the blob_t \0 */
         p_delete(&rblob->area);
     }
@@ -177,7 +177,7 @@ blob_kill_data_real(blob_t * blob, ssize_t pos, ssize_t len)
 }
 /*** set functions ***/
 
-void blob_set(blob_t * dest, blob_t * src)
+void blob_set(blob_t * dest, const blob_t * src)
 {
     blob_resize(dest, 0);
     blob_blit_data_real(dest, 0, src->data, src->len);
@@ -189,7 +189,7 @@ void blob_set_data(blob_t * blob, const void * data, ssize_t len)
     blob_blit_data_real(blob, 0, data, len);
 }
 
-void blob_set_cstr(blob_t * blob, const unsigned char * cstr)
+void blob_set_cstr(blob_t * blob, const char * cstr)
 {
     blob_resize(blob, 0);
     blob_blit_data_real(blob, 0, cstr, sstrlen(cstr));
@@ -197,7 +197,7 @@ void blob_set_cstr(blob_t * blob, const unsigned char * cstr)
 
 /*** blit functions ***/
 
-void blob_blit(blob_t * dest, ssize_t pos, blob_t * src)
+void blob_blit(blob_t * dest, ssize_t pos, const blob_t * src)
 {
     blob_blit_data_real(dest, pos, src, src->len);
 }
@@ -207,14 +207,14 @@ void blob_blit_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
     blob_blit_data_real(blob, pos, data, len);
 }
 
-void blob_blit_cstr(blob_t * blob, ssize_t pos, const unsigned char * cstr)
+void blob_blit_cstr(blob_t * blob, ssize_t pos, const char * cstr)
 {
     blob_blit_data_real(blob, pos, cstr, sstrlen(cstr));
 }
 
 /*** insert functions ***/
 
-void blob_insert(blob_t * dest, ssize_t pos, blob_t * src)
+void blob_insert(blob_t * dest, ssize_t pos, const blob_t * src)
 {
     blob_insert_data_real(dest, pos, src->data, src->len);
 }
@@ -225,7 +225,7 @@ void blob_insert_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len
 }
 
 /* don't insert the NUL ! */
-void blob_insert_cstr(blob_t * blob, ssize_t pos, const unsigned char * cstr)
+void blob_insert_cstr(blob_t * blob, ssize_t pos, const char * cstr)
 {
     blob_insert_data_real(blob, pos, cstr, sstrlen(cstr));
 }
@@ -235,7 +235,7 @@ void blob_insert_cstr(blob_t * blob, ssize_t pos, const unsigned char * cstr)
 #define BLOB_APPEND_DATA_REAL(blob, data, data_len)    \
     blob_insert_data_real((blob), (blob)->len, data, data_len)
 
-void blob_append(blob_t * dest, blob_t * src)
+void blob_append(blob_t * dest, const blob_t * src)
 {
     BLOB_APPEND_DATA_REAL(dest, src->data, src->len);
 }
@@ -245,7 +245,7 @@ void blob_append_data(blob_t * blob, const void * data, ssize_t len)
     BLOB_APPEND_DATA_REAL(blob, data, len);
 }
 
-void blob_append_cstr(blob_t * blob, const unsigned char * cstr)
+void blob_append_cstr(blob_t * blob, const char * cstr)
 {
     BLOB_APPEND_DATA_REAL(blob, cstr, sstrlen(cstr));
 }
@@ -346,8 +346,8 @@ int blob_icmp(const blob_t * blob1, const blob_t * blob2)
     ssize_t len = MIN(blob1->len, blob2->len);
     ssize_t pos = 0;
 
-    const unsigned char * s1 = REAL(blob1)->data;
-    const unsigned char * s2 = REAL(blob2)->data;
+    const char * s1 = (const char *)REAL(blob1)->data;
+    const char * s2 = (const char *)REAL(blob2)->data;
 
     while (pos < len && tolower(s1[pos]) == tolower(s2[pos])) {
         pos ++;
@@ -542,6 +542,7 @@ int blob_parse_uintv (const blob_t * blob, ssize_t *pos, uint32_t *answer)
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
+/* inlines (check invariants) + setup/teardowns                            {{{*/
 
 static inline void ensure_blob_invariants(blob_t * blob)
 {
@@ -552,6 +553,22 @@ static inline void ensure_blob_invariants(blob_t * blob)
             "a blob must have data[len] set to `\\0', `%c' found",
             blob->data[blob->len]);
 }
+
+static inline void setup(blob_t blob, const char * data)
+{
+    blob_set_cstr(&blob, data);
+}
+
+static inline void teardown(blob_t blob, blob_t **blob2)
+{
+    blob_wipe(&blob);
+    if (blob2 && *blob2) {
+        blob_delete(blob2);
+    }
+}
+
+/*.........................................................................}}}*/
+/* tests legacy functions                                                  {{{*/
 
 START_TEST (blob_init_wipe)
 {
@@ -582,12 +599,33 @@ START_TEST (test_blob_new)
 }
 END_TEST
 
+/*.........................................................................}}}*/
+/* test set functions                                                      {{{*/
+
+START_TEST (test_set)
+{
+    blob_t blob;
+    blob_init (&blob);
+
+    blob_set_cstr(&blob, "toto");
+    fail_if(blob.len != strlen("toto"),
+            "blob.len should be %d, but is %d", strlen("toto"), blob.len);
+    fail_if(strcmp((const char *)blob.data, "toto") != 0, "blob is not set to `%s'", "toto");
+
+    blob_wipe(&blob);
+}
+END_TEST
+
+/*.........................................................................}}}*/
+/* test blob_dup / blob_cat / blob_resize                                  {{{*/
+
 START_TEST (test_dup)
 {
     blob_t blob;
-    blob_init(&blob);
-    
-    blob_t * bdup = blob_dup(&blob);
+    blob_t * bdup; 
+
+    setup(blob, "toto string");
+    bdup = blob_dup(&blob);
     ensure_blob_invariants(bdup);
 
     fail_if(bdup->len != blob.len, "duped blob *must* have same len");
@@ -595,10 +633,34 @@ START_TEST (test_dup)
         fail("original and dupped blob don't have the same content");
     }
 
-    blob_delete(&bdup);
-    blob_wipe(&blob);
+    teardown(blob, &bdup);
 }
 END_TEST
+
+START_TEST(test_cat)
+{
+    blob_t b1;
+    blob_t * bcat;
+    const blob_t * b2 = &b1;
+
+    setup(b1, "toto");
+    bcat = blob_cat(&b1, b2);
+    ensure_blob_invariants(bcat);
+
+    fail_if (bcat->len != b1.len + b2->len, 
+            "blob_cat-ed blob has not len equal to the sum of the orignal blobs lens");
+    if ( memcmp(bcat->data, b1.data, b1.len) !=0 ||
+            memcmp (bcat->data + b1.len, b2->data, b2->len) != 0)
+    {
+        fail("blob_cat-ed blob is not the concatenation of the orginal blobs");
+    }
+
+    teardown(b1, &bcat);
+}
+END_TEST
+
+/*.........................................................................}}}*/
+/* public testing API                                                      {{{*/
 
 Suite *make_blob_suite(void)
 {
@@ -608,10 +670,13 @@ Suite *make_blob_suite(void)
     suite_add_tcase(s, tc);
     tcase_add_test(tc, blob_init_wipe);
     tcase_add_test(tc, test_blob_new);
+    tcase_add_test(tc, test_set);
     tcase_add_test(tc, test_dup);
+    tcase_add_test(tc, test_cat);
 
     return s;
 }
 
+/*.........................................................................}}}*/
 #endif
 /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/

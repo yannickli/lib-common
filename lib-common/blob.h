@@ -13,8 +13,8 @@ typedef struct {
     const byte * const data;
 
     /* HERE SO THAT sizeof(array) is ok */
-    unsigned char * const __area;
-    const ssize_t         __size;
+    void const * const __area;
+    ssize_t const      __size;
 } blob_t;
 
 
@@ -28,7 +28,7 @@ void     blob_wipe(blob_t * blob);
 #define  blob_delete(blob)  (blob_wipe(*(blob)), p_delete(blob))
 
 blob_t * blob_dup(const blob_t * blob);
-blob_t * blob_cat(blob_t * blob1, blob_t * blob2);
+blob_t * blob_cat(const blob_t * blob1, const blob_t * blob2);
 
 void     blob_resize(blob_t * blob, ssize_t newlen);
 
@@ -36,21 +36,21 @@ void     blob_resize(blob_t * blob, ssize_t newlen);
 /* Blob manipulations                                                         */
 /******************************************************************************/
 
-void blob_set(blob_t * dest, blob_t * src);
+void blob_set(blob_t * dest, const blob_t * src);
 void blob_set_data(blob_t * blob, const void * data, ssize_t len);
-void blob_set_cstr(blob_t * blob, const unsigned char * cstr);
+void blob_set_cstr(blob_t * blob, const char * cstr);
 
-void blob_blit(blob_t * dest, ssize_t pos, blob_t * src);
+void blob_blit(blob_t * dest, ssize_t pos, const blob_t * src);
 void blob_blit_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len);
-void blob_blit_cstr(blob_t * blob, ssize_t pos, const unsigned char * cstr);
+void blob_blit_cstr(blob_t * blob, ssize_t pos, const char * cstr);
 
-void blob_insert(blob_t * dest, ssize_t pos, blob_t * src);
+void blob_insert(blob_t * dest, ssize_t pos, const blob_t * src);
 void blob_insert_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len);
-void blob_insert_cstr(blob_t * blob, ssize_t pos, const unsigned char * cstr);
+void blob_insert_cstr(blob_t * blob, ssize_t pos, const char * cstr);
 
-void blob_append(blob_t * dest, blob_t * src);
+void blob_append(blob_t * dest, const blob_t * src);
 void blob_append_data(blob_t * blob, const void * data, ssize_t len);
-void blob_append_cstr(blob_t * blob, const unsigned char * cstr);
+void blob_append_cstr(blob_t * blob, const char * cstr);
 
 void blob_kill_data(blob_t * blob, ssize_t pos, ssize_t len);
 void blob_kill_first(blob_t * blob, ssize_t len);
