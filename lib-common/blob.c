@@ -544,7 +544,7 @@ int blob_parse_uintv (const blob_t * blob, ssize_t *pos, uint32_t *answer)
 #ifdef CHECK
 /* inlines (check invariants) + setup/teardowns                            {{{*/
 
-static inline void ensure_blob_invariants(blob_t * blob)
+static inline void check_blob_invariants(blob_t * blob)
 {
     fail_if(blob->len >= REAL(blob)->size,
             "a blob must have `len < size'. this one has `len = %d' and `size = %d'",
@@ -554,13 +554,13 @@ static inline void ensure_blob_invariants(blob_t * blob)
             blob->data[blob->len]);
 }
 
-static inline void setup(blob_t * blob, const char * data)
+static inline void check_setup(blob_t * blob, const char * data)
 {
     blob_init(blob);
     blob_set_cstr(blob, data);
 }
 
-static inline void teardown(blob_t * blob, blob_t **blob2)
+static inline void check_teardown(blob_t * blob, blob_t **blob2)
 {
     blob_wipe(blob);
     if (blob2 && *blob2) {
@@ -575,7 +575,7 @@ START_TEST (check_init_wipe)
 {
     blob_t blob;
     blob_init(&blob);
-    ensure_blob_invariants(&blob);
+    check_blob_invariants(&blob);
 
     fail_if(blob.len != 0,      "initalized blob MUST have `len' = 0, but has `len = %d'", blob.len);
     fail_if(blob.data == NULL,  "initalized blob MUST have a valid `data'");
@@ -590,7 +590,7 @@ START_TEST (check_blob_new)
 {
     blob_t * blob = blob_new();
 
-    ensure_blob_invariants(blob);
+    check_blob_invariants(blob);
     fail_if(blob == NULL,        "no blob was allocated");
     fail_if(blob->len != 0,      "new blob MUST have `len 0', but has `len = %d'", blob->len);
     fail_if(blob->data == NULL,  "new blob MUST have a valid `data'");
@@ -625,16 +625,16 @@ START_TEST (check_dup)
     blob_t blob;
     blob_t * bdup; 
 
-    setup(&blob, "toto string");
+    check_setup(&blob, "toto string");
     bdup = blob_dup(&blob);
-    ensure_blob_invariants(bdup);
+    check_blob_invariants(bdup);
 
     fail_if(bdup->len != blob.len, "duped blob *must* have same len");
     if (memcmp(bdup->data, blob.data, blob.len) != 0) {
         fail("original and dupped blob don't have the same content");
     }
 
-    teardown(&blob, &bdup);
+    check_teardown(&blob, &bdup);
 }
 END_TEST
 
@@ -644,9 +644,9 @@ START_TEST(check_cat)
     blob_t * bcat;
     const blob_t * b2 = &b1;
 
-    setup(&b1, "toto");
+    check_setup(&b1, "toto");
     bcat = blob_cat(&b1, b2);
-    ensure_blob_invariants(bcat);
+    check_blob_invariants(bcat);
 
     fail_if (bcat->len != b1.len + b2->len, 
             "blob_cat-ed blob has not len equal to the sum of the orignal blobs lens");
@@ -656,7 +656,7 @@ START_TEST(check_cat)
         fail("blob_cat-ed blob is not the concatenation of the orginal blobs");
     }
 
-    teardown(&b1, &bcat);
+    check_teardown(&b1, &bcat);
 }
 END_TEST
 
