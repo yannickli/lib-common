@@ -268,6 +268,52 @@ void blob_kill_last(blob_t * blob, ssize_t len)
 }
 
 /******************************************************************************/
+/* Blob search functions                                                      */
+/******************************************************************************/
+
+static inline ssize_t
+blob_search_data_real(const blob_t *haystack, ssize_t pos, const void *needle, ssize_t len)
+{
+    byte b;
+
+    if (len == 0) {
+        return pos;
+    }
+
+    b = *(byte*)needle;
+
+    while (true) {
+        while (haystack->data[pos] != b) {
+            pos ++;
+            if (pos + len > haystack->len) {
+                return -1;
+            }
+        }
+
+        if (memcmp(haystack->data+pos, needle, len)==0) {
+            return pos;
+        }
+    }
+}
+
+/* not very efficent ! */
+
+ssize_t blob_search(const blob_t *haystack, ssize_t pos, const blob_t *needle)
+{
+    return blob_search_data_real(haystack, pos, needle->data, needle->len);
+}
+
+ssize_t blob_search_data(const blob_t *haystack, ssize_t pos, const void *needle, ssize_t len)
+{
+    return blob_search_data_real(haystack, pos, needle, len);
+}
+
+ssize_t blob_search_cstr(const blob_t *haystack, ssize_t pos, const char *needle)
+{
+    return blob_search_data_real(haystack, pos, needle, sstrlen(needle));
+}
+
+/******************************************************************************/
 /* Blob filtering                                                             */
 /******************************************************************************/
 
