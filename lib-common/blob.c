@@ -416,7 +416,7 @@ ssize_t blob_parse_cstr(const blob_t * blob, ssize_t * pos, const char **answer)
     ssize_t walk = *pos;
 
     while (walk < blob->len) {
-        if (rblob->data[walk] != '\0') {
+        if (rblob->data[walk] == '\0') {
             ssize_t len = walk - *pos;
             PARSE_SET_RESULT(answer, (char *)rblob->data + *pos);
             *pos    = walk+1;
