@@ -478,68 +478,6 @@ int blob_parse_double(const blob_t * blob, ssize_t * pos, double *answer)
     return PARSE_OK;
 }
 
-/*******************************************************************************
- * wsp types
- */
-
-int blob_parse_uint8(const blob_t * blob, ssize_t *pos, uint8_t *answer)
-{
-    PARSE_SET_RESULT(answer, REAL(blob)->data[(*pos)++]);
-    return PARSE_OK;
-}
-
-int blob_parse_uint16(const blob_t * blob, ssize_t *pos, uint16_t *answer)
-{
-    if (*pos + 2 > blob->len) {
-        return PARSE_EPARSE;
-    }
-    if (answer != NULL) {
-        *answer   = REAL(blob)->data[(*pos)++];
-        *answer <<= 8;
-        *answer  |= REAL(blob)->data[(*pos)++];
-    }
-    return PARSE_OK;
-}
-
-int blob_parse_uint32(const blob_t * blob, ssize_t *pos, uint32_t *answer)
-{
-    if (*pos + 4 > blob->len) {
-        return PARSE_EPARSE;
-    }
-    if (answer != NULL) {
-        *answer   = REAL(blob)->data[(*pos)++];
-        *answer <<= 8;
-        *answer  |= REAL(blob)->data[(*pos)++];
-        *answer <<= 8;
-        *answer  |= REAL(blob)->data[(*pos)++];
-        *answer <<= 8;
-        *answer  |= REAL(blob)->data[(*pos)++];
-    }
-    return PARSE_OK;
-}
-
-int blob_parse_uintv (const blob_t * blob, ssize_t *pos, uint32_t *answer)
-{
-    uint32_t value = 0;
-    ssize_t  walk  = *pos;
-    int      count = 5;
-
-    while (walk < blob->len && count-- > 0) {
-        int c = REAL(blob)->data[walk++];
-        value  = (value << 7) | (c & 0x7f);
-        if ((c & 0x80) == 0) {
-            PARSE_SET_RESULT(answer, value);
-            *pos    = walk;
-            return PARSE_OK;
-        }
-        if ((value & 0xfe000000) != 0) {
-            return PARSE_ERANGE;
-        }
-    }
-
-    return PARSE_EPARSE;
-}
-
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 /* inlines (check invariants) + setup/teardowns                            {{{*/
