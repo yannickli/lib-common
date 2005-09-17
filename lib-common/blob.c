@@ -27,7 +27,10 @@ typedef struct {
     ssize_t size;  /* allocated size */
 } real_blob_t;
 
-#define REAL(blob) ((real_blob_t*)(blob))
+static inline real_blob_t *REAL(blob_t *blob)
+{
+    return (real_blob_t *)blob;
+}
 
 /******************************************************************************/
 /* Blob creation / deletion                                                   */
@@ -58,12 +61,11 @@ void blob_wipe(blob_t * blob)
 }
 
 /* @see strdup(3) */
-blob_t * blob_dup(const blob_t * blob)
+blob_t * blob_dup(const blob_t * src)
 {
-    real_blob_t * src = REAL(blob);
     real_blob_t * dst = p_new_raw(real_blob_t, 1);
     dst->len  = src->len;
-    dst->size = MEM_ALIGN(src->size);
+    dst->size = MEM_ALIGN(src->len+1);
 
     dst->data = p_new_raw(byte, dst->size);
     dst->area = dst->data;
@@ -327,7 +329,7 @@ blob_map_range_real(blob_t * blob, ssize_t start, ssize_t end, blob_filter_func_
     ssize_t i;
 
     for ( i = start ; i < end ; i++ ) {
-        REAL(blob)->data[i] = filter(REAL(blob)->data[i]);
+        REAL(blob)->data[i] = filter(blob->data[i]);
     }
 }
 
@@ -347,7 +349,7 @@ void blob_ltrim(blob_t * blob)
 {
     ssize_t i = 0;
 
-    while (isspace(REAL(blob)->data[i]) && i <= blob->len) i++;
+    while (isspace(blob->data[i]) && i <= blob->len) i++;
     blob_kill_data_real(blob, 0, i);
 }
 
@@ -355,7 +357,7 @@ void blob_rtrim(blob_t * blob)
 {
     ssize_t i = blob->len - 1;
 
-    while (isspace(REAL(blob)->data[i]) && i >= 0) i--;
+    while (isspace(blob->data[i]) && i >= 0) i--;
     blob_kill_data_real(blob, i+1, blob->len);
 }
 
@@ -392,8 +394,8 @@ int blob_icmp(const blob_t * blob1, const blob_t * blob2)
     ssize_t len = MIN(blob1->len, blob2->len);
     ssize_t pos = 0;
 
-    const char * s1 = (const char *)REAL(blob1)->data;
-    const char * s2 = (const char *)REAL(blob2)->data;
+    const char * s1 = (const char *)blob1->data;
+    const char * s2 = (const char *)blob2->data;
 
     while (pos < len && tolower(s1[pos]) == tolower(s2[pos])) {
         pos ++;
@@ -430,7 +432,7 @@ int blob_is_iequal(const blob_t * blob1, const blob_t * blob2)
     /* reverse comp is because strings we compare most often differ at the end
        than at the beginning */
     for (i = blob1->len - 1 ; i >= 0 ; i--) {
-        if (tolower(REAL(blob1)->data[i]) != tolower(REAL(blob2)->data[i])) {
+        if (tolower(blob1->data[i]) != tolower(blob2->data[i])) {
             return false;
         }
     }
@@ -458,13 +460,12 @@ int blob_is_iequal(const blob_t * blob1, const blob_t * blob2)
 
 ssize_t blob_parse_cstr(const blob_t * blob, ssize_t * pos, const char **answer)
 {
-    real_blob_t * rblob = REAL(blob);
     ssize_t walk = *pos;
 
     while (walk < blob->len) {
-        if (rblob->data[walk] == '\0') {
+        if (blob->data[walk] == '\0') {
             ssize_t len = walk - *pos;
-            PARSE_SET_RESULT(answer, (char *)rblob->data + *pos);
+            PARSE_SET_RESULT(answer, (char *)blob->data + *pos);
             *pos    = walk+1;
             return len;
         }
@@ -530,7 +531,7 @@ int blob_parse_double(const blob_t * blob, ssize_t * pos, double *answer)
 
 static inline void check_blob_invariants(blob_t * blob)
 {
-    fail_if(blob->len >= REAL(blob)->size,
+    fail_if(blob->len >= (blob)->size,
             "a blob must have `len < size'. this one has `len = %d' and `size = %d'",
             blob->len, REAL(blob)->size);
     fail_if(blob->data[blob->len] != '\0', \
