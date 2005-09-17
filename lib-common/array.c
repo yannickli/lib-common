@@ -11,7 +11,10 @@ typedef struct
 } real_array_t;
 
 #define ARRAY_INITIAL_SIZE 32
-#define REAL(array) ((real_array_t *)(array))
+static inline real_array_t *REAL(array_t *array)
+{
+    return (real_array_t *)array;
+}
 
 /******************************************************************************/
 /* Private inlines                                                            */
@@ -38,7 +41,7 @@ array_resize(array_t * array, ssize_t newsize)
 
 array_t * array_init(array_t * array)
 {
-    real_array_t * rarray = REAL(rarray);
+    real_array_t * rarray = REAL(array);
     rarray->tab  = p_new(void*, ARRAY_INITIAL_SIZE);
     rarray->len  = 0;
     rarray->size = ARRAY_INITIAL_SIZE;
