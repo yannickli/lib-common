@@ -45,7 +45,7 @@ enum blob_parse_status {
     PARSE_ERANGE = -2,
 };
 
-static inline bool blob_eop(blob_t * blob, ssize_t pos) {
+static inline bool eoparse(const blob_t * blob, ssize_t pos) {
     return blob->len == pos;
 }
 

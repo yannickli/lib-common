@@ -5,7 +5,7 @@
 
 typedef struct segment {
     ssize_t start;
-    ssize_t len;
+    ssize_t size;
 } segment;
 
 #endif
