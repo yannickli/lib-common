@@ -398,8 +398,7 @@ int blob_cmp(const blob_t * blob1, const blob_t * blob2)
 {
     if (blob1->len == blob2->len) {
         return memcmp(blob1, blob2, blob1->len);
-    }
-    else {
+    } else {
         ssize_t len = MIN(blob1->len, blob2->len);
         int     res = memcmp(blob1, blob2, len);
         if (res != 0) {

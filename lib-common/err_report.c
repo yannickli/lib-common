@@ -42,8 +42,7 @@ static void file_handler(char prefix, const char * format, va_list args)
         if ( fprintf(log_state.fd, "[%s] %c: ", log_state.ident, prefix) < 0 ) {
             goto error;
         }
-    }
-    else {
+    } else {
         if ( fprintf(log_state.fd, "%c: ", prefix) < 0 ) {
             goto error;
         }
@@ -169,8 +168,7 @@ void e_init_file(const char * ident, const char * filename)
 
     if (filename == NULL || strcmp(filename, "/dev/stderr") == 0) {
         init_file(NULL, stderr);
-    }
-    else {
+    } else {
         fd = fopen(filename, "a");
         if (fd == NULL) {
             e_fatal(FATAL_LOGOPEN,

@@ -79,8 +79,7 @@ static void free_next_blocks(block_t * block)
             free(unused.block);
             unused.block = block->next;
             reset_block_invariant = 1;
-        }
-        else {
+        } else {
             free(block->next);
         }
 
@@ -151,8 +150,7 @@ static void * malloc_real(ssize_t size, int permanent)
         if (unused.block != NULL && unused.block->size >= size) {
             block        = unused.block;
             unused.block = NULL;
-        }
-        else {
+        } else {
             block = mem_block_alloc(size);
         }
 
@@ -195,8 +193,7 @@ int ds_push()
             if (frame == NULL) {
                 e_fatal(FATAL_NOMEM, E_PREFIX("not enough memory"));
             }
-        }
-        else {
+        } else {
             /* use existing unused frame */
             frame         = unused.frames;
             unused.frames = unused.frames->prev;
@@ -233,8 +230,7 @@ int ds_pop()
 
     if (current.fpos > 0) {
         current.fpos--;
-    }
-    else {
+    } else {
         current.fpos  = FRAME_COUNT - 1;
 
         frame         = current.frame;
