@@ -295,6 +295,7 @@ blob_search_data_real(const blob_t *haystack, ssize_t pos, const void *needle, s
         if (memcmp(haystack->data+pos, needle, len)==0) {
             return pos;
         }
+        pos ++;
     }
 }
 
@@ -531,7 +532,7 @@ int blob_parse_double(const blob_t * blob, ssize_t * pos, double *answer)
 
 static inline void check_blob_invariants(blob_t * blob)
 {
-    fail_if(blob->len >= (blob)->size,
+    fail_if(blob->len >= REAL(blob)->size,
             "a blob must have `len < size'. this one has `len = %d' and `size = %d'",
             blob->len, REAL(blob)->size);
     fail_if(blob->data[blob->len] != '\0', \
@@ -646,6 +647,23 @@ START_TEST(check_cat)
 END_TEST
 
 /*.........................................................................}}}*/
+/* test blob_search_data                                                   {{{*/
+
+START_TEST (check_search)
+{
+    blob_t blob;
+    check_setup(&blob, "toto string");
+
+    fail_if(blob_search_data_real(&blob, 0, (void*)"string", 6) < 0,
+            "blob_search fail when needle exists");
+    fail_if(blob_search_data_real(&blob, 0, (void*)"bloube", 6) >= 0,
+            "blob_search fail when needle doesn't exist");
+
+    check_teardown(&blob, NULL);
+}
+END_TEST
+
+/*.........................................................................}}}*/
 /* public testing API                                                      {{{*/
 
 Suite *check_make_blob_suite(void)
@@ -659,6 +677,7 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_set);
     tcase_add_test(tc, check_dup);
     tcase_add_test(tc, check_cat);
+    tcase_add_test(tc, check_search);
 
     return s;
 }
