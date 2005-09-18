@@ -771,6 +771,43 @@ START_TEST (check_insert)
 END_TEST
 
 /*.........................................................................}}}*/
+/* test append functions                                                     {{{*/
+
+#include <stdio.h>
+
+START_TEST (check_append)
+{
+    blob_t blob;
+    blob_t *b2;
+
+    check_setup(&blob, "01");
+    b2 = blob_new();
+    blob_set_cstr(b2, "89");
+
+
+    /* append cstr */
+    blob_append_cstr(&blob, "2345");
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "012345") != 0, "append failed");
+    fail_if(blob.len != strlen("012345"), "append failed");
+
+    /* append data */
+    blob_append_data(&blob, "67", 2);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "01234567") != 0, "append_data failed");
+    fail_if(blob.len != strlen("01234567"), "append_data failed");
+
+    /* append */
+    blob_append(&blob, b2);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "0123456789") != 0, "append failed");
+    fail_if(blob.len != strlen("0123456789"), "append failed");
+
+    check_teardown(&blob, &b2);
+}
+END_TEST
+
+/*.........................................................................}}}*/
 /* test blob_search                                                        {{{*/
 
 START_TEST (check_search)
@@ -819,6 +856,7 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_cat);
     tcase_add_test(tc, check_blit);
     tcase_add_test(tc, check_insert);
+    tcase_add_test(tc, check_append);
     tcase_add_test(tc, check_resize);
     tcase_add_test(tc, check_search);
 
