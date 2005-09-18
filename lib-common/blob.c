@@ -127,6 +127,9 @@ void blob_resize(blob_t * blob, ssize_t newlen)
 static inline void
 blob_blit_data_real(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
 {
+    if (len == 0) {
+        return;
+    }
     if (pos > blob->len) {
         pos = blob->len;
     }
@@ -150,6 +153,9 @@ blob_insert_data_real(blob_t * blob, ssize_t pos, const void * data, ssize_t len
     if (len == 0) {
         return;
     }
+    if (pos > blob->len) {
+        pos = blob->len;
+    }
 
     blob_resize(blob, blob->len + len);
     if (oldlen > pos) {
@@ -162,6 +168,9 @@ static inline void
 blob_kill_data_real(blob_t * blob, ssize_t pos, ssize_t len)
 {
     real_blob_t * rblob = blob_real(blob);
+    if (len == 0) {
+        return;
+    }
     if (pos > rblob->len) {
         return;
     }
@@ -170,13 +179,11 @@ blob_kill_data_real(blob_t * blob, ssize_t pos, ssize_t len)
         /* in fact, we are truncating the blob */
         rblob->len = pos;
         rblob->data[rblob->len] = '\0';
-    }
-    else if (pos == 0) {
+    } else if (pos == 0) {
         /* in fact, we delete chars at the begining */
         rblob->data += len;
         rblob->size -= len;
-    }
-    else {
+    } else {
         /* general case */
         memmove(rblob->data + pos, rblob->data + pos + len,
                 rblob->len - pos - len + 1); /* +1 for the blob_t \0 */
@@ -727,7 +734,44 @@ START_TEST (check_blit)
 END_TEST
 
 /*.........................................................................}}}*/
-/* test blob_search_data                                                   {{{*/
+/* test insert functions                                                     {{{*/
+
+#include <stdio.h>
+
+START_TEST (check_insert)
+{
+    blob_t blob;
+    blob_t *b2;
+
+    check_setup(&blob, "05");
+    b2 = blob_new();
+    blob_set_cstr(b2, "67");
+
+
+    /* insert cstr */
+    blob_insert_cstr(&blob, 1, "1234");
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "012345") != 0, "insert failed");
+    fail_if(blob.len != strlen("012345"), "insert failed");
+
+    /* insert data */
+    blob_insert_data(&blob, 20, "89", 2);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "01234589") != 0, "insert_data failed");
+    fail_if(blob.len != strlen("01234589"), "insert_data failed");
+
+    /* insert */
+    blob_insert(&blob, 6, b2);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "0123456789") != 0, "insert failed");
+    fail_if(blob.len != strlen("0123456789"), "insert failed");
+
+    check_teardown(&blob, &b2);
+}
+END_TEST
+
+/*.........................................................................}}}*/
+/* test blob_search                                                        {{{*/
 
 START_TEST (check_search)
 {
@@ -774,6 +818,7 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_dup);
     tcase_add_test(tc, check_cat);
     tcase_add_test(tc, check_blit);
+    tcase_add_test(tc, check_insert);
     tcase_add_test(tc, check_resize);
     tcase_add_test(tc, check_search);
 
