@@ -27,7 +27,7 @@ typedef struct {
     ssize_t size;  /* allocated size */
 } real_blob_t;
 
-static inline real_blob_t *REAL(blob_t *blob)
+static inline real_blob_t *blob_real(blob_t *blob)
 {
     return (real_blob_t *)blob;
 }
@@ -40,7 +40,7 @@ static inline real_blob_t *REAL(blob_t *blob)
 /* create a new, empty buffer */
 blob_t * blob_init(blob_t * blob)
 {
-    real_blob_t * rblob = REAL(blob);
+    real_blob_t * rblob = blob_real(blob);
 
     rblob->len  = 0;
     rblob->size = INITIAL_BUFFER_SIZE;
@@ -56,8 +56,8 @@ blob_t * blob_init(blob_t * blob)
 void blob_wipe(blob_t * blob)
 {
     if (blob) {
-        p_delete(&(REAL(blob)->area));
-        REAL(blob)->data = NULL;
+        p_delete(&(blob_real(blob)->area));
+        blob_real(blob)->data = NULL;
     }
 }
 
@@ -91,7 +91,7 @@ blob_t * blob_cat(const blob_t * blob1, const blob_t * blob2)
  */
 void blob_resize(blob_t * blob, ssize_t newlen)
 {
-    real_blob_t * rblob = REAL(blob);
+    real_blob_t * rblob = blob_real(blob);
     ssize_t newsize;
     
     if (rblob->size > newlen) {
@@ -133,7 +133,7 @@ blob_blit_data_real(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
     if (len + pos > blob->len) {
         blob_resize(blob, pos+len);
     }
-    memcpy(REAL(blob)->data + pos, data, len);
+    memcpy(blob_real(blob)->data + pos, data, len);
 }
 
 /* insert `len' data C octets into a blob.
@@ -153,15 +153,15 @@ blob_insert_data_real(blob_t * blob, ssize_t pos, const void * data, ssize_t len
 
     blob_resize(blob, blob->len + len);
     if (oldlen > pos) {
-        memmove(REAL(blob)->data + pos + len, blob->data + pos, oldlen - pos);
+        memmove(blob_real(blob)->data + pos + len, blob->data + pos, oldlen - pos);
     }
-    memcpy(REAL(blob)->data + pos, data, len);
+    memcpy(blob_real(blob)->data + pos, data, len);
 }
 
 static inline void
 blob_kill_data_real(blob_t * blob, ssize_t pos, ssize_t len)
 {
-    real_blob_t * rblob = REAL(blob);
+    real_blob_t * rblob = blob_real(blob);
     if (pos > rblob->len) {
         return;
     }
@@ -241,22 +241,22 @@ void blob_insert_cstr(blob_t * blob, ssize_t pos, const char * cstr)
 
 /*** append functions ***/
 
-#define BLOB_APPEND_DATA_REAL(blob, data, data_len)    \
+#define BLOB_APPEND_DATA_blob_real(blob, data, data_len)    \
     blob_insert_data_real((blob), (blob)->len, data, data_len)
 
 void blob_append(blob_t * dest, const blob_t * src)
 {
-    BLOB_APPEND_DATA_REAL(dest, src->data, src->len);
+    BLOB_APPEND_DATA_blob_real(dest, src->data, src->len);
 }
 
 void blob_append_data(blob_t * blob, const void * data, ssize_t len)
 {
-    BLOB_APPEND_DATA_REAL(blob, data, len);
+    BLOB_APPEND_DATA_blob_real(blob, data, len);
 }
 
 void blob_append_cstr(blob_t * blob, const char * cstr)
 {
-    BLOB_APPEND_DATA_REAL(blob, cstr, sstrlen(cstr));
+    BLOB_APPEND_DATA_blob_real(blob, cstr, sstrlen(cstr));
 }
 
 /*** kill functions ***/
@@ -341,7 +341,7 @@ blob_map_range_real(blob_t * blob, ssize_t start, ssize_t end, blob_filter_func_
     ssize_t i;
 
     for ( i = start ; i < end ; i++ ) {
-        REAL(blob)->data[i] = filter(blob->data[i]);
+        blob_real(blob)->data[i] = filter(blob->data[i]);
     }
 }
 
@@ -547,9 +547,9 @@ int blob_parse_double(const blob_t * blob, ssize_t * pos, double *answer)
 
 static inline void check_blob_invariants(blob_t * blob)
 {
-    fail_if(blob->len >= REAL(blob)->size,
+    fail_if(blob->len >= blob_real(blob)->size,
             "a blob must have `len < size'. this one has `len = %d' and `size = %d'",
-            blob->len, REAL(blob)->size);
+            blob->len, blob_real(blob)->size);
     fail_if(blob->data[blob->len] != '\0', \
             "a blob must have data[len] set to `\\0', `%c' found",
             blob->data[blob->len]);

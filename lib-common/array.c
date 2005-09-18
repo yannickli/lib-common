@@ -11,7 +11,7 @@ typedef struct
 } real_array_t;
 
 #define ARRAY_INITIAL_SIZE 32
-static inline real_array_t *REAL(array_t *array)
+static inline real_array_t *array_real(array_t *array)
 {
     return (real_array_t *)array;
 }
@@ -23,7 +23,7 @@ static inline real_array_t *REAL(array_t *array)
 static inline void
 array_resize(array_t * array, ssize_t newsize)
 {
-    real_array_t * a = REAL(array);
+    real_array_t * a = array_real(array);
     
     if (newsize <= a->size) {
         a->len = newsize;
@@ -41,7 +41,7 @@ array_resize(array_t * array, ssize_t newsize)
 
 array_t * array_init(array_t * array)
 {
-    real_array_t * rarray = REAL(array);
+    real_array_t * rarray = array_real(array);
     rarray->tab  = p_new(void*, ARRAY_INITIAL_SIZE);
     rarray->len  = 0;
     rarray->size = ARRAY_INITIAL_SIZE;
@@ -57,7 +57,7 @@ void array_wipe(array_t *array, array_item_dtor_t *dtor)
         for (i = 0 ; i < array->len ; i++ ) {
             dtor(array->tab[i]);
         }
-        p_delete(&(REAL(array)->tab));
+        p_delete(&(array_real(array)->tab));
     }
 }
 
@@ -94,7 +94,7 @@ void * array_take_real(array_t * array, ssize_t pos)
 
     ptr = array->tab[pos];
     memmove(array->tab + pos, array->tab + pos + 1, array->len - pos - 1);
-    REAL(array)->len --;
+    array_real(array)->len --;
 
     return ptr;
 }
