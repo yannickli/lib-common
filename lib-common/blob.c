@@ -35,6 +35,7 @@ static inline real_blob_t *REAL(blob_t *blob)
 /******************************************************************************/
 /* Blob creation / deletion                                                   */
 /******************************************************************************/
+/*{{{*/
 
 /* create a new, empty buffer */
 blob_t * blob_init(blob_t * blob)
@@ -115,15 +116,20 @@ void blob_resize(blob_t * blob, ssize_t newlen)
     rblob->data[rblob->len] = 0;
 }
 
+/*}}}*/
 /******************************************************************************/
 /* Blob manipulations                                                         */
 /******************************************************************************/
+/*{{{*/
 
 /*** private inlines ***/
 
 static inline void
 blob_blit_data_real(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
 {
+    if (pos > blob->len) {
+        pos = blob->len;
+    }
     if (len + pos > blob->len) {
         blob_resize(blob, pos+len);
     }
@@ -177,6 +183,7 @@ blob_kill_data_real(blob_t * blob, ssize_t pos, ssize_t len)
         rblob->size -= len;
     }
 }
+
 /*** set functions ***/
 
 void blob_set(blob_t * dest, const blob_t * src)
@@ -201,7 +208,7 @@ void blob_set_cstr(blob_t * blob, const char * cstr)
 
 void blob_blit(blob_t * dest, ssize_t pos, const blob_t * src)
 {
-    blob_blit_data_real(dest, pos, src, src->len);
+    blob_blit_data_real(dest, pos, src->data, src->len);
 }
 
 void blob_blit_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
@@ -269,9 +276,11 @@ void blob_kill_last(blob_t * blob, ssize_t len)
     blob_kill_data_real(blob, blob->len - len, len);
 }
 
+/*}}}*/
 /******************************************************************************/
 /* Blob search functions                                                      */
 /******************************************************************************/
+/*{{{*/
 
 static inline ssize_t
 blob_search_data_real(const blob_t *haystack, ssize_t pos, const void *needle, ssize_t len)
@@ -316,9 +325,11 @@ ssize_t blob_search_cstr(const blob_t *haystack, ssize_t pos, const char *needle
     return blob_search_data_real(haystack, pos, needle, sstrlen(needle));
 }
 
+/*}}}*/
 /******************************************************************************/
 /* Blob filtering                                                             */
 /******************************************************************************/
+/*{{{*/
 
 /* map filter to blob->data[start .. end-1]
    beware that blob->data[end] is not modified !
@@ -368,10 +379,11 @@ void blob_trim(blob_t * blob)
     blob_rtrim(blob);
 }
 
-
+/*}}}*/
 /******************************************************************************/
 /* Blob comparisons                                                           */
 /******************************************************************************/
+/*{{{*/
 
 /* @see memcmp(3) */
 int blob_cmp(const blob_t * blob1, const blob_t * blob2)
@@ -440,9 +452,11 @@ int blob_is_iequal(const blob_t * blob1, const blob_t * blob2)
     return true;
 }
 
+/*}}}*/
 /******************************************************************************/
 /* Blob parsing                                                               */
 /******************************************************************************/
+/*{{{*/
 
 /* try to parse a c-string from the current position in the buffer.
 
@@ -526,6 +540,7 @@ int blob_parse_double(const blob_t * blob, ssize_t * pos, double *answer)
     return PARSE_OK;
 }
 
+/*}}}*/
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 /* inlines (check invariants) + setup/teardowns                            {{{*/
@@ -591,15 +606,33 @@ END_TEST
 
 START_TEST (check_set)
 {
-    blob_t blob;
+    blob_t blob, bloub;
     blob_init (&blob);
+    blob_init (&bloub);
 
+    /* blob set cstr */
     blob_set_cstr(&blob, "toto");
+    check_blob_invariants(&blob);
     fail_if(blob.len != strlen("toto"),
             "blob.len should be %d, but is %d", strlen("toto"), blob.len);
     fail_if(strcmp((const char *)blob.data, "toto") != 0, "blob is not set to `%s'", "toto");
 
+    /* blob set data */
+    blob_set_data(&blob, "tutu", strlen("tutu"));
+    check_blob_invariants(&blob);
+    fail_if(blob.len != strlen("tutu"),
+            "blob.len should be %d, but is %d", strlen("tutu"), blob.len);
+    fail_if(strcmp((const char *)blob.data, "tutu") != 0, "blob is not set to `%s'", "tutu");
+
+    /* blob set */
+    blob_set(&bloub, &blob);
+    check_blob_invariants(&bloub);
+    fail_if(bloub.len != strlen("tutu"),
+            "blob.len should be %d, but is %d", strlen("tutu"), bloub.len);
+    fail_if(strcmp((const char *)bloub.data, "tutu") != 0, "blob is not set to `%s'", "tutu");
+
     blob_wipe(&blob);
+    blob_wipe(&bloub);
 }
 END_TEST
 
@@ -646,6 +679,53 @@ START_TEST(check_cat)
 }
 END_TEST
 
+START_TEST(check_resize)
+{
+    blob_t b1;
+    check_setup(&b1, "tototutu");
+
+    blob_resize(&b1, 4);
+    check_blob_invariants(&b1);
+    fail_if (b1.len != 4, "blob_resized blob should have len 4, but has %d", b1.len);
+
+    check_teardown(&b1, NULL);
+}
+END_TEST
+
+/*.........................................................................}}}*/
+/* test blit functions                                                     {{{*/
+
+START_TEST (check_blit)
+{
+    blob_t blob;
+    blob_t *b2;
+
+    check_setup(&blob, "toto string");
+    b2 = blob_dup(&blob);
+
+
+    /* blit cstr */
+    blob_blit_cstr(&blob, 4, "turlututu");
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "tototurlututu") != 0, "blit_cstr failed");
+    fail_if(blob.len != strlen("tototurlututu"), "blit_cstr failed");
+
+    /* blit data */
+    blob_blit_data(&blob, 6, ".:.:.:.", 7);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "tototu.:.:.:.") != 0, "blit_data failed");
+    fail_if(blob.len != strlen("tototu.:.:.:."), "blit_cstr failed");
+
+    /* blit */
+    blob_blit(&blob, blob.len, b2);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "tototu.:.:.:.toto string") != 0, "blit_data failed");
+    fail_if(blob.len != strlen("tototu.:.:.:.toto string"), "blit_cstr failed");
+
+    check_teardown(&blob, &b2);
+}
+END_TEST
+
 /*.........................................................................}}}*/
 /* test blob_search_data                                                   {{{*/
 
@@ -677,6 +757,8 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_set);
     tcase_add_test(tc, check_dup);
     tcase_add_test(tc, check_cat);
+    tcase_add_test(tc, check_blit);
+    tcase_add_test(tc, check_resize);
     tcase_add_test(tc, check_search);
 
     return s;
