@@ -732,14 +732,30 @@ END_TEST
 START_TEST (check_search)
 {
     blob_t blob;
+    blob_t *b1 = blob_new();
     check_setup(&blob, "toto string");
 
-    fail_if(blob_search_data_real(&blob, 0, (void*)"string", 6) < 0,
+    /* search data */
+    fail_if(blob_search_data(&blob, 0, (void*)"string", 6) != 5,
             "blob_search fail when needle exists");
-    fail_if(blob_search_data_real(&blob, 0, (void*)"bloube", 6) >= 0,
+    fail_if(blob_search_data(&blob, 0, (void*)"bloube", 6) != -1,
             "blob_search fail when needle doesn't exist");
 
-    check_teardown(&blob, NULL);
+    /* search cstr */
+    fail_if(blob_search_cstr(&blob, 0, "string") != 5,
+            "blob_search fail when needle exists");
+    fail_if(blob_search_cstr(&blob, 0, "bloube") != -1,
+            "blob_search fail when needle doesn't exist");
+
+    /* search */
+    blob_set_cstr(b1, "string");
+    fail_if(blob_search(&blob, 0, b1) != 5,
+            "blob_search fail when needle exists");
+    blob_set_cstr(b1, "blouble");
+    fail_if(blob_search(&blob, 0, b1) != -1,
+            "blob_search fail when needle doesn't exist");
+
+    check_teardown(&blob, &b1);
 }
 END_TEST
 
