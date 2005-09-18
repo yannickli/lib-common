@@ -183,11 +183,12 @@ blob_kill_data_real(blob_t * blob, ssize_t pos, ssize_t len)
         /* in fact, we delete chars at the begining */
         rblob->data += len;
         rblob->size -= len;
+        rblob->len  -= len;
     } else {
         /* general case */
         memmove(rblob->data + pos, rblob->data + pos + len,
                 rblob->len - pos - len + 1); /* +1 for the blob_t \0 */
-        rblob->size -= len;
+        rblob->len  -= len;
     }
 }
 
@@ -736,8 +737,6 @@ END_TEST
 /*.........................................................................}}}*/
 /* test insert functions                                                     {{{*/
 
-#include <stdio.h>
-
 START_TEST (check_insert)
 {
     blob_t blob;
@@ -773,8 +772,6 @@ END_TEST
 /*.........................................................................}}}*/
 /* test append functions                                                     {{{*/
 
-#include <stdio.h>
-
 START_TEST (check_append)
 {
     blob_t blob;
@@ -804,6 +801,36 @@ START_TEST (check_append)
     fail_if(blob.len != strlen("0123456789"), "append failed");
 
     check_teardown(&blob, &b2);
+}
+END_TEST
+
+/*.........................................................................}}}*/
+/* test kill functions                                                     {{{*/
+
+START_TEST (check_kill)
+{
+    blob_t blob;
+    check_setup(&blob, "0123456789");
+
+    /* kill first */
+    blob_kill_first(&blob, 3);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "3456789") != 0, "kill_first failed");
+    fail_if(blob.len != strlen("3456789"), "kill_first failed");
+
+    /* kill last */
+    blob_kill_last(&blob, 3);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "3456") != 0, "kill_last failed");
+    fail_if(blob.len != strlen("3456"), "kill_last failed");
+
+    /* kill */
+    blob_kill_data(&blob, 1, 2);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "36") != 0, "kill failed");
+    fail_if(blob.len != strlen("36"), "kill failed");
+
+    check_teardown(&blob, NULL);
 }
 END_TEST
 
@@ -857,6 +884,7 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_blit);
     tcase_add_test(tc, check_insert);
     tcase_add_test(tc, check_append);
+    tcase_add_test(tc, check_kill);
     tcase_add_test(tc, check_resize);
     tcase_add_test(tc, check_search);
 
