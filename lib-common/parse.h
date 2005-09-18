@@ -52,5 +52,11 @@ static inline bool eoparse(const blob_t * blob, ssize_t pos) {
 #define PARSE_SET_RESULT(var, value) \
     if ((var) != NULL) *(var) = (value)
 
+#define TRANSMIT_PARSE_ERROR(result, expr)  \
+    do {                                    \
+        if ( ((result) = (expr)) < 0 ) {    \
+            return result;                  \
+        }                                   \
+    } while(false)
 
 #endif
