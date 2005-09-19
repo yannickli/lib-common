@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <time.h>
 
 #include "macros.h"
 #include "mem.h"
@@ -63,7 +64,12 @@ void blob_kill_last(blob_t *blob, ssize_t len);
 /* Blob printf function                                                       */
 /******************************************************************************/
 
-void blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...) __attr_format__(3,4);
+ssize_t blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...) __attr_format__(3,4);
+ssize_t blob_ftime(blob_t *blob, ssize_t pos, const char *fmt, const struct tm *tm);
+static inline void blob_ftime_utc(blob_t *blob, ssize_t pos, time_t tm)
+{
+    blob_ftime(blob, pos, "%a, %d %b %Y %H:%M:%S GMT", gmtime(&tm));
+}
 
 /******************************************************************************/
 /* Blob search functions                                                      */

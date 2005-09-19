@@ -292,7 +292,10 @@ void blob_kill_last(blob_t * blob, ssize_t len)
 /******************************************************************************/
 /*{{{*/
 
-void blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...)
+/* returns the number of bytes written.
+   note that blob_printf allways works (or never returns due to memory
+   allocation */
+ssize_t blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...)
 {
     int size;
     int available;
@@ -319,6 +322,35 @@ void blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...)
     rblob->len = pos+size;
 
     va_end(args);
+
+    return size;
+}
+
+/* returns the number of bytes written.
+   
+   negative value means error, without much precision (presumably not enough
+   space in the internal buffer, and such an error is permanent.
+
+   though, the buffer is 1Ko long ... and should not be too small */
+ssize_t blob_ftime(blob_t *blob, ssize_t pos, const char *fmt, const struct tm *tm)
+{
+     char buffer[1024];
+     size_t res;
+
+     if (pos > blob->len) {
+         pos = blob->len;
+     }
+
+     /* doc not clear about NUL and I suspect strftime to have very bad
+        implementations on some Unices */
+     buffer[sizeof(buffer)-1] = '\0';
+     if ( (res = strftime(buffer, sizeof(buffer)-1, fmt, tm)) ) {
+         blob_resize(blob, pos);
+         blob_blit_data_real(blob, pos, buffer, res);
+         return res;
+     }
+
+     return -1;
 }
 
 /*}}}*/
