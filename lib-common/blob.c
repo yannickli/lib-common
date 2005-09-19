@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/param.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 #include "macros.h"
 #include "blob.h"
@@ -282,6 +284,40 @@ void blob_kill_first(blob_t * blob, ssize_t len)
 void blob_kill_last(blob_t * blob, ssize_t len)
 {
     blob_kill_data_real(blob, blob->len - len, len);
+}
+
+/*}}}*/
+/******************************************************************************/
+/* Blob printf function                                                       */
+/******************************************************************************/
+/*{{{*/
+
+void blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...)
+{
+    int size;
+    int available;
+    real_blob_t * rblob = blob_real(blob);
+
+    if (pos > blob->len) {
+        pos = blob->len;
+    }
+    available = rblob->size - pos;
+    
+    va_list args;
+    va_start(args, fmt);
+
+    size = vsnprintf((char *)rblob->data+pos, available, fmt, args);
+    if (size >= available) {
+        /* only move the `pos' first bytes in case of realloc */
+        rblob->len = pos;
+        blob_resize(blob, pos+size+1);
+
+        va_start(args, fmt);
+        size = vsnprintf((char*)rblob->data+pos, size+1, fmt, args);
+    }
+    rblob->len = pos+size;
+
+    va_end(args);
 }
 
 /*}}}*/
@@ -834,6 +870,31 @@ START_TEST (check_kill)
 END_TEST
 
 /*.........................................................................}}}*/
+/* test printf functions                                                   {{{*/
+
+START_TEST (check_printf)
+{
+    char cmp[81];
+    blob_t blob;
+    check_setup(&blob, "01234");
+    snprintf(cmp, 81, "%080i", 0);
+
+    /* printf first */
+    blob_printf(&blob, blob.len, "5%s89", "67");
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "0123456789") != 0, "printf failed");
+    fail_if(blob.len != strlen("0123456789"), "printf failed");
+
+    blob_printf(&blob, 0, "%080i", 0);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, cmp) != 0, "printf failed");
+    fail_if(blob.len != sstrlen(cmp), "printf failed");
+
+    check_teardown(&blob, NULL);
+}
+END_TEST
+
+/*.........................................................................}}}*/
 /* test blob_search                                                        {{{*/
 
 START_TEST (check_search)
@@ -885,6 +946,7 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_append);
     tcase_add_test(tc, check_kill);
     tcase_add_test(tc, check_resize);
+    tcase_add_test(tc, check_printf);
     tcase_add_test(tc, check_search);
 
     return s;
