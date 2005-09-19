@@ -3,8 +3,9 @@ __EXE__=
 __LIB__=libcommon
 
 libcommon_OBJS = \
-	err_report.o  \
 	array.o \
-	blob.o
+	blob.o \
+	err_report.o  \
+	string_is.o
 
 include ../admin/default.mk
