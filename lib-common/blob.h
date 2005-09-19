@@ -63,7 +63,7 @@ void blob_kill_last(blob_t *blob, ssize_t len);
 /* Blob printf function                                                       */
 /******************************************************************************/
 
-void blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...);
+void blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...) __attr_format__(3,4);
 
 /******************************************************************************/
 /* Blob search functions                                                      */
