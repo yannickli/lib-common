@@ -310,8 +310,9 @@ void blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...)
     if (size >= available) {
         /* only move the `pos' first bytes in case of realloc */
         rblob->len = pos;
-        blob_resize(blob, pos+size+1);
+        blob_resize(blob, pos+size);
 
+        va_end(args);
         va_start(args, fmt);
         size = vsnprintf((char*)rblob->data+pos, size+1, fmt, args);
     }
