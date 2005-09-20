@@ -14,11 +14,11 @@
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 4)
 #  define __attr_format__(format_idx, arg_idx)  \
         __attribute__((format (printf, format_idx, arg_idx)))
-#  define __attr_unused__   __attribute__((unused))
+#  define __unused__        __attribute__((unused))
 #  define __attr_noreturn__ __attribute__((noreturn))
 #else
 #  define __attr_format__(format_idx, arg_idx)
-#  define __attr_unused__
+#  define __unused__
 #  define __attr_noreturn__
 #endif
 
