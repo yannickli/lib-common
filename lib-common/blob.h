@@ -9,13 +9,16 @@
 #include "macros.h"
 #include "mem.h"
 
+#define BLOB_INITIAL_SIZE 32
+
 typedef struct {
     const ssize_t len;
-    const byte *const data;
+    const byte * const data;
 
     /* HERE SO THAT sizeof(array) is ok */
-    void const *const __area;
+    void const * const __area;
     ssize_t const      __size;
+    byte const         __init[BLOB_INITIAL_SIZE];
 } blob_t;
 
 

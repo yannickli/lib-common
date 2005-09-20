@@ -9,8 +9,6 @@
 #include "mem.h"
 #include "string_is.h"
 
-#define INITIAL_BUFFER_SIZE 32
-
 /*
  * a blob has a vital invariant, making every parse function avoid buffer read
  * overflows.
@@ -27,6 +25,7 @@ typedef struct {
     /* private interface */
     byte * area;   /* originally allocated bloc */
     ssize_t size;  /* allocated size */
+    byte initial[BLOB_INITIAL_SIZE];
 } real_blob_t;
 
 static inline real_blob_t *blob_real(blob_t *blob)
@@ -44,10 +43,12 @@ blob_t * blob_init(blob_t * blob)
 {
     real_blob_t * rblob = blob_real(blob);
 
+    p_blank(byte, rblob->initial, BLOB_INITIAL_SIZE);
+
     rblob->len  = 0;
-    rblob->size = INITIAL_BUFFER_SIZE;
-    rblob->data = p_new_raw(byte, rblob->size);
-    rblob->area = rblob->data;
+    rblob->size = BLOB_INITIAL_SIZE;
+    rblob->area = NULL;
+    rblob->data = rblob->initial;
 
     rblob->data[rblob->len] = 0;
 
@@ -58,7 +59,9 @@ blob_t * blob_init(blob_t * blob)
 void blob_wipe(blob_t * blob)
 {
     if (blob) {
-        p_delete(&(blob_real(blob)->area));
+        if (blob_real(blob)->area) {
+            p_delete(&(blob_real(blob)->area));
+        }
         blob_real(blob)->data = NULL;
     }
 }
@@ -68,10 +71,16 @@ blob_t * blob_dup(const blob_t * src)
 {
     real_blob_t * dst = p_new_raw(real_blob_t, 1);
     dst->len  = src->len;
-    dst->size = MEM_ALIGN(src->len+1);
+    dst->size = MAX(MEM_ALIGN(src->len+1), BLOB_INITIAL_SIZE);
 
-    dst->data = p_new_raw(byte, dst->size);
-    dst->area = dst->data;
+    if (dst->size == BLOB_INITIAL_SIZE) {
+        dst->data = dst->initial;
+        dst->area = NULL;
+    } else {
+        dst->data = p_new_raw(byte, dst->size);
+        dst->area = dst->data;
+    }
+
     memcpy(dst->data, src->data, src->len+1); /* +1 for the blob_t \0 */
 
     return (blob_t*)dst;
@@ -109,7 +118,9 @@ void blob_resize(blob_t * blob, ssize_t newlen)
         byte * old_data = rblob->data;
         rblob->data = p_new_raw(byte, newsize);
         memcpy(rblob->data, old_data, blob->len+1); /* +1 for the blob_t \0 */
-        p_delete(&rblob->area);
+        if (rblob->area) {
+            p_delete(&rblob->area);
+        }
     }
     rblob->area = rblob->data;
     rblob->len  = newlen;
