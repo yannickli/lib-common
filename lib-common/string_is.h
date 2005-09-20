@@ -18,4 +18,13 @@ char *rstrtrim(char *str);
 int strstart(const char *str, const char *p, const char **pp);
 int stristart(const char *str, const char *p, const char **pp);
 char *stristr(const char *haystack, const char *needle);
+
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
+#ifdef CHECK
+#include <check.h>
+
+Suite *check_string_is_suite(void);
+
+#endif
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
 #endif

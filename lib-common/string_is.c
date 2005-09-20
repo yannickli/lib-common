@@ -188,3 +188,58 @@ char *stristr(const char *haystack, const char *needle)
     }
     return(NULL);
 }
+
+/*}}}*/
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
+#ifdef CHECK
+/* {{{*/
+#include <check.h>
+
+static const char *week = "Monday Tuesday Wednesday Thursday Friday Saturday Sunday";
+START_TEST (check_strstart)
+{
+    const char *p;
+    int res;
+    res = strstart(week, "Monday", &p);
+    fail_if(!res, "strstart did not find needle");
+    fail_if(p != week + strlen("Monday"),
+	    "strstart did not set pp correctly", week, p);
+
+    p = NULL;
+    res = strstart(week, "Tuesday", &p);
+    fail_if(res, "strstart did not fail");
+    fail_if(p != NULL, "strstart did set pp");
+}
+END_TEST
+
+START_TEST (check_stristart)
+{
+    const char *p;
+    int res;
+    res = stristart(week, "monDAY", &p);
+    fail_if(!res, "stristart did not find needle");
+    fail_if(p != week + strlen("MonDAY"),
+	    "stristart did not set pp correctly", week, p);
+
+    p = NULL;
+    res = stristart(week, "tUESDAY", &p);
+    fail_if(res, "stristart did not fail");
+    fail_if(p != NULL, "stristart did set pp");
+}
+END_TEST
+
+Suite *check_string_is_suite(void)
+{
+    Suite *s  = suite_create("String");
+    TCase *tc = tcase_create("Core");
+
+    suite_add_tcase(s, tc);
+    tcase_add_test(tc, check_strstart);
+    tcase_add_test(tc, check_stristart);
+    return s;
+}
+
+/*.........................................................................}}}*/
+#endif
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
+
