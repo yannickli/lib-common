@@ -16,5 +16,6 @@ char *pstrcat(char *dest, ssize_t size, const char *src);
 const char *skipspaces(const char *s);
 char *rstrtrim(char *str);
 int strstart(const char *str, const char *p, const char **pp);
+int stristart(const char *str, const char *p, const char **pp);
 char *stristr(const char *haystack, const char *needle);
 #endif

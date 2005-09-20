@@ -125,6 +125,31 @@ int strstart(const char *str, const char *p, const char **pp)
     return 1;
 }
 
+/** Tells whether str begins with p, case insensitive.
+ *
+ * @param pp if not null and str begins with p, pp is given the address of the
+ * first following character in str.
+ */
+int stristart(const char *str, const char *p, const char **pp)
+{
+    if (!str)
+	return 0;
+
+    while (*p) {
+	if (tolower(*str++) != tolower(*p++))
+	    return 0;
+    }
+    if (pp)
+	*pp = str;
+    return 1;
+}
+
+/** Find the first occurence of the substring needle in haystack, case
+ *  insensitive.
+ *
+ * @returns a pointer to the beginning of the substring, or NULL if
+ * it was not found.
+ */
 char *stristr(const char *haystack, const char *needle)
 {
     char *nptr, *hptr, *start;
