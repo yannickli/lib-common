@@ -55,7 +55,7 @@ void array_wipe(array_t *array, array_item_dtor_t *dtor)
         ssize_t i;
 
         for (i = 0 ; i < array->len ; i++ ) {
-            dtor(array->tab[i]);
+            (*dtor)(array->tab[i]);
         }
         p_delete(&(array_real(array)->tab));
     }
