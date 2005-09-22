@@ -12,7 +12,7 @@ typedef struct {
     /* HERE SO THAT sizeof(array) is ok */
     ssize_t const __size;
 } array_t;
-typedef void array_item_dtor_t(void * item);
+typedef void array_item_dtor_f(void * item);
 
 #define array_get(type, array, pos) ((type*)((array)->tab[pos]))
 
@@ -22,8 +22,8 @@ typedef void array_item_dtor_t(void * item);
 
 #define array_new() array_init(p_new_raw(array_t, 1))
 array_t * array_init(array_t * array);
-void array_wipe(array_t * array, array_item_dtor_t * dtor);
-void array_delete(array_t ** array, array_item_dtor_t * dtor);
+void array_wipe(array_t * array, array_item_dtor_f *dtor);
+void array_delete(array_t ** array, array_item_dtor_f *dtor);
 
 /******************************************************************************/
 /* Misc                                                                       */

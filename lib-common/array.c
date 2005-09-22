@@ -49,7 +49,7 @@ array_t * array_init(array_t * array)
     return (array_t *)array;
 }
 
-void array_wipe(array_t *array, array_item_dtor_t *dtor)
+void array_wipe(array_t *array, array_item_dtor_f *dtor)
 {
     if (array) {
         ssize_t i;
@@ -61,7 +61,7 @@ void array_wipe(array_t *array, array_item_dtor_t *dtor)
     }
 }
 
-void array_delete(array_t **array, array_item_dtor_t *dtor)
+void array_delete(array_t **array, array_item_dtor_f *dtor)
 {
     if (*array) {
         array_wipe(*array, dtor);
