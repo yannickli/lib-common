@@ -31,7 +31,7 @@ array_resize(array_t * array, ssize_t newsize)
     }
 
     a->size = MEM_ALIGN(newsize);
-    a->tab  = mem_realloc(a->tab, a->size);
+    a->tab  = mem_realloc(a->tab, a->size*sizeof(void*));
 }
 
 
@@ -52,10 +52,12 @@ array_t * array_init(array_t * array)
 void array_wipe(array_t *array, array_item_dtor_f *dtor)
 {
     if (array) {
-        ssize_t i;
+        if (dtor) {
+            ssize_t i;
 
-        for (i = 0 ; i < array->len ; i++ ) {
-            (*dtor)(array->tab[i]);
+            for (i = 0 ; i < array->len ; i++ ) {
+                (*dtor)(array->tab[i]);
+            }
         }
         p_delete(&(array_real(array)->tab));
     }
@@ -93,6 +95,5 @@ void * array_take(array_t * array, ssize_t pos)
 
     return ptr;
 }
-
 
 
