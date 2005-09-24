@@ -5,7 +5,7 @@
 
 #include "mem.h"
 
-typedef struct {
+typedef struct array {
     void ** const tab;
     ssize_t const len;
 
@@ -14,24 +14,68 @@ typedef struct {
 } array_t;
 typedef void array_item_dtor_f(void * item);
 
-#define array_get(type, array, pos) ((type*)((array)->tab[pos]))
-
 /******************************************************************************/
 /* Memory management                                                          */
 /******************************************************************************/
 
 #define array_new() array_init(p_new_raw(array_t, 1))
-array_t * array_init(array_t * array);
-void array_wipe(array_t * array, array_item_dtor_f *dtor);
-void array_delete(array_t ** array, array_item_dtor_f *dtor);
+array_t *array_init(array_t *array);
+void array_wipe(array_t *array, array_item_dtor_f *dtor);
+void array_delete(array_t **array, array_item_dtor_f *dtor);
 
 /******************************************************************************/
 /* Misc                                                                       */
 /******************************************************************************/
 
-ssize_t array_len(array_t * array);
-void array_append(array_t * array, void * item);
-void * array_take_real(array_t * array, ssize_t pos);
-#define array_take(type, array, pos) ((type*)(array_take_real(array, pos)))
+void array_append(array_t *array, void *item);
+void * array_take(array_t *array, ssize_t pos);
+
+/******************************************************************************/
+/* Typed Arrays                                                               */
+/******************************************************************************/
+
+#define NEW_ARRAY_OF(el_typ, prefix)                                           \
+    typedef struct prefix##_array {                                            \
+        el_typ ** const tab;                                                   \
+        ssize_t const len;                                                     \
+                                                                               \
+        /* HERE SO THAT sizeof(array) is ok */                                 \
+        ssize_t const __size;                                                  \
+    } prefix##_array_t;                                                        \
+                                                                               \
+    /* legacy functions */                                                     \
+    static inline prefix##_array_t *prefix##_array_new(void)                   \
+    {                                                                          \
+        return (prefix##_array_t *)array_new();                                \
+    }                                                                          \
+    static inline prefix##_array_t *                                           \
+    prefix##_array_init(prefix##_array_t *array)                               \
+    {                                                                          \
+        return (prefix##_array_t *)array_init((array_t *)array);               \
+    }                                                                          \
+    static inline void                                                         \
+    prefix##_array_wipe(prefix##_array_t *array, bool do_elts)                 \
+    {                                                                          \
+        array_wipe((array_t*)array,                                            \
+                do_elts ? (array_item_dtor_f *)prefix##_delete : NULL);        \
+    }                                                                          \
+    static inline void                                                         \
+    prefix##_array_delete(prefix##_array_t **array, bool do_elts)              \
+    {                                                                          \
+        array_delete((array_t **)array,                                        \
+                do_elts ? (array_item_dtor_f *)prefix##_delete : NULL);        \
+    }                                                                          \
+                                                                               \
+    /* module functions */                                                     \
+    static inline void                                                         \
+    prefix##_array_append(prefix##_array_t *array, el_typ *item)               \
+    {                                                                          \
+        array_append((array_t *)array, (void*)item);                           \
+    }                                                                          \
+    static inline el_typ *                                                     \
+    prefix##_array_take(prefix##_array_t *array, ssize_t pos)                  \
+    {                                                                          \
+        return (el_typ *)array_take((array_t *)array, pos);                    \
+    }
 
 #endif

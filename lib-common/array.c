@@ -73,11 +73,6 @@ void array_delete(array_t **array, array_item_dtor_f *dtor)
 /* Misc                                                                       */
 /******************************************************************************/
 
-ssize_t array_len(array_t * array)
-{
-    return array->len;
-}
-
 void array_append(array_t * array, void * item)
 {
     ssize_t old_len = array->len;
@@ -85,7 +80,7 @@ void array_append(array_t * array, void * item)
     array->tab[old_len] = item;
 }
 
-void * array_take_real(array_t * array, ssize_t pos)
+void * array_take(array_t * array, ssize_t pos)
 {
     void * ptr;
     if (pos > array->len || pos < 0) {
