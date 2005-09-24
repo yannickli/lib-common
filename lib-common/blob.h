@@ -131,8 +131,6 @@ bool blob_is_iequal(const blob_t *blob1, const blob_t *blob2);
 #include "parse.h"
 
 ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos, const char ** answer);
-int     blob_parse_long(const blob_t *blob, ssize_t *pos, int base, long *answer);
-int     blob_parse_double(const blob_t *blob, ssize_t *pos, double *answer);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

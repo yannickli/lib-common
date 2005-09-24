@@ -577,56 +577,6 @@ ssize_t blob_parse_cstr(const blob_t * blob, ssize_t * pos, const char **answer)
     return PARSE_EPARSE;
 }
 
-/* @returns :
-
-     0         : no error
-     PARSE_EPARSE : equivalent to EINVAL for strtol(3)
-     PARSE_ERANGE : resulting value out of range.
- */
-
-int blob_parse_long(const blob_t * blob, ssize_t * pos, int base, long *answer)
-{
-    char *  endptr;
-    ssize_t endpos;
-    long    number;
-    
-    number = strtol((char *)blob->data + *pos, &endptr, base);
-    endpos = (byte *)endptr - blob->data;
-
-    if (errno == ERANGE) {
-        return PARSE_ERANGE;
-    }
-    if (errno == EINVAL || endpos > blob->len) {
-        return PARSE_EPARSE;
-    }
-
-    PARSE_SET_RESULT(answer, number);
-    *pos    = endpos;
-    return PARSE_OK;
-    
-}
-
-int blob_parse_double(const blob_t * blob, ssize_t * pos, double *answer)
-{
-    char *  endptr;
-    ssize_t endpos;
-    double  number;
-    
-    number = strtod((char *)blob->data + *pos, &endptr);
-    endpos = (byte *)endptr - blob->data;
-
-    if (errno == ERANGE) {
-        return PARSE_ERANGE;
-    }
-    if (endpos > blob->len) {
-        return PARSE_EPARSE;
-    }
-
-    PARSE_SET_RESULT(answer, number);
-    *pos    = endpos;
-    return PARSE_OK;
-}
-
 /*}}}*/
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
