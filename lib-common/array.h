@@ -5,29 +5,29 @@
 
 #include "mem.h"
 
-typedef struct array {
+typedef struct _array {
     void ** const tab;
     ssize_t const len;
 
     ssize_t const __size;
-} array_t;
-typedef void array_item_dtor_f(void * item);
+} _array;
+typedef void array_item_dtor_f(void *item);
 
 /******************************************************************************/
 /* Memory management                                                          */
 /******************************************************************************/
 
-#define array_new() array_init(p_new_raw(array_t, 1))
-array_t *array_init(array_t *array);
-void array_wipe(array_t *array, array_item_dtor_f *dtor);
-void array_delete(array_t **array, array_item_dtor_f *dtor);
+#define array_new() array_init(p_new_raw(_array, 1))
+_array *array_init(_array *array);
+void array_wipe(_array *array, array_item_dtor_f *dtor);
+void array_delete(_array **array, array_item_dtor_f *dtor);
 
 /******************************************************************************/
 /* Misc                                                                       */
 /******************************************************************************/
 
-void array_append(array_t *array, void *item);
-void * array_take(array_t *array, ssize_t pos);
+void array_append(_array *array, void *item);
+void *arrayake(_array *array, ssize_t pos);
 
 /******************************************************************************/
 /* Typed Arrays                                                               */
@@ -39,43 +39,43 @@ void * array_take(array_t *array, ssize_t pos);
         ssize_t const len;                                                     \
                                                                                \
         ssize_t const __size;                                                  \
-    } prefix##_array_t
+    } prefix##_array
 
 #define ARRAY_FUNCTIONS(el_typ, prefix)                                        \
                                                                                \
     /* legacy functions */                                                     \
-    static inline prefix##_array_t *prefix##_array_new(void)                   \
+    static inline prefix##_array *prefix##_array_new(void)                     \
     {                                                                          \
-        return (prefix##_array_t *)array_new();                                \
+        return (prefix##_array *)array_new();                                  \
     }                                                                          \
-    static inline prefix##_array_t *                                           \
-    prefix##_array_init(prefix##_array_t *array)                               \
+    static inline prefix##_array *                                             \
+    prefix##_array_init(prefix##_array *array)                                 \
     {                                                                          \
-        return (prefix##_array_t *)array_init((array_t *)array);               \
+        return (prefix##_array *)array_init((_array *)array);                  \
     }                                                                          \
     static inline void                                                         \
-    prefix##_array_wipe(prefix##_array_t *array, bool do_elts)                 \
+    prefix##_array_wipe(prefix##_array *array, bool do_elts)                   \
     {                                                                          \
-        array_wipe((array_t*)array,                                            \
+        array_wipe((_array*)array,                                             \
                 do_elts ? (array_item_dtor_f *)prefix##_delete : NULL);        \
     }                                                                          \
     static inline void                                                         \
-    prefix##_array_delete(prefix##_array_t **array, bool do_elts)              \
+    prefix##_array_delete(prefix##_array **array, bool do_elts)                \
     {                                                                          \
-        array_delete((array_t **)array,                                        \
+        array_delete((_array **)array,                                         \
                 do_elts ? (array_item_dtor_f *)prefix##_delete : NULL);        \
     }                                                                          \
                                                                                \
     /* module functions */                                                     \
     static inline void                                                         \
-    prefix##_array_append(prefix##_array_t *array, el_typ *item)               \
+    prefix##_array_append(prefix##_array *array, el_typ *item)                 \
     {                                                                          \
-        array_append((array_t *)array, (void*)item);                           \
+        array_append((_array *)array, (void*)item);                            \
     }                                                                          \
     static inline el_typ *                                                     \
-    prefix##_array_take(prefix##_array_t *array, ssize_t pos)                  \
+    prefix##_arrayake(prefix##_array *array, ssize_t pos)                      \
     {                                                                          \
-        return (el_typ *)array_take((array_t *)array, pos);                    \
+        return (el_typ *)arrayake((_array *)array, pos);                       \
     }
 
 #endif

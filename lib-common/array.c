@@ -8,12 +8,12 @@ typedef struct
     ssize_t len;
 
     ssize_t size;
-} real_array_t;
+} real_array;
 
 #define ARRAY_INITIAL_SIZE 32
-static inline real_array_t *array_real(array_t *array)
+static inline real_array *array_real(_array *array)
 {
-    return (real_array_t *)array;
+    return (real_array *)array;
 }
 
 /******************************************************************************/
@@ -21,9 +21,9 @@ static inline real_array_t *array_real(array_t *array)
 /******************************************************************************/
 
 static inline void
-array_resize(array_t * array, ssize_t newsize)
+array_resize(_array *array, ssize_t newsize)
 {
-    real_array_t * a = array_real(array);
+    real_array *a = array_real(array);
     
     if (newsize <= a->size) {
         a->len = newsize;
@@ -39,17 +39,17 @@ array_resize(array_t * array, ssize_t newsize)
 /* Memory management                                                          */
 /******************************************************************************/
 
-array_t * array_init(array_t * array)
+_array *array_init(_array *array)
 {
-    real_array_t * rarray = array_real(array);
+    real_array *rarray = array_real(array);
     rarray->tab  = p_new(void*, ARRAY_INITIAL_SIZE);
     rarray->len  = 0;
     rarray->size = ARRAY_INITIAL_SIZE;
 
-    return (array_t *)array;
+    return (_array *)array;
 }
 
-void array_wipe(array_t *array, array_item_dtor_f *dtor)
+void array_wipe(_array *array, array_item_dtor_f *dtor)
 {
     if (array) {
         if (dtor) {
@@ -63,7 +63,7 @@ void array_wipe(array_t *array, array_item_dtor_f *dtor)
     }
 }
 
-void array_delete(array_t **array, array_item_dtor_f *dtor)
+void array_delete(_array **array, array_item_dtor_f *dtor)
 {
     if (*array) {
         array_wipe(*array, dtor);
@@ -75,16 +75,16 @@ void array_delete(array_t **array, array_item_dtor_f *dtor)
 /* Misc                                                                       */
 /******************************************************************************/
 
-void array_append(array_t * array, void * item)
+void array_append(_array *array, void *item)
 {
     ssize_t old_len = array->len;
     array_resize(array, old_len + 1);
     array->tab[old_len] = item;
 }
 
-void * array_take(array_t * array, ssize_t pos)
+void *arrayake(_array *array, ssize_t pos)
 {
-    void * ptr;
+    void *ptr;
     if (pos > array->len || pos < 0) {
         return NULL;
     }
