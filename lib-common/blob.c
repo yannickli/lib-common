@@ -1,8 +1,11 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/param.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <fcntl.h>
 
 #include "macros.h"
 #include "blob.h"
@@ -285,6 +288,65 @@ void blob_append_byte(blob_t *blob, byte b)
     const ssize_t pos = blob->len;
     blob_resize(blob, pos+1);
     blob_real(blob)->data[pos] = b;
+}
+
+/* returns the number of bytes written.
+   negative value significates error
+ */
+ssize_t blob_append_file_data(blob_t *blob, const char *filename)
+{
+    const ssize_t origlen = blob->len;
+
+    int fd;
+    ssize_t total;
+    ssize_t to_read;
+    struct stat st;
+
+    if ((fd = open(filename, O_RDONLY)) < 0) {
+        goto error;
+    }
+
+    if (fstat(fd, &st) < 0) {
+        goto error;
+    }
+
+    to_read = total = (ssize_t)st.st_size;
+    if (total < 0) {
+        goto error;
+    }
+
+    /* force allocation */
+    blob_resize(blob, origlen + total);
+    blob_resize(blob, origlen);
+
+    while (to_read > 0)
+    {
+        ssize_t size;
+        char *buf[4096];
+
+        if ((size = read(fd, buf, 4096)) <= 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            goto error;
+        }
+
+        if (size == 0 && to_read != 0) {
+            goto error;
+        }
+
+        blob_append_data(blob, buf, size);
+        to_read -= size;
+    }
+
+    return total;
+
+error:
+    if (fd >= 0) {
+        close(fd);
+        blob_resize(blob, origlen);
+    }
+    return -1;
 }
 
 /*** kill functions ***/
@@ -840,6 +902,34 @@ START_TEST (check_append)
 }
 END_TEST
 
+START_TEST (check_append_file_data)
+{
+    const char file[] = "check.data";
+    const char data[] =
+        "my super data, just for the fun, and for the test \n"
+        "don't you like it ?\n"
+        "tests are soooo boring !!!";
+
+    blob_t blob;
+    int fd;
+
+    blob_init(&blob);
+
+    fd = open(file, O_WRONLY | O_CREAT | O_TRUNC);
+    fail_if(fd < 0, "sample file not created");
+    fail_if(write(fd, &data, strlen(data)) != sstrlen(data), "data not written");
+    close(fd);
+
+    fail_if(blob_append_file_data(&blob, file) != sstrlen(data), "file miscopied");
+    check_blob_invariants(&blob);
+    fail_if(blob.len != sstrlen(data), "file miscopied");
+    fail_if(strcmp((const char *)blob.data, data) != 0, "garbage copied");
+
+    unlink(file);
+
+    blob_wipe(&blob);
+}
+END_TEST
 /*.........................................................................}}}*/
 /* test kill functions                                                     {{{*/
 
@@ -945,6 +1035,7 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_blit);
     tcase_add_test(tc, check_insert);
     tcase_add_test(tc, check_append);
+    tcase_add_test(tc, check_append_file_data);
     tcase_add_test(tc, check_kill);
     tcase_add_test(tc, check_resize);
     tcase_add_test(tc, check_printf);
