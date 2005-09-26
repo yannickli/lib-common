@@ -228,6 +228,25 @@ START_TEST (check_stristart)
 }
 END_TEST
 
+START_TEST (check_stristr)
+{
+    const char *alphabet = "abcdefghijklmnopqrstuvwxyz";
+    char *p;
+
+    p = stristr(alphabet, "aBC");
+    fail_if(p != alphabet, "not found at start of string");
+
+    p = stristr(alphabet, "Z");
+    fail_if(p != alphabet + 25, "not found at end of string");
+
+    p = stristr(alphabet, "mn");
+    fail_if(p != alphabet + 12, "not found in the middle of the string");
+
+    p = stristr(alphabet, "123");
+    fail_if(p != NULL, "unexistant string found");
+}
+END_TEST
+
 Suite *check_string_is_suite(void)
 {
     Suite *s  = suite_create("String");
@@ -236,6 +255,7 @@ Suite *check_string_is_suite(void)
     suite_add_tcase(s, tc);
     tcase_add_test(tc, check_strstart);
     tcase_add_test(tc, check_stristart);
+    tcase_add_test(tc, check_stristr);
     return s;
 }
 
