@@ -39,7 +39,7 @@ static inline real_blob_t *blob_real(blob_t *blob)
 /*{{{*/
 
 /* create a new, empty buffer */
-blob_t * blob_init(blob_t * blob)
+blob_t *blob_init(blob_t *blob)
 {
     real_blob_t * rblob = blob_real(blob);
 
@@ -56,7 +56,7 @@ blob_t * blob_init(blob_t * blob)
 }
 
 /* delete a buffer. the pointer is set to 0 */
-void blob_wipe(blob_t * blob)
+void blob_wipe(blob_t *blob)
 {
     if (blob) {
         if (blob_real(blob)->area) {
@@ -67,7 +67,7 @@ void blob_wipe(blob_t * blob)
 }
 
 /* @see strdup(3) */
-blob_t * blob_dup(const blob_t * src)
+blob_t *blob_dup(const blob_t * src)
 {
     real_blob_t * dst = p_new_raw(real_blob_t, 1);
     dst->len  = src->len;
@@ -89,7 +89,7 @@ blob_t * blob_dup(const blob_t * src)
 /* XXX unlike strcat(3), blob_cat *creates* a new blob that is the
  * concatenation of two blobs.
  */
-blob_t * blob_cat(const blob_t * blob1, const blob_t * blob2)
+blob_t *blob_cat(const blob_t *blob1, const blob_t *blob2)
 {
     blob_t * res = blob_dup(blob1);
     blob_append(res, blob2);
@@ -100,7 +100,7 @@ blob_t * blob_cat(const blob_t * blob1, const blob_t * blob2)
  *
  * the min(blob->len, newlien) first bytes are preserved
  */
-void blob_resize(blob_t * blob, ssize_t newlen)
+void blob_resize(blob_t *blob, ssize_t newlen)
 {
     real_blob_t * rblob = blob_real(blob);
     ssize_t newsize;
@@ -138,7 +138,7 @@ void blob_resize(blob_t * blob, ssize_t newlen)
 /*** private inlines ***/
 
 static inline void
-blob_blit_data_real(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
+blob_blit_data_real(blob_t *blob, ssize_t pos, const void * data, ssize_t len)
 {
     if (len == 0) {
         return;
@@ -159,7 +159,7 @@ blob_blit_data_real(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
    the data is appended.
  */
 static inline void
-blob_insert_data_real(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
+blob_insert_data_real(blob_t *blob, ssize_t pos, const void * data, ssize_t len)
 {
     ssize_t oldlen = blob->len;
 
@@ -178,7 +178,7 @@ blob_insert_data_real(blob_t * blob, ssize_t pos, const void * data, ssize_t len
 }
 
 static inline void
-blob_kill_data_real(blob_t * blob, ssize_t pos, ssize_t len)
+blob_kill_data_real(blob_t *blob, ssize_t pos, ssize_t len)
 {
     real_blob_t * rblob = blob_real(blob);
     if (len == 0) {
@@ -213,13 +213,13 @@ void blob_set(blob_t * dest, const blob_t * src)
     blob_blit_data_real(dest, 0, src->data, src->len);
 }
 
-void blob_set_data(blob_t * blob, const void * data, ssize_t len)
+void blob_set_data(blob_t *blob, const void * data, ssize_t len)
 {
     blob_resize(blob, 0);
     blob_blit_data_real(blob, 0, data, len);
 }
 
-void blob_set_cstr(blob_t * blob, const char * cstr)
+void blob_set_cstr(blob_t *blob, const char * cstr)
 {
     blob_resize(blob, 0);
     blob_blit_data_real(blob, 0, cstr, sstrlen(cstr));
@@ -232,12 +232,12 @@ void blob_blit(blob_t * dest, ssize_t pos, const blob_t * src)
     blob_blit_data_real(dest, pos, src->data, src->len);
 }
 
-void blob_blit_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
+void blob_blit_data(blob_t *blob, ssize_t pos, const void * data, ssize_t len)
 {
     blob_blit_data_real(blob, pos, data, len);
 }
 
-void blob_blit_cstr(blob_t * blob, ssize_t pos, const char * cstr)
+void blob_blit_cstr(blob_t *blob, ssize_t pos, const char * cstr)
 {
     blob_blit_data_real(blob, pos, cstr, sstrlen(cstr));
 }
@@ -249,13 +249,13 @@ void blob_insert(blob_t * dest, ssize_t pos, const blob_t * src)
     blob_insert_data_real(dest, pos, src->data, src->len);
 }
 
-void blob_insert_data(blob_t * blob, ssize_t pos, const void * data, ssize_t len)
+void blob_insert_data(blob_t *blob, ssize_t pos, const void * data, ssize_t len)
 {
     blob_insert_data_real(blob, pos, data, len);
 }
 
 /* don't insert the NUL ! */
-void blob_insert_cstr(blob_t * blob, ssize_t pos, const char * cstr)
+void blob_insert_cstr(blob_t *blob, ssize_t pos, const char * cstr)
 {
     blob_insert_data_real(blob, pos, cstr, sstrlen(cstr));
 }
@@ -270,29 +270,36 @@ void blob_append(blob_t * dest, const blob_t * src)
     BLOB_APPEND_DATA_blob_real(dest, src->data, src->len);
 }
 
-void blob_append_data(blob_t * blob, const void * data, ssize_t len)
+void blob_append_data(blob_t *blob, const void * data, ssize_t len)
 {
     BLOB_APPEND_DATA_blob_real(blob, data, len);
 }
 
-void blob_append_cstr(blob_t * blob, const char * cstr)
+void blob_append_cstr(blob_t *blob, const char * cstr)
 {
     BLOB_APPEND_DATA_blob_real(blob, cstr, sstrlen(cstr));
 }
 
+void blob_append_byte(blob_t *blob, byte b)
+{
+    const ssize_t pos = blob->len;
+    blob_resize(blob, pos+1);
+    blob_real(blob)->data[pos] = b;
+}
+
 /*** kill functions ***/
 
-void blob_kill_data(blob_t * blob, ssize_t pos, ssize_t len)
+void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len)
 {
     blob_kill_data_real(blob, pos, len);
 }
 
-void blob_kill_first(blob_t * blob, ssize_t len)
+void blob_kill_first(blob_t *blob, ssize_t len)
 {
     blob_kill_data_real(blob, 0, len);
 }
 
-void blob_kill_last(blob_t * blob, ssize_t len)
+void blob_kill_last(blob_t *blob, ssize_t len)
 {
     blob_kill_data_real(blob, blob->len - len, len);
 }
@@ -424,7 +431,7 @@ ssize_t blob_search_cstr(const blob_t *haystack, ssize_t pos, const char *needle
  */
 
 static inline void
-blob_map_range_real(blob_t * blob, ssize_t start, ssize_t end, blob_filter_func_t * filter)
+blob_map_range_real(blob_t *blob, ssize_t start, ssize_t end, blob_filter_func_t * filter)
 {
     ssize_t i;
 
@@ -434,18 +441,18 @@ blob_map_range_real(blob_t * blob, ssize_t start, ssize_t end, blob_filter_func_
 }
 
 
-void blob_map(blob_t * blob, blob_filter_func_t filter)
+void blob_map(blob_t *blob, blob_filter_func_t filter)
 {
     blob_map_range_real(blob, 0, blob->len, filter);
 }
 
-void blob_map_range(blob_t * blob, ssize_t start, ssize_t end, blob_filter_func_t * filter)
+void blob_map_range(blob_t *blob, ssize_t start, ssize_t end, blob_filter_func_t * filter)
 {
     blob_map_range_real(blob, start, end, filter);
 }
 
 
-void blob_ltrim(blob_t * blob)
+void blob_ltrim(blob_t *blob)
 {
     ssize_t i = 0;
 
@@ -453,7 +460,7 @@ void blob_ltrim(blob_t * blob)
     blob_kill_data_real(blob, 0, i);
 }
 
-void blob_rtrim(blob_t * blob)
+void blob_rtrim(blob_t *blob)
 {
     ssize_t i = blob->len - 1;
 
@@ -461,7 +468,7 @@ void blob_rtrim(blob_t * blob)
     blob_kill_data_real(blob, i+1, blob->len);
 }
 
-void blob_trim(blob_t * blob)
+void blob_trim(blob_t *blob)
 {
     blob_ltrim(blob);
     blob_rtrim(blob);
@@ -474,7 +481,7 @@ void blob_trim(blob_t * blob)
 /*{{{*/
 
 /* @see memcmp(3) */
-int blob_cmp(const blob_t * blob1, const blob_t * blob2)
+int blob_cmp(const blob_t *blob1, const blob_t *blob2)
 {
     if (blob1->len == blob2->len) {
         return memcmp(blob1, blob2, blob1->len);
@@ -489,7 +496,7 @@ int blob_cmp(const blob_t * blob1, const blob_t * blob2)
 }
 
 
-int blob_icmp(const blob_t * blob1, const blob_t * blob2)
+int blob_icmp(const blob_t *blob1, const blob_t *blob2)
 {
     ssize_t len = MIN(blob1->len, blob2->len);
     ssize_t pos = 0;
@@ -505,7 +512,7 @@ int blob_icmp(const blob_t * blob1, const blob_t * blob2)
     return tolower(s1[pos]) - tolower(s2[pos]);
 }
 
-int blob_is_equal(const blob_t * blob1, const blob_t * blob2)
+int blob_is_equal(const blob_t *blob1, const blob_t *blob2)
 {
     if (blob1->len != blob2->len) {
         return false;
@@ -517,7 +524,7 @@ int blob_is_equal(const blob_t * blob1, const blob_t * blob2)
     return (memcmp(blob1->data, blob2->data, blob1->len) == 0);
 }
 
-int blob_is_iequal(const blob_t * blob1, const blob_t * blob2)
+int blob_is_iequal(const blob_t *blob1, const blob_t *blob2)
 {
     ssize_t i;
 
@@ -560,7 +567,7 @@ int blob_is_iequal(const blob_t * blob1, const blob_t * blob2)
        no \0 was found before the end of the blob
  */
 
-ssize_t blob_parse_cstr(const blob_t * blob, ssize_t * pos, const char **answer)
+ssize_t blob_parse_cstr(const blob_t *blob, ssize_t * pos, const char **answer)
 {
     ssize_t walk = *pos;
 
@@ -582,7 +589,7 @@ ssize_t blob_parse_cstr(const blob_t * blob, ssize_t * pos, const char **answer)
 #ifdef CHECK
 /* inlines (check invariants) + setup/teardowns                            {{{*/
 
-static inline void check_blob_invariants(blob_t * blob)
+static inline void check_blob_invariants(blob_t *blob)
 {
     fail_if(blob->len >= blob_real(blob)->size,
             "a blob must have `len < size'. this one has `len = %d' and `size = %d'",
@@ -592,13 +599,13 @@ static inline void check_blob_invariants(blob_t * blob)
             blob->data[blob->len]);
 }
 
-static inline void check_setup(blob_t * blob, const char * data)
+static inline void check_setup(blob_t *blob, const char * data)
 {
     blob_init(blob);
     blob_set_cstr(blob, data);
 }
 
-static inline void check_teardown(blob_t * blob, blob_t **blob2)
+static inline void check_teardown(blob_t *blob, blob_t **blob2)
 {
     blob_wipe(blob);
     if (blob2 && *blob2) {
@@ -626,7 +633,7 @@ END_TEST
 
 START_TEST (check_blob_new)
 {
-    blob_t * blob = blob_new();
+    blob_t *blob = blob_new();
 
     check_blob_invariants(blob);
     fail_if(blob == NULL,        "no blob was allocated");

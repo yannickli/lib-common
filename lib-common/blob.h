@@ -58,6 +58,7 @@ void blob_insert_cstr(blob_t *blob, ssize_t pos, const char *cstr);
 void blob_append(blob_t *dest, const blob_t *src);
 void blob_append_data(blob_t *blob, const void *data, ssize_t len);
 void blob_append_cstr(blob_t *blob, const char *cstr);
+void blob_append_byte(blob_t *blob, byte b);
 
 void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len);
 void blob_kill_first(blob_t *blob, ssize_t len);
