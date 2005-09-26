@@ -75,14 +75,7 @@ void array_delete(_array **array, array_item_dtor_f *dtor)
 /* Misc                                                                       */
 /******************************************************************************/
 
-void array_append(_array *array, void *item)
-{
-    ssize_t old_len = array->len;
-    array_resize(array, old_len + 1);
-    array->tab[old_len] = item;
-}
-
-void *arrayake(_array *array, ssize_t pos)
+void *array_take(_array *array, ssize_t pos)
 {
     void *ptr;
     if (pos > array->len || pos < 0) {
@@ -94,6 +87,24 @@ void *arrayake(_array *array, ssize_t pos)
     array_real(array)->len --;
 
     return ptr;
+}
+
+/* insert item at pos `pos',
+   pos interpereted as array->len if pos>array->len */
+void array_insert(_array *array, ssize_t pos, void *item)
+{
+    real_array *rarray = array_real(array);
+
+    array_resize(array, array->len + 1);
+    if (pos > array->len) {
+        pos = array->len;
+    }
+
+    if (pos < array->len) {
+        memmove(rarray->tab + pos + 1, array->tab + pos, array->len - pos);
+    }
+
+    rarray->tab[pos] = item;
 }
 
 

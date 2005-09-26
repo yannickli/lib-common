@@ -26,8 +26,17 @@ void array_delete(_array **array, array_item_dtor_f *dtor);
 /* Misc                                                                       */
 /******************************************************************************/
 
-void array_append(_array *array, void *item);
-void *arrayake(_array *array, ssize_t pos);
+void array_insert(_array *array, ssize_t pos, void *item);
+static inline void array_append(_array *array, void *item)
+{
+    array_insert(array, array->len, item);
+}
+static inline void array_push(_array *array, void *item)
+{
+    array_insert(array, 0, item);
+}
+
+void *array_take(_array *array, ssize_t pos);
 
 /******************************************************************************/
 /* Typed Arrays                                                               */
@@ -68,14 +77,24 @@ void *arrayake(_array *array, ssize_t pos);
                                                                                \
     /* module functions */                                                     \
     static inline void                                                         \
+    prefix##_array_insert(prefix##_array *array, ssize_t pos, el_typ *item)    \
+    {                                                                          \
+        array_insert((_array *)array, pos, (void*)item);                       \
+    }                                                                          \
+    static inline void                                                         \
     prefix##_array_append(prefix##_array *array, el_typ *item)                 \
     {                                                                          \
         array_append((_array *)array, (void*)item);                            \
     }                                                                          \
-    static inline el_typ *                                                     \
-    prefix##_arrayake(prefix##_array *array, ssize_t pos)                      \
+    static inline void                                                         \
+    prefix##_array_push(prefix##_array *array, el_typ *item)                   \
     {                                                                          \
-        return (el_typ *)arrayake((_array *)array, pos);                       \
+        array_push((_array *)array, (void*)item);                              \
+    }                                                                          \
+    static inline el_typ *                                                     \
+    prefix##_array_take(prefix##_array *array, ssize_t pos)                    \
+    {                                                                          \
+        return (el_typ *)array_take((_array *)array, pos);                     \
     }
 
 #endif
