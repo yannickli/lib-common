@@ -996,23 +996,23 @@ START_TEST (check_search)
 
     /* search data */
     fail_if(blob_search_data(&blob, 0, (void*)"string", 6) != 5,
-            "blob_search fail when needle exists");
+            "blob_search fails when needle exists");
     fail_if(blob_search_data(&blob, 0, (void*)"bloube", 6) != -1,
-            "blob_search fail when needle doesn't exist");
+            "blob_search fails when needle doesn't exist");
 
     /* search cstr */
     fail_if(blob_search_cstr(&blob, 0, "string") != 5,
-            "blob_search fail when needle exists");
+            "blob_search fails when needle exists");
     fail_if(blob_search_cstr(&blob, 0, "bloube") != -1,
-            "blob_search fail when needle doesn't exist");
+            "blob_search fails when needle doesn't exist");
 
     /* search */
     blob_set_cstr(b1, "string");
     fail_if(blob_search(&blob, 0, b1) != 5,
-            "blob_search fail when needle exists");
+            "blob_search fails when needle exists");
     blob_set_cstr(b1, "blouble");
     fail_if(blob_search(&blob, 0, b1) != -1,
-            "blob_search fail when needle doesn't exist");
+            "blob_search fails when needle doesn't exist");
 
     check_teardown(&blob, &b1);
 }
