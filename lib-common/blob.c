@@ -442,27 +442,12 @@ ssize_t blob_ftime(blob_t *blob, ssize_t pos, const char *fmt, const struct tm *
 static inline ssize_t
 blob_search_data_real(const blob_t *haystack, ssize_t pos, const void *needle, ssize_t len)
 {
-    byte b;
-
-    if (len == 0) {
-        return pos;
+    const void* p;
+    p = memsearch(haystack->data + pos, haystack->len - pos, needle, len);
+    if (!p) {
+	return -1;
     }
-
-    b = *(byte*)needle;
-
-    while (true) {
-        while (haystack->data[pos] != b) {
-            pos ++;
-            if (pos + len > haystack->len) {
-                return -1;
-            }
-        }
-
-        if (memcmp(haystack->data+pos, needle, len)==0) {
-            return pos;
-        }
-        pos ++;
-    }
+    return p - (void*)haystack->data;
 }
 
 /* not very efficent ! */
