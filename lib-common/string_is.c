@@ -189,6 +189,34 @@ char *stristr(const char *haystack, const char *needle)
     return(NULL);
 }
 
+/** Find the first occurence of the needle in haystack.
+ *
+ * @returns a pointer to the beginning of needle, or NULL if
+ * it was not found.
+ */
+const void *memsearch(const void *_haystack, size_t hsize, const void *_needle, size_t nsize)
+{
+    const char *haystack = _haystack, *needle = _needle;
+    if (nsize == 0) {
+        return haystack;
+    }
+
+    for (;;) {
+        while (*haystack != *needle) {
+	    haystack++;
+	    hsize--;
+            if (nsize > hsize) {
+                return NULL;
+	    }
+	}
+     	if (!memcmp(haystack, needle, nsize)) {
+	    return haystack;
+	}
+	haystack++;
+	hsize--;
+    }
+}
+
 /*}}}*/
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
@@ -228,9 +256,9 @@ START_TEST (check_stristart)
 }
 END_TEST
 
+static const char *alphabet = "abcdefghijklmnopqrstuvwxyz";
 START_TEST (check_stristr)
 {
-    const char *alphabet = "abcdefghijklmnopqrstuvwxyz";
     char *p;
 
     p = stristr(alphabet, "aBC");
@@ -247,6 +275,24 @@ START_TEST (check_stristr)
 }
 END_TEST
 
+START_TEST (check_memsearch)
+{
+    const void *p;
+
+    p = memsearch(alphabet, 5, "ab", 2);
+    fail_if(p != alphabet, "not found at start of zone");
+
+    p = memsearch(alphabet, 26, "yz", 2);
+    fail_if(p != alphabet + 24, "not found at end of zone");
+
+    p = memsearch(alphabet, 26, "mn", 2);
+    fail_if(p != alphabet + 12, "not found in the middle of the zone");
+
+    p = memsearch(alphabet, 26, "123", 3);
+    fail_if(p != NULL, "unexistant occurence found");
+}
+END_TEST
+
 Suite *check_string_is_suite(void)
 {
     Suite *s  = suite_create("String");
@@ -256,6 +302,7 @@ Suite *check_string_is_suite(void)
     tcase_add_test(tc, check_strstart);
     tcase_add_test(tc, check_stristart);
     tcase_add_test(tc, check_stristr);
+    tcase_add_test(tc, check_memsearch);
     return s;
 }
 
