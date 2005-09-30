@@ -13,7 +13,7 @@ Arguments :
 
    output variable answer has to point on a valid *and* initialized value.
 
-   if the ponter on the output variable is NULL, data is eaten.
+   if the pointer on the output variable is NULL, data is eaten.
 
 Return values:
    
@@ -45,18 +45,17 @@ enum blob_parse_status {
     PARSE_ERANGE = -2,
 };
 
-static inline bool eoparse(const blob_t * blob, ssize_t pos) {
-    return blob->len == pos;
-}
-
-#define PARSE_SET_RESULT(var, value) \
-    if ((var) != NULL) *(var) = (value)
+#define PARSE_SET_RESULT(var, value)        \
+    do {                                    \
+        if ((var) != NULL)                  \
+            *(var) = (value);               \
+    } while(0)
 
 #define TRANSMIT_PARSE_ERROR(result, expr)  \
     do {                                    \
-        if ( ((result) = (expr)) < 0 ) {    \
+        if (((result) = (expr)) < 0) {      \
             return result;                  \
         }                                   \
-    } while(false)
+    } while(0)
 
 #endif
