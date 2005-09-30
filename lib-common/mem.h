@@ -11,7 +11,7 @@
 
 #define check_enough_mem(mem)                                   \
     do {                                                        \
-        if (mem == NULL) {                                      \
+        if ((mem) == NULL) {                                    \
             e_fatal(FATAL_NOMEM, E_PREFIX("out of memory"));    \
         }                                                       \
     } while(0)
@@ -73,16 +73,16 @@ void * mem_realloc0(void * mem, ssize_t oldsize, ssize_t newsize)
 }
 
 #define p_blank(type, p, count) ((type *)memset(p, 0, sizeof(type)))
-#define p_new_raw(type, count)  (type*)(mem_alloc(sizeof(type)*(count)))
-#define p_new(type, count)      (type*)(mem_alloc0(sizeof(type)*(count)))
+#define p_new_raw(type, count)  ((type*)mem_alloc(sizeof(type)*(count)))
+#define p_new(type, count)      ((type*)mem_alloc0(sizeof(type)*(count)))
 #define p_delete(mem_p)         ((*mem_p) = mem_free(*mem_p))
 
-#define GENERIC_DELETE(wiper, var) \
+#define GENERIC_DELETE(wiper, var)  \
     do {                            \
         if (var) {                  \
-            wiper(*(var));   \
+            (wiper)(*(var));        \
             p_delete(var);          \
         }                           \
-    } while(false)
+    } while(0)
 
 #endif
