@@ -14,16 +14,16 @@ enum fatal_exit_codes {
 };
 
 /* error reporting functions */
-typedef void fatal_t (int, const char *, ...) __attr_format__(2, 3);
-typedef void error_t (const char *, ...) __attr_format__(1, 2);
+typedef void fatal_f (int, const char *, ...) __attr_format__(2, 3);
+typedef void error_f (const char *, ...) __attr_format__(1, 2);
 
-fatal_t e_fatal;
-error_t e_panic;
-error_t e_error;
-error_t e_warning;
-error_t e_notice;
-error_t e_info;
-fatal_t e_debug;
+fatal_f e_fatal;
+error_f e_panic;
+error_f e_error;
+error_f e_warning;
+error_f e_notice;
+error_f e_info;
+fatal_f e_debug;
 
 #define E_PREFIX(fmt) \
     ("file %s: line %d (%s): " fmt), __FILE__, __LINE__, __func__
@@ -36,14 +36,14 @@ fatal_t e_debug;
     } while(0)
 
 /* callbacks installers */
-typedef void e_callback_t (const char *, va_list);
+typedef void e_callback_f (const char *, va_list);
 
-e_callback_t * e_set_fatal_handler   (e_callback_t *);
-e_callback_t * e_set_error_handler   (e_callback_t *);
-e_callback_t * e_set_warning_handler (e_callback_t *);
-e_callback_t * e_set_notice_handler  (e_callback_t *);
-e_callback_t * e_set_info_handler    (e_callback_t *); 
-e_callback_t * e_set_debug_handler   (e_callback_t *);
+e_callback_f * e_set_fatal_handler   (e_callback_f *);
+e_callback_f * e_set_error_handler   (e_callback_f *);
+e_callback_f * e_set_warning_handler (e_callback_f *);
+e_callback_f * e_set_notice_handler  (e_callback_f *);
+e_callback_f * e_set_info_handler    (e_callback_f *); 
+e_callback_f * e_set_debug_handler   (e_callback_f *);
 
 /* useful callbacks */
 void e_init_stderr(void);

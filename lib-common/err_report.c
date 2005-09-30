@@ -11,18 +11,16 @@
 /* private API                                                                */
 /******************************************************************************/
 
-typedef e_callback_t e_c_t;
-
 struct log_status {
     bool is_open;    /* is the syslog open */
-    FILE * fd;       /* file descriptor for the file backend */
-    char * ident;    /* prefix for the logs stances */
+    FILE *fd;        /* file descriptor for the file backend */
+    char *ident;     /* prefix for the logs stances */
 };
 
 static struct log_status log_state = { false, NULL, NULL };
 static int    verbosity = -1;
 
-static void set_log_ident(const char * ident)
+static void set_log_ident(const char *ident)
 {
     if (ident == NULL) {
         return;
@@ -33,7 +31,7 @@ static void set_log_ident(const char * ident)
     }
 }
 
-static void file_handler(char prefix, const char * format, va_list args)
+static void file_handler(char prefix, const char *format, va_list args)
 {
     if ( log_state.fd == NULL ) {
         log_state.fd = stderr;
@@ -64,7 +62,7 @@ error:
     e_fatal(FATAL_LOGWRITE, E_PREFIX("cannot write log : %s"), strerror(errno));
 }
 
-#define H_ARGS const char * format, va_list args
+#define H_ARGS const char *format, va_list args
 #define FILE_HANDLER(prefix) file_handler(prefix, format, args)
 static void file_fatal_handler     (H_ARGS) { FILE_HANDLER('F'); }
 static void file_error_handler     (H_ARGS) { FILE_HANDLER('E'); }
@@ -81,14 +79,14 @@ static void syslog_notice_handler  (H_ARGS) { SYSLOG(LOG_NOTICE); }
 static void syslog_info_handler    (H_ARGS) { SYSLOG(LOG_INFO); }
 static void syslog_debug_handler   (H_ARGS) { SYSLOG(LOG_DEBUG); }
 
-static e_c_t * fatal_handler   = file_fatal_handler;
-static e_c_t * error_handler   = file_error_handler;
-static e_c_t * warning_handler = file_warning_handler;
-static e_c_t * notice_handler  = file_notice_handler;
-static e_c_t * info_handler    = file_info_handler;
-static e_c_t * debug_handler   = file_debug_handler;
+static e_callback_f *fatal_handler   = file_fatal_handler;
+static e_callback_f *error_handler   = file_error_handler;
+static e_callback_f *warning_handler = file_warning_handler;
+static e_callback_f *notice_handler  = file_notice_handler;
+static e_callback_f *info_handler    = file_info_handler;
+static e_callback_f *debug_handler   = file_debug_handler;
 
-static void init_file(const char * ident, FILE * file)
+static void init_file(const char *ident, FILE *file)
 {
     e_shutdown();
     log_state.fd = (file == NULL) ? stderr : file;
@@ -113,7 +111,7 @@ static void init_file(const char * ident, FILE * file)
 } while (0)
 
 #define E_SET_BODY(kind) do {                               \
-    e_c_t * old    = kind##_handler;                        \
+    e_callback_f *old    = kind##_handler;                  \
     kind##_handler = hook ? hook : file_##kind##_handler;   \
     return old;                                             \
 } while (0)
@@ -124,23 +122,23 @@ static void init_file(const char * ident, FILE * file)
 
 /* Error reporting functions */
 
-void e_fatal (int status, const char * format, ...)
+void e_fatal (int status, const char *format, ...)
 {
     E_BODY(fatal);
     exit(status);
 }
 
-void e_panic   (const char * format, ...) {
+void e_panic   (const char *format, ...) {
     E_BODY(fatal);
     exit(FATAL_DEFAULT);
 }
 
-void e_error   (const char * format, ...) { E_BODY(error);   }
-void e_warning (const char * format, ...) { E_BODY(warning); }
-void e_notice  (const char * format, ...) { E_BODY(notice);  }
-void e_info    (const char * format, ...) { E_BODY(info);    }
+void e_error   (const char *format, ...) { E_BODY(error);   }
+void e_warning (const char *format, ...) { E_BODY(warning); }
+void e_notice  (const char *format, ...) { E_BODY(notice);  }
+void e_info    (const char *format, ...) { E_BODY(info);    }
 
-void e_debug   (int debuglevel, const char * format, ...) {
+void e_debug   (int debuglevel, const char *format, ...) {
     if (debuglevel <= verbosity) {
         E_BODY(debug);
     }
@@ -148,23 +146,23 @@ void e_debug   (int debuglevel, const char * format, ...) {
 
 /* callback installers */
 
-e_c_t * e_set_fatal_handler   (e_c_t * hook) { E_SET_BODY(fatal);   }
-e_c_t * e_set_error_handler   (e_c_t * hook) { E_SET_BODY(error);   }
-e_c_t * e_set_warning_handler (e_c_t * hook) { E_SET_BODY(warning); }
-e_c_t * e_set_notice_handler  (e_c_t * hook) { E_SET_BODY(notice);  }
-e_c_t * e_set_info_handler    (e_c_t * hook) { E_SET_BODY(info);    }
-e_c_t * e_set_debug_handler   (e_c_t * hook) { E_SET_BODY(debug);   }
+e_callback_f *e_set_fatal_handler   (e_callback_f *hook) { E_SET_BODY(fatal);   }
+e_callback_f *e_set_error_handler   (e_callback_f *hook) { E_SET_BODY(error);   }
+e_callback_f *e_set_warning_handler (e_callback_f *hook) { E_SET_BODY(warning); }
+e_callback_f *e_set_notice_handler  (e_callback_f *hook) { E_SET_BODY(notice);  }
+e_callback_f *e_set_info_handler    (e_callback_f *hook) { E_SET_BODY(info);    }
+e_callback_f *e_set_debug_handler   (e_callback_f *hook) { E_SET_BODY(debug);   }
 
 /* useful callbacks */
 
-void e_init_stderr()
+void e_init_stderr(void)
 {
     e_init_file(NULL, NULL);
 }
 
-void e_init_file(const char * ident, const char * filename)
+void e_init_file(const char *ident, const char *filename)
 {
-    FILE * fd;
+    FILE *fd;
 
     if (filename == NULL || strcmp(filename, "/dev/stderr") == 0) {
         init_file(NULL, stderr);
@@ -179,7 +177,7 @@ void e_init_file(const char * ident, const char * filename)
     }
 }
 
-void e_init_syslog(const char * ident, int options, int facility)
+void e_init_syslog(const char *ident, int options, int facility)
 {
     e_shutdown();
 
