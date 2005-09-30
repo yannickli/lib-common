@@ -70,9 +70,10 @@ typedef struct pool_t {
 
 #define p_new(pool, type, count)  (type *)(pool)->calloc(sizeof(type)*(count))
 #define p_new0(pool, type, count) (type *)(pool)->calloc(sizeof(type)*(count))
-#define p_delete(pool, mem) do {        \
-    mem = pool->free(mem);              \
-} while (0)
+#define p_delete(pool, mem) do {                        \
+			        (pool)->free(mem);      \
+			        (mem) = NULL;           \
+			    } while (0)
 
 /* An implementation of pool_t that uses internally
  * malloc(3), calloc(3), free(3) and realloc(3)

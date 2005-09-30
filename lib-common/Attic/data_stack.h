@@ -71,10 +71,10 @@ ssize_t max_safe_size(void * mem);
 #define ds_reget_type(type, count) ((type)*)(ds_get(sizeof(type)*(count)))
 
 /*
- * init/shutdown functions
+ * initialize/shutdown functions
  *
- * init function is optional, since ds_push has to be called first,
- * and ds_push ensure that ds_init has been called.
+ * initialize function is optional, since ds_push has to be called first,
+ * and ds_push ensure that ds_initialize has been called.
  *
  * ds_shutdown() has to be run in order to avoid valgrind (or alike)
  * memory leaks warnings.
