@@ -2,8 +2,7 @@
 #include "array.h"
 #include "macros.h"
 
-typedef struct
-{
+typedef struct {
     void ** tab;
     ssize_t len;
 
@@ -11,8 +10,7 @@ typedef struct
 } real_array;
 
 #define ARRAY_INITIAL_SIZE 32
-static inline real_array *array_real(_array *array)
-{
+static inline real_array *array_real(_array *array) {
     return (real_array *)array;
 }
 
@@ -21,17 +19,21 @@ static inline real_array *array_real(_array *array)
 /******************************************************************************/
 
 static inline void
-array_resize(_array *array, ssize_t newsize)
+array_resize(_array *array, ssize_t newlen)
 {
     real_array *a = array_real(array);
+    ssize_t curlen = a->len;
     
-    if (newsize <= a->size) {
-        a->len = newsize;
-        return;
+    /* reallocate array if needed */
+    if (newlen > a->size) {
+        /* OG: Should use p_realloc */
+        a->size = MEM_ALIGN(newlen);
+        a->tab = mem_realloc(a->tab, a->size * sizeof(void*));
     }
-
-    a->size = MEM_ALIGN(newsize);
-    a->tab  = mem_realloc(a->tab, a->size*sizeof(void*));
+    /* initialize new elements to NULL */
+    while (curlen < newlen)
+        a->tab[curlen++] = NULL;
+    a->len = newlen;
 }
 
 
@@ -55,7 +57,7 @@ void array_wipe(_array *array, array_item_dtor_f *dtor)
         if (dtor) {
             ssize_t i;
 
-            for (i = 0 ; i < array->len ; i++ ) {
+            for (i = 0 ; i < array->len ; i++) {
                 (*dtor)(array->tab[i]);
             }
         }
@@ -67,7 +69,7 @@ void array_delete(_array **array, array_item_dtor_f *dtor)
 {
     if (*array) {
         array_wipe(*array, dtor);
-        p_delete(array);
+        p_delete(&*array);
     }
 }
 
@@ -78,7 +80,8 @@ void array_delete(_array **array, array_item_dtor_f *dtor)
 void *array_take(_array *array, ssize_t pos)
 {
     void *ptr;
-    if (pos > array->len || pos < 0) {
+
+    if (pos >= array->len || pos < 0) {
         return NULL;
     }
 
@@ -90,21 +93,18 @@ void *array_take(_array *array, ssize_t pos)
 }
 
 /* insert item at pos `pos',
-   pos interpereted as array->len if pos>array->len */
+   pos interpreted as array->len if pos > array->len */
 void array_insert(_array *array, ssize_t pos, void *item)
 {
-    real_array *rarray = array_real(array);
+    ssize_t curlen = array->len;
 
-    array_resize(array, array->len + 1);
-    if (pos > array->len) {
-        pos = array->len;
+    array_resize(array, curlen + 1);
+
+    if (pos < curlen) {
+        memmove(array->tab + pos + 1, array->tab + pos, curlen - pos);
+    } else {
+        pos = curlen;
     }
 
-    if (pos < array->len) {
-        memmove(rarray->tab + pos + 1, array->tab + pos, array->len - pos);
-    }
-
-    rarray->tab[pos] = item;
+    array->tab[pos] = item;
 }
-
-
