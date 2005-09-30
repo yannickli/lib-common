@@ -168,7 +168,7 @@ char *stristr(const char *haystack, const char *needle)
 
        	    /* needle longer than haystack */
  	    if (hlen < nlen) {
-		return(NULL);
+		return NULL;
 	    }
 	}
 
@@ -182,11 +182,11 @@ char *stristr(const char *haystack, const char *needle)
       	    /* if end of needle then needle was found */
 
 	    if ('\0' == *nptr) {
-		return (start);
+		return start;
 	    }
 	}
     }
-    return(NULL);
+    return NULL;
 }
 
 /** Find the first occurence of the needle in haystack.
@@ -194,27 +194,32 @@ char *stristr(const char *haystack, const char *needle)
  * @returns a pointer to the beginning of needle, or NULL if
  * it was not found.
  */
-const void *memsearch(const void *_haystack, size_t hsize, const void *_needle, size_t nsize)
+const void *memsearch(const void *_haystack, size_t hsize,
+                      const void *_needle, size_t nsize)
 {
-    const char *haystack = _haystack, *needle = _needle;
+    const unsigned char *haystack = _haystack;
+    const unsigned char *needle = _needle;
+    const unsigned char *last;
+    unsigned char first;
+    size_t pos;
+
     if (nsize == 0) {
         return haystack;
     }
 
-    for (;;) {
-        while (*haystack != *needle) {
-	    haystack++;
-	    hsize--;
-            if (nsize > hsize) {
-                return NULL;
-	    }
+    first = *needle;
+
+    for (last = haystack + (hsize - nsize + 1); haystack < last; haystack++) {
+        if (*haystack == first) {
+            for (pos = 0;;) {
+                if (++pos >= nsize)
+                    return haystack;
+                if (haystack[pos] != needle[pos])
+                    break;
+            }
 	}
-     	if (!memcmp(haystack, needle, nsize)) {
-	    return haystack;
-	}
-	haystack++;
-	hsize--;
     }
+    return NULL;
 }
 
 /*}}}*/
@@ -279,17 +284,38 @@ START_TEST (check_memsearch)
 {
     const void *p;
 
+    p = memsearch(alphabet, 5, "abcdef", 5);
+    fail_if(p != alphabet, "exact match not found");
+
+    p = memsearch(alphabet, 26, alphabet, 26);
+    fail_if(p != alphabet, "exact match not found");
+
     p = memsearch(alphabet, 5, "ab", 2);
     fail_if(p != alphabet, "not found at start of zone");
 
     p = memsearch(alphabet, 26, "yz", 2);
-    fail_if(p != alphabet + 24, "not found at end of zone");
+    fail_if(p != alphabet + 24, "2 byte string not found at end of zone");
+
+    p = memsearch(alphabet, 26, "uvwxyz", 6);
+    fail_if(p != alphabet + 20, "6 byte string not found at end of zone");
 
     p = memsearch(alphabet, 26, "mn", 2);
     fail_if(p != alphabet + 12, "not found in the middle of the zone");
 
     p = memsearch(alphabet, 26, "123", 3);
-    fail_if(p != NULL, "unexistant occurence found");
+    fail_if(p != NULL, "found bogus occurence");
+
+    p = memsearch(alphabet, 0, "ab", 2);
+    fail_if(p != NULL, "match found in empty zone");
+
+    p = memsearch(alphabet, 0, "ab", 0);
+    fail_if(p != alphabet, "empty needle not found in empty zone");
+
+    p = memsearch(alphabet, 1, "ab", 2);
+    fail_if(p != NULL, "found partial match");
+
+    p = memsearch(alphabet, 5, "ab", 0);
+    fail_if(p != alphabet, "empty needle not found in non-empty zone");
 }
 END_TEST
 

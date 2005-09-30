@@ -19,7 +19,8 @@ int strstart(const char *str, const char *p, const char **pp);
 int stristart(const char *str, const char *p, const char **pp);
 char *stristr(const char *haystack, const char *needle);
 
-const void *memsearch(const void *haystack, size_t hsize, const void *needle, size_t nsize);
+const void *memsearch(const void *haystack, size_t hsize,
+                      const void *needle, size_t nsize);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
