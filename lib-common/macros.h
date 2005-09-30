@@ -26,13 +26,15 @@
 /* TYPES                                                                      */
 /******************************************************************************/
 
+#if !defined(__cplusplus)
 #ifndef bool
 typedef int bool;
 #endif
 
 #ifndef false
-#define false (0)
-#define true (!false)
+#define false  (0)
+#define true   (!false)
+#endif
 #endif
 
 typedef unsigned char byte;
@@ -43,13 +45,13 @@ typedef unsigned char byte;
 
 #define MEM_ALIGN_SIZE  8
 #define MEM_ALIGN(size) \
-    ( ((size) + MEM_ALIGN_SIZE - 1) & ~((ssize_t) MEM_ALIGN_SIZE-1) )
+    (((size) + MEM_ALIGN_SIZE - 1) & ~((ssize_t)MEM_ALIGN_SIZE - 1))
 
 #define FREE(ptr) do {  \
     free(ptr);          \
-    ptr = NULL;         \
+    (ptr) = NULL;       \
 } while(0)
 
-#define countof(table) ((int)(sizeof(table)) / sizeof(table[0]))
+#define countof(table) ((int)(sizeof(table)) / sizeof((table)[0]))
 
 #endif
