@@ -28,7 +28,7 @@ typedef struct {
 
 #define  blob_new() blob_init(p_new_raw(blob_t, 1))
 blob_t *blob_init(blob_t *blob);
-void     blob_wipe(blob_t *blob);
+void blob_wipe(blob_t *blob);
 static inline void blob_delete(blob_t **blob)
 {
     GENERIC_DELETE(blob_wipe, blob);
@@ -37,7 +37,7 @@ static inline void blob_delete(blob_t **blob)
 blob_t *blob_dup(const blob_t *blob);
 blob_t *blob_cat(const blob_t *blob1, const blob_t *blob2);
 
-void     blob_resize(blob_t *blob, ssize_t newlen);
+void blob_resize(blob_t *blob, ssize_t newlen);
 
 /******************************************************************************/
 /* Blob manipulations                                                         */

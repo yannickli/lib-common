@@ -265,22 +265,22 @@ void blob_insert_cstr(blob_t *blob, ssize_t pos, const char * cstr)
 
 /*** append functions ***/
 
-#define BLOB_APPEND_DATA_blob_real(blob, data, data_len)    \
+#define BLOB_APPEND_DATA_REAL(blob, data, data_len)    \
     blob_insert_data_real((blob), (blob)->len, data, data_len)
 
 void blob_append(blob_t * dest, const blob_t * src)
 {
-    BLOB_APPEND_DATA_blob_real(dest, src->data, src->len);
+    BLOB_APPEND_DATA_REAL(dest, src->data, src->len);
 }
 
 void blob_append_data(blob_t *blob, const void * data, ssize_t len)
 {
-    BLOB_APPEND_DATA_blob_real(blob, data, len);
+    BLOB_APPEND_DATA_REAL(blob, data, len);
 }
 
 void blob_append_cstr(blob_t *blob, const char * cstr)
 {
-    BLOB_APPEND_DATA_blob_real(blob, cstr, sstrlen(cstr));
+    BLOB_APPEND_DATA_REAL(blob, cstr, sstrlen(cstr));
 }
 
 void blob_append_byte(blob_t *blob, byte b)
@@ -310,8 +310,12 @@ ssize_t blob_append_file_data(blob_t *blob, const char *filename)
         goto error;
     }
 
+    /* Should test and reject huge files */
     to_read = total = (ssize_t)st.st_size;
     if (total < 0) {
+        /* OG: size of file is not known: may be a pipe or a device,
+         * should not be an error.
+         */
         goto error;
     }
 
@@ -319,19 +323,23 @@ ssize_t blob_append_file_data(blob_t *blob, const char *filename)
     blob_resize(blob, origlen + total);
     blob_resize(blob, origlen);
 
-    while (to_read > 0)
-    {
+    while (to_read > 0) {
         ssize_t size;
-        char *buf[4096];
+        char buf[4096];
 
-        if ((size = read(fd, buf, 4096)) <= 0) {
+        if ((size = read(fd, buf, sizeof(buf))) < 0) {
             if (errno == EINTR) {
                 continue;
             }
             goto error;
         }
 
-        if (size == 0 && to_read != 0) {
+        if (size == 0) {
+            /* OG: cannot combine with test above because errno is only
+             * set on errors, and end of file is not a read error.
+             * Getting an early end of file here means is indeed an
+             * error.
+             */
             goto error;
         }
 
@@ -344,6 +352,7 @@ ssize_t blob_append_file_data(blob_t *blob, const char *filename)
 error:
     if (fd >= 0) {
         close(fd);
+        /* OG: maybe we should keep data read so far */
         blob_resize(blob, origlen);
     }
     return -1;
@@ -440,14 +449,17 @@ ssize_t blob_ftime(blob_t *blob, ssize_t pos, const char *fmt, const struct tm *
 /*{{{*/
 
 static inline ssize_t
-blob_search_data_real(const blob_t *haystack, ssize_t pos, const void *needle, ssize_t len)
+blob_search_data_real(const blob_t *haystack, ssize_t pos,
+                      const void *needle, ssize_t len)
 {
-    const void* p;
+    const void *p;
+
+    /* OG: should validate pos against blob bounds */
     p = memsearch(haystack->data + pos, haystack->len - pos, needle, len);
     if (!p) {
 	return -1;
     }
-    return p - (void*)haystack->data;
+    return (byte *)p - (byte *)haystack->data;
 }
 
 /* not very efficent ! */
@@ -900,7 +912,7 @@ START_TEST (check_append_file_data)
 
     blob_init(&blob);
 
-    fd = open(file, O_WRONLY | O_CREAT | O_TRUNC);
+    fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, 0640);
     fail_if(fd < 0, "sample file not created");
     fail_if(write(fd, &data, strlen(data)) != sstrlen(data), "data not written");
     close(fd);
