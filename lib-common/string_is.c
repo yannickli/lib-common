@@ -1,86 +1,164 @@
+#include <string.h>
 #include <ctype.h>
 #include "string_is.h"
-/** Copies the string pointed to by src to the buffer
- * <code>[dest, dest+size)</code>. In all cases, a terminating '\0' character is
- * put at the end of the copied string which means that any character from
- * <code>src+size-1</code> will be ignored.
+/** Copies the string pointed to by <code>src</code> to the buffer
+ * <code>dest</code> of <code>size</code> bytes.
+ * If <code>dest</code> is not NULL and <code>size</code> is greater
+ * than 0, a terminating '\0' character will be put at the end of
+ * the copied string.
  *
- * The source and destination strings may not overlap. No assumption should be
- * made on the values of the characters after the first '\0' character in the
- * destination buffer.
+ * The source and destination strings should not overlap.
+ * No assumption should be made on the values of the characters
+ * after the first '\0' character in the destination buffer.
  *
- * @return a pointer to dest
+ * @return the length of the source string.
  * @see pstrcpylen
  */
-char *pstrcpy(char *dest, ssize_t size, const char *src)
+ssize_t pstrcpy(char *dest, ssize_t size, const char *src)
 {
+#ifdef FAST_LIBC
+    size_t len, clen;
+
+    len = src ? strlen(src) : 0;
     if (dest && size > 0) {
-	ssize_t len = src ? strlen(src) : 0;
-	if (len > size - 1)
-	    len = size - 1;
-	if (len > 0 && dest != src)
-	    memcpy(dest, src, len); /* assuming no overlap */
-	dest[len] = '\0';
+        clen = len;
+	if (clen > (size_t)size - 1)
+	    clen = (size_t)size - 1;
+        memcpy(dest, src, clen); /* assuming no overlap */
+	dest[clen] = '\0';
     }
-    return dest;
+    return (ssize_t)len;
+#else
+    const char *start = src;
+
+    if (src) {
+        if (dest && size > 0) {
+            char *stop = dest + size - 1;
+            while (dest < stop) {
+                if ((*dest++ = *src++) == '\0')
+                    return src - start - 1;
+            }
+            *dest = '\0';
+        }
+        while (*src++)
+            continue;
+        return src - start - 1;
+    }
+    if (dest && size > 0) {
+        *dest = '\0';
+    }
+    return 0;
+#endif
 }
 
-/** Copies the string pointed to by src (and of maximal length len) to the
- * buffer <code>[dest, dest+size)</code>. In all cases, a terminating '\0'
- * character is put at the end of the copied string which means that any
- * character from <code>src+size-1</code> will be ignored.
+/** Copies at most <code>n</code> characters from the string pointed
+ * to by <code>src</code> to the buffer <code>dest</code> of
+ * <code>size</code> bytes.
+ * If <code>dest</code> is not NULL and <code>size</code> is greater
+ * than 0, a terminating '\0' character will be put at the end of
+ * the copied string.
  *
- * The source and destination strings may not overlap. No assumption should be
- * made on the values of the characters after the first '\0' character in the
- * destination buffer.
+ * The source and destination strings should not overlap.
+ * No assumption should be made on the values of the characters
+ * after the first '\0' character in the destination buffer.
  *
- * @return a pointer to dest
+ * If <code>n</code> is negative, the whole string is copied.
+ * @return the length of the source string or <code>n</code> if smaller
+ * and positive.
  */
-char *pstrcpylen(char *dest, ssize_t size, const char *src, int len)
+ssize_t pstrcpylen(char *dest, ssize_t size, const char *src, ssize_t n)
 {
-    if (dest && size > 0) {
-        if (!src)
-            len = 0;
-        else if (len < 0)
-	    len = strlen(src);
-	if (len > size - 1)
-	    len = size - 1;
-	if (len > 0)
-	    memcpy(dest, src, len); /* assuming no overlap */
-	dest[len] = '\0';
+    size_t len, clen;
+
+    len = 0;
+
+    if (src) {
+        if (n < 0) {
+            len = strlen(src);
+        } else {
+            /* OG: Should use strnlen */
+            const char *p = (const char *)memchr(src, '\0', n);
+            len = p ? p - src : n;
+        }
     }
-    return dest;
+
+    if (dest && size > 0) {
+        clen = len;
+	if (clen > (size_t)size - 1)
+	    clen = (size_t)size - 1;
+        memcpy(dest, src, clen); /* assuming no overlap */
+	dest[clen] = '\0';
+    }
+    return (ssize_t)len;
 }
 
-/** Appends the string pointed to by src after the string pointed to by dest
- * considering that no character shall be written from <code>dest+size</code>.
+/** Appends the string pointed to by <code>src</code> at the end of
+ * the string pointed to by <code>dest</code> not overflowing
+ * <code>size</code> bytes.
  *
- * The source and destination strings may not overlap. No assumption should be
- * made on the values of the characters after the first '\0' character in the
- * destination buffer.
+ * The source and destination strings should not overlap.
+ * No assumption should be made on the values of the characters
+ * after the first '\0' character in the destination buffer.
  *
- * @return a pointer to dest
+ * If the destination buffer doesn't contain a properly '\0' terminated
+ * string, dest is unchanged and the value returned is size+strlen(src).
+ *
+ * @return the length of the source string plus the length of the
+ * destination string.
  */
-char *pstrcat(char *dest, ssize_t size, const char *src)
+ssize_t pstrcat(char *dest, ssize_t size, const char *src)
 {
+#ifdef FAST_LIBC
+    size_t len, clen, dlen;
+
+    dlen = 0;
+    len = src ? strlen(src) : 0;
+
     if (dest && size > 0) {
-	ssize_t dlen = strlen(dest);
-	if (dlen < size) {
-	    ssize_t len = src ? strlen(src) : 0;
-	    if (len > size - dlen - 1)
-		len = size - dlen - 1;
-	    if (len > 0)
-		memcpy(dest + dlen, src, len); /* assuming no overlap */
-	    dest[dlen + len] = '\0';
-	}
+        /* There is a problem here if the dest buffer is not properly
+         * '\0' terminated.  Unlike BSD's strlcpy, we do not want do
+         * read from dest beyond size, therefore we assume use size for
+         * the value of dlen.  Calling pstrcat with various values of
+         * size for the same dest and src may return different results.
+         */
+        /* OG: should use strnlen() */
+        const char *p = memchr(dest, '\0', size);
+
+        if (p == NULL) {
+            dlen = size;
+        } else {
+            dlen = p - dest;
+            clen = len;
+            if (clen > (size_t)size - dlen - 1)
+                clen = (size_t)size - dlen - 1;
+
+            memcpy(dest + dlen, src, clen); /* assuming no overlap */
+            dest[dlen + clen] = '\0';
+        }
     }
-    return dest;
+    return (ssize_t)(dlen + len);
+#else
+    /* Assumes size > strlen(dest), ie well formed strings */
+    size_t dlen = 0;
+
+    if (dest) {
+        char *start = dest;
+        while (size > 0 && *dest != '\0') {
+            dest++;
+            size--;
+        }
+        dlen = dest - start;
+    }
+    return dlen + pstrcpy(dest, size, src);
+#endif
 }
 
 /** Skips initial blanks as per isspace(c).
  *
  * use vskipspaces for non const parameters
  * @see vskipspaces
+ *
+ * @return a pointer to the first non white space character in s.
  */
 const char *skipspaces(const char *s)
 {
@@ -91,7 +169,7 @@ const char *skipspaces(const char *s)
 
 /** Replaces blank characters at end of string with '\0'.
  *
- * @returns str
+ * @return str
  */
 char *rstrtrim(char *str)
 {
@@ -110,6 +188,8 @@ char *rstrtrim(char *str)
  *
  * @param pp if not null and str begins with p, pp is given the address of the
  * first following character in str.
+ *
+ * @return 1 if a match is found, 0 otherwise.
  */
 int strstart(const char *str, const char *p, const char **pp)
 {
@@ -129,6 +209,8 @@ int strstart(const char *str, const char *p, const char **pp)
  *
  * @param pp if not null and str begins with p, pp is given the address of the
  * first following character in str.
+ *
+ * @return 1 if a match is found, 0 otherwise.
  */
 int stristart(const char *str, const char *p, const char **pp)
 {
@@ -147,14 +229,13 @@ int stristart(const char *str, const char *p, const char **pp)
 /** Find the first occurence of the substring needle in haystack, case
  *  insensitive.
  *
- * @returns a pointer to the beginning of the substring, or NULL if
+ * @return a pointer to the beginning of the substring, or NULL if
  * it was not found.
  */
 char *stristr(const char *haystack, const char *needle)
 {
     char *nptr, *hptr, *start;
     int  hlen, nlen;
-
 
     start = (char *)haystack;
     nptr  = (char *)needle;
@@ -191,14 +272,14 @@ char *stristr(const char *haystack, const char *needle)
 
 /** Find the first occurence of the needle in haystack.
  *
- * @returns a pointer to the beginning of needle, or NULL if
+ * @return a pointer to the beginning of needle, or NULL if
  * it was not found.
  */
 const void *memsearch(const void *_haystack, size_t hsize,
                       const void *_needle, size_t nsize)
 {
-    const unsigned char *haystack = _haystack;
-    const unsigned char *needle = _needle;
+    const unsigned char *haystack = (const unsigned char *)_haystack;
+    const unsigned char *needle = (const unsigned char *)_needle;
     const unsigned char *last;
     unsigned char first;
     size_t pos;
