@@ -28,7 +28,7 @@ array_resize(_array *array, ssize_t newlen)
     if (newlen > a->size) {
         /* OG: Should use p_realloc */
         a->size = MEM_ALIGN(newlen);
-        a->tab = mem_realloc(a->tab, a->size * sizeof(void*));
+        a->tab = (void **)mem_realloc(a->tab, a->size * sizeof(void*));
     }
     /* initialize new elements to NULL */
     while (curlen < newlen)
