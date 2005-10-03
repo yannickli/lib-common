@@ -116,7 +116,7 @@ void blob_resize(blob_t *blob, ssize_t newlen)
 
     newsize     = MEM_ALIGN(newlen+1);
     if (rblob->data == rblob->area) {
-        rblob->data = mem_realloc(rblob->data, newsize);
+        rblob->data = (byte *)mem_realloc(rblob->data, newsize);
     } else {
         byte * old_data = rblob->data;
         rblob->data = p_new_raw(byte, newsize);
@@ -571,7 +571,7 @@ int blob_icmp(const blob_t *blob1, const blob_t *blob2)
     return tolower(s1[pos]) - tolower(s2[pos]);
 }
 
-int blob_is_equal(const blob_t *blob1, const blob_t *blob2)
+bool blob_is_equal(const blob_t *blob1, const blob_t *blob2)
 {
     if (blob1->len != blob2->len) {
         return false;
@@ -583,7 +583,7 @@ int blob_is_equal(const blob_t *blob1, const blob_t *blob2)
     return (memcmp(blob1->data, blob2->data, blob1->len) == 0);
 }
 
-int blob_is_iequal(const blob_t *blob1, const blob_t *blob2)
+bool blob_is_iequal(const blob_t *blob1, const blob_t *blob2)
 {
     ssize_t i;
 
@@ -595,9 +595,10 @@ int blob_is_iequal(const blob_t *blob1, const blob_t *blob2)
         return true;
     }
     
+    /* OG: don't make such assumptions! */
     /* reverse comp is because strings we compare most often differ at the end
        than at the beginning */
-    for (i = blob1->len - 1 ; i >= 0 ; i--) {
+    for (i = blob1->len; --i >= 0; ) {
         if (tolower(blob1->data[i]) != tolower(blob2->data[i])) {
             return false;
         }
