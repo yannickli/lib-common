@@ -26,7 +26,7 @@ error_f e_info;
 fatal_f e_debug;
 
 #define E_PREFIX(fmt) \
-    ("file %s: line %d (%s): " fmt), __FILE__, __LINE__, __func__
+    ("%s:%d:%s: " fmt), __FILE__, __LINE__, __func__
 
 #define e_assert(expr)                                          \
     do {                                                        \
