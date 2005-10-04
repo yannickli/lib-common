@@ -28,6 +28,9 @@ fatal_f e_debug;
 #define E_PREFIX(fmt) \
     ("%s:%d:%s: " fmt), __FILE__, __LINE__, __func__
 
+#define E_UNIXERR(funcname) \
+    E_PREFIX("error: %s: %s"), (funcname), strerror(errno)
+
 #define e_assert(expr)                                          \
     do {                                                        \
         if(!(expr)) {                                           \
