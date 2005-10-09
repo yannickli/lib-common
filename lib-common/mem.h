@@ -77,6 +77,9 @@ void * mem_realloc0(void * mem, ssize_t oldsize, ssize_t newsize)
 #define p_new(type, count)      ((type*)mem_alloc0(sizeof(type)*(count)))
 #define p_delete(mem_p)         (mem_free(*(mem_p)), *(mem_p) = NULL)
 
+#define p_renew(type, mem, oldcount, newcount) \
+    ((type *)mem_realloc0((mem), (oldcount)*sizeof(type), (newcount)*sizeof(type)))
+
 #define GENERIC_DELETE(wiper, var)  \
     do {                            \
         if (var) {                  \
