@@ -70,6 +70,7 @@ void blob_kill_last(blob_t *blob, ssize_t len);
 /* Blob printf function                                                       */
 /******************************************************************************/
 
+ssize_t blob_vprintf(blob_t *blob, ssize_t pos, const char *fmt, va_list ap);
 ssize_t blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...) __attr_format__(3,4);
 ssize_t blob_ftime(blob_t *blob, ssize_t pos, const char *fmt, const struct tm *tm);
 static inline void blob_ftime_utc(blob_t *blob, ssize_t pos, time_t tm)
