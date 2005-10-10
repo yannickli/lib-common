@@ -110,7 +110,7 @@ void blob_resize(blob_t *blob, ssize_t newlen)
     
     if (rblob->size > newlen) {
         rblob->len = newlen;
-        rblob->data[rblob->len] = 0;
+        rblob->data[newlen] = 0;
         return;
     }
 
