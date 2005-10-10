@@ -383,7 +383,7 @@ void blob_kill_last(blob_t *blob, ssize_t len)
 
 ssize_t blob_vprintf(blob_t *blob, ssize_t pos, const char *fmt, va_list ap)
 {
-    int size;
+    int len;
     int available;
     va_list ap2;
     real_blob_t * rblob = blob_real(blob);
@@ -395,18 +395,19 @@ ssize_t blob_vprintf(blob_t *blob, ssize_t pos, const char *fmt, va_list ap)
     }
     available = rblob->size - pos;
 
-    size = vsnprintf((char *)rblob->data+pos, available, fmt, ap);
-    if (size >= available) {
+    len = vsnprintf((char *)rblob->data + pos, available, fmt, ap);
+    if (len >= available) {
         /* only move the `pos' first bytes in case of realloc */
         rblob->len = pos;
-        blob_resize(blob, pos+size);
+        blob_resize(blob, pos + len);
 
-        size = vsnprintf((char*)rblob->data+pos, size+1, fmt, ap2);
+        len = vsnprintf((char*)rblob->data + pos, len + 1, fmt, ap2);
     }
-    rblob->len = pos+size;
+    rblob->len = pos + len;
 
-    return size;
+    return len;
 }
+
 /* returns the number of bytes written.
    note that blob_printf allways works (or never returns due to memory
    allocation */
