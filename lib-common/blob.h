@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <time.h>
+#include <stdio.h>
 
 #include "macros.h"
 #include "mem.h"
@@ -60,11 +61,23 @@ void blob_append_data(blob_t *blob, const void *data, ssize_t len);
 void blob_append_cstr(blob_t *blob, const char *cstr);
 
 void blob_append_byte(blob_t *blob, byte b);
-ssize_t blob_append_file_data(blob_t *blob, const char *filename);
 
 void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len);
 void blob_kill_first(blob_t *blob, ssize_t len);
 void blob_kill_last(blob_t *blob, ssize_t len);
+
+/******************************************************************************/
+/* Blob file functions                                                        */
+/******************************************************************************/
+
+ssize_t blob_append_file_data(blob_t *blob, const char *filename);
+ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f);
+static inline
+ssize_t blob_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
+{
+    blob_resize(blob, 0);
+    return blob_append_fread(blob, size, nmemb, f);
+}
 
 /******************************************************************************/
 /* Blob printf function                                                       */

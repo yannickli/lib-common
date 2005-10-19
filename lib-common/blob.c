@@ -290,6 +290,29 @@ void blob_append_byte(blob_t *blob, byte b)
     blob_real(blob)->data[pos] = b;
 }
 
+/*** kill functions ***/
+
+void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len)
+{
+    blob_kill_data_real(blob, pos, len);
+}
+
+void blob_kill_first(blob_t *blob, ssize_t len)
+{
+    blob_kill_data_real(blob, 0, len);
+}
+
+void blob_kill_last(blob_t *blob, ssize_t len)
+{
+    blob_kill_data_real(blob, blob->len - len, len);
+}
+
+/*}}}*/
+/******************************************************************************/
+/* Blob file functions                                                        */
+/******************************************************************************/
+/*{{{*/
+
 /* returns the number of bytes written.
    negative value significates error
  */
@@ -358,21 +381,20 @@ error:
     return -1;
 }
 
-/*** kill functions ***/
-
-void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len)
+ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
 {
-    blob_kill_data_real(blob, pos, len);
-}
+    const ssize_t oldlen = blob->len;
+    ssize_t add_to_len = size * nmemb;
+    ssize_t res;
 
-void blob_kill_first(blob_t *blob, ssize_t len)
-{
-    blob_kill_data_real(blob, 0, len);
-}
+    blob_resize(blob, blob->len + add_to_len);
 
-void blob_kill_last(blob_t *blob, ssize_t len)
-{
-    blob_kill_data_real(blob, blob->len - len, len);
+    res = fread(blob_real(blob)->data + oldlen, size, nmemb, f);
+    if (res > 0 && res < nmemb) {
+        blob_resize(blob, oldlen + res * size);
+    }
+
+    return res;
 }
 
 /*}}}*/
