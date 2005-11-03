@@ -638,6 +638,45 @@ bool blob_is_iequal(const blob_t *blob1, const blob_t *blob2)
 
 /*}}}*/
 /******************************************************************************/
+/* Blob string functions                                                      */
+/******************************************************************************/
+/*{{{*/
+
+static inline int hex_to_dec(char c)
+{
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    }
+    if (c >= 'a' && c <= 'f') {
+        return c + 10 - 'a';
+    }
+    if (c >= 'A' && c <= 'F') {
+        return c + 10 - 'A';
+    }
+    return -1;
+}
+
+void blob_urldecode(blob_t *url)
+{
+    real_blob_t * buf = blob_real(url);
+    byte *p = buf->data;
+    byte *q = p;
+
+    while (*p) {
+        int a, b;
+        if (*p == '%' && (a = hex_to_dec(p[1])) >= 0 && (b = hex_to_dec(p[2])) >= 0) {
+            *q++ = (a << 4) | b;
+            p += 3;
+        } else {
+            *q++ = *p++;
+        }
+    }
+
+    blob_resize(url, q - url->data);
+}
+
+/*}}}*/
+/******************************************************************************/
 /* Blob parsing                                                               */
 /******************************************************************************/
 /*{{{*/
@@ -1014,6 +1053,25 @@ START_TEST (check_printf)
 END_TEST
 
 /*.........................................................................}}}*/
+/* test blob_urlencode                                                     {{{*/
+
+START_TEST (check_url)
+{
+    blob_t blob;
+    check_setup(&blob, "%20toto%79");
+
+    blob_urldecode(&blob);
+    check_blob_invariants(&blob);
+
+    printf("\n%s\n", (const char*)blob.data);
+    fail_if(strcmp((const char *)blob.data, " totoy") != 0, "urldecode failed");
+    fail_if(blob.len != sstrlen(" totoy"), "urldecode failed");
+
+    check_teardown(&blob, NULL);
+}
+END_TEST
+
+/*.........................................................................}}}*/
 /* test blob_search                                                        {{{*/
 
 START_TEST (check_search)
@@ -1067,6 +1125,7 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_kill);
     tcase_add_test(tc, check_resize);
     tcase_add_test(tc, check_printf);
+    tcase_add_test(tc, check_url);
     tcase_add_test(tc, check_search);
 
     return s;
