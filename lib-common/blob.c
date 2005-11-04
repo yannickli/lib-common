@@ -671,6 +671,7 @@ void blob_urldecode(blob_t *url)
             *q++ = *p++;
         }
     }
+    *q = '\0';
 
     blob_resize(url, q - url->data);
 }
@@ -1053,7 +1054,7 @@ START_TEST (check_printf)
 END_TEST
 
 /*.........................................................................}}}*/
-/* test blob_urlencode                                                     {{{*/
+/* test blob_urldecode                                                     {{{*/
 
 START_TEST (check_url)
 {
