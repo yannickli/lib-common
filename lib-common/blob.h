@@ -38,6 +38,7 @@ static inline void blob_delete(blob_t **blob)
 blob_t *blob_dup(const blob_t *blob);
 blob_t *blob_cat(const blob_t *blob1, const blob_t *blob2);
 
+void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize);
 void blob_resize(blob_t *blob, ssize_t newlen);
 
 /******************************************************************************/
@@ -146,6 +147,7 @@ bool blob_is_iequal(const blob_t *blob1, const blob_t *blob2);
 /******************************************************************************/
 
 void blob_urldecode(blob_t *url);
+void blob_b64encode(blob_t *blob, int nbpackets);
 
 /******************************************************************************/
 /* Blob parsing                                                               */

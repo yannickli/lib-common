@@ -11,6 +11,7 @@
 #include "blob.h"
 #include "mem.h"
 #include "string_is.h"
+#include "err_report.h"
 
 /*
  * a blob has a vital invariant, making every parse function avoid buffer read
@@ -97,6 +98,29 @@ blob_t *blob_cat(const blob_t *blob1, const blob_t *blob2)
     blob_t * res = blob_dup(blob1);
     blob_append(res, blob2);
     return res;
+}
+
+/* set the payload of a blob to the given buffer of size bufsize.
+   len is the len of the data inside it.
+
+   the payload MUST be a valid block allocated through malloc or an alias
+ */
+void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize)
+{
+    real_blob_t *rblob = blob_real(blob);
+
+    if (bufsize < len + 1) {
+        e_panic(E_PREFIX("error: bufsize *must* be >= len + 1"));
+    }
+
+    if (rblob->area) {
+        p_delete(&rblob->area);
+    }
+
+    rblob->area = rblob->data = buf;
+    rblob->len  = len;
+    rblob->size = bufsize;
+    rblob->data[len] = '\0';
 }
 
 /* resize a blob to the new size.
@@ -672,8 +696,82 @@ void blob_urldecode(blob_t *url)
         }
     }
     *q = '\0';
-
+#if 0
     blob_resize(url, q - url->data);
+#else
+    buf->len = q - url->data;
+#endif
+}
+
+static const char
+b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+static inline ssize_t b64_size(ssize_t oldlen, int nbpackets)
+{
+    ssize_t nb_full_lines = oldlen / (3 * nbpackets);
+    ssize_t lastlen = oldlen % (3 * nbpackets);
+
+    if (lastlen % 3) {
+        lastlen += 3 - (lastlen % 3);
+    }
+    lastlen = lastlen * 4 / 3;
+    if (lastlen) {
+        lastlen += 2; /* crlf */
+    }
+    
+    return nb_full_lines * (4 * nbpackets + 2) + lastlen;
+}
+
+void blob_b64encode(blob_t *blob, int nbpackets)
+{
+    const ssize_t oldlen  = blob->len;
+    const ssize_t newlen  = b64_size(oldlen, nbpackets);
+    const ssize_t newsize = MEM_ALIGN(newlen+1);
+
+    ssize_t src_pos = 0;
+    ssize_t dst_pos = 0;
+    int     packs   = nbpackets;
+    byte    *buf    = p_new_raw(byte, newsize);
+
+    while (src_pos < blob->len) {
+        int c1, c2, c3;
+
+        c1 = blob->data[src_pos++];
+        buf[dst_pos++] = b64[c1 >> 2];
+
+        if (src_pos == blob->len) {
+            buf[dst_pos++] = b64[((c1 & 0x3) << 4)];
+            break;
+        }
+
+        c2 = blob->data[src_pos++];
+        buf[dst_pos++] = b64[((c1 & 0x3) << 4) | ((c2 & 0xf0) >> 4)];
+
+        if (src_pos == blob->len) {
+            buf[dst_pos++] = b64[((c2 & 0x0f) << 2)];
+            break;
+        }
+
+        c3 = blob->data[src_pos++];
+        buf[dst_pos++] = b64[((c2 & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
+        buf[dst_pos++] = b64[c3 & 0x3f];
+        
+        if (!--packs) {
+            packs = nbpackets;
+            buf[dst_pos++] = '\r';
+            buf[dst_pos++] = '\n';
+        }
+    }
+
+    while (dst_pos < newlen - 2) {
+        buf[dst_pos++] = '=';
+    }
+    if (dst_pos < newlen) {
+        buf[dst_pos++] = '\r';
+        buf[dst_pos++] = '\n';
+    }
+
+    blob_set_payload(blob, newlen, buf, newsize);
 }
 
 /*}}}*/
@@ -1064,10 +1162,25 @@ START_TEST (check_url)
     blob_urldecode(&blob);
     check_blob_invariants(&blob);
 
-    printf("\n%s\n", (const char*)blob.data);
     fail_if(strcmp((const char *)blob.data, " totoy") != 0, "urldecode failed");
     fail_if(blob.len != sstrlen(" totoy"), "urldecode failed");
 
+    check_teardown(&blob, NULL);
+}
+END_TEST
+
+/*.........................................................................}}}*/
+/* test blob_b64                                                           {{{*/
+
+START_TEST (check_b64)
+{
+    blob_t blob;
+    check_setup(&blob, "abcdef");
+
+    blob_b64encode(&blob, 16);
+    check_blob_invariants(&blob);
+
+    // TODO: check results
     check_teardown(&blob, NULL);
 }
 END_TEST
@@ -1127,6 +1240,7 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_resize);
     tcase_add_test(tc, check_printf);
     tcase_add_test(tc, check_url);
+    tcase_add_test(tc, check_b64);
     tcase_add_test(tc, check_search);
 
     return s;
