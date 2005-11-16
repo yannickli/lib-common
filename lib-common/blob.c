@@ -733,6 +733,7 @@ void blob_b64encode(blob_t *blob, int nbpackets)
     int     packs   = nbpackets;
     byte    *buf    = p_new_raw(byte, newsize);
 
+    /* OG: why not use pointers? */
     while (src_pos < blob->len) {
         int c1, c2, c3;
 
@@ -763,13 +764,16 @@ void blob_b64encode(blob_t *blob, int nbpackets)
         }
     }
 
+    /* OG: could be factored into loop */
     while (dst_pos < newlen - 2) {
         buf[dst_pos++] = '=';
     }
+    /* OG: Should test packs == nbpackets */
     if (dst_pos < newlen) {
         buf[dst_pos++] = '\r';
         buf[dst_pos++] = '\n';
     }
+    /* OG: should assert(dst_pos == newlen) */
 
     blob_set_payload(blob, newlen, buf, newsize);
 }
