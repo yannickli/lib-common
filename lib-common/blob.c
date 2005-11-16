@@ -744,6 +744,8 @@ void blob_b64encode(blob_t *blob, int nbpackets)
             *(dst++) = b64[((c1 & 0x3) << 4)];
             *(dst++) = '=';
             *(dst++) = '=';
+            *(dst++) = '\r';
+            *(dst++) = '\n';
             break;
         }
 
@@ -753,6 +755,8 @@ void blob_b64encode(blob_t *blob, int nbpackets)
         if (src == end) {
             *(dst++) = b64[((c2 & 0x0f) << 2)];
             *(dst++) = '=';
+            *(dst++) = '\r';
+            *(dst++) = '\n';
             break;
         }
 
@@ -767,17 +771,6 @@ void blob_b64encode(blob_t *blob, int nbpackets)
         }
     }
 
-#if DEBUG
-    /* OG: Should test packs == nbpackets
-       PH: we have that through the fact that newlen is the exact size the b64
-           encoded data will take
-    */
-    e_assert((packs == nbpackets) != (dst < buf + newlen));
-#endif
-    if (dst < buf + newlen) {
-        *(dst++) = '\r';
-        *(dst++) = '\n';
-    }
 #if DEBUG
     /* OG: should assert(dst_pos == newlen) */
     e_assert (dst == buf + newlen);
