@@ -728,52 +728,60 @@ void blob_b64encode(blob_t *blob, int nbpackets)
     const ssize_t newlen  = b64_size(oldlen, nbpackets);
     const ssize_t newsize = MEM_ALIGN(newlen+1);
 
-    ssize_t src_pos = 0;
-    ssize_t dst_pos = 0;
     int     packs   = nbpackets;
     byte    *buf    = p_new_raw(byte, newsize);
+    byte    *dst    = buf;
+    const byte *src = blob->data;
+    const byte *end = blob->data + blob->len;
 
-    /* OG: why not use pointers? */
-    while (src_pos < blob->len) {
+    while (src < end) {
         int c1, c2, c3;
 
-        c1 = blob->data[src_pos++];
-        buf[dst_pos++] = b64[c1 >> 2];
+        c1       = *(src++);
+        *(dst++) = b64[c1 >> 2];
 
-        if (src_pos == blob->len) {
-            buf[dst_pos++] = b64[((c1 & 0x3) << 4)];
+        if (src == end) {
+            *(dst++) = b64[((c1 & 0x3) << 4)];
+            *(dst++) = '=';
+            *(dst++) = '=';
             break;
         }
 
-        c2 = blob->data[src_pos++];
-        buf[dst_pos++] = b64[((c1 & 0x3) << 4) | ((c2 & 0xf0) >> 4)];
+        c2       = *(src++);
+        *(dst++) = b64[((c1 & 0x3) << 4) | ((c2 & 0xf0) >> 4)];
 
-        if (src_pos == blob->len) {
-            buf[dst_pos++] = b64[((c2 & 0x0f) << 2)];
+        if (src == end) {
+            *(dst++) = b64[((c2 & 0x0f) << 2)];
+            *(dst++) = '=';
             break;
         }
 
-        c3 = blob->data[src_pos++];
-        buf[dst_pos++] = b64[((c2 & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
-        buf[dst_pos++] = b64[c3 & 0x3f];
+        c3 = *(src++);
+        *(dst++) = b64[((c2 & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
+        *(dst++) = b64[c3 & 0x3f];
         
         if (!--packs) {
             packs = nbpackets;
-            buf[dst_pos++] = '\r';
-            buf[dst_pos++] = '\n';
+            *(dst++) = '\r';
+            *(dst++) = '\n';
         }
     }
 
-    /* OG: could be factored into loop */
-    while (dst_pos < newlen - 2) {
-        buf[dst_pos++] = '=';
+#if DEBUG
+    /* OG: Should test packs == nbpackets
+       PH: we have that through the fact that newlen is the exact size the b64
+           encoded data will take
+    */
+    e_assert((packs == nbpackets) != (dst < buf + newlen));
+#endif
+    if (dst < buf + newlen) {
+        *(dst++) = '\r';
+        *(dst++) = '\n';
     }
-    /* OG: Should test packs == nbpackets */
-    if (dst_pos < newlen) {
-        buf[dst_pos++] = '\r';
-        buf[dst_pos++] = '\n';
-    }
+#if DEBUG
     /* OG: should assert(dst_pos == newlen) */
+    e_assert (dst == buf + newlen);
+#endif
 
     blob_set_payload(blob, newlen, buf, newsize);
 }
