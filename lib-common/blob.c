@@ -771,7 +771,7 @@ void blob_b64encode(blob_t *blob, int nbpackets)
         }
     }
 
-#if DEBUG
+#ifdef DEBUG
     /* OG: should assert(dst_pos == newlen) */
     e_assert (dst == buf + newlen);
 #endif
