@@ -1,8 +1,8 @@
 DEPTH=..
 include $(DEPTH)/admin/header.mk
 
-__EXE__=
-__LIB__=libcommon
+__EXE__ =
+__LIB__ = libcommon
 
 libcommon_SRC = \
 	array.c \
