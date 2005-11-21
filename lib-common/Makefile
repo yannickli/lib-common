@@ -1,11 +1,13 @@
-include ../admin/cflags.mk
+DEPTH=..
+include $(DEPTH)/admin/header.mk
+
 __EXE__=
 __LIB__=libcommon
 
-libcommon_OBJS = \
-	array.o \
-	blob.o \
-	err_report.o  \
-	string_is.o
+libcommon_SRC = \
+	array.c \
+	blob.c \
+	err_report.c  \
+	string_is.c
 
-include ../admin/default.mk
+include $(DEPTH)/admin/footer.mk
