@@ -772,8 +772,7 @@ void blob_b64encode(blob_t *blob, int nbpackets)
     }
 
 #ifdef DEBUG
-    /* OG: should assert(dst_pos == newlen) */
-    e_assert (dst == buf + newlen);
+    e_assert(dst == buf + newlen);
 #endif
 
     blob_set_payload(blob, newlen, buf, newsize);
