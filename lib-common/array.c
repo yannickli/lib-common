@@ -86,7 +86,8 @@ void *array_take(_array *array, ssize_t pos)
     }
 
     ptr = array->tab[pos];
-    memmove(array->tab + pos, array->tab + pos + 1, array->len - pos - 1);
+    memmove(array->tab + pos, array->tab + pos + 1,
+            (array->len - pos - 1)*sizeof(void*));
     array_real(array)->len --;
 
     return ptr;
@@ -101,7 +102,8 @@ void array_insert(_array *array, ssize_t pos, void *item)
     array_resize(array, curlen + 1);
 
     if (pos < curlen) {
-        memmove(array->tab + pos + 1, array->tab + pos, curlen - pos);
+        memmove(array->tab + pos + 1, array->tab + pos,
+                (curlen - pos) * sizeof(void *));
     } else {
         pos = curlen;
     }
