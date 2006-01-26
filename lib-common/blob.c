@@ -63,9 +63,7 @@ blob_t *blob_init(blob_t *blob)
 void blob_wipe(blob_t *blob)
 {
     if (blob) {
-        if (blob_real(blob)->area) {
-            p_delete(&(blob_real(blob)->area));
-        }
+        p_delete(&(blob_real(blob)->area));
         blob_real(blob)->data = NULL;
     }
 }
@@ -113,10 +111,7 @@ void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize)
         e_panic(E_PREFIX("error: bufsize *must* be >= len + 1"));
     }
 
-    if (rblob->area) {
-        p_delete(&rblob->area);
-    }
-
+    p_delete(&rblob->area);
     rblob->area = rblob->data = buf;
     rblob->len  = len;
     rblob->size = bufsize;
@@ -145,9 +140,7 @@ void blob_resize(blob_t *blob, ssize_t newlen)
         byte * old_data = rblob->data;
         rblob->data = p_new_raw(byte, newsize);
         memcpy(rblob->data, old_data, blob->len+1); /* +1 for the blob_t \0 */
-        if (rblob->area) {
-            p_delete(&rblob->area);
-        }
+        p_delete(&rblob->area);
     }
     rblob->area = rblob->data;
     rblob->len  = newlen;
