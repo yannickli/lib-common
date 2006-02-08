@@ -757,7 +757,7 @@ void blob_b64encode(blob_t *blob, int nbpackets)
         *(dst++) = b64[((c2 & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
         *(dst++) = b64[c3 & 0x3f];
         
-        if (!--packs) {
+        if (!--packs || src == end) {
             packs = nbpackets;
             *(dst++) = '\r';
             *(dst++) = '\n';
