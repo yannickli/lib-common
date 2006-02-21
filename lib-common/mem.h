@@ -75,6 +75,10 @@ void * mem_realloc0(void * mem, ssize_t oldsize, ssize_t newsize)
 #define p_blank(type, p, count) ((type *)memset(p, 0, sizeof(type)))
 #define p_new_raw(type, count)  ((type*)mem_alloc(sizeof(type)*(count)))
 #define p_new(type, count)      ((type*)mem_alloc0(sizeof(type)*(count)))
+/* FIXME : p_delete multi-evaluates mem_p, and thus has nasty sides effects when
+ *         argument has a -- or a ++.
+ *         cpp SHOULD have a warning for such macros !!!
+ */
 #define p_delete(mem_p)         (mem_free(*(mem_p)), *(mem_p) = NULL)
 
 /* OG: should find a better name */
