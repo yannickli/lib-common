@@ -1,6 +1,10 @@
 #ifndef __SPOOL_H__
 #define __SPOOL_H__
 
+/* XXX : be very careful, avoid passing macros for Reset, Delete and New
+ *       functions, as those are multievaluated.
+ */
+
 #define GENERIC_POOL(type, size, New, Reset, Delete, attr)              \
                                                                         \
 struct {                                                                \
