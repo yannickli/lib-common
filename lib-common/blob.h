@@ -38,9 +38,10 @@ static inline void blob_delete(blob_t **blob)
 blob_t *blob_dup(const blob_t *blob);
 blob_t *blob_cat(const blob_t *blob1, const blob_t *blob2);
 
-/* FIXME: this function is nasty, and has a bad semantics : blob should know if
- * he don't owns the buffer. it makes the programmer write really horrible code
- * atm */
+/* FIXME: this function is nasty, and has a bad semantics: blob should know if
+ * it owns the buffer. This makes the programmer write really horrible code
+ * atm
+ */
 void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize);
 void blob_resize(blob_t *blob, ssize_t newlen);
 

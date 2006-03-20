@@ -87,7 +87,7 @@ void *array_take(_array *array, ssize_t pos)
 
     ptr = array->tab[pos];
     memmove(array->tab + pos, array->tab + pos + 1,
-            (array->len - pos - 1)*sizeof(void*));
+            (array->len - pos - 1) * sizeof(void*));
     array_real(array)->len --;
 
     return ptr;
