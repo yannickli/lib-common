@@ -98,13 +98,12 @@ blob_t *blob_cat(const blob_t *blob1, const blob_t *blob2)
     return res;
 }
 
-#if 0
 /* set the payload of a blob to the given buffer of size bufsize.
    len is the len of the data inside it.
 
    the payload MUST be a valid block allocated through malloc or an alias
  */
-void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize)
+static void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize)
 {
     real_blob_t *rblob = blob_real(blob);
 
@@ -118,7 +117,6 @@ void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize)
     rblob->size = bufsize;
     rblob->data[len] = '\0';
 }
-#endif
 
 /* resize a blob to the new size.
  *
