@@ -270,6 +270,17 @@ char *stristr(const char *haystack, const char *needle)
     return NULL;
 }
 
+bool strequal(const char *str1, const char *str2)
+{
+    while (*str1 == *str2) {
+        if (!*str1)
+            return true;
+        str1++;
+        str2++;
+    }
+    return false;
+}
+
 /** Find the first occurence of the needle in haystack.
  *
  * @return a pointer to the beginning of needle, or NULL if

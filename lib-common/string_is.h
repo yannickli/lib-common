@@ -5,6 +5,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "macros.h"
+
 static inline ssize_t sstrlen(const char *str) {
     return (ssize_t)strlen((const char *)str);
 }
@@ -26,6 +28,8 @@ static inline int vstristart(char *str, const char *p, char **pp) {
     return stristart(str, p, (const char **)pp);
 }
 char *stristr(const char *haystack, const char *needle);
+
+bool strequal(const char *str1, const char *str2);
 
 const void *memsearch(const void *haystack, size_t hsize,
                       const void *needle, size_t nsize);
