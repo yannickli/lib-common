@@ -53,5 +53,6 @@ typedef unsigned char byte;
 } while(0)
 
 #define countof(table) ((int)(sizeof(table)) / sizeof((table)[0]))
+#define ssizeof(foo)   ((ssize_t)sizeof(foo))
 
 #endif
