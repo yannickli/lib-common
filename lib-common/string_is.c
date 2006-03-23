@@ -226,7 +226,7 @@ int stristart(const char *str, const char *p, const char **pp)
     return 1;
 }
 
-/** Find the first occurence of the substring needle in haystack, case
+/** Find the first occurrence of the substring needle in haystack, case
  *  insensitive.
  *
  * @return a pointer to the beginning of the substring, or NULL if
@@ -281,7 +281,7 @@ bool strequal(const char *str1, const char *str2)
     return false;
 }
 
-/** Find the first occurence of the needle in haystack.
+/** Find the first occurrence of the needle in haystack.
  *
  * @return a pointer to the beginning of needle, or NULL if
  * it was not found.
@@ -321,7 +321,7 @@ const void *memsearch(const void *_haystack, size_t hsize,
 #include <check.h>
 
 static const char *week = "Monday Tuesday Wednesday Thursday Friday Saturday Sunday";
-START_TEST (check_strstart)
+START_TEST(check_strstart)
 {
     const char *p;
     int res;
@@ -337,7 +337,7 @@ START_TEST (check_strstart)
 }
 END_TEST
 
-START_TEST (check_stristart)
+START_TEST(check_stristart)
 {
     const char *p;
     int res;
@@ -354,7 +354,7 @@ START_TEST (check_stristart)
 END_TEST
 
 static const char *alphabet = "abcdefghijklmnopqrstuvwxyz";
-START_TEST (check_stristr)
+START_TEST(check_stristr)
 {
     char *p;
 
@@ -372,7 +372,7 @@ START_TEST (check_stristr)
 }
 END_TEST
 
-START_TEST (check_memsearch)
+START_TEST(check_memsearch)
 {
     const void *p;
 
@@ -395,7 +395,7 @@ START_TEST (check_memsearch)
     fail_if(p != alphabet + 12, "not found in the middle of the zone");
 
     p = memsearch(alphabet, 26, "123", 3);
-    fail_if(p != NULL, "found bogus occurence");
+    fail_if(p != NULL, "found bogus occurrence");
 
     p = memsearch(alphabet, 0, "ab", 2);
     fail_if(p != NULL, "match found in empty zone");

@@ -29,6 +29,7 @@ static inline int vstristart(char *str, const char *p, char **pp) {
 }
 char *stristr(const char *haystack, const char *needle);
 
+// OG: should implement as an inline around strcmp
 bool strequal(const char *str1, const char *str2);
 
 const void *memsearch(const void *haystack, size_t hsize,
