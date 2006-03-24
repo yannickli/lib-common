@@ -468,7 +468,7 @@ ssize_t blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...)
    space in the internal buffer, and such an error is permanent.
 
    though, the buffer is 1Ko long ... and should not be too small */
-ssize_t blob_ftime(blob_t *blob, ssize_t pos, const char *fmt, const struct tm *tm)
+ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt, const struct tm *tm)
 {
      char buffer[1024];
      size_t res;
@@ -841,7 +841,7 @@ static inline void check_teardown(blob_t *blob, blob_t **blob2)
 /*.........................................................................}}}*/
 /* tests legacy functions                                                  {{{*/
 
-START_TEST (check_init_wipe)
+START_TEST(check_init_wipe)
 {
     blob_t blob;
     blob_init(&blob);
@@ -856,7 +856,7 @@ START_TEST (check_init_wipe)
 }
 END_TEST
 
-START_TEST (check_blob_new)
+START_TEST(check_blob_new)
 {
     blob_t *blob = blob_new();
 
@@ -873,7 +873,7 @@ END_TEST
 /*.........................................................................}}}*/
 /* test set functions                                                      {{{*/
 
-START_TEST (check_set)
+START_TEST(check_set)
 {
     blob_t blob, bloub;
     blob_init (&blob);
@@ -908,7 +908,7 @@ END_TEST
 /*.........................................................................}}}*/
 /* test blob_dup / blob_cat / blob_resize                                  {{{*/
 
-START_TEST (check_dup)
+START_TEST(check_dup)
 {
     blob_t blob;
     blob_t * bdup; 
@@ -964,7 +964,7 @@ END_TEST
 /*.........................................................................}}}*/
 /* test blit functions                                                     {{{*/
 
-START_TEST (check_blit)
+START_TEST(check_blit)
 {
     blob_t blob;
     blob_t *b2;
@@ -998,7 +998,7 @@ END_TEST
 /*.........................................................................}}}*/
 /* test insert functions                                                     {{{*/
 
-START_TEST (check_insert)
+START_TEST(check_insert)
 {
     blob_t blob;
     blob_t *b2;
@@ -1033,7 +1033,7 @@ END_TEST
 /*.........................................................................}}}*/
 /* test append functions                                                     {{{*/
 
-START_TEST (check_append)
+START_TEST(check_append)
 {
     blob_t blob;
     blob_t *b2;
@@ -1065,7 +1065,7 @@ START_TEST (check_append)
 }
 END_TEST
 
-START_TEST (check_append_file_data)
+START_TEST(check_append_file_data)
 {
     const char file[] = "check.data";
     const char data[] =
@@ -1096,7 +1096,7 @@ END_TEST
 /*.........................................................................}}}*/
 /* test kill functions                                                     {{{*/
 
-START_TEST (check_kill)
+START_TEST(check_kill)
 {
     blob_t blob;
     check_setup(&blob, "0123456789");
@@ -1126,7 +1126,8 @@ END_TEST
 /*.........................................................................}}}*/
 /* test printf functions                                                   {{{*/
 
-START_TEST (check_printf)
+
+START_TEST(check_printf)
 {
     char cmp[81];
     blob_t blob;
@@ -1151,7 +1152,7 @@ END_TEST
 /*.........................................................................}}}*/
 /* test blob_urldecode                                                     {{{*/
 
-START_TEST (check_url)
+START_TEST(check_url)
 {
     blob_t blob;
     check_setup(&blob, "%20toto%79");
@@ -1169,7 +1170,7 @@ END_TEST
 /*.........................................................................}}}*/
 /* test blob_b64                                                           {{{*/
 
-START_TEST (check_b64)
+START_TEST(check_b64)
 {
     blob_t blob;
     check_setup(&blob, "abcdef");
@@ -1185,7 +1186,7 @@ END_TEST
 /*.........................................................................}}}*/
 /* test blob_search                                                        {{{*/
 
-START_TEST (check_search)
+START_TEST(check_search)
 {
     blob_t blob;
     blob_t *b1 = blob_new();

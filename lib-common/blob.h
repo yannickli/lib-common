@@ -27,7 +27,7 @@ typedef struct {
 /* Blob creation / deletion                                                   */
 /******************************************************************************/
 
-#define  blob_new() blob_init(p_new_raw(blob_t, 1))
+#define blob_new()  blob_init(p_new_raw(blob_t, 1))
 blob_t *blob_init(blob_t *blob);
 void blob_wipe(blob_t *blob);
 static inline void blob_delete(blob_t **blob)
@@ -39,9 +39,9 @@ blob_t *blob_dup(const blob_t *blob);
 blob_t *blob_cat(const blob_t *blob1, const blob_t *blob2);
 
 #if 0
-/* FIXME: this function is nasty, and has a bad semantics: blob should know if
+/* FIXME: this function is nasty, and has bad semantics: blob should know if
  * it owns the buffer. This makes the programmer write really horrible code
- * atm
+ * atm.
  */
 void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize);
 #endif
@@ -92,10 +92,11 @@ ssize_t blob_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
 
 ssize_t blob_vprintf(blob_t *blob, ssize_t pos, const char *fmt, va_list ap);
 ssize_t blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...) __attr_format__(3,4);
-ssize_t blob_ftime(blob_t *blob, ssize_t pos, const char *fmt, const struct tm *tm);
-static inline void blob_ftime_utc(blob_t *blob, ssize_t pos, time_t tm)
+ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt, const struct tm *tm);
+static inline void blob_strftime_utc(blob_t *blob, ssize_t pos, time_t tm)
 {
-    blob_ftime(blob, pos, "%a, %d %b %Y %H:%M:%S GMT", gmtime(&tm));
+    /* OG: using ugly non reentrant gmtime */
+    blob_strftime(blob, pos, "%a, %d %b %Y %H:%M:%S GMT", gmtime(&tm));
 }
 
 /******************************************************************************/
@@ -161,7 +162,7 @@ void blob_b64encode(blob_t *blob, int nbpackets);
 
 #include "parse.h"
 
-ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos, const char ** answer);
+ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos, const char **answer);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
