@@ -35,6 +35,11 @@ bool strequal(const char *str1, const char *str2);
 const void *memsearch(const void *haystack, size_t hsize,
                       const void *needle, size_t nsize);
 
+static inline void *vmemsearch(void *haystack, size_t hsize,
+                               const void *needle, size_t nsize) {
+    return (void *)memsearch(haystack, hsize, needle, nsize);
+}
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 #include <check.h>
