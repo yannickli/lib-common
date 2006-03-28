@@ -407,7 +407,12 @@ ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
     blob_resize(blob, blob->len + add_to_len);
 
     res = fread(blob_real(blob)->data + oldlen, size, nmemb, f);
-    if (res > 0 && res < nmemb) {
+    if (res < 0) {
+        blob_resize(blob, oldlen);
+        return res;
+    }
+
+    if (res < nmemb) {
         blob_resize(blob, oldlen + res * size);
     }
 
