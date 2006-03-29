@@ -713,33 +713,29 @@ void blob_trim(blob_t *blob)
 /* @see memcmp(3) */
 int blob_cmp(const blob_t *blob1, const blob_t *blob2)
 {
-    if (blob1->len == blob2->len) {
-        return memcmp(blob1, blob2, blob1->len);
-    } else {
-        ssize_t len = MIN(blob1->len, blob2->len);
-        int     res = memcmp(blob1, blob2, len);
-        if (res != 0) {
-            return res;
-        }
-        return (blob1->len == len) ? -1 : 1;
+    ssize_t len = MIN(blob1->len, blob2->len);
+    int res = memcmp(blob1->data, blob2->data, len);
+    if (res != 0) {
+        return res;
     }
+    return (blob1->len - blob2->len);
 }
-
 
 int blob_icmp(const blob_t *blob1, const blob_t *blob2)
 {
     ssize_t len = MIN(blob1->len, blob2->len);
-    ssize_t pos = 0;
+    ssize_t pos;
 
-    const char * s1 = (const char *)blob1->data;
-    const char * s2 = (const char *)blob2->data;
+    const char *s1 = (const char *)blob1->data;
+    const char *s2 = (const char *)blob2->data;
 
-    while (pos < len && tolower(s1[pos]) == tolower(s2[pos])) {
-        pos ++;
+    for (pos = 0; pos < len; pos++) {
+        int res = tolower(s1[pos]) - tolower(s2[pos]);
+        if (res != 0) {
+            return res;
+        }
     }
-
-    /* kludge : remember that blob->data[blob->len] == '\0' */
-    return tolower(s1[pos]) - tolower(s2[pos]);
+    return (blob1->len - blob2->len);
 }
 
 bool blob_is_equal(const blob_t *blob1, const blob_t *blob2)
@@ -798,24 +794,31 @@ static inline int hex_to_dec(char c)
 void blob_urldecode(blob_t *url)
 {
     real_blob_t *buf = blob_real(url);
-    byte *p = buf->data;
-    byte *q = p;
+    byte *p, *q;
 
-    while (*p) {
+    /* This function relies on the final NUL at the end of the blob
+     * and will stop on any embedded NULs.
+     */
+
+    /* Optimize the general case with a quick scan for % */
+    if (! (p = strchr((const char*)buf->data, '%')))
+        return;
+
+    q = p;
+    while ((*q = *p) != '\0') {
         int a, b;
-        if (*p == '%' && (a = hex_to_dec(p[1])) >= 0 && (b = hex_to_dec(p[2])) >= 0) {
+        if (*p == '%'
+        &&  (a = hex_to_dec(p[1])) >= 0
+        &&  (b = hex_to_dec(p[2])) >= 0)
+        {
             *q++ = (a << 4) | b;
             p += 3;
         } else {
-            *q++ = *p++;
+            q++;
+            p++;
         }
     }
-    *q = '\0';
-#if 0
-    blob_resize(url, q - url->data);
-#else
     buf->len = q - url->data;
-#endif
 }
 
 static const char
