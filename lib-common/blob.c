@@ -137,28 +137,66 @@ void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize)
 void blob_resize(blob_t *blob, ssize_t newlen)
 {
     real_blob_t *rblob = blob_real(blob);
-    ssize_t newsize;
     
-    if (rblob->size > newlen) {
-        rblob->len = newlen;
-        rblob->data[newlen] = 0;
-        return;
-    }
-
-    newsize = MEM_ALIGN(newlen+1);
-    if (rblob->data == rblob->area) {
-        rblob->data = (byte *)mem_realloc(rblob->data, newsize);
+    if (newlen < rblob->size) {
+        if (newlen == 0) {
+            /* Remove initial skip if any */
+            if (rblob->area) {
+                rblob->size += (rblob->data - rblob->area);
+                rblob->data = rblob->area;
+            } else {
+                rblob->size = BLOB_INITIAL_SIZE;
+                rblob->data = rblob->initial;
+            }
+        }
     } else {
-        byte * old_data = rblob->data;
-        rblob->data = p_new_raw(byte, newsize);
-        memcpy(rblob->data, old_data, blob->len+1); /* +1 for the blob_t \0 */
-        p_delete(&rblob->area);
-    }
-    rblob->area = rblob->data;
-    rblob->len  = newlen;
-    rblob->size = newsize;
+        ssize_t newsize = MEM_ALIGN(newlen + 1);
 
-    rblob->data[rblob->len] = 0;
+        if (rblob->data == rblob->area) {
+            rblob->area = mem_realloc(rblob->area, newsize);
+            rblob->data = rblob->area;
+            rblob->size = newsize;
+        } else {
+            /* Check if data fits in current area */
+            byte *area = rblob->area ? rblob->area : rblob->initial;
+            ssize_t skip = rblob->data - area;
+
+            if (newsize <= skip + rblob->size) {
+                /* Data fits in the current area, shift it left */
+                memmove(rblob->data - skip, rblob->data, rblob->len + 1);
+                rblob->data -= skip;
+                rblob->size += skip;
+            } else {
+                /* Allocate a new area */
+                byte *new_area = p_new_raw(byte, newsize);
+                /* Copy the blob data including the trailing '\0' */
+                memcpy(new_area, rblob->data, rblob->len + 1);
+                p_delete(&rblob->area);
+                rblob->area = new_area;
+                rblob->data = rblob->area;
+                rblob->size = newsize;
+            }
+        }
+    }
+    rblob->len = newlen;
+    rblob->data[rblob->len] = '\0';
+}
+
+/* Inline version for special case of clearing blob */
+static inline void blob_empty(blob_t *blob)
+{
+    real_blob_t *rblob = blob_real(blob);
+    
+    /* Remove initial skip if any */
+    if (rblob->area) {
+        rblob->size += (rblob->data - rblob->area);
+        rblob->data = rblob->area;
+    } else {
+        rblob->size = BLOB_INITIAL_SIZE;
+        rblob->data = rblob->initial;
+    }
+    rblob->len = 0;
+    rblob->data[0] = '\0';
 }
 
 /*}}}*/
@@ -173,6 +211,9 @@ void blob_resize(blob_t *blob, ssize_t newlen)
 static inline void
 blob_blit_data_real(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
 {
+    if (pos < 0) {
+        return;
+    }
     if (len <= 0) {
         return;
     }
@@ -262,19 +303,19 @@ blob_kill_data_real(blob_t *blob, ssize_t pos, ssize_t len)
 
 void blob_set(blob_t *blob, const blob_t *src)
 {
-    blob_resize(blob, 0);
+    blob_empty(blob);
     blob_blit_data_real(blob, 0, src->data, src->len);
 }
 
 void blob_set_data(blob_t *blob, const void *data, ssize_t len)
 {
-    blob_resize(blob, 0);
+    blob_empty(blob);
     blob_blit_data_real(blob, 0, data, len);
 }
 
 void blob_set_cstr(blob_t *blob, const char *cstr)
 {
-    blob_resize(blob, 0);
+    blob_empty(blob);
     blob_blit_data_real(blob, 0, cstr, sstrlen(cstr));
 }
 
