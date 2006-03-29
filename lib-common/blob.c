@@ -18,7 +18,7 @@
  * overflows.
  *
  * there is *always* a \0 in the data at position len.
- * implyng that size is always >= len+1
+ * implying that size is always >= len+1
  *
  */
 typedef struct {
@@ -120,7 +120,7 @@ static void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsi
 
 /* resize a blob to the new size.
  *
- * the min(blob->len, newlien) first bytes are preserved
+ * the min(blob->len, newlen) first bytes are preserved
  */
 void blob_resize(blob_t *blob, ssize_t newlen)
 {
@@ -133,7 +133,7 @@ void blob_resize(blob_t *blob, ssize_t newlen)
         return;
     }
 
-    newsize     = MEM_ALIGN(newlen+1);
+    newsize = MEM_ALIGN(newlen+1);
     if (rblob->data == rblob->area) {
         rblob->data = (byte *)mem_realloc(rblob->data, newsize);
     } else {
@@ -419,6 +419,26 @@ ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
     return res;
 }
 
+ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
+{
+    const ssize_t oldlen = blob->len;
+    ssize_t res;
+
+    blob_resize(blob, blob->len + count);
+
+    res = read(fd, blob_real(blob)->data + oldlen, count);
+    if (res < 0) {
+        blob_resize(blob, oldlen);
+        return res;
+    }
+
+    if (res < count) {
+        blob_resize(blob, oldlen + res);
+    }
+
+    return res;
+}
+
 /*}}}*/
 /******************************************************************************/
 /* Blob printf function                                                       */
@@ -453,7 +473,7 @@ ssize_t blob_vprintf(blob_t *blob, ssize_t pos, const char *fmt, va_list ap)
 }
 
 /* returns the number of bytes written.
-   note that blob_printf allways works (or never returns due to memory
+   note that blob_printf always works (or never returns due to memory
    allocation */
 ssize_t blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...)
 {
