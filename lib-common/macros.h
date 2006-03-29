@@ -55,4 +55,11 @@ typedef unsigned char byte;
 #define countof(table) ((int)(sizeof(table)) / sizeof((table)[0]))
 #define ssizeof(foo)   ((ssize_t)sizeof(foo))
 
+/******************************************************************************/
+/* Misc                                                                       */
+/******************************************************************************/
+#ifndef MAX
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+
 #endif
