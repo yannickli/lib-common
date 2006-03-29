@@ -801,7 +801,7 @@ void blob_urldecode(blob_t *url)
      */
 
     /* Optimize the general case with a quick scan for % */
-    if (! (p = strchr((const char*)buf->data, '%')))
+    if ((p = memchr(buf->data, '%', buf->len)) == NULL)
         return;
 
     q = p;
