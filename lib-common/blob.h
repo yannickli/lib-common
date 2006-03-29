@@ -94,10 +94,12 @@ ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count);
 ssize_t blob_vprintf(blob_t *blob, ssize_t pos, const char *fmt, va_list ap);
 ssize_t blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...) __attr_format__(3,4);
 ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt, const struct tm *tm);
-static inline void blob_strftime_utc(blob_t *blob, ssize_t pos, time_t tm)
+static inline void blob_strftime_utc(blob_t *blob, ssize_t pos, time_t timer)
 {
-    /* OG: using ugly non reentrant gmtime */
-    blob_strftime(blob, pos, "%a, %d %b %Y %H:%M:%S GMT", gmtime(&tm));
+    struct tm tm;
+
+    blob_strftime(blob, pos, "%a, %d %b %Y %H:%M:%S GMT",
+                  gmtime_r(&timer, &tm));
 }
 
 /******************************************************************************/
