@@ -778,7 +778,7 @@ bool blob_cstart(const blob_t *blob, const char *p, const char **pp)
 
 bool blob_start(const blob_t *blob1, const blob_t *blob2, const byte **pp)
 {
-    return blob_cstart(blob1, (const char*)blob2->data, pp);
+    return blob_cstart(blob1, (const char*)blob2->data, (const char **)pp);
 }
 
 bool blob_cistart(const blob_t *blob, const char *p, const char **pp)
@@ -788,7 +788,7 @@ bool blob_cistart(const blob_t *blob, const char *p, const char **pp)
 
 bool blob_istart(const blob_t *blob1, const blob_t *blob2, const byte **pp)
 {
-    return blob_cistart(blob1, (const char*)blob2->data, pp);
+    return blob_cistart(blob1, (const char*)blob2->data, (const char **)pp);
 }
 
 /*}}}*/
