@@ -151,10 +151,11 @@ int blob_icmp(const blob_t *blob1, const blob_t *blob2);
 
 bool blob_is_equal(const blob_t *blob1, const blob_t *blob2);
 bool blob_is_iequal(const blob_t *blob1, const blob_t *blob2);
-bool blob_start(const blob_t *blob1, const blob_t *blob2, byte **pp);
+
 bool blob_cstart(const blob_t *blob, const char *p, const char **pp);
-bool blob_istart(const blob_t *blob1, const blob_t *blob2, byte **pp);
+bool blob_start(const blob_t *blob1, const blob_t *blob2, const byte **pp);
 bool blob_cistart(const blob_t *blob, const char *p, const char **pp);
+bool blob_istart(const blob_t *blob1, const blob_t *blob2, const byte **pp);
 
 /******************************************************************************/
 /* Blob string functions                                                      */
