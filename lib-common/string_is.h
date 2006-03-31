@@ -18,7 +18,7 @@ const char *skipspaces(const char *s);
 static inline char *vskipspaces(char *s) {
     return (char*)skipspaces((char *)s);
 }
-char *rstrtrim(char *str);
+char *strrtrim(char *str);
 int strstart(const char *str, const char *p, const char **pp);
 int stristart(const char *str, const char *p, const char **pp);
 static inline int vstrstart(char *str, const char *p, char **pp) {

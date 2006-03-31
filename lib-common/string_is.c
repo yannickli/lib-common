@@ -171,7 +171,7 @@ const char *skipspaces(const char *s)
  *
  * @return a pointer to the last \0 of str
  */
-char *rstrtrim(char *str)
+char *strrtrim(char *str)
 {
     if (str) {
         char *p = str + strlen(str);
