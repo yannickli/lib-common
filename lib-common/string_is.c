@@ -169,19 +169,20 @@ const char *skipspaces(const char *s)
 
 /** Replaces blank characters at end of string with '\0'.
  *
- * @return str
+ * @return a pointer to the last \0 of str
  */
 char *rstrtrim(char *str)
 {
-    char *p;
-
     if (str) {
-        p = str + strlen(str);
+        char *p = str + strlen(str);
 
         while (p > str && isspace((unsigned char)p[-1]))
             *--p = '\0';
+
+        return p;
     }
-    return str;
+
+    return NULL;
 }
 
 /** Tells whether str begins with p.
