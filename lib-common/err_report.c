@@ -18,7 +18,7 @@ struct log_status {
 };
 
 static struct log_status log_state = { false, NULL, NULL };
-static int    verbosity = -1;
+static int verbosity = -1;
 
 static void set_log_ident(const char *ident)
 {
@@ -37,18 +37,18 @@ static void file_handler(char prefix, const char *format, va_list args)
         log_state.fd = stderr;
     }
     if ( log_state.ident != NULL) {
-        if ( fprintf(log_state.fd, "[%s] %c: ", log_state.ident, prefix) < 0 ) {
+        if (fprintf(log_state.fd, "[%s] %c: ", log_state.ident, prefix) < 0) {
             goto error;
         }
     } else {
-        if ( fprintf(log_state.fd, "%c: ", prefix) < 0 ) {
+        if (fprintf(log_state.fd, "%c: ", prefix) < 0) {
             goto error;
         }
     }
-    if ( vfprintf(log_state.fd, format, args) < 0 ) {
+    if (vfprintf(log_state.fd, format, args) < 0) {
         goto error;
     }
-    if ( fputc('\n', log_state.fd) == EOF ) {
+    if (fputc('\n', log_state.fd) == EOF) {
         goto error;
     }
 
@@ -111,7 +111,7 @@ static void init_file(const char *ident, FILE *file)
 } while (0)
 
 #define E_SET_BODY(kind) do {                               \
-    e_callback_f *old    = kind##_handler;                  \
+    e_callback_f *old = kind##_handler;                     \
     kind##_handler = hook ? hook : file_##kind##_handler;   \
     return old;                                             \
 } while (0)
@@ -122,13 +122,14 @@ static void init_file(const char *ident, FILE *file)
 
 /* Error reporting functions */
 
-void e_fatal (int status, const char *format, ...)
+void e_fatal(int status, const char *format, ...)
 {
     E_BODY(fatal);
     exit(status);
 }
 
-void e_panic   (const char *format, ...) {
+void e_panic(const char *format, ...)
+{
     E_BODY(fatal);
     exit(FATAL_DEFAULT);
 }
@@ -138,7 +139,8 @@ void e_warning (const char *format, ...) { E_BODY(warning); }
 void e_notice  (const char *format, ...) { E_BODY(notice);  }
 void e_info    (const char *format, ...) { E_BODY(info);    }
 
-void e_debug   (int debuglevel, const char *format, ...) {
+void e_debug(int debuglevel, const char *format, ...)
+{
     if (debuglevel <= verbosity) {
         E_BODY(debug);
     }
@@ -193,7 +195,8 @@ void e_init_syslog(const char *ident, int options, int facility)
     (void)e_set_debug_handler(&syslog_debug_handler);
 }
 
-void e_set_verbosity(int max_debug_level) {
+void e_set_verbosity(int max_debug_level)
+{
     verbosity = max_debug_level;
 }
 
@@ -214,4 +217,3 @@ void e_shutdown()
         log_state.ident = NULL;
     }
 }
-
