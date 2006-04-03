@@ -1,6 +1,8 @@
 #include <string.h>
 #include <ctype.h>
+
 #include "string_is.h"
+
 /** Copies the string pointed to by <code>src</code> to the buffer
  * <code>dest</code> of <code>size</code> bytes.
  * If <code>dest</code> is not NULL and <code>size</code> is greater
@@ -169,16 +171,16 @@ const char *skipspaces(const char *s)
 
 /** Replaces blank characters at end of string with '\0'.
  *
- * @return a pointer to the last \0 of str
+ * @return a pointer to the \0 at the end of str
  */
 char *strrtrim(char *str)
 {
     if (str) {
         char *p = str + strlen(str);
 
-        while (p > str && isspace((unsigned char)p[-1]))
+        while (p > str && isspace((unsigned char)p[-1])) {
             *--p = '\0';
-
+        }
         return p;
     }
 
@@ -233,7 +235,7 @@ int stristart(const char *str, const char *p, const char **pp)
  * @return a pointer to the beginning of the substring, or NULL if
  * it was not found.
  */
-char *stristr(const char *haystack, const char *needle)
+const char *stristr(const char *haystack, const char *needle)
 {
     char *nptr, *hptr, *start;
     int  hlen, nlen;
@@ -271,6 +273,7 @@ char *stristr(const char *haystack, const char *needle)
     return NULL;
 }
 
+#if 0
 bool strequal(const char *str1, const char *str2)
 {
     while (*str1 == *str2) {
@@ -281,6 +284,7 @@ bool strequal(const char *str1, const char *str2)
     }
     return false;
 }
+#endif
 
 /** Find the first occurrence of the needle in haystack.
  *
