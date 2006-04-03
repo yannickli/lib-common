@@ -16,10 +16,9 @@
         }                                                       \
     } while(0)
 
-static inline
-void * mem_alloc(ssize_t size)
+static inline void *mem_alloc(ssize_t size)
 {
-    void * mem;
+    void *mem;
 
     if (size == 0) {
         return NULL;
@@ -30,10 +29,9 @@ void * mem_alloc(ssize_t size)
     return mem;
 }
 
-static inline
-void * mem_alloc0(ssize_t size)
+static inline void *mem_alloc0(ssize_t size)
 {
-    void * mem;
+    void *mem;
 
     if (size == 0) {
         return NULL;
@@ -44,8 +42,7 @@ void * mem_alloc0(ssize_t size)
     return mem;
 }
 
-static inline
-void * mem_free(void * mem)
+static inline void *mem_free(void *mem)
 {
     if (mem != NULL) {
         free(mem);
@@ -53,28 +50,26 @@ void * mem_free(void * mem)
     return NULL;
 }
 
-static inline
-void * mem_realloc(void * mem, ssize_t newsize)
+static inline void *mem_realloc(void *mem, ssize_t newsize)
 {
     mem = realloc(mem, newsize);
     check_enough_mem(mem);
     return mem;
 }
 
-static inline
-void * mem_realloc0(void * mem, ssize_t oldsize, ssize_t newsize)
+static inline void *mem_realloc0(void *mem, ssize_t oldsize, ssize_t newsize)
 {
     mem = realloc(mem, newsize);
     check_enough_mem(mem);
     if (oldsize < newsize) {
-        memset((char *) mem + oldsize, 0, newsize - oldsize);
+        memset((char *)mem + oldsize, 0, newsize - oldsize);
     }
     return mem;
 }
 
 #define p_blank(type, p, count) ((type *)memset(p, 0, sizeof(type)))
-#define p_new_raw(type, count)  ((type*)mem_alloc(sizeof(type)*(count)))
-#define p_new(type, count)      ((type*)mem_alloc0(sizeof(type)*(count)))
+#define p_new_raw(type, count)  ((type *)mem_alloc(sizeof(type) * (count)))
+#define p_new(type, count)      ((type *)mem_alloc0(sizeof(type) * (count)))
 /* FIXME : p_delete multi-evaluates mem_p, and thus must not be used
  * for argument with side effects, such as a++, &p[i++],
  * &p[next_entry()]...

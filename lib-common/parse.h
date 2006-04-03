@@ -47,8 +47,9 @@ enum blob_parse_status {
 
 #define PARSE_SET_RESULT(var, value)        \
     do {                                    \
-        if ((var) != NULL)                  \
+        if ((var) != NULL) {                \
             *(var) = (value);               \
+	}                                   \
     } while(0)
 
 #define TRANSMIT_PARSE_ERROR(result, expr)  \
