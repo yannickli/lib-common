@@ -23,6 +23,23 @@ static inline char *vskipspaces(char *s) {
 /* Trim spaces at end of string, return pointer to '\0' */
 char *strrtrim(char *str);
 
+/* Wrappers to fix constness issue in strtol() */
+static inline long cstrtol(const char *str, const char **endp, int base) {
+    return (strtol)(str, (char **)endp, base);
+}
+static inline long vstrtol(char *str, char **endp, int base) {
+    return (strtol)(str, endp, base);
+}
+#define strtol(str, endp, base)  cstrtol(str, endp, base)
+
+static inline long long cstrtoll(const char *str, const char **endp, int base) {
+    return (strtoll)(str, (char **)endp, base);
+}
+static inline long long vstrtoll(char *str, char **endp, int base) {
+    return (strtoll)(str, endp, base);
+}
+#define strtoll(str, endp, base)  cstrtoll(str, endp, base)
+
 int strstart(const char *str, const char *p, const char **pp);
 static inline int vstrstart(char *str, const char *p, char **pp) {
     return strstart(str, p, (const char **)pp);
