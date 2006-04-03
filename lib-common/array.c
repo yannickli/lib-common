@@ -24,15 +24,19 @@ array_resize(_array *array, ssize_t newlen)
     real_array *a = array_real(array);
     ssize_t curlen = a->len;
     
-    /* reallocate array if needed */
+    /* Reallocate array if needed */
     if (newlen > a->size) {
         /* OG: Should use p_realloc */
+        /* FIXME: should increase array size more at a time:
+         * expand by half the current size?
+         */
         a->size = MEM_ALIGN(newlen);
         a->tab = (void **)mem_realloc(a->tab, a->size * sizeof(void*));
     }
-    /* initialize new elements to NULL */
-    while (curlen < newlen)
+    /* Initialize new elements to NULL */
+    while (curlen < newlen) {
         a->tab[curlen++] = NULL;
+    }
     a->len = newlen;
 }
 
@@ -57,7 +61,7 @@ void array_wipe(_array *array, array_item_dtor_f *dtor)
         if (dtor) {
             ssize_t i;
 
-            for (i = 0 ; i < array->len ; i++) {
+            for (i = 0; i < array->len; i++) {
                 (*dtor)(&array->tab[i]);
             }
         }
@@ -102,6 +106,9 @@ void array_insert(_array *array, ssize_t pos, void *item)
     array_resize(array, curlen + 1);
 
     if (pos < curlen) {
+        if (pos < 0) {
+            pos = 0;
+        }
         memmove(array->tab + pos + 1, array->tab + pos,
                 (curlen - pos) * sizeof(void *));
     } else {
