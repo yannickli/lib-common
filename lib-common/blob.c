@@ -536,7 +536,9 @@ ssize_t blob_vprintf(blob_t *blob, ssize_t pos, const char *fmt, va_list ap)
     available = rblob->size - pos;
 
     len = vsnprintf((char *)(rblob->data + pos), available, fmt, ap);
-    // FIXME: what if len < 0 ?
+    if (len < 0)
+        return len;
+
     if (len >= available) {
         /* only move the `pos' first bytes in case of realloc */
         rblob->len = pos;
