@@ -8,7 +8,6 @@ libcommon_SOURCES = \
 	array.c \
 	blob.c \
 	err_report.c  \
-	string_is.c \
-	trace.c
+	string_is.c
 
 include $(DEPTH)/admin/footer.mk

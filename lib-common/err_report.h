@@ -25,6 +25,8 @@ error_f e_notice;
 error_f e_info;
 fatal_f e_debug;
 
+#define trace(l, fmt, ...) e_debug(l, fmt, ##__VA_ARGS__)
+
 #define E_PREFIX(fmt) \
     ("%s:%d:%s: " fmt), __FILE__, __LINE__, __func__
 
@@ -54,6 +56,7 @@ void e_init_file(const char *ident, const char *filename);
 void e_init_syslog(const char *ident, int options, int facility);
 
 void e_set_verbosity(int max_debug_level);
+void e_incr_verbosity(void);
 
 void e_shutdown(void);
 #endif

@@ -18,7 +18,7 @@ struct log_status {
 };
 
 static struct log_status log_state = { false, NULL, NULL };
-static int verbosity = -1;
+static int verbosity = 0;
 
 static void set_log_ident(const char *ident)
 {
@@ -31,27 +31,24 @@ static void set_log_ident(const char *ident)
     }
 }
 
-static void file_handler(char prefix, const char *format, va_list args)
+static void file_handler(bool eol, const char *format, va_list args)
 {
     if ( log_state.fd == NULL ) {
         log_state.fd = stderr;
     }
-    if ( log_state.ident != NULL) {
-        if (fprintf(log_state.fd, "[%s] %c: ", log_state.ident, prefix) < 0) {
-            goto error;
-        }
-    } else {
-        if (fprintf(log_state.fd, "%c: ", prefix) < 0) {
+    if (log_state.ident != NULL) {
+        if (fprintf(log_state.fd, "[%s] ", log_state.ident) < 0) {
             goto error;
         }
     }
     if (vfprintf(log_state.fd, format, args) < 0) {
         goto error;
     }
-    if (fputc('\n', log_state.fd) == EOF) {
-        goto error;
-    }
 
+    if (eol) {
+        if (fputc('\n', log_state.fd) == EOF)
+            goto error;
+    }
     return;
 
 error:
@@ -63,13 +60,13 @@ error:
 }
 
 #define H_ARGS const char *format, va_list args
-#define FILE_HANDLER(prefix) file_handler(prefix, format, args)
-static void file_fatal_handler     (H_ARGS) { FILE_HANDLER('F'); }
-static void file_error_handler     (H_ARGS) { FILE_HANDLER('E'); }
-static void file_warning_handler   (H_ARGS) { FILE_HANDLER('W'); }
-static void file_notice_handler    (H_ARGS) { FILE_HANDLER('N'); }
-static void file_info_handler      (H_ARGS) { FILE_HANDLER('I'); }
-static void file_debug_handler     (H_ARGS) { FILE_HANDLER('D'); }
+#define FILE_HANDLER(eol) file_handler(eol, format, args)
+static void file_fatal_handler     (H_ARGS) { FILE_HANDLER(true); }
+static void file_error_handler     (H_ARGS) { FILE_HANDLER(true); }
+static void file_warning_handler   (H_ARGS) { FILE_HANDLER(true); }
+static void file_notice_handler    (H_ARGS) { FILE_HANDLER(true); }
+static void file_info_handler      (H_ARGS) { FILE_HANDLER(true); }
+static void file_debug_handler     (H_ARGS) { FILE_HANDLER(false); }
 
 #define SYSLOG(priority) syslog(priority, format, args)
 static void syslog_fatal_handler   (H_ARGS) { SYSLOG(LOG_CRIT); }
@@ -198,6 +195,11 @@ void e_init_syslog(const char *ident, int options, int facility)
 void e_set_verbosity(int max_debug_level)
 {
     verbosity = max_debug_level;
+}
+
+void e_incr_verbosity(void)
+{
+    verbosity++;
 }
 
 void e_shutdown()
