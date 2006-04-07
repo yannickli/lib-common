@@ -60,4 +60,14 @@ typedef unsigned char byte;
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #endif
 
+enum sign {
+    POSITIVE = 1,
+    ZERO     = 0,
+    NEGATIVE = -1
+};
+
+#ifndef SIGN
+#define SIGN(x) ((enum sign)(((x) > 0) - ((x) < 0)))
+#endif
+
 #endif
