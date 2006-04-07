@@ -26,16 +26,20 @@ void array_delete(_array **array, array_item_dtor_f *dtor);
 /* Misc                                                                       */
 /******************************************************************************/
 
-void array_insert(_array *array, ssize_t pos, void *item);
+void array_insert(_array *array, ssize_t pos, void *item)
+    __attribute__((nonnull(1)));
 
-static inline void array_append(_array *array, void *item) {
+static inline void array_append(_array *array, void *item)
+{
     array_insert(array, array->len, item);
 }
-static inline void array_push(_array *array, void *item) {
+static inline void array_push(_array *array, void *item)
+{
     array_insert(array, 0, item);
 }
 
-void *array_take(_array *array, ssize_t pos);
+void *array_take(_array *array, ssize_t pos)
+    __attribute__((nonnull(1)));
 
 /******************************************************************************/
 /* Typed Arrays                                                               */

@@ -17,15 +17,20 @@ enum fatal_exit_codes {
 typedef void fatal_f(int, const char *, ...) __attr_format__(2, 3);
 typedef void error_f(const char *, ...) __attr_format__(1, 2);
 
-fatal_f e_fatal;
-error_f e_panic;
+/*
+ * Those functions are meant to correspond to the syslog levels.
+ *
+ * e_fatal/e_panic exit the program.
+ * e_debug does not adds terminating '\n' whereas every single other do
+ *
+ */
+fatal_f e_fatal __attribute__((noreturn));
+error_f e_panic __attribute__((noreturn));
 error_f e_error;
 error_f e_warning;
 error_f e_notice;
 error_f e_info;
 fatal_f e_debug;
-
-#define trace(l, fmt, ...) e_debug(l, fmt, ##__VA_ARGS__)
 
 #define E_PREFIX(fmt) \
     ("%s:%d:%s: " fmt), __FILE__, __LINE__, __func__
@@ -43,12 +48,12 @@ fatal_f e_debug;
 /* callbacks installers */
 typedef void e_callback_f(const char *, va_list);
 
-e_callback_f * e_set_fatal_handler   (e_callback_f *);
-e_callback_f * e_set_error_handler   (e_callback_f *);
-e_callback_f * e_set_warning_handler (e_callback_f *);
-e_callback_f * e_set_notice_handler  (e_callback_f *);
-e_callback_f * e_set_info_handler    (e_callback_f *); 
-e_callback_f * e_set_debug_handler   (e_callback_f *);
+e_callback_f *e_set_fatal_handler   (e_callback_f *) __attribute__((nonnull));
+e_callback_f *e_set_error_handler   (e_callback_f *) __attribute__((nonnull));
+e_callback_f *e_set_warning_handler (e_callback_f *) __attribute__((nonnull));
+e_callback_f *e_set_notice_handler  (e_callback_f *) __attribute__((nonnull));
+e_callback_f *e_set_info_handler    (e_callback_f *) __attribute__((nonnull)); 
+e_callback_f *e_set_debug_handler   (e_callback_f *) __attribute__((nonnull));
 
 /* useful callbacks */
 void e_init_stderr(void);

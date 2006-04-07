@@ -11,15 +11,13 @@
  * __attr_noreturn__           => functions that perform abord()/exit()
  */
 
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 4)
-#  define __attr_format__(format_idx, arg_idx)  \
-        __attribute__((format (printf, format_idx, arg_idx)))
-#  define __unused__        __attribute__((unused))
-#  define __attr_noreturn__ __attribute__((noreturn))
-#else
-#  define __attr_format__(format_idx, arg_idx)
-#  define __unused__
-#  define __attr_noreturn__
+#define __attr_format__(format_idx, arg_idx)  \
+    __attribute__((format (printf, format_idx, arg_idx)))
+#define __unused__        __attribute__((unused))
+#define __attr_noreturn__ __attribute__((noreturn))
+
+#if !defined(__GNUC__) || __GNUC__ < 3
+#  define __attribute__(foo)
 #endif
 
 /******************************************************************************/
