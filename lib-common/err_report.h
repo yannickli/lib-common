@@ -30,7 +30,12 @@ error_f e_error;
 error_f e_warning;
 error_f e_notice;
 error_f e_info;
+#ifdef NDEBUG
+#  define e_debug(level, fmt, ...)
+#else
 fatal_f e_debug;
+#endif
+
 
 #define E_PREFIX(fmt) \
     ("%s:%d:%s: " fmt), __FILE__, __LINE__, __func__
@@ -60,8 +65,17 @@ void e_init_stderr(void);
 void e_init_file(const char *ident, const char *filename);
 void e_init_syslog(const char *ident, int options, int facility);
 
+#ifdef ERR_REPORT_DEFINE_VERBOSITY
+int e_verbosity_level = 0;
+#else
+extern int e_verbosity_level;
+#endif
 void e_set_verbosity(int max_debug_level);
 void e_incr_verbosity(void);
+static inline bool e_verbosity(int level) {
+    return (level <= e_verbosity_level) ? true: false;
+}
+
 
 void e_shutdown(void);
 #endif

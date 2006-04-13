@@ -4,7 +4,9 @@
 #include <string.h>
 #include <errno.h>
 
+#define ERR_REPORT_DEFINE_VERBOSITY
 #include "err_report.h"
+#undef ERR_REPORT_DEFINE_VERBOSITY
 #include "macros.h"
 
 /******************************************************************************/
@@ -18,7 +20,6 @@ struct log_status {
 };
 
 static struct log_status log_state = { false, NULL, NULL };
-static int verbosity = 0;
 
 static void set_log_ident(const char *ident)
 {
@@ -138,7 +139,7 @@ void e_info    (const char *format, ...) { E_BODY(info);    }
 
 void e_debug(int debuglevel, const char *format, ...)
 {
-    if (debuglevel <= verbosity) {
+    if (debuglevel <= e_verbosity_level) {
         E_BODY(debug);
     }
 }
@@ -194,12 +195,12 @@ void e_init_syslog(const char *ident, int options, int facility)
 
 void e_set_verbosity(int max_debug_level)
 {
-    verbosity = max_debug_level;
+    e_verbosity_level = max_debug_level;
 }
 
 void e_incr_verbosity(void)
 {
-    verbosity++;
+    e_verbosity_level++;
 }
 
 void e_shutdown()
