@@ -530,23 +530,32 @@ ssize_t blob_vprintf(blob_t *blob, ssize_t pos, const char *fmt, va_list ap)
 
     va_copy(ap2, ap);
 
+    if (pos < 0) {
+        pos = 0;
+    }
     if (pos > blob->len) {
         pos = blob->len;
     }
     available = rblob->size - pos;
 
     len = vsnprintf((char *)(rblob->data + pos), available, fmt, ap);
-    if (len < 0)
-        return len;
-
+    if (len < 0) {
+        len = 0;
+    }
     if (len >= available) {
         /* only move the `pos' first bytes in case of realloc */
         rblob->len = pos;
         blob_resize(blob, pos + len);
+        available = rblob->size - pos;
 
-        len = vsnprintf((char*)(rblob->data + pos), len + 1, fmt, ap2);
+        len = vsnprintf((char*)(rblob->data + pos), available, fmt, ap2);
+        if (len >= available) {
+            /* Defensive programming (old libc) */
+            len = available - 1;
+        }
     }
     rblob->len = pos + len;
+    rblob->data[len] = '\0';
 
     return len;
 }

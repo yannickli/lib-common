@@ -18,10 +18,10 @@ typedef void fatal_f(int, const char *, ...) __attr_format__(2, 3);
 typedef void error_f(const char *, ...) __attr_format__(1, 2);
 
 /*
- * Those functions are meant to correspond to the syslog levels.
+ * These functions are meant to correspond to the syslog levels.
  *
  * e_fatal/e_panic exit the program.
- * e_debug does not adds terminating '\n' whereas every single other do
+ * e_debug does not add a terminating '\n' whereas all others do
  *
  */
 fatal_f e_fatal __attribute__((noreturn));
@@ -73,9 +73,8 @@ extern int e_verbosity_level;
 void e_set_verbosity(int max_debug_level);
 void e_incr_verbosity(void);
 static inline bool e_verbosity(int level) {
-    return (level <= e_verbosity_level) ? true: false;
+    return (level <= e_verbosity_level);
 }
-
 
 void e_shutdown(void);
 #endif

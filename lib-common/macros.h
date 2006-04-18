@@ -12,7 +12,7 @@
  */
 
 #define __attr_format__(format_idx, arg_idx)  \
-    __attribute__((format (printf, format_idx, arg_idx)))
+    __attribute__((format(printf, format_idx, arg_idx)))
 #define __unused__        __attribute__((unused))
 #define __attr_noreturn__ __attribute__((noreturn))
 
