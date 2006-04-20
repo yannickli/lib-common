@@ -555,7 +555,7 @@ ssize_t blob_vprintf(blob_t *blob, ssize_t pos, const char *fmt, va_list ap)
         }
     }
     rblob->len = pos + len;
-    rblob->data[len] = '\0';
+    rblob->data[rblob->len] = '\0';
 
     return len;
 }
@@ -1290,7 +1290,12 @@ START_TEST(check_printf)
     snprintf(cmp, 81, "%080i", 0);
 
     /* printf first */
-    blob_printf(&blob, blob.len, "5%s89", "67");
+    blob_printf(&blob, blob.len, "5");
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "012345") != 0, "printf failed");
+    fail_if(blob.len != strlen("012345"), "printf failed");
+
+    blob_printf(&blob, blob.len, "%s89", "67");
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, "0123456789") != 0, "printf failed");
     fail_if(blob.len != strlen("0123456789"), "printf failed");
