@@ -361,7 +361,7 @@ END_TEST
 static const char *alphabet = "abcdefghijklmnopqrstuvwxyz";
 START_TEST(check_stristr)
 {
-    char *p;
+    const char *p;
 
     p = stristr(alphabet, "aBC");
     fail_if(p != alphabet, "not found at start of string");
