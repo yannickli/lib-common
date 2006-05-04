@@ -39,19 +39,20 @@ concatbin *concatbin_new(const char *filename)
     
     ccb->cur = ccb->start;
     return ccb;
+
 error:
     if (fd >= 0) {
         close(fd);
     }
-    if (ccb) {
-        p_delete(&ccb);
-    }
+    p_delete(&ccb);
+
     return NULL;
 }
 
 int concatbin_getnext(concatbin *ccb, const byte **data, int *len)
 {
     long len1;
+
     if (!ccb || !data || !len) {
         return -1;
     }
@@ -70,7 +71,7 @@ int concatbin_getnext(concatbin *ccb, const byte **data, int *len)
     }
     *len = len1;
     if (*ccb->cur != '\n') {
-        e_debug(1, "'%c' is not a CR\n", *ccb->cur);
+        e_debug(1, "'%c' is not a LF\n", *ccb->cur);
         goto error;
     }
     ccb->cur++; /* skip \n */
@@ -82,6 +83,7 @@ int concatbin_getnext(concatbin *ccb, const byte **data, int *len)
         goto error;
     }
     return 0;
+
 error:
     *len = 0;
     *data = NULL;
