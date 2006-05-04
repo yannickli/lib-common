@@ -60,6 +60,10 @@ typedef unsigned char byte;
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #endif
 
+#ifndef MIN
+#define MIN(a,b) (((a) > (b)) ? (b) : (a))
+#endif
+
 enum sign {
     POSITIVE = 1,
     ZERO     = 0,
