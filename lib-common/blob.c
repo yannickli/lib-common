@@ -49,7 +49,7 @@ blob_t *blob_init(blob_t *blob)
     rblob->area = NULL;
     rblob->data = rblob->initial;
 
-    /* OG: useless if we clear the initial buffer */
+    /* setup invariant: blob is always NUL terminated */
     rblob->data[rblob->len] = '\0';
 
     return (blob_t*)rblob;
