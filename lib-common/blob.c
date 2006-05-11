@@ -44,9 +44,6 @@ blob_t *blob_init(blob_t *blob)
 {
     real_blob_t *rblob = blob_real(blob);
 
-    /* OG: why do we need to clear the initial buffer ? */
-    p_blank(byte, rblob->initial, BLOB_INITIAL_SIZE);
-
     rblob->len  = 0;
     rblob->size = BLOB_INITIAL_SIZE;
     rblob->area = NULL;
