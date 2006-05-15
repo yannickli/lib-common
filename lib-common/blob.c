@@ -497,6 +497,9 @@ ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
     const ssize_t oldlen = blob->len;
     ssize_t res;
 
+    if (count < 0)
+        count = BUFSIZ;
+
     blob_resize(blob, oldlen + count);
 
     res = read(fd, blob_real(blob)->data + oldlen, count);
