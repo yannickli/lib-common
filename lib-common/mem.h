@@ -87,7 +87,7 @@ static inline void *mem_realloc0(void *mem, ssize_t oldsize, ssize_t newsize)
 
 #define GENERIC_DELETE(wiper, var)  \
     do {                            \
-        if (var) {                  \
+        if (var && *var) {          \
             (wiper)(*(var));        \
             p_delete(var);          \
         }                           \
