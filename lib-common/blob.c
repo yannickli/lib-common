@@ -310,12 +310,6 @@ void blob_set_data(blob_t *blob, const void *data, ssize_t len)
     blob_blit_data_real(blob, 0, data, len);
 }
 
-void blob_set_cstr(blob_t *blob, const char *cstr)
-{
-    blob_empty(blob);
-    blob_blit_data_real(blob, 0, cstr, sstrlen(cstr));
-}
-
 /*** blit functions ***/
 
 void blob_blit(blob_t *dest, ssize_t pos, const blob_t *src)
@@ -326,11 +320,6 @@ void blob_blit(blob_t *dest, ssize_t pos, const blob_t *src)
 void blob_blit_data(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
 {
     blob_blit_data_real(blob, pos, data, len);
-}
-
-void blob_blit_cstr(blob_t *blob, ssize_t pos, const char *cstr)
-{
-    blob_blit_data_real(blob, pos, cstr, sstrlen(cstr));
 }
 
 /*** insert functions ***/
@@ -345,12 +334,6 @@ void blob_insert_data(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
     blob_insert_data_real(blob, pos, data, len);
 }
 
-/* don't insert the NUL ! */
-void blob_insert_cstr(blob_t *blob, ssize_t pos, const char *cstr)
-{
-    blob_insert_data_real(blob, pos, cstr, sstrlen(cstr));
-}
-
 /*** append functions ***/
 
 void blob_append(blob_t *dest, const blob_t *src)
@@ -361,11 +344,6 @@ void blob_append(blob_t *dest, const blob_t *src)
 void blob_append_data(blob_t *blob, const void *data, ssize_t len)
 {
     blob_insert_data_real(blob, blob->len, data, len);
-}
-
-void blob_append_cstr(blob_t *blob, const char *cstr)
-{
-    blob_insert_data_real(blob, blob->len, cstr, sstrlen(cstr));
 }
 
 void blob_append_byte(blob_t *blob, byte b)
@@ -646,11 +624,6 @@ ssize_t blob_search(const blob_t *haystack, ssize_t pos, const blob_t *needle)
 ssize_t blob_search_data(const blob_t *haystack, ssize_t pos, const void *needle, ssize_t len)
 {
     return blob_search_data_real(haystack, pos, needle, len);
-}
-
-ssize_t blob_search_cstr(const blob_t *haystack, ssize_t pos, const char *needle)
-{
-    return blob_search_data_real(haystack, pos, needle, sstrlen(needle));
 }
 
 /*}}}*/

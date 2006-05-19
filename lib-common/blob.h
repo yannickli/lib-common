@@ -53,19 +53,31 @@ void blob_resize(blob_t *blob, ssize_t newlen);
 
 void blob_set(blob_t *dest, const blob_t *src);
 void blob_set_data(blob_t *blob, const void *data, ssize_t len);
-void blob_set_cstr(blob_t *blob, const char *cstr);
+static inline void blob_set_cstr(blob_t *blob, const char *cstr) {
+    blob_set_data(blob, cstr, strlen(cstr));
+}
 
 void blob_blit(blob_t *dest, ssize_t pos, const blob_t *src);
 void blob_blit_data(blob_t *blob, ssize_t pos, const void *data, ssize_t len);
-void blob_blit_cstr(blob_t *blob, ssize_t pos, const char *cstr);
+static inline void blob_blit_cstr(blob_t *blob, ssize_t pos, const char *cstr)
+{
+    blob_blit_data(blob, pos, cstr, strlen(cstr));
+}
 
 void blob_insert(blob_t *dest, ssize_t pos, const blob_t *src);
 void blob_insert_data(blob_t *blob, ssize_t pos, const void *data, ssize_t len);
-void blob_insert_cstr(blob_t *blob, ssize_t pos, const char *cstr);
+static inline void 
+blob_insert_cstr(blob_t *blob, ssize_t pos, const char *cstr)
+{
+    blob_insert_data(blob, pos, cstr, strlen(cstr));
+}
 
 void blob_append(blob_t *dest, const blob_t *src);
 void blob_append_data(blob_t *blob, const void *data, ssize_t len);
-void blob_append_cstr(blob_t *blob, const char *cstr);
+static inline void blob_append_cstr(blob_t *blob, const char *cstr)
+{
+    blob_append_data(blob, cstr, strlen(cstr));
+}
 
 void blob_append_byte(blob_t *blob, byte b);
 
@@ -112,7 +124,11 @@ static inline void blob_strftime_utc(blob_t *blob, ssize_t pos, time_t timer)
 
 ssize_t blob_search(const blob_t *haystack, ssize_t pos, const blob_t *needle);
 ssize_t blob_search_data(const blob_t *haystack, ssize_t pos, const void *needle, ssize_t len);
-ssize_t blob_search_cstr(const blob_t *haystack, ssize_t pos, const char *needle);
+static inline ssize_t
+blob_search_cstr(const blob_t *haystack, ssize_t pos, const char *needle)
+{
+    return blob_search_data(haystack, pos, needle, strlen(needle));
+}
 
 /******************************************************************************/
 /* Blob filtering                                                             */
