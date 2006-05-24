@@ -73,7 +73,7 @@ typedef struct BSTREAM {
 
 /* Officially exported functions
  */
-static BSTREAM *battach(int fd, bstream_mode mode)
+static inline BSTREAM *battach_bufsize(int fd, bstream_mode mode, int bufsize)
 {
     BSTREAM *stream;
 
@@ -81,12 +81,12 @@ static BSTREAM *battach(int fd, bstream_mode mode)
         return NULL;
     }
 
-    stream = malloc(sizeof(BSTREAM) + DEFAULT_BUFSIZ);
+    stream = malloc(sizeof(BSTREAM) + bufsize);
     if (!stream) {
         return NULL;
     }
 
-    stream->bufsiz = DEFAULT_BUFSIZ;
+    stream->bufsiz = bufsize;
     stream->fd = fd;
     stream->mode = mode;
     stream->pwrite = stream->buf;
@@ -95,7 +95,12 @@ static BSTREAM *battach(int fd, bstream_mode mode)
     return stream;
 }
 
-static int bflush(BSTREAM *stream)
+static inline BSTREAM *battach(int fd, bstream_mode mode)
+{
+    return battach_bufsize(fd, mode, DEFAULT_BUFSIZ);
+}
+
+static inline int bflush(BSTREAM *stream)
 {
     size_t written;
     size_t towrite;
@@ -115,7 +120,7 @@ static int bflush(BSTREAM *stream)
     return 0;
 }
 
-static ssize_t bread(BSTREAM *stream, void *buf, size_t count)
+static inline ssize_t bread(BSTREAM *stream, void *buf, size_t count)
 {
     size_t avail, toread, n;
     size_t nbread = 0;
@@ -176,7 +181,46 @@ static ssize_t bread(BSTREAM *stream, void *buf, size_t count)
     return nbread;
 }
 
-static ssize_t bwrite(BSTREAM *stream, const void *buf, size_t count)
+static inline int bgetc(BSTREAM *stream)
+{
+    char c;
+    if (bread(stream, &c, 1) != 1) {
+        return -1;
+    }
+    return c;
+}
+
+static inline char *bgets(BSTREAM *stream, char *s, int size)
+{
+    char *p;
+    int n, c;
+
+    if (size <= 0) {
+        return NULL;
+    }
+
+    n = size - 1;
+    p = s;
+    while (n > 0) {
+        c = bgetc(stream);
+        if (c == -1) 
+            break;
+        n--;
+        *p++ = c;
+        if (c == '\n')
+            break;
+    }
+    if (p == s) {
+        return NULL;
+    }
+    *p = '\0';
+    if (c == -1) {
+        return NULL;
+    }
+    return s;
+}
+
+static inline ssize_t bwrite(BSTREAM *stream, const void *buf, size_t count)
 {
     size_t avail, towrite, n;
     size_t written = 0;
@@ -248,7 +292,7 @@ static ssize_t bwrite(BSTREAM *stream, const void *buf, size_t count)
     return written;
 }
 
-static int bdetach(BSTREAM *stream)
+static inline int bdetach(BSTREAM *stream)
 {
     int ret;
     bflush(stream);
