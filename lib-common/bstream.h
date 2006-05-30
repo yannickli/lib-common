@@ -249,6 +249,7 @@ static inline ssize_t bwrite(BSTREAM *stream, const void *buf, size_t count)
         memcpy(stream->pwrite, buf, towrite);
         stream->pwrite += towrite;
         avail   -= towrite;
+        buf     += towrite;
         count   -= towrite;
         written += towrite;
     }
@@ -265,6 +266,7 @@ static inline ssize_t bwrite(BSTREAM *stream, const void *buf, size_t count)
             written += n;
             return written;
         }
+        stream->pwrite -= n;
     }
     
     /* Write as many stream->bufsiz blocks as possible */
@@ -277,6 +279,7 @@ static inline ssize_t bwrite(BSTREAM *stream, const void *buf, size_t count)
         }
         written += n;
         count   -= n;
+        buf     += n;
     }
 
     if (count == 0) {
