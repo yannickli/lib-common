@@ -220,29 +220,38 @@ static inline char *bgets(BSTREAM *stream, char *s, int size)
     return s;
 }
 
+static inline ssize_t bwrite_call(BSTREAM *stream, const void *buf, size_t count);
+
 static inline ssize_t bwrite(BSTREAM *stream, const void *buf, size_t count)
 {
-    size_t avail, towrite, n;
-    size_t written = 0;
-
     if (stream->mode != BSTREAM_WRITE) {
         return -1;
     }
 
     /* Fill the buffer first */
-    avail = stream->bufsiz - (stream->pwrite - stream->buf);
-    if (count < avail) {
+    if (stream->pwrite + count < stream->buf + stream->bufsiz) {
         /* small chunk : We will put data into the buffer */
-        towrite = count;
+        memcpy(stream->pwrite, buf, count);
+        stream->pwrite += count;
+        return count;
+    }
+
+    return bwrite_call(stream, buf, count);
+}
+
+static ssize_t bwrite_call(BSTREAM *stream, const void *buf, size_t count)
+{
+    size_t avail, towrite, n;
+    size_t written = 0;
+
+    avail = stream->bufsiz - (stream->pwrite - stream->buf);
+    if (avail != stream->bufsiz) {
+        /* Buffer is not empty. We need to fill it before writing */
+        towrite = avail;
     } else {
-        if (avail != stream->bufsiz) {
-            /* Buffer is not empty. We need to fill it before writing */
-            towrite = avail;
-        } else {
-            /* Optim: buffer is empty, and count is bigger than IF_BUFSIZ. 
-             * Do not fill the buffer, we will write directly from buf. */
-            towrite = 0;
-        }
+        /* Optim: buffer is empty, and count is bigger than IF_BUFSIZ. 
+            * Do not fill the buffer, we will write directly from buf. */
+        towrite = 0;
     }
 
     if (towrite) {
