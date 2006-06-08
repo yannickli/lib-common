@@ -52,6 +52,7 @@ error:
 int concatbin_getnext(concatbin *ccb, const byte **data, int *len)
 {
     long len1;
+    const char *p;
 
     if (!ccb || !data || !len) {
         return -1;
@@ -65,10 +66,11 @@ int concatbin_getnext(concatbin *ccb, const byte **data, int *len)
         /* End reached */
         return 1;
     }
-    len1 = strtol((const char*)ccb->cur, (const char**)&ccb->cur, 10);
+    len1 = strtol((const char*)ccb->cur, &p, 10);
     if (len1 <= 0 || len1 > INT_MAX) { /* LONG_INT < 0, LONG_MAX > INT_MAX */
         goto error;
     }
+    ccb->cur = (const byte *)p;
     *len = len1;
     if (*ccb->cur != '\n') {
         e_debug(1, "'%c' is not a LF\n", *ccb->cur);
