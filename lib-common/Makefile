@@ -7,8 +7,9 @@ __LIB__ = libcommon
 libcommon_SOURCES = \
 	array.c \
 	blob.c \
-	err_report.c  \
 	concatbin.c  \
-	string_is.c
+	err_report.c  \
+	string_is.c \
+	unix.c
 
 include $(DEPTH)/admin/footer.mk
