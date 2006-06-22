@@ -34,7 +34,7 @@ int mkdir_p(const char *dir, mode_t mode)
         ret = 1;
         p = strrchr(dir2, '/');
         if (p == NULL) {
-            break;
+            goto creation;
         }
         *p = '\0';
     }
@@ -46,11 +46,10 @@ int mkdir_p(const char *dir, mode_t mode)
         goto end;
     }
 
+creation :
     /* Then, create /a/b/c and /a/b/c/d : we just have to put '/' where
      * we put \0 in the previous loop. */
     for(;;) {
-        p = dir2 + strlen(dir2);
-        *p = '/';
         if (mkdir(dir2, mode) != 0) {
             /* if dir = "/a/../b", then we do a mkdir("/a/..") => EEXIST,
              * but we want to continue walking the path to create /b !
@@ -63,6 +62,8 @@ int mkdir_p(const char *dir, mode_t mode)
         if (!strcmp(dir, dir2)) {
             break;
         }
+        p = dir2 + strlen(dir2);
+        *p = '/';
     }
 
 end:
