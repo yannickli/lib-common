@@ -499,8 +499,9 @@ ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
 /******************************************************************************/
 /*{{{*/
 
-ssize_t blob_vprintf(blob_t *blob, ssize_t pos, const char *fmt, va_list ap)
+ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
 {
+    ssize_t pos = blob->len;
     int len;
     int available;
     va_list ap2;
@@ -508,12 +509,6 @@ ssize_t blob_vprintf(blob_t *blob, ssize_t pos, const char *fmt, va_list ap)
 
     va_copy(ap2, ap);
 
-    if (pos < 0) {
-        pos = 0;
-    }
-    if (pos > blob->len) {
-        pos = blob->len;
-    }
     available = rblob->size - pos;
 
     len = vsnprintf((char *)(rblob->data + pos), available, fmt, ap);
@@ -539,15 +534,28 @@ ssize_t blob_vprintf(blob_t *blob, ssize_t pos, const char *fmt, va_list ap)
 }
 
 /* returns the number of bytes written.
-   note that blob_printf always works (or never returns due to memory
+   note that blob_append_fmt always works (or never returns due to memory
    allocation */
-ssize_t blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...)
+ssize_t blob_append_fmt(blob_t *blob, const char *fmt, ...)
 {
     ssize_t res;
     va_list args;
 
     va_start(args, fmt);
-    res = blob_vprintf(blob, pos, fmt, args);
+    res = blob_append_vfmt(blob, fmt, args);
+    va_end(args);
+
+    return res;
+}
+
+ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...)
+{
+    ssize_t res;
+    va_list args;
+
+    va_start(args, fmt);
+    blob_resize(blob, 0);
+    res = blob_append_fmt(blob, fmt, args);
     va_end(args);
 
     return res;
@@ -1263,17 +1271,17 @@ START_TEST(check_printf)
     snprintf(cmp, 81, "%080i", 0);
 
     /* printf first */
-    blob_printf(&blob, blob.len, "5");
+    blob_append_fmt(&blob, "5");
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, "012345") != 0, "printf failed");
     fail_if(blob.len != strlen("012345"), "printf failed");
 
-    blob_printf(&blob, blob.len, "%s89", "67");
+    blob_append_fmt(&blob, "%s89", "67");
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, "0123456789") != 0, "printf failed");
     fail_if(blob.len != strlen("0123456789"), "printf failed");
 
-    blob_printf(&blob, 0, "%080i", 0);
+    blob_set_fmt(&blob, "%080i", 0);
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, cmp) != 0, "printf failed");
     fail_if(blob.len != sstrlen(cmp), "printf failed");

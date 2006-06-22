@@ -102,11 +102,15 @@ ssize_t blob_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
 ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count);
 
 /******************************************************************************/
-/* Blob printf function                                                       */
+/* Blob printf functions                                                      */
 /******************************************************************************/
 
-ssize_t blob_vprintf(blob_t *blob, ssize_t pos, const char *fmt, va_list ap);
-ssize_t blob_printf(blob_t *blob, ssize_t pos, const char *fmt, ...) __attr_format__(3,4);
+ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap);
+ssize_t blob_append_fmt(blob_t *blob, const char *fmt, ...)
+    __attr_format__(2,3);
+
+ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...);
+
 ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt, const struct tm *tm);
 static inline void blob_strftime_utc(blob_t *blob, ssize_t pos, time_t timer)
 {
