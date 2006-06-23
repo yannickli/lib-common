@@ -10,6 +10,7 @@ libcommon_SOURCES = \
 	concatbin.c  \
 	err_report.c  \
 	string_is.c \
+	timeval.c \
 	unix.c
 
 include $(DEPTH)/admin/footer.mk
