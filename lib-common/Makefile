@@ -11,6 +11,7 @@ libcommon_SOURCES = \
 	err_report.c  \
 	string_is.c \
 	timeval.c \
+	template.c \
 	unix.c
 
 include $(DEPTH)/admin/footer.mk
