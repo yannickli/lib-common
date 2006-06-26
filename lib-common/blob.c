@@ -555,7 +555,7 @@ ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...)
 
     va_start(args, fmt);
     blob_resize(blob, 0);
-    res = blob_append_fmt(blob, fmt, args);
+    res = blob_append_vfmt(blob, fmt, args);
     va_end(args);
 
     return res;
