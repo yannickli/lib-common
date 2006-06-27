@@ -7,7 +7,7 @@
 
 #include "blob.h"
 #include "mem.h"
-#include "template.h"
+#include "msg_template.h"
 
 #define VAR_START "${"
 #define VAR_END "}"
@@ -18,7 +18,7 @@
  */
 typedef struct part_multi part_multi;
 
-struct template {
+struct msg_template {
     FILE *datafd;
     part_multi *body;
 };
@@ -70,15 +70,15 @@ part_verbatim *part_verbatim_new(const char*src, int size);
 void part_verbatim_delete(part_verbatim **verbatim);
 void part_verbatim_wipe(part_verbatim *verbatim);
 
-template *template_new(const char *templatefile, const char *datafile)
+msg_template *msg_template_new(const char *templatefile, const char *datafile)
 {
     int tplfd;
-    template *tpl;
+    msg_template *tpl;
     char *buf, *p, *q;
     struct stat st;
     int toread, nb, size;
 
-    tpl = p_new(template, 1);
+    tpl = p_new(msg_template, 1);
 
     tplfd = open(templatefile, O_RDONLY);
     if (tplfd < 0) {
@@ -87,7 +87,7 @@ template *template_new(const char *templatefile, const char *datafile)
     }
     tpl->datafd = fopen(datafile, "rb");
     if (!tpl->datafd) {
-        e_error("open template '%s' failed\n", datafile);
+        e_error("open datafile '%s' failed\n", datafile);
         goto error;
     }
 
@@ -191,11 +191,11 @@ error:
         close(tplfd);
         tplfd = -1;
     }
-    template_delete(&tpl);
+    msg_template_delete(&tpl);
     return NULL;
 }
 
-void template_delete(template **tpl)
+void msg_template_delete(msg_template **tpl)
 {
     if (!tpl || !*tpl) {
         return;
@@ -276,7 +276,7 @@ void part_variable_delete(part_variable **var)
     p_delete(var);
 }
 
-int template_getnext(template *tpl, blob_t *output)
+int msg_template_getnext(msg_template *tpl, blob_t *output)
 {
     tpl_part *curpart;
     int i, nbfields;
@@ -330,52 +330,52 @@ int template_getnext(template *tpl, blob_t *output)
 #include <check.h>
 #include <stdio.h>
 
-START_TEST(check_template_simple)
+START_TEST(check_msg_template_simple)
 {
     blob_t out;
-    template *tpl;
-    tpl = template_new("../samples/simple.tpl", "../samples/simple.csv");
-    fail_if(tpl == NULL, "template_new failed");
+    msg_template *tpl;
+    tpl = msg_template_new("../samples/simple.tpl", "../samples/simple.csv");
+    fail_if(tpl == NULL, "msg_template_new failed");
 
     blob_init(&out);
-    fail_if (template_getnext(tpl, &out), "getnext failed\n");
+    fail_if (msg_template_getnext(tpl, &out), "getnext failed\n");
     printf("out:%s\n", out.data);
     blob_wipe(&out);
-    fail_if (template_getnext(tpl, &out), "getnext failed\n");
+    fail_if (msg_template_getnext(tpl, &out), "getnext failed\n");
     printf("out:%s\n", out.data);
     blob_wipe(&out);
-    template_delete(&tpl);
+    msg_template_delete(&tpl);
 }
 END_TEST
 
-Suite *check_template_suite(void)
+Suite *check_msg_template_suite(void)
 {
     Suite *s  = suite_create("Template");
     TCase *tc = tcase_create("Core");
 
     suite_add_tcase(s, tc);
-    tcase_add_test(tc, check_template_simple);
+    tcase_add_test(tc, check_msg_template_simple);
     return s;
 }
 #endif
 #if 0
 /*
- gcc -g -o template template.c err_report.c  blob.c string_is.c
+ gcc -g -o msg_template msg_template.c err_report.c  blob.c string_is.c
  */
 int main(void)
 {
     blob_t out;
-    template *tpl;
-    tpl = template_new("samples/simple.tpl", "samples/simple.csv");
+    msg_template *tpl;
+    tpl = msg_template_new("samples/simple.tpl", "samples/simple.csv");
     printf("tpl:%p\n", tpl);
 
     blob_init(&out);
-    if (template_getnext(tpl, &out)) {
+    if (msg_template_getnext(tpl, &out)) {
         printf("getnext failed\n");
         return 1;
     }
     printf("out:%s\n", out.data);
-    template_delete(&tpl);
+    msg_template_delete(&tpl);
     return 0;
 }
 #endif
