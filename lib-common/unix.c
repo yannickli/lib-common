@@ -17,6 +17,7 @@ int mkdir_p(const char *dir, mode_t mode)
     char *dir2;
     struct stat buf;
 
+    // OG: why not use a local char buf[PATH_MAX] ?
     dir2 = strdup(dir);
     if (!dir2) {
         ret = -1;
@@ -39,6 +40,7 @@ int mkdir_p(const char *dir, mode_t mode)
         *p = '\0';
     }
     if (!S_ISDIR(buf.st_mode)) {
+        errno = ENOTDIR;
         ret = -1;
         goto end;
     }
@@ -46,15 +48,17 @@ int mkdir_p(const char *dir, mode_t mode)
         goto end;
     }
 
-creation :
+  creation:
     /* Then, create /a/b/c and /a/b/c/d : we just have to put '/' where
      * we put \0 in the previous loop. */
-    for(;;) {
+    for (;;) {
         if (mkdir(dir2, mode) != 0) {
             /* if dir = "/a/../b", then we do a mkdir("/a/..") => EEXIST,
              * but we want to continue walking the path to create /b !
              */
             if (errno != EEXIST) {
+                // OG: Why return 1 in this case ?
+                // why not use the end label ?
                 free(dir2);
                 return 1;
             }
@@ -66,7 +70,7 @@ creation :
         *p = '/';
     }
 
-end:
+  end:
     free(dir2);
     return ret;
 }
