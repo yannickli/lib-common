@@ -116,7 +116,7 @@ msg_template *msg_template_new(const char *templatefile, const char *datafile)
             p = q + 1;
         }
     }
-    printf("Nbfields:%d\n", nbfields);
+    e_debug(1, "Nbfields:%d\n", nbfields);
 
     /* Open and load the template file */
     tplfd = open(templatefile, O_RDONLY);
@@ -138,7 +138,7 @@ msg_template *msg_template_new(const char *templatefile, const char *datafile)
     buf = p_new(char, toread);
     p = buf;
 
-    printf("buf=%p\n", buf);
+    e_debug(1, "buf=%p\n", buf);
 
     while (toread > 0) {
         nb = read(tplfd, p, toread);
@@ -201,7 +201,7 @@ msg_template *msg_template_new(const char *templatefile, const char *datafile)
                 curpart->u.variable = part_variable_new(i);
             } else {
                 // Should warn about undefined variable
-                printf("variable not found: %.*s\n", var_size, p);
+                e_debug(1, "variable not found: %.*s\n", var_size, p);
 
                 curpart->type = PART_VERBATIM;
                 curpart->u.verbatim = part_verbatim_new(p - VAR_START_LEN,
@@ -214,27 +214,27 @@ msg_template *msg_template_new(const char *templatefile, const char *datafile)
         size -= var_size + VAR_END_LEN;
     }
 
-    printf("nbparts:%d\n", tpl->body->nbparts);
+    e_debug(1, "nbparts:%d\n", tpl->body->nbparts);
     for (i = 0; i < tpl->body->nbparts; i++) {
         curpart = &tpl->body->parts[i];
-        printf("[%02d]: ", i);
+        e_debug(1, "[%02d]: ", i);
         switch (curpart->type) {
           case PART_VERBATIM:
-              printf("VERBATIM: (%d) '%s'\n",
+              e_debug(1, "VERBATIM: (%d) '%s'\n",
                      curpart->u.verbatim->size,
                      curpart->u.verbatim->data);
             break;
           case PART_VARIABLE:
-            printf("VARIABLE: %d\n", curpart->u.variable->index);
+            e_debug(1, "VARIABLE: %d\n", curpart->u.variable->index);
             break;
           case PART_MULTI:
-            printf("MULTI: [skipped]\n");
+            e_debug(1, "MULTI: [skipped]\n");
             break;
         }
     }
     close(tplfd);
 
-    printf("buf=%p\n", buf);
+    e_debug(1, "buf=%p\n", buf);
     p_delete(&buf);
 
     return tpl;
@@ -360,13 +360,13 @@ int msg_template_getnext(msg_template *tpl, blob_t *output)
         p = q + 1;
     }
 
-    printf("Nbparts:%d\n", tpl->body->nbparts);
+    e_debug(1, "Nbparts:%d\n", tpl->body->nbparts);
     for (i = 0; i < tpl->body->nbparts; i++) {
         curpart = &tpl->body->parts[i];
-        printf("[%d] ", i);
+        e_debug(1, "[%d] ", i);
         switch (curpart->type) {
           case PART_VERBATIM:
-            printf("Verbatim:'%s'\n", curpart->u.verbatim->data);
+            e_debug(1, "Verbatim:'%s'\n", curpart->u.verbatim->data);
             blob_append_data(output, curpart->u.verbatim->data, 
                              curpart->u.verbatim->size);
             break;
@@ -375,7 +375,7 @@ int msg_template_getnext(msg_template *tpl, blob_t *output)
                 /* Ignore non-specified fields */
                 break;
             }
-            printf("Var:%d\n", curpart->u.variable->index);
+            e_debug(1, "Var:%d\n", curpart->u.variable->index);
             blob_append_cstr(output, fields[curpart->u.variable->index]);
             break;
           case PART_MULTI:
