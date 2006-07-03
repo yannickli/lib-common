@@ -4,7 +4,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <limits.h>
 #include "unix.h"
+#include "macros.h"
+#include "string_is.h"
 
 /* Returns 0 if directory exists,
  * Returns 1 if directory was created
@@ -12,27 +15,24 @@
  */
 int mkdir_p(const char *dir, mode_t mode)
 {
-    int ret = 0;
     char *p;
-    char *dir2;
     struct stat buf;
+    char dir2[PATH_MAX];
+    bool needmkdir = 0;
 
-    // OG: why not use a local char buf[PATH_MAX] ?
-    dir2 = strdup(dir);
-    if (!dir2) {
-        ret = -1;
-        goto end;
+    if (strlen(dir) + 1 > PATH_MAX) {
+        return -1;
     }
+    pstrcpy(dir2, sizeof(dir2), dir);
 
     /* Creating "/a/b/c/d" where "/a/b" exists but not "/a/b/c".
-     * First find that "/a/b" exists, replacing slashes by \0 (sse below)
+     * First find that "/a/b" exists, replacing slashes by \0 (see below)
      */
     while (stat(dir2, &buf) != 0) {
         if (errno != ENOENT) {
-            ret = -1;
-            goto end;
+            return -1;
         }
-        ret = 1;
+        needmkdir = 1;
         p = strrchr(dir2, '/');
         if (p == NULL) {
             goto creation;
@@ -41,11 +41,11 @@ int mkdir_p(const char *dir, mode_t mode)
     }
     if (!S_ISDIR(buf.st_mode)) {
         errno = ENOTDIR;
-        ret = -1;
-        goto end;
+        return -1;
     }
-    if (ret == 0) {
-        goto end;
+    if (!needmkdir) {
+        /* Directory already exists */
+        return 0;
     }
 
   creation:
@@ -57,10 +57,9 @@ int mkdir_p(const char *dir, mode_t mode)
              * but we want to continue walking the path to create /b !
              */
             if (errno != EEXIST) {
-                // OG: Why return 1 in this case ?
-                // why not use the end label ?
-                free(dir2);
-                return 1;
+                // XXX: We might have created only a part of the
+                // path, and fail now...
+                return -1;
             }
         }
         if (!strcmp(dir, dir2)) {
@@ -70,7 +69,21 @@ int mkdir_p(const char *dir, mode_t mode)
         *p = '/';
     }
 
-  end:
-    free(dir2);
-    return ret;
+    return 1;
 }
+
+#if 0
+#include <stdio.h>
+int main(int argc, char **argv)
+{
+    int ret;
+
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s DIR\n", argv[0]);
+        return 1;
+    }
+    ret = mkdir_p(argv[1], 0750);
+    printf("ret:%d\n", ret);
+    return 0;
+}
+#endif
