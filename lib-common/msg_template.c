@@ -414,10 +414,10 @@ START_TEST(check_msg_template_simple)
 
     blob_init(&out);
     fail_if (msg_template_getnext(tpl, &out), "getnext failed\n");
-    printf("out:%s\n", out.data);
+    //printf("out:%s\n", out.data);
     blob_wipe(&out);
     fail_if (msg_template_getnext(tpl, &out), "getnext failed\n");
-    printf("out:%s\n", out.data);
+    //printf("out:%s\n", out.data);
     blob_wipe(&out);
     msg_template_delete(&tpl);
 }
