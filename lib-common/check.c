@@ -17,6 +17,7 @@
 #include "blob.h"
 #include "string_is.h"
 #include "msg_template.h"
+#include "fifo.h"
 
 int main(void)
 {
@@ -26,6 +27,7 @@ int main(void)
     srunner_add_suite(sr, check_string_is_suite());
     srunner_add_suite(sr, check_make_blob_suite());
     srunner_add_suite(sr, check_msg_template_suite());
+    srunner_add_suite(sr, check_fifo_suite());
 
     srunner_run_all(sr, CK_NORMAL);
     nf = srunner_ntests_failed(sr);

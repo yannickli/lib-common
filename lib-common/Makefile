@@ -22,6 +22,7 @@ libcommon_SOURCES = \
 	blob.c \
 	concatbin.c  \
 	err_report.c  \
+	fifo.c \
 	string_is.c \
 	timeval.c \
 	msg_template.c \
