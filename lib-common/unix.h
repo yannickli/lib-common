@@ -13,6 +13,18 @@
 
 #ifndef IS_UNIX_H
 #define IS_UNIX_H
+#include <unistd.h>	/* for ssize_t */
 #include <sys/types.h>
 int mkdir_p(const char *dir, mode_t mode);
+
+const char *get_basename(const char *filename);
+int get_dirname(char *dir, ssize_t size, const char *filename);
+const char *get_ext(const char *filename);
+
+static inline char *vget_basename(char *path) {
+    return (char*)get_basename(path);
+}
+static inline char *vget_ext(char *path) {
+    return (char*)get_ext(path);
+}
 #endif

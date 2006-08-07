@@ -85,6 +85,41 @@ int mkdir_p(const char *dir, mode_t mode)
     return 1;
 }
 
+const char *get_basename(const char *filename)
+{
+    const char *base = filename;
+
+    while (*filename) {
+        if (*filename == '/') {
+            base = filename + 1;
+        }
+        filename++;
+    }
+    return base;
+}
+
+int get_dirname(char *dir, ssize_t size, const char *filename)
+{
+    return pstrcpylen(dir, size, filename, get_basename(filename) - filename);
+}
+
+const char *get_ext(const char *filename)
+{
+    const char *base = get_basename(filename);
+    const char *lastdot = NULL;
+
+    while (*base == '.') {
+        base++;
+    }
+    while (*base) {
+        if (*base == '.') {
+            lastdot = base;
+        }
+        base++;
+    }
+    return lastdot ? lastdot : base;
+}
+
 #if 0
 #include <stdio.h>
 int main(int argc, char **argv)
