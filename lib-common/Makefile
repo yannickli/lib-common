@@ -23,6 +23,7 @@ libcommon_SOURCES = \
 	concatbin.c  \
 	err_report.c  \
 	fifo.c \
+	ioveclist.c \
 	string_is.c \
 	timeval.c \
 	msg_template.c \
