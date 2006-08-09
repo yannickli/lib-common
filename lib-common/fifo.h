@@ -33,9 +33,9 @@ fifo *fifo_init_nb(fifo *f, ssize_t size);
 void fifo_wipe(fifo *f, fifo_item_dtor_f *dtor);
 void fifo_delete(fifo **f, fifo_item_dtor_f *dtor);
 
-void *fifo_get(fifo *fifo)
+void *fifo_get(fifo *f)
     __attribute__((nonnull(1)));
-void fifo_put(fifo *fifo, void *ptr)
+void fifo_put(fifo *f, void *ptr)
     __attribute__((nonnull(1)));
 
 /******************************************************************************/
