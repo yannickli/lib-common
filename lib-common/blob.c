@@ -574,6 +574,16 @@ ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...)
     return res;
 }
 
+ssize_t blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap)
+{
+    ssize_t res;
+
+    blob_resize(blob, 0);
+    res = blob_append_vfmt(blob, fmt, ap);
+
+    return res;
+}
+
 /* Returns the number of bytes written.
  *
  * A negative value indicates an error, without much precision

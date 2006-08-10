@@ -122,7 +122,9 @@ ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap);
 ssize_t blob_append_fmt(blob_t *blob, const char *fmt, ...)
     __attr_format__(2,3);
 
-ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...);
+ssize_t blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap);
+ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...)
+    __attr_format__(2,3);
 
 ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt, const struct tm *tm);
 static inline void blob_strftime_utc(blob_t *blob, ssize_t pos, time_t timer)
