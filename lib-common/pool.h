@@ -11,16 +11,20 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef __SPOOL_H__
-#define __SPOOL_H__
+#ifndef __POOL_H__
+#define __POOL_H__
 
-/* XXX : be very careful, avoid passing macros for Reset, Delete and New
+/* Pool idea : Keep a pool of non-allocated objects. Object are not
+ * pre-allocated, but non-deallocated when you delete them, in order
+ * to have <size> objects ready to be used again.
+ *
+ * XXX : be very careful, avoid passing macros for Reset, Delete and New
  *       functions, as those are multievaluated.
  */
 
 #define GENERIC_POOL(type, size, New, Reset, Delete, attr)              \
                                                                         \
-struct {                                                                \
+static struct {                                                         \
     int avail;                                                          \
     type *pool[size];                                                   \
 } type##_pool;                                                          \
