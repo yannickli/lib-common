@@ -87,4 +87,30 @@ enum sign {
 #define SIGN(x) ((enum sign)(((x) > 0) - ((x) < 0)))
 #endif
 
+#define CONVERSION_FUNCTIONS(type1, type2) \
+    static inline type2 *type1##_to_##type2(type1 *p) \
+    { \
+        return (type2 *)(p); \
+    } \
+    static inline type1 *type2##_to_##type1(type2 *p) \
+    { \
+        return (type1 *)(p); \
+    } \
+    static inline const type2 *type1##_to_##type2##_const(const type1 *p) \
+    { \
+        return (const type2 *)(p); \
+    } \
+    static inline const type1 *type2##_to_##type1##_const(const type2 *p) \
+    { \
+        return (const type1 *)(p); \
+    } \
+    static inline type1 **type2##_to_##type1##_p(type2 **p) \
+    { \
+        return (type1 **)(p); \
+    } \
+    static inline type2 **type1##_to_##type2##_p(type1 **p) \
+    { \
+        return (type2 **)(p); \
+    }
+
 #endif
