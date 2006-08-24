@@ -22,9 +22,9 @@
 #include "mem.h"
 #include "msg_template.h"
 
-#define VAR_START "${"
+#define VAR_START      "${"
 #define VAR_START_LEN  2
-#define VAR_END "}"
+#define VAR_END        "}"
 #define VAR_END_LEN    1
 
 /* A template is made of parts.
