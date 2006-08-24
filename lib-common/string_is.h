@@ -33,6 +33,11 @@ static inline char *vskipspaces(char *s) {
     return (char*)skipspaces((char *)s);
 }
 
+const char *strnextspace(const char *s);
+static inline char *vstrnextspace(char *s){
+    return (char*)strnextspace((char *)s);
+}
+
 /* Trim spaces at end of string, return pointer to '\0' */
 char *strrtrim(char *str);
 

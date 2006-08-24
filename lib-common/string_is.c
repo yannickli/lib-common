@@ -182,6 +182,21 @@ const char *skipspaces(const char *s)
     return s;
 }
 
+/**Go to the next blank as per isspace(c).
+ *
+ *
+ *@return a pointer to the first white space character in s.
+ * 
+ *
+ */
+const char *strnextspace(const char *s)
+{
+    while (!isspace((unsigned char)*s)){
+        s++;
+    }
+    return s;
+}
+
 /** Replaces blank characters at end of string with '\0'.
  *
  * @return a pointer to the \0 at the end of str
