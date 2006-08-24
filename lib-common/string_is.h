@@ -27,6 +27,7 @@ static inline ssize_t sstrlen(const char *str) {
 ssize_t pstrcpy(char *dest, ssize_t size, const char *src);
 ssize_t pstrcpylen(char *dest, ssize_t size, const char *src, ssize_t n);
 ssize_t pstrcat(char *dest, ssize_t size, const char *src);
+char *pstrduplen(const char *src, ssize_t size);
 
 const char *skipspaces(const char *s);
 static inline char *vskipspaces(char *s) {

@@ -14,7 +14,9 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "mem.h"
 #include "string_is.h"
+
 
 /** Copies the string pointed to by <code>src</code> to the buffer
  * <code>dest</code> of <code>size</code> bytes.
@@ -167,6 +169,18 @@ ssize_t pstrcat(char *dest, ssize_t size, const char *src)
     return dlen + pstrcpy(dest, size, src);
 #endif
 }
+
+char *pstrduplen(const char *src, ssize_t size)
+{
+    char *dest;
+    if (src == NULL) {
+        return NULL;
+    }
+    dest = p_new_raw(char, size);
+    pstrcpylen(dest, size, src, size);
+    return dest;
+}
+
 
 /** Skips initial blanks as per isspace(c).
  *
