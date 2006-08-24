@@ -170,18 +170,6 @@ ssize_t pstrcat(char *dest, ssize_t size, const char *src)
 #endif
 }
 
-char *pstrduplen(const char *src, ssize_t size)
-{
-    char *dest;
-    if (src == NULL) {
-        return NULL;
-    }
-    dest = p_new_raw(char, size);
-    pstrcpylen(dest, size, src, size);
-    return dest;
-}
-
-
 /** Skips initial blanks as per isspace(c).
  *
  * use vskipspaces for non const parameters
