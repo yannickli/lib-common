@@ -184,16 +184,16 @@ const char *skipspaces(const char *s)
     return s;
 }
 
-/**Go to the next blank as per isspace(c).
+/** Go to the next blank as per isspace(c).
  *
  *
- *@return a pointer to the first white space character in s.
+ * @return a pointer to the first white space character in s
+ * or points to the end of the string.
  * 
- *
  */
 const char *strnextspace(const char *s)
 {
-    while (!isspace((unsigned char)*s)){
+    while (*s && !isspace((unsigned char)*s)) {
         s++;
     }
     return s;
@@ -227,14 +227,14 @@ char *strrtrim(char *str)
 int strstart(const char *str, const char *p, const char **pp)
 {
     if (!str)
-	return 0;
+        return 0;
 
     while (*p) {
-	if (*str++ != *p++)
-	    return 0;
+        if (*str++ != *p++)
+            return 0;
     }
     if (pp)
-	*pp = str;
+        *pp = str;
     return 1;
 }
 
@@ -248,14 +248,14 @@ int strstart(const char *str, const char *p, const char **pp)
 int stristart(const char *str, const char *p, const char **pp)
 {
     if (!str)
-	return 0;
+        return 0;
 
     while (*p) {
-	if (tolower(*str++) != tolower(*p++))
-	    return 0;
+        if (tolower(*str++) != tolower(*p++))
+            return 0;
     }
     if (pp)
-	*pp = str;
+        *pp = str;
     return 1;
 }
 
@@ -275,30 +275,30 @@ const char *stristr(const char *haystack, const char *needle)
     nlen  = strlen(needle);
 
     for (hlen  = strlen(haystack); hlen >= nlen; start++, hlen--) {
-	/* find start of pattern in haystack */
-	while (toupper(*start) != toupper(*needle)) {
-	    start++;
-	    hlen--;
+        /* find start of pattern in haystack */
+        while (toupper(*start) != toupper(*needle)) {
+            start++;
+            hlen--;
 
-       	    /* needle longer than haystack */
- 	    if (hlen < nlen) {
-		return NULL;
-	    }
-	}
+            /* needle longer than haystack */
+            if (hlen < nlen) {
+                return NULL;
+            }
+        }
 
-	hptr = start;
-    	nptr = (char *)needle;
+        hptr = start;
+        nptr = (char *)needle;
 
-	while (toupper(*hptr) == toupper(*nptr)) {
-	    hptr++;
-	    nptr++;
+        while (toupper(*hptr) == toupper(*nptr)) {
+            hptr++;
+            nptr++;
 
-      	    /* if end of needle then needle was found */
+            /* if end of needle then needle was found */
 
-	    if ('\0' == *nptr) {
-		return start;
-	    }
-	}
+            if ('\0' == *nptr) {
+                return start;
+            }
+        }
     }
     return NULL;
 }
@@ -322,7 +322,7 @@ bool strequal(const char *str1, const char *str2)
  * it was not found.
  */
 const void *memsearch(const void *_haystack, size_t hsize,
-                      const void *_needle, size_t nsize)
+        const void *_needle, size_t nsize)
 {
     const unsigned char *haystack = (const unsigned char *)_haystack;
     const unsigned char *needle = (const unsigned char *)_needle;
@@ -344,7 +344,7 @@ const void *memsearch(const void *_haystack, size_t hsize,
                 if (haystack[pos] != needle[pos])
                     break;
             }
-	}
+        }
     }
     return NULL;
 }
@@ -363,7 +363,7 @@ START_TEST(check_strstart)
     res = strstart(week, "Monday", &p);
     fail_if(!res, "strstart did not find needle");
     fail_if(p != week + strlen("Monday"),
-	    "strstart did not set pp correctly", week, p);
+            "strstart did not set pp correctly", week, p);
 
     p = NULL;
     res = strstart(week, "Tuesday", &p);
@@ -379,7 +379,7 @@ START_TEST(check_stristart)
     res = stristart(week, "monDAY", &p);
     fail_if(!res, "stristart did not find needle");
     fail_if(p != week + strlen("MonDAY"),
-	    "stristart did not set pp correctly", week, p);
+            "stristart did not set pp correctly", week, p);
 
     p = NULL;
     res = stristart(week, "tUESDAY", &p);
