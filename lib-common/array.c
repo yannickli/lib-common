@@ -23,7 +23,7 @@ typedef struct {
 } real_array;
 
 #define ARRAY_INITIAL_SIZE 32
-static inline real_array *array_real(_array *array) {
+static inline real_array *array_real(generic_array *array) {
     return (real_array *)array;
 }
 
@@ -32,7 +32,7 @@ static inline real_array *array_real(_array *array) {
 /******************************************************************************/
 
 static inline void
-array_resize(_array *array, ssize_t newlen)
+array_resize(generic_array *array, ssize_t newlen)
 {
     real_array *a = array_real(array);
     ssize_t curlen = a->len;
@@ -58,17 +58,17 @@ array_resize(_array *array, ssize_t newlen)
 /* Memory management                                                          */
 /******************************************************************************/
 
-_array *array_init(_array *array)
+generic_array *generic_array_init(generic_array *array)
 {
     real_array *rarray = array_real(array);
     rarray->tab  = p_new(void*, ARRAY_INITIAL_SIZE);
     rarray->len  = 0;
     rarray->size = ARRAY_INITIAL_SIZE;
 
-    return (_array *)array;
+    return (generic_array *)array;
 }
 
-void array_wipe(_array *array, array_item_dtor_f *dtor)
+void generic_array_wipe(generic_array *array, array_item_dtor_f *dtor)
 {
     if (array) {
         if (dtor) {
@@ -82,10 +82,10 @@ void array_wipe(_array *array, array_item_dtor_f *dtor)
     }
 }
 
-void array_delete(_array **array, array_item_dtor_f *dtor)
+void generic_array_delete(generic_array **array, array_item_dtor_f *dtor)
 {
     if (*array) {
-        array_wipe(*array, dtor);
+        generic_array_wipe(*array, dtor);
         p_delete(&*array);
     }
 }
@@ -94,7 +94,7 @@ void array_delete(_array **array, array_item_dtor_f *dtor)
 /* Misc                                                                       */
 /******************************************************************************/
 
-void *array_take(_array *array, ssize_t pos)
+void *generic_array_take(generic_array *array, ssize_t pos)
 {
     void *ptr;
 
@@ -112,7 +112,7 @@ void *array_take(_array *array, ssize_t pos)
 
 /* insert item at pos `pos',
    pos interpreted as array->len if pos > array->len */
-void array_insert(_array *array, ssize_t pos, void *item)
+void generic_array_insert(generic_array *array, ssize_t pos, void *item)
 {
     ssize_t curlen = array->len;
 

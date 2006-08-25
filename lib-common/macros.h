@@ -29,7 +29,7 @@
 #define __unused__        __attribute__((unused))
 #define __attr_noreturn__ __attribute__((noreturn))
 
-#if !defined(__GNUC__) || __GNUC__ < 3
+#if (!defined(__GNUC__) || __GNUC__ < 3) && !defined(__attribute__)
 #  define __attribute__(foo)
 #endif
 
