@@ -60,6 +60,14 @@ void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize);
 #endif
 void blob_resize(blob_t *blob, ssize_t newlen);
 
+/**
+ *  Get the const char * pointing to blob.data
+ */
+static inline const char *blob_get_cstr(blob_t* blob)
+{
+    return (const char *)blob->data;
+}
+
 /******************************************************************************/
 /* Blob manipulations                                                         */
 /******************************************************************************/
