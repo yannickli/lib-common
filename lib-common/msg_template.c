@@ -409,7 +409,7 @@ START_TEST(check_msg_template_simple)
     blob_t out;
     msg_template *tpl;
 
-    tpl = msg_template_new("../samples/simple.tpl", "../samples/simple.csv");
+    tpl = msg_template_new("samples/simple.tpl", "samples/simple.csv");
     fail_if(tpl == NULL, "msg_template_new failed");
 
     blob_init(&out);

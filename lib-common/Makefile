@@ -14,8 +14,9 @@
 DEPTH=..
 include $(DEPTH)/admin/header.mk
 
-__EXE__ =
-__LIB__ = libcommon
+__EXE__   =
+__LIB__   = libcommon
+__CHECK__ = test
 
 libcommon_SOURCES = \
 	array.c \
@@ -28,5 +29,7 @@ libcommon_SOURCES = \
 	timeval.c \
 	msg_template.c \
 	unix.c
+
+test_SOURCES = $(libcommon_SOURCES) check.c
 
 include $(DEPTH)/admin/footer.mk
