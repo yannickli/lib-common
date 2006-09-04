@@ -63,7 +63,7 @@ typedef unsigned char byte;
     (ptr) = NULL;       \
 } while(0)
 
-#define countof(table) ((int)(sizeof(table)) / sizeof((table)[0]))
+#define countof(table) ((ssize_t)(sizeof(table) / sizeof((table)[0])))
 #define ssizeof(foo)   ((ssize_t)sizeof(foo))
 
 /******************************************************************************/
