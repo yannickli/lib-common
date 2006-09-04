@@ -33,7 +33,9 @@ static inline void fifo_grow(fifo *f, ssize_t newsize)
         /* elements are split in two parts. Move the shortest one */
         secondpartlen = cursize - f->first;
         firstpartlen = f->nb_elems - secondpartlen;
-        if (firstpartlen > secondpartlen) {
+        if (firstpartlen > secondpartlen
+        ||  firstpartlen > (newsize - cursize))
+        {
             memmove(&f->elems[newsize - secondpartlen],
                     &f->elems[f->first],
                     secondpartlen * sizeof(void *));
@@ -49,9 +51,10 @@ fifo *fifo_init_nb(fifo *f, ssize_t size)
 {
     f->elems  = p_new(void*, size);
     f->nb_elems  = 0;
+    f->first  = 0;
     f->size = size;
 
-    return (fifo *)f;
+    return f;
 }
 
 fifo *fifo_init(fifo *f)
