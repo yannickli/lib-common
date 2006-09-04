@@ -217,6 +217,14 @@ void blob_b64encode(blob_t *blob, int nbpackets);
 
 ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos, const char **answer);
 
+
+/******************************************************************************/
+/* Blob compression/decompression                                             */
+/******************************************************************************/
+
+int blob_compress(blob_t *dest, blob_t *src);
+int blob_uncompress(blob_t *dest, blob_t *src);
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 #include <check.h>

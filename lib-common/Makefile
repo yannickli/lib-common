@@ -21,6 +21,7 @@ __CHECK__ = test
 libcommon_SOURCES = \
 	array.c \
 	blob.c \
+	blob_zlib.c \
 	concatbin.c  \
 	err_report.c  \
 	fifo.c \
@@ -31,5 +32,6 @@ libcommon_SOURCES = \
 	unix.c
 
 test_SOURCES = $(libcommon_SOURCES) check.c
+test_LDFLAGS =-lz
 
 include $(DEPTH)/admin/footer.mk

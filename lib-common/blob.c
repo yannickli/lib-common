@@ -22,25 +22,10 @@
 
 #include "macros.h"
 #include "blob.h"
+#include "blob_priv.h"
 #include "mem.h"
 #include "string_is.h"
 #include "err_report.h"
-
-/*
- * A blob has a vital invariant, making every parse function avoid
- * buffer read overflows: there is *always* a '\0' in the data at
- * position len, implying that size is always >= len+1
- */
-typedef struct {
-    /* public interface */
-    ssize_t len;
-    byte *data;
-
-    /* private interface */
-    byte *area;   /* originally allocated block */
-    ssize_t size;  /* allocated size */
-    byte initial[BLOB_INITIAL_SIZE];
-} real_blob_t;
 
 static inline real_blob_t *blob_real(blob_t *blob)
 {
