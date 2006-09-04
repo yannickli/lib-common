@@ -1365,6 +1365,29 @@ START_TEST(check_search)
 }
 END_TEST
 
+START_TEST(check_zlib)
+{
+    blob_t b1;
+    blob_t b2;
+    blob_t b3;
+
+    blob_init(&b1);
+    blob_init(&b2);
+    blob_init(&b3);
+    blob_set_cstr(&b1, "toto string");
+
+    blob_compress(&b2, &b1);
+    blob_uncompress(&b3, &b2);
+
+    fail_if(blob_cmp(&b1, &b3),
+            "blob_uncompress dest does not correspond to blob_compress src");
+
+    blob_wipe(&b1);
+    blob_wipe(&b2);
+    blob_wipe(&b3);
+}
+END_TEST
+
 /*.........................................................................}}}*/
 /* public testing API                                                      {{{*/
 
@@ -1389,6 +1412,7 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_url);
     tcase_add_test(tc, check_b64);
     tcase_add_test(tc, check_search);
+    tcase_add_test(tc, check_zlib);
 
     return s;
 }
