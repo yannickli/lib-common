@@ -153,7 +153,7 @@ static inline ssize_t bread(BSTREAM *stream, void *buf, size_t count)
     /* We've been asked for more than what we have in the buffer. First
      * copy what we have and reset pointers. */
     memcpy(buf, stream->pread, avail);
-    buf    += avail;
+    buf     = (char *)buf + avail;
     count  -= avail;
     nbread += avail;
     stream->pread = stream->buf;
@@ -171,7 +171,7 @@ static inline ssize_t bread(BSTREAM *stream, void *buf, size_t count)
         if (n != toread) {
             stream->eof = 1;
         }
-        buf    += n;
+        buf     = (char *)buf + n;
         count  -= n;
         nbread += n;
     }
