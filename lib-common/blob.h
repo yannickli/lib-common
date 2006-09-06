@@ -225,6 +225,13 @@ ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos, const char **answer);
 int blob_compress(blob_t *dest, blob_t *src);
 int blob_uncompress(blob_t *dest, blob_t *src);
 
+
+/******************************************************************************/
+/* Blob encoding                                                              */
+/******************************************************************************/
+
+int blob_iconv(blob_t *dst, const blob_t *src, const char *suggest_type);
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 #include <check.h>

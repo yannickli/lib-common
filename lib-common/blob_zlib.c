@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include <zlib.h>
+#include <stdlib.h>
 
 #include "macros.h"
 #include "blob.h"
@@ -23,11 +24,15 @@
 
 int blob_compress(blob_t *dest, blob_t *src)
 {
-    uLongf len = src->len + 256;
     int err = 0;
     int try = 0;
     byte *data;
-
+    uLongf len;
+        
+    if (dest == NULL || src == NULL) {
+        return -1;
+    }
+    len = src->len + 256;
     blob_resize(dest, 0);
     blob_resize(dest, len);
     data = ((real_blob_t *) dest)->data;
@@ -41,7 +46,7 @@ int blob_compress(blob_t *dest, blob_t *src)
             data = ((real_blob_t *) dest)->data;
             try++;
         } else {
-            return -1;
+            return -2;
         }
     }
     ((real_blob_t *) dest)->len = len;
@@ -50,11 +55,15 @@ int blob_compress(blob_t *dest, blob_t *src)
 
 int blob_uncompress(blob_t *dest, blob_t *src)
 {
-    uLongf len = src->len * 4;
+    uLongf len;
     int err = 0;
     int try = 0;
     byte *data;
 
+    if (dest == NULL || src == NULL) {
+        return -1;
+    }
+    len = src->len * 4;
     blob_resize(dest, 0);
     blob_resize(dest, len);
     data = ((real_blob_t *) dest)->data;

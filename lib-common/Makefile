@@ -22,6 +22,7 @@ libcommon_SOURCES = \
 	array.c \
 	blob.c \
 	blob_zlib.c \
+	blob_iconv.c \
 	concatbin.c  \
 	err_report.c  \
 	fifo.c \
