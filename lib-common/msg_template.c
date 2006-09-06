@@ -261,7 +261,7 @@ msg_template *msg_template_new(const char *templatefile, const char *datafile)
 static inline void part_multi_dump(const part_multi *multi)
 {
     int i;
-    tpl_part *curpart;
+    const tpl_part *curpart;
 
     e_debug(1, "nbparts:%d\n", multi->nbparts);
     for (i = 0; i < multi->nbparts; i++) {
