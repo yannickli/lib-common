@@ -41,22 +41,27 @@ struct msg_template {
 typedef enum part_encoding {
     ENC_NONE = 1,
     ENC_HTML,
+    ENC_BASE64,
+    ENC_QUOTED_PRINTABLE,
 } part_encoding;
 
 typedef enum part_type {
     PART_VERBATIM,
     PART_VARIABLE,
     PART_MULTI,
+    PART_QS,
 } part_type;
 
 typedef struct part_verbatim {
-    byte *data;
-    int size;
+    blob_t data;
 } part_verbatim;
+
+typedef struct part_qs {
+    blob_t data;
+} part_qs;
 
 typedef struct part_variable {
     int index; /* Index of the variable in the data file */
-    part_encoding enc;
 } part_variable;
 
 typedef struct tpl_part {
@@ -65,11 +70,13 @@ typedef struct tpl_part {
         part_verbatim *verbatim;
         part_variable *variable;
         part_multi *multi;
+        part_qs *qs;
     } u;
+    part_encoding enc;
+    /* FIXME : Handle conditional part here */
 } tpl_part;
 
 struct part_multi {
-    part_encoding enc; /* Apply this encoding to the whole content */
     int nbparts;
     tpl_part parts[];
 };
@@ -84,6 +91,12 @@ void part_variable_wipe(part_variable *variable);
 part_verbatim *part_verbatim_new(const char*src, int size);
 void part_verbatim_delete(part_verbatim **verbatim);
 void part_verbatim_wipe(part_verbatim *verbatim);
+
+part_qs *part_qs_new(const char*src, int size);
+void part_qs_delete(part_qs **qs);
+void part_qs_wipe(part_qs *qs);
+
+static inline void part_multi_dump(const part_multi *multi);
 
 msg_template *msg_template_new(const char *templatefile, const char *datafile)
 {
@@ -227,24 +240,7 @@ msg_template *msg_template_new(const char *templatefile, const char *datafile)
         size -= var_size + VAR_END_LEN;
     }
 
-    e_debug(1, "nbparts:%d\n", tpl->body->nbparts);
-    for (i = 0; i < tpl->body->nbparts; i++) {
-        curpart = &tpl->body->parts[i];
-        e_debug(1, "[%02d]: ", i);
-        switch (curpart->type) {
-          case PART_VERBATIM:
-              e_debug(1, "VERBATIM: (%d) '%s'\n",
-                     curpart->u.verbatim->size,
-                     curpart->u.verbatim->data);
-            break;
-          case PART_VARIABLE:
-            e_debug(1, "VARIABLE: %d\n", curpart->u.variable->index);
-            break;
-          case PART_MULTI:
-            e_debug(1, "MULTI: [skipped]\n");
-            break;
-        }
-    }
+    part_multi_dump(tpl->body);
     close(tplfd);
 
     e_debug(1, "buf=%p\n", buf);
@@ -260,6 +256,36 @@ msg_template *msg_template_new(const char *templatefile, const char *datafile)
     p_delete(&buf);
     msg_template_delete(&tpl);
     return NULL;
+}
+
+static inline void part_multi_dump(const part_multi *multi)
+{
+    int i;
+    tpl_part *curpart;
+
+    e_debug(1, "nbparts:%d\n", multi->nbparts);
+    for (i = 0; i < multi->nbparts; i++) {
+        curpart = &multi->parts[i];
+        e_debug(1, "[%02d]: ", i);
+        switch (curpart->type) {
+          case PART_VERBATIM:
+              e_debug(1, "VERBATIM: (%zd) '%s'\n",
+                     curpart->u.verbatim->data.len,
+                     blob_get_cstr(&curpart->u.verbatim->data));
+            break;
+          case PART_VARIABLE:
+            e_debug(1, "VARIABLE: %d\n", curpart->u.variable->index);
+            break;
+          case PART_QS:
+              e_debug(1, "QS: (%zd) '%s'\n",
+                     curpart->u.qs->data.len,
+                     blob_get_cstr(&curpart->u.qs->data));
+            break;
+          case PART_MULTI:
+            e_debug(1, "MULTI: [skipped]\n");
+            break;
+        }
+    }
 }
 
 void msg_template_delete(msg_template **tpl)
@@ -290,6 +316,9 @@ void part_multi_wipe(part_multi *multi)
           case PART_VARIABLE:
             part_variable_delete(&curpart->u.variable);
             break;
+          case PART_QS:
+            part_qs_delete(&curpart->u.qs);
+            break;
           case PART_MULTI:
             part_multi_delete(&curpart->u.multi);
             break;
@@ -309,10 +338,8 @@ part_verbatim *part_verbatim_new(const char *src, int size)
     part_verbatim *verb;
 
     verb = p_new(part_verbatim, 1);
-    verb->data = p_new(byte, size + 1);
-    memcpy(verb->data, src, size);
-    verb->data[size] = '\0';
-    verb->size = size;
+    blob_init(&verb->data);
+    blob_set_data(&verb->data, src, size);
     return verb;
 }
 
@@ -347,6 +374,7 @@ void part_variable_delete(part_variable **var)
     p_delete(var);
 }
 
+/* FIXME : Fill an iovec instead */
 int msg_template_getnext(msg_template *tpl, blob_t *output)
 {
     tpl_part *curpart;
@@ -373,15 +401,16 @@ int msg_template_getnext(msg_template *tpl, blob_t *output)
         p = q + 1;
     }
 
+    /* FIXME : Fill an iovec */
     e_debug(1, "Nbparts:%d\n", tpl->body->nbparts);
     for (i = 0; i < tpl->body->nbparts; i++) {
         curpart = &tpl->body->parts[i];
         e_debug(1, "[%d] ", i);
         switch (curpart->type) {
           case PART_VERBATIM:
-            e_debug(1, "Verbatim:'%s'\n", curpart->u.verbatim->data);
-            blob_append_data(output, curpart->u.verbatim->data, 
-                             curpart->u.verbatim->size);
+            e_debug(1, "Verbatim:'%s'\n",
+                    blob_get_cstr(&curpart->u.verbatim->data));
+            blob_append(output, &curpart->u.verbatim->data);
             break;
           case PART_VARIABLE:
             if (curpart->u.variable->index > nbfields) {
@@ -390,6 +419,11 @@ int msg_template_getnext(msg_template *tpl, blob_t *output)
             }
             e_debug(1, "Var:%d\n", curpart->u.variable->index);
             blob_append_cstr(output, fields[curpart->u.variable->index]);
+            break;
+          case PART_QS:
+            e_debug(1, "QS:'%s'\n", blob_get_cstr(&curpart->u.qs->data));
+            /* FIXME : Do the real job !!! */
+            blob_append(output, &curpart->u.qs->data);
             break;
           case PART_MULTI:
             /* FIXME */
