@@ -1,17 +1,25 @@
 #ifndef __LIB_COMMON_ARCHIVE_H__
 #define __LIB_COMMON_ARCHIVE_H__
 
+#include <inttypes.h>
+#include "macros.h"
+
 typedef struct {
-    unsigned int32_t tag;
-    unsigned int32_t size;
+    uint32_t tag;
+    uint32_t size;
     const byte *payload;
 } archive_bloc;
 
 typedef struct {
+    const char *key;
+    const char *val;
+} archive_file_attr;
+
+typedef struct {
     archive_bloc _bloc;
-    unsigned int32_t size;
-    unsigned int32_t date_create;
-    unsigned int32_t date_update;
+    uint32_t size;
+    uint32_t date_create;
+    uint32_t date_update;
     const char *name;
     archive_file_attr **attrs;
     int nb_attrs;
@@ -25,7 +33,7 @@ typedef struct {
 
 typedef struct {
     archive_bloc _bloc;
-    unsigned int32_t nb_blocs;
+    uint32_t nb_blocs;
 } archive_head;
 
 typedef struct {
@@ -34,6 +42,7 @@ typedef struct {
     int nb_blocs;
 } archive_t;
 
+CONVERSION_FUNCTIONS(archive_head, archive_bloc);
 CONVERSION_FUNCTIONS(archive_file, archive_bloc);
 CONVERSION_FUNCTIONS(archive_tpl, archive_bloc);
 

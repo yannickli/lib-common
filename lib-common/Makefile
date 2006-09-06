@@ -19,6 +19,7 @@ __LIB__   = libcommon
 __CHECK__ = test
 
 libcommon_SOURCES = \
+	archive.c \
 	array.c \
 	blob.c \
 	blob_zlib.c \
