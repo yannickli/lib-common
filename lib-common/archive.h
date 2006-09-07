@@ -12,7 +12,9 @@ typedef struct {
 
 typedef struct {
     const char *key;
+    int key_len;
     const char *val;
+    int val_len;
 } archive_file_attr;
 
 typedef struct {
@@ -47,10 +49,21 @@ CONVERSION_FUNCTIONS(archive_file, archive_bloc);
 CONVERSION_FUNCTIONS(archive_tpl, archive_bloc);
 
 /**
- *  FIXME: should len be grater than "int" ?
+ *  FIXME: should len be greater than "int" ?
  */
-archive_t *archive_parse(const byte *input, int len);
+int archive_parse(const byte *input, int len, archive_t *archive);
 
+archive_t *archive_new(void);
+archive_t *archive_init(archive_t *archive);
+void archive_wipe(archive_t *archive);
 void archive_delete(archive_t **archive);
+
+#ifdef CHECK
+#include <check.h>
+
+Suite *check_make_archive_suite(void);
+
+#endif
+
 
 #endif
