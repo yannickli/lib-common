@@ -14,8 +14,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <errno.h>
 
 #include "blob.h"
@@ -29,22 +27,9 @@
 
 /* A template is made of parts.
  * Every part is encoded with a specific encoding
- * Every part is made of parts that are either verbatim, chunked or evaluated
+ * Every part is made of parts that are either verbatim or evaluated
+ * (simple variable substitution, qs, or another part)
  */
-typedef struct part_multi part_multi;
-
-struct msg_template {
-    FILE *datafd;
-    part_multi *body;
-};
-
-typedef enum part_encoding {
-    ENC_NONE = 1,
-    ENC_HTML,
-    ENC_BASE64,
-    ENC_QUOTED_PRINTABLE,
-} part_encoding;
-
 typedef enum part_type {
     PART_VERBATIM,
     PART_VARIABLE,
@@ -52,11 +37,19 @@ typedef enum part_type {
     PART_QS,
 } part_type;
 
+typedef struct part_multi part_multi;
+
+struct msg_template {
+    part_multi *body;
+};
+
+
 typedef struct part_verbatim {
     blob_t data;
 } part_verbatim;
 
 typedef struct part_qs {
+    /* FIXME : data should not be a blob but a QS struct */
     blob_t data;
 } part_qs;
 
@@ -78,17 +71,24 @@ typedef struct tpl_part {
 
 struct part_multi {
     int nbparts;
+    int nbparts_allocated;
     tpl_part parts[];
 };
 
+part_multi *part_multi_new(void);
 void part_multi_delete(part_multi **multi);
 void part_multi_wipe(part_multi *multi);
+
+void part_multi_addpart(part_multi **multi, tpl_part *part);
+static const tpl_part *part_multi_get(const part_multi *multi, int i);
+int part_multi_nbparts(const part_multi *multi);
+static inline void part_multi_dump(const part_multi *multi);
 
 part_variable *part_variable_new(int ind);
 void part_variable_delete(part_variable **variable);
 void part_variable_wipe(part_variable *variable);
 
-part_verbatim *part_verbatim_new(const char*src, int size);
+part_verbatim *part_verbatim_new(const char *src, int size);
 void part_verbatim_delete(part_verbatim **verbatim);
 void part_verbatim_wipe(part_verbatim *verbatim);
 
@@ -96,172 +96,45 @@ part_qs *part_qs_new(const char*src, int size);
 void part_qs_delete(part_qs **qs);
 void part_qs_wipe(part_qs *qs);
 
-static inline void part_multi_dump(const part_multi *multi);
-
-msg_template *msg_template_new(const char *templatefile, const char *datafile)
+void msg_template_dump(const msg_template *tpl)
 {
-    char line[1024];
-    char *fields[256];
-    int i, nbfields;
-    int tplfd;
-    msg_template *tpl;
-    char *buf, *p, *q;
-    struct stat st;
-    int toread, nb, size;
-
-    buf = NULL;
-    tplfd = -1;
-    tpl = p_new(msg_template, 1);
-
-    /* Open the datafile and parse field name line */
-    tpl->datafd = fopen(datafile, "r");
-    if (!tpl->datafd) {
-        e_error("open datafile '%s' failed\n", datafile);
-        goto error;
-    }
-
-    nbfields = 0;
-    if (!fgets(line, sizeof(line), tpl->datafd)) {
-        /* Data file is empty no fields defined */
-        //e_error("empty datafile '%s'\n", datafile);
-        //goto error;
+    if (tpl->body) {
+        part_multi_dump(tpl->body);
     } else {
-        /* Parse field names */
-        p = line;
-        q = p + strlen(p);
-        if (q > p && q[-1] == '\n')
-            *--q = '\0';
-
-        while (*p) {
-            fields[nbfields++] = p;
-            q = strchr(p, ';');
-            if (!q) {
-                break;
-            }
-            *q = '\0';
-            p = q + 1;
-        }
+        e_debug(1, "empty tpl\n");
     }
-    e_debug(1, "Nbfields:%d\n", nbfields);
+}
 
-    /* Open and load the template file */
-    tplfd = open(templatefile, O_RDONLY);
-    if (tplfd < 0) {
-        e_error("open template '%s' failed\n", templatefile);
-        goto error;
+void part_multi_addpart(part_multi **multi_p, tpl_part *part)
+{
+    part_multi *multi = *multi_p;
+
+    if (multi->nbparts + 1 > multi->nbparts_allocated) {
+        multi->nbparts_allocated += 16;
+        e_debug(1, "realloc:%d\n", multi->nbparts_allocated);
+        multi = mem_realloc(multi,
+                            sizeof(part_multi)
+                            + multi->nbparts_allocated * sizeof(tpl_part));
     }
+    memcpy(&multi->parts[multi->nbparts], part, sizeof(tpl_part));
+    multi->nbparts++;
+    *multi_p = multi;
+}
 
-    /* FIXME: 128 is fixed and never checked. This is a bad idea */
-    tpl->body = calloc(1, sizeof(part_multi) + 128 * sizeof(tpl_part));
+static const tpl_part *part_multi_get(const part_multi *multi, int i)
+{
+    return &multi->parts[i];
+}
 
-    if (stat(templatefile, &st) != 0) {
-        e_error("Unable to stat '%s'\n", templatefile);
-        goto error;
-    }
-
-    toread = st.st_size;
-    size = st.st_size;
-    buf = p_new(char, toread);
-    p = buf;
-
-    e_debug(1, "buf=%p\n", buf);
-
-    while (toread > 0) {
-        nb = read(tplfd, p, toread);
-        if (nb < 0) {
-            if (errno == EINTR || errno == EAGAIN) {
-                continue;
-            }
-            goto error;
-        } else if (nb == 0) {
-            goto error;
-        } else {
-            p += nb;
-            toread -= nb;
-        }
-    }
-
-    p = buf;
-    tpl_part *curpart = tpl->body->parts;
-    tpl->body->nbparts = 0;
-    /* FIXME: should look for variable names on the first line of the
-     * data file and use their indexes. For now assume they're in the same 
-     * order in the template and in the datafile, without repetitions. */
-    while (size > 0) {
-        int verb_size;
-        int var_size;
-        q = vmemsearch(p, size, VAR_START, VAR_START_LEN);
-        if (!q) {
-            /* Last chunk */
-            curpart->type = PART_VERBATIM;
-            curpart->u.verbatim = part_verbatim_new(p, size);
-            curpart++;
-            tpl->body->nbparts++;
-            break;
-        }
-        verb_size = q - p;
-        if (verb_size) {
-            curpart->type = PART_VERBATIM;
-            curpart->u.verbatim = part_verbatim_new(p, verb_size);
-            curpart++;
-            tpl->body->nbparts++;
-        }
-        p += verb_size + VAR_START_LEN;
-        size -= verb_size + VAR_START_LEN;
-        q = vmemsearch(p, size, VAR_END, VAR_END_LEN);
-        if (!q) {
-            /* Closing tag not found... */
-            goto error;
-            break;
-        }
-        var_size = q - p;
-        if (var_size) {
-
-            for (i = 0; i < nbfields; i++) {
-                if (!strncmp(p, fields[i], var_size) && fields[i][var_size] == '\0')
-                    break;
-            }
-
-            if (i < nbfields) {
-                curpart->type = PART_VARIABLE;
-                curpart->u.variable = part_variable_new(i);
-            } else {
-                // Should warn about undefined variable
-                e_debug(1, "variable not found: %.*s\n", var_size, p);
-
-                curpart->type = PART_VERBATIM;
-                curpart->u.verbatim = part_verbatim_new(p - VAR_START_LEN,
-                    var_size + VAR_START_LEN + VAR_END_LEN);
-            }
-            curpart++;
-            tpl->body->nbparts++;
-        }
-        p += var_size + VAR_END_LEN;
-        size -= var_size + VAR_END_LEN;
-    }
-
-    part_multi_dump(tpl->body);
-    close(tplfd);
-
-    e_debug(1, "buf=%p\n", buf);
-    p_delete(&buf);
-
-    return tpl;
-
-  error:
-    if (tplfd >= 0) {
-        close(tplfd);
-        tplfd = -1;
-    }
-    p_delete(&buf);
-    msg_template_delete(&tpl);
-    return NULL;
+int part_multi_nbparts(const part_multi *multi)
+{
+    return multi->nbparts;
 }
 
 static inline void part_multi_dump(const part_multi *multi)
 {
     int i;
-    const tpl_part *curpart;
+    tpl_part *curpart;
 
     e_debug(1, "nbparts:%d\n", multi->nbparts);
     for (i = 0; i < multi->nbparts; i++) {
@@ -288,18 +161,93 @@ static inline void part_multi_dump(const part_multi *multi)
     }
 }
 
+msg_template *msg_template_new(void)
+{
+    msg_template *tpl;
+    tpl = p_new(msg_template, 1);
+    tpl->body = part_multi_new();
+    return tpl;
+}
+
+int msg_template_nbparts(const msg_template *tpl)
+{
+    if (!tpl || !tpl->body) {
+        return 0;
+    }
+    return part_multi_nbparts(tpl->body);
+}
+
 void msg_template_delete(msg_template **tpl)
 {
     if (!tpl || !*tpl) {
         return;
     }
-    if ((*tpl)->datafd) {
-        fclose((*tpl)->datafd);
-    }
     if ((*tpl)->body) {
         part_multi_delete(&(*tpl)->body);
     }
     p_delete(tpl);
+}
+
+int msg_template_add_verbatim_cstr(msg_template *tpl, part_encoding enc,
+                                   const char *str)
+{
+    return msg_template_add_verbatim(tpl, enc, str, strlen(str));
+}
+
+int msg_template_add_verbatim(msg_template *tpl, part_encoding enc,
+                              const char *data, int len)
+{
+    part_verbatim *verb;
+    tpl_part part;
+    if (!tpl || ! data) {
+        return -1;
+    }
+    verb = part_verbatim_new(data, len);
+    part.type = PART_VERBATIM;
+    part.u.verbatim = verb;
+    part.enc = enc;
+
+    part_multi_addpart(&tpl->body, &part);
+    return 0;
+}
+
+int msg_template_add_verbatim_blob(msg_template *tpl, part_encoding enc,
+                                   const blob_t *data)
+{
+    return msg_template_add_verbatim(tpl, enc, blob_get_cstr(data), data->len);
+}
+
+int msg_template_add_variable(msg_template *tpl, part_encoding enc, 
+                              char ** const vars, int nbvars,
+                              const char *name)
+{
+    part_variable *varpart;
+    tpl_part part;
+    int i;
+
+    if (!tpl || !name) {
+        return -1;
+    }
+    for (i = 0; i < nbvars; i++) {
+        if (!strcmp(name, vars[i])) {
+            break;
+        }
+    }
+    if (i == nbvars) {
+        return -1;
+    }
+    varpart = part_variable_new(i);
+    part.type = PART_VARIABLE;
+    part.u.variable = varpart;
+    part.enc = enc;
+
+    part_multi_addpart(&tpl->body, &part);
+    return 0;
+}
+
+part_multi *part_multi_new(void)
+{
+    return p_new(part_multi, 1);
 }
 
 void part_multi_wipe(part_multi *multi)
@@ -343,16 +291,15 @@ part_verbatim *part_verbatim_new(const char *src, int size)
     return verb;
 }
 
-void part_verbatim_wipe(part_verbatim __unused__ *vb)
+void part_verbatim_wipe(part_verbatim *verb)
 {
-    /* verbatim parts are allocated just once per template. Do not free them 
-     * here. */
+    blob_wipe(&verb->data);
 }
 
-void part_verbatim_delete(part_verbatim **vb)
+void part_verbatim_delete(part_verbatim **verb)
 {
-    part_verbatim_wipe(*vb);
-    p_delete(vb);
+    part_verbatim_wipe(*verb);
+    p_delete(verb);
 }
 
 part_variable *part_variable_new(int ind)
@@ -374,64 +321,92 @@ void part_variable_delete(part_variable **var)
     p_delete(var);
 }
 
-/* FIXME : Fill an iovec instead */
-int msg_template_getnext(msg_template *tpl, blob_t *output)
+part_qs *part_qs_new(const char*src, int size)
 {
-    tpl_part *curpart;
-    int i, nbfields;
-    char line[1024];
-    char *fields[256], *p, *q;
+    part_qs *qs;
 
-    if (!fgets(line, sizeof(line), tpl->datafd)) {
+    qs = p_new(part_qs, 1);
+    /* FIXME : data should not be a blob but a QS struct */
+    blob_init(&qs->data);
+    blob_set_data(&qs->data, src, size);
+    return qs;
+}
+
+void part_qs_wipe(part_qs *qs)
+{
+    blob_wipe(&qs->data);
+}
+
+void part_qs_delete(part_qs **qs)
+{
+    part_qs_wipe(*qs);
+    p_delete(qs);
+}
+
+/*
+ * Fill vector with pointer to blobs
+ */
+int msg_template_apply(msg_template *tpl, char ** const vars, int nbvars,
+                       blob_t ** const vector, byte *allocated, int count)
+{
+    int i;
+    blob_t *curblob;
+    const tpl_part *curpart;
+    const int nbparts = part_multi_nbparts(tpl->body);
+
+    if (count < nbparts) {
         return -1;
     }
-    p = line;
-    q = p + strlen(p);
-    if (q > p && q[-1] == '\n')
-        *--q = '\0';
-    
-    nbfields = 0;
-    while (*p) {
-        fields[nbfields++] = p;
-        q = strchr(p, ';');
-        if (!q) {
-            break;
-        }
-        *q = '\0';
-        p = q + 1;
-    }
-
-    /* FIXME : Fill an iovec */
-    e_debug(1, "Nbparts:%d\n", tpl->body->nbparts);
-    for (i = 0; i < tpl->body->nbparts; i++) {
-        curpart = &tpl->body->parts[i];
-        e_debug(1, "[%d] ", i);
+    for (i = 0; i < nbparts; i++) {
+        curpart = part_multi_get(tpl->body, i);
+        e_debug(2, "[%d] ", i);
         switch (curpart->type) {
           case PART_VERBATIM:
-            e_debug(1, "Verbatim:'%s'\n",
+            e_debug(2, "Verbatim:'%s'\n",
                     blob_get_cstr(&curpart->u.verbatim->data));
-            blob_append(output, &curpart->u.verbatim->data);
+            vector[i] = &curpart->u.verbatim->data;
+            allocated[i] = 0;
             break;
           case PART_VARIABLE:
-            if (curpart->u.variable->index > nbfields) {
+            if (curpart->u.variable->index > nbvars) {
                 /* Ignore non-specified fields */
                 break;
             }
-            e_debug(1, "Var:%d\n", curpart->u.variable->index);
-            blob_append_cstr(output, fields[curpart->u.variable->index]);
+            e_debug(2, "Var:%d\n", curpart->u.variable->index);
+            curblob = blob_new();
+            blob_set_cstr(curblob, vars[curpart->u.variable->index]);
+            vector[i] = curblob;
+            allocated[i] = 1;
             break;
           case PART_QS:
-            e_debug(1, "QS:'%s'\n", blob_get_cstr(&curpart->u.qs->data));
-            /* FIXME : Do the real job !!! */
-            blob_append(output, &curpart->u.qs->data);
+            e_debug(2, "QS:'%s'\n", blob_get_cstr(&curpart->u.qs->data));
+            curblob = blob_new();
+            /* FIXME : Do the real job !!!
+             */
+#if 0
+             qs_run(&curpart->u.qs->data, curblob, vars, nbvars);
+#else
+            blob_set(curblob, &curpart->u.qs->data);
+#endif
+            vector[i] = curblob;
+            allocated[i] = 1;
             break;
           case PART_MULTI:
             /* FIXME */
-            blob_append_cstr(output, "***MULTI***");
+            curblob = blob_new();
+            blob_set_cstr(curblob, "***MULTI***");
+            vector[i] = curblob;
+            allocated[i] = 1;
             break;
         }
     }
     return 0;
+}
+
+void msg_template_optimize(msg_template *tpl)
+{
+    /* TODO: Concatenate constant parts (after encoding them if applicable) */
+    tpl = tpl;
 }
 
 #ifdef CHECK
@@ -443,16 +418,9 @@ START_TEST(check_msg_template_simple)
     blob_t out;
     msg_template *tpl;
 
-    tpl = msg_template_new("samples/simple.tpl", "samples/simple.csv");
+    tpl = msg_template_new();
     fail_if(tpl == NULL, "msg_template_new failed");
 
-    blob_init(&out);
-    fail_if (msg_template_getnext(tpl, &out), "getnext failed\n");
-    //printf("out:%s\n", out.data);
-    blob_wipe(&out);
-    fail_if (msg_template_getnext(tpl, &out), "getnext failed\n");
-    //printf("out:%s\n", out.data);
-    blob_wipe(&out);
     msg_template_delete(&tpl);
 }
 END_TEST
@@ -471,19 +439,161 @@ Suite *check_msg_template_suite(void)
 /*
  gcc -g -o msg_template msg_template.c err_report.c  blob.c string_is.c
  */
+#include <stdlib.h>
+#include <stdio.h>
+static inline int split_csv_line(char *line, char **fields[]);
 int main(void)
 {
-    blob_t out;
+    blob_t csv_blob;
+    const char *p;
+    char *q, *fieldline, *dataline;
+    char **fields, **data;
     msg_template *tpl;
+    blob_t **out;
+    byte *allocated;
+    int nbfields, nbparts, nbdata, i;
+    blob_t blob;
 
-    tpl = msg_template_new("samples/simple.tpl", "samples/simple.csv");
-    printf("tpl:%p\n", tpl);
+    e_set_verbosity (1);
 
-    blob_init(&out);
-    while (!msg_template_getnext(tpl, &out)) {
-        printf("out:%s\n", out.data);
+    blob_init(&csv_blob);
+    blob_append_file_data(&csv_blob, "samples/simple.csv");
+
+    p = blob_get_cstr(&csv_blob);
+    q = strchr(blob_get_cstr(&csv_blob), '\n');
+    if (!q) {
+        return -1;
     }
+
+    fieldline = mem_alloc(q - p + 1);
+    pstrcpylen(fieldline, q - p + 1, p, q - p);
+    fieldline[q - p] = '\0';
+    blob_kill_first(&csv_blob, q - p + 1);
+
+    e_debug(1, blob_get_cstr(&csv_blob));
+
+    nbfields = split_csv_line(fieldline, &fields);
+    if (nbfields < 0) {
+        return 1;
+    }
+    
+    tpl = msg_template_new();
+
+    /* Add some parts */
+    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "TO:'");
+    msg_template_add_variable(tpl, ENC_NONE, fields, nbfields, "telephone");
+    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "'\n");
+
+    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "Subject:'");
+    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "Bon anniversaire ");
+    msg_template_add_variable(tpl, ENC_NONE, fields, nbfields, "prenom");
+    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "!'\n");
+
+    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "Data:'");
+    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "Nous vous souhaitons un très bon anniversaire !");
+    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "'\n");
+
+    /* TODO: Add some QS stuff, using "fields" */
+
+    /* Add some binary parts */
+    blob_init(&blob);
+    for (i = 0; i < 3; i++) {
+        blob_set_fmt(&blob, "FAKE BINARY CHUNK %d", i);
+        msg_template_add_verbatim_blob(tpl, ENC_NONE, &blob);
+    }
+
+    /* We're done with "demo objects". Free them. */
+    mem_free(fieldline);
+    mem_free(fields);
+    blob_wipe(&blob);
+
+
+    /* Display the resulting template */
+    msg_template_dump(tpl);
+    msg_template_optimize(tpl);
+    msg_template_dump(tpl);
+
+    /* Use csv_blob to produce some output */
+    nbparts = msg_template_nbparts(tpl);
+    allocated = p_new(byte, nbparts);
+    out = p_new(blob_t *, nbparts);
+
+    while (csv_blob.len) {
+        p = blob_get_cstr(&csv_blob);
+        q = strchr(blob_get_cstr(&csv_blob), '\n');
+        if (!q) {
+            return -1;
+        }
+        dataline = p_new(char, q - p + 1);
+        pstrcpylen(dataline, q - p + 1, p, q - p);
+        dataline[q - p] = '\0';
+        blob_kill_first(&csv_blob, q - p + 1);
+        nbdata = split_csv_line(dataline, &data);
+        if (nbdata < 0) {
+            return 1;
+        }
+        if (nbdata != nbfields) {
+            e_debug(1, "Incoherent CSV!\n");
+            break;
+        }
+        
+        msg_template_apply(tpl, data, nbdata, (blob_t **const)out, allocated,
+                           nbparts);
+        for (i = 0; i < nbparts; i++) {
+            e_debug(1, "%.*s", (int)out[i]->len, blob_get_cstr(out[i]));
+        }
+        #if 0 
+        writev(out, nbparts);
+        #endif
+        for (i = 0; i < nbparts; i++) {
+            if (allocated[i]) {
+                blob_delete(&out[i]);
+            } else {
+                out[i] = NULL;
+            }
+        }
+        p_delete(&dataline);
+    }
+    p_delete(&out);
+    p_delete(&allocated);
+
+    /* THE END */
+    blob_wipe(&csv_blob);
     msg_template_delete(&tpl);
     return 0;
+}
+
+/* Put '\0' in line to get fields as strings
+ */
+static inline int split_csv_line(char *line, char **fields[])
+{
+    int nbfields;
+    char *p, *q;
+
+    if (!line || !fields) {
+        return -1;
+    }
+
+    nbfields = 0;
+    *fields = NULL;
+    p = line;
+    q = p + strlen(p);
+    if (q > p && q[-1] == '\n') {
+        q[-1] = '\0';
+    }
+
+    while (*p) {
+        *fields = realloc(*fields, (nbfields + 1) * sizeof(char*));
+        (*fields)[nbfields] = p;
+        nbfields++;
+        q = strchr(p, ';');
+        if (!q) {
+            break;
+        }
+        *q = '\0';
+        p = q + 1;
+    }
+    e_debug(1, "Nbfields:%d\n", nbfields);
+    return nbfields;
 }
 #endif

@@ -17,14 +17,31 @@
 #include "blob.h"
 #include "macros.h"
 
+typedef enum part_encoding {
+    ENC_NONE = 1,
+    ENC_HTML,
+    ENC_BASE64,
+    ENC_QUOTED_PRINTABLE,
+} part_encoding;
+
 typedef struct msg_template msg_template;
 
-msg_template *msg_template_new(const char *templatefile, const char *datafile);
-/* The element returned should be an iovec structure. That would save
- * us a lot of memcpy !
- */
-int msg_template_getnext(msg_template *tpl, blob_t *output);
+msg_template *msg_template_new(void);
 void msg_template_delete(msg_template **tpl);
+void msg_template_dump(const msg_template *tpl);
+int msg_template_add_verbatim_cstr(msg_template *tpl, part_encoding enc,
+                                   const char *str);
+int msg_template_add_verbatim(msg_template *tpl, part_encoding enc,
+                              const char *data, int len);
+int msg_template_add_verbatim_blob(msg_template *tpl, part_encoding enc,
+                                   const blob_t *data);
+int msg_template_add_variable(msg_template *tpl, part_encoding enc, 
+                              char ** const vars, int nbvars,
+                              const char *name);
+void msg_template_optimize(msg_template *tpl);
+int msg_template_apply(msg_template *tpl, char ** const vars, int nbvars,
+                       blob_t **vector, byte *allocated, int count);
+int msg_template_nbparts(const msg_template *tpl);
 
 #ifdef CHECK
 #include <check.h>
