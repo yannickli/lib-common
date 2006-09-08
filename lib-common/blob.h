@@ -63,7 +63,7 @@ void blob_resize(blob_t *blob, ssize_t newlen);
 /**
  *  Get the const char * pointing to blob.data
  */
-static inline const char *blob_get_cstr(blob_t* blob)
+static inline const char *blob_get_cstr(const blob_t *blob)
 {
     return (const char *)blob->data;
 }
