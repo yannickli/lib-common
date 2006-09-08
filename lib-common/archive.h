@@ -39,6 +39,7 @@ typedef struct {
 } archive_head;
 
 typedef struct {
+    uint32_t version;
     const byte *payload;
     archive_bloc **blocs;
     int nb_blocs;

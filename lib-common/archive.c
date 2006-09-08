@@ -21,8 +21,10 @@
 #define UINT32_TO_B2(i) ((byte) (((i) >> 8 ) & 0x000000FF))
 #define UINT32_TO_B3(i) ((byte) (((i) >> 0 ) & 0x000000FF))
 
+#define ARCHIVE_MAGIC_SIZE 1
 #define ARCHIVE_TAG_SIZE 4
 #define ARCHIVE_SIZE_SIZE 4
+#define ARCHIVE_VERSION_SIZE 4
 
 #define ARCHIVE_TAG_FILE (B4_TO_INT('F', 'I', 'L', 'E'))
 #define ARCHIVE_TAG_HEAD (B4_TO_INT('H', 'E', 'A', 'D'))
@@ -34,6 +36,7 @@ archive_t *archive_new(void)
 }
 archive_t *archive_init(archive_t *archive)
 {
+    archive->version = 0;
     archive->payload = NULL;
     archive->blocs = NULL;
     archive->nb_blocs = 0;
@@ -69,6 +72,7 @@ void archive_wipe(archive_t *archive)
         p_delete(&archive->blocs);
     }
     archive->nb_blocs = 0;
+    archive->version = 0;
 }
 
 void archive_delete(archive_t **archive)
@@ -324,14 +328,27 @@ int archive_parse(const byte *input, int len, archive_t *archive)
 {
     bool dynamic = true;
     int allocated_blocs = 0;
+    uint32_t version;
     
     if (*input != ARCHIVE_MAGIC) {
         e_debug(1, "archive_parse: Bad magic number\n");
         return 1;
     }
 
-    input++;
-    len--;
+    input += ARCHIVE_MAGIC_SIZE;
+    len -= ARCHIVE_MAGIC_SIZE;
+
+    if (len < ARCHIVE_VERSION_SIZE) {
+        e_debug(1, "archive_parse: Not enough length to read version\n");
+        return 1;
+    }
+    version = BYTESTAR_TO_INT(input);
+    
+    input += ARCHIVE_VERSION_SIZE;
+    len -= ARCHIVE_VERSION_SIZE;
+
+    archive->version = version;
+
     archive->payload = input;
     
 
@@ -425,6 +442,7 @@ START_TEST(check_parse)
 
     blob_init(&parse_payload);
     blob_append_byte(&parse_payload, ARCHIVE_MAGIC);
+    AR_APPEND_UINT32(&parse_payload, 1);/* Version */
 
     /* HEAD */
     AR_APPEND_UINT32(&parse_payload, B4_TO_INT('H', 'E', 'A', 'D'));
@@ -452,6 +470,8 @@ START_TEST(check_parse)
     res = archive_parse(parse_payload.data, parse_payload.len, &archive);
 
     fail_if(res != 0,  "archive_parse failed on a valid archive");
+    fail_if(archive.version != 1,  "archive_parse failed on a reading version");
+    fail_if(archive.nb_blocs != 2,  "archive_parse failed to read correct number of blocs");
 
     archive_wipe(&archive);
     blob_wipe(&file);
