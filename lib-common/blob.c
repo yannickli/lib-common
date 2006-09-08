@@ -22,6 +22,7 @@
 
 #include "macros.h"
 #include "blob.h"
+#include "blob_time.h"
 #include "blob_priv.h"
 #include "mem.h"
 #include "string_is.h"
