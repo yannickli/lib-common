@@ -1,6 +1,13 @@
 #ifndef __LIB_COMMON_ARCHIVE_H__
 #define __LIB_COMMON_ARCHIVE_H__
 
+/**
+ *  Archive format :
+ *
+ *
+ */
+
+
 #include <inttypes.h>
 #include "macros.h"
 
@@ -43,6 +50,7 @@ typedef struct {
     const byte *payload;
     archive_bloc **blocs;
     int nb_blocs;
+    archive_bloc *last_bloc;
 } archive_t;
 
 CONVERSION_FUNCTIONS(archive_head, archive_bloc);
@@ -58,6 +66,16 @@ archive_t *archive_new(void);
 archive_t *archive_init(archive_t *archive);
 void archive_wipe(archive_t *archive);
 void archive_delete(archive_t **archive);
+
+archive_file *archive_get_file_bloc(const archive_t *archive,
+                                    const char *filename);
+int archive_parts_in_path(const archive_t *archive,
+                          const char *path);
+archive_file *archive_file_next(const archive_t *archive,
+                                archive_file* previous);
+archive_file *archive_file_next_path(const archive_t *archive,
+                                     const char *path,
+                                     archive_file* previous);
 
 #ifdef CHECK
 #include <check.h>

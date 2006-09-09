@@ -40,6 +40,7 @@ archive_t *archive_init(archive_t *archive)
     archive->payload = NULL;
     archive->blocs = NULL;
     archive->nb_blocs = 0;
+    archive->last_bloc = NULL;
     return archive;
 }
 
@@ -73,6 +74,7 @@ void archive_wipe(archive_t *archive)
     }
     archive->nb_blocs = 0;
     archive->version = 0;
+    archive->last_bloc = NULL;
 }
 
 void archive_delete(archive_t **archive)
@@ -376,6 +378,7 @@ int archive_parse(const byte *input, int len, archive_t *archive)
             break;
         }
         archive->blocs[archive->nb_blocs] = bloc;
+        archive->last_bloc = bloc;
         archive->nb_blocs++;
 
         if (archive->nb_blocs >= allocated_blocs) {
@@ -400,6 +403,93 @@ int archive_parse(const byte *input, int len, archive_t *archive)
     
     return 0;
 }
+
+archive_file *archive_get_file_bloc(const archive_t *archive, const char *filename)
+{
+    archive_bloc *bloc;
+    archive_file *file;
+    int i;
+    
+    for (i = 0; i < archive->nb_blocs; i++) {
+        bloc = archive->blocs[i];
+        if (bloc->tag == ARCHIVE_TAG_FILE) {
+            file = archive_bloc_to_archive_file(bloc);
+
+            if (!strcmp(file->name, filename)) {
+                return file;
+            }
+        }
+    }
+    
+    return NULL;
+}
+
+int archive_parts_in_path(const archive_t *archive, const char *path)
+{
+    archive_bloc *bloc;
+    archive_file *file;
+    int i, res = 0;
+
+    for (i = 0; i < archive->nb_blocs; i++) {
+        bloc = archive->blocs[i];
+        if (bloc->tag == ARCHIVE_TAG_FILE) {
+            file = archive_bloc_to_archive_file(bloc);
+
+            res += strstart(file->name, path, NULL);
+        }
+    }
+    return res;
+}
+
+
+archive_file *archive_file_next(const archive_t *archive,
+                                archive_file* previous)
+{
+    archive_bloc *bloc;
+    
+    if (!archive->blocs) {
+        return NULL;
+    }
+    if (previous) {
+        bloc = archive_file_to_archive_bloc(previous);
+    } else {
+        bloc = archive->blocs[0];
+    }
+    if (bloc == archive->last_bloc) {
+        return NULL;
+    }
+
+    bloc++;
+    while (bloc != archive->last_bloc) {
+        if (bloc->tag == ARCHIVE_TAG_FILE) {
+            return archive_bloc_to_archive_file(bloc);
+        }
+        bloc++;
+    }
+    /* Check last_bloc */
+    if (bloc->tag == ARCHIVE_TAG_FILE) {
+        return archive_bloc_to_archive_file(bloc);
+    }
+    return NULL;
+}
+
+archive_file *archive_file_next_path(const archive_t *archive,
+                                     const char *path,
+                                     archive_file* previous)
+{
+    archive_file *file;
+
+    file = archive_file_next(archive, previous);
+
+    while (file) {
+        if (strstart(file->name, path, NULL)) {
+            return file;
+        }
+        file = archive_file_next(archive, file);
+    }
+    return NULL;
+}
+
 
 #ifdef CHECK
 
