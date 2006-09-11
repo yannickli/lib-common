@@ -1366,6 +1366,9 @@ START_TEST(check_search)
 }
 END_TEST
 
+/*.........................................................................}}}*/
+/* test check_zlib                                                         {{{*/
+
 START_TEST(check_zlib)
 {
     blob_t b1;
@@ -1388,6 +1391,89 @@ START_TEST(check_zlib)
     blob_wipe(&b3);
 }
 END_TEST
+
+/*.........................................................................}}}*/
+/* test blob_blob_iconv                                                    {{{*/
+
+
+
+static int check_aiconv_templ(const char *file1, const char *file2,
+                              const char *encoding)
+{
+    blob_t b1;
+    blob_t b2;
+    
+    int i = 0;
+    int c_typ = 0;
+
+    blob_init(&b1);
+    blob_init(&b2);
+    
+    blob_file_auto_iconv(&b1, file1, encoding, &c_typ);
+
+    blob_append_file_data(&b2, file2);  
+    fprintf(stderr, "b1.len=%d\n", b1.len);
+    fprintf(stderr, "b2.len=%d\n", b2.len);
+    fail_if (blob_cmp(&b1, &b2) != 0, "blob_auto_iconv failed on: %s with" \
+             " hint \"%s\" encoding\n---\n%.*s\n---\n%.*s", file1, encoding,
+             b1.len, blob_get_cstr(&b1),
+             b2.len, blob_get_cstr(&b2)
+             );
+    
+    blob_wipe(&b1);
+    blob_wipe(&b2);
+    
+    return 0;
+}
+
+static int check_aiconv_templ_2(const char *file1, const char *file2)
+{
+    check_aiconv_templ(file1, file2, "UTF-8");
+    check_aiconv_templ(file1, file2, "ISO-8859-1");
+    check_aiconv_templ(file1, file2, "Windows-1250");
+    
+    return 0;
+}
+
+START_TEST(check_blob_auto_iconv)
+{
+    check_aiconv_templ_2("samples/example1.latin1",
+                         "samples/example1.utf8");
+    check_aiconv_templ_2("samples/example2.windows-1250",
+                         "samples/example2.utf8");
+    check_aiconv_templ_2("samples/example1.utf8",
+                         "samples/example1.utf8");
+    check_aiconv_templ("samples/example3.windows-1256",
+                       "samples/example3.utf8", "windows-1256");
+    blob_iconv_close_all();
+}
+END_TEST
+
+/*.........................................................................}}}*/
+/* test blob_blob_iconv                                                    {{{*/
+
+START_TEST(check_blob_iconv_close)
+{
+    blob_t b1;
+    blob_t b2;
+    int i = 0;
+    int c_typ = 0;
+
+    blob_init(&b1);
+    blob_init(&b2);
+
+    blob_file_auto_iconv(&b2, "samples/example1.latin1", "ISO-8859-1", &c_typ);
+    blob_file_auto_iconv(&b2, "samples/example1.utf8", "UTF-8", &c_typ);
+    blob_file_auto_iconv(&b2, "samples/example2.windows-1250", "windows-1250", &c_typ);
+
+    fail_if (blob_iconv_close_all() != 3,
+             "blob_iconv_close_all has failed to close all handlers");
+
+    blob_wipe(&b1);
+    blob_wipe(&b2);
+}
+END_TEST
+
 
 /*.........................................................................}}}*/
 /* public testing API                                                      {{{*/
@@ -1414,6 +1500,8 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_b64);
     tcase_add_test(tc, check_search);
     tcase_add_test(tc, check_zlib);
+    tcase_add_test(tc, check_blob_auto_iconv);
+    tcase_add_test(tc, check_blob_iconv_close);
 
     return s;
 }

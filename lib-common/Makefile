@@ -14,7 +14,7 @@
 DEPTH=..
 include $(DEPTH)/admin/header.mk
 
-__EXE__   =
+__EXE__   = iconv_test
 __LIB__   = libcommon
 __CHECK__ = test
 
@@ -35,5 +35,10 @@ libcommon_SOURCES = \
 
 test_SOURCES = $(libcommon_SOURCES) check.c
 test_LDFLAGS =-lz
+
+iconv_test_SOURCES = \
+	test_blob_iconv.c \
+	libcommon.a
+
 
 include $(DEPTH)/admin/footer.mk

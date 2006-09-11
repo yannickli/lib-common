@@ -221,7 +221,20 @@ int blob_uncompress(blob_t *dest, blob_t *src);
 /* Blob encoding                                                              */
 /******************************************************************************/
 
-int blob_iconv(blob_t *dst, const blob_t *src, const char *suggest_type);
+#define ENC_ASCII        0
+#define ENC_ISO_8859_1   1
+#define ENC_WINDOWS_1250 2
+#define ENC_WINDOWS_1252 3
+#define ENC_UTF8         4
+int blob_iconv(blob_t *dst, const blob_t *src, const char *type);
+int blob_iconv_close_all(void);
+/* FIXME? : type_hint is a const char * but chosen_encoding is and int...
+ *          shouldn't it be more homogeneous ? */
+int blob_auto_iconv(blob_t *dst, const blob_t *src, const char *type_hint,
+                    int *chosen_encoding);
+int blob_file_auto_iconv(blob_t *dst, const char *filename,
+                         const char *type_hint,
+                         int *chosen_encoding);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
