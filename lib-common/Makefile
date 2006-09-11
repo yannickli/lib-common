@@ -34,7 +34,7 @@ libcommon_SOURCES = \
 	unix.c
 
 test_SOURCES = $(libcommon_SOURCES) check.c
-test_LDFLAGS =-lz
+test_LDFLAGS = -lz
 
 iconv_test_SOURCES = \
 	test_blob_iconv.c \
