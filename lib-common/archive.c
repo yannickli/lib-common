@@ -153,7 +153,7 @@ static archive_file *archive_parse_file(const byte **input, int *len)
     /* + 3 * 4 + 1 : for 3 uint32 (size, creation, update)
      *               and 1 for at least one '\0'*/
     if (*len < ARCHIVE_TAG_SIZE + ARCHIVE_SIZE_SIZE + 3 * 4  + 1) {
-        e_debug(2, "archive_parse_file: not enough header lenght: %d\n", *len);
+        e_debug(2, "archive_parse_file: not enough header length: %d\n", *len);
          return NULL;
     }
 
