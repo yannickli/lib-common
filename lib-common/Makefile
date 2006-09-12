@@ -14,9 +14,9 @@
 DEPTH=..
 include $(DEPTH)/admin/header.mk
 
-__EXE__   = iconv_test
+__EXE__   =
 __LIB__   = libcommon
-__CHECK__ = test
+__CHECK__ = test iconv_test
 
 libcommon_SOURCES = \
 	archive.c \

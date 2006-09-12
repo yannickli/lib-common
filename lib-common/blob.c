@@ -1412,8 +1412,8 @@ static int check_aiconv_templ(const char *file1, const char *file2,
     blob_file_auto_iconv(&b1, file1, encoding, &c_typ);
 
     blob_append_file_data(&b2, file2);  
-    fprintf(stderr, "b1.len=%d\n", b1.len);
-    fprintf(stderr, "b2.len=%d\n", b2.len);
+    fprintf(stderr, "b1.len=%zd\n", b1.len);
+    fprintf(stderr, "b2.len=%zd\n", b2.len);
     fail_if (blob_cmp(&b1, &b2) != 0, "blob_auto_iconv failed on: %s with" \
              " hint \"%s\" encoding\n---\n%.*s\n---\n%.*s", file1, encoding,
              b1.len, blob_get_cstr(&b1),
