@@ -7,11 +7,11 @@
           ((b1) << 16) +          \
           ((b2) << 8 ) +          \
           ((b3) << 0 ))
-#define BYTESTAR_TO_INT(intput)   \
-        B4_TO_INT(*(intput),      \
-                  *(intput + 1),  \
-                  *(intput + 2),  \
-                  *(intput + 3))
+#define BYTESTAR_TO_INT(input)    \
+        B4_TO_INT(*(input),       \
+                  *((input) + 1), \
+                  *((input) + 2), \
+                  *((input) + 3))
 
 #define UINT32_TO_B0(i) ((byte) (((i) >> 24) & 0x000000FF))
 #define UINT32_TO_B1(i) ((byte) (((i) >> 16) & 0x000000FF))
@@ -21,6 +21,7 @@
 #define ARCHIVE_MAGIC_SIZE 1
 #define ARCHIVE_TAG_SIZE 4
 #define ARCHIVE_SIZE_SIZE 4
+#define ARCHIVE_VERSION_1 1
 #define ARCHIVE_VERSION_SIZE 4
 
 #define ARCHIVE_TAG_FILE (B4_TO_INT('F', 'I', 'L', 'E'))
