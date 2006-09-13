@@ -31,7 +31,7 @@ typedef struct {
     uint32_t date_update;
     const char *name;
     archive_file_attr **attrs;
-    int nb_attrs;
+    uint32_t nb_attrs;
     const byte* payload;
 } archive_file;
 

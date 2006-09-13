@@ -70,7 +70,7 @@ static void archive_bloc_wipe(archive_bloc *bloc)
 
 static void archive_file_wipe(archive_file *file)
 {
-    int i;
+    uint32_t i;
 
     archive_bloc_wipe(&file->_bloc);
     file->size = 0;
@@ -109,98 +109,131 @@ static void archive_tpl_delete(archive_tpl **tpl)
 }
 
 
-#define INCR_INPUT(nb)          \
-    do {                        \
-        int tmp = (nb);         \
-        *input = *input + tmp;  \
-        *len = *len - tmp;      \
-    } while(0);
+static inline int read_uint32(const byte **input, int *len, uint32_t *val)
+{
+    if (*len < 4) {
+        return -1;
+    }
+    if (val) {
+        *val = BYTESTAR_TO_INT(*input);
+    }
+    (*input) += 4;
+    (*len) -= 4;
+    return 0;
+}
+
+static inline int read_const_char(const byte **input, int *len,
+                                  const char **val)
+{
+    const byte *old_input = *input;
+    int old_len = *len;
+
+    while ((*len) && (**input)) {
+        (*input)++;
+        (*len)--;
+    }
+    (*input)++;
+    (*len)--;
+    if (*len < 0 || (*len == 0 && !**input)) {
+        *input = old_input;
+        *len = old_len;
+        return -1;
+    }
+    *val = byte_to_char_const(old_input);
+    return 0;
+}
+
 static archive_head *archive_parse_head(const byte **input, int *len)
 {
     uint32_t tag;
-    archive_head *head;
+    archive_head *head = NULL;
+    const byte *old_input;
+    int old_len;
 
-    /* +4 for number of blocs*/
-    if (*len < ARCHIVE_TAG_SIZE + ARCHIVE_SIZE_SIZE + 4) {
+    if (!input || !len) {
         return NULL;
     }
-    
-    tag = BYTESTAR_TO_INT(*input);
+    old_input = *input;
+    old_len = *len;
+
+    if (read_uint32(input, len, &tag)) {
+        goto error;
+    }
     if (tag != B4_TO_INT('H', 'E', 'A', 'D')) {
-        return NULL;
+        goto error;
     }
 
     head = p_new(archive_head, 1);
     head->_bloc.tag   = tag;
-    INCR_INPUT(4);
 
-    head->_bloc.size  = BYTESTAR_TO_INT(*input);
-    INCR_INPUT(4);
+    if (read_uint32(input, len, &head->_bloc.size)) {
+        goto error;
+    }
 
-    head->nb_blocs = BYTESTAR_TO_INT(*input);
-    INCR_INPUT(4);
-    
-    return head;;
+    if (read_uint32(input, len, &head->nb_blocs)) {
+        p_delete (&head);
+        return NULL;
+    }
+
+    return head;
+error:
+    p_delete (&head);
+    *len = old_len;
+    *input = old_input;
+    return NULL;
 }
 
 static archive_file *archive_parse_file(const byte **input, int *len)
 {
     uint32_t tag;
-    archive_file *file;
-    int i;
-        
+    archive_file *file = NULL;
+    uint32_t i;
+    const byte *old_input;
+    int old_len;
 
-    /* + 3 * 4 + 1 : for 3 uint32 (size, creation, update)
-     *               and 1 for at least one '\0'*/
-    if (*len < ARCHIVE_TAG_SIZE + ARCHIVE_SIZE_SIZE + 3 * 4  + 1) {
-        e_debug(2, "archive_parse_file: not enough header length: %d\n", *len);
-         return NULL;
+    if (!input || !len) {
+        return NULL;
     }
+    old_input = *input;
+    old_len = *len;
 
-    tag = BYTESTAR_TO_INT(*input);
+    if (read_uint32(input, len, &tag)) {
+        goto error;
+    }
     if (tag != B4_TO_INT('F', 'I', 'L', 'E')) {
         e_debug(2, "archive_parse_file: not a file tag: %u\n", tag);
-        return NULL;
+        goto error;
     }
     
     file = p_new(archive_file, 1);
     file->_bloc.tag   = tag;
-    INCR_INPUT(4);
 
-    file->_bloc.size  = BYTESTAR_TO_INT(*input);
-    INCR_INPUT(4);
-
-    file->size  = BYTESTAR_TO_INT(*input);
-    INCR_INPUT(4);
-
-    file->date_create  = BYTESTAR_TO_INT(*input);
-    INCR_INPUT(4);
-
-    file->date_update  = BYTESTAR_TO_INT(*input);
-    INCR_INPUT(4);
-    
-    file->nb_attrs  = BYTESTAR_TO_INT(*input);
-    INCR_INPUT(4);
+    if (read_uint32(input, len, &file->_bloc.size)
+    ||  read_uint32(input, len, &file->size)
+    ||  read_uint32(input, len, &file->date_create)
+    ||  read_uint32(input, len, &file->date_update)
+    ||  read_uint32(input, len, &file->nb_attrs)
+    ) {
+        goto error;
+    }
         
-    file->name = byte_to_char_const(*input);
-    while ((*len) && (**input)) {
-        INCR_INPUT(1);
+    if (read_const_char(input, len, &file->name)) {
+        e_debug(1, "archive_parse_file; Did not find \\0"
+                   " while reading file name\n");
+        goto error;
     }
     if (*len == 0) {
-        if (file->size == 0) {
+        if (file->size == 0 && file->nb_attrs == 0) {
             return file;
         }
-        archive_file_delete(&file);
-        e_debug(1, "archive_parse_file; Did not find \\0 while reading file name\n");
-        return NULL;
+        goto error;
     }
-
-    INCR_INPUT(1);
 
     if (file->nb_attrs > 0) {
         file->attrs = p_new(archive_file_attr *, file->nb_attrs);
     }
 
+    /* XXX: This loop needs bounds checking. */
     for(i = 0; i < file->nb_attrs; i++) {
         const char *key, *val;
         int key_len, val_len;
@@ -208,27 +241,32 @@ static archive_file *archive_parse_file(const byte **input, int *len)
         key = byte_to_char_const(*input);
         key_len = 0;
         while ((*len) && (**input) && (**input != ':') && (**input != '\n')) {
-            INCR_INPUT(1);
+            (*input)++;
+            (*len)--;
             key_len++;
         }
         if (**input != ':') {
-            e_debug(1, "archive_parse_file; Missing : while reading file attr (key_len= %d)\n", key_len);
+            e_debug(1, "archive_parse_file; Missing :"
+                       "while reading file attr (key_len= %d)\n", key_len);
             if (i == 0) {
                 p_delete(file->attrs);
                 file->nb_attrs = 0;
             }
             else {
-                file->attrs = p_renew(archive_file_attr *, file->attrs, file->nb_attrs, i);
+                file->attrs = p_renew(archive_file_attr *, file->attrs,
+                                      file->nb_attrs, i);
                 file->nb_attrs = i;
             }
             break;
         }
-        INCR_INPUT(1);
+        (*input)++;
+        (*len)--;
         val = byte_to_char_const(*input);
         val_len = 0;
 
         while ((*len) && (**input) && (**input != '\n')) {
-            INCR_INPUT(1);
+            (*input)++;
+            (*len)--;
             val_len++;
         }
 
@@ -251,19 +289,25 @@ static archive_file *archive_parse_file(const byte **input, int *len)
         file->attrs[i]->val     = val;
         file->attrs[i]->val_len = val_len;
 
-        INCR_INPUT(1);
+        (*input)++;
+        (*len)--;
     }
 
     file->payload = *input;
 
     if (((uint32_t) *len) < file->size) {
         e_debug(1, "archive_parse_file; Not enough len remaining\n");
-        archive_file_delete(&file);
-        return NULL;
+        goto error;
     }
-    INCR_INPUT(file->size);
-    
+    (*input) += file->size;
+    (*len) -= file->size;
+
     return file;
+error:
+    archive_file_delete(&file);
+    *len = old_len;
+    *input = old_input;
+    return NULL;
 }
 
 static archive_tpl *archive_parse_tpl(const byte **input, int *len)
@@ -274,7 +318,8 @@ static archive_tpl *archive_parse_tpl(const byte **input, int *len)
     return NULL;
 }
 
-static archive_bloc *archive_parse_bloc(const byte **input, int *len)
+archive_bloc *archive_parse_bloc(const byte **input, int *len);
+archive_bloc *archive_parse_bloc(const byte **input, int *len)
 {
     uint32_t tag;
     
@@ -306,7 +351,10 @@ int archive_parse(const byte *input, int len, archive_t *archive)
     int allocated_blocs = 0;
     uint32_t version;
     
-    if (*input != ARCHIVE_MAGIC) {
+    if (input[0] != ARCHIVE_MAGIC0
+    ||  input[1] != ARCHIVE_MAGIC1
+    ||  input[2] != ARCHIVE_MAGIC2
+    ||  input[3] != ARCHIVE_MAGIC3) {
         e_debug(1, "archive_parse: Bad magic number\n");
         return 1;
     }
@@ -340,9 +388,10 @@ int archive_parse(const byte *input, int len, archive_t *archive)
         dynamic = true;
     }
     else {
-        archive->blocs = p_new(archive_bloc *, head->nb_blocs + 1);
-        archive->nb_blocs = 1;
+        allocated_blocs = head->nb_blocs + 1;
+        archive->blocs = p_new(archive_bloc *, allocated_blocs);
         archive->blocs[0] = archive_head_to_archive_bloc(head);
+        archive->nb_blocs = 1;
         dynamic = false;
     }
 
@@ -352,8 +401,8 @@ int archive_parse(const byte *input, int len, archive_t *archive)
             break;
         }
         archive->blocs[archive->nb_blocs] = bloc;
-        archive->last_bloc = bloc;
         archive->nb_blocs++;
+        archive->last_bloc = bloc;
 
         if (archive->nb_blocs >= allocated_blocs) {
             if (!dynamic) {
@@ -362,8 +411,8 @@ int archive_parse(const byte *input, int len, archive_t *archive)
                  * */
                 break;
             }
-            archive->blocs = p_renew(archive_bloc *, archive->blocs, allocated_blocs,
-                                                     2 * allocated_blocs);
+            archive->blocs = p_renew(archive_bloc *, archive->blocs,
+                                     allocated_blocs, 2 * allocated_blocs);
             allocated_blocs *= 2;
         }
     }
@@ -371,7 +420,7 @@ int archive_parse(const byte *input, int len, archive_t *archive)
     if (dynamic) {
         if (allocated_blocs > archive->nb_blocs) {
             archive->blocs = p_renew(archive_bloc *, archive->blocs,
-                                                     allocated_blocs, archive->nb_blocs);
+                                     allocated_blocs, archive->nb_blocs);
         }
     }
     
@@ -419,30 +468,37 @@ int archive_parts_in_path(const archive_t *archive, const char *path)
 archive_file *archive_file_next(const archive_t *archive,
                                 archive_file* previous)
 {
-    archive_bloc *bloc;
+    archive_bloc *previous_b = archive_file_to_archive_bloc(previous);
+    int i;
     
     if (!archive->blocs) {
         return NULL;
     }
-    if (previous) {
-        bloc = archive_file_to_archive_bloc(previous);
+    if (previous_b) {
+        if (previous_b == archive->last_bloc) {
+            return NULL;
+        }
     } else {
-        bloc = archive->blocs[0];
-    }
-    if (bloc == archive->last_bloc) {
-        return NULL;
+        previous_b = archive->blocs[0];
     }
 
-    bloc++;
-    while (bloc != archive->last_bloc) {
-        if (bloc->tag == ARCHIVE_TAG_FILE) {
-            return archive_bloc_to_archive_file(bloc);
+    /* find previous in the list of blocs */
+    for (i = 0; i < archive->nb_blocs + 1; i++) {
+        if (archive->blocs[i] == previous_b) {
+            break;
         }
-        bloc++;
     }
-    /* Check last_bloc */
-    if (bloc->tag == ARCHIVE_TAG_FILE) {
-        return archive_bloc_to_archive_file(bloc);
+    /* Examine the next one */
+    i++;
+    /* find the next file */
+    for (;i < archive->nb_blocs + 1; i++) {
+        if (archive->blocs[i]->tag == ARCHIVE_TAG_FILE) {
+            break;
+        }
+    }
+    if (i < archive->nb_blocs + 1
+    && archive->blocs[i]->tag == ARCHIVE_TAG_FILE) {
+        return archive_bloc_to_archive_file(archive->blocs[i]);
     }
     return NULL;
 }
@@ -505,7 +561,10 @@ START_TEST(check_parse)
     blob_t parse_payload;
 
     blob_init(&parse_payload);
-    blob_append_byte(&parse_payload, ARCHIVE_MAGIC);
+    blob_append_byte(&parse_payload, ARCHIVE_MAGIC0);
+    blob_append_byte(&parse_payload, ARCHIVE_MAGIC1);
+    blob_append_byte(&parse_payload, ARCHIVE_MAGIC2);
+    blob_append_byte(&parse_payload, ARCHIVE_MAGIC3);
     AR_APPEND_UINT32(&parse_payload, 1);/* Version */
 
     /* HEAD */

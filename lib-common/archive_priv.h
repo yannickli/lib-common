@@ -1,6 +1,10 @@
 #ifndef IS_ARCHIVE_H
 #define IS_ARCHIVE_H
-#define ARCHIVE_MAGIC 0x42
+#define ARCHIVE_MAGIC0 'I'
+#define ARCHIVE_MAGIC1 'S'
+#define ARCHIVE_MAGIC2 '-'
+#define ARCHIVE_MAGIC3 0x42
+#define ARCHIVE_MAGIC_SIZE 4
 
 #define B4_TO_INT(b0, b1, b2, b3) \
          (((b0) << 24) +          \
@@ -18,7 +22,6 @@
 #define UINT32_TO_B2(i) ((byte) (((i) >> 8 ) & 0x000000FF))
 #define UINT32_TO_B3(i) ((byte) (((i) >> 0 ) & 0x000000FF))
 
-#define ARCHIVE_MAGIC_SIZE 1
 #define ARCHIVE_TAG_SIZE 4
 #define ARCHIVE_SIZE_SIZE 4
 #define ARCHIVE_VERSION_1 1
