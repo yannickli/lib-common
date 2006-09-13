@@ -40,8 +40,6 @@ static int check_aiconv_templ_2(const char *file1, const char *file2)
 
 static int check_blob_iconv_close(void)
 {
-    return 0;
-
     blob_t b1;
     blob_t b2;
     int c_typ = 0;
@@ -69,6 +67,12 @@ static int check_blob_auto_iconv(void)
                          "samples/example2.utf8");
     check_aiconv_templ_2("samples/example1.utf8",
                          "samples/example1.utf8");
+    check_aiconv_templ("samples/example3.windows-1256",
+                       "samples/example3.utf8",
+                       "Windows-1256");
+    check_aiconv_templ_2("samples/example4.latin1",
+                         "samples/example4.utf8");
+
     blob_iconv_close_all();
     return 0;
 }
