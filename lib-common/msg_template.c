@@ -88,7 +88,7 @@ part_variable *part_variable_new(int ind);
 void part_variable_delete(part_variable **variable);
 void part_variable_wipe(part_variable *variable);
 
-part_verbatim *part_verbatim_new(const char *src, int size);
+part_verbatim *part_verbatim_new(const byte *src, int size);
 void part_verbatim_delete(part_verbatim **verbatim);
 void part_verbatim_wipe(part_verbatim *verbatim);
 
@@ -188,14 +188,20 @@ void msg_template_delete(msg_template **tpl)
     p_delete(tpl);
 }
 
-int msg_template_add_verbatim_cstr(msg_template *tpl, part_encoding enc,
-                                   const char *str)
+int msg_template_add_byte(msg_template *tpl, part_encoding enc,
+                          byte b)
 {
-    return msg_template_add_verbatim(tpl, enc, str, strlen(str));
+    return msg_template_add_data(tpl, enc, &b, 1);
 }
 
-int msg_template_add_verbatim(msg_template *tpl, part_encoding enc,
-                              const char *data, int len)
+int msg_template_add_cstr(msg_template *tpl, part_encoding enc,
+                                   const char *str)
+{
+    return msg_template_add_data(tpl, enc, (const byte *)str, strlen(str));
+}
+
+int msg_template_add_data(msg_template *tpl, part_encoding enc,
+                              const byte *data, int len)
 {
     part_verbatim *verb;
     tpl_part part;
@@ -211,10 +217,12 @@ int msg_template_add_verbatim(msg_template *tpl, part_encoding enc,
     return 0;
 }
 
-int msg_template_add_verbatim_blob(msg_template *tpl, part_encoding enc,
-                                   const blob_t *data)
+int msg_template_add_blob(msg_template *tpl, part_encoding enc,
+                          const blob_t *data)
 {
-    return msg_template_add_verbatim(tpl, enc, blob_get_cstr(data), data->len);
+    return msg_template_add_data(tpl, enc,
+                                 (const byte *)blob_get_cstr(data),
+                                 data->len);
 }
 
 int msg_template_add_variable(msg_template *tpl, part_encoding enc, 
@@ -281,7 +289,7 @@ void part_multi_delete(part_multi **multi)
     p_delete(multi);
 }
 
-part_verbatim *part_verbatim_new(const char *src, int size)
+part_verbatim *part_verbatim_new(const byte *src, int size)
 {
     part_verbatim *verb;
 
@@ -435,7 +443,7 @@ Suite *check_msg_template_suite(void)
     return s;
 }
 #endif
-#if 0
+#if 1
 /*
  gcc -g -o msg_template msg_template.c err_report.c  blob.c string_is.c
  */
@@ -480,18 +488,18 @@ int main(void)
     tpl = msg_template_new();
 
     /* Add some parts */
-    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "TO:'");
+    msg_template_add_cstr(tpl, ENC_NONE, "TO:'");
     msg_template_add_variable(tpl, ENC_NONE, fields, nbfields, "telephone");
-    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "'\n");
+    msg_template_add_cstr(tpl, ENC_NONE, "'\n");
 
-    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "Subject:'");
-    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "Bon anniversaire ");
+    msg_template_add_cstr(tpl, ENC_NONE, "Subject:'");
+    msg_template_add_cstr(tpl, ENC_NONE, "Bon anniversaire ");
     msg_template_add_variable(tpl, ENC_NONE, fields, nbfields, "prenom");
-    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "!'\n");
+    msg_template_add_cstr(tpl, ENC_NONE, "!'\n");
 
-    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "Data:'");
-    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "Nous vous souhaitons un très bon anniversaire !");
-    msg_template_add_verbatim_cstr(tpl, ENC_NONE, "'\n");
+    msg_template_add_cstr(tpl, ENC_NONE, "Data:'");
+    msg_template_add_cstr(tpl, ENC_NONE, "Nous vous souhaitons un très bon anniversaire !");
+    msg_template_add_cstr(tpl, ENC_NONE, "'\n");
 
     /* TODO: Add some QS stuff, using "fields" */
 
@@ -499,7 +507,7 @@ int main(void)
     blob_init(&blob);
     for (i = 0; i < 3; i++) {
         blob_set_fmt(&blob, "FAKE BINARY CHUNK %d", i);
-        msg_template_add_verbatim_blob(tpl, ENC_NONE, &blob);
+        msg_template_add_blob(tpl, ENC_NONE, &blob);
     }
 
     /* We're done with "demo objects". Free them. */
