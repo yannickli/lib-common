@@ -241,6 +241,10 @@ int blob_auto_iconv(blob_t *dst, const blob_t *src,
                     const char *type_hint, int *chosen_encoding);
 int blob_file_auto_iconv(blob_t *dst, const char *filename,
                          const char *type_hint, int *chosen_encoding);
+int blob_encode_html(blob_t *dst, const blob_t *src);
+int blob_encode_base64(blob_t *dst, const blob_t *src);
+int blob_encode_quoted_printable(blob_t *dst, const blob_t *src);
+int blob_encode_ia5(blob_t *dst, const blob_t *src);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

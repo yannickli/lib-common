@@ -956,6 +956,34 @@ ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos, const char **answer)
     return PARSE_EPARSE;
 }
 
+int blob_encode_html(blob_t *dst, const blob_t *src)
+{
+    /* FIXME */
+    blob_set(dst, src);
+    return 0;
+}
+
+int blob_encode_base64(blob_t *dst, const blob_t *src)
+{
+    /* FIXME */
+    blob_set(dst, src);
+    return 0;
+}
+
+int blob_encode_quoted_printable(blob_t *dst, const blob_t *src)
+{
+    /* FIXME */
+    blob_set(dst, src);
+    return 0;
+}
+
+int blob_encode_ia5(blob_t *dst, const blob_t *src)
+{
+    /* FIXME */
+    blob_set(dst, src);
+    return 0;
+}
+
 /*}}}*/
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
