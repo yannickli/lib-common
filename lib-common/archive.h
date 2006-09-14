@@ -67,15 +67,15 @@ archive_t *archive_init(archive_t *archive);
 void archive_wipe(archive_t *archive);
 void archive_delete(archive_t **archive);
 
-archive_file *archive_get_file_bloc(const archive_t *archive,
-                                    const char *filename);
+const archive_file *archive_get_file_bloc(const archive_t *archive,
+                                          const char *filename);
 int archive_parts_in_path(const archive_t *archive,
                           const char *path);
-archive_file *archive_file_next(const archive_t *archive,
-                                archive_file* previous);
-archive_file *archive_file_next_path(const archive_t *archive,
-                                     const char *path,
-                                     archive_file* previous);
+const archive_file *archive_file_next(const archive_t *archive,
+                                      const archive_file* previous);
+const archive_file *archive_file_next_path(const archive_t *archive,
+                                           const char *path,
+                                           const archive_file* previous);
 
 #ifdef CHECK
 #include <check.h>

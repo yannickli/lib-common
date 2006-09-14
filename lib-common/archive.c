@@ -427,7 +427,8 @@ int archive_parse(const byte *input, int len, archive_t *archive)
     return 0;
 }
 
-archive_file *archive_get_file_bloc(const archive_t *archive, const char *filename)
+const archive_file *archive_get_file_bloc(const archive_t *archive,
+                                          const char *filename)
 {
     archive_bloc *bloc;
     archive_file *file;
@@ -465,11 +466,12 @@ int archive_parts_in_path(const archive_t *archive, const char *path)
 }
 
 
-archive_file *archive_file_next(const archive_t *archive,
-                                archive_file* previous)
+const archive_file *archive_file_next(const archive_t *archive,
+                                      const archive_file* previous)
 {
-    archive_bloc *previous_b = archive_file_to_archive_bloc(previous);
     int i;
+    const archive_bloc *previous_b =
+                    archive_file_to_archive_bloc_const(previous);
     
     if (!archive->blocs) {
         return NULL;
@@ -503,11 +505,11 @@ archive_file *archive_file_next(const archive_t *archive,
     return NULL;
 }
 
-archive_file *archive_file_next_path(const archive_t *archive,
-                                     const char *path,
-                                     archive_file* previous)
+const archive_file *archive_file_next_path(const archive_t *archive,
+                                           const char *path,
+                                           const archive_file* previous)
 {
-    archive_file *file;
+    const archive_file *file;
 
     file = archive_file_next(archive, previous);
 
