@@ -188,6 +188,48 @@ void msg_template_delete(msg_template **tpl)
     p_delete(tpl);
 }
 
+static part_type msg_template_blob_encode(blob_t *src, part_encoding enc)
+{
+    static blob_t blob;
+
+    blob_init(&blob);
+    switch(enc) {
+      case ENC_NONE:
+        break;
+      case ENC_HTML:
+        blob_encode_html(&blob, src);
+        blob_set(src, &blob);
+        enc = ENC_NONE;
+        break;
+      case ENC_BASE64:
+        blob_init(&blob);
+        blob_encode_base64(&blob, src);
+        blob_set(src, &blob);
+        enc = ENC_NONE;
+        break;
+      case ENC_QUOTED_PRINTABLE:
+        blob_init(&blob);
+        blob_encode_quoted_printable(&blob, src);
+        blob_set(src, &blob);
+        enc = ENC_NONE;
+        break;
+      case ENC_IA5:
+        blob_init(&blob);
+        blob_encode_ia5(&blob, src);
+        blob_set(src, &blob);
+        enc = ENC_NONE;
+        break;
+      case ENC_TEL:
+        /* FIXME */
+        enc = ENC_NONE;
+        break;
+      default:
+        break;
+    }
+    blob_wipe(&blob);
+    return enc;
+}
+
 int msg_template_add_byte(msg_template *tpl, part_encoding enc, byte b)
 {
     return msg_template_add_data(tpl, enc, &b, 1);
@@ -204,9 +246,29 @@ int msg_template_add_data(msg_template *tpl, part_encoding enc,
 {
     part_verbatim *verb;
     tpl_part part;
-    if (!tpl || ! data) {
+    part_encoding newenc;
+    if (!tpl || !data || len == 0) {
         return -1;
     }
+    if (tpl->body->nbparts
+    &&  tpl->body->parts[tpl->body->nbparts - 1].type == PART_VERBATIM
+    &&  tpl->body->parts[tpl->body->nbparts - 1].enc == ENC_NONE) {
+        /* Do not create a new part : Concatenate it */
+        blob_t tmp;
+        blob_init(&tmp);
+        blob_set_data(&tmp, data, len);
+
+        newenc = msg_template_blob_encode(&tmp, enc);
+        if (newenc == ENC_NONE) {
+            blob_t *target;
+            target = &tpl->body->parts[tpl->body->nbparts - 1].u.verbatim->data;
+            blob_append(target, &tmp);
+            blob_wipe(&tmp);
+            return 0;
+        }
+        blob_wipe(&tmp);
+    }
+
     verb = part_verbatim_new(data, len);
     part.type = PART_VERBATIM;
     part.u.verbatim = verb;
@@ -442,7 +504,7 @@ Suite *check_msg_template_suite(void)
     return s;
 }
 #endif
-#if 1
+#if 0
 /*
  gcc -g -o msg_template msg_template.c err_report.c  blob.c string_is.c
  */
