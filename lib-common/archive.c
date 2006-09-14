@@ -176,6 +176,7 @@ static archive_head *archive_parse_head(const byte **input, int *len)
     }
 
     return head;
+
 error:
     p_delete (&head);
     *len = old_len;
@@ -271,13 +272,15 @@ static archive_file *archive_parse_file(const byte **input, int *len)
         }
 
         if (**input != '\n') {
-            e_debug(1, "archive_parse_file; Missing \\n while reading file attr\n");
+            e_debug(1, "archive_parse_file; Missing \\n "
+                    "while reading file attr\n");
             if (i == 0) {
                 p_delete(file->attrs);
                 file->nb_attrs = 0;
             }
             else {
-                file->attrs = p_renew(archive_file_attr *, file->attrs, file->nb_attrs, i);
+                file->attrs = p_renew(archive_file_attr *, file->attrs,
+                                      file->nb_attrs, i);
                 file->nb_attrs = i;
             }
             break;
@@ -319,6 +322,7 @@ static archive_tpl *archive_parse_tpl(const byte **input, int *len)
 }
 
 archive_bloc *archive_parse_bloc(const byte **input, int *len);
+
 archive_bloc *archive_parse_bloc(const byte **input, int *len)
 {
     uint32_t tag;
@@ -533,26 +537,31 @@ START_TEST(check_init_wipe)
     archive_t archive;
     archive_init(&archive);
 
-    fail_if(archive.nb_blocs != 0, "initalized archive MUST have `nb_blocs' = 0, "
-                                   "but has `nb_blocs = %d'", archive.nb_blocs);
-    fail_if(archive.blocs != NULL,  "initalized archive MUST have a valid `blocs'");
-    fail_if(archive.payload != NULL,  "initalized payload MUST have a valid `payload'");
+    fail_if(archive.nb_blocs != 0,
+            "initalized archive MUST have `nb_blocs' = 0, "
+            "but has `nb_blocs = %d'", archive.nb_blocs);
+    fail_if(archive.blocs != NULL,
+            "initalized archive MUST have a valid `blocs'");
+    fail_if(archive.payload != NULL,
+            "initalized payload MUST have a valid `payload'");
 
     archive_wipe(&archive);
-    fail_if(archive.blocs != NULL,   "wiped blob MUST have `blocs' set to NULL");
-    fail_if(archive.payload != NULL, "wiped blob MUST have `payload' set to NULL");
+    fail_if(archive.blocs != NULL,
+            "wiped blob MUST have `blocs' set to NULL");
+    fail_if(archive.payload != NULL,
+            "wiped blob MUST have `payload' set to NULL");
 }
 END_TEST
 
 START_TEST(check_parse)
 {
-#define AR_APPEND_UINT32(blob, val)                           \
+#define AR_APPEND_UINT32(blob, val)                     \
     do {                                                \
     i = (val);                                          \
-    blob_append_byte((blob), UINT32_TO_B0(i));  \
-    blob_append_byte((blob), UINT32_TO_B1(i));  \
-    blob_append_byte((blob), UINT32_TO_B2(i));  \
-    blob_append_byte((blob), UINT32_TO_B3(i));  \
+    blob_append_byte((blob), UINT32_TO_B0(i));          \
+    blob_append_byte((blob), UINT32_TO_B1(i));          \
+    blob_append_byte((blob), UINT32_TO_B2(i));          \
+    blob_append_byte((blob), UINT32_TO_B3(i));          \
     } while (0);
 
     archive_t archive;
@@ -589,14 +598,18 @@ START_TEST(check_parse)
 
     
     AR_APPEND_UINT32(&parse_payload, B4_TO_INT('F', 'I', 'L', 'E'));
-    AR_APPEND_UINT32(&parse_payload, file.len);/* Bloc size (4 for one uint32)*/
+    /* Bloc size (4 for one uint32)*/
+    AR_APPEND_UINT32(&parse_payload, file.len);
     blob_append(&parse_payload, &file);
 
     res = archive_parse(parse_payload.data, parse_payload.len, &archive);
 
-    fail_if(res != 0,  "archive_parse failed on a valid archive");
-    fail_if(archive.version != 1,  "archive_parse failed on a reading version");
-    fail_if(archive.nb_blocs != 2,  "archive_parse failed to read correct number of blocs");
+    fail_if(res != 0,
+            "archive_parse failed on a valid archive");
+    fail_if(archive.version != 1,
+            "archive_parse failed on a reading version");
+    fail_if(archive.nb_blocs != 2,
+            "archive_parse failed to read correct number of blocs");
 
     archive_wipe(&archive);
     blob_wipe(&file);

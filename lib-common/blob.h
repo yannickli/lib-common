@@ -36,9 +36,9 @@ typedef struct {
 } blob_t;
 
 
-/******************************************************************************/
-/* Blob creation / deletion                                                   */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob creation / deletion                                               */
+/**************************************************************************/
 
 #define blob_new()  blob_init(p_new_raw(blob_t, 1))
 blob_t *blob_init(blob_t *blob);
@@ -68,9 +68,9 @@ static inline const char *blob_get_cstr(const blob_t *blob)
     return (const char *)blob->data;
 }
 
-/******************************************************************************/
-/* Blob manipulations                                                         */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob manipulations                                                     */
+/**************************************************************************/
 
 void blob_set(blob_t *dest, const blob_t *src);
 void blob_set_data(blob_t *blob, const void *data, ssize_t len);
@@ -86,7 +86,8 @@ static inline void blob_blit_cstr(blob_t *blob, ssize_t pos, const char *cstr)
 }
 
 void blob_insert(blob_t *dest, ssize_t pos, const blob_t *src);
-void blob_insert_data(blob_t *blob, ssize_t pos, const void *data, ssize_t len);
+void blob_insert_data(blob_t *blob, ssize_t pos,
+                      const void *data, ssize_t len);
 static inline void 
 blob_insert_cstr(blob_t *blob, ssize_t pos, const char *cstr)
 {
@@ -106,9 +107,9 @@ void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len);
 void blob_kill_first(blob_t *blob, ssize_t len);
 void blob_kill_last(blob_t *blob, ssize_t len);
 
-/******************************************************************************/
-/* Blob file functions                                                        */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob file functions                                                    */
+/**************************************************************************/
 
 ssize_t blob_append_file_data(blob_t *blob, const char *filename);
 ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f);
@@ -122,39 +123,42 @@ ssize_t blob_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
 /* negative count means "auto" */
 ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count);
 
-/******************************************************************************/
-/* Blob printf functions                                                      */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob printf functions                                                  */
+/**************************************************************************/
 
 ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap);
 ssize_t blob_append_fmt(blob_t *blob, const char *fmt, ...)
-    __attr_format__(2,3);
+        __attr_format__(2,3);
 
 ssize_t blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap);
 ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...)
-    __attr_format__(2,3);
+        __attr_format__(2,3);
 
-/******************************************************************************/
-/* Blob search functions                                                      */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob search functions                                                  */
+/**************************************************************************/
 
 /* not very efficent ! */
 
-ssize_t blob_search(const blob_t *haystack, ssize_t pos, const blob_t *needle);
-ssize_t blob_search_data(const blob_t *haystack, ssize_t pos, const void *needle, ssize_t len);
+ssize_t blob_search(const blob_t *haystack, ssize_t pos,
+                    const blob_t *needle);
+ssize_t blob_search_data(const blob_t *haystack, ssize_t pos,
+                         const void *needle, ssize_t len);
 static inline ssize_t
 blob_search_cstr(const blob_t *haystack, ssize_t pos, const char *needle)
 {
     return blob_search_data(haystack, pos, needle, strlen(needle));
 }
 
-/******************************************************************************/
-/* Blob filtering                                                             */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob filtering                                                         */
+/**************************************************************************/
 
 typedef int (blob_filter_func_t)(int);
 void blob_map(blob_t *blob, blob_filter_func_t *filter);
-void blob_map_range(blob_t *blob, ssize_t start, ssize_t end, blob_filter_func_t *filter);
+void blob_map_range(blob_t *blob, ssize_t start, ssize_t end,
+                    blob_filter_func_t *filter);
 
 void blob_ltrim(blob_t *blob);
 void blob_rtrim(blob_t *blob);
@@ -164,7 +168,8 @@ static inline void blob_tolower(blob_t *blob)
 {
     blob_map(blob, &tolower);
 }
-static inline void blob_tolower_range(blob_t *blob, ssize_t start, ssize_t end)
+static inline void blob_tolower_range(blob_t *blob,
+                                      ssize_t start, ssize_t end)
 {
     blob_map_range(blob, start, end, &tolower);
 }
@@ -173,14 +178,15 @@ static inline void blob_toupper(blob_t *blob)
 {
     blob_map(blob, &toupper);
 }
-static inline void blob_toupper_range(blob_t *blob, ssize_t start, ssize_t end)
+static inline void blob_toupper_range(blob_t *blob,
+                                      ssize_t start, ssize_t end)
 {
     blob_map_range(blob, start, end, &toupper);
 }
 
-/******************************************************************************/
-/* Blob comparisons                                                           */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob comparisons                                                       */
+/**************************************************************************/
 
 int blob_cmp(const blob_t *blob1, const blob_t *blob2);
 int blob_icmp(const blob_t *blob1, const blob_t *blob2);
@@ -193,33 +199,34 @@ bool blob_start(const blob_t *blob1, const blob_t *blob2, const byte **pp);
 bool blob_cistart(const blob_t *blob, const char *p, const char **pp);
 bool blob_istart(const blob_t *blob1, const blob_t *blob2, const byte **pp);
 
-/******************************************************************************/
-/* Blob string functions                                                      */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob string functions                                                  */
+/**************************************************************************/
 
 void blob_urldecode(blob_t *url);
 void blob_b64encode(blob_t *blob, int nbpackets);
 
-/******************************************************************************/
-/* Blob parsing                                                               */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob parsing                                                           */
+/**************************************************************************/
 
 #include "parse.h"
 
-ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos, const char **answer);
+ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos,
+                        const char **answer);
 
 
-/******************************************************************************/
-/* Blob compression/decompression                                             */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob compression/decompression                                         */
+/**************************************************************************/
 
 int blob_compress(blob_t *dest, blob_t *src);
 int blob_uncompress(blob_t *dest, blob_t *src);
 
 
-/******************************************************************************/
-/* Blob encoding                                                              */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob encoding                                                          */
+/**************************************************************************/
 
 #define ENC_ASCII        0
 #define ENC_ISO_8859_1   1
@@ -230,18 +237,17 @@ int blob_iconv(blob_t *dst, const blob_t *src, const char *type);
 int blob_iconv_close_all(void);
 /* FIXME? : type_hint is a const char * but chosen_encoding is and int...
  *          shouldn't it be more homogeneous ? */
-int blob_auto_iconv(blob_t *dst, const blob_t *src, const char *type_hint,
-                    int *chosen_encoding);
+int blob_auto_iconv(blob_t *dst, const blob_t *src,
+                    const char *type_hint, int *chosen_encoding);
 int blob_file_auto_iconv(blob_t *dst, const char *filename,
-                         const char *type_hint,
-                         int *chosen_encoding);
+                         const char *type_hint, int *chosen_encoding);
 
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 #include <check.h>
 
 Suite *check_make_blob_suite(void);
 
 #endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
 #endif

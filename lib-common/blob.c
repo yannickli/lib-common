@@ -33,9 +33,9 @@ static inline real_blob_t *blob_real(blob_t *blob)
     return (real_blob_t *)blob;
 }
 
-/******************************************************************************/
-/* Blob creation / deletion                                                   */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob creation / deletion                                               */
+/**************************************************************************/
 /*{{{*/
 
 /* create a new, empty buffer */
@@ -196,9 +196,9 @@ static inline void blob_empty(blob_t *blob)
 }
 
 /*}}}*/
-/******************************************************************************/
-/* Blob manipulations                                                         */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob manipulations                                                     */
+/**************************************************************************/
 /*{{{*/
 
 /*** private inlines ***/
@@ -370,9 +370,9 @@ void blob_kill_last(blob_t *blob, ssize_t len)
 }
 
 /*}}}*/
-/******************************************************************************/
-/* Blob file functions                                                        */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob file functions                                                    */
+/**************************************************************************/
 /*{{{*/
 
 /* Return the number of bytes appended to the blob, negative value
@@ -493,9 +493,9 @@ ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
 }
 
 /*}}}*/
-/******************************************************************************/
-/* Blob printf function                                                       */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob printf function                                                   */
+/**************************************************************************/
 /*{{{*/
 
 ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
@@ -606,9 +606,9 @@ ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt,
 }
 
 /*}}}*/
-/******************************************************************************/
-/* Blob search functions                                                      */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob search functions                                                  */
+/**************************************************************************/
 /*{{{*/
 
 static inline ssize_t
@@ -626,7 +626,7 @@ blob_search_data_real(const blob_t *haystack, ssize_t pos,
 
     p = memsearch(haystack->data + pos, haystack->len - pos, needle, len);
     if (!p) {
-	return -1;
+        return -1;
     }
     return p - haystack->data;
 }
@@ -638,15 +638,16 @@ ssize_t blob_search(const blob_t *haystack, ssize_t pos, const blob_t *needle)
     return blob_search_data_real(haystack, pos, needle->data, needle->len);
 }
 
-ssize_t blob_search_data(const blob_t *haystack, ssize_t pos, const void *needle, ssize_t len)
+ssize_t blob_search_data(const blob_t *haystack, ssize_t pos,
+                         const void *needle, ssize_t len)
 {
     return blob_search_data_real(haystack, pos, needle, len);
 }
 
 /*}}}*/
-/******************************************************************************/
-/* Blob filtering                                                             */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob filtering                                                         */
+/**************************************************************************/
 /*{{{*/
 
 /* map filter to blob->data[start .. end-1]
@@ -706,9 +707,9 @@ void blob_trim(blob_t *blob)
 }
 
 /*}}}*/
-/******************************************************************************/
-/* Blob comparisons                                                           */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob comparisons                                                       */
+/**************************************************************************/
 /*{{{*/
 
 /* @see memcmp(3) */
@@ -793,9 +794,9 @@ bool blob_istart(const blob_t *blob1, const blob_t *blob2, const byte **pp)
 }
 
 /*}}}*/
-/******************************************************************************/
-/* Blob string functions                                                      */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob string functions                                                  */
+/**************************************************************************/
 /*{{{*/
 
 static inline int hex_to_dec(char c)
@@ -918,9 +919,9 @@ void blob_b64encode(blob_t *blob, int nbpackets)
 }
 
 /*}}}*/
-/******************************************************************************/
-/* Blob parsing                                                               */
-/******************************************************************************/
+/**************************************************************************/
+/* Blob parsing                                                           */
+/**************************************************************************/
 /*{{{*/
 
 /* try to parse a c-string from the current position in the buffer.
@@ -956,14 +957,15 @@ ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos, const char **answer)
 }
 
 /*}}}*/
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
-/* inlines (check invariants) + setup/teardowns                            {{{*/
+/* inlines (check invariants) + setup/teardowns                        {{{*/
 
 static inline void check_blob_invariants(blob_t *blob)
 {
     fail_if(blob->len >= blob_real(blob)->size,
-            "a blob must have `len < size'. this one has `len = %d' and `size = %d'",
+            "a blob must have `len < size'. "
+            "this one has `len = %d' and `size = %d'",
             blob->len, blob_real(blob)->size);
     fail_if(blob->data[blob->len] != '\0', \
             "a blob must have data[len] set to `\\0', `%c' found",
@@ -984,8 +986,8 @@ static inline void check_teardown(blob_t *blob, blob_t **blob2)
     }
 }
 
-/*.........................................................................}}}*/
-/* tests legacy functions                                                  {{{*/
+/*.....................................................................}}}*/
+/* tests legacy functions                                              {{{*/
 
 START_TEST(check_init_wipe)
 {
@@ -993,12 +995,17 @@ START_TEST(check_init_wipe)
     blob_init(&blob);
     check_blob_invariants(&blob);
 
-    fail_if(blob.len != 0,      "initalized blob MUST have `len' = 0, but has `len = %d'", blob.len);
-    fail_if(blob.data == NULL,  "initalized blob MUST have a valid `data'");
+    fail_if(blob.len != 0,
+            "initalized blob MUST have `len' = 0, but has `len = %d'",
+            blob.len);
+    fail_if(blob.data == NULL,
+            "initalized blob MUST have a valid `data'");
 
     blob_wipe(&blob);
-    fail_if(blob.data != NULL,   "wiped blob MUST have `data' set to NULL");
-    fail_if(blob.__area != NULL, "wiped blob MUST have `area' set to NULL");
+    fail_if(blob.data != NULL,
+            "wiped blob MUST have `data' set to NULL");
+    fail_if(blob.__area != NULL,
+            "wiped blob MUST have `area' set to NULL");
 }
 END_TEST
 
@@ -1007,17 +1014,21 @@ START_TEST(check_blob_new)
     blob_t *blob = blob_new();
 
     check_blob_invariants(blob);
-    fail_if(blob == NULL,        "no blob was allocated");
-    fail_if(blob->len != 0,      "new blob MUST have `len 0', but has `len = %d'", blob->len);
-    fail_if(blob->data == NULL,  "new blob MUST have a valid `data'");
+    fail_if(blob == NULL,
+            "no blob was allocated");
+    fail_if(blob->len != 0,
+            "new blob MUST have `len 0', but has `len = %d'", blob->len);
+    fail_if(blob->data == NULL,
+            "new blob MUST have a valid `data'");
 
     blob_delete(&blob);
-    fail_if(blob != NULL, "pointer was not nullified by `blob_delete'");
+    fail_if(blob != NULL,
+            "pointer was not nullified by `blob_delete'");
 }
 END_TEST
 
-/*.........................................................................}}}*/
-/* test set functions                                                      {{{*/
+/*.....................................................................}}}*/
+/* test set functions                                                  {{{*/
 
 START_TEST(check_set)
 {
@@ -1030,29 +1041,32 @@ START_TEST(check_set)
     check_blob_invariants(&blob);
     fail_if(blob.len != strlen("toto"),
             "blob.len should be %d, but is %d", strlen("toto"), blob.len);
-    fail_if(strcmp((const char *)blob.data, "toto") != 0, "blob is not set to `%s'", "toto");
+    fail_if(strcmp((const char *)blob.data, "toto") != 0,
+            "blob is not set to `%s'", "toto");
 
     /* blob set data */
     blob_set_data(&blob, "tutu", strlen("tutu"));
     check_blob_invariants(&blob);
     fail_if(blob.len != strlen("tutu"),
             "blob.len should be %d, but is %d", strlen("tutu"), blob.len);
-    fail_if(strcmp((const char *)blob.data, "tutu") != 0, "blob is not set to `%s'", "tutu");
+    fail_if(strcmp((const char *)blob.data, "tutu") != 0,
+            "blob is not set to `%s'", "tutu");
 
     /* blob set */
     blob_set(&bloub, &blob);
     check_blob_invariants(&bloub);
     fail_if(bloub.len != strlen("tutu"),
             "blob.len should be %d, but is %d", strlen("tutu"), bloub.len);
-    fail_if(strcmp((const char *)bloub.data, "tutu") != 0, "blob is not set to `%s'", "tutu");
+    fail_if(strcmp((const char *)bloub.data, "tutu") != 0,
+            "blob is not set to `%s'", "tutu");
 
     blob_wipe(&blob);
     blob_wipe(&bloub);
 }
 END_TEST
 
-/*.........................................................................}}}*/
-/* test blob_dup / blob_cat / blob_resize                                  {{{*/
+/*.....................................................................}}}*/
+/* test blob_dup / blob_cat / blob_resize                              {{{*/
 
 START_TEST(check_dup)
 {
@@ -1083,11 +1097,13 @@ START_TEST(check_cat)
     check_blob_invariants(bcat);
 
     fail_if (bcat->len != b1.len + b2->len, 
-            "blob_cat-ed blob has not len equal to the sum of the orignal blobs lens");
-    if ( memcmp(bcat->data, b1.data, b1.len) !=0 ||
-            memcmp (bcat->data + b1.len, b2->data, b2->len) != 0)
+             "blob_cat-ed blob has not len equal to "
+             "the sum of the orignal blobs lens");
+    if (memcmp(bcat->data, b1.data, b1.len) !=0
+    ||  memcmp (bcat->data + b1.len, b2->data, b2->len) != 0)
     {
-        fail("blob_cat-ed blob is not the concatenation of the orginal blobs");
+        fail("blob_cat-ed blob is not the concatenation of "
+             "the orginal blobs");
     }
 
     check_teardown(&b1, &bcat);
@@ -1101,14 +1117,15 @@ START_TEST(check_resize)
 
     blob_resize(&b1, 4);
     check_blob_invariants(&b1);
-    fail_if (b1.len != 4, "blob_resized blob should have len 4, but has %d", b1.len);
+    fail_if (b1.len != 4,
+             "blob_resized blob should have len 4, but has %d", b1.len);
 
     check_teardown(&b1, NULL);
 }
 END_TEST
 
-/*.........................................................................}}}*/
-/* test blit functions                                                     {{{*/
+/*.....................................................................}}}*/
+/* test blit functions                                                 {{{*/
 
 START_TEST(check_blit)
 {
@@ -1122,27 +1139,33 @@ START_TEST(check_blit)
     /* blit cstr */
     blob_blit_cstr(&blob, 4, "turlututu");
     check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "tototurlututu") != 0, "blit_cstr failed");
-    fail_if(blob.len != strlen("tototurlututu"), "blit_cstr failed");
+    fail_if(strcmp((const char *)blob.data, "tototurlututu") != 0,
+            "blit_cstr failed");
+    fail_if(blob.len != strlen("tototurlututu"),
+            "blit_cstr failed");
 
     /* blit data */
     blob_blit_data(&blob, 6, ".:.:.:.", 7);
     check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "tototu.:.:.:.") != 0, "blit_data failed");
-    fail_if(blob.len != strlen("tototu.:.:.:."), "blit_cstr failed");
+    fail_if(strcmp((const char *)blob.data, "tototu.:.:.:.") != 0,
+            "blit_data failed");
+    fail_if(blob.len != strlen("tototu.:.:.:."),
+            "blit_cstr failed");
 
     /* blit */
     blob_blit(&blob, blob.len, b2);
     check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "tototu.:.:.:.toto string") != 0, "blit_data failed");
-    fail_if(blob.len != strlen("tototu.:.:.:.toto string"), "blit_cstr failed");
+    fail_if(strcmp((const char *)blob.data, "tototu.:.:.:.toto string") != 0,
+            "blit_data failed");
+    fail_if(blob.len != strlen("tototu.:.:.:.toto string"),
+            "blit_cstr failed");
 
     check_teardown(&blob, &b2);
 }
 END_TEST
 
-/*.........................................................................}}}*/
-/* test insert functions                                                     {{{*/
+/*.....................................................................}}}*/
+/* test insert functions                                               {{{*/
 
 START_TEST(check_insert)
 {
@@ -1157,27 +1180,33 @@ START_TEST(check_insert)
     /* insert cstr */
     blob_insert_cstr(&blob, 1, "1234");
     check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "012345") != 0, "insert failed");
-    fail_if(blob.len != strlen("012345"), "insert failed");
+    fail_if(strcmp((const char *)blob.data, "012345") != 0,
+            "insert failed");
+    fail_if(blob.len != strlen("012345"),
+            "insert failed");
 
     /* insert data */
     blob_insert_data(&blob, 20, "89", 2);
     check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "01234589") != 0, "insert_data failed");
-    fail_if(blob.len != strlen("01234589"), "insert_data failed");
+    fail_if(strcmp((const char *)blob.data, "01234589") != 0,
+            "insert_data failed");
+    fail_if(blob.len != strlen("01234589"),
+            "insert_data failed");
 
     /* insert */
     blob_insert(&blob, 6, b2);
     check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "0123456789") != 0, "insert failed");
-    fail_if(blob.len != strlen("0123456789"), "insert failed");
+    fail_if(strcmp((const char *)blob.data, "0123456789") != 0,
+            "insert failed");
+    fail_if(blob.len != strlen("0123456789"),
+            "insert failed");
 
     check_teardown(&blob, &b2);
 }
 END_TEST
 
-/*.........................................................................}}}*/
-/* test append functions                                                     {{{*/
+/*.....................................................................}}}*/
+/* test append functions                                               {{{*/
 
 START_TEST(check_append)
 {
@@ -1192,20 +1221,26 @@ START_TEST(check_append)
     /* append cstr */
     blob_append_cstr(&blob, "2345");
     check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "012345") != 0, "append failed");
-    fail_if(blob.len != strlen("012345"), "append failed");
+    fail_if(strcmp((const char *)blob.data, "012345") != 0,
+            "append failed");
+    fail_if(blob.len != strlen("012345"),
+            "append failed");
 
     /* append data */
     blob_append_data(&blob, "67", 2);
     check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "01234567") != 0, "append_data failed");
-    fail_if(blob.len != strlen("01234567"), "append_data failed");
+    fail_if(strcmp((const char *)blob.data, "01234567") != 0,
+            "append_data failed");
+    fail_if(blob.len != strlen("01234567"),
+            "append_data failed");
 
     /* append */
     blob_append(&blob, b2);
     check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "0123456789") != 0, "append failed");
-    fail_if(blob.len != strlen("0123456789"), "append failed");
+    fail_if(strcmp((const char *)blob.data, "0123456789") != 0,
+            "append failed");
+    fail_if(blob.len != strlen("0123456789"),
+            "append failed");
 
     check_teardown(&blob, &b2);
 }
@@ -1214,10 +1249,9 @@ END_TEST
 START_TEST(check_append_file_data)
 {
     const char file[] = "check.data";
-    const char data[] =
-        "my super data, just for the fun, and for the test \n"
-        "don't you like it ?\n"
-        "tests are soooo boring !!!";
+    const char data[] = "my super data, just for the fun, and for the test \n"
+                        "don't you like it ?\n"
+                        "tests are soooo boring !!!";
 
     blob_t blob;
     int fd;
@@ -1226,21 +1260,25 @@ START_TEST(check_append_file_data)
 
     fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, 0640);
     fail_if(fd < 0, "sample file not created");
-    fail_if(write(fd, &data, strlen(data)) != sstrlen(data), "data not written");
+    fail_if(write(fd, &data, strlen(data)) != sstrlen(data),
+            "data not written");
     close(fd);
 
-    fail_if(blob_append_file_data(&blob, file) != sstrlen(data), "file miscopied");
+    fail_if(blob_append_file_data(&blob, file) != sstrlen(data),
+            "file miscopied");
     check_blob_invariants(&blob);
-    fail_if(blob.len != sstrlen(data), "file miscopied");
-    fail_if(strcmp((const char *)blob.data, data) != 0, "garbage copied");
+    fail_if(blob.len != sstrlen(data),
+            "file miscopied");
+    fail_if(strcmp((const char *)blob.data, data) != 0,
+            "garbage copied");
 
     unlink(file);
 
     blob_wipe(&blob);
 }
 END_TEST
-/*.........................................................................}}}*/
-/* test kill functions                                                     {{{*/
+/*.....................................................................}}}*/
+/* test kill functions                                                 {{{*/
 
 START_TEST(check_kill)
 {
@@ -1250,27 +1288,33 @@ START_TEST(check_kill)
     /* kill first */
     blob_kill_first(&blob, 3);
     check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "3456789") != 0, "kill_first failed");
-    fail_if(blob.len != strlen("3456789"), "kill_first failed");
+    fail_if(strcmp((const char *)blob.data, "3456789") != 0,
+            "kill_first failed");
+    fail_if(blob.len != strlen("3456789"),
+            "kill_first failed");
 
     /* kill last */
     blob_kill_last(&blob, 3);
     check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "3456") != 0, "kill_last failed");
-    fail_if(blob.len != strlen("3456"), "kill_last failed");
+    fail_if(strcmp((const char *)blob.data, "3456") != 0,
+            "kill_last failed");
+    fail_if(blob.len != strlen("3456"),
+            "kill_last failed");
 
     /* kill */
     blob_kill_data(&blob, 1, 2);
     check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "36") != 0, "kill failed");
-    fail_if(blob.len != strlen("36"), "kill failed");
+    fail_if(strcmp((const char *)blob.data, "36") != 0,
+            "kill failed");
+    fail_if(blob.len != strlen("36"),
+            "kill failed");
 
     check_teardown(&blob, NULL);
 }
 END_TEST
 
-/*.........................................................................}}}*/
-/* test printf functions                                                   {{{*/
+/*.....................................................................}}}*/
+/* test printf functions                                               {{{*/
 
 START_TEST(check_printf)
 {
@@ -1282,25 +1326,31 @@ START_TEST(check_printf)
     /* printf first */
     blob_append_fmt(&blob, "5");
     check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "012345") != 0, "printf failed");
-    fail_if(blob.len != strlen("012345"), "printf failed");
+    fail_if(strcmp((const char *)blob.data, "012345") != 0,
+            "printf failed");
+    fail_if(blob.len != strlen("012345"),
+            "printf failed");
 
     blob_append_fmt(&blob, "%s89", "67");
     check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "0123456789") != 0, "printf failed");
-    fail_if(blob.len != strlen("0123456789"), "printf failed");
+    fail_if(strcmp((const char *)blob.data, "0123456789") != 0,
+            "printf failed");
+    fail_if(blob.len != strlen("0123456789"),
+            "printf failed");
 
     blob_set_fmt(&blob, "%080i", 0);
     check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, cmp) != 0, "printf failed");
-    fail_if(blob.len != sstrlen(cmp), "printf failed");
+    fail_if(strcmp((const char *)blob.data, cmp) != 0,
+            "printf failed");
+    fail_if(blob.len != sstrlen(cmp),
+            "printf failed");
 
     check_teardown(&blob, NULL);
 }
 END_TEST
 
-/*.........................................................................}}}*/
-/* test blob_urldecode                                                     {{{*/
+/*.....................................................................}}}*/
+/* test blob_urldecode                                                 {{{*/
 
 START_TEST(check_url)
 {
@@ -1310,15 +1360,17 @@ START_TEST(check_url)
     blob_urldecode(&blob);
     check_blob_invariants(&blob);
 
-    fail_if(strcmp((const char *)blob.data, " totoy") != 0, "urldecode failed");
-    fail_if(blob.len != sstrlen(" totoy"), "urldecode failed");
+    fail_if(strcmp((const char *)blob.data, " totoy") != 0,
+            "urldecode failed");
+    fail_if(blob.len != sstrlen(" totoy"),
+            "urldecode failed");
 
     check_teardown(&blob, NULL);
 }
 END_TEST
 
-/*.........................................................................}}}*/
-/* test blob_b64                                                           {{{*/
+/*.....................................................................}}}*/
+/* test blob_b64                                                       {{{*/
 
 START_TEST(check_b64)
 {
@@ -1333,8 +1385,8 @@ START_TEST(check_b64)
 }
 END_TEST
 
-/*.........................................................................}}}*/
-/* test blob_search                                                        {{{*/
+/*.....................................................................}}}*/
+/* test blob_search                                                    {{{*/
 
 START_TEST(check_search)
 {
@@ -1366,8 +1418,8 @@ START_TEST(check_search)
 }
 END_TEST
 
-/*.........................................................................}}}*/
-/* test check_zlib                                                         {{{*/
+/*.....................................................................}}}*/
+/* test check_zlib                                                     {{{*/
 
 START_TEST(check_zlib)
 {
@@ -1392,10 +1444,8 @@ START_TEST(check_zlib)
 }
 END_TEST
 
-/*.........................................................................}}}*/
-/* test blob_blob_iconv                                                    {{{*/
-
-
+/*.....................................................................}}}*/
+/* test blob_blob_iconv                                                {{{*/
 
 static int check_aiconv_templ(const char *file1, const char *file2,
                               const char *encoding)
@@ -1414,11 +1464,12 @@ static int check_aiconv_templ(const char *file1, const char *file2,
     blob_append_file_data(&b2, file2);  
     fprintf(stderr, "b1.len=%zd\n", b1.len);
     fprintf(stderr, "b2.len=%zd\n", b2.len);
-    fail_if (blob_cmp(&b1, &b2) != 0, "blob_auto_iconv failed on: %s with" \
-             " hint \"%s\" encoding\n---\n%.*s\n---\n%.*s", file1, encoding,
+    fail_if (blob_cmp(&b1, &b2) != 0,
+             "blob_auto_iconv failed on: %s with"
+             " hint \"%s\" encoding\n---\n%.*s\n---\n%.*s",
+             file1, encoding,
              b1.len, blob_get_cstr(&b1),
-             b2.len, blob_get_cstr(&b2)
-             );
+             b2.len, blob_get_cstr(&b2));
     
     blob_wipe(&b1);
     blob_wipe(&b2);
@@ -1449,8 +1500,8 @@ START_TEST(check_blob_auto_iconv)
 }
 END_TEST
 
-/*.........................................................................}}}*/
-/* test blob_blob_iconv                                                    {{{*/
+/*.....................................................................}}}*/
+/* test blob_blob_iconv                                                {{{*/
 
 START_TEST(check_blob_iconv_close)
 {
@@ -1462,12 +1513,15 @@ START_TEST(check_blob_iconv_close)
     blob_init(&b1);
     blob_init(&b2);
 
-    blob_file_auto_iconv(&b2, "samples/example1.latin1", "ISO-8859-1", &c_typ);
-    blob_file_auto_iconv(&b2, "samples/example1.utf8", "UTF-8", &c_typ);
-    blob_file_auto_iconv(&b2, "samples/example2.windows-1250", "windows-1250", &c_typ);
+    blob_file_auto_iconv(&b2, "samples/example1.latin1", "ISO-8859-1",
+                         &c_typ);
+    blob_file_auto_iconv(&b2, "samples/example1.utf8", "UTF-8",
+                         &c_typ);
+    blob_file_auto_iconv(&b2, "samples/example2.windows-1250", "windows-1250",
+                         &c_typ);
 
-    fail_if (blob_iconv_close_all() != 3,
-             "blob_iconv_close_all has failed to close all handlers");
+    fail_if(blob_iconv_close_all() != 3,
+            "blob_iconv_close_all has failed to close all handlers");
 
     blob_wipe(&b1);
     blob_wipe(&b2);
@@ -1475,8 +1529,8 @@ START_TEST(check_blob_iconv_close)
 END_TEST
 
 
-/*.........................................................................}}}*/
-/* public testing API                                                      {{{*/
+/*.....................................................................}}}*/
+/* public testing API                                                  {{{*/
 
 Suite *check_make_blob_suite(void)
 {
@@ -1506,6 +1560,6 @@ Suite *check_make_blob_suite(void)
     return s;
 }
 
-/*.........................................................................}}}*/
+/*.....................................................................}}}*/
 #endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/

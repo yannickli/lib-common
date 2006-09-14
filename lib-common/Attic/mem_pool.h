@@ -26,7 +26,8 @@
  *   allocates size bytes of memory, and returns a pointer to that memory.
  *   the memory is not *necessarily* cleared.
  *   Note that unlike malloc(3) :
- *     - pool_t::malloc never fail (if we are out of memory, the program is stopped)
+ *     - pool_t::malloc never fail (if we are out of memory, the program
+ *        is stopped)
  *     - pool_t::malloc(0) will return NULL
  *   
  *   
@@ -37,9 +38,9 @@
  *
  * pool_t::free(void * ptr) :
  * 
- *   frees the he memory space pointed to by ptr, which must have been returned
- *   by a previous call to pool_t::malloc(), pool_t::calloc() or
- *   pool_t::realloc().
+ *   frees the he memory space pointed to by ptr, which must have been
+ *   returned by a previous call to pool_t::malloc(), pool_t::calloc()
+ *   or pool_t::realloc().
  *
  *   if ptr is NULL, no operation is performed.
  *
@@ -59,16 +60,16 @@
  *   pool_t::malloc(), pool_t::calloc()  or pool_t::realloc().
  *   If the area pointed to was moved, a free(ptr) is done.
  *
- *   the function never fails (see pool_t::malloc) and returns a pointer to the
- *   new memory location.
+ *   the function never fails (see pool_t::malloc) and returns a
+ *   pointer to the new memory location.
  *
  *   newly allocated memory will *NOT* be set to 0.
  *
  * 
  * pool_t::realloc0(void * ptr, ssize_t oldsize, ssize_t newsize)
  * 
- *   same as pool_t::realloc(ptr, newsize) + sets the last (newsize - oldsize)
- *   bytes to 0 (if oldsize < newsize)
+ *   same as pool_t::realloc(ptr, newsize) + sets the last (newsize -
+ *   oldsize) bytes to 0 (if oldsize < newsize)
  */
 
 typedef struct pool_t {
@@ -84,9 +85,9 @@ typedef struct pool_t {
 #define p_new(pool, type, count)  (type *)(pool)->calloc(sizeof(type)*(count))
 #define p_new0(pool, type, count) (type *)(pool)->calloc(sizeof(type)*(count))
 #define p_delete(pool, mem) do {                        \
-			        (pool)->free(mem);      \
-			        (mem) = NULL;           \
-			    } while (0)
+                                (pool)->free(mem);      \
+                                (mem) = NULL;           \
+                            } while (0)
 
 /* An implementation of pool_t that uses internally
  * malloc(3), calloc(3), free(3) and realloc(3)

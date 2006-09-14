@@ -17,7 +17,8 @@
 #include <time.h>
 #include "blob.h"
 
-ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt, const struct tm *tm);
+ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt,
+                      const struct tm *tm);
 static inline void blob_strftime_utc(blob_t *blob, ssize_t pos, time_t timer)
 {
     struct tm tm;

@@ -188,8 +188,7 @@ void msg_template_delete(msg_template **tpl)
     p_delete(tpl);
 }
 
-int msg_template_add_byte(msg_template *tpl, part_encoding enc,
-                          byte b)
+int msg_template_add_byte(msg_template *tpl, part_encoding enc, byte b)
 {
     return msg_template_add_data(tpl, enc, &b, 1);
 }
@@ -201,7 +200,7 @@ int msg_template_add_cstr(msg_template *tpl, part_encoding enc,
 }
 
 int msg_template_add_data(msg_template *tpl, part_encoding enc,
-                              const byte *data, int len)
+                          const byte *data, int len)
 {
     part_verbatim *verb;
     tpl_part part;
@@ -498,7 +497,9 @@ int main(void)
     msg_template_add_cstr(tpl, ENC_NONE, "!'\n");
 
     msg_template_add_cstr(tpl, ENC_NONE, "Data:'");
-    msg_template_add_cstr(tpl, ENC_NONE, "Nous vous souhaitons un très bon anniversaire !");
+    msg_template_add_cstr(tpl, ENC_NONE,
+                          "Nous vous souhaitons un "
+                          "très bon anniversaire !");
     msg_template_add_cstr(tpl, ENC_NONE, "'\n");
 
     /* TODO: Add some QS stuff, using "fields" */

@@ -19,9 +19,9 @@
 #include "macros.h"
 #include "string_is.h"
 
-/******************************************************************************/
-/* private types / macros                                                     */
-/******************************************************************************/
+/**************************************************************************/
+/* private types / macros                                                 */
+/**************************************************************************/
 
 #define FRAME_COUNT     32
 #define MIN_BLOCK_SIZE  4096
@@ -47,9 +47,9 @@ typedef struct frame_t {
     ssize_t space_left[FRAME_COUNT];
 } frame_t;
 
-/******************************************************************************/
-/* private variables                                                          */
-/******************************************************************************/
+/**************************************************************************/
+/* private variables                                                      */
+/**************************************************************************/
 
 static struct {
     int fpos;           /* our position in the current frame */
@@ -65,9 +65,9 @@ static struct {
     block_t * block;    /* largest unused block */
 } unused = { NULL, NULL };
 
-/******************************************************************************/
-/* private functions                                                          */
-/******************************************************************************/
+/**************************************************************************/
+/* private functions                                                      */
+/**************************************************************************/
 
 /* free_next_blocks(block)
  *
@@ -75,14 +75,15 @@ static struct {
  *
  * One exception :
  *   if one of those blocks is bigger than the current unused.block,
- *   it will replace the current unused.block, be reseted in a state where it's
- *   immediately usable, and the current unused.block will be free'd instead.
+ *   it will replace the current unused.block, be reseted in a state
+ *   where it is immediately usable, and the current unused.block will
+ *   be free'd instead.
  *
  * returns void
  */
 static void free_next_blocks(block_t * block)
 {
-    block_t * next_next;
+    block_t *next_next;
     int reset_block_invariant = 0;
 
     while (block->next != NULL) {
@@ -108,8 +109,8 @@ static void free_next_blocks(block_t * block)
 
 /* mem_block_alloc(min_size)
  *
- * Force the allocation (don't use unused.block) of a block of size of at least
- * min_size bytes.
+ * Force the allocation (don't use unused.block) of a block of size of
+ * at least min_size bytes.
  *
  * returns a pointer to the allocated block_t
  */
@@ -183,9 +184,9 @@ static void * malloc_real(ssize_t size, int permanent)
     return ret;
 }
 
-/******************************************************************************/
-/* public API                                                                 */
-/******************************************************************************/
+/**************************************************************************/
+/* public API                                                             */
+/**************************************************************************/
 
 int ds_push()
 {

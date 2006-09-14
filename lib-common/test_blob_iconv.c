@@ -47,9 +47,12 @@ static int check_blob_iconv_close(void)
     blob_init(&b1);
     blob_init(&b2);
 
-    blob_file_auto_iconv(&b2, "samples/example1.latin1", "ISO-8859-1", &c_typ);
-    blob_file_auto_iconv(&b2, "samples/example1.utf8", "UTF-8", &c_typ);
-    blob_file_auto_iconv(&b2, "samples/example2.windows-1250", "windows-1250", &c_typ);
+    blob_file_auto_iconv(&b2, "samples/example1.latin1", "ISO-8859-1",
+                         &c_typ);
+    blob_file_auto_iconv(&b2, "samples/example1.utf8", "UTF-8",
+                         &c_typ);
+    blob_file_auto_iconv(&b2, "samples/example2.windows-1250", "windows-1250",
+                         &c_typ);
 
     if (blob_iconv_close_all() != 3)
         printf("blob_iconv_close_all has failed to close all handlers\n");

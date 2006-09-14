@@ -50,7 +50,8 @@ static inline long vstrtol(char *str, char **endp, int base) {
 }
 #define strtol(str, endp, base)  cstrtol(str, endp, base)
 
-static inline long long cstrtoll(const char *str, const char **endp, int base) {
+static inline long long cstrtoll(const char *str, const char **endp, int base)
+{
     return (strtoll)(str, (char **)endp, base);
 }
 static inline long long vstrtoll(char *str, char **endp, int base) {
@@ -86,12 +87,12 @@ static inline void *vmemsearch(void *haystack, size_t hsize,
     return (void *)memsearch(haystack, hsize, needle, nsize);
 }
 
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 #include <check.h>
 
 Suite *check_string_is_suite(void);
 
 #endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
 #endif

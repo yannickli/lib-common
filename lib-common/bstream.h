@@ -233,7 +233,8 @@ static inline char *bgets(BSTREAM *stream, char *s, int size)
     return s;
 }
 
-static inline ssize_t bwrite_call(BSTREAM *stream, const void *buf, size_t count);
+static inline ssize_t bwrite_call(BSTREAM *stream, const void *buf,
+                                  size_t count);
 
 static inline ssize_t bwrite(BSTREAM *stream, const void *buf, size_t count)
 {

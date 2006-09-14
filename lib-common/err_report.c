@@ -22,9 +22,9 @@
 #undef ERR_REPORT_DEFINE_VERBOSITY
 #include "macros.h"
 
-/******************************************************************************/
-/* private API                                                                */
-/******************************************************************************/
+/**************************************************************************/
+/* private API                                                            */
+/**************************************************************************/
 
 struct log_status {
     bool is_open;    /* is the syslog open */
@@ -41,7 +41,8 @@ static void set_log_ident(const char *ident)
     }
     log_state.ident = strdup(ident);
     if (log_state.ident == NULL) {
-        e_fatal(FATAL_NOMEM, E_PREFIX("not enough memory to allocate new log_state.ident"));
+        e_fatal(FATAL_NOMEM,
+                E_PREFIX("not enough memory to allocate new log_state.ident"));
     }
 }
 
@@ -70,7 +71,8 @@ error:
         exit(FATAL_LOGWRITE);
     }
     log_state.fd = stderr;
-    e_fatal(FATAL_LOGWRITE, E_PREFIX("cannot write log : %s"), strerror(errno));
+    e_fatal(FATAL_LOGWRITE,
+            E_PREFIX("cannot write log : %s"), strerror(errno));
 }
 
 #define H_ARGS const char *format, va_list args
@@ -110,9 +112,9 @@ static void init_file(const char *ident, FILE *file)
     (void)e_set_debug_handler(&file_debug_handler);
 }
 
-/******************************************************************************/
-/* useful macros                                                              */
-/******************************************************************************/
+/**************************************************************************/
+/* useful macros                                                          */
+/**************************************************************************/
 
 #define E_BODY(kind) do {               \
     va_list args;                       \
@@ -127,9 +129,9 @@ static void init_file(const char *ident, FILE *file)
     return old;                                             \
 } while (0)
 
-/******************************************************************************/
-/* public API                                                                 */
-/******************************************************************************/
+/**************************************************************************/
+/* public API                                                             */
+/**************************************************************************/
 
 /* Error reporting functions */
 
@@ -159,12 +161,12 @@ void e_debug(int debuglevel, const char *format, ...)
 
 /* callback installers */
 
-e_callback_f *e_set_fatal_handler   (e_callback_f *hook) { E_SET_BODY(fatal);   }
-e_callback_f *e_set_error_handler   (e_callback_f *hook) { E_SET_BODY(error);   }
-e_callback_f *e_set_warning_handler (e_callback_f *hook) { E_SET_BODY(warning); }
-e_callback_f *e_set_notice_handler  (e_callback_f *hook) { E_SET_BODY(notice);  }
-e_callback_f *e_set_info_handler    (e_callback_f *hook) { E_SET_BODY(info);    }
-e_callback_f *e_set_debug_handler   (e_callback_f *hook) { E_SET_BODY(debug);   }
+e_callback_f *e_set_fatal_handler  (e_callback_f *hook) { E_SET_BODY(fatal);  }
+e_callback_f *e_set_error_handler  (e_callback_f *hook) { E_SET_BODY(error);  }
+e_callback_f *e_set_warning_handler(e_callback_f *hook) { E_SET_BODY(warning);}
+e_callback_f *e_set_notice_handler (e_callback_f *hook) { E_SET_BODY(notice); }
+e_callback_f *e_set_info_handler   (e_callback_f *hook) { E_SET_BODY(info);   }
+e_callback_f *e_set_debug_handler  (e_callback_f *hook) { E_SET_BODY(debug);  }
 
 /* useful callbacks */
 

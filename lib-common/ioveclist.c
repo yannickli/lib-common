@@ -25,11 +25,11 @@ int ioveclist_insert_first(ioveclist *l, const void *data, int size)
     int i;
 
     if (l->used >= IOVECLIST_OBJS_NUM) {
-	return 1;
+        return 1;
     }
     /* OG: should use memmove ? */
     for (i = l->used; i > 0; i--) {
-	l->objs[i] = l->objs[i-1];
+        l->objs[i] = l->objs[i-1];
     }
     l->used++;
     /* this cast is OK because we use iovec only for writing data */
@@ -50,33 +50,33 @@ ioveclist_state ioveclist_write(ioveclist *l, int fd)
     int nbwritten;
     nbwritten = writev(fd, l->objs, l->used);
     if (nbwritten < 0) {
-	if (errno == EINTR || errno == EAGAIN) {
-	    return IOVECLIST_LATER;
-	}
-	return IOVECLIST_WRITE_ERROR;
+        if (errno == EINTR || errno == EAGAIN) {
+            return IOVECLIST_LATER;
+        }
+        return IOVECLIST_WRITE_ERROR;
     }
     /* Skip over the written bytes.
      * */
     while (nbwritten > 0) {
-	if (nbwritten < (int) l->objs[0].iov_len) {
-	    /* chunk 0 not fully written */
-	    l->objs[0].iov_base = (byte *)l->objs[0].iov_base + nbwritten;
-	    l->objs[0].iov_len -= nbwritten;
-	    return IOVECLIST_LATER;
-	} else {
-	    /* chunk 0 fully written. Skip it. */
-	    nbwritten -= l->objs[0].iov_len;
-	    l->used--;
-	    int i;
-	    for (i = 0; i < l->used; i++) {
-		l->objs[i] = l->objs[i + 1];
-	    }
-	}
+        if (nbwritten < (int) l->objs[0].iov_len) {
+            /* chunk 0 not fully written */
+            l->objs[0].iov_base = (byte *)l->objs[0].iov_base + nbwritten;
+            l->objs[0].iov_len -= nbwritten;
+            return IOVECLIST_LATER;
+        } else {
+            /* chunk 0 fully written. Skip it. */
+            nbwritten -= l->objs[0].iov_len;
+            l->used--;
+            int i;
+            for (i = 0; i < l->used; i++) {
+                l->objs[i] = l->objs[i + 1];
+            }
+        }
     }
     if (l->used) {
-	return IOVECLIST_LATER;
+        return IOVECLIST_LATER;
     } else {
-	return IOVECLIST_EMPTY;
+        return IOVECLIST_EMPTY;
     }
 }
 

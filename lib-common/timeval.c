@@ -65,8 +65,8 @@ struct timeval timeval_add(struct timeval a, struct timeval b)
     res.tv_sec = a.tv_sec + b.tv_sec;
     res.tv_usec = a.tv_usec + b.tv_usec;
     if (res.tv_usec >= 1000 * 1000) {
-	res.tv_sec += 1;
-	res.tv_usec -= 1000 * 1000;
+        res.tv_sec += 1;
+        res.tv_usec -= 1000 * 1000;
     }
     e_debug(3, "{%s}+", timeval_format(a));
     e_debug(3, "{%s}=", timeval_format(b));
@@ -82,8 +82,8 @@ struct timeval timeval_sub(struct timeval a, struct timeval b)
     res.tv_sec = a.tv_sec - b.tv_sec;
     usec = a.tv_usec - b.tv_usec;
     if (usec < 0) {
-	res.tv_sec -= 1;
-	usec += 1000 * 1000;
+        res.tv_sec -= 1;
+        usec += 1000 * 1000;
     }
     res.tv_usec = usec;
 
@@ -115,7 +115,7 @@ bool is_expired(const struct timeval *date,
     e_debug(3, "is_expired({%s}) ?\n", timeval_format(*date));
     *left = timeval_sub(*date, *now);
     if ((left->tv_sec < 0) || (left->tv_sec == 0 && left->tv_usec == 0)) {
-	return true;
+        return true;
     }
     return false;
 }

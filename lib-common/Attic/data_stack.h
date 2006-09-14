@@ -23,7 +23,8 @@
 /* ds_push/ds_pop :
  *
  * ds_push create a new frame
- * ds_pop forgets everything that has been (re)get-ed or tie-d since last ds_push
+ * ds_pop forgets everything that has been (re)get-ed or tie-d since
+ * last ds_push
  */
 int ds_push(void);
 int ds_pop(void);
@@ -41,8 +42,8 @@ int ds_pop(void);
 
 /* ds_get :
  *   allocate some new buffer.
- *   - if ds_get is called twice, the second buffer may reuse the space used by
- *     the first one
+ *   - if ds_get is called twice, the second buffer may reuse the space
+ *     used by the first one
  *   - a call to ds_push will invalidate any get-ed buffer if not ds_tie-d
  *
  * ds_reget :
@@ -50,12 +51,12 @@ int ds_pop(void);
  *   be carefull, the buffer address may change
  *
  *   ds_reget ensure that the rignt buffer is beeing expansed.
- *   calls to ds_reget without prior ds_get calls may cause strange behaviours
- *   if misunderstood.
+ *   calls to ds_reget without prior ds_get calls may cause strange
+ *   behaviours if misunderstood.
  *
  * ds_try_reget :
- *   try to ds_reget, or return NULL if we tried to reget another buffer than
- *   the last one
+ *   try to ds_reget, or return NULL if we tried to reget another
+ *   buffer than the last one
  *
  * ds_tie :
  *   make last get/reget call permanent (until next ds_pop).
@@ -68,12 +69,13 @@ void ds_tie(ssize_t size);
 /* roughly : ds_get followed by ds_tie */
 void * ds_malloc(ssize_t size);
 
-/* this function returns the maximum length that is safe to read from a pointer
- * meaning that it will search if the pointer is in a frame, and if yes, will
- * answer the size until the end of the frame.
+/* this function returns the maximum length that is safe to read from a
+ * pointer meaning that it will search if the pointer is in a frame,
+ * and if yes, will answer the size until the end of the frame.
  *
- * This is useful for internals things with memory management, and direct use of
- * this function in anything else than memory allocation systems is discouraged.
+ * This is useful for internals things with memory management, and
+ * direct use of this function in anything else than memory allocation
+ * systems is discouraged.
  */
 ssize_t max_safe_size(void * mem);
 

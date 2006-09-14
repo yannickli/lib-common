@@ -14,15 +14,15 @@
 /* general things about parsing functions :
 
 
-signed_int_type
-`header'_parse_`what_it_parse' (const blob_t * blob, ssize_t * pos, foo ** answer)
+signed_int_type `header'_parse_`what_it_parses' (const blob_t * blob,
+                                                 ssize_t * pos, foo ** answer)
  
 Arguments :
-   in case of successful parse, pos is positionned at the octet just after the
-   last parsed octet, or after NULs in case of c-str-like tokens.
+   in case of successful parse, pos is positionned at the octet just
+   after the last parsed octet, or after NULs in case of c-str-like tokens.
 
-   in case of error, pos, answer and other function-modified arguments are never
-   modified.
+   in case of error, pos, answer and other function-modified arguments
+   are never modified.
 
    output variable answer has to point on a valid *and* initialized value.
 
@@ -62,7 +62,7 @@ enum blob_parse_status {
     do {                                    \
         if ((var) != NULL) {                \
             *(var) = (value);               \
-	}                                   \
+        }                                   \
     } while(0)
 
 #define TRANSMIT_PARSE_ERROR(result, expr)  \

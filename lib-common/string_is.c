@@ -39,10 +39,10 @@ ssize_t pstrcpy(char *dest, ssize_t size, const char *src)
     len = src ? strlen(src) : 0;
     if (dest && size > 0) {
         clen = len;
-	if (clen > (size_t)size - 1)
-	    clen = (size_t)size - 1;
+        if (clen > (size_t)size - 1)
+            clen = (size_t)size - 1;
         memcpy(dest, src, clen); /* assuming no overlap */
-	dest[clen] = '\0';
+        dest[clen] = '\0';
     }
     return (ssize_t)len;
 #else
@@ -101,10 +101,10 @@ ssize_t pstrcpylen(char *dest, ssize_t size, const char *src, ssize_t n)
 
     if (dest && size > 0) {
         clen = len;
-	if (clen > (size_t)size - 1)
-	    clen = (size_t)size - 1;
+        if (clen > (size_t)size - 1)
+            clen = (size_t)size - 1;
         memcpy(dest, src, clen); /* assuming no overlap */
-	dest[clen] = '\0';
+        dest[clen] = '\0';
     }
     return (ssize_t)len;
 }
@@ -179,8 +179,9 @@ ssize_t pstrcat(char *dest, ssize_t size, const char *src)
  */
 const char *skipspaces(const char *s)
 {
-    while (isspace((unsigned char)*s))
-	s++;
+    while (isspace((unsigned char)*s)) {
+        s++;
+    }
     return s;
 }
 
@@ -350,12 +351,13 @@ const void *memsearch(const void *_haystack, size_t hsize,
 }
 
 /*}}}*/
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 /* {{{*/
 #include <check.h>
 
-static const char *week = "Monday Tuesday Wednesday Thursday Friday Saturday Sunday";
+static const char *week = "Monday Tuesday Wednesday Thursday Friday "
+                          "Saturday Sunday";
 START_TEST(check_strstart)
 {
     const char *p;
@@ -459,7 +461,6 @@ Suite *check_string_is_suite(void)
     return s;
 }
 
-/*.........................................................................}}}*/
+/*.....................................................................}}}*/
 #endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
-
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
