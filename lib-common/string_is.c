@@ -170,6 +170,24 @@ ssize_t pstrcat(char *dest, ssize_t size, const char *src)
 #endif
 }
 
+/** returns the length of <code>str</code> not overflowing
+ * <code>size</code> bytes.
+ *
+ * @returns the length of the string, or -1 if the string does
+ * not end in the first <code>size</code> bytes.
+ */
+ssize_t pstrlen(const char *str, ssize_t size)
+{
+    ssize_t len;
+    for (len = 0; len < size; len++) {
+        if (!*str) {
+            return len;
+        }
+        str++;
+    }
+    return -1;
+}
+
 /** Skips initial blanks as per isspace(c).
  *
  * use vskipspaces for non const parameters
@@ -448,6 +466,16 @@ START_TEST(check_memsearch)
 }
 END_TEST
 
+START_TEST(check_pstrlen)
+{
+    fail_if (pstrlen("123", 4) != 3, "pstrlen \"123\", 4 failed");
+    fail_if (pstrlen("", 4) != 0, "pstrlen \"\", 4 failed");
+    fail_if (pstrlen(NULL, 0) != -1, "pstrlen NULL, 0 failed");
+    fail_if (pstrlen("abc\0def", 2) != -1, "pstrlen \"abc<NIL>def\", 2 failed");
+    fail_if (pstrlen("abc\0def", 6) != 3, "pstrlen \"abc<NIL>def\", 6 failed");
+}
+END_TEST
+
 Suite *check_string_is_suite(void)
 {
     Suite *s  = suite_create("String");
@@ -458,6 +486,7 @@ Suite *check_string_is_suite(void)
     tcase_add_test(tc, check_stristart);
     tcase_add_test(tc, check_stristr);
     tcase_add_test(tc, check_memsearch);
+    tcase_add_test(tc, check_pstrlen);
     return s;
 }
 
