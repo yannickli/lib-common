@@ -28,6 +28,7 @@ libcommon_SOURCES = \
 	err_report.c  \
 	fifo.c \
 	ioveclist.c \
+	mmappedfile.c \
 	string_is.c \
 	timeval.c \
 	msg_template.c \
