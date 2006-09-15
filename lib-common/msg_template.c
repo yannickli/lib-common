@@ -49,7 +49,7 @@ typedef struct part_verbatim {
 } part_verbatim;
 
 typedef struct part_qs {
-    /* FIXME : data should not be a blob but a QS struct */
+    /* FIXME: data should not be a blob but a QS struct */
     blob_t data;
 } part_qs;
 
@@ -66,7 +66,7 @@ typedef struct tpl_part {
         part_qs *qs;
     } u;
     part_encoding enc;
-    /* FIXME : Handle conditional part here */
+    /* FIXME: Handle conditional part here */
 } tpl_part;
 
 struct part_multi {
@@ -115,10 +115,10 @@ void part_multi_addpart(part_multi **multi_p, tpl_part *part)
         multi = mem_realloc(multi,
                             sizeof(part_multi)
                             + multi->nbparts_allocated * sizeof(tpl_part));
+        *multi_p = multi;
     }
-    memcpy(&multi->parts[multi->nbparts], part, sizeof(tpl_part));
+    multi->parts[multi->nbparts] = *part;
     multi->nbparts++;
-    *multi_p = multi;
 }
 
 static const tpl_part *part_multi_get(const part_multi *multi, int i)
@@ -137,22 +137,25 @@ static inline void part_multi_dump(const part_multi *multi)
     const tpl_part *curpart;
 
     e_debug(1, "nbparts:%d\n", multi->nbparts);
+
     for (i = 0; i < multi->nbparts; i++) {
         curpart = &multi->parts[i];
         e_debug(1, "[%02d]: ", i);
         switch (curpart->type) {
           case PART_VERBATIM:
-              e_debug(1, "VERBATIM: (%zd) '%s'\n",
-                     curpart->u.verbatim->data.len,
-                     blob_get_cstr(&curpart->u.verbatim->data));
+            /* TODO: should escape string */
+            e_debug(1, "VERBATIM: (%zd) '%s'\n",
+                    curpart->u.verbatim->data.len,
+                    blob_get_cstr(&curpart->u.verbatim->data));
             break;
           case PART_VARIABLE:
             e_debug(1, "VARIABLE: %d\n", curpart->u.variable->index);
             break;
           case PART_QS:
-              e_debug(1, "QS: (%zd) '%s'\n",
-                     curpart->u.qs->data.len,
-                     blob_get_cstr(&curpart->u.qs->data));
+            /* TODO: use qs interface to dump data */
+            e_debug(1, "QS: (%zd) '%s'\n",
+                    curpart->u.qs->data.len,
+                    blob_get_cstr(&curpart->u.qs->data));
             break;
           case PART_MULTI:
             e_debug(1, "MULTI: [skipped]\n");
@@ -164,6 +167,7 @@ static inline void part_multi_dump(const part_multi *multi)
 msg_template *msg_template_new(void)
 {
     msg_template *tpl;
+
     tpl = p_new(msg_template, 1);
     tpl->body = part_multi_new();
     return tpl;
@@ -190,10 +194,11 @@ void msg_template_delete(msg_template **tpl)
 
 static part_type msg_template_blob_encode(blob_t *src, part_encoding enc)
 {
-    static blob_t blob;
+    blob_t blob;
 
     blob_init(&blob);
-    switch(enc) {
+
+    switch (enc) {
       case ENC_NONE:
         break;
       case ENC_HTML:
@@ -202,19 +207,16 @@ static part_type msg_template_blob_encode(blob_t *src, part_encoding enc)
         enc = ENC_NONE;
         break;
       case ENC_BASE64:
-        blob_init(&blob);
         blob_encode_base64(&blob, src);
         blob_set(src, &blob);
         enc = ENC_NONE;
         break;
       case ENC_QUOTED_PRINTABLE:
-        blob_init(&blob);
         blob_encode_quoted_printable(&blob, src);
         blob_set(src, &blob);
         enc = ENC_NONE;
         break;
       case ENC_IA5:
-        blob_init(&blob);
         blob_encode_ia5(&blob, src);
         blob_set(src, &blob);
         enc = ENC_NONE;
@@ -236,7 +238,7 @@ int msg_template_add_byte(msg_template *tpl, part_encoding enc, byte b)
 }
 
 int msg_template_add_cstr(msg_template *tpl, part_encoding enc,
-                                   const char *str)
+                          const char *str)
 {
     return msg_template_add_data(tpl, enc, (const byte *)str, strlen(str));
 }
@@ -247,13 +249,15 @@ int msg_template_add_data(msg_template *tpl, part_encoding enc,
     part_verbatim *verb;
     tpl_part part;
     part_encoding newenc;
+
     if (!tpl || !data || len == 0) {
         return -1;
     }
-    if (tpl->body->nbparts
+    if (tpl->body->nbparts > 0
     &&  tpl->body->parts[tpl->body->nbparts - 1].type == PART_VERBATIM
-    &&  tpl->body->parts[tpl->body->nbparts - 1].enc == ENC_NONE) {
-        /* Do not create a new part : Concatenate it */
+    &&  tpl->body->parts[tpl->body->nbparts - 1].enc == ENC_NONE)
+    {
+        /* Do not create a new part: concatenate it */
         blob_t tmp;
         blob_init(&tmp);
         blob_set_data(&tmp, data, len);
@@ -286,6 +290,8 @@ int msg_template_add_blob(msg_template *tpl, part_encoding enc,
                                  data->len);
 }
 
+/* OG: why char ** const vars?
+ * should it not be char * const *vars, or const char * const *vars? */
 int msg_template_add_variable(msg_template *tpl, part_encoding enc, 
                               char ** const vars, int nbvars,
                               const char *name)
@@ -395,7 +401,7 @@ part_qs *part_qs_new(const char*src, int size)
     part_qs *qs;
 
     qs = p_new(part_qs, 1);
-    /* FIXME : data should not be a blob but a QS struct */
+    /* FIXME: data should not be a blob but a QS struct */
     blob_init(&qs->data);
     blob_set_data(&qs->data, src, size);
     return qs;
@@ -415,6 +421,7 @@ void part_qs_delete(part_qs **qs)
 /*
  * Fill vector with pointer to blobs
  */
+/* OG: same remark about vars and vector constness */
 int msg_template_apply(msg_template *tpl, char ** const vars, int nbvars,
                        blob_t ** const vector, byte *allocated, int count)
 {
@@ -450,10 +457,9 @@ int msg_template_apply(msg_template *tpl, char ** const vars, int nbvars,
           case PART_QS:
             e_debug(2, "QS:'%s'\n", blob_get_cstr(&curpart->u.qs->data));
             curblob = blob_new();
-            /* FIXME : Do the real job !!!
-             */
+            /* FIXME: apply qs template to var array */
 #if 0
-             qs_run(&curpart->u.qs->data, curblob, vars, nbvars);
+            qs_run(&curpart->u.qs->data, curblob, vars, nbvars);
 #else
             blob_set(curblob, &curpart->u.qs->data);
 #endif
@@ -511,6 +517,7 @@ Suite *check_msg_template_suite(void)
 #include <stdlib.h>
 #include <stdio.h>
 static inline int split_csv_line(char *line, char **fields[]);
+
 int main(void)
 {
     blob_t csv_blob;
