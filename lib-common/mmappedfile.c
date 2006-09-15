@@ -31,18 +31,22 @@ static inline mmfile *mmfile_init(mmfile *mf)
 
 mmfile *mmfile_open(const char *path, int flags)
 {
+    int prot = PROT_READ;
     struct stat st;
     mmfile *mf = mmfile_new();
 
-    mf->fd = open(path, flags | O_RDWR);
+    mf->fd = open(path, flags);
     if (mf->fd < 0)
         goto error;
 
     if (fstat(mf->fd, &st))
         goto error;
 
+    if (flags & (O_WRONLY | O_RDWR))
+        prot |= PROT_WRITE;
+
     mf->size = st.st_size;
-    mf->area = mmap(NULL, mf->size, PROT_READ | PROT_WRITE, MAP_SHARED,
+    mf->area = mmap(NULL, mf->size, prot, MAP_SHARED,
                     mf->fd, 0);
     if (mf->area == (void *)-1) {
         mf->area = NULL;
