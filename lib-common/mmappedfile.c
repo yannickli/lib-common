@@ -34,7 +34,7 @@ mmfile *mmfile_open(const char *path, int flags)
     struct stat st;
     mmfile *mf = mmfile_new();
 
-    mf->fd = open(path, flags);
+    mf->fd = open(path, flags | O_RDWR);
     if (mf->fd < 0)
         goto error;
 
