@@ -1475,6 +1475,79 @@ END_TEST
 /*.....................................................................}}}*/
 /* test blob_blob_iconv                                                {{{*/
 
+static int check_gunzip_tpl(const char *file1, const char *file2)
+{
+    blob_t b1;
+    blob_t b2;
+    
+    int i = 0;
+    int c_typ = 0;
+
+    blob_init(&b1);
+    blob_init(&b2);
+    
+    blob_file_gunzip(&b1, file1);
+    blob_append_file_data(&b2, file2);
+
+    fail_if (blob_cmp(&b1, &b2) != 0, "blob_gunzip failed on: %s, %s",
+             file1, file2);
+    
+    blob_wipe(&b1);
+    blob_wipe(&b2);
+    
+    return 0;
+}
+
+START_TEST(check_gunzip)
+{
+    check_gunzip_tpl("samples/example1_zlib.gz", "samples/example1_zlib");
+}
+END_TEST
+
+/*.....................................................................}}}*/
+/* test check_gzip                                                     {{{*/
+
+static int check_gzip_tpl(const char *file1, const char *file2)
+{
+    blob_t b1;
+    blob_t b2;
+    
+    int i = 0;
+    int c_typ = 0;
+
+    blob_init(&b1);
+    blob_init(&b2);
+    
+    blob_file_gzip(&b1, file1);
+
+    #if 1
+    {
+        FILE *f = fopen("samples/out.my.gz", "w");
+        fwrite(b1.data, b1.len, 1, f);
+        fclose(f);
+    }
+    #endif
+    
+    blob_append_file_data(&b2, file2); 
+
+    fail_if (blob_cmp(&b1, &b2) != 0, "blob_gzip failed on: %s, %s",
+             file1, file2);
+    
+    blob_wipe(&b1);
+    blob_wipe(&b2);
+    
+    return 0;
+}
+
+START_TEST(check_gzip)
+{
+    check_gzip_tpl("samples/example1_zlib", "samples/example1_zlib.gz");
+}
+END_TEST
+
+/*.....................................................................}}}*/
+/* test blob_blob_iconv                                                {{{*/
+
 static int check_aiconv_templ(const char *file1, const char *file2,
                               const char *encoding)
 {
@@ -1490,8 +1563,6 @@ static int check_aiconv_templ(const char *file1, const char *file2,
     blob_file_auto_iconv(&b1, file1, encoding, &c_typ);
 
     blob_append_file_data(&b2, file2);  
-    fprintf(stderr, "b1.len=%zd\n", b1.len);
-    fprintf(stderr, "b2.len=%zd\n", b2.len);
     fail_if (blob_cmp(&b1, &b2) != 0,
              "blob_auto_iconv failed on: %s with"
              " hint \"%s\" encoding\n---\n%.*s\n---\n%.*s",
@@ -1582,8 +1653,11 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_b64);
     tcase_add_test(tc, check_search);
     tcase_add_test(tc, check_zlib);
+    tcase_add_test(tc, check_gunzip);
+    tcase_add_test(tc, check_gzip);
     tcase_add_test(tc, check_blob_auto_iconv);
     tcase_add_test(tc, check_blob_iconv_close);
+
 
     return s;
 }

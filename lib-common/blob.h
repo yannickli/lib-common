@@ -220,9 +220,12 @@ ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos,
 /* Blob compression/decompression                                         */
 /**************************************************************************/
 
+int blob_gzip(blob_t *dest, const blob_t *src);
+int blob_gunzip(blob_t *dest, const blob_t *src);
+int blob_file_gzip(blob_t *dst, const char *filename);
+int blob_file_gunzip(blob_t *dst, const char *filename);
 int blob_compress(blob_t *dest, blob_t *src);
 int blob_uncompress(blob_t *dest, blob_t *src);
-
 
 /**************************************************************************/
 /* Blob encoding                                                          */
