@@ -17,6 +17,8 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+#include <lib-common/macros.h>
+
 #define MMFILE_ALIAS(ptr_type) \
     {                              \
         int       fd;              \
@@ -25,7 +27,7 @@
         ptr_type *area;            \
     }
 
-typedef struct mmfile MMFILE_ALIAS(void) mmfile;
+typedef struct mmfile MMFILE_ALIAS(byte) mmfile;
 
 mmfile *mmfile_open(const char *path, int flags);
 mmfile *mmfile_creat(const char *path, off_t initialsize);
