@@ -28,7 +28,7 @@
 
 typedef int ZEXPORT (*zlib_fct_t)(Bytef *dest, uLongf *destLen,
                                   const Bytef *source, uLong sourceLen);
-typedef int (*ziping_fct_t) (blob_t *dest, const blob_t *src);
+typedef int (*ziping_fct_t)(blob_t *dest, const blob_t *src);
 
 /**
  * TODO: Find a cleaner implementation
@@ -151,7 +151,7 @@ static int blob_generic_uncompress(blob_t *dest, const blob_t *src,
     blob_resize(dest, 0);
     blob_resize(dest, len);
     data = ((real_blob_t *) dest)->data;
-    while ((err = uncomp_fct(data, &len, src->data, src->len)) != Z_OK &&
+    while ((err = (*uncomp_fct)(data, &len, src->data, src->len)) != Z_OK &&
            try < 2)
     {
         if (err == Z_BUF_ERROR) {
@@ -204,7 +204,7 @@ static int blob_generic_compress(blob_t *dest, const blob_t *src,
     len = src->len + 256;
     blob_resize(dest, len);
     data = ((real_blob_t *) dest)->data;
-    while ((err = comp_fct(data, &len, src->data, src->len)) != Z_OK &&
+    while ((err = (*comp_fct)(data, &len, src->data, src->len)) != Z_OK &&
            try < 2)
     {
         if (err == Z_BUF_ERROR) {
@@ -231,11 +231,11 @@ int blob_compress(blob_t *dest, blob_t *src)
 
 static void blob_append_reverse_int(blob_t *dest, unsigned long nb)
 {
-    int i = 0;
+    int i;
     
-    for (; i < 4; nb /= 256) {
-        blob_append_byte(dest, nb % 256);
-        i++;
+    for (i = 0; i < 4; i++) {
+        blob_append_byte(dest, nb & 0xFF);
+        nb >>= 8;
     }
 }
 
@@ -294,7 +294,7 @@ static int blob_file_generic_gzip_gunzip(blob_t *dst, const char *filename,
         return -1;
     }
 
-    res = ziping_fct(dst, &tmp);
+    res = (*ziping_fct)(dst, &tmp);
     blob_wipe(&tmp);
 
     return res;

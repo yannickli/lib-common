@@ -170,7 +170,7 @@ ssize_t pstrcat(char *dest, ssize_t size, const char *src)
 #endif
 }
 
-/** returns the length of <code>str</code> not overflowing
+/** Returns the length of <code>str</code> not overflowing
  * <code>size</code> bytes.
  *
  * @returns the length of the string, or -1 if the string does
@@ -178,7 +178,10 @@ ssize_t pstrcat(char *dest, ssize_t size, const char *src)
  */
 ssize_t pstrlen(const char *str, ssize_t size)
 {
+    /* TODO: use memchr() */
+    /* TODO: inconsistent semantics: should return size instead of -1 */
     ssize_t len;
+
     for (len = 0; len < size; len++) {
         if (!*str) {
             return len;

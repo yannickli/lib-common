@@ -42,12 +42,11 @@ mmfile *mmfile_open(const char *path, int flags)
     if (fstat(mf->fd, &st))
         goto error;
 
-    if (flags & (O_WRONLY | O_RDWR))
+    if (flags & (O_WRONLY | O_RDWR)) {
         prot |= PROT_WRITE;
-
+    }
     mf->size = st.st_size;
-    mf->area = mmap(NULL, mf->size, prot, MAP_SHARED,
-                    mf->fd, 0);
+    mf->area = mmap(NULL, mf->size, prot, MAP_SHARED, mf->fd, 0);
     if (mf->area == (void *)-1) {
         mf->area = NULL;
         goto error;
