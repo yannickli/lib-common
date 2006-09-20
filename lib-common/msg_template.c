@@ -290,10 +290,8 @@ int msg_template_add_blob(msg_template *tpl, part_encoding enc,
                                  data->len);
 }
 
-/* OG: why char ** const vars?
- * should it not be char * const *vars, or const char * const *vars? */
 int msg_template_add_variable(msg_template *tpl, part_encoding enc, 
-                              char ** const vars, int nbvars,
+                              char * const *vars, int nbvars,
                               const char *name)
 {
     part_variable *varpart;
@@ -421,8 +419,7 @@ void part_qs_delete(part_qs **qs)
 /*
  * Fill vector with pointer to blobs
  */
-/* OG: same remark about vars and vector constness */
-int msg_template_apply(msg_template *tpl, char ** const vars, int nbvars,
+int msg_template_apply(msg_template *tpl, char * const *vars, int nbvars,
                        blob_t ** const vector, byte *allocated, int count)
 {
     int i;

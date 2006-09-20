@@ -43,10 +43,10 @@ int msg_template_add_data(msg_template *tpl, part_encoding enc,
 int msg_template_add_blob(msg_template *tpl, part_encoding enc,
                           const blob_t *data);
 int msg_template_add_variable(msg_template *tpl, part_encoding enc, 
-                              char ** const vars, int nbvars,
+                              char * const *vars, int nbvars,
                               const char *name);
 void msg_template_optimize(msg_template *tpl);
-int msg_template_apply(msg_template *tpl, char ** const vars, int nbvars,
+int msg_template_apply(msg_template *tpl, char * const *vars, int nbvars,
                        blob_t **vector, byte *allocated, int count);
 int msg_template_nbparts(const msg_template *tpl);
 
