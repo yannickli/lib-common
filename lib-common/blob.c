@@ -333,6 +333,11 @@ void blob_insert_data(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
     blob_insert_data_real(blob, pos, data, len);
 }
 
+void blob_insert_byte(blob_t *blob, byte b)
+{
+    blob_insert_data_real(blob, 0, &b, 1);
+}
+
 /*** append functions ***/
 
 void blob_append(blob_t *dest, const blob_t *src)
