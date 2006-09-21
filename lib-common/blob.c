@@ -984,8 +984,17 @@ int blob_encode_quoted_printable(blob_t *dst, const blob_t *src)
 
 int blob_encode_ia5(blob_t *dst, const blob_t *src)
 {
-    /* FIXME */
-    blob_set(dst, src);
+    int i, b0, b1;
+    blob_resize(dst, src->len * 2);
+    blob_resize(dst, 0);
+    for (i = 0; i < src->len; i++) {
+        b0 = (src->data[i] >> 0) & 0x0F;
+        b1 = (src->data[i] >> 4) & 0x0F;
+        b0 += (0 <= b0 && b0 <= 9) ? '0': 'A' - 10;
+        b1 += (0 <= b1 && b1 <= 9) ? '0': 'A' - 10;
+        blob_append_byte(dst, b1);
+        blob_append_byte(dst, b0);
+    }
     return 0;
 }
 
@@ -1632,6 +1641,35 @@ START_TEST(check_blob_iconv_close)
 }
 END_TEST
 
+START_TEST(check_ia5)
+{
+    blob_t src, dst, back;
+    blob_init(&src);
+    blob_init(&dst);
+    blob_init(&back);
+#define TEST_STRING "Injector test String"
+#define TEST_STRING_ENC "496E6A6563746F72207465737420537472696E67"
+
+    blob_set_cstr(&src, TEST_STRING);
+    blob_encode_ia5(&dst, &src);
+
+    fail_if(strcmp(blob_get_cstr(&dst), TEST_STRING_ENC),
+            "blob_encode_ia5 failure");
+
+#if 0
+    blob_decode_ia5(&back, dst);
+    fail_if(strcmp(blob_get_cstr(&back), TEST_STRING),
+            "blob_decode_ia5 failure");
+#endif
+
+#undef TEST_STRING
+#undef TEST_STRING_ENC
+
+    blob_wipe(&src);
+    blob_wipe(&dst);
+    blob_wipe(&back);
+}
+END_TEST
 
 /*.....................................................................}}}*/
 /* public testing API                                                  {{{*/
@@ -1656,6 +1694,7 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_printf);
     tcase_add_test(tc, check_url);
     tcase_add_test(tc, check_b64);
+    tcase_add_test(tc, check_ia5);
     tcase_add_test(tc, check_search);
     tcase_add_test(tc, check_zlib);
     tcase_add_test(tc, check_gunzip);
