@@ -206,7 +206,7 @@ static inline int bgetc(BSTREAM *stream)
 static inline char *bgets(BSTREAM *stream, char *s, int size)
 {
     char *p;
-    int n, c;
+    int n, c = -1;
 
     if (size <= 0) {
         return NULL;
