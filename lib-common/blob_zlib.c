@@ -48,23 +48,26 @@ static int ZEXPORT gzip_compress(Bytef *dest, uLongf *destLen,
     stream.avail_in = (uInt)sourceLen;
 #ifdef MAXSEG_64K
     /* Check for source > 64K on 16-bit machine: */
-    if ((uLong)stream.avail_in != sourceLen) return Z_BUF_ERROR;
+    if ((uLong)stream.avail_in != sourceLen)
+        return Z_BUF_ERROR;
 #endif
     stream.next_out = dest;
     stream.avail_out = (uInt)*destLen;
-    if ((uLong)stream.avail_out != *destLen) return Z_BUF_ERROR;
+    if ((uLong)stream.avail_out != *destLen)
+        return Z_BUF_ERROR;
 
-    stream.zalloc = (alloc_func)0;
-    stream.zfree = (free_func)0;
-    stream.opaque = (voidpf)0;
+    stream.zalloc = (alloc_func)NULL;
+    stream.zfree  = (free_func)NULL;
+    stream.opaque = (voidpf)NULL;
 
     /* Intersec fix added here */
     err = deflateInit2(&stream, Z_DEFAULT_COMPRESSION,
                        Z_DEFLATED, -MAX_WBITS, DEF_MEM_LEVEL,
                        Z_DEFAULT_STRATEGY);
     /* Intersec fix ends here */
-    
-    if (err != Z_OK) return err;
+
+    if (err != Z_OK)
+        return err;
 
     err = deflate(&stream, Z_FINISH);
     if (err != Z_STREAM_END) {
@@ -93,13 +96,13 @@ static int ZEXPORT gzip_uncompress (Bytef *dest, uLongf *destLen,
     if ((uLong)stream.avail_in != sourceLen) {
         return Z_BUF_ERROR;
     }
-        
+
     stream.next_out = dest;
     stream.avail_out = (uInt)*destLen;
     if ((uLong)stream.avail_out != *destLen) {
         return Z_BUF_ERROR;
     }
-        
+
     stream.zalloc = (alloc_func)0;
     stream.zfree = (free_func)0;
 
@@ -113,7 +116,7 @@ static int ZEXPORT gzip_uncompress (Bytef *dest, uLongf *destLen,
     stream.next_in += GZIP_HEADER_SIZE;
     stream.avail_in -= GZIP_HEADER_SIZE;
     /* Intersec fix ends here */
-    
+
     if (err != Z_OK) {
         return err;
     }
@@ -197,7 +200,7 @@ static int blob_generic_compress(blob_t *dest, const blob_t *src,
     int try = 0;
     byte *data;
     uLongf len;
-        
+
     if (dest == NULL || src == NULL) {
         return -1;
     }
@@ -232,7 +235,7 @@ int blob_compress(blob_t *dest, blob_t *src)
 static void blob_append_reverse_int(blob_t *dest, unsigned long nb)
 {
     int i;
-    
+
     for (i = 0; i < 4; i++) {
         blob_append_byte(dest, nb & 0xFF);
         nb >>= 8;
@@ -247,31 +250,31 @@ static void blob_append_reverse_int(blob_t *dest, unsigned long nb)
  */
 int blob_gzip(blob_t *dest, const blob_t *src)
 {
-    const byte header[10] = {0x1f, 0x8b, 0x08, 0x00, 0x00,
-                             0x00, 0x00, 0x00, 0x00, 0x00};
+    const byte header[10] = { 0x1f, 0x8b, 0x08, 0x00, 0x00,
+                              0x00, 0x00, 0x00, 0x00, 0x00 };
     blob_t tmp;
     int res = 0;
     uLong crc_src;
     uLong len = src->len;
-    
+
     blob_init(&tmp);
     blob_set_data(&tmp, header, 10);
-        
+
     blob_resize(dest, 0);
 
     crc_src = crc32(0L, Z_NULL, 0);
     crc_src = crc32(crc_src, src->data, src->len);
 
     res = blob_generic_compress(dest, src, gzip_compress);
-    
+
     blob_append_reverse_int(dest, crc_src);
     blob_append_reverse_int(dest, len);
-    
+
     blob_append(&tmp, dest);
-    blob_set(dest, &tmp);      
+    blob_set(dest, &tmp);
 
     blob_wipe(&tmp);
-    
+
     return res;
 }
 
@@ -287,7 +290,7 @@ static int blob_file_generic_gzip_gunzip(blob_t *dst, const char *filename,
     int res = 0;
 
     blob_init(&tmp);
-    
+
     if (blob_append_file_data(&tmp, filename) < 0) {
         e_debug(3, "Unable to append data from '%s'\n", filename);
         blob_wipe(&tmp);
