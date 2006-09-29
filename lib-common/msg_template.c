@@ -19,6 +19,7 @@
 #include "blob.h"
 #include "mem.h"
 #include "msg_template.h"
+#include "strconv.h"
 
 #define VAR_START      "${"
 #define VAR_START_LEN  2
@@ -33,7 +34,7 @@
 typedef enum part_type {
     PART_VERBATIM,
     PART_VARIABLE,
-    PART_MULTI,
+    PART_MULTI,         /* unused, and unimplemented */
     PART_QS,
 } part_type;
 
@@ -81,8 +82,9 @@ void part_multi_wipe(part_multi *multi);
 
 void part_multi_addpart(part_multi **multi, tpl_part *part);
 static const tpl_part *part_multi_get(const part_multi *multi, int i);
-int part_multi_nbparts(const part_multi *multi);
-static inline void part_multi_dump(const part_multi *multi);
+static int part_multi_nbparts(const part_multi *multi);
+static inline void part_multi_dump(const part_multi *multi,
+                                   char * const *vars, int nbvars);
 
 part_variable *part_variable_new(int ind);
 void part_variable_delete(part_variable **variable);
@@ -96,10 +98,11 @@ part_qs *part_qs_new(const char*src, int size);
 void part_qs_delete(part_qs **qs);
 void part_qs_wipe(part_qs *qs);
 
-void msg_template_dump(const msg_template *tpl)
+void msg_template_dump(const msg_template *tpl,
+                       char * const *vars, int nbvars)
 {
     if (tpl->body) {
-        part_multi_dump(tpl->body);
+        part_multi_dump(tpl->body, vars, nbvars);
     } else {
         e_debug(1, "empty tpl\n");
     }
@@ -121,19 +124,22 @@ void part_multi_addpart(part_multi **multi_p, tpl_part *part)
     multi->nbparts++;
 }
 
-static const tpl_part *part_multi_get(const part_multi *multi, int i)
+static inline const tpl_part *part_multi_get(const part_multi *multi, int i)
 {
     return &multi->parts[i];
 }
 
-int part_multi_nbparts(const part_multi *multi)
+static inline int part_multi_nbparts(const part_multi *multi)
 {
     return multi->nbparts;
 }
 
-static inline void part_multi_dump(const part_multi *multi)
+static inline void part_multi_dump(const part_multi *multi,
+                                   char * const *vars, int nbvars)
 {
-    int i;
+    int i, len;
+    char *ptr;
+    const char *name;
     const tpl_part *curpart;
 
     e_debug(1, "nbparts:%d\n", multi->nbparts);
@@ -143,21 +149,36 @@ static inline void part_multi_dump(const part_multi *multi)
         e_debug(1, "[%02d]: ", i);
         switch (curpart->type) {
           case PART_VERBATIM:
-            /* TODO: should escape string */
-            e_debug(1, "VERBATIM: (%zd) '%s'\n",
-                    curpart->u.verbatim->data.len,
-                    blob_get_cstr(&curpart->u.verbatim->data));
+            len = strconv_quote(NULL, 0,
+                                blob_get_cstr(&curpart->u.verbatim->data),
+                                curpart->u.verbatim->data.len, '"');
+            ptr = alloca(len + 1);
+            strconv_quote(ptr, len + 1,
+                          blob_get_cstr(&curpart->u.verbatim->data),
+                          curpart->u.verbatim->data.len, '"');
+            e_debug(1, "VERBATIM: (%zd) \"%s\"\n",
+                    curpart->u.verbatim->data.len, ptr);
             break;
           case PART_VARIABLE:
-            e_debug(1, "VARIABLE: %d\n", curpart->u.variable->index);
+            name = (curpart->u.variable->index < nbvars) ?
+                  vars[curpart->u.variable->index] : "???";
+            e_debug(1, "VARIABLE: %d (%s)\n",
+                    curpart->u.variable->index, name);
             break;
           case PART_QS:
             /* TODO: use qs interface to dump data */
-            e_debug(1, "QS: (%zd) '%s'\n",
-                    curpart->u.qs->data.len,
-                    blob_get_cstr(&curpart->u.qs->data));
+            len = strconv_quote(NULL, 0,
+                                blob_get_cstr(&curpart->u.qs->data),
+                                curpart->u.qs->data.len, '"');
+            ptr = alloca(len + 1);
+            strconv_quote(ptr, len + 1,
+                          blob_get_cstr(&curpart->u.qs->data),
+                          curpart->u.qs->data.len, '"');
+            e_debug(1, "QS: (%zd) \"%s\"\n",
+                    curpart->u.qs->data.len, ptr);
             break;
-          case PART_MULTI:
+          case PART_MULTI:   /* unused */
+            /* TODO: recurse with increased indentation */
             e_debug(1, "MULTI: [skipped]\n");
             break;
         }
@@ -290,32 +311,137 @@ int msg_template_add_blob(msg_template *tpl, part_encoding enc,
                                  data->len);
 }
 
+int msg_template_add_qs(msg_template *tpl, part_encoding enc,
+                        const byte *data, int len)
+{
+    /* TODO */
+    return msg_template_add_data(tpl, enc, data, len);
+}
+
+static int msg_template_lookup_variable(char * const *vars, int nbvars,
+                                        const char *name, int namelen)
+{
+    int i;
+    
+    for (i = 0; i < nbvars; i++) {
+        if (!strncmp(name, vars[i], namelen)
+        &&   vars[i][namelen] == '\0') {
+            return i;
+        }
+    }
+    return -1;
+}
+
 int msg_template_add_variable(msg_template *tpl, part_encoding enc, 
                               char * const *vars, int nbvars,
                               const char *name)
 {
     part_variable *varpart;
     tpl_part part;
-    int i;
+    int vn;
 
     if (!tpl || !name) {
         return -1;
     }
-    for (i = 0; i < nbvars; i++) {
-        if (!strcmp(name, vars[i])) {
-            break;
-        }
-    }
-    if (i == nbvars) {
+    vn = msg_template_lookup_variable(vars, nbvars, name, strlen(name));
+    if (vn < 0) {
         return -1;
     }
-    varpart = part_variable_new(i);
+    varpart = part_variable_new(vn);
     part.type = PART_VARIABLE;
     part.u.variable = varpart;
     part.enc = enc;
 
     part_multi_addpart(&tpl->body, &part);
     return 0;
+}
+
+int msg_template_add_varstring(msg_template *tpl, part_encoding enc,
+                               const byte *data, int len,
+                               char * const *vars, int nbvars)
+{
+    const byte *end, *p, *p0, *p1, *p2, *p3;
+    int vn, nfields;
+    
+    nfields = 0;
+    end = data + len;
+    for (p = data; p < end;) {
+        p0 = memsearch(p, end - p, "{", 1);
+        if (!p0)
+            break;
+        p1 = bskipspaces(p0 + 1);
+        if (*p1 != '$') {
+            nfields = -1;
+            break;
+        }
+        p1 += 1;        /* skip '{' */
+        p2 = p3 = memsearch(p1, end - p1, "}", 1);
+        if (!p3) {
+            /* Should reject malformed template string */
+            break;
+        }
+        p3 += 1;        /* skip '}' */
+        while (p2 > p1 && isspace(p2[-1])) {
+            p2--;
+        }
+        vn = msg_template_lookup_variable(vars, nbvars,
+                                          (const char*)p1, p2 - p1);
+        if (vn < 0) {
+            nfields = -1;
+            break;
+        }
+        nfields++;
+        p = p3;
+    }
+    if (nfields < 0) {
+        msg_template_add_qs(tpl, enc, data, len);
+        return 0;
+    } else
+    if (nfields == 0) {
+        msg_template_add_data(tpl, enc, data, len);
+        return 0;
+    } else {
+        for (p = data; p < end;) {
+            p0 = memsearch(p, end - p, "{", 1);
+            if (!p0)
+                break;
+            p1 = bskipspaces(p0 + 1);
+            if (*p1 != '$') {
+                break;
+            }
+            p1 += 1;        /* skip '{' */
+            p2 = p3 = memsearch(p1, end - p1, "}", 1);
+            if (!p3) {
+                break;
+            }
+            p3 += 1;        /* skip '}' */
+            while (p2 > p1 && isspace(p2[-1])) {
+                p2--;
+            }
+            vn = msg_template_lookup_variable(vars, nbvars,
+                                              (const char*)p1, p2 - p1);
+            if (vn < 0) {
+                break;
+            }
+            if (p0 > p) {
+                msg_template_add_data(tpl, enc, p, p0 - p);
+            }
+            {
+                part_variable *varpart;
+                tpl_part part;
+                varpart = part_variable_new(vn);
+                part.type = PART_VARIABLE;
+                part.u.variable = varpart;
+                part.enc = enc;
+                part_multi_addpart(&tpl->body, &part);
+            }
+            p = p3;
+        }
+        if (end > p) {
+            msg_template_add_data(tpl, enc, p, end - p);
+        }
+        return 0;
+    }
 }
 
 part_multi *part_multi_new(void)
@@ -340,7 +466,7 @@ void part_multi_wipe(part_multi *multi)
           case PART_QS:
             part_qs_delete(&curpart->u.qs);
             break;
-          case PART_MULTI:
+          case PART_MULTI:      /* unused */
             part_multi_delete(&curpart->u.multi);
             break;
         }
@@ -419,8 +545,9 @@ void part_qs_delete(part_qs **qs)
 /*
  * Fill vector with pointer to blobs
  */
+/* OG: should take a blob or a vector as output */
 int msg_template_apply(msg_template *tpl, char * const *vars, int nbvars,
-                       blob_t ** const vector, byte *allocated, int count)
+                       blob_t ** vector, byte *allocated, int count)
 {
     int i;
     blob_t *curblob;
@@ -463,8 +590,7 @@ int msg_template_apply(msg_template *tpl, char * const *vars, int nbvars,
             vector[i] = curblob;
             allocated[i] = 1;
             break;
-          case PART_MULTI:
-            /* FIXME */
+          case PART_MULTI:      /* unused */
             curblob = blob_new();
             blob_set_cstr(curblob, "***MULTI***");
             vector[i] = curblob;
@@ -507,136 +633,13 @@ Suite *check_msg_template_suite(void)
     return s;
 }
 #endif
-#if 0
+
+#ifdef MSG_TEST
 /*
  gcc -g -o msg_template msg_template.c err_report.c  blob.c string_is.c
  */
 #include <stdlib.h>
 #include <stdio.h>
-static inline int split_csv_line(char *line, char **fields[]);
-
-int main(void)
-{
-    blob_t csv_blob;
-    const char *p;
-    char *q, *fieldline, *dataline;
-    char **fields, **data;
-    msg_template *tpl;
-    blob_t **out;
-    byte *allocated;
-    int nbfields, nbparts, nbdata, i;
-    blob_t blob;
-
-    e_set_verbosity (1);
-
-    blob_init(&csv_blob);
-    blob_append_file_data(&csv_blob, "samples/simple.csv");
-
-    p = blob_get_cstr(&csv_blob);
-    q = strchr(blob_get_cstr(&csv_blob), '\n');
-    if (!q) {
-        return -1;
-    }
-
-    fieldline = mem_alloc(q - p + 1);
-    pstrcpylen(fieldline, q - p + 1, p, q - p);
-    fieldline[q - p] = '\0';
-    blob_kill_first(&csv_blob, q - p + 1);
-
-    e_debug(1, blob_get_cstr(&csv_blob));
-
-    nbfields = split_csv_line(fieldline, &fields);
-    if (nbfields < 0) {
-        return 1;
-    }
-    
-    tpl = msg_template_new();
-
-    /* Add some parts */
-    msg_template_add_cstr(tpl, ENC_NONE, "TO:'");
-    msg_template_add_variable(tpl, ENC_NONE, fields, nbfields, "telephone");
-    msg_template_add_cstr(tpl, ENC_NONE, "'\n");
-
-    msg_template_add_cstr(tpl, ENC_NONE, "Subject:'");
-    msg_template_add_cstr(tpl, ENC_NONE, "Bon anniversaire ");
-    msg_template_add_variable(tpl, ENC_NONE, fields, nbfields, "prenom");
-    msg_template_add_cstr(tpl, ENC_NONE, "!'\n");
-
-    msg_template_add_cstr(tpl, ENC_NONE, "Data:'");
-    msg_template_add_cstr(tpl, ENC_NONE,
-                          "Nous vous souhaitons un "
-                          "très bon anniversaire !");
-    msg_template_add_cstr(tpl, ENC_NONE, "'\n");
-
-    /* TODO: Add some QS stuff, using "fields" */
-
-    /* Add some binary parts */
-    blob_init(&blob);
-    for (i = 0; i < 3; i++) {
-        blob_set_fmt(&blob, "FAKE BINARY CHUNK %d", i);
-        msg_template_add_blob(tpl, ENC_NONE, &blob);
-    }
-
-    /* We're done with "demo objects". Free them. */
-    mem_free(fieldline);
-    mem_free(fields);
-    blob_wipe(&blob);
-
-
-    /* Display the resulting template */
-    msg_template_dump(tpl);
-    msg_template_optimize(tpl);
-    msg_template_dump(tpl);
-
-    /* Use csv_blob to produce some output */
-    nbparts = msg_template_nbparts(tpl);
-    allocated = p_new(byte, nbparts);
-    out = p_new(blob_t *, nbparts);
-
-    while (csv_blob.len) {
-        p = blob_get_cstr(&csv_blob);
-        q = strchr(blob_get_cstr(&csv_blob), '\n');
-        if (!q) {
-            return -1;
-        }
-        dataline = p_new(char, q - p + 1);
-        pstrcpylen(dataline, q - p + 1, p, q - p);
-        dataline[q - p] = '\0';
-        blob_kill_first(&csv_blob, q - p + 1);
-        nbdata = split_csv_line(dataline, &data);
-        if (nbdata < 0) {
-            return 1;
-        }
-        if (nbdata != nbfields) {
-            e_debug(1, "Incoherent CSV!\n");
-            break;
-        }
-        
-        msg_template_apply(tpl, data, nbdata, (blob_t **const)out, allocated,
-                           nbparts);
-        for (i = 0; i < nbparts; i++) {
-            e_debug(1, "%.*s", (int)out[i]->len, blob_get_cstr(out[i]));
-        }
-        #if 0 
-        writev(out, nbparts);
-        #endif
-        for (i = 0; i < nbparts; i++) {
-            if (allocated[i]) {
-                blob_delete(&out[i]);
-            } else {
-                out[i] = NULL;
-            }
-        }
-        p_delete(&dataline);
-    }
-    p_delete(&out);
-    p_delete(&allocated);
-
-    /* THE END */
-    blob_wipe(&csv_blob);
-    msg_template_delete(&tpl);
-    return 0;
-}
 
 /* Put '\0' in line to get fields as strings
  */
@@ -670,5 +673,141 @@ static inline int split_csv_line(char *line, char **fields[])
     }
     e_debug(1, "Nbfields:%d\n", nbfields);
     return nbfields;
+}
+
+int main(void)
+{
+    blob_t csv_blob;
+    const char *p;
+    char *q, *fieldline, *dataline;
+    char **fields, **data;
+    msg_template *tpl;
+    blob_t **out;
+    byte *allocated;
+    int nbfields, nbparts, nbdata, i;
+    blob_t blob;
+
+    e_set_verbosity(1);
+
+    blob_init(&csv_blob);
+    blob_append_file_data(&csv_blob, "samples/simple.csv");
+
+    p = blob_get_cstr(&csv_blob);
+    q = strchr(blob_get_cstr(&csv_blob), '\n');
+    if (!q) {
+        return -1;
+    }
+
+    fieldline = mem_alloc(q - p + 1);
+    pstrcpylen(fieldline, q - p + 1, p, q - p);
+    fieldline[q - p] = '\0';
+    blob_kill_first(&csv_blob, q - p + 1);
+
+    e_debug(1, blob_get_cstr(&csv_blob));
+
+    nbfields = split_csv_line(fieldline, &fields);
+    if (nbfields < 0) {
+        return 1;
+    }
+    
+    tpl = msg_template_new();
+#if 0
+    /* Add some parts */
+    msg_template_add_cstr(tpl, ENC_NONE, "TO:'");
+    msg_template_add_variable(tpl, ENC_NONE, fields, nbfields, "telephone");
+    msg_template_add_cstr(tpl, ENC_NONE, "'\n");
+
+    msg_template_add_cstr(tpl, ENC_NONE, "Subject:'");
+    msg_template_add_cstr(tpl, ENC_NONE, "Bon anniversaire ");
+    msg_template_add_variable(tpl, ENC_NONE, fields, nbfields, "prenom");
+    msg_template_add_cstr(tpl, ENC_NONE, " ");
+    msg_template_add_variable(tpl, ENC_NONE, fields, nbfields, "nom");
+    msg_template_add_cstr(tpl, ENC_NONE, " !'\n");
+
+    msg_template_add_cstr(tpl, ENC_NONE, "Data:'");
+    msg_template_add_cstr(tpl, ENC_NONE,
+                          "Nous vous souhaitons un "
+                          "très bon anniversaire !");
+    msg_template_add_cstr(tpl, ENC_NONE, "'\n");
+#endif
+#if 1
+    {
+        /* Use file based template */
+        blob_t tpl_blob;
+
+        blob_init(&tpl_blob);
+        blob_append_file_data(&tpl_blob, "samples/anniversaire.tpl");
+        msg_template_add_varstring(tpl, ENC_NONE,
+                                   (const byte *)blob_get_cstr(&tpl_blob),
+                                   tpl_blob.len, fields, nbfields);
+        blob_wipe(&tpl_blob);
+    }
+#endif
+    /* Add some binary parts */
+    blob_init(&blob);
+    for (i = 0; i < 3; i++) {
+        blob_set_fmt(&blob, "FAKE BINARY CHUNK %d\n", i);
+        msg_template_add_blob(tpl, ENC_NONE, &blob);
+    }
+    blob_wipe(&blob);
+
+    /* Display the resulting template */
+    msg_template_dump(tpl, fields, nbfields);
+#if 0
+    msg_template_optimize(tpl);
+    msg_template_dump(tpl, fields, nbfields);
+#endif
+
+    /* Use csv_blob to produce some output */
+    nbparts = msg_template_nbparts(tpl);
+    allocated = p_new(byte, nbparts);
+    out = p_new(blob_t *, nbparts);
+
+    while (csv_blob.len) {
+        p = blob_get_cstr(&csv_blob);
+        q = strchr(blob_get_cstr(&csv_blob), '\n');
+        if (!q) {
+            return -1;
+        }
+        dataline = p_new(char, q - p + 1);
+        pstrcpylen(dataline, q - p + 1, p, q - p);
+        dataline[q - p] = '\0';
+        blob_kill_first(&csv_blob, q - p + 1);
+        nbdata = split_csv_line(dataline, &data);
+        if (nbdata < 0) {
+            return 1;
+        }
+        if (nbdata != nbfields) {
+            e_debug(1, "Inconsistent CSV!\n");
+            break;
+        }
+        
+        msg_template_apply(tpl, data, nbdata, (blob_t **)out, allocated,
+                           nbparts);
+        for (i = 0; i < nbparts; i++) {
+            e_debug(1, "%.*s", (int)out[i]->len, blob_get_cstr(out[i]));
+        }
+        #if 0 
+        writev(out, nbparts);
+        #endif
+        for (i = 0; i < nbparts; i++) {
+            if (allocated[i]) {
+                blob_delete(&out[i]);
+            } else {
+                out[i] = NULL;
+            }
+        }
+        p_delete(&dataline);
+    }
+    p_delete(&out);
+    p_delete(&allocated);
+
+    /* THE END */
+    msg_template_delete(&tpl);
+    mem_free(fieldline);
+    mem_free(fields);
+    blob_wipe(&csv_blob);
+
+    return 0;
 }
 #endif

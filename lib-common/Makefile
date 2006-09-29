@@ -14,9 +14,9 @@
 DEPTH=..
 include $(DEPTH)/admin/header.mk
 
-__EXE__   =
+__EXE__   = 
 __LIB__   = libcommon
-__CHECK__ = test iconv_test
+__CHECK__ = test iconv_test msg_test
 
 libcommon_SOURCES = \
 	archive.c \
@@ -30,6 +30,7 @@ libcommon_SOURCES = \
 	ioveclist.c \
 	mmappedfile.c \
 	string_is.c \
+	strconv.c \
 	timeval.c \
 	msg_template.c \
 	unix.c
@@ -41,5 +42,7 @@ iconv_test_SOURCES = \
 	test_blob_iconv.c \
 	libcommon.a
 
+msg_test_CFLAGS = -DMSG_TEST
+msg_test_SOURCES = msg_template.c libcommon.a
 
 include $(DEPTH)/admin/footer.mk

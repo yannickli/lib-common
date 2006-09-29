@@ -344,7 +344,7 @@ bool strequal(const char *str1, const char *str2)
  * it was not found.
  */
 const void *memsearch(const void *_haystack, size_t hsize,
-        const void *_needle, size_t nsize)
+                      const void *_needle, size_t nsize)
 {
     const unsigned char *haystack = (const unsigned char *)_haystack;
     const unsigned char *needle = (const unsigned char *)_needle;
@@ -354,6 +354,10 @@ const void *memsearch(const void *_haystack, size_t hsize,
 
     if (nsize == 0) {
         return haystack;
+    }
+
+    if (nsize == 1) {
+        return memchr(haystack, *needle, hsize);
     }
 
     first = *needle;

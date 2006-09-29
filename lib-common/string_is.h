@@ -33,6 +33,9 @@ const char *skipspaces(const char *s);
 static inline char *vskipspaces(char *s) {
     return (char*)skipspaces((char *)s);
 }
+static inline const byte *bskipspaces(const byte *s) {
+    return (const byte*)skipspaces((const char *)s);
+}
 
 const char *strnextspace(const char *s);
 static inline char *vstrnextspace(char *s){

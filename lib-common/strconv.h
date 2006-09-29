@@ -11,22 +11,20 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_BLOB_PRIV_H
-#define IS_BLOB_PRIV_H
-/*
- * A blob has a vital invariant, making every parse function avoid
- * buffer read overflows: there is *always* a '\0' in the data at
- * position len, implying that size is always >= len+1
- */
-typedef struct {
-    /* public interface */
-    ssize_t len;
-    byte *data;
+#ifndef IS_STRCONV_H
+#define IS_STRCONV_H
 
-    /* private interface */
-    byte *area;   /* originally allocated block */
-    ssize_t size;  /* allocated size */
-    byte initial[BLOB_INITIAL_SIZE];
-} real_blob_t;
+/* string parsing and conversions */
+extern unsigned char const __str_digit_value[128 + 256];
+static inline int str_digit_value(int x) {
+    return __str_digit_value[x + 128];
+}
+
+int strconv_escape(char *dest, int size, const char *src, int len);
+int strconv_unescape(char *dest, int size, const char *src, int len);
+int strconv_quote(char *dest, int size, const char *src, int len, int delim);
+int strconv_unquote(char *dest, int size, const char *src, int len);
+int strconv_quote_char(char *dest, int size, int c, int delim);
+int strconv_unquote_char(int *cp, const char *src, int len);
 
 #endif

@@ -33,18 +33,24 @@ typedef struct msg_template msg_template;
 
 msg_template *msg_template_new(void);
 void msg_template_delete(msg_template **tpl);
-void msg_template_dump(const msg_template *tpl);
+void msg_template_dump(const msg_template *tpl,
+		       char * const *vars, int nbvars);
 int msg_template_add_byte(msg_template *tpl, part_encoding enc,
-                          const byte b);
+                          byte b);
 int msg_template_add_cstr(msg_template *tpl, part_encoding enc,
                           const char *str);
 int msg_template_add_data(msg_template *tpl, part_encoding enc,
                           const byte *data, int len);
 int msg_template_add_blob(msg_template *tpl, part_encoding enc,
                           const blob_t *data);
+int msg_template_add_qs(msg_template *tpl, part_encoding enc,
+                        const byte *data, int len);
 int msg_template_add_variable(msg_template *tpl, part_encoding enc, 
                               char * const *vars, int nbvars,
                               const char *name);
+int msg_template_add_varstring(msg_template *tpl, part_encoding enc,
+			       const byte *data, int len,
+                               char * const *vars, int nbvars);
 void msg_template_optimize(msg_template *tpl);
 int msg_template_apply(msg_template *tpl, char * const *vars, int nbvars,
                        blob_t **vector, byte *allocated, int count);
