@@ -45,7 +45,7 @@ mmfile *mmfile_open(const char *path, int flags)
     }
     mf->size = st.st_size;
     mf->area = mmap(NULL, mf->size, prot, MAP_SHARED, fd, 0);
-    if (mf->area == (void *)-1) {
+    if (mf->area == MAP_FAILED) {
         mf->area = NULL;
         goto error;
     }
@@ -78,7 +78,7 @@ mmfile *mmfile_creat(const char *path, off_t initialsize)
 
     mf->area = mmap(NULL, mf->size, PROT_READ | PROT_WRITE, MAP_SHARED,
                     fd, 0);
-    if (mf->area == (void *)-1) {
+    if (mf->area == MAP_FAILED) {
         mf->area = NULL;
         goto error;
     }
@@ -133,7 +133,7 @@ int mmfile_truncate(mmfile *mf, off_t length)
     mf->area = mmap(NULL, mf->size, PROT_READ | PROT_WRITE, MAP_SHARED,
                     fd, 0);
     close(fd);
-    if (mf->area == (void *)-1) {
+    if (mf->area == MAP_FAILED) {
         mf->area = NULL;
         mmfile_wipe(mf);
         return -2;
