@@ -24,66 +24,73 @@
 static inline mmfile *mmfile_init(mmfile *mf)
 {
     p_blank(mmfile, mf, 1);
-    mf->fd = -1;
-
     return mf;
 }
 
 mmfile *mmfile_open(const char *path, int flags)
 {
-    int prot = PROT_READ;
+    int fd = -1, prot = PROT_READ;
     struct stat st;
     mmfile *mf = mmfile_new();
 
-    mf->fd = open(path, flags);
-    if (mf->fd < 0)
+    fd = open(path, flags);
+    if (fd < 0)
         goto error;
 
-    if (fstat(mf->fd, &st))
+    if (fstat(fd, &st))
         goto error;
 
     if (flags & (O_WRONLY | O_RDWR)) {
         prot |= PROT_WRITE;
     }
     mf->size = st.st_size;
-    mf->area = mmap(NULL, mf->size, prot, MAP_SHARED, mf->fd, 0);
+    mf->area = mmap(NULL, mf->size, prot, MAP_SHARED, fd, 0);
     if (mf->area == (void *)-1) {
         mf->area = NULL;
         goto error;
     }
 
+    close(fd);
     mf->path = strdup(path);
     return mf;
 
   error:
+    if (fd >= 0) {
+        close(fd);
+    }
     mmfile_close(&mf);
     return NULL;
 }
 
 mmfile *mmfile_creat(const char *path, off_t initialsize)
 {
+    int fd = -1;
     mmfile *mf = mmfile_new();
 
-    mf->fd = open(path, O_CREAT | O_TRUNC | O_RDWR, 0664);
-    if (mf->fd < 0)
+    fd = open(path, O_CREAT | O_TRUNC | O_RDWR, 0664);
+    if (fd < 0)
         goto error;
 
-    if (ftruncate(mf->fd, initialsize))
+    if (ftruncate(fd, initialsize))
         goto error;
 
     mf->size = initialsize;
 
     mf->area = mmap(NULL, mf->size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                    mf->fd, 0);
+                    fd, 0);
     if (mf->area == (void *)-1) {
         mf->area = NULL;
         goto error;
     }
 
+    close(fd);
     mf->path  = strdup(path);
     return mf;
 
   error:
+    if (fd >= 0) {
+        close(fd);
+    }
     mmfile_close(&mf);
     return NULL;
 }
@@ -95,10 +102,6 @@ static inline void mmfile_wipe(mmfile *mf)
         munmap(mf->area, mf->size);
         mf->area = NULL;
     }
-    if (mf->fd >= 0) {
-        close(mf->fd);
-        mf->fd = -1;
-    }
 }
 
 void mmfile_close(mmfile **mf)
@@ -108,7 +111,10 @@ void mmfile_close(mmfile **mf)
 
 int mmfile_truncate(mmfile *mf, off_t length)
 {
-    if (mf->fd < 0) {
+    int fd = -1;
+
+    fd = open(mf->path, O_RDWR);
+    if (fd < 0) {
         errno = EBADF;
         return -1;
     }
@@ -118,12 +124,15 @@ int mmfile_truncate(mmfile *mf, off_t length)
      * Should not wipe, just keep area = NULL.
      */
 
-    if (munmap(mf->area, mf->size) || ftruncate(mf->fd, length))
+    if (munmap(mf->area, mf->size) || ftruncate(fd, length)) {
+        close(fd);
         return -1;
+    }
 
     mf->size = length;
     mf->area = mmap(NULL, mf->size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                    mf->fd, 0);
+                    fd, 0);
+    close(fd);
     if (mf->area == (void *)-1) {
         mf->area = NULL;
         mmfile_wipe(mf);

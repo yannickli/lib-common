@@ -21,7 +21,6 @@
 
 #define MMFILE_ALIAS(ptr_type) \
     {                              \
-        int       fd;              \
         size_t    size;            \
         char     *path;            \
         ptr_type *area;            \
