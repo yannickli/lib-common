@@ -133,7 +133,7 @@ void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize)
 void blob_resize(blob_t *blob, ssize_t newlen)
 {
     real_blob_t *rblob = blob_real(blob);
-    
+
     if (newlen < rblob->size) {
         if (newlen == 0) {
             /* Remove initial skip if any */
@@ -182,7 +182,7 @@ void blob_resize(blob_t *blob, ssize_t newlen)
 static inline void blob_empty(blob_t *blob)
 {
     real_blob_t *rblob = blob_real(blob);
-    
+
     /* Remove initial skip if any */
     if (rblob->area) {
         rblob->size += (rblob->data - rblob->area);
@@ -766,7 +766,7 @@ bool blob_is_iequal(const blob_t *blob1, const blob_t *blob2)
     if (blob1->len != blob2->len) {
         return false;
     }
-    
+
     /* Compare from the end because we deal with a lot of strings with
      * long identical initial portions.  (OG: not a general assumption)
      */
@@ -790,7 +790,7 @@ bool blob_start(const blob_t *blob1, const blob_t *blob2, const byte **pp)
 
 bool blob_cistart(const blob_t *blob, const char *p, const char **pp)
 {
-    return stristart((const char *)blob->data, p, pp); 
+    return stristart((const char *)blob->data, p, pp);
 }
 
 bool blob_istart(const blob_t *blob1, const blob_t *blob2, const byte **pp)
@@ -863,7 +863,7 @@ static inline ssize_t b64_size(ssize_t oldlen, int nbpackets)
     if (lastlen) {
         lastlen += 2; /* crlf */
     }
-    
+
     return nb_full_lines * (4 * nbpackets + 2) + lastlen;
 }
 
@@ -908,7 +908,7 @@ void blob_b64encode(blob_t *blob, int nbpackets)
         c3 = *(src++);
         *(dst++) = b64[((c2 & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
         *(dst++) = b64[c3 & 0x3f];
-        
+
         if (!--packs || src == end) {
             packs = nbpackets;
             *(dst++) = '\r';
@@ -1113,7 +1113,7 @@ END_TEST
 START_TEST(check_dup)
 {
     blob_t blob;
-    blob_t * bdup; 
+    blob_t * bdup;
 
     check_setup(&blob, "toto string");
     bdup = blob_dup(&blob);
@@ -1138,7 +1138,7 @@ START_TEST(check_cat)
     bcat = blob_cat(&b1, b2);
     check_blob_invariants(bcat);
 
-    fail_if (bcat->len != b1.len + b2->len, 
+    fail_if (bcat->len != b1.len + b2->len,
              "blob_cat-ed blob has not len equal to "
              "the sum of the orignal blobs lens");
     if (memcmp(bcat->data, b1.data, b1.len) !=0
@@ -1520,22 +1520,22 @@ static int check_gunzip_tpl(const char *file1, const char *file2)
 {
     blob_t b1;
     blob_t b2;
-    
+
     int i = 0;
     int c_typ = 0;
 
     blob_init(&b1);
     blob_init(&b2);
-    
+
     blob_file_gunzip(&b1, file1);
     blob_append_file_data(&b2, file2);
 
     fail_if (blob_cmp(&b1, &b2) != 0, "blob_gunzip failed on: %s, %s",
              file1, file2);
-    
+
     blob_wipe(&b1);
     blob_wipe(&b2);
-    
+
     return 0;
 }
 
@@ -1552,31 +1552,23 @@ static int check_gzip_tpl(const char *file1, const char *file2)
 {
     blob_t b1;
     blob_t b2;
-    
+
     int i = 0;
     int c_typ = 0;
 
     blob_init(&b1);
     blob_init(&b2);
-    
+
     blob_file_gzip(&b1, file1);
 
-    #if 1
-    {
-        FILE *f = fopen("samples/out.my.gz", "w");
-        fwrite(b1.data, b1.len, 1, f);
-        fclose(f);
-    }
-    #endif
-    
-    blob_append_file_data(&b2, file2); 
+    blob_append_file_data(&b2, file2);
 
     fail_if (blob_cmp(&b1, &b2) != 0, "blob_gzip failed on: %s, %s",
              file1, file2);
-    
+
     blob_wipe(&b1);
     blob_wipe(&b2);
-    
+
     return 0;
 }
 
@@ -1594,26 +1586,26 @@ static int check_aiconv_templ(const char *file1, const char *file2,
 {
     blob_t b1;
     blob_t b2;
-    
+
     int i = 0;
     int c_typ = 0;
 
     blob_init(&b1);
     blob_init(&b2);
-    
+
     blob_file_auto_iconv(&b1, file1, encoding, &c_typ);
 
-    blob_append_file_data(&b2, file2);  
+    blob_append_file_data(&b2, file2);
     fail_if (blob_cmp(&b1, &b2) != 0,
              "blob_auto_iconv failed on: %s with"
              " hint \"%s\" encoding\n---\n%.*s\n---\n%.*s",
              file1, encoding,
              b1.len, blob_get_cstr(&b1),
              b2.len, blob_get_cstr(&b2));
-    
+
     blob_wipe(&b1);
     blob_wipe(&b2);
-    
+
     return 0;
 }
 
@@ -1622,7 +1614,7 @@ static int check_aiconv_templ_2(const char *file1, const char *file2)
     check_aiconv_templ(file1, file2, "UTF-8");
     check_aiconv_templ(file1, file2, "ISO-8859-1");
     check_aiconv_templ(file1, file2, "Windows-1250");
-    
+
     return 0;
 }
 
