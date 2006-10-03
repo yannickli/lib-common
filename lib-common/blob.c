@@ -1461,9 +1461,9 @@ START_TEST(check_search)
 END_TEST
 
 /*.....................................................................}}}*/
-/* test check_zlib                                                     {{{*/
+/* test check_zlib_compress_uncompress                                 {{{*/
 
-START_TEST(check_zlib)
+START_TEST(check_zlib_compress_uncompress)
 {
     blob_t b1;
     blob_t b2;
@@ -1474,8 +1474,8 @@ START_TEST(check_zlib)
     blob_init(&b3);
     blob_set_cstr(&b1, "toto string");
 
-    blob_compress(&b2, &b1);
-    blob_uncompress(&b3, &b2);
+    blob_zlib_compress(&b2, &b1);
+    blob_zlib_uncompress(&b3, &b2);
 
     fail_if(blob_cmp(&b1, &b3),
             "blob_uncompress dest does not correspond to blob_compress src");
@@ -1485,6 +1485,33 @@ START_TEST(check_zlib)
     blob_wipe(&b3);
 }
 END_TEST
+
+/*.....................................................................}}}*/
+/* test check_zlib                                                     {{{*/
+
+START_TEST(check_raw_compress_uncompress)
+{
+    blob_t b1;
+    blob_t b2;
+    blob_t b3;
+
+    blob_init(&b1);
+    blob_init(&b2);
+    blob_init(&b3);
+    blob_set_cstr(&b1, "toto string");
+
+    blob_raw_compress(&b2, &b1);
+    blob_raw_uncompress(&b3, &b2);
+
+    fail_if(blob_cmp(&b1, &b3),
+            "blob_uncompress dest does not correspond to blob_compress src");
+
+    blob_wipe(&b1);
+    blob_wipe(&b2);
+    blob_wipe(&b3);
+}
+END_TEST
+
 
 /*.....................................................................}}}*/
 /* test blob_blob_iconv                                                {{{*/
@@ -1696,12 +1723,12 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_b64);
     tcase_add_test(tc, check_ia5);
     tcase_add_test(tc, check_search);
-    tcase_add_test(tc, check_zlib);
+    tcase_add_test(tc, check_raw_compress_uncompress);
+    tcase_add_test(tc, check_zlib_compress_uncompress);
     tcase_add_test(tc, check_gunzip);
     tcase_add_test(tc, check_gzip);
     tcase_add_test(tc, check_blob_auto_iconv);
     tcase_add_test(tc, check_blob_iconv_close);
-
 
     return s;
 }
