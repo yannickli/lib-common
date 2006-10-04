@@ -215,10 +215,10 @@ static archive_file *archive_parse_file(const byte **input, int *len)
         goto error;
     }
     if (tag != B4_TO_INT('F', 'I', 'L', 'E')) {
-        e_debug(2, "archive_parse_file: not a file tag: %u\n", tag);
+        e_debug(2, E_PREFIX("not a file tag: %u\n"), tag);
         goto error;
     }
-    
+
     file = p_new(archive_file, 1);
     file->_bloc.tag   = tag;
 
@@ -230,10 +230,9 @@ static archive_file *archive_parse_file(const byte **input, int *len)
     ) {
         goto error;
     }
-        
+
     if (read_const_char(input, len, &file->name)) {
-        e_debug(1, "archive_parse_file; Did not find \\0"
-                   " while reading file name\n");
+        e_debug(1, E_PREFIX("Did not find \\0 while reading file name\n"));
         goto error;
     }
     if (*len == 0) {
@@ -260,8 +259,8 @@ static archive_file *archive_parse_file(const byte **input, int *len)
             key_len++;
         }
         if (**input != ':') {
-            e_debug(1, "archive_parse_file; Missing :"
-                       "while reading file attr (key_len= %d)\n", key_len);
+            e_debug(1, E_PREFIX("Missing :"
+                       "while reading file attr (key_len= %d)\n"), key_len);
             if (i == 0) {
                 p_delete(file->attrs);
                 file->nb_attrs = 0;
@@ -285,8 +284,7 @@ static archive_file *archive_parse_file(const byte **input, int *len)
         }
 
         if (**input != '\n') {
-            e_debug(1, "archive_parse_file; Missing \\n "
-                    "while reading file attr\n");
+            e_debug(1, E_PREFIX("Missing \\n while reading file attr\n"));
             if (i == 0) {
                 p_delete(file->attrs);
                 file->nb_attrs = 0;
@@ -312,7 +310,7 @@ static archive_file *archive_parse_file(const byte **input, int *len)
     file->payload = *input;
 
     if (((uint32_t) *len) < file->size) {
-        e_debug(1, "archive_parse_file; Not enough len remaining\n");
+        e_debug(1, E_PREFIX("Not enough len remaining\n"));
         goto error;
     }
     (*input) += file->size;
@@ -339,13 +337,13 @@ archive_bloc *archive_parse_bloc(const byte **input, int *len);
 archive_bloc *archive_parse_bloc(const byte **input, int *len)
 {
     uint32_t tag;
-    
+
     if (*len < ARCHIVE_TAG_SIZE + ARCHIVE_SIZE_SIZE) {
         return NULL;
     }
-    
+
     tag  = BYTESTAR_TO_INT(*input);
-    
+
     switch (tag) {
         case B4_TO_INT('F', 'I', 'L', 'E'):
           return archive_file_to_archive_bloc(archive_parse_file(input, len));
@@ -357,7 +355,7 @@ archive_bloc *archive_parse_bloc(const byte **input, int *len)
           return archive_head_to_archive_bloc(archive_parse_head(input, len));
           break;
         default:
-          e_debug(1, "archive_parse_bloc: unrecognized bloc tag: %u", tag);
+          e_debug(1, E_PREFIX("unrecognized bloc tag: %u\n"), tag);
           return NULL;
     }
 }
@@ -367,12 +365,12 @@ int archive_parse(const byte *input, int len, archive_t *archive)
     bool dynamic = true;
     int allocated_blocs = 0;
     uint32_t version;
-    
+
     if (input[0] != ARCHIVE_MAGIC0
     ||  input[1] != ARCHIVE_MAGIC1
     ||  input[2] != ARCHIVE_MAGIC2
     ||  input[3] != ARCHIVE_MAGIC3) {
-        e_debug(1, "archive_parse: Bad magic number\n");
+        e_debug(1, E_PREFIX("Bad magic number\n"));
         return 1;
     }
 
@@ -380,18 +378,18 @@ int archive_parse(const byte *input, int len, archive_t *archive)
     len -= ARCHIVE_MAGIC_SIZE;
 
     if (len < ARCHIVE_VERSION_SIZE) {
-        e_debug(1, "archive_parse: Not enough length to read version\n");
+        e_debug(1, E_PREFIX("Not enough length to read version\n"));
         return 1;
     }
     version = BYTESTAR_TO_INT(input);
-    
+
     input += ARCHIVE_VERSION_SIZE;
     len -= ARCHIVE_VERSION_SIZE;
 
     archive->version = version;
 
     archive->payload = input;
-    
+
 
     if (len == 0) {
         return 0;
@@ -440,7 +438,7 @@ int archive_parse(const byte *input, int len, archive_t *archive)
                                      allocated_blocs, archive->nb_blocs);
         }
     }
-    
+
     return 0;
 }
 
@@ -450,7 +448,7 @@ const archive_file *archive_get_file_bloc(const archive_t *archive,
     archive_bloc *bloc;
     archive_file *file;
     int i;
-    
+
     for (i = 0; i < archive->nb_blocs; i++) {
         bloc = archive->blocs[i];
         if (bloc->tag == ARCHIVE_TAG_FILE) {
@@ -461,7 +459,7 @@ const archive_file *archive_get_file_bloc(const archive_t *archive,
             }
         }
     }
-    
+
     return NULL;
 }
 
@@ -489,7 +487,7 @@ const archive_file *archive_file_next(const archive_t *archive,
     int i;
     const archive_bloc *previous_b =
                     archive_file_to_archive_bloc_const(previous);
-    
+
     if (!archive->blocs) {
         return NULL;
     }
@@ -609,7 +607,7 @@ START_TEST(check_parse)
     blob_append_cstr(&file, "Key2:val2\n");
     blob_append_cstr(&file, file_data);
 
-    
+
     AR_APPEND_UINT32(&parse_payload, B4_TO_INT('F', 'I', 'L', 'E'));
     /* Bloc size (4 for one uint32)*/
     AR_APPEND_UINT32(&parse_payload, file.len);
