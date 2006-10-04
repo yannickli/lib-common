@@ -90,6 +90,8 @@ const archive_file *archive_file_next_path(const archive_t *archive,
                                            const char *path,
                                            const archive_file* previous);
 
+void archive_dump(const archive_t *archive, int level);
+
 #ifdef CHECK
 #include <check.h>
 

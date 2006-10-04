@@ -537,6 +537,63 @@ const archive_file *archive_file_next_path(const archive_t *archive,
     return NULL;
 }
 
+static void archive_file_dump(const archive_file *file, int level)
+{
+    e_debug(level, E_PREFIX("archive_file :\n"));
+    e_debug(level, E_PREFIX(" - size = %d\n"),
+            file->size);
+    e_debug(level, E_PREFIX(" - date_create = %d\n"),
+            file->date_create);
+    e_debug(level, E_PREFIX(" - date_update = %d\n"),
+            file->date_update);
+    e_debug(level, E_PREFIX(" - name = %s\n"),
+            file->name);
+    e_debug(level, E_PREFIX(" - nb_attrs = %d\n"),
+            file->nb_attrs);
+    e_debug(level, E_PREFIX(" - payload = %.*s\n"),
+            file->size, file->payload);
+}
+static void archive_head_dump(const archive_head *head, int level)
+{
+    e_debug(level, E_PREFIX("archive_head :\n"));
+    e_debug(level, E_PREFIX(" - nb_blocs = %d\n"),
+            head->nb_blocs);
+}
+static void archive_tpl_dump(const archive_tpl __unused__ *tpl, int level)
+{
+    e_debug(level, E_PREFIX("NOT IMPLEMENTED !\n"));
+}
+
+void archive_dump(const archive_t *archive, int level)
+{
+    int i;
+
+    e_debug(level, E_PREFIX("archive :\n - version = %d\n"),
+            archive->version);
+    e_debug(level, E_PREFIX(" - nb_blocs = %d\n"),
+            archive->nb_blocs);
+    
+    if (archive->nb_blocs) {
+        for (i = 0; i < archive->nb_blocs ; i++) {
+            archive_bloc *bloc = archive->blocs[i];
+            switch (bloc->tag) {
+              case ARCHIVE_TAG_FILE:
+                archive_file_dump(archive_bloc_to_archive_file(bloc), level);
+                break;
+              case ARCHIVE_TAG_TPL:
+                archive_tpl_dump(archive_bloc_to_archive_tpl(bloc), level);
+                break;
+              case ARCHIVE_TAG_HEAD:
+                archive_head_dump(archive_bloc_to_archive_head(bloc), level);
+                break;
+              default:
+                e_debug(level, "archive_bloc : unknown bloc type!\n");
+                break;
+            }
+        }
+    }
+
+}
 
 #ifdef CHECK
 
