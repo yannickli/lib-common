@@ -33,6 +33,7 @@ libcommon_SOURCES = \
 	strconv.c \
 	timeval.c \
 	msg_template.c \
+	stopper.c \
 	unix.c
 
 test_SOURCES = $(libcommon_SOURCES) check.c
