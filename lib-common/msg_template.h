@@ -54,6 +54,8 @@ int msg_template_add_varstring(msg_template *tpl, part_encoding enc,
 void msg_template_optimize(msg_template *tpl);
 int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
                        blob_t **vector, byte *allocated, int count);
+int msg_template_apply_blob(const msg_template *tpl, const char **vars,
+                            int nbvars, blob_t *output);
 int msg_template_nbparts(const msg_template *tpl);
 
 #ifdef CHECK

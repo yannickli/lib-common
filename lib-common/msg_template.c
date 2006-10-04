@@ -601,6 +601,52 @@ int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
     return 0;
 }
 
+int msg_template_apply_blob(const msg_template *tpl, const char **vars,
+                            int nbvars,
+                            blob_t *output)
+{
+    int i;
+    const tpl_part *curpart;
+    const int nbparts = part_multi_nbparts(tpl->body);
+
+    if (!output) {
+        return -1;
+    }
+    blob_resize(output, 0);
+    for (i = 0; i < nbparts; i++) {
+        curpart = part_multi_get(tpl->body, i);
+        e_debug(2, "[%d] ", i);
+        switch (curpart->type) {
+          case PART_VERBATIM:
+            e_debug(2, "Verbatim:'%s'\n",
+                    blob_get_cstr(&curpart->u.verbatim->data));
+            blob_append(output, &curpart->u.verbatim->data);
+            break;
+          case PART_VARIABLE:
+            if (curpart->u.variable->index > nbvars) {
+                /* Ignore non-specified fields */
+                break;
+            }
+            e_debug(2, "Var:%d\n", curpart->u.variable->index);
+            blob_append_cstr(output, vars[curpart->u.variable->index]);
+            break;
+          case PART_QS:
+            e_debug(2, "QS:'%s'\n", blob_get_cstr(&curpart->u.qs->data));
+            /* FIXME: apply qs template to var array */
+#if 0
+            qs_run(&curpart->u.qs->data, curblob, vars, nbvars);
+#else
+            blob_append(output, &curpart->u.qs->data);
+#endif
+            break;
+          case PART_MULTI:      /* unused */
+            blob_append_cstr(output, "***MULTI***");
+            break;
+        }
+    }
+    return 0;
+}
+
 void msg_template_optimize(msg_template *tpl)
 {
     /* TODO: Concatenate constant parts (after encoding them if applicable) */
