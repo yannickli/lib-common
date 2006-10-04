@@ -84,7 +84,7 @@ void part_multi_addpart(part_multi **multi, tpl_part *part);
 static const tpl_part *part_multi_get(const part_multi *multi, int i);
 static int part_multi_nbparts(const part_multi *multi);
 static inline void part_multi_dump(const part_multi *multi,
-                                   char * const *vars, int nbvars);
+                                   const char **vars, int nbvars);
 
 part_variable *part_variable_new(int ind);
 void part_variable_delete(part_variable **variable);
@@ -99,7 +99,7 @@ void part_qs_delete(part_qs **qs);
 void part_qs_wipe(part_qs *qs);
 
 void msg_template_dump(const msg_template *tpl,
-                       char * const *vars, int nbvars)
+                       const char **vars, int nbvars)
 {
     if (tpl->body) {
         part_multi_dump(tpl->body, vars, nbvars);
@@ -135,7 +135,7 @@ static inline int part_multi_nbparts(const part_multi *multi)
 }
 
 static inline void part_multi_dump(const part_multi *multi,
-                                   char * const *vars, int nbvars)
+                                   const char **vars, int nbvars)
 {
     int i, len;
     char *ptr;
@@ -318,7 +318,7 @@ int msg_template_add_qs(msg_template *tpl, part_encoding enc,
     return msg_template_add_data(tpl, enc, data, len);
 }
 
-static int msg_template_lookup_variable(char * const *vars, int nbvars,
+static int msg_template_lookup_variable(const char **vars, int nbvars,
                                         const char *name, int namelen)
 {
     int i;
@@ -333,7 +333,7 @@ static int msg_template_lookup_variable(char * const *vars, int nbvars,
 }
 
 int msg_template_add_variable(msg_template *tpl, part_encoding enc, 
-                              char * const *vars, int nbvars,
+                              const char **vars, int nbvars,
                               const char *name)
 {
     part_variable *varpart;
@@ -358,7 +358,7 @@ int msg_template_add_variable(msg_template *tpl, part_encoding enc,
 
 int msg_template_add_varstring(msg_template *tpl, part_encoding enc,
                                const byte *data, int len,
-                               char * const *vars, int nbvars)
+                               const char **vars, int nbvars)
 {
     const byte *end, *p, *p0, *p1, *p2, *p3;
     int vn, nfields;
@@ -546,7 +546,7 @@ void part_qs_delete(part_qs **qs)
  * Fill vector with pointer to blobs
  */
 /* OG: should take a blob or a vector as output */
-int msg_template_apply(msg_template *tpl, char * const *vars, int nbvars,
+int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
                        blob_t ** vector, byte *allocated, int count)
 {
     int i;
