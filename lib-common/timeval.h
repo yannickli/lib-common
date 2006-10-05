@@ -25,6 +25,8 @@ const char *timeval_format(struct timeval tv);
 
 struct timeval timeval_add(struct timeval a, struct timeval b);
 struct timeval timeval_sub(struct timeval a, struct timeval b);
+struct timeval timeval_mul(struct timeval tv, int k);
+struct timeval timeval_div(struct timeval tv, int k);
 bool is_expired(const struct timeval *date, const struct timeval *now,
                 struct timeval *left);
 #endif

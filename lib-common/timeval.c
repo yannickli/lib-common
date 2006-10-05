@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
+#include <stdint.h>
+
 #include <lib-common/err_report.h>
 #include <lib-common/timeval.h>
 
@@ -90,6 +92,42 @@ struct timeval timeval_sub(struct timeval a, struct timeval b)
     e_debug(3, "{%s}-", timeval_format(a));
     e_debug(3, "{%s}=", timeval_format(b));
     e_debug(3, "{%s}\n", timeval_format(res));
+
+    return res;
+}
+
+struct timeval timeval_mul(struct timeval tv, int k)
+{
+    struct timeval res;
+    int64_t usecs;
+
+    usecs  = (int64_t)tv.tv_sec * 1000 * 1000 + tv.tv_usec;
+    usecs *= k;
+
+    res.tv_sec  = usecs / (1000 * 1000);
+    res.tv_usec = usecs - res.tv_sec * 1000 * 1000;
+    if (res.tv_usec < 0) {
+        res.tv_usec += 1000 * 1000;
+        res.tv_sec --;
+    }
+
+    return res;
+}
+
+struct timeval timeval_div(struct timeval tv, int k)
+{
+    struct timeval res;
+    int64_t usecs;
+
+    usecs  = (int64_t)tv.tv_sec * 1000 * 1000 + tv.tv_usec;
+    usecs /= k;
+
+    res.tv_sec  = usecs / (1000 * 1000);
+    res.tv_usec = usecs - res.tv_sec * 1000 * 1000;
+    if (res.tv_usec < 0) {
+        res.tv_usec += 1000 * 1000;
+        res.tv_sec --;
+    }
 
     return res;
 }
