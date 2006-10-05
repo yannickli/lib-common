@@ -853,18 +853,22 @@ b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 static inline ssize_t b64_size(ssize_t oldlen, int nbpackets)
 {
-    ssize_t nb_full_lines = oldlen / (3 * nbpackets);
-    ssize_t lastlen = oldlen % (3 * nbpackets);
+    if (nbpackets > 0) {
+        ssize_t nb_full_lines = oldlen / (3 * nbpackets);
+        ssize_t lastlen = oldlen % (3 * nbpackets);
 
-    if (lastlen % 3) {
-        lastlen += 3 - (lastlen % 3);
-    }
-    lastlen = lastlen * 4 / 3;
-    if (lastlen) {
-        lastlen += 2; /* crlf */
-    }
+        if (lastlen % 3) {
+            lastlen += 3 - (lastlen % 3);
+        }
+        lastlen = lastlen * 4 / 3;
+        if (lastlen) {
+            lastlen += 2; /* crlf */
+        }
 
-    return nb_full_lines * (4 * nbpackets + 2) + lastlen;
+        return nb_full_lines * (4 * nbpackets + 2) + lastlen;
+    } else {
+        return 4 * ((oldlen + 2) / 3);
+    }
 }
 
 void blob_b64encode(blob_t *blob, int nbpackets)
@@ -889,8 +893,10 @@ void blob_b64encode(blob_t *blob, int nbpackets)
             *(dst++) = b64[((c1 & 0x3) << 4)];
             *(dst++) = '=';
             *(dst++) = '=';
-            *(dst++) = '\r';
-            *(dst++) = '\n';
+            if (nbpackets > 0) {
+                *(dst++) = '\r';
+                *(dst++) = '\n';
+            }
             break;
         }
 
@@ -900,8 +906,10 @@ void blob_b64encode(blob_t *blob, int nbpackets)
         if (src == end) {
             *(dst++) = b64[((c2 & 0x0f) << 2)];
             *(dst++) = '=';
-            *(dst++) = '\r';
-            *(dst++) = '\n';
+            if (nbpackets > 0) {
+                *(dst++) = '\r';
+                *(dst++) = '\n';
+            }
             break;
         }
 
@@ -909,7 +917,7 @@ void blob_b64encode(blob_t *blob, int nbpackets)
         *(dst++) = b64[((c2 & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
         *(dst++) = b64[c3 & 0x3f];
 
-        if (!--packs || src == end) {
+        if (nbpackets > 0 && (!--packs || src == end)) {
             packs = nbpackets;
             *(dst++) = '\r';
             *(dst++) = '\n';
