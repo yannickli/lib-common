@@ -68,6 +68,14 @@ static inline const char *blob_get_cstr(const blob_t *blob)
     return (const char *)blob->data;
 }
 
+/**
+ *  Get a pointer to blob.data as a byte *
+ */
+static inline byte *blob_get_data(blob_t *blob)
+{
+    return (byte *)(void *)blob->data;
+}
+
 /**************************************************************************/
 /* Blob manipulations                                                     */
 /**************************************************************************/
