@@ -101,11 +101,13 @@ struct timeval timeval_mul(struct timeval tv, int k)
     struct timeval res;
     int64_t usecs;
 
-    usecs  = (int64_t)tv.tv_sec * 1000 * 1000 + tv.tv_usec;
+    /* Casting to int64_t is necessary because of potential overflow */
+    /* Grouping 1000 * 1000 may yield better code */
+    usecs  = (int64_t)tv.tv_sec * (1000 * 1000) + tv.tv_usec;
     usecs *= k;
 
     res.tv_sec  = usecs / (1000 * 1000);
-    res.tv_usec = usecs - res.tv_sec * 1000 * 1000;
+    res.tv_usec = usecs - (int64_t)res.tv_sec * (1000 * 1000);
     if (res.tv_usec < 0) {
         res.tv_usec += 1000 * 1000;
         res.tv_sec --;
@@ -119,11 +121,11 @@ struct timeval timeval_div(struct timeval tv, int k)
     struct timeval res;
     int64_t usecs;
 
-    usecs  = (int64_t)tv.tv_sec * 1000 * 1000 + tv.tv_usec;
+    usecs  = (int64_t)tv.tv_sec * (1000 * 1000) + tv.tv_usec;
     usecs /= k;
 
     res.tv_sec  = usecs / (1000 * 1000);
-    res.tv_usec = usecs - res.tv_sec * 1000 * 1000;
+    res.tv_usec = usecs - (int64_t)res.tv_sec * (1000 * 1000);
     if (res.tv_usec < 0) {
         res.tv_usec += 1000 * 1000;
         res.tv_sec --;
