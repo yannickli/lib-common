@@ -32,7 +32,7 @@ static void stopper_handler(int signum)
     struct timeval now;
 
     if (!stopper.stopme) {
-        e_info("^C asking for soft termination");
+        e_info("^C requesting soft termination");
         stopper.stopme = true;
         gettimeofday(&double_press_end, NULL);
         double_press_end = timeval_add(double_press_end, double_press_delay);
@@ -43,7 +43,7 @@ static void stopper_handler(int signum)
             e_info("^C abort. ");
             exit(1);
         } else {
-            e_info("^C Soft termination already asked. "
+            e_info("^C Soft termination already requested. "
                    "Double-interrupt to abort");
             double_press_end = timeval_add(now, double_press_delay);
         }
