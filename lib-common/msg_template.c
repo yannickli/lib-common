@@ -622,6 +622,11 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
           case PART_VERBATIM:
             e_debug(2, "Verbatim:'%s'\n",
                     blob_get_cstr(&curpart->u.verbatim->data));
+            /* OG: should test if encoding is necessary
+             * or should msg_template_blob_encode take input
+             * and output blobs?
+             * Should change blob API to make it more stream-like
+             */
             blob_set(&encode_buf, &curpart->u.verbatim->data);
             msg_template_blob_encode(&encode_buf, curpart->enc);
             blob_append(output, &encode_buf);
@@ -632,6 +637,7 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
                 break;
             }
             e_debug(1, "Var:%d\n", curpart->u.variable->index);
+            /* OG: should avoid overhead with a blob_encode_cstr API? */
             //blob_append_cstr(output, vars[curpart->u.variable->index]);
             blob_set_cstr(&encode_buf, vars[curpart->u.variable->index]);
             msg_template_blob_encode(&encode_buf, curpart->enc);
