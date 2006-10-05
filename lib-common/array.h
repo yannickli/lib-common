@@ -54,6 +54,14 @@ static inline void generic_array_push(generic_array *array, void *item)
 void *generic_array_take(generic_array *array, ssize_t pos)
     __attribute__((nonnull(1)));
 
+static inline void
+generic_array_swap(generic_array *array, ssize_t i, ssize_t j)
+{
+    void *v = array->tab[i];
+    array->tab[i] = array->tab[j];
+    array->tab[j] = v;
+}
+
 /**************************************************************************/
 /* Typed Arrays                                                           */
 /**************************************************************************/
@@ -101,6 +109,11 @@ void *generic_array_take(generic_array *array, ssize_t pos)
     prefix##_array_append(prefix##_array *array, el_typ *item)                \
     {                                                                         \
         generic_array_append((generic_array *)array, (void*)item);            \
+    }                                                                         \
+    static inline void                                                        \
+    prefix##_array_swap(prefix##_array *array, ssize_t i, ssize_t j)          \
+    {                                                                         \
+        generic_array_swap((generic_array *)array, i, j);                     \
     }                                                                         \
     static inline void                                                        \
     prefix##_array_push(prefix##_array *array, el_typ *item)                  \
