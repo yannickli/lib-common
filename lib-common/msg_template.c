@@ -608,11 +608,13 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
     int i;
     const tpl_part *curpart;
     const int nbparts = part_multi_nbparts(tpl->body);
+    blob_t encode_buf;
 
     if (!output) {
         return -1;
     }
     blob_resize(output, 0);
+    blob_init(&encode_buf);
     for (i = 0; i < nbparts; i++) {
         curpart = part_multi_get(tpl->body, i);
         e_debug(2, "[%d] ", i);
@@ -620,15 +622,20 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
           case PART_VERBATIM:
             e_debug(2, "Verbatim:'%s'\n",
                     blob_get_cstr(&curpart->u.verbatim->data));
-            blob_append(output, &curpart->u.verbatim->data);
+            blob_set(&encode_buf, &curpart->u.verbatim->data);
+            msg_template_blob_encode(&encode_buf, curpart->enc);
+            blob_append(output, &encode_buf);
             break;
           case PART_VARIABLE:
             if (curpart->u.variable->index > nbvars) {
                 /* Ignore non-specified fields */
                 break;
             }
-            e_debug(2, "Var:%d\n", curpart->u.variable->index);
-            blob_append_cstr(output, vars[curpart->u.variable->index]);
+            e_debug(1, "Var:%d\n", curpart->u.variable->index);
+            //blob_append_cstr(output, vars[curpart->u.variable->index]);
+            blob_set_cstr(&encode_buf, vars[curpart->u.variable->index]);
+            msg_template_blob_encode(&encode_buf, curpart->enc);
+            blob_append(output, &encode_buf);
             break;
           case PART_QS:
             e_debug(2, "QS:'%s'\n", blob_get_cstr(&curpart->u.qs->data));
@@ -644,6 +651,7 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
             break;
         }
     }
+    blob_wipe(&encode_buf);
     return 0;
 }
 
