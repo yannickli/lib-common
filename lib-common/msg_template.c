@@ -636,7 +636,7 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
                 /* Ignore non-specified fields */
                 break;
             }
-            e_debug(1, "Var:%d\n", curpart->u.variable->index);
+            e_debug(2, "Var:%d\n", curpart->u.variable->index);
             /* OG: should avoid overhead with a blob_encode_cstr API? */
             //blob_append_cstr(output, vars[curpart->u.variable->index]);
             blob_set_cstr(&encode_buf, vars[curpart->u.variable->index]);
