@@ -104,7 +104,7 @@ void msg_template_dump(const msg_template *tpl,
     if (tpl->body) {
         part_multi_dump(tpl->body, vars, nbvars);
     } else {
-        e_debug(1, "empty tpl\n");
+        e_debug(2, "empty tpl\n");
     }
 }
 
@@ -114,7 +114,7 @@ void part_multi_addpart(part_multi **multi_p, tpl_part *part)
 
     if (multi->nbparts + 1 > multi->nbparts_allocated) {
         multi->nbparts_allocated += 16;
-        e_debug(1, "realloc:%d\n", multi->nbparts_allocated);
+        e_debug(2, "realloc:%d\n", multi->nbparts_allocated);
         multi = mem_realloc(multi,
                             sizeof(part_multi)
                             + multi->nbparts_allocated * sizeof(tpl_part));
@@ -142,11 +142,11 @@ static inline void part_multi_dump(const part_multi *multi,
     const char *name;
     const tpl_part *curpart;
 
-    e_debug(1, "nbparts:%d\n", multi->nbparts);
+    e_debug(2, "nbparts:%d\n", multi->nbparts);
 
     for (i = 0; i < multi->nbparts; i++) {
         curpart = &multi->parts[i];
-        e_debug(1, "[%02d]: ", i);
+        e_debug(2, "[%02d]: ", i);
         switch (curpart->type) {
           case PART_VERBATIM:
             len = strconv_quote(NULL, 0,
@@ -156,13 +156,13 @@ static inline void part_multi_dump(const part_multi *multi,
             strconv_quote(ptr, len + 1,
                           blob_get_cstr(&curpart->u.verbatim->data),
                           curpart->u.verbatim->data.len, '"');
-            e_debug(1, "VERBATIM: (%zd) \"%s\"\n",
+            e_debug(2, "VERBATIM: (%zd) \"%s\"\n",
                     curpart->u.verbatim->data.len, ptr);
             break;
           case PART_VARIABLE:
             name = (curpart->u.variable->index < nbvars) ?
                   vars[curpart->u.variable->index] : "???";
-            e_debug(1, "VARIABLE: %d (%s)\n",
+            e_debug(2, "VARIABLE: %d (%s)\n",
                     curpart->u.variable->index, name);
             break;
           case PART_QS:
@@ -174,12 +174,12 @@ static inline void part_multi_dump(const part_multi *multi,
             strconv_quote(ptr, len + 1,
                           blob_get_cstr(&curpart->u.qs->data),
                           curpart->u.qs->data.len, '"');
-            e_debug(1, "QS: (%zd) \"%s\"\n",
+            e_debug(2, "QS: (%zd) \"%s\"\n",
                     curpart->u.qs->data.len, ptr);
             break;
           case PART_MULTI:   /* unused */
             /* TODO: recurse with increased indentation */
-            e_debug(1, "MULTI: [skipped]\n");
+            e_debug(2, "MULTI: [skipped]\n");
             break;
         }
     }
@@ -731,7 +731,7 @@ static inline int split_csv_line(char *line, char **fields[])
         *q = '\0';
         p = q + 1;
     }
-    e_debug(1, "Nbfields:%d\n", nbfields);
+    e_debug(2, "Nbfields:%d\n", nbfields);
     return nbfields;
 }
 
@@ -763,7 +763,7 @@ int main(void)
     fieldline[q - p] = '\0';
     blob_kill_first(&csv_blob, q - p + 1);
 
-    e_debug(1, blob_get_cstr(&csv_blob));
+    e_debug(2, blob_get_cstr(&csv_blob));
 
     nbfields = split_csv_line(fieldline, &fields);
     if (nbfields < 0) {
@@ -838,14 +838,14 @@ int main(void)
             return 1;
         }
         if (nbdata != nbfields) {
-            e_debug(1, "Inconsistent CSV!\n");
+            e_debug(2, "Inconsistent CSV!\n");
             break;
         }
         
         msg_template_apply(tpl, data, nbdata, (blob_t **)out, allocated,
                            nbparts);
         for (i = 0; i < nbparts; i++) {
-            e_debug(1, "%.*s", (int)out[i]->len, blob_get_cstr(out[i]));
+            e_debug(2, "%.*s", (int)out[i]->len, blob_get_cstr(out[i]));
         }
         #if 0 
         writev(out, nbparts);
