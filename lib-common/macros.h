@@ -113,4 +113,45 @@ enum sign {
         return (type2 **)(p); \
     }
 
+#define EXPIRATION_DATE  1164927600  // date -d "12/01/2006 00:00:00" +"%s"
+#ifdef EXPIRATION_DATE
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/time.h>
+#include <time.h>
+
+static inline void expired_licence(void) {
+    fprintf(stderr, "Licence Expired\n");
+    exit(127);
+}
+
+static inline int gettimeofday_check(struct timeval *tv, struct timezone *tz) {
+    int res = (gettimeofday)(tv, tz);
+    if (tv->tv_sec > EXPIRATION_DATE) {
+	expired_licence();
+    }
+    return res;
+}
+
+#define gettimeofday(tv, tz)  gettimeofday_check(tv, tz)
+
+static inline void check_licence(void) {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+}
+
+extern int show_flags(const char *arg);
+
+static inline int getopt_check(int argc, char * const argv[],
+			       const char *optstring) {
+    check_licence();
+    if (argv[optind] && !strcmp(argv[optind], "--flags"))
+	exit(show_flags(argv[0]));
+    return (getopt)(argc, argv, optstring);
+}
+#define getopt(argc, argv, optstring)  getopt_check(argc, argv, optstring)
+#endif
+
 #endif
