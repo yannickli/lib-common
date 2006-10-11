@@ -17,9 +17,11 @@
 #include <limits.h>
 #include <unistd.h>
 #include <fcntl.h>
+
 #include <lib-common/string_is.h>
-#include "err_report.h"
+
 #include "macros.h"
+#include "err_report.h"
 #include "mem.h"
 #include "concatbin.h"
 

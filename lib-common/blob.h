@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_BLOB_H
-#define IS_BLOB_H
+#ifndef IS_LIB_COMMON_BLOB_H
+#define IS_LIB_COMMON_BLOB_H
 
 #include <ctype.h>
 #include <unistd.h>
@@ -273,4 +273,4 @@ Suite *check_make_blob_suite(void);
 
 #endif
 /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
-#endif
+#endif /* IS_LIB_COMMON_BLOB_H */

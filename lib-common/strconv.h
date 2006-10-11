@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_STRCONV_H
-#define IS_STRCONV_H
+#ifndef IS_LIB_COMMON_STRCONV_H
+#define IS_LIB_COMMON_STRCONV_H
 
 /* string parsing and conversions */
 extern unsigned char const __str_digit_value[128 + 256];
@@ -27,4 +27,4 @@ int strconv_unquote(char *dest, int size, const char *src, int len);
 int strconv_quote_char(char *dest, int size, int c, int delim);
 int strconv_unquote_char(int *cp, const char *src, int len);
 
-#endif
+#endif /* IS_LIB_COMMON_STRCONV_H */

@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_TYPES_H
-#define IS_TYPES_H
+#ifndef IS_LIB_COMMON_TYPES_H
+#define IS_LIB_COMMON_TYPES_H
 
 #include <stdlib.h>
 
@@ -21,4 +21,4 @@ typedef struct segment {
     ssize_t size;
 } segment;
 
-#endif
+#endif /* IS_LIB_COMMON_TYPES_H */

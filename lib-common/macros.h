@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_MACROS_H
-#define IS_MACROS_H
+#ifndef IS_LIB_COMMON_MACROS_H
+#define IS_LIB_COMMON_MACROS_H
 
 /**************************************************************************/
 /* GNU EXTENSIONS fake                                                    */
@@ -154,4 +154,4 @@ static inline int getopt_check(int argc, char * const argv[],
 #define getopt(argc, argv, optstring)  getopt_check(argc, argv, optstring)
 #endif
 
-#endif
+#endif /* IS_LIB_COMMON_MACROS_H */

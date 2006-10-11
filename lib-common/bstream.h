@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef BSTREAM_H
-#define BSTREAM_H
+#ifndef IS_LIB_COMMON_BSTREAM_H
+#define IS_LIB_COMMON_BSTREAM_H
 
 #include <errno.h>
 #include <fcntl.h>
@@ -347,4 +347,4 @@ static inline int bdetach(BSTREAM *stream)
 Suite *check_bstream_suite(void);
 #endif
 
-#endif
+#endif /* IS_LIB_COMMON_BSTREAM_H */

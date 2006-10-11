@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef __MMAPPEDFILE_H__
-#define __MMAPPEDFILE_H__
+#ifndef IS_LIB_COMMON_MMAPPEDFILE_H
+#define IS_LIB_COMMON_MMAPPEDFILE_H
 
 #include <sys/types.h>
 #include <fcntl.h>
@@ -39,4 +39,4 @@ void mmfile_close(mmfile **mf);
  */
 int mmfile_truncate(mmfile *mf, off_t length);
 
-#endif
+#endif /* IS_LIB_COMMON_MMAPPEDFILE_H */

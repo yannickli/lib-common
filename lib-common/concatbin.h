@@ -11,10 +11,13 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef CONCATBIN_H
-#define CONCATBIN_H
+#ifndef IS_LIB_COMMON_CONCATBIN_H
+#define IS_LIB_COMMON_CONCATBIN_H
+
 #include <stdlib.h>
+
 #include "macros.h"
+
 /* The format of the archive is very simple :
  *
  * The archive contains blobs of known length.
@@ -32,4 +35,4 @@ concatbin *concatbin_new(const char *filename);
 int concatbin_getnext(concatbin *ccb, const byte **data, int *len);
 void concatbin_delete(concatbin **ccb);
 
-#endif /* CONCATBIN_H */
+#endif /* IS_LIB_COMMON_CONCATBIN_H */

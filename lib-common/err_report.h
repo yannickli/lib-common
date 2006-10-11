@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_ERR_REPORT_H
-#define IS_ERR_REPORT_H
+#ifndef IS_LIB_COMMON_ERR_REPORT_H
+#define IS_LIB_COMMON_ERR_REPORT_H
 
 #include <stdarg.h>
 
@@ -90,4 +90,5 @@ static inline bool e_verbosity(int level) {
 }
 
 void e_shutdown(void);
-#endif
+
+#endif /* IS_LIB_COMMON_ERR_REPORT_H */

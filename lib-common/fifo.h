@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_FIFO_H
-#define IS_FIFO_H
+#ifndef IS_LIB_COMMON_FIFO_H
+#define IS_LIB_COMMON_FIFO_H
 
 #include <stdlib.h>
 
@@ -98,4 +98,4 @@ void fifo_put(fifo *f, void *ptr)
 Suite *check_fifo_suite(void);
 
 #endif
-#endif
+#endif /* IS_LIB_COMMON_FIFO_H */

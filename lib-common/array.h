@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_ARRAY_H
-#define IS_ARRAY_H
+#ifndef IS_LIB_COMMON_ARRAY_H
+#define IS_LIB_COMMON_ARRAY_H
 
 #include <stdlib.h>
 
@@ -126,4 +126,4 @@ generic_array_swap(generic_array *array, ssize_t i, ssize_t j)
         return (el_typ *)generic_array_take((generic_array *)array, pos);     \
     }
 
-#endif
+#endif /* IS_LIB_COMMON_ARRAY_H */

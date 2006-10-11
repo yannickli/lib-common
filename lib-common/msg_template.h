@@ -11,11 +11,11 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_MSG_TEMPLATE_H
-#define IS_MSG_TEMPLATE_H
+#ifndef IS_LIB_COMMON_MSG_TEMPLATE_H
+#define IS_LIB_COMMON_MSG_TEMPLATE_H
 
-#include "blob.h"
 #include "macros.h"
+#include "blob.h"
 
 typedef enum part_encoding {
     ENC_NONE = 1,
@@ -64,4 +64,4 @@ int msg_template_nbparts(const msg_template *tpl);
 Suite *check_msg_template_suite(void);
 
 #endif
-#endif
+#endif /* IS_LIB_COMMON_MSG_TEMPLATE_H */

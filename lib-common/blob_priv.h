@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_BLOB_PRIV_H
-#define IS_BLOB_PRIV_H
+#ifndef IS_LIB_COMMON_BLOB_PRIV_H
+#define IS_LIB_COMMON_BLOB_PRIV_H
 /*
  * A blob has a vital invariant, making every parse function avoid
  * buffer read overflows: there is *always* a '\0' in the data at
@@ -29,4 +29,4 @@ typedef struct {
     byte initial[BLOB_INITIAL_SIZE];
 } real_blob_t;
 
-#endif
+#endif /* IS_LIB_COMMON_BLOB_PRIV_H */

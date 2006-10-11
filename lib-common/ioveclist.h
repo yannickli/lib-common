@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef __LIBCOMMON_IOVECLIST__
-#define __LIBCOMMON_IOVECLIST__
+#ifndef IS_LIB_COMMON_IOVECLIST_H
+#define IS_LIB_COMMON_IOVECLIST_H
 
 #include <sys/uio.h>
 
@@ -40,4 +40,4 @@ static inline int ioveclist_insert_blob(ioveclist *l, blob_t *blob)
 
 ioveclist_state ioveclist_write(ioveclist *l, int fd);
 
-#endif /* __LIBCOMMON_IOVECLIST__ */
+#endif /* IS_LIB_COMMON_IOVECLIST_H */

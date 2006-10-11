@@ -11,9 +11,9 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include "macros.h"
 #include "string_is.h"
 #include "array.h"
-#include "macros.h"
 
 typedef struct {
     void ** tab;

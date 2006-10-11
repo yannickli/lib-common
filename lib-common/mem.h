@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_MEM_H
-#define IS_MEM_H
+#ifndef IS_LIB_COMMON_MEM_H
+#define IS_LIB_COMMON_MEM_H
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -102,4 +102,4 @@ static inline void *mem_realloc0(void *mem, ssize_t oldsize, ssize_t newsize)
         }                           \
     } while(0)
 
-#endif
+#endif /* IS_LIB_COMMON_MEM_H */

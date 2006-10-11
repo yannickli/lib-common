@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_STRING_IS_H
-#define IS_STRING_IS_H
+#ifndef IS_LIB_COMMON_STRING_IS_H
+#define IS_LIB_COMMON_STRING_IS_H
 
 #include <stdlib.h>
 #include <string.h>
@@ -99,4 +99,4 @@ Suite *check_string_is_suite(void);
 
 #endif
 /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
-#endif
+#endif /* IS_LIB_COMMON_STRING_IS_H */

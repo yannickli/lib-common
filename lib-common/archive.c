@@ -11,11 +11,11 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "archive.h"
-
 #include <lib-common/mem.h>
 #include <lib-common/err_report.h>
 #include <lib-common/archive_priv.h>
+
+#include "archive.h"
 
 archive_t *archive_new(void)
 {
@@ -597,8 +597,9 @@ void archive_dump(const archive_t *archive, int level)
 
 #ifdef CHECK
 
-#include "blob.h"
 #include <stdio.h>
+
+#include "blob.h"
 
 START_TEST(check_init_wipe)
 {

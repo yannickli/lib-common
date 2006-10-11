@@ -11,8 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-/* general things about parsing functions :
+#ifndef IS_LIB_COMMON_PARSE_H
+#define IS_LIB_COMMON_PARSE_H
 
+/* general things about parsing functions :
 
 signed_int_type `header'_parse_`what_it_parses' (const blob_t * blob,
                                                  ssize_t * pos, foo ** answer)
@@ -47,9 +49,6 @@ Notes:
 
  */
 
-#ifndef IS_PARSE_H
-#define IS_PARSE_H
-
 #include "blob.h"
 
 enum blob_parse_status {
@@ -72,4 +71,4 @@ enum blob_parse_status {
         }                                   \
     } while(0)
 
-#endif
+#endif /* IS_LIB_COMMON_PARSE_H */

@@ -11,18 +11,18 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef __LIB_COMMON_ARCHIVE_H__
-#define __LIB_COMMON_ARCHIVE_H__
+#ifndef IS_LIB_COMMON_ARCHIVE_H
+#define IS_LIB_COMMON_ARCHIVE_H
+
+#include <inttypes.h>
+
+#include "macros.h"
 
 /**
  *  Archive format :
  *
  *
  */
-
-
-#include <inttypes.h>
-#include "macros.h"
 
 typedef struct {
     uint32_t tag;
@@ -98,6 +98,4 @@ void archive_dump(const archive_t *archive, int level);
 Suite *check_make_archive_suite(void);
 
 #endif
-
-
-#endif
+#endif /* IS_LIB_COMMON_ARCHIVE_H */

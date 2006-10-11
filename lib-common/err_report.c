@@ -17,10 +17,10 @@
 #include <string.h>
 #include <errno.h>
 
+#include "macros.h"
 #define ERR_REPORT_DEFINE_VERBOSITY
 #include "err_report.h"
 #undef ERR_REPORT_DEFINE_VERBOSITY
-#include "macros.h"
 
 /**************************************************************************/
 /* private API                                                            */

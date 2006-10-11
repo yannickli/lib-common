@@ -11,8 +11,9 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_TIMEVAL_H
-#define IS_TIMEVAL_H
+#ifndef IS_LIB_COMMON_TIMEVAL_H
+#define IS_LIB_COMMON_TIMEVAL_H
+
 #include <sys/time.h>
 #include <time.h>
 
@@ -29,4 +30,5 @@ struct timeval timeval_mul(struct timeval tv, int k);
 struct timeval timeval_div(struct timeval tv, int k);
 bool is_expired(const struct timeval *date, const struct timeval *now,
                 struct timeval *left);
-#endif
+
+#endif /* IS_LIB_COMMON_TIMEVAL_H */

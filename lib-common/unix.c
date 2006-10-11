@@ -18,8 +18,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <limits.h>
-#include "unix.h"
+
 #include "macros.h"
+#include "unix.h"
 #include "string_is.h"
 
 /* Returns 0 if directory exists,

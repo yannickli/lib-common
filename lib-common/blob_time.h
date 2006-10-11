@@ -11,10 +11,11 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_BLOB_TIME_H
-#define IS_BLOB_TIME_H
+#ifndef IS_LIB_COMMON_BLOB_TIME_H
+#define IS_LIB_COMMON_BLOB_TIME_H
 
 #include <time.h>
+
 #include "blob.h"
 
 ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt,
@@ -27,4 +28,4 @@ static inline void blob_strftime_utc(blob_t *blob, ssize_t pos, time_t timer)
                   gmtime_r(&timer, &tm));
 }
 
-#endif
+#endif /* IS_LIB_COMMON_BLOB_TIME_H */

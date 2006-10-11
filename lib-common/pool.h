@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef __POOL_H__
-#define __POOL_H__
+#ifndef IS_LIB_COMMON_POOL_H
+#define IS_LIB_COMMON_POOL_H
 
 /* Pool idea : Keep a pool of non-allocated objects. Object are not
  * pre-allocated, but non-deallocated when you delete them, in order
@@ -64,4 +64,4 @@ static inline void type##_pool_empty(void)                              \
 #define STATIC_POOL(type, size, New, Reset, Delete)    \
     GENERIC_POOL(type, size, New, Reset, Delete, static)
 
-#endif
+#endif /* IS_LIB_COMMON_POOL_H */

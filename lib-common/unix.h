@@ -11,10 +11,12 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_UNIX_H
-#define IS_UNIX_H
+#ifndef IS_LIB_COMMON_UNIX_H
+#define IS_LIB_COMMON_UNIX_H
+
 #include <unistd.h> /* for ssize_t */
 #include <sys/types.h>
+
 int mkdir_p(const char *dir, mode_t mode);
 
 const char *get_basename(const char *filename);
@@ -27,4 +29,4 @@ static inline char *vget_basename(char *path) {
 static inline char *vget_ext(char *path) {
     return (char*)get_ext(path);
 }
-#endif
+#endif /* IS_LIB_COMMON_UNIX_H */

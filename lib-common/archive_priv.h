@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_ARCHIVE_H
-#define IS_ARCHIVE_H
+#ifndef IS_LIB_COMMON_ARCHIVE_PRIV_H
+#define IS_LIB_COMMON_ARCHIVE_PRIV_H
 
 #define ARCHIVE_MAGIC0      'I'
 #define ARCHIVE_MAGIC1      'S'
@@ -46,4 +46,4 @@
 #define ARCHIVE_TAG_HEAD   (B4_TO_INT('H', 'E', 'A', 'D'))
 #define ARCHIVE_TAG_TPL    (B4_TO_INT('T', 'P', 'L', ' '))
 
-#endif
+#endif /* IS_LIB_COMMON_ARCHIVE_PRIV_H */

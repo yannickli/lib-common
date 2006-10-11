@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <zlib.h>
 #include <stdlib.h>
+#include <zlib.h>
 
 #include "macros.h"
 #include "blob.h"

@@ -11,11 +11,11 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef _LIBCOMMON_STOPPER_H_
-#define _LIBCOMMON_STOPPER_H_
+#ifndef IS_LIB_COMMON_STOPPER_H
+#define IS_LIB_COMMON_STOPPER_H
 
 bool is_stopper_waiting(void);
 void stopper_initialize(void);
 void stopper_shutdown(void);
 
-#endif /* _LIBCOMMON_STOPPER_H_ */
+#endif /* IS_LIB_COMMON_STOPPER_H */

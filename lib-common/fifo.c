@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "fifo.h"
 #include "macros.h"
+#include "fifo.h"
 
 #define FIFO_INITIAL_SIZE 32
 
