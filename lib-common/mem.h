@@ -72,9 +72,9 @@ static inline void *mem_realloc0(void *mem, ssize_t oldsize, ssize_t newsize)
     return mem;
 }
 
-#define p_blank(type, p, count) ((type *)memset(p, 0, sizeof(type) * (count)))
 #define p_new_raw(type, count)  ((type *)mem_alloc(sizeof(type) * (count)))
 #define p_new(type, count)      ((type *)mem_alloc0(sizeof(type) * (count)))
+#define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
 
 #ifdef __GNUC__
 
@@ -104,6 +104,11 @@ static inline void *mem_realloc0(void *mem, ssize_t oldsize, ssize_t newsize)
 #define GENERIC_NEW(type, prefix) \
     static inline type *prefix##_new(void) {                \
         return prefix##_init(p_new_raw(type, 1));           \
+    }
+#define GENERIC_INIT(type, prefix) \
+    static inline type *prefix##_init(type *var) {          \
+        p_clear(var, 1);                                    \
+        return var;                                         \
     }
 
 #define GENERIC_DELETE(type, prefix) \
