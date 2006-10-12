@@ -102,10 +102,7 @@ static inline void part_verbatim_wipe(part_verbatim *verb)
 {
     blob_wipe(&verb->data);
 }
-static inline void part_verbatim_delete(part_verbatim **verb)
-{
-    GENERIC_DELETE(part_verbatim_wipe, verb);
-}
+GENERIC_DELETE(part_verbatim, part_verbatim);
 
 
 static inline part_variable *part_variable_new(int ind)
@@ -119,11 +116,7 @@ static inline part_variable *part_variable_new(int ind)
 static inline void part_variable_wipe(part_variable __unused__ *var)
 {
 }
-static inline void part_variable_delete(part_variable **var)
-{
-    GENERIC_DELETE(part_variable_wipe, var);
-}
-
+GENERIC_DELETE(part_variable, part_variable);
 
 static inline part_qs *part_qs_new(const char*src, int size)
 {
@@ -139,10 +132,7 @@ static inline void part_qs_wipe(part_qs *qs)
 {
     blob_wipe(&qs->data);
 }
-static inline void part_qs_delete(part_qs **qs)
-{
-    GENERIC_DELETE(part_qs_wipe, qs);
-}
+GENERIC_DELETE(part_qs, part_qs);
 
 
 static inline part_multi *part_multi_new(void)
@@ -175,10 +165,7 @@ static inline void part_multi_wipe(part_multi *multi)
         }
     }
 }
-static inline void part_multi_delete(part_multi **multi)
-{
-    GENERIC_DELETE(part_multi_wipe, multi);
-}
+GENERIC_DELETE(part_multi, part_multi);
 
 /****************************************************************************/
 /* public legacy functions                                                  */

@@ -106,7 +106,10 @@ static inline void mmfile_wipe(mmfile *mf)
 
 void mmfile_close(mmfile **mf)
 {
-    GENERIC_DELETE(mmfile_wipe, mf);
+    if (*mf) {
+        mmfile_wipe(*mf);
+        p_delete(mf);
+    }
 }
 
 int mmfile_truncate(mmfile *mf, off_t length)

@@ -17,10 +17,47 @@
 
 #include "archive.h"
 
-archive_t *archive_new(void)
+static void archive_bloc_wipe(archive_bloc *bloc)
 {
-    return archive_init(p_new(archive_t, 1));
+    bloc->tag  = 0;
+    bloc->size = 0;
+    bloc->payload = NULL;
 }
+
+static void archive_file_wipe(archive_file *file)
+{
+    uint32_t i;
+
+    archive_bloc_wipe(&file->_bloc);
+    file->size = 0;
+    file->date_create = 0;
+    file->date_update = 0;
+    file->name = NULL;
+    if (file->nb_attrs) {
+        for (i = 0; i < file->nb_attrs; i++) {
+            p_delete(&(file->attrs[i]));
+        }
+        p_delete(&file->attrs);
+        file->nb_attrs = 0;
+    }
+    file->payload = NULL;
+}
+GENERIC_DELETE(archive_file, archive_file);
+
+static void archive_head_wipe(archive_head *head)
+{
+    archive_bloc_wipe(&head->_bloc);
+    head->nb_blocs = 0;
+}
+GENERIC_DELETE(archive_head, archive_head);
+
+static void archive_tpl_wipe(archive_tpl *tpl)
+{
+    archive_bloc_wipe(&tpl->_bloc);
+}
+GENERIC_DELETE(archive_tpl, archive_tpl);
+
+
 archive_t *archive_init(archive_t *archive)
 {
     archive->version = 0;
@@ -31,9 +68,6 @@ archive_t *archive_init(archive_t *archive)
     return archive;
 }
 
-static void archive_file_delete(archive_file **file);
-static void archive_head_delete(archive_head **head);
-static void archive_tpl_delete(archive_tpl **tpl);
 void archive_wipe(archive_t *archive)
 {
     int i;
@@ -64,63 +98,10 @@ void archive_wipe(archive_t *archive)
     archive->last_bloc = NULL;
 }
 
-void archive_delete(archive_t **archive)
-{
-    GENERIC_DELETE(archive_wipe, archive);
-}
-
 static inline const char *byte_to_char_const(const byte *b)
 {
     return (const char *) b;
 }
-
-static void archive_bloc_wipe(archive_bloc *bloc)
-{
-    bloc->tag  = 0;
-    bloc->size = 0;
-    bloc->payload = NULL;
-}
-
-static void archive_file_wipe(archive_file *file)
-{
-    uint32_t i;
-
-    archive_bloc_wipe(&file->_bloc);
-    file->size = 0;
-    file->date_create = 0;
-    file->date_update = 0;
-    file->name = NULL;
-    if (file->nb_attrs) {
-        for (i = 0; i < file->nb_attrs; i++) {
-            p_delete(&(file->attrs[i]));
-        }
-        p_delete(&file->attrs);
-        file->nb_attrs = 0;
-    }
-    file->payload = NULL;
-}
-static void archive_head_wipe(archive_head *head)
-{
-    archive_bloc_wipe(&head->_bloc);
-    head->nb_blocs = 0;
-}
-static void archive_tpl_wipe(archive_tpl *tpl)
-{
-    archive_bloc_wipe(&tpl->_bloc);
-}
-static void archive_file_delete(archive_file **file)
-{
-    GENERIC_DELETE(archive_file_wipe, file);
-}
-static void archive_head_delete(archive_head **head)
-{
-    GENERIC_DELETE(archive_head_wipe, head);
-}
-static void archive_tpl_delete(archive_tpl **tpl)
-{
-    GENERIC_DELETE(archive_tpl_wipe, tpl);
-}
-
 
 static inline int read_uint32(const byte **input, int *len, uint32_t *val)
 {

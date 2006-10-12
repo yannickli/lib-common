@@ -94,12 +94,12 @@ static inline void *mem_realloc0(void *mem, ssize_t oldsize, ssize_t newsize)
     ((type *)mem_realloc0((mem), (oldcount) * sizeof(type), \
                           (newcount) * sizeof(type)))
 
-#define GENERIC_DELETE(wiper, var)  \
-    do {                            \
-        if (var && *var) {          \
-            (wiper)(*(var));        \
-            p_delete(var);          \
-        }                           \
-    } while(0)
+#define GENERIC_DELETE(type, prefix) \
+    static inline void prefix ## _delete(type **var) {      \
+        if (*var) {                                         \
+            (prefix ## _wipe)(*var);                        \
+            p_delete(var);                                  \
+        }                                                   \
+    }
 
 #endif /* IS_LIB_COMMON_MEM_H */

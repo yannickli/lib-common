@@ -16,6 +16,8 @@
 
 #include <inttypes.h>
 
+#include <lib-common/mem.h>
+
 #include "macros.h"
 
 /**
@@ -75,10 +77,13 @@ CONVERSION_FUNCTIONS(archive_tpl, archive_bloc);
  */
 int archive_parse(const byte *input, int len, archive_t *archive);
 
-archive_t *archive_new(void);
 archive_t *archive_init(archive_t *archive);
+static inline archive_t *archive_new(void)
+{
+    return archive_init(p_new(archive_t, 1));
+}
 void archive_wipe(archive_t *archive);
-void archive_delete(archive_t **archive);
+GENERIC_DELETE(archive_t, archive);
 
 const archive_file *archive_get_file_bloc(const archive_t *archive,
                                           const char *filename);
