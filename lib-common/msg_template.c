@@ -283,13 +283,6 @@ int msg_template_add_data(msg_template *tpl, part_encoding enc,
     return 0;
 }
 
-int msg_template_add_qs(msg_template *tpl, part_encoding enc,
-                        const byte *data, int len)
-{
-    /* TODO */
-    return msg_template_add_data(tpl, enc, data, len);
-}
-
 static int msg_template_lookup_variable(const char **vars, int nbvars,
                                         const char *name, int namelen)
 {

@@ -64,8 +64,13 @@ msg_template_add_blob(msg_template *tpl, part_encoding enc,
     return msg_template_add_data(tpl, enc, data->data, data->len);
 }
 
-int msg_template_add_qs(msg_template *tpl, part_encoding enc,
-                        const byte *data, int len);
+static inline int
+msg_template_add_qs(msg_template *tpl, part_encoding enc,
+                    const byte *data, int len)
+{
+    /* TODO: make it work for real */
+    return msg_template_add_data(tpl, enc, data, len);
+}
 
 
 /****************************************************************************/
