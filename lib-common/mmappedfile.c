@@ -20,12 +20,12 @@
 
 #include "mmappedfile.h"
 
-#define mmfile_new() mmfile_init(p_new_raw(mmfile, 1))
 static inline mmfile *mmfile_init(mmfile *mf)
 {
     p_blank(mmfile, mf, 1);
     return mf;
 }
+GENERIC_NEW(mmfile, mmfile);
 
 mmfile *mmfile_open(const char *path, int flags)
 {

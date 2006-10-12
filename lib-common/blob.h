@@ -40,8 +40,8 @@ typedef struct {
 /* Blob creation / deletion                                               */
 /**************************************************************************/
 
-#define blob_new()  blob_init(p_new_raw(blob_t, 1))
 blob_t *blob_init(blob_t *blob);
+GENERIC_NEW(blob_t, blob);
 void blob_wipe(blob_t *blob);
 GENERIC_DELETE(blob_t, blob);
 

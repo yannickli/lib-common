@@ -55,14 +55,6 @@ static inline void *mem_alloc0(ssize_t size)
     return mem;
 }
 
-static inline void *mem_free(void *mem)
-{
-    if (mem != NULL) {
-        free(mem);
-    }
-    return NULL;
-}
-
 static inline void *mem_realloc(void *mem, ssize_t newsize)
 {
     mem = realloc(mem, newsize);
@@ -89,7 +81,7 @@ static inline void *mem_realloc0(void *mem, ssize_t oldsize, ssize_t newsize)
 #  define p_delete(mem_pp)                      \
         do {                                    \
             typeof(**mem_pp) **ptr = mem_pp;    \
-            mem_free(*(void**)ptr);             \
+            free(*(void**)ptr);                 \
             *ptr = NULL;                        \
         } while (0)
 
@@ -98,7 +90,7 @@ static inline void *mem_realloc0(void *mem, ssize_t oldsize, ssize_t newsize)
 #  define p_delete(mem_p)                \
         do {                             \
             void *__ptr = (mem_p);       \
-            mem_free(*(void **)__ptr);   \
+            free(*(void **)__ptr);       \
             *(void **)__ptr = NULL;      \
         } while (0)
 
@@ -109,8 +101,13 @@ static inline void *mem_realloc0(void *mem, ssize_t oldsize, ssize_t newsize)
     ((type *)mem_realloc0((mem), (oldcount) * sizeof(type), \
                           (newcount) * sizeof(type)))
 
+#define GENERIC_NEW(type, prefix) \
+    static inline type *prefix##_new(void) {                \
+        return prefix##_init(p_new_raw(type, 1));           \
+    }
+
 #define GENERIC_DELETE(type, prefix) \
-    static inline void prefix ## _delete(type **var) {      \
+    static inline void prefix##_delete(type **var) {        \
         if (*var) {                                         \
             (prefix ## _wipe)(*var);                        \
             p_delete(var);                                  \

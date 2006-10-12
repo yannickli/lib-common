@@ -30,8 +30,8 @@ typedef void array_item_dtor_f(void *item);
 /* Memory management                                                      */
 /**************************************************************************/
 
-#define generic_array_new() generic_array_init(p_new_raw(generic_array, 1))
 generic_array *generic_array_init(generic_array *array);
+GENERIC_NEW(generic_array, generic_array);
 void generic_array_wipe(generic_array *array, array_item_dtor_f *dtor);
 void generic_array_delete(generic_array **array, array_item_dtor_f *dtor);
 
