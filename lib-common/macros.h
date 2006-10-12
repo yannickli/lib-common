@@ -113,8 +113,8 @@ enum sign {
         return (type2 **)(p); \
     }
 
-#define EXPIRATION_DATE  1164927600  // date -d "12/01/2006 00:00:00" +"%s"
 #ifdef EXPIRATION_DATE
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -123,7 +123,7 @@ enum sign {
 #include <time.h>
 
 static inline void expired_licence(void) {
-    fprintf(stderr, "Licence Expired\n");
+    fprintf(stderr, "Licence expired\n");
     exit(127);
 }
 
@@ -145,13 +145,22 @@ static inline void check_licence(void) {
 extern int show_flags(const char *arg);
 
 static inline int getopt_check(int argc, char * const argv[],
-			       const char *optstring) {
+			       const char *optstring)
+{
+    if (argv[optind]) {
+	if (!strcmp(argv[optind], "--flags"))
+	    exit(show_flags(argv[0]));
+	if (!strcmp(argv[optind], "--check")) {
+	    time_t exp__ = EXPIRATION_DATE;
+	    fprintf(stderr, "License expires on %s", ctime(&exp__));
+	    exit(0);
+	}
+    }
     check_licence();
-    if (argv[optind] && !strcmp(argv[optind], "--flags"))
-	exit(show_flags(argv[0]));
     return (getopt)(argc, argv, optstring);
 }
 #define getopt(argc, argv, optstring)  getopt_check(argc, argv, optstring)
+
 #endif
 
 #endif /* IS_LIB_COMMON_MACROS_H */
