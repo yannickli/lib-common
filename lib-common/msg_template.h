@@ -33,18 +33,35 @@ typedef struct msg_template msg_template;
 
 msg_template *msg_template_new(void);
 void msg_template_delete(msg_template **tpl);
+
 void msg_template_dump(const msg_template *tpl,
 		       const char **vars, int nbvars);
-int msg_template_add_byte(msg_template *tpl, part_encoding enc,
-                          byte b);
-int msg_template_add_cstr(msg_template *tpl, part_encoding enc,
-                          const char *str);
+
 int msg_template_add_data(msg_template *tpl, part_encoding enc,
                           const byte *data, int len);
-int msg_template_add_blob(msg_template *tpl, part_encoding enc,
-                          const blob_t *data);
+
+static inline int
+msg_template_add_byte(msg_template *tpl, part_encoding enc, byte b)
+{
+    return msg_template_add_data(tpl, enc, &b, 1);
+}
+
+static inline int
+msg_template_add_cstr(msg_template *tpl, part_encoding enc, const char *str)
+{
+    return msg_template_add_data(tpl, enc, (const byte *)str, strlen(str));
+}
+
+static inline int
+msg_template_add_blob(msg_template *tpl, part_encoding enc,
+                      const blob_t *data)
+{
+    return msg_template_add_data(tpl, enc, data->data, data->len);
+}
+
 int msg_template_add_qs(msg_template *tpl, part_encoding enc,
                         const byte *data, int len);
+
 int msg_template_add_variable(msg_template *tpl, part_encoding enc, 
                               const char **vars, int nbvars,
                               const char *name);

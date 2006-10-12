@@ -83,8 +83,6 @@ void part_multi_delete(part_multi **multi);
 void part_multi_wipe(part_multi *multi);
 
 void part_multi_addpart(part_multi **multi, tpl_part *part);
-static const tpl_part *part_multi_get(const part_multi *multi, int i);
-static int part_multi_nbparts(const part_multi *multi);
 static inline void part_multi_dump(const part_multi *multi,
                                    const char **vars, int nbvars);
 
@@ -124,16 +122,6 @@ void part_multi_addpart(part_multi **multi_p, tpl_part *part)
     }
     multi->parts[multi->nbparts] = *part;
     multi->nbparts++;
-}
-
-static inline const tpl_part *part_multi_get(const part_multi *multi, int i)
-{
-    return &multi->parts[i];
-}
-
-static inline int part_multi_nbparts(const part_multi *multi)
-{
-    return multi->nbparts;
 }
 
 static inline void part_multi_dump(const part_multi *multi,
@@ -201,7 +189,7 @@ int msg_template_nbparts(const msg_template *tpl)
     if (!tpl || !tpl->body) {
         return 0;
     }
-    return part_multi_nbparts(tpl->body);
+    return tpl->body->nbparts;
 }
 
 void msg_template_delete(msg_template **tpl)
@@ -255,17 +243,6 @@ static part_type msg_template_blob_encode(blob_t *src, part_encoding enc)
     return enc;
 }
 
-int msg_template_add_byte(msg_template *tpl, part_encoding enc, byte b)
-{
-    return msg_template_add_data(tpl, enc, &b, 1);
-}
-
-int msg_template_add_cstr(msg_template *tpl, part_encoding enc,
-                          const char *str)
-{
-    return msg_template_add_data(tpl, enc, (const byte *)str, strlen(str));
-}
-
 int msg_template_add_data(msg_template *tpl, part_encoding enc,
                           const byte *data, int len)
 {
@@ -305,14 +282,6 @@ int msg_template_add_data(msg_template *tpl, part_encoding enc,
     return 0;
 }
 
-int msg_template_add_blob(msg_template *tpl, part_encoding enc,
-                          const blob_t *data)
-{
-    return msg_template_add_data(tpl, enc,
-                                 (const byte *)blob_get_cstr(data),
-                                 data->len);
-}
-
 int msg_template_add_qs(msg_template *tpl, part_encoding enc,
                         const byte *data, int len)
 {
@@ -324,7 +293,7 @@ static int msg_template_lookup_variable(const char **vars, int nbvars,
                                         const char *name, int namelen)
 {
     int i;
-    
+
     for (i = 0; i < nbvars; i++) {
         if (!strncmp(name, vars[i], namelen)
         &&   vars[i][namelen] == '\0') {
@@ -554,13 +523,13 @@ int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
     int i;
     blob_t *curblob;
     const tpl_part *curpart;
-    const int nbparts = part_multi_nbparts(tpl->body);
+    const int nbparts = tpl->body->nbparts;
 
     if (count < nbparts) {
         return -1;
     }
     for (i = 0; i < nbparts; i++) {
-        curpart = part_multi_get(tpl->body, i);
+        curpart = &tpl->body->parts[i];
         e_debug(MSG_TPL_DBG_LVL, "[%d] ", i);
         switch (curpart->type) {
           case PART_VERBATIM:
@@ -604,7 +573,7 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
 {
     int i;
     const tpl_part *curpart;
-    const int nbparts = part_multi_nbparts(tpl->body);
+    const int nbparts = tpl->body->nbparts;
     blob_t encode_buf;
 
     if (!output) {
@@ -613,7 +582,7 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
     blob_resize(output, 0);
     blob_init(&encode_buf);
     for (i = 0; i < nbparts; i++) {
-        curpart = part_multi_get(tpl->body, i);
+        curpart = &tpl->body->parts[i];
         e_debug(MSG_TPL_DBG_LVL, "[%d] ", i);
         switch (curpart->type) {
           case PART_VERBATIM:
