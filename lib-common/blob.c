@@ -112,7 +112,7 @@ void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize)
 {
     real_blob_t *rblob = blob_real(blob);
 
-    assert (bufsize < len + 1);
+    assert (bufsize >= len + 1);
 
     p_delete(&rblob->area);
     rblob->area = rblob->data = buf;
