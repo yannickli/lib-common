@@ -31,9 +31,15 @@ typedef enum part_encoding {
 
 typedef struct msg_template msg_template;
 
+
+/****************************************************************************/
+/* legacy functions and helpers                                             */
+/****************************************************************************/
+
 msg_template *msg_template_new(void);
 void msg_template_delete(msg_template **tpl);
 
+int msg_template_nbparts(const msg_template *tpl);
 void msg_template_dump(const msg_template *tpl,
 		       const char **vars, int nbvars);
 
@@ -93,7 +99,6 @@ int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
                        blob_t **vector, int count);
 int msg_template_apply_blob(const msg_template *tpl, const char **vars,
                             int nbvars, blob_t *output);
-int msg_template_nbparts(const msg_template *tpl);
 
 #ifdef CHECK
 #include <check.h>

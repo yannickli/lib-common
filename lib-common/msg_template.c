@@ -78,26 +78,206 @@ struct part_multi {
     tpl_part parts[];
 };
 
-part_multi *part_multi_new(void);
-void part_multi_delete(part_multi **multi);
-void part_multi_wipe(part_multi *multi);
+/****************************************************************************/
+/* forwards (TODO: remove them at some point)                               */
+/****************************************************************************/
+
 void msg_template_optimize(msg_template *tpl);
 
 void part_multi_addpart(part_multi **multi, tpl_part *part);
-static inline void part_multi_dump(const part_multi *multi,
-                                   const char **vars, int nbvars);
 
-part_variable *part_variable_new(int ind);
-void part_variable_delete(part_variable **variable);
-void part_variable_wipe(part_variable *variable);
+/****************************************************************************/
+/* legacy functions                                                         */
+/****************************************************************************/
 
-part_verbatim *part_verbatim_new(const byte *src, int size);
-void part_verbatim_delete(part_verbatim **verbatim);
-void part_verbatim_wipe(part_verbatim *verbatim);
+static inline part_verbatim *
+part_verbatim_new(const byte *src, int size)
+{
+    part_verbatim *verb;
 
-part_qs *part_qs_new(const char*src, int size);
-void part_qs_delete(part_qs **qs);
-void part_qs_wipe(part_qs *qs);
+    verb = p_new(part_verbatim, 1);
+    blob_init(&verb->data);
+    blob_set_data(&verb->data, src, size);
+    return verb;
+}
+
+static inline void part_verbatim_wipe(part_verbatim *verb)
+{
+    blob_wipe(&verb->data);
+}
+static inline void part_verbatim_delete(part_verbatim **verb)
+{
+    GENERIC_DELETE(part_verbatim_wipe, verb);
+}
+
+
+static inline part_variable *part_variable_new(int ind)
+{
+    part_variable *var;
+
+    var = p_new(part_variable, 1);
+    var->index = ind;
+    return var;
+}
+
+static inline void part_variable_wipe(part_variable __unused__ *var)
+{
+}
+static inline void part_variable_delete(part_variable **var)
+{
+    GENERIC_DELETE(part_variable_wipe, var);
+}
+
+
+static inline part_qs *part_qs_new(const char*src, int size)
+{
+    part_qs *qs;
+
+    qs = p_new(part_qs, 1);
+    /* FIXME: data should not be a blob but a QS struct */
+    blob_init(&qs->data);
+    blob_set_data(&qs->data, src, size);
+    return qs;
+}
+
+static inline void part_qs_wipe(part_qs *qs)
+{
+    blob_wipe(&qs->data);
+}
+static inline void part_qs_delete(part_qs **qs)
+{
+    part_qs_wipe(*qs);
+    p_delete(qs);
+}
+
+
+static inline part_multi *part_multi_new(void)
+{
+    return p_new(part_multi, 1);
+}
+
+static inline void part_multi_delete(part_multi **multi);
+static inline void part_multi_wipe(part_multi *multi)
+{
+    tpl_part *curpart;
+    int i;
+
+    for (i = 0; i < multi->nbparts; i++) {
+        curpart = &multi->parts[i];
+        switch (curpart->type) {
+          case PART_VERBATIM:
+            part_verbatim_delete(&curpart->u.verbatim);
+            break;
+          case PART_VARIABLE:
+            part_variable_delete(&curpart->u.variable);
+            break;
+          case PART_QS:
+            part_qs_delete(&curpart->u.qs);
+            break;
+          case PART_MULTI:      /* unused */
+            part_multi_delete(&curpart->u.multi);
+            break;
+        }
+    }
+    multi->nbparts = 0;
+}
+static inline void part_multi_delete(part_multi **multi)
+{
+    GENERIC_DELETE(part_multi_wipe, multi);
+}
+
+/****************************************************************************/
+/* public legacy functions                                                  */
+/****************************************************************************/
+
+msg_template *msg_template_new(void)
+{
+    msg_template *tpl;
+
+    tpl = p_new(msg_template, 1);
+    tpl->body = part_multi_new();
+    return tpl;
+}
+
+
+void msg_template_delete(msg_template **tpl)
+{
+    if (!tpl || !*tpl) {
+        return;
+    }
+    if ((*tpl)->body) {
+        part_multi_delete(&(*tpl)->body);
+    }
+    p_delete(tpl);
+}
+
+
+int msg_template_nbparts(const msg_template *tpl)
+{
+    if (!tpl || !tpl->body) {
+        return 0;
+    }
+    return tpl->body->nbparts;
+}
+
+static inline void
+part_multi_dump(const part_multi *multi, const char **vars, int nbvars)
+{
+    int i, len;
+    char *ptr;
+    const tpl_part *curpart;
+
+    e_debug(MSG_TPL_DBG_LVL, "nbparts:%d\n", multi->nbparts);
+
+    for (i = 0; i < multi->nbparts; i++) {
+        curpart = &multi->parts[i];
+
+        e_debug(MSG_TPL_DBG_LVL, "[%02d]: ", i);
+
+        switch (curpart->type) {
+          case PART_VERBATIM:
+            len = strconv_quote(NULL, 0,
+                                blob_get_cstr(&curpart->u.verbatim->data),
+                                curpart->u.verbatim->data.len, '"');
+            ptr = alloca(len + 1);
+            strconv_quote(ptr, len + 1,
+                          blob_get_cstr(&curpart->u.verbatim->data),
+                          curpart->u.verbatim->data.len, '"');
+            e_debug(MSG_TPL_DBG_LVL, "VERBATIM: (%zd) \"%s\"\n",
+                    curpart->u.verbatim->data.len, ptr);
+            break;
+
+          case PART_VARIABLE:
+            if (curpart->u.variable->index < nbvars) {
+                e_debug(MSG_TPL_DBG_LVL, "VARIABLE: %d (%s)\n",
+                        curpart->u.variable->index,
+                        vars[curpart->u.variable->index]);
+            } else {
+                e_debug(MSG_TPL_DBG_LVL, "VARIABLE: %d (%s)\n",
+                        curpart->u.variable->index, "???");
+            }
+            break;
+
+          case PART_QS:
+            /* TODO: use qs interface to dump data */
+            len = strconv_quote(NULL, 0,
+                                blob_get_cstr(&curpart->u.qs->data),
+                                curpart->u.qs->data.len, '"');
+            ptr = alloca(len + 1);
+            strconv_quote(ptr, len + 1,
+                          blob_get_cstr(&curpart->u.qs->data),
+                          curpart->u.qs->data.len, '"');
+            e_debug(MSG_TPL_DBG_LVL, "QS: (%zd) \"%s\"\n",
+                    curpart->u.qs->data.len, ptr);
+            break;
+
+          case PART_MULTI:   /* unused */
+            /* TODO: recurse with increased indentation */
+            e_debug(MSG_TPL_DBG_LVL, "MULTI: [skipped]\n");
+            break;
+        }
+    }
+}
 
 void msg_template_dump(const msg_template *tpl,
                        const char **vars, int nbvars)
@@ -108,6 +288,11 @@ void msg_template_dump(const msg_template *tpl,
         e_debug(MSG_TPL_DBG_LVL, "empty tpl\n");
     }
 }
+
+
+/****************************************************************************/
+/* XXX                                                                      */
+/****************************************************************************/
 
 void part_multi_addpart(part_multi **multi_p, tpl_part *part)
 {
@@ -123,85 +308,6 @@ void part_multi_addpart(part_multi **multi_p, tpl_part *part)
     }
     multi->parts[multi->nbparts] = *part;
     multi->nbparts++;
-}
-
-static inline void part_multi_dump(const part_multi *multi,
-                                   const char **vars, int nbvars)
-{
-    int i, len;
-    char *ptr;
-    const char *name;
-    const tpl_part *curpart;
-
-    e_debug(MSG_TPL_DBG_LVL, "nbparts:%d\n", multi->nbparts);
-
-    for (i = 0; i < multi->nbparts; i++) {
-        curpart = &multi->parts[i];
-        e_debug(MSG_TPL_DBG_LVL, "[%02d]: ", i);
-        switch (curpart->type) {
-          case PART_VERBATIM:
-            len = strconv_quote(NULL, 0,
-                                blob_get_cstr(&curpart->u.verbatim->data),
-                                curpart->u.verbatim->data.len, '"');
-            ptr = alloca(len + 1);
-            strconv_quote(ptr, len + 1,
-                          blob_get_cstr(&curpart->u.verbatim->data),
-                          curpart->u.verbatim->data.len, '"');
-            e_debug(MSG_TPL_DBG_LVL, "VERBATIM: (%zd) \"%s\"\n",
-                    curpart->u.verbatim->data.len, ptr);
-            break;
-          case PART_VARIABLE:
-            name = (curpart->u.variable->index < nbvars) ?
-                  vars[curpart->u.variable->index] : "???";
-            e_debug(MSG_TPL_DBG_LVL, "VARIABLE: %d (%s)\n",
-                    curpart->u.variable->index, name);
-            break;
-          case PART_QS:
-            /* TODO: use qs interface to dump data */
-            len = strconv_quote(NULL, 0,
-                                blob_get_cstr(&curpart->u.qs->data),
-                                curpart->u.qs->data.len, '"');
-            ptr = alloca(len + 1);
-            strconv_quote(ptr, len + 1,
-                          blob_get_cstr(&curpart->u.qs->data),
-                          curpart->u.qs->data.len, '"');
-            e_debug(MSG_TPL_DBG_LVL, "QS: (%zd) \"%s\"\n",
-                    curpart->u.qs->data.len, ptr);
-            break;
-          case PART_MULTI:   /* unused */
-            /* TODO: recurse with increased indentation */
-            e_debug(MSG_TPL_DBG_LVL, "MULTI: [skipped]\n");
-            break;
-        }
-    }
-}
-
-msg_template *msg_template_new(void)
-{
-    msg_template *tpl;
-
-    tpl = p_new(msg_template, 1);
-    tpl->body = part_multi_new();
-    return tpl;
-}
-
-int msg_template_nbparts(const msg_template *tpl)
-{
-    if (!tpl || !tpl->body) {
-        return 0;
-    }
-    return tpl->body->nbparts;
-}
-
-void msg_template_delete(msg_template **tpl)
-{
-    if (!tpl || !*tpl) {
-        return;
-    }
-    if ((*tpl)->body) {
-        part_multi_delete(&(*tpl)->body);
-    }
-    p_delete(tpl);
 }
 
 static part_type msg_template_blob_encode(blob_t *src, part_encoding enc)
@@ -407,104 +513,6 @@ int msg_template_add_varstring(msg_template *tpl, part_encoding enc,
         }
         return 0;
     }
-}
-
-part_multi *part_multi_new(void)
-{
-    return p_new(part_multi, 1);
-}
-
-void part_multi_wipe(part_multi *multi)
-{
-    tpl_part *curpart;
-    int i;
-
-    for (i = 0; i < multi->nbparts; i++) {
-        curpart = &multi->parts[i];
-        switch (curpart->type) {
-          case PART_VERBATIM:
-            part_verbatim_delete(&curpart->u.verbatim);
-            break;
-          case PART_VARIABLE:
-            part_variable_delete(&curpart->u.variable);
-            break;
-          case PART_QS:
-            part_qs_delete(&curpart->u.qs);
-            break;
-          case PART_MULTI:      /* unused */
-            part_multi_delete(&curpart->u.multi);
-            break;
-        }
-    }
-    multi->nbparts = 0;
-}
-
-void part_multi_delete(part_multi **multi)
-{
-    part_multi_wipe(*multi);
-    p_delete(multi);
-}
-
-part_verbatim *part_verbatim_new(const byte *src, int size)
-{
-    part_verbatim *verb;
-
-    verb = p_new(part_verbatim, 1);
-    blob_init(&verb->data);
-    blob_set_data(&verb->data, src, size);
-    return verb;
-}
-
-void part_verbatim_wipe(part_verbatim *verb)
-{
-    blob_wipe(&verb->data);
-}
-
-void part_verbatim_delete(part_verbatim **verb)
-{
-    part_verbatim_wipe(*verb);
-    p_delete(verb);
-}
-
-part_variable *part_variable_new(int ind)
-{
-    part_variable *var;
-
-    var = p_new(part_variable, 1);
-    var->index = ind;
-    return var;
-}
-
-void part_variable_wipe(part_variable __unused__ *var)
-{
-}
-
-void part_variable_delete(part_variable **var)
-{
-    part_variable_wipe(*var);
-    p_delete(var);
-}
-
-part_qs *part_qs_new(const char*src, int size)
-{
-    part_qs *qs;
-
-    qs = p_new(part_qs, 1);
-    /* FIXME: data should not be a blob but a QS struct */
-    blob_init(&qs->data);
-    blob_set_data(&qs->data, src, size);
-    return qs;
-}
-
-void part_qs_wipe(part_qs *qs)
-{
-    blob_wipe(&qs->data);
-}
-
-void part_qs_delete(part_qs **qs)
-{
-    part_qs_wipe(*qs);
-    p_delete(qs);
 }
 
 /*
