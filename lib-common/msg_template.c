@@ -549,7 +549,7 @@ void part_qs_delete(part_qs **qs)
  */
 /* OG: should take a blob or a vector as output */
 int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
-                       blob_t ** vector, byte *allocated, int count)
+                       blob_t **vector, int count)
 {
     int i;
     blob_t *curblob;
@@ -567,7 +567,6 @@ int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
             e_debug(MSG_TPL_DBG_LVL, "Verbatim:'%s'\n",
                     blob_get_cstr(&curpart->u.verbatim->data));
             vector[i] = &curpart->u.verbatim->data;
-            allocated[i] = 0;
             break;
           case PART_VARIABLE:
             if (curpart->u.variable->index > nbvars) {
@@ -578,7 +577,6 @@ int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
             curblob = blob_new();
             blob_set_cstr(curblob, vars[curpart->u.variable->index]);
             vector[i] = curblob;
-            allocated[i] = 1;
             break;
           case PART_QS:
             e_debug(MSG_TPL_DBG_LVL, "QS:'%s'\n", blob_get_cstr(&curpart->u.qs->data));
@@ -590,13 +588,11 @@ int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
             blob_set(curblob, &curpart->u.qs->data);
 #endif
             vector[i] = curblob;
-            allocated[i] = 1;
             break;
           case PART_MULTI:      /* unused */
             curblob = blob_new();
             blob_set_cstr(curblob, "***MULTI***");
             vector[i] = curblob;
-            allocated[i] = 1;
             break;
         }
     }
@@ -604,8 +600,7 @@ int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
 }
 
 int msg_template_apply_blob(const msg_template *tpl, const char **vars,
-                            int nbvars,
-                            blob_t *output)
+                            int nbvars, blob_t *output)
 {
     int i;
     const tpl_part *curpart;
