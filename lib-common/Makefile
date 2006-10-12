@@ -21,6 +21,7 @@ __CHECK__ = test iconv_test msg_test
 libcommon_SOURCES = \
 	archive.c \
 	array.c \
+	str_array.c \
 	blob.c \
 	blob_zlib.c \
 	blob_iconv.c \
