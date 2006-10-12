@@ -56,13 +56,6 @@ fatal_f e_debug;
 #define E_UNIXERR(funcname) \
     E_PREFIX("error: %s: %s"), (funcname), strerror(errno)
 
-#define e_assert(expr)                                          \
-    do {                                                        \
-        if (!(expr)) {                                          \
-            e_panic(E_PREFIX("assertion failed: %s"), #expr);   \
-        }                                                       \
-    } while (0)
-
 /* callbacks installers */
 typedef void e_callback_f(const char *, va_list);
 

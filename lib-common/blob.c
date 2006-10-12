@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <assert.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/param.h>
@@ -111,9 +112,7 @@ void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize)
 {
     real_blob_t *rblob = blob_real(blob);
 
-    if (bufsize < len + 1) {
-        e_panic(E_PREFIX("error: bufsize *must* be > len"));
-    }
+    assert (bufsize < len + 1);
 
     p_delete(&rblob->area);
     rblob->area = rblob->data = buf;
@@ -925,7 +924,7 @@ void blob_b64encode(blob_t *blob, int nbpackets)
     }
 
 #ifdef DEBUG
-    e_assert(dst == buf + newlen);
+    assert (dst == buf + newlen);
 #endif
 
     blob_set_payload(blob, newlen, buf, newsize);
