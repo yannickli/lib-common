@@ -81,6 +81,7 @@ struct part_multi {
 part_multi *part_multi_new(void);
 void part_multi_delete(part_multi **multi);
 void part_multi_wipe(part_multi *multi);
+void msg_template_optimize(msg_template *tpl);
 
 void part_multi_addpart(part_multi **multi, tpl_part *part);
 static inline void part_multi_dump(const part_multi *multi,

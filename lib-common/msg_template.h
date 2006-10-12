@@ -37,6 +37,11 @@ void msg_template_delete(msg_template **tpl);
 void msg_template_dump(const msg_template *tpl,
 		       const char **vars, int nbvars);
 
+
+/****************************************************************************/
+/* Add fix data                                                             */
+/****************************************************************************/
+
 int msg_template_add_data(msg_template *tpl, part_encoding enc,
                           const byte *data, int len);
 
@@ -62,13 +67,23 @@ msg_template_add_blob(msg_template *tpl, part_encoding enc,
 int msg_template_add_qs(msg_template *tpl, part_encoding enc,
                         const byte *data, int len);
 
+
+/****************************************************************************/
+/* Adding variable datas                                                    */
+/****************************************************************************/
+
 int msg_template_add_variable(msg_template *tpl, part_encoding enc, 
                               const char **vars, int nbvars,
                               const char *name);
 int msg_template_add_varstring(msg_template *tpl, part_encoding enc,
 			       const byte *data, int len,
                                const char **vars, int nbvars);
-void msg_template_optimize(msg_template *tpl);
+
+
+/****************************************************************************/
+/* Applying templates                                                       */
+/****************************************************************************/
+
 int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
                        blob_t **vector, int count);
 int msg_template_apply_blob(const msg_template *tpl, const char **vars,
