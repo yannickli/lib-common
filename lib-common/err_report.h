@@ -56,7 +56,7 @@ fatal_f e_debug;
 #define E_UNIXERR(funcname) \
     E_PREFIX("error: %s: %s"), (funcname), strerror(errno)
 
-/* callbacks installers */
+/* callback installers */
 typedef void e_callback_f(const char *, va_list);
 
 e_callback_f *e_set_fatal_handler   (e_callback_f *) __attribute__((nonnull));
