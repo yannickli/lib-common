@@ -100,7 +100,6 @@ part_verbatim_new(const byte *src, int size)
     blob_set_data(&verb->data, src, size);
     return verb;
 }
-
 static inline void part_verbatim_wipe(part_verbatim *verb)
 {
     blob_wipe(&verb->data);
@@ -119,7 +118,6 @@ static inline part_variable *part_variable_new(int ind)
     var->index = ind;
     return var;
 }
-
 static inline void part_variable_wipe(part_variable __unused__ *var)
 {
 }
@@ -139,7 +137,6 @@ static inline part_qs *part_qs_new(const char*src, int size)
     blob_set_data(&qs->data, src, size);
     return qs;
 }
-
 static inline void part_qs_wipe(part_qs *qs)
 {
     blob_wipe(&qs->data);
@@ -155,31 +152,30 @@ static inline part_multi *part_multi_new(void)
 {
     return p_new(part_multi, 1);
 }
-
 static inline void part_multi_delete(part_multi **multi);
 static inline void part_multi_wipe(part_multi *multi)
 {
-    tpl_part *curpart;
-    int i;
+    while (multi->nbparts) {
+        tpl_part *curpart = &multi->parts[--multi->nbparts];
 
-    for (i = 0; i < multi->nbparts; i++) {
-        curpart = &multi->parts[i];
         switch (curpart->type) {
           case PART_VERBATIM:
             part_verbatim_delete(&curpart->u.verbatim);
             break;
+
           case PART_VARIABLE:
             part_variable_delete(&curpart->u.variable);
             break;
+
           case PART_QS:
             part_qs_delete(&curpart->u.qs);
             break;
+
           case PART_MULTI:      /* unused */
             part_multi_delete(&curpart->u.multi);
             break;
         }
     }
-    multi->nbparts = 0;
 }
 static inline void part_multi_delete(part_multi **multi)
 {
