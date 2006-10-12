@@ -78,20 +78,20 @@ static inline void *mem_realloc0(void *mem, ssize_t oldsize, ssize_t newsize)
 
 #ifdef __GNUC__
 
-#  define p_delete(mem_pp)                      \
-        do {                                    \
-            typeof(**mem_pp) **ptr = mem_pp;    \
-            free(*(void**)ptr);                 \
-            *ptr = NULL;                        \
-        } while (0)
+#  define p_delete(mem_pp)                          \
+        ({                                          \
+            typeof(**(mem_pp)) **ptr = (mem_pp);    \
+            free(*ptr);                             \
+            *ptr = NULL;                            \
+        })
 
 #else
 
-#  define p_delete(mem_p)                \
-        do {                             \
-            void *__ptr = (mem_p);       \
-            free(*(void **)__ptr);       \
-            *(void **)__ptr = NULL;      \
+#  define p_delete(mem_p)                           \
+        do {                                        \
+            void *__ptr = (mem_p);                  \
+            free(*(void **)__ptr);                  \
+            *(void **)__ptr = NULL;                 \
         } while (0)
 
 #endif
