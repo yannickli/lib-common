@@ -80,7 +80,7 @@ msg_template_add_qs(msg_template *tpl, part_encoding enc,
 
 
 /****************************************************************************/
-/* Adding variable datas                                                    */
+/* Adding variable data                                                     */
 /****************************************************************************/
 
 int msg_template_add_variable(msg_template *tpl, part_encoding enc, 
@@ -95,8 +95,8 @@ int msg_template_add_varstring(msg_template *tpl, part_encoding enc,
 /* Applying templates                                                       */
 /****************************************************************************/
 
-int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
-                       blob_t **vector, int count);
+int msg_template_apply(const msg_template *tpl, const char **vars, int nbvars,
+                       blob_t **vector, byte *allocated, int count);
 int msg_template_apply_blob(const msg_template *tpl, const char **vars,
                             int nbvars, blob_t *output);
 

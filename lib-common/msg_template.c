@@ -46,7 +46,6 @@ struct msg_template {
     part_multi *body;
 };
 
-
 typedef struct part_verbatim {
     blob_t data;
 } part_verbatim;
@@ -61,6 +60,7 @@ typedef struct part_variable {
 } part_variable;
 
 typedef struct tpl_part {
+    part_encoding enc;
     part_type type;
     union {
         part_verbatim *verbatim;
@@ -68,8 +68,6 @@ typedef struct tpl_part {
         part_multi *multi;
         part_qs *qs;
     } u;
-    part_encoding enc;
-    /* FIXME: Handle conditional part here */
 } tpl_part;
 
 struct part_multi {
@@ -143,8 +141,7 @@ static inline void part_qs_wipe(part_qs *qs)
 }
 static inline void part_qs_delete(part_qs **qs)
 {
-    part_qs_wipe(*qs);
-    p_delete(qs);
+    GENERIC_DELETE(part_qs_wipe, qs);
 }
 
 
@@ -152,6 +149,7 @@ static inline part_multi *part_multi_new(void)
 {
     return p_new(part_multi, 1);
 }
+/* OG: forward static may not compile with gcc 3.4 */
 static inline void part_multi_delete(part_multi **multi);
 static inline void part_multi_wipe(part_multi *multi)
 {
@@ -515,8 +513,8 @@ int msg_template_add_varstring(msg_template *tpl, part_encoding enc,
  * Fill vector with pointer to blobs
  */
 /* OG: should take a blob or a vector as output */
-int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
-                       blob_t **vector, int count)
+int msg_template_apply(const msg_template *tpl, const char **vars, int nbvars,
+                       blob_t **vector, byte *allocated, int count)
 {
     int i;
     blob_t *curblob;
@@ -534,6 +532,7 @@ int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
             e_debug(MSG_TPL_DBG_LVL, "Verbatim:'%s'\n",
                     blob_get_cstr(&curpart->u.verbatim->data));
             vector[i] = &curpart->u.verbatim->data;
+            allocated[i] = 0;
             break;
           case PART_VARIABLE:
             if (curpart->u.variable->index > nbvars) {
@@ -544,6 +543,7 @@ int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
             curblob = blob_new();
             blob_set_cstr(curblob, vars[curpart->u.variable->index]);
             vector[i] = curblob;
+            allocated[i] = 1;
             break;
           case PART_QS:
             e_debug(MSG_TPL_DBG_LVL, "QS:'%s'\n", blob_get_cstr(&curpart->u.qs->data));
@@ -555,11 +555,13 @@ int msg_template_apply(msg_template *tpl, const char **vars, int nbvars,
             blob_set(curblob, &curpart->u.qs->data);
 #endif
             vector[i] = curblob;
+            allocated[i] = 1;
             break;
           case PART_MULTI:      /* unused */
             curblob = blob_new();
             blob_set_cstr(curblob, "***MULTI***");
             vector[i] = curblob;
+            allocated[i] = 1;
             break;
         }
     }
