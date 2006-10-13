@@ -20,7 +20,7 @@
 #include "blob.h"
 #include "blob_priv.h"
 
-#define DEBUG_VERB 2
+#define DEBUG_VERB 4
 
 #define ICONV_HANDLES_CACHE_MAX 20
 #define ICONV_TYPE_SIZE 15
@@ -105,6 +105,9 @@ int blob_iconv_close_all(void)
     int i;
     int res = 0;
 
+    if (iconv_handles == NULL) {
+        return -1;
+    }
     for (i = 0; i < ICONV_HANDLES_CACHE_MAX; i++) {
         if (iconv_handles[i].to && iconv_handles[i].from
             && iconv_handles[i].handle) {
