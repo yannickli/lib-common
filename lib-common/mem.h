@@ -72,24 +72,37 @@ static inline void *mem_realloc0(void *mem, ssize_t oldsize, ssize_t newsize)
     return mem;
 }
 
-static inline void *memdup(const void *src, ssize_t size)
+static inline void mem_free(void *mem) {
+    free(mem);
+}
+
+static inline void *mem_dup(const void *src, ssize_t size)
 {
     void *res = mem_alloc(size);
     memcpy(res, src, size);
     return res;
 }
 
+static inline void *mem_dupstr(const void *src, ssize_t len)
+{
+    byte *res = mem_alloc(len + 1);
+    memcpy(res, src, len);
+    res[len] = '\0';
+    return res;
+}
+
 #define p_new_raw(type, count)  ((type *)mem_alloc(sizeof(type) * (count)))
 #define p_new(type, count)      ((type *)mem_alloc0(sizeof(type) * (count)))
 #define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
-#  define p_dup(p, count)       memdup((p), sizeof(*(p)) * (count))
+#define p_dup(p, count)         mem_dup((p), sizeof(*(p)) * (count))
+#define p_dupstr(p, len)        mem_dupstr((p), sizeof(*(p)) * (len))
 
 #ifdef __GNUC__
 
 #  define p_delete(mem_pp)                          \
         ({                                          \
             typeof(**(mem_pp)) **ptr = (mem_pp);    \
-            free(*ptr);                             \
+            mem_free(*ptr);                         \
             *ptr = NULL;                            \
         })
 
@@ -98,7 +111,7 @@ static inline void *memdup(const void *src, ssize_t size)
 #  define p_delete(mem_p)                           \
         do {                                        \
             void *__ptr = (mem_p);                  \
-            free(*(void **)__ptr);                  \
+            mem_free(*(void **)__ptr);              \
             *(void **)__ptr = NULL;                 \
         } while (0)
 
@@ -109,20 +122,22 @@ static inline void *memdup(const void *src, ssize_t size)
     ((type *)mem_realloc0((mem), (oldcount) * sizeof(type), \
                           (newcount) * sizeof(type)))
 
-#define GENERIC_NEW(type, prefix) \
-    static inline type *prefix##_new(void) {                \
-        return prefix##_init(p_new_raw(type, 1));           \
-    }
 #define GENERIC_INIT(type, prefix) \
-    static inline type *prefix##_init(type *var) {          \
+    static inline type * prefix##_init(type *var) {         \
         p_clear(var, 1);                                    \
         return var;                                         \
     }
+#define GENERIC_NEW(type, prefix) \
+    static inline type * prefix##_new(void) {               \
+        return prefix##_init(p_new_raw(type, 1));           \
+    }
+#define GENERIC_WIPE(type, prefix) \
+    static inline void prefix##_wipe(type *var __unused__) {}
 
 #define GENERIC_DELETE(type, prefix) \
     static inline void prefix##_delete(type **var) {        \
         if (*var) {                                         \
-            (prefix ## _wipe)(*var);                        \
+            prefix##_wipe(*var);                            \
             p_delete(var);                                  \
         }                                                   \
     }

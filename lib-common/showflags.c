@@ -22,11 +22,10 @@
 
 #include "macros.h"
 
-typedef unsigned int uint;
-typedef unsigned int uint32;
+typedef unsigned int unsigned32;
 
 int nrv2b_flag_le32(byte *src, unsigned src_len,
-                      unsigned *dst_len, uint flags);
+                      unsigned *dst_len, unsigned flags);
 
 int show_flags(const char *arg)
 {
@@ -84,8 +83,8 @@ int show_flags(const char *arg)
     return 0;
 }
 
-#define UA_GET4(src)       (*(const uint32*)(src))
-#define UA_PUT4(src, val)  (*(uint32*)(src) = (val))
+#define UA_GET4(src)       (*(const unsigned32*)(src))
+#define UA_PUT4(src, val)  (*(unsigned32*)(src) = (val))
 
 #define getbit_le32_flag(bb, bc, src, ilen, flags) \
     (bc > 0 ? ((bb>>--bc)&1) : (bc=31,\
@@ -97,15 +96,15 @@ int show_flags(const char *arg)
 #define getbit(bb)         getbit_le32_flag(bb,bc,src,ilen,flags)
 
 int nrv2b_flag_le32(byte *src, unsigned src_len,
-                    unsigned *dst_len, uint flags)
+                    unsigned *dst_len, unsigned flags)
 {
     unsigned bc = 0;
 
-    uint32 bb = 0;
-    uint ilen = 0, olen = 0, last_m_off = 1;
+    unsigned32 bb = 0;
+    unsigned ilen = 0, olen = 0, last_m_off = 1;
 
     for (;;) {
-        uint m_off, m_len;
+        unsigned m_off, m_len;
 
         while (getbit(bb)) {
             olen++; ilen++;

@@ -28,8 +28,8 @@ typedef struct fifo {
 typedef void fifo_item_dtor_f(void *item);
 
 fifo *fifo_init(fifo *f);
-GENERIC_NEW(fifo, fifo);
 fifo *fifo_init_nb(fifo *f, ssize_t size);
+GENERIC_NEW(fifo, fifo);
 void fifo_wipe(fifo *f, fifo_item_dtor_f *dtor);
 void fifo_delete(fifo **f, fifo_item_dtor_f *dtor);
 

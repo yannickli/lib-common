@@ -113,9 +113,7 @@ static inline part_variable *part_variable_new(int ind)
     var->index = ind;
     return var;
 }
-static inline void part_variable_wipe(part_variable __unused__ *var)
-{
-}
+GENERIC_WIPE(part_variable, part_variable);
 GENERIC_DELETE(part_variable, part_variable);
 
 static inline part_qs *part_qs_new(const char*src, int size)

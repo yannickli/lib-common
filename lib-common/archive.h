@@ -16,9 +16,8 @@
 
 #include <inttypes.h>
 
-#include <lib-common/mem.h>
-
 #include "macros.h"
+#include "mem.h"
 
 /**
  *  Archive format :
@@ -77,7 +76,7 @@ CONVERSION_FUNCTIONS(archive_tpl, archive_bloc);
  */
 int archive_parse(const byte *input, int len, archive_t *archive);
 
-archive_t *archive_init(archive_t *archive);
+GENERIC_INIT(archive_t, archive);
 GENERIC_NEW(archive_t, archive);
 void archive_wipe(archive_t *archive);
 GENERIC_DELETE(archive_t, archive);

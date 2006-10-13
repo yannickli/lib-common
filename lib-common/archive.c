@@ -58,16 +58,6 @@ static void archive_tpl_wipe(archive_tpl *tpl)
 GENERIC_DELETE(archive_tpl, archive_tpl);
 
 
-archive_t *archive_init(archive_t *archive)
-{
-    archive->version = 0;
-    archive->payload = NULL;
-    archive->blocs = NULL;
-    archive->nb_blocs = 0;
-    archive->last_bloc = NULL;
-    return archive;
-}
-
 void archive_wipe(archive_t *archive)
 {
     int i;
@@ -100,7 +90,7 @@ void archive_wipe(archive_t *archive)
 
 static inline const char *byte_to_char_const(const byte *b)
 {
-    return (const char *) b;
+    return (const char *)b;
 }
 
 static inline int read_uint32(const byte **input, int *len, uint32_t *val)
