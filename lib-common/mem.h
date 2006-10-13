@@ -72,12 +72,20 @@ static inline void *mem_realloc0(void *mem, ssize_t oldsize, ssize_t newsize)
     return mem;
 }
 
+static inline void *memdup(void *src, ssize_t size)
+{
+    void *res = mem_alloc(size);
+    memcpy(res, src, size);
+    return res;
+}
+
 #define p_new_raw(type, count)  ((type *)mem_alloc(sizeof(type) * (count)))
 #define p_new(type, count)      ((type *)mem_alloc0(sizeof(type) * (count)))
 #define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
 
 #ifdef __GNUC__
 
+#  define p_dup(p, count)   ((typeof(*p) *)memdup((p), sizeof(*(p) * count)))
 #  define p_delete(mem_pp)                          \
         ({                                          \
             typeof(**(mem_pp)) **ptr = (mem_pp);    \
@@ -86,6 +94,8 @@ static inline void *mem_realloc0(void *mem, ssize_t oldsize, ssize_t newsize)
         })
 
 #else
+
+#  define p_dup(p, count)   memdup((p), sizeof(*(p)) * count)
 
 #  define p_delete(mem_p)                           \
         do {                                        \
