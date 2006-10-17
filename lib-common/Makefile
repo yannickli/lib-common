@@ -26,7 +26,6 @@ libcommon_SOURCES = \
 	blob_zlib.c \
 	blob_iconv.c \
 	concatbin.c  \
-	conf.c  \
 	err_report.c  \
 	fifo.c \
 	ioveclist.c \
