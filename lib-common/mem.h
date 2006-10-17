@@ -67,7 +67,7 @@ static inline void *mem_realloc0(void *mem, ssize_t oldsize, ssize_t newsize)
     mem = realloc(mem, newsize);
     check_enough_mem(mem);
     if (oldsize < newsize) {
-        memset((byte *)mem + oldsize, 0, newsize - oldsize);
+        memset((char *)mem + oldsize, 0, newsize - oldsize);
     }
     return mem;
 }
