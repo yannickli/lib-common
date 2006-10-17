@@ -5,6 +5,9 @@
 
 #define CONF_DBG_LVL 3
 
+/* FIXME blob_search_cstr is tasteless and very inefficient, use memchr/strchr
+ */
+
 static conf_section_t *conf_section_init(conf_section_t *section)
 {
     p_clear(section, 1);
