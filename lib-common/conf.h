@@ -13,9 +13,7 @@
  *
  * # Comments
  * var3 = value3
- *
- *
- * */
+ */
 
 typedef struct conf_section_t {
     char *name;
