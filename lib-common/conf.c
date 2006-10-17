@@ -5,9 +5,6 @@
 
 #define CONF_DBG_LVL 3
 
-/* FIXME blob_search_cstr is tasteless and very inefficient, use memchr/strchr
- */
-
 static conf_section_t *conf_section_init(conf_section_t *section)
 {
     p_clear(section, 1);
@@ -87,9 +84,11 @@ static void section_add_var(conf_section_t *section,
     i = var_end - var;
     section->variables[section->var_nb] = p_new(char, i + 1);
     pstrcpylen(section->variables[section->var_nb], i + 1, var, i);
+    strrtrim(section->variables[section->var_nb]);
     i = val_end - val;
     section->values[section->var_nb] = p_new(char, i + 1);
     pstrcpylen(section->values[section->var_nb], i + 1, val, i);
+    strrtrim(section->values[section->var_nb]);
     section->var_nb++;
 }
 
@@ -104,19 +103,21 @@ static void conf_add_section(conf_t *conf, conf_section_t *section)
 
 static inline void readline_aux(blob_t *buf, blob_t *line)
 {
-    int i = blob_search_cstr(buf, 0, "\n");
-    while (i == 0 && buf->len > 0) {
+    const char *begin = blob_get_cstr(buf);
+    const char *p = strchr(blob_get_cstr(buf), '\n');
+    while (p == begin && buf->len > 0) {
         blob_kill_first(buf, 1);
-        i = blob_search_cstr(buf, 0, "\n");
+        begin = blob_get_cstr(buf);
+        p = strchr(blob_get_cstr(buf), '\n');
     }
-    if (i < 0) {
+    if (!p) {
         blob_set(line, buf);
         blob_resize(buf, 0);
     } else
-    if (i > 0) {
-        blob_set_data(line, buf->data, i);
-        blob_kill_first(buf, i);
-    } else {
+    if (p != begin) {
+        blob_set_data(line, buf->data, p - begin);
+        blob_kill_first(buf, p - begin);
+    } else { /* buf->len == 0 */
         blob_resize(buf, 0);
         blob_resize(line, 0);
     }
@@ -137,12 +138,19 @@ static inline void readline(blob_t *buf, blob_t *line)
     }
 }
 
+/**
+ *  Return values
+ *
+ *  1 : could not open filename
+ *  2 : empty file
+ *
+ */
 int parse_ini(const char *filename, conf_t **conf)
 {
     FILE* f;
     blob_t buf;
     blob_t buf_line;
-    int i;
+    int len;
     const char *p, *start;
     const char *var_start, *var_end;
     const char *val_start, *val_end;
@@ -159,12 +167,12 @@ int parse_ini(const char *filename, conf_t **conf)
     blob_init(&buf_line);
 
     while (!feof(f)) {
-        i = blob_append_fread(&buf, 1, 4096, f);
+        int i = blob_append_fread(&buf, 1, 4096, f);
         e_debug(CONF_DBG_LVL + 1, E_PREFIX("read %d bytes...\n"), i);
     }
     fclose(f);
     if (buf.len == 0) {
-        return 1;
+        return 2;
     }
 
     *conf = conf_new();
@@ -181,29 +189,30 @@ int parse_ini(const char *filename, conf_t **conf)
 
      section_parse:
         /* Search start of section name */
-        i = blob_search_cstr(&buf_line, 0, "[");
-        if (i < 0) {
+        p = strchr(blob_get_cstr(&buf_line), '[');
+        if (!p) {
             e_debug(CONF_DBG_LVL, E_PREFIX("Junk line : %s\n"),
                     blob_get_cstr(&buf_line));
             continue;
         }
-        blob_kill_first(&buf_line, i + 1);
+        blob_kill_first(&buf_line, p - blob_get_cstr(&buf_line) + 1);
 
         start = blob_get_cstr(&buf_line);
 
         /* Search end of section name */
-        i = blob_search_cstr(&buf_line, 0, "]");
-        if (i < 0) {
+        p = strchr(start, ']');
+        if (!p) {
             e_debug(CONF_DBG_LVL,
                     E_PREFIX("Could not find section name end : %s\n"),
                     blob_get_cstr(&buf_line));
             continue;
         }
 
+        len = p - start;
         /* Copy name in the section struct */
         section = conf_section_new();
-        section->name = p_new(char, i + 1);
-        pstrcpylen(section->name, i + 1, start, i);
+        section->name = p_new(char, len + 1);
+        pstrcpylen(section->name, len + 1, start, len);
 
         e_debug(CONF_DBG_LVL + 1, E_PREFIX("section name : %s\n"),
                 section->name);
@@ -235,40 +244,29 @@ int parse_ini(const char *filename, conf_t **conf)
                 goto section_parse;
             }
             /* Search end of var */
-            i = blob_search_cstr(&buf_line, 0, " ");
-            if (i <= 0) {
-                e_debug(CONF_DBG_LVL + 1,
-                        E_PREFIX("No space or leading space on this line"
-                                 "-> dropped : %s\n"),
-                        blob_get_cstr(&buf_line));
-                continue;
-            }
-            e_debug(CONF_DBG_LVL + 1, E_PREFIX(" next ' ' at %d\n"), i);
-            var_end = var_start + i;
-            e_debug(CONF_DBG_LVL + 1, E_PREFIX("  varname : %.*s\n"),
-                    (int)(var_end - var_start), var_start);
-            /* Search = */
-            i = blob_search_cstr(&buf_line, i, "=");
-            if (i < 0) {
+            var_end = strchr(var_start, '=');
+            if (!var_end) {
                 /* No value */
                 e_debug(CONF_DBG_LVL,
                         E_PREFIX("No value on this line -> dropped : %s\n"),
                         blob_get_cstr(&buf_line));
                 continue;
+                continue;
             }
-            e_debug(CONF_DBG_LVL + 1, E_PREFIX(" next '=' at %d\n"), i);
-            p = var_start + i + 1;
+            len = var_end - var_start;
+            e_debug(CONF_DBG_LVL + 1, E_PREFIX("  varname : %.*s\n"),
+                    len, var_start);
+            p = var_end + 1;
             /* Skip spaces after = */
             val_start = skipspaces(p);
-            i += val_start - p;
 
             /* Read until end of line */
-            /* FIXME: trim the value on the right */
-            i = blob_search_cstr(&buf_line, i, "\n");
-            if (i > 0) {
+            p = strchr(val_start, '\n');
+            if (p) {
+                val_end = p;
                 e_debug(CONF_DBG_LVL + 1,
-                        E_PREFIX(" next '\\n' at %d\n"), i);
-                val_end = var_start + i;
+                        E_PREFIX(" next '\\n' at %d\n"),
+                        (int)(p - var_start));
             } else {
                 /* EOF */
                 val_end = var_start + buf_line.len;
