@@ -1,3 +1,16 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2006 INTERSEC                                      */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
 #include <lib-common/mem.h>
 #include <lib-common/blob.h>
 
@@ -95,38 +108,48 @@ static void section_add_var(conf_section_t *section,
 static void conf_add_section(conf_t *conf, conf_section_t *section)
 {
     conf->sections = p_renew(conf_section_t *, conf->sections,
-                                 conf->section_nb,
-                                 conf->section_nb + 1);
+                             conf->section_nb, conf->section_nb + 1);
     conf->sections[conf->section_nb] = section;
     conf->section_nb++;
 }
 
-static inline void readline_aux(blob_t *buf, blob_t *line)
+/* read a non empty line, return error if no more such lines */
+static int readline_aux(blob_t *buf, blob_t *line)
 {
-    const char *begin = blob_get_cstr(buf);
-    const char *p = strchr(blob_get_cstr(buf), '\n');
-    while (p == begin && buf->len > 0) {
-        blob_kill_first(buf, 1);
-        begin = blob_get_cstr(buf);
-        p = strchr(blob_get_cstr(buf), '\n');
+    const char *begin;
+    const char *p = blob_get_cstr(buf);
+
+    /* skip empty lines, XXX: isspace(\0) is false */
+    while (isspace(*p)) {
+        p++;
     }
+    blob_kill_first(buf, p - blob_get_cstr(buf));
+
+    if (buf->len == 0) {
+        blob_resize(line, 0);
+        return -1;
+    }
+
+    begin = blob_get_cstr(buf);
+    p = strchr(begin, '\n');
+
     if (!p) {
+        /* no final \n in file, treat that like a line */
         blob_set(line, buf);
         blob_resize(buf, 0);
-    } else
-    if (p != begin) {
+    } else {
         blob_set_data(line, buf->data, p - begin);
-        blob_kill_first(buf, p - begin);
-    } else { /* buf->len == 0 */
-        blob_resize(buf, 0);
-        blob_resize(line, 0);
+        blob_kill_first(buf, p + 1 - begin);
     }
+    return 0;
 }
 
-static inline void readline(blob_t *buf, blob_t *line)
+static void readline(blob_t *buf, blob_t *line)
 {
-    while(true) {
-        readline_aux(buf, line);
+    for (;;) {
+        if (readline_aux(buf, line))
+            return;
+
         if (line->data[0] == '#' || line->data[0] == ';') {
             e_debug(CONF_DBG_LVL + 1, E_PREFIX("Comment : %s\n"),
                     blob_get_cstr(line));
@@ -147,7 +170,6 @@ static inline void readline(blob_t *buf, blob_t *line)
  */
 int parse_ini(const char *filename, conf_t **conf)
 {
-    FILE* f;
     blob_t buf;
     blob_t buf_line;
     int len;
@@ -156,21 +178,14 @@ int parse_ini(const char *filename, conf_t **conf)
     const char *val_start, *val_end;
     conf_section_t *section;
 
-    f = fopen(filename, "r");
-    if (!f) {
-        e_debug(CONF_DBG_LVL, E_PREFIX("could not open %s for reading\n"),
-                filename);
-        return 1;
-    }
-
     blob_init(&buf);
     blob_init(&buf_line);
 
-    while (!feof(f)) {
-        int i = blob_append_fread(&buf, 1, 4096, f);
-        e_debug(CONF_DBG_LVL + 1, E_PREFIX("read %d bytes...\n"), i);
+    if (blob_append_file_data(&buf, filename) < 0) {
+        e_debug(CONF_DBG_LVL, E_PREFIX("could not open %s for reading\n"),
+                filename);
     }
-    fclose(f);
+
     if (buf.len == 0) {
         return 2;
     }
