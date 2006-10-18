@@ -19,8 +19,12 @@
 typedef struct mem_pool {
     void *(*mem_alloc)  (struct mem_pool *mp, ssize_t size);
     void *(*mem_alloc0) (struct mem_pool *mp, ssize_t size);
+    /* TODO: deal with realloc at some point */
     void  (*mem_free)   (struct mem_pool *mp, void *mem);
 } mem_pool;
+
+mem_pool *mem_malloc_pool_new(void);
+void mem_malloc_pool_delete(mem_pool **poolp);
 
 #define mp_new_raw(mp, type, count)  ((type *)(mp)->mem_alloc((mp), sizeof(type) * (count)))
 #define mp_new(mp, type, count)      ((type *)(mp)->mem_alloc0((mp), sizeof(type) * (count)))
@@ -43,6 +47,5 @@ typedef struct mem_pool {
         } while (0)
 
 #endif
-
 
 #endif /* IS_LIB_COMMON_MEM_FIFO_POOL_H */

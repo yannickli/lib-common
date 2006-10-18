@@ -38,6 +38,7 @@ libcommon_SOURCES = \
 	stopper.c \
 	showflags.c \
 	unix.c \
+	mem-pool.c \
 	mem-fifo-pool.c
 
 test_SOURCES = $(libcommon_SOURCES) check.c
