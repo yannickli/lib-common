@@ -32,18 +32,22 @@ typedef struct mem_fifo_pool {
     mem_page *pages;
     mem_page *freelist;
     int pages_size;
+    int nb_pages;
 } mem_fifo_pool;
 
 
 static mem_page *mem_page_new(mem_fifo_pool *mfp)
 {
     mem_page *page = p_new(mem_page, 1);
+
     page->area = mmap(NULL, mfp->pages_size, PROT_READ | PROT_WRITE,
                       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (page->area == MAP_FAILED) {
         page->area = NULL;
         p_delete(&page);
     }
+
+    page->size = mfp->pages_size;
 
     return page;
 }
@@ -80,43 +84,34 @@ static void *mfp_alloc(mem_pool *mp, ssize_t size)
         goto alloc_error;
     }
 
-  alloc_again:
-    if (mfp->pages && MEM_PAGE_SIZE_LEFT(mfp->pages) >= size) {
-        res = mfp->pages->area + mfp->pages->used_size;
-        mfp->pages->used_size += size;
-        mfp->pages->used_blocks++;
-        return res;
+    if (!mfp->pages || MEM_PAGE_SIZE_LEFT(mfp->pages) < size) {
+        if (mfp->freelist) {
+            mem_page *page;
+
+            /* push the first free page on top of the pages list */
+            page = mfp->freelist;
+            mfp->freelist = page->next;
+            page->next    = mfp->pages;
+            mfp->pages    = page;
+        } else {
+            mem_page *page = mem_page_new(mfp);
+            if (!page)
+                goto alloc_error;
+
+            mfp->nb_pages++;
+            page->next = mfp->pages;
+            mfp->pages = page;
+        }
     }
 
-    if (mfp->freelist) {
-        mem_page *page;
-
-        /* push the first free page on top of the pages list */
-        page = mfp->freelist;
-        mfp->freelist = page->next;
-        page->next    = mfp->pages;
-        mfp->pages    = page->next;
-    } else {
-        mem_page *page = mem_page_new(mfp);
-        if (!page)
-            goto alloc_error;
-
-        page->next = mfp->pages;
-        mfp->pages = page;
-    }
-
-    goto alloc_again;
+    res = mfp->pages->area + mfp->pages->used_size;
+    mfp->pages->used_size += size;
+    mfp->pages->used_blocks++;
+    return res;
 
   alloc_error:
     check_enough_mem(NULL);
     return NULL;
-}
-
-static void *mfp_realloc(mem_pool *mp __unused__, void *mem __unused__,
-                         ssize_t size __unused__)
-{
-    /* FIXME: implement */
-    abort();
 }
 
 static void mfp_free(struct mem_pool *mp, void *mem)
@@ -132,6 +127,7 @@ static void mfp_free(struct mem_pool *mp, void *mem)
                 *pagep = page->next;
                 if (mfp->freelist) {
                     mem_page_delete(&page);
+                    mfp->nb_pages--;
                 } else {
                     mem_page_reset(page);
                     mfp->freelist = page;
@@ -145,7 +141,6 @@ static void mfp_free(struct mem_pool *mp, void *mem)
 static mem_pool mem_fifo_pool_funcs = {
     &mfp_alloc,
     &mfp_alloc, /* we use maps, always set to 0 */
-    &mfp_realloc,
     &mfp_free
 };
 
@@ -158,6 +153,11 @@ mem_pool *mem_fifo_pool_new(int pages_size_hint)
     res             = p_new(mem_fifo_pool, 1);
     res->funcs      = mem_fifo_pool_funcs;
     res->pages_size = UPPER_MULTIPLE(pages_size_hint, 4096);
+    res->pages      = mem_page_new(res);
+    res->nb_pages   = 1;
+
+    check_enough_mem(res->pages);
+
     return (mem_pool *)res;
 }
 
@@ -170,6 +170,7 @@ void mem_fifo_pool_delete(mem_pool **poolp) {
 
             mfp->freelist = page->next;
             mem_page_delete(&page);
+            mfp->nb_pages--;
         }
 
         while (mfp->pages) {
@@ -177,6 +178,7 @@ void mem_fifo_pool_delete(mem_pool **poolp) {
 
             mfp->pages = page->next;
             mem_page_delete(&page);
+            mfp->nb_pages--;
         }
 
         p_delete(poolp);
