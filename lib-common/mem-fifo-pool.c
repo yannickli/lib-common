@@ -12,11 +12,10 @@
 /**************************************************************************/
 
 #include <sys/mman.h>
+#include <errno.h>
 
 #include "mem.h"
 #include "mem-fifo-pool.h"
-
-#define MEM_PAGE_SIZE_LEFT(page) ((page)->size - (page)->used_size)
 
 typedef struct mem_page {
     struct mem_page *next;
@@ -40,14 +39,13 @@ static mem_page *mem_page_new(mem_fifo_pool *mfp)
 {
     mem_page *page = p_new(mem_page, 1);
 
-    page->area = mmap(NULL, mfp->pages_size, PROT_READ | PROT_WRITE,
-                      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (page->area == MAP_FAILED) {
-        page->area = NULL;
-        p_delete(&page);
-    }
-
     page->size = mfp->pages_size;
+    page->area = mmap(NULL, page->size, PROT_READ | PROT_WRITE,
+                      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+    if (page->area == MAP_FAILED) {
+        e_panic(E_UNIXERR("mmap"));
+    }
 
     return page;
 }
@@ -57,6 +55,7 @@ static void mem_page_reset(mem_page *page)
     memset(page->area, 0, page->size);
     page->used_size   = 0;
     page->used_blocks = 0;
+    page->next        = NULL;
 }
 
 static void mem_page_delete(mem_page **pagep)
@@ -74,6 +73,10 @@ static inline bool mem_page_contains(mem_page *page, void *mem)
     return (byte *)mem >= page->area && (byte *)mem < page->area + page->size;
 }
 
+static inline int mem_page_size_left(mem_page *page)
+{
+    return  page->size - page->used_size;
+}
 
 static void *mfp_alloc(mem_pool *mp, ssize_t size)
 {
@@ -81,10 +84,11 @@ static void *mfp_alloc(mem_pool *mp, ssize_t size)
     void *res;
 
     if (size > mfp->pages_size) {
-        goto alloc_error;
+        check_enough_mem(NULL);
+        return NULL;
     }
 
-    if (!mfp->pages || MEM_PAGE_SIZE_LEFT(mfp->pages) < size) {
+    if (!mfp->pages || mem_page_size_left(mfp->pages) < size) {
         if (mfp->freelist) {
             mem_page *page;
 
@@ -95,9 +99,6 @@ static void *mfp_alloc(mem_pool *mp, ssize_t size)
             mfp->pages    = page;
         } else {
             mem_page *page = mem_page_new(mfp);
-            if (!page)
-                goto alloc_error;
-
             mfp->nb_pages++;
             page->next = mfp->pages;
             mfp->pages = page;
@@ -108,10 +109,6 @@ static void *mfp_alloc(mem_pool *mp, ssize_t size)
     mfp->pages->used_size += size;
     mfp->pages->used_blocks++;
     return res;
-
-  alloc_error:
-    check_enough_mem(NULL);
-    return NULL;
 }
 
 static void mfp_free(struct mem_pool *mp, void *mem)
@@ -162,8 +159,6 @@ mem_pool *mem_fifo_pool_new(int pages_size_hint)
     res->pages_size = UPPER_MULTIPLE(pages_size_hint, 4096);
     res->pages      = mem_page_new(res);
     res->nb_pages   = 1;
-
-    check_enough_mem(res->pages);
 
     return (mem_pool *)res;
 }
