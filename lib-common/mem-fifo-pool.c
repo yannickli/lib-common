@@ -119,23 +119,30 @@ static void mfp_free(struct mem_pool *mp, void *mem)
     mem_fifo_pool *mfp = (mem_fifo_pool *)mp;
     mem_page **pagep;
 
+    if (!mem)
+        return;
+
     for (pagep = &mfp->pages; *pagep; pagep = &(*pagep)->next) {
         mem_page *page = *pagep;
 
-        if (mem_page_contains(page, mem)) {
-            if (--page->used_blocks == 0) {
-                *pagep = page->next;
-                if (mfp->freelist) {
-                    mem_page_delete(&page);
-                    mfp->nb_pages--;
-                } else {
-                    mem_page_reset(page);
-                    mfp->freelist = page;
-                }
-            }
-            return;
+        if (!mem_page_contains(page, mem)) {
+            continue;
         }
+
+        if (--page->used_blocks == 0) {
+            *pagep = page->next;
+            if (mfp->freelist) {
+                mem_page_delete(&page);
+                mfp->nb_pages--;
+            } else {
+                mem_page_reset(page);
+                mfp->freelist = page;
+            }
+        }
+        return;
     }
+
+    e_error("Dealloc of %p from fifo-pool %p is incorrect\n", mem, mp);
 }
 
 static mem_pool mem_fifo_pool_funcs = {
