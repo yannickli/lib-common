@@ -84,8 +84,8 @@ static void *mfp_alloc(mem_pool *mp, ssize_t size)
     void *res;
 
     if (size > mfp->pages_size) {
-        check_enough_mem(NULL);
-        return NULL;
+        e_panic(E_PREFIX("tried to alloc %zd bytes, cannot have more than %d"),
+                size, mfp->pages_size);
     }
 
     if (!mfp->pages || mem_page_size_left(mfp->pages) < size) {
