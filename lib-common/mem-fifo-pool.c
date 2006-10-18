@@ -161,5 +161,25 @@ mem_pool *mem_fifo_pool_new(int pages_size_hint)
     return (mem_pool *)res;
 }
 
-void meme_fifo_pool_delete(mem_pool **poolp);
+void mem_fifo_pool_delete(mem_pool **poolp) {
+    if (*poolp) {
+        mem_fifo_pool *mfp = (mem_fifo_pool *)(*poolp);
+
+        while (mfp->freelist) {
+            mem_page *page = mfp->freelist;
+
+            mfp->freelist = page->next;
+            mem_page_delete(&page);
+        }
+
+        while (mfp->pages) {
+            mem_page *page = mfp->pages;
+
+            mfp->pages = page->next;
+            mem_page_delete(&page);
+        }
+
+        p_delete(poolp);
+    }
+}
 
