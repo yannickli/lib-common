@@ -37,7 +37,8 @@ libcommon_SOURCES = \
 	msg_template.c \
 	stopper.c \
 	showflags.c \
-	unix.c
+	unix.c \
+	mem-fifo-pool.c
 
 test_SOURCES = $(libcommon_SOURCES) check.c
 test_LDFLAGS = -lz
