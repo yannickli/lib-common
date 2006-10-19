@@ -71,16 +71,21 @@ void e_init_stderr(void);
 void e_init_file(const char *ident, const char *filename);
 void e_init_syslog(const char *ident, int options, int facility);
 
-#ifdef ERR_REPORT_DEFINE_VERBOSITY
-int e_verbosity_level = 0;
+#ifdef NDEBUG
+#  define e_verbosity_level  -1
+#  define e_set_verbosity(foo)
+#  define e_incr_verbosity(foo)
+#  define e_verbosity(lvl)  INT_MIN
 #else
 extern int e_verbosity_level;
-#endif
+
 void e_set_verbosity(int max_debug_level);
 void e_incr_verbosity(void);
 static inline bool e_verbosity(int level) {
     return (level <= e_verbosity_level);
 }
+
+#endif
 
 void e_shutdown(void);
 

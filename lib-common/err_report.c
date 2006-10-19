@@ -18,9 +18,11 @@
 #include <errno.h>
 
 #include "macros.h"
-#define ERR_REPORT_DEFINE_VERBOSITY
 #include "err_report.h"
-#undef ERR_REPORT_DEFINE_VERBOSITY
+
+#ifndef NDEBUG
+int e_verbosity_level = 0;
+#endif
 
 /**************************************************************************/
 /* private API                                                            */
@@ -152,12 +154,14 @@ void e_warning (const char *format, ...) { E_BODY(warning); }
 void e_notice  (const char *format, ...) { E_BODY(notice);  }
 void e_info    (const char *format, ...) { E_BODY(info);    }
 
+#ifndef NDEBUG
 void e_debug(int debuglevel, const char *format, ...)
 {
     if (debuglevel <= e_verbosity_level) {
         E_BODY(debug);
     }
 }
+#endif
 
 /* callback installers */
 
@@ -208,6 +212,7 @@ void e_init_syslog(const char *ident, int options, int facility)
     (void)e_set_debug_handler(&syslog_debug_handler);
 }
 
+#ifndef NDEBUG
 void e_set_verbosity(int max_debug_level)
 {
     e_verbosity_level = max_debug_level;
@@ -217,6 +222,7 @@ void e_incr_verbosity(void)
 {
     e_verbosity_level++;
 }
+#endif
 
 void e_shutdown()
 {

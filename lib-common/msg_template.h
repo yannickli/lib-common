@@ -40,8 +40,13 @@ msg_template *msg_template_new(void);
 void msg_template_delete(msg_template **tpl);
 
 int msg_template_nbparts(const msg_template *tpl);
+
+#ifdef NDEBUG
+#  define msg_template_dump(...)
+#else
 void msg_template_dump(const msg_template *tpl,
-		       const char **vars, int nbvars);
+                       const char **vars, int nbvars);
+#endif
 
 
 /****************************************************************************/

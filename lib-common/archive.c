@@ -508,6 +508,7 @@ const archive_file *archive_file_next_path(const archive_t *archive,
     return NULL;
 }
 
+#ifndef NDEBUG
 static void archive_file_dump(const archive_file *file, int level)
 {
     e_debug(level, E_PREFIX("archive_file :\n"));
@@ -563,8 +564,8 @@ void archive_dump(const archive_t *archive, int level)
             }
         }
     }
-
 }
+#endif
 
 #ifdef CHECK
 

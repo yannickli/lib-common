@@ -42,7 +42,12 @@ typedef struct conf_t {
 
 conf_t *conf_load(const char *filename);
 int conf_save(const conf_t *conf, const char *filename);
+
+#ifdef NDEBUG
+#  define conf_dump(...)
+#else
 void conf_dump(const conf_t *conf, int level);
+#endif
 
 const char *conf_get(const conf_t *conf, const char *section, const char *var);
 const char *conf_put(conf_t *conf, const char *section,

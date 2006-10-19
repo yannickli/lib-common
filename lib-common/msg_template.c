@@ -199,6 +199,7 @@ int msg_template_nbparts(const msg_template *tpl)
     return tpl->body->nbparts;
 }
 
+#ifndef NDEBUG
 static inline void
 part_multi_dump(const part_multi *multi, const char **vars, int nbvars)
 {
@@ -267,6 +268,7 @@ void msg_template_dump(const msg_template *tpl,
         e_debug(MSG_TPL_DBG_LVL, "empty tpl\n");
     }
 }
+#endif
 
 
 /****************************************************************************/

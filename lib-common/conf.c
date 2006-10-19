@@ -300,6 +300,7 @@ int conf_save(const conf_t *conf, const char *filename)
     return 0;
 }
 
+#ifndef NDEBUG
 void conf_dump(const conf_t *conf, int level)
 {
     int i, j;
@@ -317,6 +318,7 @@ void conf_dump(const conf_t *conf, int level)
         }
     }
 }
+#endif
 
 const char *conf_get(const conf_t *conf, const char *section, const char *var)
 {

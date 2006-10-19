@@ -91,7 +91,11 @@ const archive_file *archive_file_next_path(const archive_t *archive,
                                            const char *path,
                                            const archive_file* previous);
 
+#ifdef NDEBUG
+#  define archive_dump(...)
+#else
 void archive_dump(const archive_t *archive, int level);
+#endif
 
 #ifdef CHECK
 #include <check.h>
