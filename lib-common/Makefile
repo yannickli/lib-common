@@ -28,6 +28,7 @@ libcommon_SOURCES = \
 	concatbin.c  \
 	conf.c  \
 	err_report.c  \
+	err_debug.c   \
 	fifo.c \
 	ioveclist.c \
 	mmappedfile.c \

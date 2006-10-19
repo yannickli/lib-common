@@ -89,13 +89,13 @@ static inline bool e_verbosity(int level) {
     return (level <= e_verbosity_level);
 }
 
-void e_debug_real(const char *fname, const char *func, const char *fmt, ...)
-    __attr_format__(3, 4);
-#define e_debug(level, fmt, ...)                                   \
-    do {                                                           \
-        if (level <= e_verbosity_level) {                          \
-            e_debug_real(__FILE__, __func__, fmt, ##__VA_ARGS__);  \
-        }                                                          \
+bool e_debug_is_watched(const char *fname, const char *func);
+
+#define e_debug(level, fmt, ...)                                             \
+    do {                                                                     \
+        if (e_verbosity(level) || e_debug_is_watched(__FILE__, __func__)) {  \
+            fprintf(stderr, fmt, ##__VA_ARGS__);                             \
+        }                                                                    \
     } while (0)
 
 #endif

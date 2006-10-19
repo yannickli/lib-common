@@ -20,10 +20,6 @@
 #include "macros.h"
 #include "err_report.h"
 
-#ifndef NDEBUG
-int e_verbosity_level = 0;
-#endif
-
 /**************************************************************************/
 /* private API                                                            */
 /**************************************************************************/
@@ -214,43 +210,3 @@ void e_shutdown()
         log_state.ident = NULL;
     }
 }
-
-/**************************************************************************/
-/* Debug part                                                             */
-/**************************************************************************/
-#ifndef NDEBUG
-
-void e_set_verbosity(int max_debug_level)
-{
-    e_verbosity_level = max_debug_level;
-}
-
-void e_incr_verbosity(void)
-{
-    e_verbosity_level++;
-}
-
-static void e_debug_initialize(void)
-{
-    static bool initialized = false;
-
-    if (initialized)
-        return;
-
-    initialized = true;
-}
-
-void e_debug_real(const char *fname __unused__, const char *func __unused__, const char *fmt, ...)
-{
-    va_list args;
-
-    e_debug_initialize();
-
-    va_start(args, fmt);
-    if (vfprintf(stderr, fmt, args) < 0) {
-        exit(FATAL_LOGWRITE);
-    }
-    va_end(args);
-}
-
-#endif
