@@ -17,9 +17,14 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-int iprintf(const char *format, ...);
-int ifprintf(FILE *stream, const char *format, ...);
-int isnprintf(char *str, size_t size, const char *format, ...);
+#include "macros.h"
+
+int iprintf(const char *format, ...)
+       __attr_format__(1, 2);
+int ifprintf(FILE *stream, const char *format, ...)
+       __attr_format__(2, 3);
+int isnprintf(char *str, size_t size, const char *format, ...)
+	__attr_format__(3, 4);
 int ivprintf(const char *format, va_list arglist);
 int ivfprintf(FILE *stream, const char *format, va_list arglist);
 int ivsnprintf(char *str, size_t size, const char *format, va_list arglist);
