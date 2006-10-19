@@ -16,7 +16,7 @@ include $(DEPTH)/admin/header.mk
 
 __EXE__   = 
 __LIB__   = libcommon
-__CHECK__ = test iconv_test msg_test
+__CHECK__ = test iconv_test msg_test tst-iprintf
 
 libcommon_SOURCES = \
 	archive.c \
@@ -33,6 +33,7 @@ libcommon_SOURCES = \
 	ioveclist.c \
 	mmappedfile.c \
 	string_is.c \
+	iprintf.c \
 	strconv.c \
 	timeval.c \
 	msg_template.c \
@@ -47,6 +48,10 @@ test_LDFLAGS = -lz
 
 iconv_test_SOURCES = \
 	test_blob_iconv.c \
+	libcommon.a
+
+tst-iprintf_SOURCES = \
+	tst-iprintf.c \
 	libcommon.a
 
 msg_test_CFLAGS = -DMSG_TEST
