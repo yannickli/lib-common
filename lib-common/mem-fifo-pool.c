@@ -139,6 +139,9 @@ static void mfp_free(struct mem_pool *mp, void *mem)
                 mem_page_delete(&page);
                 mfp->nb_pages--;
             } else {
+                /* Clear area to 0 to ensure allocated blocks are
+                 * cleared.  mfp_malloc relies on this.
+                 */
                 mem_page_reset(page);
                 page->next    = mfp->freelist;
                 mfp->freelist = page;
