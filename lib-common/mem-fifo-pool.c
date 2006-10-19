@@ -87,7 +87,7 @@ static void *mfp_alloc(mem_pool *mp, ssize_t size)
 
     /* Must round size up to keep proper alignment */
     size = ROUND_MULTIPLE((size_t)size, 8);
-    
+
     if (size > mfp->page_size) {
         /* Should just map a larger page, yet we need a maximum value */
         e_panic(E_PREFIX("tried to alloc %zd bytes, cannot have more than %d"),
@@ -139,11 +139,8 @@ static void mfp_free(struct mem_pool *mp, void *mem)
                 mem_page_delete(&page);
                 mfp->nb_pages--;
             } else {
-                /* must clear area to 0 to ensure allocated blocks are
-                 * cleared.  mfp_malloc doesn't clear them.
-                 */
                 mem_page_reset(page);
-                page->next = mfp->freelist;
+                page->next    = mfp->freelist;
                 mfp->freelist = page;
             }
         }
