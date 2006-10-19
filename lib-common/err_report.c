@@ -84,7 +84,6 @@ static void file_error_handler     (H_ARGS) { FILE_HANDLER(true); }
 static void file_warning_handler   (H_ARGS) { FILE_HANDLER(true); }
 static void file_notice_handler    (H_ARGS) { FILE_HANDLER(true); }
 static void file_info_handler      (H_ARGS) { FILE_HANDLER(true); }
-static void file_debug_handler     (H_ARGS) { FILE_HANDLER(false); }
 
 #define SYSLOG(priority) syslog(priority, format, args)
 static void syslog_fatal_handler   (H_ARGS) { SYSLOG(LOG_CRIT); }
@@ -92,14 +91,12 @@ static void syslog_error_handler   (H_ARGS) { SYSLOG(LOG_ERR); }
 static void syslog_warning_handler (H_ARGS) { SYSLOG(LOG_WARNING); }
 static void syslog_notice_handler  (H_ARGS) { SYSLOG(LOG_NOTICE); }
 static void syslog_info_handler    (H_ARGS) { SYSLOG(LOG_INFO); }
-static void syslog_debug_handler   (H_ARGS) { SYSLOG(LOG_DEBUG); }
 
 static e_callback_f *fatal_handler   = file_fatal_handler;
 static e_callback_f *error_handler   = file_error_handler;
 static e_callback_f *warning_handler = file_warning_handler;
 static e_callback_f *notice_handler  = file_notice_handler;
 static e_callback_f *info_handler    = file_info_handler;
-static e_callback_f *debug_handler   = file_debug_handler;
 
 static void init_file(const char *ident, FILE *file)
 {
@@ -111,7 +108,6 @@ static void init_file(const char *ident, FILE *file)
     (void)e_set_warning_handler(&file_warning_handler);
     (void)e_set_notice_handler(&file_notice_handler);
     (void)e_set_info_handler(&file_info_handler);
-    (void)e_set_debug_handler(&file_debug_handler);
 }
 
 /**************************************************************************/
@@ -154,15 +150,6 @@ void e_warning (const char *format, ...) { E_BODY(warning); }
 void e_notice  (const char *format, ...) { E_BODY(notice);  }
 void e_info    (const char *format, ...) { E_BODY(info);    }
 
-#ifndef NDEBUG
-void e_debug(int debuglevel, const char *format, ...)
-{
-    if (debuglevel <= e_verbosity_level) {
-        E_BODY(debug);
-    }
-}
-#endif
-
 /* callback installers */
 
 e_callback_f *e_set_fatal_handler  (e_callback_f *hook) { E_SET_BODY(fatal);  }
@@ -170,7 +157,6 @@ e_callback_f *e_set_error_handler  (e_callback_f *hook) { E_SET_BODY(error);  }
 e_callback_f *e_set_warning_handler(e_callback_f *hook) { E_SET_BODY(warning);}
 e_callback_f *e_set_notice_handler (e_callback_f *hook) { E_SET_BODY(notice); }
 e_callback_f *e_set_info_handler   (e_callback_f *hook) { E_SET_BODY(info);   }
-e_callback_f *e_set_debug_handler  (e_callback_f *hook) { E_SET_BODY(debug);  }
 
 /* useful callbacks */
 
@@ -209,10 +195,13 @@ void e_init_syslog(const char *ident, int options, int facility)
     (void)e_set_warning_handler(&syslog_warning_handler);
     (void)e_set_notice_handler(&syslog_notice_handler);
     (void)e_set_info_handler(&syslog_info_handler);
-    (void)e_set_debug_handler(&syslog_debug_handler);
 }
 
 #ifndef NDEBUG
+/**************************************************************************/
+/* Debug part                                                             */
+/**************************************************************************/
+
 void e_set_verbosity(int max_debug_level)
 {
     e_verbosity_level = max_debug_level;
@@ -221,6 +210,29 @@ void e_set_verbosity(int max_debug_level)
 void e_incr_verbosity(void)
 {
     e_verbosity_level++;
+}
+
+static void e_debug_initialize(void)
+{
+    static bool initialized = false;
+
+    if (initialized)
+        return;
+
+    initialized = true;
+}
+
+void e_debug_real(const char *fname __unused__, const char *func __unused__, const char *fmt, ...)
+{
+    va_list args;
+
+    e_debug_initialize();
+
+    va_start(args, fmt);
+    if (vfprintf(stderr, fmt, args) < 0) {
+        exit(FATAL_LOGWRITE);
+    }
+    va_end(args);
 }
 #endif
 

@@ -43,11 +43,6 @@ error_f e_error;
 error_f e_warning;
 error_f e_notice;
 error_f e_info;
-#ifdef NDEBUG
-#  define e_debug(level, fmt, ...)
-#else
-fatal_f e_debug;
-#endif
 
 
 #define E_PREFIX(fmt) \
@@ -64,7 +59,6 @@ e_callback_f *e_set_error_handler   (e_callback_f *) __attribute__((nonnull));
 e_callback_f *e_set_warning_handler (e_callback_f *) __attribute__((nonnull));
 e_callback_f *e_set_notice_handler  (e_callback_f *) __attribute__((nonnull));
 e_callback_f *e_set_info_handler    (e_callback_f *) __attribute__((nonnull)); 
-e_callback_f *e_set_debug_handler   (e_callback_f *) __attribute__((nonnull));
 
 /* useful callbacks */
 void e_init_stderr(void);
@@ -72,6 +66,7 @@ void e_init_file(const char *ident, const char *filename);
 void e_init_syslog(const char *ident, int options, int facility);
 
 #ifdef NDEBUG
+#  define e_debug(level, fmt, ...)
 #  define e_verbosity_level  -1
 #  define e_set_verbosity(foo)
 #  define e_incr_verbosity(foo)
@@ -84,6 +79,15 @@ void e_incr_verbosity(void);
 static inline bool e_verbosity(int level) {
     return (level <= e_verbosity_level);
 }
+
+void e_debug_real(const char *fname, const char *func, const char *fmt, ...)
+    __attr_format__(3, 4);
+#define e_debug(level, fmt, ...)                                   \
+    do {                                                           \
+        if (level <= e_verbosity_level) {                          \
+            e_debug_real(__FILE__, __func__, fmt, ##__VA_ARGS__);  \
+        }                                                          \
+    } while (0)
 
 #endif
 

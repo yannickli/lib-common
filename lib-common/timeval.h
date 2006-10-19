@@ -19,10 +19,8 @@
 
 #include <lib-common/macros.h>
 
-#ifndef NDEBUG
 /* Return reference to static buf for immediate printing */
 const char *timeval_format(struct timeval tv);
-#endif
 
 struct timeval timeval_add(struct timeval a, struct timeval b);
 struct timeval timeval_sub(struct timeval a, struct timeval b);

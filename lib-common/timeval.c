@@ -27,7 +27,6 @@
  * but it makes it a little bit harder to print timevals.
  */
 
-#ifndef NDEBUG
 /* Return reference to static buf for immediate printing */
 const char *timeval_format(struct timeval tv)
 {
@@ -58,7 +57,6 @@ const char *timeval_format(struct timeval tv)
              "%d %2d:%02d:%02d.%06d", d, h, m, s, usec);
     return buf;
 }
-#endif
 
 struct timeval timeval_add(struct timeval a, struct timeval b)
 {
