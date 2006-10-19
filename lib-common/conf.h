@@ -43,10 +43,9 @@ typedef struct conf_t {
 int parse_ini(const char *filename, conf_t **conf);
 void conf_dump(int level, const conf_t *conf);
 
-const char *
-conf_get(const conf_t *conf, const char *section, const char *var);
+const char *conf_get(const conf_t *conf, const char *section, const char *var);
 
 void conf_wipe(conf_t *conf);
 GENERIC_DELETE(conf_t, conf);
 
-#endif
+#endif /* IS_LIB_COMMON_CONF_H */
