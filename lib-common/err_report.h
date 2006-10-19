@@ -72,7 +72,12 @@ void e_shutdown(void);
 
 #ifdef NDEBUG
 
-#  define e_debug(level, fmt, ...)
+#  define e_debug(...)
+#  define e_trace(...)
+#  define e_trace_start(...)
+#  define e_trace_cont(...)
+#  define e_trace_end(...)
+
 #  define e_verbosity_maxwatch   INT_MIN
 #  define e_set_verbosity(...)
 #  define e_incr_verbosity(...)
