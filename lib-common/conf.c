@@ -346,7 +346,7 @@ const char *conf_get(const conf_t *conf, const char *section, const char *var)
 const char *conf_put(conf_t *conf, const char *section,
                      const char *var, const char *value)
 {
-    int i, j;
+    int i, j = 0;
     conf_section_t *s;
     int value_len = value ? strlen(value) : 0;
     int var_len = var ? strlen(var) : 0;
