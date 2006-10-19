@@ -89,11 +89,11 @@ static inline bool e_verbosity(int level) {
     return (level <= e_verbosity_level);
 }
 
-bool e_debug_is_watched(const char *fname, const char *func);
+int e_is_traced(int level, const char *fname, const char *func);
 
-#define e_debug(level, fmt, ...)                                             \
+#define e_debug(lvl, fmt, ...)                                               \
     do {                                                                     \
-        if (e_verbosity(level) || e_debug_is_watched(__FILE__, __func__)) {  \
+        if (e_verbosity(lvl) || e_is_traced(lvl, __FILE__, __func__)) {      \
             fprintf(stderr, fmt, ##__VA_ARGS__);                             \
         }                                                                    \
     } while (0)

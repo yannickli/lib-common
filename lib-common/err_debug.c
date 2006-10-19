@@ -31,11 +31,11 @@ int e_verbosity_level = 0;
 typedef struct h_entry {
     struct h_entry *next;
     uint32_t hash;
+    int level;
     const char data[];
 } h_entry;
 
-static h_entry *e_files[DEBUG_HASH_SIZE];
-static h_entry *e_funcs[DEBUG_HASH_SIZE];
+static h_entry *e_watches[DEBUG_HASH_SIZE];
 
 static inline uint32_t hash(uint32_t init, const char *p) {
     uint32_t result = init;
@@ -60,7 +60,6 @@ static void e_debug_initialize(void)
 
     while (p && *p) {
         const char *q = p;
-        bool seen_slash = false;
         h_entry *e;
         h_entry **list;
 
@@ -68,18 +67,27 @@ static void e_debug_initialize(void)
             p++;
         }
 
-        while (*q && !isspace(*q)) {
-            seen_slash |= *q++ == '/';
+        while (*q && !isspace(*q) && *q != ':') {
+            q++;
         }
 
         e = mem_alloc0(sizeof(h_entry) + q - p + 1);
 
         memcpy(&e->data, p, q - p);
-        e->hash = hash(0, e->data);
+        e->hash  = hash(0, e->data);
+        e->level = INT_MAX;
 
-        list = &(seen_slash ? e_funcs : e_files)[e->hash % DEBUG_HASH_SIZE];
-        e->next = *list;
-        *list   = e;
+        list = &e_watches[e->hash % DEBUG_HASH_SIZE];
+        e->next  = *list;
+        *list    = e;
+
+        if (*q == ':') {
+            q++;
+            e->level = strtoll(q, &q, 10);
+            while (*q && isspace(*q)) {
+                q++;
+            }
+        }
 
         p = q;
     }
@@ -87,27 +95,24 @@ static void e_debug_initialize(void)
     initialized = true;
 }
 
-bool e_debug_is_watched(const char *fname, const char *func)
+bool e_is_traced(int level, const char *fname, const char *func)
 {
     uint32_t hash1 = hash(0, fname);
     uint32_t hash2 = hash(hash(hash1, "/"), func);
+    char buf[PATH_MAX];
     h_entry *e;
 
     e_debug_initialize();
 
-    for (e = e_files[hash1 % DEBUG_HASH_SIZE]; e; e = e->next) {
+    for (e = e_watches[hash1 % DEBUG_HASH_SIZE]; e; e = e->next) {
         if (e->hash == hash1 && strequal(e->data, fname))
-            return true;
+            return level <= e->level;
     }
 
-    {
-        char buf[PATH_MAX];
-        snprintf(buf, sizeof(buf), "%s/%s", fname, func);
-
-        for (e = e_funcs[hash2 % DEBUG_HASH_SIZE]; e; e = e->next) {
-            if (e->hash == hash2 && strequal(e->data, buf))
-                return true;
-        }
+    snprintf(buf, sizeof(buf), "%s/%s", fname, func);
+    for (e = e_watches[hash2 % DEBUG_HASH_SIZE]; e; e = e->next) {
+        if (e->hash == hash2 && strequal(e->data, buf))
+            return level <= e->level;
     }
 
     return false;
