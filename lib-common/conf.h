@@ -40,10 +40,13 @@ typedef struct conf_t {
     int section_nb;
 } conf_t;
 
-int parse_ini(const char *filename, conf_t **conf);
-void conf_dump(int level, const conf_t *conf);
+conf_t *conf_load(const char *filename);
+int conf_save(const conf_t *conf, const char *filename);
+void conf_dump(const conf_t *conf, int level);
 
 const char *conf_get(const conf_t *conf, const char *section, const char *var);
+const char *conf_put(conf_t *conf, const char *section,
+                     const char *var, const char *value);
 
 void conf_wipe(conf_t *conf);
 GENERIC_DELETE(conf_t, conf);
