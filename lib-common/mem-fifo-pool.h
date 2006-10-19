@@ -16,7 +16,7 @@
 
 #include "mem-pool.h"
 
-mem_pool *mem_fifo_pool_new(int pages_size_hint);
+mem_pool *mem_fifo_pool_new(int page_size_hint);
 void mem_fifo_pool_delete(mem_pool **poolp);
 
 #endif /* IS_LIB_COMMON_MEM_FIFO_POOL_H */
