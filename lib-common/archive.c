@@ -186,7 +186,7 @@ static archive_file *archive_parse_file(const byte **input, int *len)
         goto error;
     }
     if (tag != B4_TO_INT('F', 'I', 'L', 'E')) {
-        e_debug(2, E_PREFIX("not a file tag: %u\n"), tag);
+        e_trace(2, "not a file tag: %u", tag);
         goto error;
     }
 
@@ -203,7 +203,7 @@ static archive_file *archive_parse_file(const byte **input, int *len)
     }
 
     if (read_const_char(input, len, &file->name)) {
-        e_debug(1, E_PREFIX("Did not find \\0 while reading file name\n"));
+        e_trace(1, "Did not find \\0 while reading file name");
         goto error;
     }
     if (*len == 0) {
@@ -230,8 +230,8 @@ static archive_file *archive_parse_file(const byte **input, int *len)
             key_len++;
         }
         if (**input != ':') {
-            e_debug(1, E_PREFIX("Missing ':'"
-                       "while reading file attr (key_len= %d)\n"), key_len);
+            e_debug(1, "Missing ':' while reading file attr (key_len= %d)",
+                    key_len);
             if (i == 0) {
                 p_delete(file->attrs);
                 file->nb_attrs = 0;
@@ -255,7 +255,7 @@ static archive_file *archive_parse_file(const byte **input, int *len)
         }
 
         if (**input != '\n') {
-            e_debug(1, E_PREFIX("Missing \\n while reading file attr\n"));
+            e_trace(1, "Missing \\n while reading file attr");
             if (i == 0) {
                 p_delete(file->attrs);
                 file->nb_attrs = 0;
@@ -281,7 +281,7 @@ static archive_file *archive_parse_file(const byte **input, int *len)
     file->payload = *input;
 
     if (((uint32_t) *len) < file->size) {
-        e_debug(1, E_PREFIX("Not enough len remaining\n"));
+        e_trace(1, "Not enough len remaining");
         goto error;
     }
     (*input) += file->size;
@@ -326,7 +326,7 @@ archive_bloc *archive_parse_bloc(const byte **input, int *len)
           return archive_head_to_archive_bloc(archive_parse_head(input, len));
           break;
         default:
-          e_debug(1, E_PREFIX("unrecognized bloc tag: %u\n"), tag);
+          e_trace(1, "unrecognized bloc tag: %u", tag);
           return NULL;
     }
 }
@@ -341,7 +341,7 @@ int archive_parse(const byte *input, int len, archive_t *archive)
     ||  input[1] != ARCHIVE_MAGIC1
     ||  input[2] != ARCHIVE_MAGIC2
     ||  input[3] != ARCHIVE_MAGIC3) {
-        e_debug(1, E_PREFIX("Bad magic number\n"));
+        e_trace(1, "Bad magic number");
         return 1;
     }
 
@@ -349,7 +349,7 @@ int archive_parse(const byte *input, int len, archive_t *archive)
     len -= ARCHIVE_MAGIC_SIZE;
 
     if (len < ARCHIVE_VERSION_SIZE) {
-        e_debug(1, E_PREFIX("Not enough length to read version\n"));
+        e_trace(1, "Not enough length to read version");
         return 1;
     }
     version = BYTESTAR_TO_INT(input);
@@ -511,39 +511,30 @@ const archive_file *archive_file_next_path(const archive_t *archive,
 #ifndef NDEBUG
 static void archive_file_dump(const archive_file *file, int level)
 {
-    e_debug(level, E_PREFIX("archive_file :\n"));
-    e_debug(level, E_PREFIX(" - size = %d\n"),
-            file->size);
-    e_debug(level, E_PREFIX(" - date_create = %d\n"),
-            file->date_create);
-    e_debug(level, E_PREFIX(" - date_update = %d\n"),
-            file->date_update);
-    e_debug(level, E_PREFIX(" - name = %s\n"),
-            file->name);
-    e_debug(level, E_PREFIX(" - nb_attrs = %d\n"),
-            file->nb_attrs);
-    e_debug(level, E_PREFIX(" - payload = %.*s\n"),
-            file->size, file->payload);
+    e_trace(level, "archive_file :");
+    e_trace(level, " - size = %d", file->size);
+    e_trace(level, " - date_create = %d", file->date_create);
+    e_trace(level, " - date_update = %d", file->date_update);
+    e_trace(level, " - name = %s", file->name);
+    e_trace(level, " - nb_attrs = %d", file->nb_attrs);
+    e_trace(level, " - payload = %.*s", file->size, file->payload);
 }
 static void archive_head_dump(const archive_head *head, int level)
 {
-    e_debug(level, E_PREFIX("archive_head :\n"));
-    e_debug(level, E_PREFIX(" - nb_blocs = %d\n"),
-            head->nb_blocs);
+    e_trace(level, "archive_head :");
+    e_trace(level, " - nb_blocs = %d", head->nb_blocs);
 }
 static void archive_tpl_dump(const archive_tpl __unused__ *tpl, int level)
 {
-    e_debug(level, E_PREFIX("NOT IMPLEMENTED !\n"));
+    e_trace(level, "NOT IMPLEMENTED !");
 }
 
 void archive_dump(const archive_t *archive, int level)
 {
     int i;
 
-    e_debug(level, E_PREFIX("archive :\n - version = %d\n"),
-            archive->version);
-    e_debug(level, E_PREFIX(" - nb_blocs = %d\n"),
-            archive->nb_blocs);
+    e_trace(level, "archive : - version = %d\n", archive->version);
+    e_trace(level, " - nb_blocs = %d", archive->nb_blocs);
     
     if (archive->nb_blocs) {
         for (i = 0; i < archive->nb_blocs ; i++) {
@@ -559,7 +550,7 @@ void archive_dump(const archive_t *archive, int level)
                 archive_head_dump(archive_bloc_to_archive_head(bloc), level);
                 break;
               default:
-                e_debug(level, "archive_bloc : unknown bloc type!\n");
+                e_trace(level, "archive_bloc : unknown bloc type!");
                 break;
             }
         }

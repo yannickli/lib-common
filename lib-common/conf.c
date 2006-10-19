@@ -128,10 +128,10 @@ static const char *readline_skip(blob_t *buf, blob_t *buf_line)
 
         p = skipspaces(line);
         if (*p == '\0' || *p == '#' || *p == ';') {
-            e_debug(CONF_DBG_LVL + 1, E_PREFIX("Comment: %s\n"), line);
+            e_trace(CONF_DBG_LVL + 1, "Comment: %s", line);
             continue;
         } else {
-            e_debug(CONF_DBG_LVL + 1, E_PREFIX("Read line: %s\n"), line);
+            e_trace(CONF_DBG_LVL + 1, "Read line: %s", line);
             break;
         }
     }
@@ -159,8 +159,7 @@ conf_t *conf_load(const char *filename)
     blob_init(&buf);
 
     if (blob_append_file_data(&buf, filename) < 0) {
-        e_debug(CONF_DBG_LVL, E_PREFIX("could not open %s for reading\n"),
-                filename);
+        e_trace(CONF_DBG_LVL, "could not open %s for reading", filename);
         blob_wipe(&buf);
         return NULL;
     }
@@ -177,7 +176,7 @@ conf_t *conf_load(const char *filename)
         line = readline_skip(&buf, &buf_line);
 
         if (!line) {
-            e_debug(CONF_DBG_LVL + 1, E_PREFIX("End of input...\n"));
+            e_trace(CONF_DBG_LVL + 1, "End of input...");
             break;
         }
 
@@ -190,8 +189,7 @@ conf_t *conf_load(const char *filename)
             /* Search end of section name */
             stop = strchr(start, ']');
             if (!stop) {
-                e_debug(CONF_DBG_LVL, E_PREFIX("Invalid section header: %s\n"),
-                        line);
+                e_trace(CONF_DBG_LVL, "Invalid section header: %s", line);
                 continue;
             }
 
@@ -199,20 +197,19 @@ conf_t *conf_load(const char *filename)
             section = conf_section_new();
             section->name = p_dupstr(start, stop - start);
 
-            e_debug(CONF_DBG_LVL + 1, E_PREFIX("section name: %s\n"),
+            e_trace(CONF_DBG_LVL + 1, "section name: %s",
                     section->name);
 
             /* Add this section in the conf struct */
             conf_add_section(conf, section);
 
-            e_debug(CONF_DBG_LVL + 1,
-                    E_PREFIX(" Read 1 section name: buffer remaining:\n%s"),
-                    stop + 1);
+            e_trace(CONF_DBG_LVL + 1,
+                    " Read 1 section name: buffer remaining:%s", stop + 1);
             continue;
         }
 
         if (!section) {
-            e_debug(CONF_DBG_LVL, E_PREFIX("Junk line: %s\n"), line);
+            e_trace(CONF_DBG_LVL, "Junk line: %s", line);
             continue;
         }
         
@@ -222,8 +219,7 @@ conf_t *conf_load(const char *filename)
         stop = strchr(start, '=');
         if (!stop) {
             /* No value */
-            e_debug(CONF_DBG_LVL,
-                    E_PREFIX("No value on this line -> dropped: %s\n"),
+            e_trace(CONF_DBG_LVL, "No value on this line -> dropped: %s",
                     line);
             continue;
         }
@@ -236,8 +232,7 @@ conf_t *conf_load(const char *filename)
         variable = start;
         variable_len = len;
             
-        e_debug(CONF_DBG_LVL + 1, E_PREFIX("  varname: %.*s\n"),
-                variable_len, variable);
+        e_trace(CONF_DBG_LVL + 1, "  varname: %.*s", variable_len, variable);
 
         /* Skip spaces after = */
         start = skipspaces(stop + 1);
@@ -258,8 +253,7 @@ conf_t *conf_load(const char *filename)
         value = start;
         value_len = len;
             
-        e_debug(CONF_DBG_LVL + 1, E_PREFIX("  value  : %.*s\n"),
-                value_len, value);
+        e_trace(CONF_DBG_LVL + 1, "  value  : %.*s", value_len, value);
 
         /* OG: no support for escaping */
         section_add_var(section, variable, variable_len, value, value_len);
@@ -276,8 +270,7 @@ int conf_save(const conf_t *conf, const char *filename)
     FILE *fp;
     
     if ((fp = fopen(filename, "w")) == NULL) {
-        e_debug(CONF_DBG_LVL, E_PREFIX("could not open %s for writing\n"),
-                filename);
+        e_trace(CONF_DBG_LVL, "could not open %s for writing", filename);
         return -1;
     }
 
@@ -306,14 +299,14 @@ void conf_dump(const conf_t *conf, int level)
     int i, j;
     conf_section_t *section;
 
-    e_debug(level, "Conf with %d sections :\n", conf->section_nb);
+    e_trace(level, "Conf with %d sections :", conf->section_nb);
 
     for (i = 0; i < conf->section_nb; i++) {
         section = conf->sections[i];
 
-        e_debug(level, "[%s]\n", section->name);
+        e_trace(level, "[%s]", section->name);
         for (j = 0; j < section->var_nb; j++) {
-            e_debug(level, "%s = %s\n", section->variables[j],
+            e_trace(level, "%s = %s", section->variables[j],
                     section->values[j]);
         }
     }

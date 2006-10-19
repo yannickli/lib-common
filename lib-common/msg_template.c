@@ -207,12 +207,12 @@ part_multi_dump(const part_multi *multi, const char **vars, int nbvars)
     char *ptr;
     const tpl_part *curpart;
 
-    e_debug(MSG_TPL_DBG_LVL, "nbparts:%d\n", multi->nbparts);
+    e_trace(MSG_TPL_DBG_LVL, "nbparts:%d", multi->nbparts);
 
     for (i = 0; i < multi->nbparts; i++) {
         curpart = &multi->parts[i];
 
-        e_debug(MSG_TPL_DBG_LVL, "[%02d]: ", i);
+        e_trace_start(MSG_TPL_DBG_LVL, "[%02d]: ", i);
 
         switch (curpart->type) {
           case PART_VERBATIM:
@@ -223,18 +223,18 @@ part_multi_dump(const part_multi *multi, const char **vars, int nbvars)
             strconv_quote(ptr, len + 1,
                           blob_get_cstr(&curpart->u.verbatim->data),
                           curpart->u.verbatim->data.len, '"');
-            e_debug(MSG_TPL_DBG_LVL, "VERBATIM: (%zd) \"%s\"\n",
-                    curpart->u.verbatim->data.len, ptr);
+            e_trace_end(MSG_TPL_DBG_LVL, "VERBATIM: (%zd) \"%s\"",
+                        curpart->u.verbatim->data.len, ptr);
             break;
 
           case PART_VARIABLE:
             if (curpart->u.variable->index < nbvars) {
-                e_debug(MSG_TPL_DBG_LVL, "VARIABLE: %d (%s)\n",
-                        curpart->u.variable->index,
-                        vars[curpart->u.variable->index]);
+                e_trace_end(MSG_TPL_DBG_LVL, "VARIABLE: %d (%s)",
+                            curpart->u.variable->index,
+                            vars[curpart->u.variable->index]);
             } else {
-                e_debug(MSG_TPL_DBG_LVL, "VARIABLE: %d (%s)\n",
-                        curpart->u.variable->index, "???");
+                e_trace_end(MSG_TPL_DBG_LVL, "VARIABLE: %d (%s)",
+                            curpart->u.variable->index, "???");
             }
             break;
 
@@ -247,13 +247,13 @@ part_multi_dump(const part_multi *multi, const char **vars, int nbvars)
             strconv_quote(ptr, len + 1,
                           blob_get_cstr(&curpart->u.qs->data),
                           curpart->u.qs->data.len, '"');
-            e_debug(MSG_TPL_DBG_LVL, "QS: (%zd) \"%s\"\n",
-                    curpart->u.qs->data.len, ptr);
+            e_trace_end(MSG_TPL_DBG_LVL, "QS: (%zd) \"%s\"",
+                        curpart->u.qs->data.len, ptr);
             break;
 
           case PART_MULTI:   /* unused */
             /* TODO: recurse with increased indentation */
-            e_debug(MSG_TPL_DBG_LVL, "MULTI: [skipped]\n");
+            e_trace_end(MSG_TPL_DBG_LVL, "MULTI: [skipped]");
             break;
         }
     }
@@ -265,7 +265,7 @@ void msg_template_dump(const msg_template *tpl,
     if (tpl->body) {
         part_multi_dump(tpl->body, vars, nbvars);
     } else {
-        e_debug(MSG_TPL_DBG_LVL, "empty tpl\n");
+        e_trace(MSG_TPL_DBG_LVL, "empty tpl");
     }
 }
 #endif
@@ -281,7 +281,7 @@ void part_multi_addpart(part_multi **multi_p, tpl_part *part)
 
     if (multi->nbparts + 1 > multi->nbparts_allocated) {
         multi->nbparts_allocated += 16;
-        e_debug(MSG_TPL_DBG_LVL, "realloc:%d\n", multi->nbparts_allocated);
+        e_trace(MSG_TPL_DBG_LVL, "realloc:%d", multi->nbparts_allocated);
         multi = mem_realloc(multi,
                             sizeof(part_multi)
                             + multi->nbparts_allocated * sizeof(tpl_part));
@@ -513,27 +513,31 @@ int msg_template_apply(const msg_template *tpl, const char **vars, int nbvars,
     }
     for (i = 0; i < nbparts; i++) {
         curpart = &tpl->body->parts[i];
-        e_debug(MSG_TPL_DBG_LVL, "[%d] ", i);
+        e_trace_start(MSG_TPL_DBG_LVL, "[%d] ", i);
+
         switch (curpart->type) {
           case PART_VERBATIM:
-            e_debug(MSG_TPL_DBG_LVL, "Verbatim:'%s'\n",
-                    blob_get_cstr(&curpart->u.verbatim->data));
+            e_trace_end(MSG_TPL_DBG_LVL, "Verbatim:'%s'",
+                        blob_get_cstr(&curpart->u.verbatim->data));
             vector[i] = &curpart->u.verbatim->data;
             allocated[i] = 0;
             break;
+
           case PART_VARIABLE:
             if (curpart->u.variable->index > nbvars) {
                 /* Ignore non-specified fields */
                 break;
             }
-            e_debug(MSG_TPL_DBG_LVL, "Var:%d\n", curpart->u.variable->index);
+            e_trace_end(MSG_TPL_DBG_LVL, "Var:%d", curpart->u.variable->index);
             curblob = blob_new();
             blob_set_cstr(curblob, vars[curpart->u.variable->index]);
             vector[i] = curblob;
             allocated[i] = 1;
             break;
+
           case PART_QS:
-            e_debug(MSG_TPL_DBG_LVL, "QS:'%s'\n", blob_get_cstr(&curpart->u.qs->data));
+            e_trace_end(MSG_TPL_DBG_LVL, "QS:'%s'",
+                        blob_get_cstr(&curpart->u.qs->data));
             curblob = blob_new();
             /* FIXME: apply qs template to var array */
 #if 0
@@ -544,6 +548,7 @@ int msg_template_apply(const msg_template *tpl, const char **vars, int nbvars,
             vector[i] = curblob;
             allocated[i] = 1;
             break;
+
           case PART_MULTI:      /* unused */
             curblob = blob_new();
             blob_set_cstr(curblob, "***MULTI***");
@@ -570,11 +575,12 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
     blob_init(&encode_buf);
     for (i = 0; i < nbparts; i++) {
         curpart = &tpl->body->parts[i];
-        e_debug(MSG_TPL_DBG_LVL, "[%d] ", i);
+        e_trace_start(MSG_TPL_DBG_LVL, "[%d] ", i);
+
         switch (curpart->type) {
           case PART_VERBATIM:
-            e_debug(MSG_TPL_DBG_LVL, "Verbatim:'%s'\n",
-                    blob_get_cstr(&curpart->u.verbatim->data));
+            e_trace_end(MSG_TPL_DBG_LVL, "Verbatim:'%s'",
+                        blob_get_cstr(&curpart->u.verbatim->data));
             /* OG: should test if encoding is necessary
              * or should msg_template_blob_encode take input
              * and output blobs?
@@ -584,20 +590,23 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
             msg_template_blob_encode(&encode_buf, curpart->enc);
             blob_append(output, &encode_buf);
             break;
+
           case PART_VARIABLE:
             if (curpart->u.variable->index > nbvars) {
                 /* Ignore non-specified fields */
                 break;
             }
-            e_debug(MSG_TPL_DBG_LVL, "Var:%d\n", curpart->u.variable->index);
+            e_trace_end(MSG_TPL_DBG_LVL, "Var:%d",
+                        curpart->u.variable->index);
             /* OG: should avoid overhead with a blob_encode_cstr API? */
             //blob_append_cstr(output, vars[curpart->u.variable->index]);
             blob_set_cstr(&encode_buf, vars[curpart->u.variable->index]);
             msg_template_blob_encode(&encode_buf, curpart->enc);
             blob_append(output, &encode_buf);
             break;
+
           case PART_QS:
-            e_debug(MSG_TPL_DBG_LVL, "QS:'%s'\n", blob_get_cstr(&curpart->u.qs->data));
+            e_trace_end(MSG_TPL_DBG_LVL, "QS:'%s'", blob_get_cstr(&curpart->u.qs->data));
             /* FIXME: apply qs template to var array */
 #if 0
             qs_run(&curpart->u.qs->data, curblob, vars, nbvars);
@@ -605,6 +614,7 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
             blob_append(output, &curpart->u.qs->data);
 #endif
             break;
+
           case PART_MULTI:      /* unused */
             blob_append_cstr(output, "***MULTI***");
             break;
@@ -684,7 +694,7 @@ static inline int split_csv_line(char *line, char **fields[])
         *q = '\0';
         p = q + 1;
     }
-    e_debug(MSG_TPL_DBG_LVL, "Nbfields:%d\n", nbfields);
+    e_trace(MSG_TPL_DBG_LVL, "Nbfields:%d", nbfields);
     return nbfields;
 }
 
@@ -716,13 +726,13 @@ int main(void)
     fieldline[q - p] = '\0';
     blob_kill_first(&csv_blob, q - p + 1);
 
-    e_debug(MSG_TPL_DBG_LVL, blob_get_cstr(&csv_blob));
+    e_trace(MSG_TPL_DBG_LVL, "%s", blob_get_cstr(&csv_blob));
 
     nbfields = split_csv_line(fieldline, &fields);
     if (nbfields < 0) {
         return 1;
     }
-    
+
     tpl = msg_template_new();
 #if 0
     /* Add some parts */
@@ -791,14 +801,14 @@ int main(void)
             return 1;
         }
         if (nbdata != nbfields) {
-            e_debug(MSG_TPL_DBG_LVL, "Inconsistent CSV!\n");
+            e_trace(MSG_TPL_DBG_LVL, "Inconsistent CSV!");
             break;
         }
         
         msg_template_apply(tpl, data, nbdata, (blob_t **)out, allocated,
                            nbparts);
         for (i = 0; i < nbparts; i++) {
-            e_debug(MSG_TPL_DBG_LVL, "%.*s", (int)out[i]->len, blob_get_cstr(out[i]));
+            e_trace(MSG_TPL_DBG_LVL, "%.*s", (int)out[i]->len, blob_get_cstr(out[i]));
         }
         #if 0 
         writev(out, nbparts);

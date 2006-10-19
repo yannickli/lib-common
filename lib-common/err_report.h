@@ -48,8 +48,7 @@ error_f e_info;
 #define E_PREFIX(fmt) \
     ("%s:%d:%s: " fmt), __FILE__, __LINE__, __func__
 
-#define E_UNIXERR(funcname) \
-    E_PREFIX("error: %s: %s"), (funcname), strerror(errno)
+#define E_UNIXERR(funcname)  funcname ": %m"
 
 /* callback installers */
 typedef void e_callback_f(const char *, va_list);
@@ -99,6 +98,12 @@ int e_is_traced_real(int level, const char *fname, const char *func);
             fprintf(stderr, fmt, ##__VA_ARGS__);                             \
         }                                                                    \
     } while (0)
+
+#define e_trace_start(lvl, fmt, ...)  e_debug(lvl, E_PREFIX(fmt), ##__VA_ARGS__)
+#define e_trace_cont(lvl, fmt, ...)   e_debug(lvl, fmt, ##__VA_ARGS__)
+#define e_trace_end(lvl, fmt, ...)    e_debug(lvl, fmt "\n", ##__VA_ARGS__)
+
+#define e_trace(lvl, fmt, ...)        e_trace_start(lvl, fmt "\n", ##__VA_ARGS__)
 
 #endif
 

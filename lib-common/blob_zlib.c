@@ -330,7 +330,7 @@ static int blob_file_generic_gzip_gunzip(blob_t *dst, const char *filename,
     blob_init(&tmp);
 
     if (blob_append_file_data(&tmp, filename) < 0) {
-        e_debug(3, "Unable to append data from '%s'\n", filename);
+        e_trace(3, "Unable to append data from '%s'", filename);
         blob_wipe(&tmp);
         return -1;
     }

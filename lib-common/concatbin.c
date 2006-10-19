@@ -35,12 +35,12 @@ concatbin *concatbin_new(const char *filename)
 
     fd = open(filename, O_RDONLY);
     if (fd < 0) {
-        e_error("open failed\n");
+        e_error("open failed");
         goto error;
     }
 
     if (fstat(fd, &sbuf)) {
-        e_error( "fstat failed\n");
+        e_error( "fstat failed");
         goto error;
     }
 
@@ -48,7 +48,7 @@ concatbin *concatbin_new(const char *filename)
     ccb->start = mmap(NULL, ccb->len, PROT_READ, MAP_PRIVATE, fd, 0);
 
     if (ccb->start == MAP_FAILED) {
-        e_error( "mmap failed\n");
+        e_error( "mmap failed");
         goto error;
     }
     
@@ -88,7 +88,7 @@ int concatbin_getnext(concatbin *ccb, const byte **data, int *len)
     ccb->cur = (const byte *)p;
     *len = len1;
     if (*ccb->cur != '\n') {
-        e_debug(1, "'%c' is not a LF\n", *ccb->cur);
+        e_trace(1, "'%c' is not a LF", *ccb->cur);
         goto error;
     }
     ccb->cur++; /* skip \n */
@@ -96,7 +96,7 @@ int concatbin_getnext(concatbin *ccb, const byte **data, int *len)
     ccb->cur += *len; /* get ready on next part */
     
     if (ccb->cur > ccb->start + ccb->len) {
-        e_debug(1, "Past the end\n");
+        e_trace(1, "Past the end");
         goto error;
     }
     return 0;

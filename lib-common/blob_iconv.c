@@ -112,7 +112,7 @@ int blob_iconv_close_all(void)
         if (iconv_handles[i].to && iconv_handles[i].from
             && iconv_handles[i].handle) {
             if (iconv_close(iconv_handles[i].handle) < 0) {
-                e_debug(DEBUG_VERB, "An iconv handle cannot be closed");
+                e_trace(DEBUG_VERB, "An iconv handle cannot be closed");
             } else {
                 res++;
             }
@@ -154,7 +154,7 @@ static int detect_encoding(const blob_t *src, int offset,
             if (s[i] == 0x83 || s[i] == 0x88 || s[i] == 0x89 || s[i] == 0x9c) {
                 /* win-1252 */
                 enc = ENC_WINDOWS_1252;
-                e_debug(DEBUG_VERB, "Win-1252 probable: %x\n", s[i]);
+                e_trace(DEBUG_VERB, "Win-1252 probable: %x", s[i]);
                 if (s[i] != 0x9c) {
                     /* win-1252 very probable */
                     break;
@@ -162,15 +162,15 @@ static int detect_encoding(const blob_t *src, int offset,
             } else {
                 /* Win-1250 */
                 enc = ENC_WINDOWS_1250;
-                e_debug(DEBUG_VERB, "Win-1250 probable: %x\n", s[i]);
+                e_trace(DEBUG_VERB, "Win-1250 probable: %x", s[i]);
                 continue;
             }
         }
         
         if (s[i] >= 0xA0 && s[i] <= 0xBF) {
             /* UTF 8 Impossible here */
-            e_debug(DEBUG_VERB, "Win-1250 quite probable, ISO-8859-1 probable"
-                    ": %x\n", s[i]);
+            e_trace(DEBUG_VERB, "Win-1250 quite probable, ISO-8859-1 probable"
+                    ": %x", s[i]);
             enc = (enc != ENC_ISO_8859_1) ? ENC_WINDOWS_1250 : enc;
             continue;
         }
@@ -179,8 +179,8 @@ static int detect_encoding(const blob_t *src, int offset,
             /* FIXME... s[i+1] is out of range when evaluated !!! */
             if (i == (src->len - 1) || s[i + 1] < 0x80) {
                 /* UTF 8 Impossible here */
-                e_debug(DEBUG_VERB, "Win-1250, ISO-8859-1 equaly"
-                        "probable: %x\n", s[i]);
+                e_trace(DEBUG_VERB, "Win-1250, ISO-8859-1 equaly"
+                        "probable: %x", s[i]);
                 if (enc == ENC_UTF8) {
                     enc = ENC_ISO_8859_1;
                 }
@@ -188,7 +188,7 @@ static int detect_encoding(const blob_t *src, int offset,
             }
             if (s[i + 1] >= 0x80 && s[i + 1] <= 0xBF) {
                 enc = ENC_UTF8;
-                e_debug(DEBUG_VERB, "UTF-8 very probable: %x %x\n",
+                e_trace(DEBUG_VERB, "UTF-8 very probable: %x %x",
                         s[i], s[i + 1]);
                 break;
             }
@@ -205,13 +205,13 @@ static int detect_encoding(const blob_t *src, int offset,
             if (s[i + 1] >= 0x80 && s[i + 1] <= 0xBF
             &&  s[i + 2] >= 0x80 && s[i + 2] <= 0xBF) {
                 enc = ENC_UTF8;
-                e_debug(DEBUG_VERB, "UTF-8 extremely probable: %x %x\n", s[i],
+                e_trace(DEBUG_VERB, "UTF-8 extremely probable: %x %x", s[i],
                         s[i + 1]);
                 break;
             } else {
                 if (s[i] == 0xE0 || enc == ENC_UTF8) {
                     enc = ENC_ISO_8859_1;
-                    e_debug(DEBUG_VERB, "ISO-8859-1 a little probable\n");
+                    e_trace(DEBUG_VERB, "ISO-8859-1 a little probable");
                     continue;
                 }
             }
@@ -294,13 +294,13 @@ int blob_auto_iconv (blob_t *dst, const blob_t *src, const char *type_hint,
     int res = 0;
 
     if (src == NULL || dst == NULL) {
-        e_debug(DEBUG_VERB, "Internal error");
+        e_trace(DEBUG_VERB, "Internal error");
         return -1;
     }
 
     blob_resize(dst, 0);
     if (r_known_encodings(type_hint) < 0) {
-        e_debug(DEBUG_VERB, "Skip type: %s\n", type_hint);
+        e_trace(DEBUG_VERB, "Skip type: %s", type_hint);
         if (blob_iconv_priv(dst, src, 0, type_hint) < 0) {
             return -1;
         }
@@ -316,7 +316,7 @@ int blob_auto_iconv (blob_t *dst, const blob_t *src, const char *type_hint,
     }
 
     *chosen_encoding = enc;
-    e_debug(DEBUG_VERB, " -- Chosen Encoding: %s\n", known_encodings[enc]);
+    e_trace(DEBUG_VERB, " -- Chosen Encoding: %s", known_encodings[enc]);
     
     if (src->data[i]) {
         if ((res = blob_iconv_priv(dst, src, i, known_encodings[enc])) < 0) {
@@ -341,7 +341,7 @@ int blob_file_auto_iconv(blob_t *dst, const char *filename,
     blob_init(&tmp);
     
     if (blob_append_file_data(&tmp, filename) < 0) {
-        e_debug(DEBUG_VERB, "Unable to append data from '%s'\n", filename);
+        e_trace(DEBUG_VERB, "Unable to append data from '%s'", filename);
         blob_wipe(&tmp);
         return -1;
     }
