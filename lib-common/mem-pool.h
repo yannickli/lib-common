@@ -51,4 +51,16 @@ void mem_malloc_pool_delete(mem_pool **poolp);
 
 #endif
 
+#define MP_GENERIC_NEW(pool, type, prefix) \
+    type * prefix##_new(void) {                             \
+        return prefix##_init(mp_new_raw(mp, type, 1));      \
+    }
+
+#define MP_GENERIC_DELETE(mp, type, prefix) \
+    void prefix##_delete(type **var) {                      \
+        if (*var) {                                         \
+            prefix##_wipe(*var);                            \
+            mp_delete(mp, var);                             \
+        }                                                   \
+    }
 #endif /* IS_LIB_COMMON_MEM_FIFO_POOL_H */
