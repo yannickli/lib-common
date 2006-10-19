@@ -74,7 +74,6 @@ void e_shutdown(void);
 #ifdef NDEBUG
 
 #  define e_debug(level, fmt, ...)
-#  define e_verbosity_level      INT_MIN
 #  define e_verbosity_maxwatch   INT_MIN
 #  define e_set_verbosity(...)
 #  define e_incr_verbosity(...)
@@ -83,7 +82,6 @@ void e_shutdown(void);
 
 #else
 
-extern int e_verbosity_level;
 extern int e_verbosity_maxwatch;
 
 void e_set_verbosity(int max_debug_level);

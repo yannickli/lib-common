@@ -25,48 +25,42 @@
 
 #ifndef NDEBUG /* disable that module if debug is disabled */
 
-int e_verbosity_level    = 0;
 int e_verbosity_maxwatch = INT_MAX;
+
+static int  verbosity_level = 0;
+static bool e_initialized     = false;
 
 typedef struct trace_entry {
     struct trace_entry *next;
-    uint32_t hash;
+
     int level;
-    const char data[];
+
+    char *funcname;
+    char modname[];
 } trace_entry;
 
 static trace_entry *e_watches;
 
-static inline uint32_t hash(uint32_t init, const char *p) {
-    uint32_t result = init;
-
-    if (p) {
-        while (*p) {
-            result  = (result << 3) | (result >> (32-3));
-            result += *p++;
-        }
-    }
-
-    return result;
-}
-
 static void e_debug_initialize(void)
 {
-    static bool initialized = false;
     const char *p;
 
-    if (initialized)
+    if (e_initialized)
         return;
 
-    e_verbosity_maxwatch = e_verbosity_level;
+    e_verbosity_maxwatch = verbosity_level;
 
     p = getenv("IS_DEBUG");
+    if (!p) {
+        e_initialized = true;
+        return;
+    }
 
     /*
      * parses blank separated <specs>
      * <specs> ::= <modulename>[/<funcname>][:<level>]
      */
-    while (p && *p) {
+    while (*p) {
         const char *q;
         trace_entry *e;
 
@@ -82,12 +76,18 @@ static void e_debug_initialize(void)
 
         e = mem_alloc0(sizeof(trace_entry) + q - p + 1);
 
-        memcpy(&e->data, p, q - p);
-        e->hash  = hash(0, e->data);
+        memcpy(&e->modname, p, q - p);
         e->level = INT_MAX;
 
         e->next   = e_watches;
         e_watches = e;
+
+        e->funcname = strchr(e->modname, '/');
+        if (e->funcname) {
+            *e->funcname++ = '\0';
+        } else {
+            e->funcname = e->modname + (q - p);
+        }
 
         if (*q == ':') {
             q++;
@@ -102,30 +102,23 @@ static void e_debug_initialize(void)
         p = q;
     }
 
-    initialized = true;
+    e_initialized = true;
 }
 
-bool e_is_traced_real(int level, const char *fname, const char *func)
+bool e_is_traced_real(int level, const char *modname, const char *func)
 {
-    uint32_t hash1 = hash(0, fname);
-    uint32_t hash2 = hash(hash(hash1, "/"), func);
-    char buf[PATH_MAX];
     trace_entry *e;
 
     e_debug_initialize();
 
-    if (level <= e_verbosity_level)
+    if (level <= verbosity_level)
         return true;
 
     for (e = e_watches; e; e = e->next) {
-        if (e->hash == hash1 && strequal(e->data, fname))
+        if (strequal(modname, e->modname)
+        && (!e->funcname[0] || strequal(func, e->funcname))) {
             return level <= e->level;
-    }
-
-    snprintf(buf, sizeof(buf), "%s/%s", fname, func);
-    for (e = e_watches; e; e = e->next) {
-        if (e->hash == hash2 && strequal(e->data, buf))
-            return level <= e->level;
+        }
     }
 
     return false;
@@ -134,14 +127,14 @@ bool e_is_traced_real(int level, const char *fname, const char *func)
 
 void e_set_verbosity(int max_debug_level)
 {
-    e_verbosity_level = max_debug_level;
-    e_verbosity_maxwatch = MAX(e_verbosity_maxwatch, e_verbosity_level);
+    verbosity_level = max_debug_level;
+    e_verbosity_maxwatch = MAX(e_verbosity_maxwatch, verbosity_level);
 }
 
 void e_incr_verbosity(void)
 {
-    e_verbosity_level++;
-    e_verbosity_maxwatch = MAX(e_verbosity_maxwatch, e_verbosity_level);
+    verbosity_level++;
+    e_verbosity_maxwatch = MAX(e_verbosity_maxwatch, verbosity_level);
 }
 
 #endif
