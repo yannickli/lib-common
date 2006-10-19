@@ -83,9 +83,15 @@ enum sign {
     NEGATIVE = -1
 };
 
-#ifndef SIGN
-#define SIGN(x) ((enum sign)(((x) > 0) - ((x) < 0)))
+#ifdef CMP
+#error CMP already defined
 #endif
+#ifdef SIGN
+#error SIGN already defined
+#endif
+
+#define CMP(x, y)  ((enum sign)(((y) > (x)) - ((y) < (x))))
+#define SIGN(x)    CMP(0, x)
 
 #define CONVERSION_FUNCTIONS(type1, type2) \
     static inline type2 *type1##_to_##type2(type1 *p) \
