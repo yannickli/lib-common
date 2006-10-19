@@ -197,10 +197,28 @@ void e_init_syslog(const char *ident, int options, int facility)
     (void)e_set_info_handler(&syslog_info_handler);
 }
 
-#ifndef NDEBUG
+void e_shutdown()
+{
+    if (log_state.is_open) {
+        closelog();
+        log_state.is_open = false;
+    }
+
+    if (log_state.fd != stderr) {
+        (void)fclose(log_state.fd);
+        log_state.fd = stderr;
+    }
+
+    if (log_state.ident) {
+        free(log_state.ident);
+        log_state.ident = NULL;
+    }
+}
+
 /**************************************************************************/
 /* Debug part                                                             */
 /**************************************************************************/
+#ifndef NDEBUG
 
 void e_set_verbosity(int max_debug_level)
 {
@@ -234,22 +252,5 @@ void e_debug_real(const char *fname __unused__, const char *func __unused__, con
     }
     va_end(args);
 }
+
 #endif
-
-void e_shutdown()
-{
-    if (log_state.is_open) {
-        closelog();
-        log_state.is_open = false;
-    }
-
-    if (log_state.fd != stderr) {
-        (void)fclose(log_state.fd);
-        log_state.fd = stderr;
-    }
-
-    if (log_state.ident) {
-        free(log_state.ident);
-        log_state.ident = NULL;
-    }
-}

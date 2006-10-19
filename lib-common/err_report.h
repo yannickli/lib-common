@@ -65,13 +65,22 @@ void e_init_stderr(void);
 void e_init_file(const char *ident, const char *filename);
 void e_init_syslog(const char *ident, int options, int facility);
 
+void e_shutdown(void);
+
+/**************************************************************************/
+/* Debug part                                                             */
+/**************************************************************************/
+
 #ifdef NDEBUG
+
 #  define e_debug(level, fmt, ...)
-#  define e_verbosity_level  -1
+#  define e_verbosity_level  INT_MIN
 #  define e_set_verbosity(foo)
 #  define e_incr_verbosity(foo)
-#  define e_verbosity(lvl)  INT_MIN
+#  define e_verbosity(lvl)   false
+
 #else
+
 extern int e_verbosity_level;
 
 void e_set_verbosity(int max_debug_level);
@@ -90,7 +99,5 @@ void e_debug_real(const char *fname, const char *func, const char *fmt, ...)
     } while (0)
 
 #endif
-
-void e_shutdown(void);
 
 #endif /* IS_LIB_COMMON_ERR_REPORT_H */
