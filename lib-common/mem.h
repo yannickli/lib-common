@@ -85,7 +85,7 @@ static inline void *mem_dup(const void *src, ssize_t size)
 
 static inline void *mem_dupstr(const void *src, ssize_t len)
 {
-    byte *res = mem_alloc(len + 1);
+    char *res = mem_alloc(len + 1);
     memcpy(res, src, len);
     res[len] = '\0';
     return res;
@@ -95,7 +95,7 @@ static inline void *mem_dupstr(const void *src, ssize_t len)
 #define p_new(type, count)      ((type *)mem_alloc0(sizeof(type) * (count)))
 #define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
 #define p_dup(p, count)         mem_dup((p), sizeof(*(p)) * (count))
-#define p_dupstr(p, len)        mem_dupstr((p), sizeof(*(p)) * (len))
+#define p_dupstr(p, len)        mem_dupstr((p), (len))
 
 #ifdef __GNUC__
 
