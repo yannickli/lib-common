@@ -109,8 +109,8 @@ static const char *readline(blob_t *buf, blob_t *buf_line)
         blob_set(buf_line, buf);
         blob_resize(buf, 0);
     } else {
-        blob_set_data(buf_line, line, p - line);
-        blob_kill_first(buf, p - line);
+        blob_set_data(buf_line, line, p + 1 - line);
+        blob_kill_first(buf, p + 1 - line);
     }
     return blob_get_cstr(buf_line);
 }
