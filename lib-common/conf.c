@@ -346,7 +346,7 @@ const char *conf_get(const conf_t *conf, const char *section, const char *var)
 const char *conf_put(conf_t *conf, const char *section,
                      const char *var, const char *value)
 {
-    int i, j = 0;
+    int i;
     conf_section_t *s;
     int value_len = value ? strlen(value) : 0;
     int var_len = var ? strlen(var) : 0;
@@ -358,6 +358,8 @@ const char *conf_put(conf_t *conf, const char *section,
     for (i = 0; i < conf->section_nb; i++) {
         s = conf->sections[i];
         if (!strcasecmp(s->name, section)) {
+            int j;
+
             for (j = 0; j < s->var_nb; j++) {
                 if (value) {
                     if (!strcmp(s->values[j], value)) {
@@ -392,7 +394,7 @@ const char *conf_put(conf_t *conf, const char *section,
         s->name = p_dupstr(section, strlen(section));
         conf_add_section(conf, s);
         section_add_var(s, var, var_len, value, value_len);
-        return s->values[j];
+        return s->values[0];
     }
     return NULL;
 }
