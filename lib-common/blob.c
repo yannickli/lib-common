@@ -992,15 +992,20 @@ int blob_encode_quoted_printable(blob_t *dst, const blob_t *src)
 int blob_encode_ia5(blob_t *dst, const blob_t *src)
 {
     int i, b0, b1;
+    byte *data;
+
     blob_resize(dst, src->len * 2);
     blob_resize(dst, 0);
+    data = blob_real(dst)->data;
     for (i = 0; i < src->len; i++) {
         b0 = (src->data[i] >> 0) & 0x0F;
         b1 = (src->data[i] >> 4) & 0x0F;
         b0 += (0 <= b0 && b0 <= 9) ? '0': 'A' - 10;
+        *data = b0;
+        data++;
         b1 += (0 <= b1 && b1 <= 9) ? '0': 'A' - 10;
-        blob_append_byte(dst, b1);
-        blob_append_byte(dst, b0);
+        *data = b1;
+        data++;
     }
     return 0;
 }
