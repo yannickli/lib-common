@@ -291,6 +291,7 @@ const char *stristrn(const char *haystack, const char *needle, size_t nlen)
 {
     char *nptr, *hptr, *start;
     size_t hlen;
+    size_t i;
 
     start = (char *)haystack;
     nptr  = (char *)needle;
@@ -310,15 +311,27 @@ const char *stristrn(const char *haystack, const char *needle, size_t nlen)
         hptr = start;
         nptr = (char *)needle;
 
+        /* First char already matched */
+        i = 1;
+        if (i == nlen) {
+            return start;
+        }
+
+        /* We still need to read some more chars ... */
+        hptr++;
+        nptr++;
+
         while (toupper(*hptr) == toupper(*nptr)) {
-            hptr++;
-            nptr++;
+            /* One more correct char */
+            i++;
 
-            /* if end of needle then needle was found */
-
-            if ('\0' == *nptr) {
+            /* Check if nlen correct chars were found */
+            if (i == nlen) {
                 return start;
             }
+            
+            hptr++;
+            nptr++;
         }
     }
     return NULL;
