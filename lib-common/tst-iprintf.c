@@ -1,7 +1,18 @@
 #include <stdio.h>
 #include <string.h>
 
+#if 0
+#define STD_FUNC  snprintf
+/* ogu69: libc6  2.3.6-0ubuntu2  72 errors */
+/* mad:   libc6  2.3.6.ds1-6      */
+#endif
+
+#if 1
 #include "iprintf.h"
+#define ALT_FUNC  isnprintf
+#endif
+
+#define TEST_ALT_NUMBERS  1
 
 /* Tests taken from Cygnus C library. */
 typedef struct {
@@ -5037,6 +5048,7 @@ sprint_int_type sprint_ints[] = {
     { __LINE__,  0x00000000,  "",               "%#.0x" },
     { __LINE__,  0x00000000,  "0",              "%#.0o" },
 
+#if TEST_ALT_NUMBERS
     { __LINE__,  0x00000000,  "0",              "%Id" },
     { __LINE__,  0x0000000a,  "10",             "%Id" },
     { __LINE__,  0x000000d2,  "210",            "%Id" },
@@ -5046,6 +5058,7 @@ sprint_int_type sprint_ints[] = {
     { __LINE__,  0x0063d76a,  "6543210",        "%Id" },
     { __LINE__,  0x048ff4ea,  "76543210",       "%Id" },
     { __LINE__,  0x343efcea,  "876543210",      "%Id" },
+#endif
 
     { 0, 0, NULL, NULL },
 };
@@ -5073,43 +5086,66 @@ sprint_ll_type sprint_lls[] = {
 
 int main(void)
 {
-    int errcount = 0;
     int testcount = 0;
+    int status = 0;
 #define BSIZE 1024
-    char buffer[BSIZE];
 
-    {    
-        sprint_int_type *iptr;
+#ifdef STD_FUNC
+    int std_errcount = 0;
+    char std_buffer[BSIZE];
+#define std_test(SFMT)  SINGLETEST(STD_FUNC, std_buffer, std_errcount, SFMT)
+#else
+#define std_test(SFMT)
+#endif
 
-        for (iptr = sprint_ints; iptr->line; iptr++) {
-            isnprintf(buffer, sizeof(buffer), iptr->format_string, iptr->value);
-            if (strcmp(buffer, iptr->result) != 0) {
-                ++errcount;
-                iprintf("%s:%d using \"%s\".  Result is \"%s\"; should be: \"%s\".\n",
-                        __FILE__, iptr->line, iptr->format_string, buffer, iptr->result);
+#ifdef ALT_FUNC
+    int alt_errcount = 0;
+    char alt_buffer[BSIZE];
+#define alt_test(SFMT)  SINGLETEST(ALT_FUNC, alt_buffer, alt_errcount, SFMT)
+#else
+#define alt_test(SFMT)
+#endif
+
+#define XSTR(s)      #s
+#define STR(s)       XSTR(s)
+#define PAD(n, len)  do { int __i = (n) - (len);                            \
+                          while (__i-- > 0) putchar(' '); } while(0)
+
+#define SINGLETEST(func, buf, errvar, SFMT)                                 \
+            func(buf, sizeof(buf), iptr->format_string, iptr->value);       \
+            if (strcmp(buf, iptr->result) != 0) {                           \
+                ++(errvar);                                                 \
+                status = 1;                                                 \
+                PAD(20, printf("%s:%d: ", __FILE__, iptr->line));           \
+                PAD(27, printf(STR(func) "(\"%s\", " SFMT ") ",             \
+                               iptr->format_string, iptr->value));          \
+                PAD(14, printf("->  \"%s\"", buf));                         \
+                printf("  !=  \"%s\"\n", iptr->result);                     \
             }
-            ++testcount;
-        }
-    }
 
-    {
-        sprint_ll_type *iptr;
-        for (iptr = sprint_lls; iptr->line; iptr++) {
-            isnprintf(buffer, sizeof(buffer), iptr->format_string, iptr->value);
-            if (strcmp(buffer, iptr->result) != 0) {
-                ++errcount;
-                iprintf("%s:%d using \"%s\".  Result is \"%s\"; should be: \"%s\".\n",
-                        __FILE__, iptr->line, iptr->format_string, buffer, iptr->result);
-            }
-            ++testcount;
-        }
-    }
+#define RUNTESTS(STYPE, SNAME, SFMT)                                        \
+    {                                                                       \
+        STYPE *iptr;                                                        \
+                                                                            \
+        for (iptr = SNAME; iptr->line; iptr++) {                            \
+            ++testcount;                                                    \
+            std_test(SFMT);                                                 \
+            alt_test(SFMT);                                                 \
+        }                                                                   \
+    }                                                                       \
+
+    RUNTESTS(sprint_int_type, sprint_ints, "%ld");
+    RUNTESTS(sprint_ll_type, sprint_lls, "%lld");
+
     
-    if (errcount == 0) {
-        iprintf("tst-iprintf: %d tests: OK.\n", testcount);
-	return 0;
-    } else {
-        iprintf("tst-iprintf: %d tests: %d errors.\n", testcount, errcount);
-	return 1;
-    }
+    printf("%d tests: ", testcount);
+#ifdef STD_FUNC
+    printf("%d " STR(STD_FUNC) " errors, ", std_errcount);
+#endif
+#ifdef ALT_FUNC
+    printf("%d " STR(ALT_FUNC) " errors, ", alt_errcount);
+#endif
+    printf(".\n");
+
+    return status;
 }
