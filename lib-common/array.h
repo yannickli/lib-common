@@ -19,10 +19,10 @@
 #include "mem.h"
 
 typedef struct generic_array {
-    void ** const tab;
-    ssize_t const len;
+    void ** tab;
+    ssize_t len;
 
-    ssize_t const __size;
+    ssize_t size;
 } generic_array;
 typedef void array_item_dtor_f(void *item);
 

@@ -24,51 +24,42 @@
 #include "macros.h"
 #include "blob.h"
 #include "blob_time.h"
-#include "blob_priv.h"
 #include "mem.h"
 #include "string_is.h"
 #include "err_report.h"
 
-static inline real_blob_t *blob_real(blob_t *blob)
-{
-    return (real_blob_t *)blob;
-}
-
 /**************************************************************************/
 /* Blob creation / deletion                                               */
 /**************************************************************************/
-/*{{{*/
 
 /* create a new, empty buffer */
 blob_t *blob_init(blob_t *blob)
 {
-    real_blob_t *rblob = blob_real(blob);
-
-    rblob->len  = 0;
-    rblob->size = BLOB_INITIAL_SIZE;
-    rblob->area = NULL;
-    rblob->data = rblob->initial;
+    blob->len  = 0;
+    blob->size = BLOB_INITIAL_SIZE;
+    blob->area = NULL;
+    blob->data = blob->initial;
 
     /* setup invariant: blob is always NUL terminated */
-    rblob->data[rblob->len] = '\0';
+    blob->data[blob->len] = '\0';
 
-    return (blob_t*)rblob;
+    return (blob_t*)blob;
 }
 
 /* Delete a buffer. the pointer is set to NULL */
 void blob_wipe(blob_t *blob)
 {
     if (blob) {
-        p_delete(&(blob_real(blob)->area));
+        p_delete(&blob->area);
         /* Set the data pointer to NULL to catch errors more easily */
-        blob_real(blob)->data = NULL;
+        blob->data = NULL;
     }
 }
 
 /* @see strdup(3) */
 blob_t *blob_dup(const blob_t *src)
 {
-    real_blob_t *dst = p_new_raw(real_blob_t, 1);
+    blob_t *dst = p_new_raw(blob_t, 1);
 
     dst->len = src->len;
 
@@ -110,15 +101,13 @@ blob_t *blob_cat(const blob_t *blob1, const blob_t *blob2)
 static
 void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize)
 {
-    real_blob_t *rblob = blob_real(blob);
-
     assert (bufsize >= len + 1);
 
-    p_delete(&rblob->area);
-    rblob->area = rblob->data = buf;
-    rblob->len  = len;
-    rblob->size = bufsize;
-    rblob->data[len] = '\0';
+    p_delete(&blob->area);
+    blob->area = blob->data = buf;
+    blob->len  = len;
+    blob->size = bufsize;
+    blob->data[len] = '\0';
 }
 
 /*
@@ -131,74 +120,68 @@ void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize)
  */
 void blob_resize(blob_t *blob, ssize_t newlen)
 {
-    real_blob_t *rblob = blob_real(blob);
-
-    if (newlen < rblob->size) {
+    if (newlen < blob->size) {
         if (newlen == 0) {
             /* Remove initial skip if any */
-            if (rblob->area) {
-                rblob->size += (rblob->data - rblob->area);
-                rblob->data = rblob->area;
+            if (blob->area) {
+                blob->size += (blob->data - blob->area);
+                blob->data = blob->area;
             } else {
-                rblob->size = BLOB_INITIAL_SIZE;
-                rblob->data = rblob->initial;
+                blob->size = BLOB_INITIAL_SIZE;
+                blob->data = blob->initial;
             }
         }
     } else {
         ssize_t newsize = MEM_ALIGN(newlen + 1);
 
-        if (rblob->data == rblob->area) {
-            rblob->area = mem_realloc(rblob->area, newsize);
-            rblob->data = rblob->area;
-            rblob->size = newsize;
+        if (blob->data == blob->area) {
+            blob->area = mem_realloc(blob->area, newsize);
+            blob->data = blob->area;
+            blob->size = newsize;
         } else {
             /* Check if data fits in current area */
-            byte *area = rblob->area ? rblob->area : rblob->initial;
-            ssize_t skip = rblob->data - area;
+            byte *area = blob->area ? blob->area : blob->initial;
+            ssize_t skip = blob->data - area;
 
-            if (newsize <= skip + rblob->size) {
+            if (newsize <= skip + blob->size) {
                 /* Data fits in the current area, shift it left */
-                memmove(rblob->data - skip, rblob->data, rblob->len + 1);
-                rblob->data -= skip;
-                rblob->size += skip;
+                memmove(blob->data - skip, blob->data, blob->len + 1);
+                blob->data -= skip;
+                blob->size += skip;
             } else {
                 /* Allocate a new area */
                 byte *new_area = p_new_raw(byte, newsize);
                 /* Copy the blob data including the trailing '\0' */
-                memcpy(new_area, rblob->data, rblob->len + 1);
-                p_delete(&rblob->area);
-                rblob->area = new_area;
-                rblob->data = rblob->area;
-                rblob->size = newsize;
+                memcpy(new_area, blob->data, blob->len + 1);
+                p_delete(&blob->area);
+                blob->area = new_area;
+                blob->data = blob->area;
+                blob->size = newsize;
             }
         }
     }
-    rblob->len = newlen;
-    rblob->data[rblob->len] = '\0';
+    blob->len = newlen;
+    blob->data[blob->len] = '\0';
 }
 
 /* Inline version for special case of clearing blob */
 static inline void blob_empty(blob_t *blob)
 {
-    real_blob_t *rblob = blob_real(blob);
-
     /* Remove initial skip if any */
-    if (rblob->area) {
-        rblob->size += (rblob->data - rblob->area);
-        rblob->data = rblob->area;
+    if (blob->area) {
+        blob->size += (blob->data - blob->area);
+        blob->data = blob->area;
     } else {
-        rblob->size = BLOB_INITIAL_SIZE;
-        rblob->data = rblob->initial;
+        blob->size = BLOB_INITIAL_SIZE;
+        blob->data = blob->initial;
     }
-    rblob->len = 0;
-    rblob->data[0] = '\0';
+    blob->len = 0;
+    blob->data[0] = '\0';
 }
 
-/*}}}*/
 /**************************************************************************/
 /* Blob manipulations                                                     */
 /**************************************************************************/
-/*{{{*/
 
 /*** private inlines ***/
 
@@ -219,7 +202,7 @@ blob_blit_data_real(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
         blob_resize(blob, pos + len);
     }
     /* This will fail if data and blob->data overlap */
-    memcpy(blob_real(blob)->data + pos, data, len);
+    memcpy(blob->data + pos, data, len);
 }
 
 /* Insert `len' data C bytes into a blob.
@@ -247,17 +230,14 @@ blob_insert_data_real(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
 
     blob_resize(blob, oldlen + len);
     if (pos < oldlen) {
-        memmove(blob_real(blob)->data + pos + len, blob->data + pos,
-                oldlen - pos);
+        memmove(blob->data + pos + len, blob->data + pos, oldlen - pos);
     }
-    memcpy(blob_real(blob)->data + pos, data, len);
+    memcpy(blob->data + pos, data, len);
 }
 
 static inline void
 blob_kill_data_real(blob_t *blob, ssize_t pos, ssize_t len)
 {
-    real_blob_t * rblob = blob_real(blob);
-
     if (pos < 0) {
         len += pos;
         pos = 0;
@@ -265,32 +245,32 @@ blob_kill_data_real(blob_t *blob, ssize_t pos, ssize_t len)
     if (len <= 0) {
         return;
     }
-    if (pos >= rblob->len) {
+    if (pos >= blob->len) {
         return;
     }
 
     if (pos + len >= blob->len) {
         /* Simple case: we are truncating the blob at the end */
-        rblob->len = pos;
-        rblob->data[rblob->len] = '\0';
+        blob->len = pos;
+        blob->data[blob->len] = '\0';
     } else
     if (pos == 0) {
         /* Simple case: chopping bytes from the beginning:
          * we increase the initial skip.  We already checked that
-         * len < rblob->len.
+         * len < blob->len.
          */
-        rblob->data += len;
-        rblob->size -= len;
-        rblob->len  -= len;
+        blob->data += len;
+        blob->size -= len;
+        blob->len  -= len;
     } else {
         /* General case: shift the blob data */
         /* We could improve speed by moving the smaller of the left and
          * right parts, but not as issue for now.
          */
         /* move the blob data including the trailing '\0' */
-        memmove(rblob->data + pos, rblob->data + pos + len,
-                rblob->len - pos - len + 1);
-        rblob->len  -= len;
+        memmove(blob->data + pos, blob->data + pos + len,
+                blob->len - pos - len + 1);
+        blob->len  -= len;
     }
 }
 
@@ -353,7 +333,7 @@ void blob_append_byte(blob_t *blob, byte b)
 {
     const ssize_t pos = blob->len;
     blob_resize(blob, pos + 1);
-    blob_real(blob)->data[pos] = b;
+    blob->data[pos] = b;
 }
 
 /*** kill functions ***/
@@ -373,11 +353,9 @@ void blob_kill_last(blob_t *blob, ssize_t len)
     blob_kill_data_real(blob, blob->len - len, len);
 }
 
-/*}}}*/
 /**************************************************************************/
 /* Blob file functions                                                    */
 /**************************************************************************/
-/*{{{*/
 
 /* Return the number of bytes appended to the blob, negative value
  * indicates an error.
@@ -460,7 +438,7 @@ ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
 
     blob_resize(blob, oldlen + total);
 
-    res = fread(blob_real(blob)->data + oldlen, size, nmemb, f);
+    res = fread(blob->data + oldlen, size, nmemb, f);
     if (res < 0) {
         blob_resize(blob, oldlen);
         return res;
@@ -483,7 +461,7 @@ ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
 
     blob_resize(blob, oldlen + count);
 
-    res = read(fd, blob_real(blob)->data + oldlen, count);
+    res = read(fd, blob->data + oldlen, count);
     if (res < 0) {
         blob_resize(blob, oldlen);
         return res;
@@ -496,11 +474,9 @@ ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
     return res;
 }
 
-/*}}}*/
 /**************************************************************************/
 /* Blob printf function                                                   */
 /**************************************************************************/
-/*{{{*/
 
 ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
 {
@@ -508,30 +484,29 @@ ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
     int len;
     int available;
     va_list ap2;
-    real_blob_t *rblob = blob_real(blob);
 
     va_copy(ap2, ap);
 
-    available = rblob->size - pos;
+    available = blob->size - pos;
 
-    len = vsnprintf((char *)(rblob->data + pos), available, fmt, ap);
+    len = vsnprintf((char *)(blob->data + pos), available, fmt, ap);
     if (len < 0) {
         len = 0;
     }
     if (len >= available) {
         /* only move the `pos' first bytes in case of realloc */
-        rblob->len = pos;
+        blob->len = pos;
         blob_resize(blob, pos + len);
-        available = rblob->size - pos;
+        available = blob->size - pos;
 
-        len = vsnprintf((char*)(rblob->data + pos), available, fmt, ap2);
+        len = vsnprintf((char*)(blob->data + pos), available, fmt, ap2);
         if (len >= available) {
             /* Defensive programming (old libc) */
             len = available - 1;
         }
     }
-    rblob->len = pos + len;
-    rblob->data[rblob->len] = '\0';
+    blob->len = pos + len;
+    blob->data[blob->len] = '\0';
 
     return len;
 }
@@ -609,11 +584,9 @@ ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt,
     return -1;
 }
 
-/*}}}*/
 /**************************************************************************/
 /* Blob search functions                                                  */
 /**************************************************************************/
-/*{{{*/
 
 static inline ssize_t
 blob_search_data_real(const blob_t *haystack, ssize_t pos,
@@ -648,11 +621,9 @@ ssize_t blob_search_data(const blob_t *haystack, ssize_t pos,
     return blob_search_data_real(haystack, pos, needle, len);
 }
 
-/*}}}*/
 /**************************************************************************/
 /* Blob filtering                                                         */
 /**************************************************************************/
-/*{{{*/
 
 /* map filter to blob->data[start .. end-1]
    beware that blob->data[end] is not modified !
@@ -665,7 +636,7 @@ blob_map_range_real(blob_t *blob, ssize_t start, ssize_t end,
     ssize_t i;
 
     for (i = start; i < end; i++) {
-        blob_real(blob)->data[i] = (*filter)(blob->data[i]);
+        blob->data[i] = (*filter)(blob->data[i]);
     }
 }
 
@@ -710,11 +681,9 @@ void blob_trim(blob_t *blob)
     blob_rtrim(blob);
 }
 
-/*}}}*/
 /**************************************************************************/
 /* Blob comparisons                                                       */
 /**************************************************************************/
-/*{{{*/
 
 /* @see memcmp(3) */
 int blob_cmp(const blob_t *blob1, const blob_t *blob2)
@@ -797,11 +766,9 @@ bool blob_istart(const blob_t *blob1, const blob_t *blob2, const byte **pp)
     return blob_cistart(blob1, (const char*)blob2->data, (const char **)pp);
 }
 
-/*}}}*/
 /**************************************************************************/
 /* Blob string functions                                                  */
 /**************************************************************************/
-/*{{{*/
 
 static inline int hex_to_dec(char c)
 {
@@ -819,7 +786,6 @@ static inline int hex_to_dec(char c)
 
 void blob_urldecode(blob_t *url)
 {
-    real_blob_t *buf = blob_real(url);
     byte *p, *q;
 
     /* This function relies on the final NUL at the end of the blob
@@ -827,7 +793,7 @@ void blob_urldecode(blob_t *url)
      */
 
     /* Optimize the general case with a quick scan for % */
-    if ((p = memchr(buf->data, '%', buf->len)) == NULL)
+    if ((p = memchr(url->data, '%', url->len)) == NULL)
         return;
 
     q = p;
@@ -844,7 +810,7 @@ void blob_urldecode(blob_t *url)
             p++;
         }
     }
-    buf->len = q - url->data;
+    url->len = q - url->data;
 }
 
 static const char
@@ -930,11 +896,9 @@ void blob_b64encode(blob_t *blob, int nbpackets)
     blob_set_payload(blob, newlen, buf, newsize);
 }
 
-/*}}}*/
 /**************************************************************************/
 /* Blob parsing                                                           */
 /**************************************************************************/
-/*{{{*/
 
 /* try to parse a c-string from the current position in the buffer.
 
@@ -1092,7 +1056,7 @@ int blob_append_base64(blob_t *dst, const byte *src, ssize_t len, int width)
     pos = dst->len;
     newlen = b64_size(len, packs_per_line);
     blob_extend(dst, newlen);
-    data = blob_real(dst)->data + pos;
+    data = dst->data + pos;
     pack_num = 0;
 
     end = src + len;
@@ -1156,7 +1120,7 @@ int blob_append_ia5(blob_t *dst, const byte *src, ssize_t len)
 
     pos = dst->len;
     blob_extend(dst, len * 2);
-    data = blob_real(dst)->data + pos;
+    data = dst->data + pos;
     for (i = 0; i < len; i++) {
         data[0] = __str_digits_upper[(src[i] >> 4) & 0x0F];
         data[1] = __str_digits_upper[(src[i] >> 0) & 0x0F];
@@ -1165,17 +1129,16 @@ int blob_append_ia5(blob_t *dst, const byte *src, ssize_t len)
     return 0;
 }
 
-/*}}}*/
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 /* inlines (check invariants) + setup/teardowns                        {{{*/
 
 static inline void check_blob_invariants(blob_t *blob)
 {
-    fail_if(blob->len >= blob_real(blob)->size,
+    fail_if(blob->len >= blob->size,
             "a blob must have `len < size'. "
             "this one has `len = %d' and `size = %d'",
-            blob->len, blob_real(blob)->size);
+            blob->len, blob->size);
     fail_if(blob->data[blob->len] != '\0', \
             "a blob must have data[len] set to `\\0', `%c' found",
             blob->data[blob->len]);
@@ -1213,7 +1176,7 @@ START_TEST(check_init_wipe)
     blob_wipe(&blob);
     fail_if(blob.data != NULL,
             "wiped blob MUST have `data' set to NULL");
-    fail_if(blob.__area != NULL,
+    fail_if(blob.area != NULL,
             "wiped blob MUST have `area' set to NULL");
 }
 END_TEST

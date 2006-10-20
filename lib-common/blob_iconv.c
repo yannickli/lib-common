@@ -18,7 +18,6 @@
 
 #include "mem.h"
 #include "blob.h"
-#include "blob_priv.h"
 
 #define DEBUG_VERB 4
 
@@ -133,7 +132,7 @@ static int detect_encoding(const blob_t *src, int offset,
     int i;
     int enc = ENC_ASCII;
     const char *s = blob_get_cstr(src);
-    
+
     if (!src) {
         return -1;
     }
@@ -166,7 +165,7 @@ static int detect_encoding(const blob_t *src, int offset,
                 continue;
             }
         }
-        
+
         if (s[i] >= 0xA0 && s[i] <= 0xBF) {
             /* UTF 8 Impossible here */
             e_trace(DEBUG_VERB, "Win-1250 quite probable, ISO-8859-1 probable"
@@ -174,7 +173,7 @@ static int detect_encoding(const blob_t *src, int offset,
             enc = (enc != ENC_ISO_8859_1) ? ENC_WINDOWS_1250 : enc;
             continue;
         }
-        
+
         if (s[i] >= 0xC0 && s[i] <= 0xDF) {
             /* FIXME... s[i+1] is out of range when evaluated !!! */
             if (i == (src->len - 1) || s[i + 1] < 0x80) {
@@ -193,14 +192,14 @@ static int detect_encoding(const blob_t *src, int offset,
                 break;
             }
         }
-        
+
         if (s[i] >= 0xE0 && s[i] <= 0xEF) {
             if (i + 2 >= src->len) {
                 /* UTF 8 Impossible here */
                 if (enc == ENC_UTF8) {
                     enc = ENC_ISO_8859_1;
                 }
-                continue;                
+                continue;
             }
             if (s[i + 1] >= 0x80 && s[i + 1] <= 0xBF
             &&  s[i + 2] >= 0x80 && s[i + 2] <= 0xBF) {
@@ -223,9 +222,9 @@ static int detect_encoding(const blob_t *src, int offset,
 /**
  * Blob_iconv_priv converts the string src from type to UTF-8
  * The encoding starts at offset_src within src.
- * 
+ *
  * Return - 0 if success
- *        - <0 otherwise  
+ *        - <0 otherwise
  */
 static int blob_iconv_priv(blob_t *dst, const blob_t *src, int offset_src,
                            const char *type)
@@ -235,7 +234,7 @@ static int blob_iconv_priv(blob_t *dst, const blob_t *src, int offset_src,
     char *out;
     iconv_t ic_h;
     const char *data;
-    
+
     if (dst == NULL || src == NULL || type == NULL) {
         return -1;
     }
@@ -245,17 +244,17 @@ static int blob_iconv_priv(blob_t *dst, const blob_t *src, int offset_src,
     len_in = src->len - offset_src;
     total_len = init_len_out + len_in * 2;
     len_out = len_in * 2;
-    
+
     blob_resize(dst, total_len);
-    out = (char *)((real_blob_t *) dst)->data + init_len_out;
-    
+    out = (char *)dst->data + init_len_out;
+
     ic_h = get_iconv_handle("UTF-8", type);
     while (iconv(ic_h, &data, &len_in, &out, &len_out) != 0
            && try < 5) {
         if (errno == E2BIG) {
             len_out = 256;
             blob_resize(dst, total_len + len_out);
-            out = (char *)((real_blob_t *) dst)->data + total_len;
+            out = (char *)dst->data + total_len;
             total_len += len_out;
             try++;
         } else {
@@ -317,13 +316,13 @@ int blob_auto_iconv (blob_t *dst, const blob_t *src, const char *type_hint,
 
     *chosen_encoding = enc;
     e_trace(DEBUG_VERB, " -- Chosen Encoding: %s", known_encodings[enc]);
-    
+
     if (src->data[i]) {
         if ((res = blob_iconv_priv(dst, src, i, known_encodings[enc])) < 0) {
             return -1;
         }
     }
-       
+
     return *chosen_encoding == r_known_encodings(type_hint);
 }
 
@@ -339,7 +338,7 @@ int blob_file_auto_iconv(blob_t *dst, const char *filename,
     int res = 0;
 
     blob_init(&tmp);
-    
+
     if (blob_append_file_data(&tmp, filename) < 0) {
         e_trace(DEBUG_VERB, "Unable to append data from '%s'", filename);
         blob_wipe(&tmp);

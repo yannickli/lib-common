@@ -15,28 +15,17 @@
 #include "string_is.h"
 #include "array.h"
 
-typedef struct {
-    void ** tab;
-    ssize_t len;
-
-    ssize_t size;
-} real_array;
-
 #define ARRAY_INITIAL_SIZE 32
-static inline real_array *array_real(generic_array *array) {
-    return (real_array *)array;
-}
 
 /**************************************************************************/
 /* Private inlines                                                        */
 /**************************************************************************/
 
 static inline void
-array_resize(generic_array *array, ssize_t newlen)
+array_resize(generic_array *a, ssize_t newlen)
 {
-    real_array *a = array_real(array);
     ssize_t curlen = a->len;
-    
+
     /* Reallocate array if needed */
     if (newlen > a->size) {
         /* OG: Should use p_realloc */
@@ -60,12 +49,11 @@ array_resize(generic_array *array, ssize_t newlen)
 
 generic_array *generic_array_init(generic_array *array)
 {
-    real_array *rarray = array_real(array);
-    rarray->tab  = p_new(void*, ARRAY_INITIAL_SIZE);
-    rarray->len  = 0;
-    rarray->size = ARRAY_INITIAL_SIZE;
+    array->tab  = p_new(void*, ARRAY_INITIAL_SIZE);
+    array->len  = 0;
+    array->size = ARRAY_INITIAL_SIZE;
 
-    return (generic_array *)array;
+    return array;
 }
 
 void generic_array_wipe(generic_array *array, array_item_dtor_f *dtor)
@@ -78,7 +66,7 @@ void generic_array_wipe(generic_array *array, array_item_dtor_f *dtor)
                 (*dtor)(&array->tab[i]);
             }
         }
-        p_delete(&(array_real(array)->tab));
+        p_delete(&array->tab);
     }
 }
 
@@ -105,7 +93,7 @@ void *generic_array_take(generic_array *array, ssize_t pos)
     ptr = array->tab[pos];
     memmove(array->tab + pos, array->tab + pos + 1,
             (array->len - pos - 1) * sizeof(void*));
-    array_real(array)->len --;
+    array->len--;
 
     return ptr;
 }

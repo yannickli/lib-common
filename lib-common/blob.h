@@ -25,16 +25,21 @@
 
 #define BLOB_INITIAL_SIZE 32
 
+/*
+ * A blob has a vital invariant, making every parse function avoid
+ * buffer read overflows: there is *always* a '\0' in the data at
+ * position len, implying that size is always >= len+1
+ */
 typedef struct {
-    const ssize_t len;
-    const byte * const data;
+    /* public interface */
+    ssize_t len;
+    byte *data;
 
-    /* HERE SO THAT sizeof(array) is ok */
-    void const * const __area;
-    ssize_t const      __size;
-    byte const         __init[BLOB_INITIAL_SIZE];
+    /* private interface */
+    byte *area;   /* originally allocated block */
+    ssize_t size;  /* allocated size */
+    byte initial[BLOB_INITIAL_SIZE];
 } blob_t;
-
 
 /**************************************************************************/
 /* Blob creation / deletion                                               */
