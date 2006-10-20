@@ -177,7 +177,9 @@ START_TEST(check_get_empty)
 }
 END_TEST
 
+#define i __i
 START_TEST(check_smallrun)
+#undef i
 {
     int i;
     int tab[10];
@@ -203,7 +205,9 @@ START_TEST(check_smallrun)
 }
 END_TEST
 
+#define i __i
 START_TEST(check_roll)
+#undef i
 {
     int i, j;
     int tab[10];
@@ -233,7 +237,9 @@ START_TEST(check_roll)
 }
 END_TEST
 
+#define i __i
 START_TEST(check_grow)
+#undef i
 {
     int i;
     int tab[10];
