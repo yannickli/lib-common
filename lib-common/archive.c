@@ -589,16 +589,16 @@ START_TEST(check_parse)
 {
 #define AR_APPEND_UINT32(blob, val)                     \
     do {                                                \
-    i = (val);                                          \
-    blob_append_byte((blob), UINT32_TO_B0(i));          \
-    blob_append_byte((blob), UINT32_TO_B1(i));          \
-    blob_append_byte((blob), UINT32_TO_B2(i));          \
-    blob_append_byte((blob), UINT32_TO_B3(i));          \
+        n = (val);                                      \
+        blob_append_byte((blob), UINT32_TO_B0(n));      \
+        blob_append_byte((blob), UINT32_TO_B1(n));      \
+        blob_append_byte((blob), UINT32_TO_B2(n));      \
+        blob_append_byte((blob), UINT32_TO_B3(n));      \
     } while (0);
 
     archive_t archive;
     archive_init(&archive);
-    uint32_t i;
+    uint32_t n;
     int res;
     blob_t file;
     blob_t parse_payload;
