@@ -56,6 +56,9 @@ blob_t *blob_cat(const blob_t *blob1, const blob_t *blob2);
 void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize);
 #endif
 void blob_resize(blob_t *blob, ssize_t newlen);
+static inline void blob_extend(blob_t *blob, ssize_t extralen) {
+    blob_resize(blob, blob->len + extralen);
+}
 
 /**
  *  Get the const char * pointing to blob.data
@@ -257,10 +260,11 @@ int blob_auto_iconv(blob_t *dst, const blob_t *src,
                     const char *type_hint, int *chosen_encoding);
 int blob_file_auto_iconv(blob_t *dst, const char *filename,
                          const char *type_hint, int *chosen_encoding);
-int blob_encode_html(blob_t *dst, const blob_t *src);
-int blob_encode_base64(blob_t *dst, const blob_t *src);
-int blob_encode_quoted_printable(blob_t *dst, const blob_t *src);
-int blob_encode_ia5(blob_t *dst, const blob_t *src);
+int blob_append_xml_escape(blob_t *dst, const byte *src, ssize_t len);
+int blob_append_quoted_printable(blob_t *dst, const byte *src, ssize_t len);
+int blob_append_base64(blob_t *dst, const byte *src, ssize_t len, int width);
+int blob_append_ia5(blob_t *dst, const byte *src, ssize_t len);
+
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

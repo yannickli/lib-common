@@ -968,44 +968,199 @@ ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos, const char **answer)
     return PARSE_EPARSE;
 }
 
-int blob_encode_html(blob_t *dst, const blob_t *src)
+/*---------------- blob conversion stuff ----------------*/
+
+#define QP  1
+#define XP  2
+
+byte const __str_encode_flags[128 + 256] = {
+#define REPEAT16(x) x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
+    REPEAT16(0), REPEAT16(0), REPEAT16(0), REPEAT16(0),
+    REPEAT16(0), REPEAT16(0), REPEAT16(0), REPEAT16(0),
+    0,     0,     0,     0,     0,     0,     0,     0,
+    0,     0,     QP,    0,     0,     QP,    0,     0,
+    REPEAT16(0),
+    0,     QP,    XP|QP, QP,    QP,    QP,    XP|QP, XP|QP,
+    QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
+    QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
+    QP,    QP,    QP,    QP,    XP|QP, 0,     XP|QP, QP,  /* = */
+    QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
+    QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
+    QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
+    QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
+    QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
+    QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
+    QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
+    QP,    QP,    QP,    QP,    QP,    QP,    QP,    0,
+    REPEAT16(0), REPEAT16(0), REPEAT16(0), REPEAT16(0),
+    REPEAT16(0), REPEAT16(0), REPEAT16(0), REPEAT16(0),
+#undef REPEAT16
+};
+
+static inline int test_quoted_printable(int x) {
+    return __str_encode_flags[x + 128] & QP;
+}
+
+static inline int test_xml_printable(int x) {
+    return !(__str_encode_flags[x + 128] & XP);
+}
+
+#undef QP
+#undef XP
+
+int blob_append_xml_escape(blob_t *dst, const byte *src, ssize_t len)
 {
-    /* FIXME */
-    blob_set(dst, src);
+    int i, j, c;
+
+    for (i = j = 0; i < len; i++) {
+        if (!test_xml_printable(src[i])) {
+            if (i > j) {
+                blob_append_data(dst, src + j, i - j);
+            }
+            switch (c = src[i]) {
+            case '&':
+                blob_append_cstr(dst, "&amp;");
+                break;
+            case '<':
+                blob_append_cstr(dst, "&lt;");
+                break;
+            case '>':
+                blob_append_cstr(dst, "&gt;");
+                break;
+            case '\'':
+                blob_append_cstr(dst, "&#39;");
+                break;
+            case '"':
+                blob_append_cstr(dst, "&#34;");
+                break;
+            default:
+                blob_append_fmt(dst, "&#%d;", c);
+                break;
+            }
+            j = i + 1;
+        }
+    }
+    if (i > j) {
+        blob_append_data(dst, src + j, i - j);
+    }
     return 0;
 }
 
-int blob_encode_base64(blob_t *dst, const blob_t *src)
+int blob_append_quoted_printable(blob_t *dst, const byte *src, ssize_t len)
 {
-    /* FIXME */
-    blob_set(dst, src);
+    int i, j, c;
+
+    /* TODO:
+     * - encode \n as \r\n
+     * - clip lines to 76 chars with =\n
+     */
+    for (i = j = 0; i < len; i++) {
+        if (!test_quoted_printable(c = src[i])) {
+            /* encode spaces only at end on line */
+            if ((c == ' ' || c == '\t')
+             && (i < len - 1 && src[i + 1] != '\n')) {
+                continue;
+            }
+            if (i > j) {
+                blob_append_data(dst, src + j, i - j);
+            }
+            blob_append_fmt(dst, "=%02X", c);
+            j = i + 1;
+        }
+    }
+    if (i > j) {
+        blob_append_data(dst, src + j, i - j);
+    }
     return 0;
 }
 
-int blob_encode_quoted_printable(blob_t *dst, const blob_t *src)
+int blob_append_base64(blob_t *dst, const byte *src, ssize_t len, int width)
 {
-    /* FIXME */
-    blob_set(dst, src);
-    return 0;
-}
-
-int blob_encode_ia5(blob_t *dst, const blob_t *src)
-{
-    int i, b0, b1;
+    const byte *end;
+    int pos, packs_per_line, pack_num, newlen;
     byte *data;
 
-    blob_resize(dst, src->len * 2);
-    blob_resize(dst, 0);
-    data = blob_real(dst)->data;
-    for (i = 0; i < src->len; i++) {
-        b0 = (src->data[i] >> 0) & 0x0F;
-        b1 = (src->data[i] >> 4) & 0x0F;
-        b0 += (0 <= b0 && b0 <= 9) ? '0': 'A' - 10;
-        *data = b0;
-        data++;
-        b1 += (0 <= b1 && b1 <= 9) ? '0': 'A' - 10;
-        *data = b1;
-        data++;
+    if (width < 0) {
+        packs_per_line = -1;
+    } else
+    if (width == 0) {
+        packs_per_line = 19; /* 76 characters + \r\n */
+    } else {
+        packs_per_line = width / 4;
+    }
+
+    pos = dst->len;
+    newlen = b64_size(len, packs_per_line);
+    blob_extend(dst, newlen);
+    data = blob_real(dst)->data + pos;
+    pack_num = 0;
+
+    end = src + len;
+
+    while (src < end) {
+        int c1, c2, c3;
+
+        c1      = *src++;
+        *data++ = b64[c1 >> 2];
+
+        if (src == end) {
+            *data++ = b64[((c1 & 0x3) << 4)];
+            *data++ = '=';
+            *data++ = '=';
+            if (packs_per_line > 0) {
+                *data++ = '\r';
+                *data++ = '\n';
+            }
+            break;
+        }
+
+        c2      = *src++;
+        *data++ = b64[((c1 & 0x3) << 4) | ((c2 & 0xf0) >> 4)];
+
+        if (src == end) {
+            *data++ = b64[((c2 & 0x0f) << 2)];
+            *data++ = '=';
+            if (packs_per_line > 0) {
+                *data++ = '\r';
+                *data++ = '\n';
+            }
+            break;
+        }
+
+        c3 = *src++;
+        *data++ = b64[((c2 & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
+        *data++ = b64[c3 & 0x3f];
+
+        if (packs_per_line > 0) {
+            if (++pack_num >= packs_per_line || src == end) {
+                pack_num = 0;
+                *data++ = '\r';
+                *data++ = '\n';
+            }
+        }
+    }
+
+#ifdef DEBUG
+    assert (data == dst->data + dst->len);
+#endif
+    return 0;
+}
+
+static char const __str_digits_upper[36] =
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+int blob_append_ia5(blob_t *dst, const byte *src, ssize_t len)
+{
+    int i, pos;
+    byte *data;
+
+    pos = dst->len;
+    blob_extend(dst, len * 2);
+    data = blob_real(dst)->data + pos;
+    for (i = 0; i < len; i++) {
+        data[0] = __str_digits_upper[(src[i] >> 4) & 0x0F];
+        data[1] = __str_digits_upper[(src[i] >> 0) & 0x0F];
+        data += 2;
     }
     return 0;
 }
@@ -1651,7 +1806,6 @@ START_TEST(check_blob_iconv_close)
 {
     blob_t b1;
     blob_t b2;
-    int i = 0;
     int c_typ = 0;
 
     blob_init(&b1);
@@ -1674,19 +1828,19 @@ END_TEST
 
 START_TEST(check_ia5)
 {
-    blob_t src, dst, back;
-    blob_init(&src);
+    blob_t dst, back;
+
     blob_init(&dst);
     blob_init(&back);
 #define TEST_STRING "Injector test String"
 #define TEST_STRING_ENC "496E6A6563746F72207465737420537472696E67"
 
-    blob_set_cstr(&src, TEST_STRING);
-    blob_encode_ia5(&dst, &src);
+    blob_append_ia5(&dst, (const byte*)TEST_STRING, strlen(TEST_STRING));
 
     fail_if(strcmp(blob_get_cstr(&dst), TEST_STRING_ENC),
-            "blob_encode_ia5 failure");
-
+            "%s(\"%s\") -> \"%s\" : \"%s\"",
+            "blob_append_ia5",
+            TEST_STRING, blob_get_cstr(&dst), TEST_STRING_ENC);
 #if 0
     blob_decode_ia5(&back, dst);
     fail_if(strcmp(blob_get_cstr(&back), TEST_STRING),
@@ -1696,9 +1850,64 @@ START_TEST(check_ia5)
 #undef TEST_STRING
 #undef TEST_STRING_ENC
 
-    blob_wipe(&src);
     blob_wipe(&dst);
     blob_wipe(&back);
+}
+END_TEST
+
+START_TEST(check_quoted_printable)
+{
+    blob_t dst;
+
+    blob_init(&dst);
+#define TEST_STRING      "Injector X=1 Gagné! \n Last line "
+#define TEST_STRING_ENC  "Injector X=3D1 Gagn=C3=A9!=20\n Last line=20"
+
+    blob_append_quoted_printable(&dst, (const byte*)TEST_STRING,
+                                 strlen(TEST_STRING));
+
+    fail_if(strcmp(blob_get_cstr(&dst), TEST_STRING_ENC),
+            "%s(\"%s\") -> \"%s\" : \"%s\"",
+            "blob_append_quoted_printable",
+            TEST_STRING, blob_get_cstr(&dst), TEST_STRING_ENC);
+#if 0
+    blob_decode_quoted_printable(&back, dst);
+    fail_if(strcmp(blob_get_cstr(&back), TEST_STRING),
+            "blob_decode_quoted_printable failure");
+#endif
+
+#undef TEST_STRING
+#undef TEST_STRING_ENC
+
+    blob_wipe(&dst);
+}
+END_TEST
+
+START_TEST(check_xml_escape)
+{
+    blob_t dst;
+
+    blob_init(&dst);
+#define TEST_STRING      "<a href=\"Injector\" X='1' value=\"&Gagné!\" />"
+#define TEST_STRING_ENC  "&lt;a href=&#34;Injector&#34; X=&#39;1&#39; value=&#34;&amp;Gagné!&#34; /&gt;"
+
+    blob_append_xml_escape(&dst, (const byte*)TEST_STRING,
+                           strlen(TEST_STRING));
+
+    fail_if(strcmp(blob_get_cstr(&dst), TEST_STRING_ENC),
+            "%s(\"%s\") -> \"%s\" : \"%s\"",
+            "blob_append_xml_escape",
+            TEST_STRING, blob_get_cstr(&dst), TEST_STRING_ENC);
+#if 0
+    blob_decode_xml_escape(&back, dst);
+    fail_if(strcmp(blob_get_cstr(&back), TEST_STRING),
+            "blob_decode_xml_escape failure");
+#endif
+
+#undef TEST_STRING
+#undef TEST_STRING_ENC
+
+    blob_wipe(&dst);
 }
 END_TEST
 
@@ -1726,6 +1935,8 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_url);
     tcase_add_test(tc, check_b64);
     tcase_add_test(tc, check_ia5);
+    tcase_add_test(tc, check_quoted_printable);
+    tcase_add_test(tc, check_xml_escape);
     tcase_add_test(tc, check_search);
     tcase_add_test(tc, check_raw_compress_uncompress);
     tcase_add_test(tc, check_zlib_compress_uncompress);
