@@ -73,7 +73,16 @@ static inline int vstristart(char *str, const char *p, char **pp) {
     return stristart(str, p, (const char **)pp);
 }
 
-const char *stristr(const char *haystack, const char *needle);
+const char *stristrn(const char *haystack, const char *needle, size_t nlen);
+static inline char *
+vstristrn(char *haystack, const char *needle, size_t nlen) {
+    return (char *)stristrn(haystack, needle, nlen);
+}
+static inline const char *
+stristr(const char *haystack, const char *needle)
+{
+    return stristrn(haystack, needle, strlen(needle));
+}
 static inline char *vstristr(char *haystack, const char *needle) {
     return (char *)stristr(haystack, needle);
 }

@@ -287,14 +287,13 @@ int stristart(const char *str, const char *p, const char **pp)
  * @return a pointer to the beginning of the substring, or NULL if
  * it was not found.
  */
-const char *stristr(const char *haystack, const char *needle)
+const char *stristrn(const char *haystack, const char *needle, size_t nlen)
 {
     char *nptr, *hptr, *start;
-    int  hlen, nlen;
+    size_t hlen;
 
     start = (char *)haystack;
     nptr  = (char *)needle;
-    nlen  = strlen(needle);
 
     for (hlen  = strlen(haystack); hlen >= nlen; start++, hlen--) {
         /* find start of pattern in haystack */
