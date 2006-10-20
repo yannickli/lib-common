@@ -43,17 +43,7 @@ blob_t *blob_init(blob_t *blob)
     /* setup invariant: blob is always NUL terminated */
     blob->data[blob->len] = '\0';
 
-    return (blob_t*)blob;
-}
-
-/* Delete a buffer. the pointer is set to NULL */
-void blob_wipe(blob_t *blob)
-{
-    if (blob) {
-        p_delete(&blob->area);
-        /* Set the data pointer to NULL to catch errors more easily */
-        blob->data = NULL;
-    }
+    return blob;
 }
 
 /* @see strdup(3) */
@@ -76,7 +66,7 @@ blob_t *blob_dup(const blob_t *src)
     /* Copy the blob data including the trailing '\0' */
     memcpy(dst->data, src->data, src->len + 1);
 
-    return (blob_t*)dst;
+    return dst;
 }
 
 /* XXX unlike strcat(3), blob_cat *creates* a new blob that is the
@@ -89,6 +79,10 @@ blob_t *blob_cat(const blob_t *blob1, const blob_t *blob2)
     return res;
 }
 
+/* FIXME: this function is nasty, and has bad semantics: blob should know if
+ * it owns the buffer. This makes the programmer write really horrible code
+ * atm ==> NEVER SET THAT PUBLIC
+ */
 /* Set the payload of a blob to the given buffer of size bufsize.
  * len is the len of the data inside it.
  *

@@ -47,38 +47,27 @@ typedef struct {
 
 blob_t *blob_init(blob_t *blob);
 GENERIC_NEW(blob_t, blob);
-void blob_wipe(blob_t *blob);
+static inline void blob_wipe(blob_t *blob)
+{
+    p_delete(&blob->area);
+    /* Set the data pointer to NULL to catch errors more easily */
+    blob->data = NULL;
+}
 GENERIC_DELETE(blob_t, blob);
+
 
 blob_t *blob_dup(const blob_t *blob);
 blob_t *blob_cat(const blob_t *blob1, const blob_t *blob2);
 
-#if 0
-/* FIXME: this function is nasty, and has bad semantics: blob should know if
- * it owns the buffer. This makes the programmer write really horrible code
- * atm.
- */
-void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize);
-#endif
 void blob_resize(blob_t *blob, ssize_t newlen);
 static inline void blob_extend(blob_t *blob, ssize_t extralen) {
     blob_resize(blob, blob->len + extralen);
 }
 
-/**
- *  Get the const char * pointing to blob.data
- */
+/* Get the const char * pointing to blob.data */
 static inline const char *blob_get_cstr(const blob_t *blob)
 {
     return (const char *)blob->data;
-}
-
-/**
- *  Get a pointer to blob.data as a byte *
- */
-static inline byte *blob_get_data(blob_t *blob)
-{
-    return (byte *)(void *)blob->data;
 }
 
 /**************************************************************************/
