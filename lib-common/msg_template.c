@@ -291,82 +291,62 @@ void part_multi_addpart(part_multi **multi_p, tpl_part *part)
     multi->nbparts++;
 }
 
-static part_type msg_template_blob_encode(blob_t *src, part_encoding enc)
+static void msg_template_blob_encode(blob_t *dst, part_encoding enc,
+                                     const byte *data, ssize_t len)
 {
-    blob_t blob;
-
-    blob_init(&blob);
-
     switch (enc) {
-      case ENC_NONE:
-        break;
       case ENC_HTML:
-        blob_encode_html(&blob, src);
-        blob_set(src, &blob);
-        enc = ENC_NONE;
+        blob_append_xml_escape(dst, data, len);
         break;
       case ENC_BASE64:
-        blob_encode_base64(&blob, src);
-        blob_set(src, &blob);
-        enc = ENC_NONE;
+        /* TODO: should have an encoding parameter for output width */
+        blob_append_base64(dst, data, len, 0);
         break;
       case ENC_QUOTED_PRINTABLE:
-        blob_encode_quoted_printable(&blob, src);
-        blob_set(src, &blob);
-        enc = ENC_NONE;
+        blob_append_quoted_printable(dst, data, len);
         break;
       case ENC_IA5:
-        blob_encode_ia5(&blob, src);
-        blob_set(src, &blob);
-        enc = ENC_NONE;
+        blob_append_ia5(dst, data, len);
         break;
       case ENC_TEL:
-        /* FIXME */
-        enc = ENC_NONE;
+        /* FIXME: check telephone number format */
+        blob_append_data(dst, data, len);
         break;
+      case ENC_NONE:
       default:
+        blob_append_data(dst, data, len);
         break;
     }
-    blob_wipe(&blob);
-    return enc;
 }
 
 int msg_template_add_data(msg_template *tpl, part_encoding enc,
                           const byte *data, int len)
 {
-    part_verbatim *verb;
-    tpl_part part;
-    part_encoding newenc;
+    int nbparts;
 
     if (!tpl || !data || len == 0) {
         return -1;
     }
-    if (tpl->body->nbparts > 0
-    &&  tpl->body->parts[tpl->body->nbparts - 1].type == PART_VERBATIM
-    &&  tpl->body->parts[tpl->body->nbparts - 1].enc == ENC_NONE)
+
+    nbparts = tpl->body->nbparts;
+
+    if (nbparts > 0
+     && tpl->body->parts[nbparts - 1].type == PART_VERBATIM
+     && tpl->body->parts[nbparts - 1].enc == ENC_NONE)
     {
         /* Do not create a new part: concatenate it */
-        blob_t tmp;
-        blob_init(&tmp);
-        blob_set_data(&tmp, data, len);
+        blob_t *target = &tpl->body->parts[nbparts - 1].u.verbatim->data;
 
-        newenc = msg_template_blob_encode(&tmp, enc);
-        if (newenc == ENC_NONE) {
-            blob_t *target;
-            target = &tpl->body->parts[tpl->body->nbparts - 1].u.verbatim->data;
-            blob_append(target, &tmp);
-            blob_wipe(&tmp);
-            return 0;
-        }
-        blob_wipe(&tmp);
+        msg_template_blob_encode(target, enc, data, len);
+    } else {
+        tpl_part part;
+
+        part.type = PART_VERBATIM;
+        part.u.verbatim = part_verbatim_new(data, len);
+        part.enc = enc;
+
+        part_multi_addpart(&tpl->body, &part);
     }
-
-    verb = part_verbatim_new(data, len);
-    part.type = PART_VERBATIM;
-    part.u.verbatim = verb;
-    part.enc = enc;
-
-    part_multi_addpart(&tpl->body, &part);
     return 0;
 }
 
@@ -565,15 +545,14 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
 {
     int i;
     const tpl_part *curpart;
-    const int nbparts = tpl->body->nbparts;
-    blob_t encode_buf;
+    const blob_t *bt;
+    const char *str;
 
     if (!output) {
         return -1;
     }
-    blob_resize(output, 0);
-    blob_init(&encode_buf);
-    for (i = 0; i < nbparts; i++) {
+
+    for (i = 0; i < tpl->body->nbparts; i++) {
         curpart = &tpl->body->parts[i];
         e_trace_start(MSG_TPL_DBG_LVL, "[%d] ", i);
 
@@ -581,14 +560,8 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
           case PART_VERBATIM:
             e_trace_end(MSG_TPL_DBG_LVL, "Verbatim:'%s'",
                         blob_get_cstr(&curpart->u.verbatim->data));
-            /* OG: should test if encoding is necessary
-             * or should msg_template_blob_encode take input
-             * and output blobs?
-             * Should change blob API to make it more stream-like
-             */
-            blob_set(&encode_buf, &curpart->u.verbatim->data);
-            msg_template_blob_encode(&encode_buf, curpart->enc);
-            blob_append(output, &encode_buf);
+            bt = &curpart->u.verbatim->data;
+            msg_template_blob_encode(output, curpart->enc, bt->data, bt->len);
             break;
 
           case PART_VARIABLE:
@@ -596,22 +569,21 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
                 /* Ignore non-specified fields */
                 break;
             }
-            e_trace_end(MSG_TPL_DBG_LVL, "Var:%d",
-                        curpart->u.variable->index);
-            /* OG: should avoid overhead with a blob_encode_cstr API? */
-            //blob_append_cstr(output, vars[curpart->u.variable->index]);
-            blob_set_cstr(&encode_buf, vars[curpart->u.variable->index]);
-            msg_template_blob_encode(&encode_buf, curpart->enc);
-            blob_append(output, &encode_buf);
+            e_trace_end(MSG_TPL_DBG_LVL, "Var:%d", curpart->u.variable->index);
+            str = vars[curpart->u.variable->index];
+            msg_template_blob_encode(output, curpart->enc,
+                                     (const byte*)str, strlen(str));
             break;
 
           case PART_QS:
-            e_trace_end(MSG_TPL_DBG_LVL, "QS:'%s'", blob_get_cstr(&curpart->u.qs->data));
+            e_trace_end(MSG_TPL_DBG_LVL, "QS:'%s'",
+                        blob_get_cstr(&curpart->u.qs->data));
             /* FIXME: apply qs template to var array */
 #if 0
-            qs_run(&curpart->u.qs->data, curblob, vars, nbvars);
+            qs_run(&curpart->u.qs->data, output, vars, nbvars);
 #else
-            blob_append(output, &curpart->u.qs->data);
+            bt = &curpart->u.qs->data;
+            msg_template_blob_encode(output, curpart->enc, bt->data, bt->len);
 #endif
             break;
 
@@ -620,7 +592,6 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
             break;
         }
     }
-    blob_wipe(&encode_buf);
     return 0;
 }
 
@@ -749,8 +720,7 @@ int main(void)
 
     msg_template_add_cstr(tpl, ENC_NONE, "Data:'");
     msg_template_add_cstr(tpl, ENC_NONE,
-                          "Nous vous souhaitons un "
-                          "très bon anniversaire !");
+                          "Nous vous souhaitons un très bon anniversaire !");
     msg_template_add_cstr(tpl, ENC_NONE, "'\n");
 #endif
 #if 1
@@ -762,7 +732,8 @@ int main(void)
         blob_append_file_data(&tpl_blob, "samples/anniversaire.tpl");
         msg_template_add_varstring(tpl, ENC_NONE,
                                    (const byte *)blob_get_cstr(&tpl_blob),
-                                   tpl_blob.len, fields, nbfields);
+                                   tpl_blob.len,
+                                   (const char**)fields, nbfields);
         blob_wipe(&tpl_blob);
     }
 #endif
@@ -775,10 +746,10 @@ int main(void)
     blob_wipe(&blob);
 
     /* Display the resulting template */
-    msg_template_dump(tpl, fields, nbfields);
+    msg_template_dump(tpl, (const char **)fields, nbfields);
 #if 0
     msg_template_optimize(tpl);
-    msg_template_dump(tpl, fields, nbfields);
+    msg_template_dump(tpl, (const char **)fields, nbfields);
 #endif
 
     /* Use csv_blob to produce some output */
@@ -805,7 +776,8 @@ int main(void)
             break;
         }
         
-        msg_template_apply(tpl, data, nbdata, (blob_t **)out, allocated,
+        msg_template_apply(tpl, (const char **)data, nbdata,
+                           (blob_t **)out, allocated,
                            nbparts);
         for (i = 0; i < nbparts; i++) {
             e_trace(MSG_TPL_DBG_LVL, "%.*s", (int)out[i]->len, blob_get_cstr(out[i]));
