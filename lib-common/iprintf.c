@@ -29,7 +29,7 @@
  *  - integer representation is 2's complement, no padding, no traps
  *
  * imported functions:
- *   stdio.h:    stdout, putc, fwrite;
+ *   stdio.h:    stdout, putc_unlocked, fwrite_unlocked;
  */
 
 /*---------------- formatter ----------------*/
@@ -200,7 +200,7 @@ static inline int fmt_output_chars(FILE *stream, char *str, size_t size,
 {
     while (n-- > 0) {
         if (stream) {
-            putc(c, stream);
+            putc_unlocked(c, stream);
         } else {
             if ((size_t)count < size)
                 str[count] = c;
@@ -217,7 +217,7 @@ static inline int fmt_output_chunk(FILE *stream, char *str, size_t size,
 
     for (i = 0; i < len; i++) {
         if (stream) {
-            putc(lp[i], stream);
+            putc_unlocked(lp[i], stream);
         } else {
             if ((size_t)count < size)
                 str[count] = lp[i];
@@ -236,11 +236,22 @@ static int fmt_output(FILE *stream, char *str, size_t size,
     const char *format0, *lp;
     int sign;
 
-    if (size > INT_MAX)
+    if (!format) {
+        errno = EINVAL;
+        return -1;
+    }
+    if (size > INT_MAX) {
         size = 0;
+    }
 
     count = 0;
     right_pad = 0;
+
+#if 0
+    /* Lock stream.  */
+    _IO_cleanup_region_start ((void (*) (void *)) &_IO_funlockfile, s);
+    _IO_flockfile (s);
+#endif
 
     for (;;) {
         for (lp = format; *format && *format != '%'; format++)
@@ -250,16 +261,16 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         if (stream) {
             switch (len) {
             default:
-                count += fwrite(lp, 1, len, stream);
+                count += fwrite_unlocked(lp, 1, len, stream);
                 break;
-            case 8: putc(*lp++, stream);
-            case 7: putc(*lp++, stream);
-            case 6: putc(*lp++, stream);
-            case 5: putc(*lp++, stream);
-            case 4: putc(*lp++, stream);
-            case 3: putc(*lp++, stream);
-            case 2: putc(*lp++, stream);
-            case 1: putc(*lp++, stream);
+            case 8: putc_unlocked(*lp++, stream);
+            case 7: putc_unlocked(*lp++, stream);
+            case 6: putc_unlocked(*lp++, stream);
+            case 5: putc_unlocked(*lp++, stream);
+            case 4: putc_unlocked(*lp++, stream);
+            case 3: putc_unlocked(*lp++, stream);
+            case 2: putc_unlocked(*lp++, stream);
+            case 1: putc_unlocked(*lp++, stream);
             case 0: count += len;
                 break;
             }
@@ -431,8 +442,42 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             goto error;
 
         case 'n':
-            /* consume pointer to int from argument list, but ignore it */
+#if 1
+            /* Consume pointer to int from argument list, but ignore it */
             va_arg(ap, int *);
+#else
+            /* The type of pointer defaults to int* but can be
+             * specified with the SIZE_xxx prefixes */
+            switch (size_flags) {
+              case SIZE_char:
+                *(char *)va_arg(ap, void *) = count;
+                break;
+
+              case SIZE_short:
+                *(short *)va_arg(ap, void *) = count;
+                break;
+
+              case SIZE_int:
+              default:
+                *(int *)va_arg(ap, void *) = count;
+                break;
+#ifdef WANT_long
+              case SIZE_long:
+                *(long *)va_arg(ap, void *) = count;
+                break;
+#endif
+#ifdef WANT_int32
+              case SIZE_int32:
+                *(int32_t *)va_arg(ap, void *) = count;
+                break;
+#endif
+#ifdef WANT_int64
+              case SIZE_int64:
+                *(int64_t *)va_arg(ap, void *) = count;
+                break;
+#endif
+            }
+#endif
             break;
 
         case 'c':
@@ -454,14 +499,9 @@ static int fmt_output(FILE *stream, char *str, size_t size,
 
         case 's':
             /* ignore 'l' prefix for wide char string */
-#ifdef FLAG_FAR
-            if (flags & (FLAG_FAR)) {
-                lp = va_arg(ap, char FAR*);
-            } else
-#endif
-            {
-                lp = va_arg(ap, char *);
-            }
+            lp = va_arg(ap, char *);
+
+            /* OG: should test NULL and print "(null)", prec >= 6 */
 
         has_string:
             if (flags & FLAG_PREC) {
@@ -589,11 +629,10 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             base = 16;
             /* Should share with has_unsigned switch code */
 #if UINTPTR_MAX == UINT32_MAX
-            prec = 8;
+            /* OG: should test NULL and print (nil) prec at least 5 */
             lp = convert_uint32(buf + sizeof(buf),
                                 (uint32_t)va_arg(ap, void *), base);
 #elif UINTPTR_MAX == UINT64_MAX
-            prec = 16;
             lp = convert_uint64(buf + sizeof(buf),
                                 (uint64_t)va_arg(ap, void *), base);
 #else
@@ -773,6 +812,12 @@ done:
             str[size - 1] = '\0';
         }
     }
+#if 0
+    /* Unlock the stream.  */
+    _IO_funlockfile (s);
+    _IO_cleanup_region_end (0);
+#endif
+
     return count;
 }
 
@@ -795,6 +840,10 @@ int ifprintf(FILE *stream, const char *format, ...)
     va_list ap;
     int n;
 
+    if (!stream) {
+        errno = EBADF;
+        return -1;
+    }
     va_start(ap, format);
     n = fmt_output(stream, NULL, 0, format, ap);
     va_end(ap);
@@ -821,6 +870,10 @@ int ivprintf(const char *format, va_list arglist)
 
 int ivfprintf(FILE *stream, const char *format, va_list arglist)
 {
+    if (!stream) {
+        errno = EBADF;
+        return -1;
+    }
     return fmt_output(stream, NULL, 0, format, arglist);
 }
 
