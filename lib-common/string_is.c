@@ -281,60 +281,41 @@ int stristart(const char *str, const char *p, const char **pp)
     return 1;
 }
 
-/** Find the first occurrence of the substring needle in haystack, case
- *  insensitive.
+/** Find the first occurrence of the substring needle in str, case
+ *  insensitively.
  *
  * @return a pointer to the beginning of the substring, or NULL if
- * it was not found.
+ * non was found.
+ * a final embedded '\0' char in needle can match the final '\0'.
  */
-const char *stristrn(const char *haystack, const char *needle, size_t nlen)
+const char *stristrn(const char *str, const char *needle, size_t nlen)
 {
-    char *nptr, *hptr, *start;
-    size_t hlen;
     size_t i;
+    int c, nc;
 
-    start = (char *)haystack;
-    nptr  = (char *)needle;
+    if (!nlen)
+        return str;
 
-    for (hlen  = strlen(haystack); hlen >= nlen; start++, hlen--) {
-        /* find start of pattern in haystack */
-        while (toupper(*start) != toupper(*needle)) {
-            start++;
-            hlen--;
-
-            /* needle longer than haystack */
-            if (hlen < nlen) {
+    nc = toupper(*needle);
+    for (;; str++) {
+        /* find first char of pattern in str */
+        c = toupper(*str);
+        if (c != nc) {
+            if (c == '\0')
                 return NULL;
+        } else {
+            /* compare the rest of needle */
+            for (i = 1;; i++) {
+                if (i == nlen)
+                    return str;
+                if (c == '\0')
+                    return NULL;
+                c = toupper(str[i]);
+                if (c != toupper(needle[i]))
+                    break;
             }
-        }
-
-        hptr = start;
-        nptr = (char *)needle;
-
-        /* First char already matched */
-        i = 1;
-        if (i == nlen) {
-            return start;
-        }
-
-        /* We still need to read some more chars ... */
-        hptr++;
-        nptr++;
-
-        while (toupper(*hptr) == toupper(*nptr)) {
-            /* One more correct char */
-            i++;
-
-            /* Check if nlen correct chars were found */
-            if (i == nlen) {
-                return start;
-            }
-            
-            hptr++;
-            nptr++;
         }
     }
-    return NULL;
 }
 
 #if 0
