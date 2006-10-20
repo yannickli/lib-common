@@ -57,9 +57,29 @@ GENERIC_DELETE(blob_t, blob);
 
 
 blob_t *blob_dup(const blob_t *blob);
-blob_t *blob_cat(const blob_t *blob1, const blob_t *blob2);
 
-void blob_resize(blob_t *blob, ssize_t newlen);
+void blob_resize_real(blob_t *blob, ssize_t newlen);
+static inline void blob_resize(blob_t *blob, ssize_t newlen)
+{
+    if (newlen < blob->size) {
+        if (newlen == 0) {
+            /* Remove initial skip if any */
+            if (blob->area) {
+                blob->size += (blob->data - blob->area);
+                blob->data = blob->area;
+            } else {
+                blob->size = BLOB_INITIAL_SIZE;
+                blob->data = blob->initial;
+            }
+        }
+
+        blob->len = newlen;
+        blob->data[blob->len] = '\0';
+    } else {
+        blob_resize_real(blob, newlen);
+    }
+}
+
 static inline void blob_extend(blob_t *blob, ssize_t extralen) {
     blob_resize(blob, blob->len + extralen);
 }
@@ -105,7 +125,13 @@ static inline void blob_append_cstr(blob_t *blob, const char *cstr)
     blob_append_data(blob, cstr, strlen(cstr));
 }
 
-void blob_append_byte(blob_t *blob, byte b);
+static inline void blob_append_byte(blob_t *blob, byte b)
+{
+    const ssize_t pos = blob->len;
+    blob_resize(blob, pos + 1);
+    blob->data[pos] = b;
+}
+
 
 void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len);
 void blob_kill_first(blob_t *blob, ssize_t len);

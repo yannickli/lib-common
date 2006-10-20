@@ -69,16 +69,6 @@ blob_t *blob_dup(const blob_t *src)
     return dst;
 }
 
-/* XXX unlike strcat(3), blob_cat *creates* a new blob that is the
- * concatenation of two blobs.
- */
-blob_t *blob_cat(const blob_t *blob1, const blob_t *blob2)
-{
-    blob_t *res = blob_dup(blob1);
-    blob_append(res, blob2);
-    return res;
-}
-
 /* FIXME: this function is nasty, and has bad semantics: blob should know if
  * it owns the buffer. This makes the programmer write really horrible code
  * atm ==> NEVER SET THAT PUBLIC
@@ -112,46 +102,33 @@ void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize)
  * If blob is extended, its contents between oldlen and newlen is
  * undefined.
  */
-void blob_resize(blob_t *blob, ssize_t newlen)
+void blob_resize_real(blob_t *blob, ssize_t newlen)
 {
-    if (newlen < blob->size) {
-        if (newlen == 0) {
-            /* Remove initial skip if any */
-            if (blob->area) {
-                blob->size += (blob->data - blob->area);
-                blob->data = blob->area;
-            } else {
-                blob->size = BLOB_INITIAL_SIZE;
-                blob->data = blob->initial;
-            }
-        }
-    } else {
-        ssize_t newsize = MEM_ALIGN(newlen + 1);
+    ssize_t newsize = MEM_ALIGN(newlen + 1);
 
-        if (blob->data == blob->area) {
-            blob->area = mem_realloc(blob->area, newsize);
+    if (blob->data == blob->area) {
+        blob->area = mem_realloc(blob->area, newsize);
+        blob->data = blob->area;
+        blob->size = newsize;
+    } else {
+        /* Check if data fits in current area */
+        byte *area = blob->area ? blob->area : blob->initial;
+        ssize_t skip = blob->data - area;
+
+        if (newsize <= skip + blob->size) {
+            /* Data fits in the current area, shift it left */
+            memmove(blob->data - skip, blob->data, blob->len + 1);
+            blob->data -= skip;
+            blob->size += skip;
+        } else {
+            /* Allocate a new area */
+            byte *new_area = p_new_raw(byte, newsize);
+            /* Copy the blob data including the trailing '\0' */
+            memcpy(new_area, blob->data, blob->len + 1);
+            p_delete(&blob->area);
+            blob->area = new_area;
             blob->data = blob->area;
             blob->size = newsize;
-        } else {
-            /* Check if data fits in current area */
-            byte *area = blob->area ? blob->area : blob->initial;
-            ssize_t skip = blob->data - area;
-
-            if (newsize <= skip + blob->size) {
-                /* Data fits in the current area, shift it left */
-                memmove(blob->data - skip, blob->data, blob->len + 1);
-                blob->data -= skip;
-                blob->size += skip;
-            } else {
-                /* Allocate a new area */
-                byte *new_area = p_new_raw(byte, newsize);
-                /* Copy the blob data including the trailing '\0' */
-                memcpy(new_area, blob->data, blob->len + 1);
-                p_delete(&blob->area);
-                blob->area = new_area;
-                blob->data = blob->area;
-                blob->size = newsize;
-            }
         }
     }
     blob->len = newlen;
@@ -321,13 +298,6 @@ void blob_append(blob_t *dest, const blob_t *src)
 void blob_append_data(blob_t *blob, const void *data, ssize_t len)
 {
     blob_insert_data_real(blob, blob->len, data, len);
-}
-
-void blob_append_byte(blob_t *blob, byte b)
-{
-    const ssize_t pos = blob->len;
-    blob_resize(blob, pos + 1);
-    blob->data[pos] = b;
 }
 
 /*** kill functions ***/
@@ -1232,7 +1202,7 @@ START_TEST(check_set)
 END_TEST
 
 /*.....................................................................}}}*/
-/* test blob_dup / blob_cat / blob_resize                              {{{*/
+/* test blob_dup / blob_resize                                         {{{*/
 
 START_TEST(check_dup)
 {
@@ -1249,30 +1219,6 @@ START_TEST(check_dup)
     }
 
     check_teardown(&blob, &bdup);
-}
-END_TEST
-
-START_TEST(check_cat)
-{
-    blob_t b1;
-    blob_t * bcat;
-    const blob_t * b2 = &b1;
-
-    check_setup(&b1, "toto");
-    bcat = blob_cat(&b1, b2);
-    check_blob_invariants(bcat);
-
-    fail_if (bcat->len != b1.len + b2->len,
-             "blob_cat-ed blob has not len equal to "
-             "the sum of the orignal blobs lens");
-    if (memcmp(bcat->data, b1.data, b1.len) !=0
-    ||  memcmp (bcat->data + b1.len, b2->data, b2->len) != 0)
-    {
-        fail("blob_cat-ed blob is not the concatenation of "
-             "the orginal blobs");
-    }
-
-    check_teardown(&b1, &bcat);
 }
 END_TEST
 
@@ -1881,7 +1827,6 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_blob_new);
     tcase_add_test(tc, check_set);
     tcase_add_test(tc, check_dup);
-    tcase_add_test(tc, check_cat);
     tcase_add_test(tc, check_blit);
     tcase_add_test(tc, check_insert);
     tcase_add_test(tc, check_append);
