@@ -79,8 +79,7 @@ vstristrn(char *haystack, const char *needle, size_t nlen) {
     return (char *)stristrn(haystack, needle, nlen);
 }
 static inline const char *
-stristr(const char *haystack, const char *needle)
-{
+stristr(const char *haystack, const char *needle) {
     return stristrn(haystack, needle, strlen(needle));
 }
 static inline char *vstristr(char *haystack, const char *needle) {
