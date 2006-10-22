@@ -206,8 +206,7 @@ blob_insert_data_real(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
     memcpy(blob->data + pos, data, len);
 }
 
-static inline void
-blob_kill_data_real(blob_t *blob, ssize_t pos, ssize_t len)
+void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len)
 {
     if (pos < 0) {
         len += pos;
@@ -301,21 +300,6 @@ void blob_append_data(blob_t *blob, const void *data, ssize_t len)
 }
 
 /*** kill functions ***/
-
-void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len)
-{
-    blob_kill_data_real(blob, pos, len);
-}
-
-void blob_kill_first(blob_t *blob, ssize_t len)
-{
-    blob_kill_data_real(blob, 0, len);
-}
-
-void blob_kill_last(blob_t *blob, ssize_t len)
-{
-    blob_kill_data_real(blob, blob->len - len, len);
-}
 
 /**************************************************************************/
 /* Blob file functions                                                    */
@@ -625,7 +609,7 @@ void blob_ltrim(blob_t *blob)
         if (!isspace(blob->data[i]))
             break;
     }
-    blob_kill_data_real(blob, 0, i);
+    blob_kill_data(blob, 0, i);
 }
 
 void blob_rtrim(blob_t *blob)
@@ -636,7 +620,7 @@ void blob_rtrim(blob_t *blob)
         if (!isspace(blob->data[i - 1]))
             break;
     }
-    blob_kill_data_real(blob, i, blob->len - i);
+    blob_kill_data(blob, i, blob->len - i);
 }
 
 void blob_trim(blob_t *blob)

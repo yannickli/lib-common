@@ -124,7 +124,6 @@ static inline void blob_append_cstr(blob_t *blob, const char *cstr)
 {
     blob_append_data(blob, cstr, strlen(cstr));
 }
-
 static inline void blob_append_byte(blob_t *blob, byte b)
 {
     const ssize_t pos = blob->len;
@@ -134,8 +133,26 @@ static inline void blob_append_byte(blob_t *blob, byte b)
 
 
 void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len);
-void blob_kill_first(blob_t *blob, ssize_t len);
-void blob_kill_last(blob_t *blob, ssize_t len);
+static inline void blob_kill_first(blob_t *blob, ssize_t len)
+{
+    if (len < blob->len) {
+        blob->data += len;
+        blob->size -= len;
+        blob->len  -= len;
+    } else {
+        blob_resize(blob, 0);
+    }
+}
+static inline void blob_kill_last(blob_t *blob, ssize_t len)
+{
+    if (len < blob->len) {
+        blob->len  -= len;
+        blob->data[blob->len] = '\0';
+    } else {
+        blob_resize(blob, 0);
+    }
+}
+
 
 /**************************************************************************/
 /* Blob file functions                                                    */
