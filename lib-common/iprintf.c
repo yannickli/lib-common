@@ -261,7 +261,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         if (stream) {
             switch (len) {
             default:
-                count += fwrite_unlocked(lp, 1, len, stream);
+                count += fwrite_unlocked(lp, 1, (size_t)len, stream);
                 break;
             case 8: putc_unlocked(*lp++, stream);
             case 7: putc_unlocked(*lp++, stream);
