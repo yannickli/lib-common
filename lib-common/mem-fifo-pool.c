@@ -22,10 +22,11 @@
 typedef struct mem_page {
     struct mem_page *next;
 
-    byte *area;
-    int size;
     int used_size;
     int used_blocks;
+
+    int size;
+    byte area[];
 } mem_page;
 
 typedef struct mem_fifo_pool {
@@ -39,34 +40,34 @@ typedef struct mem_fifo_pool {
 
 static mem_page *mem_page_new(mem_fifo_pool *mfp)
 {
-    mem_page *page = p_new(mem_page, 1);
+    int size = mfp->page_size - sizeof(mem_page);
+    mem_page *page;
 
-    page->size = mfp->page_size;
-    page->area = mmap(NULL, page->size, PROT_READ | PROT_WRITE,
+    page = mmap(NULL, size, PROT_READ | PROT_WRITE,
                       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-
-    if (page->area == MAP_FAILED) {
+    if (page == MAP_FAILED) {
         e_panic(E_UNIXERR("mmap"));
     }
+
+    p_clear(page, 1);
+    page->size = size;
 
     return page;
 }
 
 static void mem_page_reset(mem_page *page)
 {
-    memset(page->area, 0, page->size);
+    page->next        = NULL;
     page->used_size   = 0;
     page->used_blocks = 0;
-    page->next        = NULL;
+    memset(page->area, 0, page->size);
 }
 
 static void mem_page_delete(mem_page **pagep)
 {
     if (*pagep) {
-        if ((*pagep)->area) {
-            munmap((*pagep)->area, (*pagep)->size);
-        }
-        p_delete(pagep);
+        munmap((*pagep), (*pagep)->size);
+        *pagep = NULL;
     }
 }
 
@@ -88,7 +89,7 @@ static void *mfp_alloc(mem_pool *mp, ssize_t size)
     /* Must round size up to keep proper alignment */
     size = ROUND_MULTIPLE((size_t)size, 8);
 
-    if (size > mfp->page_size) {
+    if (size > mfp->page_size - ssizeof(mem_page)) {
         /* Should just map a larger page, yet we need a maximum value */
         e_panic(E_PREFIX("tried to alloc %zd bytes, cannot have more than %d"),
                 size, mfp->page_size);
