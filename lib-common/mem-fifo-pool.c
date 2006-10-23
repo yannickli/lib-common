@@ -29,6 +29,11 @@ typedef struct mem_page {
     byte area[];
 } mem_page;
 
+typedef struct mem_block {
+    mem_page *page;
+    byte area[];
+} mem_block;
+
 typedef struct mem_fifo_pool {
     mem_pool funcs;
     mem_page *pages;
@@ -84,10 +89,10 @@ static inline int mem_page_size_left(mem_page *page)
 static void *mfp_alloc(mem_pool *mp, ssize_t size)
 {
     mem_fifo_pool *mfp = (mem_fifo_pool *)mp;
-    void *res;
+    mem_block *blk;
 
     /* Must round size up to keep proper alignment */
-    size = ROUND_MULTIPLE((size_t)size, 8);
+    size = ROUND_MULTIPLE((size_t)size + sizeof(mem_block), 8);
 
     if (size > mfp->page_size - ssizeof(mem_page)) {
         /* Should just map a larger page, yet we need a maximum value */
@@ -111,47 +116,51 @@ static void *mfp_alloc(mem_pool *mp, ssize_t size)
         }
     }
 
-    res = mfp->pages->area + mfp->pages->used_size;
+    blk = (mem_block *)(mfp->pages->area + mfp->pages->used_size);
+    blk->page = mfp->pages;
     mfp->pages->used_size += size;
     mfp->pages->used_blocks++;
-    return res;
+    return blk->area;
 }
 
 static void mfp_free(struct mem_pool *mp, void *mem)
 {
     mem_fifo_pool *mfp = (mem_fifo_pool *)mp;
-    mem_page **pagep;
+    mem_block *blk;
 
     if (!mem)
         return;
 
-    for (pagep = &mfp->pages; *pagep; pagep = &(*pagep)->next) {
-        mem_page *page = *pagep;
+    blk = (mem_block*)((char *)mem - sizeof(mem_block));
 
-        if (!mem_page_contains(page, mem)) {
-            continue;
-        }
+    blk->page->used_blocks--;
 
-        if (--page->used_blocks == 0) {
-            *pagep = page->next;
-            /* OG: should release last page, so empty pool is indeed
-             * empty */
-            if (mfp->freelist) {
-                mem_page_delete(&page);
-                mfp->nb_pages--;
-            } else {
-                /* Clear area to 0 to ensure allocated blocks are
-                 * cleared.  mfp_malloc relies on this.
-                 */
-                mem_page_reset(page);
-                page->next    = mfp->freelist;
-                mfp->freelist = page;
+    /* if this was the last block, GC the pages */
+    if (blk->page->used_blocks == 0) {
+        mem_page **pagep;
+
+        for (pagep = &mfp->pages; *pagep; pagep = &(*pagep)->next) {
+            mem_page *page = *pagep;
+
+            if (page->used_blocks == 0) {
+                *pagep = page->next;
+                /* OG: should release last page, so empty pool is indeed
+                 * empty */
+                if (mfp->freelist) {
+                    mem_page_delete(&page);
+                    mfp->nb_pages--;
+                } else {
+                    /* Clear area to 0 to ensure allocated blocks are
+                     * cleared.  mfp_malloc relies on this.
+                     */
+                    mem_page_reset(page);
+                    page->next    = mfp->freelist;
+                    mfp->freelist = page;
+                }
+                break;
             }
         }
-        return;
     }
-
-    e_error("Dealloc of %p from fifo-pool %p is incorrect\n", mem, mp);
 }
 
 static mem_pool mem_fifo_pool_funcs = {
