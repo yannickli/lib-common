@@ -32,20 +32,6 @@
 /* Blob creation / deletion                                               */
 /**************************************************************************/
 
-/* create a new, empty buffer */
-blob_t *blob_init(blob_t *blob)
-{
-    blob->len  = 0;
-    blob->size = BLOB_INITIAL_SIZE;
-    blob->area = NULL;
-    blob->data = blob->initial;
-
-    /* setup invariant: blob is always NUL terminated */
-    blob->data[blob->len] = '\0';
-
-    return blob;
-}
-
 /* @see strdup(3) */
 blob_t *blob_dup(const blob_t *src)
 {
@@ -298,8 +284,6 @@ void blob_append_data(blob_t *blob, const void *data, ssize_t len)
 {
     blob_insert_data_real(blob, blob->len, data, len);
 }
-
-/*** kill functions ***/
 
 /**************************************************************************/
 /* Blob file functions                                                    */
@@ -1058,6 +1042,8 @@ int blob_append_base64(blob_t *dst, const byte *src, ssize_t len, int width)
     return 0;
 }
 
+#if 0
+
 static char const __str_digits_upper[36] =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -1076,6 +1062,54 @@ int blob_append_ia5(blob_t *dst, const byte *src, ssize_t len)
     }
     return 0;
 }
+
+#else
+
+static union {
+    char buf[2];
+    uint16_t us;
+} const __str_uph[256] = {
+#define HEX(x)    ((x) < 10 ? '0' + (x) : 'A' + (x) - 10)
+#define UPH(x)    {{ HEX(((x) >> 4) & 15), HEX(((x) >> 0) & 15) }}
+#define UPH4(n)   UPH(n),   UPH((n) + 1),    UPH((n) + 2),    UPH((n) + 3)
+#define UPH16(n)  UPH4(n),  UPH4((n) + 4),   UPH4((n) + 8),   UPH4((n) + 12)
+#define UPH64(n)  UPH16(n), UPH16((n) + 16), UPH16((n) + 32), UPH16((n) + 48)
+    UPH64(0), UPH64(64), UPH64(128), UPH64(196),
+#undef UPH64
+#undef UPH16
+#undef UPH4
+#undef UPH
+#undef HEX
+};
+
+int blob_append_ia5(blob_t *blob, const byte *src, ssize_t len)
+{
+    int pos;
+    byte *dst;
+
+    pos = blob->len;
+    blob_extend(blob, len * 2);
+    dst = blob->data + pos;
+    /* Unroll loop 4 times */
+    while (len >= 4) {
+        *(uint16_t *)(dst + 0) = __str_uph[src[0]].us;
+        *(uint16_t *)(dst + 2) = __str_uph[src[1]].us;
+        *(uint16_t *)(dst + 4) = __str_uph[src[2]].us;
+        *(uint16_t *)(dst + 6) = __str_uph[src[3]].us;
+        dst += 8;
+        src += 4;
+        len -= 4;
+    }
+    while (len > 0) {
+        *(uint16_t *)(dst + 0) = __str_uph[src[0]].us;
+        dst += 2;
+        src += 1;
+        len -= 1;
+    }
+    return 0;
+}
+
+#endif
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
@@ -1719,8 +1753,8 @@ START_TEST(check_ia5)
 
     blob_init(&dst);
     blob_init(&back);
-#define TEST_STRING "Injector test String"
-#define TEST_STRING_ENC "496E6A6563746F72207465737420537472696E67"
+#define TEST_STRING      "Injector test String"
+#define TEST_STRING_ENC  "496E6A6563746F72207465737420537472696E67"
 
     blob_append_ia5(&dst, (const byte*)TEST_STRING, strlen(TEST_STRING));
 

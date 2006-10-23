@@ -30,7 +30,7 @@
  * buffer read overflows: there is *always* a '\0' in the data at
  * position len, implying that size is always >= len+1
  */
-typedef struct {
+typedef struct blob_t {
     /* public interface */
     ssize_t len;
     byte *data;
@@ -45,10 +45,21 @@ typedef struct {
 /* Blob creation / deletion                                               */
 /**************************************************************************/
 
-blob_t *blob_init(blob_t *blob);
+/* create a new, empty buffer */
+static inline blob_t *blob_init(blob_t *blob) {
+    blob->len  = 0;
+    blob->size = BLOB_INITIAL_SIZE;
+    blob->area = NULL;
+    blob->data = blob->initial;
+
+    /* setup invariant: blob is always NUL terminated */
+    blob->data[blob->len] = '\0';
+
+    return blob;
+}
+
 GENERIC_NEW(blob_t, blob);
-static inline void blob_wipe(blob_t *blob)
-{
+static inline void blob_wipe(blob_t *blob) {
     p_delete(&blob->area);
     /* Set the data pointer to NULL to catch errors more easily */
     blob->data = NULL;
@@ -59,8 +70,7 @@ GENERIC_DELETE(blob_t, blob);
 blob_t *blob_dup(const blob_t *blob);
 
 void blob_resize_real(blob_t *blob, ssize_t newlen);
-static inline void blob_resize(blob_t *blob, ssize_t newlen)
-{
+static inline void blob_resize(blob_t *blob, ssize_t newlen) {
     if (newlen < blob->size) {
         if (newlen == 0) {
             /* Remove initial skip if any */
@@ -85,8 +95,7 @@ static inline void blob_extend(blob_t *blob, ssize_t extralen) {
 }
 
 /* Get the const char * pointing to blob.data */
-static inline const char *blob_get_cstr(const blob_t *blob)
-{
+static inline const char *blob_get_cstr(const blob_t *blob) {
     return (const char *)blob->data;
 }
 
@@ -102,8 +111,7 @@ static inline void blob_set_cstr(blob_t *blob, const char *cstr) {
 
 void blob_blit(blob_t *dest, ssize_t pos, const blob_t *src);
 void blob_blit_data(blob_t *blob, ssize_t pos, const void *data, ssize_t len);
-static inline void blob_blit_cstr(blob_t *blob, ssize_t pos, const char *cstr)
-{
+static inline void blob_blit_cstr(blob_t *blob, ssize_t pos, const char *cstr) {
     blob_blit_data(blob, pos, cstr, strlen(cstr));
 }
 
@@ -111,8 +119,7 @@ void blob_insert(blob_t *dest, ssize_t pos, const blob_t *src);
 void blob_insert_data(blob_t *blob, ssize_t pos,
                       const void *data, ssize_t len);
 static inline void 
-blob_insert_cstr(blob_t *blob, ssize_t pos, const char *cstr)
-{
+blob_insert_cstr(blob_t *blob, ssize_t pos, const char *cstr) {
     blob_insert_data(blob, pos, cstr, strlen(cstr));
 }
 
@@ -120,12 +127,10 @@ void blob_insert_byte(blob_t *blob, byte b);
 
 void blob_append(blob_t *dest, const blob_t *src);
 void blob_append_data(blob_t *blob, const void *data, ssize_t len);
-static inline void blob_append_cstr(blob_t *blob, const char *cstr)
-{
+static inline void blob_append_cstr(blob_t *blob, const char *cstr) {
     blob_append_data(blob, cstr, strlen(cstr));
 }
-static inline void blob_append_byte(blob_t *blob, byte b)
-{
+static inline void blob_append_byte(blob_t *blob, byte b) {
     const ssize_t pos = blob->len;
     blob_resize(blob, pos + 1);
     blob->data[pos] = b;
@@ -133,8 +138,7 @@ static inline void blob_append_byte(blob_t *blob, byte b)
 
 
 void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len);
-static inline void blob_kill_first(blob_t *blob, ssize_t len)
-{
+static inline void blob_kill_first(blob_t *blob, ssize_t len) {
     if (len < blob->len) {
         blob->data += len;
         blob->size -= len;
@@ -161,8 +165,7 @@ static inline void blob_kill_last(blob_t *blob, ssize_t len)
 ssize_t blob_append_file_data(blob_t *blob, const char *filename);
 ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f);
 static inline
-ssize_t blob_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
-{
+ssize_t blob_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f) {
     blob_resize(blob, 0);
     return blob_append_fread(blob, size, nmemb, f);
 }
@@ -193,8 +196,7 @@ ssize_t blob_search(const blob_t *haystack, ssize_t pos,
 ssize_t blob_search_data(const blob_t *haystack, ssize_t pos,
                          const void *needle, ssize_t len);
 static inline ssize_t
-blob_search_cstr(const blob_t *haystack, ssize_t pos, const char *needle)
-{
+blob_search_cstr(const blob_t *haystack, ssize_t pos, const char *needle) {
     return blob_search_data(haystack, pos, needle, strlen(needle));
 }
 
@@ -211,23 +213,19 @@ void blob_ltrim(blob_t *blob);
 void blob_rtrim(blob_t *blob);
 void blob_trim(blob_t *blob);
 
-static inline void blob_tolower(blob_t *blob)
-{
+static inline void blob_tolower(blob_t *blob) {
     blob_map(blob, &tolower);
 }
 static inline void blob_tolower_range(blob_t *blob,
-                                      ssize_t start, ssize_t end)
-{
+                                      ssize_t start, ssize_t end) {
     blob_map_range(blob, start, end, &tolower);
 }
 
-static inline void blob_toupper(blob_t *blob)
-{
+static inline void blob_toupper(blob_t *blob) {
     blob_map(blob, &toupper);
 }
 static inline void blob_toupper_range(blob_t *blob,
-                                      ssize_t start, ssize_t end)
-{
+                                      ssize_t start, ssize_t end) {
     blob_map_range(blob, start, end, &toupper);
 }
 
