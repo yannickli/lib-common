@@ -305,8 +305,8 @@ static void msg_template_blob_encode(blob_t *dst, part_encoding enc,
       case ENC_QUOTED_PRINTABLE:
         blob_append_quoted_printable(dst, data, len);
         break;
-      case ENC_IA5:
-        blob_append_ia5(dst, data, len);
+      case ENC_IRA:
+        blob_append_ira(dst, data, len);
         break;
       case ENC_TEL:
         /* FIXME: check telephone number format */

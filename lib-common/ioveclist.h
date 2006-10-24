@@ -18,7 +18,7 @@
 
 #include <lib-common/blob.h>
 
-#define IOVECLIST_OBJS_NUM 10
+#define IOVECLIST_OBJS_NUM 64
 
 typedef struct ioveclist {
     struct iovec objs[IOVECLIST_OBJS_NUM];

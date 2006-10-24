@@ -1047,7 +1047,7 @@ int blob_append_base64(blob_t *dst, const byte *src, ssize_t len, int width)
 static char const __str_digits_upper[36] =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-int blob_append_ia5(blob_t *dst, const byte *src, ssize_t len)
+int blob_append_ira(blob_t *dst, const byte *src, ssize_t len)
 {
     int i, pos;
     byte *data;
@@ -1082,7 +1082,7 @@ static union {
 #undef HEX
 };
 
-int blob_append_ia5(blob_t *blob, const byte *src, ssize_t len)
+int blob_append_ira(blob_t *blob, const byte *src, ssize_t len)
 {
     int pos;
     byte *dst;
@@ -1747,7 +1747,7 @@ START_TEST(check_blob_iconv_close)
 }
 END_TEST
 
-START_TEST(check_ia5)
+START_TEST(check_ira)
 {
     blob_t dst, back;
 
@@ -1756,16 +1756,16 @@ START_TEST(check_ia5)
 #define TEST_STRING      "Injector test String"
 #define TEST_STRING_ENC  "496E6A6563746F72207465737420537472696E67"
 
-    blob_append_ia5(&dst, (const byte*)TEST_STRING, strlen(TEST_STRING));
+    blob_append_ira(&dst, (const byte*)TEST_STRING, strlen(TEST_STRING));
 
     fail_if(strcmp(blob_get_cstr(&dst), TEST_STRING_ENC),
             "%s(\"%s\") -> \"%s\" : \"%s\"",
-            "blob_append_ia5",
+            "blob_append_ira",
             TEST_STRING, blob_get_cstr(&dst), TEST_STRING_ENC);
 #if 0
-    blob_decode_ia5(&back, dst);
+    blob_decode_ira(&back, dst);
     fail_if(strcmp(blob_get_cstr(&back), TEST_STRING),
-            "blob_decode_ia5 failure");
+            "blob_decode_ira failure");
 #endif
 
 #undef TEST_STRING
@@ -1854,7 +1854,7 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_printf);
     tcase_add_test(tc, check_url);
     tcase_add_test(tc, check_b64);
-    tcase_add_test(tc, check_ia5);
+    tcase_add_test(tc, check_ira);
     tcase_add_test(tc, check_quoted_printable);
     tcase_add_test(tc, check_xml_escape);
     tcase_add_test(tc, check_search);
