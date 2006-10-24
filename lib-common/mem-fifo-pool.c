@@ -76,11 +76,6 @@ static void mem_page_delete(mem_page **pagep)
     }
 }
 
-static inline bool mem_page_contains(mem_page *page, void *mem)
-{
-    return (byte *)mem >= page->area && (byte *)mem < page->area + page->size;
-}
-
 static inline int mem_page_size_left(mem_page *page)
 {
     return (page->size - page->used_size);
@@ -142,23 +137,23 @@ static void mfp_free(struct mem_pool *mp, void *mem)
         for (pagep = &mfp->pages; *pagep; pagep = &(*pagep)->next) {
             mem_page *page = *pagep;
 
-            if (page->used_blocks == 0) {
-                *pagep = page->next;
-                /* OG: should release last page, so empty pool is indeed
-                 * empty */
-                if (mfp->freelist) {
-                    mem_page_delete(&page);
-                    mfp->nb_pages--;
-                } else {
-                    /* Clear area to 0 to ensure allocated blocks are
-                     * cleared.  mfp_malloc relies on this.
-                     */
-                    mem_page_reset(page);
-                    page->next    = mfp->freelist;
-                    mfp->freelist = page;
-                }
-                break;
+            if (page->used_blocks != 0)
+                continue;
+
+            *pagep = page->next;
+
+            if (mfp->freelist || mfp->nb_pages == 1) {
+                mem_page_delete(&page);
+                mfp->nb_pages--;
+            } else {
+                /* Clear area to 0 to ensure allocated blocks are
+                 * cleared.  mfp_malloc relies on this.
+                 */
+                mem_page_reset(page);
+                page->next    = mfp->freelist;
+                mfp->freelist = page;
             }
+            break;
         }
     }
 }
@@ -176,9 +171,8 @@ mem_pool *mem_fifo_pool_new(int page_size_hint)
     mfp             = p_new(mem_fifo_pool, 1);
     mfp->funcs      = mem_fifo_pool_funcs;
     mfp->page_size  = ROUND_MULTIPLE(page_size_hint, 4096);
-    /* OG: this is not needed, an empty pool should be empty */
-    mfp->pages      = mem_page_new(mfp);
-    mfp->nb_pages   = 1;
+    mfp->pages      = NULL;
+    mfp->nb_pages   = 0;
 
     return (mem_pool *)mfp;
 }
