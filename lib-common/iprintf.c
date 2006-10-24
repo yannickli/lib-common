@@ -372,6 +372,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             flags &= ~FLAG_ZERO;
             flags |= FLAG_PREC;
             if (*format == '*') {
+                format++;
                 prec = va_arg(ap, int);
                 if (prec < 0) {
                     prec = 0;
