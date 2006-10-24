@@ -29,4 +29,13 @@ int ivprintf(const char *format, va_list arglist);
 int ivfprintf(FILE *stream, const char *format, va_list arglist);
 int ivsnprintf(char *str, size_t size, const char *format, va_list arglist);
 
+#if defined(ISPRINTF_HIDE_STDIO) && ISPRINTF_HIDE_STDIO
+#define printf    iprintf
+#define fprintf   ifprintf
+#define snprintf  isnprintf
+#define vprintf   ivprintf
+#define vfprintf  ivfprintf
+#define vsnprintf ivsnprintf
+#endif
+
 #endif /* IS_LIB_COMMON_IPRINTF_H */
