@@ -28,6 +28,9 @@
 #include "string_is.h"
 #include "err_report.h"
 
+#define ISPRINTF_HIDE_STDIO 1
+#include "iprintf.h"
+
 /**************************************************************************/
 /* Blob creation / deletion                                               */
 /**************************************************************************/
