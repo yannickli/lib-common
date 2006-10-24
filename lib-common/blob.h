@@ -298,7 +298,7 @@ int blob_file_auto_iconv(blob_t *dst, const char *filename,
 int blob_append_xml_escape(blob_t *dst, const byte *src, ssize_t len);
 int blob_append_quoted_printable(blob_t *dst, const byte *src, ssize_t len);
 int blob_append_base64(blob_t *dst, const byte *src, ssize_t len, int width);
-int blob_append_ira(blob_t *dst, const byte *src, ssize_t len);
+int blob_append_ia5(blob_t *dst, const byte *src, ssize_t len);
 
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/

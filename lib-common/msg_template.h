@@ -22,7 +22,7 @@ typedef enum part_encoding {
     ENC_HTML,
     ENC_BASE64,
     ENC_QUOTED_PRINTABLE,
-    ENC_IRA,
+    ENC_IA5,
     ENC_INCR,
     ENC_EMI_LEN,
     ENC_EMI_CSUM,
