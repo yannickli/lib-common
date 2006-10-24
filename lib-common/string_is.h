@@ -63,6 +63,8 @@ static inline long long vstrtoll(char *str, char **endp, int base) {
 }
 #define strtoll(str, endp, base)  cstrtoll(str, endp, base)
 
+int strtoip(const char *p, const char **endp);
+
 int strstart(const char *str, const char *p, const char **pp);
 static inline int vstrstart(char *str, const char *p, char **pp) {
     return strstart(str, p, (const char **)pp);

@@ -17,6 +17,30 @@
 #include "mem.h"
 #include "string_is.h"
 
+int strtoip(const char *p, const char **endp)
+{
+    int res = 0;
+    bool neg = false;
+
+    while (isspace(*p)) {
+        p++;
+    }
+
+    if (p[0] == '+' || p[0] == '-') {
+        neg = p[0] == '-';
+        p++;
+    }
+
+    while (isdigit(*p)) {
+        res = 10 * res + (*p++ - '0');
+    }
+
+    if (endp) {
+        *endp = p;
+    }
+    return neg ? -res : res;
+}
+
 
 /** Copies the string pointed to by <code>src</code> to the buffer
  * <code>dest</code> of <code>size</code> bytes.
