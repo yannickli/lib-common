@@ -171,8 +171,6 @@ mem_pool *mem_fifo_pool_new(int page_size_hint)
     mfp             = p_new(mem_fifo_pool, 1);
     mfp->funcs      = mem_fifo_pool_funcs;
     mfp->page_size  = ROUND_MULTIPLE(page_size_hint, 4096);
-    mfp->pages      = NULL;
-    mfp->nb_pages   = 0;
 
     return (mem_pool *)mfp;
 }
