@@ -158,7 +158,7 @@ static void mfp_free(struct mem_pool *mp, void *mem)
     }
 }
 
-static mem_pool mem_fifo_pool_funcs = {
+static const mem_pool mem_fifo_pool_funcs = {
     &mfp_alloc,
     &mfp_alloc, /* we use maps, always set to 0 */
     &mfp_free
