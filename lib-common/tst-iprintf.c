@@ -1,10 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#if 0
+#if 1
 #define STD_FUNC  snprintf
-/* ogu69: libc6  2.3.6-0ubuntu2  72 errors */
-/* mad:   libc6  2.3.6.ds1-6      */
 #endif
 
 #if 1
