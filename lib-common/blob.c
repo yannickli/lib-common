@@ -1191,9 +1191,15 @@ int blob_append_ira(blob_t *dst, const byte *src, ssize_t len)
     blob_extend(dst, len * 2);
     data = dst->data + pos;
     for (i = 0; i < len; i++) {
-        data[0] = __str_digits_upper[(src[i] >> 4) & 0x0F];
-        data[1] = __str_digits_upper[(src[i] >> 0) & 0x0F];
-        data += 2;
+        unsigned short c = win1252_to_gsm7[src[i]];
+        if (c > 255) {
+            data[0] = (c >> 8) & 0xFF;
+            data[1] = (c >> 0) & 0xFF;
+            data += 2;
+        } else {
+            data[0] = c;
+            data += 1;
+        }
     }
     return 0;
 }
