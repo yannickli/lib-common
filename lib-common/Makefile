@@ -25,6 +25,7 @@ libcommon_SOURCES = \
 	blob.c \
 	blob_zlib.c \
 	blob_iconv.c \
+	blob_emi.c \
 	concatbin.c  \
 	conf.c  \
 	err_report.c  \
