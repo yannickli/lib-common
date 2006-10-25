@@ -171,7 +171,7 @@ static int blob_generic_uncompress(blob_t *dest, const blob_t *src,
         return -1;
     }
     len = src->len * 4;
-    blob_resize(dest, 0);
+    blob_reset(dest);
     blob_resize(dest, len);
     data = dest->data;
     while ((err = (*uncomp_fct)(data, &len, src->data, src->len)) != Z_OK &&
@@ -179,7 +179,7 @@ static int blob_generic_uncompress(blob_t *dest, const blob_t *src,
     {
         if (err == Z_BUF_ERROR) {
             len *= 2;
-            blob_resize(dest, 0);
+            blob_reset(dest);
             blob_resize(dest, len);
             data = dest->data;
             /* FIXME: A 1Mb file filled with 0 compresses into 1056 bytes.
@@ -240,7 +240,7 @@ static int blob_generic_compress(blob_t *dest, const blob_t *src,
     {
         if (err == Z_BUF_ERROR) {
             len *= 2;
-            blob_resize(dest, 0);
+            blob_reset(dest);
             blob_resize(dest, len);
             data = dest->data;
             try++;
@@ -297,7 +297,7 @@ int blob_gzip_compress(blob_t *dest, const blob_t *src)
     blob_init(&tmp);
     blob_set_data(&tmp, header, 10);
 
-    blob_resize(dest, 0);
+    blob_reset(dest);
 
     crc_src = crc32(0L, Z_NULL, 0);
     crc_src = crc32(crc_src, src->data, src->len);

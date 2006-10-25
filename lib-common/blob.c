@@ -91,52 +91,44 @@ void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize)
  * If blob is extended, its contents between oldlen and newlen is
  * undefined.
  */
-void blob_resize_real(blob_t *blob, ssize_t newlen)
+void blob_resize(blob_t *blob, ssize_t newlen)
 {
-    ssize_t newsize = MEM_ALIGN(newlen + 1);
+    if (newlen <= 0) {
+        blob_reset(blob);
+        return;
+    }
 
-    if (blob->data == blob->area) {
-        blob->area = mem_realloc(blob->area, newsize);
-        blob->data = blob->area;
-        blob->size = newsize;
-    } else {
-        /* Check if data fits in current area */
-        byte *area = blob->area ? blob->area : blob->initial;
-        ssize_t skip = blob->data - area;
+    if (newlen >= blob->size) {
+        ssize_t newsize = MEM_ALIGN(newlen + 1);
 
-        if (newsize <= skip + blob->size) {
-            /* Data fits in the current area, shift it left */
-            memmove(blob->data - skip, blob->data, blob->len + 1);
-            blob->data -= skip;
-            blob->size += skip;
-        } else {
-            /* Allocate a new area */
-            byte *new_area = p_new_raw(byte, newsize);
-            /* Copy the blob data including the trailing '\0' */
-            memcpy(new_area, blob->data, blob->len + 1);
-            p_delete(&blob->area);
-            blob->area = new_area;
+        if (blob->data == blob->area) {
+            blob->area = mem_realloc(blob->area, newsize);
             blob->data = blob->area;
             blob->size = newsize;
+        } else {
+            /* Check if data fits in current area */
+            byte *area = blob->area ? blob->area : blob->initial;
+            ssize_t skip = blob->data - area;
+
+            if (newsize <= skip + blob->size) {
+                /* Data fits in the current area, shift it left */
+                memmove(blob->data - skip, blob->data, blob->len + 1);
+                blob->data -= skip;
+                blob->size += skip;
+            } else {
+                /* Allocate a new area */
+                byte *new_area = p_new_raw(byte, newsize);
+                /* Copy the blob data including the trailing '\0' */
+                memcpy(new_area, blob->data, blob->len + 1);
+                p_delete(&blob->area);
+                blob->area = new_area;
+                blob->data = blob->area;
+                blob->size = newsize;
+            }
         }
     }
     blob->len = newlen;
     blob->data[blob->len] = '\0';
-}
-
-/* Inline version for special case of clearing blob */
-static inline void blob_empty(blob_t *blob)
-{
-    /* Remove initial skip if any */
-    if (blob->area) {
-        blob->size += (blob->data - blob->area);
-        blob->data = blob->area;
-    } else {
-        blob->size = BLOB_INITIAL_SIZE;
-        blob->data = blob->initial;
-    }
-    blob->len = 0;
-    blob->data[0] = '\0';
 }
 
 /**************************************************************************/
@@ -237,13 +229,13 @@ void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len)
 
 void blob_set(blob_t *blob, const blob_t *src)
 {
-    blob_empty(blob);
+    blob_reset(blob);
     blob_blit_data_real(blob, 0, src->data, src->len);
 }
 
 void blob_set_data(blob_t *blob, const void *data, ssize_t len)
 {
-    blob_empty(blob);
+    blob_reset(blob);
     blob_blit_data_real(blob, 0, data, len);
 }
 
@@ -415,13 +407,14 @@ ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
 
 ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
 {
-    ssize_t pos = blob->len;
+    ssize_t pos;
     int len;
     int available;
     va_list ap2;
 
     va_copy(ap2, ap);
 
+    pos = blob->len;
     available = blob->size - pos;
 
     len = vsnprintf((char *)(blob->data + pos), available, fmt, ap);
@@ -432,6 +425,7 @@ ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
         /* only move the `pos' first bytes in case of realloc */
         blob->len = pos;
         blob_resize(blob, pos + len);
+        blob->len = pos;
         available = blob->size - pos;
 
         len = vsnprintf((char*)(blob->data + pos), available, fmt, ap2);
@@ -467,7 +461,7 @@ ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...)
     va_list args;
 
     va_start(args, fmt);
-    blob_resize(blob, 0);
+    blob_reset(blob);
     res = blob_append_vfmt(blob, fmt, args);
     va_end(args);
 
@@ -478,7 +472,7 @@ ssize_t blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap)
 {
     ssize_t res;
 
-    blob_resize(blob, 0);
+    blob_reset(blob);
     res = blob_append_vfmt(blob, fmt, ap);
 
     return res;
@@ -1093,6 +1087,8 @@ int blob_append_ira(blob_t *blob, const byte *src, ssize_t len)
     pos = blob->len;
     blob_extend(blob, len * 2);
     dst = blob->data + pos;
+    /* This method is not portable on some CPUs because of mis-alignment */
+
     /* Unroll loop 4 times */
     while (len >= 4) {
         *(uint16_t *)(dst + 0) = __str_uph[src[0]].us;

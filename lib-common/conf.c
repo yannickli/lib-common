@@ -97,7 +97,7 @@ static const char *readline(blob_t *buf, blob_t *buf_line)
     const char *line, *p;
 
     if (buf->len == 0) {
-        blob_resize(buf_line, 0);
+        blob_reset(buf_line);
         return NULL;
     }
 
@@ -107,7 +107,7 @@ static const char *readline(blob_t *buf, blob_t *buf_line)
     if (!p) {
         /* no final \n in file, treat that like a line */
         blob_set(buf_line, buf);
-        blob_resize(buf, 0);
+        blob_reset(buf);
     } else {
         blob_set_data(buf_line, line, p + 1 - line);
         blob_kill_first(buf, p + 1 - line);

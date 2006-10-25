@@ -258,7 +258,7 @@ static int blob_iconv_priv(blob_t *dst, const blob_t *src, int offset_src,
             total_len += len_out;
             try++;
         } else {
-            blob_resize(dst, 0);
+            blob_reset(dst);
             return -2;
         }
     }
@@ -297,7 +297,7 @@ int blob_auto_iconv (blob_t *dst, const blob_t *src, const char *type_hint,
         return -1;
     }
 
-    blob_resize(dst, 0);
+    blob_reset(dst);
     if (r_known_encodings(type_hint) < 0) {
         e_trace(DEBUG_VERB, "Skip type: %s", type_hint);
         if (blob_iconv_priv(dst, src, 0, type_hint) < 0) {

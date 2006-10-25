@@ -19,6 +19,7 @@
 #include <inttypes.h>
 #include <time.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "macros.h"
 #include "mem.h"
@@ -66,32 +67,30 @@ static inline void blob_wipe(blob_t *blob) {
 }
 GENERIC_DELETE(blob_t, blob);
 
-
-blob_t *blob_dup(const blob_t *blob);
-
-void blob_resize_real(blob_t *blob, ssize_t newlen);
-static inline void blob_resize(blob_t *blob, ssize_t newlen) {
-    if (newlen < blob->size) {
-        if (newlen == 0) {
-            /* Remove initial skip if any */
-            if (blob->area) {
-                blob->size += (blob->data - blob->area);
-                blob->data = blob->area;
-            } else {
-                blob->size = BLOB_INITIAL_SIZE;
-                blob->data = blob->initial;
-            }
-        }
-
-        blob->len = newlen;
-        blob->data[blob->len] = '\0';
+static inline void blob_reset(blob_t *blob) {
+    /* Remove initial skip if any */
+    /* Do not release memory */
+    if (blob->area) {
+        blob->size += (blob->data - blob->area);
+        blob->data = blob->area;
     } else {
-        blob_resize_real(blob, newlen);
+        blob->size = BLOB_INITIAL_SIZE;
+        blob->data = blob->initial;
     }
+    blob->len = 0;
+    blob->data[blob->len] = '\0';
 }
 
+void blob_resize(blob_t *blob, ssize_t newlen);
+
 static inline void blob_extend(blob_t *blob, ssize_t extralen) {
-    blob_resize(blob, blob->len + extralen);
+    assert (extralen >= 0);
+    if (blob->len + extralen < blob->size) {
+        blob->len += extralen;
+        blob->data[blob->len] = '\0';
+    } else {
+        blob_resize(blob, blob->len + extralen);
+    }
 }
 
 /* Get the const char * pointing to blob.data */
@@ -108,6 +107,8 @@ void blob_set_data(blob_t *blob, const void *data, ssize_t len);
 static inline void blob_set_cstr(blob_t *blob, const char *cstr) {
     blob_set_data(blob, cstr, strlen(cstr));
 }
+
+blob_t *blob_dup(const blob_t *blob);
 
 void blob_blit(blob_t *dest, ssize_t pos, const blob_t *src);
 void blob_blit_data(blob_t *blob, ssize_t pos, const void *data, ssize_t len);
@@ -132,7 +133,7 @@ static inline void blob_append_cstr(blob_t *blob, const char *cstr) {
 }
 static inline void blob_append_byte(blob_t *blob, byte b) {
     const ssize_t pos = blob->len;
-    blob_resize(blob, pos + 1);
+    blob_extend(blob, 1);
     blob->data[pos] = b;
 }
 
@@ -144,16 +145,15 @@ static inline void blob_kill_first(blob_t *blob, ssize_t len) {
         blob->size -= len;
         blob->len  -= len;
     } else {
-        blob_resize(blob, 0);
+        blob_reset(blob);
     }
 }
-static inline void blob_kill_last(blob_t *blob, ssize_t len)
-{
+static inline void blob_kill_last(blob_t *blob, ssize_t len) {
     if (len < blob->len) {
         blob->len  -= len;
         blob->data[blob->len] = '\0';
     } else {
-        blob_resize(blob, 0);
+        blob_reset(blob);
     }
 }
 
@@ -166,7 +166,7 @@ ssize_t blob_append_file_data(blob_t *blob, const char *filename);
 ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f);
 static inline
 ssize_t blob_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f) {
-    blob_resize(blob, 0);
+    blob_reset(blob);
     return blob_append_fread(blob, size, nmemb, f);
 }
 
