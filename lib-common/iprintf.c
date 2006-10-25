@@ -324,6 +324,14 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             len = strlen(lp);
             goto haslp;
         }
+        /* also special case %.*s */
+        if (format[0] == '.' && format[1] == '*' && format[2] == 's') {
+            format += 3;
+            len = va_arg(ap, int);
+            lp = va_arg(ap, const char *);
+            len = strnlen(lp, len);
+            goto haslp;
+        }
 
         /* general case: parse complete format syntax */
         format0 = format;
