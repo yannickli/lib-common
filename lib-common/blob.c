@@ -287,64 +287,74 @@ void blob_append_data(blob_t *blob, const void *data, ssize_t len)
 /* Return the number of bytes appended to the blob, negative value
  * indicates an error.
  * OG: this function insists on reading a complete file.  If the file
- * size cannot be determined or if the file cannot be read accordingly,
- * no data is kept in the blob and an error is returned
+ * cannot be read completely, no data is kept in the blob and an error
+ * is returned.
  */
 ssize_t blob_append_file_data(blob_t *blob, const char *filename)
 {
-    const ssize_t origlen = blob->len;
-
-    int fd;
-    ssize_t total;
-    ssize_t to_read;
+    ssize_t origlen, pos, total, to_read, nread;
     struct stat st;
+    int fd;
 
-    if ((fd = open(filename, O_RDONLY)) < 0) {
-        goto error;
-    }
+    origlen = blob->len;
 
-    if (fstat(fd, &st) < 0) {
-        goto error;
-    }
+    if ((fd = open(filename, O_RDONLY)) < 0)
+        return -1;
 
-    /* Should test and reject huge files */
-    to_read = total = (ssize_t)st.st_size;
-    if (total < 0) {
-        /* OG: size of file is not known: may be a pipe or a device,
-         * should not be an error.
+    if (fstat(fd, &st) < 0 || st.st_size <= 0) {
+        /* Size of file is not known: may be a pipe or a device:
+         * read file data one block at a time.
          */
-        goto error;
-    }
+        pos = origlen;
+        total = 0;
+        for (;;) {
+            char buf[4096];
 
-    /* force allocation */
-    blob_resize(blob, origlen + total);
-    blob_resize(blob, origlen);
-
-    while (to_read > 0) {
-        ssize_t size;
-        char buf[4096];
-
-        if ((size = read(fd, buf, sizeof(buf))) < 0) {
-            if (errno == EINTR) {
-                continue;
+            if ((nread = read(fd, buf, sizeof(buf))) < 0) {
+                if (errno == EINTR) {
+                    continue;
+                }
+                goto error;
             }
-            goto error;
+            if (nread == 0) {
+                /* Regular end of file */
+                break;
+            }
+            blob_append_data(blob, buf, nread);
+            total += nread;
         }
+    } else {
+        /* OG: Should test and reject huge files */
+        total = (ssize_t)st.st_size;
 
-        if (size == 0) {
-            /* OG: cannot combine with test above because errno is only
-             * set on errors, and end of file is not a read error.
-             * Getting an early end of file here is indeed an error.
-             */
-            goto error;
+        /* force allocation */
+        blob_extend(blob, total);
+
+        /* Read file data directly into blob->data */
+        pos = origlen;
+        to_read = total;
+        while (to_read > 0) {
+            if ((nread = read(fd, blob->data + pos, to_read)) < 0) {
+                if (errno == EINTR) {
+                    continue;
+                }
+                goto error;
+            }
+            if (nread == 0) {
+                /* OG: cannot combine with test above because errno is only
+                 * set on errors, and end of file is not a read error.
+                 * Getting an early end of file here is indeed an error.
+                 */
+                goto error;
+            }
+            to_read  -= nread;
+            pos      += nread;
+            blob->len = pos;
         }
-
-        blob_append_data(blob, buf, size);
-        to_read -= size;
     }
-
+    close(fd);
     return total;
-
+    
   error:
     if (fd >= 0) {
         close(fd);
@@ -363,7 +373,7 @@ ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
     ssize_t total = size * nmemb;
     ssize_t res;
 
-    blob_resize(blob, oldlen + total);
+    blob_extend(blob, total);
 
     res = fread(blob->data + oldlen, size, nmemb, f);
     if (res < 0) {
@@ -386,7 +396,7 @@ ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
     if (count < 0)
         count = BUFSIZ;
 
-    blob_resize(blob, oldlen + count);
+    blob_extend(blob, count);
 
     res = read(fd, blob->data + oldlen, count);
     if (res < 0) {
@@ -424,7 +434,7 @@ ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
     if (len >= available) {
         /* only move the `pos' first bytes in case of realloc */
         blob->len = pos;
-        blob_resize(blob, pos + len);
+        blob_extend(blob, len);
         blob->len = pos;
         available = blob->size - pos;
 
