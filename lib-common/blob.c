@@ -38,23 +38,8 @@
 /* @see strdup(3) */
 blob_t *blob_dup(const blob_t *src)
 {
-    blob_t *dst = p_new_raw(blob_t, 1);
-
-    dst->len = src->len;
-
-    if (src->len < BLOB_INITIAL_SIZE) {
-        dst->size = BLOB_INITIAL_SIZE;
-        dst->area = NULL;
-        dst->data = dst->initial;
-    } else {
-        dst->size = MEM_ALIGN(src->len + 1);
-        dst->area = p_new_raw(byte, dst->size);
-        dst->data = dst->area;
-    }
-
-    /* Copy the blob data including the trailing '\0' */
-    memcpy(dst->data, src->data, src->len + 1);
-
+    blob_t *dst = blob_new();
+    blob_set(dst, src);
     return dst;
 }
 
@@ -99,7 +84,7 @@ void blob_resize(blob_t *blob, ssize_t newlen)
     }
 
     if (newlen >= blob->size) {
-        ssize_t newsize = MEM_ALIGN(newlen + 1);
+        ssize_t newsize = MEM_ALIGN(3 * (newlen + 1) / 2);
 
         if (blob->data == blob->area) {
             blob->area = mem_realloc(blob->area, newsize);
