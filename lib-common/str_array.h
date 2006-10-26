@@ -19,11 +19,8 @@
 // define our arrays
 ARRAY_TYPE(char, string);
 
-/* MC: not very nice, but needed for ARRAY_FUNCTIONS to work */
-static inline void string_delete(char **s)
-{
-    p_delete(s);
-}
+GENERIC_WIPE(char *, string);
+GENERIC_DELETE(char *, string);
 ARRAY_FUNCTIONS(char, string)
 void string_array_dump(const string_array *xp);
 

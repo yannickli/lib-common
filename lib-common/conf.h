@@ -15,6 +15,7 @@
 #define IS_LIB_COMMON_CONF_H
 
 #include "mem.h"
+
 /* This module parse ini files :
  *
  * [Section1]
@@ -36,23 +37,24 @@ typedef struct conf_section_t {
     int var_nb;
 } conf_section_t;
 
+
 typedef struct conf_t {
     conf_section_t **sections;
     int section_nb;
 } conf_t;
 
+GENERIC_INIT(conf_t, conf);
+void conf_wipe(conf_t *conf);
+GENERIC_NEW(conf_t, conf);
+GENERIC_DELETE(conf_t, conf);
+
+
 conf_t *conf_load(const char *filename);
 int conf_save(const conf_t *conf, const char *filename);
 
-#ifdef NDEBUG
-#  define conf_dump(...)
-#else
-void conf_dump(const conf_t *conf, int level);
-#endif
 
-const char *conf_get_raw(const conf_t *conf, const char *section, const char *var);
-const char *conf_put(conf_t *conf, const char *section,
-                     const char *var, const char *value);
+const char *conf_get_raw(const conf_t *conf,
+                         const char *section, const char *var);
 
 static inline const char *
 conf_get(const conf_t *conf, const char *section,
@@ -62,12 +64,24 @@ conf_get(const conf_t *conf, const char *section,
     return res ? res : defval;
 }
 
+
+const char *conf_put(conf_t *conf, const char *section,
+                     const char *var, const char *value);
+
 int conf_get_int(const conf_t *conf, const char *section,
                  const char *var, int defval);
 int conf_get_bool(const conf_t *conf, const char *section,
                   const char *var, int defval);
 
-void conf_wipe(conf_t *conf);
-GENERIC_DELETE(conf_t, conf);
+#ifdef NDEBUG
+#  define conf_dump(...)
+#else
+static inline void conf_dump(const conf_t *conf, int level)
+{
+    if (e_is_traced((level))) {
+        conf_save((conf), "/dev/stderr");
+    }
+}
+#endif
 
 #endif /* IS_LIB_COMMON_CONF_H */

@@ -25,12 +25,7 @@
 
 #define CONF_DBG_LVL 3
 
-static conf_section_t *conf_section_init(conf_section_t *section)
-{
-    p_clear(section, 1);
-    return section;
-}
-
+GENERIC_INIT(conf_section_t, conf_section);
 static void conf_section_wipe(conf_section_t *section)
 {
     p_delete(&section->name);
@@ -45,15 +40,6 @@ static void conf_section_wipe(conf_section_t *section)
 
 GENERIC_NEW(conf_section_t, conf_section);
 GENERIC_DELETE(conf_section_t, conf_section);
-
-static conf_t *conf_init(conf_t *conf)
-{
-    conf->sections = NULL;
-    conf->section_nb = 0;
-    return conf;
-}
-
-GENERIC_NEW(conf_t, conf);
 
 void conf_wipe(conf_t *conf)
 {
@@ -214,7 +200,7 @@ conf_t *conf_load(const char *filename)
             e_trace(CONF_DBG_LVL, "Junk line: %s", line);
             continue;
         }
-        
+
         /* Check for variable definition in section */
 
         /* Search end of var */
@@ -233,12 +219,12 @@ conf_t *conf_load(const char *filename)
         }
         variable = start;
         variable_len = len;
-            
+
         e_trace(CONF_DBG_LVL + 1, "  varname: %.*s", variable_len, variable);
 
         /* Skip spaces after = */
         start = skipspaces(stop + 1);
-        
+
         /* Read until end of line */
         stop = strchr(start, '\n');
         if (!stop) {
@@ -254,7 +240,7 @@ conf_t *conf_load(const char *filename)
 
         value = start;
         value_len = len;
-            
+
         e_trace(CONF_DBG_LVL + 1, "  value  : %.*s", value_len, value);
 
         /* OG: no support for escaping */
@@ -270,7 +256,7 @@ conf_t *conf_load(const char *filename)
 int conf_save(const conf_t *conf, const char *filename)
 {
     FILE *fp;
-    
+
     if ((fp = fopen(filename, "w")) == NULL) {
         e_trace(CONF_DBG_LVL, "could not open %s for writing", filename);
         return -1;
@@ -279,7 +265,7 @@ int conf_save(const conf_t *conf, const char *filename)
     if (conf) {
         int i, j;
         conf_section_t *section;
-        
+
         for (i = 0; i < conf->section_nb; i++) {
             section = conf->sections[i];
 
@@ -295,34 +281,12 @@ int conf_save(const conf_t *conf, const char *filename)
     return 0;
 }
 
-#ifndef NDEBUG
-void conf_dump(const conf_t *conf, int level)
-{
-    int i, j;
-    conf_section_t *section;
-
-    e_trace(level, "Conf with %d sections :", conf->section_nb);
-
-    for (i = 0; i < conf->section_nb; i++) {
-        section = conf->sections[i];
-
-        e_trace(level, "[%s]", section->name);
-        for (j = 0; j < section->var_nb; j++) {
-            e_trace(level, "%s = %s", section->variables[j],
-                    section->values[j]);
-        }
-    }
-}
-#endif
-
 const char *conf_get_raw(const conf_t *conf, const char *section, const char *var)
 {
     int i, j;
     conf_section_t *s;
 
-    if (!section || !var) {
-        return NULL;
-    }
+    assert (section && var);
 
     for (i = 0; i < conf->section_nb; i++) {
         s = conf->sections[i];
