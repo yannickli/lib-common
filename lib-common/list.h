@@ -14,6 +14,17 @@
 #ifndef IS_LIB_COMMON_LIST_H
 #define IS_LIB_COMMON_LIST_H
 
+/*
+ * Provides list functions, for objects that have a ->next member.
+ *
+ * All of this is lexical (meaning that the code is duplicated) but safe as it
+ * does not asks (e.g.) that the ->next member has to be the first of the
+ * struct.
+ *
+ * All those code bits are meant to be inlined anyway, so it does not matter
+ * right now.
+ */
+
 #define SLIST_FUNCTIONS(type, prefix)                                        \
     static inline type *prefix##_list_pop(type **list) {                     \
         if (*list) {                                                         \
