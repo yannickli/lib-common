@@ -14,6 +14,7 @@
 #ifndef IS_LIB_COMMON_CONF_H
 #define IS_LIB_COMMON_CONF_H
 
+#include "mem.h"
 /* This module parse ini files :
  *
  * [Section1]
@@ -52,6 +53,11 @@ void conf_dump(const conf_t *conf, int level);
 const char *conf_get(const conf_t *conf, const char *section, const char *var);
 const char *conf_put(conf_t *conf, const char *section,
                      const char *var, const char *value);
+
+int conf_get_int(int *res, const conf_t *conf,
+                 const char *section, const char *var);
+int conf_get_bool(bool *res, const conf_t *conf,
+                  const char *section, const char *var);
 
 void conf_wipe(conf_t *conf);
 GENERIC_DELETE(conf_t, conf);

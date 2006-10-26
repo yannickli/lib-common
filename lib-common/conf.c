@@ -13,6 +13,8 @@
 
 #include <lib-common/mem.h>
 #include <lib-common/blob.h>
+#include <lib-common/macros.h>
+#include <lib-common/string_is.h>
 
 #include "conf.h"
 
@@ -334,6 +336,42 @@ const char *conf_get(const conf_t *conf, const char *section, const char *var)
         }
     }
     return NULL;
+}
+int conf_get_int(int *res, const conf_t *conf,
+                 const char *section, const char *var)
+{
+    const char *val = conf_get(conf, section, var);
+
+    if (!val) {
+        return 1;
+    }
+
+    *res = atoi(val);
+    return 0;
+}
+int conf_get_bool(bool *res, const conf_t *conf,
+                  const char *section, const char *var)
+{
+    const char *val = conf_get(conf, section, var);
+
+    if (!val) {
+        return 1;
+    }
+#define CONF_CHECK_BOOL(name, value) \
+    if (!strcasecmp(val, name)) {    \
+        *res = value;                \
+        return 0;                    \
+    }
+    CONF_CHECK_BOOL("true", true);
+    CONF_CHECK_BOOL("false", false);
+    CONF_CHECK_BOOL("on", true);
+    CONF_CHECK_BOOL("off", false);
+    CONF_CHECK_BOOL("yes", true);
+    CONF_CHECK_BOOL("no", false);
+    CONF_CHECK_BOOL("1", true);
+    CONF_CHECK_BOOL("0", false);
+#undef CONF_CHECK_BOOL
+    return 1;
 }
 
 const char *conf_put(conf_t *conf, const char *section,
