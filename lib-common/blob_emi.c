@@ -181,8 +181,9 @@ static int const win1252_to_gsm7[] = {
 
 int blob_append_ira(blob_t *dst, const byte *src, ssize_t len)
 {
-    int pos;
+    int c, pos;
     const byte *end;
+    const byte *end_4;
     byte *data;
 
     pos = dst->len;
@@ -190,16 +191,53 @@ int blob_append_ira(blob_t *dst, const byte *src, ssize_t len)
     blob_extend(dst, len * 4);
     data = dst->data + pos;
     end = src + len;
+    end_4 = src + len - 4;
+
     while (src < end) {
-        int c = win1252_to_gsm7[128 + *src++];
+#if 1   // Unroll plain character case 4 times */
+        while (src < end_4) {
+            c = win1252_to_gsm7[128 + src[0]];
+            if (c > 0xFFFF)
+                break;
+            *(int16_t *)(data + 0) = c;
+            c = win1252_to_gsm7[128 + src[1]];
+            if (c > 0xFFFF)
+                goto generic1;
+            *(int16_t *)(data + 2) = c;
+            c = win1252_to_gsm7[128 + src[2]];
+            if (c > 0xFFFF)
+                goto generic2;
+            *(int16_t *)(data + 4) = c;
+            c = win1252_to_gsm7[128 + src[3]];
+            if (c > 0xFFFF)
+                goto generic3;
+            *(int16_t *)(data + 6) = c;
+            src  += 4;
+            data += 8;
+            continue;
+
+        generic3:
+            src  += 1;
+            data += 2;
+        generic2:
+            src  += 1;
+            data += 2;
+        generic1:
+            src  += 1;
+            data += 2;
+            break;
+        }
+#endif
+        c = win1252_to_gsm7[128 + *src];
 
         if (c < 0x10000) {
             *(int16_t *)data = c;
+            src  += 1;
             data += 2;
             continue;
         }
 
-        c = src[-1];
+        c = *src++;
         if (c & 0x80) {
             /* Check for proper UTF8 encoded code point */
             if (c >= 0xC0) {
@@ -278,6 +316,7 @@ int blob_append_ira(blob_t *dst, const byte *src, ssize_t len)
             data += 4;
         }
     }
+
     dst->len = data - dst->data;
     return 0;
 }
