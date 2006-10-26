@@ -50,14 +50,22 @@ int conf_save(const conf_t *conf, const char *filename);
 void conf_dump(const conf_t *conf, int level);
 #endif
 
-const char *conf_get(const conf_t *conf, const char *section, const char *var);
+const char *conf_get_raw(const conf_t *conf, const char *section, const char *var);
 const char *conf_put(conf_t *conf, const char *section,
                      const char *var, const char *value);
 
-int conf_get_int(int *res, const conf_t *conf,
-                 const char *section, const char *var);
-int conf_get_bool(bool *res, const conf_t *conf,
-                  const char *section, const char *var);
+static inline const char *
+conf_get(const conf_t *conf, const char *section,
+         const char *var, const char *defval)
+{
+    const char *res = conf_get_raw(conf, section, var);
+    return res ? res : defval;
+}
+
+int conf_get_int(const conf_t *conf, const char *section,
+                 const char *var, int defval);
+int conf_get_bool(const conf_t *conf, const char *section,
+                  const char *var, int defval);
 
 void conf_wipe(conf_t *conf);
 GENERIC_DELETE(conf_t, conf);

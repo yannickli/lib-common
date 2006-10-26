@@ -315,7 +315,7 @@ void conf_dump(const conf_t *conf, int level)
 }
 #endif
 
-const char *conf_get(const conf_t *conf, const char *section, const char *var)
+const char *conf_get_raw(const conf_t *conf, const char *section, const char *var)
 {
     int i, j;
     conf_section_t *s;
@@ -337,41 +337,43 @@ const char *conf_get(const conf_t *conf, const char *section, const char *var)
     }
     return NULL;
 }
-int conf_get_int(int *res, const conf_t *conf,
-                 const char *section, const char *var)
+
+
+int conf_get_int(const conf_t *conf, const char *section,
+                 const char *var, int defval)
 {
-    const char *val = conf_get(conf, section, var);
+    const char *val = conf_get_raw(conf, section, var);
+    int res;
 
-    if (!val) {
-        return 1;
-    }
+    if (!val)
+        return defval;
 
-    *res = atoi(val);
-    return 0;
+    res = strtoip(val, &val);
+    return *val ? defval : res;
 }
-int conf_get_bool(bool *res, const conf_t *conf,
-                  const char *section, const char *var)
-{
-    const char *val = conf_get(conf, section, var);
 
-    if (!val) {
-        return 1;
-    }
+int conf_get_bool(const conf_t *conf, const char *section,
+                  const char *var, int defval)
+{
+    const char *val = conf_get_raw(conf, section, var);
+    if (!val)
+        return defval;
+
 #define CONF_CHECK_BOOL(name, value) \
     if (!strcasecmp(val, name)) {    \
-        *res = value;                \
-        return 0;                    \
+        return value;                \
     }
-    CONF_CHECK_BOOL("true", true);
+    CONF_CHECK_BOOL("true",  true);
     CONF_CHECK_BOOL("false", false);
-    CONF_CHECK_BOOL("on", true);
-    CONF_CHECK_BOOL("off", false);
-    CONF_CHECK_BOOL("yes", true);
-    CONF_CHECK_BOOL("no", false);
-    CONF_CHECK_BOOL("1", true);
-    CONF_CHECK_BOOL("0", false);
+    CONF_CHECK_BOOL("on",    true);
+    CONF_CHECK_BOOL("off",   false);
+    CONF_CHECK_BOOL("yes",   true);
+    CONF_CHECK_BOOL("no",    false);
+    CONF_CHECK_BOOL("1",     true);
+    CONF_CHECK_BOOL("0",     false);
 #undef CONF_CHECK_BOOL
-    return 1;
+
+    return defval;
 }
 
 const char *conf_put(conf_t *conf, const char *section,
