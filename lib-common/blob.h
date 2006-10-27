@@ -93,6 +93,12 @@ static inline void blob_extend(blob_t *blob, ssize_t extralen) {
     }
 }
 
+static inline void blob_extend2(blob_t *blob, ssize_t extralen, byte init) {
+    int oldlen = blob->len;
+    blob_extend(blob, extralen);
+    memset(blob->data + oldlen, init, extralen);
+}
+
 /* Get the const char * pointing to blob.data */
 static inline const char *blob_get_cstr(const blob_t *blob) {
     return (const char *)blob->data;
@@ -132,9 +138,7 @@ static inline void blob_append_cstr(blob_t *blob, const char *cstr) {
     blob_append_data(blob, cstr, strlen(cstr));
 }
 static inline void blob_append_byte(blob_t *blob, byte b) {
-    const ssize_t pos = blob->len;
-    blob_extend(blob, 1);
-    blob->data[pos] = b;
+    blob_extend2(blob, 1, b);
 }
 
 
