@@ -76,12 +76,10 @@ void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize)
  * If blob is extended, its contents between oldlen and newlen is
  * undefined.
  */
-void blob_resize(blob_t *blob, ssize_t newlen)
+void blob_ensure(blob_t *blob, ssize_t newlen)
 {
-    if (newlen <= 0) {
-        blob_reset(blob);
+    if (newlen <= 0)
         return;
-    }
 
     if (newlen >= blob->size) {
         ssize_t newsize = MEM_ALIGN(3 * (newlen + 1) / 2);
@@ -112,8 +110,6 @@ void blob_resize(blob_t *blob, ssize_t newlen)
             }
         }
     }
-    blob->len = newlen;
-    blob->data[blob->len] = '\0';
 }
 
 /**************************************************************************/
@@ -339,7 +335,7 @@ ssize_t blob_append_file_data(blob_t *blob, const char *filename)
     }
     close(fd);
     return total;
-    
+
   error:
     if (fd >= 0) {
         close(fd);
@@ -354,45 +350,39 @@ ssize_t blob_append_file_data(blob_t *blob, const char *filename)
  */
 ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
 {
-    const ssize_t oldlen = blob->len;
     ssize_t total = size * nmemb;
     ssize_t res;
 
-    blob_extend(blob, total);
+    blob_ensure_avail(blob, total);
 
-    res = fread(blob->data + oldlen, size, nmemb, f);
+    res = fread(blob->data + blob->len, size, nmemb, f);
     if (res < 0) {
-        blob_resize(blob, oldlen);
+        /* defensive programming */
+        blob->data[blob->len] = '\0';
         return res;
     }
 
-    if (res < nmemb) {
-        blob_resize(blob, oldlen + res * size);
-    }
-
+    blob_extend(blob, res * size);
     return res;
 }
 
 ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
 {
-    const ssize_t oldlen = blob->len;
     ssize_t res;
 
     if (count < 0)
         count = BUFSIZ;
 
-    blob_extend(blob, count);
+    blob_ensure_avail(blob, BUFSIZ);
 
-    res = read(fd, blob->data + oldlen, count);
+    res = read(fd, blob->data + blob->len, count);
     if (res < 0) {
-        blob_resize(blob, oldlen);
+        /* defensive programming, read should not modify it, but … */
+        blob->data[blob->len] = '\0';
         return res;
     }
 
-    if (res < count) {
-        blob_resize(blob, oldlen + res);
-    }
-
+    blob_extend(blob, res);
     return res;
 }
 

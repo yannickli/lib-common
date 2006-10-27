@@ -46,7 +46,6 @@ typedef struct blob_t {
 /* Blob creation / deletion                                               */
 /**************************************************************************/
 
-/* create a new, empty buffer */
 static inline blob_t *blob_init(blob_t *blob) {
     blob->len  = 0;
     blob->size = BLOB_INITIAL_SIZE;
@@ -58,13 +57,13 @@ static inline blob_t *blob_init(blob_t *blob) {
 
     return blob;
 }
-
-GENERIC_NEW(blob_t, blob);
 static inline void blob_wipe(blob_t *blob) {
     p_delete(&blob->area);
     /* Set the data pointer to NULL to catch errors more easily */
     blob->data = NULL;
 }
+
+GENERIC_NEW(blob_t, blob);
 GENERIC_DELETE(blob_t, blob);
 
 static inline void blob_reset(blob_t *blob) {
@@ -81,22 +80,41 @@ static inline void blob_reset(blob_t *blob) {
     blob->data[blob->len] = '\0';
 }
 
-void blob_resize(blob_t *blob, ssize_t newlen);
+void blob_ensure(blob_t *blob, ssize_t newlen);
 
-static inline void blob_extend(blob_t *blob, ssize_t extralen) {
+static inline void blob_ensure_avail(blob_t *blob, ssize_t extralen) {
     assert (extralen >= 0);
-    if (blob->len + extralen < blob->size) {
-        blob->len += extralen;
-        blob->data[blob->len] = '\0';
-    } else {
-        blob_resize(blob, blob->len + extralen);
+
+    if (blob->len + extralen >= blob->size) {
+        blob_ensure(blob, blob->len + extralen);
     }
 }
 
+static inline void blob_resize(blob_t *blob, ssize_t newlen) {
+    if (newlen <= 0) {
+        blob_reset(blob);
+    } else {
+        blob_ensure(blob, newlen);
+        blob->len = newlen;
+        blob->data[blob->len] = '\0';
+    }
+}
+
+static inline void blob_extend(blob_t *blob, ssize_t extralen) {
+    assert (extralen >= 0);
+
+    blob_ensure_avail(blob, extralen);
+    blob->len += extralen;
+    blob->data[blob->len] = '\0';
+}
+
 static inline void blob_extend2(blob_t *blob, ssize_t extralen, byte init) {
-    int oldlen = blob->len;
-    blob_extend(blob, extralen);
-    memset(blob->data + oldlen, init, extralen);
+    assert (extralen >= 0);
+
+    blob_ensure_avail(blob, extralen);
+    memset(blob->data + blob->len, init, extralen);
+    blob->len += extralen;
+    blob->data[blob->len] = '\0';
 }
 
 /* Get the const char * pointing to blob.data */
