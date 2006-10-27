@@ -66,6 +66,16 @@ static inline void blob_wipe(blob_t *blob) {
 GENERIC_NEW(blob_t, blob);
 GENERIC_DELETE(blob_t, blob);
 
+/* Get the const char * pointing to blob.data */
+static inline const char *blob_get_cstr(const blob_t *blob) {
+    return (const char *)blob->data;
+}
+
+
+/**************************************************************************/
+/* Blob size/len manipulations                                            */
+/**************************************************************************/
+
 static inline void blob_reset(blob_t *blob) {
     /* Remove initial skip if any */
     /* Do not release memory */
@@ -117,20 +127,9 @@ static inline void blob_extend2(blob_t *blob, ssize_t extralen, byte init) {
     blob->data[blob->len] = '\0';
 }
 
-/* Get the const char * pointing to blob.data */
-static inline const char *blob_get_cstr(const blob_t *blob) {
-    return (const char *)blob->data;
-}
-
 /**************************************************************************/
 /* Blob manipulations                                                     */
 /**************************************************************************/
-
-void blob_set(blob_t *dest, const blob_t *src);
-void blob_set_data(blob_t *blob, const void *data, ssize_t len);
-static inline void blob_set_cstr(blob_t *blob, const char *cstr) {
-    blob_set_data(blob, cstr, strlen(cstr));
-}
 
 blob_t *blob_dup(const blob_t *blob);
 
@@ -147,18 +146,44 @@ static inline void
 blob_insert_cstr(blob_t *blob, ssize_t pos, const char *cstr) {
     blob_insert_data(blob, pos, cstr, strlen(cstr));
 }
-
 void blob_insert_byte(blob_t *blob, byte b);
 
-void blob_append(blob_t *dest, const blob_t *src);
-void blob_append_data(blob_t *blob, const void *data, ssize_t len);
+
+/*** appends ***/
+
+static inline void 
+blob_append_data(blob_t *blob, const void *data, ssize_t len) {
+    blob_ensure_avail(blob, len);
+    memcpy(blob->data + blob->len, data, len);
+    blob->len += len;
+    blob->data[blob->len] = '\0';
+}
 static inline void blob_append_cstr(blob_t *blob, const char *cstr) {
     blob_append_data(blob, cstr, strlen(cstr));
+}
+static inline void blob_append(blob_t *dest, const blob_t *src) {
+    blob_append_data(dest, src->data, src->len);
 }
 static inline void blob_append_byte(blob_t *blob, byte b) {
     blob_extend2(blob, 1, b);
 }
 
+
+/*** copy ***/
+
+static inline void blob_set_data(blob_t *blob, const void *data, ssize_t len) {
+    blob_reset(blob);
+    blob_append_data(blob, data, len);
+}
+static inline void blob_set(blob_t *dest, const blob_t *src) {
+    blob_set_data(dest, src->data, src->len);
+}
+static inline void blob_set_cstr(blob_t *blob, const char *cstr) {
+    blob_set_data(blob, cstr, strlen(cstr));
+}
+
+
+/*** kills ***/
 
 void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len);
 static inline void blob_kill_first(blob_t *blob, ssize_t len) {

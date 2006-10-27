@@ -206,20 +206,6 @@ void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len)
     }
 }
 
-/*** set functions ***/
-
-void blob_set(blob_t *blob, const blob_t *src)
-{
-    blob_reset(blob);
-    blob_blit_data_real(blob, 0, src->data, src->len);
-}
-
-void blob_set_data(blob_t *blob, const void *data, ssize_t len)
-{
-    blob_reset(blob);
-    blob_blit_data_real(blob, 0, data, len);
-}
-
 /*** blit functions ***/
 
 void blob_blit(blob_t *dest, ssize_t pos, const blob_t *src)
@@ -247,18 +233,6 @@ void blob_insert_data(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
 void blob_insert_byte(blob_t *blob, byte b)
 {
     blob_insert_data_real(blob, 0, &b, 1);
-}
-
-/*** append functions ***/
-
-void blob_append(blob_t *dest, const blob_t *src)
-{
-    blob_insert_data_real(dest, dest->len, src->data, src->len);
-}
-
-void blob_append_data(blob_t *blob, const void *data, ssize_t len)
-{
-    blob_insert_data_real(blob, blob->len, data, len);
 }
 
 /**************************************************************************/
