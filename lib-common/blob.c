@@ -82,6 +82,14 @@ void blob_ensure(blob_t *blob, ssize_t newlen)
         return;
 
     if (newlen >= blob->size) {
+        /* OG: Size requested from the system should be computed in a
+         * way that yields a small number of different sizes:
+         * for (newsize=blob->size;
+         *      newsize <= newlen;
+         *      newsize = newsize * 3 / 2) {
+         *      continue;
+         * }
+         */
         ssize_t newsize = MEM_ALIGN(3 * (newlen + 1) / 2);
 
         if (blob->data == blob->area) {
@@ -347,11 +355,12 @@ ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
     if (count < 0)
         count = BUFSIZ;
 
+    /* OG: why BUFSIZ instead of count? */
     blob_ensure_avail(blob, BUFSIZ);
 
     res = read(fd, blob->data + blob->len, count);
     if (res < 0) {
-        /* defensive programming, read should not modify it, but … */
+        /* defensive programming, read should not modify it, but... */
         blob->data[blob->len] = '\0';
         return res;
     }

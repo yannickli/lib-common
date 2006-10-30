@@ -313,6 +313,11 @@ int conf_get_int(const conf_t *conf, const char *section,
         return defval;
 
     res = strtoip(val, &val);
+    /* OG: this test is too strong: if the value of the setting is not
+     * exactly a number, we should have a more specific way of telling
+     * the caller about it.  Just returning the default value may not
+     * be the best option.
+     */
     return *val ? defval : res;
 }
 
