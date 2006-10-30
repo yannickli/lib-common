@@ -29,4 +29,10 @@ static inline char *vget_basename(char *path) {
 static inline char *vget_ext(char *path) {
     return (char*)get_ext(path);
 }
+
+static inline void getopt_init(void)
+{
+    optind = 0;
+}
+
 #endif /* IS_LIB_COMMON_UNIX_H */
