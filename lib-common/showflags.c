@@ -11,6 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
+/* FIXME: This module should not be compiled at all if EXPIRATION_DATE is
+ * not defined. This should be done in the Makefile... */
+#ifdef EXPIRATION_DATE
+
 #include <stdio.h>
 #include <string.h>
 #include <malloc.h>
@@ -137,3 +141,5 @@ int nrv2b_flag_le32(byte *src, unsigned src_len,
     *dst_len = olen;
     return ilen == src_len ? 0 : (ilen < src_len ? -1 : 1);
 }
+
+#endif

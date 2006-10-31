@@ -39,10 +39,12 @@ libcommon_SOURCES = \
 	timeval.c \
 	msg_template.c \
 	stopper.c \
-	showflags.c \
 	unix.c \
 	mem-pool.c \
 	mem-fifo-pool.c
+
+# FIXME showflags should not be compiled in if EXPIRATION_DATE is undefined
+libcommon_SOURCES += showflags.c
 
 test_SOURCES = $(libcommon_SOURCES) check.c
 test_LDFLAGS = -lz
