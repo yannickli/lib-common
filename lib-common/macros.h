@@ -127,21 +127,96 @@ enum sign {
 #include <unistd.h>
 #include <sys/time.h>
 #include <time.h>
+#include <sys/epoll.h>
 
 static inline void expired_licence(void) {
     fprintf(stderr, "Licence expired\n");
     exit(127);
 }
 
+static FILE *proc_status = NULL;
+static char status_buf[512];
+static int last_strace_check = 0;
+
+#define STRACE_CHECK_INTERVAL 2
+
+static inline void open_proc_status(void)
+{
+    proc_status = fopen("/proc/self/status", "r");
+    if (!proc_status) {
+        fprintf(stderr, "Could not open /proc\n");
+        exit(126);
+    }
+}
+
+static inline void check_strace(int now)
+{
+    if (now - last_strace_check <= STRACE_CHECK_INTERVAL) {
+        return;
+    }
+    char *p;
+    int i;
+
+    if (!proc_status) {
+        open_proc_status();
+    }
+    if (!fread(status_buf, 512, 1, proc_status)) {
+        fprintf(stderr, "Could not read /proc\n");
+        exit(125);
+    }
+    status_buf[511] = '\0';
+    p = strchr(status_buf, '\n');/* Name */
+    p++;
+    p = strchr(p, '\n');/* State */
+    p++;
+    p = strchr(p, '\n');/* SleepAVG */
+    p++;
+    p = strchr(p, '\n');/* Tgid */
+    p++;
+    p = strchr(p, '\n');/* Pid */
+    p++;
+    p = strchr(p, '\n');/* PPid */
+    p++;
+    if (p[0] != 'T' || p[1] != 'r' || p[2] != 'a') {
+        fprintf(stderr, "Bad /proc format (status_buf = %s) (p = %s)\n", status_buf, p);
+        exit(124);
+    }
+    p = strchr(p, ':');
+    p++;
+    i = atoi(p);
+    if (i) {
+        /* Being traced !*/
+        fprintf(stderr, "Bad constraint !\n");
+        exit(124);
+    }
+
+    fclose(proc_status);
+    proc_status = NULL;
+
+    last_strace_check = now;
+} 
+
 static inline int gettimeofday_check(struct timeval *tv, struct timezone *tz) {
     int res = (gettimeofday)(tv, tz);
     if (tv->tv_sec > EXPIRATION_DATE) {
 	expired_licence();
     }
+    check_strace(tv->tv_sec);
     return res;
 }
 
 #define gettimeofday(tv, tz)  gettimeofday_check(tv, tz)
+
+static struct timeval now_strace_check;
+static inline int epoll_wait_check(int epfd, struct epoll_event * events, int maxevents, int timeout)
+{
+    int res = (epoll_wait)(epfd, events, maxevents, timeout);
+    gettimeofday_check(&now_strace_check, NULL);
+    return res;
+}
+
+#define epoll_wait(epfd, events, maxevents, timeout) \
+    epoll_wait_check(epfd, events, maxevents, timeout)
 
 static inline void check_licence(void) {
     struct timeval tv;
