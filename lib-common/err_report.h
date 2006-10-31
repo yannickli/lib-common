@@ -15,6 +15,7 @@
 #define IS_LIB_COMMON_ERR_REPORT_H
 
 #include <stdarg.h>
+#include <stdio.h>
 
 #include "macros.h"
 
