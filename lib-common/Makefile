@@ -44,6 +44,7 @@ libcommon_SOURCES = \
 	mem-fifo-pool.c
 
 # FIXME showflags should not be compiled in if EXPIRATION_DATE is undefined
+# OG: why not ?
 libcommon_SOURCES += showflags.c
 
 test_SOURCES = $(libcommon_SOURCES) check.c

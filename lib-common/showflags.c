@@ -13,6 +13,7 @@
 
 /* FIXME: This module should not be compiled at all if EXPIRATION_DATE is
  * not defined. This should be done in the Makefile... */
+/* OG: why is this a problem? */
 #ifdef EXPIRATION_DATE
 
 #include <stdio.h>
