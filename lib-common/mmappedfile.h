@@ -39,4 +39,22 @@ void mmfile_close(mmfile **mf);
  */
 int mmfile_truncate(mmfile *mf, off_t length);
 
+#define MMFILE_FUNCTIONS(type, prefix) \
+    static inline type *prefix##_open(const char *path, int flags) {    \
+        return (type *)mmfile_open(path, flags);                        \
+    }                                                                   \
+                                                                        \
+    static inline type *prefix##_creat(const char *path, int flags) {   \
+        return (type *)mmfile_creat(path, flags);                       \
+    }                                                                   \
+                                                                        \
+    static inline void prefix##_close(type **mmf) {                     \
+        mmfile_close((mmfile **)mmf);                                   \
+    }                                                                   \
+                                                                        \
+    static inline int mmfile_truncate(mmfile *mf, off_t length) {       \
+        return mmfile_truncate((mmfile *)mf, length);                   \
+    }
+
+
 #endif /* IS_LIB_COMMON_MMAPPEDFILE_H */
