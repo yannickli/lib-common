@@ -355,8 +355,7 @@ ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
     if (count < 0)
         count = BUFSIZ;
 
-    /* OG: why BUFSIZ instead of count? */
-    blob_ensure_avail(blob, BUFSIZ);
+    blob_ensure_avail(blob, count);
 
     res = read(fd, blob->data + blob->len, count);
     if (res < 0) {
