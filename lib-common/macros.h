@@ -134,16 +134,16 @@ static inline void expired_licence(void) {
     exit(127);
 }
 
-static FILE *proc_status = NULL;
-static char status_buf[512];
-static int last_strace_check = 0;
+extern FILE *strace_proc_status;
+extern char strace_status_buf[];
+extern int strace_last_check;
 
 #define STRACE_CHECK_INTERVAL 2
 
 static inline void open_proc_status(void)
 {
-    proc_status = fopen("/proc/self/status", "r");
-    if (!proc_status) {
+    strace_proc_status = fopen("/proc/self/status", "r");
+    if (!strace_proc_status) {
         fprintf(stderr, "Could not open /proc\n");
         exit(126);
     }
@@ -151,21 +151,21 @@ static inline void open_proc_status(void)
 
 static inline void check_strace(int now)
 {
-    if (now - last_strace_check <= STRACE_CHECK_INTERVAL) {
+    if (now - strace_last_check <= STRACE_CHECK_INTERVAL) {
         return;
     }
     char *p;
     int i;
 
-    if (!proc_status) {
+    if (!strace_proc_status) {
         open_proc_status();
     }
-    if (!fread(status_buf, 512, 1, proc_status)) {
+    if (!fread(strace_status_buf, 512, 1, strace_proc_status)) {
         fprintf(stderr, "Could not read /proc\n");
         exit(125);
     }
-    status_buf[511] = '\0';
-    p = strchr(status_buf, '\n');/* Name */
+    strace_status_buf[511] = '\0';
+    p = strchr(strace_status_buf, '\n');/* Name */
     p++;
     p = strchr(p, '\n');/* State */
     p++;
@@ -178,7 +178,7 @@ static inline void check_strace(int now)
     p = strchr(p, '\n');/* PPid */
     p++;
     if (p[0] != 'T' || p[1] != 'r' || p[2] != 'a') {
-        fprintf(stderr, "Bad /proc format (status_buf = %s) (p = %s)\n", status_buf, p);
+        fprintf(stderr, "Bad /proc format (strace_status_buf = %s) (p = %s)\n", strace_status_buf, p);
         exit(124);
     }
     p = strchr(p, ':');
@@ -190,10 +190,10 @@ static inline void check_strace(int now)
         exit(124);
     }
 
-    fclose(proc_status);
-    proc_status = NULL;
+    fclose(strace_proc_status);
+    strace_proc_status = NULL;
 
-    last_strace_check = now;
+    strace_last_check = now;
 } 
 
 static inline int gettimeofday_check(struct timeval *tv, struct timezone *tz) {
