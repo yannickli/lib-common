@@ -26,8 +26,9 @@
 
 #define __attr_format__(format_idx, arg_idx)  \
     __attribute__((format(printf, format_idx, arg_idx)))
-#define __unused__        __attribute__((unused))
-#define __attr_noreturn__ __attribute__((noreturn))
+#define __unused__           __attribute__((unused))
+#define __attr_noreturn__    __attribute__((noreturn))
+#define __attr_nonnull__(l)  __attribute__((nonnull l))
 
 #if (!defined(__GNUC__) || __GNUC__ < 3) && !defined(__attribute__)
 #  define __attribute__(foo)
@@ -134,33 +135,28 @@ static inline void expired_licence(void) {
     exit(127);
 }
 
-extern FILE *strace_proc_status;
 extern char strace_status_buf[];
 extern int strace_last_check;
 
 #define STRACE_CHECK_INTERVAL 2
 
-static inline void open_proc_status(void)
-{
-    strace_proc_status = fopen("/proc/self/status", "r");
-    if (!strace_proc_status) {
-        fprintf(stderr, "Could not open /proc\n");
-        exit(126);
-    }
-}
-
 static inline void check_strace(int now)
 {
-    if (now - strace_last_check <= STRACE_CHECK_INTERVAL) {
-        return;
-    }
+    FILE *proc_status;
     char *p;
     int i;
 
-    if (!strace_proc_status) {
-        open_proc_status();
+    if (now - strace_last_check <= STRACE_CHECK_INTERVAL) {
+        return;
     }
-    if (!fread(strace_status_buf, 512, 1, strace_proc_status)) {
+    strace_last_check = now;
+
+    proc_status = fopen("/proc/self/status", "r");
+    if (!proc_status) {
+        fprintf(stderr, "Could not open /proc\n");
+        exit(126);
+    }
+    if (!fread(strace_status_buf, 1, 512, proc_status)) {
         fprintf(stderr, "Could not read /proc\n");
         exit(125);
     }
@@ -178,7 +174,8 @@ static inline void check_strace(int now)
     p = strchr(p, '\n');/* PPid */
     p++;
     if (p[0] != 'T' || p[1] != 'r' || p[2] != 'a') {
-        fprintf(stderr, "Bad /proc format (strace_status_buf = %s) (p = %s)\n", strace_status_buf, p);
+        fprintf(stderr, "Bad /proc format (strace_status_buf = %s) (p = %s)\n",
+                strace_status_buf, p);
         exit(124);
     }
     p = strchr(p, ':');
@@ -190,11 +187,8 @@ static inline void check_strace(int now)
         exit(124);
     }
 
-    fclose(strace_proc_status);
-    strace_proc_status = NULL;
-
-    strace_last_check = now;
-} 
+    fclose(proc_status);
+}
 
 static inline int gettimeofday_check(struct timeval *tv, struct timezone *tz) {
     int res = (gettimeofday)(tv, tz);
