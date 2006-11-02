@@ -81,7 +81,7 @@ static void file_warning_handler   (H_ARGS) { FILE_HANDLER(true); }
 static void file_notice_handler    (H_ARGS) { FILE_HANDLER(true); }
 static void file_info_handler      (H_ARGS) { FILE_HANDLER(true); }
 
-#define SYSLOG(priority) syslog(priority, format, args)
+#define SYSLOG(priority) vsyslog(priority, format, args)
 static void syslog_fatal_handler   (H_ARGS) { SYSLOG(LOG_CRIT); }
 static void syslog_error_handler   (H_ARGS) { SYSLOG(LOG_ERR); }
 static void syslog_warning_handler (H_ARGS) { SYSLOG(LOG_WARNING); }
