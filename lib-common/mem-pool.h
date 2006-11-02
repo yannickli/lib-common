@@ -15,6 +15,7 @@
 #define IS_LIB_COMMON_MEM_POOL_H
 
 #include <unistd.h>
+
 #include "macros.h"
 
 typedef struct mem_pool {

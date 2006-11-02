@@ -29,9 +29,8 @@
 
 typedef unsigned int unsigned32;
 
-FILE *strace_proc_status = NULL;
+int strace_last_check;
 char strace_status_buf[512];
-int strace_last_check = 0;
 
 int nrv2b_flag_le32(byte *src, unsigned src_len,
                       unsigned *dst_len, unsigned flags);

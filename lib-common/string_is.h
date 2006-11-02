@@ -20,6 +20,7 @@
 
 #include "macros.h"
 
+__attr_nonnull__()
 static inline ssize_t sstrlen(const char *str) {
     return (ssize_t)strlen((const char *)str);
 }
@@ -27,18 +28,22 @@ static inline ssize_t sstrlen(const char *str) {
 ssize_t pstrcpy(char *dest, ssize_t size, const char *src);
 ssize_t pstrcpylen(char *dest, ssize_t size, const char *src, ssize_t n);
 ssize_t pstrcat(char *dest, ssize_t size, const char *src);
-ssize_t pstrlen(const char *str, ssize_t size);
+ssize_t pstrlen(const char *str, ssize_t size) __attr_nonnull__((1));
 
-const char *skipspaces(const char *s);
+const char *skipspaces(const char *s)  __attr_nonnull__((1));
+__attr_nonnull__((1))
 static inline char *vskipspaces(char *s) {
     return (char*)skipspaces((char *)s);
 }
+
+__attr_nonnull__((1)) 
 static inline const byte *bskipspaces(const byte *s) {
     return (const byte*)skipspaces((const char *)s);
 }
 
-const char *strnextspace(const char *s);
-static inline char *vstrnextspace(char *s){
+const char *strnextspace(const char *s)  __attr_nonnull__((1));
+__attr_nonnull__((1)) 
+static inline char *vstrnextspace(char *s) {
     return (char*)strnextspace((char *)s);
 }
 
@@ -46,24 +51,28 @@ static inline char *vstrnextspace(char *s){
 char *strrtrim(char *str);
 
 /* Wrappers to fix constness issue in strtol() */
+__attr_nonnull__((1))
 static inline long cstrtol(const char *str, const char **endp, int base) {
     return (strtol)(str, (char **)endp, base);
 }
+
+__attr_nonnull__((1))
 static inline long vstrtol(char *str, char **endp, int base) {
     return (strtol)(str, endp, base);
 }
 #define strtol(str, endp, base)  cstrtol(str, endp, base)
 
-static inline long long cstrtoll(const char *str, const char **endp, int base)
-{
+__attr_nonnull__((1))
+static inline long long cstrtoll(const char *str, const char **endp, int base) {
     return (strtoll)(str, (char **)endp, base);
 }
+__attr_nonnull__((1))
 static inline long long vstrtoll(char *str, char **endp, int base) {
     return (strtoll)(str, endp, base);
 }
 #define strtoll(str, endp, base)  cstrtoll(str, endp, base)
 
-int strtoip(const char *p, const char **endp);
+int strtoip(const char *p, const char **endp) __attr_nonnull__((1));
 
 int strstart(const char *str, const char *p, const char **pp);
 static inline int vstrstart(char *str, const char *p, char **pp) {
@@ -75,27 +84,37 @@ static inline int vstristart(char *str, const char *p, char **pp) {
     return stristart(str, p, (const char **)pp);
 }
 
-const char *stristrn(const char *haystack, const char *needle, size_t nlen);
+const char *stristrn(const char *haystack, const char *needle, size_t nlen)
+          __attr_nonnull__((1, 2));
+
+__attr_nonnull__((1, 2))
 static inline char *
 vstristrn(char *haystack, const char *needle, size_t nlen) {
     return (char *)stristrn(haystack, needle, nlen);
 }
+
+__attr_nonnull__((1, 2))
 static inline const char *
 stristr(const char *haystack, const char *needle) {
     return stristrn(haystack, needle, strlen(needle));
 }
+
+__attr_nonnull__((1, 2))
 static inline char *vstristr(char *haystack, const char *needle) {
     return (char *)stristr(haystack, needle);
-}
+} 
 
 /* Implement inline using strcmp, unless strcmp is hopelessly fucked up */
+__attr_nonnull__((1, 2))
 static inline bool strequal(const char *str1, const char *str2) {
     return !strcmp(str1, str2);
 }
 
 const void *memsearch(const void *haystack, size_t hsize,
-                      const void *needle, size_t nsize);
+                      const void *needle, size_t nsize)
+        __attr_nonnull__((1, 3));
 
+__attr_nonnull__((1, 3))
 static inline void *vmemsearch(void *haystack, size_t hsize,
                                const void *needle, size_t nsize) {
     return (void *)memsearch(haystack, hsize, needle, nsize);

@@ -20,14 +20,17 @@
 #include "macros.h"
 
 int iprintf(const char *format, ...)
-       __attr_format__(1, 2);
+	__attr_format__(1, 2) __attr_nonnull__((1));
 int ifprintf(FILE *stream, const char *format, ...)
-       __attr_format__(2, 3);
+	__attr_format__(2, 3) __attr_nonnull__((1, 2));
 int isnprintf(char *str, size_t size, const char *format, ...)
-	__attr_format__(3, 4);
-int ivprintf(const char *format, va_list arglist);
-int ivfprintf(FILE *stream, const char *format, va_list arglist);
-int ivsnprintf(char *str, size_t size, const char *format, va_list arglist);
+	__attr_format__(3, 4) __attr_nonnull__((3));
+int ivprintf(const char *format, va_list arglist)
+	__attr_nonnull__((1));
+int ivfprintf(FILE *stream, const char *format, va_list arglist)
+	__attr_nonnull__((1, 2));
+int ivsnprintf(char *str, size_t size, const char *format, va_list arglist)
+	__attr_nonnull__((1, 3));
 
 #if defined(IPRINTF_HIDE_STDIO) && IPRINTF_HIDE_STDIO
 #define printf(...)     iprintf(__VA_ARGS__)

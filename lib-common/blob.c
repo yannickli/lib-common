@@ -471,7 +471,14 @@ ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt,
      * In case of overflow, we leave the blob unchanged as the contents
      * of the buffer is undefined.
      */
-    res = strftime(buffer, sizeof(buffer), fmt, tm);
+    {
+        /* Call strftime via a pointer to stop stupid gcc warning about
+         * non literal format argument.
+         */
+        size_t (*pstrftime)(char *s, size_t maxsize, const char *format,
+                            const struct tm *tp) = strftime;
+        res = (*pstrftime)(buffer, sizeof(buffer), fmt, tm);
+    }
     if (res > 0 && res < sizeof(buffer)) {
         blob_resize(blob, pos);
         blob_blit_data_real(blob, pos, buffer, res);
