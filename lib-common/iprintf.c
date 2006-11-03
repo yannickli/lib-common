@@ -890,3 +890,43 @@ int ivsnprintf(char *str, size_t size, const char *format, va_list arglist)
 {
     return fmt_output(NULL, str, size, format, arglist);
 }
+
+int ifputs_hex(FILE *stream, const byte *buf, int len)
+{
+    int line_len, i, ret = 0;
+    const char hexchar[] = "0123456789ABCDEF";
+
+    if (!stream) {
+        errno = EBADF;
+        return -1;
+    }
+
+    while (len) {
+        line_len = MIN(len, 16);
+        for (i = 0; i < line_len; i++) {
+            putc_unlocked(hexchar[(buf[i] >> 4) & 0x0F], stream);
+            putc_unlocked(hexchar[ buf[i]       & 0x0F], stream);
+            putc_unlocked(' ', stream);
+        }
+        while (i < 16) {
+            putc_unlocked(' ', stream);
+            putc_unlocked(' ', stream);
+            putc_unlocked(' ', stream);
+            i++;
+        }
+        ret += 16 * 3;
+        for (i = 0; i < line_len; i++) {
+            if (isprint(buf[i])) {
+                putc_unlocked(buf[i], stream);
+            } else {
+                putc_unlocked('.', stream);
+            }
+        }
+        ret += line_len;
+        buf += line_len;
+        len -= line_len;
+        putc_unlocked('\n', stream);
+        ret++;
+    }
+    return ret;
+}

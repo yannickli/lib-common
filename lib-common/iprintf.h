@@ -31,6 +31,7 @@ int ivfprintf(FILE *stream, const char *format, va_list arglist)
 	__attr_nonnull__((1, 2));
 int ivsnprintf(char *str, size_t size, const char *format, va_list arglist)
 	__attr_nonnull__((1, 3));
+int ifputs_hex(FILE *stream, const byte *buf, int len);
 
 #if defined(IPRINTF_HIDE_STDIO) && IPRINTF_HIDE_STDIO
 #define printf(...)     iprintf(__VA_ARGS__)
