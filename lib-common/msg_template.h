@@ -27,6 +27,7 @@ typedef enum part_encoding {
     ENC_EMI_LEN,
     ENC_EMI_CSUM,
     ENC_TEL,
+    ENC_SMPP,
 } part_encoding;
 
 typedef struct msg_template msg_template;

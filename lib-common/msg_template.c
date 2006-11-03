@@ -312,6 +312,18 @@ static void msg_template_blob_encode(blob_t *dst, part_encoding enc,
         /* FIXME: check telephone number format */
         blob_append_data(dst, data, len);
         break;
+      case ENC_SMPP:
+        {
+          byte buf[4];
+          buf[0] = (len >> 24) & 0xFF;
+          buf[1] = (len >> 16) & 0xFF;
+          buf[2] = (len >>  8) & 0xFF;
+          buf[3] = (len >>  0) & 0xFF;
+          blob_append_data(dst, buf, 4);
+          /* FIXME: do smpp encoding (according to data_coding field ???) */
+          blob_append_data(dst, data, len);
+        }
+        break;
       case ENC_NONE:
       default:
         blob_append_data(dst, data, len);
