@@ -17,6 +17,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include "iprintf.h"
 #include "macros.h"
 
 /* Useful exit codes */
@@ -74,7 +75,9 @@ void e_shutdown(void);
 #ifdef NDEBUG
 
 #  define e_debug(...)
+#  define e_debug_hex(...)
 #  define e_trace(...)
+#  define e_trace_hex(...)
 #  define e_trace_start(...)
 #  define e_trace_cont(...)
 #  define e_trace_end(...)
@@ -105,11 +108,23 @@ int e_is_traced_real(int level, const char *fname, const char *func);
         }                                                                    \
     } while (0)
 
+#define e_debug_hex(lvl, buf, len)                                           \
+    do {                                                                     \
+        if (e_is_traced(lvl)) {                                              \
+            ifputs_hex(stderr, buf, len);                                    \
+        }                                                                    \
+    } while (0)
+
 #define e_trace_start(lvl, fmt, ...)  e_debug(lvl, E_PREFIX(fmt), ##__VA_ARGS__)
 #define e_trace_cont(lvl, fmt, ...)   e_debug(lvl, fmt, ##__VA_ARGS__)
 #define e_trace_end(lvl, fmt, ...)    e_debug(lvl, fmt "\n", ##__VA_ARGS__)
 
 #define e_trace(lvl, fmt, ...)        e_trace_start(lvl, fmt "\n", ##__VA_ARGS__)
+#define e_trace_hex(lvl, str, buf, len)                                      \
+    do {                                                                     \
+        e_debug(lvl, E_PREFIX("--%s (%d)--\n"), str, len);                   \
+        e_debug_hex(lvl, buf, len);                                          \
+    } while (0)
 
 #endif
 
