@@ -32,6 +32,10 @@
  *   stdio.h:    stdout, putc_unlocked, fwrite_unlocked;
  */
 
+/* Wrap glibc specific unlocked API with obnoxious macros */
+#define PUTC(c, f)          putc_unlocked(c, f)
+#define FWRITE(b, s, n, f)  fwrite_unlocked(b, s, n, f)
+
 /*---------------- formatter ----------------*/
 
 #define FLAG_UPPER      0x0001
@@ -200,7 +204,7 @@ static inline int fmt_output_chars(FILE *stream, char *str, size_t size,
 {
     while (n-- > 0) {
         if (stream) {
-            putc_unlocked(c, stream);
+            PUTC(c, stream);
         } else {
             if ((size_t)count < size)
                 str[count] = c;
@@ -217,7 +221,7 @@ static inline int fmt_output_chunk(FILE *stream, char *str, size_t size,
 
     for (i = 0; i < len; i++) {
         if (stream) {
-            putc_unlocked(lp[i], stream);
+            PUTC(lp[i], stream);
         } else {
             if ((size_t)count < size)
                 str[count] = lp[i];
@@ -261,16 +265,16 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         if (stream) {
             switch (len) {
             default:
-                count += fwrite_unlocked(lp, 1, (size_t)len, stream);
+                count += FWRITE(lp, 1, (size_t)len, stream);
                 break;
-            case 8: putc_unlocked(*lp++, stream);
-            case 7: putc_unlocked(*lp++, stream);
-            case 6: putc_unlocked(*lp++, stream);
-            case 5: putc_unlocked(*lp++, stream);
-            case 4: putc_unlocked(*lp++, stream);
-            case 3: putc_unlocked(*lp++, stream);
-            case 2: putc_unlocked(*lp++, stream);
-            case 1: putc_unlocked(*lp++, stream);
+            case 8: PUTC(*lp++, stream);
+            case 7: PUTC(*lp++, stream);
+            case 6: PUTC(*lp++, stream);
+            case 5: PUTC(*lp++, stream);
+            case 4: PUTC(*lp++, stream);
+            case 3: PUTC(*lp++, stream);
+            case 2: PUTC(*lp++, stream);
+            case 1: PUTC(*lp++, stream);
             case 0: count += len;
                 break;
             }
@@ -894,7 +898,7 @@ int ivsnprintf(char *str, size_t size, const char *format, va_list arglist)
 int ifputs_hex(FILE *stream, const byte *buf, int len)
 {
     int line_len, i, ret = 0;
-    const char hexchar[] = "0123456789ABCDEF";
+    static const char hexchar[16] = "0123456789ABCDEF";
 
     if (!stream) {
         errno = EBADF;
@@ -904,28 +908,28 @@ int ifputs_hex(FILE *stream, const byte *buf, int len)
     while (len) {
         line_len = MIN(len, 16);
         for (i = 0; i < line_len; i++) {
-            putc_unlocked(hexchar[(buf[i] >> 4) & 0x0F], stream);
-            putc_unlocked(hexchar[ buf[i]       & 0x0F], stream);
-            putc_unlocked(' ', stream);
+            PUTC(hexchar[(buf[i] >> 4) & 0x0F], stream);
+            PUTC(hexchar[ buf[i]       & 0x0F], stream);
+            PUTC(' ', stream);
         }
         while (i < 16) {
-            putc_unlocked(' ', stream);
-            putc_unlocked(' ', stream);
-            putc_unlocked(' ', stream);
+            PUTC(' ', stream);
+            PUTC(' ', stream);
+            PUTC(' ', stream);
             i++;
         }
         ret += 16 * 3;
         for (i = 0; i < line_len; i++) {
             if (isprint(buf[i])) {
-                putc_unlocked(buf[i], stream);
+                PUTC(buf[i], stream);
             } else {
-                putc_unlocked('.', stream);
+                PUTC('.', stream);
             }
         }
         ret += line_len;
         buf += line_len;
         len -= line_len;
-        putc_unlocked('\n', stream);
+        PUTC('\n', stream);
         ret++;
     }
     return ret;
