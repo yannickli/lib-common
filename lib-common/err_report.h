@@ -17,8 +17,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "iprintf.h"
 #include "macros.h"
+#include "iprintf.h"
 
 /* Useful exit codes */
 enum fatal_exit_codes {
