@@ -24,8 +24,8 @@
 #define ICONV_HANDLES_CACHE_MAX 20
 #define ICONV_TYPE_SIZE 15
 typedef struct {
-    char to[ICONV_TYPE_SIZE];
-    char from[ICONV_TYPE_SIZE];
+    char to[ICONV_TYPE_SIZE + 1];
+    char from[ICONV_TYPE_SIZE + 1];
     iconv_t handle;
 } iconv_t_cache;
 
@@ -90,8 +90,10 @@ static iconv_t get_iconv_handle(const char *to, const char *from)
     if (iconv_handles[current_iconv].handle) {
         iconv_close(iconv_handles[current_iconv].handle);
     }
-    strncpy(iconv_handles[current_iconv].to, to, ICONV_TYPE_SIZE);
-    strncpy(iconv_handles[current_iconv].from, from, ICONV_TYPE_SIZE);
+    pstrcpy(iconv_handles[current_iconv].to,
+            sizeof(iconv_handles[current_iconv].to), to);
+    pstrcpy(iconv_handles[current_iconv].from,
+            sizeof(iconv_handles[current_iconv].from), from);
     return (iconv_handles[current_iconv++].handle = iconv_open(to, from));
 }
 
