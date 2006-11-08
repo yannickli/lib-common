@@ -325,6 +325,8 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         if (*format == 's') {
             format++;
             lp = va_arg(ap, const char *);
+            if (lp == NULL)
+                lp = "(null)";
             len = strlen(lp);
             goto haslp;
         }
@@ -333,6 +335,10 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             format += 3;
             len = va_arg(ap, int);
             lp = va_arg(ap, const char *);
+            if (lp == NULL) {
+                lp = "(null)";
+                len = 6;
+            }
             len = strnlen(lp, len);
             goto haslp;
         }
@@ -513,8 +519,9 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         case 's':
             /* ignore 'l' prefix for wide char string */
             lp = va_arg(ap, char *);
-
-            /* OG: should test NULL and print "(null)", prec >= 6 */
+            if (lp == NULL) {
+                lp = "(null)";
+            }
 
         has_string:
             if (flags & FLAG_PREC) {
