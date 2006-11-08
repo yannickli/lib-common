@@ -52,7 +52,7 @@ int mmfile_truncate(mmfile *mf, off_t length);
         mmfile_close((mmfile **)mmf);                                   \
     }                                                                   \
                                                                         \
-    static inline int prefix##_truncate(mmfile *mf, off_t length) {     \
+    static inline int prefix##_truncate(type *mf, off_t length) {       \
         return mmfile_truncate((mmfile *)mf, length);                   \
     }
 
