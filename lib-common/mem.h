@@ -27,7 +27,7 @@
         if ((mem) == NULL) {                                    \
             e_fatal(FATAL_NOMEM, E_PREFIX("out of memory"));    \
         }                                                       \
-    } while(0)
+    } while (0)
 
 static inline void *mem_alloc(ssize_t size)
 {

@@ -29,8 +29,8 @@ enum fatal_exit_codes {
 };
 
 /* error reporting functions */
-typedef void fatal_f(int, const char *, ...) __attr_format__(2, 3);
-typedef void error_f(const char *, ...) __attr_format__(1, 2);
+typedef void fatal_f(int, const char *, ...)  __attr_format__(2, 3);
+typedef void error_f(const char *, ...)  __attr_format__(1, 2);
 
 /*
  * These functions are meant to correspond to the syslog levels.
@@ -55,11 +55,11 @@ error_f e_info;
 /* callback installers */
 typedef void e_callback_f(const char *, va_list);
 
-e_callback_f *e_set_fatal_handler   (e_callback_f *) __attribute__((nonnull));
-e_callback_f *e_set_error_handler   (e_callback_f *) __attribute__((nonnull));
-e_callback_f *e_set_warning_handler (e_callback_f *) __attribute__((nonnull));
-e_callback_f *e_set_notice_handler  (e_callback_f *) __attribute__((nonnull));
-e_callback_f *e_set_info_handler    (e_callback_f *) __attribute__((nonnull)); 
+e_callback_f *e_set_fatal_handler  (e_callback_f *)  __attribute__((nonnull));
+e_callback_f *e_set_error_handler  (e_callback_f *)  __attribute__((nonnull));
+e_callback_f *e_set_warning_handler(e_callback_f *)  __attribute__((nonnull));
+e_callback_f *e_set_notice_handler (e_callback_f *)  __attribute__((nonnull));
+e_callback_f *e_set_info_handler   (e_callback_f *)  __attribute__((nonnull)); 
 
 /* useful callbacks */
 void e_init_stderr(void);

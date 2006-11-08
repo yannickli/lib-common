@@ -47,7 +47,8 @@ int ioveclist_insert_first(ioveclist *l, const void *data, int size)
  */
 ioveclist_state ioveclist_write(ioveclist *l, int fd)
 {
-    int nbwritten;
+    int i, nbwritten;
+
     nbwritten = writev(fd, l->objs, l->used);
     if (nbwritten < 0) {
         if (errno == EINTR || errno == EAGAIN) {
@@ -58,7 +59,7 @@ ioveclist_state ioveclist_write(ioveclist *l, int fd)
     /* Skip over the written bytes.
      * */
     while (nbwritten > 0) {
-        if (nbwritten < (int) l->objs[0].iov_len) {
+        if (nbwritten < (int)l->objs[0].iov_len) {
             /* chunk 0 not fully written */
             l->objs[0].iov_base = (byte *)l->objs[0].iov_base + nbwritten;
             l->objs[0].iov_len -= nbwritten;
@@ -67,7 +68,6 @@ ioveclist_state ioveclist_write(ioveclist *l, int fd)
             /* chunk 0 fully written. Skip it. */
             nbwritten -= l->objs[0].iov_len;
             l->used--;
-            int i;
             for (i = 0; i < l->used; i++) {
                 l->objs[i] = l->objs[i + 1];
             }

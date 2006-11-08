@@ -62,13 +62,13 @@ enum blob_parse_status {
         if ((var) != NULL) {                \
             *(var) = (value);               \
         }                                   \
-    } while(0)
+    } while (0)
 
 #define TRANSMIT_PARSE_ERROR(result, expr)  \
     do {                                    \
         if (((result) = (expr)) < 0) {      \
             return result;                  \
         }                                   \
-    } while(0)
+    } while (0)
 
 #endif /* IS_LIB_COMMON_PARSE_H */

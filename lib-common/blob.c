@@ -829,7 +829,7 @@ ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos, const char **answer)
             *pos = walk + 1;
             return len;
         }
-        walk ++;
+        walk++;
     }
 
     return PARSE_EPARSE;
@@ -841,7 +841,7 @@ ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos, const char **answer)
 #define XP  2
 
 byte const __str_encode_flags[128 + 256] = {
-#define REPEAT16(x) x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
+#define REPEAT16(x)  x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
     REPEAT16(0), REPEAT16(0), REPEAT16(0), REPEAT16(0),
     REPEAT16(0), REPEAT16(0), REPEAT16(0), REPEAT16(0),
     0,     0,     0,     0,     0,     0,     0,     0,

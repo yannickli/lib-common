@@ -100,7 +100,7 @@ struct timeval timeval_mul(struct timeval tv, int k)
     res.tv_usec = usecs - (int64_t)res.tv_sec * (1000 * 1000);
     if (res.tv_usec < 0) {
         res.tv_usec += 1000 * 1000;
-        res.tv_sec --;
+        res.tv_sec  -= 1;
     }
 
     return res;
@@ -118,7 +118,7 @@ struct timeval timeval_div(struct timeval tv, int k)
     res.tv_usec = usecs - (int64_t)res.tv_sec * (1000 * 1000);
     if (res.tv_usec < 0) {
         res.tv_usec += 1000 * 1000;
-        res.tv_sec --;
+        res.tv_sec  -= 1;
     }
 
     return res;

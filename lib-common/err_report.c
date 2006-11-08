@@ -46,7 +46,7 @@ static void set_log_ident(const char *ident)
 
 static void file_handler(bool eol, const char *format, va_list args)
 {
-    if ( log_state.fd == NULL ) {
+    if (log_state.fd == NULL) {
         log_state.fd = stderr;
     }
     if (log_state.ident != NULL) {
@@ -73,15 +73,15 @@ error:
             E_PREFIX("cannot write log : %s"), strerror(errno));
 }
 
-#define H_ARGS const char *format, va_list args
-#define FILE_HANDLER(eol) file_handler(eol, format, args)
+#define H_ARGS             const char *format, va_list args
+#define FILE_HANDLER(eol)  file_handler(eol, format, args)
 static void file_fatal_handler     (H_ARGS) { FILE_HANDLER(true); }
 static void file_error_handler     (H_ARGS) { FILE_HANDLER(true); }
 static void file_warning_handler   (H_ARGS) { FILE_HANDLER(true); }
 static void file_notice_handler    (H_ARGS) { FILE_HANDLER(true); }
 static void file_info_handler      (H_ARGS) { FILE_HANDLER(true); }
 
-#define SYSLOG(priority) vsyslog(priority, format, args)
+#define SYSLOG(priority)  vsyslog(priority, format, args)
 static void syslog_fatal_handler   (H_ARGS) { SYSLOG(LOG_CRIT); }
 static void syslog_error_handler   (H_ARGS) { SYSLOG(LOG_ERR); }
 static void syslog_warning_handler (H_ARGS) { SYSLOG(LOG_WARNING); }
@@ -110,14 +110,14 @@ static void init_file(const char *ident, FILE *file)
 /* useful macros                                                          */
 /**************************************************************************/
 
-#define E_BODY(kind) do {               \
+#define E_BODY(kind)  do {              \
     va_list args;                       \
     va_start(args, format);             \
     kind##_handler(format, args);       \
     va_end(args);                       \
 } while (0)
 
-#define E_SET_BODY(kind) do {                               \
+#define E_SET_BODY(kind)  do {                              \
     e_callback_f *old = kind##_handler;                     \
     kind##_handler = hook ? hook : file_##kind##_handler;   \
     return old;                                             \

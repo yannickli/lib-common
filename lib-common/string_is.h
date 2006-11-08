@@ -28,7 +28,7 @@ static inline ssize_t sstrlen(const char *str) {
 ssize_t pstrcpy(char *dest, ssize_t size, const char *src);
 ssize_t pstrcpylen(char *dest, ssize_t size, const char *src, ssize_t n);
 ssize_t pstrcat(char *dest, ssize_t size, const char *src);
-ssize_t pstrlen(const char *str, ssize_t size) __attr_nonnull__((1));
+ssize_t pstrlen(const char *str, ssize_t size)  __attr_nonnull__((1));
 
 const char *skipspaces(const char *s)  __attr_nonnull__((1));
 __attr_nonnull__((1))
@@ -72,7 +72,7 @@ static inline long long vstrtoll(char *str, char **endp, int base) {
 }
 #define strtoll(str, endp, base)  cstrtoll(str, endp, base)
 
-int strtoip(const char *p, const char **endp) __attr_nonnull__((1));
+int strtoip(const char *p, const char **endp)  __attr_nonnull__((1));
 
 int strstart(const char *str, const char *p, const char **pp);
 static inline int vstrstart(char *str, const char *p, char **pp) {

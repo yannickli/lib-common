@@ -14,7 +14,7 @@
 #include "strconv.h"
 
 unsigned char const __str_digit_value[128 + 256] = {
-#define REPEAT16(x) x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
+#define REPEAT16(x)  x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
     REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
     REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
     REPEAT16(255), REPEAT16(255), REPEAT16(255),
@@ -33,7 +33,7 @@ static char const __str_digits_lower[36] =
     "0123456789abcdefghijklmnopqrstuvwxyz";
 
 unsigned char const __str_escape_value[128 + 256] = {
-#define REPEAT16(x) x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
+#define REPEAT16(x)  x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
     REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
     REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
     REPEAT16(255), REPEAT16(255),

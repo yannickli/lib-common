@@ -107,7 +107,6 @@ int nrv2b_flag_le32(byte *src, unsigned src_len,
                     unsigned *dst_len, unsigned flags)
 {
     unsigned bc = 0;
-
     unsigned32 bb = 0;
     unsigned ilen = 0, olen = 0, last_m_off = 1;
 
@@ -115,27 +114,28 @@ int nrv2b_flag_le32(byte *src, unsigned src_len,
         unsigned m_off, m_len;
 
         while (getbit(bb)) {
-            olen++; ilen++;
+            olen++;
+            ilen++;
         }
         m_off = 1;
         do {
-            m_off = m_off*2 + getbit(bb);
+            m_off = m_off * 2 + getbit(bb);
         } while (!getbit(bb));
 
         if (m_off == 2) {
             m_off = last_m_off;
         } else {
-            m_off = (m_off-3)*256 + src[ilen++];
+            m_off = (m_off-3) * 256 + src[ilen++];
             if (m_off == 0xffffffff)
                 break;
             last_m_off = ++m_off;
         }
         m_len = getbit(bb);
-        m_len = m_len*2 + getbit(bb);
+        m_len = m_len * 2 + getbit(bb);
         if (m_len == 0) {
             m_len++;
             do {
-                m_len = m_len*2 + getbit(bb);
+                m_len = m_len * 2 + getbit(bb);
             } while (!getbit(bb));
             m_len += 2;
         }

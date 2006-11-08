@@ -64,7 +64,7 @@ void archive_wipe(archive_t *archive)
 
     archive->payload = NULL;
     if (archive->nb_blocs) {
-        for (i = 0; i < archive->nb_blocs ; i++) {
+        for (i = 0; i < archive->nb_blocs; i++) {
             archive_bloc *bloc = archive->blocs[i];
             switch (bloc->tag) {
               case ARCHIVE_TAG_FILE:
@@ -218,7 +218,7 @@ static archive_file *archive_parse_file(const byte **input, int *len)
     }
 
     /* XXX: This loop needs bounds checking. */
-    for(i = 0; i < file->nb_attrs; i++) {
+    for (i = 0; i < file->nb_attrs; i++) {
         const char *key, *val;
         int key_len, val_len;
 
@@ -479,7 +479,7 @@ const archive_file *archive_file_next(const archive_t *archive,
     /* Examine the next one */
     i++;
     /* find the next file */
-    for (;i < archive->nb_blocs + 1; i++) {
+    for (; i < archive->nb_blocs + 1; i++) {
         if (archive->blocs[i]->tag == ARCHIVE_TAG_FILE) {
             break;
         }
@@ -537,7 +537,7 @@ void archive_dump(const archive_t *archive, int level)
     e_trace(level, " - nb_blocs = %d", archive->nb_blocs);
     
     if (archive->nb_blocs) {
-        for (i = 0; i < archive->nb_blocs ; i++) {
+        for (i = 0; i < archive->nb_blocs; i++) {
             archive_bloc *bloc = archive->blocs[i];
             switch (bloc->tag) {
               case ARCHIVE_TAG_FILE:
@@ -594,7 +594,7 @@ START_TEST(check_parse)
         blob_append_byte((blob), UINT32_TO_B1(n));      \
         blob_append_byte((blob), UINT32_TO_B2(n));      \
         blob_append_byte((blob), UINT32_TO_B3(n));      \
-    } while (0);
+    } while (0)
 
     archive_t archive;
     archive_init(&archive);

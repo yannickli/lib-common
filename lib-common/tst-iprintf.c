@@ -5107,7 +5107,7 @@ int main(void)
 #define XSTR(s)      #s
 #define STR(s)       XSTR(s)
 #define PAD(n, len)  do { int __i = (n) - (len);                            \
-                          while (__i-- > 0) putchar(' '); } while(0)
+                          while (__i-- > 0) putchar(' '); } while (0)
 
 #define SINGLETEST(func, buf, errvar, SFMT)                                 \
             func(buf, sizeof(buf), iptr->format_string, iptr->value);       \

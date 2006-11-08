@@ -147,7 +147,7 @@ static inline char *convert_int10(char *p, int value)
     unsigned int num = (value ^ bits) + (bits & 1);
 
     while (num >= 10) {
-        *--p = '0' + (num % 10) ;
+        *--p = '0' + (num % 10);
         num = num / 10;
     }
     *--p = '0' + num;

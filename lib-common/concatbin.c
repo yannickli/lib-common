@@ -40,7 +40,7 @@ concatbin *concatbin_new(const char *filename)
     }
 
     if (fstat(fd, &sbuf)) {
-        e_error( "fstat failed");
+        e_error("fstat failed");
         goto error;
     }
 
@@ -48,7 +48,7 @@ concatbin *concatbin_new(const char *filename)
     ccb->start = mmap(NULL, ccb->len, PROT_READ, MAP_PRIVATE, fd, 0);
 
     if (ccb->start == MAP_FAILED) {
-        e_error( "mmap failed");
+        e_error("mmap failed");
         goto error;
     }
     
