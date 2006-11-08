@@ -59,23 +59,23 @@ typedef unsigned char byte;
 #define MEM_ALIGN(size) \
     (((size) + MEM_ALIGN_SIZE - 1) & ~((ssize_t)MEM_ALIGN_SIZE - 1))
 
-#define FREE(ptr) do {  \
-    free(ptr);          \
-    (ptr) = NULL;       \
-} while(0)
+#define FREE(ptr)  do { \
+        free(ptr);      \
+        (ptr) = NULL;   \
+    } while (0)
 
-#define countof(table) ((ssize_t)(sizeof(table) / sizeof((table)[0])))
-#define ssizeof(foo)   ((ssize_t)sizeof(foo))
+#define countof(table)  ((ssize_t)(sizeof(table) / sizeof((table)[0])))
+#define ssizeof(foo)    ((ssize_t)sizeof(foo))
 
 /**************************************************************************/
 /* Misc                                                                   */
 /**************************************************************************/
 #ifndef MAX
-#define MAX(a,b) (((a) > (b)) ? (a) : (b))
+#define MAX(a,b)  (((a) > (b)) ? (a) : (b))
 #endif
 
 #ifndef MIN
-#define MIN(a,b) (((a) > (b)) ? (b) : (a))
+#define MIN(a,b)  (((a) > (b)) ? (b) : (a))
 #endif
 
 enum sign {
@@ -94,6 +94,9 @@ enum sign {
 #define CMP(x, y)  ((enum sign)(((y) > (x)) - ((y) < (x))))
 #define SIGN(x)    CMP(0, x)
 
+/**************************************************************************/
+/* Type safe conversion functions                                         */
+/**************************************************************************/
 #define CONVERSION_FUNCTIONS(type1, type2) \
     static inline type2 *type1##_to_##type2(type1 *p) \
     { \
@@ -119,6 +122,10 @@ enum sign {
     { \
         return (type2 **)(p); \
     }
+
+/**************************************************************************/
+/* License control                                                        */
+/**************************************************************************/
 
 #ifdef EXPIRATION_DATE
 
@@ -237,5 +244,18 @@ static inline int getopt_check(int argc, char * const argv[],
 #define getopt(argc, argv, optstring)  getopt_check(argc, argv, optstring)
 
 #endif
+
+/**************************************************************************/
+/* Defensive programming                                                  */
+/**************************************************************************/
+
+#undef sprintf
+#define sprintf(...)  NEVER_USE_sprintf(__VA_ARGS__)
+#undef strtok
+#define strtok(...)   NEVER_USE_strtok(__VA_ARGS__)
+#undef strncpy
+#define strncpy(...)  NEVER_USE_strncpy(__VA_ARGS__)
+#undef strncat
+#define strncat(...)  NEVER_USE_strncat(__VA_ARGS__)
 
 #endif /* IS_LIB_COMMON_MACROS_H */
