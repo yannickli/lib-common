@@ -116,8 +116,7 @@ mmfile *mmfile_open_or_creat(const char *path, int flags, int mode,
             goto error;
         }
         mf->size = initialsize;
-    }
-    else {
+    } else {
         mf->size = st.st_size;
     }
     mf->area = mmap(NULL, mf->size, prot, MAP_SHARED, fd, 0);
