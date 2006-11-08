@@ -29,7 +29,7 @@ mmfile *mmfile_open(const char *path, int flags)
     struct stat st;
     mmfile *mf = mmfile_new();
 
-    fd = open(path, flags);
+    fd = open(path, flags, 0644);
     if (fd < 0)
         goto error;
 
@@ -81,6 +81,53 @@ mmfile *mmfile_creat(const char *path, off_t initialsize)
 
     close(fd);
     mf->path  = strdup(path);
+    return mf;
+
+  error:
+    if (fd >= 0) {
+        close(fd);
+    }
+    mmfile_close(&mf);
+    return NULL;
+}
+
+mmfile *mmfile_open_or_creat(const char *path, int flags, int mode,
+                             int initialsize, bool *created)
+{
+    int fd = -1, prot = PROT_READ;
+    struct stat st;
+    mmfile *mf = mmfile_new();
+
+    fd = open(path, flags | O_CREAT, mode);
+    if (fd < 0)
+        goto error;
+
+    if (fstat(fd, &st))
+        goto error;
+
+    if (flags & (O_WRONLY | O_RDWR)) {
+        prot |= PROT_WRITE;
+    }
+
+    *created = (st.st_size == 0);
+
+    if (st.st_size < initialsize) {
+        if (ftruncate(fd, initialsize)) {
+            goto error;
+        }
+        mf->size = initialsize;
+    }
+    else {
+        mf->size = st.st_size;
+    }
+    mf->area = mmap(NULL, mf->size, prot, MAP_SHARED, fd, 0);
+    if (mf->area == MAP_FAILED) {
+        mf->area = NULL;
+        goto error;
+    }
+
+    close(fd);
+    mf->path = strdup(path);
     return mf;
 
   error:
