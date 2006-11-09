@@ -336,6 +336,7 @@ int archive_parse(const byte *input, int len, archive_t *archive)
     bool dynamic = true;
     int allocated_blocs = 0;
     uint32_t version;
+    archive_head *head;
 
     if (input[0] != ARCHIVE_MAGIC0
     ||  input[1] != ARCHIVE_MAGIC1
@@ -366,7 +367,7 @@ int archive_parse(const byte *input, int len, archive_t *archive)
         return 0;
     }
 
-    archive_head *head = archive_parse_head(&input, &len);
+    head = archive_parse_head(&input, &len);
     if (head == NULL) {
         allocated_blocs = 8;
         archive->blocs = p_new(archive_bloc *, allocated_blocs);
