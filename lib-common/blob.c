@@ -1224,7 +1224,7 @@ int blob_pack(blob_t *blob, const char *fmt, ...)
     int c, n = 0;
 
     va_start(ap, fmt);
-    
+
     for (;;) {
         switch (c = *fmt++) {
         case '\0':
