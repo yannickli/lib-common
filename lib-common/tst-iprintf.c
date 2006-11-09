@@ -5091,17 +5091,19 @@ int main(void)
 #ifdef STD_FUNC
     int std_errcount = 0;
     char std_buffer[BSIZE];
-#define std_test(SFMT)  SINGLETEST(STD_FUNC, std_buffer, std_errcount, SFMT)
+    int (*std_func)(char *, size_t, const char *, ...) = STD_FUNC;
+#define STD_TEST(SFMT)  SINGLETEST(std_func, std_buffer, std_errcount, SFMT)
 #else
-#define std_test(SFMT)
+#define STD_TEST(SFMT)
 #endif
 
 #ifdef ALT_FUNC
     int alt_errcount = 0;
     char alt_buffer[BSIZE];
-#define alt_test(SFMT)  SINGLETEST(ALT_FUNC, alt_buffer, alt_errcount, SFMT)
+    int (*alt_func)(char *, size_t, const char *, ...) = ALT_FUNC;
+#define ALT_TEST(SFMT)  SINGLETEST(alt_func, alt_buffer, alt_errcount, SFMT)
 #else
-#define alt_test(SFMT)
+#define ALT_TEST(SFMT)
 #endif
 
 #define XSTR(s)      #s
@@ -5127,8 +5129,8 @@ int main(void)
                                                                             \
         for (iptr = SNAME; iptr->line; iptr++) {                            \
             ++testcount;                                                    \
-            std_test(SFMT);                                                 \
-            alt_test(SFMT);                                                 \
+            STD_TEST(SFMT);                                                 \
+            ALT_TEST(SFMT);                                                 \
         }                                                                   \
     }                                                                       \
 

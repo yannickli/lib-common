@@ -492,9 +492,10 @@ END_TEST
 
 START_TEST(check_pstrlen)
 {
+    const char *p = NULL;
     fail_if (pstrlen("123", 4) != 3, "pstrlen \"123\", 4 failed");
     fail_if (pstrlen("", 4) != 0, "pstrlen \"\", 4 failed");
-    fail_if (pstrlen(NULL, 0) != -1, "pstrlen NULL, 0 failed");
+    fail_if (pstrlen(p, 0) != -1, "pstrlen NULL, 0 failed");
     fail_if (pstrlen("abc\0def", 2) != -1, "pstrlen \"abc<NIL>def\", 2 failed");
     fail_if (pstrlen("abc\0def", 6) != 3, "pstrlen \"abc<NIL>def\", 6 failed");
 }
