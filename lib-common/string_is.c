@@ -27,7 +27,7 @@ int strtoip(const char *p, const char **endp)
     }
 
     if (p[0] == '+' || p[0] == '-') {
-        neg = p[0] == '-';
+        neg = (p[0] == '-');
         p++;
     }
 
