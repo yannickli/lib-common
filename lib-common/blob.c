@@ -26,6 +26,7 @@
 #include "blob_time.h"
 #include "mem.h"
 #include "string_is.h"
+#include "strconv.h"
 #include "err_report.h"
 
 #define IPRINTF_HIDE_STDIO 1
@@ -366,6 +367,28 @@ ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
 
     blob_extend(blob, res);
     return res;
+}
+
+ssize_t blob_save_to_file(blob_t *blob, const char *filename)
+{
+    ssize_t len, pos, nwritten;
+    int fd;
+
+    if ((fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0)
+        return -1;
+
+    len = blob->len;
+
+    for (pos = 0; pos < len; pos += nwritten) {
+        nwritten = write(fd, blob->data + pos, len - pos);
+        if (nwritten <= 0) {
+            close(fd);
+            unlink(filename);
+            return -1;
+        }
+    }
+    close(fd);
+    return len;
 }
 
 /**************************************************************************/
@@ -1085,6 +1108,166 @@ int blob_append_hex(blob_t *blob, const byte *src, ssize_t len)
 }
 
 #endif
+
+/*---------------- generic packing ----------------*/
+
+static inline char *convert_int10(char *p, int value)
+{
+    /* compute absolute value without tests */
+    unsigned int bits = value >> (8 * sizeof(int) - 1);
+    unsigned int num = (value ^ bits) + (bits & 1);
+
+    while (num >= 10) {
+        *--p = '0' + (num % 10);
+        num = num / 10;
+    }
+    *--p = '0' + num;
+    if (value < 0) {
+        *--p = '-';
+    }
+    return p;
+}
+
+static inline char *convert_hex(char *p, unsigned int value)
+{
+    static const char hexdigits[16] = "0123456789abcdef";
+    int i;
+
+    for (i = 0; i < 8; i++) {
+        *--p = hexdigits[value & 0xF];
+        value >>= 4;
+    }
+    return p;
+}
+
+/* OG: essentially like strtoip */
+static inline int parse_int10(byte *data, byte **datap)
+{
+    int neg;
+    unsigned int digit, value = 0;
+
+    neg = 0;
+    while (isspace(*data))
+        data++;
+    if (*data == '-') {
+        neg = 1;
+        data++;
+    } else
+    if (*data == '+') {
+        data++;
+    }
+    while ((digit = str_digit_value(*data)) < 10) {
+        value = value * 10 + digit;
+        data++;
+    }
+    *datap = data;
+    return neg ? -value : value;
+}
+
+static inline int parse_hex(byte *data, byte **datap)
+{
+    unsigned int digit, value = 0;
+
+    while (isspace(*data))
+        data++;
+    while ((digit = str_digit_value(*data)) < 16) {
+        value = (value << 4) + digit;
+        data++;
+    }
+    *datap = data;
+    return value;
+}
+
+int blob_pack(blob_t *blob, const char *fmt, ...)
+{
+    char buf[(64 + 2) / 3 + 1 + 1];
+    char *p;
+    va_list ap;
+    int c, n = 0;
+
+    va_start(ap, fmt);
+    
+    for (;;) {
+        switch (c = *fmt++) {
+        case '\0':
+            break;
+        case 'd':
+            p = convert_int10(buf + sizeof(buf), va_arg(ap, int));
+            blob_append_data(blob, p, buf + sizeof(buf) - p);
+            continue;
+        case 'x':
+            p = convert_hex(buf + sizeof(buf), va_arg(ap, unsigned int));
+            blob_append_data(blob, p, buf + sizeof(buf) - p);
+            continue;
+        case 's':
+            blob_append_cstr(blob, va_arg(ap, const char *));
+            continue;
+        case 'c':
+            c = va_arg(ap, int);
+            /* FALLTHRU */
+        default:
+            blob_append_byte(blob, c);
+            continue;
+        }
+        break;
+    }
+    va_end(ap);
+
+    return n;
+}
+
+int blob_unpack(blob_t *blob, int *pos, const char *fmt, ...)
+{
+    byte *data, *p;
+    va_list ap;
+    int c, n = 0;
+
+    va_start(ap, fmt);
+
+    if (*pos >= blob->len)
+        return 0;
+
+    data = blob->data + *pos;
+    for (;;) {
+        switch (c = *fmt++) {
+        case '\0':
+            break;
+        case 'd':
+            *va_arg(ap, int *) = parse_int10(data, &data);
+            n++;
+            continue;
+        case 'x':
+            *va_arg(ap, unsigned int *) = parse_hex(data, &data);
+            n++;
+            continue;
+        case 'c':
+            if (*data == '\0')
+                break;
+            *va_arg(ap, int *) = *data++;
+            n++;
+            continue;
+        case 's':
+            p = data;
+            c = *fmt;
+            while (*data && *data != c && *data != '\n')
+                data++;
+            *va_arg(ap, char **) = p_dupstr(p, data - p);
+            n++;
+            continue;
+        default:
+            if (c != *data)
+                break;
+            data++;
+            continue;
+        }
+        break;
+    }
+    va_end(ap);
+
+    *pos = data - blob->data;
+
+    return n;
+}
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

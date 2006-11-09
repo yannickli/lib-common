@@ -220,6 +220,8 @@ ssize_t blob_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f) {
 /* negative count means "auto" */
 ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count);
 
+ssize_t blob_save_to_file(blob_t *blob, const char *filename);
+
 /**************************************************************************/
 /* Blob printf functions                                                  */
 /**************************************************************************/
@@ -231,6 +233,9 @@ ssize_t blob_append_fmt(blob_t *blob, const char *fmt, ...)
 ssize_t blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap);
 ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...)
         __attr_format__(2,3);
+
+int blob_pack(blob_t *blob, const char *fmt, ...);
+int blob_unpack(blob_t *blob, int *pos, const char *fmt, ...);
 
 /**************************************************************************/
 /* Blob search functions                                                  */
