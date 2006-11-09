@@ -316,6 +316,7 @@ int blob_append_ira(blob_t *dst, const byte *src, ssize_t len)
             data += 4;
         }
     }
+    *data = '\0';
 
     dst->len = data - dst->data;
     return 0;
