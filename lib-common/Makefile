@@ -32,6 +32,7 @@ libcommon_SOURCES = \
 	err_debug.c   \
 	fifo.c \
 	ioveclist.c \
+	log_file.c \
 	mmappedfile.c \
 	string_is.c \
 	iprintf.c \
