@@ -31,6 +31,11 @@ static void log_file_wipe(log_file_t *log_file)
 GENERIC_NEW(log_file_t, log_file);
 GENERIC_DELETE(log_file_t, log_file);
 
+/* log file names should depend on rotation scheme: slower rotation
+ * scheme should shorten log filename so reopening it yields the same
+ * file
+ */
+
 static inline int build_real_path(char *buf, int size,
                                   const char *prefix, time_t date)
 {
@@ -63,7 +68,7 @@ static inline FILE *log_file_open_new(const char *prefix, time_t date)
 
     res = fopen(real_path, "a");
     if (!res) {
-        e_trace(1, "Could not open log file : %s (%m)", real_path);
+        e_trace(1, "Could not open log file: %s (%m)", real_path);
     }
 
     return res;
@@ -91,7 +96,7 @@ log_file_t *log_file_open(const char *prefix)
                                             log_file->open_date);
 
     if (!log_file->_internal) {
-        e_trace(1, "Could not open first log file !");
+        e_trace(1, "Could not open first log file");
         log_file_delete(&log_file);
         return NULL;
     }
@@ -139,7 +144,7 @@ static inline int log_check_rotate(log_file_t *log_file)
         if (stats.st_size >= log_file->max_size) {
             log_file_rotate(log_file, time(NULL));
             if (!log_file->_internal) {
-                e_debug(1, "Could not rotate !");
+                e_debug(1, "Could not rotate");
                 return 1;
             }
             rotated = true;
@@ -152,7 +157,7 @@ static inline int log_check_rotate(log_file_t *log_file)
             log_file_rotate(log_file, now);
 
             if (!log_file->_internal) {
-                e_debug(1, "Could not rotate !");
+                e_debug(1, "Could not rotate");
                 return 1;
             }
             log_file->rotate_date =
