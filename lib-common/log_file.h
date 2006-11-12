@@ -19,6 +19,10 @@
 
 #include "mem.h"
 
+/**
+ *  TODO: Should support a symlink to the last opened log file
+ */
+
 /* This module provides auto rorating log files : log files are rotated
  * automaticcaly depending on file size or data, or both.
  *
