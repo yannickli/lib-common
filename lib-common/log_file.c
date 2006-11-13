@@ -42,11 +42,11 @@ static inline int build_real_path(char *buf, int size,
     struct tm *cur_date;
 
     cur_date = localtime(&date);
-    return snprintf(buf, size, "%s_%02d%02d%02d_%02d%02d%02d.log",
+    return snprintf(buf, size, "%s_%04d%02d%02d_%02d%02d%02d.log",
                     prefix,
-                    cur_date->tm_year,
+                    cur_date->tm_year + 1900,
                     cur_date->tm_mon,
-                    cur_date->tm_mday,
+                    cur_date->tm_mday + 1,
                     cur_date->tm_hour,
                     cur_date->tm_min,
                     cur_date->tm_sec);
