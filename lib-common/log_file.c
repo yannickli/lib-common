@@ -195,3 +195,11 @@ int log_fprintf(log_file_t *log_file, const char *format, ...)
 
     return res;
 }
+
+int log_flush(log_file_t *log_file)
+{
+    if (log_file->_internal) {
+        return fflush(log_file->_internal);
+    }
+    return 0;
+}

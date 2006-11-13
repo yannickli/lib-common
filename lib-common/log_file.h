@@ -49,5 +49,6 @@ size_t log_fwrite(const void *buf, size_t size, size_t nmemb,
 int log_fprintf(log_file_t *log_file, const char *format, ...)
     __attr_format__(2, 3)  __attr_nonnull__((1, 2));
 
+int log_flush(log_file_t *log_file);
 
 #endif /* IS_LIB_COMMON_LOG_FILE_H */
