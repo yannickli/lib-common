@@ -33,6 +33,7 @@ typedef enum {
 
 void ioveclist_init(ioveclist *l);
 int ioveclist_insert_first(ioveclist *l, const void *data, int size);
+int ioveclist_append(ioveclist *l, const void *data, int size);
 static inline int ioveclist_insert_blob(ioveclist *l, blob_t *blob)
 {
     return ioveclist_insert_first(l, blob->data, blob->len);

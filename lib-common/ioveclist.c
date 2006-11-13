@@ -39,6 +39,19 @@ int ioveclist_insert_first(ioveclist *l, const void *data, int size)
     return 0;
 }
 
+int ioveclist_append(ioveclist *l, const void *data, int size)
+{
+    if (l->used >= IOVECLIST_OBJS_NUM) {
+        return 1;
+    }
+    /* this cast is OK because we use iovec only for writing data */
+    l->objs[l->used].iov_base = (void*)data;
+    l->objs[l->used].iov_len = size;
+
+    l->used++;
+    return 0;
+}
+
 /* write content of ioveclist to fd. fd is non-blocking.
  * Return value :
  *    IOVECLIST_WRITE_ERROR  if write error
