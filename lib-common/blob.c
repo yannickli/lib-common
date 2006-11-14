@@ -1653,23 +1653,23 @@ START_TEST(check_printf)
     blob_append_fmt(&blob, "5");
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, "012345") != 0,
-            "printf failed");
+            "blob_append_fmt failed");
     fail_if(blob.len != strlen("012345"),
-            "printf failed");
+            "blob_append_fmt failed");
 
     blob_append_fmt(&blob, "%s89", "67");
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, "0123456789") != 0,
-            "printf failed");
+            "blob_append_fmt failed");
     fail_if(blob.len != strlen("0123456789"),
-            "printf failed");
+            "blob_append_fmt failed");
 
     blob_set_fmt(&blob, "%080i", 0);
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, cmp) != 0,
-            "printf failed");
+            "blob_append_fmt failed");
     fail_if(blob.len != sstrlen(cmp),
-            "printf failed");
+            "blob_append_fmt failed");
 
     check_teardown(&blob, NULL);
 }
