@@ -355,6 +355,8 @@ int blob_append_hex(blob_t *dst, const byte *src, ssize_t len);
 
 /* in blob_emi.c */
 int blob_append_ira(blob_t *dst, const byte *src, ssize_t len);
+int blob_decode_ira(blob_t *dst, const byte *src, ssize_t len);
+int string_decode_ira(char *dst, const char *src);
 
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
