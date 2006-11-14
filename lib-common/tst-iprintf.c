@@ -1,3 +1,9 @@
+/*
+ * Test program for integer formatting from Cygnus C library
+ *
+ * original file name: tiformat.c
+ */
+
 #include <stdio.h>
 #include <string.h>
 
@@ -12,7 +18,6 @@
 
 #define TEST_ALT_NUMBERS  1
 
-/* Tests taken from Cygnus C library. */
 typedef struct {
     int line;
     long value;
