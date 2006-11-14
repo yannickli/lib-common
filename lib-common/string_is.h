@@ -30,6 +30,12 @@ ssize_t pstrcpylen(char *dest, ssize_t size, const char *src, ssize_t n);
 ssize_t pstrcat(char *dest, ssize_t size, const char *src);
 ssize_t pstrlen(const char *str, ssize_t size)  __attr_nonnull__((1));
 
+/* OG: should have a generic naming convention for functions that
+ * return the end of string upon failure to find or completion.
+ * use that for strcpy, strcat, memcpy, memmove, memchr, strstr,
+ * memsearch, stristr stristrn, pstrcpy, pstrcat, pstrcpylen... and
+ * their v* equivalent
+ */
 static inline const char *pstrchrnul(const char *s, int c) {
     while (*s && *s != c)
         s++;
