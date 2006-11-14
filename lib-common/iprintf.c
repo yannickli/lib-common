@@ -647,18 +647,24 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         case 'p':
             flags |= FLAG_ALT;
             base = 16;
-            /* Should share with has_unsigned switch code */
+            {
+                void *vp = va_arg(ap, void *);
+                
+                if (vp == NULL) {
+                    lp = "(nil)";
+                    len = 5;
+                    goto has_string_len;
+                }
+                /* Should share with has_unsigned switch code */
 #if UINTPTR_MAX == UINT32_MAX
-            /* OG: should test NULL and print (nil) prec at least 5 */
-            lp = convert_uint32(buf + sizeof(buf),
-                                (uint32_t)va_arg(ap, void *), base);
+                lp = convert_uint32(buf + sizeof(buf), (uint32_t)vp, base);
 #elif UINTPTR_MAX == UINT64_MAX
-            lp = convert_uint64(buf + sizeof(buf),
-                                (uint64_t)va_arg(ap, void *), base);
+                lp = convert_uint64(buf + sizeof(buf), (uint64_t)vp, base);
 #else
 #error "cannot determine pointer size"
 #endif
-            goto patch_unsigned_conversion;
+                goto patch_unsigned_conversion;
+            }
 
         case 'X':
             flags |= FLAG_UPPER;
