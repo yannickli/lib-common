@@ -23,8 +23,8 @@
  */
 static int const gsm7_to_iso8859_15[] = {
 
-#define HEX(x)   ((x) < 10 ? '0' + (x) : 'A' + (x) - 10)
-#define X(x)     ((HEX(((x) >> 4) & 15))  + (HEX(((x) >> 0) & 15) << 8))
+/* keep this macro to eventually implement UTF-8 transcoding */
+#define X(x)     (x)
 #define UNK      '.'
     /* 0x00,   0x01,   0x02,   0x03,   0x04,   0x05,   0x06,   0x07,    */
        X(0x40),X(0xA3),X(0x24),X(0xA5),X(0xE8),X(0xE9),X(0xFA),X(0xEC),
@@ -202,15 +202,16 @@ int string_decode_ira(char *dst, const char *src)
     for (;;) {
         int ind, q0, q1;
 
-        if ((q0 = str_digit_value(src[0]) >= 16)
-        ||  (q1 = str_digit_value(src[1]) >= 16))
+        if ( (q0 = str_digit_value(src[0])) >= 16
+        ||   (q1 = str_digit_value(src[1])) >= 16)
               break;
 
         ind = q0 * 16 + q1;
         if (ind == 0x1B
-        &&  (q0 = str_digit_value(src[2]) < 16)
-        &&  (q1 = str_digit_value(src[3]) < 16)) {
+        &&  (q0 = str_digit_value(src[2])) < 16
+        &&  (q1 = str_digit_value(src[3])) < 16) {
             ind = 256 + q0 * 16 + q1;
+            src += 2;
         }
         dst[len] = gsm7_to_iso8859_15[ind];
         len++;
