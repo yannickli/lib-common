@@ -122,24 +122,29 @@ static inline void *mem_dupstr(const void *src, ssize_t len)
     ((type *)mem_realloc0((mem), (oldcount) * sizeof(type), \
                           (newcount) * sizeof(type)))
 
-#define GENERIC_INIT(type, prefix) \
-    static inline type * prefix##_init(type *var) {         \
+#define DO_INIT(type, prefix) \
+    type * prefix##_init(type *var) {                       \
         p_clear(var, 1);                                    \
         return var;                                         \
     }
-#define GENERIC_NEW(type, prefix) \
-    static inline type * prefix##_new(void) {               \
+#define DO_NEW(type, prefix) \
+    type * prefix##_new(void) {                             \
         return prefix##_init(p_new_raw(type, 1));           \
     }
-#define GENERIC_WIPE(type, prefix) \
-    static inline void prefix##_wipe(type *var __unused__) {}
+#define DO_WIPE(type, prefix) \
+    void prefix##_wipe(type *var __unused__) {}
 
-#define GENERIC_DELETE(type, prefix) \
-    static inline void prefix##_delete(type **var) {        \
+#define DO_DELETE(type, prefix) \
+    void prefix##_delete(type **var) {                      \
         if (*var) {                                         \
             prefix##_wipe(*var);                            \
             p_delete(var);                                  \
         }                                                   \
     }
+
+#define GENERIC_INIT(type, prefix)    static inline DO_INIT(type, prefix)
+#define GENERIC_NEW(type, prefix)     static inline DO_NEW(type, prefix)
+#define GENERIC_WIPE(type, prefix)    static inline DO_WIPE(type, prefix)
+#define GENERIC_DELETE(type, prefix)  static inline DO_DELETE(type, prefix)
 
 #endif /* IS_LIB_COMMON_MEM_H */
