@@ -20,6 +20,8 @@
 #define ARCHIVE_MAGIC3      0x42
 #define ARCHIVE_MAGIC_SIZE  4
 
+#define ARCHIVE_MAGIC_STR "IS-\x42"
+
 #define B4_TO_INT(b0, b1, b2, b3) \
          (((b0) << 24) +          \
           ((b1) << 16) +          \
@@ -45,5 +47,9 @@
 #define ARCHIVE_TAG_FILE   (B4_TO_INT('F', 'I', 'L', 'E'))
 #define ARCHIVE_TAG_HEAD   (B4_TO_INT('H', 'E', 'A', 'D'))
 #define ARCHIVE_TAG_TPL    (B4_TO_INT('T', 'P', 'L', ' '))
+
+#define ARCHIVE_TAG_FILE_STR   "FILE"
+#define ARCHIVE_TAG_HEAD_STR   "HEAD"
+#define ARCHIVE_TAG_TPL_STR    "TPL "
 
 #endif /* IS_LIB_COMMON_ARCHIVE_PRIV_H */
