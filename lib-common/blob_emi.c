@@ -12,12 +12,16 @@
 /**************************************************************************/
 
 #include "macros.h"
+#include "strconv.h"
 #include "blob.h"
 
 /*---------------- IRA Conversion ----------------*/
 
-
-static int const gsm7_to_iso885915[] = {
+/* Convert to subset of ISO-8859-15: the only difference with
+ * ISO-8859-1 (and thus from unicode) should be the EURO symbol located
+ * at 0xA4 instead of U+20AC
+ */
+static int const gsm7_to_iso8859_15[] = {
 
 #define HEX(x)   ((x) < 10 ? '0' + (x) : 'A' + (x) - 10)
 #define X(x)     ((HEX(((x) >> 4) & 15))  + (HEX(((x) >> 0) & 15) << 8))
@@ -150,13 +154,15 @@ static int const gsm7_to_iso885915[] = {
     /* 0x1BF0, 0x1BF1, 0x1BF2, 0x1BF3, 0x1BF4, 0x1BF5, 0x1BF6, 0x1BF7,  */
        UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
     /* 0x1BF8, 0x1BF9, 0x1BFA, 0x1BFB, 0x1BFC, 0x1BFD, 0x1BFE, 0x1BFF   */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
 #undef UNK
 #undef X
 #undef HEX
 };
 
-
+/* Achtung: Decode a hex encoded (IRA) byte array into ISO-8859-15
+ * subset, not UTF-8
+ * */
 int blob_decode_ira(blob_t *dst, const byte *src, ssize_t len)
 {
     int pos;
@@ -164,51 +170,53 @@ int blob_decode_ira(blob_t *dst, const byte *src, ssize_t len)
     byte *data;
 
     pos = dst->len;
-    blob_extend(dst, len/2 + 1);
+    blob_extend(dst, len / 2 + 1);
     data = dst->data + pos;
-    end = src + len;
+    /* trim last byte if len is odd */
+    end = src + (len & ~1);
     while (src < end) {
-        int escaped = 0;
-        int ind;
+        int ind = 0;
 
-        if (src[0] == '1' && src[1] == 'B') {
-            escaped = 1;
+        if (src[0] == '1' && src[1] == 'B' && src < end - 2) {
+            ind = 256;
             src += 2;
         }
 #define N(x)    ((x) <= '9' ? (x) - '0' : 10 + (x) - 'A')
-        ind = N(src[0]) * 16 + N(src[1]);
-        data[0] = gsm7_to_iso885915[ind + (escaped ? 256 : 0)];
-        escaped = 0;
+        ind += N(src[0]) * 16 + N(src[1]);
+        data[0] = gsm7_to_iso8859_15[ind];
         data++;
         src += 2;
     }
     data[0] = '\0';
-    data++;
     dst->len = data - dst->data;
     return 0;
 }
 
+/* Achtung: Parse IRA (hex encoded) string into 8859-15 byte array, not
+ * UTF-8
+ */
 int string_decode_ira(char *dst, const char *src)
 {
     int len = 0;
 
-    while (src) {
-        int escaped = 0;
-        int ind;
+    for (;;) {
+        int ind, q0, q1;
 
-        if (src[0] == '1' && src[1] == 'B') {
-            escaped = 1;
-            src += 2;
+        if ((q0 = str_digit_value(src[0]) >= 16)
+        ||  (q1 = str_digit_value(src[1]) >= 16))
+              break;
+
+        ind = q0 * 16 + q1;
+        if (ind == 0x1B
+        &&  (q0 = str_digit_value(src[2]) < 16)
+        &&  (q1 = str_digit_value(src[3]) < 16)) {
+            ind = 256 + q0 * 16 + q1;
         }
-#define N(x)    ((x) <= '9' ? (x) - '0' : 10 + (x) - 'A')
-        ind = N(src[0]) * 16 + N(src[1]);
-        dst[0] = gsm7_to_iso885915[ind + (escaped ? 256 : 0)];
+        dst[len] = gsm7_to_iso8859_15[ind];
         len++;
-        escaped = 0;
-        dst++;
         src += 2;
     }
-    dst[0] = '\0';
+    dst[len] = '\0';
     return len;
 }
 
