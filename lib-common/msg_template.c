@@ -324,6 +324,9 @@ static void msg_template_blob_encode(blob_t *dst, part_encoding enc,
           blob_append_data(dst, data, len);
         }
         break;
+      case ENC_SMTP_DATA:
+        blob_append_smtp_data(dst, data, len);
+        break;
       case ENC_NONE:
       default:
         blob_append_data(dst, data, len);
