@@ -524,7 +524,7 @@ archive_build_file *archive_add_file(archive_build *arch, const char *name,
     file->date_update = 0;
     file->attrs = 0;
     file->nb_attrs = 0;
-    
+
     file->payload = p_new(byte, len);
     memcpy((byte*)file->payload, payload, len);
     file->payload_len = len;
@@ -534,7 +534,6 @@ archive_build_file *archive_add_file(archive_build *arch, const char *name,
     } else {
         arch->blocs = p_renew(archive_build_file *, arch->blocs,
                                  arch->nb_blocs, arch->nb_blocs + 1);
-        
     }
 
     arch->blocs[arch->nb_blocs] = file;
@@ -547,7 +546,7 @@ int archive_file_add_property(archive_build_file *file,
                               const char* name, const char *value)
 {
     archive_build_file_attr *attr = p_new(archive_build_file_attr, 1);
-    
+
     if (!file) {
         return 1;
     }
