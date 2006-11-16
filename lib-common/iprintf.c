@@ -240,12 +240,19 @@ static int fmt_output(FILE *stream, char *str, size_t size,
     const char *format0, *lp;
     int sign;
 
-    if (!format) {
-        errno = EINVAL;
-        return -1;
-    }
     if (size > INT_MAX) {
         size = 0;
+    }
+
+    if (!format) {
+        /* set output to empty string out of compatibility with side
+         * effect in glibc.  NULL format is really an error
+         */
+        if (!stream && size > 0) {
+            str[0] = '\0';
+        }
+        errno = EINVAL;
+        return -1;
     }
 
     count = 0;
