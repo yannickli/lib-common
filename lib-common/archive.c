@@ -524,9 +524,7 @@ archive_build_file *archive_add_file(archive_build *arch, const char *name,
     file->attrs = 0;
     file->nb_attrs = 0;
 
-    /* OG: use p_dupmem? */
-    file->payload = p_new(byte, len);
-    memcpy(file->payload, payload, len);
+    file->payload = p_dup(payload, len);
     file->payload_len = len;
 
     if (arch->nb_blocs == 0) {
@@ -542,6 +540,21 @@ archive_build_file *archive_add_file(archive_build *arch, const char *name,
     return file;
 }
 
+archive_build_file *archive_lookup_file(archive_build *arch,
+                                        const char *name)
+{
+    int i = 0;
+
+    for (i = 0; i < arch->nb_blocs; i++) {
+        if (strequal(arch->blocs[i]->name, name)) {
+            return arch->blocs[i];
+        }
+    }
+
+    return NULL;
+}
+
+
 int archive_file_add_property(archive_build_file *file,
                               const char *name, const char *value)
 {
@@ -552,9 +565,9 @@ int archive_file_add_property(archive_build_file *file,
     }
 
     attr->key_len = strlen(name);
-    attr->key     = strdup(name);
+    attr->key     = p_dupstr(name, attr->key_len);
     attr->val_len = strlen(value);
-    attr->val     = strdup(value);
+    attr->val     = p_dupstr(value, attr->val_len);
 
     if (file->nb_attrs == 0) {
         file->attrs = p_new(archive_build_file_attr *, 1);
