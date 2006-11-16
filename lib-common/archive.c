@@ -692,9 +692,7 @@ int blob_append_archive(blob_t *output, const archive_build_array *archive)
 
     /* Write files */
     for (i = 0; i < archive->len; i++) {
-        archive_build *bloc = archive->tab[i];
-
-        archive_write_file(output, bloc);
+        archive_write_file(output, archive->tab[i]);
     }
 
     return 0;
