@@ -128,6 +128,8 @@ GENERIC_DELETE(archive_build, archive_build);
 
 archive_build_file *archive_add_file(archive_build *arch, const char *name,
                                      const byte *payload, int len);
+archive_build_file *archive_lookup_file(archive_build *arch,
+                                        const char *name);
 
 static inline archive_build_file *
 archive_add_cstr(archive_build *arch, const char *name, const char *s) {
