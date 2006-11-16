@@ -131,8 +131,8 @@ GENERIC_DELETE(archive_build, archive_build);
 ARRAY_FUNCTIONS(archive_build, archive_build);
 
 
-void archive_file_add_property(archive_build *file,
-                               const char *name, const char *value);
+void archive_add_property(archive_build *file,
+                          const char *name, const char *value);
 
 archive_build *
 archive_add_file(archive_build_array *arch,

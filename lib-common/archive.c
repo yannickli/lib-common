@@ -529,8 +529,8 @@ void archive_build_wipe(archive_build *file)
 GENERIC_NEW(archive_build, archive_build);
 
 
-void archive_file_add_property(archive_build *file,
-                              const char *name, const char *value)
+void archive_add_property(archive_build *file,
+                          const char *name, const char *value)
 {
     archive_attr *attr = archive_attr_new();
 
