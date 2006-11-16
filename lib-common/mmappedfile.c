@@ -109,7 +109,9 @@ mmfile *mmfile_open_or_creat(const char *path, int flags, int mode,
         prot |= PROT_WRITE;
     }
 
-    *created = (st.st_size == 0);
+    if (created) {
+        *created = (st.st_size == 0);
+    }
 
     if (st.st_size < initialsize) {
         if (ftruncate(fd, initialsize)) {
