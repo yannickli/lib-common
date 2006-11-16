@@ -33,10 +33,8 @@ GENERIC_NEW(fifo, fifo);
 void fifo_wipe(fifo *f, fifo_item_dtor_f *dtor);
 void fifo_delete(fifo **f, fifo_item_dtor_f *dtor);
 
-void *fifo_get(fifo *f)
-    __attribute__((nonnull(1)));
-void fifo_put(fifo *f, void *ptr)
-    __attribute__((nonnull(1)));
+void *fifo_get(fifo *f)            __attr_nonnull__((1));
+void fifo_put(fifo *f, void *ptr)  __attr_nonnull__((1));
 
 /**************************************************************************/
 /* Typed Fifos                                                            */

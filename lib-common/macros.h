@@ -15,23 +15,29 @@
 #define IS_LIB_COMMON_MACROS_H
 
 /**************************************************************************/
-/* GNU EXTENSIONS fake                                                    */
+/* GNU extension wrappers                                                 */
 /**************************************************************************/
 
 /*
- * __attr_format__(pos1, pos2) => printf formats
  * __attr_unused__             => unused vars
  * __attr_noreturn__           => functions that perform abord()/exit()
+ * __attr_printf__(pos1, pos2) => printf formats
  */
 
-#define __attr_format__(format_idx, arg_idx)  \
-    __attribute__((format(printf, format_idx, arg_idx)))
-#define __unused__           __attribute__((unused))
-#define __attr_noreturn__    __attribute__((noreturn))
-#define __attr_nonnull__(l)  __attribute__((nonnull l))
+#if !defined(__doxygen_mode__)
+#  if (!defined(__GNUC__) || __GNUC__ < 3) && !defined(__attribute__)
+#    define __attribute__(attr)
+#  endif
 
-#if (!defined(__GNUC__) || __GNUC__ < 3) && !defined(__attribute__)
-#  define __attribute__(foo)
+#  define __unused__             __attribute__((unused))
+#  define __attr_noreturn__      __attribute__((noreturn))
+#  define __attr_nonnull__(l)    __attribute__((nonnull l))
+#  define __attr_printf__(a, b)  __attribute__((format(printf, a, b)))
+#endif
+
+#ifdef __GNUC__
+#  undef EXPORT
+#  define EXPORT    __attribute__((visibility("default")))
 #endif
 
 /**************************************************************************/

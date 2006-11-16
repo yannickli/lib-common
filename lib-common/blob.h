@@ -228,11 +228,11 @@ ssize_t blob_save_to_file(blob_t *blob, const char *filename);
 
 ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap);
 ssize_t blob_append_fmt(blob_t *blob, const char *fmt, ...)
-        __attr_format__(2,3);
+        __attr_printf__(2,3);
 
 ssize_t blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap);
 ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...)
-        __attr_format__(2,3);
+        __attr_printf__(2,3);
 
 int blob_pack(blob_t *blob, const char *fmt, ...);
 int blob_unpack(blob_t *blob, int *pos, const char *fmt, ...);

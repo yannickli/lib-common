@@ -20,7 +20,7 @@
 
 #include "macros.h"
 
-__attr_nonnull__()
+__attr_nonnull__((1))
 static inline ssize_t sstrlen(const char *str) {
     return (ssize_t)strlen((const char *)str);
 }

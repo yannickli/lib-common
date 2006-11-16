@@ -40,7 +40,7 @@ void generic_array_delete(generic_array **array, array_item_dtor_f *dtor);
 /**************************************************************************/
 
 void generic_array_insert(generic_array *array, ssize_t pos, void *item)
-    __attribute__((nonnull(1)));
+    __attr_nonnull__((1));
 
 static inline void generic_array_append(generic_array *array, void *item)
 {
@@ -52,7 +52,7 @@ static inline void generic_array_push(generic_array *array, void *item)
 }
 
 void *generic_array_take(generic_array *array, ssize_t pos)
-    __attribute__((nonnull(1)));
+    __attr_nonnull__((1));
 
 static inline void
 generic_array_swap(generic_array *array, ssize_t i, ssize_t j)
