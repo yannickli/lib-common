@@ -19,11 +19,10 @@
 #include "macros.h"
 #include "mem.h"
 #include "blob.h"
+#include "array.h"
 
-/**
- *  Archive format :
- *
- *
+/*
+ * Archive format :
  */
 
 typedef struct {
@@ -68,31 +67,6 @@ typedef struct {
     archive_bloc *last_bloc;
 } archive_t;
 
-/**
- *  Archive building structs
- */
-typedef struct archive_build_file_attr {
-    char *key;
-    int key_len;
-    char *val;
-    int val_len;
-} archive_build_file_attr;
-
-typedef struct archive_build_file {
-    uint32_t date_create;
-    uint32_t date_update;
-    char *name;
-    archive_build_file_attr **attrs;
-    int nb_attrs;
-    byte *payload;
-    int payload_len;
-} archive_build_file;
-
-typedef struct archive_build {
-    archive_build_file **blocs;
-    int nb_blocs;
-} archive_build;
-
 CONVERSION_FUNCTIONS(archive_head, archive_bloc);
 CONVERSION_FUNCTIONS(archive_file, archive_bloc);
 CONVERSION_FUNCTIONS(archive_tpl, archive_bloc);
@@ -117,36 +91,60 @@ const archive_file *archive_file_next_path(const archive_t *archive,
                                            const char *path,
                                            const archive_file *previous);
 
-/*
- * Archive building
- */
-
-GENERIC_INIT(archive_build, archive_build);
-GENERIC_NEW(archive_build, archive_build);
-void archive_build_wipe(archive_build *archive);
-GENERIC_DELETE(archive_build, archive_build);
-
-archive_build_file *archive_add_file(archive_build *arch, const char *name,
-                                     const byte *payload, int len);
-archive_build_file *archive_lookup_file(archive_build *arch,
-                                        const char *name);
-
-static inline archive_build_file *
-archive_add_cstr(archive_build *arch, const char *name, const char *s) {
-    return archive_add_file(arch, name, (const byte *)s, strlen(s));
-}
-
-int archive_file_add_property(archive_build_file *file,
-                              const char *name, const char *value);
-
-int blob_append_archive(blob_t *output, const archive_build *archive);
-
-
 #ifdef NDEBUG
 #  define archive_dump(...)
 #else
 void archive_dump(const archive_t *archive, int level);
 #endif
+
+/****************************************************************************/
+/* Archive building types                                                   */
+/****************************************************************************/
+
+typedef struct archive_attr {
+    char *key;
+    char *val;
+} archive_attr;
+ARRAY_TYPE(archive_attr, archive_attr);
+
+static inline void archive_attr_wipe(archive_attr *attr) {
+    p_delete(&attr->key);
+    p_delete(&attr->val);
+}
+GENERIC_DELETE(archive_attr, archive_attr);
+ARRAY_FUNCTIONS(archive_attr, archive_attr);
+
+typedef struct archive_build {
+    char *name;
+
+    uint32_t date_create;
+    uint32_t date_update;
+    archive_attr_array attrs;
+
+    byte *payload;
+    int payload_len;
+} archive_build;
+ARRAY_TYPE(archive_build, archive_build);
+
+void archive_build_wipe(archive_build *file);
+GENERIC_DELETE(archive_build, archive_build);
+ARRAY_FUNCTIONS(archive_build, archive_build);
+
+
+void archive_file_add_property(archive_build *file,
+                               const char *name, const char *value);
+
+archive_build *
+archive_add_file(archive_build_array *arch,
+                 const char *name, const byte *payload, int len);
+static inline archive_build *
+archive_add_cstr(archive_build_array *arch, const char *name, const char *s) {
+    return archive_add_file(arch, name, (const byte *)s, strlen(s));
+}
+archive_build * archive_find_file(archive_build_array *, const char *name);
+
+int blob_append_archive(blob_t *output, const archive_build_array *archive);
+
 
 #ifdef CHECK
 #include <check.h>

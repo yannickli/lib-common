@@ -235,8 +235,7 @@ static archive_file *archive_parse_file(const byte **input, int *len)
             if (i == 0) {
                 p_delete(file->attrs);
                 file->nb_attrs = 0;
-            }
-            else {
+            } else {
                 file->attrs = p_renew(archive_file_attr *, file->attrs,
                                       file->nb_attrs, i);
                 file->nb_attrs = i;
@@ -259,8 +258,7 @@ static archive_file *archive_parse_file(const byte **input, int *len)
             if (i == 0) {
                 p_delete(file->attrs);
                 file->nb_attrs = 0;
-            }
-            else {
+            } else {
                 file->attrs = p_renew(archive_file_attr *, file->attrs,
                                       file->nb_attrs, i);
                 file->nb_attrs = i;
@@ -509,81 +507,66 @@ const archive_file *archive_file_next_path(const archive_t *archive,
     return NULL;
 }
 
-/***
- *  Archive building 
- */
+/****************************************************************************/
+/* Archive building                                                         */
+/****************************************************************************/
 
-archive_build_file *archive_add_file(archive_build *arch, const char *name,
-                                     const byte *payload, int len)
+GENERIC_INIT(archive_attr, archive_attr);
+GENERIC_NEW(archive_attr, archive_attr);
+
+static archive_build *archive_build_init(archive_build *file)
 {
-    archive_build_file *file = p_new(archive_build_file, 1);
+    p_clear(file, 1);
+    archive_attr_array_init(&file->attrs);
+    return file;
+}
+void archive_build_wipe(archive_build *file)
+{
+    archive_attr_array_wipe(&file->attrs, true);
+    p_delete(&file->name);
+    p_delete(&file->payload);
+}
+GENERIC_NEW(archive_build, archive_build);
 
-    file->name = strdup(name);
-    file->date_create = 0;
-    file->date_update = 0;
-    file->attrs = 0;
-    file->nb_attrs = 0;
 
+void archive_file_add_property(archive_build *file,
+                              const char *name, const char *value)
+{
+    archive_attr *attr = archive_attr_new();
+
+    attr->key = strdup(name);
+    attr->val = strdup(value);
+
+    archive_attr_array_append(&file->attrs, attr);
+}
+
+archive_build *archive_add_file(archive_build_array *arch,
+                                const char *name, const byte *payload, int len)
+{
+    archive_build *file = archive_build_new();
+    file->name    = strdup(name);
     file->payload = p_dup(payload, len);
     file->payload_len = len;
 
-    if (arch->nb_blocs == 0) {
-        arch->blocs = p_new(archive_build_file *, 1);
-    } else {
-        arch->blocs = p_renew(archive_build_file *, arch->blocs,
-                              arch->nb_blocs, arch->nb_blocs + 1);
-    }
-
-    arch->blocs[arch->nb_blocs] = file;
-    arch->nb_blocs++;
-
+    archive_build_array_append(arch, file);
     return file;
 }
 
-archive_build_file *archive_lookup_file(archive_build *arch,
-                                        const char *name)
+archive_build *
+archive_find_file(archive_build_array *arch, const char *name)
 {
-    int i = 0;
+    int i;
 
-    for (i = 0; i < arch->nb_blocs; i++) {
-        if (strequal(arch->blocs[i]->name, name)) {
-            return arch->blocs[i];
-        }
+    for (i = 0; i < arch->len; i++) {
+        if (!strcmp(arch->tab[i]->name, name))
+            return arch->tab[i];
     }
 
     return NULL;
 }
 
-
-int archive_file_add_property(archive_build_file *file,
-                              const char *name, const char *value)
-{
-    archive_build_file_attr *attr = p_new(archive_build_file_attr, 1);
-
-    if (!file) {
-        return 1;
-    }
-
-    attr->key_len = strlen(name);
-    attr->key     = p_dupstr(name, attr->key_len);
-    attr->val_len = strlen(value);
-    attr->val     = p_dupstr(value, attr->val_len);
-
-    if (file->nb_attrs == 0) {
-        file->attrs = p_new(archive_build_file_attr *, 1);
-    } else {
-        file->attrs = p_renew(archive_build_file_attr *, file->attrs,
-                              file->nb_attrs, file->nb_attrs + 1);
-    }
-
-    file->attrs[file->nb_attrs] = attr;
-    file->nb_attrs++;
-
-    return 0;
-}
-
 static inline void archive_write_file(blob_t *output,
-                                      const archive_build_file *file)
+                                      const archive_build *file)
 {
     int packet_size;
     int attr_size = 0;
@@ -604,19 +587,19 @@ static inline void archive_write_file(blob_t *output,
     BLOB_APPEND_UINT32(output, 0);
 
     BLOB_APPEND_UINT32(output, file->payload_len);
-    
+
     BLOB_APPEND_UINT32(output, file->date_create);
     BLOB_APPEND_UINT32(output, file->date_update);
-    BLOB_APPEND_UINT32(output, file->nb_attrs);
+    BLOB_APPEND_UINT32(output, file->attrs.len);
 
     name_len = strlen(file->name);
     blob_append_data(output, file->name, name_len);
     blob_append_byte(output, '\0');
 
-    for (i = 0; i < file->nb_attrs; i++) {
+    for (i = 0; i < file->attrs.len; i++) {
          attr_size += blob_append_fmt(output, "%s:%s\n",
-                                      file->attrs[i]->key,
-                                      file->attrs[i]->val);
+                                      file->attrs.tab[i]->key,
+                                      file->attrs.tab[i]->val);
     }
 
     packet_size = 
@@ -635,7 +618,7 @@ static inline void archive_write_file(blob_t *output,
     size_start[3] = UINT32_TO_B3(packet_size);
 }
 
-int blob_append_archive(blob_t *output, const archive_build *archive)
+int blob_append_archive(blob_t *output, const archive_build_array *archive)
 {
     int i = 0;
 
@@ -652,43 +635,19 @@ int blob_append_archive(blob_t *output, const archive_build *archive)
                     UINT32_TO_B1(4),
                     UINT32_TO_B2(4),
                     UINT32_TO_B3(4),
-                    UINT32_TO_B0(archive->nb_blocs),
-                    UINT32_TO_B1(archive->nb_blocs),
-                    UINT32_TO_B2(archive->nb_blocs),
-                    UINT32_TO_B3(archive->nb_blocs) );
+                    UINT32_TO_B0(archive->len),
+                    UINT32_TO_B1(archive->len),
+                    UINT32_TO_B2(archive->len),
+                    UINT32_TO_B3(archive->len) );
 
     /* Write files */
-    for (i = 0; i < archive->nb_blocs; i++) {
-        archive_build_file *bloc = archive->blocs[i];
+    for (i = 0; i < archive->len; i++) {
+        archive_build *bloc = archive->tab[i];
 
         archive_write_file(output, bloc);
     }
 
     return 0;
-}
-
-void archive_build_wipe(archive_build *archive)
-{
-    int i, j;
-
-    for (i = 0; i < archive->nb_blocs; i++) {
-        archive_build_file *file = archive->blocs[i];
-
-        for (j = 0; j < file->nb_attrs; j++) {
-            p_delete(&file->attrs[j]->key);
-            p_delete(&file->attrs[j]->val);
-            p_delete(&file->attrs[j]);
-        }
-        p_delete(&file->attrs);
-
-        p_delete(&file->name);
-        if (file->payload_len) {
-            p_delete(&file->payload);
-        }
-
-        p_delete(&file);
-    }
-    p_delete(&archive->blocs);
 }
 
 #ifndef NDEBUG
