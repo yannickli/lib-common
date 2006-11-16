@@ -494,7 +494,7 @@ const archive_file *archive_file_next(const archive_t *archive,
 
 const archive_file *archive_file_next_path(const archive_t *archive,
                                            const char *path,
-                                           const archive_file* previous)
+                                           const archive_file *previous)
 {
     const archive_file *file;
 
@@ -514,10 +514,9 @@ const archive_file *archive_file_next_path(const archive_t *archive,
  */
 
 archive_build_file *archive_add_file(archive_build *arch, const char *name,
-                                     const byte* payload, int len)
+                                     const byte *payload, int len)
 {
     archive_build_file *file = p_new(archive_build_file, 1);
-
 
     file->name = strdup(name);
     file->date_create = 0;
@@ -525,15 +524,16 @@ archive_build_file *archive_add_file(archive_build *arch, const char *name,
     file->attrs = 0;
     file->nb_attrs = 0;
 
+    /* OG: use p_dupmem? */
     file->payload = p_new(byte, len);
-    memcpy((byte*)file->payload, payload, len);
+    memcpy(file->payload, payload, len);
     file->payload_len = len;
 
     if (arch->nb_blocs == 0) {
         arch->blocs = p_new(archive_build_file *, 1);
     } else {
         arch->blocs = p_renew(archive_build_file *, arch->blocs,
-                                 arch->nb_blocs, arch->nb_blocs + 1);
+                              arch->nb_blocs, arch->nb_blocs + 1);
     }
 
     arch->blocs[arch->nb_blocs] = file;
@@ -543,7 +543,7 @@ archive_build_file *archive_add_file(archive_build *arch, const char *name,
 }
 
 int archive_file_add_property(archive_build_file *file,
-                              const char* name, const char *value)
+                              const char *name, const char *value)
 {
     archive_build_file_attr *attr = p_new(archive_build_file_attr, 1);
 
@@ -552,9 +552,9 @@ int archive_file_add_property(archive_build_file *file,
     }
 
     attr->key_len = strlen(name);
-    attr->key = strdup(name);
+    attr->key     = strdup(name);
     attr->val_len = strlen(value);
-    attr->val = strdup(value);
+    attr->val     = strdup(value);
 
     if (file->nb_attrs == 0) {
         file->attrs = p_new(archive_build_file_attr *, 1);
@@ -681,7 +681,7 @@ void archive_build_wipe(archive_build *archive)
 #ifndef NDEBUG
 static void archive_file_dump(const archive_file *file, int level)
 {
-    e_trace(level, "archive_file :");
+    e_trace(level, "archive_file:");
     e_trace(level, " - size = %d", file->size);
     e_trace(level, " - date_create = %d", file->date_create);
     e_trace(level, " - date_update = %d", file->date_update);
@@ -703,7 +703,7 @@ void archive_dump(const archive_t *archive, int level)
 {
     int i;
 
-    e_trace(level, "archive : - version = %d\n", archive->version);
+    e_trace(level, "archive: - version = %d\n", archive->version);
     e_trace(level, " - nb_blocs = %d", archive->nb_blocs);
     
     if (archive->nb_blocs) {
@@ -720,7 +720,7 @@ void archive_dump(const archive_t *archive, int level)
                 archive_head_dump(archive_bloc_to_archive_head(bloc), level);
                 break;
               default:
-                e_trace(level, "archive_bloc : unknown bloc type!");
+                e_trace(level, "archive_bloc: unknown bloc type!");
                 break;
             }
         }

@@ -47,7 +47,7 @@ typedef struct {
     const char *name;
     archive_file_attr **attrs;
     uint32_t nb_attrs;
-    const byte* payload;
+    const byte *payload;
 } archive_file;
 
 typedef struct {
@@ -84,7 +84,7 @@ typedef struct archive_build_file {
     char *name;
     archive_build_file_attr **attrs;
     int nb_attrs;
-    byte* payload;
+    byte *payload;
     int payload_len;
 } archive_build_file;
 
@@ -112,10 +112,10 @@ const archive_file *archive_get_file_bloc(const archive_t *archive,
 int archive_parts_in_path(const archive_t *archive,
                           const char *path);
 const archive_file *archive_file_next(const archive_t *archive,
-                                      const archive_file* previous);
+                                      const archive_file *previous);
 const archive_file *archive_file_next_path(const archive_t *archive,
                                            const char *path,
-                                           const archive_file* previous);
+                                           const archive_file *previous);
 
 /**
  * Archive building
@@ -128,9 +128,9 @@ void archive_build_wipe(archive_build *archive);
 GENERIC_DELETE(archive_build, archive_build);
 
 archive_build_file *archive_add_file(archive_build *arch, const char *name,
-                                     const byte* payload, int len);
+                                     const byte *payload, int len);
 int archive_file_add_property(archive_build_file *file,
-                              const char* name, const char *value);
+                              const char *name, const char *value);
 
 int blob_append_archive(blob_t *output, const archive_build *archive);
 
