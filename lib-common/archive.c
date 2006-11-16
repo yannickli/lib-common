@@ -587,6 +587,7 @@ void archive_add_property(archive_build *file,
     attr->key = strdup(name);
     attr->val = strdup(value);
 
+    /* OG: what if property already exists? */
     archive_attr_array_append(&file->attrs, attr);
 }
 
