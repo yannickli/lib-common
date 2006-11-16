@@ -117,10 +117,9 @@ const archive_file *archive_file_next_path(const archive_t *archive,
                                            const char *path,
                                            const archive_file *previous);
 
-/**
+/*
  * Archive building
- *
- * */
+ */
 
 GENERIC_INIT(archive_build, archive_build);
 GENERIC_NEW(archive_build, archive_build);
@@ -129,6 +128,12 @@ GENERIC_DELETE(archive_build, archive_build);
 
 archive_build_file *archive_add_file(archive_build *arch, const char *name,
                                      const byte *payload, int len);
+
+static inline archive_build_file *
+archive_add_cstr(archive_build *arch, const char *name, const char *s) {
+    return archive_add_file(arch, name, (const byte *)s, strlen(s));
+}
+
 int archive_file_add_property(archive_build_file *file,
                               const char *name, const char *value);
 
