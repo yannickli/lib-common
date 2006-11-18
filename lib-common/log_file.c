@@ -12,6 +12,8 @@
 /**************************************************************************/
 
 #include <sys/stat.h>
+#include <dirent.h>
+#include <errno.h>
 
 #include <lib-common/mem.h>
 #include <lib-common/blob.h>
@@ -56,6 +58,7 @@ static inline int build_real_path(char *buf, int size,
 static inline FILE *log_file_open_new(const char *prefix, time_t date)
 {
     char real_path[PATH_MAX];
+    char sym_path[PATH_MAX];
     int len;
     FILE *res;
 
@@ -71,7 +74,69 @@ static inline FILE *log_file_open_new(const char *prefix, time_t date)
         e_trace(1, "Could not open log file: %s (%m)", real_path);
     }
 
+    /* Add a symlink */
+    len = snprintf(sym_path, sizeof(sym_path), "%s_last.log", prefix);
+    if (len >= ssizeof(sym_path)) {
+        e_trace(1, "Sym path too long");
+    }
+    else {
+        unlink(sym_path);
+        if (symlink(real_path, sym_path)) {
+            e_trace(1, "Could not symlink %s to %s (%m)",
+                    real_path, sym_path);
+        }
+    }
+
     return res;
+}
+
+static inline int log_last_date(const char *prefix) {
+    char path[PATH_MAX];
+    const char *p;
+    char sympath[PATH_MAX];
+    ssize_t len;
+    struct tm cur_date;
+
+    /* Try to find the last log file */
+    len = snprintf(path, sizeof(path), "%s_last.log", prefix);
+    if (len >= ssizeof(path)) {
+        e_trace(1, "Last log file path too long");
+        return 0;
+    }
+
+    len = readlink(path, sympath, sizeof(sympath));
+    if (errno || len >= ssizeof(sympath)) {
+        if (errno != ENOENT) {
+            e_trace(1, "Could not readlink %s: %m", path);
+        }
+        return 0;
+    }
+    sympath[len] = '\0';
+    /* Read %04d%02d%02d_%02d%02d%02d.log suffix */
+#define SUFFIX_LEN  (4+2+2 + 1 + 2+2+2 + 1+1+1+1)
+    if (!strstart(sympath, prefix, &p) || *p != '_') {
+        /* Bad prefix... */
+        return 0;
+    }
+    p++;
+    len = sscanf(p, "%4d%2d%2d_%2d%2d%2d.log", 
+                 &cur_date.tm_year, &cur_date.tm_mon,
+                 &cur_date.tm_mday, &cur_date.tm_hour,
+                 &cur_date.tm_min, &cur_date.tm_sec);
+    if (len != 6) {
+        return 0;
+    }
+
+    if (cur_date.tm_year < 1900 || cur_date.tm_mon < 1) {
+        e_trace(1, "Bad timestamp: %s", p);
+        return 0;
+    }
+
+    cur_date.tm_year -= 1900;
+    cur_date.tm_mon -= 1;
+
+    e_trace(2, "Found last log file : %s", p);
+    return mktime(&cur_date);
 }
 
 log_file_t *log_file_open(const char *prefix)
@@ -88,7 +153,12 @@ log_file_t *log_file_open(const char *prefix)
         return NULL;
     }
 
-    log_file->open_date = time(NULL);
+    log_file->open_date = log_last_date(prefix);
+
+    if (log_file->open_date == 0) {
+        log_file->open_date = time(NULL);
+    }
+
     log_file->max_size = 0;
     log_file->rotate_date = 0;
 
