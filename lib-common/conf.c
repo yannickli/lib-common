@@ -147,7 +147,7 @@ conf_t *conf_load(const char *filename)
     blob_init(&buf);
 
     if (blob_append_file_data(&buf, filename) < 0) {
-        e_trace(CONF_DBG_LVL, "could not open %s for reading", filename);
+        e_trace(CONF_DBG_LVL, "could not open %s for reading (%m)", filename);
         blob_wipe(&buf);
         return NULL;
     }
