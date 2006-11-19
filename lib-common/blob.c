@@ -1179,7 +1179,7 @@ static inline char *convert_hex(char *p, unsigned int value)
 }
 
 /* OG: essentially like strtoip */
-static inline int parse_int10(byte *data, byte **datap)
+static inline int parse_int10(const byte *data, const byte **datap)
 {
     int neg;
     unsigned int digit, value = 0;
@@ -1202,7 +1202,7 @@ static inline int parse_int10(byte *data, byte **datap)
     return neg ? -value : value;
 }
 
-static inline int parse_hex(byte *data, byte **datap)
+static inline int parse_hex(const byte *data, const byte **datap)
 {
     unsigned int digit, value = 0;
 
@@ -1219,7 +1219,7 @@ static inline int parse_hex(byte *data, byte **datap)
 int blob_pack(blob_t *blob, const char *fmt, ...)
 {
     char buf[(64 + 2) / 3 + 1 + 1];
-    char *p;
+    const char *p;
     va_list ap;
     int c, n = 0;
 
@@ -1238,7 +1238,8 @@ int blob_pack(blob_t *blob, const char *fmt, ...)
             blob_append_data(blob, p, buf + sizeof(buf) - p);
             continue;
         case 's':
-            blob_append_cstr(blob, va_arg(ap, const char *));
+            p = va_arg(ap, const char *);
+            blob_append_cstr(blob, p);
             continue;
         case 'c':
             c = va_arg(ap, int);
@@ -1254,18 +1255,18 @@ int blob_pack(blob_t *blob, const char *fmt, ...)
     return n;
 }
 
-int blob_unpack(blob_t *blob, int *pos, const char *fmt, ...)
+
+static inline int buf_unpack_vfmt(const byte *buf, int buf_len,
+                                  int *pos, const char *fmt, va_list ap)
 {
-    byte *data, *p;
-    va_list ap;
+
+    const byte *data, *p;
     int c, n = 0;
 
-    va_start(ap, fmt);
-
-    if (*pos >= blob->len)
+    if (*pos >= buf_len)
         return 0;
 
-    data = blob->data + *pos;
+    data = buf + *pos;
     for (;;) {
         switch (c = *fmt++) {
         case '\0':
@@ -1300,11 +1301,35 @@ int blob_unpack(blob_t *blob, int *pos, const char *fmt, ...)
         }
         break;
     }
-    va_end(ap);
-
-    *pos = data - blob->data;
+    *pos = data - buf;
 
     return n;
+}
+
+int buf_unpack(const byte *buf, int buf_len,
+               int *pos, const char *fmt, ...)
+{
+    va_list ap;
+    int res;
+
+    va_start(ap, fmt);
+    res = buf_unpack_vfmt(buf, buf_len, pos, fmt, ap);
+    va_end(ap);
+
+    return res;
+}
+
+
+int blob_unpack(blob_t *blob, int *pos, const char *fmt, ...)
+{
+    va_list ap;
+    int res;
+
+    va_start(ap, fmt);
+    res = buf_unpack_vfmt(blob->data, blob->len, pos, fmt, ap);
+    va_end(ap);
+
+    return res;
 }
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/

@@ -236,6 +236,8 @@ ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...)
 
 int blob_pack(blob_t *blob, const char *fmt, ...);
 int blob_unpack(blob_t *blob, int *pos, const char *fmt, ...);
+int buf_unpack(const byte *buf, int buf_len,
+               int *pos, const char *fmt, ...);
 
 /**************************************************************************/
 /* Blob search functions                                                  */
