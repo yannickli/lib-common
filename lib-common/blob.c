@@ -244,6 +244,36 @@ void blob_insert_byte(blob_t *blob, byte b)
     blob_insert_data_real(blob, 0, &b, 1);
 }
 
+void blob_splice_data(blob_t *blob, ssize_t pos, ssize_t len,
+                      const void *data, ssize_t datalen)
+{
+    ssize_t oldlen = blob->len;
+
+    if (pos < 0) {
+        pos = 0;
+    }
+    if (pos > oldlen) {
+        pos = oldlen;
+    }
+    if (len < 0) {
+        len = 0;
+    }
+    if (pos + len > oldlen) {
+        len = oldlen - pos;
+    }
+    if (datalen < 0) {
+        datalen = 0;
+    }
+
+    blob_resize(blob, oldlen + datalen - len);
+
+    if (len != datalen) {
+        memmove(blob->data + pos + datalen, blob->data + pos + len,
+                oldlen - pos - len);
+    }
+    memcpy(blob->data + pos, data, datalen);
+}
+
 /**************************************************************************/
 /* Blob file functions                                                    */
 /**************************************************************************/
@@ -1544,13 +1574,54 @@ START_TEST(check_insert)
     fail_if(blob.len != strlen("01234589"),
             "insert_data failed");
 
-    /* insert */
+    /* insert blob */
     blob_insert(&blob, 6, b2);
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, "0123456789") != 0,
             "insert failed");
     fail_if(blob.len != strlen("0123456789"),
             "insert failed");
+
+    check_teardown(&blob, &b2);
+}
+END_TEST
+
+/*.....................................................................}}}*/
+/* test splice functions                                               {{{*/
+
+START_TEST(check_splice)
+{
+    blob_t blob;
+    blob_t *b2;
+
+    check_setup(&blob, "ABCD");
+    b2 = blob_new();
+    blob_set_cstr(b2, "567");
+
+
+    /* splice cstr */
+    blob_splice_cstr(&blob, 1, 2, "1234");
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "A1234D") != 0,
+            "splice failed");
+    fail_if(blob.len != strlen("A1234D"),
+            "splice failed");
+
+    /* splice data */
+    blob_splice_data(&blob, 20, 10, "89", 2);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "A1234D89") != 0,
+            "splice_data failed");
+    fail_if(blob.len != strlen("A1234D89"),
+            "splice_data failed");
+
+    /* splice blob */
+    blob_splice(&blob, 6, -3, b2);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "A1234D56789") != 0,
+            "splice failed");
+    fail_if(blob.len != strlen("A1234D56789"),
+            "splice failed");
 
     check_teardown(&blob, &b2);
 }
@@ -2098,6 +2169,7 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_dup);
     tcase_add_test(tc, check_blit);
     tcase_add_test(tc, check_insert);
+    tcase_add_test(tc, check_splice);
     tcase_add_test(tc, check_append);
     tcase_add_test(tc, check_append_file_data);
     tcase_add_test(tc, check_kill);

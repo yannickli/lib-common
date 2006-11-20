@@ -148,6 +148,18 @@ blob_insert_cstr(blob_t *blob, ssize_t pos, const char *cstr) {
 }
 void blob_insert_byte(blob_t *blob, byte b);
 
+void blob_splice_data(blob_t *blob, ssize_t pos, ssize_t len,
+                      const void *data, ssize_t datalen);
+
+static inline void
+blob_splice_cstr(blob_t *dest, ssize_t pos, ssize_t len, const char *src) {
+    blob_splice_data(dest, pos, len, src, strlen(src));
+}
+
+static inline void
+blob_splice(blob_t *dest, ssize_t pos, ssize_t len, const blob_t *src) {
+    blob_splice_data(dest, pos, len, src->data, src->len);
+}
 
 /*** appends ***/
 
