@@ -20,6 +20,11 @@
 #define str_INTERSECID  str(INTERSECID)
 #define LF  "\n"
 
+#ifdef EXPIRATION_DATE
+
+int show_licence(const char *arg);
+
+
 int show_licence(const char *arg)
 {
     time_t t = EXPIRATION_DATE;
@@ -50,3 +55,5 @@ int set_licence(const char *arg, const char *licence_data)
     }
     exit(1);
 }
+
+#endif
