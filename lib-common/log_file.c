@@ -78,8 +78,7 @@ static inline FILE *log_file_open_new(const char *prefix, time_t date)
     len = snprintf(sym_path, sizeof(sym_path), "%s_last.log", prefix);
     if (len >= ssizeof(sym_path)) {
         e_trace(1, "Sym path too long");
-    }
-    else {
+    } else {
         unlink(sym_path);
         if (symlink(real_path, sym_path)) {
             e_trace(1, "Could not symlink %s to %s (%m)",
@@ -141,7 +140,7 @@ static inline int log_last_date(const char *prefix) {
 
 log_file_t *log_file_open(const char *prefix)
 {
-    log_file_t* log_file;
+    log_file_t *log_file;
     ssize_t len;
 
     log_file = log_file_new();

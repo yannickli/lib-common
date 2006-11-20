@@ -1289,7 +1289,6 @@ int blob_pack(blob_t *blob, const char *fmt, ...)
 static inline int buf_unpack_vfmt(const byte *buf, int buf_len,
                                   int *pos, const char *fmt, va_list ap)
 {
-
     const byte *data, *p;
     int c, n = 0;
 
