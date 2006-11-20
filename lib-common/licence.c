@@ -22,9 +22,6 @@
 
 #ifdef EXPIRATION_DATE
 
-int show_licence(const char *arg);
-
-
 int show_licence(const char *arg)
 {
     time_t t = EXPIRATION_DATE;
