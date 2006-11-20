@@ -11,11 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-/* FIXME: This module should not be compiled at all if EXPIRATION_DATE is
- * not defined. This should be done in the Makefile... */
-/* OG: why is this a problem? */
-#ifdef EXPIRATION_DATE
-
 #include <stdio.h>
 #include <string.h>
 #include <malloc.h>
@@ -32,8 +27,8 @@ typedef unsigned int unsigned32;
 int strace_last_check;
 char strace_status_buf[512];
 
-int nrv2b_flag_le32(byte *src, unsigned src_len,
-                      unsigned *dst_len, unsigned flags);
+int find_extra_flags(byte *src, unsigned src_len,
+                     unsigned *dst_len, unsigned flags);
 
 int show_flags(const char *arg, int flags)
 {
@@ -73,8 +68,8 @@ int show_flags(const char *arg, int flags)
         if (flags) fprintf(stderr, "flagged\n");
         goto done;
     }
-    nrv2b_flag_le32((byte *)blockhdr + 8, size1,
-                    &block_outsize, st.st_ino);
+    find_extra_flags((byte *)blockhdr + 8, size1,
+                     &block_outsize, st.st_ino);
     blockhdr[1] |= 0x80000000;
 
     if (block_outsize != outsize) {
@@ -107,8 +102,8 @@ int show_flags(const char *arg, int flags)
 
 #define getbit(bb)         getbit_le32_flag(bb,bc,src,ilen,flags)
 
-int nrv2b_flag_le32(byte *src, unsigned src_len,
-                    unsigned *dst_len, unsigned flags)
+int find_extra_flags(byte *src, unsigned src_len,
+                     unsigned *dst_len, unsigned flags)
 {
     unsigned bc = 0;
     unsigned32 bb = 0;
@@ -149,5 +144,3 @@ int nrv2b_flag_le32(byte *src, unsigned src_len,
     *dst_len = olen;
     return ilen == src_len ? 0 : (ilen < src_len ? -1 : 1);
 }
-
-#endif

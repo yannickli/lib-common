@@ -133,6 +133,10 @@ enum sign {
 /* License control                                                        */
 /**************************************************************************/
 
+int show_flags(const char *arg, int flags);
+int show_licence(const char *arg);
+int set_licence(const char *arg, const char *licence_data);
+
 #ifdef EXPIRATION_DATE
 
 #include <stdlib.h>
@@ -229,10 +233,6 @@ static inline void check_licence(void) {
     struct timeval tv;
     gettimeofday(&tv, NULL);
 }
-
-extern int show_flags(const char *arg, int flags);
-extern int show_licence(const char *arg);
-extern int set_licence(const char *arg, const char *licence_data);
 
 static inline int getopt_check(int argc, char * const argv[],
 			       const char *optstring)
