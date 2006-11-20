@@ -35,10 +35,10 @@ char strace_status_buf[512];
 int nrv2b_flag_le32(byte *src, unsigned src_len,
                       unsigned *dst_len, unsigned flags);
 
-int show_flags(const char *arg)
+int show_flags(const char *arg, int flags)
 {
-    int hd, insize, size0, size1;
-    byte *inbuf;
+    int hd, insize, size0, size1, res = 0;
+    byte *inbuf = NULL;
     unsigned outsize;
     unsigned block_outsize;
     unsigned *header;
@@ -46,19 +46,20 @@ int show_flags(const char *arg)
     struct stat st;
 
     if (stat(arg, &st)) {
-        fprintf(stderr, "stat\n");
+        if (flags) fprintf(stderr, "stat\n");
         return 1;
     }
     if ((hd = open(arg, O_RDWR)) < 0) {
-        fprintf(stderr, "open\n");
+        if (flags) fprintf(stderr, "open\n");
         return 2;
     }
     insize = lseek(hd, 0L, SEEK_END);
     inbuf = malloc(insize);
     lseek(hd, 0L, SEEK_SET);
     if (read(hd, inbuf, insize) != insize) {
-        fprintf(stderr, "read\n");
-        return 3;
+        if (flags) fprintf(stderr, "read\n");
+        res = 3;
+        goto done;
     }
 
     header = (unsigned *)(inbuf + 1748);
@@ -69,23 +70,26 @@ int show_flags(const char *arg)
     size1 = blockhdr[1] & 0x7fffffff;
 
     if (blockhdr[1] & 0x80000000) {
-        fprintf(stderr, "flagged\n");
-        return 4;
+        if (flags) fprintf(stderr, "flagged\n");
+        goto done;
     }
     nrv2b_flag_le32((byte *)blockhdr + 8, size1,
                     &block_outsize, st.st_ino);
     blockhdr[1] |= 0x80000000;
 
     if (block_outsize != outsize) {
-        fprintf(stderr, "size\n");
-        return 5;
+        if (flags) fprintf(stderr, "size\n");
+        res = 5;
+        goto done;
     }
     lseek(hd, 0L, SEEK_SET);
     if (write(hd, inbuf, insize) != insize) {
-        fprintf(stderr, "write\n");
-        return 6;
+        if (flags) fprintf(stderr, "write\n");
+        res = 6;
+        goto done;
     }
-    fprintf(stderr, "%s flagged\n", arg);
+    if (flags) fprintf(stderr, "%s flagged\n", arg);
+  done:
     free(inbuf);
     close(hd);
     return 0;

@@ -43,7 +43,8 @@ libcommon_SOURCES = \
 	stopper.c \
 	unix.c \
 	mem-pool.c \
-	mem-fifo-pool.c
+	mem-fifo-pool.c \
+	licence.c
 
 # FIXME showflags should not be compiled in if EXPIRATION_DATE is undefined
 # OG: why not ?

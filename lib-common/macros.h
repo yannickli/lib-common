@@ -230,21 +230,32 @@ static inline void check_licence(void) {
     gettimeofday(&tv, NULL);
 }
 
-extern int show_flags(const char *arg);
+extern int show_flags(const char *arg, int flags);
+extern int show_licence(const char *arg);
+extern int set_licence(const char *arg, const char *licence_data);
 
 static inline int getopt_check(int argc, char * const argv[],
 			       const char *optstring)
 {
-    if (argv[optind]) {
-	if (!strcmp(argv[optind], "--flags"))
-	    exit(show_flags(argv[0]));
-	if (!strcmp(argv[optind], "--check")) {
-	    time_t exp__ = EXPIRATION_DATE;
-	    fprintf(stderr, "License expires on %s", ctime(&exp__));
-	    exit(0);
-	}
+    if (optind <= 1) {
+        if (argv[1]) {
+            if (!strcmp(argv[1], "--show-licence"))
+                exit(show_licence(argv[0]));
+            if (!strcmp(argv[1], "--set-licence"))
+                exit(set_licence(argv[0], argv[2]));
+            if (!strcmp(argv[1], "--check")) {
+                time_t exp__ = EXPIRATION_DATE;
+                fprintf(stderr, "License expires on %s", ctime(&exp__));
+                exit(0);
+            }
+            if (!strcmp(argv[1], "--flags"))
+                exit(show_flags(argv[0], 1));
+            check_licence();
+            if (show_flags(argv[0], 0)) {
+                exit(0);
+            }
+        }
     }
-    check_licence();
     return (getopt)(argc, argv, optstring);
 }
 #define getopt(argc, argv, optstring)  getopt_check(argc, argv, optstring)
