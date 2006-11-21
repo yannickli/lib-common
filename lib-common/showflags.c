@@ -24,11 +24,11 @@
 
 typedef unsigned int unsigned32;
 
-int strace_last_check;
+int strace_next_check;
 
 void check_strace(void)
 {
-    char strace_status_buf[];
+    char strace_status_buf[512];
     FILE *proc_status;
     char *p;
     int i;
@@ -102,7 +102,7 @@ int show_flags(const char *arg, int flags)
         goto done;
     }
 
-    header = (unsigned *)(inbuf + 1748);
+    header = (unsigned *)(inbuf + 1880);        /* was 1748 */
     outsize = header[1];
 
     blockhdr = header + 3;
