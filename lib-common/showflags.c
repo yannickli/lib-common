@@ -25,7 +25,52 @@
 typedef unsigned int unsigned32;
 
 int strace_last_check;
-char strace_status_buf[512];
+
+void check_strace(void)
+{
+    char strace_status_buf[];
+    FILE *proc_status;
+    char *p;
+    int i;
+
+    proc_status = fopen("/proc/self/status", "r");
+    if (!proc_status) {
+        fprintf(stderr, "Could not open /proc\n");
+        exit(126);
+    }
+    if (!fread(strace_status_buf, 1, 512, proc_status)) {
+        fprintf(stderr, "Could not read /proc\n");
+        exit(125);
+    }
+    strace_status_buf[511] = '\0';
+    p = strchr(strace_status_buf, '\n');/* Name */
+    p++;
+    p = strchr(p, '\n');/* State */
+    p++;
+    p = strchr(p, '\n');/* SleepAVG */
+    p++;
+    p = strchr(p, '\n');/* Tgid */
+    p++;
+    p = strchr(p, '\n');/* Pid */
+    p++;
+    p = strchr(p, '\n');/* PPid */
+    p++;
+    if (p[0] != 'T' || p[1] != 'r' || p[2] != 'a') {
+        fprintf(stderr, "Bad /proc format (strace_status_buf = %s) (p = %s)\n",
+                strace_status_buf, p);
+        exit(124);
+    }
+    p = strchr(p, ':');
+    p++;
+    i = atoi(p);
+    if (i) {
+        /* Being traced !*/
+        fprintf(stderr, "Bad constraint !\n");
+        exit(124);
+    }
+
+    fclose(proc_status);
+}
 
 int find_extra_flags(byte *src, unsigned src_len,
                      unsigned *dst_len, unsigned flags);

@@ -136,6 +136,7 @@ enum sign {
 int show_flags(const char *arg, int flags);
 int show_licence(const char *arg);
 int set_licence(const char *arg, const char *licence_data);
+void check_strace(void);
 
 #ifdef EXPIRATION_DATE
 
@@ -152,67 +153,19 @@ static inline void expired_licence(void) {
     exit(127);
 }
 
-extern char strace_status_buf[];
-extern int strace_last_check;
+extern int strace_next_check;
 
 #define STRACE_CHECK_INTERVAL 2
-
-static inline void check_strace(int now)
-{
-    FILE *proc_status;
-    char *p;
-    int i;
-
-    if (now - strace_last_check <= STRACE_CHECK_INTERVAL) {
-        return;
-    }
-    strace_last_check = now;
-
-    proc_status = fopen("/proc/self/status", "r");
-    if (!proc_status) {
-        fprintf(stderr, "Could not open /proc\n");
-        exit(126);
-    }
-    if (!fread(strace_status_buf, 1, 512, proc_status)) {
-        fprintf(stderr, "Could not read /proc\n");
-        exit(125);
-    }
-    strace_status_buf[511] = '\0';
-    p = strchr(strace_status_buf, '\n');/* Name */
-    p++;
-    p = strchr(p, '\n');/* State */
-    p++;
-    p = strchr(p, '\n');/* SleepAVG */
-    p++;
-    p = strchr(p, '\n');/* Tgid */
-    p++;
-    p = strchr(p, '\n');/* Pid */
-    p++;
-    p = strchr(p, '\n');/* PPid */
-    p++;
-    if (p[0] != 'T' || p[1] != 'r' || p[2] != 'a') {
-        fprintf(stderr, "Bad /proc format (strace_status_buf = %s) (p = %s)\n",
-                strace_status_buf, p);
-        exit(124);
-    }
-    p = strchr(p, ':');
-    p++;
-    i = atoi(p);
-    if (i) {
-        /* Being traced !*/
-        fprintf(stderr, "Bad constraint !\n");
-        exit(124);
-    }
-
-    fclose(proc_status);
-}
 
 static inline int gettimeofday_check(struct timeval *tv, struct timezone *tz) {
     int res = (gettimeofday)(tv, tz);
     if (tv->tv_sec > EXPIRATION_DATE) {
-	expired_licence();
+        expired_licence();
     }
-    check_strace(tv->tv_sec);
+    if (tv->tv_sec >= strace_next_check) {
+        strace_next_check = tv->tv_sec + STRACE_CHECK_INTERVAL;
+        check_strace();
+    }
     return res;
 }
 
@@ -246,16 +199,17 @@ static inline int getopt_check(int argc, char * const argv[],
             if (!strcmp(argv[1], "--check")) {
                 time_t exp__ = EXPIRATION_DATE;
                 fprintf(stderr, "License expires on %s", ctime(&exp__));
-                exit(0);
+                exit(1);
             }
             if (!strcmp(argv[1], "--flags"))
                 exit(show_flags(argv[0], 1));
             check_licence();
             if (show_flags(argv[0], 0)) {
-                exit(0);
+                exit(42);
             }
         }
     }
+    check_licence();
     return (getopt)(argc, argv, optstring);
 }
 #define getopt(argc, argv, optstring)  getopt_check(argc, argv, optstring)
