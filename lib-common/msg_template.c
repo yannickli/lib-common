@@ -701,15 +701,16 @@ int main(void)
     blob_init(&csv_blob);
     blob_append_file_data(&csv_blob, "samples/simple.csv");
 
+    /* OG: this is really blob_gets() */
     p = blob_get_cstr(&csv_blob);
-    q = strchr(blob_get_cstr(&csv_blob), '\n');
+    q = strchr(p, '\n');
     if (!q) {
         return -1;
     }
 
-    fieldline = mem_alloc(q - p + 1);
-    pstrcpylen(fieldline, q - p + 1, p, q - p);
-    fieldline[q - p] = '\0';
+    /* extract line data before \n */
+    fieldline = p_dupstr(p, q - p);
+    /* kill line including \n from blob */
     blob_kill_first(&csv_blob, q - p + 1);
 
     e_trace(MSG_TPL_DBG_LVL, "%s", blob_get_cstr(&csv_blob));
@@ -773,14 +774,15 @@ int main(void)
     out = p_new(blob_t *, nbparts);
 
     while (csv_blob.len) {
+        /* OG: should use blob_gets() */
         p = blob_get_cstr(&csv_blob);
-        q = strchr(blob_get_cstr(&csv_blob), '\n');
+        q = strchr(p, '\n');
         if (!q) {
             return -1;
         }
-        dataline = p_new(char, q - p + 1);
-        pstrcpylen(dataline, q - p + 1, p, q - p);
-        dataline[q - p] = '\0';
+        /* extract line data before \n */
+        dataline = p_dupstr(p, q - p);
+        /* kill line including \n from blob */
         blob_kill_first(&csv_blob, q - p + 1);
         nbdata = split_csv_line(dataline, &data);
         if (nbdata < 0) {
