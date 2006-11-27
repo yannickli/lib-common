@@ -21,6 +21,10 @@
 #include "err_report.h"
 #include "string_is.h"
 
+#define MEM_ALIGN_SIZE  8
+#define MEM_ALIGN(size) \
+    (((size) + MEM_ALIGN_SIZE - 1) & ~((ssize_t)MEM_ALIGN_SIZE - 1))
+
 
 #define check_enough_mem(mem)                                   \
     do {                                                        \
@@ -123,6 +127,7 @@ static inline void *mem_dupstr(const void *src, ssize_t len)
                           (newcount) * sizeof(type)))
 
 #define DO_INIT(type, prefix) \
+    __attr_nonnull__((1))                                   \
     type * prefix##_init(type *var) {                       \
         p_clear(var, 1);                                    \
         return var;                                         \
@@ -132,9 +137,11 @@ static inline void *mem_dupstr(const void *src, ssize_t len)
         return prefix##_init(p_new_raw(type, 1));           \
     }
 #define DO_WIPE(type, prefix) \
+    __attr_nonnull__((1))                                   \
     void prefix##_wipe(type *var __unused__) {}
 
 #define DO_DELETE(type, prefix) \
+    __attr_nonnull__((1))                                   \
     void prefix##_delete(type **var) {                      \
         if (*var) {                                         \
             prefix##_wipe(*var);                            \

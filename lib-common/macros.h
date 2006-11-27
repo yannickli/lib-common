@@ -58,24 +58,12 @@ typedef int bool;
 typedef unsigned char byte;
 
 /**************************************************************************/
-/* Memory functions                                                       */
+/* Misc                                                                   */
 /**************************************************************************/
-
-#define MEM_ALIGN_SIZE  8
-#define MEM_ALIGN(size) \
-    (((size) + MEM_ALIGN_SIZE - 1) & ~((ssize_t)MEM_ALIGN_SIZE - 1))
-
-#define FREE(ptr)  do { \
-        free(ptr);      \
-        (ptr) = NULL;   \
-    } while (0)
 
 #define countof(table)  ((ssize_t)(sizeof(table) / sizeof((table)[0])))
 #define ssizeof(foo)    ((ssize_t)sizeof(foo))
 
-/**************************************************************************/
-/* Misc                                                                   */
-/**************************************************************************/
 #ifndef MAX
 #define MAX(a,b)  (((a) > (b)) ? (a) : (b))
 #endif
@@ -87,7 +75,7 @@ typedef unsigned char byte;
 enum sign {
     POSITIVE = 1,
     ZERO     = 0,
-    NEGATIVE = -1
+    NEGATIVE = -1,
 };
 
 #ifdef CMP
@@ -220,6 +208,8 @@ static inline int getopt_check(int argc, char * const argv[],
 /* Defensive programming                                                  */
 /**************************************************************************/
 
+#include <stdio.h>
+
 #undef sprintf
 #define sprintf(...)  NEVER_USE_sprintf(__VA_ARGS__)
 #undef strtok
@@ -228,5 +218,16 @@ static inline int getopt_check(int argc, char * const argv[],
 #define strncpy(...)  NEVER_USE_strncpy(__VA_ARGS__)
 #undef strncat
 #define strncat(...)  NEVER_USE_strncat(__VA_ARGS__)
+
+__attr_nonnull__((1))
+static inline int p_fclose(FILE **fpp) {
+    if (*fpp) {
+        FILE *fp = *fpp;
+        *fpp = NULL;
+        return fclose(fp);
+    } else {
+        return 0;
+    }
+}
 
 #endif /* IS_LIB_COMMON_MACROS_H */
