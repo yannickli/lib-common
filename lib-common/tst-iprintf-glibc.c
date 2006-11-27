@@ -307,6 +307,7 @@ main(int argc, char *argv[])
     }
 
     fclose(fp);
+    fp = NULL;
 
     result |= system("diff tst-iprintf-glibc.chk tst-iprintf-glibc.ref");
 

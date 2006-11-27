@@ -201,7 +201,7 @@ void e_shutdown()
     }
 
     if (log_state.fd != stderr) {
-        (void)fclose(log_state.fd);
+        p_fclose(&log_state.fd);
         log_state.fd = stderr;
     }
 

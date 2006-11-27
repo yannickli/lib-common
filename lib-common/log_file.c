@@ -25,9 +25,7 @@
 GENERIC_INIT(log_file_t, log_file);
 static void log_file_wipe(log_file_t *log_file)
 {
-    if (log_file->_internal) {
-        fclose(log_file->_internal);
-    }
+    p_fclose(&log_file->_internal);
     p_clear(log_file, 1);
 }
 GENERIC_NEW(log_file_t, log_file);
@@ -195,7 +193,7 @@ void log_file_set_rotate_delay(log_file_t *file, time_t delay)
 
 static inline void log_file_rotate(log_file_t *file, time_t now)
 {
-    fclose(file->_internal);
+    p_fclose(&file->_internal);
 
     file->_internal = log_file_open_new(file->prefix, now);
     file->open_date = now;
