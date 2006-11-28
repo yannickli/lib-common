@@ -27,9 +27,9 @@ unsigned char const __str_digit_value[128 + 256] = {
     REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
 };
 
-static char const __str_digits_upper[36] =
+char const __str_digits_upper[36] =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-static char const __str_digits_lower[36] =
+char const __str_digits_lower[36] =
     "0123456789abcdefghijklmnopqrstuvwxyz";
 
 unsigned char const __str_escape_value[128 + 256] = {

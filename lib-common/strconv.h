@@ -16,6 +16,9 @@
 
 /* string parsing and conversions */
 extern unsigned char const __str_digit_value[128 + 256];
+extern char const __str_digits_upper[36];
+extern char const __str_digits_lower[36];
+
 static inline int str_digit_value(int x) {
     return __str_digit_value[x + 128];
 }
