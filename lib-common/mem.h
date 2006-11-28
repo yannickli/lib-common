@@ -61,7 +61,7 @@ static inline void *mem_alloc0(ssize_t size)
 
 static inline char *mem_strdup(const char *src) {
     char *res = strdup(src);
-    check_enough_mem(mem);
+    //check_enough_mem(res);
     return res;
 }
 
