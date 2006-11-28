@@ -742,7 +742,7 @@ void sha384_final(sha384_ctx *ctx, byte *digest)
 
     sha512_transf(ctx, ctx->block, block_nb);
 
-#ifndef UNROLL_LOOPS 
+#ifndef UNROLL_LOOPS
     for (i = 0 ; i < 6; i++) {
         UNPACK64(ctx->h[i], &digest[i << 3]);
     }
@@ -854,7 +854,7 @@ void sha224_final(sha224_ctx *ctx, byte *digest)
 #endif /* !UNROLL_LOOPS */
 }
 
-#ifdef TEST_VECTORS
+#ifdef TEST_VECTORS /* {{{ */
 
 /* FIPS 180-2 Validation tests */
 
@@ -970,5 +970,4 @@ int main()
     return 0;
 }
 
-#endif /* TEST_VECTORS */
-
+#endif /* TEST_VECTORS }}} */
