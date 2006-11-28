@@ -129,7 +129,7 @@ static inline void *mem_dupstr(const void *src, ssize_t len)
 
 #endif
 
-/* OG: should find a better name */
+/* OG: RFE: should find a better name */
 #define p_renew(type, mem, oldcount, newcount) \
     ((type *)mem_realloc0((mem), (oldcount) * sizeof(type), \
                           (newcount) * sizeof(type)))

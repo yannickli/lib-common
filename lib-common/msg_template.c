@@ -701,7 +701,7 @@ int main(void)
     blob_init(&csv_blob);
     blob_append_file_data(&csv_blob, "samples/simple.csv");
 
-    /* OG: this is really blob_gets() */
+    /* OG: RFE: this is really blob_gets() */
     p = blob_get_cstr(&csv_blob);
     q = strchr(p, '\n');
     if (!q) {
@@ -774,7 +774,7 @@ int main(void)
     out = p_new(blob_t *, nbparts);
 
     while (csv_blob.len) {
-        /* OG: should use blob_gets() */
+        /* OG: RFE: should use blob_gets() */
         p = blob_get_cstr(&csv_blob);
         q = strchr(p, '\n');
         if (!q) {

@@ -117,7 +117,7 @@ ssize_t pstrcpylen(char *dest, ssize_t size, const char *src, ssize_t n)
         if (n < 0) {
             len = strlen(src);
         } else {
-            /* OG: Should use strnlen */
+            /* OG: RFE: Should use strnlen */
             const char *p = (const char *)memchr(src, '\0', n);
             len = p ? p - src : n;
         }
@@ -162,7 +162,7 @@ ssize_t pstrcat(char *dest, ssize_t size, const char *src)
          * the value of dlen.  Calling pstrcat with various values of
          * size for the same dest and src may return different results.
          */
-        /* OG: should use strnlen() */
+        /* OG: RFE: should use strnlen() */
         const char *p = memchr(dest, '\0', size);
 
         if (p == NULL) {
