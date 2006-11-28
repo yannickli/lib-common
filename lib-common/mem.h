@@ -59,6 +59,12 @@ static inline void *mem_alloc0(ssize_t size)
     return mem;
 }
 
+static inline char *mem_strdup(const char *src) {
+    char *res = strdup(src);
+    check_enough_mem(mem);
+    return res;
+}
+
 static inline void *mem_realloc(void *mem, ssize_t newsize)
 {
     mem = realloc(mem, newsize);
@@ -97,9 +103,11 @@ static inline void *mem_dupstr(const void *src, ssize_t len)
 
 #define p_new_raw(type, count)  ((type *)mem_alloc(sizeof(type) * (count)))
 #define p_new(type, count)      ((type *)mem_alloc0(sizeof(type) * (count)))
+#define p_new_extra(type, size) ((type *)mem_alloc0(sizeof(type) + (size)))
 #define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
 #define p_dup(p, count)         mem_dup((p), sizeof(*(p)) * (count))
 #define p_dupstr(p, len)        mem_dupstr((p), (len))
+#define p_strdup(p)             mem_strdup(p)
 
 #ifdef __GNUC__
 
