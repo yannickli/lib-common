@@ -18,6 +18,7 @@
 #include <errno.h>
 
 #include "macros.h"
+#include "mem.h"
 #include "err_report.h"
 
 /**************************************************************************/

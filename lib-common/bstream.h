@@ -22,6 +22,9 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 
+#include "macros.h"
+#include "mem.h"
+
 /* For internal use only */
 static inline ssize_t bwrite_buffer(int fd, const char *buf, size_t count)
 {

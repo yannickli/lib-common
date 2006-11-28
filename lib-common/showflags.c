@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 
 #include "macros.h"
+#include "mem.h"
 
 typedef unsigned int unsigned32;
 
