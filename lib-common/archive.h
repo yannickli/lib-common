@@ -105,12 +105,14 @@ typedef struct archive_attr {
     char *key;
     char *val;
 } archive_attr;
+
 ARRAY_TYPE(archive_attr, archive_attr);
 
 static inline void archive_attr_wipe(archive_attr *attr) {
     p_delete(&attr->key);
     p_delete(&attr->val);
 }
+
 GENERIC_DELETE(archive_attr, archive_attr);
 ARRAY_FUNCTIONS(archive_attr, archive_attr);
 
@@ -124,6 +126,7 @@ typedef struct archive_build {
     byte *payload;
     int payload_len;
 } archive_build;
+
 ARRAY_TYPE(archive_build, archive_build);
 
 void archive_build_wipe(archive_build *file);
@@ -141,7 +144,7 @@ static inline archive_build *
 archive_add_cstr(archive_build_array *arch, const char *name, const char *s) {
     return archive_add_file(arch, name, (const byte *)s, strlen(s));
 }
-archive_build * archive_find_file(archive_build_array *, const char *name);
+archive_build *archive_find_file(archive_build_array *, const char *name);
 
 int blob_append_archive(blob_t *output, const archive_build_array *archive);
 

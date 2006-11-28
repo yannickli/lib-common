@@ -72,7 +72,7 @@ static void mem_page_reset(mem_page *page)
     page->__prev__    = NULL;
     page->used_size   = 0;
     page->used_blocks = 0;
-    memset(page->area, 0, page->area_size);
+    p_clear(page->area, page->area_size);
 }
 
 static void mem_page_delete(mem_page **pagep)

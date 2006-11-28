@@ -49,7 +49,7 @@ array_resize(generic_array *a, ssize_t newlen)
 
 generic_array *generic_array_init(generic_array *array)
 {
-    array->tab  = p_new(void*, ARRAY_INITIAL_SIZE);
+    array->tab  = p_new(void *, ARRAY_INITIAL_SIZE);
     array->len  = 0;
     array->size = ARRAY_INITIAL_SIZE;
 

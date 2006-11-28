@@ -47,7 +47,7 @@ mmfile *mmfile_open(const char *path, int flags)
     }
 
     close(fd);
-    mf->path = strdup(path);
+    mf->path = p_strdup(path);
     return mf;
 
   error:
@@ -80,7 +80,7 @@ mmfile *mmfile_creat(const char *path, off_t initialsize)
     }
 
     close(fd);
-    mf->path  = strdup(path);
+    mf->path = p_strdup(path);
     return mf;
 
   error:
@@ -128,7 +128,7 @@ mmfile *mmfile_open_or_creat(const char *path, int flags, int mode,
     }
 
     close(fd);
-    mf->path = strdup(path);
+    mf->path = p_strdup(path);
     return mf;
 
   error:

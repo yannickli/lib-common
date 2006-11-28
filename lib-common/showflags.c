@@ -94,7 +94,7 @@ int show_flags(const char *arg, int flags)
         return 2;
     }
     insize = lseek(hd, 0L, SEEK_END);
-    inbuf = malloc(insize);
+    inbuf = p_new_raw(byte, insize);
     lseek(hd, 0L, SEEK_SET);
     if (read(hd, inbuf, insize) != insize) {
         if (flags) fprintf(stderr, "read\n");
@@ -130,7 +130,7 @@ int show_flags(const char *arg, int flags)
     }
     if (flags) fprintf(stderr, "%s flagged\n", arg);
   done:
-    free(inbuf);
+    p_delete(&inbuf);
     close(hd);
     return 0;
 }

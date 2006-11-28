@@ -371,8 +371,7 @@ int archive_parse(const byte *input, int len, archive_t *archive)
         archive->blocs = p_new(archive_bloc *, allocated_blocs);
         archive->nb_blocs = 0;
         dynamic = true;
-    }
-    else {
+    } else {
         allocated_blocs = head->nb_blocs + 1;
         archive->blocs = p_new(archive_bloc *, allocated_blocs);
         archive->blocs[0] = archive_head_to_archive_bloc(head);
@@ -584,8 +583,8 @@ void archive_add_property(archive_build *file,
 {
     archive_attr *attr = archive_attr_new();
 
-    attr->key = strdup(name);
-    attr->val = strdup(value);
+    attr->key = p_strdup(name);
+    attr->val = p_strdup(value);
 
     /* OG: what if property already exists? */
     archive_attr_array_append(&file->attrs, attr);
@@ -595,7 +594,7 @@ archive_build *archive_add_file(archive_build_array *arch,
                                 const char *name, const byte *payload, int len)
 {
     archive_build *file = archive_build_new();
-    file->name    = strdup(name);
+    file->name    = p_strdup(name);
     file->payload = p_dup(payload, len);
     file->payload_len = len;
 

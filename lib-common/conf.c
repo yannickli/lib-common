@@ -393,7 +393,7 @@ const char *conf_put(conf_t *conf, const char *section,
     if (value) {
         /* add variable in new section */
         s = conf_section_new();
-        s->name = p_dupstr(section, strlen(section));
+        s->name = p_strdup(section);
         conf_add_section(conf, s);
         section_add_var(s, var, var_len, value, value_len);
         return s->values[0];

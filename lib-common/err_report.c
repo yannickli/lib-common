@@ -37,7 +37,7 @@ static void set_log_ident(const char *ident)
     if (ident == NULL) {
         return;
     }
-    log_state.ident = strdup(ident);
+    log_state.ident = p_strdup(ident);
     if (log_state.ident == NULL) {
         e_fatal(FATAL_NOMEM,
                 E_PREFIX("not enough memory to allocate new log_state.ident"));
@@ -205,8 +205,5 @@ void e_shutdown()
         log_state.fd = stderr;
     }
 
-    if (log_state.ident) {
-        free(log_state.ident);
-        log_state.ident = NULL;
-    }
+    p_delete(&log_state.ident);
 }

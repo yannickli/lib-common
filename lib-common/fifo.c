@@ -49,9 +49,9 @@ static inline void fifo_grow(fifo *f, ssize_t newsize)
 
 fifo *fifo_init_nb(fifo *f, ssize_t size)
 {
-    f->elems  = p_new(void*, size);
-    f->nb_elems  = 0;
-    f->first  = 0;
+    f->elems = p_new(void *, size);
+    f->nb_elems = 0;
+    f->first = 0;
     f->size = size;
 
     return f;

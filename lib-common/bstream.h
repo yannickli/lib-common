@@ -94,7 +94,7 @@ static inline BSTREAM *battach_bufsize(int fd, bstream_mode mode, int bufsize)
         return NULL;
     }
 
-    stream = malloc(sizeof(BSTREAM) + bufsize);
+    stream = p_new_extra(BSTREAM, bufsize);
     if (!stream) {
         return NULL;
     }
@@ -330,14 +330,17 @@ static ssize_t bwrite_call(BSTREAM *stream, const void *buf, size_t count)
     return written;
 }
 
+/* OG: should take (BSTREAM **streamp) */
 static inline int bdetach(BSTREAM *stream)
 {
     int ret;
+
     bflush(stream);
     ret = close(stream->fd);
     stream->pread  = stream->buf;
     stream->pwrite = stream->buf;
-    free(stream);
+    p_delete(&stream);
+
     return ret;
 }
 

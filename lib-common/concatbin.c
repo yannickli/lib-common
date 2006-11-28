@@ -55,7 +55,7 @@ concatbin *concatbin_new(const char *filename)
     ccb->cur = ccb->start;
     return ccb;
 
-error:
+  error:
     if (fd >= 0) {
         close(fd);
     }
