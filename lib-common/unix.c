@@ -86,6 +86,13 @@ int mkdir_p(const char *dir, mode_t mode)
     return 1;
 }
 
+/* MX: XXX: does not work like the usual libgen `basename`
+ *
+ * basename("foo////") == "foo" the rightmost '/' are not significant
+ * basename("////") == "/"
+ *
+ * we need to pas a buffer here too.
+ */
 const char *get_basename(const char *filename)
 {
     const char *base = filename;
@@ -99,9 +106,36 @@ const char *get_basename(const char *filename)
     return base;
 }
 
+/* MC: should return a ssize_t for consistency */
 int get_dirname(char *dir, ssize_t size, const char *filename)
 {
+/* MC: FIXME: does not works for filename == ""
+ *            or filename == "<anything without slashes>"
+ *            where it should return .
+ *
+ * I propose the following implementation:
+ */
+#if 0
+    ssize_t len = sstrlen(filename);
+
+    while (len > 0 && filename[len - 1] == '/')
+        len--;
+
+    while (len > 0 && filename[len - 1] != '/')
+        len--;
+
+    while (len > 0 && filename[len - 1] == '/')
+        len--;
+
+    if (len)
+        return pstrcpylen(dir, size, filename, len);
+
+    if (*filename == '/')
+        return pstrcpy(dst, dlen, "/");
+    return pstrcpy(dst, dlen, ".");
+#else
     return pstrcpylen(dir, size, filename, get_basename(filename) - filename);
+#endif
 }
 
 const char *get_ext(const char *filename)
