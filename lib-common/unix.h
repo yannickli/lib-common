@@ -20,7 +20,7 @@
 int mkdir_p(const char *dir, mode_t mode);
 
 const char *get_basename(const char *filename);
-int get_dirname(char *dir, ssize_t size, const char *filename);
+ssize_t get_dirname(char *dir, ssize_t size, const char *filename);
 const char *get_ext(const char *filename);
 
 static inline char *vget_basename(char *path) {

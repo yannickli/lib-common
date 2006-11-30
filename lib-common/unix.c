@@ -91,7 +91,8 @@ int mkdir_p(const char *dir, mode_t mode)
  * basename("foo////") == "foo" the rightmost '/' are not significant
  * basename("////") == "/"
  *
- * we need to pas a buffer here too.
+ * we need to pass a buffer here too.
+ * or better, rename these to get_filepart, get_dirpart...
  */
 const char *get_basename(const char *filename)
 {
@@ -106,12 +107,11 @@ const char *get_basename(const char *filename)
     return base;
 }
 
-/* MC: should return a ssize_t for consistency */
-int get_dirname(char *dir, ssize_t size, const char *filename)
+ssize_t get_dirname(char *dir, ssize_t size, const char *filename)
 {
-/* MC: FIXME: does not works for filename == ""
+/* MC: FIXME: does not work for filename == ""
  *            or filename == "<anything without slashes>"
- *            where it should return .
+ *            where it should return "."
  *
  * I propose the following implementation:
  */
