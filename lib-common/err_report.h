@@ -98,7 +98,7 @@ void e_incr_verbosity(void);
 int e_is_traced_real(int level, const char *fname, const char *func);
 
 #define e_is_traced(lvl)                                 \
-        (lvl <= e_verbosity_maxwatch                     \
+        ((lvl) <= e_verbosity_maxwatch                   \
          && e_is_traced_real(lvl, __FILE__, __func__))
 
 #define e_debug(lvl, fmt, ...)                                               \
