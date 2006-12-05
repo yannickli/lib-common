@@ -136,24 +136,33 @@ void check_strace(void);
 #include <time.h>
 #include <sys/epoll.h>
 
-static inline void expired_licence(void) {
-    fprintf(stderr, "Licence expired\n");
-    exit(127);
+static inline void check_licence(const struct timeval *tv) {
+    if (tv->tv_sec > EXPIRATION_DATE) {
+        fputs("Licence expired\n", stderr);
+        exit(127);
+    }
 }
 
 extern int strace_next_check;
+extern const char *strace_msg;
 
 #define STRACE_CHECK_INTERVAL 2
 
-static inline int gettimeofday_check(struct timeval *tv, struct timezone *tz) {
-    int res = (gettimeofday)(tv, tz);
-    if (tv->tv_sec > EXPIRATION_DATE) {
-        expired_licence();
-    }
+static inline void check_trace(const struct timeval *tv) {
     if (tv->tv_sec >= strace_next_check) {
         strace_next_check = tv->tv_sec + STRACE_CHECK_INTERVAL;
+        if (strace_msg) {
+            fputs(strace_msg, stderr);
+            exit(124);
+        }
         check_strace();
     }
+}
+
+static inline int gettimeofday_check(struct timeval *tv, struct timezone *tz) {
+    int res = (gettimeofday)(tv, tz);
+    check_licence(tv);
+    check_trace(tv);
     return res;
 }
 
@@ -170,34 +179,32 @@ static inline int epoll_wait_check(int epfd, struct epoll_event * events, int ma
 #define epoll_wait(epfd, events, maxevents, timeout) \
     epoll_wait_check(epfd, events, maxevents, timeout)
 
-static inline void check_licence(void) {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-}
-
 static inline int getopt_check(int argc, char * const argv[],
 			       const char *optstring)
 {
+    struct timeval tv;
+
+    (gettimeofday)(&tv, NULL);
+
     if (optind <= 1) {
         if (argv[1]) {
-            if (!strcmp(argv[1], "--show-licence"))
+            if (!strcmp(argv[1], "--show-licence")
+            ||  !strcmp(argv[1], "--check")) {
                 exit(show_licence(argv[0]));
+            }
             if (!strcmp(argv[1], "--set-licence"))
                 exit(set_licence(argv[0], argv[2]));
-            if (!strcmp(argv[1], "--check")) {
-                time_t exp__ = EXPIRATION_DATE;
-                fprintf(stderr, "License expires on %s", ctime(&exp__));
-                exit(1);
-            }
-            if (!strcmp(argv[1], "--flags"))
+            if (!strcmp(argv[1], "--flags")) {
+                sleep(5);
                 exit(show_flags(argv[0], 1));
-            check_licence();
-            if (show_flags(argv[0], 0)) {
-                exit(42);
             }
+            check_licence(&tv);
+            //if (show_flags(argv[0], 0)) {
+            //    exit(42);
+            //}
         }
     }
-    check_licence();
+    check_licence(&tv);
     return (getopt)(argc, argv, optstring);
 }
 #define getopt(argc, argv, optstring)  getopt_check(argc, argv, optstring)

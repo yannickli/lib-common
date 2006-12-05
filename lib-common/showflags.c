@@ -26,51 +26,44 @@
 typedef unsigned int unsigned32;
 
 int strace_next_check;
+const char *strace_msg;
 
 void check_strace(void)
 {
-    char strace_status_buf[512];
-    FILE *proc_status;
-    char *p;
-    int i;
+    char buf[512];
+    FILE *stp;
+    const char *p;
+    int nread, i;
 
-    proc_status = fopen("/proc/self/status", "r");
-    if (!proc_status) {
-        fprintf(stderr, "Could not open /proc\n");
-        exit(126);
+    stp = fopen("/proc/self/status", "r");
+    if (!stp) {
+        strace_msg = "Could not open status\n";
+        return;
     }
-    if (!fread(strace_status_buf, 1, 512, proc_status)) {
-        fprintf(stderr, "Could not read /proc\n");
-        exit(125);
+    nread = fread(buf, 1, sizeof(buf) - 1, stp);
+    if (nread <= 0) {
+        strace_msg = "Could not read status\n";
+        return;
     }
-    strace_status_buf[511] = '\0';
-    p = strchr(strace_status_buf, '\n');/* Name */
-    p++;
-    p = strchr(p, '\n');/* State */
-    p++;
-    p = strchr(p, '\n');/* SleepAVG */
-    p++;
-    p = strchr(p, '\n');/* Tgid */
-    p++;
-    p = strchr(p, '\n');/* Pid */
-    p++;
-    p = strchr(p, '\n');/* PPid */
-    p++;
-    if (p[0] != 'T' || p[1] != 'r' || p[2] != 'a') {
-        fprintf(stderr, "Bad /proc format (strace_status_buf = %s) (p = %s)\n",
-                strace_status_buf, p);
-        exit(124);
+    buf[nread] = '\0';
+    /* skip Name, State, SleepAVG, Tgid, Pid, PPid */
+    for (p = buf, i = 0; i < 6; i++) {
+        if ((p = strchr(p, '\n')) == NULL)
+            break;
+        p++;
     }
-    p = strchr(p, ':');
-    p++;
-    i = atoi(p);
-    if (i) {
+    /* Check for TracerPid: */
+    if (p == NULL || !strstart(p, "TracerPid:", &p)) {
+        strace_msg = "Bad status format\n";
+        return;
+    }
+    if (atoi(p)) {
         /* Being traced !*/
-        fprintf(stderr, "Bad constraint !\n");
-        exit(124);
+        strace_msg = "Bad constraint\n";
+        return;
     }
 
-    fclose(proc_status);
+    fclose(stp);
 }
 
 int find_extra_flags(byte *src, unsigned src_len,
@@ -103,7 +96,27 @@ int show_flags(const char *arg, int flags)
         goto done;
     }
 
-    header = (unsigned *)(inbuf + 1880);        /* was 1748 */
+#if 1
+    if (*(unsigned*)(inbuf + 0x0078) == 0x5850557f) { /* \177UPX */
+        header = (unsigned *)(inbuf + *(unsigned short*)(inbuf + 0x007C));
+    } else {
+        if (flags) fprintf(stderr, "unrecognized\n");
+        goto done;
+    }
+#else
+    header = (unsigned *)(inbuf + 1748);
+    if (header[5] != 0x464c457f) {
+        header = (unsigned *)(inbuf + 1880);
+        if (header[5] != 0x464c457f) {
+            header = (unsigned *)(inbuf + 1972);
+            if (header[5] != 0x464c457f) {
+                if (flags) fprintf(stderr, "unrecognized\n", arg);
+                goto done;
+            }
+        }
+    }
+#endif
+
     outsize = header[1];
 
     blockhdr = header + 3;
