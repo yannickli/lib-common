@@ -129,8 +129,8 @@ struct timeval timeval_div(struct timeval tv, int k)
  * available time left and return it if left is not NULL.
  */
 bool is_expired(const struct timeval *date,
-                       const struct timeval *now,
-                       struct timeval *left)
+                const struct timeval *now,
+                struct timeval *left)
 {
     struct timeval local_now;
     struct timeval local_left;
