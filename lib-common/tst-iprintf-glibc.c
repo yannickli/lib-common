@@ -309,7 +309,10 @@ main(int argc, char *argv[])
     fclose(fp);
     fp = NULL;
 
-    result |= system("diff tst-iprintf-glibc.chk tst-iprintf-glibc.ref");
+    if (sizeof(long) == 8)
+        result |= system("diff tst-iprintf-glibc.chk tst-iprintf-glibc.64.ref");
+    else
+        result |= system("diff tst-iprintf-glibc.chk tst-iprintf-glibc.ref");
 
     if (!result)
         unlink("tst-iprintf-glibc.chk");
