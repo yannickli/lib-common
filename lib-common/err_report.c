@@ -71,7 +71,7 @@ error:
     }
     log_state.fd = stderr;
     e_fatal(FATAL_LOGWRITE,
-            E_PREFIX("cannot write log : %s"), strerror(errno));
+            E_PREFIX("cannot write log: %s"), strerror(errno));
 }
 
 #define H_ARGS             const char *format, va_list args
