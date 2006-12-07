@@ -42,6 +42,26 @@ int strtoip(const char *p, const char **endp)
     return neg ? -res : res;
 }
 
+/** Parses a string to extract a long, checking some constraints.
+ * <code>res</code> points to the destination of the long value
+ * <code>p</code> points to the string to parse
+ * <code>endp</code> points to the end of the parse (the next char to
+ *   parse, after the value. spaces after the value are skipped if 
+ *   STRTOLP_SKIP_SPACES is set)
+ * <code>min</code> and <code>max</code> are extrema values (only checked
+ *   if STRTOLP_CHECK_RANGE is set.
+ * <code>dest</code> of <code>size</code> bytes.
+ *
+ * If STRTOLP_SKIP_SPACES is set, leading and trailing spaces are
+ * considered normal and skipped. If not set, then even leading spaces
+ * lead to a failure.
+ *
+ * If STRTOLP_CHECK_END is set, the end of the value is supposed to
+ * be the end of the string.
+ *
+ * @returns 0 if all constraints are met. Otherwise returns a negative
+ * value corresponding to the error
+ */
 int strtolp(long *res, const char *p, const char **endp, long min, long max,
             int base, int flags)
 {
