@@ -17,6 +17,15 @@
 
 #include "archive.h"
 
+#define BLOB_APPEND_UINT32(output, i)                 \
+    do {                                              \
+        blob_ensure_avail(output, 4);                 \
+        blob_append_byte(output, UINT32_TO_B0(i));    \
+        blob_append_byte(output, UINT32_TO_B1(i));    \
+        blob_append_byte(output, UINT32_TO_B2(i));    \
+        blob_append_byte(output, UINT32_TO_B3(i));    \
+    } while (0)
+
 static void archive_bloc_wipe(archive_bloc *bloc)
 {
     bloc->tag  = 0;
@@ -615,22 +624,13 @@ archive_find_file(archive_build_array *arch, const char *name)
     return NULL;
 }
 
-static inline void archive_write_file(blob_t *output,
-                                      const archive_build *file)
+static inline void
+archive_write_file(blob_t *output, const archive_build *file)
 {
-    int packet_size;
-    int attr_size = 0;
-    int name_len;
-    byte *size_start;
-    int size_offset;
+    int packet_size, size_offset;
+    byte *data;
     int i;
 
-#define BLOB_APPEND_UINT32(output, i)                 \
-    blob_append_fmt(output, "%c%c%c%c",               \
-                    UINT32_TO_B0(i),                  \
-                    UINT32_TO_B1(i),                  \
-                    UINT32_TO_B2(i),                  \
-                    UINT32_TO_B3(i) );
     blob_append_cstr(output, ARCHIVE_TAG_FILE_STR);
     /* Size : will have to be patched */
     size_offset = output->len;
@@ -642,30 +642,25 @@ static inline void archive_write_file(blob_t *output,
     BLOB_APPEND_UINT32(output, file->date_update);
     BLOB_APPEND_UINT32(output, file->attrs.len);
 
-    name_len = strlen(file->name);
-    blob_append_data(output, file->name, name_len);
-    blob_append_byte(output, '\0');
+    /* XXX: yes we want the '\0' */
+    blob_append_data(output, file->name, strlen(file->name) + 1);
 
     for (i = 0; i < file->attrs.len; i++) {
-         attr_size += blob_append_fmt(output, "%s:%s\n",
-                                      file->attrs.tab[i]->key,
-                                      file->attrs.tab[i]->val);
+         blob_append_fmt(output, "%s:%s\n",
+                         file->attrs.tab[i]->key, file->attrs.tab[i]->val);
     }
-
-    packet_size = 
-        4 * 3 + /* Date create, update, Nb attributes */
-        name_len + 1 +
-        attr_size +
-        file->payload_len;
 
     blob_append_data(output, file->payload, file->payload_len);
 
-    size_start = output->data + size_offset;
+    /* -4 because it's the offset of the patch placeholder */
+    packet_size = output->len - size_offset - sizeof(uint32_t);
 
-    size_start[0] = UINT32_TO_B0(packet_size);
-    size_start[1] = UINT32_TO_B1(packet_size);
-    size_start[2] = UINT32_TO_B2(packet_size);
-    size_start[3] = UINT32_TO_B3(packet_size);
+    data = output->data + size_offset;
+
+    *data++ = UINT32_TO_B0(packet_size);
+    *data++ = UINT32_TO_B1(packet_size);
+    *data++ = UINT32_TO_B2(packet_size);
+    *data++ = UINT32_TO_B3(packet_size);
 }
 
 int blob_append_archive(blob_t *output, const archive_build_array *archive)
@@ -673,22 +668,13 @@ int blob_append_archive(blob_t *output, const archive_build_array *archive)
     int i = 0;
 
     /* Write archive header */
-    blob_append_fmt(output, ARCHIVE_MAGIC_STR "%c%c%c%c",
-                    UINT32_TO_B0(ARCHIVE_VERSION_1),
-                    UINT32_TO_B1(ARCHIVE_VERSION_1),
-                    UINT32_TO_B2(ARCHIVE_VERSION_1),
-                    UINT32_TO_B3(ARCHIVE_VERSION_1) );
+    blob_append_cstr(output, ARCHIVE_MAGIC_STR);
+    BLOB_APPEND_UINT32(output, ARCHIVE_VERSION_1);
 
     /* Write head bloc */
-    blob_append_fmt(output, ARCHIVE_TAG_HEAD_STR "%c%c%c%c" "%c%c%c%c",
-                    UINT32_TO_B0(4),
-                    UINT32_TO_B1(4),
-                    UINT32_TO_B2(4),
-                    UINT32_TO_B3(4),
-                    UINT32_TO_B0(archive->len),
-                    UINT32_TO_B1(archive->len),
-                    UINT32_TO_B2(archive->len),
-                    UINT32_TO_B3(archive->len) );
+    blob_append_cstr(output, ARCHIVE_TAG_HEAD_STR);
+    BLOB_APPEND_UINT32(output, 4);
+    BLOB_APPEND_UINT32(output, archive->len);
 
     /* Write files */
     for (i = 0; i < archive->len; i++) {
