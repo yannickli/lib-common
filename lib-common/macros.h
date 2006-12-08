@@ -56,6 +56,7 @@ typedef int bool;
 #endif
 
 typedef unsigned char byte;
+typedef unsigned int flag_t;    /* for 1 bit bitfields */
 
 /**************************************************************************/
 /* Misc                                                                   */
