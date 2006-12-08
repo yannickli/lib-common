@@ -86,12 +86,14 @@ static inline long long vstrtoll(char *str, char **endp, int base) {
 
 int strtoip(const char *p, const char **endp)  __attr_nonnull__((1));
 
-#define STRTOLP_SKIP_SPACES         (1 << 0)
-#define STRTOLP_CHECK_RANGE         (1 << 1)
-#define STRTOLP_STRTOLP_CHECK_RANGE (1 << 2)
-#define STRTOLP_CHECK_END           (1 << 3)
-int strtolp(long *res, const char *p, const char **endp, long min, long max,
-            int base, int flags);
+#define STRTOLP_IGNORE_SPACES  (1 << 0)
+#define STRTOLP_CHECK_END      (1 << 1)
+#define STRTOLP_EMPTY_OK       (1 << 2)
+#define STRTOLP_CHECK_RANGE    (1 << 3)
+#define STRTOLP_CLAMP_RANGE    (1 << 4)
+/* returns 0 if success, negative errno if error */
+int strtolp(const char *p, const char **endp, int base, long *res,
+            int flags, long min, long max);
 
 int strstart(const char *str, const char *p, const char **pp);
 static inline int vstrstart(char *str, const char *p, char **pp) {

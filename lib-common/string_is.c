@@ -47,12 +47,12 @@ int strtoip(const char *p, const char **endp)
  * <code>p</code> points to the string to parse
  * <code>endp</code> points to the end of the parse (the next char to
  *   parse, after the value. spaces after the value are skipped if 
- *   STRTOLP_SKIP_SPACES is set)
+ *   STRTOLP_IGNORE_SPACES is set)
  * <code>min</code> and <code>max</code> are extrema values (only checked
  *   if STRTOLP_CHECK_RANGE is set.
  * <code>dest</code> of <code>size</code> bytes.
  *
- * If STRTOLP_SKIP_SPACES is set, leading and trailing spaces are
+ * If STRTOLP_IGNORE_SPACES is set, leading and trailing spaces are
  * considered normal and skipped. If not set, then even leading spaces
  * lead to a failure.
  *
@@ -62,35 +62,57 @@ int strtoip(const char *p, const char **endp)
  * @returns 0 if all constraints are met. Otherwise returns a negative
  * value corresponding to the error
  */
-int strtolp(long *res, const char *p, const char **endp, long min, long max,
-            int base, int flags)
+int strtolp(const char *p, const char **endp, int base, long *res,
+            int flags, long min, long max)
 {
-    long ret;
+    const char *end;
+    long value;
+    bool clamped;
 
+    if (!endp) {
+        endp = &end;
+    }
     if (!res) {
-        return -EINVAL;
+        res = &value;
+    }
+    if (flags & STRTOLP_IGNORE_SPACES) {
+        p = skipspaces(p);
+    } else {
+        if (isspace(*p))
+            return -EINVAL;
     }
     errno = 0;
-    if (!(flags & STRTOLP_SKIP_SPACES) && isspace(*p)) {
+    *res = strtol(p, endp, base);
+    if (flags & STRTOLP_IGNORE_SPACES) {
+        *endp = skipspaces(*endp);
+    }
+    if ((flags & STRTOLP_CHECK_END) && **endp != '\0') {
         return -EINVAL;
     }
-    ret = strtol(p, endp, base);
+    if (*endp == p && !(flags & STRTOLP_EMPTY_OK)) {
+        return -EINVAL;
+    }
+    clamped = false;
+    if (flags & STRTOLP_CLAMP_RANGE) {
+        if (*res < min) {
+            *res = min;
+            clamped = true;
+        } else
+        if (value > max) {
+            *res = max;
+            clamped = true;
+        }            
+        if (errno == ERANGE)
+            errno = 0;
+    }
     if (errno) {
-        return -errno;
+        return -errno;  /* -ERANGE or maybe EINVAL as checked by strtol() */
     }
-    if ((flags & STRTOLP_CHECK_RANGE) && (ret < min || ret > max)) {
-        return -ERANGE;
-    }
-    if (endp) {
-        if (flags & STRTOLP_SKIP_SPACES) {
-            *endp = skipspaces(*endp);
-        }
-        if ((flags & STRTOLP_CHECK_END) && *endp != '\0') {
-            return -ERANGE; /* Should not be the same as above. Maybe. */
+    if (flags & STRTOLP_CHECK_RANGE) {
+        if (clamped || *res < min || *res > max) {
+            return -ERANGE;
         }
     }
-
-    *res = ret;
     return 0;
 }
 
@@ -553,32 +575,35 @@ START_TEST(check_pstrlen)
 }
 END_TEST
 
-static void check_strtolp_unit(const char *p, int flags, long min, long max,
-                               long val_exp, int ret_exp, int end_i)
-{
-    const char *endp;
-    int ret;
-    long val;
-
-    ret = strtolp(&val, p, &endp, min, max, 0, flags);
-
-#define DISPLAY(str) "('%s', %d, %ld<= XXX <= %ld. %ld, %d, %d)" str, \
-    p, flags, min, max, val_exp, ret_exp, end_i
-    fail_if (ret != ret_exp, DISPLAY("ret=%d (expected %d)\n"),
-             ret, ret_exp);
-
-    if (ret != 0)
-        return;
-
-    fail_if (val != val_exp, "'%s' : val=%ld (expected %ld)\n",
-                 p, val, val_exp);
-}
+#define check_strtolp_unit(p, flags, min, max, val_exp, ret_exp, end_i) \
+    do {                                                                \
+        const char *endp;                                               \
+        int ret;                                                        \
+        long val;                                                       \
+                                                                        \
+        ret = strtolp(p, &endp, 0, &val, flags, min, max);              \
+                                                                        \
+        fail_if (ret != ret_exp,                                        \
+                 "('%s', %d, %ld<= XXX <= %ld. %ld, %d, %d)"            \
+                 "ret=%d (expected %d)\n",                              \
+                 p, flags, min, max, val_exp, ret_exp, end_i,           \
+                 ret, ret_exp);                                         \
+                                                                        \
+        if (ret == 0) {                                                 \
+            fail_if (val != val_exp,                                    \
+                     "('%s', %d, %ld<= XXX <= %ld. %ld, %d, %d)"        \
+                     "val=%ld (expected %ld)\n",                        \
+                     p, flags, min, max, val_exp, ret_exp, end_i,       \
+                     val, val_exp);                                     \
+        }                                                               \
+    } while (0)
 
 START_TEST(check_strtolp)
 {
     check_strtolp_unit("123", 0,
                        0, 1000,
                        123, 0, 3);
+
     /* Check min/max */
     check_strtolp_unit("123", STRTOLP_CHECK_RANGE,
                        0, 100,
@@ -586,6 +611,7 @@ START_TEST(check_strtolp)
     check_strtolp_unit("123", STRTOLP_CHECK_RANGE,
                        1000, 2000,
                        123, -ERANGE, 3);
+
     /* check min/max corner cases */
     check_strtolp_unit("123", STRTOLP_CHECK_RANGE,
                        0, 123,
@@ -605,17 +631,41 @@ START_TEST(check_strtolp)
                        0, 1000,
                        123, -EINVAL, 3);
 
-    check_strtolp_unit(" 123", STRTOLP_SKIP_SPACES,
-                       0, 1000,
+    check_strtolp_unit("123 ", STRTOLP_CHECK_END,
+                       0, 100,
+                       123, -EINVAL, 3);
+
+    check_strtolp_unit(" 123 ", STRTOLP_CHECK_END | STRTOLP_CHECK_RANGE,
+                       0, 100,
+                       123, -EINVAL, 3);
+
+    check_strtolp_unit(" 123", STRTOLP_IGNORE_SPACES,
+                       0, 100,
                        123, 0, 3);
 
-    check_strtolp_unit(" 123 ", STRTOLP_SKIP_SPACES,
-                       0, 1000,
+    check_strtolp_unit(" 123 ", STRTOLP_IGNORE_SPACES,
+                       0, 100,
                        123, 0, 4);
 
-    check_strtolp_unit(" 123 ", STRTOLP_CHECK_RANGE | STRTOLP_SKIP_SPACES,
+    check_strtolp_unit(" 123 ", STRTOLP_IGNORE_SPACES | STRTOLP_CHECK_RANGE,
                        0, 100,
                        123, -ERANGE, 3);
+
+    check_strtolp_unit(" 123 ", STRTOLP_IGNORE_SPACES | STRTOLP_CLAMP_RANGE,
+                       0, 100,
+                       100, 0, 3);
+
+    check_strtolp_unit("123456789012345678901234567890", 0,
+                       0, 100,
+                       123, -ERANGE, 3);
+
+    check_strtolp_unit("123456789012345678901234567890 ", STRTOLP_CHECK_END,
+                       0, 100,
+                       123, -EINVAL, 3);
+
+    check_strtolp_unit("123456789012345678901234567890", STRTOLP_CLAMP_RANGE,
+                       0, 100,
+                       100, 0, 3);
 }
 END_TEST
 
