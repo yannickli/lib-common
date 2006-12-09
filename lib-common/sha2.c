@@ -244,11 +244,11 @@ static void sha256_transf(sha256_ctx *ctx, byte *message, uint32_t block_nb)
         }
 
         for (j = 16; j < 64; j++) {
-            SHA256_SCR(j);	
+            SHA256_SCR(j);      
         }
 
         for (j = 0; j < 8; j++) {
-            wv[j] = ctx->h[j];	
+            wv[j] = ctx->h[j];  
         }
 
         for (j = 0; j < 64; j++) {

@@ -69,8 +69,8 @@ static void fmtst2chk(const char *fmt)
  *
  * Feel free to copy, use and distribute this software provided:
  *
- *	1. you do not pretend that you wrote it
- *	2. you leave this copyright notice intact.
+ *      1. you do not pretend that you wrote it
+ *      2. you leave this copyright notice intact.
  */
 
 /*
@@ -152,7 +152,7 @@ main(int argc, char *argv[])
     fmtst2chk("%*.*x");
     fmtst2chk("%0*.*x");
 
-#ifndef	BSD
+#ifndef BSD
     //fprintf(fp, "bad format:\t\"%b\"\n");
     fprintf(fp, "nil pointer(padded):\t\"%10p\"\n", (void *)NULL);
 #endif
@@ -220,7 +220,7 @@ main(int argc, char *argv[])
     fprintf(fp, FORMAT, 12345.0, 12345.0, 12345.0);
     fprintf(fp, FORMAT, 100000.0, 100000.0, 100000.0);
     fprintf(fp, FORMAT, 123456.0, 123456.0, 123456.0);
-#undef	FORMAT
+#undef  FORMAT
 #endif
 
     {

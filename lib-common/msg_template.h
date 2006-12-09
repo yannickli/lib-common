@@ -94,7 +94,7 @@ int msg_template_add_variable(msg_template *tpl, part_encoding enc,
                               const char **vars, int nbvars,
                               const char *name);
 int msg_template_add_varstring(msg_template *tpl, part_encoding enc,
-			       const byte *data, int len,
+                               const byte *data, int len,
                                const char **vars, int nbvars);
 
 

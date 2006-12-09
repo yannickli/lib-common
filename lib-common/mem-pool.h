@@ -29,7 +29,7 @@ mem_pool *mem_malloc_pool_new(void);
 void mem_malloc_pool_delete(mem_pool **poolp);
 
 #define mp_new_raw(mp, type, count) \
-	((type *)(mp)->mem_alloc((mp), sizeof(type) * (count)))
+        ((type *)(mp)->mem_alloc((mp), sizeof(type) * (count)))
 #define mp_new(mp, type, count)     \
         ((type *)(mp)->mem_alloc0((mp), sizeof(type) * (count)))
 

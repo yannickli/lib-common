@@ -181,7 +181,7 @@ static inline int epoll_wait_check(int epfd, struct epoll_event * events, int ma
     epoll_wait_check(epfd, events, maxevents, timeout)
 
 static inline int getopt_check(int argc, char * const argv[],
-			       const char *optstring)
+                               const char *optstring)
 {
     struct timeval tv;
 
