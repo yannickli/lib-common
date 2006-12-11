@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <endian.h>
 #include "macros.h"
 #include "strconv.h"
 #include "blob.h"
@@ -221,13 +222,11 @@ int string_decode_ira(char *dst, const char *src)
     return len;
 }
 
-
-#if 1   // Little endian, misaligned access OK
+#if __BYTE_ORDER == __LITTLE_ENDIAN // Little endian, misaligned access OK
 
 static int const win1252_to_gsm7[] = {
 
 #define HEX(x)   ((x) < 10 ? '0' + (x) : 'A' + (x) - 10)
-/* Achtung little endian only */
 #define X2(x)    ((HEX(((x) >> 4) & 15))  + (HEX(((x) >> 0) & 15) << 8))
 #define X4(x)    ((HEX(((x) >> 12) & 15)) + (HEX(((x) >> 8) & 15) << 8) + \
                   (HEX(((x) >> 4) & 15) << 16) + (HEX(((x) >> 0) & 15) << 24))
