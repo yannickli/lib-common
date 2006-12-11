@@ -404,19 +404,19 @@ int blob_append_ira(blob_t *dst, const byte *src, ssize_t len)
             c = win1252_to_gsm7[128 + src[0]];
             if (c > 0xFFFF)
                 break;
-            *(int16_t *)(data + 0) = c;
+            *(int16_t *)(data + 0) = c;   /* Endian dependent */
             c = win1252_to_gsm7[128 + src[1]];
             if (c > 0xFFFF)
                 goto generic1;
-            *(int16_t *)(data + 2) = c;
+            *(int16_t *)(data + 2) = c;   /* Endian dependent */
             c = win1252_to_gsm7[128 + src[2]];
             if (c > 0xFFFF)
                 goto generic2;
-            *(int16_t *)(data + 4) = c;
+            *(int16_t *)(data + 4) = c;   /* Endian dependent */
             c = win1252_to_gsm7[128 + src[3]];
             if (c > 0xFFFF)
                 goto generic3;
-            *(int16_t *)(data + 6) = c;
+            *(int16_t *)(data + 6) = c;   /* Endian dependent */
             src  += 4;
             data += 8;
             continue;
@@ -436,7 +436,7 @@ int blob_append_ira(blob_t *dst, const byte *src, ssize_t len)
         c = win1252_to_gsm7[128 + *src];
 
         if (c < 0x10000) {
-            *(int16_t *)data = c;
+            *(int16_t *)data = c;   /* Endian dependent */
             src  += 1;
             data += 2;
             continue;
@@ -514,10 +514,10 @@ int blob_append_ira(blob_t *dst, const byte *src, ssize_t len)
 
     hasc:
         if (c < 0x10000) {
-            *(int16_t *)data = c;
+            *(int16_t *)data = c;   /* Endian dependent */
             data += 2;
         } else {
-            *(int32_t *)data = c;
+            *(int32_t *)data = c;   /* Endian dependent */
             data += 4;
         }
     }
