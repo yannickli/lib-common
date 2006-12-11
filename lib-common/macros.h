@@ -238,4 +238,11 @@ static inline int p_fclose(FILE **fpp) {
     }
 }
 
+#if defined _BSD_SOURCE || defined _SVID_SOURCE
+/* nanosecond precision on file times from struct stat */
+#define st_atimensec  st_atim.tv_nsec	/* Backward compatibility.  */
+#define st_mtimensec  st_mtim.tv_nsec
+#define st_ctimensec  st_ctim.tv_nsec
+#endif
+
 #endif /* IS_LIB_COMMON_MACROS_H */
