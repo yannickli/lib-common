@@ -59,6 +59,12 @@ static inline char *vstrnextspace(char *s) {
     return (char*)strnextspace((char *)s);
 }
 
+const char *skipblanks(const char *s)  __attr_nonnull__((1));
+__attr_nonnull__((1))
+static inline char *vskipblanks(char *s) {
+    return (char*)skipblanks((char *)s);
+}
+
 /* Trim spaces at end of string, return pointer to '\0' */
 char *strrtrim(char *str);
 

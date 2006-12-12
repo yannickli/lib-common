@@ -319,6 +319,24 @@ const char *strnextspace(const char *s)
     return s;
 }
 
+/** Skips initial blanks as per isblank(c).
+ *
+ * use vskipsblanks for non const parameters
+ * @see vskipblanks
+ *
+ * @return a pointer to the first non white space character in s.
+ */
+#ifndef isblank
+#define isblank(c) ((c) == ' ' || (c) == '\t')
+#endif
+const char *skipblanks(const char *s)
+{
+    while (isblank((unsigned char)*s)) {
+        s++;
+    }
+    return s;
+}
+
 /** Replaces blank characters at end of string with '\0'.
  *
  * @return a pointer to the \0 at the end of str
