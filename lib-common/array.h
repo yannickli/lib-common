@@ -98,6 +98,10 @@ generic_array_swap(generic_array *array, ssize_t i, ssize_t j)
         generic_array_delete((generic_array **)array,                         \
                 do_elts ? (array_item_dtor_f *)prefix##_delete : NULL);       \
     }                                                                         \
+    static inline void                                                        \
+    prefix##_array_reset(prefix##_array *array) {                             \
+        ((generic_array*)array)->len = 0;                                     \
+    }                                                                         \
                                                                               \
     /* module functions */                                                    \
     static inline void                                                        \
