@@ -18,6 +18,9 @@
 #include "mem.h"
 #include "string_is.h"
 
+/* XXX: Only defined in ctype.h if USE_ISOC99, but a builtin in gcc (...) */
+int isblank(int c);
+
 int strtoip(const char *p, const char **endp)
 {
     int res = 0;
@@ -326,9 +329,6 @@ const char *strnextspace(const char *s)
  *
  * @return a pointer to the first non white space character in s.
  */
-#ifndef isblank
-#define isblank(c) ((c) == ' ' || (c) == '\t')
-#endif
 const char *skipblanks(const char *s)
 {
     while (isblank((unsigned char)*s)) {
