@@ -18,9 +18,6 @@
 #include "mem.h"
 #include "string_is.h"
 
-/* XXX: Only defined in ctype.h if USE_ISOC99, but a builtin in gcc (...) */
-int isblank(int c);
-
 int strtoip(const char *p, const char **endp)
 {
     int res = 0;
@@ -324,11 +321,25 @@ const char *strnextspace(const char *s)
 
 /** Skips initial blanks as per isblank(c).
  *
- * use vskipsblanks for non const parameters
+ * use vskipblanks for non const parameters
  * @see vskipblanks
  *
  * @return a pointer to the first non white space character in s.
  */
+#ifndef isblank
+/* Glibc's ctype system issues a function call to handle locale issues.
+ * Glibc only defines isblank() if USE_ISOC99, for some obsure reason,
+ * isblank() cannot be defined as an inline either (intrinsic
+ * function?)
+ * Should rewrite these functions and use our own simpler version
+ */
+#if defined(__isctype) && defined(_ISbit)    /* Glibc */
+#define isblank(c)      __isctype((c), _ISblank)
+#else
+static inline int isblank(c) { return (c == ' ' || c == '\t'); }
+#endif
+#endif
+
 const char *skipblanks(const char *s)
 {
     while (isblank((unsigned char)*s)) {
