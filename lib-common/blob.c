@@ -528,7 +528,7 @@ ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt,
          * non literal format argument.
          */
         size_t (*pstrftime)(char *s, size_t maxsize, const char *format,
-                            const struct tm *tp) = strftime;
+                            const struct tm *tp) = (void*)strftime;
         res = (*pstrftime)(buffer, sizeof(buffer), fmt, tm);
     }
     if (res > 0 && res < sizeof(buffer)) {

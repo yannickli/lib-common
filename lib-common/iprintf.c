@@ -470,7 +470,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         case 'n':
 #if 1
             /* Consume pointer to int from argument list, but ignore it */
-            va_arg(ap, int *);
+            (void)va_arg(ap, int *);
 #else
             /* The type of pointer defaults to int* but can be
              * specified with the SIZE_xxx prefixes */
@@ -821,9 +821,9 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         case 'A':
             /* fetch double value */
             if (size_flags == SIZE_long_double) {
-                va_arg(ap, long double);
+                (void)va_arg(ap, long double);
             } else {
-                va_arg(ap, double);
+                (void)va_arg(ap, double);
             }
             /* ignore floating point conversions */
             break;

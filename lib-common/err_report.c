@@ -46,6 +46,9 @@ static void set_log_ident(const char *ident)
 }
 
 static void file_handler(bool eol, const char *format, va_list args)
+        __attr_printf__(2,0);
+
+static void file_handler(bool eol, const char *format, va_list args)
 {
     if (log_state.fd == NULL) {
         log_state.fd = stderr;
@@ -75,7 +78,15 @@ error:
 }
 
 #define H_ARGS             const char *format, va_list args
+#define FA  __attr_printf__(1,0)
+
 #define FILE_HANDLER(eol)  file_handler(eol, format, args)
+static void file_fatal_handler     (H_ARGS) FA;
+static void file_error_handler     (H_ARGS) FA;
+static void file_warning_handler   (H_ARGS) FA;
+static void file_notice_handler    (H_ARGS) FA;
+static void file_info_handler      (H_ARGS) FA;
+
 static void file_fatal_handler     (H_ARGS) { FILE_HANDLER(true); }
 static void file_error_handler     (H_ARGS) { FILE_HANDLER(true); }
 static void file_warning_handler   (H_ARGS) { FILE_HANDLER(true); }
@@ -83,11 +94,18 @@ static void file_notice_handler    (H_ARGS) { FILE_HANDLER(true); }
 static void file_info_handler      (H_ARGS) { FILE_HANDLER(true); }
 
 #define SYSLOG(priority)  vsyslog(priority, format, args)
+static void syslog_fatal_handler   (H_ARGS) FA;
+static void syslog_error_handler   (H_ARGS) FA;
+static void syslog_warning_handler (H_ARGS) FA;
+static void syslog_notice_handler  (H_ARGS) FA;
+static void syslog_info_handler    (H_ARGS) FA;
+
 static void syslog_fatal_handler   (H_ARGS) { SYSLOG(LOG_CRIT); }
 static void syslog_error_handler   (H_ARGS) { SYSLOG(LOG_ERR); }
 static void syslog_warning_handler (H_ARGS) { SYSLOG(LOG_WARNING); }
 static void syslog_notice_handler  (H_ARGS) { SYSLOG(LOG_NOTICE); }
 static void syslog_info_handler    (H_ARGS) { SYSLOG(LOG_INFO); }
+#undef FA
 
 static e_callback_f *fatal_handler   = file_fatal_handler;
 static e_callback_f *error_handler   = file_error_handler;
