@@ -183,12 +183,12 @@ START_TEST(check_smallrun)
 {
     int i;
     int tab[10];
+    fifo f;
 
     for (i = 0; i < 10; i++) {
         tab[i] = i;
     }
 
-    fifo f;
     fifo_init(&f);
 
     fifo_put(&f, &tab[0]);
@@ -211,12 +211,12 @@ START_TEST(check_roll)
 {
     int i, j;
     int tab[10];
+    fifo f;
 
     for (i = 0; i < 10; i++) {
         tab[i] = i;
     }
 
-    fifo f;
     fifo_init_nb(&f, 5);
 
     for (j = 0; j < 100; j++) {
@@ -243,12 +243,12 @@ START_TEST(check_grow)
 {
     int i;
     int tab[10];
+    fifo f;
 
     for (i = 0; i < 10; i++) {
         tab[i] = i;
     }
 
-    fifo f;
     fifo_init(&f);
 
     for (i = 0; i < 1500; i++) {

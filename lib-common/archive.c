@@ -723,11 +723,13 @@ START_TEST(check_parse)
     } while (0)
 
     archive_t archive;
-    archive_init(&archive);
     uint32_t n;
     int res;
     blob_t file;
     blob_t parse_payload;
+    const char *file_data = "Test data\n";
+
+    archive_init(&archive);
 
     blob_init(&parse_payload);
     blob_append_byte(&parse_payload, ARCHIVE_MAGIC0);
@@ -743,7 +745,7 @@ START_TEST(check_parse)
 
     /* FILE */
     blob_init(&file);
-    const char *file_data = "Test data\n";
+
     AR_APPEND_UINT32(&file, strlen(file_data));/* File size */
     AR_APPEND_UINT32(&file, 0);/* Date crea */
     AR_APPEND_UINT32(&file, 0);/* Date update */

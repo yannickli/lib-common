@@ -5096,7 +5096,7 @@ int main(void)
 #ifdef STD_FUNC
     int std_errcount = 0;
     char std_buffer[BSIZE];
-    int (*std_func)(char *, size_t, const char *, ...) = STD_FUNC;
+    int (*std_func)(char *, size_t, const char *, ...) = (void*)STD_FUNC;
 #define STD_TEST(SFMT)  SINGLETEST(std_func, std_buffer, std_errcount, SFMT)
 #else
 #define STD_TEST(SFMT)
@@ -5105,7 +5105,7 @@ int main(void)
 #ifdef ALT_FUNC
     int alt_errcount = 0;
     char alt_buffer[BSIZE];
-    int (*alt_func)(char *, size_t, const char *, ...) = ALT_FUNC;
+    int (*alt_func)(char *, size_t, const char *, ...) = (void*)ALT_FUNC;
 #define ALT_TEST(SFMT)  SINGLETEST(alt_func, alt_buffer, alt_errcount, SFMT)
 #else
 #define ALT_TEST(SFMT)
