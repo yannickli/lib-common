@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2006 INTERSEC                                      */
+/*  Copyright (C) 2004-2007 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -28,7 +28,7 @@ int show_licence(const char *arg)
 
     fprintf(stderr,
             "%s -- INTERSEC Multi Channel Marketing Suite version 2.6"      LF
-            "Copyright (C) 2004-2006  INTERSEC SAS -- All Rights Reserved"  LF
+            "Copyright (C) 2004-2007  INTERSEC SAS -- All Rights Reserved"  LF
             "Licence type: Temporary Test Licence"                          LF
             "    Licencee: OrangeFrance SA"                                 LF
             "  Intersecid: " str(INTERSECID) ""                                      LF
