@@ -70,6 +70,17 @@ char *strrtrim(char *str);
 
 /* Wrappers to fix constness issue in strtol() */
 __attr_nonnull__((1))
+static inline unsigned long cstrtoul(const char *str, const char **endp, int base) {
+    return (strtoul)(str, (char **)endp, base);
+}
+
+__attr_nonnull__((1))
+static inline unsigned long vstrtoul(char *str, char **endp, int base) {
+    return (strtoul)(str, endp, base);
+}
+#define strtoul(str, endp, base)  cstrtoul(str, endp, base)
+
+__attr_nonnull__((1))
 static inline long cstrtol(const char *str, const char **endp, int base) {
     return (strtol)(str, (char **)endp, base);
 }
@@ -89,6 +100,16 @@ static inline long long vstrtoll(char *str, char **endp, int base) {
     return (strtoll)(str, endp, base);
 }
 #define strtoll(str, endp, base)  cstrtoll(str, endp, base)
+
+__attr_nonnull__((1))
+static inline long long cstrtoull(const char *str, const char **endp, int base) {
+    return (strtoull)(str, (char **)endp, base);
+}
+__attr_nonnull__((1))
+static inline long long vstrtoull(char *str, char **endp, int base) {
+    return (strtoull)(str, endp, base);
+}
+#define strtoull(str, endp, base)  cstrtoull(str, endp, base)
 
 int strtoip(const char *p, const char **endp)  __attr_nonnull__((1));
 
