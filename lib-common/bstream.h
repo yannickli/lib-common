@@ -25,327 +25,430 @@
 #include "macros.h"
 #include "mem.h"
 
-/* For internal use only */
-static inline ssize_t bwrite_buffer(int fd, const char *buf, size_t count)
-{
-    ssize_t n, written = 0;
+#ifndef _LARGEFILE64_SOURCE
+typedef loff_t off64_t;
+#define lseek64(stream, off, whence) llseek(stream, off, whence)
+loff_t llseek(int fd, loff_t offset, int whence);
+#endif
 
-    while (count) {
-        n = write(fd, buf, count);
-        if (n < 0) {
-            if (errno == EINTR || errno == EAGAIN) {
-                continue;
-            }
-            break;
-        } else if (n == 0) {
-            break;
-        } else {
-            buf     += n;
-            count   -= n;
-            written += n;
-        }
-    }
-    return written;
-}
-
-/* For internal use only */
-static inline ssize_t bread_buffer(int fd, char *buf, size_t count)
-{
-    ssize_t n, nbread = 0;
-
-    while (count) {
-        n = read(fd, buf, count);
-        if (n < 0) {
-            if (errno == EINTR || errno == EAGAIN) {
-                continue;
-            }
-            break;
-        } else if (n == 0) {
-            break;
-        } else {
-            buf     += n;
-            count   -= n;
-            nbread  += n;
-        }
-    }
-    return nbread;
-}
-
-typedef enum {
-    BSTREAM_READ = 1,
-    BSTREAM_WRITE = 2,
-} bstream_mode;
+#define BSTREAM_ISREAD(m)  (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) == O_RDONLY)
+#define BSTREAM_ISWRITE(m) (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) == O_WRONLY)
 
 typedef struct BSTREAM {
+    int mode;   /* same as mode argument for open() */
     int fd;
-    bstream_mode mode;
-    char *pread;
-    char *pwrite;
-    int eof;
+    off64_t pos;
+    unsigned char *pread;
+    unsigned char *pread_end;
+    unsigned char *pwrite_start;
+    unsigned char *pwrite;
+    unsigned char *pwrite_end;
+    int eof : 1;
+    int error : 1;
 #define DEFAULT_BUFSIZ (64 * 1024)
     size_t bufsiz;
-    char buf[0]; /* malloc'ed later */
+    unsigned char buf[0]; /* malloc'ed later */
 } BSTREAM;
 
-/* Officially exported functions
- */
-static inline BSTREAM *battach_bufsize(int fd, bstream_mode mode, int bufsize)
+static inline int beof(BSTREAM *stream) {
+    return stream->eof;
+}
+
+static inline int berror(BSTREAM *stream) {
+    return stream->error;
+}
+
+static inline void bclearerr(BSTREAM *stream) {
+    stream->eof = stream->error = 0;
+}
+
+static inline int bfileno(BSTREAM *stream) {
+    return stream->fd;
+}
+
+static inline BSTREAM *battach_bufsize(int fd, int mode, int bufsize)
 {
     BSTREAM *stream;
 
-    if (fd < 0) {
+    if (fd < 0)
         return NULL;
+
+    if (bufsize < 0) {
+        /* Unbuffered */
+        bufsize = 1;
+    } else
+    if (bufsize == 0) {
+        bufsize = DEFAULT_BUFSIZ;
     }
 
     stream = p_new_extra(BSTREAM, bufsize);
-    if (!stream) {
+    if (!stream)
         return NULL;
-    }
 
-    stream->bufsiz = bufsize;
-    stream->fd = fd;
-    stream->mode = mode;
-    stream->pwrite = stream->buf;
-    stream->pread  = stream->buf;
+    stream->mode   = mode;
+    stream->fd     = fd;
+    stream->pos    = 0;
+    stream->pread  = stream->pread_end =
+        stream->pwrite = stream->pwrite_end =
+        stream->pwrite_start = stream->buf;
     stream->eof    = 0;
+    stream->error  = 0;
+    stream->bufsiz = bufsize;
+    if (BSTREAM_ISWRITE(stream->mode))
+        stream->pwrite_end += bufsize;
+
     return stream;
 }
 
-static inline BSTREAM *battach(int fd, bstream_mode mode)
+static inline BSTREAM *battach(int fd, int mode)
 {
-    return battach_bufsize(fd, mode, DEFAULT_BUFSIZ);
+    return battach_bufsize(fd, mode, 0);
 }
 
-static inline int bflush(BSTREAM *stream)
+static inline BSTREAM *bopen(const char *filename, int mode)
 {
-    size_t written;
-    size_t towrite;
+    return battach(open(filename, mode, 0644), mode);
+}
 
-    if (stream->mode != BSTREAM_WRITE) {
+/* For internal use only */
+static inline ssize_t bread_buffer(int fd, unsigned char *buf, size_t count)
+{
+    for (;;) {
+        ssize_t n = read(fd, buf, count);
+        if (n >= 0 || (errno != EINTR && errno != EAGAIN)) {
+            return n;
+        }
+    }
+}
+
+/* For internal use only */
+static inline int bfilbuf(BSTREAM *stream)
+{
+    ssize_t n;
+
+    if (!BSTREAM_ISREAD(stream->mode) || stream->error) {
+        return -1;
+    }
+
+    if (stream->eof) {
+        /* EOF is sticky */
         return 0;
     }
 
-    towrite = stream->pwrite - stream->buf;
-    written = bwrite_buffer(stream->fd, stream->buf, towrite);
-    if (written != towrite) {
-        return -1;
+    stream->pread = stream->pread_end = stream->buf;
+
+    n = bread_buffer(stream->fd, stream->buf, stream->bufsiz);
+    if (n < 0) {
+        stream->error = 1;
+    } else
+    if (n == 0) {
+        stream->eof = 1;
+    } else {
+        stream->pos       += n;
+        stream->pread_end += n;
     }
-
-    stream->pwrite = stream->buf;
-
-    return 0;
+    return n;
 }
 
-static inline ssize_t bread(BSTREAM *stream, void *buf, size_t count)
+static inline ssize_t bread_call(BSTREAM *stream, void *ptr, size_t count)
 {
-    size_t avail, toread, n;
-    size_t nbread = 0;
+    unsigned char *buf = ptr;
+    ssize_t n, toread, nbread = 0;
 
-    if (stream->mode != BSTREAM_READ) {
+    if (!BSTREAM_ISREAD(stream->mode)) {
         return -1;
     }
 
-    avail = stream->pwrite - stream->pread;
-    if (avail >= count) {
-        /* Read from buffer. Fine. */
-        memcpy(buf, stream->pread, count);
+    /* Keep trying until EOF */
+    for (;;) {
+        n = stream->pread_end - stream->pread;
+        if ((size_t)n > count) {
+            n = count;
+        }
+    
+        /* Copy from buffer. */
+        memcpy(buf, stream->pread, n);
+        stream->pread += n;
+        buf    += n;
+        nbread += n;
+        count  -= n;
+
+        if (count == 0)
+            break;
+
+        if (stream->error) {
+            return nbread ? nbread : -1;
+        }
+        if (stream->eof) {
+            /* EOF is sticky */
+            break;
+        }
+
+        /* Try and read full blocks directly to the destination */
+        if (count >= stream->bufsiz) {
+            toread = count - (count % stream->bufsiz);
+            n = bread_buffer(stream->fd, buf, toread);
+            if (n < 0) {
+                stream->error = 1;
+                continue;
+            }
+            if (n == 0) {
+                stream->eof = 1;
+                continue;
+            }
+            stream->pos += n;
+            buf    += n;
+            nbread += n;
+            count  -= n;
+            if (count == 0)
+                break;
+        }
+        bfilbuf(stream);
+    }
+    return nbread;
+}
+
+static inline ssize_t bread(BSTREAM *stream, void *ptr, size_t count)
+{
+    if (count <= (size_t)(stream->pread_end - stream->pread)) {
+        /* Handle chunk that fits in the buffer. */
+        memcpy(ptr, stream->pread, count);
         stream->pread += count;
         return count;
     }
-
-    /* We've been asked for more than what we have in the buffer. First
-     * copy what we have and reset pointers. */
-    memcpy(buf, stream->pread, avail);
-    buf     = (char *)buf + avail;
-    count  -= avail;
-    nbread += avail;
-    stream->pread = stream->buf;
-    stream->pwrite = stream->buf;
-
-    if (stream->eof) {
-        return nbread;
-    }
-
-    /* Now read more */
-    if (count >= stream->bufsiz) {
-        /* Read full blocks directly to the buffer */
-        toread = count / stream->bufsiz * stream->bufsiz;
-        n = bread_buffer(stream->fd, buf, toread);
-        if (n != toread) {
-            stream->eof = 1;
-        }
-        buf     = (char *)buf + n;
-        count  -= n;
-        nbread += n;
-    }
-
-    if (!stream->eof) {
-        /* Read to the internal buf and copy as many as requested */
-        n = bread_buffer(stream->fd, stream->pread, stream->bufsiz);
-        if (n != stream->bufsiz) {
-            stream->eof = 1;
-            if (n < count) {
-                count = n;
-            }
-        }
-        stream->pwrite = stream->pread + n;
-        memcpy(buf, stream->pread, count);
-        stream->pread += count;
-        nbread += count;
-    }
-
-    return nbread;
+    return bread_call(stream, ptr, count);
 }
 
 static inline int bgetc(BSTREAM *stream)
 {
-    char c;
-    if (bread(stream, &c, 1) != 1) {
+    if (stream->pread < stream->pread_end || bfilbuf(stream) > 0) {
+        return *stream->pread++;
+    } else {
         return -1;
     }
-    return c;
 }
 
 static inline char *bgets(BSTREAM *stream, char *s, int size)
 {
-    char *p;
-    int n, c = -1;
+    char *p, *p_end;
+    int c;
 
     if (size <= 0) {
         return NULL;
     }
 
-    n = size - 1;
     p = s;
-    while (n > 0) {
+    p_end = p + size - 1;
+
+#if 1
+    {
+        /* Optimized loop with single test until end of buffer */
+        int avail = stream->pread_end - stream->pread;
+        char *p_end0 = p_end;
+        if (avail < size)
+            p_end0 = p + avail;
+        while (p < p_end0) {
+            if ((*p++ = *stream->pread++) == '\n') {
+                *p = '\0';
+                return s;
+            }
+        }
+    }
+#endif
+    while (p < p_end) {
         c = bgetc(stream);
-        if (c == -1) 
+        if (c == -1) {
+            if (p == s) {
+                return NULL;
+            }
             break;
-        n--;
+        }
         *p++ = c;
         if (c == '\n')
             break;
     }
-    if (p == s) {
+    if (s == p_end && stream->eof) {
+        /* Special case for 1 byte buffer:
+         * if EOF already seen, return NULL, instead of ""
+         */
         return NULL;
     }
     *p = '\0';
-    if (c == -1) {
-        return NULL;
-    }
     return s;
 }
 
-static inline ssize_t bwrite_call(BSTREAM *stream, const void *buf,
-                                  size_t count);
-
-static inline ssize_t bwrite(BSTREAM *stream, const void *buf, size_t count)
+/* For internal use only */
+static inline ssize_t bwrite_buffer(int fd, const unsigned char *buf,
+                                    size_t count)
 {
-    if (stream->mode != BSTREAM_WRITE) {
+    ssize_t n, written = 0;
+
+    while (count) {
+        n = write(fd, buf, count);
+        if (n <= 0) {
+            if (n < 0 && (errno == EINTR || errno == EAGAIN)) {
+                continue;
+            }
+            break;
+        } else {
+            buf     += n;
+            written += n;
+            count   -= n;
+        }
+    }
+    return written;
+}
+
+static inline int bflsbuf(BSTREAM *stream)
+{
+    size_t towrite, written;
+
+    if (!BSTREAM_ISWRITE(stream->mode) || stream->error) {
         return -1;
     }
 
-    /* Fill the buffer first */
-    if (stream->pwrite + count < stream->buf + stream->bufsiz) {
-        /* small chunk : We will put data into the buffer */
-        memcpy(stream->pwrite, buf, count);
-        stream->pwrite += count;
-        return count;
+    towrite = stream->pwrite - stream->pwrite_start;
+    written = bwrite_buffer(stream->fd, stream->pwrite_start, towrite);
+    stream->pos += written;
+    if (written == towrite) {
+        stream->pwrite_start = stream->pwrite = stream->buf;
+        return written;
+    } else {
+        /* Support for partial writes */
+        stream->pwrite_start += written;
+        return -1;
     }
+}
 
-    return bwrite_call(stream, buf, count);
+static inline int bflush(BSTREAM *stream)
+{
+    if (BSTREAM_ISWRITE(stream->mode)) {
+        return (bflsbuf(stream) >= 0) ? 0 : -1;
+    } else {
+        stream->pread = stream->pread_end = stream->buf;
+        return 0;
+    }
 }
 
 /* Should move this to bstream.c */
-static ssize_t bwrite_call(BSTREAM *stream, const void *buf, size_t count)
+static ssize_t bwrite_call(BSTREAM *stream, const void *src, size_t count)
 {
-    size_t avail, towrite, n;
+    const unsigned char *buf = src;
+    size_t avail, towrite, tocopy, n;
     size_t written = 0;
 
-    if (stream->mode != BSTREAM_WRITE) {
+    if (!BSTREAM_ISWRITE(stream->mode)) {
         return -1;
     }
 
-    /* Fill the buffer first */
-    avail = stream->bufsiz - (stream->pwrite - stream->buf);
-    /* Do not assume count >= avail */
-    if (count < avail) {
-        /* small chunk : We will put data into the buffer */
-        towrite = count;
-    } else {
-        if (avail != stream->bufsiz) {
-            /* Buffer is not empty. We need to fill it before writing */
-            towrite = avail;
-        } else {
-            /* Optim: buffer is empty, and count is bigger than IF_BUFSIZ. 
-             * Do not fill the buffer, we will write directly from buf. */
-            towrite = 0;
+    /* Fill the buffer first except if writing a full buffer */
+    tocopy = count;
+    avail = stream->pwrite_end - stream->pwrite;
+    if (tocopy >= avail) {
+        tocopy = avail;
+        if (avail == stream->bufsiz) {
+            /* Optim: buffer is empty, and count is at least BUFSIZ. 
+             * Do not fill the buffer, write directly from buf. */
+            tocopy = 0;
         }
     }
 
-    if (towrite) {
-        memcpy(stream->pwrite, buf, towrite);
-        stream->pwrite += towrite;
-        avail   -= towrite;
-        buf      = (const unsigned char *)buf + towrite;
-        count   -= towrite;
-        written += towrite;
-    }
-
-    if (count == 0) {
-        /* We're done. */
-        return written;
+    if (tocopy) {
+        memcpy(stream->pwrite, buf, tocopy);
+        stream->pwrite += tocopy;
+        avail   -= tocopy;
+        buf     += tocopy;
+        written += tocopy;
+        count   -= tocopy;
     }
 
     if (avail == 0) {
-        /* The buffer is full. We need to flush it to fd */
-        n = bwrite_buffer(stream->fd, stream->buf, stream->bufsiz);
-        if (n != stream->bufsiz) {
-            written += n;
-            return written;
+        /* The buffer is full: flush it. */
+        if ((n = bflsbuf(stream)) <= 0) {
+            /* This return value may be wrong */
+            return written ? written : n;
         }
-        stream->pwrite -= n;
     }
-    
+
     /* Write as many stream->bufsiz blocks as possible */
-    towrite = count / stream->bufsiz * stream->bufsiz;
+    towrite = count - (count % stream->bufsiz);
     if (towrite) {
         n = bwrite_buffer(stream->fd, buf, towrite);
+        stream->pos += n;
+        written     += n;
         if (n != towrite) {
-            written += n;
             return written;
         }
-        written += n;
-        count   -= n;
-        buf      = (const unsigned char *)buf + n;
+        count -= n;
+        buf   += n;
     }
 
-    if (count == 0) {
-        return written;
+    if (count > 0) {
+        /* Write the rest to the buffer */
+        memcpy(stream->pwrite, buf, count);
+        stream->pwrite += count;
+        written += count;
     }
-
-    /* Write the rest to the buffer */
-    memcpy(stream->buf, buf, count);
-    stream->pwrite = stream->buf + count;
-    written += count;
-    count   -= count;
 
     return written;
 }
 
-/* OG: should take (BSTREAM **streamp) */
-static inline int bdetach(BSTREAM *stream)
+static inline ssize_t bwrite(BSTREAM *stream, const void *buf, size_t count)
 {
-    int ret;
+    if (count < (size_t)(stream->pwrite_end - stream->pwrite)) {
+        /* Handle chunk that fits in the buffer and doesn't fill it. */
+        memcpy(stream->pwrite, buf, count);
+        stream->pwrite += count;
+        return count;
+    }
+    return bwrite_call(stream, buf, count);
+}
 
+static inline int bputc(int c, BSTREAM *stream)
+{
+    if (stream->pwrite < stream->pwrite_end || bflsbuf(stream) > 0) {
+        return *stream->pwrite++ = c;
+    } else {
+        return -1;
+    }
+}
+
+static inline int bputs(BSTREAM *stream, const char *s)
+{
+    return bwrite(stream, s, strlen(s));
+}
+
+static inline off64_t btell64(BSTREAM *stream)
+{
+    return stream->pos + (stream->pwrite - stream->pwrite_start) -
+            (stream->pread_end - stream->pread);
+}
+
+static inline off64_t bseek64(BSTREAM *stream, long offset, int whence)
+{
+    /* Should check if seeking inside buffer */
     bflush(stream);
-    ret = close(stream->fd);
-    stream->pread  = stream->buf;
-    stream->pwrite = stream->buf;
-    p_delete(&stream);
+    stream->eof = 0;
+    return stream->pos = lseek64(stream->fd, offset, whence);
+}
 
+static inline int bdetach(BSTREAM **streamp)
+{
+    int ret = bflush(*streamp);
+    p_delete(streamp);
     return ret;
 }
+
+static inline int bclose(BSTREAM **streamp)
+{
+    int ret = bflush(*streamp);
+    if (close((*streamp)->fd))
+        ret = -1;
+    p_delete(streamp);
+    return ret;
+}
+
+#undef lseek64
 
 #ifdef CHECK
 #include <check.h>
