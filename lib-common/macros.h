@@ -89,6 +89,9 @@ enum sign {
 #define CMP(x, y)  ((enum sign)(((y) > (x)) - ((y) < (x))))
 #define SIGN(x)    CMP(0, x)
 
+#define TOSTR_AUX(x)  #x
+#define TOSTR(x)      TOSTR_AUX(x)
+
 /**************************************************************************/
 /* Type safe conversion functions                                         */
 /**************************************************************************/
