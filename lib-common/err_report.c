@@ -16,6 +16,7 @@
 #include <syslog.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "macros.h"
 #include "mem.h"
@@ -29,16 +30,22 @@ static void file_handler(int priority, const char *format, va_list args)
     __attr_printf__(2,0);
 
 static struct {
-    void (*handler)(int, const char *, va_list) __attr_printf__(2, 0);
+    flag_t is_open : 1; /* is the syslog open */
+    flag_t sig_hooked : 1;
 
-    bool is_open;    /* is the syslog open */
-    FILE *f;         /* file descriptor for the file backend */
-    char *ident;     /* prefix for the logs stances */
+    FILE *f;
+    char *ident;
+    char *filename;
+    void (*handler)(int, const char *, va_list) __attr_printf__(2, 0);
+    void (*oldsig)(int);
 } log_state = {
-    &file_handler,
+    false,
     false,
     NULL,
-    NULL
+    NULL,
+    NULL,
+    &file_handler,
+    NULL,
 };
 
 static void set_log_ident(const char *ident)
@@ -46,6 +53,28 @@ static void set_log_ident(const char *ident)
     p_delete(&log_state.ident);
     if (ident) {
         log_state.ident = p_strdup(ident);
+    }
+}
+
+static void log_sighup(int __unused__ signum)
+{
+    if (log_state.filename && log_state.f) {
+        fflush(log_state.f);
+        p_fclose(&log_state.f);
+        log_state.f = fopen(log_state.filename, "a");
+        if (!log_state.f) {
+            e_fatal(FATAL_LOGOPEN,
+                    E_PREFIX("can't open log file %s: %s"),
+                    log_state.filename, strerror(errno));
+        }
+    }
+}
+
+static void siginstall(void)
+{
+    if (!log_state.sig_hooked) {
+        log_state.oldsig = signal(SIGHUP, &log_sighup);
+        log_state.sig_hooked = true;
     }
 }
 
@@ -74,6 +103,7 @@ error:
 static void init_file(const char *ident, FILE *file)
 {
     e_shutdown();
+    siginstall();
     log_state.f = file ? file : stderr;
     set_log_ident(ident);
     log_state.handler = &file_handler;
@@ -120,6 +150,8 @@ void e_init_file(const char *ident, const char *filename)
 {
     FILE *f;
 
+    p_delete(&log_state.filename);
+
     if (filename == NULL || strcmp(filename, "/dev/stderr") == 0) {
         init_file(NULL, stderr);
     } else {
@@ -129,6 +161,7 @@ void e_init_file(const char *ident, const char *filename)
                     E_PREFIX("can't open log file %s: %s"),
                     filename, strerror(errno));
         }
+        log_state.filename = p_strdup(filename);
         init_file(ident, f);
     }
 }
@@ -155,5 +188,6 @@ void e_shutdown()
         p_fclose(&log_state.f);
     }
 
+    p_delete(&log_state.filename);
     p_delete(&log_state.ident);
 }

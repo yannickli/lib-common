@@ -32,6 +32,11 @@ enum fatal_exit_codes {
 typedef void fatal_f(int, const char *, ...)  __attr_printf__(2, 3);
 typedef void error_f(const char *, ...)       __attr_printf__(1, 2);
 
+#define E_PREFIX(fmt) \
+    ("%s:%d:%s: " fmt), __FILE__, __LINE__, __func__
+
+#define E_UNIXERR(funcname)  funcname ": %m"
+
 /*
  * These functions are meant to correspond to the syslog levels.
  *
@@ -46,13 +51,6 @@ error_f e_warning;
 error_f e_notice;
 error_f e_info;
 
-
-#define E_PREFIX(fmt) \
-    ("%s:%d:%s: " fmt), __FILE__, __LINE__, __func__
-
-#define E_UNIXERR(funcname)  funcname ": %m"
-
-/* useful callbacks */
 void e_init_stderr(void);
 void e_init_file(const char *ident, const char *filename);
 void e_init_syslog(const char *ident, int options, int facility);
