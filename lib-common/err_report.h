@@ -52,15 +52,6 @@ error_f e_info;
 
 #define E_UNIXERR(funcname)  funcname ": %m"
 
-/* callback installers */
-typedef void e_callback_f(const char *, va_list) __attr_printf__(1,0);
-
-e_callback_f *e_set_fatal_handler  (e_callback_f *)  __attr_nonnull__((1));
-e_callback_f *e_set_error_handler  (e_callback_f *)  __attr_nonnull__((1));
-e_callback_f *e_set_warning_handler(e_callback_f *)  __attr_nonnull__((1));
-e_callback_f *e_set_notice_handler (e_callback_f *)  __attr_nonnull__((1));
-e_callback_f *e_set_info_handler   (e_callback_f *)  __attr_nonnull__((1)); 
-
 /* useful callbacks */
 void e_init_stderr(void);
 void e_init_file(const char *ident, const char *filename);

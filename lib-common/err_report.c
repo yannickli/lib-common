@@ -25,153 +25,89 @@
 /* private API                                                            */
 /**************************************************************************/
 
-struct log_status {
-    bool is_open;    /* is the syslog open */
-    FILE *fd;        /* file descriptor for the file backend */
-    char *ident;     /* prefix for the logs stances */
-};
+static void file_handler(int priority, const char *format, va_list args)
+    __attr_printf__(2,0);
 
-static struct log_status log_state = { false, NULL, NULL };
+static struct {
+    void (*handler)(int, const char *, va_list) __attr_printf__(2, 0);
+
+    bool is_open;    /* is the syslog open */
+    FILE *f;         /* file descriptor for the file backend */
+    char *ident;     /* prefix for the logs stances */
+} log_state = {
+    &file_handler,
+    false,
+    NULL,
+    NULL
+};
 
 static void set_log_ident(const char *ident)
 {
-    if (ident == NULL) {
-        return;
-    }
-    log_state.ident = p_strdup(ident);
-    if (log_state.ident == NULL) {
-        e_fatal(FATAL_NOMEM,
-                E_PREFIX("not enough memory to allocate new log_state.ident"));
+    p_delete(&log_state.ident);
+    if (ident) {
+        log_state.ident = p_strdup(ident);
     }
 }
 
-static void file_handler(bool eol, const char *format, va_list args)
-        __attr_printf__(2,0);
-
-static void file_handler(bool eol, const char *format, va_list args)
+static void file_handler(int __unused__ priority,
+                         const char *format, va_list args)
 {
-    if (log_state.fd == NULL) {
-        log_state.fd = stderr;
-    }
+    FILE *f = log_state.f ?: stderr;
+
     if (log_state.ident != NULL) {
-        if (fprintf(log_state.fd, "[%s] ", log_state.ident) < 0) {
+        if (fprintf(f, "[%s] ", log_state.ident) < 0) {
             goto error;
         }
     }
-    if (vfprintf(log_state.fd, format, args) < 0) {
+    if (vfprintf(f, format, args) < 0) {
         goto error;
     }
 
-    if (eol) {
-        if (fputc('\n', log_state.fd) == EOF)
-            goto error;
-    }
+    if (fputc('\n', f) == EOF)
+        goto error;
     return;
 
 error:
-    if (log_state.fd == stderr) {
-        exit(FATAL_LOGWRITE);
-    }
-    log_state.fd = stderr;
-    e_fatal(FATAL_LOGWRITE,
-            E_PREFIX("cannot write log: %s"), strerror(errno));
+    exit(FATAL_LOGWRITE);
 }
-
-#define H_ARGS             const char *format, va_list args
-#define FA  __attr_printf__(1,0)
-
-#define FILE_HANDLER(eol)  file_handler(eol, format, args)
-static void file_fatal_handler     (H_ARGS) FA;
-static void file_error_handler     (H_ARGS) FA;
-static void file_warning_handler   (H_ARGS) FA;
-static void file_notice_handler    (H_ARGS) FA;
-static void file_info_handler      (H_ARGS) FA;
-
-static void file_fatal_handler     (H_ARGS) { FILE_HANDLER(true); }
-static void file_error_handler     (H_ARGS) { FILE_HANDLER(true); }
-static void file_warning_handler   (H_ARGS) { FILE_HANDLER(true); }
-static void file_notice_handler    (H_ARGS) { FILE_HANDLER(true); }
-static void file_info_handler      (H_ARGS) { FILE_HANDLER(true); }
-
-#define SYSLOG(priority)  vsyslog(priority, format, args)
-static void syslog_fatal_handler   (H_ARGS) FA;
-static void syslog_error_handler   (H_ARGS) FA;
-static void syslog_warning_handler (H_ARGS) FA;
-static void syslog_notice_handler  (H_ARGS) FA;
-static void syslog_info_handler    (H_ARGS) FA;
-
-static void syslog_fatal_handler   (H_ARGS) { SYSLOG(LOG_CRIT); }
-static void syslog_error_handler   (H_ARGS) { SYSLOG(LOG_ERR); }
-static void syslog_warning_handler (H_ARGS) { SYSLOG(LOG_WARNING); }
-static void syslog_notice_handler  (H_ARGS) { SYSLOG(LOG_NOTICE); }
-static void syslog_info_handler    (H_ARGS) { SYSLOG(LOG_INFO); }
-#undef FA
-
-static e_callback_f *fatal_handler   = file_fatal_handler;
-static e_callback_f *error_handler   = file_error_handler;
-static e_callback_f *warning_handler = file_warning_handler;
-static e_callback_f *notice_handler  = file_notice_handler;
-static e_callback_f *info_handler    = file_info_handler;
 
 static void init_file(const char *ident, FILE *file)
 {
     e_shutdown();
-    log_state.fd = (file == NULL) ? stderr : file;
+    log_state.f = file ? file : stderr;
     set_log_ident(ident);
-    (void)e_set_fatal_handler(&file_fatal_handler);
-    (void)e_set_error_handler(&file_error_handler);
-    (void)e_set_warning_handler(&file_warning_handler);
-    (void)e_set_notice_handler(&file_notice_handler);
-    (void)e_set_info_handler(&file_info_handler);
+    log_state.handler = &file_handler;
 }
-
-/**************************************************************************/
-/* useful macros                                                          */
-/**************************************************************************/
-
-#define E_BODY(kind)  do {              \
-    va_list args;                       \
-    va_start(args, format);             \
-    kind##_handler(format, args);       \
-    va_end(args);                       \
-} while (0)
-
-#define E_SET_BODY(kind)  do {                              \
-    e_callback_f *old = kind##_handler;                     \
-    kind##_handler = hook ? hook : file_##kind##_handler;   \
-    return old;                                             \
-} while (0)
 
 /**************************************************************************/
 /* public API                                                             */
 /**************************************************************************/
 
+#define E_BODY(prio)  do {                                                \
+    va_list args;                                                         \
+    va_start(args, format);                                               \
+    (*log_state.handler)(prio, format, args);                             \
+    va_end(args);                                                         \
+} while (0)
+
 /* Error reporting functions */
 
 void e_fatal(int status, const char *format, ...)
 {
-    E_BODY(fatal);
+    E_BODY(LOG_CRIT);
     exit(status);
 }
 
 void e_panic(const char *format, ...)
 {
-    E_BODY(fatal);
+    E_BODY(LOG_CRIT);
     exit(FATAL_DEFAULT);
 }
 
-void e_error   (const char *format, ...) { E_BODY(error);   }
-void e_warning (const char *format, ...) { E_BODY(warning); }
-void e_notice  (const char *format, ...) { E_BODY(notice);  }
-void e_info    (const char *format, ...) { E_BODY(info);    }
-
-/* callback installers */
-
-e_callback_f *e_set_fatal_handler  (e_callback_f *hook) { E_SET_BODY(fatal);  }
-e_callback_f *e_set_error_handler  (e_callback_f *hook) { E_SET_BODY(error);  }
-e_callback_f *e_set_warning_handler(e_callback_f *hook) { E_SET_BODY(warning);}
-e_callback_f *e_set_notice_handler (e_callback_f *hook) { E_SET_BODY(notice); }
-e_callback_f *e_set_info_handler   (e_callback_f *hook) { E_SET_BODY(info);   }
+void e_error   (const char *format, ...) { E_BODY(LOG_ERR); }
+void e_warning (const char *format, ...) { E_BODY(LOG_WARNING); }
+void e_notice  (const char *format, ...) { E_BODY(LOG_NOTICE); }
+void e_info    (const char *format, ...) { E_BODY(LOG_INFO); }
 
 /* useful callbacks */
 
@@ -182,18 +118,18 @@ void e_init_stderr(void)
 
 void e_init_file(const char *ident, const char *filename)
 {
-    FILE *fd;
+    FILE *f;
 
     if (filename == NULL || strcmp(filename, "/dev/stderr") == 0) {
         init_file(NULL, stderr);
     } else {
-        fd = fopen(filename, "a");
-        if (fd == NULL) {
+        f = fopen(filename, "a");
+        if (f == NULL) {
             e_fatal(FATAL_LOGOPEN,
                     E_PREFIX("can't open log file %s: %s"),
                     filename, strerror(errno));
         }
-        init_file(ident, fd);
+        init_file(ident, f);
     }
 }
 
@@ -205,11 +141,7 @@ void e_init_syslog(const char *ident, int options, int facility)
     log_state.is_open = true;
     set_log_ident(ident);
 
-    (void)e_set_fatal_handler(&syslog_fatal_handler);
-    (void)e_set_error_handler(&syslog_error_handler);
-    (void)e_set_warning_handler(&syslog_warning_handler);
-    (void)e_set_notice_handler(&syslog_notice_handler);
-    (void)e_set_info_handler(&syslog_info_handler);
+    log_state.handler = &vsyslog;
 }
 
 void e_shutdown()
@@ -219,9 +151,8 @@ void e_shutdown()
         log_state.is_open = false;
     }
 
-    if (log_state.fd != stderr) {
-        p_fclose(&log_state.fd);
-        log_state.fd = stderr;
+    if (log_state.f != stderr) {
+        p_fclose(&log_state.f);
     }
 
     p_delete(&log_state.ident);
