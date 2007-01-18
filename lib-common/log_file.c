@@ -211,7 +211,7 @@ static inline int log_check_rotate(log_file_t *log_file)
         if (stats.st_size >= log_file->max_size) {
             log_file_rotate(log_file, time(NULL));
             if (!log_file->_internal) {
-                e_debug(1, "Could not rotate");
+                e_trace(1, "Could not rotate");
                 return 1;
             }
             rotated = true;
@@ -224,7 +224,7 @@ static inline int log_check_rotate(log_file_t *log_file)
             log_file_rotate(log_file, now);
 
             if (!log_file->_internal) {
-                e_debug(1, "Could not rotate");
+                e_trace(1, "Could not rotate");
                 return 1;
             }
             log_file->rotate_date =

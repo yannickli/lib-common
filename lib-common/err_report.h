@@ -41,7 +41,6 @@ typedef void error_f(const char *, ...)       __attr_printf__(1, 2);
  * These functions are meant to correspond to the syslog levels.
  *
  * e_fatal/e_panic exit the program.
- * e_debug does not add a terminating '\n' whereas all others do
  *
  */
 fatal_f e_fatal  __attr_noreturn__;
@@ -63,8 +62,6 @@ void e_shutdown(void);
 
 #ifdef NDEBUG
 
-#  define e_debug(...)
-#  define e_debug_hex(...)
 #  define e_trace(...)
 #  define e_trace_hex(...)
 #  define e_trace_start(...)
@@ -90,29 +87,27 @@ int e_is_traced_real(int level, const char *fname, const char *func);
         ((lvl) <= e_verbosity_maxwatch                   \
          && e_is_traced_real(lvl, __FILE__, __func__))
 
-#define e_debug(lvl, fmt, ...)                                               \
+#define e_trace_raw(lvl, fmt, ...)                                           \
     do {                                                                     \
         if (e_is_traced(lvl)) {                                              \
             fprintf(stderr, fmt, ##__VA_ARGS__);                             \
         }                                                                    \
     } while (0)
 
-#define e_debug_hex(lvl, buf, len)                                           \
-    do {                                                                     \
-        if (e_is_traced(lvl)) {                                              \
-            ifputs_hex(stderr, buf, len);                                    \
-        }                                                                    \
-    } while (0)
-
-#define e_trace_start(lvl, fmt, ...)  e_debug(lvl, E_PREFIX(fmt), ##__VA_ARGS__)
-#define e_trace_cont(lvl, fmt, ...)   e_debug(lvl, fmt, ##__VA_ARGS__)
-#define e_trace_end(lvl, fmt, ...)    e_debug(lvl, fmt "\n", ##__VA_ARGS__)
+#define e_trace_start(lvl, fmt, ...) \
+    e_trace_raw(lvl, E_PREFIX(fmt), ##__VA_ARGS__)
+#define e_trace_cont(lvl, fmt, ...)  \
+    e_trace_raw(lvl, fmt, ##__VA_ARGS__)
+#define e_trace_end(lvl, fmt, ...) \
+    e_trace_raw(lvl, fmt "\n", ##__VA_ARGS__)
 
 #define e_trace(lvl, fmt, ...)        e_trace_start(lvl, fmt "\n", ##__VA_ARGS__)
 #define e_trace_hex(lvl, str, buf, len)                                      \
     do {                                                                     \
-        e_debug(lvl, E_PREFIX("--%s (%d)--\n"), str, len);                   \
-        e_debug_hex(lvl, buf, len);                                          \
+        if (e_is_traced(lvl)) {                                              \
+            e_trace_raw(lvl, E_PREFIX("--%s (%d)--\n"), str, len);           \
+            ifputs_hex(stderr, buf, len);                                    \
+        }                                                                    \
     } while (0)
 
 #endif

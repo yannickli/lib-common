@@ -239,7 +239,7 @@ static archive_file *archive_parse_file(const byte **input, int *len)
             key_len++;
         }
         if (**input != ':') {
-            e_debug(1, "Missing ':' while reading file attr (key_len= %d)",
+            e_trace(1, "Missing ':' while reading file attr (key_len= %d)",
                     key_len);
             if (i == 0) {
                 p_delete(file->attrs);
