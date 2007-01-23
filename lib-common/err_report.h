@@ -28,6 +28,8 @@ enum fatal_exit_codes {
     FATAL_DEFAULT  = 0xff,  /* Default exit code */
 };
 
+typedef void (e_handler)(int, const char *, va_list) __attr_printf__(2, 0);
+
 /* error reporting functions */
 typedef void fatal_f(int, const char *, ...)  __attr_printf__(2, 3);
 typedef void error_f(const char *, ...)       __attr_printf__(1, 2);
@@ -53,6 +55,8 @@ error_f e_info;
 void e_init_stderr(void);
 void e_init_file(const char *ident, const char *filename);
 void e_init_syslog(const char *ident, int options, int facility);
+
+void e_set_handler(e_handler *handler);
 
 void e_shutdown(void);
 

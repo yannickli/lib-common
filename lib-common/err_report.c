@@ -36,7 +36,7 @@ static struct {
     FILE *f;
     char *ident;
     char *filename;
-    void (*handler)(int, const char *, va_list) __attr_printf__(2, 0);
+    e_handler *handler;
     void (*oldsig)(int);
 } log_state = {
     false,
@@ -102,11 +102,11 @@ error:
 
 static void init_file(const char *ident, FILE *file)
 {
-    e_shutdown();
+    e_set_handler(&file_handler);
+
     siginstall();
     log_state.f = file ? file : stderr;
     set_log_ident(ident);
-    log_state.handler = &file_handler;
 }
 
 /**************************************************************************/
@@ -168,13 +168,17 @@ void e_init_file(const char *ident, const char *filename)
 
 void e_init_syslog(const char *ident, int options, int facility)
 {
-    e_shutdown();
+    e_set_handler(&vsyslog);
 
     openlog(ident, options, facility);
     log_state.is_open = true;
     set_log_ident(ident);
+}
 
-    log_state.handler = &vsyslog;
+void e_set_handler(e_handler *handler)
+{
+    e_shutdown();
+    log_state.handler = handler;
 }
 
 void e_shutdown()
