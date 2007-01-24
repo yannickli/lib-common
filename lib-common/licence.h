@@ -18,6 +18,7 @@
 #include "macros.h"
 
 bool is_my_mac_addr(const char *addr);
+int list_my_macs(char *dst, size_t size);
 int read_cpu_signature(uint32_t *dst);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/

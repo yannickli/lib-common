@@ -154,6 +154,54 @@ bool is_my_mac_addr(const char *addr)
     return found;
 }
 
+
+int list_my_macs(char *dst, size_t size)
+{
+    struct if_nameindex *iflist;
+    struct if_nameindex *cur;
+    char *mac;
+    int s = -1;
+    int written, ret = 0;
+    const char *sep = "";
+
+    iflist = if_nameindex();
+    if (!iflist) {
+        return false;
+    }
+
+    s = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+    if (s < 0) {
+        if_freenameindex(iflist);
+        return false;
+    }
+    for (cur = iflist ; cur->if_index; cur++) {
+        struct ifreq if_hwaddr;
+
+        pstrcpy(if_hwaddr.ifr_ifrn.ifrn_name, IFNAMSIZ, cur->if_name);
+        if (ioctl(s, SIOCGIFHWADDR, &if_hwaddr) < 0) {
+            continue;
+        }
+
+        if (if_hwaddr.ifr_hwaddr.sa_family != ARPHRD_ETHER) {
+            continue;
+        }
+
+        mac = if_hwaddr.ifr_hwaddr.sa_data;
+        written = snprintf(dst, size, "%s%02X:%02X:%02X:%02X:%02X:%02X",
+                           sep, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        sep = ",";
+        if ( written < 0 || written >= (int) size) {
+            ret = 1;
+            break;
+        }
+        dst += written;
+        size -= written;
+    }
+    close(s);
+    if_freenameindex(iflist);
+    return ret;
+}
+
 #define cpuid(eax, ebx, ecx, edx) \
     do { \
     __asm__ __volatile__ (\
@@ -210,6 +258,15 @@ START_TEST(check_parse_hex2)
 }
 END_TEST
 
+START_TEST(check_list_my_macs)
+{
+    char buf[128];
+
+    fail_if(list_my_macs(buf, sizeof(buf)), "Non 0 return value");
+//    printf("Found addresses : %s\n", buf);
+}
+END_TEST
+
 START_TEST(check_is_my_mac_addr)
 {
     int i;
@@ -246,7 +303,8 @@ Suite *check_licence_suite(void)
     suite_add_tcase(s, tc);
     tcase_add_test(tc, check_parse_hex);
     tcase_add_test(tc, check_parse_hex2);
-    tcase_add_test(tc, check_is_my_mac_addr);
+    tcase_add_test(tc, check_parse_hex2);
+    tcase_add_test(tc, check_list_my_macs);
     return s;
 }
 
