@@ -202,33 +202,49 @@ int list_my_macs(char *dst, size_t size)
     return ret;
 }
 
-#define cpuid(eax, ebx, ecx, edx) \
-    do { \
-    __asm__ __volatile__ (\
-        "cpuid" \
-       : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx) \
-       : "a" (eax) \
-       ); \
-    } while (0)
+static inline void cpuid(uint32_t request,
+                         uint32_t *eax, uint32_t *ebx,
+                         uint32_t *ecx, uint32_t *edx)
+{
+     /* The IA-32 ABI specifies that %ebx holds the address of the
+         global offset table.  In PIC code, GCC seems to be unable to
+         handle asms with result operands that live in %ebx; I get the
+         message:
+
+         error: can't find a register in class `BREG' while reloading
+         `asm'
+
+         So, to work around this, we save %ebx in %esi, restore %ebx
+         after we've done the 'cpuid', and return %ebx's value in
+         %esi.
+
+         We include "memory" in the clobber list, because this is a
+         synchronizing instruction; other processor's writes may
+         become visible here.  */
+
+      asm volatile ("mov %%ebx, %%esi\n\t" /* Save %ebx.  */
+                    "cpuid\n\t"
+                    "xchgl %%ebx, %%esi" /* Restore %ebx.  */
+                    : "=a" (*eax), "=S" (*ebx), "=c" (*ecx), "=d" (*edx)
+                    : "0" (request)
+                    : "memory");
+}
 
 /* Get the CPU signature
  */
 int read_cpu_signature(uint32_t *dst)
 {
     uint32_t eax, ebx, ecx, edx;
-    if (!dst) {
+
+    if (dst) {
+        cpuid(1, &eax, &ebx, &ecx, &edx);
+        /* Get 32 bits from EAX */
+        *dst = eax;
+        return 0;
+    } else {
         return -1;
     }
-
-    eax = 1;
-    cpuid(eax, ebx, ecx, edx);
-    /* Get 32 bits from EAX */
-    *dst = eax;
-
-    return 0;
 }
-
-#undef cpuid
 
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
