@@ -154,6 +154,35 @@ bool is_my_mac_addr(const char *addr)
     return found;
 }
 
+#define cpuid(eax, ebx, ecx, edx) \
+    do { \
+    __asm__ __volatile__ (\
+        "cpuid" \
+       : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx) \
+       : "a" (eax) \
+       ); \
+    } while (0)
+
+/* Get the CPU signature
+ */
+int read_cpu_signature(uint32_t *dst)
+{
+    uint32_t eax, ebx, ecx, edx;
+    if (!dst) {
+        return -1;
+    }
+
+    eax = 1;
+    cpuid(eax, ebx, ecx, edx);
+    /* Get 32 bits from EAX */
+    *dst = eax;
+
+    return 0;
+}
+
+#undef cpuid
+
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 /* {{{*/
