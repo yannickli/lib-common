@@ -269,7 +269,7 @@ END_TEST
 
 START_TEST(check_is_my_mac_addr)
 {
-    int i;
+    int j;
     bool found = false;
     const char *maclist[] = {
         /* List your Macaddr here if you want the check to pass */
@@ -284,8 +284,8 @@ START_TEST(check_is_my_mac_addr)
         "00:13:20:C0:2A:25", /* vodka */
     };
 
-    for (i = 0; i < countof(maclist); i++) {
-        if (is_my_mac_addr(maclist[i])) {
+    for (j = 0; j < countof(maclist); j++) {
+        if (is_my_mac_addr(maclist[j])) {
             found = true;
             break;
         }
