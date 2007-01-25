@@ -363,6 +363,8 @@ const char *conf_put(conf_t *conf, const char *section,
             int j;
 
             for (j = 0; j < s->var_nb; j++) {
+                if (strcasecmp(s->variables[j], var))
+                    continue;
                 if (value) {
                     if (!strcmp(s->values[j], value)) {
                         /* same value already: no nothing */
