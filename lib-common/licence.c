@@ -18,6 +18,7 @@
 #include <sys/ioctl.h>
 
 #include "macros.h"
+#include "conf.h"
 #include "string_is.h"
 #include "licence.h"
 
@@ -246,6 +247,92 @@ int read_cpu_signature(uint32_t *dst)
     }
 }
 
+int licence_compute_conf_signature(const conf_t *conf, char *dst, size_t size)
+{
+    int version;
+    const char **var, *content, *p;
+    char c;
+    const char *signed_vars[] = {
+        "vendor",
+        "cpu_signature",
+        "cpu_id",
+        "mac_addresses",
+        "Expires",
+        "Registered-To",
+        "max_sms",
+        "max_mms",
+        "max_wp",
+        "max_ussd",
+        "max_email",
+        NULL,
+    };
+    int k0, k1, k2, k3;
+
+    version = conf_get_int(conf, "licence", "version", -1);
+    if (version != 1) {
+        return -1;
+    }
+    
+    /* XXX: version 1 is weak.
+     */
+    k0 = 0;
+    k1 = 28;
+    k2 = 17;
+    k3 = 11;
+    var = signed_vars;
+    while (*var) {
+        content = conf_get_raw(conf, "licence", *var);
+        if (!content) {
+            return -2;
+        }
+        k0 += strlen(content);
+        for (p = content; *p; p++) {
+            c = *p;
+            /* Signature is case-insensitive and does not sign non
+             * 'usual' chars. We don't want to get into trouble
+             * because the format of a field slightly changes.
+             * */
+            if ('A' <= c && c <= 'Z') {
+                c = c - 'A' + 'a';
+            } else 
+            if (('a' <= c && c <= 'z')
+            ||  ('0' <= c && c <= '9')
+            || c == ':' || c == '-' || c == '+' || c == '*') {
+                /* use it for signature */
+                /* XXX: '-' is very important : sms_max_rate = -1
+                 * means unlimited, whereas '1' means 1/s ! */
+
+            } else {
+                /* skip */
+                continue;
+            }
+            k1 = (k1 * c + 371) & 0xFFFF;
+            k2 = (k3 * 21407 + c) & 0xFFFF;
+            k3 = (k2 * 17669 + c) & 0xFFFF;
+        }
+        var++;
+    }
+    k0 = (k0 * 3643) & 0xFFFF;
+    snprintf(dst, size, "%04X%04X%04X%04X", k0, k1, k2, k3);
+//    printf("signature = %s\n", dst);
+    return 0;
+}
+
+int licence_check_signature_ok(const conf_t *conf)
+{
+    char lic_computed[128];
+    const char *lic_inconf;
+
+    lic_inconf = conf_get_raw(conf, "licence", "signature");
+
+    if (!lic_inconf 
+    || licence_compute_conf_signature(conf, lic_computed,
+                                      sizeof(lic_computed))) {
+        return 1;
+    }
+
+    return strcmp(lic_inconf, lic_computed);
+}
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
@@ -311,6 +398,23 @@ START_TEST(check_is_my_mac_addr)
 }
 END_TEST
 
+START_TEST(check_licence_check_signature_ok)
+{
+    conf_t * conf;
+    int ret;
+
+    conf = conf_load("samples/licence-v1-ok.conf");
+    fail_if(!conf, "Unable to open test file");
+    fail_if(licence_check_signature_ok(conf), "licence-test-ok failed to pass");
+    conf_delete(&conf);
+
+    conf = conf_load("samples/licence-v1-ko.conf");
+    fail_if(!conf, "Unable to open test file");
+    fail_if(!licence_check_signature_ok(conf), "licence-test-ko passed");
+    conf_delete(&conf);
+}
+END_TEST
+
 Suite *check_licence_suite(void)
 {
     Suite *s  = suite_create("Licence");
@@ -321,6 +425,7 @@ Suite *check_licence_suite(void)
     tcase_add_test(tc, check_parse_hex2);
     tcase_add_test(tc, check_parse_hex2);
     tcase_add_test(tc, check_list_my_macs);
+    tcase_add_test(tc, check_licence_check_signature_ok);
     return s;
 }
 
