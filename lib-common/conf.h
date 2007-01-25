@@ -16,7 +16,7 @@
 
 #include "mem.h"
 
-/* This module parse ini files :
+/* This module parses ini files :
  *
  * [Section1]
  *
