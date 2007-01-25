@@ -23,6 +23,7 @@ int list_my_macs(char *dst, size_t size);
 int read_cpu_signature(uint32_t *dst);
 int licence_compute_conf_signature(const conf_t *conf, char *dst, size_t size);
 int licence_check_signature_ok(const conf_t *conf);
+int licence_check_host_ok(const conf_t *conf);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

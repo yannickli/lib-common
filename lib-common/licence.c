@@ -279,11 +279,11 @@ int licence_compute_conf_signature(const conf_t *conf, char *dst, size_t size)
     k1 = 28;
     k2 = 17;
     k3 = 11;
-    var = signed_vars;
-    while (*var) {
+    for (var = signed_vars; *var; var++) {
         content = conf_get_raw(conf, "licence", *var);
         if (!content) {
-            return -2;
+            /* If a variable is missing, assume we do not want it. */
+            continue;
         }
         k0 += strlen(content);
         for (p = content; *p; p++) {
@@ -310,7 +310,6 @@ int licence_compute_conf_signature(const conf_t *conf, char *dst, size_t size)
             k2 = (k3 * 21407 + c) & 0xFFFF;
             k3 = (k2 * 17669 + c) & 0xFFFF;
         }
-        var++;
     }
     k0 = (k0 * 3643) & 0xFFFF;
     snprintf(dst, size, "%04X%04X%04X%04X", k0, k1, k2, k3);
@@ -331,7 +330,47 @@ int licence_check_signature_ok(const conf_t *conf)
         return 1;
     }
 
-    return strcmp(lic_inconf, lic_computed);
+    return !strcmp(lic_inconf, lic_computed);
+}
+
+int licence_check_host_ok(const conf_t *conf)
+{
+    uint32_t cpusig;
+    char buf[64];
+    const char *p, *cpu_signature;
+
+    if (!licence_check_signature_ok(conf)) {
+        return 0;
+    }
+    if (conf_get_int(conf, "licence", "version", -1) != 1) {
+        return 0;
+    }
+
+    /* cpu_signature is optional in licence section : If it does not
+     * appear, we do not check it. */
+    cpu_signature = conf_get_raw(conf, "licence", "cpu_signature");
+    if (cpu_signature) {
+        if (read_cpu_signature(&cpusig)) {
+            return 0;
+        }
+        snprintf(buf, sizeof(buf), "0x%08X", cpusig);
+        if (strcasecmp(buf, cpu_signature)) {
+            return 0;
+        }
+    }
+
+    p = conf_get_raw(conf, "licence", "mac_addresses");
+    while (*p) {
+        pstrcpylen(buf, sizeof(buf), p, 17);
+        if (is_my_mac_addr(buf)) {
+            goto mac_ok;
+        }
+        while (*p && (*p == ' ' || *p == ','))
+            p++;
+    }
+    return 0;
+mac_ok:
+    return 1;
 }
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
@@ -405,12 +444,12 @@ START_TEST(check_licence_check_signature_ok)
 
     conf = conf_load("samples/licence-v1-ok.conf");
     fail_if(!conf, "Unable to open test file");
-    fail_if(licence_check_signature_ok(conf), "licence-test-ok failed to pass");
+    fail_if(!licence_check_signature_ok(conf), "licence-test-ok failed to pass");
     conf_delete(&conf);
 
     conf = conf_load("samples/licence-v1-ko.conf");
     fail_if(!conf, "Unable to open test file");
-    fail_if(!licence_check_signature_ok(conf), "licence-test-ko passed");
+    fail_if(licence_check_signature_ok(conf), "licence-test-ko passed");
     conf_delete(&conf);
 }
 END_TEST
