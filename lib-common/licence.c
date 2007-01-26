@@ -362,6 +362,7 @@ int licence_check_host_ok(const conf_t *conf)
     p = conf_get_raw(conf, "licence", "mac_addresses");
     while (*p) {
         pstrcpylen(buf, sizeof(buf), p, 17);
+        p += 17;
         if (is_my_mac_addr(buf)) {
             goto mac_ok;
         }
