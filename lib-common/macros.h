@@ -14,6 +14,9 @@
 #ifndef IS_LIB_COMMON_MACROS_H
 #define IS_LIB_COMMON_MACROS_H
 
+/* for ssize_t */
+#include <unistd.h>
+
 /**************************************************************************/
 /* GNU extension wrappers                                                 */
 /**************************************************************************/
