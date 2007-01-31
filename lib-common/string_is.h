@@ -168,6 +168,8 @@ static inline void *vmemsearch(void *haystack, size_t hsize,
     return (void *)memsearch(haystack, hsize, needle, nsize);
 }
 
+int64_t msisdn_canonize(const char *buf, int len, __unused__ int locale);
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 #include <check.h>

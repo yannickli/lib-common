@@ -33,6 +33,7 @@ int strtoip(const char *p, const char **endp)
     }
 
     while (isdigit(*p)) {
+        /* FIXME : possible overflow ! */
         res = 10 * res + (*p++ - '0');
     }
 
@@ -495,6 +496,75 @@ const void *memsearch(const void *_haystack, size_t hsize,
     return NULL;
 }
 
+int64_t msisdn_canonize(const char *str, int len, __unused__ int locale)
+{
+    const char *p;
+    char *q;
+    int64_t tel;
+    bool france;
+    char buf[128];
+
+    /* Ensure NIL-terminated string */
+    pstrcpylen(buf, sizeof(buf), str, len);
+
+    /* kill spaces and '-' inside buf : "  A-B-C  " => "ABC" */
+    p = q = buf;
+    while (*p) {
+        if (*p != ' ' && *p != '-') {
+            *q = *p;
+            q++;
+        }
+        p++;
+    }
+    *q = '\0';
+    p = buf;
+
+    /* Detect French numbers; set p to first "meaningful" digit.
+     * Examples of working cases include :
+     *  +330P...
+     *  +33P...
+     *  0P...
+     *  0033P...
+     * */
+    france = false;
+    if (strstart(p, "+33", &p)
+    ||  strstart(p, "0033", &p)) {
+        france = true;
+    }
+    if (strlen(p) > 2 && p[0] == '0' && p[1] != '0') {
+        p++;
+        france = true;
+    }
+    if (france) {
+        /* Check that we get 9 digits */
+        if (strlen(p) != 9) {
+            return -1;
+        }
+        tel = strtoip(p, &p);
+        if (*p) {
+            return -1;
+        }
+        /* Reject invalid numbers */
+        if (tel < 100000000) {
+            return -1;
+        }
+        /* Return in international form */
+        return tel + 33000000000;
+    } else {
+        if (*p == '+') {
+            p++;
+        }
+        if (!*p) {
+            return -1;
+        }
+        tel = strtoip(p, &p);
+        if (*p) {
+            return -1;
+        }
+        return tel;
+    }
+}
+
 /*}}}*/
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
@@ -698,6 +768,25 @@ START_TEST(check_strtolp)
 }
 END_TEST
 
+#define check_msisdn_canonize_unit(str, val) \
+    do { \
+        ret = msisdn_canonize(str, sizeof(str), -1); \
+        fail_if(ret != val, "failed : msisdn_canonize returned %zd", ret); \
+    } while (0)
+
+START_TEST(check_msisdn_canonize)
+{
+    int64_t ret;
+
+    check_msisdn_canonize_unit("", -1);
+    check_msisdn_canonize_unit("azerty", -1);
+    check_msisdn_canonize_unit("0122334455", 33122334455);
+    check_msisdn_canonize_unit("+33122334455", 33122334455);
+    check_msisdn_canonize_unit("+33622334455", 33622334455);
+    check_msisdn_canonize_unit("+4412345", 4412345);
+}
+END_TEST
+
 Suite *check_string_is_suite(void)
 {
     Suite *s  = suite_create("String");
@@ -710,6 +799,7 @@ Suite *check_string_is_suite(void)
     tcase_add_test(tc, check_memsearch);
     tcase_add_test(tc, check_pstrlen);
     tcase_add_test(tc, check_strtolp);
+    tcase_add_test(tc, check_msisdn_canonize);
     return s;
 }
 
