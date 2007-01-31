@@ -549,7 +549,7 @@ int64_t msisdn_canonize(const char *str, int len, __unused__ int locale)
             return -1;
         }
         /* Return in international form */
-        return tel + 33000000000;
+        return tel + 33000000000LL;
     } else {
         if (*p == '+') {
             p++;
@@ -780,9 +780,9 @@ START_TEST(check_msisdn_canonize)
 
     check_msisdn_canonize_unit("", -1);
     check_msisdn_canonize_unit("azerty", -1);
-    check_msisdn_canonize_unit("0122334455", 33122334455);
-    check_msisdn_canonize_unit("+33122334455", 33122334455);
-    check_msisdn_canonize_unit("+33622334455", 33622334455);
+    check_msisdn_canonize_unit("0122334455", 33122334455LL);
+    check_msisdn_canonize_unit("+33122334455", 33122334455LL);
+    check_msisdn_canonize_unit("+33622334455", 33622334455LL);
     check_msisdn_canonize_unit("+4412345", 4412345);
 }
 END_TEST
