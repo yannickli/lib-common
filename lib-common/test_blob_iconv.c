@@ -52,11 +52,12 @@ static int check_aiconv_templ_2(const char *file1, const char *file2)
     return 0;
 }
 
-static int check_blob_iconv_close(void)
+START_TEST(check_blob_iconv_close)
 {
     blob_t b1;
     blob_t b2;
     int c_typ = 0;
+    int n;
 
     blob_init(&b1);
     blob_init(&b2);
@@ -68,15 +69,17 @@ static int check_blob_iconv_close(void)
     blob_file_auto_iconv(&b2, "samples/example2.windows-1250", "windows-1250",
                          &c_typ);
 
-    if (blob_iconv_close_all() != 3)
-        printf("blob_iconv_close_all has failed to close all handlers\n");
+    n = blob_iconv_close_all();
+    fail_if(n > 2,
+            "blob_file_auto_iconv allocated %d iconv_t handles instead of %d",
+            n, 2);
 
     blob_wipe(&b1);
     blob_wipe(&b2);
-    return 0;
 }
+END_TEST
 
-static int check_blob_auto_iconv(void)
+START_TEST(check_blob_auto_iconv)
 {
     check_aiconv_templ_2("samples/example1.latin1",
                          "samples/example1.utf8");
@@ -91,14 +94,30 @@ static int check_blob_auto_iconv(void)
                          "samples/example4.utf8");
 
     blob_iconv_close_all();
-    return 0;
+}
+END_TEST
+
+static Suite *check_make_blob_iconv_suite(void)
+{
+    Suite *s  = suite_create("Blob");
+    TCase *tc = tcase_create("Iconv");
+
+    suite_add_tcase(s, tc);
+    tcase_add_test(tc, check_blob_iconv_close);
+    tcase_add_test(tc, check_blob_auto_iconv);
+
+    return s;
 }
 
 int main(void)
 {
+    int nf;
+    SRunner *sr = srunner_create(NULL);
 
-    check_blob_iconv_close();
-    check_blob_auto_iconv();
+    srunner_add_suite(sr, check_make_blob_iconv_suite());
     
-    return 0;
+    srunner_run_all(sr, CK_NORMAL);
+    nf = srunner_ntests_failed(sr);
+    srunner_free(sr);
+    return (nf == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

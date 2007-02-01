@@ -16,7 +16,7 @@ include $(DEPTH)/admin/header.mk
 
 __EXE__   = 
 __LIB__   = libcommon
-__CHECK__ = test iconv_test msg_test 
+__CHECK__ = test test_blob_iconv msg_test 
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc
 
 libcommon_SOURCES = \
@@ -54,7 +54,7 @@ libcommon_SOURCES += showflags.c
 test_SOURCES = $(libcommon_SOURCES) check.c
 test_LDFLAGS = -lz
 
-iconv_test_SOURCES = \
+test_blob_iconv_SOURCES = \
 	test_blob_iconv.c \
 	libcommon.a
 
