@@ -175,7 +175,7 @@ int list_my_macs(char *dst, size_t size)
         if_freenameindex(iflist);
         return false;
     }
-    for (cur = iflist ; cur->if_index; cur++) {
+    for (cur = iflist; cur->if_index; cur++) {
         struct ifreq if_hwaddr;
 
         pstrcpy(if_hwaddr.ifr_ifrn.ifrn_name, IFNAMSIZ, cur->if_name);
@@ -191,7 +191,7 @@ int list_my_macs(char *dst, size_t size)
         written = snprintf(dst, size, "%s%02X:%02X:%02X:%02X:%02X:%02X",
                            sep, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
         sep = ",";
-        if ( written < 0 || written >= (int) size) {
+        if (written < 0 || (size_t)written >= size) {
             ret = 1;
             break;
         }
@@ -420,6 +420,7 @@ START_TEST(check_is_my_mac_addr)
         "00:30:1B:B8:EB:3B", /* mad */
         "00:0F:1F:F9:29:96", /* mag */
         "00:30:1B:AC:39:C3", /* ogu21 */
+        "00:11:95:25:A5:66", /* ogu69 */
         "00:14:22:0A:F0:FC", /* papyrus */
         "00:11:95:DC:D1:45", /* suze */
         "00:0F:B0:4A:98:11", /* tian */
@@ -462,7 +463,7 @@ Suite *check_licence_suite(void)
     suite_add_tcase(s, tc);
     tcase_add_test(tc, check_parse_hex);
     tcase_add_test(tc, check_parse_hex2);
-    tcase_add_test(tc, check_parse_hex2);
+    tcase_add_test(tc, check_is_my_mac_addr);
     tcase_add_test(tc, check_list_my_macs);
     tcase_add_test(tc, check_licence_check_signature_ok);
     return s;
