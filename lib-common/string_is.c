@@ -14,33 +14,65 @@
 #include <ctype.h>
 #include <errno.h>
 #include <string.h>
+#include <limits.h>
 
 #include "mem.h"
 #include "string_is.h"
 
-int strtoip(const char *p, const char **endp)
+int strtoip(const char *s, const char **endp)
 {
-    int res = 0;
-    bool neg = false;
+    int value = 0;
 
-    while (isspace(*p)) {
-        p++;
+    if (!s) {
+        errno = EINVAL;
+        goto done;
     }
-
-    if (p[0] == '+' || p[0] == '-') {
-        neg = (p[0] == '-');
-        p++;
+    while (isspace((unsigned char)*s)) {
+        s++;
     }
-
-    while (isdigit(*p)) {
-        /* FIXME : possible overflow ! */
-        res = 10 * res + (*p++ - '0');
+    if (*s == '-') {
+        s++;
+        if (!isdigit((unsigned char)*s)) {
+            errno = EINVAL;
+            goto done;
+        }
+        value = '0' - *s;
+        while (isdigit((unsigned char)(*++s))) {
+            int digit = '0' - *s;
+            if ((value <= INT_MIN / 10)
+            &&  (value < INT_MIN / 10 || digit < INT_MIN % 10)) {
+                errno = ERANGE;
+                value = INT_MIN;
+                /* keep looping inefficiently in case of overflow */
+            } else {
+                value = value * 10 + digit;
+            }
+        }
+    } else {
+        if (*s == '+') {
+            s++;
+        }
+        if (!isdigit((unsigned char)*s)) {
+            errno = EINVAL;
+            goto done;
+        }
+        value = *s - '0';
+        while (isdigit((unsigned char)(*++s))) {
+            int digit = *s - '0';
+            if ((value >= INT_MAX / 10)
+            &&  (value > INT_MAX / 10 || digit > INT_MAX % 10)) {
+                errno = ERANGE;
+                value = INT_MAX;
+                /* keep looping inefficiently in case of overflow */
+            } else {
+                value = value * 10 + digit;
+            }
+        }
     }
-
-    if (endp) {
-        *endp = p;
-    }
-    return neg ? -res : res;
+  done:
+    if (endp)
+        *endp = s;
+    return value;
 }
 
 /** Parses a string to extract a long, checking some constraints.
@@ -208,7 +240,8 @@ ssize_t pstrcpylen(char *dest, ssize_t size, const char *src, ssize_t n)
     return (ssize_t)len;
 }
 
-/* Same as pstrcpylen, but unescape string on the fly*/
+/* Same as pstrcpylen, but unescape string on the fly */
+/* OG: propably a lame duplicate of strconv_unquote */
 ssize_t pstrcpylen_unescape(char *dest, ssize_t size, const char *src, ssize_t n)
 {
     const char *p;
@@ -232,10 +265,13 @@ ssize_t pstrcpylen_unescape(char *dest, ssize_t size, const char *src, ssize_t n
 
     clen = 0;
 
-    while (len && (p = memsearch(src, len, "\\", 1))) {
+    while (len && (p = memsearch(src, len, "\\", 1)) != NULL) {
         off = p - src;
-        if (off > (size - clen)) {
+        if (off >= (size - clen)) {
             /* No space left */
+            /* OG: should copy part that fits and compute actual space
+             * needed.
+             */
             return -1;
         }
         memcpy(dest, src, off);
@@ -255,25 +291,20 @@ ssize_t pstrcpylen_unescape(char *dest, ssize_t size, const char *src, ssize_t n
             clen++;
             src += 2;
             len -= 2;
-            continue;
-        }
-        if (!*p) {
-            /* End of src: Copy last \ and break */
+        } else {
+            /* else no escaping : */
             *dest++ = '\\';
             clen++;
             src++;
             len--;
-            break;
         }
-        /* else no escaping : */
-        *dest++ = '\\';
-        clen++;
-        src++;
-        len--;
     }
 
     if (len) {
         if (len > size - clen - 1) {
+            /* Inconsistent: return value should be -1 or actual len
+             * needed
+             */
             len = size - clen - 1;
         }
         memcpy(dest, src, len); /* assuming no overlap */
@@ -596,13 +627,14 @@ int64_t msisdn_canonize(const char *str, int len, __unused__ int locale)
     p = buf;
 
     /* Detect French numbers; set p to first "meaningful" digit.
-     * Examples of working cases include :
+     * Examples of working cases include:
      *  +330P...
      *  +33P...
      *  0P...
      *  0033P...
      * */
     france = false;
+    /* Strip French international prefix */
     if (strstart(p, "+33", &p)
     ||  strstart(p, "0033", &p)) {
         france = true;
@@ -613,15 +645,11 @@ int64_t msisdn_canonize(const char *str, int len, __unused__ int locale)
     }
     if (france) {
         /* Check that we get 9 digits */
-        if (strlen(p) != 9) {
+        if (strlen(p) != 9 || *p == '0') {
             return -1;
         }
         tel = strtoip(p, &p);
         if (*p) {
-            return -1;
-        }
-        /* Reject invalid numbers */
-        if (tel < 100000000) {
             return -1;
         }
         /* Return in international form */
@@ -633,8 +661,9 @@ int64_t msisdn_canonize(const char *str, int len, __unused__ int locale)
         if (!*p) {
             return -1;
         }
-        tel = strtoip(p, &p);
-        if (*p) {
+        errno = 0;
+        tel = strtoll(p, &p, 10);
+        if (errno || *p) {
             return -1;
         }
         return tel;
@@ -770,6 +799,48 @@ START_TEST(check_pstrcpylen)
 }
 END_TEST
 
+#define check_strtoip_unit(p, err_exp, val_exp, end_i)                  \
+    do {                                                                \
+        const char *endp;                                               \
+        int val;                                                        \
+        int end_exp = (end_i >= 0) ? end_i : (int)strlen(p);            \
+                                                                        \
+        errno = 0;                                                      \
+        val = strtoip(p, &endp);                                        \
+                                                                        \
+        fail_if (err_exp != errno || val != val_exp || endp != p + end_exp, \
+                 "('%s', &endp)"                                        \
+                 "val=%d (expected %d), endp='%s' expected '%s'\n",     \
+                 p, val, val_exp, endp, p + end_exp);                   \
+    } while (0)
+
+START_TEST(check_strtoip)
+{
+    check_strtoip_unit("123", 0, 123, -1);
+    check_strtoip_unit(" 123", 0, 123, -1);
+    check_strtoip_unit(" +123", 0, 123, -1);
+    check_strtoip_unit("  -123", 0, -123, -1);
+    check_strtoip_unit(" +-123", EINVAL, 0, 2);
+    check_strtoip_unit("123 ", 0, 123, 3);
+    check_strtoip_unit("123z", 0, 123, 3);
+    check_strtoip_unit("123+", 0, 123, 3);
+    check_strtoip_unit("2147483647", 0, 2147483647, -1);
+    check_strtoip_unit("2147483648", ERANGE, 2147483647, -1);
+    check_strtoip_unit("21474836483047203847094873", ERANGE, 2147483647, -1);
+    check_strtoip_unit("000000000000000000000000000000000001", 0, 1, -1);
+    check_strtoip_unit("-2147483647", 0, -2147483647, -1);
+    check_strtoip_unit("-2147483648", 0, -2147483647 - 1, -1);
+    check_strtoip_unit("-2147483649", ERANGE, -2147483647 - 1, -1);
+    check_strtoip_unit("-21474836483047203847094873", ERANGE, -2147483647 - 1, -1);
+    check_strtoip_unit("-000000000000000000000000000000000001", 0, -1, -1);
+    check_strtoip_unit("", EINVAL, 0, -1);
+    check_strtoip_unit("          ", EINVAL, 0, -1);
+    check_strtoip_unit("0", 0, 0, -1);
+    check_strtoip_unit("0x0", 0, 0, 1);
+    check_strtoip_unit("010", 0, 10, -1);
+}
+END_TEST
+
 #define check_strtolp_unit(p, flags, min, max, val_exp, ret_exp, end_i) \
     do {                                                                \
         const char *endp;                                               \
@@ -879,7 +950,12 @@ START_TEST(check_msisdn_canonize)
     check_msisdn_canonize_unit("0122334455", 33122334455LL);
     check_msisdn_canonize_unit("+33122334455", 33122334455LL);
     check_msisdn_canonize_unit("+33622334455", 33622334455LL);
+    check_msisdn_canonize_unit("+330622334455", 33622334455LL);
+    check_msisdn_canonize_unit("+3306223344550", -1);
+    check_msisdn_canonize_unit("+3300622334455", -1);
     check_msisdn_canonize_unit("+4412345", 4412345);
+    check_msisdn_canonize_unit("+4412345123456789087654", -1);
+    check_msisdn_canonize_unit("111212", 111212);
 }
 END_TEST
 
@@ -895,6 +971,7 @@ Suite *check_string_is_suite(void)
     tcase_add_test(tc, check_memsearch);
     tcase_add_test(tc, check_pstrlen);
     tcase_add_test(tc, check_pstrcpylen);
+    tcase_add_test(tc, check_strtoip);
     tcase_add_test(tc, check_strtolp);
     tcase_add_test(tc, check_msisdn_canonize);
     return s;
