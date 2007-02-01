@@ -27,6 +27,8 @@ static inline ssize_t sstrlen(const char *str) {
 
 ssize_t pstrcpy(char *dest, ssize_t size, const char *src);
 ssize_t pstrcpylen(char *dest, ssize_t size, const char *src, ssize_t n);
+ssize_t pstrcpylen_unescape(char *dest, ssize_t size,
+                            const char *src, ssize_t n);
 ssize_t pstrcat(char *dest, ssize_t size, const char *src);
 ssize_t pstrlen(const char *str, ssize_t size)  __attr_nonnull__((1));
 
