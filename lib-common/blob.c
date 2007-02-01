@@ -274,6 +274,33 @@ void blob_splice_data(blob_t *blob, ssize_t pos, ssize_t len,
     memcpy(blob->data + pos, data, datalen);
 }
 
+void blob_append_cstr_escaped(blob_t *blob, const char *cstr,
+                              const char* toescape)
+{
+    const char *p;
+    size_t off;
+
+    if (!cstr)
+        return;
+
+    off = strcspn(cstr, toescape);
+    p = cstr + off;
+    while (*p) {
+        blob_append_data(blob, cstr, off);
+        blob_append_byte(blob, '\\');
+        blob_append_byte(blob, *p);
+        cstr = p + 1;
+
+        off = strcspn(cstr, toescape);
+        p = cstr + off;
+    }
+
+    /* Append string end, if it exists */
+    if (*cstr) {
+        blob_append_cstr(blob, cstr);
+    }
+}
+
 /**************************************************************************/
 /* Blob file functions                                                    */
 /**************************************************************************/
@@ -1662,6 +1689,23 @@ START_TEST(check_append)
             "append failed");
     fail_if(blob.len != strlen("0123456789"),
             "append failed");
+
+    /* append escaped */
+    blob_resize(&blob, 0);
+    blob_append_cstr_escaped(&blob, "123\"45\\6", "\"\\");
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "123\\\"45\\\\6") != 0,
+            "append escaped failed");
+    fail_if(blob.len != strlen("123\\\"45\\\\6"),
+            "append escaped failed");
+
+    blob_resize(&blob, 0);
+    blob_append_cstr_escaped(&blob, "123456", "\"\\");
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "123456") != 0,
+            "append escaped failed on simple string");
+    fail_if(blob.len != strlen("123456"),
+            "append escaped failed on simple string");
 
     check_teardown(&blob, &b2);
 }
