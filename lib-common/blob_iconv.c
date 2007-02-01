@@ -23,7 +23,7 @@
 
 #define ICONV_HANDLES_CACHE_MAX 20
 #define ICONV_TYPE_SIZE 15
-typedef struct {
+typedef struct iconv_t_cache {
     char to[ICONV_TYPE_SIZE + 1];
     char from[ICONV_TYPE_SIZE + 1];
     iconv_t handle;
@@ -48,18 +48,28 @@ static inline size_t ciconv(iconv_t cd,
 /**
  * We only try to detect the encoding if it is one of the known_encodings
  */
-static const char *known_encodings[] = {"ASCII", "ISO-8859-1", "Windows-1250",
-                                        "Windows-1252", "UTF-8", NULL};
+static struct {
+    const char *name;
+    int encoding;
+} const known_encodings[] = {
+    { "ASCII",        ENC_ASCII },
+    { "ISO-8859-1",   ENC_ISO_8859_1 },
+    { "Windows-1250", ENC_WINDOWS_1250 },
+    { "Windows-1252", ENC_WINDOWS_1252 },
+    { "UTF-8",        ENC_UTF8 },
+    { NULL, -1 },
+};
+
 static int r_known_encodings(const char *s)
 {
     int i;
 
-    for (i = 0; known_encodings[i]; i++) {
-        if (strcasecmp(known_encodings[i], s) == 0) {
-            return i;
+    for (i = 0; known_encodings[i].name; i++) {
+        if (strcasecmp(known_encodings[i].name, s) == 0) {
+            break;
         }
     }
-    return -1;
+    return known_encodings[i].encoding;
 }
 
 /**
@@ -68,7 +78,7 @@ static int r_known_encodings(const char *s)
  */
 static iconv_t get_iconv_handle(const char *to, const char *from)
 {
-    static int current_iconv = 0;
+    static unsigned int current_iconv = 0;
     int i = 0;
 
     if (from == NULL || to == NULL) {
@@ -78,17 +88,17 @@ static iconv_t get_iconv_handle(const char *to, const char *from)
         iconv_handles = p_new(iconv_t_cache, ICONV_HANDLES_CACHE_MAX);
     }
     for (i = 0; i < ICONV_HANDLES_CACHE_MAX; i++) {
-        if (iconv_handles[i].to && iconv_handles[i].from
+        if (iconv_handles[i].handle
         &&  strncasecmp(to, iconv_handles[i].to, ICONV_TYPE_SIZE) == 0
         &&  strncasecmp(from, iconv_handles[i].from, ICONV_TYPE_SIZE) == 0)
         {
             return iconv_handles[i].handle;
         }
     }
-    current_iconv = current_iconv >= ICONV_HANDLES_CACHE_MAX ?
-                    0 : current_iconv;
+    current_iconv %= ICONV_HANDLES_CACHE_MAX;
     if (iconv_handles[current_iconv].handle) {
         iconv_close(iconv_handles[current_iconv].handle);
+        iconv_handles[current_iconv].handle = NULL;
     }
     pstrcpy(iconv_handles[current_iconv].to,
             sizeof(iconv_handles[current_iconv].to), to);
@@ -110,11 +120,11 @@ int blob_iconv_close_all(void)
         return -1;
     }
     for (i = 0; i < ICONV_HANDLES_CACHE_MAX; i++) {
-        if (iconv_handles[i].to && iconv_handles[i].from
-            && iconv_handles[i].handle) {
+        if (iconv_handles[i].handle) {
             if (iconv_close(iconv_handles[i].handle) < 0) {
                 e_trace(DEBUG_VERB, "An iconv handle cannot be closed");
             } else {
+                iconv_handles[i].handle = NULL;
                 res++;
             }
         }
@@ -128,107 +138,110 @@ int blob_iconv_close_all(void)
  * We also give a hint for the detection
  *
  */
-static int detect_encoding(const blob_t *src, int offset,
-                           const char *type_hint)
+static int detect_encoding(const byte *s, int len, const char *type_hint)
 {
-    int i;
-    int enc = ENC_ASCII;
-    const char *s = blob_get_cstr(src);
+    int i, c, enc;
 
-    if (!src) {
+    if (!s) {
         return -1;
     }
 
-    for (i = offset; i < src->len; i++) {
-        if (s[i] > 0x7F) {
-            if (enc == ENC_ASCII) {
-                enc = r_known_encodings(type_hint);
-                if (enc < 0) {
-                    return -1;
-                }
-            }
-        }
+    for (i = 0; i < len; i++) {
+        if (s[i] >= 0x80)
+            goto non_ascii;
+    }
 
-        if (s[i] >= 0x80 && s[i] <= 0x9F) {
-            /* ISO-8859-1 and UTF 8 Impossible here */
+    return ENC_ASCII;
+
+  non_ascii:
+    enc = r_known_encodings(type_hint);
+    if (enc < 0) {
+        return -1;
+    }
+
+    for (; i < len; i++) {
+        c = s[i];
+        if (c < 0x80)
+            continue;
+
+        if (c <= 0x9F) {
+            /* ISO-8859-1 and UTF-8 impossible here */
             /* So either Win-1250 or Win-1252 */
-            if (s[i] == 0x83 || s[i] == 0x88 || s[i] == 0x89 || s[i] == 0x9c) {
+            if (c == 0x83 || c == 0x88 || c == 0x89 || c == 0x9c) {
                 /* win-1252 */
                 enc = ENC_WINDOWS_1252;
-                e_trace(DEBUG_VERB, "Win-1252 probable: %x", s[i]);
-                if (s[i] != 0x9c) {
+                e_trace(DEBUG_VERB, "Win-1252 probable: %x", c);
+                if (c != 0x9c) {
                     /* win-1252 very probable */
                     break;
                 }
             } else {
                 /* Win-1250 */
                 enc = ENC_WINDOWS_1250;
-                e_trace(DEBUG_VERB, "Win-1250 probable: %x", s[i]);
+                e_trace(DEBUG_VERB, "Win-1250 probable: %x", c);
                 continue;
             }
-        }
-
-        if (s[i] >= 0xA0 && s[i] <= 0xBF) {
-            /* UTF 8 Impossible here */
+        } else
+        if (c <= 0xBF) {
+            /* UTF-8 impossible here */
             e_trace(DEBUG_VERB, "Win-1250 quite probable, ISO-8859-1 probable"
-                    ": %x", s[i]);
+                    ": %x", c);
             enc = (enc != ENC_ISO_8859_1) ? ENC_WINDOWS_1250 : enc;
             continue;
-        }
-
-        if (s[i] >= 0xC0 && s[i] <= 0xDF) {
+        } else
+        if (c <= 0xDF) {
             /* FIXME... s[i+1] is out of range when evaluated !!! */
-            if (i == (src->len - 1) || s[i + 1] < 0x80) {
-                /* UTF 8 Impossible here */
-                e_trace(DEBUG_VERB, "Win-1250, ISO-8859-1 equaly"
-                        "probable: %x", s[i]);
+            if (i + 1 >= len || s[i + 1] < 0x80) {
+                /* UTF-8 impossible here */
+                e_trace(DEBUG_VERB, "Win-1250, ISO-8859-1 equally"
+                        "probable: %x", c);
                 if (enc == ENC_UTF8) {
                     enc = ENC_ISO_8859_1;
                 }
                 continue;
             }
-            if (s[i + 1] >= 0x80 && s[i + 1] <= 0xBF) {
+            if ((s[i + 1] & 0xC0) == 0x80) {
                 enc = ENC_UTF8;
                 e_trace(DEBUG_VERB, "UTF-8 very probable: %x %x",
-                        s[i], s[i + 1]);
+                        c, s[i + 1]);
                 break;
             }
-        }
-
-        if (s[i] >= 0xE0 && s[i] <= 0xEF) {
-            if (i + 2 >= src->len) {
-                /* UTF 8 Impossible here */
+        } else
+        if (c <= 0xEF) {
+            if (i + 2 >= len) {
+                /* UTF-8 impossible here */
                 if (enc == ENC_UTF8) {
                     enc = ENC_ISO_8859_1;
                 }
                 continue;
             }
-            if (s[i + 1] >= 0x80 && s[i + 1] <= 0xBF
-            &&  s[i + 2] >= 0x80 && s[i + 2] <= 0xBF) {
+            if ((s[i + 1] & 0xC0) == 0x80
+            &&  (s[i + 2] & 0xC0) == 0x80) {
                 enc = ENC_UTF8;
-                e_trace(DEBUG_VERB, "UTF-8 extremely probable: %x %x", s[i],
-                        s[i + 1]);
+                e_trace(DEBUG_VERB, "UTF-8 extremely probable: %x %x %x",
+                        c, s[i + 1], s[i + 2]);
                 break;
             } else {
-                if (s[i] == 0xE0 || enc == ENC_UTF8) {
+                if (c == 0xE0 || enc == ENC_UTF8) {
                     enc = ENC_ISO_8859_1;
                     e_trace(DEBUG_VERB, "ISO-8859-1 a little probable");
                     continue;
                 }
             }
+        } else {
+            /* 0xF0 and beyond are unlikely UTF-8 */
         }
     }
     return enc;
 }
 
 /**
- * Blob_iconv_priv converts the string src from type to UTF-8
- * The encoding starts at offset_src within src.
+ * Blob_iconv_priv converts the array src of length len from type to UTF-8
  *
  * Return - 0 if success
  *        - <0 otherwise
  */
-static int blob_iconv_priv(blob_t *dst, const blob_t *src, int offset_src,
+static int blob_iconv_priv(blob_t *dst, const byte *src, int len,
                            const char *type)
 {
     size_t len_in, len_out, total_len, init_len_out;
@@ -241,18 +254,17 @@ static int blob_iconv_priv(blob_t *dst, const blob_t *src, int offset_src,
         return -1;
     }
 
-    data = (const char *)src->data + offset_src;
+    data = (const char *)src;
+    len_in = len;
     init_len_out = dst->len;
-    len_in = src->len - offset_src;
-    total_len = init_len_out + len_in * 2;
     len_out = len_in * 2;
+    total_len = init_len_out + len_in * 2;
 
     blob_resize(dst, total_len);
     out = (char *)dst->data + init_len_out;
 
     ic_h = get_iconv_handle("UTF-8", type);
-    while (iconv(ic_h, &data, &len_in, &out, &len_out) != 0
-           && try < 5) {
+    while (iconv(ic_h, &data, &len_in, &out, &len_out) != 0 && try < 5) {
         if (errno == E2BIG) {
             len_out = 256;
             blob_resize(dst, total_len + len_out);
@@ -270,12 +282,12 @@ static int blob_iconv_priv(blob_t *dst, const blob_t *src, int offset_src,
 }
 
 /**
- * Blob_iconv calls blob_iconv_priv with the offset set to 0
+ * Blob_iconv calls blob_iconv_priv
  *
  */
 int blob_iconv(blob_t *dst, const blob_t *src, const char *type)
 {
-    return blob_iconv_priv(dst, src, 0, type);
+    return blob_iconv_priv(dst, src->data, src->len, type);
 }
 
 /**
@@ -287,12 +299,10 @@ int blob_iconv(blob_t *dst, const blob_t *src, const char *type)
  *           1 if the type_hint == chosen_encoding
  *           2 if the type is not part of the main encoding
  */
-int blob_auto_iconv (blob_t *dst, const blob_t *src, const char *type_hint,
-                     int *chosen_encoding)
+int blob_auto_iconv(blob_t *dst, const blob_t *src, const char *type_hint,
+                    int *chosen_encoding)
 {
-    int i = 0;
-    int enc = ENC_ASCII;
-    int res = 0;
+    int enc_type, enc;
 
     if (src == NULL || dst == NULL) {
         e_trace(DEBUG_VERB, "Internal error");
@@ -300,32 +310,28 @@ int blob_auto_iconv (blob_t *dst, const blob_t *src, const char *type_hint,
     }
 
     blob_reset(dst);
-    if (r_known_encodings(type_hint) < 0) {
+    enc_type = r_known_encodings(type_hint);
+    if (enc_type < 0) {
         e_trace(DEBUG_VERB, "Skip type: %s", type_hint);
-        if (blob_iconv_priv(dst, src, 0, type_hint) < 0) {
+        if (blob_iconv_priv(dst, src->data, src->len, type_hint) < 0) {
             return -1;
         }
         return 2;
     }
-    for (i = 0; src->data[i]; i++) {
-        if (src->data[i] > 0x7F) {
-            enc = detect_encoding(src, i, type_hint);
-            break;
-        } else {
-            blob_append_byte(dst, src->data[i]);
-        }
-    }
 
+    enc = detect_encoding(src->data, src->len, type_hint);
     *chosen_encoding = enc;
-    e_trace(DEBUG_VERB, " -- Chosen Encoding: %s", known_encodings[enc]);
-
-    if (src->data[i]) {
-        if ((res = blob_iconv_priv(dst, src, i, known_encodings[enc])) < 0) {
+    e_trace(DEBUG_VERB, " -- Chosen Encoding: %s", known_encodings[enc].name);
+    if (enc == ENC_ASCII || enc == ENC_UTF8) {
+        blob_set(dst, src);
+    } else {
+        if (blob_iconv_priv(dst, src->data, src->len,
+                            known_encodings[enc].name) < 0) {
             return -1;
         }
     }
 
-    return *chosen_encoding == r_known_encodings(type_hint);
+    return (*chosen_encoding == enc_type);
 }
 
 /**
