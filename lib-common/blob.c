@@ -275,7 +275,7 @@ void blob_splice_data(blob_t *blob, ssize_t pos, ssize_t len,
 }
 
 void blob_append_cstr_escaped(blob_t *blob, const char *cstr,
-                              const char* toescape)
+                              const char *toescape)
 {
     const char *p;
     size_t off;
@@ -2093,6 +2093,7 @@ START_TEST(check_blob_iconv_close)
     blob_t b1;
     blob_t b2;
     int c_typ = 0;
+    int n;
 
     blob_init(&b1);
     blob_init(&b2);
@@ -2104,8 +2105,10 @@ START_TEST(check_blob_iconv_close)
     blob_file_auto_iconv(&b2, "samples/example2.windows-1250", "windows-1250",
                          &c_typ);
 
-    fail_if(blob_iconv_close_all() != 3,
-            "blob_iconv_close_all has failed to close all handlers");
+    n = blob_iconv_close_all();
+    fail_if(n > 2,
+            "blob_file_auto_iconv allocated %d iconv_t handles instead of %d",
+            n, 2);
 
     blob_wipe(&b1);
     blob_wipe(&b2);
