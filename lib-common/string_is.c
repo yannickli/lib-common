@@ -937,7 +937,7 @@ END_TEST
 
 #define check_msisdn_canonize_unit(str, val) \
     do { \
-        ret = msisdn_canonize(str, sizeof(str), -1); \
+        ret = msisdn_canonize(str, strlen(str), -1); \
         fail_if(ret != val, "failed : msisdn_canonize returned %zd", ret); \
     } while (0)
 
@@ -947,6 +947,11 @@ START_TEST(check_msisdn_canonize)
 
     check_msisdn_canonize_unit("", -1);
     check_msisdn_canonize_unit("azerty", -1);
+    ret = msisdn_canonize("+33600000002\n", 12, -1);
+    fail_if(ret != 33600000002LL, "failed : msisdn_canonize returned %zd", ret);
+    check_msisdn_canonize_unit("+33600000000", 33600000000LL);
+    check_msisdn_canonize_unit("+33600000001", 33600000001LL);
+    check_msisdn_canonize_unit("+33600000002", 33600000002LL);
     check_msisdn_canonize_unit("0122334455", 33122334455LL);
     check_msisdn_canonize_unit("+33122334455", 33122334455LL);
     check_msisdn_canonize_unit("+33622334455", 33622334455LL);
