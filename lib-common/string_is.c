@@ -948,7 +948,7 @@ START_TEST(check_msisdn_canonize)
     check_msisdn_canonize_unit("", -1);
     check_msisdn_canonize_unit("azerty", -1);
     ret = msisdn_canonize("+33600000002\n", 12, -1);
-    fail_if(ret != 33600000002LL, "failed : msisdn_canonize returned %zd", ret);
+    fail_if(ret != 33600000002LL, "failed: msisdn_canonize returned %zd", ret);
     check_msisdn_canonize_unit("+33600000000", 33600000000LL);
     check_msisdn_canonize_unit("+33600000001", 33600000001LL);
     check_msisdn_canonize_unit("+33600000002", 33600000002LL);
