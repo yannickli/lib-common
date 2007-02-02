@@ -91,14 +91,14 @@ mmfile *mmfile_creat(const char *path, off_t initialsize)
     return NULL;
 }
 
-mmfile *mmfile_open_or_creat(const char *path, int flags, int mode,
-                             int initialsize, bool *created)
+mmfile *mmfile_open_or_creat(const char *path, int flags,
+                             off_t initialsize, bool *created)
 {
     int fd = -1, prot = PROT_READ;
     struct stat st;
     mmfile *mf = mmfile_new();
 
-    fd = open(path, flags | O_CREAT, mode);
+    fd = open(path, flags | O_CREAT, 0644);
     if (fd < 0)
         goto error;
 

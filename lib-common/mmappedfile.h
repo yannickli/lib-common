@@ -30,8 +30,8 @@ typedef struct mmfile MMFILE_ALIAS(byte) mmfile;
 
 mmfile *mmfile_open(const char *path, int flags);
 mmfile *mmfile_creat(const char *path, off_t initialsize);
-mmfile *mmfile_open_or_creat(const char *path, int flags, int mode,
-                             int initialsize, bool *created);
+mmfile *mmfile_open_or_creat(const char *path, int flags, off_t initialsize,
+                             bool *created);
 void mmfile_close(mmfile **mf);
 
 /* @see ftruncate(2)
@@ -47,15 +47,15 @@ int mmfile_truncate(mmfile *mf, off_t length);
     }                                                                   \
                                                                         \
     static inline type *                                                \
-    prefix##_open_or_creat(const char *path, int flags, int mode,       \
+    prefix##_open_or_creat(const char *path, int flags,                 \
                            int initialsize, bool *created)              \
     {                                                                   \
-        return (type *)mmfile_open_or_creat(path, flags, mode,          \
+        return (type *)mmfile_open_or_creat(path, flags,                \
                                             initialsize, created);      \
     }                                                                   \
                                                                         \
-    static inline type *prefix##_creat(const char *path, int flags) {   \
-        return (type *)mmfile_creat(path, flags);                       \
+    static inline type *prefix##_creat(const char *path, off_t size) {  \
+        return (type *)mmfile_creat(path, size);                        \
     }                                                                   \
                                                                         \
     static inline void prefix##_close(type **mmf) {                     \
