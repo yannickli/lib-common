@@ -11,10 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifdef __linux__
-#include <asm/page.h> /* for PAGE_SIZE */
-#endif
-
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -179,13 +175,6 @@ int mmfile_truncate(mmfile *mf, off_t length)
     truncres |= close(fd);
 
     if (length > mf->size) {
-#ifdef __linux__
-        /* align on page size */
-        int pagealign = (length + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1);
-
-        munmap(mf->area + pagealign, mf->size - pagealign);
-#endif
-
         /* ignore errors: we shrink */
         mf->size = length;
         return 0;
