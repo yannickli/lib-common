@@ -81,18 +81,18 @@ static void siginstall(void)
 static void file_handler(int __unused__ priority,
                          const char *format, va_list args)
 {
-    FILE *f = log_state.f ?: stderr;
+    FILE *fp = log_state.f ? log_state.f : stderr;
 
     if (log_state.ident != NULL) {
-        if (fprintf(f, "[%s] ", log_state.ident) < 0) {
+        if (fprintf(fp, "[%s] ", log_state.ident) < 0) {
             goto error;
         }
     }
-    if (vfprintf(f, format, args) < 0) {
+    if (vfprintf(fp, format, args) < 0) {
         goto error;
     }
 
-    if (fputc('\n', f) == EOF)
+    if (fputc('\n', fp) == EOF)
         goto error;
     return;
 
@@ -148,21 +148,21 @@ void e_init_stderr(void)
 
 void e_init_file(const char *ident, const char *filename)
 {
-    FILE *f;
+    FILE *fp;
 
     p_delete(&log_state.filename);
 
     if (filename == NULL || strcmp(filename, "/dev/stderr") == 0) {
         init_file(NULL, stderr);
     } else {
-        f = fopen(filename, "a");
-        if (f == NULL) {
+        fp = fopen(filename, "a");
+        if (fp == NULL) {
             e_fatal(FATAL_LOGOPEN,
                     E_PREFIX("can't open log file %s: %s"),
                     filename, strerror(errno));
         }
         log_state.filename = p_strdup(filename);
-        init_file(ident, f);
+        init_file(ident, fp);
     }
 }
 
