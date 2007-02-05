@@ -17,7 +17,7 @@ include $(DEPTH)/admin/header.mk
 __EXE__   = 
 __LIB__   = libcommon
 __CHECK__ = test test_blob_iconv msg_test 
-__CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc
+__CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-sha2
 
 libcommon_SOURCES = \
 	archive.c \
@@ -65,6 +65,9 @@ tst-iprintf-fp_SOURCES = tst-iprintf-fp.c libcommon.a
 
 tst-iprintf-glibc_CFLAGS = -Wno-format
 tst-iprintf-glibc_SOURCES = tst-iprintf-glibc.c libcommon.a
+
+tst-sha2_CFLAGS = -DTEST_VECTORS
+tst-sha2_SOURCES = sha2.c libcommon.a
 
 msg_test_CFLAGS = -DMSG_TEST
 msg_test_SOURCES = msg_template.c libcommon.a
