@@ -11,6 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
+#ifdef __linux__
+#include <asm/page.h> /* for PAGE_SIZE */
+#endif
+
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -159,6 +163,10 @@ void mmfile_close(mmfile **mf)
 int mmfile_truncate(mmfile *mf, off_t length)
 {
     int fd = -1;
+    int truncres;
+
+    if (length == mf->size)
+        return 0;
 
     fd = open(mf->path, O_RDWR);
     if (fd < 0) {
@@ -166,25 +174,38 @@ int mmfile_truncate(mmfile *mf, off_t length)
         return -1;
     }
 
-    /* FIXME: try and use munmap on tail if shrinking mapping,
-     * Try mmap on extension or mmap before munmap if extending
-     * Should not wipe, just keep area = NULL.
-     */
+    /* hack: close may fail if ENOSPACE, some FS may let ftruncate always work */
+    truncres  = ftruncate(fd, length);
+    truncres |= close(fd);
 
-    if (munmap(mf->area, mf->size) || ftruncate(fd, length)) {
-        close(fd);
-        return -1;
+    if (length > mf->size) {
+#ifdef __linux__
+        /* align on page size */
+        int pagealign = (length + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1);
+
+        munmap(mf->area + pagealign, mf->size - pagealign);
+#endif
+
+        /* ignore errors: we shrink */
+        mf->size = length;
+        return 0;
+    }
+
+    if (truncres)
+        return truncres;
+
+    munmap(mf->area, mf->size);
+    mf->area = mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (mf->area == MAP_FAILED) {
+        mf->area = mmap(NULL, mf->size, PROT_READ | PROT_WRITE, MAP_SHARED,
+                        fd, 0);
+        if (mf->area == MAP_FAILED) {
+            mf->area = NULL;
+            mf->size = 0;
+            return -2;
+        }
     }
 
     mf->size = length;
-    mf->area = mmap(NULL, mf->size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                    fd, 0);
-    close(fd);
-    if (mf->area == MAP_FAILED) {
-        mf->area = NULL;
-        mmfile_wipe(mf);
-        return -2;
-    }
-
     return 0;
 }
