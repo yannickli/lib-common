@@ -19,9 +19,9 @@
 
 #include <lib-common/macros.h>
 
-#define MMFILE_ALIAS(ptr_type) \
+#define MMFILE_ALIAS(ptr_type)     \
     {                              \
-        ssize_t    size;           \
+        ssize_t   size;            \
         char     *path;            \
         ptr_type *area;            \
     }
@@ -48,7 +48,7 @@ int mmfile_truncate(mmfile *mf, off_t length);
                                                                         \
     static inline type *                                                \
     prefix##_open_or_creat(const char *path, int flags,                 \
-                           int initialsize, bool *created)              \
+                           off_t initialsize, bool *created)            \
     {                                                                   \
         return (type *)mmfile_open_or_creat(path, flags,                \
                                             initialsize, created);      \
