@@ -191,7 +191,7 @@ pidx_file *pidx_creat(const char *path, int nbpages,
 {
     pidx_file *pidx;
 
-    if (nbsegs > 6 || skip + 10 * skip > 64) {
+    if (nbsegs > 6 || skip + 10 * nbsegs > 64) {
         errno = EINVAL;
         return NULL;
     }
