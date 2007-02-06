@@ -199,9 +199,9 @@ pidx_file *pidx_creat(const char *path, int nbpages,
     /* round nbpages to the first upper 32 multiple - 1 */
     nbpages = MIN(32, (nbpages + 1 + 31) & ~31) - 1;
 
-    assert (sizeof(paged_index_page) == 4096 && sizeof(paged_index) == 4096);
+    assert (sizeof(pidx_page) == 4096 && sizeof(pidx_t) == 4096);
 
-    pidx = pidx_real_creat(path, (nbpages + 1) * sizeof(paged_index_page));
+    pidx = pidx_real_creat(path, (nbpages + 1) * sizeof(pidx_page));
     if (!pidx)
         return NULL;
 

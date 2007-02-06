@@ -18,7 +18,7 @@
 #include <lib-common/macros.h>
 #include <lib-common/mmappedfile.h>
 
-typedef struct paged_index_page {
+typedef struct pidx_page {
     union {
         struct {
             int32_t next;
@@ -26,7 +26,7 @@ typedef struct paged_index_page {
         };
         int32_t refs[1024];
     };
-} paged_index_page;
+} pidx_page;
 
 /** \brief this struct is the header of an intersec paginated file.
  * Such a file is stored in 64-bit aligned big endian structures,
@@ -36,7 +36,7 @@ typedef struct paged_index_page {
  *   \li it does not work on little endian archs.
  *   \li the number of segments cannot be greater than 6.
  */
-typedef struct paged_index {
+typedef struct pidx_t {
     /* first qword */
     uint32_t magic;     /**< magic of the paginated file: 'I' 'S' 'P' 'F'. */
     uint8_t  major;     /**< major version of the file format              */
@@ -53,14 +53,14 @@ typedef struct paged_index {
 
     uint64_t subhdr[256];       /**< reserved for hosted file headers: 2k  */
 
-    /** \brief pages of the @paged_index.
+    /** \brief pages of the @pidx_t.
      * pages[0] is _always_ the first level of pagination.
      * pages[0 .. nbpages - 1] shall be accessible.
      */
-    paged_index_page pages[];
-} paged_index;
+    pidx_page pages[];
+} pidx_t;
 
-typedef struct pidx_file MMFILE_ALIAS(paged_index) pidx_file;
+typedef struct pidx_file MMFILE_ALIAS(pidx_t) pidx_file;
 
 /****************************************************************************/
 /* whole file related functions                                             */
