@@ -69,6 +69,7 @@ typedef struct pidx_file MMFILE_ALIAS(pidx_t) pidx_file;
 pidx_file *pidx_open(const char *path, int flags);
 pidx_file *pidx_creat(const char *path, int nbpages,
 		      uint8_t skip, uint8_t nbsegs);
+void pidx_close(pidx_file **f);
 
 /** \brief checks and repair idx files.
  * \param    pidx     the paginated index file to check/fix.

@@ -175,7 +175,7 @@ pidx_file *pidx_open(const char *path, int flags)
 
     fsck_res = pidx_fsck(pidx, !!(flags | O_WRONLY));
     if (fsck_res < 0) {
-        pidx_real_close(&pidx);
+        pidx_close(&pidx);
         errno = EINVAL;
     }
 
@@ -219,6 +219,11 @@ pidx_file *pidx_creat(const char *path, int nbpages,
     pidx->area->freelist = 1;
 
     return pidx;
+}
+
+void pidx_close(pidx_file **f)
+{
+    pidx_real_close(f);
 }
 
 /****************************************************************************/
