@@ -159,7 +159,7 @@ void mmfile_close(mmfile **mf)
 int mmfile_truncate(mmfile *mf, off_t length)
 {
     int fd = -1;
-    int truncres;
+    int res;
 
     if (length == mf->size)
         return 0;
@@ -170,31 +170,34 @@ int mmfile_truncate(mmfile *mf, off_t length)
         return -1;
     }
 
-    /* hack: close may fail if ENOSPACE, some FS may let ftruncate always work */
-    truncres  = ftruncate(fd, length);
-    truncres |= close(fd);
+    res = ftruncate(fd, length);
 
-    if (length > mf->size) {
+    if (length < mf->size) {
+        close(fd);
         /* ignore errors: we shrink */
         mf->size = length;
         return 0;
     }
 
-    if (truncres)
-        return truncres;
+    if (res)
+        return res | close(fd);
 
     munmap(mf->area, mf->size);
     mf->area = mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (mf->area == MAP_FAILED) {
         mf->area = mmap(NULL, mf->size, PROT_READ | PROT_WRITE, MAP_SHARED,
                         fd, 0);
+        res = close(fd);
+
         if (mf->area == MAP_FAILED) {
             mf->area = NULL;
             mf->size = 0;
             return -2;
         }
+
+        return res;
     }
 
     mf->size = length;
-    return 0;
+    return close(fd);
 }
