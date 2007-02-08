@@ -179,8 +179,10 @@ int mmfile_truncate(mmfile *mf, off_t length)
         return 0;
     }
 
-    if (res)
-        return res | close(fd);
+    if (res) {
+        close(fd);
+        return res;
+    }
 
     munmap(mf->area, mf->size);
     mf->area = mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
