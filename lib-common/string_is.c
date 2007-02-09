@@ -603,6 +603,7 @@ const void *memsearch(const void *_haystack, size_t hsize,
     return NULL;
 }
 
+/* OG: should move this to lib-inet or lib-mcms or mcms-sdk */
 int64_t msisdn_canonize(const char *str, int len, __unused__ int locale)
 {
     const char *p;
