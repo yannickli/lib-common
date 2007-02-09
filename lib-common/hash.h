@@ -81,22 +81,30 @@ typedef sha256_ctx sha224_ctx;
 void sha224_init(sha224_ctx *ctx);
 void sha224_update(sha224_ctx *ctx, const void *message, uint32_t len);
 void sha224_final(sha224_ctx *ctx, byte *digest);
+void sha224_final_hex(sha224_ctx *ctx, char *digest);
 void sha224(const void *message, uint32_t len, byte *digest);
+void sha224_hex(const void *message, uint32_t len, char *digest);
 
 void sha256_init(sha256_ctx *ctx);
 void sha256_update(sha256_ctx *ctx, const void *message, uint32_t len);
 void sha256_final(sha256_ctx *ctx, byte *digest);
+void sha256_final_hex(sha256_ctx *ctx, char *digest);
 void sha256(const void *message, uint32_t len, byte *digest);
+void sha256_hex(const void *message, uint32_t len, char *digest);
 
 void sha384_init(sha384_ctx *ctx);
 void sha384_update(sha384_ctx *ctx, const void *message, uint32_t len);
 void sha384_final(sha384_ctx *ctx, byte *digest);
+void sha384_final_hex(sha384_ctx *ctx, char *digest);
 void sha384(const void *message, uint32_t len, byte *digest);
+void sha384_hex(const void *message, uint32_t len, char *digest);
 
 void sha512_init(sha512_ctx *ctx);
 void sha512_update(sha512_ctx *ctx, const void *message, uint32_t len);
 void sha512_final(sha512_ctx *ctx, byte *digest);
+void sha512_final_hex(sha512_ctx *ctx, char *digest);
 void sha512(const void *message, uint32_t len, byte *digest);
+void sha512_hex(const void *message, uint32_t len, char *digest);
 
 /** EOF BSD CODE **/
 
