@@ -14,12 +14,9 @@
 #ifndef IS_LIB_COMMON_MACROS_H
 #define IS_LIB_COMMON_MACROS_H
 
-/* for ssize_t */
-#include <unistd.h>
+#include <unistd.h>     /* for ssize_t */
 
-/**************************************************************************/
-/* GNU extension wrappers                                                 */
-/**************************************************************************/
+/*---------------- GNU extension wrappers ----------------*/
 
 /*
  * __attr_unused__             => unused vars
@@ -43,9 +40,7 @@
 #  define EXPORT    __attribute__((visibility("default")))
 #endif
 
-/**************************************************************************/
-/* TYPES                                                                  */
-/**************************************************************************/
+/*---------------- Types ----------------*/
 
 #if !defined(__cplusplus)
 #ifndef bool
@@ -53,17 +48,15 @@ typedef int bool;
 #endif
 
 #ifndef false
-#define false  (0)
-#define true   (!false)
+#define false  0
+#define true   1
 #endif
 #endif
 
 typedef unsigned char byte;
 typedef unsigned int flag_t;    /* for 1 bit bitfields */
 
-/**************************************************************************/
-/* Misc                                                                   */
-/**************************************************************************/
+/*---------------- Misc ----------------*/
 
 #define countof(table)  ((ssize_t)(sizeof(table) / sizeof((table)[0])))
 #define ssizeof(foo)    ((ssize_t)sizeof(foo))
@@ -95,9 +88,8 @@ enum sign {
 #define TOSTR_AUX(x)  #x
 #define TOSTR(x)      TOSTR_AUX(x)
 
-/**************************************************************************/
-/* Type safe conversion functions                                         */
-/**************************************************************************/
+/*---------------- Type safe conversion functions ----------------*/
+
 #define CONVERSION_FUNCTIONS(type1, type2) \
     static inline type2 *type1##_to_##type2(type1 *p) \
     { \
@@ -124,9 +116,7 @@ enum sign {
         return (type2 **)(p); \
     }
 
-/**************************************************************************/
-/* License control                                                        */
-/**************************************************************************/
+/*---------------- Licence control ----------------*/
 
 int show_flags(const char *arg, int flags);
 int show_licence(const char *arg);
@@ -218,9 +208,7 @@ static inline int getopt_check(int argc, char * const argv[],
 
 #endif
 
-/**************************************************************************/
-/* Defensive programming                                                  */
-/**************************************************************************/
+/*---------------- Defensive programming ----------------*/
 
 #include <stdio.h>
 
