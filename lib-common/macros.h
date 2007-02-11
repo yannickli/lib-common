@@ -35,9 +35,19 @@
 #  define __attr_printf__(a, b)  __attribute__((format(printf, a, b)))
 #endif
 
+#undef EXPORT
 #ifdef __GNUC__
-#  undef EXPORT
 #  define EXPORT    __attribute__((visibility("default")))
+#else
+#  define EXPORT
+#endif
+
+#ifdef __GNUC__
+#  define EXPECT_TRUE(expr)    __builtin_expect((expr), 1)
+#  define EXPECT_FALSE(expr)   __builtin_expect((expr), 0)
+#else
+#  define EXPECT_TRUE(expr)    expr
+#  define EXPECT_FALSE(expr)   expr
 #endif
 
 /*---------------- Types ----------------*/
