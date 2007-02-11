@@ -22,6 +22,7 @@ __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-sha2
 libcommon_SOURCES = \
 	archive.c \
 	array.c \
+	btree.c \
 	str_array.c \
 	blob.c \
 	blob_zlib.c \

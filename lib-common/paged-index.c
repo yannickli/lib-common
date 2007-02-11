@@ -173,7 +173,7 @@ pidx_file *pidx_open(const char *path, int flags)
     if (!pidx)
         return NULL;
 
-    fsck_res = pidx_fsck(pidx, !!(flags | O_WRONLY));
+    fsck_res = pidx_fsck(pidx, !!(flags & O_WRONLY));
     if (fsck_res < 0) {
         pidx_close(&pidx);
         errno = EINVAL;
