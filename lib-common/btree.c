@@ -39,9 +39,9 @@ typedef struct bt_node_t {
 
 typedef struct bt_leaf_t {
     int32_t next;
-    int32_t used;
-    int32_t offs;
-    byte data[4096 - 4 * 3];
+    int16_t used;
+    int16_t offs;
+    byte data[4096 - 4 * 2];
 } bt_leaf_t;
 
 typedef union bt_page_t {
@@ -194,13 +194,6 @@ void btree_close(btree_t **bt)
 #define REPEAT16(x)       REPEAT8(x), REPEAT8(x)
 #define REPEAT32(x)       REPEAT16(x), REPEAT16(x)
 
-static int8_t const slot_size_trail[256] = {
-    REPEAT32(0), REPEAT32(0),
-    REPEAT32(0), REPEAT32(0),
-    REPEAT32(1), REPEAT32(1),
-    REPEAT32(2), REPEAT16(3), REPEAT16(-1)
-};
-
 /* searches the _last_ pos in the node keys array where key <= keys[pos] */
 static int bt_node_findkey(const bt_node_t *node, const byte key[8])
 {
@@ -228,14 +221,13 @@ static int bt_node_findkey(const bt_node_t *node, const byte key[8])
 static int bt_leaf_datalen(const bt_leaf_t *leaf, int pos)
 {
     int datalen = 0;
-    int trail;
+    int trail = leaf->data[pos] & 0x80 ? 4 : 1;
 
-    trail = slot_size_trail[leaf->data[pos]];
-    if (trail < 0 || pos + trail >= leaf->used)
+    if (pos + trail >= leaf->used)
         return -1;
 
-    datalen = leaf->data[pos++] & (0x7f >> trail);
-    while (trail--) {
+    datalen = leaf->data[pos++] & 0x7f;
+    while (--trail) {
         datalen <<= 8;
         datalen  |= leaf->data[pos++];
     }
@@ -274,54 +266,72 @@ static int bt_leaf_findslot(const bt_leaf_t *leaf, const byte *key, uint8_t n)
     return -1;
 }
 
-static int btree_find_page(const struct bt_t *bt, const byte *key, uint8_t n)
+static inline bt_page_t *vbtree_deref(struct bt_t *bt, int32_t ptr)
+{
+    int page = BTPP_OFFS(ptr);
+    return page == BTPP_NIL || page > bt->nbpages ? NULL : &bt->pages[BTPP_OFFS(ptr)];
+}
+
+static inline bt_page_t *btree_deref(const struct bt_t *bt, int32_t ptr)
+{
+    return vbtree_deref((struct bt_t *)bt, ptr);
+}
+
+static int32_t btree_find_page(const struct bt_t *bt, const byte *key, uint8_t n)
 {
     int32_t page = bt->root;
 
     /* TODO: deal with 'continuation' bit to follow up into a new b-tree for
              keys > 1 segment */
     while (BTPP_IS_NODE(page)) {
+        const bt_node_t *node = &btree_deref(bt, page)->node;
         int keypos;
+
+        if (!node)
+            return -1;
 
         if (n < 8) {
             byte tmp[8] = { 0, 0, 0, 0, 0, 0, 0 };
 
             memcpy(tmp, key, MIN(8, n));
-            keypos = bt_node_findkey(&bt->pages[BTPP_OFFS(page)].node, tmp);
+            keypos = bt_node_findkey(node, tmp);
         } else {
-            keypos = bt_node_findkey(&bt->pages[BTPP_OFFS(page)].node, key);
+            keypos = bt_node_findkey(node, key);
         }
 
-        page = bt->pages[BTPP_OFFS(page)].node.ptrs[keypos];
+        page = node->ptrs[keypos];
     }
 
     return page;
 }
 
-int btree_fetch(const btree_t *bt, const byte *key, uint8_t n, blob_t *out)
+int btree_fetch(const btree_t *bt, const byte *key, int n, blob_t *out)
 {
-    int page = btree_find_page(bt->area, key, n);
-    int len, pos, toread;
+    int page, len, pos, toread;
     bt_leaf_t *leaf;
 
-    leaf  = &bt->area->pages[BTPP_OFFS(page)].leaf;
+    page  = btree_find_page(bt->area, key, n);
+    leaf  = &vbtree_deref(bt->area, page)->leaf;
+    if (!leaf)
+        return -1;
+
     pos   = bt_leaf_findslot(leaf, key, n);
     len   = bt_leaf_datalen(leaf, pos);
     if (len < 0)
         return -1;
-    pos  += slot_size_trail[leaf->data[pos]];
+    pos  += leaf->data[pos] & 0x80 ? 4 : 1;
 
     blob_ensure_avail(out, len);
     blob_append_data(out, leaf->data + pos, MIN(len, leaf->used - pos));
     for (toread = len - (leaf->used - pos); toread > 0; ) {
         int chunk;
 
-        if (BTPP_OFFS(leaf->next) == BTPP_NIL) {
+        leaf  = &vbtree_deref(bt->area, leaf->next)->leaf;
+        if (!leaf) {
             blob_kill_last(out, len - toread);
             return -1;
         }
 
-        leaf  = &bt->area->pages[BTPP_OFFS(leaf->next)].leaf;
         chunk = MIN(toread, leaf->used);
         blob_append_data(out, leaf->data, chunk);
         toread -= chunk;
@@ -330,3 +340,128 @@ int btree_fetch(const btree_t *bt, const byte *key, uint8_t n, blob_t *out)
     return len;
 }
 
+static void btree_putlen(bt_leaf_t *leaf, int pos, int len, int width)
+{
+    byte *p = leaf->data + pos;
+    if (width  == 1) {
+        assert (!(len & ~127));
+        p[0] = len;
+    } else {
+        p[0] = 0x80 | (len >> 24);
+        p[1] = len >> 16;
+        p[2] = len >>  8;
+        p[3] = len >>  0;
+    }
+}
+
+int btree_append(btree_t *bt, const byte *key, int n,
+                 const byte *data, int dlen)
+{
+    int page, pos, len, len2, szl, szl2;
+    bt_leaf_t *leaf, *rleaf;
+    byte *p;
+
+    if (dlen <= 0)
+        return dlen < 0 ? -1 : 0;
+
+    page  = btree_find_page(bt->area, key, n);
+    leaf  = &btree_deref(bt->area, page)->leaf;
+    if (!leaf)       /* TODO: UNIMPLEMENTED */
+        return -1;
+
+    pos   = bt_leaf_findslot(leaf, key, n);
+    len   = bt_leaf_datalen(leaf, pos);
+    if (len < 0)
+        return -1;   /* TODO: UNIMPLEMENTED */
+
+    len2  = len + dlen;
+    szl   = leaf->data[pos] & 0x80 ? 4 : 1;
+    szl2  = len2 >= 0x80 ? 4 : szl;
+    p     = leaf->data + pos;
+
+    rleaf = &vbtree_deref(bt->area, leaf->next)->leaf;
+
+    /* CASE 1: we have enough space locally {{{ */
+    if (pos + szl2 + len + dlen < ssizeof(leaf->data)) {
+        /*
+           pos
+            +-szl-+---len-----+xxxxxxxx+........]
+            |     |           |\        \
+            |     \           \  \        \
+            +-szl2-+-----------oooo+xxxxxxxx+...]
+         */
+        if (pos + szl + len < leaf->used) {
+            memmove(p + szl2 + len2, p + szl + len,
+                    leaf->used - szl - len - pos);
+        }
+        memcpy(p + szl2 + len, data, dlen);
+
+        if (szl != szl2) {
+            memmove(p + szl2, p + szl, len);
+        }
+        btree_putlen(leaf, pos, len2, szl2);
+
+        leaf->used += szl2 - szl + dlen;
+        return 0;
+    }
+    /* }}} */
+    /* CASE 2: we have enough space locally + right page {{{ */
+    if (rleaf
+    &&  pos + szl2 < ssizeof(leaf->data) /* DO NOT split sizes accross pages */
+    &&  szl2 - szl + dlen < 2 * ssizeof(leaf->data) - leaf->used - rleaf->used)
+    {
+        /*
+           pos                  used                       rl.pos    rl.used
+            +-szl-+---------------+......]  ===> [=====------+xxxxxxxxxx+.........]
+            |     |               |    ___________/  /      / \          \
+            |     \               \   /            /      /     \          \
+            +-szl2-+----------------=====]  ===> [-------oooooooo+xxxxxxxxxx+.....]
+                                    <.lsh>               <.dlen..>
+                                                 <....rlen.......>
+         */
+        int rlen = dlen + szl2 - szl - (ssizeof(leaf->data) - leaf->used);
+        int lsh  = rleaf->offs - (rlen - dlen);
+
+        if (rlen > rleaf->offs) {
+            memmove(rleaf->data + rlen, rleaf->data + rleaf->offs,
+                    rleaf->used - rleaf->offs);
+        }
+
+        if (EXPECT_TRUE(lsh < 0)) {
+            memmove(rleaf->data + (-lsh), rleaf->data, rleaf->offs);
+            memcpy(rleaf->data, leaf->data + leaf->used - (-lsh), -lsh);
+        }
+        if (EXPECT_FALSE(lsh > 0)) {
+            memcpy(leaf->data + ssizeof(leaf->data) - lsh, rleaf->data, lsh);
+            memmove(rleaf->data, rleaf->data + lsh, rleaf->offs);
+        }
+
+        if (szl != szl2) {
+            memmove(p + szl2, p + szl, len - MIN(0, lsh));
+        }
+        btree_putlen(leaf, pos, len2, szl2);
+
+        if (rleaf->offs < lsh) {
+            int lpart = lsh - rleaf->offs;
+
+            memcpy(leaf->data + ssizeof(leaf->data) - lpart, data, lpart);
+            memcpy(rleaf->data, data + dlen - lpart, dlen - lpart);
+        } else {
+            memcpy(rleaf->data + rleaf->offs - lsh, data, dlen);
+        }
+
+        if (rlen < rleaf->offs) {
+            memmove(rleaf->data + rlen, rleaf->data + rleaf->offs,
+                    rleaf->used - rleaf->offs);
+        }
+
+        leaf->used   = ssizeof(leaf->data);
+        rleaf->used += rlen - rleaf->offs;
+        rleaf->offs  = rlen;
+        return 0;
+    }
+    /* }}} */
+
+    /* TODO: UNIMPLEMENTED */
+    return -1;
+}

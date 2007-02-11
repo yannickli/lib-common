@@ -19,10 +19,12 @@
 typedef struct btree_t btree_t;
 
 int btree_fsck(btree_t *bt, int dofix);
-btree_t *btree_open(const char *file, int flags);
+btree_t *btree_open(const char *path, int flags);
 btree_t *btree_creat(const char *path);
 void btree_close(btree_t **tree);
 
-int btree_fetch(const btree_t *bt, const byte *key, uint8_t n, blob_t *out);
+int btree_fetch(const btree_t *bt, const byte *key, int klen, blob_t *out);
+int btree_append(btree_t *bt, const byte *key, int klen,
+                 const byte *data, int len);
 
 #endif
