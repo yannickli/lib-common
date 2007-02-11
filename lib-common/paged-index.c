@@ -213,8 +213,8 @@ pidx_file *pidx_creat(const char *path, int nbpages,
     pidx->area->nbpages  = nbpages;
 
     /* this creates the links: 1 -> 2 -> ... -> nbpages - 1 -> NIL */
-    while (nbpages-- > 0) {
-        pidx->area->pages[nbpages].next = nbpages + 1;
+    while (--nbpages > 1) {
+        pidx->area->pages[nbpages - 1].next = nbpages;
     }
     pidx->area->freelist = 1;
 
@@ -296,10 +296,10 @@ static int32_t pidx_page_getfree(pidx_file *pidx)
        res + 1 -> ... -> res + NB_PAGES_GROW - 1 -> NIL
      */
     res = pidx->area->nbpages;
-    pidx->area->freelist = res + 1;
     for (i = res + NB_PAGES_GROW - 1; i > res + 1; i--) {
         pidx->area->pages[i - 1].next = i;
     }
+    pidx->area->freelist = res + 1;
     pidx->area->nbpages += NB_PAGES_GROW;
 
     return res;
