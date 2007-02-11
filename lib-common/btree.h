@@ -24,7 +24,7 @@ btree_t *btree_creat(const char *path);
 void btree_close(btree_t **tree);
 
 int btree_fetch(const btree_t *bt, const byte *key, int klen, blob_t *out);
-int btree_append(btree_t *bt, const byte *key, int klen,
-                 const byte *data, int len);
+int btree_push(btree_t *bt, const byte *key, int klen,
+               const byte *data, int len);
 
 #endif
