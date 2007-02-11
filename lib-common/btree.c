@@ -454,8 +454,12 @@ int btree_push(btree_t *bt, const byte *key, int n,
                 memcpy(rleaf->data, lleaf->data + oldpos, shift);
                 rleaf->used += shift;
                 lleaf->used -= shift;
-                if (oldpos == slot)
+
+                /* TODO: reindex lleaf and rleaf */
+
+                if (oldpos == slot) {
                     lleaf = rleaf;
+                }
 
                 break;
             }
@@ -482,7 +486,5 @@ int btree_push(btree_t *bt, const byte *key, int n,
 
         lleaf->used += need;
     }
-
-    /* TODO: reindex page && leaf->next !!! */
     return 0;
 }
