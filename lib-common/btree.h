@@ -15,8 +15,10 @@
 #define IS_LIB_COMMON_BTREE_H
 
 #include "blob.h"
+#include "mmappedfile.h"
 
-typedef struct btree_t btree_t;
+typedef struct btree_priv_t btree_priv_t;
+typedef struct btree_t MMFILE_ALIAS(struct btree_priv) btree_t;
 
 int btree_fsck(btree_t *bt, int dofix);
 btree_t *btree_open(const char *path, int flags);

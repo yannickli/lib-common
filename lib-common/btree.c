@@ -14,7 +14,6 @@
 #include <errno.h>
 #include <alloca.h>
 
-#include "mmappedfile.h"
 #include "btree.h"
 
 #define BT_ARITY          340  /**< L constant in the b-tree terminology */
@@ -50,7 +49,7 @@ typedef union bt_page_t {
     bt_leaf_t leaf;
 } bt_page_t;
 
-struct bt_t {
+struct btree_priv {
     /* first qword */
     uint32_t magic;     /**< magic of the paginated file: 'I' 'S' 'B' 'T'. */
     uint8_t  major;     /**< major version of the file format              */
@@ -70,7 +69,6 @@ struct bt_t {
 
     bt_page_t pages[];
 };
-struct btree_t MMFILE_ALIAS(struct bt_t);
 MMFILE_FUNCTIONS(btree_t, bt_real);
 
 
@@ -265,19 +263,19 @@ bt_leaf_findslot(const bt_leaf_t *leaf, const byte *key, int n, int32_t *slot)
     return -1;
 }
 
-static inline bt_page_t *vbtree_deref(struct bt_t *bt, int32_t ptr)
+static inline bt_page_t *vbtree_deref(struct btree_priv *bt, int32_t ptr)
 {
     int page = BTPP_OFFS(ptr);
     return page == BTPP_NIL || page > bt->nbpages ? NULL : &bt->pages[BTPP_OFFS(ptr)];
 }
 
-static inline bt_page_t *btree_deref(const struct bt_t *bt, int32_t ptr)
+static inline bt_page_t *btree_deref(const struct btree_priv *bt, int32_t ptr)
 {
-    return vbtree_deref((struct bt_t *)bt, ptr);
+    return vbtree_deref((struct btree_priv *)bt, ptr);
 }
 
 static int32_t
-btree_find_page(const struct bt_t *bt, const byte *key, int n, int32_t *pnode)
+btree_find_page(const struct btree_priv *bt, const byte *key, int n, int32_t *pnode)
 {
     int32_t page = bt->root;
 
