@@ -358,31 +358,34 @@ int btree_append(btree_t *bt, const byte *key, int n,
                  const byte *data, int dlen)
 {
     int page, pos, len, len2, szl, szl2;
-    bt_leaf_t *leaf, *rleaf;
+    bt_leaf_t *lleaf, *rleaf;
     byte *p;
 
     if (dlen <= 0)
         return dlen < 0 ? -1 : 0;
 
     page  = btree_find_page(bt->area, key, n);
-    leaf  = &btree_deref(bt->area, page)->leaf;
-    if (!leaf)       /* TODO: UNIMPLEMENTED */
+    lleaf = &btree_deref(bt->area, page)->leaf;
+    if (!lleaf)
         return -1;
 
-    pos   = bt_leaf_findslot(leaf, key, n);
-    len   = bt_leaf_datalen(leaf, pos);
+    pos   = bt_leaf_findslot(lleaf, key, n);
+    if (pos < 0)
+        return -10;   /* TODO */
+
+    len   = bt_leaf_datalen(lleaf, pos);
     if (len < 0)
-        return -1;   /* TODO: UNIMPLEMENTED */
+        return -1;
 
     len2  = len + dlen;
-    szl   = leaf->data[pos] & 0x80 ? 4 : 1;
+    szl   = lleaf->data[pos] & 0x80 ? 4 : 1;
     szl2  = len2 >= 0x80 ? 4 : szl;
-    p     = leaf->data + pos;
+    p     = lleaf->data + pos;
 
-    rleaf = &vbtree_deref(bt->area, leaf->next)->leaf;
+    rleaf = &vbtree_deref(bt->area, lleaf->next)->leaf;
 
-    /* CASE 1: we have enough space locally {{{ */
-    if (pos + szl2 + len + dlen < ssizeof(leaf->data)) {
+    /* CASE 1: we have enough space in the left leaf {{{ */
+    if (pos + szl2 + len + dlen < ssizeof(lleaf->data)) {
         /*
            pos
             +-szl-+---len-----+xxxxxxxx+........]
@@ -390,25 +393,38 @@ int btree_append(btree_t *bt, const byte *key, int n,
             |     \           \  \        \
             +-szl2-+-----------oooo+xxxxxxxx+...]
          */
-        if (pos + szl + len < leaf->used) {
+        if (pos + szl + len < lleaf->used) {
             memmove(p + szl2 + len2, p + szl + len,
-                    leaf->used - szl - len - pos);
+                    lleaf->used - szl - len - pos);
         }
-        memcpy(p + szl2 + len, data, dlen);
 
+        if (EXPECT_FALSE(pos + szl + len > lleaf->used)) {
+            /* subtle case: we had the size to fit in $lleaf, but a bit of us
+               stands on $rleaf, get it back (aka defrag) */
+            if (!rleaf)
+                return -1;
+            memcpy(lleaf->data + lleaf->used, rleaf->data, rleaf->offs);
+            lleaf->used += rleaf->offs;
+            rleaf->used -= rleaf->offs;
+            memmove(rleaf->data, rleaf->data + rleaf->offs, rleaf->used);
+            rleaf->offs  = 0;
+        }
+
+        memcpy(p + szl2 + len, data, dlen);
         if (szl != szl2) {
             memmove(p + szl2, p + szl, len);
         }
-        btree_putlen(leaf, pos, len2, szl2);
+        btree_putlen(lleaf, pos, len2, szl2);
 
-        leaf->used += szl2 - szl + dlen;
+        lleaf->used += szl2 - szl + dlen;
         return 0;
     }
     /* }}} */
-    /* CASE 2: we have enough space locally + right page {{{ */
+
+    /* CASE 2: we have enough space in (left + right) leaf {{{ */
     if (rleaf
-    &&  pos + szl2 < ssizeof(leaf->data) /* DO NOT split sizes accross pages */
-    &&  szl2 - szl + dlen < 2 * ssizeof(leaf->data) - leaf->used - rleaf->used)
+    &&  pos + szl2 < ssizeof(lleaf->data) /* DO NOT split sizes accross pages */
+    &&  szl2 - szl + dlen < 2 * ssizeof(lleaf->data) - lleaf->used - rleaf->used)
     {
         /*
            pos                  used                       rl.pos    rl.used
@@ -419,8 +435,10 @@ int btree_append(btree_t *bt, const byte *key, int n,
                                     <.lsh>               <.dlen..>
                                                  <....rlen.......>
          */
-        int rlen = dlen + szl2 - szl - (ssizeof(leaf->data) - leaf->used);
+        int rlen = dlen + szl2 - szl - (ssizeof(lleaf->data) - lleaf->used);
         int lsh  = rleaf->offs - (rlen - dlen);
+
+        assert (rlen > 0); /* else it would fit in $lleaf */
 
         if (rlen > rleaf->offs) {
             memmove(rleaf->data + rlen, rleaf->data + rleaf->offs,
@@ -429,22 +447,22 @@ int btree_append(btree_t *bt, const byte *key, int n,
 
         if (EXPECT_TRUE(lsh < 0)) {
             memmove(rleaf->data + (-lsh), rleaf->data, rleaf->offs);
-            memcpy(rleaf->data, leaf->data + leaf->used - (-lsh), -lsh);
+            memcpy(rleaf->data, lleaf->data + lleaf->used - (-lsh), -lsh);
         }
         if (EXPECT_FALSE(lsh > 0)) {
-            memcpy(leaf->data + ssizeof(leaf->data) - lsh, rleaf->data, lsh);
+            memcpy(lleaf->data + ssizeof(lleaf->data) - lsh, rleaf->data, lsh);
             memmove(rleaf->data, rleaf->data + lsh, rleaf->offs);
         }
 
         if (szl != szl2) {
             memmove(p + szl2, p + szl, len - MIN(0, lsh));
         }
-        btree_putlen(leaf, pos, len2, szl2);
+        btree_putlen(lleaf, pos, len2, szl2);
 
         if (rleaf->offs < lsh) {
             int lpart = lsh - rleaf->offs;
 
-            memcpy(leaf->data + ssizeof(leaf->data) - lpart, data, lpart);
+            memcpy(lleaf->data + ssizeof(lleaf->data) - lpart, data, lpart);
             memcpy(rleaf->data, data + dlen - lpart, dlen - lpart);
         } else {
             memcpy(rleaf->data + rleaf->offs - lsh, data, dlen);
@@ -455,13 +473,17 @@ int btree_append(btree_t *bt, const byte *key, int n,
                     rleaf->used - rleaf->offs);
         }
 
-        leaf->used   = ssizeof(leaf->data);
+        lleaf->used  = ssizeof(lleaf->data);
         rleaf->used += rlen - rleaf->offs;
         rleaf->offs  = rlen;
         return 0;
     }
     /* }}} */
 
-    /* TODO: UNIMPLEMENTED */
-    return -1;
+    /* CASE 3: we have enough space on the next page {{{ */
+    if (false) {
+    }
+    /* }}} */
+
+    return -10;   /* TODO */
 }
