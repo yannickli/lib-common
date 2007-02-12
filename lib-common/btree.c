@@ -192,6 +192,39 @@ static void btn_update(btree_t *bt, int32_t nodes[],
     btn_update_aux(bt, nodes, pos, page1, page2, key, n);
 }
 
+static void btn_insert(btree_t *bt, int32_t nodes[], int32_t page1,
+                       int32_t page2, const byte *key, int n)
+{
+    int pos = -1, i = 0;
+    bt_node_t *node;
+
+    while (!BTPP_IS_NODE(nodes[pos + 1]))
+        pos++;
+
+    if (pos < 0)
+        return;
+
+    node = &vbt_deref(bt->area, nodes[pos])->node;
+    while (i < node->nbkeys && BTPP_OFFS(node->ptrs[i++]) != BTPP_OFFS(page1));
+
+    if (node->nbkeys < BT_ARITY) {
+        if (i < node->nbkeys) {
+            memmove(node->ptrs + i + 1, node->ptrs + i,
+                    sizeof(node->ptrs[0]) * (node->nbkeys - i));
+            memmove(node->keys + i + 1, node->keys + i,
+                    sizeof(node->keys[0]) * (node->nbkeys - i - 1));
+        }
+        node->nbkeys++;
+        node->ptrs[i] = page2;
+        if (i < node->nbkeys) {
+            btn_update_aux(bt, nodes, pos, page2, page2, key, n);
+        }
+        return;
+    }
+
+    // TODO
+}
+
 #if 0 /* not used yet, and unfinished */
 static void
 btn_delete(btree_t *bt, int32_t nodes[], int32_t page)
@@ -588,18 +621,19 @@ int btree_push(btree_t *bt, const byte *key, int n,
             btl_maxkey(lleaf, &lk, &ln);
             btl_maxkey(rleaf, &rk, &rn);
 
-            if (lk && rk) {
+            if (lk) {
                 btn_update(bt, nodes, page, page, lk, ln);
-                // btn_add(bt, leaf->next, rk, rn);
-            } else {
+            }
+            if (rk) {
                 if (lk) {
-                    btn_update(bt, nodes, page, page, lk, ln);
+                    btn_insert(bt, nodes, page, lleaf->next, rk, rn);
                 } else {
                     btn_update(bt, nodes, page, lleaf->next, rk, rn);
                 }
             }
 
             if (oldpos == slot) {
+                slot  = 0;
                 page  = lleaf->next;
                 lleaf = rleaf;
             }
