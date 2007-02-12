@@ -101,6 +101,10 @@ static inline void *mem_dupstr(const void *src, ssize_t len)
     return res;
 }
 
+#define p_alloca(type, count)                                \
+        ((type *)memset(alloca(sizeof(type) * (count)),      \
+                        0, sizeof(type) * (count)))
+
 #define p_new_raw(type, count)  ((type *)mem_alloc(sizeof(type) * (count)))
 #define p_new(type, count)      ((type *)mem_alloc0(sizeof(type) * (count)))
 #define p_new_extra(type, size) ((type *)mem_alloc0(sizeof(type) + (size)))
