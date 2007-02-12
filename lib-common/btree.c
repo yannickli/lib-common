@@ -134,7 +134,7 @@ static int32_t bt_page_new(btree_t *bt)
     return res;
 }
 
-static inline bt_page_t *vbtree_deref(struct btree_priv *bt, int32_t ptr)
+static inline bt_page_t *vbt_deref(struct btree_priv *bt, int32_t ptr)
 {
     int page = BTPP_OFFS(ptr);
     if (page == BTPP_NIL || page > bt->nbpages)
@@ -142,11 +142,97 @@ static inline bt_page_t *vbtree_deref(struct btree_priv *bt, int32_t ptr)
     return &bt->pages[BTPP_OFFS(ptr)];
 }
 
-static inline bt_page_t *btree_deref(const struct btree_priv *bt, int32_t ptr)
+static inline bt_page_t *bt_deref(const struct btree_priv *bt, int32_t ptr)
 {
-    return vbtree_deref((struct btree_priv *)bt, ptr);
+    return vbt_deref((struct btree_priv *)bt, ptr);
 }
 
+static inline void bt_page_release(btree_t *bt, int32_t page)
+{
+    bt_leaf_t *leaf = &vbt_deref(bt->area, page)->leaf;
+
+    if (leaf) {
+        leaf->next = bt->area->freelist;
+        bt->area->freelist = BTPP_OFFS(page);
+    }
+}
+
+static void
+btn_update_aux(btree_t *bt, int32_t nodes[], int pos,
+               int32_t page1, int32_t page2, const byte *key, int n)
+{
+    while (pos >= 0) {
+        int i = 0;
+        bt_node_t *node = &vbt_deref(bt->area, nodes[pos])->node;
+
+        while (i < node->nbkeys && BTPP_OFFS(node->ptrs[i]) != BTPP_OFFS(page1))
+            i++;
+
+        node->ptrs[i] = page2;
+        if (i < node->nbkeys) {
+            memcpy(node->keys[i], key, n);
+            p_clear(node->keys[i] + n, 8 - n);
+        }
+
+        if (i != node->nbkeys - 1)
+            return;
+
+        page1 = page2 = nodes[pos--];
+    }
+}
+
+static void btn_update(btree_t *bt, int32_t nodes[],
+                       int32_t page1, int32_t page2, const byte *key, int n)
+{
+    int pos = -1;
+
+    while (!BTPP_IS_NODE(nodes[pos + 1]))
+        pos++;
+
+    btn_update_aux(bt, nodes, pos, page1, page2, key, n);
+}
+
+#if 0 /* not used yet, and unfinished */
+static void
+btn_delete(btree_t *bt, int32_t nodes[], int32_t page)
+{
+    int pos = -1;
+
+    while (!BTPP_IS_NODE(nodes[pos + 1]))
+        pos++;
+
+    while (pos >= 0) {
+        int i = 0;
+        bt_node_t *node = &vbt_deref(bt->area, nodes[pos])->node;
+
+        while (i < node->nbkeys && BTPP_OFFS(node->ptrs[i]) != BTPP_OFFS(page))
+            i++;
+
+        if (i > node->nbkeys) {
+            memmove(node->ptrs + i, node->ptrs + i + 1,
+                    sizeof(node->ptrs[0]) * (node->nbkeys + 1 - i - 1));
+            memmove(node->keys + i, node->keys + i + 1,
+                    sizeof(node->keys[0]) * (node->nbkeys - i - 1));
+        }
+        node->nbkeys--;
+        if (i == node->nbkeys) {
+            /* ex nbkeys - 1 */
+            btn_update_aux(bt, nodes, pos - 1, page, node->ptrs[i - 1],
+                                  node->keys[i - 1], 8);
+        }
+
+        if (pos == 0 /* aka we are at the root */) {
+            if (node->nbkeys == 0) {
+                bt->area->root = node->ptrs[0];
+                bt_page_release(bt, node->ptrs[0]);
+            }
+            return;
+        } else {
+            /* TODO: try to merge us with the previous or the next sibling */
+        }
+    }
+}
+#endif
 
 /****************************************************************************/
 /* whole file related functions                                             */
@@ -251,7 +337,7 @@ bt_keycmp(const byte *k1, int n1, const byte *k2, int n2)
 }
 
 /* searches the _last_ pos in the node keys array where key <= keys[pos] */
-static int bt_node_findkey(const bt_node_t *node, const byte *key, int n)
+static int btn_bsearch(const bt_node_t *node, const byte *key, int n)
 {
     int l = 0, r = node->nbkeys;
 
@@ -275,23 +361,22 @@ static int bt_node_findkey(const bt_node_t *node, const byte *key, int n)
     return l;
 }
 
-static int32_t
-btree_find_page(const struct btree_priv *bt, const byte *key, int n,
-                int32_t nodes[])
+static int32_t btn_find_leaf(const struct btree_priv *bt,
+                             const byte *key, int n, int32_t nodes[])
 {
     int32_t page = bt->root;
 
     /* TODO: deal with 'continuation' bit to follow up into a new b-tree for
              keys > 1 segment */
     while (BTPP_IS_NODE(page)) {
-        const bt_node_t *node = &btree_deref(bt, page)->node;
+        const bt_node_t *node = &bt_deref(bt, page)->node;
 
         if (nodes)
             *nodes++ = node ? page : -1;
         if (!node)
             return -1;
 
-        page = node->ptrs[bt_node_findkey(node, key, MIN(8, n))];
+        page = node->ptrs[btn_bsearch(node, key, MIN(8, n))];
     }
 
     if (nodes)
@@ -304,13 +389,13 @@ btree_find_page(const struct btree_priv *bt, const byte *key, int n,
 /****************************************************************************/
 
 static inline int
-bt_leaf_keycmp(const bt_leaf_t *leaf, const byte *key, int n, int pos)
+btl_keycmp(const bt_leaf_t *leaf, const byte *key, int n, int pos)
 {
     return bt_keycmp(key, n, leaf->data + pos + 1, leaf->data[pos]);
 }
 
 static int
-bt_leaf_findslot(const bt_leaf_t *leaf, const byte *key, int n, int32_t *slot)
+btl_findslot(const bt_leaf_t *leaf, const byte *key, int n, int32_t *slot)
 {
     int *pos = slot ? slot : p_alloca(int, 1);
     *pos = 0;
@@ -321,7 +406,7 @@ bt_leaf_findslot(const bt_leaf_t *leaf, const byte *key, int n, int32_t *slot)
     }
 
     while (*pos < leaf->used) {
-        switch (SIGN(bt_leaf_keycmp(leaf, key, n, *pos))) {
+        switch (SIGN(btl_keycmp(leaf, key, n, *pos))) {
           case NEGATIVE:
             break;
 
@@ -346,12 +431,12 @@ int btree_fetch(const btree_t *bt, const byte *key, int n, blob_t *out)
     int page, pos, len = 0;
     const bt_leaf_t *leaf;
 
-    page = btree_find_page(bt->area, key, n, NULL);
-    leaf = &btree_deref(bt->area, page)->leaf;
+    page = btn_find_leaf(bt->area, key, n, NULL);
+    leaf = &bt_deref(bt->area, page)->leaf;
     if (!leaf)
         return -1;
 
-    pos  = bt_leaf_findslot(leaf, key, n, NULL);
+    pos  = btl_findslot(leaf, key, n, NULL);
     if (pos < 0)
         return -1;
 
@@ -372,17 +457,17 @@ int btree_fetch(const btree_t *bt, const byte *key, int n, blob_t *out)
 
         while (pos >= leaf->used) {
             pos  = 0;
-            leaf = &btree_deref(bt->area, leaf->next)->leaf;
+            leaf = &bt_deref(bt->area, leaf->next)->leaf;
             if (!leaf)
                 break;
         }
-    } while (!leaf->data[pos] || !bt_leaf_keycmp(leaf, key, n, pos));
+    } while (!leaf->data[pos] || !btl_keycmp(leaf, key, n, pos));
 
     return len;
 }
 
 /* -1 means not indexable, 0 means could not extend file */
-static bt_leaf_t *bt_leaf_new(btree_t *bt, int32_t prev)
+static bt_leaf_t *btl_new(btree_t *bt, int32_t prev)
 {
     int32_t page = bt_page_new(bt);
     bt_leaf_t *l, *r;
@@ -390,14 +475,14 @@ static bt_leaf_t *bt_leaf_new(btree_t *bt, int32_t prev)
     if (page < 0)
         return NULL;
 
-    l = &vbtree_deref(bt->area, prev)->leaf;
-    r = &vbtree_deref(bt->area, page)->leaf;
+    l = &vbt_deref(bt->area, prev)->leaf;
+    r = &vbt_deref(bt->area, page)->leaf;
     r->next = l->next;
     l->next = (~BTPP_NODE_MASK) & page;
     return r;
 }
 
-static void bt_leaf_maxkey(const bt_leaf_t *leaf, const byte **key, int *n)
+static void btl_maxkey(const bt_leaf_t *leaf, const byte **key, int *n)
 {
     int pos = 0;
 
@@ -407,7 +492,7 @@ static void bt_leaf_maxkey(const bt_leaf_t *leaf, const byte **key, int *n)
             pos += 1 + leaf->data[pos];
         }
 
-        if (bt_leaf_keycmp(leaf, *key, *n, pos) < 0) {
+        if (btl_keycmp(leaf, *key, *n, pos) < 0) {
             *n   = leaf->data[pos];
             *key = leaf->data + pos + 1;
         }
@@ -424,11 +509,11 @@ int btree_push(btree_t *bt, const byte *key, int n,
     bt_leaf_t *lleaf;
 
     nodes = p_alloca(int32_t, bt->area->depth + 1);
-    page  = btree_find_page(bt->area, key, n, nodes);
-    lleaf = &vbtree_deref(bt->area, page)->leaf;
+    page  = btn_find_leaf(bt->area, key, n, nodes);
+    lleaf = &vbt_deref(bt->area, page)->leaf;
 
     if (lleaf) {
-        int pos = bt_leaf_findslot(lleaf, key, n, &slot);
+        int pos = btl_findslot(lleaf, key, n, &slot);
 
         need  = 1 + n + 1 + dlen;
         if (pos >= 0) {
@@ -462,9 +547,9 @@ int btree_push(btree_t *bt, const byte *key, int n,
         int next, oldpos, shift;
         bt_leaf_t *rleaf;
 
-        rleaf = &vbtree_deref(bt->area, lleaf->next)->leaf;
+        rleaf = &vbt_deref(bt->area, lleaf->next)->leaf;
         if (!rleaf) {
-            rleaf = bt_leaf_new(bt, page);
+            rleaf = btl_new(bt, page);
             if (!rleaf)
                 return -1;
         }
@@ -500,10 +585,19 @@ int btree_push(btree_t *bt, const byte *key, int n,
                 lk = key,  ln = n;
                 rk = NULL, rn = 0;
             }
-            bt_leaf_maxkey(lleaf, &lk, &ln);
-            bt_leaf_maxkey(rleaf, &rk, &rn);
+            btl_maxkey(lleaf, &lk, &ln);
+            btl_maxkey(rleaf, &rk, &rn);
 
-            /* TODO: reindex lleaf and rleaf */
+            if (lk && rk) {
+                btn_update(bt, nodes, page, page, lk, ln);
+                // btn_add(bt, leaf->next, rk, rn);
+            } else {
+                if (lk) {
+                    btn_update(bt, nodes, page, page, lk, ln);
+                } else {
+                    btn_update(bt, nodes, page, lleaf->next, rk, rn);
+                }
+            }
 
             if (oldpos == slot) {
                 page  = lleaf->next;
@@ -513,7 +607,7 @@ int btree_push(btree_t *bt, const byte *key, int n,
             break;
         }
 
-        rleaf = bt_leaf_new(bt, page);
+        rleaf = btl_new(bt, page);
         if (!rleaf)
             return -1;
     }
