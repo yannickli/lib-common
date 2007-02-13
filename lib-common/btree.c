@@ -732,3 +732,50 @@ int btree_push(btree_t *bt, const byte *key, int n,
     }
     return 0;
 }
+
+void btree_dump(FILE *out, const btree_t *bt_pub,
+                void (*k_fmt)(FILE *, const byte *, int),
+                void (*d_fmt)(FILE *, const byte *, int))
+{
+    struct btree_priv *bt = bt_pub->area;
+    int32_t lmost, depth = 0;
+
+    lmost = bt->root;
+
+    while (BTPP_IS_NODE(lmost)) {
+        int32_t page = lmost;
+        int i = 0;
+
+        fprintf(out, "====== DEPTH %d =====\n", depth++);
+        while (BTPP_OFFS(page) != BTPP_NIL) {
+            int j;
+            bt_node_t *node = &bt_deref(bt, page)->node;
+
+            fprintf(out, "------ node %d: %d / %d\n", i++, node->nbkeys, BT_ARITY);
+            for (j = 0; j < node->nbkeys; j++) {
+                (*k_fmt)(out, node->keys[i], 8);
+            }
+
+            page = node->next;
+        }
+        fprintf(out, "------\n");
+
+        lmost = bt_deref(bt, lmost)->node.ptrs[0];
+    }
+
+    fprintf(out, "====== DEPTH %d =====\n", depth);
+    {
+        int32_t page = lmost;
+        int i = 0;
+
+        while (BTPP_OFFS(page) != BTPP_NIL) {
+            bt_leaf_t *leaf = &bt_deref(bt, page)->leaf;
+
+            fprintf(out, "------ leaf %d: %d\n", i++, leaf->used);
+
+            page = leaf->next;
+        }
+
+        fprintf(out, "------\n");
+    }
+}
