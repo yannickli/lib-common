@@ -31,7 +31,8 @@ enum btpp_masks {
 };
 
 typedef struct bt_node_t {
-    int64_t flags;
+    int32_t next;
+    int32_t flags;
 
     int32_t nbkeys;
     int32_t ptrs[BT_ARITY + 1];
@@ -157,6 +158,28 @@ static inline void bt_page_release(btree_t *bt, int32_t page)
     }
 }
 
+static void btn_shift(bt_node_t *node, int dst, int src, int width)
+{
+    if (width >= 0) {
+        memmove(node->ptrs + dst, node->ptrs + src,
+                sizeof(node->ptrs[0]) * (width + 1));
+    }
+    if (width > 0) {
+        memmove(node->keys + dst, node->keys + src,
+                sizeof(node->keys[0]) * width);
+    }
+}
+
+static void btn_set(bt_node_t *node, int pos, int32_t ptr,
+                    const byte *key, int n)
+{
+    node->ptrs[pos] = ptr;
+    if (pos < node->nbkeys) {
+        memcpy(node->keys[pos], key, n);
+        p_clear(node->keys[pos] + n, 8 - n);
+    }
+}
+
 static void
 btn_update_aux(btree_t *bt, int32_t nodes[], int pos,
                int32_t page1, int32_t page2, const byte *key, int n)
@@ -168,12 +191,7 @@ btn_update_aux(btree_t *bt, int32_t nodes[], int pos,
         while (i < node->nbkeys && BTPP_OFFS(node->ptrs[i]) != BTPP_OFFS(page1))
             i++;
 
-        node->ptrs[i] = page2;
-        if (i < node->nbkeys) {
-            memcpy(node->keys[i], key, n);
-            p_clear(node->keys[i] + n, 8 - n);
-        }
-
+        btn_set(node, i, page2, key, n);
         if (i != node->nbkeys - 1)
             return;
 
@@ -197,6 +215,7 @@ static void btn_insert(btree_t *bt, int32_t nodes[], int32_t page1,
 {
     int pos = -1, i = 0;
     bt_node_t *node;
+    bt_node_t *sibling;
 
     while (!BTPP_IS_NODE(nodes[pos + 1]))
         pos++;
@@ -207,13 +226,9 @@ static void btn_insert(btree_t *bt, int32_t nodes[], int32_t page1,
     node = &vbt_deref(bt->area, nodes[pos])->node;
     while (i < node->nbkeys && BTPP_OFFS(node->ptrs[i++]) != BTPP_OFFS(page1));
 
+  easy_case:
     if (node->nbkeys < BT_ARITY) {
-        if (i < node->nbkeys) {
-            memmove(node->ptrs + i + 1, node->ptrs + i,
-                    sizeof(node->ptrs[0]) * (node->nbkeys - i));
-            memmove(node->keys + i + 1, node->keys + i,
-                    sizeof(node->keys[0]) * (node->nbkeys - i - 1));
-        }
+        btn_shift(node, i + 1, i, node->nbkeys - i - 1);
         node->nbkeys++;
         node->ptrs[i] = page2;
         if (i < node->nbkeys) {
@@ -222,7 +237,29 @@ static void btn_insert(btree_t *bt, int32_t nodes[], int32_t page1,
         return;
     }
 
-    // TODO
+    sibling = &vbt_deref(bt->area, node->next)->node;
+    if (sibling && sibling->nbkeys < BT_ARITY) {
+        /* insertion at the last pos of $node is the same as in the first
+           place of $sibling                                              */
+        if (i == node->nbkeys) {
+            i          = 0;
+            nodes[pos] = node->next;
+            node       = sibling;
+            goto easy_case;
+        }
+
+        btn_shift(sibling, 1, 0, sibling->nbkeys);
+        btn_set(sibling, 0, node->ptrs[node->nbkeys - 1],
+                node->keys[node->nbkeys - 1], 8);
+        sibling->nbkeys++;
+
+        btn_shift(node, node->nbkeys - 1, node->nbkeys, 0);
+        node->nbkeys--;
+
+        goto easy_case;
+    }
+
+    // TODO: hard case: our right sibling is full or non-existant.
 }
 
 #if 0 /* not used yet, and unfinished */
