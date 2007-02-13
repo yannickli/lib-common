@@ -97,6 +97,7 @@ MMFILE_FUNCTIONS(btree_t, bt_real);
 static bt_node_t *bt_node_init(bt_node_t *node)
 {
     node->nbkeys = 0;
+    node->next   = BTPP_NIL;
     return node;
 }
 
@@ -210,56 +211,90 @@ static void btn_update(btree_t *bt, int32_t nodes[],
     btn_update_aux(bt, nodes, pos, page1, page2, key, n);
 }
 
-static void btn_insert(btree_t *bt, int32_t nodes[], int32_t page1,
-                       int32_t page2, const byte *key, int n)
+static void btn_insert_aux(btree_t *bt, int32_t nodes[], int pos,
+                           int32_t next, int32_t page, const byte *key, int n)
 {
-    int pos = -1, i = 0;
+    int i = 0;
     bt_node_t *node;
     bt_node_t *sibling;
+
+    if (pos < 0) {
+        bt->area->depth++;
+        // XXX: check if we got a new page !
+        bt->area->root = bt_page_new(bt) | BTPP_NODE_MASK;
+        node = &vbt_deref(bt->area, bt->area->root)->node;
+        node->nbkeys = 1;
+        btn_set(node, 0, page, key, n);
+        btn_set(node, 1, next, NULL, 0);
+        return;
+    }
+
+    node = &vbt_deref(bt->area, nodes[pos])->node;
+    while (i < node->nbkeys && BTPP_OFFS(node->ptrs[i]) != BTPP_OFFS(next))
+        i++;
+
+    sibling = &vbt_deref(bt->area, node->next)->node;
+    if (node->nbkeys == BT_ARITY && sibling && sibling->nbkeys < BT_ARITY) {
+        btn_shift(sibling, 1, 0, sibling->nbkeys);
+        sibling->nbkeys++;
+        btn_set(sibling, 0, node->ptrs[node->nbkeys - 1],
+                node->keys[node->nbkeys - 1], 8);
+
+        btn_shift(node, node->nbkeys - 1, node->nbkeys, 0);
+        node->nbkeys--;
+    }
+
+    if (node->nbkeys < BT_ARITY) {
+        btn_shift(node, i + 1, i, node->nbkeys - i - 1);
+        node->nbkeys++;
+        node->ptrs[i] = page;
+        if (i < node->nbkeys) {
+            btn_update_aux(bt, nodes, pos, page, page, key, n);
+        }
+        return;
+    }
+
+    {
+        int32_t npage;
+
+        // XXX: check if we got a new page !
+        npage   = bt_page_new(bt);
+        node    = &vbt_deref(bt->area, nodes[pos])->node;
+        sibling = &vbt_deref(bt->area, npage)->node;
+        *sibling = *node;
+
+        node->next   = BTPP_NODE_MASK | npage;
+        node->nbkeys = BT_ARITY / 2;
+
+        btn_shift(sibling, 0, BT_ARITY / 2, (BT_ARITY + 1) / 2);
+        sibling->nbkeys = (BT_ARITY + 1) / 2;
+
+        if (i < node->nbkeys) {
+            btn_shift(node, i + 1, i, node->nbkeys - i - 1);
+            node->nbkeys++;
+            btn_set(node, i, page, key, n);
+        } else {
+            i -= node->nbkeys;
+            btn_shift(sibling, i + 1, i, sibling->nbkeys - i - 1);
+            sibling->nbkeys++;
+            btn_set(sibling, i, page, key, n);
+        }
+        btn_update_aux(bt, nodes, pos - 1, nodes[pos], npage,
+                       sibling->keys[sibling->nbkeys - 1], 8);
+        btn_insert_aux(bt, nodes, pos - 1, npage,
+                       page, node->keys[node->nbkeys - 1], 8);
+    }
+}
+
+static void btn_insert(btree_t *bt, int32_t nodes[], int32_t next,
+                       int32_t page, const byte *key, int n)
+{
+    int pos = -1;
 
     while (!BTPP_IS_NODE(nodes[pos + 1]))
         pos++;
 
-    if (pos < 0)
-        return;
-
-    node = &vbt_deref(bt->area, nodes[pos])->node;
-    while (i < node->nbkeys && BTPP_OFFS(node->ptrs[i++]) != BTPP_OFFS(page1));
-
-  easy_case:
-    if (node->nbkeys < BT_ARITY) {
-        btn_shift(node, i + 1, i, node->nbkeys - i - 1);
-        node->nbkeys++;
-        node->ptrs[i] = page2;
-        if (i < node->nbkeys) {
-            btn_update_aux(bt, nodes, pos, page2, page2, key, n);
-        }
-        return;
-    }
-
-    sibling = &vbt_deref(bt->area, node->next)->node;
-    if (sibling && sibling->nbkeys < BT_ARITY) {
-        /* insertion at the last pos of $node is the same as in the first
-           place of $sibling                                              */
-        if (i == node->nbkeys) {
-            i          = 0;
-            nodes[pos] = node->next;
-            node       = sibling;
-            goto easy_case;
-        }
-
-        btn_shift(sibling, 1, 0, sibling->nbkeys);
-        btn_set(sibling, 0, node->ptrs[node->nbkeys - 1],
-                node->keys[node->nbkeys - 1], 8);
-        sibling->nbkeys++;
-
-        btn_shift(node, node->nbkeys - 1, node->nbkeys, 0);
-        node->nbkeys--;
-
-        goto easy_case;
-    }
-
-    // TODO: hard case: our right sibling is full or non-existant.
+    btn_insert_aux(bt, nodes, pos, next, page, key, n);
 }
 
 #if 0 /* not used yet, and unfinished */
@@ -278,12 +313,7 @@ btn_delete(btree_t *bt, int32_t nodes[], int32_t page)
         while (i < node->nbkeys && BTPP_OFFS(node->ptrs[i]) != BTPP_OFFS(page))
             i++;
 
-        if (i > node->nbkeys) {
-            memmove(node->ptrs + i, node->ptrs + i + 1,
-                    sizeof(node->ptrs[0]) * (node->nbkeys + 1 - i - 1));
-            memmove(node->keys + i, node->keys + i + 1,
-                    sizeof(node->keys[0]) * (node->nbkeys - i - 1));
-        }
+        btn_shift(node, i, i + 1, node->nbkeys - i - 1);
         node->nbkeys--;
         if (i == node->nbkeys) {
             /* ex nbkeys - 1 */
@@ -658,14 +688,14 @@ int btree_push(btree_t *bt, const byte *key, int n,
             btl_maxkey(lleaf, &lk, &ln);
             btl_maxkey(rleaf, &rk, &rn);
 
-            if (lk) {
-                btn_update(bt, nodes, page, page, lk, ln);
-            }
             if (rk) {
-                if (lk) {
-                    btn_insert(bt, nodes, page, lleaf->next, rk, rn);
+                btn_update(bt, nodes, page, lleaf->next, rk, rn);
+            }
+            if (lk) {
+                if (rk) {
+                    btn_insert(bt, nodes, lleaf->next, page, lk, ln);
                 } else {
-                    btn_update(bt, nodes, page, lleaf->next, rk, rn);
+                    btn_update(bt, nodes, page, page, lk, ln);
                 }
             }
 
