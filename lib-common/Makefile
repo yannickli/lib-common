@@ -18,6 +18,7 @@ __EXE__   =
 __LIB__   = libcommon
 __CHECK__ = test test_blob_iconv msg_test 
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-sha2
+__CHECK__ += tst-btree
 
 libcommon_SOURCES = \
 	archive.c \
@@ -70,6 +71,9 @@ tst-iprintf-glibc_SOURCES = tst-iprintf-glibc.c libcommon.a
 
 tst-sha2_CFLAGS = -DTEST_VECTORS
 tst-sha2_SOURCES = sha2.c libcommon.a
+
+tst-btree_SOURCES = tst-btree.c libcommon.a
+CFLAGS += -Wno-uninitialized -O0 -fno-inline
 
 msg_test_CFLAGS = -DMSG_TEST
 msg_test_SOURCES = msg_template.c libcommon.a
