@@ -81,10 +81,8 @@ int main(void)
 
         for (d = 0; d < 1024 * 128; d += 1024) {
             btree_push(bt, (void*)&n, 8, (void*)&d, 4);
-        }
-        fprintf(stdout, "%c[1J%c[0;0f", 27, 27);
         btree_dump(stdout, bt, &key_format, &data_format);
-        getc(stdin);
+        }
     }
 
     btree_dump(stdout, bt, &key_format, NULL);
