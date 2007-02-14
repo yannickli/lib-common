@@ -30,7 +30,6 @@ int btree_push(btree_t *bt, const byte *key, int klen,
                const byte *data, int len);
 
 void btree_dump(FILE *out, const btree_t *bt,
-                void (*k_fmt)(FILE *, const byte *, int),
-                void (*d_fmt)(FILE *, const byte *, int));
+                void (*k_fmt)(FILE *, const byte *, int));
 
 #endif

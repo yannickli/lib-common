@@ -47,7 +47,7 @@ static void test_shutdown(void)
 static void key_format(FILE *out, const byte *k, int n)
 {
     if (n == 0) {
-        fprintf(out, "< same >");
+        fprintf(out, "->");
         return;
     }
 
@@ -64,11 +64,6 @@ static void key_format(FILE *out, const byte *k, int n)
     }
 }
 
-static void data_format(FILE *out, const byte *k, int n)
-{
-    fprintf(out, "%d", n);
-}
-
 int main(void)
 {
     int64_t n = 33600000000;
@@ -81,11 +76,13 @@ int main(void)
 
         for (d = 0; d < 1024 * 128; d += 1024) {
             btree_push(bt, (void*)&n, 8, (void*)&d, 4);
-        btree_dump(stdout, bt, &key_format, &data_format);
         }
+        fprintf(stdout, "%c[1J%c[0;0f", 27, 27);
+        btree_dump(stdout, bt, &key_format);
+        getc(stdin);
     }
 
-    btree_dump(stdout, bt, &key_format, NULL);
+    btree_dump(stdout, bt, &key_format);
     test_shutdown();
     return 0;
 }
