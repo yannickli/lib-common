@@ -47,7 +47,7 @@ static void test_shutdown(void)
 static void key_format(FILE *out, const byte *k, int n)
 {
     if (n == 0) {
-        fprintf(out, "->");
+        fprintf(out, "--->");
         return;
     }
 
@@ -60,13 +60,13 @@ static void key_format(FILE *out, const byte *k, int n)
         } cast;
 
         memcpy(cast.s, k, n);
-        fprintf(out, "%lld", cast.v);
+        fprintf(out, "%04llx", cast.v);
     }
 }
 
 int main(void)
 {
-    int64_t n = 33600000000;
+    int64_t n = 0;
     int64_t i, max = n + (1 << 20);
 
     test_initialize();
@@ -79,6 +79,7 @@ int main(void)
         }
         fprintf(stdout, "%c[1J%c[0;0f", 27, 27);
         btree_dump(stdout, bt, &key_format);
+        fprintf(stdout, "last insert: %llx\n", (long long)n);
         getc(stdin);
     }
 

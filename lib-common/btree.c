@@ -204,8 +204,6 @@ btn_update(btree_t *bt, const intpair nodes[], int depth,
 {
     int32_t page1 = nodes[depth].page;
 
-    printf("XXX> update key for %d\n", page2);
-
     while (--depth >= 0) {
         int i = 0;
         bt_node_t *node = &vbt_deref(bt->area, nodes[depth].page)->node;
@@ -226,9 +224,6 @@ static void btn_insert(btree_t *bt, intpair nodes[], int depth, int32_t rpage)
     int32_t lpage = nodes[depth--].page;
     bt_node_t *node;
     bt_node_t *sibling;
-
-    printf("XXX> new leaf to index %d -> %d\n",
-           BTPP_OFFS(lpage), BTPP_OFFS(rpage));
 
     if (depth < 0) {        // XXX: check if we got a new page !
         bt->area->depth++;
@@ -753,18 +748,20 @@ void btree_dump(FILE *out, const btree_t *bt_pub,
             int i;
             bt_node_t *node = &bt_deref(bt, page)->node;
 
-            fprintf(out, ",----- node p%d: %d / %d\n",
+            fprintf(out, "----- node p%d: %d / %d",
                     BTPP_OFFS(page), node->nbkeys, BT_ARITY);
+
             for (i = 0; i < node->nbkeys; i++) {
-                fprintf(out, "| %03d ", BTPP_OFFS(node->ptrs[i]));
+                if (!(i & 0xf)) {
+                    fputc('\n', out);
+                }
+                fprintf(out, " %03d ", BTPP_OFFS(node->ptrs[i]));
                 (*k_fmt)(out, node->keys[i], 8);
-                fputc('\n', out);
             }
 
-            fprintf(out, "| %03d\n", BTPP_OFFS(node->ptrs[i]));
+            fprintf(out, " %03d\n", BTPP_OFFS(node->ptrs[i]));
             page = node->next;
         }
-        fprintf(out, "`-----\n");
 
         lmost = bt_deref(bt, lmost)->node.ptrs[0];
     }
