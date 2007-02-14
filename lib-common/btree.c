@@ -36,7 +36,7 @@ typedef struct bt_node_t {
 
     int32_t nbkeys;
     int32_t ptrs[BT_ARITY + 1];
-    byte    keys[8][BT_ARITY];
+    byte    keys[BT_ARITY][8];
 } bt_node_t;
 
 typedef struct bt_leaf_t {
@@ -205,7 +205,7 @@ static void btn_update(btree_t *bt, int32_t nodes[],
 {
     int pos = -1;
 
-    while (!BTPP_IS_NODE(nodes[pos + 1]))
+    while (BTPP_IS_NODE(nodes[pos + 1]))
         pos++;
 
     btn_update_aux(bt, nodes, pos, page1, page2, key, n);
@@ -291,7 +291,7 @@ static void btn_insert(btree_t *bt, int32_t nodes[], int32_t next,
 {
     int pos = -1;
 
-    while (!BTPP_IS_NODE(nodes[pos + 1]))
+    while (BTPP_IS_NODE(nodes[pos + 1]))
         pos++;
 
     btn_insert_aux(bt, nodes, pos, next, page, key, n);
@@ -303,7 +303,7 @@ btn_delete(btree_t *bt, int32_t nodes[], int32_t page)
 {
     int pos = -1;
 
-    while (!BTPP_IS_NODE(nodes[pos + 1]))
+    while (BTPP_IS_NODE(nodes[pos + 1]))
         pos++;
 
     while (pos >= 0) {
@@ -592,6 +592,9 @@ static void btl_maxkey(const bt_leaf_t *leaf, const byte **key, int *n)
             pos += 1 + leaf->data[pos];
         }
 
+        if (pos >= leaf->used)
+            break;
+
         if (btl_keycmp(leaf, *key, *n, pos) < 0) {
             *n   = leaf->data[pos];
             *key = leaf->data + pos + 1;
@@ -623,7 +626,7 @@ int btree_push(btree_t *bt, const byte *key, int n,
                 need = dlen;
             } else {
                 compress = true;
-                need += 1 - n;
+                need -= n;
             }
         }
     } else {
@@ -650,6 +653,7 @@ int btree_push(btree_t *bt, const byte *key, int n,
         rleaf = &vbt_deref(bt->area, lleaf->next)->leaf;
         if (!rleaf) {
             rleaf = btl_new(bt, page);
+            lleaf = &vbt_deref(bt->area, page)->leaf;
             if (!rleaf)
                 return -1;
         }
@@ -717,15 +721,20 @@ int btree_push(btree_t *bt, const byte *key, int n,
     {
         byte *p = lleaf->data + slot;
 
-        memmove(p + need, p, lleaf->used - slot);
-        if (putkey) {
-            p[0] = n;
-            memcpy(p + 1, key, n);
+        if (reuse || compress) {
+            p += 1 + n;
         }
-        p[n + 1] = (reuse ? p[n + 1] : 0) + dlen;
-        memcpy(p + 1 + n + 1, data, dlen);
+        memmove(p + need, p, lleaf->used - (p - lleaf->data));
+        if (putkey) {
+            *p++ = n;
+            memcpy(p, key, n);
+            p += n;
+        }
+        *p = (reuse ? *p : 0) + dlen;
+        memcpy(p + 1, data, dlen);
+        p += 1 + dlen;
         if (compress) {
-            p[need - 1] = 0;
+            *p = 0;
         }
 
         lleaf->used += need;
@@ -753,12 +762,14 @@ void btree_dump(FILE *out, const btree_t *bt_pub,
 
             fprintf(out, "------ node %d: %d / %d\n", i++, node->nbkeys, BT_ARITY);
             for (j = 0; j < node->nbkeys; j++) {
+                fputs("> ", out);
                 (*k_fmt)(out, node->keys[i], 8);
+                fputc('\n', out);
             }
 
             page = node->next;
         }
-        fprintf(out, "------\n");
+        fprintf(out, "------------------\n");
 
         lmost = bt_deref(bt, lmost)->node.ptrs[0];
     }
@@ -770,12 +781,22 @@ void btree_dump(FILE *out, const btree_t *bt_pub,
 
         while (BTPP_OFFS(page) != BTPP_NIL) {
             bt_leaf_t *leaf = &bt_deref(bt, page)->leaf;
+            int pos;
 
             fprintf(out, "------ leaf %d: %d\n", i++, leaf->used);
+            for (pos = 0; pos < leaf->used; ) {
+                fputs("| ", out);
+                (*k_fmt)(out, leaf->data + 1 + pos, leaf->data[pos]);
+                fputs(": ", out);
+                pos += 1 + leaf->data[pos];
+                (*d_fmt)(out, leaf->data + 1 + pos, leaf->data[pos]);
+                fputc('\n', out);
+                pos += 1 + leaf->data[pos];
+            }
 
             page = leaf->next;
         }
 
-        fprintf(out, "------\n");
+        fprintf(out, "------------------\n");
     }
 }
