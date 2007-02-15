@@ -52,8 +52,8 @@ int main(void)
 
     test_initialize();
 
-    for (n = start; n < max; n++) {
         for (d = 0; d < 1024 * 256; d += 1024) {
+    for (n = start; n < max; n++) {
             btree_push(bt, n, (void*)&d, 4);
         }
     }

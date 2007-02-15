@@ -13,6 +13,7 @@
 
 #include <errno.h>
 #include <alloca.h>
+#include <sys/mman.h>
 
 #include "btree.h"
 
@@ -63,7 +64,7 @@ struct btree_priv {
     /* third qword */
     int32_t  freelist;  /**< freelist of blank pages                       */
     int16_t  depth;     /**< max depth of the nodes                        */
-    uint16_t reserved_2;
+    int16_t  dirty;     /**< are we dirty ?                                */
 
     /* __future__: 512 - 3 qwords */
     uint64_t reserved_0[512 - 3]; /**< padding up to 4k                    */
@@ -277,6 +278,9 @@ int btree_fsck(btree_t *bt, int dofix)
     if (bt->size & 4095 || !(bt->size / 4096))
         return -1;
 
+    if (bt->area->dirty)
+        return -1;
+
     if (bt->area->magic != ISBT_MAGIC.i)
         return -1;
 
@@ -322,6 +326,8 @@ btree_t *btree_open(const char *path, int flags)
         btree_close(&bt);
         errno = EINVAL;
     }
+    bt->area->dirty = true;
+    msync(bt->area, bt->size, MS_SYNC);
 
     return bt;
 }
@@ -353,7 +359,12 @@ btree_t *btree_creat(const char *path)
 
 void btree_close(btree_t **bt)
 {
-    bt_real_close(bt);
+    if (*bt) {
+        msync((*bt)->area, (*bt)->size, MS_SYNC);
+        (*bt)->area->dirty = false;
+        msync((*bt)->area, (*bt)->size, MS_SYNC);
+        bt_real_close(bt);
+    }
 }
 
 
