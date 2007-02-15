@@ -201,6 +201,23 @@ btn_update(btree_t *bt, const intpair nodes[], int depth,
 
 static void btl_maxkey(const bt_leaf_t *leaf, const byte **key, int *n);
 
+static void btn_insert_aux(btree_t *bt, bt_node_t *node, int i, int32_t lpage, int32_t rpage)
+{
+    node->nbkeys++;
+    btn_shift(node, i + 1, i, node->nbkeys - i);
+
+    node->ptrs[i]     = lpage;
+    node->ptrs[i + 1] = rpage;
+    if (BTPP_IS_NODE(lpage)) {
+        btn_setk(node, i, btn_maxkey(&bt_deref(bt->area, lpage)->node), 8);
+    } else {
+        const byte *k = NULL;
+        int n = 0;
+        btl_maxkey(&bt_deref(bt->area, lpage)->leaf, &k, &n);
+        btn_setk(node, i, k, n);
+    }
+}
+
 static void btn_insert(btree_t *bt, intpair nodes[], int depth, int32_t rpage)
 {
     int32_t lpage = nodes[depth--].page;
@@ -211,49 +228,32 @@ static void btn_insert(btree_t *bt, intpair nodes[], int depth, int32_t rpage)
         bt->area->depth++;
         bt->area->root = bt_page_new(bt) | BTPP_NODE_MASK;
         node = &vbt_deref(bt->area, bt->area->root)->node;
-        node->next = BTPP_NIL;
-        node->nbkeys = 1;
+        node->next    = BTPP_NIL;
+        node->nbkeys  = 0;
 
-        node->ptrs[0] = lpage;
-        node->ptrs[1] = rpage;
-
-        if (BTPP_IS_NODE(lpage)) {
-            btn_setk(node, 0, btn_maxkey(&bt_deref(bt->area, lpage)->node), 8);
-        } else {
-            const byte *k = NULL;
-            int n = 0;
-            btl_maxkey(&bt_deref(bt->area, lpage)->leaf, &k, &n);
-            btn_setk(node, 0, k, n);
-        }
+        btn_insert_aux(bt, node, 0, lpage, rpage);
         return;
     }
 
     node = &vbt_deref(bt->area, nodes[depth].page)->node;
 
     sibling = &vbt_deref(bt->area, node->next)->node;
-    if (node->nbkeys == BT_ARITY && sibling && sibling->nbkeys < BT_ARITY) {
+    if (node->nbkeys == BT_ARITY && sibling && sibling->nbkeys < BT_ARITY - 1) {
         btn_shift(sibling, 1, 0, sibling->nbkeys);
         sibling->nbkeys++;
         sibling->ptrs[0] = node->ptrs[node->nbkeys - 1];
         btn_setk(sibling, 0, node->keys[node->nbkeys - 1], 8);
         btn_shift(node, node->nbkeys - 1, node->nbkeys, 0);
         node->nbkeys--;
+
+        if (nodes[depth].i >= node->nbkeys) {
+            btn_insert_aux(bt, sibling, nodes[depth].i - node->nbkeys, lpage, rpage);
+            return;
+        }
     }
 
     if (node->nbkeys < BT_ARITY) {
-        int i = nodes[depth].i;
-
-        node->nbkeys++;
-        btn_shift(node, i + 1, i, node->nbkeys - i);
-        node->ptrs[i + 1] = rpage;
-        if (BTPP_IS_NODE(lpage)) {
-            btn_setk(node, i, btn_maxkey(&bt_deref(bt->area, lpage)->node), 8);
-        } else {
-            const byte *k = NULL;
-            int n = 0;
-            btl_maxkey(&bt_deref(bt->area, lpage)->leaf, &k, &n);
-            btn_setk(node, i, k, n);
-        }
+        btn_insert_aux(bt, node, nodes[depth].i, lpage, rpage);
         return;
     }
 
@@ -261,35 +261,23 @@ static void btn_insert(btree_t *bt, intpair nodes[], int depth, int32_t rpage)
         int32_t npage;
 
         // XXX: check if we got a new page !
-        npage   = bt_page_new(bt);
-        node    = &vbt_deref(bt->area, nodes[depth].page)->node;
+        npage   = bt_page_new(bt) | BTPP_NODE_MASK;
         sibling = &vbt_deref(bt->area, npage)->node;
         *sibling = *node;
 
-        node->next   = BTPP_NODE_MASK | npage;
+        node->next   = npage;
         node->nbkeys = BT_ARITY / 2;
 
         btn_shift(sibling, 0, BT_ARITY / 2, (BT_ARITY + 1) / 2);
         sibling->nbkeys = (BT_ARITY + 1) / 2;
 
         if (nodes[depth].i < node->nbkeys) {
-            int i = nodes[depth].i;
-
-            btn_shift(node, i + 1, i, node->nbkeys - i);
-            node->nbkeys++;
-            node->ptrs[i + 1] = rpage;
-            btn_setk(node, i + 1, node->keys[i], 8);
+            btn_insert_aux(bt, node, nodes[depth].i, lpage, rpage);
         } else {
-            int i = nodes[depth].i - node->nbkeys;
-
-            btn_shift(sibling, i + 1, i, sibling->nbkeys - i);
-            sibling->nbkeys++;
-            node->ptrs[i + 1] = rpage;
-            btn_setk(sibling, i + 1, node->keys[i], 8);
-            nodes[depth].page = rpage;
+            btn_insert_aux(bt, sibling, nodes[depth].i - node->nbkeys,
+                           lpage, rpage);
         }
         btn_insert(bt, nodes, depth, npage);
-        btn_update(bt, nodes, depth, nodes[depth].page, NULL, 0);
     }
 }
 
