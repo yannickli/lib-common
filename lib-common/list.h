@@ -25,6 +25,12 @@
  * right now.
  */
 
+#define SLIST_PROTOS(type, prefix)                                           \
+    static inline type *prefix##_list_pop(type **list);                      \
+    static inline void prefix##_list_push(type **list, type *item);          \
+    static inline type **prefix##_list_init(type **list);                    \
+    static inline void prefix##_list_wipe(type **list, bool del);            \
+
 #define SLIST_FUNCTIONS(type, prefix)                                        \
     static inline type *prefix##_list_pop(type **list) {                     \
         if (*list) {                                                         \
@@ -54,7 +60,5 @@
             *list = NULL;                                                    \
         }                                                                    \
     }                                                                        \
-
-
 
 #endif /* IS_LIB_COMMON_LIST_H */
