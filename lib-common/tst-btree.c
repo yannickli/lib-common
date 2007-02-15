@@ -44,43 +44,18 @@ static void test_shutdown(void)
 /* helpers                                                                */
 /**************************************************************************/
 
-static void key_format(FILE *out, const byte *k, int n)
-{
-    if (n == 0) {
-        fprintf(out, "--->");
-        return;
-    }
-
-    if (n != 8) {
-        fprintf(out, "@#()*!@#^");
-    } else {
-        union {
-            long long v;
-            char s[8];
-        } cast;
-
-        memcpy(cast.s, k, n);
-        fprintf(out, "%04llx", cast.v);
-    }
-}
-
 int main(void)
 {
-    int64_t n = 0;
-    int64_t max = n + 100000;
+    int64_t n, start = 0;
+    int64_t max = start + 128 * 1024;
+    int32_t d;
 
     test_initialize();
 
-    for (; n < max; n++) {
-        int32_t d;
-
         for (d = 0; d < 1024 * 256; d += 1024) {
-            btree_push(bt, (void*)&n, 8, (void*)&d, 4);
+    for (n = start; n < max; n++) {
+            btree_push(bt, n, (void*)&d, 4);
         }
-        // fprintf(stdout, "%c[1J%c[0;0f", 27, 27);
-        // btree_dump(stdout, bt, &key_format);
-        // fprintf(stdout, "last insert: %llx\n", (long long)n);
-        // getc(stdin);
     }
 
     test_shutdown();

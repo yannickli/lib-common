@@ -25,11 +25,9 @@ btree_t *btree_open(const char *path, int flags);
 btree_t *btree_creat(const char *path);
 void btree_close(btree_t **tree);
 
-int btree_fetch(const btree_t *bt, const byte *key, int klen, blob_t *out);
-int btree_push(btree_t *bt, const byte *key, int klen,
-               const byte *data, int len);
+int btree_fetch(const btree_t *bt, uint64_t key, blob_t *out);
+int btree_push(btree_t *bt, uint64_t key, const byte *data, int len);
 
-void btree_dump(FILE *out, const btree_t *bt,
-                void (*k_fmt)(FILE *, const byte *, int));
+void btree_dump(FILE *out, const btree_t *bt);
 
 #endif
