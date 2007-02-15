@@ -1,0 +1,15 @@
+<part1></part1>
+<part2 FOO="123" BAR="" BAZ="blahblah" toto='titi'>
+</part2>
+<part3>
+        <title text="This is the title">
+        </title>
+        <chapter1>
+                <paragraph>BLAH BLAHBLAH
+                </paragraph>
+                <paragraph>
+                </paragraph>
+        </chapter1>
+        <chapter2>
+        </chapter2>
+</part3>
