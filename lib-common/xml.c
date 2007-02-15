@@ -36,8 +36,8 @@ static void xml_tag_t_delete(xml_tag_t **t)
 {
     if (t) {
         p_delete(&(*t)->name);
-        xml_tag_t_list_wipe(&(*t)->child, true);
-        xml_prop_t_list_wipe(&(*t)->property, true);
+        xml_tag_t_list_wipe(&(*t)->child);
+        xml_prop_t_list_wipe(&(*t)->property);
         p_delete(&(*t)->text);
     }
     p_delete(t);
@@ -395,7 +395,7 @@ xml_tag_t *xml_new_tree(const char *payload, size_t len)
 
     root = p_new(xml_tag_t, 1);
     if (xml_parse(root, payload, len, NULL)) {
-        xml_tag_t_list_wipe(&root, true);
+        xml_tag_t_list_wipe(&root);
         p_delete(&root);
         return NULL;
     }
@@ -405,7 +405,7 @@ xml_tag_t *xml_new_tree(const char *payload, size_t len)
 void xml_delete_tree(xml_tag_t **root)
 {
     if (root) {
-        xml_tag_t_list_wipe(root, true);
+        xml_tag_t_list_wipe(root);
         p_delete(root);
     }
 }

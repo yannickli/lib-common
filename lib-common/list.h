@@ -29,7 +29,7 @@
     static inline type *prefix##_list_pop(type **list);                      \
     static inline void prefix##_list_push(type **list, type *item);          \
     static inline type **prefix##_list_init(type **list);                    \
-    static inline void prefix##_list_wipe(type **list, bool del);            \
+    static inline void prefix##_list_wipe(type **list);                      \
 
 #define SLIST_FUNCTIONS(type, prefix)                                        \
     static inline type *prefix##_list_pop(type **list) {                     \
@@ -50,14 +50,10 @@
         *list = NULL;                                                        \
         return list;                                                         \
     }                                                                        \
-    static inline void prefix##_list_wipe(type **list, bool del) {           \
-        if (del) {                                                           \
-            while (*list) {                                                  \
-                type *item = prefix##_list_pop(list);                        \
-                prefix##_delete(&item);                                      \
-            }                                                                \
-        } else {                                                             \
-            *list = NULL;                                                    \
+    static inline void prefix##_list_wipe(type **list) {                     \
+        while (*list) {                                                      \
+            type *item = prefix##_list_pop(list);                            \
+            prefix##_delete(&item);                                          \
         }                                                                    \
     }                                                                        \
 
