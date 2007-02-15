@@ -25,7 +25,8 @@
 #include "macros.h"
 #include "mem.h"
 
-#ifndef _LARGEFILE64_SOURCE
+#if !defined(__USE_FILE_OFFSET64) && !defined(_LARGEFILE64_SOURCE) && \
+    !defined(__USE_LARGEFILE64)
 typedef loff_t off64_t;
 #define lseek64(stream, off, whence) llseek(stream, off, whence)
 loff_t llseek(int fd, loff_t offset, int whence);
@@ -430,6 +431,15 @@ static inline off64_t bseek64(BSTREAM *stream, long offset, int whence)
     bflush(stream);
     stream->eof = 0;
     return stream->pos = lseek64(stream->fd, offset, whence);
+}
+
+static inline int brewind(BSTREAM *stream)
+{
+    /* Should check if seeking inside buffer */
+    bflush(stream);
+    stream->eof = 0;
+    stream->pos = lseek(stream->fd, 0L, SEEK_SET);
+    return 0;
 }
 
 static inline int bdetach(BSTREAM **streamp)
