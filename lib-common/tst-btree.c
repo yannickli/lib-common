@@ -74,7 +74,7 @@ int main(void)
     for (i = n; n < max; n++) {
         int32_t d;
 
-        for (d = 0; d < 1024 * 128; d += 1024) {
+        for (d = 0; d < 1024 * 256; d += 1024) {
             btree_push(bt, (void*)&n, 8, (void*)&d, 4);
         }
         fprintf(stdout, "%c[1J%c[0;0f", 27, 27);

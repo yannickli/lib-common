@@ -98,13 +98,6 @@ typedef struct intpair {
 #define REPEAT16(x)       REPEAT8(x), REPEAT8(x)
 #define REPEAT32(x)       REPEAT16(x), REPEAT16(x)
 
-static bt_node_t *bt_node_init(bt_node_t *node)
-{
-    node->nbkeys = 0;
-    node->next   = BTPP_NIL;
-    return node;
-}
-
 static int32_t bt_page_new(btree_t *bt)
 {
 #define NB_PAGES_GROW  1024
@@ -148,19 +141,8 @@ static inline bt_page_t *vbt_deref(struct btree_priv *bt, int32_t ptr)
     return &bt->pages[BTPP_OFFS(ptr)];
 }
 
-static inline bt_page_t *bt_deref(const struct btree_priv *bt, int32_t ptr)
-{
+static inline bt_page_t *bt_deref(const struct btree_priv *bt, int32_t ptr) {
     return vbt_deref((struct btree_priv *)bt, ptr);
-}
-
-static inline void bt_page_release(btree_t *bt, int32_t page)
-{
-    bt_leaf_t *leaf = &vbt_deref(bt->area, page)->leaf;
-
-    if (leaf) {
-        leaf->next = bt->area->freelist;
-        bt->area->freelist = BTPP_OFFS(page);
-    }
 }
 
 static void btn_shift(bt_node_t *node, int dst, int src, int width)
@@ -175,7 +157,7 @@ static void btn_shift(bt_node_t *node, int dst, int src, int width)
     }
 }
 
-static const byte *btn_maxkey(bt_node_t *node)
+static inline const byte *btn_maxkey(bt_node_t *node)
 {
     return node->keys[node->nbkeys - 1];
 }
@@ -392,7 +374,7 @@ btree_t *btree_creat(const char *path)
         bt->area->pages[i].leaf.next = i + 1;
     }
 
-    bt_node_init(&bt->area->pages[0].node);
+    bt->area->pages[0].node.next = BTPP_NIL;
     return bt;
 }
 
@@ -663,7 +645,7 @@ int btree_push(btree_t *bt, const byte *key, int n,
         int next, oldpos, shift;
 
         oldpos = slot;
-        next   = slot + reuse ? 1 + n + 1 + lleaf->data[slot + 1 + n] : 0;
+        next   = slot;
 
         while (next <= lleaf->used && next + need <= ssizeof(lleaf->data)) {
             oldpos = next;
@@ -673,7 +655,7 @@ int btree_push(btree_t *bt, const byte *key, int n,
 
         shift = lleaf->used - oldpos;
 
-        if (shift + rleaf->used > ssizeof(rleaf->data)) {
+        if (shift + rleaf->used + (slot == oldpos ? need : 0) > ssizeof(rleaf->data)) {
             rleaf = btl_new(bt, nodes, depth);
             if (!rleaf)
                 return -1;
