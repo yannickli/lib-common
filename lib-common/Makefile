@@ -48,6 +48,7 @@ libcommon_SOURCES = \
 	mem-pool.c \
 	mem-fifo-pool.c \
 	sha2.c \
+	xml.c \
 	licence.c
 
 # FIXME showflags should not be compiled in if EXPIRATION_DATE is undefined
