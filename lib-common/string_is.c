@@ -397,6 +397,23 @@ ssize_t pstrlen(const char *str, ssize_t size)
     return -1;
 }
 
+/* count number of occurences of c in str */
+int pstrchrcount(const char *str, int c)
+{
+    const char *p = str;
+    int res = 0;
+
+    if (!p) {
+        return 0;
+    }
+    while ((p = strchr(p, c))) {
+        res++;
+        p++;
+    }
+
+    return res;
+}
+
 /** Skips initial blanks as per isspace(c).
  *
  * use vskipspaces for non const parameters
@@ -800,6 +817,16 @@ START_TEST(check_pstrcpylen)
 }
 END_TEST
 
+START_TEST(check_pstrchrcount)
+{
+    fail_if(pstrchrcount("1111", '1') != 4, "bad count 1");
+    fail_if(pstrchrcount("1221", '1') != 2, "bad count 2");
+    fail_if(pstrchrcount("2222", '1') != 0, "bad count 3");
+    fail_if(pstrchrcount(NULL,   '1') != 0, "bad count 4");
+    fail_if(pstrchrcount("a|b|c|d|", '|') != 4, "bad count 5");
+}
+END_TEST
+
 #define check_strtoip_unit(p, err_exp, val_exp, end_i)                  \
     do {                                                                \
         const char *endp;                                               \
@@ -977,6 +1004,7 @@ Suite *check_string_is_suite(void)
     tcase_add_test(tc, check_memsearch);
     tcase_add_test(tc, check_pstrlen);
     tcase_add_test(tc, check_pstrcpylen);
+    tcase_add_test(tc, check_pstrchrcount);
     tcase_add_test(tc, check_strtoip);
     tcase_add_test(tc, check_strtolp);
     tcase_add_test(tc, check_msisdn_canonize);

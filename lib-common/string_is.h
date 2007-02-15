@@ -44,6 +44,9 @@ static inline const char *pstrchrnul(const char *s, int c) {
     return s;
 }
 
+/* count number of occurences of c in str */
+int pstrchrcount(const char *str, int c);
+
 const char *skipspaces(const char *s)  __attr_nonnull__((1));
 __attr_nonnull__((1))
 static inline char *vskipspaces(char *s) {
