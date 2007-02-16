@@ -16,6 +16,7 @@
 
 #include <stdint.h>
 #include <lib-common/macros.h>
+#include <lib-common/blob.h>
 #include <lib-common/mmappedfile.h>
 
 typedef struct pidx_page {
@@ -89,11 +90,19 @@ int pidx_fsck(pidx_file *pidx, int dofix);
 
 
 /****************************************************************************/
-/* pages related functions                                                  */
+/* low level page related functions                                         */
 /****************************************************************************/
 
-void pidx_page_release(pidx_file *pidx, int32_t page);
 int32_t pidx_page_find(pidx_file *pidx, uint64_t idx);
 int32_t pidx_page_new(pidx_file *pidx, uint64_t idx);
+
+
+/****************************************************************************/
+/* high functions                                                           */
+/****************************************************************************/
+
+int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out);
+int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len);
+void pidx_data_release(pidx_file *pidx, uint64_t idx);
 
 #endif

@@ -36,10 +36,18 @@ MMFILE_FUNCTIONS(pidx_file, pidx_real);
 #define PIDX_SHIFT     8
 #define PIDX_GROW   1024
 
-
 /****************************************************************************/
 /* whole file related functions                                             */
 /****************************************************************************/
+
+static void pidx_page_release(pidx_file *pidx, int32_t page)
+{
+    assert (page > 0 && page < pidx->area->nbpages);
+
+    pidx->area->pages[page].next = pidx->area->freelist;
+    pidx->area->freelist = page;
+    memset(pidx->area->pages[page].payload, 0, PIDX_PAGE - sizeof(int32_t));
+}
 
 static int pidx_fsck_mark_page(byte *bits, pidx_file *pidx, int page)
 {
@@ -229,21 +237,12 @@ void pidx_close(pidx_file **f)
 }
 
 /****************************************************************************/
-/* pages related functions                                                  */
+/* low level page related functions                                         */
 /****************************************************************************/
 
 static inline int int_bits_range(uint64_t idx, int start, int width)
 {
     return (idx << start) >> (64 - width);
-}
-
-void pidx_page_release(pidx_file *pidx, int32_t page)
-{
-    assert (page > 0 && page < pidx->area->nbpages);
-
-    pidx->area->pages[page].next = pidx->area->freelist;
-    pidx->area->freelist = page;
-    memset(pidx->area->pages[page].payload, 0, PIDX_PAGE - sizeof(int32_t));
 }
 
 /* returns:
@@ -340,3 +339,110 @@ int32_t pidx_page_new(pidx_file *pidx, uint64_t idx)
     pidx->area->pages[page].refs[k] = newpage;
     return newpage;
 }
+
+/****************************************************************************/
+/* high functions                                                           */
+/****************************************************************************/
+
+int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out)
+{
+    int32_t page  = pidx_page_find(pidx, idx);
+    ssize_t pos   = out->len;
+
+    while (page) {
+        pidx_page *pg = pidx->area->pages + page;
+        int32_t size = *(int32_t *)pg->payload;
+
+        if (size > PIDX_PAGE - 2 * ssizeof(int32_t))
+            goto error;
+        blob_append_data(out, pg->payload + sizeof(int32_t), size);
+        page = pg->next;
+    }
+
+    return out->len - pos;
+
+  error:
+    blob_kill_last(out, out->len - pos);
+    return -1;
+}
+
+
+int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
+{
+#define PAYLOAD_SIZE   (PIDX_PAGE - 2 * ssizeof(int32_t))
+
+    int32_t curp, page = pidx_page_find(pidx, idx);
+    int nbpages = 0, needed;
+
+    needed = MIN(0, len - 1) / PAYLOAD_SIZE + 1;
+
+    for (curp = page; curp; curp = pidx->area->pages[curp].next)
+        nbpages++;
+
+    while (needed < nbpages) {
+        page = pidx_page_new(pidx, idx);
+        if (!page)
+            return -1;
+        nbpages++;
+    }
+
+    /* XXX do while is correct, we always want at least one page ! */
+    do {
+        pidx_page *pg = pidx->area->pages + page;
+        const int chunk = MIN(PAYLOAD_SIZE, len);
+
+        *(int32_t *)pg->payload = chunk;
+        memcpy(pg->payload + sizeof(int32_t), data, chunk);
+        len  -= chunk;
+        data += chunk;
+        page  = pg->next;
+    } while (len);
+
+    while (page) {
+        int32_t next = pidx->area->pages[page].next;
+        pidx_page_release(pidx, page);
+        page = next;
+    }
+
+    return 0;
+}
+
+static bool pidx_page_recollect(pidx_file *pidx, uint64_t idx, int shift, int32_t page)
+{
+    const int maxshift = pidx->area->skip + PIDX_SHIFT * pidx->area->nbsegs;
+    int pos = int_bits_range(idx, shift, PIDX_SHIFT);
+    pidx_page *pg = pidx->area->pages + page;
+
+    if (shift > maxshift)
+        return true;
+
+    if (pidx_page_recollect(pidx, idx, shift + PIDX_SHIFT, pg->refs[pos])) {
+        int i;
+
+        pg->refs[pos] = 0;
+        for (i = 0; i < PIDX_PAGE / 4; i++) {
+            if (pg->refs[i])
+                return false;
+        }
+        pidx_page_release(pidx, page);
+    }
+
+    return page ? true : false;
+}
+
+void pidx_data_release(pidx_file *pidx, uint64_t idx)
+{
+    int32_t page = pidx_page_find(pidx, idx);
+
+    if (!page)
+        return;
+
+    while (page) {
+        int32_t next = pidx->area->pages[page].next;
+        pidx_page_release(pidx, page);
+        page = next;
+    }
+
+    pidx_page_recollect(pidx, idx, pidx->area->skip, 0);
+}
+
