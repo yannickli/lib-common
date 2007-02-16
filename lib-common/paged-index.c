@@ -92,7 +92,7 @@ int pidx_fsck(pidx_file *pidx, int dofix)
     bool did_a_fix = false;
 
     if (pidx->size % PIDX_PAGE || pidx->size < 2 * PIDX_PAGE
-    ||  ((uint64_t)pidx->size > INT_MAX * PIDX_PAGE))
+    ||  ((uint64_t)pidx->size > (uint64_t)INT_MAX * PIDX_PAGE))
         return -1;
 
     if (pidx->area->magic != magic.i)
