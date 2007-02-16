@@ -1,7 +1,10 @@
+<?xml version="1.0" charset="toto" ?>
 <part1></part1>
 <part2 FOO="123" BAR="" BAZ="blahblah" toto='titi'>
 </part2>
 <part3>
+<a>
+</a>
         <title text="This is the title">
         </title>
         <chapter1>

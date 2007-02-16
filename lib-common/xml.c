@@ -387,26 +387,58 @@ static int xml_parse(xml_tag_t *dst, const char *payload, size_t payload_len,
     }
 }
 
-/* Create a new XML tree from an 
- */
-xml_tag_t *xml_new_tree(const char *payload, size_t len)
+int xml_get_xml_tag(xml_tree_t *tree, const char *payload, size_t len,
+                    const char **pend);
+int xml_get_xml_tag(xml_tree_t *tree, const char *payload, size_t len,
+                    const char **pend)
 {
-    xml_tag_t *root;
+    const char *mypend;
 
-    root = p_new(xml_tag_t, 1);
-    if (xml_parse(root, payload, len, NULL)) {
-        xml_tag_t_list_wipe(&root);
-        p_delete(&root);
-        return NULL;
+    SKIPSPACES(payload, len);
+    mypend = payload;
+    if (strstart(payload, "<?xml", &mypend)) {
+        len -= mypend - payload;
+        payload = mypend;
+        mypend = memsearch(payload, len, "?>", 2);
+        if (!mypend) {
+            return 1;
+        }
+        mypend += strlen("?>");
     }
-    return root;
+    if (pend) {
+        *pend = mypend;
+    }
+    return 0;
 }
 
-void xml_delete_tree(xml_tag_t **root)
+/* Create a new XML tree from an 
+ */
+xml_tree_t *xml_new_tree(const char *payload, size_t len)
 {
-    if (root) {
-        xml_tag_t_list_wipe(root);
-        p_delete(root);
+    xml_tree_t *tree;
+    const char *pend = payload;
+
+    tree = p_new(xml_tree_t, 1);
+    tree->root = p_new(xml_tag_t, 1);
+    if (xml_get_xml_tag(tree, payload, len, &pend)) {
+    }
+    len -= pend - payload;
+    payload = pend;
+    if (xml_parse(tree->root, payload, len, NULL)) {
+        xml_delete_tree(&tree);
+        return NULL;
+    }
+    return tree;
+}
+
+void xml_delete_tree(xml_tree_t **tree)
+{
+    if (tree) {
+        if ((*tree)->root) {
+            xml_tag_t_list_wipe(&(*tree)->root);
+            p_delete(&(*tree)->root);
+        }
+        p_delete(tree);
     }
 }
 
@@ -453,16 +485,16 @@ static void xml_tree_dump(const xml_tag_t *root, const char *prefix)
 START_TEST(check_xmlparse)
 {
     blob_t blob;
-    xml_tag_t *root;
+    xml_tree_t *tree;
 
     blob_init(&blob);
 
     fail_if(blob_append_file_data(&blob, "samples/simple.xml") < 0,
             "unable to read sample file");
-    root = xml_new_tree(blob_get_cstr(&blob), blob.len);
-    fail_if(!root, "simple");
-    //xml_tree_dump(root, "root:");
-    xml_delete_tree(&root);
+    tree = xml_new_tree(blob_get_cstr(&blob), blob.len);
+    fail_if(!tree, "simple");
+    xml_tree_dump(tree->root, "root:");
+    xml_delete_tree(&tree);
 
     blob_wipe(&blob);
 }

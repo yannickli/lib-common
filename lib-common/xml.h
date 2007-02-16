@@ -18,6 +18,7 @@
 
 typedef struct xml_prop_t xml_prop_t;
 typedef struct xml_tag_t xml_tag_t;
+typedef struct xml_tree_t xml_tree_t;
 
 struct xml_tag_t {
     char *name;
@@ -33,8 +34,13 @@ struct xml_prop_t {
     xml_prop_t *next;
 };
 
-xml_tag_t *xml_new_tree(const char *body, size_t len);
-void xml_delete_tree(xml_tag_t **root);
+struct xml_tree_t {
+    xml_tag_t *root;
+    // Add version, charset, etc.
+};
+
+xml_tree_t *xml_new_tree(const char *payload, size_t len);
+void xml_delete_tree(xml_tree_t **tree);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
