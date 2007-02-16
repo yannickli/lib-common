@@ -317,6 +317,7 @@ btree_t *btree_open(const char *path, int flags)
     btree_t *bt;
     int res;
 
+    /* OG: creating and opening should be totally separate */
     if ((flags & O_CREAT) && access(path, R_OK))
         return btree_creat(path);
 
@@ -326,12 +327,15 @@ btree_t *btree_open(const char *path, int flags)
         btree_close(&bt);
         errno = EINVAL;
     }
+
+    /* OG: should only do this if index file is opened for writing */
     bt->area->dirty = true;
     msync(bt->area, bt->size, MS_SYNC);
 
     return bt;
 }
 
+/* OG: should take creation parameters */
 btree_t *btree_creat(const char *path)
 {
     btree_t *bt;
@@ -360,9 +364,11 @@ btree_t *btree_creat(const char *path)
 void btree_close(btree_t **bt)
 {
     if (*bt) {
-        msync((*bt)->area, (*bt)->size, MS_SYNC);
-        (*bt)->area->dirty = false;
-        msync((*bt)->area, (*bt)->size, MS_SYNC);
+        if ((*bt)->area->dirty) {
+            msync((*bt)->area, (*bt)->size, MS_SYNC);
+            (*bt)->area->dirty = false;
+            msync((*bt)->area, (*bt)->size, MS_SYNC);
+        }
         bt_real_close(bt);
     }
 }
