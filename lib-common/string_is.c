@@ -397,18 +397,22 @@ ssize_t pstrlen(const char *str, ssize_t size)
     return -1;
 }
 
-/* count number of occurences of c in str */
+/** Counts the number of occurrences of character <code>c</code>
+ * in string <code>str</code>.
+ *
+ * @returns the number of occurrences, returns 0 if <code>size</code>
+ * is <code>NULL</code>.
+ */
 int pstrchrcount(const char *str, int c)
 {
     const char *p = str;
     int res = 0;
 
-    if (!p) {
-        return 0;
-    }
-    while ((p = strchr(p, c))) {
-        res++;
-        p++;
+    if (p) {
+        while ((p = strchr(p, c)) != NULL) {
+            res++;
+            p++;
+        }
     }
 
     return res;
