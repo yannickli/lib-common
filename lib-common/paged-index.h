@@ -24,9 +24,11 @@ typedef struct pidx_page {
             int32_t next;
             byte payload[];
         };
-        int32_t refs[1024];
+        int32_t refs[256];
     };
 } pidx_page;
+
+#define PIDX_PAGE  ssizeof(pidx_page)
 
 /** \brief this struct is the header of an intersec paginated file.
  * Such a file is stored in 64-bit aligned big endian structures,
@@ -48,10 +50,10 @@ typedef struct pidx_t {
     int32_t nbpages;    /**< number of allocated pages in the file         */
     int32_t freelist;   /**< freelist of blank pages                       */
 
-    /* __future__: 256 - 2 qwords */
-    uint64_t reserved[256 - 2]; /**< padding up to 4k                      */
+    /* __future__: 128 - 2 qwords */
+    uint64_t reserved[64 - 2]; /**< padding up to 2k                      */
 
-    uint64_t subhdr[256];       /**< reserved for hosted file headers: 2k  */
+    uint64_t subhdr[64];       /**< reserved for hosted file headers: 2k  */
 
     /** \brief pages of the @pidx_t.
      * pages[0] is _always_ the first level of pagination.
@@ -67,8 +69,7 @@ typedef struct pidx_file MMFILE_ALIAS(pidx_t) pidx_file;
 /****************************************************************************/
 
 pidx_file *pidx_open(const char *path, int flags);
-pidx_file *pidx_creat(const char *path, int nbpages,
-		      uint8_t skip, uint8_t nbsegs);
+pidx_file *pidx_creat(const char *path, uint8_t skip, uint8_t nbsegs);
 void pidx_close(pidx_file **f);
 
 /** \brief checks and repair idx files.
