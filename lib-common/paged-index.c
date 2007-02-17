@@ -14,6 +14,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
+#include <sys/mman.h>
 
 #include <lib-common/err_report.h>
 #include <lib-common/mem.h>
@@ -196,6 +197,11 @@ pidx_file *pidx_open(const char *path, int flags)
         e_error("`%s': corrupted pages, Repaired.", path);
     }
 
+    if (flags & O_WRONLY) {
+        pidx->area->magic = 0;
+        msync(pidx->area, pidx->size, MS_SYNC);
+    }
+
     return pidx;
 }
 
@@ -228,11 +234,18 @@ pidx_file *pidx_creat(const char *path, uint8_t skip, uint8_t nbsegs)
     }
     pidx->area->freelist = 1;
 
+    pidx->area->magic = 0;
+    msync(pidx->area, pidx->size, MS_SYNC);
     return pidx;
 }
 
 void pidx_close(pidx_file **f)
 {
+    if (!(*f)->area->magic) {
+        msync((*f)->area, (*f)->size, MS_SYNC);
+        (*f)->area->magic = magic.i;
+        msync((*f)->area, (*f)->size, MS_SYNC);
+    }
     pidx_real_close(f);
 }
 
