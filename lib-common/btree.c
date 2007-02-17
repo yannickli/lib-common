@@ -318,7 +318,25 @@ btree_t *btree_open(const char *path, int flags)
     int res;
 
     /* OG: creating and opening should be totally separate */
-    if ((flags & O_CREAT) && access(path, R_OK))
+    /* MC: I disagree, if you don't have any creation parameters, which you
+           don't need for the current implementation, needing create to create
+           a file is just painful. creat() is just a shorthand for
+           open(..., flags | O_EXCL | O_WRONLY | O_TRUNC) and needing to do
+           the following sucks:
+           if (access(path, F_OK)) {
+               foo_open(path);
+           } else {
+               foo_creat(path);
+           }
+
+           You want a way to say "Open that btree, and if it does not exists,
+           please create a new empty one. This is perfectly sensible.
+
+           Then having a more clever _create() function with some parameters
+           for tweaked creations is fine too. But supporting a creation with
+           sane defaults _IS_ a good thing.
+     */
+    if ((flags & O_CREAT) && access(path, F_OK))
         return btree_creat(path);
 
     bt  = bt_real_open(path, flags);
@@ -328,8 +346,7 @@ btree_t *btree_open(const char *path, int flags)
         errno = EINVAL;
     }
 
-    /* OG: should only do this if index file is opened for writing */
-    bt->area->dirty = true;
+    bt->area->dirty = !!(flags & O_WRONLY);
     msync(bt->area, bt->size, MS_SYNC);
 
     return bt;
@@ -358,6 +375,8 @@ btree_t *btree_creat(const char *path)
     }
 
     bt->area->pages[0].node.next = BTPP_NIL;
+    bt->area->dirty = true;
+    msync(bt->area, bt->size, MS_SYNC);
     return bt;
 }
 
