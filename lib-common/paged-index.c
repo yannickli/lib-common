@@ -190,7 +190,7 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
     if (flags & O_CREAT && (access(path, F_OK) || flags & O_TRUNC))
         return pidx_creat(path, skip, nbsegs);
 
-    fsck_res = pidx_fsck(pidx, !!(flags & O_WRONLY));
+    fsck_res = pidx_fsck(pidx, !!(flags & (O_WRONLY | O_RDWR)));
     if (fsck_res < 0) {
         pidx_close(&pidx);
         errno = EINVAL;
@@ -201,7 +201,7 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
     }
 
 #if 0
-    if (flags & O_WRONLY) {
+    if (flags & (O_WRONLY | O_RDWR)) {
         pidx->area->magic = 0;
         msync(pidx->area, pidx->size, MS_SYNC);
     }

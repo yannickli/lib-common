@@ -19,6 +19,8 @@
 
 #define BT_ARITY          340  /**< L constant in the b-tree terminology */
 #define BT_INIT_NBPAGES  1024  /**< initial number of pages in the btree */
+#define BT_ISWRITE(m)    (!!((m) & (O_WRONLY|O_RDWR)))
+
 static const union {
     char     s[4];
     uint32_t i;
@@ -345,13 +347,13 @@ btree_t *btree_open(const char *path, int flags)
         return btree_creat(path);
 
     bt  = bt_real_open(path, flags);
-    res = btree_fsck(bt, !!(flags & O_WRONLY));
+    res = btree_fsck(bt, BT_ISWRITE(flags));
     if (res < 0) {
         btree_close(&bt);
         errno = EINVAL;
     }
 #if 0
-    bt->area->dirty = !!(flags & O_WRONLY);
+    bt->area->dirty = BT_ISWRITE(flags);
     msync(bt->area, bt->size, MS_SYNC);
 #endif
 
