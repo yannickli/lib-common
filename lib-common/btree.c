@@ -340,33 +340,37 @@ btree_t *btree_open(const char *path, int flags)
      * for open(file, O_EXCL | O_WRONLY | O_TRUNC), as many sloppy
      * programmers fail to remember, it is short hand for open(file,
      * O_EXCL | O_WRONLY | O_TRUNC, mode) !  Even for creating a simple
-     * file there are creation parameters.  It there are creation
-     * parameters, they should be present in both forms, and if you
-     * insist on allowing open to create the file, you should implement
-     * the actual semantics of O_CREAT and O_TRUNC.
+     * file there are creation parameters.
+     *
+     * MC: Yes and it sucks because when you do an index file, you just want
+     *     to "open or create it" à la fopen(..., "a+");
+     *
+     * It there are creation parameters, they should be present in both forms,
+     *
+     * MC: that is a bit tedious, but well, ack, that makes sense. In the
+     *     current form, my btrees have no real parameters yet, so ... no
+     *     creation parameters.
+     *
+     * and if you insist on allowing open to create the file, you should
+     * implement the actual semantics of O_CREAT and O_TRUNC.
+     * 
+     * MC: open do that too you know, but well O_CREAT was implemented
+     *     already, O_TRUNC is now too.
      *
      * Furthermore, opening the file for update should require
      * exclusive access unless the code can handle concurrent access.
+     *
+     * MC: correct, that's a TODO.. ;)
      */
-    if ((flags & O_CREAT) && access(path, F_OK))
+    if ((flags & O_CREAT) && (access(path, F_OK) || flags & O_TRUNC))
         return btree_creat(path);
 
     bt  = bt_real_open(path, flags);
-    /* OG: O_RDWR is a better choice for updating an index than
-     * O_WRONLY */
     res = btree_fsck(bt, !!(flags & O_WRONLY));
     if (res < 0) {
         btree_close(&bt);
         errno = EINVAL;
     }
-    /* OG: the mapping should be read only if the file is opened in
-     * O_RDONLY, writing it should fail.
-     *
-     * if ((flags & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY) {
-     *     bt->area->dirty = true;
-     *     msync(bt->area, bt->size, MS_SYNC);
-     * }
-     */
     bt->area->dirty = !!(flags & O_WRONLY);
     msync(bt->area, bt->size, MS_SYNC);
 
