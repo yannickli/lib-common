@@ -179,13 +179,16 @@ int pidx_fsck(pidx_file *pidx, int dofix)
     return did_a_fix;
 }
 
-pidx_file *pidx_open(const char *path, int flags)
+pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
 {
     pidx_file *pidx = pidx_real_open(path, flags);
     int fsck_res;
 
     if (!pidx)
         return NULL;
+
+    if (flags & O_CREAT && (access(path, F_OK) || flags & O_TRUNC))
+        return pidx_creat(path, skip, nbsegs);
 
     fsck_res = pidx_fsck(pidx, !!(flags & O_WRONLY));
     if (fsck_res < 0) {
@@ -197,21 +200,12 @@ pidx_file *pidx_open(const char *path, int flags)
         e_error("`%s': corrupted pages, Repaired.", path);
     }
 
-    /* OG: This is not the proper test:
-     * - what about O_RDWR ?
-     * - what does O_WRONLY mean anyway for a mapped file ?
-     */
+#if 0
     if (flags & O_WRONLY) {
-        /* OG: This will actually prevent open processes opening the
-         * index either read or update mode.  Concurrent access is not
-         * supported by the current implementation, but patching the
-         * magic number is not the correct way to prevent it.  Indeed
-         * another process may have opened the index in O_RDONLY mode
-         * already.
-         */
         pidx->area->magic = 0;
         msync(pidx->area, pidx->size, MS_SYNC);
     }
+#endif
 
     return pidx;
 }
@@ -245,19 +239,24 @@ pidx_file *pidx_creat(const char *path, uint8_t skip, uint8_t nbsegs)
     }
     pidx->area->freelist = 1;
 
-    /* OG: dirty timestamps would be a better solution, see above */
+#if 0
     pidx->area->magic = 0;
     msync(pidx->area, pidx->size, MS_SYNC);
+#endif
     return pidx;
 }
 
 void pidx_close(pidx_file **f)
 {
-    if (!(*f)->area->magic) {
-        msync((*f)->area, (*f)->size, MS_SYNC);
-        (*f)->area->magic = magic.i;
-        msync((*f)->area, (*f)->size, MS_SYNC);
+#if 0
+    if (*f) {
+        if (!(*f)->area->magic) {
+            msync((*f)->area, (*f)->size, MS_SYNC);
+            (*f)->area->magic = magic.i;
+            msync((*f)->area, (*f)->size, MS_SYNC);
+        }
     }
+#endif
     pidx_real_close(f);
 }
 

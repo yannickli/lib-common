@@ -278,8 +278,10 @@ int btree_fsck(btree_t *bt, int dofix)
     if (bt->size & 4095 || !(bt->size / 4096))
         return -1;
 
+#if 0
     if (bt->area->dirty)
         return -1;
+#endif
 
     if (bt->area->magic != ISBT_MAGIC.i)
         return -1;
@@ -336,32 +338,9 @@ btree_t *btree_open(const char *path, int flags)
            for tweaked creations is fine too. But supporting a creation with
            sane defaults _IS_ a good thing.
      */
-    /* OG: Your example is perfect!  creat(file, mode) is not shorthand
-     * for open(file, O_EXCL | O_WRONLY | O_TRUNC), as many sloppy
-     * programmers fail to remember, it is short hand for open(file,
-     * O_EXCL | O_WRONLY | O_TRUNC, mode) !  Even for creating a simple
-     * file there are creation parameters.
-     *
-     * MC: Yes and it sucks because when you do an index file, you just want
-     *     to "open or create it" à la fopen(..., "a+");
-     *
-     * It there are creation parameters, they should be present in both forms,
-     *
-     * MC: that is a bit tedious, but well, ack, that makes sense. In the
-     *     current form, my btrees have no real parameters yet, so ... no
-     *     creation parameters.
-     *
-     * and if you insist on allowing open to create the file, you should
-     * implement the actual semantics of O_CREAT and O_TRUNC.
-     * 
-     * MC: open do that too you know, but well O_CREAT was implemented
-     *     already, O_TRUNC is now too.
-     *
-     * Furthermore, opening the file for update should require
-     * exclusive access unless the code can handle concurrent access.
-     *
-     * MC: correct, that's a TODO.. ;)
-     */
+     /* OG: Furthermore, opening the file for update should require exclusive
+      *     access unless the code can handle concurrent access.
+      */
     if ((flags & O_CREAT) && (access(path, F_OK) || flags & O_TRUNC))
         return btree_creat(path);
 
@@ -371,8 +350,10 @@ btree_t *btree_open(const char *path, int flags)
         btree_close(&bt);
         errno = EINVAL;
     }
+#if 0
     bt->area->dirty = !!(flags & O_WRONLY);
     msync(bt->area, bt->size, MS_SYNC);
+#endif
 
     return bt;
 }
@@ -400,19 +381,23 @@ btree_t *btree_creat(const char *path)
     }
 
     bt->area->pages[0].node.next = BTPP_NIL;
+#if 0
     bt->area->dirty = true;
     msync(bt->area, bt->size, MS_SYNC);
+#endif
     return bt;
 }
 
 void btree_close(btree_t **bt)
 {
     if (*bt) {
+#if 0
         if ((*bt)->area->dirty) {
             msync((*bt)->area, (*bt)->size, MS_SYNC);
             (*bt)->area->dirty = false;
             msync((*bt)->area, (*bt)->size, MS_SYNC);
         }
+#endif
         bt_real_close(bt);
     }
 }
