@@ -21,10 +21,10 @@
 
 #include "paged-index.h"
 
-static const union {
+static union {
     char     s[4];
     uint32_t i;
-} magic = { { 'I', 'S', 'P', 'F' } };
+} const magic = { { 'I', 'S', 'P', 'F' } };
 
 MMFILE_FUNCTIONS(pidx_file, pidx_real);
 
@@ -197,7 +197,18 @@ pidx_file *pidx_open(const char *path, int flags)
         e_error("`%s': corrupted pages, Repaired.", path);
     }
 
+    /* OG: This is not the proper test:
+     * - what about O_RDWR ?
+     * - what does O_WRONLY mean anyway for a mapped file ?
+     */
     if (flags & O_WRONLY) {
+        /* OG: This will actually prevent open processes opening the
+         * index either read or update mode.  Concurrent access is not
+         * supported by the current implementation, but patching the
+         * magic number is not the correct way to prevent it.  Indeed
+         * another process may have opened the index in O_RDONLY mode
+         * already.
+         */
         pidx->area->magic = 0;
         msync(pidx->area, pidx->size, MS_SYNC);
     }
@@ -234,6 +245,7 @@ pidx_file *pidx_creat(const char *path, uint8_t skip, uint8_t nbsegs)
     }
     pidx->area->freelist = 1;
 
+    /* OG: dirty timestamps would be a better solution, see above */
     pidx->area->magic = 0;
     msync(pidx->area, pidx->size, MS_SYNC);
     return pidx;

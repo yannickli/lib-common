@@ -336,16 +336,37 @@ btree_t *btree_open(const char *path, int flags)
            for tweaked creations is fine too. But supporting a creation with
            sane defaults _IS_ a good thing.
      */
+    /* OG: Your example is perfect!  creat(file, mode) is not shorthand
+     * for open(file, O_EXCL | O_WRONLY | O_TRUNC), as many sloppy
+     * programmers fail to remember, it is short hand for open(file,
+     * O_EXCL | O_WRONLY | O_TRUNC, mode) !  Even for creating a simple
+     * file there are creation parameters.  It there are creation
+     * parameters, they should be present in both forms, and if you
+     * insist on allowing open to create the file, you should implement
+     * the actual semantics of O_CREAT and O_TRUNC.
+     *
+     * Furthermore, opening the file for update should require
+     * exclusive access unless the code can handle concurrent access.
+     */
     if ((flags & O_CREAT) && access(path, F_OK))
         return btree_creat(path);
 
     bt  = bt_real_open(path, flags);
+    /* OG: O_RDWR is a better choice for updating an index than
+     * O_WRONLY */
     res = btree_fsck(bt, !!(flags & O_WRONLY));
     if (res < 0) {
         btree_close(&bt);
         errno = EINVAL;
     }
-
+    /* OG: the mapping should be read only if the file is opened in
+     * O_RDONLY, writing it should fail.
+     *
+     * if ((flags & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY) {
+     *     bt->area->dirty = true;
+     *     msync(bt->area, bt->size, MS_SYNC);
+     * }
+     */
     bt->area->dirty = !!(flags & O_WRONLY);
     msync(bt->area, bt->size, MS_SYNC);
 

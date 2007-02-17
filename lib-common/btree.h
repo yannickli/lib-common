@@ -25,6 +25,13 @@ btree_t *btree_open(const char *path, int flags);
 btree_t *btree_creat(const char *path);
 void btree_close(btree_t **tree);
 
+/* OG: Should have both APIs, the default taking a (byte *, len) couple.
+ * these should be called btree_fetch_uint64 and btree_push_uint64.
+ * Actually, since the implementation seems hardwired for uint64_t
+ * keys, the module itself and function/type prefix should be btree64.
+ * Constness of the btree_t is not required either, and may not be
+ * advisable, as per our conversation.
+ */
 int btree_fetch(const btree_t *bt, uint64_t key, blob_t *out);
 int btree_push(btree_t *bt, uint64_t key, const byte *data, int len);
 
