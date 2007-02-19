@@ -149,3 +149,87 @@ bool is_expired(const struct timeval *date,
     }
     return false;
 }
+
+int localtime_curday(time_t date)
+{
+    struct tm t;
+
+    if (date == 0) {
+        date = time(NULL);
+    }
+
+    if (!localtime_r(&date, &t)) {
+        return -1;
+    }
+
+    t.tm_sec = 0;
+    t.tm_min = 0;
+    t.tm_hour = 0;
+
+    return mktime(&t);
+}
+
+int localtime_nextday(time_t date)
+{
+    struct tm t;
+    
+    if (date == 0) {
+        date = time(NULL);
+    }
+
+    if (!localtime_r(&date, &t)) {
+        return -1;
+    }
+
+    t.tm_sec = 0;
+    t.tm_min = 0;
+    t.tm_hour = 0;
+    t.tm_mday += 1;
+
+    return mktime(&t);
+}
+
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
+#ifdef CHECK
+/* tests legacy functions                                              {{{*/
+
+START_TEST(check_localtime)
+{
+    int date, res;
+    /* date -d "03/06/2007 12:34:13" +"%s" */
+    date = 1173180853;
+
+    res = localtime_curday(date);
+    /* date -d "03/06/2007 00:00:00" +"%s" -> 1173135600 */
+    fail_if(res != 1173135600,
+            "Invalid current day time: %d != %d", res, 1173135600);
+
+    res = localtime_nextday(date);
+    /* date -d "03/07/2007 00:00:00" +"%s" -> 1173222000 */
+    fail_if(res != 1173222000,
+            "Invalid next day time: %d != %d", res, 1173222000);
+
+    fail_if(localtime_curday(0) != localtime_curday(time(NULL)),
+            "Invalid handling of date = 0");
+    fail_if(localtime_nextday(0) != localtime_nextday(time(NULL)),
+            "Invalid handling of date = 0");
+}
+END_TEST
+
+/*.....................................................................}}}*/
+/* public testing API                                                  {{{*/
+
+Suite *check_make_timeval_suite(void)
+{
+    Suite *s  = suite_create("Timeval");
+    TCase *tc = tcase_create("Core");
+
+    suite_add_tcase(s, tc);
+    tcase_add_test(tc, check_localtime);
+
+    return s;
+}
+
+/*.....................................................................}}}*/
+#endif
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/

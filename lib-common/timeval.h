@@ -29,4 +29,22 @@ struct timeval timeval_div(struct timeval tv, int k);
 bool is_expired(const struct timeval *date, const struct timeval *now,
                 struct timeval *left);
 
+/* Return timestamp of the start of the day which contains
+ * the timestamp 'date'.
+ * If date == 0, 'date' is interpreted as 'now' */
+int localtime_curday(time_t date);
+
+/* Return timestamp of the start of the next day which contains
+ * the timestamp 'date'.
+ * If date == 0, 'date' is interpreted as 'now' */
+int localtime_nextday(time_t date);
+
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
+#ifdef CHECK
+#include <check.h>
+
+Suite *check_make_timeval_suite(void);
+
+#endif
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
 #endif /* IS_LIB_COMMON_TIMEVAL_H */

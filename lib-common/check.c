@@ -21,6 +21,7 @@
 #include "archive.h"
 #include "licence.h"
 #include "xml.h"
+#include "timeval.h"
 
 int main(void)
 {
@@ -34,6 +35,7 @@ int main(void)
     srunner_add_suite(sr, check_fifo_suite());
     srunner_add_suite(sr, check_licence_suite());
     srunner_add_suite(sr, check_xml_suite());
+    srunner_add_suite(sr, check_make_timeval_suite());
 
     srunner_run_all(sr, CK_NORMAL);
     nf = srunner_ntests_failed(sr);
