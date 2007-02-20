@@ -34,8 +34,8 @@ SLIST_FUNCTIONS(xml_prop_t, xml_prop_t)
 SLIST_PROTOS(xml_tag_t, xml_tag_t)
 static void xml_tag_t_delete(xml_tag_t **t)
 {
-    if (t) {
-        p_delete(&(*t)->name);
+    if (t && *t) {
+        p_delete(&(*t)->fullname);
         xml_tag_t_list_wipe(&(*t)->child);
         xml_prop_t_list_wipe(&(*t)->property);
         p_delete(&(*t)->text);
@@ -259,8 +259,12 @@ static parse_t xml_get_tag(xml_tag_t **dst, const char *payload, size_t len,
     }
 
     tag = p_new(xml_tag_t, 1);
-    tag->name = p_new(char, nameend - name + 1);
-    pstrcpylen(tag->name, nameend - name + 1, name, nameend - name);
+    tag->fullname = p_new(char, nameend - name + 1);
+    pstrcpylen(tag->fullname, nameend - name + 1, name, nameend - name);
+    tag->name = strchr(tag->fullname, ':');
+    if (!tag->name) {
+        tag->name = tag->fullname;
+    }
 
     t = &tag->property;
     while (len > 0 && *p != '>') {
@@ -350,10 +354,12 @@ static int xml_parse(xml_tag_t *dst, const char *payload, size_t payload_len,
     babyp = &dst->child;
 
     for (;;) {
-        switch (xml_get_tag(&next, payload, payload_len, dst->name, &mypend)) {
+        switch (xml_get_tag(&next, payload, payload_len, dst->fullname,
+                            &mypend)) {
           case PARSE_TAG:
             payload_len -= mypend - payload;
             payload = mypend;
+            next->parent = dst;
             *babyp = next;
             babyp = &(*babyp)->next;
             if (xml_parse(next, payload, payload_len, &mypend)) {
@@ -371,7 +377,7 @@ static int xml_parse(xml_tag_t *dst, const char *payload, size_t payload_len,
             }
             return 0;
           case PARSE_EOF:
-            if (!dst->name) {
+            if (!dst->fullname) {
                 if (pend) {
                     *pend = mypend;
                 }
@@ -450,9 +456,10 @@ static void xml_tree_dump(const xml_tag_t *root, const char *prefix)
     if (!root) {
         return;
     }
-    if (root->name) {
-        fprintf(stderr, "%s <%s", prefix, root->name);
-        fprintf(stderr, " addr=\"%p\" next=\"%p\"", root, root->next);
+    if (root->fullname) {
+        fprintf(stderr, "%s <%s", prefix, root->fullname);
+        fprintf(stderr, " addr=\"%p\" parent=\"%p\" next=\"%p\"",
+                root, root->parent, root->next);
         for (prop = root->property; prop; prop = prop->next) {
             strconv_quote(buf, sizeof(buf), prop->value, strlen(prop->value), '"');
             fprintf(stderr, " %s=\"%s\"", prop->name, buf);
@@ -466,8 +473,8 @@ static void xml_tree_dump(const xml_tag_t *root, const char *prefix)
         snprintf(newprefix, sizeof(newprefix), "%s   ", prefix);
         xml_tree_dump(root->child, newprefix);
     }
-    if (root->name) {
-        fprintf(stderr, "%s </%s>\n", prefix, root->name);
+    if (root->fullname) {
+        fprintf(stderr, "%s </%s>\n", prefix, root->fullname);
     }
 
     if (root->next) {
@@ -493,8 +500,10 @@ START_TEST(check_xmlparse)
             "unable to read sample file");
     tree = xml_new_tree(blob_get_cstr(&blob), blob.len);
     fail_if(!tree, "simple");
-    xml_tree_dump(tree->root, "root:");
-    xml_delete_tree(&tree);
+    if (tree) {
+        xml_tree_dump(tree->root, "root:");
+        xml_delete_tree(&tree);
+    }
 
     blob_wipe(&blob);
 }
