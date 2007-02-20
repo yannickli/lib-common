@@ -250,6 +250,7 @@ static void btn_insert(btree_t *bt, intpair nodes[], int depth, int32_t rpage)
 
         // XXX: check if we got a new page !
         npage   = bt_page_new(bt) | BTPP_NODE_MASK;
+        node    = &vbt_deref(bt->area, nodes[depth].page)->node;
         sibling = &vbt_deref(bt->area, npage)->node;
         *sibling = *node;
 
