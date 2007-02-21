@@ -141,7 +141,7 @@ static inline bt_page_t *vbt_deref(struct btree_priv *bt, int32_t ptr)
     int page = BTPP_OFFS(ptr);
     if (page == BTPP_NIL || page > bt->nbpages)
         return NULL;
-    return &bt->pages[BTPP_OFFS(ptr)];
+    return bt->pages + BTPP_OFFS(ptr);
 }
 
 static inline bt_page_t *bt_deref(const struct btree_priv *bt, int32_t ptr) {
@@ -150,11 +150,23 @@ static inline bt_page_t *bt_deref(const struct btree_priv *bt, int32_t ptr) {
 
 static void btn_shift(bt_node_t *node, int dst, int src, int width)
 {
+    assert (dst >= 0 && src >= 0);
+
     if (width >= 0) {
+        assert (dst + (width + 1) <= countof(node->ptrs));
+        assert (src + (width + 1) <= countof(node->ptrs));
+        assert (dst + (width + 1) >= 0);
+        assert (src + (width + 1) >= 0);
+
         memmove(node->ptrs + dst, node->ptrs + src,
                 sizeof(node->ptrs[0]) * (width + 1));
     }
     if (width > 0) {
+        assert (dst + width <= countof(node->keys));
+        assert (src + width <= countof(node->keys));
+        assert (dst + width >= 0);
+        assert (src + width >= 0);
+
         memmove(node->keys + dst, node->keys + src,
                 sizeof(node->keys[0]) * width);
     }
@@ -162,6 +174,7 @@ static void btn_shift(bt_node_t *node, int dst, int src, int width)
 
 static void btn_setk(bt_node_t *node, int pos, uint64_t key)
 {
+    assert (pos >= 0);
     if (pos < node->nbkeys) {
         node->keys[pos] = key;
     }
@@ -191,8 +204,8 @@ static void btl_maxkey(const bt_leaf_t *leaf, uint64_t *key);
 
 static void btn_insert_aux(btree_t *bt, bt_node_t *node, int i, int32_t lpage, int32_t rpage)
 {
-    node->nbkeys++;
     btn_shift(node, i + 1, i, node->nbkeys - i);
+    node->nbkeys++;
 
     node->ptrs[i]     = lpage;
     node->ptrs[i + 1] = rpage;
@@ -361,7 +374,6 @@ btree_t *btree_open(const char *path, int flags)
     return bt;
 }
 
-/* OG: should take creation parameters */
 btree_t *btree_creat(const char *path)
 {
     btree_t *bt;
@@ -478,6 +490,7 @@ btl_keycmp(uint64_t key, const bt_leaf_t *leaf, int pos)
         uint64_t u;
         byte c[8];
     } u;
+    assert (0 <= pos && pos + 1 + 8 <= leaf->used);
     memcpy(&u, leaf->data + pos + 1, 8);
     return CMP(u.u, key);
 }
@@ -490,7 +503,9 @@ btl_findslot(const bt_leaf_t *leaf, uint64_t key, int32_t *slot)
 
     while (*pos < leaf->used && !leaf->data[*pos]) {
         *pos += leaf->data[*pos] + 1; /* skip key  */
+        assert (*pos < leaf->used);
         *pos += leaf->data[*pos] + 1; /* skip data */
+        assert (*pos <= leaf->used);
     }
 
     while (*pos < leaf->used) {
@@ -507,7 +522,9 @@ btl_findslot(const bt_leaf_t *leaf, uint64_t key, int32_t *slot)
 
         do {
             *pos += leaf->data[*pos] + 1; /* skip key  */
+            assert (*pos < leaf->used);
             *pos += leaf->data[*pos] + 1; /* skip data */
+            assert (*pos <= leaf->used);
         } while (*pos < leaf->used && !leaf->data[*pos]);
     }
 
@@ -561,7 +578,9 @@ static void btl_maxkey(const bt_leaf_t *leaf, uint64_t *key)
     for (;;) {
         while (pos < leaf->used && !leaf->data[pos]) {
             pos += 1 + leaf->data[pos];
+            assert (pos < leaf->used);
             pos += 1 + leaf->data[pos];
+            assert (pos <= leaf->used);
         }
 
         if (pos >= leaf->used)
@@ -571,7 +590,9 @@ static void btl_maxkey(const bt_leaf_t *leaf, uint64_t *key)
             memcpy(key, leaf->data + pos + 1, 8);
         }
         pos += 1 + leaf->data[pos];
+        assert (pos < leaf->used);
         pos += 1 + leaf->data[pos];
+        assert (pos <= leaf->used);
     }
 }
 
@@ -595,7 +616,7 @@ static bt_leaf_t *btl_new(btree_t *bt, intpair nodes[], int32_t depth)
 
 int btree_push(btree_t *bt, uint64_t key, const byte *data, int dlen)
 {
-    bool putkey = true, reuse = false;
+    bool reuse = false;
     int32_t page, slot, need, depth;
     intpair *nodes;
     bt_leaf_t *lleaf, *rleaf;
@@ -609,8 +630,9 @@ int btree_push(btree_t *bt, uint64_t key, const byte *data, int dlen)
 
         need  = 1 + 8 + 1 + dlen;
         if (pos >= 0) {
+            assert (pos + 1 + 8 < lleaf->used);
+            assert (pos + 1 + 8 + lleaf->data[pos + 1 + 8] <= lleaf->used);
             if (lleaf->data[pos + 1 + 8] + dlen < 256) {
-            putkey = false;
                 reuse = true;
                 need = dlen;
             }
@@ -619,6 +641,8 @@ int btree_push(btree_t *bt, uint64_t key, const byte *data, int dlen)
         return -1;
     }
 
+    assert (need >= 0);
+    assert (0 <= slot && slot <= lleaf->used);
     if (need + lleaf->used <= ssizeof(lleaf->data))
         goto easy;
 
@@ -636,13 +660,16 @@ int btree_push(btree_t *bt, uint64_t key, const byte *data, int dlen)
         oldpos = slot;
         next   = slot;
 
-        while (next <= lleaf->used && next + need <= ssizeof(lleaf->data)) {
+        while (next < lleaf->used && next + need <= ssizeof(lleaf->data)) {
             oldpos = next;
             next += 1 + lleaf->data[next];
+            assert (next < lleaf->used);
             next += 1 + lleaf->data[next];
+            assert (next <= lleaf->used);
         }
 
         shift = lleaf->used - oldpos;
+        assert (0 <= shift && shift <= lleaf->used);
 
         if (shift + rleaf->used + (slot == oldpos ? need : 0) > ssizeof(rleaf->data)) {
             rleaf = btl_new(bt, nodes, depth);
@@ -671,21 +698,28 @@ int btree_push(btree_t *bt, uint64_t key, const byte *data, int dlen)
 
   easy:
     {
-        byte *p = lleaf->data + slot;
+        byte *p = lleaf->data;
+        int pos = slot;
 
         if (reuse) {
-            p += 1 + 8;
+            pos += 1 + 8;
         }
-        memmove(p + need, p, lleaf->used - (p - lleaf->data));
-        if (putkey) {
-            *p++ = 8;
-            memcpy(p, &key, 8);
-            p += 8;
+
+        assert (pos <= lleaf->used);
+        assert (lleaf->used + need <= ssizeof(lleaf->data));
+        memmove(p + pos + need, p + pos, lleaf->used - pos);
+
+        if (reuse) {
+            p[pos++] += dlen;
+        } else {
+            p[pos++] = 8;
+            memcpy(p + pos, &key, 8);
+            pos += 8;
+            p[pos++] = dlen;
         }
-        *p = (reuse ? *p : 0) + dlen;
-        memcpy(p + 1, data, dlen);
-        p += 1 + dlen;
+        memcpy(p + pos, data, dlen);
         lleaf->used += need;
+        assert (pos + dlen <= lleaf->used);
     }
     return 0;
 }
