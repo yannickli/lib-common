@@ -262,7 +262,10 @@ static parse_t xml_get_tag(xml_tag_t **dst, const char *payload, size_t len,
     tag->fullname = p_new(char, nameend - name + 1);
     pstrcpylen(tag->fullname, nameend - name + 1, name, nameend - name);
     tag->name = strchr(tag->fullname, ':');
-    if (!tag->name) {
+    if (tag->name) {
+        /* Skip ':' */
+        tag->name++;
+    } else {
         tag->name = tag->fullname;
     }
 
@@ -448,11 +451,67 @@ void xml_delete_tree(xml_tree_t **tree)
     }
 }
 
-static void xml_tree_dump(const xml_tag_t *root, const char *prefix)
+static const xml_tag_t* xml_search_branch(const xml_tag_t *branch,
+                                          const xml_tag_t **previous,
+                                          const char *pattern)
+{
+    int taglen, skip;
+    const char *p;
+    const xml_tag_t *cur, *tmp;
+
+    p = strchr(pattern, '/');
+    if (p) {
+        taglen = p - pattern;
+        skip = taglen + 1;
+    } else {
+        taglen = strlen(pattern);
+        skip = taglen;
+    }
+
+    if (taglen <= 0) {
+        if (!previous || *previous == NULL) {
+            return branch;
+        } else if (*previous == branch) {
+            *previous = NULL;
+            return NULL;
+        }
+        return NULL;
+    }
+    for (cur = branch->child; cur; cur = cur->next) {
+        /* XXX: Compare to name and not fullname (ie: ignore namespaces) */
+        if (!strncmp(pattern, cur->name, taglen)) {
+            tmp = xml_search_branch(cur, previous, pattern + skip);
+            if (tmp) {
+                return tmp;
+            }
+        }
+    }
+    
+    return NULL;
+}
+
+const xml_tag_t* xml_search(const xml_tree_t *tree,
+                            const xml_tag_t *previous,
+                            const char *pattern)
+{
+    if (!tree || !tree->root || !pattern) {
+        return NULL;
+    }
+    /* XXX: Only support absolute path for now */
+    if (pattern[0] != '/') {
+        return NULL;
+    }
+    pattern++;
+
+    return xml_search_branch(tree->root, &previous, pattern);
+}
+
+static void xml_branch_dump(const xml_tag_t *root, const char *prefix)
 {
     char newprefix[30];
     char buf[128];
     const xml_prop_t *prop;
+    const xml_tag_t *cur;
     if (!root) {
         return;
     }
@@ -469,18 +528,15 @@ static void xml_tree_dump(const xml_tag_t *root, const char *prefix)
     if (root->text) {
         fprintf(stderr, "%s\n", root->text);
     }
-    if (root->child) {
-        snprintf(newprefix, sizeof(newprefix), "%s   ", prefix);
-        xml_tree_dump(root->child, newprefix);
+
+    snprintf(newprefix, sizeof(newprefix), "%s   ", prefix);
+    for (cur = root->child; cur; cur = cur->next) {
+        xml_branch_dump(cur, newprefix);
     }
     if (root->fullname) {
         fprintf(stderr, "%s </%s>\n", prefix, root->fullname);
     }
 
-    if (root->next) {
-        //fprintf(stderr, "DUMPING %p->next=%p\n", root, root->next);
-        xml_tree_dump(root->next, prefix);
-    }
 }
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
@@ -493,6 +549,7 @@ START_TEST(check_xmlparse)
 {
     blob_t blob;
     xml_tree_t *tree;
+    const xml_tag_t *tag, *tag2, *tag3;
 
     blob_init(&blob);
 
@@ -501,7 +558,37 @@ START_TEST(check_xmlparse)
     tree = xml_new_tree(blob_get_cstr(&blob), blob.len);
     fail_if(!tree, "simple");
     if (tree) {
-        xml_tree_dump(tree->root, "root:");
+        tag = xml_search(tree, NULL, "/");
+        fail_if(tag != tree->root, "search for root failed");
+
+        tag = xml_search(tree, NULL, "/toto");
+        fail_if(tag != NULL, "search for toto succedded");
+
+        tag = xml_search(tree, NULL, "/part1");
+        fail_if(!tag || strcmp(tag->name, "part1"), "search for part1 failed");
+
+        tag = xml_search(tree, NULL, "/part2");
+        fail_if(!tag || strcmp(tag->name, "part2"), "search for part2 failed");
+
+        tag = xml_search(tree, NULL, "/part3/title");
+        fail_if(!tag || strcmp(tag->name, "title"), "search for title failed");
+
+        tag = xml_search(tree, NULL, "/part3/chapter1/paragraph");
+        fail_if(!tag, "search for paragraph1 failed");
+        if (tag) {
+            xml_branch_dump(tag, "paragraph1:");
+        }
+
+        tag2 = xml_search(tree, tag, "/part3/chapter1/paragraph");
+        fail_if(!tag2, "search for paragraph2 failed");
+        if (tag2) {
+            xml_branch_dump(tag2, "paragraph2:");
+        }
+
+        tag3 = xml_search(tree, tag2, "/part3/chapter1/paragraph");
+        fail_if(tag3, "search for paragraph3 failed");
+
+        xml_branch_dump(tree->root, "root:");
         xml_delete_tree(&tree);
     }
 

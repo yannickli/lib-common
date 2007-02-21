@@ -43,6 +43,9 @@ struct xml_tree_t {
 };
 
 xml_tree_t *xml_new_tree(const char *payload, size_t len);
+const xml_tag_t* xml_search(const xml_tree_t *tree,
+                            const xml_tag_t *previous,
+                            const char *pattern);
 void xml_delete_tree(xml_tree_t **tree);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
