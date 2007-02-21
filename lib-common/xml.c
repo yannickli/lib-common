@@ -121,6 +121,7 @@ static parse_t xml_get_prop(xml_prop_t **dst, const char *payload,
         goto error;
     }
 
+    SKIPSPACES(p, len);
     if (*p != '\'' && *p != '"') {
         goto error;
     }
