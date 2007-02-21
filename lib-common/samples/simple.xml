@@ -1,5 +1,5 @@
 <?xml version="1.0" charset="toto" ?>
-<part1></part1>
+<aa:part1></aa:part1>
 <part2 FOO="123" BAR="" BAZ="blahblah" toto='titi'>
 </part2>
 <part3>
@@ -8,9 +8,9 @@
         <title text="This is the title">
         </title>
         <chapter1>
-                <paragraph>BLAH BLAHBLAH
+                <paragraph nb="1">BLAH BLAHBLAH
                 </paragraph>
-                <paragraph>
+                <paragraph nb ="2">
                 </paragraph>
         </chapter1>
         <chapter2>
