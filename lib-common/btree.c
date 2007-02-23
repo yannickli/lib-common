@@ -548,7 +548,7 @@ int btree_fetch(const btree_t *bt, uint64_t key, blob_t *out)
     do {
         int slot;
 
-        pos = leaf->data[pos] + 1;
+        pos += 1 + leaf->data[pos];
         if (EXPECT_FALSE(pos + 1 >= leaf->used))
             break;
 
@@ -564,7 +564,7 @@ int btree_fetch(const btree_t *bt, uint64_t key, blob_t *out)
             pos  = 0;
             leaf = &bt_deref(bt->area, leaf->next)->leaf;
             if (!leaf)
-                break;
+                return len;
         }
     } while (!leaf->data[pos] || !btl_keycmp(key, leaf, pos));
 
@@ -724,6 +724,18 @@ int btree_push(btree_t *bt, uint64_t key, const byte *data, int dlen)
     return 0;
 }
 
+#if 0
+#include "strconv.h"
+static void hexdump(FILE *out, const byte *p, int n)
+{
+    while (n > 0) {
+        fputc(__str_digits_lower[*p >> 4], out);
+        fputc(__str_digits_lower[*p & 7], out);
+        p++, n--;
+    }
+}
+#endif
+
 void btree_dump(FILE *out, const btree_t *bt_pub)
 {
     struct btree_priv *bt = bt_pub->area;
@@ -789,10 +801,16 @@ void btree_dump(FILE *out, const btree_t *bt_pub)
                 fputs(": ", out);
 
                 size += leaf->data[pos];
+#if 0
+                hexdump(out, leaf->data + pos + 1, leaf->data[pos]);
+#endif
                 pos += 1 + leaf->data[pos];
 
                 while (pos < leaf->used && !leaf->data[pos]) {
                     pos += 1 + leaf->data[pos];
+#if 0
+                    hexdump(out, leaf->data + pos + 1, leaf->data[pos]);
+#endif
                     size += leaf->data[pos];
                     pos += 1 + leaf->data[pos];
                 }
