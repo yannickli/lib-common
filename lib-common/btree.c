@@ -361,6 +361,10 @@ btree_t *btree_open(const char *path, int flags)
         return btree_creat(path);
 
     bt  = bt_real_open(path, flags);
+    if (!bt) {
+        e_trace(2, "Could not open bt on %s: %m", path);
+        return NULL;
+    }
     res = btree_fsck(bt, BT_ISWRITE(flags));
     if (res < 0) {
         btree_close(&bt);
