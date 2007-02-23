@@ -18,7 +18,9 @@ __EXE__   =
 __LIB__   = libcommon
 __CHECK__ = test test_blob_iconv msg_test 
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-sha2
-__CHECK__ += tst-btree
+__CHECK__ += tst-btree btree-dump
+
+btree-dump_SOURCES = btree-dump.c libcommon.a
 
 libcommon_SOURCES = \
 	archive.c \
