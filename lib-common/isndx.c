@@ -893,7 +893,7 @@ void isndx_dump_page(isndx_t *ndx, uint32_t pageno, int flags, FILE *fp)
                         /* Propagate sign bit */
                         num <<= (keylen - 8) * 8;
                         num >>= (keylen - 8) * 8;
-                        fprintf(fp, "%lld", num);
+                        fprintf(fp, "%lld", (long long)num);
                     } else {
                         /* print as HEX */
                         for (i = 0; i < keylen; i++) {
