@@ -100,7 +100,7 @@ static parse_t xml_get_prop(xml_prop_t **dst, const char *payload,
     /* Parse tag name */
     name = p;
     while (len) {
-        if (!isalnum(*p)) {
+        if (!isalnum(*p) && *p != ':' && *p != '-') {
             break;
         }
         len--;
@@ -233,7 +233,7 @@ static parse_t xml_get_tag(xml_tag_t **dst, const char *payload, size_t len,
     /* Parse tag name */
     name = p;
     while (len) {
-        if (!isalnum(*p) && *p != ':') {
+        if (!isalnum(*p) && *p != ':' && *p != '-') {
             break;
         }
         len--;
@@ -431,6 +431,8 @@ xml_tree_t *xml_new_tree(const char *payload, size_t len)
     tree = p_new(xml_tree_t, 1);
     tree->root = p_new(xml_tag_t, 1);
     if (xml_get_xml_tag(tree, payload, len, &pend)) {
+        xml_delete_tree(&tree);
+        return NULL;
     }
     len -= pend - payload;
     payload = pend;
