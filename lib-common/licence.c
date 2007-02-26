@@ -13,7 +13,9 @@
 
 #include <stdio.h>
 #include <net/if.h>
+#ifdef LINUX
 #include <net/if_arp.h>
+#endif
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 
@@ -91,19 +93,30 @@ static int parse_hex2(int b1, int b0)
     return (x1 << 4) | x0;
 }
 
+#if defined(__CYGWIN__)
+struct if_nameindex {
+    int if_index;
+    char if_name[32];
+};
+#define ARPHRD_ETHER  0
+static inline struct if_nameindex *if_nameindex(void) {
+    struct if_nameindex *p = calloc(sizeof(struct if_nameindex), 2);
+    strcpy(p->if_name, "eth0");
+    return p;
+}
+
+static inline void if_freenameindex(struct if_nameindex *p) {
+    free(p);
+}
+#endif
+
 bool is_my_mac_addr(const char *addr)
 {
-    int x;
     bool found = false;
     struct if_nameindex *iflist;
     struct if_nameindex *cur;
-    char mac[6];
+    byte mac[6];
     int s = -1;
-
-    iflist = if_nameindex();
-    if (!iflist) {
-        return false;
-    }
 
     /* addr points to a string of the form "XX:XX:XX:XX:XX:XX" */
     if (strlen(addr) != 17) {
@@ -114,7 +127,7 @@ bool is_my_mac_addr(const char *addr)
         return false;
     }
 #define PARSE_HEX(dst, b0, b1) do { \
-        x = parse_hex2((b0), (b1)); \
+        int x = parse_hex2((b0), (b1)); \
         if (x < 0 || x > 255) { \
             return false; \
         } \
@@ -128,12 +141,17 @@ bool is_my_mac_addr(const char *addr)
     PARSE_HEX(mac[5], addr[15], addr[16]);
 #undef PARSE_HEX
 
+    iflist = if_nameindex();
+    if (!iflist) {
+        return false;
+    }
+
     s = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
     if (s < 0) {
         if_freenameindex(iflist);
         return false;
     }
-    for (cur = iflist ; cur->if_index; cur++) {
+    for (cur = iflist; cur->if_index; cur++) {
         struct ifreq if_hwaddr;
 
         pstrcpy(if_hwaddr.ifr_ifrn.ifrn_name, IFNAMSIZ, cur->if_name);
@@ -463,7 +481,9 @@ Suite *check_licence_suite(void)
     suite_add_tcase(s, tc);
     tcase_add_test(tc, check_parse_hex);
     tcase_add_test(tc, check_parse_hex2);
+#ifndef __CYGWIN__
     tcase_add_test(tc, check_is_my_mac_addr);
+#endif
     tcase_add_test(tc, check_list_my_macs);
     tcase_add_test(tc, check_licence_check_signature_ok);
     return s;
