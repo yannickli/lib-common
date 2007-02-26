@@ -458,20 +458,21 @@ static const xml_tag_t* xml_search_branch(const xml_tag_t *branch,
                                           const xml_tag_t **previous,
                                           const char *pattern)
 {
-    int taglen, skip;
+    int patlen, skip;
     const char *p;
     const xml_tag_t *cur, *tmp;
+    int matchall;
 
     p = strchr(pattern, '/');
     if (p) {
-        taglen = p - pattern;
-        skip = taglen + 1;
+        patlen = p - pattern;
+        skip = patlen + 1;
     } else {
-        taglen = strlen(pattern);
-        skip = taglen;
+        patlen = strlen(pattern);
+        skip = patlen;
     }
 
-    if (taglen <= 0) {
+    if (patlen <= 0) {
         if (!previous || *previous == NULL) {
             return branch;
         } else if (*previous == branch) {
@@ -480,9 +481,11 @@ static const xml_tag_t* xml_search_branch(const xml_tag_t *branch,
         }
         return NULL;
     }
+
+    matchall = patlen == 1 && pattern[0] == '*';
     for (cur = branch->child; cur; cur = cur->next) {
         /* XXX: Compare to name and not fullname (ie: ignore namespaces) */
-        if (!strncmp(pattern, cur->name, taglen)) {
+        if (matchall || !strncmp(pattern, cur->name, patlen)) {
             tmp = xml_search_branch(cur, previous, pattern + skip);
             if (tmp) {
                 return tmp;
@@ -552,7 +555,7 @@ START_TEST(check_xmlparse)
 {
     blob_t blob;
     xml_tree_t *tree;
-    const xml_tag_t *tag, *tag2, *tag3;
+    const xml_tag_t *tag, *tag2, *tag3, *tag4;
 
     blob_init(&blob);
 
@@ -590,6 +593,9 @@ START_TEST(check_xmlparse)
 
         tag3 = xml_search(tree, tag2, "/part3/chapter1/paragraph");
         fail_if(tag3, "search for paragraph3 failed");
+
+        tag4 = xml_search(tree, NULL, "/part3/*/paragraph");
+        fail_if(tag4 != tag, "search for first paragraph failed");
 
         xml_branch_dump(tree->root, "root:");
         xml_delete_tree(&tree);
