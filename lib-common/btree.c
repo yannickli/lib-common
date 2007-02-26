@@ -740,7 +740,7 @@ static void hexdump(FILE *out, const byte *p, int n)
 }
 #endif
 
-void btree_dump(FILE *out, const btree_t *bt_pub)
+void btree_dump(const btree_t *bt_pub, FILE *out)
 {
     struct btree_priv *bt = bt_pub->area;
     int32_t lmost, depth = 0;

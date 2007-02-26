@@ -23,7 +23,7 @@ int main(int argc, char **argv)
         bt = btree_open(argv[1], O_RDONLY);
         assert(bt);
 
-        btree_dump(stdout, bt);
+        btree_dump(bt, stdout);
 
         btree_close(&bt);
     }
