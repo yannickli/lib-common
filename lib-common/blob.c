@@ -1967,7 +1967,7 @@ END_TEST
 
 
 /*.....................................................................}}}*/
-/* test blob_blob_iconv                                                {{{*/
+/* test blob_file_gunzip                                               {{{*/
 
 static int check_gunzip_tpl(const char *file1, const char *file2)
 {
@@ -1999,7 +1999,7 @@ START_TEST(check_gunzip)
 END_TEST
 
 /*.....................................................................}}}*/
-/* test check_gzip                                                     {{{*/
+/* test blob_file_gzip                                                 {{{*/
 
 static int check_gzip_tpl(const char *file1, const char *file2)
 {
@@ -2032,88 +2032,7 @@ START_TEST(check_gzip)
 END_TEST
 
 /*.....................................................................}}}*/
-/* test blob_blob_iconv                                                {{{*/
-
-static int check_aiconv_templ(const char *file1, const char *file2,
-                              const char *encoding)
-{
-    blob_t b1;
-    blob_t b2;
-
-    int i = 0;
-    int c_typ = 0;
-
-    blob_init(&b1);
-    blob_init(&b2);
-
-    blob_file_auto_iconv(&b1, file1, encoding, &c_typ);
-
-    blob_append_file_data(&b2, file2);
-    fail_if (blob_cmp(&b1, &b2) != 0,
-             "blob_auto_iconv failed on: %s with"
-             " hint \"%s\" encoding\n---\n%.*s\n---\n%.*s",
-             file1, encoding,
-             b1.len, blob_get_cstr(&b1),
-             b2.len, blob_get_cstr(&b2));
-
-    blob_wipe(&b1);
-    blob_wipe(&b2);
-
-    return 0;
-}
-
-static int check_aiconv_templ_2(const char *file1, const char *file2)
-{
-    check_aiconv_templ(file1, file2, "UTF-8");
-    check_aiconv_templ(file1, file2, "ISO-8859-1");
-    check_aiconv_templ(file1, file2, "Windows-1250");
-
-    return 0;
-}
-
-START_TEST(check_blob_auto_iconv)
-{
-    check_aiconv_templ_2("samples/example1.latin1",
-                         "samples/example1.utf8");
-    check_aiconv_templ_2("samples/example2.windows-1250",
-                         "samples/example2.utf8");
-    check_aiconv_templ_2("samples/example1.utf8",
-                         "samples/example1.utf8");
-    check_aiconv_templ("samples/example3.windows-1256",
-                       "samples/example3.utf8", "windows-1256");
-    blob_iconv_close_all();
-}
-END_TEST
-
-/*.....................................................................}}}*/
-/* test blob_blob_iconv                                                {{{*/
-
-START_TEST(check_blob_iconv_close)
-{
-    blob_t b1;
-    blob_t b2;
-    int c_typ = 0;
-    int n;
-
-    blob_init(&b1);
-    blob_init(&b2);
-
-    blob_file_auto_iconv(&b2, "samples/example1.latin1", "ISO-8859-1",
-                         &c_typ);
-    blob_file_auto_iconv(&b2, "samples/example1.utf8", "UTF-8",
-                         &c_typ);
-    blob_file_auto_iconv(&b2, "samples/example2.windows-1250", "windows-1250",
-                         &c_typ);
-
-    n = blob_iconv_close_all();
-    fail_if(n > 2,
-            "blob_file_auto_iconv allocated %d iconv_t handles instead of %d",
-            n, 2);
-
-    blob_wipe(&b1);
-    blob_wipe(&b2);
-}
-END_TEST
+/* test blob_append_ira                                                {{{*/
 
 START_TEST(check_ira)
 {
@@ -2232,8 +2151,6 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_zlib_compress_uncompress);
     tcase_add_test(tc, check_gunzip);
     tcase_add_test(tc, check_gzip);
-    tcase_add_test(tc, check_blob_auto_iconv);
-    tcase_add_test(tc, check_blob_iconv_close);
 
     return s;
 }
