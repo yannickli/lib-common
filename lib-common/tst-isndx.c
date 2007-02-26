@@ -185,7 +185,7 @@ int main(int argc, char **argv)
     }
 #else
     {
-        int64_t num_keys = 5000000;
+        int64_t num_keys = 1000000;
         int64_t num_data = 4;
         //int64_t start = 0x0600000000LL;
         int64_t start = 600000000LL;

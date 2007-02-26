@@ -46,14 +46,16 @@ static void test_shutdown(void)
 
 int main(void)
 {
+    int64_t num_keys = 5000000;
+    int64_t num_data = 4;
     int64_t n, start = 0;
-    int64_t max = start + 128 * 1024;
+    int64_t max = start + num_keys;
     int32_t d;
 
     test_initialize();
 
-        for (d = 0; d < 1024 * 256; d += 1024) {
     for (n = start; n < max; n++) {
+        for (d = 0; d < 1024 * num_data; d += 1024) {
             btree_push(bt, n, (void*)&d, 4);
         }
     }
