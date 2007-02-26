@@ -445,7 +445,7 @@ xml_tree_t *xml_new_tree(const char *payload, size_t len)
 
 void xml_delete_tree(xml_tree_t **tree)
 {
-    if (tree) {
+    if (tree && *tree) {
         if ((*tree)->root) {
             xml_tag_t_list_wipe(&(*tree)->root);
             p_delete(&(*tree)->root);
