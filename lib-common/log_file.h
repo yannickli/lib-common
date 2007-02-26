@@ -15,7 +15,7 @@
 #define IS_LIB_COMMON_LOG_FILE_H
 
 #include <time.h>
-#include <linux/limits.h>
+#include <limits.h>
 
 #include "mem.h"
 
@@ -23,8 +23,8 @@
  *  TODO: Should support a symlink to the last opened log file
  */
 
-/* This module provides auto rorating log files : log files are rotated
- * automaticcaly depending on file size or data, or both.
+/* This module provides auto rotating log files: log files are rotated
+ * automatically depending on file size or data, or both.
  *
  */
 
@@ -34,7 +34,7 @@ typedef struct log_file_t {
     time_t open_date;
     time_t rotate_date;
     time_t rotate_delay;
-    FILE * _internal;
+    FILE *_internal;
 } log_file_t;
 
 log_file_t *log_file_open(const char *prefix);
