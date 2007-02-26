@@ -25,7 +25,6 @@
 
 #define IPRINTF_HIDE_STDIO  1
 #include "iprintf.h"
-#undef sprintf
 
 #define TEST_FLOATING_POINT        0
 #define TEST_POSITIONAL_ARGUMENTS  0
@@ -351,6 +350,7 @@ static void rfg2(void)
     int prec;
     char buf[100];
 
+#if TEST_FLOATING_POINT
     prec = 0;
     sprintf(buf, "%.*g", prec, 3.3);
     if (strcmp(buf, "3") != 0)
@@ -363,6 +363,7 @@ static void rfg2(void)
     sprintf(buf, "%7.*G", prec, 3.33);
     if (strcmp(buf, "      3") != 0)
         fprintf(fp, "got: '%s', expected: '%s'\n", buf, "      3");
+#endif
     prec = 3;
     sprintf(buf, "%04.*o", prec, 33);
     if (strcmp(buf, " 041") != 0)

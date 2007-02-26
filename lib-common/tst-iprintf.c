@@ -16,7 +16,11 @@
 #define ALT_FUNC  isnprintf
 #endif
 
+#ifdef __CYGWIN__
+#define TEST_ALT_NUMBERS  0
+#else
 #define TEST_ALT_NUMBERS  1
+#endif
 
 typedef struct {
     int line;
