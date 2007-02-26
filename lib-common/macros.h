@@ -66,6 +66,13 @@ typedef int bool;
 typedef unsigned char byte;
 typedef unsigned int flag_t;    /* for 1 bit bitfields */
 
+#if defined(__CYGWIN__)
+typedef int gt_int32_t;
+typedef unsigned int gt_uint32_t;
+#define int32_t __int32_t
+#define uint32_t __uint32_t
+#endif
+
 /*---------------- Misc ----------------*/
 
 #define countof(table)  ((ssize_t)(sizeof(table) / sizeof((table)[0])))
