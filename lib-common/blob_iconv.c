@@ -14,7 +14,7 @@
 #include <iconv.h>
 #include <string.h>
 #include <errno.h>
-#include <iconv.h>
+#include <iconv.h>      // redundant ?
 
 #include "mem.h"
 #include "blob.h"
@@ -29,21 +29,23 @@ typedef struct iconv_t_cache {
     iconv_t handle;
 } iconv_t_cache;
 
-#define iconv(cd, inbuf, inleft, outbuf, outleft) \
-    ciconv(cd, inbuf, inleft, outbuf, outleft)
-
 /**
  * iconv_handles is used to keep the iconv_handles so that we must not
  * call iconv_open every time.
  */
 static iconv_t_cache *iconv_handles = NULL;
 
+#if !defined(__CYGWIN__)
+/* Work around broken iconv() prototype in GLIBC */
+#define iconv(cd, inbuf, inleft, outbuf, outleft) \
+    ciconv(cd, inbuf, inleft, outbuf, outleft)
 static inline size_t ciconv(iconv_t cd,
                             const char **inbuf, size_t *inbytesleft,
                             char **outbuf, size_t *outbytesleft)
 {
     return (iconv)(cd, (char **)inbuf, inbytesleft, outbuf, outbytesleft);
 }
+#endif
 
 /**
  * We only try to detect the encoding if it is one of the known_encodings
