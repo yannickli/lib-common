@@ -131,7 +131,7 @@ int strtolp(const char *p, const char **endp, int base, long *res,
             *res = min;
             clamped = true;
         } else
-        if (value > max) {
+        if (*res > max) {
             *res = max;
             clamped = true;
         }            
@@ -882,15 +882,15 @@ END_TEST
         ret = strtolp(p, &endp, 0, &val, flags, min, max);              \
                                                                         \
         fail_if (ret != ret_exp,                                        \
-                 "('%s', %d, %ld<= XXX <= %ld. %ld, %d, %d)"            \
-                 "ret=%d (expected %d)\n",                              \
+                 "(\"%s\", flags=%d, min=%ld, max=%ld, val_exp=%ld, ret_exp=%d, end_i=%d)" \
+                 " -> ret=%d (expected %d)\n",                          \
                  p, flags, min, max, val_exp, ret_exp, end_i,           \
                  ret, ret_exp);                                         \
                                                                         \
         if (ret == 0) {                                                 \
             fail_if (val != val_exp,                                    \
-                     "('%s', %d, %ld<= XXX <= %ld. %ld, %d, %d)"        \
-                     "val=%ld (expected %ld)\n",                        \
+                     "(\"%s\", flags=%d, min=%ld, max=%ld, val_exp=%ld, ret_exp=%d, end_i=%d)" \
+                     " -> val=%ld (expected %ld)\n",                    \
                      p, flags, min, max, val_exp, ret_exp, end_i,       \
                      val, val_exp);                                     \
         }                                                               \
