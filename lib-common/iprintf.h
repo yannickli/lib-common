@@ -19,6 +19,10 @@
 
 #include "macros.h"
 
+#ifdef __CYGWIN__
+#define iprintf  IS_printf
+#endif
+
 int iprintf(const char *format, ...)
         __attr_printf__(1, 2)  __attr_nonnull__((1));
 int ifprintf(FILE *stream, const char *format, ...)
@@ -34,7 +38,16 @@ int ivsnprintf(char *str, size_t size, const char *format, va_list arglist)
 int ifputs_hex(FILE *stream, const byte *buf, int len)
         __attr_nonnull__((1, 2));
 
+int isprintf(char *str, const char *format, ...)
+        __attr_printf__(2, 3)  __attr_nonnull__((2));
+int ivsprintf(char *str, const char *format, va_list arglist)
+        __attr_printf__(2, 0)  __attr_nonnull__((2));
+
 #if defined(IPRINTF_HIDE_STDIO) && IPRINTF_HIDE_STDIO
+#undef sprintf
+#define sprintf(...)    isprintf(__VA_ARGS__)
+#undef vsprintf
+#define vsprintf(...)    ivsprintf(__VA_ARGS__)
 #define printf(...)     iprintf(__VA_ARGS__)
 #define fprintf(...)    ifprintf(__VA_ARGS__)
 #define snprintf(...)   isnprintf(__VA_ARGS__)

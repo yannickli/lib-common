@@ -32,9 +32,14 @@
  *   stdio.h:    stdout, putc_unlocked, fwrite_unlocked;
  */
 
+#ifdef __CYGWIN__
+#define PUTC(c, f)          putc_unlocked(c, f)
+#define FWRITE(b, s, n, f)  fwrite(b, s, n, f)
+#else
 /* Wrap glibc specific unlocked API with obnoxious macros */
 #define PUTC(c, f)          putc_unlocked(c, f)
 #define FWRITE(b, s, n, f)  fwrite_unlocked(b, s, n, f)
+#endif
 
 /*---------------- formatter ----------------*/
 
@@ -134,10 +139,11 @@
 
 /*---------------- helpers ----------------*/
 
-static inline int strnlen(const char *str, int n)
+#define strnlen gt_strnlen
+static inline size_t strnlen(const char *str, size_t n)
 {
     const char *p = memchr(str, '\0', n);
-    return (p ? p - str : n);
+    return (p ? (size_t)(p - str) : n);
 }
 
 static inline char *convert_int10(char *p, int value)
@@ -414,7 +420,8 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         /* parse optional format modifiers */
         size_flags = 0;
         switch (*format) {
-        case '\0': goto error;
+        case '\0':
+            goto error;
 #ifdef SIZE_far
         case 'F':
             size_flags |= SIZE_far;
@@ -468,7 +475,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             goto error;
 
         case 'n':
-#if 1
+#if 0
             /* Consume pointer to int from argument list, but ignore it */
             (void)va_arg(ap, int *);
 #else
@@ -476,30 +483,31 @@ static int fmt_output(FILE *stream, char *str, size_t size,
              * specified with the SIZE_xxx prefixes */
             switch (size_flags) {
               case SIZE_char:
-                *(char *)va_arg(ap, void *) = count;
+                *va_arg(ap, char *) = count;
                 break;
 
               case SIZE_short:
-                *(short *)va_arg(ap, void *) = count;
+                *va_arg(ap, short *) = count;
                 break;
 
               case SIZE_int:
               default:
-                *(int *)va_arg(ap, void *) = count;
+                *va_arg(ap, int *) = count;
                 break;
 #ifdef WANT_long
               case SIZE_long:
-                *(long *)va_arg(ap, void *) = count;
+                *va_arg(ap, long *) = count;
                 break;
 #endif
 #ifdef WANT_int32
               case SIZE_int32:
-                *(int32_t *)va_arg(ap, void *) = count;
+                *va_arg(ap, int32_t *) = count;
                 break;
 #endif
 #ifdef WANT_int64
               case SIZE_int64:
-                *(int64_t *)va_arg(ap, void *) = count;
+              case SIZE_long_double:
+                *va_arg(ap, int64_t *) = count;
                 break;
 #endif
             }
@@ -591,6 +599,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
 #endif
 #ifdef WANT_int64
               case SIZE_int64:
+              case SIZE_long_double:
                 {
                     int64_t value = va_arg(ap, int64_t);
                     uint64_t bits = value >> (8 * sizeof(value) - 1);
@@ -718,6 +727,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
 #endif
 #ifdef WANT_int64
               case SIZE_int64:
+              case SIZE_long_double:
                 lp = convert_uint64(buf + sizeof(buf),
                                     va_arg(ap, uint64_t), base);
                 break;
@@ -896,6 +906,18 @@ int isnprintf(char *str, size_t size, const char *format, ...)
     return n;
 }
 
+int isprintf(char *str, const char *format, ...)
+{
+    va_list ap;
+    int n;
+
+    va_start(ap, format);
+    n = fmt_output(NULL, str, INT_MAX, format, ap);
+    va_end(ap);
+    
+    return n;
+}
+
 int ivprintf(const char *format, va_list arglist)
 {
     return fmt_output(stdout, NULL, 0, format, arglist);
@@ -913,6 +935,11 @@ int ivfprintf(FILE *stream, const char *format, va_list arglist)
 int ivsnprintf(char *str, size_t size, const char *format, va_list arglist)
 {
     return fmt_output(NULL, str, size, format, arglist);
+}
+
+int ivsprintf(char *str, const char *format, va_list arglist)
+{
+    return fmt_output(NULL, str, INT_MAX, format, arglist);
 }
 
 int ifputs_hex(FILE *stream, const byte *buf, int len)
