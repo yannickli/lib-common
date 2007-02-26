@@ -14,11 +14,11 @@
 DEPTH=..
 include $(DEPTH)/admin/header.mk
 
-__EXE__   = 
+__EXE__   = btree-dump 
 __LIB__   = libcommon
 __CHECK__ = test test_blob_iconv msg_test 
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-sha2
-__CHECK__ += tst-btree btree-dump
+__CHECK__ += tst-btree tst-isndx
 
 btree-dump_SOURCES = btree-dump.c libcommon.a
 
@@ -26,6 +26,7 @@ libcommon_SOURCES = \
 	archive.c \
 	array.c \
 	btree.c \
+	isndx.c \
 	str_array.c \
 	blob.c \
 	blob_zlib.c \
@@ -66,18 +67,24 @@ test_blob_iconv_SOURCES = \
 
 tst-iprintf_SOURCES = tst-iprintf.c libcommon.a
 
-tst-iprintf-fp_CFLAGS = -Wno-format
+tst-iprintf-fp_CFLAGS = -Wno-format -Wno-missing-format-attribute
 tst-iprintf-fp_SOURCES = tst-iprintf-fp.c libcommon.a
 
-tst-iprintf-glibc_CFLAGS = -Wno-format
+tst-iprintf-glibc_CFLAGS = -Wno-format -Wno-missing-format-attribute
 tst-iprintf-glibc_SOURCES = tst-iprintf-glibc.c libcommon.a
 
 tst-sha2_CFLAGS = -DTEST_VECTORS
 tst-sha2_SOURCES = sha2.c libcommon.a
 
 tst-btree_SOURCES = tst-btree.c libcommon.a
+tst-isndx_SOURCES = tst-isndx.c libcommon.a
 
 msg_test_CFLAGS = -DMSG_TEST
 msg_test_SOURCES = msg_template.c libcommon.a
+
+ifneq (,$(filter CYGWIN%,$(UNAME)))
+  libcommon_SOURCES := $(filter-out blob_iconv.c,$(libcommon_SOURCES))
+  __CHECK__ := $(filter-out test_blob_iconv,$(__CHECK__))
+endif
 
 include $(DEPTH)/admin/footer.mk
