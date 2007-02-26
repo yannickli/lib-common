@@ -519,17 +519,17 @@ const archive_file *archive_file_next_path(const archive_t *archive,
 static void archive_file_dump(const archive_file *file, int level)
 {
     e_trace(level, "archive_file:");
-    e_trace(level, " - size = %d", file->size);
-    e_trace(level, " - date_create = %d", file->date_create);
-    e_trace(level, " - date_update = %d", file->date_update);
+    e_trace(level, " - size = %u", file->size);
+    e_trace(level, " - date_create = %u", file->date_create);
+    e_trace(level, " - date_update = %u", file->date_update);
     e_trace(level, " - name = %s", file->name);
-    e_trace(level, " - nb_attrs = %d", file->nb_attrs);
-    e_trace(level, " - payload = %.*s", file->size, file->payload);
+    e_trace(level, " - nb_attrs = %u", file->nb_attrs);
+    e_trace(level, " - payload = %.*s", (int)file->size, file->payload);
 }
 static void archive_head_dump(const archive_head *head, int level)
 {
     e_trace(level, "archive_head :");
-    e_trace(level, " - nb_blocs = %d", head->nb_blocs);
+    e_trace(level, " - nb_blocs = %u", head->nb_blocs);
 }
 static void archive_tpl_dump(const archive_tpl __unused__ *tpl, int level)
 {
@@ -540,7 +540,7 @@ void archive_dump(const archive_t *archive, int level)
 {
     int i;
 
-    e_trace(level, "archive: - version = %d\n", archive->version);
+    e_trace(level, "archive: - version = %u\n", archive->version);
     e_trace(level, " - nb_blocs = %d", archive->nb_blocs);
     
     if (archive->nb_blocs) {
