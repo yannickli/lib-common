@@ -734,7 +734,7 @@ static void hexdump(FILE *out, const byte *p, int n)
 {
     while (n > 0) {
         fputc(__str_digits_lower[*p >> 4], out);
-        fputc(__str_digits_lower[*p & 7], out);
+        fputc(__str_digits_lower[*p & 15], out);
         p++, n--;
     }
 }
