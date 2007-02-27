@@ -164,14 +164,14 @@ static archive_head *archive_parse_head(const byte **input, int *len)
     }
 
     if (read_uint32(input, len, &head->nb_blocs)) {
-        p_delete (&head);
+        p_delete(&head);
         return NULL;
     }
 
     return head;
 
 error:
-    p_delete (&head);
+    p_delete(&head);
     *len = old_len;
     *input = old_input;
     return NULL;
