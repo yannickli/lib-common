@@ -94,15 +94,29 @@ int pidx_fsck(pidx_file *pidx, int dofix);
 /* low level page related functions                                         */
 /****************************************************************************/
 
-int32_t pidx_page_find(pidx_file *pidx, uint64_t idx);
+int32_t pidx_page_find(const pidx_file *pidx, uint64_t idx);
 int32_t pidx_page_new(pidx_file *pidx, uint64_t idx);
 
+/****************************************************************************/
+/* low level keys related functions                                         */
+/****************************************************************************/
+
+int pidx_key_first(const pidx_file *pidx, uint64_t minval, uint64_t *res);
+
+static inline int
+pidx_key_next(const pidx_file *pidx, uint64_t cur, uint64_t *res) {
+    if (cur++ == INT64_MAX)
+        return -1;
+    return pidx_key_first(pidx, cur, res);
+}
 
 /****************************************************************************/
 /* high level functions                                                     */
 /****************************************************************************/
 
 int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out);
+int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
+                       byte *out, int start, int len);
 int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len);
 void pidx_data_release(pidx_file *pidx, uint64_t idx);
 

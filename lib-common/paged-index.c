@@ -274,7 +274,7 @@ static inline int int_bits_range(uint64_t idx, int start, int width)
  *  +  0 for not found
  *  +  positive integer index in pidx->pages[...]
  */
-int32_t pidx_page_find(pidx_file *pidx, uint64_t idx)
+int32_t pidx_page_find(const pidx_file *pidx, uint64_t idx)
 {
     const int maxshift = pidx->area->skip + PIDX_SHIFT * pidx->area->nbsegs;
 
@@ -365,8 +365,84 @@ int32_t pidx_page_new(pidx_file *pidx, uint64_t idx)
 }
 
 /****************************************************************************/
+/* low level keys related functions                                         */
+/****************************************************************************/
+
+int pidx_key_first(const pidx_file *pidx, uint64_t minval, uint64_t *res)
+{
+    const int skip = pidx->area->skip;
+    const pidx_page *pages = pidx->area->pages;
+
+    int32_t page, *path = p_alloca(int32_t, pidx->area->nbsegs);
+    int pos, key;
+
+    if (int_bits_range(minval, 0, skip)) {
+        return -1;
+    }
+
+    pos  = 0;
+    page = path[pos] = 0;
+    key  = int_bits_range(minval, skip + PIDX_SHIFT * pos, PIDX_SHIFT);
+
+    for (;;) {
+
+        while (!pages[page].refs[key]) {
+            if (++key < countof(pages[page].refs)) {
+                const int rbits = 64 - 8 * (pos + 1) - skip;
+                minval = ((minval >> rbits) + 1) << rbits;
+            } else {
+                if (--pos < 0)
+                    return -1;
+                page = path[pos];
+                key  = int_bits_range(minval, skip + PIDX_SHIFT * pos,
+                                      PIDX_SHIFT);
+            }
+        }
+
+        if (pos == pidx->area->nbsegs) {
+            *res = minval;
+            return 0;
+        }
+        page = path[++pos] = pages[page].refs[key];
+        key  = int_bits_range(minval, skip + PIDX_SHIFT * pos, PIDX_SHIFT);
+    }
+}
+
+/****************************************************************************/
 /* high functions                                                           */
 /****************************************************************************/
+
+int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
+                       byte *out, int start, int len)
+{
+    int32_t page  = pidx_page_find(pidx, idx);
+    const byte *orig = out;
+
+    while (page && len) {
+        pidx_page *pg = pidx->area->pages + page;
+        int32_t size = *(int32_t *)pg->payload;
+
+        if (size > PIDX_PAGE - 2 * ssizeof(int32_t))
+            goto error;
+
+        if (start > size) {
+            start -= size;
+        } else {
+            int copy = MIN(len, size - start);
+
+            memcpy(out, pg->payload + sizeof(int32_t) + start, copy);
+            out += copy;
+            len -= copy;
+            start = 0;
+        }
+        page = pg->next;
+    }
+
+    return out - orig;
+
+  error:
+    return -1;
+}
 
 int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out)
 {
