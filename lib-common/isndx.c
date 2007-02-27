@@ -234,8 +234,10 @@ isndx_t *isndx_open(const char *path, int flags)
 
 void isndx_close(isndx_t **ndxp)
 {
-    isndx_real_close(&(*ndxp)->file);
-    p_delete(ndxp);
+    if (*ndxp) {
+        isndx_real_close(&(*ndxp)->file);
+        p_delete(ndxp);
+    }
 }
 
 static int isndx_scan(isndx_t *ndx, const byte *page,
