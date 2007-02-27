@@ -39,6 +39,13 @@ struct xml_prop_t {
 
 struct xml_tree_t {
     xml_tag_t *root;
+    /* Memory pool for text: names, properties, values... They are
+     * all allocated at parse time and freed at the same time, so we 
+     * pre-allocate them in one big chunk, bigger than what's really
+     * needed but we do not really care loosing a few bytes. */
+    char *mp_start;
+    char *mp_cur;
+    int mp_left;
     // Add version, charset, etc.
 };
 
