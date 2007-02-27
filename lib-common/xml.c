@@ -46,8 +46,9 @@ SLIST_FUNCTIONS(xml_tag_t, xml_tag_t)
 
 typedef enum parse_t {
     PARSE_EOF,
+    PARSE_START_TAG,
     PARSE_END_TAG,
-    PARSE_TAG,
+    PARSE_ADD_TAG,
     PARSE_PROP,
     PARSE_END_PROP,
     PARSE_ERROR,
@@ -91,7 +92,7 @@ static parse_t xml_get_prop(xml_prop_t **dst, const char *payload,
     if (len <= 0) {
         goto end;
     }
-    if (*p == '>') {
+    if (*p == '>' || *p == '/') {
         goto end;
     }
 
@@ -199,7 +200,7 @@ static parse_t xml_get_tag(xml_tag_t **dst, const char *payload, size_t len,
     const char *p = payload;
     const char *name, *nameend, *mypend, *text, *textend;
     bool closing;
-    parse_t ret;
+    parse_t parse, ret;
 
     if (!dst) {
         return PARSE_ERROR;
@@ -268,18 +269,16 @@ static parse_t xml_get_tag(xml_tag_t **dst, const char *payload, size_t len,
     }
 
     t = &tag->property;
-    while (len > 0 && *p != '>') {
-        /* tag name and properties are separated by some space */
-        if (!isspace(*p)) {
-            goto error;
-        }
-        SKIPSPACES(p, len);
-        if (len <= 0) {
-            goto error;
-        }
-
+    if (len <= 0) {
+        goto error;
+    }
+    /* tag name and properties are separated by some space */
+    if (!isspace(*p) && *p != '/' && *p != '>') {
+        goto error;
+    }
+    while (len > 0 && *p != '>' && *p != '/') {
         /* now, parse property */
-        switch (ret = xml_get_prop(&prop, p, len, &mypend)) {
+        switch (parse = xml_get_prop(&prop, p, len, &mypend)) {
           case PARSE_PROP:
             *t = prop;
             prop->next = NULL;
@@ -292,16 +291,34 @@ static parse_t xml_get_tag(xml_tag_t **dst, const char *payload, size_t len,
         }
         len -= mypend - p;
         p = mypend;
-        if (ret == PARSE_END_PROP) {
+        SKIPSPACES(p, len);
+        if (len <= 0) {
+            goto error;
+        }
+
+        if (parse == PARSE_END_PROP) {
             break;
         }
     }
     if (len <= 0) {
         goto error;
     }
-    /* Skip '>' */
-    p++;
-    len--;
+    if (*p == '/') {
+        p++;
+        len--;
+        SKIPSPACES(p, len);
+        ENSURE(p, len, '>');
+        /* Skip '>' */
+        p++;
+        len--;
+        ret = PARSE_ADD_TAG;
+        goto end;
+    } else {
+        /* Skip '>' */
+        p++;
+        len--;
+        ret = PARSE_START_TAG;
+    }
 
     /* Locate text */
     SKIPSPACES(p, len);
@@ -322,6 +339,7 @@ static parse_t xml_get_tag(xml_tag_t **dst, const char *payload, size_t len,
         tag->text = p_dupstr(text, textend - text);
     }
 
+end:
     if (dst) {
         *dst = tag;
     } else {
@@ -331,7 +349,7 @@ static parse_t xml_get_tag(xml_tag_t **dst, const char *payload, size_t len,
     if (pend) {
         *pend = p;
     }
-    return PARSE_TAG;
+    return ret;
 error:
     if (pend) {
         *pend = p;
@@ -356,7 +374,14 @@ static int xml_parse(xml_tag_t *dst, const char *payload, size_t payload_len,
     for (;;) {
         switch (xml_get_tag(&next, payload, payload_len, dst->fullname,
                             &mypend)) {
-          case PARSE_TAG:
+          case PARSE_ADD_TAG:
+            payload_len -= mypend - payload;
+            payload = mypend;
+            next->parent = dst;
+            *babyp = next;
+            babyp = &(*babyp)->next;
+            break;
+          case PARSE_START_TAG:
             payload_len -= mypend - payload;
             payload = mypend;
             next->parent = dst;
@@ -592,6 +617,9 @@ START_TEST(check_xmlparse)
 
         tag4 = xml_search(tree, NULL, "/part3/*/paragraph");
         fail_if(tag4 != tag, "search for first paragraph failed");
+
+        tag = xml_search(tree, NULL, "/part4");
+        fail_if(!tag || strcmp(tag->name, "part4"), "search for part4 failed");
 
         xml_branch_dump(tree->root, "root:");
         xml_delete_tree(&tree);
