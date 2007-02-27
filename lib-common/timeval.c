@@ -150,7 +150,7 @@ bool is_expired(const struct timeval *date,
     return false;
 }
 
-int localtime_curday(time_t date)
+time_t localtime_curday(time_t date)
 {
     struct tm t;
 
@@ -169,7 +169,7 @@ int localtime_curday(time_t date)
     return mktime(&t);
 }
 
-int localtime_nextday(time_t date)
+time_t localtime_nextday(time_t date)
 {
     struct tm t;
     
@@ -180,6 +180,24 @@ int localtime_nextday(time_t date)
     if (!localtime_r(&date, &t)) {
         return -1;
     }
+
+    /* To avoid complex calculations, we rely on mktime() to normalize
+     * the tm structure as specified in the man page:
+     *
+     * "The mktime() function converts a broken-down time structure,
+     * expressed as local time, to calendar time representation.  The
+     * function ignores the specified contents of the structure members
+     * tm_wday and tm_yday and recomputes them from the other
+     * information in the broken-down time structure.  If structure
+     * members are outside their legal interval, they will be
+     * normalized (so that, e.g., 40 October is changed into 9 Novem-
+     * ber).  Calling mktime() also sets the external variable tzname
+     * with information about the current time zone.  If the specified
+     * broken-down time cannot be represented as calendar time (seconds
+     * since the epoch), mktime() returns a value of (time_t)(-1) and
+     * does not alter the tm_wday and tm_yday members of the
+     * broken-down time structure."
+     */
 
     t.tm_sec = 0;
     t.tm_min = 0;
@@ -196,6 +214,7 @@ int localtime_nextday(time_t date)
 START_TEST(check_localtime)
 {
     int date, res;
+
     /* date -d "03/06/2007 12:34:13" +"%s" */
     date = 1173180853;
 
@@ -209,6 +228,9 @@ START_TEST(check_localtime)
     fail_if(res != 1173222000,
             "Invalid next day time: %d != %d", res, 1173222000);
 
+    /* The following test may fail if we are ***very*** unlucky, call
+     * it the midnight bug!
+     */
     fail_if(localtime_curday(0) != localtime_curday(time(NULL)),
             "Invalid handling of date = 0");
     fail_if(localtime_nextday(0) != localtime_nextday(time(NULL)),

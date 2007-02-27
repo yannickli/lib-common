@@ -32,12 +32,12 @@ bool is_expired(const struct timeval *date, const struct timeval *now,
 /* Return timestamp of the start of the day which contains
  * the timestamp 'date'.
  * If date == 0, 'date' is interpreted as 'now' */
-int localtime_curday(time_t date);
+time_t localtime_curday(time_t date);
 
 /* Return timestamp of the start of the next day which contains
  * the timestamp 'date'.
  * If date == 0, 'date' is interpreted as 'now' */
-int localtime_nextday(time_t date);
+time_t localtime_nextday(time_t date);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
