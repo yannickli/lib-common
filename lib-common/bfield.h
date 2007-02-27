@@ -11,36 +11,45 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <check.h>
-#include <stdlib.h>
+#ifndef IS_LIB_COMMON_BFIELD_H
+#define IS_LIB_COMMON_BFIELD_H
 
 #include "blob.h"
-#include "string_is.h"
-#include "msg_template.h"
-#include "fifo.h"
-#include "archive.h"
-#include "licence.h"
-#include "xml.h"
-#include "timeval.h"
-#include "bfield.h"
 
-int main(void)
+typedef blob_t bfield_t;
+
+bfield_t *bfield_init(bfield_t *blob);
+
+void bfield_mark(bfield_t *blob, int pos, bool val);
+static inline void bfield_set(bfield_t *blob, int pos)
 {
-    int nf;
-    SRunner *sr = srunner_create(NULL);
-
-    srunner_add_suite(sr, check_string_is_suite());
-    srunner_add_suite(sr, check_make_blob_suite());
-    srunner_add_suite(sr, check_make_archive_suite());
-    srunner_add_suite(sr, check_msg_template_suite());
-    srunner_add_suite(sr, check_fifo_suite());
-    srunner_add_suite(sr, check_licence_suite());
-    srunner_add_suite(sr, check_xml_suite());
-    srunner_add_suite(sr, check_make_timeval_suite());
-    srunner_add_suite(sr, check_bfield_suite());
-
-    srunner_run_all(sr, CK_NORMAL);
-    nf = srunner_ntests_failed(sr);
-    srunner_free(sr);
-    return (nf == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+    bfield_mark(blob, pos, true);
 }
+static inline void bfield_unset(bfield_t *blob, int pos)
+{
+    bfield_mark(blob, pos, false);
+}
+
+bool bfield_isset(bfield_t *blob, int pos);
+
+void bfield_reset(bfield_t *blob);
+void bfield_wipe(bfield_t *blob);
+
+/**
+ * Clear memory 
+ */
+static inline void bfield_purge(bfield_t *blob)
+{
+    bfield_wipe(blob);
+    bfield_init(blob);
+}
+
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
+#ifdef CHECK
+#include <check.h>
+
+Suite *check_bfield_suite(void);
+
+#endif
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
+#endif /* IS_LIB_COMMON_XML_H */

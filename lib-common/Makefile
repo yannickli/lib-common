@@ -25,6 +25,7 @@ btree-dump_SOURCES = btree-dump.c libcommon.a
 libcommon_SOURCES = \
 	archive.c \
 	array.c \
+	bfield.c \
 	btree.c \
 	isndx.c \
 	str_array.c \
