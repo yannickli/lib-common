@@ -99,7 +99,7 @@ int32_t pidx_page_new(pidx_file *pidx, uint64_t idx);
 
 
 /****************************************************************************/
-/* high leve functions                                                      */
+/* high level functions                                                     */
 /****************************************************************************/
 
 int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out);
