@@ -20,13 +20,12 @@
 
 static void xml_prop_t_delete(xml_prop_t **p)
 {
-    if (!p || !*p) {
-        return;
+    if (p && *p) {
+        p_delete(&(*p)->name);
+        p_delete(&(*p)->value);
+        (*p)->next = NULL;
+        p_delete(p);
     }
-    p_delete(&(*p)->name);
-    p_delete(&(*p)->value);
-    (*p)->next = NULL;
-    p_delete(p);
 }
 
 SLIST_FUNCTIONS(xml_prop_t, xml_prop_t)
@@ -39,8 +38,8 @@ static void xml_tag_t_delete(xml_tag_t **t)
         xml_tag_t_list_wipe(&(*t)->child);
         xml_prop_t_list_wipe(&(*t)->property);
         p_delete(&(*t)->text);
+        p_delete(t);
     }
-    p_delete(t);
 }
 
 SLIST_FUNCTIONS(xml_tag_t, xml_tag_t)
@@ -109,8 +108,7 @@ static parse_t xml_get_prop(xml_prop_t **dst, const char *payload,
     if (len <= 0) {
         goto error;
     }
-    prop->name = p_new(char, p - name + 1);
-    pstrcpylen(prop->name, p - name + 1, name, p - name);
+    prop->name = p_dupstr(name, p - name);
 
     SKIPSPACES(p, len);
     ENSURE(p, len, '=');
@@ -260,8 +258,7 @@ static parse_t xml_get_tag(xml_tag_t **dst, const char *payload, size_t len,
     }
 
     tag = p_new(xml_tag_t, 1);
-    tag->fullname = p_new(char, nameend - name + 1);
-    pstrcpylen(tag->fullname, nameend - name + 1, name, nameend - name);
+    tag->fullname = p_dupstr(name, nameend - name);
     tag->name = strchr(tag->fullname, ':');
     if (tag->name) {
         /* Skip ':' */
@@ -322,8 +319,7 @@ static parse_t xml_get_tag(xml_tag_t **dst, const char *payload, size_t len,
     }
     if (text != p) {
         textend++;
-        tag->text = p_new(char, textend - text + 1);
-        pstrcpylen(tag->text, textend - text + 1, text, textend - text);
+        tag->text = p_dupstr(text, textend - text);
     }
 
     if (dst) {
@@ -518,6 +514,7 @@ static void xml_branch_dump(const xml_tag_t *root, const char *prefix)
     char buf[128];
     const xml_prop_t *prop;
     const xml_tag_t *cur;
+
     if (!root) {
         return;
     }
@@ -542,7 +539,6 @@ static void xml_branch_dump(const xml_tag_t *root, const char *prefix)
     if (root->fullname) {
         fprintf(stderr, "%s </%s>\n", prefix, root->fullname);
     }
-
 }
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
@@ -615,4 +611,3 @@ Suite *check_xml_suite(void)
     return s;
 }
 #endif
-
