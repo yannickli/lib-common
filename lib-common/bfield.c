@@ -63,6 +63,32 @@ void bfield_wipe(bfield_t *blob)
     blob_wipe(bfield_t_to_blob_t(blob));
 }
 
+void bfield_dump(bfield_t *blob, int level)
+{
+    char line[9];
+
+    line[sizeof(line) - 1] = '\0';
+    if (e_is_traced(level)) {
+        int i;
+        blob_t *b = bfield_t_to_blob_t(blob);
+
+        for (i = 0; i < b->len; i++) {
+            int j, mask = 1;
+
+            for (j = 0; j < 8; j++) {
+                if (b->data[i] & mask) {
+                    line[j] = '1';
+                } else {
+                    line[j] = '0';
+                }
+                mask <<= 1;
+            }
+
+            e_trace(level, "%09d: %s", i * 8, line);
+        }
+    }
+}
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 /* {{{*/
@@ -96,6 +122,14 @@ START_TEST(check_bfield)
     bfield_set(&bf, 3);
     fail_if(!bfield_isset(&bf, 3),
             "bfield_set failed");
+    bfield_set(&bf, 30);
+    fail_if(!bfield_isset(&bf, 30),
+            "bfield_set failed");
+    bfield_set(&bf, 70);
+    fail_if(!bfield_isset(&bf, 70),
+            "bfield_set failed");
+
+    bfield_dump(&bf, 0);
 
     /* 10011101 -> 9D */
     fail_if(b->data[0] != 0x9D,

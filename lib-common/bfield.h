@@ -44,6 +44,8 @@ static inline void bfield_purge(bfield_t *blob)
     bfield_init(blob);
 }
 
+void bfield_dump(bfield_t *blob, int level);
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 #include <check.h>
