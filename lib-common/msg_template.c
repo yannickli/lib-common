@@ -36,6 +36,7 @@
 typedef enum part_type {
     PART_VERBATIM,
     PART_VARIABLE,
+    PART_DYNVAR,
     PART_MULTI,         /* unused, and unimplemented */
     PART_QS,
 } part_type;
@@ -59,12 +60,17 @@ typedef struct part_variable {
     int index; /* Index of the variable in the data file */
 } part_variable;
 
+typedef struct part_dynvar {
+    int index; /* Index of the variable in the dynvar array */
+} part_dynvar;
+
 typedef struct tpl_part {
     part_encoding enc;
     part_type type;
     union {
         part_verbatim *verbatim;
         part_variable *variable;
+        part_dynvar *dynvar;
         part_multi *multi;
         part_qs *qs;
     } u;
@@ -104,7 +110,6 @@ static inline void part_verbatim_wipe(part_verbatim *verb)
 }
 GENERIC_DELETE(part_verbatim, part_verbatim);
 
-
 static inline part_variable *part_variable_new(int ind)
 {
     part_variable *var;
@@ -115,6 +120,17 @@ static inline part_variable *part_variable_new(int ind)
 }
 GENERIC_WIPE(part_variable, part_variable);
 GENERIC_DELETE(part_variable, part_variable);
+
+static inline part_dynvar *part_dynvar_new(int ind)
+{
+    part_dynvar *var;
+
+    var = p_new(part_dynvar, 1);
+    var->index = ind;
+    return var;
+}
+GENERIC_WIPE(part_dynvar, part_dynvar);
+GENERIC_DELETE(part_dynvar, part_dynvar);
 
 static inline part_qs *part_qs_new(const char*src, int size)
 {
@@ -151,6 +167,10 @@ static inline void part_multi_wipe(part_multi *multi)
 
           case PART_VARIABLE:
             part_variable_delete(&curpart->u.variable);
+            break;
+
+          case PART_DYNVAR:
+            part_dynvar_delete(&curpart->u.dynvar);
             break;
 
           case PART_QS:
@@ -201,7 +221,8 @@ int msg_template_nbparts(const msg_template *tpl)
 
 #ifndef NDEBUG
 static inline void
-part_multi_dump(const part_multi *multi, const char **vars, int nbvars)
+part_multi_dump(const part_multi *multi, const char **vars, int nbvars,
+                const char **dynvars, int nbdynvars)
 {
     int i, len;
     char *ptr;
@@ -238,6 +259,17 @@ part_multi_dump(const part_multi *multi, const char **vars, int nbvars)
             }
             break;
 
+          case PART_DYNVAR:
+            if (curpart->u.dynvar->index < nbdynvars) {
+                e_trace_end(MSG_TPL_DBG_LVL, "DYNVAR: %d (%s)",
+                            curpart->u.dynvar->index,
+                            vars[-curpart->u.dynvar->index]);
+            } else {
+                e_trace_end(MSG_TPL_DBG_LVL, "DYNVAR: %d (%s)",
+                            curpart->u.dynvar->index, "???");
+            }
+            break;
+
           case PART_QS:
             /* TODO: use qs interface to dump data */
             len = strconv_quote(NULL, 0,
@@ -260,10 +292,11 @@ part_multi_dump(const part_multi *multi, const char **vars, int nbvars)
 }
 
 void msg_template_dump(const msg_template *tpl,
-                       const char **vars, int nbvars)
+                       const char **vars, int nbvars,
+                       const char **dynvars, int nbdynvars)
 {
     if (tpl->body) {
-        part_multi_dump(tpl->body, vars, nbvars);
+        part_multi_dump(tpl->body, vars, nbvars, dynvars, nbdynvars);
     } else {
         e_trace(MSG_TPL_DBG_LVL, "empty tpl");
     }
@@ -403,6 +436,31 @@ int msg_template_add_variable(msg_template *tpl, part_encoding enc,
     return 0;
 }
 
+/* Add a dynamic var : Those vars are indexed by an integer that is not
+ * an index in the CSV but an index in an external array that is given
+ * when applying the template. It's used for vars that are linked to
+ * the machine and not the data. Typically : transaction numbers, URLs
+ * or VASPID.
+ * */
+int msg_template_add_dynvar(msg_template *tpl, part_encoding enc, int n)
+{
+    part_dynvar *varpart;
+    tpl_part part;
+
+    if (!tpl) {
+        return -1;
+    }
+    varpart = part_dynvar_new(n);
+    part.type = PART_DYNVAR;
+    part.u.dynvar = varpart;
+    part.enc = enc;
+
+    part_multi_addpart(&tpl->body, &part);
+    return 0;
+}
+
+/*
+ * */
 int msg_template_add_varstring(msg_template *tpl, part_encoding enc,
                                const byte *data, int len,
                                const char **vars, int nbvars)
@@ -496,6 +554,7 @@ int msg_template_add_varstring(msg_template *tpl, part_encoding enc,
  */
 /* OG: should take a blob or a vector as output */
 int msg_template_apply(const msg_template *tpl, const char **vars, int nbvars,
+                       const char **dynvars, int nbdynvars,
                        blob_t **vector, byte *allocated, int count)
 {
     int i;
@@ -530,6 +589,19 @@ int msg_template_apply(const msg_template *tpl, const char **vars, int nbvars,
             allocated[i] = 1;
             break;
 
+          case PART_DYNVAR:
+            if (curpart->u.dynvar->index > nbdynvars) {
+                /* Ignore non-specified fields */
+                break;
+            }
+            e_trace_end(MSG_TPL_DBG_LVL, "Dynvar:%d",
+                        curpart->u.dynvar->index);
+            curblob = blob_new();
+            blob_set_cstr(curblob, dynvars[curpart->u.dynvar->index]);
+            vector[i] = curblob;
+            allocated[i] = 1;
+            break;
+
           case PART_QS:
             e_trace_end(MSG_TPL_DBG_LVL, "QS:'%s'",
                         blob_get_cstr(&curpart->u.qs->data));
@@ -555,8 +627,10 @@ int msg_template_apply(const msg_template *tpl, const char **vars, int nbvars,
     return 0;
 }
 
-int msg_template_apply_blob(const msg_template *tpl, const char **vars,
-                            int nbvars, blob_t *output)
+int msg_template_apply_blob(const msg_template *tpl,
+                            const char **vars, int nbvars,
+                            const char **dynvars, int nbdynvars,
+                            blob_t *output)
 {
     int i;
     const tpl_part *curpart;
@@ -586,6 +660,18 @@ int msg_template_apply_blob(const msg_template *tpl, const char **vars,
             }
             e_trace_end(MSG_TPL_DBG_LVL, "Var:%d", curpart->u.variable->index);
             str = vars[curpart->u.variable->index];
+            msg_template_blob_encode(output, curpart->enc,
+                                     (const byte*)str, strlen(str));
+            break;
+
+          case PART_DYNVAR:
+            if (curpart->u.dynvar->index > nbdynvars) {
+                /* Ignore non-specified fields */
+                break;
+            }
+            e_trace_end(MSG_TPL_DBG_LVL, "Dynvar:%d",
+                        curpart->u.variable->index);
+            str = dynvars[curpart->u.variable->index];
             msg_template_blob_encode(output, curpart->enc,
                                      (const byte*)str, strlen(str));
             break;

@@ -47,7 +47,8 @@ int msg_template_nbparts(const msg_template *tpl);
 #  define msg_template_dump(...)
 #else
 void msg_template_dump(const msg_template *tpl,
-                       const char **vars, int nbvars);
+                       const char **vars, int nbvars,
+                       const char **dynvars, int nbdynvars);
 #endif
 
 
@@ -97,15 +98,19 @@ int msg_template_add_varstring(msg_template *tpl, part_encoding enc,
                                const byte *data, int len,
                                const char **vars, int nbvars);
 
+int msg_template_add_dynvar(msg_template *tpl, part_encoding enc, int n);
 
 /****************************************************************************/
 /* Applying templates                                                       */
 /****************************************************************************/
 
 int msg_template_apply(const msg_template *tpl, const char **vars, int nbvars,
+                       const char **dynvars, int nbdynvars,
                        blob_t **vector, byte *allocated, int count);
-int msg_template_apply_blob(const msg_template *tpl, const char **vars,
-                            int nbvars, blob_t *output);
+int msg_template_apply_blob(const msg_template *tpl,
+                            const char **vars, int nbvars,
+                            const char **dynvars, int nbdynvars,
+                            blob_t *output);
 
 #ifdef CHECK
 #include <check.h>
