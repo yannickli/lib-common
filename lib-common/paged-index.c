@@ -158,10 +158,10 @@ int pidx_fsck(pidx_file *pidx, int dofix)
         /* collect lost pages.
            Only do it on dofix as it's a mild problem */
         if (dofix) {
-            int page = pidx->area->nbpages;
+            int page = pidx->area->nbpages - 1;
 
             while (page > 0) {
-                if (!(page & 7) && bits[page >> 3] == 0xff) {
+                if ((page & 7) == 7 && bits[page >> 3] == 0xff) {
                     page -= 8;
                 } else {
                     if (!TST_BIT(bits, page)) {
@@ -181,14 +181,15 @@ int pidx_fsck(pidx_file *pidx, int dofix)
 
 pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
 {
-    pidx_file *pidx = pidx_real_open(path, flags);
+    pidx_file *pidx;
     int fsck_res;
-
-    if (!pidx)
-        return NULL;
 
     if (flags & O_CREAT && (access(path, F_OK) || flags & O_TRUNC))
         return pidx_creat(path, skip, nbsegs);
+
+    pidx = pidx_real_open(path, flags);
+    if (!pidx)
+        return NULL;
 
     fsck_res = pidx_fsck(pidx, !!(flags & (O_WRONLY | O_RDWR)));
     if (fsck_res < 0) {
