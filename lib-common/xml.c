@@ -45,6 +45,66 @@ static void xml_prop_t_delete(xml_prop_t **p)
     }
 }
 
+static char alnumto6bits[256] = {
+    /* 0xFF means we do not care about this char.
+     * Only a-z,A-Z,0-9, '-' and '_' are really meaningfull to us in
+     * this context.
+     * */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0xFF, /*      -   */
+    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, /* 01234567 */
+    0x09, 0x0A, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* 89       */
+    0xFF, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, /*  ABCDEFG */
+    0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, /* HIJKLMNO */
+    0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, /* PQRSTUVW */
+    0x22, 0x23, 0x24, 0xFF, 0xFF, 0xFF, 0xFF, 0x25, /* XYZ    _ */
+    0xFF, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, /*  abcdefg */
+    0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x34, /* hijklmno */
+    0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, /* pqrstuvw */
+    0x3D, 0x3E, 0x3F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /* xyz      */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, /*          */
+};
+
+static int xml_hash(const char *str, int len)
+{
+    int ret = 0xA5C39600;
+    int key;
+
+    if (len < 0) {
+        len = strlen(str);
+    }
+
+#define RIGHT_ROTATE_32(val, n) \
+    (((unsigned int)(val) >> (n)) | ((unsigned int)(val) << (32 - (n))))
+    while (len) {
+        key = alnumto6bits[(unsigned char)(*str)];
+        ret = RIGHT_ROTATE_32(ret, 3);
+        ret ^= key;
+        str++;
+        len--;
+    }
+    return ret;
+}
+
 SLIST_FUNCTIONS(xml_prop_t, xml_prop_t)
 
 SLIST_PROTOS(xml_tag_t, xml_tag_t)
@@ -126,6 +186,7 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
         goto error;
     }
     prop->name = xml_dupstr_mp(tree, name, p - name);
+    prop->name_hash = xml_hash(prop->name, p - name);
 
     SKIPSPACES(p, len);
     ENSURE(p, len, '=');
@@ -284,6 +345,7 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
     } else {
         tag->name = tag->fullname;
     }
+    tag->name_hash = xml_hash(tag->name, -1);
 
     t = &tag->property;
     if (len <= 0) {
@@ -505,6 +567,7 @@ static const xml_tag_t* xml_search_branch(const xml_tag_t *branch,
     const char *p;
     const xml_tag_t *cur, *tmp;
     int matchall;
+    int pattern_hash;
 
     p = strchr(pattern, '/');
     if (p) {
@@ -525,10 +588,13 @@ static const xml_tag_t* xml_search_branch(const xml_tag_t *branch,
         return NULL;
     }
 
+    pattern_hash = xml_hash(pattern, patlen);
     matchall = patlen == 1 && pattern[0] == '*';
+
     for (cur = branch->child; cur; cur = cur->next) {
         /* XXX: Compare to name and not fullname (ie: ignore namespaces) */
-        if (matchall || !strncmp(pattern, cur->name, patlen)) {
+        if (matchall || (cur->name_hash == pattern_hash 
+                         && !strncmp(pattern, cur->name, patlen))) {
             tmp = xml_search_branch(cur, previous, pattern + skip);
             if (tmp) {
                 return tmp;
@@ -599,6 +665,7 @@ START_TEST(check_xmlparse)
     blob_t blob;
     xml_tree_t *tree;
     const xml_tag_t *tag, *tag2, *tag3, *tag4;
+    int verbose = 0;
 
     blob_init(&blob);
 
@@ -624,13 +691,13 @@ START_TEST(check_xmlparse)
 
         tag = xml_search(tree, NULL, "/part3/chapter1/paragraph");
         fail_if(!tag, "search for paragraph1 failed");
-        if (tag) {
+        if (tag && verbose) {
             xml_branch_dump(tag, "paragraph1:");
         }
 
         tag2 = xml_search(tree, tag, "/part3/chapter1/paragraph");
         fail_if(!tag2, "search for paragraph2 failed");
-        if (tag2) {
+        if (tag2 && verbose) {
             xml_branch_dump(tag2, "paragraph2:");
         }
 
@@ -643,14 +710,25 @@ START_TEST(check_xmlparse)
         tag = xml_search(tree, NULL, "/part4");
         fail_if(!tag || strcmp(tag->name, "part4"), "search for part4 failed");
 
-        xml_branch_dump(tree->root, "root:");
-        fprintf(stderr, "mp_left:%d\n", tree->mp_left);
+        if (tree->root && verbose) {
+            xml_branch_dump(tree->root, "root:");
+            fprintf(stderr, "mp_left:%d\n", tree->mp_left);
+        }
         xml_delete_tree(&tree);
     }
 
     blob_wipe(&blob);
 }
 END_TEST
+
+START_TEST(check_xmlhash)
+{
+    fail_if(xml_hash("Intersec", -1) == xml_hash("MMSC", -1), "Collision");
+    fail_if(xml_hash("Intersec", -1) == xml_hash("Intersce", -1), "Collision");
+    fail_if(xml_hash("Intersec", -1) == xml_hash("Intersed", -1), "Collision");
+}
+END_TEST
+
 
 Suite *check_xml_suite(void)
 {
@@ -659,6 +737,7 @@ Suite *check_xml_suite(void)
 
     suite_add_tcase(s, tc);
     tcase_add_test(tc, check_xmlparse);
+    tcase_add_test(tc, check_xmlhash);
     return s;
 }
 #endif

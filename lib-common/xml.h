@@ -25,6 +25,7 @@ struct xml_tag_t {
     char *fullname;
     /* name points to the name without the namespace, inside fullname */
     const char *name;
+    int name_hash;
     xml_prop_t *property;
     xml_tag_t *child;
     xml_tag_t *next;
@@ -33,6 +34,7 @@ struct xml_tag_t {
 
 struct xml_prop_t {
     char *name;
+    int name_hash;
     char *value;
     xml_prop_t *next;
 };
