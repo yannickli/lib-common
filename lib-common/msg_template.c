@@ -848,7 +848,7 @@ int main(void)
     blob_wipe(&blob);
 
     /* Display the resulting template */
-    msg_template_dump(tpl, (const char **)fields, nbfields);
+    msg_template_dump(tpl, (const char **)fields, nbfields, NULL, 0);
 #if 0
     msg_template_optimize(tpl);
     msg_template_dump(tpl, (const char **)fields, nbfields);
@@ -880,6 +880,7 @@ int main(void)
         }
         
         msg_template_apply(tpl, (const char **)data, nbdata,
+                           NULL, 0,
                            (blob_t **)out, allocated,
                            nbparts);
         for (i = 0; i < nbparts; i++) {
