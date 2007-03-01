@@ -475,12 +475,12 @@ int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
     int32_t curp, page = pidx_page_find(pidx, idx);
     int nbpages = 0, needed;
 
-    needed = MIN(0, len - 1) / PAYLOAD_SIZE + 1;
+    needed = MAX(0, len - 1) / PAYLOAD_SIZE + 1;
 
     for (curp = page; curp; curp = pidx->area->pages[curp].next)
         nbpages++;
 
-    while (needed < nbpages) {
+    while (nbpages < needed) {
         page = pidx_page_new(pidx, idx);
         if (!page)
             return -1;
