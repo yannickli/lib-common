@@ -23,7 +23,7 @@ typedef struct pidx_page {
     union {
         struct {
             int32_t next;
-            byte payload[];
+            byte payload[1024 - 4];
         };
         int32_t refs[256];
     };

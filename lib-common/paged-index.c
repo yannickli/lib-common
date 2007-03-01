@@ -47,39 +47,39 @@ static void pidx_page_release(pidx_file *pidx, int32_t page)
 
     pidx->area->pages[page].next = pidx->area->freelist;
     pidx->area->freelist = page;
-    memset(pidx->area->pages[page].payload, 0, PIDX_PAGE - sizeof(int32_t));
+    p_clear(pidx->area->pages[page].payload,
+            countof(pidx->area->pages[page].payload));
 }
 
 static int pidx_fsck_mark_page(byte *bits, pidx_file *pidx, int page)
 {
-    if (page < 0 || page > pidx->area->nbpages || TST_BIT(bits, page))
+    if (page < 0 || page > pidx->area->nbpages || TST_BIT(bits, page)) {
         return -1;
+    }
 
     SET_BIT(bits, page);
     return 0;
 }
 
 static int pidx_fsck_recurse(byte *bits, pidx_file *pidx,
-                             int segpage, int seglevel)
+                             int page, int seglevel)
 {
-    int page;
-
     if (seglevel) {
         int i;
 
         for (i = 0; i < PIDX_PAGE / 4; i++) {
-            page = pidx->area->pages[segpage].refs[i];
-            if (!page)
+            int pg = pidx->area->pages[page].refs[i];
+            if (!pg)
                 continue;
 
-            if (pidx_fsck_mark_page(bits, pidx, page))
+            if (pidx_fsck_mark_page(bits, pidx, pg))
                 return -1;
 
-            if (pidx_fsck_recurse(bits, pidx, page, seglevel - 1) < 0)
+            if (pidx_fsck_recurse(bits, pidx, pg, seglevel - 1) < 0)
                 return -1;
         }
     } else {
-        for (page = segpage; page; page = pidx->area->pages[page].next) {
+        while ((page = pidx->area->pages[page].next)) {
             if (pidx_fsck_mark_page(bits, pidx, page))
                 return -1;
         }
@@ -491,6 +491,8 @@ int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
     do {
         pidx_page *pg = pidx->area->pages + page;
         const int chunk = MIN(PAYLOAD_SIZE, len);
+
+        assert (page);
 
         *(int32_t *)pg->payload = chunk;
         memcpy(pg->payload + sizeof(int32_t), data, chunk);
