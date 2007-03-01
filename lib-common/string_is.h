@@ -173,6 +173,9 @@ static inline void *vmemsearch(void *haystack, size_t hsize,
     return (void *)memsearch(haystack, hsize, needle, nsize);
 }
 
+int buffer_increment(char *buf, int len);
+int buffer_increment_hex(char *buf, int len);
+
 int64_t msisdn_canonize(const char *buf, int len, __unused__ int locale);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/

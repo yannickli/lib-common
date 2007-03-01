@@ -624,6 +624,90 @@ const void *memsearch(const void *_haystack, size_t hsize,
     return NULL;
 }
 
+/** Increment last counter in a buffer
+ *
+ * <code>buf</code> points to the start of the buffer.
+ * <code>len</code> can be negative, in this case <code>len=strlen(buf)</code>
+ *
+ * Examples :
+ *  "000" => "001"
+ *  "999" => "000"
+ *  "foobar-0-01" => "foobar-0-02"
+ *  "foobar-0-99" => "foobar-0-00"
+ *
+ * @return 1 if an overflow occured, 0 otherwise
+ */
+int buffer_increment(char *buf, int len)
+{
+    int pos;
+    if (!buf) {
+        return 1;
+    }
+    if (len < 0) {
+        len = strlen(buf);
+    }
+    for (pos = len - 1; pos >= 0; pos--) {
+        switch (buf[pos]) {
+          case '0': case '1': case '2': case '3': case '4': case '5':
+          case '6': case '7': case '8':
+            buf[pos]++;
+            return 0;
+          case '9':
+            buf[pos] = '0';
+            break;
+          default:
+            return 1;
+        }
+    }
+    return 1;
+}
+
+/** Increment last counter in an hexadecimal buffer
+ *
+ * <code>buf</code> points to the start of the buffer.
+ * <code>len</code> can be negative, in this case <code>len=strlen(buf)</code>
+ *
+ * Examples :
+ *  "000" => "001"
+ *  "999" => "99A"
+ *  "foobar-0-01" => "foobar-0-02"
+ *  "foobar-0-FF" => "foobar-0-00"
+ *
+ * @return 1 if an overflow occured, 0 otherwise
+ */
+int buffer_increment_hex(char *buf, int len)
+{
+    int pos;
+    if (!buf) {
+        return 1;
+    }
+    if (len < 0) {
+        len = strlen(buf);
+    }
+    for (pos = len - 1; pos >= 0; pos--) {
+        switch (buf[pos]) {
+          case '0': case '1': case '2': case '3': case '4': case '5':
+          case '6': case '7': case '8':
+            buf[pos]++;
+            return 0;
+          case '9':
+            buf[pos] = 'A';
+            return 0;
+          case 'a': case 'A': case 'b': case 'B': case 'c': case 'C':
+          case 'd': case 'D': case 'e': case 'E':
+            buf[pos]++;
+            return 0;
+          case 'F': case 'f':
+            buf[pos] = '0';
+            break;
+          default:
+            return 1;
+        }
+    }
+    return 1;
+}
+
+
 /* OG: should move this to lib-inet or lib-mcms or mcms-sdk */
 int64_t msisdn_canonize(const char *str, int len, __unused__ int locale)
 {
@@ -967,6 +1051,61 @@ START_TEST(check_strtolp)
 }
 END_TEST
 
+#define check_buffer_increment_unit(initval, expectedval, expectedret)       \
+    do {                                                                     \
+        pstrcpy(buf, sizeof(buf), initval);                                  \
+        ret = buffer_increment(buf, -1);                                     \
+        fail_if(strcmp(buf, expectedval),                                    \
+            "value is \"%s\", expecting \"%s\"", buf, expectedval);          \
+        fail_if(ret != expectedret, "bad return value for \"%s\"", initval); \
+    } while (0)
+START_TEST(check_buffer_increment)
+{
+    char buf[32];
+    int ret;
+    check_buffer_increment_unit("0", "1", 0);
+    check_buffer_increment_unit("1", "2", 0);
+    check_buffer_increment_unit("00", "01", 0);
+    check_buffer_increment_unit("42", "43", 0);
+    check_buffer_increment_unit("09", "10", 0);
+    check_buffer_increment_unit("99", "00", 1);
+    check_buffer_increment_unit("", "", 1);
+    check_buffer_increment_unit("foobar-00", "foobar-01", 0);
+    check_buffer_increment_unit("foobar-0-99", "foobar-0-00", 1);
+}
+END_TEST
+
+#define check_buffer_increment_hex_unit(initval, expectedval, expectedret)   \
+    do {                                                                     \
+        pstrcpy(buf, sizeof(buf), initval);                                  \
+        ret = buffer_increment_hex(buf, -1);                                 \
+        fail_if(strcmp(buf, expectedval),                                    \
+            "value is \"%s\", expecting \"%s\"", buf, expectedval);          \
+        fail_if(ret != expectedret, "bad return value for \"%s\"", initval); \
+    } while (0)
+START_TEST(check_buffer_increment_hex)
+{
+    char buf[32];
+    int ret;
+    check_buffer_increment_hex_unit("0", "1", 0);
+    check_buffer_increment_hex_unit("1", "2", 0);
+    check_buffer_increment_hex_unit("9", "A", 0);
+    check_buffer_increment_hex_unit("a", "b", 0);
+    check_buffer_increment_hex_unit("Ab", "Ac", 0);
+    check_buffer_increment_hex_unit("00", "01", 0);
+    check_buffer_increment_hex_unit("42", "43", 0);
+    check_buffer_increment_hex_unit("09", "0A", 0);
+    check_buffer_increment_hex_unit("0F", "10", 0);
+    check_buffer_increment_hex_unit("FFF", "000", 1);
+    check_buffer_increment_hex_unit("FFFFFFFFFFFFFFF", "000000000000000", 1);
+    check_buffer_increment_hex_unit("", "", 1);
+    check_buffer_increment_hex_unit("foobar", "foobar", 1);
+    check_buffer_increment_hex_unit("foobaff", "foobb00", 0);
+    check_buffer_increment_hex_unit("foobar-00", "foobar-01", 0);
+    check_buffer_increment_hex_unit("foobar-0-ff", "foobar-0-00", 1);
+}
+END_TEST
+
 #define check_msisdn_canonize_unit(str, val) \
     do { \
         ret = msisdn_canonize(str, strlen(str), -1); \
@@ -1011,6 +1150,8 @@ Suite *check_string_is_suite(void)
     tcase_add_test(tc, check_pstrchrcount);
     tcase_add_test(tc, check_strtoip);
     tcase_add_test(tc, check_strtolp);
+    tcase_add_test(tc, check_buffer_increment);
+    tcase_add_test(tc, check_buffer_increment_hex);
     tcase_add_test(tc, check_msisdn_canonize);
     return s;
 }
