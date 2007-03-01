@@ -129,7 +129,10 @@ START_TEST(check_bfield)
     fail_if(!bfield_isset(&bf, 70),
             "bfield_set failed");
 
+#if 0
+    // Do not output anything in normal mode, as it confuses editors
     bfield_dump(&bf, 0);
+#endif
 
     /* 10011101 -> 9D */
     fail_if(b->data[0] != 0x9D,
