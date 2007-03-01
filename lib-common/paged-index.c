@@ -388,15 +388,19 @@ int pidx_key_first(const pidx_file *pidx, uint64_t minval, uint64_t *res)
     for (;;) {
 
         while (!pages[page].refs[key]) {
+            int rbits;
+
             if (++key < countof(pages[page].refs)) {
-                const int rbits = 64 - 8 * (pos + 1) - skip;
+                rbits  = 64 - 8 * (pos + 1) - skip;
                 minval = ((minval >> rbits) + 1) << rbits;
             } else {
                 if (--pos < 0)
                     return -1;
-                page = path[pos];
-                key  = int_bits_range(minval, skip + PIDX_SHIFT * pos,
-                                      PIDX_SHIFT);
+                page   = path[pos];
+                rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
+                minval = ((minval >> rbits) + 1) << rbits;
+                key    = int_bits_range(minval, skip + PIDX_SHIFT * pos,
+                                        PIDX_SHIFT);
             }
         }
 
