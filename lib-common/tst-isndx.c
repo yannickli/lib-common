@@ -229,7 +229,7 @@ int main(int argc, char **argv)
                 key[7] = num >> (0 * 8);
                 if (isndx_push(ndx, key, 8, &d, sizeof(d)) < 0) {
                     printf("isndx: failed to insert key %lld value %d\n",
-                           num, data);
+                           (long long)num, data);
                     isndx_check(ndx, ISNDX_CHECK_ALL);
                     isndx_dump(ndx, ISNDX_DUMP_ALL, stdout);
                     status = 1;
