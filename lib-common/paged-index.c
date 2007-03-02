@@ -474,14 +474,14 @@ void *pidx_data_getslicep(pidx_file *pidx, uint64_t idx, int start, int len)
         if (size > PIDX_PAGE - 2 * ssizeof(int32_t))
             return NULL;
 
-        if (start > size) {
-            start -= size;
-        } else {
+        if (start < size) {
             if (start + len > size)
                 return NULL;
 
             return pg->payload + sizeof(int32_t) + start;
         }
+
+        start -= size;
         page = pg->next;
     }
 
