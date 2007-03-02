@@ -707,6 +707,36 @@ int buffer_increment_hex(char *buf, int len)
     return 1;
 }
 
+/** Put random hexadecimal digits in destination buffer
+ *
+ * @return the number of digits set.
+ */
+ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t n)
+{
+    char *p;
+    const char *last;
+    int val;
+    static const char hex[16] = "0123456789ABCDEF";
+    
+    n = MIN(size - offset - 1, n);
+    if (n < 0) {
+        return -1;
+    }
+    
+    /* RFE: This is very naive. Should at least call rand() only every 4
+     * bytes. */
+    last = dest + n;
+    for (p = dest + offset; p < last; p++) {
+#if RAND_MAX == 32767
+        val = (int) (((long)16 * rand()) / (RAND_MAX + 1));
+#else
+        val = (int) (((double)16 * rand()) / (RAND_MAX + 1.0));
+#endif
+        *p = hex[val];
+    }
+    *p = '\0';
+    return (ssize_t) n;
+}
 
 /* OG: should move this to lib-inet or lib-mcms or mcms-sdk */
 int64_t msisdn_canonize(const char *str, int len, __unused__ int locale)
@@ -1106,6 +1136,31 @@ START_TEST(check_buffer_increment_hex)
 }
 END_TEST
 
+START_TEST(check_pstrrand)
+{
+    char buf[32];
+    int i, ret;
+
+    for(i = 0; i < countof(buf); i++) {
+        buf[i] = 0x42 + i;
+    }
+
+    ret = pstrrand(buf, sizeof(buf), 0, 0);
+    fail_if(buf[0] != '\0', "Missing padding after len=0");
+    fail_if(ret != 0, "Bad return value for len=0");
+
+    ret = pstrrand(buf, sizeof(buf), 0, 3);
+    fail_if(buf[3] != '\0', "Missing padding after len=3");
+    fail_if(ret != 3, "Bad return value for len=3");
+
+    /* Ask for 32 bytes, where buffer can only contain 31. */
+    ret = pstrrand(buf, sizeof(buf), 0, sizeof(buf));
+    fail_if(buf[31] != '\0', "Missing padding after len=sizeof(buf)");
+    fail_if(ret != sizeof(buf) - 1, "Bad return value for len=sizeof(buf)");
+    //fprintf(stderr, "buf:%s\n", buf);
+}
+END_TEST
+
 #define check_msisdn_canonize_unit(str, val) \
     do { \
         ret = msisdn_canonize(str, strlen(str), -1); \
@@ -1152,6 +1207,7 @@ Suite *check_string_is_suite(void)
     tcase_add_test(tc, check_strtolp);
     tcase_add_test(tc, check_buffer_increment);
     tcase_add_test(tc, check_buffer_increment_hex);
+    tcase_add_test(tc, check_pstrrand);
     tcase_add_test(tc, check_msisdn_canonize);
     return s;
 }
