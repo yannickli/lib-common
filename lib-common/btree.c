@@ -19,7 +19,8 @@
 
 #define BT_ARITY          340  /**< L constant in the b-tree terminology */
 #define BT_INIT_NBPAGES  1024  /**< initial number of pages in the btree */
-#define BT_ISWRITE(m)    (!!((m) & (O_WRONLY|O_RDWR)))
+
+#define O_ISWRITE(m)    (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
 
 static const union {
     char     s[4];
@@ -357,26 +358,35 @@ btree_t *btree_open(const char *path, int flags)
      /* OG: Furthermore, opening the file for update should require exclusive
       *     access unless the code can handle concurrent access.
       */
+
+    /* Create or truncate the index if opening for write and:
+     * - it does not exist and flag O_CREAT is given
+     * - or it does exist and flag O_TRUNC is given
+     * bug: O_EXCL is not supported as it is not passed to btree_creat.
+     */
     res = access(path, F_OK);
+    if (O_ISWRITE(flags)) {
+        if ((res && (flags & O_CREAT)) || (!res && (flags & O_TRUNC)))
+            return btree_creat(path);
+    }
 
-    if ((flags & O_CREAT) && (res || flags & O_TRUNC))
-        return btree_creat(path);
+    if (res) {
+        errno = ENOENT;
+        return NULL;
+    }
 
-    if (!res && (flags & O_TRUNC))
-        return btree_creat(path);
-
-    bt  = bt_real_open(path, flags);
+    bt = bt_real_open(path, flags);
     if (!bt) {
         e_trace(2, "Could not open bt on %s: %m", path);
         return NULL;
     }
-    res = btree_fsck(bt, BT_ISWRITE(flags));
+    res = btree_fsck(bt, O_ISWRITE(flags));
     if (res < 0) {
         btree_close(&bt);
         errno = EINVAL;
     }
 #if 0
-    bt->area->dirty = BT_ISWRITE(flags);
+    bt->area->dirty = O_ISWRITE(flags);
     msync(bt->area, bt->size, MS_SYNC);
 #endif
 

@@ -21,6 +21,8 @@
 
 #include "paged-index.h"
 
+#define O_ISWRITE(m)    (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
+
 static union {
     char     s[4];
     uint32_t i;
@@ -186,18 +188,27 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
     pidx_file *pidx;
     int res;
 
+    /* Create or truncate the index if opening for write and:
+     * - it does not exist and flag O_CREAT is given
+     * - or it does exist and flag O_TRUNC is given
+     * bug: O_EXCL is not supported as it is not passed to btree_creat.
+     */
     res = access(path, F_OK);
-    if ((flags & O_CREAT) && (res || (flags & O_TRUNC)))
-        return pidx_creat(path, skip, nbsegs);
+    if (O_ISWRITE(flags)) {
+        if ((res && (flags & O_CREAT)) || (!res && (flags & O_TRUNC)))
+            return pidx_creat(path, skip, nbsegs);
+    }
 
-    if (!res && (flags & O_TRUNC))
-        return pidx_creat(path, skip, nbsegs);
+    if (res) {
+        errno = ENOENT;
+        return NULL;
+    }
 
     pidx = pidx_real_open(path, flags);
     if (!pidx)
         return NULL;
 
-    res = pidx_fsck(pidx, !!(flags & (O_WRONLY | O_RDWR)));
+    res = pidx_fsck(pidx, O_ISWRITE(flags));
     if (res < 0) {
         pidx_close(&pidx);
         errno = EINVAL;
@@ -208,7 +219,7 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
     }
 
 #if 0
-    if (flags & (O_WRONLY | O_RDWR)) {
+    if (O_ISWRITE(flags)) {
         pidx->area->magic = 0;
         msync(pidx->area, pidx->size, MS_SYNC);
     }

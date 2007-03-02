@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <errno.h>
+
 #include "isndx.h"
 
 /* TODO:
@@ -42,6 +44,8 @@ MMFILE_FUNCTIONS(isndx_file_t, isndx_real);
 #define MAX_KEYLEN        255
 #define MAX_DATALEN       255
 #define MAX_DEPTH         16
+
+#define O_ISWRITE(m)    (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
 
 struct isndx_file {
     byte magic[4];
@@ -212,8 +216,21 @@ isndx_t *isndx_create(const char *path, isndx_create_parms_t *cp)
 isndx_t *isndx_open(const char *path, int flags)
 {
     isndx_t *ndx;
+    int res;
 
-    if (access(path, R_OK)) {
+    /* Create or truncate the index if opening for write and:
+     * - it does not exist and flag O_CREAT is given
+     * - or it does exist and flag O_TRUNC is given
+     * bug: O_EXCL is not supported as it is not passed to btree_creat.
+     */
+    res = access(path, F_OK);
+    if (O_ISWRITE(flags)) {
+        if ((res && (flags & O_CREAT)) || (!res && (flags & O_TRUNC)))
+            return isndx_create(path, NULL);
+    }
+
+    if (res) {
+        errno = ENOENT;
         return NULL;
     }
 
