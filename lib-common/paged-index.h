@@ -115,9 +115,12 @@ pidx_key_next(const pidx_file *pidx, uint64_t cur, uint64_t *res) {
 /****************************************************************************/
 
 int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out);
+
 int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
                        byte *out, int start, int len)
     __attribute__((warn_unused_result));
+void *pidx_data_getslicep(pidx_file *pidx, uint64_t idx, int start, int len);
+
 int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len);
 void pidx_data_release(pidx_file *pidx, uint64_t idx);
 

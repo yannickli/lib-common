@@ -434,7 +434,7 @@ int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
         int32_t size = *(int32_t *)pg->payload;
 
         if (size > PIDX_PAGE - 2 * ssizeof(int32_t))
-            goto error;
+            return -1;
 
         if (start > size) {
             start -= size;
@@ -450,9 +450,31 @@ int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
     }
 
     return out - orig;
+}
 
-  error:
-    return -1;
+void *pidx_data_getslicep(pidx_file *pidx, uint64_t idx, int start, int len)
+{
+    int32_t page  = pidx_page_find(pidx, idx);
+
+    while (page && len) {
+        pidx_page *pg = pidx->area->pages + page;
+        int32_t size = *(int32_t *)pg->payload;
+
+        if (size > PIDX_PAGE - 2 * ssizeof(int32_t))
+            return NULL;
+
+        if (start > size) {
+            start -= size;
+        } else {
+            if (start + len > size)
+                return NULL;
+
+            return pg->payload + sizeof(int32_t) + start;
+        }
+        page = pg->next;
+    }
+
+    return NULL;
 }
 
 int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out)
