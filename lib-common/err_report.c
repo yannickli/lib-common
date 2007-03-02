@@ -113,7 +113,7 @@ static void init_file(const char *ident, FILE *file)
 /* public API                                                             */
 /**************************************************************************/
 
-#define E_BODY(prio)  do {                                                \
+#define E_BODY(prio, format)  do {                                                \
     va_list args;                                                         \
     va_start(args, format);                                               \
     (*log_state.handler)(prio, format, args);                             \
@@ -124,20 +124,20 @@ static void init_file(const char *ident, FILE *file)
 
 void e_fatal(int status, const char *format, ...)
 {
-    E_BODY(LOG_CRIT);
+    E_BODY(LOG_CRIT, format);
     exit(status);
 }
 
 void e_panic(const char *format, ...)
 {
-    E_BODY(LOG_CRIT);
+    E_BODY(LOG_CRIT, format);
     exit(FATAL_DEFAULT);
 }
 
-void e_error   (const char *format, ...) { E_BODY(LOG_ERR); }
-void e_warning (const char *format, ...) { E_BODY(LOG_WARNING); }
-void e_notice  (const char *format, ...) { E_BODY(LOG_NOTICE); }
-void e_info    (const char *format, ...) { E_BODY(LOG_INFO); }
+void e_error   (const char *format, ...) { E_BODY(LOG_ERR,     format); }
+void e_warning (const char *format, ...) { E_BODY(LOG_WARNING, format); }
+void e_notice  (const char *format, ...) { E_BODY(LOG_NOTICE,  format); }
+void e_info    (const char *format, ...) { E_BODY(LOG_INFO,    format); }
 
 /* useful callbacks */
 
@@ -152,7 +152,7 @@ void e_init_file(const char *ident, const char *filename)
 
     p_delete(&log_state.filename);
 
-    if (filename == NULL || strcmp(filename, "/dev/stderr") == 0) {
+    if (filename == NULL || !strcmp(filename, "/dev/stderr")) {
         init_file(NULL, stderr);
     } else {
         fp = fopen(filename, "a");
