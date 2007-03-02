@@ -96,7 +96,7 @@ void bfield_dump(bfield_t *blob, int level)
 
 START_TEST(check_bfield)
 {
-    int i;
+    int num;
     bfield_t bf;
     blob_t *b = bfield_t_to_blob_t(&bf);
 
@@ -138,8 +138,8 @@ START_TEST(check_bfield)
     fail_if(b->data[0] != 0x9D,
             "bfield_set failed");
 
-    i = 43987;
-    /* (i / 8) * 8 = 43984 */
+    num = 43987;
+    /* (num / 8) * 8 = 43984 */
     bfield_set(&bf, 43984);
     bfield_set(&bf, 43985);
     bfield_set(&bf, 43986);
@@ -151,16 +151,16 @@ START_TEST(check_bfield)
     fail_if(!bfield_isset(&bf, 43986),
             "bfield_isset failed");
 
-    bfield_set(&bf, i);
-    fail_if(!bfield_isset(&bf, i),
+    bfield_set(&bf, num);
+    fail_if(!bfield_isset(&bf, num),
             "bfield_set failed");
 
-    bfield_unset(&bf, i);
-    fail_if(bfield_isset(&bf, i),
+    bfield_unset(&bf, num);
+    fail_if(bfield_isset(&bf, num),
             "bfield_unset failed");
 
     bfield_reset(&bf);
-    fail_if(bfield_isset(&bf, i),
+    fail_if(bfield_isset(&bf, num),
             "bfield_reset failed");
     fail_if(bfield_isset(&bf, 4),
             "bfield_reset failed");
