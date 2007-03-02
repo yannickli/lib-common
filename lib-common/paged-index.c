@@ -64,6 +64,8 @@ static int pidx_fsck_mark_page(byte *bits, pidx_file *pidx, int page)
 static int pidx_fsck_recurse(byte *bits, pidx_file *pidx,
                              int page, int seglevel)
 {
+    /* OG: Should check that this page is unmarked, mark it and iterate
+     * or recurse */
     if (seglevel) {
         int i;
 
@@ -79,7 +81,7 @@ static int pidx_fsck_recurse(byte *bits, pidx_file *pidx,
                 return -1;
         }
     } else {
-        while ((page = pidx->area->pages[page].next)) {
+        while ((page = pidx->area->pages[page].next) != 0) {
             if (pidx_fsck_mark_page(bits, pidx, page))
                 return -1;
         }
@@ -184,7 +186,8 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
     pidx_file *pidx;
     int fsck_res;
 
-    if (flags & O_CREAT && (access(path, F_OK) || flags & O_TRUNC))
+    /* OG: Shouldn't we call pidx_creat if O_TRUNC and not O_CREAT ? */
+    if ((flags & O_CREAT) && (access(path, F_OK) || (flags & O_TRUNC)))
         return pidx_creat(path, skip, nbsegs);
 
     pidx = pidx_real_open(path, flags);
@@ -414,7 +417,7 @@ int pidx_key_first(const pidx_file *pidx, uint64_t minval, uint64_t *res)
 }
 
 /****************************************************************************/
-/* high functions                                                           */
+/* high level functions                                                     */
 /****************************************************************************/
 
 int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
