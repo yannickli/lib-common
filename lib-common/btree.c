@@ -357,7 +357,12 @@ btree_t *btree_open(const char *path, int flags)
      /* OG: Furthermore, opening the file for update should require exclusive
       *     access unless the code can handle concurrent access.
       */
-    if ((flags & O_CREAT) && (access(path, F_OK) || flags & O_TRUNC))
+    res = access(path, F_OK);
+
+    if ((flags & O_CREAT) && (res || flags & O_TRUNC))
+        return btree_creat(path);
+
+    if (!res && (flags & O_TRUNC))
         return btree_creat(path);
 
     bt  = bt_real_open(path, flags);

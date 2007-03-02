@@ -184,23 +184,26 @@ int pidx_fsck(pidx_file *pidx, int dofix)
 pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
 {
     pidx_file *pidx;
-    int fsck_res;
+    int res;
 
-    /* OG: Shouldn't we call pidx_creat if O_TRUNC and not O_CREAT ? */
-    if ((flags & O_CREAT) && (access(path, F_OK) || (flags & O_TRUNC)))
+    res = access(path, F_OK);
+    if ((flags & O_CREAT) && (res || (flags & O_TRUNC)))
+        return pidx_creat(path, skip, nbsegs);
+
+    if (!res && (flags & O_TRUNC))
         return pidx_creat(path, skip, nbsegs);
 
     pidx = pidx_real_open(path, flags);
     if (!pidx)
         return NULL;
 
-    fsck_res = pidx_fsck(pidx, !!(flags & (O_WRONLY | O_RDWR)));
-    if (fsck_res < 0) {
+    res = pidx_fsck(pidx, !!(flags & (O_WRONLY | O_RDWR)));
+    if (res < 0) {
         pidx_close(&pidx);
         errno = EINVAL;
     }
 
-    if (fsck_res > 0) {
+    if (res > 0) {
         e_error("`%s': corrupted pages, Repaired.", path);
     }
 
