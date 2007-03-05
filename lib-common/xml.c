@@ -37,15 +37,19 @@ static char *xml_dupstr_mp(xml_tree_t *tree, const char *src, int len)
     return res;
 }
 
+#define xml_deletestr_mp(tree, p)
+
 static void xml_prop_t_delete(xml_prop_t **p)
 {
     if (p && *p) {
+        xml_deletestr_mp(&(*p)->name);
+        xml_deletestr_mp(&(*p)->value);
         (*p)->next = NULL;
         p_delete(p);
     }
 }
 
-static char alnumto6bits[256] = {
+static char const alnumto6bits[256] = {
     /* 0xFF means we do not care about this char.
      * Only a-z,A-Z,0-9, '-' and '_' are really meaningfull to us in
      * this context.
@@ -111,8 +115,10 @@ SLIST_PROTOS(xml_tag_t, xml_tag_t)
 static void xml_tag_t_delete(xml_tag_t **t)
 {
     if (t && *t) {
+        xml_deletestr_mp(&(*t)->fullname);
         xml_tag_t_list_wipe(&(*t)->child);
         xml_prop_t_list_wipe(&(*t)->property);
+        xml_deletestr_mp(&(*t)->text);
         p_delete(t);
     }
 }
@@ -325,7 +331,7 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
         if (!endtag || !strstart(name, endtag, NULL)) {
             goto error;
         }
-        /* tag end : eat trailing spaces and '>' */
+        /* tag end: eat trailing spaces and '>' */
         SKIPSPACES(p, len);
         ENSURE(p, len, '>');
         len--;
@@ -520,7 +526,7 @@ static int xml_get_xml_tag(xml_tree_t *tree, const char *payload, size_t len,
     return 0;
 }
 
-/* Create a new XML tree from a buf
+/* Create a new XML tree from a buffer
  */
 xml_tree_t *xml_new_tree(const char *payload, size_t len)
 {
@@ -589,7 +595,7 @@ static const xml_tag_t* xml_search_branch(const xml_tag_t *branch,
     }
 
     pattern_hash = xml_hash(pattern, patlen);
-    matchall = patlen == 1 && pattern[0] == '*';
+    matchall = (patlen == 1 && pattern[0] == '*');
 
     for (cur = branch->child; cur; cur = cur->next) {
         /* XXX: Compare to name and not fullname (ie: ignore namespaces) */
@@ -659,6 +665,10 @@ static void xml_branch_dump(const xml_tag_t *root, const char *prefix)
 /* {{{*/
 #include <check.h>
 #include "blob.h"
+
+/* OG: should include samples/simple.xml here and create temporary file
+ * for test purposes
+ */
 
 START_TEST(check_xmlparse)
 {
