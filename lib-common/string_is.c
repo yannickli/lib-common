@@ -727,8 +727,7 @@ ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t n)
     
     /* RFE: This is very naive. Should at least call rand() only every 4
      * bytes. */
-    /* OG: shouldn't it be: last = dest + offset + n; */
-    last = dest + n;
+    last = dest + offset + n;
     for (p = dest + offset; p < last; p++) {
 #if RAND_MAX == 32767
         val = (int) (((long)16 * rand()) / (RAND_MAX + 1));
@@ -1164,7 +1163,14 @@ START_TEST(check_pstrrand)
     fail_if(ret != sizeof(buf) - 1, "Bad return value for len=sizeof(buf)");
     //fprintf(stderr, "buf:%s\n", buf);
 
-    /* OG: should test pstrrand with offset != 0 */
+    buf[0] = buf[1] = buf[2] = 'Z';
+    buf[3] = buf[4] = buf[5] = buf[6] = 0x42;
+    ret = pstrrand(buf, sizeof(buf), 3, 2);
+    fail_if(buf[3] == 0x42 || buf[4] == 0x42, "len=2 did not set buffer");
+    fail_if(buf[5] != 0, "Missing 0 after len=2");
+    fail_if(buf[6] != 0x42, "len=2 set the buffer incorrectly");
+    fail_if(ret != 2, "Bad return value for len=2");
+    //fprintf(stderr, "buf:%s\n", buf);
 }
 END_TEST
 
