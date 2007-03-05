@@ -105,9 +105,9 @@ int pidx_key_first(const pidx_file *pidx, uint64_t minval, uint64_t *res);
 
 static inline int
 pidx_key_next(const pidx_file *pidx, uint64_t cur, uint64_t *res) {
-    if (cur++ == INT64_MAX)
+    if (cur == UINT64_MAX)
         return -1;
-    return pidx_key_first(pidx, cur, res);
+    return pidx_key_first(pidx, cur + 1, res);
 }
 
 /****************************************************************************/
