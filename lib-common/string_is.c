@@ -640,6 +640,7 @@ const void *memsearch(const void *_haystack, size_t hsize,
 int buffer_increment(char *buf, int len)
 {
     int pos;
+
     if (!buf) {
         return 1;
     }
@@ -678,6 +679,7 @@ int buffer_increment(char *buf, int len)
 int buffer_increment_hex(char *buf, int len)
 {
     int pos;
+
     if (!buf) {
         return 1;
     }
@@ -725,6 +727,7 @@ ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t n)
     
     /* RFE: This is very naive. Should at least call rand() only every 4
      * bytes. */
+    /* OG: shouldn't it be: last = dest + offset + n; */
     last = dest + n;
     for (p = dest + offset; p < last; p++) {
 #if RAND_MAX == 32767
@@ -735,7 +738,7 @@ ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t n)
         *p = hex[val];
     }
     *p = '\0';
-    return (ssize_t) n;
+    return n;
 }
 
 /* OG: should move this to lib-inet or lib-mcms or mcms-sdk */
@@ -1099,6 +1102,7 @@ START_TEST(check_buffer_increment)
     check_buffer_increment_unit("42", "43", 0);
     check_buffer_increment_unit("09", "10", 0);
     check_buffer_increment_unit("99", "00", 1);
+    check_buffer_increment_unit(" 99", " 00", 1);
     check_buffer_increment_unit("", "", 1);
     check_buffer_increment_unit("foobar-00", "foobar-01", 0);
     check_buffer_increment_unit("foobar-0-99", "foobar-0-00", 1);
@@ -1127,6 +1131,7 @@ START_TEST(check_buffer_increment_hex)
     check_buffer_increment_hex_unit("09", "0A", 0);
     check_buffer_increment_hex_unit("0F", "10", 0);
     check_buffer_increment_hex_unit("FFF", "000", 1);
+    check_buffer_increment_hex_unit(" FFF", " 000", 1);
     check_buffer_increment_hex_unit("FFFFFFFFFFFFFFF", "000000000000000", 1);
     check_buffer_increment_hex_unit("", "", 1);
     check_buffer_increment_hex_unit("foobar", "foobar", 1);
@@ -1141,8 +1146,8 @@ START_TEST(check_pstrrand)
     char buf[32];
     int i, ret;
 
-    for(i = 0; i < countof(buf); i++) {
-        buf[i] = 0x42 + i;
+    for (i = 0; i < countof(buf); i++) {
+        buf[i] = 'B' + i;
     }
 
     ret = pstrrand(buf, sizeof(buf), 0, 0);
@@ -1158,6 +1163,8 @@ START_TEST(check_pstrrand)
     fail_if(buf[31] != '\0', "Missing padding after len=sizeof(buf)");
     fail_if(ret != sizeof(buf) - 1, "Bad return value for len=sizeof(buf)");
     //fprintf(stderr, "buf:%s\n", buf);
+
+    /* OG: should test pstrrand with offset != 0 */
 }
 END_TEST
 
