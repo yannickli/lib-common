@@ -24,7 +24,6 @@
 
 /* This code only works on regular architectures: we assume
  *  - integer types are either 32 bit or 64 bit long.
- *  - long long is the same as int64_t
  *  - bytes (char type) have 8 bits
  *  - integer representation is 2's complement, no padding, no traps
  *
@@ -54,63 +53,86 @@
 #define FLAG_WIDTH      0x0080
 #define FLAG_PREC       0x0100
 
-#if !defined(INT32_MAX) || !defined(INT64_MAX)
-#error "unsupported architecture"
-#endif
-
-#define SIZE_int          0
-#define SIZE_char         1
-#define SIZE_short        2
-#define SIZE_long         3
-#define SIZE_int32        4
-#define SIZE_int64        5
-#define SIZE_long_double  6
-
-#if 0
-/* No longer need this obsolete stuff */
-#define SIZE_far          7
-#define SIZE_near         8
-#endif
-
 #define SIZE_h          SIZE_short
 #define SIZE_hh         SIZE_char
 #define SIZE_l          SIZE_long
-#define SIZE_ll         SIZE_int64
-#define SIZE_L          SIZE_long_double
+#define SIZE_ll         SIZE_llong
+/* make L and ll equivalent for compatibility */
+#define SIZE_L          SIZE_llong
+//#define SIZE_L          SIZE_ldouble
 
-#define WANT_long         1
-#define WANT_int32        1
-#define WANT_int64        1
+#define SIZE_int        0
+#define SIZE_char       1
+#define SIZE_short      2
+#define SIZE_ldouble    5
 
-#if INT32_MAX == INT_MAX
-#undef WANT_int32
-#undef SIZE_int32
-#define SIZE_int32      SIZE_int
-#define convert_uint32  convert_uint
-#elif INT32_MAX == LONG_MAX
-#undef WANT_int32
-#undef SIZE_int32
-#define SIZE_int32      SIZE_long
-#define convert_uint32  convert_ulong
-#endif
-
-#if INT64_MAX == INT_MAX
-#undef WANT_int64
-#undef SIZE_int64
-#define SIZE_int64      SIZE_int
-#define convert_uint64  convert_uint
-#elif INT64_MAX == LONG_MAX
-#undef WANT_int64
-#undef SIZE_int64
-#define SIZE_int64      SIZE_long
-#define convert_uint64  convert_ulong
+#if 0
+/* No longer need this obsolete stuff */
+#define SIZE_far        8
+#define SIZE_near       9
 #endif
 
 #if LONG_MAX == INT_MAX
-#undef WANT_long
-#undef SIZE_long
-#define SIZE_long      SIZE_int
-#define convert_ulong  convert_uint
+#define SIZE_long       SIZE_int
+#define convert_ulong   convert_uint
+#else
+#define WANT_long       1
+#define SIZE_long       3
+#endif
+
+#ifndef LLONG_MAX
+#if defined(LONG_LONG_MAX)
+#define LLONG_MAX       LONG_LONG_MAX
+#elif defined(__LONG_LONG_MAX__)
+#define LLONG_MAX       __LONG_LONG_MAX__
+#else
+#error "unsupported architecture: need LLONG_MAX"
+#endif
+#endif
+
+#if LLONG_MAX == LONG_MAX
+#define SIZE_llong      SIZE_long
+#define convert_ullong  convert_ulong
+#else
+#define WANT_llong      1
+#define SIZE_llong      4
+#endif
+
+#if INTMAX_MAX == LONG_MAX
+#define SIZE_intmax_t   SIZE_long
+#elif INTMAX_MAX == LLONG_MAX
+#define SIZE_intmax_t   SIZE_llong
+#else
+#error "unsupported architecture: unsupported INTMAX_MAX"
+#endif
+
+#ifndef INT32_MAX
+#error "unsupported architecture"
+#elif INT32_MAX == INT_MAX
+#define SIZE_int32      SIZE_int
+#define convert_uint32  convert_uint
+#elif INT32_MAX == LONG_MAX
+#define SIZE_int32      SIZE_long
+#define convert_uint32  convert_ulong
+#else
+#define WANT_int32      1
+#define SIZE_int32      6
+#endif
+
+#ifndef INT64_MAX
+#error "unsupported architecture: need INT64_MAX"
+#elif INT64_MAX == INT_MAX
+#define SIZE_int64      SIZE_int
+#define convert_uint64  convert_uint
+#elif INT64_MAX == LONG_MAX
+#define SIZE_int64      SIZE_long
+#define convert_uint64  convert_ulong
+#elif INT64_MAX == LLONG_MAX
+#define SIZE_int64      SIZE_llong
+#define convert_uint64  convert_ullong
+#else
+#define WANT_int64      1
+#define SIZE_int64      7
 #endif
 
 #if SIZE_MAX == UINT32_MAX
@@ -118,15 +140,7 @@
 #elif SIZE_MAX == UINT64_MAX
 #define SIZE_size_t     SIZE_int64
 #else
-#error "unsupported architecture"
-#endif
-
-#if INTMAX_MAX == INT32_MAX
-#define SIZE_intmax_t   SIZE_int32
-#elif INTMAX_MAX == INT64_MAX
-#define SIZE_intmax_t   SIZE_int64
-#else
-#error "unsupported architecture"
+#error "unsupported architecture: unsupported SIZE_MAX"
 #endif
 
 #if PTRDIFF_MAX == INT32_MAX
@@ -134,7 +148,15 @@
 #elif PTRDIFF_MAX == INT64_MAX
 #define SIZE_ptrdiff_t   SIZE_int64
 #else
-#error "unsupported architecture"
+#error "unsupported architecture: unsupported PTRDIFF_MAX"
+#endif
+
+#if UINTPTR_MAX == UINT32_MAX
+#define convert_uintptr  convert_uint32
+#elif UINTPTR_MAX == UINT64_MAX
+#define convert_uintptr  convert_uint64
+#else
+#error "unsupported architecture: unsupported UINTPTR_MAX"
 #endif
 
 /*---------------- helpers ----------------*/
@@ -174,6 +196,17 @@ static inline char *convert_uint(char *p, unsigned int value, int base)
 
 #ifndef convert_ulong
 static char *convert_ulong(char *p, unsigned long value, int base)
+{
+    while (value > 0) {
+        *--p = '0' + (value % base);
+        value = value / base;
+    }
+    return p;
+}
+#endif
+
+#ifndef convert_ullong
+static char *convert_ullong(char *p, unsigned long long value, int base)
 {
     while (value > 0) {
         *--p = '0' + (value % base);
@@ -463,7 +496,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             format++;
             break;
         case 'L':
-            size_flags |= SIZE_long_double;
+            size_flags |= SIZE_L;
             format++;
             break;
         }
@@ -499,15 +532,9 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                 *va_arg(ap, long *) = count;
                 break;
 #endif
-#ifdef WANT_int32
-              case SIZE_int32:
-                *va_arg(ap, int32_t *) = count;
-                break;
-#endif
-#ifdef WANT_int64
-              case SIZE_int64:
-              case SIZE_long_double:
-                *va_arg(ap, int64_t *) = count;
+#ifdef WANT_llong
+              case SIZE_llong:
+                *va_arg(ap, long long *) = count;
                 break;
 #endif
             }
@@ -586,6 +613,17 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                     break;
                 }
 #endif
+#ifdef WANT_llong
+              case SIZE_llong:
+                {
+                    long long value = va_arg(ap, long);
+                    unsigned long long bits = value >> (8 * sizeof(value) - 1);
+                    unsigned long long num = (value ^ bits) + (bits & 1);
+                    sign = '-' & bits;
+                    lp = convert_ullong(buf + sizeof(buf), num, 10);
+                    break;
+                }
+#endif
 #ifdef WANT_int32
               case SIZE_int32:
                 {
@@ -599,7 +637,6 @@ static int fmt_output(FILE *stream, char *str, size_t size,
 #endif
 #ifdef WANT_int64
               case SIZE_int64:
-              case SIZE_long_double:
                 {
                     int64_t value = va_arg(ap, int64_t);
                     uint64_t bits = value >> (8 * sizeof(value) - 1);
@@ -672,13 +709,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                     goto has_string_len;
                 }
                 /* Should share with has_unsigned switch code */
-#if UINTPTR_MAX == UINT32_MAX
-                lp = convert_uint32(buf + sizeof(buf), (uint32_t)vp, base);
-#elif UINTPTR_MAX == UINT64_MAX
-                lp = convert_uint64(buf + sizeof(buf), (uint64_t)vp, base);
-#else
-#error "cannot determine pointer size"
-#endif
+                lp = convert_uintptr(buf + sizeof(buf), (uintptr_t)vp, base);
                 goto patch_unsigned_conversion;
             }
 
@@ -719,6 +750,12 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                                    va_arg(ap, unsigned long), base);
                 break;
 #endif
+#ifdef WANT_llong
+              case SIZE_llong:
+                lp = convert_ullong(buf + sizeof(buf),
+                                   va_arg(ap, unsigned long long), base);
+                break;
+#endif
 #ifdef WANT_int32
               case SIZE_int32:
                 lp = convert_uint32(buf + sizeof(buf),
@@ -727,7 +764,6 @@ static int fmt_output(FILE *stream, char *str, size_t size,
 #endif
 #ifdef WANT_int64
               case SIZE_int64:
-              case SIZE_long_double:
                 lp = convert_uint64(buf + sizeof(buf),
                                     va_arg(ap, uint64_t), base);
                 break;
@@ -830,7 +866,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         case 'a':
         case 'A':
             /* fetch double value */
-            if (size_flags == SIZE_long_double) {
+            if (size_flags == SIZE_L) {
                 (void)va_arg(ap, long double);
             } else {
                 (void)va_arg(ap, double);
