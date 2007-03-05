@@ -37,7 +37,7 @@ static char *xml_dupstr_mp(xml_tree_t *tree, const char *src, int len)
     return res;
 }
 
-#define xml_deletestr_mp(tree, p)
+#define xml_deletestr_mp(p)
 
 static void xml_prop_t_delete(xml_prop_t **p)
 {
