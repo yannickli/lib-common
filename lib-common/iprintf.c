@@ -53,31 +53,16 @@
 #define FLAG_WIDTH      0x0080
 #define FLAG_PREC       0x0100
 
-#define SIZE_h          SIZE_short
-#define SIZE_hh         SIZE_char
-#define SIZE_l          SIZE_long
-#define SIZE_ll         SIZE_llong
-/* make L and ll equivalent for compatibility */
-#define SIZE_L          SIZE_llong
-//#define SIZE_L          SIZE_ldouble
-
-#define SIZE_int        0
-#define SIZE_char       1
-#define SIZE_short      2
-#define SIZE_ldouble    5
-
-#if 0
-/* No longer need this obsolete stuff */
-#define SIZE_far        8
-#define SIZE_near       9
-#endif
+#define TYPE_int        0
+#define TYPE_char       1
+#define TYPE_short      2
 
 #if LONG_MAX == INT_MAX
-#define SIZE_long       SIZE_int
+#define TYPE_long       TYPE_int
 #define convert_ulong   convert_uint
 #else
 #define WANT_long       1
-#define SIZE_long       3
+#define TYPE_long       3
 #endif
 
 #ifndef LLONG_MAX
@@ -91,17 +76,17 @@
 #endif
 
 #if LLONG_MAX == LONG_MAX
-#define SIZE_llong      SIZE_long
+#define TYPE_llong      TYPE_long
 #define convert_ullong  convert_ulong
 #else
 #define WANT_llong      1
-#define SIZE_llong      8
+#define TYPE_llong      4
 #endif
 
 #if INTMAX_MAX == LONG_MAX
-#define SIZE_intmax_t   SIZE_long
+#define TYPE_intmax_t   TYPE_long
 #elif INTMAX_MAX == LLONG_MAX
-#define SIZE_intmax_t   SIZE_llong
+#define TYPE_intmax_t   TYPE_llong
 #else
 #error "unsupported architecture: unsupported INTMAX_MAX"
 #endif
@@ -109,44 +94,44 @@
 #ifndef INT32_MAX
 #error "unsupported architecture"
 #elif INT32_MAX == INT_MAX
-#define SIZE_int32      SIZE_int
+#define TYPE_int32      TYPE_int
 #define convert_uint32  convert_uint
 #elif INT32_MAX == LONG_MAX
-#define SIZE_int32      SIZE_long
+#define TYPE_int32      TYPE_long
 #define convert_uint32  convert_ulong
 #else
 #define WANT_int32      1
-#define SIZE_int32      6
+#define TYPE_int32      5
 #endif
 
 #ifndef INT64_MAX
 #error "unsupported architecture: need INT64_MAX"
 #elif INT64_MAX == INT_MAX
-#define SIZE_int64      SIZE_int
+#define TYPE_int64      TYPE_int
 #define convert_uint64  convert_uint
 #elif INT64_MAX == LONG_MAX
-#define SIZE_int64      SIZE_long
+#define TYPE_int64      TYPE_long
 #define convert_uint64  convert_ulong
 #elif INT64_MAX == LLONG_MAX
-#define SIZE_int64      SIZE_llong
+#define TYPE_int64      TYPE_llong
 #define convert_uint64  convert_ullong
 #else
 #define WANT_int64      1
-#define SIZE_int64      7
+#define TYPE_int64      6
 #endif
 
 #if SIZE_MAX == UINT32_MAX
-#define SIZE_size_t     SIZE_int32
+#define TYPE_size_t     TYPE_int32
 #elif SIZE_MAX == UINT64_MAX
-#define SIZE_size_t     SIZE_int64
+#define TYPE_size_t     TYPE_int64
 #else
 #error "unsupported architecture: unsupported SIZE_MAX"
 #endif
 
 #if PTRDIFF_MAX == INT32_MAX
-#define SIZE_ptrdiff_t   SIZE_int32
+#define TYPE_ptrdiff_t   TYPE_int32
 #elif PTRDIFF_MAX == INT64_MAX
-#define SIZE_ptrdiff_t   SIZE_int64
+#define TYPE_ptrdiff_t   TYPE_int64
 #else
 #error "unsupported architecture: unsupported PTRDIFF_MAX"
 #endif
@@ -157,6 +142,15 @@
 #define convert_uintptr  convert_uint64
 #else
 #error "unsupported architecture: unsupported UINTPTR_MAX"
+#endif
+
+/* Consider 'L' and 'll' synonyms for compatibility */
+#define TYPE_ldouble    TYPE_llong
+
+#if 0
+/* No longer need this obsolete stuff */
+#define TYPE_far        8
+#define TYPE_near       9
 #endif
 
 /*---------------- helpers ----------------*/
@@ -274,7 +268,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                       const char *format, va_list ap)
 {
     char buf[(64 + 2) / 3 + 1 + 1];
-    int c, count, len, len1, width, prec, base, flags, size_flags;
+    int c, count, len, len1, width, prec, base, flags, type_flags;
     int left_pad, prefix_len, zero_pad, right_pad;
     const char *format0, *lp;
     int sign;
@@ -451,52 +445,52 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         }
 
         /* parse optional format modifiers */
-        size_flags = 0;
+        type_flags = 0;
         switch (*format) {
         case '\0':
             goto error;
-#ifdef SIZE_far
+#ifdef TYPE_far
         case 'F':
-            size_flags |= SIZE_far;
+            type_flags |= TYPE_far;
             format++;
             break;
         case 'N':
-            size_flags |= SIZE_near;
+            type_flags |= TYPE_near;
             format++;
             break;
 #endif
         case 'l':
             if (format[1] == 'l') {
                 format++;
-                size_flags |= SIZE_ll;
+                type_flags |= TYPE_llong;
             } else {
-                size_flags |= SIZE_l;
+                type_flags |= TYPE_long;
             }
             format++;
             break;
         case 'h':
             if (format[1] == 'h') {
                 format++;
-                size_flags |= SIZE_hh;
+                type_flags |= TYPE_char;
             } else {
-                size_flags |= SIZE_h;
+                type_flags |= TYPE_short;
             }
             format++;
             break;
         case 'j':
-            size_flags |= SIZE_intmax_t;
+            type_flags |= TYPE_intmax_t;
             format++;
             break;
         case 'z':
-            size_flags |= SIZE_size_t;
+            type_flags |= TYPE_size_t;
             format++;
             break;
         case 't':
-            size_flags |= SIZE_ptrdiff_t;
+            type_flags |= TYPE_ptrdiff_t;
             format++;
             break;
         case 'L':
-            size_flags |= SIZE_L;
+            type_flags |= TYPE_ldouble;
             format++;
             break;
         }
@@ -513,27 +507,27 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             (void)va_arg(ap, int *);
 #else
             /* The type of pointer defaults to int* but can be
-             * specified with the SIZE_xxx prefixes */
-            switch (size_flags) {
-              case SIZE_char:
+             * specified with the TYPE_xxx prefixes */
+            switch (type_flags) {
+              case TYPE_char:
                 *va_arg(ap, char *) = count;
                 break;
 
-              case SIZE_short:
+              case TYPE_short:
                 *va_arg(ap, short *) = count;
                 break;
 
-              case SIZE_int:
+              case TYPE_int:
               default:
                 *va_arg(ap, int *) = count;
                 break;
 #ifdef WANT_long
-              case SIZE_long:
+              case TYPE_long:
                 *va_arg(ap, long *) = count;
                 break;
 #endif
 #ifdef WANT_llong
-              case SIZE_llong:
+              case TYPE_llong:
                 *va_arg(ap, long long *) = count;
                 break;
 #endif
@@ -581,18 +575,18 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         case 'd':
         case 'i':
             sign = 0;
-            switch (size_flags) {
+            switch (type_flags) {
                 int int_value;
 
-              case SIZE_char:
+              case TYPE_char:
                 int_value = (char)va_arg(ap, int);
                 goto convert_int;
 
-              case SIZE_short:
+              case TYPE_short:
                 int_value = (short)va_arg(ap, int);
                 goto convert_int;
 
-              case SIZE_int:
+              case TYPE_int:
                 int_value = va_arg(ap, int);
               convert_int:
                 {
@@ -603,7 +597,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                     break;
                 }
 #ifdef WANT_long
-              case SIZE_long:
+              case TYPE_long:
                 {
                     long value = va_arg(ap, long);
                     unsigned long bits = value >> (8 * sizeof(value) - 1);
@@ -614,7 +608,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                 }
 #endif
 #ifdef WANT_llong
-              case SIZE_llong:
+              case TYPE_llong:
                 {
                     long long value = va_arg(ap, long long);
                     unsigned long long bits = value >> (8 * sizeof(value) - 1);
@@ -625,7 +619,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                 }
 #endif
 #ifdef WANT_int32
-              case SIZE_int32:
+              case TYPE_int32:
                 {
                     int32_t value = va_arg(ap, int32_t);
                     uint32_t bits = value >> (8 * sizeof(value) - 1);
@@ -636,7 +630,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                 }
 #endif
 #ifdef WANT_int64
-              case SIZE_int64:
+              case TYPE_int64:
                 {
                     int64_t value = va_arg(ap, int64_t);
                     uint64_t bits = value >> (8 * sizeof(value) - 1);
@@ -728,42 +722,42 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             base = 10;
 
         has_unsigned:
-            switch (size_flags) {
+            switch (type_flags) {
                 int uint_value;
 
-              case SIZE_char:
+              case TYPE_char:
                 uint_value = (unsigned char)va_arg(ap, unsigned int);
                 goto convert_uint;
 
-              case SIZE_short:
+              case TYPE_short:
                 uint_value = (unsigned short)va_arg(ap, unsigned int);
                 goto convert_uint;
 
-              case SIZE_int:
+              case TYPE_int:
                 uint_value = va_arg(ap, unsigned int);
               convert_uint:
                 lp = convert_uint(buf + sizeof(buf), uint_value, base);
                 break;
 #ifdef WANT_long
-              case SIZE_long:
+              case TYPE_long:
                 lp = convert_ulong(buf + sizeof(buf),
                                    va_arg(ap, unsigned long), base);
                 break;
 #endif
 #ifdef WANT_llong
-              case SIZE_llong:
+              case TYPE_llong:
                 lp = convert_ullong(buf + sizeof(buf),
                                    va_arg(ap, unsigned long long), base);
                 break;
 #endif
 #ifdef WANT_int32
-              case SIZE_int32:
+              case TYPE_int32:
                 lp = convert_uint32(buf + sizeof(buf),
                                     va_arg(ap, uint32_t), base);
                 break;
 #endif
 #ifdef WANT_int64
-              case SIZE_int64:
+              case TYPE_int64:
                 lp = convert_uint64(buf + sizeof(buf),
                                     va_arg(ap, uint64_t), base);
                 break;
@@ -866,7 +860,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         case 'a':
         case 'A':
             /* fetch double value */
-            if (size_flags == SIZE_L) {
+            if (type_flags == TYPE_ldouble) {
                 (void)va_arg(ap, long double);
             } else {
                 (void)va_arg(ap, double);
