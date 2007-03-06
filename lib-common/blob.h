@@ -229,6 +229,7 @@ ssize_t blob_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f) {
     blob_reset(blob);
     return blob_append_fread(blob, size, nmemb, f);
 }
+ssize_t blob_append_fgets(blob_t *blob, FILE *f);
 
 /* negative count means "auto" */
 ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count);

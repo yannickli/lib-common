@@ -406,6 +406,20 @@ ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
     return res;
 }
 
+ssize_t blob_append_fgets(blob_t *blob, FILE *f)
+{
+    ssize_t len = blob->len;
+    const char *res;
+
+    do {
+        blob_ensure_avail(blob, BUFSIZ);
+        res = fgets((char *)blob->data + blob->len, BUFSIZ, f);
+        blob->len += strlen((char *)blob->data + blob->len);
+    } while (res && blob->data[blob->len - 1] != '\n');
+
+    return blob->len - len;
+}
+
 ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
 {
     ssize_t res;
