@@ -95,7 +95,7 @@
 #define convert_ullong  convert_ulong
 #else
 #define WANT_llong      1
-#define SIZE_llong      4
+#define SIZE_llong      8
 #endif
 
 #if INTMAX_MAX == LONG_MAX
@@ -616,7 +616,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
 #ifdef WANT_llong
               case SIZE_llong:
                 {
-                    long long value = va_arg(ap, long);
+                    long long value = va_arg(ap, long long);
                     unsigned long long bits = value >> (8 * sizeof(value) - 1);
                     unsigned long long num = (value ^ bits) + (bits & 1);
                     sign = '-' & bits;
