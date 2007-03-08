@@ -1143,10 +1143,10 @@ END_TEST
 START_TEST(check_pstrrand)
 {
     char buf[32];
-    int i, ret;
+    int n, ret;
 
-    for (i = 0; i < countof(buf); i++) {
-        buf[i] = 'B' + i;
+    for (n = 0; n < countof(buf); n++) {
+        buf[n] = 'B' + n;
     }
 
     ret = pstrrand(buf, sizeof(buf), 0, 0);
