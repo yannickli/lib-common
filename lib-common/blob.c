@@ -47,6 +47,8 @@ blob_t *blob_dup(const blob_t *src)
 /* FIXME: this function is nasty, and has bad semantics: blob should know if
  * it owns the buffer. This makes the programmer write really horrible code
  * atm ==> NEVER SET THAT PUBLIC
+ * OG: this function is only used by blob_b64encode() whois API should
+ * also change from inplace semantics to input/output.
  */
 /* Set the payload of a blob to the given buffer of size bufsize.
  * len is the len of the data inside it.
@@ -329,7 +331,7 @@ ssize_t blob_append_file_data(blob_t *blob, const char *filename)
         pos = origlen;
         total = 0;
         for (;;) {
-            char buf[4096];
+            char buf[BUFSIZ];
 
             if ((nread = read(fd, buf, sizeof(buf))) < 0) {
                 if (errno == EINTR) {
@@ -377,11 +379,9 @@ ssize_t blob_append_file_data(blob_t *blob, const char *filename)
     return total;
 
   error:
-    if (fd >= 0) {
-        close(fd);
-        /* OG: maybe we should keep data read so far */
-        blob_resize(blob, origlen);
-    }
+    close(fd);
+    /* OG: maybe we should keep data read so far */
+    blob_resize(blob, origlen);
     return -1;
 }
 
@@ -390,10 +390,14 @@ ssize_t blob_append_file_data(blob_t *blob, const char *filename)
  */
 ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
 {
-    ssize_t total = size * nmemb;
     ssize_t res;
 
-    blob_ensure_avail(blob, total);
+    /* Use naive implementation: ignore potential overflow and
+     * pre-allocate maximum read size.
+     * Should extend API to allow reading the whole FILE at once with
+     * minimal memory allocation.
+     */
+    blob_ensure_avail(blob, size * nmemb);
 
     res = fread(blob->data + blob->len, size, nmemb, f);
     if (res < 0) {
@@ -402,24 +406,14 @@ ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
         return res;
     }
 
-    blob_extend(blob, res * size);
+    blob_extend(blob, size * res);
     return res;
 }
 
-ssize_t blob_append_fgets(blob_t *blob, FILE *f)
-{
-    ssize_t len = blob->len;
-    const char *res;
-
-    do {
-        blob_ensure_avail(blob, BUFSIZ);
-        res = fgets((char *)blob->data + blob->len, BUFSIZ, f);
-        blob->len += strlen((char *)blob->data + blob->len);
-    } while (res && blob->data[blob->len - 1] != '\n');
-
-    return blob->len - len;
-}
-
+/* Return the number of bytes read */
+/* Negative count uses system default of BUFSIZ: undocumented semantics
+ * used in aggregatorm subject to change
+ */
 ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
 {
     ssize_t res;
@@ -440,6 +434,46 @@ ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
     return res;
 }
 
+/* Return the number of bytes read */
+/* Embedded nuls in input stream will cause portions of the stream to
+ * be skipped.
+ */
+ssize_t blob_append_fgets(blob_t *blob, FILE *f)
+{
+    char buf[BUFSIZ];
+    char *dest;
+    ssize_t size, len, total = 0;
+
+    for (;;) {
+        dest = (char *)blob->data + blob->len;
+        size = blob->size - blob->len;
+        if (size < BUFSIZ) {
+            dest = buf;
+            size = BUFSIZ;
+        }
+        if (!fgets(dest, size, f)) {
+            /* In case of I/O error, fgets way have overwritten the
+             * '\0' at the end of the blob buffer.  Reset it just in
+             * case.
+             */
+            *dest = '\0';
+            break;
+        }
+        len = strlen(dest);
+        if (dest == buf) {
+            /* Append temporary buffer to blob data */
+            blob_ensure_avail(blob, len);
+            memcpy(blob->data + blob->len, dest, len + 1);
+        }
+        blob->len += len;
+        total += len;
+        if (len && dest[len - 1] == '\n')
+            break;
+    }
+    return total;
+}
+
+/* Return number of bytes written or -1 on error */
 ssize_t blob_save_to_file(blob_t *blob, const char *filename)
 {
     ssize_t len, pos, nwritten;
@@ -450,13 +484,17 @@ ssize_t blob_save_to_file(blob_t *blob, const char *filename)
 
     len = blob->len;
 
-    for (pos = 0; pos < len; pos += nwritten) {
+    for (pos = 0; pos < len; ) {
         nwritten = write(fd, blob->data + pos, len - pos);
+        if (nwritten < 0 && errno == EINTR)
+            continue;
+
         if (nwritten <= 0) {
             close(fd);
             unlink(filename);
             return -1;
         }
+        pos += nwritten;
     }
     close(fd);
     return len;
@@ -542,7 +580,7 @@ ssize_t blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap)
 /* Returns the number of bytes written.
  *
  * A negative value indicates an error, without much precision
- * (presumably not enough space in the internal buffer, and such an error
+ * (presumably not enough space in the internal buffer) and such an error
  * is permanent. The 1 KB buffer should suffice.
  */
 ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt,
@@ -556,7 +594,7 @@ ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt,
         pos = blob->len;
     }
 
-    /* Detecting overflow in strftime cannot be done reliably:  older
+    /* Detecting overflow in strftime cannot be done reliably: older
      * versions of the glibc returned bufsize upon overflow, while
      * newer ones follow the norm and return 0.  An unlucky choice
      * since valid time conversions can have 0 length, including non
@@ -591,7 +629,6 @@ blob_search_data_real(const blob_t *haystack, ssize_t pos,
 {
     const byte *p;
 
-    /* OG: should validate pos against blob bounds */
     if (pos < 0) {
         pos = 0;
     }
@@ -604,8 +641,6 @@ blob_search_data_real(const blob_t *haystack, ssize_t pos,
     }
     return p - haystack->data;
 }
-
-/* not very efficent ! */
 
 ssize_t blob_search(const blob_t *haystack, ssize_t pos, const blob_t *needle)
 {
@@ -654,6 +689,9 @@ void blob_ltrim(blob_t *blob)
 {
     ssize_t i;
 
+    /* OG: we could be slightly more efficient: since '\0' is not a
+     * space char, we do not really have to compare i to blob->len
+     */
     for (i = 0; i < blob->len; i++) {
         if (!isspace(blob->data[i]))
             break;
@@ -833,6 +871,9 @@ static inline ssize_t b64_size(ssize_t oldlen, int nbpackets)
     }
 }
 
+/* OG: this function is obsolete, should use blob_append_base64()
+ * instead.
+ */
 void blob_b64encode(blob_t *blob, int nbpackets)
 {
     const ssize_t oldlen  = blob->len;
@@ -1035,6 +1076,10 @@ int blob_append_quoted_printable(blob_t *dst, const byte *src, ssize_t len)
     return 0;
 }
 
+/* width is the maximum length for output lines, not counting end of
+ * line markers.  0 for standard 76 character lines, -1 for unlimited
+ * line length.
+ */
 int blob_append_base64(blob_t *dst, const byte *src, ssize_t len, int width)
 {
     const byte *end;
