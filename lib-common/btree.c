@@ -450,16 +450,16 @@ static int btn_bsearch(const bt_node_t *node, uint64_t key)
         int i = (l + r) / 2;
 
         switch (CMP(key, node->keys[i])) {
-          case POSITIVE:
+          case CMP_LESS: /* key < node->keys[i] */
             r = i;
             break;
 
-          case ZERO:
+          case CMP_EQUAL:
             while (i > 0 && !CMP(key, node->keys[i - 1]))
                 i--;
             return i;
 
-          case NEGATIVE: /* key > node->keys[i] */
+          case CMP_GREATER: /* key > node->keys[i] */
             l = i + 1;
             break;
         }
@@ -502,7 +502,7 @@ static int32_t btn_find_leaf(const struct btree_priv *bt, uint64_t key,
 /* code specific to the leaves                                              */
 /****************************************************************************/
 
-static inline int
+static inline enum sign
 btl_keycmp(uint64_t key, const bt_leaf_t *leaf, int pos)
 {
     union {
@@ -511,7 +511,7 @@ btl_keycmp(uint64_t key, const bt_leaf_t *leaf, int pos)
     } u;
     assert (0 <= pos && pos + 1 + 8 <= leaf->used);
     memcpy(&u, leaf->data + pos + 1, 8);
-    return CMP(u.u, key);
+    return CMP(key, u.u);
 }
 
 static int
@@ -528,14 +528,14 @@ btl_findslot(const bt_leaf_t *leaf, uint64_t key, int32_t *slot)
     }
 
     while (*pos < leaf->used) {
-        switch (SIGN(btl_keycmp(key, leaf, *pos))) {
-          case POSITIVE:
+        switch (btl_keycmp(key, leaf, *pos)) {
+          case CMP_GREATER:
             break;
 
-          case ZERO:
+          case CMP_EQUAL:
             return *pos;
 
-          case NEGATIVE:
+          case CMP_LESS:
             return -1;
         }
 

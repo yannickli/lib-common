@@ -86,12 +86,6 @@ typedef unsigned int gt_uint32_t;
 #define MIN(a,b)  (((a) > (b)) ? (b) : (a))
 #endif
 
-enum sign {
-    POSITIVE = 1,
-    ZERO     = 0,
-    NEGATIVE = -1,
-};
-
 #ifdef CMP
 #error CMP already defined
 #endif
@@ -99,8 +93,17 @@ enum sign {
 #error SIGN already defined
 #endif
 
-#define CMP(x, y)  ((enum sign)(((y) > (x)) - ((y) < (x))))
-#define SIGN(x)    CMP(0, x)
+enum sign {
+    NEGATIVE = -1,
+    ZERO     = 0,
+    POSITIVE = 1,
+};
+
+#define CMP(x, y)    ((enum sign)(((x) > (y)) - ((x) < (y))))
+#define CMP_LESS     NEGATIVE
+#define CMP_EQUAL    ZERO
+#define CMP_GREATER  POSITIVE
+#define SIGN(x)      CMP(x, 0)
 
 #define TOSTR_AUX(x)  #x
 #define TOSTR(x)      TOSTR_AUX(x)
