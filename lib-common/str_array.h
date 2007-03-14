@@ -24,4 +24,15 @@ GENERIC_DELETE(char *, string);
 ARRAY_FUNCTIONS(char, string)
 void string_array_dump(const string_array *xp);
 
+string_array *str_explode(const char *s, const char *tokens);
+
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
+#ifdef CHECK
+#include <check.h>
+
+Suite *check_str_array_suite(void);
+
+#endif
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
+
 #endif /* IS_LIB_COMMON_STR_ARRAY_H */
