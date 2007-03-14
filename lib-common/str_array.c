@@ -40,21 +40,21 @@ string_array *str_explode(const char *s, const char *tokens)
 
     if (!p) {
         string_array_append(res, p_strdup(s));
-    }
-    sep = *p;
-    string_array_append(res, p_dupstr(s, p - s));
-    s = p + 1;
-
-    while ((p = strchr(s, sep)) != NULL) {
+    } else {
+        sep = *p;
         string_array_append(res, p_dupstr(s, p - s));
         s = p + 1;
-    }
 
-    /* Last part */
-    if (*s) {
-        string_array_append(res, p_strdup(s));
-    }
+        while ((p = strchr(s, sep)) != NULL) {
+            string_array_append(res, p_dupstr(s, p - s));
+            s = p + 1;
+        }
 
+        /* Last part */
+        if (*s) {
+            string_array_append(res, p_strdup(s));
+        }
+    }
     return res;
 }
 
