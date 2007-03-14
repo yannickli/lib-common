@@ -25,11 +25,21 @@ void string_array_dump(const string_array *xp)
     }
 }
 
+/* OG: API discussion:
+ * str_explode() as a reference to PHP's explode() function but with
+ * different semantics: order of parameters is reversed, and delimiter
+ * is en actual string, not a set a characters. 
+ * We could also name this str_split() as a reference to Javascript's
+ * String split method. 
+ * - a NULL token string could mean a standard set of delimiters
+ * - an empty token string will produce a singleton
+ * - an empty string will produce a NULL instead of an empty array ?
+ */
+
 string_array *str_explode(const char *s, const char *tokens)
 {
     const char *p;
     string_array *res;
-    char sep;
 
     if (!s || !tokens || !*s) {
         return NULL;
@@ -38,22 +48,15 @@ string_array *str_explode(const char *s, const char *tokens)
     res = string_array_new();
     p = strpbrk(s, tokens);
 
-    if (!p) {
-        string_array_append(res, p_strdup(s));
-    } else {
-        sep = *p;
+    while (p != NULL) {
         string_array_append(res, p_dupstr(s, p - s));
         s = p + 1;
+        p = strchr(s, *p);
+    }
 
-        while ((p = strchr(s, sep)) != NULL) {
-            string_array_append(res, p_dupstr(s, p - s));
-            s = p + 1;
-        }
-
-        /* Last part */
-        if (*s) {
-            string_array_append(res, p_strdup(s));
-        }
+    /* Last part */
+    if (*s) {
+        string_array_append(res, p_strdup(s));
     }
     return res;
 }
