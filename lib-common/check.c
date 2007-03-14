@@ -23,6 +23,7 @@
 #include "xml.h"
 #include "timeval.h"
 #include "bfield.h"
+#include "str_array.h"
 
 int main(void)
 {
@@ -38,6 +39,7 @@ int main(void)
     srunner_add_suite(sr, check_xml_suite());
     srunner_add_suite(sr, check_make_timeval_suite());
     srunner_add_suite(sr, check_bfield_suite());
+    srunner_add_suite(sr, check_str_array_suite());
 
     srunner_run_all(sr, CK_NORMAL);
     nf = srunner_ntests_failed(sr);
