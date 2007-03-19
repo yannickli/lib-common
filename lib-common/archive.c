@@ -427,6 +427,7 @@ const archive_file *archive_get_file_bloc(const archive_t *archive,
     archive_file *file;
     int i;
 
+    /* XXX: Should use a cached hash as file->name never change */
     for (i = 0; i < archive->nb_blocs; i++) {
         bloc = archive->blocs[i];
         if (bloc->tag == ARCHIVE_TAG_FILE) {
