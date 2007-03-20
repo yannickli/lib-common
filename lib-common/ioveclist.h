@@ -14,6 +14,7 @@
 #ifndef IS_LIB_COMMON_IOVECLIST_H
 #define IS_LIB_COMMON_IOVECLIST_H
 
+#ifndef MINGCC
 #include <sys/uio.h>
 
 #include <lib-common/blob.h>
@@ -40,5 +41,5 @@ static inline int ioveclist_insert_blob(ioveclist *l, blob_t *blob)
 }
 
 ioveclist_state ioveclist_write(ioveclist *l, int fd);
-
+#endif
 #endif /* IS_LIB_COMMON_IOVECLIST_H */

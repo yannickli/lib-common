@@ -21,6 +21,12 @@
 #include <stdio.h>
 #include <fcntl.h>
 
+#ifdef MINGCC
+#include <winsock2.h>
+#else
+#include <sys/socket.h>
+#endif
+
 #include "macros.h"
 #include "blob.h"
 #include "blob_time.h"
@@ -424,6 +430,30 @@ ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
     blob_ensure_avail(blob, count);
 
     res = read(fd, blob->data + blob->len, count);
+    if (res < 0) {
+        /* defensive programming, read should not modify it, but... */
+        blob->data[blob->len] = '\0';
+        return res;
+    }
+
+    blob_extend(blob, res);
+    return res;
+}
+
+/* Return the number of bytes read */
+/* Negative count uses system default of BUFSIZ: undocumented semantics
+ * used in aggregatorm subject to change
+ */
+ssize_t blob_append_recv(blob_t *blob, int fd, ssize_t count)
+{
+    ssize_t res;
+
+    if (count < 0)
+        count = BUFSIZ;
+
+    blob_ensure_avail(blob, count);
+
+    res = recv(fd, blob->data + blob->len, count, 0);
     if (res < 0) {
         /* defensive programming, read should not modify it, but... */
         blob->data[blob->len] = '\0';

@@ -13,7 +13,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifndef MINGCC
 #include <syslog.h>
+#else
+#define SIGHUP            1
+#define LOG_CRIT          1
+#define LOG_ERR           2
+#define LOG_WARNING       3
+#define LOG_NOTICE        4
+#define LOG_INFO          5
+#endif
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
@@ -166,6 +175,7 @@ void e_init_file(const char *ident, const char *filename)
     }
 }
 
+#ifndef MINGCC
 void e_init_syslog(const char *ident, int options, int facility)
 {
     e_set_handler(&vsyslog);
@@ -174,6 +184,7 @@ void e_init_syslog(const char *ident, int options, int facility)
     log_state.is_open = true;
     set_log_ident(ident);
 }
+#endif
 
 void e_set_handler(e_handler *handler)
 {
@@ -184,7 +195,9 @@ void e_set_handler(e_handler *handler)
 void e_shutdown()
 {
     if (log_state.is_open) {
+#ifndef MINGCC
         closelog();
+#endif
         log_state.is_open = false;
     }
 

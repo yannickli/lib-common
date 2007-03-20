@@ -19,6 +19,10 @@
 
 #include <lib-common/macros.h>
 
+#ifdef MINGCC
+void gettimeofday(struct timeval* p, void* tz);
+#endif
+
 /* Return reference to static buf for immediate printing */
 const char *timeval_format(struct timeval tv);
 

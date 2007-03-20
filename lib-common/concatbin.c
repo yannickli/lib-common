@@ -10,7 +10,7 @@
 /*  prosecuted in the extent permitted by applicable law.                 */
 /*                                                                        */
 /**************************************************************************/
-
+#ifndef MINGCC
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
@@ -115,3 +115,4 @@ void concatbin_delete(concatbin **ccb)
     munmap((void *)(*ccb)->start, (*ccb)->len);
     p_delete(ccb);
 }
+#endif

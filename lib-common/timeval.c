@@ -19,6 +19,23 @@
 #include <lib-common/err_report.h>
 #include <lib-common/timeval.h>
 
+#ifdef MINGCC
+/* Windows API do not have gettimeofday support */
+#include <windows.h>
+void gettimeofday(struct timeval* p, void* tz)
+{
+    union {
+        long long ns100; /*time since 1 Jan 1601 in 100ns units */
+        FILETIME ft;
+    } now;
+
+    GetSystemTimeAsFileTime(&now.ft);
+
+    p->tv_usec = (long)((now.ns100 / 10LL) % 1000000LL);
+    p->tv_sec  = (long)((now.ns100 - (116444736000000000LL)) / 10000000LL);
+}
+#endif
+
 /* Arithmetics on timeval assume both members of timeval are signed.
  * We keep timeval structures in normalized form:
  * - tv_usec is always in the range [0 .. 999999]
@@ -150,6 +167,8 @@ bool is_expired(const struct timeval *date,
     return false;
 }
 
+/* localtime_r unavailable on mingw32 */
+#ifndef MINGCC
 time_t localtime_curday(time_t date)
 {
     struct tm t;
@@ -206,6 +225,7 @@ time_t localtime_nextday(time_t date)
 
     return mktime(&t);
 }
+#endif
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#ifndef MINGCC
 #include <iconv.h>
 #include <string.h>
 #include <errno.h>
@@ -360,3 +361,4 @@ int blob_file_auto_iconv(blob_t *dst, const char *filename,
 
     return res;
 }
+#endif

@@ -10,7 +10,7 @@
 /*  prosecuted in the extent permitted by applicable law.                 */
 /*                                                                        */
 /**************************************************************************/
-
+#ifndef MINGCC
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
@@ -592,3 +592,4 @@ void pidx_data_release(pidx_file *pidx, uint64_t idx)
     pidx_page_recollect(pidx, idx, pidx->area->skip, 0);
 }
 
+#endif

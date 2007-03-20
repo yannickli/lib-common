@@ -10,7 +10,7 @@
 /*  prosecuted in the extent permitted by applicable law.                 */
 /*                                                                        */
 /**************************************************************************/
-
+#ifndef MINGCC
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1011,3 +1011,4 @@ int ifputs_hex(FILE *stream, const byte *buf, int len)
     }
     return ret;
 }
+#endif

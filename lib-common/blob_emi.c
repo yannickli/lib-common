@@ -10,7 +10,7 @@
 /*  prosecuted in the extent permitted by applicable law.                 */
 /*                                                                        */
 /**************************************************************************/
-
+#ifndef MINGCC
 #include <endian.h>
 #include "macros.h"
 #include "strconv.h"
@@ -771,4 +771,5 @@ int blob_append_ira(blob_t *dst, const byte *src, ssize_t len)
     return 0;
 }
 
+#endif
 #endif

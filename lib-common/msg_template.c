@@ -10,7 +10,7 @@
 /*  prosecuted in the extent permitted by applicable law.                 */
 /*                                                                        */
 /**************************************************************************/
-
+#ifndef MINGCC
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -909,4 +909,5 @@ int main(void)
 
     return 0;
 }
+#endif
 #endif

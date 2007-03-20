@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#ifndef MINGCC
+
 #include <errno.h>
 #include <alloca.h>
 #include <sys/mman.h>
@@ -842,3 +844,5 @@ void btree_dump(const btree_t *bt_pub, FILE *out)
         }
     }
 }
+
+#endif

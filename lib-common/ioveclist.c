@@ -10,7 +10,7 @@
 /*  prosecuted in the extent permitted by applicable law.                 */
 /*                                                                        */
 /**************************************************************************/
-
+#ifndef MINGCC
 #include <errno.h>
 
 #include "ioveclist.h"
@@ -93,4 +93,4 @@ ioveclist_state ioveclist_write(ioveclist *l, int fd)
     }
 }
 
-
+#endif

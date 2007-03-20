@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#ifndef MINGCC
+
 #include <stdlib.h>
 #include <zlib.h>
 
@@ -357,3 +359,4 @@ int blob_file_gunzip(blob_t *dst, const char *filename)
 {
     return blob_file_generic_gzip_gunzip(dst, filename, blob_gzip_uncompress);
 }
+#endif

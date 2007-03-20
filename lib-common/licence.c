@@ -10,7 +10,7 @@
 /*  prosecuted in the extent permitted by applicable law.                 */
 /*                                                                        */
 /**************************************************************************/
-
+#ifndef MINGCC
 #include <stdio.h>
 #include <net/if.h>
 #ifdef LINUX
@@ -493,3 +493,4 @@ Suite *check_licence_suite(void)
 /*.....................................................................}}}*/
 #endif
 /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
+#endif

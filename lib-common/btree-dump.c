@@ -17,6 +17,7 @@
 
 int main(int argc, char **argv)
 {
+#ifndef MINGCC
     btree_t *bt;
 
     if (argc > 1) {
@@ -27,5 +28,6 @@ int main(int argc, char **argv)
 
         btree_close(&bt);
     }
+#endif
     return 0;
 }

@@ -10,7 +10,7 @@
 /*  prosecuted in the extent permitted by applicable law.                 */
 /*                                                                        */
 /**************************************************************************/
-
+#ifndef MINGCC
 #include <sys/mman.h>
 #include <errno.h>
 
@@ -207,4 +207,4 @@ void mem_fifo_pool_delete(mem_pool **poolp)
         p_delete(poolp);
     }
 }
-
+#endif

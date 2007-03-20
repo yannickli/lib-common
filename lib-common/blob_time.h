@@ -20,6 +20,7 @@
 
 ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt,
                       const struct tm *tm);
+#ifndef MINGCC
 static inline void blob_strftime_utc(blob_t *blob, ssize_t pos, time_t timer)
 {
     struct tm tm;
@@ -27,5 +28,5 @@ static inline void blob_strftime_utc(blob_t *blob, ssize_t pos, time_t timer)
     blob_strftime(blob, pos, "%a, %d %b %Y %H:%M:%S GMT",
                   gmtime_r(&timer, &tm));
 }
-
+#endif
 #endif /* IS_LIB_COMMON_BLOB_TIME_H */

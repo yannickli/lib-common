@@ -35,4 +35,8 @@ static inline void getopt_init(void)
     optind = 0;
 }
 
+#ifdef MINGCC
+long int lrand48(void);
+#endif
+
 #endif /* IS_LIB_COMMON_UNIX_H */

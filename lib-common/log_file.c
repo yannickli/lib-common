@@ -10,7 +10,7 @@
 /*  prosecuted in the extent permitted by applicable law.                 */
 /*                                                                        */
 /**************************************************************************/
-
+#ifndef MINGCC
 #include <sys/stat.h>
 #include <dirent.h>
 #include <errno.h>
@@ -270,3 +270,4 @@ int log_flush(log_file_t *log_file)
     }
     return 0;
 }
+#endif
