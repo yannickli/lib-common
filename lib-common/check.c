@@ -24,6 +24,7 @@
 #include "timeval.h"
 #include "bfield.h"
 #include "str_array.h"
+#include "conf.h"
 
 int main(void)
 {
@@ -31,7 +32,9 @@ int main(void)
     SRunner *sr = srunner_create(NULL);
 
     srunner_add_suite(sr, check_string_is_suite());
-    srunner_add_suite(sr, check_make_blob_suite());
+    srunner_add_suite(sr, check_append_blob_ebcdic_suite(
+            check_make_blob_suite()
+            ));
     srunner_add_suite(sr, check_make_archive_suite());
     srunner_add_suite(sr, check_msg_template_suite());
     srunner_add_suite(sr, check_fifo_suite());
@@ -40,6 +43,7 @@ int main(void)
     srunner_add_suite(sr, check_make_timeval_suite());
     srunner_add_suite(sr, check_bfield_suite());
     srunner_add_suite(sr, check_str_array_suite());
+    srunner_add_suite(sr, check_conf_suite());
 
     srunner_run_all(sr, CK_NORMAL);
     nf = srunner_ntests_failed(sr);
