@@ -14,6 +14,12 @@
 #ifndef IS_LIB_COMMON_MACROS_H
 #define IS_LIB_COMMON_MACROS_H
 
+#ifdef MINGCC
+#undef IPRINTF_HIDE_STDIO
+/* Force iprintf when using mingw32 to enable POSIX compatibility */
+#define IPRINTF_HIDE_STDIO 1
+#endif
+
 #include <unistd.h>     /* for ssize_t */
 
 /*---------------- GNU extension wrappers ----------------*/
