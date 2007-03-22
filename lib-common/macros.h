@@ -73,6 +73,11 @@ typedef unsigned int gt_uint32_t;
 #define uint32_t __uint32_t
 #endif
 
+#define TST_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] & (1 << ((num) & 7)))
+#define SET_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] |= (1 << ((num) & 7)))
+#define RST_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] &= ~(1 << ((num) & 7)))
+#define XOR_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] ^= (1 << ((num) & 7)))
+
 /*---------------- Misc ----------------*/
 
 #define countof(table)  ((ssize_t)(sizeof(table) / sizeof((table)[0])))

@@ -30,12 +30,6 @@ static union {
 
 MMFILE_FUNCTIONS(pidx_file, pidx_real);
 
-/* XXX, FIXME: copied from backend.c, where do we put'em ? */
-#define TST_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] & (1 << ((num) & 7)))
-#define SET_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] |= (1 << ((num) & 7)))
-#define RST_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] &= ~(1 << ((num) & 7)))
-#define XOR_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] ^= (1 << ((num) & 7)))
-
 #define PIDX_SHIFT     8
 #define PIDX_GROW   1024
 
