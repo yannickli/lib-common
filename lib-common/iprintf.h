@@ -48,11 +48,17 @@ int ivsprintf(char *str, const char *format, va_list arglist)
 #define sprintf(...)    isprintf(__VA_ARGS__)
 #undef vsprintf
 #define vsprintf(...)    ivsprintf(__VA_ARGS__)
+#undef printf
 #define printf(...)     iprintf(__VA_ARGS__)
+#undef fprintf
 #define fprintf(...)    ifprintf(__VA_ARGS__)
+#undef snprintf
 #define snprintf(...)   isnprintf(__VA_ARGS__)
+#undef vprintf
 #define vprintf(...)    ivprintf(__VA_ARGS__)
+#undef vfprintf
 #define vfprintf(...)   ivfprintf(__VA_ARGS__)
+#undef vsnprintf
 #define vsnprintf(...)  ivsnprintf(__VA_ARGS__)
 #endif
 
