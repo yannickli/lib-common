@@ -10,7 +10,7 @@
 /*  prosecuted in the extent permitted by applicable law.                 */
 /*                                                                        */
 /**************************************************************************/
-#ifndef MINGCC
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,7 +31,10 @@
  *   stdio.h:    stdout, putc_unlocked, fwrite_unlocked;
  */
 
-#ifdef __CYGWIN__
+#if defined(MINGCC)
+#define PUTC(c, f)          putc(c, f)
+#define FWRITE(b, s, n, f)  fwrite(b, s, n, f)
+#elif defined(__CYGWIN__)
 #define PUTC(c, f)          putc_unlocked(c, f)
 #define FWRITE(b, s, n, f)  fwrite(b, s, n, f)
 #else
@@ -1011,4 +1014,3 @@ int ifputs_hex(FILE *stream, const byte *buf, int len)
     }
     return ret;
 }
-#endif
