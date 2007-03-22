@@ -27,6 +27,7 @@
 #include <sys/socket.h>
 #endif
 
+#define IPRINTF_HIDE_STDIO 1
 #include "macros.h"
 #include "blob.h"
 #include "blob_time.h"
@@ -34,8 +35,6 @@
 #include "string_is.h"
 #include "strconv.h"
 #include "err_report.h"
-
-#define IPRINTF_HIDE_STDIO 1
 #include "iprintf.h"
 
 /**************************************************************************/
