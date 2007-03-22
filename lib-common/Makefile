@@ -31,6 +31,7 @@ libcommon_SOURCES = \
 	isndx.c \
 	str_array.c \
 	blob.c \
+	blob_ebcdic.c \
 	blob_zlib.c \
 	blob_iconv.c \
 	blob_emi.c \
