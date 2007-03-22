@@ -15,6 +15,7 @@
 #define IS_LIB_COMMON_CONF_H
 
 #include "mem.h"
+#include "blob.h"
 
 /* This module parses ini files :
  *
@@ -50,6 +51,8 @@ GENERIC_DELETE(conf_t, conf);
 
 
 conf_t *conf_load(const char *filename);
+/* Same as conf_load, but from a blob. XXX: buf may be modified */
+conf_t *conf_load_blob(blob_t *buf);
 int conf_save(const conf_t *conf, const char *filename);
 
 
@@ -82,6 +85,13 @@ static inline void conf_dump(const conf_t *conf, int level)
         conf_save((conf), "/dev/stderr");
     }
 }
+#endif
+
+#ifdef CHECK
+#include <check.h>
+
+Suite *check_conf_suite(void);
+
 #endif
 
 #endif /* IS_LIB_COMMON_CONF_H */

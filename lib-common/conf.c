@@ -126,18 +126,14 @@ static const char *readline_skip(blob_t *buf, blob_t *buf_line)
     return line;
 }
 
+
 /* Returns conf_file or NULL if non-NULL file could not be opened */
 /* Should try and load from a PATH of directories, and keep file name
  * in conf structure */
 conf_t *conf_load(const char *filename)
 {
-    conf_t *conf;
     blob_t buf;
-    blob_t buf_line;
-    const char *line, *start, *stop;
-    const char *variable, *value;
-    int len, variable_len, value_len;
-    conf_section_t *section;
+    conf_t *res;
 
     if (!filename) {
         /* NULL file: return empty conf */
@@ -145,12 +141,27 @@ conf_t *conf_load(const char *filename)
     }
 
     blob_init(&buf);
-
     if (blob_append_file_data(&buf, filename) < 0) {
         e_trace(CONF_DBG_LVL, "could not open %s for reading (%m)", filename);
         blob_wipe(&buf);
         return NULL;
     }
+
+    res = conf_load_blob(&buf);
+    blob_wipe(&buf);
+
+    return res;
+}
+
+/* Same as conf_load, but from a blob. XXX: buf may be modified */
+conf_t *conf_load_blob(blob_t *buf)
+{
+    conf_t *conf;
+    blob_t buf_line;
+    const char *line, *start, *stop;
+    const char *variable, *value;
+    int len, variable_len, value_len;
+    conf_section_t *section;
 
     /* OG: Should parse without the need for a line blob */
     blob_init(&buf_line);
@@ -161,7 +172,7 @@ conf_t *conf_load(const char *filename)
     for (;;) {
 
         /* Read a new line */
-        line = readline_skip(&buf, &buf_line);
+        line = readline_skip(buf, &buf_line);
 
         if (!line) {
             e_trace(CONF_DBG_LVL + 1, "End of input...");
@@ -247,7 +258,6 @@ conf_t *conf_load(const char *filename)
         section_add_var(section, variable, variable_len, value, value_len);
     }
 
-    blob_wipe(&buf);
     blob_wipe(&buf_line);
 
     return conf;
@@ -402,3 +412,75 @@ const char *conf_put(conf_t *conf, const char *section,
     }
     return NULL;
 }
+
+#ifdef CHECK /* {{{ */
+
+START_TEST(check_conf_load)
+{
+#define SAMPLE_CONF_FILE "samples/example.conf"
+#define SAMPLE_SECTION1_NAME  "section1"
+#define SAMPLE_SECTION_NB  3
+#define SAMPLE_SECTION1_VAR_NB  2
+#define SAMPLE_SECTION1_VAR1_NAME  "param1"
+#define SAMPLE_SECTION1_VAR2_NAME  "param2[]@!!sdf"
+#define SAMPLE_SECTION1_VAL1 "123 456"
+
+    conf_t *conf;
+    conf_section_t *s;
+    blob_t blob;
+
+    conf = conf_load(SAMPLE_CONF_FILE);
+    fail_if(conf == NULL,
+            "conf_load failed");
+    fail_if(conf->section_nb != SAMPLE_SECTION_NB,
+            "conf_load did not parse the right number of sections (%d != %d)",
+            conf->section_nb, SAMPLE_SECTION_NB);
+
+    s = conf->sections[0];
+    fail_if(!strequal(s->name, SAMPLE_SECTION1_NAME),
+            "bad section name: expected '%s', got '%s'",
+            SAMPLE_SECTION1_NAME, s->name);
+    fail_if(s->var_nb != SAMPLE_SECTION1_VAR_NB,
+            "bad variable number for section '%s': expected %d, got %d",
+            s->name, SAMPLE_SECTION1_VAR_NB, s->var_nb);
+    fail_if(!strequal(s->variables[0], SAMPLE_SECTION1_VAR1_NAME),
+            "bad variable name: expected '%s', got '%s'",
+            SAMPLE_SECTION1_VAR1_NAME, s->variables[0]);
+    fail_if(!strequal(s->variables[1], SAMPLE_SECTION1_VAR2_NAME),
+            "bad variable name: expected '%s', got '%s'",
+            SAMPLE_SECTION1_VAR2_NAME, s->variables[1]);
+    fail_if(!strequal(s->values[0], SAMPLE_SECTION1_VAL1),
+            "bad variable value: expected '%s', got '%s'",
+            SAMPLE_SECTION1_VAL1, s->values[0]);
+    conf_delete(&conf);
+
+    blob_init(&blob);
+    fail_if(blob_append_file_data(&blob, SAMPLE_CONF_FILE) < 0,
+            "Could not read sample file: %s", SAMPLE_CONF_FILE);
+
+    conf = conf_load_blob(&blob);
+    
+    fail_if(conf == NULL,
+            "conf_load_blob failed");
+    fail_if(conf->section_nb != SAMPLE_SECTION_NB,
+            "conf_load_blob did not parse the right number of sections (%d != %d)",
+            conf->section_nb, SAMPLE_SECTION_NB);
+    conf_delete(&conf);
+    blob_wipe(&blob);
+
+#undef SAMPLE_CONF_FILE
+}
+END_TEST
+
+Suite *check_conf_suite(void)
+{
+    Suite *s  = suite_create("Conf");
+    TCase *tc = tcase_create("Core");
+
+    suite_add_tcase(s, tc);
+    tcase_add_test(tc, check_conf_load);
+
+    return s;
+}
+
+#endif /* }}} */
