@@ -378,12 +378,15 @@ int blob_append_ira(blob_t *dst, const byte *src, ssize_t len);
 int blob_decode_ira(blob_t *dst, const byte *src, ssize_t len);
 int string_decode_ira(char *dst, const char *src);
 
+/* in blob_ebcdic.c */
+int blob_decode_ebcdic297(blob_t *dst, const byte *src, ssize_t len);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 #include <check.h>
 
 Suite *check_make_blob_suite(void);
+Suite *check_append_blob_ebcdic_suite(Suite *blob_suite);
 
 #endif
 /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/

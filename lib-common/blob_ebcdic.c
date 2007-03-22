@@ -1,0 +1,168 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2007 INTERSEC SAS                                  */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+#include "macros.h"
+#include "strconv.h"
+#include "blob.h"
+
+/*---------------- EBCDIC Conversion ----------------*/
+
+static int const ebcdic297_to_unicode[] = {
+    /* 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, */
+         46,   46,   46,   46,   46,   46,   46,   46,
+    /* 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, */
+         46,   46,   46,   46,   46,   13,   46,   46,
+    /* 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, */
+         46,   46,   46,   46,   46,   46,   46,   46,
+    /* 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, */
+         46,   46,   46,   46,   46,   46,   46,   46,
+    /* 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, */
+         46,   46,   46,   46,   46,   10,   46,   46,
+    /* 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, */
+         46,   46,   46,   46,   46,   46,   46,   46,
+    /* 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, */
+         46,   46,   46,   46,   46,   46,   46,   46,
+    /* 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, */
+         46,   46,   46,   46,   46,   46,   46,   46,
+    /* 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, */
+         32,  160,  226,  228,   64,  225,  227,  229,
+    /* 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, */
+         92,  241,  176,   46,   60,   40,   43,   33,
+    /* 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, */
+         38,  123,  234,  235,  125,  237,  238,  239,
+    /* 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, */
+        236,  223,  167,   36,   42,   41,   59,   94,
+    /* 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, */
+         45,   47,  194,  196,  192,  193,  195,  197,
+    /* 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, */
+        199,  209,  249,   44,   37,   95,   62,   63,
+    /* 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, */
+        248,  201,  202,  203,  200,  205,  206,  207,
+    /* 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F, */
+        204,  181,   58,  163,  224,   39,   61,   34,
+    /* 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, */
+        216,   97,   98,   99,  100,  101,  102,  103,
+    /* 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F, */
+        104,  105,  171,  187,  240,  253,  254,  177,
+    /* 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, */
+         91,  106,  107,  108,  109,  110,  111,  112,
+    /* 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F, */
+        113,  114,  170,  186,  230,  184,  198,  164,
+    /* 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, */
+         96,  168,  115,  116,  117,  118,  119,  120,
+    /* 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF, */
+        121,  122,  161,  191,  208,  221,  222,  174,
+    /* 0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, */
+        162,   35,  165,  183,  169,   93,  182,  188,
+    /* 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF, */
+        189,  190,  172,    0,  175,  126,  180,  215,
+    /* 0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, */
+        233,   65,   66,   67,   68,   69,   70,   71,
+    /* 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF, */
+         72,   73,   45,  244,  246,  242,  243,  245,
+    /* 0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, */
+        232,   74,   75,   76,   77,   78,   79,   80,
+    /* 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF, */
+         81,   82,  185,  251,  252,  166,  250,  255,
+    /* 0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, */
+        231,  247,   83,   84,   85,   86,   87,   88,
+    /* 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF, */
+         89,   90,  178,  212,  214,  210,  211,  213,
+    /* 0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, */
+         48,   49,   50,   51,   52,   53,   54,   55,
+    /* 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF, */
+         56,   57,  179,  219,  220,  217,  218,   46,
+};
+
+/* Achtung: Decode an ebcdic 297 string into UTF-8
+ * */
+int blob_decode_ebcdic297(blob_t *dst, const byte *src, ssize_t len)
+{
+    int pos;
+    const byte *end;
+    byte *data;
+
+    pos = dst->len;
+    /* UTF-8 may take up to 2 bytes from EBCDIC 297 */
+    blob_ensure_avail(dst, 2 * len);
+    data = dst->data + pos;
+    end = src + len;
+
+    while (src < end) {
+        int unicode = ebcdic297_to_unicode[*src];
+
+        if (unicode < 0x80) {
+            data[0] = unicode;
+            data++;
+        } else {
+            data[0] = 0xC0 | ((unicode & 0x7C0) >> 6);
+            data[1] = 0x80 | (unicode & 0x3F);
+            data += 2;
+        }
+
+        src++;
+    }
+    data[0] = '\0';
+    dst->len = data - dst->data;
+
+    return 0;
+}
+
+
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
+#ifdef CHECK
+/* public testing API                                                  {{{*/
+
+START_TEST(check_ebcdic_to_utf8)
+{
+    blob_t dst;
+    blob_t src;
+
+    blob_init(&dst);
+    blob_init(&src);
+
+    fail_if(blob_append_file_data(&src, "samples/ebcdic.sample") < 0,
+            "Could not read sample file 'samples/ebcdic.sample'");
+
+    fail_if(blob_decode_ebcdic297(&dst, src.data, src.len),
+            "blob_decode_ebcdic297 failed");
+
+    blob_reset(&src);
+    fail_if(blob_append_file_data(&src, "samples/ebcdic.sample.utf-8") < 0,
+            "Could not read sample file 'samples/ebcdic.sample.utf-8'");
+
+    fail_if(strcmp(blob_get_cstr(&dst), blob_get_cstr(&src)),
+            "EBCDIC -> UTF-8 conversion failed :\n"
+            "correct text:\n-----\n%s\n-------\n"
+            "converted text:\n-----\n%s\n-------\n",
+            blob_get_cstr(&src), blob_get_cstr(&dst));
+
+    blob_wipe(&dst);
+    blob_wipe(&src);
+}
+END_TEST
+
+Suite *check_append_blob_ebcdic_suite(Suite *blob_suite)
+{
+    Suite *s  = blob_suite;
+    TCase *tc = tcase_create("EBCDIC");
+
+    suite_add_tcase(s, tc);
+    tcase_add_test(tc, check_ebcdic_to_utf8);
+
+    return s;
+}
+
+/*.....................................................................}}}*/
+#endif
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
