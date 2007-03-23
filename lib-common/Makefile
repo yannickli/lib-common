@@ -28,6 +28,7 @@ libcommon_SOURCES = \
 	array.c \
 	bfield.c \
 	btree.c \
+	compat.c \
 	isndx.c \
 	str_array.c \
 	blob.c \

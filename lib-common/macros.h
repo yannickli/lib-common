@@ -86,6 +86,9 @@ typedef unsigned int gt_uint32_t;
 
 /*---------------- Misc ----------------*/
 
+/* Global initializer to enable maximum compatibility */
+void intersec_initialize(void);
+
 #define countof(table)  ((ssize_t)(sizeof(table) / sizeof((table)[0])))
 #define ssizeof(foo)    ((ssize_t)sizeof(foo))
 
