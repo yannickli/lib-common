@@ -16,6 +16,8 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include <lib-msg/emi.h>
+
 #include "blob.h"
 #include "mem.h"
 #include "msg_template.h"
@@ -360,6 +362,18 @@ static void msg_template_blob_encode(blob_t *dst, part_encoding enc,
       case ENC_SMTP_DATA:
         blob_append_smtp_data(dst, data, len);
         break;
+#if 1
+        /* This is not that pretty : lib-common now depends on lib-msg... */
+      case ENC_EMI_BOOL:
+        blob_append_cstr(dst, emi_get_bool(data, len));
+        break;
+      case ENC_EMI_PRIO:
+        blob_append_cstr(dst, emi_get_prio(data, len));
+        break;
+      case ENC_EMI_CLASS:
+        blob_append_cstr(dst, emi_get_class(data, len));
+        break;
+#endif
       case ENC_NONE:
       default:
         blob_append_data(dst, data, len);
