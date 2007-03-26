@@ -62,7 +62,7 @@ libcommon_SOURCES = \
 # OG: why not ?
 libcommon_SOURCES += showflags.c
 
-test_SOURCES = $(libcommon_SOURCES) check.c
+test_SOURCES = $(libcommon_SOURCES) check.c $(DEPTH)/lib-msg/libmsg.a
 test_LDFLAGS = -lz
 
 test_blob_iconv_SOURCES = \
