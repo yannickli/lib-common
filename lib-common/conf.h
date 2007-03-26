@@ -76,6 +76,10 @@ int conf_get_int(const conf_t *conf, const char *section,
 int conf_get_bool(const conf_t *conf, const char *section,
                   const char *var, int defval);
 
+int
+conf_next_section_idx(const conf_t *conf, const char *prefix,
+                      int prev_idx);
+
 #ifdef NDEBUG
 #  define conf_dump(...)
 #else

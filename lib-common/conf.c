@@ -413,6 +413,31 @@ const char *conf_put(conf_t *conf, const char *section,
     return NULL;
 }
 
+int
+conf_next_section_idx(const conf_t *conf, const char *prefix,
+                      int prev_idx)
+{
+    int i;
+
+    if (prev_idx < 0) {
+        prev_idx = 0;
+    } else
+    if (prev_idx >= conf->section_nb - 1) {
+        return -1;
+    } else {
+        prev_idx += 1;
+    }
+
+    for (i = prev_idx; i < conf->section_nb; i++) {
+        if (stristart(conf->sections[i]->name, prefix, NULL)) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+
 #ifdef CHECK /* {{{ */
 
 START_TEST(check_conf_load)
@@ -428,6 +453,7 @@ START_TEST(check_conf_load)
     conf_t *conf;
     conf_section_t *s;
     blob_t blob;
+    int prev;
 
     conf = conf_load(SAMPLE_CONF_FILE);
     fail_if(conf == NULL,
@@ -452,6 +478,36 @@ START_TEST(check_conf_load)
     fail_if(!strequal(s->values[0], SAMPLE_SECTION1_VAL1),
             "bad variable value: expected '%s', got '%s'",
             SAMPLE_SECTION1_VAL1, s->values[0]);
+
+    prev = -1;
+    prev = conf_next_section_idx(conf, "section", prev);
+    fail_if(prev != 0,
+            "bad next section idx: expected %d, got %d",
+            0, prev);
+    prev = conf_next_section_idx(conf, "section", prev);
+    fail_if(prev != 1,
+            "bad next section idx: expected %d, got %d",
+            1, prev);
+    prev = conf_next_section_idx(conf, "section", prev);
+    fail_if(prev != 2,
+            "bad next section idx: expected %d, got %d",
+            2, prev);
+
+    prev = -1;
+    prev = conf_next_section_idx(conf, "section1", prev);
+    fail_if(prev != 0,
+            "bad next section idx: expected %d, got %d",
+            0, prev);
+    prev = conf_next_section_idx(conf, "section1", prev);
+    fail_if(prev != 1,
+            "bad next section idx: expected %d, got %d",
+            1, prev);
+    prev = conf_next_section_idx(conf, "section1", prev);
+    fail_if(prev != -1,
+            "bad next section idx: expected %d, got %d",
+            -1, prev);
+
+
     conf_delete(&conf);
 
     blob_init(&blob);
