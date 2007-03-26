@@ -415,7 +415,7 @@ const char *conf_put(conf_t *conf, const char *section,
 
 int
 conf_next_section_idx(const conf_t *conf, const char *prefix,
-                      int prev_idx)
+                      int prev_idx, const char **suffix)
 {
     int i;
 
@@ -429,7 +429,7 @@ conf_next_section_idx(const conf_t *conf, const char *prefix,
     }
 
     for (i = prev_idx; i < conf->section_nb; i++) {
-        if (stristart(conf->sections[i]->name, prefix, NULL)) {
+        if (stristart(conf->sections[i]->name, prefix, suffix)) {
             return i;
         }
     }
@@ -454,6 +454,7 @@ START_TEST(check_conf_load)
     conf_section_t *s;
     blob_t blob;
     int prev;
+    const char *p;
 
     conf = conf_load(SAMPLE_CONF_FILE);
     fail_if(conf == NULL,
@@ -480,29 +481,35 @@ START_TEST(check_conf_load)
             SAMPLE_SECTION1_VAL1, s->values[0]);
 
     prev = -1;
-    prev = conf_next_section_idx(conf, "section", prev);
+    prev = conf_next_section_idx(conf, "section", prev, NULL);
     fail_if(prev != 0,
             "bad next section idx: expected %d, got %d",
             0, prev);
-    prev = conf_next_section_idx(conf, "section", prev);
+    prev = conf_next_section_idx(conf, "section", prev, NULL);
     fail_if(prev != 1,
             "bad next section idx: expected %d, got %d",
             1, prev);
-    prev = conf_next_section_idx(conf, "section", prev);
+    prev = conf_next_section_idx(conf, "section", prev, &p);
     fail_if(prev != 2,
             "bad next section idx: expected %d, got %d",
             2, prev);
+    fail_if(!strequal(p, "3"),
+            "bad next section suffix: expected '%s', got '%s'",
+            "3", p);
 
     prev = -1;
-    prev = conf_next_section_idx(conf, "section1", prev);
+    prev = conf_next_section_idx(conf, "section1", prev, NULL);
     fail_if(prev != 0,
             "bad next section idx: expected %d, got %d",
             0, prev);
-    prev = conf_next_section_idx(conf, "section1", prev);
+    prev = conf_next_section_idx(conf, "section1", prev, &p);
     fail_if(prev != 1,
             "bad next section idx: expected %d, got %d",
             1, prev);
-    prev = conf_next_section_idx(conf, "section1", prev);
+    fail_if(!strequal(p, "2"),
+            "bad next section suffix: expected '%s', got '%s'",
+            "2", p);
+    prev = conf_next_section_idx(conf, "section1", prev, &p);
     fail_if(prev != -1,
             "bad next section idx: expected %d, got %d",
             -1, prev);
