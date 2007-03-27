@@ -415,7 +415,7 @@ const char *conf_put(conf_t *conf, const char *section,
 
 int
 conf_next_section_idx(const conf_t *conf, const char *prefix,
-                      int prev_idx, const char **suffix)
+                      int prev_idx, const char **section)
 {
     int i;
 
@@ -429,7 +429,9 @@ conf_next_section_idx(const conf_t *conf, const char *prefix,
     }
 
     for (i = prev_idx; i < conf->section_nb; i++) {
-        if (stristart(conf->sections[i]->name, prefix, suffix)) {
+        if (stristart(conf->sections[i]->name, prefix, NULL)) {
+            if (section)
+                *section = conf->sections[i]->name;
             return i;
         }
     }
