@@ -16,7 +16,7 @@ include $(DEPTH)/admin/header.mk
 
 __EXE__   = btree-dump 
 __LIB__   = libcommon
-__CHECK__ = test test_blob_iconv msg_test 
+__CHECK__ = test test_blob_iconv
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-sha2
 # These tests are just too long to be part of "make check". Sorry.
 #__CHECK__ += tst-btree tst-isndx
@@ -47,9 +47,9 @@ libcommon_SOURCES = \
 	paged-index.c \
 	string_is.c \
 	iprintf.c \
+	dtoa.c \
 	strconv.c \
 	timeval.c \
-	msg_template.c \
 	stopper.c \
 	unix.c \
 	mem-pool.c \
@@ -62,7 +62,7 @@ libcommon_SOURCES = \
 # OG: why not ?
 libcommon_SOURCES += showflags.c
 
-test_SOURCES = $(libcommon_SOURCES) check.c $(DEPTH)/lib-msg/libmsg.a
+test_SOURCES = $(libcommon_SOURCES) check.c
 test_LDFLAGS = -lz
 
 test_blob_iconv_SOURCES = \
@@ -83,12 +83,16 @@ tst-sha2_SOURCES = sha2.c libcommon.a
 tst-btree_SOURCES = tst-btree.c libcommon.a
 tst-isndx_SOURCES = tst-isndx.c libcommon.a
 
-msg_test_CFLAGS = -DMSG_TEST
-msg_test_SOURCES = msg_template.c libcommon.a
-
 ifneq (,$(filter CYGWIN%,$(UNAME)))
   libcommon_SOURCES := $(filter-out blob_iconv.c,$(libcommon_SOURCES))
   __CHECK__ := $(filter-out test_blob_iconv,$(__CHECK__))
 endif
+
+# OG: should filter libcommon_SOURCES for MINGCC as well
+#  libcommon_SOURCES := $(filter-out licence.c iprintf.c ioveclist.c
+#  blob_emi.c blob_iconv.c blob_zlib.c concatbin.c log_file.c btree.c
+#  mem-fifo-pool.c mmappedfile.c paged-index.c,\
+#  $(libcommon_SOURCES))
+# __EXE__ := $(filter-out btree-dump, $(__EXE__))
 
 include $(DEPTH)/admin/footer.mk
