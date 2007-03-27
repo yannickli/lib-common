@@ -22,10 +22,13 @@
 #ifdef MINGCC
 /* Windows API do not have gettimeofday support */
 #include <windows.h>
-void gettimeofday(struct timeval* p, void* tz)
+/* OG: should define a simpler API, and implement it in a compatibility
+ * module for linux and ming appropriately
+ */
+void gettimeofday(struct timeval *p, void *tz)
 {
     union {
-        long long ns100; /*time since 1 Jan 1601 in 100ns units */
+        long long ns100; /* Time since 1 Jan 1601 in 100ns units */
         FILETIME ft;
     } now;
 
