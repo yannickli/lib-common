@@ -33,6 +33,7 @@ void btree_close(btree_t **tree);
  * advisable, as per our conversation.
  */
 int btree_fetch(const btree_t *bt, uint64_t key, blob_t *out);
+/* OG: data argument should be const void * */
 int btree_push(btree_t *bt, uint64_t key, const byte *data, int len);
 
 void btree_dump(const btree_t *bt, FILE *out);
