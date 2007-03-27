@@ -165,5 +165,8 @@ static inline void *mem_dupstr(const void *src, ssize_t len)
 #define GENERIC_NEW(type, prefix)     static inline DO_NEW(type, prefix)
 #define GENERIC_WIPE(type, prefix)    static inline DO_WIPE(type, prefix)
 #define GENERIC_DELETE(type, prefix)  static inline DO_DELETE(type, prefix)
+#define GENERIC_FUNCTIONS(type, prefix) \
+    GENERIC_INIT(type, prefix)    GENERIC_NEW(type, prefix) \
+    GENERIC_WIPE(type, prefix)    GENERIC_DELETE(type, prefix)
 
 #endif /* IS_LIB_COMMON_MEM_H */
