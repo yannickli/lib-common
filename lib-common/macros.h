@@ -79,10 +79,10 @@ typedef unsigned int gt_uint32_t;
 #define uint32_t __uint32_t
 #endif
 
-#define TST_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] & (1 << ((num) & 7)))
-#define SET_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] |= (1 << ((num) & 7)))
+#define TST_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] &   (1 << ((num) & 7)))
+#define SET_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] |=  (1 << ((num) & 7)))
 #define RST_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] &= ~(1 << ((num) & 7)))
-#define XOR_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] ^= (1 << ((num) & 7)))
+#define XOR_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] ^=  (1 << ((num) & 7)))
 
 /*---------------- Misc ----------------*/
 
@@ -242,6 +242,11 @@ static inline int getopt_check(int argc, char * const argv[],
 #  define getopt(argc, argv, optstring)  getopt_check(argc, argv, optstring)
 
 #endif
+#else   /* MINGCC */
+
+#include <sys/time.h>
+void gettimeofday(struct timeval *p, void *tz);
+
 #endif
 
 /*---------------- Defensive programming ----------------*/
