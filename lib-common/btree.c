@@ -449,7 +449,7 @@ static int btn_bsearch(const bt_node_t *node, uint64_t key)
     int l = 0, r = node->nbkeys;
 
     while (r > l) {
-        int i = (l + r) / 2;
+        int i = (l + r) >> 1;
 
         switch (CMP(key, node->keys[i])) {
           case CMP_LESS: /* key < node->keys[i] */
