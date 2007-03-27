@@ -10,6 +10,7 @@
 /*  prosecuted in the extent permitted by applicable law.                 */
 /*                                                                        */
 /**************************************************************************/
+
 #ifndef MINGCC
 #include <sys/stat.h>
 #include <dirent.h>

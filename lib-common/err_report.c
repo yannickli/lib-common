@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
 #ifndef MINGCC
 #include <syslog.h>
 #else
@@ -23,6 +24,7 @@
 #define LOG_NOTICE        4
 #define LOG_INFO          5
 #endif
+
 #include <string.h>
 #include <errno.h>
 #include <signal.h>

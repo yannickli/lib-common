@@ -10,6 +10,7 @@
 /*  prosecuted in the extent permitted by applicable law.                 */
 /*                                                                        */
 /**************************************************************************/
+
 #ifndef MINGCC
 #include <sys/mman.h>
 #include <errno.h>
