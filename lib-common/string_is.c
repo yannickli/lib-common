@@ -465,6 +465,7 @@ const char *strnextspace(const char *s)
 #if defined(__isctype) && defined(_ISbit)    /* Glibc */
 #define isblank(c)      __isctype((c), _ISblank)
 #else
+/* OG: we should really have our own char type macros */
 static inline int isblank(int c) { return (c == ' ' || c == '\t'); }
 #endif
 #endif
