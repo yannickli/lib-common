@@ -570,11 +570,11 @@ int btree_fetch(const btree_t *bt, uint64_t key, blob_t *out)
         int slot;
 
         pos += 1 + leaf->data[pos];
-        if (EXPECT_FALSE(pos + 1 >= leaf->used))
+        if (unlikely(pos + 1 >= leaf->used))
             break;
 
         slot = leaf->data[pos++];
-        if (EXPECT_FALSE(pos + slot > leaf->used))
+        if (unlikely(pos + slot > leaf->used))
             break;
 
         blob_append_data(out, leaf->data + pos, slot);

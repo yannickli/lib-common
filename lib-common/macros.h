@@ -49,11 +49,11 @@
 #endif
 
 #ifdef __GNUC__
-#  define EXPECT_TRUE(expr)    __builtin_expect((expr), 1)
-#  define EXPECT_FALSE(expr)   __builtin_expect((expr), 0)
+#  define likely(expr)    __builtin_expect((expr), 1)
+#  define unlikely(expr)  __builtin_expect((expr), 0)
 #else
-#  define EXPECT_TRUE(expr)    expr
-#  define EXPECT_FALSE(expr)   expr
+#  define likely(expr)    expr
+#  define unlikely(expr)  expr
 #endif
 
 /*---------------- Types ----------------*/
