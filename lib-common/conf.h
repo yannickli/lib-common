@@ -78,9 +78,8 @@ int conf_get_bool(const conf_t *conf, const char *section,
 
 /* Lookup next section beginning with prefix.
  * Store section name remaining characters in suffix if not NULL */
-int
-conf_next_section_idx(const conf_t *conf, const char *prefix,
-                      int prev_idx, const char **section);
+int conf_next_section_idx(const conf_t *conf, const char *prefix,
+                          int prev_idx, const char **suffixp);
 
 #ifdef NDEBUG
 #  define conf_dump(...)

@@ -413,9 +413,8 @@ const char *conf_put(conf_t *conf, const char *section,
     return NULL;
 }
 
-int
-conf_next_section_idx(const conf_t *conf, const char *prefix,
-                      int prev_idx, const char **section)
+int conf_next_section_idx(const conf_t *conf, const char *prefix,
+                          int prev_idx, const char **suffixp)
 {
     int i;
 
@@ -429,9 +428,7 @@ conf_next_section_idx(const conf_t *conf, const char *prefix,
     }
 
     for (i = prev_idx; i < conf->section_nb; i++) {
-        if (stristart(conf->sections[i]->name, prefix, NULL)) {
-            if (section)
-                *section = conf->sections[i]->name;
+        if (stristart(conf->sections[i]->name, prefix, suffixp)) {
             return i;
         }
     }
@@ -515,7 +512,6 @@ START_TEST(check_conf_load)
     fail_if(prev != -1,
             "bad next section idx: expected %d, got %d",
             -1, prev);
-
 
     conf_delete(&conf);
 
