@@ -6,6 +6,9 @@
 
 #include <stdio.h>
 
+#define IPRINTF_HIDE_STDIO  1
+#include "iprintf.h"
+
 typedef struct {
     int line;
     double value;
@@ -4019,9 +4022,9 @@ sprint_double_type sprint_doubles[] = {
     { __LINE__, 11.25,                  "11.2", "%.1f" },
     { __LINE__, 1.75,                   "1.8", "%.1f" },
     { __LINE__, 11.75,                  "11.8", "%.1f" },
-    X(__LINE__, 16,                     "0x1.0p+4", "%.1a" )
-    X(__LINE__, 16,                     "0x1.00000000000000000000p+4", "%.20a" )
-    X(__LINE__, 4444.88888888,          "4445", "%2.F" )
+//    X(__LINE__, 16,                     "0x1.0p+4", "%.1a" )
+//    X(__LINE__, 16,                     "0x1.00000000000000000000p+4", "%.20a" )
+//    X(__LINE__, 4444.88888888,          "4445", "%2.F" )
 
     { 0, 0, NULL, NULL },
 };
@@ -4115,3 +4118,166 @@ int main(int argc, char *argv[])
         return 1;
     }
 }
+
+#if 0
+int main( int argc, char* argv[] )
+{
+    double num;
+    double num1;
+    double zero = 0.0;
+    char   cnvt[50];
+    
+    num = 1e24;
+    num1 = PR_strtod("1e24",NULL);
+    if(num1 != num){
+	fprintf(stderr,"Failed to convert numeric value %s\n","1e24");
+        failed_already = 1;
+    }
+
+    PR_cnvtf(cnvt,sizeof(cnvt),20,num);
+    if(strcmp("1e+24",cnvt) != 0){
+	fprintf(stderr,"Failed to convert numeric value %lf %s\n",num,cnvt);
+        failed_already = 1;
+    }
+
+    num = 0.001e7;
+    num1 = PR_strtod("0.001e7",NULL);
+    if(num1 != num){
+	fprintf(stderr,"Failed to convert numeric value %s\n","0.001e7");
+        failed_already = 1;
+    }
+    PR_cnvtf(cnvt,sizeof(cnvt),20,num);
+    if(strcmp("10000",cnvt) != 0){
+	fprintf(stderr,"Failed to convert numeric value %lf %s\n",num,cnvt);
+        failed_already = 1;
+    }
+
+    num = 0.0000000000000753;
+    num1 = PR_strtod("0.0000000000000753",NULL);
+    if(num1 != num){
+	fprintf(stderr,"Failed to convert numeric value %s\n",
+		"0.0000000000000753");
+        failed_already = 1;
+    }
+    PR_cnvtf(cnvt,sizeof(cnvt),20,num);
+    if(strcmp("7.53e-14",cnvt) != 0){
+	fprintf(stderr,"Failed to convert numeric value %lf %s\n",num,cnvt);
+        failed_already = 1;
+    }
+
+    num = 1.867e73;
+    num1 = PR_strtod("1.867e73",NULL);
+    if(num1 != num){
+	fprintf(stderr,"Failed to convert numeric value %s\n","1.867e73");
+        failed_already = 1;
+    }
+    PR_cnvtf(cnvt,sizeof(cnvt),20,num);
+    if(strcmp("1.867e+73",cnvt) != 0){
+	fprintf(stderr,"Failed to convert numeric value %lf %s\n",num,cnvt);
+        failed_already = 1;
+    }
+
+
+    num = -1.867e73;
+    num1 = PR_strtod("-1.867e73",NULL);
+    if(num1 != num){
+	fprintf(stderr,"Failed to convert numeric value %s\n","-1.867e73");
+        failed_already = 1;
+    }
+    PR_cnvtf(cnvt,sizeof(cnvt),20,num);
+    if(strcmp("-1.867e+73",cnvt) != 0){
+	fprintf(stderr,"Failed to convert numeric value %lf %s\n",num,cnvt);
+        failed_already = 1;
+    }
+
+    num = -1.867e-73;
+    num1 = PR_strtod("-1.867e-73",NULL);
+    if(num1 != num){
+	fprintf(stderr,"Failed to convert numeric value %s\n","-1.867e-73");
+        failed_already = 1;
+    }
+
+    PR_cnvtf(cnvt,sizeof(cnvt),20,num);
+    if(strcmp("-1.867e-73",cnvt) != 0){
+	fprintf(stderr,"Failed to convert numeric value %lf %s\n",num,cnvt);
+        failed_already = 1;
+    }
+
+    /* Testing for infinity */
+    num = 1.0 / zero;
+    num1 = PR_strtod("1.867e765",NULL);
+    if(num1 != num){
+	fprintf(stderr,"Failed to convert numeric value %s\n","1.867e765");
+        failed_already = 1;
+    }
+
+    PR_cnvtf(cnvt,sizeof(cnvt),20,num);
+    if(strcmp("Infinity",cnvt) != 0){
+	fprintf(stderr,"Failed to convert numeric value %lf %s\n",num,cnvt);
+        failed_already = 1;
+    }
+
+    num = -1.0 / zero;
+    num1 = PR_strtod("-1.867e765",NULL);
+    if(num1 != num){
+	fprintf(stderr,"Failed to convert numeric value %s\n","-1.867e765");
+        failed_already = 1;
+    }
+
+    PR_cnvtf(cnvt,sizeof(cnvt),20,num);
+    if(strcmp("-Infinity",cnvt) != 0){
+	fprintf(stderr,"Failed to convert numeric value %lf %s\n",num,cnvt);
+        failed_already = 1;
+    }
+
+    /* Testing for NaN. PR_strtod can't parse "NaN" and "Infinity" */
+    num = zero / zero;
+
+    PR_cnvtf(cnvt,sizeof(cnvt),20,num);
+    if(strcmp("NaN",cnvt) != 0){
+	fprintf(stderr,"Failed to convert numeric value %lf %s\n",num,cnvt);
+        failed_already = 1;
+    }
+
+    num = - zero / zero;
+    PR_cnvtf(cnvt,sizeof(cnvt),20,num);
+    if(strcmp("NaN",cnvt) != 0){
+	fprintf(stderr,"Failed to convert numeric value %lf %s\n",num,cnvt);
+        failed_already = 1;
+    }
+
+    num = 1.0000000001e21;
+    num1 = PR_strtod("1.0000000001e21",NULL);
+    if(num1 != num){
+	fprintf(stderr,"Failed to convert numeric value %s\n",
+		"1.0000000001e21");
+        failed_already = 1;
+    }
+
+    PR_cnvtf(cnvt,sizeof(cnvt),20,num);
+    if(strcmp("1.0000000001e+21",cnvt) != 0){
+	fprintf(stderr,"Failed to convert numeric value %lf %s\n",num,cnvt);
+        failed_already = 1;
+    }
+
+
+    num = -1.0000000001e-21;
+    num1 = PR_strtod("-1.0000000001e-21",NULL);
+    if(num1 != num){
+	fprintf(stderr,"Failed to convert numeric value %s\n",
+		"-1.0000000001e-21");
+        failed_already = 1;
+    }
+    PR_cnvtf(cnvt,sizeof(cnvt),20,num);
+    if(strcmp("-1.0000000001e-21",cnvt) != 0){
+	fprintf(stderr,"Failed to convert numeric value %lf %s\n",num,cnvt);
+        failed_already = 1;
+    }
+    if (failed_already) {
+        printf("FAILED\n");
+    } else {
+        printf("PASSED\n");
+    }
+    return failed_already;
+}
+#endif

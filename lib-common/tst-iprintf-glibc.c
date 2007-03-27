@@ -26,7 +26,7 @@
 #define IPRINTF_HIDE_STDIO  1
 #include "iprintf.h"
 
-#define TEST_FLOATING_POINT        0
+#define TEST_FLOATING_POINT        1
 #define TEST_POSITIONAL_ARGUMENTS  0
 
 #if TEST_FLOATING_POINT
