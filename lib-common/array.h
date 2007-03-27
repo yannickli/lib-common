@@ -130,4 +130,7 @@ generic_array_swap(generic_array *array, ssize_t i, ssize_t j)
         return (el_typ *)generic_array_take((generic_array *)array, pos);     \
     }
 
+#define DO_ARRAY(prefix, type)  ARRAY_TYPE(prefix, type);                     \
+                                ARRAY_FUNCTIONS(prefix, type)
+
 #endif /* IS_LIB_COMMON_ARRAY_H */
