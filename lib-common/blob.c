@@ -1464,7 +1464,7 @@ int buf_unpack(const byte *buf, int buf_len,
 }
 
 
-int blob_unpack(blob_t *blob, int *pos, const char *fmt, ...)
+int blob_unpack(const blob_t *blob, int *pos, const char *fmt, ...)
 {
     va_list ap;
     int res;
