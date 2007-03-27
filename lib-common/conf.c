@@ -291,7 +291,8 @@ int conf_save(const conf_t *conf, const char *filename)
     return 0;
 }
 
-const char *conf_section_get_raw(const conf_section_t *section, const char *var)
+const char *conf_section_get_raw(const conf_section_t *section,
+                                 const char *var)
 {
     int i;
 
@@ -304,7 +305,9 @@ const char *conf_section_get_raw(const conf_section_t *section, const char *var)
     }
     return NULL;
 }
-const char *conf_get_raw(const conf_t *conf, const char *section, const char *var)
+
+const char *conf_get_raw(const conf_t *conf, const char *section,
+                         const char *var)
 {
     int i;
     conf_section_t *s;
@@ -338,6 +341,7 @@ int conf_get_int(const conf_t *conf, const char *section,
      */
     return *val ? defval : res;
 }
+
 int conf_section_get_int(const conf_section_t *section,
                          const char *var, int defval)
 {
@@ -379,6 +383,7 @@ int conf_get_bool(const conf_t *conf, const char *section,
 
     return defval;
 }
+
 int conf_section_get_bool(const conf_section_t *section,
                           const char *var, int defval)
 {
