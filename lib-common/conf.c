@@ -291,22 +291,30 @@ int conf_save(const conf_t *conf, const char *filename)
     return 0;
 }
 
+const char *conf_section_get_raw(const conf_section_t *section, const char *var)
+{
+    int i;
+
+    assert (section && var);
+
+    for (i = 0; i < section->var_nb; i++) {
+        if (!strcasecmp(section->variables[i], var)) {
+            return section->values[i];
+        }
+    }
+    return NULL;
+}
 const char *conf_get_raw(const conf_t *conf, const char *section, const char *var)
 {
-    int i, j;
+    int i;
     conf_section_t *s;
 
     assert (section && var);
 
     for (i = 0; i < conf->section_nb; i++) {
         s = conf->sections[i];
-        if (!strcasecmp(s->name, section)) {
-            for (j = 0; j < s->var_nb; j++) {
-                if (!strcasecmp(s->variables[j], var)) {
-                    return s->values[j];
-                }
-            }
-            return NULL;
+        if (strequal(s->name, section)) {
+            return conf_section_get_raw(s, var);
         }
     }
     return NULL;
@@ -330,11 +338,51 @@ int conf_get_int(const conf_t *conf, const char *section,
      */
     return *val ? defval : res;
 }
+int conf_section_get_int(const conf_section_t *section,
+                         const char *var, int defval)
+{
+    const char *val = conf_section_get_raw(section, var);
+    int res;
+
+    if (!val)
+        return defval;
+
+    res = strtoip(val, &val);
+    /* OG: this test is too strong: if the value of the setting is not
+     * exactly a number, we should have a more specific way of telling
+     * the caller about it.  Just returning the default value may not
+     * be the best option.
+     */
+    return *val ? defval : res;
+}
 
 int conf_get_bool(const conf_t *conf, const char *section,
                   const char *var, int defval)
 {
     const char *val = conf_get_raw(conf, section, var);
+    if (!val)
+        return defval;
+
+#define CONF_CHECK_BOOL(name, value) \
+    if (!strcasecmp(val, name)) {    \
+        return value;                \
+    }
+    CONF_CHECK_BOOL("true",  true);
+    CONF_CHECK_BOOL("false", false);
+    CONF_CHECK_BOOL("on",    true);
+    CONF_CHECK_BOOL("off",   false);
+    CONF_CHECK_BOOL("yes",   true);
+    CONF_CHECK_BOOL("no",    false);
+    CONF_CHECK_BOOL("1",     true);
+    CONF_CHECK_BOOL("0",     false);
+#undef CONF_CHECK_BOOL
+
+    return defval;
+}
+int conf_section_get_bool(const conf_section_t *section,
+                          const char *var, int defval)
+{
+    const char *val = conf_section_get_raw(section, var);
     if (!val)
         return defval;
 

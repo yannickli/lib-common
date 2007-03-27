@@ -55,9 +55,16 @@ conf_t *conf_load(const char *filename);
 conf_t *conf_load_blob(blob_t *buf);
 int conf_save(const conf_t *conf, const char *filename);
 
-
+static inline const conf_section_t *
+conf_get_section(const conf_t *conf, int i)
+{
+    return conf->sections[i];
+}
 const char *conf_get_raw(const conf_t *conf,
                          const char *section, const char *var);
+const char *
+conf_section_get_raw(const conf_section_t *section,
+                     const char *var);
 
 static inline const char *
 conf_get(const conf_t *conf, const char *section,
@@ -67,6 +74,15 @@ conf_get(const conf_t *conf, const char *section,
     return res ? res : defval;
 }
 
+static inline const char *
+conf_section_get(const conf_section_t *section,
+         const char *var, const char *defval)
+{
+    const char *res = conf_section_get_raw(section, var);
+    return res ? res : defval;
+}
+
+
 
 const char *conf_put(conf_t *conf, const char *section,
                      const char *var, const char *value);
@@ -75,6 +91,10 @@ int conf_get_int(const conf_t *conf, const char *section,
                  const char *var, int defval);
 int conf_get_bool(const conf_t *conf, const char *section,
                   const char *var, int defval);
+int conf_section_get_int(const conf_section_t *section,
+                         const char *var, int defval);
+int conf_section_get_bool(const conf_section_t *section,
+                          const char *var, int defval);
 
 /* Lookup next section beginning with prefix.
  * Store section name remaining characters in suffix if not NULL */
