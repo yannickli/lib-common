@@ -20,6 +20,12 @@
 #include <stdint.h>
 #include <errno.h>
 
+#ifdef MINGCC
+#include <sys/param.h>
+#else
+#include <endian.h>
+#endif
+
 #include "iprintf.h"
 
 /* This code only works on regular architectures: we assume
@@ -160,36 +166,45 @@
 #endif
 
 #ifdef FLOATING_POINT
+
 #include <math.h>
+
+#define strtod    gt_strtod
+#define atof      gt_atof
+#define ecvt      gt_ecvt
+#define dtoa      gt_dtoa
+#define _dtoa_r   gt_dtoa_r
+#define _ldtoa_r  gt_ldtoa_r
+#define _ldcheck  gt_ldcheck
+#define freedtoa  gt_freedtoa
 
 #ifdef _NO_LONGDBL
 /* 11-bit exponent (VAX G floating point) is 308 decimal digits */
-#define	MAXEXP		308
+#define MAXEXP          308
 #else  /* !_NO_LONGDBL */
 /* 15-bit exponent (Intel extended floating point) is 4932 decimal digits */
 #define MAXEXP          4932
 #endif /* !_NO_LONGDBL */
 /* 128 bit fraction takes up 39 decimal digits; max reasonable precision */
-#define	MAXFRACT	39
+#define MAXFRACT        39
 
-#define	BUF		(MAXEXP+MAXFRACT+1)	/* + decimal point */
-#define	DEFPREC		6
+#define BUF             (MAXEXP+MAXFRACT+1)     /* + decimal point */
+#define DEFPREC         6
 
 #ifdef _NO_LONGDBL
-static char *cvt _PARAMS((double, int, int, char *, int *, int, int *));
+static char *cvt(double, int, int, char *, int *, int, int *);
 #else
-static char *cvt _PARAMS((_LONG_DOUBLE, int, int, char *, int *, int, int *));
-extern int  _ldcheck _PARAMS((_LONG_DOUBLE *));
+static char *cvt(_LONG_DOUBLE, int, int, char *, int *, int, int *);
+extern int _ldcheck(_LONG_DOUBLE *);
 #endif
 
-static int exponent _PARAMS((char *, int, int));
+static int exponent(char *, int, int);
 
-//double strtod(const char *s00, char **se);
-char *dtoa(double d, int mode, int ndigits,
-           int *decpt, int *sign, char **rve);
-#else /* no FLOATING_POINT */
+double strtod(const char *s00, char **se);
+char *dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve);
+#else
 
-#define	BUF		40
+#define BUF             40
 
 #endif /* FLOATING_POINT */
 
@@ -903,7 +918,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             {
 #ifdef FLOATING_POINT
                 const char *decimal_point = ".";
-                char softsign;		/* temporary negative sign for floats */
+                char softsign;          /* temporary negative sign for floats */
 #ifdef _NO_LONGDBL
                 union { int i; double d; unsigned long long ull; } _double_ = { 0 };
 #define fpvalue (_double_.d)
@@ -913,11 +928,11 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                 int tmp;  
 #endif
                 int fsize, realsz, dprec;
-                int expt;		/* integer value of exponent */
-                int expsize = 0;	/* character count for expstr */
-                int ndig;		/* actual number of digits returned by cvt */
-                char expstr[7];		/* buffer for exponent string */
-                char ox[2];		/* space for 0x hex-prefix */
+                int expt;               /* integer value of exponent */
+                int expsize = 0;        /* character count for expstr */
+                int ndig;               /* actual number of digits returned by cvt */
+                char expstr[7];         /* buffer for exponent string */
+                char ox[2];             /* space for 0x hex-prefix */
 #endif
 
                 /* fetch double value */
@@ -962,7 +977,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                     else
                         c = 'g';
                 } 
-                if (c <= 'e') {	/* 'e' or 'E' fmt */
+                if (c <= 'e') { /* 'e' or 'E' fmt */
                     --expt;
                     expsize = exponent(expstr, expt, c);
                     fsize = expsize + ndig;
@@ -970,16 +985,16 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                         ++fsize;
                     }
                 } else
-                if (c == 'f') {		/* f fmt */
+                if (c == 'f') {         /* f fmt */
                     if (expt > 0) {
                         fsize = expt;
                         if (prec || (flags & FLAG_ALT))
                             fsize += prec + 1;
-                    } else {	/* "0.X" */
+                    } else {    /* "0.X" */
                         fsize = prec + 2;
                     }
                 } else
-                if (expt >= ndig) {	/* fixed g fmt */
+                if (expt >= ndig) {     /* fixed g fmt */
                     fsize = expt;
                     if (flags & FLAG_ALT)
                         ++fsize;
@@ -998,22 +1013,22 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                     }
                 }
 
-		/*
-		 * At this point, `lp'
-		 * points to a string which (if not flags&LADJUST) should be
-		 * padded out to `width' places.  If flags&ZEROPAD, it should
-		 * first be prefixed by any sign or other prefix; otherwise,
-		 * it should be blank padded before the prefix is emitted.
-		 * After any left-hand padding and prefixing, emit zeroes
-		 * required by a decimal [diouxX] precision, then print the
-		 * string proper, then emit zeroes required by any leftover
-		 * floating precision; finally, if LADJUST, pad with blanks.
-		 *
-		 * Compute actual size, so we know how much to pad.
-		 * size excludes decimal prec; realsz includes it.
-		 */
-		realsz = dprec > fsize ? dprec : fsize;
-		if (sign) {
+                /*
+                 * At this point, `lp'
+                 * points to a string which (if not flags&LADJUST) should be
+                 * padded out to `width' places.  If flags&ZEROPAD, it should
+                 * first be prefixed by any sign or other prefix; otherwise,
+                 * it should be blank padded before the prefix is emitted.
+                 * After any left-hand padding and prefixing, emit zeroes
+                 * required by a decimal [diouxX] precision, then print the
+                 * string proper, then emit zeroes required by any leftover
+                 * floating precision; finally, if LADJUST, pad with blanks.
+                 *
+                 * Compute actual size, so we know how much to pad.
+                 * size excludes decimal prec; realsz includes it.
+                 */
+                realsz = dprec > fsize ? dprec : fsize;
+                if (sign) {
                     realsz++;
                 }
 
@@ -1023,29 +1038,29 @@ static int fmt_output(FILE *stream, char *str, size_t size,
 #define blanks ' '
 #define cp lp
 
-		/* right-adjusting blank padding */
-		if ((flags & (FLAG_MINUS|FLAG_ZERO)) == 0) {
+                /* right-adjusting blank padding */
+                if ((flags & (FLAG_MINUS|FLAG_ZERO)) == 0) {
 //fprintf(stream ? stream : stdout, "PAD(%d, %c)\n", width - realsz, blanks);
                     PAD(width - realsz, blanks);
                 }
 
-		/* prefix */
-		if (sign) {
+                /* prefix */
+                if (sign) {
                     count = fmt_output_chars(stream, str, size, count,
                                              sign, 1);
-		}
+                }
 
-		/* right-adjusting zero padding */
-		if ((flags & (FLAG_MINUS|FLAG_ZERO)) == FLAG_ZERO) {
+                /* right-adjusting zero padding */
+                if ((flags & (FLAG_MINUS|FLAG_ZERO)) == FLAG_ZERO) {
 //fprintf(stream ? stream : stdout, "PAD(%d, %c)\n", width - realsz, zeroes);
                     PAD(width - realsz, zeroes);
                 }
 
-		/* leading zeroes from decimal precision */
+                /* leading zeroes from decimal precision */
 //fprintf(stream ? stream : stdout, "PAD(%d, %c)\n", dprec - fsize, zeroes);
                 PAD(dprec - fsize, zeroes);
 
-                if (c >= 'f') {	/* 'f' or 'g' */
+                if (c >= 'f') { /* 'f' or 'g' */
                     if (fpvalue == 0) {
                         /* kludge for __dtoa irregularity */
                         PRINT("0", 1);
@@ -1073,7 +1088,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                         PRINT(".", 1);
                         PRINT(cp, ndig - expt);
                     }
-                } else {	/* 'e' or 'E' */
+                } else {        /* 'e' or 'E' */
                     if (ndig > 1 || (flags & FLAG_ALT)) {
                         ox[0] = *cp++;
                         ox[1] = '.';
@@ -1084,13 +1099,13 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                             /* __dtoa irregularity */
                             PAD(ndig - 1, zeroes);
                         }
-                    } else {	/* XeYYY */
+                    } else {    /* XeYYY */
                         PRINT(cp, 1);
                     }
                     PRINT(expstr, expsize);
                 }
-		/* left-adjusting padding (always blank) */
-		if (flags & FLAG_MINUS) {
+                /* left-adjusting padding (always blank) */
+                if (flags & FLAG_MINUS) {
                     PAD(width - realsz, blanks);
                 }
 #endif
@@ -1245,15 +1260,15 @@ int ifputs_hex(FILE *stream, const byte *buf, int len)
 #ifdef FLOATING_POINT
 
 #ifdef _NO_LONGDBL
-extern char *_dtoa_r _PARAMS((double, int,
-			      int, int *, int *, char **));
+extern char *_dtoa_r(double, int, int, int *, int *, char **);
 union double_union {
     double d;
     struct {
-#if __FLOAT_WORD_ORDER == __BIG_ENDIAN
+#if BYTE_ORDER == BIG_ENDIAN
         unsigned int high;
         unsigned int low;
 #else
+        /* Should deal with __FLOAT_WORD_ORDER special case */
         unsigned int low;
         unsigned int high;
 #endif
@@ -1263,8 +1278,7 @@ union double_union {
 #define word0(tmp) (tmp).u.high
 #define Sign_bit 0x80000000
 #else
-extern char *_ldtoa_r _PARAMS((_LONG_DOUBLE, int,
-			      int, int *, int *, char **));
+extern char *_ldtoa_r(_LONG_DOUBLE, int, int, int *, int *, char **);
 #undef word0
 #define word0(x) ldword0(x)
 #endif
@@ -1272,103 +1286,103 @@ extern char *_ldtoa_r _PARAMS((_LONG_DOUBLE, int,
 static char *
 cvt(value, ndigits, flags, sign, decpt, ch, length)
 #ifdef _NO_LONGDBL
-	double value;
+        double value;
 #else
-	_LONG_DOUBLE value;
+        _LONG_DOUBLE value;
 #endif
-	int ndigits, flags, *decpt, ch, *length;
-	char *sign;
+        int ndigits, flags, *decpt, ch, *length;
+        char *sign;
 {
-	int mode, dsgn;
-	char *digits, *bp, *rve;
+    int mode, dsgn;
+    char *digits, *bp, *rve;
 #ifdef _NO_LONGDBL
-        union double_union tmp;
+    union double_union tmp;
 #else
-        struct ldieee *ldptr;
+    struct ldieee *ldptr;
 #endif
 
-	if (ch == 'f') {
-		mode = 3;		/* ndigits after the decimal point */
-	} else {
-		/* To obtain ndigits after the decimal point for the 'e' 
-		 * and 'E' formats, round to ndigits + 1 significant 
-		 * figures.
-		 */
-		if (ch == 'e' || ch == 'E') {
-			ndigits++;
-		}
-		mode = 2;		/* ndigits significant digits */
-	}
+    if (ch == 'f') {
+        mode = 3;               /* ndigits after the decimal point */
+    } else {
+        /* To obtain ndigits after the decimal point for the 'e' 
+         * and 'E' formats, round to ndigits + 1 significant 
+         * figures.
+         */
+        if (ch == 'e' || ch == 'E') {
+            ndigits++;
+        }
+        mode = 2;               /* ndigits significant digits */
+    }
 
 #ifdef _NO_LONGDBL
-        tmp.d = value;
+    tmp.d = value;
 
-	if (word0(tmp) & Sign_bit) { /* this will check for < 0 and -0.0 */
-		value = -value;
-		*sign = '-';
-        } else {
-		*sign = '\000';
-        }
-	digits = dtoa(value, mode, ndigits, decpt, &dsgn, &rve);
+    if (word0(tmp) & Sign_bit) { /* this will check for < 0 and -0.0 */
+        value = -value;
+        *sign = '-';
+    } else {
+        *sign = '\000';
+    }
+    digits = dtoa(value, mode, ndigits, decpt, &dsgn, &rve);
 #else /* !_NO_LONGDBL */
-	ldptr = (struct ldieee *)&value;
-	if (ldptr->sign) { /* this will check for < 0 and -0.0 */
-		value = -value;
-		*sign = '-';
-        } else {
-		*sign = '\000';
-        }
-	digits = ldtoa(value, mode, ndigits, decpt, &dsgn, &rve);
+    ldptr = (struct ldieee *)&value;
+    if (ldptr->sign) { /* this will check for < 0 and -0.0 */
+        value = -value;
+        *sign = '-';
+    } else {
+        *sign = '\000';
+    }
+    digits = ldtoa(value, mode, ndigits, decpt, &dsgn, &rve);
 #endif /* !_NO_LONGDBL */
 
-	if ((ch != 'g' && ch != 'G') || (flags & FLAG_ALT)) {	/* Print trailing zeros */
-		bp = digits + ndigits;
-		if (ch == 'f') {
-                        /* FBE: it seems that the newlib is incorrect. I
-                           changed '0' to '\0' */
-			if (*digits == '\0' && value)
-				*decpt = -ndigits + 1;
-			bp += *decpt;
-		}
-		if (value == 0)	/* kludge for __dtoa irregularity */
-			rve = bp;
-		while (rve < bp)
-			*rve++ = '0';
-	}
-	*length = rve - digits;
-	return digits;
+    if ((ch != 'g' && ch != 'G') || (flags & FLAG_ALT)) {       /* Print trailing zeros */
+        bp = digits + ndigits;
+        if (ch == 'f') {
+            /* FBE: it seems that the newlib is incorrect. I
+            changed '0' to '\0' */
+            if (*digits == '\0' && value)
+                *decpt = -ndigits + 1;
+            bp += *decpt;
+        }
+        if (value == 0) { /* kludge for __dtoa irregularity */
+            rve = bp;
+        }
+        while (rve < bp) {
+            *rve++ = '0';
+        }
+    }
+    *length = rve - digits;
+    return digits;
 }
 
-#define	to_char(n)	((n) + '0')
+#define to_char(n)      ((n) + '0')
 
-static int
-exponent(p0, expn, fmtch)
-	char *p0;
-	int expn, fmtch;
+static int exponent(char *p0, int expn, int fmtch)
 {
-	register char *p, *t;
-	char expbuf[40];
+    char expbuf[40];
+    char *p, *t;
 
-	p = p0;
-	*p++ = fmtch;
-	if (expn < 0) {
-		expn = -expn;
-		*p++ = '-';
-	}
-	else
-		*p++ = '+';
-	t = expbuf + 40;
-	if (expn > 9) {
-		do {
-			*--t = to_char(expn % 10);
-		} while ((expn /= 10) > 9);
-		*--t = to_char(expn);
-		for (; t < expbuf + 40; *p++ = *t++);
-	}
-	else {
-		*p++ = '0';
-		*p++ = to_char(expn);
-	}
-	return (p - p0);
+    p = p0;
+    *p++ = fmtch;
+    if (expn < 0) {
+        expn = -expn;
+        *p++ = '-';
+    } else {
+        *p++ = '+';
+    }
+    t = expbuf + 40;
+    if (expn > 9) {
+        do {
+            *--t = to_char(expn % 10);
+        } while ((expn /= 10) > 9);
+        *--t = to_char(expn);
+        for (; t < expbuf + 40; *p++ = *t++)
+            continue;
+    } else {
+        *p++ = '0';
+        *p++ = to_char(expn);
+    }
+    return (p - p0);
 }
+
 #endif /* FLOATING_POINT */
