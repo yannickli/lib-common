@@ -11,8 +11,12 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef MINGCC
+#ifdef MINGCC
+#include <sys/param.h>
+#else
 #include <endian.h>
+#endif
+
 #include "macros.h"
 #include "strconv.h"
 #include "blob.h"
@@ -223,7 +227,7 @@ int string_decode_ira(char *dst, const char *src)
     return len;
 }
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN // Little endian, misaligned access OK
+#if BYTE_ORDER == LITTLE_ENDIAN // Little endian, misaligned access OK
 
 static int const win1252_to_gsm7[] = {
 
@@ -772,5 +776,4 @@ int blob_append_ira(blob_t *dst, const byte *src, ssize_t len)
     return 0;
 }
 
-#endif
 #endif
