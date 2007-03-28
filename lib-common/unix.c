@@ -66,12 +66,7 @@ int mkdir_p(const char *dir, mode_t mode)
     /* Then, create /a/b/c and /a/b/c/d : we just have to put '/' where
      * we put \0 in the previous loop. */
     for (;;) {
-#ifndef MINGCC
-        if (mkdir(dir2, mode) != 0)
-#else
-        if (mkdir(dir2) != 0)
-#endif
-        {
+        if (mkdir(dir2, mode) != 0) {
 
             /* if dir = "/a/../b", then we do a mkdir("/a/..") => EEXIST,
              * but we want to continue walking the path to create /b !
@@ -160,24 +155,6 @@ const char *get_ext(const char *filename)
     }
     return lastdot ? lastdot : base;
 }
-
-#ifdef MINGCC
-long int lrand48(void)
-{
-    unsigned int r, i;
-    long int res = 0;
-    
-    /* OG: This method is incorrect, should use high bits instead of
-     * low byte.
-     */
-    for (i = 0; i < sizeof(long int); i++) {
-        r = rand();
-        res |= (r & 0xFF) << (i * 8);
-    }
-
-    return res;
-}
-#endif
 
 #if 0
 #include <stdio.h>

@@ -11,11 +11,11 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef MINGCC
-#include <sys/mman.h>
+//#include <sys/mman.h>
 #include <errno.h>
 
 #include "mem.h"
+#include "mmappedfile.h"
 #include "mem-fifo-pool.h"
 
 #define ROUND_MULTIPLE(n, k) ((((n) + (k) - 1) / (k)) * (k))
@@ -101,7 +101,7 @@ static void *mfp_alloc(mem_pool *mp, ssize_t size)
     if (size > mfp->page_size - ssizeof(mem_page)) {
         /* Should just map a larger page, yet we need a maximum value */
         e_panic(E_PREFIX("tried to alloc %zd bytes, cannot have more than %d"),
-                size, mfp->page_size);
+                (size_t)size, mfp->page_size);
     }
 
     page = mfp->pages;
@@ -208,4 +208,3 @@ void mem_fifo_pool_delete(mem_pool **poolp)
         p_delete(poolp);
     }
 }
-#endif

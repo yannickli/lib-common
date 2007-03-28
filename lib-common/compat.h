@@ -32,6 +32,9 @@ char *ctime_r(const time_t *timep, char *buf);
 struct tm *gmtime_r(const time_t *timep, struct tm *result);
 struct tm *localtime_r(const time_t *timep, struct tm *result);
 void usleep(unsigned long usec);
+long int lrand48(void);
+
+#define mkdir(path, mode)  mkdir(path)
 
 /* Bits set in the FLAGS argument to `fnmatch'.  */
 #define	FNM_PATHNAME	(1 << 0) /* No wildcard can ever match `/'.  */

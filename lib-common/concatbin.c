@@ -11,20 +11,20 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef MINGCC
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
+//#include <sys/mman.h>
 #include <limits.h>
 #include <unistd.h>
 #include <fcntl.h>
 
-#include <lib-common/string_is.h>
 
 #include "macros.h"
 #include "err_report.h"
 #include "mem.h"
 #include "concatbin.h"
+#include "mmappedfile.h"
+#include "string_is.h"
 
 concatbin *concatbin_new(const char *filename)
 {
@@ -116,4 +116,3 @@ void concatbin_delete(concatbin **ccb)
     munmap((void *)(*ccb)->start, (*ccb)->len);
     p_delete(ccb);
 }
-#endif

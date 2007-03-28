@@ -150,8 +150,6 @@ bool is_expired(const struct timeval *date,
     return false;
 }
 
-/* localtime_r unavailable on mingw32 */
-#ifndef MINGCC
 time_t localtime_curday(time_t date)
 {
     struct tm t;
@@ -208,7 +206,6 @@ time_t localtime_nextday(time_t date)
 
     return mktime(&t);
 }
-#endif
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

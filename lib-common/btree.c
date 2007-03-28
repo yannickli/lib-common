@@ -12,11 +12,6 @@
 /**************************************************************************/
 
 #include <errno.h>
-#ifdef MINGCC
-#include <malloc.h>
-#else
-#include <alloca.h>
-#endif
 
 #include "btree.h"
 

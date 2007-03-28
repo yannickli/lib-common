@@ -129,6 +129,7 @@
  */
 
 #include <stdint.h>
+
 #ifdef MINGCC
 #include <sys/param.h>
 #else

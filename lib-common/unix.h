@@ -26,17 +26,13 @@ const char *get_ext(const char *filename);
 static inline char *vget_basename(char *path) {
     return (char*)get_basename(path);
 }
+
 static inline char *vget_ext(char *path) {
     return (char*)get_ext(path);
 }
 
-static inline void getopt_init(void)
-{
+static inline void getopt_init(void) {
     optind = 0;
 }
-
-#ifdef MINGCC
-long int lrand48(void);
-#endif
 
 #endif /* IS_LIB_COMMON_UNIX_H */

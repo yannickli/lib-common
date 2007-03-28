@@ -11,11 +11,9 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef MINGCC
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
-#include <sys/mman.h>
 
 #include <lib-common/err_report.h>
 #include <lib-common/mem.h>
@@ -586,5 +584,3 @@ void pidx_data_release(pidx_file *pidx, uint64_t idx)
 
     pidx_page_recollect(pidx, idx, pidx->area->skip, 0);
 }
-
-#endif

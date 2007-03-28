@@ -108,6 +108,22 @@ void globfree(glob_t *pglob)
 {
 }
 
+long int lrand48(void)
+{
+    unsigned int r, i;
+    long int res = 0;
+    
+    /* OG: This method is incorrect, should use high bits instead of
+     * low byte.
+     */
+    for (i = 0; i < sizeof(long int); i++) {
+        r = rand();
+        res |= (r & 0xFF) << (i * 8);
+    }
+
+    return res;
+}
+
 #else
 
 void intersec_initialize(void) {}
