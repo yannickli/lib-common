@@ -17,17 +17,15 @@
 
 int main(int argc, char **argv)
 {
-#ifndef MINGCC
     btree_t *bt;
 
     if (argc > 1) {
         bt = btree_open(argv[1], O_RDONLY);
-        assert(bt);
+        assert (bt);
 
         btree_dump(bt, stdout);
 
         btree_close(&bt);
     }
-#endif
     return 0;
 }

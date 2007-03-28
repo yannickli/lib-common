@@ -11,11 +11,12 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef MINGCC
-
 #include <errno.h>
+#ifdef MINGCC
+#include <malloc.h>
+#else
 #include <alloca.h>
-#include <sys/mman.h>
+#endif
 
 #include "btree.h"
 
@@ -844,5 +845,3 @@ void btree_dump(const btree_t *bt_pub, FILE *out)
         }
     }
 }
-
-#endif
