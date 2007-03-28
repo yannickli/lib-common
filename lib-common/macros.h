@@ -14,13 +14,9 @@
 #ifndef IS_LIB_COMMON_MACROS_H
 #define IS_LIB_COMMON_MACROS_H
 
-#ifdef MINGCC
-#undef IPRINTF_HIDE_STDIO
-/* Force iprintf when using mingw32 to enable POSIX compatibility */
-#define IPRINTF_HIDE_STDIO 1
-#endif
-
 #include <unistd.h>     /* for ssize_t */
+
+#include "compat.h"
 
 /*---------------- GNU extension wrappers ----------------*/
 
@@ -85,9 +81,6 @@ typedef unsigned int gt_uint32_t;
 #define XOR_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] ^=  (1 << ((num) & 7)))
 
 /*---------------- Misc ----------------*/
-
-/* Global initializer to enable maximum compatibility */
-void intersec_initialize(void);
 
 #define countof(table)  ((ssize_t)(sizeof(table) / sizeof((table)[0])))
 #define ssizeof(foo)    ((ssize_t)sizeof(foo))
@@ -244,12 +237,7 @@ static inline int getopt_check(int argc, char * const argv[],
 #  define getopt(argc, argv, optstring)  getopt_check(argc, argv, optstring)
 
 #endif
-#else   /* MINGCC */
-
-#include <sys/time.h>
-void gettimeofday(struct timeval *p, void *tz);
-
-#endif
+#endif   /* MINGCC */
 
 /*---------------- Defensive programming ----------------*/
 

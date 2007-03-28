@@ -19,26 +19,6 @@
 #include <lib-common/err_report.h>
 #include <lib-common/timeval.h>
 
-#ifdef MINGCC
-/* Windows API do not have gettimeofday support */
-#include <windows.h>
-/* OG: should define a simpler API, and implement it in a compatibility
- * module for linux and ming appropriately
- */
-void gettimeofday(struct timeval *p, void *tz)
-{
-    union {
-        long long ns100; /* Time since 1 Jan 1601 in 100ns units */
-        FILETIME ft;
-    } now;
-
-    GetSystemTimeAsFileTime(&now.ft);
-
-    p->tv_usec = (long)((now.ns100 / 10LL) % 1000000LL);
-    p->tv_sec  = (long)((now.ns100 - (116444736000000000LL)) / 10000000LL);
-}
-#endif
-
 /* Arithmetics on timeval assume both members of timeval are signed.
  * We keep timeval structures in normalized form:
  * - tv_usec is always in the range [0 .. 999999]
