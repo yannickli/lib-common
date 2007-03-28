@@ -14,6 +14,28 @@
 #ifndef IS_LIB_COMMON_MMAPPEDFILE_H
 #define IS_LIB_COMMON_MMAPPEDFILE_H
 
+#ifndef MINGCC
+#include <sys/mman.h>
+#else
+#define MAP_FAILED	((void *) -1)
+extern void *mmap(void *__addr, size_t __len, int __prot,
+		  int __flags, int __fd, off_t __offset);
+extern int munmap(void *__addr, size_t __len);
+extern int msync(void *__addr, size_t __len, int __flags);
+extern void *mremap(void *__addr, size_t __old_len, size_t __new_len,
+		    int __flags, ...);
+
+#define PROT_READ	0x1		/* Page can be read.  */
+#define PROT_WRITE	0x2		/* Page can be written.  */
+#define PROT_EXEC	0x4		/* Page can be executed.  */
+#define PROT_NONE	0x0		/* Page can not be accessed.  */
+
+#define MAP_SHARED	0x01		/* Share changes.  */
+#define MAP_PRIVATE	0x02		/* Changes are private.  */
+#define MAP_FIXED	0x10		/* Interpret addr exactly.  */
+#define MAP_ANONYMOUS	0x20		/* Don't use a file.  */
+#endif
+
 #include <sys/types.h>
 #include <fcntl.h>
 

@@ -11,8 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef MINGCC
-#include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
@@ -204,4 +202,3 @@ int mmfile_truncate(mmfile *mf, off_t length)
     mf->size = length;
     return close(fd);
 }
-#endif
