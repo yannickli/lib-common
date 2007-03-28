@@ -173,6 +173,10 @@ static inline void *vmemsearch(void *haystack, size_t hsize,
     return (void *)memsearch(haystack, hsize, needle, nsize);
 }
 
+/* find a word in a list of words separated by sep.
+ */
+bool strfind(const char *keytable, const char *str, int sep);
+
 int buffer_increment(char *buf, int len);
 int buffer_increment_hex(char *buf, int len);
 ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t len);

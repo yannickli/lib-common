@@ -625,6 +625,38 @@ const void *memsearch(const void *_haystack, size_t hsize,
     return NULL;
 }
 
+/* find a word in a list of words separated by sep.
+ */
+bool strfind(const char *keytable, const char *str, int sep)
+{
+    int c, len;
+    const char *p;
+
+    c = *str;
+    len = strlen(str);
+    /* need to special case the empty string */
+    if (len == 0) {
+        char empty[3];
+        empty[0] = empty[1] = sep;
+        empty[2] = '\0';
+        return strstr(keytable, empty) != NULL;
+    }
+
+    /* initial and trailing separators are optional */
+    /* they do not cause the empty string to match */
+    for (p = keytable;;) {
+        if (!memcmp(p, str, len) && (p[len] == sep || p[len] == '\0'))
+            return true;
+        for (;;) {
+            p = strchr(p + 1, c);
+            if (!p)
+                return false;
+            if (p[-1] == sep)
+                break;
+        }
+    }
+}
+
 /** Increment last counter in a buffer
  *
  * <code>buf</code> points to the start of the buffer.
@@ -1084,6 +1116,21 @@ START_TEST(check_strtolp)
 }
 END_TEST
 
+START_TEST(check_strfind)
+{
+    fail_if(strfind("1,2,3,4", "1", ',') != true, "");
+    fail_if(strfind("1,2,3,4", "2", ',') != true, "");
+    fail_if(strfind("1,2,3,4", "4", ',') != true, "");
+    fail_if(strfind("11,12,13,14", "1", ',') != false, "");
+    fail_if(strfind("11,12,13,14", "2", ',') != false, "");
+    fail_if(strfind("11,12,13,14", "11", ',') != true, "");
+    fail_if(strfind("11,12,13,14", "111", ',') != false, "");
+    fail_if(strfind("toto,titi,tata,tutu", "to", ',') != false, "");
+    fail_if(strfind("1|2|3|4|", "", '|') != false, "");
+    fail_if(strfind("1||3|4|", "", '|') != true, "");
+}
+END_TEST
+
 #define check_buffer_increment_unit(initval, expectedval, expectedret)       \
     do {                                                                     \
         pstrcpy(buf, sizeof(buf), initval);                                  \
@@ -1214,6 +1261,7 @@ Suite *check_string_is_suite(void)
     tcase_add_test(tc, check_stristart);
     tcase_add_test(tc, check_stristr);
     tcase_add_test(tc, check_memsearch);
+    tcase_add_test(tc, check_strfind);
     tcase_add_test(tc, check_pstrlen);
     tcase_add_test(tc, check_pstrcpylen);
     tcase_add_test(tc, check_pstrchrcount);
