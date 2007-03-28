@@ -122,6 +122,8 @@ enum sign {
 #define TOSTR_AUX(x)  #x
 #define TOSTR(x)      TOSTR_AUX(x)
 
+#define SWAP(a, b)   do { void *c = a; a = b; b = c; } while (0)
+
 /*---------------- Type safe conversion functions ----------------*/
 
 #define CONVERSION_FUNCTIONS(type1, type2) \
