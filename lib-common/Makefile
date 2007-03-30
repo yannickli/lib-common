@@ -42,6 +42,7 @@ libcommon_SOURCES = \
 	err_debug.c   \
 	fifo.c \
 	ioveclist.c \
+	list.c \
 	log_file.c \
 	mmappedfile.c \
 	paged-index.c \

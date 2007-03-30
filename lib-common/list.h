@@ -28,6 +28,11 @@
  * right now.
  */
 
+typedef struct generic_list generic_list;
+void generic_list_sort(generic_list **list,
+                       int (*cmp)(generic_list*, generic_list*, void*),
+                       void*);
+
 #define SLIST_PROTOS(type, prefix)                                           \
     static inline type *prefix##_list_pop(type **list);                      \
     static inline void prefix##_list_push(type **list, type *item);          \
@@ -60,12 +65,17 @@
             prefix##_delete(&item);                                          \
         }                                                                    \
     }                                                                        \
-    static inline void prefix##_list_break(type **list) {                    \
-        if (*list) {                                                         \
-            type *tmp = (*list)->next;                                       \
-            (*list)->next = NULL;                                            \
-            *list = tmp;                                                     \
+    static inline type *prefix##_list_poptail(type *list) {                  \
+        if (list) {                                                          \
+            type *tmp = list->next;                                          \
+            list->next = NULL;                                               \
+            return tmp;                                                      \
         }                                                                    \
+        return NULL;                                                         \
     }                                                                        \
+    static inline void prefix##_list_sort(type **list,                       \
+            int (*cmp)(const type *, const type *, void *), void *priv) {    \
+        generic_list_sort((generic_list **)list, (void *)cmp, priv);         \
+    }
 
 #endif /* IS_LIB_COMMON_LIST_H */
