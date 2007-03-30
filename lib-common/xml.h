@@ -21,6 +21,7 @@ typedef struct xml_tag_t xml_tag_t;
 typedef struct xml_tree_t xml_tree_t;
 
 struct xml_tag_t {
+    xml_tag_t *next;
     xml_tag_t *parent;
     char *fullname;
     /* name points to the name without the namespace, inside fullname */
@@ -28,15 +29,14 @@ struct xml_tag_t {
     int name_hash;
     xml_prop_t *property;
     xml_tag_t *child;
-    xml_tag_t *next;
     char *text;
 };
 
 struct xml_prop_t {
+    xml_prop_t *next;
     char *name;
     int name_hash;
     char *value;
-    xml_prop_t *next;
 };
 
 struct xml_tree_t {

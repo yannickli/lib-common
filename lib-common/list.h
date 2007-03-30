@@ -15,6 +15,7 @@
 #define IS_LIB_COMMON_LIST_H
 
 #include <assert.h>
+#include <stddef.h>
 
 /*
  * Provides list functions, for objects that have a ->next member.
@@ -35,6 +36,7 @@
 
 #define SLIST_FUNCTIONS(type, prefix)                                        \
     static inline type *prefix##_list_pop(type **list) {                     \
+        assert (sizeof(int[1 - offsetof(type, next)]) != 0);                 \
         if (*list) {                                                         \
             type *res = *list;                                               \
             *list = res->next;                                               \
