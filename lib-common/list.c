@@ -29,79 +29,72 @@ static generic_list *generic_list_poptail(generic_list *list) {
     return NULL;
 }
 
-static void
-generic_list_split(generic_list *list, generic_list **l1, generic_list **l2,
+static int
+generic_list_split(generic_list **head, generic_list **l1, generic_list **l2,
                    cmpfun *cmp, void *priv)
 {
-    *l1 = *l2 = NULL;
-
-    if (!list)
-        return;
+    generic_list *list = *head, *half;
 
     /* go to the first sorting issue */
     for (;;) {
         if (!list->next)
-            return;
+            return 0;
         if (cmp(list, list->next, priv) > 0)
             break;
         list = list->next;
     }
-    list = generic_list_poptail(list);
 
-    /* split the tail in half */
-    *l2 = *l1 = list;
+    if (list == *head) {
+        *head = NULL;
+    } else {
+        /* cut off the sorted part */
+        list = generic_list_poptail(list);
+    }
+
+    /* split the tail in half using dual speed scan */
+    *l1 = half = list;
     for (;;) {
         if (!list)
             break;
         list = list->next;
         if (!list)
             break;
-        list = list->next;
-        *l2  = (*l2)->next;
+        half = half->next;
     }
-    *l2 = generic_list_poptail(*l2);
+    *l2 = generic_list_poptail(half);
+    return 1;
 }
 
 static generic_list *
 generic_list_merge(generic_list *l1, generic_list *l2, cmpfun *cmp, void *priv)
 {
-    generic_list *res;
+    generic_list *res = l1, **next;
+    int strict = 1;
 
-    if (!l1)
-        return l2;
     if (!l2)
         return l1;
 
-    res = cmp(l1, l2, priv) > 0 ? l2 : l1;
-    for (;;) {
-        while (cmp(l1, l2, priv) <= 0) {
-            if (!l1->next) {
-                l1->next = l2;
-                return res;
-            }
-            l1 = l1->next;
-        }
-        while (cmp(l2, l1, priv) <= 0) {
-            if (!l2->next) {
-                l2->next = l1;
-                return res;
-            }
-            l2 = l2->next;
+    for (next = &res; *next; next = &(*next)->next) {
+        if ((*cmp)(*next, l2, priv) >= strict) {
+            SWAP(*next, l2);
+            strict ^= 1;
         }
     }
+    *next = l2;
+
+    return res;
 }
 
 void generic_list_sort(generic_list **list, cmpfun *cmp, void *priv)
 {
     generic_list *l1, *l2;
 
-    if (!*list)
-        return;
-
-    generic_list_split(*list, &l1, &l2, cmp, priv);
-    generic_list_sort(&l1, cmp, priv);
-    generic_list_sort(&l2, cmp, priv);
-    l1    = generic_list_merge(l1, l2, cmp, priv);
-    *list = generic_list_merge(*list, l1, cmp, priv);
+    if (*list && generic_list_split(list, &l1, &l2, cmp, priv)) {
+        if (l2) {
+            generic_list_sort(&l1, cmp, priv);
+            generic_list_sort(&l2, cmp, priv);
+            l1 = generic_list_merge(l1, l2, cmp, priv);
+        }
+        *list = generic_list_merge(*list, l1, cmp, priv);
+    }
 }
-
