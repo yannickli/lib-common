@@ -45,11 +45,15 @@ generic_list_split(generic_list **head, generic_list **l1, generic_list **l2,
     }
 
     if (list == *head) {
-        *head = NULL;
-    } else {
-        /* cut off the sorted part */
-        list = generic_list_poptail(list);
+        /* swap the two first and fake them be sorted */
+        *head = list->next;
+        SWAP((*head)->next, list->next);
+        if (!list->next)
+            return 0;
     }
+
+    /* cut off the sorted part */
+    list = generic_list_poptail(list);
 
     /* split the tail in half using dual speed scan */
     *l1 = half = list;
