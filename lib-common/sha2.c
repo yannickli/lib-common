@@ -390,7 +390,7 @@ void sha256_update(sha256_ctx *ctx, const void *message, uint32_t len)
 
     rem_len = SHA256_BLOCK_SIZE - ctx->len;
 
-    memcpy(&ctx->block[ctx->len], message, rem_len);
+    memcpy(&ctx->block[ctx->len], message, MIN(rem_len, len));
 
     if (ctx->len + len < SHA256_BLOCK_SIZE) {
         ctx->len += len;
