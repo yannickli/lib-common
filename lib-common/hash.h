@@ -69,15 +69,15 @@
 typedef struct {
     uint32_t tot_len;
     uint32_t len;
-    byte block[2 * SHA256_BLOCK_SIZE];
     uint32_t h[8];
+    byte block[2 * SHA256_BLOCK_SIZE];
 } sha256_ctx;
 
 typedef struct {
     uint32_t tot_len;
     uint32_t len;
-    byte block[2 * SHA512_BLOCK_SIZE];
     uint64_t h[8];
+    byte block[2 * SHA512_BLOCK_SIZE];
 } sha512_ctx;
 
 typedef sha512_ctx sha384_ctx;
@@ -111,6 +111,6 @@ void sha512_final_hex(sha512_ctx *ctx, char *digest);
 void sha512(const void *message, uint32_t len, byte *digest);
 void sha512_hex(const void *message, uint32_t len, char *digest);
 
-/** EOF BSD CODE **/
+int sha_sum_file(const char *filename, char *digest, int shatype, int binary);
 
 #endif /* IS_LIB_COMMON_HASH_H */
