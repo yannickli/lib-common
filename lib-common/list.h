@@ -14,6 +14,8 @@
 #ifndef IS_LIB_COMMON_LIST_H
 #define IS_LIB_COMMON_LIST_H
 
+#include <assert.h>
+
 /*
  * Provides list functions, for objects that have a ->next member.
  *
@@ -54,6 +56,13 @@
         while (*list) {                                                      \
             type *item = prefix##_list_pop(list);                            \
             prefix##_delete(&item);                                          \
+        }                                                                    \
+    }                                                                        \
+    static inline void prefix##_list_break(type **list) {                    \
+        if (*list) {                                                         \
+            type *tmp = (*list)->next;                                       \
+            (*list)->next = NULL;                                            \
+            *list = tmp;                                                     \
         }                                                                    \
     }                                                                        \
 
