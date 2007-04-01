@@ -17,7 +17,7 @@ include $(DEPTH)/admin/header.mk
 __EXE__   = btree-dump 
 __LIB__   = libcommon
 __CHECK__ = test test_blob_iconv
-__CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-sha2
+__CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-sha2 tst-sort
 # These tests are just too long to be part of "make check". Sorry.
 #__CHECK__ += tst-btree tst-isndx
 
@@ -83,6 +83,7 @@ tst-sha2_SOURCES = sha2.c libcommon.a
 
 tst-btree_SOURCES = tst-btree.c libcommon.a
 tst-isndx_SOURCES = tst-isndx.c libcommon.a
+tst-sort_SOURCES = tst-sort.c libcommon.a
 
 ifneq (,$(filter CYGWIN%,$(UNAME)))
   libcommon_SOURCES := $(filter-out blob_iconv.c,$(libcommon_SOURCES))
