@@ -38,10 +38,12 @@ void generic_list_sort(generic_list **list,
     static inline void prefix##_list_push(type **list, type *item);          \
     static inline type **prefix##_list_init(type **list);                    \
     static inline void prefix##_list_wipe(type **list);                      \
+    static inline void prefix##_list_sort(type **list,                       \
+            int (*cmp)(const type *, const type *, void *), void *priv);
 
 #define SLIST_FUNCTIONS(type, prefix)                                        \
     static inline type *prefix##_list_pop(type **list) {                     \
-        assert (sizeof(int[1 - offsetof(type, next)]) != 0);                 \
+        assert (sizeof(int[1 - 2 * offsetof(type, next)]));                  \
         if (*list) {                                                         \
             type *res = *list;                                               \
             *list = res->next;                                               \
