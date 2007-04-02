@@ -182,6 +182,7 @@ int buffer_increment_hex(char *buf, int len);
 ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t len);
 
 int64_t msisdn_canonize(const char *buf, int len, __unused__ int locale);
+int utf8_getc(const char *s, const char **outp);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

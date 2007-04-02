@@ -28,6 +28,11 @@ static char const __utf8_trail[256] = {
 #undef X
 };
 
+static uint32_t const __utf8_offs[6] = {
+    0x00000000UL, 0x00003080UL, 0x000e2080UL,
+    0x03c82080UL, 0xfa082080UL, 0x82082080UL
+};
+
 static const uint8_t __utf8_mark[7] = {
     0x00, 0x00, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc
 };
@@ -44,6 +49,26 @@ static bool is_utf8_char(const char *s)
 
       default: return false;
     }
+}
+
+int utf8_getc(const char *s, const char **outp)
+{
+    uint32_t ret = 0;
+    int trail = __utf8_trail[(unsigned char)*s];
+
+    switch (trail) {
+      case 5: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
+      case 4: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
+      case 3: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
+      case 2: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
+      case 1: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
+      case 0: ret += (unsigned char)*s++;
+      default: return -1;
+    }
+
+    if (*outp)
+        *outp = s;
+    return ret - __utf8_offs[trail];
 }
 
 int blob_utf8_putc(blob_t *out, int c)
