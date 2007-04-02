@@ -77,10 +77,11 @@ ssize_t blob_latin1_to_utf8(blob_t *out, const char *s)
         } else {
             /* assume its cp1252 or latin1 */
             if (*s >= 0xa0 || !__cp1252_to_utf8[*s & 0x7f]) {
-                blob_utf8_putc(out, *s++);
+                blob_utf8_putc(out, *s);
             } else {
                 blob_append_cstr(out, __cp1252_to_utf8[*s & 0x7f]);
             }
+            s++;
         }
         res++;
     }
