@@ -183,6 +183,9 @@ ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t len);
 
 int64_t msisdn_canonize(const char *buf, int len, __unused__ int locale);
 int utf8_getc(const char *s, const char **outp);
+static inline int utf8_vgetc(char *s, char **outp) {
+    return utf8_getc(s, (const char **)outp);
+}
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
