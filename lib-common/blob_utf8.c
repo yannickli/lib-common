@@ -16,14 +16,16 @@
 #include "blob.h"
 
 static char const __utf8_trail[256] = {
+#define X (-1)
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X, X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,
+    X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X, X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 3,3,3,3,3,3,3,3,4,4,4,4,5,5,5,5,
+    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 3,3,3,3,3,3,3,3,X,X,X,X,X,X,X,X,
+#undef X
 };
 
 static const uint8_t __utf8_mark[7] = {
@@ -32,23 +34,25 @@ static const uint8_t __utf8_mark[7] = {
 
 static bool is_utf8_char(const char *s)
 {
-    int trail = __utf8_trail[(unsigned char)*s];
+    int trail = __utf8_trail[(unsigned char)*s++];
 
-    while (trail-- >= 0) {
-        s++;
-        if (*s & 0x40 || !*s)
-            return false;
+    switch (trail) {
+      case 3: if ((*s++ & 0xc0) != 0x80) return false;
+      case 2: if ((*s++ & 0xc0) != 0x80) return false;
+      case 1: if ((*s++ & 0xc0) != 0x80) return false;
+      case 0: return true;
+
+      default: return false;
     }
-
-    return true;
 }
 
 int blob_utf8_putc(blob_t *out, int c)
 {
     int bytes = 1 + (c >= 0x80) + (c >= 0x800) + (c >= 0x10000);
-    char *dst = (char *)out->data + out->len;
+    char *dst;
 
     blob_extend(out, bytes);
+    dst = (char *)out->data + out->len - bytes;
     switch (bytes) {
         case 4: dst[3] = (c | 0x80) & 0xbf; c >>= 6;
         case 3: dst[2] = (c | 0x80) & 0xbf; c >>= 6;
@@ -64,16 +68,16 @@ static const char *__cp1252_to_utf8[0x20] = {
     NULL, "‘", "’", "“", "”", "•", "–", "—", "˜", "™", "š", "›", "œ", NULL, "ž", "Ÿ",
 };
 
-ssize_t blob_latin1_to_utf8(blob_t *out, const char *s)
+ssize_t blob_latin1_to_utf8(blob_t *out, const char *s, int len)
 {
     int res = 0;
+    const char *end = s + len;
 
-    while (*s) {
-        int trail = __utf8_trail[(unsigned char)*s];
-
+    while (*s && (len < 0 || s < end)) {
         if (is_utf8_char(s)) {
-            blob_append_data(out, s, trail);
-            s += trail;
+            int trail = __utf8_trail[(unsigned char)*s];
+            blob_append_data(out, s, trail + 1);
+            s += trail + 1;
         } else {
             /* assume its cp1252 or latin1 */
             if (*s >= 0xa0 || !__cp1252_to_utf8[*s & 0x7f]) {
