@@ -86,12 +86,18 @@ int blob_utf8_putc(blob_t *out, int c)
     return bytes;
 }
 
-static const char *__cp1252_to_utf8[0x20] = {
-    "€", NULL, "‚", "ƒ", "„", "…", "†", "‡", "ˆ", "‰", "Š", "‹", "Œ", NULL, "Ž", NULL,
-    NULL, "‘", "’", "“", "”", "•", "–", "—", "˜", "™", "š", "›", "œ", NULL, "ž", "Ÿ",
+static const char *__cp1252_or_latin9_to_utf8[0x40] = {
+#define XXX  NULL
+    /* cp1252 to utf8 */
+    "€", XXX, "‚", "ƒ", "„", "…", "†", "‡", "ˆ", "‰", "Š", "‹", "Œ", XXX, "Ž", XXX,
+    XXX, "‘", "’", "“", "”", "•", "–", "—", "˜", "™", "š", "›", "œ", XXX, "ž", "Ÿ",
+    /* latin9 to utf8 if != latin1 */
+    XXX, XXX, XXX, XXX, "€", XXX, "Š", XXX, "š", XXX, XXX, XXX, XXX, XXX, XXX, XXX,
+    XXX, XXX, XXX, XXX, "Ž", XXX, XXX, XXX, "ž", XXX, XXX, XXX, "Œ", "œ", "Ÿ", XXX,
+#undef XXX
 };
 
-ssize_t blob_latin1_to_utf8(blob_t *out, const char *s, int len)
+static ssize_t blob_latin1_to_utf8_aux(blob_t *out, const char *s, int len, int limit)
 {
     int res = 0;
     const char *end = s + len;
@@ -103,10 +109,10 @@ ssize_t blob_latin1_to_utf8(blob_t *out, const char *s, int len)
             s += trail + 1;
         } else {
             /* assume its cp1252 or latin1 */
-            if (*s >= 0xa0 || !__cp1252_to_utf8[*s & 0x7f]) {
+            if (*s >= limit || !__cp1252_or_latin9_to_utf8[*s & 0x7f]) {
                 blob_utf8_putc(out, *s);
             } else {
-                blob_append_cstr(out, __cp1252_to_utf8[*s & 0x7f]);
+                blob_append_cstr(out, __cp1252_or_latin9_to_utf8[*s & 0x7f]);
             }
             s++;
         }
@@ -114,4 +120,14 @@ ssize_t blob_latin1_to_utf8(blob_t *out, const char *s, int len)
     }
 
     return res;
+}
+
+ssize_t blob_latin1_to_utf8(blob_t *out, const char *s, int len)
+{
+    return blob_latin1_to_utf8_aux(out, s, len, 0xa0);
+}
+
+ssize_t blob_latin9_to_utf8(blob_t *out, const char *s, int len)
+{
+    return blob_latin1_to_utf8_aux(out, s, len, 0xc0);
 }
