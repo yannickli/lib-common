@@ -14,8 +14,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <inttypes.h>
 #include <sys/time.h>
 #include <time.h>
+#include <math.h>
 
 #include "mem.h"
 #include "list.h"
@@ -23,6 +25,23 @@
 #define REPEAT        10         /* randomly duplicate entries upto 4 times */
 #define CHECK_STABLE  1         /* sort is not stable yet */
 #define WORK_DIR      "/tmp/"   /* test file output directory */
+
+/* Simple Linear congruential generators (LCGs):
+ * next = (next * A + B) % M; rand = next / C % D;
+ * Posix uses A=1103515245  B=12345  M=1<<32  C=65536  M=32768
+ * Numerical recipes A=1664525, B=1013904223  M=1<<32  C=1  D=1
+ * we use Posix for 15 bits and NR for 32 bits
+ */
+static uint32_t rand15_seed = 1;
+static int rand15(void) {
+    rand15_seed = rand15_seed * 1103515245 + 12345;
+    return (rand15_seed >> 16) & 0x7fff;
+}
+
+static uint32_t rand32_seed = 1;
+static uint32_t rand32(void) {
+    return rand32_seed = rand32_seed * 1664525 + 1013904223;
+}
 
 static inline long long timeval_diff64(struct timeval *tv2, struct timeval *tv1) {
     return (tv2->tv_sec - tv1->tv_sec) * 1000000LL +
@@ -54,11 +73,14 @@ struct entry_t {
 };
 
 GENERIC_INIT(entry_t, entry);
+GENERIC_WIPE(entry_t, entry);
+GENERIC_DELETE(entry_t, entry);
+SLIST_FUNCTIONS(entry_t, entry);
 
 static int entry_number;
+static int compare_number;
 
-static inline entry_t *entry_new(const char *str, int len)
-{
+static inline entry_t *entry_new(const char *str, int len) {
     entry_t *ep = p_new_extra(entry_t, len);
 
     ep->next = NULL;
@@ -68,36 +90,79 @@ static inline entry_t *entry_new(const char *str, int len)
     return ep;
 }
 
-GENERIC_WIPE(entry_t, entry);
-GENERIC_DELETE(entry_t, entry);
 
-SLIST_FUNCTIONS(entry_t, entry);
+static int entry_compare_dummy(const entry_t *a, const entry_t *b, void *p)
+{
+    compare_number++;
+    return CMP(0, 1);
+}
 
 static int entry_compare_str(const entry_t *a, const entry_t *b, void *p)
 {
+    compare_number++;
     return strcmp(a->str, b->str);
 }
 
-static int entry_compare_str_reverse(const entry_t *a, const entry_t *b, void *p)
+static int entry_compare_str_number(const entry_t *a, const entry_t *b,
+                                    void *p)
 {
+    int cmp;
+
+    compare_number++;
+    cmp = strcmp(a->str, b->str);
+    return cmp ? cmp : CMP(a->number, b->number);
+}
+
+static int entry_compare_str_reverse(const entry_t *a, const entry_t *b,
+                                     void *p)
+{
+    compare_number++;
     return -strcmp(a->str, b->str);
+}
+
+static int entry_compare_str_reverse_number(const entry_t *a, const entry_t *b,
+    void *p)
+{
+    int cmp;
+    
+    compare_number++;
+    cmp = -strcmp(a->str, b->str);
+    return cmp ? cmp : CMP(a->number, b->number);
 }
 
 static int entry_compare_len(const entry_t *a, const entry_t *b, void *p)
 {
+    compare_number++;
     return CMP(a->len, b->len);
+}
+
+static int entry_compare_len_str_number(const entry_t *a, const entry_t *b,
+                                        void *p)
+{
+    int cmp;
+
+    compare_number++;
+    if ((cmp = CMP(a->len, b->len)) == 0) {
+        if ((cmp = strcmp(a->str, b->str)) == 0)
+              return CMP(a->number, b->number);
+    }
+    return cmp;
 }
 
 static int entry_compare_number(const entry_t *a, const entry_t *b, void *p)
 {
+    compare_number++;
     return CMP(a->number, b->number);
 }
 
 static int entry_compare_random(const entry_t *a, const entry_t *b, void *p)
 {
-    intptr_t ia = (intptr_t)a;
-    intptr_t ib = (intptr_t)b;
-    intptr_t ip = (intptr_t)p;
+    uint32_t ia, ib, ip;
+
+    compare_number++;
+    ia = (uint32_t)(intptr_t)a->number;
+    ib = (uint32_t)(intptr_t)b->number;
+    ip = (uint32_t)(intptr_t)p;
 
     ia = (ia ^ ip) * 1125413473;
     ib = (ib ^ ip) * 987654323;
@@ -134,10 +199,10 @@ static inline void dict_append(dict_t *dict, entry_t *ep)
     dict->count++;
 }
 
-static void dict_load_file(dict_t *dict, const char *filename)
+static int dict_load_file(dict_t *dict, const char *filename)
 {
     char buf[BUFSIZ];
-    int len, rpt;
+    int total_len, len, rpt;
     FILE *fp;
 
     if (!strcmp(filename, "-")) {
@@ -149,12 +214,14 @@ static void dict_load_file(dict_t *dict, const char *filename)
         exit(1);
     }
     
+    total_len = 0;
     while (fgets(buf, sizeof(buf), fp)) {
         len = strlen(buf);
+        total_len += len;
         if (len && buf[len - 1] == '\n')
             buf[--len] = '\0';
 #if defined(REPEAT) && REPEAT > 1
-        rpt = (REPEAT * (rand() >> 16)) / ((RAND_MAX >> 16) + 1);
+        rpt = REPEAT * rand15() / 32768;
 #else
         rpt = 1;
 #endif
@@ -165,6 +232,7 @@ static void dict_load_file(dict_t *dict, const char *filename)
     if (fp != stdin) {
         fclose(fp);
     }
+    return total_len;
 }
 
 static void dict_dump_file(dict_t *dict, const char *filename)
@@ -208,162 +276,108 @@ static void timer_report(struct timeval *tv, const char *stage)
     timer_start(tv);
 }    
 
+struct sort_test {
+    const char *name;
+    const char *dump_name;
+    long long elapsed;
+    int compare_number;
+    int (*cmpf)(const entry_t *a, const entry_t *b, void *p);
+    int (*checkf)(const entry_t *a, const entry_t *b, void *p);
+} sort_tests[] = {
+    { "minimal overhead *", WORK_DIR "w.orig", 0, 0,
+    entry_compare_dummy, entry_compare_dummy },
+    { "sort by line number *", NULL, 0, 0,
+    entry_compare_number, entry_compare_number },
+    { "sort by string *", WORK_DIR "w.str", 0, 0,
+    entry_compare_str, entry_compare_str_number },
+    { "sort by string length  ", WORK_DIR "w.len", 0, 0,
+    entry_compare_len, entry_compare_len_str_number },
+    { "sort by line number  ", WORK_DIR "w.lineno", 0, 0,
+    entry_compare_number, entry_compare_number },
+    { "shuffle  ", WORK_DIR "w.shuffled", 0, 0,
+    entry_compare_random, NULL },
+    { "sort by string  ", WORK_DIR "w.str1", 0, 0,
+    entry_compare_str, entry_compare_str_number },
+    { "sort by string again *", WORK_DIR "w.str2", 0, 0,
+    entry_compare_str, entry_compare_str_number },
+    { "sort by string reverse  ", WORK_DIR "w.rev", 0, 0,
+    entry_compare_str_reverse, entry_compare_str_reverse_number },
+    { NULL, NULL, 0, 0, NULL, NULL },
+};
+
 int main(int argc, char **argv)
 {
     dict_t words;
     struct timeval tv;
-    long long elapsed;
-    int random_value = rand();
+    long long load_elapsed;
+    intptr_t random_value = rand32();
+    int nbytes = 0;
     int n, cmp, cmp2 = 0, status = 0, dump_files = 0;
     entry_t *ep;
     const char *name;
+    struct sort_test *stp;
 
     dict_init(&words);
 
     timer_start(&tv);
     if (argc < 2) {
-        dict_load_file(&words, "/usr/share/dict/american-english");
+        nbytes += dict_load_file(&words, "/usr/share/dict/american-english");
     } else {
         while (*++argv) {
-            dict_load_file(&words, *argv);
+            nbytes += dict_load_file(&words, *argv);
         }
     }
-    timer_report(&tv, "loaded");
+    load_elapsed = timer_stop(&tv);
 
-    name = WORK_DIR "w.orig";
-    for (n = 1, ep = words.head; ep->next; n++, ep = ep->next) {
-        if (ep->number > ep->next->number) {
-            fprintf(stderr, "%s:%d: out of order\n", name, n + 1);
-            status = 1;
-            break;
-        }
-    }
-    if (dump_files || status)
-        dict_dump_file(&words, name);
+    for (stp = sort_tests; stp->name; stp++) {
+        compare_number = 0;
+        timer_start(&tv);
+        entry_list_sort(&words.head, stp->cmpf, (void*)random_value);
+        stp->elapsed = timer_stop(&tv);
+        stp->compare_number = compare_number;
 
-    timer_start(&tv);
-    entry_list_sort(&words.head, entry_compare_str, NULL);
-    timer_report(&tv, "sorted by string");
-
-    name = WORK_DIR "w.str";
-    for (n = 1, ep = words.head; ep->next; n++, ep = ep->next) {
-        if ((cmp = strcmp(ep->str, ep->next->str)) > 0
+        if (stp->checkf) {
+            /* Check result sequence for proper order and stability */
+            int (*checkf)(const entry_t *a, const entry_t *b, void *p);
 #if CHECK_STABLE
-        ||  (cmp == 0 && ep->number > ep->next->number)
+            checkf = stp->checkf;
+#else
+            checkf = stp->cmpf;
 #endif
-           ) {
-            fprintf(stderr, "%s:%d: out of order\n", name, n + 1);
-            status = 1;
-            break;
+            for (n = 1, ep = words.head; ep->next; n++, ep = ep->next) {
+                if ((*checkf)(ep, ep->next, NULL) > 0) {
+                    fprintf(stderr, "%s:%d: out of order\n",
+                            stp->dump_name, n + 1);
+                    status = 1;
+                    break;
+                }
+            }
+        } else {
+            /* just re-number entries */
+            for (n = 1, ep = words.head; ep; n++, ep = ep->next) {
+                ep->number = n;
+            }
+        }
+        if (stp->dump_name && (dump_files || status)) {
+            dict_dump_file(&words, stp->dump_name);
         }
     }
-    if (dump_files || status)
-        dict_dump_file(&words, name);
 
-    timer_start(&tv);
-    entry_list_sort(&words.head, entry_compare_len, NULL);
-    timer_report(&tv, "sorted by string length");
+    /* Delay statistics output to avoid side effects on timings */
+    fprintf(stderr, "%24s %4d.%03d ms, %8d lines, %d MB/s, N*log2(N)=%d\n",
+            "initial load  ",
+            (int)(load_elapsed / 1000), (int)(load_elapsed % 1000),
+            entry_number,
+            (int)((1000LL * 1000 * nbytes) / (1024 * 1024 * load_elapsed)),
+            (int)(entry_number * log(entry_number) / log(2)));
 
-    name = WORK_DIR "w.len";
-    for (n = 1, ep = words.head; ep->next; n++, ep = ep->next) {
-        if ((cmp = CMP(ep->len, ep->next->len)) > 0
-#if CHECK_STABLE
-        ||  (cmp == 0 && (cmp2 = strcmp(ep->str, ep->next->str)) > 0)
-        ||  (cmp == 0 && cmp2 == 0 && ep->number > ep->next->number)
-#endif
-           ) {
-            fprintf(stderr, "%s:%d: out of order\n", name, n + 1);
-            status = 1;
-            break;
-        }
+    for (stp = sort_tests; stp->name; stp++) {
+        fprintf(stderr, "%24s %4d.%03d ms, %8d cmps, %6d kcmp/s\n",
+                stp->name,
+                (int)(stp->elapsed / 1000), (int)(stp->elapsed % 1000),
+                stp->compare_number,
+                (int)((1000LL * stp->compare_number) / stp->elapsed));
     }
-    if (dump_files || status)
-        dict_dump_file(&words, name);
-
-    timer_start(&tv);
-    entry_list_sort(&words.head, entry_compare_number, NULL);
-    timer_report(&tv, "sorted by line number");
-
-    name = WORK_DIR "w.number";
-    for (n = 1, ep = words.head; ep->next; n++, ep = ep->next) {
-        if (ep->number > ep->next->number) {
-            fprintf(stderr, "%s:%d: out of order\n", name, n + 1);
-            status = 1;
-            break;
-        }
-    }
-    if (dump_files || status)
-        dict_dump_file(&words, name);
-
-    timer_start(&tv);
-    entry_list_sort(&words.head, entry_compare_random,
-                    (void*)(intptr_t)random_value);
-    timer_report(&tv, "shuffled");
-
-    name = WORK_DIR "w.shuffled";
-    /* re-number */
-    for (n = 1, ep = words.head; ep; n++, ep = ep->next) {
-        ep->number = n;
-    }
-    if (dump_files || status)
-        dict_dump_file(&words, name);
-
-    timer_start(&tv);
-    entry_list_sort(&words.head, entry_compare_str, NULL);
-    timer_report(&tv, "sorted by string");
-    name = WORK_DIR "w.str1";
-
-    for (n = 1, ep = words.head; ep->next; n++, ep = ep->next) {
-        if ((cmp = strcmp(ep->str, ep->next->str)) > 0
-#if CHECK_STABLE
-        ||  (cmp == 0 && ep->number > ep->next->number)
-#endif
-           ) {
-            fprintf(stderr, "%s:%d: out of order\n", name, n + 1);
-            status = 1;
-            break;
-        }
-    }
-    if (dump_files || status)
-        dict_dump_file(&words, name);
-
-    timer_start(&tv);
-    entry_list_sort(&words.head, entry_compare_str, NULL);
-    timer_report(&tv, "sorted by string again");
-
-    name = WORK_DIR "w.str2";
-    for (n = 1, ep = words.head; ep->next; n++, ep = ep->next) {
-        if ((cmp = strcmp(ep->str, ep->next->str)) > 0
-#if CHECK_STABLE
-        ||  (cmp == 0 && ep->number > ep->next->number)
-#endif
-           ) {
-            fprintf(stderr, "%s:%d: out of order\n", name, n + 1);
-            status = 1;
-            break;
-        }
-    }
-    if (dump_files || status)
-        dict_dump_file(&words, name);
-
-    timer_start(&tv);
-    entry_list_sort(&words.head, entry_compare_str_reverse, NULL);
-    timer_report(&tv, "sorted by string reversed");
-
-    name = WORK_DIR "w.rev";
-    for (n = 1, ep = words.head; ep->next; n++, ep = ep->next) {
-        if ((cmp = strcmp(ep->str, ep->next->str)) < 0
-#if CHECK_STABLE
-        ||  (cmp == 0 && ep->number > ep->next->number)
-#endif
-           ) {
-            fprintf(stderr, "%s:%d: out of order\n", name, n + 1);
-            status = 1;
-            break;
-        }
-    }
-    if (dump_files || status)
-        dict_dump_file(&words, name);
 
     dict_wipe(&words);
 
