@@ -20,8 +20,8 @@
 #include "mem.h"
 #include "list.h"
 
-#define REPEAT        4         /* randomly duplicate entries upto 4 times */
-#define CHECK_STABLE  0         /* sort is not stable yet */
+#define REPEAT        10         /* randomly duplicate entries upto 4 times */
+#define CHECK_STABLE  1         /* sort is not stable yet */
 #define WORK_DIR      "/tmp/"   /* test file output directory */
 
 static inline long long timeval_diff64(struct timeval *tv2, struct timeval *tv1) {
@@ -185,6 +185,9 @@ static void dict_print_file(dict_t *dict, const char *filename)
         fprintf(fp, "%s\t%d\n", ep->str, ep->number);
     }
 
+    fflush(fp);
+    fsync(fileno(fp));
+
     if (fp != stdout) {
         fclose(fp);
     }
@@ -293,12 +296,12 @@ int main(int argc, char **argv)
                     (void*)(intptr_t)random_value);
     timer_report(&tv, "shuffled");
 
-    dict_print_file(&words, name = WORK_DIR "w.shuffled");
     /* re-number */
-    for (n = 1, ep = words.head; ep->next; ep = ep->next) {
+    for (n = 1, ep = words.head; ep; ep = ep->next) {
         ep->number = n;
         ++n;
     }
+    dict_print_file(&words, name = WORK_DIR "w.shuffled");
 
     timer_start(&tv);
     entry_list_sort(&words.head, entry_compare_str, NULL);

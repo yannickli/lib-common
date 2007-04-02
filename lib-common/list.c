@@ -14,8 +14,6 @@
 #include "list.h"
 #include "macros.h"
 
-#define OPTIMIZING_REQUIRES_BRAINS 0
-
 struct generic_list {
     struct generic_list *next;
 };
@@ -37,7 +35,6 @@ generic_list_split(generic_list **head, generic_list **l1, generic_list **l2,
 {
     generic_list *list = *head, *half;
 
-#if OPTIMIZING_REQUIRES_BRAINS
     /* go to the first sorting issue */
     for (;;) {
         if (!list->next)
@@ -48,25 +45,19 @@ generic_list_split(generic_list **head, generic_list **l1, generic_list **l2,
     }
 
     if (list == *head) {
-        /* swap the two first and fake them be sorted */
-        /* OG: this seems bogus to me! */
-        *head = list->next;
-        SWAP((*head)->next, list->next);
-        for (;;) {
-            if (!list->next)
-                return 0;
-            if (cmp(list, list->next, priv) > 0)
-                break;
-            list = list->next;
+        if (!list->next->next) {
+            /* swap the two first and fake them be sorted */
+            *head = list->next;
+            list->next = NULL;
+            (*head)->next = list;
+            return 0;
+        } else {
+            *head = NULL;
         }
+    } else {
+        /* cut off the sorted part */
+        list = generic_list_poptail(list);
     }
-
-    /* cut off the sorted part */
-    list = generic_list_poptail(list);
-#else
-    if (!list->next)
-        return 0;
-#endif
 
     /* split the tail in half using dual speed scan */
     *l1 = half = list;
@@ -108,17 +99,11 @@ void generic_list_sort(generic_list **list, cmpfun *cmp, void *priv)
     generic_list *l1, *l2;
 
     if (*list && generic_list_split(list, &l1, &l2, cmp, priv)) {
-#if OPTIMIZING_REQUIRES_BRAINS
         if (l2) {
             generic_list_sort(&l1, cmp, priv);
             generic_list_sort(&l2, cmp, priv);
             l1 = generic_list_merge(l1, l2, cmp, priv);
         }
         *list = generic_list_merge(*list, l1, cmp, priv);
-#else
-        generic_list_sort(&l1, cmp, priv);
-        generic_list_sort(&l2, cmp, priv);
-        *list = generic_list_merge(l1, l2, cmp, priv);
-#endif
     }
 }
