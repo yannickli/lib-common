@@ -546,7 +546,8 @@ int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
     return 0;
 }
 
-static bool pidx_page_recollect(pidx_file *pidx, uint64_t idx, int shift, int32_t page)
+static bool
+pidx_page_recollect(pidx_file *pidx, uint64_t idx, int shift, int32_t page)
 {
     const int maxshift = pidx->area->skip + PIDX_SHIFT * pidx->area->nbsegs;
     int pos = int_bits_range(idx, shift, PIDX_SHIFT);
@@ -558,15 +559,19 @@ static bool pidx_page_recollect(pidx_file *pidx, uint64_t idx, int shift, int32_
     if (pidx_page_recollect(pidx, idx, shift + PIDX_SHIFT, pg->refs[pos])) {
         int i;
 
-        pg->refs[pos] = 0;
-        for (i = 0; i < PIDX_PAGE / 4; i++) {
-            if (pg->refs[i])
-                return false;
+        if (page) {
+            pg->refs[pos] = 0;
+            for (i = 0; i < PIDX_PAGE / 4; i++) {
+                if (pg->refs[i])
+                    return false;
+            }
+
+            pidx_page_release(pidx, page);
+            return true;
         }
-        pidx_page_release(pidx, page);
     }
 
-    return page ? true : false;
+    return false;
 }
 
 void pidx_data_release(pidx_file *pidx, uint64_t idx)
