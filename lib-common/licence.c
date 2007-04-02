@@ -401,6 +401,44 @@ int licence_check_host_ok(const conf_t *conf)
     return 1;
 }
 
+#define __USE_GNU
+#include <sched.h>
+
+int list_my_cpus(char *dst, size_t size)
+{
+    int i = 0, pos = 0, res = -1;
+    unsigned long oldmask, newmask;
+
+    if (sched_getaffinity(0, sizeof(oldmask), (void*)&oldmask))
+        goto exit;
+
+    for (i = 0; i < ssizeof(oldmask) * 8; i++) {
+        uint32_t cpusig;
+
+        newmask = 1L << i;
+        if (!(newmask & oldmask))
+            continue;
+
+        if (sched_setaffinity(0, sizeof(newmask), (void*)&newmask))
+            goto exit;
+        usleep(100);
+
+        if (read_cpu_signature(&cpusig))
+            goto exit;
+
+        if (pos) {
+            pos += snprintf(dst + pos, size - pos, ",0x%08X", cpusig);
+        } else {
+            pos += snprintf(dst + pos, size - pos, "0x%08X", cpusig);
+        }
+    }
+    res = 0;
+
+  exit:
+    sched_setaffinity(0, sizeof(oldmask), (void*)&oldmask);
+    return res;
+}
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 /* {{{*/
