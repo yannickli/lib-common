@@ -33,6 +33,7 @@ libcommon_SOURCES = \
 	str_array.c \
 	blob.c \
 	blob_ebcdic.c \
+	blob_utf8.c \
 	blob_zlib.c \
 	blob_iconv.c \
 	blob_emi.c \
