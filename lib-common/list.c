@@ -45,14 +45,14 @@ generic_list_split(generic_list **head, generic_list **l1, generic_list **l2,
     }
 
     if (list == *head) {
-        if (!list->next->next) {
+        if (list->next->next) {
+            *head = NULL;
+        } else {
             /* swap the two first and fake them be sorted */
             *head = list->next;
             list->next = NULL;
             (*head)->next = list;
             return 0;
-        } else {
-            *head = NULL;
         }
     } else {
         /* cut off the sorted part */
