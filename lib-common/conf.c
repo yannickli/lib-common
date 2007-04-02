@@ -316,7 +316,7 @@ const char *conf_get_raw(const conf_t *conf, const char *section,
 
     for (i = 0; i < conf->section_nb; i++) {
         s = conf->sections[i];
-        if (strequal(s->name, section)) {
+        if (!strcasecmp(s->name, section)) {
             return conf_section_get_raw(s, var);
         }
     }

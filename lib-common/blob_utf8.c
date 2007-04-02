@@ -57,13 +57,11 @@ int utf8_getc(const char *s, const char **outp)
     int trail = __utf8_trail[(unsigned char)*s];
 
     switch (trail) {
-      case 5: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
-      case 4: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
+      default: return -1;
       case 3: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
       case 2: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
       case 1: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
       case 0: ret += (unsigned char)*s++;
-      default: return -1;
     }
 
     if (*outp)
