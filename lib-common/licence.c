@@ -31,7 +31,7 @@
 #define LF  "\n"
 
 #ifdef EXPIRATION_DATE
-
+/*TODO: Remove version and Enterprise name*/
 int show_licence(const char *arg)
 {
     time_t t = EXPIRATION_DATE;
