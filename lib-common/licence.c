@@ -37,7 +37,7 @@ int show_licence(const char *arg)
     time_t t = EXPIRATION_DATE;
 
     fprintf(stderr,
-            "%s -- INTERSEC Multi Channel Marketing Suite version 2.6"      LF
+            "%s -- INTERSEC Multi Channel Marketing Suite version 2.7"      LF
             "Copyright (C) 2004-2007  INTERSEC SAS -- All Rights Reserved"  LF
             "Licence type: Temporary Test Licence"                          LF
             "    Licencee: OrangeFrance SA"                                 LF
@@ -48,7 +48,7 @@ int show_licence(const char *arg)
             "  Expiration: %s", ctime(&t));
 #endif
     fprintf(stderr,
-            "     Contact: +33 1 7543 5100 -- www.intersec.eu"              LF
+            "     Contact: +33 (0) 820 560 250 -- www.intersec.eu"              LF
            );
     exit(1);
 }
