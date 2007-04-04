@@ -383,7 +383,6 @@ int licence_check_host_ok(const conf_t *conf)
                 p++;
         }
     }
-    return 0;
 
   cpu_ok:
     p = conf_get_raw(conf, "licence", "mac_addresses");
