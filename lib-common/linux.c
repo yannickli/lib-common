@@ -25,7 +25,7 @@
 #include "timeval.h"
 
 static int hertz;
-static struct timeval boot_time;
+static int boot_time;
 
 static FILE *pidproc_open(pid_t pid, const char *what)
 {
@@ -49,21 +49,6 @@ static int find_elf_note(unsigned long findme, unsigned long *out)
     return -1;
 }
 
-static int uptime(struct timeval *tv)
-{
-    double up = 0;
-    FILE *f = fopen("/proc/uptime", "r");
-
-    if (!f)
-        e_panic("cannot open /proc/uptime");
-
-    if (fscanf(f, "%lf ", &up) < 1)
-        e_panic("bad data in /proc/uptime");
-    tv->tv_sec  = up;
-    tv->tv_usec = (up - tv->tv_sec) * 1000000UL;
-    return 0;
-}
-
 static void jiffies_to_tv(unsigned long jiff, struct timeval *tv)
 {
     tv->tv_sec  = jiff / hertz;
@@ -72,16 +57,33 @@ static void jiffies_to_tv(unsigned long jiff, struct timeval *tv)
 
 void unix_initialize(void)
 {
-    unsigned long l;
-    struct timeval up;
+    /* get the HZ value, needs linux 2.4 ;) */
+    {
+        unsigned long l;
 
-    if (find_elf_note(AT_CLKTCK, &l))
-        e_panic("Can't find ELF AT_CLKTCK note");
-    hertz = l;
+        if (find_elf_note(AT_CLKTCK, &l))
+            e_panic("Can't find ELF AT_CLKTCK note");
+        hertz = l;
+    }
 
-    gettimeofday(&boot_time, NULL);
-    uptime(&up);
-    boot_time = timeval_sub(boot_time, up);
+    /* get the boot_time value */
+    {
+        char buf[BUFSIZ];
+        const char *p;
+        FILE *f = fopen("/proc/stat", "r");
+
+        if (!f)
+            e_panic("Can't open /proc/stat");
+        while (fgets(buf, sizeof(buf), f)) {
+            if (strstart("btime", buf, &p)) {
+                boot_time = strtoip(p, NULL);
+                break;
+            }
+        }
+        p_fclose(&f);
+        if (boot_time == 0)
+            e_panic("Could not parse boot time");
+    }
 }
 
 int pid_get_starttime(pid_t pid, struct timeval *tv)
@@ -105,6 +107,6 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
     }
 
     jiffies_to_tv(starttime, tv);
-    *tv = timeval_add(boot_time, *tv);
+    tv->tv_sec += boot_time;
     return 0;
 }

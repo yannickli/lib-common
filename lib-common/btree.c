@@ -14,6 +14,7 @@
 #include <errno.h>
 
 #include "btree.h"
+#include "unix.h"
 
 #define BT_ARITY          340  /**< L constant in the b-tree terminology */
 #define BT_INIT_NBPAGES  1024  /**< initial number of pages in the btree */
@@ -65,10 +66,11 @@ struct btree_priv {
     /* third qword */
     int32_t  freelist;  /**< freelist of blank pages                       */
     int16_t  depth;     /**< max depth of the nodes                        */
-    int16_t  dirty;     /**< are we dirty ?                                */
+    int16_t  wrlock;    /**< holds the pid of the writer if any.           */
+    int64_t  wrlockt;   /**< time associated to the lock                   */
 
-    /* __future__: 512 - 3 qwords */
-    uint64_t reserved_0[512 - 3]; /**< padding up to 4k                    */
+    /* __future__: 512 - 4 qwords */
+    uint64_t reserved_0[512 - 4]; /**< padding up to 4k                    */
 
     bt_page_t pages[];
 };
@@ -293,10 +295,17 @@ int btree_fsck(btree_t *bt, int dofix)
     if (bt->size & 4095 || !(bt->size / 4096))
         return -1;
 
-#if 0
-    if (bt->area->dirty)
-        return -1;
-#endif
+    if (bt->area->wrlock) {
+        struct timeval tv;
+
+        if (pid_get_starttime(bt->area->wrlock, &tv))
+            return -1;
+
+        if (bt->area->wrlockt != (((int64_t)tv.tv_sec << 32) | tv.tv_usec))
+            return -1;
+
+        dofix = 0;
+    }
 
     if (bt->area->magic != ISBT_MAGIC.i)
         return -1;
@@ -382,17 +391,29 @@ btree_t *btree_open(const char *path, int flags)
     if (res < 0) {
         btree_close(&bt);
         errno = EINVAL;
+        return NULL;
     }
-#if 0
-    bt->area->dirty = O_ISWRITE(flags);
+    if (O_ISWRITE(flags)) {
+        struct timeval tv;
+
+        if (bt->area->wrlock) {
+            btree_close(&bt);
+            errno = EDEADLK;
+            return NULL;
+        }
+
+        pid_get_starttime(0, &tv);
+        bt->area->wrlock  = getpid();
+        bt->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
+    }
     msync(bt->area, bt->size, MS_SYNC);
-#endif
 
     return bt;
 }
 
 btree_t *btree_creat(const char *path)
 {
+    struct timeval tv;
     btree_t *bt;
     int i;
 
@@ -413,23 +434,22 @@ btree_t *btree_creat(const char *path)
     }
 
     bt->area->pages[0].node.next = BTPP_NIL;
-#if 0
-    bt->area->dirty = true;
+    pid_get_starttime(0, &tv);
+    bt->area->wrlock  = getpid();
+    bt->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
     msync(bt->area, bt->size, MS_SYNC);
-#endif
     return bt;
 }
 
 void btree_close(btree_t **bt)
 {
     if (*bt) {
-#if 0
-        if ((*bt)->area->dirty) {
+        if ((*bt)->area->wrlock) {
             msync((*bt)->area, (*bt)->size, MS_SYNC);
-            (*bt)->area->dirty = false;
+            (*bt)->area->wrlock  = 0;
+            (*bt)->area->wrlockt = 0;
             msync((*bt)->area, (*bt)->size, MS_SYNC);
         }
-#endif
         bt_real_close(bt);
     }
 }
