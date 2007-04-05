@@ -23,6 +23,13 @@ void intersec_initialize(void);
 #undef IPRINTF_HIDE_STDIO
 #define IPRINTF_HIDE_STDIO 1
 
+#if !defined(__LITTLE_ENDIAN)
+#include <sys/param.h>
+#define __LITTLE_ENDIAN LITTLE_ENDIAN
+#define __BIG_ENDIAN BIG_ENDIAN
+#define __BYTE_ORDER BYTE_ORDER
+#endif
+
 #include <time.h>
 #include <sys/time.h>
 
