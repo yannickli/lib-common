@@ -49,7 +49,7 @@ static int find_elf_note(unsigned long findme, unsigned long *out)
     return -1;
 }
 
-static void jiffies_to_tv(unsigned long jiff, struct timeval *tv)
+static void jiffies_to_tv(unsigned long long jiff, struct timeval *tv)
 {
     tv->tv_sec  = jiff / hertz;
     tv->tv_usec = (jiff % hertz) * (1000000UL / hertz);
@@ -75,7 +75,7 @@ void unix_initialize(void)
         if (!f)
             e_panic("Can't open /proc/stat");
         while (fgets(buf, sizeof(buf), f)) {
-            if (strstart("btime", buf, &p)) {
+            if (strstart(buf, "btime", &p)) {
                 boot_time = strtoip(p, NULL);
                 break;
             }
@@ -88,8 +88,8 @@ void unix_initialize(void)
 
 int pid_get_starttime(pid_t pid, struct timeval *tv)
 {
-    unsigned long starttime;
-    FILE *stat = pidproc_open(pid, "stat");
+    unsigned long long starttime;
+    FILE *stat = pidproc_open(pid ?: getpid(), "stat");
     int res;
 
     if (!stat)
@@ -97,8 +97,8 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
 
     /* see proc(3), here we want starttime */
     res = fscanf(stat,
-                 "%*d (%*s) %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u "
-                 "%*u %*d %*d %*d %*d 0 %*d %lu ", &starttime);
+                 "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u "
+                 "%*u %*d %*d %*d %*d %*d 0 %llu ", &starttime);
     p_fclose(&stat);
 
     if (res < 1) {
@@ -108,5 +108,6 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
 
     jiffies_to_tv(starttime, tv);
     tv->tv_sec += boot_time;
+
     return 0;
 }
