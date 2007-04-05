@@ -395,6 +395,7 @@ btree_t *btree_open(const char *path, int flags)
     }
     if (O_ISWRITE(flags)) {
         struct timeval tv;
+        pid_t pid = getpid();
 
         if (bt->area->wrlock) {
             btree_close(&bt);
@@ -402,11 +403,17 @@ btree_t *btree_open(const char *path, int flags)
             return NULL;
         }
 
-        pid_get_starttime(0, &tv);
-        bt->area->wrlock  = getpid();
+        bt->area->wrlock  = pid;
+        msync(bt->area, bt->size, MS_SYNC);
+        if (bt->area->wrlock != pid) {
+            btree_close(&bt);
+            errno = EDEADLK;
+            return NULL;
+        }
+        pid_get_starttime(pid, &tv);
         bt->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
+        msync(bt->area, bt->size, MS_SYNC);
     }
-    msync(bt->area, bt->size, MS_SYNC);
 
     return bt;
 }
@@ -415,6 +422,7 @@ btree_t *btree_creat(const char *path)
 {
     struct timeval tv;
     btree_t *bt;
+    pid_t pid = getpid();
     int i;
 
     bt = bt_real_creat(path, sizeof(bt_page_t) * (BT_INIT_NBPAGES + 1));
@@ -434,8 +442,15 @@ btree_t *btree_creat(const char *path)
     }
 
     bt->area->pages[0].node.next = BTPP_NIL;
-    pid_get_starttime(0, &tv);
-    bt->area->wrlock  = getpid();
+    pid_get_starttime(pid, &tv);
+    bt->area->wrlock  = pid;
+    msync(bt->area, bt->size, MS_SYNC);
+    if (bt->area->wrlock != pid) {
+        btree_close(&bt);
+        errno = EDEADLK;
+        return NULL;
+    }
+    bt->area->wrlock  = pid;
     bt->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
     msync(bt->area, bt->size, MS_SYNC);
     return bt;
