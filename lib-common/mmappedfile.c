@@ -37,6 +37,9 @@ mmfile *mmfile_open(const char *path, int flags)
 
     if (flags & (O_WRONLY | O_RDWR)) {
         prot |= PROT_WRITE;
+        mf->ro = false;
+    } else {
+        mf->ro = true;
     }
     mf->size = st.st_size;
     mf->area = mmap(NULL, mf->size, prot, MAP_SHARED, fd, 0);
@@ -46,7 +49,7 @@ mmfile *mmfile_open(const char *path, int flags)
     }
 
     close(fd);
-    mf->path = p_strdup(path);
+    mf->path  = p_strdup(path);
     return mf;
 
   error:
@@ -80,6 +83,7 @@ mmfile *mmfile_creat(const char *path, off_t initialsize)
 
     close(fd);
     mf->path = p_strdup(path);
+    mf->ro   = true;
     return mf;
 
   error:
@@ -106,6 +110,9 @@ mmfile *mmfile_open_or_creat(const char *path, int flags,
 
     if (flags & (O_WRONLY | O_RDWR)) {
         prot |= PROT_WRITE;
+        mf->ro = true;
+    } else {
+        mf->ro = false;
     }
 
     if (created) {

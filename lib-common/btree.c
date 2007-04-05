@@ -444,7 +444,7 @@ btree_t *btree_creat(const char *path)
 void btree_close(btree_t **bt)
 {
     if (*bt) {
-        if ((*bt)->area->wrlock) {
+        if ((*bt)->area->wrlock && !(*bt)->ro) {
             msync((*bt)->area, (*bt)->size, MS_SYNC);
             (*bt)->area->wrlock  = 0;
             (*bt)->area->wrlockt = 0;

@@ -46,6 +46,7 @@ extern void *mremap(void *__addr, size_t __old_len, size_t __new_len,
         ssize_t   size;            \
         char     *path;            \
         ptr_type *area;            \
+        int       ro;              \
     }
 
 typedef struct mmfile MMFILE_ALIAS(byte) mmfile;
