@@ -53,6 +53,7 @@ libcommon_SOURCES = \
 	strconv.c \
 	timeval.c \
 	stopper.c \
+	linux.c \
 	unix.c \
 	mem-pool.c \
 	mem-fifo-pool.c \
