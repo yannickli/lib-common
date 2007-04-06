@@ -24,6 +24,10 @@ extern int munmap(void *__addr, size_t __len);
 extern int msync(void *__addr, size_t __len, int __flags);
 extern void *mremap(void *__addr, size_t __old_len, size_t __new_len,
 		    int __flags, ...);
+/* Flags to `msync'.  */
+#define MS_ASYNC	1		/* Sync memory asynchronously.  */
+#define MS_SYNC		4		/* Synchronous memory sync.  */
+#define MS_INVALIDATE	2		/* Invalidate the caches.  */
 
 #define PROT_READ	0x1		/* Page can be read.  */
 #define PROT_WRITE	0x2		/* Page can be written.  */
