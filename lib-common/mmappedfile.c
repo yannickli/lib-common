@@ -83,7 +83,7 @@ mmfile *mmfile_creat(const char *path, off_t initialsize)
 
     close(fd);
     mf->path = p_strdup(path);
-    mf->ro   = true;
+    mf->ro   = false;
     return mf;
 
   error:
@@ -110,9 +110,9 @@ mmfile *mmfile_open_or_creat(const char *path, int flags,
 
     if (flags & (O_WRONLY | O_RDWR)) {
         prot |= PROT_WRITE;
-        mf->ro = true;
-    } else {
         mf->ro = false;
+    } else {
+        mf->ro = true;
     }
 
     if (created) {
