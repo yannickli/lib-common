@@ -96,7 +96,7 @@ static inline BSTREAM *battach_bufsize(int fd, int mode, int bufsize)
     stream->error  = 0;
     stream->bufsiz = bufsize;
     if (BSTREAM_ISWRITE(stream->mode)) {
-        stream->pwrite_end += bufsize;
+        stream->pwrite_end += bufsize; 
     }
 
     return stream;
