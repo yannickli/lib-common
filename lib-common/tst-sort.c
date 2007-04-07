@@ -113,6 +113,18 @@ static int entry_compare_str_number(const entry_t *a, const entry_t *b,
     return cmp ? cmp : CMP(a->number, b->number);
 }
 
+#if 1
+static int entry_compare_str_number_reverse(const entry_t *a, const entry_t *b,
+    void *p)
+{
+    int cmp;
+    
+    compare_number++;
+    cmp = strcmp(a->str, b->str);
+    return -(cmp ? cmp : CMP(a->number, b->number));
+}
+#endif
+
 static int entry_compare_str_reverse(const entry_t *a, const entry_t *b,
                                      void *p)
 {
@@ -153,6 +165,12 @@ static int entry_compare_number(const entry_t *a, const entry_t *b, void *p)
 {
     compare_number++;
     return CMP(a->number, b->number);
+}
+
+static int entry_compare_number_reverse(const entry_t *a, const entry_t *b, void *p)
+{
+    compare_number++;
+    return -CMP(a->number, b->number);
 }
 
 static int entry_compare_random(const entry_t *a, const entry_t *b, void *p)
@@ -294,6 +312,8 @@ struct sort_test {
     entry_compare_len, entry_compare_len_str_number },
     { "sort by line number  ", WORK_DIR "w.lineno", 0, 0,
     entry_compare_number, entry_compare_number },
+    { "sort by reverse lineno R", WORK_DIR "w.rev1", 0, 0,
+    entry_compare_number_reverse, entry_compare_number_reverse },
     { "shuffle  ", WORK_DIR "w.shuffled", 0, 0,
     entry_compare_random, NULL },
     { "sort by string  ", WORK_DIR "w.str1", 0, 0,
@@ -309,7 +329,7 @@ int main(int argc, char **argv)
 {
     dict_t words;
     struct timeval tv;
-    long long load_elapsed;
+    long long load_elapsed, total_elapsed = 0, total_compare = 0;
     intptr_t random_value = rand32();
     int nbytes = 0;
     int n, cmp, cmp2 = 0, status = 0, dump_files = 0;
@@ -333,8 +353,8 @@ int main(int argc, char **argv)
         compare_number = 0;
         timer_start(&tv);
         entry_list_sort(&words.head, stp->cmpf, (void*)random_value);
-        stp->elapsed = timer_stop(&tv);
-        stp->compare_number = compare_number;
+        total_elapsed += stp->elapsed = timer_stop(&tv);
+        total_compare += stp->compare_number = compare_number;
 
         if (stp->checkf) {
             /* Check result sequence for proper order and stability */
@@ -351,6 +371,11 @@ int main(int argc, char **argv)
                     status = 1;
                     break;
                 }
+            }
+            if (n != entry_number && !ep->next) {
+                fprintf(stderr, "%s:%d: missing entry\n",
+                        stp->dump_name, n + 1);
+                status = 1;
             }
         } else {
             /* just re-number entries */
@@ -378,6 +403,11 @@ int main(int argc, char **argv)
                 stp->compare_number,
                 (int)((1000LL * stp->compare_number) / stp->elapsed));
     }
+    fprintf(stderr, "%24s %4d.%03d ms, %8lld cmps, %6d kcmp/s\n",
+            "total =",
+            (int)(total_elapsed / 1000), (int)(total_elapsed % 1000),
+            total_compare,
+            (int)((1000LL * total_compare) / total_elapsed));
 
     dict_wipe(&words);
 
