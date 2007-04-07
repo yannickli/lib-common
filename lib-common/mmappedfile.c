@@ -48,6 +48,7 @@ mmfile *mmfile_open(const char *path, int flags)
         errno = EINVAL;
         goto error;
     }
+
     mf->size = st.st_size;
     mf->area = mmap(NULL, mf->size, prot, MAP_SHARED, fd, 0);
     if (mf->area == MAP_FAILED) {
