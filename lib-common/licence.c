@@ -36,7 +36,7 @@ int show_licence(const char *arg)
 {
     time_t t = EXPIRATION_DATE;
 
-    /* OG: Should use project based product string */
+    /* OG: Should use project based product string. */
     fprintf(stderr,
             "%s -- INTERSEC Multi Channel Marketing Suite version 2.7"      LF
             "Copyright (C) 2004-2007  INTERSEC SAS -- All Rights Reserved"  LF
@@ -372,7 +372,6 @@ int licence_check_host_ok(const conf_t *conf)
     if (p) {
         uint32_t sig;
 
-        /* OG: what if multiple cpus? */
         if (read_cpu_signature(&cpusig)) {
             return 0;
         }
@@ -408,8 +407,8 @@ int licence_check_host_ok(const conf_t *conf)
 
 int list_my_cpus(char *dst, size_t size)
 {
-    /* OG: should use cpu_set_t type and macros ? */
-    /* OG: should check return value of these system calls */
+    /* OG: Should use cpu_set_t type and macros ? */
+    /* OG: Should check return value of these system calls */
     int i = 0, pos = 0, res = -1;
     unsigned long oldmask, newmask;
 
@@ -419,15 +418,16 @@ int list_my_cpus(char *dst, size_t size)
     for (i = 0; i < ssizeof(oldmask) * 8; i++) {
         uint32_t cpusig;
 
-        newmask = 1L << i;
         /* Only enumerate cpus enabled by default */
+        newmask = 1L << i;
         if (!(newmask & oldmask))
             continue;
 
-        /* Tell linux we prefer to run on CPU number i */
+        /* Tell linux we prefer to run on CPU number i. */
         if (sched_setaffinity(0, sizeof(newmask), (void*)&newmask))
             goto exit;
-        /* OG: this might not be necessary */
+
+        /* OG: this might not be necessary. */
         usleep(100);
 
         if (read_cpu_signature(&cpusig))
