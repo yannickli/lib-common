@@ -98,7 +98,7 @@ ifneq (,$(MINGCC))
   # Disable some stuff that does not compile under MingW
   libcommon_SOURCES := $(filter-out linux.c, $(libcommon_SOURCES))
 endif
-# OG: should filter libcommon_SOURCES for MINGCC as well
+# OG: should filter libcommon_SOURCES for MINGCC as well 
 #  libcommon_SOURCES := $(filter-out licence.c iprintf.c ioveclist.c
 #  blob_emi.c blob_iconv.c blob_zlib.c concatbin.c log_file.c btree.c
 #  mem-fifo-pool.c mmappedfile.c paged-index.c,\
