@@ -67,6 +67,7 @@ struct btree_priv {
     int32_t  freelist;  /**< freelist of blank pages                       */
     int16_t  depth;     /**< max depth of the nodes                        */
     int16_t  wrlock;    /**< holds the pid of the writer if any.           */
+    /* fourth qword */
     int64_t  wrlockt;   /**< time associated to the lock                   */
 
     /* __future__: 512 - 4 qwords */
@@ -403,7 +404,7 @@ btree_t *btree_open(const char *path, int flags)
             return NULL;
         }
 
-        bt->area->wrlock  = pid;
+        bt->area->wrlock = pid;
         msync(bt->area, bt->size, MS_SYNC);
         if (bt->area->wrlock != pid) {
             btree_close(&bt);
@@ -443,7 +444,7 @@ btree_t *btree_creat(const char *path)
 
     bt->area->pages[0].node.next = BTPP_NIL;
     pid_get_starttime(pid, &tv);
-    bt->area->wrlock  = pid;
+    bt->area->wrlock = pid;
     msync(bt->area, bt->size, MS_SYNC);
     if (bt->area->wrlock != pid) {
         btree_close(&bt);

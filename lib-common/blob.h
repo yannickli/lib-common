@@ -382,7 +382,9 @@ int string_decode_ira(char *dst, const char *src);
 int blob_decode_ebcdic297(blob_t *dst, const byte *src, ssize_t len);
 
 /* in blob_utf8.c */
+/* OG: should be inlined */
 int blob_utf8_putc(blob_t *out, int c);
+
 ssize_t blob_latin1_to_utf8(blob_t *out, const char *s, int len);
 ssize_t blob_latin9_to_utf8(blob_t *out, const char *s, int len);
 

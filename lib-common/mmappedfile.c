@@ -35,11 +35,18 @@ mmfile *mmfile_open(const char *path, int flags)
     if (fstat(fd, &st))
         goto error;
 
-    if (flags & (O_WRONLY | O_RDWR)) {
+    switch (flags & (O_RDONLY | O_WRONLY | O_RDWR)) {
+      case O_RDONLY:
+        mf->ro = true;
+        break;
+      case O_WRONLY:
+      case O_RDWR:
         prot |= PROT_WRITE;
         mf->ro = false;
-    } else {
-        mf->ro = true;
+        break;
+      default:
+        errno = EINVAL;
+        goto error;
     }
     mf->size = st.st_size;
     mf->area = mmap(NULL, mf->size, prot, MAP_SHARED, fd, 0);
@@ -108,11 +115,18 @@ mmfile *mmfile_open_or_creat(const char *path, int flags,
     if (fstat(fd, &st))
         goto error;
 
-    if (flags & (O_WRONLY | O_RDWR)) {
+    switch (flags & (O_RDONLY | O_WRONLY | O_RDWR)) {
+      case O_RDONLY:
+        mf->ro = true;
+        break;
+      case O_WRONLY:
+      case O_RDWR:
         prot |= PROT_WRITE;
         mf->ro = false;
-    } else {
-        mf->ro = true;
+        break;
+      default:
+        errno = EINVAL;
+        goto error;
     }
 
     if (created) {

@@ -86,6 +86,7 @@ tst-sha2_SOURCES = sha2.c libcommon.a
 tst-btree_SOURCES = tst-btree.c libcommon.a
 tst-isndx_SOURCES = tst-isndx.c libcommon.a
 tst-sort_SOURCES = tst-sort.c libcommon.a
+tst-sort_CFLAGS = -UCHECK
 tst-sort_LDFLAGS = -lm
 
 ifneq (,$(filter CYGWIN%,$(UNAME)))
