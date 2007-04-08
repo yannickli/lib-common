@@ -33,10 +33,11 @@ static uint32_t const __utf8_offs[6] = {
     0x03c82080UL, 0xfa082080UL, 0x82082080UL
 };
 
-static const uint8_t __utf8_mark[7] = {
+static uint8_t const __utf8_mark[7] = {
     0x00, 0x00, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc
 };
 
+/* OG: this function could return the number of bytes instead of bool */
 static bool is_utf8_char(const char *s)
 {
     int trail = __utf8_trail[(unsigned char)*s++];
@@ -51,6 +52,12 @@ static bool is_utf8_char(const char *s)
     }
 }
 
+/* OG: this algorithm assumes s points to a well formed utf8 character.
+ * It tests for end of string in the middle of the utf8 encoding, but
+ * will not detect end of string at s (*s == '\0')
+ * We should split this into an inline function for the ASCII subset
+ * and a generic function for the complete treatment.
+ */
 int utf8_getc(const char *s, const char **outp)
 {
     uint32_t ret = 0;
@@ -64,8 +71,10 @@ int utf8_getc(const char *s, const char **outp)
       case 0: ret += (unsigned char)*s++;
     }
 
-    if (*outp)
+    if (*outp) {
         *outp = s;
+    }
+
     return ret - __utf8_offs[trail];
 }
 
@@ -77,16 +86,16 @@ int blob_utf8_putc(blob_t *out, int c)
     blob_extend(out, bytes);
     dst = (char *)out->data + out->len - bytes;
     switch (bytes) {
-        case 4: dst[3] = (c | 0x80) & 0xbf; c >>= 6;
-        case 3: dst[2] = (c | 0x80) & 0xbf; c >>= 6;
-        case 2: dst[1] = (c | 0x80) & 0xbf; c >>= 6;
-        case 1: dst[0] = (c | __utf8_mark[bytes]);
+      case 4: dst[3] = (c | 0x80) & 0xbf; c >>= 6;
+      case 3: dst[2] = (c | 0x80) & 0xbf; c >>= 6;
+      case 2: dst[1] = (c | 0x80) & 0xbf; c >>= 6;
+      case 1: dst[0] = (c | __utf8_mark[bytes]);
     }
 
     return bytes;
 }
 
-static const char *__cp1252_or_latin9_to_utf8[0x40] = {
+static const char * const __cp1252_or_latin9_to_utf8[0x40] = {
 #define XXX  NULL
     /* cp1252 to utf8 */
     "€", XXX, "‚", "ƒ", "„", "…", "†", "‡", "ˆ", "‰", "Š", "‹", "Œ", XXX, "Ž", XXX,
@@ -97,7 +106,9 @@ static const char *__cp1252_or_latin9_to_utf8[0x40] = {
 #undef XXX
 };
 
-static ssize_t blob_latin1_to_utf8_aux(blob_t *out, const char *s, int len, int limit)
+/* OG: this function should be made faster for the ASCII subset */
+static ssize_t blob_latin1_to_utf8_aux(blob_t *out, const char *s, int len,
+                                       int limit)
 {
     int res = 0;
     const char *end = s + len;
