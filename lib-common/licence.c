@@ -267,7 +267,7 @@ int read_cpu_signature(uint32_t *dst)
     }
 }
 
-int licence_compute_conf_signature(const conf_t *conf, char *dst, size_t size)
+int license_do_signature(const conf_t *conf, char *dst, size_t size)
 {
     int version;
     const char **var, *content, *p;
@@ -337,33 +337,33 @@ int licence_compute_conf_signature(const conf_t *conf, char *dst, size_t size)
     return 0;
 }
 
-int licence_check_signature_ok(const conf_t *conf)
+bool licence_check_signature_ok(const conf_t *conf)
 {
     char lic_computed[128];
     const char *lic_inconf;
 
     lic_inconf = conf_get_raw(conf, "licence", "signature");
+    if (!lic_inconf)
+        return false;
 
-    if (!lic_inconf 
-    || licence_compute_conf_signature(conf, lic_computed,
-                                      sizeof(lic_computed))) {
-        return 1;
+    if (license_do_signature(conf, lic_computed, sizeof(lic_computed))) {
+        return false;
     }
 
-    return !strcmp(lic_inconf, lic_computed);
+    return strequal(lic_inconf, lic_computed);
 }
 
-int licence_check_host_ok(const conf_t *conf)
+bool licence_check_host_ok(const conf_t *conf)
 {
     uint32_t cpusig;
     char buf[64];
     const char *p;
 
     if (!licence_check_signature_ok(conf)) {
-        return 0;
+        return false;
     }
     if (conf_get_int(conf, "licence", "version", -1) != 1) {
-        return 0;
+        return false;
     }
 
     /* cpu_signature is optional in licence section : If it does not
@@ -373,7 +373,7 @@ int licence_check_host_ok(const conf_t *conf)
         uint32_t sig;
 
         if (read_cpu_signature(&cpusig)) {
-            return 0;
+            return false;
         }
 
         while (*p) {
@@ -396,10 +396,10 @@ int licence_check_host_ok(const conf_t *conf)
         while (*p && (*p == ' ' || *p == ','))
             p++;
     }
-    return 0;
+    return false;
 
   mac_ok:
-    return 1;
+    return true;
 }
 
 #define __USE_GNU
