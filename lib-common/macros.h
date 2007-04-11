@@ -153,7 +153,6 @@ int set_licence(const char *arg, const char *licence_data);
 void check_strace(void);
 
 #ifndef MINGCC
-#ifdef EXPIRATION_DATE
 
 #  include <stdlib.h>
 #  include <string.h>
@@ -164,10 +163,12 @@ void check_strace(void);
 #  include <sys/epoll.h>
 
 static inline void check_licence(const struct timeval *tv) {
+#ifdef EXPIRATION_DATE
     if (tv->tv_sec > EXPIRATION_DATE) {
         fputs("Licence expired\n", stderr);
         exit(127);
     }
+#endif
 }
 
 extern int strace_next_check;
@@ -176,14 +177,16 @@ extern const char *strace_msg;
 #  define STRACE_CHECK_INTERVAL 2
 
 static inline void check_trace(const struct timeval *tv) {
+#ifdef CHECK_TRACE
     if (tv->tv_sec >= strace_next_check) {
         strace_next_check = tv->tv_sec + STRACE_CHECK_INTERVAL;
+        check_strace();
         if (strace_msg) {
             fputs(strace_msg, stderr);
             exit(124);
         }
-        check_strace();
     }
+#endif
 }
 
 static inline int gettimeofday_check(struct timeval *tv, struct timezone *tz) {
@@ -232,11 +235,11 @@ static inline int getopt_check(int argc, char * const argv[],
         }
     }
     check_licence(&tv);
+    check_trace(&tv);
     return (getopt)(argc, argv, optstring);
 }
 #  define getopt(argc, argv, optstring)  getopt_check(argc, argv, optstring)
 
-#endif
 #endif   /* MINGCC */
 
 /*---------------- Defensive programming ----------------*/

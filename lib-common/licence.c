@@ -30,11 +30,12 @@
 #define str_INTERSECID  str(INTERSECID)
 #define LF  "\n"
 
-#ifdef EXPIRATION_DATE
 /*TODO: Remove version and Enterprise name*/
 int show_licence(const char *arg)
 {
+#ifdef EXPIRATION_DATE    
     time_t t = EXPIRATION_DATE;
+#endif
 
     /* OG: Should use project based product string. */
     fprintf(stderr,
@@ -63,7 +64,6 @@ int set_licence(const char *arg, const char *licence_data)
     }
     exit(1);
 }
-#endif
 
 static int parse_hex(int b)
 {

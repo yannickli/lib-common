@@ -52,6 +52,7 @@ libcommon_SOURCES = \
 	dtoa.c \
 	strconv.c \
 	timeval.c \
+	showflags.c \
 	stopper.c \
 	linux.c \
 	unix.c \
@@ -60,10 +61,6 @@ libcommon_SOURCES = \
 	sha2.c \
 	xml.c \
 	licence.c
-
-# FIXME showflags should not be compiled in if EXPIRATION_DATE is undefined
-# OG: why not ?
-libcommon_SOURCES += showflags.c
 
 test_SOURCES = $(libcommon_SOURCES) check.c
 test_LDFLAGS = -lz
