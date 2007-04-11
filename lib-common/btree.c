@@ -103,11 +103,31 @@ typedef struct intpair {
 #define REPEAT16(x)       REPEAT8(x), REPEAT8(x)
 #define REPEAT32(x)       REPEAT16(x), REPEAT16(x)
 
+/* link len pages like that:
+   from + 1 -> ... -> from + NB_PAGES_GROW - 1 -> NIL
+
+   spare out from.
+ */
+static int32_t bt_append_to_freelist(btree_t *bt, int32_t from, int32_t len)
+{
+    int32_t i;
+
+    assert (bt->area->freelist == 0);
+
+    bt->area->freelist = from + 1;
+    for (i = from + 1; i < from + len - 1; i++) {
+        bt->area->pages[i].leaf.next = i + 1;
+    }
+    bt->area->nbpages += len;
+
+    return from;
+}
+
 static int32_t bt_page_new(btree_t *bt)
 {
 #define NB_PAGES_GROW  1024
 
-    int32_t i, res;
+    int32_t res;
 
     if (bt->area->freelist) {
         res = bt->area->freelist;
@@ -124,18 +144,7 @@ static int32_t bt_page_new(btree_t *bt)
         return res;
     }
 
-    /* res == oldnbpages is the new free page, link the NB_PAGES_GROW - 1
-       remaining pages like that:
-       res + 1 -> ... -> res + NB_PAGES_GROW - 1 -> NIL
-     */
-    res = bt->area->nbpages;
-    for (i = res + NB_PAGES_GROW - 1; i > res + 1; i--) {
-        bt->area->pages[i - 1].leaf.next = i;
-    }
-    bt->area->freelist = res + 1;
-    bt->area->nbpages += NB_PAGES_GROW;
-
-    return res;
+    return bt_append_to_freelist(bt, bt->area->nbpages, NB_PAGES_GROW);
 }
 
 static inline bt_page_t *vbt_deref(struct btree_priv *bt, int32_t ptr)
@@ -424,23 +433,18 @@ btree_t *btree_creat(const char *path)
     struct timeval tv;
     btree_t *bt;
     pid_t pid = getpid();
-    int i;
 
     bt = bt_real_creat(path, sizeof(bt_page_t) * (BT_INIT_NBPAGES + 1));
     if (!bt)
         return NULL;
 
-    bt->area->magic   = ISBT_MAGIC.i;
-    bt->area->major   = 1;
-    bt->area->minor   = 0;
-    bt->area->nbpages = BT_INIT_NBPAGES;
-    bt->area->root    = 0;
-
-    /* this creates the links: 1 -> 2 -> ... -> nbpages - 1 -> NIL */
-    bt->area->freelist = 1;
-    for (i = 1; i < BT_INIT_NBPAGES - 1; i++) {
-        bt->area->pages[i].leaf.next = i + 1;
-    }
+    bt->area->magic    = ISBT_MAGIC.i;
+    bt->area->major    = 1;
+    bt->area->minor    = 0;
+    bt->area->root     = 0;
+    bt->area->freelist = 0;
+    bt->area->nbpages  = 0;
+    bt_append_to_freelist(bt, 0, BT_INIT_NBPAGES);
 
     bt->area->pages[0].node.next = BTPP_NIL;
     pid_get_starttime(pid, &tv);
