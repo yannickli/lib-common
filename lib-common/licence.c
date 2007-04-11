@@ -24,6 +24,7 @@
 #include "conf.h"
 #include "string_is.h"
 #include "licence.h"
+#include "timeval.h"
 
 #define xstr(x)  #x
 #define str(x)   xstr(x)
@@ -39,15 +40,18 @@ int show_licence(const char *arg)
 
     /* OG: Should use project based product string. */
     fprintf(stderr,
-            "%s -- INTERSEC Multi Channel Marketing Suite version 2.7"      LF
+            "%s:"                                                           LF
             "Copyright (C) 2004-2007  INTERSEC SAS -- All Rights Reserved"  LF
-            "Licence type: Temporary Test Licence"                          LF
-            "    Licencee: OrangeFrance SA"                                 LF
-            "  Intersecid: " str(INTERSECID) ""                                      LF
             , arg);
+#ifdef INTERSECID
+    fprintf(stderr, "  Intersec ID: " str_INTERSECID LF);
+#endif
+#ifndef CHECK_TRACE
+    fprintf(stderr, "  ptrace check DEACTIVATED" LF);
+#endif
 #ifdef EXPIRATION_DATE    
     fprintf(stderr,
-            "  Expiration: %s", ctime(&t));
+            "  Expiration: %s" LF, ctime(&t));
 #endif
     fprintf(stderr,
             "     Contact: +33 (0) 820 560 250 -- www.intersec.eu"              LF
@@ -337,6 +341,23 @@ int license_do_signature(const conf_t *conf, char *dst, size_t size)
     return 0;
 }
 
+bool licence_check_expiration_ok(const conf_t *conf)
+{
+    const char *expires = conf_get_raw(conf, "licence", "expires");
+    struct tm t;
+
+    if (!expires)
+        return false;
+
+    p_clear(&t, 1);
+    t.tm_isdst = -1;
+
+    if (strtotm(expires, &t))
+        return false;
+
+    return mktime(&t) > time(NULL);
+}
+
 bool licence_check_signature_ok(const conf_t *conf)
 {
     char lic_computed[128];
@@ -360,6 +381,9 @@ bool licence_check_host_ok(const conf_t *conf)
     const char *p;
 
     if (!licence_check_signature_ok(conf)) {
+        return false;
+    }
+    if (!licence_check_expiration_ok(conf)) {
         return false;
     }
     if (conf_get_int(conf, "licence", "version", -1) != 1) {
@@ -526,6 +550,23 @@ START_TEST(check_licence_check_signature_ok)
 }
 END_TEST
 
+START_TEST(check_licence_check_expiration_ok)
+{
+    conf_t * conf;
+    int ret;
+
+    conf = conf_load("samples/licence-v1-ok.conf");
+    fail_if(!conf, "Unable to open test file");
+    fail_if(!licence_check_expiration_ok(conf), "licence-test-ok failed to pass");
+    conf_delete(&conf);
+
+    conf = conf_load("samples/licence-v1-ko.conf");
+    fail_if(!conf, "Unable to open test file");
+    fail_if(licence_check_expiration_ok(conf), "licence-test-ko passed");
+    conf_delete(&conf);
+}
+END_TEST
+
 Suite *check_licence_suite(void)
 {
     Suite *s  = suite_create("Licence");
@@ -539,6 +580,7 @@ Suite *check_licence_suite(void)
 #endif
     tcase_add_test(tc, check_list_my_macs);
     tcase_add_test(tc, check_licence_check_signature_ok);
+    tcase_add_test(tc, check_licence_check_expiration_ok);
     return s;
 }
 
