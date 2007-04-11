@@ -15,9 +15,12 @@
 #include <sys/time.h>
 #include <time.h>
 #include <stdint.h>
+#include <ctype.h>
 
-#include <lib-common/err_report.h>
-#include <lib-common/timeval.h>
+#include "mem.h"
+#include "err_report.h"
+#include "timeval.h"
+#include "string_is.h"
 
 /* Arithmetics on timeval assume both members of timeval are signed.
  * We keep timeval structures in normalized form:
@@ -207,6 +210,122 @@ time_t localtime_nextday(time_t date)
     return mktime(&t);
 }
 
+static const char *__abbr_months[] = 
+{
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "may",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "oct",
+    "nov",
+    "dec",
+    NULL
+};
+
+static int __valid_mdays[] =
+{
+    31,
+    28,
+    31,
+    30,
+    31,
+    30, /* June */
+    31,
+    31,
+    30,
+    31, /* October */
+    30,
+    31
+};
+
+static bool year_is_leap(int year)
+{
+    if (year % 400 == 0)
+        return true;
+    if (year % 100 == 0)
+        return false;
+    if (year % 4 == 0)
+        return true;
+    return false;
+}
+
+/* We currently support only this format: DD-MMM-[YY]YY */
+int strtotm(const char *date, struct tm *t)
+{
+    int mday, mon, year;
+    const char *p;
+    char lower_mon[4];
+    const char **cur_month = __abbr_months;
+    size_t len = strlen(date);
+
+    if (len < strlen("DD-MMM-YY"))
+        return -1;
+
+    /* Read day */
+    mday = cstrtol(date, &p, 10);
+    if (mday <= 0)
+        return -1;
+
+    /* Read month */
+    if (!p || *p != '-' || p - date != 2)
+        return -1;
+    p++;
+
+    pstrcpylen(lower_mon, sizeof(lower_mon), p, 3);
+    lower_mon[0] = tolower(lower_mon[0]);
+    lower_mon[1] = tolower(lower_mon[1]);
+    lower_mon[2] = tolower(lower_mon[2]);
+
+    while (*cur_month && !strequal(lower_mon, *cur_month)) {
+        cur_month++;
+    }
+    
+    if (!*cur_month)
+        return -1;
+
+    mon = cur_month - __abbr_months;
+
+    /* Read year */
+    p += 3;
+    if (*p++ != '-')
+        return -1;
+
+    year = atoi(p);
+    if (year < 70) {
+        year += 2000;
+    }
+    if (year < 100) {
+        year += 1900;
+    }
+    if (year < 1970 || year > 2036)
+        return -1;
+
+    /* Check mday validity */
+    if (mon == 1) {
+        /* February special case */
+        if (year_is_leap(year)) {
+            if (mday > 29)
+                return -1;
+        } else {
+            if (mday > 28)
+                return -1;
+        }
+    } else
+    if (mday > __valid_mdays[mon])
+        return -1;
+
+    t->tm_mday = mday;
+    t->tm_mon  = mon;
+    t->tm_year = year - 1900;
+
+    return 0;
+}
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 /* tests legacy functions                                              {{{*/
@@ -238,6 +357,41 @@ START_TEST(check_localtime)
 }
 END_TEST
 
+START_TEST(check_strtotm)
+{
+    struct tm t;
+    const char *date;
+
+    p_clear(&t, 1);
+
+    date = "23-Jul-97";
+    fail_if(strtotm(date, &t),
+            "strtotm could not parse %s", date);
+    fail_if(t.tm_mday != 23,
+            "strtotm failed to parse mday: %d != %d", t.tm_mday, 23);
+    fail_if(t.tm_mon + 1 != 7,
+            "strtotm failed to parse month: %d != %d", t.tm_mon + 1, 7);
+    fail_if(t.tm_year + 1900 != 1997,
+            "strtotm failed to parse year: %d != %d", t.tm_year + 1900, 1997);
+
+    date = "32-Jul-97";
+    fail_if(!strtotm(date, &t),
+            "strtotm should not have parsed %s", date);
+    date = "29-Feb-96";
+    fail_if(strtotm(date, &t),
+            "strtotm should have parsed %s", date);
+    date = "29-Feb-2000";
+    fail_if(strtotm(date, &t),
+            "strtotm should have parsed %s", date);
+    date = "01-Jun-07";
+    fail_if(strtotm(date, &t),
+            "strtotm should have parsed %s", date);
+    date = "31-Jun-07";
+    fail_if(!strtotm(date, &t),
+            "strtotm should not have parsed %s", date);
+}
+END_TEST
+
 /*.....................................................................}}}*/
 /* public testing API                                                  {{{*/
 
@@ -248,6 +402,7 @@ Suite *check_make_timeval_suite(void)
 
     suite_add_tcase(s, tc);
     tcase_add_test(tc, check_localtime);
+    tcase_add_test(tc, check_strtotm);
 
     return s;
 }

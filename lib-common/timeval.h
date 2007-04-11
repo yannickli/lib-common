@@ -39,6 +39,11 @@ time_t localtime_curday(time_t date);
  * If date == 0, 'date' is interpreted as 'now' */
 time_t localtime_nextday(time_t date);
 
+/* Fill struct tm t from date in this format:
+ * DD-MMM-[YY]YY with MMM the abbreviated month in English
+ */
+int strtotm(const char *date, struct tm *t);
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 #include <check.h>
