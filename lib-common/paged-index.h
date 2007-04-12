@@ -51,8 +51,15 @@ typedef struct pidx_t {
     int32_t nbpages;    /**< number of allocated pages in the file         */
     int32_t freelist;   /**< freelist of blank pages                       */
 
-    /* __future__: 128 - 2 qwords */
-    uint64_t reserved[64 - 2]; /**< padding up to 2k                      */
+    /* third qword */
+    int16_t  wrlock;    /**< holds the pid of the writer if any.           */
+    int16_t  unused1;
+    int32_t  unused2;
+    /* fourth qword */
+    int64_t  wrlockt;   /**< time associated to the lock                   */
+
+    /* __future__: 128 - 4 qwords */
+    uint64_t reserved[64 - 4]; /**< padding up to 2k                      */
 
     uint64_t subhdr[64];       /**< reserved for hosted file headers: 2k  */
 

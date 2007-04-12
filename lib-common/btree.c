@@ -468,7 +468,6 @@ void btree_close(btree_t **bt)
             msync((*bt)->area, (*bt)->size, MS_SYNC);
             (*bt)->area->wrlock  = 0;
             (*bt)->area->wrlockt = 0;
-            msync((*bt)->area, (*bt)->size, MS_SYNC);
         }
         bt_real_close(bt);
     }

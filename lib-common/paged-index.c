@@ -17,6 +17,7 @@
 
 #include <lib-common/err_report.h>
 #include <lib-common/mem.h>
+#include <lib-common/unix.h>
 
 #include "paged-index.h"
 
@@ -92,6 +93,18 @@ int pidx_fsck(pidx_file *pidx, int dofix)
     if (pidx->size % PIDX_PAGE || pidx->size < 2 * PIDX_PAGE
     ||  ((uint64_t)pidx->size > (uint64_t)INT_MAX * PIDX_PAGE))
         return -1;
+
+    if (pidx->area->wrlock) {
+        struct timeval tv;
+
+        if (pid_get_starttime(pidx->area->wrlock, &tv))
+            return -1;
+
+        if (pidx->area->wrlockt != (((int64_t)tv.tv_sec << 32) | tv.tv_usec))
+            return -1;
+
+        dofix = 0;
+    }
 
     if (pidx->area->magic != magic.i)
         return -1;
@@ -206,25 +219,41 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
         pidx_close(&pidx);
         errno = EINVAL;
     }
-
     if (res > 0) {
         e_error("`%s': corrupted pages, Repaired.", path);
     }
 
-#if 0
     if (O_ISWRITE(flags)) {
-        pidx->area->magic = 0;
+        struct timeval tv;
+        pid_t pid = getpid();
+
+        if (pidx->area->wrlock) {
+            pidx_close(&pidx);
+            errno = EDEADLK;
+            return NULL;
+        }
+
+        pidx->area->wrlock = pid;
+        msync(pidx->area, pidx->size, MS_SYNC);
+        if (pidx->area->wrlock != pid) {
+            pidx_close(&pidx);
+            errno = EDEADLK;
+            return NULL;
+        }
+        pid_get_starttime(pid, &tv);
+        pidx->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
         msync(pidx->area, pidx->size, MS_SYNC);
     }
-#endif
 
     return pidx;
 }
 
 pidx_file *pidx_creat(const char *path, uint8_t skip, uint8_t nbsegs)
 {
+    struct timeval tv;
     pidx_file *pidx;
     int nbpages = PIDX_GROW - 1;
+    pid_t pid = getpid();
 
     if (nbsegs > 64 / PIDX_SHIFT || skip + PIDX_SHIFT * nbsegs > 64) {
         errno = EINVAL;
@@ -250,25 +279,30 @@ pidx_file *pidx_creat(const char *path, uint8_t skip, uint8_t nbsegs)
     }
     pidx->area->freelist = 1;
 
-#if 0
-    pidx->area->magic = 0;
+    pid_get_starttime(pid, &tv);
+    pidx->area->wrlock = pid;
     msync(pidx->area, pidx->size, MS_SYNC);
-#endif
+    if (pidx->area->wrlock != pid) {
+        pidx_close(&pidx);
+        errno = EDEADLK;
+        return NULL;
+    }
+    pidx->area->wrlock  = pid;
+    pidx->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
+    msync(pidx->area, pidx->size, MS_SYNC);
     return pidx;
 }
 
 void pidx_close(pidx_file **f)
 {
-#if 0
     if (*f) {
-        if (!(*f)->area->magic) {
+        if ((*f)->area->wrlock && !(*f)->ro) {
             msync((*f)->area, (*f)->size, MS_SYNC);
-            (*f)->area->magic = magic.i;
-            msync((*f)->area, (*f)->size, MS_SYNC);
+            (*f)->area->wrlock  = 0;
+            (*f)->area->wrlockt = 0;
         }
+        pidx_real_close(f);
     }
-#endif
-    pidx_real_close(f);
 }
 
 /****************************************************************************/

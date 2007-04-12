@@ -172,6 +172,9 @@ static inline void mmfile_wipe(mmfile *mf)
 void mmfile_close(mmfile **mf)
 {
     if (*mf) {
+        if (!(*mf)->ro) {
+            msync((*mf)->area, (*mf)->size, MS_SYNC);
+        }
         mmfile_wipe(*mf);
         p_delete(mf);
     }
@@ -191,6 +194,7 @@ int mmfile_truncate(mmfile *mf, off_t length)
         return -1;
     }
 
+    msync(mf->area, mf->size, MS_SYNC);
     res = ftruncate(fd, length);
 
     if (length < mf->size) {
