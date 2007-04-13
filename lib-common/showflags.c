@@ -26,6 +26,7 @@ typedef unsigned int unsigned32;
 
 int strace_next_check;
 const char *strace_msg;
+int trace_override;
 
 void check_strace(void)
 {
