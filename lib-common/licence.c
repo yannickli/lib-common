@@ -271,7 +271,7 @@ int read_cpu_signature(uint32_t *dst)
     }
 }
 
-int license_do_signature(const conf_t *conf, char *dst, size_t size)
+int licence_do_signature(const conf_t *conf, char *dst, size_t size)
 {
     int version;
     const char **var, *content, *p;
@@ -367,7 +367,7 @@ bool licence_check_signature_ok(const conf_t *conf)
     if (!lic_inconf)
         return false;
 
-    if (license_do_signature(conf, lic_computed, sizeof(lic_computed))) {
+    if (licence_do_signature(conf, lic_computed, sizeof(lic_computed))) {
         return false;
     }
 
@@ -431,6 +431,7 @@ bool licence_check_host_ok(const conf_t *conf)
 
 int list_my_cpus(char *dst, size_t size)
 {
+#ifdef LINUX
     /* OG: Should use cpu_set_t type and macros ? */
     /* OG: Should check return value of these system calls */
     int i = 0, pos = 0, res = -1;
@@ -465,6 +466,15 @@ int list_my_cpus(char *dst, size_t size)
   exit:
     sched_setaffinity(0, sizeof(oldmask), (void*)&oldmask);
     return res;
+#else
+    uint32_t cpusig;
+
+    if (!read_cpu_signature(&cpusig)) {
+        snprintf(dst, size, "0x%08X", cpusig);
+        return 0;
+    }
+    return -1;
+#endif
 }
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
