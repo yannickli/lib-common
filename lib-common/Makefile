@@ -87,7 +87,7 @@ tst-sort_CFLAGS = -UCHECK
 tst-sort_LDFLAGS = -lm
 
 ifneq (,$(filter CYGWIN%,$(UNAME)))
-  libcommon_SOURCES := $(filter-out blob_iconv.c,$(libcommon_SOURCES))
+  libcommon_SOURCES := $(filter-out blob_iconv.c linux.c,$(libcommon_SOURCES))
   __CHECK__ := $(filter-out test_blob_iconv,$(__CHECK__))
 endif
 

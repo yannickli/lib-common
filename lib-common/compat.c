@@ -129,3 +129,16 @@ long int lrand48(void)
 void intersec_initialize(void) {}
 
 #endif
+
+#ifdef CYGWIN
+
+#include "unix.h"
+
+int pid_get_starttime(pid_t pid, struct timeval *tv)
+{
+    tv->tv_sec = tv->tv_usec = 0;
+    return 0;
+}
+
+#endif
+
