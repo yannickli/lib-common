@@ -210,8 +210,7 @@ time_t localtime_nextday(time_t date)
     return mktime(&t);
 }
 
-static const char *__abbr_months[] = 
-{
+static const char * const __abbr_months[] = {
     "jan",
     "feb",
     "mar",
@@ -227,8 +226,7 @@ static const char *__abbr_months[] =
     NULL
 };
 
-static int __valid_mdays[] =
-{
+static int const __valid_mdays[] = {
     31,
     28,
     31,
@@ -243,24 +241,16 @@ static int __valid_mdays[] =
     31
 };
 
-static bool year_is_leap(int year)
-{
-    if (year % 400 == 0)
-        return true;
-    if (year % 100 == 0)
-        return false;
-    if (year % 4 == 0)
-        return true;
-    return false;
-}
-
 /* We currently support only this format: DD-MMM-[YY]YY */
+/* WARNING: Only date related tm structure fields are changed, others
+ * must be initialized before this call.
+ */
+/* OG: why not use strptime ? */
 int strtotm(const char *date, struct tm *t)
 {
     int mday, mon, year;
     const char *p;
     char lower_mon[4];
-    const char **cur_month = __abbr_months;
     size_t len = strlen(date);
 
     if (len < strlen("DD-MMM-YY"))
@@ -276,52 +266,47 @@ int strtotm(const char *date, struct tm *t)
         return -1;
     p++;
 
-    pstrcpylen(lower_mon, sizeof(lower_mon), p, 3);
-    lower_mon[0] = tolower(lower_mon[0]);
-    lower_mon[1] = tolower(lower_mon[1]);
-    lower_mon[2] = tolower(lower_mon[2]);
+    lower_mon[0] = tolower(p[0]);
+    lower_mon[1] = tolower(p[1]);
+    lower_mon[2] = tolower(p[2]);
+    lower_mon[3] = '\0';
 
-    while (*cur_month && !strequal(lower_mon, *cur_month)) {
-        cur_month++;
+    for (mon = 0;; mon++) {
+        if (!__abbr_months[mon])
+            return -1;
+        if (!memcmp(lower_mon, __abbr_months[mon], 4))
+            break;
     }
     
-    if (!*cur_month)
-        return -1;
-
-    mon = cur_month - __abbr_months;
-
     /* Read year */
     p += 3;
     if (*p++ != '-')
         return -1;
 
     year = atoi(p);
+    if (year < 0)
+        return -1;
+
     if (year < 70) {
         year += 2000;
-    }
+    } else
     if (year < 100) {
         year += 1900;
     }
     if (year < 1970 || year > 2036)
         return -1;
 
+    /* Simplistic leap year check because 1900 < year < 2100 */
+#define year_is_leap(year)  (((unsigned)(year) % 4) == 0)
+
     /* Check mday validity */
-    if (mon == 1) {
-        /* February special case */
-        if (year_is_leap(year)) {
-            if (mday > 29)
-                return -1;
-        } else {
-            if (mday > 28)
-                return -1;
-        }
-    } else
-    if (mday > __valid_mdays[mon])
+    if (mday > __valid_mdays[mon] + (mon == 1 && year_is_leap(year)))
         return -1;
 
     t->tm_mday = mday;
     t->tm_mon  = mon;
     t->tm_year = year - 1900;
+    /* OG: should also update t->tm_wday and t->tm_yday */
 
     return 0;
 }
