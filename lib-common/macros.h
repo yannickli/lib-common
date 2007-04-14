@@ -152,7 +152,7 @@ int show_licence(const char *arg);
 int set_licence(const char *arg, const char *licence_data);
 void check_strace(void);
 
-#ifndef MINGCC
+#if !defined(MINGCC) && !defined(CYGWIN)
 
 #  include <stdlib.h>
 #  include <string.h>
