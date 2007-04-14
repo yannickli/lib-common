@@ -108,6 +108,10 @@ typedef struct intpair {
 
    spare out from.
  */
+/* OG: what a braindead API, bugs are looming... If you really need
+ * this code, don't make it a separate function with such
+ * boobytrapped semantics
+ */
 static int32_t bt_append_to_freelist(btree_t *bt, int32_t from, int32_t len)
 {
     int32_t i;
