@@ -16,6 +16,7 @@
 
 #include <unistd.h> /* for ssize_t */
 #include <sys/types.h>
+#include <sys/time.h>
 
 /****************************************************************************/
 /* process related                                                          */
