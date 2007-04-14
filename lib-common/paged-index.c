@@ -234,6 +234,9 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
         }
 
         pidx->area->wrlock = pid;
+        /* OG: why not patch wrlockt at the same time ?
+         * should have a single 64 bit entry with both pid and time
+         */
         msync(pidx->area, pidx->size, MS_SYNC);
         if (pidx->area->wrlock != pid) {
             pidx_close(&pidx);
@@ -281,6 +284,7 @@ pidx_file *pidx_creat(const char *path, uint8_t skip, uint8_t nbsegs)
 
     pid_get_starttime(pid, &tv);
     pidx->area->wrlock = pid;
+    /* OG: same remark as above */
     msync(pidx->area, pidx->size, MS_SYNC);
     if (pidx->area->wrlock != pid) {
         pidx_close(&pidx);
@@ -290,6 +294,7 @@ pidx_file *pidx_creat(const char *path, uint8_t skip, uint8_t nbsegs)
     pidx->area->wrlock  = pid;
     pidx->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
     msync(pidx->area, pidx->size, MS_SYNC);
+
     return pidx;
 }
 
