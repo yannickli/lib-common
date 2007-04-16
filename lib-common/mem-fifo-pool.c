@@ -119,7 +119,6 @@ static void *mfp_alloc(mem_pool *mp, ssize_t size)
         mfp->pages = page;
     }
 
-    /* OG: blk->area alignment is not correct */
     blk = (mem_block *)(page->area + page->used_size);
     blk->page = page;
     page->used_size += size;
