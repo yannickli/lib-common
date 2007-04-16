@@ -143,7 +143,6 @@ static void mfp_free(struct mem_pool *mp, void *mem)
         return;
     }
     blk->page->used_blocks--;
-    blk->page = POOL_GUARD;
 
     /* if this was the last block, GC the pages */
     if (blk->page->used_blocks == 0) {
@@ -170,6 +169,8 @@ static void mfp_free(struct mem_pool *mp, void *mem)
             }
             break;
         }
+    } else {
+        blk->page = POOL_GUARD;
     }
 }
 
