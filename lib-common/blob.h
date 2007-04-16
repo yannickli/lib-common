@@ -90,6 +90,11 @@ static inline void blob_reset(blob_t *blob) {
     blob->data[blob->len] = '\0';
 }
 
+static inline void blob_reinit(blob_t *blob) {
+    blob_wipe(blob);
+    blob_init(blob);
+}
+
 void blob_ensure(blob_t *blob, ssize_t newlen);
 
 static inline void blob_ensure_avail(blob_t *blob, ssize_t extralen) {
