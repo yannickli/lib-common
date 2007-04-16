@@ -20,6 +20,8 @@
 
 #define ROUND_MULTIPLE(n, k) ((((n) + (k) - 1) / (k)) * (k))
 
+#define POOL_GUARD ((void*)0xdeadbeaf)
+
 typedef struct mem_page {
 
     struct mem_page *next;
@@ -136,7 +138,12 @@ static void mfp_free(struct mem_pool *mp, void *mem)
 
     blk = (mem_block*)((byte *)mem - sizeof(mem_block));
 
+    if (blk->page == POOL_GUARD) {
+        e_error("double free heap corruption *** %p ***", mem);
+        return;
+    }
     blk->page->used_blocks--;
+    blk->page = POOL_GUARD;
 
     /* if this was the last block, GC the pages */
     if (blk->page->used_blocks == 0) {
