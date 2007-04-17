@@ -20,7 +20,7 @@
 
 #define ROUND_MULTIPLE(n, k) ((((n) + (k) - 1) / (k)) * (k))
 
-#define POOL_GUARD ((void*)0xdeadbeaf)
+#define POOL_GUARD ((void*)0xdeadbeef)
 
 typedef struct mem_page {
 
