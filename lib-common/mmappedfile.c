@@ -212,9 +212,10 @@ int mmfile_truncate(mmfile *mf, off_t length)
     munmap(mf->area, mf->size);
     mf->area = mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (mf->area == MAP_FAILED) {
+        e_trace(0, "mmap failed! file: %s length: %lld %m", mf->path, (long long)length);
         mf->area = mmap(NULL, mf->size, PROT_READ | PROT_WRITE, MAP_SHARED,
                         fd, 0);
-        res = close(fd);
+        close(fd);
 
         if (mf->area == MAP_FAILED) {
             mf->area = NULL;
@@ -222,7 +223,7 @@ int mmfile_truncate(mmfile *mf, off_t length)
             return -2;
         }
 
-        return res;
+        return -1;
     }
 
     mf->size = length;
