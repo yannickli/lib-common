@@ -19,4 +19,6 @@
 mem_pool *mem_fifo_pool_new(int page_size_hint);
 void mem_fifo_pool_delete(mem_pool **poolp);
 
+void mem_fifo_pool_stats(mem_pool *mp, ssize_t *allocated, ssize_t *used);
+
 #endif /* IS_LIB_COMMON_MEM_FIFO_POOL_H */

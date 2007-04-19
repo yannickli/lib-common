@@ -20,10 +20,9 @@
 
 #define ROUND_MULTIPLE(n, k) ((((n) + (k) - 1) / (k)) * (k))
 
-#define POOL_GUARD ((void*)0xdeadbeef)
+#define POOL_DEALLOCATED  1
 
 typedef struct mem_page {
-
     struct mem_page *next;
     struct mem_page *__prev__;  /* not used yet */
 
@@ -37,7 +36,8 @@ typedef struct mem_page {
 } mem_page;
 
 typedef struct mem_block {
-    mem_page *page;
+    int page_offs;
+    int blk_size;
     byte area[];
 } mem_block;
 
@@ -47,8 +47,13 @@ typedef struct mem_fifo_pool {
     mem_page *freelist;
     int page_size;
     int nb_pages;
+    ssize_t occupied;
 } mem_fifo_pool;
 
+
+static mem_page *pageof(mem_block *blk) {
+    return (mem_page *)((char *)blk + blk->page_offs);
+}
 
 static mem_page *mem_page_new(mem_fifo_pool *mfp)
 {
@@ -122,7 +127,9 @@ static void *mfp_alloc(mem_pool *mp, ssize_t size)
     }
 
     blk = (mem_block *)(page->area + page->used_size);
-    blk->page = page;
+    blk->page_offs = (intptr_t)page - (intptr_t)blk;
+    blk->blk_size    = size;
+    mfp->occupied   += size;
     page->used_size += size;
     page->used_blocks++;
     return blk->area;
@@ -137,15 +144,15 @@ static void mfp_free(struct mem_pool *mp, void *mem)
         return;
 
     blk = (mem_block*)((byte *)mem - sizeof(mem_block));
-
-    if (blk->page == POOL_GUARD) {
+    if (blk->page_offs > 0) {
         e_error("double free heap corruption *** %p ***", mem);
         return;
     }
-    blk->page->used_blocks--;
+
+    mfp->occupied -= blk->blk_size;
 
     /* if this was the last block, GC the pages */
-    if (blk->page->used_blocks == 0) {
+    if (--pageof(blk)->used_blocks <= 0) {
         mem_page **pagep;
 
         for (pagep = &mfp->pages; *pagep; pagep = &(*pagep)->next) {
@@ -170,7 +177,7 @@ static void mfp_free(struct mem_pool *mp, void *mem)
             break;
         }
     } else {
-        blk->page = POOL_GUARD;
+        blk->page_offs = POOL_DEALLOCATED;
     }
 }
 
@@ -214,4 +221,12 @@ void mem_fifo_pool_delete(mem_pool **poolp)
 
         p_delete(poolp);
     }
+}
+
+void mem_fifo_pool_stats(mem_pool *mp, ssize_t *allocated, ssize_t *used)
+{
+    mem_fifo_pool *mfp = (mem_fifo_pool *)(mp);
+    *allocated = (mfp->nb_pages - (mfp->freelist != NULL))
+               * (mfp->page_size - ssizeof(mem_page));
+    *used      = mfp->occupied;
 }
