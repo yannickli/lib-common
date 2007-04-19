@@ -38,4 +38,10 @@ int btree_push(btree_t *bt, uint64_t key, const byte *data, int len);
 
 void btree_dump(const btree_t *bt, FILE *out);
 
+typedef struct fbtree_t fbtree_t;
+
+fbtree_t *fbtree_open(const char *path);
+int fbtree_fetch(fbtree_t *, uint64_t key, blob_t *out);
+void fbtree_close(fbtree_t **f);
+
 #endif

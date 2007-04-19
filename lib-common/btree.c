@@ -539,6 +539,7 @@ static int32_t btn_find_leaf(const struct btree_priv *bt, uint64_t key,
     return page;
 }
 
+
 /****************************************************************************/
 /* code specific to the leaves                                              */
 /****************************************************************************/
@@ -883,3 +884,113 @@ void btree_dump(const btree_t *bt_pub, FILE *out)
         }
     }
 }
+
+
+/****************************************************************************/
+/* FILE *  read interface                                                   */
+/****************************************************************************/
+
+struct fbtree_t {
+    FILE *f;
+    struct btree_priv priv;
+};
+
+fbtree_t *fbtree_open(const char *path)
+{
+    fbtree_t *fbt = p_new(fbtree_t, 1);
+
+    fbt->f = fopen(path, "r");
+    if (!fbt->f) {
+        p_delete(&fbt);
+        return NULL;
+    }
+
+    if (fread(&fbt->priv, sizeof(fbt->priv), 1, fbt->f) < 1) {
+        p_delete(&fbt);
+        return NULL;
+    }
+
+    /* TODO: fsck it */
+    return fbt;
+}
+
+void fbtree_close(fbtree_t **fbt)
+{
+    if (*fbt) {
+        p_fclose(&(*fbt)->f);
+        p_delete(fbt);
+    }
+}
+
+static int fbtree_readpage(fbtree_t *fbt, int32_t page, bt_page_t *buf)
+{
+    if (fseek(fbt->f, (page + 1) * ssizeof(buf), SEEK_SET))
+        return -1;
+
+    if (fread(buf, sizeof(buf), 1, fbt->f) < 1)
+        return -1;
+
+    return 0;
+}
+
+static int32_t fbtn_find_leaf(fbtree_t *fbt, uint64_t key)
+{
+    int32_t page = fbt->priv.root;
+
+    /* TODO: deal with 'continuation' bit to follow up into a new b-tree for
+             keys > 1 segment */
+    while (BTPP_IS_NODE(page)) {
+        bt_page_t node;
+        int i;
+
+        if (fbtree_readpage(fbt, page, &node))
+            return -1;
+
+        i = btn_bsearch(&node.node, key);
+        page = node.node.ptrs[i];
+    }
+
+    return page;
+}
+
+int fbtree_fetch(fbtree_t *fbt, uint64_t key, blob_t *out)
+{
+    int page, pos, len = 0;
+    bt_page_t leaf;
+
+    page = fbtn_find_leaf(fbt, key);
+    if (page < 0)
+        return -1;
+
+    if (fbtree_readpage(fbt, page, &leaf))
+        return -1;
+
+    pos  = btl_findslot(&leaf.leaf, key, NULL);
+    if (pos < 0)
+        return -1;
+
+    do {
+        int slot;
+
+        pos += 1 + leaf.leaf.data[pos];
+        if (unlikely(pos + 1 >= leaf.leaf.used))
+            break;
+
+        slot = leaf.leaf.data[pos++];
+        if (unlikely(pos + slot > leaf.leaf.used))
+            break;
+
+        blob_append_data(out, leaf.leaf.data + pos, slot);
+        len += slot;
+        pos += slot;
+
+        while (pos >= leaf.leaf.used) {
+            pos  = 0;
+            if (fbtree_readpage(fbt, leaf.leaf.next, &leaf))
+                return len;
+        }
+    } while (!leaf.leaf.data[pos] || !btl_keycmp(key, &leaf.leaf, pos));
+
+    return len;
+}
+
