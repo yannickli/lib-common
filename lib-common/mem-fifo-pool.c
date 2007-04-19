@@ -226,6 +226,8 @@ void mem_fifo_pool_delete(mem_pool **poolp)
 void mem_fifo_pool_stats(mem_pool *mp, ssize_t *allocated, ssize_t *used)
 {
     mem_fifo_pool *mfp = (mem_fifo_pool *)(mp);
+    /* we don't want to account the 'spare' page as allocated, it's an
+       optimization that should not leak. */
     *allocated = (mfp->nb_pages - (mfp->freelist != NULL))
                * (mfp->page_size - ssizeof(mem_page));
     *used      = mfp->occupied;
