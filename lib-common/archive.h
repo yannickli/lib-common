@@ -146,6 +146,29 @@ archive_add_cstr(archive_build_array *arch, const char *name, const char *s) {
 }
 archive_build *archive_find_file(archive_build_array *, const char *name);
 
+archive_build *
+archive_replace_file(archive_build_array *arch, const char *name,
+                     const byte *payload, int len);
+
+archive_build *
+archive_update_file(archive_build_array *arch, const char *name,
+                    const byte *payload, int len);
+
+static inline archive_build *
+archive_replace_cstr(archive_build_array *arch, const char *name,
+                    const char *s)
+{
+    return archive_replace_file(arch, name, (const byte *)s, strlen(s));
+
+}
+
+static inline archive_build *
+archive_update_cstr(archive_build_array *arch, const char *name,
+                    const char *s)
+{
+    return archive_update_file(arch, name, (const byte *)s, strlen(s));
+}
+
 int blob_append_archive(blob_t *output, const archive_build_array *archive);
 
 
