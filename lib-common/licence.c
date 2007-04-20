@@ -34,7 +34,7 @@
 /*TODO: Remove version and Enterprise name*/
 int show_licence(const char *arg)
 {
-#ifdef EXPIRATION_DATE    
+#ifdef EXPIRATION_DATE
     time_t t = EXPIRATION_DATE;
 #endif
 
@@ -49,7 +49,7 @@ int show_licence(const char *arg)
 #ifndef CHECK_TRACE
     fprintf(stderr, "  ptrace check DEACTIVATED" LF);
 #endif
-#ifdef EXPIRATION_DATE    
+#ifdef EXPIRATION_DATE
     fprintf(stderr,
             "  Expiration: %s" LF, ctime(&t));
 #endif
@@ -283,11 +283,11 @@ int licence_do_signature(const conf_t *conf, char *dst, size_t size)
         "mac_addresses",
         "Expires",
         "Registered-To",
-        "max_sms",
-        "max_mms",
-        "max_wp",
-        "max_ussd",
-        "max_email",
+        "maxrate_sms",   "max_sms",
+        "maxrate_mms",   "max_mms",
+        "maxrate_wp",    "max_wp",
+        "maxrate_ussd",  "max_ussd",
+        "maxrate_email", "max_email",
         NULL,
     };
     int k0, k1, k2, k3;
@@ -296,7 +296,7 @@ int licence_do_signature(const conf_t *conf, char *dst, size_t size)
     if (version != 1) {
         return -1;
     }
-    
+
     /* XXX: version 1 is weak.
      */
     k0 = 0;
@@ -318,7 +318,7 @@ int licence_do_signature(const conf_t *conf, char *dst, size_t size)
              * */
             if ('A' <= c && c <= 'Z') {
                 c = c - 'A' + 'a';
-            } else 
+            } else
             if (('a' <= c && c <= 'z')
             ||  ('0' <= c && c <= '9')
             || c == ':' || c == '-' || c == '+' || c == '*') {
@@ -538,7 +538,7 @@ START_TEST(check_is_my_mac_addr)
             break;
         }
     }
-    
+
     fail_if(!found, "Did not find any listed mac addr on this machine.");
 }
 END_TEST
