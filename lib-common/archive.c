@@ -643,15 +643,11 @@ archive_build *
 archive_replace_file(archive_build_array *arch, const char *name,
                      const byte *payload, int len)
 {
-    archive_build *file = archive_find_file(arch, name);
+    archive_build *file = archive_update_file(arch, name, payload, len);
     if (!file) {
         return archive_add_file(arch, name, payload, len);
-    } else {
-        p_delete(&file->payload);
-        file->payload = p_dup(payload, len);
-        file->payload_len = len;
-        return file;
     }
+    return file;
 }
 
 static inline void

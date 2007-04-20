@@ -100,7 +100,12 @@ void blob_ensure(blob_t *blob, ssize_t newlen)
          */
         ssize_t newsize = MEM_ALIGN(3 * (newlen + 1) / 2);
 
+
         if (blob->data == blob->area) {
+            if (newsize > 1024*1024) {
+                e_trace(0, "Large blob ensure realloc, newsize:%zd size:%zd len:%zd data:%.80s",
+                        newsize, blob->size, blob->len, blob->data);
+            }
             blob->area = mem_realloc(blob->area, newsize);
             blob->data = blob->area;
             blob->size = newsize;
@@ -117,6 +122,11 @@ void blob_ensure(blob_t *blob, ssize_t newlen)
             } else {
                 /* Allocate a new area */
                 byte *new_area = p_new_raw(byte, newsize);
+                if (skip + blob->size != BLOB_INITIAL_SIZE) {
+                    e_trace(0, "Large blob ensure shift,"
+                            "newsize:%zd size:%zd len:%zd skip:%zd data:%.80s",
+                            newsize, blob->size, blob->len, skip, blob->data);
+                }
                 /* Copy the blob data including the trailing '\0' */
                 memcpy(new_area, blob->data, blob->len + 1);
                 p_delete(&blob->area);
