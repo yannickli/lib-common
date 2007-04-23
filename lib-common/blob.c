@@ -1423,28 +1423,49 @@ static inline int buf_unpack_vfmt(const byte *buf, int buf_len,
     data = buf + *pos;
     for (;;) {
         switch (c = *fmt++) {
+            int ival, *ivalp;
+            unsigned int uval, *uvalp;
+            char **strvalp;
+
         case '\0':
             break;
         case 'd':
-            *va_arg(ap, int *) = parse_int10(data, &data);
+            ival = parse_int10(data, &data);
+            ivalp = va_arg(ap, int *);
+            if (ivalp) {
+                *ivalp = ival;
+            }
             n++;
             continue;
         case 'x':
-            *va_arg(ap, unsigned int *) = parse_hex(data, &data);
+            uval = parse_hex(data, &data);
+            uvalp = va_arg(ap, unsigned int *);
+            if (uvalp) {
+                *uvalp = uval;
+            }
             n++;
             continue;
         case 'c':
             if (*data == '\0')
                 break;
-            *va_arg(ap, int *) = *data++;
+
+            ival = *data++;
+            ivalp = va_arg(ap, int *);
+            if (ivalp) {
+                *ivalp = ival;
+            }
             n++;
             continue;
         case 's':
             p = data;
             c = *fmt;
-            while (*data && *data != c && *data != '\n')
+            while (*data && *data != c && *data != '\n') {
                 data++;
-            *va_arg(ap, char **) = p_dupstr(p, data - p);
+            }
+            strvalp = va_arg(ap, char **);
+            if (strvalp) {
+                *strvalp = p_dupstr(p, data - p);
+            }
             n++;
             continue;
         default:
