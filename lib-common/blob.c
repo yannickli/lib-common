@@ -103,7 +103,7 @@ void blob_ensure(blob_t *blob, ssize_t newlen)
 
         if (blob->data == blob->area) {
             if (newsize > 1024*1024) {
-                e_trace(0, "Large blob ensure realloc, newsize:%zd size:%zd len:%zd data:%.80s",
+                e_trace(1, "Large blob ensure realloc, newsize:%zd size:%zd len:%zd data:%.80s",
                         newsize, blob->size, blob->len, blob->data);
             }
             blob->area = mem_realloc(blob->area, newsize);
@@ -123,7 +123,7 @@ void blob_ensure(blob_t *blob, ssize_t newlen)
                 /* Allocate a new area */
                 byte *new_area = p_new_raw(byte, newsize);
                 if (skip + blob->size != BLOB_INITIAL_SIZE) {
-                    e_trace(0, "Large blob ensure shift,"
+                    e_trace(2, "Large blob ensure shift,"
                             "newsize:%zd size:%zd len:%zd skip:%zd data:%.80s",
                             newsize, blob->size, blob->len, skip, blob->data);
                 }
