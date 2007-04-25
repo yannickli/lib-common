@@ -29,6 +29,7 @@
  */
 
 typedef struct generic_list generic_list;
+#define LIST_SORT_IS_STABLE  1
 void generic_list_sort(generic_list **list,
                        int (*cmp)(generic_list*, generic_list*, void*),
                        void*);
