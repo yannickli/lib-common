@@ -86,11 +86,13 @@ typedef unsigned int gt_uint32_t;
 #define ssizeof(foo)    ((ssize_t)sizeof(foo))
 
 #ifndef MAX
-#define MAX(a,b)  (((a) > (b)) ? (a) : (b))
+#define MAX(a,b)     (((a) > (b)) ? (a) : (b))
+#define MAX3(a,b,c)  (((a) > (b)) ? MAX(a, c) : MAX(b, c))
 #endif
 
 #ifndef MIN
-#define MIN(a,b)  (((a) > (b)) ? (b) : (a))
+#define MIN(a,b)     (((a) > (b)) ? (b) : (a))
+#define MIN3(a,b,c)  (((a) > (b)) ? MIN(b, c) : MIN(a, c))
 #endif
 
 #ifdef CMP
