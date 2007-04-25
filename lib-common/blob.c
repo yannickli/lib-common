@@ -2151,6 +2151,30 @@ START_TEST(check_gzip)
 END_TEST
 
 /*.....................................................................}}}*/
+/* test check_unpack                                                   {{{*/
+
+START_TEST(check_unpack)
+{
+    int n1, n2;
+
+    const char *buf = "12|x|skdjhsdkh|1|2|3|4|\n";
+    int buflen = strlen(buf);
+    int bufpos = 0;
+    int res;
+
+    res = buf_unpack((const byte*)buf, buflen, &bufpos, "d|c|s|d|d|d|d|",
+                     &n1, NULL, NULL, NULL, &n2, NULL, NULL);
+
+    fail_if(res != 7,
+            "buf_unpack() returned %d, expected %d\n", res, 7);
+    fail_if(n1 != 12,
+            "buf_unpack() failed: n1=%d, expected %d\n", n1, 12);
+    fail_if(n2 != 2,
+            "buf_unpack() failed: n2=%d, expected %d\n", n2, 2);
+}
+END_TEST
+
+/*.....................................................................}}}*/
 /* test blob_append_ira                                                {{{*/
 
 START_TEST(check_ira)
@@ -2270,6 +2294,7 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_zlib_compress_uncompress);
     tcase_add_test(tc, check_gunzip);
     tcase_add_test(tc, check_gzip);
+    tcase_add_test(tc, check_unpack);
 
     return s;
 }
