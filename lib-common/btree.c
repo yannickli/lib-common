@@ -899,14 +899,14 @@ fbtree_t *fbtree_open(const char *path)
 {
     fbtree_t *fbt = p_new(fbtree_t, 1);
 
-    fbt->f = fopen(path, "r");
+    fbt->f = fopen(path, "rb");
     if (!fbt->f) {
         p_delete(&fbt);
         return NULL;
     }
 
-    if (fread(&fbt->priv, sizeof(fbt->priv), 1, fbt->f) < 1) {
-        p_delete(&fbt);
+    if (fread(&fbt->priv, sizeof(fbt->priv), 1, fbt->f) != 1) {
+        fbtree_close(&fbt);
         return NULL;
     }
 
@@ -927,7 +927,7 @@ static int fbtree_readpage(fbtree_t *fbt, int32_t page, bt_page_t *buf)
     if (fseek(fbt->f, (page + 1) * ssizeof(*buf), SEEK_SET))
         return -1;
 
-    if (fread(buf, sizeof(*buf), 1, fbt->f) < 1)
+    if (fread(buf, sizeof(*buf), 1, fbt->f) != 1)
         return -1;
 
     return 0;
@@ -965,7 +965,7 @@ int fbtree_fetch(fbtree_t *fbt, uint64_t key, blob_t *out)
     if (fbtree_readpage(fbt, page, &leaf))
         return -1;
 
-    pos  = btl_findslot(&leaf.leaf, key, NULL);
+    pos = btl_findslot(&leaf.leaf, key, NULL);
     if (pos < 0)
         return -1;
 
