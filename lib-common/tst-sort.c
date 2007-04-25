@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
+#include <limits.h>
 #include <inttypes.h>
 #include <sys/time.h>
 #include <time.h>
@@ -21,9 +23,9 @@
 
 #include "mem.h"
 #include "list.h"
+#include "array.h"
 
-#define REPEAT        10         /* randomly duplicate entries upto 4 times */
-#define CHECK_STABLE  1         /* sort is not stable yet */
+#define REPEAT        10        /* randomly duplicate entries upto 4 times */
 #define WORK_DIR      "/tmp/"   /* test file output directory */
 
 /* Simple Linear congruential generators (LCGs):
@@ -59,8 +61,10 @@ static inline void timer_start(struct timeval *tp) {
 
 static inline long long timer_stop(struct timeval *tp) {
     struct timeval stop;
+    long long diff;
     gettimeofday(&stop, NULL);
-    return timeval_diff64(&stop, tp);
+    diff = timeval_diff64(&stop, tp);
+    return diff ? diff : 1;
 }
 
 typedef struct entry_t entry_t;
@@ -76,9 +80,13 @@ GENERIC_INIT(entry_t, entry);
 GENERIC_WIPE(entry_t, entry);
 GENERIC_DELETE(entry_t, entry);
 SLIST_FUNCTIONS(entry_t, entry);
+ARRAY_TYPE(entry_t, entry);
+ARRAY_FUNCTIONS(entry_t, entry);
 
 static int entry_number;
 static int compare_number;
+static int max_entry = INT_MAX;
+static int repeat_entry = REPEAT;
 
 static inline entry_t *entry_new(const char *str, int len) {
     entry_t *ep = p_new_extra(entry_t, len);
@@ -94,7 +102,7 @@ static inline entry_t *entry_new(const char *str, int len) {
 static int entry_compare_dummy(const entry_t *a, const entry_t *b, void *p)
 {
     compare_number++;
-    return CMP(0, 1);
+    return 0;
 }
 
 static int entry_compare_str(const entry_t *a, const entry_t *b, void *p)
@@ -183,21 +191,30 @@ static int entry_compare_random(const entry_t *a, const entry_t *b, void *p)
     ip = (uint32_t)(intptr_t)p;
 
     ia = (ia ^ ip) * 1125413473;
-    ib = (ib ^ ip) * 987654323;
+    ib = (ib ^ ip) * 1125413473;
 
     return CMP(ia, ib);
 }
 
 typedef struct dict_t {
+    entry_array entries;
     entry_t *head;
     entry_t **tailp;
     int count;
 } dict_t;
 
-GENERIC_INIT(dict_t, dict);
+static inline dict_t *dict_init(dict_t *dict)
+{
+    p_clear(dict, 1);
+    entry_array_init(&dict->entries);
+    return dict;
+}
+
 static inline void dict_wipe(dict_t *dict)
 {
     entry_t *ep;
+
+    entry_array_wipe(&dict->entries, false);
 
     dict->tailp = NULL;
     while ((ep = entry_list_pop(&dict->head)) != NULL) {
@@ -207,6 +224,8 @@ static inline void dict_wipe(dict_t *dict)
 
 static inline void dict_append(dict_t *dict, entry_t *ep)
 {
+    entry_array_append(&dict->entries, ep);
+
     if (!dict->tailp) {
         dict->tailp = &dict->head;
     }
@@ -233,17 +252,16 @@ static int dict_load_file(dict_t *dict, const char *filename)
     }
     
     total_len = 0;
-    while (fgets(buf, sizeof(buf), fp)) {
+    while (entry_number < max_entry && fgets(buf, sizeof(buf), fp)) {
         len = strlen(buf);
         total_len += len;
         if (len && buf[len - 1] == '\n')
             buf[--len] = '\0';
-#if defined(REPEAT) && REPEAT > 1
-        rpt = REPEAT * rand15() / 32768;
-#else
-        rpt = 1;
-#endif
+
+        rpt = (repeat_entry > 1) ? repeat_entry * rand15() / 32768 : 1;
         do {
+            if (entry_number >= max_entry)
+                break;
             dict_append(dict, entry_new(buf, len));
         } while (--rpt > 0);
     }
@@ -253,7 +271,7 @@ static int dict_load_file(dict_t *dict, const char *filename)
     return total_len;
 }
 
-static void dict_dump_file(dict_t *dict, const char *filename)
+static void dict_dump_file(dict_t *dict, const char *filename, bool fromlist)
 {
     FILE *fp;
     entry_t *ep;
@@ -267,8 +285,17 @@ static void dict_dump_file(dict_t *dict, const char *filename)
         exit(1);
     }
     
-    for (ep = dict->head; ep; ep = ep->next) {
-        fprintf(fp, "%s\t%d\n", ep->str, ep->number);
+    if (fromlist) {
+        for (ep = dict->head; ep; ep = ep->next) {
+            fprintf(fp, "%s\t%d\n", ep->str, ep->number);
+        }
+    } else {
+        int n;
+
+        for (n = 0; n < dict->entries.len; n++) {
+            ep = dict->entries.tab[n];
+            fprintf(fp, "%s\t%d\n", ep->str, ep->number);
+        }
     }
 
     fflush(fp);
@@ -286,7 +313,7 @@ static void timer_report(struct timeval *tv, const char *stage)
     if (elapsed < 0)
         elapsed = 1;
 
-    fprintf(stderr, "%d entries %-26s in %4d.%03d ms,  %d ke/s\n",
+    fprintf(stderr, "%d entries %-26s in %5d.%03d ms,  %d ke/s\n",
             entry_number, stage,
             (int)(elapsed / 1000), (int)(elapsed % 1000),
             (int)((1000LL * entry_number) / elapsed));
@@ -302,6 +329,8 @@ struct sort_test {
     int (*cmpf)(const entry_t *a, const entry_t *b, void *p);
     int (*checkf)(const entry_t *a, const entry_t *b, void *p);
 } sort_tests[] = {
+    { "number entries  ", NULL, 0, 0,
+    NULL, NULL },
     { "minimal overhead *", WORK_DIR "w.orig", 0, 0,
     entry_compare_dummy, entry_compare_dummy },
     { "sort by line number *", NULL, 0, 0,
@@ -325,13 +354,78 @@ struct sort_test {
     { NULL, NULL, 0, 0, NULL, NULL },
 };
 
+/* complexity of standard merge sort */
+static double cmerge1(int n, int c)
+{
+    switch (n) {
+    case 0:
+    case 1:
+        return 0;
+    case 2:
+        return 1;
+    case 3:
+        return c == 0 ? 2 : c == 1 ? 2.5 : 3;
+    case 4:
+        return 5;
+    default:
+        return cmerge1(n >> 1, c) + cmerge1(n - (n >> 1), c) + n - 1;
+    }
+}
+
+/* complexity of merge sort with ordered subsequence check */
+static double cmerge2(int n, int c)
+{
+    switch (n) {
+    case 0:
+    case 1:
+        return 0;
+    case 2:
+        return 1;
+    case 3:
+        return c == 0 ? 2 : c == 1 ? 2.5 : 3;
+    case 4:
+        return c == 0 ? 3 : c == 1 ? 35.0 / 6 : 7;
+    default:
+        return cmerge2(n >> 1, c) + cmerge2(n - (n >> 1), c) +
+                (c == 0 ? 1 : n + 1);
+    }
+}
+
+/* complexity of merge sort with ordered subsequence check and power of
+ * 2 subsequences */
+static double cmerge3(int n, int c)
+{
+    int i;
+
+    switch (n) {
+    case 0:
+    case 1:
+        return 0;
+    case 2:
+        return 1;
+    default:
+        if (n & (n - 1)) {
+            for (i = n; i & (i - 1); i &= i - 1)
+                continue;
+        } else {
+            i = n >> 1;
+        }
+        return cmerge3(i, c) + cmerge3(n - i, c) + (c == 0 ? 1 : n + 1);
+    }
+}
+
+static double nlog2n(int n)
+{
+    return n ? (n * log(n) / log(2)) : 0;
+}
+
 int main(int argc, char **argv)
 {
     dict_t words;
     struct timeval tv;
-    long long load_elapsed, total_elapsed = 0, total_compare = 0;
+    long long load_elapsed, total_elapsed, total_compare;
     intptr_t random_value = rand32();
-    int nbytes = 0;
+    int nbytes = 0, nlogn;
     int n, cmp, cmp2 = 0, status = 0, dump_files = 0;
     entry_t *ep;
     const char *name;
@@ -340,8 +434,21 @@ int main(int argc, char **argv)
     dict_init(&words);
 
     timer_start(&tv);
+
+    if (argv[1] && isdigit(*argv[1])) {
+        repeat_entry = strtol(*++argv, NULL, 0);
+        argc--;
+        if (argv[1] && isdigit(*argv[1])) {
+            max_entry = strtol(*++argv, NULL, 0);
+            argc--;
+        }
+    }
+
     if (argc < 2) {
-        nbytes += dict_load_file(&words, "/usr/share/dict/american-english");
+        if (!access("/usr/share/dict/american-english", R_OK))
+            nbytes += dict_load_file(&words, "/usr/share/dict/american-english");
+        else
+            nbytes += dict_load_file(&words, "./samples/american-english");
     } else {
         while (*++argv) {
             nbytes += dict_load_file(&words, *argv);
@@ -349,65 +456,80 @@ int main(int argc, char **argv)
     }
     load_elapsed = timer_stop(&tv);
 
+    /* Do the tests with list_sort */
+    total_elapsed = total_compare = 0;
     for (stp = sort_tests; stp->name; stp++) {
-        compare_number = 0;
-        timer_start(&tv);
-        entry_list_sort(&words.head, stp->cmpf, (void*)random_value);
-        total_elapsed += stp->elapsed = timer_stop(&tv);
-        total_compare += stp->compare_number = compare_number;
+        if (stp->cmpf) {
+            compare_number = 0;
+            timer_start(&tv);
+            entry_list_sort(&words.head, stp->cmpf, (void*)random_value);
+            total_elapsed += stp->elapsed = timer_stop(&tv);
+            total_compare += stp->compare_number = compare_number;
+        }
+        if (words.head) {
+            if (stp->checkf) {
+                /* Check result sequence for proper order and stability */
+                int (*checkf)(const entry_t *a, const entry_t *b, void *p) =
+                    LIST_SORT_IS_STABLE ? stp->checkf : stp->cmpf;
 
-        if (stp->checkf) {
-            /* Check result sequence for proper order and stability */
-            int (*checkf)(const entry_t *a, const entry_t *b, void *p);
-#if CHECK_STABLE
-            checkf = stp->checkf;
-#else
-            checkf = stp->cmpf;
-#endif
-            for (n = 1, ep = words.head; ep->next; n++, ep = ep->next) {
-                if ((*checkf)(ep, ep->next, NULL) > 0) {
-                    fprintf(stderr, "%s:%d: out of order\n",
+                for (n = 1, ep = words.head; ep->next; n++, ep = ep->next) {
+                    if ((*checkf)(ep, ep->next, NULL) > 0) {
+                        fprintf(stderr, "%s:%d: out of order\n",
+                                stp->dump_name, n + 1);
+                        status = 1;
+                        break;
+                    }
+                }
+                if (n != entry_number && !ep->next) {
+                    fprintf(stderr, "%s:%d: missing entry\n",
                             stp->dump_name, n + 1);
                     status = 1;
-                    break;
                 }
-            }
-            if (n != entry_number && !ep->next) {
-                fprintf(stderr, "%s:%d: missing entry\n",
-                        stp->dump_name, n + 1);
-                status = 1;
-            }
-        } else {
-            /* just re-number entries */
-            for (n = 1, ep = words.head; ep; n++, ep = ep->next) {
-                ep->number = n;
+            } else {
+                /* just re-number entries */
+                for (n = 0, ep = words.head; ep; n++, ep = ep->next) {
+                    ep->number = n + 1;
+                }
             }
         }
         if (stp->dump_name && (dump_files || status)) {
-            dict_dump_file(&words, stp->dump_name);
+            dict_dump_file(&words, stp->dump_name, true);
         }
     }
 
+    n = entry_number;
+
     /* Delay statistics output to avoid side effects on timings */
-    fprintf(stderr, "%24s %4d.%03d ms, %8d lines, %d MB/s, N*log2(N)=%d\n",
+    fprintf(stderr, "%24s %5d.%03d ms, %9d lines, %5d KB/s\n"
+            "%24s %12s  %9.0f cmps\n"
+            "%24s %12s  %9.0f cmps [%9.0f %9.0f]\n"
+            "%24s %12s  %9.0f cmps [%9.0f %9.0f]\n"
+            "%24s %12s  %9.0f cmps [%9.0f %9.0f]\n",
             "initial load  ",
             (int)(load_elapsed / 1000), (int)(load_elapsed % 1000),
-            entry_number,
-            (int)((1000LL * 1000 * nbytes) / (1024 * 1024 * load_elapsed)),
-            (int)(entry_number * log(entry_number) / log(2)));
+            n,
+            (int)((1000LL * 1000 * nbytes) / (1024 * load_elapsed)),
+            "complexity  ", "N*log2(N)", nlog2n(n),
+            "", "cmerge1(N)", cmerge1(n, 1), cmerge1(n, 0), cmerge1(n, 2),
+            "", "cmerge2(N)", cmerge2(n, 1), cmerge2(n, 0), cmerge2(n, 2),
+            "", "cmerge3(N)", cmerge3(n, 1), cmerge3(n, 0), cmerge3(n, 2));
+    fprintf(stderr, "\n");
 
     for (stp = sort_tests; stp->name; stp++) {
-        fprintf(stderr, "%24s %4d.%03d ms, %8d cmps, %6d kcmp/s\n",
-                stp->name,
-                (int)(stp->elapsed / 1000), (int)(stp->elapsed % 1000),
-                stp->compare_number,
-                (int)((1000LL * stp->compare_number) / stp->elapsed));
+        if (stp->cmpf) {
+            fprintf(stderr, "%24s %5d.%03d ms, %9d cmps, %6d kcmp/s\n",
+                    stp->name,
+                    (int)(stp->elapsed / 1000), (int)(stp->elapsed % 1000),
+                    stp->compare_number,
+                    (int)((1000LL * stp->compare_number) / stp->elapsed));
+        }
     }
-    fprintf(stderr, "%24s %4d.%03d ms, %8lld cmps, %6d kcmp/s\n",
+    fprintf(stderr, "%24s %5d.%03d ms, %9lld cmps, %6d kcmp/s\n",
             "total =",
             (int)(total_elapsed / 1000), (int)(total_elapsed % 1000),
             total_compare,
             (int)((1000LL * total_compare) / total_elapsed));
+    fprintf(stderr, "\n");
 
     dict_wipe(&words);
 
