@@ -1417,6 +1417,9 @@ static inline int buf_unpack_vfmt(const byte *buf, int buf_len,
     const byte *data, *p;
     int c, n = 0;
 
+    if (buf_len < 0)
+        buf_len = strlen((const char *)buf);
+
     if (*pos >= buf_len)
         return 0;
 
@@ -2158,11 +2161,10 @@ START_TEST(check_unpack)
     int n1, n2;
 
     const char *buf = "12|x|skdjhsdkh|1|2|3|4|\n";
-    int buflen = strlen(buf);
     int bufpos = 0;
     int res;
 
-    res = buf_unpack((const byte*)buf, buflen, &bufpos, "d|c|s|d|d|d|d|",
+    res = buf_unpack((const byte*)buf, -1, &bufpos, "d|c|s|d|d|d|d|",
                      &n1, NULL, NULL, NULL, &n2, NULL, NULL);
 
     fail_if(res != 7,
