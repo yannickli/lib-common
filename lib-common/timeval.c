@@ -31,33 +31,43 @@
  */
 
 /* Return reference to static buf for immediate printing */
-const char *timeval_format(struct timeval tv)
+const char *timeval_format(struct timeval tv, bool as_duration)
 {
     // FIXME: assuming 32 bit timeval resolution, bug in 2034
     static char buf[32];
     int pos, d, h, m, s, sec, usec;
 
-    pos = 0;
     usec = tv.tv_usec;
-    sec = tv.tv_sec;
 
-    if (sec < 0) {
-        buf[pos++] = '-';
-        sec = -sec;
-        if (usec != 0) {
-            usec = 1000 * 1000 - usec;
-            sec -= 1;
+    if (as_duration) {
+        pos = 0;
+        sec = tv.tv_sec;
+        if (sec < 0) {
+            buf[pos++] = '-';
+            sec = -sec;
+            if (usec != 0) {
+                usec = 1000 * 1000 - usec;
+                sec -= 1;
+            }
         }
+        s = sec % 60;
+        sec /= 60;
+        m = sec % 60;
+        sec /= 60;
+        h = sec % 24;
+        sec /= 24;
+        d = sec;
+        snprintf(buf + pos, sizeof(buf) - pos,
+                 "%d %2d:%02d:%02d.%06d", d, h, m, s, usec);
+    } else {
+        struct tm t;
+
+        localtime_r(&tv.tv_sec, &t);
+        snprintf(buf, sizeof(buf),
+                 "%02d/%02d/%04d %2d:%02d:%02d.%06d",
+                 t.tm_mday, t.tm_mon + 1, t.tm_year + 1900,
+                 t.tm_hour, t.tm_min, t.tm_sec, usec);
     }
-    s = sec % 60;
-    sec /= 60;
-    m = sec % 60;
-    sec /= 60;
-    h = sec % 24;
-    sec /= 24;
-    d = sec;
-    snprintf(buf + pos, sizeof(buf) - pos,
-             "%d %2d:%02d:%02d.%06d", d, h, m, s, usec);
     return buf;
 }
 

@@ -20,7 +20,7 @@
 #include <lib-common/macros.h>
 
 /* Return reference to static buf for immediate printing */
-const char *timeval_format(struct timeval tv);
+const char *timeval_format(struct timeval tv, bool as_duration);
 
 struct timeval timeval_add(struct timeval a, struct timeval b);
 struct timeval timeval_sub(struct timeval a, struct timeval b);
