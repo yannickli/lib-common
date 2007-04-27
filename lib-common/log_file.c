@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <errno.h>
+#include <assert.h>
 
 #include <lib-common/mem.h>
 #include <lib-common/blob.h>
@@ -241,6 +242,8 @@ static inline int log_check_rotate(log_file_t *log_file)
 size_t log_fwrite(const void *buf, size_t size, size_t nmemb,
                   log_file_t *log_file)
 {
+    assert (log_file);
+
     if (log_check_rotate(log_file)) {
         return 0;
     }
@@ -253,6 +256,8 @@ int log_fprintf(log_file_t *log_file, const char *format, ...)
     int res;
     va_list args;
     
+    assert (log_file);
+
     if (log_check_rotate(log_file)) {
         return 0;
     }
