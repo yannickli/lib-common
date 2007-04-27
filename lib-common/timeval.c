@@ -155,7 +155,7 @@ bool is_expired(const struct timeval *date,
     if (!left) {
         left = &local_left;
     }
-    e_trace(3, "is_expired({%s}) ?", timeval_format(*date));
+    e_trace(3, "is_expired({%s}) ?", timeval_format(*date, false));
     *left = timeval_sub(*date, *now);
     if ((left->tv_sec < 0) || (left->tv_sec == 0 && left->tv_usec == 0)) {
         return true;
