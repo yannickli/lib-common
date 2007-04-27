@@ -216,9 +216,12 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
 
     res = pidx_fsck(pidx, O_ISWRITE(flags));
     if (res < 0) {
+        /* lock check failed, file was not closed properly */
         pidx_close(&pidx);
         errno = EINVAL;
+        return NULL;
     }
+
     if (res > 0) {
         e_error("`%s': corrupted pages, Repaired.", path);
     }
