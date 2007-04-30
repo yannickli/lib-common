@@ -32,6 +32,7 @@ void intersec_initialize(void);
 
 #include <time.h>
 #include <sys/time.h>
+#include <ws2tcpip.h>	/* for socklen_t */
 
 void gettimeofday(struct timeval *p, void *tz);
 char *asctime_r(const struct tm *tm, char *buf);

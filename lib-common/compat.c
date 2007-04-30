@@ -13,8 +13,10 @@
 
 #include "macros.h"
 #include "mmappedfile.h"
+#include "unix.h"
 
-#ifdef MINGCC
+#if defined(MINGCC)
+
 #include <windows.h>
 #include <stdlib.h>
 #include <string.h>
@@ -124,15 +126,13 @@ long int lrand48(void)
     return res;
 }
 
-#else
+int pid_get_starttime(pid_t pid, struct timeval *tv)
+{
+    tv->tv_sec = tv->tv_usec = 0;
+    return 0;
+}
 
-void intersec_initialize(void) {}
-
-#endif
-
-#ifdef CYGWIN
-
-#include "unix.h"
+#elif defined(CYGWIN)
 
 int pid_get_starttime(pid_t pid, struct timeval *tv)
 {
@@ -140,5 +140,8 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
     return 0;
 }
 
-#endif
+#else
 
+void intersec_initialize(void) {}
+
+#endif
