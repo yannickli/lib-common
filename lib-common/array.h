@@ -62,6 +62,11 @@ generic_array_swap(generic_array *array, ssize_t i, ssize_t j)
     array->tab[j] = v;
 }
 
+#define ARRAY_SORT_IS_STABLE  1
+void generic_array_sort(generic_array *array,
+                        int (*cmp)(const void *p1, const void *p2, void *parm),
+                        void *parm);
+
 /**************************************************************************/
 /* Typed Arrays                                                           */
 /**************************************************************************/
@@ -128,6 +133,13 @@ generic_array_swap(generic_array *array, ssize_t i, ssize_t j)
     prefix##_array_take(prefix##_array *array, ssize_t pos)                   \
     {                                                                         \
         return (el_typ *)generic_array_take((generic_array *)array, pos);     \
+    }                                                                         \
+    static inline void                                                        \
+    prefix##_array_sort(prefix##_array *array,                                \
+                        int (*cmp)(const el_typ *, const el_typ *, void *),   \
+                        void *priv)                                           \
+    {                                                                         \
+        generic_array_sort((generic_array *)array, (void *)cmp, priv);        \
     }
 
 #define DO_ARRAY(prefix, type)  ARRAY_TYPE(prefix, type);                     \

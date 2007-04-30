@@ -355,7 +355,7 @@ struct sort_test {
 };
 
 /* complexity of standard merge sort */
-static double cmerge1(int n, int c)
+static double cmerge1(size_t n, int c)
 {
     switch (n) {
     case 0:
@@ -372,8 +372,8 @@ static double cmerge1(int n, int c)
     }
 }
 
-/* complexity of merge sort with ordered subsequence check */
-static double cmerge2(int n, int c)
+/* complexity of skewed merge sort with ordered subsequence check */
+static double cmerge2(size_t n, int c)
 {
     switch (n) {
     case 0:
@@ -387,34 +387,60 @@ static double cmerge2(int n, int c)
         return c == 0 ? 3 : c == 1 ? 35.0 / 6 : 7;
     default:
         return cmerge2(n >> 1, c) + cmerge2(n - (n >> 1), c) +
-                (c == 0 ? 1 : n + 1);
+                (c == 0 ? 1 : 2 + n - 1);
     }
 }
 
-/* complexity of merge sort with ordered subsequence check and power of
- * 2 subsequences */
-static double cmerge3(int n, int c)
+static int ilog2(size_t n)
 {
     int i;
+    for (i = 0; n > 0; i++, n >>= 1)
+        continue;
+    return i;
+}
 
+/* complexity of optimized merge sort with ordered subsequence check
+ * and power of 2 subsequences and binary search threshold test.
+ */
+static double cmerge3(size_t n, int c)
+{
     switch (n) {
     case 0:
     case 1:
         return 0;
     case 2:
         return 1;
+    case 3:
+        return c == 0 ? 2 : c == 1 ? 2.5 : 3;
+    case 4:
+        return c == 0 ? 3 : c == 1 ? 35.0 / 6 : 7;
     default:
         if (n & (n - 1)) {
-            for (i = n; i & (i - 1); i &= i - 1)
+            size_t n1, n2, i, rec;
+
+            /* compute left part: largest block with size power of 2 */
+            for (n1 = n - 1; n1 & (n1 - 1); n1 &= n1 - 1)
                 continue;
+            n2 = n - n1;
+            rec = cmerge3(n1, c) + cmerge3(n2, c);
+            if (c == 0) {
+                return rec + 1;
+            }
+            i = (n1 + n2) / n2;
+            if (i > 30 || (1U << i) > n1 + 1) {
+                /* For n2 much smaller than n1, use binary searches */
+                return rec + 2 + ilog2(n1) * n2;
+            } else {
+                /* Else use standard merge with n-1 comparisons */
+                return rec + 2 + n - 1;
+            }
         } else {
-            i = n >> 1;
+            return 2 * cmerge3(n >> 1, c) + (c == 0 ? 1 : 2 + n - 1);
         }
-        return cmerge3(i, c) + cmerge3(n - i, c) + (c == 0 ? 1 : n + 1);
     }
 }
 
-static double nlog2n(int n)
+static double nlog2n(size_t n)
 {
     return n ? (n * log(n) / log(2)) : 0;
 }
@@ -509,10 +535,10 @@ int main(int argc, char **argv)
             (int)(load_elapsed / 1000), (int)(load_elapsed % 1000),
             n,
             (int)((1000LL * 1000 * nbytes) / (1024 * load_elapsed)),
-            "complexity  ", "N*log2(N)", nlog2n(n),
-            "", "cmerge1(N)", cmerge1(n, 1), cmerge1(n, 0), cmerge1(n, 2),
-            "", "cmerge2(N)", cmerge2(n, 1), cmerge2(n, 0), cmerge2(n, 2),
-            "", "cmerge3(N)", cmerge3(n, 1), cmerge3(n, 0), cmerge3(n, 2));
+            "complexity  ", "N*lg2(N/2)+1", nlog2n(n) - n + 1,
+            "standard mergesort  ", "cmerge1(N)", cmerge1(n, 1), cmerge1(n, 0), cmerge1(n, 2),
+            "skewed mergesort  ", "cmerge2(N)", cmerge2(n, 1), cmerge2(n, 0), cmerge2(n, 2),
+            "optimized mergesort  ", "cmerge3(N)", cmerge3(n, 1), cmerge3(n, 0), cmerge3(n, 2));
     fprintf(stderr, "\n");
 
     for (stp = sort_tests; stp->name; stp++) {
@@ -530,6 +556,63 @@ int main(int argc, char **argv)
             total_compare,
             (int)((1000LL * total_compare) / total_elapsed));
     fprintf(stderr, "\n");
+
+#ifdef ARRAY_SORT_IS_STABLE
+    /* Do the tests with array_sort */
+    total_elapsed = total_compare = 0;
+    for (stp = sort_tests; stp->name; stp++) {
+        if (stp->cmpf) {
+            compare_number = 0;
+            timer_start(&tv);
+            entry_array_sort(&words.entries, stp->cmpf, (void*)random_value);
+            total_elapsed += stp->elapsed = timer_stop(&tv);
+            total_compare += stp->compare_number = compare_number;
+        }
+        if (stp->checkf) {
+            /* Check result sequence for proper order and stability */
+            int (*checkf)(const entry_t *a, const entry_t *b, void *p) =
+                ARRAY_SORT_IS_STABLE ? stp->checkf : stp->cmpf;
+
+            for (n = 1; n < words.entries.len; n++) {
+                if ((*checkf)(words.entries.tab[n - 1],
+                              words.entries.tab[n], NULL) > 0) {
+                    fprintf(stderr, "%s:%d: out of order\n",
+                            stp->dump_name, n + 1);
+                    status = 1;
+                    break;
+                }
+            }
+            if (words.entries.len != entry_number) {
+                fprintf(stderr, "%s:%zd: missing entry\n",
+                        stp->dump_name, words.entries.len);
+                status = 1;
+            }
+        } else {
+            /* just re-number entries */
+            for (n = 0; n < words.entries.len; n++) {
+                words.entries.tab[n]->number = n + 1;
+            }
+        }
+        if (stp->dump_name && (dump_files || status)) {
+            dict_dump_file(&words, stp->dump_name, false);
+        }
+    }
+    for (stp = sort_tests; stp->name; stp++) {
+        if (stp->cmpf) {
+            fprintf(stderr, "%24s %5d.%03d ms, %9d cmps, %6d kcmp/s\n",
+                    stp->name,
+                    (int)(stp->elapsed / 1000), (int)(stp->elapsed % 1000),
+                    stp->compare_number,
+                    (int)((1000LL * stp->compare_number) / stp->elapsed));
+        }
+    }
+    fprintf(stderr, "%24s %5d.%03d ms, %9lld cmps, %6d kcmp/s\n",
+            "total =",
+            (int)(total_elapsed / 1000), (int)(total_elapsed % 1000),
+            total_compare,
+            (int)((1000LL * total_compare) / total_elapsed));
+    fprintf(stderr, "\n");
+#endif
 
     dict_wipe(&words);
 
