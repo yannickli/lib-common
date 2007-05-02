@@ -117,6 +117,7 @@ static inline long long vstrtoull(char *str, char **endp, int base) {
 #define strtoull(str, endp, base)  cstrtoull(str, endp, base)
 
 int strtoip(const char *p, const char **endp)  __attr_nonnull__((1));
+int64_t parse_number(const char *str);
 
 #define STRTOLP_IGNORE_SPACES  (1 << 0)
 #define STRTOLP_CHECK_END      (1 << 1)

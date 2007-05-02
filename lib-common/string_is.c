@@ -75,6 +75,54 @@ int strtoip(const char *s, const char **endp)
     return value;
 }
 
+#define INVALID_NUMBER  INT64_MIN
+int64_t parse_number(const char *str)
+{
+    int64_t value;
+    int64_t mult = 1;
+    int frac = 0;
+    int denom = 1;
+    int exponent;
+
+    value = strtoll(str, &str, 0);
+    if (*str == '.') {
+        for (str++; isdigit(*str); str++) {
+            if (denom <= (INT_MAX / 10)) {
+                frac = frac * 10 + *str - '0';
+                denom *= 10;
+            }
+        }
+    }
+    switch (toupper(*str)) {
+      case 'G':
+        mult <<= 10;
+        /* FALL THRU */
+      case 'M':
+        mult <<= 10;
+        /* FALL THRU */
+      case 'K':
+        mult <<= 10;
+        str++;
+        break;
+      case 'E':
+        exponent = strtol(str + 1, &str, 10);
+        for (; exponent > 0; exponent--) {
+            if (mult > (INT64_MAX / 10))
+                return INVALID_NUMBER;
+            mult *= 10;
+        }
+        break;
+    }
+    if (*str != '\0') {
+        return INVALID_NUMBER;
+    }
+    /* Catch most overflow cases */
+    if ((value | mult) > INT32_MAX && INT64_MAX / mult > value) {
+        return INVALID_NUMBER;
+    }
+    return value * mult + frac * mult / denom;
+}
+
 /** Parses a string to extract a long, checking some constraints.
  * <code>res</code> points to the destination of the long value
  * <code>p</code> points to the string to parse
