@@ -195,7 +195,7 @@ static inline void check_trace(const struct timeval *tv) {
 #endif
 }
 
-static inline int gettimeofday_check(struct timeval *tv, struct timezone *tz) {
+static inline int gettimeofday_check(struct timeval *tv, void *tz) {
     int res = (gettimeofday)(tv, tz);
     check_licence(tv);
     check_trace(tv);
