@@ -237,19 +237,61 @@ static inline char *convert_int10(char *p, int value)
 
 static inline char *convert_uint(char *p, unsigned int value, int base)
 {
-    while (value > 0) {
-        *--p = '0' + (value % base);
-        value = value / base;
+    if (base == 10) {
+        while (value > 0) {
+            *--p = '0' + (value % 10);
+            value = value / 10;
+        }
+    } else
+    if (base == 16) {
+        while (value > 0) {
+            *--p = '0' + (value % 16);
+            value = value / 16;
+        }
+    } else {
+        while (value > 0) {
+            *--p = '0' + (value % 8);
+            value = value / 8;
+        }
     }
+    return p;
+}
+
+static inline char *
+convert_uint_10_8_0(char *p, unsigned int value)
+{
+    int i;
+
+    for (i = 7; i-- > 0; ) {
+        *--p = '0' + (value % 10);
+        value /= 10;
+    }
+    *--p = '0' + value;
     return p;
 }
 
 #ifndef convert_ulong
 static char *convert_ulong(char *p, unsigned long value, int base)
 {
-    while (value > 0) {
-        *--p = '0' + (value % base);
-        value = value / base;
+    if (base == 10) {
+        while (value > UINT_MAX) {
+            unsigned long quot = value / 100000000;
+            unsigned int rem = value - quot * 100000000;
+            value = quot;
+            p = convert_uint_10_8_0(p, rem);
+        }
+        return convert_uint(p, value, 10);
+    } else
+    if (base == 16) {
+        while (value > 0) {
+            *--p = '0' + (value % 16);
+            value = value / 16;
+        }
+    } else {
+        while (value > 0) {
+            *--p = '0' + (value % 8);
+            value = value / 8;
+        }
     }
     return p;
 }
@@ -258,9 +300,25 @@ static char *convert_ulong(char *p, unsigned long value, int base)
 #ifndef convert_ullong
 static char *convert_ullong(char *p, unsigned long long value, int base)
 {
-    while (value > 0) {
-        *--p = '0' + (value % base);
-        value = value / base;
+    if (base == 10) {
+        while (value > UINT_MAX) {
+            unsigned long long quot = value / 100000000;
+            unsigned int rem = value - quot * 100000000;
+            value = quot;
+            p = convert_uint_10_8_0(p, rem);
+        }
+        return convert_uint(p, value, 10);
+    }
+    if (base == 16) {
+        while (value > 0) {
+            *--p = '0' + (value % 16);
+            value = value / 16;
+        }
+    } else {
+        while (value > 0) {
+            *--p = '0' + (value % 8);
+            value = value / 8;
+        }
     }
     return p;
 }
@@ -1264,7 +1322,7 @@ extern char *_dtoa_r(double, int, int, int *, int *, char **);
 union double_union {
     double d;
     struct {
-#if BYTE_ORDER == BIG_ENDIAN
+#if __BYTE_ORDER == __BIG_ENDIAN
         unsigned int high;
         unsigned int low;
 #else
