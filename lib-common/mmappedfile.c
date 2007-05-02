@@ -197,13 +197,6 @@ int mmfile_truncate(mmfile *mf, off_t length)
     msync(mf->area, mf->size, MS_SYNC);
     res = ftruncate(fd, length);
 
-    if (length < mf->size) {
-        close(fd);
-        /* ignore errors: we shrink */
-        mf->size = length;
-        return 0;
-    }
-
     if (res) {
         close(fd);
         return res;
