@@ -5113,14 +5113,17 @@ sprint_ll_type sprint_lls[] = {
     { 0, 0, NULL, NULL },
 };
 
+#include "timeval.h"
 
 int main(void)
 {
+    struct timeval tv;
     int testcount = 0;
     int status = 0;
 #define BSIZE 1024
 
 #ifdef STD_FUNC
+    int std_elapsed;
     int std_errcount = 0;
     char std_buffer[BSIZE];
     int (*std_func)(char *, size_t, const char *, ...) = (void*)STD_FUNC;
@@ -5130,6 +5133,7 @@ int main(void)
 #endif
 
 #ifdef ALT_FUNC
+    int alt_elapsed;
     int alt_errcount = 0;
     char alt_buffer[BSIZE];
     int (*alt_func)(char *, size_t, const char *, ...) = (void*)ALT_FUNC;
@@ -5155,29 +5159,43 @@ int main(void)
                 printf("  !=  \"%s\"\n", iptr->result);                     \
             }
 
-#define RUNTESTS(STYPE, SNAME, SFMT)                                        \
-    {                                                                       \
+#define RUNTESTS(STYPE, SNAME, SFMT, TEST)                                  \
+    do {                                                                    \
         STYPE *iptr;                                                        \
                                                                             \
         for (iptr = SNAME; iptr->line; iptr++) {                            \
             ++testcount;                                                    \
-            STD_TEST(SFMT);                                                 \
-            ALT_TEST(SFMT);                                                 \
+            TEST(SFMT);                                                     \
         }                                                                   \
-    }                                                                       \
+    } while (0)
 
-    RUNTESTS(sprint_int_type, sprint_ints, "%ld");
-    RUNTESTS(sprint_ll_type, sprint_lls, "%lld");
-
-    
-    printf("%d tests: ", testcount);
 #ifdef STD_FUNC
-    printf("%d " STR(STD_FUNC) " errors, ", std_errcount);
+    testcount = 0;
+    timer_start(&tv);
+
+    RUNTESTS(sprint_int_type, sprint_ints, "%ld", STD_TEST);
+    RUNTESTS(sprint_ll_type, sprint_lls, "%lld", STD_TEST);
+
+    std_elapsed = timer_stop(&tv);
+
+    printf(STR(STD_FUNC) ": %d tests, %d errors, %d.%03d ms.\n",
+           testcount, std_errcount,
+           std_elapsed / 1000, std_elapsed % 1000);
 #endif
+
 #ifdef ALT_FUNC
-    printf("%d " STR(ALT_FUNC) " errors, ", alt_errcount);
+    testcount = 0;
+    timer_start(&tv);
+
+    RUNTESTS(sprint_int_type, sprint_ints, "%ld", ALT_TEST);
+    RUNTESTS(sprint_ll_type, sprint_lls, "%lld", ALT_TEST);
+
+    alt_elapsed = timer_stop(&tv);
+
+    printf(STR(ALT_FUNC) ": %d tests, %d errors, %d.%03d ms.\n",
+           testcount, alt_errcount,
+           alt_elapsed / 1000, alt_elapsed % 1000);
 #endif
-    printf(".\n");
 
     return status;
 }
