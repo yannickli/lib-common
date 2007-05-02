@@ -227,7 +227,7 @@ int string_decode_ira(char *dst, const char *src)
     return len;
 }
 
-#if BYTE_ORDER == LITTLE_ENDIAN // Little endian, misaligned access OK
+#if __BYTE_ORDER == __LITTLE_ENDIAN // Little endian, misaligned access OK
 
 static int const win1252_to_gsm7[] = {
 

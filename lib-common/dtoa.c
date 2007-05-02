@@ -148,7 +148,7 @@ void freedtoa(char *s);
 char *dtoa(double d, int mode, int ndigits,
            int *decpt, int *sign, char **rve);
 
-#if BYTE_ORDER == BIG_ENDIAN
+#if __BYTE_ORDER == __BIG_ENDIAN
 #define IEEE_MC68k
 #else
 /* Should handle __FLOAT_WORD_ORDER special case */
