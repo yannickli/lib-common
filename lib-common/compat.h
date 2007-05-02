@@ -25,9 +25,9 @@ void intersec_initialize(void);
 
 #if !defined(__LITTLE_ENDIAN)
 #include <sys/param.h>
-#define __LITTLE_ENDIAN LITTLE_ENDIAN
-#define __BIG_ENDIAN BIG_ENDIAN
-#define __BYTE_ORDER BYTE_ORDER
+#define __LITTLE_ENDIAN  LITTLE_ENDIAN
+#define __BIG_ENDIAN     BIG_ENDIAN
+#define __BYTE_ORDER     BYTE_ORDER
 #endif
 
 #include <time.h>
