@@ -22,6 +22,7 @@
 #include <math.h>
 
 #include "mem.h"
+#include "timeval.h"
 #include "list.h"
 #include "array.h"
 
@@ -43,28 +44,6 @@ static int rand15(void) {
 static uint32_t rand32_seed = 1;
 static uint32_t rand32(void) {
     return rand32_seed = rand32_seed * 1664525 + 1013904223;
-}
-
-static inline long long timeval_diff64(struct timeval *tv2, struct timeval *tv1) {
-    return (tv2->tv_sec - tv1->tv_sec) * 1000000LL +
-            (tv2->tv_usec - tv1->tv_usec);
-}
-
-static inline int timeval_diff(struct timeval *tv2, struct timeval *tv1) {
-    return (tv2->tv_sec - tv1->tv_sec) * 1000000 +
-            (tv2->tv_usec - tv1->tv_usec);
-}
-
-static inline void timer_start(struct timeval *tp) {
-    gettimeofday(tp, NULL);
-}
-
-static inline long long timer_stop(struct timeval *tp) {
-    struct timeval stop;
-    long long diff;
-    gettimeofday(&stop, NULL);
-    diff = timeval_diff64(&stop, tp);
-    return diff ? diff : 1;
 }
 
 typedef struct entry_t entry_t;
@@ -305,21 +284,6 @@ static void dict_dump_file(dict_t *dict, const char *filename, bool fromlist)
         fclose(fp);
     }
 }
-
-static void timer_report(struct timeval *tv, const char *stage)
-{
-    long long elapsed = timer_stop(tv);
-
-    if (elapsed < 0)
-        elapsed = 1;
-
-    fprintf(stderr, "%d entries %-26s in %5d.%03d ms,  %d ke/s\n",
-            entry_number, stage,
-            (int)(elapsed / 1000), (int)(elapsed % 1000),
-            (int)((1000LL * entry_number) / elapsed));
-
-    timer_start(tv);
-}    
 
 struct sort_test {
     const char *name;
