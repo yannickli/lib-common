@@ -313,6 +313,47 @@ void pidx_close(pidx_file **f)
     }
 }
 
+int pidx_clone(pidx_file *pidx, const char *filename)
+{
+    FILE *f;
+    int16_t  wrlock;
+    int64_t  wrlockt;
+    int to_write;
+    int res = 0;
+
+    f = fopen(filename, "w+");
+    if (!f) {
+        return -1;
+    }
+
+    wrlock  = pidx->area->wrlock;
+    wrlockt = pidx->area->wrlockt;
+    pidx->area->wrlock  = 0;
+    pidx->area->wrlockt = 0;
+
+    to_write = pidx->size;
+    while (to_write > 0) {
+        int i = fwrite(pidx->area + (pidx->size - to_write),
+                   1, to_write, f);
+        if (i <= 0) {
+            res = -1;
+            goto exit;
+        }
+        to_write -= i;
+    }
+
+exit:
+    p_fclose(&f);
+    if (res < 0) {
+        /* Clean partial and corrupted file */
+        unlink(filename);
+    }
+    pidx->area->wrlock  = wrlock;
+    pidx->area->wrlockt = wrlockt;
+    msync(pidx->area, pidx->size, MS_SYNC);
+    return res;
+}
+
 /****************************************************************************/
 /* low level page related functions                                         */
 /****************************************************************************/

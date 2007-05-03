@@ -96,6 +96,7 @@ void pidx_close(pidx_file **f);
  */
 int pidx_fsck(pidx_file *pidx, int dofix);
 
+int pidx_clone(pidx_file *pidx, const char *filename);
 
 /****************************************************************************/
 /* low level page related functions                                         */
