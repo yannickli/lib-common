@@ -316,24 +316,33 @@ void pidx_close(pidx_file **f)
 int pidx_clone(pidx_file *pidx, const char *filename)
 {
     FILE *f;
-    int16_t  wrlock;
-    int64_t  wrlockt;
     int to_write;
     int res = 0;
+    pidx_t hdr;
 
     f = fopen(filename, "w+");
     if (!f) {
         return -1;
     }
 
-    wrlock  = pidx->area->wrlock;
-    wrlockt = pidx->area->wrlockt;
-    pidx->area->wrlock  = 0;
-    pidx->area->wrlockt = 0;
+    memcpy(&hdr, pidx->area, sizeof(hdr));
+    hdr.wrlock  = 0;
+    hdr.wrlockt = 0;
 
-    to_write = pidx->size;
+    to_write = sizeof(hdr);
     while (to_write > 0) {
-        int i = fwrite(pidx->area + (pidx->size - to_write),
+        int i = fwrite((byte *)&hdr + (sizeof(hdr) - to_write),
+                   1, to_write, f);
+        if (i <= 0) {
+            res = -1;
+            goto exit;
+        }
+        to_write -= i;
+    }
+
+    to_write = pidx->size - sizeof(hdr);
+    while (to_write > 0) {
+        int i = fwrite((byte *)pidx->area + (pidx->size - to_write),
                    1, to_write, f);
         if (i <= 0) {
             res = -1;
@@ -348,9 +357,6 @@ exit:
         /* Clean partial and corrupted file */
         unlink(filename);
     }
-    pidx->area->wrlock  = wrlock;
-    pidx->area->wrlockt = wrlockt;
-    msync(pidx->area, pidx->size, MS_SYNC);
     return res;
 }
 
