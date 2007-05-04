@@ -320,7 +320,7 @@ int pidx_clone(pidx_file *pidx, const char *filename)
     int res = 0;
     pidx_t hdr;
 
-    f = fopen(filename, "w+");
+    f = fopen(filename, "wb");
     if (!f) {
         return -1;
     }
