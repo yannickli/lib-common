@@ -51,6 +51,10 @@ static int find_elf_note(unsigned long findme, unsigned long *out)
 
 static void jiffies_to_tv(unsigned long long jiff, struct timeval *tv)
 {
+    if (!hertz) {
+        unix_initialize();
+    }
+
     tv->tv_sec  = jiff / hertz;
     tv->tv_usec = (jiff % hertz) * (1000000UL / hertz);
 }
@@ -89,11 +93,15 @@ void unix_initialize(void)
 int pid_get_starttime(pid_t pid, struct timeval *tv)
 {
     unsigned long long starttime;
-    FILE *stat = pidproc_open(pid ?: getpid(), "stat");
+    FILE *stat = pidproc_open(pid ? pid : getpid(), "stat");
     int res;
 
     if (!stat)
         return -1;
+
+    if (!hertz) {
+        unix_initialize();
+    }
 
     /* see proc(3), here we want starttime */
     res = fscanf(stat,
