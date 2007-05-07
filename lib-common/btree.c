@@ -924,7 +924,7 @@ void fbtree_close(fbtree_t **fbt)
 
 static int fbtree_readpage(fbtree_t *fbt, int32_t page, bt_page_t *buf)
 {
-    if (fseek(fbt->f, (page + 1) * ssizeof(*buf), SEEK_SET))
+    if (fseek(fbt->f, (BTPP_OFFS(page) + 1) * ssizeof(*buf), SEEK_SET))
         return -1;
 
     if (fread(buf, sizeof(*buf), 1, fbt->f) != 1)
