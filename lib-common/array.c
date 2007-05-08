@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <alloca.h>
+
 #include "macros.h"
 #include "string_is.h"
 #include "array.h"
@@ -314,9 +316,9 @@ void pqsort(void *base[], size_t n,
 
     /* allocate temporary array preferably on the stack */
     if (n2 > BUFSIZ / sizeof(void*)) {
-        tmp = malloc(n2 * sizeof(void*));
+        tmp = p_new(void *, n2);
     } else {
-        tmp = alloca(n2 * sizeof(void*));
+        tmp = p_alloca(void *, n2);
     }
     
     for (pos = 1; pos < n; pos += 2) {

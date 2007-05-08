@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include <errno.h>
+#include <alloca.h>
 
 #include "btree.h"
 #include "unix.h"
