@@ -321,6 +321,49 @@ int strtotm(const char *date, struct tm *t)
     return 0;
 }
 
+/*---------------- timers for benchmarks ----------------*/
+
+const char *proctimer_report(proctimer_t *tp, const char *fmt)
+{
+    static char buf[256];
+    int pos;
+    int elapsed;
+    const char *p;
+
+    if (!fmt) {
+        fmt = "real %rms, proc %pms, user %ums, sys %sms";
+    }
+
+    for (p = fmt, pos = 0; *p && pos < ssizeof(buf) - 1; p++) {
+        if (*p == '%') {
+            switch (*++p) {
+            case 'r':   /* real */
+                elapsed = tp->elapsed_real;
+                goto format_elapsed;
+            case 'u':   /* user */
+                elapsed = tp->elapsed_user;
+                goto format_elapsed;
+            case 's':   /* sys */
+                elapsed = tp->elapsed_sys;
+                goto format_elapsed;
+            case 'p':   /* process */
+                elapsed = tp->elapsed_proc;
+            format_elapsed:
+                snprintf(buf + pos, sizeof(buf) - pos, "%d.%03d",
+                         elapsed / 1000, elapsed % 1000);
+                pos += strlen(buf + pos);
+                continue;
+            case '%':
+            default:
+                break;
+            }
+        }
+        buf[pos++] = *p;
+    }
+    buf[pos] = '\0';
+    return buf;
+}
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 /* tests legacy functions                                              {{{*/

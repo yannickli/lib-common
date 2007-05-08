@@ -15,6 +15,7 @@
 #define IS_LIB_COMMON_TIMEVAL_H
 
 #include <sys/time.h>
+#include <sys/resource.h>
 #include <time.h>
 
 #include <lib-common/macros.h>
@@ -41,18 +42,6 @@ static inline int timeval_diff(const struct timeval *tv2,
             (tv2->tv_usec - tv1->tv_usec);
 }
 
-static inline void timer_start(struct timeval *tp) {
-    gettimeofday(tp, NULL);
-}
-
-static inline long long timer_stop(const struct timeval *tp) {
-    struct timeval stop;
-    long long diff;
-    gettimeofday(&stop, NULL);
-    diff = timeval_diff64(&stop, tp);
-    return diff ? diff : 1;
-}
-
 /* Return timestamp of the start of the day which contains
  * the timestamp 'date'.
  * If date == 0, 'date' is interpreted as 'now' */
@@ -67,6 +56,50 @@ time_t localtime_nextday(time_t date);
  * DD-MMM-[YY]YY with MMM the abbreviated month in English
  */
 int strtotm(const char *date, struct tm *t);
+
+/*---------------- timers for benchmarks ----------------*/
+
+/* we use gettimeofday() and getrusage() for accurate benchmark timings.
+ * - clock(); returns process time, but has a precision of only 10ms
+ * - clock_gettime() has a better precision: timespec can measure times
+ *   down to the nanosecond, but only real time is supported in linux
+ *   (CLOCK_REALTIME), CLOCK_PROCESS_CPUTIME_ID is not supported, and
+ *   librt must be specified at link time.
+ * - times() has a precision of 10ms and units must be retrieved with a
+ *   separate call to sysconf(_SC_CLK_TCK).
+ */
+typedef struct proctimer_t {
+    struct timeval tv, tv1;
+    struct rusage ru, ru1;
+    unsigned int elapsed_real;
+    unsigned int elapsed_user;
+    unsigned int elapsed_sys;
+    unsigned int elapsed_proc;
+} proctimer_t;
+
+static inline void proctimer_start(proctimer_t *tp) {
+    gettimeofday(&tp->tv, NULL);
+    getrusage(RUSAGE_SELF, &tp->ru);
+}
+
+static inline long long proctimer_stop(proctimer_t *tp) {
+    getrusage(RUSAGE_SELF, &tp->ru1);
+    gettimeofday(&tp->tv1, NULL);
+    tp->elapsed_real = timeval_diff(&tp->tv1, &tp->tv);
+    tp->elapsed_user = timeval_diff(&tp->ru1.ru_utime, &tp->ru.ru_utime);
+    tp->elapsed_sys = timeval_diff(&tp->ru1.ru_stime, &tp->ru.ru_stime);
+    tp->elapsed_proc = tp->elapsed_user + tp->elapsed_sys;
+    return tp->elapsed_proc;
+}
+
+/* report timings from proctimer_t using format string fmt:
+ * %r -> real time in ms
+ * %p -> process time in ms
+ * %u -> user time in ms
+ * %s -> system time in ms
+ * if fmt is NULL, use "real: %r ms, proc:%p ms, user:%u ms, sys: %s ms"
+ */
+const char *proctimer_report(proctimer_t *tp, const char *fmt);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
