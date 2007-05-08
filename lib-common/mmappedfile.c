@@ -194,9 +194,10 @@ int mmfile_truncate(mmfile *mf, off_t length)
         return -1;
     }
 
-    // OG: this causes unnecessary delays (wait I/O)
-    // what is the reason for synching the file synchronously anyway ?
-    //msync(mf->area, mf->size, MS_SYNC);
+    /* XXX: there is races between ftruncate and mmap when mmap is dirty, we
+            *must* perform the msync. Maybe a MS_ASYNC would be enough, I
+            really don't know I shall say */
+    msync(mf->area, mf->size, MS_SYNC);
     res = ftruncate(fd, length);
 
     if (res) {
