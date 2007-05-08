@@ -12,54 +12,71 @@
 /**************************************************************************/
 
 #include <stdio.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "btree.h"
-
-/**************************************************************************/
-/* Test module init functions                                             */
-/**************************************************************************/
-
-static btree_t *bt = NULL;
-
-static void test_initialize(void)
-{
-    const char *path = "/tmp/test.ibt";
-
-    if (bt)
-        btree_close(&bt);
-
-    unlink(path);
-    bt = btree_creat(path);
-    if (!bt)
-        e_panic("Cannot create %s", path);
-}
-
-static void test_shutdown(void)
-{
-    btree_close(&bt);
-}
-
+#include "timeval.h"
 
 /**************************************************************************/
 /* helpers                                                                */
 /**************************************************************************/
 
+#define BSWAP  1
+
 int main(void)
 {
-    int64_t num_keys = 5000000;
-    int64_t num_data = 4;
-    int64_t n, start = 0;
-    int64_t max = start + num_keys;
-    int32_t d;
+    proctimer_t pt;
+    struct stat st;
 
-    test_initialize();
+    int64_t start = 600000000LL;
+    int32_t n, num_keys = 5000000;
+    int32_t d, num_data = 4;
+    int nkeys, status = 0;
 
-    for (n = start; n < max; n++) {
-        for (d = 0; d < 1024 * num_data; d += 1024) {
-            btree_push(bt, n, (void*)&d, 4);
-        }
+    const char *filename = "/tmp/test.ibt";
+    btree_t *bt = NULL;
+
+    proctimer_start(&pt);
+
+    unlink(filename);
+    bt = btree_creat(filename);
+    if (!bt) {
+        fprintf(stderr, "Cannot create %s: %m\n", filename);
+        return 1;
     }
 
-    test_shutdown();
-    return 0;
+    nkeys = 0;
+
+    for (n = 0; n < num_keys; n++) {
+        for (d = 0; d < num_data; d++) {
+            int64_t num = n + start;
+            int32_t data = d << 10;
+
+            if (BSWAP) {
+                num = __bswap_64(num);
+            }
+
+            if (btree_push(bt, num, (void*)&data, sizeof(data))) {
+                printf("btree: failed to insert key %lld value %d\n",
+                       (long long)num, data);
+                status = 1;
+                goto done1;
+            }
+            nkeys++;
+        }
+    }
+done1:
+    proctimer_stop(&pt);
+    stat(filename, &st);
+
+    printf("inserted %d keys in index '%s' (%ld bytes)\n",
+           nkeys, filename, st.st_size);
+    printf("times: %s\n", proctimer_report(&pt, NULL));
+
+    btree_close(&bt);
+
+    return status;
 }
