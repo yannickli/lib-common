@@ -11,10 +11,36 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <netinet/in.h>
+
+#include "macros.h"
+#include "mem.h"
+#include "array.h"
 #include "isndx.h"
+#include "btree.h"
 #include "bstream.h"
+#include "timeval.h"
+#include "iprintf.h"
 
 #define USE_BSTREAM  0
+
+#define BSWAP  1
+
+typedef struct entry_t {
+    int64_t key;
+    int32_t data;
+} entry_t;
+
+GENERIC_INIT(entry_t, entry);
+GENERIC_WIPE(entry_t, entry);
+GENERIC_DELETE(entry_t, entry);
+ARRAY_TYPE(entry_t, entry);
+ARRAY_FUNCTIONS(entry_t, entry);
+
+static int entry_cmp(const entry_t *ep1, const entry_t *ep2, void *opaque)
+{
+    return CMP(ep1->key, ep2->key);
+}
 
 int main(int argc, char **argv)
 {
@@ -22,7 +48,9 @@ int main(int argc, char **argv)
     isndx_t *ndx;
     const char *filename = "/tmp/test.ndx";
     const char *command;
-    int nkeys = 0, status = 0;
+    int nkeys, status = 0;
+    proctimer_t pt;
+    struct stat st;
 
     if (argc < 2 || !strcmp(argv[1], "test"))
         goto do_test;
@@ -73,6 +101,8 @@ int main(int argc, char **argv)
     return 0;
 
   do_test:
+    proctimer_start(&pt);
+
 #if 0
     {
         char buf[MAX_KEYLEN + 1];
@@ -127,6 +157,7 @@ int main(int argc, char **argv)
             return 1;
         }
 
+        nkeys = 0;
         repeat = 300;
         for (i = 0; i < repeat; i++) {
 #if USE_BSTREAM
@@ -185,13 +216,9 @@ int main(int argc, char **argv)
     }
 #else
     {
-        int64_t num_keys = 1000000;
-        int64_t num_data = 4;
-        //int64_t start = 0x0600000000LL;
         int64_t start = 600000000LL;
-        int64_t n;
-        int32_t d;
-        byte key[8];
+        int32_t n, num_keys = 1000000;
+        int32_t d, num_data = 4;
 
         cp.flags      = 0;
         cp.pageshift  = 9;
@@ -215,10 +242,18 @@ int main(int argc, char **argv)
             return 1;
         }
 
+        nkeys = 0;
+
         for (n = 0; n < num_keys; n++) {
             for (d = 0; d < num_data; d++) {
                 int64_t num = n + start;
                 int32_t data = d << 10;
+                byte key[8];
+
+                if (BSWAP) {
+                    num = __bswap_64(num);
+                }
+
                 key[0] = num >> (7 * 8);
                 key[1] = num >> (6 * 8);
                 key[2] = num >> (5 * 8);
@@ -238,10 +273,15 @@ int main(int argc, char **argv)
                 nkeys++;
             }
         }
-    done:;
+      done:;
     }
 #endif
-    printf("isndx: inserted %d keys in index '%s'\n", nkeys, filename);
+    proctimer_stop(&pt);
+    stat(filename, &st);
+
+    printf("inserted %d keys in index '%s' (%ld bytes)\n",
+           nkeys, filename, st.st_size);
+    printf("times: %s\n", proctimer_report(&pt, NULL));
 
     if (isndx_check(ndx, ISNDX_CHECK_ALL)) {
         printf("isndx: final check failed\n");
@@ -251,5 +291,107 @@ int main(int argc, char **argv)
 
     isndx_close(&ndx);
 
+    {
+        int64_t start = 600000000LL;
+        int32_t n, num_keys = 1000000;
+        int32_t d, num_data = 4;
+
+        btree_t *bt = NULL;
+        filename = "/tmp/test.ibt";
+
+        unlink(filename);
+        bt = btree_creat(filename);
+        if (!bt)
+            e_panic("Cannot create %s", filename);
+
+        proctimer_start(&pt);
+
+        nkeys = 0;
+
+        for (n = 0; n < num_keys; n++) {
+            for (d = 0; d < num_data; d++) {
+                int64_t num = n + start;
+                int32_t data = d << 10;
+
+                if (BSWAP) {
+                    num = __bswap_64(num);
+                }
+
+                if (btree_push(bt, num, (void*)&data, sizeof(data))) {
+                    printf("isndx: failed to insert key %lld value %d\n",
+                           (long long)num, data);
+                    status = 1;
+                    goto done1;
+                }
+                nkeys++;
+            }
+        }
+      done1:
+        proctimer_stop(&pt);
+        stat(filename, &st);
+
+        printf("inserted %d keys in index '%s' (%ld bytes)\n",
+               nkeys, filename, st.st_size);
+        printf("times: %s\n", proctimer_report(&pt, NULL));
+
+        btree_close(&bt);
+    }
+    {
+        int64_t start = 600000000LL;
+        int32_t n, num_keys = 1000000;
+        int32_t d, num_data = 4;
+        entry_array entries;
+        entry_t *entry_tab;
+
+        FILE *fp;
+        filename = "/tmp/test.bin";
+
+        unlink(filename);
+        fp = fopen(filename, "wb");
+        if (!fp)
+            e_panic("Cannot create %s", filename);
+
+        proctimer_start(&pt);
+
+        nkeys = 0;
+        entry_tab = malloc(sizeof(entry_t) * num_keys * num_data);
+        entry_array_init(&entries);
+        entry_array_resize(&entries, num_keys * num_data);
+
+        for (n = 0; n < num_keys; n++) {
+            for (d = 0; d < num_data; d++) {
+                int64_t num = n + start;
+                int32_t data = d << 10;
+                //entry_t *ep = p_new(entry_t, 1);
+                entry_t *ep = &entry_tab[nkeys];
+
+                if (BSWAP) {
+                    num = __bswap_64(num);
+                }
+
+                ep->key = num;
+                ep->data = data;
+                //entry_array_append(&entries, ep);
+                entries.tab[nkeys] = ep;
+                nkeys++;
+            }
+        }
+        entry_array_sort(&entries, entry_cmp, NULL);
+        for (n = 0; n < num_keys; n++) {
+            fwrite(entries.tab[n], sizeof(entry_t), 1, fp);
+        }
+        //entry_array_wipe(&entries, true);
+        entry_array_wipe(&entries, false);
+        free(entry_tab);
+        p_fclose(&fp);
+
+        proctimer_stop(&pt);
+        stat(filename, &st);
+
+        printf("inserted %d keys in index '%s' (%ld bytes)\n",
+               nkeys, filename, st.st_size);
+        printf("times: %s\n", proctimer_report(&pt, NULL));
+
+    }
     return status;
 }
