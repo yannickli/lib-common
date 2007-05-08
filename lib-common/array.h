@@ -39,6 +39,8 @@ void generic_array_delete(generic_array **array, array_item_dtor_f *dtor);
 /* Misc                                                                   */
 /**************************************************************************/
 
+void generic_array_resize(generic_array *array, ssize_t newlen);
+
 void generic_array_insert(generic_array *array, ssize_t pos, void *item)
     __attr_nonnull__((1));
 
@@ -109,6 +111,11 @@ void generic_array_sort(generic_array *array,
     }                                                                         \
                                                                               \
     /* module functions */                                                    \
+    static inline void                                                        \
+    prefix##_array_resize(prefix##_array *array, ssize_t newlen)              \
+    {                                                                         \
+        generic_array_resize((generic_array *)array, newlen);                 \
+    }                                                                         \
     static inline void                                                        \
     prefix##_array_insert(prefix##_array *array, ssize_t pos, el_typ *item)   \
     {                                                                         \

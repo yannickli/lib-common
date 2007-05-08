@@ -82,6 +82,11 @@ void generic_array_delete(generic_array **array, array_item_dtor_f *dtor)
 /* Misc                                                                   */
 /**************************************************************************/
 
+void generic_array_resize(generic_array *array, ssize_t newlen)
+{
+    array_resize(array, newlen);
+}
+
 void *generic_array_take(generic_array *array, ssize_t pos)
 {
     void *ptr;
