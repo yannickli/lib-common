@@ -194,7 +194,9 @@ int mmfile_truncate(mmfile *mf, off_t length)
         return -1;
     }
 
-    msync(mf->area, mf->size, MS_SYNC);
+    // OG: this causes unnecessary delays (wait I/O)
+    // what is the reason for synching the file synchronously anyway ?
+    //msync(mf->area, mf->size, MS_SYNC);
     res = ftruncate(fd, length);
 
     if (res) {
