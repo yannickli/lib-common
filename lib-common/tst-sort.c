@@ -412,7 +412,7 @@ static double nlog2n(size_t n)
 int main(int argc, char **argv)
 {
     dict_t words;
-    struct timeval tv;
+    proctimer_t pt;
     long long load_elapsed, total_elapsed, total_compare;
     intptr_t random_value = rand32();
     int nbytes = 0, nlogn;
@@ -423,7 +423,7 @@ int main(int argc, char **argv)
 
     dict_init(&words);
 
-    timer_start(&tv);
+    proctimer_start(&pt);
 
     if (argv[1] && isdigit(*argv[1])) {
         repeat_entry = strtol(*++argv, NULL, 0);
@@ -444,16 +444,16 @@ int main(int argc, char **argv)
             nbytes += dict_load_file(&words, *argv);
         }
     }
-    load_elapsed = timer_stop(&tv);
+    load_elapsed = proctimer_stop(&pt);
 
     /* Do the tests with list_sort */
     total_elapsed = total_compare = 0;
     for (stp = sort_tests; stp->name; stp++) {
         if (stp->cmpf) {
             compare_number = 0;
-            timer_start(&tv);
+            proctimer_start(&pt);
             entry_list_sort(&words.head, stp->cmpf, (void*)random_value);
-            total_elapsed += stp->elapsed = timer_stop(&tv);
+            total_elapsed += stp->elapsed = proctimer_stop(&pt);
             total_compare += stp->compare_number = compare_number;
         }
         if (words.head) {
@@ -527,9 +527,9 @@ int main(int argc, char **argv)
     for (stp = sort_tests; stp->name; stp++) {
         if (stp->cmpf) {
             compare_number = 0;
-            timer_start(&tv);
+            proctimer_start(&pt);
             entry_array_sort(&words.entries, stp->cmpf, (void*)random_value);
-            total_elapsed += stp->elapsed = timer_stop(&tv);
+            total_elapsed += stp->elapsed = proctimer_stop(&pt);
             total_compare += stp->compare_number = compare_number;
         }
         if (stp->checkf) {

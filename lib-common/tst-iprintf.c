@@ -5117,7 +5117,7 @@ sprint_ll_type sprint_lls[] = {
 
 int main(void)
 {
-    struct timeval tv;
+    proctimer_t pt;
     int testcount = 0;
     int status = 0;
 #define BSIZE 1024
@@ -5171,12 +5171,12 @@ int main(void)
 
 #ifdef STD_FUNC
     testcount = 0;
-    timer_start(&tv);
+    proctimer_start(&pt);
 
     RUNTESTS(sprint_int_type, sprint_ints, "%ld", STD_TEST);
     RUNTESTS(sprint_ll_type, sprint_lls, "%lld", STD_TEST);
 
-    std_elapsed = timer_stop(&tv);
+    std_elapsed = proctimer_stop(&pt);
 
     printf(STR(STD_FUNC) ": %d tests, %d errors, %d.%03d ms.\n",
            testcount, std_errcount,
@@ -5185,12 +5185,12 @@ int main(void)
 
 #ifdef ALT_FUNC
     testcount = 0;
-    timer_start(&tv);
+    proctimer_start(&pt);
 
     RUNTESTS(sprint_int_type, sprint_ints, "%ld", ALT_TEST);
     RUNTESTS(sprint_ll_type, sprint_lls, "%lld", ALT_TEST);
 
-    alt_elapsed = timer_stop(&tv);
+    alt_elapsed = proctimer_stop(&pt);
 
     printf(STR(ALT_FUNC) ": %d tests, %d errors, %d.%03d ms.\n",
            testcount, alt_errcount,

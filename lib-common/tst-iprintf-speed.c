@@ -44,7 +44,7 @@ typedef struct mcms_event_t {
 int main(int argc, char **argv)
 {
     char buf[BUFSIZ];
-    struct timeval tv;
+    proctimer_t pt;
     int elapsed, i, count, len;
     long nbytes;
     mcms_event_t ev, *event = &ev;
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
     event->stamp = 1178096605;
 
     nbytes = 0;
-    timer_start(&tv);
+    proctimer_start(&pt);
 
     for (i = 0; i < count; i++) {
         event->type = "ABDG"[i & 3];
@@ -86,13 +86,13 @@ int main(int argc, char **argv)
         }
     }
 
-    elapsed = timer_stop(&tv);
+    elapsed = proctimer_stop(&pt);
 
     fprintf(stderr, "snprintf: %d tests, %ld bytes, %d.%03d ms.\n",
             count, nbytes, elapsed / 1000, elapsed % 1000);
 
     nbytes = 0;
-    timer_start(&tv);
+    proctimer_start(&pt);
 
     for (i = 0; i < count; i++) {
         event->type = "ABDG"[i & 3];
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
         }
     }
 
-    elapsed = timer_stop(&tv);
+    elapsed = proctimer_stop(&pt);
 
     fprintf(stderr, "isnprintf: %d tests, %ld bytes, %d.%03d ms.\n",
             count, nbytes, elapsed / 1000, elapsed % 1000);
