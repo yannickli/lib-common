@@ -339,7 +339,7 @@ void pqsort(void *base[], size_t n,
     }
     /* free temporary array if allocated from the heap */
     if (n2 > BUFSIZ / sizeof(void*)) {
-        free(tmp);
+        p_delete(&tmp);
     }
 }
 
