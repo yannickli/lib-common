@@ -77,7 +77,7 @@ mmfile *mmfile_creat(const char *path, off_t initialsize)
     if (fd < 0)
         goto error;
 
-    if (ftruncate(fd, initialsize))
+    if (posix_fallocate(fd, 0, initialsize))
         goto error;
 
     mf->size = initialsize;
@@ -135,7 +135,7 @@ mmfile *mmfile_open_or_creat(const char *path, int flags,
     }
 
     if (st.st_size < initialsize) {
-        if (ftruncate(fd, initialsize)) {
+        if (posix_fallocate(fd, 0, initialsize)) {
             goto error;
         }
         mf->size = initialsize;
@@ -198,7 +198,11 @@ int mmfile_truncate(mmfile *mf, off_t length)
             *must* perform the msync. Maybe a MS_ASYNC would be enough, I
             really don't know I shall say */
     msync(mf->area, mf->size, MS_SYNC);
-    res = ftruncate(fd, length);
+    if (length > mf->size) {
+        res = posix_fallocate(fd, mf->size, length - mf->size);
+    } else {
+        res = ftruncate(fd, length);
+    }
 
     if (res) {
         close(fd);
