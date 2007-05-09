@@ -470,9 +470,20 @@ void btree_close(btree_t **bt)
 {
     if (*bt) {
         if ((*bt)->area->wrlock && !(*bt)->ro) {
-            msync((*bt)->area, (*bt)->size, MS_SYNC);
-            (*bt)->area->wrlock  = 0;
-            (*bt)->area->wrlockt = 0;
+            pid_t pid = getpid();
+
+            if ((*bt)->area->wrlock == pid) {
+                struct timeval tv;
+
+                pid_get_starttime(pid, &tv);
+                if ((*bt)->area->wrlockt ==
+                    (((int64_t)tv.tv_sec << 32) | tv.tv_usec))
+                {
+                    msync((*bt)->area, (*bt)->size, MS_SYNC);
+                    (*bt)->area->wrlock  = 0;
+                    (*bt)->area->wrlockt = 0;
+                }
+            }
         }
         bt_real_close(bt);
     }
