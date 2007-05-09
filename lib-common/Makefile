@@ -46,6 +46,7 @@ libcommon_SOURCES = \
 	ioveclist.c \
 	list.c \
 	log_file.c \
+	log_limit.c \
 	mmappedfile.c \
 	paged-index.c \
 	string_is.c \
