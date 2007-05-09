@@ -14,16 +14,17 @@
 #include <check.h>
 #include <stdlib.h>
 
-#include "blob.h"
-#include "string_is.h"
-#include "fifo.h"
 #include "archive.h"
-#include "licence.h"
-#include "xml.h"
-#include "timeval.h"
 #include "bfield.h"
-#include "str_array.h"
+#include "blob.h"
 #include "conf.h"
+#include "fifo.h"
+#include "licence.h"
+#include "log_limit.h"
+#include "str_array.h"
+#include "string_is.h"
+#include "timeval.h"
+#include "xml.h"
 
 int main(void)
 {
@@ -42,6 +43,7 @@ int main(void)
     srunner_add_suite(sr, check_bfield_suite());
     srunner_add_suite(sr, check_str_array_suite());
     srunner_add_suite(sr, check_conf_suite());
+    srunner_add_suite(sr, check_log_limit_suite());
 
     srunner_run_all(sr, CK_NORMAL);
     nf = srunner_ntests_failed(sr);
