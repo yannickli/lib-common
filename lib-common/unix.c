@@ -13,6 +13,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
@@ -156,17 +157,61 @@ const char *get_ext(const char *filename)
     return lastdot ? lastdot : base;
 }
 
+/**
+ * Copy file pathin to pathout. If pathout already exists, it will
+ * be overwriten
+ *
+ * Note: Use the same mode as the input file
+ */
+int filecopy(const char *pathin, const char *pathout)
+{
+    int fdin = -1, fdout = -1;
+    struct stat st;
+    char buf[BUFSIZ];
+    int nbread;
+
+    fdin = open(pathin, O_RDONLY);
+    if (fdin < 0)
+        goto error;
+
+    if (fstat(fdin, &st))
+        goto error;
+
+    fdout = open(pathout, O_WRONLY | O_CREAT | O_TRUNC, st.st_mode);
+    if (fdout < 0)
+        goto error;
+
+    while ((nbread = read(fdin, buf, sizeof(buf))) > 0) {
+        if (write(fdout, buf, nbread) < 0)
+            goto error;
+    }
+    close(fdin);
+    close(fdout);
+
+    /* XXX: Could check written length against the original file size */
+    return nbread;
+
+error:
+    if (fdin >= 0) {
+        close(fdin);
+    }
+    if (fdout >= 0) {
+        close(fdout);
+    }
+    return -1;
+}
+
 #if 0
 #include <stdio.h>
 int main(int argc, char **argv)
 {
     int ret;
 
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s DIR\n", argv[0]);
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s FROM TO\n", argv[0]);
         return 1;
     }
-    ret = mkdir_p(argv[1], 0750);
+    ret = filecopy(argv[1], argv[2]);
     printf("ret:%d\n", ret);
     return 0;
 }

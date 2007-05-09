@@ -42,6 +42,7 @@ static inline char *vget_ext(char *path) {
     return (char*)get_ext(path);
 }
 
+int filecopy(const char *pathin, const char *pathout);
 
 /****************************************************************************/
 /* Misc                                                                     */
