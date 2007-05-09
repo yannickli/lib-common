@@ -217,6 +217,7 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
     res = pidx_fsck(pidx, O_ISWRITE(flags));
     if (res < 0) {
         /* lock check failed, file was not closed properly */
+        e_error("Cannot open '%s': already locked", path);
         pidx_close(&pidx);
         errno = EINVAL;
         return NULL;
@@ -305,9 +306,20 @@ void pidx_close(pidx_file **f)
 {
     if (*f) {
         if ((*f)->area->wrlock && !(*f)->ro) {
-            msync((*f)->area, (*f)->size, MS_SYNC);
-            (*f)->area->wrlock  = 0;
-            (*f)->area->wrlockt = 0;
+            pid_t pid = getpid();
+
+            if ((*f)->area->wrlock == pid) {
+                struct timeval tv;
+
+                pid_get_starttime(pid, &tv);
+                if ((*f)->area->wrlockt ==
+                    (((int64_t)tv.tv_sec << 32) | tv.tv_usec))
+                {
+                    msync((*f)->area, (*f)->size, MS_SYNC);
+                    (*f)->area->wrlock  = 0;
+                    (*f)->area->wrlockt = 0;
+                }
+            }
         }
         pidx_real_close(f);
     }
