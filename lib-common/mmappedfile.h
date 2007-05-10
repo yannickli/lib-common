@@ -66,6 +66,7 @@ void mmfile_close(mmfile **mf);
  * XXX: mmfile may sometimes be wiped if remap fails !
  *      in that particular case, it returns -2 instead of -1
  */
+__attribute__((warn_unused_result))
 int mmfile_truncate(mmfile *mf, off_t length);
 
 #define MMFILE_FUNCTIONS(type, prefix) \
@@ -89,6 +90,7 @@ int mmfile_truncate(mmfile *mf, off_t length);
         mmfile_close((mmfile **)mmf);                                   \
     }                                                                   \
                                                                         \
+    __attribute__((warn_unused_result))                                 \
     static inline int prefix##_truncate(type *mf, off_t length) {       \
         return mmfile_truncate((mmfile *)mf, length);                   \
     }
