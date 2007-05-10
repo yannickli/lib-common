@@ -23,7 +23,7 @@ void log_limit_init(log_limit_t *ll, int max_perline, int max_glob)
     ll->max_glob = max_glob;
     log_line_array_init(&ll->lines);
     ll->count = 0;
-    ll->maxlines = 10;
+    ll->maxlines = 30;
     ll->unmatched = 0;
 }
 
@@ -53,7 +53,6 @@ int log_limit_log(log_limit_t *ll, const char *msg)
 
     hash = log_line_hash(msg);
 
-    ll->count++;
     /* Look for this message in our list */
     for (i = 0; i < ll->lines.len; i++) {
         cur = ll->lines.tab[i];
@@ -69,12 +68,13 @@ int log_limit_log(log_limit_t *ll, const char *msg)
     cur->content_hash = hash;
     cur->content = strdup(msg);
     cur->count = 0;
-    log_line_array_push(&ll->lines, cur);
+    log_line_array_append(&ll->lines, cur);
 found:
     cur->count++;
     if (ll->count > ll->max_glob || cur->count > ll->max_perline) {
         return 0;
     }
+    ll->count++;
     return 1;
 }
 
@@ -101,7 +101,7 @@ char *log_limit_flushbuf(log_limit_t *ll, const char *lineprefix,
             continue;
         }
         nb = snprintf(pos, size, "%s%s (%d times)\n", lineprefix,
-                      cur->content, cur->count - 1);
+                      cur->content, cur->count - ll->max_perline);
         if (nb < size) {
             size -= nb;
             pos += nb;
@@ -135,7 +135,6 @@ void log_limit_reset(log_limit_t *ll)
     log_line_array_wipe(&ll->lines, true);
     log_line_array_init(&ll->lines);
     ll->count = 0;
-    ll->maxlines = 10;
     ll->unmatched = 0;
 }
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
