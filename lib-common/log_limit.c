@@ -60,7 +60,7 @@ int log_limit_log(log_limit_t *ll, const char *msg)
             goto found;
         }
     }
-    if (ll->count > ll->max_glob || ll->lines.len > ll->maxlines) {
+    if (ll->count >= ll->max_glob || ll->lines.len > ll->maxlines) {
         ll->unmatched++;
         return 0;
     }
