@@ -168,7 +168,8 @@ int filecopy(const char *pathin, const char *pathout)
     int fdin = -1, fdout = -1;
     struct stat st;
     char buf[BUFSIZ];
-    int nbread;
+    const char *p;
+    int nread, nwrite, total;
 
     fdin = open(pathin, O_RDONLY);
     if (fdin < 0)
@@ -181,15 +182,40 @@ int filecopy(const char *pathin, const char *pathout)
     if (fdout < 0)
         goto error;
 
-    while ((nbread = read(fdin, buf, sizeof(buf))) > 0) {
-        if (write(fdout, buf, nbread) < 0)
+    total = 0;
+    for(;;) {
+        nread = read(fdin, buf, sizeof(buf));
+        if (nread == 0)
+            break;
+        if (nread < 0) {
+            if (errno == EINTR || errno == EAGAIN)
+                continue;
             goto error;
+        }
+        for (p = buf; p - buf < nread; ) {
+            nwrite = write(fdout, p, nread - (p - buf));
+            if (nwrite == 0) {
+                goto error;
+            }
+            if (nwrite < 0) {
+                if (errno == EINTR || errno == EAGAIN)
+                    continue;
+                goto error;
+            }
+            p += nwrite;
+        }
+        total += nread;
     }
+
+    if (total != st.st_size) {
+        /* This should not happen... But who knows ? */
+        goto error;   
+    }
+
     close(fdin);
     close(fdout);
 
-    /* XXX: Could check written length against the original file size */
-    return nbread;
+    return total;
 
 error:
     if (fdin >= 0) {
