@@ -291,10 +291,16 @@ void blob_splice_data(blob_t *blob, ssize_t pos, ssize_t len,
     memcpy(blob->data + pos, data, datalen);
 }
 
-void blob_append_cstr_escaped(blob_t *blob, const char *cstr,
-                              const char *toescape)
+/* Escape "toescape" chars with '\' followed by corresponding char in
+ * "escaped" string. "escaped" string is of the same length as "toescape",
+ * and can contain '\0' which means "delete this char".
+ * XXX: Should think about a better API.
+ */
+void blob_append_cstr_escaped2(blob_t *blob, const char *cstr,
+                               const char *toescape, const char *escaped)
 {
-    const char *p;
+    const char *p, *escaped_char;
+    char replacement;
     size_t off;
 
     if (!cstr)
@@ -304,8 +310,12 @@ void blob_append_cstr_escaped(blob_t *blob, const char *cstr,
     p = cstr + off;
     while (*p) {
         blob_append_data(blob, cstr, off);
-        blob_append_byte(blob, '\\');
-        blob_append_byte(blob, *p);
+        escaped_char = strchr(toescape, *p);
+        replacement = *(escaped + (escaped_char - toescape));
+        if (replacement) {
+            blob_append_byte(blob, '\\');
+            blob_append_byte(blob, *(escaped + (escaped_char - toescape)));
+        }
         cstr = p + 1;
 
         off = strcspn(cstr, toescape);
