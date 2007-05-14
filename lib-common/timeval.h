@@ -59,7 +59,6 @@ time_t localtime_nextday(time_t date);
  */
 int strtotm(const char *date, struct tm *t);
 
-#ifndef MINGCC
 /*---------------- timers for benchmarks ----------------*/
 
 /* we use gettimeofday() and getrusage() for accurate benchmark timings.
@@ -73,7 +72,9 @@ int strtotm(const char *date, struct tm *t);
  */
 typedef struct proctimer_t {
     struct timeval tv, tv1;
+#ifndef MINGCC
     struct rusage ru, ru1;
+#endif
     unsigned int elapsed_real;
     unsigned int elapsed_user;
     unsigned int elapsed_sys;
@@ -82,16 +83,25 @@ typedef struct proctimer_t {
 
 static inline void proctimer_start(proctimer_t *tp) {
     gettimeofday(&tp->tv, NULL);
+#ifndef MINGCC
     getrusage(RUSAGE_SELF, &tp->ru);
+#endif
 }
 
 static inline long long proctimer_stop(proctimer_t *tp) {
+#ifndef MINGCC
     getrusage(RUSAGE_SELF, &tp->ru1);
+#endif
     gettimeofday(&tp->tv1, NULL);
     tp->elapsed_real = timeval_diff(&tp->tv1, &tp->tv);
+#ifndef MINGCC
     tp->elapsed_user = timeval_diff(&tp->ru1.ru_utime, &tp->ru.ru_utime);
     tp->elapsed_sys = timeval_diff(&tp->ru1.ru_stime, &tp->ru.ru_stime);
     tp->elapsed_proc = tp->elapsed_user + tp->elapsed_sys;
+#else
+    tp->elapsed_sys = 0;
+    tp->elapsed_proc = tp->elapsed_user = tp->elapsed_real;
+#endif
     return tp->elapsed_proc;
 }
 
@@ -103,7 +113,6 @@ static inline long long proctimer_stop(proctimer_t *tp) {
  * if fmt is NULL, use "real: %r ms, proc:%p ms, user:%u ms, sys: %s ms"
  */
 const char *proctimer_report(proctimer_t *tp, const char *fmt);
-#endif
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

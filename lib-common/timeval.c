@@ -321,7 +321,6 @@ int strtotm(const char *date, struct tm *t)
     return 0;
 }
 
-#ifndef MINGCC
 /*---------------- timers for benchmarks ----------------*/
 
 const char *proctimer_report(proctimer_t *tp, const char *fmt)
@@ -332,7 +331,11 @@ const char *proctimer_report(proctimer_t *tp, const char *fmt)
     const char *p;
 
     if (!fmt) {
+#ifdef MINGCC
+        fmt = "real %rms";
+#else
         fmt = "real %rms, proc %pms, user %ums, sys %sms";
+#endif
     }
 
     for (p = fmt, pos = 0; *p && pos < ssizeof(buf) - 1; p++) {
@@ -364,7 +367,6 @@ const char *proctimer_report(proctimer_t *tp, const char *fmt)
     buf[pos] = '\0';
     return buf;
 }
-#endif
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
