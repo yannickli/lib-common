@@ -159,9 +159,11 @@ const char *get_ext(const char *filename)
 
 /**
  * Copy file pathin to pathout. If pathout already exists, it will
- * be overwriten
+ * be overwritten.
  *
- * Note: Use the same mode as the input file
+ * Note: Use the same mode bits as the input file.
+ * OG: since this function returns the number of bytes copied, the
+ * return type should be off_t.
  */
 int filecopy(const char *pathin, const char *pathout)
 {
@@ -171,19 +173,23 @@ int filecopy(const char *pathin, const char *pathout)
     const char *p;
     int nread, nwrite, total;
 
-    fdin = open(pathin, O_RDONLY);
+    fdin = open(pathin, O_RDONLY | O_BINARY);
     if (fdin < 0)
         goto error;
 
     if (fstat(fdin, &st))
         goto error;
 
-    fdout = open(pathout, O_WRONLY | O_CREAT | O_TRUNC, st.st_mode);
+    /* OG: this will not work if the source file is not writeable ;-) */
+    /* OG: copying the file times might be useful too */
+    /* OG: should test if source and destination files are the same
+     * file before truncating destination file ;-) */
+    fdout = open(pathout, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, st.st_mode);
     if (fdout < 0)
         goto error;
 
     total = 0;
-    for(;;) {
+    for (;;) {
         nread = read(fdin, buf, sizeof(buf));
         if (nread == 0)
             break;
@@ -207,6 +213,7 @@ int filecopy(const char *pathin, const char *pathout)
         total += nread;
     }
 
+    /* OG: total should be an off_t */
     if (total != st.st_size) {
         /* This should not happen... But who knows ? */
         goto error;   
@@ -217,13 +224,14 @@ int filecopy(const char *pathin, const char *pathout)
 
     return total;
 
-error:
+  error:
     if (fdin >= 0) {
         close(fdin);
     }
     if (fdout >= 0) {
         close(fdout);
     }
+    /* OG: destination file should be removed upon error ? */
     return -1;
 }
 
@@ -231,6 +239,16 @@ error:
 #include <stdio.h>
 int main(int argc, char **argv)
 {
+#if 0
+    int ret;
+
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s DIR\n", argv[0]);
+        return 1;
+    }
+    ret = mkdir_p(argv[1], 0750);
+    printf("ret:%d\n", ret);
+#else
     int ret;
 
     if (argc != 3) {
@@ -239,6 +257,7 @@ int main(int argc, char **argv)
     }
     ret = filecopy(argv[1], argv[2]);
     printf("ret:%d\n", ret);
+#endif
     return 0;
 }
 #endif
