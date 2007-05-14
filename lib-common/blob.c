@@ -296,6 +296,9 @@ void blob_splice_data(blob_t *blob, ssize_t pos, ssize_t len,
  * and can contain '\0' which means "delete this char".
  * XXX: Should think about a better API.
  */
+/* OG: this API sucks indeed, a more generic and faster method is
+ * advisable to quote log message contents.
+ */
 void blob_append_cstr_escaped2(blob_t *blob, const char *cstr,
                                const char *toescape, const char *escaped)
 {
