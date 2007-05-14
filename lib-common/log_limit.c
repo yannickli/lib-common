@@ -137,6 +137,7 @@ void log_limit_reset(log_limit_t *ll)
     ll->count = 0;
     ll->unmatched = 0;
 }
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 
