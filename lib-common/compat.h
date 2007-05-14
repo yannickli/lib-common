@@ -91,7 +91,7 @@ void globfree(glob_t *pglob);
 
 #endif
 
-#ifdef LINUX
+#if !defined(MINGCC) && defined(LINUX)
 
 #define O_BINARY 0
 
