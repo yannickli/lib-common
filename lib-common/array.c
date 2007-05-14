@@ -306,6 +306,9 @@ void pqsort(void *base[], size_t n,
             int (*comp)(const void *p1, const void *p2, void *parm),
             void *parm))
 {
+#ifdef MINGCC
+    void *tmp_buffer[BUFSIZ / sizeof(void*)];
+#endif
     void **tmp;
     size_t step, pos, n2;
 
@@ -316,16 +319,16 @@ void pqsort(void *base[], size_t n,
     for (n2 = n - 1; n2 & (n2 - 1); n2 &= n2 - 1)
         continue;
 
-#ifndef MINGCC
     /* allocate temporary array preferably on the stack */
     if (n2 > BUFSIZ / sizeof(void*)) {
         tmp = p_new(void *, n2);
     } else {
-        tmp = p_alloca(void *, n2);
-    }
+#ifdef MINGCC
+        tmp = tmp_buffer;
 #else
-    tmp = p_new(void *, n2);
+        tmp = p_alloca(void *, n2);
 #endif
+    }
     
     for (pos = 1; pos < n; pos += 2) {
         if (comp(base + pos - 1, base + pos, parm) > 0) {
