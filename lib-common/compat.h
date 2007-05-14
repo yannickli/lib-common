@@ -91,4 +91,10 @@ void globfree(glob_t *pglob);
 
 #endif
 
+#ifdef LINUX
+
+#define O_BINARY 0
+
+#endif
+
 #endif /* IS_LIB_COMMON_COMPAT_H */
