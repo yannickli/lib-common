@@ -237,6 +237,9 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
             return NULL;
         }
 
+        /* OG: problem if file is open for write multiple times from
+         * the same pid: the first close will unlock it
+         */
         pidx->area->wrlock = pid;
         /* OG: why not patch wrlockt at the same time ?
          * should have a single 64 bit entry with both pid and time
@@ -318,6 +321,10 @@ void pidx_close(pidx_file **f)
                     msync((*f)->area, (*f)->size, MS_SYNC);
                     (*f)->area->wrlock  = 0;
                     (*f)->area->wrlockt = 0;
+                } else {
+                    /* OG: if same pid but different starttime, should
+                     * unlock as well!
+                     */
                 }
             }
         }
