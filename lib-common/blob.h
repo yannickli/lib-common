@@ -187,8 +187,7 @@ static inline void blob_append_byte(blob_t *blob, byte b) {
 void blob_append_cstr_escaped2(blob_t *blob, const char *cstr,
                                const char *toescape, const char *escaped);
 static inline void blob_append_cstr_escaped(blob_t *blob, const char *cstr,
-                                            const char *toescape)
-{
+                                            const char *toescape) {
     blob_append_cstr_escaped2(blob, cstr, toescape, toescape);
 }
 
