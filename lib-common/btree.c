@@ -481,6 +481,10 @@ void btree_close(btree_t **bt)
                     msync((*bt)->area, (*bt)->size, MS_SYNC);
                     (*bt)->area->wrlock  = 0;
                     (*bt)->area->wrlockt = 0;
+                } else {
+                    /* OG: if same pid but different starttime, should
+                     * unlock as well!
+                     */
                 }
             }
         }
