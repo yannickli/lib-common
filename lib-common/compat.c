@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <errno.h>
 
 void intersec_initialize(void)
 {
@@ -48,6 +49,11 @@ void *mremap(void *__addr, size_t __old_len, size_t __new_len,
              int __flags, ...)
 {
     return NULL;
+}
+
+int posix_fallocate(int fd, off_t offset, off_t len)
+{
+    return EINVAL;
 }
 
 /* Windows API do not have gettimeofday support */

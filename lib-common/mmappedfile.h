@@ -24,6 +24,8 @@ extern int munmap(void *__addr, size_t __len);
 extern int msync(void *__addr, size_t __len, int __flags);
 extern void *mremap(void *__addr, size_t __old_len, size_t __new_len,
 		    int __flags, ...);
+extern int posix_fallocate(int fd, off_t offset, off_t len);
+
 /* Flags to `msync'.  */
 #define MS_ASYNC	1		/* Sync memory asynchronously.  */
 #define MS_SYNC		4		/* Synchronous memory sync.  */

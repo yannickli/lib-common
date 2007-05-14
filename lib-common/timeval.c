@@ -321,6 +321,7 @@ int strtotm(const char *date, struct tm *t)
     return 0;
 }
 
+#ifndef MINGCC
 /*---------------- timers for benchmarks ----------------*/
 
 const char *proctimer_report(proctimer_t *tp, const char *fmt)
@@ -363,6 +364,7 @@ const char *proctimer_report(proctimer_t *tp, const char *fmt)
     buf[pos] = '\0';
     return buf;
 }
+#endif
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

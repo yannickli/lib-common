@@ -15,8 +15,10 @@
 #define IS_LIB_COMMON_TIMEVAL_H
 
 #include <sys/time.h>
-#include <sys/resource.h>
 #include <time.h>
+#ifndef MINGCC
+#include <sys/resource.h>
+#endif
 
 #include <lib-common/macros.h>
 
@@ -57,6 +59,7 @@ time_t localtime_nextday(time_t date);
  */
 int strtotm(const char *date, struct tm *t);
 
+#ifndef MINGCC
 /*---------------- timers for benchmarks ----------------*/
 
 /* we use gettimeofday() and getrusage() for accurate benchmark timings.
@@ -100,6 +103,7 @@ static inline long long proctimer_stop(proctimer_t *tp) {
  * if fmt is NULL, use "real: %r ms, proc:%p ms, user:%u ms, sys: %s ms"
  */
 const char *proctimer_report(proctimer_t *tp, const char *fmt);
+#endif
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

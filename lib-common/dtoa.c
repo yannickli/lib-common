@@ -132,6 +132,7 @@
 
 #ifdef MINGCC
 #include <sys/param.h>
+#include "compat.h"
 #else
 #include <endian.h>
 #endif

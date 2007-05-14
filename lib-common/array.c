@@ -11,7 +11,9 @@
 /*                                                                        */
 /**************************************************************************/
 
+#ifndef MINGCC
 #include <alloca.h>
+#endif
 
 #include "macros.h"
 #include "string_is.h"
@@ -314,12 +316,16 @@ void pqsort(void *base[], size_t n,
     for (n2 = n - 1; n2 & (n2 - 1); n2 &= n2 - 1)
         continue;
 
+#ifndef MINGCC
     /* allocate temporary array preferably on the stack */
     if (n2 > BUFSIZ / sizeof(void*)) {
         tmp = p_new(void *, n2);
     } else {
         tmp = p_alloca(void *, n2);
     }
+#else
+    tmp = p_new(void *, n2);
+#endif
     
     for (pos = 1; pos < n; pos += 2) {
         if (comp(base + pos - 1, base + pos, parm) > 0) {
