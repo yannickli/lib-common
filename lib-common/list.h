@@ -35,14 +35,23 @@ void generic_list_sort(generic_list **list,
                        void*);
 
 #define SLIST_PROTOS(type, prefix)                                           \
-    static inline type *prefix##_list_pop(type **list);                      \
-    static inline void prefix##_list_push(type **list, type *item);          \
     static inline type **prefix##_list_init(type **list);                    \
     static inline void prefix##_list_wipe(type **list);                      \
+    static inline void prefix##_list_push(type **list, type *item);          \
+    static inline type *prefix##_list_pop(type **list);                      \
+    static inline void prefix##_list_append(type **list, type *item);        \
     static inline void prefix##_list_sort(type **list,                       \
             int (*cmp)(const type *, const type *, void *), void *priv);
 
 #define SLIST_FUNCTIONS(type, prefix)                                        \
+    static inline type **prefix##_list_init(type **list) {                   \
+        *list = NULL;                                                        \
+        return list;                                                         \
+    }                                                                        \
+    static inline void prefix##_list_push(type **list, type *item) {         \
+        item->next = *list;                                                  \
+        *list = item;                                                        \
+    }                                                                        \
     static inline type *prefix##_list_pop(type **list) {                     \
         assert (sizeof(int[1 - 2 * offsetof(type, next)]));                  \
         if (*list) {                                                         \
@@ -53,20 +62,17 @@ void generic_list_sort(generic_list **list,
         }                                                                    \
         return NULL;                                                         \
     }                                                                        \
-    static inline void prefix##_list_push(type **list, type *item) {         \
-        item->next = *list;                                                  \
-        *list = item;                                                        \
-    }                                                                        \
-                                                                             \
-    static inline type **prefix##_list_init(type **list) {                   \
-        *list = NULL;                                                        \
-        return list;                                                         \
-    }                                                                        \
     static inline void prefix##_list_wipe(type **list) {                     \
         while (*list) {                                                      \
             type *item = prefix##_list_pop(list);                            \
             prefix##_delete(&item);                                          \
         }                                                                    \
+    }                                                                        \
+    static inline void prefix##_list_append(type **list, type *item) {       \
+        while (*list) {                                                      \
+            list = &(*list)->next;                                           \
+        }                                                                    \
+        *list = item;                                                        \
     }                                                                        \
     static inline type *prefix##_list_poptail(type *list) {                  \
         if (list) {                                                          \
