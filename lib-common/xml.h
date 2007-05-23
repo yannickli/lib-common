@@ -15,6 +15,7 @@
 #define IS_LIB_COMMON_XML_H
 
 #include "macros.h"
+#include "blob.h"
 
 typedef struct xml_prop_t xml_prop_t;
 typedef struct xml_tag_t xml_tag_t;
@@ -56,6 +57,7 @@ const xml_tag_t *xml_search(const xml_tree_t *tree,
                             const xml_tag_t *previous,
                             const char *pattern);
 void xml_delete_tree(xml_tree_t **tree);
+void blob_append_tree(const xml_tree_t *tree, blob_t *blob);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

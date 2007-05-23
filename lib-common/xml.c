@@ -17,6 +17,7 @@
 #include "strconv.h"
 #include "xml.h"
 #include "list.h"
+#include "blob.h"
 
 static char *xml_dupstr_mp(xml_tree_t *tree, const char *src, int len)
 {
@@ -627,6 +628,54 @@ const xml_tag_t* xml_search(const xml_tree_t *tree,
     return xml_search_branch(tree->root, &previous, pattern);
 }
 
+
+static void blob_append_branch(const xml_tag_t *root, blob_t *blob, 
+                                   const char * prefix)
+{
+    char newprefix[30];
+    char buf[128];
+    const xml_prop_t *prop;
+    const xml_tag_t *cur;
+
+    if (!root) {
+        return;
+    }
+    if (root->fullname) {
+        blob_append_cstr(blob, prefix);
+        blob_append_cstr(blob, "<");
+        blob_append_cstr(blob, root->fullname);
+        for (prop = root->property; prop; prop = prop->next) {
+            strconv_quote(buf, sizeof(buf), prop->value, strlen(prop->value), '"');
+            blob_append_cstr(blob, " ");
+            blob_append_cstr(blob, prop->name);
+            blob_append_cstr(blob, "=\"");
+            blob_append_cstr(blob, buf);
+            blob_append_cstr(blob, "\"");
+        }
+        blob_append_cstr(blob, ">\n");
+    }
+    snprintf(newprefix, sizeof(newprefix), "%s   ", prefix);
+    if (root->text) {
+        blob_append_cstr(blob, newprefix);
+        blob_append_cstr(blob, root->text);
+        blob_append_cstr(blob, "\n");
+    }
+
+   for (cur = root->child; cur; cur = cur->next) {
+        blob_append_branch(cur, blob, newprefix);
+    }
+    if (root->fullname) {
+        blob_append_cstr(blob, prefix);
+        blob_append_cstr(blob, "</");
+        blob_append_cstr(blob, root->fullname);
+        blob_append_cstr(blob, ">\n");
+    }
+}
+void blob_append_tree(const xml_tree_t *tree, blob_t *blob)
+{
+     blob_append_branch(tree->root, blob, "");
+}
+
 static void xml_branch_dump(const xml_tag_t *root, const char *prefix)
 {
     char newprefix[30];
@@ -664,7 +713,6 @@ static void xml_branch_dump(const xml_tag_t *root, const char *prefix)
 #ifdef CHECK
 /* {{{*/
 #include <check.h>
-#include "blob.h"
 
 /* OG: should include samples/simple.xml here and create temporary file
  * for test purposes
