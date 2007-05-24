@@ -52,7 +52,8 @@ struct xml_tree_t {
     // Add version, charset, etc.
 };
 
-xml_tree_t *xml_new_tree(const char *payload, size_t len);
+xml_tree_t *xml_new_tree(const char *payload, size_t len, char *error_buf,
+                         size_t buflen);
 const xml_tag_t *xml_search(const xml_tree_t *tree,
                             const xml_tag_t *previous,
                             const char *pattern);

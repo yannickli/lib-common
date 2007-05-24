@@ -144,11 +144,15 @@ typedef enum parse_t {
         len--;                  \
         p++;                    \
     }
-#define ENSURE(p, len, c)           \
-    do {                            \
-        if (len <= 0 || *p != c) {  \
-            goto error;             \
-        }                           \
+#define ENSURE(p, len, c)                              \
+    do {                                               \
+        if (len <= 0 || *p != c) {                     \
+            if (error_buf) {                           \
+            snprintf(error_buf, buf_len,               \
+                     "Expect %c but found %c", c, *p); \
+            }                                          \
+            goto error;                                \
+        }                                              \
     } while (0)
 
 
@@ -158,7 +162,8 @@ typedef enum parse_t {
  */
 static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
                             const char *payload, size_t len,
-                            const char **pend)
+                            const char **pend, const char *tag_name,
+                            char * error_buf, size_t buf_len)
 {
     const char *name, *value;
     const char *p;
@@ -190,6 +195,11 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
         p++;
     }
     if (len <= 0) {
+        if (error_buf) {
+            snprintf(error_buf, buf_len,
+                     "Unexpected end when parsing property %s on tag %s",
+                     name, tag_name);
+        }
         goto error;
     }
     prop->name = xml_dupstr_mp(tree, name, p - name);
@@ -206,6 +216,11 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
 
     SKIPSPACES(p, len);
     if (*p != '\'' && *p != '"') {
+        if (error_buf) {
+            snprintf(error_buf, buf_len,
+                     "Missing quote for property %s on tag %s",
+                     prop->name, tag_name);
+        }
         goto error;
     }
     quot = *p;
@@ -226,6 +241,12 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
     }
 
     if (len <= 0) {
+        if (error_buf) {
+            snprintf(error_buf, buf_len,
+                     "Value of property %s starts with %c,"
+                     " but matching %c not found on tag %s",
+                     prop->name, quot, quot, tag_name);
+        }
         goto error;
     }
 
@@ -239,6 +260,11 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
     }
 
     if (len <= 0) {
+        if (error_buf) {
+            snprintf(error_buf, buf_len,
+                     "Unexpected end of buf, when parsing property %s on tag %s",
+                     prop->name, tag_name);
+        }
         goto error;
     }
 
@@ -277,7 +303,8 @@ error:
  */
 static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
                            const char *payload, size_t len,
-                           const char *endtag, const char **pend)
+                           const char *endtag, const char **pend,
+                           char *error_buf, size_t buf_len)
 {
     xml_tag_t *tag = NULL;
     xml_prop_t *prop = NULL;
@@ -305,7 +332,7 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
         goto error;
     }
 
-    /* Is this the end of the current tag ? */
+    /* Is this a closing tag ? */
     if (*p == '/') {
         closing = true;
         p++;
@@ -324,12 +351,29 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
         p++;
     }
     if (len <= 0) {
+        if (error_buf) {
+            snprintf(error_buf, buf_len,
+                     "Error on tag name parsing");
+        }
         goto error;
     }
     nameend = p;
 
     if (closing) {
         if (!endtag || !strstart(name, endtag, NULL)) {
+            if (endtag) {
+                if (error_buf) {
+                    snprintf(error_buf, buf_len,
+                             "End tag mismatch, search '%.*s' but found '%s'",
+                             (int)(nameend - name), name, endtag);
+                }
+            } else {
+                if (error_buf) {
+                    snprintf(error_buf, buf_len,
+                             "Unexpected closing tag '%.*s'",
+                             (int)(nameend - name), name);
+                }
+            }
             goto error;
         }
         /* tag end: eat trailing spaces and '>' */
@@ -355,16 +399,19 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
     tag->name_hash = xml_hash(tag->name, -1);
 
     t = &tag->property;
-    if (len <= 0) {
-        goto error;
-    }
     /* tag name and properties are separated by some space */
     if (!isspace(*p) && *p != '/' && *p != '>') {
+        if (error_buf) {
+            snprintf(error_buf, buf_len,
+                "Unexpected char on tag %s", tag->name);
+        }
         goto error;
     }
     while (len > 0 && *p != '>' && *p != '/') {
         /* now, parse property */
-        switch (parse = xml_get_prop(tree, &prop, p, len, &mypend)) {
+        switch (parse = xml_get_prop(tree, &prop, p, len, &mypend, tag->name,
+                                     error_buf, buf_len)) 
+        {
           case PARSE_PROP:
             *t = prop;
             prop->next = NULL;
@@ -373,12 +420,20 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
           case PARSE_END_PROP:
             break;
           default:
+            if (error_buf && error_buf[0] == '\0') {
+                snprintf(error_buf, buf_len,
+                         "Error with properties on %s", tag->name);
+            }
             goto error;
         }
         len -= mypend - p;
         p = mypend;
         SKIPSPACES(p, len);
         if (len <= 0) {
+            if (error_buf) {
+                snprintf(error_buf, buf_len,
+                         "Unexpected end on tag %s", tag->name);
+            }
             goto error;
         }
 
@@ -387,6 +442,10 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
         }
     }
     if (len <= 0) {
+        if (error_buf) {
+            snprintf(error_buf, buf_len,
+                     "Unexpected end on tag %s", tag->name);
+        }
         goto error;
     }
     if (*p == '/') {
@@ -418,6 +477,10 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
         len--;
     }
     if (len <= 0) {
+        if (error_buf) {
+            snprintf(error_buf, buf_len,
+                     "Unexpected end on tag %s", tag->name);
+        }
         goto error;
     }
     if (text != p) {
@@ -448,7 +511,7 @@ error:
  */
 static int xml_parse(xml_tree_t *tree, xml_tag_t *dst,
                      const char *payload, size_t payload_len,
-                     const char **pend)
+                     const char **pend, char *error_buf, size_t buf_len)
 {
     xml_tag_t *next;
     xml_tag_t **babyp;
@@ -460,7 +523,7 @@ static int xml_parse(xml_tree_t *tree, xml_tag_t *dst,
 
     for (;;) {
         switch (xml_get_tag(tree, &next, payload, payload_len, dst->fullname,
-                            &mypend)) {
+                            &mypend, error_buf, buf_len)) {
           case PARSE_ADD_TAG:
             payload_len -= mypend - payload;
             payload = mypend;
@@ -474,7 +537,9 @@ static int xml_parse(xml_tree_t *tree, xml_tag_t *dst,
             next->parent = dst;
             *babyp = next;
             babyp = &(*babyp)->next;
-            if (xml_parse(tree, next, payload, payload_len, &mypend)) {
+            if (xml_parse(tree, next, payload, payload_len, &mypend, 
+                          error_buf, buf_len)) 
+            {
                 if (pend) {
                     *pend = mypend;
                 }
@@ -494,6 +559,11 @@ static int xml_parse(xml_tree_t *tree, xml_tag_t *dst,
                     *pend = mypend;
                 }
                 return 0;
+            }
+            if (error_buf) {
+                snprintf(error_buf, buf_len,
+                         "Unexpected end of file when parsing %s",
+                         dst->fullname);
             }
             /* FALLTHROUGH */
           default:
@@ -529,7 +599,7 @@ static int xml_get_xml_tag(xml_tree_t *tree, const char *payload, size_t len,
 
 /* Create a new XML tree from a buffer
  */
-xml_tree_t *xml_new_tree(const char *payload, size_t len)
+xml_tree_t *xml_new_tree(const char *payload, size_t len, char *error_buf, size_t buf_len)
 {
     xml_tree_t *tree;
     const char *pend = payload;
@@ -547,7 +617,7 @@ xml_tree_t *xml_new_tree(const char *payload, size_t len)
     }
     len -= pend - payload;
     payload = pend;
-    if (xml_parse(tree, tree->root, payload, len, NULL)) {
+    if (xml_parse(tree, tree->root, payload, len, NULL, error_buf, buf_len)) {
         xml_delete_tree(&tree);
         return NULL;
     }
@@ -724,13 +794,14 @@ START_TEST(check_xmlparse)
     xml_tree_t *tree;
     const xml_tag_t *tag, *tag2, *tag3, *tag4;
     int verbose = 0;
+    char error_buf[256] = "";
 
     blob_init(&blob);
 
     fail_if(blob_append_file_data(&blob, "samples/simple.xml") < 0,
             "unable to read sample file");
-    tree = xml_new_tree(blob_get_cstr(&blob), blob.len);
-    fail_if(!tree, "simple");
+    tree = xml_new_tree(blob_get_cstr(&blob), blob.len, error_buf, sizeof(error_buf));
+    fail_if(!tree, "simple, %s", error_buf);
     if (tree) {
         tag = xml_search(tree, NULL, "/");
         fail_if(tag != tree->root, "search for root failed");
