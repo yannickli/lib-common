@@ -40,7 +40,7 @@ static char *xml_dupstr_mp(xml_tree_t *tree, const char *src, int len)
 
 #define xml_deletestr_mp(p)
 
-static void xml_prop_t_delete(xml_prop_t **p)
+static void xml_prop_delete(xml_prop_t **p)
 {
     if (p && *p) {
         xml_deletestr_mp(&(*p)->name);
@@ -110,21 +110,21 @@ static int xml_hash(const char *str, int len)
     return ret;
 }
 
-SLIST_FUNCTIONS(xml_prop_t, xml_prop_t)
+SLIST_FUNCTIONS(xml_prop_t, xml_prop)
 
-SLIST_PROTOS(xml_tag_t, xml_tag_t)
-static void xml_tag_t_delete(xml_tag_t **t)
+SLIST_PROTOS(xml_tag_t, xml_tag)
+void xml_tag_delete(xml_tag_t **t)
 {
     if (t && *t) {
         xml_deletestr_mp(&(*t)->fullname);
-        xml_tag_t_list_wipe(&(*t)->child);
-        xml_prop_t_list_wipe(&(*t)->property);
+        xml_tag_list_wipe(&(*t)->child);
+        xml_prop_list_wipe(&(*t)->property);
         xml_deletestr_mp(&(*t)->text);
         p_delete(t);
     }
 }
 
-SLIST_FUNCTIONS(xml_tag_t, xml_tag_t)
+SLIST_FUNCTIONS(xml_tag_t, xml_tag)
 
 typedef enum parse_t {
     PARSE_EOF,
@@ -278,7 +278,7 @@ end:
     if (dst) {
         *dst = prop;
     } else {
-        xml_prop_t_delete(&prop);
+        xml_prop_delete(&prop);
     }
     if (pend) {
         *pend = p;
@@ -290,7 +290,7 @@ error:
     if (pend) {
         *pend = p;
     }
-    xml_prop_t_delete(&prop);
+    xml_prop_delete(&prop);
     return PARSE_ERROR;
 }
 
@@ -492,7 +492,7 @@ end:
     if (dst) {
         *dst = tag;
     } else {
-        xml_tag_t_delete(&tag);
+        xml_tag_delete(&tag);
     }
 
     if (pend) {
@@ -503,7 +503,7 @@ error:
     if (pend) {
         *pend = p;
     }
-    xml_tag_t_delete(&tag);
+    xml_tag_delete(&tag);
     return PARSE_ERROR;
 }
 
@@ -628,7 +628,7 @@ void xml_delete_tree(xml_tree_t **tree)
 {
     if (tree && *tree) {
         if ((*tree)->root) {
-            xml_tag_t_list_wipe(&(*tree)->root);
+            xml_tag_list_wipe(&(*tree)->root);
             p_delete(&(*tree)->root);
         }
         p_delete(&(*tree)->mp_start);
