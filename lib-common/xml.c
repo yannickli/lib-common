@@ -612,19 +612,19 @@ xml_tree_t *xml_new_tree(const char *payload, size_t len, char *error_buf, size_
     tree->mp_cur = tree->mp_start;
     tree->mp_left = len;
     if (xml_get_xml_tag(tree, payload, len, &pend)) {
-        xml_delete_tree(&tree);
+        xml_tree_delete(&tree);
         return NULL;
     }
     len -= pend - payload;
     payload = pend;
     if (xml_parse(tree, tree->root, payload, len, NULL, error_buf, buf_len)) {
-        xml_delete_tree(&tree);
+        xml_tree_delete(&tree);
         return NULL;
     }
     return tree;
 }
 
-void xml_delete_tree(xml_tree_t **tree)
+void xml_tree_delete(xml_tree_t **tree)
 {
     if (tree && *tree) {
         if ((*tree)->root) {
@@ -843,7 +843,7 @@ START_TEST(check_xmlparse)
             xml_branch_dump(tree->root, "root:");
             fprintf(stderr, "mp_left:%d\n", tree->mp_left);
         }
-        xml_delete_tree(&tree);
+        xml_tree_delete(&tree);
     }
 
     blob_wipe(&blob);
