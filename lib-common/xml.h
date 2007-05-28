@@ -57,7 +57,7 @@ xml_tree_t *xml_new_tree(const char *payload, size_t len, char *error_buf,
 const xml_tag_t *xml_search(const xml_tree_t *tree,
                             const xml_tag_t *previous,
                             const char *pattern);
-/*TODO do serach on tag */
+/*TODO do search on tag */
 void xml_delete_tree(xml_tree_t **tree);
 void xml_tag_delete(xml_tag_t **t);
 void blob_append_tree(const xml_tree_t *tree, blob_t *blob);
