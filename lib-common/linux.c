@@ -90,7 +90,7 @@ void unix_initialize(void)
             e_panic("Could not parse boot time");
     }
 
-    if (is_fd_open(STDIN_FILENO)) {
+    if (!is_fd_open(STDIN_FILENO)) {
         int fd = open("/dev/null", O_RDONLY);
         if (fd != STDIN_FILENO) {
             close(STDIN_FILENO);
@@ -98,7 +98,7 @@ void unix_initialize(void)
             close(fd);
         }
     }
-    if (is_fd_open(STDOUT_FILENO)) {
+    if (!is_fd_open(STDOUT_FILENO)) {
         int fd = open("/dev/null", O_WRONLY);
         if (fd != STDOUT_FILENO) {
             close(STDOUT_FILENO);
@@ -106,7 +106,7 @@ void unix_initialize(void)
             close(fd);
         }
     }
-    if (is_fd_open(STDERR_FILENO)) {
+    if (!is_fd_open(STDERR_FILENO)) {
         int fd = open("/dev/null", O_WRONLY);
         if (fd != STDERR_FILENO) {
             close(STDERR_FILENO);
