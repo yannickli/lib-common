@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <elf.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "err_report.h"
 #include "macros.h"
@@ -88,15 +89,40 @@ void unix_initialize(void)
         if (boot_time == 0)
             e_panic("Could not parse boot time");
     }
+
+    if (!is_fd_open(STDIN_FILENO)) {
+        int fd = open("/dev/null", O_RDONLY);
+        if (fd != STDIN_FILENO) {
+            close(STDIN_FILENO);
+            dup2(fd, STDIN_FILENO);
+            close(fd);
+        }
+    }
+    if (!is_fd_open(STDOUT_FILENO)) {
+        int fd = open("/dev/null", O_WRONLY);
+        if (fd != STDOUT_FILENO) {
+            close(STDOUT_FILENO);
+            dup2(fd, STDOUT_FILENO);
+            close(fd);
+        }
+    }
+    if (!is_fd_open(STDERR_FILENO)) {
+        int fd = open("/dev/null", O_WRONLY);
+        if (fd != STDERR_FILENO) {
+            close(STDERR_FILENO);
+            dup2(fd, STDERR_FILENO);
+            close(fd);
+        }
+    }
 }
 
 int pid_get_starttime(pid_t pid, struct timeval *tv)
 {
     unsigned long long starttime;
-    FILE *stat = pidproc_open(pid ? pid : getpid(), "stat");
+    FILE *pidstat = pidproc_open(pid ? pid : getpid(), "stat");
     int res;
 
-    if (!stat)
+    if (!pidstat)
         return -1;
 
     if (!hertz) {
@@ -104,10 +130,10 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
     }
 
     /* see proc(3), here we want starttime */
-    res = fscanf(stat,
+    res = fscanf(pidstat,
                  "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u "
                  "%*u %*d %*d %*d %*d %*d 0 %llu ", &starttime);
-    p_fclose(&stat);
+    p_fclose(&pidstat);
 
     if (res < 1) {
         errno = EINVAL;
