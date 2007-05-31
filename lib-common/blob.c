@@ -903,6 +903,9 @@ void blob_urldecode(blob_t *url)
 static const char
 b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
+/*http://base64.sourceforge.net/b64.c*/
+static const char cd64[]="|$$$}rstuvwxyz{$$$$$$$>?@ABCDEFGHIJKLMNOPQRSTUVW$$$$$$XYZ[\\]^_`abcdefghijklmnopq";
+
 static inline ssize_t b64_size(ssize_t oldlen, int nbpackets)
 {
     if (nbpackets > 0) {
@@ -985,6 +988,58 @@ void blob_b64encode(blob_t *blob, int nbpackets)
 
     blob_set_payload(blob, newlen, buf, newsize);
 }
+
+/*http://base64.sourceforge.net/b64.c*/
+static void decodeblock( unsigned char in[4], unsigned char out[3] )
+{   
+    out[0] = (unsigned char) (in[0] << 2 | in[1] >> 4);
+    out[1] = (unsigned char) (in[1] << 4 | in[2] >> 2);
+    out[2] = (unsigned char) (((in[2] << 6) & 0xc0) | in[3]);
+}
+
+void blob_b64decode(blob_t *blob)
+{
+    unsigned char in[4], out[3], v;
+    int i, len;
+    const byte *src = blob->data;
+    const byte *end = blob->data + blob->len;
+    byte *dst = p_new_raw(byte, blob->len);
+    byte *p;
+    p = dst;
+
+    while (src < end) {
+        for (len = 0, i = 0; i < 4 && src < end; i++) 
+        {
+            v = 0;
+            while (src < end && v == 0) 
+            {
+                v = (unsigned char) *(src++);
+                v = (unsigned char) ((v < 43 || v > 122) ? 0 : cd64[ v - 43 ]);
+                if (v) {
+                    v = (unsigned char) ((v == '$') ? 0 : v - 61);
+                }
+            }
+            if (src < end) {
+                len++;
+                if (v) {
+                    in[i] = (unsigned char) (v - 1);
+                }
+            }
+            else {
+                in[i] = 0;
+            }
+        }
+        if (len) {
+            decodeblock(in, out);
+            for (i = 0; i < len - 1; i++) {
+                *(p++) = out[i];
+            }
+        }
+    }
+    blob_set_data(blob, dst, p - dst);
+}
+
+
 
 /**************************************************************************/
 /* Blob parsing                                                           */
