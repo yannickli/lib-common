@@ -699,8 +699,8 @@ const xml_tag_t* xml_search(const xml_tree_t *tree,
 }
 
 
-static void blob_append_branch(const xml_tag_t *root, blob_t *blob, 
-                                   const char * prefix)
+void blob_append_branch(const xml_tag_t *root, blob_t *blob, 
+                        const char * prefix)
 {
     char newprefix[30];
     char buf[128];
