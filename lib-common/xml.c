@@ -148,8 +148,8 @@ typedef enum parse_t {
     do {                                               \
         if (len <= 0 || *p != c) {                     \
             if (error_buf) {                           \
-            snprintf(error_buf, buf_len,               \
-                     "Expect %c but found %c", c, *p); \
+                snprintf(error_buf, buf_len,           \
+                    "Expected %c but found %c", c, *p); \
             }                                          \
             goto error;                                \
         }                                              \
@@ -163,7 +163,7 @@ typedef enum parse_t {
 static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
                             const char *payload, size_t len,
                             const char **pend, const char *tag_name,
-                            char * error_buf, size_t buf_len)
+                            char *error_buf, size_t buf_len)
 {
     const char *name, *value;
     const char *p;
@@ -353,26 +353,26 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
     if (len <= 0) {
         if (error_buf) {
             snprintf(error_buf, buf_len,
-                     "Error on tag name parsing");
+                     "Error parsing tag name");
         }
         goto error;
     }
     nameend = p;
 
     if (closing) {
-        if (!endtag || !strstart(name, endtag, NULL)) {
-            if (endtag) {
-                if (error_buf) {
-                    snprintf(error_buf, buf_len,
-                             "End tag mismatch, search '%.*s' but found '%s'",
-                             (int)(nameend - name), name, endtag);
-                }
-            } else {
-                if (error_buf) {
-                    snprintf(error_buf, buf_len,
-                             "Unexpected closing tag '%.*s'",
-                             (int)(nameend - name), name);
-                }
+        if (!endtag) {
+            if (error_buf) {
+                snprintf(error_buf, buf_len,
+                         "Unexpected closing tag '%.*s'",
+                         (int)(nameend - name), name);
+            }
+            goto error;
+        }
+        if (!strstart(name, endtag, NULL)) {
+            if (error_buf) {
+                snprintf(error_buf, buf_len,
+                         "End tag mismatch, search '%.*s' but found '%s'",
+                         (int)(nameend - name), name, endtag);
             }
             goto error;
         }
@@ -419,8 +419,10 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
             break;
           case PARSE_END_PROP:
             break;
+          case PARSE_ERROR:
+            goto error;
           default:
-            if (error_buf && error_buf[0] == '\0') {
+            if (error_buf) {
                 snprintf(error_buf, buf_len,
                          "Error with properties on %s", tag->name);
             }
@@ -599,7 +601,8 @@ static int xml_get_xml_tag(xml_tree_t *tree, const char *payload, size_t len,
 
 /* Create a new XML tree from a buffer
  */
-xml_tree_t *xml_new_tree(const char *payload, size_t len, char *error_buf, size_t buf_len)
+xml_tree_t *xml_new_tree(const char *payload, size_t len,
+                         char *error_buf, size_t buf_len)
 {
     xml_tree_t *tree;
     const char *pend = payload;
@@ -617,7 +620,9 @@ xml_tree_t *xml_new_tree(const char *payload, size_t len, char *error_buf, size_
     }
     len -= pend - payload;
     payload = pend;
-    if (xml_parse(tree, tree->root, payload, len, NULL, error_buf, buf_len)) {
+    if (xml_parse(tree, tree->root, payload, len, NULL,
+                  error_buf, buf_len))
+    {
         xml_tree_delete(&tree);
         return NULL;
     }
@@ -698,24 +703,27 @@ const xml_tag_t* xml_search(const xml_tree_t *tree,
     return xml_search_branch(tree->root, &previous, pattern);
 }
 
-
 void blob_append_branch(const xml_tag_t *root, blob_t *blob, 
-                        const char * prefix)
+                        const char *prefix)
 {
-    char newprefix[30];
-    char buf[128];
+    /* OG: should pass indentation count instead of prefix string */
+    char newprefix[32];
     const xml_prop_t *prop;
     const xml_tag_t *cur;
 
-    if (!root) {
+    if (!root)
         return;
-    }
+
     if (root->fullname) {
         blob_append_cstr(blob, prefix);
         blob_append_cstr(blob, "<");
         blob_append_cstr(blob, root->fullname);
         for (prop = root->property; prop; prop = prop->next) {
-            strconv_quote(buf, sizeof(buf), prop->value, strlen(prop->value), '"');
+            /* OG: should implement blob_append_qstr() and get rid of
+             * buf */
+            char buf[128];
+            strconv_quote(buf, sizeof(buf), prop->value,
+                          strlen(prop->value), '"');
             blob_append_cstr(blob, " ");
             blob_append_cstr(blob, prop->name);
             blob_append_cstr(blob, "=\"");
@@ -731,7 +739,7 @@ void blob_append_branch(const xml_tag_t *root, blob_t *blob,
         blob_append_cstr(blob, "\n");
     }
 
-   for (cur = root->child; cur; cur = cur->next) {
+    for (cur = root->child; cur; cur = cur->next) {
         blob_append_branch(cur, blob, newprefix);
     }
     if (root->fullname) {
@@ -741,6 +749,7 @@ void blob_append_branch(const xml_tag_t *root, blob_t *blob,
         blob_append_cstr(blob, ">\n");
     }
 }
+
 void blob_append_tree(const xml_tree_t *tree, blob_t *blob)
 {
      blob_append_branch(tree->root, blob, "");
@@ -794,13 +803,15 @@ START_TEST(check_xmlparse)
     xml_tree_t *tree;
     const xml_tag_t *tag, *tag2, *tag3, *tag4;
     int verbose = 0;
-    char error_buf[256] = "";
+    char error_buf[256];
 
+    error_buf[0] = '\0';
     blob_init(&blob);
 
     fail_if(blob_append_file_data(&blob, "samples/simple.xml") < 0,
             "unable to read sample file");
-    tree = xml_new_tree(blob_get_cstr(&blob), blob.len, error_buf, sizeof(error_buf));
+    tree = xml_new_tree(blob_get_cstr(&blob), blob.len,
+                        error_buf, sizeof(error_buf));
     fail_if(!tree, "simple, %s", error_buf);
     if (tree) {
         tag = xml_search(tree, NULL, "/");

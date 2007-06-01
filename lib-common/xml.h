@@ -62,7 +62,7 @@ void xml_tree_delete(xml_tree_t **tree);
 void xml_tag_delete(xml_tag_t **t);
 void blob_append_tree(const xml_tree_t *tree, blob_t *blob);
 void blob_append_branch(const xml_tag_t *root, blob_t *blob,
-                        const char * prefix);
+                        const char *prefix);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
