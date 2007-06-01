@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <string.h>
+
 #include "strconv.h"
 
 unsigned char const __str_digit_value[128 + 256] = {
