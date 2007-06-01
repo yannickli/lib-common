@@ -147,6 +147,8 @@ conf_t *conf_load(const char *filename)
         return NULL;
     }
 
+    /* OG: should normalize buf contents: fix \r \0 and UTF-8 issues */
+
     res = conf_load_blob(&buf);
     blob_wipe(&buf);
 
