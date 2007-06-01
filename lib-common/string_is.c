@@ -503,21 +503,6 @@ const char *strnextspace(const char *s)
  *
  * @return a pointer to the first non white space character in s.
  */
-#ifndef isblank
-/* Glibc's ctype system issues a function call to handle locale issues.
- * Glibc only defines isblank() if USE_ISOC99, for some obsure reason,
- * isblank() cannot be defined as an inline either (intrinsic
- * function?)
- * Should rewrite these functions and use our own simpler version
- */
-#if defined(__isctype) && defined(_ISbit)    /* Glibc */
-#define isblank(c)      __isctype((c), _ISblank)
-#else
-/* OG: we should really have our own char type macros */
-static inline int isblank(int c) { return (c == ' ' || c == '\t'); }
-#endif
-#endif
-
 const char *skipblanks(const char *s)
 {
     while (isblank((unsigned char)*s)) {

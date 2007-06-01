@@ -20,6 +20,21 @@
 
 #include "macros.h"
 
+#ifndef isblank
+/* Glibc's ctype system issues a function call to handle locale issues.
+ * Glibc only defines isblank() if USE_ISOC99, for some obsure reason,
+ * isblank() cannot be defined as an inline either (intrinsic
+ * function?)
+ * Should rewrite these functions and use our own simpler version
+ */
+#if defined(__isctype) && defined(_ISbit)    /* Glibc */
+#define isblank(c)      __isctype((c), _ISblank)
+#else
+/* OG: we should really have our own char type macros */
+static inline int isblank(int c) { return (c == ' ' || c == '\t'); }
+#endif
+#endif
+
 __attr_nonnull__((1))
 static inline ssize_t sstrlen(const char *str) {
     return (ssize_t)strlen((const char *)str);
