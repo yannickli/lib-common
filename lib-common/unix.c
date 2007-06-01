@@ -157,13 +157,6 @@ const char *get_ext(const char *filename)
     return lastdot ? lastdot : base;
 }
 
-#ifndef MINGCC
-bool is_fd_open(int fd)
-{
-    return fcntl(fd, F_GETFD) != -1 || errno != EBADF;
-}
-#endif
-
 /**
  * Copy file pathin to pathout. If pathout already exists, it will
  * be overwritten.

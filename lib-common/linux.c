@@ -60,6 +60,11 @@ static void jiffies_to_tv(unsigned long long jiff, struct timeval *tv)
     tv->tv_usec = (jiff % hertz) * (1000000UL / hertz);
 }
 
+static bool is_fd_open(int fd)
+{
+    return fcntl(fd, F_GETFD) != -1 || errno != EBADF;
+}
+
 void unix_initialize(void)
 {
     /* get the HZ value, needs linux 2.4 ;) */
@@ -93,7 +98,6 @@ void unix_initialize(void)
     if (!is_fd_open(STDIN_FILENO)) {
         int fd = open("/dev/null", O_RDONLY);
         if (fd != STDIN_FILENO) {
-            close(STDIN_FILENO);
             dup2(fd, STDIN_FILENO);
             close(fd);
         }
@@ -101,7 +105,6 @@ void unix_initialize(void)
     if (!is_fd_open(STDOUT_FILENO)) {
         int fd = open("/dev/null", O_WRONLY);
         if (fd != STDOUT_FILENO) {
-            close(STDOUT_FILENO);
             dup2(fd, STDOUT_FILENO);
             close(fd);
         }
@@ -109,7 +112,6 @@ void unix_initialize(void)
     if (!is_fd_open(STDERR_FILENO)) {
         int fd = open("/dev/null", O_WRONLY);
         if (fd != STDERR_FILENO) {
-            close(STDERR_FILENO);
             dup2(fd, STDERR_FILENO);
             close(fd);
         }
