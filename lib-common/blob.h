@@ -265,8 +265,7 @@ ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...)
 int blob_pack(blob_t *blob, const char *fmt, ...);
 int blob_unpack(const blob_t *blob, int *pos, const char *fmt, ...)
     __attribute__((warn_unused_result));
-int buf_unpack(const byte *buf, int buf_len,
-               int *pos, const char *fmt, ...)
+int buf_unpack(const byte *buf, int buf_len, int *pos, const char *fmt, ...)
     __attribute__((warn_unused_result));
 
 /**************************************************************************/

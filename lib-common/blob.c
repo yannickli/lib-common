@@ -503,6 +503,7 @@ ssize_t blob_append_fgets(blob_t *blob, FILE *f)
             dest = buf;
             size = BUFSIZ;
         }
+        /* OG: should use pgetline() */
         if (!fgets(dest, size, f)) {
             /* In case of I/O error, fgets way have overwritten the
              * '\0' at the end of the blob buffer.  Reset it just in
@@ -519,8 +520,15 @@ ssize_t blob_append_fgets(blob_t *blob, FILE *f)
         }
         blob->len += len;
         total += len;
-        if (len && dest[len - 1] == '\n')
+        if (len && dest[len - 1] == '\n') {
+            /* Test and strip embedded '\r' */
+            if (blob->len > 1 && blob->data[blob->len - 2] == '\r') {
+                blob->len -= 1;
+                blob->data[blob->len - 1] = '\n';
+                blob->data[blob->len] = '\0';
+            }
             break;
+        }
     }
     return total;
 }
@@ -904,7 +912,8 @@ static const char
 b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 /*http://base64.sourceforge.net/b64.c*/
-static const char cd64[]="|$$$}rstuvwxyz{$$$$$$$>?@ABCDEFGHIJKLMNOPQRSTUVW$$$$$$XYZ[\\]^_`abcdefghijklmnopq";
+static const char
+cd64[]="|$$$}rstuvwxyz{$$$$$$$>?@ABCDEFGHIJKLMNOPQRSTUVW$$$$$$XYZ[\\]^_`abcdefghijklmnopq";
 
 static inline ssize_t b64_size(ssize_t oldlen, int nbpackets)
 {
@@ -990,42 +999,40 @@ void blob_b64encode(blob_t *blob, int nbpackets)
 }
 
 /*http://base64.sourceforge.net/b64.c*/
-static void decodeblock( unsigned char in[4], unsigned char out[3] )
+static void decodeblock(const byte *in, byte *out)
 {   
-    out[0] = (unsigned char) (in[0] << 2 | in[1] >> 4);
-    out[1] = (unsigned char) (in[1] << 4 | in[2] >> 2);
-    out[2] = (unsigned char) (((in[2] << 6) & 0xc0) | in[3]);
+    out[0] = (byte)((in[0] << 2) | (in[1] >> 4));
+    out[1] = (byte)((in[1] << 4) | (in[2] >> 2));
+    out[2] = (byte)((in[2] << 6) | (in[3] >> 0));
 }
 
 void blob_b64decode(blob_t *blob)
 {
-    unsigned char in[4], out[3], v;
+    byte in[4], out[3], v;
     int i, len;
     const byte *src = blob->data;
     const byte *end = blob->data + blob->len;
+    /* OG: should decode in place or take separate source and
+     * destination blobs */
     byte *dst = p_new_raw(byte, blob->len);
-    byte *p;
-    p = dst;
+    byte *p = dst;
 
     while (src < end) {
-        for (len = 0, i = 0; i < 4 && src < end; i++) 
-        {
+        for (len = 0, i = 0; i < 4 && src < end; i++) {
             v = 0;
-            while (src < end && v == 0) 
-            {
-                v = (unsigned char) *(src++);
-                v = (unsigned char) ((v < 43 || v > 122) ? 0 : cd64[ v - 43 ]);
+            while (src < end && v == 0) {
+                v = (byte)*src++;
+                v = (byte)((v < 43 || v > 122) ? 0 : cd64[v - 43]);
                 if (v) {
-                    v = (unsigned char) ((v == '$') ? 0 : v - 61);
+                    v = (byte)((v == '$') ? 0 : v - 61);
                 }
             }
             if (src < end) {
                 len++;
                 if (v) {
-                    in[i] = (unsigned char) (v - 1);
+                    in[i] = (byte)(v - 1);
                 }
-            }
-            else {
+            } else {
                 in[i] = 0;
             }
         }
@@ -1037,8 +1044,8 @@ void blob_b64decode(blob_t *blob)
         }
     }
     blob_set_data(blob, dst, p - dst);
+    p_delete(&dst);
 }
-
 
 
 /**************************************************************************/
@@ -1478,11 +1485,19 @@ int blob_pack(blob_t *blob, const char *fmt, ...)
     return n;
 }
 
-
-static inline int buf_unpack_vfmt(const byte *buf, int buf_len,
-                                  int *pos, const char *fmt, va_list ap)
+/* OG: should change API:
+ * - return 0 iff fmt is completely matched
+ * - return -n or +n depending on mismatch type
+ * - no update on pos if incomplete match
+ * - change format syntax: use % to specify fields
+ * - support more field specifiers (inline buffer, double, long...)
+ * - in order to minimize porting effort, use a new name such as
+ *   buf_parse, buf_match, buf_scan, buf_deserialize, ...
+ */
+static int buf_unpack_vfmt(const byte *buf, int buf_len,
+                           int *pos, const char *fmt, va_list ap)
 {
-    const byte *data, *p;
+    const byte *data, *p, *q;
     int c, n = 0;
 
     if (buf_len < 0)
@@ -1491,6 +1506,7 @@ static inline int buf_unpack_vfmt(const byte *buf, int buf_len,
     if (*pos >= buf_len)
         return 0;
 
+    /* OG: should limit scan to buf[0..buf_len] */
     data = buf + *pos;
     for (;;) {
         switch (c = *fmt++) {
@@ -1528,17 +1544,34 @@ static inline int buf_unpack_vfmt(const byte *buf, int buf_len,
             n++;
             continue;
         case 's':
-            p = data;
+            p = q = data;
             c = *fmt;
-            while (*data && *data != c && *data != '\n') {
+            for (;;) {
+                if (*data == '\0' || *data == c || *data == '\n') {
+                    q = data;
+                    break;
+                }
+                if (*data == '\r' && data[1] == '\n') {
+                    /* Match and skip \r before \n */
+                    q = data;
+                    data += 1;
+                    break;
+                }
                 data++;
             }
             strvalp = va_arg(ap, char **);
             if (strvalp) {
-                *strvalp = p_dupstr(p, data - p);
+                *strvalp = p_dupstr(p, q - p);
             }
             n++;
             continue;
+        case '\n':
+            if (*data == '\r' && data[1] == '\n') {
+                /* Match and skip \r before \n */
+                data += 2;
+                continue;
+            }
+            /* FALL THRU */
         default:
             if (c != *data)
                 break;
