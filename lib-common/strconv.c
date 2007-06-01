@@ -62,6 +62,10 @@ int strconv_escape(char *dest, int size, const char *src, int len)
 {
     int i, j;
 
+    if (len < 0) {
+        len = strlen(src);
+    }
+
     for (i = j = 0; i < len; i++) {
         int c = src[i], cc;
 
@@ -121,6 +125,10 @@ int strconv_unescape(char *dest, int size, const char *src, int len)
 {
     int i, j;
 
+    if (len < 0) {
+        len = strlen(src);
+    }
+
     for (i = j = 0; i < len;) {
         int c = src[i];
         
@@ -152,6 +160,10 @@ int strconv_unescape(char *dest, int size, const char *src, int len)
 int strconv_quote(char *dest, int size, const char *src, int len, int delim)
 {
     int i, j;
+
+    if (len < 0) {
+        len = strlen(src);
+    }
 
     for (i = j = 0; i < len; i++) {
         int c = src[i];
@@ -335,6 +347,10 @@ int strconv_unquote(char *dest, int size, const char *src, int len)
 {
     int i, j;
 
+    if (len < 0) {
+        len = strlen(src);
+    }
+
     for (i = j = 0; i < len;) {
         int c = src[i];
 
@@ -403,7 +419,11 @@ int strconv_unquote_char(int *cp, const char *src, int len)
 {
     int i, c;
 
-    if (len <= 0) {
+    if (len < 0) {
+        len = strlen(src);
+    }
+
+    if (len == 0) {
         *cp = 0;
         return 0;
     } else {
@@ -464,4 +484,3 @@ int strconv_unquote_char(int *cp, const char *src, int len)
         return i;
     }
 }
-
