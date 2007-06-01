@@ -17,6 +17,7 @@
 #include <unistd.h> /* for ssize_t */
 #include <sys/types.h>
 #include <sys/time.h>
+
 #include "macros.h"
 
 /****************************************************************************/
@@ -49,11 +50,12 @@ int filecopy(const char *pathin, const char *pathout);
 /* Misc                                                                     */
 /****************************************************************************/
 
+bool is_fd_open(int fd);
+
 static inline void getopt_init(void) {
     /* XXX this is not portable, BSD want it to be set to -1 *g* */
     optind = 0;
 }
-bool is_fd_open(int fd);
 
 void unix_initialize(void);
 
