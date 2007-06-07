@@ -687,11 +687,12 @@ static const xml_tag_t* xml_search_branch(const xml_tag_t *branch,
     return NULL;
 }
 
-const xml_tag_t* xml_search(const xml_tree_t *tree,
-                            const xml_tag_t *previous,
-                            const char *pattern)
+const xml_tag_t* xml_search_subtree(const xml_tree_t *tree,
+                                    const xml_tag_t *subtree,
+                                    const xml_tag_t *previous,
+                                    const char *pattern)
 {
-    if (!tree || !tree->root || !pattern) {
+    if (!tree || !tree->root || !pattern || !subtree) {
         return NULL;
     }
     /* XXX: Only support absolute path for now */
@@ -700,7 +701,7 @@ const xml_tag_t* xml_search(const xml_tree_t *tree,
     }
     pattern++;
 
-    return xml_search_branch(tree->root, &previous, pattern);
+    return xml_search_branch(subtree, &previous, pattern);
 }
 
 void blob_append_branch(const xml_tag_t *root, blob_t *blob, 
@@ -827,6 +828,12 @@ START_TEST(check_xmlparse)
         fail_if(!tag || strcmp(tag->name, "part2"), "search for part2 failed");
 
         tag = xml_search(tree, NULL, "/part3/title");
+        fail_if(!tag || strcmp(tag->name, "title"), "search for title failed");
+
+        tag = xml_search(tree, NULL, "/part3");
+        fail_if(!tag || strcmp(tag->name, "part3"), "search for part3 failed");
+
+        tag = xml_search_subtree(tree, tag, NULL, "/title");
         fail_if(!tag || strcmp(tag->name, "title"), "search for title failed");
 
         tag = xml_search(tree, NULL, "/part3/chapter1/paragraph");
