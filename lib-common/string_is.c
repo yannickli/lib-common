@@ -874,6 +874,21 @@ int64_t msisdn_canonize(const char *str, int len, __unused__ int locale)
     }
 }
 
+int str_replace(const char search, const char replace, char *subject) {
+    int nb_replace = 0;
+    char *p = subject;
+    p = strchr(p, search);
+    while (p && *p != '\0') {
+        *p = replace;
+        /*Read replace char*/
+        p++;
+        nb_replace++;
+        p = strchr(p, search);
+    }
+    return nb_replace;
+
+}
+
 /*}}}*/
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

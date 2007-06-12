@@ -206,6 +206,9 @@ static inline int utf8_vgetc(char *s, char **outp) {
     return utf8_getc(s, (const char **)outp);
 }
 
+/* Return the number of occurences replaced*/
+int str_replace(const char search, const char replace, char *subject);
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 #include <check.h>
