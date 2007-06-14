@@ -23,7 +23,7 @@
 /*
  * __attr_unused__             => unused vars
  * __attr_noreturn__           => functions that perform abord()/exit()
- * __attr_printf__(pos1, pos2) => printf formats
+ * __attr_printf__(pos_fmt, pos_first_arg) => printf formats
  */
 
 #if !defined(__doxygen_mode__)
