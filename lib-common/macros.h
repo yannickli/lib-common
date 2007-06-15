@@ -23,7 +23,8 @@
 /*
  * __attr_unused__             => unused vars
  * __attr_noreturn__           => functions that perform abord()/exit()
- * __attr_printf__(pos_fmt, pos_first_arg) => printf formats
+ * __attr_printf__(pos_fmt, pos_first_arg) => printf format
+ * __attr_scanf__(pos_fmt, pos_first_arg) => scanf format
  */
 
 #if !defined(__doxygen_mode__)
@@ -35,6 +36,7 @@
 #  define __attr_noreturn__      __attribute__((noreturn))
 #  define __attr_nonnull__(l)    __attribute__((nonnull l))
 #  define __attr_printf__(a, b)  __attribute__((format(printf, a, b)))
+#  define __attr_scanf__(a, b)  __attribute__((format(scanf, a, b)))
 #endif
 
 #undef EXPORT
