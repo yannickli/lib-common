@@ -36,6 +36,7 @@
 #include "strconv.h"
 #include "err_report.h"
 #include "iprintf.h"
+#include "byteops.h"
 
 /**************************************************************************/
 /* Blob creation / deletion                                               */
@@ -1611,6 +1612,299 @@ int blob_unpack(const blob_t *blob, int *pos, const char *fmt, ...)
     return res;
 }
 
+/* Serialize common objects to a blob with a printf-like syntax.
+ * XXX: Serialize in little-endian order. As we usually run on
+ * little-endian-ordered machines, serialization is a nop. Deserialization
+ * could be a nop if we allow unaligned accesses.
+ */
+#define SERIALIZE_CHAR        1
+#define SERIALIZE_INT         4
+#define SERIALIZE_LONG_LONG   8
+#define SERIALIZE_LONG_32   104
+#define SERIALIZE_LONG_64   108
+#define SERIALIZE_BINARY    150
+#define SERIALIZE_STRING    151
+int blob_serialize(blob_t *blob, const char *fmt, ...)
+{
+    va_list ap;
+    int c, orig_len, val_len, val_len_net;
+    char val_c;
+    int val_d;
+    long val_l;
+    long long val_ll;
+    const char *val_s;
+    const byte *val_b;
+
+    orig_len = blob->len;
+    va_start(ap, fmt);
+
+    for (;;) {
+        switch (c = *fmt++) {
+        case '\0':
+            break;
+        case '%':
+            switch (c = *fmt++) {
+              case '\0':
+                goto error;
+              case 'c':
+                /* %c : single char.
+                 * XXX: "char is promoted to int when passed through ..."
+                 */
+                val_d = va_arg(ap, int);
+                val_c = val_d;
+                blob_append_byte(blob, SERIALIZE_CHAR);
+                blob_append_data(blob, &val_c, 1);
+                continue;
+              case 'l':
+                if (fmt[0] == 'l' && fmt[1] == 'd') {
+                    /* %lld: 64 bits int */
+                    fmt += 2;
+                    val_ll = va_arg(ap, long long);
+                    val_ll = cpu_to_le_64(val_ll);
+                    blob_append_byte(blob, SERIALIZE_LONG_LONG);
+                    blob_append_data(blob, &val_ll, sizeof(long long));
+                } else if (fmt[0] == 'd') {
+                    /* %l: long : 32 or 64 bytes depending on platform */
+                    fmt++;
+                    val_l = va_arg(ap, long);
+                    switch (sizeof(long)) {
+                      case 4:
+                        val_l = cpu_to_le_32(val_l);
+                        blob_append_byte(blob, SERIALIZE_LONG_32);
+                        break;
+                      case 8:
+                        val_l = cpu_to_le_64(val_l);
+                        blob_append_byte(blob, SERIALIZE_LONG_64);
+                        break;
+                      default:
+                        goto error;
+                    }
+                    blob_append_data(blob, &val_l, sizeof(long));
+                }
+                continue;
+              case 'd':
+                /* %d: 32 bits int */
+                val_d = va_arg(ap, int);
+                val_d = cpu_to_le_32(val_d);
+                blob_append_byte(blob, SERIALIZE_INT);
+                blob_append_data(blob, &val_d, sizeof(int));
+                continue;
+              case 's':
+                /* "%s" : string, NIL-terminated */
+                val_s = va_arg(ap, const char *);
+                blob_append_byte(blob, SERIALIZE_STRING);
+                blob_append_cstr(blob, val_s);
+                blob_append_byte(blob, '\0');
+                continue;
+              case '*':
+                /* "%*p" : binary object (can include a \0) */
+                if (fmt[0] != 'p') {
+                    goto error;
+                }
+                fmt++;
+                blob_append_byte(blob, SERIALIZE_BINARY);
+                val_len = va_arg(ap, int);
+                val_b = va_arg(ap, const byte *);
+                val_len_net = cpu_to_le_32(val_len);
+                blob_append_data(blob, &val_len_net, sizeof(int));
+                blob_append_data(blob, val_b, val_len);
+                continue;
+              case '%':
+                blob_append_byte(blob, '%');
+                continue;
+              default:
+                /* Unsupported format... */
+                goto error;
+            }
+            continue;
+        default:
+            blob_append_byte(blob, c);
+            continue;
+        }
+        break;
+    }
+    va_end(ap);
+    return 0;
+error:
+    va_end(ap);
+    blob_resize(blob, orig_len);
+    return -1;
+}
+
+static int buf_deserialize_vfmt(const byte *buf, int buf_len,
+                                int *pos, const char *fmt, va_list ap)
+{
+    const byte *data, *dataend, *endp;
+    int c, n = 0;
+    char *cvalp;
+    int *ivalp;
+    long *lvalp;
+    long long *llvalp;
+    const char **cpvalp;
+    const byte **bpvalp;
+
+    if (buf_len < 0)
+        buf_len = strlen((const char *)buf);
+
+    if (*pos >= buf_len)
+        return -1;
+
+    data = buf + *pos;
+    dataend = buf + buf_len;
+    for (;;) {
+        switch (c = *fmt++) {
+          case '\0':
+            goto end;
+          case '%':
+            switch (c = *fmt++) {
+              case '\0':
+                goto error;
+                break;
+              case 'c':
+                cvalp = va_arg(ap, char *);
+                if (*data++ != SERIALIZE_CHAR) {
+                    goto error;
+                }
+                if (data + 1 > dataend) {
+                    goto error;
+                }
+                *cvalp = *(char*)data;
+                data += 1;
+                n++;
+                break;
+              case 'd':
+                ivalp = va_arg(ap, int *);
+                if (*data++ != SERIALIZE_INT) {
+                    goto error;
+                }
+                if (data + sizeof(int) > dataend) {
+                    goto error;
+                }
+                *ivalp = le_to_cpu_32(data);
+                data += sizeof(int);
+                n++;
+                break;
+              case 'l':
+                if (fmt[0] == 'd') {
+                    fmt++;
+                    lvalp = va_arg(ap, long *);
+                    if (data + 1 + sizeof(long) > dataend) {
+                        goto error;
+                    }
+                    switch (sizeof(long)) {
+                      case 4:
+                        /* %ld => 32 bits "long" */
+                        if (*data++ != SERIALIZE_LONG_32) {
+                            goto error;
+                        }
+                        *lvalp = le_to_cpu_32(data);
+                        break;
+                      case 8:
+                        /* %ld => 64 bits "long" */
+                        if (*data++ != SERIALIZE_LONG_64) {
+                            goto error;
+                        }
+                        *lvalp = le_to_cpu_64(data);
+                        break;
+                      default:
+                        goto error;
+                    }
+                    data += sizeof(long);
+                    n++;
+                } else if (fmt[0] == 'l' && fmt[1] == 'd') {
+                    fmt += 2;
+                    /* %lld : long long => 64 bits */
+                    if (data + 1 + sizeof(long long) > dataend) {
+                        goto error;
+                    }
+                    llvalp = va_arg(ap, long long *);
+                    if (*data++ != SERIALIZE_LONG_LONG) {
+                        goto error;
+                    }
+                    *llvalp = le_to_cpu_64(data);
+                    data += sizeof(long long);
+                    n++;
+                } else {
+                    goto error;
+                }
+                break;
+              case 'p':
+                /* %p => NIL-terminated string */
+                if (*data++ != SERIALIZE_STRING) {
+                    goto error;
+                }
+                endp = data;
+                while (*endp++) {
+                    if (endp >= dataend) {
+                        goto error;
+                    }
+                }
+                cpvalp= va_arg(ap, const char **);
+                *cpvalp = (const char *)data;
+                data = endp;
+                n++;
+                break;
+              case '*':
+                /* %*p => pointer to int (size) and pointer
+                 * to pointer to binary object */
+                if (fmt[0] != 'p') {
+                    goto error;
+                }
+                fmt++;
+                if (*data++ != SERIALIZE_BINARY) {
+                    goto error;
+                }
+                ivalp = va_arg(ap, int*);
+                bpvalp = va_arg(ap, const byte **);
+                *ivalp = le_to_cpu_32(data);
+                data += sizeof(int);
+                *bpvalp = (const byte *)data;
+                data += *ivalp;
+                n++;
+                break;
+            }
+            break;
+          default:
+            if (data[0] != c) {
+                goto error;
+            }
+            data++;
+            break;
+        }
+    }
+end:
+    va_end(ap);
+    *pos = data - buf;
+    return n;
+error:
+    va_end(ap);
+    return -1;
+}
+
+int buf_deserialize(const byte *buf, int buf_len,
+                    int *pos, const char *fmt, ...)
+{
+    va_list ap;
+    int res;
+
+    va_start(ap, fmt);
+    res = buf_deserialize_vfmt(buf, buf_len, pos, fmt, ap);
+    va_end(ap);
+
+    return res;
+}
+
+int blob_deserialize(const blob_t *blob, int *pos, const char *fmt, ...)
+{
+    va_list ap;
+    int res;
+
+    va_start(ap, fmt);
+    res = buf_deserialize_vfmt(blob->data, blob->len, pos, fmt, ap);
+    va_end(ap);
+
+    return res;
+}
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 /* inlines (check invariants) + setup/teardowns                        {{{*/
@@ -2365,6 +2659,187 @@ START_TEST(check_xml_escape)
 }
 END_TEST
 
+START_TEST(check_serialize_c)
+{
+    blob_t dst;
+    char c = 'Z';
+    char val1 = 0x10, val2 = 0x11;
+    int pos, res;
+
+    blob_init(&dst);
+
+    blob_serialize(&dst, "%c%c", 'A', 'a');
+    pos = 0;
+    res = blob_deserialize(&dst, &pos, "%c%c", &val1, &val2);
+    fail_if(res != 2, "res:%d", res);
+    fail_if(val1 != 'A' || val2 != 'a', "val1:%c val2:%c", val1, val2);
+}
+END_TEST
+
+START_TEST(check_serialize_d)
+{
+    blob_t dst;
+    int val1 = 71, val2 = 42, pos, res;
+
+    blob_init(&dst);
+
+    blob_serialize(&dst, "%d%d", 3, 4);
+    pos = 0;
+    res = blob_deserialize(&dst, &pos, "%d%d", &val1, &val2);
+    fail_if(val1 != 3 || val2 != 4, "val1:%d val2:%d", val1, val2);
+    fail_if(res != 2, "res:%d", res);
+
+    blob_reset(&dst);
+    blob_serialize(&dst, "%d%d", 42, -42);
+    pos = 0;
+    res = blob_deserialize(&dst, &pos, "%d%d", &val1, &val2);
+    fail_if(val1 != 42 || val2 != -42, "val1:%d val2:%d", val1, val2);
+    fail_if(res != 2, "res:%d", res);
+
+    blob_reset(&dst);
+    blob_serialize(&dst, "%d", 0x12345678);
+    pos = 0;
+    res = blob_deserialize(&dst, &pos, "%d", &val1);
+    fail_if(val1 != 0x12345678, "val1:%d", val1);
+    fail_if(res != 1, "res:%d", res);
+
+    blob_reset(&dst);
+    blob_serialize(&dst, "AA%dAA", 0x12345678);
+    pos = 0;
+    res = blob_deserialize(&dst, &pos, "AA%d", &val1);
+    fail_if(val1 != 0x12345678, "val1:%d", val1);
+    fail_if(res != 1, "res:%d", res);
+    fail_if(pos != dst.len - 2, "pos:%d", pos);
+    res = blob_deserialize(&dst, &pos, "AA");
+    fail_if(res != 0, "res:%d", res);
+    fail_if(pos != dst.len, "pos:%d", pos);
+
+    blob_wipe(&dst);
+}
+END_TEST
+
+START_TEST(check_serialize_ld)
+{
+    blob_t dst;
+    int pos, res;
+    long val1 = 4242;
+
+    blob_init(&dst);
+
+#define CHECKVAL(val) do {\
+    blob_reset(&dst); \
+    blob_serialize(&dst, "%ld", (long)val); \
+    pos = 0; \
+    val1 = 42; \
+    res = blob_deserialize(&dst, &pos, "%ld", &val1); \
+    fail_if(val1 != val, "val1:%ld", val1); \
+    fail_if(res != 1, "val1:%ld, res:%d", val1, res); \
+    fail_if(pos != dst.len, "pos:%d", pos); \
+    } while (0)
+
+    CHECKVAL(0);
+    CHECKVAL(1);
+    CHECKVAL(-1);
+    CHECKVAL(31415);
+#undef CHECKVAL
+
+    blob_wipe(&dst);
+}
+END_TEST
+
+
+START_TEST(check_serialize_lld)
+{
+    blob_t dst;
+    int pos, res;
+    unsigned long long int val1 = 4242;
+
+    blob_init(&dst);
+
+#define CHECKVAL(val) do {\
+    blob_reset(&dst); \
+    blob_serialize(&dst, "%lld", (unsigned long long) val); \
+    pos = 0; \
+    val1 = 42; \
+    res = blob_deserialize(&dst, &pos, "%lld", &val1); \
+    fail_if(val1 != val, "val1:%lld", val1); \
+    fail_if(res != 1, "val1:%lld, res:%d", val1, res); \
+    fail_if(pos != dst.len, "pos:%d", pos); \
+    } while (0)
+
+    CHECKVAL(0);
+    CHECKVAL(1);
+    CHECKVAL(3141592653589793238ULL);
+    CHECKVAL(0x0001000200030004ULL);
+    CHECKVAL(0x0102030405060708ULL);
+    CHECKVAL(0xFF00FF00FF00FF00ULL);
+    CHECKVAL(0x00FF00FF00FF00FFULL);
+    CHECKVAL(0xAAAAAAAAAAAAAAAAULL);
+#undef CHECKVAL
+
+    blob_wipe(&dst);
+}
+END_TEST
+
+START_TEST(check_serialize_s)
+{
+    blob_t dst;
+    int pos, res;
+    const char *val1 = NULL;
+
+    blob_init(&dst);
+
+#define CHECKVAL(val) do {\
+    blob_reset(&dst); \
+    blob_serialize(&dst, "%s", val); \
+    pos = 0; \
+    val1 = NULL; \
+    res = blob_deserialize(&dst, &pos, "%p", &val1); \
+    fail_if(strcmp(val, val1), "val1:%s", val1); \
+    fail_if(res != 1, "res:%d", res); \
+    fail_if(pos != dst.len, "pos:%d, dst.len:%d", pos, dst.len); \
+    } while (0)
+
+    CHECKVAL("ABC");
+    CHECKVAL("Clavier AZERTY");
+    CHECKVAL("QWERTZ Tastatur");
+    CHECKVAL("QWERTY keyboard");
+    CHECKVAL("");
+#undef CHECKVAL
+
+    blob_wipe(&dst);
+}
+END_TEST
+
+START_TEST(check_serialize_p)
+{
+    blob_t dst;
+    int pos, res;
+    const char *val1 = NULL;
+    int len1;
+
+    blob_init(&dst);
+
+#define CHECKVAL(val, val_len) do {\
+    blob_reset(&dst); \
+    blob_serialize(&dst, "%*p", val_len, val); \
+    pos = 0; \
+    val1 = NULL; \
+    res = blob_deserialize(&dst, &pos, "%*p", &len1, &val1); \
+    fail_if(len1 != val_len, "len1:%d val_len:%d", len1, val_len); \
+    fail_if(memcmp(val, val1, val_len), "memcmp failed"); \
+    fail_if(res != 1, "res:%d", res); \
+    fail_if(pos != dst.len, "pos:%d, dst.len:%d", pos, dst.len); \
+    } while (0)
+
+    CHECKVAL("ABC", 3);
+    CHECKVAL("\000\000\000", 3);
+#undef CHECKVAL
+
+    blob_wipe(&dst);
+}
+END_TEST
+
 /*.....................................................................}}}*/
 /* public testing API                                                  {{{*/
 
@@ -2398,6 +2873,12 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_gunzip);
     tcase_add_test(tc, check_gzip);
     tcase_add_test(tc, check_unpack);
+    tcase_add_test(tc, check_serialize_c);
+    tcase_add_test(tc, check_serialize_d);
+    tcase_add_test(tc, check_serialize_ld);
+    tcase_add_test(tc, check_serialize_lld);
+    tcase_add_test(tc, check_serialize_s);
+    tcase_add_test(tc, check_serialize_p);
 
     return s;
 }

@@ -267,6 +267,11 @@ int blob_unpack(const blob_t *blob, int *pos, const char *fmt, ...)
     __attribute__((warn_unused_result));
 int buf_unpack(const byte *buf, int buf_len, int *pos, const char *fmt, ...)
     __attribute__((warn_unused_result));
+int blob_serialize(blob_t *blob, const char *fmt, ...)
+    __attr_printf__(2, 3);
+int buf_deserialize(const byte *buf, int buf_len,
+                    int *pos, const char *fmt, ...);
+int blob_deserialize(const blob_t *blob, int *pos, const char *fmt, ...);
 
 /**************************************************************************/
 /* Blob search functions                                                  */
