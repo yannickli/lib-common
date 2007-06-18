@@ -1731,6 +1731,14 @@ error:
     return -1;
 }
 
+/* Deserialize a buffer that was created with blob_serialize().
+ * Returns 0 and update pos if OK fmt was completly matched,
+ * Returns -(n+1) if parse failed before or while parsing arg n.
+ * Format string is (almost) the same as for blob_serialize:
+ * %c, %d, %ld, %lld, %p are symetric, and "compatible" with scanf()
+ * Unfortunately, we have to extend %*p for binary buffers, making this
+ * function incompatible with attr_scanf (it's a shame!).
+ */
 static int buf_deserialize_vfmt(const byte *buf, int buf_len,
                                 int *pos, const char *fmt, va_list ap)
 {
@@ -1875,10 +1883,10 @@ static int buf_deserialize_vfmt(const byte *buf, int buf_len,
 end:
     va_end(ap);
     *pos = data - buf;
-    return n;
+    return 0;
 error:
     va_end(ap);
-    return -1;
+    return -(n + 1);
 }
 
 int buf_deserialize(const byte *buf, int buf_len,
@@ -2664,15 +2672,49 @@ START_TEST(check_serialize_c)
     blob_t dst;
     char c = 'Z';
     char val1 = 0x10, val2 = 0x11;
-    int pos, res;
+    int pos, res, i;
 
     blob_init(&dst);
 
     blob_serialize(&dst, "%c%c", 'A', 'a');
     pos = 0;
     res = blob_deserialize(&dst, &pos, "%c%c", &val1, &val2);
-    fail_if(res != 2, "res:%d", res);
+    fail_if(res != 0, "res:%d", res);
     fail_if(val1 != 'A' || val2 != 'a', "val1:%c val2:%c", val1, val2);
+
+    /* Check all possible values for %c */
+    blob_reset(&dst);
+    for (i = 0; i <= 0xFF; i++) {
+        blob_serialize(&dst, "%c", i);
+    }
+    pos = 0;
+    for (i = 0; i <= 0xFF; i++) {
+        res = blob_deserialize(&dst, &pos, "%c", &val1);
+        fail_if(res != 0, "res:%d i:%d", res, i);
+        fail_if(val1 != i, "val1:%d i:%d", val1, i);
+    }
+    fail_if (pos != dst.len, "pos:%d dst.len:%d", pos, (int)dst.len);
+
+    blob_wipe(&dst);
+}
+END_TEST
+
+START_TEST(check_serialize_fmt)
+{
+    blob_t dst;
+    char c = 'Z';
+    char val1 = 0x10, val2 = 0x11;
+    int pos, res;
+
+    blob_init(&dst);
+
+    blob_serialize(&dst, "AA%cBBB%cCCCC", 'G', 'H');
+    pos = 0;
+    res = blob_deserialize(&dst, &pos, "AA%cBBB%cCCCC", &val1, &val2);
+    fail_if(res != 0, "res:%d", res);
+    fail_if(val1 != 'G' || val2 != 'H', "val1:%c val2:%c", val1, val2);
+
+    blob_wipe(&dst);
 }
 END_TEST
 
@@ -2687,28 +2729,28 @@ START_TEST(check_serialize_d)
     pos = 0;
     res = blob_deserialize(&dst, &pos, "%d%d", &val1, &val2);
     fail_if(val1 != 3 || val2 != 4, "val1:%d val2:%d", val1, val2);
-    fail_if(res != 2, "res:%d", res);
+    fail_if(res != 0, "res:%d", res);
 
     blob_reset(&dst);
     blob_serialize(&dst, "%d%d", 42, -42);
     pos = 0;
     res = blob_deserialize(&dst, &pos, "%d%d", &val1, &val2);
     fail_if(val1 != 42 || val2 != -42, "val1:%d val2:%d", val1, val2);
-    fail_if(res != 2, "res:%d", res);
+    fail_if(res != 0, "res:%d", res);
 
     blob_reset(&dst);
     blob_serialize(&dst, "%d", 0x12345678);
     pos = 0;
     res = blob_deserialize(&dst, &pos, "%d", &val1);
     fail_if(val1 != 0x12345678, "val1:%d", val1);
-    fail_if(res != 1, "res:%d", res);
+    fail_if(res != 0, "res:%d", res);
 
     blob_reset(&dst);
     blob_serialize(&dst, "AA%dAA", 0x12345678);
     pos = 0;
     res = blob_deserialize(&dst, &pos, "AA%d", &val1);
     fail_if(val1 != 0x12345678, "val1:%d", val1);
-    fail_if(res != 1, "res:%d", res);
+    fail_if(res != 0, "res:%d", res);
     fail_if(pos != dst.len - 2, "pos:%d", pos);
     res = blob_deserialize(&dst, &pos, "AA");
     fail_if(res != 0, "res:%d", res);
@@ -2733,7 +2775,7 @@ START_TEST(check_serialize_ld)
     val1 = 42; \
     res = blob_deserialize(&dst, &pos, "%ld", &val1); \
     fail_if(val1 != val, "val1:%ld", val1); \
-    fail_if(res != 1, "val1:%ld, res:%d", val1, res); \
+    fail_if(res != 0, "val1:%ld, res:%d", val1, res); \
     fail_if(pos != dst.len, "pos:%d", pos); \
     } while (0)
 
@@ -2763,7 +2805,7 @@ START_TEST(check_serialize_lld)
     val1 = 42; \
     res = blob_deserialize(&dst, &pos, "%lld", &val1); \
     fail_if(val1 != val, "val1:%lld", val1); \
-    fail_if(res != 1, "val1:%lld, res:%d", val1, res); \
+    fail_if(res != 0, "val1:%lld, res:%d", val1, res); \
     fail_if(pos != dst.len, "pos:%d", pos); \
     } while (0)
 
@@ -2796,7 +2838,7 @@ START_TEST(check_serialize_s)
     val1 = NULL; \
     res = blob_deserialize(&dst, &pos, "%p", &val1); \
     fail_if(strcmp(val, val1), "val1:%s", val1); \
-    fail_if(res != 1, "res:%d", res); \
+    fail_if(res != 0, "res:%d", res); \
     fail_if(pos != dst.len, "pos:%d, dst.len:%d", pos, dst.len); \
     } while (0)
 
@@ -2828,7 +2870,7 @@ START_TEST(check_serialize_p)
     res = blob_deserialize(&dst, &pos, "%*p", &len1, &val1); \
     fail_if(len1 != val_len, "len1:%d val_len:%d", len1, val_len); \
     fail_if(memcmp(val, val1, val_len), "memcmp failed"); \
-    fail_if(res != 1, "res:%d", res); \
+    fail_if(res != 0, "res:%d", res); \
     fail_if(pos != dst.len, "pos:%d, dst.len:%d", pos, dst.len); \
     } while (0)
 
@@ -2874,6 +2916,7 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_gzip);
     tcase_add_test(tc, check_unpack);
     tcase_add_test(tc, check_serialize_c);
+    tcase_add_test(tc, check_serialize_fmt);
     tcase_add_test(tc, check_serialize_d);
     tcase_add_test(tc, check_serialize_ld);
     tcase_add_test(tc, check_serialize_lld);
