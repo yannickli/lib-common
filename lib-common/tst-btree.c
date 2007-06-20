@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #include "btree.h"
 #include "timeval.h"
@@ -26,7 +27,7 @@
 
 #define BSWAP  1
 
-int main(void)
+static int btree_linear_test(void)
 {
     proctimer_t pt;
     struct stat st;
@@ -68,15 +69,137 @@ int main(void)
             nkeys++;
         }
     }
-done1:
+  done1:
     proctimer_stop(&pt);
     stat(filename, &st);
 
     printf("inserted %d keys in index '%s' (%ld bytes)\n",
-           nkeys, filename, st.st_size);
+           nkeys, filename, (long)st.st_size);
     printf("times: %s\n", proctimer_report(&pt, NULL));
 
     btree_close(&bt);
 
     return status;
 }
+
+#define EXPENSIVE_CHECKS
+static int do_expensive_checks(const btree_t *bt, uint64_t newkey, long npush)
+{
+    static uint64_t keys[1024 * 1024] = {0};
+    static int nb[1024 * 1024] = {0};
+    static int nb_keys = 0;
+    int i;
+    blob_t blob;
+
+    /* Find previous occurence of newkey in keys[].
+     * Do it in reverse order as it's statistically more
+     * likely */
+    for (i = nb_keys - 1; i >= 0; i--) {
+        if (keys[i] == newkey) {
+            break;
+        }
+    }
+    if (i >= 0) {
+        nb[i]++;
+    } else {
+        keys[nb_keys] = newkey;
+        nb[nb_keys] = 1;
+        nb_keys++;
+    }
+
+    if (npush >= 335500) {
+        fprintf(stderr, "Expensive check #%ld...", npush);
+        fflush(stderr);
+        blob_init(&blob);
+        for (i = 0; i < nb_keys; i++) {
+            blob_reset(&blob);
+            btree_fetch(bt, keys[i], &blob);
+            if (blob.len != 4 * nb[i]) {
+                fprintf(stderr, "looking for key=%04lx. Got %d, expected %d\n",
+                        keys[i],
+                        (int)blob.len,
+                        4 * nb[i]);
+                blob_wipe(&blob);
+                return 1;
+            }
+        }
+        fprintf(stderr, "OK\n");
+        blob_wipe(&blob);
+    }
+    return 0;
+}
+int main(int argc, char **argv)
+{
+    char buf[BUFSIZ];
+    const char *indexname = "/tmp/test.ibt";
+    btree_t *bt = NULL;
+    int len;
+    long offset;
+    long npush;
+    uint64_t num;
+    uint32_t data;
+    int status = 0;
+    FILE *fp;
+
+    if (argc < 2) {
+        return btree_linear_test();
+    }
+
+    fp = fopen(argv[1], "r");
+    if (!fp) {
+        fprintf(stderr, "Cannot open %s: %m\n", argv[1]);
+        return 1;
+    }
+
+    unlink(indexname);
+    bt = btree_creat(indexname);
+    if (!bt) {
+        fprintf(stderr, "Cannot create %s: %m\n", indexname);
+        return 1;
+    }
+
+    npush = 0;
+    offset = 0;
+
+    while (fgets(buf, sizeof(buf), fp)) {
+        if (*buf == '\n')
+            break;
+        len = strlen(buf);
+        if (buf[11] == '@' || buf[11] == '<') {
+            int pos = 0, line_no, camp_id, n;
+
+            n = buf_unpack((byte*)buf, len, &pos, "s|c|s|d|d|", NULL, NULL, NULL, &line_no, &camp_id);
+            num = ((uint64_t)camp_id << 32) | (uint32_t)line_no;
+            data = offset;
+            if (btree_push(bt, num, (void*)&data, sizeof(data))) {
+                printf("btree: failed to insert key %lld value %d\n",
+                       (long long)num, data);
+                status = 1;
+                break;
+            }
+            npush++;
+#ifdef EXPENSIVE_CHECKS
+            if (do_expensive_checks(bt, num, npush)) {
+                fprintf(stderr, "Error after insertion #%ld\n"
+                        "num=%lld\n", npush,
+                        (long long unsigned int)num);
+                fprintf(stderr, "buf:%s\n", buf);
+                btree_close(&bt);
+                return 1;
+            }
+#endif
+        }
+        offset += len;
+        if (npush == 335505) {
+            btree_close(&bt);
+            return 0;
+        }
+    }
+    btree_close(&bt);
+
+    printf("btree: %ld insertions for %ld bytes\n",
+           npush, offset);
+
+    return status;
+}
+
