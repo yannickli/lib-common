@@ -20,10 +20,10 @@ int main(int argc, char **argv)
     btree_t *bt;
 
     if (argc > 1) {
-        bt = btree_open(argv[1], O_RDONLY);
+        bt = btree_open(argv[1], O_RDONLY | O_NONBLOCK);
         assert (bt);
 
-        btree_dump(bt, stdout);
+        btree_dump(bt, fprintf, stdout);
 
         btree_close(&bt);
     }

@@ -20,7 +20,12 @@
 typedef struct btree_priv_t btree_priv_t;
 typedef struct btree_t MMFILE_ALIAS(struct btree_priv) btree_t;
 
+typedef int btree_print_fun(FILE *fp, const char *fmt, ...)
+	__attr_printf__(2, 3);
+
 int btree_fsck(btree_t *bt, int dofix);
+int btree_check_integrity(btree_t *bt, int dofix,
+			  btree_print_fun *fun, FILE *arg);
 btree_t *btree_open(const char *path, int flags);
 btree_t *btree_creat(const char *path);
 void btree_close(btree_t **tree);
@@ -36,7 +41,7 @@ int btree_fetch(const btree_t *bt, uint64_t key, blob_t *out);
 /* OG: data argument should be const void * */
 int btree_push(btree_t *bt, uint64_t key, const byte *data, int len);
 
-void btree_dump(const btree_t *bt, FILE *out);
+void btree_dump(const btree_t *bt, btree_print_fun *fun, FILE *arg);
 
 typedef struct fbtree_t fbtree_t;
 

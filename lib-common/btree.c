@@ -34,7 +34,7 @@ enum btpp_masks {
 
 typedef struct bt_node_t {
     int32_t next;
-    int32_t flags;
+    int32_t flags; /* Never used... ? */
 
     int32_t nbkeys;
     int32_t ptrs[BT_ARITY + 1];
@@ -131,37 +131,53 @@ static int32_t bt_page_new(btree_t *bt)
 {
 #define NB_PAGES_GROW  1024
 
-    int32_t res;
+    int32_t res, i, from, len;
 
-    if (bt->area->freelist) {
-        res = bt->area->freelist;
-        bt->area->freelist = bt->area->pages[bt->area->freelist].leaf.next;
-        bt->area->pages[res].leaf.next = 0;
-        return res;
-    }
-
-    res = bt_real_truncate(bt, bt->size + NB_PAGES_GROW * 4096);
-    if (res < 0) {
-        if (!bt->area) {
-            e_panic("Not enough memory !");
+    /* OG: bogus test, empty freelist should not be 0, but BTPP_NIL */
+    /* OG: the real issue is that BTPP_NIL should be 0 */
+    if (!bt->area->freelist || bt->area->freelist == BTPP_NIL) {
+        len = NB_PAGES_GROW;
+        res = bt_real_truncate(bt, bt->size + len * 4096);
+        if (res < 0) {
+            if (!bt->area) {
+                e_panic("Not enough memory !");
+            }
+            return res;
         }
-        return res;
-    }
+        from = bt->area->nbpages;
+        bt->area->nbpages += len;
 
-    return bt_append_to_freelist(bt, bt->area->nbpages, NB_PAGES_GROW);
+        bt->area->freelist = from;
+        for (i = from; i < from + len - 1; i++) {
+            bt->area->pages[i].leaf.next = i + 1;
+        }
+        bt->area->pages[i].leaf.next = 0;
+    }
+    res = bt->area->freelist;
+    bt->area->freelist = bt->area->pages[bt->area->freelist].leaf.next;
+    bt->area->pages[res].leaf.next = BTPP_NIL;
+    bt->area->pages[res].leaf.used = 0;
+
+    return res;
 }
 
-static inline bt_page_t *vbt_deref(struct btree_priv *bt, int32_t ptr)
-{
+static inline bt_page_t *vbt_deref(struct btree_priv *bt, int32_t ptr) {
     int page = BTPP_OFFS(ptr);
     if (page == BTPP_NIL || page > bt->nbpages)
         return NULL;
     return bt->pages + BTPP_OFFS(ptr);
 }
 
-static inline bt_page_t *bt_deref(const struct btree_priv *bt, int32_t ptr) {
+static inline
+const bt_page_t *bt_deref(const struct btree_priv *bt, int32_t ptr) {
     return vbt_deref((struct btree_priv *)bt, ptr);
 }
+
+#define MAP_NODE(bt, n)        (&vbt_deref(bt, n)->node)
+#define MAP_LEAF(bt, n)        (&vbt_deref(bt, n)->leaf)
+#define MAP_CONST_NODE(bt, n)  (&bt_deref(bt, n)->node)
+#define MAP_CONST_LEAF(bt, n)  (&bt_deref(bt, n)->leaf)
+
 
 static void btn_shift(bt_node_t *node, int dst, int src, int width)
 {
@@ -196,26 +212,23 @@ static void btn_setk(bt_node_t *node, int pos, uint64_t key)
 }
 
 static void
-btn_update(btree_t *bt, const intpair nodes[], int depth,
-           int32_t page2, uint64_t key)
+btn_update(btree_t *bt, const intpair nodes[], int level, uint64_t key)
 {
-    int32_t page1 = nodes[depth].page;
+    while (++level <= bt->area->depth) {
+        int i = nodes[level].i;
+        bt_node_t *node = MAP_NODE(bt->area, nodes[level].page);
 
-    while (--depth >= 0) {
-        int i = 0;
-        bt_node_t *node = &vbt_deref(bt->area, nodes[depth].page)->node;
+        assert (node);
 
-        node->ptrs[nodes[depth].i] = page2;
-        btn_setk(node, nodes[depth].i, key);
-        if (i != node->nbkeys - 1)
-            return;
-
-        page1 = page2 = nodes[depth].page;
+        if (i >= node->nbkeys)
+            break;
+        btn_setk(node, i, key);
+        if (i < node->nbkeys - 1)
+            break;
     }
 }
 
-
-static void btl_maxkey(const bt_leaf_t *leaf, uint64_t *key);
+static uint64_t btl_get_maxkey(const bt_leaf_t *leaf);
 
 static void btn_insert_aux(btree_t *bt, bt_node_t *node, int i, int32_t lpage, int32_t rpage)
 {
@@ -225,51 +238,74 @@ static void btn_insert_aux(btree_t *bt, bt_node_t *node, int i, int32_t lpage, i
     node->ptrs[i]     = lpage;
     node->ptrs[i + 1] = rpage;
     if (BTPP_IS_NODE(lpage)) {
-        bt_node_t *lnode = &bt_deref(bt->area, lpage)->node;
+        bt_node_t *lnode = MAP_NODE(bt->area, lpage);
         btn_setk(node, i, lnode->keys[lnode->nbkeys - 1]);
     } else {
-        uint64_t key = 0;
-        btl_maxkey(&bt_deref(bt->area, lpage)->leaf, &key);
+        uint64_t key = btl_get_maxkey(MAP_LEAF(bt->area, lpage));
         btn_setk(node, i, key);
+    }
+    if (i + 1 < node->nbkeys) {
+        if (BTPP_IS_NODE(rpage)) {
+            bt_node_t *rnode = MAP_NODE(bt->area, rpage);
+            btn_setk(node, i + 1, rnode->keys[rnode->nbkeys - 1]);
+        } else {
+            uint64_t key = btl_get_maxkey(MAP_LEAF(bt->area, rpage));
+            btn_setk(node, i + 1, key);
+        }
     }
 }
 
-static void btn_insert(btree_t *bt, intpair nodes[], int depth, int32_t rpage)
+/* OG: bad name for a function that inserts a node after the current
+ * one at level (level+1)
+ */
+static void btn_insert(btree_t *bt, intpair nodes[], int level, int32_t rpage)
 {
-    int32_t lpage = nodes[depth--].page;
+    int32_t lpage = nodes[level++].page;
     bt_node_t *node;
     bt_node_t *sibling;
 
-    if (depth < 0) {        // XXX: check if we got a new page !
+    if (level > bt->area->depth) {
+        /* Need a new level */
         bt->area->depth++;
+        // XXX: check if we got a new page !
         bt->area->root = bt_page_new(bt) | BTPP_NODE_MASK;
-        node = &vbt_deref(bt->area, bt->area->root)->node;
-        node->next    = BTPP_NIL;
-        node->nbkeys  = 0;
+        node = MAP_NODE(bt->area, bt->area->root);
+        node->next   = BTPP_NIL;
+        node->nbkeys = 0;
 
         btn_insert_aux(bt, node, 0, lpage, rpage);
         return;
     }
 
-    node = &vbt_deref(bt->area, nodes[depth].page)->node;
+    node = MAP_NODE(bt->area, nodes[level].page);
+    sibling = MAP_NODE(bt->area, node->next);
 
-    sibling = &vbt_deref(bt->area, node->next)->node;
+#if 1
     if (node->nbkeys == BT_ARITY && sibling && sibling->nbkeys < BT_ARITY - 1) {
         btn_shift(sibling, 1, 0, sibling->nbkeys);
         sibling->nbkeys++;
         sibling->ptrs[0] = node->ptrs[node->nbkeys - 1];
         btn_setk(sibling, 0, node->keys[node->nbkeys - 1]);
-        btn_shift(node, node->nbkeys - 1, node->nbkeys, 0);
+        /* Shift overflow page */
+        /* OG: if node has a sibling, it should not have one */
+        //*btn_shift(node, node->nbkeys - 1, node->nbkeys, 0);
         node->nbkeys--;
 
-        if (nodes[depth].i >= node->nbkeys) {
-            btn_insert_aux(bt, sibling, nodes[depth].i - node->nbkeys, lpage, rpage);
+        /* Update max key up the tree */
+        btn_update(bt, nodes, level, node->keys[node->nbkeys - 1]);
+
+        if (nodes[level].i >= node->nbkeys) {
+            btn_insert_aux(bt, sibling, nodes[level].i - node->nbkeys, lpage, rpage);
             return;
         }
     }
+#endif
 
     if (node->nbkeys < BT_ARITY) {
-        btn_insert_aux(bt, node, nodes[depth].i, lpage, rpage);
+        btn_insert_aux(bt, node, nodes[level].i, lpage, rpage);
+        if (nodes[level].i == node->nbkeys - 1) {
+            btn_update(bt, nodes, level, node->keys[node->nbkeys - 1]);
+        }
         return;
     }
 
@@ -278,23 +314,28 @@ static void btn_insert(btree_t *bt, intpair nodes[], int depth, int32_t rpage)
 
         // XXX: check if we got a new page !
         npage   = bt_page_new(bt) | BTPP_NODE_MASK;
-        node    = &vbt_deref(bt->area, nodes[depth].page)->node;
-        sibling = &vbt_deref(bt->area, npage)->node;
-        *sibling = *node;
+        /* remap pages because bt_page_new may have moved bt->area */
+        node    = MAP_NODE(bt->area, nodes[level].page);
+        sibling = MAP_NODE(bt->area, npage);
 
-        node->next   = npage;
+        /* split node data between node and new node */
+        *sibling = *node;
+        node->next   = npage & ~BTPP_NODE_MASK;
         node->nbkeys = BT_ARITY / 2;
 
         btn_shift(sibling, 0, BT_ARITY / 2, (BT_ARITY + 1) / 2);
         sibling->nbkeys = (BT_ARITY + 1) / 2;
 
-        if (nodes[depth].i < node->nbkeys) {
-            btn_insert_aux(bt, node, nodes[depth].i, lpage, rpage);
+        /* Update max key up the tree */
+        btn_update(bt, nodes, level, node->keys[node->nbkeys - 1]);
+
+        if (nodes[level].i < node->nbkeys) {
+            btn_insert_aux(bt, node, nodes[level].i, lpage, rpage);
         } else {
-            btn_insert_aux(bt, sibling, nodes[depth].i - node->nbkeys,
+            btn_insert_aux(bt, sibling, nodes[level].i - node->nbkeys,
                            lpage, rpage);
         }
-        btn_insert(bt, nodes, depth, npage);
+        btn_insert(bt, nodes, level, npage);
     }
 }
 
@@ -347,9 +388,228 @@ int btree_fsck(btree_t *bt, int dofix)
         bt->area->freelist = 0;
     }
 
-    /* TODO: FSCK here ! */
+    if (btree_check_integrity(bt, dofix, NULL, NULL)) {
+        return -1;
+    }
 
     return did_a_fix;
+}
+
+static const char *bt_keystr(uint64_t key)
+{
+    static char buf[64];
+    static int pos;
+
+    pos ^= sizeof(buf) / 2;
+
+    if (key > 0xffffffff && (key & 0xffffffff) < 0x10000) {
+        snprintf(buf + pos, sizeof(buf) / 2, "%d:%d",
+                 (int)(key >> 32), (int)(key & 0xffffffff));
+    } else {
+        snprintf(buf + pos, sizeof(buf) / 2, "%04llx",
+                 (long long)key);
+    }
+    return buf + pos;
+}
+
+/* OG: Should check node/leaf ptr integrity */
+
+static int void_printf(FILE *fp, const char *fmt, ...)
+{
+    return 0;
+}
+
+#define MAX_UINT64_T 0xFFFFFFFFFFFFFFFFULL
+
+static int bt_check_node(btree_t *bt, int level, int32_t page,
+                         const uint64_t maxkey, int32_t next,
+                         btree_print_fun *fun, FILE *arg);
+static int bt_check_leaf(btree_t *bt, int level, int32_t page,
+                         const uint64_t maxkey, int32_t next,
+                         btree_print_fun *fun, FILE *arg);
+
+static int bt_check_page(btree_t *bt, int level, int32_t page,
+                         uint64_t maxkey, int32_t next,
+                         btree_print_fun *fun, FILE *arg)
+{
+    if (BTPP_OFFS(page) == BTPP_NIL) {
+        return 1;
+    }
+    if (BTPP_IS_NODE(page)) {
+        if (level <= 0)
+            return 1;
+        return bt_check_node(bt, level, page, maxkey, next, fun, arg);
+    } else {
+        if (level > 0)
+            return 1;
+        return bt_check_leaf(bt, level, page, maxkey, next, fun, arg);
+    }
+}
+
+static int bt_check_node(btree_t *bt, int level, int32_t page,
+                         const uint64_t maxkey, int32_t next,
+                         btree_print_fun *fun, FILE *arg)
+{
+    const bt_node_t *node;
+    int32_t next1;
+    int i;
+
+    //fun(arg, "node L%d:%03d\n", level, BTPP_OFFS(page));
+
+    node = MAP_CONST_NODE(bt->area, page);
+
+    if (!node) {
+        fun(arg, "%03d (node L%d): cannot map\n",
+               BTPP_OFFS(page), level);
+        return -1;
+    }
+    if (node->nbkeys <= 0) {
+        fun(arg, "%03d (node L%d): invalid nbkeys=%d\n",
+               BTPP_OFFS(page), level,
+               node->nbkeys);
+        return -1;
+    }
+    for (i = 0; i < node->nbkeys; i++) {
+        if (node->keys[i] > maxkey) {
+            fun(arg, "%03d (node L%d): key[%d/%d]=%s > maxkey=%s\n",
+                   BTPP_OFFS(page), level,
+                   i, node->nbkeys, bt_keystr(node->keys[i]),
+                   bt_keystr(maxkey));
+            return 1;
+        }
+        if (i && node->keys[i] < node->keys[i - 1]) {
+            fun(arg, "%03d (node L%d): key[%d/%d]=%s < key[%d]=%s\n",
+                   BTPP_OFFS(page), level,
+                   i, node->nbkeys, bt_keystr(node->keys[i]),
+                   i - 1, bt_keystr(node->keys[i]));
+            return 1;
+        }
+        if (1 || i < node->nbkeys - 1 || BTPP_OFFS(node->next) == BTPP_NIL)
+            next1 = node->ptrs[i + 1];
+        else
+            next1 = -1;
+
+        if (bt_check_page(bt, level - 1, node->ptrs[i], node->keys[i], next1, fun, arg)) {
+            fun(arg, "%03d (node L%d): check_page failed, key[%d/%d]=%s ptr=%03d\n",
+                   BTPP_OFFS(page), level,
+                   i, node->nbkeys, bt_keystr(node->keys[i]),
+                   BTPP_OFFS(node->ptrs[i]));
+            return 1;
+        }
+    }
+    if (BTPP_OFFS(node->next) != BTPP_NIL && maxkey != node->keys[i - 1]) {
+        fun(arg, "%03d (node L%d): key[%d/%d]=%s != maxkey=%s\n",
+               BTPP_OFFS(page), level,
+               i - 1, node->nbkeys, bt_keystr(node->keys[i - 1]),
+               bt_keystr(maxkey));
+        return 1;
+    }
+    if (next != -1 && BTPP_OFFS(node->next) != BTPP_OFFS(next)) {
+        fun(arg, "%03d (node L%d): node->next=%03d != next=%03d\n",
+               BTPP_OFFS(page), level,
+               BTPP_OFFS(node->next), BTPP_OFFS(next));
+        return 1;
+    }
+    if (BTPP_OFFS(node->next) == BTPP_NIL) {
+        if (maxkey != MAX_UINT64_T) {
+            fun(arg, "%03d (node L%d): non rightmost page has no next\n",
+                   BTPP_OFFS(page), level);
+            return 1;
+        }
+        if (bt_check_page(bt, level - 1, node->ptrs[i], maxkey, BTPP_NIL, fun, arg)) {
+            fun(arg, "%03d (node L%d): check_page failed, ptr[%d/%d]=%03d\n",
+                   BTPP_OFFS(page), level,
+                   i, node->nbkeys, BTPP_OFFS(node->ptrs[i]));
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int bt_check_leaf(btree_t *bt, int level, int32_t page,
+                         const uint64_t maxkey, int32_t next,
+                         btree_print_fun *fun, FILE *arg)
+{
+    const bt_leaf_t *leaf;
+    int pos, nextpos;
+    uint64_t lastkey = 0, key;
+
+    //fun(arg, "p%d (leaf):\n", page);
+
+    leaf = MAP_CONST_LEAF(bt->area, page);
+    if (!leaf) {
+        fun(arg, "%03d (leaf): cannot map\n",
+               BTPP_OFFS(page));
+        return -1;
+    }
+
+    if (leaf->used <= 1 + 8 + 1) {
+        fun(arg, "%03d (leaf): invalid used=%d\n",
+               BTPP_OFFS(page),
+               leaf->used);
+        return 1;
+    }
+
+    for (pos = 0; pos < leaf->used;) {
+        if (leaf->data[pos] != 8) {
+            fun(arg, "%03d (leaf): pos=%d/%d, invalid keylen=%d\n",
+                   BTPP_OFFS(page), pos, leaf->used,
+                   leaf->data[pos]);
+            return 1;
+        }
+        if (pos + 1 + 8 + 1 > leaf->used) {
+            fun(arg, "%03d (leaf): pos=%d/%d, overflow\n",
+                   BTPP_OFFS(page), pos, leaf->used);
+            return 1;
+        }
+        nextpos = pos + 1 + 8 + 1 + leaf->data[pos + 1 + 8];
+        if (nextpos > leaf->used) {
+            fun(arg, "%03d (leaf): pos=%d/%d, overflow dlen=%d\n",
+                   BTPP_OFFS(page), pos, leaf->used,
+                   leaf->data[pos + 1 + 8]);
+            return 1;
+        }
+        memcpy(&key, leaf->data + pos + 1, 8);
+        if (pos > 0 && key < lastkey) {
+            fun(arg, "%03d (leaf): pos=%d/%d, key=%s < lastkey=%s\n",
+                   BTPP_OFFS(page), pos, leaf->used,
+                   bt_keystr(key), bt_keystr(lastkey));
+            return 1;
+        }
+        if (key > maxkey) {
+            fun(arg, "%03d (leaf): pos=%d/%d, key=%s > maxkey=%s\n",
+                   BTPP_OFFS(page), pos, leaf->used,
+                   bt_keystr(key), bt_keystr(maxkey));
+            return 1;
+        }
+        if (nextpos == leaf->used && BTPP_OFFS(next) != BTPP_NIL && key != maxkey) {
+            fun(arg, "%03d (leaf): pos=%d/%d, key=%s != maxkey=%s\n",
+                   BTPP_OFFS(page), pos, leaf->used,
+                   bt_keystr(key), bt_keystr(maxkey));
+            return 1;
+        }
+        lastkey = key;
+        pos = nextpos;
+    }
+    if (BTPP_OFFS(leaf->next) != BTPP_OFFS(next)) {
+        fun(arg, "%03d (leaf): leaf->next=%03d != next=%03d\n",
+               BTPP_OFFS(page),
+               BTPP_OFFS(leaf->next), BTPP_OFFS(next));
+        return 1;
+    }
+    return 0;
+}
+
+int btree_check_integrity(btree_t *bt, int dofix, btree_print_fun *fun, FILE *arg)
+{
+    int32_t root = bt->area->root;
+
+    if (!fun) {
+        fun = void_printf;
+    }
+
+//    fun(arg, "root: 0x%08X\n", root);
+    return bt_check_page(bt, bt->area->depth, root, MAX_UINT64_T, BTPP_NIL, fun, arg);
 }
 
 btree_t *btree_open(const char *path, int flags)
@@ -396,16 +656,18 @@ btree_t *btree_open(const char *path, int flags)
         return NULL;
     }
 
-    bt = bt_real_open(path, flags);
+    bt = bt_real_open(path, flags & ~(O_NONBLOCK));
     if (!bt) {
         e_trace(2, "Could not open bt on %s: %m", path);
         return NULL;
     }
-    res = btree_fsck(bt, O_ISWRITE(flags));
-    if (res < 0) {
-        btree_close(&bt);
-        errno = EINVAL;
-        return NULL;
+    if (!(flags & O_NONBLOCK)) {
+        res = btree_fsck(bt, O_ISWRITE(flags));
+        if (res < 0) {
+            btree_close(&bt);
+            errno = EUCLEAN;
+            return NULL;
+        }
     }
     if (O_ISWRITE(flags)) {
         struct timeval tv;
@@ -446,8 +708,9 @@ btree_t *btree_creat(const char *path)
     bt->area->major    = 1;
     bt->area->minor    = 0;
     bt->area->root     = 0;
-    bt->area->freelist = 0;
     bt->area->nbpages  = 0;
+    bt->area->freelist = 0;
+    bt->area->depth    = 0;
     bt_append_to_freelist(bt, 0, BT_INIT_NBPAGES);
 
     bt->area->pages[0].node.next = BTPP_NIL;
@@ -525,32 +788,33 @@ static int btn_bsearch(const bt_node_t *node, uint64_t key)
 }
 
 static int32_t btn_find_leaf(const struct btree_priv *bt, uint64_t key,
-                             intpair nodes[], int *depth)
+                             intpair nodes[])
 {
     int32_t page = bt->root;
-    if (depth)
-        *depth = -1;
+    int level;
 
-    /* TODO: deal with 'continuation' bit to follow up into a new b-tree for
-             keys > 1 segment */
-    while (BTPP_IS_NODE(page)) {
-        const bt_node_t *node = &bt_deref(bt, page)->node;
+    for (level = bt->depth; level > 0; level--) {
+        const bt_node_t *node;
         int i;
 
+        if (!BTPP_IS_NODE(page))
+            return -1;
+
+        node = MAP_CONST_NODE(bt, page);
         if (!node)
             return -1;
 
         i = btn_bsearch(node, key);
         if (nodes) {
-            (*depth)++;
-            nodes[*depth].page = page;
-            nodes[*depth].i    = i;
+            nodes[level].page = page;
+            nodes[level].i    = i;
         }
         page = node->ptrs[i];
     }
 
-    if (nodes)
-        nodes[++(*depth)].page = page;
+    if (nodes) {
+        nodes[0].page = page;
+    }
     return page;
 }
 
@@ -563,47 +827,48 @@ static inline enum sign
 btl_keycmp(uint64_t key, const bt_leaf_t *leaf, int pos)
 {
     union {
-        uint64_t u;
+        uint64_t key;
         byte c[8];
     } u;
-    assert (0 <= pos && pos + 1 + 8 <= leaf->used);
-    memcpy(&u, leaf->data + pos + 1, 8);
-    return CMP(key, u.u);
+    assert (0 <= pos && pos + 1 + 8 + 1 <= leaf->used);
+    assert (leaf->data[pos] == 8);
+    memcpy(u.c, leaf->data + pos + 1, 8);
+
+    return CMP(key, u.key);
 }
 
 static int
 btl_findslot(const bt_leaf_t *leaf, uint64_t key, int32_t *slot)
 {
-    int *pos = slot ? slot : p_alloca(int, 1);
-    *pos = 0;
+    int32_t pos = 0;
 
-    while (*pos < leaf->used && !leaf->data[*pos]) {
-        *pos += leaf->data[*pos] + 1; /* skip key  */
-        assert (*pos < leaf->used);
-        *pos += leaf->data[*pos] + 1; /* skip data */
-        assert (*pos <= leaf->used);
-    }
-
-    while (*pos < leaf->used) {
-        switch (btl_keycmp(key, leaf, *pos)) {
+    while (pos < leaf->used) {
+        switch (btl_keycmp(key, leaf, pos)) {
           case CMP_GREATER:
             break;
 
           case CMP_EQUAL:
-            return *pos;
+            if (slot) {
+                *slot = pos;
+            }
+            return pos;
 
           case CMP_LESS:
+            if (slot) {
+                *slot = pos;
+            }
             return -1;
         }
 
-        do {
-            *pos += leaf->data[*pos] + 1; /* skip key  */
-            assert (*pos < leaf->used);
-            *pos += leaf->data[*pos] + 1; /* skip data */
-            assert (*pos <= leaf->used);
-        } while (*pos < leaf->used && !leaf->data[*pos]);
+        pos += 8 + 1; /* skip key  */
+        assert (pos < leaf->used);
+        pos += leaf->data[pos] + 1; /* skip data */
+        assert (pos <= leaf->used);
     }
 
+    if (slot) {
+        *slot = pos;
+    }
     return -1;
 }
 
@@ -612,290 +877,378 @@ int btree_fetch(const btree_t *bt, uint64_t key, blob_t *out)
     int page, pos, len = 0;
     const bt_leaf_t *leaf;
 
-    page = btn_find_leaf(bt->area, key, NULL, NULL);
-    leaf = &bt_deref(bt->area, page)->leaf;
+    page = btn_find_leaf(bt->area, key, NULL);
+    leaf = MAP_CONST_LEAF(bt->area, page);
     if (!leaf)
         return -1;
 
-    pos  = btl_findslot(leaf, key, NULL);
+    pos = btl_findslot(leaf, key, NULL);
     if (pos < 0)
         return -1;
 
     do {
-        int slot;
+        int datalen;
 
-        pos += 1 + leaf->data[pos];
+        /* skip key */
+        pos += 1 + 8;
+        /* should flag error if there is no data length */
         if (unlikely(pos + 1 >= leaf->used))
             break;
 
-        slot = leaf->data[pos++];
-        if (unlikely(pos + slot > leaf->used))
+        datalen = leaf->data[pos++];
+        /* should flag error if there is not enough data */
+        if (unlikely(pos + datalen > leaf->used))
             break;
 
-        blob_append_data(out, leaf->data + pos, slot);
-        len += slot;
-        pos += slot;
+        blob_append_data(out, leaf->data + pos, datalen);
+        len += datalen;
+        pos += datalen;
 
-        while (pos >= leaf->used) {
-            pos  = 0;
-            leaf = &bt_deref(bt->area, leaf->next)->leaf;
+        if (pos >= leaf->used) {
+            leaf = MAP_CONST_LEAF(bt->area, leaf->next);
             if (!leaf)
-                return len;
+                break;
+            assert (leaf->used > 0);
+            pos  = 0;
         }
-    } while (!leaf->data[pos] || !btl_keycmp(key, leaf, pos));
+    } while (btl_keycmp(key, leaf, pos) == CMP_EQUAL);
 
     return len;
 }
 
-static void btl_maxkey(const bt_leaf_t *leaf, uint64_t *key)
+static uint64_t btl_get_maxkey(const bt_leaf_t *leaf)
 {
-    int pos = 0;
+    int pos, keypos = -1;
+    uint64_t maxkey = 0;
 
-    for (;;) {
-        while (pos < leaf->used && !leaf->data[pos]) {
-            pos += 1 + leaf->data[pos];
-            assert (pos < leaf->used);
-            pos += 1 + leaf->data[pos];
-            assert (pos <= leaf->used);
-        }
-
-        if (pos >= leaf->used)
-            break;
-
-        if (btl_keycmp(*key, leaf, pos) < 0) {
-            memcpy(key, leaf->data + pos + 1, 8);
-        }
-        pos += 1 + leaf->data[pos];
+    for (pos = 0; pos < leaf->used;) {
+        keypos = pos;
+        pos += 1 + 8;
         assert (pos < leaf->used);
         pos += 1 + leaf->data[pos];
         assert (pos <= leaf->used);
     }
-}
-
-static bt_leaf_t *btl_new(btree_t *bt, intpair nodes[], int32_t depth)
-{
-    int32_t page = bt_page_new(bt);
-    int32_t prev = nodes[depth].page;
-    bt_leaf_t *l, *r;
-
-    if (page < 0)
-        return NULL;
-    l = &vbt_deref(bt->area, prev)->leaf;
-    r = &vbt_deref(bt->area, page)->leaf;
-    r->next = l->next;
-    r->used = 0;
-    l->next = (~BTPP_NODE_MASK) & page;
-
-    btn_insert(bt, nodes, depth, page);
-    return r;
+    if (keypos >= 0) {
+        memcpy(&maxkey, leaf->data + keypos + 1, 8);
+    }
+    return maxkey;
 }
 
 int btree_push(btree_t *bt, uint64_t key, const byte *data, int dlen)
 {
-    bool reuse = false;
-    int32_t page, slot, need, depth;
+    bool reuse;
+    int32_t page, rpage, slot, need;
+    int pos;
     intpair *nodes;
-    bt_leaf_t *lleaf, *rleaf;
+    bt_leaf_t *lleaf, *rleaf, *nleaf;
+    byte *p;
 
-    nodes = p_alloca(intpair, bt->area->depth + 1);
-    page  = btn_find_leaf(bt->area, key, nodes, &depth);
-    lleaf = &vbt_deref(bt->area, page)->leaf;
-
-    if (lleaf) {
-        int pos = btl_findslot(lleaf, key, &slot);
-
-        need  = 1 + 8 + 1 + dlen;
-        if (pos >= 0) {
-            assert (pos + 1 + 8 < lleaf->used);
-            assert (pos + 1 + 8 + lleaf->data[pos + 1 + 8] <= lleaf->used);
-            if (lleaf->data[pos + 1 + 8] + dlen < 256) {
-                reuse = true;
-                need = dlen;
-            }
-        }
-    } else {
+    if (dlen < 0) {
+        /* invalid data length */
         return -1;
     }
 
-    assert (need >= 0);
-    assert (0 <= slot && slot <= lleaf->used);
-    if (need + lleaf->used <= ssizeof(lleaf->data))
-        goto easy;
+  restart:
+    nodes = p_alloca(intpair, bt->area->depth + 1);
+    page  = btn_find_leaf(bt->area, key, nodes);
+    lleaf = MAP_LEAF(bt->area, page);
 
-    rleaf = &vbt_deref(bt->area, lleaf->next)->leaf;
-    if (!rleaf) {
-        rleaf = btl_new(bt, nodes, depth);
-        if (!rleaf)
-            return -1;
-        return btree_push(bt, key, data, dlen);
+    if (!lleaf) {
+        /* Internal structure error */
+        return -1;
     }
 
-    {
-        int next, oldpos, shift;
+    /* Find position where to insert the data */
+    /* pos < 0 if key does not exist, slot has the offset of the next
+     * higher key or the offset of the end of the last page in the
+     * index.
+     * pos >= 0 -> key exists, slot = pos is the offset of the first
+     * key/data chunk for that key.
+     */
+    pos = btl_findslot(lleaf, key, &slot);
 
-        oldpos = slot;
-        next   = slot;
-
-        while (next < lleaf->used && next + need <= ssizeof(lleaf->data)) {
-            oldpos = next;
-            next += 1 + lleaf->data[next];
-            assert (next < lleaf->used);
-            next += 1 + lleaf->data[next];
-            assert (next <= lleaf->used);
+    reuse = false;
+    need = 1 + 8 + 1 + dlen;
+    if (pos >= 0) {
+        /* key already exists: check if chunk is full */
+        assert (pos + 1 + 8 + 1 <= lleaf->used);
+        assert (pos + 1 + 8 + 1 + lleaf->data[pos + 1 + 8] <= lleaf->used);
+        if (lleaf->data[pos + 1 + 8] + dlen < 256) {
+            reuse = true;
+            need = dlen;
+            if (need == 0) {
+                /* no data to add to already existing chunk */
+                return 0;
+            }
         }
+    }
 
-        shift = lleaf->used - oldpos;
-        assert (0 <= shift && shift <= lleaf->used);
+    assert (0 <= slot && slot <= lleaf->used);
 
-        if (shift + rleaf->used + (slot == oldpos ? need : 0) > ssizeof(rleaf->data)) {
-            rleaf = btl_new(bt, nodes, depth);
-            if (!rleaf)
+    if (need + lleaf->used > ssizeof(lleaf->data)) {
+        /* Not enough room in target page: need to shift some data to
+         * next page.
+         */
+        rpage = lleaf->next;
+        rleaf = MAP_LEAF(bt->area, rpage);
+        if (!rleaf) {
+            /* No next page: allocate a new empty overflow page */
+            rpage = bt_page_new(bt);
+            if (rpage < 0)
                 return -1;
-            return btree_push(bt, key, data, dlen);
-        }
 
-        memmove(rleaf->data + shift, rleaf->data, rleaf->used);
-        memcpy(rleaf->data, lleaf->data + oldpos, shift);
-        lleaf->used -= shift;
-        rleaf->used += shift;
+            /* remap pages because bt_page_new may have moved bt->area */
+            lleaf = MAP_LEAF(bt->area, page);
+            rleaf = MAP_LEAF(bt->area, rpage);
+            rleaf->next = lleaf->next;
+            lleaf->next = rpage;
+
+            btn_insert(bt, nodes, 0, rpage);
+
+            /* Restart because target page may be the newly allocated
+             * one, or depth may have changed, or path to page may have
+             * changed...
+             */
+            goto restart;
+        }
 
         {
-            uint64_t lk = oldpos == slot ? 0 : key;
-            btl_maxkey(lleaf, &lk);
-            btn_update(bt, nodes, depth, page, lk);
-        }
+            int oldpos, shift;
 
-        if (oldpos == slot) {
-            slot  = 0;
-            page  = lleaf->next;
-            lleaf = rleaf;
+            /* OG: find the least chunk to shift to the next page */
+            for (pos = oldpos = slot; pos < lleaf->used && pos + need <= ssizeof(lleaf->data);) {
+                oldpos = pos;
+                assert (pos + 1 + 8 + 1 <= lleaf->used);
+                pos += 1 + 8 + 1 + lleaf->data[pos + 1 + 8];
+                assert (pos <= lleaf->used);
+            }
+
+            /* oldpos is the offset of the chunk to shift to the next
+             * page
+             */
+
+            shift = lleaf->used - oldpos;
+            assert (0 <= shift && shift <= lleaf->used);
+
+            if (shift + rleaf->used + (slot == oldpos ? need : 0) > ssizeof(rleaf->data)) {
+                /* allocate a new page and split data in [lleaf:rleaf] on
+                 * 3 pages [lleaf:nleaf:rleaf]
+                 */
+                int32_t npage;
+                uint64_t maxkey, maxkey2;
+                int keypos, keypos2, pos2;
+
+                npage = bt_page_new(bt);
+                if (npage < 0)
+                    return -1;
+
+                /* remap pages because bt_page_new may have moved bt->area */
+                lleaf = MAP_LEAF(bt->area, page);
+                rleaf = MAP_LEAF(bt->area, rpage);
+                nleaf = MAP_LEAF(bt->area, npage);
+
+                if (!lleaf || !rleaf || !nleaf)
+                    return -1;
+
+                for (keypos = pos = 0; pos < lleaf->used && pos < ssizeof(lleaf->data) * 2 / 3;) {
+                    keypos = pos;
+                    pos += 1 + 8;
+                    pos += 1 + lleaf->data[pos];
+                }
+                if (pos >= lleaf->used)
+                    return -1;
+
+                memcpy(&maxkey, &lleaf->data[keypos + 1], 8);
+
+                for (keypos2 = pos2 = 0; pos2 < rleaf->used && pos2 < ssizeof(rleaf->data) / 3;) {
+                    keypos2 = pos2;
+                    pos2 += 1 + 8;
+                    pos2 += 1 + rleaf->data[pos2];
+                }
+
+                memcpy(&maxkey2, &rleaf->data[keypos2 + 1], 8);
+
+                nleaf->next = lleaf->next;
+                lleaf->next = npage;
+
+                memcpy(nleaf->data, lleaf->data + pos, lleaf->used - pos);
+                nleaf->used = lleaf->used - pos;
+                lleaf->used = pos;
+
+                memcpy(nleaf->data + nleaf->used, rleaf->data, pos2);
+                memmove(rleaf->data, rleaf->data + pos2, rleaf->used - pos2);
+                nleaf->used += pos2;
+                rleaf->used -= pos2;
+
+                /* If this insert fails, the index is corrupted */
+                btn_insert(bt, nodes, 0, npage);
+
+                goto restart;
+            }
+
+            memmove(rleaf->data + shift, rleaf->data, rleaf->used);
+            memcpy(rleaf->data, lleaf->data + oldpos, shift);
+            lleaf->used -= shift;
+            rleaf->used += shift;
+
+            /* Update max key up the tree */
+            btn_update(bt, nodes, 0, btl_get_maxkey(lleaf));
+
+            if (oldpos == slot) {
+                slot  = 0;
+                page  = rpage;
+                lleaf = rleaf;
+                nodes[0].page = page;
+                nodes[1].i += 1;
+            }
         }
     }
 
-  easy:
-    {
-        byte *p = lleaf->data;
-        int pos = slot;
+    p = lleaf->data;
 
-        if (reuse) {
-            pos += 1 + 8;
-        }
+    pos = slot;
+
+    assert (lleaf->used + need <= ssizeof(lleaf->data));
+
+    if (reuse) {
+        /* skip key */
+        pos += 1 + 8 + 1;
 
         assert (pos <= lleaf->used);
-        assert (lleaf->used + need <= ssizeof(lleaf->data));
         memmove(p + pos + need, p + pos, lleaf->used - pos);
 
-        if (reuse) {
-            p[pos++] += dlen;
+    } else {
+
+        assert (pos <= lleaf->used);
+        memmove(p + pos + need, p + pos, lleaf->used - pos);
+
+        /* insert key */
+        p[pos] = 8;
+        memcpy(p + pos + 1, &key, 8);
+        p[pos + 1 + 8] = 0;
+        pos += 1 + 8 + 1;
+    }
+    p[pos - 1] += dlen;
+    memcpy(p + pos, data, dlen);
+    lleaf->used += need;
+    assert (pos + dlen <= lleaf->used);
+
+    /* If we inserted the key/data at the end, update the nodes */
+    if (pos + dlen == lleaf->used) {
+        if (lleaf->next == BTPP_NIL) {
+            /* no update necessary on last page */
         } else {
-            p[pos++] = 8;
-            memcpy(p + pos, &key, 8);
-            pos += 8;
-            p[pos++] = dlen;
+            /* key is the highest key in this page */
+            btn_update(bt, nodes, 0, key);
         }
-        memcpy(p + pos, data, dlen);
-        lleaf->used += need;
-        assert (pos + dlen <= lleaf->used);
     }
     return 0;
 }
 
 #if 0
 #include "strconv.h"
-static void hexdump(FILE *out, const byte *p, int n)
+static void hexdump(const byte *p, int n,
+                    int (*fun)(FILE *fp, const char *fmt, ...), FILE *arg)
 {
+    char buf[257];
+    int i = 0;
+
     while (n > 0) {
-        fputc(__str_digits_lower[*p >> 4], out);
-        fputc(__str_digits_lower[*p & 15], out);
-        p++, n--;
+        if (i >= sizeof(buf) - 3) {
+            buf[i] = '\0';
+            fun(arg, "%s", buf);
+            i = 0;
+        }
+        buf[i++] = __str_digits_lower[*p >> 4];
+        buf[i++] = __str_digits_lower[*p & 15];
+        p++;
+        n--;
+    }
+    if (i) {
+        buf[i] = '\0';
+        fun(arg, "%s", buf);
     }
 }
 #endif
 
-void btree_dump(const btree_t *bt_pub, FILE *out)
+void btree_dump(const btree_t *bt_pub,
+                int (*fun)(FILE *fp, const char *fmt, ...), FILE *arg)
 {
     struct btree_priv *bt = bt_pub->area;
-    int32_t lmost, depth = 0;
+    int32_t lmost, level;
+    uint64_t key;
 
     lmost = bt->root;
 
-    while (BTPP_IS_NODE(lmost)) {
+    for (level = bt->depth; level > 0; level--) {
         int32_t page = lmost;
 
-        fprintf(out, "====== DEPTH %d =====\n", depth++);
+        fun(arg, "====== level %d: nodes =====\n", level);
         while (BTPP_OFFS(page) != BTPP_NIL) {
             int i;
-            bt_node_t *node = &bt_deref(bt, page)->node;
+            const bt_node_t *node = MAP_CONST_NODE(bt, page);
 
-            fprintf(out, "----- node p%d: %d / %d",
-                    BTPP_OFFS(page), node->nbkeys, BT_ARITY);
+            fun(arg, "node %03d  [%3d/%d]",
+                  BTPP_OFFS(page), node->nbkeys, BT_ARITY);
+
+            if (BTPP_OFFS(node->next) == BTPP_NIL) {
+                fun(arg, " next=nil");
+            } else {
+                fun(arg, " next=%03d", BTPP_OFFS(node->next));
+            }
+            fun(arg, " {");
 
             for (i = 0; i < node->nbkeys; i++) {
-                if (!(i & 0xf)) {
-                    fputc('\n', out);
-                }
-                fprintf(out, " %03d ", BTPP_OFFS(node->ptrs[i]));
-                fprintf(out, "%04llx", (long long)node->keys[i]);
+                fun(arg, " %03d %s",
+                      BTPP_OFFS(node->ptrs[i]), bt_keystr(node->keys[i]));
             }
-
-            fprintf(out, " %03d\n", BTPP_OFFS(node->ptrs[i]));
+            fun(arg, " %03d", BTPP_OFFS(node->ptrs[i]));
+            fun(arg, " }\n");
             page = node->next;
         }
-
-        lmost = bt_deref(bt, lmost)->node.ptrs[0];
+        lmost = MAP_CONST_NODE(bt, lmost)->ptrs[0];
     }
 
-    fprintf(out, "====== DEPTH %d =====\n", depth);
+    fun(arg, "====== level %d: leaves =====\n", level);
     {
         int32_t page = lmost;
 
         while (BTPP_OFFS(page) != BTPP_NIL) {
-            bt_leaf_t *leaf = &bt_deref(bt, page)->leaf;
+            const bt_leaf_t *leaf = MAP_CONST_LEAF(bt, page);
             int pos;
 
-            fprintf(out, "%03d [%04do] ",
-                    BTPP_OFFS(page), leaf->used);
-            for (pos = 0; pos < leaf->used; ) {
-                int size = 0;
+            fun(arg, "leaf %03d  [%4d/%d] ",
+                    BTPP_OFFS(page), leaf->used,
+                    (int)sizeof(leaf->data));
 
-                fputs(pos == 0 ? "[" : ", ", out);
-                switch (leaf->data[pos]) {
-                    uint64_t key;
-                  case 0:
-                    fprintf(out, "--->");
-                    break;
-                  case 8:
-                    memcpy(&key, leaf->data + 1 + pos, 8);
-                    fprintf(out, "%04llx", (long long)key);
-                    break;
-                  default:
-                    fprintf(out, "@#()*!@#^");
-                    break;
-                }
-
-                pos += 1 + leaf->data[pos];
-                fputs(": ", out);
-
-                size += leaf->data[pos];
-#if 0
-                hexdump(out, leaf->data + pos + 1, leaf->data[pos]);
-#endif
-                pos += 1 + leaf->data[pos];
-
-                while (pos < leaf->used && !leaf->data[pos]) {
-                    pos += 1 + leaf->data[pos];
-#if 0
-                    hexdump(out, leaf->data + pos + 1, leaf->data[pos]);
-#endif
-                    size += leaf->data[pos];
-                    pos += 1 + leaf->data[pos];
-                }
-
-                fprintf(out, "%d", size);
+            if (BTPP_OFFS(leaf->next) == BTPP_NIL) {
+                fun(arg, "next=nil ");
+            } else {
+                fun(arg, "next=%03d ", BTPP_OFFS(leaf->next));
             }
+            fun(arg, "{ ");
 
+            for (pos = 0; pos < leaf->used; ) {
+
+                if (pos) {
+                    fun(arg, ", ");
+                }
+                if (leaf->data[pos] == 8) {
+                    memcpy(&key, leaf->data + 1 + pos, 8);
+                    fun(arg, "%s ", bt_keystr(key));
+                } else {
+                    fun(arg, "BUG(keylen=%d) ", leaf->data[pos]);
+                }
+
+                pos += 1 + leaf->data[pos];
+#if 0
+                hexdump(out, leaf->data + pos + 1, leaf->data[pos], fun, arg);
+#endif
+                fun(arg, "%d", leaf->data[pos]);
+                pos += 1 + leaf->data[pos];
+            }
             page = leaf->next;
-            fputs("]\n", out);
+            fun(arg, " }\n");
         }
     }
 }
@@ -951,12 +1304,14 @@ static int fbtree_readpage(fbtree_t *fbt, int32_t page, bt_page_t *buf)
 static int32_t fbtn_find_leaf(fbtree_t *fbt, uint64_t key)
 {
     int32_t page = fbt->priv.root;
+    int level;
 
-    /* TODO: deal with 'continuation' bit to follow up into a new b-tree for
-             keys > 1 segment */
-    while (BTPP_IS_NODE(page)) {
+    for (level = fbt->priv.depth; level > 0; level--) {
         bt_page_t node;
         int i;
+
+        if (!BTPP_IS_NODE(page))
+            return -1;
 
         if (fbtree_readpage(fbt, page, &node))
             return -1;
