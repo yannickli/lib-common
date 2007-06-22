@@ -38,7 +38,7 @@ static inline int isblank(int c) { return (c == ' ' || c == '\t'); }
 
 __attr_nonnull__((1))
 static inline ssize_t sstrlen(const char *str) {
-    return (ssize_t)strlen((const char *)str);
+    return (ssize_t)strlen(str);
 }
 
 ssize_t pstrcpy(char *dest, ssize_t size, const char *src);
@@ -66,7 +66,7 @@ int pstrchrcount(const char *str, int c);
 const char *skipspaces(const char *s)  __attr_nonnull__((1));
 __attr_nonnull__((1))
 static inline char *vskipspaces(char *s) {
-    return (char*)skipspaces((char *)s);
+    return (char*)skipspaces(s);
 }
 
 __attr_nonnull__((1)) 
@@ -77,13 +77,13 @@ static inline const byte *bskipspaces(const byte *s) {
 const char *strnextspace(const char *s)  __attr_nonnull__((1));
 __attr_nonnull__((1)) 
 static inline char *vstrnextspace(char *s) {
-    return (char*)strnextspace((char *)s);
+    return (char*)strnextspace(s);
 }
 
 const char *skipblanks(const char *s)  __attr_nonnull__((1));
 __attr_nonnull__((1))
 static inline char *vskipblanks(char *s) {
-    return (char*)skipblanks((char *)s);
+    return (char*)skipblanks(s);
 }
 
 /* Trim spaces at end of string, return pointer to '\0' */
