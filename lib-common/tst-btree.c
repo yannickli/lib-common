@@ -29,7 +29,7 @@
 #define INTEGRITY_CHECK_START   INT_MAX
 #define INTEGRITY_CHECK_PERIOD  INT_MAX
 #define EXPENSIVE_CHECK_START   INT_MAX
-#define EXPENSIVE_CHECK_PERIOD  INT_MAX
+#define EXPENSIVE_CHECK_PERIOD  0
 
 #define BSWAP  1
 
@@ -79,8 +79,8 @@ static int btree_linear_test(void)
     proctimer_stop(&pt);
     stat(filename, &st);
 
-    printf("inserted %d keys in index '%s' (%ld bytes)\n",
-           nkeys, filename, (long)st.st_size);
+    printf("inserted %d keys in index '%s' (%lld bytes)\n",
+           nkeys, filename, (long long)st.st_size);
     printf("times: %s\n", proctimer_report(&pt, NULL));
 
     printf("tst-btree: integrity check: ");
@@ -99,7 +99,7 @@ static int btree_linear_test(void)
 
 #if EXPENSIVE_CHECK_PERIOD
 /* simple local database, 40 bytes per entry */
-#define SIM_MAX_KEYS  (1024 * 1024)
+#define SIM_MAX_KEYS  (4096 * 1024)
 typedef struct sim_record {
     uint64_t key;
     int dlen;
@@ -185,7 +185,8 @@ int main(int argc, char **argv)
 {
     char buf[BUFSIZ];
     const char *indexname = "/tmp/test.ibt";
-    proctimer_t pt;
+    struct stat st;
+    proctimer_t pt, pt2;
     btree_t *bt = NULL;
     int len;
     long offset;
@@ -217,6 +218,7 @@ int main(int argc, char **argv)
     npush = 0;
     offset = 0;
 
+    proctimer_start(&pt2);
     while (fgets(buf, sizeof(buf), fp)) {
         if (*buf == '\n')
             break;
@@ -229,6 +231,14 @@ int main(int argc, char **argv)
             data = offset;
 
             npush++;
+#if 0
+            if (npush % 81920 == 0) {
+                proctimer_stop(&pt2);
+                printf("btree: insertion of 81920 keys took %s\n", 
+                       proctimer_report(&pt2, NULL));
+                proctimer_start(&pt2);
+            }
+#endif
             if (btree_push(bt, num, (void*)&data, sizeof(data))) {
                 printf("btree: failed to insert key %lld value %d\n",
                        (long long)num, data);
@@ -244,6 +254,8 @@ int main(int argc, char **argv)
                     fprintf(stderr, "buf:%s\n", buf);
                     btree_close(&bt);
                     return 1;
+                } else {
+                    fprintf(stderr, "Integrity check succeeded at npush=%ld\n", npush);
                 }
             }
 #endif
@@ -263,8 +275,9 @@ int main(int argc, char **argv)
             }
 #endif
             if (CHECK_LAST && npush == CHECK_LAST) {
-                btree_close(&bt);
-                return 0;
+                fprintf(stderr, "early stop at #%ld, num=%lld\n",
+                        npush, (long long)num);
+                break;
             }
         }
         offset += len;
@@ -272,8 +285,9 @@ int main(int argc, char **argv)
 
     proctimer_stop(&pt);
 
-    printf("tst-btree: %ld insertions for %ld bytes\n",
-           npush, offset);
+    stat(indexname, &st);
+    printf("tst-btree: %ld insertions for %ld bytes. Index size: %lld\n",
+           npush, offset, (long long)st.st_size);
     printf("times: %s\n", proctimer_report(&pt, NULL));
 
 #if EXPENSIVE_CHECK_PERIOD
