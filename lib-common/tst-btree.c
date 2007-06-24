@@ -240,8 +240,8 @@ int main(int argc, char **argv)
             }
 #endif
             if (btree_push(bt, num, (void*)&data, sizeof(data))) {
-                printf("btree: failed to insert key %lld value %d\n",
-                       (long long)num, data);
+                printf("btree: failed to insert key %d:%u value %d\n",
+                       camp_id, line_no, data);
                 status = 1;
                 break;
             }
