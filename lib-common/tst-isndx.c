@@ -98,8 +98,9 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
     proctimer_stop(&pt);
     stat(indexname, &st);
 
-    printf("%s: %s: %d keys inserted, %lld bytes\n",
-           __func__, indexname, nkeys, (long long)st.st_size);
+    printf("%s: %s: %d keys, %d chunks,%s %lld bytes\n",
+           __func__, indexname, num_keys, num_data,
+           bswap ? " bswap" : "", (long long)st.st_size);
     printf("    times: %s\n", proctimer_report(&pt, NULL));
     fflush(stdout);
 
@@ -218,8 +219,10 @@ static int isndx_word_test(const char *indexname)
     proctimer_stop(&pt);
     stat(indexname, &st);
 
-    printf("%s: %s: %d keys inserted, %lld bytes\n",
-           __func__, indexname, nkeys, (long long)st.st_size);
+    printf("%s: %s: %d keys, %d chunks, %lld bytes\n",
+           __func__, indexname, nkeys / repeat, repeat,
+           (long long)st.st_size);
+
     printf("    times: %s\n", proctimer_report(&pt, NULL));
     fflush(stdout);
 
@@ -311,8 +314,9 @@ static int isndx_linear_test(const char *indexname, int64_t start, int bswap,
     proctimer_stop(&pt);
     stat(indexname, &st);
 
-    printf("%s: %s: %d keys inserted, %lld bytes\n",
-           __func__, indexname, nkeys, (long long)st.st_size);
+    printf("%s: %s: %d keys, %d chunks,%s %lld bytes\n",
+           __func__, indexname, num_keys, num_data,
+           bswap ? " bswap" : "", (long long)st.st_size);
     printf("    times: %s\n", proctimer_report(&pt, NULL));
     fflush(stdout);
 
@@ -374,8 +378,9 @@ static int btree_linear_test(const char *indexname, int64_t start, int bswap,
     proctimer_stop(&pt);
     stat(indexname, &st);
 
-    printf("%s: %s: %d keys inserted, %lld bytes\n",
-           __func__, indexname, nkeys, (long long)st.st_size);
+    printf("%s: %s: %d keys, %d chunks,%s %lld bytes\n",
+           __func__, indexname, num_keys, num_data,
+           bswap ? " bswap" : "", (long long)st.st_size);
     printf("    times: %s\n", proctimer_report(&pt, NULL));
     fflush(stdout);
 
@@ -402,43 +407,36 @@ static int benchmark_index_methods(void)
 #if 0
     status |= isndx_word_test("/tmp/words.ndx");
 #endif
-    printf("benchmarking in increasing order, %d * %d\n\n", 1000000, 4);
     status |= isndx_linear_test("/tmp/test-1.ndx", 600000000LL, 0, 1000000, 4);
     status |= btree_linear_test("/tmp/test-1.ibt", 600000000LL, 0, 1000000, 4);
     status |= array_linear_test("/tmp/test-1.bin", 600000000LL, 0, 1000000, 4);
     printf("\n");
 
-    printf("benchmarking in random order, %d * %d\n\n", 1000000, 4);
     status |= isndx_linear_test("/tmp/test-2.ndx", 600000000LL, 1, 1000000, 4);
     status |= btree_linear_test("/tmp/test-2.ibt", 600000000LL, 1, 1000000, 4);
     status |= array_linear_test("/tmp/test-2.bin", 600000000LL, 1, 1000000, 4);
     printf("\n");
 
-    printf("benchmarking in increasing order, %d * %d\n\n", 4000000, 1);
     status |= isndx_linear_test("/tmp/test-3.ndx", 600000000LL, 0, 4000000, 1);
     status |= btree_linear_test("/tmp/test-3.ibt", 600000000LL, 0, 4000000, 1);
     status |= array_linear_test("/tmp/test-3.bin", 600000000LL, 0, 4000000, 1);
     printf("\n");
 
-    printf("benchmarking in random order, %d * %d\n\n", 4000000, 1);
     status |= isndx_linear_test("/tmp/test-4.ndx", 600000000LL, 1, 4000000, 1);
     status |= btree_linear_test("/tmp/test-4.ibt", 600000000LL, 1, 4000000, 1);
     status |= array_linear_test("/tmp/test-4.bin", 600000000LL, 1, 4000000, 1);
     printf("\n");
 
-    printf("benchmarking in increasing order, %d * %d\n\n", 4, 1000000);
     status |= isndx_linear_test("/tmp/test-5.ndx", 600000000LL, 0, 4, 1000000);
     status |= btree_linear_test("/tmp/test-5.ibt", 600000000LL, 0, 4, 1000000);
     status |= array_linear_test("/tmp/test-5.bin", 600000000LL, 0, 4, 1000000);
     printf("\n");
 
-    printf("benchmarking in random order, %d * %d\n\n", 4, 1000000);
     status |= isndx_linear_test("/tmp/test-6.ndx", 600000000LL, 1, 4, 1000000);
     status |= btree_linear_test("/tmp/test-6.ibt", 600000000LL, 1, 4, 1000000);
     status |= array_linear_test("/tmp/test-6.bin", 600000000LL, 1, 4, 1000000);
     printf("\n");
 
-    printf("benchmarking all identical keys, %d * %d\n\n", 1, 4000000);
     status |= isndx_linear_test("/tmp/test-7.ndx", 600000000LL, 0, 1, 4000000);
     status |= btree_linear_test("/tmp/test-7.ibt", 600000000LL, 0, 1, 4000000);
     status |= array_linear_test("/tmp/test-7.bin", 600000000LL, 0, 1, 4000000);
@@ -449,20 +447,29 @@ static int benchmark_index_methods(void)
 
 int main(int argc, char **argv)
 {
-    isndx_create_parms_t cp;
     isndx_t *ndx;
-    const char *indexname = "/tmp/test.ndx";
+    const char *indexname;
     const char *command;
-    int nkeys, status = 0;
-    proctimer_t pt, pt1;
-    struct stat st;
+    int status = 0;
 
-    if (argc < 2 || !strcmp(argv[1], "test")) {
+    if (argc < 2) {
+        status |= isndx_linear_test("/tmp/test-1.ndx", 600000000LL, 0, 1000000, 4);
+        status |= isndx_linear_test("/tmp/test-2.ndx", 600000000LL, 1, 1000000, 4);
+        status |= isndx_linear_test("/tmp/test-3.ndx", 600000000LL, 0, 4000000, 1);
+        status |= isndx_linear_test("/tmp/test-4.ndx", 600000000LL, 1, 4000000, 1);
+        status |= isndx_linear_test("/tmp/test-5.ndx", 600000000LL, 0, 4, 1000000);
+        status |= isndx_linear_test("/tmp/test-6.ndx", 600000000LL, 1, 4, 1000000);
+        status |= isndx_linear_test("/tmp/test-7.ndx", 600000000LL, 0, 1, 4000000);
+        printf("\n");
+
+        return status;
+    }
+
+    if (!strcmp(argv[1], "compare")) {
         return benchmark_index_methods();
     }
 
     indexname = *++argv;
-
     ndx = isndx_open(indexname, O_RDWR);
     if (!ndx) {
         printf("isndx: failed to open index file '%s'\n", indexname);
@@ -499,7 +506,9 @@ int main(int argc, char **argv)
                 }
                 continue;
             }
-            printf("usage: tst-isndx [{check | dump [all | pages]}]\n");
+            printf("usage: tst-isndx\n"
+                   "       tst-isndx compare\n"
+                   "       tst-isndx indexfile [{check | dump [all | pages]}]\n");
             return 1;
         }
     }

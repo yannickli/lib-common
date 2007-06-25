@@ -75,8 +75,9 @@ static int btree_linear_test(const char *indexname, int64_t start, int bswap,
     proctimer_stop(&pt);
     stat(indexname, &st);
 
-    printf("%s: %s: %d keys inserted, %lld bytes\n",
-           __func__, indexname, nkeys, (long long)st.st_size);
+    printf("%s: %s: %d keys, %d chunks,%s %lld bytes\n",
+           __func__, indexname, num_keys, num_data,
+           bswap ? " bswap" : "", (long long)st.st_size);
     printf("    times: %s\n", proctimer_report(&pt, NULL));
     fflush(stdout);
 
@@ -306,8 +307,19 @@ static int btree_parse_test(const char *filename, const char *indexname)
 
 int main(int argc, char **argv)
 {
+    int status = 0;
+
     if (argc < 2) {
-        return btree_linear_test("/tmp/test.ibt", 600000000LL, BSWAP, 5000000, 4);
+        status |= btree_linear_test("/tmp/test-1.ibt", 600000000LL, 0, 1000000, 4);
+        status |= btree_linear_test("/tmp/test-2.ibt", 600000000LL, 1, 1000000, 4);
+        status |= btree_linear_test("/tmp/test-3.ibt", 600000000LL, 0, 4000000, 1);
+        status |= btree_linear_test("/tmp/test-4.ibt", 600000000LL, 1, 4000000, 1);
+        status |= btree_linear_test("/tmp/test-5.ibt", 600000000LL, 0, 4, 1000000);
+        status |= btree_linear_test("/tmp/test-6.ibt", 600000000LL, 1, 4, 1000000);
+        status |= btree_linear_test("/tmp/test-7.ibt", 600000000LL, 0, 1, 4000000);
+        printf("\n");
+
+        return status;
     }
 
     return btree_parse_test(argv[1], "/tmp/test.ibt");
