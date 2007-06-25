@@ -17,25 +17,40 @@
 #include "unix.h"
 
 #define BT_VERSION_MAJOR   1
-#define BT_VERSION_MINOR   1
 
-#define BT_PAGE_LOG2_SIZE  10   /* 1 KB */
-#define BT_PAGE_SIZE       (1 << BT_PAGE_LOG2_SIZE)
+#define BT_PAGE_SHIFT      10   /* 4 KB */
+#define BT_PAGE_SIZE       (1 << BT_PAGE_SHIFT)
 #define BT_INIT_NBPAGES    256  /**< initial number of pages in the btree */
 #define BT_GROW_NBPAGES    256
 
-#define BT_MAX_DLEN        255
+#if BT_PAGE_SIZE == 4096
+#define BT_VERSION_MINOR  0
+#else
+#define BT_VERSION_MINOR  1
+#endif
 
-#define BT_ARITY           ((BT_PAGE_SIZE - 4 * 4) / 12)
-                                 /**< L constant in the b-tree terminology */
+/* Allow for at least 6 chunks per block for better split properties in
+ * pathological cases.
+ */
+#define BT_MAX_DLEN       ((BT_PAGE_SIZE - 4 * 2) / 6 - 8 - 2)
+#if BT_MAX_DLEN < 0
+#undef  BT_MAX_DLEN
+#define BT_MAX_DLEN       4
+#elif BT_MAX_DLEN > 255
+#undef  BT_MAX_DLEN
+#define BT_MAX_DLEN       255
+#endif
 
-#define O_ISWRITE(m)       (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
+#define BT_ARITY          ((BT_PAGE_SIZE - 4 * 4) / 12)
+                               /**< L constant in the b-tree terminology */
+
+#define O_ISWRITE(m)      (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
 
 /* minimum head size is 32 = 4*8 */
-/* minimum leaf size is 38 = 4*2+(1+8+1+1)*3 */
+/* minimum leaf size is 50 = 4*2+(1+8+1+4)*3 */
 /* minimum node size is 40 = 4*4+(4+8)*2 */
 
-#if BT_PAGE_SIZE < 40
+#if BT_PAGE_SIZE < 50
 #error page size too small: BT_PAGE_SIZE
 #endif
 #if (BT_PAGE_SIZE * BT_INIT_NBPAGES) % 4096
@@ -1111,7 +1126,7 @@ int btree_push(btree_t *bt, uint64_t key, const byte *data, int dlen)
                 return -1;
 
             for (lastpos1 = pos1 = 0;
-                 pos1 < lleaf->used && pos1 < ssizeof(lleaf->data) * 2 / 3;
+                 pos1 < lleaf->used && pos1 <= ssizeof(lleaf->data) * 2 / 3;
                  ) {
                 lastpos1 = pos1;
                 pos1 += 1 + 8;
@@ -1130,7 +1145,7 @@ int btree_push(btree_t *bt, uint64_t key, const byte *data, int dlen)
             }
 
             for (lastpos2 = pos2 = 0;
-                 pos2 < rleaf->used && pos2 < ssizeof(rleaf->data) / 3;) {
+                 pos2 < rleaf->used && pos2 <= ssizeof(rleaf->data) / 3;) {
                 lastpos2 = pos2;
                 pos2 += 1 + 8;
                 pos2 += 1 + rleaf->data[pos2];
@@ -1154,9 +1169,9 @@ int btree_push(btree_t *bt, uint64_t key, const byte *data, int dlen)
             nleaf->next = lleaf->next;
             lleaf->next = npage;
 
-            memcpy(nleaf->data, lleaf->data + pos, lleaf->used - pos);
-            nleaf->used = lleaf->used - pos;
-            lleaf->used = pos;
+            memcpy(nleaf->data, lleaf->data + pos1, lleaf->used - pos1);
+            nleaf->used = lleaf->used - pos1;
+            lleaf->used = pos1;
 
             memcpy(nleaf->data + nleaf->used, rleaf->data, pos2);
             memmove(rleaf->data, rleaf->data + pos2, rleaf->used - pos2);
