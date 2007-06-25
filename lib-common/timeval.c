@@ -368,6 +368,71 @@ const char *proctimer_report(proctimer_t *tp, const char *fmt)
     return buf;
 }
 
+const char *proctimerstat_report(proctimerstat_t *pts, const char *fmt)
+{
+    static char buf[1024];
+    int pos;
+    unsigned int min, max, tot, mean;
+    const char *p;
+
+    if (!fmt) {
+#ifdef MINGCC
+        fmt = "real: %r";
+#else
+        fmt = "%n samples\nreal: %r\nproc: %p\nuser: %u\nsys : %s";
+#endif
+    }
+
+    for (p = fmt, pos = 0; *p && pos < ssizeof(buf) - 1; p++) {
+        if (*p == '%') {
+            switch (*++p) {
+            case 'n':   /* nb samples */
+                snprintf(buf + pos, sizeof(buf) - pos, "%d", pts->nb);
+                pos += strlen(buf + pos);
+                continue;
+            case 'r':   /* real */
+                min = pts->real_min;
+                max = pts->real_max;
+                tot = pts->real_tot;
+                goto format;
+            case 'u':   /* user */
+                min = pts->user_min;
+                max = pts->user_max;
+                tot = pts->user_tot;
+                goto format;
+            case 's':   /* sys */
+                min = pts->sys_min;
+                max = pts->sys_max;
+                tot = pts->sys_tot;
+                goto format;
+            case 'p':   /* process */
+                min = pts->proc_min;
+                max = pts->proc_max;
+                tot = pts->proc_tot;
+                goto format;
+            format:
+                mean = tot / pts->nb;
+                snprintf(buf + pos, sizeof(buf) - pos,
+                         "min=%d.%03dms "
+                         "max=%d.%03dms "
+                         "mean=%d.%03dms",
+                         min / 1000, min % 1000,
+                         max / 1000, max % 1000,
+                         mean / 1000, mean % 1000
+                         );
+                pos += strlen(buf + pos);
+                continue;
+            case '%':
+            default:
+                break;
+            }
+        }
+        buf[pos++] = *p;
+    }
+    buf[pos] = '\0';
+    return buf;
+}
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 /* tests legacy functions                                              {{{*/
