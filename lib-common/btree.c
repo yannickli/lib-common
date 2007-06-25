@@ -17,9 +17,9 @@
 #include "unix.h"
 
 #define BT_VERSION_MAJOR   1
-#define BT_VERSION_MINOR   0
+#define BT_VERSION_MINOR   1
 
-#define BT_PAGE_LOG2_SIZE  12   /* 4 KB */
+#define BT_PAGE_LOG2_SIZE  10   /* 1 KB */
 #define BT_PAGE_SIZE       (1 << BT_PAGE_LOG2_SIZE)
 #define BT_INIT_NBPAGES    256  /**< initial number of pages in the btree */
 #define BT_GROW_NBPAGES    256
