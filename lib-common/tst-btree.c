@@ -33,27 +33,23 @@
 
 #define BSWAP  1
 
-static int btree_linear_test(void)
+static int btree_linear_test(const char *indexname, int64_t start, int bswap,
+                             int32_t num_keys, int32_t num_data)
 {
-    proctimer_t pt;
     struct stat st;
-
-    int64_t start = 600000000LL;
-    int32_t n, num_keys = 5000000;
-    int32_t d, num_data = 4;
+    proctimer_t pt, pt1;
     int nkeys, status = 0;
+    btree_t *bt;
+    int32_t n, d;
 
-    const char *filename = "/tmp/test.ibt";
-    btree_t *bt = NULL;
-
-    proctimer_start(&pt);
-
-    unlink(filename);
-    bt = btree_creat(filename);
+    unlink(indexname);
+    bt = btree_creat(indexname);
     if (!bt) {
-        fprintf(stderr, "Cannot create %s: %m\n", filename);
+        fprintf(stderr, "%s: cannot create %s: %m\n", __func__, indexname);
         return 1;
     }
+
+    proctimer_start(&pt);
 
     nkeys = 0;
 
@@ -62,7 +58,7 @@ static int btree_linear_test(void)
             int64_t num = n + start;
             int32_t data = d << 10;
 
-            if (BSWAP) {
+            if (bswap) {
                 num = __bswap_64(num);
             }
 
@@ -70,29 +66,32 @@ static int btree_linear_test(void)
                 fprintf(stderr, "btree: failed to insert key %lld value %d\n",
                         (long long)num, data);
                 status = 1;
-                goto done1;
+                goto done;
             }
             nkeys++;
         }
     }
-  done1:
+  done:
     proctimer_stop(&pt);
-    stat(filename, &st);
+    stat(indexname, &st);
 
-    printf("inserted %d keys in index '%s' (%lld bytes)\n",
-           nkeys, filename, (long long)st.st_size);
-    printf("times: %s\n", proctimer_report(&pt, NULL));
-
-    printf("tst-btree: integrity check: ");
+    printf("%s: %s: %d keys inserted, %lld bytes\n",
+           __func__, indexname, nkeys, (long long)st.st_size);
+    printf("    times: %s\n", proctimer_report(&pt, NULL));
     fflush(stdout);
 
-    proctimer_start(&pt);
-    if (!btree_check_integrity(bt, false, fprintf, stderr)) {
-        proctimer_stop(&pt);
-        printf("OK (times: %s)\n", proctimer_report(&pt, NULL));
+    proctimer_start(&pt1);
+    if (btree_check_integrity(bt, false, fprintf, stderr)) {
+        printf("    final integrity check failed\n");
+        //btree_dump(bt, fprintf, stdout);
+        btree_close(&bt);
+        return 1;
     }
-
     btree_close(&bt);
+    proctimer_stop(&pt1);
+
+    printf("    check OK (times: %s)\n", proctimer_report(&pt1, NULL));
+    fflush(stdout);
 
     return status;
 }
@@ -181,13 +180,12 @@ static int sim_extensive_check(const btree_t *bt, long npush)
 }
 #endif
 
-int main(int argc, char **argv)
+static int btree_parse_test(const char *filename, const char *indexname)
 {
     char buf[BUFSIZ];
-    const char *indexname = "/tmp/test.ibt";
     struct stat st;
     proctimer_t pt, pt2;
-    btree_t *bt = NULL;
+    btree_t *bt;
     int len;
     long offset;
     long npush;
@@ -196,13 +194,9 @@ int main(int argc, char **argv)
     int status = 0;
     FILE *fp;
 
-    if (argc < 2) {
-        return btree_linear_test();
-    }
-
-    fp = fopen(argv[1], "r");
+    fp = fopen(filename, "r");
     if (!fp) {
-        fprintf(stderr, "Cannot open %s: %m\n", argv[1]);
+        fprintf(stderr, "%s: cannot open %s: %m\n", __func__, filename);
         return 1;
     }
 
@@ -211,7 +205,7 @@ int main(int argc, char **argv)
     unlink(indexname);
     bt = btree_creat(indexname);
     if (!bt) {
-        fprintf(stderr, "Cannot create %s: %m\n", indexname);
+        fprintf(stderr, "%s: cannot create %s: %m\n", __func__, indexname);
         return 1;
     }
 
@@ -288,15 +282,15 @@ int main(int argc, char **argv)
     stat(indexname, &st);
     printf("tst-btree: %ld insertions for %ld bytes. Index size: %lld\n",
            npush, offset, (long long)st.st_size);
-    printf("times: %s\n", proctimer_report(&pt, NULL));
+    printf("    times: %s\n", proctimer_report(&pt, NULL));
 
 #if EXPENSIVE_CHECK_PERIOD
     proctimer_start(&pt);
     sim_extensive_check(bt, npush);
     proctimer_stop(&pt);
-    printf("times: %s\n", proctimer_report(&pt, NULL));
+    printf("    times: %s\n", proctimer_report(&pt, NULL));
 #endif
-    printf("tst-btree: integrity check: ");
+    printf("    integrity check: ");
     fflush(stdout);
 
     proctimer_start(&pt);
@@ -308,4 +302,13 @@ int main(int argc, char **argv)
     btree_close(&bt);
 
     return status;
+}
+
+int main(int argc, char **argv)
+{
+    if (argc < 2) {
+        return btree_linear_test("/tmp/test.ibt", 600000000LL, BSWAP, 5000000, 4);
+    }
+
+    return btree_parse_test(argv[1], "/tmp/test.ibt");
 }
