@@ -30,6 +30,7 @@
 #define INTEGRITY_CHECK_PERIOD  INT_MAX
 #define EXPENSIVE_CHECK_START   INT_MAX
 #define EXPENSIVE_CHECK_PERIOD  0
+#define STATS_EVERY_BLOCKS 100000
 
 #define BSWAP  1
 
@@ -194,6 +195,7 @@ static int btree_parse_test(const char *filename, const char *indexname)
     uint32_t data;
     int status = 0;
     FILE *fp;
+    proctimerstat_t pt_stats;
 
     fp = fopen(filename, "r");
     if (!fp) {
@@ -226,14 +228,15 @@ static int btree_parse_test(const char *filename, const char *indexname)
             data = offset;
 
             npush++;
-#if 0
-            if (npush % 81920 == 0) {
+            if (npush % STATS_EVERY_BLOCKS == 0) {
                 proctimer_stop(&pt2);
-                printf("btree: insertion of 81920 keys took %s\n", 
-                       proctimer_report(&pt2, NULL));
+#if 0
+                printf("btree: insertion of %d keys took %s\n",
+                       STATS_EVERY_BLOCKS, proctimer_report(&pt2, NULL));
+#endif
+                proctimerstat_addsample(&pt_stats, &pt2);
                 proctimer_start(&pt2);
             }
-#endif
             if (btree_push(bt, num, (void*)&data, sizeof(data))) {
                 printf("btree: failed to insert key %d:%u value %d\n",
                        camp_id, line_no, data);
@@ -299,6 +302,8 @@ static int btree_parse_test(const char *filename, const char *indexname)
         proctimer_stop(&pt);
         printf("OK (times: %s)\n", proctimer_report(&pt, NULL));
     }
+    printf("Stats for insertion of %d samples:\n%s\n",
+            STATS_EVERY_BLOCKS, proctimerstat_report(&pt_stats, NULL));
 
     btree_close(&bt);
 
