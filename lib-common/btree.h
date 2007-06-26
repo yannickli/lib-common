@@ -30,7 +30,6 @@ typedef struct btree_t MMFILE_ALIAS(struct btree_priv) btree_t;
 typedef int btree_print_fun(FILE *fp, const char *fmt, ...)
 	__attr_printf__(2, 3);
 
-int btree_fsck(btree_t *bt, int dofix);
 int btree_check_integrity(btree_t *bt, int dofix,
 			  btree_print_fun *fun, FILE *arg);
 btree_t *btree_open(const char *path, int flags);

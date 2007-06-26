@@ -662,21 +662,6 @@ int btree_check_integrity(btree_t *bt, int dofix, btree_print_fun *fun, FILE *ar
                          MAX_KEY, BTPP_NIL, fun ? fun : bt_void_printf, arg);
 }
 
-int btree_fsck(btree_t *bt, int dofix)
-{
-    int res1, res2;
-
-    res1 = bt_check_header(bt->area, dofix, bt->path, bt->size);
-    if (res1 < 0)
-        return res1;
-
-    res2 = btree_check_integrity(bt, dofix, NULL, NULL);
-    if (res2 < 0)
-        return res2;
-
-    return res1 + res2;
-}
-
 /*---------------- Memory mapped API functions ----------------*/
 
 btree_t *btree_open(const char *path, int flags)
@@ -737,14 +722,21 @@ btree_t *btree_open(const char *path, int flags)
         e_trace(2, "Could not open bt on %s: %m", path);
         return NULL;
     }
+
+    if (bt_check_header(bt->area, O_ISWRITE(flags), bt->path, bt->size) < 0) {
+        btree_close(&bt);
+        errno = EUCLEAN;
+        return NULL;
+    }
+
     if (!(flags & BT_O_NOCHECK)) {
-        res = btree_fsck(bt, O_ISWRITE(flags));
-        if (res < 0) {
+        if (btree_check_integrity(bt, O_ISWRITE(flags), NULL, NULL) < 0) {
             btree_close(&bt);
             errno = EUCLEAN;
             return NULL;
         }
     }
+
     if (O_ISWRITE(flags)) {
         struct timeval tv;
         pid_t pid = getpid();
