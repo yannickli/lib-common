@@ -448,6 +448,9 @@ static int benchmark_index_methods(void)
 int main(int argc, char **argv)
 {
     int status = 0;
+    const char *filename;
+    const char *indexname = "/tmp/test.ibt";
+    const char *dumpname = NULL;
 
     if (argc < 2) {
         status |= btree_linear_test("/tmp/test-1.ibt", 600000000LL, 0, 1000000, 4);
@@ -462,9 +465,47 @@ int main(int argc, char **argv)
         return status;
     }
 
+    if (!strcmp(argv[1], "--help")) {
+        printf("usage: tst-btree\n"
+               "       tst-btree compare\n"
+               "       tst-btree filename [indexname [dumpname]]\n");
+        return 2;
+    }
+
     if (!strcmp(argv[1], "compare")) {
         return benchmark_index_methods();
     }
 
-    return btree_parse_test(argv[1], "/tmp/test.ibt");
+    filename = argv[1];
+    if (argv[2]) {
+        indexname = argv[2];
+        if (argv[3]) {
+            dumpname = argv[3];
+        }
+    }
+
+    status = btree_parse_test(filename, indexname);
+
+    if (dumpname) {
+        btree_t *bt;
+        FILE *fp;
+
+        fp = fopen(dumpname, "w");
+        if (!fp) {
+            fprintf(stderr, "%s: cannot create %s: %m\n",
+                    "tst-btree", dumpname);
+            return 1;
+        }
+
+        bt = btree_open(indexname, O_RDONLY | BT_O_NOCHECK | BT_O_PRELOAD);
+        if (!bt) {
+            fprintf(stderr, "%s: cannot open %s: %m\n",
+                    "tst-btree", indexname);
+            return 1;
+        }
+        btree_dump(bt, fprintf, fp);
+        btree_close(&bt);
+        fclose(fp);
+    }
+    return status;
 }
