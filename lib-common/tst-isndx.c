@@ -99,23 +99,25 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
             ||  entries.tab[n1]->key != key)
                 break;
         }
-        fwrite(&key, sizeof(int64_t), 1, fp);
-        putc(nb, fp);
+        putc_unlocked(8, fp);
+        fwrite_unlocked(&key, sizeof(int64_t), 1, fp);
+        putc_unlocked(nb, fp);
         while (n < n1) {
-            fwrite(&entries.tab[n]->data, sizeof(int32_t), 1, fp);
+            fwrite_unlocked(&entries.tab[n]->data, sizeof(int32_t), 1, fp);
             n++;
         }
 #else
-        fwrite(entries.tab[n], sizeof(entry_t), 1, fp);
+        fwrite_unlocked(entries.tab[n], sizeof(entry_t), 1, fp);
         n++;
 #endif
     }
+    proctimer_stop(&pt);
+
     //entry_array_wipe(&entries, true);
     entry_array_wipe(&entries, false);
     free(entry_tab);
     p_fclose(&fp);
 
-    proctimer_stop(&pt);
     stat(indexname, &st);
 
     printf("%s: %s: %d keys, %d chunks,%s %lld bytes\n",
