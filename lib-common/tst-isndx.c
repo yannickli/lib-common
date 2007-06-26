@@ -11,7 +11,12 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <stdio.h>
 #include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <inttypes.h>
 
 #include "macros.h"
 #include "mem.h"
@@ -23,8 +28,6 @@
 #include "iprintf.h"
 
 #define USE_BSTREAM  0
-
-#define BSWAP  0
 
 typedef struct entry_t {
     int64_t key;
@@ -70,13 +73,13 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
 
     for (n = 0; n < num_keys; n++) {
         for (d = 0; d < num_data; d++) {
-            int64_t num = n + start;
+            int64_t num = start + n;
             int32_t data = d << 10;
             //entry_t *ep = p_new(entry_t, 1);
             entry_t *ep = &entry_tab[nkeys];
 
             if (bswap) {
-                num = __bswap_64(num);
+                num = start + __bswap_32(n);
             }
 
             ep->key = num;
@@ -87,8 +90,25 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
         }
     }
     entry_array_sort(&entries, entry_cmp, NULL);
-    for (n = 0; n < nkeys; n++) {
+    for (n = 0; n < nkeys; ) {
+#if 1
+        int n1, nb;
+        int64_t key = entries.tab[n]->key;
+        for (nb = 4, n1 = n + 1; n1 < nkeys; n1++, nb += 4) {
+            if (nb >= 256 - 4
+            ||  entries.tab[n1]->key != key)
+                break;
+        }
+        fwrite(&key, sizeof(int64_t), 1, fp);
+        putc(nb, fp);
+        while (n < n1) {
+            fwrite(&entries.tab[n]->data, sizeof(int32_t), 1, fp);
+            n++;
+        }
+#else
         fwrite(entries.tab[n], sizeof(entry_t), 1, fp);
+        n++;
+#endif
     }
     //entry_array_wipe(&entries, true);
     entry_array_wipe(&entries, false);
@@ -283,12 +303,12 @@ static int isndx_linear_test(const char *indexname, int64_t start, int bswap,
 
     for (n = 0; n < num_keys; n++) {
         for (d = 0; d < num_data; d++) {
-            int64_t num = n + start;
+            int64_t num = start + n;
             int32_t data = d << 10;
             byte key[8];
 
             if (bswap) {
-                num = __bswap_64(num);
+                num = start + __bswap_32(n);
             }
 
             key[0] = num >> (7 * 8);
@@ -358,11 +378,11 @@ static int btree_linear_test(const char *indexname, int64_t start, int bswap,
 
     for (n = 0; n < num_keys; n++) {
         for (d = 0; d < num_data; d++) {
-            int64_t num = n + start;
+            int64_t num = start + n;
             int32_t data = d << 10;
 
             if (bswap) {
-                num = __bswap_64(num);
+                num = start + __bswap_32(n);
             }
 
             if (btree_push(bt, num, (void*)&data, sizeof(data))) {
