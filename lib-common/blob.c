@@ -1913,6 +1913,7 @@ int blob_deserialize(const blob_t *blob, int *pos, const char *fmt, ...)
 
     return res;
 }
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 /* inlines (check invariants) + setup/teardowns                        {{{*/
