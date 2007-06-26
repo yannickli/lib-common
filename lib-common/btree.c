@@ -20,8 +20,9 @@
 
 #define BT_PAGE_SHIFT      10   /* 4 KB */
 #define BT_PAGE_SIZE       (1 << BT_PAGE_SHIFT)
-#define BT_INIT_NBPAGES    256  /**< initial number of pages in the btree */
-#define BT_GROW_NBPAGES    256
+#define BT_GROW_SIZE       (1 << 20)
+#define BT_INIT_NBPAGES    (BT_GROW_SIZE / BT_PAGE_SIZE)
+#define BT_GROW_NBPAGES    (BT_GROW_SIZE / BT_PAGE_SIZE)
 
 #if BT_PAGE_SIZE == 4096
 #define BT_VERSION_MINOR  0
@@ -29,28 +30,13 @@
 #define BT_VERSION_MINOR  1
 #endif
 
-/* Allow for at least 6 chunks per block for better split properties in
- * pathological cases.
- */
-#define BT_MAX_DLEN       ((BT_PAGE_SIZE - 4 * 2) / 6 - 8 - 2)
-#if BT_MAX_DLEN < 0
-#undef  BT_MAX_DLEN
-#define BT_MAX_DLEN       4
-#elif BT_MAX_DLEN > 255
-#undef  BT_MAX_DLEN
-#define BT_MAX_DLEN       255
-#endif
-
-#define BT_ARITY          ((BT_PAGE_SIZE - 4 * 4) / 12)
-                               /**< L constant in the b-tree terminology */
-
-#define O_ISWRITE(m)      (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
+#define SPLIT_LEAF_HALF   0
 
 /* minimum head size is 32 = 4*8 */
-/* minimum leaf size is 50 = 4*2+(1+8+1+4)*3 */
 /* minimum node size is 40 = 4*4+(4+8)*2 */
+/* minimum leaf size is 64 = 4*2+(1+8+1+4)*4 */
 
-#if BT_PAGE_SIZE < 50
+#if BT_PAGE_SIZE < 64
 #error page size too small: BT_PAGE_SIZE
 #endif
 #if (BT_PAGE_SIZE * BT_INIT_NBPAGES) % 4096
@@ -59,6 +45,26 @@
 #if (BT_PAGE_SIZE * BT_GROW_NBPAGES) % 4096
 #error index size increment too small: BT_GROW_NBPAGES
 #endif
+
+/* Choose BT_MAX_DLEN for better split properties in pathological cases */
+#if SPLIT_LEAF_HALF
+#define BT_MAX_DLEN       ((BT_PAGE_SIZE - 2 * 4) / 4 - 1 - 8 - 1)
+#else
+#define BT_MAX_DLEN       ((BT_PAGE_SIZE - 2 * 4) / 6 - 1 - 8 - 1)
+#endif
+
+#if BT_MAX_DLEN < 4
+#undef  BT_MAX_DLEN
+#define BT_MAX_DLEN       4
+#elif BT_MAX_DLEN > 255
+#undef  BT_MAX_DLEN
+#define BT_MAX_DLEN       255
+#endif
+
+#define BT_ARITY          ((BT_PAGE_SIZE - 4 * 4) / (8 + 4))
+                               /**< L constant in the b-tree terminology */
+
+#define O_ISWRITE(m)      (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
 
 static const union {
     char     s[4];
@@ -285,7 +291,7 @@ static int btn_insert(btree_t *bt, intpair nodes[], int level, int32_t rpage)
 {
     int32_t page, lpage, npage;
     bt_node_t *node, *sibling;
-    int pos;
+    int pos, split;
 
     lpage = nodes[level++].page; 
     if (level > bt->area->depth) {
@@ -338,7 +344,7 @@ static int btn_insert(btree_t *bt, intpair nodes[], int level, int32_t rpage)
                 node->ptrs[pos]     = lpage;
                 node->keys[pos]     = bt_get_maxkey(bt, lpage);
                 node->ptrs[pos + 1] = rpage;
-                node->keys[pos + 1] =  bt_get_maxkey(bt, rpage);
+                node->keys[pos + 1] = bt_get_maxkey(bt, rpage);
             } else {
                 node->ptrs[pos]     = lpage;
                 node->keys[pos]     = bt_get_maxkey(bt, lpage);
@@ -361,15 +367,25 @@ static int btn_insert(btree_t *bt, intpair nodes[], int level, int32_t rpage)
     if (!node || !sibling)
         return -1;
 
-    /* split node data between node and new node */
-    *sibling     = *node;
-    node->next   = npage & ~BTPP_NODE_MASK;
-    node->nbkeys = BT_ARITY / 2;
+    /* split node data evenly between node and new node */
+    split = BT_ARITY / 2;
 
-    btn_shift(sibling, 0, BT_ARITY / 2, (BT_ARITY + 1) / 2);
-    sibling->nbkeys = (BT_ARITY + 1) / 2;
+    if (node->next == BTPP_NIL && pos >= node->nbkeys - 1) {
+        /* except split last node at this level on last key */
+        split = node->nbkeys - 1;
+    }
 
-    /* Update max key up the tree */
+    sibling->next = node->next;
+    node->next    = npage & ~BTPP_NODE_MASK;
+
+    memcpy(sibling->ptrs, node->ptrs + split,
+           (node->nbkeys - split + 1) * sizeof(node->ptrs[0]));
+    memcpy(sibling->keys, node->keys + split,
+           (node->nbkeys - split) * sizeof(node->keys[0]));
+    sibling->nbkeys = node->nbkeys - split;
+    node->nbkeys = split;
+
+    /* Update new max key up the tree (maybe useless?) */
     btn_update(bt, nodes, level, node->keys[node->nbkeys - 1]);
 
     if (pos < node->nbkeys) {
@@ -999,17 +1015,13 @@ int btree_fetch(const btree_t *bt, uint64_t key, blob_t *out)
 int btree_push(btree_t *bt, uint64_t key, const byte *data, int dlen)
 {
     bool reuse;
-    int32_t page, rpage, slot, need;
-    int pos, oldpos, shift, maxdlen;
+    int32_t page, slot, need;
+    int pos, maxdlen;
     intpair *nodes;
-    bt_leaf_t *lleaf, *rleaf, *nleaf;
+    bt_leaf_t *lleaf, *nleaf;
     byte *p;
 
-#if BT_PAGE_SIZE < 3 * (1 + 8 + 1 + BT_MAX_DLEN) + 4 * 2
-    maxdlen = (BT_PAGE_SIZE - 4 * 2) / 3 - 1 - 8 - 1;
-#else
     maxdlen = BT_MAX_DLEN;
-#endif
 
     if (dlen < 0) {
         /* invalid data length */
@@ -1057,6 +1069,72 @@ int btree_push(btree_t *bt, uint64_t key, const byte *data, int dlen)
     assert (0 <= slot && slot <= lleaf->used);
 
     if (need + lleaf->used > ssizeof(lleaf->data)) {
+#if SPLIT_LEAF_HALF
+        /* Split this page in 2 half-full pages */
+        int32_t npage;
+        int lastpos;
+
+        npage = bt_page_new(bt);
+        if (npage < 0)
+            return -1;
+
+        /* remap pages because bt_page_new may have moved bt->area */
+        lleaf = MAP_LEAF(bt->area, page);
+        nleaf = MAP_LEAF(bt->area, npage);
+
+        if (!lleaf || !nleaf)
+            return -1;
+
+        for (lastpos = pos = 0;
+             pos < lleaf->used && pos <= ssizeof(lleaf->data) / 2;
+             ) {
+            lastpos = pos;
+            pos += 1 + 8;
+            pos += 1 + lleaf->data[pos];
+        }
+        if (lastpos > 0 && (slot < lastpos || pos >= lleaf->used)) {
+            pos = lastpos;
+        }
+        if (pos >= lleaf->used) {
+            /* unlikely structure error: cannot split block */
+            /* currently this cam only happen for very small
+             * BT_PAGE_SIZE and large data chunks.
+             */
+            e_error("cannot split leaf %03d", page);
+            return -1;
+        }
+
+        if (lleaf->next == BTPP_NIL) {
+            int pos2 = pos;
+            while (pos2 < lleaf->used) {
+                lastpos = pos2;
+                pos2 += 1 + 8;
+                pos2 += 1 + lleaf->data[pos2];
+            }
+
+            /* Split page on last chunk if inserting at end of last page */
+            if (slot >= lastpos) {
+                pos = lastpos;
+            }
+        }
+
+        nleaf->next = lleaf->next;
+        lleaf->next = npage;
+
+        memcpy(nleaf->data, lleaf->data + pos, lleaf->used - pos);
+        nleaf->used = lleaf->used - pos;
+        lleaf->used = pos;
+
+        /* If this insert fails, the index is corrupted */
+        if (btn_insert(bt, nodes, 0, npage) < 0)
+            return -1;
+
+        goto restart;
+#else
+        int32_t rpage;
+        int oldpos, shift;
+        bt_leaf_t *rleaf;
+
         /* Not enough room in target page: need to shift some data to
          * next page.
          */
@@ -1196,6 +1274,7 @@ int btree_push(btree_t *bt, uint64_t key, const byte *data, int dlen)
         if (oldpos == slot && reuse) {
             goto restart;
         }
+#endif
     }
 
     p = lleaf->data;
