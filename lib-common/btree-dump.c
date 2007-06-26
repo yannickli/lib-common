@@ -20,11 +20,15 @@ int main(int argc, char **argv)
     btree_t *bt;
 
     if (argc > 1) {
-        bt = btree_open(argv[1], O_RDONLY | BT_O_NOCHECK);
-        assert (bt);
+        const char *indexname = argv[1];
 
+        bt = btree_open(indexname, O_RDONLY | BT_O_NOCHECK);
+        if (!bt) {
+            fprintf(stderr, "%s: cannot open %s: %m\n",
+                    "btree-dump", indexname);
+            return 1;
+        }
         btree_dump(bt, fprintf, stdout);
-
         btree_close(&bt);
     }
     return 0;
