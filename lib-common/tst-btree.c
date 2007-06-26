@@ -497,7 +497,7 @@ int main(int argc, char **argv)
             return 1;
         }
 
-        bt = btree_open(indexname, O_RDONLY | BT_O_NOCHECK | BT_O_PRELOAD);
+        bt = btree_open(indexname, O_RDONLY | BT_O_NOCHECK);
         if (!bt) {
             fprintf(stderr, "%s: cannot open %s: %m\n",
                     "tst-btree", indexname);
