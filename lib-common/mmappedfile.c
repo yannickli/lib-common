@@ -26,9 +26,16 @@ GENERIC_NEW(mmfile, mmfile);
 
 mmfile *mmfile_open(const char *path, int flags)
 {
+    int mflags = MAP_SHARED;
     int fd = -1, prot = PROT_READ;
     struct stat st;
     mmfile *mf = mmfile_new();
+
+    /* Kludge for MAP_POPULATE */
+    if (flags & MMAP_O_PRELOAD) {
+        mflags |= MAP_POPULATE;
+        flags &= ~MMAP_O_PRELOAD;
+    }
 
     fd = open(path, flags, 0644);
     if (fd < 0)
@@ -52,7 +59,7 @@ mmfile *mmfile_open(const char *path, int flags)
     }
 
     mf->size = st.st_size;
-    mf->area = mmap(NULL, mf->size, prot, MAP_SHARED, fd, 0);
+    mf->area = mmap(NULL, mf->size, prot, mflags, fd, 0);
     if (mf->area == MAP_FAILED) {
         mf->area = NULL;
         goto error;
@@ -107,9 +114,16 @@ mmfile *mmfile_creat(const char *path, off_t initialsize)
 mmfile *mmfile_open_or_creat(const char *path, int flags,
                              off_t initialsize, bool *created)
 {
+    int mflags = MAP_SHARED;
     int fd = -1, prot = PROT_READ;
     struct stat st;
     mmfile *mf = mmfile_new();
+
+    /* Kludge for MAP_POPULATE */
+    if (flags & MMAP_O_PRELOAD) {
+        mflags |= MAP_POPULATE;
+        flags &= ~MMAP_O_PRELOAD;
+    }
 
     fd = open(path, flags | O_CREAT, 0644);
     if (fd < 0)
@@ -144,7 +158,7 @@ mmfile *mmfile_open_or_creat(const char *path, int flags,
     } else {
         mf->size = st.st_size;
     }
-    mf->area = mmap(NULL, mf->size, prot, MAP_SHARED, fd, 0);
+    mf->area = mmap(NULL, mf->size, prot, mflags, fd, 0);
     if (mf->area == MAP_FAILED) {
         mf->area = NULL;
         goto error;

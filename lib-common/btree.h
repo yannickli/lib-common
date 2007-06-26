@@ -14,8 +14,15 @@
 #ifndef IS_LIB_COMMON_BTREE_H
 #define IS_LIB_COMMON_BTREE_H
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "blob.h"
 #include "mmappedfile.h"
+
+/* Kludge for passing extra open options */
+#define BT_O_NOCHECK  O_NONBLOCK
 
 typedef struct btree_priv_t btree_priv_t;
 typedef struct btree_t MMFILE_ALIAS(struct btree_priv) btree_t;

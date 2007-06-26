@@ -682,9 +682,9 @@ int btree_fsck(btree_t *bt, int dofix)
 btree_t *btree_open(const char *path, int flags)
 {
     btree_t *bt;
-    int res;
+    int res, openflags;
 
-    /* flag O_NONBLOCK prevents integrity check so btree_dump() can
+    /* flag BT_O_NOCHECK prevents integrity check so btree_dump() can
      * display corrupted btree index contents
      */
 
@@ -727,12 +727,17 @@ btree_t *btree_open(const char *path, int flags)
         return NULL;
     }
 
-    bt = bt_real_open(path, flags & ~(O_NONBLOCK));
+    if (flags & BT_O_NOCHECK)
+        openflags = flags & ~BT_O_NOCHECK;
+    else
+        openflags = flags | MMAP_O_PRELOAD;
+
+    bt = bt_real_open(path, openflags);
     if (!bt) {
         e_trace(2, "Could not open bt on %s: %m", path);
         return NULL;
     }
-    if (!(flags & O_NONBLOCK)) {
+    if (!(flags & BT_O_NOCHECK)) {
         res = btree_fsck(bt, O_ISWRITE(flags));
         if (res < 0) {
             btree_close(&bt);
