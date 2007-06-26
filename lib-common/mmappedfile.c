@@ -11,8 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <sys/stat.h>
+#define _GNU_SOURCE
 #include <unistd.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include <errno.h>
 
 #include <lib-common/mem.h>
@@ -182,6 +184,47 @@ void mmfile_close(mmfile **mf)
 
 int mmfile_truncate(mmfile *mf, off_t length)
 {
+#if 1
+    int res;
+
+    if (length == mf->size)
+        return 0;
+
+    if (length < mf->size) {
+        mf->area = mremap(mf->area, mf->size, length, MREMAP_MAYMOVE);
+        if (mf->area == MAP_FAILED) {
+            mf->area = NULL;
+            mf->size = 0;
+            return -2;
+        }
+        mf->size = length;
+        return truncate(mf->path, length);
+    } else {
+        int fd;
+
+        fd = open(mf->path, O_RDWR);
+        if (fd < 0) {
+            errno = EBADF;
+            return -1;
+        }
+
+        if ((res = ftruncate(fd, length)) != 0
+        ||  (res = posix_fallocate(fd, mf->size, length - mf->size)) != 0)
+        {
+            close(fd);
+            return res;
+        }
+        close(fd);
+        mf->area = mremap(mf->area, mf->size, length, MREMAP_MAYMOVE);
+        if (mf->area == MAP_FAILED) {
+            mf->area = NULL;
+            mf->size = 0;
+            return -2;
+        }
+        mf->size = length;
+        return 0;
+    }
+#else
     int fd = -1;
     int res;
 
@@ -227,4 +270,5 @@ int mmfile_truncate(mmfile *mf, off_t length)
 
     mf->size = length;
     return close(fd);
+#endif
 }
