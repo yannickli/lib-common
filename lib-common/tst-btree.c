@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 
+#include "array.h"
 #include "btree.h"
 #include "timeval.h"
 
@@ -30,9 +31,105 @@
 #define INTEGRITY_CHECK_PERIOD  INT_MAX
 #define EXPENSIVE_CHECK_START   INT_MAX
 #define EXPENSIVE_CHECK_PERIOD  0
-#define STATS_EVERY_BLOCKS 100000
+#define STATS_EVERY_BLOCKS      0//100000
 
-#define BSWAP  1
+typedef struct entry_t {
+    int64_t key;
+    int32_t data;
+} entry_t;
+
+GENERIC_INIT(entry_t, entry);
+GENERIC_WIPE(entry_t, entry);
+GENERIC_DELETE(entry_t, entry);
+ARRAY_TYPE(entry_t, entry);
+ARRAY_FUNCTIONS(entry_t, entry);
+
+static int entry_cmp(const entry_t *ep1, const entry_t *ep2, void *opaque)
+{
+    return CMP(ep1->key, ep2->key);
+}
+
+static int array_linear_test(const char *indexname, int64_t start, int bswap,
+                             int32_t num_keys, int32_t num_data)
+{
+    struct stat st;
+    proctimer_t pt;
+    int nkeys, status = 0;
+    entry_array entries;
+    entry_t *entry_tab;
+    int32_t n, d;
+
+    FILE *fp;
+
+    unlink(indexname);
+    fp = fopen(indexname, "wb");
+    if (!fp) {
+        fprintf(stderr, "%s: cannot create %s: %m\n", __func__, indexname);
+        return 1;
+    }
+
+    proctimer_start(&pt);
+
+    nkeys = 0;
+    entry_tab = malloc(sizeof(entry_t) * num_keys * num_data);
+    entry_array_init(&entries);
+    entry_array_resize(&entries, num_keys * num_data);
+
+    for (n = 0; n < num_keys; n++) {
+        for (d = 0; d < num_data; d++) {
+            int64_t num = start + n;
+            int32_t data = d << 10;
+            //entry_t *ep = p_new(entry_t, 1);
+            entry_t *ep = &entry_tab[nkeys];
+
+            if (bswap) {
+                num = start + __bswap_32(n);
+            }
+
+            ep->key = num;
+            ep->data = data;
+            //entry_array_append(&entries, ep);
+            entries.tab[nkeys] = ep;
+            nkeys++;
+        }
+    }
+    entry_array_sort(&entries, entry_cmp, NULL);
+    for (n = 0; n < nkeys; ) {
+#if 1
+        int n1, nb;
+        int64_t key = entries.tab[n]->key;
+        for (nb = 4, n1 = n + 1; n1 < nkeys; n1++, nb += 4) {
+            if (nb >= 256 - 4
+            ||  entries.tab[n1]->key != key)
+                break;
+        }
+        fwrite(&key, sizeof(int64_t), 1, fp);
+        putc(nb, fp);
+        while (n < n1) {
+            fwrite(&entries.tab[n]->data, sizeof(int32_t), 1, fp);
+            n++;
+        }
+#else
+        fwrite(entries.tab[n], sizeof(entry_t), 1, fp);
+        n++;
+#endif
+    }
+    //entry_array_wipe(&entries, true);
+    entry_array_wipe(&entries, false);
+    free(entry_tab);
+    p_fclose(&fp);
+
+    proctimer_stop(&pt);
+    stat(indexname, &st);
+
+    printf("%s: %s: %d keys, %d chunks,%s %lld bytes\n",
+           __func__, indexname, num_keys, num_data,
+           bswap ? " bswap" : "", (long long)st.st_size);
+    printf("    times: %s\n", proctimer_report(&pt, NULL));
+    fflush(stdout);
+
+    return 0;
+}
 
 static int btree_linear_test(const char *indexname, int64_t start, int bswap,
                              int32_t num_keys, int32_t num_data)
@@ -56,11 +153,11 @@ static int btree_linear_test(const char *indexname, int64_t start, int bswap,
 
     for (n = 0; n < num_keys; n++) {
         for (d = 0; d < num_data; d++) {
-            int64_t num = n + start;
+            int64_t num = start + n;
             int32_t data = d << 10;
 
             if (bswap) {
-                num = __bswap_64(num);
+                num = start + __bswap_32(n);
             }
 
             if (btree_push(bt, num, (void*)&data, sizeof(data))) {
@@ -228,7 +325,8 @@ static int btree_parse_test(const char *filename, const char *indexname)
             data = offset;
 
             npush++;
-            if (npush % STATS_EVERY_BLOCKS == 0) {
+#if STATS_EVERY_BLOCKS
+            if (npush % STATS_EVERY_BLOCKS == 0 && npush) {
                 proctimer_stop(&pt2);
 #if 0
                 printf("btree: insertion of %d keys took %s\n",
@@ -237,6 +335,7 @@ static int btree_parse_test(const char *filename, const char *indexname)
                 proctimerstat_addsample(&pt_stats, &pt2);
                 proctimer_start(&pt2);
             }
+#endif
             if (btree_push(bt, num, (void*)&data, sizeof(data))) {
                 printf("btree: failed to insert key %d:%u value %d\n",
                        camp_id, line_no, data);
@@ -302,10 +401,46 @@ static int btree_parse_test(const char *filename, const char *indexname)
         proctimer_stop(&pt);
         printf("OK (times: %s)\n", proctimer_report(&pt, NULL));
     }
+#if STATS_EVERY_BLOCKS
     printf("Stats for insertion of %d samples:\n%s\n",
             STATS_EVERY_BLOCKS, proctimerstat_report(&pt_stats, NULL));
-
+#endif
     btree_close(&bt);
+
+    return status;
+}
+
+static int benchmark_index_methods(void)
+{
+    int status = 0;
+
+    status |= btree_linear_test("/tmp/test-1.ibt", 600000000LL, 0, 1000000, 4);
+    status |= array_linear_test("/tmp/test-1.bin", 600000000LL, 0, 1000000, 4);
+    printf("\n");
+
+    status |= btree_linear_test("/tmp/test-2.ibt", 600000000LL, 1, 1000000, 4);
+    status |= array_linear_test("/tmp/test-2.bin", 600000000LL, 1, 1000000, 4);
+    printf("\n");
+
+    status |= btree_linear_test("/tmp/test-3.ibt", 600000000LL, 0, 4000000, 1);
+    status |= array_linear_test("/tmp/test-3.bin", 600000000LL, 0, 4000000, 1);
+    printf("\n");
+
+    status |= btree_linear_test("/tmp/test-4.ibt", 600000000LL, 1, 4000000, 1);
+    status |= array_linear_test("/tmp/test-4.bin", 600000000LL, 1, 4000000, 1);
+    printf("\n");
+
+    status |= btree_linear_test("/tmp/test-5.ibt", 600000000LL, 0, 4, 1000000);
+    status |= array_linear_test("/tmp/test-5.bin", 600000000LL, 0, 4, 1000000);
+    printf("\n");
+
+    status |= btree_linear_test("/tmp/test-6.ibt", 600000000LL, 1, 4, 1000000);
+    status |= array_linear_test("/tmp/test-6.bin", 600000000LL, 1, 4, 1000000);
+    printf("\n");
+
+    status |= btree_linear_test("/tmp/test-7.ibt", 600000000LL, 0, 1, 4000000);
+    status |= array_linear_test("/tmp/test-7.bin", 600000000LL, 0, 1, 4000000);
+    printf("\n");
 
     return status;
 }
@@ -325,6 +460,10 @@ int main(int argc, char **argv)
         printf("\n");
 
         return status;
+    }
+
+    if (!strcmp(argv[1], "compare")) {
+        return benchmark_index_methods();
     }
 
     return btree_parse_test(argv[1], "/tmp/test.ibt");
