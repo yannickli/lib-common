@@ -100,6 +100,10 @@ char *log_limit_flushbuf(log_limit_t *ll, const char *lineprefix,
         if (cur->count <= 1) {
             continue;
         }
+        if (cur->count <= ll->max_perline) {
+            /* Message has been already printed. */
+            continue;
+        }
         nb = snprintf(pos, size, "%s%s (%d times)\n", lineprefix,
                       cur->content, cur->count - ll->max_perline);
         if (nb < size) {

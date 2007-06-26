@@ -35,17 +35,17 @@ MMFILE_FUNCTIONS(isndx_file_t, isndx_real);
 #define ISNDX_MAGIC       "ISGX"
 #define ISNDX_MAJOR       0
 #define ISNDX_MINOR       2
-#define ISNDX_PAGESHIFT   9
+#define ISNDX_PAGESHIFT   10
 #define ISNDX_PAGESIZE    (1 << ISNDX_PAGESHIFT)
 
-#define ROUND_SHIFT(x, s)  (((x) + (1 << (s)) - 1) & ~((1 << (s)) - 1))
-#define NB_PAGES_GROW      32
+#define ROUND_SHIFT(x,s)  (((x) + (1 << (s)) - 1) & ~((1 << (s)) - 1))
+#define NB_PAGES_GROW     32
 
 #define MAX_KEYLEN        255
 #define MAX_DATALEN       255
 #define MAX_DEPTH         16
 
-#define O_ISWRITE(m)    (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
+#define O_ISWRITE(m)      (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
 
 struct isndx_file {
     byte magic[4];
@@ -92,8 +92,8 @@ struct isndx_t {
  * indicated by the flag HAS_OVERFLOW.
  */
 
-#define NDX_GET_PAGELEN(page)           (*(const uint16_t *)((page) + 2))
-#define NDX_SET_PAGELEN(page, len)      (*(uint16_t *)((page) + 2) = len)
+#define NDX_GET_PAGELEN(page)       (*(const uint16_t *)((page) + 2))
+#define NDX_SET_PAGELEN(page, len)  (*(uint16_t *)((page) + 2) = len)
 
 #define NDX_GET_PAGENO(p)      \
         ((p)[0] | ((p)[1] << 8) | ((p)[2] << 16))

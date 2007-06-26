@@ -57,6 +57,9 @@ extern int posix_fallocate(int fd, off_t offset, off_t len);
 
 typedef struct mmfile MMFILE_ALIAS(byte) mmfile;
 
+/* Atrocious kludge for MAP_POPULATE */
+#define MMAP_O_PRELOAD  00200000  // O_DIRECTORY
+
 mmfile *mmfile_open(const char *path, int flags);
 mmfile *mmfile_creat(const char *path, off_t initialsize);
 mmfile *mmfile_open_or_creat(const char *path, int flags, off_t initialsize,

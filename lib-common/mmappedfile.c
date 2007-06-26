@@ -11,8 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <sys/stat.h>
+#define _GNU_SOURCE
 #include <unistd.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include <errno.h>
 
 #include <lib-common/mem.h>
@@ -24,9 +26,16 @@ GENERIC_NEW(mmfile, mmfile);
 
 mmfile *mmfile_open(const char *path, int flags)
 {
+    int mflags = MAP_SHARED;
     int fd = -1, prot = PROT_READ;
     struct stat st;
     mmfile *mf = mmfile_new();
+
+    /* Kludge for MAP_POPULATE */
+    if (flags & MMAP_O_PRELOAD) {
+        mflags |= MAP_POPULATE;
+        flags &= ~MMAP_O_PRELOAD;
+    }
 
     fd = open(path, flags, 0644);
     if (fd < 0)
@@ -50,7 +59,7 @@ mmfile *mmfile_open(const char *path, int flags)
     }
 
     mf->size = st.st_size;
-    mf->area = mmap(NULL, mf->size, prot, MAP_SHARED, fd, 0);
+    mf->area = mmap(NULL, mf->size, prot, mflags, fd, 0);
     if (mf->area == MAP_FAILED) {
         mf->area = NULL;
         goto error;
@@ -105,9 +114,16 @@ mmfile *mmfile_creat(const char *path, off_t initialsize)
 mmfile *mmfile_open_or_creat(const char *path, int flags,
                              off_t initialsize, bool *created)
 {
+    int mflags = MAP_SHARED;
     int fd = -1, prot = PROT_READ;
     struct stat st;
     mmfile *mf = mmfile_new();
+
+    /* Kludge for MAP_POPULATE */
+    if (flags & MMAP_O_PRELOAD) {
+        mflags |= MAP_POPULATE;
+        flags &= ~MMAP_O_PRELOAD;
+    }
 
     fd = open(path, flags | O_CREAT, 0644);
     if (fd < 0)
@@ -142,7 +158,7 @@ mmfile *mmfile_open_or_creat(const char *path, int flags,
     } else {
         mf->size = st.st_size;
     }
-    mf->area = mmap(NULL, mf->size, prot, MAP_SHARED, fd, 0);
+    mf->area = mmap(NULL, mf->size, prot, mflags, fd, 0);
     if (mf->area == MAP_FAILED) {
         mf->area = NULL;
         goto error;
@@ -182,6 +198,47 @@ void mmfile_close(mmfile **mf)
 
 int mmfile_truncate(mmfile *mf, off_t length)
 {
+#if 1
+    int res;
+
+    if (length == mf->size)
+        return 0;
+
+    if (length < mf->size) {
+        mf->area = mremap(mf->area, mf->size, length, MREMAP_MAYMOVE);
+        if (mf->area == MAP_FAILED) {
+            mf->area = NULL;
+            mf->size = 0;
+            return -2;
+        }
+        mf->size = length;
+        return truncate(mf->path, length);
+    } else {
+        int fd;
+
+        fd = open(mf->path, O_RDWR);
+        if (fd < 0) {
+            errno = EBADF;
+            return -1;
+        }
+
+        if ((res = ftruncate(fd, length)) != 0
+        ||  (res = posix_fallocate(fd, mf->size, length - mf->size)) != 0)
+        {
+            close(fd);
+            return res;
+        }
+        close(fd);
+        mf->area = mremap(mf->area, mf->size, length, MREMAP_MAYMOVE);
+        if (mf->area == MAP_FAILED) {
+            mf->area = NULL;
+            mf->size = 0;
+            return -2;
+        }
+        mf->size = length;
+        return 0;
+    }
+#else
     int fd = -1;
     int res;
 
@@ -227,4 +284,5 @@ int mmfile_truncate(mmfile *mf, off_t length)
 
     mf->size = length;
     return close(fd);
+#endif
 }

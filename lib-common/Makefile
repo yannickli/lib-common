@@ -20,7 +20,7 @@ __CHECK__ = test test_blob_iconv
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-sha2 tst-sort
 __CHECK__ += tst-iprintf-speed
 # These tests are just too long to be part of "make check". Sorry.
-#__CHECK__ += tst-btree tst-isndx
+__CHECK__ += tst-btree tst-isndx
 
 btree-dump_SOURCES = btree-dump.c libcommon.a
 
@@ -82,7 +82,7 @@ tst-iprintf-glibc_SOURCES = tst-iprintf-glibc.c libcommon.a
 tst-sha2_CFLAGS = -DTEST_VECTORS
 tst-sha2_SOURCES = sha2.c libcommon.a
 
-tst-btree_SOURCES = tst-btree.c libcommon.a
+tst-btree_SOURCES = tst-btree.c btree.c libcommon.a
 tst-isndx_SOURCES = tst-isndx.c libcommon.a
 tst-sort_SOURCES = tst-sort.c libcommon.a
 tst-sort_CFLAGS = -UCHECK

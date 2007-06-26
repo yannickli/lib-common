@@ -81,6 +81,26 @@ typedef struct proctimer_t {
     unsigned int elapsed_proc;
 } proctimer_t;
 
+typedef struct proctimerstat_t {
+    unsigned int nb;
+    unsigned int real_min;
+    unsigned int real_max;
+    unsigned int real_tot;
+
+    unsigned int user_min;
+    unsigned int user_max;
+    unsigned int user_tot;
+
+    unsigned int sys_min;
+    unsigned int sys_max;
+    unsigned int sys_tot;
+
+    unsigned int proc_min;
+    unsigned int proc_max;
+    unsigned int proc_tot;
+} proctimerstat_t;
+
+
 static inline void proctimer_start(proctimer_t *tp) {
     gettimeofday(&tp->tv, NULL);
 #ifndef MINGCC
@@ -104,6 +124,29 @@ static inline long long proctimer_stop(proctimer_t *tp) {
 #endif
     return tp->elapsed_proc;
 }
+
+static inline void proctimerstat_addsample(proctimerstat_t *pts,
+                                           proctimer_t *tp) {
+#define COUNT(type) \
+    if (pts->nb != 0) { \
+        pts->type##_min = MIN(tp->elapsed_##type, pts->type##_min); \
+        pts->type##_max = MAX(tp->elapsed_##type, pts->type##_max); \
+        pts->type##_tot += tp->elapsed_##type; \
+    } else { \
+        pts->type##_min = tp->elapsed_##type; \
+        pts->type##_max = tp->elapsed_##type; \
+        pts->type##_tot = tp->elapsed_##type; \
+    } \
+
+    COUNT(real);
+    COUNT(user);
+    COUNT(sys);
+    COUNT(proc);
+#undef COUNT
+    pts->nb++;
+}
+
+const char *proctimerstat_report(proctimerstat_t *pts, const char *fmt);
 
 /* report timings from proctimer_t using format string fmt:
  * %r -> real time in ms
