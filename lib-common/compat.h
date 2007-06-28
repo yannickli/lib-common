@@ -34,13 +34,17 @@ void intersec_initialize(void);
 #include <sys/time.h>
 #include <ws2tcpip.h>	/* for socklen_t */
 
-void gettimeofday(struct timeval *p, void *tz);
 char *asctime_r(const struct tm *tm, char *buf);
 char *ctime_r(const time_t *timep, char *buf);
 struct tm *gmtime_r(const time_t *timep, struct tm *result);
 struct tm *localtime_r(const time_t *timep, struct tm *result);
 void usleep(unsigned long usec);
 long int lrand48(void);
+
+struct iovec {
+    void  *iov_base;    /* Starting address */
+    size_t iov_len;     /* Number of bytes to transfer */
+};
 
 #define mkdir(path, mode)  mkdir(path)
 
