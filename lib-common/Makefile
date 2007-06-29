@@ -100,11 +100,5 @@ ifneq (,$(MINGCC))
   libcommon_SOURCES := $(filter-out linux.c mmappedfile.c btree.c, $(libcommon_SOURCES))
   __EXE__ := $(filter-out btree-dump, $(__EXE__))
 endif
-# OG: should filter libcommon_SOURCES for MINGCC as well 
-#  libcommon_SOURCES := $(filter-out licence.c iprintf.c ioveclist.c
-#  blob_emi.c blob_iconv.c blob_zlib.c concatbin.c log_file.c btree.c
-#  mem-fifo-pool.c mmappedfile.c paged-index.c,\
-#  $(libcommon_SOURCES))
-# __EXE__ := $(filter-out btree-dump, $(__EXE__))
 
 include $(DEPTH)/admin/footer.mk
