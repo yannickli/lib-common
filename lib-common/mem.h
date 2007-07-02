@@ -17,14 +17,34 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <malloc.h>
+#include <endian.h>
 
 #include "macros.h"
 #include "err_report.h"
 #include "string_is.h"
 
+#if (__BYTE_ORDER != __BIG_ENDIAN) && (__BYTE_ORDER != __LITTLE_ENDIAN)
+#  error __BYTE_ORDER must be __BIG_ENDIAN or __LITTLE_ENDIAN
+#endif
+
 #define MEM_ALIGN_SIZE  8
 #define MEM_ALIGN(size) \
     (((size) + MEM_ALIGN_SIZE - 1) & ~((ssize_t)MEM_ALIGN_SIZE - 1))
+
+#if __BYTE_ORDER == __BIG_ENDIAN
+#  define ntohl_const(x)    (x)
+#  define ntohs_const(x)    (x)
+#  define htonl_const(x)    (x)
+#  define htons_const(x)    (x)
+#else
+#  define ntohl_const(x)    ((((x) >> 24) & 0x000000ff) | \
+                             (((x) >>  8) & 0x0000ff00) | \
+                             (((x) <<  8) & 0x00ff0000) | \
+                             (((x) << 24) & 0xff000000))
+#  define ntohs_const(x)    ((((x) >> 8) & 0x00ff) | (((x) << 8) & 0xff00))
+#  define htonl_const(x)    ntohl_const(x)
+#  define htons_const(x)    ntohs_const(x)
+#endif
 
 
 #define check_enough_mem(mem)                                   \
