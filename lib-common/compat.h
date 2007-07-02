@@ -18,15 +18,13 @@
 void intersec_initialize(void);
 
 #ifdef MINGCC
+#define NEED_IOVEC_STUFF
 #if __MINGW32_MAJOR_VERSION < 3 || \
    (__MINGW32_MAJOR_VERSION == 3 && __MINGW32_MINOR_VERSION < 12)
-/* 3.9 needs those. 3.12 does not. Test could be thinner */
-
+   /* 3.9 needs those. 3.12 does not. Test could be thinner */
 #define NEED_GETTIMEOFDAY
 #define NEED_ISBLANK
-
 #endif
-
 
 /* Force iprintf when using mingw32 to enable POSIX compatibility */
 #undef IPRINTF_HIDE_STDIO
@@ -52,6 +50,15 @@ struct tm *gmtime_r(const time_t *timep, struct tm *result);
 struct tm *localtime_r(const time_t *timep, struct tm *result);
 void usleep(unsigned long usec);
 long int lrand48(void);
+
+#ifdef NEED_IOVEC_STUFF
+struct iovec {
+    void *iov_base;   /* Starting address */
+    size_t iov_len;   /* Number of bytes */
+};
+extern ssize_t readv(int __fd, __const struct iovec *__iovec, int __count);
+extern ssize_t writev(int __fd, __const struct iovec *__iovec, int __count);
+#endif
 
 #define mkdir(path, mode)  mkdir(path)
 
