@@ -31,19 +31,25 @@
 #define MEM_ALIGN(size) \
     (((size) + MEM_ALIGN_SIZE - 1) & ~((ssize_t)MEM_ALIGN_SIZE - 1))
 
+#define swab32_const(x) \
+        ((((x) >> 24) & 0x000000ff) | \
+         (((x) >>  8) & 0x0000ff00) | \
+         (((x) <<  8) & 0x00ff0000) | \
+         (((x) << 24) & 0xff000000))
+
+#define swab16_const(x) \
+        ((((x) >> 8) & 0x00ff) | (((x) << 8) & 0xff00))
+
 #if __BYTE_ORDER == __BIG_ENDIAN
 #  define ntohl_const(x)    (x)
 #  define ntohs_const(x)    (x)
 #  define htonl_const(x)    (x)
 #  define htons_const(x)    (x)
 #else
-#  define ntohl_const(x)    ((((x) >> 24) & 0x000000ff) | \
-                             (((x) >>  8) & 0x0000ff00) | \
-                             (((x) <<  8) & 0x00ff0000) | \
-                             (((x) << 24) & 0xff000000))
-#  define ntohs_const(x)    ((((x) >> 8) & 0x00ff) | (((x) << 8) & 0xff00))
-#  define htonl_const(x)    ntohl_const(x)
-#  define htons_const(x)    ntohs_const(x)
+#  define ntohl_const(x)    swab32_const(x)
+#  define htonl_const(x)    swab32_const(x)
+#  define ntohs_const(x)    swab16_const(x)
+#  define htons_const(x)    swab16_const(x)
 #endif
 
 
