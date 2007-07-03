@@ -114,7 +114,7 @@ static inline void archive_attr_wipe(archive_attr *attr) {
 }
 
 GENERIC_DELETE(archive_attr, archive_attr);
-ARRAY_FUNCTIONS(archive_attr, archive_attr);
+ARRAY_FUNCTIONS(archive_attr, archive_attr, archive_attr_delete);
 
 typedef struct archive_build {
     char *name;
@@ -131,7 +131,7 @@ ARRAY_TYPE(archive_build, archive_build);
 
 void archive_build_wipe(archive_build *file);
 GENERIC_DELETE(archive_build, archive_build);
-ARRAY_FUNCTIONS(archive_build, archive_build);
+ARRAY_FUNCTIONS(archive_build, archive_build, archive_build_delete);
 
 
 void archive_add_property(archive_build *file,

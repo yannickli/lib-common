@@ -581,7 +581,7 @@ static archive_build *archive_build_init(archive_build *file)
 }
 void archive_build_wipe(archive_build *file)
 {
-    archive_attr_array_wipe(&file->attrs, true);
+    archive_attr_array_wipe(&file->attrs);
     p_delete(&file->name);
     p_delete(&file->payload);
 }

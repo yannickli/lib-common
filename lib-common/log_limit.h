@@ -38,7 +38,7 @@ GENERIC_DELETE(log_line_t, log_line);
 /* XXX: We should not use an array here. It forces us to do
  * too many malloc/free */
 ARRAY_TYPE(log_line_t, log_line);
-ARRAY_FUNCTIONS(log_line_t, log_line);
+ARRAY_FUNCTIONS(log_line_t, log_line, log_line_delete);
 
 typedef struct log_limit_t {
     int max_perline;
@@ -63,7 +63,7 @@ void log_limit_reset(log_limit_t *ll);
 
 static void log_limit_wipe(log_limit_t *ll)
 {
-    log_line_array_wipe(&ll->lines, true);
+    log_line_array_wipe(&ll->lines);
 }
 
 GENERIC_DELETE(log_limit_t, log_limit);

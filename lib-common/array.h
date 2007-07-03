@@ -81,7 +81,7 @@ void generic_array_sort(generic_array *array,
         ssize_t const __size;                                                 \
     } prefix##_array
 
-#define ARRAY_FUNCTIONS(el_typ, prefix)                                       \
+#define ARRAY_FUNCTIONS(el_typ, prefix, dtor)                                 \
                                                                               \
     /* legacy functions */                                                    \
     static inline prefix##_array *prefix##_array_new(void)                    \
@@ -94,16 +94,15 @@ void generic_array_sort(generic_array *array,
         return (prefix##_array *)generic_array_init((generic_array *)array);  \
     }                                                                         \
     static inline void                                                        \
-    prefix##_array_wipe(prefix##_array *array, bool do_elts)                  \
+    prefix##_array_wipe(prefix##_array *array)                                \
     {                                                                         \
-        generic_array_wipe((generic_array*)array,                             \
-                do_elts ? (array_item_dtor_f *)prefix##_delete : NULL);       \
+        generic_array_wipe((generic_array*)array, (array_item_dtor_f *)dtor); \
     }                                                                         \
     static inline void                                                        \
-    prefix##_array_delete(prefix##_array **array, bool do_elts)               \
+    prefix##_array_delete(prefix##_array **array)                             \
     {                                                                         \
         generic_array_delete((generic_array **)array,                         \
-                do_elts ? (array_item_dtor_f *)prefix##_delete : NULL);       \
+                             (array_item_dtor_f *)dtor);                      \
     }                                                                         \
     static inline void                                                        \
     prefix##_array_reset(prefix##_array *array) {                             \
@@ -149,7 +148,7 @@ void generic_array_sort(generic_array *array,
         generic_array_sort((generic_array *)array, (void *)cmp, priv);        \
     }
 
-#define DO_ARRAY(prefix, type)  ARRAY_TYPE(prefix, type);                     \
-                                ARRAY_FUNCTIONS(prefix, type)
+#define DO_ARRAY(prefix, type, dtor)  ARRAY_TYPE(prefix, type);               \
+                                      ARRAY_FUNCTIONS(prefix, type, dtor)
 
 #endif /* IS_LIB_COMMON_ARRAY_H */

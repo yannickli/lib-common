@@ -14,14 +14,12 @@
 #ifndef IS_LIB_COMMON_STR_ARRAY_H
 #define IS_LIB_COMMON_STR_ARRAY_H
 
+#include <lib-common/mem.h>
 #include <lib-common/array.h>
 
 // define our arrays
 ARRAY_TYPE(char, string);
-
-GENERIC_WIPE(char *, string);
-GENERIC_DELETE(char *, string);
-ARRAY_FUNCTIONS(char, string)
+ARRAY_FUNCTIONS(char, string, mem_free)
 void string_array_dump(const string_array *xp);
 
 string_array *str_explode(const char *s, const char *tokens);

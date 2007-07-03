@@ -136,7 +136,7 @@ end:
 
 void log_limit_reset(log_limit_t *ll)
 {
-    log_line_array_wipe(&ll->lines, true);
+    log_line_array_wipe(&ll->lines);
     log_line_array_init(&ll->lines);
     ll->count = 0;
     ll->unmatched = 0;
