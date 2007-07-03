@@ -66,9 +66,13 @@ const xml_tag_t *xml_search(const xml_tree_t *tree,
     return xml_search_subtree(tree, tree->root, previous, pattern);
 }
 
+void xml_tree_wipe(xml_tree_t *tree);
+GENERIC_DELETE(xml_tree_t, xml_tree);
+
+void xml_tag_wipe(xml_tag_t *t);
+GENERIC_DELETE(xml_tag_t, xml_tag);
+
 /*TODO do search on tag */
-void xml_tree_delete(xml_tree_t **tree);
-void xml_tag_delete(xml_tag_t **t);
 void blob_append_tree(const xml_tree_t *tree, blob_t *blob);
 void blob_append_branch(const xml_tag_t *root, blob_t *blob,
                         const char *prefix);

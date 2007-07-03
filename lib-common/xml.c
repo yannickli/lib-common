@@ -30,7 +30,7 @@ static char *xml_dupstr_mp(xml_tree_t *tree, const char *src, int len)
     res = tree->mp_cur;
     tree->mp_cur  += len + 1;
     tree->mp_left -= len + 1;
-    
+
     if (src) {
         memcpy(res, src, len);
         res[len] = '\0';
@@ -38,17 +38,14 @@ static char *xml_dupstr_mp(xml_tree_t *tree, const char *src, int len)
     return res;
 }
 
-#define xml_deletestr_mp(p)
+#define xml_deletestr_mp(p)   ((*p) = NULL)
 
-static void xml_prop_delete(xml_prop_t **p)
+static void xml_prop_wipe(xml_prop_t *p)
 {
-    if (p && *p) {
-        xml_deletestr_mp(&(*p)->name);
-        xml_deletestr_mp(&(*p)->value);
-        (*p)->next = NULL;
-        p_delete(p);
-    }
+    xml_deletestr_mp(&p->name);
+    xml_deletestr_mp(&p->value);
 }
+GENERIC_DELETE(xml_prop_t, xml_prop);
 
 static char const alnumto6bits[256] = {
     /* 0xFF means we do not care about this char.
@@ -110,21 +107,25 @@ static int xml_hash(const char *str, int len)
     return ret;
 }
 
+SLIST_PROTOS(xml_prop_t, xml_prop)
 SLIST_FUNCTIONS(xml_prop_t, xml_prop)
 
 SLIST_PROTOS(xml_tag_t, xml_tag)
-void xml_tag_delete(xml_tag_t **t)
+SLIST_FUNCTIONS(xml_tag_t, xml_tag)
+
+void xml_tag_wipe(xml_tag_t *t)
 {
-    if (t && *t) {
-        xml_deletestr_mp(&(*t)->fullname);
-        xml_tag_list_wipe(&(*t)->child);
-        xml_prop_list_wipe(&(*t)->property);
-        xml_deletestr_mp(&(*t)->text);
-        p_delete(t);
-    }
+    xml_deletestr_mp(&t->fullname);
+    xml_tag_list_wipe(&t->child);
+    xml_prop_list_wipe(&t->property);
+    xml_deletestr_mp(&t->text);
 }
 
-SLIST_FUNCTIONS(xml_tag_t, xml_tag)
+void xml_tree_wipe(xml_tree_t *tree)
+{
+    xml_tag_list_wipe(&tree->root);
+    p_delete(&tree->mp_start);
+}
 
 typedef enum parse_t {
     PARSE_EOF,
@@ -154,7 +155,6 @@ typedef enum parse_t {
             goto error;                                \
         }                                              \
     } while (0)
-
 
 /* Parse a property inside a tag and put it in (*dst).
  * Property is of form : prop = "value"
@@ -509,8 +509,7 @@ error:
     return PARSE_ERROR;
 }
 
-/* Parse an XML buffer and put it into an xml_tag_t.
- */
+/* Parse an XML buffer and put it into an xml_tag_t. */
 static int xml_parse(xml_tree_t *tree, xml_tag_t *dst,
                      const char *payload, size_t payload_len,
                      const char **pend, char *error_buf, size_t buf_len)
@@ -599,8 +598,7 @@ static int xml_get_xml_tag(xml_tree_t *tree, const char *payload, size_t len,
     return 0;
 }
 
-/* Create a new XML tree from a buffer
- */
+/* Create a new XML tree from a buffer */
 xml_tree_t *xml_new_tree(const char *payload, size_t len,
                          char *error_buf, size_t buf_len)
 {
@@ -627,18 +625,6 @@ xml_tree_t *xml_new_tree(const char *payload, size_t len,
         return NULL;
     }
     return tree;
-}
-
-void xml_tree_delete(xml_tree_t **tree)
-{
-    if (tree && *tree) {
-        if ((*tree)->root) {
-            xml_tag_list_wipe(&(*tree)->root);
-            p_delete(&(*tree)->root);
-        }
-        p_delete(&(*tree)->mp_start);
-        p_delete(tree);
-    }
 }
 
 static const xml_tag_t* xml_search_branch(const xml_tag_t *branch,
