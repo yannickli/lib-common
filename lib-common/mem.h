@@ -47,11 +47,10 @@
 #  define htons_const(x)    (x)
 #else
 #  define ntohl_const(x)    swab32_const(x)
-#  define htonl_const(x)    swab32_const(x)
 #  define ntohs_const(x)    swab16_const(x)
+#  define htonl_const(x)    swab32_const(x)
 #  define htons_const(x)    swab16_const(x)
 #endif
-
 
 #define check_enough_mem(mem)                                   \
     do {                                                        \
