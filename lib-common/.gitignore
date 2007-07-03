@@ -1,1 +1,11 @@
 /btree-dump
+/test
+/test_blob_iconv
+/tst-iprintf
+/tst-iprintf-fp
+/tst-iprintf-glibc
+/tst-sha2
+/tst-sort
+/tst-iprintf-speed
+/tst-btree
+/tst-isndx
