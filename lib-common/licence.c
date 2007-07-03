@@ -530,6 +530,7 @@ START_TEST(check_is_my_mac_addr)
         "00:0F:B0:4A:98:11", /* tian */
         "00:13:20:C0:2A:25", /* vodka */
         "00:18:8B:5B:CB:BF", /* soho */
+        "00:13:77:48:4A:06", /* artemis */
     };
 
     for (j = 0; j < countof(maclist); j++) {
