@@ -53,18 +53,22 @@ void mem_malloc_pool_delete(mem_pool **poolp);
 
 #endif
 
-/* OG: why not static inline for consistency with mem.h ? */
-#define MP_GENERIC_NEW(pool, type, prefix) \
+#define DO_MP_NEW(pool, type, prefix) \
     type * prefix##_new(void) {                             \
         return prefix##_init(mp_new_raw(mp, type, 1));      \
     }
 
-#define MP_GENERIC_DELETE(mp, type, prefix) \
+#define DO_MP_DELETE(mp, type, prefix) \
     void prefix##_delete(type **var) {                      \
         if (*var) {                                         \
             prefix##_wipe(*var);                            \
             mp_delete(mp, var);                             \
         }                                                   \
     }
+
+#define GENERIC_MP_NEW(pool, type, prefix)  \
+    static inline DO_MP_NEW(pool, type, prefix)
+#define GENERIC_MP_DELETE(pool, type, prefix)  \
+    static inline DO_MP_DELETE(pool, type, prefix)
 
 #endif /* IS_LIB_COMMON_MEM_FIFO_POOL_H */
