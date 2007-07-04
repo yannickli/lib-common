@@ -86,7 +86,7 @@ START_TEST(check_str_explode)
             "str_explode failed: tab[2] (%s) != %s",                       \
             arr->tab[2], str3);                                            \
                                                                            \
-    string_array_delete(&arr, true);
+    string_array_delete(&arr);
     STR_EXPL_CORRECT_TEST("123", "abc", "!%*", "/");
     STR_EXPL_CORRECT_TEST("123", "abc", "!%*", " ");
     STR_EXPL_CORRECT_TEST("123", "abc", "!%*", "$");
@@ -95,15 +95,15 @@ START_TEST(check_str_explode)
     arr = str_explode("secret1 secret2 secret3", " ,;");
     fail_if(arr == NULL, "str_explode failed, res == NULL");
     fail_if(arr->len != 3, "str_explode failed: len = %d != 3", arr->len);
-    string_array_delete(&arr, true);
+    string_array_delete(&arr);
     arr = str_explode("secret1;secret2;secret3", " ,;");
     fail_if(arr == NULL, "str_explode failed, res == NULL");
     fail_if(arr->len != 3, "str_explode failed: len = %d != 3", arr->len);
-    string_array_delete(&arr, true);
+    string_array_delete(&arr);
     arr = str_explode("secret1,secret2 secret3", " ,;");
     fail_if(arr == NULL, "str_explode failed, res == NULL");
     fail_if(arr->len != 2, "str_explode failed: len = %d != 2", arr->len);
-    string_array_delete(&arr, true);
+    string_array_delete(&arr);
 }
 END_TEST
 
