@@ -37,7 +37,7 @@ array_resize(generic_array *a, ssize_t newlen)
          * expand by half the current size?
          */
         a->size = MEM_ALIGN(newlen);
-        a->tab = (void **)mem_realloc(a->tab, a->size * sizeof(void*));
+        p_realloc(&a->tab, a->size);
     }
     /* Initialize new elements to NULL */
     while (curlen < newlen) {

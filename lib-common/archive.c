@@ -245,8 +245,7 @@ static archive_file *archive_parse_file(const byte **input, int *len)
                 p_delete(file->attrs);
                 file->nb_attrs = 0;
             } else {
-                file->attrs = p_renew(archive_file_attr *, file->attrs,
-                                      file->nb_attrs, i);
+                p_realloc0(&file->attrs, file->nb_attrs, i);
                 file->nb_attrs = i;
             }
             break;
@@ -268,8 +267,7 @@ static archive_file *archive_parse_file(const byte **input, int *len)
                 p_delete(file->attrs);
                 file->nb_attrs = 0;
             } else {
-                file->attrs = p_renew(archive_file_attr *, file->attrs,
-                                      file->nb_attrs, i);
+                p_realloc0(file->attrs, file->nb_attrs, i);
                 file->nb_attrs = i;
             }
             break;
@@ -404,16 +402,14 @@ int archive_parse(const byte *input, int len, archive_t *archive)
                  * */
                 break;
             }
-            archive->blocs = p_renew(archive_bloc *, archive->blocs,
-                                     allocated_blocs, 2 * allocated_blocs);
+            p_realloc0(&archive->blocs, allocated_blocs, 2 * allocated_blocs);
             allocated_blocs *= 2;
         }
     }
 
     if (dynamic) {
         if (allocated_blocs > archive->nb_blocs) {
-            archive->blocs = p_renew(archive_bloc *, archive->blocs,
-                                     allocated_blocs, archive->nb_blocs);
+            p_realloc0(&archive->blocs, allocated_blocs, archive->nb_blocs);
         }
     }
 

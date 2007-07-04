@@ -62,8 +62,8 @@ static void section_add_var(conf_section_t *section,
 {
     int n = section->var_nb;
 
-    section->variables = p_renew(char *, section->variables, n, n + 1);
-    section->values    = p_renew(char *, section->values, n, n + 1);
+    p_realloc0(&section->variables, n, n + 1);
+    p_realloc0(&section->values, n, n + 1);
     section->variables[n] = p_dupstr(variable, variable_len);
     section->values[n] = p_dupstr(value, value_len);
     section->var_nb++;
@@ -71,8 +71,7 @@ static void section_add_var(conf_section_t *section,
 
 static void conf_add_section(conf_t *conf, conf_section_t *section)
 {
-    conf->sections = p_renew(conf_section_t *, conf->sections,
-                             conf->section_nb, conf->section_nb + 1);
+    p_realloc0(&conf->sections, conf->section_nb, conf->section_nb + 1);
     conf->sections[conf->section_nb] = section;
     conf->section_nb++;
 }

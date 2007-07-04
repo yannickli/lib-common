@@ -91,21 +91,15 @@ static inline char *mem_strdup(const char *src) {
     return res;
 }
 
-static inline void *mem_realloc(void *mem, ssize_t newsize)
+static inline void mem_realloc(void **ptr, ssize_t newsize)
 {
-    mem = realloc(mem, newsize);
-    check_enough_mem(mem);
-    return mem;
-}
-
-static inline void *mem_realloc0(void *mem, ssize_t oldsize, ssize_t newsize)
-{
-    mem = realloc(mem, newsize);
-    check_enough_mem(mem);
-    if (oldsize < newsize) {
-        memset((byte *)mem + oldsize, 0, newsize - oldsize);
+    if (newsize <= 0) {
+        free(*ptr);
+        *ptr = NULL;
+    } else {
+        *ptr = realloc(*ptr, newsize);
+        check_enough_mem(*ptr);
     }
-    return mem;
 }
 
 static inline void mem_free(void *mem) {
@@ -138,7 +132,6 @@ static inline void *mem_dupstr(const void *src, ssize_t len)
 #define p_dup(p, count)         mem_dup((p), sizeof(*(p)) * (count))
 #define p_dupstr(p, len)        mem_dupstr((p), (len))
 #define p_strdup(p)             mem_strdup(p)
-
 #ifdef __GNUC__
 
 #  define p_delete(mem_pp)                          \
@@ -148,6 +141,11 @@ static inline void *mem_dupstr(const void *src, ssize_t len)
             *ptr = NULL;                            \
         })
 
+#  define p_realloc(mem_pp, count)                               \
+        ({                                                       \
+            typeof(**(mem_pp)) **ptr = (mem_pp);                 \
+            mem_realloc((void*)ptr, sizeof(**(ptr)) * (count));  \
+        })
 #else
 
 #  define p_delete(mem_p)                           \
@@ -157,16 +155,20 @@ static inline void *mem_dupstr(const void *src, ssize_t len)
             *(void **)__ptr = NULL;                 \
         } while (0)
 
+#  define p_realloc(pp, count)                      \
+    mem_realloc((void*)(pp), sizeof(**(pp)) * (count))
+
 #endif
+
+#define p_realloc0(pp, old, now)         \
+    do {                                 \
+        p_realloc(pp, now);              \
+        p_clear((*pp) + old, now - old); \
+    } while(0)
 
 static inline void (p_delete)(void **p) {
     p_delete(p);
 }
-
-/* OG: RFE: should find a better name */
-#define p_renew(type, mem, oldcount, newcount) \
-    ((type *)mem_realloc0((mem), (oldcount) * sizeof(type), \
-                          (newcount) * sizeof(type)))
 
 #define DO_INIT(type, prefix) \
     __attr_nonnull__((1))                                   \

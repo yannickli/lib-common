@@ -107,7 +107,7 @@ void blob_ensure(blob_t *blob, ssize_t newlen)
                 e_trace(1, "Large blob ensure realloc, newsize:%zd size:%zd len:%zd data:%.80s",
                         newsize, blob->size, blob->len, blob->data);
             }
-            blob->area = mem_realloc(blob->area, newsize);
+            p_realloc(&blob->area, newsize);
             blob->data = blob->area;
             blob->size = newsize;
         } else {
