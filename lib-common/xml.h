@@ -15,6 +15,7 @@
 #define IS_LIB_COMMON_XML_H
 
 #include "macros.h"
+#include "mem-pool.h"
 #include "blob.h"
 
 typedef struct xml_prop_t xml_prop_t;
@@ -41,14 +42,10 @@ struct xml_prop_t {
 };
 
 struct xml_tree_t {
+    /* Memory pool for everything in the tree: tags, attributes, texts, ... */
+    mem_pool *mp;
+
     xml_tag_t *root;
-    /* Memory pool for text: names, properties, values... They are
-     * all allocated at parse time and freed at the same time, so we 
-     * pre-allocate them in one big chunk, bigger than what's really
-     * needed but we do not really care loosing a few bytes. */
-    char *mp_start;
-    char *mp_cur;
-    int mp_left;
     // Add version, charset, etc.
 };
 
@@ -68,9 +65,6 @@ const xml_tag_t *xml_search(const xml_tree_t *tree,
 
 void xml_tree_wipe(xml_tree_t *tree);
 GENERIC_DELETE(xml_tree_t, xml_tree);
-
-void xml_tag_wipe(xml_tag_t *t);
-GENERIC_DELETE(xml_tag_t, xml_tag);
 
 /*TODO do search on tag */
 void blob_append_tree(const xml_tree_t *tree, blob_t *blob);

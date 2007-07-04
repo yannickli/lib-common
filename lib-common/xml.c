@@ -13,7 +13,8 @@
 
 #include <ctype.h>
 #include <string.h>
-#include <lib-common/mem.h>
+
+#include "mem-fifo-pool.h"
 #include "strconv.h"
 #include "xml.h"
 #include "list.h"
@@ -21,31 +22,15 @@
 
 static char *xml_dupstr_mp(xml_tree_t *tree, const char *src, int len)
 {
-    char *res;
-
-    if (len + 1 > tree->mp_left) {
-        return NULL;
-    }
-
-    res = tree->mp_cur;
-    tree->mp_cur  += len + 1;
-    tree->mp_left -= len + 1;
-
     if (src) {
-        memcpy(res, src, len);
-        res[len] = '\0';
+        return mp_dupstr(tree->mp, src, len);
     }
-    return res;
+    return mp_new(tree->mp, char, len + 1);
 }
 
 #define xml_deletestr_mp(p)   ((*p) = NULL)
-
-static void xml_prop_wipe(xml_prop_t *p)
-{
-    xml_deletestr_mp(&p->name);
-    xml_deletestr_mp(&p->value);
-}
-GENERIC_DELETE(xml_prop_t, xml_prop);
+#define xml_prop_delete(p)    ((*p) = NULL)
+#define xml_tag_delete(p)     ((*p) = NULL)
 
 static char const alnumto6bits[256] = {
     /* 0xFF means we do not care about this char.
@@ -113,18 +98,9 @@ SLIST_FUNCTIONS(xml_prop_t, xml_prop)
 SLIST_PROTOS(xml_tag_t, xml_tag)
 SLIST_FUNCTIONS(xml_tag_t, xml_tag)
 
-void xml_tag_wipe(xml_tag_t *t)
-{
-    xml_deletestr_mp(&t->fullname);
-    xml_tag_list_wipe(&t->child);
-    xml_prop_list_wipe(&t->property);
-    xml_deletestr_mp(&t->text);
-}
-
 void xml_tree_wipe(xml_tree_t *tree)
 {
-    xml_tag_list_wipe(&tree->root);
-    p_delete(&tree->mp_start);
+    mem_fifo_pool_delete(&tree->mp);
 }
 
 typedef enum parse_t {
@@ -184,7 +160,7 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
         goto end;
     }
 
-    prop = p_new(xml_prop_t, 1);
+    prop = mp_new(tree->mp, xml_prop_t, 1);
     /* Parse tag name */
     name = p;
     while (len) {
@@ -277,8 +253,6 @@ end:
 
     if (dst) {
         *dst = prop;
-    } else {
-        xml_prop_delete(&prop);
     }
     if (pend) {
         *pend = p;
@@ -290,7 +264,6 @@ error:
     if (pend) {
         *pend = p;
     }
-    xml_prop_delete(&prop);
     return PARSE_ERROR;
 }
 
@@ -387,7 +360,7 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
         return PARSE_END_TAG;
     }
 
-    tag = p_new(xml_tag_t, 1);
+    tag = mp_new(tree->mp, xml_tag_t, 1);
     tag->fullname = xml_dupstr_mp(tree, name, nameend - name);
     tag->name = strchr(tag->fullname, ':');
     if (tag->name) {
@@ -493,8 +466,6 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
 end:
     if (dst) {
         *dst = tag;
-    } else {
-        xml_tag_delete(&tag);
     }
 
     if (pend) {
@@ -606,12 +577,9 @@ xml_tree_t *xml_new_tree(const char *payload, size_t len,
     const char *pend = payload;
 
     tree = p_new(xml_tree_t, 1);
-    tree->root = p_new(xml_tag_t, 1);
+    tree->mp = mem_fifo_pool_new(2 * len);
 
-    /* Pre-allocate memory for text, once and for all. */
-    tree->mp_start = p_new(char, len);
-    tree->mp_cur = tree->mp_start;
-    tree->mp_left = len;
+    tree->root = mp_new(tree->mp, xml_tag_t, 1);
     if (xml_get_xml_tag(tree, payload, len, &pend)) {
         xml_tree_delete(&tree);
         return NULL;
@@ -845,7 +813,6 @@ START_TEST(check_xmlparse)
 
         if (tree->root && verbose) {
             xml_branch_dump(tree->root, "root:");
-            fprintf(stderr, "mp_left:%d\n", tree->mp_left);
         }
         xml_tree_delete(&tree);
     }
