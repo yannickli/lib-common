@@ -113,7 +113,7 @@ static inline void *mem_dup(const void *src, ssize_t size)
     return res;
 }
 
-static inline void *mem_dupstr(const void *src, ssize_t len)
+static inline void *p_dupstr(const void *src, ssize_t len)
 {
     char *res = mem_alloc(len + 1);
     memcpy(res, src, len);
@@ -130,7 +130,6 @@ static inline void *mem_dupstr(const void *src, ssize_t len)
 #define p_new_extra(type, size) ((type *)mem_alloc0(sizeof(type) + (size)))
 #define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
 #define p_dup(p, count)         mem_dup((p), sizeof(*(p)) * (count))
-#define p_dupstr(p, len)        mem_dupstr((p), (len))
 #define p_strdup(p)             mem_strdup(p)
 #ifdef __GNUC__
 
@@ -146,6 +145,7 @@ static inline void *mem_dupstr(const void *src, ssize_t len)
             typeof(**(mem_pp)) **ptr = (mem_pp);                 \
             mem_realloc((void*)ptr, sizeof(**(ptr)) * (count));  \
         })
+
 #else
 
 #  define p_delete(mem_p)                           \

@@ -181,9 +181,37 @@ static void mfp_free(struct mem_pool *mp, void *mem)
     }
 }
 
+static void *mfp_realloc(struct mem_pool *mp, void *mem, ssize_t size)
+{
+    mem_block *blk;
+    void *res;
+
+    if (size <= 0) {
+        mfp_free(mp, mem);
+        return NULL;
+    }
+
+    if (!mem)
+        return mfp_alloc(mp, size);
+
+    /* TODO: optimize if it's the last block allocated */
+
+    blk = (mem_block*)((byte *)mem - sizeof(mem_block));
+    if (blk->page_offs > 0) {
+        e_error("double free heap corruption *** %p ***", mem);
+        return NULL;
+    }
+
+    res = mfp_alloc(mp, size);
+    memcpy(res, mem, blk->blk_size);
+    mfp_free(mp, mem);
+    return res;
+}
+
 static mem_pool const mem_fifo_pool_funcs = {
     &mfp_alloc,
     &mfp_alloc, /* we use maps, always set to 0 */
+    &mfp_realloc,
     &mfp_free,
 };
 

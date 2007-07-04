@@ -21,17 +21,34 @@
 typedef struct mem_pool {
     void *(*mem_alloc)  (struct mem_pool *mp, ssize_t size);
     void *(*mem_alloc0) (struct mem_pool *mp, ssize_t size);
-    /* TODO: deal with realloc at some point */
+    void *(*mem_realloc)(struct mem_pool *mp, void *mem, ssize_t size);
     void  (*mem_free)   (struct mem_pool *mp, void *mem);
 } mem_pool;
 
 mem_pool *mem_malloc_pool_new(void);
 void mem_malloc_pool_delete(mem_pool **poolp);
 
+static inline void *memp_dup(mem_pool *mp, const void *src, ssize_t size)
+{
+    void *res = mp->mem_alloc(mp, size);
+    memcpy(res, src, size);
+    return res;
+}
+
+static inline void *mp_dupstr(mem_pool *mp, const void *src, ssize_t len)
+{
+    char *res = mp->mem_alloc(mp, len + 1);
+    memcpy(res, src, len);
+    res[len] = '\0';
+    return res;
+}
+
 #define mp_new_raw(mp, type, count) \
         ((type *)(mp)->mem_alloc((mp), sizeof(type) * (count)))
 #define mp_new(mp, type, count)     \
         ((type *)(mp)->mem_alloc0((mp), sizeof(type) * (count)))
+#define mp_dup(mp, p, count)        \
+        memp_dup((mp), (p), sizeof(*(p)) * (count))
 
 #ifdef __GNUC__
 
@@ -40,6 +57,12 @@ void mem_malloc_pool_delete(mem_pool **poolp);
             typeof(**(mem_pp)) **ptr = (mem_pp);    \
             (mp)->mem_free((mp), *ptr);             \
             *ptr = NULL;                            \
+        })
+
+#  define mp_realloc(mp, mem_pp, count)                                  \
+        ({                                                               \
+            typeof(**(mem_pp)) **ptr = (mem_pp);                         \
+            mp->mem_realloc(mp, (void*)ptr, sizeof(**(ptr)) * (count));  \
         })
 
 #else
@@ -51,7 +74,16 @@ void mem_malloc_pool_delete(mem_pool **poolp);
             *(void **)__ptr = NULL;                 \
         } while (0)
 
+#  define mp_realloc(mp, pp, count)                 \
+    (mp)->mem_realloc((mp), (void*)(pp), sizeof(**(pp)) * (count))
+
 #endif
+
+#define mp_realloc0(pp, old, now)        \
+    do {                                 \
+        mp_realloc(mp, pp, now);         \
+        p_clear((*pp) + old, now - old); \
+    } while(0)
 
 #define DO_MP_NEW(pool, type, prefix) \
     type * prefix##_new(void) {                             \
