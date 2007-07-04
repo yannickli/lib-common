@@ -19,7 +19,7 @@
 
 // define our arrays
 ARRAY_TYPE(char, string);
-ARRAY_FUNCTIONS(char, string, mem_free)
+ARRAY_FUNCTIONS(char, string, p_delete)
 void string_array_dump(const string_array *xp);
 
 string_array *str_explode(const char *s, const char *tokens);
