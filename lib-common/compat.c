@@ -56,6 +56,7 @@ int posix_fallocate(int fd, off_t offset, off_t len)
     return EINVAL;
 }
 
+#ifdef NEED_GETTIMEOFDAY
 /* Windows API do not have gettimeofday support */
 /* OG: should define a simpler API, and implement it in a compatibility
  * module for linux and ming appropriately
@@ -72,6 +73,7 @@ void gettimeofday(struct timeval *p, void *tz)
     p->tv_usec = (long)((now.ns100 / 10LL) % 1000000LL);
     p->tv_sec  = (long)((now.ns100 - (116444736000000000LL)) / 10000000LL);
 }
+#endif
 
 char *asctime_r(const struct tm *tm, char *buf)
 {

@@ -18,12 +18,6 @@
 #include <sys/uio.h>
 #else
 #include <sys/types.h>
-struct iovec {
-    void *iov_base;	/* Pointer to data.  */
-    size_t iov_len;	/* Length of data.  */
-};
-extern ssize_t readv(int __fd, __const struct iovec *__iovec, int __count);
-extern ssize_t writev(int __fd, __const struct iovec *__iovec, int __count);
 #endif
 
 #include <lib-common/blob.h>

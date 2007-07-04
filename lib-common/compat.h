@@ -18,6 +18,13 @@
 void intersec_initialize(void);
 
 #ifdef MINGCC
+#define NEED_IOVEC_STUFF
+#if __MINGW32_MAJOR_VERSION < 3 || \
+   (__MINGW32_MAJOR_VERSION == 3 && __MINGW32_MINOR_VERSION < 12)
+   /* 3.9 needs those. 3.12 does not. Test could be thinner */
+#define NEED_GETTIMEOFDAY
+#define NEED_ISBLANK
+#endif
 
 /* Force iprintf when using mingw32 to enable POSIX compatibility */
 #undef IPRINTF_HIDE_STDIO
@@ -34,6 +41,9 @@ void intersec_initialize(void);
 #include <sys/time.h>
 #include <ws2tcpip.h>	/* for socklen_t */
 
+#ifdef NEED_GETTIMEOFDAY
+void gettimeofday(struct timeval *p, void *tz);
+#endif
 char *asctime_r(const struct tm *tm, char *buf);
 char *ctime_r(const time_t *timep, char *buf);
 struct tm *gmtime_r(const time_t *timep, struct tm *result);
@@ -41,10 +51,14 @@ struct tm *localtime_r(const time_t *timep, struct tm *result);
 void usleep(unsigned long usec);
 long int lrand48(void);
 
+#ifdef NEED_IOVEC_STUFF
 struct iovec {
-    void  *iov_base;    /* Starting address */
-    size_t iov_len;     /* Number of bytes to transfer */
+    void *iov_base;   /* Starting address */
+    size_t iov_len;   /* Number of bytes */
 };
+extern ssize_t readv(int __fd, __const struct iovec *__iovec, int __count);
+extern ssize_t writev(int __fd, __const struct iovec *__iovec, int __count);
+#endif
 
 #define mkdir(path, mode)  mkdir(path)
 
@@ -93,6 +107,8 @@ int glob(const char *pattern, int flags,
          int errfunc(const char *epath, int eerrno), glob_t *pglob);
 void globfree(glob_t *pglob);
 
+#define EUCLEAN         117
+#define O_NONBLOCK 00004000
 #endif
 
 #if !defined(MINGCC) && defined(LINUX)
