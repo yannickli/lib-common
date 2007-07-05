@@ -62,7 +62,8 @@ libcommon_SOURCES = \
 	mem-fifo-pool.c \
 	sha2.c \
 	xml.c \
-	licence.c
+	licence.c \
+	$(end_of_list)
 
 test_SOURCES = $(libcommon_SOURCES) check.c
 test_LDFLAGS = -lz
