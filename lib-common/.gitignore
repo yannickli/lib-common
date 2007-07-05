@@ -9,3 +9,4 @@
 /tst-iprintf-speed
 /tst-btree
 /tst-isndx
+/tst-hash
