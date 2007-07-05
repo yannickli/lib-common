@@ -28,9 +28,9 @@ static char *xml_dupstr_mp(xml_tree_t *tree, const char *src, int len)
     return mp_new(tree->mp, char, len + 1);
 }
 
-#define xml_deletestr_mp(p)   ((*p) = NULL)
-#define xml_prop_delete(p)    ((*p) = NULL)
-#define xml_tag_delete(p)     ((*p) = NULL)
+#define xml_deletestr_mp(p)   (*(p) = NULL)
+#define xml_prop_delete(p)    (*(p) = NULL)
+#define xml_tag_delete(p)     (*(p) = NULL)
 
 static char const alnumto6bits[256] = {
     /* 0xFF means we do not care about this char.
