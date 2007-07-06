@@ -91,6 +91,7 @@ static inline char *mem_strdup(const char *src) {
     return res;
 }
 
+/* OG: should pass old size */
 static inline void mem_realloc(void **ptr, ssize_t newsize)
 {
     if (newsize <= 0) {
@@ -131,19 +132,20 @@ static inline void *p_dupstr(const void *src, ssize_t len)
 #define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
 #define p_dup(p, count)         mem_dup((p), sizeof(*(p)) * (count))
 #define p_strdup(p)             mem_strdup(p)
+
 #ifdef __GNUC__
 
-#  define p_delete(mem_pp)                          \
-        ({                                          \
-            typeof(**(mem_pp)) **ptr = (mem_pp);    \
-            mem_free(*ptr);                         \
-            *ptr = NULL;                            \
+#  define p_delete(mem_pp)                            \
+        ({                                            \
+            typeof(**(mem_pp)) **__ptr = (mem_pp);    \
+            mem_free(*__ptr);                         \
+            *__ptr = NULL;                            \
         })
 
-#  define p_realloc(mem_pp, count)                               \
-        ({                                                       \
-            typeof(**(mem_pp)) **ptr = (mem_pp);                 \
-            mem_realloc((void*)ptr, sizeof(**(ptr)) * (count));  \
+#  define p_realloc(mem_pp, count)                                 \
+        ({                                                         \
+            typeof(**(mem_pp)) **__ptr = (mem_pp);                 \
+            mem_realloc((void*)__ptr, sizeof(**__ptr) * (count));  \
         })
 
 #else
@@ -160,11 +162,14 @@ static inline void *p_dupstr(const void *src, ssize_t len)
 
 #endif
 
-#define p_realloc0(pp, old, now)         \
-    do {                                 \
-        p_realloc(pp, now);              \
-        p_clear((*pp) + old, now - old); \
-    } while(0)
+#define p_realloc0(pp, old, now)                   \
+    do {                                           \
+        ssize_t __old = (old), __now = (now);      \
+        p_realloc(pp, __now);                      \
+        if (__now > __old) {                       \
+            p_clear(*(pp) + __old, __now - __old); \
+        }                                          \
+    } while (0)
 
 static inline void (p_delete)(void **p) {
     p_delete(p);
