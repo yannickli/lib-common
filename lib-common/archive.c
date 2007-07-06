@@ -241,14 +241,8 @@ static archive_file *archive_parse_file(const byte **input, int *len)
         if (**input != ':') {
             e_trace(1, "Missing ':' while reading file attr (key_len= %d)",
                     key_len);
-            /* OG: should simplify */
-            if (i == 0) {
-                p_delete(file->attrs);
-                file->nb_attrs = 0;
-            } else {
-                p_realloc0(&file->attrs, file->nb_attrs, i);
-                file->nb_attrs = i;
-            }
+            p_realloc0(&file->attrs, file->nb_attrs, i);
+            file->nb_attrs = i;
             break;
         }
         (*input)++;
@@ -264,14 +258,8 @@ static archive_file *archive_parse_file(const byte **input, int *len)
 
         if (**input != '\n') {
             e_trace(1, "Missing \\n while reading file attr");
-            /* OG: should simplify */
-            if (i == 0) {
-                p_delete(file->attrs);
-                file->nb_attrs = 0;
-            } else {
-                p_realloc0(file->attrs, file->nb_attrs, i);
-                file->nb_attrs = i;
-            }
+            p_realloc0(file->attrs, file->nb_attrs, i);
+            file->nb_attrs = i;
             break;
         }
 

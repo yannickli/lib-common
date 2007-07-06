@@ -51,24 +51,24 @@ static inline void *mp_dupstr(mem_pool *mp, const void *src, ssize_t len)
 
 #ifdef __GNUC__
 
-#  define mp_delete(mp, mem_pp)                     \
-        ({                                          \
-            typeof(**(mem_pp)) **__ptr = (mem_pp);  \
-            (mp)->mem_free((mp), *__ptr);           \
-            *__ptr = NULL;                          \
+#  define mp_delete(mp, pp)                 \
+        ({                                  \
+            typeof(**(pp)) **__ptr = (pp);  \
+            (mp)->mem_free((mp), *__ptr);   \
+            *__ptr = NULL;                  \
         })
 
-#  define mp_realloc(mp, mem_pp, count)                                   \
+#  define mp_realloc(mp, pp, count)                                       \
         ({                                                                \
-            typeof(**(mem_pp)) **__ptr = (mem_pp);                        \
+            typeof(**(pp)) **__ptr = (pp);                                \
             mp->mem_realloc(mp, (void*)__ptr, sizeof(**__ptr) * (count)); \
         })
 
 #else
 
-#  define mp_delete(mp, mem_p)                      \
+#  define mp_delete(mp, pp)                         \
         do {                                        \
-            void *__ptr = (mem_p);                  \
+            void *__ptr = (pp);                     \
             (mp)->mem_free((mp), *(void **)__ptr);  \
             *(void **)__ptr = NULL;                 \
         } while (0)
@@ -87,22 +87,22 @@ static inline void *mp_dupstr(mem_pool *mp, const void *src, ssize_t len)
         }                                          \
     } while (0)
 
-#define DO_MP_NEW(pool, type, prefix) \
-    type * prefix##_new(void) {                             \
-        return prefix##_init(mp_new_raw(mp, type, 1));      \
+#define DO_MP_NEW(mp, type, prefix)                     \
+    type * prefix##_new(void) {                         \
+        return prefix##_init(mp_new_raw(mp, type, 1));  \
     }
 
-#define DO_MP_DELETE(mp, type, prefix) \
-    void prefix##_delete(type **var) {                      \
-        if (*(var)) {                                       \
-            prefix##_wipe(*var);                            \
-            mp_delete(mp, var);                             \
-        }                                                   \
+#define DO_MP_DELETE(mp, type, prefix)   \
+    void prefix##_delete(type **var) {   \
+        if (*(var)) {                    \
+            prefix##_wipe(*var);         \
+            mp_delete(mp, var);          \
+        }                                \
     }
 
-#define GENERIC_MP_NEW(pool, type, prefix)  \
-    static inline DO_MP_NEW(pool, type, prefix)
-#define GENERIC_MP_DELETE(pool, type, prefix)  \
-    static inline DO_MP_DELETE(pool, type, prefix)
+#define GENERIC_MP_NEW(mp, type, prefix)      \
+    static inline DO_MP_NEW(mp, type, prefix)
+#define GENERIC_MP_DELETE(mp, type, prefix)   \
+    static inline DO_MP_DELETE(mp, type, prefix)
 
 #endif /* IS_LIB_COMMON_MEM_FIFO_POOL_H */

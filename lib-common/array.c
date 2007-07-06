@@ -32,7 +32,6 @@ array_resize(generic_array *a, ssize_t newlen)
 
     /* Reallocate array if needed */
     if (newlen > a->size) {
-        /* OG: Should use p_realloc */
         /* FIXME: should increase array size more at a time:
          * expand by half the current size?
          */
@@ -53,6 +52,7 @@ array_resize(generic_array *a, ssize_t newlen)
 
 generic_array *generic_array_init(generic_array *array)
 {
+    /* OG: should initialize as empty? */
     array->tab  = p_new(void *, ARRAY_INITIAL_SIZE);
     array->len  = 0;
     array->size = ARRAY_INITIAL_SIZE;

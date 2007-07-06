@@ -63,9 +63,8 @@ static inline void *mem_alloc(ssize_t size)
 {
     void *mem;
 
-    if (size == 0) {
+    if (size <= 0)
         return NULL;
-    }
 
     mem = malloc(size);
     check_enough_mem(mem);
@@ -76,19 +75,12 @@ static inline void *mem_alloc0(ssize_t size)
 {
     void *mem;
 
-    if (size == 0) {
+    if (size <= 0)
         return NULL;
-    }
 
     mem = calloc(size, 1);
     check_enough_mem(mem);
     return mem;
-}
-
-static inline char *mem_strdup(const char *src) {
-    char *res = strdup(src);
-    //check_enough_mem(res);
-    return res;
 }
 
 /* OG: should pass old size */
@@ -107,11 +99,16 @@ static inline void mem_free(void *mem) {
     free(mem);
 }
 
+static inline char *mem_strdup(const char *src) {
+    char *res = strdup(src);
+    //check_enough_mem(res);
+    return res;
+}
+
 static inline void *mem_dup(const void *src, ssize_t size)
 {
     void *res = mem_alloc(size);
-    memcpy(res, src, size);
-    return res;
+    return memcpy(res, src, size);
 }
 
 static inline void *p_dupstr(const void *src, ssize_t len)
@@ -135,26 +132,26 @@ static inline void *p_dupstr(const void *src, ssize_t len)
 
 #ifdef __GNUC__
 
-#  define p_delete(mem_pp)                            \
-        ({                                            \
-            typeof(**(mem_pp)) **__ptr = (mem_pp);    \
-            mem_free(*__ptr);                         \
-            *__ptr = NULL;                            \
+#  define p_delete(pp)                        \
+        ({                                    \
+            typeof(**(pp)) **__ptr = (pp);    \
+            mem_free(*__ptr);                 \
+            *__ptr = NULL;                    \
         })
 
-#  define p_realloc(mem_pp, count)                                 \
+#  define p_realloc(pp, count)                                     \
         ({                                                         \
-            typeof(**(mem_pp)) **__ptr = (mem_pp);                 \
+            typeof(**(pp)) **__ptr = (pp);                         \
             mem_realloc((void*)__ptr, sizeof(**__ptr) * (count));  \
         })
 
 #else
 
-#  define p_delete(mem_p)                           \
-        do {                                        \
-            void *__ptr = (mem_p);                  \
-            mem_free(*(void **)__ptr);              \
-            *(void **)__ptr = NULL;                 \
+#  define p_delete(pp)                           \
+        do {                                     \
+            void *__ptr = (pp);                  \
+            mem_free(*(void **)__ptr);           \
+            *(void **)__ptr = NULL;              \
         } while (0)
 
 #  define p_realloc(pp, count)                      \
