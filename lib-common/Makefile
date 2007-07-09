@@ -16,7 +16,7 @@ include $(DEPTH)/admin/header.mk
 
 __EXE__   = btree-dump 
 __LIB__   = libcommon
-__CHECK__ = test test_blob_iconv
+__CHECK__ = test tst-blob-iconv
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-hash tst-sort
 __CHECK__ += tst-iprintf-speed
 # These tests are just too long to be part of "make check". Sorry.
@@ -30,47 +30,52 @@ libcommon_SOURCES = \
 	bfield.c \
 	btree.c \
 	compat.c \
-	isndx.c \
-	str_array.c \
-	blob.c \
-	blob_ebcdic.c \
-	blob_utf8.c \
-	blob_zlib.c \
-	blob_iconv.c \
-	blob_emi.c \
 	concatbin.c  \
 	conf.c  \
-	err_report.c  \
+	dtoa.c \
 	err_debug.c   \
+	err_report.c  \
 	fifo.c \
-	hash-crc.c \
-	hash-sha2.c \
 	ioveclist.c \
+	iprintf.c \
+	isndx.c \
+	licence.c \
 	list.c \
 	log_file.c \
 	log_limit.c \
 	mmappedfile.c \
 	paged-index.c \
-	string_is.c \
-	iprintf.c \
-	dtoa.c \
-	strconv.c \
-	timeval.c \
 	showflags.c \
 	stopper.c \
-	linux.c \
-	unix.c \
+	str_array.c \
+	strconv.c \
+	string_is.c \
+	timeval.c \
+	xml.c \
+	\
+	blob.c \
+	blob-ebcdic.c \
+	blob-utf8.c \
+	blob-zlib.c \
+	blob-iconv.c \
+	blob-emi.c \
+	\
+	hash-crc.c \
+	hash-sha2.c \
+	\
 	mem-pool.c \
 	mem-fifo-pool.c \
-	xml.c \
-	licence.c \
+	\
+	unix.c \
+	unix-linux.c \
+	\
 	$(end_of_list)
 
 test_SOURCES = $(libcommon_SOURCES) check.c
 test_LDFLAGS = -lz
 
-test_blob_iconv_SOURCES = \
-	test_blob_iconv.c \
+tst-blob-iconv_SOURCES = \
+	tst-blob-iconv.c \
 	libcommon.a
 
 tst-iprintf_SOURCES = tst-iprintf.c libcommon.a
@@ -92,8 +97,8 @@ tst-iprintf-speed_SOURCES = tst-iprintf-speed.c libcommon.a
 tst-iprintf-speed_CFLAGS = -UCHECK
 
 ifneq (,$(filter CYGWIN%,$(UNAME)))
-  libcommon_SOURCES := $(filter-out blob_iconv.c linux.c,$(libcommon_SOURCES))
-  __CHECK__ := $(filter-out test_blob_iconv,$(__CHECK__))
+  libcommon_SOURCES := $(filter-out blob-iconv.c linux.c,$(libcommon_SOURCES))
+  __CHECK__ := $(filter-out tst-blob-iconv,$(__CHECK__))
 endif
 
 ifneq (,$(MINGCC))

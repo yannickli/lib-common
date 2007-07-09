@@ -1,6 +1,6 @@
 /btree-dump
 /test
-/test_blob_iconv
+/tst-blob-iconv
 /tst-iprintf
 /tst-iprintf-fp
 /tst-iprintf-glibc
