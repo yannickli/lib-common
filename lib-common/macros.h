@@ -14,7 +14,8 @@
 #ifndef IS_LIB_COMMON_MACROS_H
 #define IS_LIB_COMMON_MACROS_H
 
-#include <unistd.h>     /* for ssize_t */
+#include <stdint.h>
+#include <stdbool.h>
 
 #include "compat.h"
 
@@ -37,7 +38,7 @@
 #  define __attr_noreturn__      __attribute__((noreturn))
 #  define __attr_nonnull__(l)    __attribute__((nonnull l))
 #  define __attr_printf__(a, b)  __attribute__((format(printf, a, b)))
-#  define __attr_scanf__(a, b)  __attribute__((format(scanf, a, b)))
+#  define __attr_scanf__(a, b)   __attribute__((format(scanf, a, b)))
 #endif
 
 #undef EXPORT

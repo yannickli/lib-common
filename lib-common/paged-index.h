@@ -14,7 +14,6 @@
 #ifndef IS_LIB_COMMON_PAGED_INDEX_H
 #define IS_LIB_COMMON_PAGED_INDEX_H
 
-#include <stdint.h>
 #include <lib-common/macros.h>
 #include <lib-common/blob.h>
 #include <lib-common/mmappedfile.h>

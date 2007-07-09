@@ -31,6 +31,14 @@
 #define MEM_ALIGN(size) \
     (((size) + MEM_ALIGN_SIZE - 1) & ~((ssize_t)MEM_ALIGN_SIZE - 1))
 
+#ifdef __GLIBC__
+#  include <byteswap.h>
+#  define swab16(x)        __bswap_16(x)
+#  define swab16_const(x)  __bswap_constant_16(x)
+#  define swab32(x)        __bswap_32(x)
+#  define swab32_const(x)  __bswap_constant_32(x)
+#else
+
 #define swab32_const(x) \
         ((((x) >> 24) & 0x000000ff) | \
          (((x) >>  8) & 0x0000ff00) | \
@@ -39,6 +47,10 @@
 
 #define swab16_const(x) \
         ((((x) >> 8) & 0x00ff) | (((x) << 8) & 0xff00))
+
+#define swab32 swab32_const
+#define swab16 swab16_const
+#endif
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 #  define ntohl_const(x)    (x)

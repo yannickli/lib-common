@@ -14,7 +14,6 @@
 #ifndef IS_LIB_COMMON_HASH_H
 #define IS_LIB_COMMON_HASH_H
 
-#include <stdint.h>
 #include "macros.h"
 
 uint32_t crc32(const void *data, ssize_t len);

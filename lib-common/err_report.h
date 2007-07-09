@@ -85,7 +85,7 @@ extern int e_verbosity_maxwatch;
 void e_set_verbosity(int max_debug_level);
 void e_incr_verbosity(void);
 
-int e_is_traced_real(int level, const char *fname, const char *func);
+bool e_is_traced_real(int level, const char *fname, const char *func);
 
 #define e_is_traced(lvl)                                 \
         ((lvl) <= e_verbosity_maxwatch                   \
