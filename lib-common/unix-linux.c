@@ -60,11 +60,6 @@ static void jiffies_to_tv(unsigned long long jiff, struct timeval *tv)
     tv->tv_usec = (jiff % hertz) * (1000000UL / hertz);
 }
 
-static bool is_fd_open(int fd)
-{
-    return fcntl(fd, F_GETFD) != -1 || errno != EBADF;
-}
-
 void unix_initialize(void)
 {
     /* get the HZ value, needs linux 2.4 ;) */
