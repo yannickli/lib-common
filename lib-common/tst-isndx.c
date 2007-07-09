@@ -118,6 +118,7 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
     free(entry_tab);
     p_fclose(&fp);
 
+    proctimer_stop(&pt);
     stat(indexname, &st);
 
     printf("%s: %s: %d keys, %d chunks,%s %lld bytes\n",
@@ -429,6 +430,7 @@ static int benchmark_index_methods(void)
 #if 0
     status |= isndx_word_test("/tmp/words.ndx");
 #endif
+    printf("benchmarking in increasing order, %d * %d\n\n", 1000000, 4);
     status |= isndx_linear_test("/tmp/test-1.ndx", 600000000LL, 0, 1000000, 4);
     status |= btree_linear_test("/tmp/test-1.ibt", 600000000LL, 0, 1000000, 4);
     status |= array_linear_test("/tmp/test-1.bin", 600000000LL, 0, 1000000, 4);
@@ -469,6 +471,7 @@ static int benchmark_index_methods(void)
 
 int main(int argc, char **argv)
 {
+    isndx_create_parms_t cp;
     isndx_t *ndx;
     const char *indexname;
     const char *command;
