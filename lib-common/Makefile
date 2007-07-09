@@ -46,6 +46,7 @@ libcommon_SOURCES = \
 	paged-index.c \
 	property.c\
 	showflags.c \
+	stats-temporal.c \
 	stopper.c \
 	str_array.c \
 	strconv.c \
