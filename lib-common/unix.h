@@ -17,7 +17,6 @@
 #include <unistd.h> /* for ssize_t */
 #include <sys/types.h>
 #include <sys/time.h>
-#include "macros.h"
 
 #include "macros.h"
 
