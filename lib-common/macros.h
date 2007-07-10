@@ -98,8 +98,8 @@ typedef unsigned int gt_uint32_t;
 
 #ifndef MIN
 #define MIN(a,b)     (((a) > (b)) ? (b) : (a))
-#define MIN3(a,b,c)  (((a) > (b)) ? MIN(b, c) : MIN(a, c))
 #endif
+#define MIN3(a,b,c)  (((a) > (b)) ? MIN(b, c) : MIN(a, c))
 
 #ifdef CMP
 #error CMP already defined
