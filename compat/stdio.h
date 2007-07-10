@@ -19,10 +19,12 @@
 #if defined(__GLIBC__) || defined(__CYGWIN__)
 /* Wrap glibc specific unlocked API with obnoxious macros */
 #  define PUTC(c, f)          putc_unlocked(c, f)
-#  define FWRITE(b, s, n, f)  fwrite(b, s, n, f)
+#  define FWRITE(b, s, n, f)  fwrite_unlocked(b, s, n, f)
+#  define FREAD(b, s, n, f)   fread_unlocked(b, s, n, f)
 #else
 #  define PUTC(c, f)          putc(c, f)
 #  define FWRITE(b, s, n, f)  fwrite(b, s, n, f)
+#  define FREAD(b, s, n, f)   fread(b, s, n, f)
 #endif
 
 #if (defined(IPRINTF_HIDE_STDIO) && IPRINTF_HIDE_STDIO) \

@@ -19,6 +19,8 @@
 
 #include "compat.h"
 
+#define __ISLIBC__
+
 /*---------------- GNU extension wrappers ----------------*/
 
 /*

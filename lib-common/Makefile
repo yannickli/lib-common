@@ -29,7 +29,6 @@ libcommon_SOURCES = \
 	array.c \
 	bfield.c \
 	btree.c \
-	compat.c \
 	concatbin.c  \
 	conf.c  \
 	dtoa.c \

@@ -11,15 +11,20 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_COMPAT_SYS_STAT_H
-#define IS_COMPAT_SYS_STAT_H
-
-#include_next <unistd.h>
+#ifndef IS_COMPAT_SYS_UIO_H
+#define IS_COMPAT_SYS_UIO_H
 
 #if defined(__MINGW) || defined(__MINGW32__)
-#  define mkdir(path, mode)  mkdir(path)
-int usleep(unsigned long usec);
+#  include_next <unistd.h>
+struct iovec {
+    void *iov_base;   /* Starting address */
+    size_t iov_len;   /* Number of bytes */
+};
+extern ssize_t readv(int __fd, __const struct iovec *__iovec, int __count);
+extern ssize_t writev(int __fd, __const struct iovec *__iovec, int __count);
+#else
+#  include_next <sys/uio.h>
 #endif
 
-#endif /* !IS_COMPAT_SYS_STAT_H */
+#endif /* !IS_COMPAT_SYS_UIO_H */
 
