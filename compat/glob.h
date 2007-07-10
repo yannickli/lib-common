@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_COMPAT_CTYPE_H
-#define IS_COMPAT_CTYPE_H
+#ifndef IS_COMPAT_GLOB_H
+#define IS_COMPAT_GLOB_H
 
 #if defined(__MINGW) || defined(__MINGW32__)
 /* Bits set in the FLAGS argument to `glob'.  */
@@ -52,4 +52,4 @@ void globfree(glob_t *pglob);
 #  include_next <glob.h>
 #endif
 
-#endif /* !IS_COMPAT_CTYPE_H */
+#endif /* !IS_COMPAT_GLOB_H */
