@@ -157,11 +157,6 @@ const char *get_ext(const char *filename)
     return lastdot ? lastdot : base;
 }
 
-bool is_fd_open(int fd)
-{
-    return fcntl(fd, F_GETFD) != -1 || errno != EBADF;
-}
-
 /**
  * Copy file pathin to pathout. If pathout already exists, it will
  * be overwritten.

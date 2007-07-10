@@ -23,10 +23,6 @@
 #include "err_report.h"
 #include "string_is.h"
 
-#if (__BYTE_ORDER != __BIG_ENDIAN) && (__BYTE_ORDER != __LITTLE_ENDIAN)
-#  error __BYTE_ORDER must be __BIG_ENDIAN or __LITTLE_ENDIAN
-#endif
-
 #define MEM_ALIGN_SIZE  8
 #define MEM_ALIGN(size) \
     (((size) + MEM_ALIGN_SIZE - 1) & ~((ssize_t)MEM_ALIGN_SIZE - 1))

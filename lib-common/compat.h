@@ -19,31 +19,11 @@ void intersec_initialize(void);
 
 #ifdef MINGCC
 #define NEED_IOVEC_STUFF
-#if __MINGW32_MAJOR_VERSION < 3 || \
-   (__MINGW32_MAJOR_VERSION == 3 && __MINGW32_MINOR_VERSION < 12)
-   /* 3.9 needs those. 3.12 does not. Test could be thinner */
-#define NEED_GETTIMEOFDAY
-#define NEED_ISBLANK
-#endif
-
-/* Force iprintf when using mingw32 to enable POSIX compatibility */
-#undef IPRINTF_HIDE_STDIO
-#define IPRINTF_HIDE_STDIO 1
-
-#if !defined(__LITTLE_ENDIAN)
-#include <sys/param.h>
-#define __LITTLE_ENDIAN  LITTLE_ENDIAN
-#define __BIG_ENDIAN     BIG_ENDIAN
-#define __BYTE_ORDER     BYTE_ORDER
-#endif
 
 #include <time.h>
 #include <sys/time.h>
 #include <ws2tcpip.h>	/* for socklen_t */
 
-#ifdef NEED_GETTIMEOFDAY
-void gettimeofday(struct timeval *p, void *tz);
-#endif
 char *asctime_r(const struct tm *tm, char *buf);
 char *ctime_r(const time_t *timep, char *buf);
 struct tm *gmtime_r(const time_t *timep, struct tm *result);
@@ -59,8 +39,6 @@ struct iovec {
 extern ssize_t readv(int __fd, __const struct iovec *__iovec, int __count);
 extern ssize_t writev(int __fd, __const struct iovec *__iovec, int __count);
 #endif
-
-#define mkdir(path, mode)  mkdir(path)
 
 /* Bits set in the FLAGS argument to `fnmatch'.  */
 #define	FNM_PATHNAME	(1 << 0) /* No wildcard can ever match `/'.  */

@@ -129,13 +129,7 @@
  */
 
 #include <stdint.h>
-
-#ifdef MINGCC
-#include <sys/param.h>
-#include "compat.h"
-#else
 #include <endian.h>
-#endif
 
 /* disable inline functions from library header files */
 #define strtod    gt_strtod
