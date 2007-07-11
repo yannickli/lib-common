@@ -62,6 +62,7 @@ libcommon_SOURCES = \
 	\
 	hash-crc.c \
 	hash-sha2.c \
+	hash-sha1.c \
 	\
 	mem-pool.c \
 	mem-fifo-pool.c \
