@@ -11,11 +11,13 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "macros.h"
-#include "mmappedfile.h"
-#include "unix.h"
+#include <lib-common/macros.h>
+#include <lib-common/mmappedfile.h>
+#include <lib-common/unix.h>
 
-#if defined(MINGCC)
+#include "glob.h"
+
+#if defined(__MINGW) || defined(__MINGW32__)
 
 #include <windows.h>
 #include <stdlib.h>
@@ -56,7 +58,8 @@ int posix_fallocate(int fd, off_t offset, off_t len)
     return EINVAL;
 }
 
-#ifdef NEED_GETTIMEOFDAY
+#  if __MINGW32_MAJOR_VERSION < 3 || \
+     (__MINGW32_MAJOR_VERSION == 3 && __MINGW32_MINOR_VERSION < 12)
 /* Windows API do not have gettimeofday support */
 /* OG: should define a simpler API, and implement it in a compatibility
  * module for linux and ming appropriately
@@ -97,9 +100,10 @@ struct tm *localtime_r(const time_t *timep, struct tm *result)
     return result;
 }
 
-void usleep(unsigned long usec)
+int usleep(unsigned long usec)
 {
     Sleep(usec / 1000);
+    return 0;
 }
 
 int fnmatch(const char *pattern, const char *string, int flags)
@@ -122,7 +126,7 @@ long int lrand48(void)
 {
     unsigned int r, i;
     long int res = 0;
-    
+
     /* OG: This method is incorrect, should use high bits instead of
      * low byte.
      */
@@ -140,7 +144,7 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
     return 0;
 }
 
-#elif defined(CYGWIN)
+#elif defined(__CYGWIN__)
 
 int pid_get_starttime(pid_t pid, struct timeval *tv)
 {
@@ -150,6 +154,6 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
 
 #else
 
-void intersec_initialize(void) {}
+void intersec_initialize(void) { }
 
 #endif

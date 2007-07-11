@@ -11,14 +11,15 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_TYPES_H
-#define IS_LIB_COMMON_TYPES_H
+#ifndef IS_COMPAT_SYS_STAT_H
+#define IS_COMPAT_SYS_STAT_H
 
-#include <stdlib.h>
+#include_next <unistd.h>
 
-typedef struct segment {
-    ssize_t start;
-    ssize_t size;
-} segment;
+#if defined(__MINGW) || defined(__MINGW32__)
+#  define mkdir(path, mode)  mkdir(path)
+int usleep(unsigned long usec);
+#endif
 
-#endif /* IS_LIB_COMMON_TYPES_H */
+#endif /* !IS_COMPAT_SYS_STAT_H */
+

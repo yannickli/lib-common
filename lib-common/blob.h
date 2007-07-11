@@ -253,20 +253,30 @@ ssize_t blob_save_to_file(blob_t *blob, const char *filename);
 /**************************************************************************/
 
 ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
-	__attr_printf__(2,0);
+        __attr_printf__(2,0);
 ssize_t blob_append_fmt(blob_t *blob, const char *fmt, ...)
         __attr_printf__(2,3);
 
 ssize_t blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap)
-	__attr_printf__(2,0);
+        __attr_printf__(2,0);
 ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...)
         __attr_printf__(2,3);
 
+ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt,
+                      const struct tm *tm);
+
+static inline void blob_strftime_utc(blob_t *blob, ssize_t pos, time_t timer)
+{
+    struct tm tm;
+    blob_strftime(blob, pos, "%a, %d %b %Y %H:%M:%S GMT",
+                  gmtime_r(&timer, &tm));
+}
+
 int blob_pack(blob_t *blob, const char *fmt, ...);
 int blob_unpack(const blob_t *blob, int *pos, const char *fmt, ...)
-    __attribute__((warn_unused_result));
+    __must_check__;
 int buf_unpack(const byte *buf, int buf_len, int *pos, const char *fmt, ...)
-    __attribute__((warn_unused_result));
+    __must_check__;
 int blob_serialize(blob_t *blob, const char *fmt, ...)
     __attr_printf__(2, 3);
 int buf_deserialize(const byte *buf, int buf_len,

@@ -14,7 +14,6 @@
 #ifndef IS_LIB_COMMON_PAGED_INDEX_H
 #define IS_LIB_COMMON_PAGED_INDEX_H
 
-#include <stdint.h>
 #include <lib-common/macros.h>
 #include <lib-common/blob.h>
 #include <lib-common/mmappedfile.h>
@@ -126,7 +125,7 @@ int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out);
 
 int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
                        byte *out, int start, int len)
-    __attribute__((warn_unused_result));
+    __must_check__;
 void *pidx_data_getslicep(pidx_file *pidx, uint64_t idx, int start, int len);
 
 int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len);

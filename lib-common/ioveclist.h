@@ -14,12 +14,7 @@
 #ifndef IS_LIB_COMMON_IOVECLIST_H
 #define IS_LIB_COMMON_IOVECLIST_H
 
-#ifndef MINGCC
 #include <sys/uio.h>
-#else
-#include <sys/types.h>
-#endif
-
 #include <lib-common/blob.h>
 
 #define IOVECLIST_OBJS_NUM 64

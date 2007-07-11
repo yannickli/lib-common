@@ -11,30 +11,28 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_STR_ARRAY_H
-#define IS_LIB_COMMON_STR_ARRAY_H
+#ifndef IS_COMPAT_CTYPE_H
+#define IS_COMPAT_CTYPE_H
 
-#include <lib-common/mem.h>
-#include <lib-common/array.h>
+#include_next <sys/param.h>
+#include_next <ctype.h>
 
-// define our arrays
-ARRAY_TYPE(char, string);
-ARRAY_FUNCTIONS(char, string, p_delete);
-
-ARRAY_TYPE(const char, cstring);
-ARRAY_FUNCTIONS(const char, cstring, NULL);
-
-void string_array_dump(const string_array *xp);
-
-string_array *str_explode(const char *s, const char *tokens);
-
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-#include <check.h>
-
-Suite *check_str_array_suite(void);
-
+/* Glibc's ctype system issues a function call to handle locale issues.
+ * Glibc only defines isblank() if USE_ISOC99, for some obsure reason,
+ * isblank() cannot be defined as an inline either (intrinsic
+ * function?)
+ * Should rewrite these functions and use our own simpler version
+ */
+#ifndef isblank
+#  if defined(__GLIBC__) && defined(__isctype) && defined(_ISbit)
+#    define isblank(c)      __isctype((c), _ISblank)
+#  elif defined(__MINGW) || defined(__MINGW32__)
+#    if  (__MINGW32_MAJOR_VERSION < 3 || \
+         (__MINGW32_MAJOR_VERSION == 3 && __MINGW32_MINOR_VERSION < 12))
+/* OG: we should really have our own char type macros */
+static inline int isblank(int c) { return (c == ' ' || c == '\t'); }
+#    endif
+#  endif
 #endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
 
-#endif /* IS_LIB_COMMON_STR_ARRAY_H */
+#endif /* !IS_COMPAT_CTYPE_H */

@@ -19,12 +19,7 @@
 #include <limits.h>
 #include <stdint.h>
 #include <errno.h>
-
-#ifdef MINGCC
-#include <sys/param.h>
-#else
 #include <endian.h>
-#endif
 
 #include "iprintf.h"
 
@@ -36,18 +31,6 @@
  * imported functions:
  *   stdio.h:    stdout, putc_unlocked, fwrite_unlocked;
  */
-
-#if defined(MINGCC)
-#define PUTC(c, f)          putc(c, f)
-#define FWRITE(b, s, n, f)  fwrite(b, s, n, f)
-#elif defined(__CYGWIN__)
-#define PUTC(c, f)          putc_unlocked(c, f)
-#define FWRITE(b, s, n, f)  fwrite(b, s, n, f)
-#else
-/* Wrap glibc specific unlocked API with obnoxious macros */
-#define PUTC(c, f)          putc_unlocked(c, f)
-#define FWRITE(b, s, n, f)  fwrite_unlocked(b, s, n, f)
-#endif
 
 #define FLOATING_POINT  1
 #define _NO_LONGDBL     1

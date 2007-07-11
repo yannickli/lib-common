@@ -122,6 +122,7 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
     free(entry_tab);
     p_fclose(&fp);
 
+    proctimer_stop(&pt);
     stat(indexname, &st);
 
     printf("%s: %s: %d keys, %d chunks,%s %lld bytes\n",

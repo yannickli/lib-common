@@ -191,8 +191,9 @@ static void *mfp_realloc(struct mem_pool *mp, void *mem, ssize_t size)
         return NULL;
     }
 
-    if (!mem)
+    if (!mem) {
         return mfp_alloc(mp, size);
+    }
 
     /* TODO: optimize if it's the last block allocated */
 

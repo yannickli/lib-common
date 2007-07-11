@@ -30,7 +30,6 @@
 #define IPRINTF_HIDE_STDIO 1
 #include "macros.h"
 #include "blob.h"
-#include "blob_time.h"
 #include "mem.h"
 #include "string_is.h"
 #include "strconv.h"

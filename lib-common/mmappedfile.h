@@ -17,29 +17,29 @@
 #ifndef MINGCC
 #include <sys/mman.h>
 #else
-#define MAP_FAILED	((void *) -1)
+#define MAP_FAILED      ((void *) -1)
 extern void *mmap(void *__addr, size_t __len, int __prot,
-		  int __flags, int __fd, off_t __offset);
+                  int __flags, int __fd, off_t __offset);
 extern int munmap(void *__addr, size_t __len);
 extern int msync(void *__addr, size_t __len, int __flags);
 extern void *mremap(void *__addr, size_t __old_len, size_t __new_len,
-		    int __flags, ...);
+                    int __flags, ...);
 extern int posix_fallocate(int fd, off_t offset, off_t len);
 
 /* Flags to `msync'.  */
-#define MS_ASYNC	1		/* Sync memory asynchronously.  */
-#define MS_SYNC		4		/* Synchronous memory sync.  */
-#define MS_INVALIDATE	2		/* Invalidate the caches.  */
+#define MS_ASYNC        1               /* Sync memory asynchronously.  */
+#define MS_SYNC         4               /* Synchronous memory sync.  */
+#define MS_INVALIDATE   2               /* Invalidate the caches.  */
 
-#define PROT_READ	0x1		/* Page can be read.  */
-#define PROT_WRITE	0x2		/* Page can be written.  */
-#define PROT_EXEC	0x4		/* Page can be executed.  */
-#define PROT_NONE	0x0		/* Page can not be accessed.  */
+#define PROT_READ       0x1             /* Page can be read.  */
+#define PROT_WRITE      0x2             /* Page can be written.  */
+#define PROT_EXEC       0x4             /* Page can be executed.  */
+#define PROT_NONE       0x0             /* Page can not be accessed.  */
 
-#define MAP_SHARED	0x01		/* Share changes.  */
-#define MAP_PRIVATE	0x02		/* Changes are private.  */
-#define MAP_FIXED	0x10		/* Interpret addr exactly.  */
-#define MAP_ANONYMOUS	0x20		/* Don't use a file.  */
+#define MAP_SHARED      0x01            /* Share changes.  */
+#define MAP_PRIVATE     0x02            /* Changes are private.  */
+#define MAP_FIXED       0x10            /* Interpret addr exactly.  */
+#define MAP_ANONYMOUS   0x20            /* Don't use a file.  */
 #endif
 
 #include <sys/types.h>
@@ -71,8 +71,7 @@ void mmfile_close(mmfile **mf);
  * XXX: mmfile may sometimes be wiped if remap fails !
  *      in that particular case, it returns -2 instead of -1
  */
-__attribute__((warn_unused_result))
-int mmfile_truncate(mmfile *mf, off_t length);
+__must_check__ int mmfile_truncate(mmfile *mf, off_t length);
 
 #define MMFILE_FUNCTIONS(type, prefix) \
     static inline type *prefix##_open(const char *path, int flags) {    \
@@ -95,7 +94,7 @@ int mmfile_truncate(mmfile *mf, off_t length);
         mmfile_close((mmfile **)mmf);                                   \
     }                                                                   \
                                                                         \
-    __attribute__((warn_unused_result))                                 \
+    __must_check__                                                      \
     static inline int prefix##_truncate(type *mf, off_t length) {       \
         return mmfile_truncate((mmfile *)mf, length);                   \
     }

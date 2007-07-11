@@ -20,10 +20,9 @@ static inline void fifo_grow(fifo *f, ssize_t newsize)
 {
     ssize_t cursize = f->size;
 
-    if (newsize < cursize) {
+    if (newsize < cursize)
         return;
-    }
-    /* OG: Should use p_realloc */
+
     newsize = MEM_ALIGN(newsize);
     f->size = newsize;
     p_realloc(&f->elems, newsize);

@@ -23,13 +23,17 @@
 #include "err_report.h"
 #include "string_is.h"
 
-#if (__BYTE_ORDER != __BIG_ENDIAN) && (__BYTE_ORDER != __LITTLE_ENDIAN)
-#  error __BYTE_ORDER must be __BIG_ENDIAN or __LITTLE_ENDIAN
-#endif
-
 #define MEM_ALIGN_SIZE  8
 #define MEM_ALIGN(size) \
     (((size) + MEM_ALIGN_SIZE - 1) & ~((ssize_t)MEM_ALIGN_SIZE - 1))
+
+#ifdef __GLIBC__
+#  include <byteswap.h>
+#  define swab16(x)        __bswap_16(x)
+#  define swab16_const(x)  __bswap_constant_16(x)
+#  define swab32(x)        __bswap_32(x)
+#  define swab32_const(x)  __bswap_constant_32(x)
+#else
 
 #define swab32_const(x) \
         ((((x) >> 24) & 0x000000ff) | \
@@ -39,6 +43,10 @@
 
 #define swab16_const(x) \
         ((((x) >> 8) & 0x00ff) | (((x) << 8) & 0xff00))
+
+#define swab32 swab32_const
+#define swab16 swab16_const
+#endif
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 #  define ntohl_const(x)    (x)
@@ -63,9 +71,8 @@ static inline void *mem_alloc(ssize_t size)
 {
     void *mem;
 
-    if (size == 0) {
+    if (size <= 0)
         return NULL;
-    }
 
     mem = malloc(size);
     check_enough_mem(mem);
@@ -76,21 +83,15 @@ static inline void *mem_alloc0(ssize_t size)
 {
     void *mem;
 
-    if (size == 0) {
+    if (size <= 0)
         return NULL;
-    }
 
     mem = calloc(size, 1);
     check_enough_mem(mem);
     return mem;
 }
 
-static inline char *mem_strdup(const char *src) {
-    char *res = strdup(src);
-    //check_enough_mem(res);
-    return res;
-}
-
+/* OG: should pass old size */
 static inline void mem_realloc(void **ptr, ssize_t newsize)
 {
     if (newsize <= 0) {
@@ -106,11 +107,16 @@ static inline void mem_free(void *mem) {
     free(mem);
 }
 
+static inline char *mem_strdup(const char *src) {
+    char *res = strdup(src);
+    //check_enough_mem(res);
+    return res;
+}
+
 static inline void *mem_dup(const void *src, ssize_t size)
 {
     void *res = mem_alloc(size);
-    memcpy(res, src, size);
-    return res;
+    return memcpy(res, src, size);
 }
 
 static inline void *p_dupstr(const void *src, ssize_t len)
@@ -131,28 +137,29 @@ static inline void *p_dupstr(const void *src, ssize_t len)
 #define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
 #define p_dup(p, count)         mem_dup((p), sizeof(*(p)) * (count))
 #define p_strdup(p)             mem_strdup(p)
+
 #ifdef __GNUC__
 
-#  define p_delete(mem_pp)                          \
-        ({                                          \
-            typeof(**(mem_pp)) **ptr = (mem_pp);    \
-            mem_free(*ptr);                         \
-            *ptr = NULL;                            \
+#  define p_delete(pp)                        \
+        ({                                    \
+            typeof(**(pp)) **__ptr = (pp);    \
+            mem_free(*__ptr);                 \
+            *__ptr = NULL;                    \
         })
 
-#  define p_realloc(mem_pp, count)                               \
-        ({                                                       \
-            typeof(**(mem_pp)) **ptr = (mem_pp);                 \
-            mem_realloc((void*)ptr, sizeof(**(ptr)) * (count));  \
+#  define p_realloc(pp, count)                                     \
+        ({                                                         \
+            typeof(**(pp)) **__ptr = (pp);                         \
+            mem_realloc((void*)__ptr, sizeof(**__ptr) * (count));  \
         })
 
 #else
 
-#  define p_delete(mem_p)                           \
-        do {                                        \
-            void *__ptr = (mem_p);                  \
-            mem_free(*(void **)__ptr);              \
-            *(void **)__ptr = NULL;                 \
+#  define p_delete(pp)                           \
+        do {                                     \
+            void *__ptr = (pp);                  \
+            mem_free(*(void **)__ptr);           \
+            *(void **)__ptr = NULL;              \
         } while (0)
 
 #  define p_realloc(pp, count)                      \
@@ -160,11 +167,14 @@ static inline void *p_dupstr(const void *src, ssize_t len)
 
 #endif
 
-#define p_realloc0(pp, old, now)         \
-    do {                                 \
-        p_realloc(pp, now);              \
-        p_clear((*pp) + old, now - old); \
-    } while(0)
+#define p_realloc0(pp, old, now)                   \
+    do {                                           \
+        ssize_t __old = (old), __now = (now);      \
+        p_realloc(pp, __now);                      \
+        if (__now > __old) {                       \
+            p_clear(*(pp) + __old, __now - __old); \
+        }                                          \
+    } while (0)
 
 static inline void (p_delete)(void **p) {
     p_delete(p);

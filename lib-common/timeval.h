@@ -33,13 +33,13 @@ bool is_expired(const struct timeval *date, const struct timeval *now,
                 struct timeval *left);
 
 static inline long long timeval_diff64(const struct timeval *tv2,
-				       const struct timeval *tv1) {
+                                       const struct timeval *tv1) {
     return (tv2->tv_sec - tv1->tv_sec) * 1000000LL +
             (tv2->tv_usec - tv1->tv_usec);
 }
 
 static inline int timeval_diff(const struct timeval *tv2,
-			       const struct timeval *tv1) {
+                               const struct timeval *tv1) {
     return (tv2->tv_sec - tv1->tv_sec) * 1000000 +
             (tv2->tv_usec - tv1->tv_usec);
 }

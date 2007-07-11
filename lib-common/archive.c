@@ -241,13 +241,8 @@ static archive_file *archive_parse_file(const byte **input, int *len)
         if (**input != ':') {
             e_trace(1, "Missing ':' while reading file attr (key_len= %d)",
                     key_len);
-            if (i == 0) {
-                p_delete(file->attrs);
-                file->nb_attrs = 0;
-            } else {
-                p_realloc0(&file->attrs, file->nb_attrs, i);
-                file->nb_attrs = i;
-            }
+            p_realloc0(&file->attrs, file->nb_attrs, i);
+            file->nb_attrs = i;
             break;
         }
         (*input)++;
@@ -263,13 +258,8 @@ static archive_file *archive_parse_file(const byte **input, int *len)
 
         if (**input != '\n') {
             e_trace(1, "Missing \\n while reading file attr");
-            if (i == 0) {
-                p_delete(file->attrs);
-                file->nb_attrs = 0;
-            } else {
-                p_realloc0(file->attrs, file->nb_attrs, i);
-                file->nb_attrs = i;
-            }
+            p_realloc0(file->attrs, file->nb_attrs, i);
+            file->nb_attrs = i;
             break;
         }
 
@@ -409,6 +399,10 @@ int archive_parse(const byte *input, int len, archive_t *archive)
 
     if (dynamic) {
         if (allocated_blocs > archive->nb_blocs) {
+            /* OG: this is confusing.  If archive->nb_blocs is supposed
+             * to be the allocated count of archive->blocs, we should
+             * not break this invariant in the above loop.
+             */
             p_realloc0(&archive->blocs, allocated_blocs, archive->nb_blocs);
         }
     }

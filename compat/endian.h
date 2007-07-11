@@ -11,30 +11,20 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_STR_ARRAY_H
-#define IS_LIB_COMMON_STR_ARRAY_H
+#ifndef IS_COMPAT_ENDIAN_H
+#define IS_COMPAT_ENDIAN_H
 
-#include <lib-common/mem.h>
-#include <lib-common/array.h>
-
-// define our arrays
-ARRAY_TYPE(char, string);
-ARRAY_FUNCTIONS(char, string, p_delete);
-
-ARRAY_TYPE(const char, cstring);
-ARRAY_FUNCTIONS(const char, cstring, NULL);
-
-void string_array_dump(const string_array *xp);
-
-string_array *str_explode(const char *s, const char *tokens);
-
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-#include <check.h>
-
-Suite *check_str_array_suite(void);
-
+#include_next <sys/param.h>
+#ifdef __GLIBC__
+#  include_next <endian.h>
+#elif defined(__MINGW) || defined(__MINGW32__)
+#  define __LITTLE_ENDIAN  1234
+#  define __BIG_ENDIAN     4321
+#  define __BYTE_ORDER     __LITTLE_ENDIAN
 #endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
 
-#endif /* IS_LIB_COMMON_STR_ARRAY_H */
+#if (__BYTE_ORDER != __BIG_ENDIAN) && (__BYTE_ORDER != __LITTLE_ENDIAN)
+#  error __BYTE_ORDER must be __BIG_ENDIAN or __LITTLE_ENDIAN
+#endif
+
+#endif /* !IS_COMPAT_ENDIAN_H */

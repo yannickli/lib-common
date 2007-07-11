@@ -14,9 +14,12 @@
 #ifndef IS_LIB_COMMON_MACROS_H
 #define IS_LIB_COMMON_MACROS_H
 
-#include <unistd.h>     /* for ssize_t */
+#include <stdint.h>
+#include <stdbool.h>
 
 #include "compat.h"
+
+#define __ISLIBC__
 
 /*---------------- GNU extension wrappers ----------------*/
 
@@ -33,10 +36,11 @@
 #  endif
 
 #  define __unused__             __attribute__((unused))
+#  define __must_check__         __attribute__((warn_unused_result))
 #  define __attr_noreturn__      __attribute__((noreturn))
 #  define __attr_nonnull__(l)    __attribute__((nonnull l))
 #  define __attr_printf__(a, b)  __attribute__((format(printf, a, b)))
-#  define __attr_scanf__(a, b)  __attribute__((format(scanf, a, b)))
+#  define __attr_scanf__(a, b)   __attribute__((format(scanf, a, b)))
 #endif
 
 #undef EXPORT
@@ -94,8 +98,8 @@ typedef unsigned int gt_uint32_t;
 
 #ifndef MIN
 #define MIN(a,b)     (((a) > (b)) ? (b) : (a))
-#define MIN3(a,b,c)  (((a) > (b)) ? MIN(b, c) : MIN(a, c))
 #endif
+#define MIN3(a,b,c)  (((a) > (b)) ? MIN(b, c) : MIN(a, c))
 
 #ifdef CMP
 #error CMP already defined
@@ -276,7 +280,7 @@ static inline int p_fclose(FILE **fpp) {
 
 #if defined _BSD_SOURCE || defined _SVID_SOURCE
 /* nanosecond precision on file times from struct stat */
-#define st_atimensec  st_atim.tv_nsec	/* Backward compatibility.  */
+#define st_atimensec  st_atim.tv_nsec   /* Backward compatibility.  */
 #define st_mtimensec  st_mtim.tv_nsec
 #define st_ctimensec  st_ctim.tv_nsec
 #endif

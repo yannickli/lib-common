@@ -11,21 +11,28 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_BLOB_TIME_H
-#define IS_LIB_COMMON_BLOB_TIME_H
+#ifndef IS_COMPAT_STDIO_H
+#define IS_COMPAT_STDIO_H
 
-#include <time.h>
+#include_next <stdio.h>
 
-#include "blob.h"
+#if defined(__GLIBC__) || defined(__CYGWIN__)
+/* Wrap glibc specific unlocked API with obnoxious macros */
+#  define PUTC(c, f)          putc_unlocked(c, f)
+#  define FWRITE(b, s, n, f)  fwrite_unlocked(b, s, n, f)
+#  define FREAD(b, s, n, f)   fread_unlocked(b, s, n, f)
+#else
+#  define PUTC(c, f)          putc(c, f)
+#  define FWRITE(b, s, n, f)  fwrite(b, s, n, f)
+#  define FREAD(b, s, n, f)   fread(b, s, n, f)
+#endif
 
-ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt,
-                      const struct tm *tm);
+#if (defined(IPRINTF_HIDE_STDIO) && IPRINTF_HIDE_STDIO) \
+    || (!defined(__GLIBC__) && !defined(__CYGWIN__))
+/* Force iprintf to enable GLIBC compatibility */
+#  undef IPRINTF_HIDE_STDIO
+#  define IPRINTF_HIDE_STDIO 1
+#  include <lib-common/iprintf.h>
+#endif
 
-static inline void blob_strftime_utc(blob_t *blob, ssize_t pos, time_t timer)
-{
-    struct tm tm;
-
-    blob_strftime(blob, pos, "%a, %d %b %Y %H:%M:%S GMT",
-                  gmtime_r(&timer, &tm));
-}
-#endif /* IS_LIB_COMMON_BLOB_TIME_H */
+#endif /* !IS_COMPAT_STDIO_H */

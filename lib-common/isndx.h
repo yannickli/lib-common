@@ -34,7 +34,7 @@ void isndx_close(isndx_t **ndx);
 
 int isndx_fetch(isndx_t *ndx, const byte *key, int klen, blob_t *out);
 int isndx_push(isndx_t *ndx, const byte *key, int klen,
-	       const void *data, int len);
+               const void *data, int len);
 
 int isndx_fetch_uint64(isndx_t *ndx, uint64_t key, blob_t *out);
 int isndx_push_uint64(isndx_t *ndx, uint64_t key, const void *data, int len);

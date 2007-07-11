@@ -11,30 +11,20 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_STR_ARRAY_H
-#define IS_LIB_COMMON_STR_ARRAY_H
+#ifndef IS_COMPAT_SYS_UIO_H
+#define IS_COMPAT_SYS_UIO_H
 
-#include <lib-common/mem.h>
-#include <lib-common/array.h>
-
-// define our arrays
-ARRAY_TYPE(char, string);
-ARRAY_FUNCTIONS(char, string, p_delete);
-
-ARRAY_TYPE(const char, cstring);
-ARRAY_FUNCTIONS(const char, cstring, NULL);
-
-void string_array_dump(const string_array *xp);
-
-string_array *str_explode(const char *s, const char *tokens);
-
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-#include <check.h>
-
-Suite *check_str_array_suite(void);
-
+#if defined(__MINGW) || defined(__MINGW32__)
+#  include_next <unistd.h>
+struct iovec {
+    void *iov_base;   /* Starting address */
+    size_t iov_len;   /* Number of bytes */
+};
+extern ssize_t readv(int __fd, __const struct iovec *__iovec, int __count);
+extern ssize_t writev(int __fd, __const struct iovec *__iovec, int __count);
+#else
+#  include_next <sys/uio.h>
 #endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
 
-#endif /* IS_LIB_COMMON_STR_ARRAY_H */
+#endif /* !IS_COMPAT_SYS_UIO_H */
+
