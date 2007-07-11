@@ -257,7 +257,7 @@ void sha1_final_hex(sha1_ctx *ctx, char *output)
         output[j++] = __str_digits_lower[(digest[i] >> 4) & 15];
         output[j++] = __str_digits_lower[(digest[i] >> 0) & 15];
     }
-    output[SHA1_HEX_DIGEST_SIZE] = '\0';
+    output[SHA1_HEX_DIGEST_SIZE - 1] = '\0';
 }
 
 void sha1(const void *message, uint32_t len, byte *output)
