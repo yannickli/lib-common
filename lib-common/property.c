@@ -172,3 +172,41 @@ int property_array_unpack(const byte *buf, int buflen, int *pos,
     property_array_delete(&arr);
     return 0;
 }
+
+int props_from_fmtv1(const blob_t *payload, property_array *props)
+{
+    const char *buf = blob_get_cstr(payload);
+    int pos = 0;
+
+    while (pos < payload->len) {
+        const char *k, *v, *end;
+        int klen, vlen;
+        property_t *prop;
+
+        k    = skipblanks(buf + pos);
+        klen = strcspn(k, " \t:");
+
+        v    = skipblanks(k + klen);
+        if (*v != ':')
+            return -1;
+        v    = skipblanks(v + 1);
+        end  = strchr(v, '\n');
+        if (!end)
+            return -1;
+        vlen = end - v;
+        while (vlen > 0 && isspace(v[vlen - 1]))
+            vlen--;
+
+        prop = property_new();
+        prop->name  = p_dupstr(k, klen);
+        prop->value = p_dupstr(v, vlen);
+#if 0   // XXX: NULL triggers Segfault :(
+        prop->value = vlen ? p_dupstr(v, vlen) : NULL;
+#endif
+        property_array_append(props, prop);
+
+        pos = end + 1 - buf;
+    }
+
+    return 0;
+}
