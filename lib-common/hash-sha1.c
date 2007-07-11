@@ -20,6 +20,8 @@
  *
  */
 
+#include "strconv.h"
+
 #include "hash.h"
 
 #define SHA1HANDSOFF            /* Copies data before messing with it. */
@@ -198,9 +200,10 @@ void sha1_init(sha1_ctx *context)
 /*
  * Run your data through this.
  */
-void sha1_update(sha1_ctx *context, const byte *data, size_t len)
+void sha1_update(sha1_ctx *context, const void *_data, uint32_t len)
 {
     uint32_t i, j;
+    const byte *data = (const byte *)_data;
 
     j = context->count[0];
     if ((context->count[0] += len << 3) < j)
@@ -222,7 +225,7 @@ void sha1_update(sha1_ctx *context, const byte *data, size_t len)
 /*
  * Add padding and return the message digest.
  */
-void sha1_finish(sha1_ctx* context, byte *digest)
+void sha1_final(sha1_ctx* context, byte *digest)
 {
     size_t i;
     uint8_t finalcount[8];
@@ -243,3 +246,33 @@ void sha1_finish(sha1_ctx* context, byte *digest)
     }
 }
 
+void sha1_final_hex(sha1_ctx *ctx, char *output)
+{
+    byte digest[SHA1_DIGEST_SIZE];
+    int i, j;
+
+    sha1_final(ctx, digest);
+
+    for (i = j = 0; i < SHA1_DIGEST_SIZE; i++) {
+        output[j++] = __str_digits_lower[(digest[i] >> 4) & 15];
+        output[j++] = __str_digits_lower[(digest[i] >> 0) & 15];
+    }
+    output[SHA1_HEX_DIGEST_SIZE] = '\0';
+}
+
+void sha1(const void *message, uint32_t len, byte *output)
+{
+    sha1_ctx ctx;
+
+    sha1_init(&ctx);
+    sha1_update(&ctx, message, len);
+    sha1_final(&ctx, output);
+}
+void sha1_hex(const void *message, uint32_t len, char *output)
+{
+    sha1_ctx ctx;
+
+    sha1_init(&ctx);
+    sha1_update(&ctx, message, len);
+    sha1_final_hex(&ctx, output);
+}
