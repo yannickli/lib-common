@@ -35,6 +35,7 @@ libcommon_SOURCES = \
 	err_debug.c   \
 	err_report.c  \
 	fifo.c \
+	int_array.c \
 	ioveclist.c \
 	iprintf.c \
 	isndx.c \

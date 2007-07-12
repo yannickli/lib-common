@@ -210,3 +210,12 @@ int props_from_fmtv1(const blob_t *payload, property_array *props)
 
     return 0;
 }
+
+void props_to_fmtv1(blob_t *out, property_array *props)
+{
+    int i;
+
+    for (i = 0; i < props->len; i++) {
+        blob_pack(out, "s:s\n",props->tab[i]->name, props->tab[i]->value);
+    }
+}

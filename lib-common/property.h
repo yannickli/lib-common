@@ -48,5 +48,6 @@ int property_array_unpack(const byte *buf, int buflen,  int *pos,
                           property_array **arr, int last)
     __must_check__;
 int props_from_fmtv1(const blob_t *payload, property_array *props);
+void props_to_fmtv1(blob_t *out, property_array *props);
 
 #endif /* IS_LIB_COMMON_PROPERTY_H */
