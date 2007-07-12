@@ -11,15 +11,15 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_MCMS_STATS_TEMPORAL_H
-#define IS_MCMS_STATS_TEMPORAL_H
+#ifndef IS_LIB_COMMON_STATS_TEMPORAL_H
+#define IS_LIB_COMMON_STATS_TEMPORAL_H
 
 #include <lib-common/macros.h>
 #include <lib-common/bfield.h>
 #include <lib-common/blob.h>
 
-#define STATS_TEMPORAL_SECONDS   1 << 0
-#define STATS_TEMPORAL_HOURS     1 << 1
+#define STATS_TEMPORAL_SECONDS   (1 << 0)
+#define STATS_TEMPORAL_HOURS     (1 << 1)
 
 typedef struct stats_temporal_t stats_temporal_t;
 
@@ -41,4 +41,4 @@ int stats_temporal_query_hour(stats_temporal_t *stats, blob_t *blob,
                               int64_t *outp, int start, int nb_values,
                               bfield_t *mask);
 
-#endif /* IS_MCMS_STATS_TEMPORAL_H */
+#endif /* IS_LIB_COMMON_STATS_TEMPORAL_H */

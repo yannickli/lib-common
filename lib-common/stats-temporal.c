@@ -289,8 +289,8 @@ stats_temporal_t *stats_temporal_new(const char *path, int nb_stats,
     stats = p_new(stats_temporal_t, 1);
     pstrcpy(stats->path, sizeof(stats->path), path);
     stats->nb_stats = nb_stats;
-    stats->do_sec  = flags & STATS_TEMPORAL_SECONDS;
-    stats->do_hour = flags & STATS_TEMPORAL_HOURS;
+    stats->do_sec  = !!(flags & STATS_TEMPORAL_SECONDS);
+    stats->do_hour = !!(flags & STATS_TEMPORAL_HOURS);
 
     return stats;
 }
@@ -602,9 +602,8 @@ static void stats_query_read_hour(stats_temporal_t *stats, int start_time,
     *outp = out;
 }
 
-int stats_temporal_query_sec(stats_temporal_t *stats,
-                             blob_t *blob, int *outp,
-                             int start, int nb_values,
+int stats_temporal_query_sec(stats_temporal_t *stats, blob_t *blob,
+                             int *outp, int start, int nb_values,
                              bfield_t *mask)
 {
     int end;
@@ -647,9 +646,8 @@ int stats_temporal_query_sec(stats_temporal_t *stats,
     return 0;
 }
 
-int stats_temporal_query_hour(stats_temporal_t *stats,
-                              blob_t *blob, int64_t *outp,
-                              int start, int nb_values,
+int stats_temporal_query_hour(stats_temporal_t *stats, blob_t *blob,
+                              int64_t *outp, int start, int nb_values,
                               bfield_t *mask)
 {
     int end;
