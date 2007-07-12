@@ -44,7 +44,7 @@ libcommon_SOURCES = \
 	log_limit.c \
 	mmappedfile.c \
 	paged-index.c \
-	property.c\
+	property.c \
 	showflags.c \
 	stats-temporal.c \
 	stopper.c \

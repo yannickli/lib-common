@@ -74,9 +74,9 @@ uint32_t crc32(const void *data, ssize_t len);
 #define SHA224_BLOCK_SIZE   SHA256_BLOCK_SIZE
 
 typedef struct sha1_ctx {
-        uint32_t state[5];
-        uint32_t count[2];
-        uint8_t buffer[64];
+    uint32_t state[5];
+    uint32_t count[2];
+    uint8_t buffer[64];
 } sha1_ctx;
 
 typedef struct sha256_ctx {
