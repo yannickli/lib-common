@@ -282,7 +282,7 @@ stats_temporal_t *stats_temporal_new(const char *path, int nb_stats,
                                      int flags)
 {
     stats_temporal_t* stats;
-    
+
     /* No longer need to open existing stats file, it will be open upon
      * first actual use
      */
@@ -348,7 +348,13 @@ bool stats_temporal_shrink(stats_temporal_t *stats, int date)
         break;                                                   \
                                                                  \
       case STATS_UPD_MIN:                                        \
-        *real_value = MIN(*real_value, (unsigned int)value);     \
+        if (*real_value == 0) {                                  \
+            /* FIXME: We don't known if a value was previously   \
+             * stored here, so 0 is considered as NULL */        \
+            *real_value = value;                                 \
+        } else {                                                 \
+            *real_value = MIN(*real_value, (unsigned int)value); \
+        }                                                        \
         break;                                                   \
                                                                  \
       case STATS_UPD_MAX:                                        \
