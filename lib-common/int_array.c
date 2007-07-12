@@ -49,9 +49,11 @@ array_resize(int_array *a, ssize_t newlen)
 /* Memory management                                                      */
 /**************************************************************************/
 
+/* OG: should initialize as empty */
 int_array *int_array_init(int_array *array)
 {
     ssize_t i = 0;
+
     array->tab  = p_new(int , ARRAY_INITIAL_SIZE);
     array->len  = 0;
     array->size = ARRAY_INITIAL_SIZE;
@@ -79,7 +81,6 @@ void int_array_resize(int_array *array, ssize_t newlen)
 
 int int_array_take(int_array *array, ssize_t pos, int *item)
 {
-
     if (pos >= array->len || pos < 0) {
         return 1;
     }

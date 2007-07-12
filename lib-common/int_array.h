@@ -40,26 +40,25 @@ void int_array_resize(int_array *array, ssize_t newlen);
 void int_array_insert(int_array *array, ssize_t pos, int item)
     __attr_nonnull__((1));
 
-static inline void int_array_append(int_array *array, int item)
-{
+static inline void int_array_append(int_array *array, int item) {
     int_array_insert(array, array->len, item);
 }
-static inline void int_array_push(int_array *array, int item)
-{
+
+static inline void int_array_push(int_array *array, int item) {
     int_array_insert(array, 0, item);
 }
 
 int int_array_take(int_array *array, ssize_t pos, int *item)
     __attr_nonnull__((1));
 
-static inline void
-int_array_swap(int_array *array, ssize_t i, ssize_t j)
-{
+static inline void int_array_swap(int_array *array, ssize_t i, ssize_t j) {
     int v = array->tab[i];
     array->tab[i] = array->tab[j];
     array->tab[j] = v;
 }
+
 static inline void int_array_reset(int_array *array) {
      array->len = 0;
 }
+
 #endif /* IS_LIB_COMMON_INT_ARRAY_H */
