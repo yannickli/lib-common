@@ -341,31 +341,31 @@ bool stats_temporal_shrink(stats_temporal_t *stats, int date)
 }
 
 /* This has to be a macro, as real_value can be uint32_t* or uint64_t* */
-#define STAT_UPD_VALUE(type, real_value, real_value_bis, value)  \
-    switch (type) {                                              \
-      case STATS_UPD_INCR:                                       \
-        *real_value += value;                                    \
-        break;                                                   \
-                                                                 \
-      case STATS_UPD_MIN:                                        \
-        if (*real_value == 0) {                                  \
-            /* FIXME: We don't known if a value was previously   \
-             * stored here, so 0 is considered as NULL */        \
-            *real_value = value;                                 \
-        } else {                                                 \
-            *real_value = MIN(*real_value, (unsigned int)value); \
-        }                                                        \
-        break;                                                   \
-                                                                 \
-      case STATS_UPD_MAX:                                        \
-        *real_value = MAX(*real_value, (unsigned int)value);     \
-        break;                                                   \
-                                                                 \
-      case STATS_UPD_MEAN:                                       \
-        *real_value = (*real_value * *real_value_bis + value)    \
-                    / (*real_value_bis + 1);                     \
-        *real_value_bis += 1;                                    \
-        break;                                                   \
+#define STAT_UPD_VALUE(type, real_value, real_value_bis, value)        \
+    switch (type) {                                                    \
+      case STATS_UPD_INCR:                                             \
+        *(real_value) += value;                                        \
+        break;                                                         \
+                                                                       \
+      case STATS_UPD_MIN:                                              \
+        if (*(real_value) == 0) {                                      \
+            /* FIXME: We don't known if a value was previously         \
+             * stored here, so 0 is considered as NULL */              \
+            *(real_value) = value;                                     \
+        } else {                                                       \
+            *(real_value) = MIN(*(real_value), (unsigned int)(value)); \
+        }                                                              \
+        break;                                                         \
+                                                                       \
+      case STATS_UPD_MAX:                                              \
+        *(real_value) = MAX(*(real_value), (unsigned int)(value));     \
+        break;                                                         \
+                                                                       \
+      case STATS_UPD_MEAN:                                             \
+        *(real_value) = (*(real_value) * *(real_value_bis) + (value))  \
+                    / (*(real_value_bis) + 1);                         \
+        *(real_value_bis) += 1;                                        \
+        break;                                                         \
     }
 
 
