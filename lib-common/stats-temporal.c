@@ -340,10 +340,37 @@ bool stats_temporal_shrink(stats_temporal_t *stats, int date)
     return true;
 }
 
-static int stats_temporal_log_one_sec(stats_temporal_t *stats,
-                                      int date, int index, int incr)
+/* This has to be a macro, as real_value can be uint32_t* or uint64_t* */
+#define STAT_UPD_VALUE(type, real_value, real_value_bis, value)  \
+    switch (type) {                                              \
+      case STATS_UPD_INCR:                                       \
+        *real_value += value;                                    \
+        break;                                                   \
+                                                                 \
+      case STATS_UPD_MIN:                                        \
+        *real_value = MIN(*real_value, (unsigned int)value);     \
+        break;                                                   \
+                                                                 \
+      case STATS_UPD_MAX:                                        \
+        *real_value = MAX(*real_value, (unsigned int)value);     \
+        break;                                                   \
+                                                                 \
+      case STATS_UPD_MEAN:                                       \
+        *real_value = (*real_value * *real_value_bis + value)    \
+                    / (*real_value_bis + 1);                     \
+        *real_value_bis += 1;                                    \
+        break;                                                   \
+    }
+
+
+static int stats_temporal_upd_sec(stats_temporal_t *stats, int date,
+                                  stats_upd_type type,
+                                  int index, int index_bis,
+                                  int value)
 {
     int offset, range;
+    uint32_t *real_value;
+    uint32_t *real_value_bis;
 
     if (stats->per_sec) {
         /* Check if date is within range of current stat file */
@@ -382,16 +409,24 @@ static int stats_temporal_log_one_sec(stats_temporal_t *stats,
         }
         stats->per_sec->area->nb_allocated = range;
     }
-    stats->per_sec->area->stats[offset * stats->per_sec->area->nb_stats +
-                                index] += incr;
+    real_value     = &stats->per_sec->area->stats[offset *
+        stats->per_sec->area->nb_stats + index];
+    real_value_bis = &stats->per_sec->area->stats[offset *
+        stats->per_sec->area->nb_stats + index_bis];
+
+    STAT_UPD_VALUE(type, real_value, real_value_bis, value);
 
     return 0;
 }
 
-static int stats_temporal_log_one_hour(stats_temporal_t *stats,
-                                       int date, int index, int incr)
+static int stats_temporal_upd_hour(stats_temporal_t *stats, int date,
+                                   stats_upd_type type,
+                                   int index, int index_bis,
+                                   int value)
 {
     int offset, range;
+    uint64_t *real_value;
+    uint64_t *real_value_bis;
 
     if (stats->per_hour) {
         /* Check if date is within range of current stat file */
@@ -430,23 +465,31 @@ static int stats_temporal_log_one_hour(stats_temporal_t *stats,
         }
         stats->per_hour->area->nb_allocated = range;
     }
-    stats->per_hour->area->stats[offset * stats->per_hour->area->nb_stats +
-                                 index] += incr;
+
+    real_value     = &stats->per_hour->area->stats[offset *
+        stats->per_hour->area->nb_stats + index];
+    real_value_bis = &stats->per_hour->area->stats[offset *
+        stats->per_hour->area->nb_stats + index_bis];
+
+    STAT_UPD_VALUE(type, real_value, real_value_bis, value);
 
     return 0;
 }
 
-int stats_temporal_log_one(stats_temporal_t *stats, time_t date,
-                           int index, int incr)
+int stats_temporal_upd(stats_temporal_t *stats, time_t date,
+                       stats_upd_type type,
+                       int index, int index_bis, int value)
 {
     int status = 0;
 
     if (stats->do_sec) {
-        if (stats_temporal_log_one_sec(stats, date, index, incr))
+        if (stats_temporal_upd_sec(stats, date, type,
+                                   index, index_bis, value))
             status = -1;
     }
     if (stats->do_hour) {
-        if (stats_temporal_log_one_hour(stats, date, index, incr))
+        if (stats_temporal_upd_hour(stats, date, type,
+                                    index, index_bis, value))
             status = -1;
     }
     return status;

@@ -21,6 +21,13 @@
 #define STATS_TEMPORAL_SECONDS   (1 << 0)
 #define STATS_TEMPORAL_HOURS     (1 << 1)
 
+typedef enum stats_upd_type {
+    STATS_UPD_INCR,
+    STATS_UPD_MIN,
+    STATS_UPD_MAX,
+    STATS_UPD_MEAN,
+} stats_upd_type;
+
 typedef struct stats_temporal_t stats_temporal_t;
 
 /* flags is a combination of STATS_TEMPORAL_SECONDS and
@@ -29,8 +36,12 @@ stats_temporal_t *stats_temporal_new(const char *path, int nb_stats,
                                      int flags);
 void stats_temporal_delete(stats_temporal_t **stats);
 
-int stats_temporal_log_one(stats_temporal_t * stats, time_t date,
-                           int index, int incr);
+/* index_bis is currently only used for type = STATS_UPD_MEAN to indicate in which
+ * index is stored the total number of samples */
+int stats_temporal_upd(stats_temporal_t * stats, time_t date,
+                       stats_upd_type type,
+                       int index, int index_bis,
+                       int value);
 bool stats_temporal_shrink(stats_temporal_t *stats, int date);
 
 /* Query */
