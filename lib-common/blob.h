@@ -71,6 +71,11 @@ static inline const char *blob_get_cstr(const blob_t *blob) {
     return (const char *)blob->data;
 }
 
+/* Get the pointer to the NUL at the end of the blob */
+static inline const char *blob_get_end(const blob_t *blob) {
+    return (const char *)blob->data + blob->len;
+}
+
 
 /**************************************************************************/
 /* Blob size/len manipulations                                            */
@@ -225,6 +230,10 @@ static inline void blob_kill_last(blob_t *blob, ssize_t len) {
     } else {
         blob_reset(blob);
     }
+}
+
+static inline void blob_kill_at(blob_t *blob, const char *s) {
+    blob_kill_first(blob, s - blob_get_cstr(blob));
 }
 
 
