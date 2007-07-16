@@ -504,12 +504,11 @@ int pidx_key_first(const pidx_file *pidx, uint64_t minval, uint64_t *res)
     key  = int_bits_range(minval, skip + PIDX_SHIFT * pos, PIDX_SHIFT);
 
     for (;;) {
-
         while (!pages[page].refs[key]) {
             int rbits;
 
             if (++key < countof(pages[page].refs)) {
-                rbits  = 64 - 8 * (pos + 1) - skip;
+                rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
                 minval = ((minval >> rbits) + 1) << rbits;
             } else {
                 if (--pos < 0)
@@ -528,6 +527,50 @@ int pidx_key_first(const pidx_file *pidx, uint64_t minval, uint64_t *res)
         }
         page = path[++pos] = pages[page].refs[key];
         key  = int_bits_range(minval, skip + PIDX_SHIFT * pos, PIDX_SHIFT);
+    }
+}
+
+
+int pidx_key_last(const pidx_file *pidx, uint64_t maxval, uint64_t *res)
+{
+    const int skip = pidx->area->skip;
+    const pidx_page *pages = pidx->area->pages;
+
+    int32_t page, *path = p_alloca(int32_t, pidx->area->nbsegs);
+    int pos, key;
+
+    if (int_bits_range(maxval, 0, skip)) {
+        maxval &= 0xffffffffffffffffULL >> skip;
+    }
+
+    pos  = 0;
+    page = path[pos] = 0;
+    key  = int_bits_range(maxval, skip + PIDX_SHIFT * pos, PIDX_SHIFT);
+
+    for (;;) {
+        while (!pages[page].refs[key]) {
+            int rbits;
+
+            if (--key >= 0) {
+                rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
+                maxval = ((maxval >> rbits) - 1) << rbits;
+            } else {
+                if (--pos < 0)
+                    return -1;
+                page   = path[pos];
+                rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
+                maxval = ((maxval >> rbits) - 1) << rbits;
+                key    = int_bits_range(maxval, skip + PIDX_SHIFT * pos,
+                                        PIDX_SHIFT);
+            }
+        }
+
+        if (pos == pidx->area->nbsegs) {
+            *res = maxval;
+            return 0;
+        }
+        page = path[++pos] = pages[page].refs[key];
+        key  = int_bits_range(maxval, skip + PIDX_SHIFT * pos, PIDX_SHIFT);
     }
 }
 
