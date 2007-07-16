@@ -553,13 +553,13 @@ int pidx_key_last(const pidx_file *pidx, uint64_t maxval, uint64_t *res)
 
             if (--key >= 0) {
                 rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
-                maxval = ((maxval >> rbits) - 1) << rbits;
+                maxval = ((maxval >> rbits) << rbits) - 1;
             } else {
                 if (--pos < 0)
                     return -1;
                 page   = path[pos];
                 rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
-                maxval = ((maxval >> rbits) - 1) << rbits;
+                maxval = ((maxval >> rbits) << rbits) - 1;
                 key    = int_bits_range(maxval, skip + PIDX_SHIFT * pos,
                                         PIDX_SHIFT);
             }
