@@ -299,35 +299,38 @@ void blob_splice_data(blob_t *blob, ssize_t pos, ssize_t len,
 /* OG: this API sucks indeed, a more generic and faster method is
  * advisable to quote log message contents.
  */
-void blob_append_cstr_escaped2(blob_t *blob, const char *cstr,
+void blob_append_data_escaped2(blob_t *blob, const byte *data, size_t len,
                                const char *toescape, const char *escaped)
 {
-    const char *p, *escaped_char;
+    const byte *p;
+    const char *escaped_char;
     char replacement;
     size_t off;
 
-    if (!cstr)
+    if (!data)
         return;
 
-    off = strcspn(cstr, toescape);
-    p = cstr + off;
-    while (*p) {
-        blob_append_data(blob, cstr, off);
+    off = pmemcspn(data, len, toescape);
+    while (off < len) {
+        p = data + off;
+        blob_append_data(blob, data, off);
+
         escaped_char = strchr(toescape, *p);
         replacement = *(escaped + (escaped_char - toescape));
         if (replacement) {
             blob_append_byte(blob, '\\');
             blob_append_byte(blob, *(escaped + (escaped_char - toescape)));
         }
-        cstr = p + 1;
 
-        off = strcspn(cstr, toescape);
-        p = cstr + off;
+        len  -= off + 1;
+        data  = p + 1;
+
+        off = pmemcspn(data, len, toescape);
     }
 
     /* Append string end, if it exists */
-    if (*cstr) {
-        blob_append_cstr(blob, cstr);
+    if (len > 0) {
+        blob_append_data(blob, data, len);
     }
 }
 
