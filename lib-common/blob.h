@@ -189,8 +189,13 @@ static inline void blob_append(blob_t *dest, const blob_t *src) {
 static inline void blob_append_byte(blob_t *blob, byte b) {
     blob_extend2(blob, 1, b);
 }
-void blob_append_cstr_escaped2(blob_t *blob, const char *cstr,
+void blob_append_data_escaped2(blob_t *blob, const byte *cstr, size_t len,
                                const char *toescape, const char *escaped);
+static inline void blob_append_cstr_escaped2(blob_t *blob, const char *cstr,
+                               const char *toescape, const char *escaped)
+{
+    blob_append_data_escaped2(blob, (const byte *)cstr, strlen(cstr), toescape, escaped);
+}
 static inline void blob_append_cstr_escaped(blob_t *blob, const char *cstr,
                                             const char *toescape) {
     blob_append_cstr_escaped2(blob, cstr, toescape, toescape);

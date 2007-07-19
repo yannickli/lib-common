@@ -109,12 +109,20 @@ int32_t pidx_page_new(pidx_file *pidx, uint64_t idx);
 /****************************************************************************/
 
 int pidx_key_first(const pidx_file *pidx, uint64_t minval, uint64_t *res);
+int pidx_key_last(const pidx_file *pidx, uint64_t maxval, uint64_t *res);
 
 static inline int
 pidx_key_next(const pidx_file *pidx, uint64_t cur, uint64_t *res) {
     if (cur == UINT64_MAX)
         return -1;
     return pidx_key_first(pidx, cur + 1, res);
+}
+
+static inline int
+pidx_key_prev(const pidx_file *pidx, uint64_t cur, uint64_t *res) {
+    if (cur == 0)
+        return -1;
+    return pidx_key_last(pidx, cur - 1, res);
 }
 
 /****************************************************************************/
