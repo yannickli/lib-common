@@ -219,6 +219,8 @@ static inline void blob_set_cstr(blob_t *blob, const char *cstr) {
 /*** kills ***/
 
 void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len);
+
+/* OG: should rename to blob_kill_head and blob_kill_tail? */
 static inline void blob_kill_first(blob_t *blob, ssize_t len) {
     if (len < blob->len) {
         blob->data += len;
@@ -237,6 +239,7 @@ static inline void blob_kill_last(blob_t *blob, ssize_t len) {
     }
 }
 
+/* OG: should rename to blob_kill_upto */
 static inline void blob_kill_at(blob_t *blob, const char *s) {
     blob_kill_first(blob, s - blob_get_cstr(blob));
 }
