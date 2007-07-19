@@ -35,6 +35,7 @@ libcommon_SOURCES = \
 	err_debug.c   \
 	err_report.c  \
 	fifo.c \
+	int_array.c \
 	ioveclist.c \
 	iprintf.c \
 	isndx.c \
@@ -44,7 +45,9 @@ libcommon_SOURCES = \
 	log_limit.c \
 	mmappedfile.c \
 	paged-index.c \
+	property.c \
 	showflags.c \
+	stats-temporal.c \
 	stopper.c \
 	str_array.c \
 	strconv.c \
@@ -61,6 +64,7 @@ libcommon_SOURCES = \
 	\
 	hash-crc.c \
 	hash-sha2.c \
+	hash-sha1.c \
 	\
 	mem-pool.c \
 	mem-fifo-pool.c \

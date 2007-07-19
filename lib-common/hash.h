@@ -52,29 +52,41 @@ uint32_t crc32(const void *data, ssize_t len);
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+
+
+
+#define SHA1_DIGEST_SIZE    (160 / 8)
 #define SHA224_DIGEST_SIZE  (224 / 8)
 #define SHA256_DIGEST_SIZE  (256 / 8)
 #define SHA384_DIGEST_SIZE  (384 / 8)
 #define SHA512_DIGEST_SIZE  (512 / 8)
 
+#define SHA1_HEX_DIGEST_SIZE    (SHA1_DIGEST_SIZE   * 2 + 1)
 #define SHA224_HEX_DIGEST_SIZE  (SHA224_DIGEST_SIZE * 2 + 1)
 #define SHA256_HEX_DIGEST_SIZE  (SHA256_DIGEST_SIZE * 2 + 1)
 #define SHA384_HEX_DIGEST_SIZE  (SHA384_DIGEST_SIZE * 2 + 1)
 #define SHA512_HEX_DIGEST_SIZE  (SHA512_DIGEST_SIZE * 2 + 1)
 
+#define SHA1_BLOCK_SIZE     64
 #define SHA256_BLOCK_SIZE   ( 512 / 8)
 #define SHA512_BLOCK_SIZE   (1024 / 8)
 #define SHA384_BLOCK_SIZE   SHA512_BLOCK_SIZE
 #define SHA224_BLOCK_SIZE   SHA256_BLOCK_SIZE
 
-typedef struct {
+typedef struct sha1_ctx {
+    uint32_t state[5];
+    uint32_t count[2];
+    uint8_t buffer[64];
+} sha1_ctx;
+
+typedef struct sha256_ctx {
     uint32_t tot_len;
     uint32_t len;
     uint32_t h[8];
     byte block[2 * SHA256_BLOCK_SIZE];
 } sha256_ctx;
 
-typedef struct {
+typedef struct sha512_ctx {
     uint32_t tot_len;
     uint32_t len;
     uint64_t h[8];
@@ -83,6 +95,13 @@ typedef struct {
 
 typedef sha512_ctx sha384_ctx;
 typedef sha256_ctx sha224_ctx;
+
+void sha1_init(sha1_ctx *ctx);
+void sha1_update(sha1_ctx *ctx, const void *data, uint32_t len);
+void sha1_final(sha1_ctx *ctx, byte *digest);
+void sha1_final_hex(sha1_ctx *ctx, char *digest);
+void sha1(const void *message, uint32_t len, byte *digest);
+void sha1_hex(const void *message, uint32_t len, char *digest);
 
 void sha224_init(sha224_ctx *ctx);
 void sha224_update(sha224_ctx *ctx, const void *message, uint32_t len);
