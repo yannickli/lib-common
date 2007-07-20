@@ -817,9 +817,9 @@ ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t n)
     last = dest + offset + n;
     for (p = dest + offset; p < last; p++) {
 #if RAND_MAX == 32767
-        val = (int) (((long)16 * rand()) / (RAND_MAX + 1));
+        val = (int)((16 * rand()) / (RAND_MAX + 1));
 #else
-        val = (int) (((double)16 * rand()) / (RAND_MAX + 1.0));
+        val = (int)(((double)16 * rand()) / (RAND_MAX + 1.0));
 #endif
         *p = hex[val];
     }
