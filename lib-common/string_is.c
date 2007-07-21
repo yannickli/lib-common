@@ -694,6 +694,7 @@ bool strfind(const char *keytable, const char *str, int sep)
  *  The pmemcspn() function calculates the length of the initial segment of
  *  'data' which consists entirely of characters not in 'reject'.
  */
+/* OG: implementation is very naive and inefficient */
 size_t pmemcspn(const byte *data, size_t len, const char *reject)
 {
     size_t count = 0;

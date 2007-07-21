@@ -316,12 +316,11 @@ void blob_append_data_escaped2(blob_t *blob, const byte *data, size_t len,
         blob_append_data(blob, data, off);
 
         escaped_char = strchr(toescape, *p);
-        replacement = *(escaped + (escaped_char - toescape));
+        replacement = escaped[escaped_char - toescape];
         if (replacement) {
             blob_append_byte(blob, '\\');
-            blob_append_byte(blob, *(escaped + (escaped_char - toescape)));
+            blob_append_byte(blob, replacement);
         }
-
         len  -= off + 1;
         data  = p + 1;
 
