@@ -829,7 +829,7 @@ ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t n)
 }
 
 /* OG: should move this to lib-inet or lib-mcms or mcms-sdk */
-int64_t msisdn_canonize(const char *str, int len, __unused__ int locale)
+int64_t msisdn_canonify(const char *str, int len, __unused__ int locale)
 {
     const char *p;
     char *q;
@@ -1293,32 +1293,32 @@ START_TEST(check_pstrrand)
 }
 END_TEST
 
-#define check_msisdn_canonize_unit(str, val) \
+#define check_msisdn_canonify_unit(str, val) \
     do { \
-        ret = msisdn_canonize(str, strlen(str), -1); \
-        fail_if(ret != val, "failed : msisdn_canonize returned %zd", ret); \
+        ret = msisdn_canonify(str, strlen(str), -1); \
+        fail_if(ret != val, "failed : msisdn_canonify returned %zd", ret); \
     } while (0)
 
-START_TEST(check_msisdn_canonize)
+START_TEST(check_msisdn_canonify)
 {
     int64_t ret;
 
-    check_msisdn_canonize_unit("", -1);
-    check_msisdn_canonize_unit("azerty", -1);
-    ret = msisdn_canonize("+33600000002\n", 12, -1);
-    fail_if(ret != 33600000002LL, "failed: msisdn_canonize returned %zd", ret);
-    check_msisdn_canonize_unit("+33600000000", 33600000000LL);
-    check_msisdn_canonize_unit("+33600000001", 33600000001LL);
-    check_msisdn_canonize_unit("+33600000002", 33600000002LL);
-    check_msisdn_canonize_unit("0122334455", 33122334455LL);
-    check_msisdn_canonize_unit("+33122334455", 33122334455LL);
-    check_msisdn_canonize_unit("+33622334455", 33622334455LL);
-    check_msisdn_canonize_unit("+330622334455", 33622334455LL);
-    check_msisdn_canonize_unit("+3306223344550", -1);
-    check_msisdn_canonize_unit("+3300622334455", -1);
-    check_msisdn_canonize_unit("+4412345", 4412345);
-    check_msisdn_canonize_unit("+4412345123456789087654", -1);
-    check_msisdn_canonize_unit("111212", 111212);
+    check_msisdn_canonify_unit("", -1);
+    check_msisdn_canonify_unit("azerty", -1);
+    ret = msisdn_canonify("+33600000002\n", 12, -1);
+    fail_if(ret != 33600000002LL, "failed: msisdn_canonify returned %zd", ret);
+    check_msisdn_canonify_unit("+33600000000", 33600000000LL);
+    check_msisdn_canonify_unit("+33600000001", 33600000001LL);
+    check_msisdn_canonify_unit("+33600000002", 33600000002LL);
+    check_msisdn_canonify_unit("0122334455", 33122334455LL);
+    check_msisdn_canonify_unit("+33122334455", 33122334455LL);
+    check_msisdn_canonify_unit("+33622334455", 33622334455LL);
+    check_msisdn_canonify_unit("+330622334455", 33622334455LL);
+    check_msisdn_canonify_unit("+3306223344550", -1);
+    check_msisdn_canonify_unit("+3300622334455", -1);
+    check_msisdn_canonify_unit("+4412345", 4412345);
+    check_msisdn_canonify_unit("+4412345123456789087654", -1);
+    check_msisdn_canonify_unit("111212", 111212);
 }
 END_TEST
 
@@ -1341,7 +1341,7 @@ Suite *check_string_is_suite(void)
     tcase_add_test(tc, check_buffer_increment);
     tcase_add_test(tc, check_buffer_increment_hex);
     tcase_add_test(tc, check_pstrrand);
-    tcase_add_test(tc, check_msisdn_canonize);
+    tcase_add_test(tc, check_msisdn_canonify);
     return s;
 }
 
