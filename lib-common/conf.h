@@ -51,7 +51,9 @@ GENERIC_DELETE(conf_t, conf);
 
 
 conf_t *conf_load(const char *filename);
-/* Same as conf_load, but from a blob. XXX: buf may be modified */
+/* Same as conf_load, but from a blob.
+ * ACHTUNG MINEN : the blob is modified !!!
+ * */
 conf_t *conf_load_blob(blob_t *buf);
 int conf_save(const conf_t *conf, const char *filename);
 
