@@ -1,4 +1,3 @@
-/*-*- mode:C; -*- */
 /*
  * Check: a unit test framework for C
  * Copyright (C) 2001, 2002, Arien Malec
@@ -49,7 +48,7 @@
    Suites are run through an SRunner, which is created with
    srunner_create. Additional suites can be added to an SRunner with
    srunner_add_suite. An SRunner is freed with srunner_free, which also
-   frees all suites added to the runner. 
+   frees all suites added to the runner.
 
    Use srunner_run_all to run a suite and print results.
 
@@ -83,17 +82,17 @@ extern int check_micro_version;
    with tcase_free.  For the moment, test cases can only be run
    through a suite
 */
-typedef struct TCase TCase; 
+typedef struct TCase TCase;
 
 /* type for a test function */
 typedef void (*TFun)(int);
 
 /* type for a setup/teardown function */
 typedef void (*SFun)(void);
- 
+
 /* Opaque type for a test suite */
 typedef struct Suite Suite;
- 
+
 /* Creates a test suite with the given name */
 Suite *suite_create(const char *name);
 
@@ -118,8 +117,8 @@ TCase *tcase_create(const char *name);
  */
 #define tcase_add_loop_test(tc,tf,s,e) \
    _tcase_add_test((tc),(tf),"" # tf "",0,(s),(e))
- 
-/* Signal version of loop test.  
+
+/* Signal version of loop test.
    FIXME: add a test case; this is untested as part of Check's tests.
  */
 #define tcase_add_loop_test_raise_signal(tc,tf,signal,s,e) \
@@ -128,7 +127,8 @@ TCase *tcase_create(const char *name);
 /* Add a test function to a test case
   (function version -- use this when the macro won't work
 */
-void _tcase_add_test(TCase *tc, TFun tf, const char *fname, int signal, int start, int end);
+void _tcase_add_test(TCase *tc, TFun tf, const char *fname, int signal,
+                     int start, int end);
 
 /* Add unchecked fixture setup/teardown functions to a test case
 
@@ -157,7 +157,7 @@ void tcase_add_unchecked_fixture(TCase *tc, SFun setup, SFun teardown);
    However, since fixture functions are run before and after each unit
    test, they should not be expensive code.
 
-*/ 
+*/
 void tcase_add_checked_fixture(TCase *tc, SFun setup, SFun teardown);
 
 /* Set the timeout for all tests in a test case. A test that lasts longer
@@ -166,37 +166,29 @@ void tcase_add_checked_fixture(TCase *tc, SFun setup, SFun teardown);
    CK_DEFAULT_TIMEOUT, the specific setting always takes precedence.
 */
 void tcase_set_timeout(TCase *tc, int timeout);
- 
+
 /* Internal function to mark the start of a test function */
 void tcase_fn_start(const char *fname, const char *file, int line);
 
 /* Start a unit test with START_TEST(unit_name), end with END_TEST
    One must use braces within a START_/END_ pair to declare new variables
-*/ 
-#define START_TEST(__testname)\
-static void __testname(int _i __attribute__((unused)))\
-{\
+*/
+#define START_TEST(__testname)                            \
+static void __testname(int _i __attribute__((unused))) {  \
   tcase_fn_start(""# __testname, __FILE__, __LINE__);
 
 /* End a unit test */
 #define END_TEST }
 
 /* Fail the test case unless expr is true */
-/* The space before the comma sign before ## is essential to be compatible
-   with gcc 2.95.3 and earlier.
-*/
-#define fail_unless(expr, ...)\
-        _fail_unless(expr, __FILE__, __LINE__,\
-        "Assertion '"#expr"' failed" , ## __VA_ARGS__, NULL)
+#define fail_unless(expr, ...)                 \
+        _fail_unless(expr, __FILE__, __LINE__, \
+                     "Assertion '" #expr "' failed" , "" __VA_ARGS__)
 
 /* Fail the test case if expr is true */
-/* The space before the comma sign before ## is essential to be compatible
-   with gcc 2.95.3 and earlier.
-*/
-
-/* FIXME: these macros may conflict with C89 if expr is 
+/* FIXME: these macros may conflict with C89 if expr is
    FIXME:   strcmp(str1, str2) due to excessive string length. */
-#define fail_if(expr, ...)\
+#define fail_if(expr, ...)                        \
         _fail_unless(!(expr), __FILE__, __LINE__, \
                      "Failure '" #expr "' occurred", "" __VA_ARGS__)
 
@@ -218,20 +210,20 @@ void _mark_point(const char *file, int line);
 
 /* Result of a test */
 enum test_result {
-  CK_PASS, /* Test passed*/
-  CK_FAILURE, /* Test completed but failed */
-  CK_ERROR /* Test failed to complete
-	      (unexpected signal or non-zero early exit) */ 
+    CK_PASS, /* Test passed*/
+    CK_FAILURE, /* Test completed but failed */
+    CK_ERROR /* Test failed to complete
+                (unexpected signal or non-zero early exit) */
 };
 
 /* Specifies the how much output an SRunner should produce */
 enum print_output {
-  CK_SILENT, /* No output */
-  CK_MINIMAL, /* Only summary output */
-  CK_NORMAL, /* All failed tests */
-  CK_VERBOSE, /* All tests */
-  CK_ENV, /* Look at environment var */
-  CK_LAST
+    CK_SILENT, /* No output */
+    CK_MINIMAL, /* Only summary output */
+    CK_NORMAL, /* All failed tests */
+    CK_VERBOSE, /* All tests */
+    CK_ENV, /* Look at environment var */
+    CK_LAST
 };
 
 /* Holds state for a running of a test suite */
@@ -241,16 +233,16 @@ typedef struct SRunner SRunner;
 typedef struct TestResult TestResult;
 
 /* accessors for tr fields */
- enum ck_result_ctx {
-  CK_CTX_SETUP,
-  CK_CTX_TEST,
-  CK_CTX_TEARDOWN
+enum ck_result_ctx {
+    CK_CTX_SETUP,
+    CK_CTX_TEST,
+    CK_CTX_TEARDOWN
 };
 
 /* Type of result */
 int tr_rtype(TestResult *tr);
-/* Context in which the result occurred */ 
-enum ck_result_ctx tr_ctx(TestResult *tr); 
+/* Context in which the result occurred */
+enum ck_result_ctx tr_ctx(TestResult *tr);
 /* Failure message */
 const char *tr_msg(TestResult *tr);
 /* Line number at which failure occurred */
@@ -269,13 +261,13 @@ void srunner_add_suite(SRunner *sr, Suite *s);
 /* Frees an SRunner, all suites added to it and all contained test cases */
 void srunner_free(SRunner *sr);
 
- 
+
 /* Test running */
 
 /* Runs an SRunner, printing results as specified (see enum print_output) */
 void srunner_run_all(SRunner *sr, enum print_output print_mode);
 
- 
+
 /* Next functions are valid only after the suite has been
    completely run, of course */
 
@@ -286,7 +278,7 @@ int srunner_ntests_failed(SRunner *sr);
 int srunner_ntests_run(SRunner *sr);
 
 /* Return an array of results for all failures
-  
+
    Number of failures is equal to srunner_nfailed_tests.  Memory for
    the array is malloc'ed and must be freed, but individual TestResults
    must not
@@ -300,16 +292,16 @@ TestResult **srunner_failures(SRunner *sr);
 
    Memory is malloc'ed and must be freed, but individual TestResults
    must not
-*/  
+*/
 TestResult **srunner_results(SRunner *sr);
 
- 
+
 /* Printing */
 
 /* Print the results contained in an SRunner */
 void srunner_print(SRunner *sr, enum print_output print_mode);
-  
-  
+
+
 /* Set a log file to which to write during test running.
 
   Log file setting is an initialize only operation -- it should be
@@ -341,23 +333,23 @@ const char *srunner_xml_fname(SRunner *sr);
 
 /* Control forking */
 enum fork_status {
-  CK_FORK,
-  CK_NOFORK
+    CK_FORK,
+    CK_NOFORK
 };
- 
+
 /* Get the current fork status */
 enum fork_status srunner_fork_status(SRunner *sr);
 
 /* Set the current fork status */
-void srunner_set_fork_status(SRunner *sr, enum fork_status fstat); 
-  
+void srunner_set_fork_status(SRunner *sr, enum fork_status fstat);
+
 /* Fork in a test and make sure messaging and tests work. */
 pid_t check_fork(void);
 
 /* Wait for the pid and exit. If pid is zero, just exit. */
 void check_waitpid_and_exit(pid_t pid);
 
-#ifdef __cplusplus 
+#ifdef __cplusplus
 #define CK_CPPEND }
 CK_CPPEND
 #endif
