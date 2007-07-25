@@ -16,7 +16,7 @@
 
 #include "macros.h"
 
-uint32_t crc32(const void *data, ssize_t len);
+uint32_t icrc32(uint32_t crc, const void *data, ssize_t len);
 
 /* BSD Code taken from http://www.ouah.org/ogay/sha2/sha2.tar.gz */
 

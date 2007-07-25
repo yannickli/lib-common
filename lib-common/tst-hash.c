@@ -20,7 +20,7 @@ static struct {
     const char *name;
     const char *message;
     int len;
-    uint32_t   crc32;
+    uint32_t crc32;
     const char *sha224_hex;
     const char *sha256_hex;
     const char *sha384_hex;
@@ -121,7 +121,7 @@ int main(void)
 
     printf("\nCRC32 Test vectors\n");
     for (i = 0; i < countof(vectors); i++) {
-        uint32_t crc = crc32(vectors[i].message, vectors[i].len);
+        uint32_t crc = icrc32(0, vectors[i].message, vectors[i].len);
         status |= testcrc(vectors[i].crc32, crc, vectors[i].name);
     }
 
