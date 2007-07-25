@@ -712,12 +712,12 @@ START_TEST(check_init_wipe)
     archive_init(&archive);
 
     fail_if(archive.nb_blocs != 0,
-            "initalized archive MUST have `nb_blocs' = 0, "
+            "initialized archive MUST have `nb_blocs' = 0, "
             "but has `nb_blocs = %d'", archive.nb_blocs);
     fail_if(archive.blocs != NULL,
-            "initalized archive MUST have a valid `blocs'");
+            "initialized archive MUST have a valid `blocs'");
     fail_if(archive.payload != NULL,
-            "initalized payload MUST have a valid `payload'");
+            "initialized payload MUST have a valid `payload'");
 
     archive_wipe(&archive);
     fail_if(archive.blocs != NULL,

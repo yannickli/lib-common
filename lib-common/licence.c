@@ -521,6 +521,7 @@ START_TEST(check_is_my_mac_addr)
         /* List your Macaddr here if you want the check to pass */
         "00:0F:3D:F1:A2:F0", /* exile */
         "00:11:09:E8:C6:72", /* fle1 */
+        "00:1A:A0:1C:54:B3", /* new fle1 */
         "00:30:1B:B8:EB:3B", /* mad */
         "00:0F:1F:F9:29:96", /* mag */
         "00:30:1B:AC:39:C3", /* ogu21 */

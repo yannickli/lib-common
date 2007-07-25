@@ -72,6 +72,8 @@ libcommon_SOURCES = \
 	unix.c \
 	unix-linux.c \
 	\
+	check-suite.c \
+	\
 	$(end_of_list)
 
 test_SOURCES = $(libcommon_SOURCES) check.c

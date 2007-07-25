@@ -38,7 +38,7 @@ GENERIC_INIT(entry_t, entry);
 GENERIC_WIPE(entry_t, entry);
 GENERIC_DELETE(entry_t, entry);
 ARRAY_TYPE(entry_t, entry);
-ARRAY_FUNCTIONS(entry_t, entry);
+ARRAY_FUNCTIONS(entry_t, entry, entry_delete);
 
 static int entry_cmp(const entry_t *ep1, const entry_t *ep2, void *opaque)
 {
@@ -114,7 +114,8 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
     proctimer_stop(&pt);
 
     //entry_array_wipe(&entries, true);
-    entry_array_wipe(&entries, false);
+    entry_array_resize(&entries, 0);
+    entry_array_wipe(&entries);
     free(entry_tab);
     p_fclose(&fp);
 

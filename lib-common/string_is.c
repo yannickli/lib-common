@@ -927,7 +927,8 @@ START_TEST(check_strstart)
     res = strstart(week, "Monday", &p);
     fail_if(!res, "strstart did not find needle");
     fail_if(p != week + strlen("Monday"),
-            "strstart did not set pp correctly", week, p);
+            "strstart did not set pp correctly"
+            " (week=\"%s\", p=\"%s\")", week, p);
 
     p = NULL;
     res = strstart(week, "Tuesday", &p);
@@ -943,7 +944,8 @@ START_TEST(check_stristart)
     res = stristart(week, "monDAY", &p);
     fail_if(!res, "stristart did not find needle");
     fail_if(p != week + strlen("MonDAY"),
-            "stristart did not set pp correctly", week, p);
+            "stristart did not set pp correctly"
+            " (week=\"%s\", p=\"%s\")", week, p);
 
     p = NULL;
     res = stristart(week, "tUESDAY", &p);
@@ -1101,18 +1103,18 @@ END_TEST
                                                                         \
         ret = strtolp(p, &endp, 0, &val, flags, min, max);              \
                                                                         \
-        fail_if (ret != ret_exp,                                        \
-                 "(\"%s\", flags=%d, min=%ld, max=%ld, val_exp=%ld, ret_exp=%d, end_i=%d)" \
-                 " -> ret=%d (expected %d)\n",                          \
-                 p, flags, min, max, val_exp, ret_exp, end_i,           \
-                 ret, ret_exp);                                         \
+        fail_if(ret != ret_exp,                                         \
+                "(\"%s\", flags=%d, min=%ld, max=%ld, val_exp=%ld, ret_exp=%d, end_i=%d)" \
+                " -> ret=%d (expected %d)\n",                           \
+                p, flags, (long)(min), (long)(max), (long)(val_exp),    \
+                ret_exp, end_i, ret, ret_exp);                          \
                                                                         \
         if (ret == 0) {                                                 \
-            fail_if (val != val_exp,                                    \
-                     "(\"%s\", flags=%d, min=%ld, max=%ld, val_exp=%ld, ret_exp=%d, end_i=%d)" \
-                     " -> val=%ld (expected %ld)\n",                    \
-                     p, flags, min, max, val_exp, ret_exp, end_i,       \
-                     val, val_exp);                                     \
+            fail_if(val != val_exp,                                     \
+                    "(\"%s\", flags=%d, min=%ld, max=%ld, val_exp=%ld, ret_exp=%d, end_i=%d)" \
+                    " -> val=%ld (expected %ld)\n",                     \
+                    p, flags, (long)(min), (long)(max), (long)(val_exp),\
+                    ret_exp, end_i, (long)(val), (long)(val_exp));      \
         }                                                               \
     } while (0)
 
@@ -1293,10 +1295,12 @@ START_TEST(check_pstrrand)
 }
 END_TEST
 
-#define check_msisdn_canonify_unit(str, val) \
-    do { \
-        ret = msisdn_canonify(str, strlen(str), -1); \
-        fail_if(ret != val, "failed : msisdn_canonify returned %zd", ret); \
+#define check_msisdn_canonify_unit(str, val)                \
+    do {                                                    \
+        ret = msisdn_canonify(str, strlen(str), -1);        \
+        fail_if(ret != val,                                 \
+                "failed: msisdn_canonify returned %lld",   \
+                (long long)(ret));                          \
     } while (0)
 
 START_TEST(check_msisdn_canonify)
@@ -1306,7 +1310,8 @@ START_TEST(check_msisdn_canonify)
     check_msisdn_canonify_unit("", -1);
     check_msisdn_canonify_unit("azerty", -1);
     ret = msisdn_canonify("+33600000002\n", 12, -1);
-    fail_if(ret != 33600000002LL, "failed: msisdn_canonify returned %zd", ret);
+    fail_if(ret != 33600000002LL,
+            "failed: msisdn_canonify returned %lld", (long long)ret);
     check_msisdn_canonify_unit("+33600000000", 33600000000LL);
     check_msisdn_canonify_unit("+33600000001", 33600000001LL);
     check_msisdn_canonify_unit("+33600000002", 33600000002LL);
