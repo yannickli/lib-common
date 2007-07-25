@@ -1923,7 +1923,7 @@ static inline void check_blob_invariants(blob_t *blob)
 {
     fail_if(blob->len >= blob->size,
             "a blob must have `len < size'. "
-            "this one has `len = %d' and `size = %d'",
+            "this one has `len = %zd' and `size = %zd'",
             blob->len, blob->size);
     fail_if(blob->data[blob->len] != '\0', \
             "a blob must have data[len] set to `\\0', `%c' found",
@@ -1954,7 +1954,7 @@ START_TEST(check_init_wipe)
     check_blob_invariants(&blob);
 
     fail_if(blob.len != 0,
-            "initalized blob MUST have `len' = 0, but has `len = %d'",
+            "initalized blob MUST have `len' = 0, but has `len = %zd'",
             blob.len);
     fail_if(blob.data == NULL,
             "initalized blob MUST have a valid `data'");
@@ -1975,7 +1975,7 @@ START_TEST(check_blob_new)
     fail_if(blob == NULL,
             "no blob was allocated");
     fail_if(blob->len != 0,
-            "new blob MUST have `len 0', but has `len = %d'", blob->len);
+            "new blob MUST have `len 0', but has `len = %zd'", blob->len);
     fail_if(blob->data == NULL,
             "new blob MUST have a valid `data'");
 
@@ -1998,7 +1998,7 @@ START_TEST(check_set)
     blob_set_cstr(&blob, "toto");
     check_blob_invariants(&blob);
     fail_if(blob.len != strlen("toto"),
-            "blob.len should be %d, but is %d", strlen("toto"), blob.len);
+            "blob.len should be %zd, but is %zd", strlen("toto"), blob.len);
     fail_if(strcmp((const char *)blob.data, "toto") != 0,
             "blob is not set to `%s'", "toto");
 
@@ -2006,7 +2006,7 @@ START_TEST(check_set)
     blob_set_data(&blob, "tutu", strlen("tutu"));
     check_blob_invariants(&blob);
     fail_if(blob.len != strlen("tutu"),
-            "blob.len should be %d, but is %d", strlen("tutu"), blob.len);
+            "blob.len should be %zd, but is %zd", strlen("tutu"), blob.len);
     fail_if(strcmp((const char *)blob.data, "tutu") != 0,
             "blob is not set to `%s'", "tutu");
 
@@ -2014,7 +2014,7 @@ START_TEST(check_set)
     blob_set(&bloub, &blob);
     check_blob_invariants(&bloub);
     fail_if(bloub.len != strlen("tutu"),
-            "blob.len should be %d, but is %d", strlen("tutu"), bloub.len);
+            "blob.len should be %zd, but is %zd", strlen("tutu"), bloub.len);
     fail_if(strcmp((const char *)bloub.data, "tutu") != 0,
             "blob is not set to `%s'", "tutu");
 
@@ -2052,7 +2052,7 @@ START_TEST(check_resize)
     blob_resize(&b1, 4);
     check_blob_invariants(&b1);
     fail_if (b1.len != 4,
-             "blob_resized blob should have len 4, but has %d", b1.len);
+             "blob_resized blob should have len 4, but has %zd", b1.len);
 
     check_teardown(&b1, NULL);
 }
@@ -2674,7 +2674,7 @@ START_TEST(check_serialize_c)
     blob_t dst;
     char c = 'Z';
     char val1 = 0x10, val2 = 0x11;
-    int pos, res, i;
+    int pos, res, j;
 
     blob_init(&dst);
 
@@ -2686,14 +2686,14 @@ START_TEST(check_serialize_c)
 
     /* Check all possible values for %c */
     blob_reset(&dst);
-    for (i = 0; i <= 0xFF; i++) {
-        blob_serialize(&dst, "%c", i);
+    for (j = 0; j <= 0xFF; j++) {
+        blob_serialize(&dst, "%c", j);
     }
     pos = 0;
-    for (i = 0; i <= 0xFF; i++) {
+    for (j = 0; j <= 0xFF; j++) {
         res = blob_deserialize(&dst, &pos, "%c", &val1);
-        fail_if(res != 0, "res:%d i:%d", res, i);
-        fail_if(val1 != i, "val1:%d i:%d", val1, i);
+        fail_if(res != 0, "res:%d j:%d", res, j);
+        fail_if(val1 != j, "val1:%d j:%d", val1, j);
     }
     fail_if (pos != dst.len, "pos:%d dst.len:%d", pos, (int)dst.len);
 
@@ -2841,7 +2841,7 @@ START_TEST(check_serialize_s)
     res = blob_deserialize(&dst, &pos, "%p", &val1); \
     fail_if(strcmp(val, val1), "val1:%s", val1); \
     fail_if(res != 0, "res:%d", res); \
-    fail_if(pos != dst.len, "pos:%d, dst.len:%d", pos, dst.len); \
+    fail_if(pos != dst.len, "pos:%d, dst.len:%zd", pos, dst.len); \
     } while (0)
 
     CHECKVAL("ABC");
@@ -2873,7 +2873,7 @@ START_TEST(check_serialize_p)
     fail_if(len1 != val_len, "len1:%d val_len:%d", len1, val_len); \
     fail_if(memcmp(val, val1, val_len), "memcmp failed"); \
     fail_if(res != 0, "res:%d", res); \
-    fail_if(pos != dst.len, "pos:%d, dst.len:%d", pos, dst.len); \
+    fail_if(pos != dst.len, "pos:%d, dst.len:%zd", pos, dst.len); \
     } while (0)
 
     CHECKVAL("ABC", 3);

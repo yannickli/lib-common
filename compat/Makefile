@@ -16,6 +16,6 @@ include $(DEPTH)/admin/header.mk
 
 __LIB__ := compat
 
-compat_SOURCES := compat.c
+compat_SOURCES := compat.c check.c
 
 include $(DEPTH)/admin/footer.mk

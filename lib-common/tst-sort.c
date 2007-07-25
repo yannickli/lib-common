@@ -60,7 +60,7 @@ GENERIC_WIPE(entry_t, entry);
 GENERIC_DELETE(entry_t, entry);
 SLIST_FUNCTIONS(entry_t, entry);
 ARRAY_TYPE(entry_t, entry);
-ARRAY_FUNCTIONS(entry_t, entry);
+ARRAY_FUNCTIONS(entry_t, entry, entry_delete);
 
 static int entry_number;
 static int compare_number;
@@ -193,7 +193,7 @@ static inline void dict_wipe(dict_t *dict)
 {
     entry_t *ep;
 
-    entry_array_wipe(&dict->entries, false);
+    entry_array_wipe(&dict->entries);
 
     dict->tailp = NULL;
     while ((ep = entry_list_pop(&dict->head)) != NULL) {

@@ -59,14 +59,18 @@ static uint32_t const crc32tab[256] = {
     0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d,
 };
 
-uint32_t crc32(const void *data, ssize_t len)
+/* Simplistic crc32 calculator, almost compatible with zlib version,
+ * except for crc type as uint32_t instead of unsigned long
+ */
+uint32_t icrc32(uint32_t crc, const void *data, ssize_t len)
 {
     const uint8_t *b = data;
-    uint32_t crc = ~0;
+
+    crc = crc ^ 0xffffffff;
 
     while (len-- > 0) {
         crc = (crc >> 8) ^ crc32tab[(crc ^ *b++) & 0xff];
     }
 
-    return ~crc;
+    return crc ^ 0xffffffff;
 }
