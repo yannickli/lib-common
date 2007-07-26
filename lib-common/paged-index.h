@@ -86,21 +86,6 @@ pidx_file *pidx_open(const char *path, int flags,
 pidx_file *pidx_creat(const char *path, uint8_t skip, uint8_t nbsegs);
 void pidx_close(pidx_file **f);
 
-/** \brief checks and repair idx files.
- * \param    pidx     the paginated index file to check/fix.
- * \param    dofix
- *     what shall be done with @pidx:
- *         - 0 means check only.
- *         - 1 means fix if necessary.
- *         - 2 means assume broken and fix.
- * \return
- *   - 0 if check is sucessful.
- *   - 1 if the file was fixed (modified) but that the result is a valid file.
- *   - -1 if the check failed and that either the file is not fixable or that
- *        fixing it was not allowed.
- */
-int pidx_fsck(pidx_file *pidx, int dofix);
-
 int pidx_clone(pidx_file *pidx, const char *filename);
 
 /****************************************************************************/

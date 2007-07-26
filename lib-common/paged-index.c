@@ -113,7 +113,20 @@ static void upgrade_to_1_1(pidx_file *pidx)
     pidx->area->minor = 1;
 }
 
-int pidx_fsck(pidx_file *pidx, int dofix)
+/** \brief checks and repair idx files.
+ * \param    pidx     the paginated index file to check/fix.
+ * \param    dofix
+ *     what shall be done with @pidx:
+ *         - 0 means check only.
+ *         - 1 means fix if necessary.
+ *         - 2 means assume broken and fix.
+ * \return
+ *   - 0 if check is sucessful.
+ *   - 1 if the file was fixed (modified) but that the result is a valid file.
+ *   - -1 if the check failed and that either the file is not fixable or that
+ *        fixing it was not allowed.
+ */
+static int pidx_fsck(pidx_file *pidx, int dofix)
 {
     bool did_a_fix = false;
     int version;
