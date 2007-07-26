@@ -38,14 +38,27 @@ MMFILE_FUNCTIONS(pidx_file, pidx_real);
 /* whole file related functions                                             */
 /****************************************************************************/
 
+/* FIXME make this thread safe */
 static void pidx_page_release(pidx_file *pidx, int32_t page)
 {
     assert (page > 0 && page < pidx->area->nbpages);
 
-    pidx->area->pages[page].next = pidx->area->freelist;
-    pidx->area->freelist = page;
-    p_clear(pidx->area->pages[page].payload,
-            countof(pidx->area->pages[page].payload));
+#if 0
+    if (!pidx->area->readers)
+#else
+    {
+#endif
+        pidx->area->pages[page].next = pidx->area->freelist;
+        pidx->area->freelist = page;
+        p_clear(pidx->area->pages[page].payload,
+                countof(pidx->area->pages[page].payload));
+    }
+#if 0
+    else
+    {
+        /* mark the page as to be released from version pidx->area->wr_ver */
+    }
+#endif
 }
 
 static int pidx_fsck_mark_page(byte *bits, pidx_file *pidx, int page)
@@ -90,13 +103,14 @@ static int pidx_fsck_recurse(byte *bits, pidx_file *pidx,
 static void upgrade_to_1_1(pidx_file *pidx)
 {
     /* NEW IN 1.1:
-       rd_ver and wr_ver
+       readers, rd_ver and wr_ver
      */
-    pidx->area->wr_ver = 0;
-    pidx->area->rd_ver = 0;
+    pidx->area->readers = 0;
+    pidx->area->wr_ver  = 0;
+    pidx->area->rd_ver  = 0;
 
-    pidx->area->major  = 1;
-    pidx->area->minor  = 1;
+    pidx->area->major = 1;
+    pidx->area->minor = 1;
 }
 
 int pidx_fsck(pidx_file *pidx, int dofix)
@@ -305,6 +319,9 @@ pidx_file *pidx_creat(const char *path, uint8_t skip, uint8_t nbsegs)
     pidx->area->skip     = skip;
     pidx->area->nbsegs   = nbsegs;
     pidx->area->nbpages  = nbpages;
+    pidx->area->readers  = 0;
+    pidx->area->wr_ver   = 0;
+    pidx->area->rd_ver   = 0;
 
     /* this creates the links: 1 -> 2 -> ... -> nbpages - 1 -> NIL */
     while (--nbpages > 1) {
@@ -370,6 +387,7 @@ int pidx_clone(pidx_file *pidx, const char *filename)
     memcpy(&hdr, pidx->area, sizeof(hdr));
     hdr.wrlock  = 0;
     hdr.wrlockt = 0;
+    hdr.readers = 0;
     hdr.rd_ver  = 0;
     hdr.wr_ver  = 0;
 
@@ -715,14 +733,15 @@ int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
     *oldpage = newpage;
 
     /* stage 4: put the old pages in the garbage queue */
-    /* FIXME: do what the comment says it does at some point */
     while (page) {
         int32_t next = pidx->area->pages[page].next;
         pidx_page_release(pidx, page);
         page = next;
     }
+    if (pidx->area->readers) {
+        pidx->area->wr_ver++;
+    }
 
-    pidx->area->wr_ver++;
     return 0;
 }
 
@@ -761,12 +780,15 @@ void pidx_data_release(pidx_file *pidx, uint64_t idx)
     if (!page)
         return;
 
+    pidx_page_recollect(pidx, idx, pidx->area->skip, 0);
+
     while (page) {
         int32_t next = pidx->area->pages[page].next;
         pidx_page_release(pidx, page);
         page = next;
     }
 
-    pidx_page_recollect(pidx, idx, pidx->area->skip, 0);
-    pidx->area->wr_ver++;
+    if (pidx->area->readers) {
+        pidx->area->wr_ver++;
+    }
 }

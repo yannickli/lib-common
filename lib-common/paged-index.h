@@ -56,16 +56,14 @@ typedef struct pidx_t {
 
     /* third qword */
     int16_t  wrlock;    /**< holds the pid of the writer if any.           */
-    int16_t  unused1;
-    int32_t  unused2;
+    uint16_t readers;   /**< how many readers                              */
+    uint16_t rd_ver;    /**< minimum version to keep                       */
+    uint16_t wr_ver;    /**< Write version                                 */
+
     /* fourth qword */
     int64_t  wrlockt;   /**< time associated to the lock                   */
 
-    /* fifth qword */
-    uint32_t rd_ver;    /**< minimum version to keep available             */
-    uint32_t wr_ver;    /**< modification version                          */
-
-    /* __future__: 128 - 5 qwords */
+    /* __future__: 128 - 4 qwords */
     uint64_t reserved[64 - 5]; /**< padding up to 2k                      */
 
     uint64_t subhdr[64];       /**< reserved for hosted file headers: 2k  */
