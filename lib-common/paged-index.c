@@ -30,8 +30,9 @@ static union {
 
 MMFILE_FUNCTIONS(pidx_file, pidx_real);
 
-#define PIDX_SHIFT     8
-#define PIDX_GROW   1024
+#define PIDX_SHIFT      8
+#define PIDX_GROW       1024
+#define PAYLOAD_SIZE    (PIDX_PAGE - 2 * ssizeof(int32_t))
 
 /****************************************************************************/
 /* whole file related functions                                             */
@@ -351,7 +352,7 @@ int pidx_clone(pidx_file *pidx, const char *filename)
     to_write = sizeof(hdr);
     while (to_write > 0) {
         int i = fwrite((byte *)&hdr + (sizeof(hdr) - to_write),
-                   1, to_write, f);
+                       1, to_write, f);
         if (i <= 0) {
             res = -1;
             goto exit;
@@ -362,7 +363,7 @@ int pidx_clone(pidx_file *pidx, const char *filename)
     to_write = pidx->size - sizeof(hdr);
     while (to_write > 0) {
         int i = fwrite((byte *)pidx->area + (pidx->size - to_write),
-                   1, to_write, f);
+                       1, to_write, f);
         if (i <= 0) {
             res = -1;
             goto exit;
@@ -393,7 +394,7 @@ static inline int int_bits_range(uint64_t idx, int start, int width)
  *  +  0 for not found
  *  +  positive integer index in pidx->pages[...]
  */
-int32_t pidx_page_find(const pidx_file *pidx, uint64_t idx)
+static int32_t pidx_page_find(const pidx_file *pidx, uint64_t idx)
 {
     const int maxshift = pidx->area->skip + PIDX_SHIFT * pidx->area->nbsegs;
 
@@ -447,40 +448,19 @@ static int32_t pidx_page_getfree(pidx_file *pidx)
     return res;
 }
 
-/* -1 means not indexable, 0 means could not extend file */
-int32_t pidx_page_new(pidx_file *pidx, uint64_t idx)
+static int32_t pidx_page_list_getfree(pidx_file *pidx, int len)
 {
-    const int maxshift = pidx->area->skip + PIDX_SHIFT * pidx->area->nbsegs;
+    int needed = MAX(0, len - 1) / PAYLOAD_SIZE + 1;
+    int32_t res = 0;
 
-    int k, shift;
-    int32_t page = 0, newpage;
+    while (needed-- > 0) {
+        int32_t pg = pidx_page_getfree(pidx);
 
-    if (int_bits_range(idx, 0, pidx->area->skip)) {
-        return -1;
+        pidx->area->pages[pg].next = res;
+        res = pg;
     }
 
-    for (shift = pidx->area->skip; shift < maxshift; shift += PIDX_SHIFT) {
-        k = int_bits_range(idx, shift, PIDX_SHIFT);
-
-        if (!pidx->area->pages[page].refs[k]) {
-            newpage = pidx_page_getfree(pidx);
-            if (newpage <= 0)
-                return 0;
-
-            pidx->area->pages[page].refs[k] = newpage;
-        }
-
-        page = pidx->area->pages[page].refs[k];
-    }
-
-    newpage = pidx_page_getfree(pidx);
-    if (newpage <= 0)
-        return 0;
-
-    k = int_bits_range(idx, shift, PIDX_SHIFT);
-    pidx->area->pages[newpage].next = pidx->area->pages[page].refs[k];
-    pidx->area->pages[page].refs[k] = newpage;
-    return newpage;
+    return res;
 }
 
 /****************************************************************************/
@@ -578,7 +558,7 @@ int pidx_key_last(const pidx_file *pidx, uint64_t maxval, uint64_t *res)
 /* high level functions                                                     */
 /****************************************************************************/
 
-int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
+int pidx_data_getslice(const pidx_file *pidx, uint64_t idx,
                        byte *out, int start, int len)
 {
     int32_t page  = pidx_page_find(pidx, idx);
@@ -607,7 +587,8 @@ int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
     return out - orig;
 }
 
-void *pidx_data_getslicep(pidx_file *pidx, uint64_t idx, int start, int len)
+void *pidx_data_getslicep(const pidx_file *pidx, uint64_t idx,
+                          int start, int len)
 {
     int32_t page  = pidx_page_find(pidx, idx);
 
@@ -632,7 +613,7 @@ void *pidx_data_getslicep(pidx_file *pidx, uint64_t idx, int start, int len)
     return NULL;
 }
 
-int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out)
+int pidx_data_get(const pidx_file *pidx, uint64_t idx, blob_t *out)
 {
     int32_t page  = pidx_page_find(pidx, idx);
     ssize_t pos   = out->len;
@@ -657,22 +638,39 @@ int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out)
 
 int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
 {
-#define PAYLOAD_SIZE   (PIDX_PAGE - 2 * ssizeof(int32_t))
+    const int maxshift = pidx->area->skip + PIDX_SHIFT * pidx->area->nbsegs;
 
-    int32_t curp, page = pidx_page_find(pidx, idx);
-    int nbpages = 0, needed;
+    int32_t *oldpage, page, newpage;
+    int k, shift;
 
-    needed = MAX(0, len - 1) / PAYLOAD_SIZE + 1;
-
-    for (curp = page; curp; curp = pidx->area->pages[curp].next)
-        nbpages++;
-
-    while (nbpages < needed) {
-        page = pidx_page_new(pidx, idx);
-        if (!page)
-            return -1;
-        nbpages++;
+    if (int_bits_range(idx, 0, pidx->area->skip)) {
+        return -1;
     }
+
+    /* stage 1: search the last pointer to us */
+
+    page = 0;
+    for (shift = pidx->area->skip; shift < maxshift; shift += PIDX_SHIFT) {
+        k = int_bits_range(idx, shift, PIDX_SHIFT);
+
+        if (!pidx->area->pages[page].refs[k]) {
+            newpage = pidx_page_getfree(pidx);
+            if (newpage <= 0)
+                return -1;
+
+            pidx->area->pages[page].refs[k] = newpage;
+        }
+
+        page = pidx->area->pages[page].refs[k];
+    }
+
+    k = int_bits_range(idx, shift, PIDX_SHIFT);
+    oldpage = &pidx->area->pages[page].refs[k];
+
+    /* stage 2: allocate a new clean list of pages and copy the data */
+    page = newpage = pidx_page_list_getfree(pidx, len);
+    if (newpage <= 0)
+        return -1;
 
     /* XXX do while is correct, we always want at least one page ! */
     do {
@@ -688,6 +686,12 @@ int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
         page  = pg->next;
     } while (len);
 
+    /* stage 3: atomically replace the pointer */
+    page = *oldpage;
+    *oldpage = newpage;
+
+    /* stage 4: put the old pages in the garbage queue */
+    /* FIXME: do what the comment says it does at some point */
     while (page) {
         int32_t next = pidx->area->pages[page].next;
         pidx_page_release(pidx, page);

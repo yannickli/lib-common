@@ -98,13 +98,6 @@ int pidx_fsck(pidx_file *pidx, int dofix);
 int pidx_clone(pidx_file *pidx, const char *filename);
 
 /****************************************************************************/
-/* low level page related functions                                         */
-/****************************************************************************/
-
-int32_t pidx_page_find(const pidx_file *pidx, uint64_t idx);
-int32_t pidx_page_new(pidx_file *pidx, uint64_t idx);
-
-/****************************************************************************/
 /* low level keys related functions                                         */
 /****************************************************************************/
 
@@ -129,12 +122,13 @@ pidx_key_prev(const pidx_file *pidx, uint64_t cur, uint64_t *res) {
 /* high level functions                                                     */
 /****************************************************************************/
 
-int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out);
+int pidx_data_get(const pidx_file *pidx, uint64_t idx, blob_t *out);
 
-int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
+int pidx_data_getslice(const pidx_file *pidx, uint64_t idx,
                        byte *out, int start, int len)
     __must_check__;
-void *pidx_data_getslicep(pidx_file *pidx, uint64_t idx, int start, int len);
+void *pidx_data_getslicep(const pidx_file *pidx, uint64_t idx,
+                          int start, int len);
 
 int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len);
 void pidx_data_release(pidx_file *pidx, uint64_t idx);
