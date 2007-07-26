@@ -87,9 +87,22 @@ static int pidx_fsck_recurse(byte *bits, pidx_file *pidx,
     return 0;
 }
 
+static void upgrade_to_1_1(pidx_file *pidx)
+{
+    /* NEW IN 1.1:
+       rd_ver and wr_ver
+     */
+    pidx->area->wr_ver = 0;
+    pidx->area->rd_ver = 0;
+
+    pidx->area->major  = 1;
+    pidx->area->minor  = 1;
+}
+
 int pidx_fsck(pidx_file *pidx, int dofix)
 {
     bool did_a_fix = false;
+    int version;
 
     if (pidx->size % PIDX_PAGE || pidx->size < 2 * PIDX_PAGE
     ||  ((uint64_t)pidx->size > (uint64_t)INT_MAX * PIDX_PAGE))
@@ -117,8 +130,17 @@ int pidx_fsck(pidx_file *pidx, int dofix)
     }
 
     /* hook conversions here ! */
-    if (pidx->area->major != 1 || pidx->area->minor != 0)
+    version = PIDX_MKVER(pidx->area->major, pidx->area->minor);
+    if (version < PIDX_MKVER(1, 0) || version > PIDX_VERSION)
         return -1;
+
+    if (version != PIDX_VERSION && !dofix)
+        return -1;
+
+    if (version < PIDX_MKVER(1, 1)) {
+        did_a_fix = true;
+        upgrade_to_1_1(pidx);
+    }
 
     if (pidx->area->nbpages != pidx->size / PIDX_PAGE - 1) {
         if (!dofix)
@@ -278,8 +300,8 @@ pidx_file *pidx_creat(const char *path, uint8_t skip, uint8_t nbsegs)
         return NULL;
 
     pidx->area->magic    = magic.i;
-    pidx->area->major    = 1;
-    pidx->area->minor    = 0;
+    pidx->area->major    = PIDX_MAJOR;
+    pidx->area->minor    = PIDX_MINOR;
     pidx->area->skip     = skip;
     pidx->area->nbsegs   = nbsegs;
     pidx->area->nbpages  = nbpages;
@@ -348,6 +370,8 @@ int pidx_clone(pidx_file *pidx, const char *filename)
     memcpy(&hdr, pidx->area, sizeof(hdr));
     hdr.wrlock  = 0;
     hdr.wrlockt = 0;
+    hdr.rd_ver  = 0;
+    hdr.wr_ver  = 0;
 
     to_write = sizeof(hdr);
     while (to_write > 0) {
@@ -698,6 +722,7 @@ int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
         page = next;
     }
 
+    pidx->area->wr_ver++;
     return 0;
 }
 
@@ -743,4 +768,5 @@ void pidx_data_release(pidx_file *pidx, uint64_t idx)
     }
 
     pidx_page_recollect(pidx, idx, pidx->area->skip, 0);
+    pidx->area->wr_ver++;
 }

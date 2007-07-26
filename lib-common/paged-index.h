@@ -28,7 +28,11 @@ typedef struct pidx_page {
     };
 } pidx_page;
 
-#define PIDX_PAGE  ssizeof(pidx_page)
+#define PIDX_PAGE         ssizeof(pidx_page)
+#define PIDX_MKVER(x, y)  (((x) << 8) | y)
+#define PIDX_MAJOR        1
+#define PIDX_MINOR        1
+#define PIDX_VERSION      PIDX_MKVER(PIDX_MAJOR, PIDX_MINOR)
 
 /** \brief this struct is the header of an intersec paginated file.
  * Such a file is stored in 64-bit aligned big endian structures,
@@ -57,8 +61,12 @@ typedef struct pidx_t {
     /* fourth qword */
     int64_t  wrlockt;   /**< time associated to the lock                   */
 
-    /* __future__: 128 - 4 qwords */
-    uint64_t reserved[64 - 4]; /**< padding up to 2k                      */
+    /* fifth qword */
+    uint32_t rd_ver;    /**< minimum version to keep available             */
+    uint32_t wr_ver;    /**< modification version                          */
+
+    /* __future__: 128 - 5 qwords */
+    uint64_t reserved[64 - 5]; /**< padding up to 2k                      */
 
     uint64_t subhdr[64];       /**< reserved for hosted file headers: 2k  */
 
