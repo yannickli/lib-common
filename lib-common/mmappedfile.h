@@ -66,12 +66,10 @@ mmfile *mmfile_open_or_creat(const char *path, int flags, off_t initialsize,
                              bool *created);
 void mmfile_close(mmfile **mf);
 
-/* @see ftruncate(2)
- *
- * XXX: mmfile may sometimes be wiped if remap fails !
- *      in that particular case, it returns -2 instead of -1
- */
-__must_check__ int mmfile_truncate(mmfile *mf, off_t length);
+/* @see ftruncate(2) */
+__must_check__
+int mmfile_truncate(mmfile *mf, off_t length, int (*lock)(void*),
+                    int (*unlock)(void*), void*);
 
 #define MMFILE_FUNCTIONS(type, prefix) \
     static inline type *prefix##_open(const char *path, int flags) {    \
@@ -96,7 +94,7 @@ __must_check__ int mmfile_truncate(mmfile *mf, off_t length);
                                                                         \
     __must_check__                                                      \
     static inline int prefix##_truncate(type *mf, off_t length) {       \
-        return mmfile_truncate((mmfile *)mf, length);                   \
+        return mmfile_truncate((mmfile *)mf, length, NULL, NULL, NULL); \
     }
 
 

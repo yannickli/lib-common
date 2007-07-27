@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #define _GNU_SOURCE
+#include <assert.h>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -196,24 +197,17 @@ void mmfile_close(mmfile **mf)
     }
 }
 
-int mmfile_truncate(mmfile *mf, off_t length)
+int mmfile_truncate(mmfile *mf, off_t length, int (*lock)(void*),
+                    int (*unlock)(void*), void *mut)
 {
-#if 1
     int res;
+
+    assert (!lock == !unlock);
 
     if (length == mf->size)
         return 0;
 
-    if (length < mf->size) {
-        mf->area = mremap(mf->area, mf->size, length, MREMAP_MAYMOVE);
-        if (mf->area == MAP_FAILED) {
-            mf->area = NULL;
-            mf->size = 0;
-            return -2;
-        }
-        mf->size = length;
-        return truncate(mf->path, length);
-    } else {
+    if (length > mf->size) {
         int fd;
 
         fd = open(mf->path, O_RDWR);
@@ -229,60 +223,29 @@ int mmfile_truncate(mmfile *mf, off_t length)
             return res;
         }
         close(fd);
-        mf->area = mremap(mf->area, mf->size, length, MREMAP_MAYMOVE);
-        if (mf->area == MAP_FAILED) {
-            mf->area = NULL;
-            mf->size = 0;
-            return -2;
+    }
+
+    /* stage 1: try to remap at the same place */
+    if (mremap(mf->area, mf->size, length, 0) == MAP_FAILED) {
+        void *map;
+
+        /* stage 2: lock, and remap for real */
+        if (lock && (*lock)(mut) < 0) {
+            return -1;
         }
-        mf->size = length;
-        return 0;
-    }
-#else
-    int fd = -1;
-    int res;
-
-    if (length == mf->size)
-        return 0;
-
-    fd = open(mf->path, O_RDWR);
-    if (fd < 0) {
-        errno = EBADF;
-        return -1;
-    }
-
-    /* XXX: there is races between ftruncate and mmap when mmap is dirty, we
-            *must* perform the msync. Maybe a MS_ASYNC would be enough, I
-            really don't know I shall say */
-    msync(mf->area, mf->size, MS_SYNC);
-    res = ftruncate(fd, length);
-    if (!res && length > mf->size) {
-        res = posix_fallocate(fd, mf->size, length - mf->size);
-    }
-
-    if (res) {
-        close(fd);
-        return res;
-    }
-
-    munmap(mf->area, mf->size);
-    mf->area = mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (mf->area == MAP_FAILED) {
-        e_trace(0, "mmap failed! file: %s length: %lld %m", mf->path, (long long)length);
-        mf->area = mmap(NULL, mf->size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                        fd, 0);
-        close(fd);
-
-        if (mf->area == MAP_FAILED) {
-            mf->area = NULL;
-            mf->size = 0;
-            return -2;
+        map = mremap(mf->area, mf->size, length, MREMAP_MAYMOVE);
+        if (map != MAP_FAILED) {
+            mf->area = map;
+        }
+        if (unlock) {
+            (*unlock)(mut);
         }
 
-        return -1;
+        if (map == MAP_FAILED) {
+            return -1;
+        }
     }
 
     mf->size = length;
-    return close(fd);
-#endif
+    return length > mf->size ? 0 : truncate(mf->path, length);
 }
