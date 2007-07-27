@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include <errno.h>
+#include <sys/mman.h>
 
 #include "btree.h"
 #include "unix.h"
