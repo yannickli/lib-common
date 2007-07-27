@@ -36,8 +36,7 @@ typedef struct mmfile MMFILE_ALIAS(byte) mmfile;
 #define MMAP_O_PRELOAD  00200000  // O_DIRECTORY
 
 mmfile *mmfile_open(const char *path, int flags, off_t minsize);
-static inline mmfile *mmfile_creat(const char *path, off_t initialsize)
-{
+static inline mmfile *mmfile_creat(const char *path, off_t initialsize) {
     return mmfile_open(path, O_CREAT | O_TRUNC | O_RDWR, initialsize);
 }
 void mmfile_close(mmfile **mf, void *mutex);
