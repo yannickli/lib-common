@@ -144,7 +144,7 @@ static mmfile_stats32 *per_sec_file_initialize(const char *prefix,
              prefix, t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
              t.tm_hour, t.tm_min, t.tm_sec);
 
-    m = mmfile_stats32_open(buf, O_RDWR);
+    m = mmfile_stats32_open(buf, O_RDWR, 0);
     if (m && (m->area->start_time > m->area->end_time ||
               m->area->nb_stats != nb_stats)) {
         /* Inconsistent header, probably an older version */
@@ -195,7 +195,7 @@ static mmfile_stats64 *per_hour_file_initialize(const char *prefix,
              t.tm_hour, t.tm_min, t.tm_sec);
 
     e_trace(2, "for start = %d : opening %s...", (int)date, buf);
-    m = mmfile_stats64_open(buf, O_RDWR);
+    m = mmfile_stats64_open(buf, O_RDWR, 0);
     if (m && (m->area->start_time > m->area->end_time ||
               m->area->nb_stats != nb_stats)) {
         /* Inconsistent header, probably an older version */

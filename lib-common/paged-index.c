@@ -261,7 +261,7 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
         return NULL;
     }
 
-    pidx = pidx_real_open(path, flags);
+    pidx = pidx_real_open(path, flags, 0);
     if (!pidx)
         return NULL;
 
