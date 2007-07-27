@@ -41,7 +41,7 @@ void property_array_update(property_array *arr, const char *k, const char *v)
     }
 }
 
-property_t *property_find(property_array *arr, const char *k)
+property_t *property_find(const property_array *arr, const char *k)
 {
     int i;
 
@@ -56,7 +56,7 @@ property_t *property_find(property_array *arr, const char *k)
 }
 
 const char *
-property_findval(property_array *arr, const char *k, const char *def)
+property_findval(const property_array *arr, const char *k, const char *def)
 {
     int i;
 

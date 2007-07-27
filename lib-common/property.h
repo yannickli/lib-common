@@ -34,9 +34,9 @@ DO_ARRAY(property_t, property, property_delete);
 void property_array_update(property_array *arr,
                            const char *k, const char *v);
 
-property_t *property_find(property_array *arr, const char *k);
+property_t *property_find(const property_array *arr, const char *k);
 const char *
-property_findval(property_array *arr, const char *k, const char *def);
+property_findval(const property_array *arr, const char *k, const char *def);
 void property_array_merge(property_array *arr, property_array **old);
 
 void property_array_remove_nulls(property_array *arr);
