@@ -81,9 +81,8 @@ typedef struct pidx_file MMFILE_ALIAS(pidx_t) pidx_file;
 /* whole file related functions                                             */
 /****************************************************************************/
 
-pidx_file *pidx_open(const char *path, int flags,
-                     uint8_t skip, uint8_t nbsegs);
-pidx_file *pidx_creat(const char *path, uint8_t skip, uint8_t nbsegs);
+__must_check__ pidx_file *
+pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs);
 void pidx_close(pidx_file **f);
 
 int pidx_clone(pidx_file *pidx, const char *filename);

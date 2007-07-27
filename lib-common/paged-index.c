@@ -240,30 +240,63 @@ static int pidx_fsck(pidx_file *pidx, int dofix)
     return did_a_fix;
 }
 
+static pidx_file *pidx_init(pidx_file *pidx, uint8_t skip, uint8_t nbsegs)
+{
+    struct timeval tv;
+    int nbpages;
+    pid_t pid = getpid();
+
+    if (nbsegs > 64 / PIDX_SHIFT || skip + PIDX_SHIFT * nbsegs > 64) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    assert (sizeof(pidx_page) == sizeof(pidx_t));
+
+    pidx->area->magic    = magic.i;
+    pidx->area->major    = PIDX_MAJOR;
+    pidx->area->minor    = PIDX_MINOR;
+    pidx->area->skip     = skip;
+    pidx->area->nbsegs   = nbsegs;
+    pidx->area->nbpages  = nbpages = pidx->size / ssizeof(pidx_page) - 1;
+    pidx->area->readers  = 0;
+    pidx->area->wr_ver   = 0;
+    pidx->area->rd_ver   = 0;
+
+    /* this creates the links: 1 -> 2 -> ... -> nbpages - 1 -> NIL */
+    while (--nbpages > 1) {
+        pidx->area->pages[nbpages - 1].next = nbpages;
+    }
+    pidx->area->freelist = 1;
+
+    pid_get_starttime(pid, &tv);
+    pidx->area->wrlock = pid;
+    /* OG: same remark as above */
+    msync(pidx->area, pidx->size, MS_SYNC);
+    if (pidx->area->wrlock != pid) {
+        pidx_close(&pidx);
+        errno = EDEADLK;
+        return NULL;
+    }
+    pidx->area->wrlock  = pid;
+    pidx->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
+    msync(pidx->area, pidx->size, MS_SYNC);
+
+    return pidx;
+}
+
 pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
 {
     pidx_file *pidx;
     int res;
 
-    /* Create or truncate the index if opening for write and:
-     * - it does not exist and flag O_CREAT is given
-     * - or it does exist and flag O_TRUNC is given
-     * bug: O_EXCL is not supported as it is not passed to btree_creat.
-     */
-    res = access(path, F_OK);
-    if (O_ISWRITE(flags)) {
-        if ((res && (flags & O_CREAT)) || (!res && (flags & O_TRUNC)))
-            return pidx_creat(path, skip, nbsegs);
-    }
-
-    if (res) {
-        errno = ENOENT;
-        return NULL;
-    }
-
-    pidx = pidx_real_open(path, flags, 0);
+    pidx = pidx_real_open(path, flags, PIDX_GROW * PIDX_PAGE);
     if (!pidx)
         return NULL;
+
+    if ((flags & (O_TRUNC | O_CREAT)) && !pidx->area->magic) {
+        return pidx_init(pidx, skip, nbsegs);
+    }
 
     res = pidx_fsck(pidx, O_ISWRITE(flags));
     if (res < 0) {
@@ -305,56 +338,6 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
         pidx->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
         msync(pidx->area, pidx->size, MS_SYNC);
     }
-
-    return pidx;
-}
-
-pidx_file *pidx_creat(const char *path, uint8_t skip, uint8_t nbsegs)
-{
-    struct timeval tv;
-    pidx_file *pidx;
-    int nbpages = PIDX_GROW - 1;
-    pid_t pid = getpid();
-
-    if (nbsegs > 64 / PIDX_SHIFT || skip + PIDX_SHIFT * nbsegs > 64) {
-        errno = EINVAL;
-        return NULL;
-    }
-
-    assert (sizeof(pidx_page) == sizeof(pidx_t));
-
-    pidx = pidx_real_creat(path, (nbpages + 1) * PIDX_PAGE);
-    if (!pidx)
-        return NULL;
-
-    pidx->area->magic    = magic.i;
-    pidx->area->major    = PIDX_MAJOR;
-    pidx->area->minor    = PIDX_MINOR;
-    pidx->area->skip     = skip;
-    pidx->area->nbsegs   = nbsegs;
-    pidx->area->nbpages  = nbpages;
-    pidx->area->readers  = 0;
-    pidx->area->wr_ver   = 0;
-    pidx->area->rd_ver   = 0;
-
-    /* this creates the links: 1 -> 2 -> ... -> nbpages - 1 -> NIL */
-    while (--nbpages > 1) {
-        pidx->area->pages[nbpages - 1].next = nbpages;
-    }
-    pidx->area->freelist = 1;
-
-    pid_get_starttime(pid, &tv);
-    pidx->area->wrlock = pid;
-    /* OG: same remark as above */
-    msync(pidx->area, pidx->size, MS_SYNC);
-    if (pidx->area->wrlock != pid) {
-        pidx_close(&pidx);
-        errno = EDEADLK;
-        return NULL;
-    }
-    pidx->area->wrlock  = pid;
-    pidx->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
-    msync(pidx->area, pidx->size, MS_SYNC);
 
     return pidx;
 }
