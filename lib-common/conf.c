@@ -25,29 +25,32 @@
 
 #define CONF_DBG_LVL 3
 
-GENERIC_INIT(conf_section_t, conf_section);
+static conf_section_t *conf_section_init(conf_section_t *section)
+{
+    property_array_init(&section->vals);
+    return section;
+}
 static void conf_section_wipe(conf_section_t *section)
 {
     p_delete(&section->name);
-    while (section->var_nb > 0) {
-        section->var_nb--;
-        p_delete(&section->variables[section->var_nb]);
-        p_delete(&section->values[section->var_nb]);
-    }
-    p_delete(&section->variables);
-    p_delete(&section->values);
+    property_array_wipe(&section->vals);
 }
 
 GENERIC_NEW(conf_section_t, conf_section);
 GENERIC_DELETE(conf_section_t, conf_section);
 
+ARRAY_FUNCTIONS(conf_section_t, conf_section, conf_section_delete);
+
+static conf_t *conf_init(conf_t *conf)
+{
+    conf_section_array_init(&conf->sections);
+    return conf;
+}
+GENERIC_NEW(conf_t, conf);
+
 void conf_wipe(conf_t *conf)
 {
-    while (conf->section_nb > 0) {
-        conf->section_nb--;
-        conf_section_delete(&conf->sections[conf->section_nb]);
-    }
-    p_delete(&conf->sections);
+    conf_section_array_wipe(&conf->sections);
 }
 
 
@@ -60,20 +63,17 @@ static void section_add_var(conf_section_t *section,
                             const char *variable, int variable_len,
                             const char *value, int value_len)
 {
-    int n = section->var_nb;
+    property_t *prop = property_new();
 
-    p_realloc0(&section->variables, n, n + 1);
-    p_realloc0(&section->values, n, n + 1);
-    section->variables[n] = p_dupstr(variable, variable_len);
-    section->values[n] = p_dupstr(value, value_len);
-    section->var_nb++;
+    prop->name  = p_dupstr(variable, variable_len);
+    prop->value = p_dupstr(value, value_len);
+
+    property_array_append(&section->vals, prop);
 }
 
 static void conf_add_section(conf_t *conf, conf_section_t *section)
 {
-    p_realloc0(&conf->sections, conf->section_nb, conf->section_nb + 1);
-    conf->sections[conf->section_nb] = section;
-    conf->section_nb++;
+    conf_section_array_append(&conf->sections, section);
 }
 
 /* Read a line from the blob, return pointer to blob data or NULL at
@@ -277,13 +277,14 @@ int conf_save(const conf_t *conf, const char *filename)
         int i, j;
         conf_section_t *section;
 
-        for (i = 0; i < conf->section_nb; i++) {
-            section = conf->sections[i];
+        for (i = 0; i < conf->sections.len; i++) {
+            section = conf->sections.tab[i];
 
             fprintf(fp, "[%s]\n", section->name);
-            for (j = 0; j < section->var_nb; j++) {
+            for (j = 0; j < section->vals.len; j++) {
                 fprintf(fp, "%s = %s\n",
-                        section->variables[j], section->values[j]);
+                        section->vals.tab[j]->name,
+                        section->vals.tab[j]->value);
             }
             fprintf(fp, "\n");
         }
@@ -299,9 +300,9 @@ const char *conf_section_get_raw(const conf_section_t *section,
 
     assert (section && var);
 
-    for (i = 0; i < section->var_nb; i++) {
-        if (!strcasecmp(section->variables[i], var)) {
-            return section->values[i];
+    for (i = 0; i < section->vals.len; i++) {
+        if (!strcasecmp(section->vals.tab[i]->name, var)) {
+            return section->vals.tab[i]->value;
         }
     }
     return NULL;
@@ -315,8 +316,8 @@ const char *conf_get_raw(const conf_t *conf, const char *section,
 
     assert (section && var);
 
-    for (i = 0; i < conf->section_nb; i++) {
-        s = conf->sections[i];
+    for (i = 0; i < conf->sections.len; i++) {
+        s = conf->sections.tab[i];
         if (!strcasecmp(s->name, section)) {
             return conf_section_get_raw(s, var);
         }
@@ -421,38 +422,34 @@ const char *conf_put(conf_t *conf, const char *section,
         return NULL;
     }
 
-    for (i = 0; i < conf->section_nb; i++) {
-        s = conf->sections[i];
+    for (i = 0; i < conf->sections.len; i++) {
+        s = conf->sections.tab[i];
         if (!strcasecmp(s->name, section)) {
             int j;
 
-            for (j = 0; j < s->var_nb; j++) {
-                if (strcasecmp(s->variables[j], var))
+            for (j = 0; j < s->vals.len; j++) {
+                property_t *prop = s->vals.tab[j];
+                if (strcasecmp(prop->name, var))
                     continue;
                 if (value) {
-                    if (!strcmp(s->values[j], value)) {
+                    if (!strcmp(prop->value, value)) {
                         /* same value already: no nothing */
-                        return s->values[j];
+                        return prop->value;
                     }
                     /* replace value */
-                    p_delete(&s->values[j]);
-                    return s->values[j] = p_dupstr(value, value_len);
+                    p_delete(&prop->value);
+                    return prop->value = p_dupstr(value, value_len);
                 } else {
                     /* delete value */
-                    p_delete(&s->variables[j]);
-                    p_delete(&s->values[j]);
-                    s->var_nb--;
-                    memmove(&s->variables[j], &s->variables[j + 1],
-                            sizeof(s->variables[j]) * (s->var_nb - j));
-                    memmove(&s->values[j], &s->values[j + 1],
-                            sizeof(s->values[j]) * (s->var_nb - j));
+                    property_delete(&prop);
+                    property_array_take(&s->vals, j);
                     return NULL;
                 }
             }
             if (value) {
                 /* add variable in existing section */
                 section_add_var(s, var, var_len, value, value_len);
-                return s->values[j];
+                return s->vals.tab[j]->value;
             }
         }
     }
@@ -462,7 +459,7 @@ const char *conf_put(conf_t *conf, const char *section,
         s->name = p_strdup(section);
         conf_add_section(conf, s);
         section_add_var(s, var, var_len, value, value_len);
-        return s->values[0];
+        return s->vals.tab[0]->value;
     }
     return NULL;
 }
@@ -475,14 +472,14 @@ int conf_next_section_idx(const conf_t *conf, const char *prefix,
     if (prev_idx < 0) {
         prev_idx = 0;
     } else
-    if (prev_idx >= conf->section_nb - 1) {
+    if (prev_idx >= conf->sections.len - 1) {
         return -1;
     } else {
         prev_idx += 1;
     }
 
-    for (i = prev_idx; i < conf->section_nb; i++) {
-        if (stristart(conf->sections[i]->name, prefix, suffixp)) {
+    for (i = prev_idx; i < conf->sections.len; i++) {
+        if (stristart(conf->sections.tab[i]->name, prefix, suffixp)) {
             return i;
         }
     }
@@ -512,26 +509,26 @@ START_TEST(check_conf_load)
     conf = conf_load(SAMPLE_CONF_FILE);
     fail_if(conf == NULL,
             "conf_load failed");
-    fail_if(conf->section_nb != SAMPLE_SECTION_NB,
+    fail_if(conf->sections.len != SAMPLE_SECTION_NB,
             "conf_load did not parse the right number of sections (%d != %d)",
-            conf->section_nb, SAMPLE_SECTION_NB);
+            conf->sections.len, SAMPLE_SECTION_NB);
 
-    s = conf->sections[0];
+    s = conf->sections.tab[0];
     fail_if(!strequal(s->name, SAMPLE_SECTION1_NAME),
             "bad section name: expected '%s', got '%s'",
             SAMPLE_SECTION1_NAME, s->name);
-    fail_if(s->var_nb != SAMPLE_SECTION1_VAR_NB,
+    fail_if(s->vals.len != SAMPLE_SECTION1_VAR_NB,
             "bad variable number for section '%s': expected %d, got %d",
-            s->name, SAMPLE_SECTION1_VAR_NB, s->var_nb);
-    fail_if(!strequal(s->variables[0], SAMPLE_SECTION1_VAR1_NAME),
+            s->name, SAMPLE_SECTION1_VAR_NB, s->vals.len);
+    fail_if(!strequal(s->vals.tab[0]->name, SAMPLE_SECTION1_VAR1_NAME),
             "bad variable name: expected '%s', got '%s'",
-            SAMPLE_SECTION1_VAR1_NAME, s->variables[0]);
-    fail_if(!strequal(s->variables[1], SAMPLE_SECTION1_VAR2_NAME),
+            SAMPLE_SECTION1_VAR1_NAME, s->vals.tab[0]->name);
+    fail_if(!strequal(s->vals.tab[1]->name, SAMPLE_SECTION1_VAR2_NAME),
             "bad variable name: expected '%s', got '%s'",
-            SAMPLE_SECTION1_VAR2_NAME, s->variables[1]);
-    fail_if(!strequal(s->values[0], SAMPLE_SECTION1_VAL1),
+            SAMPLE_SECTION1_VAR2_NAME, s->vals.tab[1]->name);
+    fail_if(!strequal(s->vals.tab[0]->value, SAMPLE_SECTION1_VAL1),
             "bad variable value: expected '%s', got '%s'",
-            SAMPLE_SECTION1_VAL1, s->values[0]);
+            SAMPLE_SECTION1_VAL1, s->vals.tab[0]->value);
 
     prev = -1;
     prev = conf_next_section_idx(conf, "section", prev, NULL);
@@ -574,12 +571,12 @@ START_TEST(check_conf_load)
             "Could not read sample file: %s", SAMPLE_CONF_FILE);
 
     conf = conf_load_blob(&blob);
-    
+
     fail_if(conf == NULL,
             "conf_load_blob failed");
-    fail_if(conf->section_nb != SAMPLE_SECTION_NB,
+    fail_if(conf->sections.len != SAMPLE_SECTION_NB,
             "conf_load_blob did not parse the right number of sections (%d != %d)",
-            conf->section_nb, SAMPLE_SECTION_NB);
+            conf->sections.len, SAMPLE_SECTION_NB);
     conf_delete(&conf);
     blob_wipe(&blob);
 
