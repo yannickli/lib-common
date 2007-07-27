@@ -220,7 +220,7 @@ void props_to_fmtv1(blob_t *out, property_array *props)
     }
 }
 
-void property_array_copy(const property_array *from, property_array *to)
+void property_array_dup(const property_array *from, property_array *to)
 {
     int i;
     for (i = 0; i < from->len; i++) {
