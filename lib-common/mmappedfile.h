@@ -19,12 +19,15 @@
 
 #include <lib-common/macros.h>
 
-#define MMFILE_ALIAS(ptr_type)     \
-    {                              \
-        ssize_t   size;            \
-        char     *path;            \
-        ptr_type *area;            \
-        int       ro;              \
+#define MMFILE_ALIAS(ptr_type)      \
+    {                               \
+        ssize_t   size;             \
+        char     *path;             \
+        ptr_type *area;             \
+        int       ro;               \
+        int      (*lock)(void*);    \
+        int      (*unlock)(void*);  \
+        int      (*destroy)(void*); \
     }
 
 typedef struct mmfile MMFILE_ALIAS(byte) mmfile;
@@ -36,12 +39,10 @@ mmfile *mmfile_open(const char *path, int flags);
 mmfile *mmfile_creat(const char *path, off_t initialsize);
 mmfile *mmfile_open_or_creat(const char *path, int flags, off_t initialsize,
                              bool *created);
-void mmfile_close(mmfile **mf);
+void mmfile_close(mmfile **mf, void *mutex);
 
 /* @see ftruncate(2) */
-__must_check__
-int mmfile_truncate(mmfile *mf, off_t length, int (*lock)(void*),
-                    int (*unlock)(void*), void*);
+__must_check__ int mmfile_truncate(mmfile *mf, off_t length, void *mutex);
 
 #define MMFILE_FUNCTIONS(type, prefix) \
     static inline type *prefix##_open(const char *path, int flags) {    \
@@ -61,12 +62,12 @@ int mmfile_truncate(mmfile *mf, off_t length, int (*lock)(void*),
     }                                                                   \
                                                                         \
     static inline void prefix##_close(type **mmf) {                     \
-        mmfile_close((mmfile **)mmf);                                   \
+        mmfile_close((mmfile **)mmf, NULL);                             \
     }                                                                   \
                                                                         \
     __must_check__                                                      \
     static inline int prefix##_truncate(type *mf, off_t length) {       \
-        return mmfile_truncate((mmfile *)mf, length, NULL, NULL, NULL); \
+        return mmfile_truncate((mmfile *)mf, length, NULL);             \
     }
 
 

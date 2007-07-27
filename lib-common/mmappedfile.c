@@ -74,7 +74,7 @@ mmfile *mmfile_open(const char *path, int flags)
     if (fd >= 0) {
         close(fd);
     }
-    mmfile_close(&mf);
+    mmfile_close(&mf, NULL);
     return NULL;
 }
 
@@ -108,7 +108,7 @@ mmfile *mmfile_creat(const char *path, off_t initialsize)
     if (fd >= 0) {
         close(fd);
     }
-    mmfile_close(&mf);
+    mmfile_close(&mf, NULL);
     return NULL;
 }
 
@@ -173,36 +173,36 @@ mmfile *mmfile_open_or_creat(const char *path, int flags,
     if (fd >= 0) {
         close(fd);
     }
-    mmfile_close(&mf);
+    mmfile_close(&mf, NULL);
     return NULL;
 }
 
-static inline void mmfile_wipe(mmfile *mf)
+void mmfile_close(mmfile **mfp, void *mutex)
 {
-    p_delete(&mf->path);
-    if (mf->area) {
-        munmap(mf->area, mf->size);
-        mf->area = NULL;
-    }
-}
-
-void mmfile_close(mmfile **mf)
-{
-    if (*mf) {
-        if (!(*mf)->ro) {
-            msync((*mf)->area, (*mf)->size, MS_SYNC);
+    if (*mfp) {
+        mmfile *mf = *mfp;
+        if (mutex) {
+            (*mf->lock)(mutex);
         }
-        mmfile_wipe(*mf);
-        p_delete(mf);
+        if (!mf->ro) {
+            msync(mf->area, mf->size, MS_SYNC);
+        }
+        if (mf->area) {
+            munmap(mf->area, mf->size);
+            mf->area = NULL;
+        }
+        if (mutex) {
+            (*mf->unlock)(mutex);
+            (*mf->destroy)(mutex);
+        }
+        p_delete(&mf->path);
+        p_delete(mfp);
     }
 }
 
-int mmfile_truncate(mmfile *mf, off_t length, int (*lock)(void*),
-                    int (*unlock)(void*), void *mut)
+int mmfile_truncate(mmfile *mf, off_t length, void *mutex)
 {
     int res;
-
-    assert (!lock == !unlock);
 
     if (length == mf->size)
         return 0;
@@ -230,15 +230,15 @@ int mmfile_truncate(mmfile *mf, off_t length, int (*lock)(void*),
         void *map;
 
         /* stage 2: lock, and remap for real */
-        if (lock && (*lock)(mut) < 0) {
+        if (mutex && (*mf->lock)(mutex) < 0) {
             return -1;
         }
         map = mremap(mf->area, mf->size, length, MREMAP_MAYMOVE);
         if (map != MAP_FAILED) {
             mf->area = map;
         }
-        if (unlock) {
-            (*unlock)(mut);
+        if (mutex) {
+            (*mf->unlock)(mutex);
         }
 
         if (map == MAP_FAILED) {
