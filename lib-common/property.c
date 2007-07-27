@@ -219,3 +219,15 @@ void props_to_fmtv1(blob_t *out, property_array *props)
         blob_pack(out, "s:s\n",props->tab[i]->name, props->tab[i]->value);
     }
 }
+
+void property_array_copy(const property_array *from, property_array *to)
+{
+    int i;
+    for (i = 0; i < from->len; i++) {
+        property_t *prop = property_new();
+
+        prop->name  = p_strdup(from->tab[i]->name);
+        prop->value = p_strdup(from->tab[i]->value);
+        property_array_append(to, prop);
+    }
+}
