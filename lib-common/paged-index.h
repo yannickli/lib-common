@@ -64,8 +64,7 @@ typedef struct pidx_t {
     int64_t  wrlockt;   /**< time associated to the lock                   */
 
     /* __future__: 128 - 4 qwords */
-    /* OG: why 5 ? */
-    uint64_t reserved[64 - 5]; /**< padding up to 2k                      */
+    uint64_t reserved[64 - 4]; /**< padding up to 2k                      */
 
     uint64_t subhdr[64];       /**< reserved for hosted file headers: 2k  */
 
