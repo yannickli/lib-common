@@ -29,7 +29,7 @@ typedef struct pidx_page {
 } pidx_page;
 
 #define PIDX_PAGE         ssizeof(pidx_page)
-#define PIDX_MKVER(x, y)  (((x) << 8) | y)
+#define PIDX_MKVER(x, y)  (((x) << 8) | (y))
 #define PIDX_MAJOR        1
 #define PIDX_MINOR        1
 #define PIDX_VERSION      PIDX_MKVER(PIDX_MAJOR, PIDX_MINOR)
@@ -64,6 +64,7 @@ typedef struct pidx_t {
     int64_t  wrlockt;   /**< time associated to the lock                   */
 
     /* __future__: 128 - 4 qwords */
+    /* OG: why 5 ? */
     uint64_t reserved[64 - 5]; /**< padding up to 2k                      */
 
     uint64_t subhdr[64];       /**< reserved for hosted file headers: 2k  */
