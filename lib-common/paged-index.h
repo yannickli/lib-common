@@ -56,17 +56,16 @@ typedef struct pidx_t {
 
     /* third qword */
     int16_t  wrlock;    /**< holds the pid of the writer if any.           */
-    uint16_t readers;   /**< how many readers                              */
-    uint16_t rd_ver;    /**< minimum version to keep                       */
-    uint16_t wr_ver;    /**< Write version                                 */
+    int16_t  reserved1;
+    int32_t  version;   /**< content version                               */
 
     /* fourth qword */
     int64_t  wrlockt;   /**< time associated to the lock                   */
 
     /* __future__: 128 - 4 qwords */
-    uint64_t reserved[64 - 4]; /**< padding up to 2k                      */
+    uint64_t reserved[64 - 4]; /**< padding up to 2k                       */
 
-    uint64_t subhdr[64];       /**< reserved for hosted file headers: 2k  */
+    uint64_t subhdr[64];       /**< reserved for hosted file headers: 2k   */
 
     /** \brief pages of the @pidx_t.
      * pages[0] is _always_ the first level of pagination.

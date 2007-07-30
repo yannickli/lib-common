@@ -103,12 +103,8 @@ static int pidx_fsck_recurse(byte *bits, pidx_file *pidx,
 
 static void upgrade_to_1_1(pidx_file *pidx)
 {
-    /* NEW IN 1.1:
-       readers, rd_ver and wr_ver
-     */
-    pidx->area->readers = 0;
-    pidx->area->wr_ver  = 0;
-    pidx->area->rd_ver  = 0;
+    /* NEW IN 1.1: version */
+    pidx->area->version = 0;
 
     pidx->area->major = 1;
     pidx->area->minor = 1;
@@ -240,75 +236,53 @@ static int pidx_fsck(pidx_file *pidx, int dofix)
     return did_a_fix;
 }
 
-static pidx_file *pidx_init(pidx_file *pidx, uint8_t skip, uint8_t nbsegs)
+pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
 {
-    struct timeval tv;
-    int nbpages;
-    pid_t pid = getpid();
+    pidx_file *pidx;
+    int res;
+
+    assert (sizeof(pidx_page) == sizeof(pidx_t));
 
     if (nbsegs > 64 / PIDX_SHIFT || skip + PIDX_SHIFT * nbsegs > 64) {
         errno = EINVAL;
         return NULL;
     }
 
-    assert (sizeof(pidx_page) == sizeof(pidx_t));
-
-    pidx->area->magic    = magic.i;
-    pidx->area->major    = PIDX_MAJOR;
-    pidx->area->minor    = PIDX_MINOR;
-    pidx->area->skip     = skip;
-    pidx->area->nbsegs   = nbsegs;
-    pidx->area->nbpages  = nbpages = pidx->size / ssizeof(pidx_page) - 1;
-    pidx->area->readers  = 0;
-    pidx->area->wr_ver   = 0;
-    pidx->area->rd_ver   = 0;
-
-    /* this creates the links: 1 -> 2 -> ... -> nbpages - 1 -> NIL */
-    while (--nbpages > 1) {
-        pidx->area->pages[nbpages - 1].next = nbpages;
-    }
-    pidx->area->freelist = 1;
-
-    pid_get_starttime(pid, &tv);
-    pidx->area->wrlock = pid;
-    /* OG: same remark as above */
-    msync(pidx->area, pidx->size, MS_SYNC);
-    if (pidx->area->wrlock != pid) {
-        pidx_close(&pidx);
-        errno = EDEADLK;
-        return NULL;
-    }
-    pidx->area->wrlock  = pid;
-    pidx->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
-    msync(pidx->area, pidx->size, MS_SYNC);
-
-    return pidx;
-}
-
-pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
-{
-    pidx_file *pidx;
-    int res;
-
-    pidx = pidx_real_open(path, flags, PIDX_GROW * PIDX_PAGE);
+    pidx = pidx_real_open(path, flags, MMO_TLOCK, PIDX_GROW * PIDX_PAGE);
     if (!pidx)
         return NULL;
 
     if ((flags & (O_TRUNC | O_CREAT)) && !pidx->area->magic) {
-        return pidx_init(pidx, skip, nbsegs);
-    }
+        int nbpages;
 
-    res = pidx_fsck(pidx, O_ISWRITE(flags));
-    if (res < 0) {
-        /* lock check failed, file was not closed properly */
-        e_error("Cannot open '%s': already locked", path);
-        pidx_close(&pidx);
-        errno = EINVAL;
-        return NULL;
-    }
+        pidx->area->magic    = magic.i;
+        pidx->area->major    = PIDX_MAJOR;
+        pidx->area->minor    = PIDX_MINOR;
+        pidx->area->skip     = skip;
+        pidx->area->nbsegs   = nbsegs;
+        pidx->area->nbpages  = nbpages = pidx->size / ssizeof(pidx_page) - 1;
+        pidx->area->version  = 0;
+        pidx->area->wrlock   = 0;
+        pidx->area->wrlockt  = 0;
 
-    if (res > 0) {
-        e_error("`%s': corrupted pages, Repaired.", path);
+        /* this creates the links: 1 -> 2 -> ... -> nbpages - 1 -> NIL */
+        while (--nbpages > 1) {
+            pidx->area->pages[nbpages - 1].next = nbpages;
+        }
+        pidx->area->freelist = 1;
+    } else {
+        res = pidx_fsck(pidx, O_ISWRITE(flags));
+        if (res < 0) {
+            /* lock check failed, file was not closed properly */
+            e_error("Cannot open '%s': already locked", path);
+            pidx_close(&pidx);
+            errno = EINVAL;
+            return NULL;
+        }
+
+        if (res > 0) {
+            e_error("`%s': corrupted pages, Repaired.", path);
+        }
     }
 
     if (O_ISWRITE(flags)) {
@@ -316,27 +290,22 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
         pid_t pid = getpid();
 
         if (pidx->area->wrlock) {
-            pidx_close(&pidx);
+            pidx_real_close(&pidx);
             errno = EDEADLK;
             return NULL;
         }
 
-        /* OG: problem if file is open for write multiple times from
-         * the same pid: the first close will unlock it
-         */
-        pidx->area->wrlock = pid;
-        /* OG: why not patch wrlockt at the same time ?
-         * should have a single 64 bit entry with both pid and time
-         */
-        msync(pidx->area, pidx->size, MS_SYNC);
-        if (pidx->area->wrlock != pid) {
-            pidx_close(&pidx);
-            errno = EDEADLK;
-            return NULL;
-        }
         pid_get_starttime(pid, &tv);
+        pidx->area->wrlock = pid;
         pidx->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
         msync(pidx->area, pidx->size, MS_SYNC);
+    }
+
+    if (pidx_real_unlock(pidx) < 0) {
+        int save_errno = errno;
+        pidx_close(&pidx);
+        errno = save_errno;
+        return NULL;
     }
 
     return pidx;
@@ -384,9 +353,7 @@ int pidx_clone(pidx_file *pidx, const char *filename)
     memcpy(&hdr, pidx->area, sizeof(hdr));
     hdr.wrlock  = 0;
     hdr.wrlockt = 0;
-    hdr.readers = 0;
-    hdr.rd_ver  = 0;
-    hdr.wr_ver  = 0;
+    hdr.version = 0;
 
     to_write = sizeof(hdr);
     while (to_write > 0) {
@@ -736,9 +703,7 @@ int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
         pidx_page_release(pidx, page);
         page = next;
     }
-    if (pidx->area->readers) {
-        pidx->area->wr_ver++;
-    }
+    pidx->area->version++;
 
     return 0;
 }
@@ -786,7 +751,5 @@ void pidx_data_release(pidx_file *pidx, uint64_t idx)
         page = next;
     }
 
-    if (pidx->area->readers) {
-        pidx->area->wr_ver++;
-    }
+    pidx->area->version++;
 }

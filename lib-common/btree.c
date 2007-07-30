@@ -665,76 +665,49 @@ int btree_check_integrity(btree_t *bt, int dofix, btree_print_fun *fun, FILE *ar
 
 /*---------------- Memory mapped API functions ----------------*/
 
-btree_t *btree_open(const char *path, int flags)
+btree_t *btree_open(const char *path, int flags, bool check)
 {
     btree_t *bt;
-    int res, openflags;
 
-    /* flag BT_O_NOCHECK prevents integrity check so btree_dump() can
-     * display corrupted btree index contents
-     */
-
-    /* OG: creating and opening should be totally separate */
-    /* MC: I disagree, if you don't have any creation parameters, which you
-           don't need for the current implementation, needing create to create
-           a file is just painful. creat() is just a shorthand for
-           open(..., flags | O_EXCL | O_WRONLY | O_TRUNC) and needing to do
-           the following sucks:
-           if (access(path, F_OK)) {
-               foo_open(path);
-           } else {
-               foo_creat(path);
-           }
-
-           You want a way to say "Open that btree, and if it does not exists,
-           please create a new empty one. This is perfectly sensible.
-
-           Then having a more clever _create() function with some parameters
-           for tweaked creations is fine too. But supporting a creation with
-           sane defaults _IS_ a good thing.
-     */
-     /* OG: Furthermore, opening the file for update should require exclusive
-      *     access unless the code can handle concurrent access.
-      */
-
-    /* Create or truncate the index if opening for write and:
-     * - it does not exist and flag O_CREAT is given
-     * - or it does exist and flag O_TRUNC is given
-     * bug: O_EXCL is not supported as it is not passed to btree_creat.
-     */
-    res = access(path, F_OK);
-    if (O_ISWRITE(flags)) {
-        if ((res && (flags & O_CREAT)) || (!res && (flags & O_TRUNC)))
-            return btree_creat(path);
-    }
-
-    if (res) {
-        errno = ENOENT;
-        return NULL;
-    }
-
-    if (flags & BT_O_NOCHECK)
-        openflags = flags & ~BT_O_NOCHECK;
-    else
-        openflags = flags | MMAP_O_PRELOAD;
-
-    bt = bt_real_open(path, openflags, 0);
+    bt = bt_real_open(path, flags, MMO_TLOCK | (check ? MMO_POPULATE : 0), 0);
     if (!bt) {
         e_trace(2, "Could not open bt on %s: %m", path);
         return NULL;
     }
 
-    if (bt_check_header(bt->area, O_ISWRITE(flags), bt->path, bt->size) < 0) {
-        btree_close(&bt);
-        errno = EUCLEAN;
-        return NULL;
-    }
+    if ((flags & (O_TRUNC | O_CREAT)) && !bt->area->magic) {
+        int i;
 
-    if (!(flags & BT_O_NOCHECK)) {
-        if (btree_check_integrity(bt, O_ISWRITE(flags), NULL, NULL) < 0) {
+        bt->area->magic    = ISBT_MAGIC.magic;
+        bt->area->major    = BT_VERSION_MAJOR;
+        bt->area->minor    = BT_VERSION_MINOR;
+        bt->area->root     = 0;
+        bt->area->nbpages  = BT_INIT_NBPAGES - 1;
+        bt->area->freelist = 1;
+        bt->area->depth    = 0;
+
+        /* initial root page is an empty leaf */
+        bt->area->pages[0].leaf.used = 0;
+        bt->area->pages[0].leaf.next = BTPP_NIL;
+
+        /* initialize free list */
+        for (i = 1; i < BT_INIT_NBPAGES - 2; i++) {
+            bt->area->pages[i].leaf.next = i + 1;
+        }
+        bt->area->pages[i].leaf.next = 0;
+    } else {
+        if (bt_check_header(bt->area, O_ISWRITE(flags), bt->path, bt->size) < 0) {
             btree_close(&bt);
             errno = EUCLEAN;
             return NULL;
+        }
+
+        if (check) {
+            if (btree_check_integrity(bt, O_ISWRITE(flags), NULL, NULL) < 0) {
+                btree_close(&bt);
+                errno = EUCLEAN;
+                return NULL;
+            }
         }
     }
 
@@ -743,69 +716,23 @@ btree_t *btree_open(const char *path, int flags)
         pid_t pid = getpid();
 
         if (bt->area->wrlock) {
-            btree_close(&bt);
+            bt_real_close(&bt);
             errno = EDEADLK;
             return NULL;
         }
 
-        bt->area->wrlock = pid;
-        msync(bt->area, bt->size, MS_SYNC);
-        if (bt->area->wrlock != pid) {
-            btree_close(&bt);
-            errno = EDEADLK;
-            return NULL;
-        }
         pid_get_starttime(pid, &tv);
+        bt->area->wrlock = pid;
         bt->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
         msync(bt->area, bt->size, MS_SYNC);
     }
 
-    return bt;
-}
-
-btree_t *btree_creat(const char *path)
-{
-    struct timeval tv;
-    btree_t *bt;
-    pid_t pid;
-    int i;
-
-    /* Create index with size of exactly BT_INIT_NBPAGES pages */
-    bt = bt_real_creat(path, sizeof(bt_page_t) * BT_INIT_NBPAGES);
-    if (!bt)
-        return NULL;
-
-    bt->area->magic    = ISBT_MAGIC.magic;
-    bt->area->major    = BT_VERSION_MAJOR;
-    bt->area->minor    = BT_VERSION_MINOR;
-    bt->area->root     = 0;
-    bt->area->nbpages  = BT_INIT_NBPAGES - 1;
-    bt->area->freelist = 1;
-    bt->area->depth    = 0;
-
-    /* initial root page is an empty leaf */
-    bt->area->pages[0].leaf.used = 0;
-    bt->area->pages[0].leaf.next = BTPP_NIL;
-
-    /* initialize free list */
-    for (i = 1; i < BT_INIT_NBPAGES - 2; i++) {
-        bt->area->pages[i].leaf.next = i + 1;
-    }
-    bt->area->pages[i].leaf.next = 0;
-
-    /* lock the index file */
-    pid = getpid();
-    pid_get_starttime(pid, &tv);
-    bt->area->wrlock = pid;
-    msync(bt->area, bt->size, MS_SYNC);
-    if (bt->area->wrlock != pid) {
+    if (bt_real_unlock(bt) < 0) {
+        int save_errno = errno;
         btree_close(&bt);
-        errno = EDEADLK;
+        errno = save_errno;
         return NULL;
     }
-    bt->area->wrlock  = pid;
-    bt->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
-    msync(bt->area, bt->size, MS_SYNC);
 
     return bt;
 }

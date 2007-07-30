@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     if (argc > 1) {
         const char *indexname = argv[1];
 
-        bt = btree_open(indexname, O_RDONLY | BT_O_NOCHECK);
+        bt = btree_open(indexname, O_RDONLY, false);
         if (!bt) {
             fprintf(stderr, "%s: cannot open %s: %m\n",
                     "btree-dump", indexname);

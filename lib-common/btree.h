@@ -21,9 +21,6 @@
 #include "blob.h"
 #include "mmappedfile.h"
 
-/* Kludge for passing extra open options */
-#define BT_O_NOCHECK  O_NONBLOCK
-
 typedef struct btree_priv_t btree_priv_t;
 typedef struct btree_t MMFILE_ALIAS(struct btree_priv) btree_t;
 
@@ -32,8 +29,10 @@ typedef int btree_print_fun(FILE *fp, const char *fmt, ...)
 
 int btree_check_integrity(btree_t *bt, int dofix,
                           btree_print_fun *fun, FILE *arg);
-btree_t *btree_open(const char *path, int flags);
-btree_t *btree_creat(const char *path);
+btree_t *btree_open(const char *path, int flags, bool check);
+static inline btree_t *btree_creat(const char *path) {
+    return btree_open(path, O_CREAT | O_TRUNC | O_RDWR, 0);
+}
 void btree_close(btree_t **tree);
 
 /* OG: Should have both APIs, the default taking a (byte *, len) couple.

@@ -22,19 +22,16 @@
 
 #include "mmappedfile.h"
 
-GENERIC_FUNCTIONS(mmfile, mmfile);
-
-mmfile *mmfile_open(const char *path, int flags, off_t minsize)
+mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize)
 {
     int mflags = MAP_SHARED, prot = PROT_READ;
-    int fd = -1;
     struct stat st;
-    mmfile *mf = mmfile_new();
+    mmfile *mf = p_new(mmfile, 1);
+    mf->fd     = -1;
 
     /* Kludge for MAP_POPULATE */
-    if (flags & MMAP_O_PRELOAD) {
+    if (oflags & MMO_POPULATE) {
         mflags |= MAP_POPULATE;
-        flags &= ~MMAP_O_PRELOAD;
     }
 
     switch (flags & (O_RDONLY | O_WRONLY | O_RDWR)) {
@@ -51,12 +48,26 @@ mmfile *mmfile_open(const char *path, int flags, off_t minsize)
         goto error;
     }
 
-    fd = open(path, flags, 0644);
-    if (fd < 0 || fstat(fd, &st) < 0)
+    mf->fd = open(path, flags, 0644);
+    if (mf->fd < 0)
+        goto error;
+
+    if (oflags & MMO_LOCK) {
+        if (lockf(mf->fd, F_LOCK, minsize) < 0)
+            goto error;
+        mf->locked = true;
+    } else
+    if (oflags & MMO_TLOCK) {
+        if (lockf(mf->fd, F_TLOCK, minsize) < 0)
+            goto error;
+        mf->locked = true;
+    }
+
+    if (fstat(mf->fd, &st) < 0)
         goto error;
 
     if (prot & PROT_WRITE && st.st_size < minsize) {
-        if (ftruncate(fd, minsize) || posix_fallocate(fd, 0, minsize))
+        if (ftruncate(mf->fd, minsize) || posix_fallocate(mf->fd, 0, minsize))
             goto error;
         mf->size = minsize;
     } else {
@@ -67,28 +78,52 @@ mmfile *mmfile_open(const char *path, int flags, off_t minsize)
         mf->size = st.st_size;
     }
 
-    mf->area = mmap(NULL, mf->size, prot, mflags, fd, 0);
+    mf->area = mmap(NULL, mf->size, prot, mflags, mf->fd, 0);
     if (mf->area == MAP_FAILED) {
         mf->area = NULL;
         goto error;
     }
 
-    close(fd);
+    if (!(oflags & (MMO_LOCK | MMO_TLOCK))) {
+        close(mf->fd);
+        mf->fd = -1;
+    }
     mf->path  = p_strdup(path);
     return mf;
 
   error:
-    if (fd >= 0) {
-        close(fd);
+    {
+        int save_errno = errno;
+        mmfile_close(&mf, NULL);
+        errno = save_errno;
     }
-    mmfile_close(&mf, NULL);
     return NULL;
+}
+
+int mmfile_unlock(mmfile *mf)
+{
+    if (!mf->locked) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (close(mf->fd) < 0)
+        return -1;
+
+    mf->locked = false;
+    mf->fd = -1;
+    return 0;
 }
 
 void mmfile_close(mmfile **mfp, void *mutex)
 {
     if (*mfp) {
         mmfile *mf = *mfp;
+
+        if (mf->fd >= 0) {
+            close(mf->fd);
+            mf->fd = -1;
+        }
 
         if (mf->area) {
             if (mf->writeable) {
@@ -107,7 +142,7 @@ void mmfile_close(mmfile **mfp, void *mutex)
             (*mf->destroy)(mutex);
         }
         p_delete(&mf->path);
-        mmfile_delete(mfp);
+        p_delete(mfp);
     }
 }
 

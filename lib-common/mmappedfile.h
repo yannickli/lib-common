@@ -19,12 +19,20 @@
 
 #include <lib-common/macros.h>
 
+enum {
+    MMO_POPULATE,
+    MMO_LOCK,
+    MMO_TLOCK,
+};
+
 #define MMFILE_ALIAS(ptr_type)      \
     {                               \
         ssize_t   size;             \
         char     *path;             \
         ptr_type *area;             \
         flag_t    writeable : 1;    \
+        flag_t    locked    : 1;    \
+        int       fd;               \
         int      (*lock)(void*);    \
         int      (*unlock)(void*);  \
         int      (*destroy)(void*); \
@@ -32,25 +40,29 @@
 
 typedef struct mmfile MMFILE_ALIAS(byte) mmfile;
 
-/* Atrocious kludge for MAP_POPULATE */
-#define MMAP_O_PRELOAD  00200000  // O_DIRECTORY
-
-mmfile *mmfile_open(const char *path, int flags, off_t minsize);
+mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize);
 static inline mmfile *mmfile_creat(const char *path, off_t initialsize) {
-    return mmfile_open(path, O_CREAT | O_TRUNC | O_RDWR, initialsize);
+    return mmfile_open(path, O_CREAT | O_TRUNC | O_RDWR, 0, initialsize);
 }
+int mmfile_unlock(mmfile *mf);
 void mmfile_close(mmfile **mf, void *mutex);
 
 /* @see ftruncate(2) */
 __must_check__ int mmfile_truncate(mmfile *mf, off_t length, void *mutex);
 
 #define MMFILE_FUNCTIONS(type, prefix) \
-    static inline type *prefix##_open(const char *path, int fl, off_t sz) { \
-        return (type *)mmfile_open(path, fl, sz);                           \
+    static inline type *prefix##_open(const char *path, int fl, int ofl,    \
+                                      off_t sz)                             \
+    {                                                                       \
+        return (type *)mmfile_open(path, fl, ofl, sz);                      \
+    }                                                                       \
+                                                                            \
+    static inline int prefix##_unlock(type *mf) {                           \
+        return mmfile_unlock((mmfile *)mf);                                 \
     }                                                                       \
                                                                             \
     static inline type *prefix##_creat(const char *path, off_t size) {      \
-        return prefix##_open(path, O_CREAT | O_TRUNC | O_RDWR, size);       \
+        return prefix##_open(path, O_CREAT | O_TRUNC | O_RDWR, 0, size);    \
     }                                                                       \
                                                                             \
     static inline void prefix##_close(type **mmf) {                         \
