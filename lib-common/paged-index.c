@@ -704,10 +704,11 @@ int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
     }
 
     k = int_bits_range(idx, shift, PIDX_SHIFT);
-    oldpage = &pidx->area->pages[page].refs[k];
 
     /* stage 2: allocate a new clean list of pages and copy the data */
-    page = newpage = pidx_page_list_getfree(pidx, len);
+    newpage = pidx_page_list_getfree(pidx, len);
+    oldpage = &pidx->area->pages[page].refs[k];
+    page = newpage;
     if (newpage <= 0)
         return -1;
 
