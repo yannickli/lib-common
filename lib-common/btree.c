@@ -669,7 +669,8 @@ btree_t *btree_open(const char *path, int flags, bool check)
 {
     btree_t *bt;
 
-    bt = bt_real_open(path, flags, MMO_TLOCK | (check ? MMO_POPULATE : 0), 0);
+    bt = bt_real_open(path, flags, MMO_TLOCK | (check ? MMO_POPULATE : 0),
+                      sizeof(bt_page_t) * BT_INIT_NBPAGES);
     if (!bt) {
         e_trace(2, "Could not open bt on %s: %m", path);
         return NULL;
