@@ -317,25 +317,10 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
 void pidx_close(pidx_file **f)
 {
     if (*f) {
-        if ((*f)->area->wrlock && (*f)->writeable) {
-            pid_t pid = getpid();
-
-            if ((*f)->area->wrlock == pid) {
-                struct timeval tv;
-
-                pid_get_starttime(pid, &tv);
-                if ((*f)->area->wrlockt ==
-                    (((int64_t)tv.tv_sec << 32) | tv.tv_usec))
-                {
-                    msync((*f)->area, (*f)->size, MS_SYNC);
-                    (*f)->area->wrlock  = 0;
-                    (*f)->area->wrlockt = 0;
-                } else {
-                    /* OG: if same pid but different starttime, should
-                     * unlock as well!
-                     */
-                }
-            }
+        if ((*f)->writeable && (*f)->area->wrlock == getpid()) {
+            msync((*f)->area, (*f)->size, MS_SYNC);
+            (*f)->area->wrlock  = 0;
+            (*f)->area->wrlockt = 0;
         }
         pidx_real_close(f);
     }

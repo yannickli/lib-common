@@ -748,25 +748,10 @@ void btree_close(btree_t **btp)
     btree_t *bt = *btp;
 
     if (bt) {
-        if (bt->area->wrlock && bt->writeable) {
-            pid_t pid = getpid();
-
-            if (bt->area->wrlock == pid) {
-                struct timeval tv;
-
-                pid_get_starttime(pid, &tv);
-                if (bt->area->wrlockt ==
-                    (((int64_t)tv.tv_sec << 32) | tv.tv_usec))
-                {
-                    msync(bt->area, bt->size, MS_SYNC);
-                    bt->area->wrlock  = 0;
-                    bt->area->wrlockt = 0;
-                } else {
-                    /* OG: if same pid but different starttime, should
-                     * unlock as well!
-                     */
-                }
-            }
+        if (bt->writeable && bt->area->wrlock == getpid()) {
+            msync(bt->area, bt->size, MS_SYNC);
+            bt->area->wrlock  = 0;
+            bt->area->wrlockt = 0;
         }
         bt_real_close(btp);
     }
