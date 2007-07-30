@@ -231,6 +231,7 @@ static inline void cpuid(uint32_t request,
                          uint32_t *eax, uint32_t *ebx,
                          uint32_t *ecx, uint32_t *edx)
 {
+#if defined(__i386__)
      /* The IA-32 ABI specifies that %ebx holds the address of the
          global offset table.  In PIC code, GCC seems to be unable to
          handle asms with result operands that live in %ebx; I get the
@@ -253,6 +254,14 @@ static inline void cpuid(uint32_t request,
                     : "=a" (*eax), "=S" (*ebx), "=c" (*ecx), "=d" (*edx)
                     : "0" (request)
                     : "memory");
+#elif defined(__x86_64__)
+      asm volatile ("cpuid\n\t"
+                    : "=a" (*eax), "=b" (*ebx), "=c" (*ecx), "=d" (*edx)
+                    : "0" (request)
+                    : "memory");
+#elif
+#  error Your arch is unsupported
+#endif
 }
 
 /* Get the CPU signature
