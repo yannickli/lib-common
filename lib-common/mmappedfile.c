@@ -22,13 +22,12 @@
 
 #include "mmappedfile.h"
 
-GENERIC_INIT(mmfile, mmfile);
-GENERIC_NEW(mmfile, mmfile);
+GENERIC_FUNCTIONS(mmfile, mmfile);
 
 mmfile *mmfile_open(const char *path, int flags, off_t minsize)
 {
-    int mflags = MAP_SHARED;
-    int fd = -1, prot = PROT_READ;
+    int mflags = MAP_SHARED, prot = PROT_READ;
+    int fd = -1;
     struct stat st;
     mmfile *mf = mmfile_new();
 
@@ -38,26 +37,23 @@ mmfile *mmfile_open(const char *path, int flags, off_t minsize)
         flags &= ~MMAP_O_PRELOAD;
     }
 
-    fd = open(path, flags, 0644);
-    if (fd < 0)
-        goto error;
-
-    if (fstat(fd, &st))
-        goto error;
-
     switch (flags & (O_RDONLY | O_WRONLY | O_RDWR)) {
       case O_RDONLY:
-        mf->ro = true;
+        mf->writeable = false;
         break;
       case O_WRONLY:
       case O_RDWR:
         prot |= PROT_WRITE;
-        mf->ro = false;
+        mf->writeable = true;
         break;
       default:
         errno = EINVAL;
         goto error;
     }
+
+    fd = open(path, flags, 0644);
+    if (fd < 0 || fstat(fd, &st) < 0)
+        goto error;
 
     if (prot & PROT_WRITE && st.st_size < minsize) {
         if (ftruncate(fd, minsize) || posix_fallocate(fd, 0, minsize))
@@ -95,7 +91,7 @@ void mmfile_close(mmfile **mfp, void *mutex)
         mmfile *mf = *mfp;
 
         if (mf->area) {
-            if (!mf->ro) {
+            if (mf->writeable) {
                 if (mutex) {
                     (*mf->unlock)(mutex);
                 }
@@ -103,13 +99,15 @@ void mmfile_close(mmfile **mfp, void *mutex)
             }
             munmap(mf->area, mf->size);
             mf->area = NULL;
+            if (mf->writeable && mutex) {
+                (*mf->unlock)(mutex);
+            }
         }
-        if (!mf->ro && mutex) {
-            (*mf->unlock)(mutex);
+        if (mutex) {
             (*mf->destroy)(mutex);
         }
         p_delete(&mf->path);
-        p_delete(mfp);
+        mmfile_delete(mfp);
     }
 }
 

@@ -24,7 +24,7 @@
         ssize_t   size;             \
         char     *path;             \
         ptr_type *area;             \
-        int       ro;               \
+        flag_t    writeable : 1;    \
         int      (*lock)(void*);    \
         int      (*unlock)(void*);  \
         int      (*destroy)(void*); \

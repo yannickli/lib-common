@@ -815,7 +815,7 @@ void btree_close(btree_t **btp)
     btree_t *bt = *btp;
 
     if (bt) {
-        if (bt->area->wrlock && !bt->ro) {
+        if (bt->area->wrlock && bt->writeable) {
             pid_t pid = getpid();
 
             if (bt->area->wrlock == pid) {
