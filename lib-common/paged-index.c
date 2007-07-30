@@ -345,7 +345,7 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
 void pidx_close(pidx_file **f)
 {
     if (*f) {
-        if ((*f)->area->wrlock && !(*f)->ro) {
+        if ((*f)->area->wrlock && (*f)->writeable) {
             pid_t pid = getpid();
 
             if ((*f)->area->wrlock == pid) {
