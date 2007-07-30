@@ -135,6 +135,9 @@ static int pidx_fsck(pidx_file *pidx, int dofix)
     if (pidx->area->wrlock) {
         struct timeval tv;
 
+        if (pidx->area->wrlock != getpid())
+            return -1;
+
         if (pid_get_starttime(pidx->area->wrlock, &tv))
             return -1;
 

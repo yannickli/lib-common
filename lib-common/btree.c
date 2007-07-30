@@ -419,6 +419,9 @@ static int bt_check_header(struct btree_priv *btp, int dofix,
     if (btp->wrlock) {
         struct timeval tv;
 
+        if (btp->wrlock != getpid())
+            return -1;
+
         if (pid_get_starttime(btp->wrlock, &tv))
             return -1;
 
