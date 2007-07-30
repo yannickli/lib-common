@@ -685,6 +685,8 @@ btree_t *btree_open(const char *path, int flags, bool check)
         bt->area->nbpages  = BT_INIT_NBPAGES - 1;
         bt->area->freelist = 1;
         bt->area->depth    = 0;
+        bt->area->wrlock   = 0;
+        bt->area->wrlockt  = 0;
 
         /* initial root page is an empty leaf */
         bt->area->pages[0].leaf.used = 0;
