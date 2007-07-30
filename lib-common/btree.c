@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include <errno.h>
+#include <sys/mman.h>
 
 #include "btree.h"
 #include "unix.h"
@@ -717,7 +718,7 @@ btree_t *btree_open(const char *path, int flags)
     else
         openflags = flags | MMAP_O_PRELOAD;
 
-    bt = bt_real_open(path, openflags);
+    bt = bt_real_open(path, openflags, 0);
     if (!bt) {
         e_trace(2, "Could not open bt on %s: %m", path);
         return NULL;

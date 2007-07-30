@@ -34,9 +34,9 @@ DO_ARRAY(property_t, property, property_delete);
 void property_array_update(property_array *arr,
                            const char *k, const char *v);
 
-property_t *property_find(property_array *arr, const char *k);
+property_t *property_find(const property_array *arr, const char *k);
 const char *
-property_findval(property_array *arr, const char *k, const char *def);
+property_findval(const property_array *arr, const char *k, const char *def);
 void property_array_merge(property_array *arr, property_array **old);
 
 void property_array_remove_nulls(property_array *arr);
@@ -50,4 +50,5 @@ int property_array_unpack(const byte *buf, int buflen,  int *pos,
 int props_from_fmtv1(const blob_t *payload, property_array *props);
 void props_to_fmtv1(blob_t *out, property_array *props);
 
+void property_array_dup(const property_array *from, property_array *to);
 #endif /* IS_LIB_COMMON_PROPERTY_H */

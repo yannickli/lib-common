@@ -41,7 +41,7 @@ void property_array_update(property_array *arr, const char *k, const char *v)
     }
 }
 
-property_t *property_find(property_array *arr, const char *k)
+property_t *property_find(const property_array *arr, const char *k)
 {
     int i;
 
@@ -56,7 +56,7 @@ property_t *property_find(property_array *arr, const char *k)
 }
 
 const char *
-property_findval(property_array *arr, const char *k, const char *def)
+property_findval(const property_array *arr, const char *k, const char *def)
 {
     int i;
 
@@ -217,5 +217,18 @@ void props_to_fmtv1(blob_t *out, property_array *props)
 
     for (i = 0; i < props->len; i++) {
         blob_pack(out, "s:s\n",props->tab[i]->name, props->tab[i]->value);
+    }
+}
+
+void property_array_dup(const property_array *from, property_array *to)
+{
+    int i;
+
+    for (i = 0; i < from->len; i++) {
+        property_t *prop = property_new();
+
+        prop->name  = p_strdup(from->tab[i]->name);
+        prop->value = p_strdup(from->tab[i]->value);
+        property_array_append(to, prop);
     }
 }

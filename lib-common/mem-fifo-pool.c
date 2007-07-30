@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-//#include <sys/mman.h>
 #include <errno.h>
+#include <sys/mman.h>
 
 #include "mem.h"
 #include "mmappedfile.h"

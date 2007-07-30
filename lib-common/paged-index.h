@@ -28,7 +28,11 @@ typedef struct pidx_page {
     };
 } pidx_page;
 
-#define PIDX_PAGE  ssizeof(pidx_page)
+#define PIDX_PAGE         ssizeof(pidx_page)
+#define PIDX_MKVER(x, y)  (((x) << 8) | (y))
+#define PIDX_MAJOR        1
+#define PIDX_MINOR        1
+#define PIDX_VERSION      PIDX_MKVER(PIDX_MAJOR, PIDX_MINOR)
 
 /** \brief this struct is the header of an intersec paginated file.
  * Such a file is stored in 64-bit aligned big endian structures,
@@ -52,8 +56,10 @@ typedef struct pidx_t {
 
     /* third qword */
     int16_t  wrlock;    /**< holds the pid of the writer if any.           */
-    int16_t  unused1;
-    int32_t  unused2;
+    uint16_t readers;   /**< how many readers                              */
+    uint16_t rd_ver;    /**< minimum version to keep                       */
+    uint16_t wr_ver;    /**< Write version                                 */
+
     /* fourth qword */
     int64_t  wrlockt;   /**< time associated to the lock                   */
 
@@ -75,34 +81,11 @@ typedef struct pidx_file MMFILE_ALIAS(pidx_t) pidx_file;
 /* whole file related functions                                             */
 /****************************************************************************/
 
-pidx_file *pidx_open(const char *path, int flags,
-                     uint8_t skip, uint8_t nbsegs);
-pidx_file *pidx_creat(const char *path, uint8_t skip, uint8_t nbsegs);
+__must_check__ pidx_file *
+pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs);
 void pidx_close(pidx_file **f);
 
-/** \brief checks and repair idx files.
- * \param    pidx     the paginated index file to check/fix.
- * \param    dofix
- *     what shall be done with @pidx:
- *         - 0 means check only.
- *         - 1 means fix if necessary.
- *         - 2 means assume broken and fix.
- * \return
- *   - 0 if check is sucessful.
- *   - 1 if the file was fixed (modified) but that the result is a valid file.
- *   - -1 if the check failed and that either the file is not fixable or that
- *        fixing it was not allowed.
- */
-int pidx_fsck(pidx_file *pidx, int dofix);
-
 int pidx_clone(pidx_file *pidx, const char *filename);
-
-/****************************************************************************/
-/* low level page related functions                                         */
-/****************************************************************************/
-
-int32_t pidx_page_find(const pidx_file *pidx, uint64_t idx);
-int32_t pidx_page_new(pidx_file *pidx, uint64_t idx);
 
 /****************************************************************************/
 /* low level keys related functions                                         */
@@ -129,12 +112,13 @@ pidx_key_prev(const pidx_file *pidx, uint64_t cur, uint64_t *res) {
 /* high level functions                                                     */
 /****************************************************************************/
 
-int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out);
+int pidx_data_get(const pidx_file *pidx, uint64_t idx, blob_t *out);
 
-int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
+int pidx_data_getslice(const pidx_file *pidx, uint64_t idx,
                        byte *out, int start, int len)
     __must_check__;
-void *pidx_data_getslicep(pidx_file *pidx, uint64_t idx, int start, int len);
+void *pidx_data_getslicep(const pidx_file *pidx, uint64_t idx,
+                          int start, int len);
 
 int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len);
 void pidx_data_release(pidx_file *pidx, uint64_t idx);

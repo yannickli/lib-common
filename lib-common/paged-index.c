@@ -14,6 +14,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
+#include <sys/mman.h>
 
 #include <lib-common/err_report.h>
 #include <lib-common/mem.h>
@@ -30,21 +31,35 @@ static union {
 
 MMFILE_FUNCTIONS(pidx_file, pidx_real);
 
-#define PIDX_SHIFT     8
-#define PIDX_GROW   1024
+#define PIDX_SHIFT      8
+#define PIDX_GROW       1024
+#define PAYLOAD_SIZE    (PIDX_PAGE - 2 * ssizeof(int32_t))
 
 /****************************************************************************/
 /* whole file related functions                                             */
 /****************************************************************************/
 
+/* FIXME make this thread safe */
 static void pidx_page_release(pidx_file *pidx, int32_t page)
 {
     assert (page > 0 && page < pidx->area->nbpages);
 
-    pidx->area->pages[page].next = pidx->area->freelist;
-    pidx->area->freelist = page;
-    p_clear(pidx->area->pages[page].payload,
-            countof(pidx->area->pages[page].payload));
+#if 0
+    if (!pidx->area->readers)
+#else
+    {
+#endif
+        pidx->area->pages[page].next = pidx->area->freelist;
+        pidx->area->freelist = page;
+        p_clear(pidx->area->pages[page].payload,
+                countof(pidx->area->pages[page].payload));
+    }
+#if 0
+    else
+    {
+        /* mark the page as to be released from version pidx->area->wr_ver */
+    }
+#endif
 }
 
 static int pidx_fsck_mark_page(byte *bits, pidx_file *pidx, int page)
@@ -86,9 +101,36 @@ static int pidx_fsck_recurse(byte *bits, pidx_file *pidx,
     return 0;
 }
 
-int pidx_fsck(pidx_file *pidx, int dofix)
+static void upgrade_to_1_1(pidx_file *pidx)
+{
+    /* NEW IN 1.1:
+       readers, rd_ver and wr_ver
+     */
+    pidx->area->readers = 0;
+    pidx->area->wr_ver  = 0;
+    pidx->area->rd_ver  = 0;
+
+    pidx->area->major = 1;
+    pidx->area->minor = 1;
+}
+
+/** \brief checks and repair idx files.
+ * \param    pidx     the paginated index file to check/fix.
+ * \param    dofix
+ *     what shall be done with @pidx:
+ *         - 0 means check only.
+ *         - 1 means fix if necessary.
+ *         - 2 means assume broken and fix.
+ * \return
+ *   - 0 if check is sucessful.
+ *   - 1 if the file was fixed (modified) but that the result is a valid file.
+ *   - -1 if the check failed and that either the file is not fixable or that
+ *        fixing it was not allowed.
+ */
+static int pidx_fsck(pidx_file *pidx, int dofix)
 {
     bool did_a_fix = false;
+    int version;
 
     if (pidx->size % PIDX_PAGE || pidx->size < 2 * PIDX_PAGE
     ||  ((uint64_t)pidx->size > (uint64_t)INT_MAX * PIDX_PAGE))
@@ -116,8 +158,17 @@ int pidx_fsck(pidx_file *pidx, int dofix)
     }
 
     /* hook conversions here ! */
-    if (pidx->area->major != 1 || pidx->area->minor != 0)
+    version = PIDX_MKVER(pidx->area->major, pidx->area->minor);
+    if (version < PIDX_MKVER(1, 0) || version > PIDX_VERSION)
         return -1;
+
+    if (version != PIDX_VERSION && !dofix)
+        return -1;
+
+    if (version < PIDX_MKVER(1, 1)) {
+        did_a_fix = true;
+        upgrade_to_1_1(pidx);
+    }
 
     if (pidx->area->nbpages != pidx->size / PIDX_PAGE - 1) {
         if (!dofix)
@@ -189,30 +240,63 @@ int pidx_fsck(pidx_file *pidx, int dofix)
     return did_a_fix;
 }
 
+static pidx_file *pidx_init(pidx_file *pidx, uint8_t skip, uint8_t nbsegs)
+{
+    struct timeval tv;
+    int nbpages;
+    pid_t pid = getpid();
+
+    if (nbsegs > 64 / PIDX_SHIFT || skip + PIDX_SHIFT * nbsegs > 64) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    assert (sizeof(pidx_page) == sizeof(pidx_t));
+
+    pidx->area->magic    = magic.i;
+    pidx->area->major    = PIDX_MAJOR;
+    pidx->area->minor    = PIDX_MINOR;
+    pidx->area->skip     = skip;
+    pidx->area->nbsegs   = nbsegs;
+    pidx->area->nbpages  = nbpages = pidx->size / ssizeof(pidx_page) - 1;
+    pidx->area->readers  = 0;
+    pidx->area->wr_ver   = 0;
+    pidx->area->rd_ver   = 0;
+
+    /* this creates the links: 1 -> 2 -> ... -> nbpages - 1 -> NIL */
+    while (--nbpages > 1) {
+        pidx->area->pages[nbpages - 1].next = nbpages;
+    }
+    pidx->area->freelist = 1;
+
+    pid_get_starttime(pid, &tv);
+    pidx->area->wrlock = pid;
+    /* OG: same remark as above */
+    msync(pidx->area, pidx->size, MS_SYNC);
+    if (pidx->area->wrlock != pid) {
+        pidx_close(&pidx);
+        errno = EDEADLK;
+        return NULL;
+    }
+    pidx->area->wrlock  = pid;
+    pidx->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
+    msync(pidx->area, pidx->size, MS_SYNC);
+
+    return pidx;
+}
+
 pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
 {
     pidx_file *pidx;
     int res;
 
-    /* Create or truncate the index if opening for write and:
-     * - it does not exist and flag O_CREAT is given
-     * - or it does exist and flag O_TRUNC is given
-     * bug: O_EXCL is not supported as it is not passed to btree_creat.
-     */
-    res = access(path, F_OK);
-    if (O_ISWRITE(flags)) {
-        if ((res && (flags & O_CREAT)) || (!res && (flags & O_TRUNC)))
-            return pidx_creat(path, skip, nbsegs);
-    }
-
-    if (res) {
-        errno = ENOENT;
-        return NULL;
-    }
-
-    pidx = pidx_real_open(path, flags);
+    pidx = pidx_real_open(path, flags, PIDX_GROW * PIDX_PAGE);
     if (!pidx)
         return NULL;
+
+    if ((flags & (O_TRUNC | O_CREAT)) && !pidx->area->magic) {
+        return pidx_init(pidx, skip, nbsegs);
+    }
 
     res = pidx_fsck(pidx, O_ISWRITE(flags));
     if (res < 0) {
@@ -254,53 +338,6 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
         pidx->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
         msync(pidx->area, pidx->size, MS_SYNC);
     }
-
-    return pidx;
-}
-
-pidx_file *pidx_creat(const char *path, uint8_t skip, uint8_t nbsegs)
-{
-    struct timeval tv;
-    pidx_file *pidx;
-    int nbpages = PIDX_GROW - 1;
-    pid_t pid = getpid();
-
-    if (nbsegs > 64 / PIDX_SHIFT || skip + PIDX_SHIFT * nbsegs > 64) {
-        errno = EINVAL;
-        return NULL;
-    }
-
-    assert (sizeof(pidx_page) == sizeof(pidx_t));
-
-    pidx = pidx_real_creat(path, (nbpages + 1) * PIDX_PAGE);
-    if (!pidx)
-        return NULL;
-
-    pidx->area->magic    = magic.i;
-    pidx->area->major    = 1;
-    pidx->area->minor    = 0;
-    pidx->area->skip     = skip;
-    pidx->area->nbsegs   = nbsegs;
-    pidx->area->nbpages  = nbpages;
-
-    /* this creates the links: 1 -> 2 -> ... -> nbpages - 1 -> NIL */
-    while (--nbpages > 1) {
-        pidx->area->pages[nbpages - 1].next = nbpages;
-    }
-    pidx->area->freelist = 1;
-
-    pid_get_starttime(pid, &tv);
-    pidx->area->wrlock = pid;
-    /* OG: same remark as above */
-    msync(pidx->area, pidx->size, MS_SYNC);
-    if (pidx->area->wrlock != pid) {
-        pidx_close(&pidx);
-        errno = EDEADLK;
-        return NULL;
-    }
-    pidx->area->wrlock  = pid;
-    pidx->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
-    msync(pidx->area, pidx->size, MS_SYNC);
 
     return pidx;
 }
@@ -347,11 +384,14 @@ int pidx_clone(pidx_file *pidx, const char *filename)
     memcpy(&hdr, pidx->area, sizeof(hdr));
     hdr.wrlock  = 0;
     hdr.wrlockt = 0;
+    hdr.readers = 0;
+    hdr.rd_ver  = 0;
+    hdr.wr_ver  = 0;
 
     to_write = sizeof(hdr);
     while (to_write > 0) {
         int i = fwrite((byte *)&hdr + (sizeof(hdr) - to_write),
-                   1, to_write, f);
+                       1, to_write, f);
         if (i <= 0) {
             res = -1;
             goto exit;
@@ -362,7 +402,7 @@ int pidx_clone(pidx_file *pidx, const char *filename)
     to_write = pidx->size - sizeof(hdr);
     while (to_write > 0) {
         int i = fwrite((byte *)pidx->area + (pidx->size - to_write),
-                   1, to_write, f);
+                       1, to_write, f);
         if (i <= 0) {
             res = -1;
             goto exit;
@@ -393,7 +433,7 @@ static inline int int_bits_range(uint64_t idx, int start, int width)
  *  +  0 for not found
  *  +  positive integer index in pidx->pages[...]
  */
-int32_t pidx_page_find(const pidx_file *pidx, uint64_t idx)
+static int32_t pidx_page_find(const pidx_file *pidx, uint64_t idx)
 {
     const int maxshift = pidx->area->skip + PIDX_SHIFT * pidx->area->nbsegs;
 
@@ -447,40 +487,19 @@ static int32_t pidx_page_getfree(pidx_file *pidx)
     return res;
 }
 
-/* -1 means not indexable, 0 means could not extend file */
-int32_t pidx_page_new(pidx_file *pidx, uint64_t idx)
+static int32_t pidx_page_list_getfree(pidx_file *pidx, int len)
 {
-    const int maxshift = pidx->area->skip + PIDX_SHIFT * pidx->area->nbsegs;
+    int needed = MAX(0, len - 1) / PAYLOAD_SIZE + 1;
+    int32_t res = 0;
 
-    int k, shift;
-    int32_t page = 0, newpage;
+    while (needed-- > 0) {
+        int32_t pg = pidx_page_getfree(pidx);
 
-    if (int_bits_range(idx, 0, pidx->area->skip)) {
-        return -1;
+        pidx->area->pages[pg].next = res;
+        res = pg;
     }
 
-    for (shift = pidx->area->skip; shift < maxshift; shift += PIDX_SHIFT) {
-        k = int_bits_range(idx, shift, PIDX_SHIFT);
-
-        if (!pidx->area->pages[page].refs[k]) {
-            newpage = pidx_page_getfree(pidx);
-            if (newpage <= 0)
-                return 0;
-
-            pidx->area->pages[page].refs[k] = newpage;
-        }
-
-        page = pidx->area->pages[page].refs[k];
-    }
-
-    newpage = pidx_page_getfree(pidx);
-    if (newpage <= 0)
-        return 0;
-
-    k = int_bits_range(idx, shift, PIDX_SHIFT);
-    pidx->area->pages[newpage].next = pidx->area->pages[page].refs[k];
-    pidx->area->pages[page].refs[k] = newpage;
-    return newpage;
+    return res;
 }
 
 /****************************************************************************/
@@ -578,7 +597,7 @@ int pidx_key_last(const pidx_file *pidx, uint64_t maxval, uint64_t *res)
 /* high level functions                                                     */
 /****************************************************************************/
 
-int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
+int pidx_data_getslice(const pidx_file *pidx, uint64_t idx,
                        byte *out, int start, int len)
 {
     int32_t page  = pidx_page_find(pidx, idx);
@@ -607,7 +626,8 @@ int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
     return out - orig;
 }
 
-void *pidx_data_getslicep(pidx_file *pidx, uint64_t idx, int start, int len)
+void *pidx_data_getslicep(const pidx_file *pidx, uint64_t idx,
+                          int start, int len)
 {
     int32_t page  = pidx_page_find(pidx, idx);
 
@@ -632,7 +652,7 @@ void *pidx_data_getslicep(pidx_file *pidx, uint64_t idx, int start, int len)
     return NULL;
 }
 
-int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out)
+int pidx_data_get(const pidx_file *pidx, uint64_t idx, blob_t *out)
 {
     int32_t page  = pidx_page_find(pidx, idx);
     ssize_t pos   = out->len;
@@ -657,22 +677,39 @@ int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out)
 
 int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
 {
-#define PAYLOAD_SIZE   (PIDX_PAGE - 2 * ssizeof(int32_t))
+    const int maxshift = pidx->area->skip + PIDX_SHIFT * pidx->area->nbsegs;
 
-    int32_t curp, page = pidx_page_find(pidx, idx);
-    int nbpages = 0, needed;
+    int32_t *oldpage, page, newpage;
+    int k, shift;
 
-    needed = MAX(0, len - 1) / PAYLOAD_SIZE + 1;
-
-    for (curp = page; curp; curp = pidx->area->pages[curp].next)
-        nbpages++;
-
-    while (nbpages < needed) {
-        page = pidx_page_new(pidx, idx);
-        if (!page)
-            return -1;
-        nbpages++;
+    if (int_bits_range(idx, 0, pidx->area->skip)) {
+        return -1;
     }
+
+    /* stage 1: search the last pointer to us */
+
+    page = 0;
+    for (shift = pidx->area->skip; shift < maxshift; shift += PIDX_SHIFT) {
+        k = int_bits_range(idx, shift, PIDX_SHIFT);
+
+        if (!pidx->area->pages[page].refs[k]) {
+            newpage = pidx_page_getfree(pidx);
+            if (newpage <= 0)
+                return -1;
+
+            pidx->area->pages[page].refs[k] = newpage;
+        }
+
+        page = pidx->area->pages[page].refs[k];
+    }
+
+    k = int_bits_range(idx, shift, PIDX_SHIFT);
+    oldpage = &pidx->area->pages[page].refs[k];
+
+    /* stage 2: allocate a new clean list of pages and copy the data */
+    page = newpage = pidx_page_list_getfree(pidx, len);
+    if (newpage <= 0)
+        return -1;
 
     /* XXX do while is correct, we always want at least one page ! */
     do {
@@ -688,10 +725,18 @@ int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
         page  = pg->next;
     } while (len);
 
+    /* stage 3: atomically replace the pointer */
+    page = *oldpage;
+    *oldpage = newpage;
+
+    /* stage 4: put the old pages in the garbage queue */
     while (page) {
         int32_t next = pidx->area->pages[page].next;
         pidx_page_release(pidx, page);
         page = next;
+    }
+    if (pidx->area->readers) {
+        pidx->area->wr_ver++;
     }
 
     return 0;
@@ -732,11 +777,15 @@ void pidx_data_release(pidx_file *pidx, uint64_t idx)
     if (!page)
         return;
 
+    pidx_page_recollect(pidx, idx, pidx->area->skip, 0);
+
     while (page) {
         int32_t next = pidx->area->pages[page].next;
         pidx_page_release(pidx, page);
         page = next;
     }
 
-    pidx_page_recollect(pidx, idx, pidx->area->skip, 0);
+    if (pidx->area->readers) {
+        pidx->area->wr_ver++;
+    }
 }
