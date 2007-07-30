@@ -19,6 +19,8 @@
 
 #include <lib-common/macros.h>
 
+#define O_ISWRITE(m)      (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
+
 enum {
     MMO_POPULATE,
     MMO_LOCK,

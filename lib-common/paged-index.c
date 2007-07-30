@@ -22,8 +22,6 @@
 
 #include "paged-index.h"
 
-#define O_ISWRITE(m)    (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
-
 static union {
     char     s[4];
     uint32_t i;

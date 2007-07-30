@@ -65,8 +65,6 @@
 #define BT_ARITY          ((BT_PAGE_SIZE - 4 * 4) / (8 + 4))
                                /**< L constant in the b-tree terminology */
 
-#define O_ISWRITE(m)      (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
-
 static const union {
     char     s[4];
     uint32_t magic;
