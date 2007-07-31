@@ -160,7 +160,7 @@ stristr(const char *haystack, const char *needle) {
 __attr_nonnull__((1, 2))
 static inline char *vstristr(char *haystack, const char *needle) {
     return (char *)stristr(haystack, needle);
-} 
+}
 
 /* Implement inline using strcmp, unless strcmp is hopelessly fucked up */
 __attr_nonnull__((1, 2))
