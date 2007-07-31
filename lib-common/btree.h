@@ -21,9 +21,6 @@
 #include "blob.h"
 #include "mmappedfile.h"
 
-/* Kludge for passing extra open options */
-#define BT_O_NOCHECK  O_NONBLOCK
-
 typedef struct btree_priv_t btree_priv_t;
 typedef struct btree_t MMFILE_ALIAS(struct btree_priv) btree_t;
 
@@ -32,22 +29,21 @@ typedef int btree_print_fun(FILE *fp, const char *fmt, ...)
 
 int btree_check_integrity(btree_t *bt, int dofix,
                           btree_print_fun *fun, FILE *arg);
-btree_t *btree_open(const char *path, int flags);
-btree_t *btree_creat(const char *path);
+btree_t *btree_open(const char *path, int flags, bool check);
+static inline btree_t *btree_creat(const char *path) {
+    return btree_open(path, O_CREAT | O_TRUNC | O_RDWR, 0);
+}
 void btree_close(btree_t **tree);
 
 /* OG: Should have both APIs, the default taking a (byte *, len) couple.
  * these should be called btree_fetch_uint64 and btree_push_uint64.
  * Actually, since the implementation seems hardwired for uint64_t
  * keys, the module itself and function/type prefix should be btree64.
- * Constness of the btree_t is not required either, and may not be
- * advisable, as per our conversation.
  */
-int btree_fetch(const btree_t *bt, uint64_t key, blob_t *out);
-/* OG: data argument should be const void * */
-int btree_push(btree_t *bt, uint64_t key, const byte *data, int len);
+int btree_fetch(btree_t *bt, uint64_t key, blob_t *out);
+int btree_push(btree_t *bt, uint64_t key, const void *data, int len);
 
-void btree_dump(const btree_t *bt, btree_print_fun *fun, FILE *arg);
+void btree_dump(btree_t *bt, btree_print_fun *fun, FILE *arg);
 
 typedef struct fbtree_t fbtree_t;
 

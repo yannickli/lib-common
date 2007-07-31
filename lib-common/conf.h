@@ -16,6 +16,7 @@
 
 #include "mem.h"
 #include "blob.h"
+#include "property.h"
 
 /* This module parses ini files :
  *
@@ -33,22 +34,17 @@
 
 typedef struct conf_section_t {
     char *name;
-    char **variables;
-    char **values;
-    int var_nb;
+    property_array vals;
 } conf_section_t;
 
+ARRAY_TYPE(conf_section_t, conf_section);
 
 typedef struct conf_t {
-    conf_section_t **sections;
-    int section_nb;
+    conf_section_array sections;
 } conf_t;
 
-GENERIC_INIT(conf_t, conf);
 void conf_wipe(conf_t *conf);
-GENERIC_NEW(conf_t, conf);
 GENERIC_DELETE(conf_t, conf);
-
 
 conf_t *conf_load(const char *filename);
 /* Same as conf_load, but from a blob.
@@ -60,7 +56,7 @@ int conf_save(const conf_t *conf, const char *filename);
 static inline const conf_section_t *
 conf_get_section(const conf_t *conf, int i)
 {
-    return conf->sections[i];
+    return conf->sections.tab[i];
 }
 const char *conf_get_raw(const conf_t *conf,
                          const char *section, const char *var);

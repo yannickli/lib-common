@@ -235,7 +235,7 @@ isndx_t *isndx_open(const char *path, int flags)
     }
 
     ndx = p_new(isndx_t, 1);
-    ndx->file = isndx_real_open(path, flags & ~(O_CREAT | O_TRUNC));
+    ndx->file = isndx_real_open(path, flags & ~(O_CREAT | O_TRUNC), 0, 0);
     if (!ndx->file) {
         p_delete(&ndx);
         return NULL;
