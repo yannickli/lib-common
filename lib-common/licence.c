@@ -417,10 +417,13 @@ bool licence_check_host_ok(const conf_t *conf)
             while (*p && (*p == ' ' || *p == ','))
                 p++;
         }
+        return false;
     }
 
   cpu_ok:
     p = conf_get_raw(conf, "licence", "mac_addresses");
+    if (!p)
+        return false;
     while (*p) {
         p += pstrcpylen(buf, sizeof(buf), p, 17);
         if (is_my_mac_addr(buf)) {
