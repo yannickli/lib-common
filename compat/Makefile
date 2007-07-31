@@ -18,4 +18,10 @@ __LIB__ := compat
 
 compat_SOURCES := compat.c check.c
 
+ifneq (,$(MINGCC))
+  # Beeing able to build a "check" program would be a good idea under 
+  # MingGW. Needs more work though.
+  compat_SOURCES := $(filter-out check.c, $(compat_SOURCES))
+endif
+
 include $(DEPTH)/admin/footer.mk
