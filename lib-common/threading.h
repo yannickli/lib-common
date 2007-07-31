@@ -18,12 +18,19 @@
 #include <pthread.h>
 
 #ifndef NDEBUG
+/* declare an anchor for the module/thing */
 #define THREAD_ANCHOR(name)  pthread_t name
+#define STATIC_THREAD_ANCHOR(name)  static THREAD_ANCHOR(name)
+
+/* tie the anchor to a given thread */
 #define THREAD_TIE(name)     (assert (!name), name = pthread_self())
+/* untie the anchor */
 #define THREAD_UNTIE(name)   (name = 0)
+/* use that in the begining of each function to tie to the anchor */
 #define THREAD_ASSERT(name)  (assert (name == pthread_self()))
 #else
 #define THREAD_ANCHOR(name)
+#define STATIC_THREAD_ANCHOR(name)
 #define THREAD_TIE(name)
 #define THREAD_UNTIE(name)
 #define THREAD_ASSERT(name)
