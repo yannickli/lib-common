@@ -29,7 +29,6 @@ mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize)
     mmfile *mf = p_new(mmfile, 1);
     mf->fd     = -1;
 
-    /* Kludge for MAP_POPULATE */
     if (oflags & MMO_POPULATE) {
         mflags |= MAP_POPULATE;
     }
