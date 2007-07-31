@@ -42,22 +42,10 @@ static void pidx_page_release(pidx_file *pidx, int32_t page)
 {
     assert (page > 0 && page < pidx->area->nbpages);
 
-#if 0
-    if (!pidx->area->readers)
-#else
-    {
-#endif
-        pidx->area->pages[page].next = pidx->area->freelist;
-        pidx->area->freelist = page;
-        p_clear(pidx->area->pages[page].payload,
-                countof(pidx->area->pages[page].payload));
-    }
-#if 0
-    else
-    {
-        /* mark the page as to be released from version pidx->area->wr_ver */
-    }
-#endif
+    pidx->area->pages[page].next = pidx->area->freelist;
+    pidx->area->freelist = page;
+    p_clear(pidx->area->pages[page].payload,
+            countof(pidx->area->pages[page].payload));
 }
 
 static int pidx_fsck_mark_page(byte *bits, pidx_file *pidx, int page)
@@ -97,15 +85,6 @@ static int pidx_fsck_recurse(byte *bits, pidx_file *pidx,
     }
 
     return 0;
-}
-
-static void upgrade_to_1_1(pidx_file *pidx)
-{
-    /* NEW IN 1.1: version */
-    pidx->area->version = 0;
-
-    pidx->area->major = 1;
-    pidx->area->minor = 1;
 }
 
 /** \brief checks and repair idx files.
@@ -161,11 +140,6 @@ static int pidx_fsck(pidx_file *pidx, int dofix)
 
     if (version != PIDX_VERSION && !dofix)
         return -1;
-
-    if (version < PIDX_MKVER(1, 1)) {
-        did_a_fix = true;
-        upgrade_to_1_1(pidx);
-    }
 
     if (pidx->area->nbpages != pidx->size / PIDX_PAGE - 1) {
         if (!dofix)
@@ -262,12 +236,12 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
         pidx->area->skip     = skip;
         pidx->area->nbsegs   = nbsegs;
         pidx->area->nbpages  = nbpages = pidx->size / ssizeof(pidx_page) - 1;
-        pidx->area->version  = 0;
         pidx->area->wrlock   = 0;
         pidx->area->wrlockt  = 0;
 
         /* this creates the links: 1 -> 2 -> ... -> nbpages - 1 -> NIL */
         while (--nbpages > 1) {
+            p_clear(pidx->area->pages + nbpages - 1, 1);
             pidx->area->pages[nbpages - 1].next = nbpages;
         }
         pidx->area->freelist = 1;
@@ -339,7 +313,6 @@ int pidx_clone(pidx_file *pidx, const char *filename)
     memcpy(&hdr, pidx->area, sizeof(hdr));
     hdr.wrlock  = 0;
     hdr.wrlockt = 0;
-    hdr.version = 0;
 
     to_write = sizeof(hdr);
     while (to_write > 0) {
@@ -689,7 +662,6 @@ int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
         pidx_page_release(pidx, page);
         page = next;
     }
-    pidx->area->version++;
 
     return 0;
 }
@@ -736,6 +708,4 @@ void pidx_data_release(pidx_file *pidx, uint64_t idx)
         pidx_page_release(pidx, page);
         page = next;
     }
-
-    pidx->area->version++;
 }

@@ -731,7 +731,7 @@ btree_t *btree_open(const char *path, int flags, bool check)
         msync(bt->area, bt->size, MS_SYNC);
     }
 
-    if (bt_real_unlock(bt) < 0) {
+    if (bt_real_unlockf(bt) < 0) {
         int save_errno = errno;
         btree_close(&bt);
         errno = save_errno;

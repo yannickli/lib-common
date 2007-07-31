@@ -31,7 +31,7 @@ typedef struct pidx_page {
 #define PIDX_PAGE         ssizeof(pidx_page)
 #define PIDX_MKVER(x, y)  (((x) << 8) | (y))
 #define PIDX_MAJOR        1
-#define PIDX_MINOR        1
+#define PIDX_MINOR        0
 #define PIDX_VERSION      PIDX_MKVER(PIDX_MAJOR, PIDX_MINOR)
 
 /** \brief this struct is the header of an intersec paginated file.
@@ -57,7 +57,7 @@ typedef struct pidx_t {
     /* third qword */
     int16_t  wrlock;    /**< holds the pid of the writer if any.           */
     int16_t  reserved1;
-    int32_t  version;   /**< content version                               */
+    int32_t  reserved2;
 
     /* fourth qword */
     int64_t  wrlockt;   /**< time associated to the lock                   */

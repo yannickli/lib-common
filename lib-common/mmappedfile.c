@@ -94,13 +94,13 @@ mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize)
   error:
     {
         int save_errno = errno;
-        mmfile_close(&mf, NULL);
+        mmfile_close(&mf);
         errno = save_errno;
     }
     return NULL;
 }
 
-int mmfile_unlock(mmfile *mf)
+int mmfile_unlockf(mmfile *mf)
 {
     if (!mf->locked) {
         errno = EINVAL;
@@ -115,7 +115,7 @@ int mmfile_unlock(mmfile *mf)
     return 0;
 }
 
-void mmfile_close(mmfile **mfp, void *mutex)
+void mmfile_close(mmfile **mfp)
 {
     if (*mfp) {
         mmfile *mf = *mfp;
@@ -127,26 +127,21 @@ void mmfile_close(mmfile **mfp, void *mutex)
 
         if (mf->area) {
             if (mf->writeable) {
-                if (mutex) {
-                    (*mf->unlock)(mutex);
-                }
+                mmfile_wlock(mf);
                 msync(mf->area, mf->size, MS_SYNC);
             }
             munmap(mf->area, mf->size);
             mf->area = NULL;
-            if (mf->writeable && mutex) {
-                (*mf->unlock)(mutex);
+            if (mf->writeable) {
+                mmfile_unlock(mf);
             }
-        }
-        if (mutex) {
-            (*mf->destroy)(mutex);
         }
         p_delete(&mf->path);
         p_delete(mfp);
     }
 }
 
-int mmfile_truncate(mmfile *mf, off_t length, void *mutex)
+int mmfile_truncate(mmfile *mf, off_t length)
 {
     int res;
 
@@ -176,16 +171,14 @@ int mmfile_truncate(mmfile *mf, off_t length, void *mutex)
         void *map;
 
         /* stage 2: lock, and remap for real */
-        if (mutex && (*mf->lock)(mutex) < 0) {
+        if (mmfile_wlock(mf) < 0) {
             return -1;
         }
         map = mremap(mf->area, mf->size, length, MREMAP_MAYMOVE);
         if (map != MAP_FAILED) {
             mf->area = map;
         }
-        if (mutex) {
-            (*mf->unlock)(mutex);
-        }
+        mmfile_unlock(mf);
 
         if (map == MAP_FAILED) {
             return -1;

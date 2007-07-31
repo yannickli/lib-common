@@ -14,8 +14,9 @@
 #ifndef IS_LIB_COMMON_MMAPPEDFILE_H
 #define IS_LIB_COMMON_MMAPPEDFILE_H
 
-#include <sys/types.h>
+#include <assert.h>
 #include <fcntl.h>
+#include <sys/types.h>
 
 #include <lib-common/macros.h>
 
@@ -35,9 +36,10 @@ enum {
         flag_t    writeable : 1;    \
         flag_t    locked    : 1;    \
         int       fd;               \
-        int      (*lock)(void*);    \
+        void      *mutex;           \
+        int      (*rlock)(void*);   \
+        int      (*wlock)(void*);   \
         int      (*unlock)(void*);  \
-        int      (*destroy)(void*); \
     }
 
 typedef struct mmfile MMFILE_ALIAS(byte) mmfile;
@@ -46,11 +48,25 @@ mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize);
 static inline mmfile *mmfile_creat(const char *path, off_t initialsize) {
     return mmfile_open(path, O_CREAT | O_TRUNC | O_RDWR, 0, initialsize);
 }
-int mmfile_unlock(mmfile *mf);
-void mmfile_close(mmfile **mf, void *mutex);
+int mmfile_unlockf(mmfile *mf);
+void mmfile_close(mmfile **mf);
 
 /* @see ftruncate(2) */
-__must_check__ int mmfile_truncate(mmfile *mf, off_t length, void *mutex);
+__must_check__ int mmfile_truncate(mmfile *mf, off_t length);
+
+static inline int mmfile_rlock(mmfile *mf) {
+    return mf->mutex ? (mf->rlock)(mf->mutex) : 0;
+}
+
+static inline int mmfile_wlock(mmfile *mf) {
+    assert (mf->writeable);
+    return mf->mutex ? (mf->wlock)(mf->mutex) : 0;
+}
+
+static inline int mmfile_unlock(mmfile *mf) {
+    return mf->mutex ? (mf->unlock)(mf->mutex) : 0;
+}
+
 
 #define MMFILE_FUNCTIONS(type, prefix) \
     static inline type *prefix##_open(const char *path, int fl, int ofl,    \
@@ -59,8 +75,8 @@ __must_check__ int mmfile_truncate(mmfile *mf, off_t length, void *mutex);
         return (type *)mmfile_open(path, fl, ofl, sz);                      \
     }                                                                       \
                                                                             \
-    static inline int prefix##_unlock(type *mf) {                           \
-        return mmfile_unlock((mmfile *)mf);                                 \
+    static inline int prefix##_unlockf(type *mf) {                          \
+        return mmfile_unlockf((mmfile *)mf);                                \
     }                                                                       \
                                                                             \
     static inline type *prefix##_creat(const char *path, off_t size) {      \
@@ -68,12 +84,25 @@ __must_check__ int mmfile_truncate(mmfile *mf, off_t length, void *mutex);
     }                                                                       \
                                                                             \
     static inline void prefix##_close(type **mmf) {                         \
-        mmfile_close((mmfile **)mmf, NULL);                                 \
+        mmfile_close((mmfile **)mmf);                                       \
     }                                                                       \
                                                                             \
     __must_check__                                                          \
     static inline int prefix##_truncate(type *mf, off_t length) {           \
-        return mmfile_truncate((mmfile *)mf, length, NULL);                 \
+        return mmfile_truncate((mmfile *)mf, length);                       \
+    }                                                                       \
+                                                                            \
+    static inline int prefix##_rlock(type *mf) {                            \
+        return mf->mutex ? (mf->rlock)(mf->mutex) : 0;                      \
+    }                                                                       \
+                                                                            \
+    static inline int prefix##_wlock(type *mf) {                            \
+        assert (mf->writeable);                                             \
+        return mf->mutex ? (mf->wlock)(mf->mutex) : 0;                      \
+    }                                                                       \
+                                                                            \
+    static inline int prefix##_unlock(type *mf) {                           \
+        return mf->mutex ? (mf->unlock)(mf->mutex) : 0;                     \
     }
 
 
