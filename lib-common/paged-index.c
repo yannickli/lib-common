@@ -310,6 +310,8 @@ int pidx_clone(pidx_file *pidx, const char *filename)
         return -1;
     }
 
+    pidx_real_rlock(pidx);
+
     memcpy(&hdr, pidx->area, sizeof(hdr));
     hdr.wrlock  = 0;
     hdr.wrlockt = 0;
@@ -342,6 +344,7 @@ exit:
         /* Clean partial and corrupted file */
         unlink(filename);
     }
+    pidx_real_unlock(pidx);
     return res;
 }
 
@@ -432,7 +435,7 @@ static int32_t pidx_page_list_getfree(pidx_file *pidx, int len)
 /* low level keys related functions                                         */
 /****************************************************************************/
 
-int pidx_key_first(const pidx_file *pidx, uint64_t minval, uint64_t *res)
+int pidx_key_first(pidx_file *pidx, uint64_t minval, uint64_t *res)
 {
     const int skip = pidx->area->skip;
     const pidx_page *pages = pidx->area->pages;
@@ -448,6 +451,7 @@ int pidx_key_first(const pidx_file *pidx, uint64_t minval, uint64_t *res)
     page = path[pos] = 0;
     key  = int_bits_range(minval, skip + PIDX_SHIFT * pos, PIDX_SHIFT);
 
+    pidx_real_rlock(pidx);
     for (;;) {
         while (!pages[page].refs[key]) {
             int rbits;
@@ -456,8 +460,10 @@ int pidx_key_first(const pidx_file *pidx, uint64_t minval, uint64_t *res)
                 rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
                 minval = ((minval >> rbits) + 1) << rbits;
             } else {
-                if (--pos < 0)
+                if (--pos < 0) {
+                    pidx_real_unlock(pidx);
                     return -1;
+                }
                 page   = path[pos];
                 rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
                 minval = ((minval >> rbits) + 1) << rbits;
@@ -467,6 +473,7 @@ int pidx_key_first(const pidx_file *pidx, uint64_t minval, uint64_t *res)
         }
 
         if (pos == pidx->area->nbsegs) {
+            pidx_real_unlock(pidx);
             *res = minval;
             return 0;
         }
@@ -476,7 +483,7 @@ int pidx_key_first(const pidx_file *pidx, uint64_t minval, uint64_t *res)
 }
 
 
-int pidx_key_last(const pidx_file *pidx, uint64_t maxval, uint64_t *res)
+int pidx_key_last(pidx_file *pidx, uint64_t maxval, uint64_t *res)
 {
     const int skip = pidx->area->skip;
     const pidx_page *pages = pidx->area->pages;
@@ -492,6 +499,7 @@ int pidx_key_last(const pidx_file *pidx, uint64_t maxval, uint64_t *res)
     page = path[pos] = 0;
     key  = int_bits_range(maxval, skip + PIDX_SHIFT * pos, PIDX_SHIFT);
 
+    pidx_real_rlock(pidx);
     for (;;) {
         while (!pages[page].refs[key]) {
             int rbits;
@@ -500,8 +508,10 @@ int pidx_key_last(const pidx_file *pidx, uint64_t maxval, uint64_t *res)
                 rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
                 maxval = ((maxval >> rbits) << rbits) - 1;
             } else {
-                if (--pos < 0)
+                if (--pos < 0) {
+                    pidx_real_unlock(pidx);
                     return -1;
+                }
                 page   = path[pos];
                 rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
                 maxval = ((maxval >> rbits) << rbits) - 1;
@@ -511,6 +521,7 @@ int pidx_key_last(const pidx_file *pidx, uint64_t maxval, uint64_t *res)
         }
 
         if (pos == pidx->area->nbsegs) {
+            pidx_real_unlock(pidx);
             *res = maxval;
             return 0;
         }
@@ -523,18 +534,22 @@ int pidx_key_last(const pidx_file *pidx, uint64_t maxval, uint64_t *res)
 /* high level functions                                                     */
 /****************************************************************************/
 
-int pidx_data_getslice(const pidx_file *pidx, uint64_t idx,
+int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
                        byte *out, int start, int len)
 {
     int32_t page  = pidx_page_find(pidx, idx);
     const byte *orig = out;
 
+    pidx_real_rlock(pidx);
+
     while (page && len) {
         pidx_page *pg = pidx->area->pages + page;
         int32_t size = *(int32_t *)pg->payload;
 
-        if (size > PIDX_PAGE - 2 * ssizeof(int32_t))
+        if (size > PIDX_PAGE - 2 * ssizeof(int32_t)) {
+            pidx_real_unlock(pidx);
             return -1;
+        }
 
         if (start > size) {
             start -= size;
@@ -549,6 +564,7 @@ int pidx_data_getslice(const pidx_file *pidx, uint64_t idx,
         page = pg->next;
     }
 
+    pidx_real_unlock(pidx);
     return out - orig;
 }
 
@@ -578,10 +594,12 @@ void *pidx_data_getslicep(const pidx_file *pidx, uint64_t idx,
     return NULL;
 }
 
-int pidx_data_get(const pidx_file *pidx, uint64_t idx, blob_t *out)
+int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out)
 {
     int32_t page  = pidx_page_find(pidx, idx);
     ssize_t pos   = out->len;
+
+    pidx_real_rlock(pidx);
 
     while (page) {
         pidx_page *pg = pidx->area->pages + page;
@@ -593,9 +611,11 @@ int pidx_data_get(const pidx_file *pidx, uint64_t idx, blob_t *out)
         page = pg->next;
     }
 
+    pidx_real_unlock(pidx);
     return out->len - pos;
 
   error:
+    pidx_real_unlock(pidx);
     blob_kill_last(out, out->len - pos);
     return -1;
 }
@@ -657,11 +677,13 @@ int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
     *oldpage = newpage;
 
     /* stage 4: put the old pages in the garbage queue */
+    pidx_real_wlock(pidx);
     while (page) {
         int32_t next = pidx->area->pages[page].next;
         pidx_page_release(pidx, page);
         page = next;
     }
+    pidx_real_unlock(pidx);
 
     return 0;
 }
@@ -701,6 +723,7 @@ void pidx_data_release(pidx_file *pidx, uint64_t idx)
     if (!page)
         return;
 
+    pidx_real_wlock(pidx);
     pidx_page_recollect(pidx, idx, pidx->area->skip, 0);
 
     while (page) {
@@ -708,4 +731,5 @@ void pidx_data_release(pidx_file *pidx, uint64_t idx)
         pidx_page_release(pidx, page);
         page = next;
     }
+    pidx_real_unlock(pidx);
 }

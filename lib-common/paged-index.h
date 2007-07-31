@@ -90,18 +90,18 @@ int pidx_clone(pidx_file *pidx, const char *filename);
 /* low level keys related functions                                         */
 /****************************************************************************/
 
-int pidx_key_first(const pidx_file *pidx, uint64_t minval, uint64_t *res);
-int pidx_key_last(const pidx_file *pidx, uint64_t maxval, uint64_t *res);
+int pidx_key_first(pidx_file *pidx, uint64_t minval, uint64_t *res);
+int pidx_key_last(pidx_file *pidx, uint64_t maxval, uint64_t *res);
 
 static inline int
-pidx_key_next(const pidx_file *pidx, uint64_t cur, uint64_t *res) {
+pidx_key_next(pidx_file *pidx, uint64_t cur, uint64_t *res) {
     if (cur == UINT64_MAX)
         return -1;
     return pidx_key_first(pidx, cur + 1, res);
 }
 
 static inline int
-pidx_key_prev(const pidx_file *pidx, uint64_t cur, uint64_t *res) {
+pidx_key_prev(pidx_file *pidx, uint64_t cur, uint64_t *res) {
     if (cur == 0)
         return -1;
     return pidx_key_last(pidx, cur - 1, res);
@@ -111,15 +111,16 @@ pidx_key_prev(const pidx_file *pidx, uint64_t cur, uint64_t *res) {
 /* high level functions                                                     */
 /****************************************************************************/
 
-int pidx_data_get(const pidx_file *pidx, uint64_t idx, blob_t *out);
+int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out);
 
-int pidx_data_getslice(const pidx_file *pidx, uint64_t idx,
-                       byte *out, int start, int len)
-    __must_check__;
-void *pidx_data_getslicep(const pidx_file *pidx, uint64_t idx,
-                          int start, int len);
+int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
+                       byte *out, int start, int len) __must_check__;
 
 int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len);
 void pidx_data_release(pidx_file *pidx, uint64_t idx);
 
+
+/* XXX unsafe wrt threads and locks */
+void *pidx_data_getslicep(const pidx_file *pidx, uint64_t idx,
+                          int start, int len);
 #endif
