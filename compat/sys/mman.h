@@ -15,6 +15,7 @@
 #define IS_COMPAT_SYS_MMAN_H
 
 #if defined(__MINGW) || defined(__MINGW32__)
+#include <unistd.h>
 #  define MAP_FAILED      ((void *) -1)
 extern void *mmap(void *__addr, size_t __len, int __prot,
                   int __flags, int __fd, off_t __offset);
