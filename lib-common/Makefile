@@ -106,7 +106,7 @@ endif
 
 ifneq (,$(MINGCC))
   # Disable some stuff that does not compile under MingW
-  libcommon_SOURCES := $(filter-out unix-linux.c mmappedfile.c btree.c, $(libcommon_SOURCES))
+  libcommon_SOURCES := $(filter-out unix-linux.c mmappedfile.c btree.c stats-temporal.c, $(libcommon_SOURCES))
   __EXE__ := $(filter-out btree-dump, $(__EXE__))
 endif
 
