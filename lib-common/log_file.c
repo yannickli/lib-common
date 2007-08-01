@@ -118,7 +118,7 @@ static inline int log_last_date(const char *prefix) {
         return 0;
     }
     p++;
-    len = sscanf(p, "%4d%2d%2d_%2d%2d%2d.log", 
+    len = sscanf(p, "%4d%2d%2d_%2d%2d%2d.log",
                  &cur_date.tm_year, &cur_date.tm_mon,
                  &cur_date.tm_mday, &cur_date.tm_hour,
                  &cur_date.tm_min, &cur_date.tm_sec);
@@ -255,7 +255,7 @@ int log_fprintf(log_file_t *log_file, const char *format, ...)
 {
     int res;
     va_list args;
-    
+
     assert (log_file);
 
     if (log_check_rotate(log_file)) {

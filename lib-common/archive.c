@@ -533,7 +533,7 @@ void archive_dump(const archive_t *archive, int level)
 
     e_trace(level, "archive: - version = %u\n", archive->version);
     e_trace(level, " - nb_blocs = %d", archive->nb_blocs);
-    
+
     if (archive->nb_blocs) {
         for (i = 0; i < archive->nb_blocs; i++) {
             archive_bloc *bloc = archive->blocs[i];
@@ -620,7 +620,7 @@ archive_update_file(archive_build_array *arch, const char *name,
                     const byte *payload, int len)
 {
     archive_build *file = archive_find_file(arch, name);
-    if (!file) 
+    if (!file)
         return NULL;
 
     p_delete(&file->payload);

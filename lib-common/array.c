@@ -157,7 +157,7 @@ STATIC_INLINE(void vecswap(void **a, void **b, int n)) {
         } while (--i > 0);
     }
 }
-      
+
 /* Merge 2 subarrays a[0..n1] and a[n1..2*n1] */
 STATIC_INLINE(
 void pqmerge2(void **a, size_t n1, void **tmp,
@@ -329,7 +329,7 @@ void pqsort(void *base[], size_t n,
         tmp = p_alloca(void *, n2);
 #endif
     }
-    
+
     for (pos = 1; pos < n; pos += 2) {
         if (comp(base + pos - 1, base + pos, parm) > 0) {
             swap(base + pos - 1, base + pos);

@@ -129,7 +129,7 @@ void fifo_put(fifo *f, void *ptr)
     if (f->size == f->nb_elems) {
         fifo_grow(f, f->size * 2);
     }
-    
+
     cur = f->first + f->nb_elems;
     if (cur >= f->size) {
         cur -= f->size;

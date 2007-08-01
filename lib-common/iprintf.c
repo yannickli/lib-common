@@ -752,7 +752,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
              * - the converted number        (lp, len)
              * - right padding with spaces   (right_pad)
              */
-            
+
             prefix_len = zero_pad = 0;
 
             len = buf + sizeof(buf) - lp;
@@ -793,7 +793,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             base = 16;
             {
                 void *vp = va_arg(ap, void *);
-                
+
                 if (vp == NULL) {
                     lp = "(nil)";
                     len = 5;
@@ -876,7 +876,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
              * - the converted number        (lp, len)
              * - right padding with spaces   (right_pad)
              */
-            
+
             prefix_len = zero_pad = 0;
 
             len = buf + sizeof(buf) - lp;
@@ -966,7 +966,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
 #else
                 union { int i; _LONG_DOUBLE ld; } _long_double_ = { 0 };
 #define fpvalue (_long_double_.ld)
-                int tmp;  
+                int tmp;
 #endif
                 int fsize, realsz, dprec;
                 int expt;               /* integer value of exponent */
@@ -1017,7 +1017,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                         c = (c == 'g') ? 'e' : 'E';
                     else
                         c = 'g';
-                } 
+                }
                 if (c <= 'e') { /* 'e' or 'E' fmt */
                     --expt;
                     expsize = exponent(expstr, expt, c);
@@ -1190,7 +1190,7 @@ int iprintf(const char *format, ...)
     va_start(ap, format);
     n = fmt_output(stdout, NULL, 0, format, ap);
     va_end(ap);
-    
+
     return n;
 }
 
@@ -1206,7 +1206,7 @@ int ifprintf(FILE *stream, const char *format, ...)
     va_start(ap, format);
     n = fmt_output(stream, NULL, 0, format, ap);
     va_end(ap);
-    
+
     return n;
 }
 
@@ -1218,7 +1218,7 @@ int isnprintf(char *str, size_t size, const char *format, ...)
     va_start(ap, format);
     n = fmt_output(NULL, str, size, format, ap);
     va_end(ap);
-    
+
     return n;
 }
 
@@ -1230,7 +1230,7 @@ int isprintf(char *str, const char *format, ...)
     va_start(ap, format);
     n = fmt_output(NULL, str, INT_MAX, format, ap);
     va_end(ap);
-    
+
     return n;
 }
 
@@ -1345,8 +1345,8 @@ cvt(value, ndigits, flags, sign, decpt, ch, length)
     if (ch == 'f') {
         mode = 3;               /* ndigits after the decimal point */
     } else {
-        /* To obtain ndigits after the decimal point for the 'e' 
-         * and 'E' formats, round to ndigits + 1 significant 
+        /* To obtain ndigits after the decimal point for the 'e'
+         * and 'E' formats, round to ndigits + 1 significant
          * figures.
          */
         if (ch == 'e' || ch == 'E') {

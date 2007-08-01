@@ -47,7 +47,7 @@ bool bfield_isset(bfield_t *blob, int pos)
     blob_t *b = bfield_t_to_blob_t(blob);
     int idx = pos / 8;
     unsigned int bidx = pos & 0x7;
-    
+
     if (idx >= b->len) {
         return false;
     }

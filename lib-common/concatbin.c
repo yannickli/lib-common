@@ -51,7 +51,7 @@ concatbin *concatbin_new(const char *filename)
         e_error("mmap failed");
         goto error;
     }
-    
+
     ccb->cur = ccb->start;
     return ccb;
 
@@ -94,7 +94,7 @@ int concatbin_getnext(concatbin *ccb, const byte **data, int *len)
     ccb->cur++; /* skip \n */
     *data = ccb->cur;
     ccb->cur += *len; /* get ready on next part */
-    
+
     if (ccb->cur > ccb->start + ccb->len) {
         e_trace(1, "Past the end");
         goto error;

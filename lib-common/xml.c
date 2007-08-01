@@ -383,7 +383,7 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
     while (len > 0 && *p != '>' && *p != '/') {
         /* now, parse property */
         switch (parse = xml_get_prop(tree, &prop, p, len, &mypend, tag->name,
-                                     error_buf, buf_len)) 
+                                     error_buf, buf_len))
         {
           case PARSE_PROP:
             *t = prop;
@@ -509,8 +509,8 @@ static int xml_parse(xml_tree_t *tree, xml_tag_t *dst,
             next->parent = dst;
             *babyp = next;
             babyp = &(*babyp)->next;
-            if (xml_parse(tree, next, payload, payload_len, &mypend, 
-                          error_buf, buf_len)) 
+            if (xml_parse(tree, next, payload, payload_len, &mypend,
+                          error_buf, buf_len))
             {
                 if (pend) {
                     *pend = mypend;
@@ -629,7 +629,7 @@ static const xml_tag_t* xml_search_branch(const xml_tag_t *branch,
 
     for (cur = branch->child; cur; cur = cur->next) {
         /* XXX: Compare to name and not fullname (ie: ignore namespaces) */
-        if (matchall || (cur->name_hash == pattern_hash 
+        if (matchall || (cur->name_hash == pattern_hash
                          && !strncmp(pattern, cur->name, patlen))) {
             tmp = xml_search_branch(cur, previous, pattern + skip);
             if (tmp) {
@@ -637,7 +637,7 @@ static const xml_tag_t* xml_search_branch(const xml_tag_t *branch,
             }
         }
     }
-    
+
     return NULL;
 }
 
@@ -658,7 +658,7 @@ const xml_tag_t* xml_search_subtree(const xml_tree_t *tree,
     return xml_search_branch(subtree, &previous, pattern);
 }
 
-void blob_append_branch(const xml_tag_t *root, blob_t *blob, 
+void blob_append_branch(const xml_tag_t *root, blob_t *blob,
                         const char *prefix)
 {
     /* OG: should pass indentation count instead of prefix string */

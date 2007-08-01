@@ -127,7 +127,7 @@ int64_t parse_number(const char *str)
  * <code>res</code> points to the destination of the long value
  * <code>p</code> points to the string to parse
  * <code>endp</code> points to the end of the parse (the next char to
- *   parse, after the value. spaces after the value are skipped if 
+ *   parse, after the value. spaces after the value are skipped if
  *   STRTOLP_IGNORE_SPACES is set)
  * <code>min</code> and <code>max</code> are extrema values (only checked
  *   if STRTOLP_CHECK_RANGE is set.
@@ -182,7 +182,7 @@ int strtolp(const char *p, const char **endp, int base, long *res,
         if (*res > max) {
             *res = max;
             clamped = true;
-        }            
+        }
         if (errno == ERANGE)
             errno = 0;
     }
@@ -486,7 +486,7 @@ const char *skipspaces(const char *s)
  *
  * @return a pointer to the first white space character in s
  * or points to the end of the string.
- * 
+ *
  */
 const char *strnextspace(const char *s)
 {
@@ -807,12 +807,12 @@ ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t n)
     const char *last;
     int val;
     static const char hex[16] = "0123456789ABCDEF";
-    
+
     n = MIN(size - offset - 1, n);
     if (n < 0) {
         return -1;
     }
-    
+
     /* RFE: This is very naive. Should at least call rand() only every 4
      * bytes. */
     last = dest + offset + n;

@@ -129,7 +129,7 @@ typedef struct intpair {
 /*---------------- btree generic page functions ----------------*/
 
 /* btree page pointers are organized this way (bit n stands for position 2^n)
- * 
+ *
  * bit  31   : points to a leaf (0) or a node (1) page.
  * bits 30-24: unused
  * bits  0-23: page number in data area
@@ -292,7 +292,7 @@ static int btn_insert(btree_t *bt, intpair nodes[], int level, int32_t rpage)
     bt_node_t *node, *sibling;
     int pos, split;
 
-    lpage = nodes[level++].page; 
+    lpage = nodes[level++].page;
     if (level > bt->area->depth) {
         /* Need a new level */
         page = bt_page_new(bt);

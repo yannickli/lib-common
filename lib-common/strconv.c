@@ -133,7 +133,7 @@ int strconv_unescape(char *dest, int size, const char *src, int len)
 
     for (i = j = 0; i < len;) {
         int c = src[i];
-        
+
         if (c != '%') {
             i += 1;
         } else

@@ -216,7 +216,7 @@ int filecopy(const char *pathin, const char *pathout)
     /* OG: total should be an off_t */
     if (total != st.st_size) {
         /* This should not happen... But who knows ? */
-        goto error;   
+        goto error;
     }
 
     close(fdin);

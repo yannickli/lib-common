@@ -1015,7 +1015,7 @@ void xml_lfun(SRunner *sr, FILE *file, enum print_output printmode,
     case CLENDLOG_SR:
         gettimeofday(&endtv, NULL);
         fprintf(file, "  <duration>%f</duration>\n",
-                (endtv.tv_sec + (float)(endtv.tv_usec)/1000000) - 
+                (endtv.tv_sec + (float)(endtv.tv_usec)/1000000) -
                 (inittv.tv_sec + (float)(inittv.tv_usec/1000000)));
         fprintf(file, "</testsuites>\n");
         break;

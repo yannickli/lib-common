@@ -14,7 +14,7 @@
 DEPTH=..
 include $(DEPTH)/admin/header.mk
 
-__EXE__   = btree-dump 
+__EXE__   = btree-dump
 __LIB__   = libcommon
 __CHECK__ = test tst-blob-iconv
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-hash tst-sort

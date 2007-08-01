@@ -168,7 +168,7 @@ static int isndx_word_test(const char *indexname)
     if (!fp) {
         printf("isndx: failed to open file '%s'\n", dictfile);
         return 1;
-    }        
+    }
 
     cp.flags      = 0;
     cp.pageshift  = 0;

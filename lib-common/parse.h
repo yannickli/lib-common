@@ -18,7 +18,7 @@
 
 signed_int_type `header'_parse_`what_it_parses' (const blob_t * blob,
                                                  ssize_t * pos, foo ** answer)
- 
+
 Arguments :
    in case of successful parse, pos is positionned at the octet just
    after the last parsed octet, or after NULs in case of c-str-like tokens.
@@ -31,7 +31,7 @@ Arguments :
    if the pointer on the output variable is NULL, data is eaten.
 
 Return values:
-   
+
    negative return values are always an error.
    0 return value is always a success.
    positive return values are a success, and generally have a special meaning.

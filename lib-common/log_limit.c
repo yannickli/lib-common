@@ -149,7 +149,7 @@ START_TEST(check_init_flushbuf_wipe)
 {
     log_limit_t ll;
     char *buf, *p;
-    
+
     log_limit_init(&ll, 2, 10);
     buf = p_new(char, BUFSIZ);
 
@@ -164,8 +164,8 @@ START_TEST(check_limit_oneline)
 {
     log_limit_t ll;
     char *buf, *p;
-    
-    
+
+
     log_limit_init(&ll, 2, 10);
     buf = p_new(char, BUFSIZ);
 
@@ -188,8 +188,8 @@ START_TEST(check_limit_morelines)
 {
     log_limit_t ll;
     char *buf, *p;
-    
-    
+
+
     log_limit_init(&ll, 2, 5);
     buf = p_new(char, BUFSIZ);
 

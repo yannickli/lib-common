@@ -184,7 +184,7 @@ time_t localtime_curday(time_t date)
 time_t localtime_nextday(time_t date)
 {
     struct tm t;
-    
+
     if (date == 0) {
         date = time(NULL);
     }
@@ -286,7 +286,7 @@ int strtotm(const char *date, struct tm *t)
         if (!memcmp(lower_mon, __abbr_months[mon], 4))
             break;
     }
-    
+
     /* Read year */
     p += 3;
     if (*p++ != '-')

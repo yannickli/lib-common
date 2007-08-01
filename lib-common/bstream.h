@@ -96,7 +96,7 @@ static inline BSTREAM *battach_bufsize(int fd, int mode, int bufsize)
     stream->error  = 0;
     stream->bufsiz = bufsize;
     if (BSTREAM_ISWRITE(stream->mode)) {
-        stream->pwrite_end += bufsize; 
+        stream->pwrite_end += bufsize;
     }
 
     return stream;
@@ -167,7 +167,7 @@ static inline ssize_t bread_call(BSTREAM *stream, void *ptr, size_t count)
         if ((size_t)n > count) {
             n = count;
         }
-    
+
         /* Copy from buffer. */
         memcpy(buf, stream->pread, n);
         stream->pread += n;
@@ -349,7 +349,7 @@ static ssize_t bwrite_call(BSTREAM *stream, const void *src, size_t count)
     if (tocopy >= avail) {
         tocopy = avail;
         if (avail == stream->bufsiz) {
-            /* Optim: buffer is empty, and count is at least BUFSIZ. 
+            /* Optim: buffer is empty, and count is at least BUFSIZ.
              * Do not fill the buffer, write directly from buf. */
             tocopy = 0;
         }

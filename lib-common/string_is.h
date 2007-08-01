@@ -54,13 +54,13 @@ static inline char *vskipspaces(char *s) {
     return (char*)skipspaces(s);
 }
 
-__attr_nonnull__((1)) 
+__attr_nonnull__((1))
 static inline const byte *bskipspaces(const byte *s) {
     return (const byte*)skipspaces((const char *)s);
 }
 
 const char *strnextspace(const char *s)  __attr_nonnull__((1));
-__attr_nonnull__((1)) 
+__attr_nonnull__((1))
 static inline char *vstrnextspace(char *s) {
     return (char*)strnextspace(s);
 }

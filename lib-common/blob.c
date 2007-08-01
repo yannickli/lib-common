@@ -1002,7 +1002,7 @@ void blob_b64encode(blob_t *blob, int nbpackets)
 
 /*http://base64.sourceforge.net/b64.c*/
 static void decodeblock(const byte *in, byte *out)
-{   
+{
     out[0] = (byte)((in[0] << 2) | (in[1] >> 4));
     out[1] = (byte)((in[1] << 4) | (in[2] >> 2));
     out[2] = (byte)((in[2] << 6) | (in[3] >> 0));
@@ -2402,7 +2402,7 @@ START_TEST(check_smtp_data)
     TEST_SMTP_DATA("a\r\n.\r\nbcd", "a\r\n..\r\nbcd");
 
 #undef TEST_SMTP_DATA
-    
+
     blob_wipe(&blob);
 }
 END_TEST

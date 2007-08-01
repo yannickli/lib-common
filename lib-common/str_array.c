@@ -28,9 +28,9 @@ void string_array_dump(const string_array *xp)
 /* OG: API discussion:
  * str_explode() as a reference to PHP's explode() function but with
  * different semantics: order of parameters is reversed, and delimiter
- * is en actual string, not a set a characters. 
+ * is en actual string, not a set a characters.
  * We could also name this str_split() as a reference to Javascript's
- * String split method. 
+ * String split method.
  * - a NULL token string could mean a standard set of delimiters
  * - an empty token string will produce a singleton
  * - an empty string will produce a NULL instead of an empty array ?

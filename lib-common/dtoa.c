@@ -1453,7 +1453,7 @@ strtod
     Long L;
     ULong y, z;
     Bigint *bb, *bb1, *bd, *bd0, *bs, *delta;
-    
+
     sign = nz0 = nz = 0;
     rv.d = 0.;
     bb = bd = bd0 = bs = delta = NULL;
@@ -2961,14 +2961,14 @@ int ecvt_r(double d, int ndigits, int *decpt, int *sign,
 
     if (len < ndigits + 1)
         return -1;
-    
+
     p1 = dtoa(d, 2, ndigits, decpt, sign, &end);
     p = p1;
     q = buf;
     while (p < end)
         *q++ = *p++;
     q_end = buf + ndigits;
-    while (q < q_end) 
+    while (q < q_end)
         *q++ = '0';
     *q = '\0';
     freedtoa(p1);
@@ -2978,10 +2978,10 @@ int ecvt_r(double d, int ndigits, int *decpt, int *sign,
 char *ecvt(double d, int ndigits, int *decpt, int *sign)
 {
     static char buf[64];
-    
+
     if (ndigits > sizeof(buf) - 1)
         ndigits = sizeof(buf) - 1;
-    
+
     ecvt_r(d, ndigits, decpt, sign, buf, sizeof(buf));
     return buf;
 }

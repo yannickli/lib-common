@@ -152,7 +152,7 @@ static inline void blob_blit_cstr(blob_t *blob, ssize_t pos, const char *cstr) {
 void blob_insert(blob_t *dest, ssize_t pos, const blob_t *src);
 void blob_insert_data(blob_t *blob, ssize_t pos,
                       const void *data, ssize_t len);
-static inline void 
+static inline void
 blob_insert_cstr(blob_t *blob, ssize_t pos, const char *cstr) {
     blob_insert_data(blob, pos, cstr, strlen(cstr));
 }
@@ -173,7 +173,7 @@ blob_splice(blob_t *dest, ssize_t pos, ssize_t len, const blob_t *src) {
 
 /*** appends ***/
 
-static inline void 
+static inline void
 blob_append_data(blob_t *blob, const void *data, ssize_t len) {
     blob_ensure_avail(blob, len);
     memcpy(blob->data + blob->len, data, len);

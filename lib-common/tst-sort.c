@@ -105,7 +105,7 @@ static int entry_compare_str_number_reverse(const entry_t *a, const entry_t *b,
     void *p)
 {
     int cmp;
-    
+
     compare_number++;
     cmp = strcmp(a->str, b->str);
     return -(cmp ? cmp : CMP(a->number, b->number));
@@ -123,7 +123,7 @@ static int entry_compare_str_reverse_number(const entry_t *a, const entry_t *b,
     void *p)
 {
     int cmp;
-    
+
     compare_number++;
     cmp = -strcmp(a->str, b->str);
     return cmp ? cmp : CMP(a->number, b->number);
@@ -229,7 +229,7 @@ static int dict_load_file(dict_t *dict, const char *filename)
         fprintf(stderr, "tst-sort: cannot open %s: %m\n", filename);
         exit(1);
     }
-    
+
     total_len = 0;
     while (entry_number < max_entry && fgets(buf, sizeof(buf), fp)) {
         len = strlen(buf);
@@ -263,7 +263,7 @@ static void dict_dump_file(dict_t *dict, const char *filename, bool fromlist)
         fprintf(stderr, "tst-sort: cannot open %s: %m\n", filename);
         exit(1);
     }
-    
+
     if (fromlist) {
         for (ep = dict->head; ep; ep = ep->next) {
             fprintf(fp, "%s\t%d\n", ep->str, ep->number);

@@ -23,7 +23,7 @@
  * The archive contains blobs of known length.
  * Each blob is described by its length (in bytes), printed in ASCII and
  * followed by a "\n" :
- * N "\n" [DATA1 DATA2 DATA3 ... DATA-N] 
+ * N "\n" [DATA1 DATA2 DATA3 ... DATA-N]
  */
 typedef struct concatbin {
     const byte *start;

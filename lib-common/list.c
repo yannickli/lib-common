@@ -41,7 +41,7 @@ static void generic_list_merge(generic_list **head,
     generic_list **prev, *l1;
 
     prev = head;
-    
+
     for (l1 = *prev;;) {
         if (unlikely((*cmp)(l1, l2, priv) > 0)) {
             *prev = l2;

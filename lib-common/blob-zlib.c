@@ -86,7 +86,7 @@ static int ZEXPORT intersec_compress(Bytef *dest, uLongf *destLen,
 }
 
 /**
- * Special implementation of zlib's uncompress function for ungziping 
+ * Special implementation of zlib's uncompress function for ungziping
  * a string
  */
 static int ZEXPORT intersec_uncompress(Bytef *dest, uLongf *destLen,

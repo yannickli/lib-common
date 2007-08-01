@@ -36,7 +36,7 @@ void bfield_reset(bfield_t *blob);
 void bfield_wipe(bfield_t *blob);
 
 /**
- * Clear memory 
+ * Clear memory
  */
 static inline void bfield_purge(bfield_t *blob)
 {

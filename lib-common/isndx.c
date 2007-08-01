@@ -84,7 +84,7 @@ struct isndx_t {
  *     1 [common] byte number of bytes of key shared with previous key
  *     1 [suffix] byte number of bytes of key different from previous key
  *     1 [datalen] byte number of bytes of data
- *     suffix key bytes 
+ *     suffix key bytes
  *     datalen data bytes
  *
  * The last entry of a page has a zero length key and may not contain
@@ -407,7 +407,7 @@ static int isndx_fetch1(isndx_t *ndx,
     if (*page != level) {
         return ISNDX_ERROR(ndx, "Incorrect page level %d != %d", *page, level);
     }
-    
+
     /* Scan for the key, stop at first exact match */
     if (isndx_scan(ndx, page, key, keylen, 0, &sst) < 0) {
         return -1;      /* corrupted page */
@@ -462,7 +462,7 @@ int isndx_fetch(isndx_t *ndx, const byte *key, int keylen, blob_t *out)
     return isndx_fetch1(ndx, level, pageno, key, keylen, out);
 }
 
-static int isndx_insert_one(isndx_t *ndx, insert_state *ist, int level, 
+static int isndx_insert_one(isndx_t *ndx, insert_state *ist, int level,
                              const byte *key, int keylen,
                              const void *data, int datalen);
 
@@ -856,7 +856,7 @@ int isndx_check(isndx_t *ndx, int flags)
     if (flags & (ISNDX_CHECK_ALL | ISNDX_CHECK_PAGES)) {
         ndx->npages = 1;
         ndx->nkeys = 0;
-    
+
         status |= isndx_check_page(ndx, root, rootlevel,
                                    flags | ISNDX_CHECK_ISRIGHTMOST);
 
