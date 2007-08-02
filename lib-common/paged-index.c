@@ -286,15 +286,20 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
     return pidx;
 }
 
-void pidx_close(pidx_file **f)
+void pidx_close(pidx_file **fp)
 {
-    if (*f) {
-        if ((*f)->writeable && (*f)->area->wrlock == getpid()) {
-            msync((*f)->area, (*f)->size, MS_SYNC);
-            (*f)->area->wrlock  = 0;
-            (*f)->area->wrlockt = 0;
+    if (*fp) {
+        pidx_file *f = *fp;
+
+        pidx_real_wlock(f);
+        if (f->writeable && f->refcnt <= 1
+        &&  f->area->wrlock == getpid())
+        {
+            msync(f->area, f->size, MS_SYNC);
+            f->area->wrlock  = 0;
+            f->area->wrlockt = 0;
         }
-        pidx_real_close(f);
+        pidx_real_close_wlocked(fp);
     }
 }
 

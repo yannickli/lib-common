@@ -57,6 +57,7 @@ static inline mmfile *mmfile_creat(const char *path, off_t initialsize) {
 }
 int mmfile_unlockfile(mmfile *mf);
 void mmfile_close(mmfile **mf);
+void mmfile_close_wlocked(mmfile **mf);
 
 /* @see ftruncate(2) */
 __must_check__ int mmfile_truncate(mmfile *mf, off_t length);
@@ -96,6 +97,10 @@ static inline int mmfile_unlock(mmfile *mf) {
                                                                             \
     static inline void prefix##_close(type **mmf) {                         \
         mmfile_close((mmfile **)mmf);                                       \
+    }                                                                       \
+                                                                            \
+    static inline void prefix##_close_wlocked(type **mmf) {                 \
+        mmfile_close_wlocked((mmfile **)mmf);                               \
     }                                                                       \
                                                                             \
     __must_check__                                                          \

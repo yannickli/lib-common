@@ -746,12 +746,15 @@ void btree_close(btree_t **btp)
     btree_t *bt = *btp;
 
     if (bt) {
-        if (bt->writeable && bt->area->wrlock == getpid()) {
+        bt_real_wlock(bt);
+        if (bt->writeable && bt->refcnt <= 1
+        &&  bt->area->wrlock == getpid())
+        {
             msync(bt->area, bt->size, MS_SYNC);
             bt->area->wrlock  = 0;
             bt->area->wrlockt = 0;
         }
-        bt_real_close(btp);
+        bt_real_close_wlocked(btp);
     }
 }
 

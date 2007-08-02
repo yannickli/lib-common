@@ -115,6 +115,40 @@ int mmfile_unlockfile(mmfile *mf)
     return 0;
 }
 
+void mmfile_close_wlocked(mmfile **mfp)
+{
+    mmfile *mf = *mfp;
+
+    assert (*mfp);
+
+    *mfp = NULL; /* do it ASAP during lock-safe period */
+    if (__sync_sub_and_fetch(&mf->refcnt, 1) > 0) {
+        mmfile_unlock(mf);
+        return;
+    }
+
+    if (mf->fd >= 0) {
+        close(mf->fd);
+        mf->fd = -1;
+    }
+
+    if (mf->area) {
+        if (mf->writeable)
+            msync(mf->area, mf->size, MS_SYNC);
+        munmap(mf->area, mf->size);
+        mf->area = NULL;
+    }
+
+    if (mf->fd >= 0) {
+        close(mf->fd);
+        mf->fd = -1;
+    }
+
+    mmfile_unlock(mf);
+    p_delete(&mf->path);
+    p_delete(&mf);
+}
+
 void mmfile_close(mmfile **mfp)
 {
     if (*mfp) {
@@ -122,32 +156,7 @@ void mmfile_close(mmfile **mfp)
 
         mmfile_wlock(mf);
         *mfp = NULL; /* do it ASAP during lock-safe period */
-
-        if (__sync_sub_and_fetch(&mf->refcnt, 1) > 0) {
-            mmfile_unlock(mf);
-            return;
-        }
-
-        if (mf->fd >= 0) {
-            close(mf->fd);
-            mf->fd = -1;
-        }
-
-        if (mf->area) {
-            if (mf->writeable)
-                msync(mf->area, mf->size, MS_SYNC);
-            munmap(mf->area, mf->size);
-            mf->area = NULL;
-        }
-
-        if (mf->fd >= 0) {
-            close(mf->fd);
-            mf->fd = -1;
-        }
-
-        mmfile_unlock(mf);
-        p_delete(&mf->path);
-        p_delete(&mf);
+        mmfile_close_wlocked(&mf);
     }
 }
 
