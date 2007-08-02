@@ -46,6 +46,8 @@ enum {
 typedef struct mmfile MMFILE_ALIAS(byte) mmfile;
 
 mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize);
+
+/* XXX: caller must ensure mmfile_close is not called */
 static inline mmfile *mmfile_unlocked_dup(mmfile *mf) {
     (void)__sync_add_and_fetch(&mf->refcnt, 1);
     return mf;
