@@ -60,13 +60,13 @@ void mmfile_close(mmfile **mf);
 
 /* @see ftruncate(2) */
 __must_check__ int mmfile_truncate(mmfile *mf, off_t length);
+__must_check__ int mmfile_truncate_unlocked(mmfile *mf, off_t length);
 
 static inline int mmfile_rlock(mmfile *mf) {
     return mf->mutex ? (mf->rlock)(mf->mutex) : 0;
 }
 
 static inline int mmfile_wlock(mmfile *mf) {
-    assert (mf->writeable);
     return mf->mutex ? (mf->wlock)(mf->mutex) : 0;
 }
 
@@ -101,6 +101,11 @@ static inline int mmfile_unlock(mmfile *mf) {
     __must_check__                                                          \
     static inline int prefix##_truncate(type *mf, off_t length) {           \
         return mmfile_truncate((mmfile *)mf, length);                       \
+    }                                                                       \
+                                                                            \
+    __must_check__                                                          \
+    static inline int prefix##_truncate_unlocked(type *mf, off_t length) {  \
+        return mmfile_truncate_unlocked((mmfile *)mf, length);              \
     }                                                                       \
                                                                             \
     static inline int prefix##_rlock(type *mf) {                            \

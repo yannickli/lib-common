@@ -123,7 +123,7 @@ void mmfile_close(mmfile **mfp)
         mmfile_wlock(mf);
         *mfp = NULL; /* do it ASAP during lock-safe period */
 
-        if (__sync_sub_and_fetch(&mf->refcnt, 1) > 1) {
+        if (__sync_sub_and_fetch(&mf->refcnt, 1) > 0) {
             mmfile_unlock(mf);
             return;
         }
@@ -151,7 +151,7 @@ void mmfile_close(mmfile **mfp)
     }
 }
 
-int mmfile_truncate(mmfile *mf, off_t length)
+static int mmfile_truncate_aux(mmfile *mf, off_t length, bool lock)
 {
     int res;
 
@@ -181,14 +181,15 @@ int mmfile_truncate(mmfile *mf, off_t length)
         void *map;
 
         /* stage 2: lock, and remap for real */
-        if (mmfile_wlock(mf) < 0) {
+        if (lock && mmfile_wlock(mf) < 0) {
             return -1;
         }
         map = mremap(mf->area, mf->size, length, MREMAP_MAYMOVE);
         if (map != MAP_FAILED) {
             mf->area = map;
         }
-        mmfile_unlock(mf);
+        if (lock)
+            mmfile_unlock(mf);
 
         if (map == MAP_FAILED) {
             return -1;
@@ -197,4 +198,14 @@ int mmfile_truncate(mmfile *mf, off_t length)
 
     mf->size = length;
     return length > mf->size ? 0 : truncate(mf->path, length);
+}
+
+int mmfile_truncate(mmfile *mf, off_t length)
+{
+    return mmfile_truncate_aux(mf, length, true);
+}
+
+int mmfile_truncate_unlocked(mmfile *mf, off_t length)
+{
+    return mmfile_truncate_aux(mf, length, false);
 }

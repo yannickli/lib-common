@@ -149,7 +149,7 @@ static int32_t bt_page_new(btree_t *bt)
         int len, res;
 
         len = BT_GROW_NBPAGES;
-        res = bt_real_truncate(bt, bt->size + len * BT_PAGE_SIZE);
+        res = bt_real_truncate_unlocked(bt, bt->size + len * BT_PAGE_SIZE);
         if (res < 0) {
             e_error("%s: cannot extend file to %zd: %m",
                     bt->path, bt->size + len * BT_PAGE_SIZE);
