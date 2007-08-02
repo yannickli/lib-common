@@ -886,7 +886,7 @@ int btree_fetch(btree_t *bt, uint64_t key, blob_t *out)
 
     leaf = MAP_CONST_LEAF(bt->area, page);
     if (!leaf)
-        return -1;
+        goto error;
 
     pos = btl_findslot(leaf, key, NULL);
     if (pos < 0)
