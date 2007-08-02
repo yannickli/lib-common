@@ -276,7 +276,7 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
         msync(pidx->area, pidx->size, MS_SYNC);
     }
 
-    if (pidx_real_unlockf(pidx) < 0) {
+    if (pidx_real_unlockfile(pidx) < 0) {
         int save_errno = errno;
         pidx_close(&pidx);
         errno = save_errno;

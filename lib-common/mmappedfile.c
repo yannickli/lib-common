@@ -99,7 +99,7 @@ mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize)
     return NULL;
 }
 
-int mmfile_unlockf(mmfile *mf)
+int mmfile_unlockfile(mmfile *mf)
 {
     if (!mf->locked) {
         errno = EINVAL;

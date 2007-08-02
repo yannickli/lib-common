@@ -48,7 +48,7 @@ mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize);
 static inline mmfile *mmfile_creat(const char *path, off_t initialsize) {
     return mmfile_open(path, O_CREAT | O_TRUNC | O_RDWR, 0, initialsize);
 }
-int mmfile_unlockf(mmfile *mf);
+int mmfile_unlockfile(mmfile *mf);
 void mmfile_close(mmfile **mf);
 
 /* @see ftruncate(2) */
@@ -75,8 +75,8 @@ static inline int mmfile_unlock(mmfile *mf) {
         return (type *)mmfile_open(path, fl, ofl, sz);                      \
     }                                                                       \
                                                                             \
-    static inline int prefix##_unlockf(type *mf) {                          \
-        return mmfile_unlockf((mmfile *)mf);                                \
+    static inline int prefix##_unlockfile(type *mf) {                       \
+        return mmfile_unlockfile((mmfile *)mf);                             \
     }                                                                       \
                                                                             \
     static inline type *prefix##_creat(const char *path, off_t size) {      \
