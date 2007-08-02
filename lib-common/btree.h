@@ -48,6 +48,7 @@ void btree_dump(btree_t *bt, btree_print_fun *fun, FILE *arg);
 typedef struct fbtree_t fbtree_t;
 
 fbtree_t *fbtree_open(const char *path);
+fbtree_t *fbtree_unlocked_dup(const char *path, btree_t *bt);
 int fbtree_fetch(fbtree_t *, uint64_t key, blob_t *out);
 void fbtree_close(fbtree_t **f);
 

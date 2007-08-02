@@ -46,6 +46,10 @@ enum {
 typedef struct mmfile MMFILE_ALIAS(byte) mmfile;
 
 mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize);
+static inline mmfile *mmfile_unlocked_dup(mmfile *mf) {
+    (void)__sync_add_and_fetch(&mf->refcnt, 1);
+    return mf;
+}
 static inline mmfile *mmfile_creat(const char *path, off_t initialsize) {
     return mmfile_open(path, O_CREAT | O_TRUNC | O_RDWR, 0, initialsize);
 }
@@ -74,6 +78,10 @@ static inline int mmfile_unlock(mmfile *mf) {
                                       off_t sz)                             \
     {                                                                       \
         return (type *)mmfile_open(path, fl, ofl, sz);                      \
+    }                                                                       \
+                                                                            \
+    static inline type *prefix##_unlocked_dup(type *mf) {                   \
+        return (type *)mmfile_unlocked_dup((mmfile *)mf);                   \
     }                                                                       \
                                                                             \
     static inline int prefix##_unlockfile(type *mf) {                       \

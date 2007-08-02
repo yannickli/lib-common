@@ -1250,8 +1250,14 @@ int btree_push(btree_t *bt, uint64_t key, const void *_data, int dlen)
 /*---------------- FILE* based read-only API functions ----------------*/
 
 struct fbtree_t {
-    FILE *f;
-    struct btree_priv *priv;
+    flag_t ismap : 1;
+    union {
+        struct {
+            FILE *f;
+            struct btree_priv *priv;
+        };
+        btree_t *bt;
+    };
 };
 
 fbtree_t *fbtree_open(const char *path)
@@ -1280,13 +1286,30 @@ fbtree_t *fbtree_open(const char *path)
     return NULL;
 }
 
+fbtree_t *fbtree_unlocked_dup(const char *path, btree_t *bt)
+{
+    btree_t *bt2 = bt_real_unlocked_dup(bt);
+    fbtree_t *fbt;
+
+    if (!bt2)
+        return fbtree_open(path);
+    fbt = p_new(fbtree_t, 1);
+    fbt->ismap = 1;
+    fbt->bt    = bt2;
+    return fbt;
+}
+
 void fbtree_close(fbtree_t **fbtp)
 {
     if (*fbtp) {
         fbtree_t *fbt = *fbtp;
-        p_fclose(&fbt->f);
-        if (fbt->priv && fbt->priv != MAP_FAILED) {
-            munmap(fbt->priv, ssizeof(*fbt->priv));
+        if (fbt->ismap) {
+            btree_close(&fbt->bt);
+        } else {
+            p_fclose(&fbt->f);
+            if (fbt->priv && fbt->priv != MAP_FAILED) {
+                munmap(fbt->priv, ssizeof(*fbt->priv));
+            }
         }
         p_delete(fbtp);
     }

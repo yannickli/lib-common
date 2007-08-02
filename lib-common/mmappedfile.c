@@ -120,8 +120,11 @@ void mmfile_close(mmfile **mfp)
     if (*mfp) {
         mmfile *mf = *mfp;
 
-        if (__sync_fetch_and_sub(&mf->refcnt, 1) > 0) {
-            *mfp = NULL;
+        mmfile_wlock(mf);
+        *mfp = NULL; /* do it ASAP during lock-safe period */
+
+        if (__sync_sub_and_fetch(&mf->refcnt, 1) > 1) {
+            mmfile_unlock(mf);
             return;
         }
 
@@ -131,18 +134,20 @@ void mmfile_close(mmfile **mfp)
         }
 
         if (mf->area) {
-            if (mf->writeable) {
-                mmfile_wlock(mf);
+            if (mf->writeable)
                 msync(mf->area, mf->size, MS_SYNC);
-            }
             munmap(mf->area, mf->size);
             mf->area = NULL;
-            if (mf->writeable) {
-                mmfile_unlock(mf);
-            }
         }
+
+        if (mf->fd >= 0) {
+            close(mf->fd);
+            mf->fd = -1;
+        }
+
+        mmfile_unlock(mf);
         p_delete(&mf->path);
-        p_delete(mfp);
+        p_delete(&mf);
     }
 }
 
