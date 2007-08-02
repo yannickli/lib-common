@@ -1356,6 +1356,9 @@ int fbtree_fetch(fbtree_t *fbt, uint64_t key, blob_t *out)
     int page, pos, len = 0;
     const bt_leaf_t *leaf;
 
+    if (fbt->ismap)
+        return btree_fetch(fbt->bt, key, out);
+
     page = fbtn_find_leaf(fbt, key);
     if (page < 0)
         return -1;
