@@ -35,6 +35,7 @@ enum {
         ptr_type *area;             \
         flag_t    writeable : 1;    \
         flag_t    locked    : 1;    \
+        int16_t   refcnt;           \
         int       fd;               \
         void      *mutex;           \
         int      (*rlock)(void*);   \

@@ -87,7 +87,8 @@ mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize)
         close(mf->fd);
         mf->fd = -1;
     }
-    mf->path  = p_strdup(path);
+    mf->path   = p_strdup(path);
+    mf->refcnt = 1;
     return mf;
 
   error:
@@ -118,6 +119,11 @@ void mmfile_close(mmfile **mfp)
 {
     if (*mfp) {
         mmfile *mf = *mfp;
+
+        if (__sync_fetch_and_sub(&mf->refcnt, 1) > 0) {
+            *mfp = NULL;
+            return;
+        }
 
         if (mf->fd >= 0) {
             close(mf->fd);
