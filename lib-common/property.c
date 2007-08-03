@@ -232,3 +232,16 @@ void property_array_dup(const property_array *from, property_array *to)
         property_array_append(to, prop);
     }
 }
+
+#ifdef NDEBUG
+void property_array_dump(const property_array *props){}
+#else
+void property_array_dump(int level, const property_array *props)
+{
+    int i;
+
+    for (i = 0; i < props->len; i++) {
+        e_trace(level, "%s: %s", props->tab[i]->name, props->tab[i]->value);
+    }
+}
+#endif

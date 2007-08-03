@@ -51,4 +51,8 @@ int props_from_fmtv1(const blob_t *payload, property_array *props);
 void props_to_fmtv1(blob_t *out, property_array *props);
 
 void property_array_dup(const property_array *from, property_array *to);
+
+/* Debug function */
+void property_array_dump(int level, const property_array *props);
+
 #endif /* IS_LIB_COMMON_PROPERTY_H */
