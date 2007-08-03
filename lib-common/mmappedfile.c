@@ -122,7 +122,7 @@ void mmfile_close_wlocked(mmfile **mfp)
     assert (*mfp);
 
     *mfp = NULL; /* do it ASAP during lock-safe period */
-    if (__sync_sub_and_fetch(&mf->refcnt, 1) > 0) {
+    if (--mf->refcnt > 0) {
         mmfile_unlock(mf);
         return;
     }
