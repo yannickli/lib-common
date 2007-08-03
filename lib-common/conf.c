@@ -27,13 +27,13 @@
 
 static conf_section_t *conf_section_init(conf_section_t *section)
 {
-    property_array_init(&section->vals);
+    props_array_init(&section->vals);
     return section;
 }
 static void conf_section_wipe(conf_section_t *section)
 {
     p_delete(&section->name);
-    property_array_wipe(&section->vals);
+    props_array_wipe(&section->vals);
 }
 
 GENERIC_NEW(conf_section_t, conf_section);
@@ -68,7 +68,7 @@ static void section_add_var(conf_section_t *section,
     prop->name  = p_dupstr(variable, variable_len);
     prop->value = p_dupstr(value, value_len);
 
-    property_array_append(&section->vals, prop);
+    props_array_append(&section->vals, prop);
 }
 
 static void conf_add_section(conf_t *conf, conf_section_t *section)
@@ -442,7 +442,7 @@ const char *conf_put(conf_t *conf, const char *section,
                 } else {
                     /* delete value */
                     property_delete(&prop);
-                    property_array_take(&s->vals, j);
+                    props_array_take(&s->vals, j);
                     return NULL;
                 }
             }

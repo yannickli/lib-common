@@ -34,7 +34,7 @@
 
 typedef struct conf_section_t {
     char *name;
-    property_array vals;
+    props_array vals;
 } conf_section_t;
 
 ARRAY_TYPE(conf_section_t, conf_section);

@@ -29,30 +29,34 @@ static inline void property_wipe(property_t *property) {
 GENERIC_INIT(property_t, property);
 GENERIC_NEW(property_t, property);
 GENERIC_DELETE(property_t, property);
-DO_ARRAY(property_t, property, property_delete);
+DO_ARRAY(property_t, props, property_delete);
 
-void property_array_update(property_array *arr,
-                           const char *k, const char *v);
+void props_array_update(props_array *arr, const char *k, const char *v);
 
-property_t *property_find(const property_array *arr, const char *k);
+property_t *property_find(const props_array *arr, const char *k);
 const char *
-property_findval(const property_array *arr, const char *k, const char *def);
-void property_array_merge(property_array *arr, property_array **old);
+property_findval(const props_array *arr, const char *k, const char *def);
+void props_array_merge(props_array *arr, props_array **old);
 
-void property_array_remove_nulls(property_array *arr);
+void props_array_remove_nulls(props_array *arr);
 
 /* appends $nb|$k1|$v1|...|$kn|$vn$last */
-void property_array_pack(blob_t *out, const property_array *arr, int last);
+void props_array_pack(blob_t *out, const props_array *arr, int last);
 
-int property_array_unpack(const byte *buf, int buflen,  int *pos,
-                          property_array **arr, int last)
-    __must_check__;
-int props_from_fmtv1(const blob_t *payload, property_array *props);
-void props_to_fmtv1(blob_t *out, property_array *props);
+__must_check__ int
+props_array_unpack(const byte *buf, int buflen,  int *pos,
+                   props_array **arr, int last);
 
-void property_array_dup(property_array *to, const property_array *from);
+int props_from_fmtv1(const blob_t *payload, props_array *props);
+void props_to_fmtv1(blob_t *out, props_array *props);
+
+void props_array_dup(props_array *to, const props_array *from);
 
 /* Debug function */
-void property_array_dump(int level, const property_array *props);
+#ifdef NDEBUG
+#define props_array_dump(a)
+#else
+void props_array_dump(int level, const props_array *props);
+#endif
 
 #endif /* IS_LIB_COMMON_PROPERTY_H */

@@ -13,7 +13,7 @@
 
 #include "property.h"
 
-void property_array_update(property_array *arr, const char *k, const char *v)
+void props_array_update(props_array *arr, const char *k, const char *v)
 {
     int i;
 
@@ -25,7 +25,7 @@ void property_array_update(property_array *arr, const char *k, const char *v)
                 arr->tab[i]->value = p_strdup(v);
             } else {
                 /* value == NULL -> delete property */
-                property_t *prop = property_array_take(arr, i);
+                property_t *prop = props_array_take(arr, i);
                 property_delete(&prop);
             }
             return;
@@ -37,11 +37,11 @@ void property_array_update(property_array *arr, const char *k, const char *v)
         property_t *prop = property_new();
         prop->name  = p_strdup(k);
         prop->value = p_strdup(v);
-        property_array_append(arr, prop);
+        props_array_append(arr, prop);
     }
 }
 
-property_t *property_find(const property_array *arr, const char *k)
+property_t *property_find(const props_array *arr, const char *k)
 {
     int i;
 
@@ -56,7 +56,7 @@ property_t *property_find(const property_array *arr, const char *k)
 }
 
 const char *
-property_findval(const property_array *arr, const char *k, const char *def)
+property_findval(const props_array *arr, const char *k, const char *def)
 {
     int i;
 
@@ -70,7 +70,7 @@ property_findval(const property_array *arr, const char *k, const char *def)
     return def;
 }
 
-void property_array_merge(property_array *arr, property_array **old)
+void props_array_merge(props_array *arr, props_array **old)
 {
     int i, j;
 
@@ -80,12 +80,12 @@ void property_array_merge(property_array *arr, property_array **old)
 
         for (j = 0; j < (*old)->len; j++) {
             if (!strcasecmp(prop->name, (*old)->tab[j]->name)) {
-                property_t *oldprop = property_array_take(*old, j);
+                property_t *oldprop = props_array_take(*old, j);
 
                 if (oldprop->value) {
                     SWAP(prop->value, oldprop->value);
                 } else {
-                    prop = property_array_take(arr, i);
+                    prop = props_array_take(arr, i);
                     property_delete(&prop);
                 }
 
@@ -98,29 +98,29 @@ void property_array_merge(property_array *arr, property_array **old)
     /* append the rest of old */
     for (i = 0; i < (*old)->len; i++) {
         if ((*old)->tab[i]->value) {
-            property_array_append(arr, (*old)->tab[i]);
+            props_array_append(arr, (*old)->tab[i]);
             (*old)->tab[i] = NULL;
         } else {
             property_delete(&(*old)->tab[i]);
         }
     }
-    property_array_reset(*old);
-    property_array_delete(old);
+    props_array_reset(*old);
+    props_array_delete(old);
 }
 
-void property_array_remove_nulls(property_array *arr)
+void props_array_remove_nulls(props_array *arr)
 {
     int i = arr->len;
 
     while (i-- > 0) {
         if (!arr->tab[i]->value) {
-            property_t *prop = property_array_take(arr, i);
+            property_t *prop = props_array_take(arr, i);
             property_delete(&prop);
         }
     }
 }
 
-void property_array_pack(blob_t *out, const property_array *arr, int last)
+void props_array_pack(blob_t *out, const props_array *arr, int last)
 {
     int i, nulls = 0;
 
@@ -139,11 +139,11 @@ void property_array_pack(blob_t *out, const property_array *arr, int last)
     }
 }
 
-int property_array_unpack(const byte *buf, int buflen, int *pos,
-                          property_array **arrout, int last)
+int props_array_unpack(const byte *buf, int buflen, int *pos,
+                          props_array **arrout, int last)
 {
     int len, pos0 = *pos;
-    property_array *arr = property_array_new();
+    props_array *arr = props_array_new();
 
     if (buf_unpack(buf, buflen, pos, "d|", &len) < 1) {
         char fmt[3] = {'d', last, '\0' };
@@ -159,7 +159,7 @@ int property_array_unpack(const byte *buf, int buflen, int *pos,
 
         fmt[3] = len ? '|' : last;
         res = buf_unpack(buf, buflen, pos, fmt, &prop->name, &prop->value);
-        property_array_append(arr, prop);
+        props_array_append(arr, prop);
         if (res < 2)
             goto error;
     }
@@ -169,11 +169,11 @@ int property_array_unpack(const byte *buf, int buflen, int *pos,
 
   error:
     *pos = pos0;
-    property_array_delete(&arr);
+    props_array_delete(&arr);
     return 0;
 }
 
-int props_from_fmtv1(const blob_t *payload, property_array *props)
+int props_from_fmtv1(const blob_t *payload, props_array *props)
 {
     const char *buf = blob_get_cstr(payload);
     int pos = 0;
@@ -203,7 +203,7 @@ int props_from_fmtv1(const blob_t *payload, property_array *props)
 #if 0   // XXX: NULL triggers Segfault :(
         prop->value = vlen ? p_dupstr(v, vlen) : NULL;
 #endif
-        property_array_append(props, prop);
+        props_array_append(props, prop);
 
         pos = end + 1 - buf;
     }
@@ -211,7 +211,7 @@ int props_from_fmtv1(const blob_t *payload, property_array *props)
     return 0;
 }
 
-void props_to_fmtv1(blob_t *out, property_array *props)
+void props_to_fmtv1(blob_t *out, props_array *props)
 {
     int i;
 
@@ -220,7 +220,7 @@ void props_to_fmtv1(blob_t *out, property_array *props)
     }
 }
 
-void property_array_dup(property_array *to, const property_array *from)
+void props_array_dup(props_array *to, const props_array *from)
 {
     int i;
 
@@ -229,14 +229,12 @@ void property_array_dup(property_array *to, const property_array *from)
 
         prop->name  = p_strdup(from->tab[i]->name);
         prop->value = p_strdup(from->tab[i]->value);
-        property_array_append(to, prop);
+        props_array_append(to, prop);
     }
 }
 
-#ifdef NDEBUG
-void property_array_dump(const property_array *props){}
-#else
-void property_array_dump(int level, const property_array *props)
+#ifndef NDEBUG
+void props_array_dump(int level, const props_array *props)
 {
     int i;
 
