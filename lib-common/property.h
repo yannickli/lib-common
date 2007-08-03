@@ -54,7 +54,7 @@ void props_array_dup(props_array *to, const props_array *from);
 
 /* Debug function */
 #ifdef NDEBUG
-#define props_array_dump(a)
+#define props_array_dump(...)
 #else
 void props_array_dump(int level, const props_array *props);
 #endif
