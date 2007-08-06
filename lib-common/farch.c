@@ -58,7 +58,7 @@ int farch_generic_get(const farch_file files[], const char *name,
         size = &lsize;
     }
     for (;;) {
-        if (files[0].name[0] == '\0') {
+        if (!files[0].name) {
             break;
         }
         if (!strcmp(files[0].name, name)) {
