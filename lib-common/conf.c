@@ -510,7 +510,7 @@ START_TEST(check_conf_load)
     fail_if(conf == NULL,
             "conf_load failed");
     fail_if(conf->sections.len != SAMPLE_SECTION_NB,
-            "conf_load did not parse the right number of sections (%d != %d)",
+            "conf_load did not parse the right number of sections (%zd != %d)",
             conf->sections.len, SAMPLE_SECTION_NB);
 
     s = conf->sections.tab[0];
@@ -518,7 +518,7 @@ START_TEST(check_conf_load)
             "bad section name: expected '%s', got '%s'",
             SAMPLE_SECTION1_NAME, s->name);
     fail_if(s->vals.len != SAMPLE_SECTION1_VAR_NB,
-            "bad variable number for section '%s': expected %d, got %d",
+            "bad variable number for section '%s': expected %d, got %zd",
             s->name, SAMPLE_SECTION1_VAR_NB, s->vals.len);
     fail_if(!strequal(s->vals.tab[0]->name, SAMPLE_SECTION1_VAR1_NAME),
             "bad variable name: expected '%s', got '%s'",
@@ -575,7 +575,7 @@ START_TEST(check_conf_load)
     fail_if(conf == NULL,
             "conf_load_blob failed");
     fail_if(conf->sections.len != SAMPLE_SECTION_NB,
-            "conf_load_blob did not parse the right number of sections (%d != %d)",
+            "conf_load_blob did not parse the right number of sections (%zd != %d)",
             conf->sections.len, SAMPLE_SECTION_NB);
     conf_delete(&conf);
     blob_wipe(&blob);
