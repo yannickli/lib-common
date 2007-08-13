@@ -45,11 +45,32 @@ void farch_generic_delete(farch **fa)
     p_delete(fa);
 }
 
+int farch_namehash(const char *str)
+{
+    int ret = 0x5A3C9643;
+    int key;
+    int len;
+
+    len = strlen(str);
+
+#define RIGHT_ROTATE_32(val, n) \
+    (((unsigned int)(val) >> (n)) | ((unsigned int)(val) << (32 - (n))))
+    while (len) {
+        key = (unsigned char)(*str);
+        ret = RIGHT_ROTATE_32(ret, 5);
+        ret ^= key;
+        str++;
+        len--;
+    }
+    return ret;
+}
+
 int farch_generic_get(const farch_file files[], const char *name,
                       const byte **data, int *size)
 {
     const byte *ldata;
     int lsize;
+    int namehash;
 
     if (!data) {
         data = &ldata;
@@ -57,11 +78,16 @@ int farch_generic_get(const farch_file files[], const char *name,
     if (!size) {
         size = &lsize;
     }
+    if (!name) {
+        return 1;
+    }
+    namehash = farch_namehash(name);
     for (;;) {
         if (!files[0].name) {
             break;
         }
-        if (!strcmp(files[0].name, name)) {
+        if (files[0].namehash == namehash
+        &&  !strcmp(files[0].name, name)) {
             *data = files[0].data;
             *size = files[0].size;
             return 0;

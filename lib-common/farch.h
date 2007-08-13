@@ -19,13 +19,18 @@
 typedef struct farch farch;
 
 typedef struct farch_file {
+    int namehash;
     const char *name;
     int size;
     const byte *data;
 } farch_file;
 
+/* Public interface */
 farch *farch_generic_new(const char *overridedir);
 void farch_generic_delete(farch **fa);
 int farch_generic_get(const farch_file files[], const char *name,
                       const byte **data, int *size);
+
+/* For internal use only */
+int farch_namehash(const char *name);
 #endif /* IS_LIB_COMMON_FARCH_H */
