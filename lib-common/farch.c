@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <lib-common/blob.h>
 #include <lib-common/mem.h>
 
 #include "farch.h"
@@ -97,4 +98,67 @@ int farch_generic_get(const farch_file files[], const char *name,
     *data = NULL;
     *size = 0;
     return 1;
+}
+
+
+/* Get the content of the buffer in a blob, allowing for replacements
+ * variables.
+ */
+int farch_generic_get_withvars(blob_t *out, const farch_file files[],
+                               const char *name, int nbvars,
+                               const char **vars, const char **values)
+{
+    const byte *data, *p, *end, *p0, *p1, *p2, *p3;
+    int size, i, var_len;
+
+    if (farch_generic_get(files, name, &data, &size)) {
+        return 1;
+    }
+
+    /*
+     * QWERTY{ $foobar }UIOP
+     * ^     ^  ^     ^ ^
+     * |     /  |     / \
+     * |    /   |    /   \
+     * |   /    |   /     \
+     * p  p0    p1 p2     p3
+    */
+    end = data + size;
+    for (p = data; p < end;) {
+        p0 = memsearch(p, end - p, "{", 1);
+        if (!p0) {
+            break;
+        }
+        p1 = bskipspaces(p0 + 1);
+        if (*p1 != '$') {
+            blob_append_data(out, p, p1 - p);
+            p = p1;
+            continue;
+        }
+        /* skip '$' */
+        p1 += 1;
+        p2 = p3 = memsearch(p1, end - p1, "}", 1);
+        if (!p3) {
+            blob_append_data(out, p, p1 - p);
+            p = p1;
+            continue;
+        }
+        /* skip '}' */
+        p3 += 1;
+        while (p2 > p1 && isspace(p2[-1])) {
+            p2--;
+        }
+        var_len = p2 - p1;
+        blob_append_data(out, p, p0 - p);
+        for (i = 0; i < nbvars; i++) {
+            if (!memcmp(p1, vars[i], var_len)
+            && vars[i][var_len] == '\0') {
+                blob_append_cstr(out, values[i]);
+                break;
+            }
+        }
+        p = p3;
+    }
+    blob_append_data(out, p, end - p);
+    return 0;
 }
