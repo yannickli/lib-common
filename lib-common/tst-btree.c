@@ -196,6 +196,7 @@ static int btree_linear_test(const char *indexname, int64_t start, int bswap,
     printf("    check OK (times: %s)\n", proctimer_report(&pt1, NULL));
     fflush(stdout);
 
+    unlink(indexname);
     return status;
 }
 
