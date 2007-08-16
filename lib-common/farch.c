@@ -14,16 +14,17 @@
 #include <lib-common/blob.h>
 #include <lib-common/mem.h>
 
+#include "robuf.h"
 #include "farch.h"
 
 #define FARCH_MAX_HANDLES 64
 struct farch {
+    const farch_file *files;
     int use_dir;
     char dir[PATH_MAX];
 };
 
-
-farch *farch_generic_new(const char *overridedir)
+farch *farch_generic_new(const char *overridedir, const farch_file files[])
 {
     farch *fa;
 
@@ -35,6 +36,7 @@ farch *farch_generic_new(const char *overridedir)
         fa->use_dir = false;
         fa->dir[0] = '\0';
     }
+    fa->files = files;
     return fa;
 }
 
@@ -66,52 +68,49 @@ int farch_namehash(const char *str)
     return ret;
 }
 
-int farch_generic_get(const farch_file files[], const char *name,
-                      const byte **data, int *size)
+int farch_generic_get(const farch *fa, robuf *dst, const char *name)
 {
-    const byte *ldata;
-    int lsize;
     int namehash;
+    const farch_file *files;
 
-    if (!data) {
-        data = &ldata;
-    }
-    if (!size) {
-        size = &lsize;
-    }
-    if (!name) {
+    if (!name || !fa || !dst) {
         return 1;
     }
+    robuf_reset(dst);
     namehash = farch_namehash(name);
+    files = fa->files;
     for (;;) {
         if (!files[0].name) {
             break;
         }
         if (files[0].namehash == namehash
         &&  !strcmp(files[0].name, name)) {
-            *data = files[0].data;
-            *size = files[0].size;
+            robuf_make_const(dst, files[0].data, files[0].size);
             return 0;
         }
         files++;
     }
-    *data = NULL;
-    *size = 0;
     return 1;
 }
-
 
 /* Get the content of the buffer in a blob, allowing for replacements
  * variables.
  */
-int farch_generic_get_withvars(blob_t *out, const farch_file files[],
+int farch_generic_get_withvars(const farch *fa, robuf *dst,
                                const char *name, int nbvars,
                                const char **vars, const char **values)
 {
-    const byte *data, *p, *end, *p0, *p1, *p2, *p3;
-    int size, i, var_len;
+    const byte *p, *end, *p0, *p1, *p2, *p3;
+    int i, var_len;
+    blob_t *out;
+    robuf ldst;
 
-    if (farch_generic_get(files, name, &data, &size)) {
+    if (!fa) {
+        return 1;
+    }
+    robuf_init(&ldst);
+    if (farch_generic_get(fa, &ldst, name)) {
+        robuf_wipe(&ldst);
         return 1;
     }
 
@@ -123,8 +122,9 @@ int farch_generic_get_withvars(blob_t *out, const farch_file files[],
      * |   /    |   /     \
      * p  p0    p1 p2     p3
     */
-    end = data + size;
-    for (p = data; p < end;) {
+    out = robuf_make_blob(dst);
+    end = ldst.data + ldst.size;
+    for (p = ldst.data; p < end;) {
         p0 = memsearch(p, end - p, "{", 1);
         if (!p0) {
             break;
@@ -160,5 +160,8 @@ int farch_generic_get_withvars(blob_t *out, const farch_file files[],
         p = p3;
     }
     blob_append_data(out, p, end - p);
+    robuf_blob_consolidate(dst);
+    robuf_wipe(&ldst);
     return 0;
 }
+

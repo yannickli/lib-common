@@ -73,6 +73,7 @@ libcommon_SOURCES = \
 	unix-linux.c \
 	\
 	farch.c \
+	robuf.c \
 	\
 	$(end_of_list)
 
