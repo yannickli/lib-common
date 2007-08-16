@@ -76,6 +76,18 @@ int farch_generic_get(const farch *fa, robuf *dst, const char *name)
     if (!name || !fa || !dst) {
         return 1;
     }
+    /* Deal with files overrides */
+    if (fa->use_dir) {
+        blob_t *out;
+        char buf[PATH_MAX];
+        out = robuf_make_blob(dst);
+        snprintf(buf, sizeof(buf), "%s/%s", fa->dir, name);
+        if (blob_append_file_data(out, buf) >= 0) {
+            robuf_blob_consolidate(dst);
+            return 0;
+        }
+        /* Could not read from dir. Fall back to embedded data. */
+    }
     robuf_reset(dst);
     namehash = farch_namehash(name);
     files = fa->files;
