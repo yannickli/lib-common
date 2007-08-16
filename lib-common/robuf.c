@@ -79,7 +79,7 @@ void robuf_make_from_blob(robuf *dst, blob_t *src)
 /* This code should be obsoleted asap. */
 blob_t *robuf_make_blob(robuf *dst)
 {
-    robuf_wipe(dst);
+    robuf_reset(dst);
     dst->type = ROBUF_TYPE_BLOB;
     return &dst->blob;
 }
