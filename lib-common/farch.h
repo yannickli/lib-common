@@ -28,13 +28,12 @@ typedef struct farch_file {
 } farch_file;
 
 /* Public interface */
-farch *farch_generic_new(const char *overridedir, const farch_file files[]);
-void farch_generic_delete(farch **fa);
+farch *farch_new(const farch_file files[], const char *overridedir);
+void farch_delete(farch **fa);
 
-int farch_generic_get(const farch *fa, robuf *dst, const char *name);
-int farch_generic_get_withvars(const farch *fa, robuf *dst,
-                               const char *name, int nbvars,
-                               const char **vars, const char **values);
+int farch_get(const farch *fa, robuf *dst, const char *name);
+int farch_get_withvars(const farch *fa, robuf *dst, const char *name,
+                       int nbvars, const char **vars, const char **values);
 
 /* For internal use only */
 int farch_namehash(const char *name);

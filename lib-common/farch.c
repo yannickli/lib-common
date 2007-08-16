@@ -24,7 +24,7 @@ struct farch {
     char dir[PATH_MAX];
 };
 
-farch *farch_generic_new(const char *overridedir, const farch_file files[])
+farch *farch_new(const farch_file files[], const char *overridedir)
 {
     farch *fa;
 
@@ -40,7 +40,7 @@ farch *farch_generic_new(const char *overridedir, const farch_file files[])
     return fa;
 }
 
-void farch_generic_delete(farch **fa)
+void farch_delete(farch **fa)
 {
     if (!fa || !*fa) {
         return;
@@ -68,7 +68,7 @@ int farch_namehash(const char *str)
     return ret;
 }
 
-int farch_generic_get(const farch *fa, robuf *dst, const char *name)
+int farch_get(const farch *fa, robuf *dst, const char *name)
 {
     int namehash;
     const farch_file *files;
@@ -108,9 +108,8 @@ int farch_generic_get(const farch *fa, robuf *dst, const char *name)
 /* Get the content of the buffer in a blob, allowing for replacements
  * variables.
  */
-int farch_generic_get_withvars(const farch *fa, robuf *dst,
-                               const char *name, int nbvars,
-                               const char **vars, const char **values)
+int farch_get_withvars(const farch *fa, robuf *dst, const char *name,
+                       int nbvars, const char **vars, const char **values)
 {
     const byte *p, *end, *p0, *p1, *p2, *p3;
     int i, var_len;
@@ -121,7 +120,7 @@ int farch_generic_get_withvars(const farch *fa, robuf *dst,
         return 1;
     }
     robuf_init(&ldst);
-    if (farch_generic_get(fa, &ldst, name)) {
+    if (farch_get(fa, &ldst, name)) {
         robuf_wipe(&ldst);
         return 1;
     }
