@@ -11,6 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include <lib-common/blob.h>
 #include <lib-common/mem.h>
 
@@ -26,17 +30,23 @@ struct farch {
 
 farch *farch_new(const farch_file files[], const char *overridedir)
 {
+    struct stat st;
     farch *fa;
 
     fa = p_new(farch, 1);
-    if (overridedir) {
+    fa->files = files;
+    /* Set dir if and only if overridedir exists and is a directory.
+     * Doing this now saves us a lot of calls to open() later on. If the
+     * directory is created after program startup, then it has to be
+     * restarted. Too bad.
+     */
+    if (overridedir && !stat(overridedir, &st) && S_ISDIR(st.st_mode)) {
         fa->use_dir = true;
         pstrcpy(fa->dir, sizeof(fa->dir), overridedir);
     } else {
         fa->use_dir = false;
         fa->dir[0] = '\0';
     }
-    fa->files = files;
     return fa;
 }
 
