@@ -209,6 +209,20 @@ int strtolp(const char *p, const char **endp, int base, long *res,
  *
  * @return the length of the source string.
  * @see pstrcpylen
+ *
+ * RFE/RFC: In a lot of cases, we do not care that much about the length of
+ * the source string. What we want is "has the string been truncated
+ * and we should stop here, or is everything fine ?". Therefore, may be
+ * we need a function like :
+ * int pstrcpy_ok(char *dest, ssize_t size, const char *src)
+ * {
+ *     if (pstrcpy(dest, size, src) + 1 <= size) {
+ *        return 0;
+ *     } else {
+ *        return 1;
+ *     }
+ * }
+ *
  */
 ssize_t pstrcpy(char *dest, ssize_t size, const char *src)
 {
