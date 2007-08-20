@@ -223,7 +223,8 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
         return NULL;
     }
 
-    pidx = pidx_real_open(path, flags, MMO_TLOCK, PIDX_GROW * PIDX_PAGE);
+    pidx = pidx_real_open(path, flags, MMO_RANDOM | MMO_TLOCK,
+                          PIDX_GROW * PIDX_PAGE);
     if (!pidx)
         return NULL;
 

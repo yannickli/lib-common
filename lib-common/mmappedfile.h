@@ -23,9 +23,10 @@
 #define O_ISWRITE(m)      (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
 
 enum {
-    MMO_POPULATE,
-    MMO_LOCK,
-    MMO_TLOCK,
+    MMO_POPULATE = 0x0001,
+    MMO_LOCK     = 0x0002,
+    MMO_TLOCK    = 0x0004,
+    MMO_RANDOM   = 0x0008,
 };
 
 #define MMFILE_ALIAS(ptr_type)      \

@@ -89,6 +89,10 @@ mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize)
     }
     mf->path   = p_strdup(path);
     mf->refcnt = 1;
+
+    if (oflags & MMO_RANDOM) {
+        madvise(mf->area, mf->size, MADV_RANDOM);
+    }
     return mf;
 
   error:

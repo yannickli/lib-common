@@ -669,8 +669,13 @@ int btree_check_integrity(btree_t *bt, int dofix, btree_print_fun *fun, FILE *ar
 btree_t *btree_open(const char *path, int flags, bool check)
 {
     btree_t *bt;
+    int oflags = MMO_RANDOM | MMO_TLOCK;
 
-    bt = bt_real_open(path, flags, MMO_TLOCK | (check ? MMO_POPULATE : 0),
+    if (check) {
+        oflags |= MMO_POPULATE;
+    }
+
+    bt = bt_real_open(path, flags, oflags,
                       sizeof(bt_page_t) * BT_INIT_NBPAGES);
     if (!bt) {
         e_trace(2, "Could not open bt on %s: %m", path);
@@ -1282,6 +1287,7 @@ fbtree_t *fbtree_open(const char *path)
     if (bt_check_header(fbt->priv, false, path, st.st_size))
         goto error;
 
+    posix_fadvise(fileno(fbt->f), 0, st.st_size, POSIX_FADV_RANDOM);
     return fbt;
 
   error:
