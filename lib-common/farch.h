@@ -15,7 +15,6 @@
 #define IS_LIB_COMMON_FARCH_H
 
 #include <lib-common/blob.h>
-#include <lib-common/robuf.h>
 #include "macros.h"
 
 typedef struct farch farch;
@@ -31,8 +30,9 @@ typedef struct farch_file {
 farch *farch_new(const farch_file files[], const char *overridedir);
 void farch_delete(farch **fa);
 
-int farch_get(const farch *fa, robuf *dst, const char *name);
-int farch_get_withvars(const farch *fa, robuf *dst, const char *name,
+int farch_get(const farch *fa, blob_t *buf, const byte **data, int *size,
+              const char *name);
+int farch_get_withvars(const farch *fa, blob_t *out, const char *name,
                        int nbvars, const char **vars, const char **values);
 
 /* For internal use only */
