@@ -34,6 +34,7 @@ libcommon_SOURCES = \
 	dtoa.c \
 	err_debug.c   \
 	err_report.c  \
+	farch.c \
 	fifo.c \
 	int_array.c \
 	ioveclist.c \
@@ -46,6 +47,7 @@ libcommon_SOURCES = \
 	mmappedfile.c \
 	paged-index.c \
 	property.c \
+	robuf.c \
 	showflags.c \
 	stats-temporal.c \
 	stopper.c \
@@ -71,9 +73,6 @@ libcommon_SOURCES = \
 	\
 	unix.c \
 	unix-linux.c \
-	\
-	farch.c \
-	robuf.c \
 	\
 	$(end_of_list)
 
