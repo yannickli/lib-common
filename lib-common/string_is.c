@@ -216,7 +216,7 @@ int strtolp(const char *p, const char **endp, int base, long *res,
  * we need a function like :
  * int pstrcpy_ok(char *dest, ssize_t size, const char *src)
  * {
- *     if (pstrcpy(dest, size, src) + 1 <= size) {
+ *     if (pstrcpy(dest, size, src) < size) {
  *        return 0;
  *     } else {
  *        return 1;
