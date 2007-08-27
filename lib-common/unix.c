@@ -52,6 +52,7 @@ int mkdir_p(const char *dir, mode_t mode)
         if (p == NULL) {
             goto creation;
         }
+        /* OG: should check if p == dir2 */
         *p = '\0';
     }
     if (!S_ISDIR(buf.st_mode)) {
