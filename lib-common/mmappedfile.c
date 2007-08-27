@@ -152,6 +152,7 @@ void mmfile_close_wlocked(mmfile **mfp)
 
     mmfile_unlock(mf);
     p_delete(&mf->path);
+    /* *mfp was already reset to NULL */
     p_delete(&mf);
 }
 
