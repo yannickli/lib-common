@@ -20,8 +20,6 @@
 
 #include <lib-common/macros.h>
 
-#define O_ISWRITE(m)      (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
-
 enum {
     MMO_POPULATE = 0x0001,
     MMO_LOCK     = 0x0002,
@@ -119,7 +117,6 @@ static inline int mmfile_unlock(mmfile *mf) {
     }                                                                       \
                                                                             \
     static inline int prefix##_wlock(type *mf) {                            \
-        assert (mf->writeable);                                             \
         return mf->mutex ? (mf->wlock)(mf->mutex) : 0;                      \
     }                                                                       \
                                                                             \
