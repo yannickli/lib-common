@@ -20,6 +20,7 @@
 
 #include <lib-common/mem.h>
 
+#include "unix.h"
 #include "mmappedfile.h"
 
 mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize)
@@ -27,6 +28,7 @@ mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize)
     int mflags = MAP_SHARED, prot = PROT_READ;
     struct stat st;
     mmfile *mf = p_new(mmfile, 1);
+
     mf->fd     = -1;
 
     if (oflags & MMO_POPULATE) {
@@ -52,12 +54,12 @@ mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize)
         goto error;
 
     if (oflags & MMO_LOCK) {
-        if (lockf(mf->fd, F_LOCK, minsize) < 0)
+        if (p_lockf(mf->fd, flags, F_LOCK, 0, minsize) < 0)
             goto error;
         mf->locked = true;
     } else
     if (oflags & MMO_TLOCK) {
-        if (lockf(mf->fd, F_TLOCK, minsize) < 0)
+        if (p_lockf(mf->fd, flags, F_TLOCK, 0, minsize) < 0)
             goto error;
         mf->locked = true;
     }
@@ -150,6 +152,7 @@ void mmfile_close_wlocked(mmfile **mfp)
 
     mmfile_unlock(mf);
     p_delete(&mf->path);
+    /* *mfp was already reset to NULL */
     p_delete(&mf);
 }
 

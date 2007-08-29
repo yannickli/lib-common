@@ -29,9 +29,10 @@ typedef int btree_print_fun(FILE *fp, const char *fmt, ...)
 
 int btree_check_integrity(btree_t *bt, int dofix,
                           btree_print_fun *fun, FILE *arg);
+/* OG: should use enum instead of bool flag for check */
 btree_t *btree_open(const char *path, int flags, bool check);
 static inline btree_t *btree_creat(const char *path) {
-    return btree_open(path, O_CREAT | O_TRUNC | O_RDWR, 0);
+    return btree_open(path, O_CREAT | O_TRUNC | O_RDWR, false);
 }
 void btree_close(btree_t **tree);
 

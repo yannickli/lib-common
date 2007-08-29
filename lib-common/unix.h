@@ -20,6 +20,8 @@
 
 #include "macros.h"
 
+#define O_ISWRITE(m)      (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
+
 /****************************************************************************/
 /* process related                                                          */
 /****************************************************************************/
@@ -45,6 +47,8 @@ static inline char *vget_ext(char *path) {
 }
 
 int filecopy(const char *pathin, const char *pathout);
+
+int p_lockf(int fd, int mode, int cmd, off_t start, off_t len);
 
 /****************************************************************************/
 /* Misc                                                                     */

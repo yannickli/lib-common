@@ -43,6 +43,7 @@ typedef struct robuf {
 robuf *robuf_init(robuf *rob);
 void robuf_wipe(robuf *rob);
 void robuf_reset(robuf *rob);
+/* OG: should be robuf_init_xxx */
 void robuf_make_const(robuf *dst, const byte *data, int size);
 void robuf_make_malloced(robuf *dst, const byte *data, int size);
 blob_t *robuf_make_blob(robuf *dst);

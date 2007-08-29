@@ -52,6 +52,7 @@ int mkdir_p(const char *dir, mode_t mode)
         if (p == NULL) {
             goto creation;
         }
+        /* OG: should check if p == dir2 */
         *p = '\0';
     }
     if (!S_ISDIR(buf.st_mode)) {
@@ -233,6 +234,56 @@ int filecopy(const char *pathin, const char *pathout)
     }
     /* OG: destination file should be removed upon error ? */
     return -1;
+}
+
+int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
+{
+    struct flock lock;
+    int res;
+
+    switch (cmd) {
+      case F_LOCK:
+        cmd = F_SETLKW;
+        break;
+
+      case F_TLOCK:
+        cmd = F_SETLK;
+        break;
+
+      case F_TEST:
+        cmd = F_GETLK;
+        break;
+
+      default:
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (O_ISWRITE(mode)) {
+        lock.l_type = F_WRLCK;
+    } else {
+        lock.l_type = F_RDLCK;
+    }
+    lock.l_whence = SEEK_CUR;
+    lock.l_start  = start;
+    lock.l_len    = len;
+    if (cmd == F_GETLK) {
+        lock.l_pid    = getpid();
+    }
+
+    res = fcntl(fd, cmd, &lock);
+
+    if (res < 0)
+        return res;
+    if (cmd == F_GETLK) {
+        if (lock.l_type == F_UNLCK) {
+            return 0;
+        }
+        errno = EAGAIN;
+        return -1;
+    }
+
+    return 0;
 }
 
 #if 0
