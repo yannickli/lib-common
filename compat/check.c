@@ -1015,8 +1015,8 @@ void xml_lfun(SRunner *sr, FILE *file, enum print_output printmode,
     case CLENDLOG_SR:
         gettimeofday(&endtv, NULL);
         fprintf(file, "  <duration>%f</duration>\n",
-                (endtv.tv_sec + (float)(endtv.tv_usec)/1000000) -
-                (inittv.tv_sec + (float)(inittv.tv_usec/1000000)));
+                (endtv.tv_sec + (double)endtv.tv_usec / 1000000) -
+                (inittv.tv_sec + (double)inittv.tv_usec / 1000000));
         fprintf(file, "</testsuites>\n");
         break;
     case CLSTART_SR:
@@ -2452,6 +2452,6 @@ static int percent_passed(TestStats *t)
     if (t->n_checked == 0)
         return 0;
     else
-        return (int)((float)(t->n_checked - (t->n_failed + t->n_errors)) /
-                     (float)t->n_checked * 100);
+        return (int)((double)(t->n_checked - (t->n_failed + t->n_errors)) /
+                     (double)t->n_checked * 100);
 }
