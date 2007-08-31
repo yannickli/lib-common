@@ -11,14 +11,16 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_COMPAT_UNISTD_H
-#define IS_COMPAT_UNISTD_H
+#ifndef IS_COMPAT_SYS_TYPES_H
+#define IS_COMPAT_SYS_TYPES_H
 
-#include_next <unistd.h>
+#include_next <sys/types.h>
 
 #if defined(__MINGW) || defined(__MINGW32__)
-#  define mkdir(path, mode)  mkdir(path)
-int usleep(unsigned long usec);
+
+typedef _off_t __off_t;
+typedef _pid_t __pid_t;
+
 #endif
 
-#endif /* !IS_COMPAT_UNISTD_H */
+#endif /* !IS_COMPAT_SYS_TYPES_H */
