@@ -489,7 +489,7 @@ ssize_t blob_append_recv(blob_t *blob, int fd, ssize_t count)
 }
 
 /* Return the number of bytes read */
-ssize_t blob_append_recvfrom(blob_t *blob, int fd, ssize_t count,
+ssize_t blob_append_recvfrom(blob_t *blob, int fd, ssize_t count, int flags,
                              struct sockaddr *from, socklen_t *fromlen)
 {
     ssize_t res;
@@ -499,7 +499,7 @@ ssize_t blob_append_recvfrom(blob_t *blob, int fd, ssize_t count,
 
     blob_ensure_avail(blob, count);
 
-    res = recvfrom(fd, blob->data + blob->len, count, 0,
+    res = recvfrom(fd, blob->data + blob->len, count, flags,
                    from, fromlen);
     if (res < 0) {
         /* defensive programming, read should not modify it, but... */

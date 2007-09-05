@@ -264,7 +264,7 @@ ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count);
 ssize_t blob_append_recv(blob_t *blob, int fd, ssize_t count);
 
 struct sockaddr;
-ssize_t blob_append_recvfrom(blob_t *blob, int fd, ssize_t count,
+ssize_t blob_append_recvfrom(blob_t *blob, int fd, ssize_t count, int flags,
                              struct sockaddr *from, socklen_t *fromlen);
 
 ssize_t blob_save_to_file(blob_t *blob, const char *filename);
