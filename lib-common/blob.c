@@ -489,6 +489,29 @@ ssize_t blob_append_recv(blob_t *blob, int fd, ssize_t count)
 }
 
 /* Return the number of bytes read */
+ssize_t blob_append_recvfrom(blob_t *blob, int fd, ssize_t count,
+                             struct sockaddr *from, socklen_t *fromlen)
+{
+    ssize_t res;
+
+    if (count < 0)
+        count = BUFSIZ;
+
+    blob_ensure_avail(blob, count);
+
+    res = recvfrom(fd, blob->data + blob->len, count, 0,
+                   from, fromlen);
+    if (res < 0) {
+        /* defensive programming, read should not modify it, but... */
+        blob->data[blob->len] = '\0';
+        return res;
+    }
+
+    blob_extend(blob, res);
+    return res;
+}
+
+/* Return the number of bytes read */
 /* Embedded nuls in input stream will cause portions of the stream to
  * be skipped.
  */
