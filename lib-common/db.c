@@ -34,16 +34,16 @@ const char *db_strerror(int code)
     return dperrmsg(code);
 }
 
-isdb_t *db_open(const char *name, int mode, int flags, int bnum, int dnum)
+isdb_t *db_open(const char *name, int flags, int oflags, int bnum, int dnum)
 {
-    int omode = CR_OSPARSE | (O_ISWRITE(mode) ? CR_OWRITER : CR_OREADER);
+    int omode = CR_OSPARSE | (O_ISWRITE(flags) ? CR_OWRITER : CR_OREADER);
 
-    if (mode & O_CREAT)
+    if (flags & O_CREAT)
         omode |= CR_OCREAT;
-    if (mode & O_TRUNC)
+    if (flags & O_TRUNC)
         omode |= CR_OTRUNC;
 
-    switch (flags & (MMO_TLOCK | MMO_LOCK)) {
+    switch (oflags & (MMO_TLOCK | MMO_LOCK)) {
       case 0:
         omode |= CR_ONOLCK;
         break;
@@ -54,6 +54,8 @@ isdb_t *db_open(const char *name, int mode, int flags, int bnum, int dnum)
         break;
     }
 
+    if ((omode & CR_OCREAT) && mkdir_p(name, 0640) < 0)
+        return NULL;
     return cropen(name, omode, bnum, dnum);
 }
 
