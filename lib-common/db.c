@@ -16,8 +16,8 @@
 
 #include <fcntl.h>
 
-#include <qdbm/depot.h>
-#include <qdbm/curia.h>
+#include <depot.h>
+#include <curia.h>
 
 #include "mem.h"
 #include "mmappedfile.h"

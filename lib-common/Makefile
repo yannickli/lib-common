@@ -76,6 +76,7 @@ libcommon_SOURCES = \
 	unix-linux.c \
 	\
 	$(end_of_list)
+libcommon_CFLAGS := $(shell pkg-config qdbm --cflags)
 
 test_SOURCES = $(libcommon_SOURCES) check.c
 test_LDFLAGS = -lz
