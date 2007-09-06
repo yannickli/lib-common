@@ -17,7 +17,6 @@
 #include <fcntl.h>
 
 #include <depot.h>
-#include <curia.h>
 
 #include "mem.h"
 #include "mmappedfile.h"
@@ -34,40 +33,38 @@ const char *db_strerror(int code)
     return dperrmsg(code);
 }
 
-isdb_t *db_open(const char *name, int flags, int oflags, int bnum, int dnum)
+isdb_t *db_open(const char *name, int flags, int oflags, int bnum)
 {
-    int omode = CR_OSPARSE | (O_ISWRITE(flags) ? CR_OWRITER : CR_OREADER);
+    int omode = DP_OSPARSE | (O_ISWRITE(flags) ? DP_OWRITER : DP_OREADER);
 
     if (flags & O_CREAT)
-        omode |= CR_OCREAT;
+        omode |= DP_OCREAT;
     if (flags & O_TRUNC)
-        omode |= CR_OTRUNC;
+        omode |= DP_OTRUNC;
 
     switch (oflags & (MMO_TLOCK | MMO_LOCK)) {
       case 0:
-        omode |= CR_ONOLCK;
+        omode |= DP_ONOLCK;
         break;
       case MMO_TLOCK:
-        omode |= CR_OLCKNB;
+        omode |= DP_OLCKNB;
         break;
       default: /* at least MMO_LOCK */
         break;
     }
 
-    if ((omode & CR_OCREAT) && mkdir_p(name, 0640) < 0)
-        return NULL;
-    return cropen(name, omode, bnum, dnum);
+    return dpopen(name, omode, bnum);
 }
 
 int db_flush(isdb_t *db)
 {
-    return crsync(db);
+    return dpsync(db);
 }
 
 int db_close(isdb_t **_db)
 {
     if (*_db) {
-        int res = crclose(*_db);
+        int res = dpclose(*_db);
         *_db = NULL;
         return res;
     }
@@ -97,11 +94,11 @@ int db_getbuf(isdb_t *db, const char *k, int kl, int start, int len, char *buf)
 int db_put(isdb_t *db, const char *k, int kl, const char *v, int vl, int op)
 {
     int conv[] = {
-        [DB_PUTOVER] = CR_DOVER,
-        [DB_PUTKEEP] = CR_DKEEP,
-        [DB_PUTMULT] = CR_DCAT,
+        [DB_PUTOVER] = DP_DOVER,
+        [DB_PUTKEEP] = DP_DKEEP,
+        [DB_PUTMULT] = DP_DCAT,
     };
-    return crput(db, k, kl, v, vl, conv[op]);
+    return dpput(db, k, kl, v, vl, conv[op]);
 }
 
 int db_del(isdb_t *db, const char *k, int kl)

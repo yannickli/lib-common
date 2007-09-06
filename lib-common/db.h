@@ -31,7 +31,7 @@ enum {
 int db_error(void);
 const char *db_strerror(int code);
 
-isdb_t *db_open(const char *name, int flags, int oflags, int bnum, int dnum);
+isdb_t *db_open(const char *name, int flags, int oflags, int bnum);
 int db_flush(isdb_t *);
 int db_close(isdb_t **);
 
