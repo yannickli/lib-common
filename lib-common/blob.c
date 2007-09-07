@@ -90,37 +90,27 @@ void blob_ensure(blob_t *blob, ssize_t newlen)
         return;
 
     if (newlen >= blob->size) {
-        /* OG: Size requested from the system should be computed in a
-         * way that yields a small number of different sizes:
-         * for (newsize=blob->size;
-         *      newsize <= newlen;
-         *      newsize = newsize * 3 / 2) {
-         *      continue;
-         * }
-         */
-        ssize_t newsize = MEM_ALIGN(3 * (newlen + 1) / 2);
-
-
         if (blob->data == blob->area) {
-            if (newsize > 1024*1024) {
-                e_trace(1, "Large blob ensure realloc, newsize:%zd size:%zd len:%zd data:%.80s",
-                        newsize, blob->size, blob->len, blob->data);
+            if (newlen > 1024*1024) {
+                e_trace(1, "Large blob ensure realloc, newlen:%zd size:%zd len:%zd data:%.80s",
+                        newlen, blob->size, blob->len, blob->data);
             }
-            p_realloc(&blob->area, newsize);
+            p_allocgrow(&blob->area, newlen + 1, &blob->size);
             blob->data = blob->area;
-            blob->size = newsize;
         } else {
             /* Check if data fits in current area */
             byte *area = blob->area ? blob->area : blob->initial;
             ssize_t skip = blob->data - area;
 
-            if (newsize <= skip + blob->size) {
+            if (newlen < skip + blob->size) {
                 /* Data fits in the current area, shift it left */
                 memmove(blob->data - skip, blob->data, blob->len + 1);
                 blob->data -= skip;
                 blob->size += skip;
             } else {
                 /* Allocate a new area */
+                ssize_t newsize = p_alloc_nr(newlen + 1);
+
                 byte *new_area = p_new_raw(byte, newsize);
                 if (skip + blob->size != BLOB_INITIAL_SIZE) {
                     e_trace(2, "Large blob ensure shift,"

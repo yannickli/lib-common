@@ -23,9 +23,7 @@ static inline void fifo_grow(fifo *f, ssize_t newsize)
     if (newsize < cursize)
         return;
 
-    newsize = MEM_ALIGN(newsize);
-    f->size = newsize;
-    p_realloc(&f->elems, newsize);
+    p_allocgrow(&f->elems, newsize, &f->size);
     if (f->first + f->nb_elems > cursize) {
         ssize_t firstpartlen, secondpartlen;
 
@@ -33,12 +31,12 @@ static inline void fifo_grow(fifo *f, ssize_t newsize)
         secondpartlen = cursize - f->first;
         firstpartlen = f->nb_elems - secondpartlen;
         if (firstpartlen > secondpartlen
-        ||  firstpartlen > (newsize - cursize))
+        ||  firstpartlen > (f->size - cursize))
         {
-            memmove(&f->elems[newsize - secondpartlen],
+            memmove(&f->elems[f->size - secondpartlen],
                     &f->elems[f->first],
                     secondpartlen * sizeof(void *));
-            f->first = newsize - secondpartlen;
+            f->first = f->size - secondpartlen;
         } else {
             memcpy(&f->elems[cursize],
                    &f->elems[0], firstpartlen * sizeof(void*));

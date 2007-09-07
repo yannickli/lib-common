@@ -27,20 +27,8 @@
 static inline void
 array_resize(int_array *a, ssize_t newlen)
 {
-    ssize_t curlen = a->len;
-
-    /* Reallocate array if needed */
-    if (newlen > a->size) {
-        /* FIXME: should increase array size more at a time:
-         * expand by half the current size?
-         */
-        a->size = MEM_ALIGN(newlen);
-        p_realloc(&a->tab, a->size);
-    }
-    /* Initialize new elements to 0 */
-    while (curlen < newlen) {
-        a->tab[curlen++] = 0;
-    }
+    p_allocgrow(&a->tab, newlen, &a->size);
+    p_clear(a->tab + a->len, a->size - a->len);
     a->len = newlen;
 }
 

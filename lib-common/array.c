@@ -28,20 +28,8 @@
 static inline void
 array_resize(generic_array *a, ssize_t newlen)
 {
-    ssize_t curlen = a->len;
-
-    /* Reallocate array if needed */
-    if (newlen > a->size) {
-        /* FIXME: should increase array size more at a time:
-         * expand by half the current size?
-         */
-        a->size = MEM_ALIGN(newlen);
-        p_realloc(&a->tab, a->size);
-    }
-    /* Initialize new elements to NULL */
-    while (curlen < newlen) {
-        a->tab[curlen++] = NULL;
-    }
+    p_allocgrow(&a->tab, newlen, &a->size);
+    p_clear(a->tab + a->len, a->size - a->len);
     a->len = newlen;
 }
 
@@ -49,16 +37,6 @@ array_resize(generic_array *a, ssize_t newlen)
 /**************************************************************************/
 /* Memory management                                                      */
 /**************************************************************************/
-
-generic_array *generic_array_init(generic_array *array)
-{
-    /* OG: should initialize as empty? */
-    array->tab  = p_new(void *, ARRAY_INITIAL_SIZE);
-    array->len  = 0;
-    array->size = ARRAY_INITIAL_SIZE;
-
-    return array;
-}
 
 void generic_array_wipe(generic_array *array, array_item_dtor_f *dtor)
 {

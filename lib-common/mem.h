@@ -167,6 +167,20 @@ static inline void *p_dupstr(const void *src, ssize_t len)
 
 #endif
 
+#  define p_alloc_nr(x) (((x) + 16) * 3 / 2)
+
+#  define p_allocgrow(pp, goalnb, allocnb)                  \
+    do {                                                    \
+        if ((goalnb) > *(allocnb)) {                        \
+            if (p_alloc_nr(goalnb) > *(allocnb)) {          \
+                *(allocnb) = (goalnb);                      \
+            } else {                                        \
+                *(allocnb) = p_alloc_nr(goalnb);            \
+            }                                               \
+            p_realloc(pp, *(allocnb));                      \
+        }                                                   \
+    } while (0)
+
 #define p_realloc0(pp, old, now)                   \
     do {                                           \
         ssize_t __old = (old), __now = (now);      \
