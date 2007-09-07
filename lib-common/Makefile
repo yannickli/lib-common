@@ -31,6 +31,7 @@ libcommon_SOURCES = \
 	btree.c \
 	concatbin.c  \
 	conf.c  \
+	db.c \
 	dtoa.c \
 	err_debug.c   \
 	err_report.c  \
@@ -75,6 +76,7 @@ libcommon_SOURCES = \
 	unix-linux.c \
 	\
 	$(end_of_list)
+libcommon_CFLAGS := $(shell pkg-config qdbm --cflags)
 
 test_SOURCES = $(libcommon_SOURCES) check.c
 test_LDFLAGS = -lz
@@ -111,5 +113,8 @@ ifneq (,$(MINGCC))
   libcommon_SOURCES := $(filter-out unix-linux.c mmappedfile.c btree.c stats-temporal.c, $(libcommon_SOURCES))
   __EXE__ := $(filter-out btree-dump, $(__EXE__))
 endif
+
+$(if $(shell pkg-config qdbm || echo fail),\
+    $(error apt-get install libqdbm-dev [used for prototyping purposes]))
 
 include $(DEPTH)/admin/footer.mk

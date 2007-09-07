@@ -15,6 +15,7 @@
 #define IS_COMPAT_GLOB_H
 
 #if defined(__MINGW) || defined(__MINGW32__)
+#include <stdlib.h>
 /* Bits set in the FLAGS argument to `glob'.  */
 #  define GLOB_ERR          (1 << 0)/* Return on read errors.  */
 #  define GLOB_MARK         (1 << 1)/* Append a slash to each name.  */
