@@ -179,6 +179,15 @@ static inline void *p_dupstr(const void *src, ssize_t len)
     mem_move((p), sizeof(*p) * (to), sizeof(*p) * (from), sizeof(*p) * (n))
 #  define p_copy(p, to, from, n)    \
     mem_copy((p), sizeof(*p) * (to), sizeof(*p) * (from), sizeof(*p) * (n))
+
+/* OG: Size requested from the system should be computed in a
+ * way that yields a small number of different sizes:
+ * for (newsize = blob->size;
+ *      newsize <= newlen;
+ *      newsize = newsize * 3 / 2) {
+ *      continue;
+ * }
+ */
 #  define p_alloc_nr(x) (((x) + 16) * 3 / 2)
 
 #  define p_allocgrow(pp, goalnb, allocnb)                  \
