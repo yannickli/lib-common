@@ -82,10 +82,10 @@ void fifo_put(fifo *f, void *ptr)   __attr_nonnull__((1));
     {                                                                        \
         return (el_typ *)fifo_get((fifo *)f);                                \
     }                                                                        \
-    static inline el_typ *                                                   \
-    prefix##_fifo_unget(prefix##_fifo *f)                                    \
+    static inline void                                                       \
+    prefix##_fifo_unget(prefix##_fifo *f, el_typ *item)                      \
     {                                                                        \
-        return (el_typ *)fifo_unget((fifo *)f);                              \
+        fifo_unget((fifo *)f, (void*)item);                                  \
     }
 
 #ifdef CHECK
