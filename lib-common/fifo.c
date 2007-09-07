@@ -25,21 +25,15 @@ static inline void fifo_grow(fifo *f, ssize_t newsize)
 
     p_allocgrow(&f->elems, newsize, &f->size);
     if (f->first + f->nb_elems > cursize) {
-        ssize_t firstpartlen, secondpartlen;
-
         /* elements are split in two parts. Move the shortest one */
-        secondpartlen = cursize - f->first;
-        firstpartlen = f->nb_elems - secondpartlen;
-        if (firstpartlen > secondpartlen
-        ||  firstpartlen > (f->size - cursize))
-        {
-            memmove(&f->elems[f->size - secondpartlen],
-                    &f->elems[f->first],
-                    secondpartlen * sizeof(void *));
-            f->first = f->size - secondpartlen;
+        ssize_t right_len = cursize - f->first;
+        ssize_t left_len  = f->nb_elems - right_len;
+
+        if (left_len > right_len || left_len > (f->size - cursize)) {
+            p_move(f->elems, f->size - right_len, f->first, right_len);
+            f->first = f->size - right_len;
         } else {
-            memcpy(&f->elems[cursize],
-                   &f->elems[0], firstpartlen * sizeof(void*));
+            p_copy(f->elems, cursize, 0, left_len);
         }
     }
 }
@@ -125,7 +119,7 @@ void fifo_put(fifo *f, void *ptr)
     ssize_t cur;
 
     if (f->size == f->nb_elems) {
-        fifo_grow(f, f->size * 2);
+        fifo_grow(f, f->nb_elems + 1);
     }
 
     cur = f->first + f->nb_elems;

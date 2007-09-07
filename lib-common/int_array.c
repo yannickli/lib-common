@@ -74,8 +74,7 @@ int int_array_take(int_array *array, ssize_t pos, int *item)
     }
 
     *item = array->tab[pos];
-    memmove(array->tab + pos, array->tab + pos + 1,
-            (array->len - pos - 1) * sizeof(int));
+    p_move(array->tab, pos, pos + 1, array->len - pos - 1);
     array->len--;
 
     return 0;
@@ -93,8 +92,7 @@ void int_array_insert(int_array *array, ssize_t pos, int item)
         if (pos < 0) {
             pos = 0;
         }
-        memmove(array->tab + pos + 1, array->tab + pos,
-                (curlen - pos) * sizeof(int));
+        p_move(array->tab, pos + 1, pos, curlen - pos);
     } else {
         pos = curlen;
     }

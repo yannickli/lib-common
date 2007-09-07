@@ -79,7 +79,8 @@ libcommon_SOURCES = \
 libcommon_CFLAGS := $(shell pkg-config qdbm --cflags)
 
 test_SOURCES = $(libcommon_SOURCES) check.c
-test_LDFLAGS = -lz
+test_CFLAGS  = $(shell pkg-config qdbm --cflags)
+test_LDFLAGS = -lz -lqdbm
 
 tst-blob-iconv_SOURCES = \
 	tst-blob-iconv.c \

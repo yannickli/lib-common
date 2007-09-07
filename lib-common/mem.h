@@ -119,6 +119,14 @@ static inline void *mem_dup(const void *src, ssize_t size)
     return memcpy(res, src, size);
 }
 
+static inline void mem_move(void *p, ssize_t to, ssize_t from, ssize_t len) {
+    memmove((char *)p + to, (char *)p + from, len);
+}
+
+static inline void mem_copy(void *p, ssize_t to, ssize_t from, ssize_t len) {
+    memcpy((char *)p + to, (char *)p + from, len);
+}
+
 static inline void *p_dupstr(const void *src, ssize_t len)
 {
     char *res = mem_alloc(len + 1);
@@ -167,6 +175,10 @@ static inline void *p_dupstr(const void *src, ssize_t len)
 
 #endif
 
+#  define p_move(p, to, from, n)    \
+    mem_move((p), sizeof(*p) * (to), sizeof(*p) * (from), sizeof(*p) * (n))
+#  define p_copy(p, to, from, n)    \
+    mem_copy((p), sizeof(*p) * (to), sizeof(*p) * (from), sizeof(*p) * (n))
 #  define p_alloc_nr(x) (((x) + 16) * 3 / 2)
 
 #  define p_allocgrow(pp, goalnb, allocnb)                  \

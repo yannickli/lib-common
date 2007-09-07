@@ -179,7 +179,7 @@ blob_insert_data_real(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
 
     blob_resize(blob, oldlen + len);
     if (pos < oldlen) {
-        memmove(blob->data + pos + len, blob->data + pos, oldlen - pos);
+        p_move(blob->data, pos + len, pos, oldlen - pos);
     }
     memcpy(blob->data + pos, data, len);
 }
@@ -216,8 +216,7 @@ void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len)
          * right parts, but not as issue for now.
          */
         /* move the blob data including the trailing '\0' */
-        memmove(blob->data + pos, blob->data + pos + len,
-                blob->len - pos - len + 1);
+        p_move(blob->data, pos, pos + len, blob->len - pos - len + 1);
         blob->len  -= len;
     }
 }
@@ -275,8 +274,7 @@ void blob_splice_data(blob_t *blob, ssize_t pos, ssize_t len,
     blob_resize(blob, oldlen + datalen - len);
 
     if (len != datalen) {
-        memmove(blob->data + pos + datalen, blob->data + pos + len,
-                oldlen - pos - len);
+        p_move(blob->data, pos + datalen, pos + len, oldlen - pos - len);
     }
     memcpy(blob->data + pos, data, datalen);
 }

@@ -78,8 +78,7 @@ void *generic_array_take(generic_array *array, ssize_t pos)
     }
 
     ptr = array->tab[pos];
-    memmove(array->tab + pos, array->tab + pos + 1,
-            (array->len - pos - 1) * sizeof(void*));
+    p_move(array->tab, pos, pos + 1, array->len - pos - 1);
     array->len--;
 
     return ptr;
@@ -97,8 +96,7 @@ void generic_array_insert(generic_array *array, ssize_t pos, void *item)
         if (pos < 0) {
             pos = 0;
         }
-        memmove(array->tab + pos + 1, array->tab + pos,
-                (curlen - pos) * sizeof(void *));
+        p_move(array->tab, pos + 1, pos, curlen - pos);
     } else {
         pos = curlen;
     }
