@@ -14,12 +14,9 @@
 #define IS_LIB_ISDB_INTERNAL
 #define isdb_t void
 
-#include <fcntl.h>
-
 #include <depot.h>
 
 #include "mem.h"
-#include "mmappedfile.h"
 #include "unix.h"
 #include "db.h"
 

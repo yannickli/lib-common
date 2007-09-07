@@ -14,6 +14,9 @@
 #ifndef IS_LIB_COMMON_ARCHIVE_H
 #define IS_LIB_COMMON_ARCHIVE_H
 
+#include <fcntl.h>
+
+#include "mmappedfile.h"
 #include "blob.h"
 
 #ifndef IS_LIB_ISDB_INTERNAL
