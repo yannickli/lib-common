@@ -14,13 +14,11 @@
 #include "macros.h"
 #include "fifo.h"
 
-#define FIFO_INITIAL_SIZE 32
-
 static inline void fifo_grow(fifo *f, ssize_t newsize)
 {
     ssize_t cursize = f->size;
 
-    if (newsize < cursize)
+    if (newsize <= cursize)
         return;
 
     p_allocgrow(&f->elems, newsize, &f->size);
@@ -36,21 +34,6 @@ static inline void fifo_grow(fifo *f, ssize_t newsize)
             p_copy(f->elems, cursize, 0, left_len);
         }
     }
-}
-
-fifo *fifo_init_nb(fifo *f, ssize_t size)
-{
-    f->elems = p_new(void *, size);
-    f->nb_elems = 0;
-    f->first = 0;
-    f->size = size;
-
-    return f;
-}
-
-fifo *fifo_init(fifo *f)
-{
-    return fifo_init_nb(f, FIFO_INITIAL_SIZE);
 }
 
 void fifo_wipe(fifo *f, fifo_item_dtor_f *dtor)
@@ -76,9 +59,6 @@ void fifo_wipe(fifo *f, fifo_item_dtor_f *dtor)
             }
         }
         p_delete(&f->elems);
-        f->first = 0;
-        f->size = 0;
-        f->nb_elems = 0;
     }
 }
 
@@ -103,12 +83,12 @@ void *fifo_get(fifo *f)
     f->nb_elems--;
 
     if (f->nb_elems == 0) {
-        return ptr;
-    }
-
-    f->first++;
-    if (f->first == f->size) {
         f->first = 0;
+    } else {
+        f->first++;
+        if (f->first == f->size) {
+            f->first = 0;
+        }
     }
 
     return ptr;
@@ -118,10 +98,7 @@ void fifo_put(fifo *f, void *ptr)
 {
     ssize_t cur;
 
-    if (f->size == f->nb_elems) {
-        fifo_grow(f, f->nb_elems + 1);
-    }
-
+    fifo_grow(f, f->nb_elems + 1);
     cur = f->first + f->nb_elems;
     if (cur >= f->size) {
         cur -= f->size;
@@ -131,7 +108,7 @@ void fifo_put(fifo *f, void *ptr)
     f->nb_elems++;
 }
 
-#ifdef CHECK
+#ifdef CHECK /* {{{ */
 #include <stdio.h>
 static void fifo_dump(fifo *f)
 {
@@ -149,15 +126,6 @@ static void fifo_nop(void *f)
 {
     f = f;
 }
-
-START_TEST(check_init_wipe)
-{
-    fifo f;
-    fifo_init(&f);
-    fail_if(f.size != FIFO_INITIAL_SIZE);
-    fifo_wipe(&f, fifo_nop);
-}
-END_TEST
 
 START_TEST(check_get_empty)
 {
@@ -208,7 +176,7 @@ START_TEST(check_roll)
         tab[i] = i;
     }
 
-    fifo_init_nb(&f, 5);
+    fifo_init(&f);
 
     for (j = 0; j < 100; j++) {
         for (i = 0; i < 4; i++) {
@@ -262,11 +230,10 @@ Suite *check_fifo_suite(void)
     TCase *tc = tcase_create("Core");
 
     suite_add_tcase(s, tc);
-    tcase_add_test(tc, check_init_wipe);
     tcase_add_test(tc, check_get_empty);
     tcase_add_test(tc, check_smallrun);
     tcase_add_test(tc, check_roll);
     tcase_add_test(tc, check_grow);
     return s;
 }
-#endif
+#endif /* }}} */

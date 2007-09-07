@@ -27,8 +27,7 @@ typedef struct fifo {
 } fifo;
 typedef void fifo_item_dtor_f(void *item);
 
-fifo *fifo_init(fifo *f);
-fifo *fifo_init_nb(fifo *f, ssize_t size);
+GENERIC_INIT(fifo, fifo);
 GENERIC_NEW(fifo, fifo);
 void fifo_wipe(fifo *f, fifo_item_dtor_f *dtor);
 void fifo_delete(fifo **f, fifo_item_dtor_f *dtor);
@@ -48,7 +47,7 @@ void fifo_put(fifo *f, void *ptr)  __attr_nonnull__((1));
         ssize_t size;                                                        \
     } prefix##_fifo
 
-#define FIFO_FUNCTIONS(el_typ, prefix)                                       \
+#define FIFO_FUNCTIONS(el_typ, prefix, dtor)                                 \
                                                                              \
     /* legacy functions */                                                   \
     static inline prefix##_fifo *prefix##_fifo_new(void)                     \
@@ -60,22 +59,15 @@ void fifo_put(fifo *f, void *ptr)  __attr_nonnull__((1));
     {                                                                        \
         return (prefix##_fifo *)fifo_init((fifo *)f);                        \
     }                                                                        \
-    static inline prefix##_fifo *                                            \
-    prefix##_fifo_init_nb(prefix##_fifo *f, ssize_t size)                    \
-    {                                                                        \
-        return (prefix##_fifo *)fifo_init_nb((fifo *)f, size);               \
-    }                                                                        \
     static inline void                                                       \
-    prefix##_fifo_wipe(prefix##_fifo *f, bool do_elts)                       \
+    prefix##_fifo_wipe(prefix##_fifo *f)                                     \
     {                                                                        \
-        fifo_wipe((fifo*)f,                                                  \
-                do_elts ? (fifo_item_dtor_f *)prefix##_delete : NULL);       \
+        fifo_wipe((fifo*)f, (fifo_item_dtor_f *)dtor);                       \
     }                                                                        \
     static inline void                                                       \
     prefix##_fifo_delete(prefix##_fifo **f, bool do_elts)                    \
     {                                                                        \
-        fifo_delete((fifo **)f,                                              \
-                do_elts ? (fifo_item_dtor_f *)prefix##_delete : NULL);       \
+        fifo_delete((fifo **)f, (fifo_item_dtor_f *)dtor);                   \
     }                                                                        \
                                                                              \
     /* module functions */                                                   \
