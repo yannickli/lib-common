@@ -108,6 +108,17 @@ void fifo_put(fifo *f, void *ptr)
     f->nb_elems++;
 }
 
+void fifo_unget(fifo *f, void *ptr)
+{
+    fifo_grow(f, f->nb_elems + 1);
+    f->first--;
+    if (f->first < 0) {
+        f->first += f->size;
+    }
+    f->elems[f->first] = ptr;
+    f->nb_elems++;
+}
+
 #ifdef CHECK /* {{{ */
 #include <stdio.h>
 static void fifo_dump(fifo *f)
