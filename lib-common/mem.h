@@ -120,11 +120,11 @@ static inline void *mem_dup(const void *src, ssize_t size)
 }
 
 static inline void mem_move(void *p, ssize_t to, ssize_t from, ssize_t len) {
-    memmove((char *)p + to, (char *)p + from, len);
+    memmove((char *)p + to, (const char *)p + from, len);
 }
 
 static inline void mem_copy(void *p, ssize_t to, ssize_t from, ssize_t len) {
-    memcpy((char *)p + to, (char *)p + from, len);
+    memcpy((char *)p + to, (const char *)p + from, len);
 }
 
 static inline void *p_dupstr(const void *src, ssize_t len)
@@ -176,9 +176,9 @@ static inline void *p_dupstr(const void *src, ssize_t len)
 #endif
 
 #  define p_move(p, to, from, n)    \
-    mem_move((p), sizeof(*p) * (to), sizeof(*p) * (from), sizeof(*p) * (n))
+    mem_move((p), sizeof(*(p)) * (to), sizeof(*(p)) * (from), sizeof(*(p)) * (n))
 #  define p_copy(p, to, from, n)    \
-    mem_copy((p), sizeof(*p) * (to), sizeof(*p) * (from), sizeof(*p) * (n))
+    mem_copy((p), sizeof(*(p)) * (to), sizeof(*(p)) * (from), sizeof(*(p)) * (n))
 
 /* OG: Size requested from the system should be computed in a
  * way that yields a small number of different sizes:
