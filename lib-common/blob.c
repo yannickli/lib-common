@@ -878,47 +878,19 @@ bool blob_istart(const blob_t *blob1, const blob_t *blob2, const byte **pp)
 /* Blob string functions                                                  */
 /**************************************************************************/
 
-static inline int hex_to_dec(char c)
-{
-    if (c >= '0' && c <= '9') {
-        return c - '0';
-    }
-    if (c >= 'a' && c <= 'f') {
-        return c + 10 - 'a';
-    }
-    if (c >= 'A' && c <= 'F') {
-        return c + 10 - 'A';
-    }
-    return -1;
-}
-
 void blob_urldecode(blob_t *url)
 {
-    byte *p, *q;
-
-    /* This function relies on the final NUL at the end of the blob
-     * and will stop on any embedded NULs.
-     */
-
-    /* Optimize the general case with a quick scan for % */
-    if ((p = memchr(url->data, '%', url->len)) == NULL)
-        return;
-
-    q = p;
-    while ((*q = *p) != '\0') {
-        int a, b;
-        if (*p == '%'
-        &&  (a = hex_to_dec(p[1])) >= 0
-        &&  (b = hex_to_dec(p[2])) >= 0)
-        {
-            *q++ = (a << 4) | b;
-            p += 3;
-        } else {
-            q++;
-            p++;
-        }
+    url->len = purldecode(blob_get_cstr(url), url->data, url->len + 1, 0);
+}
+void blob_append_urldecode(blob_t *out, const char *encoded, int len,
+                           int flags)
+{
+    if (len < 0) {
+        len = strlen(encoded);
     }
-    url->len = q - url->data;
+    blob_ensure_avail(out, len);
+    out->len += purldecode(encoded,
+                           out->data + out->len, len + 1, flags);
 }
 
 static const char
@@ -2368,6 +2340,24 @@ START_TEST(check_url)
     fail_if(blob.len != sstrlen(" totoy"),
             "urldecode failed");
 
+    check_teardown(&blob, NULL);
+
+    check_setup(&blob, "");
+    blob_append_urldecode(&blob, "toto%20tata", -1, 0);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "toto tata") != 0,
+            "blob_append_urldecode failed");
+    fail_if(blob.len != sstrlen("toto tata"),
+            "blob_append_urldecode failed");
+    check_teardown(&blob, NULL);
+
+    check_setup(&blob, "tutu");
+    blob_append_urldecode(&blob, "toto%20tata", -1, 0);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "tututoto tata") != 0,
+            "blob_append_urldecode failed");
+    fail_if(blob.len != sstrlen("tututoto tata"),
+            "blob_append_urldecode failed");
     check_teardown(&blob, NULL);
 }
 END_TEST

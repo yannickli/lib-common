@@ -200,6 +200,9 @@ static inline int utf8_vgetc(char *s, char **outp) {
 /* OG: need more general API */
 int str_replace(const char search, const char replace, char *subject);
 
+#define URLDECODE_IGNORE_CR  1
+size_t purldecode(const char *in, byte *out, size_t size, int flags);
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 #include <check.h>
