@@ -29,6 +29,9 @@
 #define REPEAT        10        /* randomly duplicate entries upto 4 times */
 #define WORK_DIR      "/tmp/"   /* test file output directory */
 
+static const char *default_dictionary = "/usr/share/dict/american-english";
+static const char *default_dictionary_package = "wamerican";
+
 /* Simple Linear congruential generators (LCGs):
  * next = (next * A + B) % M; rand = next / C % D;
  * Posix uses A=1103515245  B=12345  M=1<<32  C=65536  M=32768
@@ -435,10 +438,14 @@ int main(int argc, char **argv)
     }
 
     if (argc < 2) {
-        if (!access("/usr/share/dict/american-english", R_OK))
-            nbytes += dict_load_file(&words, "/usr/share/dict/american-english");
-        else
-            nbytes += dict_load_file(&words, "./samples/american-english");
+        if (access(default_dictionary, R_OK)) {
+            fprintf(stderr,
+                    "tst-sort: dictionary file %s not installed,\n"
+                    "    install package %s or pass dictionary on command line\n",
+                    default_dictionary, default_dictionary_package);
+            exit(1);
+        }
+        nbytes += dict_load_file(&words, default_dictionary);
     } else {
         while (*++argv) {
             nbytes += dict_load_file(&words, *argv);
