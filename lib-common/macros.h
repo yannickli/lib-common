@@ -125,6 +125,12 @@ enum sign {
 
 #define SWAP(a, b)   do { void *c = a; a = b; b = c; } while (0)
 
+#define CYCLIC_MAX(a, b) \
+	(MAX(a, b) - MIN(a, b) < MIN(a, b) - MAX(a, b) ? MAX(a, b) : MIN(a, b))
+
+#define CYCLIC_MIN(a, b) \
+	(MAX(a, b) - MIN(a, b) > MIN(a, b) - MAX(a, b) ? MAX(a, b) : MIN(a, b))
+
 /*---------------- Type safe conversion functions ----------------*/
 
 #define CONVERSION_FUNCTIONS(type1, type2) \
