@@ -130,6 +130,10 @@ enum sign {
     (MAX(a, b) - MIN(a, b) > MIN(a, b) - MAX(a, b) ? MAX(a, b) : MIN(a, b)) + \
     STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(a), typeof(b)))
 
+#define CYCLIC_CMP(a, b) \
+    (MAX(a, b) - MIN(a, b) > MIN(a, b) - MAX(a, b) ? CMP(a, b) : CMP(b, a)) + \
+    (int)STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(a), typeof(b)))
+
 /*---------------- Type safe conversion functions ----------------*/
 
 #define CONVERSION_FUNCTIONS(type1, type2) \
