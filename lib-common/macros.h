@@ -122,17 +122,50 @@ enum sign {
 
 #define SWAP(a, b)   do { void *c = a; a = b; b = c; } while (0)
 
-#define CYCLIC_MAX(a, b) \
-    (MAX(a, b) - MIN(a, b) < MIN(a, b) - MAX(a, b) ? MAX(a, b) : MIN(a, b)) + \
-    STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(a), typeof(b)))
+/* monotonic clocks operations:
 
-#define CYCLIC_MIN(a, b) \
-    (MAX(a, b) - MIN(a, b) > MIN(a, b) - MAX(a, b) ? MAX(a, b) : MIN(a, b)) + \
-    STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(a), typeof(b)))
+   Those are supposed to be uint32_t's, and we suppose that we only compare
+   values that were issued in a not too long lapse time. That way, the
+   wrapping point is not a singular point anymore.
 
-#define CYCLIC_CMP(a, b) \
-    (MAX(a, b) - MIN(a, b) > MIN(a, b) - MAX(a, b) ? CMP(a, b) : CMP(b, a)) + \
-    (int)STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(a), typeof(b)))
+   Those types have bizare behaviours and should not be used for any kind of
+   time measures, but are used to have a local total order on a distributed
+   network.
+
+   in the monotonic clock world, MAX(UINT32_MAX, 0) is 0.
+
+   `(int32_t)(b - a) >= 0' in that world means that b >= a.
+
+   TODO: rewrite those functions so that it works as soon that a and b have
+         the same width. The above test is then sth like:
+         ((b - a) >> (8 * sizeof(b) - 1)) & 1 == 0;
+ */
+static inline uint32_t unsafe_mclk_max(uint32_t a, uint32_t b) {
+    return (int32_t)(b - a) >= 0 ? b : a;
+}
+
+static inline uint32_t unsafe_mclk_min(uint32_t a, uint32_t b) {
+    return (int32_t)(b - a) >= 0 ? a : b;
+}
+
+static inline uint32_t unsafe_mclk_cmp(uint32_t a, uint32_t b) {
+    return ((int32_t)(a - b) >= 0) - ((int32_t)(b - a) >= 0);
+}
+
+#define MCLK_MAX(a, b) \
+    (uint32_t)(unsafe_mclk_max(a, b) \
+     + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(a), uint32_t)) \
+     + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(b), uint32_t)))
+
+#define MCLK_MIN(a, b) \
+    (uint32_t)(unsafe_mclk_min(a, b) \
+     + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(a), uint32_t)) \
+     + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(b), uint32_t)))
+
+#define MCLK_CMP(a, b) \
+    (enum sign)(unsafe_mclk_cmp(a, b) \
+     + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(a), uint32_t)) \
+     + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(b), uint32_t)))
 
 /*---------------- Type safe conversion functions ----------------*/
 
