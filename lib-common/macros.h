@@ -122,13 +122,13 @@ enum sign {
 
 #define SWAP(a, b)   do { void *c = a; a = b; b = c; } while (0)
 
-/* monotonic clocks operations:
+/* monotonic clock operations:
 
-   Those are supposed to be uint32_t's, and we suppose that we only compare
-   values that were issued in a not too long lapse time. That way, the
+   These are supposed to be uint32_t's, and we suppose that we only compare
+   values that were issued within a short time span. That way, the
    wrapping point is not a singular point anymore.
 
-   Those types have bizare behaviours and should not be used for any kind of
+   These types have bizarre behaviours and should not be used for any kind of
    time measures, but are used to have a local total order on a distributed
    network.
 
@@ -136,8 +136,8 @@ enum sign {
 
    `(int32_t)(b - a) >= 0' in that world means that b >= a.
 
-   TODO: rewrite those functions so that it works as soon that a and b have
-         the same width. The above test is then sth like:
+   TODO: rewrite these functions to work as soon that a and b have
+         the same width. The above test is then something like:
          ((b - a) >> (8 * sizeof(b) - 1)) & 1 == 0;
  */
 static inline uint32_t unsafe_mclk_max(uint32_t a, uint32_t b) {
