@@ -946,7 +946,8 @@ static inline int hex_to_dec(char c)
  * returns the actual number of bytes written to out (doesn't
  * count the final \0, except if we ran out of space: in this case,
  * out[written] == '\0')
- * */
+ */
+/* OG: broken semantics need to change */
 size_t purldecode(const char *in, byte *out, size_t size, int flags)
 {
     const char *p;
@@ -957,22 +958,33 @@ size_t purldecode(const char *in, byte *out, size_t size, int flags)
     /* This function will stop on any embedded NULs.
      */
 
+    if (size <= 0)
+        return 0;
+
     /* Optimize the general case with a quick scan for % */
     p = pstrchrnul(in, '%');
 
     if (p > in) {
-        written = pstrcpylen((char *)out, size, in, p - in);
+        if ((size_t)(p - in) >= size) {
+            memcpy(out, in, size - 1);
+            out[size] = '\0';
+            return size;
+        }
+        memcpy(out, in, p - in);
+        written = p - in;
         q = out + written;
         size -= written;
     }
     while (size > 0 && (*q = *p) != '\0') {
         int a, b;
+
         if (*p == '%'
         &&  (a = hex_to_dec(p[1])) >= 0
         &&  (b = hex_to_dec(p[2])) >= 0)
         {
             byte v = (a << 4) | b;
             if (ignore_CR && v == 0x0D) {
+                /* OG: why strip %0D and not \r ? */
                 p += 3;
             } else {
                 *q++ = v;
@@ -990,7 +1002,7 @@ size_t purldecode(const char *in, byte *out, size_t size, int flags)
 
     if (!size) {
         /* force an ending \0 if we ran out of space */
-        out[size - 1] = '\0';
+        q[-1] = '\0';
     }
 
     return written;
