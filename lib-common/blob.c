@@ -878,10 +878,12 @@ bool blob_istart(const blob_t *blob1, const blob_t *blob2, const byte **pp)
 /* Blob string functions                                                  */
 /**************************************************************************/
 
+/* OG: should merge these two: blob as destination and take buf+len as source */
 void blob_urldecode(blob_t *url)
 {
     url->len = purldecode(blob_get_cstr(url), url->data, url->len + 1, 0);
 }
+
 void blob_append_urldecode(blob_t *out, const char *encoded, int len,
                            int flags)
 {
