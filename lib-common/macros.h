@@ -39,7 +39,7 @@
 #    define __must_be_array(a)   0
 #  else
 #    define __must_be_array(a) \
-       STATIC_ASSERTZ(!__builtin_types_compatible_p(typeof(a), typeof(&a[0])))
+       STATIC_ASSERTZ(!__builtin_types_compatible_p(typeof(a), typeof(&(a)[0])))
 #  endif
 
 #  define __unused__             __attribute__((unused))
