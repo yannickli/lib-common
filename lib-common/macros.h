@@ -148,7 +148,7 @@ static inline uint32_t unsafe_mclk_min(uint32_t a, uint32_t b) {
     return (int32_t)(b - a) >= 0 ? a : b;
 }
 
-static inline int32_t unsafe_mclk_cmp(uint32_t a, uint32_t b) {
+static inline int unsafe_mclk_cmp(uint32_t a, uint32_t b) {
     return ((int32_t)(a - b) >= 0) - ((int32_t)(b - a) >= 0);
 }
 
