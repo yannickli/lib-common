@@ -368,6 +368,8 @@ bool blob_istart(const blob_t *blob1, const blob_t *blob2, const byte **pp);
 /**************************************************************************/
 
 void blob_urldecode(blob_t *url);
+void blob_append_urldecode(blob_t *out, const char *encoded, int len,
+                           int flags);
 void blob_b64encode(blob_t *blob, int nbpackets);
 void blob_b64decode(blob_t *blob);
 

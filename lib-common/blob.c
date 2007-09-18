@@ -90,37 +90,27 @@ void blob_ensure(blob_t *blob, ssize_t newlen)
         return;
 
     if (newlen >= blob->size) {
-        /* OG: Size requested from the system should be computed in a
-         * way that yields a small number of different sizes:
-         * for (newsize=blob->size;
-         *      newsize <= newlen;
-         *      newsize = newsize * 3 / 2) {
-         *      continue;
-         * }
-         */
-        ssize_t newsize = MEM_ALIGN(3 * (newlen + 1) / 2);
-
-
         if (blob->data == blob->area) {
-            if (newsize > 1024*1024) {
-                e_trace(1, "Large blob ensure realloc, newsize:%zd size:%zd len:%zd data:%.80s",
-                        newsize, blob->size, blob->len, blob->data);
+            if (newlen > 1024*1024) {
+                e_trace(1, "Large blob ensure realloc, newlen:%zd size:%zd len:%zd data:%.80s",
+                        newlen, blob->size, blob->len, blob->data);
             }
-            p_realloc(&blob->area, newsize);
+            p_allocgrow(&blob->area, newlen + 1, &blob->size);
             blob->data = blob->area;
-            blob->size = newsize;
         } else {
             /* Check if data fits in current area */
             byte *area = blob->area ? blob->area : blob->initial;
             ssize_t skip = blob->data - area;
 
-            if (newsize <= skip + blob->size) {
+            if (newlen < skip + blob->size) {
                 /* Data fits in the current area, shift it left */
                 memmove(blob->data - skip, blob->data, blob->len + 1);
                 blob->data -= skip;
                 blob->size += skip;
             } else {
                 /* Allocate a new area */
+                ssize_t newsize = p_alloc_nr(newlen + 1);
+
                 byte *new_area = p_new_raw(byte, newsize);
                 if (skip + blob->size != BLOB_INITIAL_SIZE) {
                     e_trace(2, "Large blob ensure shift,"
@@ -189,7 +179,7 @@ blob_insert_data_real(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
 
     blob_resize(blob, oldlen + len);
     if (pos < oldlen) {
-        memmove(blob->data + pos + len, blob->data + pos, oldlen - pos);
+        p_move(blob->data, pos + len, pos, oldlen - pos);
     }
     memcpy(blob->data + pos, data, len);
 }
@@ -226,8 +216,7 @@ void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len)
          * right parts, but not as issue for now.
          */
         /* move the blob data including the trailing '\0' */
-        memmove(blob->data + pos, blob->data + pos + len,
-                blob->len - pos - len + 1);
+        p_move(blob->data, pos, pos + len, blob->len - pos - len + 1);
         blob->len  -= len;
     }
 }
@@ -285,8 +274,7 @@ void blob_splice_data(blob_t *blob, ssize_t pos, ssize_t len,
     blob_resize(blob, oldlen + datalen - len);
 
     if (len != datalen) {
-        memmove(blob->data + pos + datalen, blob->data + pos + len,
-                oldlen - pos - len);
+        p_move(blob->data, pos + datalen, pos + len, oldlen - pos - len);
     }
     memcpy(blob->data + pos, data, datalen);
 }
@@ -890,47 +878,21 @@ bool blob_istart(const blob_t *blob1, const blob_t *blob2, const byte **pp)
 /* Blob string functions                                                  */
 /**************************************************************************/
 
-static inline int hex_to_dec(char c)
-{
-    if (c >= '0' && c <= '9') {
-        return c - '0';
-    }
-    if (c >= 'a' && c <= 'f') {
-        return c + 10 - 'a';
-    }
-    if (c >= 'A' && c <= 'F') {
-        return c + 10 - 'A';
-    }
-    return -1;
-}
-
+/* OG: should merge these two: blob as destination and take buf+len as source */
 void blob_urldecode(blob_t *url)
 {
-    byte *p, *q;
+    url->len = purldecode(blob_get_cstr(url), url->data, url->len + 1, 0);
+}
 
-    /* This function relies on the final NUL at the end of the blob
-     * and will stop on any embedded NULs.
-     */
-
-    /* Optimize the general case with a quick scan for % */
-    if ((p = memchr(url->data, '%', url->len)) == NULL)
-        return;
-
-    q = p;
-    while ((*q = *p) != '\0') {
-        int a, b;
-        if (*p == '%'
-        &&  (a = hex_to_dec(p[1])) >= 0
-        &&  (b = hex_to_dec(p[2])) >= 0)
-        {
-            *q++ = (a << 4) | b;
-            p += 3;
-        } else {
-            q++;
-            p++;
-        }
+void blob_append_urldecode(blob_t *out, const char *encoded, int len,
+                           int flags)
+{
+    if (len < 0) {
+        len = strlen(encoded);
     }
-    url->len = q - url->data;
+    blob_ensure_avail(out, len);
+    out->len += purldecode(encoded,
+                           out->data + out->len, len + 1, flags);
 }
 
 static const char
@@ -2380,6 +2342,24 @@ START_TEST(check_url)
     fail_if(blob.len != sstrlen(" totoy"),
             "urldecode failed");
 
+    check_teardown(&blob, NULL);
+
+    check_setup(&blob, "");
+    blob_append_urldecode(&blob, "toto%20tata", -1, 0);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "toto tata") != 0,
+            "blob_append_urldecode failed");
+    fail_if(blob.len != sstrlen("toto tata"),
+            "blob_append_urldecode failed");
+    check_teardown(&blob, NULL);
+
+    check_setup(&blob, "tutu");
+    blob_append_urldecode(&blob, "toto%20tata", -1, 0);
+    check_blob_invariants(&blob);
+    fail_if(strcmp((const char *)blob.data, "tututoto tata") != 0,
+            "blob_append_urldecode failed");
+    fail_if(blob.len != sstrlen("tututoto tata"),
+            "blob_append_urldecode failed");
     check_teardown(&blob, NULL);
 }
 END_TEST

@@ -53,7 +53,7 @@ void generic_list_sort(generic_list **list,
         *list = item;                                                        \
     }                                                                        \
     static inline type *prefix##_list_pop(type **list) {                     \
-        assert (sizeof(int[1 - 2 * offsetof(type, next)]));                  \
+        STATIC_ASSERT(offsetof(type, next) == 0);                            \
         if (*list) {                                                         \
             type *res = *list;                                               \
             *list = res->next;                                               \

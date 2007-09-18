@@ -200,6 +200,14 @@ static inline int utf8_vgetc(char *s, char **outp) {
 /* OG: need more general API */
 int str_replace(const char search, const char replace, char *subject);
 
+#define URLDECODE_IGNORE_CR  1
+/* OG: API for conversion functions should be
+ * ssize_t convert_func(char *dest, ssize_t size, const char *src, ssize_t len)
+ * optional flags may come as an extra parameter
+ * should import conversion functions from qscript.h
+ */
+size_t purldecode(const char *in, byte *out, size_t size, int flags);
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 #include <check.h>

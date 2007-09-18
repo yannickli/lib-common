@@ -30,7 +30,7 @@ typedef void array_item_dtor_f(void *item);
 /* Memory management                                                      */
 /**************************************************************************/
 
-generic_array *generic_array_init(generic_array *array);
+GENERIC_INIT(generic_array, generic_array);
 GENERIC_NEW(generic_array, generic_array);
 void generic_array_wipe(generic_array *array, array_item_dtor_f *dtor);
 void generic_array_delete(generic_array **array, array_item_dtor_f *dtor);

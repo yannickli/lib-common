@@ -488,6 +488,7 @@ int stats_temporal_upd(stats_temporal_t *stats, time_t date,
 {
     int status = 0;
 
+    e_trace(2, "begin");
     if (stats->do_sec) {
         if (stats_temporal_upd_sec(stats, date, type,
                                    index, index_bis, value))

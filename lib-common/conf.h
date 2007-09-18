@@ -56,6 +56,8 @@ int conf_save(const conf_t *conf, const char *filename);
 static inline const conf_section_t *
 conf_get_section(const conf_t *conf, int i)
 {
+    if (i < 0 || i >= conf->sections.len)
+        return NULL;
     return conf->sections.tab[i];
 }
 const char *conf_get_raw(const conf_t *conf,
