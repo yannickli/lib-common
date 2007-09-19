@@ -48,7 +48,7 @@ props_array_unpack(const byte *buf, int buflen,  int *pos,
                    props_array **arr, int last);
 
 int props_from_fmtv1(const blob_t *payload, props_array *props);
-void props_to_fmtv1(blob_t *out, props_array *props);
+void props_to_fmtv1(blob_t *out, const props_array *props);
 
 void props_array_dup(props_array *to, const props_array *from);
 

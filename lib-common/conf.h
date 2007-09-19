@@ -60,6 +60,10 @@ conf_get_section(const conf_t *conf, int i)
         return NULL;
     return conf->sections.tab[i];
 }
+
+const conf_section_t *conf_get_section_by_name(const conf_t *conf,
+                                               const char *name);
+
 const char *conf_get_raw(const conf_t *conf,
                          const char *section, const char *var);
 const char *

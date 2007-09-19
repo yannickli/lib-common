@@ -464,6 +464,20 @@ const char *conf_put(conf_t *conf, const char *section,
     return NULL;
 }
 
+const conf_section_t *
+conf_get_section_by_name(const conf_t *conf, const char *name)
+{
+    int i;
+
+    for (i = 0; i < conf->sections.len; i++) {
+        if (strequal(name, conf->sections.tab[i]->name)) {
+            return conf->sections.tab[i];
+        }
+    }
+    return NULL;
+}
+
+
 int conf_next_section_idx(const conf_t *conf, const char *prefix,
                           int prev_idx, const char **suffixp)
 {

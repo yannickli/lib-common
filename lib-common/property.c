@@ -211,7 +211,7 @@ int props_from_fmtv1(const blob_t *payload, props_array *props)
     return 0;
 }
 
-void props_to_fmtv1(blob_t *out, props_array *props)
+void props_to_fmtv1(blob_t *out, const props_array *props)
 {
     int i;
 
