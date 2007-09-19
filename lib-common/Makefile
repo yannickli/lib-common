@@ -65,6 +65,8 @@ libcommon_SOURCES = \
 	blob-iconv.c \
 	blob-emi.c \
 	\
+	file-binlog.c \
+	\
 	hash-crc.c \
 	hash-sha2.c \
 	hash-sha1.c \
