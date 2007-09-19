@@ -608,7 +608,7 @@ ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
     }
     blob->len = pos + len;
     blob->data[blob->len] = '\0';
-    va_end(&ap2);
+    va_end(ap2);
 
     return len;
 }
