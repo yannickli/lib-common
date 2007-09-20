@@ -147,8 +147,10 @@ int pidx_fsck(pidx_file *pidx, int dofix)
         int *prev;
 
         /* check used pages */
-        if (pidx_fsck_recurse(bits, pidx, 0, pidx->area->nbsegs) < 0)
+        if (pidx_fsck_recurse(bits, pidx, 0, pidx->area->nbsegs) < 0) {
+            p_delete(&bits);
             return -1;
+        }
 
         /* check free pages */
         for (prev = &pidx->area->freelist;
@@ -156,8 +158,10 @@ int pidx_fsck(pidx_file *pidx, int dofix)
              prev = &pidx->area->pages[*prev].next)
         {
             if (pidx_fsck_mark_page(bits, pidx, *prev)) {
-                if (!dofix)
+                if (!dofix) {
+                    p_delete(&bits);
                     return -1;
+                }
 
                 did_a_fix = true;
                 *prev = 0;
