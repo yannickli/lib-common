@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <gc/gc.h>
+#include <boehm/include/gc.h>
 #include "mem.h"
 #include "err_report.h"
 
