@@ -187,7 +187,7 @@ static inline void mmfile_wipe(mmfile *mf)
 
 void mmfile_close(mmfile **mf)
 {
-    if (*mf) {
+    if (mf && *mf) {
         if (!(*mf)->ro) {
             msync((*mf)->area, (*mf)->size, MS_SYNC);
         }
