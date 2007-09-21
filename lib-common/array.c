@@ -40,16 +40,17 @@ array_resize(generic_array *a, ssize_t newlen)
 
 void generic_array_wipe(generic_array *array, array_item_dtor_f *dtor)
 {
-    if (array) {
-        if (dtor) {
-            ssize_t i;
+    if (dtor) {
+        ssize_t i;
 
-            for (i = 0; i < array->len; i++) {
-                (*dtor)(&array->tab[i]);
-            }
+        for (i = 0; i < array->len; i++) {
+            (*dtor)(&array->tab[i]);
         }
-        p_delete(&array->tab);
     }
+    p_delete(&array->tab);
+    /* Defensive programming: in case someone try to access the array's
+     * elements after wipe */
+    array->len = 0;
 }
 
 void generic_array_delete(generic_array **array, array_item_dtor_f *dtor)
