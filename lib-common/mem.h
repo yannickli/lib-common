@@ -246,7 +246,7 @@ static inline void (p_delete)(void **p) {
     GENERIC_INIT(type, prefix)    GENERIC_NEW(type, prefix) \
     GENERIC_WIPE(type, prefix)    GENERIC_DELETE(type, prefix)
 
-void mem_intialize(void);
+void mem_initialize(void);
 void mem_check(void);
 
 #endif /* IS_LIB_COMMON_MEM_H */
