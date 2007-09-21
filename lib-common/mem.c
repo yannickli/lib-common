@@ -33,14 +33,13 @@ void mem_check(void)
     usedsz = brksz - freesz;
 
     if (!last_used) {
-        last_heap = brksz - freesz;
+        last_used = brksz - freesz;
         return;
     }
 
-    if (usedsz < last_used) {
-        last_used = usedsz;
+    /* don't act if the daemon uses less than 64Mb of ram */
+    if (usedsz < ((size_t)64 << 20))
         return;
-    }
 
     /* act on more than 10% of memory usage growth only */
     if (usedsz < ((size_t)2 << 30) && usedsz < last_used * 9 / 8)
@@ -49,7 +48,7 @@ void mem_check(void)
     GC_enable();
     GC_gcollect();
     free_after = GC_get_free_bytes();
-    if (free_after < last_free)
+    if (free_after < freesz)
         e_error("GC: %zd bytes freed by the gc", freesz - free_after);
     last_used = brksz - free_after;
     GC_disable();
