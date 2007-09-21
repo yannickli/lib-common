@@ -46,18 +46,44 @@ typedef struct stats_file64 {
     uint64_t stats[];
 } stats_file64;
 
+typedef struct stats_stage {
+    int32_t scale;
+    int32_t count;
+    int32_t current;
+    int32_t pos;
+    int32_t incr;
+    int32_t offset;
+    int32_t pad1;
+    int32_t pad2;
+} stats_stage;
+
+typedef struct stats_file_auto {
+#define STATS_AUTO_MAGIC 0x51A10000
+    int32_t magic;
+    int32_t nb_stages;
+    int32_t nb_allocated;
+    int32_t nb_stats;
+    int32_t pad[4];
+    stats_stage stage[STATS_STAGE_MAX];
+} stats_file_auto;
+
 typedef struct mmfile_stats32 MMFILE_ALIAS(stats_file32) mmfile_stats32;
 MMFILE_FUNCTIONS(mmfile_stats32, mmfile_stats32);
 typedef struct mmfile_stats64 MMFILE_ALIAS(stats_file64) mmfile_stats64;
 MMFILE_FUNCTIONS(mmfile_stats64, mmfile_stats64);
+typedef struct mmfile_stats_auto MMFILE_ALIAS(stats_file_auto) mmfile_stats_auto;
+MMFILE_FUNCTIONS(mmfile_stats_auto, mmfile_stats_auto);
 
 struct stats_temporal_t {
     char path[PATH_MAX];
     mmfile_stats32 *per_sec;
     mmfile_stats64 *per_hour;
+    mmfile_stats_auto *file;
     bool do_sec;
     bool do_hour;
     int nb_stats;
+    int nb_stages;
+    int desc[STATS_STAGE_MAX * 2];
 };
 
 #define PER_SEC_NB_SECONDS   (3600 * 8)
@@ -187,8 +213,7 @@ static mmfile_stats64 *per_hour_file_initialize(const char *prefix,
     time_t start_time, end_time;
 
     /* compute boundaries for the target day */
-    compute_day_range(date, PER_HOUR_NB_HOURS / 24,
-                      &t, &start_time, &end_time);
+    compute_day_range(date, 7, &t, &start_time, &end_time);
 
     snprintf(buf, sizeof(buf), "%s_hour_%04d%02d%02d_%02d%02d%02d.bin",
              prefix, t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
@@ -220,6 +245,93 @@ static mmfile_stats64 *per_hour_file_initialize(const char *prefix,
         m->area->end_time = end_time;
         m->area->nb_allocated = to_allocate;
         m->area->nb_stats = nb_stats;
+
+        e_trace(1, "Mapped file created (file = %s) (allocated = %d)",
+                buf, to_allocate);
+    }
+
+    return m;
+}
+
+static mmfile_stats_auto *stats_file_initialize(stats_temporal_t *stats,
+                                                time_t date, bool autocreate)
+{
+    char buf[PATH_MAX];
+    mmfile_stats_auto *m;
+    struct tm t;
+    time_t start_time, end_time;
+    stats_stage *st;
+
+    /* compute boundaries for the target day */
+    compute_day_range(date, PER_HOUR_NB_HOURS / 24,
+                      &t, &start_time, &end_time);
+
+    snprintf(buf, sizeof(buf), "%s_auto_%04d%02d%02d_%02d%02d%02d.bin",
+             stats->path, t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
+             t.tm_hour, t.tm_min, t.tm_sec);
+
+    e_trace(2, "for start = %d : opening %s...", (int)date, buf);
+    m = mmfile_stats_auto_open(buf, O_RDWR, 0, 0);
+    if (m && (m->area->magic != STATS_AUTO_MAGIC ||
+              m->area->nb_stats != stats->nb_stats ||
+              m->area->nb_stages != stats->nb_stages)) {
+        /* Inconsistent header, probably an older version */
+        mmfile_stats_auto_close(&m);
+        unlink(buf);
+    }
+    if (!m && autocreate) {
+        int to_allocate, i, offset;
+
+        to_allocate = sizeof(stats_file_auto);
+        to_allocate = (to_allocate + 255) & ~255;
+        to_allocate += stats->nb_stats * stats->desc[1] * sizeof(uint32_t);
+        to_allocate = (to_allocate + 255) & ~255;
+
+        for (i = 1; i < stats->nb_stages; i++) {
+            to_allocate += stats->nb_stats * stats->desc[2 * i + 1] *
+                           sizeof(uint64_t);
+            to_allocate = (to_allocate + 255) & ~255;
+        }
+
+        e_trace(2, "Could not mmfile_open (%m), try to create...");
+        m = mmfile_stats_auto_creat(buf, to_allocate);
+        if (!m) {
+            /* FIXME: This message may be repeated many times if stat file
+             * cannot be created.
+             */
+            e_error("Could not mmfile_creat (%m) !!...");
+            return NULL;
+        }
+
+        m->area->magic = STATS_AUTO_MAGIC;
+        m->area->nb_stages = stats->nb_stages;
+        m->area->nb_allocated = to_allocate;
+        m->area->nb_stats = stats->nb_stats;
+
+        offset = sizeof(stats_file_auto);
+        offset = (offset + 255) & ~255;
+        
+        st = m->area->stage;
+        st->scale = 1;
+        st->count = stats->desc[1];
+        st->current = date;
+        st->pos = 0;
+        st->incr = stats->nb_stats * sizeof(uint32_t);
+        st->offset = offset;
+
+        offset += st->count * st->incr;
+        offset = (offset + 255) & ~255;
+
+        for (i = 1, st++; i < stats->nb_stages; i++, st++) {
+            st->scale = stats->desc[2 * i];
+            st->count = stats->desc[2 * i + 1];
+            st->current = date / st->scale;
+            st->pos = 0;
+            st->incr = stats->nb_stats * sizeof(uint64_t);
+            st->offset = offset;
+            offset += st->count * st->incr;
+            offset = (offset + 255) & ~255;
+        }
 
         e_trace(1, "Mapped file created (file = %s) (allocated = %d)",
                 buf, to_allocate);
@@ -279,7 +391,7 @@ static int find_last_file(const char *path, bool sec)
 #endif
 
 stats_temporal_t *stats_temporal_new(const char *path, int nb_stats,
-                                     int flags)
+                                     int flags, const int *desc)
 {
     stats_temporal_t* stats;
 
@@ -291,7 +403,19 @@ stats_temporal_t *stats_temporal_new(const char *path, int nb_stats,
     stats->nb_stats = nb_stats;
     stats->do_sec  = !!(flags & STATS_TEMPORAL_SECONDS);
     stats->do_hour = !!(flags & STATS_TEMPORAL_HOURS);
-
+    stats->nb_stages = flags >> 2;
+    if (stats->nb_stages > 0 && stats->nb_stages <= STATS_STAGE_MAX) {
+        if (desc) {
+            memcpy(stats->desc, desc, stats->nb_stages * 2 * sizeof(*desc));
+        } else {
+            /* Use default descriptors:
+             * 1 hour at second, 1 day at minute, 1 week at hour precision
+             */
+            static int default_desc[] = { 1, 3600, 60, 24 * 60, 3600, 7 * 24 };
+            memcpy(stats->desc, default_desc, sizeof(default_desc));
+            stats->nb_stages = 3;
+        }
+    }
     return stats;
 }
 
@@ -299,7 +423,9 @@ static inline void stats_temporal_wipe(stats_temporal_t *stats)
 {
     mmfile_stats32_close(&stats->per_sec);
     mmfile_stats64_close(&stats->per_hour);
+    mmfile_stats_auto_close(&stats->file);
 }
+
 DO_DELETE(stats_temporal_t, stats_temporal);
 
 bool stats_temporal_shrink(stats_temporal_t *stats, int date)
@@ -482,6 +608,97 @@ static int stats_temporal_upd_hour(stats_temporal_t *stats, int date,
     return 0;
 }
 
+static int stats_temporal_upd_auto(stats_temporal_t *stats, int date,
+                                   stats_upd_type type,
+                                   int index, int index_bis,
+                                   int value)
+{
+    stats_stage *st;
+    uint32_t *vp32;
+    uint64_t *vp64;
+    int i, date1;
+
+    if (!stats->file) {
+        stats->file = stats_file_initialize(stats, date, true);
+        if (!stats->file) {
+            return -1;
+        }
+    }
+
+    st = stats->file->area->stage;
+    if (date > st->current) {
+        if (date >= st->current + st->count) {
+            /* drop all stats for this stage */
+            st->current = date;
+            st->pos = 0;
+            vp32 = (uint32_t *)((byte *)stats->file->area + st->offset);
+            memset(vp32, 0, st->count * st->incr);
+        } else {
+            while (st->current < date) {
+                st->current++;
+                if (++st->pos == st->count) {
+                    st->pos = 0;
+                }
+                vp32 = (uint32_t *)((byte *)stats->file->area + st->offset +
+                                    st->pos * st->incr);
+                memset(vp32, 0, st->incr);
+            }
+        }
+        for (i = 1, st++; i < stats->nb_stages; i++, st++) {
+            date1 = date / st[i].scale;
+            if (date1 == st->current)
+                break;
+            if (date1 >= st->current + st->count) {
+                /* drop all stats for this stage */
+                st->current = date1;
+                st->pos = 0;
+                vp64 = (uint64_t *)((byte *)stats->file->area + st->offset);
+                memset(vp64, 0, st->count * st->incr);
+            } else {
+                while (st->current < date1) {
+                    st->current++;
+                    if (++st->pos == st->count) {
+                        st->pos = 0;
+                    }
+                    vp64 = (uint64_t *)((byte *)stats->file->area + st->offset +
+                                        st->pos * st->incr);
+                    memset(vp64, 0, st->incr);
+                }
+            }
+        }
+        st = stats->file->area->stage;
+    }
+    if (date == st->current) {
+        /* simple case, current slot for all stages */
+        vp32 = (uint32_t *)((byte *)stats->file->area + st->offset +
+                            st->pos * st->incr);
+        STAT_UPD_VALUE(type, vp32 + index, vp32 + index_bis, value);
+        for (i = 1, st++; i < stats->nb_stages; i++, st++) {
+            vp64 = (uint64_t *)((byte *)stats->file->area + st->offset +
+                                st->pos * st->incr);
+            STAT_UPD_VALUE(type, vp64 + index, vp64 + index_bis, value);
+        }
+    } else {
+        if (date > st->current - st->count) {
+            vp32 = (uint32_t *)((byte *)stats->file->area + st->offset +
+                                (st->pos + st->count + date - st->current) % st->count *
+                                st->incr);
+            STAT_UPD_VALUE(type, vp32 + index, vp32 + index_bis, value);
+        }
+        for (i = 1, st++; i < stats->nb_stages; i++, st++) {
+            date1 = date / st->scale;
+            if (date1 > st->current - st->count) {
+                vp64 = (uint64_t *)((byte *)stats->file->area + st->offset +
+                                    (st->pos + st->count + date - st->current) % st->count *
+                                    st->incr);
+                STAT_UPD_VALUE(type, vp64 + index, vp64 + index_bis, value);
+            }
+        }
+    }
+
+    return 0;
+}
+
 int stats_temporal_upd(stats_temporal_t *stats, time_t date,
                        stats_upd_type type,
                        int index, int index_bis, int value)
@@ -495,6 +712,11 @@ int stats_temporal_upd(stats_temporal_t *stats, time_t date,
     }
     if (stats->do_hour) {
         if (stats_temporal_upd_hour(stats, date, type,
+                                    index, index_bis, value))
+            status = -1;
+    }
+    if (stats->nb_stages) {
+        if (stats_temporal_upd_auto(stats, date, type,
                                     index, index_bis, value))
             status = -1;
     }

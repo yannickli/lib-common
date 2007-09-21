@@ -18,6 +18,8 @@
 #include <lib-common/bfield.h>
 #include <lib-common/blob.h>
 
+#define STATS_STAGE_MAX          7
+#define STATS_TEMPORAL_AUTO(n)   ((n) << 2)
 #define STATS_TEMPORAL_SECONDS   (1 << 0)
 #define STATS_TEMPORAL_HOURS     (1 << 1)
 
@@ -31,9 +33,12 @@ typedef enum stats_upd_type {
 typedef struct stats_temporal_t stats_temporal_t;
 
 /* flags is a combination of STATS_TEMPORAL_SECONDS and
- * STATS_TEMPORAL_HOURS */
+ * STATS_TEMPORAL_HOURS or STATS_TEMPORAL_AUTO(n) where n is the number
+ * of stages of automatic aggregation
+ * desc is an array of aggregation steps and counts
+ */
 stats_temporal_t *stats_temporal_new(const char *path, int nb_stats,
-                                     int flags);
+                                     int flags, const int *desc);
 void stats_temporal_delete(stats_temporal_t **stats);
 
 /* index_bis is currently only used for type = STATS_UPD_MEAN to indicate in which
