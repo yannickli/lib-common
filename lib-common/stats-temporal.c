@@ -310,7 +310,7 @@ static mmfile_stats_auto *stats_file_initialize(stats_temporal_t *stats,
 
         offset = sizeof(stats_file_auto);
         offset = (offset + 255) & ~255;
-        
+
         st = m->area->stage;
         st->scale = 1;
         st->count = stats->desc[1];
@@ -963,3 +963,144 @@ int stats_temporal_query_hour(stats_temporal_t *stats, blob_t *blob,
 
     return 0;
 }
+
+int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
+                              int start, int nb_values, int stage,
+                              int fmt)
+{
+    int end, i;
+    stats_stage *st;
+    byte *buf_start, *buf_end, *vp;
+
+    if (fmt < STATS_FMT_RAW || fmt > STATS_FMT_XML) {
+        blob_append_fmt(blob, "Bad stats fmt: %d", fmt);
+        return -1;
+    }
+
+    if (!stats->nb_stats) {
+        blob_append_cstr(blob,
+                         "stats auto deactivated for these statistics");
+        return -1;
+    }
+
+    if (stage < 0 || stage >= stats->nb_stages) {
+        blob_append_fmt(blob, "invalid stage number: %d", stage);
+        return -1;
+    }
+
+    st = &stats->file->area->stage[stage];
+    if (start < st->current - st->count) {
+        /* We don't known any values before 'st->current - st->count' */
+        /* FIXME: Shouldn't we drop these stats, instead of shifting */
+        e_trace(2, "start was too early (%d < %d)", start, st->current - st->count);
+        start = st->current - st->count;
+    }
+
+    end = start + nb_values;
+
+    if (end > st->current + 1) {
+        /* FIXME: Shouldn't we drop these stats, instead of shifting */
+        e_trace(2, "end was too far (%d > %d)", end, st->current + 1);
+        end = st->current + 1;
+    }
+
+    e_trace(2, "Getting stats between %d and %d", start, end);
+
+    buf_start = (byte *)stats->file->area + st->offset;
+    buf_end   = buf_start + st->count * st->incr;
+
+    vp        = buf_start + st->pos * st->incr + (start - st->current) * st->incr;
+
+    /* XXX: This rely on start and end being cropped */
+    if (vp < buf_start) {
+        vp += st->count * st->incr;
+    }
+
+    switch (fmt) {
+      case STATS_FMT_XML:
+        blob_append_cstr(blob, "<data>\n");
+        break;
+
+      default:
+        break;
+    }
+
+    for (i = start; i < end; i++) {
+        /* XXX: This rely on start and end being cropped */
+        if (vp >= buf_end) {
+            vp = buf_end - st->count * st->incr;
+        }
+
+        switch (fmt) {
+          case STATS_FMT_RAW:
+            blob_append_fmt(blob, "%d %d\n", i, *(int32_t*)vp);
+            break;
+
+          case STATS_FMT_XML:
+            blob_append_fmt(blob, "<elem time=\"%d\" value=\"%d\" />\n", i, *(int32_t*)vp);
+            break;
+
+          default:
+            break;
+        }
+
+        vp += st->incr;
+    }
+
+    switch (fmt) {
+      case STATS_FMT_XML:
+        blob_append_cstr(blob, "</data>\n");
+        break;
+
+      default:
+        break;
+    }
+
+    return 0;
+}
+
+#ifndef NDEBUG
+void stats_temporal_dump_auto(byte *mem, int size)
+{
+    stats_file_auto *file;
+    int i;
+
+    if (size < ssizeof(stats_file_auto)) {
+        e_trace(1, "mem buf too small");
+        return;
+    }
+
+    file = (stats_file_auto *)mem;
+
+    if (file->magic != STATS_AUTO_MAGIC) {
+        e_trace(1, "magic incorrect");
+        return;
+    }
+
+    printf("nb_stages: %d\n", file->nb_stages);
+    printf("nb_allocated: %d\n", file->nb_allocated);
+    printf("nb_stats: %d\n\n", file->nb_stats);
+
+    for (i = 0; i < file->nb_stages; i++) {
+        stats_stage *st = &file->stage[i];
+        int j;
+
+        printf("stage no: %d\n", i);
+        printf("scale: %d\n", st->scale);
+        printf("count: %d\n", st->count);
+        printf("current: %d\n", st->current);
+        printf("pos: %d\n", st->pos);
+        printf("incr: %d\n", st->incr);
+        printf("offset: %d\n", st->offset);
+
+        printf("\nStats:\n");
+        if (st->incr != 4) {
+            printf("Unsupported incr: %d\n", st->incr);
+        }
+        for (j = 0; j < st->count; j++) {
+            int32_t *vp = (int32_t*)(mem + st->offset + j * st->incr);
+            printf("%d %d\n", st->current + (j - st->pos), *vp);
+        }
+    }
+}
+#endif

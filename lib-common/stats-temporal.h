@@ -23,6 +23,9 @@
 #define STATS_TEMPORAL_SECONDS   (1 << 0)
 #define STATS_TEMPORAL_HOURS     (1 << 1)
 
+#define STATS_FMT_RAW  1
+#define STATS_FMT_XML  2
+
 typedef enum stats_upd_type {
     STATS_UPD_INCR,
     STATS_UPD_MIN,
@@ -56,5 +59,14 @@ int stats_temporal_query_sec(stats_temporal_t *stats, blob_t *blob,
 int stats_temporal_query_hour(stats_temporal_t *stats, blob_t *blob,
                               int64_t *outp, int start, int nb_values,
                               bfield_t *mask);
+int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
+                              int start, int nb_values, int stage, int fmt);
+
+#ifndef NDEBUG
+void stats_temporal_dump_auto(byte *mem, int size);
+#else
+#define stats_temporal_dump_auto(...)
+#endif
+
 
 #endif /* IS_LIB_COMMON_STATS_TEMPORAL_H */
