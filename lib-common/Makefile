@@ -70,6 +70,7 @@ libcommon_SOURCES = \
 	hash-crc.c \
 	hash-sha2.c \
 	hash-sha1.c \
+	hash-md5.c \
 	\
 	mem.c \
 	mem-pool.c \

@@ -25,6 +25,8 @@ static struct {
     const char *sha256_hex;
     const char *sha384_hex;
     const char *sha512_hex;
+    const char *md5_hex;
+    const char *sha1_hex;
 } vectors[] = {
     {
         "m1",
@@ -36,6 +38,8 @@ static struct {
         "8086072ba1e7cc2358baeca134c825a7",
         "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a"
         "2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f",
+        "900150983cd24fb0d6963f7d28e17f72",
+        "a9993e364706816aba3e25717850c26c9cd0d89d",
     },
     {
         "m2",
@@ -47,6 +51,8 @@ static struct {
         "b0455a8520bc4e6f5fe95b1fe3c8452b",
         "204a8fc6dda82f0a0ced7beb8e08a41657c16ef468b228a8279be331a703c335"
         "96fd15c13b1b07f9aa1d3bea57789ca031ad85c7a71dd70354ec631238ca3445",
+        "8215ef0796a20bcaaae116d3876c664a",
+        "84983e441c3bd26ebaae4aa1f95129e5e54670f1",
     },
     {
         "m3",
@@ -60,10 +66,13 @@ static struct {
         "fcc7c71a557e2db966c3e9fa91746039",
         "8e959b75dae313da8cf4f72814fc143f8f7779c6eb9f7fa17299aeadb6889018"
         "501d289e4900f7e4331b99dec4b5433ac7d329eeb6dd26545e96e55b874be909",
+        "03dd8807a93175fb062dfb55dc7d359c",
+        "a49b2446a02c645bf419f995b67091253a04a259",
     },
     {
         "m4",
-        NULL, 1000000,
+        NULL, 1000000, /* NULL -> this is actually patched later with
+                          1.000.000 * 'a' */
         0xdc25bfbc,
         /* SHA-224 */
         "20794655980c91d8bbb4c1ea97618a4bf03f42581948b2ee4ee7ad67",
@@ -75,6 +84,8 @@ static struct {
         /* SHA-512 */
         "e718483d0ce769644e2e42c7bc15b4638e1f98b13b2044285632a803afa973eb"
         "de0ff244877ea60a4cb0432ce577c31beb009c5c2c49aa2e4eadb217ad8cc09b",
+        "7707d6ae4e027c70eea2a935c2296f21",
+        "34aa973cd4c4daa4f61eeb2bdbad27316534016f",
     },
 };
 
@@ -144,6 +155,16 @@ int main(void)
     for (i = 0; i < countof(vectors); i++) {
         sha512_hex(vectors[i].message, vectors[i].len, digest);
         status |= test(vectors[i].sha512_hex, digest, vectors[i].name);
+    }
+    printf("\nMD5 Test vectors\n");
+    for (i = 0; i < countof(vectors); i++) {
+        md5_hex(vectors[i].message, vectors[i].len, digest);
+        status |= test(vectors[i].md5_hex, digest, vectors[i].name);
+    }
+    printf("\nSHA-1 Test vectors\n");
+    for (i = 0; i < countof(vectors); i++) {
+        sha1_hex(vectors[i].message, vectors[i].len, digest);
+        status |= test(vectors[i].sha1_hex, digest, vectors[i].name);
     }
 
     if (!status) {

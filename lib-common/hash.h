@@ -60,7 +60,9 @@ uint32_t icrc32(uint32_t crc, const void *data, ssize_t len);
 #define SHA256_DIGEST_SIZE  (256 / 8)
 #define SHA384_DIGEST_SIZE  (384 / 8)
 #define SHA512_DIGEST_SIZE  (512 / 8)
+#define MD5_DIGEST_SIZE     (128 / 8)
 
+#define MD5_HEX_DIGEST_SIZE     (MD5_DIGEST_SIZE    * 2 + 1)
 #define SHA1_HEX_DIGEST_SIZE    (SHA1_DIGEST_SIZE   * 2 + 1)
 #define SHA224_HEX_DIGEST_SIZE  (SHA224_DIGEST_SIZE * 2 + 1)
 #define SHA256_HEX_DIGEST_SIZE  (SHA256_DIGEST_SIZE * 2 + 1)
@@ -95,6 +97,20 @@ typedef struct sha512_ctx {
 
 typedef sha512_ctx sha384_ctx;
 typedef sha256_ctx sha224_ctx;
+
+typedef struct md5_ctx {
+    unsigned int offset;
+    unsigned int sz;
+    u_int32_t counter[4];
+    unsigned char save[64];
+} md5_ctx;
+
+void md5_init(md5_ctx *ctx);
+void md5_update(md5_ctx *ctx, const void *data, uint32_t len);
+void md5_final(md5_ctx *ctx, byte *digest);
+void md5_final_hex(md5_ctx *ctx, char *digest);
+void md5(const void *message, uint32_t len, byte *digest);
+void md5_hex(const void *message, uint32_t len, char *digest);
 
 void sha1_init(sha1_ctx *ctx);
 void sha1_update(sha1_ctx *ctx, const void *data, uint32_t len);
