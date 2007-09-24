@@ -10,4 +10,5 @@
 /tst-btree
 /tst-isndx
 /tst-hash
+/tst-stats
 /charsets.def
