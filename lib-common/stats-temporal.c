@@ -971,13 +971,14 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     int end, i;
     stats_stage *st;
     byte *buf_start, *buf_end, *vp;
+    int index = 0;      /* should be an argument */
 
     if (fmt < STATS_FMT_RAW || fmt > STATS_FMT_XML) {
         blob_append_fmt(blob, "Bad stats fmt: %d", fmt);
         return -1;
     }
 
-    if (!stats->nb_stats) {
+    if (!stats->nb_stages) {
         blob_append_cstr(blob,
                          "stats auto deactivated for these statistics");
         return -1;
@@ -989,8 +990,8 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     }
 
     st = &stats->file->area->stage[stage];
-    if (start < st->current - st->count) {
-        /* We don't known any values before 'st->current - st->count' */
+    if (start <= st->current - st->count) {
+        /* We don't know any values before 'st->current - st->count' */
         /* FIXME: Shouldn't we drop these stats, instead of shifting */
         e_trace(2, "start was too early (%d < %d)", start, st->current - st->count);
         start = st->current - st->count;
@@ -1008,13 +1009,8 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
 
     buf_start = (byte *)stats->file->area + st->offset;
     buf_end   = buf_start + st->count * st->incr;
-
-    vp        = buf_start + st->pos * st->incr + (start - st->current) * st->incr;
-
-    /* XXX: This rely on start and end being cropped */
-    if (vp < buf_start) {
-        vp += st->count * st->incr;
-    }
+    vp        = buf_start + ((st->pos + st->count + start - st->current) %
+                             st->count * st->incr);
 
     switch (fmt) {
       case STATS_FMT_XML:
@@ -1028,22 +1024,25 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     for (i = start; i < end; i++) {
         /* XXX: This rely on start and end being cropped */
         if (vp >= buf_end) {
-            vp = buf_end - st->count * st->incr;
+            vp = buf_start;
         }
 
         switch (fmt) {
           case STATS_FMT_RAW:
-            blob_append_fmt(blob, "%d %d\n", i, *(int32_t*)vp);
+            blob_append_fmt(blob, "%d %lld\n", i, 
+                            (long long)(stage ? ((int64_t*)vp)[index] :
+                                        ((int32_t*)vp)[index]));
             break;
 
           case STATS_FMT_XML:
-            blob_append_fmt(blob, "<elem time=\"%d\" value=\"%d\" />\n", i, *(int32_t*)vp);
+            blob_append_fmt(blob, "<elem time=\"%d\" value=\"%lld\" />\n", i,
+                            (long long)(stage ? ((int64_t*)vp)[index] :
+                                        ((int32_t*)vp)[index]));
             break;
 
           default:
             break;
         }
-
         vp += st->incr;
     }
 
@@ -1063,7 +1062,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
 void stats_temporal_dump_auto(byte *mem, int size)
 {
     stats_file_auto *file;
-    int i;
+    int stage;
 
     if (size < ssizeof(stats_file_auto)) {
         e_trace(1, "mem buf too small");
@@ -1081,11 +1080,12 @@ void stats_temporal_dump_auto(byte *mem, int size)
     printf("nb_allocated: %d\n", file->nb_allocated);
     printf("nb_stats: %d\n\n", file->nb_stats);
 
-    for (i = 0; i < file->nb_stages; i++) {
-        stats_stage *st = &file->stage[i];
-        int j;
+    for (stage = 0; stage < file->nb_stages; stage++) {
+        stats_stage *st = &file->stage[stage];
+        byte *buf_start, *buf_end, *vp;
+        int i, index;
 
-        printf("stage no: %d\n", i);
+        printf("stage no: %d\n", stage);
         printf("scale: %d\n", st->scale);
         printf("count: %d\n", st->count);
         printf("current: %d\n", st->current);
@@ -1094,13 +1094,25 @@ void stats_temporal_dump_auto(byte *mem, int size)
         printf("offset: %d\n", st->offset);
 
         printf("\nStats:\n");
-        if (st->incr != 4) {
-            printf("Unsupported incr: %d\n", st->incr);
+
+        buf_start = mem + st->offset;
+        buf_end   = buf_start + st->count * st->incr;
+        vp        = buf_start + ((st->pos + st->count - st->current) %
+                                 st->count * st->incr);
+
+        for (i = 0; i < st->count; i++) {
+            if (vp >= buf_end) {
+                vp = buf_start;
+            }
+            printf("%d", st->current + (i - st->pos));
+            for (index = 0; index < file->nb_stats; index++) {
+                printf(" %lld", (long long)(stage ? ((int64_t*)vp)[index] :
+                    ((int32_t*)vp)[index]));
+            }
+            printf("\n");
+            vp += st->incr;
         }
-        for (j = 0; j < st->count; j++) {
-            int32_t *vp = (int32_t*)(mem + st->offset + j * st->incr);
-            printf("%d %d\n", st->current + (j - st->pos), *vp);
-        }
+        printf("\n");
     }
 }
 #endif
