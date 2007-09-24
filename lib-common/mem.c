@@ -51,12 +51,12 @@ void mem_check(void)
     if (free_after > freesz) {
         size_t freed = free_after - freesz;
         if (freed > 1 << 20) {
-            e_error("GC: %zdMo freed by the gc", freed >> 20);
+            e_error("GC: %zd MB freed by the gc", freed >> 20);
         } else
         if (freed > 1 << 10) {
-            e_error("GC: %zdKo freed by the gc", freed >> 10);
+            e_error("GC: %zd KB freed by the gc", freed >> 10);
         } else {
-            e_error("GC: %zdo freed by the gc", freed);
+            e_error("GC: %zd bytes freed by the gc", freed);
         }
     }
     last_used = brksz - free_after;
