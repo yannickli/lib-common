@@ -49,7 +49,8 @@ isdb_t *db_open(const char *name, int flags, int oflags, int bnum)
       default: /* at least MMO_LOCK */
         break;
     }
-
+    e_trace(2, "DP_OWRITER = %d", DP_OWRITER);
+    e_trace(2, "omode = %d ", omode);
     return dpopen(name, omode, bnum);
 }
 
