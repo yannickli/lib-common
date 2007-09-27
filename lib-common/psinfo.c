@@ -288,17 +288,20 @@ static int psinfo_read_maps(pid_t pid, blob_t *output, blob_t *buf)
         q = p;
         start = strtoll(q, &q, 16);
         if (*q != '-') {
-            blob_append_fmt(output, "Could not parse start: %.*s\n", end - p, p);
+            blob_append_fmt(output, "Could not parse start: %.*s\n",
+                            (int)(end - p), p);
             break;
         }
         q++;
         stop = strtoll(q, &q, 16);
         if (*q != ' ') {
-            blob_append_fmt(output, "Could not parse stop: %.*s\n", end - p, p);
+            blob_append_fmt(output, "Could not parse stop: %.*s\n",
+                            (int)(end - p), p);
             break;
         }
 
-        blob_append_fmt(output, "% 12lld %.*s\n", (long long)stop - start, end - p, p);
+        blob_append_fmt(output, "% 12lld %.*s\n", (long long)stop - start,
+                        (int)(end - p), p);
         total += stop - start;
 
         p = end + 1;
