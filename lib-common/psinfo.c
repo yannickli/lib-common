@@ -30,7 +30,7 @@ static inline unsigned int my_jiffies_to_msecs(const unsigned long j)
 }
 
 /*
- * Per process flags
+ * Per process flags  (taken from linux/sched.h)
  */
 #define PF_ALIGNWARN	0x00000001	/* Print alignment warning msgs */
 					/* Not implemented yet, only for 486*/
