@@ -470,13 +470,15 @@ int pidx_key_first(pidx_file *pidx, uint64_t minval, uint64_t *res)
                 rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
                 minval = ((minval >> rbits) + 1) << rbits;
             } else {
-                if (--pos < 0) {
-                    pidx_real_unlock(pidx);
-                    return -1;
-                }
+                uint64_t old = minval;
+
+                if (--pos < 0)
+                    goto notfound;
                 page   = path[pos];
                 rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
                 minval = ((minval >> rbits) + 1) << rbits;
+                if (minval < old) /* overflow */
+                    goto notfound;
                 key    = int_bits_range(minval, skip + PIDX_SHIFT * pos,
                                         PIDX_SHIFT);
             }
@@ -490,6 +492,10 @@ int pidx_key_first(pidx_file *pidx, uint64_t minval, uint64_t *res)
         page = path[++pos] = pages[page].refs[key];
         key  = int_bits_range(minval, skip + PIDX_SHIFT * pos, PIDX_SHIFT);
     }
+
+  notfound:
+    pidx_real_unlock(pidx);
+    return -1;
 }
 
 
@@ -518,13 +524,15 @@ int pidx_key_last(pidx_file *pidx, uint64_t maxval, uint64_t *res)
                 rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
                 maxval = ((maxval >> rbits) << rbits) - 1;
             } else {
-                if (--pos < 0) {
-                    pidx_real_unlock(pidx);
-                    return -1;
-                }
-                page   = path[pos];
+                uint64_t old = maxval;
+
+                if (--pos < 0)
+                    goto notfound;
+                page   = path[--pos];
                 rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
                 maxval = ((maxval >> rbits) << rbits) - 1;
+                if (maxval > old) /* overflow */
+                    goto notfound;
                 key    = int_bits_range(maxval, skip + PIDX_SHIFT * pos,
                                         PIDX_SHIFT);
             }
@@ -538,6 +546,10 @@ int pidx_key_last(pidx_file *pidx, uint64_t maxval, uint64_t *res)
         page = path[++pos] = pages[page].refs[key];
         key  = int_bits_range(maxval, skip + PIDX_SHIFT * pos, PIDX_SHIFT);
     }
+
+  notfound:
+    pidx_real_unlock(pidx);
+    return -1;
 }
 
 /****************************************************************************/
