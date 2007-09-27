@@ -300,7 +300,7 @@ static int psinfo_read_maps(pid_t pid, blob_t *output, blob_t *buf)
             break;
         }
 
-        blob_append_fmt(output, "% 12lld %.*s\n", (long long)stop - start,
+        blob_append_fmt(output, "% 12lld %.*s\n", (long long)(stop - start),
                         (int)(end - p), p);
         total += stop - start;
 
