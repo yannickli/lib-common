@@ -78,7 +78,7 @@ libcommon_SOURCES = \
 	\
 	$(end_of_list)
 
-test_SOURCES = $(libcommon_SOURCES) check.c
+test_SOURCES = $(filter-out mem.c, $(libcommon_SOURCES)) check.c
 test_LDFLAGS = -lz
 
 tst-blob-iconv_SOURCES = \
