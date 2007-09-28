@@ -29,7 +29,6 @@
  */
 static int const gsm7_to_iso8859_15[] = {
 
-/* keep this macro to eventually implement UTF-8 transcoding */
 #define X(x)     (x)
 #define UNK      '.'
     /* 0x00,   0x01,   0x02,   0x03,   0x04,   0x05,   0x06,   0x07,    */
@@ -166,19 +165,158 @@ static int const gsm7_to_iso8859_15[] = {
 #undef HEX
 };
 
+/* Convert GSM charset to Unicode */
+static int const gsm7_to_unicode[] = {
+
+#define X(x)     (0x##x)
+#define UNK      '.'
+    /* 0x00,   0x01,   0x02,   0x03,   0x04,   0x05,   0x06,   0x07,    */
+       X(40),  X(A3),  X(24),  X(A5),  X(E8),  X(E9),  X(FA),  X(EC),
+    /* 0x08,   0x09,   0x0A,   0x0B,   0x0C,   0x0D,   0x0E,   0x0F,    */
+       X(F2),  X(C7),  X(0A),  X(D8),  X(F8),  X(0D),  X(C5),  X(E5),
+    /* 0x10,   0x11,   0x12,   0x13,   0x14,   0x15,   0x16,   0x17,    */
+       X(0394),X(5F),  X(03A6),X(0393),X(039B),X(03A9),X(03A0),X(03A8),
+    /* 0x18,   0x19,   0x1A,   0x1B,   0x1C,   0x1D,   0x1E,   0x1F,    */
+       X(03A3),X(0398),X(039E),UNK,    X(C6),  X(E6),  X(DF),  X(CA),
+    /* 0x20,   0x21,   0x22,   0x23,   0x24,   0x25,   0x26,   0x27,    */
+       X(20),  X(21),  X(22),  X(23),  UNK,    X(25),  X(26),  X(27),
+    /* 0x28,   0x29,   0x2A,   0x2B,   0x2C,   0x2D,   0x2E,   0x2F,    */
+       X(28),  X(29),  X(2A),  X(2B),  X(2C),  X(2D),  X(2E),  X(2F),
+    /* 0x30,   0x31,   0x32,   0x33,   0x34,   0x35,   0x36,   0x37,    */
+       X(30),  X(31),  X(32),  X(33),  X(34),  X(35),  X(36),  X(37),
+    /* 0x38,   0x39,   0x3A,   0x3B,   0x3C,   0x3D,   0x3E,   0x3F,    */
+       X(38),  X(39),  X(3A),  X(3B),  X(3C),  X(3D),  X(3E),  X(3F),
+    /* 0x40,   0x41,   0x42,   0x43,   0x44,   0x45,   0x46,   0x47,    */
+       X(A1),  X(41),  X(42),  X(43),  X(44),  X(45),  X(46),  X(47),
+    /* 0x48,   0x49,   0x4A,   0x4B,   0x4C,   0x4D,   0x4E,   0x4F,    */
+       X(48),  X(49),  X(4A),  X(4B),  X(4C),  X(4D),  X(4E),  X(4F),
+    /* 0x50,   0x51,   0x52,   0x53,   0x54,   0x55,   0x56,   0x57,    */
+       X(50),  X(51),  X(52),  X(53),  X(54),  X(55),  X(56),  X(57),
+    /* 0x58,   0x59,   0x5A,   0x5B,   0x5C,   0x5D,   0x5E,   0x5F,    */
+       X(58),  X(59),  X(5A),  X(C4),  X(D6),  X(D1),  X(DC),  X(A7),
+    /* 0x60,   0x61,   0x62,   0x63,   0x64,   0x65,   0x66,   0x67,    */
+       X(BF),  X(61),  X(62),  X(63),  X(64),  X(65),  X(66),  X(67),
+    /* 0x68,   0x69,   0x6A,   0x6B,   0x6C,   0x6D,   0x6E,   0x6F,    */
+       X(68),  X(69),  X(6A),  X(6B),  X(6C),  X(6D),  X(6E),  X(6F),
+    /* 0x70,   0x71,   0x72,   0x73,   0x74,   0x75,   0x76,   0x77,    */
+       X(70),  X(71),  X(72),  X(73),  X(74),  X(75),  X(76),  X(77),
+    /* 0x78,   0x79,   0x7A,   0x7B,   0x7C,   0x7D,   0x7E,   0x7F,    */
+       X(78),  X(79),  X(7A),  X(E4),  X(F6),  X(F1),  X(FC),  X(E0),
+    /* 0x80,   0x81,   0x82,   0x83,   0x84,   0x85,   0x86,   0x87,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x88,   0x89,   0x8A,   0x8B,   0x8C,   0x8D,   0x8E,   0x8F,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x90,   0x91,   0x92,   0x93,   0x94,   0x95,   0x96,   0x97,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x98,   0x99,   0x9A,   0x9B,   0x9C,   0x9D,   0x9E,   0x9F,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0xA0,   0xA1,   0xA2,   0xA3,   0xA4,   0xA5,   0xA6,   0xA7,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0xA8,   0xA9,   0xAA,   0xAB,   0xAC,   0xAD,   0xAE,   0xAF,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0xB0,   0xB1,   0xB2,   0xB3,   0xB4,   0xB5,   0xB6,   0xB7,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0xB8,   0xB9,   0xBA,   0xBB,   0xBC,   0xBD,   0xBE,   0xBF,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0xC0,   0xC1,   0xC2,   0xC3,   0xC4,   0xC5,   0xC6,   0xC7,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0xC8,   0xC9,   0xCA,   0xCB,   0xCC,   0xCD,   0xCE,   0xCF,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0xD0,   0xD1,   0xD2,   0xD3,   0xD4,   0xD5,   0xD6,   0xD7,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0xD8,   0xD9,   0xDA,   0xDB,   0xDC,   0xDD,   0xDE,   0xDF,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0xE0,   0xE1,   0xE2,   0xE3,   0xE4,   0xE5,   0xE6,   0xE7,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0xE8,   0xE9,   0xEA,   0xEB,   0xEC,   0xED,   0xEE,   0xEF,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0xF0,   0xF1,   0xF2,   0xF3,   0xF4,   0xF5,   0xF6,   0xF7,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0xF8,   0xF9,   0xFA,   0xFB,   0xFC,   0xFD,   0xFE,   0xFF,    */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+
+    /* 0x1B00, 0x1B01, 0x1B02, 0x1B03, 0x1B04, 0x1B05, 0x1B06, 0x1B07,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1B08, 0x1B09, 0x1B0A, 0x1B0B, 0x1B0C, 0x1B0D, 0x1B0E, 0x1B0F,  */
+       UNK,    UNK,    X(0C),  UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1B10, 0x1B11, 0x1B12, 0x1B13, 0x1B14, 0x1B15, 0x1B16, 0x1B17,  */
+       UNK,    UNK,    UNK,    UNK,    X(5E),  UNK,    UNK,    UNK,
+    /* 0x1B18, 0x1B19, 0x1B1A, 0x1B1B, 0x1B1C, 0x1B1D, 0x1B1E, 0x1B1F,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1B20, 0x1B21, 0x1B22, 0x1B23, 0x1B24, 0x1B25, 0x1B26, 0x1B27,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1B28, 0x1B29, 0x1B2A, 0x1B2B, 0x1B2C, 0x1B2D, 0x1B2E, 0x1B2F,  */
+       X(7B),  X(7D),  UNK,    UNK,    UNK,    UNK,    UNK,    X(5C),
+    /* 0x1B30, 0x1B31, 0x1B32, 0x1B33, 0x1B34, 0x1B35, 0x1B36, 0x1B37,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1B38, 0x1B39, 0x1B3A, 0x1B3B, 0x1B3C, 0x1B3D, 0x1B3E, 0x1B3F,  */
+       UNK,    UNK,    UNK,    UNK,    X(5B),  X(7E),  X(5D),  UNK,
+    /* 0x1B40, 0x1B41, 0x1B42, 0x1B43, 0x1B44, 0x1B45, 0x1B46, 0x1B47,  */
+       X(7C),  UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1B48, 0x1B49, 0x1B4A, 0x1B4B, 0x1B4C, 0x1B4D, 0x1B4E, 0x1B4F,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1B50, 0x1B51, 0x1B52, 0x1B53, 0x1B54, 0x1B55, 0x1B56, 0x1B57,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1B58, 0x1B59, 0x1B5A, 0x1B5B, 0x1B5C, 0x1B5D, 0x1B5E, 0x1B5F,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1B60, 0x1B61, 0x1B62, 0x1B63, 0x1B64, 0x1B65, 0x1B66, 0x1B67,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    X(20AC),UNK,    UNK,
+    /* 0x1B68, 0x1B69, 0x1B6A, 0x1B6B, 0x1B6C, 0x1B6D, 0x1B6E, 0x1B6F,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1B70, 0x1B71, 0x1B72, 0x1B73, 0x1B74, 0x1B75, 0x1B76, 0x1B77,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1B78, 0x1B79, 0x1B7A, 0x1B7B, 0x1B7C, 0x1B7D, 0x1B7E, 0x1B7F,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1B80, 0x1B81, 0x1B82, 0x1B83, 0x1B84, 0x1B85, 0x1B86, 0x1B87,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1B88, 0x1B89, 0x1B8A, 0x1B8B, 0x1B8C, 0x1B8D, 0x1B8E, 0x1B8F,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1B90, 0x1B91, 0x1B92, 0x1B93, 0x1B94, 0x1B95, 0x1B96, 0x1B97,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1B98, 0x1B99, 0x1B9A, 0x1B9B, 0x1B9C, 0x1B9D, 0x1B9E, 0x1B9F,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1BA0, 0x1BA1, 0x1BA2, 0x1BA3, 0x1BA4, 0x1BA5, 0x1BA6, 0x1BA7,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1BA8, 0x1BA9, 0x1BAA, 0x1BAB, 0x1BAC, 0x1BAD, 0x1BAE, 0x1BAF,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1BB0, 0x1BB1, 0x1BB2, 0x1BB3, 0x1BB4, 0x1BB5, 0x1BB6, 0x1BB7,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1BB8, 0x1BB9, 0x1BBA, 0x1BBB, 0x1BBC, 0x1BBD, 0x1BBE, 0x1BBF,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1BC0, 0x1BC1, 0x1BC2, 0x1BC3, 0x1BC4, 0x1BC5, 0x1BC6, 0x1BC7,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1BC8, 0x1BC9, 0x1BCA, 0x1BCB, 0x1BCC, 0x1BCD, 0x1BCE, 0x1BCF,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1BD0, 0x1BD1, 0x1BD2, 0x1BD3, 0x1BD4, 0x1BD5, 0x1BD6, 0x1BD7,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1BD8, 0x1BD9, 0x1BDA, 0x1BDB, 0x1BDC, 0x1BDD, 0x1BDE, 0x1BDF,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1BE0, 0x1BE1, 0x1BE2, 0x1BE3, 0x1BE4, 0x1BE5, 0x1BE6, 0x1BE7,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1BE8, 0x1BE9, 0x1BEA, 0x1BEB, 0x1BEC, 0x1BED, 0x1BEE, 0x1BEF,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1BF0, 0x1BF1, 0x1BF2, 0x1BF3, 0x1BF4, 0x1BF5, 0x1BF6, 0x1BF7,  */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+    /* 0x1BF8, 0x1BF9, 0x1BFA, 0x1BFB, 0x1BFC, 0x1BFD, 0x1BFE, 0x1BFF   */
+       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+#undef UNK
+#undef X
+#undef HEX
+};
+
 /* Achtung: Decode a hex encoded (IRA) byte array into ISO-8859-15
  * subset, not UTF-8
- * */
-int blob_decode_ira(blob_t *dst, const byte *src, ssize_t len)
+ */
+int blob_decode_ira_as_latin15(blob_t *dst, const char *src, ssize_t len)
 {
     int pos;
-    const byte *end;
+    const char *end;
     byte *data;
 
     pos = dst->len;
-    blob_extend(dst, len / 2 + 1);
+    blob_ensure_avail(dst, len / 2 + 1);
     data = dst->data + pos;
-    /* trim last byte if len is odd */
+    /* trim last char if len is odd */
     end = src + (len & ~1);
     while (src < end) {
         int ind = 0;
@@ -198,33 +336,119 @@ int blob_decode_ira(blob_t *dst, const byte *src, ssize_t len)
     return 0;
 }
 
-/* Achtung: Parse IRA (hex encoded) string into 8859-15 byte array, not
- * UTF-8
- */
-int string_decode_ira(char *dst, const char *src)
+/* Decode a hex encoded (IRA) char array into UTF-8 at end of blob */
+int blob_decode_ira_as_utf8(blob_t *dst, const char *src, ssize_t slen)
 {
-    int len = 0;
+    int pos, len;
+
+    pos = dst->len;
+    len = slen / 2;
+    for (;;) {
+        blob_ensure_avail(dst, len);
+        len = string_decode_ira_as_utf8((char *)dst->data + pos,
+                                        dst->size - pos,
+                                        (const char*)src, slen);
+        if (pos + len < dst->size)
+            break;
+    }
+    dst->len += len;
+    return 0;
+}
+
+/* Achtung: Decode a hex encoded (IRA) char array into ISO-8859-15
+ * subset, not UTF-8
+ */
+int string_decode_ira_as_latin15(char *dst, ssize_t size,
+                                 const char *src, ssize_t len)
+{
+    int pos = 0;
 
     for (;;) {
         int ind, q0, q1;
 
-        if ( (q0 = str_digit_value(src[0])) >= 16
-        ||   (q1 = str_digit_value(src[1])) >= 16)
-              break;
+        if (len < 2
+        ||  (q0 = str_digit_value(src[0])) >= 16
+        ||  (q1 = str_digit_value(src[1])) >= 16)
+            break;
 
         ind = q0 * 16 + q1;
+        src += 2;
+        len -= 2;
+
         if (ind == 0x1B
-        &&  (q0 = str_digit_value(src[2])) < 16
-        &&  (q1 = str_digit_value(src[3])) < 16) {
+        &&  len >= 2
+        &&  (q0 = str_digit_value(src[0])) < 16
+        &&  (q1 = str_digit_value(src[1])) < 16) {
             ind = 256 + q0 * 16 + q1;
             src += 2;
+            len -= 2;
         }
-        dst[len] = gsm7_to_iso8859_15[ind];
-        len++;
-        src += 2;
+        ++pos;
+        if (pos < size) {
+            *dst++ = gsm7_to_iso8859_15[ind];
+        }
     }
-    dst[len] = '\0';
-    return len;
+    if (size > 0) {
+        *dst = '\0';
+    }
+    return pos;
+}
+
+/* Parse IRA (hex encoded) string into UTF-8 char array */
+int string_decode_ira_as_utf8(char *dst, ssize_t size,
+                              const char *src, ssize_t len)
+{
+    int pos = 0;
+
+    for (;;) {
+        int ind, q0, q1, c;
+
+        if (len < 2
+        ||  (q0 = str_digit_value(src[0])) >= 16
+        ||  (q1 = str_digit_value(src[1])) >= 16)
+            break;
+
+        ind = q0 * 16 + q1;
+        src += 2;
+        len -= 2;
+
+        if (ind == 0x1B
+        &&  len >= 2
+        &&  (q0 = str_digit_value(src[0])) < 16
+        &&  (q1 = str_digit_value(src[1])) < 16) {
+            ind = 256 + q0 * 16 + q1;
+            src += 2;
+            len -= 2;
+        }
+        c = gsm7_to_unicode[ind];
+        /* Encode c as UTF-8 */
+        if (c < 0x80) {
+            pos += 1;
+            if (pos < size) {
+                *dst++ = c;
+            }
+        } else
+        if (c < 0x1000) {
+            pos += 2;
+            if (pos < size) {
+                dst[0] = 0xC0 | (((c) >>  6));
+                dst[1] = 0x80 | (((c) >>  0) & 0x3F);
+                dst += 2;
+            }
+        } else {
+            pos += 3;
+            if (pos < size) {
+                dst[0] = 0xE0 | (((c) >> 12));
+                dst[1] = 0x80 | (((c) >>  6) & 0x3F);
+                dst[2] = 0x80 | (((c) >>  0) & 0x3F);
+                dst += 3;
+            }
+        }
+    }
+    if (size > 0) {
+        *dst = '\0';
+    }
+    return pos;
 }
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN // Little endian, misaligned access OK
