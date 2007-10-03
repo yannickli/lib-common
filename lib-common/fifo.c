@@ -14,7 +14,13 @@
 #include "macros.h"
 #include "fifo.h"
 
-static inline void fifo_grow(fifo *f, ssize_t newsize)
+static ssize_t fifo_real_pos(fifo *f, ssize_t idx)
+{
+    ssize_t pos = f->first + idx;
+    return pos >= f->size ? pos - f->size : pos;
+}
+
+static void fifo_grow(fifo *f, ssize_t newsize)
 {
     ssize_t cursize = f->size;
 
@@ -96,15 +102,8 @@ void *fifo_get(fifo *f)
 
 void fifo_put(fifo *f, void *ptr)
 {
-    ssize_t cur;
-
     fifo_grow(f, f->nb_elems + 1);
-    cur = f->first + f->nb_elems;
-    if (cur >= f->size) {
-        cur -= f->size;
-    }
-
-    f->elems[cur] = ptr;
+    f->elems[fifo_real_pos(f, f->nb_elems)] = ptr;
     f->nb_elems++;
 }
 
