@@ -35,6 +35,8 @@ void fifo_delete(fifo **f, fifo_item_dtor_f *dtor);
 void *fifo_get(fifo *f)             __attr_nonnull__((1));
 void fifo_unget(fifo *f, void *ptr) __attr_nonnull__((1));
 void fifo_put(fifo *f, void *ptr)   __attr_nonnull__((1));
+void *fifo_seti(fifo *f, ssize_t i, void *ptr) __attr_nonnull__((1));
+void *fifo_geti(fifo *f, ssize_t i) __attr_nonnull__((1));
 
 /**************************************************************************/
 /* Typed Fifos                                                            */
@@ -86,6 +88,16 @@ void fifo_put(fifo *f, void *ptr)   __attr_nonnull__((1));
     prefix##_fifo_unget(prefix##_fifo *f, el_typ *item)                      \
     {                                                                        \
         fifo_unget((fifo *)f, (void*)item);                                  \
+    }                                                                        \
+    static inline el_typ *                                                   \
+    prefix##_fifo_seti(prefix##_fifo *f, ssize_t i, el_typ *item)            \
+    {                                                                        \
+        return fifo_seti((fifo *)f, i, (void*)item);                         \
+    }                                                                        \
+    static inline el_typ *                                                   \
+    prefix##_fifo_geti(prefix##_fifo *f, ssize_t i)                          \
+    {                                                                        \
+        return fifo_geti((fifo *)f, i);                                      \
     }
 
 #ifdef CHECK

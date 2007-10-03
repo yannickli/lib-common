@@ -118,6 +118,39 @@ void fifo_unget(fifo *f, void *ptr)
     f->nb_elems++;
 }
 
+void *fifo_seti(fifo *f, ssize_t i, void *ptr)
+{
+    ssize_t pos, last;
+
+    if (i >= f->nb_elems) {
+        fifo_grow(f, i + 1);
+    }
+
+    pos  = fifo_real_pos(f, i);
+    last = fifo_real_pos(f, f->nb_elems);
+
+    if (i < f->nb_elems) {
+        SWAP(f->elems[pos], ptr);
+        return ptr;
+    }
+
+    if (pos > last) {
+        p_clear(f->elems + last, pos - last);
+    } else {
+        p_clear(f->elems + last, f->size - last);
+        p_clear(f->elems, pos);
+    }
+
+    f->nb_elems = i + 1;
+    f->elems[pos] = ptr;
+    return NULL;
+}
+
+void *fifo_geti(fifo *f, ssize_t i)
+{
+    return i >= f->nb_elems ? NULL : f->elems[fifo_real_pos(f, i)];
+}
+
 #ifdef CHECK /* {{{ */
 #include <stdio.h>
 static void fifo_dump(fifo *f)
