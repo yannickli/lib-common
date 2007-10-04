@@ -16,29 +16,31 @@
 
 #include "blob.h"
 
-typedef blob_t bfield_t;
+typedef struct bfield_t {
+    ssize_t offs;
+    blob_t bits;
+} bfield_t;
 
-bfield_t *bfield_init(bfield_t *blob);
-void bfield_wipe(bfield_t *blob);
+static inline bfield_t *bfield_init(bfield_t *bf) {
+    bf->offs = 0;
+    blob_init(&bf->bits);
+    return bf;
+}
+static inline void bfield_wipe(bfield_t *bf) {
+    blob_wipe(&bf->bits);
+}
 GENERIC_NEW(bfield_t, bfield);
 GENERIC_DELETE(bfield_t, bfield);
 
-void bfield_set(bfield_t *blob, int pos);
-void bfield_unset(bfield_t *blob, int pos);
-bool bfield_isset(bfield_t *blob, int pos);
+void bfield_set(bfield_t *bf, ssize_t pos);
+void bfield_unset(bfield_t *bf, ssize_t pos);
+bool bfield_isset(bfield_t *bf, ssize_t pos);
 
-void bfield_reset(bfield_t *blob);
 
-/**
- * Clear memory
- */
-static inline void bfield_purge(bfield_t *blob)
-{
-    bfield_wipe(blob);
-    bfield_init(blob);
+static inline void bfield_purge(bfield_t *bf) {
+    bfield_wipe(bf);
+    bfield_init(bf);
 }
-
-void bfield_dump(bfield_t *blob, int level);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

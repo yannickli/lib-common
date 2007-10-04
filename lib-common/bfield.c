@@ -13,85 +13,60 @@
 
 #include <ctype.h>
 #include <string.h>
-#include <lib-common/mem.h>
 #include "bfield.h"
+#include "blob.h"
 
-CONVERSION_FUNCTIONS(bfield_t, blob_t);
-
-bfield_t *bfield_init(bfield_t *blob)
+static void bfield_optimize(bfield_t *bf)
 {
-    return blob_t_to_bfield_t(blob_init(bfield_t_to_blob_t(blob)));
+    ssize_t i;
+
+    for (i = 0; i < bf->bits.len && !bf->bits.data[i]; i++);
+    blob_kill_first(&bf->bits, i);
+    bf->offs += i;
+    for (i = bf->bits.len; i > 0 && !bf->bits.data[i - i]; i--);
+    blob_kill_last(&bf->bits, bf->bits.len - i);
 }
 
-static void bfield_mark(bfield_t *blob, int pos, bool val)
+void bfield_set(bfield_t *bf, ssize_t pos)
 {
-    blob_t *b = bfield_t_to_blob_t(blob);
-    int idx = pos / 8;
-    unsigned int bidx = pos & 0x7;
+    ssize_t octet = pos >> 3;
 
-    if (idx >= b->len) {
-        blob_extend2(b, idx - b->len + 1, 0);
+    if (!bf->bits.len) {
+        bf->offs = octet;
     }
-    if (val) {
-        b->data[idx] |= 0x1 << bidx;
-    } else {
-        b->data[idx] &= ~(0x1 << bidx);
+    if (octet < bf->offs) {
+        ssize_t oldlen = bf->bits.len;
+        blob_resize(&bf->bits, bf->bits.len + bf->offs - octet);
+        p_move(bf->bits.data, bf->offs - octet, 0, oldlen);
+        p_clear(bf->bits.data, bf->offs - octet);
+        bf->offs = octet;
     }
-}
-void bfield_set(bfield_t *blob, int pos)
-{
-    bfield_mark(blob, pos, true);
-}
-void bfield_unset(bfield_t *blob, int pos)
-{
-    bfield_mark(blob, pos, false);
-}
-
-bool bfield_isset(bfield_t *blob, int pos)
-{
-    blob_t *b = bfield_t_to_blob_t(blob);
-    int idx = pos / 8;
-    unsigned int bidx = pos & 0x7;
-
-    if (idx >= b->len) {
-        return false;
+    if (octet >= bf->offs + bf->bits.len) {
+        blob_extend2(&bf->bits, octet + 1 - bf->offs - bf->bits.len, 0);
     }
-    return !!(blob->data[idx] & (0x1 << bidx));
+    bf->bits.data[octet - bf->offs] |= 1 << (pos & 7);
 }
 
-void bfield_reset(bfield_t *blob)
+void bfield_unset(bfield_t *bf, ssize_t pos)
 {
-    blob_reset(bfield_t_to_blob_t(blob));
+    ssize_t octet = (pos >> 3) - bf->offs;
+
+    if (octet < 0 || octet >= bf->bits.len)
+        return;
+
+    bf->bits.data[octet] &= ~(1 << (pos & 7));
+    if (!octet || octet == bf->bits.len - 1)
+        bfield_optimize(bf);
 }
-void bfield_wipe(bfield_t *blob)
+
+bool bfield_isset(bfield_t *bf, ssize_t pos)
 {
-    blob_wipe(bfield_t_to_blob_t(blob));
-}
+    ssize_t octet = (pos >> 3) - bf->offs;
 
-void bfield_dump(bfield_t *blob, int level)
-{
-    char line[9];
+    if (octet < 0 || octet >= bf->bits.len)
+        return 0;
 
-    line[sizeof(line) - 1] = '\0';
-    if (e_is_traced(level)) {
-        int i;
-        blob_t *b = bfield_t_to_blob_t(blob);
-
-        for (i = 0; i < b->len; i++) {
-            int j, mask = 1;
-
-            for (j = 0; j < 8; j++) {
-                if (b->data[i] & mask) {
-                    line[j] = '1';
-                } else {
-                    line[j] = '0';
-                }
-                mask <<= 1;
-            }
-
-            e_trace(level, "%09d: %s", i * 8, line);
-        }
-    }
+    return (bf->bits.data[octet] >> (pos & 7)) & 1;
 }
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
@@ -103,7 +78,7 @@ START_TEST(check_bfield)
 {
     int num;
     bfield_t bf;
-    blob_t *b = bfield_t_to_blob_t(&bf);
+    blob_t *b = &bf.bits;
 
     bfield_init(&bf);
 
@@ -134,11 +109,6 @@ START_TEST(check_bfield)
     fail_if(!bfield_isset(&bf, 70),
             "bfield_set failed");
 
-#if 0
-    // Do not output anything in normal mode, as it confuses editors
-    bfield_dump(&bf, 0);
-#endif
-
     /* 10011101 -> 9D */
     fail_if(b->data[0] != 0x9D,
             "bfield_set failed");
@@ -163,14 +133,6 @@ START_TEST(check_bfield)
     bfield_unset(&bf, num);
     fail_if(bfield_isset(&bf, num),
             "bfield_unset failed");
-
-    bfield_reset(&bf);
-    fail_if(bfield_isset(&bf, num),
-            "bfield_reset failed");
-    fail_if(bfield_isset(&bf, 4),
-            "bfield_reset failed");
-    fail_if(bfield_isset(&bf, 0),
-            "bfield_reset failed");
 
     bfield_wipe(&bf);
 }
