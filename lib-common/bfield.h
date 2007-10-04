@@ -20,16 +20,8 @@ typedef blob_t bfield_t;
 
 bfield_t *bfield_init(bfield_t *blob);
 
-void bfield_mark(bfield_t *blob, int pos, bool val);
-static inline void bfield_set(bfield_t *blob, int pos)
-{
-    bfield_mark(blob, pos, true);
-}
-static inline void bfield_unset(bfield_t *blob, int pos)
-{
-    bfield_mark(blob, pos, false);
-}
-
+void bfield_set(bfield_t *blob, int pos);
+void bfield_unset(bfield_t *blob, int pos);
 bool bfield_isset(bfield_t *blob, int pos);
 
 void bfield_reset(bfield_t *blob);

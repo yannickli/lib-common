@@ -23,23 +23,28 @@ bfield_t *bfield_init(bfield_t *blob)
     return blob_t_to_bfield_t(blob_init(bfield_t_to_blob_t(blob)));
 }
 
-void bfield_mark(bfield_t *blob, int pos, bool val)
+static void bfield_mark(bfield_t *blob, int pos, bool val)
 {
     blob_t *b = bfield_t_to_blob_t(blob);
     int idx = pos / 8;
     unsigned int bidx = pos & 0x7;
 
     if (idx >= b->len) {
-        int oldlen = b->len;
-
-        blob_extend(b, idx - b->len + 1);
-        p_clear(b->data + oldlen, b->len - oldlen);
+        blob_extend2(b, idx - b->len + 1, 0);
     }
     if (val) {
         b->data[idx] |= 0x1 << bidx;
     } else {
-        b->data[idx] &= !(0x1 << bidx);
+        b->data[idx] &= ~(0x1 << bidx);
     }
+}
+void bfield_set(bfield_t *blob, int pos)
+{
+    bfield_mark(blob, pos, true);
+}
+void bfield_unset(bfield_t *blob, int pos)
+{
+    bfield_mark(blob, pos, false);
 }
 
 bool bfield_isset(bfield_t *blob, int pos)
@@ -51,7 +56,7 @@ bool bfield_isset(bfield_t *blob, int pos)
     if (idx >= b->len) {
         return false;
     }
-    return (blob->data[idx] & (0x1 << bidx));
+    return !!(blob->data[idx] & (0x1 << bidx));
 }
 
 void bfield_reset(bfield_t *blob)
