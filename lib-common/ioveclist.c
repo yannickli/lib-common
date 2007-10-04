@@ -52,6 +52,17 @@ int ioveclist_append(ioveclist *l, const void *data, int size)
     return 0;
 }
 
+int ioveclist_getlen(const ioveclist *l)
+{
+    int i, total;
+
+    total = 0;
+    for (i = 0; i < l->used; i++) {
+        total += l->objs[i].iov_len;
+    }
+    return total;
+}
+
 /* write content of ioveclist to fd. fd is non-blocking.
  * Return value :
  *    IOVECLIST_WRITE_ERROR  if write error
