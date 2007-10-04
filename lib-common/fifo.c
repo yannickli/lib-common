@@ -14,7 +14,13 @@
 #include "macros.h"
 #include "fifo.h"
 
-static inline void fifo_grow(fifo *f, ssize_t newsize)
+static ssize_t fifo_real_pos(fifo *f, ssize_t idx)
+{
+    ssize_t pos = f->first + idx;
+    return pos >= f->size ? pos - f->size : pos;
+}
+
+static void fifo_grow(fifo *f, ssize_t newsize)
 {
     ssize_t cursize = f->size;
 
@@ -96,15 +102,8 @@ void *fifo_get(fifo *f)
 
 void fifo_put(fifo *f, void *ptr)
 {
-    ssize_t cur;
-
     fifo_grow(f, f->nb_elems + 1);
-    cur = f->first + f->nb_elems;
-    if (cur >= f->size) {
-        cur -= f->size;
-    }
-
-    f->elems[cur] = ptr;
+    f->elems[fifo_real_pos(f, f->nb_elems)] = ptr;
     f->nb_elems++;
 }
 
@@ -117,6 +116,39 @@ void fifo_unget(fifo *f, void *ptr)
     }
     f->elems[f->first] = ptr;
     f->nb_elems++;
+}
+
+void *fifo_seti(fifo *f, ssize_t i, void *ptr)
+{
+    ssize_t pos, last;
+
+    if (i >= f->nb_elems) {
+        fifo_grow(f, i + 1);
+    }
+
+    pos  = fifo_real_pos(f, i);
+    last = fifo_real_pos(f, f->nb_elems);
+
+    if (i < f->nb_elems) {
+        SWAP(f->elems[pos], ptr);
+        return ptr;
+    }
+
+    if (pos > last) {
+        p_clear(f->elems + last, pos - last);
+    } else {
+        p_clear(f->elems + last, f->size - last);
+        p_clear(f->elems, pos);
+    }
+
+    f->nb_elems = i + 1;
+    f->elems[pos] = ptr;
+    return NULL;
+}
+
+void *fifo_geti(fifo *f, ssize_t i)
+{
+    return i >= f->nb_elems ? NULL : f->elems[fifo_real_pos(f, i)];
 }
 
 #ifdef CHECK /* {{{ */
