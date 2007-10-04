@@ -19,13 +19,15 @@
 typedef blob_t bfield_t;
 
 bfield_t *bfield_init(bfield_t *blob);
+void bfield_wipe(bfield_t *blob);
+GENERIC_NEW(bfield_t, bfield);
+GENERIC_DELETE(bfield_t, bfield);
 
 void bfield_set(bfield_t *blob, int pos);
 void bfield_unset(bfield_t *blob, int pos);
 bool bfield_isset(bfield_t *blob, int pos);
 
 void bfield_reset(bfield_t *blob);
-void bfield_wipe(bfield_t *blob);
 
 /**
  * Clear memory
