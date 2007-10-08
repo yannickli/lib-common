@@ -15,6 +15,15 @@
 #include "strconv.h"
 #include "blob.h"
 
+/* This (unused) macro implements UNICODE to UTF-8 transcoding */
+#define UNICODE_TO_UTF8(x)     \
+                 ((x) < 0x007F ? (x) : \
+                  (x) < 0x0FFF ? ((0xC0 | (((x) >> 6) & 0x3F)) << 0) | \
+                                 ((0x80 | (((x) >> 0) & 0x3F)) << 8) : \
+                  ((0xE0 | (((x) >> 12) & 0x1F)) <<  0) | \
+                  ((0x80 | (((x) >>  6) & 0x3F)) <<  8) | \
+                  ((0x80 | (((x) >>  0) & 0x3F)) << 16))
+
 static char const __utf8_trail[256] = {
 #define X (-1)
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

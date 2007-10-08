@@ -2594,8 +2594,8 @@ START_TEST(check_ira)
 
     blob_init(&dst);
     blob_init(&back);
-#define TEST_STRING      "Injector test String"
-#define TEST_STRING_ENC  "496E6A6563746F72207465737420537472696E67"
+#define TEST_STRING      "Injector X=1 Gagné! 1€"
+#define TEST_STRING_ENC  "496E6A6563746F7220583D31204761676E052120311B65"
 
     blob_append_ira(&dst, (const byte*)TEST_STRING, strlen(TEST_STRING));
 
@@ -2603,11 +2603,10 @@ START_TEST(check_ira)
             "%s(\"%s\") -> \"%s\" : \"%s\"",
             "blob_append_ira",
             TEST_STRING, blob_get_cstr(&dst), TEST_STRING_ENC);
-#if 0
-    blob_decode_ira(&back, dst);
+
+    blob_decode_ira_as_utf8(&back, blob_get_cstr(&dst), dst.len);
     fail_if(strcmp(blob_get_cstr(&back), TEST_STRING),
-            "blob_decode_ira failure");
-#endif
+            "blob_decode_ira_as_utf8 failure");
 
 #undef TEST_STRING
 #undef TEST_STRING_ENC

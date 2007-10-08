@@ -425,8 +425,12 @@ int blob_append_hex(blob_t *dst, const byte *src, ssize_t len);
 
 /* in blob_emi.c */
 int blob_append_ira(blob_t *dst, const byte *src, ssize_t len);
-int blob_decode_ira(blob_t *dst, const byte *src, ssize_t len);
-int string_decode_ira(char *dst, const char *src);
+int blob_decode_ira_as_latin15(blob_t *dst, const char *src, ssize_t len);
+int blob_decode_ira_as_utf8(blob_t *dst, const char *src, ssize_t len);
+int string_decode_ira_as_latin15(char *dst, ssize_t size,
+                                 const char *src, ssize_t len);
+int string_decode_ira_as_utf8(char *dst, ssize_t size,
+                              const char *src, ssize_t len);
 
 /* in blob_ebcdic.c */
 int blob_decode_ebcdic297(blob_t *dst, const byte *src, ssize_t len);
