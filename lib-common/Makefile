@@ -47,6 +47,7 @@ libcommon_SOURCES = \
 	log_limit.c \
 	mmappedfile.c \
 	paged-index.c \
+	parseopt.c \
 	property.c \
 	psinfo.c \
 	robuf.c \
