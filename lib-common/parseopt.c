@@ -222,7 +222,10 @@ void makeusage(int ret, const char *arg0, const char *usage,
                 pos += printf(", ");
         }
         if (opts->lng) {
-            pos += printf("--%-*s", MAX(0, OPTS_WIDTH - pos - 2), opts->lng);
+            pos += printf("--%s", opts->lng);
+        }
+        if (opts->kind != OPTION_FLAG) {
+            pos += printf(" ...");
         }
         if (pos > OPTS_WIDTH) {
             putchar('\n');
