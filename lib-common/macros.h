@@ -65,6 +65,12 @@
 #  define unlikely(expr)  expr
 #endif
 
+#ifdef __SPARSE__
+#define __bitwise__  __attribute__((bitwise))
+#else
+#define __bitwise__
+#endif
+
 /*---------------- Types ----------------*/
 
 typedef unsigned char byte;
@@ -76,6 +82,13 @@ typedef unsigned int gt_uint32_t;
 #define int32_t __int32_t
 #define uint32_t __uint32_t
 #endif
+
+typedef uint64_t __bitwise__ be64_t;
+typedef uint64_t __bitwise__ le64_t;
+typedef uint32_t __bitwise__ be32_t;
+typedef uint32_t __bitwise__ le32_t;
+typedef uint16_t __bitwise__ be16_t;
+typedef uint16_t __bitwise__ le16_t;
 
 #define TST_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] &   (1 << ((num) & 7)))
 #define SET_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] |=  (1 << ((num) & 7)))
