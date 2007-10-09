@@ -201,37 +201,33 @@ void makeusage(int ret, const char *arg0, const char *usage,
         while (*text) {
             printf("    %s\n", *text++);
         }
-        if (opts->kind != OPTION_GROUP)
-            putchar('\n');
     }
+    if (opts->kind != OPTION_GROUP)
+        putchar('\n');
     for (; opts->kind; opts++) {
         int pos = 4;
 
         if (opts->kind == OPTION_GROUP) {
-            if (*opts->help) {
-                printf("\n%s\n", opts->help);
-            } else {
-                putchar('\n');
-            }
+            putchar('\n');
+            if (*opts->help)
+                printf("%s\n", opts->help);
             continue;
         }
         printf("    ");
         if (opts->shrt) {
             pos += printf("-%c", opts->shrt);
-            if (opts->lng)
-                pos += printf(", ");
         }
         if (opts->lng) {
-            pos += printf("--%s", opts->lng);
+            pos += printf(opts->shrt ? ", --%s" : "--%s", opts->lng);
         }
         if (opts->kind != OPTION_FLAG) {
             pos += printf(" ...");
         }
-        if (pos > OPTS_WIDTH) {
-            putchar('\n');
-            pos = 0;
+        if (pos <= OPTS_WIDTH) {
+            printf("%*s%s\n", OPTS_WIDTH + OPTS_GAP - pos, "", opts->help);
+        } else {
+            printf("\n%*s%s\n", OPTS_WIDTH + OPTS_GAP, "", opts->help);
         }
-        printf("%*s%s\n", OPTS_WIDTH + OPTS_GAP - pos, "", opts->help);
     }
     exit(ret);
 }
