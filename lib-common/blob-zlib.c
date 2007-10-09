@@ -301,7 +301,7 @@ int blob_gzip_compress(blob_t *dest, const blob_t *src)
 
     blob_reset(dest);
 
-    crc_src = crc32(0L, Z_NULL, 0);
+    crc_src = crc32(0L, NULL, 0);
     crc_src = crc32(crc_src, src->data, src->len);
 
     res = blob_generic_compress(dest, src, intersec_compress);

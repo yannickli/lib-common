@@ -194,7 +194,7 @@ void e_set_handler(e_handler *handler)
     log_state.handler = handler;
 }
 
-void e_shutdown()
+void e_shutdown(void)
 {
     if (log_state.is_open) {
 #ifndef MINGCC

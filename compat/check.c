@@ -1142,8 +1142,8 @@ void srunner_end_logging(SRunner *sr)
  * reading and writing.
  */
 
-FILE *send_file1;
-FILE *send_file2;
+static FILE *send_file1;
+static FILE *send_file2;
 
 static FILE *get_pipe(void);
 static void setup_pipe(void);
@@ -1153,11 +1153,11 @@ static void tr_set_loc_by_ctx(TestResult *tr, enum ck_result_ctx ctx,
                               RcvMsg *rmsg);
 static FILE *get_pipe(void)
 {
-    if (send_file2 != 0) {
+    if (send_file2 != NULL) {
         return send_file2;
     }
 
-    if (send_file1 != 0) {
+    if (send_file1 != NULL) {
         return send_file1;
     }
 
@@ -1265,8 +1265,8 @@ void teardown_messaging(void)
 
 static void setup_pipe(void)
 {
-    if (send_file1 != 0) {
-        if (send_file2 != 0)
+    if (send_file1 != NULL) {
+        if (send_file2 != NULL)
             eprintf("Only one nesting of suite runs supported", __FILE__, __LINE__);
         send_file2 = tmpfile();
     } else {
@@ -1276,12 +1276,12 @@ static void setup_pipe(void)
 
 static void teardown_pipe(void)
 {
-    if (send_file2 != 0) {
+    if (send_file2 != NULL) {
         fclose(send_file2);
-        send_file2 = 0;
-    } else if (send_file1 != 0) {
+        send_file2 = NULL;
+    } else if (send_file1 != NULL) {
         fclose(send_file1);
-        send_file1 = 0;
+        send_file1 = NULL;
     } else {
         eprintf("No messaging setup", __FILE__, __LINE__);
     }
