@@ -88,6 +88,9 @@ typedef unsigned int gt_uint32_t;
                          __must_be_array(table)))
 #define ssizeof(foo)    ((ssize_t)sizeof(foo))
 
+#ifdef __SPARSE__ /* avoids lots of warning with this trivial hack */
+#include <sys/param.h>
+#endif
 #ifndef MAX
 #define MAX(a,b)     (((a) > (b)) ? (a) : (b))
 #endif
