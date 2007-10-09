@@ -67,8 +67,10 @@
 
 #ifdef __SPARSE__
 #define __bitwise__  __attribute__((bitwise))
+#define force_cast(type, expr)    (__attribute__((force)) type)(expr)
 #else
 #define __bitwise__
+#define force_cast(type, expr)    (type)(expr)
 #endif
 
 /*---------------- Types ----------------*/
@@ -89,6 +91,26 @@ typedef uint32_t __bitwise__ be32_t;
 typedef uint32_t __bitwise__ le32_t;
 typedef uint16_t __bitwise__ be16_t;
 typedef uint16_t __bitwise__ le16_t;
+
+#ifdef __SPARSE__
+#include <arpa/inet.h>
+#undef htonl
+#undef htons
+#undef ntohl
+#undef ntohs
+static inline le32_t htonl(uint32_t x) {
+    return force_cast(le32_t, x);
+}
+static inline le16_t htons(uint16_t x) {
+    return force_cast(le16_t, x);
+}
+static inline uint32_t ntohl(le32_t x) {
+    return force_cast(uint32_t, x);
+}
+static inline uint16_t ntohs(le16_t x) {
+    return force_cast(uint16_t, x);
+}
+#endif
 
 #define TST_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] &   (1 << ((num) & 7)))
 #define SET_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] |=  (1 << ((num) & 7)))
