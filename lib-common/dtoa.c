@@ -854,7 +854,7 @@ pow5mult
         FREE_DTOA_LOCK(1);
 #else
         p5 = p5s = i2b(625);
-        p5->next = 0;
+        p5->next = NULL;
 #endif
     }
     for(;;) {
@@ -875,7 +875,7 @@ pow5mult
             FREE_DTOA_LOCK(1);
 #else
             p51 = p5->next = mult(p5,p5);
-            p51->next = 0;
+            p51->next = NULL;
 #endif
         }
         p5 = p51;
@@ -935,9 +935,9 @@ lshift
             ++n1;
     }
 #endif
-    else do
+    else do {
         *x1++ = *x++;
-    while(x < xe);
+    } while(x < xe);
     b1->wds = n1 - 1;
     Bfree(b);
     return b1;
@@ -2273,7 +2273,7 @@ freedtoa(char *s)
     Bfree(b);
 #ifndef MULTIPLE_THREADS
     if (s == dtoa_result)
-        dtoa_result = 0;
+        dtoa_result = NULL;
 #endif
 }
 
@@ -2379,7 +2379,7 @@ double _d_; int mode, ndigits, *decpt, *sign; char **rve;
 #ifndef MULTIPLE_THREADS
     if (dtoa_result) {
         freedtoa(dtoa_result);
-        dtoa_result = 0;
+        dtoa_result = NULL;
     }
 #endif
 
@@ -2591,7 +2591,7 @@ double _d_; int mode, ndigits, *decpt, *sign; char **rve;
         eps.d = ieps*shd.d + 7.;
         word0(eps) -= (P-1)*Exp_msk1;
         if (ilim == 0) {
-            S = mhi = 0;
+            S = mhi = NULL;
             shd.d -= 5.;
             if (shd.d > eps.d)
                 goto one_digit;
@@ -2658,7 +2658,7 @@ double _d_; int mode, ndigits, *decpt, *sign; char **rve;
         ds = tens[k];
 #ifndef MODE_0_ONLY
         if (ndigits < 0 && ilim <= 0) {
-            S = mhi = 0;
+            S = mhi = NULL;
             if (ilim < 0 || shd.d <= 5*ds)
                 goto no_digits;
             goto one_digit;
@@ -2706,7 +2706,7 @@ double _d_; int mode, ndigits, *decpt, *sign; char **rve;
 
     m2 = b2;
     m5 = b5;
-    mhi = mlo = 0;
+    mhi = mlo = NULL;
     if (leftright) {
         if (mode < 2) {
             i =

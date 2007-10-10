@@ -11,27 +11,36 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_STR_ARRAY_H
-#define IS_LIB_COMMON_STR_ARRAY_H
+#ifndef IS_LIB_COMMON_PARSEOPT_H
+#define IS_LIB_COMMON_PARSEOPT_H
 
-#include <lib-common/mem.h>
-#include <lib-common/array.h>
+#include "macros.h"
 
-// define our arrays
-ARRAY_TYPE(char, string);
-ARRAY_FUNCTIONS(char, string, p_delete);
+enum popt_kind {
+    OPTION_END,
+    OPTION_FLAG,
+    OPTION_INT,
+    OPTION_STR,
+    OPTION_GROUP,
+};
 
-void string_array_dump(const string_array *xp);
+typedef struct popt_t {
+    enum popt_kind kind;
+    int shrt;
+    const char *lng;
+    void *value;
+    intptr_t init;
+    const char *help;
+} popt_t;
 
-string_array *str_explode(const char *s, const char *tokens);
+#define OPT_FLAG(s, l, v, h)   { OPTION_FLAG, (s), (l), (v), 0, (h) }
+#define OPT_STR(s, l, v, h)    { OPTION_STR, (s), (l), (v), 0, (h) }
+#define OPT_GROUP(h)           { OPTION_GROUP, 0, NULL, NULL, 0, (h) }
+#define OPT_END()              { OPTION_END, 0, NULL, NULL, 0, NULL }
 
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-#include <check.h>
-
-Suite *check_str_array_suite(void);
+int parseopt(int argc, char **argv, popt_t *opts);
+__attribute__((noreturn))
+void makeusage(int ret, const char *arg0, const char *usage,
+               const char * const text[], popt_t *opts);
 
 #endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
-
-#endif /* IS_LIB_COMMON_STR_ARRAY_H */

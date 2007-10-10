@@ -1077,7 +1077,7 @@ ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos, const char **answer)
 #define QP  1
 #define XP  2
 
-byte const __str_encode_flags[128 + 256] = {
+static byte const __str_encode_flags[128 + 256] = {
 #define REPEAT16(x)  x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
     REPEAT16(0), REPEAT16(0), REPEAT16(0), REPEAT16(0),
     REPEAT16(0), REPEAT16(0), REPEAT16(0), REPEAT16(0),

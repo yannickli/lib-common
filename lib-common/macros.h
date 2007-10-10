@@ -65,6 +65,14 @@
 #  define unlikely(expr)  expr
 #endif
 
+#ifdef __SPARSE__
+#define __bitwise__  __attribute__((bitwise))
+#define force_cast(type, expr)    (__attribute__((force)) type)(expr)
+#else
+#define __bitwise__
+#define force_cast(type, expr)    (type)(expr)
+#endif
+
 /*---------------- Types ----------------*/
 
 typedef unsigned char byte;
@@ -75,6 +83,33 @@ typedef int gt_int32_t;
 typedef unsigned int gt_uint32_t;
 #define int32_t __int32_t
 #define uint32_t __uint32_t
+#endif
+
+typedef uint64_t __bitwise__ be64_t;
+typedef uint64_t __bitwise__ le64_t;
+typedef uint32_t __bitwise__ le32_t;
+typedef uint32_t __bitwise__ be32_t;
+typedef uint16_t __bitwise__ le16_t;
+typedef uint16_t __bitwise__ be16_t;
+
+#ifdef __SPARSE__
+#include <arpa/inet.h>
+#undef htonl
+#undef htons
+#undef ntohl
+#undef ntohs
+static inline be32_t htonl(uint32_t x) {
+    return force_cast(be32_t, x);
+}
+static inline be16_t htons(uint16_t x) {
+    return force_cast(be16_t, x);
+}
+static inline uint32_t ntohl(be32_t x) {
+    return force_cast(uint32_t, x);
+}
+static inline uint16_t ntohs(be16_t x) {
+    return force_cast(uint16_t, x);
+}
 #endif
 
 #define TST_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] &   (1 << ((num) & 7)))
@@ -88,6 +123,9 @@ typedef unsigned int gt_uint32_t;
                          __must_be_array(table)))
 #define ssizeof(foo)    ((ssize_t)sizeof(foo))
 
+#ifdef __SPARSE__ /* avoids lots of warning with this trivial hack */
+#include <sys/param.h>
+#endif
 #ifndef MAX
 #define MAX(a,b)     (((a) > (b)) ? (a) : (b))
 #endif
