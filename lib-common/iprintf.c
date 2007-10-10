@@ -1324,15 +1324,13 @@ extern char *_ldtoa_r(_LONG_DOUBLE, int, int, int *, int *, char **);
 #define word0(x) ldword0(x)
 #endif
 
-static char *
-cvt(value, ndigits, flags, sign, decpt, ch, length)
+static char *cvt(
 #ifdef _NO_LONGDBL
-        double value;
+        double value,
 #else
-        _LONG_DOUBLE value;
+        _LONG_DOUBLE value,
 #endif
-        int ndigits, flags, *decpt, ch, *length;
-        char *sign;
+        int ndigits, int flags, char *sign, int *decpt, int ch, int *length)
 {
     int mode, dsgn;
     char *digits, *bp, *rve;
