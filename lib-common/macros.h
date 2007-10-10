@@ -87,10 +87,10 @@ typedef unsigned int gt_uint32_t;
 
 typedef uint64_t __bitwise__ be64_t;
 typedef uint64_t __bitwise__ le64_t;
-typedef uint32_t __bitwise__ be32_t;
 typedef uint32_t __bitwise__ le32_t;
-typedef uint16_t __bitwise__ be16_t;
+typedef uint32_t __bitwise__ be32_t;
 typedef uint16_t __bitwise__ le16_t;
+typedef uint16_t __bitwise__ be16_t;
 
 #ifdef __SPARSE__
 #include <arpa/inet.h>
@@ -98,16 +98,16 @@ typedef uint16_t __bitwise__ le16_t;
 #undef htons
 #undef ntohl
 #undef ntohs
-static inline le32_t htonl(uint32_t x) {
-    return force_cast(le32_t, x);
+static inline be32_t htonl(uint32_t x) {
+    return force_cast(be32_t, x);
 }
-static inline le16_t htons(uint16_t x) {
-    return force_cast(le16_t, x);
+static inline be16_t htons(uint16_t x) {
+    return force_cast(be16_t, x);
 }
-static inline uint32_t ntohl(le32_t x) {
+static inline uint32_t ntohl(be32_t x) {
     return force_cast(uint32_t, x);
 }
-static inline uint16_t ntohs(le16_t x) {
+static inline uint16_t ntohs(be16_t x) {
     return force_cast(uint16_t, x);
 }
 #endif

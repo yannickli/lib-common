@@ -20,13 +20,13 @@
 #include "hash.h"
 
 struct binlog_hdr_t {
-    le16_t kind;
-    le16_t len;
+    be16_t kind;
+    be16_t len;
 };
 
 struct binlog_pad_t {
     uint8_t pad[4];
-    le32_t crc;
+    be32_t crc;
 };
 
 struct binlog_t *binlog_wopen(const char *name)
