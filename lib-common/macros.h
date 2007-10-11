@@ -92,6 +92,9 @@ typedef uint32_t __bitwise__ be32_t;
 typedef uint16_t __bitwise__ le16_t;
 typedef uint16_t __bitwise__ be16_t;
 
+#define BE32_T(x)  force_cast(be32_t, htonl_const(x))
+#define BE16_T(x)  force_cast(be16_t, htons_const(x))
+
 #ifdef __SPARSE__
 #include <arpa/inet.h>
 #undef htonl
