@@ -148,7 +148,24 @@ void generic_array_sort(generic_array *array,
         generic_array_sort((generic_array *)array, (void *)cmp, priv);        \
     }
 
-#define DO_ARRAY(prefix, type, dtor)  ARRAY_TYPE(prefix, type);               \
-                                      ARRAY_FUNCTIONS(prefix, type, dtor)
+#define DO_ARRAY(type, prefix, dtor)  ARRAY_TYPE(type, prefix);               \
+                                      ARRAY_FUNCTIONS(type, prefix, dtor)
+
+/* XXX: This macro only works for arrays of elements having a member
+ * named 'name'. */
+#define ARRAY_FIND_BY_NAME(el_type, prefix)                               \
+    static inline el_type *                                               \
+    prefix##_array_find(const prefix##_array *array, const char *name)    \
+    {                                                                     \
+        int i;                                                            \
+                                                                          \
+        for (i = 0; i < array->len; i++) {                                \
+            el_type *el = array->tab[i];                                  \
+            if (strequal(el->name, name)) {                               \
+                return el;                                                \
+            }                                                             \
+        }                                                                 \
+        return NULL;                                                      \
+    }
 
 #endif /* IS_LIB_COMMON_ARRAY_H */
