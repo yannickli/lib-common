@@ -87,4 +87,43 @@ void generic_list_sort(generic_list **list,
         generic_list_sort((generic_list **)list, (void *)cmp, priv);         \
     }
 
+#define DLIST_FUNCTIONS(type, prefix)                                        \
+    static inline type *prefix##_list_take(type **list, type *el) {          \
+        el->next->prev = el->prev;                                           \
+        el->prev->next = el->next;                                           \
+                                                                             \
+        if (list && *list == el) {                                           \
+            *list = (el->next == el) ? NULL : el->next;                      \
+        }                                                                    \
+                                                                             \
+        el->prev = el->next = NULL;                                          \
+                                                                             \
+        return el;                                                           \
+    }                                                                        \
+                                                                             \
+    static inline type *prefix##_list_prepend(type **list, type *el) {       \
+        if (!*list) {                                                        \
+            return *list = el->next = el->prev = el;                         \
+        }                                                                    \
+                                                                             \
+        el->next = (*list)->next;                                            \
+        el->prev = (*list);                                                  \
+                                                                             \
+        return (*list = el->prev->next = el->next->prev = el);               \
+    }                                                                        \
+                                                                             \
+    static inline type *prefix##_list_append(type **list, type *el)          \
+    {                                                                        \
+        if (!*list) {                                                        \
+            return *list = el->next = el->prev = el;                         \
+        }                                                                    \
+                                                                             \
+        el->next = (*list);                                                  \
+        el->prev = (*list)->prev;                                            \
+                                                                             \
+        return (el->prev->next = el->next->prev = el);                       \
+    }
+
+
+
 #endif /* IS_LIB_COMMON_LIST_H */
