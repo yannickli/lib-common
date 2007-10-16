@@ -344,6 +344,41 @@ int conf_get_int(const conf_t *conf, const char *section,
     return *val ? defval : res;
 }
 
+int conf_get_verbosity(const conf_t *conf, const char *section,
+                       const char *var, int defval)
+{
+    const char *val = conf_get_raw(conf, section, var);
+    int res;
+
+    if (!val)
+        return defval;
+
+    res = atoi(val);
+    if (res > 1 && res < 8) {
+        return res;
+    } else {
+        if (strequal(val, "PANIC")) {
+            return 2;
+        }
+        if (strequal(val, "ERROR")) {
+            return 3;
+        }
+        if (strequal(val, "WARNING")) {
+            return 4;
+        }
+        if (strequal(val, "NORMAL")) {
+            return 5;
+        }
+        if (strequal(val, "INFO")) {
+            return 6;
+        }
+        if (strequal(val, "DEBUG")) {
+            return 7;
+        }
+    }
+    return defval;
+}
+
 int conf_section_get_int(const conf_section_t *section,
                          const char *var, int defval)
 {
@@ -518,6 +553,7 @@ START_TEST(check_conf_load)
     conf_section_t *s;
     blob_t blob;
     int prev;
+    int verb;
     const char *p;
 
     conf = conf_load(SAMPLE_CONF_FILE);
@@ -577,6 +613,32 @@ START_TEST(check_conf_load)
     fail_if(prev != -1,
             "bad next section idx: expected %d, got %d",
             -1, prev);
+
+    /* Check on conf_get_verbosity */
+    verb = conf_get_verbosity(conf, "section3", "log_verbosity1", 10);
+    fail_if(verb != 10,
+            "bad get verbosity: expected %d, got %d",
+            10, verb);
+    verb = conf_get_verbosity(conf, "section3", "log_verbosity2", 10);
+    fail_if(verb != 2,
+            "bad get verbosity: expected %d, got %d",
+            2, verb);
+    verb = conf_get_verbosity(conf, "section3", "log_verbosity3", 10);
+    fail_if(verb != 2,
+            "bad get verbosity: expected %d, got %d",
+            2, verb);
+    verb = conf_get_verbosity(conf, "section3", "log_verbosity4", 10);
+    fail_if(verb != 6,
+            "bad get verbosity: expected %d, got %d",
+            6, verb);
+    verb = conf_get_verbosity(conf, "section3", "log_verbosity5", 10);
+    fail_if(verb != 10,
+            "bad get verbosity: expected %d, got %d",
+            10, verb);
+    verb = conf_get_verbosity(conf, "section3", "log_verbosity6", 10);
+    fail_if(verb != 10,
+            "bad get verbosity: expected %d, got %d",
+            10, verb);
 
     conf_delete(&conf);
 
