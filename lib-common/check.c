@@ -24,6 +24,7 @@
 #include "str_array.h"
 #include "string_is.h"
 #include "timeval.h"
+#include "timer.h"
 #include "xml.h"
 
 int main(void)
@@ -44,6 +45,7 @@ int main(void)
     srunner_add_suite(sr, check_str_array_suite());
     srunner_add_suite(sr, check_conf_suite());
     srunner_add_suite(sr, check_log_limit_suite());
+    srunner_add_suite(sr, check_timer_suite());
 
     srunner_run_all(sr, CK_NORMAL);
     nf = srunner_ntests_failed(sr);

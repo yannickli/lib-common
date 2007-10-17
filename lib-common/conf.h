@@ -93,6 +93,8 @@ const char *conf_put(conf_t *conf, const char *section,
 
 int conf_get_int(const conf_t *conf, const char *section,
                  const char *var, int defval);
+int conf_get_verbosity(const conf_t *conf, const char *section,
+                       const char *var, int defval);
 int conf_get_bool(const conf_t *conf, const char *section,
                   const char *var, int defval);
 int conf_section_get_int(const conf_section_t *section,
