@@ -11,36 +11,34 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_IOVECLIST_H
-#define IS_LIB_COMMON_IOVECLIST_H
+#ifndef IS_LIB_COMMON_TIMER_H
+#define IS_LIB_COMMON_TIMER_H
 
-#include <sys/uio.h>
-#include <lib-common/blob.h>
-#include "mem.h"
+#include <time.h>
 
-#define IOVECLIST_OBJS_NUM 64
+#include "macros.h"
 
-typedef struct ioveclist {
-    struct iovec objs[IOVECLIST_OBJS_NUM];
-    int used;
-} ioveclist;
+typedef void (istimer_func)(void *data);
 
-typedef enum {
-    IOVECLIST_EMPTY,
-    IOVECLIST_LATER,
-    IOVECLIST_WRITE_ERROR
-} ioveclist_state;
+typedef struct istimer_t istimer_t;
 
-void ioveclist_init(ioveclist *l);
-int ioveclist_insert_first(ioveclist *l, const void *data, int size);
-int ioveclist_append(ioveclist *l, const void *data, int size);
-static inline int ioveclist_insert_blob(ioveclist *l, blob_t *blob) {
-    return ioveclist_insert_first(l, blob->data, blob->len);
-}
-int ioveclist_getlen(const ioveclist *l);
-GENERIC_WIPE(ioveclist, ioveclist);
-GENERIC_RESET(ioveclist, ioveclist);
+int istimers_initialize(void);
+void istimers_shutdown(void);
+int istimers_dispatch(const struct timeval *now);
 
-ioveclist_state ioveclist_write(ioveclist *l, int fd);
+istimer_t *istimer_add_absolute(const struct timeval *now,
+                                const struct timeval *date,
+                                istimer_func *callback, void *data);
+istimer_t *istimer_add_relative(const struct timeval *now, int nbsec,
+                                istimer_func *callback, void *data);
+void istimer_cancel(istimer_t **timer);
 
-#endif /* IS_LIB_COMMON_IOVECLIST_H */
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
+#ifdef CHECK
+#include <check.h>
+
+Suite *check_timer_suite(void);
+
+#endif
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
+#endif /* IS_LIB_COMMON_XML_H */

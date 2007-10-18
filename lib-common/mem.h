@@ -237,11 +237,18 @@ static inline void (p_delete)(void **p) {
             p_delete(var);                                  \
         }                                                   \
     }
+#define DO_RESET(type, prefix) \
+    __attr_nonnull__((1))                                   \
+    void prefix##_reset(type *var) {                        \
+        prefix##_wipe(var);                                 \
+        prefix##_init(var);                                 \
+    }
 
 #define GENERIC_INIT(type, prefix)    static inline DO_INIT(type, prefix)
 #define GENERIC_NEW(type, prefix)     static inline DO_NEW(type, prefix)
 #define GENERIC_WIPE(type, prefix)    static inline DO_WIPE(type, prefix)
 #define GENERIC_DELETE(type, prefix)  static inline DO_DELETE(type, prefix)
+#define GENERIC_RESET(type, prefix)   static inline DO_RESET(type, prefix)
 #define GENERIC_FUNCTIONS(type, prefix) \
     GENERIC_INIT(type, prefix)    GENERIC_NEW(type, prefix) \
     GENERIC_WIPE(type, prefix)    GENERIC_DELETE(type, prefix)
