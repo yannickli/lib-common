@@ -17,6 +17,7 @@
 #include <lib-common/macros.h>
 #include <lib-common/bfield.h>
 #include <lib-common/blob.h>
+#include <lib-common/array.h>
 
 #define STATS_STAGE_MAX          7
 #define STATS_TEMPORAL_AUTO(n)   ((n) << 2)
@@ -43,6 +44,8 @@ typedef struct stats_temporal_t stats_temporal_t;
 stats_temporal_t *stats_temporal_new(const char *path, int nb_stats,
                                      int flags, const int *desc);
 void stats_temporal_delete(stats_temporal_t **stats);
+ARRAY_TYPE(stats_temporal_t, stats_temporal);
+ARRAY_FUNCTIONS(stats_temporal_t, stats_temporal, stats_temporal_delete);
 
 /* index_bis is currently only used for type = STATS_UPD_MEAN to indicate in which
  * index is stored the total number of samples */
