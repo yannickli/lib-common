@@ -70,7 +70,7 @@ static int get_value(popt_state_t *st, popt_t *opt, int flags)
         if (flags & FLAG_UNSET) {
             *(const char **)opt->value = (const char *)opt->init;
         } else {
-            if (!st->p || st->argc < 1)
+            if (!st->p && st->argc < 1)
                 return opterror(opt, "requires a value", flags);
             *(const char **)opt->value = opt_arg(st);
         }
@@ -80,7 +80,7 @@ static int get_value(popt_state_t *st, popt_t *opt, int flags)
         if (flags & FLAG_UNSET) {
             *(int *)opt->value = opt->init;
         } else {
-            if (!st->p || st->argc < 1)
+            if (!st->p && st->argc < 1)
                 return opterror(opt, "requires a value", flags);
             *(int *)opt->value = strtoip(opt_arg(st), &s);
             if (*s)
