@@ -66,7 +66,7 @@ int istimers_dispatch(const struct timeval *now)
     istimer_t *t;
 
     for (i = 0; i < TIMERS_MAX_DELTA_SEC; i++) {
-        for(;;) {
+        for (;;) {
             t = istimers_g.istimers[i];
             if (!t)
                 break;
