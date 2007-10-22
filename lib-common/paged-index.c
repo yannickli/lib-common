@@ -528,7 +528,7 @@ int pidx_key_last(pidx_file *pidx, uint64_t maxval, uint64_t *res)
 
                 if (--pos < 0)
                     goto notfound;
-                page   = path[--pos];
+                page   = path[pos];
                 rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
                 maxval = ((maxval >> rbits) << rbits) - 1;
                 if (maxval > old) /* overflow */
