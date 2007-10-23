@@ -26,9 +26,9 @@ typedef struct ioveclist {
 } ioveclist;
 
 typedef enum {
-    IOVECLIST_EMPTY,
+    IOVECLIST_WRITE_ERROR = -1 ,
     IOVECLIST_LATER,
-    IOVECLIST_WRITE_ERROR
+    IOVECLIST_EMPTY,
 } ioveclist_state;
 
 void ioveclist_init(ioveclist *l);

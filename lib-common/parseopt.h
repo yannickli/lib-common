@@ -35,6 +35,7 @@ typedef struct popt_t {
 
 #define OPT_FLAG(s, l, v, h)   { OPTION_FLAG, (s), (l), (v), 0, (h) }
 #define OPT_STR(s, l, v, h)    { OPTION_STR, (s), (l), (v), 0, (h) }
+#define OPT_INT(s, l, v, h)    { OPTION_INT, (s), (l), (v), 0, (h) }
 #define OPT_GROUP(h)           { OPTION_GROUP, 0, NULL, NULL, 0, (h) }
 #define OPT_END()              { OPTION_END, 0, NULL, NULL, 0, NULL }
 
