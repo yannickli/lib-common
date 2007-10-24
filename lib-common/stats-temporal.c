@@ -645,7 +645,7 @@ static int stats_temporal_upd_auto(stats_temporal_t *stats, int date,
             }
         }
         for (i = 1, st++; i < stats->nb_stages; i++, st++) {
-            date1 = date / st[i].scale;
+            date1 = date / st->scale;
             if (date1 == st->current)
                 break;
             if (date1 >= st->current + st->count) {
@@ -965,10 +965,10 @@ int stats_temporal_query_hour(stats_temporal_t *stats, blob_t *blob,
 }
 
 int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
-                              int start, int nb_values, int stage,
+                              int start, int end, int nb_values,
                               int fmt)
 {
-    int end, i;
+    int i, stage;
     stats_stage *st;
     byte *buf_start, *buf_end, *vp;
     int index = 0;      /* should be an argument */
@@ -984,20 +984,29 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         return -1;
     }
 
+    st = stats->file->area->stage;
+
+    for (stage = 0; stage < stats->nb_stages - 1; stage++, st++) {
+        if (((end - start) / st->scale) <= nb_values) {
+            break;
+        }
+    }
+
     if (stage < 0 || stage >= stats->nb_stages) {
         blob_append_fmt(blob, "invalid stage number: %d", stage);
         return -1;
     }
 
-    st = &stats->file->area->stage[stage];
+    start /= st->scale;
+    end   = (end - 1) / st->scale + 1;
+
     if (start <= st->current - st->count) {
         /* We don't know any values before 'st->current - st->count' */
         /* FIXME: Shouldn't we drop these stats, instead of shifting */
-        e_trace(2, "start was too early (%d < %d)", start, st->current - st->count);
+        e_trace(2, "start was too early (%d < %d)",
+                start, st->current - st->count);
         start = st->current - st->count;
     }
-
-    end = start + nb_values;
 
     if (end > st->current + 1) {
         /* FIXME: Shouldn't we drop these stats, instead of shifting */
@@ -1029,13 +1038,15 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
 
         switch (fmt) {
           case STATS_FMT_RAW:
-            blob_append_fmt(blob, "%d %lld\n", i, 
+            blob_append_fmt(blob, "%d %lld\n",
+                            i * st->scale, 
                             (long long)(stage ? ((int64_t*)vp)[index] :
                                         ((int32_t*)vp)[index]));
             break;
 
           case STATS_FMT_XML:
-            blob_append_fmt(blob, "<elem time=\"%d\" value=\"%lld\" />\n", i,
+            blob_append_fmt(blob, "<elem time=\"%d\" val=\"%lld\" />\n",
+                            i * st->scale,
                             (long long)(stage ? ((int64_t*)vp)[index] :
                                         ((int32_t*)vp)[index]));
             break;

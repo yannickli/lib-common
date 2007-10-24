@@ -63,7 +63,7 @@ int stats_temporal_query_hour(stats_temporal_t *stats, blob_t *blob,
                               int64_t *outp, int start, int nb_values,
                               bfield_t *mask);
 int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
-                              int start, int nb_values, int stage, int fmt);
+                              int start, int end, int nb_values, int fmt);
 
 #ifndef NDEBUG
 void stats_temporal_dump_auto(byte *mem, int size);

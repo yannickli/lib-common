@@ -41,7 +41,8 @@ static int test_mode_auto(void)
     stats_temporal_upd(stats, now + 8, STATS_UPD_INCR, 0, 0, 4);
     stats_temporal_upd(stats, now + 9, STATS_UPD_INCR, 0, 0, 12);
 
-    if (stats_temporal_query_auto(stats, &output, now, 10, 0, STATS_FMT_RAW)) {
+    if (stats_temporal_query_auto(stats, &output, now, now + 10, 10,
+                                  STATS_FMT_RAW)) {
         printf("Query1 failed: %d 10 0\n", now);
         status = 1;
         goto end;
@@ -74,7 +75,8 @@ static int test_mode_auto(void)
     blob_reset(&output);
     blob_reset(&expected);
 
-    if (stats_temporal_query_auto(stats, &output, now + 5, 10, 0, STATS_FMT_RAW)) {
+    if (stats_temporal_query_auto(stats, &output, now + 5, now + 15, 10,
+                                  STATS_FMT_RAW)) {
         printf("Query2 failed: %d 10 0\n", now);
         status = 1;
         goto end;
