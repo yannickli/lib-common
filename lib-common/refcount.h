@@ -14,6 +14,28 @@
 #ifndef IS_LIB_COMMON_REFCOUNT_H
 #define IS_LIB_COMMON_REFCOUNT_H
 
+#define DO_REFCNT(type, pfx)                                              \
+    static inline type *pfx##_new(void) {                                 \
+        type *res = pfx##_init(p_new_raw(type, 1));                       \
+        res->refcnt = 1;                                                  \
+        return res;                                                       \
+    }                                                                     \
+    static inline type *pfx##_dup(type *t) {                              \
+        t->refcnt++;                                                      \
+        return t;                                                         \
+    }                                                                     \
+    static inline void pfx##_delete(type **tp) {                          \
+        if (*tp) {                                                        \
+            if (--(*tp)->refcnt > 0) {                                    \
+                *tp = NULL;                                               \
+            } else {                                                      \
+                pfx##_wipe(*tp);                                          \
+                p_delete(tp);                                             \
+            }                                                             \
+        }                                                                 \
+    }
+
+
 #define REFCOUNT_TYPE(type, tpfx, subt, spfx)                             \
     typedef struct {                                                      \
         int refcnt;                                                       \
