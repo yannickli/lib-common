@@ -107,13 +107,16 @@ static void compute_hour_range(time_t date, int hours,
     localtime_r(&date, &tt);
     tt.tm_hour -= tt.tm_hour % hours;
     tt.tm_min = tt.tm_sec = 0;
-    *start = mktime(&tt);
+    if (start)
+        *start = mktime(&tt);
     if (tp) {
         /* return tm struct for start time */
         *tp = tt;
     }
-    tt.tm_hour += hours;
-    *end = mktime(&tt);
+    if (end) {
+        tt.tm_hour += hours;
+        *end = mktime(&tt);
+    }
 }
 
 /* Compute the aligned boundaries in local time for a range of hours
@@ -145,13 +148,16 @@ static void compute_day_range(time_t date, int days,
     e_trace(2, "found mday: %d", tt.tm_mday);
 #endif
     tt.tm_hour = tt.tm_min = tt.tm_sec = 0;
-    *start = mktime(&tt);
+    if (start)
+        *start = mktime(&tt);
     if (tp) {
         /* return tm struct for start time */
         *tp = tt;
     }
-    tt.tm_mday += days;
-    *end = mktime(&tt);
+    if (end) {
+        tt.tm_mday += days;
+        *end = mktime(&tt);
+    }
 }
 
 static mmfile_stats32 *per_sec_file_initialize(const char *prefix,
@@ -253,24 +259,16 @@ static mmfile_stats64 *per_hour_file_initialize(const char *prefix,
     return m;
 }
 
-static mmfile_stats_auto *stats_file_initialize(stats_temporal_t *stats,
-                                                time_t date, bool autocreate)
+static mmfile_stats_auto *auto_file_initialize(stats_temporal_t *stats,
+                                               time_t date, bool autocreate)
 {
     char buf[PATH_MAX];
     mmfile_stats_auto *m;
-    struct tm t;
-    time_t start_time, end_time;
     stats_stage *st;
 
-    /* compute boundaries for the target day */
-    compute_day_range(date, PER_HOUR_NB_HOURS / 24,
-                      &t, &start_time, &end_time);
+    snprintf(buf, sizeof(buf), "%s_auto.bin", stats->path);
 
-    snprintf(buf, sizeof(buf), "%s_auto_%04d%02d%02d_%02d%02d%02d.bin",
-             stats->path, t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
-             t.tm_hour, t.tm_min, t.tm_sec);
-
-    e_trace(2, "for start = %d : opening %s...", (int)date, buf);
+    e_trace(2, "opening %s...", buf);
     m = mmfile_stats_auto_open(buf, O_RDWR, 0, 0);
     if (m && (m->area->magic != STATS_AUTO_MAGIC ||
               m->area->nb_stats != stats->nb_stats ||
@@ -619,7 +617,7 @@ static int stats_temporal_upd_auto(stats_temporal_t *stats, int date,
     int i, date1;
 
     if (!stats->file) {
-        stats->file = stats_file_initialize(stats, date, true);
+        stats->file = auto_file_initialize(stats, date, true);
         if (!stats->file) {
             return -1;
         }
@@ -964,6 +962,7 @@ int stats_temporal_query_hour(stats_temporal_t *stats, blob_t *blob,
     return 0;
 }
 
+/* Should return number of samples produced? */
 int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
                               int start, int end, int nb_values,
                               int fmt)
@@ -982,6 +981,13 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         blob_append_cstr(blob,
                          "stats auto deactivated for these statistics");
         return -1;
+    }
+
+    if (!stats->file) {
+        stats->file = auto_file_initialize(stats, 0, false);
+        if (!stats->file) {
+            return -1;
+        }
     }
 
     st = stats->file->area->stage;
