@@ -29,4 +29,31 @@ void **hashtbl_insert(hashtbl_t *t, uint64_t h, void *);
 void hashtbl_remove(hashtbl_t *t, void **);
 void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *);
 
+#define DO_HASHTBL(type, pfx)                                                \
+    typedef struct pfx##_hash {                                              \
+        ssize_t nr, size;                                                    \
+        struct hashtbl_entry *tab;                                           \
+    } pfx##_hash;                                                            \
+    \
+    GENERIC_INIT(pfx##_hash, pfx##_hash);                                    \
+    static inline void pfx##_hash_wipe(pfx##_hash *t) {                      \
+        hashtbl_wipe((hashtbl_t *)t);                                        \
+    }                                                                        \
+    \
+    static inline type **pfx##_hash_find(pfx##_hash *t, uint64_t h) {        \
+        return (type **)hashtbl_find((hashtbl_t *)t, h);                     \
+    }                                                                        \
+    static inline type **                                                    \
+    pfx##_hash_insert(pfx##_hash *t, uint64_t h, type *e) {                  \
+        return (type **)hashtbl_insert((hashtbl_t *)t, h, e);                \
+    }                                                                        \
+    \
+    static inline void pfx##_hash_remove(pfx##_hash *t, type **e) {          \
+        hashtbl_remove((hashtbl_t *)t, (void **)e);                          \
+    }                                                                        \
+    static inline void                                                       \
+    pfx##_hash_map(pfx##_hash *t, void (*fn)(type **, void *), void *p) {    \
+        hashtbl_map((hashtbl_t *)t, (void *)fn, p);                          \
+    }
+
 #endif /* IS_LIB_COMMON_HASHTBL_H */
