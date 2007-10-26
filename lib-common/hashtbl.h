@@ -22,7 +22,7 @@
  */
 
 typedef struct hashtbl_t {
-    ssize_t nr, size;
+    ssize_t nr, size, ghosts;
     struct hashtbl_entry *tab;
 } hashtbl_t;
 
