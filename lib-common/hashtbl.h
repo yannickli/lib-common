@@ -24,6 +24,9 @@
 typedef struct hashtbl_t {
     ssize_t nr, size, ghosts;
     struct hashtbl_entry *tab;
+#ifndef NDEBUG
+    flag_t inmap : 1;
+#endif
 } hashtbl_t;
 
 GENERIC_INIT(hashtbl_t, hashtbl);
@@ -32,6 +35,8 @@ void hashtbl_wipe(hashtbl_t *t);
 void **hashtbl_find(const hashtbl_t *t, uint64_t key);
 void **hashtbl_insert(hashtbl_t *t, uint64_t key, void *);
 void hashtbl_remove(hashtbl_t *t, void **);
+
+/* XXX: modifiying `t' from `fn' is totally unsupported and _WILL_ crash */
 void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *);
 
 #define DO_HASHTBL(type, pfx)                                                \

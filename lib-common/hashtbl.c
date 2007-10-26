@@ -23,6 +23,7 @@ typedef struct hashtbl_entry {
 
 void hashtbl_wipe(hashtbl_t *t)
 {
+    assert (!t->inmap);
     p_delete(&t->tab);
 }
 
@@ -77,6 +78,7 @@ void **hashtbl_insert(hashtbl_t *t, uint64_t key, void *ptr)
     ssize_t ghost = -1;
     hashtbl_entry *tab;
 
+    assert (!t->inmap);
     if (t->nr >= t->size / 2) {
         hashtbl_resize(t, p_alloc_nr(t->size));
     } else
@@ -111,6 +113,7 @@ void hashtbl_remove(hashtbl_t *t, void **pp)
 {
     hashtbl_entry *e;
 
+    assert (!t->inmap);
     assert (pp && !IS_EMPTY(*pp));
     e = (hashtbl_entry *)((char *)pp - offsetof(hashtbl_entry, ptr));
     assert (t->tab <= e && e < t->tab + t->size);
@@ -124,6 +127,11 @@ void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *priv)
 {
     ssize_t pos = t->size;
 
+    assert (!t->inmap);
+#ifndef NDEBUG
+    t->inmap = true;
+#endif
+
     /* the reverse loop is to maximize the ghosts removal */
     while (pos-- > 0) {
         hashtbl_entry *e = &t->tab[pos];
@@ -135,6 +143,9 @@ void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *priv)
             hashtbl_invalidate(t, pos);
         }
     }
+#ifndef NDEBUG
+    t->inmap = false;
+#endif
     if (4 * p_alloc_nr(t->nr) < t->size)
         hashtbl_resize(t, 2 * p_alloc_nr(t->nr));
 }
