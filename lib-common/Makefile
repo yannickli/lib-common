@@ -37,6 +37,7 @@ libcommon_SOURCES = \
 	err_report.c  \
 	farch.c \
 	fifo.c \
+	hashtbl.c \
 	int_array.c \
 	ioveclist.c \
 	iprintf.c \
