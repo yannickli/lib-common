@@ -66,4 +66,9 @@ void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *);
         hashtbl_map((hashtbl_t *)t, (void *)fn, p);                          \
     }
 
+/*----- Some useful and very very fast hashes, excellent distribution -----*/
+uint32_t hsieh_hash(const byte *s, int len);
+uint32_t jenkins_hash(const byte *s, int len);
+uint64_t combined_hash(const byte *s, int len);
+
 #endif /* IS_LIB_COMMON_HASHTBL_H */
