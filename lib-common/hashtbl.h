@@ -16,10 +16,9 @@
 
 #include "mem.h"
 
-/*
- * Hash tables from that module don't deal with collitions,
- * though wrappers to deal with it using SLISTS are trivial
- */
+/****************************************************************************/
+/* simple fast hash tables for non coliding datas                           */
+/****************************************************************************/
 
 typedef struct hashtbl_t {
     ssize_t nr, size, ghosts;
@@ -66,9 +65,61 @@ void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *);
         hashtbl_map((hashtbl_t *)t, (void *)fn, p);                          \
     }
 
-/*----- Some useful and very very fast hashes, excellent distribution -----*/
+
+/****************************************************************************/
+/* simple hash tables for string_to_element htables                         */
+/****************************************************************************/
+
+typedef struct hashtbl_str_t {
+    ssize_t nr, size, ghosts;
+    struct hashtbl_entry *tab;
+    int name_offs;             /* holds offsetof(type, <indexing field> */
+    flag_t name_inl : 1;
+#ifndef NDEBUG
+    flag_t inmap : 1;
+#endif
+} hashtbl_str_t;
+
 uint32_t hsieh_hash(const byte *s, int len);
 uint32_t jenkins_hash(const byte *s, int len);
 uint64_t combined_hash(const byte *s, int len);
+
+void **hashtbl_str_find(const hashtbl_str_t *t, uint64_t key, const char *s);
+void **hashtbl_str_insert(hashtbl_str_t *t, uint64_t key, void *);
+
+/* pass true to `inlined_str` if the ->name member is an inlined array */
+#define DO_HASHTBL_STR(type, pfx, name, inlined_str)                         \
+    typedef struct pfx##_hash {                                              \
+        ssize_t nr, size;                                                    \
+        struct hashtbl_entry *tab;                                           \
+        int name_offs;                                                       \
+    } pfx##_hash;                                                            \
+    \
+    static inline void pfx##_hash_init(pfx##_hash *t) {                      \
+        p_clear(h, 1);                                                       \
+        t->name_offs = offsetof(type, name);                                 \
+        t->name_inl  = inlined_str;                                          \
+    }                                                                        \
+    static inline void pfx##_hash_wipe(pfx##_hash *t) {                      \
+        hashtbl_wipe((hashtbl_t *)t);                                        \
+    }                                                                        \
+    \
+    static inline type **                                                    \
+    pfx##_hash_find(pfx##_hash *t, uint64_t key, const char *s) {            \
+        return (type **)hashtbl_str_find((hashtbl_str_t *)t, key, s);        \
+    }                                                                        \
+    static inline type **                                                    \
+    pfx##_hash_insert(pfx##_hash *t, uint64_t key, type *e) {                \
+        return (type **)hashtbl_str_insert((hashtbl_str_t *)t, key, e);      \
+    }                                                                        \
+    \
+    static inline void pfx##_hash_remove(pfx##_hash *t, type **e) {          \
+        hashtbl_remove((hashtbl_t *)t, (void **)e);                          \
+    }                                                                        \
+    static inline void                                                       \
+    pfx##_hash_map(pfx##_hash *t, void (*fn)(type **, void *), void *p) {    \
+        hashtbl_map((hashtbl_t *)t, (void *)fn, p);                          \
+    }
+
 
 #endif /* IS_LIB_COMMON_HASHTBL_H */

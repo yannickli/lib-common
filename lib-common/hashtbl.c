@@ -19,6 +19,10 @@ typedef struct hashtbl_entry {
     void *ptr;
 } hashtbl_entry;
 
+/****************************************************************************/
+/* simple fast hash tables for non coliding datas                           */
+/****************************************************************************/
+
 #define IS_EMPTY(ptr)  ((uintptr_t)(ptr) <= 1)
 
 void hashtbl_wipe(hashtbl_t *t)
@@ -40,10 +44,25 @@ static void hashtbl_invalidate(hashtbl_t *t, ssize_t pos)
     }
 }
 
-static void hashtbl_resize(hashtbl_t *t, size_t newsize)
+static void hashtbl_resize(hashtbl_t *t, ssize_t newsize)
 {
     ssize_t oldsize = t->size;
     hashtbl_entry *oldtab = t->tab;
+
+#ifndef NDEBUG
+    switch (CMP(oldsize, newsize)) {
+      case CMP_LESS:
+        e_trace(2, "growing %p (%zd -> %zd entries)", t, oldsize, newsize);
+        break;
+      case CMP_EQUAL:
+        e_trace(2, "ghosts in %p (%zd entries, %zd ghosts)", t, t->nr,
+                t->ghosts);
+        break;
+      case CMP_GREATER:
+        e_trace(2, "shrinking %p (%zd -> %zd entries)", t, oldsize, newsize);
+        break;
+    }
+#endif
 
     t->size = newsize;
     t->tab  = p_new(hashtbl_entry, newsize);
@@ -148,6 +167,77 @@ void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *priv)
 #endif
     if (4 * p_alloc_nr(t->nr) < t->size)
         hashtbl_resize(t, 2 * p_alloc_nr(t->nr));
+}
+
+/****************************************************************************/
+/* simple hash tables for string_to_element htables                         */
+/****************************************************************************/
+
+static inline const char *element_name(void *ptr, int offs, bool inl)
+{
+    void *p = (char *)ptr + offs;
+    return inl ? (const char *)p : *(const char **)p;
+}
+
+static bool strkey_equal(const hashtbl_str_t *t, const hashtbl_entry *e,
+                         uint64_t key, const char *s)
+{
+    return !IS_EMPTY(e->ptr) && e->key == key
+        && strequal(s, element_name(e->ptr, t->name_offs, t->name_inl));
+}
+
+void **hashtbl_str_find(const hashtbl_str_t *t, uint64_t key, const char *s)
+{
+    size_t size = (size_t)t->size;
+    size_t pos  = key % size;
+    hashtbl_entry *tab = t->tab;
+
+    if (!t->tab)
+        return NULL;
+
+    while (tab[pos].ptr && !strkey_equal(t, tab + pos, key, s)) {
+        if (++pos == size)
+            pos = 0;
+    }
+    return IS_EMPTY(tab[pos].ptr) ? NULL : &tab[pos].ptr;
+}
+
+void **hashtbl_str_insert(hashtbl_str_t *t, uint64_t key, void *ptr)
+{
+    size_t size, pos;
+    ssize_t ghost = -1;
+    hashtbl_entry *tab;
+    const char *name = element_name(ptr, t->name_offs, t->name_inl);
+
+    assert (!t->inmap);
+    if (t->nr >= t->size / 2) {
+        hashtbl_resize((hashtbl_t *)t, p_alloc_nr(t->size));
+    } else
+    if (t->nr + t->ghosts >= t->size / 2) {
+        hashtbl_resize((hashtbl_t *)t, t->size);
+    }
+
+    size = (size_t)t->size;
+    pos  = key % size;
+    tab  = t->tab;
+
+    while (tab[pos].ptr && !strkey_equal(t, tab + pos, key, name)) {
+        if (IS_EMPTY(tab[pos].ptr))
+            ghost = pos;
+        if (++pos == size)
+            pos = 0;
+    }
+    if (IS_EMPTY(tab[pos].ptr)) {
+        if (ghost >= 0) {
+            t->ghosts--;
+            pos = ghost;
+        }
+        t->nr++;
+        tab[pos].ptr = ptr;
+        tab[pos].key = key;
+        return NULL;
+    }
+    return &tab[pos].ptr;
 }
 
 /*----- Some useful and very very fast hashes, excellent distribution -----*/

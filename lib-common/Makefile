@@ -113,7 +113,7 @@ tst-iprintf-speed_SOURCES = tst-iprintf-speed.c libcommon.a
 tst-iprintf-speed_CFLAGS = -UCHECK
 
 tst-stats_SOURCES = tst-stats.c libcommon.a
-tst-hashtbl_SOURCES = err_report.c tst-hashtbl.c
+tst-hashtbl_SOURCES = err_debug.c err_report.c tst-hashtbl.c
 
 ifneq (,$(filter CYGWIN%,$(UNAME)))
   libcommon_SOURCES := $(filter-out blob-iconv.c linux.c psinfo.c,$(libcommon_SOURCES))
