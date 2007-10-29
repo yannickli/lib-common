@@ -20,14 +20,16 @@
 /* simple fast hash tables for non coliding datas                           */
 /****************************************************************************/
 
-typedef struct hashtbl_t {
-    ssize_t nr, size, ghosts;
-    struct hashtbl_entry *tab;
-#ifndef NDEBUG
-    flag_t inmap : 1;
-#endif
-} hashtbl_t;
+#define HASHTBLE_TYPE(t)                                                     \
+    typedef struct t {                                                       \
+        ssize_t nr, size, ghosts;                                            \
+        struct hashtbl_entry *tab;                                           \
+        int name_offs;        /* holds offsetof(type, <indexing field> */    \
+        flag_t name_inl : 1;                                                 \
+        flag_t inmap : 1;                                                    \
+    } t
 
+HASHTBLE_TYPE(hashtbl_t);
 GENERIC_INIT(hashtbl_t, hashtbl);
 void hashtbl_wipe(hashtbl_t *t);
 
@@ -39,10 +41,7 @@ void hashtbl_remove(hashtbl_t *t, void **);
 void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *);
 
 #define DO_HASHTBL(type, pfx)                                                \
-    typedef struct pfx##_hash {                                              \
-        ssize_t nr, size;                                                    \
-        struct hashtbl_entry *tab;                                           \
-    } pfx##_hash;                                                            \
+    HASHTBLE_TYPE(pfx##_hash);                                               \
     \
     GENERIC_INIT(pfx##_hash, pfx##_hash);                                    \
     static inline void pfx##_hash_wipe(pfx##_hash *t) {                      \
@@ -70,15 +69,7 @@ void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *);
 /* simple hash tables for string_to_element htables                         */
 /****************************************************************************/
 
-typedef struct hashtbl_str_t {
-    ssize_t nr, size, ghosts;
-    struct hashtbl_entry *tab;
-    int name_offs;             /* holds offsetof(type, <indexing field> */
-    flag_t name_inl : 1;
-#ifndef NDEBUG
-    flag_t inmap : 1;
-#endif
-} hashtbl_str_t;
+HASHTBLE_TYPE(hashtbl_str_t);
 
 uint32_t hsieh_hash(const byte *s, int len);
 uint32_t jenkins_hash(const byte *s, int len);
@@ -90,11 +81,7 @@ void **hashtbl_str_insert(hashtbl_str_t *t, uint64_t key, void *);
 
 /* pass true to `inlined_str` if the ->name member is an inlined array */
 #define DO_HASHTBL_STR(type, pfx, name, inlined_str)                         \
-    typedef struct pfx##_hash {                                              \
-        ssize_t nr, size;                                                    \
-        struct hashtbl_entry *tab;                                           \
-        int name_offs;                                                       \
-    } pfx##_hash;                                                            \
+    HASHTBLE_TYPE(pfx##_hash);                                               \
     \
     static inline void pfx##_hash_init(pfx##_hash *t) {                      \
         p_clear(t, 1);                                                       \
