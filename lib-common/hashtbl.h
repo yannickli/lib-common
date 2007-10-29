@@ -84,7 +84,8 @@ uint32_t hsieh_hash(const byte *s, int len);
 uint32_t jenkins_hash(const byte *s, int len);
 uint64_t combined_hash(const byte *s, int len);
 
-void **hashtbl_str_find(const hashtbl_str_t *t, uint64_t key, const char *s);
+void **hashtbl_str_find(const hashtbl_str_t *t, uint64_t key,
+                        const char *s, int len);
 void **hashtbl_str_insert(hashtbl_str_t *t, uint64_t key, void *);
 
 /* pass true to `inlined_str` if the ->name member is an inlined array */
@@ -96,7 +97,7 @@ void **hashtbl_str_insert(hashtbl_str_t *t, uint64_t key, void *);
     } pfx##_hash;                                                            \
     \
     static inline void pfx##_hash_init(pfx##_hash *t) {                      \
-        p_clear(h, 1);                                                       \
+        p_clear(t, 1);                                                       \
         t->name_offs = offsetof(type, name);                                 \
         t->name_inl  = inlined_str;                                          \
     }                                                                        \
@@ -105,8 +106,8 @@ void **hashtbl_str_insert(hashtbl_str_t *t, uint64_t key, void *);
     }                                                                        \
     \
     static inline type **                                                    \
-    pfx##_hash_find(pfx##_hash *t, uint64_t key, const char *s) {            \
-        return (type **)hashtbl_str_find((hashtbl_str_t *)t, key, s);        \
+    pfx##_hash_find(pfx##_hash *t, uint64_t key, const char *s, int len) {   \
+        return (type **)hashtbl_str_find((hashtbl_str_t *)t, key, s, len);   \
     }                                                                        \
     static inline type **                                                    \
     pfx##_hash_insert(pfx##_hash *t, uint64_t key, type *e) {                \

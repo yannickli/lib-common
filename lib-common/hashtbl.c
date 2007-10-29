@@ -180,13 +180,18 @@ static inline const char *element_name(void *ptr, int offs, bool inl)
 }
 
 static bool strkey_equal(const hashtbl_str_t *t, const hashtbl_entry *e,
-                         uint64_t key, const char *s)
+                         uint64_t key, const char *s, int len)
 {
-    return !IS_EMPTY(e->ptr) && e->key == key
-        && strequal(s, element_name(e->ptr, t->name_offs, t->name_inl));
+    const char *name = element_name(e->ptr, t->name_offs, t->name_inl);
+    if (IS_EMPTY(e->ptr) || e->key != key)
+        return false;
+    if (len < 0)
+        return strequal(s, name);
+    return !strncmp(s, name, len) && name[len] == '\0';
 }
 
-void **hashtbl_str_find(const hashtbl_str_t *t, uint64_t key, const char *s)
+void **hashtbl_str_find(const hashtbl_str_t *t, uint64_t key,
+                        const char *s, int len)
 {
     size_t size = (size_t)t->size;
     size_t pos  = key % size;
@@ -195,7 +200,7 @@ void **hashtbl_str_find(const hashtbl_str_t *t, uint64_t key, const char *s)
     if (!t->tab)
         return NULL;
 
-    while (tab[pos].ptr && !strkey_equal(t, tab + pos, key, s)) {
+    while (tab[pos].ptr && !strkey_equal(t, tab + pos, key, s, len)) {
         if (++pos == size)
             pos = 0;
     }
@@ -221,7 +226,7 @@ void **hashtbl_str_insert(hashtbl_str_t *t, uint64_t key, void *ptr)
     pos  = key % size;
     tab  = t->tab;
 
-    while (tab[pos].ptr && !strkey_equal(t, tab + pos, key, name)) {
+    while (tab[pos].ptr && !strkey_equal(t, tab + pos, key, name, -1)) {
         if (IS_EMPTY(tab[pos].ptr))
             ghost = pos;
         if (++pos == size)
