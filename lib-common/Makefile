@@ -18,7 +18,7 @@ __EXE__   = btree-dump
 __LIB__   = libcommon
 __CHECK__ = test tst-blob-iconv
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-hash tst-sort
-__CHECK__ += tst-iprintf-speed tst-stats
+__CHECK__ += tst-iprintf-speed tst-stats tst-hashtbl
 # These tests are just too long to be part of "make check". Sorry.
 __CHECK__ += tst-btree tst-isndx
 
@@ -113,6 +113,7 @@ tst-iprintf-speed_SOURCES = tst-iprintf-speed.c libcommon.a
 tst-iprintf-speed_CFLAGS = -UCHECK
 
 tst-stats_SOURCES = tst-stats.c libcommon.a
+tst-hashtbl_SOURCES = err_report.c tst-hashtbl.c
 
 ifneq (,$(filter CYGWIN%,$(UNAME)))
   libcommon_SOURCES := $(filter-out blob-iconv.c linux.c psinfo.c,$(libcommon_SOURCES))
