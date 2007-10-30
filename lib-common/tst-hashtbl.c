@@ -62,35 +62,44 @@ static void test_hashtbl(void)
     hashtbl_wipe(&h);
 }
 
+/* needed for newer gcc's that doesn't like the char * unconst thing for some
+   reason */
+static inline char *unconst(const char *s) {
+    intptr_t i = (intptr_t)s;
+    return (char *)i;
+}
+
 static void test_hashtbl_str(void)
 {
-    hashtbl_str_t h = { .name_offs = 0, .name_inl = true };
-    void **x;
+    string_hash h;
+    char **x;
+
+    string_hash_init(&h);
 
     for (int i = 0; i < 10; i++) {
-        WANT(hashtbl_str_insert(&h, i, (void *)arr[i]) == NULL);
+        WANT(string_hash_insert(&h, i, unconst(arr[i])) == NULL);
     }
     dump_hash((hashtbl_t *)(void *)&h);
 
-    WANT((x = hashtbl_str_find(&h, 3, "d", 1)) != NULL);
-    hashtbl_remove((hashtbl_t *)(void *)&h, x);
+    WANT((x = string_hash_find(&h, 3, "d", 1)) != NULL);
+    string_hash_remove(&h, x);
     dump_hash((hashtbl_t *)(void *)&h);
 
-    hashtbl_str_insert(&h, 3, (void *)"toto");
+    string_hash_insert(&h, 3, unconst("toto"));
     dump_hash((hashtbl_t *)(void *)&h);
 
-    hashtbl_map((hashtbl_t *)(void *)&h, &hash_filter, NULL);
+    string_hash_map(&h, (void *)&hash_filter, NULL);
     dump_hash((hashtbl_t *)(void *)&h);
 
     for (int i = 0; i < countof(arr); i++) {
-        WANT(hashtbl_str_insert(&h, i + 10, (void *)arr[i]) == NULL);
+        WANT(string_hash_insert(&h, i + 10, unconst(arr[i])) == NULL);
     }
     dump_hash((hashtbl_t *)(void *)&h);
 
-    hashtbl_map((hashtbl_t *)(void *)&h, &hash_filter, (void *)1);
+    string_hash_map(&h, (void *)&hash_filter, (void *)1);
     dump_hash((hashtbl_t *)(void *)&h);
 
-    hashtbl_wipe((hashtbl_t *)(void *)&h);
+    string_hash_wipe(&h);
 }
 
 int main(void)

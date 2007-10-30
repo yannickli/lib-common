@@ -80,12 +80,12 @@ void **hashtbl_str_find(const hashtbl_str_t *t, uint64_t key,
 void **hashtbl_str_insert(hashtbl_str_t *t, uint64_t key, void *);
 
 /* pass true to `inlined_str` if the ->name member is an inlined array */
-#define DO_HASHTBL_STR(type, pfx, name, inlined_str)                         \
+#define DO_HASHTBL_STROFFS(type, pfx, offs, inlined_str)                     \
     HASHTBLE_TYPE(pfx##_hash);                                               \
     \
     static inline void pfx##_hash_init(pfx##_hash *t) {                      \
         p_clear(t, 1);                                                       \
-        t->name_offs = offsetof(type, name);                                 \
+        t->name_offs = offs;                                                 \
         t->name_inl  = inlined_str;                                          \
     }                                                                        \
     static inline void pfx##_hash_wipe(pfx##_hash *t) {                      \
@@ -108,6 +108,11 @@ void **hashtbl_str_insert(hashtbl_str_t *t, uint64_t key, void *);
     pfx##_hash_map(pfx##_hash *t, void (*fn)(type **, void *), void *p) {    \
         hashtbl_map((hashtbl_t *)t, (void *)fn, p);                          \
     }
+
+#define DO_HASHTBL_STR(type, pfx, name, inlined_str)                         \
+    DO_HASHTBL_STROFFS(type, pfx, offsetof(type, name), inlined_str)
+
+DO_HASHTBL_STROFFS(char, string, 0, true);
 
 
 #endif /* IS_LIB_COMMON_HASHTBL_H */
