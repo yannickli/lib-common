@@ -39,6 +39,7 @@ void hashtbl_remove(hashtbl_t *t, void **);
 
 /* XXX: modifiying `t' from `fn' is totally unsupported and _WILL_ crash */
 void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *);
+void hashtbl_map2(hashtbl_t *t, void (*fn)(uint64_t, void **, void *), void *);
 
 #define DO_HASHTBL(type, pfx)                                                \
     HASHTBLE_TYPE(pfx##_hash);                                               \
@@ -62,6 +63,11 @@ void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *);
     static inline void                                                       \
     pfx##_hash_map(pfx##_hash *t, void (*fn)(type **, void *), void *p) {    \
         hashtbl_map((hashtbl_t *)t, (void *)fn, p);                          \
+    }                                                                        \
+    static inline void                                                       \
+    pfx##_hash_map2(pfx##_hash *t, void (*fn)(uint64_t, type **, void *),    \
+                    void *p) {                                               \
+        hashtbl_map2((hashtbl_t *)t, (void *)fn, p);                         \
     }
 
 
