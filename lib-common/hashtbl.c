@@ -130,16 +130,18 @@ void **hashtbl_insert(hashtbl_t *t, uint64_t key, void *ptr)
 
 void hashtbl_remove(hashtbl_t *t, void **pp)
 {
-    hashtbl_entry *e;
+    if (pp) {
+        hashtbl_entry *e;
 
-    assert (!t->inmap);
-    assert (pp && !IS_EMPTY(*pp));
-    e = (hashtbl_entry *)((char *)pp - offsetof(hashtbl_entry, ptr));
-    assert (t->tab <= e && e < t->tab + t->size);
+        assert (!t->inmap);
+        assert (pp && !IS_EMPTY(*pp));
+        e = (hashtbl_entry *)((char *)pp - offsetof(hashtbl_entry, ptr));
+        assert (t->tab <= e && e < t->tab + t->size);
 
-    hashtbl_invalidate(t, e - t->tab);
-    if (8 * (t->nr + 16) < t->size)
-        hashtbl_resize(t, 4 * (t->nr + 16));
+        hashtbl_invalidate(t, e - t->tab);
+        if (8 * (t->nr + 16) < t->size)
+            hashtbl_resize(t, 4 * (t->nr + 16));
+    }
 }
 
 void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *priv)
@@ -168,6 +170,35 @@ void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *priv)
     if (4 * p_alloc_nr(t->nr) < t->size)
         hashtbl_resize(t, 2 * p_alloc_nr(t->nr));
 }
+
+void hashtbl_map2(hashtbl_t *t, void (*fn)(uint64_t, void **, void *),
+                  void *priv)
+{
+    ssize_t pos = t->size;
+
+    assert (!t->inmap);
+#ifndef NDEBUG
+    t->inmap = true;
+#endif
+
+    /* the reverse loop is to maximize the ghosts removal */
+    while (pos-- > 0) {
+        hashtbl_entry *e = &t->tab[pos];
+        if (IS_EMPTY(e->ptr))
+            continue;
+
+        (*fn)(e->key, &e->ptr, priv);
+        if (!e->ptr) { /* means removal */
+            hashtbl_invalidate(t, pos);
+        }
+    }
+#ifndef NDEBUG
+    t->inmap = false;
+#endif
+    if (4 * p_alloc_nr(t->nr) < t->size)
+        hashtbl_resize(t, 2 * p_alloc_nr(t->nr));
+}
+
 
 /****************************************************************************/
 /* simple hash tables for string_to_element htables                         */
