@@ -62,6 +62,7 @@ static inline void blob_wipe(blob_t *blob) {
     /* Set the data pointer to NULL to catch errors more easily */
     blob->data = NULL;
 }
+char *blob_detach(blob_t *blob); /* don't use on a real blob_t * !*/
 
 GENERIC_NEW(blob_t, blob);
 GENERIC_DELETE(blob_t, blob);

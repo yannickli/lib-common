@@ -41,6 +41,18 @@
 /* Blob creation / deletion                                               */
 /**************************************************************************/
 
+char *blob_detach(blob_t *blob)
+{
+    char *res;
+    if (!blob->area)
+        return p_dupstr(blob->data, blob->len);
+    if (blob->data != blob->area)
+        memmove(blob->area, blob->data, blob->len + 1);
+    res = (char *)blob->area;
+    p_clear(blob, 1);
+    return res;
+}
+
 /* @see strdup(3) */
 blob_t *blob_dup(const blob_t *src)
 {
