@@ -672,6 +672,16 @@ const void *memsearch(const void *_haystack, size_t hsize,
     return NULL;
 }
 
+const void *pmemrchr(const void *s, int c, ssize_t n)
+{
+    for (const char *p = (char *)s + n - 1; p >= (char *)s; p--) {
+        if (*p == c)
+            return p;
+    }
+    return NULL;
+}
+
+
 /* find a word in a list of words separated by sep.
  */
 bool strfind(const char *keytable, const char *str, int sep)

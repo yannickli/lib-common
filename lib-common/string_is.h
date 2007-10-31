@@ -172,6 +172,8 @@ const void *memsearch(const void *haystack, size_t hsize,
                       const void *needle, size_t nsize)
         __attr_nonnull__((1, 3));
 
+const void *pmemrchr(const void *s, int c, ssize_t n) __attr_nonnull__((1));
+
 __attr_nonnull__((1, 3))
 static inline void *vmemsearch(void *haystack, size_t hsize,
                                const void *needle, size_t nsize) {
