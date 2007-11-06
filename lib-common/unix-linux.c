@@ -67,6 +67,10 @@ bool is_fd_open(int fd)
 
 void unix_initialize(void)
 {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    srand(tv.tv_usec);
+
     /* get the HZ value, needs linux 2.4 ;) */
     {
         unsigned long l;
