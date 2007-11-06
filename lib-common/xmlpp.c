@@ -73,6 +73,19 @@ void xmlpp_puttext(xmlpp_t *pp, const char *s, int len)
     blob_append_xmlescaped(pp->buf, s, len);
 }
 
+void xmlpp_put(xmlpp_t *pp, const char *fmt, ...)
+{
+    va_list ap;
+    blob_t tmp;
+
+    blob_init(&tmp);
+    va_start(ap, fmt);
+    blob_append_vfmt(&tmp, fmt, ap);
+    va_end(ap);
+    xmlpp_puttext(pp, blob_get_cstr(&tmp), tmp.len);
+    blob_wipe(&tmp);
+}
+
 void xmlpp_closetag(xmlpp_t *pp, int noindent)
 {
     char *tag;
