@@ -11,21 +11,13 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "xmlbuf.h"
+#include "xmlpp.h"
 
-xmlbuf_t *xmlbuf_init(xmlbuf_t *buf)
+void xmlpp_open(xmlpp_t *pp, blob_t *buf)
 {
-    p_clear(buf, 1);
-    blob_init(&buf->buf);
-    blob_set_cstr(&buf->buf, "<?xml version=\"1.0\"?>\n");
-    string_array_init(&buf->stack);
-    return buf;
-}
-
-void xmlbuf_wipe(xmlbuf_t *buf)
-{
-    blob_wipe(&buf->buf);
-    string_array_wipe(&buf->stack);
+    p_clear(pp, 1);
+    pp->buf = buf;
+    string_array_init(&pp->stack);
 }
 
 static void blob_append_xmlescaped(blob_t *buf, const char *s, int len)
@@ -56,56 +48,57 @@ static void blob_append_xmlescaped(blob_t *buf, const char *s, int len)
     }
 }
 
-void xmlbuf_opentag(xmlbuf_t *buf, const char *tag)
+void xmlpp_opentag(xmlpp_t *pp, const char *tag)
 {
-    blob_append_fmt(&buf->buf, "\n%*c<%s>",
-                    (int)buf->stack.len * 2, ' ', tag);
-    string_array_append(&buf->stack, p_strdup(tag));
-    buf->can_do_attr = true;
+    blob_append_fmt(pp->buf, "\n%*c<%s>",
+                    (int)pp->stack.len * 2, ' ', tag);
+    string_array_append(&pp->stack, p_strdup(tag));
+    pp->can_do_attr = true;
 }
 
-void xmlbuf_putattr(xmlbuf_t *buf, const char *key, const char *val)
+void xmlpp_putattr(xmlpp_t *pp, const char *key, const char *val)
 {
-    if (!buf->can_do_attr)
+    if (!pp->can_do_attr)
         return;
 
-    blob_kill_last(&buf->buf, 1);
-    blob_append_fmt(&buf->buf, " %s=\"", key);
-    blob_append_xmlescaped(&buf->buf, val, -1);
-    blob_append_cstr(&buf->buf, "\">");
+    blob_kill_last(pp->buf, 1);
+    blob_append_fmt(pp->buf, " %s=\"", key);
+    blob_append_xmlescaped(pp->buf, val, -1);
+    blob_append_cstr(pp->buf, "\">");
 }
 
-void xmlbuf_puttext(xmlbuf_t *buf, const char *s, int len)
+void xmlpp_puttext(xmlpp_t *pp, const char *s, int len)
 {
-    buf->can_do_attr = false;
-    blob_append_xmlescaped(&buf->buf, s, len);
+    pp->can_do_attr = false;
+    blob_append_xmlescaped(pp->buf, s, len);
 }
 
-void xmlbuf_closetag(xmlbuf_t *buf, int noindent)
+void xmlpp_closetag(xmlpp_t *pp, int noindent)
 {
     char *tag;
-    if (!buf->stack.len)
+    if (!pp->stack.len)
         return;
 
-    tag = string_array_take(&buf->stack, buf->stack.len - 1);
-    if (buf->can_do_attr) {
-        blob_kill_last(&buf->buf, 1);
-        blob_append_cstr(&buf->buf, " />");
+    tag = string_array_take(&pp->stack, pp->stack.len - 1);
+    if (pp->can_do_attr) {
+        blob_kill_last(pp->buf, 1);
+        blob_append_cstr(pp->buf, " />");
     } else
     if (!noindent) {
-        blob_append_fmt(&buf->buf, "\n%*c</%s>",
-                        (int)buf->stack.len * 2, ' ', tag);
+        blob_append_fmt(pp->buf, "\n%*c</%s>",
+                        (int)pp->stack.len * 2, ' ', tag);
     } else {
-        blob_append_fmt(&buf->buf, "</%s>", tag);
+        blob_append_fmt(pp->buf, "</%s>", tag);
     }
-    buf->can_do_attr = false;
+    pp->can_do_attr = false;
     p_delete(&tag);
 }
 
-void xmlbuf_close(xmlbuf_t *buf)
+void xmlpp_close(xmlpp_t *pp)
 {
-    while (buf->stack.len)
-        xmlbuf_closetag(buf, false);
-    if (buf->buf.data[buf->buf.len - 1] != '\n')
-        blob_append_byte(&buf->buf, '\n');
+    while (pp->stack.len)
+        xmlpp_closetag(pp, false);
+    if (pp->buf->data[pp->buf->len - 1] != '\n')
+        blob_append_byte(pp->buf, '\n');
+    string_array_wipe(&pp->stack);
 }

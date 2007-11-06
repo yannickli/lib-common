@@ -11,27 +11,23 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_TEASER_XMLBUF_H
-#define IS_TEASER_XMLBUF_H
+#ifndef IS_LIB_COMMON_XMLPP_H
+#define IS_LIB_COMMON_XMLPP_H
 
 #include <lib-common/str_array.h>
 #include <lib-common/blob.h>
 
-typedef struct xmlbuf_t {
+typedef struct xmlpp_t {
     flag_t can_do_attr : 1;
-    blob_t buf;
+    blob_t *buf;
     string_array stack;
-} xmlbuf_t;
+} xmlpp_t;
 
-xmlbuf_t *xmlbuf_init(xmlbuf_t *buf);
-void xmlbuf_wipe(xmlbuf_t *buf);
-GENERIC_NEW(xmlbuf_t, xmlbuf);
-GENERIC_DELETE(xmlbuf_t, xmlbuf);
+void xmlpp_open(xmlpp_t *, blob_t *buf);
+void xmlpp_opentag(xmlpp_t *, const char *tag);
+void xmlpp_putattr(xmlpp_t *, const char *key, const char *val);
+void xmlpp_puttext(xmlpp_t *, const char *s, int len);
+void xmlpp_closetag(xmlpp_t *, int noindent);
+void xmlpp_close(xmlpp_t *);
 
-void xmlbuf_opentag(xmlbuf_t *buf, const char *tag);
-void xmlbuf_putattr(xmlbuf_t *buf, const char *key, const char *val);
-void xmlbuf_puttext(xmlbuf_t *buf, const char *s, int len);
-void xmlbuf_closetag(xmlbuf_t *buf, int noindent);
-void xmlbuf_close(xmlbuf_t *buf);
-
-#endif /* IS_TEASER_XMLBUF_H */
+#endif /* IS_LIB_COMMON_XMLPP_H */

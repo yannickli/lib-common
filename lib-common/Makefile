@@ -61,7 +61,7 @@ libcommon_SOURCES = \
 	timeval.c \
 	timer.c \
 	xml.c \
-	xmlbuf.c \
+	xmlpp.c \
 	\
 	blob.c \
 	blob-ebcdic.c \
