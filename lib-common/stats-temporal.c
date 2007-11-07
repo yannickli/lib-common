@@ -967,10 +967,20 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
                               int start, int end, int nb_values,
                               int fmt)
 {
-    int i, stage;
+    static int pretty_freqs[] = {
+        1, 2, 5, 10, 15, 20, 30,
+        60, 120, 300, 600, 900, 1200, 1800,
+        3600, 7200
+    };
+    static int nb_pretty_freqs = countof(pretty_freqs);
+    int i, j, stage;
     stats_stage *st;
     byte *buf_start, *buf_end, *vp;
     int index = 0;      /* should be an argument */
+    int freq;
+    int count = 0;
+    int64_t accu = 0;
+    int trailing;
 
     if (fmt < STATS_FMT_RAW || fmt > STATS_FMT_XML) {
         blob_append_fmt(blob, "Bad stats fmt: %d", fmt);
@@ -990,30 +1000,97 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         }
     }
 
-    st = stats->file->area->stage;
-
-    for (stage = 0; stage < stats->nb_stages - 1; stage++, st++) {
-        if (((end - start) / st->scale) <= nb_values) {
-            break;
-        }
-    }
-
-    if (stage < 0 || stage >= stats->nb_stages) {
-        blob_append_fmt(blob, "invalid stage number: %d", stage);
+    e_trace(1, "input values: start: %d, end: %d, nbvalues: %d",
+            start, end, nb_values);
+    if (start <= 0 || end <= 0) {
+        blob_append_cstr(blob,
+                         "Stats auto: invalid interval");
         return -1;
     }
 
+    /* Force minimum interval */
+    if (nb_values < 10) {
+        nb_values = 10;
+    }
+    if (end - start < 10) {
+        int diff = 10 - (end - start);
+        int rounding = diff & 0x1;  /* odd or even ? */
+
+        diff /= 2;
+        start -= diff;
+        end   += diff + rounding;
+    }
+
+    /* Compute best sample duration */
+    freq = (end - start) / nb_values;
+    e_trace(2, "freq requested: %d", freq);
+    if (freq <= 1) {
+        freq = 1;
+    } else {
+        for (i = 1; i < nb_pretty_freqs; i++) {
+            if (freq < pretty_freqs[i]) {
+                freq = pretty_freqs[i - 1];
+                break;
+            }
+        }
+        if (i == nb_pretty_freqs) {
+            freq = -1;
+        }
+    }
+    e_trace(2, "freq chosen: %d", freq);
+
+    /* Choose stage */
+    st = stats->file->area->stage;
+    stage = 0;
+    if (freq <= 0) {
+        /* No freq was found (interval too large) */
+        for (stage = 0; stage < stats->nb_stages - 1; stage++, st++) {
+            if (((end - start) / st->scale) <= nb_values) {
+                break;
+            }
+        }
+        freq = st->scale;
+    } else {
+        if (st->scale < freq) {
+            st++;
+            for (stage = 1; stage < stats->nb_stages; stage++, st++) {
+                if (st->scale > freq) {
+                    /* Use the previous one */
+                    st--;
+                    stage--;
+                    break;
+                }
+            }
+            if (stage == stats->nb_stages) {
+                /* Use the last as a last resort */
+                stage--;
+                st--;
+            }
+        } else {
+            /* Use the first anyway */
+        }
+    }
+    e_trace(2, "stage selected: %d", stage);
+
     start /= st->scale;
+    freq  /= st->scale;
+    start = (start / freq) * freq;
     end   = (end - 1) / st->scale + 1;
 
+    e_trace(1, "real values chosen: start: %d, end: %d, freq: %d, "
+            "nbvalues: %d, ratio: %d",
+            start, end, freq, nb_values, (end - start) / freq);
+
+    /* trim start and end to match actual data in our file */
     if (start <= st->current - st->count) {
         /* We don't know any values before 'st->current - st->count' */
-        /* FIXME: Shouldn't we drop these stats, instead of shifting */
         e_trace(2, "start was too early (%d < %d)",
                 start, st->current - st->count);
+        /* TODO: Send fake values using either upper stages, or zero values */
         start = st->current - st->count;
     }
 
+    trailing = end;
     if (end > st->current + 1) {
         /* FIXME: Shouldn't we drop these stats, instead of shifting */
         e_trace(2, "end was too far (%d > %d)", end, st->current + 1);
@@ -1036,32 +1113,60 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         break;
     }
 
-    for (i = start; i < end; i++) {
+    for (i = start, j = 0; i < end; i++) {
         /* XXX: This rely on start and end being cropped */
         if (vp >= buf_end) {
             vp = buf_start;
         }
 
-        switch (fmt) {
-          case STATS_FMT_RAW:
-            blob_append_fmt(blob, "%d %lld\n",
-                            i * st->scale, 
-                            (long long)(stage ? ((int64_t*)vp)[index] :
-                                        ((int32_t*)vp)[index]));
-            break;
+        accu += (long long)(stage ? ((int64_t*)vp)[index] : ((int32_t*)vp)[index]);
+        j++;
 
-          case STATS_FMT_XML:
-            blob_append_fmt(blob, "<elem time=\"%d\" val=\"%lld\" />\n",
-                            i * st->scale,
-                            (long long)(stage ? ((int64_t*)vp)[index] :
-                                        ((int32_t*)vp)[index]));
-            break;
+        if (j >= freq) {
+            switch (fmt) {
+              case STATS_FMT_RAW:
+                blob_append_fmt(blob, "%d %lld\n",
+                                (i - (freq - 1)) * st->scale, accu);
+                break;
 
-          default:
-            break;
+              case STATS_FMT_XML:
+                blob_append_fmt(blob, "<elem time=\"%d\" val=\"%lld\" />\n",
+                                (i - (freq - 1)) * st->scale, accu);
+                count++;
+                break;
+
+              default:
+                break;
+            }
+            j = 0;
+            accu = 0;
         }
         vp += st->incr;
     }
+    for (i = end; i < trailing; i++) {
+        j++;
+
+        if (j >= freq) {
+            switch (fmt) {
+              case STATS_FMT_RAW:
+                blob_append_fmt(blob, "%d %lld\n",
+                                (i - (freq - 1)) * st->scale, accu);
+                break;
+
+              case STATS_FMT_XML:
+                blob_append_fmt(blob, "<elem time=\"%d\" val=\"%lld\" />\n",
+                                (i - (freq - 1)) * st->scale, accu);
+                count++;
+                break;
+
+              default:
+                break;
+            }
+            j = 0;
+            accu = 0;
+        }
+    }
+
 
     switch (fmt) {
       case STATS_FMT_XML:
@@ -1071,6 +1176,8 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
       default:
         break;
     }
+
+    e_trace(1, "Outputed %d values", count);
 
     return 0;
 }
