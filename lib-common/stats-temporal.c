@@ -1126,12 +1126,14 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
             switch (fmt) {
               case STATS_FMT_RAW:
                 blob_append_fmt(blob, "%d %lld\n",
-                                (i - (freq - 1)) * st->scale, accu);
+                                (i - (freq - 1)) * st->scale,
+                                (long long)accu);
                 break;
 
               case STATS_FMT_XML:
                 blob_append_fmt(blob, "<elem time=\"%d\" val=\"%lld\" />\n",
-                                (i - (freq - 1)) * st->scale, accu);
+                                (i - (freq - 1)) * st->scale,
+                                (long long)accu);
                 count++;
                 break;
 
@@ -1150,12 +1152,14 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
             switch (fmt) {
               case STATS_FMT_RAW:
                 blob_append_fmt(blob, "%d %lld\n",
-                                (i - (freq - 1)) * st->scale, accu);
+                                (i - (freq - 1)) * st->scale,
+                                (long long)accu);
                 break;
 
               case STATS_FMT_XML:
                 blob_append_fmt(blob, "<elem time=\"%d\" val=\"%lld\" />\n",
-                                (i - (freq - 1)) * st->scale, accu);
+                                (i - (freq - 1)) * st->scale,
+                                (long long)accu);
                 count++;
                 break;
 
