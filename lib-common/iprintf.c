@@ -334,7 +334,7 @@ static inline int fmt_output_chars(FILE *stream, char *str, size_t size,
 {
     while (n-- > 0) {
         if (stream) {
-            PUTC(c, stream);
+            ISPUTC(c, stream);
         } else {
             if ((size_t)count < size)
                 str[count] = c;
@@ -351,7 +351,7 @@ static inline int fmt_output_chunk(FILE *stream, char *str, size_t size,
 
     for (i = 0; i < len; i++) {
         if (stream) {
-            PUTC(lp[i], stream);
+            ISPUTC(lp[i], stream);
         } else {
             if ((size_t)count < size)
                 str[count] = lp[i];
@@ -402,16 +402,16 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         if (stream) {
             switch (len) {
             default:
-                count += FWRITE(lp, 1, (size_t)len, stream);
+                count += ISFWRITE(lp, 1, (size_t)len, stream);
                 break;
-            case 8: PUTC(*lp++, stream);
-            case 7: PUTC(*lp++, stream);
-            case 6: PUTC(*lp++, stream);
-            case 5: PUTC(*lp++, stream);
-            case 4: PUTC(*lp++, stream);
-            case 3: PUTC(*lp++, stream);
-            case 2: PUTC(*lp++, stream);
-            case 1: PUTC(*lp++, stream);
+            case 8: ISPUTC(*lp++, stream);
+            case 7: ISPUTC(*lp++, stream);
+            case 6: ISPUTC(*lp++, stream);
+            case 5: ISPUTC(*lp++, stream);
+            case 4: ISPUTC(*lp++, stream);
+            case 3: ISPUTC(*lp++, stream);
+            case 2: ISPUTC(*lp++, stream);
+            case 1: ISPUTC(*lp++, stream);
             case 0: count += len;
                 break;
             }
@@ -1271,28 +1271,28 @@ int ifputs_hex(FILE *stream, const byte *buf, int len)
     while (len) {
         line_len = MIN(len, 16);
         for (i = 0; i < line_len; i++) {
-            PUTC(hexchar[(buf[i] >> 4) & 0x0F], stream);
-            PUTC(hexchar[ buf[i]       & 0x0F], stream);
-            PUTC(' ', stream);
+            ISPUTC(hexchar[(buf[i] >> 4) & 0x0F], stream);
+            ISPUTC(hexchar[ buf[i]       & 0x0F], stream);
+            ISPUTC(' ', stream);
         }
         while (i < 16) {
-            PUTC(' ', stream);
-            PUTC(' ', stream);
-            PUTC(' ', stream);
+            ISPUTC(' ', stream);
+            ISPUTC(' ', stream);
+            ISPUTC(' ', stream);
             i++;
         }
         ret += 16 * 3;
         for (i = 0; i < line_len; i++) {
             if (isprint(buf[i])) {
-                PUTC(buf[i], stream);
+                ISPUTC(buf[i], stream);
             } else {
-                PUTC('.', stream);
+                ISPUTC('.', stream);
             }
         }
         ret += line_len;
         buf += line_len;
         len -= line_len;
-        PUTC('\n', stream);
+        ISPUTC('\n', stream);
         ret++;
     }
     return ret;
