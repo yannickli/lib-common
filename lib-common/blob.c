@@ -1463,6 +1463,9 @@ int blob_pack(blob_t *blob, const char *fmt, ...)
             p = convert_int10(buf + sizeof(buf), va_arg(ap, int));
             blob_append_data(blob, p, buf + sizeof(buf) - p);
             continue;
+        case 'g':
+            blob_append_fmt(blob, "%g", va_arg(ap, double));
+            continue;
         case 'x':
             p = convert_hex(buf + sizeof(buf), va_arg(ap, unsigned int));
             blob_append_data(blob, p, buf + sizeof(buf) - p);
@@ -1511,6 +1514,7 @@ static int buf_unpack_vfmt(const byte *buf, int buf_len,
     for (;;) {
         switch (c = *fmt++) {
             int ival, *ivalp;
+            double dval, *dvalp;
             unsigned int uval, *uvalp;
             char **strvalp;
 
@@ -1521,6 +1525,14 @@ static int buf_unpack_vfmt(const byte *buf, int buf_len,
             ivalp = va_arg(ap, int *);
             if (ivalp) {
                 *ivalp = ival;
+            }
+            n++;
+            continue;
+        case 'g':
+            dval = strtod((const char*)data, (char **)(void *)(&data));
+            dvalp = va_arg(ap, double *);
+            if (dvalp) {
+                *dvalp = dval;
             }
             n++;
             continue;
