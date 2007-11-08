@@ -963,7 +963,8 @@ int stats_temporal_query_hour(stats_temporal_t *stats, blob_t *blob,
 }
 
 /* Should return number of samples produced? */
-int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
+int stats_temporal_query_auto(stats_temporal_t *stats, int index,
+                              blob_t *blob,
                               int start, int end, int nb_values,
                               int fmt)
 {
@@ -976,7 +977,6 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     int i, j, stage;
     stats_stage *st;
     byte *buf_start, *buf_end, *vp;
-    int index = 0;      /* should be an argument */
     int freq;
     int count = 0;
     int64_t accu = 0;
