@@ -52,9 +52,9 @@
 
 #undef EXPORT
 #ifdef __GNUC__
-#  define EXPORT    __attribute__((visibility("default")))
+#  define EXPORT    extern __attribute__((visibility("default")))
 #else
-#  define EXPORT
+#  define EXPORT    extern
 #endif
 
 #ifdef __GNUC__
