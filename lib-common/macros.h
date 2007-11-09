@@ -53,8 +53,10 @@
 #undef EXPORT
 #ifdef __GNUC__
 #  define EXPORT    extern __attribute__((visibility("default")))
+#  define HIDDEN    extern __attribute__((visibility("hidden")))
 #else
 #  define EXPORT    extern
+#  define HIDDEN    extern
 #endif
 
 #ifdef __GNUC__
