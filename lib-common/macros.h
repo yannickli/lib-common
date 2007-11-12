@@ -120,10 +120,12 @@ static inline uint16_t ntohs(be16_t x) {
 }
 #endif
 
-#define TST_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] &   (1 << ((num) & 7)))
-#define SET_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] |=  (1 << ((num) & 7)))
-#define RST_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] &= ~(1 << ((num) & 7)))
-#define XOR_BIT(bits, num)  ((bits)[(unsigned)(num) >> 3] ^=  (1 << ((num) & 7)))
+#define OP_BIT(bits, n, shift, op) \
+    ((bits)[(unsigned)(n) >> (shift)] op (1 << ((n) & ((1 << (shift)) - 1))))
+#define TST_BIT(bits, n)  OP_BIT(bits, n, sizeof(*(bits)) * 3, &  )
+#define SET_BIT(bits, n)  OP_BIT(bits, n, sizeof(*(bits)) * 3, |= )
+#define RST_BIT(bits, n)  OP_BIT(bits, n, sizeof(*(bits)) * 3, &=~)
+#define XOR_BIT(bits, n)  OP_BIT(bits, n, sizeof(*(bits)) * 3, ^= )
 
 /*---------------- Misc ----------------*/
 
