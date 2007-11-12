@@ -140,7 +140,7 @@ int props_hash_unpack(const byte *buf, int buflen, int *pos,
             p_delete(&key);
             goto error;
         }
-        props_hash_update(ph, key, *val ? val : NULL);
+        props_hash_update(ph, key, val);
         p_delete(&val);
         p_delete(&key);
     }
