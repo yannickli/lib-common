@@ -49,7 +49,6 @@ libcommon_SOURCES = \
 	mmappedfile.c \
 	paged-index.c \
 	parseopt.c \
-	property.c \
 	psinfo.c \
 	robuf.c \
 	showflags.c \
@@ -80,6 +79,9 @@ libcommon_SOURCES = \
 	mem.c \
 	mem-pool.c \
 	mem-fifo-pool.c \
+	\
+	property.c \
+	property-hash.c \
 	\
 	unix.c \
 	unix-linux.c \
