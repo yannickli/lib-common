@@ -50,12 +50,15 @@
 #  define __attr_scanf__(a, b)   __attribute__((format(scanf, a, b)))
 #endif
 
-#undef EXPORT
 #ifdef __GNUC__
-#  define EXPORT    extern __attribute__((visibility("default")))
+#  ifndef EXPORT
+#    define EXPORT    extern __attribute__((visibility("default")))
+#  endif
 #  define HIDDEN    extern __attribute__((visibility("hidden")))
 #else
-#  define EXPORT    extern
+#  ifndef EXPORT
+#    define EXPORT    extern
+#  endif
 #  define HIDDEN    extern
 #endif
 
