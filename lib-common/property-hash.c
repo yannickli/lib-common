@@ -40,7 +40,7 @@ void props_hash_wipe(props_hash_t *ph)
  */
 
 
-static uint64_t getkey(props_hash_t *ph, const char *name, bool insert)
+static uint64_t getkey(const props_hash_t *ph, const char *name, bool insert)
 {
     char buf[BUFSIZ], *s, **sp;
     int len = 0;
@@ -87,7 +87,7 @@ void props_hash_update(props_hash_t *ph, const char *name, const char *value)
     }
 }
 
-const char *props_hash_findval(props_hash_t *ph, const char *name, const char *def)
+const char *props_hash_findval(const props_hash_t *ph, const char *name, const char *def)
 {
     uint64_t key = getkey(ph, name, false);
     char **sp    = (char **)hashtbl_find(&ph->h, key);

@@ -33,8 +33,8 @@ void props_hash_wipe(props_hash_t *ph);
 
 
 void props_hash_update(props_hash_t *ph, const char *name, const char *value);
-const char *props_hash_findval(props_hash_t *ph, const char *name, const char *def);
-static inline const char *props_hash_find(props_hash_t *ph, const char *name)
+const char *props_hash_findval(const props_hash_t *ph, const char *name, const char *def);
+static inline const char *props_hash_find(const props_hash_t *ph, const char *name)
 {
     return props_hash_findval(ph, name, NULL);
 }
