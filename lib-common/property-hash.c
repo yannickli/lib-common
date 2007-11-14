@@ -116,6 +116,29 @@ void props_hash_to_fmtv1(blob_t *out, const props_hash_t *ph)
     hashtbl_map2((hashtbl_t *)&ph->h, &one_to_fmtv1, out);
 }
 
+static void one_to_conf(uint64_t key, void **val, void *blob)
+{
+    /* fixme val could have embeded \n */
+    blob_append_fmt(blob, "%s = %s\n", getname(key), (const char *)*val);
+}
+
+void props_hash_to_conf(blob_t *out, const props_hash_t *ph)
+{
+    hashtbl_map2((hashtbl_t *)&ph->h, &one_to_conf, out);
+}
+
+static void one_to_xml(uint64_t key, void **val, void *pp)
+{
+    xmlpp_opentag(pp, getname(key));
+    xmlpp_puttext(pp, *val, -1);
+    xmlpp_closetag(pp, true);
+}
+
+void props_hash_to_xml(xmlpp_t *pp, const props_hash_t *ph)
+{
+    hashtbl_map2((hashtbl_t *)&ph->h, &one_to_xml, pp);
+}
+
 /* TODO check for validity first in a separate pass */
 int props_hash_unpack(const byte *buf, int buflen, int *pos,
                       props_hash_t *ph, int last)

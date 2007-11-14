@@ -17,6 +17,7 @@
 #include "array.h"
 #include "blob.h"
 #include "hashtbl.h"
+#include "xmlpp.h"
 
 typedef struct props_hash_t {
     hashtbl_t h;
@@ -42,6 +43,8 @@ static inline const char *props_hash_find(const props_hash_t *ph, const char *na
 /* appends $nb|$k1|$v1|...|$kn|$vn$last */
 void props_hash_pack(blob_t *out, const props_hash_t *ph, int terminator);
 void props_hash_to_fmtv1(blob_t *out, const props_hash_t *ph);
+void props_hash_to_conf(blob_t *out, const props_hash_t *ph);
+void props_hash_to_xml(xmlpp_t *pp, const props_hash_t *ph);
 
 __must_check__ int props_hash_unpack(const byte *buf, int buflen, int *pos,
                                      props_hash_t *, int last);
