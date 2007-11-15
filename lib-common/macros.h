@@ -146,6 +146,8 @@ static inline uint16_t ntohs(be16_t x) {
 #endif
 #define MIN3(a,b,c)  (((a) > (b)) ? MIN(b, c) : MIN(a, c))
 
+#define NEXTARG(argc, argv)  (argc--, *argv++)
+
 #ifdef CMP
 #error CMP already defined
 #endif
