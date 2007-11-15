@@ -154,7 +154,7 @@ static void one_to_xml(uint64_t key, void **val, void *pp)
 {
     xmlpp_opentag(pp, getname(key));
     xmlpp_puttext(pp, *val, -1);
-    xmlpp_closetag(pp, true);
+    xmlpp_closetag(pp);
 }
 
 void props_hash_to_xml(xmlpp_t *pp, const props_hash_t *ph)

@@ -54,6 +54,7 @@ void xmlpp_opentag(xmlpp_t *pp, const char *tag)
                     (int)pp->stack.len * 2, ' ', tag);
     string_array_append(&pp->stack, p_strdup(tag));
     pp->can_do_attr = true;
+    pp->was_a_tag   = true;
 }
 
 void xmlpp_putattr(xmlpp_t *pp, const char *key, const char *val)
@@ -70,6 +71,7 @@ void xmlpp_putattr(xmlpp_t *pp, const char *key, const char *val)
 void xmlpp_puttext(xmlpp_t *pp, const char *s, int len)
 {
     pp->can_do_attr = false;
+    pp->was_a_tag   = false;
     blob_append_xmlescaped(pp->buf, s, len);
 }
 
@@ -86,7 +88,7 @@ void xmlpp_put(xmlpp_t *pp, const char *fmt, ...)
     blob_wipe(&tmp);
 }
 
-void xmlpp_closetag(xmlpp_t *pp, int noindent)
+void xmlpp_closetag(xmlpp_t *pp)
 {
     char *tag;
     if (!pp->stack.len)
@@ -96,21 +98,22 @@ void xmlpp_closetag(xmlpp_t *pp, int noindent)
     if (pp->can_do_attr) {
         blob_kill_last(pp->buf, 1);
         blob_append_cstr(pp->buf, " />");
-    } else
-    if (!noindent) {
-        blob_append_fmt(pp->buf, "\n%*c</%s>",
-                        (int)pp->stack.len * 2, ' ', tag);
     } else {
+        if (pp->was_a_tag) {
+            blob_append_byte(pp->buf, '\n');
+            blob_extend2(pp->buf, pp->stack.len * 2, ' ');
+        }
         blob_append_fmt(pp->buf, "</%s>", tag);
     }
     pp->can_do_attr = false;
+    pp->was_a_tag   = true;
     p_delete(&tag);
 }
 
 void xmlpp_close(xmlpp_t *pp)
 {
     while (pp->stack.len)
-        xmlpp_closetag(pp, false);
+        xmlpp_closetag(pp);
     if (pp->buf->data[pp->buf->len - 1] != '\n')
         blob_append_byte(pp->buf, '\n');
     string_array_wipe(&pp->stack);
