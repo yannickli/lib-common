@@ -59,8 +59,8 @@ void xmlpp_close(xmlpp_t *pp)
 
 void xmlpp_opentag(xmlpp_t *pp, const char *tag)
 {
-    blob_append_fmt(pp->buf, "\n%*c<%s>",
-                    (int)pp->stack.len * 2, ' ', tag);
+    blob_append_fmt(pp->buf, "%-*c<%s>",
+                    (int)pp->stack.len * 2 + 1, '\n', tag);
     string_array_append(&pp->stack, p_strdup(tag));
     pp->can_do_attr = true;
     pp->was_a_tag   = true;
