@@ -25,12 +25,17 @@ typedef struct xmlpp_t {
 } xmlpp_t;
 
 void xmlpp_open(xmlpp_t *, blob_t *buf);
+void xmlpp_close(xmlpp_t *);
+
 void xmlpp_opentag(xmlpp_t *, const char *tag);
+void xmlpp_closetag(xmlpp_t *);
+
 void xmlpp_putattr(xmlpp_t *, const char *key, const char *val);
+void xmlpp_putattrfmt(xmlpp_t *, const char *key,
+                      const char *fmt, ...) __attr_printf__(3, 4);
+
 void xmlpp_puttext(xmlpp_t *, const char *s, int len);
 void xmlpp_put(xmlpp_t *, const char *fmt, ...) __attr_printf__(2, 3);
-void xmlpp_closetag(xmlpp_t *);
-void xmlpp_close(xmlpp_t *);
 
 
 static inline void xmlpp_closentag(xmlpp_t *pp, int n) {
