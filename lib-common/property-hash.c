@@ -13,19 +13,8 @@
 
 #include "property-hash.h"
 
-static void props_wipe_one(void **s, void *unused)
-{
-    p_delete(s);
-}
-
-void props_hash_wipe(props_hash_t *ph)
-{
-    hashtbl_map(&ph->h, &props_wipe_one, NULL);
-    hashtbl_wipe(&ph->h);
-}
-
 /****************************************************************************/
-/* deal with our curious hashtables                                         */
+/* Generic helpers and functions                                            */
 /****************************************************************************/
 /* XXX: subtle
  *
@@ -40,7 +29,7 @@ void props_hash_wipe(props_hash_t *ph)
  */
 
 
-static uint64_t getkey(props_hash_t *ph, const char *name, bool insert)
+static uint64_t getkey(const props_hash_t *ph, const char *name, bool insert)
 {
     char buf[BUFSIZ], *s, **sp;
     int len = 0;
@@ -70,6 +59,21 @@ static const char *getname(uint64_t key)
     return (const char *)(uintptr_t)key;
 }
 
+/****************************************************************************/
+/* Create hashtables, update records                                        */
+/****************************************************************************/
+
+static void props_wipe_one(void **s, void *unused)
+{
+    p_delete(s);
+}
+
+void props_hash_wipe(props_hash_t *ph)
+{
+    hashtbl_map(&ph->h, &props_wipe_one, NULL);
+    hashtbl_wipe(&ph->h);
+}
+
 void props_hash_update(props_hash_t *ph, const char *name, const char *value)
 {
     uint64_t key = getkey(ph, name, true);
@@ -87,12 +91,31 @@ void props_hash_update(props_hash_t *ph, const char *name, const char *value)
     }
 }
 
-const char *props_hash_findval(props_hash_t *ph, const char *name, const char *def)
+static void update_one(uint64_t key, void **val, void *to)
+{
+    props_hash_update(to, getname(key), *val);
+}
+
+void props_hash_merge(props_hash_t *to, const props_hash_t *src)
+{
+    assert (to->names == src->names);
+    hashtbl_map2((hashtbl_t *)src, update_one, to);
+}
+
+/****************************************************************************/
+/* Search in props_hashes                                                   */
+/****************************************************************************/
+
+const char *props_hash_findval(const props_hash_t *ph, const char *name, const char *def)
 {
     uint64_t key = getkey(ph, name, false);
     char **sp    = (char **)hashtbl_find(&ph->h, key);
     return key && sp ? *sp : def;
 }
+
+/****************************************************************************/
+/* Serialize props_hashes                                                   */
+/****************************************************************************/
 
 static void pack_one(uint64_t key, void **val, void *blob)
 {
@@ -115,6 +138,33 @@ void props_hash_to_fmtv1(blob_t *out, const props_hash_t *ph)
 {
     hashtbl_map2((hashtbl_t *)&ph->h, &one_to_fmtv1, out);
 }
+
+static void one_to_conf(uint64_t key, void **val, void *blob)
+{
+    /* fixme val could have embeded \n */
+    blob_append_fmt(blob, "%s = %s\n", getname(key), (const char *)*val);
+}
+
+void props_hash_to_conf(blob_t *out, const props_hash_t *ph)
+{
+    hashtbl_map2((hashtbl_t *)&ph->h, &one_to_conf, out);
+}
+
+static void one_to_xml(uint64_t key, void **val, void *pp)
+{
+    xmlpp_opentag(pp, getname(key));
+    xmlpp_puttext(pp, *val, -1);
+    xmlpp_closetag(pp);
+}
+
+void props_hash_to_xml(xmlpp_t *pp, const props_hash_t *ph)
+{
+    hashtbl_map2((hashtbl_t *)&ph->h, &one_to_xml, pp);
+}
+
+/****************************************************************************/
+/* Unserialize props_hashes                                                 */
+/****************************************************************************/
 
 /* TODO check for validity first in a separate pass */
 int props_hash_unpack(const byte *buf, int buflen, int *pos,

@@ -146,6 +146,8 @@ static inline uint16_t ntohs(be16_t x) {
 #endif
 #define MIN3(a,b,c)  (((a) > (b)) ? MIN(b, c) : MIN(a, c))
 
+#define NEXTARG(argc, argv)  (argc--, *argv++)
+
 #ifdef CMP
 #error CMP already defined
 #endif
@@ -168,7 +170,8 @@ enum sign {
 #define TOSTR_AUX(x)  #x
 #define TOSTR(x)      TOSTR_AUX(x)
 
-#define SWAP(a, b)   do { void *c = a; a = b; b = c; } while (0)
+#define SWAP(a, b)    do { void *c = a; a = b; b = c; } while (0)
+#define CSWAP(a, b)   do { const void *c = a; a = b; b = c; } while (0)
 
 /* monotonic clock operations:
 

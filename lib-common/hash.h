@@ -105,12 +105,18 @@ typedef struct md5_ctx {
     unsigned char save[64];
 } md5_ctx;
 
+#define MAKE_UPDATESTR(pfx) \
+    static inline void pfx##_updatestr(pfx##_ctx *ctx, const char *s) { \
+        pfx##_update(ctx, s, strlen(s));                             \
+    }
+
 void md5_init(md5_ctx *ctx);
 void md5_update(md5_ctx *ctx, const void *data, uint32_t len);
 void md5_final(md5_ctx *ctx, byte *digest);
 void md5_final_hex(md5_ctx *ctx, char *digest);
 void md5(const void *message, uint32_t len, byte *digest);
 void md5_hex(const void *message, uint32_t len, char *digest);
+MAKE_UPDATESTR(md5);
 
 void sha1_init(sha1_ctx *ctx);
 void sha1_update(sha1_ctx *ctx, const void *data, uint32_t len);
@@ -118,6 +124,7 @@ void sha1_final(sha1_ctx *ctx, byte *digest);
 void sha1_final_hex(sha1_ctx *ctx, char *digest);
 void sha1(const void *message, uint32_t len, byte *digest);
 void sha1_hex(const void *message, uint32_t len, char *digest);
+MAKE_UPDATESTR(sha1);
 
 void sha224_init(sha224_ctx *ctx);
 void sha224_update(sha224_ctx *ctx, const void *message, uint32_t len);
@@ -125,6 +132,7 @@ void sha224_final(sha224_ctx *ctx, byte *digest);
 void sha224_final_hex(sha224_ctx *ctx, char *digest);
 void sha224(const void *message, uint32_t len, byte *digest);
 void sha224_hex(const void *message, uint32_t len, char *digest);
+MAKE_UPDATESTR(sha224);
 
 void sha256_init(sha256_ctx *ctx);
 void sha256_update(sha256_ctx *ctx, const void *message, uint32_t len);
@@ -132,6 +140,7 @@ void sha256_final(sha256_ctx *ctx, byte *digest);
 void sha256_final_hex(sha256_ctx *ctx, char *digest);
 void sha256(const void *message, uint32_t len, byte *digest);
 void sha256_hex(const void *message, uint32_t len, char *digest);
+MAKE_UPDATESTR(sha256);
 
 void sha384_init(sha384_ctx *ctx);
 void sha384_update(sha384_ctx *ctx, const void *message, uint32_t len);
@@ -139,6 +148,7 @@ void sha384_final(sha384_ctx *ctx, byte *digest);
 void sha384_final_hex(sha384_ctx *ctx, char *digest);
 void sha384(const void *message, uint32_t len, byte *digest);
 void sha384_hex(const void *message, uint32_t len, char *digest);
+MAKE_UPDATESTR(sha384);
 
 void sha512_init(sha512_ctx *ctx);
 void sha512_update(sha512_ctx *ctx, const void *message, uint32_t len);
@@ -146,6 +156,7 @@ void sha512_final(sha512_ctx *ctx, byte *digest);
 void sha512_final_hex(sha512_ctx *ctx, char *digest);
 void sha512(const void *message, uint32_t len, byte *digest);
 void sha512_hex(const void *message, uint32_t len, char *digest);
+MAKE_UPDATESTR(sha512);
 
 int sha_sum_file(const char *filename, char *digest, int shatype, int binary);
 

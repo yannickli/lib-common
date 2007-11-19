@@ -17,11 +17,16 @@
 #include "array.h"
 #include "blob.h"
 #include "hashtbl.h"
+#include "xmlpp.h"
 
 typedef struct props_hash_t {
     hashtbl_t h;
     string_hash *names;
 } props_hash_t;
+
+/****************************************************************************/
+/* Create hashtables, update records                                        */
+/****************************************************************************/
 
 static inline void props_hash_init(props_hash_t *ph, string_hash *names)
 {
@@ -31,17 +36,31 @@ static inline void props_hash_init(props_hash_t *ph, string_hash *names)
 }
 void props_hash_wipe(props_hash_t *ph);
 
-
 void props_hash_update(props_hash_t *ph, const char *name, const char *value);
-const char *props_hash_findval(props_hash_t *ph, const char *name, const char *def);
-static inline const char *props_hash_find(props_hash_t *ph, const char *name)
+void props_hash_merge(props_hash_t *, const props_hash_t *);
+
+/****************************************************************************/
+/* Search in props_hashes                                                   */
+/****************************************************************************/
+
+const char *props_hash_findval(const props_hash_t *ph, const char *name, const char *def);
+static inline const char *props_hash_find(const props_hash_t *ph, const char *name)
 {
     return props_hash_findval(ph, name, NULL);
 }
 
-/* appends $nb|$k1|$v1|...|$kn|$vn$last */
+/****************************************************************************/
+/* Serialize props_hashes                                                   */
+/****************************************************************************/
+
 void props_hash_pack(blob_t *out, const props_hash_t *ph, int terminator);
 void props_hash_to_fmtv1(blob_t *out, const props_hash_t *ph);
+void props_hash_to_conf(blob_t *out, const props_hash_t *ph);
+void props_hash_to_xml(xmlpp_t *pp, const props_hash_t *ph);
+
+/****************************************************************************/
+/* Unserialize props_hashes                                                 */
+/****************************************************************************/
 
 __must_check__ int props_hash_unpack(const byte *buf, int buflen, int *pos,
                                      props_hash_t *, int last);
