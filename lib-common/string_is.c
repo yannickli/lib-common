@@ -848,7 +848,7 @@ int64_t msisdn_canonify(const char *str, int len, __unused__ int locale)
     const char *p;
     char *q;
     int64_t tel;
-    bool france;
+    bool france, reunion;
     char buf[128];
 
     /* Ensure NIL-terminated string */
@@ -874,12 +874,24 @@ int64_t msisdn_canonify(const char *str, int len, __unused__ int locale)
      *  0033P...
      * */
     france = false;
+    reunion = false;
     /* Strip French international prefix */
     if (strstart(p, "+33", &p)
     ||  strstart(p, "0033", &p)) {
         france = true;
     }
+    if (strstart(p, "+262", &p)
+    ||  strstart(p, "00262", &p)) {
+        france = true;
+        reunion = true;
+    }
     if (strlen(p) > 2 && p[0] == '0' && p[1] != '0') {
+        if (strlen(p) > 4 && p[1] == '6' && p[2] == '9'
+        && (p[3] == '2' || p[3] == '3'))
+        {
+            /* Orange Reunion: match 0692... and 0693 */
+            reunion = true;
+        }
         p++;
         france = true;
     }
@@ -891,6 +903,10 @@ int64_t msisdn_canonify(const char *str, int len, __unused__ int locale)
         tel = strtoip(p, &p);
         if (*p) {
             return -1;
+        }
+
+        if (reunion) {
+            return tel + 262000000000LL;
         }
         /* Return in international form */
         return tel + 33000000000LL;
@@ -1330,8 +1346,14 @@ START_TEST(check_msisdn_canonify)
     check_msisdn_canonify_unit("+33600000001", 33600000001LL);
     check_msisdn_canonify_unit("+33600000002", 33600000002LL);
     check_msisdn_canonify_unit("0122334455", 33122334455LL);
+    check_msisdn_canonify_unit("0612345678", 33612345678LL);
+    check_msisdn_canonify_unit("0692554433", 262692554433LL);
+    check_msisdn_canonify_unit("0693334455", 262693334455LL);
     check_msisdn_canonify_unit("+33122334455", 33122334455LL);
     check_msisdn_canonify_unit("+33622334455", 33622334455LL);
+    check_msisdn_canonify_unit("+262692334455", 262692334455LL);
+    check_msisdn_canonify_unit("+262693334455", 262693334455LL);
+    check_msisdn_canonify_unit("+2624455", -1);
     check_msisdn_canonify_unit("+330622334455", 33622334455LL);
     check_msisdn_canonify_unit("+3306223344550", -1);
     check_msisdn_canonify_unit("+3300622334455", -1);
