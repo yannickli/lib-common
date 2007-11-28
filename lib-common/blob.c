@@ -2594,32 +2594,43 @@ START_TEST(check_unpack)
 END_TEST
 
 /*.....................................................................}}}*/
-/* test blob_append_ira                                                {{{*/
+/* test blob_append_ira_hex, blob_append_ira_bin                       {{{*/
 
 START_TEST(check_ira)
 {
-    blob_t dst, back;
+    blob_t dst, bin, back;
 
     blob_init(&dst);
+    blob_init(&bin);
     blob_init(&back);
 #define TEST_STRING      "Injector X=1 Gagné! 1€"
 #define TEST_STRING_ENC  "496E6A6563746F7220583D31204761676E052120311B65"
 
-    blob_append_ira(&dst, (const byte*)TEST_STRING, strlen(TEST_STRING));
+    blob_append_ira_hex(&dst, (const byte*)TEST_STRING, strlen(TEST_STRING));
 
     fail_if(strcmp(blob_get_cstr(&dst), TEST_STRING_ENC),
             "%s(\"%s\") -> \"%s\" : \"%s\"",
-            "blob_append_ira",
+            "blob_append_ira_hex",
             TEST_STRING, blob_get_cstr(&dst), TEST_STRING_ENC);
 
-    blob_decode_ira_as_utf8(&back, blob_get_cstr(&dst), dst.len);
+    blob_decode_ira_hex_as_utf8(&back, blob_get_cstr(&dst), dst.len);
     fail_if(strcmp(blob_get_cstr(&back), TEST_STRING),
-            "blob_decode_ira_as_utf8 failure");
+            "blob_decode_ira_hex_as_utf8 failure");
+
+    blob_append_ira_bin(&bin, (const byte*)TEST_STRING, strlen(TEST_STRING));
+    blob_reset(&dst);
+    blob_append_hex(&dst, bin.data, bin.len);
+
+    fail_if(strcmp(blob_get_cstr(&dst), TEST_STRING_ENC),
+            "%s(\"%s\") -> \"%s\" : \"%s\"",
+            "blob_append_ira_bin",
+            TEST_STRING, blob_get_cstr(&dst), TEST_STRING_ENC);
 
 #undef TEST_STRING
 #undef TEST_STRING_ENC
 
     blob_wipe(&dst);
+    blob_wipe(&bin);
     blob_wipe(&back);
 }
 END_TEST
