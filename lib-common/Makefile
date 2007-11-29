@@ -20,7 +20,7 @@ __CHECK__ = test tst-blob-iconv
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-hash tst-sort
 __CHECK__ += tst-iprintf-speed tst-stats tst-hashtbl
 # These tests are just too long to be part of "make check". Sorry.
-__CHECK__ += tst-btree tst-isndx
+#__CHECK__ += tst-btree tst-isndx
 
 btree-dump_SOURCES = btree-dump.c libcommon.a
 
