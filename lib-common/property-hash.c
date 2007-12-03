@@ -229,7 +229,7 @@ int props_hash_from_fmtv1(props_hash_t *ph, const blob_t *payload)
 
         blob_set_data(&key, k, klen);
         if (vlen) {
-            blob_set_data(&key, v, vlen);
+            blob_set_data(&val, v, vlen);
             props_hash_update(ph, blob_get_cstr(&key), blob_get_cstr(&val));
         } else {
             props_hash_update(ph, blob_get_cstr(&key), NULL);
