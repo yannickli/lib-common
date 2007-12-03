@@ -16,6 +16,7 @@
 
 #include <unistd.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <malloc.h>
 #include <endian.h>
 
