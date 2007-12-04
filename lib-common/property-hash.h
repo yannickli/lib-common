@@ -28,16 +28,26 @@ typedef struct props_hash_t {
 /* Create hashtables, update records                                        */
 /****************************************************************************/
 
-static inline void props_hash_init(props_hash_t *ph, string_hash *names)
+static inline props_hash_t *props_hash_init(props_hash_t *ph, string_hash *names)
 {
     p_clear(ph, 1);
     hashtbl_init(&ph->h);
     ph->names = names;
+    return ph;
+}
+static inline props_hash_t *props_hash_new(string_hash *names)
+{
+    return props_hash_init(p_new_raw(props_hash_t, 1), names);
 }
 void props_hash_wipe(props_hash_t *ph);
+GENERIC_DELETE(props_hash_t, props_hash);
 
 void props_hash_update(props_hash_t *ph, const char *name, const char *value);
 void props_hash_merge(props_hash_t *, const props_hash_t *);
+
+/* XXX implemented in hastbl.c */
+void props_hash_map(props_hash_t *,
+                    void (*fn)(const char *, char **, void *), void *);
 
 /****************************************************************************/
 /* Search in props_hashes                                                   */
