@@ -32,6 +32,8 @@
 
 #define STATIC_ASSERT(condition) ((void)sizeof(char[1 - 2 * !(condition)]))
 #define STATIC_ASSERTZ(e)        (sizeof(char[1 - 2 * !(e)]) - sizeof(char[1]))
+#define IGNORE(expr)             do { if (expr) (void)0; } while (0)
+
 
 #if !defined(__doxygen_mode__)
 #  if (!defined(__GNUC__) || __GNUC__ < 3) && !defined(__attribute__)

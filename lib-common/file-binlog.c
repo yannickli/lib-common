@@ -131,7 +131,7 @@ int binlog_append(binlog_t *bl, uint16_t kind, const void *data, int len)
     return 0;
 
   error:
-    ftruncate(fileno(bl->fp), bl->fsize);
+    IGNORE(ftruncate(fileno(bl->fp), bl->fsize));
     fseek(bl->fp, 0, SEEK_END);
     return -1;
 }
