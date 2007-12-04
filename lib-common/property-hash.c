@@ -113,6 +113,18 @@ const char *props_hash_findval(const props_hash_t *ph, const char *name, const c
     return key && sp ? *sp : def;
 }
 
+int props_hash_findval_int(const props_hash_t *ph, const char *name, int defval)
+{
+    const char *result;
+
+    result = props_hash_findval(ph, name, NULL);
+    if (result) {
+        return atoi(result);
+    } else {
+        return defval;
+    }
+}
+
 /****************************************************************************/
 /* Serialize props_hashes                                                   */
 /****************************************************************************/
