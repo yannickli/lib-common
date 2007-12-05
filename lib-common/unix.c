@@ -286,29 +286,27 @@ int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
     return 0;
 }
 
-#if 0
-#include <stdio.h>
-int main(int argc, char **argv)
+/****************************************************************************/
+/* file descriptor related                                                  */
+/****************************************************************************/
+
+int xwrite(int fd, void *data, ssize_t len)
 {
-#if 0
-    int ret;
-
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s DIR\n", argv[0]);
-        return 1;
+    char *s = data;
+    while (len > 0) {
+        ssize_t nb = write(fd, s, len);
+        if (nb < 0 && errno != EINTR && errno != EAGAIN)
+            return -1;
+        if (nb > 0) {
+            s += nb;
+            len -= nb;
+        }
     }
-    ret = mkdir_p(argv[1], 0750);
-    printf("ret:%d\n", ret);
-#else
-    int ret;
-
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s FROM TO\n", argv[0]);
-        return 1;
-    }
-    ret = filecopy(argv[1], argv[2]);
-    printf("ret:%d\n", ret);
-#endif
     return 0;
 }
-#endif
+
+bool is_fd_open(int fd)
+{
+    return fcntl(fd, F_GETFD) != -1 || errno != EBADF;
+}
+

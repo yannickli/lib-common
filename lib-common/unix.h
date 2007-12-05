@@ -51,6 +51,13 @@ int filecopy(const char *pathin, const char *pathout);
 int p_lockf(int fd, int mode, int cmd, off_t start, off_t len);
 
 /****************************************************************************/
+/* file descriptor related                                                  */
+/****************************************************************************/
+
+int xwrite(int fd, void *data, ssize_t dlen);
+bool is_fd_open(int fd);
+
+/****************************************************************************/
 /* Misc                                                                     */
 /****************************************************************************/
 
@@ -58,7 +65,6 @@ static inline void getopt_init(void) {
     /* XXX this is not portable, BSD want it to be set to -1 *g* */
     optind = 0;
 }
-bool is_fd_open(int fd);
 
 void unix_initialize(void);
 
