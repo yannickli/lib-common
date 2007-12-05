@@ -114,11 +114,7 @@ void unix_initialize(void)
         }
     }
     if (!is_fd_open(STDERR_FILENO)) {
-        int fd = open("/dev/null", O_WRONLY);
-        if (fd != STDERR_FILENO) {
-            dup2(fd, STDERR_FILENO);
-            close(fd);
-        }
+        dup2(STDOUT_FILENO, STDERR_FILENO);
     }
 }
 
