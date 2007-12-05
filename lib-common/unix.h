@@ -54,7 +54,10 @@ int p_lockf(int fd, int mode, int cmd, off_t start, off_t len);
 /* file descriptor related                                                  */
 /****************************************************************************/
 
-int xwrite(int fd, void *data, ssize_t dlen);
+__attribute__((warn_unused_result))
+int xwrite(int fd, const void *data, ssize_t dlen);
+__attribute__((warn_unused_result))
+int xread(int fd, void *data, ssize_t dlen);
 bool is_fd_open(int fd);
 
 /****************************************************************************/

@@ -290,12 +290,29 @@ int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
 /* file descriptor related                                                  */
 /****************************************************************************/
 
-int xwrite(int fd, void *data, ssize_t len)
+int xwrite(int fd, const void *data, ssize_t len)
 {
-    char *s = data;
+    const char *s = data;
     while (len > 0) {
         ssize_t nb = write(fd, s, len);
         if (nb < 0 && errno != EINTR && errno != EAGAIN)
+            return -1;
+        if (nb > 0) {
+            s += nb;
+            len -= nb;
+        }
+    }
+    return 0;
+}
+
+int xread(int fd, void *data, ssize_t len)
+{
+    char *s = data;
+    while (len > 0) {
+        ssize_t nb = read(fd, s, len);
+        if (nb < 0 && errno != EINTR && errno != EAGAIN)
+            return -1;
+        if (nb == 0)
             return -1;
         if (nb > 0) {
             s += nb;
