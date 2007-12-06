@@ -26,6 +26,12 @@ static inline ssize_t sstrlen(const char *str) {
     return (ssize_t)strlen(str);
 }
 
+static inline ssize_t sstrnlen(const char *str, ssize_t n)
+{
+    const char *p = memchr(str, '\0', n);
+    return p ? p - str : n;
+}
+
 ssize_t pstrcpy(char *dest, ssize_t size, const char *src);
 ssize_t pstrcpylen(char *dest, ssize_t size, const char *src, ssize_t n);
 ssize_t pstrcpylen_unescape(char *dest, ssize_t size,
