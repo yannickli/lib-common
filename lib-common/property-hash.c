@@ -49,7 +49,7 @@ static uint64_t getkey(const props_hash_t *ph, const char *name, bool insert)
     if (!insert)
         return 0; /* NULL */
 
-    s = p_dupstr(name, len);
+    s = p_dupstr(buf, len);
     string_hash_insert(ph->names, key, s);
     return (uintptr_t)s;
 }
