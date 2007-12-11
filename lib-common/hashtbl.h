@@ -32,6 +32,8 @@
 HASHTBLE_TYPE(hashtbl_t);
 GENERIC_INIT(hashtbl_t, hashtbl);
 void hashtbl_wipe(hashtbl_t *t);
+GENERIC_NEW(hashtbl_t, hashtbl);
+GENERIC_DELETE(hashtbl_t, hashtbl);
 
 void **hashtbl_find(const hashtbl_t *t, uint64_t key);
 void **hashtbl_insert(hashtbl_t *t, uint64_t key, void *);
@@ -48,6 +50,8 @@ void hashtbl_map2(hashtbl_t *t, void (*fn)(uint64_t, void **, void *), void *);
     static inline void pfx##_hash_wipe(pfx##_hash *t) {                      \
         hashtbl_wipe((hashtbl_t *)t);                                        \
     }                                                                        \
+    GENERIC_NEW(pfx##_hash, pfx##_hash);                                     \
+    GENERIC_DELETE(pfx##_hash, pfx##_hash);                                  \
     \
     static inline type **pfx##_hash_find(pfx##_hash *t, uint64_t key) {      \
         return (type **)hashtbl_find((hashtbl_t *)t, key);                   \
@@ -90,14 +94,17 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *);
 #define DO_HASHTBL_STROFFS(type, pfx, offs, inlined_str)                     \
     HASHTBLE_TYPE(pfx##_hash);                                               \
     \
-    static inline void pfx##_hash_init(pfx##_hash *t) {                      \
+    static inline pfx##_hash *pfx##_hash_init(pfx##_hash *t) {               \
         p_clear(t, 1);                                                       \
         t->name_offs = offs;                                                 \
         t->name_inl  = inlined_str;                                          \
+        return t;                                                            \
     }                                                                        \
     static inline void pfx##_hash_wipe(pfx##_hash *t) {                      \
         hashtbl_wipe((hashtbl_t *)t);                                        \
     }                                                                        \
+    GENERIC_NEW(pfx##_hash, pfx##_hash);                                     \
+    GENERIC_DELETE(pfx##_hash, pfx##_hash);                                  \
     \
     static inline uint64_t pfx##_hash_hkey(const char *s, int len) {         \
         return hashtbl__hkey(s, len);                                        \
