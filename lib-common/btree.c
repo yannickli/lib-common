@@ -942,22 +942,24 @@ int btree_push(btree_t *bt, uint64_t key, const void *_data, int dlen)
 {
     bool reuse;
     int32_t page, slot, need;
-    int pos, maxdlen;
+    int pos;
     intpair *nodes;
     bt_leaf_t *lleaf, *nleaf;
     const byte *data = _data;
     byte *p;
-
-    maxdlen = BT_MAX_DLEN;
 
     if (dlen < 0) {
         /* invalid data length */
         return -1;
     }
 
-    while (dlen > maxdlen) {
-        btree_push(bt, key, data + dlen - maxdlen, maxdlen);
-        dlen -= maxdlen;
+    while (dlen > BT_MAX_DLEN) {
+        btree_push(bt, key, data + dlen - BT_MAX_DLEN, BT_MAX_DLEN);
+        dlen -= BT_MAX_DLEN;
+    }
+
+    if (dlen == 0) {
+        return 0;
     }
 
     bt_real_wlock(bt);
@@ -985,7 +987,7 @@ int btree_push(btree_t *bt, uint64_t key, const void *_data, int dlen)
         /* key already exists: check if chunk is full */
         assert (pos + 1 + 8 + 1 <= lleaf->used);
         assert (pos + 1 + 8 + 1 + lleaf->data[pos + 1 + 8] <= lleaf->used);
-        if (lleaf->data[pos + 1 + 8] + dlen <= maxdlen) {
+        if (lleaf->data[pos + 1 + 8] + dlen <= BT_MAX_DLEN) {
             reuse = true;
             need = dlen;
             if (need == 0) {
