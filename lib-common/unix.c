@@ -159,6 +159,19 @@ const char *get_ext(const char *filename)
 }
 
 /**
+ * Get time of last modification.
+ */
+int get_mtime(const char *filename, time_t *t)
+{
+    struct stat st;
+    if (!t || stat(filename, &st)) {
+        return 1;
+    }
+    *t = st.st_mtime;
+    return 0;
+}
+
+/**
  * Copy file pathin to pathout. If pathout already exists, it will
  * be overwritten.
  *
