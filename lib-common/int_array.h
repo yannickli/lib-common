@@ -50,6 +50,8 @@ static inline void int_array_push(int_array *array, int item) {
 
 int int_array_take(int_array *array, ssize_t pos, int *item)
     __attr_nonnull__((1));
+void int_array_remove(int_array *array, ssize_t pos)
+    __attr_nonnull__((1));
 
 static inline void int_array_swap(int_array *array, ssize_t i, ssize_t j) {
     int v = array->tab[i];

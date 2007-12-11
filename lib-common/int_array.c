@@ -67,6 +67,12 @@ void int_array_resize(int_array *array, ssize_t newlen)
     array_resize(array, newlen);
 }
 
+void int_array_remove(int_array *array, ssize_t pos)
+{
+    p_move(array->tab, pos, pos + 1, array->len - pos - 1);
+    array->len--;
+}
+
 int int_array_take(int_array *array, ssize_t pos, int *item)
 {
     if (pos >= array->len || pos < 0) {
