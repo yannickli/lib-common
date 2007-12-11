@@ -42,8 +42,8 @@ static uint64_t getkey(const props_hash_t *ph, const char *name, bool insert)
     }
     buf[len] = '\0';
 
-    key = combined_hash((const byte *)buf, len);
-    sp  = string_hash_find(ph->names, key, buf, len);
+    key = string_hash_hobj(ph->names, buf, len);
+    sp  = string_hash_find(ph->names, key, buf);
     if (sp)
         return (uintptr_t)*sp;
     if (!insert)

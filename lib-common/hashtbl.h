@@ -75,15 +75,16 @@ void hashtbl_map2(hashtbl_t *t, void (*fn)(uint64_t, void **, void *), void *);
 /* simple hash tables for string_to_element htables                         */
 /****************************************************************************/
 
-HASHTBLE_TYPE(hashtbl_str_t);
+HASHTBLE_TYPE(hashtbl__t);
 
 uint32_t hsieh_hash(const byte *s, int len);
 uint32_t jenkins_hash(const byte *s, int len);
 uint64_t combined_hash(const byte *s, int len);
 
-void **hashtbl_str_find(const hashtbl_str_t *t, uint64_t key,
-                        const char *s, int len);
-void **hashtbl_str_insert(hashtbl_str_t *t, uint64_t key, void *);
+uint64_t hashtbl__hkey(const char *s, int len);
+uint64_t hashtbl__hobj(const hashtbl__t *t, void *ptr, int len);
+void **hashtbl__find(const hashtbl__t *t, uint64_t key, const char *s);
+void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *);
 
 /* pass true to `inlined_str` if the ->name member is an inlined array */
 #define DO_HASHTBL_STROFFS(type, pfx, offs, inlined_str)                     \
@@ -98,13 +99,21 @@ void **hashtbl_str_insert(hashtbl_str_t *t, uint64_t key, void *);
         hashtbl_wipe((hashtbl_t *)t);                                        \
     }                                                                        \
     \
+    static inline uint64_t pfx##_hash_hkey(const char *s, int len) {         \
+        return hashtbl__hkey(s, len);                                        \
+    }                                                                        \
+    static inline uint64_t                                                   \
+    pfx##_hash_hobj(pfx##_hash *t, type *ptr, int len) {                     \
+        return hashtbl__hobj((hashtbl__t *)t, ptr, len);                     \
+    }                                                                        \
+    \
     static inline type **                                                    \
-    pfx##_hash_find(pfx##_hash *t, uint64_t key, const char *s, int len) {   \
-        return (type **)hashtbl_str_find((hashtbl_str_t *)t, key, s, len);   \
+    pfx##_hash_find(pfx##_hash *t, uint64_t key, const char *s) {            \
+        return (type **)hashtbl__find((hashtbl__t *)t, key, s);              \
     }                                                                        \
     static inline type **                                                    \
     pfx##_hash_insert(pfx##_hash *t, uint64_t key, type *e) {                \
-        return (type **)hashtbl_str_insert((hashtbl_str_t *)t, key, e);      \
+        return (type **)hashtbl__insert((hashtbl__t *)t, key, e);            \
     }                                                                        \
     \
     static inline void pfx##_hash_remove(pfx##_hash *t, type **e) {          \
@@ -119,6 +128,7 @@ void **hashtbl_str_insert(hashtbl_str_t *t, uint64_t key, void *);
     DO_HASHTBL_STROFFS(type, pfx, offsetof(type, name), inlined_str)
 
 DO_HASHTBL_STROFFS(char, string, 0, true);
+DO_HASHTBL_STROFFS(byte, data, 0, true);
 
 
 #endif /* IS_LIB_COMMON_HASHTBL_H */

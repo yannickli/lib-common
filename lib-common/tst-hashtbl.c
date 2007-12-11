@@ -77,15 +77,13 @@ static void test_hashtbl_str(void)
     string_hash_init(&h);
 
     for (int i = 0; i < 10; i++) {
-        WANT(string_hash_insert(&h, i, unconst(arr[i])) == NULL);
+        uint64_t k = string_hash_hkey(arr[i], -1);
+        WANT(string_hash_insert(&h, k, unconst(arr[i])) == NULL);
     }
     dump_hash((hashtbl_t *)(void *)&h);
 
-    WANT((x = string_hash_find(&h, 3, "d", 1)) != NULL);
+    WANT((x = string_hash_find(&h, string_hash_hkey("d", 1), "d")) != NULL);
     string_hash_remove(&h, x);
-    dump_hash((hashtbl_t *)(void *)&h);
-
-    string_hash_insert(&h, 3, unconst("toto"));
     dump_hash((hashtbl_t *)(void *)&h);
 
     string_hash_map(&h, (void *)&hash_filter, NULL);

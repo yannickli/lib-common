@@ -240,19 +240,27 @@ static inline const char *element_name(void *ptr, int offs, bool inl)
     return inl ? (const char *)p : *(const char **)p;
 }
 
-static bool strkey_equal(const hashtbl_str_t *t, const hashtbl_entry *e,
-                         uint64_t key, const char *s, int len)
+static bool key_equal(const hashtbl__t *t, const hashtbl_entry *e,
+                      uint64_t key, const char *s)
 {
     const char *name = element_name(e->ptr, t->name_offs, t->name_inl);
-    if (IS_EMPTY(e->ptr) || e->key != key)
-        return false;
-    if (len < 0)
-        return strequal(s, name);
-    return !strncmp(s, name, len) && name[len] == '\0';
+    int len = key & 0x7fffffff;
+    return !IS_EMPTY(e->ptr) && e->key == key && !memcmp(s, name, len);
 }
 
-void **hashtbl_str_find(const hashtbl_str_t *t, uint64_t key,
-                        const char *s, int len)
+uint64_t hashtbl__hkey(const char *s, int len)
+{
+    if (len < 0)
+        len = strlen(s);
+    return ((uint64_t)hsieh_hash((const byte *)s, len) << 32) | (uint32_t)len;
+}
+
+uint64_t hashtbl__hobj(const hashtbl__t *t, void *ptr, int len)
+{
+    return hashtbl__hkey(element_name(ptr, t->name_offs, t->name_inl), len);
+}
+
+void **hashtbl__find(const hashtbl__t *t, uint64_t key, const char *s)
 {
     size_t size = (size_t)t->size;
     size_t pos  = key % size;
@@ -261,14 +269,14 @@ void **hashtbl_str_find(const hashtbl_str_t *t, uint64_t key,
     if (!t->tab)
         return NULL;
 
-    while (tab[pos].ptr && !strkey_equal(t, tab + pos, key, s, len)) {
+    while (tab[pos].ptr && !key_equal(t, tab + pos, key, s)) {
         if (++pos == size)
             pos = 0;
     }
     return IS_EMPTY(tab[pos].ptr) ? NULL : &tab[pos].ptr;
 }
 
-void **hashtbl_str_insert(hashtbl_str_t *t, uint64_t key, void *ptr)
+void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *ptr)
 {
     size_t size, pos;
     ssize_t ghost = -1;
@@ -287,7 +295,7 @@ void **hashtbl_str_insert(hashtbl_str_t *t, uint64_t key, void *ptr)
     pos  = key % size;
     tab  = t->tab;
 
-    while (tab[pos].ptr && !strkey_equal(t, tab + pos, key, name, -1)) {
+    while (tab[pos].ptr && !key_equal(t, tab + pos, key, name)) {
         if (IS_EMPTY(tab[pos].ptr))
             ghost = pos;
         if (++pos == size)
