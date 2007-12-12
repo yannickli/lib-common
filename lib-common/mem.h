@@ -194,10 +194,10 @@ static inline void *p_dupstr(const void *src, ssize_t len)
 #  define p_allocgrow(pp, goalnb, allocnb)                  \
     do {                                                    \
         if ((goalnb) > *(allocnb)) {                        \
-            if (p_alloc_nr(goalnb) > *(allocnb)) {          \
+            if (p_alloc_nr(*(allocnb)) < (goalnb)) {        \
                 *(allocnb) = (goalnb);                      \
             } else {                                        \
-                *(allocnb) = p_alloc_nr(goalnb);            \
+                *(allocnb) = p_alloc_nr(*(allocnb));        \
             }                                               \
             p_realloc(pp, *(allocnb));                      \
         }                                                   \

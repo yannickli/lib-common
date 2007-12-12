@@ -46,6 +46,7 @@ static inline void *mp_dupstr(mem_pool *mp, const void *src, ssize_t len)
         ((type *)(mp)->mem_alloc((mp), sizeof(type) * (count)))
 #define mp_new(mp, type, count)     \
         ((type *)(mp)->mem_alloc0((mp), sizeof(type) * (count)))
+#define mp_new_extra(mp, type, size) ((type *)(mp)->mem_alloc0((mp), sizeof(type) + (size)))
 #define mp_dup(mp, p, count)        \
         memp_dup((mp), (p), sizeof(*(p)) * (count))
 
@@ -64,6 +65,12 @@ static inline void *mp_dupstr(mem_pool *mp, const void *src, ssize_t len)
             mp->mem_realloc(mp, (void*)__ptr, sizeof(**__ptr) * (count)); \
         })
 
+#define mp_realloc_extra(mp, pp, extra)            \
+        ({                                                                \
+            typeof(**(pp)) **__ptr = (pp);                                \
+            mp->mem_realloc(mp, (void*)__ptr, sizeof(**__ptr) + (extra)); \
+        })
+
 #else
 
 #  define mp_delete(mp, pp)                         \
@@ -75,6 +82,9 @@ static inline void *mp_dupstr(mem_pool *mp, const void *src, ssize_t len)
 
 #  define mp_realloc(mp, pp, count)                 \
     (mp)->mem_realloc((mp), (void*)(pp), sizeof(**(pp)) * (count))
+
+#define mp_realloc_extra(mp, pp, extra)            \
+    (mp)->mem_realloc((mp), (void *)(pp), sizeof(**(pp)) + (extra))
 
 #endif
 
