@@ -191,7 +191,7 @@ int props_hash_unpack(const byte *buf, int buflen, int *pos,
         }
     }
 
-    for (int i = 0; i < len; i++) {
+    while (len-- > 0) {
         static char fmt[5] = {'s', '|', 's', '|', '\0'};
         char *key, *val;
         int res;
