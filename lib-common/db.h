@@ -25,22 +25,15 @@ typedef struct isdb_t isdb_t;
 #define isdb_t void
 #endif
 
-enum {
-    DB_PUTOVER,
-    DB_PUTKEEP,
-    DB_PUTMULT,
-};
+int db_error(isdb_t *);
+const char *db_strerror(isdb_t *);
 
-int db_error(void);
-const char *db_strerror(int code);
-
-isdb_t *db_open(const char *name, int flags, int oflags, int bnum);
+isdb_t *db_open(const char *name, int flags, int oflags);
 int db_flush(isdb_t *);
 int db_close(isdb_t **);
 
 int db_get(isdb_t *, const char *k, int kl, blob_t *out);
-int db_getbuf(isdb_t *, const char *k, int kl, int start, int len, char *buf);
-int db_put(isdb_t *, const char *k, int kl, const char *v, int vl, int op);
+int db_put(isdb_t *, const char *k, int kl, const char *v, int vl);
 int db_del(isdb_t *, const char *k, int kl);
 
 #endif

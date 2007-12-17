@@ -13,6 +13,7 @@
 
 DEPTH=..
 include $(DEPTH)/admin/header.mk
+include $(DEPTH)/admin/tokyocabinet.mk
 
 __EXE__   = btree-dump
 __LIB__   = libcommon
@@ -87,11 +88,11 @@ libcommon_SOURCES = \
 	unix-linux.c \
 	\
 	$(end_of_list)
-libcommon_CFLAGS := $(shell pkg-config qdbm --cflags)
+libcommon_CFLAGS := $(tokyocabinet_CFLAGS)
 
 test_SOURCES = $(filter-out mem.c, $(libcommon_SOURCES)) check.c
-test_CFLAGS  = $(shell pkg-config qdbm --cflags)
-test_LDFLAGS = -lz -lqdbm
+test_CFLAGS  = $(tokyocabinet_CFLAGS)
+test_LDFLAGS = -lz $(tokyocabinet_LDFLAGS)
 
 tst-blob-iconv_SOURCES = \
 	tst-blob-iconv.c \

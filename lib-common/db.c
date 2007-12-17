@@ -14,55 +14,57 @@
 #define IS_LIB_ISDB_INTERNAL
 #define isdb_t void
 
-#include <depot.h>
+#include <tchdb.h>
 
 #include "mem.h"
 #include "unix.h"
 #include "db.h"
 
-int db_error(void)
+int db_error(isdb_t *db)
 {
-    return dpecode;
+    return tchdbecode(db);
 }
 
-const char *db_strerror(int code)
+const char *db_strerror(isdb_t *db)
 {
-    return dperrmsg(code);
+    return tchdberrmsg(tchdbecode(db));
 }
 
-isdb_t *db_open(const char *name, int flags, int oflags, int bnum)
+isdb_t *db_open(const char *name, int flags, int oflags)
 {
-    int omode = DP_OSPARSE | (O_ISWRITE(flags) ? DP_OWRITER : DP_OREADER);
+    int omode = (O_ISWRITE(flags) ? HDBOWRITER : HDBOREADER);
+    TCHDB *db = tchdbnew();
 
     if (flags & O_CREAT)
-        omode |= DP_OCREAT;
+        omode |= HDBOCREAT;
     if (flags & O_TRUNC)
-        omode |= DP_OTRUNC;
+        omode |= HDBOTRUNC;
 
     switch (oflags & (MMO_TLOCK | MMO_LOCK)) {
       case 0:
-        omode |= DP_ONOLCK;
+        omode |= HDBONOLCK;
         break;
       case MMO_TLOCK:
-        omode |= DP_OLCKNB;
+        omode |= HDBOLCKNB;
         break;
       default: /* at least MMO_LOCK */
         break;
     }
-    e_trace(2, "DP_OWRITER = %d", DP_OWRITER);
-    e_trace(2, "omode = %d ", omode);
-    return dpopen(name, omode, bnum);
+    if (tchdbopen(db, name, omode))
+        return db;
+    tchdbdel(db);
+    return NULL;
 }
 
 int db_flush(isdb_t *db)
 {
-    return dpsync(db);
+    return tchdbsync(db);
 }
 
 int db_close(isdb_t **_db)
 {
     if (*_db) {
-        int res = dpclose(*_db);
+        int res = tchdbclose(*_db);
         *_db = NULL;
         return res;
     }
@@ -71,35 +73,25 @@ int db_close(isdb_t **_db)
 
 int db_get(isdb_t *db, const char *k, int kl, blob_t *out)
 {
-    int siz = dpvsiz(db, k, kl);
+    int siz = tchdbvsiz(db, k, kl);
     int res;
     if (siz <= 0)
         return siz;
 
     blob_extend(out, siz);
-    res = dpgetwb(db, k, kl, 0, siz, (char *)out->data + out->len - siz);
+    res = tchdbget3(db, k, kl, (char *)out->data + out->len - siz, siz + 1);
     if (res < 0) {
         blob_resize(out, out->len - siz);
     }
     return res;
 }
 
-int db_getbuf(isdb_t *db, const char *k, int kl, int start, int len, char *buf)
+int db_put(isdb_t *db, const char *k, int kl, const char *v, int vl)
 {
-    return dpgetwb(db, k, kl, start, len, buf);
-}
-
-int db_put(isdb_t *db, const char *k, int kl, const char *v, int vl, int op)
-{
-    int conv[] = {
-        [DB_PUTOVER] = DP_DOVER,
-        [DB_PUTKEEP] = DP_DKEEP,
-        [DB_PUTMULT] = DP_DCAT,
-    };
-    return dpput(db, k, kl, v, vl, conv[op]);
+    return tchdbput(db, k, kl, v, vl);
 }
 
 int db_del(isdb_t *db, const char *k, int kl)
 {
-    return dpout(db, k, kl);
+    return tchdbout(db, k, kl);
 }
