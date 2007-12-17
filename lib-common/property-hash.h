@@ -44,6 +44,10 @@ GENERIC_DELETE(props_hash_t, props_hash);
 
 void props_hash_update(props_hash_t *ph, const char *name, const char *value);
 void props_hash_merge(props_hash_t *, const props_hash_t *);
+static inline void props_hash_remove(props_hash_t *ph, const char *name)
+{
+    props_hash_update(ph, name, NULL);
+}
 
 /* XXX implemented in hastbl.c */
 void props_hash_map(props_hash_t *,
