@@ -78,7 +78,7 @@ void props_hash_update(props_hash_t *ph, const char *name, const char *value)
 {
     uint64_t key = getkey(ph, name, true);
 
-    if (value && *value) {
+    if (value) {
         char *v   = strdup(value);
         char **sp = (char **)hashtbl_insert(&ph->h, key, v);
 
