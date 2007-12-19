@@ -75,6 +75,69 @@ int strtoip(const char *s, const char **endp)
     return value;
 }
 
+int memtoip(const byte *s, int len, const byte **endp)
+{
+    int value = 0;
+
+    if (!s || len < 0) {
+        errno = EINVAL;
+        goto done;
+    }
+    while (len && isspace(*s)) {
+        s++;
+        len--;
+    }
+    if (!len) {
+        goto done;
+    }
+    if (*s == '-') {
+        s++;
+        len--;
+        if (!len || !isdigit((unsigned char)*s)) {
+            errno = EINVAL;
+            goto done;
+        }
+        value = '0' - *s;
+        while (--len && isdigit((unsigned char)(*++s))) {
+            int digit = '0' - *s;
+            if ((value <= INT_MIN / 10)
+            &&  (value < INT_MIN / 10 || digit < INT_MIN % 10)) {
+                errno = ERANGE;
+                value = INT_MIN;
+                /* keep looping inefficiently in case of overflow */
+            } else {
+                value = value * 10 + digit;
+            }
+        }
+    } else {
+        if (*s == '+') {
+            s++;
+            len--;
+        }
+        if (!len && !isdigit((unsigned char)*s)) {
+            errno = EINVAL;
+            goto done;
+        }
+        value = *s - '0';
+        while (--len && isdigit((unsigned char)(*++s))) {
+            int digit = *s - '0';
+            if ((value >= INT_MAX / 10)
+            &&  (value > INT_MAX / 10 || digit > INT_MAX % 10)) {
+                errno = ERANGE;
+                value = INT_MAX;
+                /* keep looping inefficiently in case of overflow */
+            } else {
+                value = value * 10 + digit;
+            }
+        }
+    }
+  done:
+    if (endp) {
+        *endp = s;
+    }
+    return value;
+}
+
 #define INVALID_NUMBER  INT64_MIN
 int64_t parse_number(const char *str)
 {
@@ -1215,6 +1278,48 @@ START_TEST(check_strtoip)
     check_strtoip_unit("0", 0, 0, -1);
     check_strtoip_unit("0x0", 0, 0, 1);
     check_strtoip_unit("010", 0, 10, -1);
+}
+END_TEST
+
+#define check_memtoip_unit(p, err_exp, val_exp, end_i)                  \
+    do {                                                                \
+        const byte *endp;                                               \
+        int val;                                                        \
+        int end_exp = (end_i >= 0) ? end_i : (int)strlen(p);            \
+                                                                        \
+        errno = 0;                                                      \
+        val = memtoip((const byte *)p, strlen(p), &endp);               \
+                                                                        \
+        fail_if (err_exp != errno || val != val_exp || endp != (const byte *)p + end_exp, \
+                 "('%s', &endp)"                                        \
+                 "val=%d (expected %d), endp='%s' expected '%s'\n",     \
+                 p, val, val_exp, endp, p + end_exp);                   \
+    } while (0)
+
+START_TEST(check_memtoip)
+{
+    check_memtoip_unit("123", 0, 123, -1);
+    check_memtoip_unit(" 123", 0, 123, -1);
+    check_memtoip_unit(" +123", 0, 123, -1);
+    check_memtoip_unit("  -123", 0, -123, -1);
+    check_memtoip_unit(" +-123", EINVAL, 0, 2);
+    check_memtoip_unit("123 ", 0, 123, 3);
+    check_memtoip_unit("123z", 0, 123, 3);
+    check_memtoip_unit("123+", 0, 123, 3);
+    check_memtoip_unit("2147483647", 0, 2147483647, -1);
+    check_memtoip_unit("2147483648", ERANGE, 2147483647, -1);
+    check_memtoip_unit("21474836483047203847094873", ERANGE, 2147483647, -1);
+    check_memtoip_unit("000000000000000000000000000000000001", 0, 1, -1);
+    check_memtoip_unit("-2147483647", 0, -2147483647, -1);
+    check_memtoip_unit("-2147483648", 0, -2147483647 - 1, -1);
+    check_memtoip_unit("-2147483649", ERANGE, -2147483647 - 1, -1);
+    check_memtoip_unit("-21474836483047203847094873", ERANGE, -2147483647 - 1, -1);
+    check_memtoip_unit("-000000000000000000000000000000000001", 0, -1, -1);
+    check_memtoip_unit("", EINVAL, 0, -1);
+    check_memtoip_unit("          ", EINVAL, 0, -1);
+    check_memtoip_unit("0", 0, 0, -1);
+    check_memtoip_unit("0x0", 0, 0, 1);
+    check_memtoip_unit("010", 0, 10, -1);
 }
 END_TEST
 
