@@ -14,15 +14,8 @@
 #ifndef IS_LIB_COMMON_MEM_H
 #define IS_LIB_COMMON_MEM_H
 
-#include <unistd.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <malloc.h>
-#include <endian.h>
-
 #include "macros.h"
 #include "err_report.h"
-#include "string_is.h"
 
 #define MEM_ALIGN_SIZE  8
 #define MEM_ALIGN(size) \

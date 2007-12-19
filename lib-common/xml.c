@@ -11,14 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <ctype.h>
-#include <string.h>
-
-#include "mem-fifo-pool.h"
-#include "strconv.h"
-#include "xml.h"
-#include "list.h"
-#include "blob.h"
+#include "all.h"
 
 static char *xml_dupstr_mp(xml_tree_t *tree, const char *src, int len)
 {

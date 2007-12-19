@@ -11,9 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "macros.h"
-#include "strconv.h"
-#include "blob.h"
+#include "all.h"
 
 /* This (unused) macro implements UNICODE to UTF-8 transcoding */
 #define UNICODE_TO_UTF8(x)     \

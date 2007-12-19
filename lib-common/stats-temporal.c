@@ -11,18 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <sys/time.h>
 #include <linux/limits.h>
-#include <time.h>
 #include <sys/mman.h>
 #include <glob.h>
-
-#include <lib-common/blob.h>
-#include <lib-common/mmappedfile.h>
-#include <lib-common/array.h>
-#include <lib-common/timeval.h>
-
-#include "stats-temporal.h"
+#include "all.h"
 
 /**************************
  *

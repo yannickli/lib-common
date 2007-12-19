@@ -11,16 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <stdio.h>
-#include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include "macros.h"
 #include "mem.h"
+#include "string_is.h"
 
 typedef unsigned int unsigned32;
 

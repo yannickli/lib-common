@@ -14,10 +14,7 @@
 #ifndef IS_LIB_COMMON_IPRINTF_H
 #define IS_LIB_COMMON_IPRINTF_H
 
-#include <stdio.h>
-#include <stdarg.h>
-
-#include "macros.h"
+#include "mem.h"
 
 #ifdef __CYGWIN__
 #define iprintf  IS_printf
@@ -43,11 +40,30 @@ int isprintf(char *str, const char *format, ...)
 int ivsprintf(char *str, const char *format, va_list arglist)
         __attr_printf__(2, 0)  __attr_nonnull__((2));
 
+__attr_printf__(1, 2)  __attr_nonnull__((1))
+static inline char *iasprintf(const char *fmt, ...)
+{
+    char buf[BUFSIZ], *s;
+    int len;
+    va_list ap;
+
+    va_start(ap, fmt);
+    len = vsnprintf(buf, ssizeof(buf), fmt, ap);
+    va_end(ap);
+
+    if (len < ssizeof(buf))
+        return p_dupstr(buf, len);
+    va_start(ap, fmt);
+    vsnprintf(s = p_new(char, len + 1), len + 1, fmt, ap);
+    va_end(ap);
+    return s;
+}
+
 #if defined(IPRINTF_HIDE_STDIO) && IPRINTF_HIDE_STDIO
 #undef sprintf
 #define sprintf(...)    isprintf(__VA_ARGS__)
 #undef vsprintf
-#define vsprintf(...)    ivsprintf(__VA_ARGS__)
+#define vsprintf(...)   ivsprintf(__VA_ARGS__)
 #undef printf
 #define printf(...)     iprintf(__VA_ARGS__)
 #undef fprintf
@@ -60,6 +76,8 @@ int ivsprintf(char *str, const char *format, va_list arglist)
 #define vfprintf(...)   ivfprintf(__VA_ARGS__)
 #undef vsnprintf
 #define vsnprintf(...)  ivsnprintf(__VA_ARGS__)
+#undef asprintf
+#define asprintf(...)   iasprintf(__VA_ARGS__)
 #endif
 
 #endif /* IS_LIB_COMMON_IPRINTF_H */

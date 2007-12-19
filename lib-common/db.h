@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_ARCHIVE_H
-#define IS_LIB_COMMON_ARCHIVE_H
+#ifndef IS_LIB_COMMON_DB_H
+#define IS_LIB_COMMON_DB_H
 
 #include <fcntl.h>
 

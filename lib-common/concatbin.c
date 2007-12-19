@@ -11,15 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <limits.h>
-#include <unistd.h>
-#include <fcntl.h>
-
-#include "macros.h"
-#include "err_report.h"
 #include "mem.h"
 #include "concatbin.h"
 #include "mmappedfile.h"

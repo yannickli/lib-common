@@ -11,11 +11,9 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <lib-common/mem.h>
-#include <lib-common/err_report.h>
-#include <lib-common/archive_priv.h>
-
 #include "archive.h"
+#include "archive_priv.h"
+#include "string_is.h"
 
 #define BLOB_APPEND_UINT32(output, i)                 \
     do {                                              \

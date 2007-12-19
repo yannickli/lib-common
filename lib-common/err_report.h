@@ -14,11 +14,7 @@
 #ifndef IS_LIB_COMMON_ERR_REPORT_H
 #define IS_LIB_COMMON_ERR_REPORT_H
 
-#include <stdarg.h>
-#include <stdio.h>
-
 #include "macros.h"
-#include "iprintf.h"
 
 /* Useful exit codes */
 enum fatal_exit_codes {

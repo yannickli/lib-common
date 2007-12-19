@@ -14,8 +14,26 @@
 #ifndef IS_LIB_COMMON_MACROS_H
 #define IS_LIB_COMMON_MACROS_H
 
-#include <stdint.h>
+#include <ctype.h>
+#include <endian.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <limits.h>
+#include <malloc.h>
+#include <stdarg.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "compat.h"
 

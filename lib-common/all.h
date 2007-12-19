@@ -14,8 +14,13 @@
 #ifndef IS_LIB_COMMON_ALL_H
 #define IS_LIB_COMMON_ALL_H
 
+#define IPRINTF_HIDE_STDIO 1
+#include "iprintf.h"
+
+#include "macros.h"
+#include "mem.h"
+
 #include "archive.h"
-#include "archive_priv.h"
 #include "array.h"
 #include "bfield.h"
 #include "blob.h"
@@ -34,15 +39,12 @@
 #include "hashtbl.h"
 #include "int_array.h"
 #include "ioveclist.h"
-#include "iprintf.h"
 #include "isndx.h"
 #include "licence.h"
 #include "list.h"
 #include "log_file.h"
 #include "log_limit.h"
-#include "macros.h"
 #include "mem-fifo-pool.h"
-#include "mem.h"
 #include "mem-pool.h"
 #include "mmappedfile.h"
 #include "paged-index.h"

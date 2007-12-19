@@ -11,14 +11,9 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <lib-common/blob.h>
-#include <lib-common/mem.h>
-
+#include "blob.h"
 #include "farch.h"
+#include "string_is.h"
 
 #define FARCH_MAX_HANDLES 64
 struct farch {

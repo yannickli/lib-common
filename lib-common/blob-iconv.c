@@ -13,12 +13,9 @@
 
 #ifndef MINGCC
 #include <iconv.h>
-#include <string.h>
-#include <errno.h>
-#include <iconv.h>      // redundant ?
 
-#include "mem.h"
 #include "blob.h"
+#include "string_is.h"
 
 #define DEBUG_VERB 4
 
