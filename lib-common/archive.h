@@ -83,6 +83,8 @@ GENERIC_DELETE(archive_t, archive);
 
 const archive_file *archive_get_file_bloc(const archive_t *archive,
                                           const char *filename);
+bool archive_attr_find(const archive_file *file, const char *name,
+                       const byte **data, int *size);
 int archive_parts_in_path(const archive_t *archive,
                           const char *path);
 const archive_file *archive_file_next(const archive_t *archive,

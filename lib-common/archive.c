@@ -430,6 +430,23 @@ const archive_file *archive_get_file_bloc(const archive_t *archive,
     return NULL;
 }
 
+bool archive_attr_find(const archive_file *file, const char *name,
+                       const byte **data, int *size)
+{
+    unsigned int i;
+
+    for (i = 0; i < file->nb_attrs; i++) {
+        archive_file_attr *attr = file->attrs[i];
+
+        if (!strncmp(name, attr->key, attr->key_len)) {
+            *data = (const byte *)attr->val;
+            *size = attr->val_len;
+            return true;
+        }
+    }
+    return false;
+}
+
 int archive_parts_in_path(const archive_t *archive, const char *path)
 {
     archive_bloc *bloc;
