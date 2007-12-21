@@ -17,6 +17,7 @@
 #ifdef __GLIBC__
 #  include_next <arpa/inet.h>
 #elif defined(__MINGW) || defined(__MINGW32__)
+#include <winsock2.h>
 char *inet_ntop(int af, const void *src, char *dst, size_t size);
 #endif
 

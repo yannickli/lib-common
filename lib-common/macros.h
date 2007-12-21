@@ -19,20 +19,19 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <limits.h>
 #include <malloc.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <stdlib.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
-#include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "compat.h"
@@ -275,12 +274,6 @@ void check_strace(void);
 
 #if !defined(MINGCC) && !defined(CYGWIN)
 
-#  include <stdlib.h>
-#  include <string.h>
-#  include <stdio.h>
-#  include <unistd.h>
-#  include <sys/time.h>
-#  include <time.h>
 #  include <sys/epoll.h>
 
 static inline void check_licence(const struct timeval *tv) {
