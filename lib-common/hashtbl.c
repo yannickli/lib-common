@@ -23,6 +23,10 @@ typedef struct hashtbl_entry {
 /* simple fast hash tables for non coliding datas                           */
 /****************************************************************************/
 
+/* ghosts are continuation placeholder to look for entries that have been put
+ * forward before. Their associated key is meaningless and must be disregarded
+ */
+#define GHOST          ((void *)1)
 #define IS_EMPTY(ptr)  ((uintptr_t)(ptr) <= 1)
 
 void hashtbl_wipe(hashtbl_t *t)
@@ -38,7 +42,7 @@ static void hashtbl_invalidate(hashtbl_t *t, ssize_t pos)
     t->nr--;
     if (next->ptr) {
         t->ghosts++;
-        t->tab[pos].ptr = (void *)1;
+        t->tab[pos].ptr = GHOST;
     } else {
         t->tab[pos].ptr = NULL;
         /* should loop on previous entries and nullify ghosts */
@@ -111,7 +115,7 @@ void **hashtbl_insert(hashtbl_t *t, uint64_t key, void *ptr)
     tab  = t->tab;
 
     while (tab[pos].ptr && tab[pos].key != key) {
-        if (IS_EMPTY(tab[pos].ptr))
+        if (tab[pos].ptr == GHOST)
             ghost = pos;
         if (++pos == size)
             pos = 0;
@@ -119,9 +123,6 @@ void **hashtbl_insert(hashtbl_t *t, uint64_t key, void *ptr)
     if (IS_EMPTY(tab[pos].ptr)) {
         if (ghost >= 0) {
             t->ghosts--;
-            /* OG: this can potentially create 2 entries for key, the
-             * live one before the ghost one
-             */
             pos = ghost;
         }
         t->nr++;
@@ -300,7 +301,7 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *ptr)
     tab  = t->tab;
 
     while (tab[pos].ptr && !key_equal(t, tab + pos, key, name)) {
-        if (IS_EMPTY(tab[pos].ptr))
+        if (tab[pos].ptr == GHOST)
             ghost = pos;
         if (++pos == size)
             pos = 0;
