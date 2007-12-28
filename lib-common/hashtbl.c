@@ -33,7 +33,7 @@ void hashtbl_wipe(hashtbl_t *t)
 
 static void hashtbl_invalidate(hashtbl_t *t, ssize_t pos)
 {
-    hashtbl_entry *next = &t->tab[pos == t->size ? 0 : pos + 1];
+    hashtbl_entry *next = &t->tab[pos + 1 == t->size ? 0 : pos + 1];
 
     t->nr--;
     if (next->ptr) {
@@ -41,6 +41,7 @@ static void hashtbl_invalidate(hashtbl_t *t, ssize_t pos)
         t->tab[pos].ptr = (void *)1;
     } else {
         t->tab[pos].ptr = NULL;
+        /* should loop on previous entries and nullify ghosts */
     }
 }
 
@@ -118,6 +119,9 @@ void **hashtbl_insert(hashtbl_t *t, uint64_t key, void *ptr)
     if (IS_EMPTY(tab[pos].ptr)) {
         if (ghost >= 0) {
             t->ghosts--;
+            /* OG: this can potentially create 2 entries for key, the
+             * live one before the ghost one
+             */
             pos = ghost;
         }
         t->nr++;
@@ -134,7 +138,7 @@ void hashtbl_remove(hashtbl_t *t, void **pp)
         hashtbl_entry *e;
 
         assert (!t->inmap);
-        assert (pp && !IS_EMPTY(*pp));
+        assert (!IS_EMPTY(*pp));
         e = (hashtbl_entry *)((char *)pp - offsetof(hashtbl_entry, ptr));
         assert (t->tab <= e && e < t->tab + t->size);
 
