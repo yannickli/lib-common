@@ -737,7 +737,7 @@ const void *memsearch(const void *_haystack, size_t hsize,
 
 const void *pmemrchr(const void *s, int c, ssize_t n)
 {
-    for (const char *p = (char *)s + n - 1; p >= (char *)s; p--) {
+    for (const char *p = (const char *)s + n; p-- > (const char *)s;) {
         if (*p == c)
             return p;
     }
