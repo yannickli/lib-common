@@ -45,7 +45,14 @@ static void hashtbl_invalidate(hashtbl_t *t, ssize_t pos)
         t->tab[pos].ptr = GHOST;
     } else {
         t->tab[pos].ptr = NULL;
-        /* should loop on previous entries and nullify ghosts */
+        for (;;) {
+            if (pos-- == 0)
+                pos = t->size - 1;
+            if (t->tab[pos].ptr != GHOST)
+                return;
+            t->ghosts--;
+            t->tab[pos].ptr = NULL;
+        }
     }
 }
 
