@@ -23,6 +23,7 @@
 #include <lib-common/mem.h>
 #include <lib-common/timeval.h>
 #include <lib-common/string_is.h>
+#include <lib-common/iprintf.h>
 
 typedef struct mcms_event_t {
     int stamp;
@@ -82,7 +83,7 @@ int main(int argc, char **argv)
                        event->remote_id, event->payload_len);
         nbytes += len;
         if (out1) {
-            fwrite(buf, 1, len, out1);
+            IGNORE(fwrite(buf, 1, len, out1));
         }
     }
 
@@ -110,7 +111,7 @@ int main(int argc, char **argv)
                         event->remote_id, event->payload_len);
         nbytes += len;
         if (out2) {
-            fwrite(buf, 1, len, out2);
+            IGNORE(fwrite(buf, 1, len, out2));
         }
     }
 

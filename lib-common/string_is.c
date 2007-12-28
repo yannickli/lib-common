@@ -83,11 +83,12 @@ int memtoip(const byte *s, int len, const byte **endp)
         errno = EINVAL;
         goto done;
     }
-    while (len && isspace(*s)) {
+    while (len && isspace((unsigned char)*s)) {
         s++;
         len--;
     }
     if (!len) {
+        errno = EINVAL;
         goto done;
     }
     if (*s == '-') {
@@ -97,9 +98,9 @@ int memtoip(const byte *s, int len, const byte **endp)
             errno = EINVAL;
             goto done;
         }
-        value = '0' - *s;
-        while (--len && isdigit((unsigned char)(*++s))) {
-            int digit = '0' - *s;
+        value = '0' - *s++;
+        while (--len && isdigit((unsigned char)*s)) {
+            int digit = '0' - *s++;
             if ((value <= INT_MIN / 10)
             &&  (value < INT_MIN / 10 || digit < INT_MIN % 10)) {
                 errno = ERANGE;
@@ -114,13 +115,13 @@ int memtoip(const byte *s, int len, const byte **endp)
             s++;
             len--;
         }
-        if (!len && !isdigit((unsigned char)*s)) {
+        if (!len || !isdigit((unsigned char)*s)) {
             errno = EINVAL;
             goto done;
         }
-        value = *s - '0';
-        while (--len && isdigit((unsigned char)(*++s))) {
-            int digit = *s - '0';
+        value = *s++ - '0';
+        while (--len && isdigit((unsigned char)*s)) {
+            int digit = *s++ - '0';
             if ((value >= INT_MAX / 10)
             &&  (value > INT_MAX / 10 || digit > INT_MAX % 10)) {
                 errno = ERANGE;
@@ -1284,16 +1285,17 @@ END_TEST
 #define check_memtoip_unit(p, err_exp, val_exp, end_i)                  \
     do {                                                                \
         const byte *endp;                                               \
-        int val;                                                        \
-        int end_exp = (end_i >= 0) ? end_i : (int)strlen(p);            \
+        int val, len = strlen(p);                                       \
+        int end_exp = (end_i >= 0) ? end_i : len;                       \
                                                                         \
         errno = 0;                                                      \
-        val = memtoip((const byte *)p, strlen(p), &endp);               \
+        val = memtoip((const byte *)p, len, &endp);                     \
                                                                         \
         fail_if (err_exp != errno || val != val_exp || endp != (const byte *)p + end_exp, \
-                 "('%s', &endp)"                                        \
-                 "val=%d (expected %d), endp='%s' expected '%s'\n",     \
-                 p, val, val_exp, endp, p + end_exp);                   \
+                 "(\"%s\", %d, &endp)\n -> "                            \
+                 "val=%d (expected %d), endp='%s' (expected '%s'), "    \
+                 "errno=%d (expected %d)\n",                            \
+                 p, len, val, val_exp, endp, p + end_exp, errno, err_exp); \
     } while (0)
 
 START_TEST(check_memtoip)
@@ -1608,6 +1610,7 @@ Suite *check_string_is_suite(void)
     tcase_add_test(tc, check_pstrcpylen);
     tcase_add_test(tc, check_pstrchrcount);
     tcase_add_test(tc, check_strtoip);
+    tcase_add_test(tc, check_memtoip);
     tcase_add_test(tc, check_strtolp);
     tcase_add_test(tc, check_buffer_increment);
     tcase_add_test(tc, check_buffer_increment_hex);

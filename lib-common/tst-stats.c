@@ -107,7 +107,7 @@ static int test_mode_auto(void)
     blob_wipe(&output);
     blob_wipe(&expected);
     stats_temporal_delete(&stats);
-    system("rm -f /tmp/tst-stats*");
+    IGNORE(system("rm -f /tmp/tst-stats*"));
     return status;
 }
 
