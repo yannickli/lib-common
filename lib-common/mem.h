@@ -61,7 +61,7 @@
         }                                                       \
     } while (0)
 
-static inline void *mem_alloc(ssize_t size)
+static inline __attribute__((malloc)) void *mem_alloc(ssize_t size)
 {
     void *mem;
 
@@ -73,7 +73,7 @@ static inline void *mem_alloc(ssize_t size)
     return mem;
 }
 
-static inline void *mem_alloc0(ssize_t size)
+static inline __attribute__((malloc)) void *mem_alloc0(ssize_t size)
 {
     void *mem;
 
@@ -107,7 +107,7 @@ static inline char *mem_strdup(const char *src) {
     return res;
 }
 
-static inline void *mem_dup(const void *src, ssize_t size)
+static inline __attribute__((malloc)) void *mem_dup(const void *src, ssize_t size)
 {
     void *res = mem_alloc(size);
     return memcpy(res, src, size);
@@ -121,7 +121,7 @@ static inline void mem_copy(void *p, ssize_t to, ssize_t from, ssize_t len) {
     memcpy((char *)p + to, (const char *)p + from, len);
 }
 
-static inline void *p_dupstr(const void *src, ssize_t len)
+static inline __attribute__((malloc)) void *p_dupstr(const void *src, ssize_t len)
 {
     char *res = mem_alloc(len + 1);
     memcpy(res, src, len);
@@ -216,7 +216,7 @@ static inline void (p_delete)(void **p) {
         return var;                                         \
     }
 #define DO_NEW(type, prefix) \
-    type * prefix##_new(void) {                             \
+    __attribute__((malloc)) type * prefix##_new(void) {     \
         return prefix##_init(p_new_raw(type, 1));           \
     }
 #define DO_WIPE(type, prefix) \

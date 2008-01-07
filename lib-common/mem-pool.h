@@ -28,13 +28,13 @@ typedef struct mem_pool {
 mem_pool *mem_malloc_pool_new(void);
 void mem_malloc_pool_delete(mem_pool **poolp);
 
-static inline void *memp_dup(mem_pool *mp, const void *src, ssize_t size)
+static inline __attribute__((malloc)) void *memp_dup(mem_pool *mp, const void *src, ssize_t size)
 {
     void *res = mp->mem_alloc(mp, size);
     return memcpy(res, src, size);
 }
 
-static inline void *mp_dupstr(mem_pool *mp, const void *src, ssize_t len)
+static inline __attribute__((malloc)) void *mp_dupstr(mem_pool *mp, const void *src, ssize_t len)
 {
     char *res = mp->mem_alloc(mp, len + 1);
     memcpy(res, src, len);
@@ -98,7 +98,7 @@ static inline void *mp_dupstr(mem_pool *mp, const void *src, ssize_t len)
     } while (0)
 
 #define DO_MP_NEW(mp, type, prefix)                     \
-    type * prefix##_new(void) {                         \
+    __attribute__((malloc)) type * prefix##_new(void) { \
         return prefix##_init(mp_new_raw(mp, type, 1));  \
     }
 
