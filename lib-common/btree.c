@@ -1261,7 +1261,7 @@ struct fbtree_t {
     flag_t ismap : 1;
     union {
         struct {
-            FILE *f;
+            int fd;
             struct btree_priv *priv;
         };
         btree_t *bt;
@@ -1273,11 +1273,11 @@ fbtree_t *fbtree_open(const char *path)
     struct stat st;
     fbtree_t *fbt = p_new(fbtree_t, 1);
 
-    if (stat(path, &st) || (fbt->f = fopen(path, "rb")) == NULL)
+    if (stat(path, &st) || (fbt->fd = open(path, O_RDONLY)) < 0)
         goto error;
 
     fbt->priv = mmap(NULL, ssizeof(*fbt->priv), PROT_READ, MAP_SHARED,
-                     fileno(fbt->f), 0);
+                     fbt->fd, 0);
     if (fbt->priv == MAP_FAILED)
         goto error;
 
@@ -1287,7 +1287,7 @@ fbtree_t *fbtree_open(const char *path)
     if (bt_check_header(fbt->priv, false, path, st.st_size))
         goto error;
 
-    posix_fadvise(fileno(fbt->f), 0, st.st_size, POSIX_FADV_RANDOM);
+    posix_fadvise(fbt->fd, 0, st.st_size, POSIX_FADV_RANDOM);
     return fbt;
 
   error:
@@ -1315,7 +1315,7 @@ void fbtree_close(fbtree_t **fbtp)
         if (fbt->ismap) {
             btree_close(&fbt->bt);
         } else {
-            p_fclose(&fbt->f);
+            close(fbt->fd);
             if (fbt->priv && fbt->priv != MAP_FAILED) {
                 munmap(fbt->priv, ssizeof(*fbt->priv));
             }
@@ -1326,12 +1326,19 @@ void fbtree_close(fbtree_t **fbtp)
 
 static int fbtree_readpage(fbtree_t *fbt, int32_t page, bt_page_t *buf)
 {
-    if (fseek(fbt->f, (BTPP_OFFS(page) + 1) * ssizeof(*buf), SEEK_SET))
-        return -1;
+    const off_t offs = (BTPP_OFFS(page) + 1) * ssizeof(*buf);
 
-    if (fread(buf, sizeof(*buf), 1, fbt->f) != 1)
-        return -1;
-
+    for (int pos = 0; pos < ssizeof(*buf); ) {
+        int nb = pread(fbt->fd, buf + pos, sizeof(*buf) - pos, offs + pos);
+        if (nb < 0) {
+            if (errno == EINTR || errno == EAGAIN)
+                continue;
+            return -1;
+        }
+        if (nb == 0)
+            return -1;
+        pos += nb;
+    }
     return 0;
 }
 
