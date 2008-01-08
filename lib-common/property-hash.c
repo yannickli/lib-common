@@ -69,10 +69,20 @@ static void props_wipe_one(void **s, void *unused)
     p_delete(s);
 }
 
+props_hash_t *props_hash_dup(const props_hash_t *ph)
+{
+    props_hash_t *res = props_hash_new(ph->names);
+    if (ph->name)
+        res->name = p_strdup(ph->name);
+    props_hash_merge(res, ph);
+    return res;
+}
+
 void props_hash_wipe(props_hash_t *ph)
 {
     hashtbl_map(&ph->h, &props_wipe_one, NULL);
     hashtbl_wipe(&ph->h);
+    p_delete(&ph->name);
 }
 
 void props_hash_update(props_hash_t *ph, const char *name, const char *value)

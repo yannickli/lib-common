@@ -20,6 +20,7 @@
 #include "xmlpp.h"
 
 typedef struct props_hash_t {
+    char *name;
     hashtbl_t h;
     string_hash *names;
 } props_hash_t;
@@ -39,6 +40,7 @@ static inline props_hash_t *props_hash_new(string_hash *names)
 {
     return props_hash_init(p_new_raw(props_hash_t, 1), names);
 }
+props_hash_t *props_hash_dup(const props_hash_t *);
 void props_hash_wipe(props_hash_t *ph);
 GENERIC_DELETE(props_hash_t, props_hash);
 
@@ -81,6 +83,5 @@ void props_hash_to_xml(xmlpp_t *pp, const props_hash_t *ph);
 __must_check__ int props_hash_unpack(const byte *buf, int buflen, int *pos,
                                      props_hash_t *, int last);
 int props_hash_from_fmtv1(props_hash_t *ph, const blob_t *payload);
-
 
 #endif /* IS_LIB_COMMON_PROPERTY_H */

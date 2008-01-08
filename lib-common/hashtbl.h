@@ -90,6 +90,11 @@ uint64_t hashtbl__hobj(const hashtbl__t *t, void *ptr, int len);
 void **hashtbl__find(const hashtbl__t *t, uint64_t key, const char *s);
 void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *);
 
+#define HASHTBL_INIT_STR(type, member, inlined) \
+    { .name_offs = ofsetoff(type, name), .name_inl = inlined }
+#define HASHTBL_INIT_STROFFS(offs , inlined) \
+    { .name_offs = offs, .name_inl = inlined }
+
 /* pass true to `inlined_str` if the ->name member is an inlined array */
 #define DO_HASHTBL_STROFFS(type, pfx, offs, inlined_str)                     \
     HASHTBLE_TYPE(pfx##_hash);                                               \
