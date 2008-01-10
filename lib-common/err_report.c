@@ -167,7 +167,7 @@ void e_init_file(const char *ident, const char *filename)
     p_delete(&log_state.filename);
 
     if (filename == NULL || !strcmp(filename, "/dev/stderr")) {
-        init_file(NULL, stderr);
+        init_file(ident, stderr);
     } else {
         fp = fopen(filename, "a");
         if (fp == NULL) {
