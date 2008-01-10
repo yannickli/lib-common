@@ -29,6 +29,7 @@ typedef struct pidx_page {
 } pidx_page;
 
 #define PIDX_PAGE         ssizeof(pidx_page)
+#define PIDX_PAYLOAD_SIZE (PIDX_PAGE - 2 * ssizeof(int32_t))
 #define PIDX_MKVER(x, y)  (((x) << 8) | (y))
 #define PIDX_MAJOR        1
 #define PIDX_MINOR        0

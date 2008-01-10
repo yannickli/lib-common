@@ -31,7 +31,6 @@ MMFILE_FUNCTIONS(pidx_file, pidx_real);
 
 #define PIDX_SHIFT      8
 #define PIDX_GROW       1024
-#define PAYLOAD_SIZE    (PIDX_PAGE - 2 * ssizeof(int32_t))
 
 /****************************************************************************/
 /* whole file related functions                                             */
@@ -428,7 +427,7 @@ static int32_t pidx_page_getfree(pidx_file *pidx)
 
 static int32_t pidx_page_list_getfree(pidx_file *pidx, int len)
 {
-    int needed = MAX(0, len - 1) / PAYLOAD_SIZE + 1;
+    int needed = MAX(0, len - 1) / PIDX_PAYLOAD_SIZE + 1;
     int32_t res = 0;
 
     while (needed-- > 0) {
@@ -683,7 +682,7 @@ int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
     /* XXX do while is correct, we always want at least one page ! */
     do {
         pidx_page *pg = pidx->area->pages + page;
-        const int chunk = MIN(PAYLOAD_SIZE, len);
+        const int chunk = MIN(PIDX_PAYLOAD_SIZE, len);
 
         assert (page);
 
