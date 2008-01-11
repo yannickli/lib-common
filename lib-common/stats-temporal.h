@@ -56,12 +56,15 @@ int stats_temporal_upd(stats_temporal_t * stats, time_t date,
 bool stats_temporal_shrink(stats_temporal_t *stats, int date);
 
 /* Query */
+__must_check__
 int stats_temporal_query_sec(stats_temporal_t *stats, blob_t *blob,
                              int *outp, int start, int nb_values,
                              bfield_t *mask);
+__must_check__
 int stats_temporal_query_hour(stats_temporal_t *stats, blob_t *blob,
                               int64_t *outp, int start, int nb_values,
                               bfield_t *mask);
+__must_check__
 int stats_temporal_query_auto(stats_temporal_t *stats, int index,
                               blob_t *blob,
                               int start, int end, int nb_values, int fmt);
