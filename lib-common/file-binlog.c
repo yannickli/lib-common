@@ -32,7 +32,7 @@ struct binlog_pad_t {
 struct binlog_t *binlog_wopen(const char *name)
 {
     binlog_t res = { .writing = 1 };
-    int fd = open(name, O_RDWR | O_CREAT | O_EXCL);
+    int fd = open(name, O_RDWR | O_CREAT | O_EXCL, 0622);
 
     if (fd < 0)
         return NULL;
@@ -61,7 +61,7 @@ struct binlog_t *binlog_wopen(const char *name)
 struct binlog_t *binlog_create(const char *name)
 {
     binlog_t res = { .writing = 1 };
-    int fd = open(name, O_RDWR | O_CREAT | O_EXCL);
+    int fd = open(name, O_RDWR | O_CREAT | O_EXCL, 0622);
 
     if (fd < 0)
         return NULL;
