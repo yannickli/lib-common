@@ -63,43 +63,27 @@ int ioveclist_getlen(const ioveclist *l)
     return total;
 }
 
-/* write content of ioveclist to fd. fd is non-blocking.
- * Return value :
- *    IOVECLIST_WRITE_ERROR  if write error
- *    IOVECLIST_LATER        if there's more to write
- *    IOVECLIST_EMPTY        if everything's been written
- */
-ioveclist_state ioveclist_write(ioveclist *l, int fd)
+void ioveclist_kill_first(ioveclist *l, ssize_t len)
 {
-    int i, nbwritten;
+    int i;
 
-    nbwritten = writev(fd, l->objs, l->used);
-    if (nbwritten < 0) {
-        if (errno == EINTR || errno == EAGAIN) {
-            return IOVECLIST_LATER;
+    while (len > 0) {
+        if (l->used == 0) {
+            return;
         }
-        return IOVECLIST_WRITE_ERROR;
-    }
-    /* Skip over the written bytes.
-     * */
-    while (nbwritten > 0) {
-        if (nbwritten < (int)l->objs[0].iov_len) {
-            /* chunk 0 not fully written */
-            l->objs[0].iov_base = (byte *)l->objs[0].iov_base + nbwritten;
-            l->objs[0].iov_len -= nbwritten;
-            return IOVECLIST_LATER;
+        if (len < (int)l->objs[0].iov_len) {
+            /* truncate chunk 0 */
+            l->objs[0].iov_base = (byte *)l->objs[0].iov_base + len;
+            l->objs[0].iov_len -= len;
+            return;
         } else {
-            /* chunk 0 fully written. Skip it. */
-            nbwritten -= l->objs[0].iov_len;
+            /* Skip chunk 0 and continue. */
+            len -= l->objs[0].iov_len;
             l->used--;
             for (i = 0; i < l->used; i++) {
                 l->objs[i] = l->objs[i + 1];
             }
         }
     }
-    if (l->used) {
-        return IOVECLIST_LATER;
-    } else {
-        return IOVECLIST_EMPTY;
-    }
+    return;
 }

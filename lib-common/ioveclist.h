@@ -38,9 +38,8 @@ static inline int ioveclist_insert_blob(ioveclist *l, blob_t *blob) {
     return ioveclist_insert_first(l, blob->data, blob->len);
 }
 int ioveclist_getlen(const ioveclist *l);
+void ioveclist_kill_first(ioveclist *l, ssize_t len);
 GENERIC_WIPE(ioveclist, ioveclist);
 GENERIC_RESET(ioveclist, ioveclist);
-
-ioveclist_state ioveclist_write(ioveclist *l, int fd);
 
 #endif /* IS_LIB_COMMON_IOVECLIST_H */
