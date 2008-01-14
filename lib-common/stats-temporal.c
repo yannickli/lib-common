@@ -968,11 +968,9 @@ int stats_temporal_query_auto(stats_temporal_t *stats, int index,
     static int nb_pretty_freqs = countof(pretty_freqs);
     int i, j, stage;
     stats_stage *st;
-    byte *buf_start, *buf_end, *vp;
     int freq;
     int count = 0;
     int64_t accu = 0;
-    int trailing;
 
     if (fmt < STATS_FMT_RAW || fmt > STATS_FMT_XML) {
         blob_append_fmt(blob, "Bad stats fmt: %d", fmt);
@@ -1073,29 +1071,6 @@ int stats_temporal_query_auto(stats_temporal_t *stats, int index,
             "nbvalues: %d, ratio: %d",
             start, end, freq, nb_values, (end - start) / freq);
 
-    /* trim start and end to match actual data in our file */
-    if (start <= st->current - st->count) {
-        /* We don't know any values before 'st->current - st->count' */
-        e_trace(2, "start was too early (%d < %d)",
-                start, st->current - st->count);
-        /* TODO: Send fake values using either upper stages, or zero values */
-        start = st->current - st->count;
-    }
-
-    trailing = end;
-    if (end > st->current + 1) {
-        /* FIXME: Shouldn't we drop these stats, instead of shifting */
-        e_trace(2, "end was too far (%d > %d)", end, st->current + 1);
-        end = st->current + 1;
-    }
-
-    e_trace(2, "Getting stats between %d and %d", start, end);
-
-    buf_start = (byte *)stats->file->area + st->offset;
-    buf_end   = buf_start + st->count * st->incr;
-    vp        = buf_start + ((st->pos + st->count + start - st->current) %
-                             st->count * st->incr);
-
     switch (fmt) {
       case STATS_FMT_XML:
         blob_append_cstr(blob, "<data>\n");
@@ -1106,38 +1081,38 @@ int stats_temporal_query_auto(stats_temporal_t *stats, int index,
     }
 
     for (i = start, j = 0; i < end; i++) {
-        /* XXX: This rely on start and end being cropped */
-        if (vp >= buf_end) {
-            vp = buf_start;
-        }
+        int stageup = stage;
+        stats_stage *stup = st;
+        int stamp = i;
 
-        accu += (long long)(stage ? ((int64_t*)vp)[index] : ((int32_t*)vp)[index]);
-        j++;
+        if (i <= st->current + 1) {
+            while (stamp <= stup->current - stup->count)
+            {
+                if (stageup >= stats->nb_stages - 1)
+                    break;
 
-        if (j >= freq) {
-            switch (fmt) {
-              case STATS_FMT_RAW:
-                blob_append_fmt(blob, "%d %lld\n",
-                                (i - (freq - 1)) * st->scale,
-                                (long long)accu / (j * st->scale));
-                break;
-
-              case STATS_FMT_XML:
-                blob_append_fmt(blob, "<elem time=\"%d\" val=\"%lld\" />\n",
-                                (i - (freq - 1)) * st->scale,
-                                (long long)accu / (j * st->scale));
-                count++;
-                break;
-
-              default:
-                break;
+                e_trace(2, "need next stage");
+                stageup++;
+                stup++;
+                stamp = i * st->scale / stup->scale;
             }
-            j = 0;
-            accu = 0;
+            if (stamp <= stup->current - stup->count) {
+                e_trace(2, "no data available, so dump 0");
+                accu += 0;
+            } else {
+                long long add;
+                byte *vpup, *bufup_start, *bufup_end;
+
+                bufup_start = (byte *)stats->file->area + stup->offset;
+                bufup_end   = bufup_start + stup->count * stup->incr;
+                vpup        = bufup_start + ((stup->pos + stup->count + stamp - stup->current) %
+                                             stup->count * stup->incr);
+                add = (long long)(stageup ? ((int64_t*)vpup)[index] : ((int32_t*)vpup)[index]);
+                add = (add * st->scale) / stup->scale;
+                e_trace(3, "scaled add %lld", add);
+                accu += add;
+            }
         }
-        vp += st->incr;
-    }
-    for (i = end; i < trailing; i++) {
         j++;
 
         if (j >= freq) {
@@ -1175,7 +1150,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, int index,
 
     e_trace(1, "Outputed %d values", count);
 
-    return 0;
+    return count;
 }
 
 #ifndef NDEBUG
