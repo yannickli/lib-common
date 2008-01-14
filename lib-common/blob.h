@@ -38,7 +38,9 @@ typedef struct blob_t {
 
     /* private interface */
     byte *area;   /* originally allocated block */
-    ssize_t size;  /* allocated size */
+    ssize_t size;  /* available memory size after area. It may be
+                    * smaller than allocated memory size after kill_first()
+                    * has been used. */
     byte initial[BLOB_INITIAL_SIZE];
 } blob_t;
 
