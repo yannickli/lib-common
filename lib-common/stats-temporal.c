@@ -970,7 +970,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, int index,
     stats_stage *st;
     int freq;
     int count = 0;
-    int64_t accu = 0;
+    double accu = 0;
 
     if (fmt < STATS_FMT_RAW || fmt > STATS_FMT_XML) {
         blob_append_fmt(blob, "Bad stats fmt: %d", fmt);
@@ -1100,16 +1100,16 @@ int stats_temporal_query_auto(stats_temporal_t *stats, int index,
                 e_trace(2, "no data available, so dump 0");
                 accu += 0;
             } else {
-                long long add;
+                double add;
                 byte *vpup, *bufup_start, *bufup_end;
 
                 bufup_start = (byte *)stats->file->area + stup->offset;
                 bufup_end   = bufup_start + stup->count * stup->incr;
                 vpup        = bufup_start + ((stup->pos + stup->count + stamp - stup->current) %
                                              stup->count * stup->incr);
-                add = (long long)(stageup ? ((int64_t*)vpup)[index] : ((int32_t*)vpup)[index]);
+                add = (double)(stageup ? ((int64_t*)vpup)[index] : ((int32_t*)vpup)[index]);
                 add = (add * st->scale) / stup->scale;
-                e_trace(3, "scaled add %lld", add);
+                e_trace(3, "scaled add %e", add);
                 accu += add;
             }
         }
@@ -1124,9 +1124,9 @@ int stats_temporal_query_auto(stats_temporal_t *stats, int index,
                 break;
 
               case STATS_FMT_XML:
-                blob_append_fmt(blob, "<elem time=\"%d\" val=\"%lld\" />\n",
+                blob_append_fmt(blob, "<elem time=\"%d\" val=\"%e\" />\n",
                                 (i - (freq - 1)) * st->scale,
-                                (long long)accu / (j * st->scale));
+                                accu / (j * st->scale));
                 count++;
                 break;
 
