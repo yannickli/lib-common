@@ -64,5 +64,6 @@ typedef enum cfg_parse_evt {
 typedef int cfg_parse_hook(void *, cfg_parse_evt, const char *, int len);
 
 int cfg_parse(const char *file, cfg_parse_hook *, void *, int opts);
+int cfg_parse_buf(const char *, ssize_t, cfg_parse_hook *, void *, int opts);
 
 #endif /* IS_LIB_COMMON_CFG_H */

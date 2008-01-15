@@ -24,27 +24,13 @@ struct lexdata {
     cfg_parse_hook *hook;
     void *data;
     int   opts;
+    char  path[PATH_MAX];
 
     blob_t buf, err;
+    yyscan_t scanner;
 };
 
 /* helpers {{{ */
-
-static struct lexdata *lexdata_init(struct lexdata *ld)
-{
-    p_clear(ld, 1);
-    blob_init(&ld->buf);
-    blob_init(&ld->err);
-    ld->lno = 1;
-    ld->lstart = -1;
-    return ld;
-}
-
-static void lexdata_wipe(struct lexdata *ld)
-{
-    blob_wipe(&ld->buf);
-    blob_wipe(&ld->err);
-}
 
 static void lexdata_newline(struct lexdata *ld, int offs)
 {
@@ -101,8 +87,9 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 
 #define ERROR_OFFS(offs, fmt, ...)  \
     do {                                                                    \
-        blob_set_fmt(&yyextra->err, "%d:%d:"fmt, yyextra->lno,              \
-                     offs + yyextra->pos - yyextra->lstart, ##__VA_ARGS__); \
+        blob_set_fmt(&yyextra->err, "%s%d:%d:"fmt, yyextra->path,           \
+                     yyextra->lno, offs + yyextra->pos - yyextra->lstart,   \
+                     ##__VA_ARGS__);                                        \
         HOOK(CFG_PARSE_ERROR, blob_get_cstr(&yyextra->err),                 \
              yyextra->err.len);                                             \
         return -1;                                                          \
@@ -231,27 +218,58 @@ ATOM    [^[:space:];#]+
 
 %%
 
+static struct lexdata *lexdata_init(struct lexdata *ld)
+{
+    p_clear(ld, 1);
+    blob_init(&ld->buf);
+    blob_init(&ld->err);
+    ld->lno = 1;
+    ld->lstart = -1;
+    yylex_init(&ld->scanner);
+    yyset_extra(ld, ld->scanner);
+    return ld;
+}
+
+static void lexdata_wipe(struct lexdata *ld)
+{
+    blob_wipe(&ld->buf);
+    blob_wipe(&ld->err);
+    yylex_destroy(ld->scanner);
+}
+
 int cfg_parse(const char *file, cfg_parse_hook *hook, void *data, int opts)
 {
-    yyscan_t scanner;
     struct lexdata ld;
     FILE *fd = fopen(file, "rb");
+    int res;
 
     if (!fd)
         return -1;
 
-    yylex_init(&scanner);
-    yyset_extra(lexdata_init(&ld), scanner);
-    yyset_in(fd, scanner);
+    lexdata_init(&ld);
     ld.hook = hook;
     ld.data = data;
     ld.opts = opts;
-
-    if (yylex(scanner) < 0)
-        fprintf(stderr, "%s:%s\n", file, blob_get_cstr(&ld.err));
-
-    yylex_destroy(scanner);
+    snprintf(ld.path, sizeof(ld.path), "%s:", file);
+    yyset_in(fd, ld.scanner);
+    res = yylex(ld.scanner);
     lexdata_wipe(&ld);
     p_fclose(&fd);
-    return 0;
+    return res;
+}
+
+int cfg_parse_buf(const char *buf, ssize_t blen, cfg_parse_hook *hook, void *data, int opts)
+{
+    struct lexdata ld;
+    int res;
+
+    lexdata_init(&ld);
+    ld.hook = hook;
+    ld.data = data;
+    ld.opts = opts;
+    yy_scan_bytes(buf, blen, ld.scanner);
+
+    res = yylex(ld.scanner);
+    lexdata_wipe(&ld);
+    return res;
 }
