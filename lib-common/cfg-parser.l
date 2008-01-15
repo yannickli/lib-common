@@ -16,13 +16,15 @@
 #include "cfg.h"
 
 struct lexdata {
-    int   context;
-
-    int   lno, lstart; /* line no 1-based, position of the last \n  */
+    int   context;     /* state we just left, used by <STRING> state */
+    int   lno, lstart; /* line no 1-based, position of the last \n   */
     int   pos, len;    /* stream length, 0-based, and copy of yyleng */
+
     char *cur_section;
     blob_t key, val, err;
 };
+
+/* helpers {{{ */
 
 static struct lexdata *lexdata_init(struct lexdata *ld)
 {
@@ -37,6 +39,7 @@ static struct lexdata *lexdata_init(struct lexdata *ld)
 
 static void lexdata_wipe(struct lexdata *ld)
 {
+    p_delete(&ld->cur_section);
     blob_wipe(&ld->key);
     blob_wipe(&ld->val);
     blob_wipe(&ld->err);
@@ -78,6 +81,9 @@ static int parse_hex(const char *h) {
     return res;
 }
 
+/* }}} */
+/* flex configuration {{{ */
+
 /* there is no noyy* options for them */
 __attribute__((unused)) static int yyget_column(yyscan_t yyscanner);
 __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscanner);
@@ -95,6 +101,8 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 
 #define YY_EXTRA_TYPE  struct lexdata *
 #define ECHO
+
+/* }}} */
 
 %}
 
@@ -149,7 +157,12 @@ INT     "-"?[0-9]+
 <EOSECTION>{HS}*"]"     { BEGIN(TOEOL); }
 
 <EQUAL>{HS}*"="{HS}*    { BEGIN(VALUE); }
-<VALUE>{
+
+<VALUE>{ /* parse right hand side values */
+    \n                  { /* TODO empty value */;
+                          lexdata_newline(yyextra, -1);
+                          BEGIN(INITIAL);
+                        }
     {INT}               { /* TODO do sth with strtoip(yytext, NULL); */;
                           printf("%s = %d\n", blob_get_cstr(&yyextra->key), strtoip(yytext, NULL));
                           BEGIN(TOEOL);
@@ -165,7 +178,8 @@ INT     "-"?[0-9]+
                         }
 }
 
-<STRING>{
+
+<STRING>{ /* parse string enclosed in double quotes with escapes */
     \"                  {
                           switch (yyextra->context) {
                             case VALUE:
@@ -187,18 +201,16 @@ INT     "-"?[0-9]+
     [^\\\n\"]+          { blob_append_data(&yyextra->val, yytext, yyleng); }
 }
 
-<*>{
-    \n                  { if (YYSTATE == INITIAL || YYSTATE == TOEOL) {
-                              lexdata_newline(yyextra, 0);
-                              BEGIN(INITIAL);
-                          } else {
+<*>{ /* default rules to catch end of lines and end of files */
+    \n                  { if (YYSTATE != INITIAL && YYSTATE != TOEOL)
                               ERROR("unexpected new line, missing `\\` ?");
-                          }
+                          lexdata_newline(yyextra, 0);
+                          BEGIN(INITIAL);
                         }
     .                   { ERROR("unexpected char `%c`", *yytext); }
-    <<EOF>>             { if (YYSTATE == INITIAL || YYSTATE == TOEOL)
-                              return 0;
-                          ERROR("unexpected end of file");
+    <<EOF>>             { if (YYSTATE != INITIAL && YYSTATE != TOEOL)
+                              ERROR("unexpected end of file");
+                          return 0;
                         }
 }
 
@@ -222,5 +234,6 @@ int cfg_parse(const char *file)
 
     yylex_destroy(scanner);
     lexdata_wipe(&ld);
+    p_fclose(&fd);
     return 0;
 }
