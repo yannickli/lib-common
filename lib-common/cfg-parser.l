@@ -17,9 +17,42 @@
 
 struct lexdata {
     int   context;
+
+    int   lno, lstart; /* line no 1-based, position of the last \n  */
+    int   pos, len;    /* stream length, 0-based, and copy of yyleng */
     char *cur_section;
     blob_t key, val, err;
 };
+
+static struct lexdata *lexdata_init(struct lexdata *ld)
+{
+    p_clear(ld, 1);
+    blob_init(&ld->key);
+    blob_init(&ld->val);
+    blob_init(&ld->err);
+    ld->lno = 1;
+    ld->lstart = -1;
+    return ld;
+}
+
+static void lexdata_wipe(struct lexdata *ld)
+{
+    blob_wipe(&ld->key);
+    blob_wipe(&ld->val);
+    blob_wipe(&ld->err);
+}
+
+static void lexdata_newline(struct lexdata *ld, int offs)
+{
+    ld->lno++;
+    if (offs < 0) {
+        assert (-offs <= ld->len);
+        ld->lstart = ld->pos + ld->len + offs;
+    } else {
+        assert (offs < ld->len);
+        ld->lstart = ld->pos + offs;
+    }
+}
 
 static char const __c_unescape[] = {
     ['a'] = '\a', ['b'] = '\b', ['e'] = '\e', ['t'] = '\t', ['n'] = '\n',
@@ -49,18 +82,23 @@ static int parse_hex(const char *h) {
 __attribute__((unused)) static int yyget_column(yyscan_t yyscanner);
 __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscanner);
 
+#define YY_USER_ACTION \
+    yyextra->pos += yyextra->len;  \
+    yyextra->len  = yyleng;
+
 #define ERROR(fmt, ...)  \
     do {                                                                  \
-        blob_set_fmt(&yyextra->err, "%d:"fmt, yyget_lineno(yyscanner),    \
-                     ##__VA_ARGS__);                                      \
+        blob_set_fmt(&yyextra->err, "%d:%d:"fmt, yyextra->lno,            \
+                     yyextra->pos - yyextra->lstart, ##__VA_ARGS__);      \
         return -1;                                                        \
     } while (0)
 
 #define YY_EXTRA_TYPE  struct lexdata *
 #define ECHO
+
 %}
 
-%option 8bit batch nointeractive reentrant stack yylineno
+%option 8bit batch nointeractive reentrant stack
 %option noyywrap nounput noyy_top_state noyy_push_state noyy_pop_state
 
 %x      TOEOL
@@ -73,92 +111,95 @@ HS      [ \t\r\v]
 INT     "-"?[0-9]+
 
 %%
-<*>\\\n                     /* SKIP */
+<*>\\\n                 { lexdata_newline(yyextra, -1); }
 
 <INITIAL>{
-    "["{HS}*                { p_delete(&yyextra->cur_section);
-                              BEGIN(SECTION);
-                            }
-    {KEY}                   { if (!yyextra->cur_section)
-                                  ERROR("no section opened yet");
-                              blob_set_data(&yyextra->key, yytext, yyleng);
-                              BEGIN(EQUAL);
-                            }
+    "["{HS}*            { if (yyextra->cur_section)
+                              putchar('\n');
+                          p_delete(&yyextra->cur_section);
+                          BEGIN(SECTION);
+                        }
+    {KEY}               { if (!yyextra->cur_section)
+                              ERROR("no section opened yet");
+                          blob_set_data(&yyextra->key, yytext, yyleng);
+                          BEGIN(EQUAL);
+                        }
 }
 <INITIAL,TOEOL>{
-    {HS}+                   /* SKIP */
-    [;#].*\n                { BEGIN(INITIAL); }
+    {HS}+               /* SKIP */
+    [;#].*\n            { lexdata_newline(yyextra, -1); BEGIN(INITIAL); }
 }
 
 <SECTION>{
-    {ID}{HS}*\"?            {
-                              if (yytext[yyleng - 1] == '"') {
-                                  yyextra->context = SECTION;
-                                  blob_reset(&yyextra->val);
-                                  yytext[--yyleng] = '\0';
-                                  BEGIN(STRING);
-                              } else {
-                                  BEGIN(EOSECTION);
-                              }
-                              while (isspace((unsigned char)yytext[yyleng - 1]))
-                                  yytext[--yyleng] = '\0';
-                              yyextra->cur_section = p_dup(yytext, yyleng + 1);
-                              printf("[%s]\n", yytext);
-                            }
-}
-<EOSECTION>{HS}*"]"         { BEGIN(TOEOL); }
-
-<EQUAL>{HS}*"="{HS}*        { BEGIN(VALUE); }
-<VALUE>{
-    {INT}                   { /* TODO do sth with strtoip(yytext, NULL); */;
-                              printf("%s = %d\n", blob_get_cstr(&yyextra->key), strtoip(yytext, NULL));
-                              BEGIN(TOEOL);
-                            }
-    \"                      { blob_reset(&yyextra->val);
-                              yyextra->context = VALUE;
+    {ID}{HS}*\"?        {
+                          if (yytext[yyleng - 1] == '"') {
+                              yyextra->context = SECTION;
                               blob_reset(&yyextra->val);
+                              yyleng--;
                               BEGIN(STRING);
-                            }
-    [^[:space:];#]+         { /* TODO do sth with yytext */
-                              printf("%s = %s\n", blob_get_cstr(&yyextra->key), yytext);
-                              BEGIN(TOEOL);
-                            }
+                          } else {
+                              BEGIN(EOSECTION);
+                          }
+                          while (isspace((unsigned char)yytext[yyleng - 1]))
+                              yyleng--;
+                          yyextra->cur_section = p_dupstr(yytext, yyleng);
+                          printf("[%s]\n", yytext);
+                        }
+}
+<EOSECTION>{HS}*"]"     { BEGIN(TOEOL); }
+
+<EQUAL>{HS}*"="{HS}*    { BEGIN(VALUE); }
+<VALUE>{
+    {INT}               { /* TODO do sth with strtoip(yytext, NULL); */;
+                          printf("%s = %d\n", blob_get_cstr(&yyextra->key), strtoip(yytext, NULL));
+                          BEGIN(TOEOL);
+                        }
+    \"                  { blob_reset(&yyextra->val);
+                          yyextra->context = VALUE;
+                          blob_reset(&yyextra->val);
+                          BEGIN(STRING);
+                        }
+    [^[:space:];#]+     { /* TODO do sth with yytext */
+                          printf("%s = %s\n", blob_get_cstr(&yyextra->key), yytext);
+                          BEGIN(TOEOL);
+                        }
 }
 
 <STRING>{
-    \"                      {
-                              switch (yyextra->context) {
-                                case VALUE:
-                                  /* ... */
-                                  BEGIN(TOEOL);
-                                  break;
-                                case SECTION:
-                                  /* ... */
-                                  BEGIN(EOSECTION);
-                                  break;
-                                default: abort();
-                              }
-                            }
-    \\[0-2][0-7]{2}         { blob_append_byte(&yyextra->val, parse_oct(yytext + 1)); }
-    \\x[0-9a-fA-F]{2}       { blob_append_byte(&yyextra->val, parse_hex(yytext + 2)); }
-    \\u[0-9a-fA-F]{4}       { blob_utf8_putc(&yyextra->val, parse_hex(yytext + 2)); }
-    \\[abetnvfr\\]          { blob_append_c_unescape(&yyextra->val, yytext[1]); }
-    \\.                     { blob_append_data(&yyextra->val, yytext, 2); }
-    [^\\\n\"]+              { blob_append_data(&yyextra->val, yytext, yyleng); }
+    \"                  {
+                          switch (yyextra->context) {
+                            case VALUE:
+                              /* ... */
+                              BEGIN(TOEOL);
+                              break;
+                            case SECTION:
+                              /* ... */
+                              BEGIN(EOSECTION);
+                              break;
+                            default: abort();
+                          }
+                        }
+    \\[0-2][0-7]{2}     { blob_append_byte(&yyextra->val, parse_oct(yytext + 1)); }
+    \\x[0-9a-fA-F]{2}   { blob_append_byte(&yyextra->val, parse_hex(yytext + 2)); }
+    \\u[0-9a-fA-F]{4}   { blob_utf8_putc(&yyextra->val, parse_hex(yytext + 2)); }
+    \\[abetnvfr\\]      { blob_append_c_unescape(&yyextra->val, yytext[1]); }
+    \\.                 { blob_append_data(&yyextra->val, yytext, 2); }
+    [^\\\n\"]+          { blob_append_data(&yyextra->val, yytext, yyleng); }
 }
 
 <*>{
-    \n                      { if (YYSTATE == INITIAL || YYSTATE == TOEOL) {
-                                  BEGIN(INITIAL);
-                              } else {
-                                  ERROR("unexpected new line, missting `\\` ?");
-                              }
-                            }
-    .                       { ERROR("unexpected char `%c`", *yytext); }
-    <<EOF>>                 { if (YYSTATE == INITIAL || YYSTATE == TOEOL)
-                                  return 0;
-                              ERROR("unexpected end of file");
-                            }
+    \n                  { if (YYSTATE == INITIAL || YYSTATE == TOEOL) {
+                              lexdata_newline(yyextra, 0);
+                              BEGIN(INITIAL);
+                          } else {
+                              ERROR("unexpected new line, missing `\\` ?");
+                          }
+                        }
+    .                   { ERROR("unexpected char `%c`", *yytext); }
+    <<EOF>>             { if (YYSTATE == INITIAL || YYSTATE == TOEOL)
+                              return 0;
+                          ERROR("unexpected end of file");
+                        }
 }
 
 %%
@@ -172,20 +213,14 @@ int cfg_parse(const char *file)
     if (!fd)
         return -1;
 
-    p_clear(&ld, 1);
     yylex_init(&scanner);
-    blob_init(&ld.key);
-    blob_init(&ld.val);
-    blob_init(&ld.err);
-    yyset_extra(&ld, scanner);
+    yyset_extra(lexdata_init(&ld), scanner);
     yyset_in(fd, scanner);
 
     if (yylex(scanner) < 0)
         fprintf(stderr, "%s:%s\n", file, blob_get_cstr(&ld.err));
 
     yylex_destroy(scanner);
-    blob_wipe(&ld.key);
-    blob_wipe(&ld.val);
-    blob_wipe(&ld.err);
+    lexdata_wipe(&ld);
     return 0;
 }
