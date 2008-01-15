@@ -22,15 +22,10 @@ void ioveclist_init(ioveclist *l)
 
 int ioveclist_insert_first(ioveclist *l, const void *data, int size)
 {
-    int i;
-
     if (l->used >= IOVECLIST_OBJS_NUM) {
         return 1;
     }
-    /* OG: should use memmove ? */
-    for (i = l->used; i > 0; i--) {
-        l->objs[i] = l->objs[i-1];
-    }
+    memmove(&l->objs[1], &l->objs[0], l->used * sizeof(l->objs[0]));
     l->used++;
     /* this cast is OK because we use iovec only for writing data */
     l->objs[0].iov_base = (void*)data;
@@ -65,8 +60,6 @@ int ioveclist_getlen(const ioveclist *l)
 
 void ioveclist_kill_first(ioveclist *l, ssize_t len)
 {
-    int i;
-
     while (len > 0) {
         if (l->used == 0) {
             return;
@@ -80,9 +73,7 @@ void ioveclist_kill_first(ioveclist *l, ssize_t len)
             /* Skip chunk 0 and continue. */
             len -= l->objs[0].iov_len;
             l->used--;
-            for (i = 0; i < l->used; i++) {
-                l->objs[i] = l->objs[i + 1];
-            }
+            memmove(&l->objs[0], &l->objs[1], l->used * sizeof(l->objs[0]));
         }
     }
     return;
