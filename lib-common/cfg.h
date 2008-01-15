@@ -14,8 +14,7 @@
 #ifndef IS_LIB_COMMON_CFG_H
 #define IS_LIB_COMMON_CFG_H
 
-/*
-   cfg files are ini-like files with an extended format.
+/* {{{ cfg files are ini-like files with an extended format.
 
   - leading and trailing spaces aren't significant.
   - any line can be wrapped with a backslash (`\`) as a continuation token.
@@ -42,11 +41,22 @@ significant"]
 
 
 ---->8----
- */
+}}} */
 
 #include "blob.h"
 #include "string_is.h"
 
-int cfg_parse(const char *file);
+typedef enum cfg_parse_evt {
+    CFG_PARSE_SECTION,     /* v isn't NULL and vlen is >= 1 */
+    CFG_PARSE_SECTION_ID,  /* v isn't NULL and vlen is >= 1 */
+    CFG_PARSE_KEY,         /* v isn't NULL and vlen is >= 1 */
+
+    CFG_PARSE_VALUE,       /* v may be NULL                 */
+    CFG_PARSE_EOF,         /* v is NULL                     */
+} cfg_parse_evt;
+
+typedef int cfg_parse_hook(void *, cfg_parse_evt, const char *, int len);
+
+int cfg_parse(const char *file, cfg_parse_hook *, void *);
 
 #endif /* IS_LIB_COMMON_CFG_H */

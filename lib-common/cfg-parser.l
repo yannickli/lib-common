@@ -16,12 +16,15 @@
 #include "cfg.h"
 
 struct lexdata {
+    flag_t seen_section : 1;
     int   context;     /* state we just left, used by <STRING> state */
     int   lno, lstart; /* line no 1-based, position of the last \n   */
     int   pos, len;    /* stream length, 0-based, and copy of yyleng */
 
-    char *cur_section;
-    blob_t key, val, err;
+    cfg_parse_hook *hook;
+    void *data;
+
+    blob_t buf, err;
 };
 
 /* helpers {{{ */
@@ -29,8 +32,7 @@ struct lexdata {
 static struct lexdata *lexdata_init(struct lexdata *ld)
 {
     p_clear(ld, 1);
-    blob_init(&ld->key);
-    blob_init(&ld->val);
+    blob_init(&ld->buf);
     blob_init(&ld->err);
     ld->lno = 1;
     ld->lstart = -1;
@@ -39,9 +41,7 @@ static struct lexdata *lexdata_init(struct lexdata *ld)
 
 static void lexdata_wipe(struct lexdata *ld)
 {
-    p_delete(&ld->cur_section);
-    blob_wipe(&ld->key);
-    blob_wipe(&ld->val);
+    blob_wipe(&ld->buf);
     blob_wipe(&ld->err);
 }
 
@@ -99,6 +99,12 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
         return -1;                                                        \
     } while (0)
 
+#define HOOK(evt, val, len) \
+    do {                                                                  \
+        (*yyextra->hook)(yyextra->data, (evt), (val), (len));             \
+    } while (0)
+#define HOOKBUF(evt)  HOOK((evt), blob_get_cstr(&yyextra->buf), yyextra->buf.len)
+
 #define YY_EXTRA_TYPE  struct lexdata *
 #define ECHO
 
@@ -122,14 +128,10 @@ INT     "-"?[0-9]+
 <*>\\\n                 { lexdata_newline(yyextra, -1); }
 
 <INITIAL>{
-    "["{HS}*            { if (yyextra->cur_section)
-                              putchar('\n');
-                          p_delete(&yyextra->cur_section);
-                          BEGIN(SECTION);
-                        }
-    {KEY}               { if (!yyextra->cur_section)
+    "["{HS}*            { BEGIN(SECTION); }
+    {KEY}               { if (!yyextra->seen_section)
                               ERROR("no section opened yet");
-                          blob_set_data(&yyextra->key, yytext, yyleng);
+                          HOOK(CFG_PARSE_KEY, yytext, yyleng);
                           BEGIN(EQUAL);
                         }
 }
@@ -142,7 +144,6 @@ INT     "-"?[0-9]+
     {ID}{HS}*\"?        {
                           if (yytext[yyleng - 1] == '"') {
                               yyextra->context = SECTION;
-                              blob_reset(&yyextra->val);
                               yyleng--;
                               BEGIN(STRING);
                           } else {
@@ -150,8 +151,8 @@ INT     "-"?[0-9]+
                           }
                           while (isspace((unsigned char)yytext[yyleng - 1]))
                               yyleng--;
-                          yyextra->cur_section = p_dupstr(yytext, yyleng);
-                          printf("[%s]\n", yytext);
+                          HOOK(CFG_PARSE_SECTION, yytext, yyleng);
+                          yyextra->seen_section = true;
                         }
 }
 <EOSECTION>{HS}*"]"     { BEGIN(TOEOL); }
@@ -159,21 +160,15 @@ INT     "-"?[0-9]+
 <EQUAL>{HS}*"="{HS}*    { BEGIN(VALUE); }
 
 <VALUE>{ /* parse right hand side values */
-    \n                  { /* TODO empty value */;
+    \n                  { HOOK(CFG_PARSE_VALUE, NULL, -1);
                           lexdata_newline(yyextra, -1);
                           BEGIN(INITIAL);
                         }
-    {INT}               { /* TODO do sth with strtoip(yytext, NULL); */;
-                          printf("%s = %d\n", blob_get_cstr(&yyextra->key), strtoip(yytext, NULL));
+    {INT}               { HOOK(CFG_PARSE_VALUE, yytext, yyleng);
                           BEGIN(TOEOL);
                         }
-    \"                  { blob_reset(&yyextra->val);
-                          yyextra->context = VALUE;
-                          blob_reset(&yyextra->val);
-                          BEGIN(STRING);
-                        }
-    [^[:space:];#]+     { /* TODO do sth with yytext */
-                          printf("%s = %s\n", blob_get_cstr(&yyextra->key), yytext);
+    \"                  { yyextra->context = VALUE; BEGIN(STRING); }
+    [^[:space:];#]+     { HOOK(CFG_PARSE_VALUE, yytext, yyleng);
                           BEGIN(TOEOL);
                         }
 }
@@ -183,22 +178,23 @@ INT     "-"?[0-9]+
     \"                  {
                           switch (yyextra->context) {
                             case VALUE:
-                              /* ... */
+                              HOOKBUF(CFG_PARSE_VALUE);
                               BEGIN(TOEOL);
                               break;
                             case SECTION:
-                              /* ... */
+                              HOOKBUF(CFG_PARSE_SECTION_ID);
                               BEGIN(EOSECTION);
                               break;
                             default: abort();
                           }
+                          blob_reset(&yyextra->buf);
                         }
-    \\[0-2][0-7]{2}     { blob_append_byte(&yyextra->val, parse_oct(yytext + 1)); }
-    \\x[0-9a-fA-F]{2}   { blob_append_byte(&yyextra->val, parse_hex(yytext + 2)); }
-    \\u[0-9a-fA-F]{4}   { blob_utf8_putc(&yyextra->val, parse_hex(yytext + 2)); }
-    \\[abetnvfr\\]      { blob_append_c_unescape(&yyextra->val, yytext[1]); }
-    \\.                 { blob_append_data(&yyextra->val, yytext, 2); }
-    [^\\\n\"]+          { blob_append_data(&yyextra->val, yytext, yyleng); }
+    \\[0-2][0-7]{2}     { blob_append_byte(&yyextra->buf, parse_oct(yytext + 1)); }
+    \\x[0-9a-fA-F]{2}   { blob_append_byte(&yyextra->buf, parse_hex(yytext + 2)); }
+    \\u[0-9a-fA-F]{4}   { blob_utf8_putc(&yyextra->buf, parse_hex(yytext + 2)); }
+    \\[abetnvfr\\]      { blob_append_c_unescape(&yyextra->buf, yytext[1]); }
+    \\.                 { blob_append_data(&yyextra->buf, yytext, 2); }
+    [^\\\n\"]+          { blob_append_data(&yyextra->buf, yytext, yyleng); }
 }
 
 <*>{ /* default rules to catch end of lines and end of files */
@@ -210,13 +206,14 @@ INT     "-"?[0-9]+
     .                   { ERROR("unexpected char `%c`", *yytext); }
     <<EOF>>             { if (YYSTATE != INITIAL && YYSTATE != TOEOL)
                               ERROR("unexpected end of file");
+                          HOOK(CFG_PARSE_EOF, NULL, -1);
                           return 0;
                         }
 }
 
 %%
 
-int cfg_parse(const char *file)
+int cfg_parse(const char *file, cfg_parse_hook *hook, void *data)
 {
     yyscan_t scanner;
     struct lexdata ld;
@@ -228,6 +225,8 @@ int cfg_parse(const char *file)
     yylex_init(&scanner);
     yyset_extra(lexdata_init(&ld), scanner);
     yyset_in(fd, scanner);
+    ld.hook = hook;
+    ld.data = data;
 
     if (yylex(scanner) < 0)
         fprintf(stderr, "%s:%s\n", file, blob_get_cstr(&ld.err));
