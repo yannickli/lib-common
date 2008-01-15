@@ -110,7 +110,7 @@ static void update_one(uint64_t key, void **val, void *to)
 void props_hash_merge(props_hash_t *to, const props_hash_t *src)
 {
     assert (to->names == src->names);
-    hashtbl_map2((hashtbl_t *)src, update_one, to);
+    hashtbl_map2((hashtbl_t *)&src->h, update_one, to);
 }
 
 /****************************************************************************/
