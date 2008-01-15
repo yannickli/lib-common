@@ -54,9 +54,11 @@ static int parse_hook(void *_ps, cfg_parse_evt evt, const char *v, int vlen)
         }
         return 0;
 
-      default:
-        return -1;
+      case CFG_PARSE_ERROR:
+        fprintf(stderr, "%s\n", v);
+        return 0;
     }
+    return -1;
 }
 
 int main(int argc, const char **argv)

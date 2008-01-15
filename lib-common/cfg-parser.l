@@ -92,18 +92,20 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
     yyextra->pos += yyextra->len;  \
     yyextra->len  = yyleng;
 
-#define ERROR(fmt, ...)  \
-    do {                                                                  \
-        blob_set_fmt(&yyextra->err, "%d:%d:"fmt, yyextra->lno,            \
-                     yyextra->pos - yyextra->lstart, ##__VA_ARGS__);      \
-        return -1;                                                        \
-    } while (0)
-
 #define HOOK(evt, val, len) \
     do {                                                                  \
         (*yyextra->hook)(yyextra->data, (evt), (val), (len));             \
     } while (0)
 #define HOOKBUF(evt)  HOOK((evt), blob_get_cstr(&yyextra->buf), yyextra->buf.len)
+
+#define ERROR(fmt, ...)  \
+    do {                                                                  \
+        blob_set_fmt(&yyextra->err, "%d:%d:"fmt, yyextra->lno,            \
+                     yyextra->pos - yyextra->lstart, ##__VA_ARGS__);      \
+        HOOK(CFG_PARSE_ERROR, blob_get_cstr(&yyextra->err),               \
+             yyextra->err.len);                                           \
+        return -1;                                                        \
+    } while (0)
 
 #define YY_EXTRA_TYPE  struct lexdata *
 #define ECHO

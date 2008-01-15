@@ -53,6 +53,8 @@ typedef enum cfg_parse_evt {
 
     CFG_PARSE_VALUE,       /* v may be NULL                 */
     CFG_PARSE_EOF,         /* v is NULL                     */
+
+    CFG_PARSE_ERROR,       /* v isn't NULL and vlen is >= 1 */
 } cfg_parse_evt;
 
 typedef int cfg_parse_hook(void *, cfg_parse_evt, const char *, int len);
