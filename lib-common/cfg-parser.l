@@ -21,6 +21,14 @@ struct lexdata {
     blob_t key, val, err;
 };
 
+static char const __c_unescape[] = {
+    ['a'] = '\a', ['b'] = '\b', ['e'] = '\e', ['t'] = '\t', ['n'] = '\n',
+    ['v'] = '\v', ['f'] = '\f', ['r'] = '\r', ['\\'] = '\\',
+};
+
+static void blob_append_c_unescape(blob_t *blob, int c) {
+    blob_append_byte(blob, __c_unescape[c]);
+}
 static int parse_oct(const char *o) {
     int res = *o - '0';
     while (*++o) {
@@ -30,7 +38,11 @@ static int parse_oct(const char *o) {
 }
 
 static int parse_hex(const char *h) {
-    return (str_digit_value(h[0]) << 4) + str_digit_value(h[1]);
+    int res = str_digit_value(*h);
+    while (*++h) {
+        res = (res << 4) + str_digit_value(*h);
+    }
+    return res;
 }
 
 /* there is no noyy* options for them */
@@ -127,12 +139,11 @@ INT     "-"?[0-9]+
                                 default: abort();
                               }
                             }
-    \\[0-7]{1,3}            { blob_append_byte(&yyextra->val, parse_oct(yytext + 1)); }
-    \\x[0-9a-fA-F]{2}       { blob_append_byte(&yyextra->val, parse_hex(yytext + 1)); }
-    \\n                     { blob_append_byte(&yyextra->val, '\n'); }
-    \\r                     { blob_append_byte(&yyextra->val, '\r'); }
-    \\f                     { blob_append_byte(&yyextra->val, '\f'); }
-    \\\\                    { blob_append_byte(&yyextra->val, '\\'); }
+    \\[0-2][0-7]{2}         { blob_append_byte(&yyextra->val, parse_oct(yytext + 1)); }
+    \\x[0-9a-fA-F]{2}       { blob_append_byte(&yyextra->val, parse_hex(yytext + 2)); }
+    \\u[0-9a-fA-F]{4}       { blob_utf8_putc(&yyextra->val, parse_hex(yytext + 2)); }
+    \\[abetnvfr\\]          { blob_append_c_unescape(&yyextra->val, yytext[1]); }
+    \\.                     { blob_append_data(&yyextra->val, yytext, 2); }
     [^\\\n\"]+              { blob_append_data(&yyextra->val, yytext, yyleng); }
 }
 
