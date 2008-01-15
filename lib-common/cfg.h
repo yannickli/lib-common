@@ -46,6 +46,10 @@ significant"]
 #include "blob.h"
 #include "string_is.h"
 
+enum cfg_parse_opts {
+    CFG_PARSE_OLD_NAMESPACES = 1,
+};
+
 typedef enum cfg_parse_evt {
     CFG_PARSE_SECTION,     /* v isn't NULL and vlen is >= 1 */
     CFG_PARSE_SECTION_ID,  /* v isn't NULL and vlen is >= 1 */
@@ -59,6 +63,6 @@ typedef enum cfg_parse_evt {
 
 typedef int cfg_parse_hook(void *, cfg_parse_evt, const char *, int len);
 
-int cfg_parse(const char *file, cfg_parse_hook *, void *);
+int cfg_parse(const char *file, cfg_parse_hook *, void *, int opts);
 
 #endif /* IS_LIB_COMMON_CFG_H */

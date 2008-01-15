@@ -23,6 +23,7 @@ struct lexdata {
 
     cfg_parse_hook *hook;
     void *data;
+    int   opts;
 
     blob_t buf, err;
 };
@@ -93,19 +94,21 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
     yyextra->len  = yyleng;
 
 #define HOOK(evt, val, len) \
-    do {                                                                  \
-        (*yyextra->hook)(yyextra->data, (evt), (val), (len));             \
+    do {                                                                    \
+        (*yyextra->hook)(yyextra->data, (evt), (val), (len));               \
     } while (0)
 #define HOOKBUF(evt)  HOOK((evt), blob_get_cstr(&yyextra->buf), yyextra->buf.len)
 
-#define ERROR(fmt, ...)  \
-    do {                                                                  \
-        blob_set_fmt(&yyextra->err, "%d:%d:"fmt, yyextra->lno,            \
-                     yyextra->pos - yyextra->lstart, ##__VA_ARGS__);      \
-        HOOK(CFG_PARSE_ERROR, blob_get_cstr(&yyextra->err),               \
-             yyextra->err.len);                                           \
-        return -1;                                                        \
+#define ERROR_OFFS(offs, fmt, ...)  \
+    do {                                                                    \
+        blob_set_fmt(&yyextra->err, "%d:%d:"fmt, yyextra->lno,              \
+                     offs + yyextra->pos - yyextra->lstart, ##__VA_ARGS__); \
+        HOOK(CFG_PARSE_ERROR, blob_get_cstr(&yyextra->err),                 \
+             yyextra->err.len);                                             \
+        return -1;                                                          \
     } while (0)
+
+#define ERROR(fmt, ...)  ERROR_OFFS(0, fmt, ##__VA_ARGS__)
 
 #define YY_EXTRA_TYPE  struct lexdata *
 #define ECHO
@@ -122,9 +125,10 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 %x      EQUAL VALUE STRING
 
 ID      [a-zA-Z][a-zA-Z0-9_]*
-KEY     [a-zA-Z][a-zA-Z0-9_\-/.]*
+KEY     [a-zA-Z][a-zA-Z0-9_:\-/.\[\]]*
 HS      [ \t\r\v]
 INT     "-"?[0-9]+
+ATOM    [^[:space:];#]+
 
 %%
 <*>\\\n                 { lexdata_newline(yyextra, -1); }
@@ -156,6 +160,17 @@ INT     "-"?[0-9]+
                           HOOK(CFG_PARSE_SECTION, yytext, yyleng);
                           yyextra->seen_section = true;
                         }
+    {ID}:[^\n\]]+       {
+                          if (!(yyextra->opts & CFG_PARSE_OLD_NAMESPACES)) {
+                              ERROR_OFFS((int)(strchr(yytext, ':') - yytext),
+                                         "unexpected char ':'");
+                          }
+                          while (isspace((unsigned char)yytext[yyleng - 1]))
+                              yyleng--;
+                          HOOK(CFG_PARSE_SECTION, yytext, yyleng);
+                          yyextra->seen_section = true;
+                          BEGIN(EOSECTION);
+                        }
 }
 <EOSECTION>{HS}*"]"     { BEGIN(TOEOL); }
 
@@ -170,7 +185,8 @@ INT     "-"?[0-9]+
                           BEGIN(TOEOL);
                         }
     \"                  { yyextra->context = VALUE; BEGIN(STRING); }
-    [^[:space:];#]+     { HOOK(CFG_PARSE_VALUE, yytext, yyleng);
+    {ATOM}({HS}+{ATOM})* {
+                          HOOK(CFG_PARSE_VALUE, yytext, yyleng);
                           BEGIN(TOEOL);
                         }
 }
@@ -215,7 +231,7 @@ INT     "-"?[0-9]+
 
 %%
 
-int cfg_parse(const char *file, cfg_parse_hook *hook, void *data)
+int cfg_parse(const char *file, cfg_parse_hook *hook, void *data, int opts)
 {
     yyscan_t scanner;
     struct lexdata ld;
@@ -229,6 +245,7 @@ int cfg_parse(const char *file, cfg_parse_hook *hook, void *data)
     yyset_in(fd, scanner);
     ld.hook = hook;
     ld.data = data;
+    ld.opts = opts;
 
     if (yylex(scanner) < 0)
         fprintf(stderr, "%s:%s\n", file, blob_get_cstr(&ld.err));

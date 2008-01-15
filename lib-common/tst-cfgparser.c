@@ -67,7 +67,7 @@ int main(int argc, const char **argv)
         struct parse_state ps = {
             .seen_section = false,
         };
-        cfg_parse(*argv, &parse_hook, &ps);
+        cfg_parse(*argv, &parse_hook, &ps, CFG_PARSE_OLD_NAMESPACES);
     }
     return 0;
 }
