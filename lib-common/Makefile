@@ -15,7 +15,7 @@ DEPTH=..
 include $(DEPTH)/admin/header.mk
 include $(DEPTH)/admin/tokyocabinet.mk
 
-__EXE__   = btree-dump
+__EXE__   = btree-dump tst-cfgparser
 __LIB__   = libcommon
 __CHECK__ = test tst-blob-iconv
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-hash
@@ -33,6 +33,7 @@ libcommon_SOURCES = \
 	array.c \
 	bfield.c \
 	btree.c \
+	cfg-parser.l \
 	concatbin.c  \
 	conf.c  \
 	db.c \
@@ -96,6 +97,8 @@ libcommon_CFLAGS := $(tokyocabinet_CFLAGS)
 test_SOURCES = $(filter-out mem.c, $(libcommon_SOURCES)) check.c
 test_CFLAGS  = $(tokyocabinet_CFLAGS)
 test_LDFLAGS = -lz $(tokyocabinet_LDFLAGS)
+
+tst-cfgparser_SOURCES = tst-cfgparser.c libcommon.a
 
 tst-blob-iconv_SOURCES = \
 	tst-blob-iconv.c \
