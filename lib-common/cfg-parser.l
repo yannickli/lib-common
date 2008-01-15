@@ -26,6 +26,7 @@ struct lexdata {
     int   opts;
     char  path[PATH_MAX];
 
+    FILE *fd;
     blob_t buf, err;
     yyscan_t scanner;
 };
@@ -218,9 +219,8 @@ ATOM    [^[:space:];#]+
 
 %%
 
-static struct lexdata *lexdata_init(struct lexdata *ld)
+static struct lexdata *lexdata_fast_init(struct lexdata *ld)
 {
-    p_clear(ld, 1);
     blob_init(&ld->buf);
     blob_init(&ld->err);
     ld->lno = 1;
@@ -235,40 +235,31 @@ static void lexdata_wipe(struct lexdata *ld)
     blob_wipe(&ld->buf);
     blob_wipe(&ld->err);
     yylex_destroy(ld->scanner);
+    p_fclose(&ld->fd);
 }
 
 int cfg_parse(const char *file, cfg_parse_hook *hook, void *data, int opts)
 {
-    struct lexdata ld;
-    FILE *fd = fopen(file, "rb");
-    int res;
+    struct lexdata ld = { .hook = hook, .data = data, .opts = opts };
+    int res = -1;
 
-    if (!fd)
-        return -1;
-
-    lexdata_init(&ld);
-    ld.hook = hook;
-    ld.data = data;
-    ld.opts = opts;
+    lexdata_fast_init(&ld);
     snprintf(ld.path, sizeof(ld.path), "%s:", file);
-    yyset_in(fd, ld.scanner);
-    res = yylex(ld.scanner);
+    if ((ld.fd = fopen(file, "rb"))) {
+        yyset_in(ld.fd, ld.scanner);
+        res = yylex(ld.scanner);
+    }
     lexdata_wipe(&ld);
-    p_fclose(&fd);
     return res;
 }
 
 int cfg_parse_buf(const char *buf, ssize_t blen, cfg_parse_hook *hook, void *data, int opts)
 {
-    struct lexdata ld;
+    struct lexdata ld = { .hook = hook, .data = data, .opts = opts };
     int res;
 
-    lexdata_init(&ld);
-    ld.hook = hook;
-    ld.data = data;
-    ld.opts = opts;
+    lexdata_fast_init(&ld);
     yy_scan_bytes(buf, blen, ld.scanner);
-
     res = yylex(ld.scanner);
     lexdata_wipe(&ld);
     return res;
