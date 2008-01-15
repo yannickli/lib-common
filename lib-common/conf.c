@@ -93,7 +93,7 @@ conf_t *conf_load(const char *filename)
     return res;
 }
 
-conf_t *conf_load_blob(blob_t *buf)
+conf_t *conf_load_blob(const blob_t *buf)
 {
     conf_t *res = conf_new();
     if (cfg_parse_buf(blob_get_cstr(buf), buf->len, &conf_parse_hook, res,

@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "cfg.h"
+#include "conf.h"
 
 struct parse_state {
     flag_t seen_section : 1;

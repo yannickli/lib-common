@@ -14,23 +14,67 @@
 #ifndef IS_LIB_COMMON_CONF_H
 #define IS_LIB_COMMON_CONF_H
 
-#include "mem.h"
+/* {{{ cfg files are ini-like files with an extended format.
+
+  - leading and trailing spaces aren't significant.
+  - any line can be wrapped with a backslash (`\`) as a continuation token.
+  - quoted strings can embed usual C escapes (\a \b \n ...), octal chars
+    (\ooo) and hexadecimal ones (\x??) and unicode ones (\u????).
+
+  Encoding should be utf-8.
+
+----8<----
+
+[simple]
+key = value
+
+[section "With a Name"]
+key = 1234
+other = "some string with embeded spaces"
+; comment
+# alternate comment form
+foo = /some/value/without[spaces|semicolon|dash]
+
+[section "With a very very way too long Name to show the \
+line splitting feature, but beware, spaces after a continuation are \
+significant"]
+
+
+---->8----
+}}} */
+
 #include "blob.h"
+#include "string_is.h"
 #include "property.h"
 
-/* This module parses ini files :
- *
- * [Section1]
- *
- * var1 = value1
- * ; Comments
- * var2 = value2
- *
- * [Section2]
- *
- * # Comments
- * var3 = value3
- */
+/****************************************************************************/
+/* Low level API                                                            */
+/****************************************************************************/
+
+enum cfg_parse_opts {
+    CFG_PARSE_OLD_NAMESPACES = 1,
+};
+
+typedef enum cfg_parse_evt {
+    CFG_PARSE_SECTION,     /* v isn't NULL and vlen is >= 1 */
+    CFG_PARSE_SECTION_ID,  /* v isn't NULL and vlen is >= 1 */
+    CFG_PARSE_KEY,         /* v isn't NULL and vlen is >= 1 */
+
+    CFG_PARSE_VALUE,       /* v may be NULL                 */
+    CFG_PARSE_EOF,         /* v is NULL                     */
+
+    CFG_PARSE_ERROR,       /* v isn't NULL and vlen is >= 1 */
+} cfg_parse_evt;
+
+typedef int cfg_parse_hook(void *, cfg_parse_evt, const char *, int len);
+
+int cfg_parse(const char *file, cfg_parse_hook *, void *, int opts);
+int cfg_parse_buf(const char *, ssize_t, cfg_parse_hook *, void *, int opts);
+
+
+/****************************************************************************/
+/* conf_t's                                                                 */
+/****************************************************************************/
 
 typedef struct conf_section_t {
     char *name;
@@ -47,10 +91,8 @@ void conf_wipe(conf_t *conf);
 GENERIC_DELETE(conf_t, conf);
 
 conf_t *conf_load(const char *filename);
-/* Same as conf_load, but from a blob.
- * ACHTUNG MINEN : the blob is modified !!!
- * */
-conf_t *conf_load_blob(blob_t *buf);
+conf_t *conf_load_blob(const blob_t *buf);
+
 int conf_save(const conf_t *conf, const char *filename);
 
 static inline const conf_section_t *

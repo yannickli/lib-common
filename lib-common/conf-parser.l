@@ -13,7 +13,7 @@
 /**************************************************************************/
 
 #include "strconv.h"
-#include "cfg.h"
+#include "conf.h"
 
 struct lexdata {
     flag_t seen_section : 1;
@@ -97,6 +97,7 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
     } while (0)
 
 #define ERROR(fmt, ...)  ERROR_OFFS(0, fmt, ##__VA_ARGS__)
+#define HAS_OPT(OPT)     (yyextra->opts & CFG_PARSE_##OPT)
 
 #define YY_EXTRA_TYPE  struct lexdata *
 #define ECHO
@@ -149,7 +150,7 @@ ATOM    [^[:space:];#]+
                           yyextra->seen_section = true;
                         }
     {ID}:[^\n\]]+       {
-                          if (!(yyextra->opts & CFG_PARSE_OLD_NAMESPACES)) {
+                          if (!HAS_OPT(OLD_NAMESPACES)) {
                               ERROR_OFFS((int)(strchr(yytext, ':') - yytext),
                                          "unexpected char ':'");
                           }
