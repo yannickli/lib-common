@@ -58,6 +58,9 @@ static int parse_hook(void *_ps, cfg_parse_evt evt,
       case CFG_PARSE_ERROR:
         fprintf(stderr, "%s\n", v);
         return 0;
+
+      case CFG_PARSE_KEY_ARRAY:
+        abort();
     }
     return -1;
 }

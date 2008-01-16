@@ -33,16 +33,26 @@ struct lexdata {
 
 /* helpers {{{ */
 
+static int lexdata_relpos(struct lexdata *ld, int offs)
+{
+    if (offs < 0) {
+        assert (-offs <= ld->len);
+        return ld->pos + ld->len + offs;
+    } else {
+        assert (offs < ld->len);
+        return ld->pos + ld->len + offs;
+    }
+}
+
 static void lexdata_newline(struct lexdata *ld, int offs)
 {
     ld->lno++;
-    if (offs < 0) {
-        assert (-offs <= ld->len);
-        ld->lstart = ld->pos + ld->len + offs;
-    } else {
-        assert (offs < ld->len);
-        ld->lstart = ld->pos + offs;
-    }
+    ld->lstart = lexdata_relpos(ld, offs);
+}
+
+static int lexdata_col(struct lexdata *ld, int offs)
+{
+    return lexdata_relpos(ld, offs) - ld->lstart;
 }
 
 static char const __c_unescape[] = {
@@ -100,7 +110,7 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 #define ERROR_OFFS(offs, fmt, ...)  \
     do {                                                                    \
         blob_set_fmt(&yyextra->err, "%s%d:%d:"fmt, yyextra->path,           \
-                     yyextra->lno, offs + yyextra->pos - yyextra->lstart,   \
+                     yyextra->lno, lexdata_col(yyextra, (offs)),            \
                      ##__VA_ARGS__);                                        \
         HOOK(CFG_PARSE_ERROR, blob_get_cstr(&yyextra->err),                 \
              yyextra->err.len);                                             \
@@ -134,16 +144,33 @@ ATOM    [^[:space:];#]+
 
 <INITIAL>{
     "["{HS}*            { BEGIN(SECTION); }
-    {ID}(\.{ID})*       { if (!yyextra->seen_section)
+    {ID}(\.{ID})*       {
+                          if (!yyextra->seen_section)
                               ERROR("no section opened yet");
                           HOOK(CFG_PARSE_KEY, yytext, yyleng);
                           BEGIN(EQUAL);
                         }
-    [a-zA-Z]{ATOM}      { if (!yyextra->seen_section)
+    {ID}(\.{ID})*\[\]   {
+                          if (!yyextra->seen_section)
+                              ERROR("no section opened yet");
+                          if (HAS_OPT(GROK_ARRAY)) {
+                              yytext[yyleng - 2] = '\0';
+                              HOOK(CFG_PARSE_KEY_ARRAY, yytext, yyleng - 2);
+                              BEGIN(EQUAL);
+                          } else
+                          if (HAS_OPT(OLD_KEYS)) {
+                              HOOK(CFG_PARSE_KEY, yytext, yyleng);
+                              BEGIN(EQUAL);
+                          } else {
+                              ERROR_OFFS(-2, "unexpected char `[`");
+                          }
+                        }
+    [a-zA-Z]{ATOM}      {
+                          if (!yyextra->seen_section)
                               ERROR("no section opened yet");
                           if (!HAS_OPT(OLD_KEYS)) {
-                             int pos = first_non_id_char(yytext);
-                             ERROR_OFFS(pos, "unexpected char `%c`", yytext[pos]);
+                              int pos = first_non_id_char(yytext);
+                              ERROR_OFFS(pos, "unexpected char `%c`", yytext[pos]);
                           }
                           HOOK(CFG_PARSE_KEY, yytext, yyleng);
                           BEGIN(EQUAL);
@@ -250,6 +277,14 @@ static struct lexdata *lexdata_fast_init(struct lexdata *ld)
     return ld;
 }
 
+#define NOT_BOTH(x, o1, o2) \
+    assert (!((x & CFG_PARSE_##o1) && (x & CFG_PARSE_##o2)))
+static int check_opts(int opts)
+{
+    NOT_BOTH(opts, OLD_KEYS, GROK_ARRAY);
+    return opts;
+}
+
 static void lexdata_wipe(struct lexdata *ld)
 {
     blob_wipe(&ld->buf);
@@ -260,7 +295,7 @@ static void lexdata_wipe(struct lexdata *ld)
 
 int cfg_parse(const char *file, cfg_parse_hook *hook, void *data, int opts)
 {
-    struct lexdata ld = { .hook = hook, .data = data, .opts = opts };
+    struct lexdata ld = { .hook = hook, .data = data, .opts = check_opts(opts) };
     int res = -1;
 
     lexdata_fast_init(&ld);
@@ -275,7 +310,7 @@ int cfg_parse(const char *file, cfg_parse_hook *hook, void *data, int opts)
 
 int cfg_parse_buf(const char *buf, ssize_t blen, cfg_parse_hook *hook, void *data, int opts)
 {
-    struct lexdata ld = { .hook = hook, .data = data, .opts = opts };
+    struct lexdata ld = { .hook = hook, .data = data, .opts = check_opts(opts) };
     int res;
 
     lexdata_fast_init(&ld);
@@ -290,7 +325,7 @@ int cfg_parse_seterr(void *ctx, int offs, const char *fmt, ...)
     struct lexdata *ld = ctx;
     va_list ap;
 
-    blob_set_fmt(&ld->err, "%s%d:%d:", ld->path, ld->lno, offs + ld->pos - ld->lstart);
+    blob_set_fmt(&ld->err, "%s%d:%d:", ld->path, ld->lno, lexdata_col(ld, offs));
     va_start(ap, fmt);
     blob_append_vfmt(&ld->err, fmt, ap);
     va_end(ap);

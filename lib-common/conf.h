@@ -51,15 +51,20 @@ significant"]
 /* Low level API                                                            */
 /****************************************************************************/
 
+/* warning, some combination aren't compatible:
+ *  * OLD_KEYS with GROK_ARRAY
+ */
 enum cfg_parse_opts {
-    CFG_PARSE_OLD_NAMESPACES = 1,
-    CFG_PARSE_OLD_KEYS       = 2,
+    CFG_PARSE_OLD_NAMESPACES = 1 << 0,
+    CFG_PARSE_OLD_KEYS       = 1 << 1,
+    CFG_PARSE_GROK_ARRAY     = 1 << 2,
 };
 
 typedef enum cfg_parse_evt {
     CFG_PARSE_SECTION,     /* v isn't NULL and vlen is >= 1 */
     CFG_PARSE_SECTION_ID,  /* v isn't NULL and vlen is >= 1 */
     CFG_PARSE_KEY,         /* v isn't NULL and vlen is >= 1 */
+    CFG_PARSE_KEY_ARRAY,   /* v isn't NULL and vlen is >= 1 */
 
     CFG_PARSE_VALUE,       /* v may be NULL                 */
     CFG_PARSE_EOF,         /* v is NULL                     */

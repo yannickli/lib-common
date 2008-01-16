@@ -82,6 +82,9 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
       case CFG_PARSE_ERROR:
         e_error("%s", v);
         return 0;
+
+      case CFG_PARSE_KEY_ARRAY:
+        e_panic("should not happen, we asked for OLD_KEYS");
     }
     return -1;
 }
