@@ -119,6 +119,13 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 #define YY_EXTRA_TYPE  struct lexdata *
 #define ECHO
 
+#define yyrtrim() \
+    do {                                                                    \
+        while (isspace((unsigned char)yytext[yyleng - 1]))                  \
+            yyleng--;                                                       \
+        yytext[yyleng] = '\0';                                              \
+    } while (0)
+
 /* }}} */
 
 %}
@@ -129,7 +136,7 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 %x      TOEOL
 %x      SECTION EOSECTION
 %x      EQUAL VALUE STRING
-%x      ARRAY ARRAYEOL ARRAYCOMMA
+%x      ARRAY ARRAYSEP
 
 ID      [a-zA-Z][a-zA-Z0-9_]*
 HS      [ \t\r\v]
@@ -185,9 +192,7 @@ NONSP   [^[:space:];#]
                           } else {
                               BEGIN(EOSECTION);
                           }
-                          while (isspace((unsigned char)yytext[yyleng - 1]))
-                              yyleng--;
-                          yytext[yyleng] = '\0';
+                          yyrtrim();
                           HOOK(_SECTION, yytext, yyleng);
                           yyextra->seen_section = true;
                         }
@@ -196,9 +201,7 @@ NONSP   [^[:space:];#]
                               ERROR_OFFS((int)(strchr(yytext, ':') - yytext),
                                          "unexpected char `:`");
                           }
-                          while (isspace((unsigned char)yytext[yyleng - 1]))
-                              yyleng--;
-                          yytext[yyleng] = '\0';
+                          yyrtrim();
                           HOOK(_SECTION, yytext, yyleng);
                           yyextra->seen_section = true;
                           BEGIN(EOSECTION);
@@ -241,34 +244,23 @@ NONSP   [^[:space:];#]
                         }
 }
 
-<ARRAY,ARRAYCOMMA>{
-    {HS}+               /* SKIP */
-    \)                  { goto array_eol; }
-}
 <ARRAY>{ /* parse arrays */
-    \n                  { lexdata_newline(yyextra, 0); }
     \"                  { yyextra->context = ARRAY; BEGIN(STRING); }
     \(                  {
                           HOOK(_ARRAY_OPEN, yytext, yyleng);
                           yyextra->arraylvl++;
                         }
-    {NORMAL}+{HS}*[,)]  {
-                          bool eoa = yytext[yyleng - 1] == ')';
-                          do {
-                              yyleng--;
-                          } while (isspace(yytext[yyleng - 1]));
-                          yytext[yyleng] = '\0';
-                          HOOK(_VALUE, yytext, yyleng);
-                          if (eoa)
-                              goto array_eol;
+    {NORMAL}+           { HOOK(_VALUE, yytext, yyleng); BEGIN(ARRAYSEP); }
+}
+<ARRAY,ARRAYSEP>{
+    {HS}+               /* SKIP */
+    \n                  { lexdata_newline(yyextra, 0); }
+    \)                  {
+                          HOOK(_ARRAY_CLOSE, NULL, -1);
+                          BEGIN(--yyextra->arraylvl > 0 ? ARRAYSEP : TOEOL);
                         }
 }
-<ARRAYCOMMA>,{HS}*      { BEGIN(ARRAY); }
-<ARRAYEOL>{HS}*(,{HS}*)?\) {
-                        array_eol:
-                          HOOK(_ARRAY_CLOSE, NULL, -1);
-                          BEGIN(--yyextra->arraylvl > 0 ? ARRAYCOMMA : TOEOL);
-                        }
+<ARRAYSEP>,{HS}*        { BEGIN(ARRAY); }
 
 <STRING>{ /* parse string enclosed in double quotes with escapes */
     \"                  {
@@ -279,7 +271,7 @@ NONSP   [^[:space:];#]
                               break;
                             case ARRAY:
                               HOOKBUF(_VALUE);
-                              BEGIN(ARRAYEOL);
+                              BEGIN(ARRAYSEP);
                               break;
                             case SECTION:
                               HOOKBUF(_SECTION_ID);
