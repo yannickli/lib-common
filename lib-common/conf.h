@@ -17,7 +17,6 @@
 /* {{{ cfg files are ini-like files with an extended format.
 
   - leading and trailing spaces aren't significant.
-  - any line can be wrapped with a backslash (`\`) as a continuation token.
   - quoted strings can embed usual C escapes (\a \b \n ...), octal chars
     (\ooo) and hexadecimal ones (\x??) and unicode ones (\u????).
 
@@ -35,10 +34,12 @@ other = "some string with embeded spaces"
 # alternate comment form
 foo = /some/value/without[spaces|semicolon|dash]
 
-[section "With a very very way too long Name to show the \
-line splitting feature, but beware, spaces after a continuation are \
-significant"]
-
+; available with GROK_ARRAY
+foo[] = bar
+bar   = (1, 2, 3)
+baz   = ("asd", 324,
+         "toto")
+baz  += (foobar)
 
 ---->8----
 }}} */

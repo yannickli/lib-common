@@ -137,8 +137,6 @@ NORMAL  [^[:space:];#"(),]
 NONSP   [^[:space:];#]
 
 %%
-<*>\\\n                 { lexdata_newline(yyextra, -1); }
-
 <INITIAL>{
     \[{HS}*             { BEGIN(SECTION); }
     {ID}(\.{ID})*       {
@@ -255,20 +253,16 @@ NONSP   [^[:space:];#]
                           } while (isspace(yytext[yyleng - 1]));
                           yytext[yyleng] = '\0';
                           HOOK(_VALUE, yytext, yyleng);
-                          if (eoa) {
-                              HOOK(_ARRAY_CLOSE, NULL, -1);
-                              BEGIN(--yyextra->arraylvl > 0 ? ARRAYCOMMA : TOEOL);
-                          }
+                          if (eoa)
+                              goto array_eol;
                         }
-    \)                  {
-                          HOOK(_ARRAY_CLOSE, NULL, -1);
-                          BEGIN(--yyextra->arraylvl > 0 ? ARRAYCOMMA : TOEOL);
-                        }
+    \)                  { goto array_eol; }
 }
 <ARRAYCOMMA>,           { BEGIN(ARRAY); }
 <ARRAYEOL>{HS}*(,{HS}*)?\) {
+                        array_eol:
                           HOOK(_ARRAY_CLOSE, NULL, -1);
-                          BEGIN(--yyextra->arraylvl > 0 ? ARRAY : TOEOL);
+                          BEGIN(--yyextra->arraylvl > 0 ? ARRAYCOMMA : TOEOL);
                         }
 
 <STRING>{ /* parse string enclosed in double quotes with escapes */
