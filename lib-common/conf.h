@@ -53,6 +53,7 @@ significant"]
 
 enum cfg_parse_opts {
     CFG_PARSE_OLD_NAMESPACES = 1,
+    CFG_PARSE_OLD_KEYS       = 2,
 };
 
 typedef enum cfg_parse_evt {

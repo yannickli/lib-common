@@ -85,10 +85,11 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt, const char *v, int vl
     return -1;
 }
 
+#define CONF_PARSE_OPTS  (CFG_PARSE_OLD_NAMESPACES | CFG_PARSE_OLD_KEYS)
 conf_t *conf_load(const char *filename)
 {
     conf_t *res = conf_new();
-    if (cfg_parse(filename, &conf_parse_hook, res, CFG_PARSE_OLD_NAMESPACES))
+    if (cfg_parse(filename, &conf_parse_hook, res, CONF_PARSE_OPTS))
         conf_delete(&res);
     return res;
 }
@@ -97,7 +98,7 @@ conf_t *conf_load_blob(const blob_t *buf)
 {
     conf_t *res = conf_new();
     if (cfg_parse_buf(blob_get_cstr(buf), buf->len, &conf_parse_hook, res,
-                      CFG_PARSE_OLD_NAMESPACES))
+                      CONF_PARSE_OPTS))
         conf_delete(&res);
     return res;
 }

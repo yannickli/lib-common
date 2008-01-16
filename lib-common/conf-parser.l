@@ -69,6 +69,16 @@ static int parse_hex(const char *h) {
     return res;
 }
 
+static int first_non_id_char(const char *txt)
+{
+    for (int pos = 0; ; pos++) {
+        if (str_digit_value(txt[pos]) == 255) {
+            if (txt[pos] != '_' || pos == 0)
+                return pos;
+        }
+    }
+}
+
 /* }}} */
 /* flex configuration {{{ */
 
@@ -114,7 +124,6 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 %x      EQUAL VALUE STRING
 
 ID      [a-zA-Z][a-zA-Z0-9_]*
-KEY     [a-zA-Z][a-zA-Z0-9_:\-/.\[\]]*
 HS      [ \t\r\v]
 INT     "-"?[0-9]+
 ATOM    [^[:space:];#]+
@@ -124,8 +133,17 @@ ATOM    [^[:space:];#]+
 
 <INITIAL>{
     "["{HS}*            { BEGIN(SECTION); }
-    {KEY}               { if (!yyextra->seen_section)
+    {ID}(\.{ID})*       { if (!yyextra->seen_section)
                               ERROR("no section opened yet");
+                          HOOK(CFG_PARSE_KEY, yytext, yyleng);
+                          BEGIN(EQUAL);
+                        }
+    [a-zA-Z]{ATOM}      { if (!yyextra->seen_section)
+                              ERROR("no section opened yet");
+                          if (!HAS_OPT(OLD_KEYS)) {
+                             int pos = first_non_id_char(yytext);
+                             ERROR_OFFS(pos, "unexpected char `%c`", yytext[pos]);
+                          }
                           HOOK(CFG_PARSE_KEY, yytext, yyleng);
                           BEGIN(EQUAL);
                         }
@@ -152,7 +170,7 @@ ATOM    [^[:space:];#]+
     {ID}:[^\n\]]+       {
                           if (!HAS_OPT(OLD_NAMESPACES)) {
                               ERROR_OFFS((int)(strchr(yytext, ':') - yytext),
-                                         "unexpected char ':'");
+                                         "unexpected char `:`");
                           }
                           while (isspace((unsigned char)yytext[yyleng - 1]))
                               yyleng--;
