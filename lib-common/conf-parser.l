@@ -17,6 +17,7 @@
 
 struct lexdata {
     flag_t seen_section : 1;
+    int   arraylvl;    /* number of openings of arrays seen          */
     int   context;     /* state we just left, used by <STRING> state */
     int   lno, lstart; /* line no 1-based, position of the last \n   */
     int   pos, len;    /* stream length, 0-based, and copy of yyleng */
@@ -35,24 +36,19 @@ struct lexdata {
 
 static int lexdata_relpos(struct lexdata *ld, int offs)
 {
-    if (offs < 0) {
-        assert (-offs <= ld->len);
-        return ld->pos + ld->len + offs;
-    } else {
-        assert (offs < ld->len);
-        return ld->pos + ld->len + offs;
-    }
+    assert (-ld->len <= offs && offs < ld->len);
+    return ld->pos + offs + (offs < 0 ? ld->len : 0);
 }
 
 static void lexdata_newline(struct lexdata *ld, int offs)
 {
     ld->lno++;
-    ld->lstart = lexdata_relpos(ld, offs);
+    ld->lstart = lexdata_relpos(ld, offs) + 1;
 }
 
 static int lexdata_col(struct lexdata *ld, int offs)
 {
-    return lexdata_relpos(ld, offs) - ld->lstart;
+    return 1 + lexdata_relpos(ld, offs) - ld->lstart;
 }
 
 static char const __c_unescape[] = {
@@ -102,18 +98,18 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 
 #define HOOK(evt, val, len) \
     do {                                                                    \
-        if ((*yyextra->hook)(yyextra->data, (evt), (val), (len), yyextra))  \
+        if ((*yyextra->hook)(yyextra->data, CFG_PARSE##evt, (val),          \
+                             (len), yyextra))                               \
             return -1;                                                      \
     } while (0)
-#define HOOKBUF(evt)  HOOK((evt), blob_get_cstr(&yyextra->buf), yyextra->buf.len)
+#define HOOKBUF(_evt)  HOOK(_evt, blob_get_cstr(&yyextra->buf), yyextra->buf.len)
 
 #define ERROR_OFFS(offs, fmt, ...)  \
     do {                                                                    \
         blob_set_fmt(&yyextra->err, "%s%d:%d:"fmt, yyextra->path,           \
                      yyextra->lno, lexdata_col(yyextra, (offs)),            \
                      ##__VA_ARGS__);                                        \
-        HOOK(CFG_PARSE_ERROR, blob_get_cstr(&yyextra->err),                 \
-             yyextra->err.len);                                             \
+        HOOK(_ERROR, blob_get_cstr(&yyextra->err), yyextra->err.len);       \
         return -1;                                                          \
     } while (0)
 
@@ -133,21 +129,22 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 %x      TOEOL
 %x      SECTION EOSECTION
 %x      EQUAL VALUE STRING
+%x      ARRAY ARRAYEOL ARRAYCOMMA
 
 ID      [a-zA-Z][a-zA-Z0-9_]*
 HS      [ \t\r\v]
-INT     "-"?[0-9]+
-ATOM    [^[:space:];#]+
+NORMAL  [^[:space:];#"(),]
+NONSP   [^[:space:];#]
 
 %%
 <*>\\\n                 { lexdata_newline(yyextra, -1); }
 
 <INITIAL>{
-    "["{HS}*            { BEGIN(SECTION); }
+    \[{HS}*             { BEGIN(SECTION); }
     {ID}(\.{ID})*       {
                           if (!yyextra->seen_section)
                               ERROR("no section opened yet");
-                          HOOK(CFG_PARSE_KEY, yytext, yyleng);
+                          HOOK(_KEY, yytext, yyleng);
                           BEGIN(EQUAL);
                         }
     {ID}(\.{ID})*\[\]   {
@@ -155,24 +152,24 @@ ATOM    [^[:space:];#]+
                               ERROR("no section opened yet");
                           if (HAS_OPT(GROK_ARRAY)) {
                               yytext[yyleng - 2] = '\0';
-                              HOOK(CFG_PARSE_KEY_ARRAY, yytext, yyleng - 2);
+                              HOOK(_KEY_ARRAY, yytext, yyleng - 2);
                               BEGIN(EQUAL);
                           } else
                           if (HAS_OPT(OLD_KEYS)) {
-                              HOOK(CFG_PARSE_KEY, yytext, yyleng);
+                              HOOK(_KEY, yytext, yyleng);
                               BEGIN(EQUAL);
                           } else {
                               ERROR_OFFS(-2, "unexpected char `[`");
                           }
                         }
-    [a-zA-Z]{ATOM}      {
+    [a-zA-Z]{NONSP}+    {
                           if (!yyextra->seen_section)
                               ERROR("no section opened yet");
                           if (!HAS_OPT(OLD_KEYS)) {
                               int pos = first_non_id_char(yytext);
                               ERROR_OFFS(pos, "unexpected char `%c`", yytext[pos]);
                           }
-                          HOOK(CFG_PARSE_KEY, yytext, yyleng);
+                          HOOK(_KEY, yytext, yyleng);
                           BEGIN(EQUAL);
                         }
 }
@@ -192,7 +189,8 @@ ATOM    [^[:space:];#]+
                           }
                           while (isspace((unsigned char)yytext[yyleng - 1]))
                               yyleng--;
-                          HOOK(CFG_PARSE_SECTION, yytext, yyleng);
+                          yytext[yyleng] = '\0';
+                          HOOK(_SECTION, yytext, yyleng);
                           yyextra->seen_section = true;
                         }
     {ID}:[^\n\]]+       {
@@ -202,40 +200,90 @@ ATOM    [^[:space:];#]+
                           }
                           while (isspace((unsigned char)yytext[yyleng - 1]))
                               yyleng--;
-                          HOOK(CFG_PARSE_SECTION, yytext, yyleng);
+                          yytext[yyleng] = '\0';
+                          HOOK(_SECTION, yytext, yyleng);
                           yyextra->seen_section = true;
                           BEGIN(EOSECTION);
                         }
 }
-<EOSECTION>{HS}*"]"     { BEGIN(TOEOL); }
+<EOSECTION>{HS}*\]      { BEGIN(TOEOL); }
 
-<EQUAL>{HS}*"="{HS}*    { BEGIN(VALUE); }
+<EQUAL>{
+    {HS}*={HS}*         { BEGIN(VALUE); }
+    {HS}*\+={HS}*\(     {
+                          if (!HAS_OPT(GROK_ARRAY))
+                              ERROR_OFFS(strchr(yytext, '+') - yytext, "unexpected char `+`");
+                          HOOK(_ARRAY_APPEND, NULL, -1);
+                          yyextra->arraylvl++;
+                          BEGIN(ARRAY);
+                        }
+}
 
 <VALUE>{ /* parse right hand side values */
-    \n                  { HOOK(CFG_PARSE_VALUE, NULL, -1);
+    \n                  { HOOK(_VALUE, NULL, -1);
                           lexdata_newline(yyextra, -1);
                           BEGIN(INITIAL);
                         }
-    {INT}               { HOOK(CFG_PARSE_VALUE, yytext, yyleng);
-                          BEGIN(TOEOL);
-                        }
     \"                  { yyextra->context = VALUE; BEGIN(STRING); }
-    {ATOM}({HS}+{ATOM})* {
-                          HOOK(CFG_PARSE_VALUE, yytext, yyleng);
+    \({HS}*             {
+                          if (!HAS_OPT(GROK_ARRAY))
+                              REJECT;
+                          HOOK(_ARRAY_OPEN, yytext, yyleng);
+                          yyextra->arraylvl++;
+                          BEGIN(ARRAY);
+                        }
+    {NORMAL}([^\n;#]*{NONSP})? {
+                          HOOK(_VALUE, yytext, yyleng);
                           BEGIN(TOEOL);
                         }
 }
 
+<ARRAY,ARRAYCOMMA>{
+    {HS}+
+    \n                  { lexdata_newline(yyextra, 0); }
+}
+<ARRAY>{ /* parse arrays */
+    \"                  { yyextra->context = ARRAY; BEGIN(STRING); }
+    \(                  {
+                          HOOK(_ARRAY_OPEN, yytext, yyleng);
+                          yyextra->arraylvl++;
+                        }
+    {NORMAL}+{HS}*[,)]  {
+                          bool eoa = yytext[yyleng - 1] == ')';
+                          do {
+                              yyleng--;
+                          } while (isspace(yytext[yyleng - 1]));
+                          yytext[yyleng] = '\0';
+                          HOOK(_VALUE, yytext, yyleng);
+                          if (eoa) {
+                              HOOK(_ARRAY_CLOSE, NULL, -1);
+                              BEGIN(--yyextra->arraylvl > 0 ? ARRAYCOMMA : TOEOL);
+                          }
+                        }
+    \)                  {
+                          HOOK(_ARRAY_CLOSE, NULL, -1);
+                          BEGIN(--yyextra->arraylvl > 0 ? ARRAYCOMMA : TOEOL);
+                        }
+}
+<ARRAYCOMMA>,           { BEGIN(ARRAY); }
+<ARRAYEOL>{HS}*(,{HS}*)?\) {
+                          HOOK(_ARRAY_CLOSE, NULL, -1);
+                          BEGIN(--yyextra->arraylvl > 0 ? ARRAY : TOEOL);
+                        }
 
 <STRING>{ /* parse string enclosed in double quotes with escapes */
     \"                  {
                           switch (yyextra->context) {
                             case VALUE:
-                              HOOKBUF(CFG_PARSE_VALUE);
+                              HOOKBUF(_VALUE);
                               BEGIN(TOEOL);
                               break;
+                            case ARRAY:
+                              HOOKBUF(_VALUE);
+                              BEGIN(ARRAYEOL);
+                              break;
                             case SECTION:
-                              HOOKBUF(CFG_PARSE_SECTION_ID);
+                              HOOKBUF(_SECTION_ID);
                               BEGIN(EOSECTION);
                               break;
                             default: abort();
@@ -259,7 +307,7 @@ ATOM    [^[:space:];#]+
     .                   { ERROR("unexpected char `%c`", *yytext); }
     <<EOF>>             { if (YYSTATE != INITIAL && YYSTATE != TOEOL)
                               ERROR("unexpected end of file");
-                          HOOK(CFG_PARSE_EOF, NULL, -1);
+                          HOOK(_EOF, NULL, -1);
                           return 0;
                         }
 }
@@ -271,7 +319,6 @@ static struct lexdata *lexdata_fast_init(struct lexdata *ld)
     blob_init(&ld->buf);
     blob_init(&ld->err);
     ld->lno = 1;
-    ld->lstart = -1;
     yylex_init(&ld->scanner);
     yyset_extra(ld, ld->scanner);
     return ld;

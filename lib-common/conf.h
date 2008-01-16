@@ -61,15 +61,18 @@ enum cfg_parse_opts {
 };
 
 typedef enum cfg_parse_evt {
-    CFG_PARSE_SECTION,     /* v isn't NULL and vlen is >= 1 */
-    CFG_PARSE_SECTION_ID,  /* v isn't NULL and vlen is >= 1 */
-    CFG_PARSE_KEY,         /* v isn't NULL and vlen is >= 1 */
-    CFG_PARSE_KEY_ARRAY,   /* v isn't NULL and vlen is >= 1 */
+    CFG_PARSE_SECTION,        /* v isn't NULL and vlen is >= 1 */
+    CFG_PARSE_SECTION_ID,     /* v isn't NULL and vlen is >= 1 */
+    CFG_PARSE_KEY,            /* v isn't NULL and vlen is >= 1 */
+    CFG_PARSE_KEY_ARRAY,      /* v isn't NULL and vlen is >= 1 */
 
-    CFG_PARSE_VALUE,       /* v may be NULL                 */
-    CFG_PARSE_EOF,         /* v is NULL                     */
+    CFG_PARSE_VALUE,          /* v may be NULL                 */
+    CFG_PARSE_EOF,            /* v is NULL                     */
+    CFG_PARSE_ARRAY_OPEN,     /* v is NULL                     */
+    CFG_PARSE_ARRAY_APPEND,   /* v is NULL                     */
+    CFG_PARSE_ARRAY_CLOSE,    /* v is NULL                     */
 
-    CFG_PARSE_ERROR,       /* v isn't NULL and vlen is >= 1 */
+    CFG_PARSE_ERROR,          /* v isn't NULL and vlen is >= 1 */
 } cfg_parse_evt;
 
 typedef int cfg_parse_hook(void *priv, cfg_parse_evt,
