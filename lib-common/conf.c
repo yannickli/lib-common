@@ -32,8 +32,6 @@ static void conf_section_wipe(conf_section_t *section)
 GENERIC_NEW(conf_section_t, conf_section);
 GENERIC_DELETE(conf_section_t, conf_section);
 ARRAY_FUNCTIONS(conf_section_t, conf_section, conf_section_delete);
-
-#define conf_new()   conf_section_array_new()
 void conf_delete(conf_t **conf)
 {
     conf_section_array_delete(conf);
@@ -90,7 +88,7 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
 #define CONF_PARSE_OPTS  (CFG_PARSE_OLD_NAMESPACES | CFG_PARSE_OLD_KEYS)
 conf_t *conf_load(const char *filename)
 {
-    conf_t *res = conf_new();
+    conf_t *res = conf_section_array_new();
     if (cfg_parse(filename, &conf_parse_hook, res, CONF_PARSE_OPTS))
         conf_delete(&res);
     return res;
@@ -98,33 +96,23 @@ conf_t *conf_load(const char *filename)
 
 conf_t *conf_load_blob(const blob_t *buf)
 {
-    conf_t *res = conf_new();
-    if (cfg_parse_buf(blob_get_cstr(buf), buf->len, &conf_parse_hook, res,
-                      CONF_PARSE_OPTS))
+    conf_t *res = conf_section_array_new();
+    if (cfg_parse_buf(blob_get_cstr(buf), buf->len,
+                      &conf_parse_hook, res, CONF_PARSE_OPTS))
+    {
         conf_delete(&res);
+    }
     return res;
 }
-
-/**
- *  Parse functions
- *
- */
 
 static void section_add_var(conf_section_t *section,
                             const char *variable, int variable_len,
                             const char *value, int value_len)
 {
     property_t *prop = property_new();
-
     prop->name  = p_dupstr(variable, variable_len);
     prop->value = p_dupstr(value, value_len);
-
     props_array_append(&section->vals, prop);
-}
-
-static void conf_add_section(conf_t *conf, conf_section_t *section)
-{
-    conf_section_array_append(conf, section);
 }
 
 int conf_save(const conf_t *conf, const char *filename)
@@ -355,7 +343,7 @@ const char *conf_put(conf_t *conf, const char *section,
         /* add variable in new section */
         s = conf_section_new();
         s->name = p_strdup(section);
-        conf_add_section(conf, s);
+        conf_section_array_append(conf, s);
         section_add_var(s, var, var_len, value, value_len);
         return s->vals.tab[0]->value;
     }

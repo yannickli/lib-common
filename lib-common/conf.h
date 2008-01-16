@@ -108,14 +108,9 @@ static inline const conf_section_t *conf_get_section(const conf_t *cfg, int i)
 {
     return (i < 0 || i >= cfg->len) ? NULL : cfg->tab[i];
 }
-
-const conf_section_t *
-conf_get_section_by_name(const conf_t *conf, const char *name);
-
-const char *
-conf_get_raw(const conf_t *conf, const char *section, const char *var);
-const char *
-conf_section_get_raw(const conf_section_t *section, const char *var);
+const conf_section_t *conf_get_section_by_name(const conf_t *, const char *);
+const char *conf_get_raw(const conf_t *, const char *section, const char *v);
+const char *conf_section_get_raw(const conf_section_t *, const char *v);
 
 static inline const char *
 conf_get(const conf_t *conf, const char *section,
@@ -132,7 +127,6 @@ conf_section_get(const conf_section_t *section,
     const char *res = conf_section_get_raw(section, var);
     return res ? res : defval;
 }
-
 
 
 const char *conf_put(conf_t *conf, const char *section,
