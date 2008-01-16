@@ -207,10 +207,11 @@ NONSP   [^[:space:];#]
 <EOSECTION>{HS}*\]      { BEGIN(TOEOL); }
 
 <EQUAL>{
-    {HS}*={HS}*         { BEGIN(VALUE); }
-    {HS}*\+={HS}*\(     {
+    {HS}+               /* SKIP */
+    ={HS}*              { BEGIN(VALUE); }
+    \+={HS}*\(          {
                           if (!HAS_OPT(GROK_ARRAY))
-                              ERROR_OFFS(strchr(yytext, '+') - yytext, "unexpected char `+`");
+                              ERROR("unexpected char `+`");
                           HOOK(_ARRAY_APPEND, NULL, -1);
                           yyextra->arraylvl++;
                           BEGIN(ARRAY);
@@ -222,25 +223,30 @@ NONSP   [^[:space:];#]
                           lexdata_newline(yyextra, -1);
                           BEGIN(INITIAL);
                         }
-    \"                  { yyextra->context = VALUE; BEGIN(STRING); }
-    \({HS}*             {
-                          if (!HAS_OPT(GROK_ARRAY))
-                              REJECT;
-                          HOOK(_ARRAY_OPEN, yytext, yyleng);
-                          yyextra->arraylvl++;
-                          BEGIN(ARRAY);
-                        }
-    {NORMAL}([^\n;#]*{NONSP})? {
-                          HOOK(_VALUE, yytext, yyleng);
-                          BEGIN(TOEOL);
+    {NONSP}([^\n;#]*{NONSP})? {
+                          if (*yytext == '"') {
+                              yyless(1);
+                              yyextra->context = VALUE;
+                              BEGIN(STRING);
+                          } else
+                          if (HAS_OPT(GROK_ARRAY) && *yytext == '(') {
+                              yyless(1);
+                              HOOK(_ARRAY_OPEN, yytext, yyleng);
+                              yyextra->arraylvl++;
+                              BEGIN(ARRAY);
+                          } else {
+                              HOOK(_VALUE, yytext, yyleng);
+                              BEGIN(TOEOL);
+                          }
                         }
 }
 
 <ARRAY,ARRAYCOMMA>{
-    {HS}+
-    \n                  { lexdata_newline(yyextra, 0); }
+    {HS}+               /* SKIP */
+    \)                  { goto array_eol; }
 }
 <ARRAY>{ /* parse arrays */
+    \n                  { lexdata_newline(yyextra, 0); }
     \"                  { yyextra->context = ARRAY; BEGIN(STRING); }
     \(                  {
                           HOOK(_ARRAY_OPEN, yytext, yyleng);
@@ -256,9 +262,8 @@ NONSP   [^[:space:];#]
                           if (eoa)
                               goto array_eol;
                         }
-    \)                  { goto array_eol; }
 }
-<ARRAYCOMMA>,           { BEGIN(ARRAY); }
+<ARRAYCOMMA>,{HS}*      { BEGIN(ARRAY); }
 <ARRAYEOL>{HS}*(,{HS}*)?\) {
                         array_eol:
                           HOOK(_ARRAY_CLOSE, NULL, -1);
@@ -294,7 +299,7 @@ NONSP   [^[:space:];#]
 
 <*>{ /* default rules to catch end of lines and end of files */
     \n                  { if (YYSTATE != INITIAL && YYSTATE != TOEOL)
-                              ERROR("unexpected new line, missing `\\` ?");
+                              ERROR("unexpected new line");
                           lexdata_newline(yyextra, 0);
                           BEGIN(INITIAL);
                         }
