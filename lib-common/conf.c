@@ -44,7 +44,8 @@ void conf_wipe(conf_t *conf)
 }
 GENERIC_NEW(conf_t, conf);
 
-static int conf_parse_hook(void *_conf, cfg_parse_evt evt, const char *v, int vlen)
+static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
+                           const char *v, int vlen, void *ctx)
 {
     conf_t *conf = _conf;
 

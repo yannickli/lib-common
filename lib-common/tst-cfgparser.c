@@ -18,7 +18,8 @@ struct parse_state {
     flag_t was_section  : 1;
 };
 
-static int parse_hook(void *_ps, cfg_parse_evt evt, const char *v, int vlen)
+static int parse_hook(void *_ps, cfg_parse_evt evt,
+                      const char *v, int vlen, void *ctx)
 {
     struct parse_state *ps = _ps;
 

@@ -67,10 +67,14 @@ typedef enum cfg_parse_evt {
     CFG_PARSE_ERROR,       /* v isn't NULL and vlen is >= 1 */
 } cfg_parse_evt;
 
-typedef int cfg_parse_hook(void *, cfg_parse_evt, const char *, int len);
+typedef int cfg_parse_hook(void *priv, cfg_parse_evt,
+                           const char *, int len, void *ctx);
 
 int cfg_parse(const char *file, cfg_parse_hook *, void *, int opts);
 int cfg_parse_buf(const char *, ssize_t, cfg_parse_hook *, void *, int opts);
+
+__attr_printf__(3, 0)
+int cfg_parse_seterr(void *ctx, int offs, const char *fmt, ...);
 
 
 /****************************************************************************/

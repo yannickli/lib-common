@@ -92,7 +92,8 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 
 #define HOOK(evt, val, len) \
     do {                                                                    \
-        (*yyextra->hook)(yyextra->data, (evt), (val), (len));               \
+        if ((*yyextra->hook)(yyextra->data, (evt), (val), (len), yyextra))  \
+            return -1;                                                      \
     } while (0)
 #define HOOKBUF(evt)  HOOK((evt), blob_get_cstr(&yyextra->buf), yyextra->buf.len)
 
@@ -282,4 +283,16 @@ int cfg_parse_buf(const char *buf, ssize_t blen, cfg_parse_hook *hook, void *dat
     res = yylex(ld.scanner);
     lexdata_wipe(&ld);
     return res;
+}
+
+int cfg_parse_seterr(void *ctx, int offs, const char *fmt, ...)
+{
+    struct lexdata *ld = ctx;
+    va_list ap;
+
+    blob_set_fmt(&ld->err, "%s%d:%d:", ld->path, ld->lno, offs + ld->pos - ld->lstart);
+    va_start(ap, fmt);
+    blob_append_vfmt(&ld->err, fmt, ap);
+    va_end(ap);
+    return -1;
 }
