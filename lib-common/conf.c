@@ -33,16 +33,11 @@ GENERIC_NEW(conf_section_t, conf_section);
 GENERIC_DELETE(conf_section_t, conf_section);
 ARRAY_FUNCTIONS(conf_section_t, conf_section, conf_section_delete);
 
-static conf_t *conf_init(conf_t *conf)
+#define conf_new()   conf_section_array_new()
+void conf_delete(conf_t **conf)
 {
-    conf_section_array_init(&conf->sections);
-    return conf;
+    conf_section_array_delete(conf);
 }
-void conf_wipe(conf_t *conf)
-{
-    conf_section_array_wipe(&conf->sections);
-}
-GENERIC_NEW(conf_t, conf);
 
 static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
                            const char *v, int vlen, void *ctx)
@@ -56,7 +51,7 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
       case CFG_PARSE_SECTION:
         sect = conf_section_new();
         sect->name = p_dupstr(v, vlen);
-        conf_section_array_append(&conf->sections, sect);
+        conf_section_array_append(conf, sect);
         return 0;
 
       case CFG_PARSE_SECTION_ID:
@@ -64,14 +59,14 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
         return 0;
 
       case CFG_PARSE_KEY:
-        sect = conf->sections.tab[conf->sections.len - 1];
+        sect = conf->tab[conf->len - 1];
         prop = property_new();
         prop->name = p_dupstr(v, vlen);
         props_array_append(&sect->vals, prop);
         return 0;
 
       case CFG_PARSE_VALUE:
-        sect = conf->sections.tab[conf->sections.len - 1];
+        sect = conf->tab[conf->len - 1];
         prop = sect->vals.tab[sect->vals.len - 1];
         prop->value = v ? p_dupstr(v, vlen) : NULL;
         return 0;
@@ -129,7 +124,7 @@ static void section_add_var(conf_section_t *section,
 
 static void conf_add_section(conf_t *conf, conf_section_t *section)
 {
-    conf_section_array_append(&conf->sections, section);
+    conf_section_array_append(conf, section);
 }
 
 int conf_save(const conf_t *conf, const char *filename)
@@ -145,8 +140,8 @@ int conf_save(const conf_t *conf, const char *filename)
         int i, j;
         conf_section_t *section;
 
-        for (i = 0; i < conf->sections.len; i++) {
-            section = conf->sections.tab[i];
+        for (i = 0; i < conf->len; i++) {
+            section = conf->tab[i];
 
             fprintf(fp, "[%s]\n", section->name);
             for (j = 0; j < section->vals.len; j++) {
@@ -184,8 +179,8 @@ const char *conf_get_raw(const conf_t *conf, const char *section,
 
     assert (section && var);
 
-    for (i = 0; i < conf->sections.len; i++) {
-        s = conf->sections.tab[i];
+    for (i = 0; i < conf->len; i++) {
+        s = conf->tab[i];
         if (!strcasecmp(s->name, section)) {
             return conf_section_get_raw(s, var);
         }
@@ -325,8 +320,8 @@ const char *conf_put(conf_t *conf, const char *section,
         return NULL;
     }
 
-    for (i = 0; i < conf->sections.len; i++) {
-        s = conf->sections.tab[i];
+    for (i = 0; i < conf->len; i++) {
+        s = conf->tab[i];
         if (!strcasecmp(s->name, section)) {
             int j;
 
@@ -372,9 +367,9 @@ conf_get_section_by_name(const conf_t *conf, const char *name)
 {
     int i;
 
-    for (i = 0; i < conf->sections.len; i++) {
-        if (strequal(name, conf->sections.tab[i]->name)) {
-            return conf->sections.tab[i];
+    for (i = 0; i < conf->len; i++) {
+        if (strequal(name, conf->tab[i]->name)) {
+            return conf->tab[i];
         }
     }
     return NULL;
@@ -389,14 +384,14 @@ int conf_next_section_idx(const conf_t *conf, const char *prefix,
     if (prev_idx < 0) {
         prev_idx = 0;
     } else
-    if (prev_idx >= conf->sections.len - 1) {
+    if (prev_idx >= conf->len - 1) {
         return -1;
     } else {
         prev_idx += 1;
     }
 
-    for (i = prev_idx; i < conf->sections.len; i++) {
-        if (stristart(conf->sections.tab[i]->name, prefix, suffixp)) {
+    for (i = prev_idx; i < conf->len; i++) {
+        if (stristart(conf->tab[i]->name, prefix, suffixp)) {
             return i;
         }
     }
@@ -427,11 +422,11 @@ START_TEST(check_conf_load)
     conf = conf_load(SAMPLE_CONF_FILE);
     fail_if(conf == NULL,
             "conf_load failed");
-    fail_if(conf->sections.len != SAMPLE_SECTION_NB,
+    fail_if(conf->len != SAMPLE_SECTION_NB,
             "conf_load did not parse the right number of sections (%zd != %d)",
-            conf->sections.len, SAMPLE_SECTION_NB);
+            conf->len, SAMPLE_SECTION_NB);
 
-    s = conf->sections.tab[0];
+    s = conf->tab[0];
     fail_if(!strequal(s->name, SAMPLE_SECTION1_NAME),
             "bad section name: expected '%s', got '%s'",
             SAMPLE_SECTION1_NAME, s->name);
@@ -518,9 +513,9 @@ START_TEST(check_conf_load)
 
     fail_if(conf == NULL,
             "conf_load_blob failed");
-    fail_if(conf->sections.len != SAMPLE_SECTION_NB,
+    fail_if(conf->len != SAMPLE_SECTION_NB,
             "conf_load_blob did not parse the right number of sections (%zd != %d)",
-            conf->sections.len, SAMPLE_SECTION_NB);
+            conf->len, SAMPLE_SECTION_NB);
     conf_delete(&conf);
     blob_wipe(&blob);
 
