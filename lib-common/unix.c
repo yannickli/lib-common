@@ -299,6 +299,18 @@ int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
     return 0;
 }
 
+int tmpfd(void)
+{
+    char path[PATH_MAX] = "/tmp/XXXXXX";
+    mode_t mask = umask(0177);
+    int fd = mkstemp(path);
+    umask(mask);
+    if (fd < 0)
+        return fd;
+    unlink(path);
+    return fd;
+}
+
 /****************************************************************************/
 /* file descriptor related                                                  */
 /****************************************************************************/
