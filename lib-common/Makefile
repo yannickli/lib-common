@@ -33,9 +33,7 @@ libcommon_SOURCES = \
 	array.c \
 	bfield.c \
 	btree.c \
-	cfg-parser.l \
 	concatbin.c  \
-	conf.c  \
 	db.c \
 	dtoa.c \
 	err_debug.c   \
@@ -73,6 +71,9 @@ libcommon_SOURCES = \
 	blob-zlib.c \
 	blob-iconv.c \
 	blob-emi.c \
+	\
+	conf.c  \
+	conf-parser.l \
 	\
 	file-binlog.c \
 	\

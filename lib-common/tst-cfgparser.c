@@ -11,12 +11,93 @@
 /*                                                                        */
 /**************************************************************************/
 
-int cfg_parse(const char *file);
+#include "conf.h"
+
+struct parse_state {
+    flag_t seen_section : 1;
+    flag_t was_section  : 1;
+    flag_t was_key      : 1;
+    int arraylvl;
+};
+
+static int parse_hook(void *_ps, cfg_parse_evt evt,
+                      const char *v, int vlen, void *ctx)
+{
+    struct parse_state *ps = _ps;
+
+    switch (evt) {
+      case CFG_PARSE_SECTION:
+        if (ps->seen_section)
+            putchar('\n');
+        printf("[%s", v);
+        ps->seen_section = ps->was_section = true;
+        return 0;
+
+      case CFG_PARSE_SECTION_ID:
+        ps->was_section = false;
+        printf(" \"%s\"]\n", v);
+        return 0;
+
+      case CFG_PARSE_KEY:
+      case CFG_PARSE_KEY_ARRAY:
+        if (ps->was_section) {
+            printf("]\n");
+            ps->was_section = false;
+        }
+        ps->was_key = true;
+        printf("%s%s", v, evt == CFG_PARSE_KEY_ARRAY ? "[]" : "");
+        return 0;
+
+      case CFG_PARSE_VALUE:
+        if (ps->was_key) {
+            printf(" =");
+            ps->was_key = false;
+        }
+        printf(ps->arraylvl ? " %s," : " %s\n", v ?: "");
+        return 0;
+
+      case CFG_PARSE_EOF:
+        if (ps->was_section) {
+            printf("]\n");
+            ps->was_section = false;
+        }
+        return 0;
+
+      case CFG_PARSE_ERROR:
+        fprintf(stderr, "%s\n", v);
+        return 0;
+
+      case CFG_PARSE_ARRAY_OPEN:
+        if (ps->was_key) {
+            printf(" =");
+            ps->was_key = false;
+        }
+        ps->arraylvl++;
+        printf(" {");
+        return 0;
+
+      case CFG_PARSE_ARRAY_APPEND:
+        assert (ps->was_key);
+        ps->was_key = false;
+        ps->arraylvl++;
+        printf(" += {");
+        return 0;
+
+      case CFG_PARSE_ARRAY_CLOSE:
+        ps->arraylvl--;
+        printf(ps->arraylvl ? " }, " : " }\n");
+        return 0;
+    }
+    return -1;
+}
 
 int main(int argc, const char **argv)
 {
     for (argc--, argv++; argc > 0; argc--, argv++) {
-        cfg_parse(*argv);
+        struct parse_state ps = {
+            .seen_section = false,
+        };
+        cfg_parse(*argv, &parse_hook, &ps, CFG_PARSE_OLD_NAMESPACES | CFG_PARSE_GROK_ARRAY);
     }
     return 0;
 }

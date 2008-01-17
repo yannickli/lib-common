@@ -18,13 +18,6 @@
 
 #include "conf.h"
 
-/* TODO:
- * - test, debug...
- * - keep comments
- */
-
-#define CONF_DBG_LVL 3
-
 static conf_section_t *conf_section_init(conf_section_t *section)
 {
     props_array_init(&section->vals);
@@ -35,233 +28,90 @@ static void conf_section_wipe(conf_section_t *section)
     p_delete(&section->name);
     props_array_wipe(&section->vals);
 }
-
 GENERIC_NEW(conf_section_t, conf_section);
 GENERIC_DELETE(conf_section_t, conf_section);
-
 ARRAY_FUNCTIONS(conf_section_t, conf_section, conf_section_delete);
-
-static conf_t *conf_init(conf_t *conf)
+void conf_delete(conf_t **conf)
 {
-    conf_section_array_init(&conf->sections);
-    return conf;
-}
-GENERIC_NEW(conf_t, conf);
-
-void conf_wipe(conf_t *conf)
-{
-    conf_section_array_wipe(&conf->sections);
+    conf_section_array_delete(conf);
 }
 
+static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
+                           const char *v, int vlen, void *ctx)
+{
+    conf_t *conf = _conf;
 
-/**
- *  Parse functions
- *
- */
+    switch (evt) {
+        conf_section_t *sect;
+        property_t *prop;
+
+      case CFG_PARSE_SECTION:
+        sect = conf_section_new();
+        sect->name = p_dupstr(v, vlen);
+        conf_section_array_append(conf, sect);
+        return 0;
+
+      case CFG_PARSE_SECTION_ID:
+        abort();
+        return 0;
+
+      case CFG_PARSE_KEY:
+        sect = conf->tab[conf->len - 1];
+        prop = property_new();
+        prop->name = p_dupstr(v, vlen);
+        props_array_append(&sect->vals, prop);
+        return 0;
+
+      case CFG_PARSE_VALUE:
+        sect = conf->tab[conf->len - 1];
+        prop = sect->vals.tab[sect->vals.len - 1];
+        prop->value = v ? p_dupstr(v, vlen) : NULL;
+        return 0;
+
+      case CFG_PARSE_EOF:
+        return 0;
+
+      case CFG_PARSE_ERROR:
+        e_error("%s", v);
+        return 0;
+
+      case CFG_PARSE_KEY_ARRAY:
+      case CFG_PARSE_ARRAY_OPEN:
+      case CFG_PARSE_ARRAY_APPEND:
+      case CFG_PARSE_ARRAY_CLOSE:
+        e_panic("should not happen");
+    }
+    return -1;
+}
+
+#define CONF_PARSE_OPTS  (CFG_PARSE_OLD_NAMESPACES | CFG_PARSE_OLD_KEYS)
+conf_t *conf_load(const char *filename)
+{
+    conf_t *res = conf_section_array_new();
+    if (cfg_parse(filename, &conf_parse_hook, res, CONF_PARSE_OPTS))
+        conf_delete(&res);
+    return res;
+}
+
+conf_t *conf_load_blob(const blob_t *buf)
+{
+    conf_t *res = conf_section_array_new();
+    if (cfg_parse_buf(blob_get_cstr(buf), buf->len,
+                      &conf_parse_hook, res, CONF_PARSE_OPTS))
+    {
+        conf_delete(&res);
+    }
+    return res;
+}
 
 static void section_add_var(conf_section_t *section,
                             const char *variable, int variable_len,
                             const char *value, int value_len)
 {
     property_t *prop = property_new();
-
     prop->name  = p_dupstr(variable, variable_len);
     prop->value = p_dupstr(value, value_len);
-
     props_array_append(&section->vals, prop);
-}
-
-static void conf_add_section(conf_t *conf, conf_section_t *section)
-{
-    conf_section_array_append(&conf->sections, section);
-}
-
-/* Read a line from the blob, return pointer to blob data or NULL at
- * EOF.
- */
-static const char *readline(blob_t *buf, blob_t *buf_line)
-{
-    const char *line, *p;
-
-    if (buf->len == 0) {
-        blob_reset(buf_line);
-        return NULL;
-    }
-
-    line = blob_get_cstr(buf);
-    p = strchr(line, '\n');
-
-    if (!p) {
-        /* no final \n in file, treat that like a line */
-        blob_set(buf_line, buf);
-        blob_reset(buf);
-    } else {
-        blob_set_data(buf_line, line, p + 1 - line);
-        blob_kill_first(buf, p + 1 - line);
-    }
-    return blob_get_cstr(buf_line);
-}
-
-/* Read a line from the blob, return pointer to blob data or NULL at
- * EOF.  Skip blank and comment lines.
- */
-static const char *readline_skip(blob_t *buf, blob_t *buf_line)
-{
-    const char *line, *p;
-
-    for (;;) {
-        if ((line = readline(buf, buf_line)) == NULL)
-            break;
-
-        p = skipspaces(line);
-        if (*p == '\0' || *p == '#' || *p == ';') {
-            e_trace(CONF_DBG_LVL + 1, "Comment: %s", line);
-            continue;
-        } else {
-            e_trace(CONF_DBG_LVL + 1, "Read line: %s", line);
-            break;
-        }
-    }
-    return line;
-}
-
-
-/* Returns conf_file or NULL if non-NULL file could not be opened */
-/* Should try and load from a PATH of directories, and keep file name
- * in conf structure */
-conf_t *conf_load(const char *filename)
-{
-    blob_t buf;
-    conf_t *res;
-
-    if (!filename) {
-        /* NULL file: return empty conf */
-        return conf_new();
-    }
-
-    blob_init(&buf);
-    if (blob_append_file_data(&buf, filename) < 0) {
-        e_trace(CONF_DBG_LVL, "could not open %s for reading (%m)", filename);
-        blob_wipe(&buf);
-        return NULL;
-    }
-
-    /* OG: should normalize buf contents: fix \r \0 and UTF-8 issues */
-
-    res = conf_load_blob(&buf);
-    blob_wipe(&buf);
-
-    return res;
-}
-
-/* Same as conf_load, but from a blob. XXX: buf may be modified */
-conf_t *conf_load_blob(blob_t *buf)
-{
-    conf_t *conf;
-    blob_t buf_line;
-    const char *line, *start, *stop;
-    const char *variable, *value;
-    int len, variable_len, value_len;
-    conf_section_t *section;
-
-    /* OG: Should parse without the need for a line blob */
-    blob_init(&buf_line);
-
-    conf = conf_new();
-    section = NULL;
-
-    for (;;) {
-
-        /* Read a new line */
-        line = readline_skip(buf, &buf_line);
-
-        if (!line) {
-            e_trace(CONF_DBG_LVL + 1, "End of input...");
-            break;
-        }
-
-        /* Skip first spaces */
-        start = skipspaces(line);
-
-        /* Check start of section name */
-        if (*start == '[') {
-            start += 1;   /* skip '[' */
-            /* Search end of section name */
-            stop = strchr(start, ']');
-            if (!stop) {
-                e_trace(CONF_DBG_LVL, "Invalid section header: %s", line);
-                continue;
-            }
-
-            /* Copy name in the section struct */
-            section = conf_section_new();
-            section->name = p_dupstr(start, stop - start);
-
-            e_trace(CONF_DBG_LVL + 1, "section name: %s",
-                    section->name);
-
-            /* Add this section in the conf struct */
-            conf_add_section(conf, section);
-
-            e_trace(CONF_DBG_LVL + 1,
-                    " Read 1 section name: buffer remaining:%s", stop + 1);
-            continue;
-        }
-
-        if (!section) {
-            e_trace(CONF_DBG_LVL, "Junk line: %s", line);
-            continue;
-        }
-
-        /* Check for variable definition in section */
-
-        /* Search end of var */
-        stop = strchr(start, '=');
-        if (!stop) {
-            /* No value */
-            e_trace(CONF_DBG_LVL, "No value on this line -> dropped: %s",
-                    line);
-            continue;
-        }
-
-        /* Trim variable name */
-        len = stop - start;
-        while (len > 0 && isspace((unsigned char)start[len - 1])) {
-            len -= 1;
-        }
-        variable = start;
-        variable_len = len;
-
-        e_trace(CONF_DBG_LVL + 1, "  varname: %.*s", variable_len, variable);
-
-        /* Skip spaces after = */
-        start = skipspaces(stop + 1);
-
-        /* Read until end of line */
-        stop = strchr(start, '\n');
-        if (!stop) {
-            /* EOF */
-            stop = strchr(start, '\0');
-        }
-
-        /* Trim value */
-        len = stop - start;
-        while (len > 0 && isspace((unsigned char)start[len - 1])) {
-            len -= 1;
-        }
-
-        value = start;
-        value_len = len;
-
-        e_trace(CONF_DBG_LVL + 1, "  value  : %.*s", value_len, value);
-
-        /* OG: no support for escaping */
-        section_add_var(section, variable, variable_len, value, value_len);
-    }
-
-    blob_wipe(&buf_line);
-
-    return conf;
 }
 
 int conf_save(const conf_t *conf, const char *filename)
@@ -269,7 +119,7 @@ int conf_save(const conf_t *conf, const char *filename)
     FILE *fp;
 
     if ((fp = fopen(filename, "w")) == NULL) {
-        e_trace(CONF_DBG_LVL, "could not open %s for writing", filename);
+        e_trace(1, "could not open %s for writing", filename);
         return -1;
     }
 
@@ -277,8 +127,8 @@ int conf_save(const conf_t *conf, const char *filename)
         int i, j;
         conf_section_t *section;
 
-        for (i = 0; i < conf->sections.len; i++) {
-            section = conf->sections.tab[i];
+        for (i = 0; i < conf->len; i++) {
+            section = conf->tab[i];
 
             fprintf(fp, "[%s]\n", section->name);
             for (j = 0; j < section->vals.len; j++) {
@@ -316,8 +166,8 @@ const char *conf_get_raw(const conf_t *conf, const char *section,
 
     assert (section && var);
 
-    for (i = 0; i < conf->sections.len; i++) {
-        s = conf->sections.tab[i];
+    for (i = 0; i < conf->len; i++) {
+        s = conf->tab[i];
         if (!strcasecmp(s->name, section)) {
             return conf_section_get_raw(s, var);
         }
@@ -457,8 +307,8 @@ const char *conf_put(conf_t *conf, const char *section,
         return NULL;
     }
 
-    for (i = 0; i < conf->sections.len; i++) {
-        s = conf->sections.tab[i];
+    for (i = 0; i < conf->len; i++) {
+        s = conf->tab[i];
         if (!strcasecmp(s->name, section)) {
             int j;
 
@@ -492,7 +342,7 @@ const char *conf_put(conf_t *conf, const char *section,
         /* add variable in new section */
         s = conf_section_new();
         s->name = p_strdup(section);
-        conf_add_section(conf, s);
+        conf_section_array_append(conf, s);
         section_add_var(s, var, var_len, value, value_len);
         return s->vals.tab[0]->value;
     }
@@ -504,9 +354,9 @@ conf_get_section_by_name(const conf_t *conf, const char *name)
 {
     int i;
 
-    for (i = 0; i < conf->sections.len; i++) {
-        if (strequal(name, conf->sections.tab[i]->name)) {
-            return conf->sections.tab[i];
+    for (i = 0; i < conf->len; i++) {
+        if (strequal(name, conf->tab[i]->name)) {
+            return conf->tab[i];
         }
     }
     return NULL;
@@ -521,14 +371,14 @@ int conf_next_section_idx(const conf_t *conf, const char *prefix,
     if (prev_idx < 0) {
         prev_idx = 0;
     } else
-    if (prev_idx >= conf->sections.len - 1) {
+    if (prev_idx >= conf->len - 1) {
         return -1;
     } else {
         prev_idx += 1;
     }
 
-    for (i = prev_idx; i < conf->sections.len; i++) {
-        if (stristart(conf->sections.tab[i]->name, prefix, suffixp)) {
+    for (i = prev_idx; i < conf->len; i++) {
+        if (stristart(conf->tab[i]->name, prefix, suffixp)) {
             return i;
         }
     }
@@ -546,7 +396,7 @@ START_TEST(check_conf_load)
 #define SAMPLE_SECTION_NB  3
 #define SAMPLE_SECTION1_VAR_NB  2
 #define SAMPLE_SECTION1_VAR1_NAME  "param1"
-#define SAMPLE_SECTION1_VAR2_NAME  "param2[]@!!sdf"
+#define SAMPLE_SECTION1_VAR2_NAME  "param2[]sdf"
 #define SAMPLE_SECTION1_VAL1 "123 456"
 
     conf_t *conf;
@@ -559,11 +409,11 @@ START_TEST(check_conf_load)
     conf = conf_load(SAMPLE_CONF_FILE);
     fail_if(conf == NULL,
             "conf_load failed");
-    fail_if(conf->sections.len != SAMPLE_SECTION_NB,
+    fail_if(conf->len != SAMPLE_SECTION_NB,
             "conf_load did not parse the right number of sections (%zd != %d)",
-            conf->sections.len, SAMPLE_SECTION_NB);
+            conf->len, SAMPLE_SECTION_NB);
 
-    s = conf->sections.tab[0];
+    s = conf->tab[0];
     fail_if(!strequal(s->name, SAMPLE_SECTION1_NAME),
             "bad section name: expected '%s', got '%s'",
             SAMPLE_SECTION1_NAME, s->name);
@@ -650,9 +500,9 @@ START_TEST(check_conf_load)
 
     fail_if(conf == NULL,
             "conf_load_blob failed");
-    fail_if(conf->sections.len != SAMPLE_SECTION_NB,
+    fail_if(conf->len != SAMPLE_SECTION_NB,
             "conf_load_blob did not parse the right number of sections (%zd != %d)",
-            conf->sections.len, SAMPLE_SECTION_NB);
+            conf->len, SAMPLE_SECTION_NB);
     conf_delete(&conf);
     blob_wipe(&blob);
 

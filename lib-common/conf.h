@@ -14,61 +14,103 @@
 #ifndef IS_LIB_COMMON_CONF_H
 #define IS_LIB_COMMON_CONF_H
 
-#include "mem.h"
+/* {{{ cfg files are ini-like files with an extended format.
+
+  - leading and trailing spaces aren't significant.
+  - quoted strings can embed usual C escapes (\a \b \n ...), octal chars
+    (\ooo) and hexadecimal ones (\x??) and unicode ones (\u????).
+
+  Encoding should be utf-8.
+
+----8<----
+
+[simple]
+key = value
+
+[section "With a Name"]
+key = 1234
+other = "some string with embeded spaces"
+; comment
+# alternate comment form
+foo = /some/value/without[spaces|semicolon|dash]
+
+; available with GROK_ARRAY
+foo[] = bar
+bar   = (1, 2, 3)
+baz   = ("asd", 324,
+         "toto")
+baz  += (foobar)
+
+---->8----
+}}} */
+
 #include "blob.h"
+#include "array.h"
+#include "string_is.h"
 #include "property.h"
 
-/* This module parses ini files :
- *
- * [Section1]
- *
- * var1 = value1
- * ; Comments
- * var2 = value2
- *
- * [Section2]
- *
- * # Comments
- * var3 = value3
+/****************************************************************************/
+/* Low level API                                                            */
+/****************************************************************************/
+
+/* warning, some combination aren't compatible:
+ *  * OLD_KEYS with GROK_ARRAY
  */
+enum cfg_parse_opts {
+    CFG_PARSE_OLD_NAMESPACES = 1 << 0,
+    CFG_PARSE_OLD_KEYS       = 1 << 1,
+    CFG_PARSE_GROK_ARRAY     = 1 << 2,
+};
+
+typedef enum cfg_parse_evt {
+    CFG_PARSE_SECTION,        /* v isn't NULL and vlen is >= 1 */
+    CFG_PARSE_SECTION_ID,     /* v isn't NULL and vlen is >= 1 */
+    CFG_PARSE_KEY,            /* v isn't NULL and vlen is >= 1 */
+    CFG_PARSE_KEY_ARRAY,      /* v isn't NULL and vlen is >= 1 */
+
+    CFG_PARSE_VALUE,          /* v may be NULL                 */
+    CFG_PARSE_EOF,            /* v is NULL                     */
+    CFG_PARSE_ARRAY_OPEN,     /* v is NULL                     */
+    CFG_PARSE_ARRAY_APPEND,   /* v is NULL                     */
+    CFG_PARSE_ARRAY_CLOSE,    /* v is NULL                     */
+
+    CFG_PARSE_ERROR,          /* v isn't NULL and vlen is >= 1 */
+} cfg_parse_evt;
+
+typedef int cfg_parse_hook(void *priv, cfg_parse_evt,
+                           const char *, int len, void *ctx);
+
+int cfg_parse(const char *file, cfg_parse_hook *, void *, int opts);
+int cfg_parse_buf(const char *, ssize_t, cfg_parse_hook *, void *, int opts);
+
+__attr_printf__(3, 0)
+int cfg_parse_seterr(void *ctx, int offs, const char *fmt, ...);
+
+
+/****************************************************************************/
+/* conf_t's                                                                 */
+/****************************************************************************/
 
 typedef struct conf_section_t {
     char *name;
     props_array vals;
 } conf_section_t;
-
 ARRAY_TYPE(conf_section_t, conf_section);
-
-typedef struct conf_t {
-    conf_section_array sections;
-} conf_t;
-
-void conf_wipe(conf_t *conf);
-GENERIC_DELETE(conf_t, conf);
+typedef conf_section_array conf_t;
 
 conf_t *conf_load(const char *filename);
-/* Same as conf_load, but from a blob.
- * ACHTUNG MINEN : the blob is modified !!!
- * */
-conf_t *conf_load_blob(blob_t *buf);
+conf_t *conf_load_blob(const blob_t *buf);
+void conf_delete(conf_t **);
+
 int conf_save(const conf_t *conf, const char *filename);
 
-static inline const conf_section_t *
-conf_get_section(const conf_t *conf, int i)
+static inline const conf_section_t *conf_get_section(const conf_t *cfg, int i)
 {
-    if (i < 0 || i >= conf->sections.len)
-        return NULL;
-    return conf->sections.tab[i];
+    return (i < 0 || i >= cfg->len) ? NULL : cfg->tab[i];
 }
-
-const conf_section_t *conf_get_section_by_name(const conf_t *conf,
-                                               const char *name);
-
-const char *conf_get_raw(const conf_t *conf,
-                         const char *section, const char *var);
-const char *
-conf_section_get_raw(const conf_section_t *section,
-                     const char *var);
+const conf_section_t *conf_get_section_by_name(const conf_t *, const char *);
+const char *conf_get_raw(const conf_t *, const char *section, const char *v);
+const char *conf_section_get_raw(const conf_section_t *, const char *v);
 
 static inline const char *
 conf_get(const conf_t *conf, const char *section,
@@ -80,12 +122,11 @@ conf_get(const conf_t *conf, const char *section,
 
 static inline const char *
 conf_section_get(const conf_section_t *section,
-         const char *var, const char *defval)
+                 const char *var, const char *defval)
 {
     const char *res = conf_section_get_raw(section, var);
     return res ? res : defval;
 }
-
 
 
 const char *conf_put(conf_t *conf, const char *section,
@@ -106,17 +147,6 @@ int conf_section_get_bool(const conf_section_t *section,
  * Store section name remaining characters in suffix if not NULL */
 int conf_next_section_idx(const conf_t *conf, const char *prefix,
                           int prev_idx, const char **suffixp);
-
-#ifdef NDEBUG
-#  define conf_dump(...)
-#else
-static inline void conf_dump(const conf_t *conf, int level)
-{
-    if (e_is_traced((level))) {
-        conf_save((conf), "/dev/stderr");
-    }
-}
-#endif
 
 #ifdef CHECK
 #include <check.h>
