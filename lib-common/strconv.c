@@ -55,6 +55,34 @@ static unsigned char const __str_escape_value[128 + 256] = {
     REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
 };
 
+int strconv_hexdecode(byte *dest, int size, const char *src, int len)
+{
+    int prev_len;
+
+    if (len < 0) {
+        len = strlen(src);
+    }
+    prev_len = len;
+
+    if (len & 1) {
+        return -1;
+    }
+
+    while (len && size) {
+        int val = hexdecode(src);
+
+        if (val < 0) {
+            return -1;
+        }
+        *dest++ = val;
+        size--;
+        src += 2;
+        len -= 2;
+    }
+
+    return prev_len / 2;
+}
+
 static inline int str_escape_value(int x) {
     return __str_escape_value[x + 128];
 }
@@ -486,3 +514,44 @@ int strconv_unquote_char(int *cp, const char *src, int len)
         return i;
     }
 }
+
+
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
+#ifdef CHECK
+
+START_TEST(check_str_hexdecode)
+{
+    int res;
+    byte dest[BUFSIZ];
+
+    const char *encoded = "30313233";
+    const char *decoded = "0123";
+
+    res = strconv_hexdecode(dest, sizeof(dest), encoded, -1);
+
+    fail_if((size_t)res != strlen(encoded) / 2, "str_hexdecode returned bad"
+            "length: expected %d, got %d.", strlen(encoded) / 2, res);
+    fail_if(memcmp(dest, decoded, res), "str_hexdecode failed decoding");
+
+    encoded = "1234567";
+    fail_if(strconv_hexdecode(dest, sizeof(dest), encoded, -1) >= 0,
+            "str_hexdecode should not accept odd-length strings");
+    encoded = "1234567X";
+    fail_if(strconv_hexdecode(dest, sizeof(dest), encoded, -1) >= 0,
+            "str_hexdecode accepted non hexadecimal string");
+}
+END_TEST
+
+Suite *check_make_strconv_suite(void)
+{
+    Suite *s  = suite_create("Strconv");
+    TCase *tc = tcase_create("Core");
+
+    suite_add_tcase(s, tc);
+    tcase_add_test(tc, check_str_hexdecode);
+
+    return s;
+}
+
+#endif
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
