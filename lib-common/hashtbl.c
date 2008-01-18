@@ -96,11 +96,13 @@ void **hashtbl_find(const hashtbl_t *t, uint64_t key)
     if (!t->tab)
         return NULL;
 
-    while (tab[pos].ptr && tab[pos].key != key) {
+    while (tab[pos].ptr) {
+        if (tab[pos].ptr != GHOST && tab[pos].key == key)
+            return &tab[pos].ptr;
         if (++pos == size)
             pos = 0;
     }
-    return IS_EMPTY(tab[pos].ptr) ? NULL : &tab[pos].ptr;
+    return NULL;
 }
 
 void **hashtbl_insert(hashtbl_t *t, uint64_t key, void *ptr)
@@ -121,23 +123,25 @@ void **hashtbl_insert(hashtbl_t *t, uint64_t key, void *ptr)
     pos  = key % size;
     tab  = t->tab;
 
-    while (tab[pos].ptr && tab[pos].key != key) {
-        if (tab[pos].ptr == GHOST)
-            ghost = pos;
+    while (tab[pos].ptr) {
+        if (tab[pos].ptr == GHOST) {
+            if (ghost < 0)
+                ghost = pos;
+        } else {
+            if (tab[pos].key == key)
+                return &tab[pos].ptr;
+        }
         if (++pos == size)
             pos = 0;
     }
-    if (IS_EMPTY(tab[pos].ptr)) {
-        if (ghost >= 0) {
-            t->ghosts--;
-            pos = ghost;
-        }
-        t->nr++;
-        tab[pos].ptr = ptr;
-        tab[pos].key = key;
-        return NULL;
+    if (ghost >= 0) {
+        t->ghosts--;
+        pos = ghost;
     }
-    return &tab[pos].ptr;
+    t->nr++;
+    tab[pos].ptr = ptr;
+    tab[pos].key = key;
+    return NULL;
 }
 
 void hashtbl_remove(hashtbl_t *t, void **pp)
@@ -281,11 +285,13 @@ void **hashtbl__find(const hashtbl__t *t, uint64_t key, const char *s)
     if (!t->tab)
         return NULL;
 
-    while (tab[pos].ptr && !key_equal(t, tab + pos, key, s)) {
+    while (tab[pos].ptr) {
+        if (tab[pos].ptr != GHOST && key_equal(t, tab + pos, key, s))
+            return &tab[pos].ptr;
         if (++pos == size)
             pos = 0;
     }
-    return IS_EMPTY(tab[pos].ptr) ? NULL : &tab[pos].ptr;
+    return NULL;
 }
 
 void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *ptr)
@@ -307,23 +313,25 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *ptr)
     pos  = key % size;
     tab  = t->tab;
 
-    while (tab[pos].ptr && !key_equal(t, tab + pos, key, name)) {
-        if (tab[pos].ptr == GHOST)
-            ghost = pos;
+    while (tab[pos].ptr) {
+        if (tab[pos].ptr == GHOST) {
+            if (ghost < 0)
+                ghost = pos;
+        } else {
+            if (key_equal(t, tab + pos, key, name))
+                return &tab[pos].ptr;
+        }
         if (++pos == size)
             pos = 0;
     }
-    if (IS_EMPTY(tab[pos].ptr)) {
-        if (ghost >= 0) {
-            t->ghosts--;
-            pos = ghost;
-        }
-        t->nr++;
-        tab[pos].ptr = ptr;
-        tab[pos].key = key;
-        return NULL;
+    if (ghost >= 0) {
+        t->ghosts--;
+        pos = ghost;
     }
-    return &tab[pos].ptr;
+    t->nr++;
+    tab[pos].ptr = ptr;
+    tab[pos].key = key;
+    return NULL;
 }
 
 /*----- Some useful and very very fast hashes, excellent distribution -----*/
