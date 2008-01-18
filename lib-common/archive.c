@@ -438,7 +438,9 @@ bool archive_attr_find(const archive_file *file, const char *name,
     for (i = 0; i < file->nb_attrs; i++) {
         archive_file_attr *attr = file->attrs[i];
 
-        if (!strncmp(name, attr->key, attr->key_len)) {
+        if (!strncmp(name, attr->key, attr->key_len)
+        &&  name[attr->key_len] == '\0')
+        {
             *data = (const byte *)attr->val;
             *size = attr->val_len;
             return true;
