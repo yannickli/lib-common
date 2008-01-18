@@ -20,10 +20,12 @@
 /* Wrap glibc specific unlocked API with obnoxious macros */
 #  define ISPUTC(c, f)          putc_unlocked(c, f)
 #  define ISFWRITE(b, s, n, f)  fwrite_unlocked(b, s, n, f)
+#  define ISGETC(f)             getc_unlocked(f)
 #  define ISFREAD(b, s, n, f)   fread_unlocked(b, s, n, f)
 #else
 #  define ISPUTC(c, f)          putc(c, f)
 #  define ISFWRITE(b, s, n, f)  fwrite(b, s, n, f)
+#  define ISGETC(f)             getc(f)
 #  define ISFREAD(b, s, n, f)   fread(b, s, n, f)
 #endif
 
