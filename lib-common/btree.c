@@ -1255,7 +1255,7 @@ int btree_push(btree_t *bt, uint64_t key, const void *_data, int dlen)
     return -1;
 }
 
-/*---------------- FILE* based read-only API functions ----------------*/
+/*---------------- File I/O based read-only API functions ----------------*/
 
 struct fbtree_t {
     flag_t ismap : 1;
