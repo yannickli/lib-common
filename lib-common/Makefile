@@ -17,7 +17,7 @@ include $(DEPTH)/admin/tokyocabinet.mk
 
 __EXE__   = btree-dump tst-cfgparser tst-tpl
 __LIB__   = libcommon
-__CHECK__ = test tst-blob-iconv
+__CHECK__ = test tst-blob-iconv tst-domains_list
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-hash
 __CHECK__ += tst-iprintf-speed tst-hashtbl
 ifdef CHECK_ALL
@@ -36,6 +36,7 @@ libcommon_SOURCES = \
 	concatbin.c  \
 	db.c \
 	dtoa.c \
+	domains_list.c \
 	err_debug.c   \
 	err_report.c  \
 	farch.c \
@@ -128,6 +129,9 @@ tst-iprintf-speed_CFLAGS = -UCHECK
 
 tst-stats_SOURCES = tst-stats.c libcommon.a
 tst-hashtbl_SOURCES = err_debug.c err_report.c tst-hashtbl.c
+
+tst-domains_list_SOURCES = domains_list.c libcommon.a
+tst-domains_list_CFLAGS = -DSTANDALONE
 
 ifneq (,$(filter CYGWIN%,$(UNAME)))
   libcommon_SOURCES := $(filter-out blob-iconv.c linux.c psinfo.c,$(libcommon_SOURCES))
