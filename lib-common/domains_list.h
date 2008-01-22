@@ -21,8 +21,10 @@ typedef struct domain_index_t {
     int nbnodes;
 } domains_index_t;
 
-domains_index_t *domains_index_new(void);
-void domains_index_delete(domains_index_t **idx);
+domains_index_t *domains_index_init(domains_index_t *idx);
+void domains_index_wipe(domains_index_t *idx);
+GENERIC_NEW(domains_index_t, domains_index);
+GENERIC_DELETE(domains_index_t, domains_index);
 
 int domains_index_add(domains_index_t *idx, const char *key, int value);
 int domains_index_get(const domains_index_t *idx, const char *key, int trace);

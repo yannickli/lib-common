@@ -22,37 +22,20 @@ typedef struct node_t {
     int value;
 } node_t;
 
-static domains_index_t *domains_index_init(domains_index_t *idx)
+domains_index_t *domains_index_init(domains_index_t *idx)
 {
-    if (!idx) {
-        return NULL;
-    }
     idx->nbnodes = 10 * 1024;
-    idx->nodes = mem_alloc(idx->nbnodes * sizeof(node_t));
+    idx->nodes = p_new(node_t, idx->nbnodes);
     if (!idx->nodes) {
         return NULL;
     }
     idx->freenode = 1;
-    memset(idx->nodes, 0, idx->nbnodes * sizeof(node_t));
     return idx;
 }
 
-domains_index_t *domains_index_new()
+void domains_index_wipe(domains_index_t *idx)
 {
-    domains_index_t *idx;
-    idx = mem_alloc(sizeof(*idx));
-    if (!idx) {
-        return NULL;
-    }
-    return domains_index_init(idx);
-}
-
-void domains_index_delete(domains_index_t **idx)
-{
-    if (idx && *idx) {
-        free(*idx);
-        *idx = NULL;
-    }
+    p_delete(&idx->nodes);
 }
 
 static int node_getkeynb(int c)
@@ -102,8 +85,7 @@ int domains_index_add(domains_index_t *idx, const char *key, int value)
             idx->freenode++;
             if (idx->freenode >= idx->nbnodes) {
                 int newnb = idx->nbnodes * 4 / 3;
-                mem_realloc0((void*)&idx->nodes, idx->nbnodes * sizeof(node_t),
-                             newnb * sizeof(node_t));
+                p_realloc0(&idx->nodes, idx->nbnodes, newnb);
                 idx->nbnodes = newnb;
             }
         } else {
@@ -260,6 +242,7 @@ static int domains_index_test(const char *dictname, int n)
     domains_index_test_50000(idx, "le");
     domains_index_test_50000(idx, "combustible");
     domains_index_test_50000(idx, "machine");
+    domains_index_delete(&idx);
     return 0;
 }
 
