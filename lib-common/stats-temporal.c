@@ -955,10 +955,9 @@ int stats_temporal_query_hour(stats_temporal_t *stats, blob_t *blob,
 }
 
 /* Should return number of samples produced? */
-int stats_temporal_query_auto(stats_temporal_t *stats, int index,
-                              blob_t *blob,
+int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
                               int start, int end, int nb_values,
-                              int fmt)
+                              bfield_t *mask, int fmt)
 {
     static int pretty_freqs[] = {
         1, 2, 5, 10, 15, 20, 30,
@@ -970,7 +969,8 @@ int stats_temporal_query_auto(stats_temporal_t *stats, int index,
     stats_stage *st;
     int freq;
     int count = 0;
-    double accu = 0;
+    int nb_stats = stats->nb_stats;
+    double *accu;
 
     if (fmt < STATS_FMT_RAW || fmt > STATS_FMT_XML) {
         blob_append_fmt(blob, "Bad stats fmt: %d", fmt);
@@ -990,6 +990,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, int index,
         }
     }
 
+    accu = p_new(double, nb_stats);
     e_trace(1, "input values: start: %d, end: %d, nbvalues: %d",
             start, end, nb_values);
     if (start <= 0 || end <= 0) {
@@ -1098,7 +1099,6 @@ int stats_temporal_query_auto(stats_temporal_t *stats, int index,
             }
             if (stamp <= stup->current - stup->count) {
                 e_trace(2, "no data available, so dump 0");
-                accu += 0;
             } else {
                 double add;
                 byte *vpup, *bufup_start, *bufup_end;
@@ -1107,10 +1107,14 @@ int stats_temporal_query_auto(stats_temporal_t *stats, int index,
                 bufup_end   = bufup_start + stup->count * stup->incr;
                 vpup        = bufup_start + ((stup->pos + stup->count + stamp - stup->current) %
                                              stup->count * stup->incr);
-                add = (double)(stageup ? ((int64_t*)vpup)[index] : ((int32_t*)vpup)[index]);
-                add = (add * st->scale) / stup->scale;
-                e_trace(3, "scaled add %e", add);
-                accu += add;
+                for (int k = 0; k < nb_stats; k++) {
+                    if (!mask || bfield_isset(mask, k)) {
+                        add = (double)(stageup ? ((int64_t*)vpup)[k] : ((int32_t*)vpup)[k]);
+                        add = (add * st->scale) / stup->scale;
+                        e_trace(3, "scaled add %e", add);
+                        accu[k] += add;
+                    }
+                }
             }
         }
         j++;
@@ -1118,15 +1122,37 @@ int stats_temporal_query_auto(stats_temporal_t *stats, int index,
         if (j >= freq) {
             switch (fmt) {
               case STATS_FMT_RAW:
-                blob_append_fmt(blob, "%d %lld\n",
-                                (i - (freq - 1)) * st->scale,
-                                (long long)accu / (j * st->scale));
+                blob_append_fmt(blob, "%d",
+                                (i - (freq - 1)) * st->scale);
+                for (int k = 0; k < nb_stats; k++) {
+                    if (!mask || bfield_isset(mask, k)) {
+                        blob_append_fmt(blob, " %lld",
+                                        (long long)accu[k] / (j * st->scale));
+                    }
+                }
+                blob_append_cstr(blob, "\n");
+                count++;
                 break;
 
               case STATS_FMT_XML:
-                blob_append_fmt(blob, "<elem time=\"%d\" val=\"%e\" />\n",
-                                (i - (freq - 1)) * st->scale,
-                                accu / (j * st->scale));
+                {
+                    bool first = true;
+                    blob_append_fmt(blob, "<elem time=\"%d\" ",
+                                    (i - (freq - 1)) * st->scale);
+                    for (int k = 0; k < nb_stats; k++) {
+                        if (!mask || bfield_isset(mask, k)) {
+                            if (first) {
+                                blob_append_fmt(blob, " val=\"%e\"",
+                                                accu[k] / (j * st->scale));
+                                first = false;
+                            } else {
+                                blob_append_fmt(blob, " val%d=\"%e\"", k,
+                                                accu[k] / (j * st->scale));
+                            }
+                        }
+                    }
+                    blob_append_cstr(blob, "/>\n");
+                }
                 count++;
                 break;
 
@@ -1134,7 +1160,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, int index,
                 break;
             }
             j = 0;
-            accu = 0;
+            p_clear(accu, nb_stats);
         }
     }
 
