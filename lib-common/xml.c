@@ -310,7 +310,7 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
     /* Parse tag name */
     name = p;
     while (len) {
-        if (!isalnum(*p) && *p != ':' && *p != '-') {
+        if (!isalnum(*p) && *p != ':' && *p != '-' && *p != '_') {
             break;
         }
         len--;
