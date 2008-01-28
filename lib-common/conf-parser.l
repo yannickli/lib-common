@@ -131,7 +131,7 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 %}
 
 %option 8bit batch nointeractive reentrant stack
-%option noyywrap nounput noyy_top_state noyy_push_state noyy_pop_state
+%option noyywrap nounput noyy_top_state noyy_push_state noyy_pop_state noinput
 
 %x      TOEOL
 %x      SECTION EOSECTION
