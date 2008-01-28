@@ -44,8 +44,8 @@ typedef struct BSTREAM {
     unsigned char *pwrite_start;
     unsigned char *pwrite;
     unsigned char *pwrite_end;
-    int eof : 1;
-    int error : 1;
+    flag_t eof : 1;
+    flag_t error : 1;
 #define DEFAULT_BUFSIZ (64 * 1024)
     size_t bufsiz;
     unsigned char buf[0]; /* malloc'ed later */
