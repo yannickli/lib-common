@@ -65,10 +65,11 @@ int strconv_hexdecode(byte *dest, int size, const char *src, int len)
     prev_len = len;
 
     if (len & 1) {
+        /* Should accept and ignore white space in source string? */
         return -1;
     }
 
-    while (len && size) {
+    while (len && size > 0) {
         int val = hexdecode(src);
 
         if (val < 0) {
