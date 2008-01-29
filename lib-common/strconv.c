@@ -66,6 +66,7 @@ int strconv_hexdecode(byte *dest, int size, const char *src, int len)
 
     if (len & 1) {
         /* Should accept and ignore white space in source string? */
+        /* Alternatively, we could stop on first non hex character */
         return -1;
     }
 
