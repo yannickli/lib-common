@@ -990,7 +990,6 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         }
     }
 
-    accu = p_new(double, nb_stats);
     e_trace(1, "input values: start: %d, end: %d, nbvalues: %d",
             start, end, nb_values);
     if (start <= 0 || end <= 0) {
@@ -998,6 +997,8 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
                          "Stats auto: invalid interval");
         return -1;
     }
+
+    accu = p_new(double, nb_stats);
 
     /* Force minimum interval */
     if (nb_values < 10) {
@@ -1007,7 +1008,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         int diff = 10 - (end - start);
         int rounding = diff & 0x1;  /* odd or even ? */
 
-        diff /= 2;
+        diff  /= 2;
         start -= diff;
         end   += diff + rounding;
     }
@@ -1173,6 +1174,8 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
       default:
         break;
     }
+
+    p_delete(&accu);
 
     e_trace(1, "Outputed %d values", count);
 
