@@ -434,6 +434,9 @@ int blob_decode_ira_bin_as_latin15(blob_t *dst, const char *src, ssize_t len);
 int blob_decode_ira_hex_as_utf8(blob_t *dst, const char *src, ssize_t len);
 int blob_decode_ira_bin_as_utf8(blob_t *dst, const char *src, ssize_t len);
 
+int string_decode_base64(byte *dst, ssize_t size,
+                         const char *src, ssize_t len);
+
 int string_decode_ira_hex_as_latin15(char *dst, ssize_t size,
                                      const char *src, ssize_t len);
 int string_decode_ira_bin_as_latin15(char *dst, ssize_t size,
