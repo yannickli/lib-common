@@ -56,14 +56,6 @@ static inline void generic_array_push(generic_array *array, void *item)
 void *generic_array_take(generic_array *array, ssize_t pos)
     __attr_nonnull__((1));
 
-static inline void
-generic_array_swap(generic_array *array, ssize_t i, ssize_t j)
-{
-    void *v = array->tab[i];
-    array->tab[i] = array->tab[j];
-    array->tab[j] = v;
-}
-
 #define ARRAY_SORT_IS_STABLE  1
 void generic_array_sort(generic_array *array,
                         int (*cmp)(const void *p1, const void *p2, void *parm),
@@ -128,7 +120,7 @@ void generic_array_sort(generic_array *array,
     static inline void                                                        \
     prefix##_array_swap(prefix##_array *array, ssize_t i, ssize_t j)          \
     {                                                                         \
-        generic_array_swap((generic_array *)array, i, j);                     \
+        SWAP(array->tab[i], array->tab[j]);                                   \
     }                                                                         \
     static inline void                                                        \
     prefix##_array_push(prefix##_array *array, el_typ *item)                  \
