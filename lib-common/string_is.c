@@ -1109,7 +1109,7 @@ static const char *week = "Monday Tuesday Wednesday Thursday Friday "
                           "Saturday Sunday";
 START_TEST(check_strstart)
 {
-    const char *p;
+    const char *p = NULL;
     int res;
     res = strstart(week, "Monday", &p);
     fail_if(!res, "strstart did not find needle");

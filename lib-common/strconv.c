@@ -530,7 +530,7 @@ START_TEST(check_str_hexdecode)
     res = strconv_hexdecode(dest, sizeof(dest), encoded, -1);
 
     fail_if((size_t)res != strlen(encoded) / 2, "str_hexdecode returned bad"
-            "length: expected %d, got %d.", strlen(encoded) / 2, res);
+            "length: expected %zd, got %d.", strlen(encoded) / 2, res);
     fail_if(memcmp(dest, decoded, res), "str_hexdecode failed decoding");
 
     encoded = "1234567";
