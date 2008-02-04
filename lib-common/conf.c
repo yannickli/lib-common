@@ -68,6 +68,7 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
         prop->value = v ? p_dupstr(v, vlen) : NULL;
         return 0;
 
+      case CFG_PARSE_SET:
       case CFG_PARSE_EOF:
         return 0;
 
@@ -77,7 +78,7 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
 
       case CFG_PARSE_KEY_ARRAY:
       case CFG_PARSE_ARRAY_OPEN:
-      case CFG_PARSE_ARRAY_APPEND:
+      case CFG_PARSE_APPEND:
       case CFG_PARSE_ARRAY_CLOSE:
         e_panic("should not happen");
     }

@@ -211,11 +211,14 @@ NONSP   [^[:space:];#]
 
 <EQUAL>{
     {HS}+               /* SKIP */
-    ={HS}*              { BEGIN(VALUE); }
+    ={HS}*              {
+                          HOOK(_SET, NULL, -1);
+                          BEGIN(VALUE);
+                        }
     \+={HS}*\(          {
                           if (!HAS_OPT(GROK_ARRAY))
                               ERROR("unexpected char `+`");
-                          HOOK(_ARRAY_APPEND, NULL, -1);
+                          HOOK(_APPEND, NULL, -1);
                           yyextra->arraylvl++;
                           BEGIN(ARRAY);
                         }
