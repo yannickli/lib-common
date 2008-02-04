@@ -66,6 +66,10 @@ void hashtbl_map2(hashtbl_t *t, void (*fn)(uint64_t, void **, void *), void *);
     }                                                                        \
     static inline type *pfx##_hash_take(pfx##_hash *t, uint64_t k) {         \
         type **pp = (type **)hashtbl_find((hashtbl_t *)t, k);                \
+        type *p;                                                             \
+        if (!*pp)                                                            \
+           return NULL;                                                      \
+        p = *pp;                                                             \
         hashtbl_remove((hashtbl_t *)t, (void **)pp);                         \
         return *pp;                                                          \
     }                                                                        \
