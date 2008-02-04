@@ -15,7 +15,6 @@
 
 struct parse_state {
     flag_t seen_section : 1;
-    flag_t was_section  : 1;
     int arraylvl;
 };
 
@@ -26,27 +25,22 @@ static int parse_hook(void *_ps, cfg_parse_evt evt,
 
     switch (evt) {
       case CFG_PARSE_SECTION:
-        if (ps->was_section) {
-            printf("]\n");
-            ps->was_section = false;
-        }
         if (ps->seen_section)
             putchar('\n');
         printf("[%s", v);
-        ps->seen_section = ps->was_section = true;
+        ps->seen_section = true;
         return 0;
 
       case CFG_PARSE_SECTION_ID:
-        ps->was_section = false;
-        printf(" \"%s\"]\n", v);
+        if (v) {
+            printf(" \"%s\"]\n", v);
+        } else {
+            printf("]\n");
+        }
         return 0;
 
       case CFG_PARSE_KEY:
       case CFG_PARSE_KEY_ARRAY:
-        if (ps->was_section) {
-            printf("]\n");
-            ps->was_section = false;
-        }
         printf("%s%s", v, evt == CFG_PARSE_KEY_ARRAY ? "[]" : "");
         return 0;
 
@@ -64,10 +58,6 @@ static int parse_hook(void *_ps, cfg_parse_evt evt,
         return 0;
 
       case CFG_PARSE_EOF:
-        if (ps->was_section) {
-            printf("]\n");
-            ps->was_section = false;
-        }
         return 0;
 
       case CFG_PARSE_ERROR:

@@ -52,7 +52,7 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
         return 0;
 
       case CFG_PARSE_SECTION_ID:
-        abort();
+        assert (v == NULL);
         return 0;
 
       case CFG_PARSE_KEY:

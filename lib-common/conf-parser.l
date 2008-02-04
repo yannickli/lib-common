@@ -185,16 +185,19 @@ NONSP   [^[:space:];#]
 
 <SECTION>{
     {ID}{HS}*\"?        {
-                          if (yytext[yyleng - 1] == '"') {
+                          int has_quote = yytext[yyleng - 1] == '"';
+                          yyleng -= has_quote;
+                          yyrtrim();
+                          HOOK(_SECTION, yytext, yyleng);
+                          yyextra->seen_section = true;
+                          if (has_quote) {
                               yyextra->context = SECTION;
                               yyleng--;
                               BEGIN(STRING);
                           } else {
+                              HOOK(_SECTION_ID, NULL, -1);
                               BEGIN(EOSECTION);
                           }
-                          yyrtrim();
-                          HOOK(_SECTION, yytext, yyleng);
-                          yyextra->seen_section = true;
                         }
     {ID}:[^\n\]]+       {
                           if (!HAS_OPT(OLD_NAMESPACES)) {
@@ -203,6 +206,7 @@ NONSP   [^[:space:];#]
                           }
                           yyrtrim();
                           HOOK(_SECTION, yytext, yyleng);
+                          HOOK(_SECTION_ID, NULL, -1);
                           yyextra->seen_section = true;
                           BEGIN(EOSECTION);
                         }

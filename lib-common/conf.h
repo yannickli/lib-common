@@ -64,7 +64,7 @@ enum cfg_parse_opts {
 
 typedef enum cfg_parse_evt {
     CFG_PARSE_SECTION,        /* v isn't NULL and vlen is >= 1 */
-    CFG_PARSE_SECTION_ID,     /* v isn't NULL and vlen is >= 1 */
+    CFG_PARSE_SECTION_ID,     /* v may be NULL                 */
     CFG_PARSE_KEY,            /* v isn't NULL and vlen is >= 1 */
     CFG_PARSE_KEY_ARRAY,      /* v isn't NULL and vlen is >= 1 */
 
