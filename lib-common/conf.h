@@ -83,7 +83,7 @@ typedef int cfg_parse_hook(void *priv, cfg_parse_evt,
 int cfg_parse(const char *file, cfg_parse_hook *, void *, int opts);
 int cfg_parse_buf(const char *, ssize_t, cfg_parse_hook *, void *, int opts);
 
-__attr_printf__(3, 0)
+__attr_printf__(3, 4)
 int cfg_parse_seterr(void *ctx, int offs, const char *fmt, ...);
 
 
