@@ -137,12 +137,4 @@ ifneq (,$(MINGCC))
   __EXE__ := $(filter-out btree-dump, $(__EXE__))
 endif
 
-ifneq (,$(shell pkg-config qdbm || echo fail))
-    ifeq ($(GCCVERSION), 3.4.6)
-        libcommon_SOURCES := $(filter-out db.c, $(libcommon_SOURCES))
-    else
-        $(error apt-get install libqdbm-dev [used for prototyping purposes]))
-    endif
-endif
-
 include $(DEPTH)/admin/footer.mk
