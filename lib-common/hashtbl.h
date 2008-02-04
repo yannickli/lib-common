@@ -66,9 +66,8 @@ void hashtbl_map2(hashtbl_t *t, void (*fn)(uint64_t, void **, void *), void *);
     }                                                                        \
     static inline type *pfx##_hash_take(pfx##_hash *t, uint64_t k) {         \
         type **pp = (type **)hashtbl_find((hashtbl_t *)t, k);                \
-        type *p = *pp;                                                       \
         hashtbl_remove((hashtbl_t *)t, (void **)pp);                         \
-        return p;                                                            \
+        return *pp;                                                          \
     }                                                                        \
     static inline void                                                       \
     pfx##_hash_map(pfx##_hash *t, void (*fn)(type **, void *), void *p) {    \
@@ -136,6 +135,12 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *);
     \
     static inline void pfx##_hash_remove(pfx##_hash *t, type **e) {          \
         hashtbl_remove((hashtbl_t *)t, (void **)e);                          \
+    }                                                                        \
+    static inline type *                                                     \
+    pfx##_hash_take(pfx##_hash *t, uint64_t k, const char *s) {              \
+        type **pp = (type **)pfx##_hash_find(t, k, s);                       \
+        hashtbl_remove((hashtbl_t *)t, (void **)pp);                         \
+        return *pp;                                                          \
     }                                                                        \
     static inline void                                                       \
     pfx##_hash_map(pfx##_hash *t, void (*fn)(type **, void *), void *p) {    \
