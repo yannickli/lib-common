@@ -133,6 +133,11 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *);
         return (type **)hashtbl__find((hashtbl__t *)t, key, s);              \
     }                                                                        \
     static inline type **                                                    \
+    pfx##_hash_find2(pfx##_hash *t, const char *s) {                         \
+        return (type **)hashtbl__find((hashtbl__t *)t,                       \
+                                      hashtbl__hkey(s, -1), s);              \
+    }                                                                        \
+    static inline type **                                                    \
     pfx##_hash_insert(pfx##_hash *t, uint64_t key, type *e) {                \
         return (type **)hashtbl__insert((hashtbl__t *)t, key, e);            \
     }                                                                        \
