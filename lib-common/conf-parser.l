@@ -195,7 +195,7 @@ NONSP   [^[:space:];#]
                               yyleng--;
                               BEGIN(STRING);
                           } else {
-                              HOOK(_SECTION_ID, NULL, -1);
+                              HOOK(_SECTION_ID, NULL, 0);
                               BEGIN(EOSECTION);
                           }
                         }
@@ -206,7 +206,7 @@ NONSP   [^[:space:];#]
                           }
                           yyrtrim();
                           HOOK(_SECTION, yytext, yyleng);
-                          HOOK(_SECTION_ID, NULL, -1);
+                          HOOK(_SECTION_ID, NULL, 0);
                           yyextra->seen_section = true;
                           BEGIN(EOSECTION);
                         }
@@ -216,20 +216,20 @@ NONSP   [^[:space:];#]
 <EQUAL>{
     {HS}+               /* SKIP */
     ={HS}*              {
-                          HOOK(_SET, NULL, -1);
+                          HOOK(_SET, NULL, 0);
                           BEGIN(VALUE);
                         }
     \+={HS}*\(          {
                           if (!HAS_OPT(GROK_ARRAY))
                               ERROR("unexpected char `+`");
-                          HOOK(_APPEND, NULL, -1);
+                          HOOK(_APPEND, NULL, 0);
                           yyextra->arraylvl++;
                           BEGIN(ARRAY);
                         }
 }
 
 <VALUE>{ /* parse right hand side values */
-    \n                  { HOOK(_VALUE, NULL, -1);
+    \n                  { HOOK(_VALUE, NULL, 0);
                           lexdata_newline(yyextra, -1);
                           BEGIN(INITIAL);
                         }
@@ -263,7 +263,7 @@ NONSP   [^[:space:];#]
     {HS}+               /* SKIP */
     \n                  { lexdata_newline(yyextra, 0); }
     \)                  {
-                          HOOK(_ARRAY_CLOSE, NULL, -1);
+                          HOOK(_ARRAY_CLOSE, NULL, 0);
                           BEGIN(--yyextra->arraylvl > 0 ? ARRAYSEP : TOEOL);
                         }
 }
@@ -305,7 +305,7 @@ NONSP   [^[:space:];#]
     .                   { ERROR("unexpected char `%c`", *yytext); }
     <<EOF>>             { if (YYSTATE != INITIAL && YYSTATE != TOEOL)
                               ERROR("unexpected end of file");
-                          HOOK(_EOF, NULL, -1);
+                          HOOK(_EOF, NULL, 0);
                           return 0;
                         }
 }
