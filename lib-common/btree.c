@@ -421,7 +421,7 @@ static int bt_check_header(struct btree_priv *btp, int dofix,
         if (pid_get_starttime(btp->wrlock, &tv))
             return -1;
 
-        if (btp->wrlockt != (((int64_t)tv.tv_sec << 32) | tv.tv_usec))
+        if (btp->wrlockt != MAKE64(tv.tv_sec, tv.tv_usec))
             return -1;
 
         dofix = 0;
@@ -730,7 +730,7 @@ btree_t *btree_open(const char *path, int flags, bool check)
 
         pid_get_starttime(pid, &tv);
         bt->area->wrlock = pid;
-        bt->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
+        bt->area->wrlockt = MAKE64(tv.tv_sec, tv.tv_usec);
         msync(bt->area, bt->size, MS_SYNC);
     }
 

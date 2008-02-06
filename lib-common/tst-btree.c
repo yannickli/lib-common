@@ -326,7 +326,7 @@ static int btree_parse_test(const char *filename, const char *indexname)
             int pos = 0, line_no, camp_id, n;
 
             n = buf_unpack((byte*)buf, len, &pos, "s|c|s|d|d|", NULL, NULL, NULL, &line_no, &camp_id);
-            num = ((uint64_t)camp_id << 32) | (uint32_t)line_no;
+            num = MAKE64(camp_id, line_no);
             data = offset;
 
             npush++;

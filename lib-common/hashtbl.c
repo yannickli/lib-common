@@ -268,7 +268,7 @@ uint64_t hashtbl__hkey(const char *s, int len)
 {
     if (len < 0)
         len = strlen(s);
-    return ((uint64_t)hsieh_hash((const byte *)s, len) << 32) | (uint32_t)len;
+    return MAKE64(hsieh_hash((const byte *)s, len), len);
 }
 
 uint64_t hashtbl__hobj(const hashtbl__t *t, void *ptr, int len)
@@ -417,5 +417,5 @@ uint32_t jenkins_hash(const byte *s, int len)
 
 uint64_t combined_hash(const byte *s, int len)
 {
-    return ((uint64_t)jenkins_hash(s, len) << 32) | hsieh_hash(s, len);
+    return MAKE64(jenkins_hash(s, len), hsieh_hash(s, len));
 }

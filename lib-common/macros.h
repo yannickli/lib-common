@@ -119,6 +119,8 @@ typedef uint16_t __bitwise__ be16_t;
 #define BE32_T(x)  force_cast(be32_t, htonl_const(x))
 #define BE16_T(x)  force_cast(be16_t, htons_const(x))
 
+#define MAKE64(hi, lo)  (((uint64_t)(uint32_t)(hi) << 32) | (uint32_t)(lo))
+
 #ifdef __SPARSE__
 #include <arpa/inet.h>
 #undef htonl

@@ -117,7 +117,7 @@ static int pidx_fsck(pidx_file *pidx, int dofix)
         if (pid_get_starttime(pidx->area->wrlock, &tv))
             return -1;
 
-        if (pidx->area->wrlockt != (((int64_t)tv.tv_sec << 32) | tv.tv_usec))
+        if (pidx->area->wrlockt != MAKE64(tv.tv_sec, tv.tv_usec))
             return -1;
 
         dofix = 0;
@@ -276,7 +276,7 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
 
         pid_get_starttime(pid, &tv);
         pidx->area->wrlock = pid;
-        pidx->area->wrlockt = ((int64_t)tv.tv_sec << 32) | tv.tv_usec;
+        pidx->area->wrlockt = MAKE64(tv.tv_sec, tv.tv_usec);
         msync(pidx->area, pidx->size, MS_SYNC);
     }
 
