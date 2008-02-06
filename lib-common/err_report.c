@@ -78,7 +78,7 @@ static void log_sighup(int __unused__ signum)
         log_state.f = fopen(log_state.filename, "a");
         if (!log_state.f) {
             e_fatal(FATAL_LOGOPEN,
-                    E_PREFIX("can't open log file %s: %s"),
+                    E_PREFIX("cannot open log file %s: %s"),
                     log_state.filename, strerror(errno));
         }
     }
@@ -172,7 +172,7 @@ void e_init_file(const char *ident, const char *filename)
         fp = fopen(filename, "a");
         if (fp == NULL) {
             e_fatal(FATAL_LOGOPEN,
-                    E_PREFIX("can't open log file %s: %s"),
+                    E_PREFIX("cannot open log file %s: %s"),
                     filename, strerror(errno));
         }
         log_state.filename = p_strdup(filename);

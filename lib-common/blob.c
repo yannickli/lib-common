@@ -2115,7 +2115,7 @@ START_TEST(check_dup)
 
     fail_if(bdup->len != blob.len, "duped blob *must* have same len");
     if (memcmp(bdup->data, blob.data, blob.len) != 0) {
-        fail("original and dupped blob don't have the same content");
+        fail("original and dupped blob do not have the same content");
     }
 
     check_teardown(&blob, &bdup);
@@ -2549,13 +2549,13 @@ START_TEST(check_search)
     fail_if(blob_search_data(&blob, 0, (void*)"string", 6) != 5,
             "blob_search fails when needle exists");
     fail_if(blob_search_data(&blob, 0, (void*)"bloube", 6) != -1,
-            "blob_search fails when needle doesn't exist");
+            "blob_search fails when needle does not exist");
 
     /* search cstr */
     fail_if(blob_search_cstr(&blob, 0, "string") != 5,
             "blob_search fails when needle exists");
     fail_if(blob_search_cstr(&blob, 0, "bloube") != -1,
-            "blob_search fails when needle doesn't exist");
+            "blob_search fails when needle does not exist");
 
     /* search */
     blob_set_cstr(b1, "string");
@@ -2563,7 +2563,7 @@ START_TEST(check_search)
             "blob_search fails when needle exists");
     blob_set_cstr(b1, "blouble");
     fail_if(blob_search(&blob, 0, b1) != -1,
-            "blob_search fails when needle doesn't exist");
+            "blob_search fails when needle does not exist");
 
     check_teardown(&blob, &b1);
 }

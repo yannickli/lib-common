@@ -112,7 +112,7 @@ struct btree_priv {
     int16_t  depth;     /**< max depth of the nodes                        */
     int16_t  wrlock;    /**< holds the pid of the writer if any.           */
     /* fourth qword */
-    int64_t  wrlockt;   /**< time associated to the lock                   */
+    uint64_t wrlockt;   /**< time associated to the lock                   */
 
     byte padding[BT_PAGE_SIZE - 4 * 8]; /**< padding up to page size       */
 

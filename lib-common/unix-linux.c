@@ -71,7 +71,8 @@ void unix_initialize(void)
         unsigned long l;
 
         if (find_elf_note(AT_CLKTCK, &l))
-            e_panic("Can't find ELF AT_CLKTCK note");
+            e_panic("Cannot find ELF AT_CLKTCK note");
+
         hertz = l;
     }
 
@@ -82,7 +83,8 @@ void unix_initialize(void)
         FILE *f = fopen("/proc/stat", "r");
 
         if (!f)
-            e_panic("Can't open /proc/stat");
+            e_panic("Cannot open /proc/stat");
+
         while (fgets(buf, sizeof(buf), f)) {
             if (strstart(buf, "btime", &p)) {
                 boot_time = strtoip(p, NULL);

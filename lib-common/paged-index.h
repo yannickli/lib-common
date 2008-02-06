@@ -61,7 +61,7 @@ typedef struct pidx_t {
     int32_t  reserved2;
 
     /* fourth qword */
-    int64_t  wrlockt;   /**< time associated to the lock                   */
+    uint64_t wrlockt;   /**< time associated to the lock                   */
 
     /* __future__: 128 - 4 qwords */
     uint64_t reserved[64 - 4]; /**< padding up to 2k                       */

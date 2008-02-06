@@ -154,7 +154,7 @@ static int psinfo_read_proc(pid_t pid, blob_t *output, blob_t *buf)
             CHECK_KERNEL_FLAG(PF_STARTING, "being created");
             CHECK_KERNEL_FLAG(PF_EXITING, "getting shut down");
             CHECK_KERNEL_FLAG(PF_DEAD, "Dead");
-            CHECK_KERNEL_FLAG(PF_FORKNOEXEC, "forked but didn't exec");
+            CHECK_KERNEL_FLAG(PF_FORKNOEXEC, "forked but did not exec");
             CHECK_KERNEL_FLAG(PF_SUPERPRIV, "used super-user privileges");
             CHECK_KERNEL_FLAG(PF_DUMPCORE, "dumped core");
             CHECK_KERNEL_FLAG(PF_SIGNALED, "killed by a signal");
