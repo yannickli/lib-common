@@ -96,21 +96,26 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
     yyextra->pos += yyextra->len;  \
     yyextra->len  = yyleng;
 
-#define HOOK(evt, val, len) \
-    do {                                                                    \
-        if ((*yyextra->hook)(yyextra->data, CFG_PARSE##evt, (val),          \
-                             (len), yyextra))                               \
-            return -1;                                                      \
+#define HOOK(evt, val, l) \
+    do {                                                                     \
+        if ((*yyextra->hook)(yyextra->data, CFG_PARSE##evt, (val), (l),      \
+                             yyextra))                                       \
+        {                                                                    \
+            (*yyextra->hook)(yyextra->data, CFG_PARSE_ERROR,                 \
+                             blob_get_cstr(&yyextra->err), yyextra->err.len, \
+                             yyextra);                                       \
+            return -1;                                                       \
+        }                                                                    \
     } while (0)
 #define HOOKBUF(_evt)  HOOK(_evt, blob_get_cstr(&yyextra->buf), yyextra->buf.len)
 
 #define ERROR_OFFS(offs, fmt, ...)  \
-    do {                                                                    \
-        blob_set_fmt(&yyextra->err, "%s%d:%d:"fmt, yyextra->path,           \
-                     yyextra->lno, lexdata_col(yyextra, (offs)),            \
-                     ##__VA_ARGS__);                                        \
-        HOOK(_ERROR, blob_get_cstr(&yyextra->err), yyextra->err.len);       \
-        return -1;                                                          \
+    do {                                                                     \
+        blob_set_fmt(&yyextra->err, "%s%d:%d:"fmt, yyextra->path,            \
+                     yyextra->lno, lexdata_col(yyextra, (offs)),             \
+                     ##__VA_ARGS__);                                         \
+        HOOK(_ERROR, blob_get_cstr(&yyextra->err), yyextra->err.len);        \
+        return -1;                                                           \
     } while (0)
 
 #define ERROR(fmt, ...)  ERROR_OFFS(0, fmt, ##__VA_ARGS__)
@@ -120,10 +125,10 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
 #define ECHO
 
 #define yyrtrim() \
-    do {                                                                    \
-        while (isspace((unsigned char)yytext[yyleng - 1]))                  \
-            yyleng--;                                                       \
-        yytext[yyleng] = '\0';                                              \
+    do {                                                                     \
+        while (isspace((unsigned char)yytext[yyleng - 1]))                   \
+            yyleng--;                                                        \
+        yytext[yyleng] = '\0';                                               \
     } while (0)
 
 /* }}} */
