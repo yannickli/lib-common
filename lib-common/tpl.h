@@ -26,14 +26,18 @@ typedef enum tpl_op {
     TPL_OP_BLOCK = 0x10,
     TPL_OP_IFDEF,
     TPL_OP_APPLY,
-    TPL_OP_APPLY_PURE,
-    TPL_OP_APPLY_PURE_ASSOC,
+    TPL_OP_APPLY_PURE,        /* f(x) only depends upon x */
+    TPL_OP_APPLY_PURE_ASSOC,  /* also f(a + b) == f(a) + f(b) */
 } tpl_op;
 
 struct tpl_data {
     struct iovec *iov;
     int n, sz;
 };
+
+static inline void tpl_data_wipe(struct tpl_data *td) {
+    p_delete(&td->iov);
+}
 
 typedef int (tpl_apply_f)(blob_t *, struct tpl_data *);
 

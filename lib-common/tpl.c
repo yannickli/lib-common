@@ -42,7 +42,7 @@ static void tpl_wipe(tpl_t *n)
 {
     switch (n->op) {
       case TPL_OP_DATA:
-        p_delete(&n->u.data.iov);
+        tpl_data_wipe(&n->u.data);
         break;
       case TPL_OP_BLOB:
         blob_wipe(&n->u.blob);
@@ -254,7 +254,7 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
             }
             tpl_array_wipe(&tmp->blocks);
             tpl_array_init(&tmp->blocks);
-            p_delete(&td.iov);
+            tpl_data_wipe(&td);
         } else {
             tmp->op  = tpl->op;
             tmp->u.f = tpl->u.f;
