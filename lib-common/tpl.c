@@ -115,6 +115,12 @@ void tpl_add_var(tpl_t *tpl, uint16_t array, uint16_t index)
     var->u.varidx = ((uint32_t)array << 16) | index;
 }
 
+void tpl_add_tpl(tpl_t *out, const tpl_t *tpl)
+{
+    assert (tpl_can_append(tpl));
+    tpl_array_append(&out->blocks, tpl_dup(tpl));
+}
+
 tpl_t *tpl_add_ifdef(tpl_t *tpl, uint16_t array, uint16_t index)
 {
     tpl_t *var;
@@ -206,12 +212,12 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
 
       case TPL_OP_DATA:
       case TPL_OP_BLOB:
-        tpl_array_append(&out->blocks, tpl_dup(tpl));
+        tpl_add_tpl(out, tpl);
         return TPL_CONST;
 
       case TPL_OP_VAR:
         if (tpl->u.varidx >> 16 != envid) {
-            tpl_array_append(&out->blocks, tpl_dup(tpl));
+            tpl_add_tpl(out, tpl);
             return TPL_VAR;
         } else {
             const tpl_t *t = getvar(tpl->u.varidx, vals, nb);
@@ -225,7 +231,7 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
 
       case TPL_OP_IFDEF:
         if (tpl->u.varidx >> 16 != envid) {
-            tpl_array_append(&out->blocks, tpl_dup(tpl));
+            tpl_add_tpl(out, tpl);
             return TPL_VAR;
         } else {
             int branch = getvar(tpl->u.varidx, vals, nb) != NULL;

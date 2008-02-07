@@ -66,6 +66,7 @@ ARRAY_FUNCTIONS(tpl_t, tpl, tpl_delete);
 void tpl_add_data(tpl_t *tpl, const byte *data, int len);
 void tpl_copy_data(tpl_t *tpl, const byte *data, int len);
 void tpl_add_var(tpl_t *tpl, uint16_t array, uint16_t index);
+void tpl_add_tpl(tpl_t *out, const tpl_t *tpl);
 tpl_t *tpl_add_ifdef(tpl_t *tpl, uint16_t array, uint16_t index);
 tpl_t *tpl_add_apply(tpl_t *tpl, tpl_op op, tpl_apply_f *f);
 
