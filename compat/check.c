@@ -38,6 +38,7 @@ void eprintf(const char *fmt, const char *file, int line,...)
 /* malloc or die */
 void *emalloc(size_t n);
 void *erealloc(void *, size_t n);
+char *estrdup(const char *str);
 
 //==> check_list.h <==
 
@@ -685,6 +686,17 @@ void *erealloc(void *ptr, size_t n)
     if (p == NULL)
         eprintf("realloc of %zu bytes failed:", __FILE__, __LINE__, n);
     return p;
+}
+
+char *estrdup(const char *str)
+{
+    size_t n = strlen(str) + 1;
+    void *p = malloc(n);
+
+    if (p == NULL)
+        eprintf("strdup of %zu bytes failed:", __FILE__, __LINE__, n);
+
+    return memcpy(p, str, n);
 }
 
 //==> check_list.c <==
@@ -1778,7 +1790,7 @@ void tr_xmlprint(FILE *file, TestResult *tr, enum print_output print_mode)
         path_name = (char*)".";
         file_name = tr->file;
     } else {
-        path_name = strdup(tr->file);
+        path_name = estrdup(tr->file);
         path_name[slash - tr->file] = 0; /* Terminate the temporary string. */
         file_name = slash + 1;
     }
@@ -2251,8 +2263,8 @@ static char *signal_error_msg(int signal_received, int signal_expected)
     char *sig_e_str;
     char *msg = emalloc(MSG_LEN); /* free'd by caller */
 
-    sig_r_str = strdup(strsignal(signal_received));
-    sig_e_str = strdup(strsignal(signal_expected));
+    sig_r_str = estrdup(strsignal(signal_received));
+    sig_e_str = estrdup(strsignal(signal_expected));
 
     if (alarm_received) {
         snprintf(msg, MSG_LEN, "Test timeout expired, expected signal %d (%s)",
