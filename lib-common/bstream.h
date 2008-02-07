@@ -453,7 +453,7 @@ static inline int bdetach(BSTREAM **streamp)
 static inline int bclose(BSTREAM **streamp)
 {
     int ret = bflush(*streamp);
-    if (close((*streamp)->fd))
+    if (p_close(&(*streamp)->fd))
         ret = -1;
     p_delete(streamp);
     return ret;

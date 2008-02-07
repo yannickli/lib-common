@@ -1315,7 +1315,7 @@ void fbtree_close(fbtree_t **fbtp)
         if (fbt->ismap) {
             btree_close(&fbt->bt);
         } else {
-            close(fbt->fd);
+            p_close(&fbt->fd);
             if (fbt->priv && fbt->priv != MAP_FAILED) {
                 munmap(fbt->priv, ssizeof(*fbt->priv));
             }

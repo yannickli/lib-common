@@ -86,8 +86,7 @@ mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize)
     }
 
     if (!(oflags & (MMO_LOCK | MMO_TLOCK))) {
-        close(mf->fd);
-        mf->fd = -1;
+        p_close(&mf->fd);
     }
     mf->path   = p_strdup(path);
     mf->refcnt = 1;
@@ -133,10 +132,7 @@ void mmfile_close_wlocked(mmfile **mfp)
         return;
     }
 
-    if (mf->fd >= 0) {
-        close(mf->fd);
-        mf->fd = -1;
-    }
+    p_close(&mf->fd);
 
     if (mf->area) {
         if (mf->writeable)
@@ -145,10 +141,8 @@ void mmfile_close_wlocked(mmfile **mfp)
         mf->area = NULL;
     }
 
-    if (mf->fd >= 0) {
-        close(mf->fd);
-        mf->fd = -1;
-    }
+    /* OG: redundant ??? */
+    p_close(&mf->fd);
 
     mmfile_unlock(mf);
     p_delete(&mf->path);

@@ -239,12 +239,9 @@ int filecopy(const char *pathin, const char *pathout)
     return total;
 
   error:
-    if (fdin >= 0) {
-        close(fdin);
-    }
-    if (fdout >= 0) {
-        close(fdout);
-    }
+    p_close(&fdin);
+    p_close(&fdout);
+
     /* OG: destination file should be removed upon error ? */
     return -1;
 }

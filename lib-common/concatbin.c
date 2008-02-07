@@ -47,9 +47,7 @@ concatbin *concatbin_new(const char *filename)
     return ccb;
 
   error:
-    if (fd >= 0) {
-        close(fd);
-    }
+    p_close(&fd);
     p_delete(&ccb);
 
     return NULL;
