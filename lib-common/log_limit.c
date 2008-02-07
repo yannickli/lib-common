@@ -66,7 +66,7 @@ int log_limit_log(log_limit_t *ll, const char *msg)
     }
     cur = log_line_new();
     cur->content_hash = hash;
-    cur->content = strdup(msg);
+    cur->content = p_strdup(msg);
     cur->count = 0;
     log_line_array_append(&ll->lines, cur);
 found:
@@ -82,7 +82,7 @@ found:
  * Return buf or NULL if there's nothing to report.
  * */
 char *log_limit_flushbuf(log_limit_t *ll, const char *lineprefix,
-                       char *buf, int size)
+                         char *buf, int size)
 {
     char *pos;
     int i, nb;
