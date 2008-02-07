@@ -178,99 +178,98 @@ static int tpl_into_iovec(struct tpl_data *td, const tpl_t *tpl)
     return 0;
 }
 
-static enum tplcode tpl_combine(tpl_t *out, const tpl_t *orig, uint16_t envid,
-                                const tpl_t **vals, int nb)
+#define getvar(id, vals, nb) \
+    (((id & 0xffff) >= (uint16_t)(nb)) ? NULL : (vals)[(id) & 0xffff])
+
+static enum tplcode
+tpl_combine(tpl_t *, const tpl_t *, uint16_t, const tpl_t **, int);
+
+static enum tplcode tpl_combine_block(tpl_t *out, const tpl_t *tpl, uint16_t envid,
+                                      const tpl_t **vals, int nb)
 {
     enum tplcode res = TPL_CONST;
+
+    assert (tpl->op & TPL_OP_BLOCK);
+    for (int i = 0; i < tpl->blocks.len; i++) {
+        res |= tpl_combine(out, tpl->blocks.tab[i], envid, vals, nb);
+    }
+    return res;
+}
+
+static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
+                                const tpl_t **vals, int nb)
+{
     tpl_t *tmp;
 
-    for (int i = 0; i < orig->blocks.len; i++) {
-        const tpl_t *tpl = orig->blocks.tab[i];
+    switch (tpl->op) {
+        enum tplcode res;
 
-      again:
-        switch (tpl->op) {
-          case TPL_OP_DATA:
-          case TPL_OP_BLOB:
+      case TPL_OP_DATA:
+      case TPL_OP_BLOB:
+        tpl_array_append(&out->blocks, tpl_dup(tpl));
+        return TPL_CONST;
+
+      case TPL_OP_VAR:
+        if (tpl->u.varidx >> 16 != envid) {
             tpl_array_append(&out->blocks, tpl_dup(tpl));
-            break;
-
-          case TPL_OP_VAR:
-            if (tpl->u.varidx >> 16 != envid) {
-                tpl_array_append(&out->blocks, tpl_dup(tpl));
-                res |= TPL_VAR;
-            } else {
-                if ((tpl->u.varidx & 0xffff) >= (uint16_t)nb)
-                    return TPL_ERR;
-                res |= tpl_combine(out, vals[tpl->u.varidx & 0xffff],
-                                   envid, vals, nb);
-            }
-            break;
-
-          case TPL_OP_BLOCK:
-            res |= tpl_combine(out, tpl, envid, vals, nb);
-            break;
-
-          case TPL_OP_IFDEF:
-            if (tpl->u.varidx >> 16 != envid) {
-                tpl_array_append(&out->blocks, tpl_dup(tpl));
-                res |= TPL_VAR;
-            } else {
-                if ((tpl->u.varidx & 0xffff) >= (uint16_t)nb || !vals[tpl->u.varidx]) {
-                    if (tpl->blocks.len > 1) {
-                        tpl = tpl->blocks.tab[1];
-                        goto again;
-                    }
-                } else {
-                    if (tpl->blocks.len > 0) {
-                        tpl = tpl->blocks.tab[0];
-                        goto again;
-                    }
-                }
-            }
-            break;
-
-          case TPL_OP_APPLY:
-            tpl_array_append(&out->blocks, tmp = tpl_new_op(TPL_OP_APPLY));
-            tmp->u.f = tpl->u.f;
-            res |= TPL_VAR | tpl_combine(tmp, tpl, envid, vals, nb);
-            break;
-
-          case TPL_OP_APPLY_PURE:
-          case TPL_OP_APPLY_PURE_ASSOC:
-            res |= tpl_combine(tmp = tpl_new(), tpl, envid, vals, nb);
-            if (res == TPL_CONST) {
-                struct tpl_data td = { .iov = NULL };
-
-                tmp->op = TPL_OP_BLOB;
-                blob_init(&tmp->u.blob);
-                tpl_into_iovec(&td, tpl);
-
-                if ((*tpl->u.f)(&tmp->u.blob, &td) < 0) {
-                    res = TPL_ERR;
-                }
-                tpl_array_wipe(&tmp->blocks);
-                tpl_array_init(&tmp->blocks);
-                p_delete(&td.iov);
-            } else {
-                tmp->op  = tpl->op;
-                tmp->u.f = tpl->u.f;
-            }
-            tpl_array_append(&out->blocks, tmp);
-            break;
+            return TPL_VAR;
+        } else {
+            const tpl_t *t = getvar(tpl->u.varidx, vals, nb);
+            if (!t)
+                return TPL_ERR;
+            return tpl_combine(out, t, envid, vals, nb);
         }
 
-        if (res < 0)
-            return res;
+      case TPL_OP_BLOCK:
+        return tpl_combine_block(out, tpl, envid, vals, nb);
+
+      case TPL_OP_IFDEF:
+        if (tpl->u.varidx >> 16 != envid) {
+            tpl_array_append(&out->blocks, tpl_dup(tpl));
+            return TPL_VAR;
+        } else {
+            int branch = getvar(tpl->u.varidx, vals, nb) != NULL;
+            tpl = tpl->blocks.len > branch ? tpl->blocks.tab[branch] : NULL;
+            return tpl ? tpl_combine(out, tpl, envid, vals, nb) : TPL_CONST;
+        }
+
+      case TPL_OP_APPLY:
+        tpl_array_append(&out->blocks, tmp = tpl_new_op(TPL_OP_APPLY));
+        tmp->u.f = tpl->u.f;
+        return TPL_VAR | tpl_combine_block(out, tpl, envid, vals, nb);
+
+      case TPL_OP_APPLY_PURE:
+      case TPL_OP_APPLY_PURE_ASSOC:
+        tpl_array_append(&out->blocks, tmp = tpl_new());
+        res = tpl_combine_block(tmp, tpl, envid, vals, nb);
+        if (res == TPL_CONST) {
+            struct tpl_data td = { .iov = NULL };
+
+            tmp->op = TPL_OP_BLOB;
+            blob_init(&tmp->u.blob);
+            tpl_into_iovec(&td, tpl);
+
+            if ((*tpl->u.f)(&tmp->u.blob, &td) < 0) {
+                res = TPL_ERR;
+            }
+            tpl_array_wipe(&tmp->blocks);
+            tpl_array_init(&tmp->blocks);
+            p_delete(&td.iov);
+        } else {
+            tmp->op  = tpl->op;
+            tmp->u.f = tpl->u.f;
+        }
+        return res;
     }
 
-    return res;
+    return TPL_ERR;
 }
 
 tpl_t *tpl_subst(const tpl_t *tpl, uint16_t envid, const tpl_t **vals, int nb)
 {
-    tpl_t *res = tpl_new();
-    if (tpl_combine(res, tpl, envid, vals, nb) < 0) {
-        tpl_delete(&res);
+    tpl_t *out = tpl_new();
+    if (tpl_combine_block(out, tpl, envid, vals, nb) < 0) {
+        tpl_delete(&out);
     }
-    return res;
+    return out;
 }
