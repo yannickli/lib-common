@@ -153,6 +153,9 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *);
     pfx##_hash_insert(pfx##_hash *t, uint64_t key, type *e) {                \
         return (type **)hashtbl__insert((hashtbl__t *)t, key, e);            \
     }                                                                        \
+    static inline type **pfx##_hash_insert2(pfx##_hash *t, type *e) {        \
+        return pfx##_hash_insert(t, pfx##_hash_hobj(t, e, -1), e);           \
+    }                                                                        \
     \
     static inline void pfx##_hash_remove(pfx##_hash *t, type **e) {          \
         hashtbl_remove((hashtbl_t *)t, (void **)e);                          \
