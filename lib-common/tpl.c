@@ -185,7 +185,7 @@ static int tpl_into_iovec(struct tpl_data *td, const tpl_t *tpl)
 }
 
 #define getvar(id, vals, nb) \
-    (((id & 0xffff) >= (uint16_t)(nb)) ? NULL : (vals)[(id) & 0xffff])
+    ((((id) & 0xffff) >= (uint16_t)(nb)) ? NULL : (vals)[(id) & 0xffff])
 
 static enum tplcode
 tpl_combine(tpl_t *, const tpl_t *, uint16_t, const tpl_t **, int);
