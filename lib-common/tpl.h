@@ -40,7 +40,8 @@ static inline void tpl_data_wipe(struct tpl_data *td) {
     p_delete(&td->iov);
 }
 
-typedef int (tpl_apply_f)(blob_t *, struct tpl_data *);
+union tpl_t;
+typedef int (tpl_apply_f)(union tpl_t *, struct tpl_data *);
 
 ARRAY_TYPE(union tpl_t, tpl);
 typedef union tpl_t {
