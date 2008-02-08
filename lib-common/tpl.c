@@ -138,7 +138,7 @@ void tpl_add_var(tpl_t *tpl, uint16_t array, uint16_t index)
 
 void tpl_add_tpl(tpl_t *out, const tpl_t *tpl)
 {
-    assert (tpl_can_append(tpl));
+    assert (tpl_can_append(out));
     tpl_array_append(&out->blocks, tpl_dup(tpl));
 }
 

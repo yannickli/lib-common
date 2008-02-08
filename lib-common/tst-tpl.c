@@ -15,7 +15,9 @@
 
 int main(int argc, const char **argv)
 {
-    tpl_t *tpl = tpl_new();
+    tpl_t *tpl, *res;
+
+    tpl = tpl_new();
     tpl_add_cstr(tpl, "asdalskdjalskdjalskdjasldkjasdfoo");
     tpl_add_cstr(tpl, "foo");
     tpl_add_cstr(tpl, "foo");
@@ -24,6 +26,13 @@ int main(int argc, const char **argv)
     tpl_copy_cstr(tpl, "foo");
     tpl_copy_cstr(tpl, "foo");
     tpl_copy_cstr(tpl, "foo");
+
+    res = tpl_subst(tpl, 0, NULL, 0);
+
     tpl_dump(0, tpl);
+    tpl_dump(0, res);
+
+    tpl_delete(&tpl);
+    tpl_delete(&res);
     return 0;
 }
