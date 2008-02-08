@@ -153,50 +153,55 @@ static char const pad[] = "| | | | | | | | | | | | | | | | | | | | | | | | ";
 
 static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
 {
+#define TRACE(fmt, ...) \
+    e_trace(dbg, "%*s %c"fmt, 2 * lvl, pad, \
+            tpl->no_subst ? ' ' : '>', ##__VA_ARGS__)
+#define TRACE_NULL() \
+    e_trace(dbg, "%*s  NULL", 2 + 2 * lvl, pad)
+
+
     switch (tpl->op) {
       case TPL_OP_DATA:
-        e_trace(dbg, "%*s DATA %d vectors (embeds %zd tpls)", 2 * lvl, pad,
+        TRACE("DATA %d vectors (embeds %zd tpls)",
                 tpl->u.data.n, tpl->blocks.len);
         return;
 
       case TPL_OP_BLOB:
-        e_trace(dbg, "%*s BLOB %zd bytes", 2 * lvl, pad, tpl->u.blob.len);
+        TRACE("BLOB %zd bytes", tpl->u.blob.len);
         return;
 
       case TPL_OP_VAR:
-        e_trace(dbg, "%*s VAR  q=%02x, v=%02x", 2 * lvl, pad,
-                tpl->u.varidx >> 16, tpl->u.varidx & 0xffff);
+        TRACE("VAR  q=%02x, v=%02x", tpl->u.varidx >> 16,
+              tpl->u.varidx & 0xffff);
         return;
 
       case TPL_OP_BLOCK:
-        e_trace(dbg, "%*s + BLOC %zd tpls", 2 * lvl, pad, tpl->blocks.len);
+        TRACE("+ BLOC %zd tpls", tpl->blocks.len);
         for (int i = 0; i < tpl->blocks.len; i++) {
             tpl_dump2(dbg, tpl->blocks.tab[i], lvl + 1);
         }
         break;
 
       case TPL_OP_IFDEF:
-        e_trace(dbg, "%*s + DEF? q=%02x, v=%02x", 2 * lvl, pad,
-                tpl->u.varidx >> 16, tpl->u.varidx & 0xffff);
-        if (tpl->blocks.len > 0) {
-            if (tpl->blocks.tab[0]) {
-                e_trace(dbg, "%*s NULL", 2 + 2 * lvl, pad);
-            } else {
-                tpl_dump2(dbg, tpl->blocks.tab[0], lvl + 1);
-            }
+        TRACE("+ DEF? q=%02x, v=%02x", tpl->u.varidx >> 16,
+              tpl->u.varidx & 0xffff);
+        if (tpl->blocks.len <= 0 || !tpl->blocks.tab[0]) {
+            TRACE_NULL();
+        } else {
+            tpl_dump2(dbg, tpl->blocks.tab[0], lvl + 1);
         }
-        if (tpl->blocks.len > 1) {
-            if (tpl->blocks.tab[1]) {
-                e_trace(dbg, "%*s NULL", 2 + 2 * lvl, pad);
-            } else {
-                tpl_dump2(dbg, tpl->blocks.tab[1], lvl + 1);
-            }
+        if (tpl->blocks.len <= 1 || !tpl->blocks.tab[1]) {
+            TRACE_NULL();
+        } else {
+            tpl_dump2(dbg, tpl->blocks.tab[1], lvl + 1);
         }
         break;
 
       case TPL_OP_APPLY_DELAYED:
-        e_trace(dbg, "%*s + DELA %p", 2 * lvl, pad, tpl->u.f);
-        if (tpl->blocks.len > 0) {
+        TRACE("+ DELA %p", tpl->u.f);
+        if (tpl->blocks.len <= 0 || !tpl->blocks.tab[0]) {
+            TRACE_NULL();
+        } else {
             tpl_dump2(dbg, tpl->blocks.tab[0], lvl + 1);
         }
         if (tpl->blocks.len > 1) {
@@ -207,7 +212,7 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
       case TPL_OP_APPLY:
       case TPL_OP_APPLY_PURE:
       case TPL_OP_APPLY_PURE_ASSOC:
-        e_trace(dbg, "%*s + FUNC %zd tpls", 2 * lvl, pad, tpl->blocks.len);
+        TRACE("+ FUNC %zd tpls", tpl->blocks.len);
         for (int i = 0; i < tpl->blocks.len; i++) {
             tpl_dump2(dbg, tpl->blocks.tab[i], lvl + 1);
         }
@@ -336,7 +341,7 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
           case 2:
             ctmp  = tpl->blocks.tab[0];
             ctmp2 = tpl->blocks.tab[1];
-            if (ctmp->no_subst && ctmp2->no_subst) {
+            if ((!ctmp || ctmp->no_subst) && ctmp2->no_subst) {
                 /* cannot optimize, because of some TPL_OP_APPLY */
                 tpl_add_tpl(out, tpl);
                 return TPL_VAR;
@@ -347,7 +352,9 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
                     if ((*tpl->u.f)(out, tmp2) < 0) {
                         res = TPL_ERR;
                     }
-                    res |= tpl_combine(out, ctmp, envid, vals, nb);
+                    if (ctmp) {
+                        res |= tpl_combine(out, ctmp, envid, vals, nb);
+                    }
                     res |= tpl_combine(out, tmp2, envid, vals, nb);
                     tpl_delete(&tmp2);
                     return res;
@@ -357,6 +364,9 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
                 res  = TPL_VAR;
             }
             tpl_array_append(&out->blocks, tmp = tpl_new_op(TPL_OP_APPLY_DELAYED));
+            if (!ctmp) {
+                tmp->no_subst = tmp2->no_subst;
+            } else
             if (ctmp->no_subst) {
                 tpl_add_tpl(tmp, ctmp);
                 tmp->no_subst = ctmp->no_subst && tmp2->no_subst;
