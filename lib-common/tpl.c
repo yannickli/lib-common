@@ -28,18 +28,23 @@ static tpl_t *tpl_new_op(tpl_op op)
     tpl_array_init(&n->blocks);
     return n;
 }
+
 tpl_t *tpl_new(void)
 {
     return tpl_new_op(TPL_OP_BLOCK);
 }
+
 tpl_t *tpl_dup(const tpl_t *tpl)
 {
     tpl_t *res = (tpl_t *)tpl;
-    if (!res) /* the NULL template is a real value, support it */
-        return NULL;
-    res->refcnt++;
+
+    /* tpl can be NULL (the NULL template is a real value) */
+    if (res) {
+        res->refcnt++;
+    }
     return res;
 }
+
 static void tpl_wipe(tpl_t *n)
 {
     switch (n->op) {
