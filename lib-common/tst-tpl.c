@@ -22,6 +22,7 @@ int main(int argc, const char **argv)
     tpl_add_cstr(tpl, "foo");
     tpl_add_cstr(tpl, "foo");
     tpl_add_cstr(tpl, "foo");
+    tpl_add_var(tpl, 0, 0);
     tpl_copy_cstr(tpl, "foo");
     tpl_copy_cstr(tpl, "foo");
     tpl_copy_cstr(tpl, "foo");
@@ -29,8 +30,8 @@ int main(int argc, const char **argv)
 
     res = tpl_subst(tpl, 0, NULL, 0);
 
-    tpl_dump(0, tpl);
-    tpl_dump(0, res);
+    tpl_dump(0, tpl, "source");
+    tpl_dump(0, res, "subst");
 
     tpl_delete(&tpl);
     tpl_delete(&res);

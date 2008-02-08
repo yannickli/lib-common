@@ -233,10 +233,14 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
     }
 }
 
-void tpl_dump(int dbg, const tpl_t *tpl)
+void tpl_dump(int dbg, const tpl_t *tpl, const char *s)
 {
-    e_trace(dbg, " ,-----------------");
-    tpl_dump2(dbg, tpl, 0);
+    e_trace(dbg, " ,--[ %s ]--", s);
+    if (tpl) {
+        tpl_dump2(dbg, tpl, 0);
+    } else {
+        e_trace(dbg, " | NULL");
+    }
     e_trace(dbg, " '-----------------");
 }
 
@@ -251,7 +255,7 @@ enum tplcode {
 };
 
 #define getvar(id, vals, nb) \
-    ((((id) & 0xffff) >= (uint16_t)(nb)) ? NULL : (vals)[(id) & 0xffff])
+    (((vals) && ((id) & 0xffff) < (uint16_t)(nb)) ? (vals)[(id) & 0xffff] : NULL)
 
 static enum tplcode
 tpl_combine(tpl_t *, const tpl_t *, uint16_t, const tpl_t **, int);
@@ -305,8 +309,9 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
       case TPL_OP_IFDEF:
         if (tpl->u.varidx >> 16 == envid) {
             int branch = getvar(tpl->u.varidx, vals, nb) != NULL;
-            tpl = tpl->blocks.len > branch ? tpl->blocks.tab[branch] : NULL;
-            return tpl ? tpl_combine(out, tpl, envid, vals, nb) : TPL_CONST;
+            if (tpl->blocks.len <= branch)
+                return TPL_CONST;
+            return tpl_combine(out, tpl->blocks.tab[branch], envid, vals, nb);
         }
         out->no_subst = false;
         if (tpl->no_subst) {
