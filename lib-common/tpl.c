@@ -17,6 +17,7 @@
 static tpl_t *tpl_new_op(tpl_op op)
 {
     tpl_t *n = p_new(tpl_t, 1);
+    n->op     = op;
     n->refcnt = 1;
     switch (op) {
       case TPL_OP_BLOB:
@@ -88,10 +89,22 @@ void tpl_add_data(tpl_t *tpl, const byte *data, int len)
 
     assert (tpl_can_append(tpl));
 
-    if (!tpl->blocks.len || tpl->blocks.tab[tpl->blocks.len - 1]->op != TPL_OP_DATA) {
-        tpl_array_append(&tpl->blocks, buf = tpl_new_op(TPL_OP_DATA));
-    } else {
+    if (len <= TPL_COPY_LIMIT_HARD) {
+        tpl_copy_data(tpl, data, len);
+        return;
+    }
+
+    if (tpl->blocks.len > 0) {
         buf = tpl->blocks.tab[tpl->blocks.len - 1];
+        if (buf->op == TPL_OP_BLOB && len <= TPL_COPY_LIMIT_SOFT) {
+            blob_append_data(&buf->u.blob, data, len);
+            return;
+        }
+        if (buf->op != TPL_OP_DATA) {
+            tpl_array_append(&tpl->blocks, buf = tpl_new_op(TPL_OP_DATA));
+        }
+    } else {
+        tpl_array_append(&tpl->blocks, buf = tpl_new_op(TPL_OP_DATA));
     }
     td = &buf->u.data;
     p_allocgrow(&td->iov, td->n + 1, &td->sz);
@@ -108,7 +121,7 @@ void tpl_copy_data(tpl_t *tpl, const byte *data, int len)
     assert (tpl_can_append(tpl));
 
     buf = tpl->blocks.len > 0 ? tpl->blocks.tab[tpl->blocks.len - 1] : NULL;
-    if (buf->op != TPL_OP_BLOB || buf->refcnt > 1) {
+    if (!buf || buf->op != TPL_OP_BLOB || buf->refcnt > 1) {
         tpl_array_append(&tpl->blocks, buf = tpl_new_op(TPL_OP_BLOB));
     }
     blob_append_data(&buf->u.blob, data, len);
@@ -153,37 +166,37 @@ static char const pad[] = "| | | | | | | | | | | | | | | | | | | | | | | | ";
 
 static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
 {
-#define TRACE(fmt, ...) \
-    e_trace(dbg, "%*s %c"fmt, 2 * lvl, pad, \
-            tpl->no_subst ? ' ' : '>', ##__VA_ARGS__)
+#define TRACE(fmt, s, ...) \
+    e_trace(dbg, "%.*s%s %c "fmt, 1 + 2 * lvl, pad, s, \
+            tpl->no_subst ? ' ' : '*', ##__VA_ARGS__)
 #define TRACE_NULL() \
-    e_trace(dbg, "%*s  NULL", 2 + 2 * lvl, pad)
+    e_trace(dbg, "%*s  NULL", 3 + 2 * lvl, pad)
 
 
     switch (tpl->op) {
       case TPL_OP_DATA:
-        TRACE("DATA %d vectors (embeds %zd tpls)",
+        TRACE("DATA %d vectors (embeds %zd tpls)", "",
                 tpl->u.data.n, tpl->blocks.len);
         return;
 
       case TPL_OP_BLOB:
-        TRACE("BLOB %zd bytes", tpl->u.blob.len);
+        TRACE("BLOB %zd bytes", "", tpl->u.blob.len);
         return;
 
       case TPL_OP_VAR:
-        TRACE("VAR  q=%02x, v=%02x", tpl->u.varidx >> 16,
+        TRACE("VAR  q=%02x, v=%02x", "", tpl->u.varidx >> 16,
               tpl->u.varidx & 0xffff);
         return;
 
       case TPL_OP_BLOCK:
-        TRACE("+ BLOC %zd tpls", tpl->blocks.len);
+        TRACE("BLOC %zd tpls", "\\ ", tpl->blocks.len);
         for (int i = 0; i < tpl->blocks.len; i++) {
             tpl_dump2(dbg, tpl->blocks.tab[i], lvl + 1);
         }
         break;
 
       case TPL_OP_IFDEF:
-        TRACE("+ DEF? q=%02x, v=%02x", tpl->u.varidx >> 16,
+        TRACE("DEF? q=%02x, v=%02x", "\\ ", tpl->u.varidx >> 16,
               tpl->u.varidx & 0xffff);
         if (tpl->blocks.len <= 0 || !tpl->blocks.tab[0]) {
             TRACE_NULL();
@@ -198,7 +211,7 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
         break;
 
       case TPL_OP_APPLY_DELAYED:
-        TRACE("+ DELA %p", tpl->u.f);
+        TRACE("DELA %p", "\\ ", tpl->u.f);
         if (tpl->blocks.len <= 0 || !tpl->blocks.tab[0]) {
             TRACE_NULL();
         } else {
@@ -212,7 +225,7 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
       case TPL_OP_APPLY:
       case TPL_OP_APPLY_PURE:
       case TPL_OP_APPLY_PURE_ASSOC:
-        TRACE("+ FUNC %zd tpls", tpl->blocks.len);
+        TRACE("FUNC %zd tpls", "\\ ", tpl->blocks.len);
         for (int i = 0; i < tpl->blocks.len; i++) {
             tpl_dump2(dbg, tpl->blocks.tab[i], lvl + 1);
         }
@@ -222,7 +235,9 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
 
 void tpl_dump(int dbg, const tpl_t *tpl)
 {
+    e_trace(dbg, " ,-----------------");
     tpl_dump2(dbg, tpl, 0);
+    e_trace(dbg, " '-----------------");
 }
 
 /****************************************************************************/

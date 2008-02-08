@@ -18,6 +18,9 @@
 #include "blob.h"
 #include "ioveclist.h"
 
+#define TPL_COPY_LIMIT_HARD  32
+#define TPL_COPY_LIMIT_SOFT 256
+
 typedef enum tpl_op {
     TPL_OP_DATA = 0x00,
     TPL_OP_BLOB,
@@ -40,11 +43,11 @@ static inline void tpl_data_wipe(struct tpl_data *td) {
     p_delete(&td->iov);
 }
 
-union tpl_t;
-typedef int (tpl_apply_f)(union tpl_t *, const union tpl_t *);
+struct tpl_t;
+typedef int (tpl_apply_f)(struct tpl_t *, const struct tpl_t *);
 
-ARRAY_TYPE(union tpl_t, tpl);
-typedef union tpl_t {
+ARRAY_TYPE(struct tpl_t, tpl);
+typedef struct tpl_t {
     int refcnt;
     flag_t no_subst : 1; /* if the subtree has TPL_OP_VARs in it */
     tpl_op op       : 8;
@@ -67,7 +70,13 @@ ARRAY_FUNCTIONS(tpl_t, tpl, tpl_delete);
 /****************************************************************************/
 
 void tpl_add_data(tpl_t *tpl, const byte *data, int len);
+static inline void tpl_add_cstr(tpl_t *tpl, const char *s) {
+    tpl_add_data(tpl, (const byte *)s, strlen(s));
+}
 void tpl_copy_data(tpl_t *tpl, const byte *data, int len);
+static inline void tpl_copy_cstr(tpl_t *tpl, const char *s) {
+    tpl_copy_data(tpl, (const byte *)s, strlen(s));
+}
 void tpl_add_var(tpl_t *tpl, uint16_t array, uint16_t index);
 void tpl_add_tpl(tpl_t *out, const tpl_t *tpl);
 tpl_t *tpl_add_ifdef(tpl_t *tpl, uint16_t array, uint16_t index);
