@@ -31,7 +31,7 @@
 #define str_INTERSECID  str(INTERSECID)
 #define LF  "\n"
 
-/*TODO: Remove version and Enterprise name*/
+
 int show_licence(const char *arg)
 {
 #ifdef EXPIRATION_DATE
@@ -41,7 +41,7 @@ int show_licence(const char *arg)
     /* OG: Should use project based product string. */
     fprintf(stderr,
             "%s:"                                                           LF
-            "Copyright (C) 2004-2007  INTERSEC SAS -- All Rights Reserved"  LF
+            "Copyright (C) 2004-2008  INTERSEC SAS -- All Rights Reserved"  LF
             , arg);
 #ifdef INTERSECID
     fprintf(stderr, "  Intersec ID: " str_INTERSECID LF);
@@ -54,7 +54,7 @@ int show_licence(const char *arg)
             "  Expiration: %s" LF, ctime(&t));
 #endif
     fprintf(stderr,
-            "     Contact: +33 (0) 820 560 250 -- www.intersec.eu"              LF
+            "     Contact: +33 (0)1 55 70 33 40 -- www.intersec.com"        LF
            );
     exit(1);
 }
