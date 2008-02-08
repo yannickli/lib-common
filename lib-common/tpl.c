@@ -341,6 +341,7 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
             return TPL_VAR;
         }
         tpl_array_append(&out->blocks, tmp = tpl_new_op(TPL_OP_APPLY));
+        tmp->no_subst = true;
         tmp->u.f = tpl->u.f;
         return tpl_combine_block(tmp, tpl, envid, vals, nb);
 
@@ -369,7 +370,9 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
                 return TPL_VAR;
             }
             if (!ctmp2->no_subst) {
-                res = tpl_combine(tmp2 = tpl_new(), ctmp2, envid, vals, nb);
+                tmp2 = tpl_new();
+                tmp2->no_subst = true;
+                res = tpl_combine(tmp2, ctmp2, envid, vals, nb);
                 if (res == TPL_CONST) {
                     if ((*tpl->u.f)(out, tmp2) < 0) {
                         res = TPL_ERR;
@@ -386,17 +389,17 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
                 res  = TPL_VAR;
             }
             tpl_array_append(&out->blocks, tmp = tpl_new_op(TPL_OP_APPLY_DELAYED));
-            if (!ctmp) {
-                tmp->no_subst = tmp2->no_subst;
-            } else
-            if (ctmp->no_subst) {
-                tpl_add_tpl(tmp, ctmp);
-                tmp->no_subst = ctmp->no_subst && tmp2->no_subst;
-            } else {
-                tpl_t *tmp3;
-                tpl_array_append(&tmp->blocks, tmp3 = tpl_new());
-                res |= tpl_combine(tmp3, ctmp, envid, vals, nb);
-                tmp->no_subst = tmp3->no_subst && tmp2->no_subst;
+            tmp->no_subst = tmp2->no_subst;
+            if (ctmp) {
+                if (ctmp->no_subst) {
+                    tpl_add_tpl(tmp, ctmp);
+                } else {
+                    tpl_t *tmp3;
+                    tpl_array_append(&tmp->blocks, tmp3 = tpl_new());
+                    tmp3->no_subst = true;
+                    res |= tpl_combine(tmp3, ctmp, envid, vals, nb);
+                    tmp->no_subst &= tmp3->no_subst;
+                }
             }
             tpl_array_append(&tmp->blocks, tmp2);
             out->no_subst &= tmp->no_subst;
@@ -407,7 +410,9 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
 
       case TPL_OP_APPLY_PURE:
       case TPL_OP_APPLY_PURE_ASSOC:
-        res = tpl_combine_block(tmp = tpl_new(), tpl, envid, vals, nb);
+        tmp = tpl_new();
+        tmp->no_subst = true;
+        res = tpl_combine_block(tmp, tpl, envid, vals, nb);
         if (res == TPL_CONST) {
             if ((*tpl->u.f)(out, tmp) < 0) {
                 res = TPL_ERR;

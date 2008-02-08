@@ -13,9 +13,15 @@
 
 #include "all.h"
 
+static int identity(tpl_t *out, const tpl_t *in)
+{
+    tpl_add_tpl(out, in);
+    return 0;
+}
+
 int main(int argc, const char **argv)
 {
-    tpl_t *tpl, *res, *var;
+    tpl_t *tpl, *fun, *res, *var;
 
     var = tpl_new();
     tpl_add_cstr(var, "var");
@@ -27,8 +33,10 @@ int main(int argc, const char **argv)
     tpl_add_cstr(tpl, "foo");
     tpl_add_cstr(tpl, "foo");
     tpl_add_var(tpl, 0, 0);
-    tpl_copy_cstr(tpl, "foo");
-    tpl_copy_cstr(tpl, "foo");
+    fun = tpl_add_apply(tpl, TPL_OP_APPLY_PURE, &identity);
+    tpl_add_var(fun, 0, 0);
+    tpl_copy_cstr(fun, "foo");
+    tpl_copy_cstr(fun, "foo");
     tpl_copy_cstr(tpl, "foo");
     tpl_copy_cstr(tpl, "foo");
     tpl_add_tpl(tpl, var);
