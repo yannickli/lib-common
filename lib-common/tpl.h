@@ -41,7 +41,7 @@ static inline void tpl_data_wipe(struct tpl_data *td) {
 }
 
 union tpl_t;
-typedef int (tpl_apply_f)(union tpl_t *, struct tpl_data *);
+typedef int (tpl_apply_f)(union tpl_t *, const union tpl_t *);
 
 ARRAY_TYPE(union tpl_t, tpl);
 typedef union tpl_t {

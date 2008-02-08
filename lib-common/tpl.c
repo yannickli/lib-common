@@ -230,57 +230,11 @@ enum tplcode {
     TPL_VAR   = 1,
 };
 
-static int tpl_into_iovec(struct tpl_data *td, const tpl_t *tpl)
-{
-    if (!tpl)
-        return 0;
-    for (int i = 0; i < tpl->blocks.len; i++) {
-        tpl_t *tmp = tpl->blocks.tab[i];
-        struct tpl_data *td2 = &tmp->u.data;
-
-        switch (tmp->op) {
-          case TPL_OP_DATA:
-            p_allocgrow(&td->iov, td->n + td2->n, &td->sz);
-            memcpy(td->iov + td->n, td2->iov, td2->n * sizeof(struct iovec));
-            td->n += td2->n;
-            break;
-
-          case TPL_OP_BLOB:
-            p_allocgrow(&td->iov, td->n + 1, &td->sz);
-            td->iov[td->n++] = (struct iovec){
-                .iov_base = (void *)tmp->u.blob.data,
-                .iov_len  = tmp->u.blob.len,
-            };
-            break;
-
-          case TPL_OP_BLOCK:
-            if (tpl_into_iovec(td, tmp) < 0)
-                return -1;
-            break;
-
-          default:
-            return -1;
-        }
-    }
-    return 0;
-}
-
 #define getvar(id, vals, nb) \
     ((((id) & 0xffff) >= (uint16_t)(nb)) ? NULL : (vals)[(id) & 0xffff])
 
 static enum tplcode
 tpl_combine(tpl_t *, const tpl_t *, uint16_t, const tpl_t **, int);
-
-static int tpl_apply_fun(tpl_apply_f *f, tpl_t *out, const tpl_t *tpl)
-{
-    struct tpl_data td = { .iov = NULL };
-    if (tpl_into_iovec(&td, tpl) < 0 || (*tpl->u.f)(out, &td) < 0) {
-        tpl_data_wipe(&td);
-        return -1;
-    }
-    tpl_data_wipe(&td);
-    return 0;
-}
 
 static enum tplcode tpl_combine_block(tpl_t *out, const tpl_t *tpl, uint16_t envid,
                                       const tpl_t **vals, int nb)
@@ -366,12 +320,12 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
       case TPL_OP_APPLY_DELAYED:
         switch (tpl->blocks.len) {
           case 0:
-            if (tpl_apply_fun(tpl->u.f, out, NULL) < 0)
+            if ((*tpl->u.f)(out, NULL) < 0)
                 return TPL_ERR;
             return TPL_CONST;
 
           case 1:
-            if (tpl_apply_fun(tpl->u.f, out, NULL) < 0)
+            if ((*tpl->u.f)(out, NULL) < 0)
                 return TPL_ERR;
             if (tpl->blocks.tab[0]->no_subst) {
                 tpl_add_tpl(out, tpl->blocks.tab[0]);
@@ -390,7 +344,7 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
             if (!ctmp2->no_subst) {
                 res = tpl_combine(tmp2 = tpl_new(), ctmp2, envid, vals, nb);
                 if (res == TPL_CONST) {
-                    if (tpl_apply_fun(tpl->u.f, out, tmp2) < 0) {
+                    if ((*tpl->u.f)(out, tmp2) < 0) {
                         res = TPL_ERR;
                     }
                     res |= tpl_combine(out, ctmp, envid, vals, nb);
@@ -423,7 +377,7 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
       case TPL_OP_APPLY_PURE_ASSOC:
         res = tpl_combine_block(tmp = tpl_new(), tpl, envid, vals, nb);
         if (res == TPL_CONST) {
-            if (tpl_apply_fun(tpl->u.f, out, tmp) < 0) {
+            if ((*tpl->u.f)(out, tmp) < 0) {
                 res = TPL_ERR;
             }
             tpl_delete(&tmp);
