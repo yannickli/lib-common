@@ -94,7 +94,7 @@ void tpl_add_data(tpl_t *tpl, const byte *data, int len)
         return;
     }
 
-    if (tpl->blocks.len > 0) {
+    if (tpl->blocks.len > 0 && tpl->blocks.tab[tpl->blocks.len - 1]->refcnt == 1) {
         buf = tpl->blocks.tab[tpl->blocks.len - 1];
         if (buf->op == TPL_OP_BLOB && len <= TPL_COPY_LIMIT_SOFT) {
             blob_append_data(&buf->u.blob, data, len);
