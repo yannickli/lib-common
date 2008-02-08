@@ -35,6 +35,8 @@ tpl_t *tpl_new(void)
 tpl_t *tpl_dup(const tpl_t *tpl)
 {
     tpl_t *res = (tpl_t *)tpl;
+    if (!res) /* the NULL template is a real value, support it */
+        return NULL;
     res->refcnt++;
     return res;
 }
@@ -70,7 +72,9 @@ void tpl_delete(tpl_t **tpl)
 
 #define tpl_can_append(t)  \
         (  ((t)->op & TPL_OP_BLOCK)                                     \
-        && ((t)->op != TPL_OP_IFDEF || (t)->blocks.len < 2))
+        && ((t)->op != TPL_OP_IFDEF || (t)->blocks.len < 2)             \
+        && ((t)->op != TPL_OP_APPLY_DELAYED || (t)->blocks.len < 2)     \
+        )
 
 void tpl_add_data(tpl_t *tpl, const byte *data, int len)
 {
@@ -190,6 +194,17 @@ static int tpl_into_iovec(struct tpl_data *td, const tpl_t *tpl)
 static enum tplcode
 tpl_combine(tpl_t *, const tpl_t *, uint16_t, const tpl_t **, int);
 
+static int tpl_apply_fun(tpl_apply_f *f, blob_t *blob, const tpl_t *tpl)
+{
+    struct tpl_data td = { .iov = NULL };
+    if (tpl_into_iovec(&td, tpl) < 0 || (*tpl->u.f)(blob, &td) < 0) {
+        tpl_data_wipe(&td);
+        return -1;
+    }
+    tpl_data_wipe(&td);
+    return 0;
+}
+
 static enum tplcode tpl_combine_block(tpl_t *out, const tpl_t *tpl, uint16_t envid,
                                       const tpl_t **vals, int nb)
 {
@@ -242,23 +257,32 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
         tmp->u.f = tpl->u.f;
         return TPL_VAR | tpl_combine_block(out, tpl, envid, vals, nb);
 
+      case TPL_OP_APPLY_DELAYED:
+        switch (tpl->blocks.len) {
+          case 0:
+            return TPL_CONST;
+          case 1:
+            return tpl_combine(out, tpl->blocks.tab[0], envid, vals, nb);
+          case 2:
+            /* TODO */
+            abort();
+            return TPL_ERR;
+          default:
+            return TPL_ERR;
+        }
+
       case TPL_OP_APPLY_PURE:
       case TPL_OP_APPLY_PURE_ASSOC:
         tpl_array_append(&out->blocks, tmp = tpl_new());
         res = tpl_combine_block(tmp, tpl, envid, vals, nb);
         if (res == TPL_CONST) {
-            struct tpl_data td = { .iov = NULL };
-
             tmp->op = TPL_OP_BLOB;
             blob_init(&tmp->u.blob);
-            tpl_into_iovec(&td, tpl);
-
-            if ((*tpl->u.f)(&tmp->u.blob, &td) < 0) {
+            if (tpl_apply_fun(tpl->u.f, &tmp->u.blob, tpl) < 0) {
                 res = TPL_ERR;
             }
             tpl_array_wipe(&tmp->blocks);
             tpl_array_init(&tmp->blocks);
-            tpl_data_wipe(&td);
         } else {
             tmp->op  = tpl->op;
             tmp->u.f = tpl->u.f;

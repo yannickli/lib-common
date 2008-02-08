@@ -27,6 +27,7 @@ typedef enum tpl_op {
     TPL_OP_IFDEF,
     TPL_OP_APPLY,
     TPL_OP_APPLY_PURE,        /* f(x) only depends upon x */
+    TPL_OP_APPLY_DELAYED,     /* assumed pure */
     TPL_OP_APPLY_PURE_ASSOC,  /* also f(a + b) == f(a) + f(b) */
 } tpl_op;
 
@@ -44,7 +45,7 @@ typedef int (tpl_apply_f)(blob_t *, struct tpl_data *);
 ARRAY_TYPE(union tpl_t, tpl);
 typedef union tpl_t {
     int refcnt;
-    tpl_op op;
+    tpl_op op : 8;
     union {
         struct tpl_data data;
         blob_t blob;
