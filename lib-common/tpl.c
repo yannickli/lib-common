@@ -149,6 +149,77 @@ tpl_t *tpl_add_apply(tpl_t *tpl, tpl_op op, tpl_apply_f *f)
     return app;
 }
 
+static char const pad[] = "| | | | | | | | | | | | | | | | | | | | | | | | ";
+
+static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
+{
+    switch (tpl->op) {
+      case TPL_OP_DATA:
+        e_trace(dbg, "%*s DATA %d vectors (embeds %zd tpls)", 2 * lvl, pad,
+                tpl->u.data.n, tpl->blocks.len);
+        return;
+
+      case TPL_OP_BLOB:
+        e_trace(dbg, "%*s BLOB %zd bytes", 2 * lvl, pad, tpl->u.blob.len);
+        return;
+
+      case TPL_OP_VAR:
+        e_trace(dbg, "%*s VAR  q=%02x, v=%02x", 2 * lvl, pad,
+                tpl->u.varidx >> 16, tpl->u.varidx & 0xffff);
+        return;
+
+      case TPL_OP_BLOCK:
+        e_trace(dbg, "%*s + BLOC %zd tpls", 2 * lvl, pad, tpl->blocks.len);
+        for (int i = 0; i < tpl->blocks.len; i++) {
+            tpl_dump2(dbg, tpl->blocks.tab[i], lvl + 1);
+        }
+        break;
+
+      case TPL_OP_IFDEF:
+        e_trace(dbg, "%*s + DEF? q=%02x, v=%02x", 2 * lvl, pad,
+                tpl->u.varidx >> 16, tpl->u.varidx & 0xffff);
+        if (tpl->blocks.len > 0) {
+            if (tpl->blocks.tab[0]) {
+                e_trace(dbg, "%*s NULL", 2 + 2 * lvl, pad);
+            } else {
+                tpl_dump2(dbg, tpl->blocks.tab[0], lvl + 1);
+            }
+        }
+        if (tpl->blocks.len > 1) {
+            if (tpl->blocks.tab[1]) {
+                e_trace(dbg, "%*s NULL", 2 + 2 * lvl, pad);
+            } else {
+                tpl_dump2(dbg, tpl->blocks.tab[1], lvl + 1);
+            }
+        }
+        break;
+
+      case TPL_OP_APPLY_DELAYED:
+        e_trace(dbg, "%*s + DELA %p", 2 * lvl, pad, tpl->u.f);
+        if (tpl->blocks.len > 0) {
+            tpl_dump2(dbg, tpl->blocks.tab[0], lvl + 1);
+        }
+        if (tpl->blocks.len > 1) {
+            tpl_dump2(dbg, tpl->blocks.tab[1], lvl + 1);
+        }
+        break;
+
+      case TPL_OP_APPLY:
+      case TPL_OP_APPLY_PURE:
+      case TPL_OP_APPLY_PURE_ASSOC:
+        e_trace(dbg, "%*s + FUNC %zd tpls", 2 * lvl, pad, tpl->blocks.len);
+        for (int i = 0; i < tpl->blocks.len; i++) {
+            tpl_dump2(dbg, tpl->blocks.tab[i], lvl + 1);
+        }
+        break;
+    }
+}
+
+void tpl_dump(int dbg, const tpl_t *tpl)
+{
+    tpl_dump2(dbg, tpl, 0);
+}
+
 /****************************************************************************/
 /* Substitution and optimization                                            */
 /****************************************************************************/
