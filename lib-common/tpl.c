@@ -433,7 +433,7 @@ tpl_t *tpl_subst(const tpl_t *tpl, uint16_t envid, const tpl_t **vals, int nb)
         return tpl_dup(tpl);
     out = tpl_new();
     out->no_subst = true;
-    if (tpl_combine_block(out = tpl_new(), tpl, envid, vals, nb) < 0)
+    if (tpl_combine_block(out, tpl, envid, vals, nb) < 0)
         tpl_delete(&out);
     return out;
 }
