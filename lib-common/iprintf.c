@@ -1283,7 +1283,7 @@ int ifputs_hex(FILE *stream, const byte *buf, int len)
         }
         ret += 16 * 3;
         for (i = 0; i < line_len; i++) {
-            if (isprint(buf[i])) {
+            if (isprint((unsigned char)buf[i])) {
                 ISPUTC(buf[i], stream);
             } else {
                 ISPUTC('.', stream);

@@ -428,10 +428,10 @@ int main(int argc, char **argv)
 
     proctimer_start(&pt);
 
-    if (argv[1] && isdigit(*argv[1])) {
+    if (argv[1] && isdigit((unsigned char)*argv[1])) {
         repeat_entry = strtol(*++argv, NULL, 0);
         argc--;
-        if (argv[1] && isdigit(*argv[1])) {
+        if (argv[1] && isdigit((unsigned char)*argv[1])) {
             max_entry = strtol(*++argv, NULL, 0);
             argc--;
         }

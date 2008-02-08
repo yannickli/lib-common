@@ -63,13 +63,13 @@ static void e_debug_initialize(void)
         const char *q;
         trace_entry *e;
 
-        while (isspace(*p)) {
+        while (isspace((unsigned char)*p)) {
             p++;
         }
 
         q = p;
 
-        while (*q && !isspace(*q) && *q != ':') {
+        while (*q && !isspace((unsigned char)*q) && *q != ':') {
             q++;
         }
 
@@ -91,7 +91,7 @@ static void e_debug_initialize(void)
         if (*q == ':') {
             q++;
             e->level = strtol(q, &q, 10);
-            while (*q && !isspace(*q)) {
+            while (*q && !isspace((unsigned char)*q)) {
                 q++;
             }
         }

@@ -150,14 +150,14 @@ int64_t parse_number(const char *str)
 
     value = strtoll(str, &str, 0);
     if (*str == '.') {
-        for (str++; isdigit(*str); str++) {
+        for (str++; isdigit((unsigned char)*str); str++) {
             if (denom <= (INT_MAX / 10)) {
                 frac = frac * 10 + *str - '0';
                 denom *= 10;
             }
         }
     }
-    switch (toupper(*str)) {
+    switch (toupper((unsigned char)*str)) {
       case 'G':
         mult <<= 10;
         /* FALL THRU */
@@ -223,7 +223,7 @@ int strtolp(const char *p, const char **endp, int base, long *res,
     if (flags & STRTOLP_IGNORE_SPACES) {
         p = skipspaces(p);
     } else {
-        if (isspace(*p))
+        if (isspace((unsigned char)*p))
             return -EINVAL;
     }
     errno = 0;
@@ -641,7 +641,7 @@ int stristart(const char *str, const char *p, const char **pp)
         return 0;
 
     while (*p) {
-        if (tolower(*str++) != tolower(*p++))
+        if (tolower((unsigned char)*str++) != tolower((unsigned char)*p++))
             return 0;
     }
     if (pp)
@@ -664,10 +664,10 @@ const char *stristrn(const char *str, const char *needle, size_t nlen)
     if (!nlen)
         return str;
 
-    nc = toupper(*needle);
+    nc = toupper((unsigned char)*needle);
     for (;; str++) {
         /* find first char of pattern in str */
-        c = toupper(*str);
+        c = toupper((unsigned char)*str);
         if (c != nc) {
             if (c == '\0')
                 return NULL;
@@ -678,8 +678,8 @@ const char *stristrn(const char *str, const char *needle, size_t nlen)
                     return str;
                 if (c == '\0')
                     return NULL;
-                c = toupper(str[i]);
-                if (c != toupper(needle[i]))
+                c = toupper((unsigned char)str[i]);
+                if (c != toupper((unsigned char)needle[i]))
                     break;
             }
         }

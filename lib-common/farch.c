@@ -164,7 +164,7 @@ int farch_get_withvars(const farch *fa, blob_t *out, const char *name,
         }
         /* skip '}' */
         p3 += 1;
-        while (p2 > p1 && isspace(p2[-1])) {
+        while (p2 > p1 && isspace((unsigned char)p2[-1])) {
             p2--;
         }
         var_len = p2 - p1;

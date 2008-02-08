@@ -779,7 +779,7 @@ void blob_ltrim(blob_t *blob)
      * space char, we do not really have to compare i to blob->len
      */
     for (i = 0; i < blob->len; i++) {
-        if (!isspace(blob->data[i]))
+        if (!isspace((unsigned char)blob->data[i]))
             break;
     }
     blob_kill_data(blob, 0, i);
@@ -790,7 +790,7 @@ void blob_rtrim(blob_t *blob)
     ssize_t i;
 
     for (i = blob->len; i > 0; i--) {
-        if (!isspace(blob->data[i - 1]))
+        if (!isspace((unsigned char)blob->data[i - 1]))
             break;
     }
     blob_kill_data(blob, i, blob->len - i);
@@ -826,7 +826,7 @@ int blob_icmp(const blob_t *blob1, const blob_t *blob2)
     const char *s2 = (const char *)blob2->data;
 
     for (pos = 0; pos < len; pos++) {
-        int res = tolower(s1[pos]) - tolower(s2[pos]);
+        int res = tolower((unsigned char)s1[pos]) - tolower((unsigned char)s2[pos]);
         if (res != 0) {
             return res;
         }
@@ -1044,7 +1044,7 @@ int string_decode_base64(byte *dst, ssize_t size,
 
     while (src < end) {
         for (len = 0, i = 0; i < 4 && src < end;) {
-            v = *src++;
+            v = (unsigned char)*src++;
 
             if (isspace(v))
                 continue;
@@ -1483,7 +1483,7 @@ static inline int parse_int10(const byte *data, const byte **datap)
     unsigned int digit, value = 0;
 
     neg = 0;
-    while (isspace(*data))
+    while (isspace((unsigned char)*data))
         data++;
     if (*data == '-') {
         neg = 1;
@@ -1504,7 +1504,7 @@ static inline int parse_hex(const byte *data, const byte **datap)
 {
     unsigned int digit, value = 0;
 
-    while (isspace(*data))
+    while (isspace((unsigned char)*data))
         data++;
     while ((digit = str_digit_value(*data)) < 16) {
         value = (value << 4) + digit;

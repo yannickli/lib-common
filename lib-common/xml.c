@@ -106,23 +106,23 @@ typedef enum parse_t {
     PARSE_ERROR,
 } parse_t;
 
-#define SKIPSPACES(p, len)      \
-    while (len) {               \
-        if (!isspace(*p)) {     \
-            break;              \
-        }                       \
-        len--;                  \
-        p++;                    \
+#define SKIPSPACES(p, len)                       \
+    while (len) {                                \
+        if (!isspace((unsigned char)*(p))) {     \
+            break;                               \
+        }                                        \
+        (len)--;                                 \
+        (p)++;                                   \
     }
-#define ENSURE(p, len, c)                              \
-    do {                                               \
-        if (len <= 0 || *p != c) {                     \
-            if (error_buf) {                           \
-                snprintf(error_buf, buf_len,           \
-                    "Expected %c but found %c", c, *p); \
-            }                                          \
-            goto error;                                \
-        }                                              \
+#define ENSURE(p, len, c)                                 \
+    do {                                                  \
+        if ((len) <= 0 || *(p) != (c)) {                  \
+            if (error_buf) {                              \
+                snprintf(error_buf, buf_len,              \
+                    "Expected %c but found %c", c, *(p)); \
+            }                                             \
+            goto error;                                   \
+        }                                                 \
     } while (0)
 
 /* Parse a property inside a tag and put it in (*dst).
@@ -157,7 +157,7 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
     /* Parse tag name */
     name = p;
     while (len) {
-        if (!isalnum(*p) && *p != ':' && *p != '-') {
+        if (!isalnum((unsigned char)*p) && *p != ':' && *p != '-') {
             break;
         }
         len--;
@@ -310,7 +310,7 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
     /* Parse tag name */
     name = p;
     while (len) {
-        if (!isalnum(*p) && *p != ':' && *p != '-' && *p != '_') {
+        if (!isalnum((unsigned char)*p) && *p != ':' && *p != '-' && *p != '_') {
             break;
         }
         len--;
@@ -366,7 +366,7 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
 
     t = &tag->property;
     /* tag name and properties are separated by some space */
-    if (!isspace(*p) && *p != '/' && *p != '>') {
+    if (!isspace((unsigned char)*p) && *p != '/' && *p != '>') {
         if (error_buf) {
             snprintf(error_buf, buf_len,
                 "Unexpected char on tag %s", tag->name);
@@ -438,7 +438,7 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
     text = p;
     textend = p;
     while (len > 0 && *p != '<') {
-        if (!isspace(*p)) {
+        if (!isspace((unsigned char)*p)) {
             textend = p;
         }
         p++;

@@ -275,9 +275,9 @@ int strtotm(const char *date, struct tm *t)
         return -1;
     p++;
 
-    lower_mon[0] = tolower(p[0]);
-    lower_mon[1] = tolower(p[1]);
-    lower_mon[2] = tolower(p[2]);
+    lower_mon[0] = tolower((unsigned char)p[0]);
+    lower_mon[1] = tolower((unsigned char)p[1]);
+    lower_mon[2] = tolower((unsigned char)p[2]);
     lower_mon[3] = '\0';
 
     for (mon = 0;; mon++) {

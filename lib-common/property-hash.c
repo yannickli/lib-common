@@ -39,7 +39,7 @@ static uint64_t getkey(const props_hash_t *ph, const char *name, bool insert)
     STATIC_ASSERT(sizeof(uint64_t) >= sizeof(uintptr_t));
 
     for (const char *p = name; *p && len < ssizeof(buf) - 1; p++, len++) {
-        buf[len] = tolower(*p);
+        buf[len] = tolower((unsigned char)*p);
     }
     buf[len] = '\0';
 
@@ -247,7 +247,7 @@ int props_hash_from_fmtv1(props_hash_t *ph, const blob_t *payload)
         if (!end)
             return -1;
         vlen = end - v;
-        while (vlen > 0 && isspace(v[vlen - 1]))
+        while (vlen > 0 && isspace((unsigned char)v[vlen - 1]))
             vlen--;
 
         blob_set_data(&key, k, klen);

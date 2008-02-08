@@ -202,9 +202,9 @@ static int isndx_word_test(const char *indexname)
         while (bgets(fp, buf, sizeof(buf))) {
             lineno++;
 #if 1
-            for (key = (byte*)buf; isspace(*key); key++)
+            for (key = (byte*)buf; isspace((unsigned char)*key); key++)
                 continue;
-            for (p = key; *p && !isspace(*p); p++)
+            for (p = key; *p && !isspace((unsigned char)*p); p++)
                 continue;
             keylen = p - key;
 #else

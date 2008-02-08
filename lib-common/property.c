@@ -195,7 +195,7 @@ int props_from_fmtv1(const blob_t *payload, props_array *props)
         if (!end)
             return -1;
         vlen = end - v;
-        while (vlen > 0 && isspace(v[vlen - 1]))
+        while (vlen > 0 && isspace((unsigned char)v[vlen - 1]))
             vlen--;
 
         prop = property_new();
