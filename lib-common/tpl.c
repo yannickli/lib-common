@@ -166,37 +166,39 @@ static char const pad[] = "| | | | | | | | | | | | | | | | | | | | | | | | ";
 
 static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
 {
-#define TRACE(fmt, s, ...) \
-    e_trace(dbg, "%.*s%s %c "fmt, 1 + 2 * lvl, pad, s, \
-            tpl->no_subst ? ' ' : '*', ##__VA_ARGS__)
+#define HAS_SUBST(tpl) \
+    ((tpl->op & TPL_OP_BLOCK && !tpl->no_subst) || tpl->op == TPL_OP_VAR)
+#define TRACE(fmt, c, ...) \
+    e_trace(dbg, "%.*s%c%c "fmt, 1 + 2 * lvl, pad, c, \
+            HAS_SUBST(tpl) ? '*' : ' ', ##__VA_ARGS__)
 #define TRACE_NULL() \
-    e_trace(dbg, "%*s  NULL", 3 + 2 * lvl, pad)
+    e_trace(dbg, "%*s NULL", 3 + 2 * lvl, pad)
 
 
     switch (tpl->op) {
       case TPL_OP_DATA:
-        TRACE("DATA %d vectors (embeds %zd tpls)", "",
-                tpl->u.data.n, tpl->blocks.len);
+        TRACE("DATA %d vectors (embeds %zd tpls)", ' ', tpl->u.data.n,
+              tpl->blocks.len);
         return;
 
       case TPL_OP_BLOB:
-        TRACE("BLOB %zd bytes", "", tpl->u.blob.len);
+        TRACE("BLOB %zd bytes", ' ', tpl->u.blob.len);
         return;
 
       case TPL_OP_VAR:
-        TRACE("VAR  q=%02x, v=%02x", "", tpl->u.varidx >> 16,
+        TRACE("VAR  q=%02x, v=%02x", ' ', tpl->u.varidx >> 16,
               tpl->u.varidx & 0xffff);
         return;
 
       case TPL_OP_BLOCK:
-        TRACE("BLOC %zd tpls", "\\ ", tpl->blocks.len);
+        TRACE("BLOC %zd tpls", '\\', tpl->blocks.len);
         for (int i = 0; i < tpl->blocks.len; i++) {
             tpl_dump2(dbg, tpl->blocks.tab[i], lvl + 1);
         }
         break;
 
       case TPL_OP_IFDEF:
-        TRACE("DEF? q=%02x, v=%02x", "\\ ", tpl->u.varidx >> 16,
+        TRACE("DEF? q=%02x, v=%02x", '\\', tpl->u.varidx >> 16,
               tpl->u.varidx & 0xffff);
         if (tpl->blocks.len <= 0 || !tpl->blocks.tab[0]) {
             TRACE_NULL();
@@ -211,7 +213,7 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
         break;
 
       case TPL_OP_APPLY_DELAYED:
-        TRACE("DELA %p", "\\ ", tpl->u.f);
+        TRACE("DELA %p", '\\', tpl->u.f);
         if (tpl->blocks.len <= 0 || !tpl->blocks.tab[0]) {
             TRACE_NULL();
         } else {
@@ -225,7 +227,7 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
       case TPL_OP_APPLY:
       case TPL_OP_APPLY_PURE:
       case TPL_OP_APPLY_PURE_ASSOC:
-        TRACE("FUNC %zd tpls", "\\ ", tpl->blocks.len);
+        TRACE("FUNC %zd tpls", '\\', tpl->blocks.len);
         for (int i = 0; i < tpl->blocks.len; i++) {
             tpl_dump2(dbg, tpl->blocks.tab[i], lvl + 1);
         }
