@@ -139,6 +139,15 @@ void tpl_add_var(tpl_t *tpl, uint16_t array, uint16_t index)
 void tpl_add_tpl(tpl_t *out, const tpl_t *tpl)
 {
     assert (tpl_can_append(out));
+    if (tpl->op == TPL_OP_BLOB && out->blocks.len > 0
+    &&  tpl->u.blob.len <= TPL_COPY_LIMIT_SOFT)
+    {
+        tpl_t *buf = out->blocks.tab[out->blocks.len - 1];
+        if (buf->op == TPL_OP_BLOB && buf->refcnt == 1) {
+            blob_append(&buf->u.blob, &tpl->u.blob);
+            return;
+        }
+    }
     tpl_array_append(&out->blocks, tpl_dup(tpl));
 }
 

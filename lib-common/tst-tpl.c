@@ -15,7 +15,13 @@
 
 static int identity(tpl_t *out, const tpl_t *in)
 {
-    tpl_add_tpl(out, in);
+    if (in->op == TPL_OP_DATA || in->op == TPL_OP_BLOB) {
+        tpl_add_tpl(out, in);
+    } else {
+        for (int i = 0; i < in->blocks.len; i++) {
+            tpl_add_tpl(out, in->blocks.tab[i]);
+        }
+    }
     return 0;
 }
 
