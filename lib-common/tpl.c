@@ -216,28 +216,26 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
         return TPL_CONST;
 
       case TPL_OP_VAR:
-        if (tpl->u.varidx >> 16 != envid) {
-            tpl_add_tpl(out, tpl);
-            return TPL_VAR;
-        } else {
+        if (tpl->u.varidx >> 16 == envid) {
             const tpl_t *t = getvar(tpl->u.varidx, vals, nb);
             if (!t)
                 return TPL_ERR;
             return tpl_combine(out, t, envid, vals, nb);
         }
+        tpl_add_tpl(out, tpl);
+        return TPL_VAR;
 
       case TPL_OP_BLOCK:
         return tpl_combine_block(out, tpl, envid, vals, nb);
 
       case TPL_OP_IFDEF:
-        if (tpl->u.varidx >> 16 != envid) {
-            tpl_add_tpl(out, tpl);
-            return TPL_VAR;
-        } else {
+        if (tpl->u.varidx >> 16 == envid) {
             int branch = getvar(tpl->u.varidx, vals, nb) != NULL;
             tpl = tpl->blocks.len > branch ? tpl->blocks.tab[branch] : NULL;
             return tpl ? tpl_combine(out, tpl, envid, vals, nb) : TPL_CONST;
         }
+        tpl_add_tpl(out, tpl);
+        return TPL_VAR;
 
       case TPL_OP_APPLY:
         tpl_array_append(&out->blocks, tmp = tpl_new_op(TPL_OP_APPLY));
