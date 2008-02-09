@@ -451,3 +451,68 @@ tpl_t *tpl_subst(const tpl_t *tpl, uint16_t envid, const tpl_t **vals, int nb)
         tpl_delete(&out);
     return out;
 }
+
+int tpl_optimize(tpl_t **tplp)
+{
+    tpl_t *tpl = *tplp;
+
+    if (tpl->blocks.len < 1)
+        return 0;
+
+    if (tpl->refcnt > 1) {
+        tpl_add_tpl(*tplp = tpl_new(), tpl);
+        return tpl_optimize(tplp);
+    }
+
+    for (int i = 0; i < tpl->blocks.len; ) {
+        tpl_t *cur = tpl->blocks.tab[i];
+
+        if (cur->op == TPL_OP_BLOCK) {
+            tpl_array_splice(&tpl->blocks, i, 1, cur->blocks.tab,
+                             cur->blocks.len);
+            for (int j = i; j < i + cur->blocks.len; j++) {
+                tpl->blocks.tab[j]->refcnt++;
+            }
+            tpl_delete(&cur);
+            continue;
+        }
+        i++;
+    }
+
+    for (int i = 0; i < tpl->blocks.len - 1; ) {
+        tpl_t *cur = tpl->blocks.tab[i];
+        tpl_t *nxt = tpl->blocks.tab[i + 1];
+
+        if (cur->op != TPL_OP_DATA && cur->op != TPL_OP_BLOB) {
+            i++;
+            continue;
+        }
+        if (nxt->op != TPL_OP_DATA && nxt->op != TPL_OP_BLOB) {
+            i += 2;
+            continue;
+        }
+
+        if (cur->op == TPL_OP_BLOB && nxt->op == TPL_OP_BLOB) {
+            if (cur->refcnt > 1 && nxt->refcnt > 1) {
+                tpl_t *newcur = tpl_new_op(TPL_OP_BLOB);
+                blob_set(&newcur->u.blob, &cur->u.blob);
+                tpl_delete(&cur);
+                cur = tpl->blocks.tab[i] = newcur;
+            }
+            if (cur->refcnt > 1) {
+                blob_insert(&nxt->u.blob, 0, &cur->u.blob);
+                tpl_array_take(&tpl->blocks, i);
+                tpl_delete(&cur);
+            } else {
+                blob_append(&cur->u.blob, &nxt->u.blob);
+                tpl_delete(&nxt);
+                tpl_array_take(&tpl->blocks, i + 1);
+            }
+            continue;
+        }
+
+        i++;
+    }
+
+    return 0;
+}

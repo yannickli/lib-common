@@ -88,5 +88,6 @@ void tpl_dump(int dbg, const tpl_t *tpl, const char *s);
 /****************************************************************************/
 
 tpl_t *tpl_subst(const tpl_t *, uint16_t envid, const tpl_t **, int nb);
+int tpl_optimize(tpl_t **);
 
 #endif

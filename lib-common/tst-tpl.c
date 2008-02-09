@@ -15,13 +15,7 @@
 
 static int identity(tpl_t *out, const tpl_t *in)
 {
-    if (in->op == TPL_OP_DATA || in->op == TPL_OP_BLOB) {
-        tpl_add_tpl(out, in);
-    } else {
-        for (int i = 0; i < in->blocks.len; i++) {
-            tpl_add_tpl(out, in->blocks.tab[i]);
-        }
-    }
+    tpl_add_tpl(out, in);
     return 0;
 }
 
@@ -54,6 +48,8 @@ int main(int argc, const char **argv)
 
     res = tpl_subst(tpl, 0, (const tpl_t *[]){ var }, 1);
     tpl_dump(0, res, "subst");
+    tpl_optimize(&res);
+    tpl_dump(0, res, "subst (opt)");
     tpl_delete(&res);
 
     tpl_delete(&tpl);
