@@ -44,6 +44,10 @@ void generic_array_resize(generic_array *array, ssize_t newlen);
 void generic_array_insert(generic_array *array, ssize_t pos, void *item)
     __attr_nonnull__((1));
 
+void generic_array_splice(generic_array *array, ssize_t pos, ssize_t len,
+                          void **item, ssize_t count)
+    __attr_nonnull__((1));
+
 static inline void generic_array_append(generic_array *array, void *item)
 {
     generic_array_insert(array, array->len, item);
@@ -111,6 +115,13 @@ void generic_array_sort(generic_array *array,
     prefix##_array_insert(prefix##_array *array, ssize_t pos, el_typ *item)   \
     {                                                                         \
         generic_array_insert((generic_array *)array, pos, (void*)item);       \
+    }                                                                         \
+    static inline void                                                        \
+    prefix##_array_splice(prefix##_array *array, ssize_t pos, ssize_t len,    \
+                          el_typ **items, ssize_t count)                      \
+    {                                                                         \
+        generic_array_splice((generic_array *)array, pos, len,                \
+                             (void **)items, count);                          \
     }                                                                         \
     static inline void                                                        \
     prefix##_array_append(prefix##_array *array, el_typ *item)                \
