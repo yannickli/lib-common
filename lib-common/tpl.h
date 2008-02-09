@@ -35,13 +35,9 @@ typedef enum tpl_op {
 } tpl_op;
 
 struct tpl_data {
-    struct iovec *iov;
-    int n, sz;
+    const byte *data;
+    size_t len;
 };
-
-static inline void tpl_data_wipe(struct tpl_data *td) {
-    p_delete(&td->iov);
-}
 
 struct tpl_t;
 typedef int (tpl_apply_f)(struct tpl_t *, const struct tpl_t *);

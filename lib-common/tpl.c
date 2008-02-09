@@ -49,9 +49,6 @@ tpl_t *tpl_dup(const tpl_t *tpl)
 static void tpl_wipe(tpl_t *n)
 {
     switch (n->op) {
-      case TPL_OP_DATA:
-        tpl_data_wipe(&n->u.data);
-        break;
       case TPL_OP_BLOB:
         blob_wipe(&n->u.blob);
         break;
@@ -84,7 +81,6 @@ void tpl_delete(tpl_t **tpl)
 
 void tpl_add_data(tpl_t *tpl, const byte *data, int len)
 {
-    struct tpl_data *td;
     tpl_t *buf;
 
     assert (tpl_can_append(tpl));
@@ -100,18 +96,9 @@ void tpl_add_data(tpl_t *tpl, const byte *data, int len)
             blob_append_data(&buf->u.blob, data, len);
             return;
         }
-        if (buf->op != TPL_OP_DATA) {
-            tpl_array_append(&tpl->blocks, buf = tpl_new_op(TPL_OP_DATA));
-        }
-    } else {
-        tpl_array_append(&tpl->blocks, buf = tpl_new_op(TPL_OP_DATA));
     }
-    td = &buf->u.data;
-    p_allocgrow(&td->iov, td->n + 1, &td->sz);
-    td->iov[td->n++] = (struct iovec){
-        .iov_base = (void *)data,
-        .iov_len  = len,
-    };
+    tpl_array_append(&tpl->blocks, buf = tpl_new_op(TPL_OP_DATA));
+    buf->u.data = (struct tpl_data){ .data = data, .len = len };
 }
 
 void tpl_copy_data(tpl_t *tpl, const byte *data, int len)
@@ -186,8 +173,7 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
 
     switch (tpl->op) {
       case TPL_OP_DATA:
-        TRACE("DATA %d vectors (embeds %zd tpls)", ' ', tpl->u.data.n,
-              tpl->blocks.len);
+        TRACE("DATA %zd bytes", ' ', tpl->u.data.len);
         return;
 
       case TPL_OP_BLOB:
