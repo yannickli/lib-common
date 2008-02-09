@@ -18,8 +18,9 @@
 #include "blob.h"
 #include "ioveclist.h"
 
-#define TPL_COPY_LIMIT_HARD  32
-#define TPL_COPY_LIMIT_SOFT 256
+#define TPL_COPY_LIMIT_HARD    32
+#define TPL_COPY_LIMIT_SOFT   256
+#define TPL_DATA_LIMIT_KEEP  4096
 
 typedef enum tpl_op {
     TPL_OP_DATA = 0x00,

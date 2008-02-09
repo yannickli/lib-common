@@ -22,9 +22,14 @@ static int identity(tpl_t *out, const tpl_t *in)
 int main(int argc, const char **argv)
 {
     tpl_t *tpl, *fun, *res, *var;
+    blob_t blob;
+
+    blob_init(&blob);
+    blob_extend2(&blob, 4096, ' ');
 
     var = tpl_new();
     tpl_add_cstr(var, "var");
+    tpl_add_data(var, blob.data, blob.len);
     tpl_dump(0, var, "var");
 
     tpl = tpl_new();
@@ -53,5 +58,6 @@ int main(int argc, const char **argv)
     tpl_delete(&res);
 
     tpl_delete(&tpl);
+    blob_wipe(&blob);
     return 0;
 }

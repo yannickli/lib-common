@@ -438,6 +438,19 @@ tpl_t *tpl_subst(const tpl_t *tpl, uint16_t envid, const tpl_t **vals, int nb)
     return out;
 }
 
+static tpl_t *tpl_to_blob(tpl_t **orig)
+{
+    tpl_t *res = tpl_new_op(TPL_OP_BLOB);
+    assert ((*orig)->op == TPL_OP_DATA || (*orig)->op == TPL_OP_BLOB);
+    if ((*orig)->op == TPL_OP_DATA) {
+        blob_set_data(&res->u.blob, (*orig)->u.data.data, (*orig)->u.data.len);
+    } else {
+        blob_set(&res->u.blob, &(*orig)->u.blob);
+    }
+    tpl_delete(orig);
+    return *orig = res;
+}
+
 int tpl_optimize(tpl_t **tplp)
 {
     tpl_t *tpl = *tplp;
@@ -469,35 +482,55 @@ int tpl_optimize(tpl_t **tplp)
         tpl_t *cur = tpl->blocks.tab[i];
         tpl_t *nxt = tpl->blocks.tab[i + 1];
 
-        if (cur->op != TPL_OP_DATA && cur->op != TPL_OP_BLOB) {
-            i++;
-            continue;
-        }
-        if (nxt->op != TPL_OP_DATA && nxt->op != TPL_OP_BLOB) {
-            i += 2;
-            continue;
+        if (nxt->op != TPL_OP_BLOB) {
+            if (nxt->op != TPL_OP_DATA || nxt->u.data.len >= TPL_DATA_LIMIT_KEEP) {
+                i += 2;
+                continue;
+            }
         }
 
-        if (cur->op == TPL_OP_BLOB && nxt->op == TPL_OP_BLOB) {
-            if (cur->refcnt > 1 && nxt->refcnt > 1) {
-                tpl_t *newcur = tpl_new_op(TPL_OP_BLOB);
-                blob_set(&newcur->u.blob, &cur->u.blob);
-                tpl_delete(&cur);
-                cur = tpl->blocks.tab[i] = newcur;
+        if (cur->op != TPL_OP_BLOB) {
+            if (cur->op != TPL_OP_DATA || cur->u.data.len >= TPL_DATA_LIMIT_KEEP) {
+                i++;
+                continue;
             }
-            if (cur->refcnt > 1) {
-                blob_insert(&nxt->u.blob, 0, &cur->u.blob);
+            if (nxt->op == TPL_OP_DATA) {
+                if (nxt->u.data.len >= TPL_DATA_LIMIT_KEEP) {
+                    i += 2;
+                    continue;
+                }
+            } else
+            if (nxt->refcnt == 1) {
+                blob_insert_data(&nxt->u.blob, 0, cur->u.data.data,
+                                 cur->u.data.len);
                 tpl_array_take(&tpl->blocks, i);
                 tpl_delete(&cur);
-            } else {
-                blob_append(&cur->u.blob, &nxt->u.blob);
-                tpl_delete(&nxt);
-                tpl_array_take(&tpl->blocks, i + 1);
+                continue;
             }
+            cur = tpl_to_blob(&tpl->blocks.tab[i]);
+        }
+
+        if (nxt->op == TPL_OP_DATA) {
+            if (cur->refcnt > 1)
+                cur = tpl_to_blob(&tpl->blocks.tab[i]);
+            blob_append_data(&cur->u.blob, nxt->u.data.data, nxt->u.data.len);
+            tpl_array_take(&tpl->blocks, i + 1);
+            tpl_delete(&nxt);
             continue;
         }
 
-        i++;
+        if (cur->refcnt > 1 && nxt->refcnt > 1) {
+            cur = tpl_to_blob(&tpl->blocks.tab[i]);
+        }
+        if (cur->refcnt > 1) {
+            blob_insert(&nxt->u.blob, 0, &cur->u.blob);
+            tpl_array_take(&tpl->blocks, i);
+            tpl_delete(&cur);
+        } else {
+            blob_append(&cur->u.blob, &nxt->u.blob);
+            tpl_array_take(&tpl->blocks, i + 1);
+            tpl_delete(&nxt);
+        }
     }
 
     return 0;
