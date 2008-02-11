@@ -102,7 +102,7 @@ static inline void mem_realloc0(void **ptr, ssize_t oldsize, ssize_t newsize)
     mem_realloc(ptr, newsize);
 
     if (newsize > oldsize) {
-        memset((char *)*(ptr) + oldsize, 0, newsize - oldsize);
+        memset((byte *)(*ptr) + oldsize, 0, newsize - oldsize);
     }
 }
 
