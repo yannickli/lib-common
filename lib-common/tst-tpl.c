@@ -53,7 +53,7 @@ int main(int argc, const char **argv)
 
     res = tpl_subst(tpl, 0, (const tpl_t *[]){ var }, 1);
     tpl_dump(0, res, "subst");
-    tpl_optimize(&res);
+    tpl_optimize(res);
     tpl_dump(0, res, "subst (opt)");
     tpl_delete(&res);
 
