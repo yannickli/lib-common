@@ -60,10 +60,7 @@ int ioveclist_getlen(const ioveclist *l)
 
 void ioveclist_kill_first(ioveclist *l, ssize_t len)
 {
-    while (len > 0) {
-        if (l->used == 0) {
-            return;
-        }
+    while (len > 0 && l->used > 0) {
         if (len < (int)l->objs[0].iov_len) {
             /* truncate chunk 0 */
             l->objs[0].iov_base = (byte *)l->objs[0].iov_base + len;
@@ -76,5 +73,4 @@ void ioveclist_kill_first(ioveclist *l, ssize_t len)
             memmove(&l->objs[0], &l->objs[1], l->used * sizeof(l->objs[0]));
         }
     }
-    return;
 }
