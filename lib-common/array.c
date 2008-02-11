@@ -108,14 +108,15 @@ void generic_array_insert(generic_array *array, ssize_t pos, void *item)
 void generic_array_splice(generic_array *a, ssize_t pos, ssize_t len,
                           void **item, ssize_t count)
 {
+    /* OG: what if pos and/or len extend beyond the end of the array? */
     if (len < count) {
         p_allocgrow(&a->tab, a->len + count - len, &a->size);
     }
     if (len != count) {
         p_move(a->tab, pos + count, pos + len, a->len - pos - len);
+        a->len += count - len;
     }
     memcpy(a->tab + pos, item, count * sizeof(*item));
-    a->len += count - len;
 }
 
 /*---------------- Optimized Array Merge Sort ----------------*/
