@@ -184,6 +184,7 @@ static inline __attribute__((malloc)) void *p_dupstr(const void *src, ssize_t le
  */
 #  define p_alloc_nr(x) (((x) + 16) * 3 / 2)
 
+/* OG: should avoid multiple evaluation of macro arguments */
 #  define p_allocgrow(pp, goalnb, allocnb)                  \
     do {                                                    \
         if ((goalnb) > *(allocnb)) {                        \
