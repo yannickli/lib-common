@@ -13,7 +13,7 @@
 
 #include "all.h"
 
-static int identity(tpl_t *out, const tpl_t *in)
+static int identity(tpl_t *out, tpl_t *in)
 {
     tpl_add_tpl(out, in);
     return 0;
@@ -51,7 +51,7 @@ int main(int argc, const char **argv)
     tpl_dump(0, res, "subst");
     tpl_delete(&res);
 
-    res = tpl_subst(tpl, 0, (const tpl_t *[]){ var }, 1);
+    res = tpl_subst(tpl, 0, &var, 1);
     tpl_dump(0, res, "subst");
     tpl_optimize(res);
     tpl_dump(0, res, "subst (opt)");
