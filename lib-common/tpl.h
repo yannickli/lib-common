@@ -70,11 +70,16 @@ void tpl_add_data(tpl_t *tpl, const byte *data, int len);
 static inline void tpl_add_cstr(tpl_t *tpl, const char *s) {
     tpl_add_data(tpl, (const byte *)s, strlen(s));
 }
+static inline void tpl_add_byte(tpl_t *tpl, byte b)
+{
+      return tpl_add_data(tpl, &b, 1);
+}
+
 void tpl_copy_data(tpl_t *tpl, const byte *data, int len);
 static inline void tpl_copy_cstr(tpl_t *tpl, const char *s) {
     tpl_copy_data(tpl, (const byte *)s, strlen(s));
 }
-void tpl_add_var(tpl_t *tpl, uint16_t array, uint16_t index);
+void tpl_add_var(tpl_t *tpl, uint16_t envid, uint16_t index);
 void tpl_add_tpl(tpl_t *out, const tpl_t *tpl);
 tpl_t *tpl_add_ifdef(tpl_t *tpl, uint16_t array, uint16_t index);
 tpl_t *tpl_add_apply(tpl_t *tpl, tpl_op op, tpl_apply_f *f);
