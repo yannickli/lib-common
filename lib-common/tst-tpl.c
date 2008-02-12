@@ -24,6 +24,7 @@ int main(int argc, const char **argv)
     tpl_t *tpl, *fun, *res, *var;
     blob_t blob;
 
+    e_trace(0, "sizeof(tpl_t) = %zd", sizeof(tpl_t));
     blob_init(&blob);
     blob_extend2(&blob, 4096, ' ');
 
