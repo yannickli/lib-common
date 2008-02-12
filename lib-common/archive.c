@@ -429,7 +429,78 @@ const archive_file *archive_get_file_bloc(const archive_t *archive,
 
     return NULL;
 }
+static int id_from_key(const char *name, int len,
+                       const char **vars, int nbvars)
+{
+    for (int i = 0; i < nbvars; i++) {
+        if (!strncmp(name, vars[i], len))
+            return i;
+    }
 
+    return -1;
+}
+
+tpl_t *archive_get_tpl(const archive_t *archive, const char *filename,
+                             int envid, const char **vars, int nbvars)
+{
+    const archive_file *file;
+    const byte *end, *p, *p0, *p1, *p2, *p3;
+    tpl_t *res;
+
+    file = archive_get_file_bloc(archive, filename);
+    if (!file)
+        return NULL;
+
+
+    end = file->payload + file->size;
+    p = file->payload;
+
+    res = tpl_new();
+    while(p < end) {
+        int pos;
+        p0 = memsearch(p, end - p, "{", 1);
+        if (!p0)
+            goto dump;
+        p1 = bskipspaces(p0 + 1);
+        if (*p1 != '$') {
+            p0 = p1;
+            goto dump;
+        }
+
+        p1++; /* skip '$' */
+        p2 = p3 = memsearch(p1, end - p1, "}", 1);
+        if (!p3) {
+            p0 = p1;
+            goto dump;
+        }
+
+        p3++; /* skip '}' */
+        while (p2 > p1 && isspace(p2[-1])) {
+            p2--;
+        }
+        if (p1 == p2) {
+            p0 = p3;
+            goto dump;
+        }
+
+        pos = id_from_key((const char *)p1, p2 - p1, vars, nbvars);
+        if (pos < 0) {
+            p0 = p3;
+            goto dump;
+        }
+        tpl_add_data(res, p, p0 - p);
+        tpl_add_var(res, envid, pos);
+        p = p3 + 1;
+        continue;
+dump:
+        if (!p0)
+            p0 = end;
+        tpl_add_data(res, p, p0 - p);
+        p = p0;
+    }
+
+    return res;
+}
 bool archive_attr_find(const archive_file *file, const char *name,
                        const byte **data, int *size)
 {
