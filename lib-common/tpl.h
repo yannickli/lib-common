@@ -98,4 +98,6 @@ int tpl_get_short_data(tpl_t *tpl, const byte **data, int *len);
 tpl_t *tpl_subst(const tpl_t *, uint16_t envid, tpl_t **, int nb, int keepvars);
 void tpl_optimize(tpl_t *tpl);
 
+int tpl_to_iov(struct iovec *, int nr, tpl_t *);
+
 #endif

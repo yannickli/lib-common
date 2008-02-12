@@ -567,3 +567,33 @@ void tpl_optimize(tpl_t *tpl)
         }
     }
 }
+
+int tpl_to_iov(struct iovec *iov, int nr, tpl_t *tpl)
+{
+    switch (tpl->op) {
+        int n;
+      case TPL_OP_DATA:
+        if (nr > 0) {
+            iov->iov_base = (void *)tpl->u.data.data;
+            iov->iov_len  = tpl->u.data.len;
+        }
+        return 1;
+      case TPL_OP_BLOB:
+        if (nr > 0) {
+            iov->iov_base = (void *)tpl->u.blob.data;
+            iov->iov_len  = tpl->u.blob.len;
+        }
+        return 1;
+      case TPL_OP_BLOCK:
+        for (int i = n = 0; i < tpl->u.blocks.len; i++) {
+            int res = tpl_to_iov(iov + n, n < nr ? nr - n : 0,
+                                 tpl->u.blocks.tab[i]);
+            if (res < 0)
+                return -1;
+            n += res;
+        }
+        return n;
+      default:
+        return -1;
+    }
+}
