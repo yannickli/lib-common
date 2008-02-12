@@ -199,7 +199,7 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
         return;
 
       case TPL_OP_BLOCK:
-        TRACE("BLOC %zd tpls", '\\', tpl->blocks.len);
+        TRACE("BLOC %d tpls", '\\', tpl->blocks.len);
         for (int i = 0; i < tpl->blocks.len; i++) {
             tpl_dump2(dbg, tpl->blocks.tab[i], lvl + 1);
         }
@@ -235,7 +235,7 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
       case TPL_OP_APPLY:
       case TPL_OP_APPLY_PURE:
       case TPL_OP_APPLY_PURE_ASSOC:
-        TRACE("FUNC %zd tpls", '\\', tpl->blocks.len);
+        TRACE("FUNC %d tpls", '\\', tpl->blocks.len);
         for (int i = 0; i < tpl->blocks.len; i++) {
             tpl_dump2(dbg, tpl->blocks.tab[i], lvl + 1);
         }

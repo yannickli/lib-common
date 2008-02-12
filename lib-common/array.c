@@ -25,8 +25,7 @@
 /* Private inlines                                                        */
 /**************************************************************************/
 
-static inline void
-array_resize(generic_array *a, ssize_t newlen)
+static inline void array_resize(generic_array *a, int newlen)
 {
     p_allocgrow(&a->tab, newlen, &a->size);
     p_clear(a->tab + a->len, a->size - a->len);
@@ -41,9 +40,7 @@ array_resize(generic_array *a, ssize_t newlen)
 void generic_array_wipe(generic_array *array, array_item_dtor_f *dtor)
 {
     if (dtor) {
-        ssize_t i;
-
-        for (i = 0; i < array->len; i++) {
+        for (int i = 0; i < array->len; i++) {
             (*dtor)(&array->tab[i]);
         }
     }
@@ -65,12 +62,12 @@ void generic_array_delete(generic_array **array, array_item_dtor_f *dtor)
 /* Misc                                                                   */
 /**************************************************************************/
 
-void generic_array_resize(generic_array *array, ssize_t newlen)
+void generic_array_resize(generic_array *array, int newlen)
 {
     array_resize(array, newlen);
 }
 
-void *generic_array_take(generic_array *array, ssize_t pos)
+void *generic_array_take(generic_array *array, int pos)
 {
     void *ptr;
 
@@ -87,9 +84,9 @@ void *generic_array_take(generic_array *array, ssize_t pos)
 
 /* insert item at pos `pos',
    pos interpreted as array->len if pos > array->len */
-void generic_array_insert(generic_array *array, ssize_t pos, void *item)
+void generic_array_insert(generic_array *array, int pos, void *item)
 {
-    ssize_t curlen = array->len;
+    int curlen = array->len;
 
     array_resize(array, curlen + 1);
 
@@ -105,8 +102,8 @@ void generic_array_insert(generic_array *array, ssize_t pos, void *item)
     array->tab[pos] = item;
 }
 
-void generic_array_splice(generic_array *a, ssize_t pos, ssize_t len,
-                          void **item, ssize_t count)
+void generic_array_splice(generic_array *a, int pos, int len,
+                          void **item, int count)
 {
     /* OG: what if pos and/or len extend beyond the end of the array? */
     if (len < count) {

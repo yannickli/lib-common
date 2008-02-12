@@ -20,10 +20,10 @@
 
 typedef struct fifo {
     void ** elems;
-    ssize_t nb_elems;
-    ssize_t first;
+    int nb_elems;
+    int first;
 
-    ssize_t size;
+    int size;
 } fifo;
 typedef void fifo_item_dtor_f(void *item);
 
@@ -35,8 +35,8 @@ void fifo_delete(fifo **f, fifo_item_dtor_f *dtor);
 void *fifo_get(fifo *f)             __attr_nonnull__((1));
 void fifo_unget(fifo *f, void *ptr) __attr_nonnull__((1));
 void fifo_put(fifo *f, void *ptr)   __attr_nonnull__((1));
-void *fifo_seti(fifo *f, ssize_t i, void *ptr) __attr_nonnull__((1));
-void *fifo_geti(fifo *f, ssize_t i) __attr_nonnull__((1));
+void *fifo_seti(fifo *f, int i, void *ptr) __attr_nonnull__((1));
+void *fifo_geti(fifo *f, int i) __attr_nonnull__((1));
 
 /**************************************************************************/
 /* Typed Fifos                                                            */
@@ -45,9 +45,9 @@ void *fifo_geti(fifo *f, ssize_t i) __attr_nonnull__((1));
 #define FIFO_TYPE(el_typ, prefix)                                            \
     typedef struct prefix##_fifo {                                           \
         el_typ ** const elems;                                               \
-        ssize_t nb_elems;                                                    \
-        ssize_t first;                                                       \
-        ssize_t size;                                                        \
+        int nb_elems;                                                        \
+        int first;                                                           \
+        int size;                                                            \
     } prefix##_fifo
 
 #define FIFO_FUNCTIONS(el_typ, prefix, dtor)                                 \
@@ -90,12 +90,12 @@ void *fifo_geti(fifo *f, ssize_t i) __attr_nonnull__((1));
         fifo_unget((fifo *)f, (void*)item);                                  \
     }                                                                        \
     static inline el_typ *                                                   \
-    prefix##_fifo_seti(prefix##_fifo *f, ssize_t i, el_typ *item)            \
+    prefix##_fifo_seti(prefix##_fifo *f, int i, el_typ *item)                \
     {                                                                        \
         return fifo_seti((fifo *)f, i, (void*)item);                         \
     }                                                                        \
     static inline el_typ *                                                   \
-    prefix##_fifo_geti(prefix##_fifo *f, ssize_t i)                          \
+    prefix##_fifo_geti(prefix##_fifo *f, int i)                              \
     {                                                                        \
         return fifo_geti((fifo *)f, i);                                      \
     }

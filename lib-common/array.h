@@ -20,9 +20,8 @@
 
 typedef struct generic_array {
     void ** tab;
-    ssize_t len;
-
-    ssize_t size;
+    int len;
+    int size;
 } generic_array;
 typedef void array_item_dtor_f(void *item);
 
@@ -39,13 +38,13 @@ void generic_array_delete(generic_array **array, array_item_dtor_f *dtor);
 /* Misc                                                                   */
 /**************************************************************************/
 
-void generic_array_resize(generic_array *array, ssize_t newlen);
+void generic_array_resize(generic_array *array, int newlen);
 
-void generic_array_insert(generic_array *array, ssize_t pos, void *item)
+void generic_array_insert(generic_array *array, int pos, void *item)
     __attr_nonnull__((1));
 
-void generic_array_splice(generic_array *array, ssize_t pos, ssize_t len,
-                          void **item, ssize_t count)
+void generic_array_splice(generic_array *array, int pos, int len,
+                          void **item, int count)
     __attr_nonnull__((1));
 
 static inline void generic_array_append(generic_array *array, void *item)
@@ -57,7 +56,7 @@ static inline void generic_array_push(generic_array *array, void *item)
     generic_array_insert(array, 0, item);
 }
 
-void *generic_array_take(generic_array *array, ssize_t pos)
+void *generic_array_take(generic_array *array, int pos)
     __attr_nonnull__((1));
 
 #define ARRAY_SORT_IS_STABLE  1
@@ -72,9 +71,9 @@ void generic_array_sort(generic_array *array,
 #define ARRAY_TYPE(el_typ, prefix)                                            \
     typedef struct prefix##_array {                                           \
         el_typ ** const tab;                                                  \
-        ssize_t const len;                                                    \
+        int const len;                                                        \
                                                                               \
-        ssize_t const __size;                                                 \
+        int const __size;                                                     \
     } prefix##_array
 
 #define ARRAY_FUNCTIONS(el_typ, prefix, dtor)                                 \
@@ -107,18 +106,18 @@ void generic_array_sort(generic_array *array,
                                                                               \
     /* module functions */                                                    \
     static inline void                                                        \
-    prefix##_array_resize(prefix##_array *array, ssize_t newlen)              \
+    prefix##_array_resize(prefix##_array *array, int newlen)                  \
     {                                                                         \
         generic_array_resize((generic_array *)array, newlen);                 \
     }                                                                         \
     static inline void                                                        \
-    prefix##_array_insert(prefix##_array *array, ssize_t pos, el_typ *item)   \
+    prefix##_array_insert(prefix##_array *array, int pos, el_typ *item)       \
     {                                                                         \
         generic_array_insert((generic_array *)array, pos, (void*)item);       \
     }                                                                         \
     static inline void                                                        \
-    prefix##_array_splice(prefix##_array *array, ssize_t pos, ssize_t len,    \
-                          el_typ **items, ssize_t count)                      \
+    prefix##_array_splice(prefix##_array *array, int pos, int len,            \
+                          el_typ **items, int count)                          \
     {                                                                         \
         generic_array_splice((generic_array *)array, pos, len,                \
                              (void **)items, count);                          \
@@ -129,7 +128,7 @@ void generic_array_sort(generic_array *array,
         generic_array_append((generic_array *)array, (void*)item);            \
     }                                                                         \
     static inline void                                                        \
-    prefix##_array_swap(prefix##_array *array, ssize_t i, ssize_t j)          \
+    prefix##_array_swap(prefix##_array *array, int i, int j)                  \
     {                                                                         \
         SWAP(array->tab[i], array->tab[j]);                                   \
     }                                                                         \
@@ -139,7 +138,7 @@ void generic_array_sort(generic_array *array,
         generic_array_push((generic_array *)array, (void*)item);              \
     }                                                                         \
     static inline el_typ *                                                    \
-    prefix##_array_take(prefix##_array *array, ssize_t pos)                   \
+    prefix##_array_take(prefix##_array *array, int pos)                       \
     {                                                                         \
         return (el_typ *)generic_array_take((generic_array *)array, pos);     \
     }                                                                         \

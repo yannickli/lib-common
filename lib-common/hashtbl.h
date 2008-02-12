@@ -22,7 +22,7 @@
 
 #define HASHTBLE_TYPE(t)                                                     \
     typedef struct t {                                                       \
-        ssize_t nr, size, ghosts;                                            \
+        int nr, size, ghosts;                                                \
         struct hashtbl_entry *tab;                                           \
         int name_offs;        /* holds offsetof(type, <indexing field> */    \
         flag_t name_inl : 1;                                                 \

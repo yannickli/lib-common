@@ -24,8 +24,7 @@
 /* Private inlines                                                        */
 /**************************************************************************/
 
-static inline void
-array_resize(int_array *a, ssize_t newlen)
+static inline void array_resize(int_array *a, int newlen)
 {
     p_allocgrow(&a->tab, newlen, &a->size);
     p_clear(a->tab + a->len, a->size - a->len);
@@ -40,7 +39,7 @@ array_resize(int_array *a, ssize_t newlen)
 /* OG: should initialize as empty */
 int_array *int_array_init(int_array *array)
 {
-    ssize_t i = 0;
+    int i = 0;
 
     array->tab  = p_new(int , ARRAY_INITIAL_SIZE);
     array->len  = 0;
@@ -62,18 +61,18 @@ void int_array_wipe(int_array *array)
 /* Misc                                                                   */
 /**************************************************************************/
 
-void int_array_resize(int_array *array, ssize_t newlen)
+void int_array_resize(int_array *array, int newlen)
 {
     array_resize(array, newlen);
 }
 
-void int_array_remove(int_array *array, ssize_t pos)
+void int_array_remove(int_array *array, int pos)
 {
     p_move(array->tab, pos, pos + 1, array->len - pos - 1);
     array->len--;
 }
 
-int int_array_take(int_array *array, ssize_t pos, int *item)
+int int_array_take(int_array *array, int pos, int *item)
 {
     if (pos >= array->len || pos < 0) {
         return 1;
@@ -88,9 +87,9 @@ int int_array_take(int_array *array, ssize_t pos, int *item)
 
 /* insert item at pos `pos',
    pos interpreted as array->len if pos > array->len */
-void int_array_insert(int_array *array, ssize_t pos, int item)
+void int_array_insert(int_array *array, int pos, int item)
 {
-    ssize_t curlen = array->len;
+    int curlen = array->len;
 
     array_resize(array, curlen + 1);
 

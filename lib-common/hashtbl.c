@@ -35,7 +35,7 @@ void hashtbl_wipe(hashtbl_t *t)
     p_delete(&t->tab);
 }
 
-static void hashtbl_invalidate(hashtbl_t *t, ssize_t pos)
+static void hashtbl_invalidate(hashtbl_t *t, int pos)
 {
     hashtbl_entry *next = &t->tab[pos + 1 == t->size ? 0 : pos + 1];
 
@@ -56,22 +56,22 @@ static void hashtbl_invalidate(hashtbl_t *t, ssize_t pos)
     }
 }
 
-static void hashtbl_resize(hashtbl_t *t, ssize_t newsize)
+static void hashtbl_resize(hashtbl_t *t, int newsize)
 {
-    ssize_t oldsize = t->size;
+    int oldsize = t->size;
     hashtbl_entry *oldtab = t->tab;
 
 #ifndef NDEBUG
     switch (CMP(oldsize, newsize)) {
       case CMP_LESS:
-        e_trace(2, "growing %p (%zd -> %zd entries)", t, oldsize, newsize);
+        e_trace(2, "growing %p (%d -> %d entries)", t, oldsize, newsize);
         break;
       case CMP_EQUAL:
-        e_trace(2, "ghosts in %p (%zd entries, %zd ghosts)", t, t->nr,
+        e_trace(2, "ghosts in %p (%d entries, %d ghosts)", t, t->nr,
                 t->ghosts);
         break;
       case CMP_GREATER:
-        e_trace(2, "shrinking %p (%zd -> %zd entries)", t, oldsize, newsize);
+        e_trace(2, "shrinking %p (%d -> %d entries)", t, oldsize, newsize);
         break;
     }
 #endif
@@ -80,7 +80,7 @@ static void hashtbl_resize(hashtbl_t *t, ssize_t newsize)
     t->tab  = p_new(hashtbl_entry, newsize);
     t->nr = t->ghosts = 0;
 
-    for (ssize_t i = 0; i < oldsize; i++) {
+    for (int i = 0; i < oldsize; i++) {
         if (!IS_EMPTY(oldtab[i].ptr))
             hashtbl_insert(t, oldtab[i].key, oldtab[i].ptr);
     }
@@ -108,7 +108,7 @@ void **hashtbl_find(const hashtbl_t *t, uint64_t key)
 void **hashtbl_insert(hashtbl_t *t, uint64_t key, void *ptr)
 {
     size_t size, pos;
-    ssize_t ghost = -1;
+    int ghost = -1;
     hashtbl_entry *tab;
 
     assert (!t->inmap);
@@ -162,7 +162,7 @@ void hashtbl_remove(hashtbl_t *t, void **pp)
 
 void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *priv)
 {
-    ssize_t pos = t->size;
+    int pos = t->size;
 
     assert (!t->inmap);
 #ifndef NDEBUG
@@ -190,7 +190,7 @@ void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *priv)
 void hashtbl_map2(hashtbl_t *t, void (*fn)(uint64_t, void **, void *),
                   void *priv)
 {
-    ssize_t pos = t->size;
+    int pos = t->size;
 
     assert (!t->inmap);
 #ifndef NDEBUG
@@ -220,7 +220,7 @@ void props_hash_map(props_hash_t *ph,
                     void (*fn)(const char *, char **, void *), void *priv)
 {
     hashtbl_t *t = &ph->h;
-    ssize_t pos = t->size;
+    int pos = t->size;
 
     assert (!t->inmap);
 #ifndef NDEBUG
@@ -297,7 +297,7 @@ void **hashtbl__find(const hashtbl__t *t, uint64_t key, const char *s)
 void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *ptr)
 {
     size_t size, pos;
-    ssize_t ghost = -1;
+    int ghost = -1;
     hashtbl_entry *tab;
     const char *name = element_name(ptr, t->name_offs, t->name_inl);
 

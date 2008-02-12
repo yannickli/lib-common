@@ -19,10 +19,9 @@
 #include "mem.h"
 
 typedef struct int_array {
-    int    *tab;
-    ssize_t len;
-
-    ssize_t size;
+    int *tab;
+    int len;
+    int size;
 } int_array;
 
 
@@ -35,9 +34,9 @@ GENERIC_DELETE(int_array, int_array);
 /* Misc                                                                   */
 /**************************************************************************/
 
-void int_array_resize(int_array *array, ssize_t newlen);
+void int_array_resize(int_array *array, int newlen);
 
-void int_array_insert(int_array *array, ssize_t pos, int item)
+void int_array_insert(int_array *array, int pos, int item)
     __attr_nonnull__((1));
 
 static inline void int_array_append(int_array *array, int item) {
@@ -48,12 +47,12 @@ static inline void int_array_push(int_array *array, int item) {
     int_array_insert(array, 0, item);
 }
 
-int int_array_take(int_array *array, ssize_t pos, int *item)
+int int_array_take(int_array *array, int pos, int *item)
     __attr_nonnull__((1));
-void int_array_remove(int_array *array, ssize_t pos)
+void int_array_remove(int_array *array, int pos)
     __attr_nonnull__((1));
 
-static inline void int_array_swap(int_array *array, ssize_t i, ssize_t j) {
+static inline void int_array_swap(int_array *array, int i, int j) {
     int v = array->tab[i];
     array->tab[i] = array->tab[j];
     array->tab[j] = v;
