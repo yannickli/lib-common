@@ -114,6 +114,19 @@ void tpl_copy_data(tpl_t *tpl, const byte *data, int len)
     blob_append_data(&buf->u.blob, data, len);
 }
 
+blob_t *tpl_get_blob(tpl_t *tpl)
+{
+    tpl_t *buf;
+
+    assert (tpl_can_append(tpl));
+
+    buf = tpl->blocks.len > 0 ? tpl->blocks.tab[tpl->blocks.len - 1] : NULL;
+    if (!buf || buf->op != TPL_OP_BLOB || buf->refcnt > 1) {
+        tpl_array_append(&tpl->blocks, buf = tpl_new_op(TPL_OP_BLOB));
+    }
+    return &buf->u.blob;
+}
+
 void tpl_add_var(tpl_t *tpl, uint16_t array, uint16_t index)
 {
     tpl_t *var;
@@ -242,6 +255,34 @@ void tpl_dump(int dbg, const tpl_t *tpl, const char *s)
 }
 
 /****************************************************************************/
+/* Substitution helpers                                                     */
+/****************************************************************************/
+
+int tpl_get_short_data(tpl_t *tpl, const byte **data, int *len)
+{
+    for (;;) {
+        switch (tpl->op) {
+          case TPL_OP_BLOB:
+            *data = tpl->u.blob.data;
+            *len  = tpl->u.blob.len;
+            return 0;
+          case TPL_OP_DATA:
+            *data = tpl->u.data.data;
+            *len  = tpl->u.data.len;
+            return 0;
+          case TPL_OP_BLOCK:
+            tpl_optimize(tpl);
+            if (tpl->blocks.len != 1)
+                return -1;
+            tpl = tpl->blocks.tab[0];
+            break;
+          default:
+            return -1;
+        }
+    }
+}
+
+/****************************************************************************/
 /* Substitution and optimization                                            */
 /****************************************************************************/
 
@@ -255,10 +296,10 @@ enum tplcode {
     (((vals) && ((id) & 0xffff) < (uint16_t)(nb)) ? (vals)[(id) & 0xffff] : NULL)
 
 static enum tplcode
-tpl_combine(tpl_t *, const tpl_t *, uint16_t, const tpl_t **, int);
+tpl_combine(tpl_t *, const tpl_t *, uint16_t, tpl_t **, int);
 
 static enum tplcode tpl_combine_block(tpl_t *out, const tpl_t *tpl, uint16_t envid,
-                                      const tpl_t **vals, int nb)
+                                      tpl_t **vals, int nb)
 {
     enum tplcode res = TPL_CONST;
 
@@ -270,7 +311,7 @@ static enum tplcode tpl_combine_block(tpl_t *out, const tpl_t *tpl, uint16_t env
 }
 
 static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
-                                const tpl_t **vals, int nb)
+                                tpl_t **vals, int nb)
 {
     const tpl_t *ctmp, *ctmp2;
     tpl_t *tmp, *tmp2;
@@ -425,7 +466,7 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
     return TPL_ERR;
 }
 
-tpl_t *tpl_subst(const tpl_t *tpl, uint16_t envid, const tpl_t **vals, int nb)
+tpl_t *tpl_subst(const tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb)
 {
     tpl_t *out;
 

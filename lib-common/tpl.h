@@ -41,7 +41,7 @@ struct tpl_data {
 };
 
 struct tpl_t;
-typedef int (tpl_apply_f)(struct tpl_t *, const struct tpl_t *);
+typedef int (tpl_apply_f)(struct tpl_t *, struct tpl_t *);
 
 ARRAY_TYPE(struct tpl_t, tpl);
 typedef struct tpl_t {
@@ -81,15 +81,19 @@ static inline void tpl_copy_cstr(tpl_t *tpl, const char *s) {
 }
 void tpl_add_var(tpl_t *tpl, uint16_t envid, uint16_t index);
 void tpl_add_tpl(tpl_t *out, const tpl_t *tpl);
-tpl_t *tpl_add_ifdef(tpl_t *tpl, uint16_t array, uint16_t index);
+tpl_t *tpl_add_ifdef(tpl_t *tpl, uint16_t envid, uint16_t index);
 tpl_t *tpl_add_apply(tpl_t *tpl, tpl_op op, tpl_apply_f *f);
 void tpl_dump(int dbg, const tpl_t *tpl, const char *s);
+
+blob_t *tpl_get_blob(tpl_t *tpl);
 
 /****************************************************************************/
 /* Substitution and optimization                                            */
 /****************************************************************************/
 
-tpl_t *tpl_subst(const tpl_t *, uint16_t envid, const tpl_t **, int nb);
+int tpl_get_short_data(tpl_t *tpl, const byte **data, int *len);
+
+tpl_t *tpl_subst(const tpl_t *, uint16_t envid, tpl_t **, int nb);
 void tpl_optimize(tpl_t *tpl);
 
 #endif
