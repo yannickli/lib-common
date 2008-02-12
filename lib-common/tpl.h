@@ -37,7 +37,7 @@ typedef enum tpl_op {
 
 struct tpl_data {
     const byte *data;
-    size_t len;
+    int len;
 };
 
 struct tpl_t;
@@ -45,16 +45,18 @@ typedef int (tpl_apply_f)(struct tpl_t *, struct tpl_t *);
 
 ARRAY_TYPE(struct tpl_t, tpl);
 typedef struct tpl_t {
-    int refcnt;
-    flag_t no_subst : 1; /* if the subtree has TPL_OP_VARs in it */
-    tpl_op op       : 8;
+    flag_t no_subst :  1; /* if the subtree has TPL_OP_VARs in it */
+    tpl_op op       :  7;
+    unsigned refcnt : 24;
     union {
         struct tpl_data data;
         blob_t blob;
         uint32_t varidx; /* 16 bits of env, 16 bits of index */
-        tpl_apply_f *f;
+        struct {
+            tpl_apply_f *f;
+            tpl_array blocks;
+        };
     } u;
-    tpl_array blocks;
 } tpl_t;
 
 tpl_t *tpl_new(void);
