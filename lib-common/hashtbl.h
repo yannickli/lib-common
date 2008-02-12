@@ -108,20 +108,12 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *);
 #define HASHTBL_INIT_STROFFS(offs , inlined) \
     { .name_offs = offs, .name_inl = inlined }
 
-/* pass true to `inlined_str` if the ->name member is an inlined array */
-#define DO_HASHTBL_STROFFS(type, pfx, offs, inlined_str)                     \
+#define DO_HASHTBL_OFFS_COMMON(type, pfx)                                    \
     HASHTBLE_TYPE(pfx##_hash);                                               \
     \
-    static inline pfx##_hash *pfx##_hash_init(pfx##_hash *t) {               \
-        p_clear(t, 1);                                                       \
-        t->name_offs = offs;                                                 \
-        t->name_inl  = inlined_str;                                          \
-        return t;                                                            \
-    }                                                                        \
     static inline void pfx##_hash_wipe(pfx##_hash *t) {                      \
         hashtbl_wipe((hashtbl_t *)t);                                        \
     }                                                                        \
-    GENERIC_NEW(pfx##_hash, pfx##_hash);                                     \
     GENERIC_DELETE(pfx##_hash, pfx##_hash);                                  \
     \
     static inline uint64_t pfx##_hash_hkey(const char *s, int len) {         \
@@ -174,6 +166,40 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *);
     pfx##_hash_map(pfx##_hash *t, void (*fn)(type **, void *), void *p) {    \
         hashtbl_map((hashtbl_t *)t, (void *)fn, p);                          \
     }
+
+
+#define DO_HASHTBL_FIELDOFFS(type, pfx)                                      \
+    DO_HASHTBL_OFFS_COMMON(type, pfx)                                        \
+    static inline pfx##_hash *pfx##_hash_init_field(pfx##_hash *t, int foff, \
+                                                    bool inlined)            \
+    {                                                                        \
+        p_clear(t, 1);                                                       \
+        t->name_offs = foff;                                                 \
+        t->name_inl  = inlined;                                              \
+        return t;                                                            \
+    }                                                                        \
+    GENERIC_NEW(pfx##_hash, pfx##_hash);
+
+#define DO_HASHTBL_FIELDINIT(type, pfx, sfx, field, inlined)                 \
+    static inline pfx##_hash *pfx##_hash_##sfx##_init(pfx##_hash *t) {       \
+        p_clear(t, 1);                                                       \
+        t->name_offs = offsetof(type, field);                                \
+        t->name_inl  = inlined;                                              \
+        return t;                                                            \
+    }                                                                        \
+    GENERIC_NEW(pfx##_hash, pfx##_hash_##sfx);
+
+
+/* pass true to `inlined_str` if the ->name member is an inlined array */
+#define DO_HASHTBL_STROFFS(type, pfx, offs, inlined_str)                     \
+    DO_HASHTBL_OFFS_COMMON(type, pfx)                                        \
+                                                                             \
+    static inline pfx##_hash *pfx##_hash_init(pfx##_hash *t) {               \
+        p_clear(t, 1);                                                       \
+        t->name_offs = offs;                                                 \
+        t->name_inl  = inlined_str;                                          \
+        return t;                                                            \
+    }                                                                        \
 
 #define DO_HASHTBL_STR(type, pfx, name, inlined_str)                         \
     DO_HASHTBL_STROFFS(type, pfx, offsetof(type, name), inlined_str)
