@@ -47,11 +47,11 @@ int main(int argc, const char **argv)
     tpl_add_tpl(tpl, var);
     tpl_dump(0, tpl, "source");
 
-    res = tpl_subst(tpl, 1, NULL, 0);
+    res = tpl_subst(tpl, 1, NULL, 0, true);
     tpl_dump(0, res, "subst");
     tpl_delete(&res);
 
-    res = tpl_subst(tpl, 0, &var, 1);
+    res = tpl_subst(tpl, 0, &var, 1, false);
     tpl_dump(0, res, "subst");
     tpl_optimize(res);
     tpl_dump(0, res, "subst (opt)");

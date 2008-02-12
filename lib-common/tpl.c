@@ -362,7 +362,7 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
             if (tpl->blocks.tab[i]->no_subst) {
                 tpl_add_tpl(tmp, tpl->blocks.tab[i]);
             } else {
-                tmp2 = tpl_subst(tpl->blocks.tab[i], envid, vals, nb);
+                tmp2 = tpl_subst(tpl->blocks.tab[i], envid, vals, nb, true);
                 if (!tmp2)
                     return TPL_ERR;
                 tmp->no_subst &= tmp2->no_subst;
@@ -466,16 +466,23 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
     return TPL_ERR;
 }
 
-tpl_t *tpl_subst(const tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb)
+tpl_t *tpl_subst(const tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb, int keepvars)
 {
     tpl_t *out;
 
-    if (tpl->no_subst)
-        return tpl_dup(tpl);
-    out = tpl_new();
-    out->no_subst = true;
-    if (tpl_combine_block(out, tpl, envid, vals, nb) < 0)
-        tpl_delete(&out);
+    if (tpl->no_subst) {
+        out = tpl_dup(tpl);
+    } else {
+        out = tpl_new();
+        out->no_subst = true;
+        if (tpl_combine_block(out, tpl, envid, vals, nb) < 0)
+            tpl_delete(&out);
+    }
+    if (!keepvars) {
+        for (int i = 0; i < nb; i++) {
+            tpl_delete(&vals[i]);
+        }
+    }
     return out;
 }
 
