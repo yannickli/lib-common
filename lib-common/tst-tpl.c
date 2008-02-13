@@ -52,7 +52,7 @@ int main(int argc, const char **argv)
     tpl_dump(0, res, "subst");
     tpl_delete(&res);
 
-    res = tpl_subst(tpl, 0, &var, 1, false);
+    res = tpl_subst(tpl, 0, &var, 1, TPL_LASTSUBST);
     tpl_dump(0, res, "subst");
     tpl_optimize(res);
     tpl_dump(0, res, "subst (opt)");

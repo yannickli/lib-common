@@ -93,9 +93,16 @@ blob_t *tpl_get_blob(tpl_t *tpl);
 /* Substitution and optimization                                            */
 /****************************************************************************/
 
+enum {
+    TPL_KEEPVAR    = 1 << 0,
+    TPL_LASTSUBST  = 1 << 1,
+};
+
 int tpl_get_short_data(tpl_t *tpl, const byte **data, int *len);
 
-tpl_t *tpl_subst(const tpl_t *, uint16_t envid, tpl_t **, int nb, int keepvars);
+tpl_t *tpl_subst(const tpl_t *, uint16_t envid, tpl_t **, int nb, int flags);
+tpl_t *tpl_subst_str(const tpl_t *, uint16_t envid, const char **, int nb,
+                     int flags);
 void tpl_optimize(tpl_t *tpl);
 
 int tpl_to_iov(struct iovec *, int nr, tpl_t *);
