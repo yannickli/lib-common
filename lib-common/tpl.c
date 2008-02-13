@@ -366,6 +366,16 @@ static enum tplcode tpl_combine(tpl_t *out, const tpl_t *tpl, uint16_t envid,
         return TPL_VAR;
 
       case TPL_OP_APPLY:
+        if (flags & TPL_LASTSUBST) {
+            tmp = tpl_new();
+            tmp->no_subst = true;
+            res = tpl_combine_block(tmp, tpl, envid, vals, nb, flags);
+            if (res != TPL_CONST || (*tpl->u.f)(out, tmp) < 0) {
+                res = TPL_ERR;
+            }
+            tpl_delete(&tmp);
+            return TPL_CONST;
+        }
         if (tpl->no_subst) {
             tpl_add_tpl(out, tpl);
             return TPL_VAR;
@@ -560,6 +570,16 @@ static enum tplcode tpl_combine_str(tpl_t *out, const tpl_t *tpl, uint16_t envid
         return TPL_VAR;
 
       case TPL_OP_APPLY:
+        if (flags & TPL_LASTSUBST) {
+            tmp = tpl_new();
+            tmp->no_subst = true;
+            res = tpl_combine_str_block(tmp, tpl, envid, vals, nb, flags);
+            if (res != TPL_CONST || (*tpl->u.f)(out, tmp) < 0) {
+                res = TPL_ERR;
+            }
+            tpl_delete(&tmp);
+            return TPL_CONST;
+        }
         if (tpl->no_subst) {
             tpl_add_tpl(out, tpl);
             return TPL_VAR;
