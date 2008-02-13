@@ -29,7 +29,6 @@ typedef enum tpl_op {
 
     TPL_OP_BLOCK = 0x10,
     TPL_OP_IFDEF,
-    TPL_OP_APPLY,
     TPL_OP_APPLY_PURE,        /* f(x) only depends upon x */
     TPL_OP_APPLY_DELAYED,     /* assumed pure */
     TPL_OP_APPLY_PURE_ASSOC,  /* also f(a + b) == f(a) + f(b) */

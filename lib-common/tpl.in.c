@@ -76,32 +76,10 @@ static enum tplcode BASE(tpl_t *out, const tpl_t *tpl, uint16_t envid,
         }
         return TPL_VAR;
 
-      case TPL_OP_APPLY:
-        if (flags & TPL_LASTSUBST) {
-            tmp = tpl_new();
-            tmp->no_subst = true;
-            res = BASE_BLOCK(tmp, tpl, envid, vals, nb, flags);
-            if (res != TPL_CONST || (*tpl->u.f)(out, tmp) < 0) {
-                res = TPL_ERR;
-            }
-            tpl_delete(&tmp);
-            return TPL_CONST;
-        }
-        if (tpl->no_subst) {
-            tpl_add_tpl(out, tpl);
-            return TPL_VAR;
-        }
-        tpl_array_append(&out->u.blocks, tmp = tpl_new_op(TPL_OP_APPLY));
-        tmp->no_subst = true;
-        tmp->u.f = tpl->u.f;
-        return BASE_BLOCK(tmp, tpl, envid, vals, nb, flags);
-
       case TPL_OP_APPLY_DELAYED:
         switch (tpl->u.blocks.len) {
           case 0:
-            if ((*tpl->u.f)(out, NULL) < 0)
-                return TPL_ERR;
-            return TPL_CONST;
+            return (*tpl->u.f)(out, NULL) < 0 ? TPL_ERR : TPL_CONST;
 
           case 1:
             if ((*tpl->u.f)(out, NULL) < 0)
@@ -115,11 +93,6 @@ static enum tplcode BASE(tpl_t *out, const tpl_t *tpl, uint16_t envid,
           case 2:
             ctmp  = tpl->u.blocks.tab[0];
             ctmp2 = tpl->u.blocks.tab[1];
-            if ((!ctmp || ctmp->no_subst) && ctmp2->no_subst) {
-                /* cannot optimize, because of some TPL_OP_APPLY */
-                tpl_add_tpl(out, tpl);
-                return TPL_VAR;
-            }
             if (!ctmp2->no_subst) {
                 tmp2 = tpl_new();
                 tmp2->no_subst = true;

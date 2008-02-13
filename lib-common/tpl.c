@@ -224,7 +224,6 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
         }
         break;
 
-      case TPL_OP_APPLY:
       case TPL_OP_APPLY_PURE:
       case TPL_OP_APPLY_PURE_ASSOC:
         TRACE("FUNC %d tpls", '\\', tpl->u.blocks.len);
