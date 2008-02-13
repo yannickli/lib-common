@@ -177,7 +177,7 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
     e_trace(dbg, "%.*s%c%c "fmt, 1 + 2 * lvl, pad, c, \
             HAS_SUBST(tpl) ? '*' : ' ', ##__VA_ARGS__)
 #define TRACE_NULL() \
-    e_trace(dbg, "%*s NULL", 3 + 2 * lvl, pad)
+    e_trace(dbg, "%.*s NULL", 3 + 2 * lvl, pad)
 
 
     switch (tpl->op) {
