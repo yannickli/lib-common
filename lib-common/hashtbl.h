@@ -178,7 +178,6 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *);
         t->name_inl  = inlined;                                              \
         return t;                                                            \
     }                                                                        \
-    GENERIC_NEW(pfx##_hash, pfx##_hash);
 
 #define DO_HASHTBL_FIELDINIT(type, pfx, sfx, field, inlined)                 \
     static inline pfx##_hash *pfx##_hash_##sfx##_init(pfx##_hash *t) {       \
@@ -200,6 +199,7 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *);
         t->name_inl  = inlined_str;                                          \
         return t;                                                            \
     }                                                                        \
+    GENERIC_NEW(pfx##_hash, pfx##_hash);
 
 #define DO_HASHTBL_STR(type, pfx, name, inlined_str)                         \
     DO_HASHTBL_STROFFS(type, pfx, offsetof(type, name), inlined_str)
