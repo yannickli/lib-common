@@ -99,6 +99,9 @@ void tpl_copy_data(tpl_t *tpl, const byte *data, int len)
 
     assert (tpl_can_append(tpl));
 
+    if (len < 0)
+        return;
+
     buf = tpl->u.blocks.len > 0 ? tpl->u.blocks.tab[tpl->u.blocks.len - 1] : NULL;
     if (!buf || buf->op != TPL_OP_BLOB || buf->refcnt > 1) {
         tpl_array_append(&tpl->u.blocks, buf = tpl_new_op(TPL_OP_BLOB));
@@ -131,6 +134,7 @@ void tpl_add_var(tpl_t *tpl, uint16_t array, uint16_t index)
 void tpl_add_tpl(tpl_t *out, const tpl_t *tpl)
 {
     assert (tpl_can_append(out));
+
     if (tpl->op == TPL_OP_BLOB && out->u.blocks.len > 0
     &&  tpl->u.blob.len <= TPL_COPY_LIMIT_SOFT)
     {

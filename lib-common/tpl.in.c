@@ -23,8 +23,12 @@ static enum tplcode BASE(tpl_t *out, const tpl_t *tpl, uint16_t envid,
         enum tplcode res;
 
       case TPL_OP_DATA:
+        if (tpl->u.data.len > 0)
+            tpl_add_tpl(out, tpl);
+        return TPL_CONST;
       case TPL_OP_BLOB:
-        tpl_add_tpl(out, tpl);
+        if (tpl->u.blob.len > 0)
+            tpl_add_tpl(out, tpl);
         return TPL_CONST;
 
       case TPL_OP_VAR:
