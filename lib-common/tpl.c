@@ -479,7 +479,9 @@ tpl_t *tpl_subst(const tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb, int fla
     } else {
         out = tpl_new();
         out->no_subst = true;
-        if (tpl_combine_block(out, tpl, envid, vals, nb, flags) < 0)
+        if (tpl_combine(out, tpl, envid, vals, nb, flags) < 0)
+            tpl_delete(&out);
+        if ((flags & TPL_LASTSUBST) && !out->no_subst)
             tpl_delete(&out);
     }
     if (!(flags & TPL_KEEPVAR)) {
@@ -685,9 +687,9 @@ tpl_t *tpl_subst_str(const tpl_t *tpl, uint16_t envid,
     } else {
         out = tpl_new();
         out->no_subst = true;
-        if (tpl_combine_str_block(out, tpl, envid, vals, nb, flags) < 0)
+        if (tpl_combine_str(out, tpl, envid, vals, nb, flags) < 0)
             tpl_delete(&out);
-        if ((flags & TPL_LASTSUBST) && !tpl->no_subst)
+        if ((flags & TPL_LASTSUBST) && !out->no_subst)
             tpl_delete(&out);
     }
     return out;
