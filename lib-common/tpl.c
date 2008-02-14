@@ -332,7 +332,7 @@ int tpl_fold(blob_t *out, tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb,
 
 #define NS(x)          x##_str
 #define VAL_TYPE       const char *
-#define DEAL_WITH_VAR(t, v, ...)   (tpl_copy_cstr((t), (v)), TPL_VAR)
+#define DEAL_WITH_VAR(t, v, ...)   (tpl_copy_cstr((t), (v)), TPL_CONST)
 #define DEAL_WITH_VAR2(t, v, ...)  (blob_append_cstr((t), (v)), 0)
 #define TPL_SUBST      tpl_subst_str
 #include "tpl.in.c"
