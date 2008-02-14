@@ -50,7 +50,7 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
       case TPL_OP_IFDEF:
         if (tpl->u.varidx >> 16 == envid) {
             int branch = getvar(tpl->u.varidx, vals, nb) == NULL;
-            if (tpl->u.blocks.len <= branch)
+            if (tpl->u.blocks.len <= branch || !tpl->u.blocks.tab[branch])
                 return TPL_CONST;
             return NS(tpl_combine)(out, tpl->u.blocks.tab[branch], envid,
                                    vals, nb, flags);
@@ -185,7 +185,7 @@ NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
         if (tpl->u.varidx >> 16 != envid)
             return -1;
         branch = getvar(tpl->u.varidx, vals, nb) == NULL;
-        if (tpl->u.blocks.len <= branch)
+        if (tpl->u.blocks.len <= branch || !tpl->u.blocks.tab[branch])
             return 0;
         return NS(tpl_fold_blob)(out, tpl->u.blocks.tab[branch], envid,
                                  vals, nb, flags);
