@@ -312,11 +312,18 @@ int tpl_fold(blob_t *out, tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb,
              int flags)
 {
     int pos = out->len;
+    int res = 0;
+
     if (tpl_fold_blob_tpl(out, tpl, envid, vals, nb, flags) < 0) {
         blob_resize(out, pos);
-        return -1;
+        res = -1;
     }
-    return 0;
+    if (!(flags & TPL_KEEPVAR)) {
+        for (int i = 0; i < nb; i++) {
+            tpl_delete(&vals[i]);
+        }
+    }
+    return res;
 }
 
 #define NS(x)          x##_str
