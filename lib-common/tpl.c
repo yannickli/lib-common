@@ -93,24 +93,6 @@ void tpl_add_data(tpl_t *tpl, const byte *data, int len)
     buf->u.data = (struct tpl_data){ .data = data, .len = len };
 }
 
-void tpl_copy_data(tpl_t *tpl, const byte *data, int len)
-{
-    if (len > 0) {
-        blob_t *b = tpl_get_blob(tpl);
-        blob_append_data(b, data, len);
-    }
-}
-
-void tpl_add_fmt(tpl_t *tpl, const char *fmt, ...)
-{
-    blob_t *b = tpl_get_blob(tpl);
-    va_list ap;
-
-    va_start(ap, fmt);
-    blob_append_vfmt(b, fmt, ap);
-    va_end(ap);
-}
-
 blob_t *tpl_get_blob(tpl_t *tpl)
 {
     tpl_t *buf;
@@ -122,6 +104,21 @@ blob_t *tpl_get_blob(tpl_t *tpl)
         tpl_array_append(&tpl->u.blocks, buf = tpl_new_op(TPL_OP_BLOB));
     }
     return &buf->u.blob;
+}
+
+void tpl_copy_data(tpl_t *tpl, const byte *data, int len)
+{
+    if (len > 0) {
+        blob_append_data(tpl_get_blob(tpl), data, len);
+    }
+}
+
+void tpl_add_fmt(tpl_t *tpl, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    blob_append_vfmt(tpl_get_blob(tpl), fmt, ap);
+    va_end(ap);
 }
 
 void tpl_add_var(tpl_t *tpl, uint16_t array, uint16_t index)
