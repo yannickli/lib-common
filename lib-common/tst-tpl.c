@@ -15,19 +15,36 @@
 
 static int identity(tpl_t *out, blob_t *b, tpl_t *in)
 {
-    if (!out)
+    if (out) {
+        tpl_add_tpl(out, in);
+        return 0;
+    }
+    switch (in->op) {
+      case TPL_OP_BLOB:
+        blob_append(b, &in->u.blob);
+        return 0;
+      case TPL_OP_DATA:
+        blob_append_data(b, in->u.data.data, in->u.data.len);
+        return 0;
+      case TPL_OP_BLOCK:
+        for (int i = 0; i < in->u.blocks.len; i++) {
+            if (identity(NULL, b, in->u.blocks.tab[i]))
+                return -1;
+        }
+        return 0;
+      default:
         return -1;
-    tpl_add_tpl(out, in);
-    return 0;
+    }
 }
 
 int main(int argc, const char **argv)
 {
     tpl_t *tpl, *fun, *res, *var;
-    blob_t blob;
+    blob_t blob, b2;
 
     e_trace(0, "sizeof(tpl_t) = %zd", sizeof(tpl_t));
     blob_init(&blob);
+    blob_init(&b2);
     blob_extend2(&blob, 4096, ' ');
 
     var = tpl_new();
@@ -54,13 +71,19 @@ int main(int argc, const char **argv)
     tpl_dump(0, res, "subst");
     tpl_delete(&res);
 
-    res = tpl_subst(tpl, 0, &var, 1, TPL_LASTSUBST);
+    res = tpl_subst(tpl, 0, &var, 1, TPL_LASTSUBST | TPL_KEEPVAR);
     tpl_dump(0, res, "subst");
     tpl_optimize(res);
     tpl_dump(0, res, "subst (opt)");
     tpl_delete(&res);
 
+    if (tpl_fold(&b2, tpl, 0, &var, 1, TPL_LASTSUBST)) {
+        e_panic("fold failed");
+    }
+    e_trace(0, "b2 size: %zd", b2.len);
+
     tpl_delete(&tpl);
     blob_wipe(&blob);
+    blob_wipe(&b2);
     return 0;
 }
