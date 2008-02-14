@@ -222,10 +222,10 @@ NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
 
       case TPL_OP_APPLY_PURE:
       case TPL_OP_APPLY_PURE_ASSOC:
-        tmp = TPL_SUBST(tpl, envid, vals, nb, flags | TPL_KEEPVAR | TPL_LASTSUBST);
-        if (!tmp)
-            return -1;
-        if ((*tpl->u.f)(NULL, out, tmp) < 0) {
+        if (NS(tpl_combine_block)(tmp = tpl_new(), tpl, envid, vals, nb,
+                                  flags | TPL_KEEPVAR | TPL_LASTSUBST) != TPL_CONST
+        ||  (*tpl->u.f)(NULL, out, tmp) < 0)
+        {
             tpl_delete(&tmp);
             return -1;
         }
