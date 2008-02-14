@@ -13,6 +13,8 @@
 
 /* holds the linux-dependant implementations for unix.h functions */
 
+#include <sys/types.h>
+#include <dirent.h>
 #include <limits.h>
 #include <unistd.h>
 #include <elf.h>
@@ -142,5 +144,30 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
     jiffies_to_tv(starttime, tv);
     tv->tv_sec += boot_time;
 
+    return 0;
+}
+
+int close_fds_higher_than(int fd)
+{
+    DIR *proc_fds;
+    struct dirent *entry;
+    const char *p;
+    int n, my_fd;
+
+    proc_fds = opendir("/proc/self/fd");
+    if (!proc_fds) {
+        /* FIXME: Fall back to unix.c implementation */
+        return -1;
+    }
+
+    /* XXX: opendir opens a fd. Do not close it while using it */
+    my_fd = dirfd(proc_fds);
+    while ((entry = readdir(proc_fds))) {
+        n = strtol(entry->d_name, &p, 10);
+        if (!*p && n > fd && n != my_fd) {
+            close(n);
+        }
+    }
+    closedir(proc_fds);
     return 0;
 }

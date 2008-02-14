@@ -349,3 +349,15 @@ bool is_fd_open(int fd)
     return fcntl(fd, F_GETFD) != -1 || errno != EBADF;
 }
 
+#ifndef LINUX
+int close_fds_higher_than(int fd)
+{
+    int n = 0;
+    int maxfd = sysconf(_SC_OPEN_MAX);
+
+    fd++;
+    while (fd < maxfd) {
+        close(fd++);
+    }
+}
+#endif
