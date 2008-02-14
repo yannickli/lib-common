@@ -13,8 +13,10 @@
 
 #include "all.h"
 
-static int identity(tpl_t *out, tpl_t *in)
+static int identity(tpl_t *out, blob_t *b, tpl_t *in)
 {
+    if (!out)
+        return -1;
     tpl_add_tpl(out, in);
     return 0;
 }

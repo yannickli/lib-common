@@ -40,7 +40,7 @@ struct tpl_data {
 };
 
 struct tpl_t;
-typedef int (tpl_apply_f)(struct tpl_t *, struct tpl_t *);
+typedef int (tpl_apply_f)(struct tpl_t *, blob_t *, struct tpl_t *);
 
 ARRAY_TYPE(struct tpl_t, tpl);
 typedef struct tpl_t {
@@ -98,6 +98,9 @@ enum {
 };
 
 int tpl_get_short_data(tpl_t *tpl, const byte **data, int *len);
+
+int tpl_fold(blob_t *, tpl_t *, uint16_t envid, tpl_t **, int nb, int flags);
+int tpl_fold_str(blob_t *, tpl_t *, uint16_t envid, const char **, int nb, int flags);
 
 tpl_t *tpl_subst(const tpl_t *, uint16_t envid, tpl_t **, int nb, int flags);
 tpl_t *tpl_subst_str(const tpl_t *, uint16_t envid, const char **, int nb,

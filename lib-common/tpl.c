@@ -294,10 +294,10 @@ enum tplcode {
 #define getvar(id, vals, nb) \
     (((vals) && ((id) & 0xffff) < (uint16_t)(nb)) ? (vals)[(id) & 0xffff] : NULL)
 
-#define BASE           tpl_combine
-#define BASE_BLOCK     tpl_combine_block
+#define NS(x)          x##_tpl
 #define VAL_TYPE       tpl_t *
-#define DEAL_WITH_VAR  tpl_combine
+#define DEAL_WITH_VAR  tpl_combine_tpl
+#define DEAL_WITH_VAR2 tpl_fold_blob_tpl
 #define TPL_SUBST      tpl_subst
 #include "tpl.in.c"
 tpl_t *tpl_subst(const tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb, int flags)
@@ -309,7 +309,7 @@ tpl_t *tpl_subst(const tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb, int fla
     } else {
         out = tpl_new();
         out->no_subst = true;
-        if (tpl_combine(out, tpl, envid, vals, nb, flags) < 0)
+        if (tpl_combine_tpl(out, tpl, envid, vals, nb, flags) < 0)
             tpl_delete(&out);
         if ((flags & TPL_LASTSUBST) && !out->no_subst)
             tpl_delete(&out);
@@ -322,10 +322,21 @@ tpl_t *tpl_subst(const tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb, int fla
     return out;
 }
 
-#define BASE           tpl_combine_str
-#define BASE_BLOCK     tpl_combine_str_block
+int tpl_fold(blob_t *out, tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb,
+             int flags)
+{
+    int pos = out->len;
+    if (tpl_fold_blob_tpl(out, tpl, envid, vals, nb, flags) < 0) {
+        blob_resize(out, pos);
+        return -1;
+    }
+    return 0;
+}
+
+#define NS(x)          x##_str
 #define VAL_TYPE       const char *
-#define DEAL_WITH_VAR(t, v, ...)  (tpl_copy_cstr((t), (v)), TPL_VAR)
+#define DEAL_WITH_VAR(t, v, ...)   (tpl_copy_cstr((t), (v)), TPL_VAR)
+#define DEAL_WITH_VAR2(t, v, ...)  (blob_append_cstr((t), (v)), 0)
 #define TPL_SUBST      tpl_subst_str
 #include "tpl.in.c"
 tpl_t *tpl_subst_str(const tpl_t *tpl, uint16_t envid,
@@ -344,6 +355,17 @@ tpl_t *tpl_subst_str(const tpl_t *tpl, uint16_t envid,
             tpl_delete(&out);
     }
     return out;
+}
+
+int tpl_fold_str(blob_t *out, tpl_t *tpl, uint16_t envid,
+                 const char **vals, int nb, int flags)
+{
+    int pos = out->len;
+    if (tpl_fold_blob_str(out, tpl, envid, vals, nb, flags) < 0) {
+        blob_resize(out, pos);
+        return -1;
+    }
+    return 0;
 }
 
 static tpl_t *tpl_to_blob(tpl_t **orig)
