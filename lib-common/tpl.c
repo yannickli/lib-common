@@ -277,12 +277,6 @@ int tpl_get_short_data(tpl_t *tpl, const byte **data, int *len)
 /* Substitution and optimization                                            */
 /****************************************************************************/
 
-enum tplcode {
-    TPL_ERR   = -1,
-    TPL_CONST = 0,
-    TPL_VAR   = 1,
-};
-
 #define getvar(id, vals, nb) \
     (((vals) && ((id) & 0xffff) < (uint16_t)(nb)) ? (vals)[(id) & 0xffff] : NULL)
 
@@ -327,7 +321,7 @@ int tpl_fold(blob_t *out, tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb,
 
 #define NS(x)          x##_str
 #define VAL_TYPE       const char *
-#define DEAL_WITH_VAR(t, v, ...)   (tpl_copy_cstr((t), (v)), TPL_CONST)
+#define DEAL_WITH_VAR(t, v, ...)   (tpl_copy_cstr((t), (v)), 0)
 #define DEAL_WITH_VAR2(t, v, ...)  (blob_append_cstr((t), (v)), 0)
 #define TPL_SUBST      tpl_subst_str
 #include "tpl.in.c"
