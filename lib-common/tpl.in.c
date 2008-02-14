@@ -16,7 +16,7 @@ static enum tplcode BASE_BLOCK(tpl_t *out, const tpl_t *tpl, uint16_t envid,
 static enum tplcode BASE(tpl_t *out, const tpl_t *tpl, uint16_t envid,
                          VAL_TYPE *vals, int nb, int flags)
 {
-    const tpl_t *ctmp, *ctmp2;
+    const tpl_t *ctmp;
     tpl_t *tmp, *tmp2;
 
     switch (tpl->op) {
@@ -61,16 +61,12 @@ static enum tplcode BASE(tpl_t *out, const tpl_t *tpl, uint16_t envid,
         tpl_array_append(&out->u.blocks, tmp = tpl_new_op(TPL_OP_IFDEF));
         tmp->no_subst = true;
         for (int i = 0; i < tpl->u.blocks.len; i++) {
-            if (tpl->u.blocks.tab[i]->no_subst) {
-                tpl_add_tpl(tmp, tpl->u.blocks.tab[i]);
-            } else {
-                tmp2 = TPL_SUBST(tpl->u.blocks.tab[i], envid,
-                                 vals, nb, flags | TPL_KEEPVAR);
-                if (!tmp2)
-                    return TPL_ERR;
-                tmp->no_subst &= tmp2->no_subst;
-                tpl_array_append(&tmp->u.blocks, tmp2);
-            }
+            tmp2 = TPL_SUBST(tpl->u.blocks.tab[i], envid,
+                             vals, nb, flags | TPL_KEEPVAR);
+            if (!tmp2)
+                return TPL_ERR;
+            tmp->no_subst &= tmp2->no_subst;
+            tpl_array_append(&tmp->u.blocks, tmp2);
         }
         return TPL_VAR;
 
@@ -82,50 +78,33 @@ static enum tplcode BASE(tpl_t *out, const tpl_t *tpl, uint16_t envid,
           case 1:
             if ((*tpl->u.f)(out, NULL) < 0)
                 return TPL_ERR;
-            if (tpl->u.blocks.tab[0]->no_subst) {
-                tpl_add_tpl(out, tpl->u.blocks.tab[0]);
-                return TPL_CONST;
-            }
             return BASE(out, tpl->u.blocks.tab[0], envid, vals, nb, flags);
 
           case 2:
-            ctmp  = tpl->u.blocks.tab[0];
-            ctmp2 = tpl->u.blocks.tab[1];
-            if (!ctmp2->no_subst) {
-                tmp2 = tpl_new();
-                tmp2->no_subst = true;
-                res = BASE(tmp2, ctmp2, envid, vals, nb, flags);
-                if (res == TPL_CONST) {
-                    if ((*tpl->u.f)(out, tmp2) < 0) {
-                        res = TPL_ERR;
-                    }
-                    if (ctmp) {
-                        res |= BASE(out, ctmp, envid, vals, nb, flags);
-                    }
-                    res |= BASE(out, tmp2, envid, vals, nb, flags);
-                    tpl_delete(&tmp2);
-                    return res;
+            ctmp = tpl->u.blocks.tab[0];
+            tmp2 = TPL_SUBST(tpl->u.blocks.tab[1], envid, vals, nb, flags | TPL_KEEPVAR);
+            if (tmp2->no_subst) {
+                if ((*tpl->u.f)(out, tmp2) < 0) {
+                    res = TPL_ERR;
                 }
-            } else {
-                tmp2 = tpl_dup(ctmp2);
-                res  = TPL_VAR;
+                if (ctmp) {
+                    res |= BASE(out, ctmp, envid, vals, nb, flags);
+                }
+                res |= BASE(out, tmp2, envid, vals, nb, flags);
+                tpl_delete(&tmp2);
+                return res;
             }
             tpl_array_append(&out->u.blocks, tmp = tpl_new_op(TPL_OP_APPLY_DELAYED));
-            tmp->no_subst = tmp2->no_subst;
-            if (ctmp) {
-                if (ctmp->no_subst) {
-                    tpl_add_tpl(tmp, ctmp);
-                } else {
-                    tpl_t *tmp3;
-                    tpl_array_append(&tmp->u.blocks, tmp3 = tpl_new());
-                    tmp3->no_subst = true;
-                    res |= BASE(tmp3, ctmp, envid, vals, nb, flags);
-                    tmp->no_subst &= tmp3->no_subst;
-                }
-            }
+            tpl_array_append(&tmp->u.blocks, NULL);
             tpl_array_append(&tmp->u.blocks, tmp2);
-            out->no_subst &= tmp->no_subst;
-            return res;
+            if (ctmp) {
+                tmp2 = TPL_SUBST(ctmp, envid, vals, nb, flags | TPL_KEEPVAR);
+                if (!tmp2)
+                    return TPL_ERR;
+                tmp->u.blocks.tab[0] = tmp2;
+            }
+            tmp->no_subst = out->no_subst = false;
+            return TPL_VAR;
           default:
             return TPL_ERR;
         }
