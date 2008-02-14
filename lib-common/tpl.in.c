@@ -43,12 +43,6 @@ static enum tplcode BASE(tpl_t *out, const tpl_t *tpl, uint16_t envid,
         return TPL_VAR;
 
       case TPL_OP_BLOCK:
-        if (tpl->no_subst) {
-            for (int i = 0; i < tpl->u.blocks.len; i++) {
-                tpl_add_tpl(out, tpl->u.blocks.tab[i]);
-            }
-            return TPL_CONST;
-        }
         return BASE_BLOCK(out, tpl, envid, vals, nb, flags);
 
       case TPL_OP_IFDEF:
