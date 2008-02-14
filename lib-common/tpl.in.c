@@ -60,9 +60,8 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
         tpl_array_append(&out->u.blocks, tmp = tpl_new_op(TPL_OP_IFDEF));
         tmp->is_const = true;
         for (int i = 0; i < tpl->u.blocks.len; i++) {
-            tmp2 = TPL_SUBST(tpl->u.blocks.tab[i], envid,
-                             vals, nb, flags | TPL_KEEPVAR);
-            if (!tmp2)
+            tmp2 = tpl_dup(tpl->u.blocks.tab[i]);
+            if (TPL_SUBST(&tmp2, envid, vals, nb, flags | TPL_KEEPVAR))
                 return -1;
             tmp->is_const &= tmp2->is_const;
             tpl_array_append(&tmp->u.blocks, tmp2);
@@ -81,8 +80,8 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
 
           case 2:
             ctmp = tpl->u.blocks.tab[0];
-            tmp2 = TPL_SUBST(tpl->u.blocks.tab[1], envid, vals, nb, flags | TPL_KEEPVAR);
-            if (!tmp2)
+            tmp2 = tpl_dup(tpl->u.blocks.tab[1]);
+            if (TPL_SUBST(&tmp2, envid, vals, nb, flags | TPL_KEEPVAR))
                 return -1;
             if (tmp2->is_const) {
                 if ((*tpl->u.f)(out, NULL, tmp2) < 0
@@ -100,8 +99,8 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
             tpl_array_append(&tmp->u.blocks, NULL);
             tpl_array_append(&tmp->u.blocks, tmp2);
             if (ctmp) {
-                tmp2 = TPL_SUBST(ctmp, envid, vals, nb, flags | TPL_KEEPVAR);
-                if (!tmp2)
+                tmp2 = tpl_dup(ctmp);
+                if (TPL_SUBST(&tmp2, envid, vals, nb, flags | TPL_KEEPVAR))
                     return -1;
                 tmp->u.blocks.tab[0] = tmp2;
             }
@@ -201,10 +200,12 @@ NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
 
           case 2:
             ctmp = tpl->u.blocks.tab[0];
-            tmp = TPL_SUBST(tpl->u.blocks.tab[1], envid, vals, nb,
-                            flags | TPL_KEEPVAR | TPL_LASTSUBST);
-            if (!tmp)
+            tmp = tpl_dup(tpl->u.blocks.tab[1]);
+            if (TPL_SUBST(&tmp, envid, vals, nb,
+                          flags | TPL_KEEPVAR | TPL_LASTSUBST))
+            {
                 return -1;
+            }
             if (((*tpl->u.f)(NULL, out, tmp) < 0)
             ||  (ctmp && NS(tpl_fold_block)(out, ctmp, envid, vals, nb, flags))
             ||  NS(tpl_fold_block)(out, tmp, envid, vals, nb, flags))

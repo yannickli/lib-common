@@ -286,35 +286,35 @@ int tpl_get_short_data(tpl_t *tpl, const byte **data, int *len)
 #define DEAL_WITH_VAR2 tpl_fold_blob_tpl
 #define TPL_SUBST      tpl_subst
 #include "tpl.in.c"
-tpl_t *tpl_subst(const tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb, int flags)
+int tpl_subst(tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb, int flags)
 {
-    tpl_t *out;
+    tpl_t *out = *tplp;
 
-    if (tpl->is_const) {
-        out = tpl_dup(tpl);
-    } else {
+    if (!out->is_const) {
         out = tpl_new();
         out->is_const = true;
-        if (tpl_combine_tpl(out, tpl, envid, vals, nb, flags) < 0)
+        if (tpl_combine_tpl(out, *tplp, envid, vals, nb, flags) < 0)
             tpl_delete(&out);
         if ((flags & TPL_LASTSUBST) && !out->is_const)
             tpl_delete(&out);
+        tpl_delete(tplp);
+        *tplp = out;
     }
     if (!(flags & TPL_KEEPVAR)) {
         for (int i = 0; i < nb; i++) {
             tpl_delete(&vals[i]);
         }
     }
-    return out;
+    return out ? 0 : -1;
 }
 
-int tpl_fold(blob_t *out, tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb,
+int tpl_fold(blob_t *out, tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb,
              int flags)
 {
     int pos = out->len;
     int res = 0;
 
-    if (tpl_fold_blob_tpl(out, tpl, envid, vals, nb, flags) < 0) {
+    if (tpl_fold_blob_tpl(out, *tplp, envid, vals, nb, flags) < 0) {
         blob_resize(out, pos);
         res = -1;
     }
@@ -323,6 +323,7 @@ int tpl_fold(blob_t *out, tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb,
             tpl_delete(&vals[i]);
         }
     }
+    tpl_delete(tplp);
     return res;
 }
 
@@ -332,32 +333,33 @@ int tpl_fold(blob_t *out, tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb,
 #define DEAL_WITH_VAR2(t, v, ...)  (blob_append_cstr((t), (v)), 0)
 #define TPL_SUBST      tpl_subst_str
 #include "tpl.in.c"
-tpl_t *tpl_subst_str(const tpl_t *tpl, uint16_t envid,
-                     const char **vals, int nb, int flags)
+int tpl_subst_str(tpl_t **tplp, uint16_t envid,
+                  const char **vals, int nb, int flags)
 {
-    tpl_t *out;
-
-    if (tpl->is_const) {
-        out = tpl_dup(tpl);
-    } else {
+    tpl_t *out = *tplp;
+    if (!out->is_const) {
         out = tpl_new();
         out->is_const = true;
-        if (tpl_combine_str(out, tpl, envid, vals, nb, flags) < 0)
+        if (tpl_combine_str(out, *tplp, envid, vals, nb, flags) < 0)
             tpl_delete(&out);
         if ((flags & TPL_LASTSUBST) && !out->is_const)
             tpl_delete(&out);
+        tpl_delete(tplp);
+        *tplp = out;
     }
-    return out;
+    return out ? 0 : -1;
 }
 
-int tpl_fold_str(blob_t *out, tpl_t *tpl, uint16_t envid,
+int tpl_fold_str(blob_t *out, tpl_t **tplp, uint16_t envid,
                  const char **vals, int nb, int flags)
 {
     int pos = out->len;
-    if (tpl_fold_blob_str(out, tpl, envid, vals, nb, flags) < 0) {
+    if (tpl_fold_blob_str(out, *tplp, envid, vals, nb, flags) < 0) {
         blob_resize(out, pos);
+        tpl_delete(tplp);
         return -1;
     }
+    tpl_delete(tplp);
     return 0;
 }
 
