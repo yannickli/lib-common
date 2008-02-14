@@ -44,7 +44,7 @@ typedef int (tpl_apply_f)(struct tpl_t *, blob_t *, struct tpl_t *);
 
 ARRAY_TYPE(struct tpl_t, tpl);
 typedef struct tpl_t {
-    flag_t no_subst :  1; /* if the subtree has TPL_OP_VARs in it */
+    flag_t is_const :  1; /* if the subtree has TPL_OP_VARs in it */
     tpl_op op       :  7;
     unsigned refcnt : 24;
     union {
