@@ -83,6 +83,8 @@ static enum tplcode BASE(tpl_t *out, const tpl_t *tpl, uint16_t envid,
           case 2:
             ctmp = tpl->u.blocks.tab[0];
             tmp2 = TPL_SUBST(tpl->u.blocks.tab[1], envid, vals, nb, flags | TPL_KEEPVAR);
+            if (!tmp2)
+                return TPL_ERR;
             if (tmp2->no_subst) {
                 if ((*tpl->u.f)(out, tmp2) < 0) {
                     res = TPL_ERR;
