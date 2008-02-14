@@ -95,16 +95,20 @@ void tpl_add_data(tpl_t *tpl, const byte *data, int len)
 
 void tpl_copy_data(tpl_t *tpl, const byte *data, int len)
 {
-    assert (tpl_can_append(tpl));
-
     if (len > 0) {
-        tpl_t *buf = tpl->u.blocks.len > 0 ?
-            tpl->u.blocks.tab[tpl->u.blocks.len - 1] : NULL;
-        if (!buf || buf->op != TPL_OP_BLOB || buf->refcnt > 1) {
-            tpl_array_append(&tpl->u.blocks, buf = tpl_new_op(TPL_OP_BLOB));
-        }
-        blob_append_data(&buf->u.blob, data, len);
+        blob_t *b = tpl_get_blob(tpl);
+        blob_append_data(b, data, len);
     }
+}
+
+void tpl_add_fmt(tpl_t *tpl, const char *fmt, ...)
+{
+    blob_t *b = tpl_get_blob(tpl);
+    va_list ap;
+
+    va_start(ap, fmt);
+    blob_append_vfmt(b, fmt, ap);
+    va_end(ap);
 }
 
 blob_t *tpl_get_blob(tpl_t *tpl)

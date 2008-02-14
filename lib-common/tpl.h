@@ -71,10 +71,10 @@ void tpl_add_data(tpl_t *tpl, const byte *data, int len);
 static inline void tpl_add_cstr(tpl_t *tpl, const char *s) {
     tpl_add_data(tpl, (const byte *)s, strlen(s));
 }
-static inline void tpl_add_byte(tpl_t *tpl, byte b)
-{
+static inline void tpl_add_byte(tpl_t *tpl, byte b) {
       return tpl_add_data(tpl, &b, 1);
 }
+void tpl_add_fmt(tpl_t *tpl, const char *fmt, ...) __attr_printf__(2, 3);
 
 void tpl_copy_data(tpl_t *tpl, const byte *data, int len);
 static inline void tpl_copy_cstr(tpl_t *tpl, const char *s) {
