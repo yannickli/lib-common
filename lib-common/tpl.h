@@ -58,7 +58,8 @@ typedef struct tpl_t {
     } u;
 } tpl_t;
 
-tpl_t *tpl_new(void);
+#define tpl_new()  tpl_new_op(TPL_OP_BLOCK)
+tpl_t *tpl_new_op(tpl_op op);
 tpl_t *tpl_dup(const tpl_t *);
 void tpl_delete(tpl_t **);
 ARRAY_FUNCTIONS(tpl_t, tpl, tpl_delete);

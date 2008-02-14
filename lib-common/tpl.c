@@ -14,9 +14,9 @@
 #include "string_is.h"
 #include "tpl.h"
 
-static tpl_t *tpl_new_op(tpl_op op)
+tpl_t *tpl_new_op(tpl_op op)
 {
-    tpl_t *n = p_new(tpl_t, 1);
+    tpl_t *n  = p_new(tpl_t, 1);
     n->op     = op;
     n->refcnt = 1;
     if (op == TPL_OP_BLOB)
@@ -24,11 +24,6 @@ static tpl_t *tpl_new_op(tpl_op op)
     if (op & TPL_OP_BLOCK)
         tpl_array_init(&n->u.blocks);
     return n;
-}
-
-tpl_t *tpl_new(void)
-{
-    return tpl_new_op(TPL_OP_BLOCK);
 }
 
 tpl_t *tpl_dup(const tpl_t *tpl)
