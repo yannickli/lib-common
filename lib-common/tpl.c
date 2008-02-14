@@ -180,11 +180,13 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
 
     switch (tpl->op) {
       case TPL_OP_DATA:
-        TRACE("DATA %d bytes", ' ', tpl->u.data.len);
+        TRACE("DATA %5d bytes (%.*s...)", ' ', tpl->u.data.len,
+              MIN(tpl->u.data.len, 16), tpl->u.data.data);
         return;
 
       case TPL_OP_BLOB:
-        TRACE("BLOB %zd bytes", ' ', tpl->u.blob.len);
+        TRACE("BLOB %5zd bytes (%.*s...)", ' ', tpl->u.blob.len,
+              MIN((int)tpl->u.blob.len, 16), tpl->u.blob.data);
         return;
 
       case TPL_OP_VAR:
@@ -228,7 +230,7 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
 
       case TPL_OP_APPLY_PURE:
       case TPL_OP_APPLY_PURE_ASSOC:
-        TRACE("FUNC %d tpls", '\\', tpl->u.blocks.len);
+        TRACE("FUNC %p (%d tpls)", '\\', tpl->u.f, tpl->u.blocks.len);
         for (int i = 0; i < tpl->u.blocks.len; i++) {
             tpl_dump2(dbg, tpl->u.blocks.tab[i], lvl + 1);
         }
