@@ -53,7 +53,7 @@ static enum tplcode BASE(tpl_t *out, const tpl_t *tpl, uint16_t envid,
 
       case TPL_OP_IFDEF:
         if (tpl->u.varidx >> 16 == envid) {
-            int branch = getvar(tpl->u.varidx, vals, nb) != NULL;
+            int branch = getvar(tpl->u.varidx, vals, nb) == NULL;
             if (tpl->u.blocks.len <= branch)
                 return TPL_CONST;
             return BASE(out, tpl->u.blocks.tab[branch], envid,
