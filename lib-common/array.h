@@ -60,6 +60,11 @@ void generic_array_sort(generic_array *array,
         p_allocgrow(&v->tab, newlen, &v->size);                               \
         v->len = newlen;                                                      \
     }                                                                         \
+    static inline void                                                        \
+    prefix##suffix##_grow(prefix##suffix *v, int extra) {                     \
+        p_allocgrow(&v->tab, v->len + extra, &v->size);                       \
+        v->len += extra;                                                      \
+    }                                                                         \
                                                                               \
     static inline void                                                        \
     prefix##suffix##_insert(prefix##suffix *v, int pos, el_typ item) {        \
@@ -107,12 +112,22 @@ void generic_array_sort(generic_array *array,
         prefix##suffix##_splice(v, pos, 1, NULL, 0);                          \
     }
 
+#define VECTOR_FUNCTIONS2(el_typ, prefix, wipe)                               \
+    static inline void prefix##_vector_wipe(prefix##_vector *v) {             \
+        for (int i = 0; i < v->len; i++) {                                    \
+            wipe(v->tab + i);                                                 \
+        }                                                                     \
+        p_delete(&v->tab);                                                    \
+        p_clear(&v, 1);                                                       \
+    }                                                                         \
+    VECTOR_BASE_FUNCTIONS(el_typ, prefix, _vector)
+
 #define VECTOR_FUNCTIONS(el_typ, prefix)                                      \
     static inline void prefix##_vector_wipe(prefix##_vector *v) {             \
         p_delete(&v->tab);                                                    \
         p_clear(&v, 1);                                                       \
     }                                                                         \
-    VECTOR_BASE_FUNCTIONS(prefix, prefix, _vector)
+    VECTOR_BASE_FUNCTIONS(el_typ, prefix, _vector)
 
 #define DO_VECTOR(type, prefix)       VECTOR_TYPE(type, prefix);              \
                                       VECTOR_FUNCTIONS(type, prefix)
