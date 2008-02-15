@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "macros.h"
 #include "fifo.h"
 
 static int fifo_real_pos(fifo *f, int idx)
@@ -149,7 +148,6 @@ void *fifo_geti(fifo *f, int i)
 }
 
 #ifdef CHECK /* {{{ */
-#include <stdio.h>
 static void fifo_dump(fifo *f)
 {
     int i;

@@ -11,19 +11,9 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <inttypes.h>
-#include <sys/time.h>
-#include <time.h>
-
-#include <lib-common/macros.h>
-#include <lib-common/mem.h>
-#include <lib-common/timeval.h>
-#include <lib-common/string_is.h>
-#include <lib-common/iprintf.h>
+#include "timeval.h"
+#include "string_is.h"
+#include "iprintf.h"
 
 typedef struct mcms_event_t {
     int stamp;

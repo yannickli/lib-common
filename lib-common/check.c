@@ -12,8 +12,6 @@
 /**************************************************************************/
 
 #include <check.h>
-#include <stdlib.h>
-
 #include "all.h"
 
 int main(void)

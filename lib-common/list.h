@@ -14,8 +14,7 @@
 #ifndef IS_LIB_COMMON_LIST_H
 #define IS_LIB_COMMON_LIST_H
 
-#include <assert.h>
-#include <stddef.h>
+#include "mem.h"
 
 /*
  * Provides list functions, for objects that have a ->next member.

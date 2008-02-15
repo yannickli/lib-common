@@ -14,10 +14,12 @@
 #ifndef IS_LIB_COMMON_MACROS_H
 #define IS_LIB_COMMON_MACROS_H
 
+#include <assert.h>
 #include <ctype.h>
 #include <endian.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <malloc.h>
 #include <stdarg.h>
@@ -363,8 +365,6 @@ static inline int getopt_check(int argc, char * const argv[],
 #endif   /* MINGCC */
 
 /*---------------- Defensive programming ----------------*/
-
-#include <stdio.h>
 
 #undef sprintf
 #define sprintf(...)  NEVER_USE_sprintf(__VA_ARGS__)

@@ -14,8 +14,6 @@
 #ifndef IS_LIB_COMMON_FIFO_H
 #define IS_LIB_COMMON_FIFO_H
 
-#include <stdlib.h>
-
 #include "mem.h"
 
 typedef struct fifo {

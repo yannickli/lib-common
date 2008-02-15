@@ -50,8 +50,6 @@
 #define UNROLL_LOOPS /* Enable loop unrolling */
 #endif
 
-#include <stdio.h>
-
 #include "hash.h"
 #include "string_is.h"
 

@@ -13,10 +13,7 @@
 
 #include <stdio.h>
 #include <netinet/in.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
-#include <inttypes.h>
 
 #include "array.h"
 #include "btree.h"

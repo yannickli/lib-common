@@ -14,10 +14,6 @@
 #ifndef IS_LIB_COMMON_UNIX_H
 #define IS_LIB_COMMON_UNIX_H
 
-#include <unistd.h> /* for ssize_t */
-#include <sys/types.h>
-#include <sys/time.h>
-
 #include "macros.h"
 
 #define O_ISWRITE(m)      (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)

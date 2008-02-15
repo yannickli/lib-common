@@ -15,8 +15,7 @@
 #define IS_LIB_COMMON_IOVECLIST_H
 
 #include <sys/uio.h>
-#include <lib-common/blob.h>
-#include "mem.h"
+#include "blob.h"
 
 #define IOVECLIST_OBJS_NUM 64
 

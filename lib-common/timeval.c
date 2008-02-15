@@ -11,12 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <stdio.h>
-#include <sys/time.h>
-#include <time.h>
-#include <ctype.h>
-
-#include "mem.h"
 #include "err_report.h"
 #include "timeval.h"
 #include "string_is.h"
