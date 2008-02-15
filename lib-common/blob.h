@@ -14,14 +14,6 @@
 #ifndef IS_LIB_COMMON_BLOB_H
 #define IS_LIB_COMMON_BLOB_H
 
-#include <ctype.h>
-#include <unistd.h>
-#include <inttypes.h>
-#include <time.h>
-#include <stdio.h>
-#include <assert.h>
-
-#include "macros.h"
 #include "mem.h"
 
 #define BLOB_INITIAL_SIZE 32

@@ -14,14 +14,6 @@
 #ifndef IS_LIB_COMMON_BSTREAM_H
 #define IS_LIB_COMMON_BSTREAM_H
 
-#include <errno.h>
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdlib.h>
-
 #include "macros.h"
 #include "mem.h"
 

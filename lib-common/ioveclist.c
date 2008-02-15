@@ -11,8 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <errno.h>
-
 #include "ioveclist.h"
 
 void ioveclist_init(ioveclist *l)

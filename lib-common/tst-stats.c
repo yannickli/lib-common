@@ -11,8 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <stdlib.h>
-
 #include "stats-temporal.h"
 #include "err_report.h"
 

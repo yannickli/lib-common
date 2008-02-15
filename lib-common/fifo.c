@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "macros.h"
 #include "fifo.h"
 
 static int fifo_real_pos(fifo *f, int idx)
@@ -149,12 +148,11 @@ void *fifo_geti(fifo *f, int i)
 }
 
 #ifdef CHECK /* {{{ */
-#include <stdio.h>
 static void fifo_dump(fifo *f)
 {
     int i;
 
-    printf("nb_elems:%zd first:%zd [", f->nb_elems, f->first);
+    printf("nb_elems:%d first:%d [", f->nb_elems, f->first);
 
     for (i = 0; i < f->first; i++) {
         printf("%p ", f->elems[i]);

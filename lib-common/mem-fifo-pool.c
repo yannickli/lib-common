@@ -11,9 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <errno.h>
 #include <sys/mman.h>
-
 #include "mem.h"
 #include "mmappedfile.h"
 #include "mem-fifo-pool.h"

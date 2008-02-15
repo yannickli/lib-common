@@ -11,9 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #ifndef MINGCC
 #include <syslog.h>
 #else
@@ -28,10 +25,7 @@
 #define LOG_DEBUG       7       /* debug-level messages */
 #endif
 
-#include <string.h>
-#include <errno.h>
 #include <signal.h>
-
 #include "macros.h"
 #include "mem.h"
 #include "err_report.h"

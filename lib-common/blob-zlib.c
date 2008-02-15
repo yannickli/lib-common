@@ -13,10 +13,7 @@
 
 #ifndef MINGCC
 
-#include <stdlib.h>
 #include <zlib.h>
-
-#include "macros.h"
 #include "blob.h"
 
 /**************************************************************************/

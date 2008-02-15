@@ -14,8 +14,6 @@
 #ifndef IS_LIB_COMMON_CONCATBIN_H
 #define IS_LIB_COMMON_CONCATBIN_H
 
-#include <stdlib.h>
-
 #include "macros.h"
 
 /* The format of the archive is very simple :

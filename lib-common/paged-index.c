@@ -11,15 +11,9 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <assert.h>
-#include <errno.h>
-#include <limits.h>
 #include <sys/mman.h>
-
-#include <lib-common/err_report.h>
-#include <lib-common/mem.h>
-#include <lib-common/unix.h>
-
+#include "err_report.h"
+#include "unix.h"
 #include "paged-index.h"
 
 static union {

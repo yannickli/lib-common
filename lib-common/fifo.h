@@ -14,8 +14,6 @@
 #ifndef IS_LIB_COMMON_FIFO_H
 #define IS_LIB_COMMON_FIFO_H
 
-#include <stdlib.h>
-
 #include "mem.h"
 
 typedef struct fifo {
@@ -99,6 +97,9 @@ void *fifo_geti(fifo *f, int i) __attr_nonnull__((1));
     {                                                                        \
         return fifo_geti((fifo *)f, i);                                      \
     }
+
+#define DO_FIFO(el_typ, prefix, dtor) \
+    FIFO_TYPE(el_typ, prefix); FIFO_FUNCTIONS(el_typ, prefix, dtor)
 
 #ifdef CHECK
 #include <check.h>

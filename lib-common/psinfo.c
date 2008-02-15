@@ -11,10 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <stdio.h>
 #include <sys/time.h>
 #include <linux/limits.h>
-#include <time.h>
 
 #include "psinfo.h"
 #include "string_is.h"

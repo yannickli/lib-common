@@ -12,14 +12,10 @@
 /**************************************************************************/
 
 #define _GNU_SOURCE
-#include <assert.h>
-#include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <errno.h>
 
-#include <lib-common/mem.h>
-
+#include "mem.h"
 #include "unix.h"
 #include "mmappedfile.h"
 

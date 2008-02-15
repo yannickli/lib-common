@@ -20,7 +20,7 @@
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 
-#include "macros.h"
+#include "mem.h"
 #include "conf.h"
 #include "string_is.h"
 #include "licence.h"

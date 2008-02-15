@@ -11,9 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <string.h>
-#include <stdio.h>
-
 #include "blob.h"
 
 static int check_aiconv_templ(const char *file1, const char *file2,
