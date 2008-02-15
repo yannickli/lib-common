@@ -23,17 +23,6 @@
 /* Misc                                                                   */
 /**************************************************************************/
 
-void generic_array_wipe(generic_array *array, array_item_dtor_f *dtor)
-{
-    if (dtor) {
-        for (int i = 0; i < array->len; i++) {
-            (*dtor)(&array->tab[i]);
-        }
-    }
-    p_delete(&array->tab);
-    p_clear(array, 1);
-}
-
 void *generic_array_take(generic_array *array, int pos)
 {
     void *ptr;

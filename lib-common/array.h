@@ -35,7 +35,6 @@ typedef void array_item_dtor_f(void *item);
 /* Misc                                                                   */
 /**************************************************************************/
 
-void generic_array_wipe(generic_array *array, array_item_dtor_f *dtor);
 void *generic_array_take(generic_array *array, int pos)
     __attr_nonnull__((1));
 
@@ -112,16 +111,6 @@ void generic_array_sort(generic_array *array,
         prefix##suffix##_splice(v, pos, 1, NULL, 0);                          \
     }
 
-#define VECTOR_FUNCTIONS2(el_typ, prefix, wipe)                               \
-    static inline void prefix##_vector_wipe(prefix##_vector *v) {             \
-        for (int i = 0; i < v->len; i++) {                                    \
-            wipe(v->tab + i);                                                 \
-        }                                                                     \
-        p_delete(&v->tab);                                                    \
-        p_clear(&v, 1);                                                       \
-    }                                                                         \
-    VECTOR_BASE_FUNCTIONS(el_typ, prefix, _vector)
-
 #define VECTOR_FUNCTIONS(el_typ, prefix)                                      \
     static inline void prefix##_vector_wipe(prefix##_vector *v) {             \
         p_delete(&v->tab);                                                    \
@@ -129,16 +118,21 @@ void generic_array_sort(generic_array *array,
     }                                                                         \
     VECTOR_BASE_FUNCTIONS(el_typ, prefix, _vector)
 
-#define DO_VECTOR(type, prefix)       VECTOR_TYPE(type, prefix);              \
-                                      VECTOR_FUNCTIONS(type, prefix)
+#define VECTOR_BASE_FUNCTIONS2(el_typ, prefix, suffix, wipe)                  \
+    static inline void prefix##suffix##_wipe(prefix##suffix *v) {             \
+        for (int i = 0; i < v->len; i++) {                                    \
+            wipe(v->tab + i);                                                 \
+        }                                                                     \
+        p_delete(&v->tab);                                                    \
+        p_clear(&v, 1);                                                       \
+    }                                                                         \
+    VECTOR_BASE_FUNCTIONS(el_typ, prefix, suffix)
 
+#define VECTOR_FUNCTIONS2(el_typ, prefix, wipe)                               \
+    VECTOR_BASE_FUNCTIONS2(el_typ, prefix, _vector, wipe)
 
 #define ARRAY_FUNCTIONS(el_typ, prefix, dtor)                                 \
-    static inline void                                                        \
-    prefix##_array_wipe(prefix##_array *a) {                                  \
-        generic_array_wipe((generic_array *)a, (array_item_dtor_f *)dtor);    \
-    }                                                                         \
-    VECTOR_BASE_FUNCTIONS(el_typ *, prefix, _array);                          \
+    VECTOR_BASE_FUNCTIONS2(el_typ *, prefix, _array, dtor);                   \
                                                                               \
     static inline el_typ *                                                    \
     prefix##_array_take(prefix##_array *array, int pos) {                     \
@@ -152,8 +146,14 @@ void generic_array_sort(generic_array *array,
         generic_array_sort((generic_array *)array, (void *)cmp, priv);        \
     }
 
-#define DO_ARRAY(type, prefix, dtor)  ARRAY_TYPE(type, prefix);               \
-                                      ARRAY_FUNCTIONS(type, prefix, dtor)
+#define DO_VECTOR(type, prefix)     \
+    VECTOR_TYPE(type, prefix); VECTOR_FUNCTIONS(type, prefix)
+
+#define DO_VECTOR2(type, pfx, wipe) \
+    VECTOR_TYPE(type, pfx); VECTOR_FUNCTIONS2(type, pfx, wipe)
+
+#define DO_ARRAY(type, prefix, dtor) \
+    ARRAY_TYPE(type, prefix); ARRAY_FUNCTIONS(type, prefix, dtor)
 
 /* XXX: This macro only works for arrays of elements having a member
  * named 'name'. */
