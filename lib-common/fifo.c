@@ -154,7 +154,7 @@ static void fifo_dump(fifo *f)
 {
     int i;
 
-    printf("nb_elems:%zd first:%zd [", f->nb_elems, f->first);
+    printf("nb_elems:%d first:%d [", f->nb_elems, f->first);
 
     for (i = 0; i < f->first; i++) {
         printf("%p ", f->elems[i]);

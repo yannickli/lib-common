@@ -56,7 +56,6 @@
 #include "robuf.h"
 #include "stats-temporal.h"
 #include "stopper.h"
-#include "str_array.h"
 #include "strconv.h"
 #include "string_is.h"
 #include "threading.h"
@@ -64,7 +63,6 @@
 #include "timeval.h"
 #include "tpl.h"
 #include "unix.h"
-#include "vector.h"
 #include "xml.h"
 #include "xmlpp.h"
 

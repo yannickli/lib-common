@@ -16,11 +16,19 @@
 
 #include "mem.h"
 
-typedef struct generic_array {
-    void **tab;
-    int len;
-    int size;
-} generic_array;
+#define VECTOR_TYPE(el_typ, prefix)  \
+    typedef struct prefix##_vector { \
+        el_typ *tab;                 \
+        int len, size;               \
+    } prefix##_vector
+
+#define ARRAY_TYPE(el_typ, prefix)   \
+    typedef struct prefix##_array {  \
+        el_typ **tab;                \
+        int len, size;               \
+    } prefix##_array
+ARRAY_TYPE(void, generic);
+
 typedef void array_item_dtor_f(void *item);
 
 /**************************************************************************/
@@ -28,14 +36,6 @@ typedef void array_item_dtor_f(void *item);
 /**************************************************************************/
 
 void generic_array_wipe(generic_array *array, array_item_dtor_f *dtor);
-
-void generic_array_insert(generic_array *array, int pos, void *item)
-    __attr_nonnull__((1));
-
-void generic_array_splice(generic_array *array, int pos, int len,
-                          void **item, int count)
-    __attr_nonnull__((1));
-
 void *generic_array_take(generic_array *array, int pos)
     __attr_nonnull__((1));
 
@@ -48,59 +48,83 @@ void generic_array_sort(generic_array *array,
 /* Typed Arrays                                                           */
 /**************************************************************************/
 
-#define ARRAY_TYPE(el_typ, prefix)  \
-    typedef struct prefix##_array { \
-        el_typ ** tab;              \
-        int len, size;              \
-    } prefix##_array
-
-#define ARRAY_FUNCTIONS(el_typ, prefix, dtor)                                 \
-    GENERIC_INIT(prefix##_array, prefix##_array);                             \
-    GENERIC_NEW(prefix##_array, prefix##_array);                              \
-    static inline void prefix##_array_reset(prefix##_array *array) {          \
-        array->len = 0;                                                       \
+#define VECTOR_BASE_FUNCTIONS(el_typ, prefix, suffix)                         \
+    GENERIC_INIT(prefix##suffix, prefix##suffix);                             \
+    GENERIC_NEW(prefix##suffix, prefix##suffix);                              \
+    GENERIC_DELETE(prefix##suffix, prefix##suffix);                           \
+    static inline void prefix##suffix##_reset(prefix##suffix *v) {            \
+        v->len = 0;                                                           \
+    }                                                                         \
+                                                                              \
+    static inline void                                                        \
+    prefix##suffix##_insert(prefix##suffix *v, int pos, el_typ item) {        \
+        p_allocgrow(&v->tab, v->len + 1, &v->size);                           \
+        if (pos < v->len) {                                                   \
+            p_move(v->tab, pos + 1, pos, v->len - pos);                       \
+        } else {                                                              \
+            pos = v->len;                                                     \
+            v->len++;                                                         \
+        }                                                                     \
+        v->tab[pos] = item;                                                   \
     }                                                                         \
     static inline void                                                        \
-    prefix##_array_wipe(prefix##_array *array)                                \
-    {                                                                         \
-        generic_array_wipe((generic_array*)array, (array_item_dtor_f *)dtor); \
+    prefix##suffix##_append(prefix##suffix *v, el_typ item) {                 \
+        prefix##suffix##_insert(v, v->len, item);                             \
     }                                                                         \
-    GENERIC_DELETE(prefix##_array, prefix##_array);                           \
+    static inline void                                                        \
+    prefix##suffix##_push(prefix##suffix *v, el_typ item) {                   \
+        prefix##suffix##_insert(v, 0, item);                                  \
+    }                                                                         \
                                                                               \
-    /* module functions */                                                    \
+    static inline void                                                        \
+    prefix##suffix##_splice(prefix##suffix *v, int pos, int len,              \
+                          el_typ items[], int count)                          \
+    {                                                                         \
+        if (pos > v->len)                                                     \
+            pos = v->len;                                                     \
+        if (pos + len > v->len)                                               \
+            len = v->len - pos - len;                                         \
+        if (len < count)                                                      \
+            p_allocgrow(&v->tab, v->len + count - len, &v->size);             \
+        if (len != count) {                                                   \
+            p_move(v->tab, pos + count, pos + len, v->len - pos - len);       \
+            v->len += count - len;                                            \
+        }                                                                     \
+        memcpy(v->tab + pos, items, count * sizeof(*items));                  \
+    }                                                                         \
+    static inline void prefix##suffix##_remove(prefix##suffix *v, int pos) {  \
+        prefix##suffix##_splice(v, pos, 1, NULL, 0);                          \
+    }
+
+#define VECTOR_FUNCTIONS(el_typ, prefix)                                      \
+    static inline void prefix##_vector_wipe(prefix##_vector *v) {             \
+        p_delete(&v->tab);                                                    \
+        p_clear(&v, 1);                                                       \
+    }                                                                         \
+    VECTOR_BASE_FUNCTIONS(prefix, prefix, _vector)
+
+#define DO_VECTOR(type, prefix)       VECTOR_TYPE(type, prefix);              \
+                                      VECTOR_FUNCTIONS(type, prefix)
+
+
+#define ARRAY_FUNCTIONS(el_typ, prefix, dtor)                                 \
+    static inline void                                                        \
+    prefix##_array_wipe(prefix##_array *a) {                                  \
+        generic_array_wipe((generic_array *)a, (array_item_dtor_f *)dtor);    \
+    }                                                                         \
+    VECTOR_BASE_FUNCTIONS(el_typ *, prefix, _array);                          \
+                                                                              \
     static inline void                                                        \
     prefix##_array_resize(prefix##_array *a, int newlen) {                    \
         p_allocgrow(&a->tab, newlen, &a->size);                               \
         a->len = newlen;                                                      \
     }                                                                         \
     static inline void                                                        \
-    prefix##_array_insert(prefix##_array *array, int pos, el_typ *item)       \
-    {                                                                         \
-        generic_array_insert((generic_array *)array, pos, (void*)item);       \
-    }                                                                         \
-    static inline void                                                        \
-    prefix##_array_splice(prefix##_array *array, int pos, int len,            \
-                          el_typ **items, int count)                          \
-    {                                                                         \
-        generic_array_splice((generic_array *)array, pos, len,                \
-                             (void **)items, count);                          \
-    }                                                                         \
-    static inline void                                                        \
-    prefix##_array_append(prefix##_array *array, el_typ *item) {              \
-        prefix##_array_insert(array, array->len, item);                       \
-    }                                                                         \
-    static inline void                                                        \
-    prefix##_array_push(prefix##_array *array, el_typ *item) {                \
-        prefix##_array_insert(array, 0, item);                                \
-    }                                                                         \
-    static inline void                                                        \
-    prefix##_array_swap(prefix##_array *array, int i, int j)                  \
-    {                                                                         \
+    prefix##_array_swap(prefix##_array *array, int i, int j) {                \
         SWAP(array->tab[i], array->tab[j]);                                   \
     }                                                                         \
     static inline el_typ *                                                    \
-    prefix##_array_take(prefix##_array *array, int pos)                       \
-    {                                                                         \
+    prefix##_array_take(prefix##_array *array, int pos) {                     \
         return (el_typ *)generic_array_take((generic_array *)array, pos);     \
     }                                                                         \
     static inline void                                                        \
@@ -120,9 +144,7 @@ void generic_array_sort(generic_array *array,
     static inline el_type *                                               \
     prefix##_array_find(const prefix##_array *array, const char *name)    \
     {                                                                     \
-        int i;                                                            \
-                                                                          \
-        for (i = 0; i < array->len; i++) {                                \
+        for (int i = 0; i < array->len; i++) {                            \
             el_type *el = array->tab[i];                                  \
             if (strequal(el->name, name)) {                               \
                 return el;                                                \
@@ -130,5 +152,19 @@ void generic_array_sort(generic_array *array,
         }                                                                 \
         return NULL;                                                      \
     }
+
+DO_VECTOR(int, int);
+DO_ARRAY(char, string, p_delete);
+
+string_array *str_explode(const char *s, const char *tokens);
+
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
+#ifdef CHECK
+#include <check.h>
+
+Suite *check_str_array_suite(void);
+
+#endif
+/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
 
 #endif /* IS_LIB_COMMON_ARRAY_H */

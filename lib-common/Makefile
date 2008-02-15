@@ -57,7 +57,6 @@ libcommon_SOURCES = \
 	showflags.c \
 	stats-temporal.c \
 	stopper.c \
-	str_array.c \
 	strconv.c \
 	string_is.c \
 	timeval.c \
