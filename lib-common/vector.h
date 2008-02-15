@@ -23,8 +23,6 @@
     } prefix##_vector
 
 #define VECTOR_FUNCTIONS(el_typ, prefix)                                      \
-                                                                              \
-    /* legacy functions */                                                    \
     GENERIC_INIT(prefix##_vector, prefix##_vector);                           \
     GENERIC_NEW(prefix##_vector, prefix##_vector);                            \
     static inline void prefix##_vector_reset(prefix##_vector *v) {            \

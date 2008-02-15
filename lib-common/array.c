@@ -20,20 +20,9 @@
 #include "array.h"
 
 /**************************************************************************/
-/* Private inlines                                                        */
+/* Misc                                                                   */
 /**************************************************************************/
 
-static inline void array_resize(generic_array *a, int newlen)
-{
-    p_allocgrow(&a->tab, newlen, &a->size);
-    p_clear(a->tab + a->len, a->size - a->len);
-    a->len = newlen;
-}
-
-
-/**************************************************************************/
-/* Memory management                                                      */
-/**************************************************************************/
 
 void generic_array_wipe(generic_array *array, array_item_dtor_f *dtor)
 {
@@ -46,23 +35,6 @@ void generic_array_wipe(generic_array *array, array_item_dtor_f *dtor)
     /* Defensive programming: in case someone try to access the array's
      * elements after wipe */
     array->len = 0;
-}
-
-void generic_array_delete(generic_array **array, array_item_dtor_f *dtor)
-{
-    if (*array) {
-        generic_array_wipe(*array, dtor);
-        p_delete(array);
-    }
-}
-
-/**************************************************************************/
-/* Misc                                                                   */
-/**************************************************************************/
-
-void generic_array_resize(generic_array *array, int newlen)
-{
-    array_resize(array, newlen);
 }
 
 void *generic_array_take(generic_array *array, int pos)
@@ -82,22 +54,20 @@ void *generic_array_take(generic_array *array, int pos)
 
 /* insert item at pos `pos',
    pos interpreted as array->len if pos > array->len */
-void generic_array_insert(generic_array *array, int pos, void *item)
+void generic_array_insert(generic_array *a, int pos, void *item)
 {
-    int curlen = array->len;
+    p_allocgrow(&a->tab, a->len + 1, &a->size);
 
-    array_resize(array, curlen + 1);
-
-    if (pos < curlen) {
+    if (pos < a->len) {
         if (pos < 0) {
             pos = 0;
         }
-        p_move(array->tab, pos + 1, pos, curlen - pos);
+        p_move(a->tab, pos + 1, pos, a->len - pos);
     } else {
-        pos = curlen;
+        pos = a->len;
     }
-
-    array->tab[pos] = item;
+    a->tab[pos] = item;
+    a->len++;
 }
 
 void generic_array_splice(generic_array *a, int pos, int len,
