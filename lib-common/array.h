@@ -55,6 +55,11 @@ void generic_array_sort(generic_array *array,
     static inline void prefix##suffix##_reset(prefix##suffix *v) {            \
         v->len = 0;                                                           \
     }                                                                         \
+    static inline void                                                        \
+    prefix##suffix##_resize(prefix##suffix *v, int newlen) {                  \
+        p_allocgrow(&v->tab, newlen, &v->size);                               \
+        v->len = newlen;                                                      \
+    }                                                                         \
                                                                               \
     static inline void                                                        \
     prefix##suffix##_insert(prefix##suffix *v, int pos, el_typ item) {        \
@@ -76,6 +81,12 @@ void generic_array_sort(generic_array *array,
         prefix##suffix##_insert(v, 0, item);                                  \
     }                                                                         \
                                                                               \
+    static inline void                                                        \
+    prefix##suffix##_swap(prefix##suffix *v, int i, int j) {                  \
+        el_typ e = v->tab[i];                                                 \
+        v->tab[i] = v->tab[j];                                                \
+        v->tab[j] = e;                                                        \
+    }                                                                         \
     static inline void                                                        \
     prefix##suffix##_splice(prefix##suffix *v, int pos, int len,              \
                           el_typ items[], int count)                          \
@@ -114,15 +125,6 @@ void generic_array_sort(generic_array *array,
     }                                                                         \
     VECTOR_BASE_FUNCTIONS(el_typ *, prefix, _array);                          \
                                                                               \
-    static inline void                                                        \
-    prefix##_array_resize(prefix##_array *a, int newlen) {                    \
-        p_allocgrow(&a->tab, newlen, &a->size);                               \
-        a->len = newlen;                                                      \
-    }                                                                         \
-    static inline void                                                        \
-    prefix##_array_swap(prefix##_array *array, int i, int j) {                \
-        SWAP(array->tab[i], array->tab[j]);                                   \
-    }                                                                         \
     static inline el_typ *                                                    \
     prefix##_array_take(prefix##_array *array, int pos) {                     \
         return (el_typ *)generic_array_take((generic_array *)array, pos);     \
