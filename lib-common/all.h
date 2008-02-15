@@ -37,7 +37,6 @@
 #include "file-binlog.h"
 #include "hash.h"
 #include "hashtbl.h"
-#include "int_array.h"
 #include "ioveclist.h"
 #include "isndx.h"
 #include "licence.h"
@@ -65,6 +64,7 @@
 #include "timeval.h"
 #include "tpl.h"
 #include "unix.h"
+#include "vector.h"
 #include "xml.h"
 #include "xmlpp.h"
 

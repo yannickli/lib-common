@@ -14,12 +14,10 @@
 #ifndef IS_LIB_COMMON_ARRAY_H
 #define IS_LIB_COMMON_ARRAY_H
 
-#include <stdlib.h>
-
 #include "mem.h"
 
 typedef struct generic_array {
-    void ** tab;
+    void **tab;
     int len;
     int size;
 } generic_array;

@@ -19,8 +19,6 @@
 #include "string_is.h"
 #include "array.h"
 
-#define ARRAY_INITIAL_SIZE 32
-
 /**************************************************************************/
 /* Private inlines                                                        */
 /**************************************************************************/
@@ -54,7 +52,7 @@ void generic_array_delete(generic_array **array, array_item_dtor_f *dtor)
 {
     if (*array) {
         generic_array_wipe(*array, dtor);
-        p_delete(&*array);
+        p_delete(array);
     }
 }
 
@@ -105,7 +103,10 @@ void generic_array_insert(generic_array *array, int pos, void *item)
 void generic_array_splice(generic_array *a, int pos, int len,
                           void **item, int count)
 {
-    /* OG: what if pos and/or len extend beyond the end of the array? */
+    if (pos > a->len)
+        pos = a->len;
+    if (pos + len > a->len)
+        len = a->len - pos - len;
     if (len < count) {
         p_allocgrow(&a->tab, a->len + count - len, &a->size);
     }
