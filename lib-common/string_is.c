@@ -75,6 +75,70 @@ int strtoip(const char *s, const char **endp)
     return value;
 }
 
+int memtoip(const byte *s, int len, const byte **endp)
+{
+    int value = 0;
+
+    if (!s || len < 0) {
+        errno = EINVAL;
+        goto done;
+    }
+    while (len && isspace((unsigned char)*s)) {
+        s++;
+        len--;
+    }
+    if (!len) {
+        errno = EINVAL;
+        goto done;
+    }
+    if (*s == '-') {
+        s++;
+        len--;
+        if (!len || !isdigit((unsigned char)*s)) {
+            errno = EINVAL;
+            goto done;
+        }
+        value = '0' - *s++;
+        while (--len && isdigit((unsigned char)*s)) {
+            int digit = '0' - *s++;
+            if ((value <= INT_MIN / 10)
+            &&  (value < INT_MIN / 10 || digit < INT_MIN % 10)) {
+                errno = ERANGE;
+                value = INT_MIN;
+                /* keep looping inefficiently in case of overflow */
+            } else {
+                value = value * 10 + digit;
+            }
+        }
+    } else {
+        if (*s == '+') {
+            s++;
+            len--;
+        }
+        if (!len || !isdigit((unsigned char)*s)) {
+            errno = EINVAL;
+            goto done;
+        }
+        value = *s++ - '0';
+        while (--len && isdigit((unsigned char)*s)) {
+            int digit = *s++ - '0';
+            if ((value >= INT_MAX / 10)
+            &&  (value > INT_MAX / 10 || digit > INT_MAX % 10)) {
+                errno = ERANGE;
+                value = INT_MAX;
+                /* keep looping inefficiently in case of overflow */
+            } else {
+                value = value * 10 + digit;
+            }
+        }
+    }
+  done:
+    if (endp) {
+        *endp = s;
+    }
+    return value;
+}
+
 #define INVALID_NUMBER  INT64_MIN
 int64_t parse_number(const char *str)
 {

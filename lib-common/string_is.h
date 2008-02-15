@@ -121,6 +121,7 @@ int strtoip(const char *p, const char **endp)  __attr_nonnull__((1));
 static inline int vstrtoip(char *p, char **endp) {
     return strtoip(p, (const char **)endp);
 }
+int memtoip(const byte *s, int len, const byte **endp);
 int64_t parse_number(const char *str);
 
 #define STRTOLP_IGNORE_SPACES  (1 << 0)
