@@ -179,7 +179,7 @@ static int domains_index_populate(domains_index_t *idx, const char *dictname)
     FILE *f;
     char buf[256];
     int i;
-    
+
     f = fopen(dictname, "r");
     if (!f) {
         fprintf(stderr, "ERROR: Unable to open '%s' for reading.\n", dictname);
@@ -207,12 +207,12 @@ static int domains_index_test_50000(const domains_index_t *idx, const char *word
 
     p = (const char *)&idx->nodes[0];
     pend = (const char *)&idx->nodes[idx->freenode - 1];
-    
+
     while (p < pend) {
         i = *p;
         p++;
     }
-    
+
     domains_index_get(idx, word, 0);
     gettimeofday(&begin, NULL);
     for (i = 0; i < 50000; i++) {
@@ -229,7 +229,7 @@ static int domains_index_test_50000(const domains_index_t *idx, const char *word
 static int domains_index_test(const char *dictname, int n)
 {
     domains_index_t *idx;
-    
+
     idx = domains_index_new();
     if (domains_index_populate(idx, dictname)) {
         domains_index_delete(&idx);
@@ -262,16 +262,16 @@ int main(int argc, char **argv)
         switch(c) {
           case 'd':
             if (dictionnary) {
-                 fprintf(stderr, "ERROR:Dictionnary already set to '%s'\n",
-                         dictionnary);
-                 return 1;
+                fprintf(stderr, "ERROR:Dictionnary already set to '%s'\n",
+                        dictionnary);
+                return 1;
             }
             dictionnary = optarg;
             break;
           case 'n':
             if (n != -1) {
-                 fprintf(stderr, "ERROR:nb words already set to %d\n", n);
-                 return 1;
+                fprintf(stderr, "ERROR:nb words already set to %d\n", n);
+                return 1;
             }
             n = atoi(optarg);
             break;
