@@ -142,10 +142,8 @@ static void mfp_free(struct mem_pool *mp, void *mem)
         return;
 
     blk = (mem_block*)((byte *)mem - sizeof(mem_block));
-    if (blk->page_offs > 0) {
-        e_error("double free heap corruption *** %p ***", mem);
-        return;
-    }
+    if (blk->page_offs > 0)
+        e_panic("double free heap corruption *** %p ***", mem);
 
     mfp->occupied -= blk->blk_size;
 
