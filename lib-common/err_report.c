@@ -139,7 +139,7 @@ void e_fatal(int status, const char *format, ...)
 void e_panic(const char *format, ...)
 {
     E_BODY(LOG_CRIT, format);
-    exit(FATAL_DEFAULT);
+    abort();
 }
 
 void e_error   (const char *format, ...) { E_BODY(LOG_ERR,     format); }
