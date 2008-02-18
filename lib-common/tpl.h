@@ -44,7 +44,7 @@ typedef int (tpl_apply_f)(struct tpl_t *, blob_t *, struct tpl_t *);
 
 ARRAY_TYPE(struct tpl_t, tpl);
 typedef struct tpl_t {
-    flag_t no_subst :  1; /* if the subtree has TPL_OP_VARs in it */
+    flag_t is_const :  1; /* if the subtree has TPL_OP_VARs in it */
     tpl_op op       :  7;
     unsigned refcnt : 24;
     union {
@@ -58,7 +58,8 @@ typedef struct tpl_t {
     } u;
 } tpl_t;
 
-tpl_t *tpl_new(void);
+#define tpl_new()  tpl_new_op(TPL_OP_BLOCK)
+tpl_t *tpl_new_op(tpl_op op);
 tpl_t *tpl_dup(const tpl_t *);
 void tpl_delete(tpl_t **);
 ARRAY_FUNCTIONS(tpl_t, tpl, tpl_delete);
@@ -99,12 +100,11 @@ enum {
 
 int tpl_get_short_data(tpl_t *tpl, const byte **data, int *len);
 
-int tpl_fold(blob_t *, tpl_t *, uint16_t envid, tpl_t **, int nb, int flags);
-int tpl_fold_str(blob_t *, tpl_t *, uint16_t envid, const char **, int nb, int flags);
+int tpl_fold(blob_t *, tpl_t **, uint16_t envid, tpl_t **, int nb, int flags);
+int tpl_fold_str(blob_t *, tpl_t **, uint16_t envid, const char **, int nb, int flags);
 
-tpl_t *tpl_subst(const tpl_t *, uint16_t envid, tpl_t **, int nb, int flags);
-tpl_t *tpl_subst_str(const tpl_t *, uint16_t envid, const char **, int nb,
-                     int flags);
+int tpl_subst(tpl_t **, uint16_t envid, tpl_t **, int nb, int flags);
+int tpl_subst_str(tpl_t **, uint16_t envid, const char **, int nb, int flags);
 void tpl_optimize(tpl_t *tpl);
 
 int tpl_to_iov(struct iovec *, int nr, tpl_t *);

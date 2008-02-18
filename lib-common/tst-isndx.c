@@ -11,15 +11,9 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <stdio.h>
 #include <netinet/in.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
-#include <inttypes.h>
 
-#include "macros.h"
-#include "mem.h"
 #include "array.h"
 #include "isndx.h"
 #include "btree.h"
@@ -113,8 +107,7 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
     }
     proctimer_stop(&pt);
 
-    //entry_array_wipe(&entries, true);
-    entry_array_resize(&entries, 0);
+    entry_array_reset(&entries);
     entry_array_wipe(&entries);
     free(entry_tab);
     p_fclose(&fp);

@@ -14,12 +14,7 @@
 #ifndef IS_LIB_COMMON_STRING_IS_H
 #define IS_LIB_COMMON_STRING_IS_H
 
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <unistd.h>
-
-#include "macros.h"
+#include "mem.h"
 
 __attr_nonnull__((1))
 static inline ssize_t sstrlen(const char *str) {

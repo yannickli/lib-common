@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_XMLPP_H
 #define IS_LIB_COMMON_XMLPP_H
 
-#include <lib-common/str_array.h>
+#include <lib-common/array.h>
 #include <lib-common/blob.h>
 
 typedef struct xmlpp_t {

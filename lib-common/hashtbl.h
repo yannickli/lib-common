@@ -207,5 +207,15 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *);
 DO_HASHTBL_STROFFS(char, string, 0, true);
 DO_HASHTBL_STROFFS(byte, data, 0, true);
 
+static inline void string_hash_deep_wipe_one(char **s, void *data)
+{
+    p_delete(s);
+}
+
+static inline void string_hash_deep_wipe(string_hash *hash)
+{
+    string_hash_map(hash, &string_hash_deep_wipe_one, NULL);
+    string_hash_wipe(hash);
+}
 
 #endif /* IS_LIB_COMMON_HASHTBL_H */

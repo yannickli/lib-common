@@ -12,21 +12,7 @@
 /**************************************************************************/
 
 #include <check.h>
-#include <stdlib.h>
-
-#include "archive.h"
-#include "bfield.h"
-#include "blob.h"
-#include "conf.h"
-#include "fifo.h"
-#include "licence.h"
-#include "log_limit.h"
-#include "str_array.h"
-#include "string_is.h"
-#include "strconv.h"
-#include "timeval.h"
-#include "timer.h"
-#include "xml.h"
+#include "all.h"
 
 int main(void)
 {

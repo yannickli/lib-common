@@ -1,20 +1,19 @@
-static enum tplcode
+static int
 NS(tpl_combine)(tpl_t *, const tpl_t *, uint16_t, VAL_TYPE*, int, int);
 
-static enum tplcode
+static int
 NS(tpl_combine_block)(tpl_t *out, const tpl_t *tpl,
                       uint16_t envid, VAL_TYPE *vals, int nb, int flags)
 {
-    enum tplcode res = TPL_CONST;
-
     assert (tpl->op & TPL_OP_BLOCK);
     for (int i = 0; i < tpl->u.blocks.len; i++) {
-        res |= NS(tpl_combine)(out, tpl->u.blocks.tab[i], envid, vals, nb, flags);
+        if (NS(tpl_combine)(out, tpl->u.blocks.tab[i], envid, vals, nb, flags))
+            return -1;
     }
-    return res;
+    return 0;
 }
 
-static enum tplcode
+static int
 NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
                 uint16_t envid, VAL_TYPE *vals, int nb, int flags)
 {
@@ -22,27 +21,25 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
     tpl_t *tmp, *tmp2;
 
     switch (tpl->op) {
-        enum tplcode res;
-
       case TPL_OP_DATA:
         if (tpl->u.data.len > 0)
             tpl_add_tpl(out, tpl);
-        return TPL_CONST;
+        return 0;
       case TPL_OP_BLOB:
         if (tpl->u.blob.len > 0)
             tpl_add_tpl(out, tpl);
-        return TPL_CONST;
+        return 0;
 
       case TPL_OP_VAR:
         if (tpl->u.varidx >> 16 == envid) {
             VAL_TYPE vtmp = getvar(tpl->u.varidx, vals, nb);
             if (!vtmp)
-                return TPL_ERR;
+                return -1;
             return DEAL_WITH_VAR(out, vtmp, envid, vals, nb, flags);
         }
         tpl_add_tpl(out, tpl);
-        out->no_subst = false;
-        return TPL_VAR;
+        out->is_const = false;
+        return 0;
 
       case TPL_OP_BLOCK:
         return NS(tpl_combine_block)(out, tpl, envid, vals, nb, flags);
@@ -51,88 +48,89 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
         if (tpl->u.varidx >> 16 == envid) {
             int branch = getvar(tpl->u.varidx, vals, nb) == NULL;
             if (tpl->u.blocks.len <= branch || !tpl->u.blocks.tab[branch])
-                return TPL_CONST;
+                return 0;
             return NS(tpl_combine)(out, tpl->u.blocks.tab[branch], envid,
                                    vals, nb, flags);
         }
-        out->no_subst = false;
-        if (tpl->no_subst) {
+        out->is_const = false;
+        if (tpl->is_const) {
             tpl_add_tpl(out, tpl);
-            return TPL_VAR;
+            return 0;
         }
         tpl_array_append(&out->u.blocks, tmp = tpl_new_op(TPL_OP_IFDEF));
-        tmp->no_subst = true;
+        tmp->is_const = true;
         for (int i = 0; i < tpl->u.blocks.len; i++) {
-            tmp2 = TPL_SUBST(tpl->u.blocks.tab[i], envid,
-                             vals, nb, flags | TPL_KEEPVAR);
-            if (!tmp2)
-                return TPL_ERR;
-            tmp->no_subst &= tmp2->no_subst;
+            tmp2 = tpl_dup(tpl->u.blocks.tab[i]);
+            if (TPL_SUBST(&tmp2, envid, vals, nb, flags | TPL_KEEPVAR))
+                return -1;
+            tmp->is_const &= tmp2->is_const;
             tpl_array_append(&tmp->u.blocks, tmp2);
         }
-        return TPL_VAR;
+        return 0;
 
       case TPL_OP_APPLY_DELAYED:
         switch (tpl->u.blocks.len) {
           case 0:
-            return (*tpl->u.f)(out, NULL, NULL) < 0 ? TPL_ERR : TPL_CONST;
+            return (*tpl->u.f)(out, NULL, NULL);
 
           case 1:
             if ((*tpl->u.f)(out, NULL, NULL) < 0)
-                return TPL_ERR;
+                return -1;
             return NS(tpl_combine)(out, tpl->u.blocks.tab[0], envid, vals, nb, flags);
 
           case 2:
             ctmp = tpl->u.blocks.tab[0];
-            tmp2 = TPL_SUBST(tpl->u.blocks.tab[1], envid, vals, nb, flags | TPL_KEEPVAR);
-            if (!tmp2)
-                return TPL_ERR;
-            if (tmp2->no_subst) {
-                if ((*tpl->u.f)(out, NULL, tmp2) < 0) {
-                    res = TPL_ERR;
+            tmp2 = tpl_dup(tpl->u.blocks.tab[1]);
+            if (TPL_SUBST(&tmp2, envid, vals, nb, flags | TPL_KEEPVAR))
+                return -1;
+            if (tmp2->is_const) {
+                if ((*tpl->u.f)(out, NULL, tmp2) < 0
+                ||  (ctmp && NS(tpl_combine)(out, ctmp, envid, vals, nb, flags))
+                ||  NS(tpl_combine)(out, tmp2, envid, vals, nb, flags))
+                {
+                    tpl_delete(&tmp2);
+                    return -1;
                 }
-                if (ctmp) {
-                    res |= NS(tpl_combine)(out, ctmp, envid, vals, nb, flags);
-                }
-                res |= NS(tpl_combine)(out, tmp2, envid, vals, nb, flags);
                 tpl_delete(&tmp2);
-                return res;
+                return 0;
             }
+
             tpl_array_append(&out->u.blocks, tmp = tpl_new_op(TPL_OP_APPLY_DELAYED));
             tpl_array_append(&tmp->u.blocks, NULL);
             tpl_array_append(&tmp->u.blocks, tmp2);
             if (ctmp) {
-                tmp2 = TPL_SUBST(ctmp, envid, vals, nb, flags | TPL_KEEPVAR);
-                if (!tmp2)
-                    return TPL_ERR;
+                tmp2 = tpl_dup(ctmp);
+                if (TPL_SUBST(&tmp2, envid, vals, nb, flags | TPL_KEEPVAR))
+                    return -1;
                 tmp->u.blocks.tab[0] = tmp2;
             }
-            tmp->no_subst = out->no_subst = false;
-            return TPL_VAR;
+            tmp->is_const = out->is_const = false;
+            return 0;
           default:
-            return TPL_ERR;
+            return -1;
         }
 
       case TPL_OP_APPLY_PURE:
       case TPL_OP_APPLY_PURE_ASSOC:
         tmp = tpl_new();
-        tmp->no_subst = true;
-        res = NS(tpl_combine_block)(tmp, tpl, envid, vals, nb, flags);
-        if (res == TPL_CONST) {
-            if ((*tpl->u.f)(out, NULL, tmp) < 0) {
-                res = TPL_ERR;
-            }
+        tmp->is_const = true;
+        if (NS(tpl_combine_block)(tmp, tpl, envid, vals, nb, flags)) {
             tpl_delete(&tmp);
-        } else {
-            tmp->op  = tpl->op;
-            tmp->u.f = tpl->u.f;
-            out->no_subst = false;
-            tpl_array_append(&out->u.blocks, tmp);
+            return -1;
         }
-        return res;
+        if (tmp->is_const) {
+            int res = (*tpl->u.f)(out, NULL, tmp);
+            tpl_delete(&tmp);
+            return res;
+        }
+        tmp->op  = tpl->op;
+        tmp->u.f = tpl->u.f;
+        out->is_const = false;
+        tpl_array_append(&out->u.blocks, tmp);
+        return 0;
     }
 
-    return TPL_ERR;
+    return -1;
 }
 
 static int
@@ -202,10 +200,12 @@ NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
 
           case 2:
             ctmp = tpl->u.blocks.tab[0];
-            tmp = TPL_SUBST(tpl->u.blocks.tab[1], envid, vals, nb,
-                            flags | TPL_KEEPVAR | TPL_LASTSUBST);
-            if (!tmp)
+            tmp = tpl_dup(tpl->u.blocks.tab[1]);
+            if (TPL_SUBST(&tmp, envid, vals, nb,
+                          flags | TPL_KEEPVAR | TPL_LASTSUBST))
+            {
                 return -1;
+            }
             if (((*tpl->u.f)(NULL, out, tmp) < 0)
             ||  (ctmp && NS(tpl_fold_block)(out, ctmp, envid, vals, nb, flags))
             ||  NS(tpl_fold_block)(out, tmp, envid, vals, nb, flags))
@@ -217,13 +217,13 @@ NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
             return 0;
 
           default:
-            return TPL_ERR;
+            return -1;
         }
 
       case TPL_OP_APPLY_PURE:
       case TPL_OP_APPLY_PURE_ASSOC:
         if (NS(tpl_combine_block)(tmp = tpl_new(), tpl, envid, vals, nb,
-                                  flags | TPL_KEEPVAR | TPL_LASTSUBST) != TPL_CONST
+                                  flags | TPL_KEEPVAR | TPL_LASTSUBST)
         ||  (*tpl->u.f)(NULL, out, tmp) < 0)
         {
             tpl_delete(&tmp);

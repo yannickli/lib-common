@@ -42,7 +42,6 @@ libcommon_SOURCES = \
 	farch.c \
 	fifo.c \
 	hashtbl.c \
-	int_array.c \
 	ioveclist.c \
 	iprintf.c \
 	isndx.c \
@@ -58,7 +57,6 @@ libcommon_SOURCES = \
 	showflags.c \
 	stats-temporal.c \
 	stopper.c \
-	str_array.c \
 	strconv.c \
 	string_is.c \
 	timeval.c \

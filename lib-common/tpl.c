@@ -14,9 +14,9 @@
 #include "string_is.h"
 #include "tpl.h"
 
-static tpl_t *tpl_new_op(tpl_op op)
+tpl_t *tpl_new_op(tpl_op op)
 {
-    tpl_t *n = p_new(tpl_t, 1);
+    tpl_t *n  = p_new(tpl_t, 1);
     n->op     = op;
     n->refcnt = 1;
     if (op == TPL_OP_BLOB)
@@ -24,11 +24,6 @@ static tpl_t *tpl_new_op(tpl_op op)
     if (op & TPL_OP_BLOCK)
         tpl_array_init(&n->u.blocks);
     return n;
-}
-
-tpl_t *tpl_new(void)
-{
-    return tpl_new_op(TPL_OP_BLOCK);
 }
 
 tpl_t *tpl_dup(const tpl_t *tpl)
@@ -171,7 +166,7 @@ static char const pad[] = "| | | | | | | | | | | | | | | | | | | | | | | | ";
 static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
 {
 #define HAS_SUBST(tpl) \
-    ((tpl->op & TPL_OP_BLOCK && !tpl->no_subst) || tpl->op == TPL_OP_VAR)
+    ((tpl->op & TPL_OP_BLOCK && !tpl->is_const) || tpl->op == TPL_OP_VAR)
 #define TRACE(fmt, c, ...) \
     e_trace(dbg, "%.*s%c%c "fmt, 1 + 2 * lvl, pad, c, \
             HAS_SUBST(tpl) ? '*' : ' ', ##__VA_ARGS__)
@@ -282,12 +277,6 @@ int tpl_get_short_data(tpl_t *tpl, const byte **data, int *len)
 /* Substitution and optimization                                            */
 /****************************************************************************/
 
-enum tplcode {
-    TPL_ERR   = -1,
-    TPL_CONST = 0,
-    TPL_VAR   = 1,
-};
-
 #define getvar(id, vals, nb) \
     (((vals) && ((id) & 0xffff) < (uint16_t)(nb)) ? (vals)[(id) & 0xffff] : NULL)
 
@@ -297,71 +286,80 @@ enum tplcode {
 #define DEAL_WITH_VAR2 tpl_fold_blob_tpl
 #define TPL_SUBST      tpl_subst
 #include "tpl.in.c"
-tpl_t *tpl_subst(const tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb, int flags)
+int tpl_subst(tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb, int flags)
 {
-    tpl_t *out;
+    tpl_t *out = *tplp;
 
-    if (tpl->no_subst) {
-        out = tpl_dup(tpl);
-    } else {
+    if (!out->is_const) {
         out = tpl_new();
-        out->no_subst = true;
-        if (tpl_combine_tpl(out, tpl, envid, vals, nb, flags) < 0)
+        out->is_const = true;
+        if (tpl_combine_tpl(out, *tplp, envid, vals, nb, flags) < 0)
             tpl_delete(&out);
-        if ((flags & TPL_LASTSUBST) && !out->no_subst)
+        if ((flags & TPL_LASTSUBST) && !out->is_const)
             tpl_delete(&out);
+        tpl_delete(tplp);
+        *tplp = out;
     }
     if (!(flags & TPL_KEEPVAR)) {
         for (int i = 0; i < nb; i++) {
             tpl_delete(&vals[i]);
         }
     }
-    return out;
+    return out ? 0 : -1;
 }
 
-int tpl_fold(blob_t *out, tpl_t *tpl, uint16_t envid, tpl_t **vals, int nb,
+int tpl_fold(blob_t *out, tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb,
              int flags)
 {
     int pos = out->len;
-    if (tpl_fold_blob_tpl(out, tpl, envid, vals, nb, flags) < 0) {
+    int res = 0;
+
+    if (tpl_fold_blob_tpl(out, *tplp, envid, vals, nb, flags) < 0) {
         blob_resize(out, pos);
-        return -1;
+        res = -1;
     }
-    return 0;
+    if (!(flags & TPL_KEEPVAR)) {
+        for (int i = 0; i < nb; i++) {
+            tpl_delete(&vals[i]);
+        }
+    }
+    tpl_delete(tplp);
+    return res;
 }
 
 #define NS(x)          x##_str
 #define VAL_TYPE       const char *
-#define DEAL_WITH_VAR(t, v, ...)   (tpl_copy_cstr((t), (v)), TPL_CONST)
+#define DEAL_WITH_VAR(t, v, ...)   (tpl_copy_cstr((t), (v)), 0)
 #define DEAL_WITH_VAR2(t, v, ...)  (blob_append_cstr((t), (v)), 0)
 #define TPL_SUBST      tpl_subst_str
 #include "tpl.in.c"
-tpl_t *tpl_subst_str(const tpl_t *tpl, uint16_t envid,
-                     const char **vals, int nb, int flags)
+int tpl_subst_str(tpl_t **tplp, uint16_t envid,
+                  const char **vals, int nb, int flags)
 {
-    tpl_t *out;
-
-    if (tpl->no_subst) {
-        out = tpl_dup(tpl);
-    } else {
+    tpl_t *out = *tplp;
+    if (!out->is_const) {
         out = tpl_new();
-        out->no_subst = true;
-        if (tpl_combine_str(out, tpl, envid, vals, nb, flags) < 0)
+        out->is_const = true;
+        if (tpl_combine_str(out, *tplp, envid, vals, nb, flags) < 0)
             tpl_delete(&out);
-        if ((flags & TPL_LASTSUBST) && !out->no_subst)
+        if ((flags & TPL_LASTSUBST) && !out->is_const)
             tpl_delete(&out);
+        tpl_delete(tplp);
+        *tplp = out;
     }
-    return out;
+    return out ? 0 : -1;
 }
 
-int tpl_fold_str(blob_t *out, tpl_t *tpl, uint16_t envid,
+int tpl_fold_str(blob_t *out, tpl_t **tplp, uint16_t envid,
                  const char **vals, int nb, int flags)
 {
     int pos = out->len;
-    if (tpl_fold_blob_str(out, tpl, envid, vals, nb, flags) < 0) {
+    if (tpl_fold_blob_str(out, *tplp, envid, vals, nb, flags) < 0) {
         blob_resize(out, pos);
+        tpl_delete(tplp);
         return -1;
     }
+    tpl_delete(tplp);
     return 0;
 }
 

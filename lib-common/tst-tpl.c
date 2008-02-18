@@ -67,22 +67,23 @@ int main(int argc, const char **argv)
     tpl_add_tpl(tpl, var);
     tpl_dump(0, tpl, "source");
 
-    res = tpl_subst(tpl, 1, NULL, 0, true);
+    res = tpl_dup(tpl);
+    tpl_subst(&res, 1, NULL, 0, true);
     tpl_dump(0, res, "subst");
     tpl_delete(&res);
 
-    res = tpl_subst(tpl, 0, &var, 1, TPL_LASTSUBST | TPL_KEEPVAR);
+    res = tpl_dup(tpl);
+    tpl_subst(&res, 0, &var, 1, TPL_LASTSUBST | TPL_KEEPVAR);
     tpl_dump(0, res, "subst");
     tpl_optimize(res);
     tpl_dump(0, res, "subst (opt)");
     tpl_delete(&res);
 
-    if (tpl_fold(&b2, tpl, 0, &var, 1, TPL_LASTSUBST)) {
+    if (tpl_fold(&b2, &tpl, 0, &var, 1, TPL_LASTSUBST)) {
         e_panic("fold failed");
     }
     e_trace(0, "b2 size: %zd", b2.len);
 
-    tpl_delete(&tpl);
     blob_wipe(&blob);
     blob_wipe(&b2);
     return 0;

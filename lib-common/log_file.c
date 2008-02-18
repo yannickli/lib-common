@@ -14,14 +14,9 @@
 #ifndef MINGCC
 #include <sys/stat.h>
 #include <dirent.h>
-#include <errno.h>
-#include <assert.h>
 
-#include <lib-common/mem.h>
-#include <lib-common/blob.h>
-#include <lib-common/macros.h>
-#include <lib-common/string_is.h>
-
+#include "blob.h"
+#include "string_is.h"
 #include "log_file.h"
 
 GENERIC_INIT(log_file_t, log_file);

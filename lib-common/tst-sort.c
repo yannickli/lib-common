@@ -11,16 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <limits.h>
-#include <inttypes.h>
-#include <sys/time.h>
-#include <time.h>
-#include <math.h>
-
 #include "mem.h"
 #include "timeval.h"
 #include "list.h"

@@ -11,12 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <ctype.h>
-#include <errno.h>
-#include <string.h>
-#include <limits.h>
-
-#include "mem.h"
 #include "string_is.h"
 
 int strtoip(const char *s, const char **endp)

@@ -790,8 +790,6 @@ int blob_append_archive(blob_t *output, const archive_build_array *archive)
 
 #ifdef CHECK /* {{{ */
 
-#include <stdio.h>
-
 #include "blob.h"
 
 START_TEST(check_init_wipe)

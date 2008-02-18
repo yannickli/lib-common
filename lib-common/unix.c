@@ -11,15 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <limits.h>
-
 #include "macros.h"
 #include "unix.h"
 #include "string_is.h"

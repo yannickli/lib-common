@@ -11,16 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <stdio.h>
-#include <limits.h>
-#include <stdlib.h>
-#include <ctype.h>
-
-#include "macros.h"
-#include "mem.h"
 #include "err_report.h"
 #include "string_is.h"
-
 
 #ifndef NDEBUG /* disable that module if debug is disabled */
 
