@@ -73,7 +73,8 @@ void generic_array_sort(generic_array *array,
     }                                                                         \
     static inline void                                                        \
     prefix##suffix##_append(prefix##suffix *v, el_typ item) {                 \
-        prefix##suffix##_insert(v, v->len, item);                             \
+        p_allocgrow(&v->tab, v->len + 1, &v->size);                           \
+        v->tab[v->len++] = item;                                              \
     }                                                                         \
     static inline void                                                        \
     prefix##suffix##_push(prefix##suffix *v, el_typ item) {                   \
@@ -82,14 +83,13 @@ void generic_array_sort(generic_array *array,
                                                                               \
     static inline void                                                        \
     prefix##suffix##_swap(prefix##suffix *v, int i, int j) {                  \
-        el_typ e = v->tab[i];                                                 \
-        v->tab[i] = v->tab[j];                                                \
-        v->tab[j] = e;                                                        \
+        SWAP(v->tab[i], v->tab[j]);                                           \
     }                                                                         \
     static inline void                                                        \
     prefix##suffix##_splice(prefix##suffix *v, int pos, int len,              \
                           el_typ items[], int count)                          \
     {                                                                         \
+        assert (pos >= 0 && len >= 0 && count >= 0);                          \
         if (pos > v->len)                                                     \
             pos = v->len;                                                     \
         if (pos + len > v->len)                                               \
