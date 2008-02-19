@@ -72,8 +72,8 @@ void generic_array_sort(generic_array *array,
             p_move(v->tab, pos + 1, pos, v->len - pos);                       \
         } else {                                                              \
             pos = v->len;                                                     \
-            v->len++;                                                         \
         }                                                                     \
+        v->len++;                                                             \
         v->tab[pos] = item;                                                   \
     }                                                                         \
     static inline void                                                        \
@@ -98,7 +98,7 @@ void generic_array_sort(generic_array *array,
         if (pos > v->len)                                                     \
             pos = v->len;                                                     \
         if (pos + len > v->len)                                               \
-            len = v->len - pos - len;                                         \
+            len = v->len - pos;                                               \
         if (len < count)                                                      \
             p_allocgrow(&v->tab, v->len + count - len, &v->size);             \
         if (len != count) {                                                   \
