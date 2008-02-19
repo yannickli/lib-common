@@ -151,19 +151,27 @@ int close_fds_higher_than(int fd)
     int n, my_fd;
 
     proc_fds = opendir("/proc/self/fd");
-    if (!proc_fds) {
-        /* FIXME: Fall back to unix.c implementation */
-        return -1;
-    }
+    if (proc_fds) {
+        /* XXX: opendir opens a fd. Do not close it while using it */
+        my_fd = dirfd(proc_fds);
+        while ((entry = readdir(proc_fds)) != NULL) {
+            n = strtol(entry->d_name, &p, 10);
+            if (!*p && n > fd && n != my_fd) {
+                close(n);
+            }
+        }
+        closedir(proc_fds);
+    } else {
+        /* Fall back to unix.c implementation */
+        int maxfd = sysconf(_SC_OPEN_MAX);
 
-    /* XXX: opendir opens a fd. Do not close it while using it */
-    my_fd = dirfd(proc_fds);
-    while ((entry = readdir(proc_fds))) {
-        n = strtol(entry->d_name, &p, 10);
-        if (!*p && n > fd && n != my_fd) {
-            close(n);
+        if (maxfd == -1) {
+            /* Highly unlikely sysconf failure: default to 1024 */
+            maxfd = 1024;
+        }
+        while (++fd < maxfd) {
+            close(fd);
         }
     }
-    closedir(proc_fds);
     return 0;
 }
