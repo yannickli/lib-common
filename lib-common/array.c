@@ -75,7 +75,6 @@ string_array *str_explode(const char *s, const char *tokens)
 
 /*---------------- Optimized Array Merge Sort ----------------*/
 
-#define swap(a, b)     do { void *t = *(a); *(a) = *(b); *(b) = t; } while (0)
 #define comp(a, b, parm)  (*comp)(*(a), *(b), parm)
 
 #define STATIC_INLINE(p) static inline p
@@ -277,7 +276,7 @@ void pqsort(void *base[], size_t n,
 
     for (pos = 1; pos < n; pos += 2) {
         if (comp(base + pos - 1, base + pos, parm) > 0) {
-            swap(base + pos - 1, base + pos);
+            SWAP(base[pos - 1], base[pos]);
         }
         /* Bottom up merge binary subtree */
         for (step = 2; pos & step; step += step) {
