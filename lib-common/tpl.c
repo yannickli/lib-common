@@ -44,6 +44,7 @@ static void tpl_wipe(tpl_t *n)
     if (n->op & TPL_OP_BLOCK)
         tpl_array_wipe(&n->u.blocks);
 }
+
 void tpl_delete(tpl_t **tpl)
 {
     if (*tpl) {
@@ -62,8 +63,8 @@ void tpl_delete(tpl_t **tpl)
 
 #define tpl_can_append(t)  \
         (  ((t)->op & TPL_OP_BLOCK)                                     \
-        && ((t)->op != TPL_OP_IFDEF || (t)->u.blocks.len < 2)             \
-        && ((t)->op != TPL_OP_APPLY_DELAYED || (t)->u.blocks.len < 2)     \
+        && ((t)->op != TPL_OP_IFDEF || (t)->u.blocks.len < 2)           \
+        && ((t)->op != TPL_OP_APPLY_DELAYED || (t)->u.blocks.len < 2)   \
         )
 
 void tpl_add_data(tpl_t *tpl, const byte *data, int len)
@@ -77,7 +78,9 @@ void tpl_add_data(tpl_t *tpl, const byte *data, int len)
         return;
     }
 
-    if (tpl->u.blocks.len > 0 && tpl->u.blocks.tab[tpl->u.blocks.len - 1]->refcnt == 1) {
+    if (tpl->u.blocks.len > 0
+    &&  tpl->u.blocks.tab[tpl->u.blocks.len - 1]->refcnt == 1)
+    {
         buf = tpl->u.blocks.tab[tpl->u.blocks.len - 1];
         if (buf->op == TPL_OP_BLOB && len <= TPL_COPY_LIMIT_SOFT) {
             blob_append_data(&buf->u.blob, data, len);
@@ -378,6 +381,7 @@ static tpl_t *tpl_to_blob(tpl_t **orig)
 
 void tpl_optimize(tpl_t *tpl)
 {
+    /* OG: Should not assume tpl->op & TPL_OP_BLOCK */
     if (!tpl || tpl->u.blocks.len < 1)
         return;
 
