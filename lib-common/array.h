@@ -55,11 +55,6 @@ void generic_array_sort(generic_array *array,
         v->len = 0;                                                           \
     }                                                                         \
     static inline void                                                        \
-    prefix##suffix##_resize(prefix##suffix *v, int newlen) {                  \
-        p_allocgrow(&v->tab, newlen, &v->size);                               \
-        v->len = newlen;                                                      \
-    }                                                                         \
-    static inline void                                                        \
     prefix##suffix##_grow(prefix##suffix *v, int extra) {                     \
         p_allocgrow(&v->tab, v->len + extra, &v->size);                       \
         v->len += extra;                                                      \

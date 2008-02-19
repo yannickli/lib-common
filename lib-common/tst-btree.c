@@ -70,7 +70,7 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
     nkeys = 0;
     entry_tab = malloc(sizeof(entry_t) * num_keys * num_data);
     entry_array_init(&entries);
-    entry_array_resize(&entries, num_keys * num_data);
+    entry_array_grow(&entries, num_keys * num_data);
 
     for (n = 0; n < num_keys; n++) {
         for (d = 0; d < num_data; d++) {
@@ -85,8 +85,7 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
 
             ep->key = num;
             ep->data = data;
-            //entry_array_append(&entries, ep);
-            entries.tab[nkeys] = ep;
+            entry_array_append(&entries, ep);
             nkeys++;
         }
     }
