@@ -85,7 +85,7 @@ GENERIC_DELETE(archive_t, archive);
 const archive_file *archive_get_file_bloc(const archive_t *archive,
                                           const char *filename);
 tpl_t *archive_get_tpl(const archive_t *archive, const char *filename,
-                             int envid, const char **vars, int nbvars);
+                       int envid, const char **vars, int nbvars);
 bool archive_attr_find(const archive_file *file, const char *name,
                        const byte **data, int *size);
 int archive_parts_in_path(const archive_t *archive,
