@@ -54,7 +54,17 @@ void generic_array_sort(generic_array *array,
     static inline void prefix##suffix##_reset(prefix##suffix *v) {            \
         v->len = 0;                                                           \
     }                                                                         \
+    /* OG: should remove this API */                                          \
     static inline void                                                        \
+<<<<<<< HEAD:lib-common/array.h
+=======
+    prefix##suffix##_resize(prefix##suffix *v, int newlen) {                  \
+        p_allocgrow(&v->tab, newlen, &v->size);                               \
+        v->len = newlen;                                                      \
+    }                                                                         \
+    /* OG: should remove this API */                                          \
+    static inline void                                                        \
+>>>>>>> remarks, fix on _splice and _insert:lib-common/array.h
     prefix##suffix##_grow(prefix##suffix *v, int extra) {                     \
         p_allocgrow(&v->tab, v->len + extra, &v->size);                       \
         v->len += extra;                                                      \
@@ -64,6 +74,7 @@ void generic_array_sort(generic_array *array,
     prefix##suffix##_insert(prefix##suffix *v, int pos, el_typ item) {        \
         p_allocgrow(&v->tab, v->len + 1, &v->size);                           \
         if (pos < v->len) {                                                   \
+            /* OG: should check for pos < 0 */                                \
             p_move(v->tab, pos + 1, pos, v->len - pos);                       \
         } else {                                                              \
             pos = v->len;                                                     \
@@ -87,7 +98,7 @@ void generic_array_sort(generic_array *array,
     }                                                                         \
     static inline void                                                        \
     prefix##suffix##_splice(prefix##suffix *v, int pos, int len,              \
-                          el_typ items[], int count)                          \
+                            el_typ items[], int count)                        \
     {                                                                         \
         assert (pos >= 0 && len >= 0 && count >= 0);                          \
         if (pos > v->len)                                                     \
@@ -100,7 +111,9 @@ void generic_array_sort(generic_array *array,
             p_move(v->tab, pos + count, pos + len, v->len - pos - len);       \
             v->len += count - len;                                            \
         }                                                                     \
-        memcpy(v->tab + pos, items, count * sizeof(*items));                  \
+        if (count) {                                                          \
+            memcpy(v->tab + pos, items, count * sizeof(*items));              \
+        }                                                                     \
     }                                                                         \
     static inline void prefix##suffix##_remove(prefix##suffix *v, int pos) {  \
         prefix##suffix##_splice(v, pos, 1, NULL, 0);                          \
@@ -116,7 +129,7 @@ void generic_array_sort(generic_array *array,
 #define VECTOR_BASE_FUNCTIONS2(el_typ, prefix, suffix, wipe)                  \
     static inline void prefix##suffix##_wipe(prefix##suffix *v) {             \
         for (int i = 0; i < v->len; i++) {                                    \
-            wipe(v->tab + i);                                                 \
+            wipe(&v->tab[i]);                                                 \
         }                                                                     \
         p_delete(&v->tab);                                                    \
         p_clear(&v, 1);                                                       \
