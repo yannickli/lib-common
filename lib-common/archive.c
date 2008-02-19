@@ -433,15 +433,15 @@ static int id_from_key(const char *name, int len,
                        const char **vars, int nbvars)
 {
     for (int i = 0; i < nbvars; i++) {
+        /* OG: Should check for exact match */
         if (!strncmp(name, vars[i], len))
             return i;
     }
-
     return -1;
 }
 
 tpl_t *archive_get_tpl(const archive_t *archive, const char *filename,
-                             int envid, const char **vars, int nbvars)
+                       int envid, const char **vars, int nbvars)
 {
     const archive_file *file;
     const byte *end, *p, *p0, *p1, *p2, *p3;
@@ -451,14 +451,13 @@ tpl_t *archive_get_tpl(const archive_t *archive, const char *filename,
     if (!file)
         return NULL;
 
-
     end = file->payload + file->size;
     p = file->payload;
 
     res = tpl_new();
-    while(p < end) {
+    while (p < end) {
         int pos;
-        p0 = memsearch(p, end - p, "{", 1);
+        p0 = memchr(p, end - p, '{');
         if (!p0)
             goto dump;
         p1 = bskipspaces(p0 + 1);
@@ -468,7 +467,7 @@ tpl_t *archive_get_tpl(const archive_t *archive, const char *filename,
         }
 
         p1++; /* skip '$' */
-        p2 = p3 = memsearch(p1, end - p1, "}", 1);
+        p2 = p3 = memchr(p1, end - p1, '}');
         if (!p3) {
             p0 = p1;
             goto dump;
@@ -492,7 +491,7 @@ tpl_t *archive_get_tpl(const archive_t *archive, const char *filename,
         tpl_add_var(res, envid, pos);
         p = p3 + 1;
         continue;
-dump:
+      dump:
         if (!p0)
             p0 = end;
         tpl_add_data(res, p, p0 - p);
@@ -501,6 +500,7 @@ dump:
 
     return res;
 }
+
 bool archive_attr_find(const archive_file *file, const char *name,
                        const byte **data, int *size)
 {
