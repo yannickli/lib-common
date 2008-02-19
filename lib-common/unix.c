@@ -343,12 +343,14 @@ bool is_fd_open(int fd)
 #ifndef LINUX
 int close_fds_higher_than(int fd)
 {
-    int n = 0;
     int maxfd = sysconf(_SC_OPEN_MAX);
 
-    fd++;
-    while (fd < maxfd) {
-        close(fd++);
+    if (maxfd == -1)
+        maxfd = 1024;
+
+    while (++fd < maxfd) {
+        close(fd);
     }
+    return 0;
 }
 #endif
