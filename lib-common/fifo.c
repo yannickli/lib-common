@@ -126,7 +126,7 @@ void *fifo_seti(fifo *f, int i, void *ptr)
     last = fifo_real_pos(f, f->nb_elems);
 
     if (i < f->nb_elems) {
-        SWAP(f->elems[pos], ptr);
+        SWAP(void *, f->elems[pos], ptr);
         return ptr;
     }
 

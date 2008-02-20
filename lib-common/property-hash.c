@@ -94,7 +94,7 @@ void props_hash_update(props_hash_t *ph, const char *name, const char *value)
         char **sp = (char **)hashtbl_insert(&ph->h, key, v);
 
         if (sp) {
-            SWAP(*sp, v);
+            SWAP(char *, *sp, v);
             p_delete(&v);
         }
     } else {

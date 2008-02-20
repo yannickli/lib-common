@@ -85,7 +85,7 @@ void generic_array_sort(generic_array *array,
                                                                               \
     static inline void                                                        \
     prefix##suffix##_swap(prefix##suffix *v, int i, int j) {                  \
-        SWAP(v->tab[i], v->tab[j]);                                           \
+        SWAP(el_typ, v->tab[i], v->tab[j]);                                   \
     }                                                                         \
     static inline void                                                        \
     prefix##suffix##_splice(prefix##suffix *v, int pos, int len,              \

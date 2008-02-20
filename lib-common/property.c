@@ -84,7 +84,7 @@ void props_array_merge(props_array *arr, props_array **old)
                 property_t *oldprop = props_array_take(*old, j);
 
                 if (oldprop->value) {
-                    SWAP(prop->value, oldprop->value);
+                    SWAP(char *, prop->value, oldprop->value);
                 } else {
                     prop = props_array_take(arr, i);
                     property_delete(&prop);

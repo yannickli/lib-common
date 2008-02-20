@@ -276,7 +276,7 @@ void pqsort(void *base[], size_t n,
 
     for (pos = 1; pos < n; pos += 2) {
         if (comp(base + pos - 1, base + pos, parm) > 0) {
-            SWAP(base[pos - 1], base[pos]);
+            SWAP(void *, base[pos - 1], base[pos]);
         }
         /* Bottom up merge binary subtree */
         for (step = 2; pos & step; step += step) {
