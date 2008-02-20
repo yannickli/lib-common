@@ -31,6 +31,7 @@ int main(void)
     srunner_add_suite(sr, check_make_timeval_suite());
     srunner_add_suite(sr, check_bfield_suite());
     srunner_add_suite(sr, check_str_array_suite());
+    srunner_add_suite(sr, check_range_vector_suite());
     srunner_add_suite(sr, check_conf_suite());
     srunner_add_suite(sr, check_log_limit_suite());
     srunner_add_suite(sr, check_timer_suite());

@@ -48,9 +48,6 @@ void generic_array_sort(generic_array *array,
 /**************************************************************************/
 
 #define VECTOR_BASE_FUNCTIONS(el_typ, prefix, suffix)                         \
-    GENERIC_INIT(prefix##suffix, prefix##suffix);                             \
-    GENERIC_NEW(prefix##suffix, prefix##suffix);                              \
-    GENERIC_DELETE(prefix##suffix, prefix##suffix);                           \
     static inline void prefix##suffix##_reset(prefix##suffix *v) {            \
         v->len = 0;                                                           \
     }                                                                         \
@@ -110,14 +107,16 @@ void generic_array_sort(generic_array *array,
         prefix##suffix##_splice(v, pos, 1, NULL, 0);                          \
     }
 
-#define VECTOR_FUNCTIONS(el_typ, prefix)                                      \
-    static inline void prefix##_vector_wipe(prefix##_vector *v) {             \
+#define VECTOR_MEM_FUNCTIONS(el_typ, prefix, suffix)                          \
+    static inline void prefix##suffix##_wipe(prefix##suffix *v) {             \
         p_delete(&v->tab);                                                    \
         p_clear(&v, 1);                                                       \
     }                                                                         \
-    VECTOR_BASE_FUNCTIONS(el_typ, prefix, _vector)
+    GENERIC_INIT(prefix##suffix, prefix##suffix);                             \
+    GENERIC_NEW(prefix##suffix, prefix##suffix);                              \
+    GENERIC_DELETE(prefix##suffix, prefix##suffix);
 
-#define VECTOR_BASE_FUNCTIONS2(el_typ, prefix, suffix, wipe)                  \
+#define VECTOR_MEM_FUNCTIONS2(el_typ, prefix, suffix, wipe)                   \
     static inline void prefix##suffix##_wipe(prefix##suffix *v) {             \
         for (int i = 0; i < v->len; i++) {                                    \
             wipe(&v->tab[i]);                                                 \
@@ -125,6 +124,17 @@ void generic_array_sort(generic_array *array,
         p_delete(&v->tab);                                                    \
         p_clear(&v, 1);                                                       \
     }                                                                         \
+    GENERIC_INIT(prefix##suffix, prefix##suffix);                             \
+    GENERIC_NEW(prefix##suffix, prefix##suffix);                              \
+    GENERIC_DELETE(prefix##suffix, prefix##suffix);
+
+
+#define VECTOR_FUNCTIONS(el_typ, prefix)                                      \
+    VECTOR_MEM_FUNCTIONS(el_typ, prefix, _vector)                             \
+    VECTOR_BASE_FUNCTIONS(el_typ, prefix, _vector)
+
+#define VECTOR_BASE_FUNCTIONS2(el_typ, prefix, suffix, wipe)                  \
+    VECTOR_MEM_FUNCTIONS2(el_typ, prefix, suffix, wipe)                       \
     VECTOR_BASE_FUNCTIONS(el_typ, prefix, suffix)
 
 #define VECTOR_FUNCTIONS2(el_typ, prefix, wipe)                               \

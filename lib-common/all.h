@@ -52,6 +52,7 @@
 #include "property.h"
 #include "property-hash.h"
 #include "psinfo.h"
+#include "range-vector.h"
 #include "refcount.h"
 #include "robuf.h"
 #include "stats-temporal.h"
