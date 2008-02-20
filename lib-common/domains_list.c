@@ -255,18 +255,18 @@ int main(int argc, char **argv)
 {
     int c;
     const char *progname = argv[0];
-    const char *dictionnary = NULL;
+    const char *dictionary = NULL;
     int n = -1;
 
     while( (c = getopt(argc, argv, "d:n:h")) != -1) {
         switch(c) {
           case 'd':
-            if (dictionnary) {
-                fprintf(stderr, "ERROR:Dictionnary already set to '%s'\n",
-                        dictionnary);
+            if (dictionary) {
+                fprintf(stderr, "ERROR:Dictionary already set to '%s'\n",
+                        dictionary);
                 return 1;
             }
-            dictionnary = optarg;
+            dictionary = optarg;
             break;
           case 'n':
             if (n != -1) {
@@ -282,13 +282,13 @@ int main(int argc, char **argv)
     }
     argc -= optind;
     argv += optind;
-    if (!dictionnary) {
-        dictionnary = "/usr/share/dict/words";
+    if (!dictionary) {
+        dictionary = "/usr/share/dict/words";
     }
     if (n < 0) {
         n = 100;
     }
-    domains_index_test(dictionnary, n);
+    domains_index_test(dictionary, n);
     return 0;
 }
 #endif

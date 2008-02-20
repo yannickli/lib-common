@@ -805,7 +805,7 @@ size_t pmemcspn(const byte *data, size_t len, const char *reject)
  *  "foobar-0-01" => "foobar-0-02"
  *  "foobar-0-99" => "foobar-0-00"
  *
- * @return 1 if an overflow occured, 0 otherwise
+ * @return 1 if an overflow occurred, 0 otherwise
  */
 int buffer_increment(char *buf, int len)
 {
@@ -844,7 +844,7 @@ int buffer_increment(char *buf, int len)
  *  "foobar-0-01" => "foobar-0-02"
  *  "foobar-0-FF" => "foobar-0-00"
  *
- * @return 1 if an overflow occured, 0 otherwise
+ * @return 1 if an overflow occurred, 0 otherwise
  */
 int buffer_increment_hex(char *buf, int len)
 {
