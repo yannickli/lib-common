@@ -36,7 +36,7 @@ typedef void array_item_dtor_f(void *item);
 /**************************************************************************/
 
 void *generic_array_take(generic_array *array, int pos)
-    __attr_nonnull__((1));
+    __must_check__ __attr_nonnull__((1));
 
 #define ARRAY_SORT_IS_STABLE  1
 void generic_array_sort(generic_array *array,
@@ -143,7 +143,7 @@ void generic_array_sort(generic_array *array,
 #define ARRAY_FUNCTIONS(el_typ, prefix, dtor)                                 \
     VECTOR_BASE_FUNCTIONS2(el_typ *, prefix, _array, dtor);                   \
                                                                               \
-    static inline el_typ *                                                    \
+    __must_check__ static inline el_typ *                                     \
     prefix##_array_take(prefix##_array *array, int pos) {                     \
         return (el_typ *)generic_array_take((generic_array *)array, pos);     \
     }                                                                         \

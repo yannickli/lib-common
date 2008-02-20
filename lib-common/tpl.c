@@ -423,7 +423,7 @@ void tpl_optimize(tpl_t *tpl)
             if (nxt->op == TPL_OP_BLOB && nxt->refcnt == 1) {
                 blob_insert_data(&nxt->u.blob, 0, cur->u.data.data,
                                  cur->u.data.len);
-                tpl_array_take(&tpl->u.blocks, i);
+                tpl_array_remove(&tpl->u.blocks, i);
                 tpl_delete(&cur);
                 continue;
             }
@@ -436,7 +436,7 @@ void tpl_optimize(tpl_t *tpl)
                 cur = tpl_to_blob(&tpl->u.blocks.tab[i]);
             }
             blob_append_data(&cur->u.blob, nxt->u.data.data, nxt->u.data.len);
-            tpl_array_take(&tpl->u.blocks, i + 1);
+            tpl_array_remove(&tpl->u.blocks, i + 1);
             tpl_delete(&nxt);
             continue;
         }
@@ -447,11 +447,11 @@ void tpl_optimize(tpl_t *tpl)
         }
         if (cur->refcnt > 1) {
             blob_insert(&nxt->u.blob, 0, &cur->u.blob);
-            tpl_array_take(&tpl->u.blocks, i);
+            tpl_array_remove(&tpl->u.blocks, i);
             tpl_delete(&cur);
         } else {
             blob_append(&cur->u.blob, &nxt->u.blob);
-            tpl_array_take(&tpl->u.blocks, i + 1);
+            tpl_array_remove(&tpl->u.blocks, i + 1);
             tpl_delete(&nxt);
         }
     }

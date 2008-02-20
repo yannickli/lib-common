@@ -327,8 +327,8 @@ const char *conf_put(conf_t *conf, const char *section,
                     return prop->value = p_dupstr(value, value_len);
                 } else {
                     /* delete value */
+                    props_array_remove(&s->vals, j);
                     property_delete(&prop);
-                    props_array_take(&s->vals, j);
                     return NULL;
                 }
             }
