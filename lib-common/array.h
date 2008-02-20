@@ -103,6 +103,8 @@ void generic_array_sort(generic_array *array,
             memcpy(v->tab + pos, items, count * sizeof(*items));              \
         }                                                                     \
     }                                                                         \
+    /* OG: this API is very error prone. */                                   \
+    /*     should have an API to remove array element by value. */            \
     static inline void prefix##suffix##_remove(prefix##suffix *v, int pos) {  \
         prefix##suffix##_splice(v, pos, 1, NULL, 0);                          \
     }
