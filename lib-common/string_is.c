@@ -947,12 +947,12 @@ int64_t msisdn_canonify(const char *str, int len, __unused__ int locale)
     if (strstart(p, "+33", &p)
     ||  strstart(p, "0033", &p)) {
         france = true;
-    }
+    } else
     if (strstart(p, "+262", &p)
     ||  strstart(p, "00262", &p)) {
         france = true;
         reunion = true;
-    }
+    } else
     if (strlen(p) > 2 && p[0] == '0' && p[1] != '0') {
         if (strlen(p) > 4 && p[1] == '6' && p[2] == '9'
         && (p[3] == '2' || p[3] == '3'))
@@ -964,6 +964,9 @@ int64_t msisdn_canonify(const char *str, int len, __unused__ int locale)
         france = true;
     }
     if (france) {
+        if (strlen(p) == 10 && *p == '0') {
+            p++;
+        }
         /* Check that we get 9 digits */
         if (strlen(p) != 9 || *p == '0') {
             return -1;
@@ -1552,7 +1555,9 @@ START_TEST(check_msisdn_canonify)
     check_msisdn_canonify_unit("+3306223344550", -1);
     check_msisdn_canonify_unit("+3300622334455", -1);
     check_msisdn_canonify_unit("+4412345", 4412345);
+    check_msisdn_canonify_unit("004412", 4412);
     check_msisdn_canonify_unit("+4412345123456789087654", -1);
+    check_msisdn_canonify_unit("+33+2620612345678", -1);
     check_msisdn_canonify_unit("111212", 111212);
 }
 END_TEST
