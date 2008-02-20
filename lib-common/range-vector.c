@@ -39,6 +39,7 @@ static int range_vector_getpos(range_vector *array, int64_t val)
             break;
         }
     }
+    /* OG: why not always return l if l < array->len ? */
     return -1;
 }
 
@@ -83,6 +84,7 @@ int range_vector_insert_range(range_vector *array, int64_t min, int64_t max, voi
                 e_trace(4, "collision on equality of min");
                 return -1;
             }
+            /* OG: this test is always true */
             if (i < array->len) {
                 switch (CMP(max, array->tab[i + 1].inf)) {
                   case CMP_LESS:
@@ -136,9 +138,7 @@ int range_vector_insert_range(range_vector *array, int64_t min, int64_t max, voi
 
 static void range_vector_dump_str(range_vector *vec)
 {
-    int i;
-
-    for (i = 0; i < vec->len; i++) {
+    for (int i = 0; i < vec->len; i++) {
         e_trace(1, "%lld  ->  %s", vec->tab[i].inf, (const char *)vec->tab[i].data);
     }
 }
