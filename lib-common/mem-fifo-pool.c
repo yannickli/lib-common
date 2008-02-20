@@ -11,6 +11,9 @@
 /*                                                                        */
 /**************************************************************************/
 
+#ifndef NDEBUG
+#include <valgrind/valgrind.h>
+#endif
 #include <sys/mman.h>
 #include "mem.h"
 #include "mmappedfile.h"
@@ -216,6 +219,11 @@ mem_pool *mem_fifo_pool_new(int page_size_hint)
 {
     mem_fifo_pool *mfp;
 
+#ifndef NDEBUG
+    if (RUNNING_ON_VALGRIND)
+        return mem_malloc_pool_new();
+#endif
+
     mfp             = p_new(mem_fifo_pool, 1);
     mfp->funcs      = mem_fifo_pool_funcs;
     mfp->page_size  = MAX(16 * 4096, ROUND_MULTIPLE(page_size_hint, 4096));
@@ -225,6 +233,13 @@ mem_pool *mem_fifo_pool_new(int page_size_hint)
 
 void mem_fifo_pool_delete(mem_pool **poolp)
 {
+#ifndef NDEBUG
+    if (RUNNING_ON_VALGRIND) {
+        mem_malloc_pool_delete(poolp);
+        return;
+    }
+#endif
+
     if (*poolp) {
         mem_fifo_pool *mfp = (mem_fifo_pool *)(*poolp);
 
