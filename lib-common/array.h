@@ -56,15 +56,6 @@ void generic_array_sort(generic_array *array,
     }                                                                         \
     /* OG: should remove this API */                                          \
     static inline void                                                        \
-<<<<<<< HEAD:lib-common/array.h
-=======
-    prefix##suffix##_resize(prefix##suffix *v, int newlen) {                  \
-        p_allocgrow(&v->tab, newlen, &v->size);                               \
-        v->len = newlen;                                                      \
-    }                                                                         \
-    /* OG: should remove this API */                                          \
-    static inline void                                                        \
->>>>>>> remarks, fix on _splice and _insert:lib-common/array.h
     prefix##suffix##_grow(prefix##suffix *v, int extra) {                     \
         p_allocgrow(&v->tab, v->len + extra, &v->size);                       \
         v->len += extra;                                                      \
