@@ -112,7 +112,7 @@ void generic_array_sort(generic_array *array,
 #define VECTOR_MEM_FUNCTIONS(el_typ, prefix, suffix)                          \
     static inline void prefix##suffix##_wipe(prefix##suffix *v) {             \
         p_delete(&v->tab);                                                    \
-        p_clear(&v, 1);                                                       \
+        p_clear(v, 1);                                                        \
     }                                                                         \
     GENERIC_INIT(prefix##suffix, prefix##suffix);                             \
     GENERIC_NEW(prefix##suffix, prefix##suffix);                              \
@@ -124,7 +124,7 @@ void generic_array_sort(generic_array *array,
             wipe(&v->tab[i]);                                                 \
         }                                                                     \
         p_delete(&v->tab);                                                    \
-        p_clear(&v, 1);                                                       \
+        p_clear(v, 1);                                                        \
     }                                                                         \
     GENERIC_INIT(prefix##suffix, prefix##suffix);                             \
     GENERIC_NEW(prefix##suffix, prefix##suffix);                              \
