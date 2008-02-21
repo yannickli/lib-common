@@ -108,5 +108,6 @@ int tpl_subst_str(tpl_t **, uint16_t envid, const char **, int nb, int flags);
 void tpl_optimize(tpl_t *tpl);
 
 int tpl_to_iov(struct iovec *, int nr, tpl_t *);
+int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl);
 
 #endif

@@ -16,6 +16,7 @@
 
 #include <sys/uio.h>
 #include "blob.h"
+#include "array.h"
 
 #define IOVECLIST_OBJS_NUM 64
 
@@ -40,5 +41,10 @@ int ioveclist_getlen(const ioveclist *l);
 void ioveclist_kill_first(ioveclist *l, ssize_t len);
 GENERIC_WIPE(ioveclist, ioveclist);
 GENERIC_RESET(ioveclist, ioveclist);
+
+
+DO_VECTOR(struct iovec, iovec);
+void iovec_vector_kill_first(iovec_vector *l, ssize_t len);
+
 
 #endif /* IS_LIB_COMMON_IOVECLIST_H */

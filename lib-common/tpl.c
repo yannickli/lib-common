@@ -486,3 +486,35 @@ int tpl_to_iov(struct iovec *iov, int nr, tpl_t *tpl)
         return -1;
     }
 }
+
+#define MAKE_IOVEC(data, len)  (struct iovec){ \
+    .iov_base = (void *)(data), .iov_len = (len) }
+
+int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl)
+{
+    int oldlen = iov->len;
+
+    switch (tpl->op) {
+      case TPL_OP_DATA:
+        iovec_vector_append(iov, MAKE_IOVEC(tpl->u.data.data,
+                                            tpl->u.data.len));
+        return 0;
+
+      case TPL_OP_BLOB:
+        iovec_vector_append(iov, MAKE_IOVEC(tpl->u.blob.data,
+                                            tpl->u.blob.len));
+        return 0;
+
+      case TPL_OP_BLOCK:
+        for (int i = 0; i < tpl->u.blocks.len; i++) {
+            if (tpl_to_iovec_vector(iov, tpl->u.blocks.tab[i])) {
+                iov->len = oldlen;
+                return -1;
+            }
+        }
+        return 0;
+
+      default:
+        return -1;
+    }
+}
