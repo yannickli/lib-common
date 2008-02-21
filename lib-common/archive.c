@@ -429,6 +429,28 @@ const archive_file *archive_get_file_bloc(const archive_t *archive,
 
     return NULL;
 }
+
+int archive_get_file_bloc_index(const archive_t *archive,
+                                const char *filename)
+{
+    archive_bloc *bloc;
+    archive_file *file;
+    int i;
+
+    /* XXX: Should use a cached hash as file->name fields never change */
+    for (i = 0; i < archive->nb_blocs; i++) {
+        bloc = archive->blocs[i];
+        if (bloc->tag == ARCHIVE_TAG_FILE) {
+            file = archive_bloc_to_archive_file(bloc);
+
+            if (!strcmp(file->name, filename)) {
+                return i;
+            }
+        }
+    }
+
+    return -1;
+}
 static int id_from_key(const char *name, int len,
                        const char **vars, int nbvars)
 {
@@ -440,16 +462,11 @@ static int id_from_key(const char *name, int len,
     return -1;
 }
 
-tpl_t *archive_get_tpl(const archive_t *archive, const char *filename,
-                       int envid, const char **vars, int nbvars)
+static tpl_t *archive_bloc_get_tpl(const archive_file *file,
+                                   int envid, const char **vars, int nbvars)
 {
-    const archive_file *file;
     const byte *end, *p, *p0, *p1, *p2, *p3;
     tpl_t *res;
-
-    file = archive_get_file_bloc(archive, filename);
-    if (!file)
-        return NULL;
 
     end = file->payload + file->size;
     p = file->payload;
@@ -500,6 +517,42 @@ tpl_t *archive_get_tpl(const archive_t *archive, const char *filename,
 
     return res;
 }
+
+tpl_t *archive_get_tpl(const archive_t *archive, const char *filename,
+                       int envid, const char **vars, int nbvars)
+{
+    const archive_file *file;
+
+    file = archive_get_file_bloc(archive, filename);
+    if (!file)
+        return NULL;
+
+    return archive_bloc_get_tpl(file, envid, vars, nbvars);
+}
+
+tpl_t **archive_get_tpls(const archive_t *archive, int envid,
+                         const char **vars, int nbvars, int *count)
+{
+    const archive_file *file;
+    const archive_bloc *bloc;
+    tpl_t **array;
+    int i;
+
+    array = p_new(tpl_t *, archive->nb_blocs);
+
+    for (i = 0; i < archive->nb_blocs; i++) {
+        bloc = archive->blocs[i];
+        if (bloc->tag == ARCHIVE_TAG_FILE) {
+            file = archive_bloc_to_archive_file_const(bloc);
+
+            array[i] = archive_bloc_get_tpl(file, envid, vars, nbvars);
+        }
+    }
+
+    *count = archive->nb_blocs;
+    return array;
+}
+
 
 bool archive_attr_find(const archive_file *file, const char *name,
                        const byte **data, int *size)

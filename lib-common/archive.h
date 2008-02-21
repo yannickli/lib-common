@@ -82,8 +82,12 @@ GENERIC_NEW(archive_t, archive);
 void archive_wipe(archive_t *archive);
 GENERIC_DELETE(archive_t, archive);
 
+int archive_get_file_bloc_index(const archive_t *archive,
+                                const char *filename);
 const archive_file *archive_get_file_bloc(const archive_t *archive,
                                           const char *filename);
+tpl_t **archive_get_tpls(const archive_t *archive, int envid,
+                         const char **vars, int nbvars, int *count);
 tpl_t *archive_get_tpl(const archive_t *archive, const char *filename,
                        int envid, const char **vars, int nbvars);
 bool archive_attr_find(const archive_file *file, const char *name,
