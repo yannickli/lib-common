@@ -92,11 +92,17 @@
 #endif
 
 #ifdef __SPARSE__
-#define __bitwise__  __attribute__((bitwise))
-#define force_cast(type, expr)    (__attribute__((force)) type)(expr)
+#  define __bitwise__   __attribute__((bitwise))
+#  define force_cast(type, expr)    (__attribute__((force)) type)(expr)
+#  define __acquire(x)   __attribute__((context(x, 0, 1)))
+#  define __release(x)   __attribute__((context(x, 1, 0)))
+#  define __wantlock(x)  __attribute__((context(x, 1, 1)))
 #else
-#define __bitwise__
-#define force_cast(type, expr)    (type)(expr)
+#  define __bitwise__
+#  define force_cast(type, expr)    (type)(expr)
+#  define __acquire(x)
+#  define __release(x)
+#  define __wantlock(x)
 #endif
 
 /*---------------- Types ----------------*/
