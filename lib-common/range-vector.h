@@ -25,12 +25,12 @@ VECTOR_TYPE(range_elem, range);
 VECTOR_MEM_FUNCTIONS(range_elem, range, _vector);
 
 /**************************************************************************/
-/* Spcialized range functions                                             */
+/* Specialized range functions                                            */
 /**************************************************************************/
 
-/* Min is inclusive,
- * Max is exclusive */
-int range_vector_insert_range(range_vector *array, int64_t min, int64_t max, void *data)
+/* Min is inclusive, Max is exclusive */
+int range_vector_insert_range(range_vector *array,
+                              int64_t min, int64_t max, void *data)
     __attr_nonnull__((1));
 
 __attr_nonnull__((1))
@@ -38,7 +38,6 @@ static inline int
 range_vector_insert_one(range_vector *array, int64_t val, void *data) {
     return range_vector_insert_range(array, val, val + 1, data);
 }
-
 
 void *range_vector_get(const range_vector *array, int64_t val)
     __attr_nonnull__((1));
