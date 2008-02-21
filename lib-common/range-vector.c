@@ -18,9 +18,28 @@
 #include "macros.h"
 #include "range-vector.h"
 
+/*
+ *  TODO:
+ *
+ *  - Support range collapsing: when inserting 5 -> toto into :
+ *     4    5    6 ...
+ *     ^    ^    ^
+ *     |    |    |
+ *   toto NULL titi
+ *
+ *   We should optimize the array to:
+ *     4     6 ...
+ *     ^     ^
+ *     |     |
+ *   toto  titi
+ *
+ *  - Support non-NULL last element if inf[last] == INT64_MAX
+ *
+ */
+
 VECTOR_BASE_FUNCTIONS(range_elem, range, _vector);
 
-static int range_vector_getpos(range_vector *array, int64_t val)
+static int range_vector_getpos(const range_vector *array, int64_t val)
 {
     int l = 0, r = array->len;
 
@@ -43,17 +62,11 @@ static int range_vector_getpos(range_vector *array, int64_t val)
     return -1;
 }
 
-void *range_vector_get(range_vector *array, int64_t val)
+void *range_vector_get(const range_vector *array, int64_t val)
 {
     int pos = range_vector_getpos(array, val);
 
     return (pos < 0) ? NULL : array->tab[pos].data;
-}
-
-int range_vector_insert_one(range_vector *array, int64_t val, void *data)
-{
-    return range_vector_insert_range(array, val, val + 1, data);
-
 }
 
 #define RANGE_ELEM(min, value)  (range_elem){.inf = min, .data = value}
@@ -84,8 +97,7 @@ int range_vector_insert_range(range_vector *array, int64_t min, int64_t max, voi
                 e_trace(4, "collision on equality of min");
                 return -1;
             }
-            /* OG: this test is always true */
-            if (i < array->len) {
+            if (i < array->len - 1) {
                 switch (CMP(max, array->tab[i + 1].inf)) {
                   case CMP_LESS:
                     range_vector_insert(array, i, RANGE_ELEM(min, data));
@@ -143,6 +155,33 @@ static void range_vector_dump_str(range_vector *vec)
     }
 }
 
+static bool range_vector_check_coherence(range_vector *vec)
+{
+    int64_t inf = INT64_MIN;
+    void *data = NULL;
+
+    for (int i = 0; i < vec->len; i++) {
+#if 0
+        /* Strict */
+        if (vec->tab[i].inf <= inf || vec->tab[i].data == data) {
+            return false;
+        }
+#else
+        /* Tolerant: range vector is correct but not optimized */
+        if (vec->tab[i].inf <= inf) {
+            return false;
+        }
+#endif
+        data = vec->tab[i].data;
+        inf  = vec->tab[i].inf;
+    }
+    if (vec->len > 0 && vec->tab[vec->len - 1].data) {
+        /* range vector should be NULL terminated */
+        return false;
+    }
+    return true;
+}
+
 START_TEST(check_range_vector)
 {
     const char *toto = "toto";
@@ -154,31 +193,45 @@ START_TEST(check_range_vector)
 
     range_vector_init(&vec);
 
+    //e_set_verbosity(1);
+
     fail_if(range_vector_insert_one(&vec, 5, (void *)toto), "Collision on %s", toto);
+    fail_if(!range_vector_check_coherence(&vec), "Range vector incoherent");
     e_trace(1, "inserted 5");
     range_vector_dump_str(&vec);
     fail_if(range_vector_insert_one(&vec, 15, (void *)titi), "Collision on %s", titi);
+    fail_if(!range_vector_check_coherence(&vec), "Range vector incoherent");
     e_trace(1, "inserted 15");
     range_vector_dump_str(&vec);
     fail_if(range_vector_insert_one(&vec, 8, (void *)tutu), "Collision on %s", tutu);
+    fail_if(!range_vector_check_coherence(&vec), "Range vector incoherent");
     e_trace(1, "inserted 8");
     range_vector_dump_str(&vec);
     fail_if(range_vector_insert_range(&vec, 11, 14, (void *)tata), "Collision on %s", tata);
+    fail_if(!range_vector_check_coherence(&vec), "Range vector incoherent");
     e_trace(1, "inserted 11 - 14");
     range_vector_dump_str(&vec);
     fail_if(range_vector_insert_range(&vec, 9, 11, (void *)toto), "Collision on %s", toto);
+    fail_if(!range_vector_check_coherence(&vec), "Range vector incoherent");
     e_trace(1, "inserted 9 - 11");
     range_vector_dump_str(&vec);
+    fail_if(range_vector_insert_one(&vec, 16, (void *)tutu), "Collision on %s", tutu);
+    fail_if(!range_vector_check_coherence(&vec), "Range vector incoherent");
+    e_trace(1, "inserted 16");
+    range_vector_dump_str(&vec);
     fail_if(!range_vector_insert_range(&vec, 3, 9, (void *)broken), "Undetected collision");
+    fail_if(!range_vector_check_coherence(&vec), "Range vector incoherent");
     fail_if(!range_vector_insert_range(&vec, 10, 12, (void *)broken), "Undetected collision");
+    fail_if(!range_vector_check_coherence(&vec), "Range vector incoherent");
     fail_if(!range_vector_insert_range(&vec, 6, 18, (void *)broken), "Undetected collision");
+    fail_if(!range_vector_check_coherence(&vec), "Range vector incoherent");
 
     /* Search */
     fail_if(range_vector_get(&vec, 8) != tutu, "Could not find %s", tutu);
     fail_if(range_vector_get(&vec, 10) != toto, "Could not find %s", toto);
     fail_if(range_vector_get(&vec, 8) != tutu, "Could not find %s", tutu);
-    fail_if(range_vector_get(&vec, 17), "Should not have found something");
-
+    fail_if(range_vector_get(&vec, 1234), "Should not have found something");
+    fail_if(range_vector_get(&vec, 1), "Should not have found something");
 }
 END_TEST
 
