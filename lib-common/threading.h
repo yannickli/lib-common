@@ -17,7 +17,7 @@
 #include <assert.h>
 #include <pthread.h>
 
-#if !defined(NDEBUG) && !defined(__MINGW) && !defined(__MINGW32__)
+#if !defined(__MINGW) && !defined(__MINGW32__)
 /* declare an anchor for the module/thing */
 #define THREAD_ANCHOR(name)  pthread_t name
 #define STATIC_THREAD_ANCHOR(name)  static THREAD_ANCHOR(name)
@@ -26,8 +26,10 @@
 #define THREAD_TIE(name)     (assert (!name), name = pthread_self())
 /* untie the anchor */
 #define THREAD_UNTIE(name)   (name = 0)
+#define THREAD_CHECK(name)   (name == pthread_self())
 /* use that in the begining of each function to tie to the anchor */
-#define THREAD_ASSERT(name)  (assert (name == pthread_self()))
+#define THREAD_ASSERT(name)  (assert (THREAD_CHECK(name)))
+
 #else
 #define THREAD_ANCHOR(name)
 #define STATIC_THREAD_ANCHOR(name)
