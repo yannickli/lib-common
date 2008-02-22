@@ -20,6 +20,54 @@
 
 typedef struct isndx_t isndx_t;
 
+typedef struct isndx_file_t MMFILE_ALIAS(struct isndx_file) isndx_file_t;
+
+MMFILE_FUNCTIONS(isndx_file_t, isndx_real);
+
+#define ISNDX_MAGIC       "ISGX"
+#define ISNDX_MAJOR       0
+#define ISNDX_MINOR       2
+#define ISNDX_PAGESHIFT   10
+#define ISNDX_PAGESIZE    (1 << ISNDX_PAGESHIFT)
+
+#define ROUND_SHIFT(x,s)  (((x) + (1 << (s)) - 1) & ~((1 << (s)) - 1))
+#define NB_PAGES_GROW     32
+
+#define MAX_KEYLEN        255
+#define MAX_DATALEN       255
+#define MAX_DEPTH         16
+
+#define O_ISWRITE(m)      (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
+
+struct isndx_file {
+    byte magic[4];
+    uint32_t major;
+    uint32_t minor;
+    uint32_t pageshift;
+    uint32_t pagesize;
+    uint32_t root;
+    int32_t rootlevel;
+    uint32_t nbpages;
+    uint32_t nbkeys;
+    int32_t minkeylen;
+    int32_t maxkeylen;
+    int32_t mindatalen;
+    int32_t maxdatalen;
+};
+
+struct isndx_t {
+    isndx_file_t *file;
+    uint32_t pageshift;
+    uint32_t pagesize;
+    uint32_t root;
+    int32_t rootlevel;
+    uint32_t npages, nkeys;     /* used by isndx_check() */
+    int error_code;
+    FILE *error_stream;
+    char error_buf[128];
+};
+
+
 typedef struct isndx_create_parms_t {
     int flags;
     int pageshift;
@@ -36,8 +84,14 @@ int isndx_fetch(isndx_t *ndx, const byte *key, int klen, blob_t *out);
 int isndx_push(isndx_t *ndx, const byte *key, int klen,
                const void *data, int len);
 
-int isndx_fetch_uint64(isndx_t *ndx, uint64_t key, blob_t *out);
-int isndx_push_uint64(isndx_t *ndx, uint64_t key, const void *data, int len);
+static inline int isndx_fetch_uint64(isndx_t *ndx, uint64_t key, blob_t *out)
+{
+    return isndx_fetch(ndx, (const byte *)&key, sizeof(key), out);
+}
+static inline int isndx_push_uint64(isndx_t *ndx, uint64_t key, const void *data, int len)
+{
+    return isndx_push(ndx, (const byte *)&key, sizeof(key), data, len);
+}
 
 #define ISNDX_CHECK_ALL          1
 #define ISNDX_CHECK_PAGES        2
