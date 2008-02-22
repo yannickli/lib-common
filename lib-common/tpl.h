@@ -110,4 +110,13 @@ void tpl_optimize(tpl_t *tpl);
 int tpl_to_iov(struct iovec *, int nr, tpl_t *);
 int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl);
 
+
+/****************************************************************************/
+/*  Pre-defined tpl functions                                               */
+/****************************************************************************/
+
+int tpl_encode_xml_string(tpl_t *out, blob_t *blob, tpl_t *args);
+int tpl_encode_plmn(tpl_t *out, blob_t *blob, tpl_t *args);
+int tpl_encode_expiration(tpl_t *out, blob_t *blob, tpl_t *args);
+
 #endif
