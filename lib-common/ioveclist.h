@@ -15,26 +15,7 @@
 #define IS_LIB_COMMON_IOVECLIST_H
 
 #include <sys/uio.h>
-#include "blob.h"
 #include "array.h"
-
-#define IOVECLIST_OBJS_NUM 64
-
-typedef struct ioveclist {
-    struct iovec objs[IOVECLIST_OBJS_NUM];
-    int used;
-} ioveclist;
-
-void ioveclist_init(ioveclist *l);
-int ioveclist_insert_first(ioveclist *l, const void *data, int size);
-int ioveclist_append(ioveclist *l, const void *data, int size);
-static inline int ioveclist_insert_blob(ioveclist *l, blob_t *blob) {
-    return ioveclist_insert_first(l, blob->data, blob->len);
-}
-int ioveclist_getlen(const ioveclist *l);
-void ioveclist_kill_first(ioveclist *l, ssize_t len);
-GENERIC_WIPE(ioveclist, ioveclist);
-GENERIC_RESET(ioveclist, ioveclist);
 
 #define MAKE_IOVEC(data, len)  (struct iovec){ \
     .iov_base = (void *)(data), .iov_len = (len) }
