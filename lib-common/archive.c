@@ -456,8 +456,9 @@ static int id_from_key(const char *name, int len,
 {
     for (int i = 0; i < nbvars; i++) {
         /* OG: Should check for exact match */
-        if (!strncmp(name, vars[i], len))
+        if (!strncmp(name, vars[i], len)) {
             return i;
+        }
     }
     return -1;
 }
@@ -473,18 +474,33 @@ static tpl_t *archive_bloc_get_tpl(const archive_file *file,
 
     res = tpl_new();
     while (p < end) {
+        /* FIXME: We should not support spaces in the whole {$varname} bloc
+         *
+         * qsdfqsdf {  $tototototo  }  gsdfgsdfgsdfg
+         * ^        ^   ^         ^  ^
+         * |        |   |         |  |
+         * p       p0   p1       p2  p3
+         *
+         * */
         int pos;
-        p0 = memchr(p, end - p, '{');
-        if (!p0)
+
+        p0 = memchr(p, '{', end - p);
+        if (!p0) {
             goto dump;
-        p1 = bskipspaces(p0 + 1);
-        if (*p1 != '$') {
+        }
+
+        p1 = p0 + 1;
+        while (p1 < end && isspace(*p1)) {
+            p1++;
+        }
+        if (p1 == end || *p1 != '$') {
             p0 = p1;
             goto dump;
         }
 
         p1++; /* skip '$' */
-        p2 = p3 = memchr(p1, end - p1, '}');
+
+        p2 = p3 = memchr(p1, '}', end - p1);
         if (!p3) {
             p0 = p1;
             goto dump;
