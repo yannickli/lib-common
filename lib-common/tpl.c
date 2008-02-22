@@ -487,9 +487,6 @@ int tpl_to_iov(struct iovec *iov, int nr, tpl_t *tpl)
     }
 }
 
-#define MAKE_IOVEC(data, len)  (struct iovec){ \
-    .iov_base = (void *)(data), .iov_len = (len) }
-
 int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl)
 {
     int oldlen = iov->len;

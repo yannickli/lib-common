@@ -25,12 +25,6 @@ typedef struct ioveclist {
     int used;
 } ioveclist;
 
-typedef enum {
-    IOVECLIST_WRITE_ERROR = -1 ,
-    IOVECLIST_LATER,
-    IOVECLIST_EMPTY,
-} ioveclist_state;
-
 void ioveclist_init(ioveclist *l);
 int ioveclist_insert_first(ioveclist *l, const void *data, int size);
 int ioveclist_append(ioveclist *l, const void *data, int size);
@@ -42,9 +36,12 @@ void ioveclist_kill_first(ioveclist *l, ssize_t len);
 GENERIC_WIPE(ioveclist, ioveclist);
 GENERIC_RESET(ioveclist, ioveclist);
 
+#define MAKE_IOVEC(data, len)  (struct iovec){ \
+    .iov_base = (void *)(data), .iov_len = (len) }
 
 DO_VECTOR(struct iovec, iovec);
 void iovec_vector_kill_first(iovec_vector *l, ssize_t len);
+int iovec_vector_getlen(iovec_vector *v);
 
 
 #endif /* IS_LIB_COMMON_IOVECLIST_H */
