@@ -33,8 +33,10 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
       case TPL_OP_VAR:
         if (tpl->u.varidx >> 16 == envid) {
             VAL_TYPE vtmp = getvar(tpl->u.varidx, vals, nb);
-            if (!vtmp)
+            if (!vtmp) {
+                e_trace(2, "cound not find var %x", tpl->u.varidx);
                 return -1;
+            }
             return DEAL_WITH_VAR(out, vtmp, envid, vals, nb, flags);
         }
         tpl_add_tpl(out, tpl);
@@ -61,8 +63,10 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
         tmp->is_const = true;
         for (int i = 0; i < tpl->u.blocks.len; i++) {
             tmp2 = tpl_dup(tpl->u.blocks.tab[i]);
-            if (TPL_SUBST(&tmp2, envid, vals, nb, flags | TPL_KEEPVAR))
+            if (TPL_SUBST(&tmp2, envid, vals, nb, flags | TPL_KEEPVAR)) {
+                e_trace(2, "cound not subst block %d", i);
                 return -1;
+            }
             tmp->is_const &= tmp2->is_const;
             tpl_array_append(&tmp->u.blocks, tmp2);
         }
@@ -121,6 +125,9 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
         if (tmp->is_const) {
             int res = (*tpl->u.f)(out, NULL, tmp);
             tpl_delete(&tmp);
+            if (res) {
+                e_trace(2, "apply func failed");
+            }
             return res;
         }
         tmp->op  = tpl->op;
@@ -130,6 +137,7 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
         return 0;
     }
 
+    e_trace(2, "broke from switch");
     return -1;
 }
 

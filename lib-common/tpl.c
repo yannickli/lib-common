@@ -266,11 +266,14 @@ int tpl_get_short_data(tpl_t *tpl, const byte **data, int *len)
             return 0;
           case TPL_OP_BLOCK:
             tpl_optimize(tpl);
-            if (tpl->u.blocks.len != 1)
+            if (tpl->u.blocks.len != 1) {
+                e_trace(2, "blocks.len: %zd != 1", tpl->u.blocks.len);
                 return -1;
+            }
             tpl = tpl->u.blocks.tab[0];
             break;
           default:
+            e_trace(2, "unsupported op: %d", tpl->op);
             return -1;
         }
     }
