@@ -77,7 +77,7 @@ void iovec_vector_kill_first(iovec_vector *iovs, ssize_t len)
 {
     int i = 0;
 
-    while (i < iovs->len && len > (ssize_t)iovs->tab[i].iov_len) {
+    while (i < iovs->len && len >= (ssize_t)iovs->tab[i].iov_len) {
         len -= iovs->tab[i++].iov_len;
     }
     iovec_vector_splice(iovs, 0, i, NULL, 0);
