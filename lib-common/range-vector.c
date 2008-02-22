@@ -147,7 +147,8 @@ int range_vector_insert_range(range_vector *array,
 static void range_vector_dump_str(range_vector *vec)
 {
     for (int i = 0; i < vec->len; i++) {
-        e_trace(1, "%lld  ->  %s", vec->tab[i].inf, (const char *)vec->tab[i].data);
+        e_trace(1, "%lld  ->  %s", (long long)vec->tab[i].inf,
+                (const char *)vec->tab[i].data);
     }
 }
 
