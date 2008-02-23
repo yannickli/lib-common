@@ -552,16 +552,17 @@ tpl_t **archive_get_tpls(const archive_t *archive, int envid,
     const archive_file *file;
     const archive_bloc *bloc;
     tpl_t **array;
-    int i;
 
     array = p_new(tpl_t *, archive->nb_blocs);
 
-    for (i = 0; i < archive->nb_blocs; i++) {
+    for (int i = 0; i < archive->nb_blocs; i++) {
         bloc = archive->blocs[i];
         if (bloc->tag == ARCHIVE_TAG_FILE) {
             file = archive_bloc_to_archive_file_const(bloc);
 
             array[i] = archive_bloc_get_tpl(file, envid, vars, nbvars);
+        } else {
+            array[i] = NULL;
         }
     }
 
