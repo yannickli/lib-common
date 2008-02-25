@@ -102,12 +102,13 @@ void xmlpp_putattr(xmlpp_t *pp, const char *key, const char *val)
 void xmlpp_putattrfmt(xmlpp_t *pp, const char *key, const char *fmt, ...)
 {
     va_list ap;
+    char buf[BUFSIZ];
     blob_t tmp;
 
     if (!pp->can_do_attr)
         return;
 
-    blob_init(&tmp);
+    blob_init2(&tmp, buf, sizeof(buf));
     va_start(ap, fmt);
     blob_append_vfmt(&tmp, fmt, ap);
     va_end(ap);
@@ -129,9 +130,10 @@ void xmlpp_puttext(xmlpp_t *pp, const char *s, int len)
 void xmlpp_put(xmlpp_t *pp, const char *fmt, ...)
 {
     va_list ap;
+    char buf[BUFSIZ];
     blob_t tmp;
 
-    blob_init(&tmp);
+    blob_init2(&tmp, buf, sizeof(buf));
     va_start(ap, fmt);
     blob_append_vfmt(&tmp, fmt, ap);
     va_end(ap);
