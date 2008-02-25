@@ -94,7 +94,7 @@ int blob_decode_ebcdic297(blob_t *dst, const byte *src, int len)
 
     pos = dst->len;
     /* UTF-8 may take up to 2 bytes from EBCDIC 297 */
-    blob_ensure_avail(dst, 2 * len);
+    blob_grow(dst, 2 * len);
     data = dst->data + pos;
     end = src + len;
 

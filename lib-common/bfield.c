@@ -36,7 +36,7 @@ void bfield_set(bfield_t *bf, ssize_t pos)
     }
     if (octet < bf->offs) {
         ssize_t oldlen = bf->bits.len;
-        blob_resize(&bf->bits, bf->bits.len + bf->offs - octet);
+        blob_setlen(&bf->bits, bf->bits.len + bf->offs - octet);
         p_move(bf->bits.data, bf->offs - octet, 0, oldlen);
         p_clear(bf->bits.data, bf->offs - octet);
         bf->offs = octet;

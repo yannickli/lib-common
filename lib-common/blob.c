@@ -94,8 +94,8 @@ static void blob_set_payload(blob_t *blob, int len,
  */
 void blob_ensure(blob_t *blob, int newlen)
 {
-    if (newlen <= 0)
-        return;
+    if (newlen < 0)
+        e_panic("trying to allocate insane amount of RAM");
 
     if (newlen >= blob->size) {
         if (blob->allocated && !blob->skip) {
@@ -149,7 +149,7 @@ blob_blit_data_real(blob_t *blob, int pos, const void *data, int len)
         pos = blob->len;
     }
     if (pos + len > blob->len) {
-        blob_resize(blob, pos + len);
+        blob_setlen(blob, pos + len);
     }
     /* This will fail if data and blob->data overlap */
     memcpy(blob->data + pos, data, len);
@@ -178,7 +178,7 @@ blob_insert_data_real(blob_t *blob, int pos, const void *data, int len)
         pos = oldlen;
     }
 
-    blob_resize(blob, oldlen + len);
+    blob_setlen(blob, oldlen + len);
     if (pos < oldlen) {
         p_move(blob->data, pos + len, pos, oldlen - pos);
     }
@@ -272,7 +272,7 @@ void blob_splice_data(blob_t *blob, int pos, int len,
         datalen = 0;
     }
 
-    blob_resize(blob, oldlen + datalen - len);
+    blob_setlen(blob, oldlen + datalen - len);
 
     if (len != datalen) {
         p_move(blob->data, pos + datalen, pos + len, oldlen - pos - len);
@@ -400,7 +400,7 @@ int blob_append_file_data(blob_t *blob, const char *filename)
   error:
     close(fd);
     /* OG: maybe we should keep data read so far */
-    blob_resize(blob, origlen);
+    blob_setlen(blob, origlen);
     return -1;
 }
 
@@ -416,7 +416,7 @@ int blob_append_fread(blob_t *blob, int size, int nmemb, FILE *f)
      * Should extend API to allow reading the whole FILE at once with
      * minimal memory allocation.
      */
-    blob_ensure_avail(blob, size * nmemb);
+    blob_grow(blob, size * nmemb);
 
     res = fread(blob->data + blob->len, size, nmemb, f);
     if (res < 0) {
@@ -440,7 +440,7 @@ int blob_append_read(blob_t *blob, int fd, int count)
     if (count < 0)
         count = BUFSIZ;
 
-    blob_ensure_avail(blob, count);
+    blob_grow(blob, count);
 
     res = read(fd, blob->data + blob->len, count);
     if (res < 0) {
@@ -464,7 +464,7 @@ int blob_append_recv(blob_t *blob, int fd, int count)
     if (count < 0)
         count = BUFSIZ;
 
-    blob_ensure_avail(blob, count);
+    blob_grow(blob, count);
 
     res = recv(fd, blob->data + blob->len, count, 0);
     if (res < 0) {
@@ -486,7 +486,7 @@ int blob_append_recvfrom(blob_t *blob, int fd, int count, int flags,
     if (count < 0)
         count = BUFSIZ;
 
-    blob_ensure_avail(blob, count);
+    blob_grow(blob, count);
 
     res = recvfrom(fd, blob->data + blob->len, count, flags,
                    from, fromlen);
@@ -529,7 +529,7 @@ int blob_append_fgets(blob_t *blob, FILE *f)
         len = strlen(dest);
         if (dest == buf) {
             /* Append temporary buffer to blob data */
-            blob_ensure_avail(blob, len);
+            blob_grow(blob, len);
             memcpy(blob->data + blob->len, dest, len + 1);
         }
         blob->len += len;
@@ -650,48 +650,6 @@ int blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap)
     res = blob_append_vfmt(blob, fmt, ap);
 
     return res;
-}
-
-/* Returns the number of bytes written.
- *
- * A negative value indicates an error, without much precision
- * (presumably not enough space in the internal buffer) and such an error
- * is permanent. The 1 KB buffer should suffice.
- */
-int blob_strftime(blob_t *blob, int pos, const char *fmt,
-                      const struct tm *tm)
-{
-    /* A 1 KB buffer should suffice */
-    char buffer[1024];
-    size_t res;
-
-    if (pos > blob->len) {
-        pos = blob->len;
-    }
-
-    /* Detecting overflow in strftime cannot be done reliably: older
-     * versions of the glibc returned bufsize upon overflow, while
-     * newer ones follow the norm and return 0.  An unlucky choice
-     * since valid time conversions can have 0 length, including non
-     * trivial ones such as %p.
-     * In case of overflow, we leave the blob unchanged as the contents
-     * of the buffer is undefined.
-     */
-    {
-        /* Call strftime via a pointer to stop stupid gcc warning about
-         * non literal format argument.
-         */
-        size_t (*pstrftime)(char *s, size_t maxsize, const char *format,
-                            const struct tm *tp) = (void*)strftime;
-        res = (*pstrftime)(buffer, sizeof(buffer), fmt, tm);
-    }
-    if (res > 0 && res < sizeof(buffer)) {
-        blob_resize(blob, pos);
-        blob_blit_data_real(blob, pos, buffer, res);
-        return res;
-    }
-
-    return -1;
 }
 
 /**************************************************************************/
@@ -892,7 +850,7 @@ void blob_append_urldecode(blob_t *out, const char *encoded, int len,
     if (len < 0) {
         len = strlen(encoded);
     }
-    blob_ensure_avail(out, len);
+    blob_grow(out, len);
     out->len += purldecode(encoded,
                            out->data + out->len, len + 1, flags);
 }
@@ -1103,42 +1061,6 @@ int string_decode_base64(byte *dst, int size,
     }
 
     return p - dst;
-}
-
-/**************************************************************************/
-/* Blob parsing                                                           */
-/**************************************************************************/
-
-/* try to parse a c-string from the current position in the buffer.
-
-   pos will be incremented to the position right after the NUL
-   answer is a pointer *in* the blob, so you have to strdup it if needed.
-
-   @returns :
-
-     positive number or 0
-       represent the length of the parsed string (not
-       including the leading \0)
-
-     PARSE_EPARSE
-       no \0 was found before the end of the blob
- */
-
-int blob_parse_cstr(const blob_t *blob, int *pos, const char **answer)
-{
-    int walk = *pos;
-
-    while (walk < blob->len) {
-        if (blob->data[walk] == '\0') {
-            int len = walk - *pos;
-            PARSE_SET_RESULT(answer, (char *)(blob->data + *pos));
-            *pos = walk + 1;
-            return len;
-        }
-        walk++;
-    }
-
-    return PARSE_EPARSE;
 }
 
 /*---------------- blob conversion stuff ----------------*/
@@ -1795,7 +1717,7 @@ int blob_serialize(blob_t *blob, const char *fmt, ...)
     return 0;
 error:
     va_end(ap);
-    blob_resize(blob, orig_len);
+    blob_setlen(blob, orig_len);
     return -1;
 }
 
@@ -2085,7 +2007,7 @@ START_TEST(check_set)
 END_TEST
 
 /*.....................................................................}}}*/
-/* test blob_dup / blob_resize                                         {{{*/
+/* test blob_dup / blob_setlen                                         {{{*/
 
 START_TEST(check_dup)
 {
@@ -2110,10 +2032,10 @@ START_TEST(check_resize)
     blob_t b1;
     check_setup(&b1, "tototutu");
 
-    blob_resize(&b1, 4);
+    blob_setlen(&b1, 4);
     check_blob_invariants(&b1);
     fail_if (b1.len != 4,
-             "blob_resized blob should have len 4, but has %d", b1.len);
+             "blob_setlend blob should have len 4, but has %d", b1.len);
 
     check_teardown(&b1, NULL);
 }
@@ -2279,7 +2201,7 @@ START_TEST(check_append)
             "append failed");
 
     /* append escaped */
-    blob_resize(&blob, 0);
+    blob_setlen(&blob, 0);
     blob_append_cstr_escaped(&blob, "123\"45\\6", "\"\\");
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, "123\\\"45\\\\6") != 0,
@@ -2287,7 +2209,7 @@ START_TEST(check_append)
     fail_if(blob.len != strlen("123\\\"45\\\\6"),
             "append escaped failed");
 
-    blob_resize(&blob, 0);
+    blob_setlen(&blob, 0);
     blob_append_cstr_escaped(&blob, "123456", "\"\\");
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, "123456") != 0,

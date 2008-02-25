@@ -81,7 +81,7 @@ int db_get(isdb_t *db, const char *k, int kl, blob_t *out)
     blob_extend(out, siz);
     res = tchdbget3(db, k, kl, (char *)out->data + out->len - siz, siz + 1);
     if (res < 0) {
-        blob_resize(out, out->len - siz);
+        blob_setlen(out, out->len - siz);
     }
     return res;
 }

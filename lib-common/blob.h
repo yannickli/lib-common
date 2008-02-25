@@ -95,7 +95,7 @@ static inline void blob_reset(blob_t *blob) {
 
 void blob_ensure(blob_t *blob, int newlen);
 
-static inline void blob_ensure_avail(blob_t *blob, int extralen) {
+static inline void blob_grow(blob_t *blob, int extralen) {
     assert (extralen >= 0);
 
     if (blob->len + extralen >= blob->size) {
@@ -103,7 +103,8 @@ static inline void blob_ensure_avail(blob_t *blob, int extralen) {
     }
 }
 
-static inline void blob_resize(blob_t *blob, int newlen) {
+static inline void blob_setlen(blob_t *blob, int newlen) {
+    assert (newlen >= 0);
     if (newlen <= 0) {
         blob_reset(blob);
     } else {
@@ -115,16 +116,12 @@ static inline void blob_resize(blob_t *blob, int newlen) {
 
 static inline void blob_extend(blob_t *blob, int extralen) {
     assert (extralen >= 0);
-
-    blob_ensure_avail(blob, extralen);
-    blob->len += extralen;
-    blob->data[blob->len] = '\0';
+    blob_setlen(blob, blob->len + extralen);
 }
 
 static inline void blob_extend2(blob_t *blob, int extralen, byte init) {
     assert (extralen >= 0);
-
-    blob_ensure_avail(blob, extralen);
+    blob_grow(blob, extralen);
     memset(blob->data + blob->len, init, extralen);
     blob->len += extralen;
     blob->data[blob->len] = '\0';
@@ -168,7 +165,7 @@ blob_splice(blob_t *dest, int pos, int len, const blob_t *src) {
 
 static inline void
 blob_append_data(blob_t *blob, const void *data, int len) {
-    blob_ensure_avail(blob, len);
+    blob_grow(blob, len);
     memcpy(blob->data + blob->len, data, len);
     blob->len += len;
     blob->data[blob->len] = '\0';
@@ -226,7 +223,7 @@ static inline void blob_kill_first(blob_t *blob, int len) {
 }
 static inline void blob_kill_last(blob_t *blob, int len) {
     if (len < blob->len) {
-        blob->len  -= len;
+        blob->len -= len;
         blob->data[blob->len] = '\0';
     } else {
         blob_reset(blob);
@@ -277,16 +274,6 @@ int blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap)
 int blob_set_fmt(blob_t *blob, const char *fmt, ...)
         __attr_printf__(2,3);
 
-int blob_strftime(blob_t *blob, int pos, const char *fmt,
-                      const struct tm *tm);
-
-static inline void blob_strftime_utc(blob_t *blob, int pos, time_t timer)
-{
-    struct tm tm;
-    blob_strftime(blob, pos, "%a, %d %b %Y %H:%M:%S GMT",
-                  gmtime_r(&timer, &tm));
-}
-
 int blob_pack(blob_t *blob, const char *fmt, ...);
 int blob_unpack(const blob_t *blob, int *pos, const char *fmt, ...)
     __must_check__;
@@ -304,10 +291,9 @@ int blob_deserialize(const blob_t *blob, int *pos, const char *fmt, ...);
 
 /* not very efficent ! */
 
-int blob_search(const blob_t *haystack, int pos,
-                    const blob_t *needle);
+int blob_search(const blob_t *haystack, int pos, const blob_t *needle);
 int blob_search_data(const blob_t *haystack, int pos,
-                         const void *needle, int len);
+                     const void *needle, int len);
 static inline int
 blob_search_cstr(const blob_t *haystack, int pos, const char *needle) {
     return blob_search_data(haystack, pos, needle, strlen(needle));
@@ -366,16 +352,6 @@ void blob_append_urldecode(blob_t *out, const char *encoded, int len,
                            int flags);
 void blob_b64encode(blob_t *blob, int nbpackets);
 void blob_b64decode(blob_t *blob);
-
-/**************************************************************************/
-/* Blob parsing                                                           */
-/**************************************************************************/
-
-#include "parse.h"
-
-int blob_parse_cstr(const blob_t *blob, int *pos,
-                        const char **answer);
-
 
 /**************************************************************************/
 /* Blob compression/decompression                                         */

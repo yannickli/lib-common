@@ -321,7 +321,7 @@ int tpl_fold(blob_t *out, tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb,
     int res = 0;
 
     if (tpl_fold_blob_tpl(out, *tplp, envid, vals, nb, flags) < 0) {
-        blob_resize(out, pos);
+        blob_setlen(out, pos);
         res = -1;
     }
     if (!(flags & TPL_KEEPVAR)) {
@@ -361,7 +361,7 @@ int tpl_fold_str(blob_t *out, tpl_t **tplp, uint16_t envid,
 {
     int pos = out->len;
     if (tpl_fold_blob_str(out, *tplp, envid, vals, nb, flags) < 0) {
-        blob_resize(out, pos);
+        blob_setlen(out, pos);
         tpl_delete(tplp);
         return -1;
     }
@@ -584,7 +584,7 @@ int tpl_encode_expiration(tpl_t *out, blob_t *blob, tpl_t *args)
     expiration = memtoip(data, len, NULL);
     localtime_r(&expiration, &t);
 
-    blob_ensure_avail(blob, 20);
+    blob_grow(blob, 20);
     blob_append_fmt(blob, "%04d-%02d-%02dT%02d:%02d:%02d",
                     t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
                     t.tm_hour, t.tm_min, t.tm_sec);

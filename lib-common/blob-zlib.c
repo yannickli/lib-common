@@ -171,7 +171,7 @@ static int blob_generic_uncompress(blob_t *dest, const blob_t *src,
     }
     len = src->len * 4;
     blob_reset(dest);
-    blob_resize(dest, len);
+    blob_setlen(dest, len);
     data = dest->data;
     while ((err = (*uncomp_fct)(data, &len, src->data, src->len)) != Z_OK &&
            try < 2)
@@ -179,7 +179,7 @@ static int blob_generic_uncompress(blob_t *dest, const blob_t *src,
         if (err == Z_BUF_ERROR) {
             len *= 2;
             blob_reset(dest);
-            blob_resize(dest, len);
+            blob_setlen(dest, len);
             data = dest->data;
             /* FIXME: A 1Mb file filled with 0 compresses into 1056 bytes.
              * It cannot be uncompressed by this function ! Oops !
@@ -189,7 +189,7 @@ static int blob_generic_uncompress(blob_t *dest, const blob_t *src,
             return -1;
         }
     }
-    blob_resize(dest, len);
+    blob_setlen(dest, len);
     return 0;
 }
 
@@ -232,7 +232,7 @@ static int blob_generic_compress(blob_t *dest, const blob_t *src,
         return -1;
     }
     len = src->len + 256;
-    blob_resize(dest, len);
+    blob_setlen(dest, len);
     data = dest->data;
     while ((err = (*comp_fct)(data, &len, src->data, src->len)) != Z_OK &&
            try < 2)
@@ -240,14 +240,14 @@ static int blob_generic_compress(blob_t *dest, const blob_t *src,
         if (err == Z_BUF_ERROR) {
             len *= 2;
             blob_reset(dest);
-            blob_resize(dest, len);
+            blob_setlen(dest, len);
             data = dest->data;
             try++;
         } else {
             return -2;
         }
     }
-    blob_resize(dest, len);
+    blob_setlen(dest, len);
     return 0;
 }
 

@@ -260,14 +260,14 @@ static int blob_iconv_priv(blob_t *dst, const byte *src, int len,
     len_out = len_in * 2;
     total_len = init_len_out + len_in * 2;
 
-    blob_resize(dst, total_len);
+    blob_setlen(dst, total_len);
     out = (char *)dst->data + init_len_out;
 
     ic_h = get_iconv_handle("UTF-8", type);
     while (iconv(ic_h, &data, &len_in, &out, &len_out) != 0 && try < 5) {
         if (errno == E2BIG) {
             len_out = 256;
-            blob_resize(dst, total_len + len_out);
+            blob_setlen(dst, total_len + len_out);
             out = (char *)dst->data + total_len;
             total_len += len_out;
             try++;
@@ -277,7 +277,7 @@ static int blob_iconv_priv(blob_t *dst, const byte *src, int len,
         }
     }
     total_len -= len_out;
-    blob_resize(dst, total_len);
+    blob_setlen(dst, total_len);
     return 0;
 }
 

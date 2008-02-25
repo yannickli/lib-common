@@ -17,7 +17,7 @@
 
 #define BLOB_APPEND_UINT32(output, i)                 \
     do {                                              \
-        blob_ensure_avail(output, 4);                 \
+        blob_grow(output, 4);                 \
         blob_append_byte(output, UINT32_TO_B0(i));    \
         blob_append_byte(output, UINT32_TO_B1(i));    \
         blob_append_byte(output, UINT32_TO_B2(i));    \

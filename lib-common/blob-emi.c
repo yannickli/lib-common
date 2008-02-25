@@ -314,7 +314,7 @@ int blob_decode_ira_hex_as_latin15(blob_t *dst, const char *src, int len)
     byte *data;
 
     pos = dst->len;
-    blob_ensure_avail(dst, len / 2 + 1);
+    blob_grow(dst, len / 2 + 1);
     data = dst->data + pos;
     /* trim last char if len is odd */
     end = src + (len & ~1);
@@ -343,7 +343,7 @@ int blob_decode_ira_bin_as_latin15(blob_t *dst, const char *src, int len)
     byte *data;
 
     pos = dst->len;
-    blob_ensure_avail(dst, len);
+    blob_grow(dst, len);
     data = dst->data + pos;
     end = src + len;
     while (src < end) {
@@ -367,7 +367,7 @@ int blob_decode_ira_hex_as_utf8(blob_t *dst, const char *src, int slen)
     pos = dst->len;
     len = slen / 2;
     for (;;) {
-        blob_ensure_avail(dst, len);
+        blob_grow(dst, len);
         len = string_decode_ira_hex_as_utf8((char *)dst->data + pos,
                                             dst->size - pos,
                                             (const char*)src, slen);
@@ -385,7 +385,7 @@ int blob_decode_ira_bin_as_utf8(blob_t *dst, const char *src, int slen)
     pos = dst->len;
     len = slen;
     for (;;) {
-        blob_ensure_avail(dst, len);
+        blob_grow(dst, len);
         len = string_decode_ira_bin_as_utf8((char *)dst->data + pos,
                                             dst->size - pos,
                                             (const char*)src, slen);
