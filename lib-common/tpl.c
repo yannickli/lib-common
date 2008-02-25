@@ -267,7 +267,7 @@ int tpl_get_short_data(tpl_t *tpl, const byte **data, int *len)
           case TPL_OP_BLOCK:
             tpl_optimize(tpl);
             if (tpl->u.blocks.len != 1) {
-                e_trace(2, "blocks.len: %zd != 1", tpl->u.blocks.len);
+                e_trace(2, "blocks.len: %d != 1", tpl->u.blocks.len);
                 return -1;
             }
             tpl = tpl->u.blocks.tab[0];
