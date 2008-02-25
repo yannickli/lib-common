@@ -67,12 +67,12 @@ ARRAY_FUNCTIONS(tpl_t, tpl, tpl_delete);
 /* Build the AST                                                            */
 /****************************************************************************/
 
+blob_t *tpl_get_blob(tpl_t *tpl);
+
 void tpl_add_data(tpl_t *tpl, const byte *data, int len);
+void tpl_add_byte(tpl_t *tpl, byte b);
 static inline void tpl_add_cstr(tpl_t *tpl, const char *s) {
     tpl_add_data(tpl, (const byte *)s, strlen(s));
-}
-static inline void tpl_add_byte(tpl_t *tpl, byte b) {
-      return tpl_add_data(tpl, &b, 1);
 }
 void tpl_add_fmt(tpl_t *tpl, const char *fmt, ...) __attr_printf__(2, 3);
 
@@ -85,8 +85,6 @@ void tpl_add_tpl(tpl_t *out, const tpl_t *tpl);
 tpl_t *tpl_add_ifdef(tpl_t *tpl, uint16_t envid, uint16_t index);
 tpl_t *tpl_add_apply(tpl_t *tpl, tpl_op op, tpl_apply_f *f);
 void tpl_dump(int dbg, const tpl_t *tpl, const char *s);
-
-blob_t *tpl_get_blob(tpl_t *tpl);
 
 /****************************************************************************/
 /* Substitution and optimization                                            */

@@ -111,6 +111,11 @@ void tpl_copy_data(tpl_t *tpl, const byte *data, int len)
     }
 }
 
+void tpl_add_byte(tpl_t *tpl, byte b)
+{
+      return tpl_copy_data(tpl, &b, 1);
+}
+
 void tpl_add_fmt(tpl_t *tpl, const char *fmt, ...)
 {
     va_list ap;
