@@ -25,8 +25,9 @@
  */
 typedef struct blob_t {
     byte *data;
-    flag_t allocated : 1;
-    int len, size, skip;
+    int len, size;
+    flag_t allocated :  1;
+    flag_t skip      : 31;
 } blob_t;
 
 /* XXX: a small amount of information used to *never* have a NULL ->data
