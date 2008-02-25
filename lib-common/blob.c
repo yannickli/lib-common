@@ -28,6 +28,8 @@
 #include "iprintf.h"
 #include "byteops.h"
 
+byte blob_slop[1];
+
 /**************************************************************************/
 /* Blob creation / deletion                                               */
 /**************************************************************************/
@@ -35,14 +37,16 @@
 char *blob_detach(blob_t *blob)
 {
     char *res;
-    if (!blob->allocated)
-        return p_dupstr(blob->data, blob->len);
-    if (blob->skip) {
-        memmove(blob->data - blob->skip, blob->data, blob->len + 1);
-        blob->data -= blob->skip;
+    if (!blob->allocated) {
+        res = p_dupstr(blob->data, blob->len);
+        blob_reset(blob);
+    } else {
+        if (blob->skip) {
+            memmove(blob->data - blob->skip, blob->data, blob->len + 1);
+        }
+        res = (char *)blob->data - blob->skip;
+        blob_init(blob);
     }
-    res = (char *)blob->data;
-    p_clear(blob, 1);
     return res;
 }
 

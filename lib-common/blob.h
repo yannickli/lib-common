@@ -16,8 +16,6 @@
 
 #include "mem.h"
 
-#define BLOB_INITIAL_SIZE 32
-
 /*
  * A blob has a vital invariant, making every parse function avoid
  * buffer read overflows: there is *always* a '\0' in the data at
@@ -27,29 +25,36 @@ typedef struct blob_t {
     byte *data;
     flag_t allocated : 1;
     int len, size, skip;
-    byte initial[BLOB_INITIAL_SIZE];
 } blob_t;
+
+extern byte blob_slop[1];
+
+#define BLOB_STATIC_INIT  (blob_t){ .data = blob_slop, .size = 1 }
 
 /**************************************************************************/
 /* Blob creation / deletion                                               */
 /**************************************************************************/
 
-static inline blob_t *blob_init(blob_t *blob) {
-    *blob = (blob_t){
-        .size = BLOB_INITIAL_SIZE,
-        .data = blob->initial,
-    };
-    /* setup invariant: blob is always NUL terminated */
+static inline blob_t *blob_init2(blob_t *blob, void *buf, int size) {
+    assert (size > 0);
+    *blob = (blob_t){ .data = buf, .size = size };
     blob->data[0] = '\0';
+    return blob;
+}
+static inline blob_t *blob_init(blob_t *blob) {
+    *blob = BLOB_STATIC_INIT;
+    /* setup invariant: blob is always NUL terminated */
+    assert (blob->data[0] == '\0');
     return blob;
 }
 static inline void blob_wipe(blob_t *blob) {
     if (blob->allocated) {
         mem_free(blob->data - blob->skip);
     }
-    blob->len = 0;
+    blob_init(blob);
 }
-char *blob_detach(blob_t *blob); /* don't use on a real blob_t * !*/
+#define blob_reinit(b)  blob_wipe(b)
+char *blob_detach(blob_t *blob);
 
 GENERIC_NEW(blob_t, blob);
 GENERIC_DELETE(blob_t, blob);
@@ -75,17 +80,11 @@ static inline void blob_reset(blob_t *blob) {
     if (blob->allocated) {
         blob->size += blob->skip;
         blob->data -= blob->skip;
+        blob->skip = 0;
+        blob->data[blob->len = 0] = '\0';
     } else {
-        blob->size = BLOB_INITIAL_SIZE;
-        blob->data = blob->initial;
+        blob_init(blob);
     }
-    blob->skip = 0;
-    blob->data[blob->len = 0] = '\0';
-}
-
-static inline void blob_reinit(blob_t *blob) {
-    blob_wipe(blob);
-    blob_init(blob);
 }
 
 void blob_ensure(blob_t *blob, int newlen);
