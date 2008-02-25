@@ -20,6 +20,8 @@
  * A blob has a vital invariant, making every parse function avoid
  * buffer read overflows: there is *always* a '\0' in the data at
  * position len, implying that size is always >= len+1
+ *
+ * When allocated, the start of the data is at .data - .skip.
  */
 typedef struct blob_t {
     byte *data;
@@ -27,6 +29,10 @@ typedef struct blob_t {
     int len, size, skip;
 } blob_t;
 
+/* XXX: a small amount of information used to *never* have a NULL ->data
+ * member It should always stay equal to \0 and is writeable so that code
+ * enforcing the invariant puting \0 at that place do work.
+ */
 extern byte blob_slop[1];
 
 #define BLOB_STATIC_INIT  (blob_t){ .data = blob_slop, .size = 1 }
