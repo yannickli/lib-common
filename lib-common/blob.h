@@ -81,16 +81,11 @@ static inline const char *blob_get_end(const blob_t *blob) {
 /**************************************************************************/
 
 static inline void blob_reset(blob_t *blob) {
-    /* Remove initial skip if any */
-    /* Do not release memory */
-    if (blob->allocated) {
-        blob->size += blob->skip;
-        blob->data -= blob->skip;
-        blob->skip = 0;
-        blob->data[blob->len = 0] = '\0';
-    } else {
-        blob_init(blob);
-    }
+    /* Remove initial skip if any, and don't release memory */
+    blob->size += blob->skip;
+    blob->data -= blob->skip;
+    blob->skip = 0;
+    blob->data[blob->len = 0] = '\0';
 }
 
 void blob_ensure(blob_t *blob, int newlen);

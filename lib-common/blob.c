@@ -97,35 +97,35 @@ void blob_ensure(blob_t *blob, int newlen)
     if (newlen < 0)
         e_panic("trying to allocate insane amount of RAM");
 
-    if (newlen >= blob->size) {
-        if (blob->allocated && !blob->skip) {
-            if (newlen > 1024*1024) {
-                e_trace(1, "Large blob ensure realloc, newlen:%d size:%d len:%d data:%.80s",
-                        newlen, blob->size, blob->len, blob->data);
-            }
-            p_allocgrow(&blob->data, newlen + 1, &blob->size);
-        } else {
-            if (newlen < blob->skip + blob->size) {
-                /* Data fits in the current area, shift it left */
-                memmove(blob->data - blob->skip, blob->data, blob->len + 1);
-                blob->data -= blob->skip;
-                blob->size += blob->skip;
-            } else {
-                /* Allocate a new area */
-                int newsize = p_alloc_nr(newlen + 1);
+    if (newlen < blob->size)
+        return;
 
-                byte *new_area = p_new_raw(byte, newsize);
-                /* Copy the blob data including the trailing '\0' */
-                memcpy(new_area, blob->data, blob->len + 1);
-                if (blob->allocated) {
-                    mem_free(blob->data - blob->skip);
-                }
-                blob->allocated = true;
-                blob->data = new_area;
-                blob->size = newsize;
-            }
-            blob->skip = 0;
+    if (newlen < blob->skip + blob->size) {
+        /* Data fits in the current area, shift it left */
+        memmove(blob->data - blob->skip, blob->data, blob->len + 1);
+        blob->data -= blob->skip;
+        blob->size += blob->skip;
+    } else
+    if (blob->allocated && !blob->skip) {
+        if (newlen > 1024 * 1024) {
+            e_trace(1, "Large blob realloc, newlen:%d size:%d len:%d data:%.80s",
+                    newlen, blob->size, blob->len, blob->data);
         }
+        p_allocgrow(&blob->data, newlen + 1, &blob->size);
+    } else {
+        /* Allocate a new area */
+        int newsize = p_alloc_nr(newlen + 1);
+        byte *new_area = p_new_raw(byte, newsize);
+
+        /* Copy the blob data including the trailing '\0' */
+        memcpy(new_area, blob->data, blob->len + 1);
+        if (blob->allocated) {
+            mem_free(blob->data - blob->skip);
+        }
+        blob->allocated = true;
+        blob->data = new_area;
+        blob->size = newsize;
+        blob->skip = 0;
     }
 }
 
@@ -204,13 +204,7 @@ void blob_kill_data(blob_t *blob, int pos, int len)
         blob->data[blob->len] = '\0';
     } else
     if (pos == 0) {
-        /* Simple case: chopping bytes from the beginning:
-         * we increase the initial skip.  We already checked that
-         * len < blob->len.
-         */
-        blob->data += len;
-        blob->size -= len;
-        blob->len  -= len;
+        blob_kill_first(blob, len);
     } else {
         /* General case: shift the blob data */
         /* We could improve speed by moving the smaller of the left and
