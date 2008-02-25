@@ -26,9 +26,7 @@
 typedef struct blob_t {
     byte *data;
     flag_t allocated : 1;
-    ssize_t len;
-    ssize_t size;
-    ssize_t skip;
+    int len, size, skip;
     byte initial[BLOB_INITIAL_SIZE];
 } blob_t;
 
@@ -90,9 +88,9 @@ static inline void blob_reinit(blob_t *blob) {
     blob_init(blob);
 }
 
-void blob_ensure(blob_t *blob, ssize_t newlen);
+void blob_ensure(blob_t *blob, int newlen);
 
-static inline void blob_ensure_avail(blob_t *blob, ssize_t extralen) {
+static inline void blob_ensure_avail(blob_t *blob, int extralen) {
     assert (extralen >= 0);
 
     if (blob->len + extralen >= blob->size) {
@@ -100,7 +98,7 @@ static inline void blob_ensure_avail(blob_t *blob, ssize_t extralen) {
     }
 }
 
-static inline void blob_resize(blob_t *blob, ssize_t newlen) {
+static inline void blob_resize(blob_t *blob, int newlen) {
     if (newlen <= 0) {
         blob_reset(blob);
     } else {
@@ -110,7 +108,7 @@ static inline void blob_resize(blob_t *blob, ssize_t newlen) {
     }
 }
 
-static inline void blob_extend(blob_t *blob, ssize_t extralen) {
+static inline void blob_extend(blob_t *blob, int extralen) {
     assert (extralen >= 0);
 
     blob_ensure_avail(blob, extralen);
@@ -118,7 +116,7 @@ static inline void blob_extend(blob_t *blob, ssize_t extralen) {
     blob->data[blob->len] = '\0';
 }
 
-static inline void blob_extend2(blob_t *blob, ssize_t extralen, byte init) {
+static inline void blob_extend2(blob_t *blob, int extralen, byte init) {
     assert (extralen >= 0);
 
     blob_ensure_avail(blob, extralen);
@@ -133,38 +131,38 @@ static inline void blob_extend2(blob_t *blob, ssize_t extralen, byte init) {
 
 blob_t *blob_dup(const blob_t *blob);
 
-void blob_blit(blob_t *dest, ssize_t pos, const blob_t *src);
-void blob_blit_data(blob_t *blob, ssize_t pos, const void *data, ssize_t len);
-static inline void blob_blit_cstr(blob_t *blob, ssize_t pos, const char *cstr) {
+void blob_blit(blob_t *dest, int pos, const blob_t *src);
+void blob_blit_data(blob_t *blob, int pos, const void *data, int len);
+static inline void blob_blit_cstr(blob_t *blob, int pos, const char *cstr) {
     blob_blit_data(blob, pos, cstr, strlen(cstr));
 }
 
-void blob_insert(blob_t *dest, ssize_t pos, const blob_t *src);
-void blob_insert_data(blob_t *blob, ssize_t pos,
-                      const void *data, ssize_t len);
+void blob_insert(blob_t *dest, int pos, const blob_t *src);
+void blob_insert_data(blob_t *blob, int pos,
+                      const void *data, int len);
 static inline void
-blob_insert_cstr(blob_t *blob, ssize_t pos, const char *cstr) {
+blob_insert_cstr(blob_t *blob, int pos, const char *cstr) {
     blob_insert_data(blob, pos, cstr, strlen(cstr));
 }
 void blob_insert_byte(blob_t *blob, byte b);
 
-void blob_splice_data(blob_t *blob, ssize_t pos, ssize_t len,
-                      const void *data, ssize_t datalen);
+void blob_splice_data(blob_t *blob, int pos, int len,
+                      const void *data, int datalen);
 
 static inline void
-blob_splice_cstr(blob_t *dest, ssize_t pos, ssize_t len, const char *src) {
+blob_splice_cstr(blob_t *dest, int pos, int len, const char *src) {
     blob_splice_data(dest, pos, len, src, strlen(src));
 }
 
 static inline void
-blob_splice(blob_t *dest, ssize_t pos, ssize_t len, const blob_t *src) {
+blob_splice(blob_t *dest, int pos, int len, const blob_t *src) {
     blob_splice_data(dest, pos, len, src->data, src->len);
 }
 
 /*** appends ***/
 
 static inline void
-blob_append_data(blob_t *blob, const void *data, ssize_t len) {
+blob_append_data(blob_t *blob, const void *data, int len) {
     blob_ensure_avail(blob, len);
     memcpy(blob->data + blob->len, data, len);
     blob->len += len;
@@ -194,7 +192,7 @@ static inline void blob_append_cstr_escaped(blob_t *blob, const char *cstr,
 
 /*** copy ***/
 
-static inline void blob_set_data(blob_t *blob, const void *data, ssize_t len) {
+static inline void blob_set_data(blob_t *blob, const void *data, int len) {
     blob_reset(blob);
     blob_append_data(blob, data, len);
 }
@@ -208,10 +206,10 @@ static inline void blob_set_cstr(blob_t *blob, const char *cstr) {
 
 /*** kills ***/
 
-void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len);
+void blob_kill_data(blob_t *blob, int pos, int len);
 
 /* OG: should rename to blob_kill_head and blob_kill_tail? */
-static inline void blob_kill_first(blob_t *blob, ssize_t len) {
+static inline void blob_kill_first(blob_t *blob, int len) {
     if (len < blob->len) {
         blob->data += len;
         blob->size -= len;
@@ -221,7 +219,7 @@ static inline void blob_kill_first(blob_t *blob, ssize_t len) {
         blob_reset(blob);
     }
 }
-static inline void blob_kill_last(blob_t *blob, ssize_t len) {
+static inline void blob_kill_last(blob_t *blob, int len) {
     if (len < blob->len) {
         blob->len  -= len;
         blob->data[blob->len] = '\0';
@@ -240,44 +238,44 @@ static inline void blob_kill_at(blob_t *blob, const char *s) {
 /* Blob file functions                                                    */
 /**************************************************************************/
 
-ssize_t blob_append_file_data(blob_t *blob, const char *filename);
-ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f);
+int blob_append_file_data(blob_t *blob, const char *filename);
+int blob_append_fread(blob_t *blob, int size, int nmemb, FILE *f);
 static inline
-ssize_t blob_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f) {
+int blob_fread(blob_t *blob, int size, int nmemb, FILE *f) {
     blob_reset(blob);
     return blob_append_fread(blob, size, nmemb, f);
 }
-ssize_t blob_append_fgets(blob_t *blob, FILE *f);
+int blob_append_fgets(blob_t *blob, FILE *f);
 
 /* negative count means "auto" */
-ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count);
+int blob_append_read(blob_t *blob, int fd, int count);
 
-ssize_t blob_append_recv(blob_t *blob, int fd, ssize_t count);
+int blob_append_recv(blob_t *blob, int fd, int count);
 
 struct sockaddr;
-ssize_t blob_append_recvfrom(blob_t *blob, int fd, ssize_t count, int flags,
+int blob_append_recvfrom(blob_t *blob, int fd, int count, int flags,
                              struct sockaddr *from, socklen_t *fromlen);
 
-ssize_t blob_save_to_file(blob_t *blob, const char *filename);
+int blob_save_to_file(blob_t *blob, const char *filename);
 
 /**************************************************************************/
 /* Blob printf functions                                                  */
 /**************************************************************************/
 
-ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
+int blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
         __attr_printf__(2,0);
-ssize_t blob_append_fmt(blob_t *blob, const char *fmt, ...)
+int blob_append_fmt(blob_t *blob, const char *fmt, ...)
         __attr_printf__(2,3);
 
-ssize_t blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap)
+int blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap)
         __attr_printf__(2,0);
-ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...)
+int blob_set_fmt(blob_t *blob, const char *fmt, ...)
         __attr_printf__(2,3);
 
-ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt,
+int blob_strftime(blob_t *blob, int pos, const char *fmt,
                       const struct tm *tm);
 
-static inline void blob_strftime_utc(blob_t *blob, ssize_t pos, time_t timer)
+static inline void blob_strftime_utc(blob_t *blob, int pos, time_t timer)
 {
     struct tm tm;
     blob_strftime(blob, pos, "%a, %d %b %Y %H:%M:%S GMT",
@@ -301,12 +299,12 @@ int blob_deserialize(const blob_t *blob, int *pos, const char *fmt, ...);
 
 /* not very efficent ! */
 
-ssize_t blob_search(const blob_t *haystack, ssize_t pos,
+int blob_search(const blob_t *haystack, int pos,
                     const blob_t *needle);
-ssize_t blob_search_data(const blob_t *haystack, ssize_t pos,
-                         const void *needle, ssize_t len);
-static inline ssize_t
-blob_search_cstr(const blob_t *haystack, ssize_t pos, const char *needle) {
+int blob_search_data(const blob_t *haystack, int pos,
+                         const void *needle, int len);
+static inline int
+blob_search_cstr(const blob_t *haystack, int pos, const char *needle) {
     return blob_search_data(haystack, pos, needle, strlen(needle));
 }
 
@@ -316,7 +314,7 @@ blob_search_cstr(const blob_t *haystack, ssize_t pos, const char *needle) {
 
 typedef int (blob_filter_func_t)(int);
 void blob_map(blob_t *blob, blob_filter_func_t *filter);
-void blob_map_range(blob_t *blob, ssize_t start, ssize_t end,
+void blob_map_range(blob_t *blob, int start, int end,
                     blob_filter_func_t *filter);
 
 void blob_ltrim(blob_t *blob);
@@ -327,7 +325,7 @@ static inline void blob_tolower(blob_t *blob) {
     blob_map(blob, &tolower);
 }
 static inline void blob_tolower_range(blob_t *blob,
-                                      ssize_t start, ssize_t end) {
+                                      int start, int end) {
     blob_map_range(blob, start, end, &tolower);
 }
 
@@ -335,7 +333,7 @@ static inline void blob_toupper(blob_t *blob) {
     blob_map(blob, &toupper);
 }
 static inline void blob_toupper_range(blob_t *blob,
-                                      ssize_t start, ssize_t end) {
+                                      int start, int end) {
     blob_map_range(blob, start, end, &toupper);
 }
 
@@ -370,7 +368,7 @@ void blob_b64decode(blob_t *blob);
 
 #include "parse.h"
 
-ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos,
+int blob_parse_cstr(const blob_t *blob, int *pos,
                         const char **answer);
 
 
@@ -408,44 +406,44 @@ int blob_auto_iconv(blob_t *dst, const blob_t *src,
                     const char *type_hint, int *chosen_encoding);
 int blob_file_auto_iconv(blob_t *dst, const char *filename,
                          const char *type_hint, int *chosen_encoding);
-int blob_append_xml_escape(blob_t *dst, const byte *src, ssize_t len);
-int blob_append_quoted_printable(blob_t *dst, const byte *src, ssize_t len);
-int blob_append_base64(blob_t *dst, const byte *src, ssize_t len, int width);
-int blob_append_smtp_data(blob_t *dst, const byte *src, ssize_t len);
-int blob_append_hex(blob_t *dst, const byte *src, ssize_t len);
+int blob_append_xml_escape(blob_t *dst, const byte *src, int len);
+int blob_append_quoted_printable(blob_t *dst, const byte *src, int len);
+int blob_append_base64(blob_t *dst, const byte *src, int len, int width);
+int blob_append_smtp_data(blob_t *dst, const byte *src, int len);
+int blob_append_hex(blob_t *dst, const byte *src, int len);
 
 /* in blob_emi.c */
-int blob_append_ira_hex(blob_t *dst, const byte *src, ssize_t len);
-int blob_append_ira_bin(blob_t *dst, const byte *src, ssize_t len);
+int blob_append_ira_hex(blob_t *dst, const byte *src, int len);
+int blob_append_ira_bin(blob_t *dst, const byte *src, int len);
 
-int blob_decode_ira_hex_as_latin15(blob_t *dst, const char *src, ssize_t len);
-int blob_decode_ira_bin_as_latin15(blob_t *dst, const char *src, ssize_t len);
+int blob_decode_ira_hex_as_latin15(blob_t *dst, const char *src, int len);
+int blob_decode_ira_bin_as_latin15(blob_t *dst, const char *src, int len);
 
-int blob_decode_ira_hex_as_utf8(blob_t *dst, const char *src, ssize_t len);
-int blob_decode_ira_bin_as_utf8(blob_t *dst, const char *src, ssize_t len);
+int blob_decode_ira_hex_as_utf8(blob_t *dst, const char *src, int len);
+int blob_decode_ira_bin_as_utf8(blob_t *dst, const char *src, int len);
 
-int string_decode_base64(byte *dst, ssize_t size,
-                         const char *src, ssize_t len);
+int string_decode_base64(byte *dst, int size,
+                         const char *src, int len);
 
-int string_decode_ira_hex_as_latin15(char *dst, ssize_t size,
-                                     const char *src, ssize_t len);
-int string_decode_ira_bin_as_latin15(char *dst, ssize_t size,
-                                     const char *src, ssize_t len);
+int string_decode_ira_hex_as_latin15(char *dst, int size,
+                                     const char *src, int len);
+int string_decode_ira_bin_as_latin15(char *dst, int size,
+                                     const char *src, int len);
 
-int string_decode_ira_hex_as_utf8(char *dst, ssize_t size,
-                                  const char *src, ssize_t len);
-int string_decode_ira_bin_as_utf8(char *dst, ssize_t size,
-                                  const char *src, ssize_t len);
+int string_decode_ira_hex_as_utf8(char *dst, int size,
+                                  const char *src, int len);
+int string_decode_ira_bin_as_utf8(char *dst, int size,
+                                  const char *src, int len);
 
 /* in blob_ebcdic.c */
-int blob_decode_ebcdic297(blob_t *dst, const byte *src, ssize_t len);
+int blob_decode_ebcdic297(blob_t *dst, const byte *src, int len);
 
 /* in blob_utf8.c */
 /* OG: should inline this */
 int blob_utf8_putc(blob_t *out, int c);
 
-ssize_t blob_latin1_to_utf8(blob_t *out, const char *s, int len);
-ssize_t blob_latin9_to_utf8(blob_t *out, const char *s, int len);
+int blob_latin1_to_utf8(blob_t *out, const char *s, int len);
+int blob_latin9_to_utf8(blob_t *out, const char *s, int len);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

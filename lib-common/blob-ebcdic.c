@@ -86,7 +86,7 @@ static int const ebcdic297_to_unicode[] = {
 
 /* Achtung: Decode an ebcdic 297 string into UTF-8
  * */
-int blob_decode_ebcdic297(blob_t *dst, const byte *src, ssize_t len)
+int blob_decode_ebcdic297(blob_t *dst, const byte *src, int len)
 {
     int pos;
     const byte *end;

@@ -82,7 +82,7 @@ int main(int argc, const char **argv)
     if (tpl_fold(&b2, &tpl, 0, &var, 1, TPL_LASTSUBST)) {
         e_panic("fold failed");
     }
-    e_trace(0, "b2 size: %zd", b2.len);
+    e_trace(0, "b2 size: %d", b2.len);
 
     blob_wipe(&blob);
     blob_wipe(&b2);

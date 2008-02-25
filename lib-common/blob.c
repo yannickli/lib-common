@@ -63,8 +63,8 @@ blob_t *blob_dup(const blob_t *src)
  * Should have a extra parameter telling the blob if it owns buf and
  * must free it with p_delete upon resize and wipe.
  */
-static void blob_set_payload(blob_t *blob, ssize_t len,
-                             void *buf, ssize_t bufsize, bool allocated)
+static void blob_set_payload(blob_t *blob, int len,
+                             void *buf, int bufsize, bool allocated)
 {
     assert (bufsize >= len + 1);
 
@@ -88,7 +88,7 @@ static void blob_set_payload(blob_t *blob, ssize_t len,
  * If blob is extended, its contents between oldlen and newlen is
  * undefined.
  */
-void blob_ensure(blob_t *blob, ssize_t newlen)
+void blob_ensure(blob_t *blob, int newlen)
 {
     if (newlen <= 0)
         return;
@@ -96,7 +96,7 @@ void blob_ensure(blob_t *blob, ssize_t newlen)
     if (newlen >= blob->size) {
         if (blob->allocated && !blob->skip) {
             if (newlen > 1024*1024) {
-                e_trace(1, "Large blob ensure realloc, newlen:%zd size:%zd len:%zd data:%.80s",
+                e_trace(1, "Large blob ensure realloc, newlen:%d size:%d len:%d data:%.80s",
                         newlen, blob->size, blob->len, blob->data);
             }
             p_allocgrow(&blob->data, newlen + 1, &blob->size);
@@ -108,7 +108,7 @@ void blob_ensure(blob_t *blob, ssize_t newlen)
                 blob->size += blob->skip;
             } else {
                 /* Allocate a new area */
-                ssize_t newsize = p_alloc_nr(newlen + 1);
+                int newsize = p_alloc_nr(newlen + 1);
 
                 byte *new_area = p_new_raw(byte, newsize);
                 /* Copy the blob data including the trailing '\0' */
@@ -133,7 +133,7 @@ void blob_ensure(blob_t *blob, ssize_t newlen)
 
 /* data and blob->data must not overlap! */
 static inline void
-blob_blit_data_real(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
+blob_blit_data_real(blob_t *blob, int pos, const void *data, int len)
 {
     if (pos < 0) {
         return;
@@ -160,9 +160,9 @@ blob_blit_data_real(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
  * data and blob->data must not overlap!
  */
 static inline void
-blob_insert_data_real(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
+blob_insert_data_real(blob_t *blob, int pos, const void *data, int len)
 {
-    ssize_t oldlen = blob->len;
+    int oldlen = blob->len;
 
     if (pos < 0) {
         pos = 0;
@@ -181,7 +181,7 @@ blob_insert_data_real(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
     memcpy(blob->data + pos, data, len);
 }
 
-void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len)
+void blob_kill_data(blob_t *blob, int pos, int len)
 {
     if (pos < 0) {
         len += pos;
@@ -220,24 +220,24 @@ void blob_kill_data(blob_t *blob, ssize_t pos, ssize_t len)
 
 /*** blit functions ***/
 
-void blob_blit(blob_t *dest, ssize_t pos, const blob_t *src)
+void blob_blit(blob_t *dest, int pos, const blob_t *src)
 {
     blob_blit_data_real(dest, pos, src->data, src->len);
 }
 
-void blob_blit_data(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
+void blob_blit_data(blob_t *blob, int pos, const void *data, int len)
 {
     blob_blit_data_real(blob, pos, data, len);
 }
 
 /*** insert functions ***/
 
-void blob_insert(blob_t *dest, ssize_t pos, const blob_t *src)
+void blob_insert(blob_t *dest, int pos, const blob_t *src)
 {
     blob_insert_data_real(dest, pos, src->data, src->len);
 }
 
-void blob_insert_data(blob_t *blob, ssize_t pos, const void *data, ssize_t len)
+void blob_insert_data(blob_t *blob, int pos, const void *data, int len)
 {
     blob_insert_data_real(blob, pos, data, len);
 }
@@ -247,10 +247,10 @@ void blob_insert_byte(blob_t *blob, byte b)
     blob_insert_data_real(blob, 0, &b, 1);
 }
 
-void blob_splice_data(blob_t *blob, ssize_t pos, ssize_t len,
-                      const void *data, ssize_t datalen)
+void blob_splice_data(blob_t *blob, int pos, int len,
+                      const void *data, int datalen)
 {
-    ssize_t oldlen = blob->len;
+    int oldlen = blob->len;
 
     if (pos < 0) {
         pos = 0;
@@ -328,9 +328,9 @@ void blob_append_data_escaped2(blob_t *blob, const byte *data, size_t len,
  * cannot be read completely, no data is kept in the blob and an error
  * is returned.
  */
-ssize_t blob_append_file_data(blob_t *blob, const char *filename)
+int blob_append_file_data(blob_t *blob, const char *filename)
 {
-    ssize_t origlen, pos, total, to_read, nread;
+    int origlen, pos, total, to_read, nread;
     struct stat st;
     int fd;
 
@@ -363,7 +363,7 @@ ssize_t blob_append_file_data(blob_t *blob, const char *filename)
         }
     } else {
         /* OG: Should test and reject huge files */
-        total = (ssize_t)st.st_size;
+        total = (int)st.st_size;
 
         /* force allocation */
         blob_extend(blob, total);
@@ -403,9 +403,9 @@ ssize_t blob_append_file_data(blob_t *blob, const char *filename)
 /* OG: returns the number of elements actually appended to the blob,
  * -1 if error
  */
-ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
+int blob_append_fread(blob_t *blob, int size, int nmemb, FILE *f)
 {
-    ssize_t res;
+    int res;
 
     /* Use naive implementation: ignore potential overflow and
      * pre-allocate maximum read size.
@@ -429,9 +429,9 @@ ssize_t blob_append_fread(blob_t *blob, ssize_t size, ssize_t nmemb, FILE *f)
 /* Negative count uses system default of BUFSIZ: undocumented semantics
  * used in aggregatorm subject to change
  */
-ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
+int blob_append_read(blob_t *blob, int fd, int count)
 {
-    ssize_t res;
+    int res;
 
     if (count < 0)
         count = BUFSIZ;
@@ -453,9 +453,9 @@ ssize_t blob_append_read(blob_t *blob, int fd, ssize_t count)
 /* Negative count uses system default of BUFSIZ: undocumented semantics
  * used in aggregatorm subject to change
  */
-ssize_t blob_append_recv(blob_t *blob, int fd, ssize_t count)
+int blob_append_recv(blob_t *blob, int fd, int count)
 {
-    ssize_t res;
+    int res;
 
     if (count < 0)
         count = BUFSIZ;
@@ -474,10 +474,10 @@ ssize_t blob_append_recv(blob_t *blob, int fd, ssize_t count)
 }
 
 /* Return the number of bytes read */
-ssize_t blob_append_recvfrom(blob_t *blob, int fd, ssize_t count, int flags,
+int blob_append_recvfrom(blob_t *blob, int fd, int count, int flags,
                              struct sockaddr *from, socklen_t *fromlen)
 {
-    ssize_t res;
+    int res;
 
     if (count < 0)
         count = BUFSIZ;
@@ -500,11 +500,11 @@ ssize_t blob_append_recvfrom(blob_t *blob, int fd, ssize_t count, int flags,
 /* Embedded nuls in input stream will cause portions of the stream to
  * be skipped.
  */
-ssize_t blob_append_fgets(blob_t *blob, FILE *f)
+int blob_append_fgets(blob_t *blob, FILE *f)
 {
     char buf[BUFSIZ];
     char *dest;
-    ssize_t size, len, total = 0;
+    int size, len, total = 0;
 
     for (;;) {
         dest = (char *)blob->data + blob->len;
@@ -544,9 +544,9 @@ ssize_t blob_append_fgets(blob_t *blob, FILE *f)
 }
 
 /* Return number of bytes written or -1 on error */
-ssize_t blob_save_to_file(blob_t *blob, const char *filename)
+int blob_save_to_file(blob_t *blob, const char *filename)
 {
-    ssize_t len, pos, nwritten;
+    int len, pos, nwritten;
     int fd;
 
     if ((fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0)
@@ -574,9 +574,9 @@ ssize_t blob_save_to_file(blob_t *blob, const char *filename)
 /* Blob printf function                                                   */
 /**************************************************************************/
 
-ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
+int blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
 {
-    ssize_t pos;
+    int pos;
     int len;
     int available;
     va_list ap2;
@@ -613,9 +613,9 @@ ssize_t blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
 /* returns the number of bytes written.
    note that blob_append_fmt always works (or never returns due to memory
    allocation */
-ssize_t blob_append_fmt(blob_t *blob, const char *fmt, ...)
+int blob_append_fmt(blob_t *blob, const char *fmt, ...)
 {
-    ssize_t res;
+    int res;
     va_list args;
 
     va_start(args, fmt);
@@ -625,9 +625,9 @@ ssize_t blob_append_fmt(blob_t *blob, const char *fmt, ...)
     return res;
 }
 
-ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...)
+int blob_set_fmt(blob_t *blob, const char *fmt, ...)
 {
-    ssize_t res;
+    int res;
     va_list args;
 
     va_start(args, fmt);
@@ -638,9 +638,9 @@ ssize_t blob_set_fmt(blob_t *blob, const char *fmt, ...)
     return res;
 }
 
-ssize_t blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap)
+int blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap)
 {
-    ssize_t res;
+    int res;
 
     blob_reset(blob);
     res = blob_append_vfmt(blob, fmt, ap);
@@ -654,7 +654,7 @@ ssize_t blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap)
  * (presumably not enough space in the internal buffer) and such an error
  * is permanent. The 1 KB buffer should suffice.
  */
-ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt,
+int blob_strftime(blob_t *blob, int pos, const char *fmt,
                       const struct tm *tm)
 {
     /* A 1 KB buffer should suffice */
@@ -694,9 +694,9 @@ ssize_t blob_strftime(blob_t *blob, ssize_t pos, const char *fmt,
 /* Blob search functions                                                  */
 /**************************************************************************/
 
-static inline ssize_t
-blob_search_data_real(const blob_t *haystack, ssize_t pos,
-                      const void *needle, ssize_t len)
+static inline int
+blob_search_data_real(const blob_t *haystack, int pos,
+                      const void *needle, int len)
 {
     const byte *p;
 
@@ -713,13 +713,13 @@ blob_search_data_real(const blob_t *haystack, ssize_t pos,
     return p - haystack->data;
 }
 
-ssize_t blob_search(const blob_t *haystack, ssize_t pos, const blob_t *needle)
+int blob_search(const blob_t *haystack, int pos, const blob_t *needle)
 {
     return blob_search_data_real(haystack, pos, needle->data, needle->len);
 }
 
-ssize_t blob_search_data(const blob_t *haystack, ssize_t pos,
-                         const void *needle, ssize_t len)
+int blob_search_data(const blob_t *haystack, int pos,
+                         const void *needle, int len)
 {
     return blob_search_data_real(haystack, pos, needle, len);
 }
@@ -733,10 +733,10 @@ ssize_t blob_search_data(const blob_t *haystack, ssize_t pos,
  */
 
 static inline void
-blob_map_range_real(blob_t *blob, ssize_t start, ssize_t end,
+blob_map_range_real(blob_t *blob, int start, int end,
                     blob_filter_func_t *filter)
 {
-    ssize_t i;
+    int i;
 
     for (i = start; i < end; i++) {
         blob->data[i] = (*filter)(blob->data[i]);
@@ -749,7 +749,7 @@ void blob_map(blob_t *blob, blob_filter_func_t filter)
     blob_map_range_real(blob, 0, blob->len, filter);
 }
 
-void blob_map_range(blob_t *blob, ssize_t start, ssize_t end,
+void blob_map_range(blob_t *blob, int start, int end,
                     blob_filter_func_t *filter)
 {
     blob_map_range_real(blob, start, end, filter);
@@ -758,7 +758,7 @@ void blob_map_range(blob_t *blob, ssize_t start, ssize_t end,
 
 void blob_ltrim(blob_t *blob)
 {
-    ssize_t i;
+    int i;
 
     /* OG: we could be slightly more efficient: since '\0' is not a
      * space char, we do not really have to compare i to blob->len
@@ -772,7 +772,7 @@ void blob_ltrim(blob_t *blob)
 
 void blob_rtrim(blob_t *blob)
 {
-    ssize_t i;
+    int i;
 
     for (i = blob->len; i > 0; i--) {
         if (!isspace((unsigned char)blob->data[i - 1]))
@@ -794,7 +794,7 @@ void blob_trim(blob_t *blob)
 /* @see memcmp(3) */
 int blob_cmp(const blob_t *blob1, const blob_t *blob2)
 {
-    ssize_t len = MIN(blob1->len, blob2->len);
+    int len = MIN(blob1->len, blob2->len);
     int res = memcmp(blob1->data, blob2->data, len);
     if (res != 0) {
         return res;
@@ -804,8 +804,8 @@ int blob_cmp(const blob_t *blob1, const blob_t *blob2)
 
 int blob_icmp(const blob_t *blob1, const blob_t *blob2)
 {
-    ssize_t len = MIN(blob1->len, blob2->len);
-    ssize_t pos;
+    int len = MIN(blob1->len, blob2->len);
+    int pos;
 
     const char *s1 = (const char *)blob1->data;
     const char *s2 = (const char *)blob2->data;
@@ -832,7 +832,7 @@ bool blob_is_equal(const blob_t *blob1, const blob_t *blob2)
 
 bool blob_is_iequal(const blob_t *blob1, const blob_t *blob2)
 {
-    ssize_t i;
+    int i;
 
     if (blob1 == blob2)
         return true;
@@ -914,11 +914,11 @@ __decode_base64[256] = {
 #undef REPEAT8
 #undef REPEAT16
 
-static inline ssize_t b64_size(ssize_t oldlen, int nbpackets)
+static inline int b64_size(int oldlen, int nbpackets)
 {
     if (nbpackets > 0) {
-        ssize_t nb_full_lines = oldlen / (3 * nbpackets);
-        ssize_t lastlen = oldlen % (3 * nbpackets);
+        int nb_full_lines = oldlen / (3 * nbpackets);
+        int lastlen = oldlen % (3 * nbpackets);
 
         if (lastlen % 3) {
             lastlen += 3 - (lastlen % 3);
@@ -939,9 +939,9 @@ static inline ssize_t b64_size(ssize_t oldlen, int nbpackets)
  */
 void blob_b64encode(blob_t *blob, int nbpackets)
 {
-    const ssize_t oldlen  = blob->len;
-    const ssize_t newlen  = b64_size(oldlen, nbpackets);
-    const ssize_t newsize = MEM_ALIGN(newlen + 1);
+    const int oldlen  = blob->len;
+    const int newlen  = b64_size(oldlen, nbpackets);
+    const int newsize = MEM_ALIGN(newlen + 1);
 
     int     packs   = nbpackets;
     byte    *buf    = p_new_raw(byte, newsize);
@@ -1012,8 +1012,8 @@ void blob_b64decode(blob_t *blob)
 
 /* TODO: Could be optimized or made more strict to reject base64 strings
  * without '=' paddding */
-int string_decode_base64(byte *dst, ssize_t size,
-                         const char *src, ssize_t srclen)
+int string_decode_base64(byte *dst, int size,
+                         const char *src, int srclen)
 {
     byte *p;
     const char *end;
@@ -1120,13 +1120,13 @@ int string_decode_base64(byte *dst, ssize_t size,
        no \0 was found before the end of the blob
  */
 
-ssize_t blob_parse_cstr(const blob_t *blob, ssize_t *pos, const char **answer)
+int blob_parse_cstr(const blob_t *blob, int *pos, const char **answer)
 {
-    ssize_t walk = *pos;
+    int walk = *pos;
 
     while (walk < blob->len) {
         if (blob->data[walk] == '\0') {
-            ssize_t len = walk - *pos;
+            int len = walk - *pos;
             PARSE_SET_RESULT(answer, (char *)(blob->data + *pos));
             *pos = walk + 1;
             return len;
@@ -1177,7 +1177,7 @@ static inline int test_xml_printable(int x) {
 #undef QP
 #undef XP
 
-int blob_append_xml_escape(blob_t *dst, const byte *src, ssize_t len)
+int blob_append_xml_escape(blob_t *dst, const byte *src, int len)
 {
     int i, j, c;
 
@@ -1215,7 +1215,7 @@ int blob_append_xml_escape(blob_t *dst, const byte *src, ssize_t len)
     return 0;
 }
 
-int blob_append_quoted_printable(blob_t *dst, const byte *src, ssize_t len)
+int blob_append_quoted_printable(blob_t *dst, const byte *src, int len)
 {
     int i, j, c;
 
@@ -1247,7 +1247,7 @@ int blob_append_quoted_printable(blob_t *dst, const byte *src, ssize_t len)
  * line markers.  0 for standard 76 character lines, -1 for unlimited
  * line length.
  */
-int blob_append_base64(blob_t *dst, const byte *src, ssize_t len, int width)
+int blob_append_base64(blob_t *dst, const byte *src, int len, int width)
 {
     const byte *end;
     int pos, packs_per_line, pack_num, newlen;
@@ -1319,7 +1319,7 @@ int blob_append_base64(blob_t *dst, const byte *src, ssize_t len, int width)
     return 0;
 }
 
-int blob_append_smtp_data(blob_t *dst, const byte *src, ssize_t len)
+int blob_append_smtp_data(blob_t *dst, const byte *src, int len)
 {
 /*
  From RFC 821, section 4.5.2 :
@@ -1340,7 +1340,7 @@ int blob_append_smtp_data(blob_t *dst, const byte *src, ssize_t len)
             character is deleted.
 */
     const byte *p;
-    ssize_t appendlen;
+    int appendlen;
 
     while (len) {
         p = memsearch(src, len, "\r\n.", 3);
@@ -1364,7 +1364,7 @@ int blob_append_smtp_data(blob_t *dst, const byte *src, ssize_t len)
 static char const __str_digits_upper[36] =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-int blob_append_hex(blob_t *dst, const byte *src, ssize_t len)
+int blob_append_hex(blob_t *dst, const byte *src, int len)
 {
     int i, pos;
     byte *data;
@@ -1399,7 +1399,7 @@ static union {
 #undef HEX
 };
 
-int blob_append_hex(blob_t *blob, const byte *src, ssize_t len)
+int blob_append_hex(blob_t *blob, const byte *src, int len)
 {
     int pos;
     byte *dst;
@@ -1986,7 +1986,7 @@ static inline void check_blob_invariants(blob_t *blob)
 {
     fail_if(blob->len >= blob->size,
             "a blob must have `len < size'. "
-            "this one has `len = %zd' and `size = %zd'",
+            "this one has `len = %d' and `size = %d'",
             blob->len, blob->size);
     fail_if(blob->data[blob->len] != '\0', \
             "a blob must have data[len] set to `\\0', `%c' found",
@@ -2017,7 +2017,7 @@ START_TEST(check_init_wipe)
     check_blob_invariants(&blob);
 
     fail_if(blob.len != 0,
-            "initalized blob MUST have `len' = 0, but has `len = %zd'",
+            "initalized blob MUST have `len' = 0, but has `len = %d'",
             blob.len);
     fail_if(blob.skip, "initalized blob MUST have a valid `skip'");
 
@@ -2033,7 +2033,7 @@ START_TEST(check_blob_new)
     fail_if(blob == NULL,
             "no blob was allocated");
     fail_if(blob->len != 0,
-            "new blob MUST have `len 0', but has `len = %zd'", blob->len);
+            "new blob MUST have `len 0', but has `len = %d'", blob->len);
     fail_if(blob->skip, "new blob MUST have a valid `skip'");
 
     blob_delete(&blob);
@@ -2055,7 +2055,7 @@ START_TEST(check_set)
     blob_set_cstr(&blob, "toto");
     check_blob_invariants(&blob);
     fail_if(blob.len != strlen("toto"),
-            "blob.len should be %zd, but is %zd", strlen("toto"), blob.len);
+            "blob.len should be %zd, but is %d", strlen("toto"), blob.len);
     fail_if(strcmp((const char *)blob.data, "toto") != 0,
             "blob is not set to `%s'", "toto");
 
@@ -2063,7 +2063,7 @@ START_TEST(check_set)
     blob_set_data(&blob, "tutu", strlen("tutu"));
     check_blob_invariants(&blob);
     fail_if(blob.len != strlen("tutu"),
-            "blob.len should be %zd, but is %zd", strlen("tutu"), blob.len);
+            "blob.len should be %zd, but is %d", strlen("tutu"), blob.len);
     fail_if(strcmp((const char *)blob.data, "tutu") != 0,
             "blob is not set to `%s'", "tutu");
 
@@ -2071,7 +2071,7 @@ START_TEST(check_set)
     blob_set(&bloub, &blob);
     check_blob_invariants(&bloub);
     fail_if(bloub.len != strlen("tutu"),
-            "blob.len should be %zd, but is %zd", strlen("tutu"), bloub.len);
+            "blob.len should be %zd, but is %d", strlen("tutu"), bloub.len);
     fail_if(strcmp((const char *)bloub.data, "tutu") != 0,
             "blob is not set to `%s'", "tutu");
 
@@ -2109,7 +2109,7 @@ START_TEST(check_resize)
     blob_resize(&b1, 4);
     check_blob_invariants(&b1);
     fail_if (b1.len != 4,
-             "blob_resized blob should have len 4, but has %zd", b1.len);
+             "blob_resized blob should have len 4, but has %d", b1.len);
 
     check_teardown(&b1, NULL);
 }
@@ -2459,7 +2459,7 @@ START_TEST(check_b64)
     blob_t blob;
     char encoded[BUFSIZ];
     byte decoded[BUFSIZ];
-    ssize_t res;
+    int res;
 
     check_setup(&blob, "abcdef");
 
@@ -2959,7 +2959,7 @@ START_TEST(check_serialize_s)
     res = blob_deserialize(&dst, &pos, "%p", &val1); \
     fail_if(strcmp(val, val1), "val1:%s", val1); \
     fail_if(res != 0, "res:%d", res); \
-    fail_if(pos != dst.len, "pos:%d, dst.len:%zd", pos, dst.len); \
+    fail_if(pos != dst.len, "pos:%d, dst.len:%d", pos, dst.len); \
     } while (0)
 
     CHECKVAL("ABC");
@@ -2991,7 +2991,7 @@ START_TEST(check_serialize_p)
     fail_if(len1 != val_len, "len1:%d val_len:%d", len1, val_len); \
     fail_if(memcmp(val, val1, val_len), "memcmp failed"); \
     fail_if(res != 0, "res:%d", res); \
-    fail_if(pos != dst.len, "pos:%d, dst.len:%zd", pos, dst.len); \
+    fail_if(pos != dst.len, "pos:%d, dst.len:%d", pos, dst.len); \
     } while (0)
 
     CHECKVAL("ABC", 3);

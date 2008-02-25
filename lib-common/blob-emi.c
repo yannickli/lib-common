@@ -307,7 +307,7 @@ static int const gsm7_to_unicode[] = {
 /* Achtung: Decode a hex encoded (IRA) byte array into ISO-8859-15
  * subset, not UTF-8
  */
-int blob_decode_ira_hex_as_latin15(blob_t *dst, const char *src, ssize_t len)
+int blob_decode_ira_hex_as_latin15(blob_t *dst, const char *src, int len)
 {
     int pos;
     const char *end;
@@ -336,7 +336,7 @@ int blob_decode_ira_hex_as_latin15(blob_t *dst, const char *src, ssize_t len)
     return 0;
 }
 
-int blob_decode_ira_bin_as_latin15(blob_t *dst, const char *src, ssize_t len)
+int blob_decode_ira_bin_as_latin15(blob_t *dst, const char *src, int len)
 {
     int pos;
     const char *end;
@@ -360,7 +360,7 @@ int blob_decode_ira_bin_as_latin15(blob_t *dst, const char *src, ssize_t len)
 }
 
 /* Decode a hex encoded (IRA) char array into UTF-8 at end of blob */
-int blob_decode_ira_hex_as_utf8(blob_t *dst, const char *src, ssize_t slen)
+int blob_decode_ira_hex_as_utf8(blob_t *dst, const char *src, int slen)
 {
     int pos, len;
 
@@ -378,7 +378,7 @@ int blob_decode_ira_hex_as_utf8(blob_t *dst, const char *src, ssize_t slen)
     return 0;
 }
 
-int blob_decode_ira_bin_as_utf8(blob_t *dst, const char *src, ssize_t slen)
+int blob_decode_ira_bin_as_utf8(blob_t *dst, const char *src, int slen)
 {
     int pos, len;
 
@@ -399,8 +399,8 @@ int blob_decode_ira_bin_as_utf8(blob_t *dst, const char *src, ssize_t slen)
 /* Achtung: Decode a hex encoded (IRA) char array into ISO-8859-15
  * subset, not UTF-8
  */
-int string_decode_ira_hex_as_latin15(char *dst, ssize_t size,
-                                     const char *src, ssize_t len)
+int string_decode_ira_hex_as_latin15(char *dst, int size,
+                                     const char *src, int len)
 {
     int pos = 0;
 
@@ -435,8 +435,8 @@ int string_decode_ira_hex_as_latin15(char *dst, ssize_t size,
     return pos;
 }
 
-int string_decode_ira_bin_as_latin15(char *dst, ssize_t size,
-                                     const char *src, ssize_t len)
+int string_decode_ira_bin_as_latin15(char *dst, int size,
+                                     const char *src, int len)
 {
     const char *end = src + len;
     int pos = 0;
@@ -459,8 +459,8 @@ int string_decode_ira_bin_as_latin15(char *dst, ssize_t size,
 }
 
 /* Parse IRA (hex encoded) string into UTF-8 char array */
-int string_decode_ira_hex_as_utf8(char *dst, ssize_t size,
-                                  const char *src, ssize_t len)
+int string_decode_ira_hex_as_utf8(char *dst, int size,
+                                  const char *src, int len)
 {
     int pos = 0;
 
@@ -515,8 +515,8 @@ int string_decode_ira_hex_as_utf8(char *dst, ssize_t size,
     return pos;
 }
 
-int string_decode_ira_bin_as_utf8(char *dst, ssize_t size,
-                                  const char *src, ssize_t len)
+int string_decode_ira_bin_as_utf8(char *dst, int size,
+                                  const char *src, int len)
 {
     const char *end = src + len;
     int pos = 0;
@@ -695,7 +695,7 @@ static unsigned short const win1252_to_gsm7[] = {
 #undef UNK
 };
 
-int blob_append_ira_bin(blob_t *dst, const byte *src, ssize_t len)
+int blob_append_ira_bin(blob_t *dst, const byte *src, int len)
 {
     int c, pos;
     const byte *end;
@@ -796,7 +796,7 @@ static char const __str_xdigits_upper[16] = "0123456789ABCDEF";
 
 /* More portable, but slower version */
 
-int blob_append_ira_hex(blob_t *dst, const byte *src, ssize_t len)
+int blob_append_ira_hex(blob_t *dst, const byte *src, int len)
 {
     int c, pos;
     const byte *end;
@@ -1060,7 +1060,7 @@ static int const win1252_to_gsm7_hex[] = {
 #undef _
 };
 
-int blob_append_ira_hex(blob_t *dst, const byte *src, ssize_t len)
+int blob_append_ira_hex(blob_t *dst, const byte *src, int len)
 {
     int c, pos;
     const byte *end;

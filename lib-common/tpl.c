@@ -184,7 +184,7 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
         return;
 
       case TPL_OP_BLOB:
-        TRACE("BLOB %5zd bytes (%.*s...)", ' ', tpl->u.blob.len,
+        TRACE("BLOB %5d bytes (%.*s...)", ' ', tpl->u.blob.len,
               MIN((int)tpl->u.blob.len, 16), tpl->u.blob.data);
         return;
 
