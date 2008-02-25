@@ -473,7 +473,7 @@ int blob_append_recv(blob_t *blob, int fd, int count)
 
 /* Return the number of bytes read */
 int blob_append_recvfrom(blob_t *blob, int fd, int count, int flags,
-                             struct sockaddr *from, socklen_t *fromlen)
+                         struct sockaddr *from, socklen_t *fromlen)
 {
     int res;
 
