@@ -24,15 +24,11 @@
  * position len, implying that size is always >= len+1
  */
 typedef struct blob_t {
-    /* public interface */
-    ssize_t len;
     byte *data;
-
-    /* private interface */
-    byte *area;   /* originally allocated block */
-    ssize_t size;  /* available memory size after area. It may be
-                    * smaller than allocated memory size after kill_first()
-                    * has been used. */
+    flag_t allocated : 1;
+    ssize_t len;
+    ssize_t size;
+    ssize_t skip;
     byte initial[BLOB_INITIAL_SIZE];
 } blob_t;
 
@@ -41,20 +37,19 @@ typedef struct blob_t {
 /**************************************************************************/
 
 static inline blob_t *blob_init(blob_t *blob) {
-    blob->len  = 0;
-    blob->size = BLOB_INITIAL_SIZE;
-    blob->area = NULL;
-    blob->data = blob->initial;
-
+    *blob = (blob_t){
+        .size = BLOB_INITIAL_SIZE,
+        .data = blob->initial,
+    };
     /* setup invariant: blob is always NUL terminated */
-    blob->data[blob->len] = '\0';
-
+    blob->data[0] = '\0';
     return blob;
 }
 static inline void blob_wipe(blob_t *blob) {
-    p_delete(&blob->area);
-    /* Set the data pointer to NULL to catch errors more easily */
-    blob->data = NULL;
+    if (blob->allocated) {
+        mem_free(blob->data - blob->skip);
+    }
+    blob->len = 0;
 }
 char *blob_detach(blob_t *blob); /* don't use on a real blob_t * !*/
 
@@ -79,15 +74,15 @@ static inline const char *blob_get_end(const blob_t *blob) {
 static inline void blob_reset(blob_t *blob) {
     /* Remove initial skip if any */
     /* Do not release memory */
-    if (blob->area) {
-        blob->size += (blob->data - blob->area);
-        blob->data = blob->area;
+    if (blob->allocated) {
+        blob->size += blob->skip;
+        blob->data -= blob->skip;
     } else {
         blob->size = BLOB_INITIAL_SIZE;
         blob->data = blob->initial;
     }
-    blob->len = 0;
-    blob->data[blob->len] = '\0';
+    blob->skip = 0;
+    blob->data[blob->len = 0] = '\0';
 }
 
 static inline void blob_reinit(blob_t *blob) {
@@ -221,6 +216,7 @@ static inline void blob_kill_first(blob_t *blob, ssize_t len) {
         blob->data += len;
         blob->size -= len;
         blob->len  -= len;
+        blob->skip += len;
     } else {
         blob_reset(blob);
     }

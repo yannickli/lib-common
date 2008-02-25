@@ -35,11 +35,13 @@
 char *blob_detach(blob_t *blob)
 {
     char *res;
-    if (!blob->area)
+    if (!blob->allocated)
         return p_dupstr(blob->data, blob->len);
-    if (blob->data != blob->area)
-        memmove(blob->area, blob->data, blob->len + 1);
-    res = (char *)blob->area;
+    if (blob->skip) {
+        memmove(blob->data - blob->skip, blob->data, blob->len + 1);
+        blob->data -= blob->skip;
+    }
+    res = (char *)blob->data;
     p_clear(blob, 1);
     return res;
 }
@@ -52,12 +54,6 @@ blob_t *blob_dup(const blob_t *src)
     return dst;
 }
 
-/* FIXME: this function is nasty, and has bad semantics: blob should know if
- * it owns the buffer. This makes the programmer write really horrible code
- * atm ==> NEVER SET THAT PUBLIC
- * OG: this function is only used by blob_b64encode() whois API should
- * also change from inplace semantics to input/output.
- */
 /* Set the payload of a blob to the given buffer of size bufsize.
  * len is the len of the data inside it.
  *
@@ -67,15 +63,20 @@ blob_t *blob_dup(const blob_t *src)
  * Should have a extra parameter telling the blob if it owns buf and
  * must free it with p_delete upon resize and wipe.
  */
-static
-void blob_set_payload(blob_t *blob, ssize_t len, void *buf, ssize_t bufsize)
+static void blob_set_payload(blob_t *blob, ssize_t len,
+                             void *buf, ssize_t bufsize, bool allocated)
 {
     assert (bufsize >= len + 1);
 
-    p_delete(&blob->area);
-    blob->area = blob->data = buf;
-    blob->len  = len;
-    blob->size = bufsize;
+    if (blob->allocated) {
+        mem_free(blob->data - blob->skip);
+    }
+    *blob = (blob_t){
+        .allocated = allocated,
+        .data      = buf,
+        .len       = len,
+        .size      = bufsize,
+    };
     blob->data[len] = '\0';
 }
 
@@ -93,40 +94,33 @@ void blob_ensure(blob_t *blob, ssize_t newlen)
         return;
 
     if (newlen >= blob->size) {
-        if (blob->data == blob->area) {
+        if (blob->allocated && !blob->skip) {
             if (newlen > 1024*1024) {
                 e_trace(1, "Large blob ensure realloc, newlen:%zd size:%zd len:%zd data:%.80s",
                         newlen, blob->size, blob->len, blob->data);
             }
-            p_allocgrow(&blob->area, newlen + 1, &blob->size);
-            blob->data = blob->area;
+            p_allocgrow(&blob->data, newlen + 1, &blob->size);
         } else {
-            /* Check if data fits in current area */
-            byte *area = blob->area ? blob->area : blob->initial;
-            ssize_t skip = blob->data - area;
-
-            if (newlen < skip + blob->size) {
+            if (newlen < blob->skip + blob->size) {
                 /* Data fits in the current area, shift it left */
-                memmove(blob->data - skip, blob->data, blob->len + 1);
-                blob->data -= skip;
-                blob->size += skip;
+                memmove(blob->data - blob->skip, blob->data, blob->len + 1);
+                blob->data -= blob->skip;
+                blob->size += blob->skip;
             } else {
                 /* Allocate a new area */
                 ssize_t newsize = p_alloc_nr(newlen + 1);
 
                 byte *new_area = p_new_raw(byte, newsize);
-                if (skip + blob->size != BLOB_INITIAL_SIZE) {
-                    e_trace(2, "Large blob ensure shift,"
-                            "newsize:%zd size:%zd len:%zd skip:%zd data:%.80s",
-                            newsize, blob->size, blob->len, skip, blob->data);
-                }
                 /* Copy the blob data including the trailing '\0' */
                 memcpy(new_area, blob->data, blob->len + 1);
-                p_delete(&blob->area);
-                blob->area = new_area;
-                blob->data = blob->area;
+                if (blob->allocated) {
+                    mem_free(blob->data - blob->skip);
+                }
+                blob->allocated = true;
+                blob->data = new_area;
                 blob->size = newsize;
             }
+            blob->skip = 0;
         }
     }
 }
@@ -1000,7 +994,7 @@ void blob_b64encode(blob_t *blob, int nbpackets)
     assert (dst == buf + newlen);
 #endif
 
-    blob_set_payload(blob, newlen, buf, newsize);
+    blob_set_payload(blob, newlen, buf, newsize, true);
 }
 
 void blob_b64decode(blob_t *blob)
@@ -2025,14 +2019,9 @@ START_TEST(check_init_wipe)
     fail_if(blob.len != 0,
             "initalized blob MUST have `len' = 0, but has `len = %zd'",
             blob.len);
-    fail_if(blob.data == NULL,
-            "initalized blob MUST have a valid `data'");
+    fail_if(blob.skip, "initalized blob MUST have a valid `skip'");
 
     blob_wipe(&blob);
-    fail_if(blob.data != NULL,
-            "wiped blob MUST have `data' set to NULL");
-    fail_if(blob.area != NULL,
-            "wiped blob MUST have `area' set to NULL");
 }
 END_TEST
 
@@ -2045,8 +2034,7 @@ START_TEST(check_blob_new)
             "no blob was allocated");
     fail_if(blob->len != 0,
             "new blob MUST have `len 0', but has `len = %zd'", blob->len);
-    fail_if(blob->data == NULL,
-            "new blob MUST have a valid `data'");
+    fail_if(blob->skip, "new blob MUST have a valid `skip'");
 
     blob_delete(&blob);
     fail_if(blob != NULL,
