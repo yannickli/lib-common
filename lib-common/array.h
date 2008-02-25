@@ -14,6 +14,7 @@
 #ifndef IS_LIB_COMMON_ARRAY_H
 #define IS_LIB_COMMON_ARRAY_H
 
+#include <sys/uio.h>
 #include "mem.h"
 
 #define VECTOR_TYPE(el_typ, prefix)  \
@@ -181,7 +182,15 @@ void generic_array_sort(generic_array *array,
         return NULL;                                                      \
     }
 
+#define MAKE_IOVEC(data, len)  (struct iovec){ \
+    .iov_base = (void *)(data), .iov_len = (len) }
+
 DO_VECTOR(int, int);
+DO_VECTOR(struct iovec, iovec);
+
+void iovec_vector_kill_first(iovec_vector *l, ssize_t len);
+int iovec_vector_getlen(iovec_vector *v);
+
 DO_ARRAY(char, string, p_delete);
 
 string_array *str_explode(const char *s, const char *tokens);

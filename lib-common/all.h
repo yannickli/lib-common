@@ -37,7 +37,6 @@
 #include "file-binlog.h"
 #include "hash.h"
 #include "hashtbl.h"
-#include "ioveclist.h"
 #include "isndx.h"
 #include "licence.h"
 #include "list.h"

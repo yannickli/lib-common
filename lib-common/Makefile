@@ -42,7 +42,6 @@ libcommon_SOURCES = \
 	farch.c \
 	fifo.c \
 	hashtbl.c \
-	ioveclist.c \
 	iprintf.c \
 	isndx.c \
 	licence.c \
