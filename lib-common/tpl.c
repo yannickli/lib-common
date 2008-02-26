@@ -137,6 +137,16 @@ void tpl_add_tpl(tpl_t *out, const tpl_t *tpl)
 {
     assert (tpl_can_append(out));
 
+    if (tpl->op == TPL_OP_BLOCK && out->op == TPL_OP_BLOCK) {
+        int pos = out->u.blocks.len;
+        tpl_array_splice(&out->u.blocks, pos, 0,
+                         tpl->u.blocks.tab, tpl->u.blocks.len);
+        for (int i = pos; i < out->u.blocks.len; i++) {
+            out->u.blocks.tab[i]->refcnt++;
+        }
+        return;
+    }
+
     if (tpl->op == TPL_OP_BLOB && out->u.blocks.len > 0
     &&  tpl->u.blob.len <= TPL_COPY_LIMIT_SOFT)
     {
