@@ -105,6 +105,7 @@ void blob_ensure(blob_t *blob, int newlen)
         memmove(blob->data - blob->skip, blob->data, blob->len + 1);
         blob->data -= blob->skip;
         blob->size += blob->skip;
+        blob->skip  = 0;
     } else
     if (blob->allocated && !blob->skip) {
         if (newlen > 1024 * 1024) {
