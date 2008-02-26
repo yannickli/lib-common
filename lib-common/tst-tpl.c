@@ -13,28 +13,22 @@
 
 #include "all.h"
 
-static int identity(tpl_t *out, blob_t *b, tpl_t *in)
+static int identity(tpl_t *out, blob_t *b, tpl_t **arr, int nb)
 {
     if (out) {
-        tpl_add_tpl(out, in);
+        tpl_add_tpls(out, arr, nb);
         return 0;
     }
-    switch (in->op) {
-      case TPL_OP_BLOB:
-        blob_append(b, &in->u.blob);
-        return 0;
-      case TPL_OP_DATA:
-        blob_append_data(b, in->u.data.data, in->u.data.len);
-        return 0;
-      case TPL_OP_BLOCK:
-        for (int i = 0; i < in->u.blocks.len; i++) {
-            if (identity(NULL, b, in->u.blocks.tab[i]))
-                return -1;
+    while (--nb > 0) {
+        tpl_t *in = *arr++;
+        if (in->op == TPL_OP_BLOB) {
+            blob_append(b, &in->u.blob);
+        } else {
+            assert (in->op == TPL_OP_DATA);
+            blob_append_data(b, in->u.data.data, in->u.data.len);
         }
-        return 0;
-      default:
-        return -1;
     }
+    return 0;
 }
 
 int main(int argc, const char **argv)

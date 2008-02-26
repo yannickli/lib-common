@@ -75,10 +75,10 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
       case TPL_OP_APPLY_DELAYED:
         switch (tpl->u.blocks.len) {
           case 0:
-            return (*tpl->u.f)(out, NULL, NULL);
+            return (*tpl->u.f)(out, NULL, NULL, 0);
 
           case 1:
-            if ((*tpl->u.f)(out, NULL, NULL) < 0)
+            if ((*tpl->u.f)(out, NULL, NULL, 0) < 0)
                 return -1;
             return NS(tpl_combine)(out, tpl->u.blocks.tab[0], envid, vals, nb, flags);
 
@@ -88,7 +88,7 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
             if (TPL_SUBST(&tmp2, envid, vals, nb, flags | TPL_KEEPVAR))
                 return -1;
             if (tmp2->is_const) {
-                if ((*tpl->u.f)(out, NULL, tmp2) < 0
+                if (tpl_apply(tpl->u.f, out, NULL, tmp2) < 0
                 ||  (ctmp && NS(tpl_combine)(out, ctmp, envid, vals, nb, flags))
                 ||  NS(tpl_combine)(out, tmp2, envid, vals, nb, flags))
                 {
@@ -123,7 +123,7 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
             return -1;
         }
         if (tmp->is_const) {
-            int res = (*tpl->u.f)(out, NULL, tmp);
+            int res = tpl_apply(tpl->u.f, out, NULL, tmp);
             tpl_delete(&tmp);
             if (res) {
                 e_trace(2, "apply func failed");
@@ -199,10 +199,10 @@ NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
       case TPL_OP_APPLY_DELAYED:
         switch (tpl->u.blocks.len) {
           case 0:
-            return (*tpl->u.f)(NULL, out, NULL);
+            return tpl_apply(tpl->u.f, NULL, out, NULL);
 
           case 1:
-            if ((*tpl->u.f)(NULL, out, NULL) < 0)
+            if (tpl_apply(tpl->u.f, NULL, out, NULL) < 0)
                 return -1;
             return NS(tpl_fold_block)(out, tpl, envid, vals, nb, flags);
 
@@ -214,7 +214,7 @@ NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
             {
                 return -1;
             }
-            if (((*tpl->u.f)(NULL, out, tmp) < 0)
+            if ((tpl_apply(tpl->u.f, NULL, out, tmp) < 0)
             ||  (ctmp && NS(tpl_fold_block)(out, ctmp, envid, vals, nb, flags))
             ||  NS(tpl_fold_block)(out, tmp, envid, vals, nb, flags))
             {
@@ -232,7 +232,7 @@ NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
       case TPL_OP_APPLY_PURE_ASSOC:
         if (NS(tpl_combine_block)(tmp = tpl_new(), tpl, envid, vals, nb,
                                   flags | TPL_KEEPVAR | TPL_LASTSUBST)
-        ||  (*tpl->u.f)(NULL, out, tmp) < 0)
+        ||  tpl_apply(tpl->u.f, NULL, out, tmp) < 0)
         {
             tpl_delete(&tmp);
             return -1;

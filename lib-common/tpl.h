@@ -39,7 +39,7 @@ struct tpl_data {
 };
 
 struct tpl_t;
-typedef int (tpl_apply_f)(struct tpl_t *, blob_t *, struct tpl_t *);
+typedef int (tpl_apply_f)(struct tpl_t *, blob_t *, struct tpl_t **, int nb);
 
 ARRAY_TYPE(struct tpl_t, tpl);
 typedef struct tpl_t {
@@ -82,6 +82,7 @@ static inline void tpl_copy_cstr(tpl_t *tpl, const char *s) {
 }
 void tpl_add_var(tpl_t *tpl, uint16_t envid, uint16_t index);
 void tpl_add_tpl(tpl_t *out, const tpl_t *tpl);
+void tpl_add_tpls(tpl_t *out, tpl_t **tpl, int nb);
 tpl_t *tpl_add_ifdef(tpl_t *tpl, uint16_t envid, uint16_t index);
 tpl_t *tpl_add_apply(tpl_t *tpl, tpl_op op, tpl_apply_f *f);
 void tpl_dump(int dbg, const tpl_t *tpl, const char *s);
@@ -95,7 +96,7 @@ enum {
     TPL_LASTSUBST  = 1 << 1,
 };
 
-int tpl_get_short_data(tpl_t *tpl, const byte **data, int *len);
+int tpl_get_short_data(tpl_t **tpls, int nb, const byte **data, int *len);
 
 int tpl_fold(blob_t *, tpl_t **, uint16_t envid, tpl_t **, int nb, int flags);
 int tpl_fold_str(blob_t *, tpl_t **, uint16_t envid, const char **, int nb, int flags);
@@ -112,8 +113,8 @@ int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl);
 /*  Pre-defined tpl functions                                               */
 /****************************************************************************/
 
-int tpl_encode_xml_string(tpl_t *out, blob_t *blob, tpl_t *args);
-int tpl_encode_plmn(tpl_t *out, blob_t *blob, tpl_t *args);
-int tpl_encode_expiration(tpl_t *out, blob_t *blob, tpl_t *args);
+int tpl_encode_xml_string(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
+int tpl_encode_plmn(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
+int tpl_encode_expiration(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 
 #endif

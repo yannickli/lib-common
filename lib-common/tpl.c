@@ -138,12 +138,7 @@ void tpl_add_tpl(tpl_t *out, const tpl_t *tpl)
     assert (tpl_can_append(out));
 
     if (tpl->op == TPL_OP_BLOCK && out->op == TPL_OP_BLOCK) {
-        int pos = out->u.blocks.len;
-        tpl_array_splice(&out->u.blocks, pos, 0,
-                         tpl->u.blocks.tab, tpl->u.blocks.len);
-        for (int i = pos; i < out->u.blocks.len; i++) {
-            out->u.blocks.tab[i]->refcnt++;
-        }
+        tpl_add_tpls(out, tpl->u.blocks.tab, tpl->u.blocks.len);
         return;
     }
 
@@ -157,6 +152,17 @@ void tpl_add_tpl(tpl_t *out, const tpl_t *tpl)
         }
     }
     tpl_array_append(&out->u.blocks, tpl_dup(tpl));
+}
+
+void tpl_add_tpls(tpl_t *out, tpl_t **tpls, int nb)
+{
+    int pos = out->u.blocks.len;
+
+    assert (tpl_can_append(out));
+    tpl_array_splice(&out->u.blocks, pos, 0, tpls, nb);
+    for (int i = pos; i < pos + nb; i++) {
+        out->u.blocks.tab[i]->refcnt++;
+    }
 }
 
 tpl_t *tpl_add_ifdef(tpl_t *tpl, uint16_t array, uint16_t index)
@@ -267,36 +273,37 @@ void tpl_dump(int dbg, const tpl_t *tpl, const char *s)
 /* Substitution helpers                                                     */
 /****************************************************************************/
 
-int tpl_get_short_data(tpl_t *tpl, const byte **data, int *len)
+int tpl_get_short_data(tpl_t **tpls, int nb, const byte **data, int *len)
 {
-    for (;;) {
-        switch (tpl->op) {
-          case TPL_OP_BLOB:
-            *data = tpl->u.blob.data;
-            *len  = tpl->u.blob.len;
-            return 0;
-          case TPL_OP_DATA:
-            *data = tpl->u.data.data;
-            *len  = tpl->u.data.len;
-            return 0;
-          case TPL_OP_BLOCK:
-            tpl_optimize(tpl);
-            if (tpl->u.blocks.len != 1) {
-                e_trace(2, "blocks.len: %d != 1", tpl->u.blocks.len);
-                return -1;
-            }
-            tpl = tpl->u.blocks.tab[0];
-            break;
-          default:
-            e_trace(2, "unsupported op: %d", tpl->op);
-            return -1;
-        }
+    if (nb != 1)
+        return -1;
+
+    switch (tpls[0]->op) {
+      case TPL_OP_BLOB:
+        *data = tpls[0]->u.blob.data;
+        *len  = tpls[0]->u.blob.len;
+        return 0;
+      case TPL_OP_DATA:
+        *data = tpls[0]->u.data.data;
+        *len  = tpls[0]->u.data.len;
+        return 0;
+      default:
+        e_panic("unexpected op: %d", tpls[0]->op);
+        return -1;
     }
 }
 
 /****************************************************************************/
 /* Substitution and optimization                                            */
 /****************************************************************************/
+
+static inline int
+tpl_apply(tpl_apply_f *f, tpl_t *out, blob_t *blob, tpl_t *in)
+{
+    if (in->op & TPL_OP_BLOCK)
+        return (*f)(out, blob, in->u.blocks.tab, in->u.blocks.len);
+    return (*f)(out, blob, &in, 1);
+}
 
 #define getvar(id, vals, nb) \
     (((vals) && ((id) & 0xffff) < (uint16_t)(nb)) ? (vals)[(id) & 0xffff] : NULL)
@@ -408,11 +415,8 @@ void tpl_optimize(tpl_t *tpl)
         tpl_t *cur = tpl->u.blocks.tab[i];
 
         if (cur->op == TPL_OP_BLOCK && tpl->op == TPL_OP_BLOCK) {
-            tpl_array_splice(&tpl->u.blocks, i, 1,
-                             cur->u.blocks.tab, cur->u.blocks.len);
-            for (int j = i; j < i + cur->u.blocks.len; j++) {
-                tpl->u.blocks.tab[j]->refcnt++;
-            }
+            tpl_array_remove(&tpl->u.blocks, i);
+            tpl_add_tpls(tpl, cur->u.blocks.tab, cur->u.blocks.len);
             tpl_delete(&cur);
         } else {
             if (cur->op & TPL_OP_BLOCK) {
@@ -534,7 +538,7 @@ int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl)
     }
 }
 
-int tpl_encode_xml_string(tpl_t *out, blob_t *blob, tpl_t *args)
+int tpl_encode_xml_string(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
 {
     const byte *data;
     int len;
@@ -543,17 +547,15 @@ int tpl_encode_xml_string(tpl_t *out, blob_t *blob, tpl_t *args)
         assert(out);
         blob = tpl_get_blob(out);
     }
-    if (args->u.blocks.len != 1)
-        return -1;
 
-    if (tpl_get_short_data(args, &data, &len))
+    if (tpl_get_short_data(args, nb, &data, &len))
         return -1;
 
     blob_append_xml_escape(blob, data, len);
     return 0;
 }
 
-int tpl_encode_plmn(tpl_t *out, blob_t *blob, tpl_t *args)
+int tpl_encode_plmn(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
 {
     const byte *data;
     int len;
@@ -563,14 +565,11 @@ int tpl_encode_plmn(tpl_t *out, blob_t *blob, tpl_t *args)
         assert(out);
         blob = tpl_get_blob(out);
     }
-    if (args->u.blocks.len != 1)
-        return -1;
 
-    if (tpl_get_short_data(args, &data, &len))
+    if (tpl_get_short_data(args, nb, &data, &len))
         return -1;
 
     num = msisdn_canonify((const char*)data, len, -1);
-
     if (num < 0) {
         blob_append_data(blob, data, len);
     } else {
@@ -579,7 +578,7 @@ int tpl_encode_plmn(tpl_t *out, blob_t *blob, tpl_t *args)
     return 0;
 }
 
-int tpl_encode_expiration(tpl_t *out, blob_t *blob, tpl_t *args)
+int tpl_encode_expiration(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
 {
     const byte *data;
     int len;
@@ -590,10 +589,8 @@ int tpl_encode_expiration(tpl_t *out, blob_t *blob, tpl_t *args)
         assert(out);
         blob = tpl_get_blob(out);
     }
-    if (args->u.blocks.len != 1)
-        return -1;
 
-    if (tpl_get_short_data(args, &data, &len))
+    if (tpl_get_short_data(args, nb, &data, &len))
         return -1;
 
     expiration = memtoip(data, len, NULL);
