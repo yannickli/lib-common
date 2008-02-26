@@ -121,5 +121,6 @@ int tpl_encode_expiration(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 /****************************************************************************/
 
 int tpl_encode_xml(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
+int tpl_encode_ira(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 
 #endif
