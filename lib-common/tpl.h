@@ -110,11 +110,16 @@ int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl);
 
 
 /****************************************************************************/
-/*  Pre-defined tpl functions                                               */
+/* Short formats                                                            */
 /****************************************************************************/
 
-int tpl_encode_xml_string(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 int tpl_encode_plmn(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 int tpl_encode_expiration(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
+
+/****************************************************************************/
+/* Escapings                                                                */
+/****************************************************************************/
+
+int tpl_encode_xml(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 
 #endif

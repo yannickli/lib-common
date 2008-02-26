@@ -61,7 +61,6 @@ libcommon_SOURCES = \
 	string_is.c \
 	timeval.c \
 	timer.c \
-	tpl.c \
 	xml.c \
 	xmlpp.c \
 	\
@@ -88,6 +87,9 @@ libcommon_SOURCES = \
 	\
 	property.c \
 	property-hash.c \
+	\
+	tpl.c \
+	tpl-funcs.c \
 	\
 	unix.c \
 	unix-linux.c \
