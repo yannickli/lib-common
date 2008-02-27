@@ -522,7 +522,7 @@ static tpl_t *archive_bloc_get_tpl(const archive_file *file,
         }
         tpl_add_data(res, p, p0 - p);
         tpl_add_var(res, envid, pos);
-        p = p3 + 1;
+        p = p3;
         continue;
       dump:
         if (!p0)
