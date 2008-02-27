@@ -39,7 +39,7 @@ static void hashtbl_invalidate(hashtbl_t *t, int pos)
 {
     hashtbl_entry *next = &t->tab[pos + 1 == t->size ? 0 : pos + 1];
 
-    t->nr--;
+    t->len--;
     if (next->ptr) {
         t->ghosts++;
         t->tab[pos].ptr = GHOST;
@@ -67,7 +67,7 @@ static void hashtbl_resize(hashtbl_t *t, int newsize)
         e_trace(2, "growing %p (%d -> %d entries)", t, oldsize, newsize);
         break;
       case CMP_EQUAL:
-        e_trace(2, "ghosts in %p (%d entries, %d ghosts)", t, t->nr,
+        e_trace(2, "ghosts in %p (%d entries, %d ghosts)", t, t->len,
                 t->ghosts);
         break;
       case CMP_GREATER:
@@ -78,7 +78,7 @@ static void hashtbl_resize(hashtbl_t *t, int newsize)
 
     t->size = newsize;
     t->tab  = p_new(hashtbl_entry, newsize);
-    t->nr = t->ghosts = 0;
+    t->len = t->ghosts = 0;
 
     for (int i = 0; i < oldsize; i++) {
         if (!IS_EMPTY(oldtab[i].ptr))
@@ -112,10 +112,10 @@ void **hashtbl_insert(hashtbl_t *t, uint64_t key, void *ptr)
     hashtbl_entry *tab;
 
     assert (!t->inmap);
-    if (t->nr >= t->size / 2) {
+    if (t->len >= t->size / 2) {
         hashtbl_resize(t, p_alloc_nr(t->size));
     } else
-    if (t->nr + t->ghosts >= t->size / 2) {
+    if (t->len + t->ghosts >= t->size / 2) {
         hashtbl_resize(t, t->size);
     }
 
@@ -138,7 +138,7 @@ void **hashtbl_insert(hashtbl_t *t, uint64_t key, void *ptr)
         t->ghosts--;
         pos = ghost;
     }
-    t->nr++;
+    t->len++;
     tab[pos].ptr = ptr;
     tab[pos].key = key;
     return NULL;
@@ -155,8 +155,8 @@ void hashtbl_remove(hashtbl_t *t, void **pp)
         assert (t->tab <= e && e < t->tab + t->size);
 
         hashtbl_invalidate(t, e - t->tab);
-        if (8 * (t->nr + 16) < t->size)
-            hashtbl_resize(t, 4 * (t->nr + 16));
+        if (8 * (t->len + 16) < t->size)
+            hashtbl_resize(t, 4 * (t->len + 16));
     }
 }
 
@@ -183,8 +183,8 @@ void hashtbl_map(hashtbl_t *t, void (*fn)(void **, void *), void *priv)
 #ifndef NDEBUG
     t->inmap = false;
 #endif
-    if (4 * p_alloc_nr(t->nr) < t->size)
-        hashtbl_resize(t, 2 * p_alloc_nr(t->nr));
+    if (4 * p_alloc_nr(t->len) < t->size)
+        hashtbl_resize(t, 2 * p_alloc_nr(t->len));
 }
 
 void hashtbl_map2(hashtbl_t *t, void (*fn)(uint64_t, void **, void *),
@@ -211,8 +211,8 @@ void hashtbl_map2(hashtbl_t *t, void (*fn)(uint64_t, void **, void *),
 #ifndef NDEBUG
     t->inmap = false;
 #endif
-    if (4 * p_alloc_nr(t->nr) < t->size)
-        hashtbl_resize(t, 2 * p_alloc_nr(t->nr));
+    if (4 * p_alloc_nr(t->len) < t->size)
+        hashtbl_resize(t, 2 * p_alloc_nr(t->len));
 }
 
 #include "property-hash.h"
@@ -241,8 +241,8 @@ void props_hash_map(props_hash_t *ph,
 #ifndef NDEBUG
     t->inmap = false;
 #endif
-    if (4 * p_alloc_nr(t->nr) < t->size)
-        hashtbl_resize(t, 2 * p_alloc_nr(t->nr));
+    if (4 * p_alloc_nr(t->len) < t->size)
+        hashtbl_resize(t, 2 * p_alloc_nr(t->len));
 }
 
 
@@ -302,10 +302,10 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *ptr)
     const char *name = element_name(ptr, t->name_offs, t->name_inl);
 
     assert (!t->inmap);
-    if (t->nr >= t->size / 2) {
+    if (t->len >= t->size / 2) {
         hashtbl_resize((hashtbl_t *)t, p_alloc_nr(t->size));
     } else
-    if (t->nr + t->ghosts >= t->size / 2) {
+    if (t->len + t->ghosts >= t->size / 2) {
         hashtbl_resize((hashtbl_t *)t, t->size);
     }
 
@@ -328,7 +328,7 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *ptr)
         t->ghosts--;
         pos = ghost;
     }
-    t->nr++;
+    t->len++;
     tab[pos].ptr = ptr;
     tab[pos].key = key;
     return NULL;

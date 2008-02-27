@@ -147,7 +147,7 @@ static void pack_one(uint64_t key, void **val, void *blob)
 
 void props_hash_pack(blob_t *out, const props_hash_t *ph, int terminator)
 {
-    blob_pack(out, "d", ph->h.nr);
+    blob_pack(out, "d", ph->h.len);
     hashtbl_map2((hashtbl_t *)&ph->h, &pack_one, out);
     blob_append_byte(out, terminator);
 }
