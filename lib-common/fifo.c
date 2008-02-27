@@ -27,10 +27,10 @@ static void fifo_grow(fifo *f, int newsize)
         return;
 
     p_allocgrow(&f->elems, newsize, &f->size);
-    if (f->first + f->nb_elems > cursize) {
+    if (f->first + f->len > cursize) {
         /* elements are split in two parts. Move the shortest one */
         int right_len = cursize - f->first;
-        int left_len  = f->nb_elems - right_len;
+        int left_len  = f->len - right_len;
 
         if (left_len > right_len || left_len > (f->size - cursize)) {
             p_move(f->elems, f->size - right_len, f->first, right_len);
@@ -45,7 +45,7 @@ void fifo_wipe(fifo *f, fifo_item_dtor_f *dtor)
 {
     if (f) {
         if (dtor) {
-            int last = f->first + f->nb_elems;
+            int last = f->first + f->len;
             if (last < f->size) {
                 for (int i = f->first; i < last; i++) {
                     (*dtor)(&f->elems[i]);
@@ -54,7 +54,7 @@ void fifo_wipe(fifo *f, fifo_item_dtor_f *dtor)
                 for (int i = f->first; i < f->size; i++) {
                     (*dtor)(&f->elems[i]);
                 }
-                last = f->nb_elems - (f->size - f->first);
+                last = f->len - (f->size - f->first);
                 for (int i = 0; i < last; i++) {
                     (*dtor)(&f->elems[i]);
                 }
@@ -76,15 +76,15 @@ void *fifo_get(fifo *f)
 {
     void *ptr;
 
-    if (f->nb_elems <= 0) {
+    if (f->len <= 0) {
         return NULL;
     }
 
     ptr = f->elems[f->first];
     f->elems[f->first] = NULL;
-    f->nb_elems--;
+    f->len--;
 
-    if (f->nb_elems == 0) {
+    if (f->len == 0) {
         f->first = 0;
     } else {
         f->first++;
@@ -98,34 +98,34 @@ void *fifo_get(fifo *f)
 
 void fifo_put(fifo *f, void *ptr)
 {
-    fifo_grow(f, f->nb_elems + 1);
-    f->elems[fifo_real_pos(f, f->nb_elems)] = ptr;
-    f->nb_elems++;
+    fifo_grow(f, f->len + 1);
+    f->elems[fifo_real_pos(f, f->len)] = ptr;
+    f->len++;
 }
 
 void fifo_unget(fifo *f, void *ptr)
 {
-    fifo_grow(f, f->nb_elems + 1);
+    fifo_grow(f, f->len + 1);
     f->first--;
     if (f->first < 0) {
         f->first += f->size;
     }
     f->elems[f->first] = ptr;
-    f->nb_elems++;
+    f->len++;
 }
 
 void *fifo_seti(fifo *f, int i, void *ptr)
 {
     int pos, last;
 
-    if (i >= f->nb_elems) {
+    if (i >= f->len) {
         fifo_grow(f, i + 1);
     }
 
     pos  = fifo_real_pos(f, i);
-    last = fifo_real_pos(f, f->nb_elems);
+    last = fifo_real_pos(f, f->len);
 
-    if (i < f->nb_elems) {
+    if (i < f->len) {
         SWAP(void *, f->elems[pos], ptr);
         return ptr;
     }
@@ -137,14 +137,14 @@ void *fifo_seti(fifo *f, int i, void *ptr)
         p_clear(f->elems, pos);
     }
 
-    f->nb_elems = i + 1;
+    f->len = i + 1;
     f->elems[pos] = ptr;
     return NULL;
 }
 
 void *fifo_geti(fifo *f, int i)
 {
-    return i >= f->nb_elems ? NULL : f->elems[fifo_real_pos(f, i)];
+    return i >= f->len ? NULL : f->elems[fifo_real_pos(f, i)];
 }
 
 #ifdef CHECK /* {{{ */
@@ -152,7 +152,7 @@ static void fifo_dump(fifo *f)
 {
     int i;
 
-    printf("nb_elems:%d first:%d [", f->nb_elems, f->first);
+    printf("len:%d first:%d [", f->len, f->first);
 
     for (i = 0; i < f->first; i++) {
         printf("%p ", f->elems[i]);

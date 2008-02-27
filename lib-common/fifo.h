@@ -17,10 +17,9 @@
 #include "mem.h"
 
 typedef struct fifo {
-    void ** elems;
-    int nb_elems;
+    void **elems;
+    int len;
     int first;
-
     int size;
 } fifo;
 typedef void fifo_item_dtor_f(void *item);
@@ -43,7 +42,7 @@ void *fifo_geti(fifo *f, int i) __attr_nonnull__((1));
 #define FIFO_TYPE(el_typ, prefix)                                            \
     typedef struct prefix##_fifo {                                           \
         el_typ ** const elems;                                               \
-        int nb_elems;                                                        \
+        int len;                                                             \
         int first;                                                           \
         int size;                                                            \
     } prefix##_fifo
