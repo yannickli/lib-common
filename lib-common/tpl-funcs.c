@@ -14,6 +14,37 @@
 #include "string_is.h"
 #include "tpl.h"
 
+
+int tpl_compute_len_copy(blob_t *b, tpl_t **args, int nb, int len)
+{
+    if (b) {
+        while (--nb >= 0) {
+            tpl_t *in = *args++;
+
+            if (in->op == TPL_OP_BLOB) {
+                blob_append(b, &in->u.blob);
+                len += in->u.blob.len;
+            } else {
+                assert (in->op == TPL_OP_DATA);
+                blob_append_data(b, in->u.data.data, in->u.data.len);
+                len += in->u.data.len;
+            }
+        }
+    } else {
+        while (--nb >= 0) {
+            tpl_t *in = *args++;
+
+            if (in->op == TPL_OP_BLOB) {
+                len += in->u.blob.len;
+            } else {
+                assert (in->op == TPL_OP_DATA);
+                len += in->u.data.len;
+            }
+        }
+    }
+    return len;
+}
+
 /****************************************************************************/
 /* Short formats                                                            */
 /****************************************************************************/
@@ -77,7 +108,7 @@ int tpl_encode_xml(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
         blob = tpl_get_blob(out);
     }
 
-    while (--nb > 0) {
+    while (--nb >= 0) {
         tpl_t *in = *args++;
         if (in->op == TPL_OP_DATA) {
             blob_append_xml_escape(blob, in->u.data.data, in->u.data.len);
@@ -96,13 +127,32 @@ int tpl_encode_ira(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
         blob = tpl_get_blob(out);
     }
 
-    while (--nb > 0) {
+    while (--nb >= 0) {
         tpl_t *arg = *args++;
         if (arg->op == TPL_OP_DATA) {
             blob_append_ira_hex(blob, arg->u.data.data, arg->u.data.len);
         } else {
             assert (arg->op == TPL_OP_BLOB);
             blob_append_ira_hex(blob, arg->u.blob.data, arg->u.blob.len);
+        }
+    }
+    return 0;
+}
+
+int tpl_encode_ira_bin(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
+{
+    if (!blob) {
+        assert(out);
+        blob = tpl_get_blob(out);
+    }
+
+    while (--nb >= 0) {
+        tpl_t *arg = *args++;
+        if (arg->op == TPL_OP_DATA) {
+            blob_append_ira_bin(blob, arg->u.data.data, arg->u.data.len);
+        } else {
+            assert (arg->op == TPL_OP_BLOB);
+            blob_append_ira_bin(blob, arg->u.blob.data, arg->u.blob.len);
         }
     }
     return 0;

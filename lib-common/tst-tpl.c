@@ -19,7 +19,7 @@ static int identity(tpl_t *out, blob_t *b, tpl_t **arr, int nb)
         tpl_add_tpls(out, arr, nb);
         return 0;
     }
-    while (--nb > 0) {
+    while (--nb >= 0) {
         tpl_t *in = *arr++;
         if (in->op == TPL_OP_BLOB) {
             blob_append(b, &in->u.blob);
