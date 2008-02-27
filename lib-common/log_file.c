@@ -84,7 +84,8 @@ static inline FILE *log_file_open_new(const char *prefix, time_t date)
     return res;
 }
 
-static inline int log_last_date(const char *prefix) {
+static int log_last_date(const char *prefix)
+{
     char path[PATH_MAX];
     const char *p;
     char sympath[PATH_MAX];
@@ -99,10 +100,15 @@ static inline int log_last_date(const char *prefix) {
     }
 
     len = readlink(path, sympath, sizeof(sympath));
-    if (errno || len >= ssizeof(sympath)) {
+    if (len < 0) {
         if (errno != ENOENT) {
             e_trace(1, "Could not readlink %s: %m", path);
         }
+        return 0;
+    }
+
+    if (len >= ssizeof(sympath)) {
+        e_trace(1, "Linked path is too long");
         return 0;
     }
     sympath[len] = '\0';
