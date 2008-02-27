@@ -1168,7 +1168,8 @@ int blob_append_quoted_printable(blob_t *dst, const byte *src, int len)
  * line markers.  0 for standard 76 character lines, -1 for unlimited
  * line length.
  */
-int blob_append_base64(blob_t *dst, const byte *src, int len, int width)
+int blob_append_base64(blob_t *dst, const byte *src, int len, int width,
+                       int *pack_num_p)
 {
     const byte *end;
     int pos, packs_per_line, pack_num, newlen;
@@ -1187,7 +1188,11 @@ int blob_append_base64(blob_t *dst, const byte *src, int len, int width)
     newlen = b64_size(len, packs_per_line);
     blob_extend(dst, newlen);
     data = dst->data + pos;
-    pack_num = 0;
+    if (*pack_num_p) {
+        pack_num = *pack_num_p;
+    } else {
+        pack_num = 0;
+    }
 
     end = src + len;
 
@@ -1232,6 +1237,10 @@ int blob_append_base64(blob_t *dst, const byte *src, int len, int width)
                 *data++ = '\n';
             }
         }
+    }
+
+    if (pack_num_p) {
+        *pack_num_p = pack_num;
     }
 
 #ifdef DEBUG

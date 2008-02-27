@@ -158,3 +158,25 @@ int tpl_encode_ira_bin(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
     return 0;
 }
 
+int tpl_encode_base64(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
+{
+    int pack_num = 0;
+
+    if (!blob) {
+        assert(out);
+        blob = tpl_get_blob(out);
+    }
+
+    while (--nb >= 0) {
+        tpl_t *arg = *args++;
+        if (arg->op == TPL_OP_DATA) {
+            blob_append_base64(blob, arg->u.data.data, arg->u.data.len, 0,
+                               &pack_num);
+        } else {
+            assert (arg->op == TPL_OP_BLOB);
+            blob_append_base64(blob, arg->u.blob.data, arg->u.blob.len, 0,
+                               &pack_num);
+        }
+    }
+    return 0;
+}
