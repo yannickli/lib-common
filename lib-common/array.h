@@ -61,9 +61,9 @@ void generic_array_sort(generic_array *array,
                                                                               \
     static inline void                                                        \
     prefix##suffix##_insert(prefix##suffix *v, int pos, el_typ item) {        \
+        assert (pos >= 0);                                                    \
         p_allocgrow(&v->tab, v->len + 1, &v->size);                           \
         if (pos < v->len) {                                                   \
-            /* OG: should check for pos < 0 */                                \
             p_move(v->tab, pos + 1, pos, v->len - pos);                       \
         } else {                                                              \
             pos = v->len;                                                     \
@@ -92,10 +92,9 @@ void generic_array_sort(generic_array *array,
         assert (pos >= 0 && len >= 0 && count >= 0);                          \
         if (pos > v->len)                                                     \
             pos = v->len;                                                     \
-        if (pos + len > v->len)                                               \
+        if ((unsigned)pos + len > (unsigned)v->len)                           \
             len = v->len - pos;                                               \
-        if (len < count)                                                      \
-            p_allocgrow(&v->tab, v->len + count - len, &v->size);             \
+        p_allocgrow(&v->tab, v->len + count - len, &v->size);                 \
         if (len != count) {                                                   \
             p_move(v->tab, pos + count, pos + len, v->len - pos - len);       \
             v->len += count - len;                                            \
