@@ -55,13 +55,18 @@ void generic_array_sort(generic_array *array,
     static inline void prefix##suffix##_reset(prefix##suffix *v) {            \
         v->len = 0;                                                           \
     }                                                                         \
+    static inline void prefix##suffix##_ensure(prefix##suffix *v, int len) {  \
+        if (v->size < len) {                                                  \
+            generic_vector_ensure((generic_vector *)v, len, sizeof(el_typ));  \
+        }                                                                     \
+    }                                                                         \
     static inline void                                                        \
     prefix##suffix##_setlen(prefix##suffix *v, int newlen) {                  \
         assert (newlen >= 0);                                                 \
         if (newlen <= 0) {                                                    \
             prefix##suffix##_reset(v);                                        \
         } else {                                                              \
-            p_allocgrow(&v->tab, newlen, &v->size);                           \
+            prefix##suffix##_ensure(v, newlen);                               \
             v->len += newlen;                                                 \
         }                                                                     \
     }                                                                         \
@@ -69,7 +74,7 @@ void generic_array_sort(generic_array *array,
     static inline void                                                        \
     prefix##suffix##_insert(prefix##suffix *v, int pos, el_typ item) {        \
         assert (pos >= 0);                                                    \
-        p_allocgrow(&v->tab, v->len + 1, &v->size);                           \
+        prefix##suffix##_ensure(v, v->len + 1);                               \
         if (pos < v->len) {                                                   \
             p_move(v->tab, pos + 1, pos, v->len - pos);                       \
         } else {                                                              \
@@ -80,7 +85,7 @@ void generic_array_sort(generic_array *array,
     }                                                                         \
     static inline void                                                        \
     prefix##suffix##_append(prefix##suffix *v, el_typ item) {                 \
-        p_allocgrow(&v->tab, v->len + 1, &v->size);                           \
+        prefix##suffix##_ensure(v, v->len + 1);                               \
         v->tab[v->len++] = item;                                              \
     }                                                                         \
     static inline void                                                        \
@@ -101,7 +106,7 @@ void generic_array_sort(generic_array *array,
             pos = v->len;                                                     \
         if ((unsigned)pos + len > (unsigned)v->len)                           \
             len = v->len - pos;                                               \
-        p_allocgrow(&v->tab, v->len + count - len, &v->size);                 \
+        prefix##suffix##_ensure(v, v->len + count - len);                     \
         if (len != count) {                                                   \
             p_move(v->tab, pos + count, pos + len, v->len - pos - len);       \
             v->len += count - len;                                            \
