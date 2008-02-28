@@ -1102,42 +1102,35 @@ void blob_append_quoted_printable(blob_t *dst, const byte *src, int len)
 
     blob_grow(dst, len);
     for (col = i = j = 0; i < len; i++) {
-        if (test_quoted_printable(c = src[i])) {
-            if (c == '\n') {
-                blob_append_cstr(dst, "\r\n");
-                col = 0;
-                continue;
-            }
+        if (col + i - j >= 75) {
+            blob_append_data(dst, src + j, 75 - col);
+            blob_append_cstr(dst, "=\r\n");
+            j += 75 - col;
+            col = 0;
+        }
+        if (!test_quoted_printable(c = src[i])) {
             /* only encode '.' if at the starting of a line */
-            if (c == '.' && dst->len && dst->data[dst->len - 1] != '\n') {
+            if (c == '.' && i == j && col)
                 continue;
-            }
             /* encode spaces only at end on line */
             if (isblank(c) && (i < len - 1 && src[i + 1] != '\n')) {
                 continue;
             }
-            while (col + i - j > 76) {
-                blob_append_data(dst, src + j, (76 - col));
-                blob_append_cstr(dst, "=\r\n");
-                j += 76 - col;
-                col = 0;
-            }
             blob_append_data(dst, src + j, i - j);
-            col = i - j;
-            if (col > 76 - 3) {
-                blob_append_cstr(dst, "=\r\n");
+            col += i - j;
+            if (c == '\n') {
+                blob_append_cstr(dst, "\r\n");
                 col = 0;
+            } else {
+                if (col > 75 - 3) {
+                    blob_append_cstr(dst, "=\r\n");
+                    col = 0;
+                }
+                blob_append_fmt(dst, "=%02X", c);
+                col += 3;
             }
-            blob_append_fmt(dst, "=%02X", c);
-            col += 3;
             j = i + 1;
         }
-    }
-    while (col + i - j > 76) {
-        blob_append_data(dst, src + j, (76 - col));
-        blob_append_cstr(dst, "=\r\n");
-        j += 76 - col;
-        col = 0;
     }
     blob_append_data(dst, src + j, i - j);
 }
