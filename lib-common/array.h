@@ -113,6 +113,7 @@ void generic_array_sort(generic_array *array,
             v->skip += len - count;                                           \
             v->tab  += len - count;                                           \
             v->size -= len - count;                                           \
+            v->len  -= len - count;                                           \
             len = count;                                                      \
         } else                                                                \
         if (len != count) {                                                   \

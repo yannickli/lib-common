@@ -136,87 +136,6 @@ void blob_ensure(blob_t *blob, int newlen)
 /* Blob manipulations                                                     */
 /**************************************************************************/
 
-/*** private inlines ***/
-
-/* data and blob->data must not overlap! */
-static inline void
-blob_blit_data_real(blob_t *blob, int pos, const void *data, int len)
-{
-    blob_splice_data(blob, pos, len, data, len);
-}
-
-/* Insert `len' data C bytes into a blob.
- * `pos' gives the position in `blob' where `data' should be inserted.
- *
- * If the given `pos' is greater than the length of the blob data,
- * the data is appended.
- *
- * data and blob->data must not overlap!
- */
-static inline void
-blob_insert_data_real(blob_t *blob, int pos, const void *data, int len)
-{
-    blob_splice_data(blob, pos, 0, data, len);
-}
-
-void blob_kill_data(blob_t *blob, int pos, int len)
-{
-    blob_splice_data(blob, pos, len, NULL, 0);
-}
-
-/*** blit functions ***/
-
-void blob_blit(blob_t *dest, int pos, const blob_t *src)
-{
-    blob_blit_data_real(dest, pos, src->data, src->len);
-}
-
-void blob_blit_data(blob_t *blob, int pos, const void *data, int len)
-{
-    blob_blit_data_real(blob, pos, data, len);
-}
-
-/*** insert functions ***/
-
-void blob_insert(blob_t *dest, int pos, const blob_t *src)
-{
-    blob_insert_data_real(dest, pos, src->data, src->len);
-}
-
-void blob_insert_data(blob_t *blob, int pos, const void *data, int len)
-{
-    blob_insert_data_real(blob, pos, data, len);
-}
-
-void blob_insert_byte(blob_t *blob, byte b)
-{
-    blob_insert_data_real(blob, 0, &b, 1);
-}
-
-void blob_splice_data(blob_t *blob, int pos, int len,
-                      const void *data, int datalen)
-{
-    assert (pos >= 0 && len >= 0 && datalen >= 0);
-
-    if (pos > blob->len)
-        pos = blob->len;
-    if ((unsigned)pos + len > (unsigned)blob->len)
-        len = blob->len - pos;
-    if (pos == 0 && len + blob->skip >= datalen) {
-        blob->skip += len - datalen;
-        blob->data += len - datalen;
-        blob->size -= len - datalen;
-        len = datalen;
-    } else
-    if (len != datalen) {
-        blob_ensure(blob, blob->len + datalen - len);
-        p_move(blob->data, pos + datalen, pos + len, blob->len - pos - len);
-        blob->len += datalen - len;
-        blob->data[blob->len] = '\0';
-    }
-    memcpy(blob->data + pos, data, datalen);
-}
-
 /* Escape "toescape" chars with '\' followed by corresponding char in
  * "escaped" string. "escaped" string is of the same length as "toescape",
  * and can contain '\0' which means "delete this char".
@@ -2094,46 +2013,6 @@ START_TEST(check_resize)
 END_TEST
 
 /*.....................................................................}}}*/
-/* test blit functions                                                 {{{*/
-
-START_TEST(check_blit)
-{
-    blob_t blob;
-    blob_t *b2;
-
-    check_setup(&blob, "toto string");
-    b2 = blob_dup(&blob);
-
-
-    /* blit cstr */
-    blob_blit_cstr(&blob, 4, "turlututu");
-    check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "tototurlututu") != 0,
-            "blit_cstr failed");
-    fail_if(blob.len != strlen("tototurlututu"),
-            "blit_cstr failed");
-
-    /* blit data */
-    blob_blit_data(&blob, 6, ".:.:.:.", 7);
-    check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "tototu.:.:.:.") != 0,
-            "blit_data failed");
-    fail_if(blob.len != strlen("tototu.:.:.:."),
-            "blit_cstr failed");
-
-    /* blit */
-    blob_blit(&blob, blob.len, b2);
-    check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "tototu.:.:.:.toto string") != 0,
-            "blit_data failed");
-    fail_if(blob.len != strlen("tototu.:.:.:.toto string"),
-            "blit_cstr failed");
-
-    check_teardown(&blob, &b2);
-}
-END_TEST
-
-/*.....................................................................}}}*/
 /* test insert functions                                               {{{*/
 
 START_TEST(check_insert)
@@ -2993,7 +2872,6 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_blob_new);
     tcase_add_test(tc, check_set);
     tcase_add_test(tc, check_dup);
-    tcase_add_test(tc, check_blit);
     tcase_add_test(tc, check_insert);
     tcase_add_test(tc, check_splice);
     tcase_add_test(tc, check_append);

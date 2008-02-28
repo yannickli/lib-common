@@ -66,6 +66,8 @@ char *blob_detach(blob_t *blob);
 GENERIC_NEW(blob_t, blob);
 GENERIC_DELETE(blob_t, blob);
 
+blob_t *blob_dup(const blob_t *blob);
+
 /* Get the const char * pointing to blob.data */
 static inline const char *blob_get_cstr(const blob_t *blob) {
     return (const char *)blob->data;
@@ -127,33 +129,65 @@ static inline void blob_extend2(blob_t *blob, int extralen, byte init) {
 /* Blob manipulations                                                     */
 /**************************************************************************/
 
-blob_t *blob_dup(const blob_t *blob);
-
-void blob_blit(blob_t *dest, int pos, const blob_t *src);
-void blob_blit_data(blob_t *blob, int pos, const void *data, int len);
-static inline void blob_blit_cstr(blob_t *blob, int pos, const char *cstr) {
-    blob_blit_data(blob, pos, cstr, strlen(cstr));
-}
-
-void blob_insert(blob_t *dest, int pos, const blob_t *src);
-void blob_insert_data(blob_t *blob, int pos, const void *data, int len);
 static inline void
-blob_insert_cstr(blob_t *blob, int pos, const char *cstr) {
-    blob_insert_data(blob, pos, cstr, strlen(cstr));
+blob_splice_data(blob_t *blob, int pos, int len, const void *data, int dlen)
+{
+    assert (pos >= 0 && len >= 0 && dlen >= 0);
+
+    if (pos > blob->len)
+        pos = blob->len;
+    if ((unsigned)pos + len > (unsigned)blob->len)
+        len = blob->len - pos;
+    if (pos == 0 && len + blob->skip >= dlen) {
+        blob->skip += len - dlen;
+        blob->data += len - dlen;
+        blob->size -= len - dlen;
+        blob->len  -= len - dlen;
+        len = dlen;
+    } else
+    if (len != dlen) {
+        blob_ensure(blob, blob->len + dlen - len);
+        p_move(blob->data, pos + dlen, pos + len, blob->len - pos - len);
+        blob->len += dlen - len;
+        blob->data[blob->len] = '\0';
+    }
+    memcpy(blob->data + pos, data, dlen);
 }
-void blob_insert_byte(blob_t *blob, byte b);
-
-void blob_splice_data(blob_t *blob, int pos, int len,
-                      const void *data, int datalen);
-
 static inline void
 blob_splice_cstr(blob_t *dest, int pos, int len, const char *src) {
     blob_splice_data(dest, pos, len, src, strlen(src));
 }
-
 static inline void
 blob_splice(blob_t *dest, int pos, int len, const blob_t *src) {
     blob_splice_data(dest, pos, len, src->data, src->len);
+}
+static inline void blob_kill_data(blob_t *blob, int pos, int len) {
+    blob_splice_data(blob, pos, len, NULL, 0);
+}
+static inline void blob_kill_first(blob_t *blob, int len) {
+    blob_splice_data(blob, 0, len, NULL, 0);
+}
+static inline void blob_kill_last(blob_t *blob, int len) {
+    if (len < blob->len) {
+        blob->len -= len;
+        blob->data[blob->len] = '\0';
+    } else {
+        blob_reset(blob);
+    }
+}
+/* OG: should rename to blob_kill_upto */
+static inline void blob_kill_at(blob_t *blob, const char *s) {
+    blob_kill_first(blob, s - blob_get_cstr(blob));
+}
+static inline void blob_insert(blob_t *dest, int pos, const blob_t *src) {
+    blob_splice_data(dest, pos, 0, src->data, src->len);
+}
+static inline void blob_insert_cstr(blob_t *blob, int pos, const char *s) {
+    blob_splice_data(blob, pos, 0, s, strlen(s));
+}
+static inline void
+blob_insert_data(blob_t *blob, int pos, const void *data, int len) {
+    blob_splice_data(blob, pos, 0, data, len);
 }
 
 /*** appends ***/
@@ -199,36 +233,6 @@ static inline void blob_set(blob_t *dest, const blob_t *src) {
 }
 static inline void blob_set_cstr(blob_t *blob, const char *cstr) {
     blob_set_data(blob, cstr, strlen(cstr));
-}
-
-
-/*** kills ***/
-
-void blob_kill_data(blob_t *blob, int pos, int len);
-
-/* OG: should rename to blob_kill_head and blob_kill_tail? */
-static inline void blob_kill_first(blob_t *blob, int len) {
-    if (len < blob->len) {
-        blob->data += len;
-        blob->size -= len;
-        blob->len  -= len;
-        blob->skip += len;
-    } else {
-        blob_reset(blob);
-    }
-}
-static inline void blob_kill_last(blob_t *blob, int len) {
-    if (len < blob->len) {
-        blob->len -= len;
-        blob->data[blob->len] = '\0';
-    } else {
-        blob_reset(blob);
-    }
-}
-
-/* OG: should rename to blob_kill_upto */
-static inline void blob_kill_at(blob_t *blob, const char *s) {
-    blob_kill_first(blob, s - blob_get_cstr(blob));
 }
 
 
