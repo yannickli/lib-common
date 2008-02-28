@@ -37,7 +37,8 @@ typedef void array_item_dtor_f(void *item);
 /* Misc                                                                   */
 /**************************************************************************/
 
-void generic_vector_ensure(generic_vector *v, int newlen, int el_siz);
+void generic_vector_ensure(generic_vector *v, int newlen, int el_siz)
+    __attr_nonnull__((1));
 
 void *generic_array_take(generic_array *array, int pos)
     __must_check__ __attr_nonnull__((1));
@@ -53,7 +54,9 @@ void generic_array_sort(generic_array *array,
 
 #define VECTOR_BASE_FUNCTIONS(el_typ, prefix, suffix)                         \
     static inline void prefix##suffix##_reset(prefix##suffix *v) {            \
-        v->len = 0;                                                           \
+        v->size += v->skip;                                                   \
+        v->tab  -= v->skip;                                                   \
+        v->skip = 0;                                                          \
     }                                                                         \
     static inline void prefix##suffix##_ensure(prefix##suffix *v, int len) {  \
         if (v->size < len) {                                                  \
@@ -106,14 +109,18 @@ void generic_array_sort(generic_array *array,
             pos = v->len;                                                     \
         if ((unsigned)pos + len > (unsigned)v->len)                           \
             len = v->len - pos;                                               \
-        prefix##suffix##_ensure(v, v->len + count - len);                     \
+        if (pos == 0 && v->skip + len >= count) {                             \
+            v->skip += len - count;                                           \
+            v->tab  += len - count;                                           \
+            v->size -= len - count;                                           \
+            len = count;                                                      \
+        } else                                                                \
         if (len != count) {                                                   \
+            prefix##suffix##_ensure(v, v->len + count - len);                 \
             p_move(v->tab, pos + count, pos + len, v->len - pos - len);       \
             v->len += count - len;                                            \
         }                                                                     \
-        if (count) {                                                          \
-            memcpy(v->tab + pos, items, count * sizeof(*items));              \
-        }                                                                     \
+        memcpy(v->tab + pos, items, count * sizeof(*items));                  \
     }                                                                         \
     /* OG: this API is very error prone. */                                   \
     /*     should have an API to remove array element by value. */            \
@@ -123,6 +130,7 @@ void generic_array_sort(generic_array *array,
 
 #define VECTOR_MEM_FUNCTIONS(el_typ, prefix, suffix)                          \
     static inline void prefix##suffix##_wipe(prefix##suffix *v) {             \
+        v->tab -= v->skip;                                                    \
         p_delete(&v->tab);                                                    \
         p_clear(v, 1);                                                        \
     }                                                                         \
@@ -135,6 +143,7 @@ void generic_array_sort(generic_array *array,
         for (int i = 0; i < v->len; i++) {                                    \
             wipe(&v->tab[i]);                                                 \
         }                                                                     \
+        v->tab -= v->skip;                                                    \
         p_delete(&v->tab);                                                    \
         p_clear(v, 1);                                                        \
     }                                                                         \

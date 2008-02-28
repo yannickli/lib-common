@@ -142,20 +142,7 @@ void blob_ensure(blob_t *blob, int newlen)
 static inline void
 blob_blit_data_real(blob_t *blob, int pos, const void *data, int len)
 {
-    if (pos < 0) {
-        return;
-    }
-    if (len <= 0) {
-        return;
-    }
-    if (pos > blob->len) {
-        pos = blob->len;
-    }
-    if (pos + len > blob->len) {
-        blob_setlen(blob, pos + len);
-    }
-    /* This will fail if data and blob->data overlap */
-    memcpy(blob->data + pos, data, len);
+    blob_splice_data(blob, pos, len, data, len);
 }
 
 /* Insert `len' data C bytes into a blob.
@@ -169,54 +156,12 @@ blob_blit_data_real(blob_t *blob, int pos, const void *data, int len)
 static inline void
 blob_insert_data_real(blob_t *blob, int pos, const void *data, int len)
 {
-    int oldlen = blob->len;
-
-    if (pos < 0) {
-        pos = 0;
-    }
-    if (len <= 0) {
-        return;
-    }
-    if (pos > oldlen) {
-        pos = oldlen;
-    }
-
-    blob_setlen(blob, oldlen + len);
-    if (pos < oldlen) {
-        p_move(blob->data, pos + len, pos, oldlen - pos);
-    }
-    memcpy(blob->data + pos, data, len);
+    blob_splice_data(blob, pos, 0, data, len);
 }
 
 void blob_kill_data(blob_t *blob, int pos, int len)
 {
-    if (pos < 0) {
-        len += pos;
-        pos = 0;
-    }
-    if (len <= 0) {
-        return;
-    }
-    if (pos >= blob->len) {
-        return;
-    }
-
-    if (pos + len >= blob->len) {
-        /* Simple case: we are truncating the blob at the end */
-        blob->len = pos;
-        blob->data[blob->len] = '\0';
-    } else
-    if (pos == 0) {
-        blob_kill_first(blob, len);
-    } else {
-        /* General case: shift the blob data */
-        /* We could improve speed by moving the smaller of the left and
-         * right parts, but not as issue for now.
-         */
-        /* move the blob data including the trailing '\0' */
-        p_move(blob->data, pos, pos + len, blob->len - pos - len + 1);
-        blob->len  -= len;
-    }
+    blob_splice_data(blob, pos, len, NULL, 0);
 }
 
 /*** blit functions ***/
@@ -251,28 +196,23 @@ void blob_insert_byte(blob_t *blob, byte b)
 void blob_splice_data(blob_t *blob, int pos, int len,
                       const void *data, int datalen)
 {
-    int oldlen = blob->len;
+    assert (pos >= 0 && len >= 0 && datalen >= 0);
 
-    if (pos < 0) {
-        pos = 0;
-    }
-    if (pos > oldlen) {
-        pos = oldlen;
-    }
-    if (len < 0) {
-        len = 0;
-    }
-    if (pos + len > oldlen) {
-        len = oldlen - pos;
-    }
-    if (datalen < 0) {
-        datalen = 0;
-    }
-
-    blob_setlen(blob, oldlen + datalen - len);
-
+    if (pos > blob->len)
+        pos = blob->len;
+    if ((unsigned)pos + len > (unsigned)blob->len)
+        len = blob->len - pos;
+    if (pos == 0 && len + blob->skip >= datalen) {
+        blob->skip += len - datalen;
+        blob->data += len - datalen;
+        blob->size -= len - datalen;
+        len = datalen;
+    } else
     if (len != datalen) {
-        p_move(blob->data, pos + datalen, pos + len, oldlen - pos - len);
+        blob_ensure(blob, blob->len + datalen - len);
+        p_move(blob->data, pos + datalen, pos + len, blob->len - pos - len);
+        blob->len += datalen - len;
+        blob->data[blob->len] = '\0';
     }
     memcpy(blob->data + pos, data, datalen);
 }
@@ -2264,7 +2204,7 @@ START_TEST(check_splice)
             "splice_data failed");
 
     /* splice blob */
-    blob_splice(&blob, 6, -3, b2);
+    blob_splice(&blob, 6, 0, b2);
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, "A1234D56789") != 0,
             "splice failed");
@@ -2775,7 +2715,7 @@ START_TEST(check_quoted_printable)
 
     blob_init(&dst);
 #define TEST_STRING      "Injector X=1 Gagné! \n Last line "
-#define TEST_STRING_ENC  "Injector X=3D1 Gagn=C3=A9!=20\n Last line=20"
+#define TEST_STRING_ENC  "Injector X=3D1 Gagn=C3=A9!=20\r\n Last line=20"
 
     blob_append_quoted_printable(&dst, (const byte*)TEST_STRING,
                                  strlen(TEST_STRING));
