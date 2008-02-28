@@ -387,8 +387,8 @@ int blob_append_xml_escape(blob_t *dst, const byte *src, int len);
 static inline int blob_append_xml_escape_cstr(blob_t *dst, const char *s) {
     return blob_append_xml_escape(dst, (const byte *)s, strlen(s));
 }
-int blob_append_quoted_printable(blob_t *dst, const byte *src, int len);
-int blob_append_base64(blob_t *dst, const byte *src, int len, int width,
+void blob_append_quoted_printable(blob_t *dst, const byte *src, int len);
+void blob_append_base64(blob_t *dst, const byte *src, int len, int width,
                        int *pack_num_p);
 int blob_append_smtp_data(blob_t *dst, const byte *src, int len);
 int blob_append_hex(blob_t *dst, const byte *src, int len);

@@ -1068,10 +1068,10 @@ static byte const __str_encode_flags[128 + 256] = {
     REPEAT16(0), REPEAT16(0), REPEAT16(0), REPEAT16(0),
     REPEAT16(0), REPEAT16(0), REPEAT16(0), REPEAT16(0),
     0,     0,     0,     0,     0,     0,     0,     0,
-    0,     0,     QP,    0,     0,     QP,    0,     0,
+    0,     QP,    0,     0,     0,     0,     0,     0,
     REPEAT16(0),
     0,     QP,    XP|QP, QP,    QP,    QP,    XP|QP, XP|QP,
-    QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
+    QP,    QP,    QP,    QP,    QP,    QP,    0,     QP,  /* . */
     QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
     QP,    QP,    QP,    QP,    XP|QP, 0,     XP|QP, QP,  /* = */
     QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
@@ -1136,40 +1136,58 @@ int blob_append_xml_escape(blob_t *dst, const byte *src, int len)
     return 0;
 }
 
-int blob_append_quoted_printable(blob_t *dst, const byte *src, int len)
+void blob_append_quoted_printable(blob_t *dst, const byte *src, int len)
 {
-    int i, j, c;
+    int i, j, c, col;
 
-    /* TODO:
-     * - encode \n as \r\n
-     * - clip lines to 76 chars with =\n
-     */
-    for (i = j = 0; i < len; i++) {
-        if (!test_quoted_printable(c = src[i])) {
-            /* encode spaces only at end on line */
-            if ((c == ' ' || c == '\t')
-             && (i < len - 1 && src[i + 1] != '\n')) {
+    blob_grow(dst, len);
+    for (col = i = j = 0; i < len; i++) {
+        if (test_quoted_printable(c = src[i])) {
+            if (c == '\n') {
+                blob_append_cstr(dst, "\r\n");
+                col = 0;
                 continue;
             }
-            if (i > j) {
-                blob_append_data(dst, src + j, i - j);
+            /* only encode '.' if at the starting of a line */
+            if (c == '.' && dst->len && dst->data[dst->len - 1] != '\n') {
+                continue;
+            }
+            /* encode spaces only at end on line */
+            if (isblank(c) && (i < len - 1 && src[i + 1] != '\n')) {
+                continue;
+            }
+            while (col + i - j > 76) {
+                blob_append_data(dst, src + j, (76 - col));
+                blob_append_cstr(dst, "=\r\n");
+                j += 76 - col;
+                col = 0;
+            }
+            blob_append_data(dst, src + j, i - j);
+            col = i - j;
+            if (col > 76 - 3) {
+                blob_append_cstr(dst, "=\r\n");
+                col = 0;
             }
             blob_append_fmt(dst, "=%02X", c);
+            col += 3;
             j = i + 1;
         }
     }
-    if (i > j) {
-        blob_append_data(dst, src + j, i - j);
+    while (col + i - j > 76) {
+        blob_append_data(dst, src + j, (76 - col));
+        blob_append_cstr(dst, "=\r\n");
+        j += 76 - col;
+        col = 0;
     }
-    return 0;
+    blob_append_data(dst, src + j, i - j);
 }
 
 /* width is the maximum length for output lines, not counting end of
  * line markers.  0 for standard 76 character lines, -1 for unlimited
  * line length.
  */
-int blob_append_base64(blob_t *dst, const byte *src, int len, int width,
-                       int *pack_num_p)
+void blob_append_base64(blob_t *dst, const byte *src, int len, int width,
+                        int *pack_num_p)
 {
     const byte *end;
     int pos, packs_per_line, pack_num, newlen;
@@ -1246,7 +1264,6 @@ int blob_append_base64(blob_t *dst, const byte *src, int len, int width,
 #ifdef DEBUG
     assert (data == dst->data + dst->len);
 #endif
-    return 0;
 }
 
 int blob_append_smtp_data(blob_t *dst, const byte *src, int len)
