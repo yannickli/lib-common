@@ -52,11 +52,15 @@ void generic_array_sort(generic_array *array,
     static inline void prefix##suffix##_reset(prefix##suffix *v) {            \
         v->len = 0;                                                           \
     }                                                                         \
-    /* OG: should remove this API */                                          \
     static inline void                                                        \
-    prefix##suffix##_grow(prefix##suffix *v, int extra) {                     \
-        p_allocgrow(&v->tab, v->len + extra, &v->size);                       \
-        v->len += extra;                                                      \
+    prefix##suffix##_setlen(prefix##suffix *v, int newlen) {                  \
+        assert (newlen >= 0);                                                 \
+        if (newlen <= 0) {                                                    \
+            prefix##suffix##_reset(v);                                        \
+        } else {                                                              \
+            p_allocgrow(&v->tab, newlen, &v->size);                           \
+            v->len += newlen;                                                 \
+        }                                                                     \
     }                                                                         \
                                                                               \
     static inline void                                                        \
