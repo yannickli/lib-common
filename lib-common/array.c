@@ -50,6 +50,36 @@ int iovec_vector_getlen(iovec_vector *v)
 /* Misc                                                                   */
 /**************************************************************************/
 
+void generic_vector_ensure(generic_vector *v, int newlen, int el_siz)
+{
+    if (newlen < 0 || newlen * el_siz < 0)
+        e_panic("trying to allocate insane amount of RAM");
+
+    if (newlen <= v->size)
+        return;
+
+    if (newlen <= v->skip + v->size) {
+        /* Data fits in the current area, shift it left */
+        memmove((char *)v->tab - v->skip, v->tab, v->len * el_siz);
+        v->tab   = (char *)v->tab - (v->skip * el_siz);
+        v->size += v->skip;
+        v->skip  = 0;
+        return;
+    }
+    v->size = p_alloc_nr(v->size);
+    if (v->size < newlen)
+        v->size = newlen;
+    if (!v->skip) {
+        mem_realloc(&v->tab, v->size * el_siz);
+    } else {
+        byte *new_area = mem_alloc(v->size * el_siz);
+        memcpy(new_area, v->tab, v->len * el_siz);
+        mem_free((char *)v->tab - v->skip * el_siz);
+        v->tab  = new_area;
+        v->skip = 0;
+    }
+}
+
 void *generic_array_take(generic_array *array, int pos)
 {
     void *ptr;

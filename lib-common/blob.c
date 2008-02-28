@@ -106,17 +106,20 @@ void blob_ensure(blob_t *blob, int newlen)
         blob->data -= blob->skip;
         blob->size += blob->skip;
         blob->skip  = 0;
-    } else
+        return;
+    }
+
+    blob->size = p_alloc_nr(blob->size);
+    if (blob->size < newlen + 1)
+        blob->size = newlen + 1;
     if (blob->allocated && !blob->skip) {
         if (newlen > 1024 * 1024) {
             e_trace(1, "Large blob realloc, newlen:%d size:%d len:%d data:%.80s",
                     newlen, blob->size, blob->len, blob->data);
         }
-        p_allocgrow(&blob->data, newlen + 1, &blob->size);
+        p_realloc(&blob->data, blob->size);
     } else {
-        /* Allocate a new area */
-        int newsize = p_alloc_nr(newlen + 1);
-        byte *new_area = p_new_raw(byte, newsize);
+        byte *new_area = p_new_raw(byte, blob->size);
 
         /* Copy the blob data including the trailing '\0' */
         memcpy(new_area, blob->data, blob->len + 1);
@@ -125,7 +128,6 @@ void blob_ensure(blob_t *blob, int newlen)
         }
         blob->allocated = true;
         blob->data = new_area;
-        blob->size = newsize;
         blob->skip = 0;
     }
 }

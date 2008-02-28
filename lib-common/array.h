@@ -20,14 +20,15 @@
 #define VECTOR_TYPE(el_typ, prefix)  \
     typedef struct prefix##_vector { \
         el_typ *tab;                 \
-        int len, size;               \
+        int len, size, skip;         \
     } prefix##_vector
 
 #define ARRAY_TYPE(el_typ, prefix)   \
     typedef struct prefix##_array {  \
         el_typ **tab;                \
-        int len, size;               \
+        int len, size, skip;         \
     } prefix##_array
+VECTOR_TYPE(void, generic);
 ARRAY_TYPE(void, generic);
 
 typedef void array_item_dtor_f(void *item);
@@ -35,6 +36,8 @@ typedef void array_item_dtor_f(void *item);
 /**************************************************************************/
 /* Misc                                                                   */
 /**************************************************************************/
+
+void generic_vector_ensure(generic_vector *v, int newlen, int el_siz);
 
 void *generic_array_take(generic_array *array, int pos)
     __must_check__ __attr_nonnull__((1));
