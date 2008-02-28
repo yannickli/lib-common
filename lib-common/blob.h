@@ -367,8 +367,24 @@ static inline int blob_append_xml_escape_cstr(blob_t *dst, const char *s) {
     return blob_append_xml_escape(dst, (const byte *)s, strlen(s));
 }
 void blob_append_quoted_printable(blob_t *dst, const byte *src, int len);
-void blob_append_base64(blob_t *dst, const byte *src, int len, int width,
-                       int *pack_num_p);
+
+typedef struct base64enc_ctx {
+    int width;
+    int pack_num;
+    uint8_t nbmissing;
+    byte trail;
+} base64enc_ctx;
+
+GENERIC_FUNCTIONS(base64enc_ctx, base64enc_ctx);
+
+/* Simple encoding */
+void blob_append_base64(blob_t *dst, const byte *src, int len, int width);
+
+/* base64 encoding per packets */
+void blob_append_base64_update(blob_t *dst, const byte *src, int len,
+                               base64enc_ctx *ctx);
+void blob_append_base64_finish(blob_t *dst, base64enc_ctx *ctx);
+
 int blob_append_smtp_data(blob_t *dst, const byte *src, int len);
 int blob_append_hex(blob_t *dst, const byte *src, int len);
 

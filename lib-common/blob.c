@@ -1146,8 +1146,7 @@ void blob_append_quoted_printable(blob_t *dst, const byte *src, int len)
  * line markers.  0 for standard 76 character lines, -1 for unlimited
  * line length.
  */
-void blob_append_base64(blob_t *dst, const byte *src, int len, int width,
-                        int *pack_num_p)
+void blob_append_base64(blob_t *dst, const byte *src, int len, int width)
 {
     const byte *end;
     int pos, packs_per_line, pack_num, newlen;
@@ -1166,11 +1165,7 @@ void blob_append_base64(blob_t *dst, const byte *src, int len, int width,
     newlen = b64_size(len, packs_per_line);
     blob_extend(dst, newlen);
     data = dst->data + pos;
-    if (pack_num_p) {
-        pack_num = *pack_num_p;
-    } else {
-        pack_num = 0;
-    }
+    pack_num = 0;
 
     end = src + len;
 
@@ -1217,13 +1212,154 @@ void blob_append_base64(blob_t *dst, const byte *src, int len, int width,
         }
     }
 
-    if (pack_num_p) {
-        *pack_num_p = pack_num;
-    }
-
 #ifdef DEBUG
     assert (data == dst->data + dst->len);
 #endif
+}
+
+/* FIXME: This function is not very efficient in memory, we can end up with
+ * an encoded blob of len = 4000 and size = 5000 */
+void blob_append_base64_update(blob_t *dst, const byte *src, int len,
+                               base64enc_ctx *ctx)
+{
+    const byte *end;
+    int prev_len, packs_per_line, pack_num;
+    byte *data;
+    int c1, c2, c3;
+
+    if (len == 0) {
+        return;
+    }
+
+    if (ctx->width < 0) {
+        packs_per_line = -1;
+    } else
+    if (ctx->width == 0) {
+        packs_per_line = 19; /* 76 characters + \r\n */
+    } else {
+        packs_per_line = ctx->width / 4;
+    }
+
+    /* Ensure sufficient space to encode fully len + 3 trailing
+     * bytes from ctx + 2 for \r\n */
+    blob_grow(dst, b64_size(len, packs_per_line) + 5);
+
+    prev_len = dst->len;
+    data = dst->data + prev_len;
+    pack_num = ctx->pack_num;
+    end = src + len;
+
+    if (ctx->nbmissing == 2) {
+        c2  = *src++;
+
+        *data++ = b64[((ctx->trail & 0x3) << 4) | ((c2 & 0xf0) >> 4)];
+        if (src == end) {
+            ctx->nbmissing = 1;
+            ctx->trail     = c2;
+
+            goto end;
+        }
+
+        c3 = *src++;
+        *data++ = b64[((c2 & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
+        *data++ = b64[c3 & 0x3f];
+
+        if (packs_per_line > 0) {
+            if (++pack_num >= packs_per_line) {
+                pack_num = 0;
+                *data++ = '\r';
+                *data++ = '\n';
+            }
+        }
+    } else
+    if (ctx->nbmissing == 1) {
+        c3 = *src++;
+        *data++ = b64[((ctx->trail & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
+        *data++ = b64[c3 & 0x3f];
+
+        if (packs_per_line > 0) {
+            if (++pack_num >= packs_per_line) {
+                pack_num = 0;
+                *data++ = '\r';
+                *data++ = '\n';
+            }
+        }
+    }
+    ctx->nbmissing = 0;
+
+    while (src < end) {
+        c1      = *src++;
+        *data++ = b64[c1 >> 2];
+
+        if (src == end) {
+            ctx->nbmissing = 2;
+            ctx->trail = c1;
+            break;
+        }
+
+        c2      = *src++;
+        *data++ = b64[((c1 & 0x3) << 4) | ((c2 & 0xf0) >> 4)];
+
+        if (src == end) {
+            ctx->nbmissing = 1;
+            ctx->trail = c2;
+            break;
+        }
+
+        c3 = *src++;
+        *data++ = b64[((c2 & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
+        *data++ = b64[c3 & 0x3f];
+
+        if (packs_per_line > 0) {
+            if (++pack_num >= packs_per_line) {
+                pack_num = 0;
+                *data++ = '\r';
+                *data++ = '\n';
+            }
+        }
+    }
+
+  end:
+    ctx->pack_num = pack_num;
+    dst->len = data - dst->data;
+
+    return;
+}
+
+void blob_append_base64_finish(blob_t *dst, base64enc_ctx *ctx)
+{
+    byte *data = dst->data + dst->len;
+
+    switch (ctx->nbmissing) {
+      case 0:
+        return;
+
+      case 1:
+        blob_grow(dst, 4);
+        *data++ = b64[((ctx->trail & 0x0f) << 2)];
+        *data++ = '=';
+        if (ctx->width >= 0) {
+            *data++ = '\r';
+            *data++ = '\n';
+        }
+        break;
+
+      case 2:
+        blob_grow(dst, 5);
+        *data++ = b64[((ctx->trail & 0x3) << 4)];
+        *data++ = '=';
+        *data++ = '=';
+        if (ctx->width >= 0) {
+            *data++ = '\r';
+            *data++ = '\n';
+        }
+        break;
+
+      default:
+        e_panic("Corrupted base64 ctx");
+    }
+
+    dst->len = data - dst->data;
 }
 
 int blob_append_smtp_data(blob_t *dst, const byte *src, int len)
