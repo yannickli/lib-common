@@ -299,30 +299,9 @@ blob_search_cstr(const blob_t *haystack, int pos, const char *needle) {
 /* Blob filtering                                                         */
 /**************************************************************************/
 
-typedef int (blob_filter_func_t)(int);
-void blob_map(blob_t *blob, blob_filter_func_t *filter);
-void blob_map_range(blob_t *blob, int start, int end,
-                    blob_filter_func_t *filter);
-
 void blob_ltrim(blob_t *blob);
 void blob_rtrim(blob_t *blob);
 void blob_trim(blob_t *blob);
-
-static inline void blob_tolower(blob_t *blob) {
-    blob_map(blob, &tolower);
-}
-static inline void blob_tolower_range(blob_t *blob,
-                                      int start, int end) {
-    blob_map_range(blob, start, end, &tolower);
-}
-
-static inline void blob_toupper(blob_t *blob) {
-    blob_map(blob, &toupper);
-}
-static inline void blob_toupper_range(blob_t *blob,
-                                      int start, int end) {
-    blob_map_range(blob, start, end, &toupper);
-}
 
 /**************************************************************************/
 /* Blob comparisons                                                       */

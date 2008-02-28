@@ -685,57 +685,23 @@ int blob_search_data(const blob_t *haystack, int pos,
 /* Blob filtering                                                         */
 /**************************************************************************/
 
-/* map filter to blob->data[start .. end-1]
-   beware that blob->data[end] is not modified !
- */
-
-static inline void
-blob_map_range_real(blob_t *blob, int start, int end,
-                    blob_filter_func_t *filter)
-{
-    int i;
-
-    for (i = start; i < end; i++) {
-        blob->data[i] = (*filter)(blob->data[i]);
-    }
-}
-
-
-void blob_map(blob_t *blob, blob_filter_func_t filter)
-{
-    blob_map_range_real(blob, 0, blob->len, filter);
-}
-
-void blob_map_range(blob_t *blob, int start, int end,
-                    blob_filter_func_t *filter)
-{
-    blob_map_range_real(blob, start, end, filter);
-}
-
-
 void blob_ltrim(blob_t *blob)
 {
-    int i;
-
-    /* OG: we could be slightly more efficient: since '\0' is not a
-     * space char, we do not really have to compare i to blob->len
-     */
-    for (i = 0; i < blob->len; i++) {
-        if (!isspace((unsigned char)blob->data[i]))
-            break;
-    }
-    blob_kill_data(blob, 0, i);
+    int i = 0;
+    while (isspace((unsigned char)blob->data[i]))
+        i++;
+    blob_kill_first(blob, i);
 }
 
 void blob_rtrim(blob_t *blob)
 {
-    int i;
-
-    for (i = blob->len; i > 0; i--) {
-        if (!isspace((unsigned char)blob->data[i - 1]))
-            break;
+    for (int i = blob->len; i > 0; i--) {
+        if (!isspace((unsigned char)blob->data[i - 1])) {
+            blob->len = i;
+            blob->data[i] = '\0';
+            return;
+        }
     }
-    blob_kill_data(blob, i, blob->len - i);
 }
 
 void blob_trim(blob_t *blob)
@@ -753,10 +719,7 @@ int blob_cmp(const blob_t *blob1, const blob_t *blob2)
 {
     int len = MIN(blob1->len, blob2->len);
     int res = memcmp(blob1->data, blob2->data, len);
-    if (res != 0) {
-        return res;
-    }
-    return (blob1->len - blob2->len);
+    return res ? res : blob1->len - blob2->len;
 }
 
 int blob_icmp(const blob_t *blob1, const blob_t *blob2)
@@ -789,19 +752,16 @@ bool blob_is_equal(const blob_t *blob1, const blob_t *blob2)
 
 bool blob_is_iequal(const blob_t *blob1, const blob_t *blob2)
 {
-    int i;
-
     if (blob1 == blob2)
         return true;
 
-    if (blob1->len != blob2->len) {
+    if (blob1->len != blob2->len)
         return false;
-    }
 
     /* Compare from the end because we deal with a lot of strings with
      * long identical initial portions.  (OG: not a general assumption)
      */
-    for (i = blob1->len; --i >= 0; ) {
+    for (int i = blob1->len; --i >= 0; ) {
         if (tolower(blob1->data[i]) != tolower(blob2->data[i])) {
             return false;
         }
@@ -846,8 +806,7 @@ void blob_append_urldecode(blob_t *out, const char *encoded, int len,
         len = strlen(encoded);
     }
     blob_grow(out, len);
-    out->len += purldecode(encoded,
-                           out->data + out->len, len + 1, flags);
+    out->len += purldecode(encoded, out->data + out->len, len + 1, flags);
 }
 
 static const char
