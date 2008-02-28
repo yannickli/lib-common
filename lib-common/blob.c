@@ -1102,6 +1102,7 @@ int blob_append_xml_escape(blob_t *dst, const byte *src, int len)
 {
     int i, j, c;
 
+    blob_grow(dst, len);
     for (i = j = 0; i < len; i++) {
         if (!test_xml_printable(src[i])) {
             if (i > j) {
