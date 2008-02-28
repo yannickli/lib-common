@@ -1166,7 +1166,7 @@ void blob_append_base64(blob_t *dst, const byte *src, int len, int width,
     newlen = b64_size(len, packs_per_line);
     blob_extend(dst, newlen);
     data = dst->data + pos;
-    if (*pack_num_p) {
+    if (pack_num_p) {
         pack_num = *pack_num_p;
     } else {
         pack_num = 0;
