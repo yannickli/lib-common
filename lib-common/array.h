@@ -20,13 +20,17 @@
 #define VECTOR_TYPE(el_typ, prefix)  \
     typedef struct prefix##_vector { \
         el_typ *tab;                 \
-        int len, size, skip;         \
+        int len, size;               \
+        flag_t allocated :  1;       \
+        flag_t skip      : 31;       \
     } prefix##_vector
 
 #define ARRAY_TYPE(el_typ, prefix)   \
     typedef struct prefix##_array {  \
         el_typ **tab;                \
-        int len, size, skip;         \
+        int len, size;               \
+        flag_t allocated :  1;       \
+        flag_t skip      : 31;       \
     } prefix##_array
 VECTOR_TYPE(void, generic);
 ARRAY_TYPE(void, generic);
@@ -53,6 +57,15 @@ void generic_array_sort(generic_array *array,
 /**************************************************************************/
 
 #define VECTOR_BASE_FUNCTIONS(el_typ, prefix, suffix)                         \
+    GENERIC_INIT(prefix##suffix, prefix##suffix);                             \
+    static inline void                                                        \
+    prefix##suffix##_init2(prefix##suffix *v, el_typ buf[], int size) {       \
+        assert (size > 0);                                                    \
+        *v = (prefix##suffix){ .tab = buf, .size = size };                    \
+    }                                                                         \
+    GENERIC_NEW(prefix##suffix, prefix##suffix);                              \
+    GENERIC_DELETE(prefix##suffix, prefix##suffix);                           \
+                                                                              \
     static inline void prefix##suffix##_reset(prefix##suffix *v) {            \
         v->size += v->skip;                                                   \
         v->tab  -= v->skip;                                                   \
@@ -129,36 +142,27 @@ void generic_array_sort(generic_array *array,
         prefix##suffix##_splice(v, pos, 1, NULL, 0);                          \
     }
 
-#define VECTOR_MEM_FUNCTIONS(el_typ, prefix, suffix)                          \
-    static inline void prefix##suffix##_wipe(prefix##suffix *v) {             \
+#define VECTOR_FUNCTIONS(el_typ, prefix)                                      \
+    static inline void prefix##_vector_wipe(prefix##_vector *v) {             \
         v->tab -= v->skip;                                                    \
-        p_delete(&v->tab);                                                    \
+        if (v->allocated) {                                                   \
+            p_delete(&v->tab);                                                \
+        }                                                                     \
         p_clear(v, 1);                                                        \
     }                                                                         \
-    GENERIC_INIT(prefix##suffix, prefix##suffix);                             \
-    GENERIC_NEW(prefix##suffix, prefix##suffix);                              \
-    GENERIC_DELETE(prefix##suffix, prefix##suffix);
+    VECTOR_BASE_FUNCTIONS(el_typ, prefix, _vector)
 
-#define VECTOR_MEM_FUNCTIONS2(el_typ, prefix, suffix, wipe)                   \
+#define VECTOR_BASE_FUNCTIONS2(el_typ, prefix, suffix, wipe)                  \
     static inline void prefix##suffix##_wipe(prefix##suffix *v) {             \
         for (int i = 0; i < v->len; i++) {                                    \
             wipe(&v->tab[i]);                                                 \
         }                                                                     \
         v->tab -= v->skip;                                                    \
-        p_delete(&v->tab);                                                    \
+        if (v->allocated) {                                                   \
+            p_delete(&v->tab);                                                \
+        }                                                                     \
         p_clear(v, 1);                                                        \
     }                                                                         \
-    GENERIC_INIT(prefix##suffix, prefix##suffix);                             \
-    GENERIC_NEW(prefix##suffix, prefix##suffix);                              \
-    GENERIC_DELETE(prefix##suffix, prefix##suffix);
-
-
-#define VECTOR_FUNCTIONS(el_typ, prefix)                                      \
-    VECTOR_MEM_FUNCTIONS(el_typ, prefix, _vector)                             \
-    VECTOR_BASE_FUNCTIONS(el_typ, prefix, _vector)
-
-#define VECTOR_BASE_FUNCTIONS2(el_typ, prefix, suffix, wipe)                  \
-    VECTOR_MEM_FUNCTIONS2(el_typ, prefix, suffix, wipe)                       \
     VECTOR_BASE_FUNCTIONS(el_typ, prefix, suffix)
 
 #define VECTOR_FUNCTIONS2(el_typ, prefix, wipe)                               \

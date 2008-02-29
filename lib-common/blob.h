@@ -42,11 +42,10 @@ extern byte blob_slop[1];
 /* Blob creation / deletion                                               */
 /**************************************************************************/
 
-static inline blob_t *blob_init2(blob_t *blob, void *buf, int size) {
+static inline void blob_init2(blob_t *blob, void *buf, int size) {
     assert (size > 0);
     *blob = (blob_t){ .data = buf, .size = size };
     blob->data[0] = '\0';
-    return blob;
 }
 static inline blob_t *blob_init(blob_t *blob) {
     *blob = BLOB_STATIC_INIT;

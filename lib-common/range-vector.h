@@ -21,8 +21,7 @@ typedef struct range_elem {
     void *data;
 } range_elem;
 
-VECTOR_TYPE(range_elem, range);
-VECTOR_MEM_FUNCTIONS(range_elem, range, _vector);
+DO_VECTOR(range_elem, range);
 
 /**************************************************************************/
 /* Specialized range functions                                            */

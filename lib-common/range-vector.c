@@ -25,7 +25,6 @@
  *
  */
 
-VECTOR_BASE_FUNCTIONS(range_elem, range, _vector);
 
 static int range_vector_getpos(const range_vector *array, int64_t val)
 {
