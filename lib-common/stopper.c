@@ -38,7 +38,7 @@ static void stopper_handler(int signum)
         gettimeofday(&now, NULL);
         if (!is_expired(&double_press_end, &now, NULL)) {
             /* The user really wants to abort. Do it. */
-            e_info("^C abort. ");
+            e_info("^C abort.");
             exit(1);
         } else {
             e_info("^C Soft termination already requested. "
