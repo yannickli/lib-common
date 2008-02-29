@@ -70,6 +70,7 @@ void generic_array_sort(generic_array *array,
         v->size += v->skip;                                                   \
         v->tab  -= v->skip;                                                   \
         v->skip = 0;                                                          \
+        v->len = 0;                                                           \
     }                                                                         \
     static inline void prefix##suffix##_ensure(prefix##suffix *v, int len) {  \
         if (v->size < len) {                                                  \
