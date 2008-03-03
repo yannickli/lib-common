@@ -135,7 +135,7 @@ blob_splice_data(blob_t *blob, int pos, int len, const void *data, int dlen)
 
     if (pos > blob->len)
         pos = blob->len;
-    if ((unsigned)pos + len > (unsigned)blob->len)
+    if (len > blob->len - pos)
         len = blob->len - pos;
     if (pos == 0 && len + blob->skip >= dlen) {
         blob->skip += len - dlen;
