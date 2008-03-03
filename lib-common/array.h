@@ -84,7 +84,7 @@ void generic_array_sort(generic_array *array,
             prefix##suffix##_reset(v);                                        \
         } else {                                                              \
             prefix##suffix##_ensure(v, newlen);                               \
-            v->len += newlen;                                                 \
+            v->len = newlen;                                                  \
         }                                                                     \
     }                                                                         \
                                                                               \
