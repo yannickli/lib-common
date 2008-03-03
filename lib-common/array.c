@@ -33,7 +33,7 @@ void iovec_vector_kill_first(iovec_vector *iovs, ssize_t len)
     iovec_vector_splice(iovs, 0, i, NULL, 0);
     if (iovs->len > 0 && len) {
         iovs->tab[0].iov_base = (byte *)iovs->tab[0].iov_base + len;
-        iovs->tab[0].iov_len  += len;
+        iovs->tab[0].iov_len  -= len;
     }
 }
 
