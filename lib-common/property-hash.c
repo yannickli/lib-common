@@ -228,11 +228,10 @@ int props_hash_from_fmtv1(props_hash_t *ph, const blob_t *payload)
 {
     const char *buf = blob_get_cstr(payload);
     int pos = 0;
-    char bufk[BUFSIZ], bufv[BUFSIZ];
     blob_t key, val;
 
-    blob_init2(&key, bufk, sizeof(bufk));
-    blob_init2(&val, bufv, sizeof(bufv));
+    blob_inita(&key, BUFSIZ);
+    blob_inita(&val, BUFSIZ);
     while (pos < payload->len) {
         const char *k, *v, *end;
         int klen, vlen;

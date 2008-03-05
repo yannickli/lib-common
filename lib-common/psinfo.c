@@ -316,10 +316,9 @@ static int psinfo_read_maps(pid_t pid, blob_t *output, blob_t *buf)
 int psinfo_get(pid_t pid, blob_t *output)
 {
     int res;
-    char slop[BUFSIZ];
     blob_t buf;
 
-    blob_init2(&buf, slop, sizeof(slop));
+    blob_inita(&buf, BUFSIZ);
 
     if (pid <= 0) {
         pid = getpid();

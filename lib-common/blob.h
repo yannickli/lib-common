@@ -47,6 +47,9 @@ static inline void blob_init2(blob_t *blob, void *buf, int size) {
     *blob = (blob_t){ .data = buf, .size = size };
     blob->data[0] = '\0';
 }
+#define blob_inita(blob, size) \
+    blob_init2((blob), (assert(size < (64 << 10)), alloca(size)), (size))
+
 static inline blob_t *blob_init(blob_t *blob) {
     *blob = BLOB_STATIC_INIT;
     /* setup invariant: blob is always NUL terminated */
