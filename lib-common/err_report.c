@@ -121,7 +121,7 @@ static void init_file(const char *ident, FILE *file)
 /* public API                                                             */
 /**************************************************************************/
 
-#define E_BODY(prio, format)  do {                                                \
+#define E_BODY(prio, format)  do {                                        \
     va_list args;                                                         \
     va_start(args, format);                                               \
     (*log_state.handler)(prio, format, args);                             \
