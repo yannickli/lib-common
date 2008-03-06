@@ -588,9 +588,9 @@ xml_tree_t *xml_new_tree(const char *payload, size_t len,
     return tree;
 }
 
-static const xml_tag_t* xml_search_branch(const xml_tag_t *branch,
-                                          const xml_tag_t **previous,
-                                          const char *pattern)
+const xml_tag_t* xml_search_branch(const xml_tag_t *branch,
+                                   const xml_tag_t **previous,
+                                   const char *pattern)
 {
     int patlen, skip;
     const char *p;
