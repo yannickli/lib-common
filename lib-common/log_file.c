@@ -22,6 +22,7 @@
 GENERIC_INIT(log_file_t, log_file);
 static void log_file_wipe(log_file_t *log_file)
 {
+    log_file_flush(log_file);
     p_fclose(&log_file->_internal);
     p_clear(log_file, 1);
 }
@@ -270,7 +271,7 @@ int log_fprintf(log_file_t *log_file, const char *format, ...)
     return res;
 }
 
-int log_flush(log_file_t *log_file)
+int log_file_flush(log_file_t *log_file)
 {
     if (log_file->_internal) {
         return fflush(log_file->_internal);
