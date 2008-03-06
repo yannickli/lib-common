@@ -38,8 +38,27 @@ void check_strace(void)
         return;
     }
     buf[nread] = '\0';
-    /* skip Name, State, SleepAVG, Tgid, Pid, PPid */
-    for (p = buf, i = 0; i < 6; i++) {
+    /* skip Name, State */
+    for (p = buf, i = 0; i < 2; i++) {
+        if ((p = strchr(p, '\n')) == NULL)
+            break;
+        p++;
+    }
+    if (p == NULL) {
+        strace_msg = "Bad status format\n";
+        return;
+    }
+    /* Skip optional SleepAVG (absent in 2.6.24) */
+    if (strstart(p, "SleepAVG:", &p)) {
+        p = strchr(p, '\n');
+        if (!p) {
+            strace_msg = "Bad status format\n";
+            return;
+        }
+        p++;
+    }
+    /* Tgid, Pid, PPid */
+    for (i = 0; i < 3; i++) {
         if ((p = strchr(p, '\n')) == NULL)
             break;
         p++;
