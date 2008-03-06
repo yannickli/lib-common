@@ -51,6 +51,10 @@ struct xml_tree_t {
 
 xml_tree_t *xml_new_tree(const char *payload, size_t len, char *error_buf,
                          size_t buflen);
+const xml_tag_t* xml_search_branch(const xml_tag_t *branch,
+                                   const xml_tag_t **previous,
+                                   const char *pattern);
+
 const xml_tag_t *xml_search_subtree(const xml_tree_t *tree,
                                     const xml_tag_t *subtree,
                                     const xml_tag_t *previous,
