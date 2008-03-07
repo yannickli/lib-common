@@ -176,10 +176,9 @@ static void log_check_max_files(log_file_t *log_file)
                 dl--;
             }
         }
-    }
-
 end:
-    globfree(&globbuf);
+        globfree(&globbuf);
+    }
 }
 
 log_file_t *log_file_open(const char *prefix)
