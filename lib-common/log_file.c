@@ -165,10 +165,7 @@ static void log_check_max_files(log_file_t *log_file)
             }
         }
         dl = nb_file - log_file->max_files;
-        if (dl < 0) {
-            goto end;
-        }
-        for (int i = 0; dl && i < (int)globbuf.gl_pathc; i++) {
+        for (int i = 0; dl > 0 && i < (int)globbuf.gl_pathc; i++) {
             len_file = strlen(globbuf.gl_pathv[i]);
 
             if (len_file - len_prefix == LOG_SUFFIX_LEN) {
@@ -176,7 +173,6 @@ static void log_check_max_files(log_file_t *log_file)
                 dl--;
             }
         }
-end:
         globfree(&globbuf);
     }
 }
