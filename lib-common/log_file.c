@@ -14,6 +14,8 @@
 #ifndef MINGCC
 #include <sys/stat.h>
 #include <dirent.h>
+#include <unistd.h>
+#include <glob.h>
 
 #include "blob.h"
 #include "string_is.h"
@@ -114,7 +116,6 @@ static int log_last_date(const char *prefix)
     }
     sympath[len] = '\0';
     /* Read %04d%02d%02d_%02d%02d%02d.log suffix */
-#define SUFFIX_LEN  (4+2+2 + 1 + 2+2+2 + 1+1+1+1)
     if (!strstart(sympath, prefix, &p) || *p != '_') {
         /* Bad prefix... */
         return 0;
@@ -188,6 +189,14 @@ void log_file_set_maxsize(log_file_t *file, int max)
     file->max_size = max;
 }
 
+void log_file_set_maxfiles(log_file_t *file, int maxfiles)
+{
+    if (maxfiles < 0) {
+        maxfiles = 0;
+    }
+    file->maxfiles = maxfiles;
+}
+
 void log_file_set_rotate_delay(log_file_t *file, time_t delay)
 {
     file->rotate_delay = delay;
@@ -203,10 +212,60 @@ static inline void log_file_rotate(log_file_t *file, time_t now)
     file->open_date = now;
 }
 
+#define LOG_SUFFIX_LEN  strlen("YYYYMMDD_HHMMSS.log")
+
+static inline int log_check_rotate_maxfiles(log_file_t *log_file)
+{
+    glob_t globbuf;
+
+    if (log_file->maxfiles > 0) {
+        char buf[PATH_MAX];
+        int len_file, len_prefix, dl;
+        int nb_file = 0;
+
+        len_prefix = strlen(log_file->prefix) + 1;
+
+        snprintf(buf, sizeof(buf), "%s_*",log_file->prefix);
+        glob(buf, 0, NULL, &globbuf);
+
+        for (int i = 0; i < (int)globbuf.gl_pathc; i++) {
+            len_file = strlen(globbuf.gl_pathv[i]);
+
+            if (len_file - len_prefix == LOG_SUFFIX_LEN) {
+                nb_file++;
+            }
+        }
+        dl = nb_file - log_file->maxfiles;
+        if (dl < 0) {
+            goto end;
+        }
+        for (int i = 0; i < (int)globbuf.gl_pathc; i++) {
+            len_file = strlen(globbuf.gl_pathv[i]);
+
+            if (dl < 0)
+                goto end;
+
+            if (len_file - len_prefix == LOG_SUFFIX_LEN) {
+                unlink(globbuf.gl_pathv[i]);
+                dl--;
+            }
+        }
+        log_file_rotate(log_file, time(NULL));
+        if (!log_file->_internal) {
+            e_trace(1, "Could not rotate");
+            goto end;
+        }
+        globfree(&globbuf);
+    }
+    return 0;
+
+end:
+    globfree(&globbuf);
+    return 1;
+}
 
 static inline int log_check_rotate(log_file_t *log_file)
 {
-    bool rotated = false;
     if (log_file->max_size > 0) {
         struct stat stats;
 
@@ -218,7 +277,6 @@ static inline int log_check_rotate(log_file_t *log_file)
                 e_trace(1, "Could not rotate");
                 return 1;
             }
-            rotated = true;
         }
     }
     if (log_file->rotate_delay > 0) {
@@ -234,9 +292,10 @@ static inline int log_check_rotate(log_file_t *log_file)
             log_file->rotate_date =
                 log_file->open_date + log_file->rotate_delay;
 
-            rotated = true;
         }
     }
+    if (log_check_rotate_maxfiles(log_file))
+        return 1;
 
     return 0;
 }
