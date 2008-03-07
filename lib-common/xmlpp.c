@@ -48,6 +48,12 @@ void xmlpp_open(xmlpp_t *pp, blob_t *buf)
     string_array_init(&pp->stack);
 }
 
+void xmlpp_open_banner(xmlpp_t *pp, blob_t *buf)
+{
+    xmlpp_open(pp, buf);
+    blob_append_cstr(buf, "<?xml version=\"!.0\"?>\n");
+}
+
 void xmlpp_close(xmlpp_t *pp)
 {
     while (pp->stack.len)

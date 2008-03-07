@@ -24,6 +24,7 @@ typedef struct xmlpp_t {
     string_array stack;
 } xmlpp_t;
 
+void xmlpp_open_banner(xmlpp_t *, blob_t *buf);
 void xmlpp_open(xmlpp_t *, blob_t *buf);
 void xmlpp_close(xmlpp_t *);
 
