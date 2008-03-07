@@ -36,8 +36,8 @@ GENERIC_DELETE(log_file_t, log_file);
  * file
  */
 
-static inline int build_real_path(char *buf, int size,
-                                  const char *prefix, time_t date)
+static int build_real_path(char *buf, int size,
+                           const char *prefix, time_t date)
 {
     struct tm *cur_date;
 
@@ -53,7 +53,7 @@ static inline int build_real_path(char *buf, int size,
 }
 
 
-static inline FILE *log_file_open_new(const char *prefix, time_t date)
+static FILE *log_file_open_new(const char *prefix, time_t date)
 {
     char real_path[PATH_MAX];
     char sym_path[PATH_MAX];
@@ -141,6 +141,47 @@ static int log_last_date(const char *prefix)
     return mktime(&cur_date);
 }
 
+#define LOG_SUFFIX_LEN  strlen("YYYYMMDD_HHMMSS.log")
+
+static void log_check_max_files(log_file_t *log_file)
+{
+    glob_t globbuf;
+
+    if (log_file->max_files > 0) {
+        char buf[PATH_MAX];
+        int len_file, len_prefix, dl;
+        int nb_file = 0;
+
+        len_prefix = strlen(log_file->prefix) + 1;
+
+        snprintf(buf, sizeof(buf), "%s_*",log_file->prefix);
+        glob(buf, 0, NULL, &globbuf);
+
+        for (int i = 0; i < (int)globbuf.gl_pathc; i++) {
+            len_file = strlen(globbuf.gl_pathv[i]);
+
+            if (len_file - len_prefix == LOG_SUFFIX_LEN) {
+                nb_file++;
+            }
+        }
+        dl = nb_file - log_file->max_files;
+        if (dl < 0) {
+            goto end;
+        }
+        for (int i = 0; dl && i < (int)globbuf.gl_pathc; i++) {
+            len_file = strlen(globbuf.gl_pathv[i]);
+
+            if (len_file - len_prefix == LOG_SUFFIX_LEN) {
+                unlink(globbuf.gl_pathv[i]);
+                dl--;
+            }
+        }
+    }
+
+end:
+    globfree(&globbuf);
+}
+
 log_file_t *log_file_open(const char *prefix)
 {
     log_file_t *log_file;
@@ -166,6 +207,7 @@ log_file_t *log_file_open(const char *prefix)
 
     log_file->_internal = log_file_open_new(log_file->prefix,
                                             log_file->open_date);
+    log_check_max_files(log_file);
 
     if (!log_file->_internal) {
         e_trace(1, "Could not open first log file");
@@ -194,7 +236,7 @@ void log_file_set_maxfiles(log_file_t *file, int maxfiles)
     if (maxfiles < 0) {
         maxfiles = 0;
     }
-    file->maxfiles = maxfiles;
+    file->max_files = maxfiles;
 }
 
 void log_file_set_rotate_delay(log_file_t *file, time_t delay)
@@ -204,67 +246,17 @@ void log_file_set_rotate_delay(log_file_t *file, time_t delay)
         file->open_date + file->rotate_delay;
 }
 
-static inline void log_file_rotate(log_file_t *file, time_t now)
+static void log_file_rotate(log_file_t *file, time_t now)
 {
     p_fclose(&file->_internal);
 
     file->_internal = log_file_open_new(file->prefix, now);
     file->open_date = now;
+
+    log_check_max_files(file);
 }
 
-#define LOG_SUFFIX_LEN  strlen("YYYYMMDD_HHMMSS.log")
-
-static inline int log_check_rotate_maxfiles(log_file_t *log_file)
-{
-    glob_t globbuf;
-
-    if (log_file->maxfiles > 0) {
-        char buf[PATH_MAX];
-        int len_file, len_prefix, dl;
-        int nb_file = 0;
-
-        len_prefix = strlen(log_file->prefix) + 1;
-
-        snprintf(buf, sizeof(buf), "%s_*",log_file->prefix);
-        glob(buf, 0, NULL, &globbuf);
-
-        for (int i = 0; i < (int)globbuf.gl_pathc; i++) {
-            len_file = strlen(globbuf.gl_pathv[i]);
-
-            if (len_file - len_prefix == LOG_SUFFIX_LEN) {
-                nb_file++;
-            }
-        }
-        dl = nb_file - log_file->maxfiles;
-        if (dl < 0) {
-            goto end;
-        }
-        for (int i = 0; i < (int)globbuf.gl_pathc; i++) {
-            len_file = strlen(globbuf.gl_pathv[i]);
-
-            if (dl < 0)
-                goto end;
-
-            if (len_file - len_prefix == LOG_SUFFIX_LEN) {
-                unlink(globbuf.gl_pathv[i]);
-                dl--;
-            }
-        }
-        log_file_rotate(log_file, time(NULL));
-        if (!log_file->_internal) {
-            e_trace(1, "Could not rotate");
-            goto end;
-        }
-        globfree(&globbuf);
-    }
-    return 0;
-
-end:
-    globfree(&globbuf);
-    return 1;
-}
-
-static inline int log_check_rotate(log_file_t *log_file)
+static int log_check_rotate(log_file_t *log_file)
 {
     if (log_file->max_size > 0) {
         struct stat stats;
@@ -291,11 +283,8 @@ static inline int log_check_rotate(log_file_t *log_file)
             }
             log_file->rotate_date =
                 log_file->open_date + log_file->rotate_delay;
-
         }
     }
-    if (log_check_rotate_maxfiles(log_file))
-        return 1;
 
     return 0;
 }

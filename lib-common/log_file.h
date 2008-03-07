@@ -31,7 +31,7 @@
 typedef struct log_file_t {
     char prefix[PATH_MAX];
     int max_size;
-    int maxfiles;
+    int max_files;
     time_t open_date;
     time_t rotate_date;
     time_t rotate_delay;
