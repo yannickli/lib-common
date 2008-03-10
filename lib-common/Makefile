@@ -16,7 +16,7 @@ include $(DEPTH)/admin/header.mk
 include $(DEPTH)/admin/tokyocabinet.mk
 
 __EXE__   = btree-dump tst-cfgparser tst-tpl
-__LIB__   = libcommon
+__LIB__   = libcommon time-lp-simple
 __CHECK__ = test tst-blob-iconv tst-domains_list
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-hash
 __CHECK__ += tst-iprintf-speed tst-hashtbl
@@ -95,6 +95,8 @@ libcommon_SOURCES = \
 	\
 	$(end_of_list)
 libcommon_CFLAGS := $(tokyocabinet_CFLAGS)
+
+time-lp-simple_SOURCES = time-lp-simple.c
 
 test_SOURCES = $(filter-out mem.c, $(libcommon_SOURCES)) check.c
 test_CFLAGS  = $(tokyocabinet_CFLAGS)

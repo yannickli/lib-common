@@ -11,13 +11,21 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_TIMEVAL_H
-#define IS_LIB_COMMON_TIMEVAL_H
+#ifndef IS_LIB_COMMON_TIME_H
+#define IS_LIB_COMMON_TIME_H
 
 #ifndef MINGCC
 #include <sys/resource.h>
 #endif
 #include "mem.h"
+
+/***************************************************************************/
+/* low precision time() and gettimeofday() replacements                    */
+/***************************************************************************/
+
+const char *lp_getsec_str(void);
+time_t lp_getsec(void);
+void lp_gettv(struct timeval *);
 
 /***************************************************************************/
 /* timeval operations                                                      */
