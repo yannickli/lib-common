@@ -190,6 +190,10 @@ log_file_t *log_file_open(const char *prefix)
         log_file_delete(&log_file);
         return NULL;
     }
+    if (len > 4 && strequal(log_file->prefix + len - 4, ".log")) {
+        log_file->prefix[len - 4] = '\0';
+        len -= 4;
+    }
 
     log_file->open_date = log_last_date(prefix);
 
