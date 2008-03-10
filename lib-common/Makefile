@@ -60,7 +60,6 @@ libcommon_SOURCES = \
 	strconv.c \
 	string_is.c \
 	timeval.c \
-	timer.c \
 	xml.c \
 	xmlpp.c \
 	\
