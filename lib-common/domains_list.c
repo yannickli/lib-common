@@ -132,7 +132,7 @@ int domains_index_get(const domains_index_t *idx, const char *key, int trace)
 #include <string.h>
 #include <getopt.h>
 
-#include "timeval.h"
+#include "time.h"
 
 static int is_word(char *buf)
 {

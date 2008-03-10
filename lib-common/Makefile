@@ -59,7 +59,7 @@ libcommon_SOURCES = \
 	stopper.c \
 	strconv.c \
 	string_is.c \
-	timeval.c \
+	time.c \
 	xml.c \
 	xmlpp.c \
 	\

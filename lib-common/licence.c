@@ -24,7 +24,7 @@
 #include "conf.h"
 #include "string_is.h"
 #include "licence.h"
-#include "timeval.h"
+#include "time.h"
 
 #define xstr(x)  #x
 #define str(x)   xstr(x)

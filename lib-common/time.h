@@ -14,23 +14,45 @@
 #ifndef IS_LIB_COMMON_TIMEVAL_H
 #define IS_LIB_COMMON_TIMEVAL_H
 
-#include <sys/time.h>
-#include <time.h>
 #ifndef MINGCC
 #include <sys/resource.h>
 #endif
+#include "mem.h"
 
-#include <lib-common/macros.h>
+/***************************************************************************/
+/* timeval operations                                                      */
+/***************************************************************************/
 
 /* Return reference to static buf for immediate printing */
 const char *timeval_format(struct timeval tv, bool as_duration);
 
-struct timeval timeval_add(struct timeval a, struct timeval b);
-struct timeval timeval_sub(struct timeval a, struct timeval b);
+static inline struct timeval timeval_add(struct timeval a, struct timeval b)
+{
+    struct timeval res;
+
+    res.tv_sec  = a.tv_sec + b.tv_sec;
+    res.tv_usec = a.tv_usec + b.tv_usec;
+    if (res.tv_usec >= 1000 * 1000) {
+        res.tv_sec += 1;
+        res.tv_usec -= 1000 * 1000;
+    }
+    return res;
+}
+
+static inline struct timeval timeval_sub(struct timeval a, struct timeval b)
+{
+    struct timeval res;
+
+    res.tv_sec = a.tv_sec - b.tv_sec;
+    res.tv_usec = a.tv_usec - b.tv_usec;
+    if (res.tv_usec < 0) {
+        res.tv_sec -= 1;
+        res.tv_usec += 1000 * 1000;
+    }
+    return res;
+}
 struct timeval timeval_mul(struct timeval tv, int k);
 struct timeval timeval_div(struct timeval tv, int k);
-bool is_expired(const struct timeval *date, const struct timeval *now,
-                struct timeval *left);
 
 static inline long long timeval_diff64(const struct timeval *tv2,
                                        const struct timeval *tv1) {
@@ -43,6 +65,28 @@ static inline int timeval_diff(const struct timeval *tv2,
     return (tv2->tv_sec - tv1->tv_sec) * 1000000 +
             (tv2->tv_usec - tv1->tv_usec);
 }
+
+static inline bool timeval_is_lt0(const struct timeval t) {
+    return  t.tv_sec < 0;
+}
+static inline bool timeval_is_le0(const struct timeval t) {
+    return  t.tv_sec < 0 || (t.tv_sec == 0 && t.tv_usec == 0);
+}
+static inline bool timeval_is_gt0(const struct timeval t) {
+    return !timeval_is_le0(t);
+}
+static inline bool timeval_is_ge0(const struct timeval t) {
+    return !timeval_is_lt0(t);
+}
+
+
+bool is_expired(const struct timeval *date, const struct timeval *now,
+                struct timeval *left);
+
+
+/***************************************************************************/
+/* time.h wrappers                                                         */
+/***************************************************************************/
 
 /* Return timestamp of the start of the day which contains
  * the timestamp 'date'.
@@ -59,7 +103,10 @@ time_t localtime_nextday(time_t date);
  */
 int strtotm(const char *date, struct tm *t);
 
-/*---------------- timers for benchmarks ----------------*/
+
+/***************************************************************************/
+/* timers for benchmarks                                                   */
+/***************************************************************************/
 
 /* we use gettimeofday() and getrusage() for accurate benchmark timings.
  * - clock(); returns process time, but has a precision of only 10ms

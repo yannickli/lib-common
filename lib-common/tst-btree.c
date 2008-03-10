@@ -17,7 +17,7 @@
 
 #include "array.h"
 #include "btree.h"
-#include "timeval.h"
+#include "time.h"
 
 /**************************************************************************/
 /* helpers                                                                */

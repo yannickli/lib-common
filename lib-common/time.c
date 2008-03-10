@@ -12,8 +12,12 @@
 /**************************************************************************/
 
 #include "err_report.h"
-#include "timeval.h"
+#include "time.h"
 #include "string_is.h"
+
+/***************************************************************************/
+/* timeval operations                                                      */
+/***************************************************************************/
 
 /* Arithmetics on timeval assume both members of timeval are signed.
  * We keep timeval structures in normalized form:
@@ -64,34 +68,6 @@ const char *timeval_format(struct timeval tv, bool as_duration)
     return buf;
 }
 
-struct timeval timeval_add(struct timeval a, struct timeval b)
-{
-    struct timeval res;
-
-    res.tv_sec = a.tv_sec + b.tv_sec;
-    res.tv_usec = a.tv_usec + b.tv_usec;
-    if (res.tv_usec >= 1000 * 1000) {
-        res.tv_sec += 1;
-        res.tv_usec -= 1000 * 1000;
-    }
-    return res;
-}
-
-struct timeval timeval_sub(struct timeval a, struct timeval b)
-{
-    struct timeval res;
-    int usec;
-
-    res.tv_sec = a.tv_sec - b.tv_sec;
-    usec = a.tv_usec - b.tv_usec;
-    if (usec < 0) {
-        res.tv_sec -= 1;
-        usec += 1000 * 1000;
-    }
-    res.tv_usec = usec;
-    return res;
-}
-
 struct timeval timeval_mul(struct timeval tv, int k)
 {
     struct timeval res;
@@ -139,21 +115,16 @@ bool is_expired(const struct timeval *date,
                 struct timeval *left)
 {
     struct timeval local_now;
-    struct timeval local_left;
 
     if (!now) {
         now = &local_now;
         gettimeofday(&local_now, NULL);
     }
-    if (!left) {
-        left = &local_left;
+    if (left) {
+        *left = timeval_sub(*date, *now);
+        return timeval_is_le0(*left);
     }
-    e_trace(3, "is_expired({%s}) ?", timeval_format(*date, false));
-    *left = timeval_sub(*date, *now);
-    if ((left->tv_sec < 0) || (left->tv_sec == 0 && left->tv_usec == 0)) {
-        return true;
-    }
-    return false;
+    return timeval_is_le0(timeval_sub(*date, *now));
 }
 
 time_t localtime_curday(time_t date)
@@ -314,7 +285,10 @@ int strtotm(const char *date, struct tm *t)
     return 0;
 }
 
-/*---------------- timers for benchmarks ----------------*/
+
+/***************************************************************************/
+/* timers for benchmarks                                                   */
+/***************************************************************************/
 
 const char *proctimer_report(proctimer_t *tp, const char *fmt)
 {

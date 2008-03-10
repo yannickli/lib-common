@@ -13,7 +13,7 @@
 
 #include <signal.h>
 #include "err_report.h"
-#include "timeval.h"
+#include "time.h"
 #include "stopper.h"
 
 typedef void (*sighandler_t)(int);

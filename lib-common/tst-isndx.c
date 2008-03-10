@@ -18,7 +18,7 @@
 #include "isndx.h"
 #include "btree.h"
 #include "bstream.h"
-#include "timeval.h"
+#include "time.h"
 #include "iprintf.h"
 
 #define USE_BSTREAM  0

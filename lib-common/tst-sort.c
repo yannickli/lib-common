@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #include "mem.h"
-#include "timeval.h"
+#include "time.h"
 #include "list.h"
 #include "array.h"
 

@@ -21,7 +21,7 @@
 #include "macros.h"
 #include "string_is.h"
 #include "unix.h"
-#include "timeval.h"
+#include "time.h"
 
 static int hertz;
 static int boot_time;

@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "timeval.h"
+#include "time.h"
 #include "string_is.h"
 #include "iprintf.h"
 
