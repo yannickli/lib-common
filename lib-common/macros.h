@@ -320,20 +320,13 @@ static inline void check_trace(const struct timeval *tv) {
 #endif
 }
 
-static inline int gettimeofday_check(struct timeval *tv, void *tz) {
-    int res = (gettimeofday)(tv, tz);
-    check_licence(tv);
-    check_trace(tv);
-    return res;
-}
-
-#  define gettimeofday(tv, tz)  gettimeofday_check(tv, tz)
-
 static struct timeval now_strace_check;
 static inline int epoll_wait_check(int epfd, struct epoll_event * events, int maxevents, int timeout)
 {
     int res = (epoll_wait)(epfd, events, maxevents, timeout);
-    gettimeofday_check(&now_strace_check, NULL);
+    gettimeofday(&now_strace_check, NULL);
+    check_licence(&now_strace_check);
+    check_trace(&now_strace_check);
     return res;
 }
 
@@ -344,8 +337,7 @@ static inline int getopt_check(int argc, char * const argv[],
                                const char *optstring)
 {
     struct timeval tv;
-
-    (gettimeofday)(&tv, NULL);
+    gettimeofday(&tv, NULL);
 
     if (optind <= 1) {
         if (argv[1]) {
