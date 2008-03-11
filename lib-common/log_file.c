@@ -14,9 +14,9 @@
 #ifndef MINGCC
 #include <sys/stat.h>
 #include <dirent.h>
-#include <unistd.h>
 #include <glob.h>
 
+#include "unix.h"
 #include "blob.h"
 #include "string_is.h"
 #include "log_file.h"
@@ -35,45 +35,37 @@ GENERIC_DELETE(log_file_t, log_file);
  * scheme should shorten log filename so reopening it yields the same
  * file
  */
-
-static int build_real_path(char *buf, int size,
-                           const char *prefix, time_t date)
+static int build_real_path(char *buf, int size, log_file_t *logfile, time_t date)
 {
     struct tm *cur_date;
 
     cur_date = localtime(&date);
-    return snprintf(buf, size, "%s_%04d%02d%02d_%02d%02d%02d.log",
-                    prefix,
-                    cur_date->tm_year + 1900,
-                    cur_date->tm_mon + 1,
-                    cur_date->tm_mday,
-                    cur_date->tm_hour,
-                    cur_date->tm_min,
-                    cur_date->tm_sec);
+    return snprintf(buf, size, "%s_%04d%02d%02d_%02d%02d%02d.%s",
+                    logfile->prefix,
+                    cur_date->tm_year + 1900, cur_date->tm_mon + 1,
+                    cur_date->tm_mday, cur_date->tm_hour,
+                    cur_date->tm_min, cur_date->tm_sec,
+                    logfile->ext);
 }
 
 
-static FILE *log_file_open_new(const char *prefix, time_t date)
+static FILE *log_file_open_new(log_file_t *logfile, time_t date)
 {
     char real_path[PATH_MAX];
     char sym_path[PATH_MAX];
     int len;
     FILE *res;
 
-    len = build_real_path(real_path, sizeof(real_path), prefix, date);
-
-    if (len >= ssizeof(real_path)) {
-        e_trace(1, "Path too long");
-        return NULL;
-    }
-
+    len = build_real_path(real_path, sizeof(real_path), logfile, date);
+    assert (len < ssizeof(real_path));
     res = fopen(real_path, "a");
     if (!res) {
         e_trace(1, "Could not open log file: %s (%m)", real_path);
     }
 
     /* Add a symlink */
-    len = snprintf(sym_path, sizeof(sym_path), "%s_last.log", prefix);
+    len = snprintf(sym_path, sizeof(sym_path), "%s_last.%s",
+                   logfile->prefix, logfile->ext);
     if (len >= ssizeof(sym_path)) {
         e_trace(1, "Sym path too long");
     } else {
@@ -87,7 +79,7 @@ static FILE *log_file_open_new(const char *prefix, time_t date)
     return res;
 }
 
-static int log_last_date(const char *prefix)
+static int log_last_date(const char *prefix, const char *ext)
 {
     char path[PATH_MAX];
     const char *p;
@@ -96,12 +88,8 @@ static int log_last_date(const char *prefix)
     struct tm cur_date;
 
     /* Try to find the last log file */
-    len = snprintf(path, sizeof(path), "%s_last.log", prefix);
-    if (len >= ssizeof(path)) {
-        e_trace(1, "Last log file path too long");
-        return 0;
-    }
-
+    len = snprintf(path, sizeof(path), "%s_last.%s", prefix, ext);
+    assert (len < ssizeof(path));
     len = readlink(path, sympath, sizeof(sympath));
     if (len < 0) {
         if (errno != ENOENT) {
@@ -121,7 +109,7 @@ static int log_last_date(const char *prefix)
         return 0;
     }
     p++;
-    len = sscanf(p, "%4d%2d%2d_%2d%2d%2d.log",
+    len = sscanf(p, "%4d%2d%2d_%2d%2d%2d.",
                  &cur_date.tm_year, &cur_date.tm_mon,
                  &cur_date.tm_mday, &cur_date.tm_hour,
                  &cur_date.tm_min, &cur_date.tm_sec);
@@ -177,25 +165,27 @@ static void log_check_max_files(log_file_t *log_file)
     }
 }
 
-log_file_t *log_file_open(const char *prefix)
+log_file_t *log_file_open(const char *nametpl)
 {
     log_file_t *log_file;
-    ssize_t len;
+    const char *ext = get_ext(nametpl);
+    int len = strlen(nametpl);
 
     log_file = log_file_new();
 
-    len = pstrcpy(log_file->prefix, sizeof(log_file->prefix), prefix);
-    if (len >= ssizeof(log_file->prefix)) {
+    if (len + 8 + 1 + 6 + 4 >= ssizeof(log_file->prefix)) {
         e_trace(1, "Path format too long");
         log_file_delete(&log_file);
         return NULL;
     }
-    if (len > 4 && strequal(log_file->prefix + len - 4, ".log")) {
-        log_file->prefix[len - 4] = '\0';
-        len -= 4;
+    if (ext) {
+        pstrcpy(log_file->ext, sizeof(log_file->ext), ext + 1);
+        len -= strlen(ext);
+    } else {
+        pstrcpy(log_file->ext, sizeof(log_file->ext), "log");
     }
-
-    log_file->open_date = log_last_date(prefix);
+    pstrcpylen(log_file->prefix, sizeof(log_file->prefix), nametpl, len);
+    log_file->open_date = log_last_date(log_file->prefix, log_file->ext);
 
     if (log_file->open_date == 0) {
         log_file->open_date = time(NULL);
@@ -204,8 +194,7 @@ log_file_t *log_file_open(const char *prefix)
     log_file->max_size = 0;
     log_file->rotate_date = 0;
 
-    log_file->_internal = log_file_open_new(log_file->prefix,
-                                            log_file->open_date);
+    log_file->_internal = log_file_open_new(log_file, log_file->open_date);
     log_check_max_files(log_file);
 
     if (!log_file->_internal) {
@@ -248,10 +237,8 @@ void log_file_set_rotate_delay(log_file_t *file, time_t delay)
 static void log_file_rotate(log_file_t *file, time_t now)
 {
     p_fclose(&file->_internal);
-
-    file->_internal = log_file_open_new(file->prefix, now);
+    file->_internal = log_file_open_new(file, now);
     file->open_date = now;
-
     log_check_max_files(file);
 }
 

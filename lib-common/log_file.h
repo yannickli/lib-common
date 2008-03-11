@@ -30,6 +30,7 @@
 
 typedef struct log_file_t {
     char prefix[PATH_MAX];
+    char ext[32];
     int max_size;
     int max_files;
     time_t open_date;
@@ -38,7 +39,7 @@ typedef struct log_file_t {
     FILE *_internal;
 } log_file_t;
 
-log_file_t *log_file_open(const char *prefix);
+log_file_t *log_file_open(const char *nametpl);
 void log_file_close(log_file_t **log_file);
 
 void log_file_set_maxsize(log_file_t *file, int max);
