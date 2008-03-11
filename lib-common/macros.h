@@ -387,9 +387,14 @@ static inline int p_fclose(FILE **fpp) {
 __attr_nonnull__((1))
 static inline int p_close(int *hdp) {
     int hd = *hdp;
-
     *hdp = -1;
-    return (hd >= 0) ? close(hd) : 0;
+    if (hd < 0)
+        return 0;
+    while (close(hd) < 0) {
+        if (errno != EINTR)
+            return -1;
+    }
+    return 0;
 }
 
 #if defined _BSD_SOURCE || defined _SVID_SOURCE
