@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef MINGCC
 #include <dirent.h>
 #include <glob.h>
 
@@ -239,4 +238,3 @@ int log_file_flush(log_file_t *log_file)
         return file_flush(log_file->_internal);
     return 0;
 }
-#endif
