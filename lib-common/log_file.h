@@ -19,16 +19,16 @@
 
 #include "mem.h"
 
-/**
- *  TODO: Should support a symlink to the last opened log file
- */
-
 /* This module provides auto rotating log files: log files are rotated
  * automatically depending on file size or data, or both.
- *
  */
 
+enum log_file_flags {
+    LOG_FILE_USE_LAST = (1 << 0),
+};
+
 typedef struct log_file_t {
+    flag_t use_last : 1;
     char prefix[PATH_MAX];
     char ext[32];
     int max_size;
@@ -39,7 +39,7 @@ typedef struct log_file_t {
     FILE *_internal;
 } log_file_t;
 
-log_file_t *log_file_open(const char *nametpl);
+log_file_t *log_file_open(const char *nametpl, int flags);
 void log_file_close(log_file_t **log_file);
 
 void log_file_set_maxsize(log_file_t *file, int max);

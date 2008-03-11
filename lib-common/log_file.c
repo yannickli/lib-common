@@ -48,6 +48,12 @@ static int build_real_path(char *buf, int size, log_file_t *logfile, time_t date
                     logfile->ext);
 }
 
+static int build_sym_path(char *buf, int size, log_file_t *logfile)
+{
+    return snprintf(buf, size, "%s%s.%s", logfile->prefix,
+                    logfile->use_last ? "_last" : "", logfile->ext);
+}
+
 
 static FILE *log_file_open_new(log_file_t *logfile, time_t date)
 {
@@ -64,34 +70,27 @@ static FILE *log_file_open_new(log_file_t *logfile, time_t date)
     }
 
     /* Add a symlink */
-    len = snprintf(sym_path, sizeof(sym_path), "%s_last.%s",
-                   logfile->prefix, logfile->ext);
-    if (len >= ssizeof(sym_path)) {
-        e_trace(1, "Sym path too long");
-    } else {
-        unlink(sym_path);
-        if (symlink(real_path, sym_path)) {
-            e_trace(1, "Could not symlink %s to %s (%m)",
-                    real_path, sym_path);
-        }
+    len = build_sym_path(sym_path, sizeof(sym_path), logfile);
+    assert (len < ssizeof(sym_path));
+    unlink(sym_path);
+    if (symlink(real_path, sym_path)) {
+        e_trace(1, "Could not symlink %s to %s (%m)", real_path, sym_path);
     }
-
     return res;
 }
 
-static time_t log_last_date(const char *prefix, const char *ext)
+static time_t log_last_date(log_file_t *logfile)
 {
-    char path[PATH_MAX];
+    char path[PATH_MAX], sym_path[PATH_MAX];
+    struct tm tm;
     const char *p;
     const byte *d;
-    char sympath[PATH_MAX];
-    ssize_t len;
-    struct tm tm;
+    int len;
 
     /* Try to find the last log file */
-    len = snprintf(path, sizeof(path), "%s_last.%s", prefix, ext);
+    len = build_sym_path(sym_path, sizeof(sym_path), logfile);
     assert (len < ssizeof(path));
-    len = readlink(path, sympath, sizeof(sympath));
+    len = readlink(path, sym_path, sizeof(sym_path));
     if (len < 0) {
         if (errno != ENOENT) {
             e_trace(1, "Could not readlink %s: %m", path);
@@ -99,21 +98,21 @@ static time_t log_last_date(const char *prefix, const char *ext)
         return -1;
     }
 
-    if (len >= ssizeof(sympath)) {
+    if (len >= ssizeof(sym_path)) {
         e_trace(1, "Linked path is too long");
         return -1;
     }
-    sympath[len] = '\0';
-    /* Read %04d%02d%02d_%02d%02d%02d.log suffix */
-    if (!strstart(sympath, prefix, &p)) {
+    sym_path[len] = '\0';
+    if (!strstart(sym_path, logfile->prefix, &p)) {
         /* Bad prefix... */
         return -1;
     }
-    if (*p++ != '_')
-        return -1;
 
+    /* _%04d%02d%02d_%02d%02d%02d.$ext */
     d = (const byte *)p;
     p_clear(&tm, 1);
+    if (*d++ != '_')
+        return -1;
     tm.tm_year = memtoip(d, 4, &d) - 1900;
     tm.tm_mon  = memtoip(d, 2, &d) - 1;
     tm.tm_mday = memtoip(d, 2, &d);
@@ -123,9 +122,7 @@ static time_t log_last_date(const char *prefix, const char *ext)
     tm.tm_min  = memtoip(d, 2, &d);
     tm.tm_sec  = memtoip(d, 2, &d);
     p = (const char *)d;
-    if (*p++ != '.')
-        return -1;
-    if (!strequal(p, ext))
+    if (*p++ != '.' || !strequal(p, logfile->ext))
         return -1;
     return mktime(&tm);
 }
@@ -151,13 +148,15 @@ static void log_check_max_files(log_file_t *log_file)
     }
 }
 
-log_file_t *log_file_open(const char *nametpl)
+log_file_t *log_file_open(const char *nametpl, int flags)
 {
     log_file_t *log_file;
     const char *ext = get_ext(nametpl);
     int len = strlen(nametpl);
 
     log_file = log_file_new();
+    if (flags & LOG_FILE_USE_LAST)
+        log_file->use_last = true;
 
     if (len + 8 + 1 + 6 + 4 >= ssizeof(log_file->prefix)) {
         e_trace(1, "Path format too long");
@@ -171,7 +170,7 @@ log_file_t *log_file_open(const char *nametpl)
         pstrcpy(log_file->ext, sizeof(log_file->ext), "log");
     }
     pstrcpylen(log_file->prefix, sizeof(log_file->prefix), nametpl, len);
-    log_file->open_date = log_last_date(log_file->prefix, log_file->ext);
+    log_file->open_date = log_last_date(log_file);
     if (log_file->open_date == -1) {
         log_file->open_date = time(NULL);
     }
