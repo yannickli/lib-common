@@ -24,14 +24,11 @@
  */
 static int build_real_path(char *buf, int size, log_file_t *log_file, time_t date)
 {
-    struct tm *cur_date;
-
-    cur_date = localtime(&date);
+    struct tm tm;
+    localtime_r(&date, &tm);
     return snprintf(buf, size, "%s_%04d%02d%02d_%02d%02d%02d.%s",
-                    log_file->prefix,
-                    cur_date->tm_year + 1900, cur_date->tm_mon + 1,
-                    cur_date->tm_mday, cur_date->tm_hour,
-                    cur_date->tm_min, cur_date->tm_sec,
+                    log_file->prefix, tm.tm_year + 1900, tm.tm_mon + 1,
+                    tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec,
                     log_file->ext);
 }
 
