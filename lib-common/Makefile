@@ -73,6 +73,7 @@ libcommon_SOURCES = \
 	conf.c  \
 	conf-parser.l \
 	\
+	file.c \
 	file-binlog.c \
 	\
 	hash-crc.c \

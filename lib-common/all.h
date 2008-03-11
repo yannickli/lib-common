@@ -34,6 +34,7 @@
 #include "err_report.h"
 #include "farch.h"
 #include "fifo.h"
+#include "file.h"
 #include "file-binlog.h"
 #include "hash.h"
 #include "hashtbl.h"

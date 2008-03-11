@@ -14,9 +14,6 @@
 #ifndef IS_LIB_COMMON_LOG_FILE_H
 #define IS_LIB_COMMON_LOG_FILE_H
 
-#include <time.h>
-#include <limits.h>
-
 #include "mem.h"
 
 /* This module provides auto rotating log files: log files are rotated
