@@ -35,6 +35,27 @@ static int build_real_path(char *buf, int size, log_file_t *log_file, time_t dat
                     log_file->ext);
 }
 
+static void log_check_max_files(log_file_t *log_file)
+{
+    if (log_file->max_files > 0) {
+        glob_t globbuf;
+        char buf[PATH_MAX];
+        int dl;
+
+        snprintf(buf, sizeof(buf), "%s_????????_??????.%s",
+                 log_file->prefix, log_file->ext);
+        if (glob(buf, 0, NULL, &globbuf)) {
+            globfree(&globbuf);
+            return;
+        }
+        dl = (int)globbuf.gl_pathc - log_file->max_files;
+        for (int i = 0; i < dl; i++) {
+            unlink(globbuf.gl_pathv[i]);
+        }
+        globfree(&globbuf);
+    }
+}
+
 static file_t *log_file_open_new(log_file_t *log_file, time_t date)
 {
     char real_path[PATH_MAX];
@@ -54,6 +75,7 @@ static file_t *log_file_open_new(log_file_t *log_file, time_t date)
     if (symlink(real_path, sym_path)) {
         e_trace(1, "Could not symlink %s to %s (%m)", real_path, sym_path);
     }
+    log_check_max_files(log_file);
     return res;
 }
 
@@ -86,27 +108,6 @@ static time_t log_last_date(log_file_t *log_file)
     return res;
 }
 
-static void log_check_max_files(log_file_t *log_file)
-{
-    if (log_file->max_files > 0) {
-        glob_t globbuf;
-        char buf[PATH_MAX];
-        int dl;
-
-        snprintf(buf, sizeof(buf), "%s_????????_??????.%s",
-                 log_file->prefix, log_file->ext);
-        if (glob(buf, 0, NULL, &globbuf)) {
-            globfree(&globbuf);
-            return;
-        }
-        dl = (int)globbuf.gl_pathc - log_file->max_files;
-        for (int i = 0; i < dl; i++) {
-            unlink(globbuf.gl_pathv[i]);
-        }
-        globfree(&globbuf);
-    }
-}
-
 log_file_t *log_file_open(const char *nametpl, int flags)
 {
     log_file_t *log_file;
@@ -134,14 +135,10 @@ log_file_t *log_file_open(const char *nametpl, int flags)
         log_file->open_date = time(NULL);
     }
     log_file->_internal = log_file_open_new(log_file, log_file->open_date);
-    log_check_max_files(log_file);
-
     if (!log_file->_internal) {
         e_trace(1, "Could not open first log file");
         IGNORE(log_file_close(&log_file));
-        return NULL;
     }
-
     return log_file;
 }
 
@@ -176,46 +173,35 @@ void log_file_set_maxfiles(log_file_t *file, int maxfiles)
 void log_file_set_rotate_delay(log_file_t *file, time_t delay)
 {
     file->rotate_delay = delay;
-    file->rotate_date =
-        file->open_date + file->rotate_delay;
+    file->rotate_date = file->open_date + file->rotate_delay;
 }
 
-static void log_file_rotate(log_file_t *file, time_t now)
+static int log_file_rotate(log_file_t *file, time_t now)
 {
     IGNORE(file_close(&file->_internal));
     file->_internal = log_file_open_new(file, now);
     file->open_date = now;
-    log_check_max_files(file);
+    if (!file->_internal) {
+        e_trace(1, "Could not rotate");
+        return -1;
+    }
+    if (file->rotate_delay > 0)
+        file->rotate_date += file->rotate_delay;
+    return 0;
 }
 
 static int log_check_rotate(log_file_t *log_file)
 {
     if (log_file->max_size > 0) {
         off_t size = file_tell(log_file->_internal);
-
-        if (size >= log_file->max_size) {
-            log_file_rotate(log_file, time(NULL));
-            if (!log_file->_internal) {
-                e_trace(1, "Could not rotate");
-                return 1;
-            }
-        }
+        if (size >= log_file->max_size)
+             return log_file_rotate(log_file, time(NULL));
     }
     if (log_file->rotate_delay > 0) {
         time_t now = time(NULL);
-
-        if (log_file->rotate_date <= now) {
-            log_file_rotate(log_file, now);
-
-            if (!log_file->_internal) {
-                e_trace(1, "Could not rotate");
-                return 1;
-            }
-            log_file->rotate_date =
-                log_file->open_date + log_file->rotate_delay;
-        }
+        if (log_file->rotate_date <= now)
+            return log_file_rotate(log_file, now);
     }
-
     return 0;
 }
 
