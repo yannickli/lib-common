@@ -25,7 +25,7 @@ GENERIC_INIT(log_file_t, log_file);
 static void log_file_wipe(log_file_t *log_file)
 {
     log_file_flush(log_file);
-    p_fclose(&log_file->_internal);
+    IGNORE(file_close(&log_file->_internal));
     p_clear(log_file, 1);
 }
 GENERIC_NEW(log_file_t, log_file);
@@ -48,15 +48,15 @@ static int build_real_path(char *buf, int size, log_file_t *log_file, time_t dat
                     log_file->ext);
 }
 
-static FILE *log_file_open_new(log_file_t *log_file, time_t date)
+static file_t *log_file_open_new(log_file_t *log_file, time_t date)
 {
     char real_path[PATH_MAX];
     char sym_path[PATH_MAX];
-    FILE *res;
+    file_t *res;
 
     build_real_path(real_path, sizeof(real_path), log_file, date);
-    res = fopen(real_path, "a");
-    if (!res) {
+    res = file_open(real_path, FILE_WRONLY | FILE_CREATE, 0622);
+    if (!res || file_seek(res, 0, SEEK_END) == (off_t)-1) {
         e_trace(1, "Could not open log file: %s (%m)", real_path);
     }
 
@@ -188,7 +188,7 @@ void log_file_set_rotate_delay(log_file_t *file, time_t delay)
 
 static void log_file_rotate(log_file_t *file, time_t now)
 {
-    p_fclose(&file->_internal);
+    IGNORE(file_close(&file->_internal));
     file->_internal = log_file_open_new(file, now);
     file->open_date = now;
     log_check_max_files(file);
@@ -197,11 +197,9 @@ static void log_file_rotate(log_file_t *file, time_t now)
 static int log_check_rotate(log_file_t *log_file)
 {
     if (log_file->max_size > 0) {
-        struct stat stats;
+        off_t size = file_tell(log_file->_internal);
 
-        fstat(fileno(log_file->_internal), &stats);
-
-        if (stats.st_size >= log_file->max_size) {
+        if (size >= log_file->max_size) {
             log_file_rotate(log_file, time(NULL));
             if (!log_file->_internal) {
                 e_trace(1, "Could not rotate");
@@ -227,41 +225,23 @@ static int log_check_rotate(log_file_t *log_file)
     return 0;
 }
 
-size_t log_fwrite(const void *buf, size_t size, size_t nmemb,
-                  log_file_t *log_file)
-{
-    assert (log_file);
-
-    if (log_check_rotate(log_file)) {
-        return 0;
-    }
-
-    return fwrite(buf, size, nmemb, log_file->_internal);
-}
-
 int log_fprintf(log_file_t *log_file, const char *format, ...)
 {
     int res;
-    va_list args;
+    va_list ap;
 
-    assert (log_file);
-
-    if (log_check_rotate(log_file)) {
-        return 0;
-    }
-
-    va_start(args, format);
-    res = vfprintf(log_file->_internal, format, args);
-    va_end(args);
-
+    if (log_check_rotate(log_file))
+        return -1;
+    va_start(ap, format);
+    res = file_writevf(log_file->_internal, format, ap);
+    va_end(ap);
     return res;
 }
 
 int log_file_flush(log_file_t *log_file)
 {
-    if (log_file->_internal) {
-        return fflush(log_file->_internal);
-    }
+    if (log_file->_internal)
+        return file_flush(log_file->_internal);
     return 0;
 }
 #endif

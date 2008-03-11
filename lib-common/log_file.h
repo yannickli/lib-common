@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_LOG_FILE_H
 #define IS_LIB_COMMON_LOG_FILE_H
 
-#include "mem.h"
+#include "file.h"
 
 /* This module provides auto rotating log files: log files are rotated
  * automatically depending on file size or data, or both.
@@ -33,7 +33,7 @@ typedef struct log_file_t {
     time_t open_date;
     time_t rotate_date;
     time_t rotate_delay;
-    FILE *_internal;
+    file_t *_internal;
 } log_file_t;
 
 log_file_t *log_file_open(const char *nametpl, int flags);
@@ -42,9 +42,6 @@ void log_file_close(log_file_t **log_file);
 void log_file_set_maxsize(log_file_t *file, int max);
 void log_file_set_rotate_delay(log_file_t *file, time_t delay);
 void log_file_set_maxfiles(log_file_t *file, int maxfiles);
-
-size_t log_fwrite(const void *buf, size_t size, size_t nmemb,
-                  log_file_t *log_file);
 
 int log_fprintf(log_file_t *log_file, const char *format, ...)
     __attr_printf__(2, 3)  __attr_nonnull__((1, 2));
