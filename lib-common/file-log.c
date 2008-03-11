@@ -12,14 +12,12 @@
 /**************************************************************************/
 
 #ifndef MINGCC
-#include <sys/stat.h>
 #include <dirent.h>
 #include <glob.h>
 
 #include "unix.h"
-#include "blob.h"
 #include "string_is.h"
-#include "log_file.h"
+#include "file-log.h"
 
 GENERIC_INIT(log_file_t, log_file);
 static void log_file_wipe(log_file_t *log_file)

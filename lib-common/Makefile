@@ -46,7 +46,6 @@ libcommon_SOURCES = \
 	isndx.c \
 	licence.c \
 	list.c \
-	log_file.c \
 	log_limit.c \
 	mmappedfile.c \
 	paged-index.c \
@@ -74,6 +73,7 @@ libcommon_SOURCES = \
 	conf-parser.l \
 	\
 	file.c \
+	file-log.c \
 	file-binlog.c \
 	\
 	hash-crc.c \
