@@ -35,43 +35,34 @@ GENERIC_DELETE(log_file_t, log_file);
  * scheme should shorten log filename so reopening it yields the same
  * file
  */
-static int build_real_path(char *buf, int size, log_file_t *logfile, time_t date)
+static int build_real_path(char *buf, int size, log_file_t *log_file, time_t date)
 {
     struct tm *cur_date;
 
     cur_date = localtime(&date);
     return snprintf(buf, size, "%s_%04d%02d%02d_%02d%02d%02d.%s",
-                    logfile->prefix,
+                    log_file->prefix,
                     cur_date->tm_year + 1900, cur_date->tm_mon + 1,
                     cur_date->tm_mday, cur_date->tm_hour,
                     cur_date->tm_min, cur_date->tm_sec,
-                    logfile->ext);
+                    log_file->ext);
 }
 
-static int build_sym_path(char *buf, int size, log_file_t *logfile)
-{
-    return snprintf(buf, size, "%s%s.%s", logfile->prefix,
-                    logfile->use_last ? "_last" : "", logfile->ext);
-}
-
-
-static FILE *log_file_open_new(log_file_t *logfile, time_t date)
+static FILE *log_file_open_new(log_file_t *log_file, time_t date)
 {
     char real_path[PATH_MAX];
     char sym_path[PATH_MAX];
-    int len;
     FILE *res;
 
-    len = build_real_path(real_path, sizeof(real_path), logfile, date);
-    assert (len < ssizeof(real_path));
+    build_real_path(real_path, sizeof(real_path), log_file, date);
     res = fopen(real_path, "a");
     if (!res) {
         e_trace(1, "Could not open log file: %s (%m)", real_path);
     }
 
     /* Add a symlink */
-    len = build_sym_path(sym_path, sizeof(sym_path), logfile);
-    assert (len < ssizeof(sym_path));
+    snprintf(sym_path, sizeof(sym_path), "%s%s.%s", log_file->prefix,
+             log_file->use_last ? "_last" : "", log_file->ext);
     unlink(sym_path);
     if (symlink(real_path, sym_path)) {
         e_trace(1, "Could not symlink %s to %s (%m)", real_path, sym_path);
@@ -79,52 +70,33 @@ static FILE *log_file_open_new(log_file_t *logfile, time_t date)
     return res;
 }
 
-static time_t log_last_date(log_file_t *logfile)
+static time_t log_last_date(log_file_t *log_file)
 {
-    char path[PATH_MAX], sym_path[PATH_MAX];
-    struct tm tm;
-    const char *p;
-    const byte *d;
-    int len;
+    char buf[PATH_MAX];
+    glob_t globbuf;
+    time_t res = -1;
 
-    /* Try to find the last log file */
-    len = build_sym_path(sym_path, sizeof(sym_path), logfile);
-    assert (len < ssizeof(path));
-    len = readlink(path, sym_path, sizeof(sym_path));
-    if (len < 0) {
-        if (errno != ENOENT) {
-            e_trace(1, "Could not readlink %s: %m", path);
-        }
-        return -1;
-    }
+    snprintf(buf, sizeof(buf), "%s_????????_??????.%s",
+             log_file->prefix, log_file->ext);
+    if (!glob(buf, 0, NULL, &globbuf) && globbuf.gl_pathc) {
+        const byte *d = (const byte *)globbuf.gl_pathv[globbuf.gl_pathc - 1];
+        struct tm tm;
 
-    if (len >= ssizeof(sym_path)) {
-        e_trace(1, "Linked path is too long");
-        return -1;
+        d += strlen(log_file->prefix) + 1;
+        /* %04d%02d%02d_%02d%02d%02d */
+        p_clear(&tm, 1);
+        tm.tm_year = memtoip(d, 4, &d) - 1900;
+        tm.tm_mon  = memtoip(d, 2, &d) - 1;
+        tm.tm_mday = memtoip(d, 2, &d);
+        if (*d++ != '_')
+            return -1;
+        tm.tm_hour = memtoip(d, 2, &d);
+        tm.tm_min  = memtoip(d, 2, &d);
+        tm.tm_sec  = memtoip(d, 2, &d);
+        res = mktime(&tm);
     }
-    sym_path[len] = '\0';
-    if (!strstart(sym_path, logfile->prefix, &p)) {
-        /* Bad prefix... */
-        return -1;
-    }
-
-    /* _%04d%02d%02d_%02d%02d%02d.$ext */
-    d = (const byte *)p;
-    p_clear(&tm, 1);
-    if (*d++ != '_')
-        return -1;
-    tm.tm_year = memtoip(d, 4, &d) - 1900;
-    tm.tm_mon  = memtoip(d, 2, &d) - 1;
-    tm.tm_mday = memtoip(d, 2, &d);
-    if (*d++ != '_')
-        return -1;
-    tm.tm_hour = memtoip(d, 2, &d);
-    tm.tm_min  = memtoip(d, 2, &d);
-    tm.tm_sec  = memtoip(d, 2, &d);
-    p = (const char *)d;
-    if (*p++ != '.' || !strequal(p, logfile->ext))
-        return -1;
-    return mktime(&tm);
+    globfree(&globbuf);
+    return res;
 }
 
 static void log_check_max_files(log_file_t *log_file)
