@@ -19,16 +19,6 @@
 #include "string_is.h"
 #include "file-log.h"
 
-GENERIC_INIT(log_file_t, log_file);
-static void log_file_wipe(log_file_t *log_file)
-{
-    log_file_flush(log_file);
-    IGNORE(file_close(&log_file->_internal));
-    p_clear(log_file, 1);
-}
-GENERIC_NEW(log_file_t, log_file);
-GENERIC_DELETE(log_file_t, log_file);
-
 /* log file names should depend on rotation scheme: slower rotation
  * scheme should shorten log filename so reopening it yields the same
  * file
@@ -124,13 +114,13 @@ log_file_t *log_file_open(const char *nametpl, int flags)
     const char *ext = get_ext(nametpl);
     int len = strlen(nametpl);
 
-    log_file = log_file_new();
+    log_file = p_new(log_file_t, 1);
     if (flags & LOG_FILE_USE_LAST)
         log_file->use_last = true;
 
     if (len + 8 + 1 + 6 + 4 >= ssizeof(log_file->prefix)) {
         e_trace(1, "Path format too long");
-        log_file_delete(&log_file);
+        IGNORE(log_file_close(&log_file));
         return NULL;
     }
     if (ext) {
@@ -149,16 +139,23 @@ log_file_t *log_file_open(const char *nametpl, int flags)
 
     if (!log_file->_internal) {
         e_trace(1, "Could not open first log file");
-        log_file_delete(&log_file);
+        IGNORE(log_file_close(&log_file));
         return NULL;
     }
 
     return log_file;
 }
 
-void log_file_close(log_file_t **log_file)
+int log_file_close(log_file_t **lfp)
 {
-    log_file_delete(log_file);
+    int res = 0;
+    if (*lfp) {
+        log_file_t *log_file = *lfp;
+        log_file_flush(log_file);
+        res = file_close(&log_file->_internal);
+        p_delete(lfp);
+    }
+    return res;
 }
 
 void log_file_set_maxsize(log_file_t *file, int max)
