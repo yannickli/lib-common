@@ -79,13 +79,14 @@ static FILE *log_file_open_new(log_file_t *logfile, time_t date)
     return res;
 }
 
-static int log_last_date(const char *prefix, const char *ext)
+static time_t log_last_date(const char *prefix, const char *ext)
 {
     char path[PATH_MAX];
     const char *p;
+    const byte *d;
     char sympath[PATH_MAX];
     ssize_t len;
-    struct tm cur_date;
+    struct tm tm;
 
     /* Try to find the last log file */
     len = snprintf(path, sizeof(path), "%s_last.%s", prefix, ext);
@@ -95,38 +96,38 @@ static int log_last_date(const char *prefix, const char *ext)
         if (errno != ENOENT) {
             e_trace(1, "Could not readlink %s: %m", path);
         }
-        return 0;
+        return -1;
     }
 
     if (len >= ssizeof(sympath)) {
         e_trace(1, "Linked path is too long");
-        return 0;
+        return -1;
     }
     sympath[len] = '\0';
     /* Read %04d%02d%02d_%02d%02d%02d.log suffix */
-    if (!strstart(sympath, prefix, &p) || *p != '_') {
+    if (!strstart(sympath, prefix, &p)) {
         /* Bad prefix... */
-        return 0;
+        return -1;
     }
-    p++;
-    len = sscanf(p, "%4d%2d%2d_%2d%2d%2d.",
-                 &cur_date.tm_year, &cur_date.tm_mon,
-                 &cur_date.tm_mday, &cur_date.tm_hour,
-                 &cur_date.tm_min, &cur_date.tm_sec);
-    if (len != 6) {
-        return 0;
-    }
+    if (*p++ != '_')
+        return -1;
 
-    if (cur_date.tm_year < 1900 || cur_date.tm_mon < 1) {
-        e_trace(1, "Bad timestamp: %s", p);
-        return 0;
-    }
-
-    cur_date.tm_year -= 1900;
-    cur_date.tm_mon -= 1;
-
-    e_trace(2, "Found last log file : %s", p);
-    return mktime(&cur_date);
+    d = (const byte *)p;
+    p_clear(&tm, 1);
+    tm.tm_year = memtoip(d, 4, &d) - 1900;
+    tm.tm_mon  = memtoip(d, 2, &d) - 1;
+    tm.tm_mday = memtoip(d, 2, &d);
+    if (*d++ != '_')
+        return -1;
+    tm.tm_hour = memtoip(d, 2, &d);
+    tm.tm_min  = memtoip(d, 2, &d);
+    tm.tm_sec  = memtoip(d, 2, &d);
+    p = (const char *)d;
+    if (*p++ != '.')
+        return -1;
+    if (!strequal(p, ext))
+        return -1;
+    return mktime(&tm);
 }
 
 static void log_check_max_files(log_file_t *log_file)
@@ -171,14 +172,9 @@ log_file_t *log_file_open(const char *nametpl)
     }
     pstrcpylen(log_file->prefix, sizeof(log_file->prefix), nametpl, len);
     log_file->open_date = log_last_date(log_file->prefix, log_file->ext);
-
-    if (log_file->open_date == 0) {
+    if (log_file->open_date == -1) {
         log_file->open_date = time(NULL);
     }
-
-    log_file->max_size = 0;
-    log_file->rotate_date = 0;
-
     log_file->_internal = log_file_open_new(log_file, log_file->open_date);
     log_check_max_files(log_file);
 
