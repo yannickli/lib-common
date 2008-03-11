@@ -129,39 +129,25 @@ static int log_last_date(const char *prefix, const char *ext)
     return mktime(&cur_date);
 }
 
-#define LOG_STAMP_LEN  strlen("_YYYYMMDD_HHMMSS.")
 static void log_check_max_files(log_file_t *log_file)
 {
-    glob_t globbuf;
-    char buf[PATH_MAX];
-    int tpl_len, dl, nb_files = 0;
+    if (log_file->max_files > 0) {
+        glob_t globbuf;
+        char buf[PATH_MAX];
+        int dl;
 
-    if (log_file->max_files <= 0)
-        return;
-
-    tpl_len = strlen(log_file->prefix) + 1 + strlen(log_file->ext);
-
-    snprintf(buf, sizeof(buf), "%s_*.%s", log_file->prefix, log_file->ext);
-    if (glob(buf, 0, NULL, &globbuf)) {
-        globfree(&globbuf);
-        return;
-    }
-
-    for (int i = 0; i < (int)globbuf.gl_pathc; i++) {
-        int len_file = strlen(globbuf.gl_pathv[i]);
-        if (len_file - tpl_len == LOG_STAMP_LEN) {
-            nb_files++;
+        snprintf(buf, sizeof(buf), "%s_????????_??????.%s",
+                 log_file->prefix, log_file->ext);
+        if (glob(buf, 0, NULL, &globbuf)) {
+            globfree(&globbuf);
+            return;
         }
-    }
-    dl = nb_files - log_file->max_files;
-    for (int i = 0; dl > 0 && i < (int)globbuf.gl_pathc; i++) {
-        int len_file = strlen(globbuf.gl_pathv[i]);
-        if (len_file - tpl_len == LOG_STAMP_LEN) {
+        dl = (int)globbuf.gl_pathc - log_file->max_files;
+        for (int i = 0; i < dl; i++) {
             unlink(globbuf.gl_pathv[i]);
-            dl--;
         }
+        globfree(&globbuf);
     }
-    globfree(&globbuf);
 }
 
 log_file_t *log_file_open(const char *nametpl)
