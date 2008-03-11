@@ -129,40 +129,39 @@ static int log_last_date(const char *prefix, const char *ext)
     return mktime(&cur_date);
 }
 
-#define LOG_SUFFIX_LEN  strlen("YYYYMMDD_HHMMSS.log")
-
+#define LOG_STAMP_LEN  strlen("_YYYYMMDD_HHMMSS.")
 static void log_check_max_files(log_file_t *log_file)
 {
     glob_t globbuf;
+    char buf[PATH_MAX];
+    int tpl_len, dl, nb_files = 0;
 
-    if (log_file->max_files > 0) {
-        char buf[PATH_MAX];
-        int len_file, len_prefix, dl;
-        int nb_file = 0;
+    if (log_file->max_files <= 0)
+        return;
 
-        len_prefix = strlen(log_file->prefix) + 1;
+    tpl_len = strlen(log_file->prefix) + 1 + strlen(log_file->ext);
 
-        snprintf(buf, sizeof(buf), "%s_*",log_file->prefix);
-        glob(buf, 0, NULL, &globbuf);
-
-        for (int i = 0; i < (int)globbuf.gl_pathc; i++) {
-            len_file = strlen(globbuf.gl_pathv[i]);
-
-            if (len_file - len_prefix == LOG_SUFFIX_LEN) {
-                nb_file++;
-            }
-        }
-        dl = nb_file - log_file->max_files;
-        for (int i = 0; dl > 0 && i < (int)globbuf.gl_pathc; i++) {
-            len_file = strlen(globbuf.gl_pathv[i]);
-
-            if (len_file - len_prefix == LOG_SUFFIX_LEN) {
-                unlink(globbuf.gl_pathv[i]);
-                dl--;
-            }
-        }
+    snprintf(buf, sizeof(buf), "%s_*.%s", log_file->prefix, log_file->ext);
+    if (glob(buf, 0, NULL, &globbuf)) {
         globfree(&globbuf);
+        return;
     }
+
+    for (int i = 0; i < (int)globbuf.gl_pathc; i++) {
+        int len_file = strlen(globbuf.gl_pathv[i]);
+        if (len_file - tpl_len == LOG_STAMP_LEN) {
+            nb_files++;
+        }
+    }
+    dl = nb_files - log_file->max_files;
+    for (int i = 0; dl > 0 && i < (int)globbuf.gl_pathc; i++) {
+        int len_file = strlen(globbuf.gl_pathv[i]);
+        if (len_file - tpl_len == LOG_STAMP_LEN) {
+            unlink(globbuf.gl_pathv[i]);
+            dl--;
+        }
+    }
+    globfree(&globbuf);
 }
 
 log_file_t *log_file_open(const char *nametpl)
