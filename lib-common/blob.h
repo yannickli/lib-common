@@ -26,13 +26,13 @@
 typedef struct blob_t {
     byte *data;
     int len, size;
-    flag_t allocated :  1;
-    flag_t skip      : 31;
+    flag_t allocated  :  1;
+    unsigned int skip : 31;
 } blob_t;
 
 /* XXX: a small amount of information used to *never* have a NULL ->data
  * member It should always stay equal to \0 and is writeable so that code
- * enforcing the invariant puting \0 at that place do work.
+ * enforcing the invariant putting \0 at that place do work.
  */
 extern byte blob_slop[1];
 
@@ -86,7 +86,7 @@ static inline const char *blob_get_end(const blob_t *blob) {
 /**************************************************************************/
 
 static inline void blob_reset(blob_t *blob) {
-    /* Remove initial skip if any, and don't release memory */
+    /* Remove initial skip if any, but do not release memory */
     blob->size += blob->skip;
     blob->data -= blob->skip;
     blob->skip = 0;
@@ -95,6 +95,7 @@ static inline void blob_reset(blob_t *blob) {
 
 void blob_ensure(blob_t *blob, int newlen);
 
+/* blob_grow increases the available size but does not change .len */
 static inline void blob_grow(blob_t *blob, int extralen) {
     assert (extralen >= 0);
 
@@ -114,11 +115,13 @@ static inline void blob_setlen(blob_t *blob, int newlen) {
     }
 }
 
+/* blob_extend increases the available size and len */
 static inline void blob_extend(blob_t *blob, int extralen) {
     assert (extralen >= 0);
     blob_setlen(blob, blob->len + extralen);
 }
 
+/* blob_extend2 increases and initializes the available size and len */
 static inline void blob_extend2(blob_t *blob, int extralen, byte init) {
     assert (extralen >= 0);
     blob_grow(blob, extralen);
