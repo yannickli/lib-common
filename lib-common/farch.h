@@ -20,7 +20,7 @@
 typedef struct farch_t farch_t;
 typedef struct farch_entry_t {
     const char *name;
-    const byte *data;
+    const void *data;
     int size;
 } farch_entry_t;
 
