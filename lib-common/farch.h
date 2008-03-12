@@ -27,7 +27,7 @@ typedef struct farch_entry_t {
 farch_t *farch_new(const farch_entry_t files[], const char *overridedir);
 void farch_delete(farch_t **fa);
 
-int farch_get(const farch_t *fa, blob_t *buf, const byte **data, int *size,
+int farch_get(farch_t *fa, blob_t *buf, const byte **data, int *size,
               const char *name);
 
 #endif /* IS_LIB_COMMON_FARCH_H */

@@ -16,32 +16,26 @@
 
 DO_HASHTBL_STR(farch_entry_t, farch_entry, name, 0);
 
+#define MAYBE  2
+
 struct farch_t {
+    flag_t use_dir     : 1;
+    flag_t checked_dir : 1;
     farch_entry_hash h;
-    int use_dir;
     char dir[PATH_MAX];
 };
 
 farch_t *farch_new(const farch_entry_t files[], const char *overridedir)
 {
-    struct stat st;
     farch_t *fa = p_new(farch_t, 1);
 
     farch_entry_hash_init(&fa->h);
     while (files->name) {
         farch_entry_hash_insert2(&fa->h, (farch_entry_t *)files++);
     }
-    /* Set dir if and only if overridedir exists and is a directory.
-     * Doing this now saves us a lot of calls to open() later on. If the
-     * directory is created after program startup, then it has to be
-     * restarted. Too bad.
-     */
-    if (overridedir && !stat(overridedir, &st) && S_ISDIR(st.st_mode)) {
-        fa->use_dir = true;
+    fa->use_dir = (overridedir && *overridedir);
+    if (fa->use_dir) {
         pstrcpy(fa->dir, sizeof(fa->dir), overridedir);
-    } else {
-        fa->use_dir = false;
-        fa->dir[0] = '\0';
     }
     return fa;
 }
@@ -57,7 +51,7 @@ void farch_delete(farch_t **fap)
 /* Get data back in data/size.
  * If we have to allocate it, use the provided blob.
  * */
-int farch_get(const farch_t *fa, blob_t *buf, const byte **data, int *size,
+int farch_get(farch_t *fa, blob_t *buf, const byte **data, int *size,
               const char *name)
 {
     farch_entry_t *ent;
@@ -71,9 +65,14 @@ int farch_get(const farch_t *fa, blob_t *buf, const byte **data, int *size,
         if (blob_append_file_data(buf, fname) >= 0) {
             *data = buf->data;
             *size = buf->len;
+            fa->checked_dir = true;
             return 0;
         }
-        /* Could not read from dir. Fall back to embedded data. */
+        if (!fa->checked_dir) {
+            struct stat st;
+            fa->use_dir = !stat(fa->dir, &st) && S_ISDIR(st.st_mode);
+            fa->checked_dir = true;
+        }
     }
     ent = farch_entry_hash_get2(&fa->h, name);
     if (ent) {
