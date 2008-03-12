@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-/* holds the linux-dependant implementations for unix.h functions */
+/* holds the linux-dependent implementations for unix.h functions */
 
 #include <dirent.h>
 #include <limits.h>

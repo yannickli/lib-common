@@ -78,7 +78,7 @@ static void hashtbl_resize(hashtbl_t *t, int newsize)
 
     t->size = newsize;
     t->tab  = p_new(hashtbl_entry, newsize);
-    t->len = t->ghosts = 0;
+    t->len  = t->ghosts = 0;
 
     for (int i = 0; i < oldsize; i++) {
         if (!IS_EMPTY(oldtab[i].ptr))

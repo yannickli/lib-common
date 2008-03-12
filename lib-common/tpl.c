@@ -104,6 +104,7 @@ blob_t *tpl_get_blob(tpl_t *tpl)
     return &buf->u.blob;
 }
 
+/* OG: should inline these 2 */
 void tpl_copy_data(tpl_t *tpl, const byte *data, int len)
 {
     if (len > 0) {
