@@ -52,6 +52,16 @@ void generic_array_sort(generic_array *array,
                         int (*cmp)(const void *p1, const void *p2, void *parm),
                         void *parm);
 
+#define vector_inita(v, nb)                                               \
+    do {                                                                  \
+        p_clear(v, 1);                                                    \
+        (v)->len = (nb);                                                  \
+        assert ((v)->len * sizeof((v)->tab[0]) < (64 << 10));             \
+        (v)->tab = alloca((v)->len * sizeof((v)->tab[0]));                \
+    } while (0)
+#define array_inita(a, nb)    vector_inita(a, nb)
+
+
 /**************************************************************************/
 /* Typed Arrays                                                           */
 /**************************************************************************/
