@@ -115,7 +115,7 @@ static const char * const __cp1252_or_latin9_to_utf8[0x40] = {
 
 /* OG: this function should be made faster for the ASCII subset */
 static int blob_latin1_to_utf8_aux(blob_t *out, const char *s, int len,
-                                       int limit)
+                                   int limit)
 {
     int res = 0;
     const char *end = s + len;
