@@ -39,12 +39,13 @@ char *blob_detach(blob_t *blob)
     char *res;
     if (!blob->allocated) {
         res = p_dupstr(blob->data, blob->len);
+        /* OG: Should do blob_init() as well */
         blob_reset(blob);
     } else {
         if (blob->skip) {
             memmove(blob->data - blob->skip, blob->data, blob->len + 1);
         }
-        res = (char *)blob->data - blob->skip;
+        res = (char *)(blob->data - blob->skip);
         blob_init(blob);
     }
     return res;
@@ -61,16 +62,13 @@ blob_t *blob_dup(const blob_t *src)
 /* Set the payload of a blob to the given buffer of size bufsize.
  * len is the len of the data inside it.
  *
- * The payload MUST be a valid block allocated through malloc or an
- * alias.
- *
- * Should have a extra parameter telling the blob if it owns buf and
- * must free it with p_delete upon resize and wipe.
+ * If 'allocated' is true, blob will own the buffer and free it
+ * with p_delete upon resize and wipe.
  */
 static void blob_set_payload(blob_t *blob, int len,
                              void *buf, int bufsize, bool allocated)
 {
-    assert (bufsize >= len + 1);
+    assert (len >= 0 && bufsize > len);
 
     if (blob->allocated) {
         mem_free(blob->data - blob->skip);
@@ -81,6 +79,7 @@ static void blob_set_payload(blob_t *blob, int len,
         .len       = len,
         .size      = bufsize,
     };
+    /* OG: should assert instead? */
     blob->data[len] = '\0';
 }
 
@@ -109,11 +108,13 @@ void blob_ensure(blob_t *blob, int newlen)
         return;
     }
 
-    blob->size = p_alloc_nr(blob->size);
+    /* OG: modifying blob->size before realloc is sloppy */
+    blob->size = p_alloc_nr(blob->size + blob->skip);
     if (blob->size < newlen + 1)
         blob->size = newlen + 1;
     if (blob->allocated && !blob->skip) {
         if (newlen > 1024 * 1024) {
+            /* OG: why only warn if blob->allocated && !blob->skip ? */
             e_trace(1, "Large blob realloc, newlen:%d size:%d len:%d data:%.80s",
                     newlen, blob->size, blob->len, blob->data);
         }
@@ -253,7 +254,7 @@ int blob_append_file_data(blob_t *blob, const char *filename)
     close(fd);
     return total;
 
-  error:
+error:
     close(fd);
     /* OG: maybe we should keep data read so far */
     blob_setlen(blob, origlen);
@@ -471,8 +472,8 @@ int blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
 }
 
 /* returns the number of bytes written.
-   note that blob_append_fmt always works (or never returns due to memory
-   allocation */
+note that blob_append_fmt always works (or never returns due to memory
+allocation */
 int blob_append_fmt(blob_t *blob, const char *fmt, ...)
 {
     int res;
@@ -537,7 +538,7 @@ int blob_search(const blob_t *haystack, int pos, const blob_t *needle)
 }
 
 int blob_search_data(const blob_t *haystack, int pos,
-                         const void *needle, int len)
+                     const void *needle, int len)
 {
     return blob_search_data_real(haystack, pos, needle, len);
 }
@@ -549,8 +550,10 @@ int blob_search_data(const blob_t *haystack, int pos,
 void blob_ltrim(blob_t *blob)
 {
     int i = 0;
-    while (isspace((unsigned char)blob->data[i]))
+
+    while (isspace((unsigned char)blob->data[i])) {
         i++;
+    }
     blob_kill_first(blob, i);
 }
 
@@ -586,13 +589,12 @@ int blob_cmp(const blob_t *blob1, const blob_t *blob2)
 int blob_icmp(const blob_t *blob1, const blob_t *blob2)
 {
     int len = MIN(blob1->len, blob2->len);
-    int pos;
 
     const char *s1 = (const char *)blob1->data;
     const char *s2 = (const char *)blob2->data;
 
-    for (pos = 0; pos < len; pos++) {
-        int res = tolower((unsigned char)s1[pos]) - tolower((unsigned char)s2[pos]);
+    for (int i = 0; i < len; i++) {
+        int res = tolower((unsigned char)s1[i]) - tolower((unsigned char)s2[i]);
         if (res != 0) {
             return res;
         }
@@ -888,20 +890,20 @@ static byte const __str_encode_flags[128 + 256] = {
     REPEAT16(0), REPEAT16(0), REPEAT16(0), REPEAT16(0),
     REPEAT16(0), REPEAT16(0), REPEAT16(0), REPEAT16(0),
     0,     0,     0,     0,     0,     0,     0,     0,
-    0,     QP,    0,     0,     0,     0,     0,     0,
+    0,     QP,    0,     0,     0,     0,     0,     0,      /* TAB */
     REPEAT16(0),
-    0,     QP,    XP|QP, QP,    QP,    QP,    XP|QP, XP|QP,
-    QP,    QP,    QP,    QP,    QP,    QP,    0,     QP,  /* . */
+    0,     QP,    XP|QP, QP,    QP,    QP,    XP|QP, XP|QP,  /* "&' */
+    QP,    QP,    QP,    QP,    QP,    QP,    0,     QP,     /* . */
     QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
-    QP,    QP,    QP,    QP,    XP|QP, 0,     XP|QP, QP,  /* = */
-    QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
-    QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
+    QP,    QP,    QP,    QP,    XP|QP, 0,     XP|QP, QP,     /* <=> */
     QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
     QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
     QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
     QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
     QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
-    QP,    QP,    QP,    QP,    QP,    QP,    QP,    0,
+    QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
+    QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
+    QP,    QP,    QP,    QP,    QP,    QP,    QP,    0,      /* DEL */
     REPEAT16(0), REPEAT16(0), REPEAT16(0), REPEAT16(0),
     REPEAT16(0), REPEAT16(0), REPEAT16(0), REPEAT16(0),
 #undef REPEAT16
@@ -939,6 +941,7 @@ int blob_append_xml_escape(blob_t *dst, const byte *src, int len)
                 blob_append_cstr(dst, "&gt;");
                 break;
             case '\'':
+                /* OG: why not use default? */
                 blob_append_cstr(dst, "&#39;");
                 break;
             case '"':
@@ -954,9 +957,11 @@ int blob_append_xml_escape(blob_t *dst, const byte *src, int len)
     if (i > j) {
         blob_append_data(dst, src + j, i - j);
     }
+    /* OG: should return number of bytes appended? */
     return 0;
 }
 
+/* OG: should take width as a parameter */
 void blob_append_quoted_printable(blob_t *dst, const byte *src, int len)
 {
     int i, j, c, col;
@@ -970,7 +975,7 @@ void blob_append_quoted_printable(blob_t *dst, const byte *src, int len)
             col = 0;
         }
         if (!test_quoted_printable(c = src[i])) {
-            /* only encode '.' if at the starting of a line */
+            /* only encode '.' if at the beginning of a line */
             if (c == '.' && i == j && col)
                 continue;
             /* encode spaces only at end on line */
@@ -994,6 +999,7 @@ void blob_append_quoted_printable(blob_t *dst, const byte *src, int len)
         }
     }
     blob_append_data(dst, src + j, i - j);
+    /* OG: should return number of bytes appended? */
 }
 
 /* width is the maximum length for output lines, not counting end of
@@ -1914,9 +1920,9 @@ START_TEST(check_init_wipe)
     check_blob_invariants(&blob);
 
     fail_if(blob.len != 0,
-            "initalized blob MUST have `len' = 0, but has `len = %d'",
+            "initalized blob MUST have `len = 0', but has `len = %d'",
             blob.len);
-    fail_if(blob.skip, "initalized blob MUST have a valid `skip'");
+    fail_if(blob.skip, "initalized blob MUST have `skip = 0'");
 
     blob_wipe(&blob);
 }
@@ -1930,8 +1936,8 @@ START_TEST(check_blob_new)
     fail_if(blob == NULL,
             "no blob was allocated");
     fail_if(blob->len != 0,
-            "new blob MUST have `len 0', but has `len = %d'", blob->len);
-    fail_if(blob->skip, "new blob MUST have a valid `skip'");
+            "new blob MUST have `len = 0', but has `len = %d'", blob->len);
+    fail_if(blob->skip, "new blob MUST have `skip = 0'");
 
     blob_delete(&blob);
     fail_if(blob != NULL,
@@ -2006,7 +2012,7 @@ START_TEST(check_resize)
     blob_setlen(&b1, 4);
     check_blob_invariants(&b1);
     fail_if (b1.len != 4,
-             "blob_setlend blob should have len 4, but has %d", b1.len);
+             "blob_setlen(&b1, 4) should have set len to 4, but has %d", b1.len);
 
     check_teardown(&b1, NULL);
 }
