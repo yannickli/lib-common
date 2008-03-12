@@ -14,27 +14,20 @@
 #ifndef IS_LIB_COMMON_FARCH_H
 #define IS_LIB_COMMON_FARCH_H
 
-#include <lib-common/blob.h>
-#include "macros.h"
+#include "hashtbl.h"
+#include "blob.h"
 
-typedef struct farch farch;
-
-typedef struct farch_file {
-    int namehash;
+typedef struct farch_t farch_t;
+typedef struct farch_entry_t {
     const char *name;
     const byte *data;
     int size;
-} farch_file;
+} farch_entry_t;
 
-/* Public interface */
-farch *farch_new(const farch_file files[], const char *overridedir);
-void farch_delete(farch **fa);
+farch_t *farch_new(const farch_entry_t files[], const char *overridedir);
+void farch_delete(farch_t **fa);
 
-int farch_get(const farch *fa, blob_t *buf, const byte **data, int *size,
+int farch_get(const farch_t *fa, blob_t *buf, const byte **data, int *size,
               const char *name);
-int farch_get_withvars(const farch *fa, blob_t *out, const char *name,
-                       int nbvars, const char **vars, const char **values);
 
-/* For internal use only */
-int farch_namehash(const char *name);
 #endif /* IS_LIB_COMMON_FARCH_H */

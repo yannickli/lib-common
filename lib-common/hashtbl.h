@@ -53,10 +53,11 @@ void hashtbl_map2(hashtbl_t *t, void (*fn)(uint64_t, void **, void *), void *);
     GENERIC_NEW(pfx##_hash, pfx##_hash);                                     \
     GENERIC_DELETE(pfx##_hash, pfx##_hash);                                  \
     \
-    static inline type **pfx##_hash_find(pfx##_hash *t, uint64_t key) {      \
+    static inline type **                                                    \
+    pfx##_hash_find(const pfx##_hash *t, uint64_t key) {                     \
         return (type **)hashtbl_find((hashtbl_t *)t, key);                   \
     }                                                                        \
-    static inline type *pfx##_hash_get(pfx##_hash *t, uint64_t key) {        \
+    static inline type *pfx##_hash_get(const pfx##_hash *t, uint64_t key) {  \
         type **res = pfx##_hash_find(t, key);                                \
         return res ? *res : NULL;                                            \
     }                                                                        \
@@ -125,19 +126,20 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *);
     }                                                                        \
     \
     static inline type **                                                    \
-    pfx##_hash_find(pfx##_hash *t, uint64_t key, const char *s) {            \
+    pfx##_hash_find(const pfx##_hash *t, uint64_t key, const char *s) {      \
         return (type **)hashtbl__find((hashtbl__t *)t, key, s);              \
     }                                                                        \
     static inline type *                                                     \
-    pfx##_hash_get(pfx##_hash *t, uint64_t key, const char *s) {             \
+    pfx##_hash_get(const pfx##_hash *t, uint64_t key, const char *s) {       \
         type **res = pfx##_hash_find(t, key, s);                             \
         return res ? *res : NULL;                                            \
     }                                                                        \
     static inline type **                                                    \
-    pfx##_hash_find2(pfx##_hash *t, const char *s) {                         \
+    pfx##_hash_find2(const pfx##_hash *t, const char *s) {                   \
         return pfx##_hash_find(t, hashtbl__hkey(s, -1), s);                  \
     }                                                                        \
-    static inline type *pfx##_hash_get2(pfx##_hash *t, const char *s) {      \
+    static inline type *                                                     \
+    pfx##_hash_get2(const pfx##_hash *t, const char *s) {                    \
         type **res = pfx##_hash_find2(t, s);                                 \
         return res ? *res : NULL;                                            \
     }                                                                        \
