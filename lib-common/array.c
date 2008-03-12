@@ -60,13 +60,13 @@ void generic_vector_ensure(generic_vector *v, int newlen, int el_siz)
 
     if (newlen <= v->skip + v->size) {
         /* Data fits in the current area, shift it left */
-        memmove((char *)v->tab - v->skip * el_siz, v->tab, v->len * el_siz);
-        v->tab   = (char *)v->tab - (v->skip * el_siz);
+        memmove((byte *)v->tab - v->skip * el_siz, v->tab, v->len * el_siz);
+        v->tab   = (byte *)v->tab - (v->skip * el_siz);
         v->size += v->skip;
         v->skip  = 0;
         return;
     }
-    v->size = p_alloc_nr(v->size);
+    v->size = p_alloc_nr(v->size + v->skip);
     if (v->size < newlen)
         v->size = newlen;
     if (v->allocated && !v->skip) {
@@ -422,4 +422,3 @@ Suite *check_str_array_suite(void)
     return s;
 }
 #endif
-

@@ -21,16 +21,16 @@
     typedef struct prefix##_vector { \
         el_typ *tab;                 \
         int len, size;               \
-        flag_t allocated :  1;       \
-        flag_t skip      : 31;       \
+        flag_t allocated  :  1;      \
+        unsigned int skip : 31;      \
     } prefix##_vector
 
 #define ARRAY_TYPE(el_typ, prefix)   \
     typedef struct prefix##_array {  \
         el_typ **tab;                \
         int len, size;               \
-        flag_t allocated :  1;       \
-        flag_t skip      : 31;       \
+        flag_t allocated  :  1;      \
+        unsigned int skip : 31;      \
     } prefix##_array
 VECTOR_TYPE(void, generic);
 ARRAY_TYPE(void, generic);
@@ -79,8 +79,8 @@ void generic_array_sort(generic_array *array,
     static inline void prefix##suffix##_reset(prefix##suffix *v) {            \
         v->size += v->skip;                                                   \
         v->tab  -= v->skip;                                                   \
-        v->skip = 0;                                                          \
-        v->len = 0;                                                           \
+        v->skip  = 0;                                                         \
+        v->len   = 0;                                                         \
     }                                                                         \
     static inline void prefix##suffix##_ensure(prefix##suffix *v, int len) {  \
         if (v->size < len) {                                                  \
@@ -131,6 +131,7 @@ void generic_array_sort(generic_array *array,
         assert (pos >= 0 && len >= 0 && count >= 0);                          \
         if (pos > v->len)                                                     \
             pos = v->len;                                                     \
+        /* OG: why cast to unsigned ? */                                      \
         if ((unsigned)pos + len > (unsigned)v->len)                           \
             len = v->len - pos;                                               \
         if (pos == 0 && v->skip + len >= count) {                             \
@@ -218,18 +219,18 @@ void generic_array_sort(generic_array *array,
         return NULL;                                                      \
     }
 
+DO_VECTOR(int, int);
+DO_ARRAY(char, string, p_delete);
+
+string_array *str_explode(const char *s, const char *tokens);
+
 #define MAKE_IOVEC(data, len)  (struct iovec){ \
     .iov_base = (void *)(data), .iov_len = (len) }
 
-DO_VECTOR(int, int);
 DO_VECTOR(struct iovec, iovec);
 
 void iovec_vector_kill_first(iovec_vector *l, ssize_t len);
 int iovec_vector_getlen(iovec_vector *v);
-
-DO_ARRAY(char, string, p_delete);
-
-string_array *str_explode(const char *s, const char *tokens);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
