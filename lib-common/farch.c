@@ -16,8 +16,6 @@
 
 DO_HASHTBL_STR(farch_entry_t, farch_entry, name, 0);
 
-#define MAYBE  2
-
 struct farch_t {
     flag_t use_dir     : 1;
     flag_t checked_dir : 1;
