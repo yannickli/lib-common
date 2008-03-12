@@ -88,10 +88,9 @@ int tpl_encode_expiration(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
         return -1;
 
     expiration = memtoip(data, len, NULL);
-    localtime_r(&expiration, &t);
-
+    gmtime_r(&expiration, &t);
     blob_grow(blob, 20);
-    blob_append_fmt(blob, "%04d-%02d-%02dT%02d:%02d:%02d",
+    blob_append_fmt(blob, "%04d-%02d-%02dT%02d:%02d:%02dZ",
                     t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
                     t.tm_hour, t.tm_min, t.tm_sec);
     return 0;
