@@ -57,9 +57,6 @@ int farch_get(farch_t *fa, blob_t *buf, const byte **data, int *size,
     if (fa->use_dir) {
         char fname[PATH_MAX];
         snprintf(fname, sizeof(fname), "%s/%s", fa->dir, name);
-        if (!fname[0]) {
-            return -1;
-        }
         if (blob_append_file_data(buf, fname) >= 0) {
             *data = buf->data;
             *size = buf->len;
