@@ -28,14 +28,19 @@ farch_t *farch_new(const farch_entry_t files[], const char *overridedir)
     farch_t *fa = p_new(farch_t, 1);
 
     farch_entry_hash_init(&fa->h);
-    while (files->name) {
-        farch_entry_hash_insert2(&fa->h, (farch_entry_t *)files++);
-    }
-    fa->use_dir = (overridedir && *overridedir);
+    fa->use_dir = overridedir && *overridedir;
     if (fa->use_dir) {
         pstrcpy(fa->dir, sizeof(fa->dir), overridedir);
     }
+    farch_add(fa, files);
     return fa;
+}
+
+void farch_add(farch_t *fa, const farch_entry_t files[])
+{
+    while (files->name) {
+        farch_entry_hash_insert2(&fa->h, (farch_entry_t *)files++);
+    }
 }
 
 void farch_delete(farch_t **fap)
@@ -46,9 +51,15 @@ void farch_delete(farch_t **fap)
     }
 }
 
+farch_entry_t *farch_find(const farch_t *fa, const char *name)
+{
+    return farch_entry_hash_get2(&fa->h, name);
+}
+
+
 /* Get data back in data/size.
  * If we have to allocate it, use the provided blob.
- * */
+ */
 int farch_get(farch_t *fa, blob_t *buf, const byte **data, int *size,
               const char *name)
 {
