@@ -51,7 +51,7 @@ void xmlpp_open(xmlpp_t *pp, blob_t *buf)
 void xmlpp_open_banner(xmlpp_t *pp, blob_t *buf)
 {
     xmlpp_open(pp, buf);
-    blob_append_cstr(buf, "<?xml version=\"!.0\"?>");
+    blob_append_cstr(buf, "<?xml version=\"1.0\"?>");
 }
 
 void xmlpp_close(xmlpp_t *pp)
