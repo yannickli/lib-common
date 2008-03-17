@@ -76,7 +76,7 @@ void props_array_merge(props_array *arr, props_array **old)
     int i, j;
 
     /* find every property of arr that is in old, and merge them */
-    for (i = 0; i < arr->len; i++) {
+    for (i = arr->len - 1; i >= 0 ; i--) {
         property_t *prop = arr->tab[i];
 
         for (j = 0; j < (*old)->len; j++) {
