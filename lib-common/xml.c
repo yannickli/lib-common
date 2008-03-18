@@ -588,7 +588,7 @@ xml_tree_t *xml_new_tree(const char *payload, size_t len,
     return tree;
 }
 
-const xml_tag_t* xml_search_branch(const xml_tag_t *branch,
+const xml_tag_t *xml_search_branch(const xml_tag_t *branch,
                                    const xml_tag_t **previous,
                                    const char *pattern)
 {
@@ -610,7 +610,8 @@ const xml_tag_t* xml_search_branch(const xml_tag_t *branch,
     if (patlen <= 0) {
         if (!previous || *previous == NULL) {
             return branch;
-        } else if (*previous == branch) {
+        } else
+        if (*previous == branch) {
             *previous = NULL;
             return NULL;
         }
