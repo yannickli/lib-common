@@ -53,6 +53,7 @@ static inline struct timeval timeval_sub(struct timeval a, struct timeval b)
 
     res.tv_sec = a.tv_sec - b.tv_sec;
     res.tv_usec = a.tv_usec - b.tv_usec;
+    /* OG: assuming tv_usec is signed or compiler warns about test */
     if (res.tv_usec < 0) {
         res.tv_sec -= 1;
         res.tv_usec += 1000 * 1000;
