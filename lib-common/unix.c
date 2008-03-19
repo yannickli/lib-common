@@ -146,7 +146,7 @@ const char *get_ext(const char *filename)
         }
         base++;
     }
-    return lastdot ? lastdot : base;
+    return lastdot;
 }
 
 /**
