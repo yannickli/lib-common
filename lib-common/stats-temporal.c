@@ -946,8 +946,9 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
 
     if (nb_stats > (128 << 10)) {
         blob_append_cstr(blob, "Stats auto: too many values");
-        accu = p_alloca(double, nb_stats);
+        return -1;
     }
+    accu = p_alloca(double, nb_stats);
 
     /* Force minimum interval */
     if (nb_values < 10) {
