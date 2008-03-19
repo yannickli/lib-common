@@ -330,56 +330,6 @@ static mmfile_stats_auto *auto_file_initialize(stats_temporal_t *stats,
     return m;
 }
 
-#if 0
-static int find_last_file(const char *path, bool sec)
-{
-    char glob_path[PATH_MAX];
-    glob_t files;
-    struct tm t;
-    int res = -1;
-
-    p_clear(&files, 1);
-    p_clear(&t, 1);
-    t.tm_isdst = -1;
-    if (sec) {
-        snprintf(glob_path, sizeof(glob_path), "%s_sec_*.bin", path);
-    } else {
-        snprintf(glob_path, sizeof(glob_path), "%s_hour_*.bin", path);
-    }
-
-    if (glob(glob_path, 0, NULL, &files) || files.gl_pathc == 0) {
-        goto exit;
-    }
-
-    if (sec) {
-        if (sscanf(files.gl_pathv[files.gl_pathc - 1] + strlen(path),
-                   "_sec_%04d%02d%02d_%02d%02d%02d.bin",
-                   &t.tm_year, &t.tm_mon, &t.tm_mday,
-                   &t.tm_hour, &t.tm_min, &t.tm_sec) != 6)
-        {
-            goto exit;
-        }
-    } else {
-        if (sscanf(files.gl_pathv[files.gl_pathc - 1] + strlen(path),
-                   "_hour_%04d%02d%02d_%02d%02d%02d.bin",
-                   &t.tm_year, &t.tm_mon, &t.tm_mday,
-                   &t.tm_hour, &t.tm_min, &t.tm_sec) != 6)
-        {
-            goto exit;
-        }
-    }
-
-    t.tm_year -= 1900;
-    t.tm_mon  -= 1;
-
-    res = mktime(&t);
-
-  exit:
-    globfree(&files);
-    return res;
-}
-#endif
-
 stats_temporal_t *stats_temporal_new(const char *path, int nb_stats,
                                      int flags, const int *desc)
 {
