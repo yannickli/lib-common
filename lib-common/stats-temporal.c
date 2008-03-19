@@ -333,28 +333,26 @@ static mmfile_stats_auto *auto_file_initialize(stats_temporal_t *stats,
 stats_temporal_t *stats_temporal_new(const char *path, int nb_stats,
                                      int flags, const int *desc)
 {
-    stats_temporal_t* stats;
+    stats_temporal_t* stats = p_new(stats_temporal_t, 1);
 
     /* No longer need to open existing stats file, it will be open upon
      * first actual use
      */
-    stats = p_new(stats_temporal_t, 1);
     pstrcpy(stats->path, sizeof(stats->path), path);
     stats->nb_stats = nb_stats;
     stats->do_sec  = !!(flags & STATS_TEMPORAL_SECONDS);
     stats->do_hour = !!(flags & STATS_TEMPORAL_HOURS);
     stats->nb_stages = flags >> 2;
     if (stats->nb_stages > 0 && stats->nb_stages <= STATS_STAGE_MAX) {
-        if (desc) {
-            memcpy(stats->desc, desc, stats->nb_stages * 2 * sizeof(*desc));
-        } else {
+        static const int default_desc[] = { 1, 3600, 60, 24 * 60, 3600, 7 * 24 };
+        if (!desc) {
             /* Use default descriptors:
              * 1 hour at second, 1 day at minute, 1 week at hour precision
              */
-            static int default_desc[] = { 1, 3600, 60, 24 * 60, 3600, 7 * 24 };
-            memcpy(stats->desc, default_desc, sizeof(default_desc));
-            stats->nb_stages = 3;
+            stats->nb_stages = countof(default_desc) / 2;
+            desc = default_desc;
         }
+        memcpy(stats->desc, desc, stats->nb_stages * 2 * sizeof(*desc));
     }
     return stats;
 }
@@ -928,8 +926,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     }
 
     if (!stats->nb_stages) {
-        blob_append_cstr(blob,
-                         "stats auto deactivated for these statistics");
+        blob_append_cstr(blob, "stats auto deactivated for these statistics");
         return -1;
     }
 
@@ -943,12 +940,14 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     e_trace(1, "input values: start: %d, end: %d, nbvalues: %d",
             start, end, nb_values);
     if (start <= 0 || end <= 0) {
-        blob_append_cstr(blob,
-                         "Stats auto: invalid interval");
+        blob_append_cstr(blob, "Stats auto: invalid interval");
         return -1;
     }
 
-    accu = p_new(double, nb_stats);
+    if (nb_stats > (128 << 10)) {
+        blob_append_cstr(blob, "Stats auto: too many values");
+        accu = p_alloca(double, nb_stats);
+    }
 
     /* Force minimum interval */
     if (nb_values < 10) {
@@ -1125,10 +1124,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         break;
     }
 
-    p_delete(&accu);
-
     e_trace(1, "Outputed %d values", count);
-
     return count;
 }
 
