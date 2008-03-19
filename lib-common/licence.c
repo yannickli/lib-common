@@ -297,6 +297,7 @@ int licence_do_signature(const conf_t *conf, char *dst, size_t size)
         "maxrate_wp",    "max_wp",
         "maxrate_ussd",  "max_ussd",
         "maxrate_email", "max_email",
+        "production_use",
         NULL,
     };
     int k0, k1, k2, k3;
