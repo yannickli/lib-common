@@ -60,7 +60,7 @@ static file_t *log_file_open_new(log_file_t *log_file, time_t date)
     file_t *res;
 
     build_real_path(real_path, sizeof(real_path), log_file, date);
-    res = file_open(real_path, FILE_WRONLY | FILE_CREATE, 0622);
+    res = file_open(real_path, FILE_WRONLY | FILE_CREATE, 0644);
     if (!res || file_seek(res, 0, SEEK_END) == (off_t)-1) {
         e_trace(1, "Could not open log file: %s (%m)", real_path);
     }
