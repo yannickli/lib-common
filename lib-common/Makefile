@@ -15,7 +15,7 @@ DEPTH=..
 include $(DEPTH)/admin/header.mk
 include $(DEPTH)/admin/tokyocabinet.mk
 
-__EXE__   = btree-dump tst-cfgparser tst-tpl
+__EXE__   = btree-dump tst-cfgparser tst-tpl tst-stats
 __LIB__   = libcommon time-lp-simple
 __CHECK__ = test tst-blob-iconv tst-domains_list
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-hash
@@ -23,7 +23,6 @@ __CHECK__ += tst-iprintf-speed tst-hashtbl
 ifdef CHECK_ALL
   # These tests are just too long to be part of "make check". Sorry.
   __CHECK__ += tst-btree tst-isndx tst-sort
-  #__CHECK__ += tst-stats # currently broken
 endif
 
 btree-dump_SOURCES = btree-dump.c libcommon.a

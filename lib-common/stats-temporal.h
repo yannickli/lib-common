@@ -24,8 +24,10 @@
 #define STATS_TEMPORAL_SECONDS   (1 << 0)
 #define STATS_TEMPORAL_HOURS     (1 << 1)
 
-#define STATS_FMT_RAW  1
-#define STATS_FMT_XML  2
+typedef enum stats_fmt_t {
+    STATS_FMT_TXT = 1,
+    STATS_FMT_XML = 2,
+} stats_fmt_t;
 
 typedef enum stats_upd_type {
     STATS_UPD_INCR,
@@ -67,7 +69,7 @@ int stats_temporal_query_hour(stats_temporal_t *stats, blob_t *blob,
 __must_check__
 int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
                               int start, int end, int nb_values,
-                              bfield_t *mask, int fmt);
+                              bfield_t *mask, stats_fmt_t fmt);
 
 #ifndef NDEBUG
 void stats_temporal_dump_auto(byte *mem, int size);

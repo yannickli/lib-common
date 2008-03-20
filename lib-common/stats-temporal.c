@@ -902,28 +902,47 @@ int stats_temporal_query_hour(stats_temporal_t *stats, blob_t *blob,
     return 0;
 }
 
+static int find_pretty_freq(int f)
+{
+    static const int pretty_60th[] = {
+        1, 2, 5, 10, 15, 20, 30, 60,
+    };
+    static const int pretty_24th[] = {
+        3600, 2 * 3600, 4 * 3600, 6 * 3600, 12 * 3600, 24 * 3600,
+    };
+
+    if (f <= 1)
+        return 1;
+    if (f <= 60) {
+        for (int i = 1; i < countof(pretty_60th); i++) {
+            if (f <= pretty_60th[i])
+                return pretty_60th[i];
+        }
+    }
+    if (f <= 3600) {
+        for (int i = 1; i < countof(pretty_60th); i++) {
+            if (f <= 60 * pretty_60th[i])
+                return 60 * pretty_60th[i];
+        }
+    }
+    if (f <= 3600 * 24) {
+        for (int i = 1; i < countof(pretty_60th); i++) {
+            if (f <= pretty_24th[i])
+                return 3600 * pretty_24th[i];
+        }
+    }
+    return 0;
+}
+
 /* Should return number of samples produced? */
 int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
                               int start, int end, int nb_values,
-                              bfield_t *mask, int fmt)
+                              bfield_t *mask, stats_fmt_t fmt)
 {
-    static int pretty_freqs[] = {
-        1, 2, 5, 10, 15, 20, 30,
-        60, 120, 300, 600, 900, 1200, 1800,
-        3600, 7200
-    };
-    static int nb_pretty_freqs = countof(pretty_freqs);
-    int i, j, stage;
     stats_stage *st;
-    int freq;
-    int count = 0;
+    int stage, freq, count = 0;
     int nb_stats = stats->nb_stats;
     double *accu;
-
-    if (fmt < STATS_FMT_RAW || fmt > STATS_FMT_XML) {
-        blob_append_fmt(blob, "Bad stats fmt: %d", fmt);
-        return -1;
-    }
 
     if (!stats->nb_stages) {
         blob_append_cstr(blob, "stats auto deactivated for these statistics");
@@ -944,102 +963,64 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         return -1;
     }
 
-    if (nb_stats > (128 << 10)) {
+    if (nb_stats > (16 << 10)) {
         blob_append_cstr(blob, "Stats auto: too many values");
         return -1;
     }
     accu = p_alloca(double, nb_stats);
 
     /* Force minimum interval */
-    if (nb_values < 10) {
+    if (nb_values < 10)
         nb_values = 10;
-    }
     if (end - start < 10) {
         int diff = 10 - (end - start);
-        int rounding = diff & 0x1;  /* odd or even ? */
-
-        diff  /= 2;
-        start -= diff;
-        end   += diff + rounding;
+        start -= diff / 2;
+        end   += (diff + 1) / 2;
     }
 
     /* Compute best sample duration */
-    freq = (end - start) / nb_values;
-    e_trace(2, "freq requested: %d", freq);
-    if (freq <= 1) {
-        freq = 1;
-    } else {
-        for (i = 1; i < nb_pretty_freqs; i++) {
-            if (freq < pretty_freqs[i]) {
-                freq = pretty_freqs[i - 1];
-                break;
-            }
-        }
-        if (i == nb_pretty_freqs) {
-            freq = -1;
-        }
-    }
-    e_trace(2, "freq chosen: %d", freq);
+    freq = find_pretty_freq((end - start) / nb_values);
 
     /* Choose stage */
     st = stats->file->area->stage;
-    stage = 0;
     if (freq <= 0) {
         /* No freq was found (interval too large) */
-        for (stage = 0; stage < stats->nb_stages - 1; stage++, st++) {
-            if (((end - start) / st->scale) <= nb_values) {
+        for (stage = 0; stage < stats->nb_stages - 1; stage++) {
+            if ((end - start) / st[stage].scale <= nb_values)
                 break;
-            }
         }
+        st += stage;
         freq = st->scale;
     } else {
-        if (st->scale < freq) {
-            st++;
-            for (stage = 1; stage < stats->nb_stages; stage++, st++) {
-                if (st->scale > freq) {
-                    /* Use the previous one */
-                    st--;
-                    stage--;
-                    break;
-                }
-            }
-            if (stage == stats->nb_stages) {
-                /* Use the last as a last resort */
-                stage--;
-                st--;
-            }
-        } else {
-            /* Use the first anyway */
+        for (stage = 1; stage < stats->nb_stages; stage++) {
+            if (st[stage].scale > freq)
+                break;
         }
+        --stage;
+        st += stage;
     }
     e_trace(2, "stage selected: %d", stage);
 
     start /= st->scale;
     freq  /= st->scale;
-    start = (start / freq) * freq;
-    end   = (end - 1) / st->scale + 1;
+    start -= start % freq;
+    end    = (end - 1) / st->scale + 1;
 
     e_trace(1, "real values chosen: start: %d, end: %d, freq: %d, "
             "nbvalues: %d, ratio: %d",
             start, end, freq, nb_values, (end - start) / freq);
 
-    switch (fmt) {
-      case STATS_FMT_XML:
+    if (fmt == STATS_FMT_XML) {
         blob_append_cstr(blob, "<data>\n");
-        break;
-
-      default:
-        break;
     }
 
-    for (i = start, j = 0; i < end; i++) {
+    for (int i = start, j = 0; i < end; i++) {
         int stageup = stage;
         stats_stage *stup = st;
         int stamp = i;
 
         if (i <= st->current + 1) {
-            while (stamp <= stup->current - stup->count)
-            {
+            while (stamp <= stup->current - stup->count) {
                 if (stageup >= stats->nb_stages - 1)
                     break;
 
@@ -1070,61 +1051,50 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         }
         j++;
 
-        if (j >= freq) {
-            switch (fmt) {
-              case STATS_FMT_RAW:
-                blob_append_fmt(blob, "%d",
-                                (i - (freq - 1)) * st->scale);
-                for (int k = 0; k < nb_stats; k++) {
-                    if (!mask || bfield_isset(mask, k)) {
-                        blob_append_fmt(blob, " %lld",
-                                        (long long)accu[k] / (j * st->scale));
-                    }
-                }
-                blob_append_cstr(blob, "\n");
-                count++;
-                break;
+        if (j < freq)
+            continue;
 
-              case STATS_FMT_XML:
-                {
-                    bool first = true;
-                    blob_append_fmt(blob, "<elem time=\"%d\" ",
-                                    (i - (freq - 1)) * st->scale);
-                    for (int k = 0; k < nb_stats; k++) {
-                        if (!mask || bfield_isset(mask, k)) {
-                            if (first) {
-                                blob_append_fmt(blob, " val=\"%e\"",
-                                                accu[k] / (j * st->scale));
-                                first = false;
-                            } else {
-                                blob_append_fmt(blob, " val%d=\"%e\"", k,
-                                                accu[k] / (j * st->scale));
-                            }
-                        }
-                    }
-                    blob_append_cstr(blob, "/>\n");
-                }
-                count++;
-                break;
-
-              default:
-                break;
+        switch (fmt) {
+          case STATS_FMT_TXT:
+            blob_append_fmt(blob, "%d", (i - (freq - 1)) * st->scale);
+            for (int k = 0; k < nb_stats; k++) {
+                if (mask && !bfield_isset(mask, k))
+                    continue;
+                blob_append_fmt(blob, " %lld",
+                                (long long)accu[k] / (j * st->scale));
             }
-            j = 0;
-            p_clear(accu, nb_stats);
+            blob_append_cstr(blob, "\n");
+            count++;
+            break;
+
+          case STATS_FMT_XML:
+            blob_append_fmt(blob, "<elem time=\"%d\" ",
+                            (i - (freq - 1)) * st->scale);
+            for (int k = 0, n = 0; k < nb_stats; k++) {
+                if (mask && !bfield_isset(mask, k))
+                    continue;
+                if (n) {
+                    blob_append_fmt(blob, "val=\"%e\" ",
+                                    accu[k] / (j * st->scale));
+                } else {
+                    blob_append_fmt(blob, "val%d=\"%e\" ", n,
+                                    accu[k] / (j * st->scale));
+                }
+            }
+            blob_append_cstr(blob, "/>\n");
+            count++;
+            break;
+
+          default:
+            break;
         }
+        j = 0;
+        p_clear(accu, nb_stats);
     }
 
-
-    switch (fmt) {
-      case STATS_FMT_XML:
+    if (fmt == STATS_FMT_XML) {
         blob_append_cstr(blob, "</data>\n");
-        break;
-
-      default:
-        break;
     }
-
     e_trace(1, "Outputed %d values", count);
     return count;
 }
@@ -1154,7 +1124,7 @@ void stats_temporal_dump_auto(byte *mem, int size)
     for (stage = 0; stage < file->nb_stages; stage++) {
         stats_stage *st = &file->stage[stage];
         byte *buf_start, *buf_end, *vp;
-        int i, index;
+        int index;
 
         printf("stage no: %d\n", stage);
         printf("scale: %d\n", st->scale);
@@ -1171,7 +1141,7 @@ void stats_temporal_dump_auto(byte *mem, int size)
         vp        = buf_start + ((st->pos + st->count - st->current) %
                                  st->count * st->incr);
 
-        for (i = 0; i < st->count; i++) {
+        for (int i = 0; i < st->count; i++) {
             if (vp >= buf_end) {
                 vp = buf_start;
             }
