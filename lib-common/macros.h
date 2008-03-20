@@ -174,6 +174,8 @@ static inline uint16_t ntohs(be16_t x) {
 #endif
 #define MAX3(a,b,c)  (((a) > (b)) ? MAX(a, c) : MAX(b, c))
 
+#define CLIP(v,m,M)  (((v) > (M)) ? (M) : ((v) < (m)) ? (m) : (v))
+
 #ifndef MIN
 #define MIN(a,b)     (((a) > (b)) ? (b) : (a))
 #endif

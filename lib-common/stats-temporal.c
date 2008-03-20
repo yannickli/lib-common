@@ -942,7 +942,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     stats_stage *st;
     int stage, freq, count = 0;
     int nb_stats = stats->nb_stats;
-    double *accu;
+    double accu[STATS_QUERY_VALUES_MAX];
 
     if (!stats->nb_stages) {
         blob_append_cstr(blob, "stats auto deactivated for these statistics");
@@ -967,11 +967,9 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         blob_append_cstr(blob, "Stats auto: too many values");
         return -1;
     }
-    accu = p_alloca(double, nb_stats);
 
     /* Force minimum interval */
-    if (nb_values < 10)
-        nb_values = 10;
+    nb_values = CLIP(nb_values, 10, countof(accu));
     if (end - start < 10) {
         int diff = 10 - (end - start);
         start -= diff / 2;
@@ -1014,6 +1012,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         blob_append_cstr(blob, "<data>\n");
     }
 
+    p_clear(accu, nb_stats);
     for (int i = start, j = 0; i < end; i++) {
         int stageup = stage;
         stats_stage *stup = st;
@@ -1049,9 +1048,8 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
                 }
             }
         }
-        j++;
 
-        if (j < freq)
+        if (++j < freq)
             continue;
 
         switch (fmt) {

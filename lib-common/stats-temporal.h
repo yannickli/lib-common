@@ -20,6 +20,7 @@
 #include <lib-common/array.h>
 
 #define STATS_STAGE_MAX          7
+#define STATS_QUERY_VALUES_MAX   1024
 #define STATS_TEMPORAL_AUTO(n)   ((n) << 2)
 #define STATS_TEMPORAL_SECONDS   (1 << 0)
 #define STATS_TEMPORAL_HOURS     (1 << 1)
