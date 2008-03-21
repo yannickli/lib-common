@@ -56,8 +56,9 @@ void htbl_invalidate(generic_htbl *t, int pos);
     static inline type_t *                                                   \
     pfx##_htbl_ll_find(const pfx##_htbl *t, uint64_t h, idx_t key) {         \
         unsigned size = (unsigned)t->size;                                   \
-        unsigned pos  = h % size;                                            \
-        for (;;) {                                                           \
+        for (unsigned pos = h % size;; pos++) {                              \
+            if (pos == size)                                                 \
+                 pos = 0;                                                    \
             if (!TST_BIT(t->ghostbits, pos)) {                               \
                 type_t *ep = t->tab + pos;                                   \
                 if (!TST_BIT(t->setbits, pos))                               \
@@ -65,8 +66,6 @@ void htbl_invalidate(generic_htbl *t, int pos);
                 if (ep->hm == h && key_equal(ep->keym, key))                 \
                     return t->tab + pos;                                     \
             }                                                                \
-            if (++pos == size)                                               \
-                pos = 0;                                                     \
         }                                                                    \
     }                                                                        \
                                                                              \
@@ -83,8 +82,9 @@ void htbl_invalidate(generic_htbl *t, int pos);
         }                                                                    \
                                                                              \
         size = (unsigned)t->size;                                            \
-        pos  = e.hm % size;                                                  \
-        for (;;) {                                                           \
+        for (pos = e.hm % size; ; pos++) {                                   \
+            if (pos == size)                                                 \
+                pos = 0;                                                     \
             if (!TST_BIT(t->ghostbits, pos)) {                               \
                 type_t *ep = t->tab + pos;                                   \
                 if (!TST_BIT(t->setbits, pos))                               \
@@ -94,8 +94,6 @@ void htbl_invalidate(generic_htbl *t, int pos);
             } else if (ghost < 0) {                                          \
                 ghost = pos;                                                 \
             }                                                                \
-            if (++pos == size)                                               \
-                pos = 0;                                                     \
         }                                                                    \
         if (ghost >= 0) {                                                    \
             pos = ghost;                                                     \
