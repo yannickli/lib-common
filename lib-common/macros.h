@@ -153,12 +153,16 @@ static inline uint16_t ntohs(be16_t x) {
 }
 #endif
 
+#define TYPE_BIT(type_t)    (sizeof(type_t) * CHAR_BIT)
+#define BITS_TO_ARRAY_LEN(type_t, nbits)  \
+    ((nbits + TYPE_BIT(type_t) - 1) / TYPE_BIT(type_t))
+
 #define OP_BIT(bits, n, shift, op) \
     ((bits)[(unsigned)(n) / (shift)] op (1 << ((n) & ((1 * (shift)) - 1))))
-#define TST_BIT(bits, n)  OP_BIT(bits, n, sizeof(*(bits)) * 8, &  )
-#define SET_BIT(bits, n)  OP_BIT(bits, n, sizeof(*(bits)) * 8, |= )
-#define RST_BIT(bits, n)  OP_BIT(bits, n, sizeof(*(bits)) * 8, &=~)
-#define XOR_BIT(bits, n)  OP_BIT(bits, n, sizeof(*(bits)) * 8, ^= )
+#define TST_BIT(bits, n)  OP_BIT(bits, n, TYPE_BIT(*(bits)), &  )
+#define SET_BIT(bits, n)  OP_BIT(bits, n, TYPE_BIT(*(bits)), |= )
+#define RST_BIT(bits, n)  OP_BIT(bits, n, TYPE_BIT(*(bits)), &=~)
+#define XOR_BIT(bits, n)  OP_BIT(bits, n, TYPE_BIT(*(bits)), ^= )
 
 /*---------------- Misc ----------------*/
 
