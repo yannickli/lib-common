@@ -14,7 +14,6 @@
 #ifndef IS_LIB_COMMON_FARCH_H
 #define IS_LIB_COMMON_FARCH_H
 
-#include "hashtbl.h"
 #include "blob.h"
 
 typedef struct farch_t farch_t;
@@ -28,7 +27,7 @@ farch_t *farch_new(const farch_entry_t files[], const char *overridedir);
 void farch_add(farch_t *fa, const farch_entry_t files[]);
 void farch_delete(farch_t **fa);
 
-farch_entry_t *farch_find(const farch_t *fa, const char *name);
+const farch_entry_t *farch_find(const farch_t *fa, const char *name);
 
 int farch_get(farch_t *fa, blob_t *buf, const byte **data, int *size,
               const char *name);

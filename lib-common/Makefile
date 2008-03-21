@@ -40,6 +40,7 @@ libcommon_SOURCES = \
 	err_report.c  \
 	farch.c \
 	fifo.c \
+	htbl.c \
 	hashtbl.c \
 	iprintf.c \
 	isndx.c \

@@ -89,8 +89,8 @@ static void hashtbl_resize(hashtbl_t *t, int newsize)
 
 void **hashtbl_find(const hashtbl_t *t, uint64_t key)
 {
-    size_t size = (size_t)t->size;
-    size_t pos  = key % size;
+    unsigned size = (unsigned)t->size;
+    unsigned pos  = key % size;
     hashtbl_entry *tab = t->tab;
 
     if (!t->tab)
@@ -107,7 +107,7 @@ void **hashtbl_find(const hashtbl_t *t, uint64_t key)
 
 void **hashtbl_insert(hashtbl_t *t, uint64_t key, void *ptr)
 {
-    size_t size, pos;
+    unsigned size, pos;
     int ghost = -1;
     hashtbl_entry *tab;
 
@@ -119,7 +119,7 @@ void **hashtbl_insert(hashtbl_t *t, uint64_t key, void *ptr)
         hashtbl_resize(t, t->size);
     }
 
-    size = (size_t)t->size;
+    size = (unsigned)t->size;
     pos  = key % size;
     tab  = t->tab;
 
@@ -278,8 +278,8 @@ uint64_t hashtbl__hobj(const hashtbl__t *t, void *ptr, int len)
 
 void **hashtbl__find(const hashtbl__t *t, uint64_t key, const char *s)
 {
-    size_t size = (size_t)t->size;
-    size_t pos  = key % size;
+    unsigned size = (unsigned)t->size;
+    unsigned pos  = key % size;
     hashtbl_entry *tab = t->tab;
 
     if (!t->tab)
@@ -296,7 +296,7 @@ void **hashtbl__find(const hashtbl__t *t, uint64_t key, const char *s)
 
 void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *ptr)
 {
-    size_t size, pos;
+    unsigned size, pos;
     int ghost = -1;
     hashtbl_entry *tab;
     const char *name = element_name(ptr, t->name_offs, t->name_inl);
@@ -309,7 +309,7 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *ptr)
         hashtbl_resize((hashtbl_t *)t, t->size);
     }
 
-    size = (size_t)t->size;
+    size = (unsigned)t->size;
     pos  = key % size;
     tab  = t->tab;
 

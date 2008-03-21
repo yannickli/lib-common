@@ -12,14 +12,19 @@
 /**************************************************************************/
 
 #include "farch.h"
+#include "hashtbl.h"
+#include "htbl.h"
 #include "string_is.h"
 
-DO_HASHTBL_STR(farch_entry_t, farch_entry, name, 0);
+#define fe_get_key(fe)        ((fe)->name)
+#define fe_hash_key(k)        hsieh_hash((const byte *)k, -1)
+
+DO_HTBL_STR(const farch_entry_t, fe, name);
 
 struct farch_t {
     flag_t use_dir     : 1;
     flag_t checked_dir : 1;
-    farch_entry_hash h;
+    fe_htbl h;
     char dir[PATH_MAX];
 };
 
@@ -27,7 +32,7 @@ farch_t *farch_new(const farch_entry_t files[], const char *overridedir)
 {
     farch_t *fa = p_new(farch_t, 1);
 
-    farch_entry_hash_init(&fa->h);
+    fe_htbl_init(&fa->h);
     fa->use_dir = overridedir && *overridedir;
     if (fa->use_dir) {
         pstrcpy(fa->dir, sizeof(fa->dir), overridedir);
@@ -39,21 +44,21 @@ farch_t *farch_new(const farch_entry_t files[], const char *overridedir)
 void farch_add(farch_t *fa, const farch_entry_t files[])
 {
     while (files->name) {
-        farch_entry_hash_insert2(&fa->h, (farch_entry_t *)files++);
+        fe_htbl_insert2(&fa->h, files++);
     }
 }
 
 void farch_delete(farch_t **fap)
 {
     if (*fap) {
-        farch_entry_hash_wipe(&(*fap)->h);
+        fe_htbl_wipe(&(*fap)->h);
         p_delete(fap);
     }
 }
 
-farch_entry_t *farch_find(const farch_t *fa, const char *name)
+const farch_entry_t *farch_find(const farch_t *fa, const char *name)
 {
-    return farch_entry_hash_get2(&fa->h, name);
+    return fe_htbl_get2(&fa->h, name);
 }
 
 
@@ -63,7 +68,7 @@ farch_entry_t *farch_find(const farch_t *fa, const char *name)
 int farch_get(farch_t *fa, blob_t *buf, const byte **data, int *size,
               const char *name)
 {
-    farch_entry_t *ent;
+    const farch_entry_t *ent;
 
     if (fa->use_dir) {
         char fname[PATH_MAX];
@@ -80,7 +85,7 @@ int farch_get(farch_t *fa, blob_t *buf, const byte **data, int *size,
             fa->checked_dir = true;
         }
     }
-    ent = farch_entry_hash_get2(&fa->h, name);
+    ent = farch_find(fa, name);
     if (ent) {
         *data = ent->data;
         *size = ent->size;
