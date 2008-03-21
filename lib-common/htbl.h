@@ -121,7 +121,7 @@ void htbl_invalidate(generic_htbl *t, int pos);
         return e->km;                                                        \
     }                                                                        \
                                                                              \
-    DO_HTBL_LL(type_t, idx_t, pfx, km, pfx##_get_key, TRUE)                  \
+    DO_HTBL_LL(type_t, idx_t, pfx, km, pfx##_get_key, TRUEFN)                \
                                                                              \
     static inline type_t *pfx##_htbl_find(const pfx##_htbl *t, idx_t key) {  \
         return pfx##_htbl_ll_find(t, key, key);                              \

@@ -34,7 +34,6 @@ static uint64_t getkey(const props_hash_t *ph, const char *name, bool insert)
 {
     char buf[BUFSIZ], *s, **sp;
     int len = 0;
-    uint64_t key;
 
     STATIC_ASSERT(sizeof(uint64_t) >= sizeof(uintptr_t));
 
@@ -43,15 +42,14 @@ static uint64_t getkey(const props_hash_t *ph, const char *name, bool insert)
     }
     buf[len] = '\0';
 
-    key = string_hash_hobj(ph->names, buf, len);
-    sp  = string_hash_find(ph->names, key, buf);
+    sp = string_htbl_find(ph->names, buf, len);
     if (sp)
         return (uintptr_t)*sp;
     if (!insert)
         return 0; /* NULL */
 
     s = p_dupstr(buf, len);
-    string_hash_insert(ph->names, key, s);
+    string_htbl_insert(ph->names, s, len);
     return (uintptr_t)s;
 }
 
@@ -64,11 +62,6 @@ static const char *getname(uint64_t key)
 /* Create hashtables, update records                                        */
 /****************************************************************************/
 
-static void props_wipe_one(void **s, void *unused)
-{
-    p_delete(s);
-}
-
 props_hash_t *props_hash_dup(const props_hash_t *ph)
 {
     props_hash_t *res = props_hash_new(ph->names);
@@ -80,37 +73,41 @@ props_hash_t *props_hash_dup(const props_hash_t *ph)
 
 void props_hash_wipe(props_hash_t *ph)
 {
-    hashtbl_map(&ph->h, &props_wipe_one, NULL);
-    hashtbl_wipe(&ph->h);
+    HTBL_MAP(&ph->h, prop_wipe);
+    props_htbl_wipe(&ph->h);
     p_delete(&ph->name);
 }
 
 void props_hash_update(props_hash_t *ph, const char *name, const char *value)
 {
     uint64_t key = getkey(ph, name, true);
+    prop_t *pp;
 
     if (value) {
-        char *v   = p_strdup(value);
-        char **sp = (char **)hashtbl_insert(&ph->h, key, v);
-
-        if (sp) {
-            SWAP(char *, *sp, v);
+        char *v = p_strdup(value);
+        pp = props_htbl_insert(&ph->h, (prop_t){ .key = key, .value = v });
+        if (pp) {
+            SWAP(char *, pp->value, v);
             p_delete(&v);
         }
     } else {
-        hashtbl_remove(&ph->h, hashtbl_find(&ph->h, key));
+        pp = props_htbl_find(&ph->h, key);
+        if (pp) {
+            p_delete(&pp->value);
+            props_htbl_remove(&ph->h, pp);
+        }
     }
 }
 
-static void update_one(uint64_t key, void **val, void *to)
+static void update_one(prop_t *p, void *to)
 {
-    props_hash_update(to, getname(key), *val);
+    props_hash_update(to, getname(p->key), p->value);
 }
 
 void props_hash_merge(props_hash_t *to, const props_hash_t *src)
 {
     assert (to->names == src->names);
-    hashtbl_map2((hashtbl_t *)&src->h, update_one, to);
+    HTBL_MAP((props_htbl *)&src->h, update_one, to);
 }
 
 /****************************************************************************/
@@ -120,8 +117,8 @@ void props_hash_merge(props_hash_t *to, const props_hash_t *src)
 const char *props_hash_findval(const props_hash_t *ph, const char *name, const char *def)
 {
     uint64_t key = getkey(ph, name, false);
-    char **sp    = (char **)hashtbl_find(&ph->h, key);
-    return key && sp ? *sp : def;
+    prop_t  *pp  = props_htbl_find(&ph->h, key);
+    return key && pp ? pp->value : def;
 }
 
 int props_hash_findval_int(const props_hash_t *ph, const char *name, int defval)
@@ -140,49 +137,49 @@ int props_hash_findval_int(const props_hash_t *ph, const char *name, int defval)
 /* Serialize props_hashes                                                   */
 /****************************************************************************/
 
-static void pack_one(uint64_t key, void **val, void *blob)
+static void pack_one(prop_t *pp, void *blob)
 {
-    blob_pack(blob, "|s|s", getname(key), *val);
+    blob_pack(blob, "|s|s", getname(pp->key), pp->value);
 }
 
 void props_hash_pack(blob_t *out, const props_hash_t *ph, int terminator)
 {
     blob_pack(out, "d", ph->h.len);
-    hashtbl_map2((hashtbl_t *)&ph->h, &pack_one, out);
+    HTBL_MAP((props_htbl *)&ph->h, pack_one, out);
     blob_append_byte(out, terminator);
 }
 
-static void one_to_fmtv1(uint64_t key, void **val, void *blob)
+static void one_to_fmtv1(prop_t *pp, void *blob)
 {
-    blob_pack(blob, "s:s\n", getname(key), *val);
+    blob_pack(blob, "s:s\n", getname(pp->key), pp->value);
 }
 
 void props_hash_to_fmtv1(blob_t *out, const props_hash_t *ph)
 {
-    hashtbl_map2((hashtbl_t *)&ph->h, &one_to_fmtv1, out);
+    HTBL_MAP((props_htbl *)&ph->h, one_to_fmtv1, out);
 }
 
-static void one_to_conf(uint64_t key, void **val, void *blob)
+static void one_to_conf(prop_t *pp, void *blob)
 {
     /* fixme val could have embeded \n */
-    blob_append_fmt(blob, "%s = %s\n", getname(key), (const char *)*val);
+    blob_append_fmt(blob, "%s = %s\n", getname(pp->key), pp->value);
 }
 
 void props_hash_to_conf(blob_t *out, const props_hash_t *ph)
 {
-    hashtbl_map2((hashtbl_t *)&ph->h, &one_to_conf, out);
+    HTBL_MAP((props_htbl *)&ph->h, one_to_conf, out);
 }
 
-static void one_to_xml(uint64_t key, void **val, void *pp)
+static void one_to_xml(prop_t *pp, void *xpp)
 {
-    xmlpp_opentag(pp, getname(key));
-    xmlpp_puttext(pp, *val, -1);
-    xmlpp_closetag(pp);
+    xmlpp_opentag(xpp, getname(pp->key));
+    xmlpp_puttext(xpp, pp->value, -1);
+    xmlpp_closetag(xpp);
 }
 
 void props_hash_to_xml(xmlpp_t *pp, const props_hash_t *ph)
 {
-    hashtbl_map2((hashtbl_t *)&ph->h, &one_to_xml, pp);
+    HTBL_MAP((props_htbl *)&ph->h, one_to_xml, pp);
 }
 
 /****************************************************************************/
@@ -263,4 +260,22 @@ int props_hash_from_fmtv1(props_hash_t *ph, const blob_t *payload)
     blob_wipe(&key);
     blob_wipe(&val);
     return 0;
+}
+
+static void prop_hash_map_one(prop_t *pp, props_htbl *t,
+                              void (*fn)(const char *, char **, void *),
+                              void *priv)
+{
+    (*fn)(getname(pp->key), &pp->value, priv);
+    if (!pp->value) {
+        props_htbl_remove(t, pp);
+    }
+}
+
+void props_hash_map(props_hash_t *ph,
+                    void (*fn)(const char *, char **, void *), void *priv)
+{
+    HTBL_MAP(&ph->h, prop_hash_map_one, &ph->h, fn, priv);
+    if (4 * p_alloc_nr(ph->h.len) < ph->h.size)
+        props_htbl_resize(&ph->h, 2 * p_alloc_nr(ph->h.len));
 }

@@ -16,27 +16,38 @@
 
 #include "array.h"
 #include "blob.h"
-#include "hashtbl.h"
+#include "htbl.h"
 #include "xmlpp.h"
+
+typedef struct prop_t {
+    uintptr_t key;
+    char *value;
+} prop_t;
+
+static inline void prop_wipe(prop_t *p) {
+    p_delete(&p->value);
+}
+
+DO_HTBL_KEY(prop_t, uintptr_t, props, key);
 
 typedef struct props_hash_t {
     char *name;
-    hashtbl_t h;
-    string_hash *names;
+    props_htbl h;
+    string_htbl *names;
 } props_hash_t;
 
 /****************************************************************************/
 /* Create hashtables, update records                                        */
 /****************************************************************************/
 
-static inline props_hash_t *props_hash_init(props_hash_t *ph, string_hash *names)
+static inline props_hash_t *props_hash_init(props_hash_t *ph, string_htbl *names)
 {
     p_clear(ph, 1);
-    hashtbl_init(&ph->h);
+    props_htbl_init(&ph->h);
     ph->names = names;
     return ph;
 }
-static inline props_hash_t *props_hash_new(string_hash *names)
+static inline props_hash_t *props_hash_new(string_htbl *names)
 {
     return props_hash_init(p_new_raw(props_hash_t, 1), names);
 }

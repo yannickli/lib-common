@@ -215,37 +215,6 @@ void hashtbl_map2(hashtbl_t *t, void (*fn)(uint64_t, void **, void *),
         hashtbl_resize(t, 2 * p_alloc_nr(t->len));
 }
 
-#include "property-hash.h"
-void props_hash_map(props_hash_t *ph,
-                    void (*fn)(const char *, char **, void *), void *priv)
-{
-    hashtbl_t *t = &ph->h;
-    int pos = t->size;
-
-    assert (!t->inmap);
-#ifndef NDEBUG
-    t->inmap = true;
-#endif
-
-    /* the reverse loop is to maximize the ghosts removal */
-    while (pos-- > 0) {
-        hashtbl_entry *e = &t->tab[pos];
-        if (IS_EMPTY(e->ptr))
-            continue;
-
-        (*fn)((const char *)(uintptr_t)e->key, (char **)(void *)&e->ptr, priv);
-        if (!e->ptr) { /* means removal */
-            hashtbl_invalidate(t, pos);
-        }
-    }
-#ifndef NDEBUG
-    t->inmap = false;
-#endif
-    if (4 * p_alloc_nr(t->len) < t->size)
-        hashtbl_resize(t, 2 * p_alloc_nr(t->len));
-}
-
-
 /****************************************************************************/
 /* simple hash tables for string_to_element htables                         */
 /****************************************************************************/
