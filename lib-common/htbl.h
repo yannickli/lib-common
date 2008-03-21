@@ -72,7 +72,7 @@ void htbl_invalidate(generic_htbl *t, int pos);
     static inline type_t *pfx##_htbl_ll_insert(pfx##_htbl *t, type_t e) {    \
         unsigned size, pos;                                                  \
         int ghost = -1;                                                      \
-        idx_t key = get_key(&e);                                             \
+        __attribute__((unused)) idx_t key = get_key(&e);                     \
                                                                              \
         assert (!t->inmap);                                                  \
         if (t->len >= t->size / 2) {                                         \
@@ -116,13 +116,42 @@ void htbl_invalidate(generic_htbl *t, int pos);
         }                                                                    \
     }
 
+#define DO_HTBL_KEY(type_t, idx_t, pfx, km)                                  \
+    static inline idx_t pfx##_get_key(type_t *e) {                           \
+        return e->km;                                                        \
+    }                                                                        \
+                                                                             \
+    DO_HTBL_LL(type_t, idx_t, pfx, km, pfx##_get_key, TRUE)                  \
+                                                                             \
+    static inline type_t *pfx##_htbl_find(const pfx##_htbl *t, idx_t key) {  \
+        return pfx##_htbl_ll_find(t, key, key);                              \
+    }                                                                        \
+    static inline type_t *                                                   \
+    pfx##_htbl_insert(pfx##_htbl *t, type_t e) {                             \
+        return pfx##_htbl_ll_insert(t, e);                                   \
+    }                                                                        \
+    static inline void pfx##_htbl_remove(pfx##_htbl *t, type_t *e) {         \
+        pfx##_htbl_ll_remove(t, e);                                          \
+    }                                                                        \
+                                                                             \
+    static inline bool                                                       \
+    pfx##_htbl_take(pfx##_htbl *t, idx_t key, type_t *buf) {                 \
+        type_t *e = pfx##_htbl_ll_find(t, key, key);                         \
+        if (e) {                                                             \
+            *buf = *e;                                                       \
+            pfx##_htbl_remove(t, e);                                         \
+            return true;                                                     \
+        }                                                                    \
+        return false;                                                        \
+    }
+
 #define HTBL_MAP(t, f, ...)                                                  \
     do {                                                                     \
         (t)->inmap = true;                                                   \
         for (int var##_i = (t)->size - 1; var##_i >= 0; var##_i--) {         \
-            if (!TST_BIT(t->setbits, var##_i))                               \
+            if (!TST_BIT((t)->setbits, var##_i))                             \
                 continue;                                                    \
-            (f)((t)->tab + pos, ##__VA_ARGS__);                              \
+            f((t)->tab + var##_i, ##__VA_ARGS__);                            \
         }                                                                    \
         (t)->inmap = false;                                                  \
     } while (0)
@@ -201,13 +230,17 @@ bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
     do {                                                                     \
         (t)->inmap = true;                                                   \
         for (int var##_i = (t)->size - 1; var##_i >= 0; var##_i--) {         \
-            if (!TST_BIT(t->setbits, var##_i))                               \
+            if (!TST_BIT((t)->setbits, var##_i))                             \
                 continue;                                                    \
-            (f)(&(t)->tab[pos].e, ##__VA_ARGS__);                            \
+            f(&(t)->tab[var##_i].e, ##__VA_ARGS__);                          \
         }                                                                    \
         (t)->inmap = false;                                                  \
     } while (0)
 
 DO_HTBL_STROFFS(char, string, 0, true);
+static inline void string_htbl_deep_wipe(string_htbl *t) {
+    HTBL_STR_MAP(t, p_delete);
+    string_htbl_wipe(t);
+}
 
 #endif
