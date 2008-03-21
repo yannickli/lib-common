@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include "hash.h"
 #include "htbl.h"
-#include "hashtbl.h"
 
 void htbl_init(generic_htbl *t, int size)
 {

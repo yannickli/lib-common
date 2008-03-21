@@ -77,6 +77,7 @@ libcommon_SOURCES = \
 	file-binlog.c \
 	\
 	hash-crc.c \
+	hash-hash.c \
 	hash-sha2.c \
 	hash-sha1.c \
 	hash-md5.c \

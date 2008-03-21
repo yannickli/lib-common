@@ -160,4 +160,7 @@ MAKE_UPDATESTR(sha512);
 
 int sha_sum_file(const char *filename, char *digest, int shatype, int binary);
 
+uint32_t hsieh_hash(const void *s, int len);
+uint32_t jenkins_hash(const void *s, int len);
+
 #endif /* IS_LIB_COMMON_HASH_H */

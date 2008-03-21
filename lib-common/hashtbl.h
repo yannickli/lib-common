@@ -95,10 +95,6 @@ void hashtbl_map2(hashtbl_t *t, void (*fn)(uint64_t, void **, void *), void *);
 
 HASHTBLE_TYPE(hashtbl__t);
 
-uint32_t hsieh_hash(const byte *s, int len);
-uint32_t jenkins_hash(const byte *s, int len);
-uint64_t combined_hash(const byte *s, int len);
-
 uint64_t hashtbl__hkey(const char *s, int len);
 uint64_t hashtbl__hobj(const hashtbl__t *t, void *ptr, int len);
 void **hashtbl__find(const hashtbl__t *t, uint64_t key, const char *s);
