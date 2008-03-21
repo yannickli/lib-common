@@ -56,6 +56,8 @@ void htbl_invalidate(generic_htbl *t, int pos);
     static inline type_t *                                                   \
     pfx##_htbl_ll_find(const pfx##_htbl *t, uint64_t h, idx_t key) {         \
         unsigned size = (unsigned)t->size;                                   \
+        if (!size)                                                           \
+            return NULL;                                                     \
         for (unsigned pos = h % size;; pos++) {                              \
             if (pos == size)                                                 \
                  pos = 0;                                                    \

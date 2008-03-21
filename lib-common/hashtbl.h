@@ -202,6 +202,4 @@ void **hashtbl__insert(hashtbl__t *t, uint64_t key, void *);
 #define DO_HASHTBL_STR(type, pfx, name, inlined_str)                         \
     DO_HASHTBL_STROFFS(type, pfx, offsetof(type, name), inlined_str)
 
-DO_HASHTBL_STROFFS(byte, data, 0, true);
-
 #endif /* IS_LIB_COMMON_HASHTBL_H */
