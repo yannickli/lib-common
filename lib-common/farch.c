@@ -15,10 +15,7 @@
 #include "htbl.h"
 #include "string_is.h"
 
-#define fe_get_key(fe)        ((fe)->name)
-#define fe_hash_key(k)        hsieh_hash((const byte *)k, -1)
-
-DO_HTBL_STR(const farch_entry_t, fe, name);
+DO_HTBL_STR(const farch_entry_t, fe, name, false);
 
 struct farch_t {
     flag_t use_dir     : 1;

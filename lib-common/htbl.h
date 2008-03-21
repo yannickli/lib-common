@@ -31,7 +31,7 @@ void htbl_init(generic_htbl *t, int size);
 void htbl_wipe(generic_htbl *t);
 void htbl_invalidate(generic_htbl *t, int pos);
 
-#define DO_HTBL_LL(type_t, idx_t, hm, keym, pfx, key_equal)                  \
+#define DO_HTBL_LL(type_t, idx_t, pfx, hm, get_key, key_equal)               \
     HTBL_TYPE(type_t, pfx);                                                  \
                                                                              \
     GENERIC_INIT(pfx##_htbl, pfx##_htbl)                                     \
@@ -63,7 +63,7 @@ void htbl_invalidate(generic_htbl *t, int pos);
                 type_t *ep = t->tab + pos;                                   \
                 if (!TST_BIT(t->setbits, pos))                               \
                     return NULL;                                             \
-                if (ep->hm == h && key_equal(h, ep->keym, key))              \
+                if (ep->hm == h && key_equal(h, get_key(ep), key))           \
                     return t->tab + pos;                                     \
             }                                                                \
         }                                                                    \
@@ -72,6 +72,7 @@ void htbl_invalidate(generic_htbl *t, int pos);
     static inline type_t *pfx##_htbl_ll_insert(pfx##_htbl *t, type_t e) {    \
         unsigned size, pos;                                                  \
         int ghost = -1;                                                      \
+        idx_t key = get_key(&e);                                             \
                                                                              \
         assert (!t->inmap);                                                  \
         if (t->len >= t->size / 2) {                                         \
@@ -89,7 +90,7 @@ void htbl_invalidate(generic_htbl *t, int pos);
                 type_t *ep = t->tab + pos;                                   \
                 if (!TST_BIT(t->setbits, pos))                               \
                     break;                                                   \
-                if (ep->hm == e.hm && key_equal(e.hm, ep->keym, e.keym))     \
+                if (ep->hm == e.hm && key_equal(e.hm, key, get_key(ep)))     \
                     return t->tab + pos;                                     \
             } else if (ghost < 0) {                                          \
                 ghost = pos;                                                 \
@@ -129,16 +130,22 @@ void htbl_invalidate(generic_htbl *t, int pos);
 uint64_t htbl_hash_string(const void *s, int len);
 bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
 
-#define DO_HTBL_STR(type_t, pfx, keym)                                       \
+#define DO_HTBL_STROFFS(type_t, pfx, offs, inlined)                          \
     typedef struct { uint64_t h; type_t *e; } pfx##_helem_t;                 \
                                                                              \
-    DO_HTBL_LL(pfx##_helem_t, const void *, h, e->keym, pfx, htbl_keyequal); \
+    static inline const void *pfx##_get_key(pfx##_helem_t *he) {             \
+        void *p = (char *)he->e + offs;                                      \
+        return inlined ? p : *(const void **)p;                              \
+    }                                                                        \
+                                                                             \
+    DO_HTBL_LL(pfx##_helem_t, const void *, pfx,                             \
+               h, pfx##_get_key, htbl_keyequal);                             \
                                                                              \
     static inline type_t **                                                  \
     pfx##_htbl_insert(pfx##_htbl *t, type_t *e, int klen) {                  \
-        uint64_t h = htbl_hash_string(e->keym, klen);                        \
-        pfx##_helem_t he = { .h = h, .e = e };                               \
-        pfx##_helem_t *res = pfx##_htbl_ll_insert(t, he);                    \
+        pfx##_helem_t *res, he = { .e = e };                                 \
+        he.h = htbl_hash_string(pfx##_get_key(&he), klen);                   \
+        res = pfx##_htbl_ll_insert(t, he);                                   \
         return res ? &res->e : NULL;                                         \
     }                                                                        \
     static inline type_t **pfx##_htbl_insert2(pfx##_htbl *t, type_t *e) {    \
@@ -187,6 +194,9 @@ bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
         return pfx##_htbl_take(t, key, -1);                                  \
     }
 
+#define DO_HTBL_STR(type_t, pfx, member, inlined)                            \
+    DO_HTBL_STROFFS(type_t, pfx, offsetof(type_t, member), inlined)
+
 #define HTBL_STR_MAP(t, f, ...)                                              \
     do {                                                                     \
         (t)->inmap = true;                                                   \
@@ -197,4 +207,7 @@ bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
         }                                                                    \
         (t)->inmap = false;                                                  \
     } while (0)
+
+DO_HTBL_STROFFS(char, string, 0, true);
+
 #endif
