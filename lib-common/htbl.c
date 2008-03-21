@@ -59,3 +59,8 @@ uint64_t htbl_hash_string(const void *s, int len)
         len = strlen(s);
     return MAKE64(hsieh_hash((const byte *)s, len), len);
 }
+
+bool htbl_keyequal(uint64_t h, const void *k1, const void *k2)
+{
+    return !memcmp(k1, k2, (h & INT_MAX));
+}

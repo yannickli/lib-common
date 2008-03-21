@@ -12,7 +12,6 @@
 /**************************************************************************/
 
 #include "farch.h"
-#include "hashtbl.h"
 #include "htbl.h"
 #include "string_is.h"
 

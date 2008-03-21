@@ -63,7 +63,7 @@ void htbl_invalidate(generic_htbl *t, int pos);
                 type_t *ep = t->tab + pos;                                   \
                 if (!TST_BIT(t->setbits, pos))                               \
                     return NULL;                                             \
-                if (ep->hm == h && key_equal(ep->keym, key))                 \
+                if (ep->hm == h && key_equal(h, ep->keym, key))              \
                     return t->tab + pos;                                     \
             }                                                                \
         }                                                                    \
@@ -89,7 +89,7 @@ void htbl_invalidate(generic_htbl *t, int pos);
                 type_t *ep = t->tab + pos;                                   \
                 if (!TST_BIT(t->setbits, pos))                               \
                     break;                                                   \
-                if (ep->hm == e.hm && key_equal(ep->keym, e.keym))           \
+                if (ep->hm == e.hm && key_equal(e.hm, ep->keym, e.keym))     \
                     return t->tab + pos;                                     \
             } else if (ghost < 0) {                                          \
                 ghost = pos;                                                 \
@@ -127,11 +127,12 @@ void htbl_invalidate(generic_htbl *t, int pos);
     } while (0)
 
 uint64_t htbl_hash_string(const void *s, int len);
+bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
 
 #define DO_HTBL_STR(type_t, pfx, keym)                                       \
     typedef struct { uint64_t h; type_t *e; } pfx##_helem_t;                 \
                                                                              \
-    DO_HTBL_LL(pfx##_helem_t, const void *, h, e->keym, pfx, strequal);      \
+    DO_HTBL_LL(pfx##_helem_t, const void *, h, e->keym, pfx, htbl_keyequal); \
                                                                              \
     static inline type_t **                                                  \
     pfx##_htbl_insert(pfx##_htbl *t, type_t *e, int klen) {                  \
