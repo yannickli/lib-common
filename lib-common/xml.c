@@ -710,6 +710,11 @@ void blob_append_tree(const xml_tree_t *tree, blob_t *blob)
      blob_append_branch(tree->root, blob, "");
 }
 
+/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
+#ifdef CHECK
+/* {{{*/
+#include <check.h>
+
 static void xml_branch_dump(const xml_tag_t *root, const char *prefix)
 {
     char newprefix[30];
@@ -742,11 +747,6 @@ static void xml_branch_dump(const xml_tag_t *root, const char *prefix)
         fprintf(stderr, "%s </%s>\n", prefix, root->fullname);
     }
 }
-
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-/* {{{*/
-#include <check.h>
 
 /* OG: should include samples/simple.xml here and create temporary file
  * for test purposes
