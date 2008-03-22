@@ -94,7 +94,7 @@ void props_hash_update(props_hash_t *ph, const char *name, const char *value)
         pp = props_htbl_find(&ph->h, key);
         if (pp) {
             p_delete(&pp->value);
-            props_htbl_remove(&ph->h, pp);
+            props_htbl_ll_remove(&ph->h, pp);
         }
     }
 }
@@ -268,7 +268,7 @@ static void prop_hash_map_one(prop_t *pp, props_htbl *t,
 {
     (*fn)(getname(pp->key), &pp->value, priv);
     if (!pp->value) {
-        props_htbl_remove(t, pp);
+        props_htbl_ll_remove(t, pp);
     }
 }
 
