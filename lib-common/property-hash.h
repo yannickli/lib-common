@@ -20,7 +20,10 @@
 #include "xmlpp.h"
 
 typedef struct prop_t {
-    uintptr_t key;
+    union {
+        uintptr_t key;
+        const char *key_s;
+    };
     char *value;
 } prop_t;
 

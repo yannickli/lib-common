@@ -22,7 +22,7 @@
  * ->names is a uniquifyer: once a string entered it, it never goes out.
  *   names are lowercased to guarantee those are unique.
  *
- * ->h is a hashtbl_t whose keys are the addresses of the unique strings in
+ * ->h is a htbl whose keys are the addresses of the unique strings in
  * ->names, and whose value is the actual value.
  *
  * NOTE: This code makes the breathtaking assumption that uint64_t's are
@@ -53,11 +53,6 @@ static uint64_t getkey(const props_hash_t *ph, const char *name, bool insert)
     return (uintptr_t)s;
 }
 
-static const char *getname(uint64_t key)
-{
-    return (const char *)(uintptr_t)key;
-}
-
 /****************************************************************************/
 /* Create hashtables, update records                                        */
 /****************************************************************************/
@@ -85,7 +80,9 @@ void props_hash_update(props_hash_t *ph, const char *name, const char *value)
 
     if (value) {
         char *v = p_strdup(value);
-        pp = props_htbl_insert(&ph->h, (prop_t){ .key = key, .value = v });
+        prop_t prop = { .value = v };
+        prop.key = key;
+        pp = props_htbl_insert(&ph->h, prop);
         if (pp) {
             SWAP(char *, pp->value, v);
             p_delete(&v);
@@ -101,7 +98,7 @@ void props_hash_update(props_hash_t *ph, const char *name, const char *value)
 
 static void update_one(prop_t *p, void *to)
 {
-    props_hash_update(to, getname(p->key), p->value);
+    props_hash_update(to, p->key_s, p->value);
 }
 
 void props_hash_merge(props_hash_t *to, const props_hash_t *src)
@@ -139,7 +136,7 @@ int props_hash_findval_int(const props_hash_t *ph, const char *name, int defval)
 
 static void pack_one(prop_t *pp, void *blob)
 {
-    blob_pack(blob, "|s|s", getname(pp->key), pp->value);
+    blob_pack(blob, "|s|s", pp->key_s, pp->value);
 }
 
 void props_hash_pack(blob_t *out, const props_hash_t *ph, int terminator)
@@ -151,7 +148,7 @@ void props_hash_pack(blob_t *out, const props_hash_t *ph, int terminator)
 
 static void one_to_fmtv1(prop_t *pp, void *blob)
 {
-    blob_pack(blob, "s:s\n", getname(pp->key), pp->value);
+    blob_pack(blob, "s:s\n", pp->key_s, pp->value);
 }
 
 void props_hash_to_fmtv1(blob_t *out, const props_hash_t *ph)
@@ -162,7 +159,7 @@ void props_hash_to_fmtv1(blob_t *out, const props_hash_t *ph)
 static void one_to_conf(prop_t *pp, void *blob)
 {
     /* fixme val could have embeded \n */
-    blob_append_fmt(blob, "%s = %s\n", getname(pp->key), pp->value);
+    blob_append_fmt(blob, "%s = %s\n", pp->key_s, pp->value);
 }
 
 void props_hash_to_conf(blob_t *out, const props_hash_t *ph)
@@ -172,7 +169,7 @@ void props_hash_to_conf(blob_t *out, const props_hash_t *ph)
 
 static void one_to_xml(prop_t *pp, void *xpp)
 {
-    xmlpp_opentag(xpp, getname(pp->key));
+    xmlpp_opentag(xpp, pp->key_s);
     xmlpp_puttext(xpp, pp->value, -1);
     xmlpp_closetag(xpp);
 }
@@ -266,7 +263,7 @@ static void prop_hash_map_one(prop_t *pp, props_htbl *t,
                               void (*fn)(const char *, char **, void *),
                               void *priv)
 {
-    (*fn)(getname(pp->key), &pp->value, priv);
+    (*fn)(pp->key_s, &pp->value, priv);
     if (!pp->value) {
         props_htbl_ll_remove(t, pp);
     }
