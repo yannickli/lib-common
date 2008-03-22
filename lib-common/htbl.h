@@ -123,7 +123,7 @@ void htbl_invalidate(generic_htbl *t, int pos);
 
 #define DO_HTBL_KEY_COMMON(kind, type_t, idx_t, pfx)                         \
     DO_LL_CONTAINER(kind, type_t, idx_t, pfx,                                \
-                    pfx##_get_k, pfx##_get_k, TRUEFN)                        \
+                    pfx##_get_h, pfx##_get_k, TRUEFN)                        \
                                                                              \
     static inline type_t *                                                   \
     pfx##_##kind##_find(const pfx##_##kind *t, idx_t key) {                  \
@@ -140,21 +140,23 @@ void htbl_invalidate(generic_htbl *t, int pos);
     }
 
 #define DO_HTBL_KEY(type_t, idx_t, pfx, km)                                  \
-    static inline idx_t pfx##_get_k(type_t *e) {                             \
-        return e->km;                                                        \
-    }                                                                        \
+    static inline idx_t pfx##_get_h(type_t *e) { return e->km; }             \
+    static inline idx_t pfx##_get_k(type_t *e) { return e->km; }             \
     DO_HTBL_KEY_COMMON(htbl, type_t, idx_t, pfx)
 
 #define DO_PTR_SET(type_t, pfx)                                              \
-    static inline uintptr_t pfx##_get_k(type_t **e) {                        \
-        return (uintptr_t)(*e);                                              \
-    }                                                                        \
+    static inline uintptr_t pfx##_get_h(type_t **e) { return (uintptr_t)(*e); } \
+    static inline uintptr_t pfx##_get_k(type_t **e) { return (uintptr_t)(*e); } \
     DO_HTBL_KEY_COMMON(set, type_t *, uintptr_t, pfx)
 
+#define DO_INT_SET(type_t, pfx)                                              \
+    static inline uint64_t pfx##_get_h(type_t *e) { return *e; }             \
+    static inline type_t   pfx##_get_k(type_t *e) { return *e; }             \
+    DO_HTBL_KEY_COMMON(set, type_t, type_t, pfx)
+
 #define DO_HTBL_PKEY(type_t, idx_t, pfx, km)                                 \
-    static inline idx_t pfx##_get_k(type_t **e) {                            \
-        return (*e)->km;                                                     \
-    }                                                                        \
+    static inline idx_t pfx##_get_h(type_t **e) { return (*e)->km; }         \
+    static inline idx_t pfx##_get_k(type_t **e) { return (*e)->km; }         \
     DO_HTBL_KEY_COMMON(htbl, type_t *, idx_t, pfx);                          \
                                                                              \
     static inline type_t *pfx##_htbl_get(const pfx##_htbl *t, idx_t key) {   \
