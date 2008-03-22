@@ -31,7 +31,7 @@ void htbl_init(generic_htbl *t, int size);
 void htbl_wipe(generic_htbl *t);
 void htbl_invalidate(generic_htbl *t, int pos);
 
-#define DO_HTBL_LL(type_t, idx_t, pfx, get_h, get_key, key_equal)            \
+#define DO_HTBL_LL(type_t, idx_t, pfx, get_h, get_k, key_equal)              \
     HTBL_TYPE(type_t, pfx);                                                  \
                                                                              \
     GENERIC_INIT(pfx##_htbl, pfx##_htbl)                                     \
@@ -65,7 +65,7 @@ void htbl_invalidate(generic_htbl *t, int pos);
                 type_t *ep = t->tab + pos;                                   \
                 if (!TST_BIT(t->setbits, pos))                               \
                     return NULL;                                             \
-                if (get_h(ep) == h && key_equal(h, get_key(ep), key))        \
+                if (get_h(ep) == h && key_equal(h, get_k(ep), key))          \
                     return t->tab + pos;                                     \
             }                                                                \
         }                                                                    \
@@ -93,7 +93,7 @@ void htbl_invalidate(generic_htbl *t, int pos);
                     break;                                                   \
                 if (get_h(ep) != get_h(&e))                                  \
                     continue;                                                \
-                if (key_equal(get_h(&e), get_key(&e), get_key(ep)))          \
+                if (key_equal(get_h(&e), get_k(&e), get_k(ep)))              \
                     return t->tab + pos;                                     \
             } else if (ghost < 0) {                                          \
                 ghost = pos;                                                 \
