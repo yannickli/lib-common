@@ -146,6 +146,10 @@ const char *get_ext(const char *filename)
         }
         base++;
     }
+    /* OG: this function should not return NULL, it should return a
+     * pointer to the end of the filename if it does not have an
+     * extension.
+     */
     return lastdot;
 }
 
