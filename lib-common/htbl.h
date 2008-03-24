@@ -23,6 +23,8 @@
         unsigned *ghostbits;                                                 \
         int len, size, ghosts;                                               \
         flag_t inmap : 1;                                                    \
+        flag_t name_inline : 1;                                              \
+        short name_offs;                                                     \
     } pfx##_##kind
 
 CONTAINER_TYPE(htbl, void, generic);
@@ -32,13 +34,9 @@ void htbl_wipe(generic_htbl *t);
 void htbl_invalidate(generic_htbl *t, int pos);
 
 #define DO_LL_CONTAINER(kind, type_t, idx_t, pfx, get_h, get_k, key_equal)   \
-    CONTAINER_TYPE(kind, type_t, pfx);                                       \
-                                                                             \
-    GENERIC_INIT(pfx##_##kind, pfx##_##kind)                                 \
     static inline void pfx##_##kind##_wipe(pfx##_##kind *t) {                \
         htbl_wipe((generic_htbl *)t);                                        \
     }                                                                        \
-    GENERIC_NEW(pfx##_##kind, pfx##_##kind)                                  \
     GENERIC_DELETE(pfx##_##kind, pfx##_##kind)                               \
                                                                              \
     static inline type_t *pfx##_##kind##_ll_insert(pfx##_##kind *, type_t);  \
@@ -65,7 +63,7 @@ void htbl_invalidate(generic_htbl *t, int pos);
                 type_t *ep = t->tab + pos;                                   \
                 if (!TST_BIT(t->setbits, pos))                               \
                     return NULL;                                             \
-                if (get_h(ep) == h && key_equal(h, get_k(ep), key))          \
+                if (get_h(ep) == h && key_equal(h, get_k(t, ep), key))       \
                     return t->tab + pos;                                     \
             }                                                                \
         }                                                                    \
@@ -94,7 +92,7 @@ void htbl_invalidate(generic_htbl *t, int pos);
                     break;                                                   \
                 if (get_h(ep) != get_h(&e))                                  \
                     continue;                                                \
-                if (key_equal(get_h(&e), get_k(&e), get_k(ep)))              \
+                if (key_equal(get_h(&e), get_k(t, &e), get_k(t, ep)))        \
                     return t->tab + pos;                                     \
             } else if (ghost < 0) {                                          \
                 ghost = pos;                                                 \
@@ -122,6 +120,10 @@ void htbl_invalidate(generic_htbl *t, int pos);
     }
 
 #define DO_HTBL_KEY_COMMON(kind, type_t, idx_t, pfx)                         \
+    CONTAINER_TYPE(kind, type_t, pfx);                                       \
+                                                                             \
+    GENERIC_INIT(pfx##_##kind, pfx##_##kind)                                 \
+    GENERIC_NEW(pfx##_##kind, pfx##_##kind)                                  \
     DO_LL_CONTAINER(kind, type_t, idx_t, pfx,                                \
                     pfx##_get_h, pfx##_get_k, TRUEFN)                        \
                                                                              \
@@ -135,7 +137,7 @@ void htbl_invalidate(generic_htbl *t, int pos);
     }                                                                        \
     static inline void pfx##_##kind##_remove_elem(pfx##_##kind *t, type_t e) \
     {                                                                        \
-        idx_t key = pfx##_get_k(&e);                                         \
+        idx_t key = pfx##_get_k(t, &e);                                      \
         pfx##_##kind##_ll_remove(t, pfx##_##kind##_ll_find(t, key, key));    \
     }
 
@@ -159,22 +161,32 @@ void htbl_invalidate(generic_htbl *t, int pos);
 
 #define DO_HTBL_KEY(type_t, idx_t, pfx, km)                                  \
     static inline idx_t pfx##_get_h(type_t *e) { return e->km; }             \
-    static inline idx_t pfx##_get_k(type_t *e) { return e->km; }             \
+    static inline idx_t pfx##_get_k(const void *_u, type_t *e) {             \
+        return e->km;                                                        \
+    }                                                                        \
     DO_HTBL_KEY_COMMON(htbl, type_t, idx_t, pfx)
 
 #define DO_INT_SET(type_t, pfx)                                              \
     static inline uint64_t pfx##_get_h(type_t *e) { return *e; }             \
-    static inline type_t   pfx##_get_k(type_t *e) { return *e; }             \
+    static inline type_t   pfx##_get_k(const void *_u, type_t *e) {          \
+        return *e;                                                           \
+    }                                                                        \
     DO_HTBL_KEY_COMMON(set, type_t, type_t, pfx)
 
 #define DO_PTR_SET(type_t, pfx)                                              \
-    static inline uintptr_t pfx##_get_h(type_t **e) { return (uintptr_t)(*e); } \
-    static inline uintptr_t pfx##_get_k(type_t **e) { return (uintptr_t)(*e); } \
+    static inline uintptr_t pfx##_get_h(type_t **e) {                        \
+        return (uintptr_t)(*e);                                              \
+    }                                                                        \
+    static inline uintptr_t pfx##_get_k(const void *_u, type_t **e) {        \
+        return (uintptr_t)(*e);                                              \
+    }                                                                        \
     DO_HTBL_PKEY_COMMON(set, type_t, uintptr_t, pfx)
 
 #define DO_HTBL_PKEY(type_t, idx_t, pfx, km)                                 \
     static inline idx_t pfx##_get_h(type_t **e) { return (*e)->km; }         \
-    static inline idx_t pfx##_get_k(type_t **e) { return (*e)->km; }         \
+    static inline idx_t pfx##_get_k(const void *_u, type_t **e) {            \
+        return (*e)->km;                                                     \
+    }                                                                        \
     DO_HTBL_PKEY_COMMON(htbl, type_t, idx_t, pfx)
 
 #define HTBL_MAP(t, f, ...)                                                  \
@@ -191,24 +203,23 @@ void htbl_invalidate(generic_htbl *t, int pos);
 uint64_t htbl_hash_string(const void *s, int len);
 bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
 
-#define DO_HTBL_STROFFS(type_t, pfx, offs, inlined)                          \
+#define DO_HTBL_STR_COMMON(type_t, pfx)                                      \
     typedef struct { uint64_t h; type_t *e; } pfx##_helem_t;                 \
+    CONTAINER_TYPE(htbl, pfx##_helem_t, pfx);                                \
                                                                              \
-    static inline uint64_t pfx##_get_h(pfx##_helem_t *he) {                  \
-        return he->h;                                                        \
+    static inline uint64_t pfx##_get_h(pfx##_helem_t *he) { return he->h; }  \
+    static inline const void *                                               \
+    pfx##_get_k(const pfx##_htbl *t, pfx##_helem_t *he) {                    \
+        void *p = (char *)he->e + t->name_offs;                              \
+        return t->name_inline ? p : *(const void **)p;                       \
     }                                                                        \
-    static inline const void *pfx##_get_k(pfx##_helem_t *he) {               \
-        void *p = (char *)he->e + offs;                                      \
-        return inlined ? p : *(const void **)p;                              \
-    }                                                                        \
-                                                                             \
     DO_LL_CONTAINER(htbl, pfx##_helem_t, const void *, pfx,                  \
                     pfx##_get_h, pfx##_get_k, htbl_keyequal);                \
                                                                              \
     static inline type_t **                                                  \
     pfx##_htbl_insert(pfx##_htbl *t, type_t *e, int klen) {                  \
         pfx##_helem_t *res, he = { .e = e };                                 \
-        he.h = htbl_hash_string(pfx##_get_k(&he), klen);                     \
+        he.h = htbl_hash_string(pfx##_get_k(t, &he), klen);                  \
         res = pfx##_htbl_ll_insert(t, he);                                   \
         return res ? &res->e : NULL;                                         \
     }                                                                        \
@@ -251,8 +262,39 @@ bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
         return pfx##_htbl_take(t, key, -1);                                  \
     }
 
+
+#define DO_HTBL_STROFFS(type_t, pfx, offs, inlined)                          \
+    DO_HTBL_STR_COMMON(type_t, pfx);                                         \
+    static inline pfx##_htbl *pfx##_##htbl_init(pfx##_htbl *t) {             \
+        p_clear(t, 1);                                                       \
+        t->name_inline = inlined;                                            \
+        t->name_offs   = offs;                                               \
+        return t;                                                            \
+    }                                                                        \
+    GENERIC_NEW(pfx##_htbl, pfx##_htbl)
+
 #define DO_HTBL_STR(type_t, pfx, member, inlined)                            \
     DO_HTBL_STROFFS(type_t, pfx, offsetof(type_t, member), inlined)
+
+#define DO_HTBL_FIELDOFFS(type_t, pfx)                                       \
+    DO_HTBL_STR_COMMON(type_t, pfx);                                         \
+    static inline pfx##_htbl *                                               \
+    pfx##_htbl_init_field(pfx##_htbl *t, int foff, bool inlined) {           \
+        p_clear(t, 1);                                                       \
+        t->name_offs   = foff;                                               \
+        t->name_inline = inlined;                                            \
+        return t;                                                            \
+    }                                                                        \
+
+#define DO_HTBL_FIELDINIT(type, pfx, sfx, field, inlined)                    \
+    static inline pfx##_htbl *pfx##_htbl_##sfx##_init(pfx##_htbl *t) {       \
+        p_clear(t, 1);                                                       \
+        t->name_offs   = offsetof(type, field);                              \
+        t->name_inline = inlined;                                            \
+        return t;                                                            \
+    }                                                                        \
+    GENERIC_NEW(pfx##_htbl, pfx##_htbl_##sfx)
+
 
 #define HTBL_STR_MAP(t, f, ...)                                              \
     do {                                                                     \
