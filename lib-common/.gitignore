@@ -7,7 +7,6 @@
 /tst-btree
 /tst-cfgparser
 /tst-hash
-/tst-hashtbl
 /tst-iprintf
 /tst-iprintf-fp
 /tst-iprintf-glibc

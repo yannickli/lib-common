@@ -19,7 +19,7 @@ __EXE__   = btree-dump tst-cfgparser tst-tpl tst-stats
 __LIB__   = libcommon time-lp-simple
 __CHECK__ = test tst-blob-iconv tst-domains_list
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-hash
-__CHECK__ += tst-iprintf-speed tst-hashtbl
+__CHECK__ += tst-iprintf-speed
 ifdef CHECK_ALL
   # These tests are just too long to be part of "make check". Sorry.
   __CHECK__ += tst-btree tst-isndx tst-sort
@@ -41,7 +41,6 @@ libcommon_SOURCES = \
 	farch.c \
 	fifo.c \
 	htbl.c \
-	hashtbl.c \
 	iprintf.c \
 	isndx.c \
 	licence.c \
@@ -131,7 +130,6 @@ tst-iprintf-speed_SOURCES = tst-iprintf-speed.c libcommon.a
 tst-iprintf-speed_CFLAGS = -UCHECK
 
 tst-stats_SOURCES = tst-stats.c libcommon.a
-tst-hashtbl_SOURCES = err_debug.c err_report.c tst-hashtbl.c
 
 tst-domains_list_SOURCES = domains_list.c libcommon.a
 tst-domains_list_CFLAGS = -DSTANDALONE
