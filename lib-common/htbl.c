@@ -38,7 +38,7 @@ void htbl_invalidate(generic_htbl *t, int pos)
         t->len--;
         RST_BIT(t->setbits, pos);
     }
-    if (!TST_BIT(t->ghostbits, next) && !TST_BIT(t->ghostbits, next)) {
+    if (!TST_BIT(t->setbits, next) && !TST_BIT(t->ghostbits, next)) {
         for (;;) {
             if (pos-- == 0)
                 pos = t->size - 1;
