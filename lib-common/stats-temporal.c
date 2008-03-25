@@ -1053,6 +1053,8 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
             continue;
 
         switch (fmt) {
+            bool first;
+
           case STATS_FMT_TXT:
             blob_append_fmt(blob, "%d", (i - (freq - 1)) * st->scale);
             for (int k = 0; k < nb_stats; k++) {
@@ -1068,14 +1070,16 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
           case STATS_FMT_XML:
             blob_append_fmt(blob, "<elem time=\"%d\" ",
                             (i - (freq - 1)) * st->scale);
-            for (int k = 0, n = 0; k < nb_stats; k++) {
+            first = true;
+            for (int k = 0; k < nb_stats; k++) {
                 if (mask && !bfield_isset(mask, k))
                     continue;
-                if (n++) {
-                    blob_append_fmt(blob, "val%d=\"%e\" ", n,
-                                    accu[k] / (j * st->scale));
-                } else {
+                if (first) {
                     blob_append_fmt(blob, "val=\"%e\" ",
+                                    accu[k] / (j * st->scale));
+                    first = false;
+                } else {
+                    blob_append_fmt(blob, "val%d=\"%e\" ", k,
                                     accu[k] / (j * st->scale));
                 }
             }
