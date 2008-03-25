@@ -194,9 +194,8 @@ void htbl_invalidate(generic_htbl *t, int pos);
         assert (!(t)->inmap);                                                \
         (t)->inmap = true;                                                   \
         for (int var##_i = (t)->size - 1; var##_i >= 0; var##_i--) {         \
-            if (!TST_BIT((t)->setbits, var##_i))                             \
-                continue;                                                    \
-            f((t)->tab + var##_i, ##__VA_ARGS__);                            \
+            if (TST_BIT((t)->setbits, var##_i))                              \
+                 f((t)->tab + var##_i, ##__VA_ARGS__);                       \
         }                                                                    \
         (t)->inmap = false;                                                  \
     } while (0)
@@ -301,9 +300,8 @@ bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
     do {                                                                     \
         (t)->inmap = true;                                                   \
         for (int var##_i = (t)->size - 1; var##_i >= 0; var##_i--) {         \
-            if (!TST_BIT((t)->setbits, var##_i))                             \
-                continue;                                                    \
-            f(&(t)->tab[var##_i].e, ##__VA_ARGS__);                          \
+            if (TST_BIT((t)->setbits, var##_i))                              \
+                f(&(t)->tab[var##_i].e, ##__VA_ARGS__);                      \
         }                                                                    \
         (t)->inmap = false;                                                  \
     } while (0)

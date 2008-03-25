@@ -35,21 +35,18 @@ void htbl_invalidate(generic_htbl *t, int pos)
     int next = pos + 1 == t->size ? 0 : pos + 1;
 
     if (TST_BIT(t->setbits, pos)) {
-        t->len--;
         RST_BIT(t->setbits, pos);
-    }
-    if (!TST_BIT(t->setbits, next) && !TST_BIT(t->ghostbits, next)) {
-        for (;;) {
-            if (pos-- == 0)
-                pos = t->size - 1;
-            if (!TST_BIT(t->ghostbits, pos))
-                return;
-            RST_BIT(t->ghostbits, pos);
-            t->ghosts--;
-        }
-    } else {
+        t->len--;
         SET_BIT(t->ghostbits, pos);
         t->ghosts++;
+    }
+    if (TST_BIT(t->setbits, next) || TST_BIT(t->ghostbits, next))
+        return;
+    while (TST_BIT(t->ghostbits, pos)) {
+        RST_BIT(t->ghostbits, pos);
+        t->ghosts--;
+        if (pos-- == 0)
+            pos = t->size - 1;
     }
 }
 
