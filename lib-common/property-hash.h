@@ -22,7 +22,7 @@
 typedef struct prop_t {
     union {
         uintptr_t key;
-        const char *key_s;
+        const char *name;
     };
     char *value;
 } prop_t;
@@ -59,15 +59,10 @@ void props_hash_wipe(props_hash_t *ph);
 GENERIC_DELETE(props_hash_t, props_hash);
 
 void props_hash_update(props_hash_t *ph, const char *name, const char *value);
+void props_hash_remove(props_hash_t *ph, const char *name);
 void props_hash_merge(props_hash_t *, const props_hash_t *);
-static inline void props_hash_remove(props_hash_t *ph, const char *name)
-{
-    props_hash_update(ph, name, NULL);
-}
 
-/* XXX implemented in hastbl.c */
-void props_hash_map(props_hash_t *,
-                    void (*fn)(const char *, char **, void *), void *);
+#define PROPS_HASH_MAP(ph, f, ...)   HTBL_MAP(&(ph)->h, f, ##__VA_ARGS__)
 
 /****************************************************************************/
 /* Search in props_hashes                                                   */

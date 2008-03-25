@@ -96,9 +96,14 @@ void props_hash_update(props_hash_t *ph, const char *name, const char *value)
     }
 }
 
+void props_hash_remove(props_hash_t *ph, const char *name)
+{
+    props_hash_update(ph, name, NULL);
+}
+
 static void update_one(prop_t *p, void *to)
 {
-    props_hash_update(to, p->key_s, p->value);
+    props_hash_update(to, p->name, p->value);
 }
 
 void props_hash_merge(props_hash_t *to, const props_hash_t *src)
@@ -136,7 +141,7 @@ int props_hash_findval_int(const props_hash_t *ph, const char *name, int defval)
 
 static void pack_one(prop_t *pp, void *blob)
 {
-    blob_pack(blob, "|s|s", pp->key_s, pp->value);
+    blob_pack(blob, "|s|s", pp->name, pp->value);
 }
 
 void props_hash_pack(blob_t *out, const props_hash_t *ph, int terminator)
@@ -148,7 +153,7 @@ void props_hash_pack(blob_t *out, const props_hash_t *ph, int terminator)
 
 static void one_to_fmtv1(prop_t *pp, void *blob)
 {
-    blob_pack(blob, "s:s\n", pp->key_s, pp->value);
+    blob_pack(blob, "s:s\n", pp->name, pp->value);
 }
 
 void props_hash_to_fmtv1(blob_t *out, const props_hash_t *ph)
@@ -159,7 +164,7 @@ void props_hash_to_fmtv1(blob_t *out, const props_hash_t *ph)
 static void one_to_conf(prop_t *pp, void *blob)
 {
     /* fixme val could have embeded \n */
-    blob_append_fmt(blob, "%s = %s\n", pp->key_s, pp->value);
+    blob_append_fmt(blob, "%s = %s\n", pp->name, pp->value);
 }
 
 void props_hash_to_conf(blob_t *out, const props_hash_t *ph)
@@ -169,7 +174,7 @@ void props_hash_to_conf(blob_t *out, const props_hash_t *ph)
 
 static void one_to_xml(prop_t *pp, void *xpp)
 {
-    xmlpp_opentag(xpp, pp->key_s);
+    xmlpp_opentag(xpp, pp->name);
     xmlpp_puttext(xpp, pp->value, -1);
     xmlpp_closetag(xpp);
 }
@@ -257,22 +262,4 @@ int props_hash_from_fmtv1(props_hash_t *ph, const blob_t *payload)
     blob_wipe(&key);
     blob_wipe(&val);
     return 0;
-}
-
-static void prop_hash_map_one(prop_t *pp, props_htbl *t,
-                              void (*fn)(const char *, char **, void *),
-                              void *priv)
-{
-    (*fn)(pp->key_s, &pp->value, priv);
-    if (!pp->value) {
-        props_htbl_ll_remove(t, pp);
-    }
-}
-
-void props_hash_map(props_hash_t *ph,
-                    void (*fn)(const char *, char **, void *), void *priv)
-{
-    HTBL_MAP(&ph->h, prop_hash_map_one, &ph->h, fn, priv);
-    if (4 * p_alloc_nr(ph->h.len) < ph->h.size)
-        props_htbl_resize(&ph->h, 2 * p_alloc_nr(ph->h.len));
 }

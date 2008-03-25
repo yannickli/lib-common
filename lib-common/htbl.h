@@ -191,6 +191,7 @@ void htbl_invalidate(generic_htbl *t, int pos);
 
 #define HTBL_MAP(t, f, ...)                                                  \
     do {                                                                     \
+        assert (!(t)->inmap);                                                \
         (t)->inmap = true;                                                   \
         for (int var##_i = (t)->size - 1; var##_i >= 0; var##_i--) {         \
             if (!TST_BIT((t)->setbits, var##_i))                             \
