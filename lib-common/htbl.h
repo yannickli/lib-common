@@ -307,6 +307,7 @@ bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
     } while (0)
 
 DO_HTBL_STROFFS(char, string, 0, true);
+DO_HTBL_STROFFS(const char, cstring, 0, true);
 static inline void string_htbl_deep_wipe(string_htbl *t) {
     HTBL_STR_MAP(t, p_delete);
     string_htbl_wipe(t);
