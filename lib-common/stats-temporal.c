@@ -1071,11 +1071,11 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
             for (int k = 0, n = 0; k < nb_stats; k++) {
                 if (mask && !bfield_isset(mask, k))
                     continue;
-                if (n) {
-                    blob_append_fmt(blob, "val=\"%e\" ",
+                if (n++) {
+                    blob_append_fmt(blob, "val%d=\"%e\" ", n,
                                     accu[k] / (j * st->scale));
                 } else {
-                    blob_append_fmt(blob, "val%d=\"%e\" ", n,
+                    blob_append_fmt(blob, "val=\"%e\" ",
                                     accu[k] / (j * st->scale));
                 }
             }
