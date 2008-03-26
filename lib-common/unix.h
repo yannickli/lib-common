@@ -48,6 +48,7 @@ int filecopy(const char *pathin, const char *pathout);
 int p_lockf(int fd, int mode, int cmd, off_t start, off_t len);
 
 int tmpfd(void);
+void devnull_dup(int fd);
 
 /****************************************************************************/
 /* file descriptor related                                                  */

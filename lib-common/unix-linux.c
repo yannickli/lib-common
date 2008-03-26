@@ -95,18 +95,10 @@ void unix_initialize(void)
     }
 
     if (!is_fd_open(STDIN_FILENO)) {
-        int fd = open("/dev/null", O_RDONLY);
-        if (fd != STDIN_FILENO) {
-            dup2(fd, STDIN_FILENO);
-            close(fd);
-        }
+        devnull_dup(STDIN_FILENO);
     }
     if (!is_fd_open(STDOUT_FILENO)) {
-        int fd = open("/dev/null", O_WRONLY);
-        if (fd != STDOUT_FILENO) {
-            dup2(fd, STDOUT_FILENO);
-            close(fd);
-        }
+        devnull_dup(STDOUT_FILENO);
     }
     if (!is_fd_open(STDERR_FILENO)) {
         dup2(STDOUT_FILENO, STDERR_FILENO);

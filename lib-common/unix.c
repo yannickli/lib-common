@@ -340,6 +340,19 @@ bool is_fd_open(int fd)
     return fcntl(fd, F_GETFD) != -1 || errno != EBADF;
 }
 
+void devnull_dup(int fd)
+{
+    int nullfd;
+    close(fd);
+
+    nullfd = open("/dev/null", O_RDWR);
+    assert (nullfd >= 0);
+    if (fd != nullfd) {
+        dup2(nullfd, fd);
+        close(nullfd);
+    }
+}
+
 #ifndef LINUX
 int close_fds_higher_than(int fd)
 {
