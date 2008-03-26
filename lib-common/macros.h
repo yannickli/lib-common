@@ -154,9 +154,10 @@ static inline uint16_t ntohs(be16_t x) {
 }
 #endif
 
+/* OG: should find a better name such as BITSIZEOF(type) */
 #define TYPE_BIT(type_t)    (sizeof(type_t) * CHAR_BIT)
 #define BITS_TO_ARRAY_LEN(type_t, nbits)  \
-    ((nbits + TYPE_BIT(type_t) - 1) / TYPE_BIT(type_t))
+    (((nbits) + TYPE_BIT(type_t) - 1) / TYPE_BIT(type_t))
 
 #define OP_BIT(bits, n, shift, op) \
     ((bits)[(unsigned)(n) / (shift)] op (1 << ((n) & ((shift) - 1))))
