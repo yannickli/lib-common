@@ -14,10 +14,10 @@
 #include "hash.h"
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-#define get16bits(d) (*((const uint16_t *) (d)))
+#define get16bits(d)  (*((const uint16_t *)(d)))
 #else
-#define get16bits(d) ((((uint32_t)(((const uint8_t *)(d))[1])) << 8)\
-                       |(uint32_t)(((const uint8_t *)(d))[0]) )
+#define get16bits(d)  (((uint32_t)(((const uint8_t *)(d))[1]) << 8) \
+                      | (uint32_t)(((const uint8_t *)(d))[0])       )
 #endif
 
 uint32_t hsieh_hash(const void *_data, int len)
@@ -36,7 +36,7 @@ uint32_t hsieh_hash(const void *_data, int len)
     /* Main loop */
     for (; len > 0; len--, data += 4) {
         hash  += get16bits(data);
-        tmp    = (get16bits(data+2) << 11) ^ hash;
+        tmp    = (get16bits(data + 2) << 11) ^ hash;
         hash   = (hash << 16) ^ tmp;
         hash  += hash >> 11;
     }
@@ -58,6 +58,7 @@ uint32_t hsieh_hash(const void *_data, int len)
         hash += *data;
         hash ^= hash << 10;
         hash += hash >> 1;
+        break;
     }
 
     /* Force "avalanching" of final 127 bits */
