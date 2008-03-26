@@ -192,13 +192,14 @@ void htbl_invalidate(generic_htbl *t, int pos);
     DO_HTBL_PKEY_COMMON(htbl, type_t, idx_t,                                 \
                         pfx##_htbl_get_h, pfx##_htbl_get_k, pfx)
 
+/* you can use htbl_ll_remove's in HTBL_MAP's */
 #define HTBL_MAP(t, f, ...)                                                  \
     do {                                                                     \
         assert (!(t)->inmap);                                                \
         (t)->inmap = true;                                                   \
         for (int var##_i = 0; var##_i < (t)->size; var##_i++) {              \
             if (TST_BIT((t)->setbits, var##_i))                              \
-                 f((t)->tab + var##_i, ##__VA_ARGS__);                     \
+                 f((t)->tab + var##_i, ##__VA_ARGS__);                       \
         }                                                                    \
         (t)->inmap = false;                                                  \
     } while (0)
@@ -298,13 +299,13 @@ bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
     }                                                                        \
     GENERIC_NEW(pfx##_htbl, pfx##_htbl_##sfx)
 
-
+/* you can use htbl_ll_remove's in HTBL_STR_MAP's */
 #define HTBL_STR_MAP(t, f, ...)                                              \
     do {                                                                     \
         (t)->inmap = true;                                                   \
         for (int var##_i = 0; var##_i < (t)->size; var##_i++) {              \
             if (TST_BIT((t)->setbits, var##_i))                              \
-                f(&(t)->tab[var##_i].e, ##__VA_ARGS__);                    \
+                f(&(t)->tab[var##_i].e, ##__VA_ARGS__);                      \
         }                                                                    \
         (t)->inmap = false;                                                  \
     } while (0)

@@ -927,8 +927,7 @@ static int find_pretty_freq(int f)
     }
     if (f <= 3600 * 24) {
         for (int i = 1; i < countof(pretty_60th); i++) {
-            /* OG: most likely bogus! or comment needed */
-            if (f <= pretty_24th[i])
+            if (f <= 3600 * pretty_24th[i])
                 return 3600 * pretty_24th[i];
         }
     }
