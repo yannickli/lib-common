@@ -927,6 +927,7 @@ static int find_pretty_freq(int f)
     }
     if (f <= 3600 * 24) {
         for (int i = 1; i < countof(pretty_60th); i++) {
+            /* OG: most likely bogus! or comment needed */
             if (f <= pretty_24th[i])
                 return 3600 * pretty_24th[i];
         }
@@ -1074,6 +1075,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
             for (int k = 0; k < nb_stats; k++) {
                 if (mask && !bfield_isset(mask, k))
                     continue;
+                /* OG: this may produce val, val3, val18... */
                 if (first) {
                     blob_append_fmt(blob, "val=\"%e\" ",
                                     accu[k] / (j * st->scale));
