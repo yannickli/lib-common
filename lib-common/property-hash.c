@@ -119,8 +119,9 @@ void props_hash_merge(props_hash_t *to, const props_hash_t *src)
 const char *props_hash_findval(const props_hash_t *ph, const char *name, const char *def)
 {
     uint64_t key = getkey(ph, name, false);
-    prop_t  *pp  = props_htbl_find(&ph->h, key);
-    return key && pp ? pp->value : def;
+    prop_t  *pp = props_htbl_find(&ph->h, key);
+
+    return (key && pp) ? pp->value : def;
 }
 
 int props_hash_findval_int(const props_hash_t *ph, const char *name, int defval)
