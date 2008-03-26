@@ -347,6 +347,7 @@ bool is_fd_open(int fd)
 void devnull_dup(int fd)
 {
     int nullfd;
+
     close(fd);
 
     nullfd = open("/dev/null", O_RDWR);
