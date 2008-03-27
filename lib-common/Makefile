@@ -16,6 +16,7 @@ include $(DEPTH)/admin/header.mk
 include $(DEPTH)/admin/tokyocabinet.mk
 
 __EXE__   = btree-dump tst-cfgparser tst-tpl tst-stats tst-htbl
+__EXE__   += tst-statsdump
 __LIB__   = libcommon time-lp-simple
 __CHECK__ = test tst-blob-iconv tst-domains_list
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-hash
@@ -107,6 +108,7 @@ tst-cfgparser_SOURCES = tst-cfgparser.c libcommon.a
 
 tst-tpl_SOURCES = tst-tpl.c libcommon.a
 
+tst-statsdump_SOURCES = tst-statsdump.c libcommon.a
 tst-blob-iconv_SOURCES = \
 	tst-blob-iconv.c \
 	libcommon.a
