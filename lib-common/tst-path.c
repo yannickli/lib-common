@@ -52,5 +52,9 @@ int main(void)
     path_simplify(in);
     assert (strequal(in, "../.."));
 
+    pstrcpy(in, sizeof(in), "a/../../b/../c");
+    path_simplify(in);
+    assert (strequal(in, "../c"));
+
     return 0;
 }

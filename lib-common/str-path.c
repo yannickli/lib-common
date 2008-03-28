@@ -129,8 +129,9 @@ int path_join(char *buf, int len, const char *path)
  */
 int path_simplify(char *in)
 {
-    bool absolute = *in == '/', concat_dots = false;
+    bool absolute = *in == '/';
     char *start = in + absolute, *out = in + absolute;
+    int atoms = 0;
 
     if (!*in)
         return -1;
@@ -151,16 +152,16 @@ int path_simplify(char *in)
                 continue;
             }
             if (in[1] == '.' && (!in[2] || in[2] == '/')) {
-                if (concat_dots)
-                    *out++ = '/';
-                if (concat_dots || out == start) {
-                    if (!absolute) {
-                        *out++ = '.';
-                        *out++ = '.';
-                        concat_dots = true;
-                    }
-                } else {
+                if (atoms) {
+                    atoms--;
                     while (out > start && *--out != '/');
+                } else {
+                    if (!absolute) {
+                        if (out > start)
+                            *out++ = '/';
+                        *out++ = '.';
+                        *out++ = '.';
+                    }
                 }
                 in += 2;
                 continue;
@@ -173,6 +174,7 @@ int path_simplify(char *in)
             /* FALLTHROUGH */
 
           case '\0':
+            atoms++;
             while (*in != '/') {
                 if (!*in) {
                     start -= absolute;
