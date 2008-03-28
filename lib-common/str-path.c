@@ -178,5 +178,5 @@ int path_canonify(char *buf, int len, const char *path)
     out = realpath(path, out);
     if (out && len < PATH_MAX)
         pstrcpy(buf, len, out);
-    return out ? 0 : -1;
+    return out ? sstrlen(out) : -1;
 }
