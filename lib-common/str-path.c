@@ -103,3 +103,22 @@ int path_basename(char *buf, int len, const char *path)
         path = p;
     }
 }
+
+/****************************************************************************/
+/* path manipulations                                                       */
+/****************************************************************************/
+
+int path_join(char *buf, int len, const char *path)
+{
+    int pos = strlen(buf);
+
+    if (!*path)
+        return pos;
+    while (pos > 0 && buf[pos - 1] == '/')
+        buf[--pos] = '\0';
+    while (*path == '/')
+        path++;
+    pos += pstrcpy(buf + pos, len - pos, "/");
+    pos += pstrcpy(buf + pos, len - pos, path);
+    return pos;
+}

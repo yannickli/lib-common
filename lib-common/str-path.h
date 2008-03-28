@@ -39,5 +39,8 @@ static inline char *vpath_ext(char *path) {
 int path_dirname(char *buf, int len, const char *path);
 int path_basename(char *buf, int len, const char *path);
 
+/*----- path manipulations -----*/
+
+int path_join(char *buf, int len, const char *path);
 
 #endif /* IS_LIB_COMMON_STR_PATH_H */
