@@ -14,8 +14,8 @@
 #include <dirent.h>
 #include <glob.h>
 
-#include "unix.h"
 #include "str.h"
+#include "str-path.h"
 #include "file-log.h"
 
 /* log file names should depend on rotation scheme: slower rotation

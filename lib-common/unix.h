@@ -30,18 +30,7 @@ int pid_get_starttime(pid_t pid, struct timeval *tv);
 
 int mkdir_p(const char *dir, mode_t mode);
 
-const char *get_basename(const char *filename);
-ssize_t get_dirname(char *dir, ssize_t size, const char *filename);
-const char *get_ext(const char *filename);
 int get_mtime(const char *filename, time_t *t);
-
-static inline char *vget_basename(char *path) {
-    return (char*)get_basename(path);
-}
-
-static inline char *vget_ext(char *path) {
-    return (char*)get_ext(path);
-}
 
 int filecopy(const char *pathin, const char *pathout);
 

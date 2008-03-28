@@ -89,6 +89,7 @@ libcommon_SOURCES = \
 	\
 	str.c \
 	str-conv.c \
+	str-path.c \
 	\
 	tpl.c \
 	tpl-funcs.c \

@@ -58,6 +58,7 @@
 #include "stopper.h"
 #include "str.h"
 #include "str-conv.h"
+#include "str-path.h"
 #include "threading.h"
 #include "time.h"
 #include "tpl.h"
