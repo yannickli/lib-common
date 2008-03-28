@@ -18,7 +18,7 @@ include $(DEPTH)/admin/tokyocabinet.mk
 __EXE__   = btree-dump tst-cfgparser tst-tpl tst-stats tst-htbl
 __EXE__   += tst-statsdump
 __LIB__   = libcommon time-lp-simple
-__CHECK__ = test tst-blob-iconv tst-domains_list
+__CHECK__ = test tst-blob-iconv tst-domains_list tst-path
 __CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-hash
 __CHECK__ += tst-iprintf-speed
 ifdef CHECK_ALL
@@ -135,6 +135,7 @@ tst-iprintf-speed_CFLAGS = -UCHECK
 
 tst-stats_SOURCES = tst-stats.c libcommon.a
 tst-htbl_SOURCES = tst-htbl.c libcommon.a
+tst-path_SOURCES = tst-path.c libcommon.a
 
 tst-domains_list_SOURCES = domains_list.c libcommon.a
 tst-domains_list_CFLAGS = -DSTANDALONE

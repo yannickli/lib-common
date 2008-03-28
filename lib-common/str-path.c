@@ -119,3 +119,54 @@ int path_join(char *buf, int len, const char *path)
     pos += pstrcpy(buf + pos, len - pos, path);
     return pos;
 }
+
+/*
+ * ^/../   -> ^/
+ * /+      -> /
+ * /(./)+  -> /
+ * aaa/../ -> /
+ * //+$    -> $
+ */
+void path_simplify(char *in)
+{
+    const int absolute = *in == '/';
+    char *start = in + absolute, *out = in + absolute;
+
+    for (;;) {
+        switch (*in) {
+          case '/':
+            in++;
+            break;
+
+          case '.':
+            if (in[1] == '/') {
+                in += 2;
+                continue;
+            }
+            if (in[1] == '.' && (!in[2] || in[2] == '/')) {
+                if (out == start) {
+                    if (!absolute) {
+                        *out++ = '.';
+                        *out++ = '.';
+                    }
+                } else {
+                    while (out > start && *--out != '/');
+                }
+                in += 2;
+                continue;
+            }
+            /* FALLTHROUGH */
+
+          default:
+            if (out > start && out[-1] != '/')
+                *out++ = '/';
+            /* FALLTHROUGH */
+
+          case '\0':
+            while (*in != '/') {
+                if (!(*out++ = *in++))
+                    return;
+            }
+        }
+    }
+}
