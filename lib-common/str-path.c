@@ -111,11 +111,10 @@ int path_basename(char *buf, int len, const char *path)
 int path_join(char *buf, int len, const char *path)
 {
     int pos = strlen(buf);
+    int min = buf[0] == '/' && buf[1] == '/';
 
-    if (!*path)
-        return pos;
-    while (pos > 0 && buf[pos - 1] == '/')
-        buf[--pos] = '\0';
+    while (pos > min && buf[pos - 1] == '/')
+        --pos;
     while (*path == '/')
         path++;
     pos += pstrcpy(buf + pos, len - pos, "/");
