@@ -87,7 +87,7 @@ int path_dirname(char *buf, int len, const char *path)
     if (end > path)
         return pstrcpylen(buf, len, path, end - path);
     if (*path == '/')
-        return pstrcpy(buf, len, path[1] == '/' ? "//" : "/");
+        return pstrcpy(buf, len, "/");
     return pstrcpy(buf, len, ".");
 }
 
@@ -111,9 +111,7 @@ int path_basename(char *buf, int len, const char *path)
 int path_join(char *buf, int len, const char *path)
 {
     int pos = strlen(buf);
-    int min = buf[0] == '/' && buf[1] == '/';
-
-    while (pos > min && buf[pos - 1] == '/')
+    while (pos > 0 && buf[pos - 1] == '/')
         --pos;
     while (*path == '/')
         path++;
