@@ -108,7 +108,7 @@ static time_t log_last_date(log_file_t *log_file)
 log_file_t *log_file_open(const char *nametpl, int flags)
 {
     log_file_t *log_file;
-    const char *ext = get_ext(nametpl);
+    const char *ext = path_ext(nametpl);
     int len = strlen(nametpl);
 
     log_file = p_new(log_file_t, 1);

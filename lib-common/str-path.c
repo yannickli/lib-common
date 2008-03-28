@@ -13,75 +13,93 @@
 
 #include "str-path.h"
 
+/****************************************************************************/
+/* simple file name splits                                                  */
+/****************************************************************************/
+
 /* MX: XXX: does not work like the usual libgen `basename`
  *
  * basename("foo////") == "foo" the rightmost '/' are not significant
  * basename("////") == "/"
- *
- * we need to pass a buffer here too.
- * or better, rename these to get_filepart, get_dirpart...
  */
-const char *get_basename(const char *filename)
+const char *path_filepart(const char *filename)
 {
     const char *base = filename;
-
-    while (*filename) {
-        if (*filename == '/') {
-            base = filename + 1;
-        }
-        filename++;
+    for (;;) {
+        filename = pstrchrnul(filename, '/');
+        if (!*filename)
+            return base;
+        base = ++filename;
     }
-    return base;
 }
 
-ssize_t get_dirname(char *dir, ssize_t size, const char *filename)
+ssize_t path_dirpart(char *dir, ssize_t size, const char *filename)
 {
-/* MC: FIXME: does not work for filename == ""
- *            or filename == "<anything without slashes>"
- *            where it should return "."
- *
- * I propose the following implementation:
- */
-#if 0
-    ssize_t len = sstrlen(filename);
-
-    while (len > 0 && filename[len - 1] == '/')
-        len--;
-
-    while (len > 0 && filename[len - 1] != '/')
-        len--;
-
-    while (len > 0 && filename[len - 1] == '/')
-        len--;
-
-    if (len)
-        return pstrcpylen(dir, size, filename, len);
-
-    if (*filename == '/')
-        return pstrcpy(dst, dlen, "/");
-    return pstrcpy(dst, dlen, ".");
-#else
-    return pstrcpylen(dir, size, filename, get_basename(filename) - filename);
-#endif
+    return pstrcpylen(dir, size, filename, path_filepart(filename) - filename);
 }
 
-const char *get_ext(const char *filename)
+const char *path_ext(const char *filename)
 {
-    const char *base = get_basename(filename);
+    const char *base = path_filepart(filename);
     const char *lastdot = NULL;
 
     while (*base == '.') {
         base++;
     }
-    while (*base) {
-        if (*base == '.') {
-            lastdot = base;
-        }
+    for (;;) {
+        base = pstrchrnul(base, '.');
+        if (!*base)
+            return lastdot;
+        lastdot = base++;
+    }
+}
+
+const char *path_extnul(const char *filename)
+{
+    const char *base = path_filepart(filename);
+    const char *lastdot = NULL;
+
+    while (*base == '.') {
         base++;
     }
-    /* OG: this function should not return NULL, it should return a
-     * pointer to the end of the filename if it does not have an
-     * extension.
-     */
-    return lastdot;
+    for (;;) {
+        base = pstrchrnul(base, '.');
+        if (!*base)
+            return lastdot ? lastdot : base;
+        lastdot = base++;
+    }
+}
+
+/****************************************************************************/
+/* libgen like functions                                                    */
+/****************************************************************************/
+
+int path_dirname(char *buf, int len, const char *path)
+{
+    const char *end = path + strlen(path);
+
+    while (end > path && end[-1] == '/')
+        --end;
+    while (end > path && end[-1] != '/')
+        --end;
+    while (end > path && end[-1] == '/')
+        --end;
+    if (end > path)
+        return pstrcpylen(buf, len, path, end - path);
+    if (*path == '/')
+        return pstrcpy(buf, len, path[1] == '/' ? "//" : "/");
+    return pstrcpy(buf, len, ".");
+}
+
+int path_basename(char *buf, int len, const char *path)
+{
+    for (;;) {
+        const char *end = pstrchrnul(path, '/');
+        const char *p = end;
+        while (*p == '/')
+            p++;
+        if (!*p)
+            return pstrcpylen(buf, len, path, end - path);
+        path = p;
+    }
 }

@@ -16,16 +16,28 @@
 
 #include "str.h"
 
-const char *get_basename(const char *filename);
-ssize_t get_dirname(char *dir, ssize_t size, const char *filename);
-const char *get_ext(const char *filename);
+/*----- simple file name splits -----*/
 
-static inline char *vget_basename(char *path) {
-    return (char*)get_basename(path);
+ssize_t path_dirpart(char *dir, ssize_t size, const char *filename);
+
+__attribute__((nonnull)) const char *path_filepart(const char *filename);
+__attribute__((nonnull)) static inline char *vpath_filepart(char *path) {
+    return (char*)path_filepart(path);
 }
 
-static inline char *vget_ext(char *path) {
-    return (char*)get_ext(path);
+__attribute__((nonnull)) const char *path_extnul(const char *filename);
+__attribute__((nonnull)) static inline char *vpath_extnul(char *path) {
+    return (char*)path_extnul(path);
 }
+const char *path_ext(const char *filename);
+static inline char *vpath_ext(char *path) {
+    return (char*)path_ext(path);
+}
+
+/*----- libgen like functions -----*/
+
+int path_dirname(char *buf, int len, const char *path);
+int path_basename(char *buf, int len, const char *path);
+
 
 #endif /* IS_LIB_COMMON_STR_PATH_H */
