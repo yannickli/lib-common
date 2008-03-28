@@ -18,7 +18,7 @@
 #endif
 
 #include "macros.h"
-#include "strconv.h"
+#include "str-conv.h"
 #include "blob.h"
 
 /*---------------- IRA Conversion ----------------*/

@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_STRCONV_H
-#define IS_LIB_COMMON_STRCONV_H
+#ifndef IS_LIB_COMMON_STR_CONV_H
+#define IS_LIB_COMMON_STR_CONV_H
 
 #include "macros.h"
 
@@ -54,4 +54,4 @@ Suite *check_make_strconv_suite(void);
 #endif
 /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
 
-#endif /* IS_LIB_COMMON_STRCONV_H */
+#endif /* IS_LIB_COMMON_STR_CONV_H */

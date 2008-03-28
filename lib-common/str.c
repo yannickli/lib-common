@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "string_is.h"
+#include "str.h"
 
 int strtoip(const char *s, const char **endp)
 {
@@ -1594,7 +1594,7 @@ START_TEST(check_purldecode)
 }
 END_TEST
 
-Suite *check_string_is_suite(void)
+Suite *check_string_suite(void)
 {
     Suite *s  = suite_create("String");
     TCase *tc = tcase_create("Core");

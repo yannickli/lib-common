@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #include "mem.h"
-#include "string_is.h"
+#include "str.h"
 
 typedef unsigned int unsigned32;
 

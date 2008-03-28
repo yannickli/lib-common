@@ -13,7 +13,7 @@
 
 #include <string.h>
 
-#include "strconv.h"
+#include "str-conv.h"
 
 unsigned char const __str_digit_value[128 + 256] = {
 #define REPEAT16(x)  x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x

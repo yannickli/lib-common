@@ -16,7 +16,7 @@
 #endif
 
 #include "macros.h"
-#include "string_is.h"
+#include "str.h"
 #include "array.h"
 
 /**************************************************************************/

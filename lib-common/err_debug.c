@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #include "err_report.h"
-#include "string_is.h"
+#include "str.h"
 
 #ifndef NDEBUG /* disable that module if debug is disabled */
 

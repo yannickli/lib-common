@@ -13,7 +13,7 @@
 
 #include "macros.h"
 #include "unix.h"
-#include "string_is.h"
+#include "str.h"
 
 /* Returns 0 if directory exists,
  * Returns 1 if directory was created

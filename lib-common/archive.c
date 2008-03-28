@@ -13,7 +13,7 @@
 
 #include "archive.h"
 #include "archive_priv.h"
-#include "string_is.h"
+#include "str.h"
 
 #define BLOB_APPEND_UINT32(output, i)                 \
     do {                                              \

@@ -14,7 +14,7 @@
 #include <lib-common/mem.h>
 #include <lib-common/blob.h>
 #include <lib-common/macros.h>
-#include <lib-common/string_is.h>
+#include <lib-common/str.h>
 
 #include "conf.h"
 

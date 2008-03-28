@@ -56,8 +56,6 @@ libcommon_SOURCES = \
 	showflags.c \
 	stats-temporal.c \
 	stopper.c \
-	strconv.c \
-	string_is.c \
 	time.c \
 	xml.c \
 	xmlpp.c \
@@ -88,6 +86,9 @@ libcommon_SOURCES = \
 	\
 	property.c \
 	property-hash.c \
+	\
+	str.c \
+	str-conv.c \
 	\
 	tpl.c \
 	tpl-funcs.c \

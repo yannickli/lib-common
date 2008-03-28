@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "string_is.h"
+#include "str.h"
 #include "tpl.h"
 
 tpl_t *tpl_new_op(tpl_op op)

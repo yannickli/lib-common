@@ -14,7 +14,7 @@
 #include "mem.h"
 #include "concatbin.h"
 #include "mmappedfile.h"
-#include "string_is.h"
+#include "str.h"
 
 concatbin *concatbin_new(const char *filename)
 {

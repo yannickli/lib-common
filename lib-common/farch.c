@@ -13,7 +13,7 @@
 
 #include "farch.h"
 #include "htbl.h"
-#include "string_is.h"
+#include "str.h"
 
 DO_HTBL_STR(const farch_entry_t, fe, name, false);
 

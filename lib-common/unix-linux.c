@@ -19,7 +19,7 @@
 
 #include "err_report.h"
 #include "macros.h"
-#include "string_is.h"
+#include "str.h"
 #include "unix.h"
 #include "time.h"
 

@@ -1417,7 +1417,7 @@ int fbtree_fetch(fbtree_t *fbt, uint64_t key, blob_t *out)
 /*---------------- Debug interface ----------------*/
 
 #if 0
-#include "strconv.h"
+#include "str-conv.h"
 static void hexdump(const byte *p, int n,
                     int (*fun)(FILE *fp, const char *fmt, ...), FILE *arg)
 {

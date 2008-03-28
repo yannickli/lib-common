@@ -46,7 +46,7 @@ baz  += (foobar)
 
 #include "blob.h"
 #include "array.h"
-#include "string_is.h"
+#include "str.h"
 #include "property.h"
 
 /****************************************************************************/

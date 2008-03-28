@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #include "time.h"
-#include "string_is.h"
+#include "str.h"
 #include "iprintf.h"
 
 typedef struct mcms_event_t {

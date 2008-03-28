@@ -179,7 +179,7 @@ typedef uint32_t ULong;
 #else
 #ifndef KR_headers
 #include "stdlib.h"
-#include "string.h"
+#include "str.h"
 #else
 #include "malloc.h"
 #include "memory.h"

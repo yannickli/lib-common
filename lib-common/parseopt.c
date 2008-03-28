@@ -13,7 +13,7 @@
 
 #include "err_report.h"
 #include "parseopt.h"
-#include "string_is.h"
+#include "str.h"
 
 #define FLAG_SHORT 1
 #define FLAG_UNSET 2

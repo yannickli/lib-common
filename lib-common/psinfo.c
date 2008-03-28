@@ -15,7 +15,7 @@
 #include <linux/limits.h>
 
 #include "psinfo.h"
-#include "string_is.h"
+#include "str.h"
 
 static inline unsigned int my_jiffies_to_msecs(const unsigned long j)
 {

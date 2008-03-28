@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_STRING_IS_H
-#define IS_LIB_COMMON_STRING_IS_H
+#ifndef IS_LIB_COMMON_STR_H
+#define IS_LIB_COMMON_STR_H
 
 #include "mem.h"
 
@@ -216,8 +216,8 @@ size_t purldecode(const char *in, byte *out, size_t size, int flags);
 #ifdef CHECK
 #include <check.h>
 
-Suite *check_string_is_suite(void);
+Suite *check_string_suite(void);
 
 #endif
 /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
-#endif /* IS_LIB_COMMON_STRING_IS_H */
+#endif /* IS_LIB_COMMON_STR_IS_H */

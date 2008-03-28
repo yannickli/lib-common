@@ -22,7 +22,7 @@
 
 #include "mem.h"
 #include "conf.h"
-#include "string_is.h"
+#include "str.h"
 #include "licence.h"
 #include "time.h"
 

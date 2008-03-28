@@ -51,7 +51,7 @@
 #endif
 
 #include "hash.h"
-#include "string_is.h"
+#include "str.h"
 
 #define SHFR(x, n)    ((x) >> (n))
 #define ROTR(x, n)   (((x) >> (n)) | ((x) << ((sizeof(x) << 3) - (n))))
