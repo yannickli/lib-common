@@ -17,6 +17,9 @@ int main(void)
 {
     char out[PATH_MAX], in[PATH_MAX];
 
+    *in = '\0';
+    assert (path_simplify(in) < 0);
+
     pstrcpy(in, sizeof(in), "/../test//foo///");
     path_simplify(in);
     assert (strequal(in, "/test/foo"));
@@ -40,6 +43,10 @@ int main(void)
     pstrcpy(in, sizeof(in), ".//test");
     path_simplify(in);
     assert (strequal(in, "test"));
+
+    pstrcpy(in, sizeof(in), "a/..");
+    path_simplify(in);
+    assert (strequal(in, "."));
 
     return 0;
 }

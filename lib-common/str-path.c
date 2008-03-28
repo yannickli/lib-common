@@ -127,10 +127,13 @@ int path_join(char *buf, int len, const char *path)
  * aaa/../ -> /
  * //+$    -> $
  */
-void path_simplify(char *in)
+int path_simplify(char *in)
 {
     const int absolute = *in == '/';
     char *start = in + absolute, *out = in + absolute;
+
+    if (!*in)
+        return -1;
 
     for (;;) {
         switch (*in) {
@@ -164,8 +167,14 @@ void path_simplify(char *in)
 
           case '\0':
             while (*in != '/') {
-                if (!(*out++ = *in++))
-                    return;
+                if (!*in) {
+                    start -= absolute;
+                    if (out == start)
+                        *out++ = '.';
+                    *out = '\0';
+                    return out - start;
+                }
+                *out++ = *in++;
             }
         }
     }
