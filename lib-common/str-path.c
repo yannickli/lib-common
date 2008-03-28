@@ -129,13 +129,17 @@ int path_join(char *buf, int len, const char *path)
  */
 int path_simplify(char *in)
 {
-    const int absolute = *in == '/';
+    bool absolute = *in == '/', concat_dots = false;
     char *start = in + absolute, *out = in + absolute;
 
     if (!*in)
         return -1;
 
     for (;;) {
+#if 0
+        e_info("state: `%.*s` \tin: `%s`", (int)(out - (start - absolute)),
+               start - absolute, in);
+#endif
         switch (*in) {
           case '/':
             in++;
@@ -147,10 +151,13 @@ int path_simplify(char *in)
                 continue;
             }
             if (in[1] == '.' && (!in[2] || in[2] == '/')) {
-                if (out == start) {
+                if (concat_dots)
+                    *out++ = '/';
+                if (concat_dots || out == start) {
                     if (!absolute) {
                         *out++ = '.';
                         *out++ = '.';
+                        concat_dots = true;
                     }
                 } else {
                     while (out > start && *--out != '/');
