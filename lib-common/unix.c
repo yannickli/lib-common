@@ -186,10 +186,6 @@ int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
         cmd = F_GETLK;
         break;
 
-      case F_ULOCK:
-        cmd = F_UNLCK;
-        break;
-
       default:
         errno = EINVAL;
         return -1;
@@ -200,7 +196,7 @@ int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
     } else {
         lock.l_type = F_RDLCK;
     }
-    lock.l_whence = SEEK_CUR;
+    lock.l_whence = SEEK_SET;
     lock.l_start  = start;
     lock.l_len    = len;
     if (cmd == F_GETLK) {
@@ -220,6 +216,17 @@ int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
     }
 
     return 0;
+}
+
+int p_unlockf(int fd, off_t start, off_t len)
+{
+    struct flock lock = {
+        .l_type = F_UNLCK,
+        .l_whence = SEEK_SET,
+        .l_start  = start,
+        .l_len    = len,
+    };
+    return fcntl(fd, F_SETLK, &lock);
 }
 
 int tmpfd(void)
