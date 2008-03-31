@@ -170,7 +170,12 @@ int filecopy(const char *pathin, const char *pathout)
 
 int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
 {
-    struct flock lock;
+    struct flock lock = {
+        .l_type   = O_ISWRITE(mode) ? F_WRLCK : F_RDLCK,
+        .l_whence = SEEK_SET,
+        .l_start  = start,
+        .l_len    = len,
+    };
     int res;
 
     switch (cmd) {
@@ -189,18 +194,6 @@ int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
       default:
         errno = EINVAL;
         return -1;
-    }
-
-    if (O_ISWRITE(mode)) {
-        lock.l_type = F_WRLCK;
-    } else {
-        lock.l_type = F_RDLCK;
-    }
-    lock.l_whence = SEEK_SET;
-    lock.l_start  = start;
-    lock.l_len    = len;
-    if (cmd == F_GETLK) {
-        lock.l_pid    = getpid();
     }
 
     res = fcntl(fd, cmd, &lock);
