@@ -14,6 +14,18 @@
 #ifndef IS_LIB_COMMON_MACROS_H
 #define IS_LIB_COMMON_MACROS_H
 
+/** \defgroup generic_macros Intersec Generic Macros.
+ * \{
+ */
+
+/** \file macros.h
+ * \brief Intersec generic macros.
+ *
+ * This file also includes many of the standard headers we always need from
+ * the libc. #macros.h is always included in any Intersec code either
+ * directly, or more often through the include of #mem.h.
+ */
+
 #include <assert.h>
 #include <ctype.h>
 #include <endian.h>
@@ -49,9 +61,39 @@
  * __attr_scanf__(pos_fmt, pos_first_arg) => scanf format
  */
 
+/** \def STATIC_ASSERT
+ * \brief Check a condition at build time.
+ * \param[in]  expr    the expression you want to be always true at compile * time.
+ * \safemacro
+ */
+/** \def STATIC_ASSERTZ
+ * \brief Check a condition at build time.
+ *
+ * It works basically like its siter #STATIC_ASSERT, though it has the value 0
+ * (zero), which allow it to be embedded in arithmetic expressions.
+ *
+ * \param[in]  expr    the expression you want to be always true at compile * time.
+ * \safemacro
+ */
 #define STATIC_ASSERT(condition) ((void)sizeof(char[1 - 2 * !(condition)]))
 #define STATIC_ASSERTZ(e)        (sizeof(char[1 - 2 * !(e)]) - sizeof(char[1]))
+
+
+/** \brief Forcefully ignore the value of an expression.
+ *
+ * This is meant to ignore return values of functions declared with
+ * __attribute__((warn_unused_result)).
+ *
+ * \param[in]  expr    the expression.
+ * \safemacro
+ */
 #define IGNORE(expr)             do { if (expr) (void)0; } while (0)
+
+/** \brief Convenient functionnal macro that always expands to true.
+ *
+ * \warning This macro ignores, and don't evaluate any argument you may pass
+ *          to it.
+ */
 #define TRUEFN(...)              true
 
 
@@ -412,4 +454,5 @@ static inline int p_close(int *hdp) {
 #define st_ctimensec  st_ctim.tv_nsec
 #endif
 
+/** \} */
 #endif /* IS_LIB_COMMON_MACROS_H */
