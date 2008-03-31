@@ -186,6 +186,10 @@ int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
         cmd = F_GETLK;
         break;
 
+      case F_ULOCK:
+        cmd = F_UNLCK;
+        break;
+
       default:
         errno = EINVAL;
         return -1;
