@@ -192,7 +192,7 @@ int path_simplify(char *in)
 /* TODO: make our own without the PATH_MAX craziness */
 int path_canonify(char *buf, int len, const char *path)
 {
-    char *out = len < PATH_MAX ? buf : p_alloca(char, PATH_MAX);
+    char *out = len >= PATH_MAX ? buf : p_alloca(char, PATH_MAX);
     out = realpath(path, out);
     if (out && len < PATH_MAX)
         pstrcpy(buf, len, out);
