@@ -14,6 +14,14 @@
 #include "str.h"
 #include "tpl.h"
 
+/** \addtogroup templates
+ * \{
+ */
+
+/** \file tpl.c
+ * \brief Templating module implementation.
+ */
+
 tpl_t *tpl_new_op(tpl_op op)
 {
     tpl_t *n  = p_new(tpl_t, 1);
@@ -61,11 +69,13 @@ void tpl_delete(tpl_t **tpl)
 /* Build the AST                                                            */
 /****************************************************************************/
 
+#ifndef __doxygen_mode__
 #define tpl_can_append(t)  \
         (  ((t)->op & TPL_OP_BLOCK)                                     \
         && ((t)->op != TPL_OP_IFDEF || (t)->u.blocks.len < 2)           \
         && ((t)->op != TPL_OP_APPLY_DELAYED || (t)->u.blocks.len < 2)   \
         )
+#endif
 
 void tpl_add_data(tpl_t *tpl, const byte *data, int len)
 {
@@ -186,10 +196,13 @@ tpl_t *tpl_add_apply(tpl_t *tpl, tpl_op op, tpl_apply_f *f)
     return app;
 }
 
+#ifndef __doxygen_mode__
 static char const pad[] = "| | | | | | | | | | | | | | | | | | | | | | | | ";
+#endif
 
 static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
 {
+#ifndef __doxygen_mode__
 #define HAS_SUBST(tpl) \
     ((tpl->op & TPL_OP_BLOCK && !tpl->is_const) || tpl->op == TPL_OP_VAR)
 #define TRACE(fmt, c, ...) \
@@ -197,6 +210,7 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
             HAS_SUBST(tpl) ? '*' : ' ', ##__VA_ARGS__)
 #define TRACE_NULL() \
     e_trace(dbg, "%.*s NULL", 3 + 2 * lvl, pad)
+#endif
 
 
     switch (tpl->op) {
@@ -306,6 +320,7 @@ tpl_apply(tpl_apply_f *f, tpl_t *out, blob_t *blob, tpl_t *in)
     return (*f)(out, blob, &in, 1);
 }
 
+#ifndef __doxygen_mode__
 #define getvar(id, vals, nb) \
     (((vals) && ((id) & 0xffff) < (uint16_t)(nb)) ? (vals)[(id) & 0xffff] : NULL)
 
@@ -315,6 +330,7 @@ tpl_apply(tpl_apply_f *f, tpl_t *out, blob_t *blob, tpl_t *in)
 #define DEAL_WITH_VAR2 tpl_fold_blob_tpl
 #define TPL_SUBST      tpl_subst
 #include "tpl.in.c"
+#endif
 int tpl_subst(tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb, int flags)
 {
     tpl_t *out = *tplp;
@@ -356,12 +372,14 @@ int tpl_fold(blob_t *out, tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb,
     return res;
 }
 
+#ifndef __doxygen_mode__
 #define NS(x)          x##_str
 #define VAL_TYPE       const char *
 #define DEAL_WITH_VAR(t, v, ...)   (tpl_copy_cstr((t), (v)), 0)
 #define DEAL_WITH_VAR2(t, v, ...)  (blob_append_cstr((t), (v)), 0)
 #define TPL_SUBST      tpl_subst_str
 #include "tpl.in.c"
+#endif
 int tpl_subst_str(tpl_t **tplp, uint16_t envid,
                   const char **vals, int nb, int flags)
 {
@@ -538,3 +556,5 @@ int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl)
         return -1;
     }
 }
+
+/**\}*/

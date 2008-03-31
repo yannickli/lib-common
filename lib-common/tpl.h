@@ -17,6 +17,18 @@
 #include "array.h"
 #include "blob.h"
 
+/** \defgroup templates Intersec generic templating API.
+ *
+ * \brief This module defines the #tpl_t type, and its manipulation APIs.
+ *
+ * \TODO PUT SOME EXPLANATION ON THE PHILOSOPHY OF tpl_t'S HERE.
+ *
+ *\{*/
+
+/** \file tpl.h
+ * \brief Templating module header.
+ */
+
 #define TPL_COPY_LIMIT_HARD    32
 #define TPL_COPY_LIMIT_SOFT   256
 #define TPL_DATA_LIMIT_KEEP  4096
@@ -131,4 +143,5 @@ int tpl_encode_ira_bin(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 int tpl_encode_base64(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 int tpl_encode_qp(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 
+/**\}*/
 #endif
