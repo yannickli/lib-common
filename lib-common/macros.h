@@ -152,6 +152,17 @@
 #  define __needlock(x)
 #endif
 
+/*---------------- Atomic macros ----------------*/
+
+#ifdef __GNUC__
+#define atomic_add(ptr, v)  IGNORE(__sync_add_and_fetch(ptr, v))
+#define atomic_sub(ptr, v)  IGNORE(__sync_sub_and_fetch(ptr, v))
+#define atomic_add_and_get(ptr, v)  __sync_add_and_fetch(ptr, v)
+#define atomic_sub_and_get(ptr, v)  __sync_sub_and_fetch(ptr, v)
+#define atomic_get_and_add(ptr, v)  __sync_fetch_and_add(ptr, v)
+#define atomic_get_and_sub(ptr, v)  __sync_fetch_and_sub(ptr, v)
+#endif
+
 /*---------------- Types ----------------*/
 
 typedef unsigned char byte;
