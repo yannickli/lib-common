@@ -33,61 +33,62 @@ void generic_list_sort(generic_list **list,
                        int (*cmp)(generic_list*, generic_list*, void*),
                        void*);
 
-#define SLIST_PROTOS(type, prefix)                                           \
-    static inline type **prefix##_list_init(type **list);                    \
-    static inline void prefix##_list_wipe(type **list);                      \
-    static inline void prefix##_list_push(type **list, type *item);          \
-    static inline type *prefix##_list_pop(type **list);                      \
-    static inline void prefix##_list_append(type **list, type *item);        \
-    static inline void prefix##_list_sort(type **list,                       \
-            int (*cmp)(const type *, const type *, void *), void *priv);
+#define SLIST_PROTOS(type_t, prefix)                                         \
+    static inline type_t **prefix##_list_init(type_t **list);                \
+    static inline void prefix##_list_wipe(type_t **list);                    \
+    static inline void prefix##_list_push(type_t **list, type_t *item);      \
+    static inline type_t *prefix##_list_pop(type_t **list);                  \
+    static inline void prefix##_list_append(type_t **list, type_t *item);    \
+    static inline void prefix##_list_sort(type_t **list,                     \
+            int (*cmp)(const type_t *, const type_t *, void *), void *priv);
 
-#define SLIST_FUNCTIONS(type, prefix)                                        \
-    static inline type **prefix##_list_init(type **list) {                   \
+#define SLIST_FUNCTIONS(type_t, prefix)                                      \
+    static inline type_t **prefix##_list_init(type_t **list) {               \
         *list = NULL;                                                        \
         return list;                                                         \
     }                                                                        \
-    static inline void prefix##_list_push(type **list, type *item) {         \
+    static inline void prefix##_list_push(type_t **list, type_t *item) {     \
         item->next = *list;                                                  \
         *list = item;                                                        \
     }                                                                        \
-    static inline type *prefix##_list_pop(type **list) {                     \
-        STATIC_ASSERT(offsetof(type, next) == 0);                            \
+    static inline type_t *prefix##_list_pop(type_t **list) {                 \
+        STATIC_ASSERT(offsetof(type_t, next) == 0);                          \
         if (*list) {                                                         \
-            type *res = *list;                                               \
+            type_t *res = *list;                                             \
             *list = res->next;                                               \
             res->next = NULL;                                                \
             return res;                                                      \
         }                                                                    \
         return NULL;                                                         \
     }                                                                        \
-    static inline void prefix##_list_wipe(type **list) {                     \
+    static inline void prefix##_list_wipe(type_t **list) {                   \
         while (*list) {                                                      \
-            type *item = prefix##_list_pop(list);                            \
+            type_t *item = prefix##_list_pop(list);                          \
             prefix##_delete(&item);                                          \
         }                                                                    \
     }                                                                        \
-    static inline void prefix##_list_append(type **list, type *item) {       \
+    static inline void prefix##_list_append(type_t **list, type_t *item) {   \
         while (*list) {                                                      \
             list = &(*list)->next;                                           \
         }                                                                    \
         *list = item;                                                        \
     }                                                                        \
-    static inline type *prefix##_list_poptail(type *list) {                  \
+    static inline type_t *prefix##_list_poptail(type_t *list) {              \
         if (list) {                                                          \
-            type *tmp = list->next;                                          \
+            type_t *tmp = list->next;                                        \
             list->next = NULL;                                               \
             return tmp;                                                      \
         }                                                                    \
         return NULL;                                                         \
     }                                                                        \
-    static inline void prefix##_list_sort(type **list,                       \
-            int (*cmp)(const type *, const type *, void *), void *priv) {    \
+    static inline void prefix##_list_sort(type_t **list,                     \
+            int (*cmp)(const type_t *, const type_t *, void *),              \
+            void *priv) {                                                    \
         generic_list_sort((generic_list **)list, (void *)cmp, priv);         \
     }
 
-#define DLIST_FUNCTIONS(type, prefix)                                        \
-    static inline type *prefix##_list_take(type **list, type *el) {          \
+#define DLIST_FUNCTIONS(type_t, prefix)                                      \
+    static inline type_t *prefix##_list_take(type_t **list, type_t *el) {    \
         el->next->prev = el->prev;                                           \
         el->prev->next = el->next;                                           \
                                                                              \
@@ -100,18 +101,7 @@ void generic_list_sort(generic_list **list,
         return el;                                                           \
     }                                                                        \
                                                                              \
-    static inline type *prefix##_list_prepend(type **list, type *el) {       \
-        if (!*list) {                                                        \
-            return *list = el->next = el->prev = el;                         \
-        }                                                                    \
-                                                                             \
-        el->next = (*list)->next;                                            \
-        el->prev = (*list);                                                  \
-                                                                             \
-        return (*list = el->prev->next = el->next->prev = el);               \
-    }                                                                        \
-                                                                             \
-    static inline type *prefix##_list_append(type **list, type *el)          \
+    static inline type_t *prefix##_list_append(type_t **list, type_t *el)    \
     {                                                                        \
         if (!*list) {                                                        \
             return *list = el->next = el->prev = el;                         \
@@ -121,6 +111,16 @@ void generic_list_sort(generic_list **list,
         el->prev = (*list)->prev;                                            \
                                                                              \
         return (el->prev->next = el->next->prev = el);                       \
+    }                                                                        \
+    static inline type_t *prefix##_list_prepend(type_t **list, type_t *el) { \
+        return *list = prefix##_list_append(list, el);                       \
+    }                                                                        \
+                                                                             \
+    static inline type_t *prefix##_list_popfirst(type_t **list) {            \
+        return prefix##_list_take(list, *list);                              \
+    }                                                                        \
+    static inline type_t *prefix##_list_poplast(type_t **list) {             \
+        return prefix##_list_take(list, (*list)->prev);                      \
     }
 
 
