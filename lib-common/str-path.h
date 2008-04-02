@@ -44,5 +44,6 @@ int path_basename(char *buf, int len, const char *path);
 int path_join(char *buf, int len, const char *path);
 int path_simplify(char *path);
 int path_canonify(char *buf, int len, const char *path);
+char *path_expand(char *buf, int len, const char *path);
 
 #endif /* IS_LIB_COMMON_STR_PATH_H */

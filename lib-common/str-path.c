@@ -198,3 +198,29 @@ int path_canonify(char *buf, int len, const char *path)
         pstrcpy(buf, len, out);
     return out ? sstrlen(out) : -1;
 }
+
+/* Expand '~' in a path, iif it's at the start of the string and
+ * followed by a slash.
+ * Ex: "~/tmp" => "getenv($HOME)/tmp"
+ *     "~foobar" => "~foo" (don't use nis to get home dir for user foo !)
+ * TODO?: expand all environment variables ?
+ */
+char *path_expand(char *buf, int len, const char *path)
+{
+    char path_l[PATH_MAX];
+
+    assert (len >= PATH_MAX);
+
+    if (path[0] == '~' && path[1] == '/') {
+        static const char *env_home = NULL;
+        if (!env_home) {
+            env_home = getenv("HOME");
+        }
+        if (env_home) {
+            snprintf(path_l, sizeof(path_l), "%s%s", env_home, path + 1);
+            path = path_l;
+        }
+    }
+    /* XXX: The use of path_canonify() here is debatable. */
+    return path_canonify(buf, len, path) < 0 ? NULL : buf;
+}
