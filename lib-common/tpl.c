@@ -34,6 +34,13 @@ tpl_t *tpl_new_op(tpl_op op)
     return n;
 }
 
+tpl_t *tpl_new_var(uint16_t array, uint16_t index)
+{
+    tpl_t *var = tpl_new_op(TPL_OP_VAR);
+    var->u.varidx = ((uint32_t)array << 16) | index;
+    return var;
+}
+
 tpl_t *tpl_dup(const tpl_t *tpl)
 {
     tpl_t *res = (tpl_t *)tpl;
