@@ -169,20 +169,21 @@ typedef uint32_t ULong;
 #endif
 
 #ifdef DEBUG
-#include "stdio.h"
+#include <stdio.h>
 #define Bug(x) {fprintf(stderr, "%s\n", x); exit(1);}
 #endif
 
+/* OG: these should be <> instead of "" */
 #ifdef __cplusplus
-#include "malloc.h"
-#include "memory.h"
+#include <malloc.h>
+#include <memory.h>
 #else
 #ifndef KR_headers
-#include "stdlib.h"
-#include "str.h"
+#include <stdlib.h>
+#include <string.h>
 #else
-#include "malloc.h"
-#include "memory.h"
+#include <malloc.h>
+#include <memory.h>
 #endif
 #endif
 
@@ -223,7 +224,7 @@ static double private_mem[PRIVATE_mem], *pmem_next = private_mem;
 #define IEEE_Arith
 #endif
 
-#include "errno.h"
+#include <errno.h>
 #ifdef Bad_float_h
 #undef __STDC__
 
@@ -259,11 +260,11 @@ static double private_mem[PRIVATE_mem], *pmem_next = private_mem;
 #endif
 
 #else /* ifndef Bad_float_h */
-#include "float.h"
+#include <float.h>
 #endif /* Bad_float_h */
 
 #ifndef __MATH_H__
-#include "math.h"
+#include <math.h>
 #endif
 
 #ifdef __cplusplus
