@@ -67,10 +67,10 @@
  * \safemacro
  */
 /** \def STATIC_ASSERTZ
- * \brief Check a condition at build time.
+ * \brief Check a condition at build time inside an expression.
  *
- * It works basically like its siter #STATIC_ASSERT, though it has the value 0
- * (zero), which allow it to be embedded in arithmetic expressions.
+ * It works basically like its sister #STATIC_ASSERT, but it evaluates
+ * to the value 0 (zero), so it can be embedded in arithmetic expressions.
  *
  * \param[in]  expr    the expression you want to be always true at compile * time.
  * \safemacro
@@ -81,7 +81,7 @@
 
 /** \brief Forcefully ignore the value of an expression.
  *
- * This is meant to ignore return values of functions declared with
+ * Use this to explicitly ignore return values of functions declared with
  * __attribute__((warn_unused_result)).
  *
  * \param[in]  expr    the expression.
@@ -89,10 +89,10 @@
  */
 #define IGNORE(expr)             do { if (expr) (void)0; } while (0)
 
-/** \brief Convenient functionnal macro that always expands to true.
+/** \brief Convenient functional macro that always expands to true.
  *
- * \warning This macro ignores, and don't evaluate any argument you may pass
- *          to it.
+ * \warning This macro ignores all of its arguments. The arguments are
+ *          not evaluated at all.
  */
 #define TRUEFN(...)              true
 
