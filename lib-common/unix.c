@@ -214,7 +214,7 @@ int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
 int p_unlockf(int fd, off_t start, off_t len)
 {
     struct flock lock = {
-        .l_type = F_UNLCK,
+        .l_type   = F_UNLCK,
         .l_whence = SEEK_SET,
         .l_start  = start,
         .l_len    = len,
