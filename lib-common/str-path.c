@@ -113,8 +113,12 @@ int path_join(char *buf, int len, const char *path)
     int pos = strlen(buf);
     while (pos > 0 && buf[pos - 1] == '/')
         --pos;
-    while (*path == '/')
+    /* OG: This is a bad idea: joining an absolute path should either
+     * fail or produce the absolute path given
+     */
+    while (*path == '/') {
         path++;
+    }
     pos += pstrcpy(buf + pos, len - pos, "/");
     pos += pstrcpy(buf + pos, len - pos, path);
     return pos;
@@ -199,8 +203,7 @@ int path_canonify(char *buf, int len, const char *path)
     return out ? sstrlen(out) : -1;
 }
 
-/* Expand '~' in a path, iif it's at the start of the string and
- * followed by a slash.
+/* Expand '~/' at the start of a path.
  * Ex: "~/tmp" => "getenv($HOME)/tmp"
  *     "~foobar" => "~foo" (don't use nis to get home dir for user foo !)
  * TODO?: expand all environment variables ?
@@ -217,6 +220,9 @@ char *path_expand(char *buf, int len, const char *path)
             env_home = getenv("HOME");
         }
         if (env_home) {
+            /* OG: using path_make or similar here would preclude the
+             * need for path_canonify ?
+             */
             snprintf(path_l, sizeof(path_l), "%s%s", env_home, path + 1);
             path = path_l;
         }
