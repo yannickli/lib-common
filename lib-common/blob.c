@@ -442,6 +442,9 @@ int blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
     int available;
     va_list ap2;
 
+    if (blob->data == blob_slop) {
+        blob_ensure(blob, 32);
+    }
     va_copy(ap2, ap);
 
     pos = blob->len;
