@@ -50,5 +50,6 @@ int main(int argc, char **argv)
 
     }
     stats_temporal_dump_auto(blob.data, blob.len);
+    blob_wipe(&blob);
     return 0;
 }
