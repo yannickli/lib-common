@@ -34,9 +34,9 @@ typedef struct blob_t {
  * member It should always stay equal to \0 and is writeable so that code
  * enforcing the invariant putting \0 at that place do work.
  */
-extern byte blob_slop[1];
+extern __thread byte blob_slop[1];
 
-#if 1
+#if 0
 #define blob_check_slop()   assert (blob_slop[0] == '\0')
 #else
 #define blob_check_slop()

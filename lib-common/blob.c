@@ -28,7 +28,7 @@
 #include "iprintf.h"
 #include "byteops.h"
 
-byte blob_slop[1];
+__thread byte blob_slop[1];
 
 /**************************************************************************/
 /* Blob creation / deletion                                               */
