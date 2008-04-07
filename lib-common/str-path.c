@@ -113,9 +113,6 @@ int path_join(char *buf, int len, const char *path)
     int pos = strlen(buf);
     while (pos > 0 && buf[pos - 1] == '/')
         --pos;
-    /* OG: This is a bad idea: joining an absolute path should either
-     * fail or produce the absolute path given
-     */
     while (*path == '/') {
         path++;
     }
