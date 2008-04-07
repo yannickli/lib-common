@@ -36,6 +36,12 @@ typedef struct blob_t {
  */
 extern byte blob_slop[1];
 
+#if 1
+#define blob_check_slop()   assert (blob_slop[0] == '\0')
+#else
+#define blob_check_slop()
+#endif
+
 #define BLOB_STATIC_INIT  (blob_t){ .data = blob_slop, .size = 1 }
 
 /**************************************************************************/
@@ -80,11 +86,13 @@ blob_t *blob_dup(const blob_t *blob);
 
 /* Get the const char * pointing to blob.data */
 static inline const char *blob_get_cstr(const blob_t *blob) {
+    blob_check_slop();
     return (const char *)blob->data;
 }
 
 /* Get the pointer to the NUL at the end of the blob */
 static inline const char *blob_get_end(const blob_t *blob) {
+    blob_check_slop();
     return (const char *)blob->data + blob->len;
 }
 
@@ -94,11 +102,13 @@ static inline const char *blob_get_end(const blob_t *blob) {
 /**************************************************************************/
 
 static inline void blob_reset(blob_t *blob) {
+    blob_check_slop();
     /* Remove initial skip if any, but do not release memory */
     blob->size += blob->skip;
     blob->data -= blob->skip;
     blob->skip = 0;
     blob->data[blob->len = 0] = '\0';
+    blob_check_slop();
 }
 
 void blob_ensure(blob_t *blob, int newlen);
@@ -107,13 +117,16 @@ void blob_ensure(blob_t *blob, int newlen);
 static inline void blob_grow(blob_t *blob, int extralen) {
     assert (extralen >= 0);
 
+    blob_check_slop();
     if (blob->len + extralen >= blob->size) {
         blob_ensure(blob, blob->len + extralen);
     }
+    blob_check_slop();
 }
 
 static inline void blob_setlen(blob_t *blob, int newlen) {
     assert (newlen >= 0);
+    blob_check_slop();
     if (newlen <= 0) {
         blob_reset(blob);
     } else {
@@ -121,21 +134,26 @@ static inline void blob_setlen(blob_t *blob, int newlen) {
         blob->len = newlen;
         blob->data[blob->len] = '\0';
     }
+    blob_check_slop();
 }
 
 /* blob_extend increases the available size and len */
 static inline void blob_extend(blob_t *blob, int extralen) {
     assert (extralen >= 0);
+    blob_check_slop();
     blob_setlen(blob, blob->len + extralen);
+    blob_check_slop();
 }
 
 /* blob_extend2 increases and initializes the available size and len */
 static inline void blob_extend2(blob_t *blob, int extralen, byte init) {
     assert (extralen >= 0);
+    blob_check_slop();
     blob_grow(blob, extralen);
     memset(blob->data + blob->len, init, extralen);
     blob->len += extralen;
     blob->data[blob->len] = '\0';
+    blob_check_slop();
 }
 
 /**************************************************************************/
@@ -146,6 +164,7 @@ static inline void
 blob_splice_data(blob_t *blob, int pos, int len, const void *data, int dlen)
 {
     assert (pos >= 0 && len >= 0 && dlen >= 0);
+    blob_check_slop();
 
     if (pos > blob->len)
         pos = blob->len;
@@ -165,6 +184,7 @@ blob_splice_data(blob_t *blob, int pos, int len, const void *data, int dlen)
         blob->data[blob->len] = '\0';
     }
     memcpy(blob->data + pos, data, dlen);
+    blob_check_slop();
 }
 static inline void
 blob_splice_cstr(blob_t *dest, int pos, int len, const char *src) {
@@ -207,10 +227,12 @@ blob_insert_data(blob_t *blob, int pos, const void *data, int len) {
 
 static inline void
 blob_append_data(blob_t *blob, const void *data, int len) {
+    blob_check_slop();
     blob_grow(blob, len);
     memcpy(blob->data + blob->len, data, len);
     blob->len += len;
     blob->data[blob->len] = '\0';
+    blob_check_slop();
 }
 static inline void blob_append_cstr(blob_t *blob, const char *cstr) {
     blob_append_data(blob, cstr, strlen(cstr));

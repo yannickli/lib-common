@@ -156,6 +156,7 @@ void blob_append_data_escaped2(blob_t *blob, const byte *data, size_t len,
     if (!data)
         return;
 
+    blob_check_slop();
     off = pmemcspn(data, len, toescape);
     while (off < len) {
         p = data + off;
@@ -177,6 +178,7 @@ void blob_append_data_escaped2(blob_t *blob, const byte *data, size_t len,
     if (len > 0) {
         blob_append_data(blob, data, len);
     }
+    blob_check_slop();
 }
 
 /**************************************************************************/
@@ -268,6 +270,8 @@ int blob_append_fread(blob_t *blob, int size, int nmemb, FILE *f)
 {
     int res;
 
+    blob_check_slop();
+
     /* Use naive implementation: ignore potential overflow and
      * pre-allocate maximum read size.
      * Should extend API to allow reading the whole FILE at once with
@@ -283,6 +287,7 @@ int blob_append_fread(blob_t *blob, int size, int nmemb, FILE *f)
     }
 
     blob_extend(blob, size * res);
+    blob_check_slop();
     return res;
 }
 
@@ -297,6 +302,7 @@ int blob_append_read(blob_t *blob, int fd, int count)
     if (count < 0)
         count = BUFSIZ;
 
+    blob_check_slop();
     blob_grow(blob, count);
 
     res = read(fd, blob->data + blob->len, count);
@@ -307,6 +313,7 @@ int blob_append_read(blob_t *blob, int fd, int count)
     }
 
     blob_extend(blob, res);
+    blob_check_slop();
     return res;
 }
 
@@ -321,6 +328,7 @@ int blob_append_recv(blob_t *blob, int fd, int count)
     if (count < 0)
         count = BUFSIZ;
 
+    blob_check_slop();
     blob_grow(blob, count);
 
     res = recv(fd, blob->data + blob->len, count, 0);
@@ -331,6 +339,7 @@ int blob_append_recv(blob_t *blob, int fd, int count)
     }
 
     blob_extend(blob, res);
+    blob_check_slop();
     return res;
 }
 
@@ -343,6 +352,7 @@ int blob_append_recvfrom(blob_t *blob, int fd, int count, int flags,
     if (count < 0)
         count = BUFSIZ;
 
+    blob_check_slop();
     blob_grow(blob, count);
 
     res = recvfrom(fd, blob->data + blob->len, count, flags,
@@ -354,6 +364,7 @@ int blob_append_recvfrom(blob_t *blob, int fd, int count, int flags,
     }
 
     blob_extend(blob, res);
+    blob_check_slop();
     return res;
 }
 
@@ -367,6 +378,7 @@ int blob_append_fgets(blob_t *blob, FILE *f)
     char *dest;
     int size, len, total = 0;
 
+    blob_check_slop();
     for (;;) {
         dest = (char *)blob->data + blob->len;
         size = blob->size - blob->len;
@@ -401,6 +413,7 @@ int blob_append_fgets(blob_t *blob, FILE *f)
             break;
         }
     }
+    blob_check_slop();
     return total;
 }
 
@@ -413,6 +426,7 @@ int blob_save_to_file(blob_t *blob, const char *filename)
     if ((fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0)
         return -1;
 
+    blob_check_slop();
     len = blob->len;
 
     for (pos = 0; pos < len; ) {
@@ -423,11 +437,13 @@ int blob_save_to_file(blob_t *blob, const char *filename)
         if (nwritten <= 0) {
             close(fd);
             unlink(filename);
+            blob_check_slop();
             return -1;
         }
         pos += nwritten;
     }
     close(fd);
+    blob_check_slop();
     return len;
 }
 
@@ -442,9 +458,7 @@ int blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
     int available;
     va_list ap2;
 
-    if (blob->data == blob_slop) {
-        blob_ensure(blob, 32);
-    }
+    blob_check_slop();
     va_copy(ap2, ap);
 
     pos = blob->len;
@@ -471,6 +485,7 @@ int blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
     blob->data[blob->len] = '\0';
     va_end(ap2);
 
+    blob_check_slop();
     return len;
 }
 
@@ -482,9 +497,11 @@ int blob_append_fmt(blob_t *blob, const char *fmt, ...)
     int res;
     va_list args;
 
+    blob_check_slop();
     va_start(args, fmt);
     res = blob_append_vfmt(blob, fmt, args);
     va_end(args);
+    blob_check_slop();
 
     return res;
 }
@@ -494,10 +511,12 @@ int blob_set_fmt(blob_t *blob, const char *fmt, ...)
     int res;
     va_list args;
 
+    blob_check_slop();
     va_start(args, fmt);
     blob_reset(blob);
     res = blob_append_vfmt(blob, fmt, args);
     va_end(args);
+    blob_check_slop();
 
     return res;
 }
@@ -506,8 +525,10 @@ int blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap)
 {
     int res;
 
+    blob_check_slop();
     blob_reset(blob);
     res = blob_append_vfmt(blob, fmt, ap);
+    blob_check_slop();
 
     return res;
 }
@@ -554,14 +575,17 @@ void blob_ltrim(blob_t *blob)
 {
     int i = 0;
 
+    blob_check_slop();
     while (isspace((unsigned char)blob->data[i])) {
         i++;
     }
     blob_kill_first(blob, i);
+    blob_check_slop();
 }
 
 void blob_rtrim(blob_t *blob)
 {
+    blob_check_slop();
     for (int i = blob->len; i > 0; i--) {
         if (!isspace((unsigned char)blob->data[i - 1])) {
             blob->len = i;
@@ -569,6 +593,7 @@ void blob_rtrim(blob_t *blob)
             return;
         }
     }
+    blob_check_slop();
 }
 
 void blob_trim(blob_t *blob)
