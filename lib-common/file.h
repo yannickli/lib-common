@@ -34,6 +34,7 @@ enum file_flags {
 typedef struct file_t {
     enum file_flags flags;
     int fd;
+    off_t wpos;
     blob_t obuf;
 } file_t;
 

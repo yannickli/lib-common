@@ -37,6 +37,7 @@ static int file_flush_obuf(file_t *f, int len)
         if (nb < 0 && errno != EINTR && errno != EAGAIN)
             return -1;
         blob_kill_first(obuf, nb);
+        f->wpos += nb;
     }
     return 0;
 }
@@ -120,16 +121,22 @@ int file_close(file_t **fp)
 
 off_t file_seek(file_t *f, off_t offset, int whence)
 {
+    off_t res;
+
     if (f->flags & FILE_WRONLY) {
         if (file_flush(f))
             return -1;
     }
-    return lseek(f->fd, offset, whence);
+    res = lseek(f->fd, offset, whence);
+    if (res != (off_t)-1) {
+        f->wpos = res;
+    }
+    return res;
 }
 
 off_t file_tell(file_t *f)
 {
-    return lseek(f->fd, 0, SEEK_CUR) + f->obuf.len;
+    return f->wpos + f->obuf.len;
 }
 
 /****************************************************************************/
@@ -180,6 +187,7 @@ ssize_t file_write(file_t *f, const void *_data, ssize_t len)
         if (nb < 0 && errno != EINTR && errno != EAGAIN)
             return pos;
         pos += nb;
+        f->wpos += nb;
     }
 
     blob_set_data(&f->obuf, data + pos, len - pos);
