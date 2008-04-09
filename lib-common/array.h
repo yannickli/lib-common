@@ -99,7 +99,7 @@ void generic_array_sort(generic_array *array,
     }                                                                         \
                                                                               \
     static inline void                                                        \
-    prefix##suffix##_insert(prefix##suffix *v, int pos, el_typ item) {        \
+    prefix##suffix##_insert_empty(prefix##suffix *v, int pos) {               \
         assert (pos >= 0);                                                    \
         prefix##suffix##_ensure(v, v->len + 1);                               \
         if (pos < v->len) {                                                   \
@@ -108,6 +108,10 @@ void generic_array_sort(generic_array *array,
             pos = v->len;                                                     \
         }                                                                     \
         v->len++;                                                             \
+    }                                                                         \
+    static inline void                                                        \
+    prefix##suffix##_insert(prefix##suffix *v, int pos, el_typ item) {        \
+        prefix##suffix##_insert_empty(v, pos);                                \
         v->tab[pos] = item;                                                   \
     }                                                                         \
     static inline void                                                        \
