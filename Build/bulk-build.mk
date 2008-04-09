@@ -105,6 +105,36 @@ distclean::
 	$(RM) $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
 endef
 
+define ext/farch
+tmp/$2/farch := $$(patsubst %.farch,%farch,$3)
+
+$$(addsuffix .c,$$(tmp/$2/farch)): %farch.c: %farch.h | util/bldutils/buildfarch
+$$(addsuffix .h,$$(tmp/$2/farch)): %farch.h: %.farch  | util/bldutils/buildfarch
+	$(msg/generate) $$(@R)
+	cd $$(@D) && $/util/bldutils/buildfarch -d $!$$@.dep -n $$(*F) `cat $$(<F)`
+
+$$(eval $$(call ext/c,$1,$2,$$(tmp/$2/farch:=.c),$4))
+.PRECIOUS: $$(tmp/$2/farch:=.h) $$(tmp/$2/farch:=.c)
+__generate_files: $$(tmp/$2/farch:=.h) $$(tmp/$2/farch:=.c)
+distclean::
+	$(msg/rm) $(1D) farchs
+	$(RM) $$(tmp/$2/farch:=.h) $$(tmp/$2/farch:=.c)
+-include $$(patsubst %,$~%.c.dep,$3)
+endef
+
+define ext/fc
+$$(addsuffix .c,$3): %.fc.c: %.fc | util/bldutils/farchc
+	$(msg/generate) $$(@R)
+	cd $$(@D) && $/util/bldutils/farchc -d $!$$@.dep -o $$(@F) $$(<F)
+
+.PRECIOUS: $(3:=.c)
+__generate_files: $(3:=.c)
+distclean::
+	$(msg/rm) $(1D) fc
+	$(RM) $(3:=.c)
+-include $$(patsubst %,$~%.c.dep,$3)
+endef
+
 # }}}
 
 #
