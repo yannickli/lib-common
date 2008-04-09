@@ -196,8 +196,7 @@ $~$1.so$$(tmp/$1/build): | __generate_files
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) $$($1_LIBS) \
 	    -Wl,-soname,$1.so$$(tmp/$1/sover)
-	$$(if $$(tmp/$1/build),ln -sf $/$$@ $$(@F).so)
-	$$(if $$(tmp/$1/sover),ln -sf $/$$@ $$(@F).so$$(tmp/$1/sover))
+	$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so)
 
 $(1D)/fastclean::
 	$(RM) $1.so
