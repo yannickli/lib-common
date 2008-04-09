@@ -114,8 +114,7 @@ endef
 define ext/tokens
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call fun/expand-tokens,$1,$2,$$t,$4))))
 $$(eval $$(call ext/c,$1,$2,$(3:.tokens=tokens.c),$4))
-$2: | __generate_files
-$$(filter %.c,$$($1_SOURCES)): | __generate_files
+$2 $$(filter %.c,$$($1_SOURCES)): | __generate_files
 endef
 
 #}}}
@@ -136,7 +135,7 @@ distclean::
 	$(msg/rm) $(1D) farchs
 	$(RM) $$(tmp/$2/farch:=.h) $$(tmp/$2/farch:=.c)
 -include $$(patsubst %,$~%.c.dep,$3)
-$$(filter %.c,$$($1_SOURCES)): | __generate_files
+$2 $$(filter %.c,$$($1_SOURCES)): | __generate_files
 endef
 
 define ext/fc
@@ -150,7 +149,7 @@ distclean::
 	$(msg/rm) $(1D) fc
 	$(RM) $(3:=.c)
 -include $$(patsubst %,$~%.c.dep,$3)
-$$(filter %.c,$$($1_SOURCES)): | __generate_files
+$2 $$(filter %.c,$$($1_SOURCES)): | __generate_files
 endef
 
 #}}}
