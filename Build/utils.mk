@@ -43,8 +43,8 @@ endef
 #
 # $(call fun/do-once,<GUARD>,<CALL>)
 define fun/do-once
-$(if $(quagmire/expanded-$(1)),,
-quagmire/expanded-$(1) := done
-$(2)
+$(if $(once/$1),,
+once/$1 := done
+$2
 )
 endef
