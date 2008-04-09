@@ -11,11 +11,6 @@
 #                                                                        #
 ##########################################################################
 
-#%:
-#	$(msg/echo) 'make: Entering directory `$(@D)'"'"
-#	$(MAKE) -C $(@D) $(@F)
-#	$(msg/echo) 'make: Leaving directory `$(@D)'"'"
-
 all distclean fastclean::
 distclean:: fastclean
 	$(msg/rm) build system
@@ -24,23 +19,24 @@ clean:: fastclean
 	$(msg/rm) all objects files
 	$(RM) -r $~*/
 __generate_files:
-.PHONY: __generate_files
+.PHONY: __generate_files all fastclean clean distclean
 
 define fun/subdirs-targets
 $(foreach d,$1,
 $(patsubst ./%,%,$(dir $(d:/=)))all::       $(d)all
 $(patsubst ./%,%,$(dir $(d:/=)))fastclean:: $(d)fastclean
 $(d)all $(d)fastclean::
-$(d)clean::
+$(d)clean:: $(d)fastclean
 	$(msg/rm) $$(@D) objects
-	$(RM) -r $~$(d)
+	#$(RM) -r $~$(d)
 )
 endef
 $(eval $(call fun/subdirs-targets,$(patsubst $/%,%,$(var/subdirs))))
 
-##########################################################################
+#
 # extension driven rules
-#                                                                      {{{
+#
+#[ easy ones (ld,a,wa,...) ]##########################################{{{#
 
 define ext/ld
 $2: $3
@@ -53,6 +49,9 @@ endef
 define ext/wa
 $2: $$(patsubst %.a,$~%$4.wa,$3)
 endef
+
+#}}}
+#[ .c files ]#########################################################{{{#
 
 define ext/c
 tmp/$2/ns   := $$(if $$($1_CFLAGS),.$(2F))
@@ -67,6 +66,9 @@ $$(tmp/$2/objs): $~%$$(tmp/$2/ns)$4.o: %.c $(var/toolsdir)/* | __generate_files
 
 -include $$(tmp/$2/objs:o=dep)
 endef
+
+#}}}
+#[ lex ]##############################################################{{{#
 
 define ext/l
 tmp/$2/lex_c := $$(patsubst %.l,%.c,$3)
@@ -84,6 +86,9 @@ distclean::
 	$(msg/rm) $(1D) lexers
 	$(RM) $$(tmp/$2/lex_c)
 endef
+
+#}}}
+#[ tokens ]###########################################################{{{#
 
 define ext/tokens
 tmp/$2/toks_h := $$(patsubst %.tokens,%tokens.h,$3)
@@ -104,6 +109,9 @@ distclean::
 	$(msg/rm) $(1D) tokens
 	$(RM) $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
 endef
+
+#}}}
+#[ farchs/fcs ]#######################################################{{{#
 
 define ext/farch
 tmp/$2/farch := $$(patsubst %.farch,%farch,$3)
@@ -135,7 +143,7 @@ distclean::
 -include $$(patsubst %,$~%.c.dep,$3)
 endef
 
-# }}}
+#}}}
 
 #
 # $(eval $(call fun/apply-ext,<SUBDIR>,<TARGET>,<SOURCES>,[<NS>]))
@@ -146,9 +154,11 @@ $$(foreach e,$(var/exts),$$(if $$(filter %.$$e,$3),$$(eval $$(call ext/$$e,$1,$2
 $2: | $~$(1D)/.exists $$($1_SOURCES) $$($1_DEPENDS)
 endef
 
-##########################################################################
-# rules
-# {{{
+#
+# main targets (entry points)
+#
+#[ _LIBRARIES ]#######################################################{{{#
+
 define rule/staticlib
 $~$1.wa: $~$1.a
 	$(msg/FASTCP) $$(@R)
@@ -175,6 +185,9 @@ $~$1.pic.a: | __generate_files
 	$(AR) crs $$@ $$(filter %.o,$$^)
 endef
 $(foreach p,$(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v)),$(eval $(call rule/staticlib,$p)))
+
+#}}}
+#[ _SHARED_LIBRARIES ]################################################{{{#
 
 define rule/sharedlib
 tmp/$1/sover := $$(if $$(word 1,$$($1_SOVERSION)),.$$(word 1,$$($1_SOVERSION)))
@@ -204,6 +217,9 @@ $(1D)/fastclean::
 endef
 $(foreach p,$(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v)),$(eval $(call rule/sharedlib,$p)))
 
+#}}}
+#[ _PROGRAMS ]########################################################{{{#
+
 define rule/program
 $(1D)/all:: $1$(EXEEXT)
 $1$(EXEEXT): $~$1.exe FORCE
@@ -223,4 +239,4 @@ $(1D)/fastclean::
 	$(RM) $/$1$(EXEEXT)
 endef
 $(foreach p,$(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v)),$(eval $(call rule/program,$p)))
-# }}}
+#}}}
