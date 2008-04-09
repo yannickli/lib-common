@@ -21,7 +21,7 @@ die() {
     exit 1
 }
 
-grep -E '^ *[^[:space:]#=/][^[:space:]#=]*:( |$)' | while read target rest
+grep -E '^ *[^[:space:]$()#=/][^[:space:]$()#=]*:( |$)' | while read target rest
 do
     case "$target" in
         __*:|FORCE:|.*:|Makefile:|%:|"$toolsdir"*:)
@@ -34,4 +34,4 @@ do
 	    echo 1>&2 ">>> $target";
             die "You cannot use embeded spaces in target names";;
     esac
-done
+done | sort -u

@@ -15,7 +15,6 @@
 # Only at toplevel
 #
 ifeq (0,$(MAKELEVEL))
-
 __setup_buildsys_trampoline:
 	$(msg/echo) 'checking build-system ...'
 	$(msg/echo) 'make: Entering directory `$(var/builddir)'"'"
@@ -54,14 +53,14 @@ $(tmp/vars): $(var/builddir)%/vars.mk: $(var/srcdir)%/Makefile $(var/toolsdir)/*
 	mkdir -p $(@D)
 	$(MAKE) --no-print-directory -rsC $(var/srcdir)$* __dump_targets > $@
 
-$(var/builddir)/Makefile: $(var/toolsdir)/* | $(tmp/vars)
+$(var/builddir)/Makefile: $(var/srcdir)/configure $(var/toolsdir)/* | $(tmp/vars)
 	$(msg/generate) $(@R)
 	mkdir -p $(@D)
 	echo 'var/subdirs := $(call fun/msq,$(tmp/subdirs))'         >  $@
 	(:$(foreach s,$(patsubst $/%,$!%,$(tmp/subdirs)),;echo 'include $svars.mk'))  >> $@
 	echo 'include $(var/toolsdir)/base.mk'                       >> $@
 
-__setup_buildsys: $(var/builddir)/Makefile
+__setup_buildsys: $(var/builddir)/Makefile $(var/builddir)/depends.mk
 .PHONY: __setup_buildsys
 
 endif

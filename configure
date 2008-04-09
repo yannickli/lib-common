@@ -1,0 +1,183 @@
+#!/bin/sh -e
+##########################################################################
+#                                                                        #
+#  Copyright (C) 2004-2008 INTERSEC SAS                                  #
+#                                                                        #
+#  Should you receive a copy of this source code, you must check you     #
+#  have a proper, written authorization of INTERSEC to hold it. If you   #
+#  don't have such an authorization, you must DELETE all source code     #
+#  files in your possession, and inform INTERSEC of the fact you obtain  #
+#  these files. Should you not comply to these terms, you can be         #
+#  prosecuted in the extent permitted by applicable law.                 #
+#                                                                        #
+##########################################################################
+
+missing_dep=
+profile=
+out=/dev/stdout
+
+# {{{ library 
+
+die() {
+    echo 2>&1 "$@"
+    exit 1
+}
+
+warn() {
+    echo 2>&1 "$@"
+    missing_dep=t
+}
+
+setvar() {
+    v="$1"
+    shift
+    echo "$v" ":=" "$@" >> "$out"
+}
+
+check_tool() {
+    which "$1" >/dev/null 2>&1 || warn "*** $1 is missing, apt-get install $2"
+}
+
+# }}}
+
+while test $# != 0; do
+    case "$1" in
+        -p)
+            shift
+            test $# != 0 || die "missing -p argument"
+            profile="$1"
+            shift
+            ;;
+        -o)
+            shift
+            test $# != 0 || die "missing -o argument"
+            out="$1"
+            shift
+            ;;
+        *) die "unknown argument $1";;
+    esac
+done
+
+echo 1>&2 "*** start configure"
+test -n "$out" && rm -f "$out"
+
+case "$profile" in
+    ''|default)
+        ;;
+    *)
+        export BUILDFOR_PREFIX=/opt/intersec/${profile}
+        export PKG_CONFIG_LIBDIR=${BUILDFOR_PREFIX}/usr/lib/pkgconfig
+        export PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1
+        export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
+        ;;
+esac
+
+# {{{ tools
+
+for tool in flex gperf mtasc swfmill; do
+    check_tool $tool $tool
+done
+
+# }}}
+# {{{ libgeoip
+
+geoip_PATH=/opt/intersec/GeoIP-1.4.3-$(uname -m)
+geoip_OBJS=${geoip_PATH}/libGeoIP/.libs
+
+if test -r /usr/lib/libGeoIP.so; then
+    setvar "libgeoip_CFLAGS"
+    setvar "libgeoip_LDFLAGS" "-lGeoIP"
+elif test -d ${geoip_PATH}; then
+    setvar "libgeoip_CFLAGS" "-I${geoip_PATH}/libGeoIP"
+    # We are not allowed to statically with the only object we really need.
+    setvar "libgeoip_LDFLAGS" "-L${geoip_PATH}/libGeoIP/.libs -Wl,--rpath,${geoip_PATH}/libGeoIP/.libs" \
+           "-lGeoIP ${geoip_PATH}/libGeoIP/.libs/libGeoIP.a"
+else
+    warn "*** libGeoIP is missing, on unstable: apt-get install libgeoip-dev"
+    warn "    or link /opt/intersec to /home/data/build"
+fi
+
+# }}}
+# {{{ lua
+
+if pkg-config --print-errors lua5.1; then
+    setvar "lua_CFLAGS" "$(pkg-config --cflags lua5.1)"
+    setvar "lua_LDFLAGS" "$(pkg-config --libs lua5.1)"
+else
+    warn "*** liblua5.1-dev is missing, apt-get install liblua5.1-dev"
+fi
+check_tool luac lua5.1
+
+# }}}
+# {{{ mysql
+
+if which mysql_config >/dev/null 2>/dev/null; then
+    setvar "libmysql_CFLAGS" "$(mysql_config --cflags)"
+    setvar "libmysql_LDFLAGS" "$(mysql_config --libs)"
+else
+    warn "*** libmysqlclient is missing, apt-get install libmysqlclient15-dev"
+fi
+
+# }}}
+# {{{ openssl
+
+if pkg-config --print-errors openssl; then
+    setvar "libssl_CFLAGS" "-I${BUILDFOR_PREFIX}/usr/include"
+    setvar "libssl_LDFLAGS" "-L${BUILDFOR_PREFIX}/usr/lib -lssl -lcrypto"
+else
+    warn "*** missing openssl, apt-get install libssl-dev"
+fi
+
+# }}}
+# {{{ oracle
+
+oracle_PATH=/opt/intersec/oracle-$(uname -m)
+
+if test -d ${oracle_PATH}; then
+    setvar "oracle_CFLAGS" "-Wno-strict-prototypes -I${oracle_PATH}/include"
+    setvar "oracle_LDFLAGS" "-L${oracle_PATH}/lib -Wl,--rpath,${oracle_PATH}/lib -lclntsh"
+else
+    warn "*** missing oracle headers, link /opt/intersec to /home/data/build"
+    warn "    or unpack /home/data/software/oracle/oracle-sdk.tar.gz"
+fi
+
+# }}}
+# {{{ libpcap-dev
+
+if test -r /usr/include/pcap.h; then
+    setvar "libpcap_CFLAGS"
+    setvar "libpcap_LDFLAGS" "-lpcap"
+else
+    warn "*** missing libpcap, apt-get install libpcap-dev"
+fi
+
+# }}}
+# {{{ libreadline-dev
+
+if test -r /usr/lib/libreadline.so; then
+    setvar "readline_CFLAGS"
+    setvar "readline_LDFLAGS" "-lreadline"
+else
+    warn "*** missing libreadline, apt-get install libreadline-dev"
+fi
+
+# }}}
+# {{{ libsctp-dev
+
+test -r /usr/include/netinet/sctp.h || warn "*** missing libsctp, apt-get install libsctp-dev"
+
+# }}}
+# {{{ tcabinet
+# we need 1.1.6 to have the in memory maps APIs
+
+if pkg-config --print-errors "tokyocabinet >= 1.1.6"; then
+    setvar "libtc_CFLAGS" "$(pkg-config --cflags tokyocabinet)"
+    setvar "libtc_LDFLAGS" "$(pkg-config --libs   tokyocabinet)"
+else
+    warn "*** missing libtokyocabinet, apt-get install libtokyocabinet-dev"
+    warn "                             [tokyocabinet-{doc,bin} can help too]"
+fi
+
+# }}}
+
+test -z "$missing_dep" || die "*** Missing dependencies, please upgrade your system"

@@ -15,7 +15,20 @@
 all::
 .PHONY: all
 
-include $(var/toolsdir)/bulk-misc.mk
+$!deps.mk: $/configure
+	mkdir -p $(@D)
+	$< -p $(var/profile) -o $@
+-include $!deps.mk
+
+ifneq (__dump_targets,$(MAKECMDGOALS))
+FORCE: ;
+.PHONY: FORCE
+
+# implicit rule to generate a given directory
+%/.exists:
+	mkdir -p $@
+.PRECIOUS: %/.exists
+endif
 
 ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
 include $(var/toolsdir)/bulk-build.mk
