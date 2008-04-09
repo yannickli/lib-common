@@ -28,7 +28,7 @@ $(patsubst ./%,%,$(dir $(d:/=)))fastclean:: $(d)fastclean
 $(d)all $(d)fastclean::
 $(d)clean:: $(d)fastclean
 	$(msg/rm) $$(@D) objects
-	#$(RM) -r $~$(d)
+	find $~$(d) -type f \! -name vars.mk -print0 | xargs -0 $(RM)
 )
 endef
 $(eval $(call fun/subdirs-targets,$(patsubst $/%,%,$(var/subdirs))))
@@ -71,20 +71,22 @@ endef
 #[ lex ]##############################################################{{{#
 
 define ext/l
-tmp/$2/lex_c := $$(patsubst %.l,%.c,$3)
-
-$$(tmp/$2/lex_c): %.c: %.l
+$(3:l=c): %.c: %.l
 	$(msg/COMPILE.l) $$(@R)
 	flex -R -o $$@ $$<
 	sed -i -e 's/^extern int isatty.*;//' \
 	       -e 's/^\t\tint n; \\/		size_t n; \\/' $$@
 
-$$(eval $$(call ext/c,$1,$2,$$(tmp/$2/lex_c),$4))
-.PRECIOUS: $$(tmp/$2/lex_c)
-__generate_files: $$(tmp/$2/lex_c)
+.PRECIOUS: $(3:l=c)
+__generate_files: $(3:l=c)
 distclean::
 	$(msg/rm) $(1D) lexers
-	$(RM) $$(tmp/$2/lex_c)
+	$(RM) $(3:l=c)
+endef
+
+define ext/l
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call fun/expand-l,$1,$2,$$t,$4))))
+$$(eval $$(call ext/c,$1,$2,$(3:l=c),$4))
 endef
 
 #}}}
