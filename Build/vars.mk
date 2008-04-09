@@ -18,10 +18,10 @@ endif
 var/toolsdir  := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 var/srcdir    := $(realpath $(dir $(var/toolsdir)))
 var/profile   := $(if $(BUILDFOR),$(BUILDFOR),default)
-var/builddir  := $(var/srcdir)/.$(var/profile)-$(shell hostname)
+var/builddir  := $(var/srcdir)/.build-$(var/profile)-$(shell hostname)
 /             := $(var/srcdir)/
 !             := $(var/builddir)/
-~             := .$(var/profile)-$(shell hostname)/
+~             := .build-$(var/profile)-$(shell hostname)/
 
 var/verbose   := $(V)$(VERBOSE)
 var/squote    := $(shell echo "'")
