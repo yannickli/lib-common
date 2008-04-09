@@ -289,7 +289,7 @@ void devnull_dup(int fd)
     }
 }
 
-#ifndef LINUX
+#ifndef __linux__
 int close_fds_higher_than(int fd)
 {
     int maxfd = sysconf(_SC_OPEN_MAX);

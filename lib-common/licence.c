@@ -14,7 +14,7 @@
 #ifndef MINGCC
 #include <stdio.h>
 #include <net/if.h>
-#ifdef LINUX
+#ifdef __linux__
 #include <net/if_arp.h>
 #endif
 #include <netinet/in.h>
@@ -444,7 +444,7 @@ bool licence_check_host_ok(const conf_t *conf)
 
 int list_my_cpus(char *dst, size_t size)
 {
-#ifdef LINUX
+#ifdef __linux__
     /* OG: Should use cpu_set_t type and macros ? */
     /* OG: Should check return value of these system calls */
     int i = 0, pos = 0, res = -1;

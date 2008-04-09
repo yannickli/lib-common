@@ -31,10 +31,8 @@ struct tm *localtime_r(const time_t *timep, struct tm *result);
 #define O_NONBLOCK 00004000
 #endif
 
-#if !defined(MINGCC) && defined(LINUX)
-
+#ifndef O_BINARY
 #define O_BINARY 0
-
 #endif
 
 #endif /* IS_LIB_COMMON_COMPAT_H */
