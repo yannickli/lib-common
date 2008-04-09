@@ -12,22 +12,21 @@
 ##########################################################################
 
 all distclean fastclean::
-distclean:: fastclean
+distclean:: | fastclean
 	$(msg/rm) build system
 	$(RM) -r $~
-clean:: fastclean
-	$(msg/rm) all objects files
-	$(RM) -r $~*/
+clean:: | fastclean
+	find $~$(d) -type f \! -name Makefile \! -name vars.mk -print0 | xargs -0 $(RM)
 __generate_files:
 .PHONY: __generate_files all fastclean clean distclean
 
 define fun/subdirs-targets
 $(foreach d,$1,
 $(patsubst ./%,%,$(dir $(d:/=)))all::       $(d)all
+$(patsubst ./%,%,$(dir $(d:/=)))clean::     $(d)clean
 $(patsubst ./%,%,$(dir $(d:/=)))fastclean:: $(d)fastclean
 $(d)all $(d)fastclean::
-$(d)clean:: $(d)fastclean
-	$(msg/rm) $$(@D) objects
+$(d)clean:: | $(d)fastclean
 	find $~$(d) -type f \! -name vars.mk -print0 | xargs -0 $(RM)
 )
 endef
