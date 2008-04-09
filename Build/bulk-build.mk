@@ -58,7 +58,7 @@ tmp/$2/objs := $$(patsubst %.c,$~%$$(tmp/$2/ns)$4.o,$3)
 
 $2: $$(tmp/$2/objs)
 
-$$(tmp/$2/objs): $~%$$(tmp/$2/ns)$4.o: %.c $(var/toolsdir)/* | __generate_files
+$$(tmp/$2/objs): $~%$$(tmp/$2/ns)$4.o: %.c $(var/toolsdir)/*
 	$(msg/COMPILE.c) $$(<R)
 	$(CC) $(CFLAGS) $$($1_CFLAGS) -MP -MMD -MQ $$@ -MF $$(@:o=dep) \
 	    $$(if $$(findstring .pic,$4),-fPIC) -g -c -o $$@ $$<
@@ -86,6 +86,7 @@ endef
 define ext/l
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call fun/expand-l,$1,$2,$$t,$4))))
 $$(eval $$(call ext/c,$1,$2,$(3:l=c),$4))
+$1: | __generate_files
 endef
 
 #}}}
@@ -113,6 +114,8 @@ endef
 define ext/tokens
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call fun/expand-tokens,$1,$2,$$t,$4))))
 $$(eval $$(call ext/c,$1,$2,$(3:.tokens=tokens.c),$4))
+$2: | __generate_files
+$$(filter %.c,$$($1_SOURCES)): | __generate_files
 endef
 
 #}}}
@@ -121,8 +124,8 @@ endef
 define ext/farch
 tmp/$2/farch := $$(patsubst %.farch,%farch,$3)
 
-$$(addsuffix .c,$$(tmp/$2/farch)): %farch.c: %farch.h | util/bldutils/buildfarch
-$$(addsuffix .h,$$(tmp/$2/farch)): %farch.h: %.farch  | util/bldutils/buildfarch
+$$(addsuffix .c,$$(tmp/$2/farch)): %farch.c: %farch.h util/bldutils/buildfarch
+$$(addsuffix .h,$$(tmp/$2/farch)): %farch.h: %.farch  util/bldutils/buildfarch
 	$(msg/generate) $$(@R)
 	cd $$(@D) && $/util/bldutils/buildfarch -d $!$$@.dep -n $$(*F) `cat $$(<F)`
 
@@ -133,10 +136,11 @@ distclean::
 	$(msg/rm) $(1D) farchs
 	$(RM) $$(tmp/$2/farch:=.h) $$(tmp/$2/farch:=.c)
 -include $$(patsubst %,$~%.c.dep,$3)
+$$(filter %.c,$$($1_SOURCES)): | __generate_files
 endef
 
 define ext/fc
-$$(addsuffix .c,$3): %.fc.c: %.fc | util/bldutils/farchc
+$$(addsuffix .c,$3): %.fc.c: %.fc util/bldutils/farchc
 	$(msg/generate) $$(@R)
 	cd $$(@D) && $/util/bldutils/farchc -d $!$$@.dep -o $$(@F) $$(<F)
 
@@ -146,12 +150,13 @@ distclean::
 	$(msg/rm) $(1D) fc
 	$(RM) $(3:=.c)
 -include $$(patsubst %,$~%.c.dep,$3)
+$$(filter %.c,$$($1_SOURCES)): | __generate_files
 endef
 
 #}}}
 
 #
-# $(eval $(call fun/apply-ext,<SUBDIR>,<TARGET>,<SOURCES>,[<NS>]))
+# $(eval $(call fun/apply-ext,<PHONY>,<TARGET>,<SOURCES>,[<NS>]))
 #
 var/exts := $(patsubst ext/%,%,$(filter ext/%,$(.VARIABLES)))
 define fun/apply-ext
@@ -178,13 +183,13 @@ $1.pic.wa: $~$1.pic.wa
 .PHONY: $1.a $1.wa $1.pic.a $1.pic.wa
 
 $$(eval $$(call fun/apply-ext,$1,$~$1.a,$$($1_SOURCES)))
-$~$1.a: | __generate_files
+$~$1.a:
 	$(msg/LINK.a) $$(@R)
 	$(RM) $$@
 	$(AR) crs $$@ $$(filter %.o,$$^)
 
 $$(eval $$(call fun/apply-ext,$1,$~$1.pic.a,$$($1_SOURCES),.pic))
-$~$1.pic.a: | __generate_files
+$~$1.pic.a:
 	$(msg/LINK.a) $$(@R)
 	$(RM) $$@
 	$(AR) crs $$@ $$(filter %.o,$$^)
@@ -205,7 +210,7 @@ $1.so: $~$1.so$$(tmp/$1/build)
 	$$(if $$(tmp/$1/sover),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F)$$(tmp/$1/sover))
 
 $$(eval $$(call fun/apply-ext,$1,$~$1.so$$(tmp/$1/build),$$($1_SOURCES),.pic))
-$~$1.so$$(tmp/$1/build): | __generate_files
+$~$1.so$$(tmp/$1/build):
 	$(msg/LINK.c) $$(@R)
 	$(CC) $(CFLAGS) $$($1_CFLAGS) \
 	    -fPIC -shared -o $$@ $$(filter %.o %.ld,$$^) \
@@ -230,7 +235,7 @@ $1$(EXEEXT): $~$1.exe FORCE
 	$(FASTCP) $$< $$@
 
 $$(eval $$(call fun/apply-ext,$1,$~$1.exe,$$($1_SOURCES)))
-$~$1.exe: | __generate_files
+$~$1.exe:
 	$(msg/LINK.c) $$(@R)
 	$(CC) $(CFLAGS) $$($1_CFLAGS) \
 	    -o $$@ $$(filter %.o %.ld,$$^) \
