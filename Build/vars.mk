@@ -32,7 +32,7 @@ else
     msg/echo := @:
 endif
 msg/generate  := $(msg/echo) " GEN"
-msg/fastcp    := $(msg/echo) " CP "
+msg/fastcp    := $(msg/echo) " UPD"
 msg/rm        := $(msg/echo) " RM "
 msg/LINK.a    := $(msg/echo) " AR "
 msg/COMPILE.c := $(msg/echo) " CC "
