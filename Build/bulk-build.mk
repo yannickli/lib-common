@@ -112,7 +112,7 @@ endef
 
 define ext/tokens
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call fun/expand-tokens,$1,$2,$$t,$4))))
-$$(eval $$(call ext/c,$1,$2,$(3:.tokens:tokens.c),$4))
+$$(eval $$(call ext/c,$1,$2,$(3:.tokens=tokens.c),$4))
 endef
 
 #}}}
