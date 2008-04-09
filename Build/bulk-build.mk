@@ -200,7 +200,6 @@ tmp/$1/build := $$(tmp/$1/sover)$$(if $$(word 2,$$($1_SOVERSION)),.$$(word 2,$$(
 
 $(1D)/all:: $~$1.so$$(tmp/$1/build)
 $1.so: $~$1.so$$(tmp/$1/build)
-	$(msg/fastcp) $$(@R)
 	$(FASTCP) $$< $/$$@$$(tmp/$1/build)
 	$$(if $$(tmp/$1/build),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F))
 	$$(if $$(tmp/$1/sover),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F)$$(tmp/$1/sover))
@@ -228,7 +227,6 @@ $(foreach p,$(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v)),$(eval
 define rule/program
 $(1D)/all:: $1$(EXEEXT)
 $1$(EXEEXT): $~$1.exe FORCE
-	$(msg/fastcp) $$(@R)
 	$(FASTCP) $$< $$@
 
 $$(eval $$(call fun/apply-ext,$1,$~$1.exe,$$($1_SOURCES)))
