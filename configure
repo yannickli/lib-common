@@ -59,7 +59,7 @@ while test $# != 0; do
 done
 
 echo 1>&2 "*** start configure"
-test -n "$out" && rm -f "$out"
+test -n "$out" -a "$out" != "/dev/stdout" && rm -f "$out"
 
 case "$profile" in
     ''|default)
