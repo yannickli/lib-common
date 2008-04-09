@@ -90,7 +90,7 @@ endef
 #}}}
 #[ tokens ]###########################################################{{{#
 
-define ext/tokens
+define fun/expand-tokens
 tmp/$2/toks_h := $$(patsubst %.tokens,%tokens.h,$3)
 tmp/$2/toks_c := $$(patsubst %.tokens,%tokens.c,$3)
 
@@ -102,12 +102,16 @@ $$(tmp/$2/toks_c): %tokens.c: %.tokens %tokens.h $(var/toolsdir)/tokens.sh
 	$(msg/generate) $$(@R)
 	cd $$(<D) && $(var/toolsdir)/tokens.sh $$(<F) $$(@F) || ($(RM) $$(@F) && exit 1)
 
-$$(eval $$(call ext/c,$1,$2,$$(tmp/$2/toks_c),$4))
 .PRECIOUS: $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
 __generate_files: $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
 distclean::
 	$(msg/rm) $(1D) tokens
 	$(RM) $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
+endef
+
+define ext/tokens
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call fun/expand-tokens,$1,$2,$$t,$4))))
+$$(eval $$(call ext/c,$1,$2,$(3:.tokens:tokens.c),$4))
 endef
 
 #}}}

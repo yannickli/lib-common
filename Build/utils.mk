@@ -43,8 +43,8 @@ endef
 #
 # $(call fun/do-once,<GUARD>,<CALL>)
 define fun/do-once
-$(if $(once/$1),,
+ifndef once/$1
 once/$1 := done
 $2
-)
+endif
 endef
