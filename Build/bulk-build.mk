@@ -95,13 +95,13 @@ define fun/expand-tokens
 tmp/$2/toks_h := $$(patsubst %.tokens,%tokens.h,$3)
 tmp/$2/toks_c := $$(patsubst %.tokens,%tokens.c,$3)
 
-$$(tmp/$2/toks_h): %tokens.h: %.tokens $(var/toolsdir)/tokens.sh
+$$(tmp/$2/toks_h): %tokens.h: %.tokens $(var/toolsdir)/_tokens.sh
 	$(msg/generate) $$(@R)
-	cd $$(<D) && $(var/toolsdir)/tokens.sh $$(<F) $$(@F) || ($(RM) $$(@F) && exit 1)
+	cd $$(<D) && $(var/toolsdir)/_tokens.sh $$(<F) $$(@F) || ($(RM) $$(@F) && exit 1)
 
-$$(tmp/$2/toks_c): %tokens.c: %.tokens %tokens.h $(var/toolsdir)/tokens.sh
+$$(tmp/$2/toks_c): %tokens.c: %.tokens %tokens.h $(var/toolsdir)/_tokens.sh
 	$(msg/generate) $$(@R)
-	cd $$(<D) && $(var/toolsdir)/tokens.sh $$(<F) $$(@F) || ($(RM) $$(@F) && exit 1)
+	cd $$(<D) && $(var/toolsdir)/_tokens.sh $$(<F) $$(@F) || ($(RM) $$(@F) && exit 1)
 
 .PRECIOUS: $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
 __generate_files: $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)

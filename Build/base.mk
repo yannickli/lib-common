@@ -11,7 +11,17 @@
 #                                                                        #
 ##########################################################################
 
-include $(realpath $(dir $(lastword $(MAKEFILE_LIST))))/vars.mk
-include $(var/toolsdir)/checks.mk
-include $(var/toolsdir)/utils.mk
+include $(realpath $(dir $(lastword $(MAKEFILE_LIST))))/base-vars.mk
+
+#
+# clean, distclean, and __* magic rules must be called alone
+#
+ifneq (,$(filter clean distclean __%,$(MAKECMDGOALS)))
+    ifneq (1,$(words $(MAKECMDGOALS)))
+        target = $(firstword $(filter clean distclean __%,$(MAKECMDGOALS)))
+        $(error target '$(target)' must be used alone)
+    endif
+endif
+
+include $(var/toolsdir)/base-utils.mk
 include $(var/toolsdir)/bulk.mk
