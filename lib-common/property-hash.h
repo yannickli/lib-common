@@ -75,6 +75,7 @@ static inline const char *props_hash_find(const props_hash_t *ph, const char *na
 }
 
 int props_hash_findval_int(const props_hash_t *ph, const char *name, int defval);
+bool props_hash_findval_bool(const props_hash_t *ph, const char *name, bool defval);
 
 /****************************************************************************/
 /* Serialize props_hashes                                                   */

@@ -136,6 +136,32 @@ int props_hash_findval_int(const props_hash_t *ph, const char *name, int defval)
     }
 }
 
+bool props_hash_findval_bool(const props_hash_t *ph, const char *name, bool defval)
+{
+    const char *result;
+
+    result = props_hash_findval(ph, name, NULL);
+    if (!result)
+        return defval;
+
+    /* XXX: Copied from conf.c */
+#define CONF_CHECK_BOOL(bname, value) \
+    if (!strcasecmp(result, bname)) {    \
+        return value;                \
+    }
+    CONF_CHECK_BOOL("true",  true);
+    CONF_CHECK_BOOL("false", false);
+    CONF_CHECK_BOOL("on",    true);
+    CONF_CHECK_BOOL("off",   false);
+    CONF_CHECK_BOOL("yes",   true);
+    CONF_CHECK_BOOL("no",    false);
+    CONF_CHECK_BOOL("1",     true);
+    CONF_CHECK_BOOL("0",     false);
+#undef CONF_CHECK_BOOL
+
+    return defval;
+}
+
 /****************************************************************************/
 /* Serialize props_hashes                                                   */
 /****************************************************************************/
