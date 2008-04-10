@@ -46,7 +46,7 @@ $2: $$(patsubst %.a,$~%$4.a,$3)
 endef
 
 define ext/wa
-$2: $$(patsubst %.a,$~%$4.wa,$3)
+$2: $$(patsubst %.wa,$~%$4.wa,$3)
 endef
 
 #}}}
@@ -69,7 +69,7 @@ endef
 #}}}
 #[ lex ]##############################################################{{{#
 
-define ext/l
+define fun/expand-l
 $(3:l=c): %.c: %.l
 	$(msg/COMPILE.l) $$(@R)
 	flex -R -o $$@ $$<
@@ -118,6 +118,27 @@ $2 $$(filter %.c,$$($1_SOURCES)): | __generate_files
 endef
 
 #}}}
+#[ lua ]##############################################################{{{#
+
+define fun/expand-lua
+$(3:lua=lc.bin): %.lc.bin: %.lua
+	$(msg/echo) " LUA" $$(<R)
+	luac -o $$*.lc $$<
+	util/bldutils/blob2c $$*.lc > $$@ || ($(RM) $$@; exit 1)
+
+.PRECIOUS: $(3:.lua=.lc.bin)
+__generate_files: $(3:.lua=.lc.bin)
+distclean::
+	$(msg/rm) $(1D) lua bytecode
+	$(RM) $(3:.lua=.lc) $(3:.lua=.lc.bin)
+endef
+
+define ext/lua
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call fun/expand-lua,$1,$2,$$t,$4))))
+$2 $$(filter %.c,$$($1_SOURCES)): | __generate_files
+endef
+
+#}}}
 #[ farchs/fcs ]#######################################################{{{#
 
 define ext/farch
@@ -159,8 +180,8 @@ endef
 #
 var/exts := $(patsubst ext/%,%,$(filter ext/%,$(.VARIABLES)))
 define fun/apply-ext
-$$(foreach e,$(var/exts),$$(if $$(filter %.$$e,$3),$$(eval $$(call ext/$$e,$1,$2,$$(filter %.$$e,$3),$4))))
 $2: | $~$(1D)/.exists $$($1_SOURCES) $$($1_DEPENDS)
+$$(foreach e,$(var/exts),$$(if $$(filter %.$$e,$3),$$(eval $$(call ext/$$e,$1,$2,$$(filter %.$$e,$3),$4))))
 endef
 
 #
@@ -170,12 +191,10 @@ endef
 
 define rule/staticlib
 $~$1.wa: $~$1.a
-	$(msg/FASTCP) $$(@R)
 	$(FASTCP) $$< $$@
 $1.a:  $~$1.a
 $1.wa: $~$1.wa
 $~$1.pic.wa: $~$1.pic.a
-	$(msg/FASTCP) $$(@R)
 	$(FASTCP) $$< $$@
 $1.pic.a:  $~$1.pic.a
 $1.pic.wa: $~$1.pic.wa
