@@ -112,7 +112,8 @@ int binlog_append(binlog_t *bl, uint16_t kind, const void *data, int len)
             goto error;
     }
     do {
-        size_t res = fwrite_unlocked(data + 4 * pos, 4, blocks - pos, bl->fp);
+        size_t res = fwrite_unlocked((const char *)data + 4 * pos,
+                                     4, blocks - pos, bl->fp);
         if (res == 0 && errno != EAGAIN && errno != EINTR)
             goto error;
         pos += res;
