@@ -11,19 +11,16 @@
 #                                                                        #
 ##########################################################################
 
-DEPTH=..
-include $(DEPTH)/admin/header.mk
-include $(DEPTH)/admin/tokyocabinet.mk
+test_PROGRAMS = btree-dump tst-cfgparser tst-tpl tst-stats tst-htbl tst-statsdump
 
-__EXE__   = btree-dump tst-cfgparser tst-tpl tst-stats tst-htbl
-__EXE__   += tst-statsdump
-__LIB__   = libcommon time-lp-simple
-__CHECK__ = test tst-blob-iconv tst-domains_list tst-path
-__CHECK__ += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-hash
-__CHECK__ += tst-iprintf-speed
+none_LIBRARIES = libcommon time-lp-simple
+
+none_TESTS += test tst-blob-iconv tst-domains_list tst-path
+none_TESTS += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-hash
+none_TESTS += tst-iprintf-speed
 ifdef CHECK_ALL
   # These tests are just too long to be part of "make check". Sorry.
-  __CHECK__ += tst-btree tst-isndx tst-sort
+  none_TESTS += tst-btree tst-isndx tst-sort
 endif
 
 btree-dump_SOURCES = btree-dump.c libcommon.a
@@ -98,13 +95,13 @@ libcommon_SOURCES = \
 	unix-linux.c \
 	\
 	$(end_of_list)
-libcommon_CFLAGS := $(tokyocabinet_CFLAGS)
+libcommon_CFLAGS := $(libtc_CFLAGS)
 
 time-lp-simple_SOURCES = time-lp-simple.c
 
 test_SOURCES = $(filter-out mem.c, $(libcommon_SOURCES)) check.c
-test_CFLAGS  = $(tokyocabinet_CFLAGS)
-test_LDFLAGS = -lz $(tokyocabinet_LDFLAGS)
+test_CFLAGS  = $(libtc_CFLAGS)
+test_LDFLAGS = -lz $(libtc_LDFLAGS)
 
 tst-cfgparser_SOURCES = tst-cfgparser.c libcommon.a
 
@@ -142,13 +139,13 @@ tst-domains_list_CFLAGS = -DSTANDALONE
 
 ifneq (,$(filter CYGWIN%,$(UNAME)))
   libcommon_SOURCES := $(filter-out blob-iconv.c linux.c psinfo.c,$(libcommon_SOURCES))
-  __CHECK__ := $(filter-out tst-blob-iconv,$(__CHECK__))
+  none_TESTS := $(filter-out tst-blob-iconv,$(none_TESTS))
 endif
 
 ifneq (,$(MINGCC))
   # Disable some stuff that does not compile under MingW
   libcommon_SOURCES := $(filter-out unix-linux.c mmappedfile.c psinfo.c btree.c stats-temporal.c, $(libcommon_SOURCES))
-  __EXE__ := $(filter-out btree-dump, $(__EXE__))
+  test_PROGRAMS := $(filter-out btree-dump, $(test_PROGRAMS))
 endif
 
-include $(DEPTH)/admin/footer.mk
+include ../Build/base.mk

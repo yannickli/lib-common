@@ -11,10 +11,7 @@
 #                                                                        #
 ##########################################################################
 
-DEPTH=..
-include $(DEPTH)/admin/header.mk
-
-__LIB__ := compat
+none_LIBRARIES := compat
 
 compat_SOURCES := compat.c check.c
 
@@ -25,4 +22,4 @@ ifneq (,$(MINGCC))
   compat_SOURCES += inet_ntop.c
 endif
 
-include $(DEPTH)/admin/footer.mk
+include ../Build/base.mk
