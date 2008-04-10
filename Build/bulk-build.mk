@@ -53,14 +53,14 @@ endef
 #[ .c files ]#########################################################{{{#
 
 define ext/c
-tmp/$2/ns   := $$(if $$($1_CFLAGS),.$(2F))
+tmp/$2/ns   := $$(if $$($(1D)/_CFLAGS)$$($1_CFLAGS),.$(2F))
 tmp/$2/objs := $$(patsubst %.c,$~%$$(tmp/$2/ns)$4.o,$3)
 
 $2: $$(tmp/$2/objs)
 
-$$(tmp/$2/objs): $~%$$(tmp/$2/ns)$4.o: %.c $(var/toolsdir)/*
+$$(tmp/$2/objs): $~%$$(tmp/$2/ns)$4.o: %.c $(var/toolsdir)/* $!$(1D)/vars.mk
 	$(msg/COMPILE.c) $$(<R)
-	$(CC) $(CFLAGS) $$($1_CFLAGS) -MP -MMD -MQ $$@ -MF $$(@:o=dep) \
+	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) -MP -MMD -MQ $$@ -MF $$(@:o=dep) \
 	    $$(if $$(findstring .pic,$4),-fPIC) -g -c -o $$@ $$<
 
 -include $$(tmp/$2/objs:o=dep)
@@ -211,7 +211,7 @@ $1.so: $~$1.so$$(tmp/$1/build)
 $$(eval $$(call fun/apply-ext,$1,$~$1.so$$(tmp/$1/build),$$($1_SOURCES),.pic))
 $~$1.so$$(tmp/$1/build):
 	$(msg/LINK.c) $$(@R)
-	$(CC) $(CFLAGS) $$($1_CFLAGS) \
+	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) \
 	    -fPIC -shared -o $$@ $$(filter %.o %.ld,$$^) \
 	    $(LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
@@ -236,7 +236,7 @@ $1$(EXEEXT): $~$1.exe FORCE
 $$(eval $$(call fun/apply-ext,$1,$~$1.exe,$$($1_SOURCES)))
 $~$1.exe:
 	$(msg/LINK.c) $$(@R)
-	$(CC) $(CFLAGS) $$($1_CFLAGS) \
+	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) \
 	    -o $$@ $$(filter %.o %.ld,$$^) \
 	    $(LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
