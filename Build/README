@@ -1,0 +1,105 @@
+How to write an intersec makefile
+=================================
+
+Introduction
+------------
+
+Our build system is goal and sources driven. Wich means that you have to list
+the goals you have, and which sources they need. You have a full set of magic
+variables for that matter.
+
+
+Magic Variables
+---------------
+
+`$/` is set to the absolute path to the root of the source tree. It has to be
+used to give a path to static libraries you depend on, e.g.:
+
+----------------------------------
+something_SOURCES = \
+	...                      \
+	$/lib-common/libcommon.a \
+        ...
+----------------------------------
+
+
+Per directory variables
+-----------------------
+
+* `_CFLAGS` can be used to inflict those `CFLAGS` to any goal in this
+  directory.
+
+
+Goals Variables
+----------------
+
+We support currently three kind of goals:
+
+* programs, using `xxx_PROGRAMS` variables (was `__EXE__` before);
+
+* static libraries, using `xxx_LIBRARIES` variables (was `__LIB__` before);
+
+* shared libraries, using `xxx_SHARED_LIBRARIES` variables (was `__SO__`
+  before.
+
+
+The build system doesn't support any other kind of goals yet, though you can
+add local rules (FIXME: add some doc about how to do that).
+
+
+Per Goal Variables
+--------------------
+
+Each goals support a complete set of variables, prefixed with the goal name.
+For any goal `goal` you have:
+
+* `goal_SOURCES` that holds the list of sources. We support at the time of
+  the writing: .h, .c, .tokens, .fc, .farch, .l, .a, .wa, .ld, .lua.
+  Note that anything that is put in that variable, in a relative way to the
+  current directory, is added to the order only depends chain of your goal
+  even if it's not an understood extension. Though if it's not a realy
+  “source” for the goal, the use of `goal_DEPENDS` is the proper way.
+
+* `goal_LDFLAGS` that holds the list of link flags to pass to the link
+  command.
+
+* `goal_CFLAGS` that holds C compilation flags to use for this goal.
+
+* `goal_DEPENDS` that holds other goals rules (relative to the Makefile's
+  directory) that must be remade before considering this goal done.
+
+
+NOTE: as a general rule any variable ending with `FLAGS` is kept and can be
+reused in the build system to implement new kind of goals.
+
+
+For shared libraries there is also:
+
+* `goal_SOVERSION` that should be a list of two numbers: the _soname_ version,
+  then the build version. E.g., if `libfoo_SOVERSION = 1.2 3.4` then it will
+  generate the `libfoo.so.1.2.3.4` shared library, with a soname of
+  `libfoo.so.1.2.3.4`.
+
+
+Recursion
+---------
+
+The build system guess where to “recurse” following chains of Makefiles that
+include Build/base.mk. If you want to use the build system in a hierarchy of
+directories looking like:
+
+----------------------------------
+a/b/c
+----------------------------------
+
+You must have the following Makefiles (even containing only the
+`include ../../Build/base.mk` line):
+
+----------------------------------
+Makefile
+a/Makefile
+a/b/Makefile
+a/b/c/Makefile
+----------------------------------
+
+// vim:filetype=asciidoc:tw=78
