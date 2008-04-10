@@ -25,6 +25,7 @@ var/builddir  := $(var/srcdir)/.build-$(var/profile)-$(shell hostname)
 
 var/verbose   := $(V)$(VERBOSE)
 var/squote    := $(shell echo "'")
+var/tab       := $(shell printf '\t')
 
 ifeq (,$(var/verbose))
     msg/echo := echo
