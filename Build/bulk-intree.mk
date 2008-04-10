@@ -20,6 +20,13 @@ __setup_buildsys_trampoline:
 	$(msg/echo) 'make: Entering directory `$(var/builddir)'"'"
 	$(MAKEPARALLEL) __setup_buildsys
 	$(msg/echo) 'make: Entering directory `$(var/srcdir)'"'"
+
+tags:
+	@$(if $(shell which ctags),,$(error "Please install ctags: apt-get install exuberant-ctags"))
+	cd $/ && ctags -o .tags --recurse=yes --totals=yes \
+                     --exclude=".svn" --exclude=".objs*" --exclude="old" \
+                     --exclude="new" --exclude="ogu" --exclude="xxx" \
+                     --exclude="*.mk" --exclude="*.exe"
 else
 __setup_buildsys_trampoline: ;
 endif
@@ -91,7 +98,7 @@ __dump_targets:
 	echo ''
 	$(MAKE) -rpqs | $(var/toolsdir)/_local_targets.sh \
 	    "$(var/srcdir)" "$." "$(var/toolsdir)" | \
-	    sed -n -e '/::/d; s~$$~ ; $$(MAKE) -C $. $$(subst $.,,$$@)~p'
+	    sed -n -e '/::/d; s~$$~ ; $$(MAKE) -wC $. $$(subst $.,,$$@)~p'
 
 .PHONY: __dump_targets
 
