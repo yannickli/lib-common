@@ -142,7 +142,3 @@ CFLAGS += -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64## lfs
 CFLAGS += -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L#   # all of IEEE 1003.1-2001
 CFLAGS += -D_XOPEN_SOURCE=600#                         # XSI extensions
 CFLAGS += -D_BSD_SOURCE#                               # strn?casecmp :/
-#Could be of use sometimes, need recent libc though IIRC
-ifndef SPARSE
-    CFLAGS += $(if $(filter -D_FORTIFY_SOURCE=%,$(ADD_CFLAGS)),,-D_FORTIFY_SOURCE=2)
-endif
