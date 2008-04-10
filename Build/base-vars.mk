@@ -45,7 +45,11 @@ msg/LINK.c    := $(msg/echo) " LD "
 .DEFAULT_GOAL := all
 SUFFIXES      :=
 MAKEFLAGS     := $(MAKEFLAGS)r$(if $(var/verbose),,s)
+ifeq (,$(findstring j,$(MAKEFLAGS)))
 MAKEPARALLEL  := $(MAKE) -j$(shell echo $$(($$(grep -c processor /proc/cpuinfo) + 1)))
+else
+MAKEPARALLEL  := $(MAKE)
+endif
 
 ##########################################################################
 # our own automatic variables

@@ -179,5 +179,24 @@ else
 fi
 
 # }}}
+# {{{ ImageMagick
+
+if pkg-config --print-errors ImageMagick; then
+    setvar "libmagick_CFLAGS"  "$(pkg-config --cflags ImageMagick)"
+    setvar "libmagick_LDFLAGS" "$(pkg-config --libs ImageMagick)"
+else
+    warn "*** missing ImageMagick, apt-get install libmagick9-dev"
+fi
+
+# }}}
+# {{{ php
+
+if which php-config >/dev/null 2>/dev/null; then
+    setvar "php5_CFLAGS" "$(php-config --includes)"
+else
+    warn "*** php-config is missing, apt-get install php5-dev"
+fi
+
+# }}}
 
 test -z "$missing_dep" || die "*** Missing dependencies, please upgrade your system"
