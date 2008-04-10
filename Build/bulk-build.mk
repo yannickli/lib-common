@@ -203,7 +203,7 @@ tmp/$1/sover := $$(if $$(word 1,$$($1_SOVERSION)),.$$(word 1,$$($1_SOVERSION)))
 tmp/$1/build := $$(tmp/$1/sover)$$(if $$(word 2,$$($1_SOVERSION)),.$$(word 2,$$($1_SOVERSION)))
 
 $(1D)/all:: $~$1.so$$(tmp/$1/build)
-$1.so: $~$1.so$$(tmp/$1/build)
+$1.so: $~$1.so$$(tmp/$1/build) FORCE
 	$(FASTCP) $$< $/$$@$$(tmp/$1/build)
 	$$(if $$(tmp/$1/build),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F))
 	$$(if $$(tmp/$1/sover),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F)$$(tmp/$1/sover))

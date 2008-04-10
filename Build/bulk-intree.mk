@@ -24,12 +24,8 @@ else
 __setup_buildsys_trampoline: ;
 endif
 
-.PHONY: __setup_buildsys_trampoline
-
-Makefile: | __setup_buildsys_trampoline ;
-%: | __setup_buildsys_trampoline
-	$(if $(findstring /,$@),,$(msg/echo) 'building `$@'\'' ...')
-	$(if $(findstring /,$@),,$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@)
+%: | __setup_buildsys_trampoline ;
+.PHONY: %
 
 distclean:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile distclean
@@ -37,7 +33,21 @@ distclean:: | __setup_buildsys_trampoline
 all fastclean clean:: FORCE | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
 
-.PHONY: all fastclean clean distclean
+.PHONY: all fastclean clean distclean __setup_buildsys_trampoline
+
+ifeq (,$(findstring p,$(MAKEFLAGS)))
+define fun/forward
+$1: | __setup_buildsys_trampoline
+	$(msg/echo) 'building `$1'\'' ...'
+	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$1
+.PHONY: $1
+endef
+$(foreach p,$(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v)),$(eval $(call fun/forward,$p$(EXEEXT))))
+$(foreach p,$(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v)),$(eval $(call fun/forward,$p.so)))
+$(foreach p,$(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v)),$(eval $(call fun/forward,$p.a)))
+$(foreach p,$(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v)),$(eval $(call fun/forward,$p.wa)))
+endif
+
 ##########################################################################
 # __setup_buildsys
 #
@@ -65,7 +75,10 @@ __setup_buildsys: $(var/builddir)/Makefile $(var/builddir)/depends.mk
 
 endif
 
-ifneq (,$(filter __%,$(MAKECMDGOALS)))
+##########################################################################
+# __dump_targets
+#
+ifeq (__dump_targets,$(MAKECMDGOALS))
 
 __dump_targets: . = $(patsubst $(var/srcdir)/%,%,$(realpath $(CURDIR))/)
 __dump_targets:
