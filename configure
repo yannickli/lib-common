@@ -61,16 +61,15 @@ done
 echo 1>&2 "*** start configure"
 test -n "$out" -a "$out" != "/dev/stdout" && rm -f "$out"
 
-case "$profile" in
-    ''|default)
-        ;;
-    *)
-        export BUILDFOR_PREFIX=/opt/intersec/${profile}
-        export PKG_CONFIG_LIBDIR=${BUILDFOR_PREFIX}/usr/lib/pkgconfig
-        export PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1
-        export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
-        ;;
-esac
+
+if test -n "$profile" -a -d /opt/intersec/${profile}; then
+    export BUILDFOR_PREFIX="/opt/intersec/${profile}"
+    export PKG_CONFIG_LIBDIR="${BUILDFOR_PREFIX}/usr/lib/pkgconfig"
+    export PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1
+    export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
+else
+    export PKG_CONFIG_LIBDIR="/usr/local/lib/pkgconfig:/usr/lib/pkgconfig"
+fi
 
 # {{{ tools
 
