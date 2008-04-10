@@ -147,7 +147,7 @@ tmp/$2/farch := $$(patsubst %.farch,%farch,$3)
 $$(addsuffix .c,$$(tmp/$2/farch)): %farch.c: %farch.h util/bldutils/buildfarch
 $$(addsuffix .h,$$(tmp/$2/farch)): %farch.h: %.farch  util/bldutils/buildfarch
 	$(msg/generate) $$(@R)
-	cd $$(@D) && $/util/bldutils/buildfarch -d $!$$@.dep -n $$(*F) `cat $$(<F)`
+	cd $$(@D) && $/util/bldutils/buildfarch -r $(1D)/ -d $!$$@.dep -n $$(*F) `cat $$(<F)`
 
 $$(eval $$(call ext/c,$1,$2,$$(tmp/$2/farch:=.c),$4))
 .PRECIOUS: $$(tmp/$2/farch:=.h) $$(tmp/$2/farch:=.c)
@@ -162,7 +162,7 @@ endef
 define ext/fc
 $$(addsuffix .c,$3): %.fc.c: %.fc util/bldutils/farchc
 	$(msg/generate) $$(@R)
-	cd $$(@D) && $/util/bldutils/farchc -d $!$$@.dep -o $$(@F) $$(<F)
+	$/util/bldutils/farchc -d $~$$@.dep -o $$@ $$<
 
 .PRECIOUS: $(3:=.c)
 __generate_files: $(3:=.c)
