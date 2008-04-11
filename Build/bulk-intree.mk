@@ -12,8 +12,11 @@
 ##########################################################################
 
 ##########################################################################
-# Only at toplevel
-#
+# {{{ Only at toplevel
+
+__setup_buildsys_trampoline:
+.PHONY: __setup_buildsys_trampoline
+
 ifeq (0,$(MAKELEVEL))
 __setup_buildsys_trampoline:
 	$(msg/echo) 'checking build-system ...'
@@ -27,39 +30,31 @@ tags:
                      --exclude=".svn" --exclude=".objs*" --exclude="old" \
                      --exclude="new" --exclude="ogu" --exclude="xxx" \
                      --exclude="*.mk" --exclude="*.exe"
-else
-__setup_buildsys_trampoline: ;
 endif
 
-%: | __setup_buildsys_trampoline ;
-.PHONY: %
+# }}}
+##########################################################################
+# {{{ Make some inner targets public
 
+ifeq (,$(findstring p,$(MAKEFLAGS)))
 distclean:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile distclean
+.PHONY: distclean
 
 all fastclean clean:: FORCE | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
+.PHONY: all fastclean clean
 
-.PHONY: all fastclean clean distclean __setup_buildsys_trampoline
-
-ifeq (,$(findstring p,$(MAKEFLAGS)))
-define fun/forward
-$1: | __setup_buildsys_trampoline
-	$(msg/echo) 'building `$1'\'' ...'
-	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$1
-.PHONY: $1
-endef
-$(foreach p,$(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v)),$(eval $(call fun/forward,$p$(EXEEXT))))
-$(foreach p,$(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v)),$(eval $(call fun/forward,$p.so)))
-$(foreach p,$(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v)),$(eval $(call fun/forward,$p.a)))
-$(foreach p,$(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v)),$(eval $(call fun/forward,$p.wa)))
+$(foreach p,$(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v)),$(eval $(call goal/staticlib,$p)))
+$(foreach p,$(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v)),$(eval $(call goal/sharedlib,$p)))
+$(foreach p,$(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v)),$(eval $(call goal/program,$p)))
 endif
 
+# }}}
 ##########################################################################
-# __setup_buildsys
+# {{{ __setup_buildsys
 #
 #   This target uses costly things so we hide it most of the time
-#
 ifeq (__setup_buildsys,$(MAKECMDGOALS))
 
 tmp/subdirs := $(shell '$(var/toolsdir)/_list_subdirs.sh' '$(var/srcdir)')
@@ -77,14 +72,15 @@ $(var/builddir)/Makefile: $(var/srcdir)/configure $(var/toolsdir)/* | $(tmp/vars
 	(:$(foreach s,$(patsubst $/%,$!%,$(tmp/subdirs)),;echo 'include $svars.mk'))  >> $@
 	echo 'include $(var/toolsdir)/base.mk'                       >> $@
 
-__setup_buildsys: $(var/builddir)/Makefile $(var/builddir)/depends.mk
+__setup_buildsys: $(var/builddir)/Makefile
 .PHONY: __setup_buildsys
 
 endif
 
+# }}}
 ##########################################################################
-# __dump_targets
-#
+# {{{ __dump_targets
+
 ifeq (__dump_targets,$(MAKECMDGOALS))
 
 __dump_targets: . = $(patsubst $(var/srcdir)/%,%,$(realpath $(CURDIR))/)
@@ -103,3 +99,5 @@ __dump_targets:
 .PHONY: __dump_targets
 
 endif
+
+#}}}

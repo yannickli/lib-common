@@ -31,7 +31,9 @@ FORCE: ;
 endif
 
 ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
+include $(var/toolsdir)/bulk-library.mk
 include $(var/toolsdir)/bulk-build.mk
 else
+include $(var/toolsdir)/bulk-library.mk
 include $(var/toolsdir)/bulk-intree.mk
 endif
