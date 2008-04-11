@@ -235,7 +235,7 @@ $~$1.so$$(tmp/$1/build):
 	    $(LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) $$($1_LIBS) \
-	    -Wl,-soname,$1.so$$(tmp/$1/sover)
+	    -Wl,-soname,$(1F).so$$(tmp/$1/sover)
 	$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so)
 
 $(1D)/fastclean::
