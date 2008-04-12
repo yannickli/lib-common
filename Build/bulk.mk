@@ -130,7 +130,7 @@ __dump_targets:
 	echo ''
 	$(MAKE) -rpqs | $(var/toolsdir)/_local_targets.sh \
 	    "$(var/srcdir)" "$." "$(var/toolsdir)" | \
-	    sed -n -e '/::/d; s~$$~ ; $$(MAKE) -wC $. $$(subst $.,,$$@)~p'
+	    sed -n -e 's~$$~ ; $$(MAKE) -w$(if $.,C $.) $$(subst $.,,$$@)~p'
 
 .PHONY: __dump_targets
 
