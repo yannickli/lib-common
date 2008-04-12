@@ -11,29 +11,129 @@
 #                                                                        #
 ##########################################################################
 
-# Make complains if all doesn't exist, have it
-all::
-.PHONY: all
+include $(var/toolsdir)/bulk-library.mk
+
+all fastclean clean distclean::
+FORCE: ;
+.PHONY: all fastclean distclean clean FORCE
 
 $!deps.mk: $/configure
 	mkdir -p $(@D)
 	$< -p $(var/profile) -o $@
 -include $!deps.mk
 
-ifneq (__dump_targets,$(MAKECMDGOALS))
-FORCE: ;
-.PHONY: FORCE
-
 # implicit rule to generate a given directory
 %/.exists:
 	mkdir -p $@
 .PRECIOUS: %/.exists
-endif
 
 ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
-include $(var/toolsdir)/bulk-library.mk
-include $(var/toolsdir)/bulk-build.mk
+##########################################################################
+# {{{ Inside the build system
+distclean:: | fastclean
+	$(msg/rm) build system
+	$(RM) -r $~
+clean:: | fastclean
+	find $~$(d) -type f \! -name Makefile \! -name vars.mk -print0 | xargs -0 $(RM)
+
+define fun/subdirs-targets
+$(foreach d,$1,
+$(patsubst ./%,%,$(dir $(d:/=)))all::       $(d)all
+$(patsubst ./%,%,$(dir $(d:/=)))clean::     $(d)clean
+$(patsubst ./%,%,$(dir $(d:/=)))fastclean:: $(d)fastclean
+$(d)all $(d)fastclean::
+$(d)clean:: | $(d)fastclean
+	find $~$(d) -type f \! -name vars.mk -print0 | xargs -0 $(RM)
+)
+endef
+$(eval $(call fun/subdirs-targets,$(patsubst $/%,%,$(var/subdirs))))
+
+$(foreach p,$(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v)),$(eval $(call rule/staticlib,$p)))
+$(foreach p,$(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v)),$(eval $(call rule/sharedlib,$p)))
+$(foreach p,$(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v)),$(eval $(call rule/program,$p)))
+# }}}
 else
-include $(var/toolsdir)/bulk-library.mk
-include $(var/toolsdir)/bulk-intree.mk
+##########################################################################
+# {{{ Only at toplevel
+ifeq (0,$(MAKELEVEL))
+
+__setup_buildsys_trampoline:
+	$(msg/echo) 'checking build-system ...'
+	$(msg/echo) 'make: Entering directory `$(var/builddir)'"'"
+	$(MAKEPARALLEL) __setup_buildsys
+	$(msg/echo) 'make: Entering directory `$(var/srcdir)'"'"
+.PHONY: __setup_buildsys_trampoline
+
+all fastclean clean:: | __setup_buildsys_trampoline
+	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
+
+distclean:: | __setup_buildsys_trampoline
+	$(MAKEPARALLEL) -C $/ -f $!Makefile distclean
+
+tags:
+	@$(if $(shell which ctags),,$(error "Please install ctags: apt-get install exuberant-ctags"))
+	cd $/ && ctags -o .tags --recurse=yes --totals=yes \
+                     --exclude=".svn" --exclude=".objs*" --exclude="old" \
+                     --exclude="new" --exclude="ogu" --exclude="xxx" \
+                     --exclude="*.mk" --exclude="*.exe"
+
+endif
+# }}}
+##########################################################################
+# {{{ target exports from the build system
+ifeq (,$(findstring p,$(MAKEFLAGS)))
+
+$(foreach p,$(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v)),$(eval $(call goal/staticlib,$p)))
+$(foreach p,$(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v)),$(eval $(call goal/sharedlib,$p)))
+$(foreach p,$(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v)),$(eval $(call goal/program,$p)))
+
+endif
+# }}}
+##########################################################################
+# {{{ __setup_buildsys
+#
+#   This target uses costly things so we hide it most of the time
+ifeq (__setup_buildsys,$(MAKECMDGOALS))
+
+tmp/subdirs := $(shell '$(var/toolsdir)/_list_subdirs.sh' '$(var/srcdir)')
+tmp/vars    := $(patsubst $(var/srcdir)/%,$(var/builddir)/%vars.mk,$(tmp/subdirs))
+
+$(tmp/vars): $(var/builddir)%/vars.mk: $(var/srcdir)%/Makefile $(var/toolsdir)/*
+	$(msg/generate) $(@R)
+	mkdir -p $(@D)
+	$(MAKE) --no-print-directory -rsC $(var/srcdir)$* __dump_targets > $@
+
+$(var/builddir)/Makefile: $(var/srcdir)/configure $(var/toolsdir)/* | $(tmp/vars)
+	$(msg/generate) $(@R)
+	mkdir -p $(@D)
+	echo 'var/subdirs := $(call fun/msq,$(tmp/subdirs))'         >  $@
+	(:$(foreach s,$(patsubst $/%,$!%,$(tmp/subdirs)),;echo 'include $svars.mk'))  >> $@
+	echo 'include $(var/toolsdir)/base.mk'                       >> $@
+
+__setup_buildsys: $(var/builddir)/Makefile
+.PHONY: __setup_buildsys
+
+endif
+# }}}
+##########################################################################
+# {{{ __dump_targets
+ifeq (__dump_targets,$(MAKECMDGOALS))
+
+__dump_targets: . = $(patsubst $(var/srcdir)/%,%,$(realpath $(CURDIR))/)
+__dump_targets:
+	$(foreach v,$(filter %_TESTS %_PROGRAMS %_LIBRARIES,$(.VARIABLES)),\
+	    echo '$v += $(call fun/msq,$(call fun/rebase,$(CURDIR),$($v)))';)
+	$(foreach v,$(filter %_DEPENDS %_SOURCES,$(.VARIABLES)),\
+	    echo '$.$v += $(call fun/msq,$(call fun/rebase,$(CURDIR),$($v)))';)
+	$(foreach v,$(filter %FLAGS %_SOVERSION,$(filter-out MAKE%,$(.VARIABLES))),\
+	    echo '$.$v += $(call fun/msq,$($v))';)
+	echo ''
+	$(MAKE) -rpqs | $(var/toolsdir)/_local_targets.sh \
+	    "$(var/srcdir)" "$." "$(var/toolsdir)" | \
+	    sed -n -e '/::/d; s~$$~ ; $$(MAKE) -wC $. $$(subst $.,,$$@)~p'
+
+.PHONY: __dump_targets
+
+endif
+#}}}
 endif
