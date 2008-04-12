@@ -266,8 +266,7 @@ $~$1.so$$(tmp/$1/build):
 	$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so)
 
 $(1D)/fastclean::
-	$(RM) $1.so
-	$(RM) $/$1.so*
+	$(RM) $1.so* $/$1.so*
 endef
 
 #}}}
@@ -292,7 +291,6 @@ $~$1.exe:
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) $$($1_LIBS)
 $(1D)/fastclean::
-	$(RM) $1$(EXEEXT)
-	$(RM) $/$1$(EXEEXT)
+	$(RM) $1$(EXEEXT) $/$1$(EXEEXT)
 endef
 #}}}
