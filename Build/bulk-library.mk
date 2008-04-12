@@ -192,13 +192,13 @@ endef
 #
 var/exts := $(patsubst ext/%,%,$(filter ext/%,$(.VARIABLES)))
 define fun/foreach-ext
-$2: | $~$(1D)/.exists $$($1_SOURCES) $$($1_DEPENDS)
+$2: | $$($1_SOURCES) $$($1_DEPENDS)
 $$(foreach e,$(var/exts),$$(if $$(filter %.$$e,$3),$$(eval $$(call ext/$$e,$1,$2,$$(filter %.$$e,$3),$4))))
 endef
 
 var/exts-goals := $(patsubst ext/%-goals,%,$(filter ext/%-goals,$(.VARIABLES)))
 define fun/foreach-ext-goal
-$2: | $~$(1D)/.exists $$($1_SOURCES) $$($1_DEPENDS)
+$2: | $$($1_SOURCES) $$($1_DEPENDS)
 $$(foreach e,$(var/exts-goals),$$(if $$(filter %.$$e,$3),$$(eval $$(call ext/$$e-goals,$1,$2,$$(filter %.$$e,$3),$4))))
 endef
 

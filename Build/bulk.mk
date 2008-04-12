@@ -22,11 +22,6 @@ $!deps.mk: $/configure
 	$< -p $(var/profile) -o $@
 -include $!deps.mk
 
-# implicit rule to generate a given directory
-%/.exists:
-	mkdir -p $@
-.PRECIOUS: %/.exists
-
 ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
 ##########################################################################
 # {{{ Inside the build system
