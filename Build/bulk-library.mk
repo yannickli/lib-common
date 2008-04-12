@@ -265,7 +265,7 @@ $~$1.so$$(tmp/$1/build):
 	    -Wl,-soname,$(1F).so$$(tmp/$1/sover)
 	$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so)
 
-$(1D)/fastclean::
+$(1D)/clean::
 	$(RM) $1.so* $/$1.so*
 endef
 
@@ -290,7 +290,7 @@ $~$1.exe:
 	    $(LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) $$($1_LIBS)
-$(1D)/fastclean::
+$(1D)/clean::
 	$(RM) $1$(EXEEXT) $/$1$(EXEEXT)
 endef
 #}}}

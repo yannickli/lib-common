@@ -13,9 +13,9 @@
 
 include $(var/toolsdir)/bulk-library.mk
 
-all fastclean clean distclean::
+all clean distclean::
 FORCE: ;
-.PHONY: all fastclean distclean clean FORCE
+.PHONY: all clean distclean FORCE
 
 $!deps.mk: $/configure
 	mkdir -p $(@D)
@@ -25,20 +25,20 @@ $!deps.mk: $/configure
 ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
 ##########################################################################
 # {{{ Inside the build system
-distclean:: | fastclean
+clean::
+	find $~ -type f \! -name Makefile \! -name vars.mk -print0 | xargs -0 $(RM)
+distclean:: | clean
 	$(msg/rm) build system
 	$(RM) -r $~
-clean:: | fastclean
-	find $~$(d) -type f \! -name Makefile \! -name vars.mk -print0 | xargs -0 $(RM)
 
 define fun/subdirs-targets
 $(foreach d,$1,
 $(patsubst ./%,%,$(dir $(d:/=)))all::       $(d)all
 $(patsubst ./%,%,$(dir $(d:/=)))clean::     $(d)clean
-$(patsubst ./%,%,$(dir $(d:/=)))fastclean:: $(d)fastclean
-$(d)all $(d)fastclean::
-$(d)clean:: | $(d)fastclean
+$(d)all::
+$(d)clean::
 	find $~$(d) -type f \! -name vars.mk -print0 | xargs -0 $(RM)
+$(d)distclean:: distclean
 )
 endef
 $(eval $(call fun/subdirs-targets,$(patsubst $/%,%,$(var/subdirs))))
@@ -59,11 +59,8 @@ __setup_buildsys_trampoline:
 	$(msg/echo) 'make: Entering directory `$(var/srcdir)'"'"
 .PHONY: __setup_buildsys_trampoline
 
-all fastclean clean:: | __setup_buildsys_trampoline
+all clean distclean:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
-
-distclean:: | __setup_buildsys_trampoline
-	$(MAKEPARALLEL) -C $/ -f $!Makefile distclean
 
 tags:
 	@$(if $(shell which ctags),,$(error "Please install ctags: apt-get install exuberant-ctags"))
