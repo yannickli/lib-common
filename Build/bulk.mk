@@ -106,9 +106,9 @@ $(tmp/vars): $(var/builddir)%/vars.mk: $(var/srcdir)%/Makefile $(var/toolsdir)/*
 $(var/builddir)/Makefile: $(var/srcdir)/configure $(var/toolsdir)/* | $(tmp/vars)
 	$(msg/generate) $(@R)
 	mkdir -p $(@D)
-	echo 'var/subdirs := $(call fun/msq,$(tmp/subdirs))'         >  $@
-	(:$(foreach s,$(patsubst $/%,$!%,$(tmp/subdirs)),;echo 'include $svars.mk'))  >> $@
-	echo 'include $(var/toolsdir)/base.mk'                       >> $@
+	echo 'var/subdirs := $(call fun/msq,$(tmp/subdirs))'          >  $@
+	(:$(patsubst $/%,;echo 'include $~%vars.mk',$(tmp/subdirs)))  >> $@
+	echo 'include $(var/toolsdir)/base.mk'                        >> $@
 
 __setup_buildsys: $(var/builddir)/Makefile
 .PHONY: __setup_buildsys
@@ -128,7 +128,7 @@ __dump_targets:
 	$(foreach v,$(filter %FLAGS %_SOVERSION,$(filter-out MAKE%,$(.VARIABLES))),\
 	    echo '$.$v += $(call fun/msq,$($v))';)
 	echo ''
-	$(MAKE) -rpqs | $(var/toolsdir)/_local_targets.sh \
+	$(MAKE) -nspqr | $(var/toolsdir)/_local_targets.sh \
 	    "$(var/srcdir)" "$." "$(var/toolsdir)" | \
 	    sed -n -e 's~$$~ ; $$(MAKE) -w$(if $.,C $.) $$(subst $.,,$$@)~p'
 
