@@ -50,7 +50,8 @@ $2: $$(tmp/$2/objs)
 
 $$(tmp/$2/objs): $~%$$(tmp/$2/ns)$4.o: %.c $(var/toolsdir)/* $!$(1D)/vars.mk
 	$(msg/COMPILE.c) $$(<R)
-	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) -MP -MMD -MQ $$@ -MF $$(@:o=dep) \
+	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$*.c_CFLAGS) \
+	    -MP -MMD -MQ $$@ -MF $$(@:o=dep) \
 	    $$(if $$(findstring .pic,$4),-fPIC) -g -c -o $$@ $$<
 
 -include $$(tmp/$2/objs:o=dep)
