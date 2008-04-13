@@ -36,7 +36,7 @@ ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
 ##########################################################################
 # {{{ Inside the build system
 clean::
-	find $~ -type f \! -name Makefile \! -name vars.mk -print0 | xargs -0 $(RM)
+	find $~ -maxdepth 1 -type f \! -name Makefile \! -name vars.mk -print0 | xargs -0 $(RM)
 distclean:: | clean
 	$(msg/rm) build system
 	$(RM) -r $~
