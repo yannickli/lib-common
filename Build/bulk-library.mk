@@ -68,8 +68,6 @@ $(3:l=c): %.c: %.l
 	flex -R -o $$@ $$<
 	sed -i -e 's/^extern int isatty.*;//' \
 	       -e 's/^\t\tint n; \\/		size_t n; \\/' $$@
-
-.PRECIOUS: $(3:l=c)
 __generate_files: $(3:l=c)
 endef
 
@@ -96,7 +94,6 @@ $$(tmp/$2/toks_c): %tokens.c: %.tokens %tokens.h $(var/toolsdir)/_tokens.sh
 	$(msg/generate) $$(@R)
 	cd $$(<D) && $(var/toolsdir)/_tokens.sh $$(<F) $$(@F) || ($(RM) $$(@F) && exit 1)
 
-.PRECIOUS: $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
 __generate_files: $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
 endef
 
@@ -117,7 +114,6 @@ $(3:lua=lc.bin): %.lc.bin: %.lua
 	luac -o $$*.lc $$<
 	util/bldutils/blob2c $$*.lc > $$@ || ($(RM) $$@; exit 1)
 
-.PRECIOUS: $(3:.lua=.lc.bin)
 __generate_files: $(3:.lua=.lc.bin)
 endef
 
@@ -140,7 +136,6 @@ $$(addsuffix .h,$$(tmp/$2/farch)): %farch.h: %.farch  util/bldutils/buildfarch
 	cd $$(@D) && $/util/bldutils/buildfarch -r $(1D)/ -d $!$$@.dep -n $$(*F) `cat $$(<F)`
 
 $$(eval $$(call ext/rule/c,$1,$2,$$(tmp/$2/farch:=.c),$4))
-.PRECIOUS: $$(tmp/$2/farch:=.h) $$(tmp/$2/farch:=.c)
 __generate_files: $$(tmp/$2/farch:=.h) $$(tmp/$2/farch:=.c)
 -include $$(patsubst %,$~%.c.dep,$3)
 $2 $$(filter %.c,$$($1_SOURCES)): | __generate_files
@@ -154,8 +149,6 @@ define ext/rule/fc
 $$(addsuffix .c,$3): %.fc.c: %.fc util/bldutils/farchc
 	$(msg/generate) $$(@R)
 	$/util/bldutils/farchc -d $~$$@.dep -o $$@ $$<
-
-.PRECIOUS: $(3:=.c)
 __generate_files: $(3:=.c)
 -include $$(patsubst %,$~%.c.dep,$3)
 $2 $$(filter %.c,$$($1_SOURCES)): | __generate_files
