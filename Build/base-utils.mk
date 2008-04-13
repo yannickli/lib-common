@@ -48,3 +48,7 @@ once/$1 := done
 $2
 endif
 endef
+
+# substitute and only keep matching substs
+#
+fun/patsubst-filt = $(patsubst $1,$2,$(filter $1,$3))

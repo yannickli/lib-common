@@ -11,17 +11,6 @@
 #                                                                        #
 ##########################################################################
 
-define fun/forward-real
-$1: | __setup_buildsys_trampoline
-	$(msg/echo) 'building `$$@'\'' ...'
-	$(MAKEPARALLEL) -C $/ -f $!Makefile $$(patsubst $/%,%,$$(CURDIR)/)$$@
-.PHONY: $1
-endef
-
-define fun/forward
-$$(foreach g,$1,$$(eval $$(call fun/do-once,forward-real-$$g,$$(call fun/forward-real,$$g))))
-endef
-
 #
 # extension driven rules
 # ~~~~~~~~~~~~~~~~~~~~~~
@@ -59,7 +48,7 @@ tmp/$2/objs := $$(patsubst %.c,$~%$$(tmp/$2/ns)$4.o,$3)
 
 $2: $$(tmp/$2/objs)
 
-$$(tmp/$2/objs): $~%$$(tmp/$2/ns)$4.o: %.c $(var/toolsdir)/* $!$(1D)/vars.mk
+$$(tmp/$2/objs): $~%$$(tmp/$2/ns)$4.o: %.c $(var/toolsdir)/* $~$(1D)/vars.mk
 	$(msg/COMPILE.c) $$(<R)
 	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$*.c_CFLAGS) \
 	    -MP -MMD -MQ $$@ -MF $$(@:o=dep) \
@@ -71,9 +60,7 @@ endef
 #}}}
 #[ lex ]##############################################################{{{#
 
-define ext/gen/l
-$(call fun/forward,$(1:l=c))
-endef
+ext/gen/l = $(call fun/patsubst-filt,%.l,%.c,$1)
 
 define fun/expand-l
 $(3:l=c): %.c: %.l
@@ -84,9 +71,6 @@ $(3:l=c): %.c: %.l
 
 .PRECIOUS: $(3:l=c)
 __generate_files: $(3:l=c)
-distclean::
-	$(msg/rm) $(1D) lexers
-	$(RM) $(3:l=c)
 endef
 
 define ext/rule/l
@@ -98,9 +82,7 @@ endef
 #}}}
 #[ tokens ]###########################################################{{{#
 
-define ext/gen/tokens
-$(call fun/forward,$(1:.tokens=tokens.h) $(1:.tokens=tokens.c))
-endef
+ext/gen/tokens = $(call fun/patsubst-filt,%.tokens,%tokens.h,$1) $(call fun/patsubst-filt,%.tokens,%tokens.c,$1)
 
 define fun/expand-tokens
 tmp/$2/toks_h := $$(patsubst %.tokens,%tokens.h,$3)
@@ -116,9 +98,6 @@ $$(tmp/$2/toks_c): %tokens.c: %.tokens %tokens.h $(var/toolsdir)/_tokens.sh
 
 .PRECIOUS: $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
 __generate_files: $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
-distclean::
-	$(msg/rm) $(1D) tokens
-	$(RM) $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
 endef
 
 define ext/rule/tokens
@@ -130,9 +109,7 @@ endef
 #}}}
 #[ lua ]##############################################################{{{#
 
-define ext/gen/lua
-$(call fun/forward,$(1:.lua=.lc.bin))
-endef
+ext/gen/lua = $(call fun/patsubst-filt,%.lua,%.lc.bin,$1)
 
 define fun/expand-lua
 $(3:lua=lc.bin): %.lc.bin: %.lua
@@ -142,9 +119,6 @@ $(3:lua=lc.bin): %.lc.bin: %.lua
 
 .PRECIOUS: $(3:.lua=.lc.bin)
 __generate_files: $(3:.lua=.lc.bin)
-distclean::
-	$(msg/rm) $(1D) lua bytecode
-	$(RM) $(3:.lua=.lc) $(3:.lua=.lc.bin)
 endef
 
 define ext/rule/lua
@@ -155,9 +129,7 @@ endef
 #}}}
 #[ farchs/fcs ]#######################################################{{{#
 
-define ext/gen/farch
-$(call fun/forward,$(1:.farch=farch.h) $(1:.farch=farch.c))
-endef
+ext/gen/farch = $(call fun/patsubst-filt,%.farch,%farch.h,$1) $(call fun/patsubst-filt,%.farch,%farch.c,$1)
 
 define ext/rule/farch
 tmp/$2/farch := $$(patsubst %.farch,%farch,$3)
@@ -170,18 +142,13 @@ $$(addsuffix .h,$$(tmp/$2/farch)): %farch.h: %.farch  util/bldutils/buildfarch
 $$(eval $$(call ext/rule/c,$1,$2,$$(tmp/$2/farch:=.c),$4))
 .PRECIOUS: $$(tmp/$2/farch:=.h) $$(tmp/$2/farch:=.c)
 __generate_files: $$(tmp/$2/farch:=.h) $$(tmp/$2/farch:=.c)
-distclean::
-	$(msg/rm) $(1D) farchs
-	$(RM) $$(tmp/$2/farch:=.h) $$(tmp/$2/farch:=.c)
 -include $$(patsubst %,$~%.c.dep,$3)
 $2 $$(filter %.c,$$($1_SOURCES)): | __generate_files
 endef
 
 # -- fcs
 
-define ext/gen/fc
-$(call fun/forward,$(1:=.c))
-endef
+ext/gen/fc = $(call fun/patsubst-filt,%.fc,%.fc.c,$1)
 
 define ext/rule/fc
 $$(addsuffix .c,$3): %.fc.c: %.fc util/bldutils/farchc
@@ -190,9 +157,6 @@ $$(addsuffix .c,$3): %.fc.c: %.fc util/bldutils/farchc
 
 .PRECIOUS: $(3:=.c)
 __generate_files: $(3:=.c)
-distclean::
-	$(msg/rm) $(1D) fc
-	$(RM) $(3:=.c)
 -include $$(patsubst %,$~%.c.dep,$3)
 $2 $$(filter %.c,$$($1_SOURCES)): | __generate_files
 endef
@@ -208,20 +172,10 @@ $2: | $$($1_SOURCES) $$($1_DEPENDS)
 $$(foreach e,$(var/exts),$$(if $$(filter %.$$e,$3),$$(eval $$(call ext/rule/$$e,$1,$2,$$(filter %.$$e,$3),$4))))
 endef
 
-var/exts-gen := $(patsubst ext/gen/%,%,$(filter ext/gen/%,$(.VARIABLES)))
-define fun/foreach-ext-gen
-$$(foreach e,$(var/exts-gen),$$(if $$(filter %.$$e,$1),$$(eval $$(call ext/gen/$$e,$$(filter %.$$e,$1)))))
-endef
-
 #
 # main targets (entry points)
 #
 #[ _LIBRARIES ]#######################################################{{{#
-
-define goal/staticlib
-$(call fun/forward,$1.a $1.wa)
-$$(eval $$(call fun/foreach-ext-gen,$$($1_SOURCES)))
-endef
 
 define rule/staticlib
 $~$1.wa: $~$1.a
@@ -250,11 +204,6 @@ endef
 #}}}
 #[ _SHARED_LIBRARIES ]################################################{{{#
 
-define goal/sharedlib
-$(call fun/forward,$1.so)
-$$(eval $$(call fun/foreach-ext-gen,$$($1_SOURCES)))
-endef
-
 define rule/sharedlib
 tmp/$1/sover := $$(if $$(word 1,$$($1_SOVERSION)),.$$(word 1,$$($1_SOVERSION)))
 tmp/$1/build := $$(tmp/$1/sover)$$(if $$(word 2,$$($1_SOVERSION)),.$$(word 2,$$($1_SOVERSION)))
@@ -277,16 +226,11 @@ $~$1.so$$(tmp/$1/build):
 	$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so)
 
 $(1D)/clean::
-	$(RM) $1.so* $/$1.so*
+	$(RM) $1.so*
 endef
 
 #}}}
 #[ _PROGRAMS ]########################################################{{{#
-
-define goal/program
-$(call fun/forward,$1$(EXEEXT))
-$$(eval $$(call fun/foreach-ext-gen,$$($1_SOURCES)))
-endef
 
 define rule/program
 $(1D)/all:: $1$(EXEEXT)
@@ -302,6 +246,6 @@ $~$1.exe:
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) $$($1_LIBS)
 $(1D)/clean::
-	$(RM) $1$(EXEEXT) $/$1$(EXEEXT)
+	$(RM) $1$(EXEEXT)
 endef
 #}}}

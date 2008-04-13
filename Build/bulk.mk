@@ -22,6 +22,16 @@ $!deps.mk: $/configure
 	$< -p $(var/profile) -o $@
 -include $!deps.mk
 
+var/sources    = $(sort $(foreach v,$(filter %_SOURCES,$(.VARIABLES)),$($v)))
+var/generated  = $(sort $(foreach f,$(filter ext/gen/%,$(.VARIABLES)),$(call $f,$(var/sources))))
+
+var/staticlibs = $(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v))
+var/sharedlibs = $(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v))
+var/programs   = $(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v))
+
+var/copied     = $(var/programs:=$(EXEEXT)) $(var/sharedlibs:=.so) \
+                 $(var/staticlibs:=.a) $(var/staticlibs:=.wa)
+
 ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
 ##########################################################################
 # {{{ Inside the build system
@@ -30,6 +40,7 @@ clean::
 distclean:: | clean
 	$(msg/rm) build system
 	$(RM) -r $~
+	$(RM) $(var/generated)
 
 define fun/subdirs-targets
 $(foreach d,$1,
@@ -43,9 +54,9 @@ $(d)distclean:: distclean
 endef
 $(eval $(call fun/subdirs-targets,$(patsubst $/%,%,$(var/subdirs))))
 
-$(foreach p,$(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v)),$(eval $(call rule/staticlib,$p)))
-$(foreach p,$(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v)),$(eval $(call rule/sharedlib,$p)))
-$(foreach p,$(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v)),$(eval $(call rule/program,$p)))
+$(foreach p,$(var/staticlibs),$(eval $(call rule/staticlib,$p)))
+$(foreach p,$(var/sharedlibs),$(eval $(call rule/sharedlib,$p)))
+$(foreach p,$(var/programs),$(eval $(call rule/program,$p)))
 # }}}
 else
 ##########################################################################
@@ -75,9 +86,10 @@ endif
 # {{{ target exports from the build system
 ifeq (,$(findstring p,$(MAKEFLAGS)))
 
-$(foreach p,$(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v)),$(eval $(call goal/staticlib,$p)))
-$(foreach p,$(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v)),$(eval $(call goal/sharedlib,$p)))
-$(foreach p,$(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v)),$(eval $(call goal/program,$p)))
+$(var/generated) $(var/copied): | __setup_buildsys_trampoline
+	$(msg/echo) 'building `$@'\'' ...'
+	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
+.PHONY: $(var/generated)
 
 endif
 # }}}
