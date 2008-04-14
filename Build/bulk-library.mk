@@ -82,19 +82,19 @@ endef
 ext/gen/tokens = $(call fun/patsubst-filt,%.tokens,%tokens.h,$1) $(call fun/patsubst-filt,%.tokens,%tokens.c,$1)
 
 define fun/expand-tokens
-tmp/$2/toks_h = $(patsubst %.tokens,%tokens.h,$3)
-tmp/$2/toks_c = $(patsubst %.tokens,%tokens.c,$3)
+tmp/$2/toks_h := $(patsubst %.tokens,%tokens.h,$3)
+tmp/$2/toks_c := $(patsubst %.tokens,%tokens.c,$3)
 
-$(tmp/$2/toks_h): %tokens.h: %.tokens $(var/toolsdir)/_tokens.sh
+$$(tmp/$2/toks_h): %tokens.h: %.tokens $(var/toolsdir)/_tokens.sh
 	$(msg/generate) $$(@R)
 	cd $$(<D) && $(var/toolsdir)/_tokens.sh $$(<F) $$(@F) || ($(RM) $$(@F) && exit 1)
 
-$(tmp/$2/toks_c): %tokens.c: %.tokens %tokens.h $(var/toolsdir)/_tokens.sh
+$$(tmp/$2/toks_c): %tokens.c: %.tokens %tokens.h $(var/toolsdir)/_tokens.sh
 	$(msg/generate) $$(@R)
 	cd $$(<D) && $(var/toolsdir)/_tokens.sh $$(<F) $$(@F) || ($(RM) $$(@F) && exit 1)
 
-$(tmp/$2/toks_h) $(tmp/$2/toks_c): $(foreach s,$3,$($(s)_DEPENDS))
-__$1_generated: $(tmp/$2/toks_h) $(tmp/$2/toks_c)
+$$(tmp/$2/toks_h) $$(tmp/$2/toks_c): $(foreach s,$3,$($(s)_DEPENDS))
+__$1_generated: $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
 endef
 
 define ext/rule/tokens
