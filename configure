@@ -73,7 +73,7 @@ fi
 
 # {{{ tools
 
-for tool in flex gperf mtasc swfmill; do
+for tool in flex gperf mtasc swfmill xsltproc; do
     check_tool $tool $tool
 done
 

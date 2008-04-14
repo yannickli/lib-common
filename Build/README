@@ -80,6 +80,11 @@ The following suffixes are used to define new kind of goals:
 `_SHARED_LIBRARIES`::
         Shared objects (`.so` files) (was `__SO__` before).
 
+`_DATAS`::
+        A target, named with its extension. The generation is done in-tree,
+        and must be derived directly or inderectly from the `_SOURCES` that
+        come with it.
+
 
 The build system doesn't support any other kind of goals yet, though you can
 add local rules (FIXME: add some doc about how to do that).

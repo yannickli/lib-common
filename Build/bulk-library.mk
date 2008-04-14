@@ -153,6 +153,25 @@ __$1_generated: $(3:=.c)
 endef
 
 #}}}
+#[ swfml ]############################################################{{{#
+
+ext/gen/swfml = $(call fun/patsubst-filt,%.swfml,%.swf,$1)
+
+define ext/rule/swfml
+$$(patsubst %,$~%.dep,$3): $~%.dep: % $(var/toolsdir)/swfml-deps.xsl
+	$(msg/echo) " DEP" $$(<F:.swfml=.swf)
+	xsltproc --nonet --novalid \
+	    --stringparam reldir $$(<D)/ \
+	    --stringparam target $$(<F:.swfml=.swf) \
+	    -o $$@ $(var/toolsdir)/swfml-deps.xsl $$<
+-include $(3:%=$~%.dep)
+
+$(3:.swfml=.swf): %.swf: %.swfml
+	$(msg/echo) " SWF" $$@
+	cd $$(<D) && swfmill simple $$(<F) $$(@F)
+endef
+
+#}}}
 
 #
 # $(eval $(call fun/foreach-ext-rule,<PHONY>,<TARGET>,<SOURCES>,[<NS>]))
@@ -241,4 +260,12 @@ $~$1.exe:
 $(1D)/clean::
 	$(RM) $1$(EXEEXT)
 endef
+#}}}
+#[ _DATAS ]###########################################################{{{#
+
+define rule/datas
+$(1D)/all:: $1
+$$(eval $$(call fun/foreach-ext-rule,$1,$1,$$($1_SOURCES)))
+endef
+
 #}}}

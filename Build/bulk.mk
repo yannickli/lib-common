@@ -29,6 +29,7 @@ var/generated  = $(sort $(foreach f,$(filter ext/gen/%,$(.VARIABLES)),$(call $f,
 var/staticlibs = $(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v))
 var/sharedlibs = $(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v))
 var/programs   = $(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v))
+var/datas      = $(foreach v,$(filter %_DATAS,$(.VARIABLES)),$($v))
 
 ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
 ##########################################################################
@@ -43,6 +44,7 @@ distclean::
 	$(call fun/expand-if2,$(RM),$(filter-out %/,$(var/cleanfiles)))
 	$(call fun/expand-if2,$(RM) -r,$(filter %/,$(var/cleanfiles)))
 	$(msg/rm) copied targets
+	$(call fun/expand-if2,$(RM),$(var/datas))
 	$(call fun/expand-if2,$(RM),$(var/programs:=$(EXEEXT)))
 	$(call fun/expand-if2,$(RM),$(var/sharedlibs:=.so*))
 	$(call fun/expand-if2,$(RM),$(var/staticlibs:=.a) $(var/staticlibs:=.wa))
@@ -66,6 +68,7 @@ $(eval $(call fun/subdirs-targets,$(patsubst $/%,%,$(var/subdirs))))
 $(foreach p,$(var/staticlibs),$(eval $(call rule/staticlib,$p)))
 $(foreach p,$(var/sharedlibs),$(eval $(call rule/sharedlib,$p)))
 $(foreach p,$(var/programs),$(eval $(call rule/program,$p)))
+$(foreach p,$(var/datas),$(eval $(call rule/datas,$p)))
 # }}}
 else
 ##########################################################################
@@ -97,10 +100,11 @@ endif
 # {{{ target exports from the build system
 ifeq (,$(findstring p,$(MAKEFLAGS)))
 
-$(var/generated) \
-$(var/programs:=$(EXEEXT)) \
-$(var/sharedlibs:=.so) \
-$(var/staticlibs:=.a) $(var/staticlibs:=.wa) \
+$(sort $(var/generated) $(var/datas)) \
+$(var/programs:=$(EXEEXT))    \
+$(var/sharedlibs:=.so)        \
+$(var/staticlibs:=.a)         \
+$(var/staticlibs:=.wa)        \
 : | __setup_buildsys_trampoline
 	$(msg/echo) 'building `$@'\'' ...'
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
@@ -140,7 +144,7 @@ ifeq (__dump_targets,$(MAKECMDGOALS))
 
 __dump_targets: . = $(patsubst $(var/srcdir)/%,%,$(realpath $(CURDIR))/)
 __dump_targets:
-	$(foreach v,$(filter %_TESTS %_PROGRAMS %_LIBRARIES,$(.VARIABLES)),\
+	$(foreach v,$(filter %_DATAS %_TESTS %_PROGRAMS %_LIBRARIES,$(.VARIABLES)),\
 	    echo '$v += $(call fun/msq,$(call fun/rebase,$(CURDIR),$($v)))';)
 	$(foreach v,$(filter %_DEPENDS %_SOURCES,$(.VARIABLES)),\
 	    echo '$.$v += $(call fun/msq,$(call fun/rebase,$(CURDIR),$($v)))';)
