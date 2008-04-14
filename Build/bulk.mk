@@ -151,7 +151,7 @@ __dump_targets:
 	echo ''
 	$(MAKE) -nspqr | $(var/toolsdir)/_local_targets.sh \
 	    "$(var/srcdir)" "$." "$(var/toolsdir)" | \
-	    sed -n -e 's~$$~ ; $$(MAKE) -w$(if $.,C $.) $$(subst $.,,$$@)~p'
+	    sed -n -e 's~$$~ FORCE ; $$(MAKE) -w$(if $.,C $.) $$(subst $.,,$$@)~p'
 
 .PHONY: __dump_targets
 
