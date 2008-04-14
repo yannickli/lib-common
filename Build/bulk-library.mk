@@ -246,12 +246,11 @@ endef
 #}}}
 #[ _PROGRAMS ]########################################################{{{#
 
-define rule/program
-$(1D)/all:: $1$(EXEEXT)
+define rule/exe
 $1$(EXEEXT): $~$1.exe FORCE
 	$(FASTCP) $$< $$@
 
-$$(eval $$(call fun/foreach-ext-rule,$1,$~$1.exe,$$($1_SOURCES)))
+$$(eval $$(call fun/foreach-ext-rule,$1,$~$1.exe,$$($1_SOURCES),$4))
 $~$1.exe:
 	$(msg/LINK.c) $$(@R)
 	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) \
@@ -261,6 +260,15 @@ $~$1.exe:
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) $$($1_LIBS)
 $(1D)/clean::
 	$(RM) $1$(EXEEXT)
+endef
+
+define rule/program
+$(1D)/all:: $1$(EXEEXT)
+$$(eval $$(call rule/exe,$1,$2,$3))
+endef
+
+define rule/test
+$$(eval $$(call rule/exe,$1,$2,$3,check))
 endef
 #}}}
 #[ _DATAS ]###########################################################{{{#

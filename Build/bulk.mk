@@ -29,6 +29,7 @@ var/generated  = $(sort $(foreach f,$(filter ext/gen/%,$(.VARIABLES)),$(call $f,
 var/staticlibs = $(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v))
 var/sharedlibs = $(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v))
 var/programs   = $(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v))
+var/tests      = $(foreach v,$(filter %_TESTS,$(.VARIABLES)),$($v))
 var/datas      = $(foreach v,$(filter %_DATAS,$(.VARIABLES)),$($v))
 
 ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
@@ -46,6 +47,7 @@ distclean::
 	$(msg/rm) copied targets
 	$(call fun/expand-if2,$(RM),$(var/datas))
 	$(call fun/expand-if2,$(RM),$(var/programs:=$(EXEEXT)))
+	$(call fun/expand-if2,$(RM),$(var/tests:=$(EXEEXT)))
 	$(call fun/expand-if2,$(RM),$(var/sharedlibs:=.so*))
 	$(call fun/expand-if2,$(RM),$(var/staticlibs:=.a) $(var/staticlibs:=.wa))
 	$(msg/rm) build system
@@ -68,6 +70,7 @@ $(eval $(call fun/subdirs-targets,$(patsubst $/%,%,$(var/subdirs))))
 $(foreach p,$(var/staticlibs),$(eval $(call rule/staticlib,$p)))
 $(foreach p,$(var/sharedlibs),$(eval $(call rule/sharedlib,$p)))
 $(foreach p,$(var/programs),$(eval $(call rule/program,$p)))
+$(foreach p,$(var/tests),$(eval $(call rule/test,$p)))
 $(foreach p,$(var/datas),$(eval $(call rule/datas,$p)))
 # }}}
 else
@@ -102,6 +105,7 @@ ifeq (,$(findstring p,$(MAKEFLAGS)))
 
 $(sort $(var/generated) $(var/datas)) \
 $(var/programs:=$(EXEEXT))    \
+$(var/tests:=$(EXEEXT))       \
 $(var/sharedlibs:=.so)        \
 $(var/staticlibs:=.a)         \
 $(var/staticlibs:=.wa)        \
