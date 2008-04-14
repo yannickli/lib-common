@@ -15,7 +15,7 @@
 
 int main(void)
 {
-    char out[PATH_MAX], in[PATH_MAX];
+    char in[PATH_MAX];
 
     *in = '\0';
     assert (path_simplify(in) < 0);
