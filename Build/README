@@ -56,10 +56,14 @@ Per directory variables
 At the moment, the following set of variables are used at the directory level:
 
 `_CFLAGS`::
-    to force some `CFLAGS` to the local directory goals.
+        To force some `CFLAGS` to the local directory goals.
 
 `_LDFLAGS`::
-    to force some `LDFLAGS` to the local directory goals;
+        To force some `LDFLAGS` to the local directory goals.
+
+`CLEANFILES`::
+        This holds the list of files (or directories, necessarily with a
+        trailing slash) that must be removed on clean.
 
 
 Defining new goals
@@ -193,7 +197,7 @@ build-system if you need a new class of such rules often.
 
 You must not use targets starting with `__`, those are magic to the
 build-system and will be ignored. It's not possible to use the `clean` target
-either (see Hookable Goals).
+either (see Hookable Goals, and the `CLEANFILES` variable).
 
 
 Hookable Goals
@@ -210,11 +214,7 @@ The build-system defines three rules you can hook into:
         This is probably the most usefull hook. When distclean is run (this
         rule is global, and it's the same for any directory you run it from),
         commands that you put there are run for any Makefile that extends it.
-+
-This is necessary for local rules that generate files in-tree, though a
-variable may be used at some point (like automake's `{DIST,}CLEANFILES` for
-this matter for the most simple cases.
-
+        Note that for simple things, `CLEANFILES` is probably better suited.
 
 In addition to those, the build-system provides a way to run a command when
 make is run without arguments from a local directory, and only in that case

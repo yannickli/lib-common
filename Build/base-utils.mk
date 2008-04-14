@@ -52,3 +52,7 @@ endef
 # substitute and only keep matching substs
 #
 fun/patsubst-filt = $(patsubst $1,$2,$(filter $1,$3))
+
+# Expand to $1 $2 $3 if $2 isn't empty.
+#
+fun/expand-if2 = $(if $2,$1 $2 $3)

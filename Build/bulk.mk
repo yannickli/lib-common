@@ -23,6 +23,7 @@ $!deps.mk: $/configure
 -include $!deps.mk
 
 var/sources    = $(sort $(foreach v,$(filter %_SOURCES,$(.VARIABLES)),$($v)))
+var/cleanfiles = $(sort $(foreach v,$(filter %_CLEANFILES,$(.VARIABLES)),$($v)))
 var/generated  = $(sort $(foreach f,$(filter ext/gen/%,$(.VARIABLES)),$(call $f,$(var/sources))))
 
 var/staticlibs = $(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v))
@@ -37,10 +38,14 @@ ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
 # {{{ Inside the build system
 clean::
 	find $~ -maxdepth 1 -type f \! -name Makefile \! -name vars.mk -print0 | xargs -0 $(RM)
+	$(call fun/expand-if2,$(RM),$(filter-out %/,$(_CLEANFILES)))
+	$(call fun/expand-if2,$(RM) -r,$(filter %/,$(_CLEANFILES)))
 distclean::
 	$(msg/rm) build system
 	$(RM) -r $~
 	$(RM) $(var/generated) $(var/copied)
+	$(call fun/expand-if2,$(RM),$(filter-out %/,$(var/cleanfiles)))
+	$(call fun/expand-if2,$(RM) -r,$(filter %/,$(var/cleanfiles)))
 
 define fun/subdirs-targets
 $(foreach d,$1,
@@ -49,6 +54,8 @@ $(patsubst ./%,%,$(dir $(d:/=)))clean::     $(d)clean
 $(d)all::
 $(d)clean::
 	find $~$(d) -type f \! -name vars.mk -print0 | xargs -0 $(RM)
+	$(call fun/expand-if2,$(RM),$(filter-out %/,$($(d)_CLEANFILES)))
+	$(call fun/expand-if2,$(RM) -r,$(filter %/,$($(d)_CLEANFILES)))
 $(d)distclean:: distclean
 )
 endef
@@ -133,6 +140,8 @@ __dump_targets:
 	    echo '$.$v += $(call fun/msq,$(call fun/rebase,$(CURDIR),$($v)))';)
 	$(foreach v,$(filter %FLAGS %_SOVERSION,$(filter-out MAKE%,$(.VARIABLES))),\
 	    echo '$.$v += $(call fun/msq,$($v))';)
+	echo '$._CLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(CLEANFILES)))'
+	echo '$._DISTCLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(DISTCLEANFILES)))'
 	echo ''
 	$(MAKE) -nspqr | $(var/toolsdir)/_local_targets.sh \
 	    "$(var/srcdir)" "$." "$(var/toolsdir)" | \
