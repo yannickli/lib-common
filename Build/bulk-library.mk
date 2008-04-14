@@ -109,7 +109,7 @@ ext/gen/lua = $(call fun/patsubst-filt,%.lua,%.lc.bin,$1)
 
 define fun/expand-lua
 $(3:lua=lc): %.lc: %.lua $(foreach s,$3,$($(s)_DEPENDS))
-	$(msg/echo) " LUA" $$(<R)
+	$(msg/COMPILE) " LUA" $$(<R)
 	luac -o $$@ $$<
 
 $(3:lua=lc.bin): %.lc.bin: %.lc $(foreach s,$3,$($(s)_DEPENDS))
@@ -159,7 +159,7 @@ ext/gen/swfml = $(call fun/patsubst-filt,%.swfml,%.swf,$1)
 
 define ext/rule/swfml
 $$(patsubst %,$~%.dep,$3): $~%.dep: % $(var/toolsdir)/swfml-deps.xsl
-	$(msg/echo) " DEP" $$(<F:.swfml=.swf)
+	$(msg/depends) $$(<:.swfml=.swf)
 	xsltproc --nonet --novalid \
 	    --stringparam reldir $$(<D)/ \
 	    --stringparam target $$(<F:.swfml=.swf) \
@@ -167,7 +167,7 @@ $$(patsubst %,$~%.dep,$3): $~%.dep: % $(var/toolsdir)/swfml-deps.xsl
 -include $(3:%=$~%.dep)
 
 $(3:.swfml=.swf): %.swf: %.swfml
-	$(msg/echo) " SWF" $$@
+	$(msg/COMPILE) " SWF" $$@
 	cd $$(<D) && swfmill simple $$(<F) $$(@F)
 endef
 

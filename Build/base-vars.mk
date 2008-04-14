@@ -39,8 +39,10 @@ else
     msg/echo  := @:
     msg/color := @:
 endif
-msg/generate  := $(msg/color) '33'   " GEN"
-msg/COMPILE.l := $(msg/color) '33'   " LEX"
+msg/generate  := $(msg/color) '0;33' " GEN"
+msg/depends   := $(msg/color) '0;33' " DEP"
+msg/COMPILE   := $(msg/color) '0;33'
+msg/COMPILE.l := $(msg/color) '0;33' " LEX"
 msg/COMPILE.c := $(msg/color) '1;34' " CC "
 msg/LINK.a    := $(msg/color) '1;35' " AR "
 msg/LINK.c    := $(msg/color) '1;36' " LD "
