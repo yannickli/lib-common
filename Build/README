@@ -286,6 +286,11 @@ Environment variables
 Example: `make P=debug some-target` will rebuild some-target with `CFLAGS`
 enforced to `-O0 -fno-inlines -Wno-uninitialized`.
 
+`M`, `MONOCHROME`::
+        The build-system in silent mode ouptuts commands using some color.
+        Setting `$M`, `$MONOCHROME` (or for backward compatibility `$NOCOLOR`)
+        disables that.
+
 // }}}
 
 // vim:filetype=asciidoc:tw=78

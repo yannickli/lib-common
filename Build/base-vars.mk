@@ -24,20 +24,27 @@ var/builddir  := $(var/srcdir)/.build-$(var/profile)-$(shell hostname)
 ~             := .build-$(var/profile)-$(shell hostname)/
 
 var/verbose   := $(V)$(VERBOSE)
+var/nocolor   := $(M)$(NOCOLOR)$(MONOCHROME)
 var/squote    := $(shell echo "'")
 var/tab       := $(shell printf '\t')
 
 ifeq (,$(var/verbose))
-    msg/echo := echo
+    msg/echo  := echo
+ifeq (,$(var/nocolor))
+    msg/color := /usr/bin/printf '\033[%sm%s %s\033[0m\n'
 else
-    msg/echo := @:
+    msg/color := /usr/bin/printf '%.0s%s %s\n'
 endif
-msg/generate  := $(msg/echo) " GEN"
-msg/rm        := $(msg/echo) " RM "
-msg/LINK.a    := $(msg/echo) " AR "
-msg/COMPILE.c := $(msg/echo) " CC "
-msg/COMPILE.l := $(msg/echo) " LEX"
-msg/LINK.c    := $(msg/echo) " LD "
+else
+    msg/echo  := @:
+    msg/color := @:
+endif
+msg/generate  := $(msg/color) '33'   " GEN"
+msg/COMPILE.l := $(msg/color) '33'   " LEX"
+msg/COMPILE.c := $(msg/color) '1;34' " CC "
+msg/LINK.a    := $(msg/color) '1;35' " AR "
+msg/LINK.c    := $(msg/color) '1;36' " LD "
+msg/rm        := $(msg/echo)  " RM "
 
 ##########################################################################
 # Setup make properly
