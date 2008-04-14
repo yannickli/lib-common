@@ -47,19 +47,21 @@ endef
 #}}}
 #[ .c files ]#########################################################{{{#
 
-define ext/rule/c
-tmp/$2/ns   := $$(if $$($(1D)/_CFLAGS)$$($1_CFLAGS),.$(2F))
-tmp/$2/objs := $$(patsubst %.c,$~%$$(tmp/$2/ns)$4.o,$3)
-
-$2: $$(tmp/$2/objs)
-
-$$(tmp/$2/objs): $~%$$(tmp/$2/ns)$4.o: %.c | __$(1D)_generated
+define ext/expand/c
+$3: $~%$$(tmp/$2/ns)$4.o: %.c | __$(1D)_generated
 	$(msg/COMPILE.c) $$(<R)
 	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$*.c_CFLAGS) \
 	    -MP -MMD -MQ $$@ -MF $$(@:o=dep) \
 	    $$(if $$(findstring .pic,$4),-fPIC) -g -c -o $$@ $$<
+-include $(3:o=dep)
+endef
+
+define ext/rule/c
+tmp/$2/ns   := $$(if $$($(1D)/_CFLAGS)$$($1_CFLAGS),.$(2F))
+tmp/$2/objs := $$(patsubst %.c,$~%$$(tmp/$2/ns)$4.o,$3)
+$2: $$(tmp/$2/objs)
+$$(foreach o,$$(tmp/$2/objs),$$(eval $$(call fun/do-once,ext/expand/c/$$o,$$(call ext/expand/c,$1,$2,$$o,$4))))
 $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/objs),$3))
--include $$(tmp/$2/objs:o=dep)
 endef
 
 #}}}
@@ -67,7 +69,7 @@ endef
 
 ext/gen/l = $(call fun/patsubst-filt,%.l,%.c,$1)
 
-define fun/expand-l
+define exp/expand/l
 $(3:l=c): %.c: %.l
 	$(msg/COMPILE.l) $$(@R)
 	flex -R -o $$@ $$<
@@ -78,7 +80,7 @@ $$(eval $$(call fun/common-depends,$1,$(3:l=c),$3))
 endef
 
 define ext/rule/l
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call fun/expand-l,$1,$2,$$t,$4))))
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call exp/expand/l,$1,$2,$$t,$4))))
 $$(eval $$(call ext/rule/c,$1,$2,$(3:l=c),$4))
 endef
 
@@ -87,7 +89,7 @@ endef
 
 ext/gen/tokens = $(call fun/patsubst-filt,%.tokens,%tokens.h,$1) $(call fun/patsubst-filt,%.tokens,%tokens.c,$1)
 
-define fun/expand-tokens
+define exp/expand/tokens
 tmp/$2/toks_h := $(patsubst %.tokens,%tokens.h,$3)
 tmp/$2/toks_c := $(patsubst %.tokens,%tokens.c,$3)
 
@@ -104,8 +106,8 @@ $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/toks_h) $$(tmp/$2/toks_c),$3))
 endef
 
 define ext/rule/tokens
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t-tok,$$(call fun/expand-tokens,$1,$2,$$t,$4))))
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t-obj$4,$$(call ext/rule/c,$1,$2,$(t:.tokens=tokens.c),$4))))
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t-tok,$$(call exp/expand/tokens,$1,$2,$$t,$4))))
+$$(eval $$(call ext/rule/c,$1,$2,$(3:.tokens=tokens.c),$4))
 endef
 
 #}}}
@@ -113,7 +115,7 @@ endef
 
 ext/gen/lua = $(call fun/patsubst-filt,%.lua,%.lc.bin,$1)
 
-define fun/expand-lua
+define exp/expand/lua
 $(3:lua=lc): %.lc: %.lua
 	$(msg/COMPILE) " LUA" $$(<R)
 	luac -o $$@ $$<
@@ -127,7 +129,7 @@ $$(eval $$(call fun/common-depends,$1,$(3:.lua=.lc.bin),$3))
 endef
 
 define ext/rule/lua
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call fun/expand-lua,$1,$2,$$t,$4))))
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call exp/expand/lua,$1,$2,$$t,$4))))
 endef
 
 #}}}
