@@ -116,10 +116,9 @@ $(var/tests:=$(EXEEXT))       \
 $(var/sharedlibs:=.so)        \
 $(var/staticlibs:=.a)         \
 $(var/staticlibs:=.wa)        \
-: | __setup_buildsys_trampoline
+: FORCE | __setup_buildsys_trampoline
 	$(msg/echo) 'building `$@'\'' ...'
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
-.PHONY: $(var/generated)
 
 endif
 # }}}
