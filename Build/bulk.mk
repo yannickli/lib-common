@@ -68,8 +68,10 @@ __setup_buildsys_trampoline:
 	$(msg/echo) 'make: Entering directory `$(var/builddir)'"'"
 	$(MAKEPARALLEL) __setup_buildsys
 	$(msg/echo) 'make: Entering directory `$(var/srcdir)'"'"
-.PHONY: __setup_buildsys_trampoline
+toplevel:
+.PHONY: __setup_buildsys_trampoline toplevel
 
+all:: toplevel
 all clean distclean:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
 

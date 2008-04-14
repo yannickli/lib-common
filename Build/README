@@ -9,12 +9,17 @@ the goals you have, and which sources they need. You have a full set of magic
 variables for that matter.
 
 
-Magic Variables
+About Variables
 ---------------
+// {{{
 
-`$/` is set to the absolute path to the root of the source tree. It has to be
-used to give a path to static libraries you depend on, e.g.:
+Magic Variables
+~~~~~~~~~~~~~~~
 
+* `$/` is set to the absolute path to the root of the source tree with a
+  leading slash. It has to be used to give a path to static libraries you
+  depend on, e.g.:
++
 ----------------------------------
 something_SOURCES = \
 	...                      \
@@ -22,74 +27,217 @@ something_SOURCES = \
         ...
 ----------------------------------
 
+* `$!` is set to the absolute path to the build directory with a leading
+  slash, though its use is discouraged, it may be removed at some point.
+
+* `$~` is the name of the build directory with a leading slash, basically `$!`
+  is equal to `$/$~`.
+
+
+Variables with side effects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As a general rule, magic variables with side effects use a suffix build with
+an underscore (`_`) and some capital letters. The prefix would be the target
+they have a side effect on, no prefix means that the side effect is global to
+the local directory.
+
+All those variables _must_ be `=` kind of variables (opposed to `:=` ones).
+
+// }}}
+
+List of variables with side effects
+-----------------------------------
+// {{{
 
 Per directory variables
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 
-* `_CFLAGS` can be used to inflict those `CFLAGS` to any goal in this
-  directory.
+At the moment, the following set of variables are used at the directory level:
 
-* `_LDFLAGS` works exactly the same for `LDFLAGS`.
+`_CFLAGS`::
+    to force some `CFLAGS` to the local directory goals.
+
+`_LDFLAGS`::
+    to force some `LDFLAGS` to the local directory goals;
 
 
-Goals Variables
-----------------
+Defining new goals
+~~~~~~~~~~~~~~~~~~
 
-We support currently three kind of goals:
+The following suffixes are used to define new kind of goals:
 
-* programs, using `xxx_PROGRAMS` variables (was `__EXE__` before);
+`_PROGRAMS`::
+        List of C programs built for this directory (was `__EXE__` before).
 
-* static libraries, using `xxx_LIBRARIES` variables (was `__LIB__` before);
+`_LIBRARIES`::
+        Static libraries (`.a` archives) (was `__LIB__` before).
 
-* shared libraries, using `xxx_SHARED_LIBRARIES` variables (was `__SO__`
-  before.
+`_SHARED_LIBRARIES`::
+        Shared objects (`.so` files) (was `__SO__` before).
 
 
 The build system doesn't support any other kind of goals yet, though you can
 add local rules (FIXME: add some doc about how to do that).
 
 
+The prefixes aren't yet used, though are used to define new build 'overlays',
+so it's wise to choose coherent ones over the source tree.
+
+
 Per Goal Variables
-------------------
+~~~~~~~~~~~~~~~~~~
 
 Each goals support a complete set of variables, prefixed with the goal name.
-For any goal `goal` you have:
+All the following work for any kind of goal:
 
-* `goal_SOURCES` that holds the list of sources. We support at the time of
-  the writing: .h, .c, .tokens, .fc, .farch, .l, .a, .wa, .ld, .lua.
-  Note that anything that is put in that variable, in a relative way to the
-  current directory, is added to the order only depends chain of your goal
-  even if it's not an understood extension. Though if it's not a realy
-  “source” for the goal, the use of `goal_DEPENDS` is the proper way.
+`_SOURCES`::
+        This variable hat the list of sources. We support at the time of the
+        writing: .h, .c, .tokens, .fc, .farch, .l, .a, .wa, .ld, .lua.
++
+Note that anything that is put in that variable, in a relative way to the
+current directory, is added to the order only depends chain of your goal even
+if it's not an understood extension. Though if it's not a realy “source” for
+the goal, the use of `goal_DEPENDS` is the proper way.
++
+Also, in-tree generated files are built first for this target, you don't need
+to do something special about it.
 
-* `goal_LDFLAGS` that holds the list of link flags to pass to the link
-  command.
+`_LDFLAGS`::
+        This variable holds the list of additionnal link flags to pass to the
+        link command.
 
-* `goal_CFLAGS` that holds C compilation flags to use for this goal.
+`_CFLAGS`::
+        This variable holds the additionnal C compilation flags to use for
+        this goal.
 
-* `goal_DEPENDS` that holds other goals rules (relative to the Makefile's
-  directory) that must be remade before considering this goal done.
+`_DEPENDS`::
+        This variable holds a number of other goals (relative to the
+        Makefile's directory) that must be remade before remaking this goal.
++
+Usual need arise when you use a local shared object that isn't listed in the
+`_SOURCES`, and that you may need to redo for builds to success (if you add a
+symbol in a `.so` and that a target uses it, link will fail is the `.so` isn't
+rebuilt first).
 
 
 NOTE: as a general rule any variable ending with `FLAGS` is kept and can be
 reused in the build system to implement new kind of goals.
 
 
-For shared libraries there is also:
+For shared libraries (`_SHARED_LIBRARIES`) there is also:
 
-* `goal_SOVERSION` that should be a list of two numbers: the _soname_ version,
-  then the build version. E.g., if `libfoo_SOVERSION = 1.2 3.4` then it will
-  generate the `libfoo.so.1.2.3.4` shared library, with a soname of
-  `libfoo.so.1.2.3.4`.
+`_SOVERSION`::
+        This variable is mandatory for non plugins, though the build-system
+        won't enforce that (because of plugins).
++
+This variable holds a list of up to two numbers. The first one will be used to
+build the `SONAME` of the library, the second one is appended as a _build_
+version.
++
+For example, if you have `libfoo_SOVERSION = 1.2 3.4` then it will generate
+the `libfoo.so.1.2.3.4` shared library, with a soname of `libfoo.so.1.2.3.4`.
+And the symlinks `libfoo.so.1.2` and `libfoo.so` will be created pointing to
+`libfoo.so.1.2.3.4` (the former is used for runtime, the later for build
+time).
 
 
 Per Source Variables
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
-* `.c` sources support `$(src)_CFLAGS`, that enforce the use of those `CFLAGS`
-  each time the source is built. For autogenerated files, the name of the
-  generated source must be used.
+There is a few variables that have side effects and that can be used at the
+file level:
 
+`_DEPENDS`::
+        Any source file support this variable to define goals that must be
+        remade before this source is ever used to produce new files.
++
+For example, for a lexer `mylexer.l`, `mylexer.l_DEPENDS` would hold goals
+that are remade before `mylexer.c` is produced, and `mylexer.c_DEPENDS` goals
+that are remade before the lexer is compiled.
+
+`_CFLAGS` on `.c` files::
+        For `.c` files, this variable holds additionnal C compilation flags to
+        be used when this is built. For autogenerated `.c` files (e.g.
+        lexers), the name of the generated souce must be used.
++
+Example: `something.c_CFLAGS = -Wno-error`
+
+// }}}
+
+About Goals
+-----------
+// {{{
+
+Exported Goals
+~~~~~~~~~~~~~~
+
+The build system automatically exports goals for:
+
+* in-tree generated files (like lexers) supposed to be arch-independant;
+
+* goals generated through goals variables (programs, libraries, ...).
+
+
+Local Goals
+~~~~~~~~~~~
+
+It's possible to define any local goal you want, the build system will find
+them, and make them available from it.
+
+You can use local rules names in `_DEPENDS` variables, the build system will
+recurse (old-way) in your directory and call it. If it in turn needs a
+build-system exported rule, it will recurse (old-way) into the build-system
+again, and so on. This has many drawbacks, so consider extending the
+build-system if you need a new class of such rules often.
+
+You must not use targets starting with `__`, those are magic to the
+build-system and will be ignored.
+
+
+Hookable Goals
+~~~~~~~~~~~~~~
+
+The build-system defines three rules you can hook into:
+
+`all::`::
+        This rule is the default rule run if no argument is passed to make.
+        You can add local things to be done here. Though it's discouraged to
+        do so. (see `toplevel` goal).
+
+`clean::`::
+        You can hook into `clean::` commands to be done when `clean` is
+        invoked in your directory or any parent directory. Note that usually
+        only `distclean` is required as the build-system already purges files
+        in the build directory for you.
+
+`distclean::`::
+        This is probably the most usefull hook. When distclean is run (this
+        rule is global, and it's the same for any directory you run it from),
+        commands that you put there are run for any Makefile that extends it.
++
+This is necessary for local rules that generate files in-tree, though a
+variable may be used at some point (like automake's `{DIST,}CLEANFILES` for
+this matter for the most simple cases.
+
+
+In addition to those, the build-system provides a way to run a command when
+make is run without arguments from a local directory, and only in that case
+(if you run make from a subdirectory this goal won't be done):
+
+`toplevel:`::
+        This target can depend upon other (probably local, but anything works)
+        goals that must be done when the user runs `make` from the same
+        directory.
++
+You can also define commands to be run from that target like any normal make
+goal.
++
+The use cases are e.g. to make the target that rebuilds documentation be the
+default when you're running make from the `Documentation/` directory of your
+project.
+
+// }}}
 
 Recursion
 ---------
