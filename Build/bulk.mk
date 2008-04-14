@@ -41,11 +41,16 @@ clean::
 	$(call fun/expand-if2,$(RM),$(filter-out %/,$(_CLEANFILES)))
 	$(call fun/expand-if2,$(RM) -r,$(filter %/,$(_CLEANFILES)))
 distclean::
-	$(msg/rm) build system
-	$(RM) -r $~
-	$(RM) $(var/generated) $(var/copied)
+	$(msg/rm) generated files
+	$(call fun/expand-if2,$(RM),$(var/generated))
 	$(call fun/expand-if2,$(RM),$(filter-out %/,$(var/cleanfiles)))
 	$(call fun/expand-if2,$(RM) -r,$(filter %/,$(var/cleanfiles)))
+	$(msg/rm) copied targets
+	$(call fun/expand-if2,$(RM),$(var/programs:=$(EXEEXT)))
+	$(call fun/expand-if2,$(RM),$(var/sharedlibs:=.so*))
+	$(call fun/expand-if2,$(RM),$(var/staticlibs:=.a) $(var/staticlibs:=.wa))
+	$(msg/rm) build system
+	$(RM) -r $~
 
 define fun/subdirs-targets
 $(foreach d,$1,
