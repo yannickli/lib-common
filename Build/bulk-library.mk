@@ -53,7 +53,8 @@ $$(tmp/$2/objs): $~%$$(tmp/$2/ns)$4.o: %.c
 	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$*.c_CFLAGS) \
 	    -MP -MMD -MQ $$@ -MF $$(@:o=dep) \
 	    $$(if $$(findstring .pic,$4),-fPIC) -g -c -o $$@ $$<
-$$(tmp/$2/objs): $(foreach s,$3,$($(s)_DEPENDS)) $(var/toolsdir)/* $~$(1D)/vars.mk | __$1_generated
+$$(tmp/$2/objs): $(foreach s,$3,$($(s)_DEPENDS)) $($(1D)/_DEPENDS)
+$$(tmp/$2/objs): $(var/toolsdir)/* $~$(1D)/vars.mk | __$1_generated
 -include $$(tmp/$2/objs:o=dep)
 endef
 
@@ -63,7 +64,7 @@ endef
 ext/gen/l = $(call fun/patsubst-filt,%.l,%.c,$1)
 
 define fun/expand-l
-$(3:l=c): %.c: %.l $(foreach s,$3,$($(s)_DEPENDS))
+$(3:l=c): %.c: %.l $(foreach s,$3,$($(s)_DEPENDS)) $($(1D)/_DEPENDS)
 	$(msg/COMPILE.l) $$(@R)
 	flex -R -o $$@ $$<
 	sed -i -e 's/^extern int isatty.*;//' \
@@ -93,7 +94,7 @@ $$(tmp/$2/toks_c): %tokens.c: %.tokens %tokens.h $(var/toolsdir)/_tokens.sh
 	$(msg/generate) $$(@R)
 	cd $$(<D) && $(var/toolsdir)/_tokens.sh $$(<F) $$(@F) || ($(RM) $$(@F) && exit 1)
 
-$$(tmp/$2/toks_h) $$(tmp/$2/toks_c): $(foreach s,$3,$($(s)_DEPENDS))
+$$(tmp/$2/toks_h) $$(tmp/$2/toks_c): $(foreach s,$3,$($(s)_DEPENDS)) $($(1D)/_DEPENDS)
 __$1_generated: $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
 endef
 
@@ -108,11 +109,11 @@ endef
 ext/gen/lua = $(call fun/patsubst-filt,%.lua,%.lc.bin,$1)
 
 define fun/expand-lua
-$(3:lua=lc): %.lc: %.lua $(foreach s,$3,$($(s)_DEPENDS))
+$(3:lua=lc): %.lc: %.lua $(foreach s,$3,$($(s)_DEPENDS)) $($(1D)/_DEPENDS)
 	$(msg/COMPILE) " LUA" $$(<R)
 	luac -o $$@ $$<
 
-$(3:lua=lc.bin): %.lc.bin: %.lc $(foreach s,$3,$($(s)_DEPENDS))
+$(3:lua=lc.bin): %.lc.bin: %.lc $(foreach s,$3,$($(s)_DEPENDS)) $($(1D)/_DEPENDS)
 	util/bldutils/blob2c $$< > $$@ || ($(RM) $$@; exit 1)
 
 __$1_generated: $(3:.lua=.lc.bin)
@@ -134,7 +135,8 @@ $(3:.farch=farch.h): %farch.h: %.farch
 	$(msg/generate) $$(@R)
 	cd $$(@D) && $/util/bldutils/buildfarch -r $(1D)/ -d $!$$@.dep -n $$(*F) `cat $$(<F)`
 
-$(3:.farch=farch.h) $(3:.farch=farch.c): util/bldutils/buildfarch $(foreach s,$3,$($(s)_DEPENDS))
+$(3:.farch=farch.h) $(3:.farch=farch.c): util/bldutils/buildfarch
+$(3:.farch=farch.h) $(3:.farch=farch.c): $(foreach s,$3,$($(s)_DEPENDS)) $($(1D)/_DEPENDS)
 $$(eval $$(call ext/rule/c,$1,$2,$(3:.farch=farch.c),$4))
 __$1_generated: $(3:.farch=farch.h) $(3:.farch=farch.c)
 -include $$(patsubst %,$~%.c.dep,$3)
@@ -145,7 +147,7 @@ endef
 ext/gen/fc = $(call fun/patsubst-filt,%.fc,%.fc.c,$1)
 
 define ext/rule/fc
-$(3:=.c): %.fc.c: %.fc util/bldutils/farchc $(foreach s,$3,$($(s)_DEPENDS))
+$(3:=.c): %.fc.c: %.fc util/bldutils/farchc $(foreach s,$3,$($(s)_DEPENDS)) $($(1D)/_DEPENDS)
 	$(msg/generate) $$(@R)
 	$/util/bldutils/farchc -d $~$$@.dep -o $$@ $$<
 __$1_generated: $(3:=.c)
@@ -178,7 +180,7 @@ endef
 #
 var/exts := $(patsubst ext/rule/%,%,$(filter ext/rule/%,$(.VARIABLES)))
 define fun/foreach-ext-rule
-$2: $$($1_DEPENDS) | $$($1_SOURCES)
+$2: | $$($1_SOURCES) $$($1_DEPENDS) $($(1D)/_DEPENDS)
 $$(foreach e,$(var/exts),$$(if $$(filter %.$$e,$3),$$(eval $$(call ext/rule/$$e,$1,$2,$$(filter %.$$e,$3),$4))))
 __$1_generated:
 .PHONY: __$1_generated

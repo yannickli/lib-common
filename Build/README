@@ -61,6 +61,11 @@ At the moment, the following set of variables are used at the directory level:
 `_LDFLAGS`::
         To force some `LDFLAGS` to the local directory goals.
 
+`_DEPENDS`::
+        This variable holds a list of local targets that must be remade before
+        doing anything else automatic (meaning that it's not honoured for
+        local rules, you must enforce that manually) in that directory.
+
 `CLEANFILES`::
         This holds the list of files (or directories, necessarily with a
         trailing slash) that must be removed on clean.
