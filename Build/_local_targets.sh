@@ -30,6 +30,8 @@ do
             : "ignore absolute stuff, likely to be includes";;
         *:)
             echo "$subdir${target}";;
+        clean::|clean:)
+            die "$subdir/Makefile: You cannot hook into $target, abort";;
         *)
 	    echo 1>&2 ">>> $target";
             die "You cannot use embeded spaces in target names";;

@@ -107,11 +107,15 @@ endef
 ext/gen/lua = $(call fun/patsubst-filt,%.lua,%.lc.bin,$1)
 
 define fun/expand-lua
-$(3:lua=lc.bin): %.lc.bin: %.lua
+$(3:lua=lc): %.lc: %.lua
 	$(msg/echo) " LUA" $$(<R)
-	luac -o $$*.lc $$<
-	util/bldutils/blob2c $$*.lc > $$@ || ($(RM) $$@; exit 1)
+	luac -o $$@ $$<
+
+$(3:lua=lc.bin): %.lc.bin: %.lc
+	util/bldutils/blob2c $$< > $$@ || ($(RM) $$@; exit 1)
+
 __$1_generated: $(3:.lua=.lc.bin)
+.INTERMEDIATE: $(3:lua=lc)
 endef
 
 define ext/rule/lua

@@ -192,7 +192,8 @@ again, and so on. This has many drawbacks, so consider extending the
 build-system if you need a new class of such rules often.
 
 You must not use targets starting with `__`, those are magic to the
-build-system and will be ignored.
+build-system and will be ignored. It's not possible to use the `clean` target
+either (see Hookable Goals).
 
 
 Hookable Goals
@@ -204,12 +205,6 @@ The build-system defines three rules you can hook into:
         This rule is the default rule run if no argument is passed to make.
         You can add local things to be done here. Though it's discouraged to
         do so. (see `toplevel` goal).
-
-`clean::`::
-        You can hook into `clean::` commands to be done when `clean` is
-        invoked in your directory or any parent directory. Note that usually
-        only `distclean` is required as the build-system already purges files
-        in the build directory for you.
 
 `distclean::`::
         This is probably the most usefull hook. When distclean is run (this

@@ -37,10 +37,10 @@ ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
 # {{{ Inside the build system
 clean::
 	find $~ -maxdepth 1 -type f \! -name Makefile \! -name vars.mk -print0 | xargs -0 $(RM)
-distclean:: | clean
+distclean::
 	$(msg/rm) build system
 	$(RM) -r $~
-	$(RM) $(var/generated)
+	$(RM) $(var/generated) $(var/copied)
 
 define fun/subdirs-targets
 $(foreach d,$1,
