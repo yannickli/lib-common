@@ -104,8 +104,8 @@ $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/toks_h) $$(tmp/$2/toks_c),$3))
 endef
 
 define ext/rule/tokens
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call fun/expand-tokens,$1,$2,$$t,$4))))
-$$(eval $$(call ext/rule/c,$1,$2,$(3:.tokens=tokens.c),$4))
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t-tok,$$(call fun/expand-tokens,$1,$2,$$t,$4))))
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t-obj$4,$$(call ext/rule/c,$1,$2,$(t:.tokens=tokens.c),$4))))
 endef
 
 #}}}
@@ -276,7 +276,7 @@ $$(eval $$(call rule/exe,$1,$2,$3))
 endef
 
 define rule/test
-$$(eval $$(call rule/exe,$1,$2,$3,check))
+$$(eval $$(call rule/exe,$1,$2,$3,.tst))
 endef
 #}}}
 #[ _DATAS ]###########################################################{{{#
