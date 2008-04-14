@@ -30,9 +30,6 @@ var/staticlibs = $(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIE
 var/sharedlibs = $(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v))
 var/programs   = $(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v))
 
-var/copied     = $(var/programs:=$(EXEEXT)) $(var/sharedlibs:=.so) \
-                 $(var/staticlibs:=.a) $(var/staticlibs:=.wa)
-
 ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
 ##########################################################################
 # {{{ Inside the build system
@@ -100,7 +97,11 @@ endif
 # {{{ target exports from the build system
 ifeq (,$(findstring p,$(MAKEFLAGS)))
 
-$(var/generated) $(var/copied): | __setup_buildsys_trampoline
+$(var/generated) \
+$(var/programs:=$(EXEEXT)) \
+$(var/sharedlibs:=.so) \
+$(var/staticlibs:=.a) $(var/staticlibs:=.wa) \
+: | __setup_buildsys_trampoline
 	$(msg/echo) 'building `$@'\'' ...'
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
 .PHONY: $(var/generated)
