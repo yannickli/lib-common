@@ -17,7 +17,7 @@ endif
 
 var/toolsdir  := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 var/srcdir    := $(realpath $(dir $(var/toolsdir)))
-var/profile   := $(if $(BUILDFOR),$(BUILDFOR),default)
+var/profile   := $(or $(P),$(PROFILE),$(BUILDFOR),default)
 var/builddir  := $(var/srcdir)/.build-$(var/profile)-$(shell hostname)
 /             := $(var/srcdir)/
 !             := $(var/builddir)/
@@ -46,7 +46,7 @@ msg/LINK.c    := $(msg/echo) " LD "
 .DEFAULT_GOAL := all
 SUFFIXES      :=
 MAKEFLAGS     := $(MAKEFLAGS)r$(if $(var/verbose),,s)
-ifeq (,$(findstring j,$(MAKEFLAGS)))
+ifeq (,$(L)$(LINEAR))
 MAKEPARALLEL  := $(MAKE) -j$(shell echo $$(($$(grep -c processor /proc/cpuinfo) + 1)))
 else
 MAKEPARALLEL  := $(MAKE)

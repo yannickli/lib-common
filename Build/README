@@ -234,8 +234,12 @@ project.
 
 // }}}
 
-Recursion
----------
+Things to know
+--------------
+// {{{
+
+SUBDIR detection
+~~~~~~~~~~~~~~~~
 
 The build system guess where to “recurse” following chains of Makefiles that
 include Build/base.mk. If you want to use the build system in a hierarchy of
@@ -254,5 +258,29 @@ a/Makefile
 a/b/Makefile
 a/b/c/Makefile
 ----------------------------------
+
+
+Environment variables
+~~~~~~~~~~~~~~~~~~~~~
+
+`L`, `LINEAR`::
+        The build-system automatically uses parallel build, this can be
+        disabled setting the environment variable `$L` or `$LINEAR`.
+
+`V`, `VERBOSE`::
+        The build-system is usually quite silent. You can set `$V` or
+        `$VERBOSE` to change that.
+
+`P`, `PROFILE`::
+        The build-system can use different _profiles_ for the build (debug
+        build, usual devel build, production build, ...). Profiles are defined
+        toplevel in the source tree, and their use can be chosen through `$P`
+        or `$PROFILE`. (`$BUILDFOR` is also supported for backward
+        compatibility).
++
+Example: `make P=debug some-target` will rebuild some-target with `CFLAGS`
+enforced to `-O0 -fno-inlines -Wno-uninitialized`.
+
+// }}}
 
 // vim:filetype=asciidoc:tw=78
