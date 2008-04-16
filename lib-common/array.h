@@ -225,6 +225,7 @@ void generic_array_sort(generic_array *array,
 
 DO_VECTOR(int, int);
 DO_ARRAY(char, string, p_delete);
+DO_ARRAY(const char, cstring, IGNORE);
 
 string_array *str_explode(const char *s, const char *tokens);
 
