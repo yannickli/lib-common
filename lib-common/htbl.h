@@ -267,7 +267,7 @@ bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
     }                                                                        \
     static inline void pfx##_htbl_remove_elem(pfx##_htbl *t, type_t **e) {   \
         pfx##_helem_t *he;                                                   \
-        he = (void *)((const char *)*e - offsetof(pfx##_helem_t, e));        \
+        he = (void *)((const char *)e - offsetof(pfx##_helem_t, e));         \
         pfx##_htbl_ll_remove(t, he);                                         \
     }
 
