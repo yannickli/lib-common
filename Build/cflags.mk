@@ -27,7 +27,7 @@ ifdef MINGCC
     LIBS += -lws2_32
 endif
 ifdef SPARSE
-    ifeq ('x64_64','$(shell uname -m)')
+    ifneq ('x86_64','$(shell uname -m)')
 	CC := CHECK='sparse -Wall -D__SPARSE__' cgcc
     else
 	CC := CHECK='sparse -Wall -m64 -D__SPARSE__' cgcc
