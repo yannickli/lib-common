@@ -130,22 +130,22 @@ static void init_file(const char *ident, FILE *file)
 
 /* Error reporting functions */
 
-void e_fatal(int status, const char *format, ...)
+int e_fatal(int status, const char *format, ...)
 {
     E_BODY(LOG_CRIT, format);
     exit(status);
 }
 
-void e_panic(const char *format, ...)
+int e_panic(const char *format, ...)
 {
     E_BODY(LOG_CRIT, format);
     abort();
 }
 
-void e_error   (const char *format, ...) { E_BODY(LOG_ERR,     format); }
-void e_warning (const char *format, ...) { E_BODY(LOG_WARNING, format); }
-void e_notice  (const char *format, ...) { E_BODY(LOG_NOTICE,  format); }
-void e_info    (const char *format, ...) { E_BODY(LOG_INFO,    format); }
+int e_error   (const char *format, ...) { E_BODY(LOG_ERR,     format); return -1; }
+int e_warning (const char *format, ...) { E_BODY(LOG_WARNING, format); return -1; }
+int e_notice  (const char *format, ...) { E_BODY(LOG_NOTICE,  format); return  0; }
+int e_info    (const char *format, ...) { E_BODY(LOG_INFO,    format); return  0; }
 
 /* useful callbacks */
 

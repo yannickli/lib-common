@@ -27,8 +27,8 @@ enum fatal_exit_codes {
 typedef void (e_handler)(int, const char *, va_list) __attr_printf__(2, 0);
 
 /* error reporting functions */
-typedef void fatal_f(int, const char *, ...)  __attr_printf__(2, 3);
-typedef void error_f(const char *, ...)       __attr_printf__(1, 2);
+typedef int fatal_f(int, const char *, ...)  __attr_printf__(2, 3);
+typedef int error_f(const char *, ...)       __attr_printf__(1, 2);
 
 #define E_PREFIX(fmt) \
     ("%s:%d:%s: " fmt), __FILE__, __LINE__, __func__
