@@ -343,7 +343,7 @@ void blob_rtrim(blob_t *blob);
 void blob_trim(blob_t *blob);
 
 /**************************************************************************/
-/* Blob comparaisons                                                      */
+/* Blob comparisons                                                       */
 /**************************************************************************/
 
 int blob_cmp(const blob_t *blob1, const blob_t *blob2);
