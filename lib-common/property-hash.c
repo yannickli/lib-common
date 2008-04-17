@@ -250,7 +250,7 @@ int props_hash_unpack(const byte *buf, int buflen, int *pos,
     return 0;
 }
 
-int props_hash_from_fmtv1(props_hash_t *ph, const blob_t *payload)
+int props_hash_from_fmtv1_len(props_hash_t *ph, const blob_t *payload, int p_begin, int p_end)
 {
     const char *buf = blob_get_cstr(payload);
     int pos = 0;
@@ -258,7 +258,13 @@ int props_hash_from_fmtv1(props_hash_t *ph, const blob_t *payload)
 
     blob_inita(&key, BUFSIZ);
     blob_inita(&val, BUFSIZ);
-    while (pos < payload->len) {
+
+    if (p_begin >= 0)
+        pos = p_begin;
+    if (p_end < 0)
+        p_end = payload->len;
+
+    while (pos < p_end) {
         const char *k, *v, *end;
         int klen, vlen;
 
@@ -290,3 +296,9 @@ int props_hash_from_fmtv1(props_hash_t *ph, const blob_t *payload)
     blob_wipe(&val);
     return 0;
 }
+
+int props_hash_from_fmtv1(props_hash_t *ph, const blob_t *payload)
+{
+    return props_hash_from_fmtv1_len(ph, payload, -1, -1);
+}
+

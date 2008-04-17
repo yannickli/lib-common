@@ -93,5 +93,7 @@ void props_hash_to_xml(xmlpp_t *pp, const props_hash_t *ph);
 __must_check__ int props_hash_unpack(const byte *buf, int buflen, int *pos,
                                      props_hash_t *, int last);
 int props_hash_from_fmtv1(props_hash_t *ph, const blob_t *payload);
+int props_hash_from_fmtv1_len(props_hash_t *ph, const blob_t *payload,
+                              int begin, int end);
 
 #endif /* IS_LIB_COMMON_PROPERTY_H */
