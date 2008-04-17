@@ -174,12 +174,12 @@ int props_array_unpack(const byte *buf, int buflen, int *pos,
     return 0;
 }
 
-int props_from_fmtv1(const blob_t *payload, props_array *props)
+int props_from_fmtv1_cstr(const char *buf, props_array *props)
 {
-    const char *buf = blob_get_cstr(payload);
     int pos = 0;
+    int len = strlen(buf);
 
-    while (pos < payload->len) {
+    while (pos < len) {
         const char *k, *v, *end;
         int klen, vlen;
         property_t *prop;
@@ -210,6 +210,11 @@ int props_from_fmtv1(const blob_t *payload, props_array *props)
     }
 
     return 0;
+}
+
+int props_from_fmtv1(const blob_t *payload, props_array *props)
+{
+    return props_from_fmtv1_cstr(blob_get_cstr(payload), props);
 }
 
 void props_to_fmtv1(blob_t *out, const props_array *props)
