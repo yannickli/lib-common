@@ -101,7 +101,7 @@ $$(tmp/$2/toks_c): %tokens.c: %.tokens %tokens.h $(var/toolsdir)/_tokens.sh
 	$(msg/generate) $$(@R)
 	cd $$(<D) && $(var/toolsdir)/_tokens.sh $$(<F) $$(@F) || ($(RM) $$(@F) && exit 1)
 
-__$(1D)_generated: $(tmp/$2/toks_h) $(tmp/$2/toks_c)
+__$(1D)_generated: $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
 $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/toks_h) $$(tmp/$2/toks_c),$3))
 endef
 
