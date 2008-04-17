@@ -15,26 +15,6 @@ CFLAGS :=
 CPPFLAGS :=
 LDFLAGS :=
 
-ifdef MINGCC
-    CC := i586-mingw32msvc-gcc
-    AR := i586-mingw32msvc-ar
-    ifneq (,$(shell which $(CC) > /dev/null 2>&1 || echo failed))
-	$(error "Please install the mingw32 package")
-    endif
-    CFLAGS += -DMINGCC -I/usr/i586-mingw32msvc/include \
-	      -U__SIZE_TYPE__ -D__SIZE_TYPE__=unsigned \
-	      -D_SSIZE_T_ -Dssize_t=int
-    LIBS += -lws2_32
-endif
-ifdef SPARSE
-    ifneq ('x86_64','$(shell uname -m)')
-	CC := CHECK='sparse -Wall -D__SPARSE__' cgcc
-    else
-	CC := CHECK='sparse -Wall -m64 -D__SPARSE__' cgcc
-    endif
-    CFLAGS += -Wno-transparent-union
-endif
-
 GCCVERSION := $(shell $(CC) -dumpversion)
 ifneq (,$(filter 4.%,$(GCCVERSION)))
   GCC4=1
@@ -74,12 +54,7 @@ CFLAGS += -Wwrite-strings
 # fgets, calloc and friends take an int, not size_t...
 #CFLAGS += -Wconversion
 # warn about comparisons between signed and unsigned values, but not on
-# MINGCC (FD_SET problem)
-ifeq (,$(MINGCC))
 CFLAGS += -Wsign-compare
-else
-CFLAGS += -Wno-sign-compare
-endif
 # warn about unused declared stuff
 CFLAGS += -Wunused
 # do not warn about unused function parameters
@@ -104,8 +79,6 @@ CFLAGS += -Wno-format-y2k
 CFLAGS += -Wmissing-format-attribute
 # barf if we change constness
 #CFLAGS += -Wcast-qual
-# do not warn about partial initializers
-#CFLAGS+= -Wno-missing-field-initializers
 
 ifndef CPLUSPLUS
   # warn about function call cast to non matching type
@@ -122,14 +95,10 @@ endif
 
 CFLAGS += -I$/compat -I$/
 
-ifneq (,$(filter Linux%,$(UNAME)))
-  CFLAGS += -DLINUX
-endif
 ifneq (,$(filter CYGWIN%,$(UNAME)))
   CFLAGS += -DCYGWIN
 endif
 
-CFLAGS += $(ADD_CFLAGS)
 ifneq (,$(filter 3.4,$(GCCVERSION)))
   CFLAGS += -fvisibility=hidden
 endif
