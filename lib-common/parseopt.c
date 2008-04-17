@@ -101,8 +101,7 @@ static int parse_short_opt(popt_state_t *st, popt_t *opts)
             return get_value(st, opts, FLAG_SHORT);
         }
     }
-    e_error("unknown option `%c'", *st->p);
-    return -1;
+    return e_error("unknown option `%c'", *st->p);
 }
 
 static int parse_long_opt(popt_state_t *st, const char *arg, popt_t *opts)
@@ -126,8 +125,7 @@ static int parse_long_opt(popt_state_t *st, const char *arg, popt_t *opts)
         }
         return get_value(st, opts, flags);
     }
-    e_error("unknown option `%s'", arg);
-    return -1;
+    return e_error("unknown option `%s'", arg);
 }
 
 static void copyinits(popt_t *opts)

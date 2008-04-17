@@ -802,10 +802,8 @@ static int32_t btn_find_leaf(const struct btree_priv *bt, uint64_t key,
         const bt_node_t *node;
         int pos;
 
-        if (!BTPP_IS_NODE(page)) {
-            e_error("node.L%d page %d is not tagged", level, page);
-            return -1;
-        }
+        if (!BTPP_IS_NODE(page))
+            return e_error("node.L%d page %d is not tagged", level, page);
 
         node = MAP_CONST_NODE(bt, page);
         if (!node)
