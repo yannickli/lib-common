@@ -28,6 +28,7 @@
 typedef enum stats_fmt_t {
     STATS_FMT_TXT = 1,
     STATS_FMT_XML = 2,
+    STATS_FMT_BIN = 3,
 } stats_fmt_t;
 
 typedef enum stats_upd_type {

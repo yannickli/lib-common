@@ -934,6 +934,17 @@ static int find_pretty_freq(int f)
     return 0;
 }
 
+typedef struct stats_tmp_bin_hdr_t {
+    uint16_t nb_line;
+    uint16_t nb_column;
+    byte     data[];
+} __attribute__((aligned(4))) stats_tmp_bin_hdr_t;
+
+typedef struct stats_tmp_bin_t {
+    uint32_t type;
+    double value;
+} __attribute__((aligned(4))) stats_tmp_bin_t;
+
 /* Should return number of samples produced? */
 int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
                               int start, int end, int nb_values,
@@ -943,6 +954,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     int stage, freq, count = 0;
     int nb_stats = stats->nb_stats;
     double accu[STATS_QUERY_VALUES_MAX];
+    int pos = 0;
 
     if (!stats->nb_stages) {
         blob_append_cstr(blob, "stats auto deactivated for these statistics");
@@ -1088,6 +1100,35 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
             count++;
             break;
 
+          case STATS_FMT_BIN:
+            {
+                bool insert_hdr = true;
+                stats_tmp_bin_hdr_t hdr = {
+                    .nb_line  = 0,
+                    .nb_column = nb_stats,
+                };
+                stats_tmp_bin_t pkt;
+
+                if (insert_hdr) {
+                    pos = blob->len;
+                    blob_append_data(blob, &hdr, sizeof(hdr));
+                    insert_hdr = false;
+                }
+                blob_append_fmt(blob, "%u",
+                                (i - (freq - 1)) * st->scale);
+                for (int k = 0; k < nb_stats; k++) {
+                    if (mask && !bfield_isset(mask, k))
+                        continue;
+                    pkt = (stats_tmp_bin_t){
+                        .type  = k, /* FIXME : used type of stats */
+                        .value = accu[k] / (j * st->scale),
+                    };
+                    blob_append_data(blob, &pkt, sizeof(pkt));
+                }
+                count++;
+                break;
+            }
+
           default:
             break;
         }
@@ -1095,23 +1136,17 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         p_clear(accu, nb_stats);
     }
 
+    if (fmt == STATS_FMT_BIN) {
+        stats_tmp_bin_hdr_t *hdr = (stats_tmp_bin_hdr_t *)(blob->data + pos);
+
+        hdr->nb_line = count / nb_stats;
+    }
     if (fmt == STATS_FMT_XML) {
         blob_append_cstr(blob, "</data>\n");
     }
     e_trace(1, "Outputed %d values", count);
     return count;
 }
-
-typedef struct stats_tmp_bin_hdr_t {
-    uint16_t nb_ligne;
-    uint16_t nb_colone;
-    byte     data[];
-} __attribute__((aligned(4))) stats_tmp_bin_hdr_t;
-
-typedef struct stats_tmp_bin_t {
-    uint32_t type;
-    double value;
-} __attribute__((aligned(4))) stats_tmp_bin_t;
 
 int stats_temporal_bin_to_xml(byte *data, int dlen, blob_t *out)
 {
@@ -1122,14 +1157,14 @@ int stats_temporal_bin_to_xml(byte *data, int dlen, blob_t *out)
 
     if (dlen < ssizeof(*hdr))
         return 0;
-    if (dlen < ssizeof(stats_tmp_bin_t) * hdr->nb_ligne * hdr->nb_colone)
+    if (dlen < ssizeof(stats_tmp_bin_t) * hdr->nb_line * hdr->nb_column)
         return 0;
     blob_append_cstr(out, "<data>\n");
-    for (int i = 0; i < hdr->nb_ligne; i++) {
+    for (int i = 0; i < hdr->nb_line; i++) {
         stamp = *(uint32_t *)(hdr->data + pos);
         pos += sizeof(stamp);
         blob_append_fmt(out, "<elem time=\"%d\" ", stamp);
-        for (int j = 0; j < hdr->nb_colone; j++) {
+        for (int j = 0; j < hdr->nb_column; j++) {
             pos += sizeof(stats_tmp_bin_t);
             pkt = (stats_tmp_bin_t *)(hdr->data + pos);
 
