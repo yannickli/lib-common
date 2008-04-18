@@ -1102,6 +1102,46 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     return count;
 }
 
+typedef struct stats_tmp_bin_hdr_t {
+    uint16_t nb_ligne;
+    uint16_t nb_colone;
+    byte     data[];
+} __attribute__((aligned(4))) stats_tmp_bin_hdr_t;
+
+typedef struct stats_tmp_bin_t {
+    uint32_t type;
+    double value;
+} __attribute__((aligned(4))) stats_tmp_bin_t;
+
+int stats_temporal_bin_to_xml(byte *data, int dlen, blob_t *out)
+{
+    stats_tmp_bin_hdr_t *hdr = (stats_tmp_bin_hdr_t *)data;
+    int pos = 0;
+    stats_tmp_bin_t *pkt;
+    uint32_t stamp;
+
+    if (dlen < ssizeof(*hdr))
+        return 0;
+    if (dlen < ssizeof(stats_tmp_bin_t) * hdr->nb_ligne * hdr->nb_colone)
+        return 0;
+    blob_append_cstr(out, "<data>\n");
+    for (int i = 0; i < hdr->nb_ligne; i++) {
+        stamp = *(uint32_t *)(hdr->data + pos);
+        pos += sizeof(stamp);
+        blob_append_fmt(out, "<elem time=\"%d\" ", stamp);
+        for (int j = 0; j < hdr->nb_colone; j++) {
+            pos += sizeof(stats_tmp_bin_t);
+            pkt = (stats_tmp_bin_t *)(hdr->data + pos);
+
+            blob_append_fmt(out, "val%u=\"%e\" ",
+                            pkt->type, pkt->value);
+        }
+        blob_append_cstr(out, "/>\n");
+    }
+    blob_append_cstr(out, "</data>\n");
+    return 1;
+}
+
 #ifndef NDEBUG
 void stats_temporal_dump_auto(byte *mem, int size)
 {
