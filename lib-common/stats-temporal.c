@@ -1114,7 +1114,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
 
                 if (mask && !bfield_isset(mask, k))
                     continue;
-                val = accu[k] / (j * st->scale),
+                val = accu[k] / (j * st->scale);
                 blob_append_data(blob, &val, sizeof(val));
             }
             count++;
