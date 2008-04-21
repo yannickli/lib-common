@@ -935,12 +935,12 @@ static int find_pretty_freq(int f)
 }
 
 typedef struct stats_bin_hdr_t {
-    uint16_t nb_lines;
-    uint16_t nb_columns;
+    int32_t  nb_lines;
+    int32_t  nb_columns;
     uint32_t start;
     uint32_t step;
     uint32_t types[];
-} __attribute__((aligned(4))) stats_bin_hdr_t;
+} stats_bin_hdr_t;
 
 /* Should return number of samples produced? */
 int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
@@ -951,8 +951,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     int stage, freq, count = 0;
     int nb_stats = stats->nb_stats;
     double accu[STATS_QUERY_VALUES_MAX];
-    int pos = 0, nb_columns = 0;
-    bool insert_hdr = true;
+    int orig_pos = 0, nb_columns = 0;
 
     if (!stats->nb_stages) {
         blob_append_cstr(blob, "stats auto deactivated for these statistics");
@@ -1018,12 +1017,21 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
             "nbvalues: %d, ratio: %d",
             start, end, freq, nb_values, (end - start) / freq);
 
-    if (fmt == STATS_FMT_XML) {
-        blob_append_cstr(blob, "<data>\n");
-    }
-
     p_clear(accu, nb_stats);
+    orig_pos = blob->len;
     nb_columns = mask ? bfield_count(mask) : nb_stats;
+
+    switch (fmt) {
+      case STATS_FMT_XML:
+        blob_append_cstr(blob, "<data>\n");
+        break;
+      case STATS_FMT_BIN:
+        blob_extend(blob, sizeof(stats_bin_hdr_t) +
+                    sizeof(uint32_t) * ((nb_columns + 1) & ~1));
+        break;
+      default:
+        break;
+    }
 
     for (int i = start, j = 0; i < end; i++) {
         int stageup = stage;
@@ -1101,13 +1109,6 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
             break;
 
           case STATS_FMT_BIN:
-            if (insert_hdr) {
-                pos = blob->len;
-                blob_extend(blob, sizeof(stats_bin_hdr_t) +
-                            sizeof(uint32_t) * nb_columns);
-                insert_hdr = false;
-            }
-
             for (int k = 0; k < nb_stats; k++) {
                 double val;
 
@@ -1130,11 +1131,11 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         stats_bin_hdr_t *hdr;
 
       case STATS_FMT_BIN:
-        hdr = (stats_bin_hdr_t *)&blob->data[pos];
+        hdr = (stats_bin_hdr_t *)&blob->data[orig_pos];
         *hdr = (stats_bin_hdr_t){
             .nb_lines   = count,
             .nb_columns = nb_columns,
-            .start      = (uint32_t)((start - (freq - 1)) * st->scale),
+            .start      = (start - (freq - 1)) * st->scale,
             .step       = freq,
         };
         for (int i = 0, k = 0; k < nb_stats; k++) {
@@ -1154,7 +1155,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     return count;
 }
 
-int stats_temporal_bin_to_xml(byte *data, int dlen, blob_t *out)
+int stats_temporal_bin_to_xml(const byte *data, int dlen, blob_t *out)
 {
     stats_bin_hdr_t *hdr = (stats_bin_hdr_t *)data;
     uint32_t stamp;
@@ -1169,10 +1170,9 @@ int stats_temporal_bin_to_xml(byte *data, int dlen, blob_t *out)
         return -1;
     }
 
+    datas = (double *)&hdr->types[(hdr->nb_columns + 1) & ~1];
+
     blob_append_cstr(out, "<data>\n");
-
-    datas = (double *)&hdr->types[hdr->nb_columns];
-
     for (int i = 0; i < hdr->nb_lines; i++) {
         stamp = hdr->start + hdr->step * i;
         blob_append_fmt(out, "<elem time=\"%d\" ", stamp);
