@@ -59,7 +59,7 @@ void bfield_unset(bfield_t *bf, ssize_t pos)
         bfield_optimize(bf);
 }
 
-bool bfield_isset(bfield_t *bf, ssize_t pos)
+bool bfield_isset(const bfield_t *bf, ssize_t pos)
 {
     ssize_t octet = (pos >> 3) - bf->offs;
 
@@ -67,6 +67,15 @@ bool bfield_isset(bfield_t *bf, ssize_t pos)
         return 0;
 
     return (bf->bits.data[octet] >> (pos & 7)) & 1;
+}
+
+int bfield_count(const bfield_t *bf)
+{
+    int count = 0;
+    for (int i = 0; i < bf->bits.len; i++) {
+        count += __builtin_popcount(bf->bits.data[i]);
+    }
+    return count;
 }
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/

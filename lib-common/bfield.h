@@ -34,8 +34,8 @@ GENERIC_DELETE(bfield_t, bfield);
 
 void bfield_set(bfield_t *bf, ssize_t pos);
 void bfield_unset(bfield_t *bf, ssize_t pos);
-bool bfield_isset(bfield_t *bf, ssize_t pos);
-
+bool bfield_isset(const bfield_t *bf, ssize_t pos);
+int  bfield_count(const bfield_t *bf);
 
 static inline void bfield_purge(bfield_t *bf) {
     bfield_wipe(bf);
