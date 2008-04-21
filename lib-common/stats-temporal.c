@@ -954,8 +954,8 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     int stage, freq, count = 0;
     int nb_stats = stats->nb_stats;
     double accu[STATS_QUERY_VALUES_MAX];
-    int pos = 0;
-    bool insert_hdr = true;
+    int pos = 0, nb_column = 0;
+    bool insert_hdr = true, calcul_nb_col = true;
 
     if (!stats->nb_stages) {
         blob_append_cstr(blob, "stats auto deactivated for these statistics");
@@ -1105,7 +1105,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
             {
                 stats_tmp_bin_hdr_t hdr = {
                     .nb_line  = 0,
-                    .nb_column = nb_stats,
+                    .nb_column = 0,
                 };
                 stats_tmp_bin_t pkt;
                 uint32_t elt_time;
@@ -1125,7 +1125,10 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
                         .value = accu[k] / (j * st->scale),
                     };
                     blob_append_data(blob, &pkt, sizeof(pkt));
+                    if (calcul_nb_col)
+                        nb_column++;
                 }
+                calcul_nb_col = false;
                 count++;
                 break;
             }
@@ -1141,6 +1144,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         stats_tmp_bin_hdr_t *hdr = (stats_tmp_bin_hdr_t *)(blob->data + pos);
 
         hdr->nb_line = count;
+        hdr->nb_column = nb_column;
     }
     if (fmt == STATS_FMT_XML) {
         blob_append_cstr(blob, "</data>\n");
@@ -1158,9 +1162,9 @@ int stats_temporal_bin_to_xml(byte *data, int dlen, blob_t *out)
 
     if (dlen < ssizeof(*hdr))
         return 0;
+    e_trace(2, "HDR : lc [%u, %u]", hdr->nb_line, hdr->nb_column);
     if (dlen < ssizeof(stats_tmp_bin_t) * hdr->nb_line * hdr->nb_column)
         return 0;
-    e_trace(2, "HDR : lc [%u, %u]", hdr->nb_line, hdr->nb_column);
     blob_append_cstr(out, "<data>\n");
     for (int i = 0; i < hdr->nb_line; i++) {
         stamp = *(uint32_t *)(hdr->data + pos);
@@ -1169,8 +1173,13 @@ int stats_temporal_bin_to_xml(byte *data, int dlen, blob_t *out)
         for (int j = 0; j < hdr->nb_column; j++) {
             pkt = (stats_tmp_bin_t *)(hdr->data + pos);
 
-            blob_append_fmt(out, "val%u=\"%e\" ",
-                            pkt->type, pkt->value);
+            if (!j) {
+                blob_append_fmt(out, "val=\"%e\" ",
+                                pkt->value);
+            } else {
+                blob_append_fmt(out, "val%u=\"%e\" ",
+                                pkt->type, pkt->value);
+            }
             pos += sizeof(stats_tmp_bin_t);
         }
         blob_append_cstr(out, "/>\n");
