@@ -250,7 +250,8 @@ int props_hash_unpack(const byte *buf, int buflen, int *pos,
     return 0;
 }
 
-int props_hash_from_fmtv1_len(props_hash_t *ph, const blob_t *payload, int p_begin, int p_end)
+int props_hash_from_fmtv1_len(props_hash_t *ph, const blob_t *payload,
+                              int p_begin, int p_end)
 {
     const char *buf = blob_get_cstr(payload);
     int pos = 0;
