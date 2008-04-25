@@ -26,8 +26,9 @@ static void append_href_string(blob_t *out, const byte *data, int len)
     const byte *p;
     int written = 0, pos = 0;
 
+    blob_append_byte(out, 0x03);
     while (pos < len && (p = memchr(data + pos, '.', len - pos))) {
-        if (len - (p - data) < 4) {
+        if (len - (p - data) < 5) {
             /* Not enough data to contain extension */
             break;
         }
@@ -35,10 +36,14 @@ static void append_href_string(blob_t *out, const byte *data, int len)
         switch (p[1]) {
 #define CASE_VALUE_TOKEN(c1, c2, c3, tok)                                   \
           case c1:                                                          \
-            if (p[2] == c2 && p[3] == c3) {                                 \
+            if (p[2] == c2 && p[3] == c3 && p[4] == '/') {                  \
                 blob_append_data(out, data + written, (p - data) - written);\
+                blob_append_byte(out, 0x00);                                \
                 blob_append_byte(out, tok);                                 \
-                pos = written = (p - data) + 4;                             \
+                if (len - (p - data) > 5) { /* some characters remain */            \
+                    blob_append_byte(out, 0x03);                            \
+                }                                                           \
+                pos = written = (p - data) + 5;                             \
                 continue;                                                   \
             }                                                               \
             break;                                                          \
@@ -54,6 +59,7 @@ static void append_href_string(blob_t *out, const byte *data, int len)
 
     if (written < len) {
         blob_append_data(out, data + written, len - written);
+        blob_append_byte(out, 0x00);
     }
 }
 
@@ -79,16 +85,12 @@ void blob_append_wbxml_href(blob_t *dst, const byte *data, int len)
         &&  !memcmp(data + 8, "www.", 4))
         {
             blob_append_byte(dst, 0x0F); /* href + "https://www." */
-            blob_append_byte(dst, 0x03);
             append_href_string(dst, data + 12, len - 12);
-            blob_append_byte(dst, 0x00);
             return;
         }
 
         blob_append_byte(dst, 0x0E); /* href + "https://" */
-        blob_append_byte(dst, 0x03);
         append_href_string(dst, data + 8, len - 8);
-        blob_append_byte(dst, 0x00);
         return;
     }
 
@@ -100,23 +102,17 @@ void blob_append_wbxml_href(blob_t *dst, const byte *data, int len)
     &&  !memcmp(data + 7, "www.", 4))
     {
         blob_append_byte(dst, 0x0D); /* href + "http://www." */
-        blob_append_byte(dst, 0x03);
         append_href_string(dst, data + 11, len - 11);
-        blob_append_byte(dst, 0x00);
         return;
     }
 
     blob_append_byte(dst, 0x0C); /* href + "http://" */
-    blob_append_byte(dst, 0x03);
     append_href_string(dst, data + 7, len - 7);
-    blob_append_byte(dst, 0x00);
     return;
 
   no_encoding:
     blob_append_byte(dst, 0x0B);
-    blob_append_byte(dst, 0x03);
     append_href_string(dst, data, len);
-    blob_append_byte(dst, 0x00);
 }
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
@@ -127,16 +123,18 @@ void blob_append_wbxml_href(blob_t *dst, const byte *data, int len)
 #define EXPECTED0      "\x0B\x03""abcdef\x00"
 #define SRC1           "http:/""/intersec.fr"
 #define EXPECTED1      "\x0C\x03intersec.fr\x00"
-#define SRC2           "http:/""/intersec.com"
-#define EXPECTED2      "\x0C\x03intersec\x85\x00"
+#define SRC2           "http:/""/intersec.com/"
+#define EXPECTED2      "\x0C\x03intersec\x00\x85"
 #define SRC3           "https:/""/www.intersec.com/a"
-#define EXPECTED3      "\x0F\x03intersec\x85/a\x00"
+#define EXPECTED3      "\x0F\x03intersec\x00\x85\x03""a\x00"
 #define SRC4           "https:/""/intersec.eu"
 #define EXPECTED4      "\x0E\x03intersec.eu\x00"
 #define SRC5           "http:/""/www.intersec.eu"
 #define EXPECTED5      "\x0D\x03intersec.eu\x00"
 #define SRC6           "htt"
 #define EXPECTED6      "\x0B\x03htt\x00"
+#define SRC7           "http:/""/intersec.com"
+#define EXPECTED7      "\x0C\x03intersec.com\x00"
 
 START_TEST(check_append_href)
 {
@@ -157,6 +155,7 @@ START_TEST(check_append_href)
     TEST_WBXML(SRC4, EXPECTED4);
     TEST_WBXML(SRC5, EXPECTED5);
     TEST_WBXML(SRC6, EXPECTED6);
+    TEST_WBXML(SRC7, EXPECTED7);
 
     blob_wipe(&dst);
 }
