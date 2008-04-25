@@ -21,9 +21,11 @@ int main(void)
 
     srunner_add_suite(sr, check_string_suite());
     srunner_add_suite(sr, check_make_strconv_suite());
-    srunner_add_suite(sr, check_append_blob_ebcdic_suite(
+    srunner_add_suite(sr,
+            check_append_blob_wbxml_suite(
+            check_append_blob_ebcdic_suite(
             check_make_blob_suite()
-            ));
+    )));
     srunner_add_suite(sr, check_make_archive_suite());
     srunner_add_suite(sr, check_fifo_suite());
     srunner_add_suite(sr, check_licence_suite());

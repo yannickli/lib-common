@@ -63,6 +63,7 @@ libcommon_SOURCES = \
 	blob-zlib.c \
 	blob-iconv.c \
 	blob-emi.c \
+	blob-wbxml.c \
 	\
 	conf.c  \
 	conf-parser.l \

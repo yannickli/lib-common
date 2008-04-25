@@ -427,6 +427,8 @@ void blob_append_base64_finish(blob_t *dst, base64enc_ctx *ctx);
 int blob_append_smtp_data(blob_t *dst, const byte *src, int len);
 int blob_append_hex(blob_t *dst, const byte *src, int len);
 
+void blob_append_wbxml_href(blob_t *dst, const byte *data, int len);
+
 /* in blob_emi.c */
 int blob_append_ira_hex(blob_t *dst, const byte *src, int len);
 int blob_append_ira_bin(blob_t *dst, const byte *src, int len);
@@ -466,6 +468,7 @@ int blob_latin9_to_utf8(blob_t *out, const char *s, int len);
 
 Suite *check_make_blob_suite(void);
 Suite *check_append_blob_ebcdic_suite(Suite *blob_suite);
+Suite *check_append_blob_wbxml_suite(Suite *blob_suite);
 
 #endif
 /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
