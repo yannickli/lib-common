@@ -184,11 +184,11 @@ static bool range_vector_check_coherence(range_vector *vec, bool strict)
 
 START_TEST(check_range_vector)
 {
-    const char *toto = "toto";
-    const char *titi = "titi";
-    const char *tutu = "tutu";
-    const char *tata = "tata";
-    const char *broken = "broken";
+    char *toto = (char *)"toto";
+    char *titi = (char *)"titi";
+    char *tutu = (char *)"tutu";
+    char *tata = (char *)"tata";
+    char *broken = (char *)"broken";
     range_vector vec;
 
     range_vector_init(&vec);
@@ -197,7 +197,7 @@ START_TEST(check_range_vector)
 
 #define TEST_ONE(num, data)  do {                                         \
         e_trace(1, "inserting %d", num);                                  \
-        fail_if(range_vector_insert_one(&vec, num, (void *)(data)),       \
+        fail_if(range_vector_insert_one(&vec, num, (char *)(data)), \
                 "Collision on %s", data);                                 \
         range_vector_dump_str(&vec);                                      \
         fail_if(!range_vector_check_coherence(&vec, true),                \

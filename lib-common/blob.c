@@ -2500,9 +2500,6 @@ static int check_gunzip_tpl(const char *file1, const char *file2)
     blob_t b1;
     blob_t b2;
 
-    int i = 0;
-    int c_typ = 0;
-
     blob_init(&b1);
     blob_init(&b2);
 
@@ -2531,9 +2528,6 @@ static int check_gzip_tpl(const char *file1, const char *file2)
 {
     blob_t b1;
     blob_t b2;
-
-    int i = 0;
-    int c_typ = 0;
 
     blob_init(&b1);
     blob_init(&b2);
@@ -2681,7 +2675,6 @@ END_TEST
 START_TEST(check_serialize_c)
 {
     blob_t dst;
-    char c = 'Z';
     char val1 = 0x10, val2 = 0x11;
     int pos, res, j;
 
@@ -2713,7 +2706,6 @@ END_TEST
 START_TEST(check_serialize_fmt)
 {
     blob_t dst;
-    char c = 'Z';
     char val1 = 0x10, val2 = 0x11;
     int pos, res;
 

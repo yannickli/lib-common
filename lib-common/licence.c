@@ -547,6 +547,7 @@ START_TEST(check_is_my_mac_addr)
         "00:13:77:48:4A:06", /* artemis */
         "00:18:8B:5B:71:3D", /* gin */
         "00:1A:A0:1C:53:33", /* tequila */
+        "00:18:8B:D5:89:88", /* curacao */
     };
 
     for (j = 0; j < countof(maclist); j++) {
@@ -563,7 +564,6 @@ END_TEST
 START_TEST(check_licence_check_signature_ok)
 {
     conf_t * conf;
-    int ret;
 
     conf = conf_load("samples/licence-v1-ok.conf");
     fail_if(!conf, "Unable to open test file");
@@ -580,7 +580,6 @@ END_TEST
 START_TEST(check_licence_check_expiration_ok)
 {
     conf_t * conf;
-    int ret;
 
     conf = conf_load("samples/licence-v1-ok.conf");
     fail_if(!conf, "Unable to open test file");

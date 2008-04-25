@@ -148,6 +148,8 @@ void *fifo_geti(fifo *f, int i)
 }
 
 #ifdef CHECK /* {{{ */
+
+#if 0
 static void fifo_dump(fifo *f)
 {
     int i;
@@ -164,6 +166,7 @@ static void fifo_nop(void *f)
 {
     f = f;
 }
+#endif
 
 START_TEST(check_get_empty)
 {
