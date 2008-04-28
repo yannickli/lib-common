@@ -174,6 +174,7 @@ int props_array_unpack(const byte *buf, int buflen, int *pos,
     return 0;
 }
 
+/* OG: should take buf+len with len<0 for strlen */
 int props_from_fmtv1_cstr(const char *buf, props_array *props)
 {
     int pos = 0;
