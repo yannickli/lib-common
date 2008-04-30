@@ -49,7 +49,7 @@ static void e_debug_initialize(void)
 
     /*
      * parses blank separated <specs>
-     * <specs> ::= <modulename>[/<funcname>][:<level>]
+     * <specs> ::= <modulename>[@<funcname>][:<level>]
      */
     while (*p) {
         const char *q;
@@ -73,7 +73,7 @@ static void e_debug_initialize(void)
         e->next   = e_watches;
         e_watches = e;
 
-        e->funcname = strchr(e->modname, '/');
+        e->funcname = strchr(e->modname, '@');
         if (e->funcname) {
             *e->funcname++ = '\0';
         } else {
