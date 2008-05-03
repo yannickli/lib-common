@@ -46,6 +46,18 @@ static inline struct timeval timeval_add(struct timeval a, struct timeval b)
     }
     return res;
 }
+static inline struct timeval timeval_addmsec(struct timeval a, int msec)
+{
+    struct timeval res;
+
+    res.tv_sec  = a.tv_sec + msec / 1000;
+    res.tv_usec = a.tv_usec + ((msec % 1000) * 1000);
+    if (res.tv_usec >= 1000 * 1000) {
+        res.tv_sec += 1;
+        res.tv_usec -= 1000 * 1000;
+    }
+    return res;
+}
 
 static inline struct timeval timeval_sub(struct timeval a, struct timeval b)
 {
