@@ -161,6 +161,34 @@ static inline void blob_extend2(blob_t *blob, int extralen, byte init) {
 /**************************************************************************/
 
 static inline void
+blob_grow_front(blob_t *blob, int extralen, char init)
+{
+    assert (extralen >= 0);
+    blob_check_slop();
+
+    /* TODO: Should not try to reuse skip if it is too small:
+     * example: blob->skip >= extralen / 4 */
+    if (blob->skip >= extralen) {
+        blob->skip -= extralen;
+        blob->len  += extralen;
+        return;
+    }
+    if (blob->skip) {
+        blob->len += blob->skip;
+        extralen  -= blob->skip;
+        blob->skip = 0;
+    }
+
+    /* TODO: Should malloc/free without using ensure */
+    blob_ensure(blob, blob->len + extralen);
+    p_move(blob->data, extralen, 0, blob->len);
+    blob->len += extralen;
+    blob->data[blob->len] = '\0';
+    memset(blob->data, init, extralen);
+    blob_check_slop();
+}
+
+static inline void
 blob_splice_data(blob_t *blob, int pos, int len, const void *data, int dlen)
 {
     assert (pos >= 0 && len >= 0 && dlen >= 0);
