@@ -178,6 +178,14 @@ else
 fi
 
 # }}}
+# {{{ ffmpeg
+
+if pkg-config --print-errors "libavformat libavcodec"; then
+    setvar "ffmpeg_CFLAGS" "$(pkg-config --cflags libavformat libavcodec)"
+    setvar "ffmpeg_LDFLAGS" "$(pkg-config --libs  libavformat libavcodec)"
+fi
+
+# }}}
 # {{{ ImageMagick
 
 if pkg-config --print-errors ImageMagick; then
