@@ -264,13 +264,7 @@ bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
     static inline type_t *                                                   \
     pfx##_htbl_take2(pfx##_htbl *t, const char *key) {                       \
         return pfx##_htbl_take(t, key, -1);                                  \
-    }                                                                        \
-    static inline void pfx##_htbl_remove_elem(pfx##_htbl *t, type_t **e) {   \
-        pfx##_helem_t *he;                                                   \
-        he = (void *)((const char *)e - offsetof(pfx##_helem_t, e));         \
-        pfx##_htbl_ll_remove(t, he);                                         \
     }
-
 
 #define DO_HTBL_STROFFS(type_t, pfx, offs, inlined)                          \
     DO_HTBL_STR_COMMON(type_t, pfx);                                         \
@@ -309,8 +303,11 @@ bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
     do {                                                                     \
         (t)->inmap = true;                                                   \
         for (int var##_i = 0; var##_i < (t)->size; var##_i++) {              \
-            if (TST_BIT((t)->setbits, var##_i))                              \
+            if (TST_BIT((t)->setbits, var##_i)) {                            \
                 f(&(t)->tab[var##_i].e, ##__VA_ARGS__);                      \
+                if ((t)->tab[var##_i].e == NULL)                             \
+                    htbl_invalidate((generic_htbl *)(t), var##_i);           \
+            }                                                                \
         }                                                                    \
         (t)->inmap = false;                                                  \
     } while (0)
