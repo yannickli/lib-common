@@ -136,7 +136,7 @@ $(tmp/vars): $(var/builddir)%/vars.mk: $(var/srcdir)%/Makefile $(var/toolsdir)/*
 	mkdir -p $(@D)
 	$(MAKE) --no-print-directory -rsC $(var/srcdir)$* __dump_targets > $@
 
-$(var/builddir)/Makefile: $(var/srcdir)/configure $(var/toolsdir)/* | $(tmp/vars)
+$(var/builddir)/Makefile: $(var/srcdir)/configure $(tmp/vars) $(var/toolsdir)/*
 	$(msg/generate) $(@R)
 	mkdir -p $(@D)
 	echo 'var/subdirs := $(call fun/msq,$(tmp/subdirs))'          >  $@
