@@ -32,11 +32,18 @@ define fun/msq
 $(subst $$,$$$$,$(subst $(var/squote),$(var/squote)\$(var/squote)$(var/squote),$1))
 endef
 
+# abspath made better (keeps trailing slashes)
+#
+# $(call fun/abspath,<LIST>)
+define fun/abspath
+$(addsuffix /,$(abspath $(filter %/,$1))) $(abspath $(filter-out %/,$1))
+endef
+
 # rebase a path relative to <PATH> wrt $(var/srcdir)
 #
 # $(call fun/rebase,<PATH>,<LIST>)
 define fun/rebase
-$(patsubst $(var/srcdir)/%,%,$(addprefix $1/,$(filter-out /%,$2)) $(filter /%,$2))
+$(patsubst $(var/srcdir)/%,%,$(call fun/abspath,$(addprefix $1/,$(filter-out /%,$2)) $(filter /%,$2)))
 endef
 
 # call something once only
