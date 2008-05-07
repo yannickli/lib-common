@@ -1290,10 +1290,7 @@ int blob_append_smtp_data(blob_t *dst, const byte *src, int len)
 
 /*---------------- binary to hex conversion ----------------*/
 
-#if 0
-
-static char const __str_digits_upper[36] =
-    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+#if 1
 
 int blob_append_hex(blob_t *dst, const byte *src, int len)
 {
@@ -1338,7 +1335,8 @@ int blob_append_hex(blob_t *blob, const byte *src, int len)
     pos = blob->len;
     blob_extend(blob, len * 2);
     dst = blob->data + pos;
-    /* This method is not portable on some CPUs because of mis-alignment */
+    /* XXX: This method is UNSAFE and not portable on some CPUs
+     * because of mis-alignment. */
 
     /* Unroll loop 4 times */
     while (len >= 4) {
