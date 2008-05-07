@@ -36,7 +36,7 @@ endef
 #
 # $(call fun/rebase,<PATH>,<LIST>)
 define fun/rebase
-$(patsubst $(var/srcdir)/%,%,$(abspath $(addprefix $1/,$(filter-out /%,$2)) $(filter /%,$2)))
+$(patsubst $(var/srcdir)/%,%,$(addprefix $1/,$(filter-out /%,$2) $(filter /%,$2)))
 endef
 
 # call something once only

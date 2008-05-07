@@ -70,6 +70,9 @@ At the moment, the following set of variables are used at the directory level:
         This holds the list of files (or directories, necessarily with a
         trailing slash) that must be removed on clean.
 
+`DISTCLEANFILES`::
+        This holds the list of files (or directories, necessarily with a
+        trailing slash) that must be removed on distclean.
 
 Defining new goals
 ~~~~~~~~~~~~~~~~~~
@@ -224,7 +227,7 @@ The build-system defines three rules you can hook into:
         This is probably the most usefull hook. When distclean is run (this
         rule is global, and it's the same for any directory you run it from),
         commands that you put there are run for any Makefile that extends it.
-        Note that for simple things, `CLEANFILES` is probably better suited.
+        Note that for simple things, `DISTCLEANFILES` is probably better suited.
 
 In addition to those, the build-system provides a way to run a command when
 make is run without arguments from a local directory, and only in that case

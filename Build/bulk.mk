@@ -44,6 +44,8 @@ distclean::
 	$(call fun/expand-if2,$(RM),$(var/generated))
 	$(call fun/expand-if2,$(RM),$(filter-out %/,$(var/cleanfiles)))
 	$(call fun/expand-if2,$(RM) -r,$(filter %/,$(var/cleanfiles)))
+	$(RM) $(filter-out %/,$(DISTCLEANFILES))
+	$(RM) -r $(filter %/,$(DISTCLEANFILES))
 	$(msg/rm) copied targets
 	$(call fun/expand-if2,$(RM),$(var/datas))
 	$(call fun/expand-if2,$(RM),$(var/programs:=$(EXEEXT)))
@@ -161,7 +163,7 @@ __dump_targets:
 	$(foreach v,$(filter %FLAGS %_SOVERSION,$(filter-out MAKE%,$(.VARIABLES))),\
 	    echo '$.$v += $(call fun/msq,$($v))';)
 	echo '$._CLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(CLEANFILES)))'
-	echo '$._DISTCLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(DISTCLEANFILES)))'
+	echo 'DISTCLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(DISTCLEANFILES)))'
 	echo ''
 	$(MAKE) -nspqr | $(var/toolsdir)/_local_targets.sh \
 	    "$(var/srcdir)" "$." "$(var/toolsdir)" | \
