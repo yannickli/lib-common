@@ -204,3 +204,34 @@ int tpl_encode_qp(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
     }
     return 0;
 }
+
+int tpl_encode_wbxml_href(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
+{
+    tpl_t *arg0;
+    blob_t tmp;
+
+    assert (nb > 0);
+    arg0 = *args;
+    if (!blob) {
+        assert(out);
+        blob = tpl_get_blob(out);
+    }
+
+    blob_inita(&tmp, 1024);
+
+    while (--nb >= 0) {
+        tpl_t *arg = *args++;
+        if (arg->op == TPL_OP_DATA) {
+            blob_append_data(&tmp, arg->u.data.data, arg->u.data.len);
+        } else {
+            assert (arg->op == TPL_OP_BLOB);
+            blob_append(&tmp, &arg->u.blob);
+        }
+    }
+
+    blob_append_wbxml_href(blob, tmp.data, tmp.len);
+    blob_wipe(&tmp);
+
+    return 0;
+}
+
