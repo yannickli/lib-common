@@ -15,7 +15,6 @@
 
 #include <dirent.h>
 #include <limits.h>
-#include <elf.h>
 
 #include "err_report.h"
 #include "macros.h"
@@ -33,26 +32,10 @@ static FILE *pidproc_open(pid_t pid, const char *what)
     return fopen(path, "r");
 }
 
-/* for ELF executables, notes are pushed before environment and args */
-static int find_elf_note(unsigned long findme, unsigned long *out)
-{
-    unsigned long *ep = (unsigned long *)__environ;
-    while (*ep++);
-    while (*ep) {
-        if (ep[0] == findme) {
-            *out = ep[1];
-            return 0;
-        }
-        ep += 2;
-    }
-    return -1;
-}
-
 static void jiffies_to_tv(unsigned long long jiff, struct timeval *tv)
 {
-    if (!hertz) {
-        unix_initialize();
-    }
+    if (!hertz)
+        hertz = sysconf(_SC_CLK_TCK);
 
     tv->tv_sec  = jiff / hertz;
     tv->tv_usec = (jiff % hertz) * (1000000UL / hertz);
@@ -63,16 +46,6 @@ void unix_initialize(void)
     struct timeval tv;
     gettimeofday(&tv, NULL);
     srand(tv.tv_usec);
-
-    /* get the HZ value, needs linux 2.4 ;) */
-    {
-        unsigned long l;
-
-        if (find_elf_note(AT_CLKTCK, &l))
-            e_panic("Cannot find ELF AT_CLKTCK note");
-
-        hertz = l;
-    }
 
     /* get the boot_time value */
     {
@@ -114,9 +87,8 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
     if (!pidstat)
         return -1;
 
-    if (!hertz) {
-        unix_initialize();
-    }
+    if (!hertz)
+        hertz = sysconf(_SC_CLK_TCK);
 
     /* see proc(3), here we want starttime */
     res = fscanf(pidstat,
