@@ -151,6 +151,31 @@ void tpl_add_var(tpl_t *tpl, uint16_t array, uint16_t index)
     var->u.varidx = ((uint32_t)array << 16) | index;
 }
 
+void tpl_embed_tpl(tpl_t *out, tpl_t **tplp)
+{
+    tpl_t *tpl = *tplp;
+    assert (tpl_can_append(out));
+
+    if (tpl->op == TPL_OP_BLOCK && out->op == TPL_OP_BLOCK) {
+        tpl_add_tpls(out, tpl->u.blocks.tab, tpl->u.blocks.len);
+        tpl_delete(tplp);
+        return;
+    }
+
+    if (tpl->op == TPL_OP_BLOB && out->u.blocks.len > 0
+    &&  tpl->u.blob.len <= TPL_COPY_LIMIT_SOFT)
+    {
+        tpl_t *buf = out->u.blocks.tab[out->u.blocks.len - 1];
+        if (buf->op == TPL_OP_BLOB && buf->refcnt == 1) {
+            blob_append(&buf->u.blob, &tpl->u.blob);
+            tpl_delete(tplp);
+            return;
+        }
+    }
+    tpl_array_append(&out->u.blocks, tpl);
+    *tplp = NULL;
+}
+
 void tpl_add_tpl(tpl_t *out, const tpl_t *tpl)
 {
     assert (tpl_can_append(out));

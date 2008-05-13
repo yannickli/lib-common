@@ -94,6 +94,7 @@ static inline void tpl_copy_cstr(tpl_t *tpl, const char *s) {
     tpl_copy_data(tpl, (const byte *)s, strlen(s));
 }
 void tpl_add_var(tpl_t *tpl, uint16_t envid, uint16_t index);
+void tpl_embed_tpl(tpl_t *out, tpl_t **tpl);
 void tpl_add_tpl(tpl_t *out, const tpl_t *tpl);
 void tpl_add_tpls(tpl_t *out, tpl_t **tpl, int nb);
 tpl_t *tpl_add_ifdef(tpl_t *tpl, uint16_t envid, uint16_t index);
