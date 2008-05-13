@@ -23,7 +23,6 @@
 #include "time.h"
 
 static int hertz;
-static int boot_time;
 
 static FILE *pidproc_open(pid_t pid, const char *what)
 {
@@ -41,47 +40,11 @@ static void jiffies_to_tv(unsigned long long jiff, struct timeval *tv)
     tv->tv_usec = (jiff % hertz) * (1000000UL / hertz);
 }
 
-void unix_initialize(void)
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    srand(tv.tv_usec);
-
-    /* get the boot_time value */
-    {
-        char buf[BUFSIZ];
-        const char *p;
-        FILE *f = fopen("/proc/stat", "r");
-
-        if (!f)
-            e_panic("Cannot open /proc/stat");
-
-        while (fgets(buf, sizeof(buf), f)) {
-            if (strstart(buf, "btime", &p)) {
-                boot_time = strtoip(p, NULL);
-                break;
-            }
-        }
-        p_fclose(&f);
-        if (boot_time == 0)
-            e_panic("Could not parse boot time");
-    }
-
-    if (!is_fd_open(STDIN_FILENO)) {
-        devnull_dup(STDIN_FILENO);
-    }
-    if (!is_fd_open(STDOUT_FILENO)) {
-        devnull_dup(STDOUT_FILENO);
-    }
-    if (!is_fd_open(STDERR_FILENO)) {
-        dup2(STDOUT_FILENO, STDERR_FILENO);
-    }
-}
-
 int pid_get_starttime(pid_t pid, struct timeval *tv)
 {
     unsigned long long starttime;
     FILE *pidstat = pidproc_open(pid ? pid : getpid(), "stat");
+    static int boot_time;
     int res;
 
     if (!pidstat)
@@ -99,6 +62,25 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
     if (res < 1) {
         errno = EINVAL;
         return -1;
+    }
+
+    if (!boot_time) {
+        char buf[BUFSIZ];
+        const char *p;
+        FILE *f = fopen("/proc/stat", "r");
+
+        if (!f)
+            e_panic("Cannot open /proc/stat");
+
+        while (fgets(buf, sizeof(buf), f)) {
+            if (strstart(buf, "btime", &p)) {
+                boot_time = strtoip(p, NULL);
+                break;
+            }
+        }
+        p_fclose(&f);
+        if (boot_time == 0)
+            e_panic("Could not parse boot time");
     }
 
     jiffies_to_tv(starttime, tv);

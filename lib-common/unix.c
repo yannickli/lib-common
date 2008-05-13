@@ -289,6 +289,23 @@ void devnull_dup(int fd)
     }
 }
 
+void unix_initialize(void)
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    srand(tv.tv_usec);
+
+    if (!is_fd_open(STDIN_FILENO)) {
+        devnull_dup(STDIN_FILENO);
+    }
+    if (!is_fd_open(STDOUT_FILENO)) {
+        devnull_dup(STDOUT_FILENO);
+    }
+    if (!is_fd_open(STDERR_FILENO)) {
+        dup2(STDOUT_FILENO, STDERR_FILENO);
+    }
+}
+
 #ifndef __linux__
 int close_fds_higher_than(int fd)
 {
