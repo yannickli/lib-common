@@ -198,10 +198,20 @@ fi
 # }}}
 # {{{ php
 
-if which php-config >/dev/null 2>/dev/null; then
-    setvar "php5_CFLAGS" "$(php-config --includes)"
-else
-    warn "*** php-config is missing, apt-get install php5-dev"
+case "$profile" in
+    platon)
+        PHP_CONFIG=/opt/php-5.1.1/bin/php-config
+        ;;
+    *)
+        if which php-config >/dev/null 2>/dev/null; then
+           PHP_CONFIG=php-config
+        else
+           warn "*** php-config is missing, apt-get install php5-dev"
+        fi
+        ;;
+esac
+if test -n "$PHP_CONFIG"; then
+    setvar "php5_CFLAGS" "$("$PHP_CONFIG" --includes)"
 fi
 
 # }}}
