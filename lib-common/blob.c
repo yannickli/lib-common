@@ -99,8 +99,8 @@ void blob_ensure(blob_t *blob, int newlen)
     if (newlen < blob->size)
         return;
 
-    if (newlen < blob->skip + blob->size) {
-        /* Data fits in the current area, shift it left */
+    /* if data fits and skip is worth it, shift it left */
+    if (newlen < blob->skip + blob->size && blob->skip > blob->size / 4) {
         memmove(blob->data - blob->skip, blob->data, blob->len + 1);
         blob->data -= blob->skip;
         blob->size += blob->skip;
@@ -113,11 +113,6 @@ void blob_ensure(blob_t *blob, int newlen)
     if (blob->size < newlen + 1)
         blob->size = newlen + 1;
     if (blob->allocated && !blob->skip) {
-        if (newlen > 1024 * 1024) {
-            /* OG: why only warn if blob->allocated && !blob->skip ? */
-            e_trace(1, "Large blob realloc, newlen:%d size:%d len:%d data:%.80s",
-                    newlen, blob->size, blob->len, blob->data);
-        }
         p_realloc(&blob->data, blob->size);
     } else {
         byte *new_area = p_new_raw(byte, blob->size);

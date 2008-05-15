@@ -58,8 +58,8 @@ void generic_vector_ensure(generic_vector *v, int newlen, int el_siz)
     if (newlen <= v->size)
         return;
 
-    if (newlen <= v->skip + v->size) {
-        /* Data fits in the current area, shift it left */
+    /* if data fits and skip is worth it, shift it left */
+    if (newlen <= v->skip + v->size && v->skip > v->size / 4) {
         memmove((byte *)v->tab - v->skip * el_siz, v->tab, v->len * el_siz);
         v->tab   = (byte *)v->tab - (v->skip * el_siz);
         v->size += v->skip;
