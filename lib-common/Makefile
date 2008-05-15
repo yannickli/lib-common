@@ -49,6 +49,7 @@ libcommon_SOURCES = \
 	parseopt.c \
 	psinfo.c \
 	range-vector.c \
+	ring.c \
 	robuf.c \
 	showflags.c \
 	stats-temporal.c \
