@@ -64,14 +64,6 @@ void fifo_wipe(fifo *f, fifo_item_dtor_f *dtor)
     }
 }
 
-void fifo_delete(fifo **f, fifo_item_dtor_f *dtor)
-{
-    if (*f) {
-        fifo_wipe(*f, dtor);
-        p_delete(&*f);
-    }
-}
-
 void *fifo_get(fifo *f)
 {
     void *ptr;
@@ -101,50 +93,6 @@ void fifo_put(fifo *f, void *ptr)
     fifo_grow(f, f->len + 1);
     f->elems[fifo_real_pos(f, f->len)] = ptr;
     f->len++;
-}
-
-void fifo_unget(fifo *f, void *ptr)
-{
-    fifo_grow(f, f->len + 1);
-    f->first--;
-    if (f->first < 0) {
-        f->first += f->size;
-    }
-    f->elems[f->first] = ptr;
-    f->len++;
-}
-
-void *fifo_seti(fifo *f, int i, void *ptr)
-{
-    int pos, last;
-
-    if (i >= f->len) {
-        fifo_grow(f, i + 1);
-    }
-
-    pos  = fifo_real_pos(f, i);
-    last = fifo_real_pos(f, f->len);
-
-    if (i < f->len) {
-        SWAP(void *, f->elems[pos], ptr);
-        return ptr;
-    }
-
-    if (pos > last) {
-        p_clear(f->elems + last, pos - last);
-    } else {
-        p_clear(f->elems + last, f->size - last);
-        p_clear(f->elems, pos);
-    }
-
-    f->len = i + 1;
-    f->elems[pos] = ptr;
-    return NULL;
-}
-
-void *fifo_geti(fifo *f, int i)
-{
-    return i >= f->len ? NULL : f->elems[fifo_real_pos(f, i)];
 }
 
 #ifdef CHECK /* {{{ */

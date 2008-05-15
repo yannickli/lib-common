@@ -25,15 +25,10 @@ typedef struct fifo {
 typedef void fifo_item_dtor_f(void *item);
 
 GENERIC_INIT(fifo, fifo);
-GENERIC_NEW(fifo, fifo);
 void fifo_wipe(fifo *f, fifo_item_dtor_f *dtor);
-void fifo_delete(fifo **f, fifo_item_dtor_f *dtor);
 
 void *fifo_get(fifo *f)             __attr_nonnull__((1));
-void fifo_unget(fifo *f, void *ptr) __attr_nonnull__((1));
 void fifo_put(fifo *f, void *ptr)   __attr_nonnull__((1));
-void *fifo_seti(fifo *f, int i, void *ptr) __attr_nonnull__((1));
-void *fifo_geti(fifo *f, int i) __attr_nonnull__((1));
 
 /**************************************************************************/
 /* Typed Fifos                                                            */
@@ -48,12 +43,6 @@ void *fifo_geti(fifo *f, int i) __attr_nonnull__((1));
     } prefix##_fifo
 
 #define FIFO_FUNCTIONS(el_typ, prefix, dtor)                                 \
-                                                                             \
-    /* legacy functions */                                                   \
-    static inline prefix##_fifo *prefix##_fifo_new(void)                     \
-    {                                                                        \
-        return (prefix##_fifo *)fifo_new();                                  \
-    }                                                                        \
     static inline prefix##_fifo *                                            \
     prefix##_fifo_init(prefix##_fifo *f)                                     \
     {                                                                        \
@@ -63,11 +52,6 @@ void *fifo_geti(fifo *f, int i) __attr_nonnull__((1));
     prefix##_fifo_wipe(prefix##_fifo *f)                                     \
     {                                                                        \
         fifo_wipe((fifo*)f, (fifo_item_dtor_f *)dtor);                       \
-    }                                                                        \
-    static inline void                                                       \
-    prefix##_fifo_delete(prefix##_fifo **f, bool do_elts)                    \
-    {                                                                        \
-        fifo_delete((fifo **)f, (fifo_item_dtor_f *)dtor);                   \
     }                                                                        \
                                                                              \
     /* module functions */                                                   \
@@ -80,21 +64,6 @@ void *fifo_geti(fifo *f, int i) __attr_nonnull__((1));
     prefix##_fifo_get(prefix##_fifo *f)                                      \
     {                                                                        \
         return (el_typ *)fifo_get((fifo *)f);                                \
-    }                                                                        \
-    static inline void                                                       \
-    prefix##_fifo_unget(prefix##_fifo *f, el_typ *item)                      \
-    {                                                                        \
-        fifo_unget((fifo *)f, (void*)item);                                  \
-    }                                                                        \
-    static inline el_typ *                                                   \
-    prefix##_fifo_seti(prefix##_fifo *f, int i, el_typ *item)                \
-    {                                                                        \
-        return fifo_seti((fifo *)f, i, (void*)item);                         \
-    }                                                                        \
-    static inline el_typ *                                                   \
-    prefix##_fifo_geti(prefix##_fifo *f, int i)                              \
-    {                                                                        \
-        return fifo_geti((fifo *)f, i);                                      \
     }
 
 #define DO_FIFO(el_typ, prefix, dtor) \
