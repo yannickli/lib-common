@@ -1253,7 +1253,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
       default:
         break;
     }
-    e_trace(1, "Outputed %d values", count);
+    e_trace(1, "%d values output", count);
     return count;
 }
 
