@@ -37,7 +37,6 @@ libcommon_SOURCES = \
 	err_debug.c   \
 	err_report.c  \
 	farch.c \
-	fifo.c \
 	htbl.c \
 	iprintf.c \
 	isndx.c \
