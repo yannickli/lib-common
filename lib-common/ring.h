@@ -67,7 +67,7 @@ void generic_ring_ensure(generic_ring *r, int newlen, int el_siz);
         r->tab[r->first] = e;                                          \
     }                                                                  \
     static inline void pfx##_ring_push(pfx##_ring *r, type_t e) {      \
-        generic_ring_ensure((void *)r, r->len, sizeof(type_t));        \
+        generic_ring_ensure((void *)r, r->len + 1, sizeof(type_t));    \
         r->tab[pfx##_ring_pos(r, r->len++)] = e;                       \
     }                                                                  \
                                                                        \
