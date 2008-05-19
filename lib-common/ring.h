@@ -47,7 +47,7 @@ void generic_ring_ensure(generic_ring *r, int newlen, int el_siz);
             if (++__r == (r)->size)                                    \
                 __r = 0;                                               \
         }                                                              \
-        (r)->len -= __w >= __r ? __w - __r : (r)->size + __w - __r;    \
+        (r)->len -= __r >= __w ? __r - __w : (r)->size + __r - __w;    \
     } while (0)
 
 #define RING_FUNCTIONS(type_t, pfx, wipe)                              \
