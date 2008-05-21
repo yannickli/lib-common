@@ -180,6 +180,8 @@ archive_update_cstr(archive_build_array *arch, const char *name,
 
 int blob_append_archive(blob_t *output, const archive_build_array *archive);
 
+int archive_build_from_archive(archive_build_array *res,
+                               const archive_t *archive);
 
 #ifdef CHECK
 #include <check.h>
