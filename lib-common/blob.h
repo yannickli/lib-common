@@ -57,11 +57,10 @@ static inline void blob_init2(blob_t *blob, void *buf, int size) {
 /* Warning: prevent multiple evaluation of size, but use of alloca
  * requires implementation as a macro.
  */
-#define blob_inita(blob, size)                                      \
-    do {                                                            \
-        int blob_inita_size = size;                                 \
-        assert (blob_inita_size < (64 << 10));                      \
-        blob_init2(blob, alloca(blob_inita_size), blob_inita_size); \
+#define blob_inita(blob, size)                \
+    do {                                      \
+        STATIC_ASSERT(size < (64 << 10));     \
+        blob_init2(blob, alloca(size), size); \
     } while (0)
 
 static inline blob_t *blob_init(blob_t *blob) {

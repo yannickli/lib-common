@@ -55,8 +55,8 @@ void generic_array_sort(generic_array *array,
 #define vector_inita(v, nb)                                               \
     do {                                                                  \
         p_clear(v, 1);                                                    \
+        STATIC_ASSERT((nb) * sizeof((v)->tab[0]) < (64 << 10));           \
         (v)->size = (nb);                                                 \
-        assert ((v)->size * sizeof((v)->tab[0]) < (64 << 10));            \
         (v)->tab = alloca((v)->size * sizeof((v)->tab[0]));               \
     } while (0)
 #define array_inita(a, nb)    vector_inita(a, nb)

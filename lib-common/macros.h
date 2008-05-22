@@ -75,8 +75,16 @@
  * \param[in]  expr    the expression you want to be always true at compile * time.
  * \safemacro
  */
+#ifdef __GNUC__
+#define __error__(msg)          (void)({__asm__(".error \""msg"\"");})
+#define STATIC_ASSERT(cond) \
+    __builtin_choose_expr(__builtin_constant_p(cond), \
+        __builtin_choose_expr(cond, (void)0, __error__("static assertion failed: "#cond"")), \
+        __error__("STATIC_ASSERT argument must be known at compile time"))
+#else
 #define STATIC_ASSERT(condition) ((void)sizeof(char[1 - 2 * !(condition)]))
-#define STATIC_ASSERTZ(e)        (sizeof(char[1 - 2 * !(e)]) - sizeof(char[1]))
+#endif
+#define STATIC_ASSERTZ(cond)     (STATIC_ASSERT(cond), 0)
 
 
 /** \brief Forcefully ignore the value of an expression.
@@ -103,7 +111,7 @@
 #    define __must_be_array(a)   0
 #  else
 #    define __must_be_array(a) \
-       STATIC_ASSERTZ(!__builtin_types_compatible_p(typeof(a), typeof(&(a)[0])))
+         (sizeof(char[1 - 2 * __builtin_types_compatible_p(typeof(a), typeof(&(a)[0]))]) - 1)
 #  endif
 
 #  define __unused__             __attribute__((unused))
