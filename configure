@@ -31,7 +31,7 @@ warn() {
 setvar() {
     v="$1"
     shift
-    echo "$v" ":=" "$@" >> "$out"
+    echo "$v" "=" "$@" >> "$out"
 }
 
 check_tool() {
