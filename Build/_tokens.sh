@@ -32,7 +32,7 @@ do_h() {
 
 enum ${LOWERCASE_NAME}_token {
     ${UPPERCASE_NAME}_TK_unknown,
-`tr 'a-z-./' 'A-Z___' | sed -e "s/^[^/].*/    ${UPPERCASE_NAME}_TK_&,/"`
+`tr 'a-z-./ ' 'A-Z____' | sed -e "s/^[^/].*/    ${UPPERCASE_NAME}_TK_&,/"`
 };
 
 __attribute__((pure))
@@ -47,7 +47,7 @@ do_tokens() {
         case "$tok" in
             "") continue;;
             *)
-                echo "$tok, ${UPPERCASE_NAME}_TK_`echo $tok | tr 'a-z-./' 'A-Z___'`"
+                echo "$tok, ${UPPERCASE_NAME}_TK_`echo $tok | tr 'a-z-./ ' 'A-Z____'`"
                 ;;
         esac
     done
