@@ -1211,38 +1211,38 @@ void blob_append_base64_update(blob_t *dst, const byte *src, int len,
 
 void blob_append_base64_finish(blob_t *dst, base64enc_ctx *ctx)
 {
-    byte *data = dst->data + dst->len;
+    byte *data;
+
+    blob_grow(dst, 5);
+    data = dst->data + dst->len;
 
     switch (ctx->nbmissing) {
       case 0:
-        return;
+        if (ctx->pack_num == 0)
+            return;
+        break;
 
       case 1:
-        blob_grow(dst, 4);
         *data++ = b64[((ctx->trail & 0x0f) << 2)];
         *data++ = '=';
-        if (ctx->width >= 0) {
-            *data++ = '\r';
-            *data++ = '\n';
-        }
         break;
 
       case 2:
-        blob_grow(dst, 5);
         *data++ = b64[((ctx->trail & 0x3) << 4)];
         *data++ = '=';
         *data++ = '=';
-        if (ctx->width >= 0) {
-            *data++ = '\r';
-            *data++ = '\n';
-        }
         break;
 
       default:
         e_panic("Corrupted base64 ctx");
     }
+    if (ctx->width >= 0) {
+        *data++ = '\r';
+        *data++ = '\n';
+    }
 
     dst->len = data - dst->data;
+    dst->data[dst->len] = '\0';
 }
 
 int blob_append_smtp_data(blob_t *dst, const byte *src, int len)
