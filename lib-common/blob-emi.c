@@ -319,17 +319,14 @@ int blob_decode_ira_hex_as_latin15(blob_t *dst, const char *src, int len)
     /* trim last char if len is odd */
     end = src + (len & ~1);
     while (src < end) {
-        int ind = 0;
+        int ind = hexdecode(src);
 
-        if (src[0] == '1' && src[1] == 'B' && src < end - 2) {
-            ind = 256;
+        src += 2;
+        if (src < end && ind == 0x1B) {
+            ind = 256 + hexdecode(src);
             src += 2;
         }
-#define N(x)    ((x) <= '9' ? (x) - '0' : 10 + (x) - 'A')
-        ind += N(src[0]) * 16 + N(src[1]);
-        data[0] = gsm7_to_iso8859_15[ind];
-        data++;
-        src += 2;
+        *data++ = gsm7_to_iso8859_15[ind];
     }
     data[0] = '\0';
     dst->len = data - dst->data;
@@ -404,30 +401,24 @@ int string_decode_ira_hex_as_latin15(char *dst, int size,
 {
     int pos = 0;
 
-    for (;;) {
-        int ind, q0, q1;
-
-        if (len < 2
-        ||  (q0 = str_digit_value(src[0])) >= 16
-        ||  (q1 = str_digit_value(src[1])) >= 16)
+    while (len >= 2) {
+        int ind = hexdecode(src);
+        if (ind < 0)
             break;
 
-        ind = q0 * 16 + q1;
         src += 2;
         len -= 2;
 
-        if (ind == 0x1B
-        &&  len >= 2
-        &&  (q0 = str_digit_value(src[0])) < 16
-        &&  (q1 = str_digit_value(src[1])) < 16) {
-            ind = 256 + q0 * 16 + q1;
+        if (ind == 0x1B && len >= 2) {
+            ind = hexdecode(src);
+            if (ind < 0)
+                break;
+            ind += 256;
             src += 2;
             len -= 2;
         }
-        ++pos;
-        if (pos < size) {
+        if (++pos < size)
             *dst++ = gsm7_to_iso8859_15[ind];
-        }
     }
     if (size > 0) {
         *dst = '\0';
@@ -464,23 +455,21 @@ int string_decode_ira_hex_as_utf8(char *dst, int size,
 {
     int pos = 0;
 
-    for (;;) {
-        int ind, q0, q1, c;
+    while (len >= 2) {
+        int c, ind;
 
-        if (len < 2
-        ||  (q0 = str_digit_value(src[0])) >= 16
-        ||  (q1 = str_digit_value(src[1])) >= 16)
+        ind = hexdecode(src);
+        if (ind < 0)
             break;
 
-        ind = q0 * 16 + q1;
         src += 2;
         len -= 2;
 
-        if (ind == 0x1B
-        &&  len >= 2
-        &&  (q0 = str_digit_value(src[0])) < 16
-        &&  (q1 = str_digit_value(src[1])) < 16) {
-            ind = 256 + q0 * 16 + q1;
+        if (ind == 0x1B && len >= 2) {
+            ind = hexdecode(src);
+            if (ind < 0)
+                break;
+            ind += 256;
             src += 2;
             len -= 2;
         }
@@ -880,13 +869,11 @@ int blob_append_ira_hex(blob_t *dst, const byte *src, int len)
 
     hasc:
         if (c > 0xFF) {
-            data[0] = __str_xdigits_upper[(c >> 12) & 0x0F];
-            data[1] = __str_xdigits_upper[(c >> 8) & 0x0F];
-            data += 2;
+            *data++ = __str_xdigits_upper[(c >> 12) & 0x0F];
+            *data++ = __str_xdigits_upper[(c >> 8) & 0x0F];
         }
-        data[0] = __str_xdigits_upper[(c >> 4) & 0x0F];
-        data[1] = __str_xdigits_upper[(c >> 0) & 0x0F];
-        data += 2;
+        *data++ = __str_xdigits_upper[(c >> 4) & 0x0F];
+        *data++ = __str_xdigits_upper[(c >> 0) & 0x0F];
     }
     *data = '\0';
 
