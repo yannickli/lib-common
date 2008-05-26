@@ -207,19 +207,18 @@ int path_canonify(char *buf, int len, const char *path)
  */
 char *path_expand(char *buf, int len, const char *path)
 {
+    static char const *env_home = NULL;
+    static char const root[] = "/";
     char path_l[PATH_MAX];
 
     assert (len >= PATH_MAX);
 
     if (path[0] == '~' && path[1] == '/') {
-        static const char *env_home = NULL;
-        if (!env_home) {
-            env_home = getenv("HOME");
-        }
-        if (env_home) {
-            /* OG: using path_make or similar here would preclude the
-             * need for path_canonify ?
-             */
+        if (!env_home)
+            env_home = getenv("HOME") ?: root;
+        if (env_home == root) {
+            path++;
+        } else {
             snprintf(path_l, sizeof(path_l), "%s%s", env_home, path + 1);
             path = path_l;
         }
