@@ -34,7 +34,8 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
         if (tpl->u.varidx >> 16 == envid) {
             VAL_TYPE vtmp = getvar(tpl->u.varidx, vals, nb);
             if (!vtmp) {
-                e_trace(2, "cound not find var %x", tpl->u.varidx);
+                e_trace(2, "cound not find var %x (in env %d)", tpl->u.varidx,
+                        envid);
                 return -1;
             }
             return DEAL_WITH_VAR(out, vtmp, envid, vals, nb, flags);
@@ -126,7 +127,7 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
             int res = tpl_apply(tpl->u.f, out, NULL, tmp);
             tpl_delete(&tmp);
             if (res) {
-                e_trace(2, "apply func failed");
+                e_trace(2, "apply func %p failed", tpl->u.f);
             }
             return res;
         }
