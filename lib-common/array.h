@@ -228,6 +228,15 @@ DO_ARRAY(char, string, p_delete);
 DO_ARRAY(const char, cstring, IGNORE);
 
 string_array *str_explode(const char *s, const char *tokens);
+static inline int string_array_find(const string_array *arr, const char *val)
+{
+    for (int i = 0; i < arr->len; i++) {
+        if (!strcmp(val, arr->tab[i]))
+            return i;
+    }
+
+    return -1;
+}
 
 #define MAKE_IOVEC(data, len)  (struct iovec){ \
     .iov_base = (void *)(data), .iov_len = (len) }
