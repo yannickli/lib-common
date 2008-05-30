@@ -243,7 +243,7 @@ $~$1.so$$(tmp/$1/build):
 	$(msg/LINK.c) $$(@R)
 	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) \
 	    -fPIC -shared -o $$@ $$(filter %.o %.ld,$$^) \
-	    $(LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
+	    $(LDFLAGS) $$($(1D)/_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) $$($1_LIBS) \
 	    -Wl,-soname,$(1F).so$$(tmp/$1/sover)
@@ -265,7 +265,7 @@ $~$1.exe:
 	$(msg/LINK.c) $$(@R)
 	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) \
 	    -o $$@ $$(filter %.o %.ld,$$^) \
-	    $(LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
+	    $(LDFLAGS) $$($(1D)/_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) $$($1_LIBS)
 $(1D)/clean::
