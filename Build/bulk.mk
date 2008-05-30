@@ -106,6 +106,9 @@ ignore:
 	$(foreach v,$(var/programs:=$(EXEEXT)),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/tests:=$(EXEEXT)),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/sharedlibs:=.so),grep -q '^/$v\*$$' .gitignore || echo '/$v\*' >> .gitignore;)
+else
+__setup_buildsys_trampoline:
+.PHONY: __setup_buildsys_trampoline
 endif
 # }}}
 ##########################################################################
