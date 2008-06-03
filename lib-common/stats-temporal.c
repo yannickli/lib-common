@@ -927,8 +927,8 @@ static int find_pretty_freq(int f)
     }
     if (f <= 3600 * 24) {
         for (int i = 1; i < countof(pretty_60th); i++) {
-            if (f <= 3600 * pretty_24th[i])
-                return 3600 * pretty_24th[i];
+            if (f <= pretty_24th[i])
+                return pretty_24th[i];
         }
     }
     return 0;
@@ -952,6 +952,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     int nb_stats = stats->nb_stats;
     double accu[STATS_QUERY_VALUES_MAX];
     int orig_pos = 0, nb_columns = 0;
+    bool fake_mode = false;
 
     if (!stats->nb_stages) {
         blob_append_cstr(blob, "stats auto deactivated for these statistics");
@@ -961,7 +962,8 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     if (!stats->file) {
         stats->file = auto_file_initialize(stats, 0, false);
         if (!stats->file) {
-            return -1;
+            /* No stats received yet: send 0 */
+            fake_mode = true;
         }
     }
 
@@ -987,6 +989,106 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
 
     /* Compute best sample duration */
     freq = find_pretty_freq((end - start) / nb_values);
+
+    if (fake_mode) {
+        double dval = 0;
+        int start0;
+
+        if (freq <= 0) {
+            /* Force large interval */
+            freq = 24 * 3600;
+        }
+        start = (start / freq) * freq;
+        start0 = start;
+
+        /* Only send 0 with correct freq */
+        switch (fmt) {
+          case STATS_FMT_XML:
+            blob_append_cstr(blob, "<data>\n");
+            break;
+          case STATS_FMT_BIN:
+            blob_extend(blob, sizeof(stats_bin_hdr_t) +
+                        sizeof(uint32_t) * ((nb_columns + 1) & ~1));
+            break;
+          default:
+            break;
+        }
+
+        for (;start < end; start += freq) {
+            switch (fmt) {
+                bool first;
+
+              case STATS_FMT_TXT:
+                blob_append_fmt(blob, "%d", start);
+                for (int k = 0; k < nb_stats; k++) {
+                    if (mask && !bfield_isset(mask, k))
+                        continue;
+                    blob_append_cstr(blob, " 0");
+                }
+                blob_append_cstr(blob, "\n");
+                count++;
+                break;
+
+              case STATS_FMT_XML:
+                blob_append_fmt(blob, "<elem time=\"%d\" ",
+                                start);
+                first = true;
+                for (int k = 0; k < nb_stats; k++) {
+                    if (mask && !bfield_isset(mask, k))
+                        continue;
+                    /* OG: this may produce val, val3, val18... */
+                    if (first) {
+                        blob_append_cstr(blob, "val=\"0\" ");
+                        first = false;
+                    } else {
+                        blob_append_fmt(blob, "val%d=\"0\" ", k);
+                    }
+                }
+                blob_append_cstr(blob, "/>\n");
+                count++;
+                break;
+
+              case STATS_FMT_BIN:
+                for (int k = 0; k < nb_stats; k++) {
+                    if (mask && !bfield_isset(mask, k))
+                        continue;
+                    blob_append_data(blob, &dval, sizeof(dval));
+                }
+                count++;
+                break;
+
+              default:
+                break;
+            }
+        }
+
+        switch (fmt) {
+            stats_bin_hdr_t *hdr;
+
+          case STATS_FMT_BIN:
+            hdr = (stats_bin_hdr_t *)&blob->data[orig_pos];
+            *hdr = (stats_bin_hdr_t){
+                .nb_lines   = count,
+                    .nb_columns = nb_columns,
+                    .start      = start0,
+                    .step       = freq,
+            };
+            for (int i = 0, k = 0; k < nb_stats; k++) {
+                if (!mask || bfield_isset(mask, k))
+                    hdr->types[i++] = k;
+            }
+            break;
+
+          case STATS_FMT_XML:
+            blob_append_cstr(blob, "</data>\n");
+            break;
+
+          default:
+            break;
+        }
+
+        return count;
+    }
 
     /* Choose stage */
     st = stats->file->area->stage;
@@ -1187,6 +1289,75 @@ int stats_temporal_bin_to_xml(const byte *data, int dlen, blob_t *out)
         blob_append_cstr(out, "/>\n");
     }
     blob_append_cstr(out, "</data>\n");
+    return 0;
+}
+
+int stats_temporal_copy(stats_temporal_t *dst, stats_temporal_t *src)
+{
+    glob_t globbuf;
+    char buf[PATH_MAX];
+    int len;
+    int *values_buf;
+
+    if (!src->do_sec) {
+        e_error("Can not copy stats files: invalid source");
+        return -1;
+    }
+
+    snprintf(buf, sizeof(buf), "%s_sec_????????_??????.bin",
+             src->path);
+
+    if (glob(buf, 0, NULL, &globbuf)) {
+        globfree(&globbuf);
+        return 0;
+    }
+
+    values_buf = p_new(int, src->nb_stats * (OUTPUT_SEC_MAX_NB + 1));
+
+    len = (int)globbuf.gl_pathc;
+    for (int i = 0; i < len; i++) {
+        const byte *d = (const byte *)globbuf.gl_pathv[globbuf.gl_pathc - 1];
+        struct tm tm;
+        time_t start;
+
+        d += strlen(src->path) + strlen("_sec_");
+        /* %04d%02d%02d_%02d%02d%02d */
+        p_clear(&tm, 1);
+        tm.tm_isdst = -1; /* We don't known current dst */
+        tm.tm_year = memtoip(d, 4, &d) - 1900;
+        tm.tm_mon  = memtoip(d, 2, &d) - 1;
+        tm.tm_mday = memtoip(d, 2, &d);
+        if (*d++ != '_')
+            continue;
+        tm.tm_hour = memtoip(d, 2, &d);
+        tm.tm_min  = memtoip(d, 2, &d);
+        tm.tm_sec  = memtoip(d, 2, &d);
+
+        start = mktime(&tm);
+
+        for (int j = 0; j < PER_SEC_NB_SECONDS / OUTPUT_SEC_MAX_NB; j++) {
+            int *values;
+            int realdate;
+
+            if (stats_temporal_query_sec(src, NULL, values_buf, start,
+                                         OUTPUT_SEC_MAX_NB, NULL))
+            {
+                continue;
+            }
+
+            values = values_buf + src->nb_stats + 1;
+            for (int curdate = 0; curdate < OUTPUT_SEC_MAX_NB; curdate++) {
+                realdate = *values++;
+                for (int index = 0; index < src->nb_stats; index++) {
+                    /* XXX: Does not work with MEAN stats */
+                    stats_temporal_upd(dst, realdate, STATS_UPD_INCR,
+                                       index, -1, *values++);
+                }
+            }
+
+        }
+    }
+    globfree(&globbuf);
     return 0;
 }
 

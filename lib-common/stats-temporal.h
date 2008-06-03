@@ -75,6 +75,8 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
 
 int stats_temporal_bin_to_xml(const byte *data, int dlen, blob_t *out);
 
+int stats_temporal_copy(stats_temporal_t *dst, stats_temporal_t *src);
+
 #ifndef NDEBUG
 void stats_temporal_dump_auto(byte *mem, int size);
 #else
