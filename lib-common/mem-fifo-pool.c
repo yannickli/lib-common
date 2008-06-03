@@ -13,6 +13,15 @@
 
 #ifndef NDEBUG
 #include <valgrind/valgrind.h>
+#include <valgrind/memcheck.h>
+
+/* XXX: this is a hack that detects if the tool may be memcheck or another.
+ *      with memecheck, VALGRIND_MAKE_MEM_DEFINED on a function address
+ *      returns -1, 0 in other tools.
+ */
+#define RUNNING_ON_MEMCHECK \
+    (RUNNING_ON_VALGRIND && \
+    VALGRIND_MAKE_MEM_DEFINED(&mem_fifo_pool_new, sizeof(mem_fifo_pool_new)))
 #endif
 #include <sys/mman.h>
 #include "mem.h"
@@ -220,7 +229,7 @@ mem_pool *mem_fifo_pool_new(int page_size_hint)
     mem_fifo_pool *mfp;
 
 #ifndef NDEBUG
-    if (RUNNING_ON_VALGRIND)
+    if (RUNNING_ON_MEMCHECK)
         return mem_malloc_pool_new();
 #endif
 
@@ -234,7 +243,7 @@ mem_pool *mem_fifo_pool_new(int page_size_hint)
 void mem_fifo_pool_delete(mem_pool **poolp)
 {
 #ifndef NDEBUG
-    if (RUNNING_ON_VALGRIND) {
+    if (RUNNING_ON_MEMCHECK) {
         mem_malloc_pool_delete(poolp);
         return;
     }
