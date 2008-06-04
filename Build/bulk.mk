@@ -55,6 +55,9 @@ distclean::
 	$(msg/rm) build system
 	$(RM) -r $~
 
+tags: $(var/generated)
+.PHONY: tags
+
 define fun/subdirs-targets
 $(foreach d,$1,
 $(patsubst ./%,%,$(dir $(d:/=)))all::       $(d)all
@@ -93,11 +96,12 @@ all clean distclean:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
 
 tags:
+	$(MAKEPARALLEL) -C $/ -f $!Makefile tags
 	@$(if $(shell which ctags),,$(error "Please install ctags: apt-get install exuberant-ctags"))
 	cd $/ && ctags -o .tags --recurse=yes --totals=yes \
-                     --exclude=".svn" --exclude=".objs*" --exclude="old" \
-                     --exclude="new" --exclude="ogu" --exclude="xxx" \
-                     --exclude="*.mk" --exclude="*.exe"
+	    --exclude=".git" --exclude=".build*" --exclude=Build \
+	    --exclude="old" --exclude="new" --exclude="ogu" --exclude="xxx" \
+	    --exclude="*.exe" --exclude="*.js"
 
 ignore:
 	$(foreach v,$(CLEANFILES:/=),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
