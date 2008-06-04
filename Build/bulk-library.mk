@@ -69,7 +69,7 @@ endef
 
 ext/gen/l = $(call fun/patsubst-filt,%.l,%.c,$1)
 
-define exp/expand/l
+define ext/expand/l
 $(3:l=c): %.c: %.l
 	$(msg/COMPILE.l) $$(@R)
 	flex -R -o $$@ $$<
@@ -80,7 +80,7 @@ $$(eval $$(call fun/common-depends,$1,$(3:l=c),$3))
 endef
 
 define ext/rule/l
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call exp/expand/l,$1,$2,$$t,$4))))
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/l,$1,$2,$$t,$4))))
 $$(eval $$(call ext/rule/c,$1,$2,$(3:l=c),$4))
 endef
 
@@ -89,7 +89,7 @@ endef
 
 ext/gen/tokens = $(call fun/patsubst-filt,%.tokens,%tokens.h,$1) $(call fun/patsubst-filt,%.tokens,%tokens.c,$1)
 
-define exp/expand/tokens
+define ext/expand/tokens
 tmp/$2/toks_h := $(patsubst %.tokens,%tokens.h,$3)
 tmp/$2/toks_c := $(patsubst %.tokens,%tokens.c,$3)
 
@@ -106,7 +106,7 @@ $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/toks_h) $$(tmp/$2/toks_c),$3))
 endef
 
 define ext/rule/tokens
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t-tok,$$(call exp/expand/tokens,$1,$2,$$t,$4))))
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t-tok,$$(call ext/expand/tokens,$1,$2,$$t,$4))))
 $$(eval $$(call ext/rule/c,$1,$2,$(3:.tokens=tokens.c),$4))
 endef
 
@@ -115,7 +115,7 @@ endef
 
 ext/gen/lua = $(call fun/patsubst-filt,%.lua,%.lc.bin,$1)
 
-define exp/expand/lua
+define ext/expand/lua
 $(3:lua=lc): %.lc: %.lua
 	$(msg/COMPILE) " LUA" $$(<R)
 	luac -o $$@ $$<
@@ -129,7 +129,7 @@ $$(eval $$(call fun/common-depends,$1,$(3:.lua=.lc.bin),$3))
 endef
 
 define ext/rule/lua
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call exp/expand/lua,$1,$2,$$t,$4))))
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/lua,$1,$2,$$t,$4))))
 endef
 
 #}}}
@@ -180,6 +180,23 @@ $(3:.swfml=.swf): %.swf: %.swfml
 	$(msg/COMPILE) " SWF" $$@
 	cd $$(<D) && swfmill simple $$(<F) $$(@F)
 $$(eval $$(call fun/common-depends,$1,$(3:.swfml=.swf),$3))
+endef
+
+#}}}
+#[ marshaling ]#######################################################{{{#
+
+ext/gen/bp = $(call fun/patsubst-filt,%.bp,%.bp.h,$1)
+
+define ext/expand/bp
+$(3:=.h): %.bp.h: %.bp util/bldutils/bpack
+	$(msg/generate) $$(@R)
+	util/bldutils/bpack -o $$@ $$<
+__$(1D)_generated: $(3:=.h)
+$$(eval $$(call fun/common-depends,$1,$(3:=.h),$3))
+endef
+
+define ext/rule/bp
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/bp,$1,$2,$$t,$4))))
 endef
 
 #}}}
