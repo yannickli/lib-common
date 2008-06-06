@@ -105,6 +105,7 @@ int filecopy(const char *pathin, const char *pathout)
 {
     int fdin = -1, fdout = -1;
     struct stat st;
+    struct timeval tvp[2];
     char buf[BUFSIZ];
     const char *p;
     int nread, nwrite, total;
@@ -117,12 +118,16 @@ int filecopy(const char *pathin, const char *pathout)
         goto error;
 
     /* OG: this will not work if the source file is not writeable ;-) */
-    /* OG: copying the file times might be useful too */
     /* OG: should test if source and destination files are the same
      * file before truncating destination file ;-) */
     fdout = open(pathout, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, st.st_mode);
     if (fdout < 0)
         goto error;
+
+    /* copying file times */
+    tvp[0] = (struct timeval) { .tv_sec = st.st_atime, .tv_usec = 0 };
+    tvp[1] = (struct timeval) { .tv_sec = st.st_mtime, .tv_usec = 0 };
+    futimes(fdout, tvp);
 
     total = 0;
     for (;;) {
