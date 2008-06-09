@@ -124,11 +124,6 @@ int filecopy(const char *pathin, const char *pathout)
     if (fdout < 0)
         goto error;
 
-    /* copying file times */
-    tvp[0] = (struct timeval) { .tv_sec = st.st_atime, .tv_usec = 0 };
-    tvp[1] = (struct timeval) { .tv_sec = st.st_mtime, .tv_usec = 0 };
-    futimes(fdout, tvp);
-
     total = 0;
     for (;;) {
         nread = read(fdin, buf, sizeof(buf));
@@ -159,6 +154,11 @@ int filecopy(const char *pathin, const char *pathout)
         /* This should not happen... But who knows ? */
         goto error;
     }
+
+    /* copying file times */
+    tvp[0] = (struct timeval) { .tv_sec = st.st_atime, .tv_usec = 0 };
+    tvp[1] = (struct timeval) { .tv_sec = st.st_mtime, .tv_usec = 0 };
+    futimes(fdout, tvp);
 
     close(fdin);
     close(fdout);
