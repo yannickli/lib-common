@@ -204,7 +204,7 @@ endef
 #
 # $(eval $(call fun/foreach-ext-rule,<PHONY>,<TARGET>,<SOURCES>,[<NS>]))
 #
-var/exts := $(patsubst ext/rule/%,%,$(filter ext/rule/%,$(.VARIABLES)))
+var/exts = $(patsubst ext/rule/%,%,$(filter ext/rule/%,$(.VARIABLES)))
 define fun/foreach-ext-rule
 $$(foreach e,$(var/exts),$$(if $$(filter %.$$e,$3),$$(eval $$(call ext/rule/$$e,$1,$2,$$(filter %.$$e,$3),$4))))
 $2: | $$($1_SOURCES) __$(1D)_generated
