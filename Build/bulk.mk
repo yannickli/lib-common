@@ -70,7 +70,7 @@ $(d)clean::
 $(d)distclean:: distclean
 )
 endef
-$(eval $(call fun/subdirs-targets,$(patsubst $/%,%,$(var/subdirs))))
+$(eval $(call fun/subdirs-targets,$(patsubst $/%Makefile,%,$(var/makefiles))))
 
 $(foreach p,$(var/staticlibs),$(eval $(call rule/staticlib,$p)))
 $(foreach p,$(var/sharedlibs),$(eval $(call rule/sharedlib,$p)))
@@ -137,8 +137,9 @@ endif
 #   This target uses costly things so we hide it most of the time
 ifeq (__setup_buildsys,$(MAKECMDGOALS))
 
-tmp/subdirs := $(shell '$(var/toolsdir)/_list_subdirs.sh' '$(var/srcdir)')
-tmp/vars    := $(patsubst $(var/srcdir)/%,$(var/builddir)/%vars.mk,$(tmp/subdirs))
+tmp/makefiles := $(shell find "$(var/srcdir)" -name Makefile -type f \( -path '*/.*' -prune -o -print \) | while read file; do \
+                         grep -q 'include.*base.mk' $$file && echo $$file; done)
+tmp/vars      := $(patsubst $(var/srcdir)/%Makefile,$(var/builddir)/%vars.mk,$(tmp/makefiles))
 
 $(tmp/vars): $(var/builddir)%/vars.mk: $(var/srcdir)%/Makefile $(var/toolsdir)/* $(var/cfgdir)/*.mk
 	$(msg/generate) $(@R)
@@ -148,8 +149,8 @@ $(tmp/vars): $(var/builddir)%/vars.mk: $(var/srcdir)%/Makefile $(var/toolsdir)/*
 $(var/builddir)/Makefile: $(var/srcdir)/configure $(tmp/vars) $(var/toolsdir)/* $(var/cfgdir)/*.mk
 	$(msg/generate) $(@R)
 	mkdir -p $(@D)
-	echo 'var/subdirs := $(call fun/msq,$(tmp/subdirs))'          >  $@
-	(:$(patsubst $/%,;echo 'include $~%vars.mk',$(tmp/subdirs)))  >> $@
+	echo 'var/makefiles := $(call fun/msq,$(tmp/makefiles))'      >  $@
+	(:$(patsubst $/%Makefile,;echo 'include $~%vars.mk',$(tmp/makefiles)))  >> $@
 	echo 'include $(var/toolsdir)/base.mk'                        >> $@
 
 __setup_buildsys: $(var/builddir)/Makefile
