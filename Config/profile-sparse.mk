@@ -1,4 +1,3 @@
-#!/bin/sh -e
 ##########################################################################
 #                                                                        #
 #  Copyright (C) 2004-2008 INTERSEC SAS                                  #
@@ -12,29 +11,12 @@
 #                                                                        #
 ##########################################################################
 
-srcdir="$1"
-subdir="$2"
-toolsdir="$3"
-cfgdir="$4"
+ifneq ('x86_64','$(shell uname -m)')
+    CC := CHECK='sparse -Wall -D__SPARSE__' cgcc
+else
+    CC := CHECK='sparse -Wall -m64 -D__SPARSE__' cgcc
+endif
 
-die() {
-    echo 1>&2 "$@"
-    exit 1
-}
-
-grep -E '^ *[^[:space:]$()#=/][^[:space:]$()#=]*:( |$)' | while read target rest
-do
-    case "$target" in
-        __*:|FORCE:|.*:|Makefile:|%:|"$toolsdir"*:|"$cfgdir"*:)
-            : "ignore some internal stuff";;
-        /*:)
-            : "ignore absolute stuff, likely to be includes";;
-        *:)
-            echo "$subdir${target}";;
-        clean::|clean:)
-            die "$subdir/Makefile: You cannot hook into $target, abort";;
-        *)
-	    echo 1>&2 ">>> $target";
-            die "You cannot use embeded spaces in target names";;
-    esac
-done | sort -u
+include $(var/cfgdir)/profile-default.mk
+CFLAGS += -Wno-transparent-union
+LINEAR := 1

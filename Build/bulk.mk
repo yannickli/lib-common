@@ -140,12 +140,12 @@ ifeq (__setup_buildsys,$(MAKECMDGOALS))
 tmp/subdirs := $(shell '$(var/toolsdir)/_list_subdirs.sh' '$(var/srcdir)')
 tmp/vars    := $(patsubst $(var/srcdir)/%,$(var/builddir)/%vars.mk,$(tmp/subdirs))
 
-$(tmp/vars): $(var/builddir)%/vars.mk: $(var/srcdir)%/Makefile $(var/toolsdir)/*
+$(tmp/vars): $(var/builddir)%/vars.mk: $(var/srcdir)%/Makefile $(var/toolsdir)/* $(var/cfgdir)/*.mk
 	$(msg/generate) $(@R)
 	mkdir -p $(@D)
 	$(MAKE) --no-print-directory -rsC $(var/srcdir)$* __dump_targets > $@
 
-$(var/builddir)/Makefile: $(var/srcdir)/configure $(tmp/vars) $(var/toolsdir)/*
+$(var/builddir)/Makefile: $(var/srcdir)/configure $(tmp/vars) $(var/toolsdir)/* $(var/cfgdir)/*.mk
 	$(msg/generate) $(@R)
 	mkdir -p $(@D)
 	echo 'var/subdirs := $(call fun/msq,$(tmp/subdirs))'          >  $@
@@ -173,7 +173,7 @@ __dump_targets:
 	echo 'DISTCLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(DISTCLEANFILES)))'
 	echo ''
 	$(MAKE) -nspqr | $(var/toolsdir)/_local_targets.sh \
-	    "$(var/srcdir)" "$." "$(var/toolsdir)" | \
+	    "$(var/srcdir)" "$." "$(var/toolsdir)" "$(var/cfgdir)" | \
 	    sed -n -e 's~$$~ FORCE ; $$(MAKE) -w$(if $.,C $.) $$(subst $.,,$$@)~p'
 
 .PHONY: __dump_targets

@@ -17,6 +17,7 @@ endif
 
 var/toolsdir  := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 var/srcdir    := $(realpath $(dir $(var/toolsdir)))
+var/cfgdir    ?= $(realpath $(var/srcdir)/Config)
 var/profile   := $(or $(P),$(PROFILE),$(BUILDFOR),default)
 var/builddir  := $(var/srcdir)/.build-$(var/profile)-$(shell hostname)
 /             := $(var/srcdir)/
@@ -82,4 +83,4 @@ FASTCP := ln -f
 ##########################################################################
 # Load our build profile
 #
-include $(var/srcdir)/$(var/profile).mk
+include $(var/cfgdir)/profile-$(var/profile).mk

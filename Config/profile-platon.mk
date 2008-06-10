@@ -1,4 +1,3 @@
-#!/bin/sh -e
 ##########################################################################
 #                                                                        #
 #  Copyright (C) 2004-2008 INTERSEC SAS                                  #
@@ -12,29 +11,20 @@
 #                                                                        #
 ##########################################################################
 
-srcdir="$1"
-subdir="$2"
-toolsdir="$3"
-cfgdir="$4"
+include $(var/cfgdir)/cflags.mk
 
-die() {
-    echo 1>&2 "$@"
-    exit 1
-}
-
-grep -E '^ *[^[:space:]$()#=/][^[:space:]$()#=]*:( |$)' | while read target rest
-do
-    case "$target" in
-        __*:|FORCE:|.*:|Makefile:|%:|"$toolsdir"*:|"$cfgdir"*:)
-            : "ignore some internal stuff";;
-        /*:)
-            : "ignore absolute stuff, likely to be includes";;
-        *:)
-            echo "$subdir${target}";;
-        clean::|clean:)
-            die "$subdir/Makefile: You cannot hook into $target, abort";;
-        *)
-	    echo 1>&2 ">>> $target";
-            die "You cannot use embeded spaces in target names";;
-    esac
-done | sort -u
+CFLAGS += -Wno-error -DNDEBUG -D_FORTIFY_SOURCE=1
+ifneq (,$(EXPIRATION_DATE))
+# Tuesday, March 6th 2007 at noon CET.
+# date -d "03/06/2007 12:00:00" +"%s" --> 1173178800
+# EXPIRATION_DATE?=1173178800
+    CFLAGS += -DEXPIRATION_DATE=$(EXPIRATION_DATE)
+endif
+ifneq (,$(INTERSECID))
+# INTERSECID?=M:W4TF2-KWXGN-34KV5-BGDFD
+    CFLAGS += -DINTERSECID=$(INTERSECID)
+endif
+ifeq (,$(DISABLE_CHECK_TRACE))
+    CFLAGS += -DCHECK_TRACE=1
+endif
+MCMS_PHP_VERSION=5.1.1

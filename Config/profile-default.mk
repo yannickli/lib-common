@@ -1,4 +1,3 @@
-#!/bin/sh -e
 ##########################################################################
 #                                                                        #
 #  Copyright (C) 2004-2008 INTERSEC SAS                                  #
@@ -12,29 +11,9 @@
 #                                                                        #
 ##########################################################################
 
-srcdir="$1"
-subdir="$2"
-toolsdir="$3"
-cfgdir="$4"
+include $(var/cfgdir)/cflags.mk
 
-die() {
-    echo 1>&2 "$@"
-    exit 1
-}
-
-grep -E '^ *[^[:space:]$()#=/][^[:space:]$()#=]*:( |$)' | while read target rest
-do
-    case "$target" in
-        __*:|FORCE:|.*:|Makefile:|%:|"$toolsdir"*:|"$cfgdir"*:)
-            : "ignore some internal stuff";;
-        /*:)
-            : "ignore absolute stuff, likely to be includes";;
-        *:)
-            echo "$subdir${target}";;
-        clean::|clean:)
-            die "$subdir/Makefile: You cannot hook into $target, abort";;
-        *)
-	    echo 1>&2 ">>> $target";
-            die "You cannot use embeded spaces in target names";;
-    esac
-done | sort -u
+#Could be of use sometimes, need recent libc though IIRC
+ifndef SPARSE
+    CFLAGS += $(if $(filter -D_FORTIFY_SOURCE=%,$(ADD_CFLAGS)),,-D_FORTIFY_SOURCE=2)
+endif

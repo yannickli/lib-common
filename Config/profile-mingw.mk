@@ -1,4 +1,3 @@
-#!/bin/sh -e
 ##########################################################################
 #                                                                        #
 #  Copyright (C) 2004-2008 INTERSEC SAS                                  #
@@ -12,29 +11,15 @@
 #                                                                        #
 ##########################################################################
 
-srcdir="$1"
-subdir="$2"
-toolsdir="$3"
-cfgdir="$4"
+CC := i586-mingw32msvc-gcc
+AR := i586-mingw32msvc-ar
 
-die() {
-    echo 1>&2 "$@"
-    exit 1
-}
+include $(var/cfgdir)/profile-default.mk
 
-grep -E '^ *[^[:space:]$()#=/][^[:space:]$()#=]*:( |$)' | while read target rest
-do
-    case "$target" in
-        __*:|FORCE:|.*:|Makefile:|%:|"$toolsdir"*:|"$cfgdir"*:)
-            : "ignore some internal stuff";;
-        /*:)
-            : "ignore absolute stuff, likely to be includes";;
-        *:)
-            echo "$subdir${target}";;
-        clean::|clean:)
-            die "$subdir/Makefile: You cannot hook into $target, abort";;
-        *)
-	    echo 1>&2 ">>> $target";
-            die "You cannot use embeded spaces in target names";;
-    esac
-done | sort -u
+CFLAGS += -DMINGCC -I/usr/i586-mingw32msvc/include \
+	  -U__SIZE_TYPE__ -D__SIZE_TYPE__=unsigned \
+	  -D_SSIZE_T_ -Dssize_t=int
+LIBS += -lws2_32
+
+# don't warn about comparisons signed/unsigned comparisons: (FD_SET problem)
+CFLAGS += -Wno-sign-compare
