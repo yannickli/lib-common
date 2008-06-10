@@ -95,7 +95,7 @@ all:: toplevel
 all clean distclean:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
 
-tags:
+tags: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile tags
 	@$(if $(shell which ctags),,$(error "Please install ctags: apt-get install exuberant-ctags"))
 	cd $/ && ctags -o .tags --recurse=yes --totals=yes \

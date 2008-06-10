@@ -229,6 +229,7 @@ $1.pic.a:  $~$1.pic.a
 $1.pic.wa: $~$1.pic.wa
 .PHONY: $1.a $1.wa $1.pic.a $1.pic.wa
 
+$(1D)/all:: $~$1.a
 $$(eval $$(call fun/foreach-ext-rule,$1,$~$1.a,$$($1_SOURCES)))
 $~$1.a:
 	$(msg/LINK.a) $$(@R)
