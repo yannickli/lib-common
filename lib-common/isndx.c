@@ -385,6 +385,8 @@ static int isndx_fetch1(isndx_t *ndx,
             p = page + sst.offset;
             sst.offset += 3 + p[1] + p[2];
             p = page + sst.offset;
+            if (p[2] == 0)
+                break;
             sst.exact = (p[0] == keylen && p[1] == 0);
         }
     } else {
