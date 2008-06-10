@@ -49,7 +49,7 @@ $3: $~%$$(tmp/$2/ns)$4.o: %.c | __$(1D)_generated
 	$(msg/COMPILE.c) $$(<R)
 	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$*.c_CFLAGS) \
 	    -MP -MMD -MQ $$@ -MF $$(@:o=dep) \
-	    $$(if $$(findstring .pic,$4),-fPIC) -g -c -o $$@ $$<
+	    $$(if $$(findstring .pic,$4),-fPIC) -ggdb3 -c -o $$@ $$<
 -include $(3:o=dep)
 endef
 
