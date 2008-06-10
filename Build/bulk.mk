@@ -12,15 +12,16 @@
 ##########################################################################
 
 include $(var/toolsdir)/bulk-library.mk
+ifeq (0,$(MAKELEVEL))
+-include $!deps.mk
+else
+include $!deps.mk
+endif
+
 
 all clean distclean::
 FORCE: ;
 .PHONY: all clean distclean FORCE
-
-$!deps.mk: $/configure
-	mkdir -p $(@D)
-	$< -p $(var/profile) -o $@
--include $!deps.mk
 
 var/sources    = $(sort $(foreach v,$(filter %_SOURCES,$(.VARIABLES)),$($v)))
 var/cleanfiles = $(sort $(foreach v,$(filter %_CLEANFILES,$(.VARIABLES)),$($v)))
@@ -87,11 +88,16 @@ __setup_buildsys_trampoline:
 
 ifeq (0,$(MAKELEVEL))
 
-__setup_buildsys_trampoline:
+$!deps.mk: $/configure
+	mkdir -p $(@D)
+	$< -p $(var/profile) -o $@
+
+__setup_buildsys_trampoline: $!deps.mk
 	$(msg/echo) 'checking build-system ...'
 	$(msg/echo) 'make: Entering directory `$(var/builddir)'"'"
 	$(MAKEPARALLEL) __setup_buildsys
 	$(msg/echo) 'make: Entering directory `$(var/srcdir)'"'"
+
 toplevel:
 .PHONY: toplevel
 
