@@ -81,6 +81,10 @@ $(foreach p,$(var/datas),$(eval $(call rule/datas,$p)))
 else
 ##########################################################################
 # {{{ Only at toplevel
+
+__setup_buildsys_trampoline:
+.PHONY: __setup_buildsys_trampoline
+
 ifeq (0,$(MAKELEVEL))
 
 __setup_buildsys_trampoline:
@@ -89,7 +93,7 @@ __setup_buildsys_trampoline:
 	$(MAKEPARALLEL) __setup_buildsys
 	$(msg/echo) 'make: Entering directory `$(var/srcdir)'"'"
 toplevel:
-.PHONY: __setup_buildsys_trampoline toplevel
+.PHONY: toplevel
 
 all:: toplevel
 all clean distclean:: | __setup_buildsys_trampoline
@@ -110,9 +114,6 @@ ignore:
 	$(foreach v,$(var/programs:=$(EXEEXT)),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/tests:=$(EXEEXT)),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/sharedlibs:=.so),grep -q '^/$v\*$$' .gitignore || echo '/$v\*' >> .gitignore;)
-else
-__setup_buildsys_trampoline:
-.PHONY: __setup_buildsys_trampoline
 endif
 # }}}
 ##########################################################################
@@ -141,12 +142,12 @@ tmp/makefiles := $(shell find "$(var/srcdir)" -name Makefile -type f \( -path '*
                          grep -q 'include.*base.mk' $$file && echo $$file; done)
 tmp/vars      := $(patsubst $(var/srcdir)/%Makefile,$(var/builddir)/%vars.mk,$(tmp/makefiles))
 
-$(tmp/vars): $(var/builddir)%/vars.mk: $(var/srcdir)%/Makefile $(var/toolsdir)/* $(var/cfgdir)/*.mk
+$(tmp/vars): $(var/builddir)%/vars.mk: $(var/srcdir)%/Makefile $(var/toolsdir)/*
 	$(msg/generate) $(@R)
 	mkdir -p $(@D)
 	$(MAKE) --no-print-directory -rsC $(var/srcdir)$* __dump_targets > $@
 
-$(var/builddir)/Makefile: $(var/srcdir)/configure $(tmp/vars) $(var/toolsdir)/* $(var/cfgdir)/*.mk
+$(var/builddir)/Makefile: $(var/srcdir)/configure $(tmp/vars) $(var/toolsdir)/*
 	$(msg/generate) $(@R)
 	mkdir -p $(@D)
 	echo 'var/makefiles := $(call fun/msq,$(tmp/makefiles))'      >  $@
