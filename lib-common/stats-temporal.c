@@ -1296,7 +1296,7 @@ int stats_temporal_copy(stats_temporal_t *dst, stats_temporal_t *src)
 {
     glob_t globbuf;
     char buf[PATH_MAX];
-    int len;
+    int len, err;
     int *values_buf;
 
     if (!src->do_sec) {
@@ -1307,9 +1307,15 @@ int stats_temporal_copy(stats_temporal_t *dst, stats_temporal_t *src)
     snprintf(buf, sizeof(buf), "%s_sec_????????_??????.bin",
              src->path);
 
-    if (glob(buf, 0, NULL, &globbuf)) {
+    p_clear(&globbuf, 1);
+    if ((err = glob(buf, 0, NULL, &globbuf))) {
         globfree(&globbuf);
-        return 0;
+        if (err == GLOB_NOMATCH) {
+            e_info("No stats file for file: %s (pattern: %s)", src->path, buf);
+            return 0;
+        }
+        e_info("Glob failed for pattern %s: %m", buf);
+        return -1;
     }
 
     values_buf = p_new(int, src->nb_stats * (OUTPUT_SEC_MAX_NB + 1));
@@ -1348,8 +1354,10 @@ int stats_temporal_copy(stats_temporal_t *dst, stats_temporal_t *src)
             values = values_buf + src->nb_stats + 1;
             for (int curdate = 0; curdate < OUTPUT_SEC_MAX_NB; curdate++) {
                 realdate = *values++;
+                //e_trace(2, "Date: %d", realdate);
                 for (int index = 0; index < src->nb_stats; index++) {
                     /* XXX: Does not work with MEAN stats */
+                    //e_trace(2, "value %d: %d", index, *values);
                     stats_temporal_upd(dst, realdate, STATS_UPD_INCR,
                                        index, -1, *values++);
                 }
