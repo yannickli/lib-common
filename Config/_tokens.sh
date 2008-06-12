@@ -37,7 +37,7 @@ enum ${LOWERCASE_NAME}_token {
 
 __attribute__((pure))
 enum ${LOWERCASE_NAME}_token
-${LOWERCASE_NAME}_get_token(const char *s, ssize_t len);
+${LOWERCASE_NAME}_get_token(const char *s, int len);
 #endif /* IS_${UPPERCASE_NAME}_TOKEN_H */
 EOF
 }
@@ -78,7 +78,7 @@ struct tok { const char *name; int val; };
 %%
 
 enum ${LOWERCASE_NAME}_token
-${LOWERCASE_NAME}_get_token(const char *s, ssize_t len)
+${LOWERCASE_NAME}_get_token(const char *s, int len)
 {
     if (!s)
         return ${UPPERCASE_NAME}_TK_unknown;
