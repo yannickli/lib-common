@@ -80,9 +80,6 @@ struct tok { const char *name; int val; };
 enum ${LOWERCASE_NAME}_token
 ${LOWERCASE_NAME}_get_token(const char *s, int len)
 {
-    if (!s)
-        return ${UPPERCASE_NAME}_TK_unknown;
-
     if (len < 0)
         len = sstrlen(s);
 
