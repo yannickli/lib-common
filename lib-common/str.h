@@ -193,6 +193,7 @@ int buffer_increment_hex(char *buf, int len);
 ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t len);
 
 int64_t msisdn_canonify(const char *buf, int len, __unused__ int locale);
+int email_canonify(const char *email, int len, char *buf, int size);
 
 /* OG: this should be inlined */
 int utf8_getc(const char *s, const char **outp);

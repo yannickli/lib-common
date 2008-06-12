@@ -997,6 +997,35 @@ int64_t msisdn_canonify(const char *str, int len, __unused__ int locale)
     }
 }
 
+int email_canonify(const char *email, int elen, char *buf, int size)
+{
+    int len = 0;
+
+    if (elen < 0) {
+        elen = strlen(email);
+    }
+    /* Skipspaces */
+    while (elen > 0 && isblank(*email)) {
+        email++;
+        elen--;
+    }
+
+    /* Reserve space for the NUL */
+    size--;
+
+    /* tolower until next space */
+    while (elen > 0 && size > 0 && !isblank(*email)) {
+        *buf++ = tolower(*email++);
+        elen--;
+        size--;
+        len++;
+    }
+
+    *buf = '\0';
+
+    return len;
+}
+
 int str_replace(const char search, const char replace, char *subject)
 {
     int nb_replace = 0;
@@ -1562,6 +1591,28 @@ START_TEST(check_msisdn_canonify)
 }
 END_TEST
 
+#define check_email_canonify_unit(str, expected)                \
+    do {                                                    \
+        len = email_canonify(str, strlen(str), buf, sizeof(buf));        \
+        fail_if(len != strlen(expected),                                 \
+                "failed: msisdn_canonify returned %d != %d",   \
+                len, strlen(expected));                          \
+        fail_if(strcmp(buf, expected),                                 \
+                "failed: msisdn_canonify returned %s != %s",   \
+                buf, expected);                          \
+    } while (0)
+START_TEST(check_email_canonify)
+{
+    int len;
+    char buf[BUFSIZ];
+
+    check_email_canonify_unit("test@intersec.com", "test@intersec.com");
+    check_email_canonify_unit("   test@intersec.com", "test@intersec.com");
+    check_email_canonify_unit("test@intersec.com   ", "test@intersec.com");
+    check_email_canonify_unit("  test@inTERSec.com   ", "test@intersec.com");
+}
+END_TEST
+
 #define check_purldecode_unit(encoded, decoded)                        \
     do {                                                               \
         size_t l = purldecode(encoded, (byte *)buf, sizeof(buf), 0);   \
@@ -1615,6 +1666,7 @@ Suite *check_string_suite(void)
     tcase_add_test(tc, check_buffer_increment_hex);
     tcase_add_test(tc, check_pstrrand);
     tcase_add_test(tc, check_msisdn_canonify);
+    tcase_add_test(tc, check_email_canonify);
     tcase_add_test(tc, check_purldecode);
     return s;
 }
