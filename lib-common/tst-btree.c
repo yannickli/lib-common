@@ -51,7 +51,7 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
 {
     struct stat st;
     proctimer_t pt;
-    int nkeys, status = 0;
+    int nkeys;
     entry_array entries;
     entry_t *entry_tab;
     int32_t n, d;
@@ -70,7 +70,7 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
     nkeys = 0;
     entry_tab = malloc(sizeof(entry_t) * num_keys * num_data);
     entry_array_init(&entries);
-    entry_array_grow(&entries, num_keys * num_data);
+    entry_array_ensure(&entries, num_keys * num_data);
 
     for (n = 0; n < num_keys; n++) {
         for (d = 0; d < num_data; d++) {
@@ -292,7 +292,9 @@ static int btree_parse_test(const char *filename, const char *indexname)
     uint32_t data;
     int status = 0;
     FILE *fp;
+#if STATS_EVERY_BLOCKS
     proctimerstat_t pt_stats;
+#endif
 
     fp = fopen(filename, "r");
     if (!fp) {
