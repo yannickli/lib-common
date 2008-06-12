@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <math.h>
+
 #include "mem.h"
 #include "time.h"
 #include "list.h"
@@ -93,7 +95,7 @@ static int entry_compare_str_number(const entry_t *a, const entry_t *b,
     return cmp ? cmp : CMP(a->number, b->number);
 }
 
-#if 1
+#if 0
 static int entry_compare_str_number_reverse(const entry_t *a, const entry_t *b,
     void *p)
 {
@@ -408,10 +410,9 @@ int main(int argc, char **argv)
     proctimer_t pt;
     long long load_elapsed, total_elapsed, total_compare;
     intptr_t random_value = rand32();
-    int nbytes = 0, nlogn;
-    int n, cmp, cmp2 = 0, status = 0, dump_files = 0;
+    int nbytes = 0;
+    int n, status = 0, dump_files = 0;
     entry_t *ep;
-    const char *name;
     struct sort_test *stp;
 
     dict_init(&words);
