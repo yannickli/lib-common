@@ -44,7 +44,7 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
 {
     struct stat st;
     proctimer_t pt;
-    int nkeys, status = 0;
+    int nkeys;
     entry_array entries;
     entry_t *entry_tab;
     int32_t n, d;
@@ -63,7 +63,7 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
     nkeys = 0;
     entry_tab = malloc(sizeof(entry_t) * num_keys * num_data);
     entry_array_init(&entries);
-    entry_array_grow(&entries, num_keys * num_data);
+    entry_array_ensure(&entries, num_keys * num_data);
 
     for (n = 0; n < num_keys; n++) {
         for (d = 0; d < num_data; d++) {
@@ -135,7 +135,7 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
 #define bclose(sp)       (*(sp) ? (fclose(*(sp)), *(sp) = NULL) : 0)
 #endif
 
-#if 1
+#if 0
 static int isndx_word_test(const char *indexname)
 {
     struct stat st;
@@ -466,7 +466,7 @@ static int benchmark_index_methods(void)
 
 int main(int argc, char **argv)
 {
-    isndx_create_parms_t cp;
+    //isndx_create_parms_t cp;
     isndx_t *ndx;
     const char *indexname;
     const char *command;
@@ -506,6 +506,21 @@ int main(int argc, char **argv)
                 isndx_check(ndx, ISNDX_CHECK_ALL);
                 continue;
             }
+            if (!strcmp(command, "fetch")) {
+                while (*argv) {
+                    const char *key;
+                    blob_t out;
+                    int res;
+
+                    blob_init(&out);
+                    key = *argv++;
+                    res = isndx_fetch(ndx, (byte*)key, strlen(key), &out);
+                    printf("isndx_fetch('%s') -> %d [%d bytes]\n",
+                           key, res, out.len);
+                    blob_wipe(&out);
+                }
+                continue;
+            }
             if (!strcmp(command, "dump")) {
                 if (!*argv) {
                     isndx_dump(ndx, 0, stdout);
@@ -513,6 +528,10 @@ int main(int argc, char **argv)
                 if (!strcmp(*argv, "all")) {
                     argv++;
                     isndx_dump(ndx, ISNDX_DUMP_ALL, stdout);
+                } else
+                if (!strcmp(*argv, "keys")) {
+                    argv++;
+                    isndx_dump(ndx, ISNDX_DUMP_KEYS, stdout);
                 } else
                 if (!strcmp(*argv, "pages")) {
                     argv++;
@@ -528,7 +547,9 @@ int main(int argc, char **argv)
             }
             printf("usage: tst-isndx\n"
                    "       tst-isndx compare\n"
-                   "       tst-isndx indexfile [{check | dump [all | pages]}]\n");
+                   "       tst-isndx indexfile check\n"
+                   "       tst-isndx indexfile dump [all | pages]\n"
+                   "       tst-isndx indexfile fetch key\n");
             return 1;
         }
     }
