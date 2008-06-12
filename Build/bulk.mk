@@ -144,7 +144,7 @@ endif
 #   This target uses costly things so we hide it most of the time
 ifeq (__setup_buildsys,$(MAKECMDGOALS))
 
-tmp/makefiles := $(shell find "$(var/srcdir)" -name Makefile -type f \( -path '*/.*' -prune -o -print \) | while read file; do \
+tmp/makefiles := $(shell find "$(var/srcdir)" -name Makefile -type f \( -path '*/.*' -prune -o -path '*/old/*' -prune -o -print \) | while read file; do \
                          grep -q 'include.*base.mk' $$file && echo $$file; done)
 tmp/vars      := $(patsubst $(var/srcdir)/%Makefile,$(var/builddir)/%vars.mk,$(tmp/makefiles))
 
