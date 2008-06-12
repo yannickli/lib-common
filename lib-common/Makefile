@@ -11,16 +11,18 @@
 #                                                                        #
 ##########################################################################
 
-test_PROGRAMS = btree-dump tst-cfgparser tst-tpl tst-stats tst-htbl tst-statsdump
+test_PROGRAMS = btree-dump tst-cfgparser tst-tpl tst-stats tst-htbl \
+                tst-statsdump
 
 none_LIBRARIES = libcommon time-lp-simple
 
-none_TESTS += test tst-blob-iconv tst-domains_list tst-path
-none_TESTS += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-hash
-none_TESTS += tst-iprintf-speed
+none_TESTS += test tst-blob-iconv tst-domains_list tst-path tst-hash
+none_TESTS += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-iprintf-speed
 ifdef CHECK_ALL
   # These tests are just too long to be part of "make check". Sorry.
   none_TESTS += tst-btree tst-isndx tst-sort
+else
+  test_PROGRAMS += tst-btree tst-isndx tst-sort
 endif
 
 btree-dump_SOURCES = btree-dump.c libcommon.a
