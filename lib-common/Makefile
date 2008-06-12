@@ -101,8 +101,8 @@ libcommon_CFLAGS := $(libtc_CFLAGS)
 time-lp-simple_SOURCES = time-lp-simple.c
 
 test_SOURCES = $(filter-out mem.c, $(libcommon_SOURCES)) check.c
-test_CFLAGS  = $(libtc_CFLAGS)
-test_LDFLAGS = -lz $(libtc_LDFLAGS)
+test_CFLAGS  = $(libtc_CFLAGS) -DCHECK=1
+test_LDFLAGS = -lz $(libtc_LDFLAGS) -lcheck
 
 tst-cfgparser_SOURCES = tst-cfgparser.c libcommon.a
 
