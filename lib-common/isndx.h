@@ -99,7 +99,8 @@ static inline int isndx_push_uint64(isndx_t *ndx, uint64_t key, const void *data
 #define ISNDX_CHECK_ISRIGHTMOST  8
 
 int isndx_check(isndx_t *ndx, int flags);
-int isndx_check_page(isndx_t *ndx, uint32_t pageno, int level, int flags);
+int isndx_check_page(isndx_t *ndx, uint32_t pageno, int level,
+                     int upkeylen, const byte *upkey, int flags);
 
 #define ISNDX_DUMP_ALL      1
 #define ISNDX_DUMP_PAGES    2

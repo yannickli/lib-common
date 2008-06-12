@@ -44,6 +44,7 @@
  * indicated by the flag HAS_OVERFLOW.
  */
 
+/* XXX: endianness issue */
 #define NDX_GET_PAGELEN(page)       (*(const uint16_t *)((page) + 2))
 #define NDX_SET_PAGELEN(page, len)  (*(uint16_t *)((page) + 2) = len)
 
@@ -210,8 +211,8 @@ void isndx_close(isndx_t **ndxp)
 }
 
 static int isndx_scan(isndx_t *ndx, const byte *page,
-                       const byte *key, int keylen, int offset,
-                       scan_state_t *sst)
+                      const byte *key, int keylen, int offset,
+                      scan_state_t *sst)
 {
     int common, comm2, pagelen;
     const byte *p, *p1, *p2, *p3;
@@ -237,8 +238,8 @@ static int isndx_scan(isndx_t *ndx, const byte *page,
             sst->offset = p - page;
             return 0;
         }
-        p1 = p + 3;
-        p2 = p1 + p[1];
+        p1 = p + 3;     /* key bytes */
+        p2 = p1 + p[1]; /* data bytes */
         if (p2 + p[2] > p3) {
             /* corrupted page */
             break;
@@ -385,8 +386,10 @@ static int isndx_fetch1(isndx_t *ndx,
             p = page + sst.offset;
             sst.offset += 3 + p[1] + p[2];
             p = page + sst.offset;
-            if (p[2] == 0)
+            if (p[2] == 0) {
+                /* rightmost page of a node level */
                 break;
+            }
             sst.exact = (p[0] == keylen && p[1] == 0);
         }
     } else {
@@ -400,6 +403,7 @@ static int isndx_fetch1(isndx_t *ndx,
             sst.exact = (p[0] == keylen && p[1] == 0);
         }
     }
+    /* Should provide continuation indicator to caller */
     return found;
 }
 
@@ -647,7 +651,8 @@ int isndx_push(isndx_t *ndx, const byte *key, int keylen,
     return isndx_insert_one(ndx, &ist, 0, key, keylen, data, datalen);
 }
 
-int isndx_check_page(isndx_t *ndx, uint32_t pageno, int level, int flags)
+int isndx_check_page(isndx_t *ndx, uint32_t pageno, int level,
+                     int upkeylen, const byte *upkey, int flags)
 {
     byte key[2 * (MAX_KEYLEN + 1)];
     uint32_t childpageno;
@@ -702,8 +707,8 @@ int isndx_check_page(isndx_t *ndx, uint32_t pageno, int level, int flags)
             status |= ISNDX_ERROR(ndx, "page %u:%d: incorrect suffix=%d keylen=%d",
                                   pageno, (int)(p - page), p[1], p[0] + p[1]);
         }
-        if (p[1] && p[0] < keylen) {
-            if (p[3] < key[p[0]]) {
+        if (p[0] < keylen) {
+            if (p[1] == 0 || p[3] < key[p[0]]) {
                 status |= ISNDX_ERROR(ndx, "page %u:%d: key out of order",
                                       pageno, (int)(p - page));
             } else
@@ -724,7 +729,9 @@ int isndx_check_page(isndx_t *ndx, uint32_t pageno, int level, int flags)
                 status |= ISNDX_ERROR(ndx, "page %u:%d: incorrect child page=%u",
                                       pageno, (int)(p - page), childpageno);
             } else {
+                /* XXX: should check for duplicated pages */
                 status |= isndx_check_page(ndx, childpageno, level - 1,
+                                           keylen, key,
                                            flags & ~ISNDX_CHECK_ISRIGHTMOST);
             }
         } else {
@@ -742,8 +749,19 @@ int isndx_check_page(isndx_t *ndx, uint32_t pageno, int level, int flags)
             status |= ISNDX_ERROR(ndx, "page %u:%d: incorrect child page=%u",
                                   pageno, (int)(p - page), childpageno);
         } else {
+            /* XXX: should check for duplicated pages */
             status |= isndx_check_page(ndx, childpageno, level - 1,
+                                       upkeylen, upkey,
                                        flags | ISNDX_CHECK_ISRIGHTMOST);
+        }
+    } else {
+        if (upkeylen) {
+            if (keylen != upkeylen || memcmp(key, upkey, keylen)) {
+                status |= ISNDX_ERROR(ndx, "page %u:%d: upkey differs from last key"
+                                      " '%.*s' != '%.*s'",
+                                      pageno, (int)(p - page),
+                                      keylen, key, upkeylen, upkey);
+            }
         }
     }
     ndx->nkeys += nkeys;
@@ -812,6 +830,7 @@ int isndx_check(isndx_t *ndx, int flags)
         ndx->nkeys = 0;
 
         status |= isndx_check_page(ndx, root, rootlevel,
+                                   0, NULL,
                                    flags | ISNDX_CHECK_ISRIGHTMOST);
 
         if (ndx->npages != nbpages) {
@@ -829,10 +848,101 @@ int isndx_check(isndx_t *ndx, int flags)
     return status;
 }
 
+static void isndx_dump_key(isndx_t *ndx, const byte *key, int keylen, FILE *fp)
+{
+    int i, binary;
+
+    for (binary = i = 0; i < keylen; i++) {
+        if (key[i] < 0x20)
+            binary++;
+    }
+    if (binary) {
+        /* key has binary bytes */
+        if (keylen <= 8) {
+            /* Print key as big endian number */
+            int64_t num = 0;
+            for (i = 0; i < keylen; i++) {
+                num = (num << 8) | key[i];
+            }
+            /* Propagate sign bit */
+            num <<= (keylen - 8) * 8;
+            num >>= (keylen - 8) * 8;
+            fprintf(fp, "%lld", (long long)num);
+        } else {
+            /* Print key as HEX */
+            for (i = 0; i < keylen; i++) {
+                fprintf(fp, " %02x", key[i]);
+            }
+        }
+    } else {
+        /* Print key as C string */
+        //fprintf(fp, "\"%.*s\"", keylen, key);
+        putc('\"', fp);
+        for (i = 0; i < keylen; i++) {
+            int c = key[i];
+            if (c == '\\' || c == '\"') {
+                putc('\\', fp);
+                putc(c, fp);
+            } else
+            if (c >= ' ') {
+                putc(c, fp);
+            } else {
+                fprintf(fp, "\\x%02x", c);
+            }
+        }
+        putc('\"', fp);
+    }
+}
+
+static void isndx_dump_data(isndx_t *ndx, const byte *p, int len, FILE *fp)
+{
+    int i, binary;
+
+    for (binary = i = 0; i < len; i++) {
+        if (p[i] < 0x20)
+            binary++;
+    }
+    if (binary) {
+        /* data has binary bytes */
+        if (len <= 8) {
+            /* Print data as little endian number */
+            int64_t num = 0;
+            for (i = 0; i < len; i++) {
+                num |= (int64_t)p[i] << (i << 3);
+            }
+            /* Propagate sign bit */
+            num |= -(num & ((int64_t)1 << ((len << 3) - 1)));
+            fprintf(fp, "%lld", (long long)num);
+        } else {
+            /* Print data as HEX */
+            for (i = 0; i < len; i++) {
+                fprintf(fp, " %02x", p[i]);
+            }
+        }
+    } else {
+        /* Print data as C string */
+        //fprintf(fp, "\"%.*s\"", datalen, data);
+        putc('\"', fp);
+        for (i = 0; i < len; i++) {
+            int c = p[i];
+            if (c == '\\' || c == '\"') {
+                putc('\\', fp);
+                putc(c, fp);
+            } else
+            if (c >= ' ') {
+                putc(c, fp);
+            } else {
+                fprintf(fp, "\\x%02x", c);
+            }
+        }
+        putc('\"', fp);
+    }
+}
+
 void isndx_dump_page(isndx_t *ndx, uint32_t pageno, int flags, FILE *fp)
 {
     byte key[MAX_KEYLEN + 1];
-    int pagelen, keylen, i, datalen;
+    int pagelen, prefix, keylen, datalen;
     const byte *page, *p, *p1;
 
     page = isndx_getpage(ndx, pageno);
@@ -845,69 +955,39 @@ void isndx_dump_page(isndx_t *ndx, uint32_t pageno, int flags, FILE *fp)
         p = page + 4;
         p1 = page + pagelen;
         while (p < p1) {
-            memcpy(key + p[0], p + 3, p[1]);
-            keylen = p[0] + p[1];
-            datalen = p[2];
             fprintf(fp, "    %d: key %d %d %d",
                     (int)(p - page), p[0], p[1], p[2]);
+
+            prefix = p[0];
+            keylen = p[0] + p[1];
+            datalen = p[2];
+
+            if (keylen > MAX_KEYLEN) {
+                fprintf(fp, " invalid key length: %d\n", keylen);
+                break;
+            }
+            memcpy(key + p[0], p + 3, p[1]);
             p += 3 + p[1];
-            if (keylen > 0) {
-                putc(' ', fp);
-                for (i = 0; i < keylen; i++) {
-                    if (key[i] < 0x20)
-                        break;
-                }
-                if (i < keylen) {
-                    if (keylen <= 8) {
-                        int64_t num = 0;
-                        for (i = 0; i < keylen; i++) {
-                            num = (num << 8) | key[i];
-                        }
-                        /* Propagate sign bit */
-                        num <<= (keylen - 8) * 8;
-                        num >>= (keylen - 8) * 8;
-                        fprintf(fp, "%lld", (long long)num);
-                    } else {
-                        /* print as HEX */
-                        for (i = 0; i < keylen; i++) {
-                            fprintf(fp, " %02x", key[i]);
-                        }
-                    }
-                } else {
-                    /* Print as C string */
-                    //fprintf(fp, "\"%.*s\"", keylen, key);
-                    putc('\"', fp);
-                    for (i = 0; i < keylen; i++) {
-                        int c = key[i];
-                        if (c == '\\' || c == '\"') {
-                            putc('\\', fp);
-                            putc(c, fp);
-                        } else
-                        if (c >= ' ') {
-                            putc(c, fp);
-                        } else {
-                            fprintf(fp, "\\x%02x", c);
-                        }
-                    }
-                    putc('\"', fp);
-                }
+            if (keylen > 0 && (keylen > prefix || (flags & ISNDX_DUMP_ALL))) {
+                fprintf(fp, " ");
+                isndx_dump_key(ndx, key, keylen, fp);
             }
             if (datalen > 0) {
-                fprintf(fp, " --");
-                if (datalen < 4) {
-                    int data = 0;
-                    for (data = 0, i = 0; i < datalen; i++) {
-                        data |= p[i] << (i << 3);
-                    }
-                    fprintf(fp, " %d", data);
-                } else {
-                    for (i = 0; i < datalen; i++) {
-                        fprintf(fp, " %02x", p[i]);
-                    }
-                }
+                fprintf(fp, " -- ");
+                isndx_dump_data(ndx, p, datalen, fp);
                 p += datalen;
             }
             fprintf(fp, "\n");
+            if (p != p1) {
+                if (keylen < ndx->file->area->minkeylen
+                ||  keylen > ndx->file->area->maxkeylen) {
+                    fprintf(fp, " key length out of bounds: %d\n", keylen);
+                }
+                if (datalen < ndx->file->area->mindatalen
+                ||  datalen > ndx->file->area->maxdatalen) {
+                    fprintf(fp, " data length out of bounds: %d\n", datalen);
+                }
+            }
         }
         fprintf(fp, "\n");
     }
@@ -933,7 +1013,8 @@ void isndx_dump(isndx_t *ndx, int flags, FILE *fp)
             ndx->file->area->mindatalen,
             ndx->file->area->maxdatalen);
 
-    if (flags & (ISNDX_DUMP_ALL | ISNDX_DUMP_PAGES)) {
+    if (flags & (ISNDX_DUMP_ALL | ISNDX_DUMP_KEYS | ISNDX_DUMP_PAGES)) {
+        fprintf(fp, "\n");
         for (pageno = 1; pageno < ndx->file->area->nbpages; pageno++) {
             isndx_dump_page(ndx, pageno, flags, fp);
         }
