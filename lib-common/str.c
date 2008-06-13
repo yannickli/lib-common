@@ -997,6 +997,9 @@ int64_t msisdn_canonify(const char *str, int len, __unused__ int locale)
     }
 }
 
+/* This function truncates the email and returns the truncated length.
+ * This is inconsistent with other string utilities
+ */
 int email_canonify(const char *email, int elen, char *buf, int size)
 {
     int len = 0;
@@ -1004,7 +1007,8 @@ int email_canonify(const char *email, int elen, char *buf, int size)
     if (elen < 0) {
         elen = strlen(email);
     }
-    /* Skipspaces */
+
+    /* Skip spaces */
     while (elen > 0 && isblank(*email)) {
         email++;
         elen--;
@@ -1021,6 +1025,7 @@ int email_canonify(const char *email, int elen, char *buf, int size)
         len++;
     }
 
+    /* XXX: incorrect if original size <= 0 */
     *buf = '\0';
 
     return len;
