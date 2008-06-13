@@ -545,7 +545,7 @@ int main(int argc, char **argv)
                 }
             }
             if (words.entries.len != entry_number) {
-                fprintf(stderr, "%s:%zd: missing entry\n",
+                fprintf(stderr, "%s:%d: missing entry\n",
                         stp->dump_name, words.entries.len);
                 status = 1;
             }
