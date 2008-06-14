@@ -156,6 +156,15 @@ int filecopy(const char *pathin, const char *pathout)
     }
 
     /* copying file times */
+    /* OG: should copy full precision times if possible.
+       Since kernel 2.5.48, the stat structure supports nanosecond  resolution
+       for the three file timestamp fields.  Glibc exposes the nanosecond com-
+       ponent of each field using names either of the form st_atim.tv_nsec, if
+       the  _BSD_SOURCE  or  _SVID_SOURCE feature test macro is defined, or of
+       the form st_atimensec, if neither of these macros is defined.  On  file
+       systems  that  do  not  support sub-second timestamps, these nanosecond
+       fields are returned with the value 0.
+     */
     tvp[0] = (struct timeval) { .tv_sec = st.st_atime, .tv_usec = 0 };
     tvp[1] = (struct timeval) { .tv_sec = st.st_mtime, .tv_usec = 0 };
     futimes(fdout, tvp);
