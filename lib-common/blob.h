@@ -165,24 +165,18 @@ blob_grow_front(blob_t *blob, int extralen, char init)
     assert (extralen >= 0);
     blob_check_slop();
 
-    /* TODO: Should not try to reuse skip if it is too small:
-     * example: blob->skip >= extralen / 4 */
     if (blob->skip >= extralen) {
+        blob->data -= extralen;
         blob->skip -= extralen;
         blob->len  += extralen;
-        return;
-    }
-    if (blob->skip) {
-        blob->len += blob->skip;
-        extralen  -= blob->skip;
+    } else {
+        /* TODO: Should malloc/free without using ensure */
+        blob_ensure(blob, blob->len + extralen);
+        p_move(blob->data - blob->skip, extralen, blob->skip, blob->len + 1);
+        blob->data -= blob->skip;
         blob->skip = 0;
+        blob->len += extralen;
     }
-
-    /* TODO: Should malloc/free without using ensure */
-    blob_ensure(blob, blob->len + extralen);
-    p_move(blob->data, extralen, 0, blob->len);
-    blob->len += extralen;
-    blob->data[blob->len] = '\0';
     memset(blob->data, init, extralen);
     blob_check_slop();
 }
