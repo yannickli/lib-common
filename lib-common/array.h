@@ -16,6 +16,7 @@
 
 #include <sys/uio.h>
 #include "mem.h"
+#include "str.h"
 
 #define VECTOR_TYPE(el_typ, prefix)  \
     typedef struct prefix##_vector { \
@@ -231,10 +232,9 @@ string_array *str_explode(const char *s, const char *tokens);
 static inline int string_array_find(const string_array *arr, const char *val)
 {
     for (int i = 0; i < arr->len; i++) {
-        if (!strcmp(val, arr->tab[i]))
+        if (strequal(val, arr->tab[i]))
             return i;
     }
-
     return -1;
 }
 
