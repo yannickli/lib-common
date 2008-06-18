@@ -40,10 +40,6 @@ static uint32_t const __utf8_offs[6] = {
     0x03c82080UL, 0xfa082080UL, 0x82082080UL
 };
 
-static uint8_t const __utf8_mark[7] = {
-    0x00, 0x00, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc
-};
-
 /* OG: this function could return the number of bytes instead of bool */
 static bool is_utf8_char(const char *s)
 {
@@ -88,18 +84,9 @@ int utf8_getc(const char *s, const char **outp)
 int blob_utf8_putc(blob_t *out, int c)
 {
     int bytes = 1 + (c >= 0x80) + (c >= 0x800) + (c >= 0x10000);
-    char *dst;
 
     blob_extend(out, bytes);
-    dst = (char *)out->data + out->len - bytes;
-    switch (bytes) {
-      case 4: dst[3] = (c | 0x80) & 0xbf; c >>= 6;
-      case 3: dst[2] = (c | 0x80) & 0xbf; c >>= 6;
-      case 2: dst[1] = (c | 0x80) & 0xbf; c >>= 6;
-      case 1: dst[0] = (c | __utf8_mark[bytes]);
-    }
-
-    return bytes;
+    return str_utf8_putc((char *)out->data + out->len - bytes, c);
 }
 
 static const char * const __cp1252_or_latin9_to_utf8[0x40] = {

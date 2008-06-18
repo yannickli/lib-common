@@ -44,6 +44,9 @@ int strconv_quote(char *dest, int size, const char *src, int len, int delim);
 int strconv_unquote(char *dest, int size, const char *src, int len);
 int strconv_quote_char(char *dest, int size, int c, int delim);
 int strconv_unquote_char(int *cp, const char *src, int len);
+int str_utf8_putc(char *dst, int c);
+/* Decode XML entities in place */
+int strconv_xmlunescape(char *str, int len);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

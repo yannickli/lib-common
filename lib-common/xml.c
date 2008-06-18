@@ -452,8 +452,14 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
         goto error;
     }
     if (text != p) {
+        int decoded_len;
+
         textend++;
         tag->text = xml_dupstr_mp(tree, text, textend - text);
+        decoded_len = strconv_xmlunescape(tag->text, textend - text);
+        if (decoded_len >= 0) {
+            tag->text[decoded_len] = '\0';
+        }
     }
 
 end:
