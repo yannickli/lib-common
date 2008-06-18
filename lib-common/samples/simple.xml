@@ -5,10 +5,10 @@
 <part3>
 <a>
 </a>
-        <title text="This is the title">
+        <title text="This is the &quot;title">
         </title>
         <chapter1>
-                <paragraph nb="1">BLAH BLAHBLAH
+                <paragraph nb="1">BLAH BLAHBLAH &amp; toto
                 </paragraph>
                 <paragraph nb = "2">
                 </paragraph>

@@ -138,7 +138,7 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
     const char *p;
     xml_prop_t *prop;
     char quot;
-    int unquoted_len;
+    int unquoted_len, decoded_len;
     parse_t ret;
 
     prop = NULL;
@@ -222,6 +222,11 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
     unquoted_len = strconv_unquote(NULL, 0, value, p - value);
     prop->value = xml_dupstr_mp(tree, NULL, unquoted_len);
     strconv_unquote(prop->value, unquoted_len + 1, value, p - value);
+
+    decoded_len = strconv_xmlunescape(prop->value, unquoted_len);
+    if (decoded_len >= 0) {
+        prop->value[decoded_len] = '\0';
+    }
 
     if (quot) {
         p++;
