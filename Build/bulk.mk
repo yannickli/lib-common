@@ -109,7 +109,8 @@ tags: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile tags
 	@$(if $(shell which ctags),,$(error "Please install ctags: apt-get install exuberant-ctags"))
 	cd $/ && ctags -o .tags --recurse=yes --totals=yes \
-	    --exclude=".git" --exclude=".build*" --exclude=Build \
+	    --exclude=".build*" --exclude="Build" --exclude="Config" \
+	    --exclude=".git" --exclude=".svn" --exclude="CVS" \
 	    --exclude="old" --exclude="new" --exclude="ogu" --exclude="xxx" \
 	    --exclude="*.exe" --exclude="*.js"
 
