@@ -165,8 +165,10 @@ int filecopy(const char *pathin, const char *pathout)
        systems  that  do  not  support sub-second timestamps, these nanosecond
        fields are returned with the value 0.
      */
-    tvp[0] = (struct timeval) { .tv_sec = st.st_atime, .tv_usec = 0 };
-    tvp[1] = (struct timeval) { .tv_sec = st.st_mtime, .tv_usec = 0 };
+    tvp[0] = (struct timeval) { .tv_sec = st.st_atime,
+                                .tv_usec = st.st_atimensec / 1000 };
+    tvp[1] = (struct timeval) { .tv_sec = st.st_mtime,
+                                .tv_usec = st.st_mtimensec / 1000 };
     futimes(fdout, tvp);
 
     close(fdin);
