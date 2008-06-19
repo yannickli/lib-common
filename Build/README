@@ -80,7 +80,7 @@ Defining new goals
 The following suffixes are used to define goals of specific kinds:
 
 `_PROGRAMS`::
-        List of executable programs built for this directory 
+        List of executable programs built for this directory
         (was `__EXE__` before).
 
 `_LIBRARIES`::
