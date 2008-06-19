@@ -145,6 +145,9 @@ ARRAY_FUNCTIONS(archive_build, archive_build, archive_build_delete);
 
 void archive_add_property(archive_build *file,
                           const char *name, const char *value);
+void archive_add_property2(archive_build *file,
+                           const char *name, int name_len,
+                           const char *value, int value_len);
 
 archive_build *
 archive_add_file(archive_build_array *arch,

@@ -739,14 +739,22 @@ GENERIC_NEW(archive_build, archive_build);
 void archive_add_property(archive_build *file,
                           const char *name, const char *value)
 {
+    archive_add_property2(file, name, strlen(name), value, strlen(value));
+}
+
+void archive_add_property2(archive_build *file,
+                           const char *name, int name_len,
+                           const char *value, int value_len)
+{
     archive_attr *attr = archive_attr_new();
 
-    attr->key = p_strdup(name);
-    attr->val = p_strdup(value);
+    attr->key = p_dupstr(name, name_len);
+    attr->val = p_dupstr(value, value_len);
 
     /* OG: what if property already exists? */
     archive_attr_array_append(&file->attrs, attr);
 }
+
 
 archive_build *archive_add_file(archive_build_array *arch,
                                 const char *name, const byte *payload, int len)
@@ -871,8 +879,8 @@ int archive_build_from_archive(archive_build_array *res, const archive_t *archiv
             file = archive_bloc_to_archive_file(bloc);
             zpart = archive_add_file(res, file->name, file->payload, file->size);
             for (int j = 0; j < (int)file->nb_attrs; j++) {
-                    archive_add_property(zpart, file->attrs[j]->key,
-                                         file->attrs[j]->val);
+                archive_add_property2(zpart, file->attrs[j]->key, file->attrs[j]->key_len,
+                                      file->attrs[j]->val,  file->attrs[j]->val_len);
             }
         }
     }
