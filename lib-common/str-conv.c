@@ -20,6 +20,36 @@ static uint8_t const __utf8_mark[7] = {
     0x00, 0x00, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc
 };
 
+char const __utf8_trail[256] = {
+#define X (-1)
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X, X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,
+    X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X, X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 3,3,3,3,3,3,3,3,X,X,X,X,X,X,X,X,
+#undef X
+};
+
+uint32_t const __utf8_offs[6] = {
+    0x00000000UL, 0x00003080UL, 0x000e2080UL,
+    0x03c82080UL, 0xfa082080UL, 0x82082080UL
+};
+
+const char * const __cp1252_or_latin9_to_utf8[0x40] = {
+#define XXX  NULL
+    /* cp1252 to utf8 */
+    "€", XXX, "‚", "ƒ", "„", "…", "†", "‡", "ˆ", "‰", "Š", "‹", "Œ", XXX, "Ž", XXX,
+    XXX, "‘", "’", "“", "”", "•", "–", "—", "˜", "™", "š", "›", "œ", XXX, "ž", "Ÿ",
+    /* latin9 to utf8 if != latin1 */
+    XXX, XXX, XXX, XXX, "€", XXX, "Š", XXX, "š", XXX, XXX, XXX, XXX, XXX, XXX, XXX,
+    XXX, XXX, XXX, XXX, "Ž", XXX, XXX, XXX, "ž", XXX, XXX, XXX, "Œ", "œ", "Ÿ", XXX,
+#undef XXX
+};
+
+
 unsigned char const __str_digit_value[128 + 256] = {
 #define REPEAT16(x)  x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
     REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
@@ -551,8 +581,42 @@ int strconv_xmlunescape(char *str, int len)
     while (len > 0) {
         char c;
 
+#if 0
+        if (is_utf8_data(str, len)) {
+            int bytes = 1 + (c >= 0x80) + (c >= 0x800) + (c >= 0x10000);
+
+            memcpy(wpos, str, bytes);
+            wpos += bytes;
+            str += bytes;
+            len -= bytes;
+            res_len += bytes;
+            continue;
+        }
+#endif
+
         c = *str++;
         len--;
+
+#if 0
+        if (c >= 0xa0) {
+            if (!__cp1252_or_latin9_to_utf8[c & 0x7f]) {
+                int bytes = str_utf8_putc(wpos, c);
+
+                wpos += bytes;
+                res_len += bytes;
+                continue;
+            } else {
+                int bytes = strlen(__cp1252_or_latin9_to_utf8[c & 0x7f]);
+
+                memcpy(wpos, __cp1252_or_latin9_to_utf8[c & 0x7f], bytes);
+                wpos += bytes;
+                str += bytes;
+                len -= bytes;
+                res_len += bytes;
+                continue;
+            }
+        }
+#endif
 
         if (c == '&') {
             int val;

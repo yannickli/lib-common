@@ -21,6 +21,43 @@ extern unsigned char const __str_digit_value[128 + 256];
 extern char const __str_digits_upper[36];
 extern char const __str_digits_lower[36];
 
+extern char const __utf8_trail[256];
+extern uint32_t const __utf8_offs[6];
+extern const char * const __cp1252_or_latin9_to_utf8[0x40];
+
+/* OG: this function could return the number of bytes instead of bool */
+static inline bool is_utf8_char(const char *s)
+{
+    int trail = __utf8_trail[(unsigned char)*s++];
+
+    switch (trail) {
+      case 3: if ((*s++ & 0xc0) != 0x80) return false;
+      case 2: if ((*s++ & 0xc0) != 0x80) return false;
+      case 1: if ((*s++ & 0xc0) != 0x80) return false;
+      case 0: return true;
+
+      default: return false;
+    }
+}
+static inline bool is_utf8_data(const char *s, int len)
+{
+    if (len < __utf8_trail[(unsigned char)*s])
+        return false;
+
+    return is_utf8_char(s);
+}
+
+/* This (unused) macro implements UNICODE to UTF-8 transcoding */
+#define UNICODE_TO_UTF8(x)     \
+                 ((x) < 0x007F ? (x) : \
+                  (x) < 0x0FFF ? ((0xC0 | (((x) >> 6) & 0x3F)) << 0) | \
+                                 ((0x80 | (((x) >> 0) & 0x3F)) << 8) : \
+                  ((0xE0 | (((x) >> 12) & 0x1F)) <<  0) | \
+                  ((0x80 | (((x) >>  6) & 0x3F)) <<  8) | \
+                  ((0x80 | (((x) >>  0) & 0x3F)) << 16))
+
+
+
 static inline int str_digit_value(int x) {
     return __str_digit_value[x + 128];
 }
