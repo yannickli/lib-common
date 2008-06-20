@@ -133,6 +133,19 @@ int memtoip(const byte *s, int len, const byte **endp)
     return value;
 }
 
+size_t memcspn(const char *s, int len, const char *reject)
+{
+    size_t res = 0;
+
+    while (len > 0) {
+        if (strchr(reject, *s++))
+            return res;
+        res++;
+        len--;
+    }
+    return res;
+}
+
 #define INVALID_NUMBER  INT64_MIN
 int64_t parse_number(const char *str)
 {

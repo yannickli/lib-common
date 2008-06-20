@@ -427,6 +427,7 @@ static inline int blob_append_xml_escape_cstr(blob_t *dst, const char *s) {
     return blob_append_xml_escape(dst, (const byte *)s, strlen(s));
 }
 void blob_append_quoted_printable(blob_t *dst, const byte *src, int len);
+void blob_decode_quoted_printable(blob_t *dst, const char *src, int len);
 
 typedef struct base64enc_ctx {
     int width;
