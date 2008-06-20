@@ -15,7 +15,11 @@ include $(var/toolsdir)/bulk-library.mk
 ifeq (0,$(MAKELEVEL))
 -include $!deps.mk
 else
+ifneq (,$(filter clean distclean __%,$(MAKECMDGOALS)))
+-include $!deps.mk
+else
 include $!deps.mk
+endif
 endif
 
 
