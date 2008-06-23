@@ -1318,7 +1318,7 @@ int stats_temporal_copy(stats_temporal_t *dst, stats_temporal_t *src)
         return -1;
     }
 
-    values_buf = p_new(int, src->nb_stats * (OUTPUT_SEC_MAX_NB + 1));
+    values_buf = p_new(int, (src->nb_stats + 1) * OUTPUT_SEC_MAX_NB);
 
     len = (int)globbuf.gl_pathc;
     for (int i = 0; i < len; i++) {
@@ -1363,6 +1363,7 @@ int stats_temporal_copy(stats_temporal_t *dst, stats_temporal_t *src)
                 }
             }
 
+            start += OUTPUT_SEC_MAX_NB;
         }
     }
     globfree(&globbuf);
