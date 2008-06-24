@@ -47,7 +47,7 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
 
       case CFG_PARSE_SECTION:
         sect = conf_section_new();
-        sect->name = p_dupstr(v, vlen);
+        sect->name = p_dupz(v, vlen);
         conf_section_array_append(conf, sect);
         return 0;
 
@@ -58,14 +58,14 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
       case CFG_PARSE_KEY:
         sect = conf->tab[conf->len - 1];
         prop = property_new();
-        prop->name = p_dupstr(v, vlen);
+        prop->name = p_dupz(v, vlen);
         props_array_append(&sect->vals, prop);
         return 0;
 
       case CFG_PARSE_VALUE:
         sect = conf->tab[conf->len - 1];
         prop = sect->vals.tab[sect->vals.len - 1];
-        prop->value = v ? p_dupstr(v, vlen) : NULL;
+        prop->value = v ? p_dupz(v, vlen) : NULL;
         return 0;
 
       case CFG_PARSE_SET:
@@ -110,8 +110,8 @@ static void section_add_var(conf_section_t *section,
                             const char *value, int value_len)
 {
     property_t *prop = property_new();
-    prop->name  = p_dupstr(variable, variable_len);
-    prop->value = p_dupstr(value, value_len);
+    prop->name  = p_dupz(variable, variable_len);
+    prop->value = p_dupz(value, value_len);
     props_array_append(&section->vals, prop);
 }
 
@@ -324,7 +324,7 @@ const char *conf_put(conf_t *conf, const char *section,
                     }
                     /* replace value */
                     p_delete(&prop->value);
-                    return prop->value = p_dupstr(value, value_len);
+                    return prop->value = p_dupz(value, value_len);
                 } else {
                     /* delete value */
                     props_array_remove(&s->vals, j);

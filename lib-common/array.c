@@ -125,7 +125,7 @@ string_array *str_explode(const char *s, const char *tokens)
     p = strpbrk(s, tokens);
 
     while (p != NULL) {
-        string_array_append(res, p_dupstr(s, p - s));
+        string_array_append(res, p_dupz(s, p - s));
         s = p + 1;
         p = strchr(s, *p);
     }

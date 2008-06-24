@@ -200,10 +200,10 @@ int props_from_fmtv1_cstr(const char *buf, props_array *props)
             vlen--;
 
         prop = property_new();
-        prop->name  = p_dupstr(k, klen);
-        prop->value = p_dupstr(v, vlen);
+        prop->name  = p_dupz(k, klen);
+        prop->value = p_dupz(v, vlen);
 #if 0   // XXX: NULL triggers Segfault :(
-        prop->value = vlen ? p_dupstr(v, vlen) : NULL;
+        prop->value = vlen ? p_dupz(v, vlen) : NULL;
 #endif
         props_array_append(props, prop);
 

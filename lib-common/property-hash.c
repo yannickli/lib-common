@@ -48,7 +48,7 @@ static uint64_t getkey(const props_hash_t *ph, const char *name, bool insert)
     if (!insert)
         return 0; /* NULL */
 
-    s = p_dupstr(buf, len);
+    s = p_dupz(buf, len);
     string_htbl_insert(ph->names, s, len);
     return (uintptr_t)s;
 }

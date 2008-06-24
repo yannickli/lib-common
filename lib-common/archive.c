@@ -748,8 +748,8 @@ void archive_add_property2(archive_build *file,
 {
     archive_attr *attr = archive_attr_new();
 
-    attr->key = p_dupstr(name, name_len);
-    attr->val = p_dupstr(value, value_len);
+    attr->key = p_dupz(name, name_len);
+    attr->val = p_dupz(value, value_len);
 
     /* OG: what if property already exists? */
     archive_attr_array_append(&file->attrs, attr);

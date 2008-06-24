@@ -130,7 +130,7 @@ static inline void mem_copy(void *p, ssize_t to, ssize_t from, ssize_t len) {
     memcpy((char *)p + to, (const char *)p + from, len);
 }
 
-static inline __attribute__((malloc)) void *p_dupstr(const void *src, ssize_t len)
+static inline __attribute__((malloc)) void *p_dupz(const void *src, ssize_t len)
 {
     char *res = mem_alloc(len + 1);
     memcpy(res, src, len);

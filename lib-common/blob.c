@@ -38,7 +38,7 @@ char *blob_detach(blob_t *blob)
 {
     char *res;
     if (!blob->allocated) {
-        res = p_dupstr(blob->data, blob->len);
+        res = p_dupz(blob->data, blob->len);
         /* OG: Should do blob_init() as well */
         blob_reset(blob);
     } else {
@@ -1606,7 +1606,7 @@ static int buf_unpack_vfmt(const byte *buf, int buf_len,
             }
             strvalp = va_arg(ap, char **);
             if (strvalp) {
-                *strvalp = p_dupstr(p, q - p);
+                *strvalp = p_dupz(p, q - p);
             }
             n++;
             continue;

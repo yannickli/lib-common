@@ -52,7 +52,7 @@ static inline char *iasprintf(const char *fmt, ...)
     va_end(ap);
 
     if (len < ssizeof(buf))
-        return p_dupstr(buf, len);
+        return p_dupz(buf, len);
     va_start(ap, fmt);
     vsnprintf(s = p_new(char, len + 1), len + 1, fmt, ap);
     va_end(ap);
