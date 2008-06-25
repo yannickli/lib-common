@@ -88,6 +88,9 @@ int tpl_encode_expiration(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
         return -1;
 
     expiration = memtoip(data, len, NULL);
+    if (expiration < 10000) {
+       expiration = time(NULL) + 3600 * 24;
+    }
     gmtime_r(&expiration, &t);
     blob_grow(blob, 20);
     blob_append_fmt(blob, "%04d-%02d-%02dT%02d:%02d:%02dZ",
