@@ -133,7 +133,6 @@ int tpl_compute_len_copy(blob_t *b, tpl_t **args, int nb, int len);
 /****************************************************************************/
 
 int tpl_encode_plmn(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
-int tpl_encode_expiration(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 
 /****************************************************************************/
 /* Escapings                                                                */

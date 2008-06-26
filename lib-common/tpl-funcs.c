@@ -72,33 +72,6 @@ int tpl_encode_plmn(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
     return 0;
 }
 
-int tpl_encode_expiration(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
-{
-    const byte *data;
-    int len;
-    time_t expiration;
-    struct tm t;
-
-    if (!blob) {
-        assert(out);
-        blob = tpl_get_blob(out);
-    }
-
-    if (tpl_get_short_data(args, nb, &data, &len))
-        return -1;
-
-    expiration = memtoip(data, len, NULL);
-    if (expiration < 10000) {
-       expiration = time(NULL) + 3600 * 24;
-    }
-    gmtime_r(&expiration, &t);
-    blob_grow(blob, 20);
-    blob_append_fmt(blob, "%04d-%02d-%02dT%02d:%02d:%02dZ",
-                    t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
-                    t.tm_hour, t.tm_min, t.tm_sec);
-    return 0;
-}
-
 /****************************************************************************/
 /* Escapings                                                                */
 /****************************************************************************/

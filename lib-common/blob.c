@@ -1339,6 +1339,17 @@ int blob_append_smtp_data(blob_t *dst, const byte *src, int len)
     return 0;
 }
 
+void blob_append_date_iso8601(blob_t *dst, time_t date)
+{
+    struct tm t;
+
+    gmtime_r(&date, &t);
+    blob_grow(dst, 20);
+    blob_append_fmt(dst, "%04d-%02d-%02dT%02d:%02d:%02dZ",
+                    t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
+                    t.tm_hour, t.tm_min, t.tm_sec);
+}
+
 /*---------------- binary to hex conversion ----------------*/
 
 #if 1

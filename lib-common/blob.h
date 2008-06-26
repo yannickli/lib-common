@@ -441,6 +441,8 @@ GENERIC_FUNCTIONS(base64enc_ctx, base64enc_ctx);
 /* Simple encoding */
 void blob_append_base64(blob_t *dst, const byte *src, int len, int width);
 
+void blob_append_date_iso8601(blob_t *dst, time_t date);
+
 /* base64 encoding per packets */
 void blob_append_base64_update(blob_t *dst, const byte *src, int len,
                                base64enc_ctx *ctx);
