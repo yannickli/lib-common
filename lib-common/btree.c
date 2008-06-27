@@ -1284,7 +1284,6 @@ int btree_iter_next(btree_t *_bt, btree_iter_t *iter, uint64_t *key, blob_t *out
 {
     struct btree_priv *bt = _bt->area;
     const bt_leaf_t *leaf;
-    int len = 0;
 
     if (iter->page == BTPP_NIL) {
         bt_real_unlock(_bt);
@@ -1323,22 +1322,19 @@ int btree_iter_next(btree_t *_bt, btree_iter_t *iter, uint64_t *key, blob_t *out
         }
 
         blob_append_data(out, leaf->data + iter->pos, datalen);
-        len += datalen;
         iter->pos += datalen;
 
         if (iter->pos >= leaf->used) {
             iter->pos = 0;
             if ((iter->page = leaf->next) == BTPP_NIL)
-                break;
+                return 0;
             leaf = MAP_CONST_LEAF(bt, iter->page = leaf->next);
             if (!leaf || leaf->used <= 0) {
                 /* should flag btree structure error */
-                break;
+                return 0;
             }
         }
     } while (btl_keycmp(*key, leaf, iter->pos) == CMP_EQUAL);
-
-    return 0;
 }
 
 /*---------------- File I/O based read-only API functions ----------------*/
