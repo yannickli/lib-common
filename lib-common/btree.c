@@ -401,21 +401,29 @@ static int bt_check_header(struct btree_priv *btp, int dofix,
     bool did_a_fix = false;
     int32_t nbpages;
 
-    if (btp->magic != ISBT_MAGIC.magic)
+    if (btp->magic != ISBT_MAGIC.magic) {
+        e_trace(1, "Bad magic");
         return -1;
+    }
 
     /* hook conversions here! */
-    if (btp->major != BT_VERSION_MAJOR || btp->minor != BT_VERSION_MINOR)
+    if (btp->major != BT_VERSION_MAJOR || btp->minor != BT_VERSION_MINOR) {
+        e_trace(1, "Bad version");
         return -1;
+    }
 
-    if (size < BT_PAGE_SIZE || (size_t)size % BT_PAGE_SIZE != 0)
+    if (size < BT_PAGE_SIZE || (size_t)size % BT_PAGE_SIZE != 0) {
+        e_trace(1, "Bad page size");
         return -1;
+    }
 
     if (btp->wrlock) {
         struct timeval tv;
 
-        if (btp->wrlock != getpid())
+        if (btp->wrlock != getpid()) {
+            e_trace(1, "Already locked");
             return -1;
+        }
 
         if (pid_get_starttime(btp->wrlock, &tv))
             return -1;
@@ -1275,13 +1283,15 @@ void btree_iter_begin(btree_t *_bt, btree_iter_t *iter)
 int btree_iter_next(btree_t *_bt, btree_iter_t *iter, uint64_t *key, blob_t *out)
 {
     struct btree_priv *bt = _bt->area;
-    const bt_leaf_t *leaf = MAP_CONST_LEAF(bt, iter->page);
+    const bt_leaf_t *leaf;
     int len = 0;
 
     if (iter->page == BTPP_NIL) {
         bt_real_unlock(_bt);
         return -1;
     }
+
+    leaf = MAP_CONST_LEAF(bt, iter->page);
 
     while (iter->pos >= leaf->used) {
         if (leaf->next == BTPP_NIL) {
