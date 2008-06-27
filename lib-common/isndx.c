@@ -194,6 +194,13 @@ isndx_t *isndx_open(const char *path, int flags)
         return NULL;
     }
 
+    if (memcmp(ndx->file->area->magic, ISNDX_MAGIC, 4)) {
+        /* Bad magic */
+        e_error("Corrupted index file: %s", path);
+        isndx_close(&ndx);
+        return NULL;
+    }
+
     ndx->pageshift = ndx->file->area->pageshift;
     ndx->pagesize  = ndx->file->area->pagesize;
     ndx->root      = ndx->file->area->root;
