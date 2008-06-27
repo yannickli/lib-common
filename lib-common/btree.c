@@ -1335,6 +1335,8 @@ int btree_iter_next(btree_t *_bt, btree_iter_t *iter, uint64_t *key, blob_t *out
             }
         }
     } while (btl_keycmp(*key, leaf, iter->pos) == CMP_EQUAL);
+
+    return 0;
 }
 
 /*---------------- File I/O based read-only API functions ----------------*/
