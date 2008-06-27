@@ -1252,6 +1252,85 @@ int btree_push(btree_t *bt, uint64_t key, const void *_data, int dlen)
     return -1;
 }
 
+/*---------------- iterator apis                          ----------------*/
+
+void btree_iter_begin(btree_t *_bt, btree_iter_t *iter)
+{
+    struct btree_priv *bt = _bt->area;
+    int32_t page = bt->root;
+
+    bt_real_rlock(_bt);
+
+    while (BTPP_IS_NODE(page)) {
+        const bt_node_t *node = MAP_CONST_NODE(bt, page);
+        assert (node);
+        page = node->ptrs[0];
+    }
+
+    iter->page = page;
+    iter->pos  = 0;
+    return;
+}
+
+int btree_iter_next(btree_t *_bt, btree_iter_t *iter, uint64_t *key, blob_t *out)
+{
+    struct btree_priv *bt = _bt->area;
+    const bt_leaf_t *leaf = MAP_CONST_LEAF(bt, iter->page);
+    int len = 0;
+
+    if (iter->page == BTPP_NIL) {
+        bt_real_unlock(_bt);
+        return -1;
+    }
+
+    while (iter->pos >= leaf->used) {
+        if (leaf->next == BTPP_NIL) {
+            bt_real_unlock(_bt);
+            return -1;
+        }
+        iter->page = leaf->next;
+        iter->pos  = 0;
+        leaf = MAP_CONST_LEAF(bt, iter->page);
+    }
+
+    blob_reset(out);
+    memcpy(key, leaf->data + iter->pos + 1, 8);
+
+    do {
+        int datalen;
+
+        /* skip key */
+        iter->pos += 1 + 8;
+        if (unlikely(iter->pos >= leaf->used)) {
+            /* should flag btree struture error: no data length */
+            break;
+        }
+
+        datalen = leaf->data[iter->pos++];
+        if (unlikely(iter->pos + datalen > leaf->used)) {
+            /* should flag btree struture error: not enough data */
+            break;
+        }
+
+        blob_append_data(out, leaf->data + iter->pos, datalen);
+        len += datalen;
+        iter->pos += datalen;
+
+        if (iter->pos >= leaf->used) {
+            iter->pos = 0;
+            if ((iter->page = leaf->next) == BTPP_NIL)
+                break;
+            leaf = MAP_CONST_LEAF(bt, iter->page = leaf->next);
+            if (!leaf || leaf->used <= 0) {
+                /* should flag btree structure error */
+                break;
+            }
+        }
+    } while (btl_keycmp(*key, leaf, iter->pos) == CMP_EQUAL);
+
+    return 0;
+}
+
 /*---------------- File I/O based read-only API functions ----------------*/
 
 struct fbtree_t {

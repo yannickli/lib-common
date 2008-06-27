@@ -36,6 +36,11 @@ static inline btree_t *btree_creat(const char *path) {
 }
 void btree_close(btree_t **tree);
 
+typedef struct { int32_t page; int32_t pos; }  btree_iter_t;
+
+void btree_iter_begin(btree_t *bt, btree_iter_t *iter);
+int  btree_iter_next(btree_t *bt, btree_iter_t *iter, uint64_t *key, blob_t *data);
+
 /* OG: Should have both APIs, the default taking a (byte *, len) couple.
  * these should be called btree_fetch_uint64 and btree_push_uint64.
  * Actually, since the implementation seems hardwired for uint64_t
