@@ -20,36 +20,45 @@ static void usage(const char *arg0)
            "    filename       the name of the stats file to dump\n"
            "\n"
            "Options:\n"
-           "    -h             show this help\n" , arg0
+           "    -h             show this help\n"
+           "    -H             hours stats mode\n" , arg0
            );
 }
 int main(int argc, char **argv)
 {
     blob_t blob;
     int c;
+    int hour;
     const char *arg0 = argv[0];
 
-    while ((c = getopt(argc, argv, "h")) >= 0) {
+    while ((c = getopt(argc, argv, "hH")) >= 0) {
         switch (c) {
-
           case 'h':
             usage(arg0);
             return 1;
+
+          case 'H':
+            hour = 1;
+            break;
 
           default:
             break;
         }
     }
-    if (argc != 2) {
+    if (optind != argc - 1) {
         usage(arg0);
         return 1;
     }
     blob_init(&blob);
-    if (blob_append_file_data(&blob, argv[1]) < 0) {
+    if (blob_append_file_data(&blob, argv[optind]) < 0) {
+        printf("Could not read file %s: %m", argv[optind]);
         return 2;
-
     }
-    stats_temporal_dump_auto(blob.data, blob.len);
+    if (hour) {
+        stats_temporal_dump_hours(blob.data, blob.len);
+    } else {
+        stats_temporal_dump_auto(blob.data, blob.len);
+    }
     blob_wipe(&blob);
     return 0;
 }

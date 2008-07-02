@@ -1523,4 +1523,64 @@ void stats_temporal_dump_auto(byte *mem, int size)
         printf("\n");
     }
 }
+
+void stats_temporal_dump_hours(byte *mem, int size)
+{
+    stats_file64 *file;
+    struct tm t;
+    time_t d;
+    uint64_t *stats;
+
+    if (size < ssizeof(*file)) {
+        printf("mem buf too small\n");
+        return;
+    }
+
+    file = (stats_file64 *)mem;
+
+    d = file->start_time;
+    localtime_r(&d, &t);
+    printf("start_time: %d (%04d-%02d-%02d %02d:%02d:%02d)\n",
+           file->start_time,
+           t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
+           t.tm_hour, t.tm_min, t.tm_sec);
+    d = file->end_time;
+    localtime_r(&d, &t);
+    printf("end_time: %d (%04d-%02d-%02d %02d:%02d:%02d)\n",
+           file->end_time,
+           t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
+           t.tm_hour, t.tm_min, t.tm_sec);
+    printf("nb_stats: %d\n", file->nb_stats);
+    printf("nb_allocated: %d (should be %d)\n", file->nb_allocated,
+           (file->end_time - file->start_time) / 3600);
+    if (file->nb_allocated != (file->end_time - file->start_time) / 3600) {
+        printf("WRONG nb_allocated\n");
+    }
+    if (file->nb_allocated * file->nb_stats * sizeof(uint64_t) + sizeof(*file) != (size_t)size) {
+        printf("WRONG file size: expecting %d, got %d\n",
+               file->nb_allocated * file->nb_stats * sizeof(uint64_t) + sizeof(*file), size);
+        return;
+    }
+
+    printf("    date    ");
+    for (int i = 0; i < file->nb_stats; i++) {
+        printf("  stats n°%02d  ", i);
+    }
+    printf("\n");
+
+    stats = file->stats;
+    for (int i = 0; i < file->nb_allocated; i++) {
+        d = file->start_time + 3600 * i;
+        localtime_r(&d, &t);
+        printf("%04d-%02d-%02d %02d:%02d:%02d  ",
+               t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
+               t.tm_hour, t.tm_min, t.tm_sec);
+
+        for (int j = 0; j < file->nb_stats; j++) {
+            printf("%llu ", *stats++);
+        }
+
+        printf("\n");
+    }
+}
 #endif

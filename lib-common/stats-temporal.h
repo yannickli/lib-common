@@ -82,8 +82,10 @@ int stats_temporal_change_nbstats(const char *fullpath, int new_nbstats,
 
 #ifndef NDEBUG
 void stats_temporal_dump_auto(byte *mem, int size);
+void stats_temporal_dump_hours(byte *mem, int size);
 #else
 #define stats_temporal_dump_auto(...)
+#define stats_temporal_dump_hours(...)
 #endif
 
 
