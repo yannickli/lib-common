@@ -1370,6 +1370,102 @@ int stats_temporal_copy(stats_temporal_t *dst, stats_temporal_t *src)
     return 0;
 }
 
+int stats_temporal_change_nbstats(const char *fullpath, int new_nbstats,
+                                  int multiplier, int type)
+{
+    char backup_path[PATH_MAX];
+    char tmp_path[PATH_MAX];
+    mmfile_stats64 *old = NULL;
+    mmfile_stats64 *new = NULL;
+    int nb_hours, old_nbstats;
+    uint64_t *stats_old;
+    uint64_t *stats_new;
+
+    if (type != STATS_TEMPORAL_HOURS) {
+        e_error("Unsupported stats type %d for file %s", type, fullpath);
+        return -1;
+    }
+
+    if (new_nbstats <= 0) {
+        e_error("Unsupported stats number %d for file %s", new_nbstats, fullpath);
+        return -1;
+    }
+
+
+    old = mmfile_stats64_open(fullpath, O_RDONLY, 0, 0);
+
+    if (!old) {
+        e_error("Could not open old stats file '%s': %m", fullpath);
+        return -1;
+    }
+
+    old_nbstats = old->area->nb_stats;
+    if (old_nbstats % multiplier) {
+        e_error("Unsupported stats multiplier %d (nb_stats = %d) for file %s",
+                multiplier, old_nbstats, fullpath);
+        goto error;
+    }
+    old_nbstats /= multiplier;
+    if (old_nbstats == new_nbstats) {
+        mmfile_stats64_close(&old);
+        return 0;
+    }
+
+    snprintf(backup_path, sizeof(backup_path), "%s.bak", fullpath);
+    snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", fullpath);
+
+    nb_hours = (old->area->end_time - old->area->start_time) / 3600;
+
+    new = mmfile_stats64_creat(tmp_path, sizeof(stats_file64) +
+                               nb_hours * new_nbstats * multiplier * sizeof(uint64_t));
+    if (!new) {
+        e_error("Could not create new stats file: %m");
+        goto error;
+    }
+
+    new->area->start_time   = old->area->start_time;
+    new->area->end_time     = old->area->end_time;
+    new->area->nb_allocated = nb_hours;
+    new->area->nb_stats     = new_nbstats * multiplier;
+
+    stats_old = old->area->stats;
+    stats_new = new->area->stats;
+
+    if (old_nbstats > new_nbstats) {
+        for (int i = 0; i < nb_hours; i++) {
+            for (int m = 0; m < multiplier; m++) {
+                for (int j = 0; j < new_nbstats; j++) {
+                    *stats_new++ = *stats_old++;
+                }
+                stats_old += old_nbstats - new_nbstats;
+            }
+        }
+    } else {
+        for (int i = 0; i < nb_hours; i++) {
+            for (int m = 0; m < multiplier; m++) {
+                int j;
+                for (j = 0; j < old_nbstats; j++) {
+                    *stats_new++ = *stats_old++;
+                }
+                for (; j < new_nbstats; j++) {
+                    *stats_new++ = 0;
+                }
+            }
+        }
+    }
+
+    rename(fullpath, backup_path);
+    rename(tmp_path,  fullpath);
+    mmfile_stats64_close(&old);
+    mmfile_stats64_close(&new);
+    return 0;
+
+error:
+    mmfile_stats64_close(&old);
+    mmfile_stats64_close(&new);
+    return -1;
+}
+
 #ifndef NDEBUG
 void stats_temporal_dump_auto(byte *mem, int size)
 {

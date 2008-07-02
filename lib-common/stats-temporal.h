@@ -77,6 +77,9 @@ int stats_temporal_bin_to_xml(const byte *data, int dlen, blob_t *out);
 
 int stats_temporal_copy(stats_temporal_t *dst, stats_temporal_t *src);
 
+int stats_temporal_change_nbstats(const char *fullpath, int new_nbstats,
+                                  int multiplier, int type);
+
 #ifndef NDEBUG
 void stats_temporal_dump_auto(byte *mem, int size);
 #else
