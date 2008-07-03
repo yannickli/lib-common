@@ -1557,7 +1557,7 @@ void stats_temporal_dump_hours(byte *mem, int size)
         printf("WRONG nb_allocated\n");
     }
     if (file->nb_allocated * file->nb_stats * sizeof(uint64_t) + sizeof(*file) != (size_t)size) {
-        printf("WRONG file size: expecting %d, got %d\n",
+        printf("WRONG file size: expecting %zd, got %d\n",
                file->nb_allocated * file->nb_stats * sizeof(uint64_t) + sizeof(*file), size);
         return;
     }
@@ -1577,7 +1577,7 @@ void stats_temporal_dump_hours(byte *mem, int size)
                t.tm_hour, t.tm_min, t.tm_sec);
 
         for (int j = 0; j < file->nb_stats; j++) {
-            printf("%llu ", *stats++);
+            printf("%"PRIu64" ", *stats++);
         }
 
         printf("\n");
