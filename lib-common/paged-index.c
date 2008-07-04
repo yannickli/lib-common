@@ -394,7 +394,7 @@ static int32_t pidx_page_find(const pidx_file *pidx, uint64_t idx)
         page = pidx->area->pages[page].refs[int_bits_range(idx, shift, PIDX_SHIFT)];
         if (!page)
             return 0;
-        if (unlikely(page >= pidx->nbpages)) {
+        if (unlikely(page >= pidx->area->nbpages)) {
             e_warning("%s: broken pidx structure", pidx->path);
             return 0;
         }
