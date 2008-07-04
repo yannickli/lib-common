@@ -212,6 +212,7 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
 {
     pidx_file *pidx;
     int res;
+    bool force = false;
 
     assert (sizeof(pidx_page) == sizeof(pidx_t));
 
@@ -224,6 +225,15 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
                           PIDX_GROW * PIDX_PAGE);
     if (!pidx)
         return NULL;
+
+    if (flags & O_NONBLOCK) {
+        if (O_ISWRITE(flags)) {
+            e_warning("Force mode must be used in read-only");
+        } else {
+            flags &= ~O_NONBLOCK;
+            force = true;
+        }
+    }
 
     if ((flags & (O_TRUNC | O_CREAT)) && !pidx->area->magic) {
         int nbpages;
@@ -246,11 +256,15 @@ pidx_file *pidx_open(const char *path, int flags, uint8_t skip, uint8_t nbsegs)
     } else {
         res = pidx_fsck(pidx, O_ISWRITE(flags));
         if (res < 0) {
-            /* lock check failed, file was not closed properly */
-            e_error("Cannot open '%s': already locked", path);
-            pidx_close(&pidx);
-            errno = EINVAL;
-            return NULL;
+            if (!force) {
+                /* lock check failed, file was not closed properly */
+                e_error("Cannot open '%s': already locked", path);
+                pidx_close(&pidx);
+                errno = EINVAL;
+                return NULL;
+            } else {
+                e_error("Already locked, but force mode used");
+            }
         }
 
         if (res > 0) {
@@ -583,19 +597,27 @@ int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
     return out - orig;
 }
 
-void *pidx_data_getslicep(const pidx_file *pidx, uint64_t idx,
+void *pidx_data_getslicep(pidx_file *pidx, uint64_t idx,
                           int start, int len)
 {
-    int32_t page  = pidx_page_find(pidx, idx);
+    int32_t page;
+
+    pidx_real_rlock(pidx);
+
+    page = pidx_page_find(pidx, idx);
 
     while (page && len) {
         pidx_page *pg = pidx->area->pages + page;
         int32_t size = *(int32_t *)pg->payload;
 
-        if (size > PIDX_PAGE - 2 * ssizeof(int32_t))
+        if (size > PIDX_PAGE - 2 * ssizeof(int32_t)) {
+            pidx_real_unlock(pidx);
             return NULL;
+        }
 
         if (start < size) {
+            pidx_real_unlock(pidx);
+
             if (start + len > size)
                 return NULL;
 
@@ -606,6 +628,7 @@ void *pidx_data_getslicep(const pidx_file *pidx, uint64_t idx,
         page = pg->next;
     }
 
+    pidx_real_unlock(pidx);
     return NULL;
 }
 

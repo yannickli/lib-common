@@ -122,6 +122,6 @@ void pidx_data_release(pidx_file *pidx, uint64_t idx);
 
 
 /* XXX unsafe wrt threads and locks */
-void *pidx_data_getslicep(const pidx_file *pidx, uint64_t idx,
+void *pidx_data_getslicep(pidx_file *pidx, uint64_t idx,
                           int start, int len);
 #endif
