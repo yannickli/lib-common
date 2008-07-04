@@ -44,6 +44,7 @@ static void pidx_page_release(pidx_file *pidx, int32_t page)
 static int pidx_fsck_mark_page(byte *bits, pidx_file *pidx, int page)
 {
     if (page < 0 || page > pidx->area->nbpages || TST_BIT(bits, page)) {
+        e_trace(1, "Bug for page %d", page);
         return -1;
     }
 
@@ -71,9 +72,12 @@ static int pidx_fsck_recurse(byte *bits, pidx_file *pidx,
                 return -1;
         }
     } else {
+        int page0 = page;
         while ((page = pidx->area->pages[page].next) != 0) {
-            if (pidx_fsck_mark_page(bits, pidx, page))
+            if (pidx_fsck_mark_page(bits, pidx, page)) {
+                e_trace(1, "bug in data page %d (link of %d)", page, page0);
                 return -1;
+            }
         }
     }
 
@@ -123,6 +127,7 @@ static int pidx_fsck(pidx_file *pidx, int dofix)
     if (pidx->area->nbsegs < 1 || pidx->area->nbsegs > 6
     ||  pidx->area->skip + PIDX_SHIFT * pidx->area->nbsegs > 64)
     {
+        e_trace(1, "Bad pidx definition");
         return -1;
     }
 
@@ -135,6 +140,7 @@ static int pidx_fsck(pidx_file *pidx, int dofix)
         return -1;
 
     if (pidx->area->nbpages != pidx->size / PIDX_PAGE - 1) {
+        e_trace(1, "Bad nb pages");
         if (!dofix)
             return -1;
 
@@ -148,6 +154,7 @@ static int pidx_fsck(pidx_file *pidx, int dofix)
     if (pidx->area->freelist < 0
     || pidx->area->freelist >= pidx->area->nbpages)
     {
+        e_trace(1, "Bad freelist");
         if (!dofix)
             return -1;
 
@@ -163,6 +170,7 @@ static int pidx_fsck(pidx_file *pidx, int dofix)
 
         /* check used pages */
         if (pidx_fsck_recurse(bits, pidx, 0, pidx->area->nbsegs) < 0) {
+            e_trace(1, "Bad check on used pages");
             p_delete(&bits);
             return -1;
         }
@@ -174,6 +182,7 @@ static int pidx_fsck(pidx_file *pidx, int dofix)
         {
             if (pidx_fsck_mark_page(bits, pidx, *prev)) {
                 if (!dofix) {
+                    e_trace(1, "Bad check on freelist pages (%d)", *prev);
                     p_delete(&bits);
                     return -1;
                 }
