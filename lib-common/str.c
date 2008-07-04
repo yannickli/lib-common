@@ -1100,11 +1100,11 @@ size_t purldecode(const char *in, byte *out, size_t size, int flags)
 
     if (p > in) {
         if ((size_t)(p - in) >= size) {
-            memcpy(out, in, size - 1);
+            memmove(out, in, size - 1);
             out[size] = '\0';
             return size;
         }
-        memcpy(out, in, p - in);
+        memmove(out, in, p - in);
         written = p - in;
         q = out + written;
         size -= written;
