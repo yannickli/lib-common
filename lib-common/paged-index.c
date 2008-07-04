@@ -394,6 +394,10 @@ static int32_t pidx_page_find(const pidx_file *pidx, uint64_t idx)
         page = pidx->area->pages[page].refs[int_bits_range(idx, shift, PIDX_SHIFT)];
         if (!page)
             return 0;
+        if (unlikely(page >= pidx->nbpages)) {
+            e_warning("%s: broken pidx structure", pidx->path);
+            return 0;
+        }
     }
 
     return page;
@@ -566,10 +570,11 @@ int pidx_key_last(pidx_file *pidx, uint64_t maxval, uint64_t *res)
 int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
                        byte *out, int start, int len)
 {
-    int32_t page  = pidx_page_find(pidx, idx);
     const byte *orig = out;
+    int32_t page;
 
     pidx_real_rlock(pidx);
+    page = pidx_page_find(pidx, idx);
 
     while (page && len) {
         pidx_page *pg = pidx->area->pages + page;
@@ -603,7 +608,6 @@ void *pidx_data_getslicep(pidx_file *pidx, uint64_t idx,
     int32_t page;
 
     pidx_real_rlock(pidx);
-
     page = pidx_page_find(pidx, idx);
 
     while (page && len) {
@@ -634,10 +638,11 @@ void *pidx_data_getslicep(pidx_file *pidx, uint64_t idx,
 
 int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out)
 {
-    int32_t page  = pidx_page_find(pidx, idx);
-    ssize_t pos   = out->len;
+    ssize_t pos = out->len;
+    int32_t page;
 
     pidx_real_rlock(pidx);
+    page = pidx_page_find(pidx, idx);
 
     while (page) {
         pidx_page *pg = pidx->area->pages + page;
