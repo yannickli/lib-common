@@ -738,7 +738,7 @@ pidx_page_recollect(pidx_file *pidx, uint64_t idx, int shift, int32_t page)
     int pos = int_bits_range(idx, shift, PIDX_SHIFT);
     pidx_page *pg = pidx->area->pages + page;
 
-    if (shift > maxshift)
+    if (shift >= maxshift)
         return true;
 
     if (pidx_page_recollect(pidx, idx, shift + PIDX_SHIFT, pg->refs[pos])) {
