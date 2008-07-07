@@ -30,15 +30,13 @@ MMFILE_FUNCTIONS(pidx_file, pidx_real);
 /* whole file related functions                                             */
 /****************************************************************************/
 
-/* FIXME make this thread safe */
 static void pidx_page_release(pidx_file *pidx, int32_t page)
 {
     assert (page > 0 && page < pidx->area->nbpages);
 
+    p_clear(&pidx->area->pages[page], 1);
     pidx->area->pages[page].next = pidx->area->freelist;
     pidx->area->freelist = page;
-    p_clear(pidx->area->pages[page].payload,
-            countof(pidx->area->pages[page].payload));
 }
 
 static int pidx_fsck_mark_page(byte *bits, pidx_file *pidx, int page)
@@ -181,8 +179,8 @@ static int pidx_fsck(pidx_file *pidx, int dofix)
              prev = &pidx->area->pages[*prev].next)
         {
             if (pidx_fsck_mark_page(bits, pidx, *prev)) {
+                e_trace(1, "Bad check on freelist pages (%d)", *prev);
                 if (!dofix) {
-                    e_trace(1, "Bad check on freelist pages (%d)", *prev);
                     p_delete(&bits);
                     return -1;
                 }
@@ -203,6 +201,7 @@ static int pidx_fsck(pidx_file *pidx, int dofix)
                     page -= 8;
                 } else {
                     if (!TST_BIT(bits, page)) {
+                        e_trace(1, "Force move page %d to freelist", page);
                         pidx_page_release(pidx, page);
                         did_a_fix = true;
                     }
@@ -419,7 +418,7 @@ static int32_t pidx_page_getfree(pidx_file *pidx)
 
     if (pidx->area->freelist) {
         res = pidx->area->freelist;
-        pidx->area->freelist = pidx->area->pages[pidx->area->freelist].next;
+        pidx->area->freelist = pidx->area->pages[res].next;
         pidx->area->pages[res].next = 0;
         return res;
     }
@@ -740,14 +739,28 @@ int pidx_data_set(pidx_file *pidx, uint64_t idx, const byte *data, int len)
     return 0;
 }
 
-static void
-pidx_page_recollect(pidx_file *pidx, uint64_t idx, int shift, int32_t page)
+void pidx_data_release(pidx_file *pidx, uint64_t idx)
 {
-    uint32_t path[64 / PIDX_SHIFT];
+    uint32_t path[64 / PIDX_SHIFT + 1];
+    int32_t page = 0;
+    int shift = pidx->area->skip;
 
-    for (int i = 0; i < pidx->area->nbsegs - 1; i++) {
+    if (int_bits_range(idx, 0, shift))
+        return;
+
+    pidx_real_wlock(pidx);
+
+    for (int i = 0; i < pidx->area->nbsegs; i++) {
         int pos = int_bits_range(idx, shift + i * PIDX_SHIFT, PIDX_SHIFT);
         path[i + 1] = page = pidx->area->pages[page].refs[pos];
+        if (!page)
+            goto done;
+    }
+
+    while (page) {
+        int32_t next = pidx->area->pages[page].next;
+        pidx_page_release(pidx, page);
+        page = next;
     }
 
     for (int i = pidx->area->nbsegs - 1; i >= 1; i--) {
@@ -757,27 +770,13 @@ pidx_page_recollect(pidx_file *pidx, uint64_t idx, int shift, int32_t page)
         pg->refs[pos] = 0;
         for (int j = 0; j < PIDX_PAGE / 4; j++) {
             if (pg->refs[j])
-                return;
+                goto done;
         }
         pidx_page_release(pidx, path[i]);
     }
     pidx->area->pages[0].refs[int_bits_range(idx, shift, PIDX_SHIFT)] = 0;
-}
 
-void pidx_data_release(pidx_file *pidx, uint64_t idx)
-{
-    int32_t page = pidx_page_find(pidx, idx);
-
-    if (!page)
-        return;
-
-    pidx_real_wlock(pidx);
-    pidx_page_recollect(pidx, idx, pidx->area->skip, 0);
-
-    while (page) {
-        int32_t next = pidx->area->pages[page].next;
-        pidx_page_release(pidx, page);
-        page = next;
-    }
+  done:
     pidx_real_unlock(pidx);
+    return;
 }
