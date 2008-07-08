@@ -44,6 +44,8 @@ define ext/rule/wa
 $2: $$(patsubst %.wa,$~%$4.wa,$3)
 endef
 
+#[ c ]####################################################################
+
 define ext/expand/c
 $3: $~%$$(tmp/$2/ns)$4.o: %.c | __$(1D)_generated
 	$(msg/COMPILE.c) $$(<R)
@@ -59,6 +61,27 @@ tmp/$2/objs := $$(patsubst %.c,$~%$$(tmp/$2/ns)$4.o,$3)
 $2: $$(tmp/$2/objs)
 $$(foreach o,$$(tmp/$2/objs),$$(eval $$(call fun/do-once,ext/expand/c/$$o,$$(call ext/expand/c,$1,$2,$$o,$4))))
 $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/objs),$3))
+endef
+
+#[ lex ]##################################################################
+
+ext/gen/l = $(call fun/patsubst-filt,%.l,%.c,$1)
+
+define ext/expand/l
+$(3:l=c): %.c: %.l
+	$(msg/COMPILE.l) $$(@R)
+	if [ -e $$@ ] ; then chmod a+w $$@ ; fi
+	flex -R -o $$@ $$<
+	sed -i -e 's/^extern int isatty.*;//' \
+	       -e 's/^\t\tint n; \\/		size_t n; \\/' $$@
+	chmod a-w $$@
+__$(1D)_generated: $(3:l=c)
+$$(eval $$(call fun/common-depends,$1,$(3:l=c),$3))
+endef
+
+define ext/rule/l
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/l,$1,$2,$$t,$4))))
+$$(eval $$(call ext/rule/c,$1,$2,$(3:l=c),$4))
 endef
 
 #}}}

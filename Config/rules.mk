@@ -1,25 +1,3 @@
-#[ lex ]##############################################################{{{#
-
-ext/gen/l = $(call fun/patsubst-filt,%.l,%.c,$1)
-
-define ext/expand/l
-$(3:l=c): %.c: %.l
-	$(msg/COMPILE.l) $$(@R)
-	if [ -e $$@ ] ; then chmod a+w $$@ ; fi
-	flex -R -o $$@ $$<
-	sed -i -e 's/^extern int isatty.*;//' \
-	       -e 's/^\t\tint n; \\/		size_t n; \\/' $$@
-	chmod a-w $$@
-__$(1D)_generated: $(3:l=c)
-$$(eval $$(call fun/common-depends,$1,$(3:l=c),$3))
-endef
-
-define ext/rule/l
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/l,$1,$2,$$t,$4))))
-$$(eval $$(call ext/rule/c,$1,$2,$(3:l=c),$4))
-endef
-
-#}}}
 #[ tokens ]###########################################################{{{#
 
 ext/gen/tokens = $(call fun/patsubst-filt,%.tokens,%tokens.h,$1) $(call fun/patsubst-filt,%.tokens,%tokens.c,$1)
