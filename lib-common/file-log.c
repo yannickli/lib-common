@@ -91,7 +91,7 @@ static time_t log_last_date(log_file_t *log_file)
         d += strlen(log_file->prefix) + 1;
         /* %04d%02d%02d_%02d%02d%02d */
         p_clear(&tm, 1);
-        tm.tm_isdst = -1; /* We don't known current dst */
+        tm.tm_isdst = -1; /* We don't know current dst */
         tm.tm_year = memtoip(d, 4, &d) - 1900;
         tm.tm_mon  = memtoip(d, 2, &d) - 1;
         tm.tm_mday = memtoip(d, 2, &d);

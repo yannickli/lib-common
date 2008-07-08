@@ -16,12 +16,50 @@
 
 #include "mem.h"
 
-/*
- * A blob has a vital invariant, making every parse function avoid
- * buffer read overflows: there is *always* a '\0' in the data at
- * position len, implying that size is always >= len+1
+/* blob_t is a wrapper type for a reallocatable byte array.
+ * Its internal representation is accessible to client code but care
+ * must be exercised to preserve blob invariants and avoid dangling
+ * pointers when blob data is reallocated by blob functions.
  *
- * When allocated, the start of the data is at .data - .skip.
+ * Here is a description of the blob fields:
+ *
+ * - <data> is a pointer to the active portion of the byte array.  As
+ * <data> may be reallocated by blob operations, it is error prone to
+ * copy its value to a local variable for content parsing or other such
+ * manipulations.  As <data> may point to non allocated storage, static
+ * or dynamic or automatic, returning its value is guaranteed to cause
+ * potential problems, current of future.  If some blob data was
+ * skipped, <data> may no longer point to the beginning of the original
+ * or allocated array.  <data> cannot be NULL.  It is initialized as
+ * the address of a global 1 byte array, or a buffer with automatic
+ * storage.
+ *
+ * - <len> is the length in bytes of the blob contents.  A blob invariant
+ * specifies that data[len] == '\0'.  This invariant must be kept at
+ * all times, and implies that data storage extend at least one byte
+ * beyond <len>. <len> is always positive or zero. <len> is initialized
+ * to zero for an empty blob.
+ *
+ * - <size> is the number of bytes available for blob contents starting
+ * at <data>.  The blob invariant implies that size > len.
+ *
+ * - <skip> is a count of byte skipped from the beginning of the
+ * original data buffer.  It is used for efficient pruning of initial
+ * bytes.
+ *
+ * - <allocated> is a 1 bit boolean to indicate if blob data was
+ * allocated with p_new and must be freed.  Actual allocated buffer
+ * starts at .data - .skip.
+ *
+ * blob invariants:
+ * - blob.data != NULL
+ * - blob.len >= 0
+ * - blob.size > blob.len
+ * - blob.data - blob.skip points to an array of at least
+ * blob.size + blob.skip bytes.
+ * - blob.data[blob.len] == '\0'
+ * - if blob.allocated, blob.data - blob.skip is a pointer handled by
+ * mem_alloc / mem_free.
  */
 typedef struct blob_t {
     byte *data;
@@ -30,9 +68,13 @@ typedef struct blob_t {
     unsigned int skip : 31;
 } blob_t;
 
-/* XXX: a small amount of information used to *never* have a NULL ->data
- * member It should always stay equal to \0 and is writeable so that code
- * enforcing the invariant putting \0 at that place do work.
+/* Default byte array for empty blobs. It should always stay equal to
+ * \0 and is writeable to simplify some blob functions that enforce the
+ * invariant by writing \0 at data[len].
+ * This data is thread specific for obscure and ugly reasons: some blob
+ * functions may temporarily overwrite the '\0' and would cause
+ * spurious bugs in other threads sharing the same blob data.
+ * It would be much cleaner if this array was const.
  */
 extern __thread byte blob_slop[1];
 
@@ -54,18 +96,19 @@ static inline void blob_init2(blob_t *blob, void *buf, int size) {
     blob->data[0] = '\0';
 }
 
-/* Warning: prevent multiple evaluation of size, but use of alloca
- * requires implementation as a macro.
+/* Warning: size is evaluated multiple times, but use of alloca
+ * requires implementation as a macro.  size should be a constant
+ * anyway.
  */
 #define blob_inita(blob, size)                \
     do {                                      \
-        STATIC_ASSERT(size < (64 << 10));     \
+        STATIC_ASSERT((size) < (64 << 10));   \
         blob_init2(blob, alloca(size), size); \
     } while (0)
 
 static inline blob_t *blob_init(blob_t *blob) {
     *blob = BLOB_STATIC_INIT;
-    /* setup invariant: blob is always NUL terminated */
+    /* check invariant in case blob_slop was overwritten */
     assert (blob->data[0] == '\0');
     return blob;
 }
@@ -76,10 +119,15 @@ static inline void blob_wipe(blob_t *blob) {
     blob_init(blob);
 }
 #define blob_reinit(b)  blob_wipe(b)
-char *blob_detach(blob_t *blob);
 
 GENERIC_NEW(blob_t, blob);
 GENERIC_DELETE(blob_t, blob);
+
+/* Detach blob data: return allocated buffer with blob contents and
+ * reset blob.  Buffer is not reallocated if blob data was already
+ * allocated.
+ */
+char *blob_detach(blob_t *blob);
 
 blob_t *blob_dup(const blob_t *blob);
 
@@ -94,7 +142,6 @@ static inline const char *blob_get_end(const blob_t *blob) {
     blob_check_slop();
     return (const char *)blob->data + blob->len;
 }
-
 
 /**************************************************************************/
 /* Blob size/len manipulations                                            */
@@ -119,8 +166,8 @@ static inline void blob_grow(blob_t *blob, int extralen) {
     blob_check_slop();
     if (blob->len + extralen >= blob->size) {
         blob_ensure(blob, blob->len + extralen);
+        blob_check_slop();
     }
-    blob_check_slop();
 }
 
 static inline void blob_setlen(blob_t *blob, int newlen) {
@@ -385,8 +432,9 @@ bool blob_istart(const blob_t *blob1, const blob_t *blob2, const byte **pp);
 void blob_urldecode(blob_t *url);
 void blob_append_urldecode(blob_t *out, const char *encoded, int len,
                            int flags);
-void blob_b64encode(blob_t *blob, int nbpackets);
 void blob_b64decode(blob_t *blob);
+
+int blob_hexdecode(blob_t *out, const void *src, int len);
 
 /**************************************************************************/
 /* Blob compression/decompression                                         */
@@ -429,29 +477,30 @@ static inline int blob_append_xml_escape_cstr(blob_t *dst, const char *s) {
 void blob_append_quoted_printable(blob_t *dst, const byte *src, int len);
 void blob_decode_quoted_printable(blob_t *dst, const char *src, int len);
 
+int blob_append_smtp_data(blob_t *dst, const byte *src, int len);
+int blob_append_hex(blob_t *dst, const byte *src, int len);
+
+void blob_append_wbxml_href(blob_t *dst, const byte *data, int len);
+
+void blob_append_date_iso8601(blob_t *dst, time_t date);
+
+/* base64 encoding */
 typedef struct base64enc_ctx {
-    int width;
+    int packs_per_line;
     int pack_num;
     uint8_t nbmissing;
     byte trail;
 } base64enc_ctx;
 
-GENERIC_FUNCTIONS(base64enc_ctx, base64enc_ctx);
-
 /* Simple encoding */
 void blob_append_base64(blob_t *dst, const byte *src, int len, int width);
 
-void blob_append_date_iso8601(blob_t *dst, time_t date);
-
 /* base64 encoding per packets */
-void blob_append_base64_update(blob_t *dst, const byte *src, int len,
+void blob_append_base64_start(blob_t *dst, int len, int width,
+                              base64enc_ctx *ctx);
+void blob_append_base64_update(blob_t *dst, const void *src, int len,
                                base64enc_ctx *ctx);
 void blob_append_base64_finish(blob_t *dst, base64enc_ctx *ctx);
-
-int blob_append_smtp_data(blob_t *dst, const byte *src, int len);
-int blob_append_hex(blob_t *dst, const byte *src, int len);
-
-void blob_append_wbxml_href(blob_t *dst, const byte *data, int len);
 
 /* in blob_emi.c */
 int blob_append_ira_hex(blob_t *dst, const byte *src, int len);

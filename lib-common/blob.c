@@ -37,16 +37,17 @@ __thread byte blob_slop[1];
 char *blob_detach(blob_t *blob)
 {
     char *res;
-    if (!blob->allocated) {
-        res = p_dupz(blob->data, blob->len);
-        /* OG: Should do blob_init() as well */
-        blob_reset(blob);
-    } else {
+
+    if (blob->allocated) {
         if (blob->skip) {
             memmove(blob->data - blob->skip, blob->data, blob->len + 1);
         }
         res = (char *)(blob->data - blob->skip);
         blob_init(blob);
+    } else {
+        res = p_dupz(blob->data, blob->len);
+        /* Keep the same local blob buffer */
+        blob_reset(blob);
     }
     return res;
 }
@@ -57,30 +58,6 @@ blob_t *blob_dup(const blob_t *src)
     blob_t *dst = blob_new();
     blob_set(dst, src);
     return dst;
-}
-
-/* Set the payload of a blob to the given buffer of size bufsize.
- * len is the len of the data inside it.
- *
- * If 'allocated' is true, blob will own the buffer and free it
- * with p_delete upon resize and wipe.
- */
-static void blob_set_payload(blob_t *blob, int len,
-                             void *buf, int bufsize, bool allocated)
-{
-    assert (len >= 0 && bufsize > len);
-
-    if (blob->allocated) {
-        mem_free(blob->data - blob->skip);
-    }
-    *blob = (blob_t){
-        .allocated = allocated,
-        .data      = buf,
-        .len       = len,
-        .size      = bufsize,
-    };
-    /* OG: should assert instead? */
-    blob->data[len] = '\0';
 }
 
 /*
@@ -736,69 +713,6 @@ static inline int b64_size(int oldlen, int nbpackets)
     }
 }
 
-/* OG: this function is obsolete, should use blob_append_base64()
- * instead.
- */
-void blob_b64encode(blob_t *blob, int nbpackets)
-{
-    const int oldlen  = blob->len;
-    const int newlen  = b64_size(oldlen, nbpackets);
-    const int newsize = MEM_ALIGN(newlen + 1);
-
-    int     packs   = nbpackets;
-    byte    *buf    = p_new_raw(byte, newsize);
-    byte    *dst    = buf;
-    const byte *src = blob->data;
-    const byte *end = blob->data + blob->len;
-
-    while (src < end) {
-        int c1, c2, c3;
-
-        c1       = *(src++);
-        *(dst++) = b64[c1 >> 2];
-
-        if (src == end) {
-            *(dst++) = b64[((c1 & 0x3) << 4)];
-            *(dst++) = '=';
-            *(dst++) = '=';
-            if (nbpackets > 0) {
-                *(dst++) = '\r';
-                *(dst++) = '\n';
-            }
-            break;
-        }
-
-        c2       = *(src++);
-        *(dst++) = b64[((c1 & 0x3) << 4) | ((c2 & 0xf0) >> 4)];
-
-        if (src == end) {
-            *(dst++) = b64[((c2 & 0x0f) << 2)];
-            *(dst++) = '=';
-            if (nbpackets > 0) {
-                *(dst++) = '\r';
-                *(dst++) = '\n';
-            }
-            break;
-        }
-
-        c3 = *(src++);
-        *(dst++) = b64[((c2 & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
-        *(dst++) = b64[c3 & 0x3f];
-
-        if (nbpackets > 0 && (!--packs || src == end)) {
-            packs = nbpackets;
-            *(dst++) = '\r';
-            *(dst++) = '\n';
-        }
-    }
-
-#ifdef DEBUG
-    assert (dst == buf + newlen);
-#endif
-
-    blob_set_payload(blob, newlen, buf, newsize, true);
-}
-
 void blob_b64decode(blob_t *blob)
 {
     int len;
@@ -810,6 +724,35 @@ void blob_b64decode(blob_t *blob)
                                blob->len);
     blob_set_data(blob, dst, len);
     p_delete(&dst);
+}
+
+/* OG: API questions:
+ * why not take const char *src ?
+ * why not accept len=-1 to mean strlen(src) ?
+ */
+int blob_hexdecode(blob_t *out, const void *_src, int len)
+{
+    int oldlen = out->len;
+    const char *src = _src;
+    byte *dst;
+
+    if (len & 1)
+        return -1;
+
+    len /= 2;
+
+    blob_setlen(out, out->len + len);
+    dst = out->data + oldlen;
+    while (len-- > 0) {
+        int c = hexdecode(src);
+        if (unlikely(c < 0)) {
+            blob_setlen(out, oldlen);
+            return -1;
+        }
+        *dst++ = c;
+        src += 2;
+    }
+    return 0;
 }
 
 /* TODO: Could be optimized or made more strict to reject base64 strings
@@ -1085,6 +1028,9 @@ void blob_decode_quoted_printable(blob_t *dst, const char *src, int len)
  * line markers.  0 for standard 76 character lines, -1 for unlimited
  * line length.
  */
+/* OG: should rewrite this function using start/update/finish functions
+ * when output size computation is correct in blob_append_base64_update
+ */
 void blob_append_base64(blob_t *dst, const byte *src, int len, int width)
 {
     const byte *end;
@@ -1150,84 +1096,74 @@ void blob_append_base64(blob_t *dst, const byte *src, int len, int width)
             }
         }
     }
+    /* This is not strictly necessary, because blob_extend should have
+     * set the proper length and terminator as computed by b64_size
+     */
+    *data = '\0';
 
 #ifdef DEBUG
     assert (data == dst->data + dst->len);
 #endif
 }
 
+void blob_append_base64_start(blob_t *dst, int len, int width,
+                              base64enc_ctx *ctx)
+{
+    p_clear(ctx, 1);
+    if (width < 0) {
+        ctx->packs_per_line = -1;
+    } else
+    if (width == 0) {
+        ctx->packs_per_line = 19; /* 76 characters + \r\n */
+    } else {
+        ctx->packs_per_line = width / 4;
+    }
+    blob_grow(dst, b64_size(len, ctx->packs_per_line));
+}
+
 /* FIXME: This function is not very efficient in memory, we can end up with
  * an encoded blob of len = 4000 and size = 5000 */
-void blob_append_base64_update(blob_t *dst, const byte *src, int len,
+/* A length of -1 could mean strlen(src), we need a general convention
+ * for this. */
+void blob_append_base64_update(blob_t *dst, const void *src0, int len,
                                base64enc_ctx *ctx)
 {
+    const byte *src;
     const byte *end;
-    int prev_len, packs_per_line, pack_num;
+    int packs_per_line, pack_num;
     byte *data;
     int c1, c2, c3;
 
-    if (len == 0) {
+    if (len == 0)
         return;
-    }
 
-    if (ctx->width < 0) {
-        packs_per_line = -1;
-    } else
-    if (ctx->width == 0) {
-        packs_per_line = 19; /* 76 characters + \r\n */
-    } else {
-        packs_per_line = ctx->width / 4;
-    }
-
-    /* Ensure sufficient space to encode fully len + 3 trailing
-     * bytes from ctx + 2 for \r\n */
-    blob_grow(dst, b64_size(len, packs_per_line) + 5);
-
-    prev_len = dst->len;
-    data = dst->data + prev_len;
+    packs_per_line = ctx->packs_per_line;
     pack_num = ctx->pack_num;
+    if (len >= ctx->nbmissing) {
+        /* Ensure sufficient space to encode fully len + 3 trailing
+         * bytes from ctx + 2 for \r\n.
+         * Should compute size more conservatively.
+         */
+        blob_grow(dst, b64_size(len - ctx->nbmissing, packs_per_line) + 5);
+    }
+
+    data = dst->data + dst->len;
+    src = src0;
     end = src + len;
 
     if (ctx->nbmissing == 2) {
-        c2  = *src++;
-
-        *data++ = b64[((ctx->trail & 0x3) << 4) | ((c2 & 0xf0) >> 4)];
-        if (src == end) {
-            ctx->nbmissing = 1;
-            ctx->trail     = c2;
-
-            goto end;
-        }
-
-        c3 = *src++;
-        *data++ = b64[((c2 & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
-        *data++ = b64[c3 & 0x3f];
-
-        if (packs_per_line > 0) {
-            if (++pack_num >= packs_per_line) {
-                pack_num = 0;
-                *data++ = '\r';
-                *data++ = '\n';
-            }
-        }
-    } else
-    if (ctx->nbmissing == 1) {
-        c3 = *src++;
-        *data++ = b64[((ctx->trail & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
-        *data++ = b64[c3 & 0x3f];
-
-        if (packs_per_line > 0) {
-            if (++pack_num >= packs_per_line) {
-                pack_num = 0;
-                *data++ = '\r';
-                *data++ = '\n';
-            }
-        }
+        ctx->nbmissing = 0;
+        c1 = ctx->trail;
+        goto has1;
     }
-    ctx->nbmissing = 0;
+    if (ctx->nbmissing == 1) {
+        ctx->nbmissing = 0;
+        c2 = ctx->trail;
+        goto has2;
+    }
 
     while (src < end) {
-        c1      = *src++;
+        c1 = *src++;
         *data++ = b64[c1 >> 2];
 
         if (src == end) {
@@ -1236,7 +1172,8 @@ void blob_append_base64_update(blob_t *dst, const byte *src, int len,
             break;
         }
 
-        c2      = *src++;
+      has1:
+        c2 = *src++;
         *data++ = b64[((c1 & 0x3) << 4) | ((c2 & 0xf0) >> 4)];
 
         if (src == end) {
@@ -1245,24 +1182,23 @@ void blob_append_base64_update(blob_t *dst, const byte *src, int len,
             break;
         }
 
+      has2:
         c3 = *src++;
         *data++ = b64[((c2 & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
         *data++ = b64[c3 & 0x3f];
+        pack_num++;
 
-        if (packs_per_line > 0) {
-            if (++pack_num >= packs_per_line) {
-                pack_num = 0;
-                *data++ = '\r';
-                *data++ = '\n';
-            }
+        if (packs_per_line > 0 && pack_num >= packs_per_line) {
+            pack_num = 0;
+            *data++ = '\r';
+            *data++ = '\n';
         }
     }
 
-  end:
     ctx->pack_num = pack_num;
-    dst->len = data - dst->data;
 
-    return;
+    *data = '\0';
+    dst->len = data - dst->data;
 }
 
 void blob_append_base64_finish(blob_t *dst, base64enc_ctx *ctx)
@@ -1274,31 +1210,33 @@ void blob_append_base64_finish(blob_t *dst, base64enc_ctx *ctx)
 
     switch (ctx->nbmissing) {
       case 0:
-        if (ctx->pack_num == 0)
-            return;
         break;
 
       case 1:
         *data++ = b64[((ctx->trail & 0x0f) << 2)];
         *data++ = '=';
+        ctx->pack_num++;
         break;
 
       case 2:
         *data++ = b64[((ctx->trail & 0x3) << 4)];
         *data++ = '=';
         *data++ = '=';
+        ctx->pack_num++;
         break;
 
       default:
         e_panic("Corrupted base64 ctx");
     }
-    if (ctx->width >= 0) {
+    if (ctx->packs_per_line > 0 && ctx->pack_num != 0) {
+        ctx->pack_num = 0;
         *data++ = '\r';
         *data++ = '\n';
     }
+    ctx->nbmissing = 0;
 
+    *data = '\0';
     dst->len = data - dst->data;
-    dst->data[dst->len] = '\0';
 }
 
 int blob_append_smtp_data(blob_t *dst, const byte *src, int len)
@@ -2412,9 +2350,8 @@ START_TEST(check_b64)
     byte decoded[BUFSIZ];
     int res;
 
+    // Should check blob_append_base64_*
     check_setup(&blob, "abcdef");
-
-    blob_b64encode(&blob, 16);
     check_blob_invariants(&blob);
 
     CHECK_BASE64_CORRECT("dHV0dTp0b3Rv", "tutu:toto");

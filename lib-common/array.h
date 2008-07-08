@@ -238,8 +238,12 @@ static inline int string_array_find(const string_array *arr, const char *val)
     return -1;
 }
 
-#define MAKE_IOVEC(data, len)  (struct iovec){ \
-    .iov_base = (void *)(data), .iov_len = (len) }
+/* `data' is cast to `void *' to remove the const: iovec structs are used
+ * for input and output, thus `iov_base' cannot be `const void *' even
+ * for write operations.
+ */
+#define MAKE_IOVEC(data, len)  \
+     (struct iovec){ .iov_base = (void *)(data), .iov_len = (len) }
 
 DO_VECTOR(struct iovec, iovec);
 

@@ -120,6 +120,30 @@ int strconv_hexdecode(byte *dest, int size, const char *src, int len)
     return prev_len / 2;
 }
 
+int strconv_hexencode(char *dest, int size, const byte *src, int len)
+{
+    int prev_len;
+
+    if (len < 0) {
+        return -1;
+    }
+    prev_len = len;
+
+    while (len && size > 1) {
+        *dest++ = __str_digits_lower[(*src >> 4) & 15];
+        *dest++ = __str_digits_lower[(*src++) & 15];
+        size -= 2;
+        len--;
+    }
+
+    if (size)
+        *dest = '\0';
+    else
+        *--dest = '\0';
+
+    return prev_len * 2;
+}
+
 static inline int str_escape_value(int x) {
     return __str_escape_value[x + 128];
 }

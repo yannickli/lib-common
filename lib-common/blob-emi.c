@@ -361,6 +361,9 @@ int blob_decode_ira_hex_as_utf8(blob_t *dst, const char *src, int slen)
 {
     int pos, len;
 
+    if (slen & 1)
+        return -1;
+
     pos = dst->len;
     len = slen / 2;
     for (;;) {
@@ -400,6 +403,9 @@ int string_decode_ira_hex_as_latin15(char *dst, int size,
                                      const char *src, int len)
 {
     int pos = 0;
+
+    if (len & 1)
+        return -1;
 
     while (len >= 2) {
         int ind = hexdecode(src);

@@ -142,7 +142,7 @@ int tpl_encode_base64(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
         blob = tpl_get_blob(out);
     }
 
-    base64enc_ctx_init(&ctx);
+    blob_append_base64_start(blob, 0, 0, &ctx);
 
     while (--nb >= 0) {
         tpl_t *arg = *args++;
@@ -188,8 +188,9 @@ int tpl_encode_wbxml_href(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
 
     assert (nb > 0);
     arg0 = *args;
+
     if (!blob) {
-        assert(out);
+        assert (out);
         blob = tpl_get_blob(out);
     }
 
@@ -210,4 +211,3 @@ int tpl_encode_wbxml_href(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
 
     return 0;
 }
-

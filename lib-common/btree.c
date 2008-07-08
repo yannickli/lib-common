@@ -1260,7 +1260,11 @@ int btree_push(btree_t *bt, uint64_t key, const void *_data, int dlen)
     return -1;
 }
 
-/*---------------- iterator apis                          ----------------*/
+/*---------------- Iterator APIs ----------------*/
+
+/* OG: need more iter functions, esp. btree_iter_end() to unlock the
+ * btree_t.
+ */
 
 void btree_iter_begin(btree_t *_bt, btree_iter_t *iter)
 {
@@ -1277,15 +1281,16 @@ void btree_iter_begin(btree_t *_bt, btree_iter_t *iter)
 
     iter->page = page;
     iter->pos  = 0;
-    return;
 }
 
-int btree_iter_next(btree_t *_bt, btree_iter_t *iter, uint64_t *key, blob_t *out)
+int btree_iter_next(btree_t *_bt, btree_iter_t *iter,
+                    uint64_t *key, blob_t *out)
 {
     struct btree_priv *bt = _bt->area;
     const bt_leaf_t *leaf;
 
     if (iter->page == BTPP_NIL) {
+        /* OG: unlock should be done in btree_iter_end() */
         bt_real_unlock(_bt);
         return -1;
     }
@@ -1294,6 +1299,7 @@ int btree_iter_next(btree_t *_bt, btree_iter_t *iter, uint64_t *key, blob_t *out
 
     while (iter->pos >= leaf->used) {
         if (leaf->next == BTPP_NIL) {
+            /* OG: unlock should be done in btree_iter_end() */
             bt_real_unlock(_bt);
             return -1;
         }
@@ -1303,6 +1309,9 @@ int btree_iter_next(btree_t *_bt, btree_iter_t *iter, uint64_t *key, blob_t *out
     }
 
     blob_reset(out);
+    /* OG: should check unlikely(leaf->data[iter->pos] == 8 &&
+     *                           iter->pos + 1 + 8 > leaf->used)
+     */
     memcpy(key, leaf->data + iter->pos + 1, 8);
 
     do {
@@ -1328,6 +1337,7 @@ int btree_iter_next(btree_t *_bt, btree_iter_t *iter, uint64_t *key, blob_t *out
             iter->pos = 0;
             if ((iter->page = leaf->next) == BTPP_NIL)
                 return 0;
+            /* OG: redundant iter->page assignment */
             leaf = MAP_CONST_LEAF(bt, iter->page = leaf->next);
             if (!leaf || leaf->used <= 0) {
                 /* should flag btree structure error */
@@ -1336,6 +1346,7 @@ int btree_iter_next(btree_t *_bt, btree_iter_t *iter, uint64_t *key, blob_t *out
         }
     } while (btl_keycmp(*key, leaf, iter->pos) == CMP_EQUAL);
 
+    /* OG: could return total data length */
     return 0;
 }
 

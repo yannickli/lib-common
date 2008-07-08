@@ -197,9 +197,9 @@ void htbl_invalidate(generic_htbl *t, int pos);
     do {                                                                     \
         assert (!(t)->inmap);                                                \
         (t)->inmap = true;                                                   \
-        for (int var##_i = 0; var##_i < (t)->size; var##_i++) {              \
-            if (TST_BIT((t)->setbits, var##_i))                              \
-                 f((t)->tab + var##_i, ##__VA_ARGS__);                       \
+        for (int __i = 0; __i < (t)->size; __i++) {                          \
+            if (TST_BIT((t)->setbits, __i))                                  \
+                 f((t)->tab + __i, ##__VA_ARGS__);                           \
         }                                                                    \
         (t)->inmap = false;                                                  \
     } while (0)
@@ -279,15 +279,10 @@ bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
 #define DO_HTBL_STR(type_t, pfx, member, inlined)                            \
     DO_HTBL_STROFFS(type_t, pfx, offsetof(type_t, member), inlined)
 
-#define DO_HTBL_FIELDOFFS(type_t, pfx)                                       \
-    DO_HTBL_STR_COMMON(type_t, pfx);                                         \
-    static inline pfx##_htbl *                                               \
-    pfx##_htbl_init_field(pfx##_htbl *t, int foff, bool inlined) {           \
-        p_clear(t, 1);                                                       \
-        t->name_offs   = foff;                                               \
-        t->name_inline = inlined;                                            \
-        return t;                                                            \
-    }                                                                        \
+#define HTBL_STROFFS_INIT(type_t, pfx, offs, inlined)                        \
+    { .name_inline = inlined, .name_offs = offs }
+#define HTBL_STR_INIT(type_t, pfx, member, inlined)                          \
+    HTBL_STROFFS_INIT(type_t, pfx, offsetof(type_t, member), inlined)
 
 #define DO_HTBL_FIELDINIT(type, pfx, sfx, field, inlined)                    \
     static inline pfx##_htbl *pfx##_htbl_##sfx##_init(pfx##_htbl *t) {       \
@@ -298,15 +293,18 @@ bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
     }                                                                        \
     GENERIC_NEW(pfx##_htbl, pfx##_htbl_##sfx)
 
-/* you can use htbl_ll_remove's in HTBL_STR_MAP's */
+/* htbl_ll_remove can be called from HTBL_STR_MAP invokations via f().
+ * calls to the f argument must not be parenthesized to allow macro
+ * expansion instead of plain function calls
+ */
 #define HTBL_STR_MAP(t, f, ...)                                              \
     do {                                                                     \
         (t)->inmap = true;                                                   \
-        for (int var##_i = 0; var##_i < (t)->size; var##_i++) {              \
-            if (TST_BIT((t)->setbits, var##_i)) {                            \
-                f(&(t)->tab[var##_i].e, ##__VA_ARGS__);                      \
-                if ((t)->tab[var##_i].e == NULL)                             \
-                    htbl_invalidate((generic_htbl *)(t), var##_i);           \
+        for (int __i = 0; __i < (t)->size; __i++) {                          \
+            if (TST_BIT((t)->setbits, __i)) {                                \
+                f(&(t)->tab[__i].e, ##__VA_ARGS__);                          \
+                if ((t)->tab[__i].e == NULL)                                 \
+                    htbl_invalidate((generic_htbl *)(t), __i);               \
             }                                                                \
         }                                                                    \
         (t)->inmap = false;                                                  \

@@ -866,18 +866,23 @@ int blob_append_archive(blob_t *output, const archive_build_array *archive)
     return 0;
 }
 
-int archive_build_from_archive(archive_build_array *res, const archive_t *archive)
+int archive_build_from_archive(archive_build_array *res,
+                               const archive_t *archive)
 {
     if (archive->nb_blocs == 0)
         return -1;
+
     for (int i = 0; i < archive->nb_blocs; i++) {
         archive_bloc *bloc;
         archive_file *file;
+
         bloc = archive->blocs[i];
         if (bloc->tag == ARCHIVE_TAG_FILE) {
             archive_build *zpart;
+
             file = archive_bloc_to_archive_file(bloc);
-            zpart = archive_add_file(res, file->name, file->payload, file->size);
+            zpart = archive_add_file(res, file->name,
+                                     file->payload, file->size);
             for (int j = 0; j < (int)file->nb_attrs; j++) {
                 archive_add_property2(zpart, file->attrs[j]->key, file->attrs[j]->key_len,
                                       file->attrs[j]->val,  file->attrs[j]->val_len);
@@ -886,6 +891,7 @@ int archive_build_from_archive(archive_build_array *res, const archive_t *archiv
     }
     return 0;
 }
+
 #ifdef CHECK /* {{{ */
 
 #include "blob.h"

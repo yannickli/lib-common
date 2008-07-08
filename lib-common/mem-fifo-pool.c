@@ -90,6 +90,7 @@ static void mem_page_reset(mem_page *page)
     page->__prev__    = NULL;
     page->used_size   = 0;
     page->used_blocks = 0;
+    /* OG: Should use memset */
     p_clear(page->area, page->area_size);
 }
 

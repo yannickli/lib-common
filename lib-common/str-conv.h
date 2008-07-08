@@ -73,8 +73,9 @@ static inline int hexdecode(const char *str)
     return (h < 0) ? h : ((h << 4) | hexdigit(str[1]));
 }
 
-/* XXX: dest will not be NUL terminated */
+/* XXX: dest will not be NUL terminated in strconv_hexdecode*/
 int strconv_hexdecode(byte *dest, int size, const char *src, int len);
+int strconv_hexencode(char *dest, int size, const byte *src, int len);
 int strconv_escape(char *dest, int size, const char *src, int len);
 int strconv_unescape(char *dest, int size, const char *src, int len);
 int strconv_quote(char *dest, int size, const char *src, int len, int delim);

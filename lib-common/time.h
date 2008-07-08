@@ -19,6 +19,8 @@
 #endif
 #include "mem.h"
 
+#define TIME_T_ERROR  ((time_t)-1)
+
 /***************************************************************************/
 /* low precision time() and gettimeofday() replacements                    */
 /***************************************************************************/
@@ -46,6 +48,7 @@ static inline struct timeval timeval_add(struct timeval a, struct timeval b)
     }
     return res;
 }
+
 static inline struct timeval timeval_addmsec(struct timeval a, int msec)
 {
     struct timeval res;

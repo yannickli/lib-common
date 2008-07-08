@@ -991,6 +991,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     freq = find_pretty_freq((end - start) / nb_values);
 
     if (fake_mode) {
+        /* XXX: code is mostly duplicated from else blanch */
         double dval = 0;
         int start0;
 
@@ -1308,7 +1309,8 @@ int stats_temporal_copy(stats_temporal_t *dst, stats_temporal_t *src)
              src->path);
 
     p_clear(&globbuf, 1);
-    if ((err = glob(buf, 0, NULL, &globbuf))) {
+    err = glob(buf, 0, NULL, &globbuf);
+    if (err) {
         globfree(&globbuf);
         if (err == GLOB_NOMATCH) {
             e_info("No stats file for file: %s (pattern: %s)", src->path, buf);

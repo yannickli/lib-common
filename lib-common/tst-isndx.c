@@ -464,25 +464,33 @@ static int benchmark_index_methods(void)
     return status;
 }
 
+static int do_linear_tests(void)
+{
+    int status = 0;
+
+    status |= isndx_linear_test("/tmp/test-1.ndx", 600000000LL, 0, 1000000, 4);
+    status |= isndx_linear_test("/tmp/test-2.ndx", 600000000LL, 1, 1000000, 4);
+    status |= isndx_linear_test("/tmp/test-3.ndx", 600000000LL, 0, 4000000, 1);
+    status |= isndx_linear_test("/tmp/test-4.ndx", 600000000LL, 1, 4000000, 1);
+    status |= isndx_linear_test("/tmp/test-5.ndx", 600000000LL, 0, 4, 1000000);
+    status |= isndx_linear_test("/tmp/test-6.ndx", 600000000LL, 1, 4, 1000000);
+    status |= isndx_linear_test("/tmp/test-7.ndx", 600000000LL, 0, 1, 4000000);
+    printf("\n");
+    return status;
+}
+
 int main(int argc, char **argv)
 {
     //isndx_create_parms_t cp;
     isndx_t *ndx;
     const char *indexname;
     const char *command;
-    int status = 0;
 
-    if (argc < 2) {
-        status |= isndx_linear_test("/tmp/test-1.ndx", 600000000LL, 0, 1000000, 4);
-        status |= isndx_linear_test("/tmp/test-2.ndx", 600000000LL, 1, 1000000, 4);
-        status |= isndx_linear_test("/tmp/test-3.ndx", 600000000LL, 0, 4000000, 1);
-        status |= isndx_linear_test("/tmp/test-4.ndx", 600000000LL, 1, 4000000, 1);
-        status |= isndx_linear_test("/tmp/test-5.ndx", 600000000LL, 0, 4, 1000000);
-        status |= isndx_linear_test("/tmp/test-6.ndx", 600000000LL, 1, 4, 1000000);
-        status |= isndx_linear_test("/tmp/test-7.ndx", 600000000LL, 0, 1, 4000000);
-        printf("\n");
+    if (argc < 2 || *argv[1] == '-')
+        goto usage;
 
-        return status;
+    if (!strcmp(argv[1], "linear")) {
+        return do_linear_tests();
     }
 
     if (!strcmp(argv[1], "compare")) {
@@ -510,13 +518,22 @@ int main(int argc, char **argv)
                 while (*argv) {
                     const char *key;
                     blob_t out;
-                    int res;
+                    int res, chunk;
 
                     blob_init(&out);
                     key = *argv++;
                     res = isndx_fetch(ndx, (byte*)key, strlen(key), &out);
-                    printf("isndx_fetch('%s') -> %d [%d bytes]\n",
+                    printf("isndx_fetch('%s') -> %d [%d bytes] {",
                            key, res, out.len);
+                    chunk = out.len;
+                    if (chunk > 128)
+                        chunk = 128;
+                    for (int i = 0; i < chunk; i++) {
+                        if ((i & 15) == 0)
+                            printf("\n   ");
+                        printf(" %02X", out.data[i]);
+                    }
+                    printf("%s\n}\n", out.len > chunk ? " ..." : "");
                     blob_wipe(&out);
                 }
                 continue;
@@ -545,14 +562,17 @@ int main(int argc, char **argv)
                 }
                 continue;
             }
-            printf("usage: tst-isndx\n"
-                   "       tst-isndx compare\n"
-                   "       tst-isndx indexfile check\n"
-                   "       tst-isndx indexfile dump [all | pages]\n"
-                   "       tst-isndx indexfile fetch key\n");
-            return 1;
+            goto usage;
         }
     }
     isndx_close(&ndx);
     return 0;
+
+  usage:
+    printf("usage: tst-isndx linear\n"
+           "       tst-isndx compare\n"
+           "       tst-isndx indexfile check\n"
+           "       tst-isndx indexfile dump [all | keys | pages | PAGENO...]\n"
+           "       tst-isndx indexfile fetch key\n");
+    return 1;
 }
