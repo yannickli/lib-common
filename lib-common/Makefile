@@ -33,7 +33,6 @@ libcommon_SOURCES = \
 	bfield.c \
 	btree.c \
 	concatbin.c  \
-	db.c \
 	dtoa.c \
 	err_debug.c   \
 	err_report.c  \
@@ -95,13 +94,12 @@ libcommon_SOURCES = \
 	unix-linux.c \
 	\
 	$(end_of_list)
-libcommon_CFLAGS := $(libtc_CFLAGS)
 
 time-lp-simple_SOURCES = time-lp-simple.c
 
 test_SOURCES = $(filter-out mem.c, $(libcommon_SOURCES)) check.c ../compat/check.c
-test_CFLAGS  = $(libtc_CFLAGS) -DCHECK=1
-test_LDFLAGS = -lz $(libtc_LDFLAGS)
+test_CFLAGS  = -DCHECK=1
+test_LDFLAGS = -lz
 
 tst-cfgparser_SOURCES = tst-cfgparser.c libcommon.a
 

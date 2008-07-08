@@ -30,7 +30,6 @@
 #include "compat.h"
 #include "concatbin.h"
 #include "conf.h"
-#include "db.h"
 #include "err_report.h"
 #include "farch.h"
 #include "file.h"
