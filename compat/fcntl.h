@@ -18,6 +18,14 @@
 
 #include_next <fcntl.h>
 
+#ifndef O_NONBLOCK
+#define O_NONBLOCK 00004000
+#endif
+
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 #if defined(__MINGW) || defined(__MINGW32__)
 
 #ifndef __USE_FILE_OFFSET64

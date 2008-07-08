@@ -11,25 +11,13 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_COMPAT_H
-#define IS_LIB_COMMON_COMPAT_H
+#ifndef IS_COMPAT_ERRNO_H
+#define IS_COMPAT_ERRNO_H
 
-#ifdef MINGCC
-#include <time.h>
-#include <sys/time.h>
-#include <ws2tcpip.h>   /* for socklen_t */
+#include_next <errno.h>
 
-char *asctime_r(const struct tm *tm, char *buf);
-char *ctime_r(const time_t *timep, char *buf);
-struct tm *gmtime_r(const time_t *timep, struct tm *result);
-struct tm *localtime_r(const time_t *timep, struct tm *result);
-
+#ifndef EUCLEAN
 #define EUCLEAN         117
-#define O_NONBLOCK 00004000
 #endif
 
-#ifndef O_BINARY
-#define O_BINARY 0
 #endif
-
-#endif /* IS_LIB_COMMON_COMPAT_H */

@@ -23,6 +23,12 @@
    /* 3.9 needs those. 3.12 does not. Test could be thinner */
 int gettimeofday(struct timeval *p, void *tz);
 #  endif
+
+char *asctime_r(const struct tm *tm, char *buf);
+char *ctime_r(const time_t *timep, char *buf);
+struct tm *gmtime_r(const time_t *timep, struct tm *result);
+struct tm *localtime_r(const time_t *timep, struct tm *result);
+
 #endif
 
 #endif /* !IS_COMPAT_SYS_TIME_H */

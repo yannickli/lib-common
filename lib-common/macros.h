@@ -48,8 +48,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "compat.h"
-
 #define __ISLIBC__
 
 /*---------------- GNU extension wrappers ----------------*/
