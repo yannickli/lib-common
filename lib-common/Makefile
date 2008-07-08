@@ -45,7 +45,6 @@ libcommon_SOURCES = \
 	paged-index.c \
 	parseopt.c \
 	psinfo.c \
-	range-vector.c \
 	ring.c \
 	showflags.c \
 	stats-temporal.c \

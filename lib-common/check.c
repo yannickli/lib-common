@@ -27,16 +27,14 @@ int main(void)
             check_make_blob_suite()
     )));
     srunner_add_suite(sr, check_make_archive_suite());
-#if 0
-    /* Obsolete */
-    srunner_add_suite(sr, check_fifo_suite());
-#endif
     srunner_add_suite(sr, check_licence_suite());
     srunner_add_suite(sr, check_xml_suite());
     srunner_add_suite(sr, check_make_timeval_suite());
     srunner_add_suite(sr, check_bfield_suite());
     srunner_add_suite(sr, check_str_array_suite());
+#if 0 /* in mcg now */
     srunner_add_suite(sr, check_range_vector_suite());
+#endif
     srunner_add_suite(sr, check_conf_suite());
     srunner_add_suite(sr, check_log_limit_suite());
 
