@@ -53,7 +53,6 @@
 #include "range-vector.h"
 #include "refcount.h"
 #include "ring.h"
-#include "robuf.h"
 #include "stats-temporal.h"
 #include "stopper.h"
 #include "str.h"

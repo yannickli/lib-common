@@ -51,7 +51,6 @@ libcommon_SOURCES = \
 	psinfo.c \
 	range-vector.c \
 	ring.c \
-	robuf.c \
 	showflags.c \
 	stats-temporal.c \
 	stopper.c \
