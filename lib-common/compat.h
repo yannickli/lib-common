@@ -14,9 +14,6 @@
 #ifndef IS_LIB_COMMON_COMPAT_H
 #define IS_LIB_COMMON_COMPAT_H
 
-/* Global initializer to enable maximum compatibility */
-void intersec_initialize(void);
-
 #ifdef MINGCC
 #include <time.h>
 #include <sys/time.h>

@@ -26,7 +26,8 @@
 #include <fcntl.h>
 #include <errno.h>
 
-void intersec_initialize(void)
+__attribute__((constructor))
+static void intersec_initialize(void)
 {
     /* Force open by default in binary mode */
     _fmode = _O_BINARY;
@@ -136,9 +137,5 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
     tv->tv_sec = tv->tv_usec = 0;
     return 0;
 }
-
-#else
-
-void intersec_initialize(void) { }
 
 #endif
