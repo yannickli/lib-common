@@ -33,12 +33,10 @@ libcommon_SOURCES = \
 	bfield.c \
 	btree.c \
 	concatbin.c  \
-	dtoa.c \
 	err_debug.c   \
 	err_report.c  \
 	farch.c \
 	htbl.c \
-	iprintf.c \
 	isndx.c \
 	licence.c \
 	list.c \
@@ -76,6 +74,9 @@ libcommon_SOURCES = \
 	hash-sha2.c \
 	hash-sha1.c \
 	hash-md5.c \
+	\
+	iprintf.c \
+	iprintf-dtoa.c \
 	\
 	mem-pool.c \
 	mem-fifo-pool.c \
