@@ -145,7 +145,7 @@ START_TEST(check_append_href)
 #define TEST_WBXML(src, expect) \
     blob_append_wbxml_href(&dst, (const byte *)src, strlen(src));   \
     fail_if(dst.len != sizeof(expect) - 1 || memcmp(dst.data, expect, sizeof(expect) - 1), \
-            "Failed: result differs from expected (%d / %d)", dst.len, sizeof(expect) - 1); \
+            "Failed: result differs from expected (%d / %zd)", dst.len, sizeof(expect) - 1); \
     blob_reset(&dst);
 
     TEST_WBXML(SRC0, EXPECTED0);

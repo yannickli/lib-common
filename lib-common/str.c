@@ -1609,15 +1609,15 @@ START_TEST(check_msisdn_canonify)
 }
 END_TEST
 
-#define check_email_canonify_unit(str, expected)                \
-    do {                                                    \
-        len = email_canonify(str, strlen(str), buf, sizeof(buf));        \
-        fail_if(len != strlen(expected),                                 \
-                "failed: msisdn_canonify returned %d != %d",   \
-                len, strlen(expected));                          \
-        fail_if(strcmp(buf, expected),                                 \
-                "failed: msisdn_canonify returned %s != %s",   \
-                buf, expected);                          \
+#define check_email_canonify_unit(str, expected)                          \
+    do {                                                                  \
+        len = email_canonify(str, strlen(str), buf, sizeof(buf));         \
+        fail_if(len != strlen(expected),                                  \
+                "failed: msisdn_canonify returned %d != %zd",             \
+                len, strlen(expected));                                   \
+        fail_if(strcmp(buf, expected),                                    \
+                "failed: msisdn_canonify returned %s != %s",              \
+                buf, expected);                                           \
     } while (0)
 START_TEST(check_email_canonify)
 {
