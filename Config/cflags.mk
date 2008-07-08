@@ -93,7 +93,7 @@ ifndef CPLUSPLUS
   CFLAGS += $(if $(GCC4),-Wdeclaration-after-statement)
 endif
 
-CFLAGS += -I$/compat -I$/
+CFLAGS += -I$/lib-common/compat -I$/
 
 ifneq (,$(filter CYGWIN%,$(UNAME)))
   CFLAGS += -DCYGWIN
