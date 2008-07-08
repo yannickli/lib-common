@@ -16,7 +16,7 @@ test_PROGRAMS = btree-dump tst-cfgparser tst-tpl tst-stats tst-htbl \
 
 none_LIBRARIES = libcommon time-lp-simple
 
-none_TESTS += test tst-blob-iconv tst-domains_list tst-path tst-hash
+none_TESTS += test tst-blob-iconv tst-path tst-hash
 none_TESTS += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-iprintf-speed
 ifdef CHECK_ALL
   # These tests are just too long to be part of "make check". Sorry.
@@ -35,7 +35,6 @@ libcommon_SOURCES = \
 	concatbin.c  \
 	db.c \
 	dtoa.c \
-	domains_list.c \
 	err_debug.c   \
 	err_report.c  \
 	farch.c \
@@ -135,9 +134,6 @@ tst-iprintf-speed_CFLAGS = -UCHECK
 tst-stats_SOURCES = tst-stats.c libcommon.a
 tst-htbl_SOURCES = tst-htbl.c libcommon.a
 tst-path_SOURCES = tst-path.c libcommon.a
-
-tst-domains_list_SOURCES = domains_list.c libcommon.a
-tst-domains_list_CFLAGS = -DSTANDALONE
 
 ifneq (,$(filter CYGWIN%,$(UNAME)))
   libcommon_SOURCES := $(filter-out blob-iconv.c linux.c psinfo.c,$(libcommon_SOURCES))
