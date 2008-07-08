@@ -22,4 +22,4 @@ ifneq (,$(MINGCC))
   compat_SOURCES += inet_ntop.c
 endif
 
-include ../Build/base.mk
+include ../../Build/base.mk

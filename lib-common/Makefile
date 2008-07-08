@@ -97,7 +97,7 @@ libcommon_SOURCES = \
 
 time-lp-simple_SOURCES = time-lp-simple.c
 
-test_SOURCES = $(filter-out mem.c, $(libcommon_SOURCES)) check.c ../compat/check.c
+test_SOURCES = $(libcommon_SOURCES) check.c $/lib-common/compat/check.c
 test_CFLAGS  = -DCHECK=1
 test_LDFLAGS = -lz
 
