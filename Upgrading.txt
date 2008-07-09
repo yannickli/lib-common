@@ -5,7 +5,13 @@ lib-common Upgrading Notes
 Initial Revision  (Wed, 09 Jul 2008)
 ------------------------------------
 
-* `file-binlog.c` has been removed (unused, buggy).
-* `concatbin.c` has been removed (unused, duplicated effort).
+* Error reporting:
+  - e_fatal doesn't take a status anymore. To upgrade, remove your first argument.
+  - enum fatal_exit_codes is no more. No replacement, but e_fatal doesn't need it anymore.
+  - fatal_f type is no more. No replacement, but you weren't supposed to use it.
+
+* Removals:
+  - `file-binlog.c` has been removed (unused, buggy).
+  - `concatbin.c` has been removed (unused, duplicated effort).
 
 // vim:ft=asciidoc:

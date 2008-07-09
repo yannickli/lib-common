@@ -16,19 +16,8 @@
 
 #include "macros.h"
 
-/* Useful exit codes */
-enum fatal_exit_codes {
-    FATAL_NOMEM    = 0x80, /* out of memory */
-    FATAL_LOGOPEN  = 0x81, /* can't open log file */
-    FATAL_LOGWRITE = 0x82, /* can't write log */
-    FATAL_DEFAULT  = 0xff,  /* Default exit code */
-};
-
 typedef void (e_handler)(int, const char *, va_list) __attr_printf__(2, 0);
-
-/* error reporting functions */
-typedef int fatal_f(int, const char *, ...)  __attr_printf__(2, 3);
-typedef int error_f(const char *, ...)       __attr_printf__(1, 2);
+typedef int error_f(const char *, ...) __attr_printf__(1, 2);
 
 #define E_PREFIX(fmt) \
     ("%s:%d:%s: " fmt), __FILE__, __LINE__, __func__
@@ -41,7 +30,7 @@ typedef int error_f(const char *, ...)       __attr_printf__(1, 2);
  * e_fatal/e_panic exit the program.
  *
  */
-fatal_f e_fatal  __attr_noreturn__;
+error_f e_fatal  __attr_noreturn__;
 error_f e_panic  __attr_noreturn__;
 error_f e_error;
 error_f e_warning;

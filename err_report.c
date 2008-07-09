@@ -71,8 +71,7 @@ static void log_sighup(int __unused__ signum)
         p_fclose(&log_state.f);
         log_state.f = fopen(log_state.filename, "a");
         if (!log_state.f) {
-            e_fatal(FATAL_LOGOPEN,
-                    E_PREFIX("cannot open log file %s: %s"),
+            e_panic(E_PREFIX("cannot open log file %s: %s"),
                     log_state.filename, strerror(errno));
         }
     }
@@ -105,7 +104,7 @@ static void file_handler(int __unused__ priority,
     return;
 
 error:
-    exit(FATAL_LOGWRITE);
+    exit(127);
 }
 
 static void init_file(const char *ident, FILE *file)
@@ -130,10 +129,10 @@ static void init_file(const char *ident, FILE *file)
 
 /* Error reporting functions */
 
-int e_fatal(int status, const char *format, ...)
+int e_fatal(const char *format, ...)
 {
     E_BODY(LOG_CRIT, format);
-    exit(status);
+    exit(127);
 }
 
 int e_panic(const char *format, ...)
@@ -165,8 +164,7 @@ void e_init_file(const char *ident, const char *filename)
     } else {
         fp = fopen(filename, "a");
         if (fp == NULL) {
-            e_fatal(FATAL_LOGOPEN,
-                    E_PREFIX("cannot open log file %s: %s"),
+            e_panic(E_PREFIX("cannot open log file %s: %s"),
                     filename, strerror(errno));
         }
         log_state.filename = p_strdup(filename);
