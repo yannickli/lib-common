@@ -66,7 +66,6 @@ libcommon_SOURCES = \
 	\
 	file.c \
 	file-log.c \
-	file-binlog.c \
 	\
 	hash-crc.c \
 	hash-hash.c \

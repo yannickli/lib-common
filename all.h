@@ -34,7 +34,6 @@
 #include "farch.h"
 #include "file.h"
 #include "file-log.h"
-#include "file-binlog.h"
 #include "hash.h"
 #include "htbl.h"
 #include "isndx.h"
