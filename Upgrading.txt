@@ -1,0 +1,8 @@
+lib-common Upgrading Notes
+==========================
+
+
+Initial Revision  (Wed, 09 Jul 2008)
+------------------------------------
+
+// vim:ft=asciidoc:

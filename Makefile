@@ -143,4 +143,12 @@ ifneq (,$(MINGCC))
   test_PROGRAMS := $(filter-out btree-dump, $(test_PROGRAMS))
 endif
 
+DISTCLEANFILES=Upgrading.html
+all:: Upgrading.html
+Upgrading.html: Upgrading.txt ../Config/asciidoc.conf
+	@echo " DOC $(@F)"
+	@$(RM) $@
+	@asciidoc -f ../Config/asciidoc.conf -b xhtml11 -o $@ $<
+	@dos2unix $@
+
 include ../Build/base.mk
