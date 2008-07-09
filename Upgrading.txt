@@ -5,4 +5,7 @@ lib-common Upgrading Notes
 Initial Revision  (Wed, 09 Jul 2008)
 ------------------------------------
 
+* `file-binlog.c` has been removed (unused, buggy).
+* `concatbin.c` has been removed (unused, duplicated effort).
+
 // vim:ft=asciidoc:
