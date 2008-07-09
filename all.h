@@ -27,7 +27,6 @@
 #include "bstream.h"
 #include "btree.h"
 #include "byteops.h"
-#include "concatbin.h"
 #include "conf.h"
 #include "elf.h"
 #include "err_report.h"

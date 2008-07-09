@@ -32,7 +32,6 @@ libcommon_SOURCES = \
 	array.c \
 	bfield.c \
 	btree.c \
-	concatbin.c  \
 	err_debug.c   \
 	err_report.c  \
 	farch.c \
