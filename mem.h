@@ -54,41 +54,45 @@
 #  define htons_const(x)    swab16_const(x)
 #endif
 
-#define check_enough_mem(mem)                                   \
-    do {                                                        \
-        if ((mem) == NULL) {                                    \
-            e_fatal(FATAL_NOMEM, E_PREFIX("out of memory"));    \
-        }                                                       \
+#define check_enough_mem(mem)                      \
+    do {                                           \
+        if (unlikely((mem) == NULL)) {             \
+            e_panic(E_PREFIX("out of memory"));    \
+        }                                          \
     } while (0)
 
-static inline __attribute__((malloc)) void *mem_alloc(ssize_t size)
+static inline __attribute__((malloc)) void *mem_alloc(int size)
 {
     void *mem;
 
-    if (size <= 0)
+    if (unlikely(size < 0))
+        e_panic(E_PREFIX("invalid memory size %d"), size);
+    if (unlikely(size == 0))
         return NULL;
-
     mem = malloc(size);
     check_enough_mem(mem);
     return mem;
 }
 
-static inline __attribute__((malloc)) void *mem_alloc0(ssize_t size)
+static inline __attribute__((malloc)) void *mem_alloc0(int size)
 {
     void *mem;
 
-    if (size <= 0)
+    if (unlikely(size < 0))
+        e_panic(E_PREFIX("invalid memory size %d"), size);
+    if (unlikely(size == 0))
         return NULL;
-
     mem = calloc(size, 1);
     check_enough_mem(mem);
     return mem;
 }
 
 /* OG: should pass old size */
-static inline void mem_realloc(void **ptr, ssize_t newsize)
+static inline void mem_realloc(void **ptr, int newsize)
 {
-    if (newsize <= 0) {
+    if (unlikely(newsize < 0))
+        e_panic(E_PREFIX("invalid memory size %d"), newsize);
+    if (unlikely(newsize == 0)) {
         free(*ptr);
         *ptr = NULL;
     } else {
@@ -97,10 +101,9 @@ static inline void mem_realloc(void **ptr, ssize_t newsize)
     }
 }
 
-static inline void mem_realloc0(void **ptr, ssize_t oldsize, ssize_t newsize)
+static inline void mem_realloc0(void **ptr, int oldsize, int newsize)
 {
     mem_realloc(ptr, newsize);
-
     if (newsize > oldsize) {
         memset((byte *)(*ptr) + oldsize, 0, newsize - oldsize);
     }
@@ -116,21 +119,20 @@ static inline char *mem_strdup(const char *src) {
     return res;
 }
 
-static inline __attribute__((malloc)) void *mem_dup(const void *src, ssize_t size)
+static inline __attribute__((malloc)) void *mem_dup(const void *src, int size)
 {
-    void *res = mem_alloc(size);
-    return memcpy(res, src, size);
+    return memcpy(mem_alloc(size), src, size);
 }
 
-static inline void mem_move(void *p, ssize_t to, ssize_t from, ssize_t len) {
+static inline void mem_move(void *p, int to, int from, int len) {
     memmove((char *)p + to, (const char *)p + from, len);
 }
 
-static inline void mem_copy(void *p, ssize_t to, ssize_t from, ssize_t len) {
+static inline void mem_copy(void *p, int to, int from, int len) {
     memcpy((char *)p + to, (const char *)p + from, len);
 }
 
-static inline __attribute__((malloc)) void *p_dupz(const void *src, ssize_t len)
+static inline __attribute__((malloc)) void *p_dupz(const void *src, int len)
 {
     char *res = mem_alloc(len + 1);
     memcpy(res, src, len);
@@ -208,7 +210,7 @@ static inline __attribute__((malloc)) void *p_dupz(const void *src, ssize_t len)
 
 #define p_realloc0(pp, old, now)                   \
     do {                                           \
-        ssize_t __old = (old), __now = (now);      \
+        int __old = (old), __now = (now);          \
         p_realloc(pp, __now);                      \
         if (__now > __old) {                       \
             p_clear(*(pp) + __old, __now - __old); \
