@@ -8,6 +8,10 @@ Error handling overhaul  (Thu, 10 Jul 2008)
   - `mem.h`, `macros.h`, `err_report.h` have disappeared. You must replace
     your includes with `<lib-common/core.h>`
 
+* e_trace updates:
+  - `e_verbosity_maxwatch` optimization was removed to allow simpler refactor.
+    You should use this variable directly anyways.
+
 
 Initial Revision  (Wed, 09 Jul 2008)
 ------------------------------------

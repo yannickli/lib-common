@@ -57,7 +57,6 @@ void e_shutdown(void);
 #  define e_trace_cont(...)
 #  define e_trace_end(...)
 
-#  define e_verbosity_maxwatch   INT_MIN
 #  define e_set_verbosity(...)
 #  define e_incr_verbosity(...)
 #  define e_is_traced_real(...)  false
@@ -65,16 +64,12 @@ void e_shutdown(void);
 
 #else
 
-extern int e_verbosity_maxwatch;
-
 void e_set_verbosity(int max_debug_level);
 void e_incr_verbosity(void);
 
 bool e_is_traced_real(int level, const char *fname, const char *func);
 
-#define e_is_traced(lvl)                                 \
-        ((lvl) <= e_verbosity_maxwatch                   \
-         && e_is_traced_real(lvl, __FILE__, __func__))
+#define e_is_traced(lvl)        e_is_traced_real(lvl, __FILE__, __func__)
 
 #define e_trace_raw(lvl, fmt, ...)                                           \
     do {                                                                     \

@@ -15,10 +15,7 @@
 
 #ifndef NDEBUG /* disable that module if debug is disabled */
 
-int e_verbosity_maxwatch = INT_MAX;
-
 static int  verbosity_level = 0;
-static bool e_initialized     = false;
 
 typedef struct trace_entry {
     struct trace_entry *next;
@@ -31,20 +28,14 @@ typedef struct trace_entry {
 
 static trace_entry *e_watches;
 
+__attribute__((constructor))
 static void e_debug_initialize(void)
 {
     const char *p;
 
-    if (e_initialized)
-        return;
-
-    e_verbosity_maxwatch = verbosity_level;
-
     p = getenv("IS_DEBUG");
-    if (!p) {
-        e_initialized = true;
+    if (!p)
         return;
-    }
 
     /*
      * parses blank separated <specs>
@@ -54,18 +45,13 @@ static void e_debug_initialize(void)
         const char *q;
         trace_entry *e;
 
-        while (isspace((unsigned char)*p)) {
-            p++;
-        }
-
-        q = p;
+        q = p = skipspaces(p);
 
         while (*q && !isspace((unsigned char)*q) && *q != ':') {
             q++;
         }
 
-        e = mem_alloc0(sizeof(trace_entry) + q - p + 1);
-
+        e = p_new_extra(trace_entry, q - p + 1);
         memcpy(&e->modname, p, q - p);
         e->level = INT_MAX;
 
@@ -86,20 +72,13 @@ static void e_debug_initialize(void)
                 q++;
             }
         }
-
-        e_verbosity_maxwatch = MAX(e_verbosity_maxwatch, e->level);
-
         p = q;
     }
-
-    e_initialized = true;
 }
 
 bool e_is_traced_real(int level, const char *modname, const char *func)
 {
     trace_entry *e;
-
-    e_debug_initialize();
 
     if (level <= verbosity_level)
         return true;
@@ -118,13 +97,11 @@ bool e_is_traced_real(int level, const char *modname, const char *func)
 void e_set_verbosity(int max_debug_level)
 {
     verbosity_level = max_debug_level;
-    e_verbosity_maxwatch = MAX(e_verbosity_maxwatch, verbosity_level);
 }
 
 void e_incr_verbosity(void)
 {
     verbosity_level++;
-    e_verbosity_maxwatch = MAX(e_verbosity_maxwatch, verbosity_level);
 }
 
 #endif
