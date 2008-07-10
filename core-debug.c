@@ -11,11 +11,23 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "str.h"
-
 #ifndef NDEBUG /* disable that module if debug is disabled */
 
-static int  verbosity_level = 0;
+#include "str.h"
+#include "htbl.h"
+
+/*
+ * The debug module uses a brutally-memoize-answers approach.
+ *
+ *   (1) There aren't that many [__FILE__,__func__] pairs,
+ *   (2) Those points into our binary that is less than gigabyte big.
+ *
+ *   Hence the lower 32bits from the __FILE__ string and the lower 32 bits
+ *   from the __func__ one combined are a unique id we can use in a hashtable,
+ *   to remember the answer we previously gave.
+ */
+
+static int verbosity_level;
 
 typedef struct trace_entry {
     struct trace_entry *next;
@@ -26,7 +38,16 @@ typedef struct trace_entry {
     char modname[];
 } trace_entry;
 
-static trace_entry *e_watches;
+struct trace_record_t {
+    uint64_t uuid;
+    int minlevel;
+};
+DO_HTBL_KEY(struct trace_record_t, uint64_t, trace, uuid);
+
+static struct {
+    struct trace_entry *e_watches;
+    trace_htbl cache;
+} _G;
 
 __attribute__((constructor))
 static void e_debug_initialize(void)
@@ -36,6 +57,8 @@ static void e_debug_initialize(void)
     p = getenv("IS_DEBUG");
     if (!p)
         return;
+
+    trace_htbl_init(&_G.cache);
 
     /*
      * parses blank separated <specs>
@@ -55,8 +78,8 @@ static void e_debug_initialize(void)
         memcpy(&e->modname, p, q - p);
         e->level = INT_MAX;
 
-        e->next   = e_watches;
-        e_watches = e;
+        e->next   = _G.e_watches;
+        _G.e_watches = e;
 
         e->funcname = strchr(e->modname, '@');
         if (e->funcname) {
@@ -76,23 +99,42 @@ static void e_debug_initialize(void)
     }
 }
 
+static int e_find_minlevel(const char *modname, const char *func)
+{
+    for (trace_entry *e = _G.e_watches; e; e = e->next) {
+        if (strequal(modname, e->modname)
+        && (!e->funcname[0] || strequal(func, e->funcname))) {
+            return e->level;
+        }
+    }
+    return INT_MIN;
+}
+
+static uint64_t e_trace_uuid(const char *modname, const char *func)
+{
+    uint32_t mod_lo = (uintptr_t)modname;
+    uint32_t fun_lo = (uintptr_t)func;
+    return MAKE64(mod_lo, fun_lo);
+}
+
 bool e_is_traced_real(int level, const char *modname, const char *func)
 {
-    trace_entry *e;
+    struct trace_record_t tr, *trp;
+    uint64_t uuid;
 
     if (level <= verbosity_level)
         return true;
 
-    for (e = e_watches; e; e = e->next) {
-        if (strequal(modname, e->modname)
-        && (!e->funcname[0] || strequal(func, e->funcname))) {
-            return level <= e->level;
-        }
+    uuid = e_trace_uuid(modname, func);
+    trp  = trace_htbl_find(&_G.cache, uuid);
+    if (unlikely(trp == NULL)) {
+        tr.uuid     = uuid;
+        tr.minlevel = e_find_minlevel(modname, func);
+        trace_htbl_insert(&_G.cache, tr);
+        trp = &tr;
     }
-
-    return false;
+    return level <= trp->minlevel;
 }
-
 
 void e_set_verbosity(int max_debug_level)
 {
