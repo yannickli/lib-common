@@ -62,6 +62,7 @@ static void e_debug_initialize(void)
     spec_vector_init(&_G.specs);
     blob_init(&_G.buf);
 
+    setlinebuf(stderr);
     p = getenv("IS_DEBUG");
     if (!p)
         return;
@@ -72,10 +73,12 @@ static void e_debug_initialize(void)
      * <specs> ::= [<path-pattern>][@<funcname>][:<level>]
      */
     while (*p) {
-        struct trace_spec_t spec;
+        struct trace_spec_t spec = {
+            .path = NULL,
+            .func = NULL,
+            .level = INT_MAX,
+        };
         int len;
-
-        p_clear(&spec, 1);
 
         len = strcspn(p, "@: \t\r\n\v\f");
         if (len)
@@ -90,8 +93,6 @@ static void e_debug_initialize(void)
             *p++ = '\0';
             spec.level = vstrtoip(p, &p);
             p = vstrnextspace(p);
-        } else {
-            spec.level = INT_MAX;
         }
         if (*p)
             *p++ = '\0';
@@ -150,7 +151,7 @@ void e_trace_put(int level, const char *fname, int lno,
     const char *p;
     va_list ap;
 
-    if (!e_is_traced(level))
+    if (!e_is_traced_real(level, fname, func))
         return;
 
     va_start(ap, fmt);
@@ -164,12 +165,11 @@ void e_trace_put(int level, const char *fname, int lno,
         if (len >= _G.maxlen) {
             _G.maxlen = len;
         } else {
-            IGNORE(fwrite(spaces, _G.maxlen - _G.buf.len, 1, stderr));
+            IGNORE(fwrite(spaces, _G.maxlen - len, 1, stderr));
         }
         IGNORE(fwrite(_G.buf.data, p + 1 - blob_get_cstr(&_G.buf), 1, stderr));
         blob_kill_at(&_G.buf, p + 1);
     }
-    fflush(stderr);
 }
 
 void e_set_verbosity(int max_debug_level)
