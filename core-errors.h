@@ -69,27 +69,22 @@ void e_incr_verbosity(void);
 
 bool e_is_traced_real(int level, const char *fname, const char *func);
 
-#define e_is_traced(lvl)        e_is_traced_real(lvl, __FILE__, __func__)
+void e_trace_put(int lvl, const char *fname, int lno, const char *func,
+                 const char *fmt, ...)
+                 __attr_printf__(5, 6);
 
-#define e_trace_raw(lvl, fmt, ...)                                           \
-    do {                                                                     \
-        if (e_is_traced(lvl)) {                                              \
-            fprintf(stderr, fmt, ##__VA_ARGS__);                             \
-        }                                                                    \
-    } while (0)
+#define e_is_traced(lvl)              e_is_traced_real(lvl, __FILE__, __func__)
 
-#define e_trace_start(lvl, fmt, ...) \
-    e_trace_raw(lvl, E_PREFIX(fmt), ##__VA_ARGS__)
-#define e_trace_cont(lvl, fmt, ...)  \
-    e_trace_raw(lvl, fmt, ##__VA_ARGS__)
-#define e_trace_end(lvl, fmt, ...) \
-    e_trace_raw(lvl, fmt "\n", ##__VA_ARGS__)
-
+#define e_trace_start(lvl, fmt, ...)                                         \
+    e_trace_put(lvl, __FILE__, __LINE__, __func__, fmt, ##__VA_ARGS__)
+#define e_trace_cont(lvl, fmt, ...)   e_trace_start(lvl, fmt, ##__VA_ARGS__)
+#define e_trace_end(lvl, fmt, ...)    e_trace_start(lvl, fmt "\n", ##__VA_ARGS__)
 #define e_trace(lvl, fmt, ...)        e_trace_start(lvl, fmt "\n", ##__VA_ARGS__)
+
 #define e_trace_hex(lvl, str, buf, len)                                      \
     do {                                                                     \
         if (e_is_traced(lvl)) {                                              \
-            e_trace_raw(lvl, E_PREFIX("--%s (%d)--\n"), str, len);           \
+            e_trace(lvl, E_PREFIX("--%s (%d)--\n"), str, len);               \
             ifputs_hex(stderr, buf, len);                                    \
         }                                                                    \
     } while (0)

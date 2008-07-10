@@ -17,6 +17,7 @@
 #include "array.h"
 #include "htbl.h"
 #include "str.h"
+#include "blob.h"
 
 /*
  * The debug module uses a brutally-memoize-answers approach.
@@ -45,7 +46,9 @@ DO_VECTOR(struct trace_spec_t, spec);
 static struct {
     spec_vector specs;
     trace_htbl  cache;
+    blob_t      buf;
     int verbosity_level;
+    int maxlen;
 } _G = {
     .verbosity_level = 1,
 };
@@ -57,6 +60,7 @@ static void e_debug_initialize(void)
 
     trace_htbl_init(&_G.cache);
     spec_vector_init(&_G.specs);
+    blob_init(&_G.buf);
 
     p = getenv("IS_DEBUG");
     if (!p)
@@ -133,6 +137,39 @@ bool e_is_traced_real(int level, const char *modname, const char *func)
         trp = &tr;
     }
     return level <= trp->level;
+}
+
+void e_trace_put(int level, const char *fname, int lno,
+                 const char *func, const char *fmt, ...)
+{
+    static char const spaces[] =
+        "                                        "
+        "                                        "
+        "                                        "
+        "                                        ";
+    const char *p;
+    va_list ap;
+
+    if (!e_is_traced(level))
+        return;
+
+    va_start(ap, fmt);
+    blob_append_vfmt(&_G.buf, fmt, ap);
+    va_end(ap);
+
+    while ((p = memchr(_G.buf.data, '\n', _G.buf.len))) {
+        int len;
+
+        len = fprintf(stderr, "%d %s:%d:%s: ", level, fname, lno, func);
+        if (len >= _G.maxlen) {
+            _G.maxlen = len;
+        } else {
+            IGNORE(fwrite(spaces, _G.maxlen - _G.buf.len, 1, stderr));
+        }
+        IGNORE(fwrite(_G.buf.data, p + 1 - blob_get_cstr(&_G.buf), 1, stderr));
+        blob_kill_at(&_G.buf, p + 1);
+    }
+    fflush(stderr);
 }
 
 void e_set_verbosity(int max_debug_level)
