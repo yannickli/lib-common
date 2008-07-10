@@ -17,7 +17,7 @@
 #ifndef MINGCC
 #include <sys/resource.h>
 #endif
-#include "mem.h"
+#include "core.h"
 
 #define TIME_T_ERROR  ((time_t)-1)
 

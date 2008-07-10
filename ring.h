@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_RING_H
 #define IS_LIB_COMMON_RING_H
 
-#include "mem.h"
+#include "core.h"
 
 #define RING_TYPE(type_t, pfx)  \
     typedef struct pfx##_ring { \

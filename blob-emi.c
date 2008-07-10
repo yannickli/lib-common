@@ -11,13 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifdef MINGCC
-#include <sys/param.h>
-#else
-#include <endian.h>
-#endif
-
-#include "macros.h"
 #include "str-conv.h"
 #include "blob.h"
 

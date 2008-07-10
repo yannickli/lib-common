@@ -11,11 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <lib-common/mem.h>
-#include <lib-common/blob.h>
-#include <lib-common/macros.h>
-#include <lib-common/str.h>
-
+#include "blob.h"
+#include "str.h"
 #include "conf.h"
 
 static conf_section_t *conf_section_init(conf_section_t *section)

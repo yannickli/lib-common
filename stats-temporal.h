@@ -14,10 +14,9 @@
 #ifndef IS_LIB_COMMON_STATS_TEMPORAL_H
 #define IS_LIB_COMMON_STATS_TEMPORAL_H
 
-#include <lib-common/macros.h>
-#include <lib-common/bfield.h>
-#include <lib-common/blob.h>
-#include <lib-common/array.h>
+#include "bfield.h"
+#include "blob.h"
+#include "array.h"
 
 #define STATS_STAGE_MAX          7
 #define STATS_QUERY_VALUES_MAX   1024

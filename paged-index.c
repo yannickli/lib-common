@@ -12,7 +12,6 @@
 /**************************************************************************/
 
 #include <sys/mman.h>
-#include "err_report.h"
 #include "unix.h"
 #include "paged-index.h"
 

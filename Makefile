@@ -32,8 +32,6 @@ libcommon_SOURCES = \
 	array.c \
 	bfield.c \
 	btree.c \
-	err_debug.c   \
-	err_report.c  \
 	farch.c \
 	htbl.c \
 	isndx.c \
@@ -62,6 +60,9 @@ libcommon_SOURCES = \
 	\
 	conf.c  \
 	conf-parser.l \
+	\
+	core-debug.c   \
+	core-errors.c  \
 	\
 	file.c \
 	file-log.c \

@@ -11,12 +11,9 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <lib-common/macros.h>
 #include <lib-common/mmappedfile.h>
 #include <lib-common/unix.h>
 #include <sys/mman.h>
-
-#include "glob.h"
 
 #if defined(__MINGW) || defined(__MINGW32__)
 

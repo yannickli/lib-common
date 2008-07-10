@@ -11,44 +11,18 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_MACROS_H
-#define IS_LIB_COMMON_MACROS_H
+#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_MACROS_H)
+#  error "you must include <lib-common/core.h> instead"
+#endif
+#define IS_LIB_COMMON_CORE_MACROS_H
 
 /** \defgroup generic_macros Intersec Generic Macros.
  * \{
  */
 
-/** \file macros.h
+/** \file core-macros.h
  * \brief Intersec generic macros.
- *
- * This file also includes many of the standard headers we always need from
- * the libc. #macros.h is always included in any Intersec code either
- * directly, or more often through the include of #mem.h.
  */
-
-#include <assert.h>
-#include <ctype.h>
-#include <endian.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <inttypes.h>
-#include <limits.h>
-#include <malloc.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
-
-#define __ISLIBC__
 
 /*---------------- GNU extension wrappers ----------------*/
 
@@ -475,4 +449,3 @@ static inline int p_close(int *hdp) {
 #endif
 
 /** \} */
-#endif /* IS_LIB_COMMON_MACROS_H */

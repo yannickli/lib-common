@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_IPRINTF_H
 #define IS_LIB_COMMON_IPRINTF_H
 
-#include "mem.h"
+#include "core.h"
 
 #ifdef __CYGWIN__
 #define iprintf  IS_printf

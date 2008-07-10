@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_HTBL
 #define IS_LIB_COMMON_HTBL
 
-#include "mem.h"
+#include "core.h"
 
 #define CONTAINER_TYPE(kind, type_t, pfx)                                    \
     typedef struct pfx##_##kind {                                            \

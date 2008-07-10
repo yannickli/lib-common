@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "mem.h"
 #include "str.h"
 
 typedef unsigned int unsigned32;

@@ -14,10 +14,6 @@
 /* holds the linux-dependent implementations for unix.h functions */
 
 #include <dirent.h>
-#include <limits.h>
-
-#include "err_report.h"
-#include "macros.h"
 #include "str.h"
 #include "unix.h"
 #include "time.h"

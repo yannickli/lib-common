@@ -14,7 +14,6 @@
 #ifndef IS_LIB_COMMON_ISNDX_H
 #define IS_LIB_COMMON_ISNDX_H
 
-#include "macros.h"
 #include "blob.h"
 #include "mmappedfile.h"
 

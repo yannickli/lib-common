@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "macros.h"
 #include "str.h"
 #include "str-conv.h"
 #include "blob.h"

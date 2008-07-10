@@ -14,8 +14,7 @@
 #ifndef IS_LIB_COMMON_MMAPPEDFILE_H
 #define IS_LIB_COMMON_MMAPPEDFILE_H
 
-#include <sys/types.h>
-#include "mem.h"
+#include "core.h"
 
 enum {
     MMO_POPULATE = 0x0001,

@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_STR_H
 #define IS_LIB_COMMON_STR_H
 
-#include "mem.h"
+#include "core.h"
 
 __attr_nonnull__((1))
 static inline ssize_t sstrlen(const char *str) {

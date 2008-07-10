@@ -14,8 +14,7 @@
 #ifndef IS_LIB_COMMON_BSTREAM_H
 #define IS_LIB_COMMON_BSTREAM_H
 
-#include "macros.h"
-#include "mem.h"
+#include "core.h"
 
 #if !defined(__USE_FILE_OFFSET64) && !defined(_LARGEFILE64_SOURCE) && \
     !defined(__USE_LARGEFILE64) && !defined(__MINGW) && !defined(__MINGW32__)

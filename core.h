@@ -11,37 +11,38 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_PARSEOPT_H
-#define IS_LIB_COMMON_PARSEOPT_H
+#ifndef IS_LIB_COMMON_CORE_H
+#define IS_LIB_COMMON_CORE_H
 
-#include "core.h"
+#include <alloca.h>
+#include <assert.h>
+#include <ctype.h>
+#include <endian.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <glob.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <malloc.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <time.h>
+#include <unistd.h>
 
-enum popt_kind {
-    OPTION_END,
-    OPTION_FLAG,
-    OPTION_INT,
-    OPTION_STR,
-    OPTION_GROUP,
-};
+#define __ISLIBC__
 
-typedef struct popt_t {
-    enum popt_kind kind;
-    int shrt;
-    const char *lng;
-    void *value;
-    intptr_t init;
-    const char *help;
-} popt_t;
-
-#define OPT_FLAG(s, l, v, h)   { OPTION_FLAG, (s), (l), (v), 0, (h) }
-#define OPT_STR(s, l, v, h)    { OPTION_STR, (s), (l), (v), 0, (h) }
-#define OPT_INT(s, l, v, h)    { OPTION_INT, (s), (l), (v), 0, (h) }
-#define OPT_GROUP(h)           { OPTION_GROUP, 0, NULL, NULL, 0, (h) }
-#define OPT_END()              { OPTION_END, 0, NULL, NULL, 0, NULL }
-
-int parseopt(int argc, char **argv, popt_t *opts);
-__attribute__((noreturn))
-void makeusage(int ret, const char *arg0, const char *usage,
-               const char * const text[], popt_t *opts);
+#include "core-macros.h"
+#include "core-errors.h"
+#include "core-mem.h"
 
 #endif

@@ -11,10 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_ERR_REPORT_H
-#define IS_LIB_COMMON_ERR_REPORT_H
-
-#include "macros.h"
+#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_ERRORS_H)
+#  error "you must include <lib-common/core.h> instead"
+#endif
+#define IS_LIB_COMMON_CORE_ERRORS_H
 
 typedef void (e_handler)(int, const char *, va_list) __attr_printf__(2, 0);
 typedef int error_f(const char *, ...) __attr_printf__(1, 2);
@@ -100,5 +100,3 @@ bool e_is_traced_real(int level, const char *fname, const char *func);
     } while (0)
 
 #endif
-
-#endif /* IS_LIB_COMMON_ERR_REPORT_H */

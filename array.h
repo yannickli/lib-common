@@ -15,7 +15,6 @@
 #define IS_LIB_COMMON_ARRAY_H
 
 #include <sys/uio.h>
-#include "mem.h"
 #include "str.h"
 
 #define VECTOR_TYPE(el_typ, prefix)  \

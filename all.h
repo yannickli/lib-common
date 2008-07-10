@@ -17,8 +17,7 @@
 #define IPRINTF_HIDE_STDIO 1
 #include "iprintf.h"
 
-#include "macros.h"
-#include "mem.h"
+#include "core.h"
 
 #include "archive.h"
 #include "array.h"
@@ -29,7 +28,6 @@
 #include "byteops.h"
 #include "conf.h"
 #include "elf.h"
-#include "err_report.h"
 #include "farch.h"
 #include "file.h"
 #include "file-log.h"

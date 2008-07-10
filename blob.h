@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_BLOB_H
 #define IS_LIB_COMMON_BLOB_H
 
-#include "mem.h"
+#include "core.h"
 
 /* blob_t is a wrapper type for a reallocatable byte array.
  * Its internal representation is accessible to client code but care

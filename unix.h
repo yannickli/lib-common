@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_UNIX_H
 #define IS_LIB_COMMON_UNIX_H
 
-#include "macros.h"
+#include "core.h"
 
 #define O_ISWRITE(m)      (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
 

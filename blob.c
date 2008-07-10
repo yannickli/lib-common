@@ -19,12 +19,9 @@
 #endif
 
 #define IPRINTF_HIDE_STDIO 1
-#include "macros.h"
 #include "blob.h"
-#include "mem.h"
 #include "str.h"
 #include "str-conv.h"
-#include "err_report.h"
 #include "iprintf.h"
 #include "byteops.h"
 

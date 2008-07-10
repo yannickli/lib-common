@@ -14,9 +14,8 @@
 #ifndef IS_LIB_COMMON_PAGED_INDEX_H
 #define IS_LIB_COMMON_PAGED_INDEX_H
 
-#include <lib-common/macros.h>
-#include <lib-common/blob.h>
-#include <lib-common/mmappedfile.h>
+#include "blob.h"
+#include "mmappedfile.h"
 
 typedef struct pidx_page {
     union {

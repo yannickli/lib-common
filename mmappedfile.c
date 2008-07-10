@@ -13,9 +13,7 @@
 
 #define _GNU_SOURCE
 #include <sys/mman.h>
-#include <sys/stat.h>
 
-#include "mem.h"
 #include "unix.h"
 #include "mmappedfile.h"
 

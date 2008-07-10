@@ -24,7 +24,6 @@
     VALGRIND_MAKE_MEM_DEFINED(&mem_fifo_pool_new, sizeof(mem_fifo_pool_new)))
 #endif
 #include <sys/mman.h>
-#include "mem.h"
 #include "mmappedfile.h"
 #include "mem-fifo-pool.h"
 

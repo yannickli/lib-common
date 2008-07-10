@@ -14,9 +14,7 @@
 #ifndef IS_LIB_COMMON_LICENCE_H
 #define IS_LIB_COMMON_LICENCE_H
 
-#include <inttypes.h>
 #include "conf.h"
-#include "macros.h"
 
 bool is_my_mac_addr(const char *addr);
 int list_my_macs(char *dst, size_t size);

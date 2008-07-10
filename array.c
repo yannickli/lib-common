@@ -11,11 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef MINGCC
-#include <alloca.h>
-#endif
-
-#include "macros.h"
 #include "str.h"
 #include "array.h"
 

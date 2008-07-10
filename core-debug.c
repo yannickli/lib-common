@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "err_report.h"
 #include "str.h"
 
 #ifndef NDEBUG /* disable that module if debug is disabled */

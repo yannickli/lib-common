@@ -12,7 +12,6 @@
 /**************************************************************************/
 
 #include "stats-temporal.h"
-#include "err_report.h"
 
 static int test_mode_auto(void)
 {

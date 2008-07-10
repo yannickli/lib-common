@@ -11,10 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <limits.h>
-
-#include "macros.h"
-#include "mem.h"
 #include "log_limit.h"
 
 void log_limit_init(log_limit_t *ll, int max_perline, int max_glob)

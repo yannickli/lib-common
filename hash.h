@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_HASH_H
 #define IS_LIB_COMMON_HASH_H
 
-#include "mem.h"
+#include "core.h"
 
 uint32_t icrc32(uint32_t crc, const void *data, ssize_t len);
 

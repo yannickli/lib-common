@@ -25,10 +25,7 @@
 #define LOG_DEBUG       7       /* debug-level messages */
 #endif
 
-#include <signal.h>
-#include "macros.h"
-#include "mem.h"
-#include "err_report.h"
+#include "core.h"
 
 /**************************************************************************/
 /* private API                                                            */

@@ -14,8 +14,6 @@
 #ifndef IS_LIB_COMMON_STOPPER_H
 #define IS_LIB_COMMON_STOPPER_H
 
-#include "macros.h"
-
 bool is_stopper_waiting(void);
 void stopper_initialize(void);
 void stopper_shutdown(void);

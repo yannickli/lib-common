@@ -11,8 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <signal.h>
-#include "err_report.h"
 #include "time.h"
 #include "stopper.h"
 

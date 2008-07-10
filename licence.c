@@ -12,7 +12,6 @@
 /**************************************************************************/
 
 #ifndef MINGCC
-#include <stdio.h>
 #include <net/if.h>
 #ifdef __linux__
 #include <net/if_arp.h>
@@ -20,7 +19,6 @@
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 
-#include "mem.h"
 #include "conf.h"
 #include "str.h"
 #include "licence.h"

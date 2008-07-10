@@ -14,7 +14,6 @@
 #ifndef IS_LIB_COMMON_XML_H
 #define IS_LIB_COMMON_XML_H
 
-#include "macros.h"
 #include "mem-pool.h"
 #include "blob.h"
 

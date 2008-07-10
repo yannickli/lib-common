@@ -12,7 +12,6 @@
 /**************************************************************************/
 
 #include "list.h"
-#include "macros.h"
 
 #define OPTIMIZE_SORTED_PREFIX  1
 #define OPTIMIZE_SORTED_CHUNKS  1

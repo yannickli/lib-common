@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_LIST_H
 #define IS_LIB_COMMON_LIST_H
 
-#include "mem.h"
+#include "core.h"
 
 /*
  * Provides list functions, for objects that have a ->next member.

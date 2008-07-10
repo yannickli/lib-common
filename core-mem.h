@@ -11,11 +11,11 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_MEM_H
-#define IS_LIB_COMMON_MEM_H
+#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_MEM_H)
+#  error "you must include <lib-common/core.h> instead"
+#endif
 
-#include "macros.h"
-#include "err_report.h"
+#define IS_LIB_COMMON_CORE_MEM_H
 
 #define MEM_ALIGN_SIZE  8
 #define MEM_ALIGN(size) \
@@ -258,5 +258,3 @@ static inline void (p_delete)(void **p) {
 #define GENERIC_FUNCTIONS(type, prefix) \
     GENERIC_INIT(type, prefix)    GENERIC_NEW(type, prefix) \
     GENERIC_WIPE(type, prefix)    GENERIC_DELETE(type, prefix)
-
-#endif /* IS_LIB_COMMON_MEM_H */

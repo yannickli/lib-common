@@ -1,17 +1,26 @@
 lib-common Upgrading Notes
 ==========================
 
+Error handling overhaul  (Thu, 10 Jul 2008)
+-------------------------------------------
+
+* File renamings:
+  - `mem.h`, `macros.h`, `err_report.h` have disappeared. You must replace
+    your includes with `<lib-common/core.h>`
+
 
 Initial Revision  (Wed, 09 Jul 2008)
 ------------------------------------
 
 * Error reporting:
-  - e_fatal doesn't take a status anymore. To upgrade, remove your first argument.
-  - enum fatal_exit_codes is no more. No replacement, but e_fatal doesn't need it anymore.
-  - fatal_f type is no more. No replacement, but you weren't supposed to use it.
+  - `e_fatal` doesn't take a status anymore. To upgrade, remove your first
+    argument.
+  - `enum fatal_exit_codes` is no more. No replacement, but `e_fatal` doesn't
+    need it anymore.
+  - `fatal_f` type is no more. No replacement.
 
 * Removals:
   - `file-binlog.c` has been removed (unused, buggy).
   - `concatbin.c` has been removed (unused, duplicated effort).
 
-// vim:ft=asciidoc:
+// vim:ft=asciidoc:tw=78:

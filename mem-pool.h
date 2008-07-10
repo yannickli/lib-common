@@ -14,9 +14,7 @@
 #ifndef IS_LIB_COMMON_MEM_POOL_H
 #define IS_LIB_COMMON_MEM_POOL_H
 
-#include <unistd.h>
-
-#include "macros.h"
+#include "core.h"
 
 typedef struct mem_pool {
     void *(*mem_alloc)  (struct mem_pool *mp, ssize_t size);

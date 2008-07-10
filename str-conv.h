@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_STR_CONV_H
 #define IS_LIB_COMMON_STR_CONV_H
 
-#include "macros.h"
+#include "core.h"
 
 /* string parsing and conversions */
 extern unsigned char const __str_digit_value[128 + 256];

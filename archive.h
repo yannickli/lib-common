@@ -14,10 +14,6 @@
 #ifndef IS_LIB_COMMON_ARCHIVE_H
 #define IS_LIB_COMMON_ARCHIVE_H
 
-#include <inttypes.h>
-
-#include "macros.h"
-#include "mem.h"
 #include "blob.h"
 #include "array.h"
 #include "tpl.h"
