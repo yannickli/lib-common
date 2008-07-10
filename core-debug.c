@@ -13,8 +13,10 @@
 
 #ifndef NDEBUG /* disable that module if debug is disabled */
 
-#include "str.h"
+#include <fnmatch.h>
+#include "array.h"
 #include "htbl.h"
+#include "str.h"
 
 /*
  * The debug module uses a brutally-memoize-answers approach.
@@ -29,85 +31,84 @@
 
 static int verbosity_level;
 
-typedef struct trace_entry {
-    struct trace_entry *next;
-
-    int level;
-
-    char *funcname;
-    char modname[];
-} trace_entry;
-
 struct trace_record_t {
     uint64_t uuid;
-    int minlevel;
+    int level;
 };
 DO_HTBL_KEY(struct trace_record_t, uint64_t, trace, uuid);
 
+struct trace_spec_t {
+    const char *path;
+    const char *func;
+    int level;
+};
+DO_VECTOR(struct trace_spec_t, spec);
+
 static struct {
-    struct trace_entry *e_watches;
-    trace_htbl cache;
+    spec_vector specs;
+    trace_htbl  cache;
 } _G;
 
 __attribute__((constructor))
 static void e_debug_initialize(void)
 {
-    const char *p;
+    char *p;
+
+    trace_htbl_init(&_G.cache);
+    spec_vector_init(&_G.specs);
 
     p = getenv("IS_DEBUG");
     if (!p)
         return;
-
-    trace_htbl_init(&_G.cache);
+    p = p_strdup(skipspaces(p));
 
     /*
      * parses blank separated <specs>
-     * <specs> ::= <modulename>[@<funcname>][:<level>]
+     * <specs> ::= [<path-pattern>][@<funcname>][:<level>]
      */
     while (*p) {
-        const char *q;
-        trace_entry *e;
+        struct trace_spec_t spec;
+        int len;
 
-        q = p = skipspaces(p);
+        p_clear(&spec, 1);
 
-        while (*q && !isspace((unsigned char)*q) && *q != ':') {
-            q++;
+        len = strcspn(p, "@: \t\r\n\v\f");
+        if (len)
+            spec.path = p;
+        p += len;
+        if (*p == '@') {
+            *p++ = '\0';
+            spec.func = p;
+            p += strcspn(p, ": \t\r\n\v\f");
         }
-
-        e = p_new_extra(trace_entry, q - p + 1);
-        memcpy(&e->modname, p, q - p);
-        e->level = INT_MAX;
-
-        e->next   = _G.e_watches;
-        _G.e_watches = e;
-
-        e->funcname = strchr(e->modname, '@');
-        if (e->funcname) {
-            *e->funcname++ = '\0';
+        if (*p == ':') {
+            *p++ = '\0';
+            spec.level = vstrtoip(p, &p);
+            p = vstrnextspace(p);
         } else {
-            e->funcname = e->modname + (q - p);
+            spec.level = INT_MAX;
         }
+        if (*p)
+            *p++ = '\0';
 
-        if (*q == ':') {
-            q++;
-            e->level = strtol(q, &q, 10);
-            while (*q && !isspace((unsigned char)*q)) {
-                q++;
-            }
-        }
-        p = q;
+        spec_vector_append(&_G.specs, spec);
     }
 }
 
-static int e_find_minlevel(const char *modname, const char *func)
+static int e_find_level(const char *modname, const char *func)
 {
-    for (trace_entry *e = _G.e_watches; e; e = e->next) {
-        if (strequal(modname, e->modname)
-        && (!e->funcname[0] || strequal(func, e->funcname))) {
-            return e->level;
-        }
+    int level = verbosity_level;
+
+    for (int i = 0; i < _G.specs.len; i++) {
+        struct trace_spec_t *spec = &_G.specs.tab[i];
+
+        if (spec->path && fnmatch(spec->path, modname, FNM_PATHNAME) != 0)
+            continue;
+        if (spec->func && fnmatch(spec->func, func, 0) != 0)
+            continue;
+        level = spec->level;
     }
-    return INT_MIN;
+    return level;
 }
 
 static uint64_t e_trace_uuid(const char *modname, const char *func)
@@ -122,18 +123,15 @@ bool e_is_traced_real(int level, const char *modname, const char *func)
     struct trace_record_t tr, *trp;
     uint64_t uuid;
 
-    if (level <= verbosity_level)
-        return true;
-
     uuid = e_trace_uuid(modname, func);
     trp  = trace_htbl_find(&_G.cache, uuid);
     if (unlikely(trp == NULL)) {
-        tr.uuid     = uuid;
-        tr.minlevel = e_find_minlevel(modname, func);
+        tr.uuid  = uuid;
+        tr.level = e_find_level(modname, func);
         trace_htbl_insert(&_G.cache, tr);
         trp = &tr;
     }
-    return level <= trp->minlevel;
+    return level <= trp->level;
 }
 
 void e_set_verbosity(int max_debug_level)
