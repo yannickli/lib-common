@@ -84,7 +84,7 @@ void e_trace_put(int lvl, const char *fname, int lno, const char *func,
 #define e_trace_hex(lvl, str, buf, len)                                      \
     do {                                                                     \
         if (e_is_traced(lvl)) {                                              \
-            e_trace(lvl, E_PREFIX("--%s (%d)--\n"), str, len);               \
+            e_trace(lvl, "--%s (%d)--\n", str, len);                         \
             ifputs_hex(stderr, buf, len);                                    \
         }                                                                    \
     } while (0)
