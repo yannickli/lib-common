@@ -29,8 +29,6 @@
  *   to remember the answer we previously gave.
  */
 
-static int verbosity_level;
-
 struct trace_record_t {
     uint64_t uuid;
     int level;
@@ -47,7 +45,10 @@ DO_VECTOR(struct trace_spec_t, spec);
 static struct {
     spec_vector specs;
     trace_htbl  cache;
-} _G;
+    int verbosity_level;
+} _G = {
+    .verbosity_level = 1,
+};
 
 __attribute__((constructor))
 static void e_debug_initialize(void)
@@ -97,7 +98,7 @@ static void e_debug_initialize(void)
 
 static int e_find_level(const char *modname, const char *func)
 {
-    int level = verbosity_level;
+    int level = _G.verbosity_level;
 
     for (int i = 0; i < _G.specs.len; i++) {
         struct trace_spec_t *spec = &_G.specs.tab[i];
@@ -136,12 +137,12 @@ bool e_is_traced_real(int level, const char *modname, const char *func)
 
 void e_set_verbosity(int max_debug_level)
 {
-    verbosity_level = max_debug_level;
+    _G.verbosity_level = max_debug_level;
 }
 
 void e_incr_verbosity(void)
 {
-    verbosity_level++;
+    _G.verbosity_level++;
 }
 
 #endif
