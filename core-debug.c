@@ -18,6 +18,7 @@
 #include "htbl.h"
 #include "str.h"
 #include "blob.h"
+#include "unix.h"
 
 /*
  * The debug module uses a brutally-memoize-answers approach.
@@ -46,12 +47,21 @@ DO_VECTOR(struct trace_spec_t, spec);
 static struct {
     spec_vector specs;
     trace_htbl  cache;
-    blob_t      buf;
+    blob_t      buf, tmpbuf;
+
     int verbosity_level;
-    int maxlen;
+
+    int maxlen, rows, cols;
+    bool fancy;
 } _G = {
     .verbosity_level = 1,
 };
+
+static void on_sigwinch(int signo)
+{
+    term_get_size(&_G.cols, &_G.rows);
+}
+
 
 __attribute__((constructor))
 static void e_debug_initialize(void)
@@ -61,8 +71,13 @@ static void e_debug_initialize(void)
     trace_htbl_init(&_G.cache);
     spec_vector_init(&_G.specs);
     blob_init(&_G.buf);
+    blob_init(&_G.tmpbuf);
+    _G.fancy = is_fancy_fd(STDERR_FILENO);
+    if (_G.fancy) {
+        term_get_size(&_G.cols, &_G.rows);
+        signal(SIGWINCH, &on_sigwinch);
+    }
 
-    setlinebuf(stderr);
     p = getenv("IS_DEBUG");
     if (!p)
         return;
@@ -140,18 +155,39 @@ bool e_is_traced_real(int level, const char *modname, const char *func)
     return level <= trp->level;
 }
 
-void e_trace_put(int level, const char *fname, int lno,
+static void e_trace_put_fancy(int level, const char *module, int lno, const char *func)
+{
+    char escapes[BUFSIZ];
+    int len, cols = _G.cols;
+
+    blob_set_fmt(&_G.tmpbuf, "%s:%d", module, lno);
+    if (_G.tmpbuf.len > cols - 2)
+        blob_kill_last(&_G.tmpbuf, _G.tmpbuf.len - cols - 2);
+    len = snprintf(escapes, sizeof(escapes), "\r\e[%dC\e[7m ", cols - 2 - _G.tmpbuf.len);
+    blob_insert_data(&_G.tmpbuf, 0, escapes, len);
+    blob_append_cstr(&_G.tmpbuf, " \e[0m\r");
+
+    len = strlen(func);
+#define FUN_WIDTH 20
+    if (strlen(func) < FUN_WIDTH) {
+        blob_append_fmt(&_G.tmpbuf, "\e[33m%*s\e[0m ", FUN_WIDTH, func);
+    } else {
+        blob_append_fmt(&_G.tmpbuf, "\e[33m%.*s...\e[0m ", FUN_WIDTH - 3, func);
+    }
+}
+
+static void e_trace_put_normal(int level, const char *module, int lno, const char *func)
+{
+    blob_set_fmt(&_G.tmpbuf, "%d %s:%d:%s: ", level, module, lno, func);
+}
+
+void e_trace_put(int level, const char *module, int lno,
                  const char *func, const char *fmt, ...)
 {
-    static char const spaces[] =
-        "                                        "
-        "                                        "
-        "                                        "
-        "                                        ";
     const char *p;
     va_list ap;
 
-    if (!e_is_traced_real(level, fname, func))
+    if (!e_is_traced_real(level, module, func))
         return;
 
     va_start(ap, fmt);
@@ -159,16 +195,14 @@ void e_trace_put(int level, const char *fname, int lno,
     va_end(ap);
 
     while ((p = memchr(_G.buf.data, '\n', _G.buf.len))) {
-        int len;
-
-        len = fprintf(stderr, "%d %s:%d:%s: ", level, fname, lno, func);
-        if (len >= _G.maxlen) {
-            _G.maxlen = len;
+        if (_G.fancy) {
+            e_trace_put_fancy(level, module, lno, func);
         } else {
-            IGNORE(fwrite(spaces, _G.maxlen - len, 1, stderr));
+            e_trace_put_normal(level, module, lno, func);
         }
-        IGNORE(fwrite(_G.buf.data, p + 1 - blob_get_cstr(&_G.buf), 1, stderr));
+        blob_append_data(&_G.tmpbuf, _G.buf.data, p + 1 - blob_get_cstr(&_G.buf));
         blob_kill_at(&_G.buf, p + 1);
+        IGNORE(xwrite(STDERR_FILENO, _G.tmpbuf.data, _G.tmpbuf.len));
     }
 }
 
