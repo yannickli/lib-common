@@ -12,6 +12,13 @@ Error handling overhaul  (Thu, 10 Jul 2008)
   - `e_verbosity_maxwatch` optimization was removed to allow simpler refactor.
     You should use this variable directly anyways.
 
+* Error reporting updates:
+  - `e_handler` is renamed `e_handler_f`.
+  - `e_init_file`, `e_init_syslog` and `e_shutdown` are no more. People using
+    the syslog were doing it by hand, and the simpler the better.
+    `e_init_file` is mostly unused as people want more control than what it
+    offers.
+
 
 Initial Revision  (Wed, 09 Jul 2008)
 ------------------------------------

@@ -16,20 +16,15 @@
 #endif
 #define IS_LIB_COMMON_CORE_ERRORS_H
 
-typedef void (e_handler)(int, const char *, va_list) __attr_printf__(2, 0);
-typedef int error_f(const char *, ...) __attr_printf__(1, 2);
+typedef void (e_handler_f)(int, const char *, va_list) __attr_printf__(2, 0);
+typedef int (error_f)(const char *, ...) __attr_printf__(1, 2);
 
 #define E_PREFIX(fmt) \
     ("%s:%d:%s: " fmt), __FILE__, __LINE__, __func__
 
 #define E_UNIXERR(funcname)  funcname ": %m"
 
-/*
- * These functions are meant to correspond to the syslog levels.
- *
- * e_fatal/e_panic exit the program.
- *
- */
+/* These functions are meant to correspond to the syslog levels.  */
 error_f e_fatal  __attr_noreturn__;
 error_f e_panic  __attr_noreturn__;
 error_f e_error;
@@ -38,12 +33,7 @@ error_f e_notice;
 error_f e_info;
 
 void e_init_stderr(void);
-void e_init_file(const char *ident, const char *filename);
-void e_init_syslog(const char *ident, int options, int facility);
-
-void e_set_handler(e_handler *handler);
-
-void e_shutdown(void);
+void e_set_handler(e_handler_f *handler);
 
 /**************************************************************************/
 /* Debug part                                                             */
