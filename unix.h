@@ -51,6 +51,7 @@ int xread(int fd, void *data, ssize_t dlen);
 bool is_fd_open(int fd);
 /* FIXME: Find a better name. */
 int close_fds_higher_than(int fd);
+bool is_fancy_fd(int fd);
 
 /****************************************************************************/
 /* Misc                                                                     */

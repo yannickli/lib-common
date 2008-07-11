@@ -321,6 +321,16 @@ void unix_initialize(void)
     }
 }
 
+bool is_fancy_fd(int fd)
+{
+    const char *term;
+
+    if (!isatty(fd))
+        return false;
+    term = getenv("TERM");
+    return term && *term && !strequal(term, "dumb");
+}
+
 #ifndef __linux__
 int close_fds_higher_than(int fd)
 {
