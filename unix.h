@@ -52,6 +52,7 @@ bool is_fd_open(int fd);
 /* FIXME: Find a better name. */
 int close_fds_higher_than(int fd);
 bool is_fancy_fd(int fd);
+void term_get_size(int *cols, int *rows);
 
 /****************************************************************************/
 /* Misc                                                                     */

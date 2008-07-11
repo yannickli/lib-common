@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <sys/ioctl.h>
+#include <termios.h>
 #include "unix.h"
 #include "str.h"
 
@@ -329,6 +331,26 @@ bool is_fancy_fd(int fd)
         return false;
     term = getenv("TERM");
     return term && *term && !strequal(term, "dumb");
+}
+
+void term_get_size(int *cols, int *rows)
+{
+    struct winsize w;
+    int fd;
+
+    if ((fd = open("/dev/tty", O_RDONLY)) != -1) {
+        if (ioctl(fd, TIOCGWINSZ, &w) != -1) {
+            *rows = w.ws_row;
+            *cols = w.ws_col;
+        }
+        close(fd);
+    }
+    if (*rows <= 0) {
+        *rows = atoi(getenv("LINES") ?: "24");
+    }
+    if (*cols <= 0) {
+        *cols = atoi(getenv("COLUMNS") ?: "80");
+    }
 }
 
 #ifndef __linux__
