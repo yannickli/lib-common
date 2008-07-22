@@ -108,16 +108,6 @@ fi
 check_tool luac lua5.1
 
 # }}}
-# {{{ mysql
-
-if which mysql_config >/dev/null 2>/dev/null; then
-    setvar "libmysql_CFLAGS" "$(mysql_config --cflags)"
-    setvar "libmysql_LDFLAGS" "$(mysql_config --libs)"
-else
-    warn "*** libmysqlclient is missing, apt-get install libmysqlclient15-dev"
-fi
-
-# }}}
 # {{{ openssl
 
 if pkg-config --print-errors openssl; then
