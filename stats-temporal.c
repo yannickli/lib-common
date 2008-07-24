@@ -137,7 +137,7 @@ static void compute_day_range(time_t date, int days,
     assert (days == 7);
     localtime_r(&date, &tt);
     tt.tm_mday -= (tt.tm_wday + 6) % 7;
-    e_trace(2, "found mday: %d", tt.tm_mday);
+    e_trace(3, "found mday: %d", tt.tm_mday);
 #endif
     tt.tm_hour = tt.tm_min = tt.tm_sec = 0;
     if (start)
@@ -178,7 +178,7 @@ static mmfile_stats32 *per_sec_file_initialize(const char *prefix,
     if (!m && autocreate) {
         int to_allocate = end_time - start_time;
 
-        e_trace(2, "Could not mmfile_open %s: %m, try to create...", buf);
+        e_trace(1, "Could not mmfile_open %s: %m, try to create...", buf);
         m = mmfile_stats32_creat(buf, sizeof(stats_file32) +
                                  to_allocate * nb_stats * sizeof(uint32_t));
         if (!m) {
@@ -194,7 +194,7 @@ static mmfile_stats32 *per_sec_file_initialize(const char *prefix,
         m->area->nb_allocated = to_allocate;
         m->area->nb_stats = nb_stats;
 
-        e_trace(1, "Mapped file created (file = %s) (allocated = %d)",
+        e_trace(3, "Mapped file created (file = %s) (allocated = %d)",
                 buf, to_allocate);
     }
 
@@ -217,7 +217,7 @@ static mmfile_stats64 *per_hour_file_initialize(const char *prefix,
              prefix, t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
              t.tm_hour, t.tm_min, t.tm_sec);
 
-    e_trace(2, "for start = %d : opening %s...", (int)date, buf);
+    e_trace(3, "for start = %d : opening %s...", (int)date, buf);
     m = mmfile_stats64_open(buf, O_RDWR, 0, 0);
     if (m && (m->area->start_time > m->area->end_time ||
               m->area->nb_stats != nb_stats)) {
@@ -228,7 +228,7 @@ static mmfile_stats64 *per_hour_file_initialize(const char *prefix,
     if (!m && autocreate) {
         int to_allocate = (end_time - start_time) / 3600;
 
-        e_trace(2, "Could not mmfile_open (%m), try to create...");
+        e_trace(1, "Could not mmfile_open (%m), try to create...");
         m = mmfile_stats64_creat(buf, sizeof(stats_file64) +
                                  to_allocate * nb_stats * sizeof(uint64_t));
         if (!m) {
@@ -244,7 +244,7 @@ static mmfile_stats64 *per_hour_file_initialize(const char *prefix,
         m->area->nb_allocated = to_allocate;
         m->area->nb_stats = nb_stats;
 
-        e_trace(1, "Mapped file created (file = %s) (allocated = %d)",
+        e_trace(2, "Mapped file created (file = %s) (allocated = %d)",
                 buf, to_allocate);
     }
 
@@ -283,7 +283,7 @@ static mmfile_stats_auto *auto_file_initialize(stats_temporal_t *stats,
             to_allocate = (to_allocate + 255) & ~255;
         }
 
-        e_trace(2, "Could not mmfile_open (%m), try to create...");
+        e_trace(1, "Could not mmfile_open (%m), try to create...");
         m = mmfile_stats_auto_creat(buf, to_allocate);
         if (!m) {
             /* FIXME: This message may be repeated many times if stat file
@@ -323,7 +323,7 @@ static mmfile_stats_auto *auto_file_initialize(stats_temporal_t *stats,
             offset = (offset + 255) & ~255;
         }
 
-        e_trace(1, "Mapped file created (file = %s) (allocated = %d)",
+        e_trace(3, "Mapped file created (file = %s) (allocated = %d)",
                 buf, to_allocate);
     }
 
@@ -758,7 +758,7 @@ static void stats_query_read_hour(stats_temporal_t *stats, int start_time,
     if (mhour) {
         start_time = mhour->area->start_time;
         stop = MIN(end, start_time + mhour->area->nb_allocated * 3600);
-        e_trace(2, "Reading file %d between %d and %d", start_time, start, end);
+        e_trace(3, "Reading file %d between %d and %d", start_time, start, end);
         for (i = start; i < stop; i += 3600) {
             if (blob) {
                 blob_append_fmt(blob, "%d", i);
@@ -786,7 +786,7 @@ static void stats_query_read_hour(stats_temporal_t *stats, int start_time,
         start = stop;
     }
     if (start < end) {
-        e_trace(2, "Appending dummy data between %d and %d", start, end);
+        e_trace(3, "Appending dummy data between %d and %d", start, end);
         if (blob) {
             for (i = start; i < end; i += 3600) {
                 blob_append_fmt(blob, "%d", i);
@@ -827,13 +827,13 @@ int stats_temporal_query_sec(stats_temporal_t *stats, blob_t *blob,
     }
 
     if (nb_values > OUTPUT_SEC_MAX_NB) {
-        e_trace(2, "Truncated nb_values from %d to %d",
+        e_trace(3, "Truncated nb_values from %d to %d",
                 nb_values, OUTPUT_SEC_MAX_NB);
         nb_values = OUTPUT_SEC_MAX_NB;
     }
 
     end = start + nb_values;
-    e_trace(2, "Getting stats between %d and %d", start, end);
+    e_trace(3, "Getting stats between %d and %d", start, end);
 
     while (start < end) {
         /* compute boundaries for the sec stats file at start time */
@@ -871,7 +871,7 @@ int stats_temporal_query_hour(stats_temporal_t *stats, blob_t *blob,
     }
 
     if (nb_values > OUTPUT_HOUR_MAX_NB) {
-        e_trace(2, "Truncated nb_values from %d to %d",
+        e_trace(3, "Truncated nb_values from %d to %d",
                 nb_values, OUTPUT_HOUR_MAX_NB);
         nb_values = OUTPUT_HOUR_MAX_NB;
     }
@@ -879,7 +879,7 @@ int stats_temporal_query_hour(stats_temporal_t *stats, blob_t *blob,
     /* Round date to the current hour */
     start -= start % 3600;
     end = start + nb_values * 3600;
-    e_trace(2, "Getting stats between %d and %d (nb_values = %d)",
+    e_trace(3, "Getting stats between %d and %d (nb_values = %d)",
             start, end, nb_values);
 
     while (start < end) {
@@ -967,7 +967,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         }
     }
 
-    e_trace(1, "input values: start: %d, end: %d, nbvalues: %d",
+    e_trace(3, "input values: start: %d, end: %d, nbvalues: %d",
             start, end, nb_values);
     if (start <= 0 || end <= 0) {
         blob_append_cstr(blob, "Stats auto: invalid interval");
@@ -1109,14 +1109,14 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         --stage;
         st += stage;
     }
-    e_trace(2, "stage selected: %d", stage);
+    e_trace(3, "stage selected: %d", stage);
 
     start /= st->scale;
     freq  /= st->scale;
     start -= start % freq;
     end    = (end - 1) / st->scale + 1;
 
-    e_trace(1, "real values chosen: start: %d, end: %d, freq: %d, "
+    e_trace(3, "real values chosen: start: %d, end: %d, freq: %d, "
             "nbvalues: %d, ratio: %d",
             start, end, freq, nb_values, (end - start) / freq);
 
@@ -1146,13 +1146,13 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
                 if (stageup >= stats->nb_stages - 1)
                     break;
 
-                e_trace(2, "need next stage");
+                e_trace(3, "need next stage");
                 stageup++;
                 stup++;
                 stamp = i * st->scale / stup->scale;
             }
             if (stamp <= stup->current - stup->count) {
-                e_trace(2, "no data available, so dump 0");
+                e_trace(3, "no data available, so dump 0");
             } else {
                 double add;
                 byte *vpup, *bufup_start, *bufup_end;
@@ -1254,7 +1254,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
       default:
         break;
     }
-    e_trace(1, "%d values output", count);
+    e_trace(3, "%d values output", count);
     return count;
 }
 
@@ -1266,7 +1266,7 @@ int stats_temporal_bin_to_xml(const byte *data, int dlen, blob_t *out)
 
     if (dlen < ssizeof(*hdr))
         return -1;
-    e_trace(2, "HDR : lc [%u, %u]", hdr->nb_lines, hdr->nb_columns);
+    e_trace(3, "HDR : lc [%u, %u]", hdr->nb_lines, hdr->nb_columns);
     if (dlen < ssizeof(*hdr) + 4 * hdr->nb_columns
              + ssizeof(double) * hdr->nb_lines * hdr->nb_columns)
     {
