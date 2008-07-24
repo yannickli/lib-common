@@ -19,7 +19,6 @@
 
 #include "core.h"
 
-#include "archive.h"
 #include "array.h"
 #include "bfield.h"
 #include "blob.h"

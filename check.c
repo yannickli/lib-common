@@ -28,7 +28,9 @@ int main(void)
             check_append_blob_ebcdic_suite(
             check_make_blob_suite()
     )));
+#if 0 /* in mcms now */
     srunner_add_suite(sr, check_make_archive_suite());
+#endif
     srunner_add_suite(sr, check_licence_suite());
     srunner_add_suite(sr, check_xml_suite());
     srunner_add_suite(sr, check_make_timeval_suite());
