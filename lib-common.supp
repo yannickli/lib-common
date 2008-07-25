@@ -1,0 +1,40 @@
+{
+    lib-common_e-trace-1
+    Memcheck:Leak
+    fun:calloc
+    fun:htbl_init
+    fun:e_is_traced_real
+}
+{
+    lib-common_e-trace-2
+    Memcheck:Leak
+    fun:malloc
+    fun:blob_ensure
+    fun:blob_append_vfmt
+    fun:e_trace_put
+}
+{
+    lib-common_e-trace-3
+    Memcheck:Leak
+    fun:realloc
+    fun:blob_ensure
+    fun:e_trace_put
+}
+{
+    lib-common_e-trace-4
+    Memcheck:Leak
+    fun:calloc
+    fun:e_is_traced_real
+    fun:e_trace_put
+}
+{
+    lib-common_e-trace-5
+    Memcheck:Leak
+    fun:realloc
+    fun:blob_ensure
+    fun:blob_append_vfmt
+    fun:blob_append_fmt
+    obj:*
+    fun:e_trace_put
+}
+
