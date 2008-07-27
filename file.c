@@ -157,10 +157,10 @@ int file_putc(file_t *f, int c)
     return 0;
 }
 
-ssize_t file_write(file_t *f, const void *_data, ssize_t len)
+off_t file_write(file_t *f, const void *_data, off_t len)
 {
     const byte *data = _data;
-    ssize_t pos;
+    off_t pos;
     int fd = f->fd;
 
     if (!(f->flags & FILE_WRONLY)) {
