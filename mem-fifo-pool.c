@@ -40,6 +40,8 @@ typedef struct mem_page_t {
     int area_size;
     int page_size;
 
+    void *last;           /* last result of an allocation */
+
     byte area[];
 } mem_page_t;
 
@@ -55,7 +57,7 @@ typedef struct mem_fifo_pool_t {
     mem_page_t *freelist;
     int page_size;
     int nb_pages;
-    ssize_t occupied;
+    int occupied;
 } mem_fifo_pool_t;
 
 
@@ -87,6 +89,7 @@ static void mem_page_reset(mem_page_t *page)
     page->next        = NULL;
     page->used_size   = 0;
     page->used_blocks = 0;
+    page->last        = NULL;
     p_clear(page->area, page->area_size);
 }
 
@@ -103,19 +106,19 @@ static inline int mem_page_size_left(mem_page_t *page)
     return (page->area_size - page->used_size);
 }
 
-static void *mfp_alloc(mem_pool_t *mp, ssize_t size)
+static void *mfp_alloc(mem_pool_t *mp, int size)
 {
     mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)mp;
     mem_block_t *blk;
     mem_page_t *page;
 
     /* Must round size up to keep proper alignment */
-    size = ROUND_MULTIPLE((size_t)size + sizeof(mem_block_t), 8);
+    size = ROUND_MULTIPLE((unsigned)size + sizeof(mem_block_t), 8);
 
     if (size > mfp->page_size - ssizeof(mem_page_t)) {
         /* Should just map a larger page, yet we need a maximum value */
-        e_panic(E_PREFIX("tried to alloc %zd bytes, cannot have more than %d"),
-                (size_t)size, mfp->page_size);
+        e_panic(E_PREFIX("tried to alloc %d bytes, cannot have more than %d"),
+                size, mfp->page_size);
     }
 
     page = mfp->pages;
@@ -139,7 +142,7 @@ static void *mfp_alloc(mem_pool_t *mp, ssize_t size)
     mfp->occupied   += size;
     page->used_size += size;
     page->used_blocks++;
-    return blk->area;
+    return page->last = blk->area;
 }
 
 static void mfp_free(struct mem_pool_t *mp, void *mem)
@@ -186,26 +189,41 @@ static void mfp_free(struct mem_pool_t *mp, void *mem)
     }
 }
 
-static void *mfp_realloc(struct mem_pool_t *mp, void *mem, ssize_t size)
+static void *mfp_realloc(struct mem_pool_t *mp, void *mem, int size)
 {
     mem_block_t *blk;
+    mem_page_t *page;
     void *res;
 
-    if (size <= 0) {
+    if (unlikely(size < 0))
+        e_panic(E_PREFIX("invalid memory size %d"), size);
+    if (unlikely(size == 0)) {
         mfp_free(mp, mem);
         return NULL;
     }
 
-    if (!mem) {
+    if (!mem)
         return mfp_alloc(mp, size);
-    }
-
-    /* TODO: optimize if it's the last block allocated */
 
     blk = (mem_block_t*)((byte *)mem - sizeof(mem_block_t));
     if (blk->page_offs > 0) {
         e_error("double free heap corruption *** %p ***", mem);
         return NULL;
+    }
+
+    if (size <= blk->blk_size - ssizeof(blk))
+        return mem;
+
+    /* optimization if it's the last block allocated */
+    page = pageof(blk);
+    if (mem == page->last
+    && size + ssizeof(blk) - blk->blk_size <= mem_page_size_left(page))
+    {
+        size = ROUND_MULTIPLE((size_t)size, 8);
+        blk->blk_size   += size;
+        page->used_size += size;
+        ((mem_fifo_pool_t *)mp)->occupied += size;
+        return mem;
     }
 
     res = mfp_alloc(mp, size);

@@ -18,18 +18,17 @@
  *      we deal with memory: always memset it e.g.
  */
 
-static void *mem_malloc_alloc0(mem_pool_t *mp __unused__, ssize_t size)
+static void *mem_malloc_alloc0(mem_pool_t *mp, int size)
 {
     return mem_alloc0(size);
 }
 
-static void mem_malloc_free(mem_pool_t *mp __unused__, void *mem)
+static void mem_malloc_free(mem_pool_t *mp, void *mem)
 {
     mem_free(mem);
 }
 
-static void *mem_malloc_realloc(mem_pool_t *mp __unused__, void *mem,
-                                ssize_t size)
+static void *mem_malloc_realloc(mem_pool_t *mp, void *mem, int size)
 {
     mem_realloc(&mem, size);
     return mem;

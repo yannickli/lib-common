@@ -17,21 +17,21 @@
 #include "core.h"
 
 typedef struct mem_pool_t {
-    void *(*mem_alloc)  (struct mem_pool_t *mp, ssize_t size);
-    void *(*mem_alloc0) (struct mem_pool_t *mp, ssize_t size);
-    void *(*mem_realloc)(struct mem_pool_t *mp, void *mem, ssize_t size);
+    void *(*mem_alloc)  (struct mem_pool_t *mp, int size);
+    void *(*mem_alloc0) (struct mem_pool_t *mp, int size);
+    void *(*mem_realloc)(struct mem_pool_t *mp, void *mem, int size);
     void  (*mem_free)   (struct mem_pool_t *mp, void *mem);
 } mem_pool_t;
 
 static inline __attribute__((malloc))
-void *memp_dup(mem_pool_t *mp, const void *src, ssize_t size)
+void *memp_dup(mem_pool_t *mp, const void *src, int size)
 {
     void *res = mp->mem_alloc(mp, size);
     return memcpy(res, src, size);
 }
 
 static inline __attribute__((malloc))
-void *mp_dupstr(mem_pool_t *mp, const void *src, ssize_t len)
+void *mp_dupstr(mem_pool_t *mp, const void *src, int len)
 {
     char *res = mp->mem_alloc(mp, len + 1);
     memcpy(res, src, len);
@@ -88,7 +88,7 @@ void *mp_dupstr(mem_pool_t *mp, const void *src, ssize_t len)
 
 #define mp_realloc0(pp, old, now)                  \
     do {                                           \
-        ssize_t __old = (old), __now = (now);      \
+        int __old = (old), __now = (now);          \
         mp_realloc(mp, pp, __now);                 \
         if (__now > __old) {                       \
             p_clear(*(pp) + __old, __now - __old); \

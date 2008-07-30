@@ -7,6 +7,8 @@ Memory pools (Wed, 30 Jul 2008)
 * `mem-fifo-pool.h` is removed, merged into `mem-pool.h`.
   You must replace your includes with `<lib-common/mem-pool.h>`.
 * `mem_pool` is renamed `mem_pool_t`.
+* consistentely use `int` instead of `ssize_t` for memory pools, like we did
+  with `malloc.
 
 Cleanups (Thu, 24 Jul 2008)
 ---------------------------
