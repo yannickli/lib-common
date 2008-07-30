@@ -26,6 +26,7 @@
 #include <sys/mman.h>
 #include "mmappedfile.h"
 #include "mem-pool.h"
+#include "list.h"
 
 #define ROUND_MULTIPLE(n, k) ((((n) + (k) - 1) / (k)) * (k))
 
@@ -33,6 +34,9 @@
 
 typedef struct mem_page_t {
     struct mem_page_t *next;
+    struct mem_page_t *prev;
+
+    flag_t full : 1;
 
     int area_size;
     int used_size;
@@ -42,6 +46,7 @@ typedef struct mem_page_t {
 
     byte area[];
 } mem_page_t;
+DLIST_FUNCTIONS(mem_page_t, mem_page);
 
 typedef struct mem_block_t {
     int page_offs;
@@ -52,6 +57,7 @@ typedef struct mem_block_t {
 typedef struct mem_fifo_pool_t {
     mem_pool_t funcs;
     mem_page_t *pages;
+    mem_page_t *fullpages;
     mem_page_t *freelist;
     int page_size;
     int nb_pages;
@@ -80,6 +86,8 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp)
 
 static void mem_page_reset(mem_page_t *page)
 {
+    page->full        = 0;
+    page->prev        = NULL;
     page->next        = NULL;
     page->used_size   = 0;
     page->used_blocks = 0;
@@ -114,18 +122,26 @@ static void *mfp_alloc(mem_fifo_pool_t *mfp, int size)
                 size, mfp->page_size);
     }
 
-    page = mfp->pages;
-    if (!page || mem_page_size_left(page) < size) {
+    while ((page = mfp->pages)) {
+        if (mem_page_size_left(page) < size) {
+            page->full = true;
+            mem_page_list_take(&mfp->pages, page);
+            mem_page_list_append(&mfp->fullpages, page);
+            continue;
+        }
+        break;
+    }
+
+    if (!page) {
         if (mfp->freelist) {
             /* push the first free page on top of the pages list */
-            page = mfp->freelist;
-            mfp->freelist = page->next;
+            page = mem_page_list_popfirst(&mfp->freelist);
         } else {
             /* mmap a new page */
             page = mem_page_new(mfp);
             mfp->nb_pages++;
         }
-        page->next = mfp->pages;
+        mem_page_list_append(&mfp->pages, page);
         mfp->pages = page;
     }
 
@@ -141,6 +157,7 @@ static void *mfp_alloc(mem_fifo_pool_t *mfp, int size)
 static void mfp_free(mem_fifo_pool_t *mfp, void *mem)
 {
     mem_block_t *blk;
+    mem_page_t *page;
 
     if (!mem)
         return;
@@ -151,30 +168,19 @@ static void mfp_free(mem_fifo_pool_t *mfp, void *mem)
 
     mfp->occupied -= blk->blk_size;
 
-    /* if this was the last block, GC the pages */
-    if (--pageof(blk)->used_blocks <= 0) {
-        mem_page_t **pagep;
+    page = pageof(blk);
+    if (page->full && --page->used_blocks <= 0) {
+        mem_page_list_take(&mfp->fullpages, page);
 
-        for (pagep = &mfp->pages; *pagep; pagep = &(*pagep)->next) {
-            mem_page_t *page = *pagep;
-
-            if (page->used_blocks != 0)
-                continue;
-
-            *pagep = page->next;
-
-            if (mfp->freelist || mfp->nb_pages == 1) {
-                mem_page_delete(&page);
-                mfp->nb_pages--;
-            } else {
-                /* Clear area to 0 to ensure allocated blocks are
-                 * cleared.  mfp_malloc relies on this.
-                 */
-                mem_page_reset(page);
-                page->next    = mfp->freelist;
-                mfp->freelist = page;
-            }
-            break;
+        if (mfp->freelist || mfp->nb_pages == 1) {
+            mem_page_delete(&page);
+            mfp->nb_pages--;
+        } else {
+            /* Clear area to 0 to ensure allocated blocks are
+             * cleared.  mfp_malloc relies on this.
+             */
+            mem_page_reset(page);
+            mem_page_list_append(&mfp->freelist, page);
         }
     } else {
         blk->page_offs = POOL_DEALLOCATED;
@@ -260,17 +266,19 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
         mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)(*poolp);
 
         while (mfp->freelist) {
-            mem_page_t *page = mfp->freelist;
+            mem_page_t *page = mem_page_list_popfirst(&mfp->freelist);
+            mem_page_delete(&page);
+            mfp->nb_pages--;
+        }
 
-            mfp->freelist = page->next;
+        while (mfp->fullpages) {
+            mem_page_t *page = mem_page_list_popfirst(&mfp->fullpages);
             mem_page_delete(&page);
             mfp->nb_pages--;
         }
 
         while (mfp->pages) {
-            mem_page_t *page = mfp->pages;
-
-            mfp->pages = page->next;
+            mem_page_t *page = mem_page_list_popfirst(&mfp->pages);
             mem_page_delete(&page);
             mfp->nb_pages--;
         }
