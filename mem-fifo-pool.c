@@ -27,6 +27,7 @@
 #include "mmappedfile.h"
 #include "mem-pool.h"
 #include "list.h"
+#include "refcount.h"
 
 #define ROUND_MULTIPLE(n, k) ((((n) + (k) - 1) / (k)) * (k))
 
@@ -66,7 +67,19 @@ typedef struct mem_fifo_pool_t {
     int occupied;
 } mem_fifo_pool_t;
 
+typedef struct mem_scatter_pool_t {
+    mem_pool_t funcs;
+    mem_fifo_pool_t *mfp;
+    mem_page_t *locked;
+    int refcnt;
+} mem_scatter_pool_t;
 
+static mem_block_t *blkof(void *mem) {
+    mem_block_t *blk = (mem_block_t*)((byte *)mem - sizeof(mem_block_t));
+    if (unlikely(blk->page_offs > 0))
+        e_panic("double free heap corruption *** %p ***", mem);
+    return blk;
+}
 static mem_page_t *pageof(mem_block_t *blk) {
     return (mem_page_t *)((char *)blk + blk->page_offs);
 }
@@ -170,10 +183,7 @@ static void mfp_free(mem_fifo_pool_t *mfp, void *mem)
     if (!mem)
         return;
 
-    blk = (mem_block_t*)((byte *)mem - sizeof(mem_block_t));
-    if (blk->page_offs > 0)
-        e_panic("double free heap corruption *** %p ***", mem);
-
+    blk = blkof(mem);
     mfp->occupied -= blk->blk_size;
 
     page = pageof(blk);
@@ -217,12 +227,7 @@ static void *mfp_realloc(mem_fifo_pool_t *mfp, void *mem, int size)
     if (!mem)
         return mfp_alloc(mfp, size);
 
-    blk = (mem_block_t*)((byte *)mem - sizeof(mem_block_t));
-    if (blk->page_offs > 0) {
-        e_error("double free heap corruption *** %p ***", mem);
-        return NULL;
-    }
-
+    blk = blkof(mem);
     if (size <= blk->blk_size - ssizeof(blk))
         return mem;
 
@@ -310,4 +315,57 @@ void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
     *allocated = (mfp->nb_pages - (mfp->freelist != NULL))
                * (mfp->page_size - ssizeof(mem_page_t));
     *used      = mfp->occupied;
+}
+
+static void *msp_alloc(mem_scatter_pool_t *msp, int size)
+{
+    abort();
+}
+
+static void *msp_realloc(mem_scatter_pool_t *mfp, void *mem, int size)
+{
+    abort();
+}
+
+mem_pool_t *mem_scatter_pool_new(mem_pool_t *mp)
+{
+    mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)mp;
+    mem_scatter_pool_t *msp;
+    mem_block_t *blk;
+
+    msp = mfp_alloc(mfp, sizeof(mem_scatter_pool_t));
+    msp->funcs.mem_alloc   = (void *)&msp_alloc;
+    msp->funcs.mem_alloc0  = (void *)&msp_alloc;
+    msp->funcs.mem_realloc = (void *)&msp_realloc;
+    msp->refcnt = 1;
+    msp->mfp = mfp;
+
+    blk = blkof(msp);
+    msp->locked = pageof(blk);
+    msp->locked->lock = blk;
+    return &msp->funcs;
+}
+
+void mem_scatter_pool_unlock(mem_pool_t *mp)
+{
+    mem_scatter_pool_t *msp = (mem_scatter_pool_t *)mp;
+    msp->locked->lock = NULL;
+    msp->locked = NULL;
+}
+
+mem_pool_t *mem_scatter_pool_dup(mem_pool_t *mp)
+{
+    ((mem_scatter_pool_t *)mp)->refcnt++;
+    return mp;
+}
+
+void mem_scatter_pool_delete(mem_pool_t **mp)
+{
+    mem_scatter_pool_t **msp = (mem_scatter_pool_t **)mp;
+    if (*msp) {
+        if (--(*msp)->refcnt <= 0) {
+            mfp_free((*msp)->mfp, (*msp));
+        }
+        *msp = NULL;
+    }
 }

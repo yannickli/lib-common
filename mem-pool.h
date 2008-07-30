@@ -123,5 +123,10 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint);
 void mem_fifo_pool_delete(mem_pool_t **poolp);
 void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used);
 
+mem_pool_t *mem_scatter_pool_new(mem_pool_t *mp);
+mem_pool_t *mem_scatter_pool_dup(mem_pool_t *mp);
+void mem_scatter_pool_unlock(mem_pool_t *mp);
+void mem_scatter_pool_delete(mem_pool_t **mp);
+
 
 #endif /* IS_LIB_COMMON_MEM_FIFO_POOL_H */
