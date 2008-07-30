@@ -11,18 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef NDEBUG
-#include <valgrind/valgrind.h>
-#include <valgrind/memcheck.h>
-
-/* XXX: this is a hack that detects if the tool may be memcheck or another.
- *      with memecheck, VALGRIND_MAKE_MEM_DEFINED on a function address
- *      returns -1, 0 in other tools.
- */
-#define RUNNING_ON_MEMCHECK \
-    (RUNNING_ON_VALGRIND && \
-    VALGRIND_MAKE_MEM_DEFINED(&mem_fifo_pool_new, sizeof(mem_fifo_pool_new)))
-#endif
 #include <sys/mman.h>
 #include "mmappedfile.h"
 #include "mem-pool.h"
@@ -57,6 +45,12 @@ typedef struct mem_block_t {
     byte area[];
 } mem_block_t;
 
+typedef struct mem_simple_block_t {
+    int sblk_size;
+    int sblk_free;
+    byte area[];
+} mem_simple_block_t;
+
 typedef struct mem_fifo_pool_t {
     mem_pool_t funcs;
     mem_page_t *pages;
@@ -74,6 +68,13 @@ typedef struct mem_scatter_pool_t {
     int refcnt;
 } mem_scatter_pool_t;
 
+static mem_simple_block_t *sblkof(void *mem) {
+    mem_simple_block_t *sblk;
+    sblk = (mem_simple_block_t*)((byte *)mem - sizeof(mem_simple_block_t));
+    if (unlikely(sblk->sblk_free > 0))
+        e_panic("double free heap corruption *** %p ***", mem);
+    return sblk;
+}
 static mem_block_t *blkof(void *mem) {
     mem_block_t *blk = (mem_block_t*)((byte *)mem - sizeof(mem_block_t));
     if (unlikely(blk->page_offs > 0))
@@ -261,11 +262,6 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
 {
     mem_fifo_pool_t *mfp;
 
-#ifndef NDEBUG
-    if (RUNNING_ON_MEMCHECK)
-        return mem_malloc_pool_new();
-#endif
-
     mfp             = p_new(mem_fifo_pool_t, 1);
     mfp->funcs      = mem_fifo_pool_funcs;
     mfp->page_size  = MAX(16 * 4096, ROUND_MULTIPLE(page_size_hint, 4096));
@@ -275,15 +271,13 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
 
 void mem_fifo_pool_delete(mem_pool_t **poolp)
 {
-#ifndef NDEBUG
-    if (RUNNING_ON_MEMCHECK) {
-        mem_malloc_pool_delete(poolp);
-        return;
-    }
-#endif
-
     if (*poolp) {
         mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)(*poolp);
+
+#ifndef NDEBUG
+        if (mfp->fullpages || mfp->pages)
+            e_error("possible memory leak in memory pool %p", *poolp);
+#endif
 
         while (mfp->freelist) {
             mem_page_t *page = mem_page_list_popfirst(&mfp->freelist);
@@ -319,12 +313,52 @@ void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
 
 static void *msp_alloc(mem_scatter_pool_t *msp, int size)
 {
-    abort();
+    mem_page_t *page = msp->locked;
+    mem_simple_block_t *sblk;
+    mem_block_t *blk;
+
+    assert (page && page->lock);
+
+    size = ROUND_MULTIPLE((unsigned)size + sizeof(mem_simple_block_t), 8);
+    blk  = page->lock;
+
+    if (size <= mem_page_size_left(page)) {
+        sblk = (mem_simple_block_t *)(blk->area + blk->blk_size);
+        blk->blk_size      += size;
+        page->used_size    += size;
+        msp->mfp->occupied += size;
+    } else {
+        sblk = mfp_alloc(msp->mfp, size);
+        page->lock = NULL;
+
+        blk = blk->next = blkof(sblk);
+        msp->locked = pageof(blk);
+        msp->locked->lock = blk;
+    }
+
+    sblk->sblk_size = size - sizeof(mem_simple_block_t);
+    return sblk->area;
+}
+
+static void msp_free(mem_scatter_pool_t *msp, void *mem)
+{
+    sblkof(mem)->sblk_free = 1;
 }
 
 static void *msp_realloc(mem_scatter_pool_t *mfp, void *mem, int size)
 {
-    abort();
+    mem_simple_block_t *sblk = sblkof(mem);
+
+    if (unlikely(size < 0))
+        e_panic(E_PREFIX("invalid memory size %d"), size);
+    if (unlikely(size == 0)) {
+        sblk->sblk_free = 1;
+        return NULL;
+    }
+
+    mem = msp_alloc(mfp, size);
+    memcpy(mem, sblk->area, sblk->sblk_size);
+    return mem;
 }
 
 mem_pool_t *mem_scatter_pool_new(mem_pool_t *mp)
@@ -337,6 +371,7 @@ mem_pool_t *mem_scatter_pool_new(mem_pool_t *mp)
     msp->funcs.mem_alloc   = (void *)&msp_alloc;
     msp->funcs.mem_alloc0  = (void *)&msp_alloc;
     msp->funcs.mem_realloc = (void *)&msp_realloc;
+    msp->funcs.mem_free    = (void *)&msp_free;
     msp->refcnt = 1;
     msp->mfp = mfp;
 
