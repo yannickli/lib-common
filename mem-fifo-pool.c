@@ -42,7 +42,8 @@ typedef struct mem_page_t {
     int used_size;
     int used_blocks;
 
-    void *last;           /* last result of an allocation */
+    void *last;                 /* last result of an allocation */
+    struct mem_block_t *lock;   /* current scatter allocator    */
 
     byte area[];
 } mem_page_t;
@@ -51,6 +52,7 @@ DLIST_FUNCTIONS(mem_page_t, mem_page);
 typedef struct mem_block_t {
     int page_offs;
     int blk_size;
+    struct mem_block_t *next;   /* scatter block chain          */
     byte area[];
 } mem_block_t;
 
@@ -108,6 +110,34 @@ static inline int mem_page_size_left(mem_page_t *page)
     return (page->area_size - page->used_size);
 }
 
+static mem_page_t *mfp_get_page(mem_fifo_pool_t *mfp, int size)
+{
+    mem_page_t **pagep = &mfp->pages;
+    mem_page_t *page;
+
+    while ((page = *pagep)) {
+        if (mem_page_size_left(page) < size) {
+            page->full = true;
+            mem_page_list_take(&mfp->pages, page);
+            mem_page_list_append(&mfp->fullpages, page);
+            continue;
+        }
+        if (!page->lock)
+            return page;
+        if (page->next == mfp->pages)
+            break;
+        pagep = &(*pagep)->next;
+    }
+
+    if (mfp->freelist)
+        return  mem_page_list_popfirst(&mfp->freelist);
+
+    page = mem_page_new(mfp);
+    mfp->nb_pages++;
+    mem_page_list_prepend(&mfp->pages, page);
+    return page;
+}
+
 static void *mfp_alloc(mem_fifo_pool_t *mfp, int size)
 {
     mem_block_t *blk;
@@ -122,29 +152,7 @@ static void *mfp_alloc(mem_fifo_pool_t *mfp, int size)
                 size, mfp->page_size);
     }
 
-    while ((page = mfp->pages)) {
-        if (mem_page_size_left(page) < size) {
-            page->full = true;
-            mem_page_list_take(&mfp->pages, page);
-            mem_page_list_append(&mfp->fullpages, page);
-            continue;
-        }
-        break;
-    }
-
-    if (!page) {
-        if (mfp->freelist) {
-            /* push the first free page on top of the pages list */
-            page = mem_page_list_popfirst(&mfp->freelist);
-        } else {
-            /* mmap a new page */
-            page = mem_page_new(mfp);
-            mfp->nb_pages++;
-        }
-        mem_page_list_append(&mfp->pages, page);
-        mfp->pages = page;
-    }
-
+    page = mfp_get_page(mfp, size);
     blk = (mem_block_t *)(page->area + page->used_size);
     blk->page_offs = (intptr_t)page - (intptr_t)blk;
     blk->blk_size    = size;
@@ -169,6 +177,9 @@ static void mfp_free(mem_fifo_pool_t *mfp, void *mem)
     mfp->occupied -= blk->blk_size;
 
     page = pageof(blk);
+    assert (!page->lock || page->lock == blk);
+    page->lock = NULL;
+
     if (page->full && --page->used_blocks <= 0) {
         mem_page_list_take(&mfp->fullpages, page);
 
@@ -185,6 +196,9 @@ static void mfp_free(mem_fifo_pool_t *mfp, void *mem)
     } else {
         blk->page_offs = POOL_DEALLOCATED;
     }
+
+    if (blk->next)
+        mfp_free(mfp, blk->next);
 }
 
 static void *mfp_realloc(mem_fifo_pool_t *mfp, void *mem, int size)
@@ -217,6 +231,7 @@ static void *mfp_realloc(mem_fifo_pool_t *mfp, void *mem, int size)
     if (mem == page->last
     && size + ssizeof(blk) - blk->blk_size <= mem_page_size_left(page))
     {
+        assert (!page->lock);
         size = ROUND_MULTIPLE((size_t)size, 8);
         blk->blk_size   += size;
         page->used_size += size;
