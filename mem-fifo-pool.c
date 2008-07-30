@@ -34,11 +34,9 @@
 typedef struct mem_page_t {
     struct mem_page_t *next;
 
+    int area_size;
     int used_size;
     int used_blocks;
-
-    int area_size;
-    int page_size;
 
     void *last;           /* last result of an allocation */
 
@@ -76,11 +74,7 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp)
         e_panic(E_UNIXERR("mmap"));
     }
 
-    p_clear(page, 1);
-
-    page->page_size = mfp->page_size;
     page->area_size = size;
-
     return page;
 }
 
@@ -96,7 +90,7 @@ static void mem_page_reset(mem_page_t *page)
 static void mem_page_delete(mem_page_t **pagep)
 {
     if (*pagep) {
-        munmap((*pagep), (*pagep)->page_size);
+        munmap((*pagep), (*pagep)->area_size + sizeof(mem_page_t));
         *pagep = NULL;
     }
 }
