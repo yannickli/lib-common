@@ -1,6 +1,13 @@
 lib-common Upgrading Notes
 ==========================
 
+Memory pools (Wed, 30 Jul 2008)
+-------------------------------
+
+* `mem-fifo-pool.h` is removed, merged into `mem-pool.h`.
+  You must replace your includes with `<lib-common/mem-pool.h>`.
+* `mem_pool` is renamed `mem_pool_t`.
+
 Cleanups (Thu, 24 Jul 2008)
 ---------------------------
 

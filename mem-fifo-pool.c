@@ -25,7 +25,7 @@
 #endif
 #include <sys/mman.h>
 #include "mmappedfile.h"
-#include "mem-fifo-pool.h"
+#include "mem-pool.h"
 
 #define ROUND_MULTIPLE(n, k) ((((n) + (k) - 1) / (k)) * (k))
 
@@ -50,7 +50,7 @@ typedef struct mem_block {
 } mem_block;
 
 typedef struct mem_fifo_pool {
-    mem_pool funcs;
+    mem_pool_t funcs;
     mem_page *pages;
     mem_page *freelist;
     int page_size;
@@ -103,7 +103,7 @@ static inline int mem_page_size_left(mem_page *page)
     return (page->area_size - page->used_size);
 }
 
-static void *mfp_alloc(mem_pool *mp, ssize_t size)
+static void *mfp_alloc(mem_pool_t *mp, ssize_t size)
 {
     mem_fifo_pool *mfp = (mem_fifo_pool *)mp;
     mem_block *blk;
@@ -142,7 +142,7 @@ static void *mfp_alloc(mem_pool *mp, ssize_t size)
     return blk->area;
 }
 
-static void mfp_free(struct mem_pool *mp, void *mem)
+static void mfp_free(struct mem_pool_t *mp, void *mem)
 {
     mem_fifo_pool *mfp = (mem_fifo_pool *)mp;
     mem_block *blk;
@@ -186,7 +186,7 @@ static void mfp_free(struct mem_pool *mp, void *mem)
     }
 }
 
-static void *mfp_realloc(struct mem_pool *mp, void *mem, ssize_t size)
+static void *mfp_realloc(struct mem_pool_t *mp, void *mem, ssize_t size)
 {
     mem_block *blk;
     void *res;
@@ -214,14 +214,14 @@ static void *mfp_realloc(struct mem_pool *mp, void *mem, ssize_t size)
     return res;
 }
 
-static mem_pool const mem_fifo_pool_funcs = {
+static mem_pool_t const mem_fifo_pool_funcs = {
     &mfp_alloc,
     &mfp_alloc, /* we use maps, always set to 0 */
     &mfp_realloc,
     &mfp_free,
 };
 
-mem_pool *mem_fifo_pool_new(int page_size_hint)
+mem_pool_t *mem_fifo_pool_new(int page_size_hint)
 {
     mem_fifo_pool *mfp;
 
@@ -234,10 +234,10 @@ mem_pool *mem_fifo_pool_new(int page_size_hint)
     mfp->funcs      = mem_fifo_pool_funcs;
     mfp->page_size  = MAX(16 * 4096, ROUND_MULTIPLE(page_size_hint, 4096));
 
-    return (mem_pool *)mfp;
+    return (mem_pool_t *)mfp;
 }
 
-void mem_fifo_pool_delete(mem_pool **poolp)
+void mem_fifo_pool_delete(mem_pool_t **poolp)
 {
 #ifndef NDEBUG
     if (RUNNING_ON_MEMCHECK) {
@@ -269,7 +269,7 @@ void mem_fifo_pool_delete(mem_pool **poolp)
     }
 }
 
-void mem_fifo_pool_stats(mem_pool *mp, ssize_t *allocated, ssize_t *used)
+void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
 {
     mem_fifo_pool *mfp = (mem_fifo_pool *)(mp);
     /* we don't want to account the 'spare' page as allocated, it's an

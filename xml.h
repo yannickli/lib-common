@@ -42,7 +42,7 @@ struct xml_prop_t {
 
 struct xml_tree_t {
     /* Memory pool for everything in the tree: tags, attributes, texts, ... */
-    mem_pool *mp;
+    mem_pool_t *mp;
 
     xml_tag_t *root;
     // Add version, charset, etc.

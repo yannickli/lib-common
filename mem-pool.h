@@ -16,25 +16,22 @@
 
 #include "core.h"
 
-typedef struct mem_pool {
-    void *(*mem_alloc)  (struct mem_pool *mp, ssize_t size);
-    void *(*mem_alloc0) (struct mem_pool *mp, ssize_t size);
-    void *(*mem_realloc)(struct mem_pool *mp, void *mem, ssize_t size);
-    void  (*mem_free)   (struct mem_pool *mp, void *mem);
-} mem_pool;
-
-mem_pool *mem_malloc_pool_new(void);
-void mem_malloc_pool_delete(mem_pool **poolp);
+typedef struct mem_pool_t {
+    void *(*mem_alloc)  (struct mem_pool_t *mp, ssize_t size);
+    void *(*mem_alloc0) (struct mem_pool_t *mp, ssize_t size);
+    void *(*mem_realloc)(struct mem_pool_t *mp, void *mem, ssize_t size);
+    void  (*mem_free)   (struct mem_pool_t *mp, void *mem);
+} mem_pool_t;
 
 static inline __attribute__((malloc))
-void *memp_dup(mem_pool *mp, const void *src, ssize_t size)
+void *memp_dup(mem_pool_t *mp, const void *src, ssize_t size)
 {
     void *res = mp->mem_alloc(mp, size);
     return memcpy(res, src, size);
 }
 
 static inline __attribute__((malloc))
-void *mp_dupstr(mem_pool *mp, const void *src, ssize_t len)
+void *mp_dupstr(mem_pool_t *mp, const void *src, ssize_t len)
 {
     char *res = mp->mem_alloc(mp, len + 1);
     memcpy(res, src, len);
@@ -115,5 +112,16 @@ void *mp_dupstr(mem_pool *mp, const void *src, ssize_t len)
     static inline DO_MP_NEW(mp, type, prefix)
 #define GENERIC_MP_DELETE(mp, type, prefix)   \
     static inline DO_MP_DELETE(mp, type, prefix)
+
+
+/*----- mem-pool.c -----*/
+mem_pool_t *mem_malloc_pool_new(void);
+void mem_malloc_pool_delete(mem_pool_t **poolp);
+
+/*----- mem-fifo-pool.c -----*/
+mem_pool_t *mem_fifo_pool_new(int page_size_hint);
+void mem_fifo_pool_delete(mem_pool_t **poolp);
+void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used);
+
 
 #endif /* IS_LIB_COMMON_MEM_FIFO_POOL_H */
