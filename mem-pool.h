@@ -26,13 +26,15 @@ typedef struct mem_pool {
 mem_pool *mem_malloc_pool_new(void);
 void mem_malloc_pool_delete(mem_pool **poolp);
 
-static inline __attribute__((malloc)) void *memp_dup(mem_pool *mp, const void *src, ssize_t size)
+static inline __attribute__((malloc))
+void *memp_dup(mem_pool *mp, const void *src, ssize_t size)
 {
     void *res = mp->mem_alloc(mp, size);
     return memcpy(res, src, size);
 }
 
-static inline __attribute__((malloc)) void *mp_dupstr(mem_pool *mp, const void *src, ssize_t len)
+static inline __attribute__((malloc))
+void *mp_dupstr(mem_pool *mp, const void *src, ssize_t len)
 {
     char *res = mp->mem_alloc(mp, len + 1);
     memcpy(res, src, len);
@@ -44,7 +46,8 @@ static inline __attribute__((malloc)) void *mp_dupstr(mem_pool *mp, const void *
         ((type *)(mp)->mem_alloc((mp), sizeof(type) * (count)))
 #define mp_new(mp, type, count)     \
         ((type *)(mp)->mem_alloc0((mp), sizeof(type) * (count)))
-#define mp_new_extra(mp, type, size) ((type *)(mp)->mem_alloc0((mp), sizeof(type) + (size)))
+#define mp_new_extra(mp, type, size) \
+        ((type *)(mp)->mem_alloc0((mp), sizeof(type) + (size)))
 #define mp_dup(mp, p, count)        \
         memp_dup((mp), (p), sizeof(*(p)) * (count))
 
