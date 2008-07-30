@@ -106,9 +106,8 @@ static inline int mem_page_size_left(mem_page_t *page)
     return (page->area_size - page->used_size);
 }
 
-static void *mfp_alloc(mem_pool_t *mp, int size)
+static void *mfp_alloc(mem_fifo_pool_t *mfp, int size)
 {
-    mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)mp;
     mem_block_t *blk;
     mem_page_t *page;
 
@@ -145,9 +144,8 @@ static void *mfp_alloc(mem_pool_t *mp, int size)
     return page->last = blk->area;
 }
 
-static void mfp_free(struct mem_pool_t *mp, void *mem)
+static void mfp_free(mem_fifo_pool_t *mfp, void *mem)
 {
-    mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)mp;
     mem_block_t *blk;
 
     if (!mem)
@@ -189,7 +187,7 @@ static void mfp_free(struct mem_pool_t *mp, void *mem)
     }
 }
 
-static void *mfp_realloc(struct mem_pool_t *mp, void *mem, int size)
+static void *mfp_realloc(mem_fifo_pool_t *mfp, void *mem, int size)
 {
     mem_block_t *blk;
     mem_page_t *page;
@@ -198,12 +196,12 @@ static void *mfp_realloc(struct mem_pool_t *mp, void *mem, int size)
     if (unlikely(size < 0))
         e_panic(E_PREFIX("invalid memory size %d"), size);
     if (unlikely(size == 0)) {
-        mfp_free(mp, mem);
+        mfp_free(mfp, mem);
         return NULL;
     }
 
     if (!mem)
-        return mfp_alloc(mp, size);
+        return mfp_alloc(mfp, size);
 
     blk = (mem_block_t*)((byte *)mem - sizeof(mem_block_t));
     if (blk->page_offs > 0) {
@@ -222,21 +220,21 @@ static void *mfp_realloc(struct mem_pool_t *mp, void *mem, int size)
         size = ROUND_MULTIPLE((size_t)size, 8);
         blk->blk_size   += size;
         page->used_size += size;
-        ((mem_fifo_pool_t *)mp)->occupied += size;
+        mfp->occupied   += size;
         return mem;
     }
 
-    res = mfp_alloc(mp, size);
+    res = mfp_alloc(mfp, size);
     memcpy(res, mem, blk->blk_size);
-    mfp_free(mp, mem);
+    mfp_free(mfp, mem);
     return res;
 }
 
 static mem_pool_t const mem_fifo_pool_funcs = {
-    &mfp_alloc,
-    &mfp_alloc, /* we use maps, always set to 0 */
-    &mfp_realloc,
-    &mfp_free,
+    (void *)&mfp_alloc,
+    (void *)&mfp_alloc, /* we use maps, always set to 0 */
+    (void *)&mfp_realloc,
+    (void *)&mfp_free,
 };
 
 mem_pool_t *mem_fifo_pool_new(int page_size_hint)
@@ -252,7 +250,7 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
     mfp->funcs      = mem_fifo_pool_funcs;
     mfp->page_size  = MAX(16 * 4096, ROUND_MULTIPLE(page_size_hint, 4096));
 
-    return (mem_pool_t *)mfp;
+    return &mfp->funcs;
 }
 
 void mem_fifo_pool_delete(mem_pool_t **poolp)
