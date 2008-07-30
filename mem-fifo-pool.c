@@ -31,8 +31,8 @@
 
 #define POOL_DEALLOCATED  1
 
-typedef struct mem_page {
-    struct mem_page *next;
+typedef struct mem_page_t {
+    struct mem_page_t *next;
 
     int used_size;
     int used_blocks;
@@ -41,32 +41,32 @@ typedef struct mem_page {
     int page_size;
 
     byte area[];
-} mem_page;
+} mem_page_t;
 
-typedef struct mem_block {
+typedef struct mem_block_t {
     int page_offs;
     int blk_size;
     byte area[];
-} mem_block;
+} mem_block_t;
 
-typedef struct mem_fifo_pool {
+typedef struct mem_fifo_pool_t {
     mem_pool_t funcs;
-    mem_page *pages;
-    mem_page *freelist;
+    mem_page_t *pages;
+    mem_page_t *freelist;
     int page_size;
     int nb_pages;
     ssize_t occupied;
-} mem_fifo_pool;
+} mem_fifo_pool_t;
 
 
-static mem_page *pageof(mem_block *blk) {
-    return (mem_page *)((char *)blk + blk->page_offs);
+static mem_page_t *pageof(mem_block_t *blk) {
+    return (mem_page_t *)((char *)blk + blk->page_offs);
 }
 
-static mem_page *mem_page_new(mem_fifo_pool *mfp)
+static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp)
 {
-    int size = mfp->page_size - sizeof(mem_page);
-    mem_page *page;
+    int size = mfp->page_size - sizeof(mem_page_t);
+    mem_page_t *page;
 
     page = mmap(NULL, mfp->page_size, PROT_READ | PROT_WRITE,
                       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -82,7 +82,7 @@ static mem_page *mem_page_new(mem_fifo_pool *mfp)
     return page;
 }
 
-static void mem_page_reset(mem_page *page)
+static void mem_page_reset(mem_page_t *page)
 {
     page->next        = NULL;
     page->used_size   = 0;
@@ -90,7 +90,7 @@ static void mem_page_reset(mem_page *page)
     p_clear(page->area, page->area_size);
 }
 
-static void mem_page_delete(mem_page **pagep)
+static void mem_page_delete(mem_page_t **pagep)
 {
     if (*pagep) {
         munmap((*pagep), (*pagep)->page_size);
@@ -98,21 +98,21 @@ static void mem_page_delete(mem_page **pagep)
     }
 }
 
-static inline int mem_page_size_left(mem_page *page)
+static inline int mem_page_size_left(mem_page_t *page)
 {
     return (page->area_size - page->used_size);
 }
 
 static void *mfp_alloc(mem_pool_t *mp, ssize_t size)
 {
-    mem_fifo_pool *mfp = (mem_fifo_pool *)mp;
-    mem_block *blk;
-    mem_page *page;
+    mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)mp;
+    mem_block_t *blk;
+    mem_page_t *page;
 
     /* Must round size up to keep proper alignment */
-    size = ROUND_MULTIPLE((size_t)size + sizeof(mem_block), 8);
+    size = ROUND_MULTIPLE((size_t)size + sizeof(mem_block_t), 8);
 
-    if (size > mfp->page_size - ssizeof(mem_page)) {
+    if (size > mfp->page_size - ssizeof(mem_page_t)) {
         /* Should just map a larger page, yet we need a maximum value */
         e_panic(E_PREFIX("tried to alloc %zd bytes, cannot have more than %d"),
                 (size_t)size, mfp->page_size);
@@ -133,7 +133,7 @@ static void *mfp_alloc(mem_pool_t *mp, ssize_t size)
         mfp->pages = page;
     }
 
-    blk = (mem_block *)(page->area + page->used_size);
+    blk = (mem_block_t *)(page->area + page->used_size);
     blk->page_offs = (intptr_t)page - (intptr_t)blk;
     blk->blk_size    = size;
     mfp->occupied   += size;
@@ -144,13 +144,13 @@ static void *mfp_alloc(mem_pool_t *mp, ssize_t size)
 
 static void mfp_free(struct mem_pool_t *mp, void *mem)
 {
-    mem_fifo_pool *mfp = (mem_fifo_pool *)mp;
-    mem_block *blk;
+    mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)mp;
+    mem_block_t *blk;
 
     if (!mem)
         return;
 
-    blk = (mem_block*)((byte *)mem - sizeof(mem_block));
+    blk = (mem_block_t*)((byte *)mem - sizeof(mem_block_t));
     if (blk->page_offs > 0)
         e_panic("double free heap corruption *** %p ***", mem);
 
@@ -158,10 +158,10 @@ static void mfp_free(struct mem_pool_t *mp, void *mem)
 
     /* if this was the last block, GC the pages */
     if (--pageof(blk)->used_blocks <= 0) {
-        mem_page **pagep;
+        mem_page_t **pagep;
 
         for (pagep = &mfp->pages; *pagep; pagep = &(*pagep)->next) {
-            mem_page *page = *pagep;
+            mem_page_t *page = *pagep;
 
             if (page->used_blocks != 0)
                 continue;
@@ -188,7 +188,7 @@ static void mfp_free(struct mem_pool_t *mp, void *mem)
 
 static void *mfp_realloc(struct mem_pool_t *mp, void *mem, ssize_t size)
 {
-    mem_block *blk;
+    mem_block_t *blk;
     void *res;
 
     if (size <= 0) {
@@ -202,7 +202,7 @@ static void *mfp_realloc(struct mem_pool_t *mp, void *mem, ssize_t size)
 
     /* TODO: optimize if it's the last block allocated */
 
-    blk = (mem_block*)((byte *)mem - sizeof(mem_block));
+    blk = (mem_block_t*)((byte *)mem - sizeof(mem_block_t));
     if (blk->page_offs > 0) {
         e_error("double free heap corruption *** %p ***", mem);
         return NULL;
@@ -223,14 +223,14 @@ static mem_pool_t const mem_fifo_pool_funcs = {
 
 mem_pool_t *mem_fifo_pool_new(int page_size_hint)
 {
-    mem_fifo_pool *mfp;
+    mem_fifo_pool_t *mfp;
 
 #ifndef NDEBUG
     if (RUNNING_ON_MEMCHECK)
         return mem_malloc_pool_new();
 #endif
 
-    mfp             = p_new(mem_fifo_pool, 1);
+    mfp             = p_new(mem_fifo_pool_t, 1);
     mfp->funcs      = mem_fifo_pool_funcs;
     mfp->page_size  = MAX(16 * 4096, ROUND_MULTIPLE(page_size_hint, 4096));
 
@@ -247,10 +247,10 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
 #endif
 
     if (*poolp) {
-        mem_fifo_pool *mfp = (mem_fifo_pool *)(*poolp);
+        mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)(*poolp);
 
         while (mfp->freelist) {
-            mem_page *page = mfp->freelist;
+            mem_page_t *page = mfp->freelist;
 
             mfp->freelist = page->next;
             mem_page_delete(&page);
@@ -258,7 +258,7 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
         }
 
         while (mfp->pages) {
-            mem_page *page = mfp->pages;
+            mem_page_t *page = mfp->pages;
 
             mfp->pages = page->next;
             mem_page_delete(&page);
@@ -271,10 +271,10 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
 
 void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
 {
-    mem_fifo_pool *mfp = (mem_fifo_pool *)(mp);
+    mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)(mp);
     /* we don't want to account the 'spare' page as allocated, it's an
        optimization that should not leak. */
     *allocated = (mfp->nb_pages - (mfp->freelist != NULL))
-               * (mfp->page_size - ssizeof(mem_page));
+               * (mfp->page_size - ssizeof(mem_page_t));
     *used      = mfp->occupied;
 }
