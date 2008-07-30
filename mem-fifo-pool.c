@@ -33,7 +33,6 @@
 
 typedef struct mem_page {
     struct mem_page *next;
-    struct mem_page *__prev__;  /* not used yet */
 
     int used_size;
     int used_blocks;
@@ -86,10 +85,8 @@ static mem_page *mem_page_new(mem_fifo_pool *mfp)
 static void mem_page_reset(mem_page *page)
 {
     page->next        = NULL;
-    page->__prev__    = NULL;
     page->used_size   = 0;
     page->used_blocks = 0;
-    /* OG: Should use memset */
     p_clear(page->area, page->area_size);
 }
 
