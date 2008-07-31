@@ -141,9 +141,12 @@ static uint64_t e_trace_uuid(const char *modname, const char *func)
 
 bool e_is_traced_real(int level, const char *modname, const char *func)
 {
+    static int spin;
     struct trace_record_t tr, *trp;
     uint64_t uuid;
+    bool result;
 
+    spin_lock(&spin);
     uuid = e_trace_uuid(modname, func);
     trp  = trace_htbl_find(&_G.cache, uuid);
     if (unlikely(trp == NULL)) {
@@ -152,7 +155,9 @@ bool e_is_traced_real(int level, const char *modname, const char *func)
         trace_htbl_insert(&_G.cache, tr);
         trp = &tr;
     }
-    return level <= trp->level;
+    result = level <= trp->level;
+    spin_unlock(&spin);
+    return result;
 }
 
 static void e_trace_put_fancy(int level, const char *module, int lno, const char *func)
