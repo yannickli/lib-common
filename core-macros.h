@@ -141,6 +141,13 @@
 #define atomic_sub_and_get(ptr, v)  __sync_sub_and_fetch(ptr, v)
 #define atomic_get_and_add(ptr, v)  __sync_fetch_and_add(ptr, v)
 #define atomic_get_and_sub(ptr, v)  __sync_fetch_and_sub(ptr, v)
+
+#define spin_lock(ptr) \
+    do {                                                     \
+        while (unlikely(atomic_get_and_add((ptr), 1) != 0))  \
+            atomic_sub((ptr), 1);                            \
+    } while (0)
+#define spin_unlock(ptr)  do { atomic_sub((ptr), 1); } while (0)
 #endif
 
 /*---------------- Types ----------------*/

@@ -184,26 +184,30 @@ static void e_trace_put_normal(int level, const char *module, int lno, const cha
 void e_trace_put(int level, const char *module, int lno,
                  const char *func, const char *fmt, ...)
 {
+    static int spin;
     const char *p;
     va_list ap;
 
-    if (!e_is_traced_real(level, module, func))
-        return;
+    spin_lock(&spin);
 
-    va_start(ap, fmt);
-    blob_append_vfmt(&_G.buf, fmt, ap);
-    va_end(ap);
+    if (e_is_traced_real(level, module, func)) {
+        va_start(ap, fmt);
+        blob_append_vfmt(&_G.buf, fmt, ap);
+        va_end(ap);
 
-    while ((p = memchr(_G.buf.data, '\n', _G.buf.len))) {
-        if (_G.fancy) {
-            e_trace_put_fancy(level, module, lno, func);
-        } else {
-            e_trace_put_normal(level, module, lno, func);
+        while ((p = memchr(_G.buf.data, '\n', _G.buf.len))) {
+            if (_G.fancy) {
+                e_trace_put_fancy(level, module, lno, func);
+            } else {
+                e_trace_put_normal(level, module, lno, func);
+            }
+            blob_append_data(&_G.tmpbuf, _G.buf.data, p + 1 - blob_get_cstr(&_G.buf));
+            blob_kill_at(&_G.buf, p + 1);
+            IGNORE(xwrite(STDERR_FILENO, _G.tmpbuf.data, _G.tmpbuf.len));
         }
-        blob_append_data(&_G.tmpbuf, _G.buf.data, p + 1 - blob_get_cstr(&_G.buf));
-        blob_kill_at(&_G.buf, p + 1);
-        IGNORE(xwrite(STDERR_FILENO, _G.tmpbuf.data, _G.tmpbuf.len));
     }
+
+    spin_unlock(&spin);
 }
 
 void e_set_verbosity(int max_debug_level)
