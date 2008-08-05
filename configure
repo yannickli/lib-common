@@ -186,6 +186,15 @@ else
 fi
 
 # }}}
+# {{{ JNI
+
+if test -z ${JAVA_HOME}; then
+    warn "*** JAVA_HOME not set, JNI disabled"
+else
+    setvar "jni_CFLAGS" "-I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux"
+fi
+
+# }}}
 # {{{ php
 
 case "$profile" in
