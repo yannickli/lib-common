@@ -14,9 +14,6 @@
 #ifndef IS_LIB_COMMON_ALL_H
 #define IS_LIB_COMMON_ALL_H
 
-#define IPRINTF_HIDE_STDIO 1
-#include "iprintf.h"
-
 #include "core.h"
 
 #include "array.h"

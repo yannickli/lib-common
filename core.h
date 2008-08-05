@@ -44,5 +44,7 @@
 #include "core-macros.h"
 #include "core-errors.h"
 #include "core-mem.h"
+#define IPRINTF_HIDE_STDIO 1
+#include "iprintf.h"
 
 #endif
