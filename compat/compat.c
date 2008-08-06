@@ -11,14 +11,12 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <lib-common/macros.h>
+
+#if defined(__MINGW) || defined(__MINGW32__)
+
 #include <lib-common/mmappedfile.h>
 #include <lib-common/unix.h>
 #include <sys/mman.h>
-
-#include "glob.h"
-
-#if defined(__MINGW) || defined(__MINGW32__)
 
 #include <windows.h>
 #include <stdlib.h>
@@ -53,11 +51,6 @@ void *mremap(void *__addr, size_t __old_len, size_t __new_len,
              int __flags, ...)
 {
     return NULL;
-}
-
-int posix_fallocate(int fd, off_t offset, off_t len)
-{
-    return EINVAL;
 }
 
 #  if __MINGW32_MAJOR_VERSION < 3 || \
@@ -138,4 +131,33 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
     return 0;
 }
 
+#endif
+
+#include <errno.h>
+
+#include <stdlib.h>
+#ifdef __is_need_posix_fallocate
+int posix_fallocate(int fd, off_t offset, off_t len)
+{
+    errno = ENOSYS;
+    return -1;
+}
+#endif
+
+#include <sys/mman.h>
+#ifdef __is_need_mremap
+void * mremap(void *old_address, size_t old_size , size_t new_size, int
+                     flags)
+{
+    if (!(flags & MREMAP_MAYMOVE)) {
+    }
+}
+#endif
+
+#include <dirent.h>
+#ifdef __is_need_dirfd
+int dirfd(DIR *dir)
+{
+    return dir->d_fd;
+}
 #endif

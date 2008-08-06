@@ -27,6 +27,7 @@
  */
 
 #include <assert.h>
+#include <alloca.h>
 #include <ctype.h>
 #include <endian.h>
 #include <errno.h>
@@ -42,6 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -355,7 +357,7 @@ int show_licence(const char *arg);
 int set_licence(const char *arg, const char *licence_data);
 void check_strace(void);
 
-#if !defined(MINGCC) && !defined(CYGWIN)
+#if !defined(MINGCC) && !defined(CYGWIN) && !defined(__sun)
 
 #  include <sys/epoll.h>
 

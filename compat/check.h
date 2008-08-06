@@ -127,7 +127,7 @@ TCase *tcase_create(const char *name);
 /* Add a test function to a test case
   (function version -- use this when the macro won't work
 */
-void _tcase_add_test(TCase *tc, TFun tf, const char *fname, int signal,
+void _tcase_add_test(TCase *tc, TFun tf, const char *fname, int _signal,
                      int start, int end);
 
 /* Add unchecked fixture setup/teardown functions to a test case
@@ -341,7 +341,7 @@ enum fork_status {
 enum fork_status srunner_fork_status(SRunner *sr);
 
 /* Set the current fork status */
-void srunner_set_fork_status(SRunner *sr, enum fork_status fstat);
+void srunner_set_fork_status(SRunner *sr, enum fork_status _fstat);
 
 /* Fork in a test and make sure messaging and tests work. */
 pid_t check_fork(void);

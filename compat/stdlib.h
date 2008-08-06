@@ -11,26 +11,17 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_COMPAT_ENDIAN_H
-#define IS_COMPAT_ENDIAN_H
+/* XXX: Do not move in the guard, this will fail unexpectedly... */
+#include_next <stdlib.h>
 
-#include_next <sys/param.h>
-#ifdef __GLIBC__
-#  include_next <endian.h>
-#elif defined(__MINGW) || defined(__MINGW32__)
-#  define __LITTLE_ENDIAN  1234
-#  define __BIG_ENDIAN     4321
-#  define __BYTE_ORDER     __LITTLE_ENDIAN
-#elif defined(__sun)
-#    define __LITTLE_ENDIAN  1234
-#    define __BIG_ENDIAN     4321
-#    define __BYTE_ORDER     __LITTLE_ENDIAN
-#else
-#  error your platform is unsupported
+#ifndef IS_COMPAT_STDLIB_H
+#define IS_COMPAT_STDLIB_H
+
+#ifndef __GLIBC__
+#define __is_need_posix_fallocate
+int posix_fallocate(int fd, off_t offset, off_t len);
+
 #endif
 
-#if (__BYTE_ORDER != __BIG_ENDIAN) && (__BYTE_ORDER != __LITTLE_ENDIAN)
-#  error __BYTE_ORDER must be __BIG_ENDIAN or __LITTLE_ENDIAN
-#endif
+#endif /* !IS_COMPAT_STDLIB_H */
 
-#endif /* !IS_COMPAT_ENDIAN_H */

@@ -29,12 +29,4 @@
 #  define ISFREAD(b, s, n, f)   fread(b, s, n, f)
 #endif
 
-#if (defined(IPRINTF_HIDE_STDIO) && IPRINTF_HIDE_STDIO) \
-    || (!defined(__GLIBC__) && !defined(__CYGWIN__))
-/* Force iprintf to enable GLIBC compatibility */
-#  undef IPRINTF_HIDE_STDIO
-#  define IPRINTF_HIDE_STDIO 1
-#  include <lib-common/iprintf.h>
-#endif
-
 #endif /* !IS_COMPAT_STDIO_H */

@@ -22,8 +22,7 @@ extern void *mmap(void *__addr, size_t __len, int __prot,
 extern int munmap(void *__addr, size_t __len);
 extern int msync(void *__addr, size_t __len, int __flags);
 extern void *mremap(void *__addr, size_t __old_len, size_t __new_len,
-                    int __flags, ...);
-extern int posix_fallocate(int fd, off_t offset, off_t len);
+                    int __flags);
 
 /* Flags to `msync'.  */
 #  define MS_ASYNC        1               /* Sync memory asynchronously.  */
@@ -41,6 +40,11 @@ extern int posix_fallocate(int fd, off_t offset, off_t len);
 #  define MAP_ANONYMOUS   0x20            /* Don't use a file.  */
 #else
 #  include_next <sys/mman.h>
+
+#ifdef __sun
+extern int madvise(void *, size_t, int);
+#endif
+
 #endif
 
 #endif

@@ -14,7 +14,9 @@
 #ifndef IS_LIB_COMMON_BYTEOPS_H
 #define IS_LIB_COMMON_BYTEOPS_H
 
-#ifdef LITTLE_ENDIAN
+#include <endian.h>
+
+#ifdef __LITTLE_ENDIAN
 static inline uint16_t cpu_to_le_16(uint16_t x) {return x;}
 static inline uint32_t cpu_to_le_32(uint32_t x) {return x;}
 static inline uint64_t cpu_to_le_64(uint64_t x) {return x;}

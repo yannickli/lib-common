@@ -69,6 +69,7 @@ int set_licence(const char *arg, const char *licence_data)
     exit(1);
 }
 
+#ifndef __sun
 static int parse_hex(int b)
 {
     if (b >= '0' && b <= '9') {
@@ -98,6 +99,7 @@ static int parse_hex2(int b1, int b0)
 
     return (x1 << 4) | x0;
 }
+#endif
 
 #if defined(__CYGWIN__)
 struct if_nameindex {
@@ -118,6 +120,10 @@ static inline void if_freenameindex(struct if_nameindex *p) {
 
 bool is_my_mac_addr(const char *addr)
 {
+#ifdef __sun
+    /* TODO PORT */
+    return true;
+#else
     bool found = false;
     struct if_nameindex *iflist;
     struct if_nameindex *cur;
@@ -177,11 +183,17 @@ bool is_my_mac_addr(const char *addr)
     close(s);
     if_freenameindex(iflist);
     return found;
+#endif
 }
 
 
 int list_my_macs(char *dst, size_t size)
 {
+#ifdef __sun
+    /* TODO PORT */
+    pstrcpy(dst, size, "00:00:00:00:00:00");
+    return true;
+#else
     struct if_nameindex *iflist;
     struct if_nameindex *cur;
     char *mac;
@@ -225,6 +237,7 @@ int list_my_macs(char *dst, size_t size)
     close(s);
     if_freenameindex(iflist);
     return ret;
+#endif
 }
 
 static inline void cpuid(uint32_t request,
@@ -495,6 +508,7 @@ int list_my_cpus(char *dst, size_t size)
 /* {{{*/
 #include <check.h>
 
+#ifndef __sun /* TODO PORT */
 START_TEST(check_parse_hex)
 {
     fail_if(parse_hex('0') != 0x0, "failed\n");
@@ -516,6 +530,7 @@ START_TEST(check_parse_hex2)
     fail_if(parse_hex2('g', 'z') != -1, "failed\n");
 }
 END_TEST
+#endif
 
 START_TEST(check_list_my_macs)
 {
@@ -600,8 +615,10 @@ Suite *check_licence_suite(void)
     TCase *tc = tcase_create("Core");
 
     suite_add_tcase(s, tc);
+#ifndef __sun /* TODO PORT */
     tcase_add_test(tc, check_parse_hex);
     tcase_add_test(tc, check_parse_hex2);
+#endif
 #ifndef __CYGWIN__
     tcase_add_test(tc, check_is_my_mac_addr);
 #endif

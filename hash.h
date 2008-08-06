@@ -101,7 +101,7 @@ typedef sha256_ctx sha224_ctx;
 typedef struct md5_ctx {
     unsigned int offset;
     unsigned int sz;
-    u_int32_t counter[4];
+    uint32_t counter[4];
     unsigned char save[64];
 } md5_ctx;
 

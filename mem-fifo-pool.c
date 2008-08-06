@@ -12,16 +12,20 @@
 /**************************************************************************/
 
 #ifndef NDEBUG
-#include <valgrind/valgrind.h>
-#include <valgrind/memcheck.h>
+#ifndef __linux__
+# define RUNNING_ON_MEMCHECK  0
+#else
+# include <valgrind/valgrind.h>
+# include <valgrind/memcheck.h>
 
 /* XXX: this is a hack that detects if the tool may be memcheck or another.
  *      with memecheck, VALGRIND_MAKE_MEM_DEFINED on a function address
  *      returns -1, 0 in other tools.
  */
-#define RUNNING_ON_MEMCHECK \
-    (RUNNING_ON_VALGRIND && \
-    VALGRIND_MAKE_MEM_DEFINED(&mem_fifo_pool_new, sizeof(mem_fifo_pool_new)))
+# define RUNNING_ON_MEMCHECK \
+     (RUNNING_ON_VALGRIND && \
+     VALGRIND_MAKE_MEM_DEFINED(&mem_fifo_pool_new, sizeof(mem_fifo_pool_new)))
+#endif
 #endif
 #include <sys/mman.h>
 #include "mem.h"

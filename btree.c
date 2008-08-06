@@ -1382,7 +1382,9 @@ fbtree_t *fbtree_open(const char *path)
     if (bt_check_header(fbt->priv, false, path, st.st_size))
         goto error;
 
+#ifdef POSIX_FADV_RANDOM
     posix_fadvise(fbt->fd, 0, st.st_size, POSIX_FADV_RANDOM);
+#endif
     return fbt;
 
   error:

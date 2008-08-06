@@ -11,11 +11,26 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <sys/types.h>
+
+#include "str.h"
+#include "blob.h"
+#include "psinfo.h"
+
+#ifdef __sun
+
+int psinfo_get(pid_t pid, blob_t *output)
+{
+    /* TODO PORT */
+    blob_append_cstr(output, "Information not available");
+    return 0;
+}
+
+
+#else
+
 #include <sys/time.h>
 #include <linux/limits.h>
-
-#include "psinfo.h"
-#include "str.h"
 
 static inline unsigned int my_jiffies_to_msecs(const unsigned long j)
 {
@@ -342,3 +357,5 @@ int psinfo_get(pid_t pid, blob_t *output)
     blob_wipe(&buf);
     return 0;
 }
+
+#endif

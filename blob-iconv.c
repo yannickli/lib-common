@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef MINGCC
+#if !defined(MINGCC) && !defined(__sun)
 #include <iconv.h>
 
 #include "blob.h"
@@ -33,7 +33,7 @@ typedef struct iconv_t_cache {
  */
 static iconv_t_cache *iconv_handles = NULL;
 
-#if !defined(__CYGWIN__)
+#if !defined(__CYGWIN__) && !defined(__sun)
 /* Work around broken iconv() prototype in GLIBC */
 #define iconv(cd, inbuf, inleft, outbuf, outleft) \
     ciconv(cd, inbuf, inleft, outbuf, outleft)

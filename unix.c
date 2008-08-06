@@ -105,7 +105,6 @@ int filecopy(const char *pathin, const char *pathout)
 {
     int fdin = -1, fdout = -1;
     struct stat st;
-    struct timeval tvp[2];
     char buf[BUFSIZ];
     const char *p;
     int nread, nwrite, total;
@@ -155,6 +154,7 @@ int filecopy(const char *pathin, const char *pathout)
         goto error;
     }
 
+#if defined(__linux__)
     /* copying file times */
     /* OG: should copy full precision times if possible.
        Since kernel 2.5.48, the stat structure supports nanosecond  resolution
@@ -165,11 +165,16 @@ int filecopy(const char *pathin, const char *pathout)
        systems  that  do  not  support sub-second timestamps, these nanosecond
        fields are returned with the value 0.
      */
-    tvp[0] = (struct timeval) { .tv_sec = st.st_atime,
-                                .tv_usec = st.st_atimensec / 1000 };
-    tvp[1] = (struct timeval) { .tv_sec = st.st_mtime,
-                                .tv_usec = st.st_mtimensec / 1000 };
-    futimes(fdout, tvp);
+    {
+        struct timeval tvp[2];
+
+        tvp[0] = (struct timeval) { .tv_sec = st.st_atime,
+                                    .tv_usec = st.st_atimensec / 1000 };
+        tvp[1] = (struct timeval) { .tv_sec = st.st_mtime,
+                                    .tv_usec = st.st_mtimensec / 1000 };
+        futimes(fdout, tvp);
+    }
+#endif
 
     close(fdin);
     close(fdout);
