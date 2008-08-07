@@ -18,7 +18,6 @@
 #include <sys/socket.h>
 #endif
 
-#define IPRINTF_HIDE_STDIO 1
 #include "macros.h"
 #include "blob.h"
 #include "mem.h"

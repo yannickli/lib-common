@@ -477,4 +477,5 @@ static inline int p_close(int *hdp) {
 #endif
 
 /** \} */
+
 #endif /* IS_LIB_COMMON_MACROS_H */

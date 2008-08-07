@@ -259,4 +259,6 @@ static inline void (p_delete)(void **p) {
     GENERIC_INIT(type, prefix)    GENERIC_NEW(type, prefix) \
     GENERIC_WIPE(type, prefix)    GENERIC_DELETE(type, prefix)
 
+#define IPRINTF_HIDE_STDIO 1
+#include "iprintf.h"
 #endif /* IS_LIB_COMMON_MEM_H */
