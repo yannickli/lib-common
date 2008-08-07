@@ -70,7 +70,7 @@ ext/gen/l = $(call fun/patsubst-filt,%.l,%.c,$1)
 define ext/expand/l
 $(3:l=c): %.c: %.l
 	$(msg/COMPILE.l) $$(@R)
-	if [ -e $$@ ] ; then chmod a+w $$@ ; fi
+	$(RM) $$@
 	flex -R -o $$@ $$<
 	sed -i -e 's/^extern int isatty.*;//' \
 	       -e 's/^\t\tint n; \\/		size_t n; \\/' $$@

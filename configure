@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -e
 ##########################################################################
 #                                                                        #
 #  Copyright (C) 2004-2008 INTERSEC SAS                                  #
@@ -69,6 +69,9 @@ if test -n "$profile" -a -d /opt/intersec/${profile}; then
     export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
 else
     export PKG_CONFIG_LIBDIR="/usr/local/lib/pkgconfig:/usr/lib/pkgconfig"
+    if test "$(uname -s)" = "SunOS"; then
+        export PKG_CONFIG_LIBDIR="/opt/csw/lib/pkgconfig:${PKG_CONFIG_LIBDIR}"
+    fi
 fi
 
 # {{{ tools
@@ -111,8 +114,13 @@ check_tool luac lua5.1
 # {{{ openssl
 
 if pkg-config --print-errors openssl; then
-    setvar "libssl_CFLAGS" "-I${BUILDFOR_PREFIX}/usr/include"
-    setvar "libssl_LDFLAGS" "-L${BUILDFOR_PREFIX}/usr/lib -lssl -lcrypto"
+    if test -z ${BUILDFOR_PREFIX}; then
+        setvar "libssl_CFLAGS" "$(pkg-config --cflags openssl)"
+        setvar "libssl_LDFLAGS" "$(pkg-config --libs openssl)"
+    else
+        setvar "libssl_CFLAGS" "-I${BUILDFOR_PREFIX}/usr/include"
+        setvar "libssl_LDFLAGS" "-L${BUILDFOR_PREFIX}/usr/lib -lssl -lcrypto"
+    fi
 else
     warn "*** missing openssl, apt-get install libssl-dev"
 fi
@@ -200,6 +208,9 @@ fi
 case "$profile" in
     platon)
         PHP_CONFIG=/opt/php-5.1.1/bin/php-config
+        ;;
+    solaris*)
+        PHP_CONFIG=/usr/local/php/bin/php-config
         ;;
     *)
         if which php-config >/dev/null 2>/dev/null; then

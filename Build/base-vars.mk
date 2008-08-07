@@ -28,6 +28,7 @@ var/verbose   := $(V)$(VERBOSE)
 var/nocolor   := $(M)$(NOCOLOR)$(MONOCHROME)
 var/squote    := $(shell echo "'")
 var/tab       := $(shell printf '\t')
+var/uname     := $(shell uname -s)
 
 ifeq (,$(var/verbose))
     msg/echo  := echo
@@ -57,7 +58,7 @@ msg/rm        := $(msg/echo)  " RM "
 SUFFIXES      :=
 MAKEFLAGS     := $(MAKEFLAGS)r$(if $(var/verbose),,s)
 ifeq (,$(L)$(LINEAR))
-MAKEPARALLEL  := $(MAKE) -j$(shell echo $$(($$(grep -c processor /proc/cpuinfo) + 1)))
+MAKEPARALLEL  := $(MAKE) -j -l2
 else
 MAKEPARALLEL  := $(MAKE)
 endif
