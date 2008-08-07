@@ -165,7 +165,7 @@ struct SRunner {
                                instead use srunner_fork_status */
 };
 
-void set_fork_status(enum fork_status fstat);
+void set_fork_status(enum fork_status _fstat);
 enum fork_status cur_fork_status(void);
 
 //==> check_log.h <==
@@ -185,7 +185,7 @@ void lfile_lfun(SRunner *sr, FILE *file, enum print_output,
 void xml_lfun(SRunner *sr, FILE *file, enum print_output,
               void *obj, enum cl_event evt);
 
-void srunner_register_lfun(SRunner *sr, FILE *lfile, int close,
+void srunner_register_lfun(SRunner *sr, FILE *lfile, int _close,
                            LFun lfun, enum print_output);
 
 FILE *srunner_open_lfile(SRunner *sr);
@@ -377,7 +377,7 @@ void suite_add_tcase(Suite *s, TCase *tc)
     list_add_end(s->tclst, tc);
 }
 
-void _tcase_add_test(TCase *tc, TFun fn, const char *name, int signal, int start, int end)
+void _tcase_add_test(TCase *tc, TFun fn, const char *name, int _signal, int start, int end)
 {
     TF *tf;
 
@@ -387,7 +387,7 @@ void _tcase_add_test(TCase *tc, TFun fn, const char *name, int signal, int start
     tf->fn = fn;
     tf->loop_start = start;
     tf->loop_end = end;
-    tf->signal = signal; /* 0 means no signal expected */
+    tf->signal = _signal; /* 0 means no signal expected */
     tf->name = name;
     list_add_end(tc->tflst, tf);
 }
@@ -625,10 +625,10 @@ const char *tr_tcname(TestResult *tr)
 
 static int _fstat = CK_FORK;
 
-void set_fork_status(enum fork_status fstat)
+void set_fork_status(enum fork_status lfstat)
 {
-    if (fstat == CK_FORK || fstat == CK_NOFORK)
-        _fstat = fstat;
+    if (lfstat == CK_FORK || lfstat == CK_NOFORK)
+        _fstat = lfstat;
     else
         eprintf("Bad status in set_fork_status", __FILE__, __LINE__);
 }
@@ -867,7 +867,7 @@ const char *srunner_xml_fname(SRunner *sr)
     return sr->xml_fname;
 }
 
-void srunner_register_lfun(SRunner *sr, FILE *lfile, int close,
+void srunner_register_lfun(SRunner *sr, FILE *lfile, int _close,
                            LFun lfun, enum print_output printmode)
 {
     Log *l = emalloc(sizeof(Log));
@@ -878,7 +878,7 @@ void srunner_register_lfun(SRunner *sr, FILE *lfile, int close,
 
     l->lfile = lfile;
     l->lfun = lfun;
-    l->close = close;
+    l->close = _close;
     l->mode = printmode;
     list_add_end(sr->loglst, l);
     return;

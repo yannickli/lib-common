@@ -15,9 +15,7 @@
 #include <netinet/in.h>
 #include <sys/stat.h>
 
-#include "array.h"
-#include "btree.h"
-#include "time.h"
+#include "all.h"
 
 /**************************************************************************/
 /* helpers                                                                */
@@ -79,9 +77,15 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
             //entry_t *ep = p_new(entry_t, 1);
             entry_t *ep = &entry_tab[nkeys];
 
+#ifdef bswap_32
             if (bswap) {
-                num = start + __bswap_32(n);
+                num = start + bswap_32(n);
             }
+#else
+            if (bswap) {
+                num = start + __builtin_bswap32(n);
+            }
+#endif
 
             ep->key = num;
             ep->data = data;
@@ -99,15 +103,15 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
             ||  entries.tab[n1]->key != key)
                 break;
         }
-        putc_unlocked(8, fp);
-        fwrite_unlocked(&key, sizeof(int64_t), 1, fp);
-        putc_unlocked(nb, fp);
+        ISPUTC(8, fp);
+        ISFWRITE(&key, sizeof(int64_t), 1, fp);
+        ISPUTC(nb, fp);
         while (n < n1) {
-            fwrite_unlocked(&entries.tab[n]->data, sizeof(int32_t), 1, fp);
+            ISFWRITE(&entries.tab[n]->data, sizeof(int32_t), 1, fp);
             n++;
         }
 #else
-        fwrite_unlocked(entries.tab[n], sizeof(entry_t), 1, fp);
+        ISFWRITE(entries.tab[n], sizeof(entry_t), 1, fp);
         n++;
 #endif
     }
@@ -155,9 +159,15 @@ static int btree_linear_test(const char *indexname, int64_t start, int bswap,
             int64_t num = start + n;
             int32_t data = d << 10;
 
+#ifdef bswap_32
             if (bswap) {
-                num = start + __bswap_32(n);
+                num = start + bswap_32(n);
             }
+#else
+            if (bswap) {
+                num = start + __builtin_bswap32(n);
+            }
+#endif
 
             if (btree_push(bt, num, (void*)&data, sizeof(data))) {
                 fprintf(stderr, "btree: failed to insert key %lld value %d\n",

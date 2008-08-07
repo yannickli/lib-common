@@ -11,26 +11,16 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_COMPAT_ENDIAN_H
-#define IS_COMPAT_ENDIAN_H
+#ifndef IS_COMPAT_DIRENT_H
+#define IS_COMPAT_DIRENT_H
 
-#include_next <sys/param.h>
-#ifdef __GLIBC__
-#  include_next <endian.h>
-#elif defined(__MINGW) || defined(__MINGW32__)
-#  define __LITTLE_ENDIAN  1234
-#  define __BIG_ENDIAN     4321
-#  define __BYTE_ORDER     __LITTLE_ENDIAN
-#elif defined(__sun)
-#    define __LITTLE_ENDIAN  1234
-#    define __BIG_ENDIAN     4321
-#    define __BYTE_ORDER     __LITTLE_ENDIAN
-#else
-#  error your platform is unsupported
+#include_next <dirent.h>
+
+#ifndef __GLIBC__
+#define __is_need_dirfd
+int dirfd(DIR *dir);
+
 #endif
 
-#if (__BYTE_ORDER != __BIG_ENDIAN) && (__BYTE_ORDER != __LITTLE_ENDIAN)
-#  error __BYTE_ORDER must be __BIG_ENDIAN or __LITTLE_ENDIAN
-#endif
+#endif /* !IS_COMPAT_DIRENT_H */
 
-#endif /* !IS_COMPAT_ENDIAN_H */

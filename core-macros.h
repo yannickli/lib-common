@@ -336,7 +336,7 @@ int show_licence(const char *arg);
 int set_licence(const char *arg, const char *licence_data);
 void check_strace(void);
 
-#if !defined(MINGCC) && !defined(CYGWIN)
+#if !defined(MINGCC) && !defined(CYGWIN) && !defined(__sun)
 
 #  include <sys/epoll.h>
 

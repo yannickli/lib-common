@@ -25,7 +25,8 @@ else
   test_PROGRAMS += tst-btree tst-isndx tst-sort
 endif
 
-btree-dump_SOURCES = btree-dump.c libcommon.a
+btree-dump_SOURCES = btree-dump.c libcommon.a compat/compat.a
+btree-dump_LDFLAGS = -lm
 
 libcommon_SOURCES = \
 	array.c \
@@ -90,6 +91,7 @@ libcommon_SOURCES = \
 	\
 	unix.c \
 	unix-linux.c \
+	unix-solaris.c \
 	\
 	$(end_of_list)
 
@@ -99,16 +101,16 @@ test_SOURCES = $(libcommon_SOURCES) check.c $/lib-common/compat/check.c
 test_CFLAGS  = -DCHECK=1
 test_LDFLAGS = -lz
 
-tst-cfgparser_SOURCES = tst-cfgparser.c libcommon.a
+tst-cfgparser_SOURCES = tst-cfgparser.c libcommon.a compat/compat.a
 
 tst-tpl_SOURCES = tst-tpl.c libcommon.a
 
-tst-statsdump_SOURCES = tst-statsdump.c libcommon.a
+tst-statsdump_SOURCES = tst-statsdump.c libcommon.a compat/compat.a
 tst-blob-iconv_SOURCES = \
 	tst-blob-iconv.c \
 	libcommon.a
 
-tst-iprintf_SOURCES = tst-iprintf.c libcommon.a
+tst-iprintf_SOURCES = tst-iprintf.c libcommon.a compat/compat.a
 
 tst-iprintf-fp_CFLAGS = -Wno-format -Wno-missing-format-attribute
 tst-iprintf-fp_SOURCES = tst-iprintf-fp.c libcommon.a
@@ -116,19 +118,19 @@ tst-iprintf-fp_SOURCES = tst-iprintf-fp.c libcommon.a
 tst-iprintf-glibc_CFLAGS = -Wno-format -Wno-missing-format-attribute
 tst-iprintf-glibc_SOURCES = tst-iprintf-glibc.c libcommon.a
 
-tst-hash_SOURCES = tst-hash.c libcommon.a
+tst-hash_SOURCES = tst-hash.c libcommon.a compat/compat.a
 
-tst-btree_SOURCES = tst-btree.c btree.c libcommon.a
-tst-isndx_SOURCES = tst-isndx.c libcommon.a
-tst-sort_SOURCES = tst-sort.c libcommon.a
+tst-btree_SOURCES = tst-btree.c btree.c libcommon.a compat/compat.a
+tst-isndx_SOURCES = tst-isndx.c libcommon.a compat/compat.a
+tst-sort_SOURCES = tst-sort.c libcommon.a compat/compat.a
 tst-sort_CFLAGS = -UCHECK
 tst-sort_LDFLAGS = -lm
-tst-iprintf-speed_SOURCES = tst-iprintf-speed.c libcommon.a
+tst-iprintf-speed_SOURCES = tst-iprintf-speed.c libcommon.a compat/compat.a
 tst-iprintf-speed_CFLAGS = -UCHECK
 
-tst-stats_SOURCES = tst-stats.c libcommon.a
-tst-htbl_SOURCES = tst-htbl.c libcommon.a
-tst-path_SOURCES = tst-path.c libcommon.a
+tst-stats_SOURCES = tst-stats.c libcommon.a compat/compat.a
+tst-htbl_SOURCES = tst-htbl.c libcommon.a compat/compat.a
+tst-path_SOURCES = tst-path.c libcommon.a compat/compat.a
 
 ifneq (,$(filter CYGWIN%,$(UNAME)))
   libcommon_SOURCES := $(filter-out blob-iconv.c linux.c psinfo.c,$(libcommon_SOURCES))
@@ -141,6 +143,7 @@ ifneq (,$(MINGCC))
   test_PROGRAMS := $(filter-out btree-dump, $(test_PROGRAMS))
 endif
 
+ifneq (SunOS,$(shell uname -s))
 DISTCLEANFILES=Upgrading.html
 all:: Upgrading.html
 Upgrading.html: Upgrading.txt ../Config/asciidoc.conf
@@ -148,5 +151,6 @@ Upgrading.html: Upgrading.txt ../Config/asciidoc.conf
 	@$(RM) $@
 	@asciidoc -f ../Config/asciidoc.conf -b xhtml11 -o $@ $<
 	@dos2unix $@
+endif
 
 include ../Build/base.mk

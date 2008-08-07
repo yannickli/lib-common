@@ -18,12 +18,14 @@
 #include "unix.h"
 #include "time.h"
 
+#ifdef __linux__
+
 static int hertz;
 
 static FILE *pidproc_open(pid_t pid, const char *what)
 {
     char path[PATH_MAX];
-    snprintf(path, sizeof(path), "/proc/%d/%s", pid ?: getpid(), what);
+    snprintf(path, sizeof(path), "/proc/%ld/%s", (long)pid ?: (long)getpid(), what);
     return fopen(path, "r");
 }
 
@@ -117,3 +119,5 @@ int close_fds_higher_than(int fd)
     }
     return 0;
 }
+
+#endif

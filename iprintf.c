@@ -985,15 +985,15 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                     prec = 1;
                 }
                 /* do this before tricky precision changes */
-                if (isinf(fpvalue)) {
-                    if (fpvalue < 0)
-                        sign = '-';
-                    lp = "Inf";
+                if (isnan(fpvalue)) {
+                    lp = "NaN";
                     len = 3;
                     goto has_string_len;
                 }
-                if (isnan(fpvalue)) {
-                    lp = "NaN";
+                if (!finite(fpvalue)) {
+                    if (fpvalue < 0)
+                        sign = '-';
+                    lp = "Inf";
                     len = 3;
                     goto has_string_len;
                 }

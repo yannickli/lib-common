@@ -11,26 +11,36 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_COMPAT_ENDIAN_H
-#define IS_COMPAT_ENDIAN_H
+#ifdef __sun
 
-#include_next <sys/param.h>
-#ifdef __GLIBC__
-#  include_next <endian.h>
-#elif defined(__MINGW) || defined(__MINGW32__)
-#  define __LITTLE_ENDIAN  1234
-#  define __BIG_ENDIAN     4321
-#  define __BYTE_ORDER     __LITTLE_ENDIAN
-#elif defined(__sun)
-#    define __LITTLE_ENDIAN  1234
-#    define __BIG_ENDIAN     4321
-#    define __BYTE_ORDER     __LITTLE_ENDIAN
-#else
-#  error your platform is unsupported
+/* procfs is not supported in large file mode */
+#undef _LARGEFILE64_SOURCE
+#undef _FILE_OFFSET_BITS
+
+#include "err_report.h"
+#include "macros.h"
+#include "str.h"
+#include "unix.h"
+#include "time.h"
+
+#include <procfs.h>
+
+int pid_get_starttime(pid_t pid, struct timeval *tv)
+{
+    int fd;
+    psinfo_t info;
+
+    fd = open("/proc/self/psinfo", O_RDONLY);
+    if (!fd)
+        return -1;
+
+    if (read(fd, &info, sizeof(info)) != sizeof(info)) {
+        p_close(&fd);
+        return -1;
+    }
+    p_close(&fd);
+
+    return info.pr_start.tv_sec;
+}
+
 #endif
-
-#if (__BYTE_ORDER != __BIG_ENDIAN) && (__BYTE_ORDER != __LITTLE_ENDIAN)
-#  error __BYTE_ORDER must be __BIG_ENDIAN or __LITTLE_ENDIAN
-#endif
-
-#endif /* !IS_COMPAT_ENDIAN_H */

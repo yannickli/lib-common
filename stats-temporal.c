@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <linux/limits.h>
 #include <sys/mman.h>
 #include <glob.h>
 #include "all.h"

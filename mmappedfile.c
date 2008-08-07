@@ -25,9 +25,11 @@ mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize)
 
     mf->fd     = -1;
 
+#ifdef MAP_POPULATE
     if (oflags & MMO_POPULATE) {
         mflags |= MAP_POPULATE;
     }
+#endif
 
     switch (flags & (O_RDONLY | O_WRONLY | O_RDWR)) {
       case O_RDONLY:
@@ -62,7 +64,9 @@ mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize)
         goto error;
 
     if (prot & PROT_WRITE && st.st_size < minsize) {
-        if (ftruncate(mf->fd, minsize) || posix_fallocate(mf->fd, 0, minsize))
+        if (ftruncate(mf->fd, minsize))
+            goto error;
+        if (posix_fallocate(mf->fd, 0, minsize) && errno != ENOSYS)
             goto error;
         mf->size = minsize;
     } else {
@@ -88,6 +92,7 @@ mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize)
     if (oflags & MMO_RANDOM) {
         madvise(mf->area, mf->size, MADV_RANDOM);
     }
+
     return mf;
 
   error:
@@ -157,27 +162,35 @@ void mmfile_close(mmfile **mfp)
 
 static int mmfile_truncate_aux(mmfile *mf, off_t length, bool lock)
 {
-    int res;
+    int fd = -1;
 
     if (length == mf->size)
         return 0;
 
     if (length > mf->size) {
-        int fd;
-
         fd = open(mf->path, O_RDWR);
+
         if (fd < 0) {
             errno = EBADF;
             return -1;
         }
 
-        if ((res = ftruncate(fd, length)) != 0
-        ||  (res = posix_fallocate(fd, mf->size, length - mf->size)) != 0)
-        {
-            close(fd);
-            return res;
+        if (ftruncate(fd, length)) {
+            p_close(&fd);
+            return -1;
         }
-        close(fd);
+
+        if (posix_fallocate(fd, mf->size, length - mf->size)) {
+            if (errno != ENOSYS) {
+                p_close(&fd);
+                return -1;
+            }
+        }
+    }
+
+#ifdef MREMAP_MAYMOVE
+    if (fd >= 0) {
+        p_close(&fd);
     }
 
     /* stage 1: try to remap at the same place */
@@ -199,6 +212,33 @@ static int mmfile_truncate_aux(mmfile *mf, off_t length, bool lock)
             return -1;
         }
     }
+#else
+    {
+        void *new_map;
+
+        if (fd < 0) {
+            fd = open(mf->path, O_RDWR);
+
+            if (fd < 0) {
+                errno = EBADF;
+                return -1;
+            }
+        }
+
+        new_map = mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+        p_close(&fd);
+        if (new_map == MAP_FAILED) {
+            e_trace(0, "Could not remap: %s", strerror(errno));
+            errno = ENOMEM;
+            return -1;
+        }
+
+        munmap(mf->area, mf->size);
+
+        mf->area = new_map;
+
+    }
+#endif
 
     mf->size = length;
     return length > mf->size ? 0 : truncate(mf->path, length);
