@@ -40,7 +40,6 @@
 #include "property.h"
 #include "property-hash.h"
 #include "psinfo.h"
-#include "refcount.h"
 #include "ring.h"
 #include "stats-temporal.h"
 #include "stopper.h"

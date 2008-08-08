@@ -1,6 +1,12 @@
 lib-common Upgrading Notes
 ==========================
 
+Cleanups (Fri, 08 Aug 2008)
+---------------------------
+
+* `refcount.h` is now included from `core.h`.
+
+
 Memory pools (Wed, 30 Jul 2008)
 -------------------------------
 
@@ -9,6 +15,7 @@ Memory pools (Wed, 30 Jul 2008)
 * `mem_pool` is renamed `mem_pool_t`.
 * consistentely use `int` instead of `ssize_t` for memory pools, like we did
   with `malloc.
+
 
 Cleanups (Thu, 24 Jul 2008)
 ---------------------------

@@ -11,8 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_REFCOUNT_H
-#define IS_LIB_COMMON_REFCOUNT_H
+#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_REFCOUNT_H)
+#  error "you must include <lib-common/core.h> instead"
+#endif
+#define IS_LIB_COMMON_CORE_REFCOUNT_H
 
 #define REFCNT_NEW(type, pfx)                                             \
     static inline type *pfx##_new(void) {                                 \
@@ -70,5 +72,3 @@
             }                                                             \
         }                                                                 \
     }
-
-#endif

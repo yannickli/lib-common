@@ -15,7 +15,6 @@
 #include "mmappedfile.h"
 #include "mem-pool.h"
 #include "list.h"
-#include "refcount.h"
 
 #define ROUND_MULTIPLE(n, k) ((((n) + (k) - 1) / (k)) * (k))
 

@@ -45,6 +45,7 @@
 #include "core-macros.h"
 #include "core-errors.h"
 #include "core-mem.h"
+#include "core-refcount.h"
 #define IPRINTF_HIDE_STDIO 1
 #include "iprintf.h"
 
