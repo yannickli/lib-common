@@ -40,7 +40,6 @@ int main(void)
     srunner_add_suite(sr, check_range_vector_suite());
 #endif
     srunner_add_suite(sr, check_conf_suite());
-    srunner_add_suite(sr, check_log_limit_suite());
 
     srunner_run_all(sr, CK_NORMAL);
     nf = srunner_ntests_failed(sr);

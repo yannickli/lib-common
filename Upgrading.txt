@@ -5,6 +5,7 @@ Cleanups (Fri, 08 Aug 2008)
 ---------------------------
 
 * `refcount.h` is now included from `core.h`.
+* `log_limit.h` moved to mcms.
 
 
 Memory pools (Wed, 30 Jul 2008)

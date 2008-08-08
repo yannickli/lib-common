@@ -37,7 +37,6 @@ libcommon_SOURCES = \
 	isndx.c \
 	licence.c \
 	list.c \
-	log_limit.c \
 	mmappedfile.c \
 	paged-index.c \
 	parseopt.c \
