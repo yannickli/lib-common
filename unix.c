@@ -16,9 +16,14 @@
 #include "unix.h"
 #include "str.h"
 
-/* Returns 0 if directory exists,
- * Returns 1 if directory was created
- * Returns -1 in case an error occurred.
+/** Create a directory path as mkdir -p
+ *
+ * @param dir   directory to create
+ * @param mode  initial mode of directory, and parent directories if required
+ *
+ * @return 0 if directory exists,
+ * @return 1 if directory was created
+ * @return -1 in case an error occurred.
  */
 int mkdir_p(const char *dir, mode_t mode)
 {
@@ -81,8 +86,13 @@ int mkdir_p(const char *dir, mode_t mode)
     return 1;
 }
 
-/**
- * Get time of last modification.
+/** Retrieve time of last modification
+ *
+ * @param filename  relative or absolute path
+ * @param t         time is returned in this pointer
+ *
+ * @return 0 if successful
+ * @return -1 on error (errno is positioned according to stat)
  */
 int get_mtime(const char *filename, time_t *t)
 {
@@ -94,16 +104,21 @@ int get_mtime(const char *filename, time_t *t)
     return 0;
 }
 
-/**
- * Copy file pathin to pathout. If pathout already exists, it will
+/** Copy file pathin to pathout. If pathout already exists, it will
  * be overwritten.
  *
  * Note: Use the same mode bits as the input file.
- * OG: since this function returns the number of bytes copied, the
- * return type should be off_t.
+ * @param  pathin  file to copy
+ * @param  pathout destination (created if not exist, else overwritten)
+ *
+ * @return -1 on error
+ * @return n  number of bytes copied
  */
 int filecopy(const char *pathin, const char *pathout)
 {
+/* OG: since this function returns the number of bytes copied, the
+ * return type should be off_t.
+ */
     int fdin = -1, fdout = -1;
     struct stat st;
     char buf[BUFSIZ];
@@ -190,6 +205,22 @@ int filecopy(const char *pathin, const char *pathout)
     return -1;
 }
 
+/** Lock files and test locks
+ *
+ * Example: p_lockf(fd, O_RDONLY, 0)   Places a read lock on the whole file
+ *
+ * Note: - to unlock, use p_unlockf
+ *       - See the lockf(3) or fcntl(2)
+ *
+ * @param  fd    opened file
+ * @param  mode  lock mode (O_RDONLY, O_RDWR, O_WRONLY)
+ * @param  cmd   One of F_LOCK, F_TLOCK or F_TEST  (see fcntl(2))
+ * @param  start Start of the region of the file on which the lock applies
+ * @param  len   Length of the region of the file on which the lock applies
+ *
+ * @return On success, zero is returned. On error, -1 is returned, and errno
+ *         is set appropriately.
+ */
 int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
 {
     struct flock lock = {
@@ -233,6 +264,17 @@ int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
     return 0;
 }
 
+/** Unlock files
+ *
+ * Example: p_unlockf(fd, 0, 0)    Unlocks the whole file
+ *
+ * @param  fd    opened file
+ * @param  start Start of the region of the file to unlock
+ * @param  len   Length of the region of the file to unlock
+ *
+ * @return On success, zero is returned. On error, -1 is returned, and errno
+ *         is set appropriately.
+ */
 int p_unlockf(int fd, off_t start, off_t len)
 {
     struct flock lock = {
