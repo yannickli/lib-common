@@ -64,10 +64,15 @@ static inline uint16_t ntohs(be16_t x) {
 #  define htonl_const(x)    (x)
 #  define htons_const(x)    (x)
 #else
-#  define ntohl_const(x)    bswap32(x)
-#  define ntohs_const(x)    bswap16(x)
-#  define htonl_const(x)    bswap32(x)
-#  define htons_const(x)    bswap16(x)
+#  define ntohl_const(x) \
+        ((((x) >> 24) & 0x000000ff) | \
+         (((x) >>  8) & 0x0000ff00) | \
+         (((x) <<  8) & 0x00ff0000) | \
+         (((x) << 24) & 0xff000000))
+#  define ntohs_const(x) \
+        ((((x) >> 8) & 0x00ff) | (((x) << 8) & 0xff00))
+#  define htonl_const(x)    ntohl_const(x)
+#  define htons_const(x)    ntohs_const(x)
 #endif
 
 #define BE32_T(x)  force_cast(be32_t, htonl_const(x))
