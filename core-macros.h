@@ -352,6 +352,7 @@ static inline void check_licence(const struct timeval *tv) {
 extern int strace_next_check;
 extern const char *strace_msg;
 extern int trace_override;
+#define trace_override  trace_override
 
 #  define STRACE_CHECK_INTERVAL 2
 

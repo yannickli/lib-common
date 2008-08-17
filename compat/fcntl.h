@@ -18,15 +18,15 @@
 
 #include_next <fcntl.h>
 
-#ifndef O_NONBLOCK
-#define O_NONBLOCK 00004000
-#endif
-
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
 
 #if defined(__MINGW) || defined(__MINGW32__)
+
+#ifndef O_NONBLOCK
+#define O_NONBLOCK 00004000
+#endif
 
 #ifndef __USE_FILE_OFFSET64
 # define F_GETLK        5       /* Get record locking info.  */
