@@ -20,7 +20,6 @@
 #include "blob.h"
 #include "bstream.h"
 #include "btree.h"
-#include "byteops.h"
 #include "conf.h"
 #include "container.h"
 #include "elf.h"

@@ -162,38 +162,6 @@ typedef unsigned int gt_uint32_t;
 #define uint32_t __uint32_t
 #endif
 
-typedef uint64_t __bitwise__ be64_t;
-typedef uint64_t __bitwise__ le64_t;
-typedef uint32_t __bitwise__ le32_t;
-typedef uint32_t __bitwise__ be32_t;
-typedef uint16_t __bitwise__ le16_t;
-typedef uint16_t __bitwise__ be16_t;
-
-#define BE32_T(x)  force_cast(be32_t, htonl_const(x))
-#define BE16_T(x)  force_cast(be16_t, htons_const(x))
-
-#define MAKE64(hi, lo)  (((uint64_t)(uint32_t)(hi) << 32) | (uint32_t)(lo))
-
-#ifdef __SPARSE__
-#include <arpa/inet.h>
-#undef htonl
-#undef htons
-#undef ntohl
-#undef ntohs
-static inline be32_t htonl(uint32_t x) {
-    return force_cast(be32_t, x);
-}
-static inline be16_t htons(uint16_t x) {
-    return force_cast(be16_t, x);
-}
-static inline uint32_t ntohl(be32_t x) {
-    return force_cast(uint32_t, x);
-}
-static inline uint16_t ntohs(be16_t x) {
-    return force_cast(uint16_t, x);
-}
-#endif
-
 /* OG: should find a better name such as BITSIZEOF(type) */
 #define TYPE_BIT(type_t)    (sizeof(type_t) * CHAR_BIT)
 #define BITS_TO_ARRAY_LEN(type_t, nbits)  \

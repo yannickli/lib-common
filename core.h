@@ -44,6 +44,7 @@
 #define __ISLIBC__
 
 #include "core-macros.h"
+#include "core-byteops.h"
 #include "core-errors.h"
 #include "core-mem.h"
 #include "core-refcount.h"

@@ -23,7 +23,6 @@
 #include "str.h"
 #include "str-conv.h"
 #include "iprintf.h"
-#include "byteops.h"
 
 __thread byte blob_slop[1];
 
