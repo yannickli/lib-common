@@ -14,8 +14,7 @@
 #include <math.h>
 
 #include "time.h"
-#include "list.h"
-#include "array.h"
+#include "container.h"
 
 #define REPEAT        10        /* randomly duplicate entries upto 4 times */
 #define WORK_DIR      "/tmp/"   /* test file output directory */

@@ -29,19 +29,15 @@ btree-dump_SOURCES = btree-dump.c libcommon.a compat/compat.a
 btree-dump_LDFLAGS = -lm
 
 libcommon_SOURCES = \
-	array.c \
 	bfield.c \
 	btree.c \
 	farch.c \
-	htbl.c \
 	isndx.c \
 	licence.c \
-	list.c \
 	mmappedfile.c \
 	paged-index.c \
 	parseopt.c \
 	psinfo.c \
-	ring.c \
 	showflags.c \
 	stats-temporal.c \
 	stopper.c \
@@ -59,6 +55,11 @@ libcommon_SOURCES = \
 	\
 	conf.c  \
 	conf-parser.l \
+	\
+	container-array.c \
+	container-htbl.c \
+	container-list.c \
+	container-ring.c \
 	\
 	core-debug.c   \
 	core-errors.c  \

@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "ring.h"
+#include "container.h"
 
 void generic_ring_ensure(generic_ring *r, int newlen, int el_siz)
 {

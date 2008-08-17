@@ -1,6 +1,13 @@
 lib-common Upgrading Notes
 ==========================
 
+Modularization (Sun, 17 Aug 2008)
+---------------------------------
+
+* the `array`, `list`, `htbl` and `ring` module are now grouped into the same
+  `container` metamodule. `array.h`, `list.h`, `htbl.h` and `ring.h` are gone
+  and `container.h` must be included instead.
+
 Cleanups (Fri, 08 Aug 2008)
 ---------------------------
 

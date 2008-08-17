@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_PROPERTY_H
 #define IS_LIB_COMMON_PROPERTY_H
 
-#include "array.h"
+#include "container.h"
 #include "blob.h"
 
 typedef struct property_t {

@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_TPL_H
 #define IS_LIB_COMMON_TPL_H
 
-#include "array.h"
+#include "container.h"
 #include "blob.h"
 
 /** \defgroup templates Intersec generic templating API.

@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "list.h"
+#include "container.h"
 
 #define OPTIMIZE_SORTED_PREFIX  1
 #define OPTIMIZE_SORTED_CHUNKS  1

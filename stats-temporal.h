@@ -16,7 +16,7 @@
 
 #include "bfield.h"
 #include "blob.h"
-#include "array.h"
+#include "container.h"
 
 #define STATS_STAGE_MAX          7
 #define STATS_QUERY_VALUES_MAX   1024

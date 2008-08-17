@@ -11,10 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_LIST_H
-#define IS_LIB_COMMON_LIST_H
-
-#include "core.h"
+#if !defined(IS_LIB_COMMON_CONTAINER_H) || defined(IS_LIB_COMMON_CONTAINER_LIST_H)
+#  error "you must include <lib-common/container.h> instead"
+#endif
+#define IS_LIB_COMMON_CONTAINER_LIST_H
 
 /*
  * Provides list functions, for objects that have a ->next member.
@@ -122,7 +122,3 @@ void generic_list_sort(generic_list **list,
     static inline type_t *prefix##_list_poplast(type_t **list) {             \
         return prefix##_list_take(list, (*list)->prev);                      \
     }
-
-
-
-#endif /* IS_LIB_COMMON_LIST_H */

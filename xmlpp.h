@@ -14,8 +14,8 @@
 #ifndef IS_LIB_COMMON_XMLPP_H
 #define IS_LIB_COMMON_XMLPP_H
 
-#include <lib-common/array.h>
-#include <lib-common/blob.h>
+#include "container.h"
+#include "blob.h"
 
 typedef struct xmlpp_t {
     flag_t can_do_attr : 1;

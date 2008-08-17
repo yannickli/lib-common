@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include "container.h"
 #include "hash.h"
-#include "htbl.h"
 
 void htbl_init(generic_htbl *t, int size)
 {

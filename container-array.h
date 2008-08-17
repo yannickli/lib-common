@@ -11,11 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_ARRAY_H
-#define IS_LIB_COMMON_ARRAY_H
-
-#include <sys/uio.h>
-#include "str.h"
+#if !defined(IS_LIB_COMMON_CONTAINER_H) || defined(IS_LIB_COMMON_CONTAINER_ARRAY_H)
+#  error "you must include <lib-common/container.h> instead"
+#endif
+#define IS_LIB_COMMON_CONTAINER_ARRAY_H
 
 #define VECTOR_TYPE(el_typ, prefix)  \
     typedef struct prefix##_vector { \
@@ -257,5 +256,3 @@ Suite *check_str_array_suite(void);
 
 #endif
 /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
-
-#endif /* IS_LIB_COMMON_ARRAY_H */

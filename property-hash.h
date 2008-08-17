@@ -14,9 +14,8 @@
 #ifndef IS_LIB_COMMON_PROPERTY_HASH_H
 #define IS_LIB_COMMON_PROPERTY_HASH_H
 
-#include "array.h"
+#include "container.h"
 #include "blob.h"
-#include "htbl.h"
 #include "xmlpp.h"
 
 typedef struct prop_t {

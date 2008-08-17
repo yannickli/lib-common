@@ -14,8 +14,7 @@
 #ifndef NDEBUG /* disable that module if debug is disabled */
 
 #include <fnmatch.h>
-#include "array.h"
-#include "htbl.h"
+#include "container.h"
 #include "str.h"
 #include "blob.h"
 #include "unix.h"

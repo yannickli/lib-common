@@ -11,21 +11,15 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "container.h"
+#ifndef IS_LIB_COMMON_CONTAINER_H
+#define IS_LIB_COMMON_CONTAINER_H
 
-cstring_htbl h;
+#include "core.h"
+#include "str.h"
 
-static void print_one(const char **s) {
-    printf("%s\n", *s);
-}
+#include "container-array.h"
+#include "container-htbl.h"
+#include "container-list.h"
+#include "container-ring.h"
 
-int main(void) {
-    cstring_htbl_init(&h);
-    cstring_htbl_insert2(&h, "test");
-    cstring_htbl_insert2(&h, "toto");
-    cstring_htbl_insert2(&h, "tutu");
-    cstring_htbl_take2(&h, "toto");
-    HTBL_STR_MAP(&h, print_one);
-    cstring_htbl_wipe(&h);
-    return 0;
-}
+#endif
