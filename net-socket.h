@@ -58,3 +58,16 @@ static inline socklen_t sockunion_len(const sockunion_t *su) {
         return (socklen_t)-1;
     }
 }
+
+/*----- sys/socket.h enshancements -----*/
+#ifndef OS_WINDOWS
+int socketpairx(int d, int type, int protocol, int flags, int sv[2]);
+#endif
+
+int bindx(int sock, const sockunion_t *, int cnt,
+          int type, int proto, int flags);
+int listenx(int sock, const sockunion_t *, int cnt,
+            int type, int proto, int flags);
+int connectx(int sock, const sockunion_t *, int cnt,
+             int type, int proto, int flags);
+int acceptx(int server_fd, int flags);

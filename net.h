@@ -18,6 +18,9 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#ifdef HAVE_NETINET_SCTP_H
+#include <netinet/sctp.h>
+#endif
 #ifdef OS_WINDOWS
 # include <winsock2.h>
 #else
