@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "blob.h"
+#include "net.h"
 #include "str.h"
 #include "str-conv.h"
 #include "iprintf.h"

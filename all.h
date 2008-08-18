@@ -31,6 +31,7 @@
 #include "licence.h"
 #include "mem-pool.h"
 #include "mmappedfile.h"
+#include "net.h"
 #include "paged-index.h"
 #include "parseopt.h"
 #include "property-hash.h"

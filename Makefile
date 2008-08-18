@@ -79,6 +79,8 @@ libcommon_SOURCES = \
 	mem-pool.c \
 	mem-fifo-pool.c \
 	\
+	net-socket.c \
+	\
 	property.c \
 	property-hash.c \
 	\
