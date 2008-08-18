@@ -530,6 +530,25 @@ void tpl_optimize(tpl_t *tpl)
     }
 }
 
+bool tpl_is_variable(const tpl_t *tpl)
+{
+    switch (tpl->op) {
+      case TPL_OP_DATA:
+      case TPL_OP_BLOB:
+        return true;
+
+      case TPL_OP_BLOCK:
+        for (int i = 0; i < tpl->u.blocks.len; i++) {
+            if (!tpl_is_variable(tpl->u.blocks.tab[i]))
+                return false;
+        }
+        return true;
+
+      default:
+        return false;
+    }
+}
+
 int tpl_to_iov(struct iovec *iov, int nr, tpl_t *tpl)
 {
     switch (tpl->op) {
