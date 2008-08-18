@@ -24,7 +24,7 @@ typedef union sockunion_t {
     struct sockaddr_un      sunix;
 #endif
     struct sockaddr         sa;
-    sa_family_t family;
+    sa_family_t             family;
 } sockunion_t;
 
 bool sockaddr_equal(const sockunion_t *, const sockunion_t *);
@@ -71,3 +71,6 @@ int listenx(int sock, const sockunion_t *, int cnt,
 int connectx(int sock, const sockunion_t *, int cnt,
              int type, int proto, int flags);
 int acceptx(int server_fd, int flags);
+
+int getsockport(int sock, sa_family_t family);
+int getpeerport(int sock, sa_family_t family);

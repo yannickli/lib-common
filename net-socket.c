@@ -245,3 +245,26 @@ int acceptx(int server_fd, int flags)
     return sock;
 }
 
+int getsockport(int sock, sa_family_t family)
+{
+    sockunion_t local = { .family = family };
+    socklen_t   size  = sockunion_len(&local);
+
+    if (getsockname(sock, &local.sa, &size)) {
+        e_trace(1, "getsockname failed: %m");
+        return 0;
+    }
+    return sockunion_getport(&local);
+}
+
+int getpeerport(int sock, sa_family_t family)
+{
+    sockunion_t local = { .family = family };
+    socklen_t   size  = sockunion_len(&local);
+
+    if (getpeername(sock, &local.sa, &size)) {
+        e_trace(1, "getsockname failed: %m");
+        return 0;
+    }
+    return sockunion_getport(&local);
+}
