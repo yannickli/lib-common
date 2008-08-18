@@ -308,7 +308,7 @@ void pqsort(void *base[], size_t n,
             int (*comp)(const void *p1, const void *p2, void *parm),
             void *parm))
 {
-#ifdef MINGCC
+#ifdef OS_WINDOWS
     void *tmp_buffer[BUFSIZ / sizeof(void*)];
 #endif
     void **tmp;
@@ -325,7 +325,7 @@ void pqsort(void *base[], size_t n,
     if (n2 > BUFSIZ / sizeof(void*)) {
         tmp = p_new(void *, n2);
     } else {
-#ifdef MINGCC
+#ifdef OS_WINDOWS
         tmp = tmp_buffer;
 #else
         tmp = p_alloca(void *, n2);

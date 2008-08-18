@@ -11,9 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef MINGCC
+#include "core.h"
+#ifndef OS_WINDOWS
 #include <net/if.h>
-#ifdef __linux__
+#ifdef OS_LINUX
 #include <net/if_arp.h>
 #endif
 #include <netinet/in.h>

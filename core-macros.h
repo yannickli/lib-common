@@ -24,6 +24,17 @@
  * \brief Intersec generic macros.
  */
 
+/*---------------- Guess the OS ----------------*/
+#if defined(__linux__)
+#  define OS_LINUX
+#elif defined(__sun)
+#  define OS_SOLARIS
+#elif defined(__MINGW) || defined(__MINGW32__)
+#  define OS_WINDOWS
+#else
+#  error "we don't know about your OS"
+#endif
+
 /*---------------- GNU extension wrappers ----------------*/
 
 /*
@@ -304,8 +315,7 @@ int show_licence(const char *arg);
 int set_licence(const char *arg, const char *licence_data);
 void check_strace(void);
 
-#if !defined(MINGCC) && !defined(CYGWIN) && !defined(__sun)
-
+#ifdef OS_LINUX
 #  include <sys/epoll.h>
 
 static inline void check_licence(const struct timeval *tv) {
@@ -383,7 +393,7 @@ static inline int getopt_check(int argc, char * const argv[],
 }
 #  define getopt(argc, argv, optstring)  getopt_check(argc, argv, optstring)
 
-#endif   /* MINGCC */
+#endif   /* OS_LINUX */
 
 /*---------------- Defensive programming ----------------*/
 

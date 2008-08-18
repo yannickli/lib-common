@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_TIME_H
 #define IS_LIB_COMMON_TIME_H
 
-#ifndef MINGCC
+#ifndef OS_WINDOWS
 #include <sys/resource.h>
 #endif
 #include "core.h"
@@ -143,7 +143,7 @@ int strtotm(const char *date, struct tm *t);
  */
 typedef struct proctimer_t {
     struct timeval tv, tv1;
-#ifndef MINGCC
+#ifndef OS_WINDOWS
     struct rusage ru, ru1;
 #endif
     unsigned int elapsed_real;
@@ -174,18 +174,18 @@ typedef struct proctimerstat_t {
 
 static inline void proctimer_start(proctimer_t *tp) {
     gettimeofday(&tp->tv, NULL);
-#ifndef MINGCC
+#ifndef OS_WINDOWS
     getrusage(RUSAGE_SELF, &tp->ru);
 #endif
 }
 
 static inline long long proctimer_stop(proctimer_t *tp) {
-#ifndef MINGCC
+#ifndef OS_WINDOWS
     getrusage(RUSAGE_SELF, &tp->ru1);
 #endif
     gettimeofday(&tp->tv1, NULL);
     tp->elapsed_real = timeval_diff(&tp->tv1, &tp->tv);
-#ifndef MINGCC
+#ifndef OS_WINDOWS
     tp->elapsed_user = timeval_diff(&tp->ru1.ru_utime, &tp->ru.ru_utime);
     tp->elapsed_sys = timeval_diff(&tp->ru1.ru_stime, &tp->ru.ru_stime);
     tp->elapsed_proc = tp->elapsed_user + tp->elapsed_sys;

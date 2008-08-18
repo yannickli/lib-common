@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef MINGCC
+#ifndef OS_WINDOWS
 
 #include <zlib.h>
 #include "blob.h"

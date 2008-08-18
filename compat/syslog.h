@@ -14,9 +14,7 @@
 #ifndef IS_COMPAT_SYSLOG_H
 #define IS_COMPAT_SYSLOG_H
 
-#ifndef MINGCC
-#include_next <syslog.h>
-#else
+#if defined(__MINGW) || defined(__MINGW32__)
 #define LOG_EMERG       0       /* system is unusable */
 #define LOG_ALERT       1       /* action must be taken immediately */
 #define LOG_CRIT        2       /* critical conditions */
@@ -25,6 +23,8 @@
 #define LOG_NOTICE      5       /* normal but significant condition */
 #define LOG_INFO        6       /* informational */
 #define LOG_DEBUG       7       /* debug-level messages */
+#else
+#include_next <syslog.h>
 #endif
 
 #endif

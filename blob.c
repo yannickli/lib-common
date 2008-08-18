@@ -11,14 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <stdio.h>
-#ifdef MINGCC
-#include <winsock2.h>
-#else
-#include <sys/socket.h>
-#endif
-
-#define IPRINTF_HIDE_STDIO 1
 #include "blob.h"
 #include "str.h"
 #include "str-conv.h"

@@ -11,45 +11,13 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_CORE_H
-#define IS_LIB_COMMON_CORE_H
+#ifndef IS_COMPAT_SYS_SOCKET_H
+#define IS_COMPAT_SYS_SOCKET_H
 
-#include <alloca.h>
-#include <assert.h>
-#include <ctype.h>
-#include <endian.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <glob.h>
-#include <inttypes.h>
-#include <limits.h>
-#include <malloc.h>
-#include <signal.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/mman.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/uio.h>
-#include <time.h>
-#include <unistd.h>
-
-#define __ISLIBC__
-
-#define IPRINTF_HIDE_STDIO 1
-#include "core-macros.h"
-#include "core-os-features.h"
-#include "core-byteops.h"
-#include "core-errors.h"
-#include "core-mem.h"
-#include "core-refcount.h"
-#include "iprintf.h"
-
+#if defined(__MINGW) || defined(__MINGW32__)
+#include <winsock2.h>
+#else
+#include_next <sys/socket.h>
 #endif
+
+#endif /* !IS_COMPAT_SYS_SOCKET_H */

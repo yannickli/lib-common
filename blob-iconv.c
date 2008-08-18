@@ -11,7 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(MINGCC) && !defined(__sun)
+#include "core.h"
+#ifdef HAVE_ICONV_H
 #include <iconv.h>
 
 #include "blob.h"
