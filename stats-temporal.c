@@ -989,6 +989,8 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     /* Compute best sample duration */
     freq = find_pretty_freq((end - start) / nb_values);
 
+    nb_columns = mask ? bfield_count(mask) : nb_stats;
+
     if (fake_mode) {
         /* XXX: code is mostly duplicated from else blanch */
         double dval = 0;
@@ -1069,9 +1071,9 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
             hdr = (stats_bin_hdr_t *)&blob->data[orig_pos];
             *hdr = (stats_bin_hdr_t){
                 .nb_lines   = count,
-                    .nb_columns = nb_columns,
-                    .start      = start0,
-                    .step       = freq,
+                .nb_columns = nb_columns,
+                .start      = start0,
+                .step       = freq,
             };
             for (int i = 0, k = 0; k < nb_stats; k++) {
                 if (!mask || bfield_isset(mask, k))
@@ -1121,7 +1123,6 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
 
     p_clear(accu, nb_stats);
     orig_pos = blob->len;
-    nb_columns = mask ? bfield_count(mask) : nb_stats;
 
     switch (fmt) {
       case STATS_FMT_XML:
