@@ -58,7 +58,7 @@ msg/rm        := $(msg/echo)  " RM "
 SUFFIXES      :=
 MAKEFLAGS     := $(MAKEFLAGS)r$(if $(var/verbose),,s)
 ifeq (,$(L)$(LINEAR))
-MAKEPARALLEL  := $(MAKE) -j -l2
+MAKEPARALLEL  := $(MAKE) $(shell $(var/toolsdir)/_cpu_count.sh)
 else
 MAKEPARALLEL  := $(MAKE)
 endif
