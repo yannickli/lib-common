@@ -48,7 +48,7 @@ static struct {
     trace_htbl  cache;
     blob_t      buf, tmpbuf;
 
-    int verbosity_level;
+    int verbosity_level, max_level;
 
     int maxlen, rows, cols;
     bool fancy;
@@ -111,6 +111,7 @@ static void e_debug_initialize(void)
         if (*p)
             *p++ = '\0';
 
+        _G.max_level = MAX(_G.max_level, spec.level);
         spec_vector_append(&_G.specs, spec);
     }
 }
@@ -144,6 +145,9 @@ bool e_is_traced_real(int level, const char *modname, const char *func)
     struct trace_record_t tr, *trp;
     uint64_t uuid;
     bool result;
+
+    if (level > _G.max_level)
+        return false;
 
     spin_lock(&spin);
     uuid = e_trace_uuid(modname, func);
