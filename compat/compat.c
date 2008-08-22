@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#define _ATFILE_SOURCE
+
 #if defined(__MINGW) || defined(__MINGW32__)
 
 #include <lib-common/mmappedfile.h>
@@ -158,5 +160,37 @@ void * mremap(void *old_address, size_t old_size , size_t new_size, int
 int dirfd(DIR *dir)
 {
     return dir->d_fd;
+}
+#endif
+
+#include <sys/stat.h>
+#ifdef __is_need_at_replacement
+#include <fcntl.h>
+#include <unistd.h>
+
+int fstatat(int dir_fd, const char *pathname, struct stat *buf,
+            int flags)
+{
+    int cwd_fd, err, ret;
+
+    cwd_fd = open(".", O_RDONLY);
+    if (!cwd_fd)
+        return -1;
+
+    if (fchdir(dir_fd)) {
+        err = errno;
+        close(cwd_fd);
+        errno = err;
+        return -1;
+    }
+
+    ret = stat(pathname, buf);
+    err = errno;
+
+    /* This won't fail because we kept cwd_fd open */
+    fchdir(cwd_fd);
+    close(cwd_fd);
+    errno = err;
+    return ret;
 }
 #endif
