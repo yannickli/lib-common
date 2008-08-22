@@ -14,11 +14,28 @@ NS(tpl_combine_block)(tpl_t *out, const tpl_t *tpl,
 }
 
 static int
+NS(tpl_combine_seq)(tpl_t *out, const tpl_t *tpl,
+                    uint16_t envid, VAL_TYPE *vals, int nb, int flags)
+{
+    tpl_t *tmp2;
+
+    for (int i = 0; i < tpl->u.blocks.len; i++) {
+        tmp2 = tpl_dup(tpl->u.blocks.tab[i]);
+        if (TPL_SUBST(&tmp2, envid, vals, nb, flags | TPL_KEEPVAR)) {
+            e_trace(2, "cound not subst block %d", i);
+            return -1;
+        }
+        out->is_const &= tmp2->is_const;
+        tpl_array_append(&out->u.blocks, tmp2);
+    }
+    return 0;
+}
+
+static int
 NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
                 uint16_t envid, VAL_TYPE *vals, int nb, int flags)
 {
-    const tpl_t *ctmp;
-    tpl_t *tmp, *tmp2;
+    tpl_t *tmp;
 
     switch (tpl->op) {
       case TPL_OP_DATA:
@@ -47,6 +64,9 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
       case TPL_OP_BLOCK:
         return NS(tpl_combine_block)(out, tpl, envid, vals, nb, flags);
 
+      case TPL_OP_SEQ:
+        return NS(tpl_combine_seq)(out, tpl, envid, vals, nb, flags);
+
       case TPL_OP_IFDEF:
         if (tpl->u.varidx >> 16 == envid) {
             int branch = getvar(tpl->u.varidx, vals, nb) == NULL;
@@ -60,68 +80,24 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
             tpl_add_tpl(out, tpl);
             return 0;
         }
-        tpl_array_append(&out->u.blocks, tmp = tpl_new_op(TPL_OP_IFDEF));
-        tmp->is_const = true;
-        for (int i = 0; i < tpl->u.blocks.len; i++) {
-            tmp2 = tpl_dup(tpl->u.blocks.tab[i]);
-            if (TPL_SUBST(&tmp2, envid, vals, nb, flags | TPL_KEEPVAR)) {
-                e_trace(2, "cound not subst block %d", i);
-                return -1;
-            }
-            tmp->is_const &= tmp2->is_const;
-            tpl_array_append(&tmp->u.blocks, tmp2);
-        }
-        return 0;
+        return NS(tpl_combine_seq)(out, tpl, envid, vals, nb, flags);
 
-      case TPL_OP_APPLY_DELAYED:
-        switch (tpl->u.blocks.len) {
-          case 0:
-            return (*tpl->u.f)(out, NULL, NULL, 0);
-
-          case 1:
-            if ((*tpl->u.f)(out, NULL, NULL, 0) < 0)
-                return -1;
-            return NS(tpl_combine)(out, tpl->u.blocks.tab[0], envid, vals, nb, flags);
-
-          case 2:
-            ctmp = tpl->u.blocks.tab[0];
-            tmp2 = tpl_dup(tpl->u.blocks.tab[1]);
-            if (TPL_SUBST(&tmp2, envid, vals, nb, flags | TPL_KEEPVAR))
-                return -1;
-            if (tmp2->is_const) {
-                if (tpl_apply(tpl->u.f, out, NULL, tmp2) < 0
-                ||  (ctmp && NS(tpl_combine)(out, ctmp, envid, vals, nb, flags))
-                ||  NS(tpl_combine)(out, tmp2, envid, vals, nb, flags))
-                {
-                    tpl_delete(&tmp2);
-                    return -1;
-                }
-                tpl_delete(&tmp2);
-                return 0;
-            }
-
-            tpl_array_append(&out->u.blocks, tmp = tpl_new_op(TPL_OP_APPLY_DELAYED));
-            tpl_array_append(&tmp->u.blocks, NULL);
-            tpl_array_append(&tmp->u.blocks, tmp2);
-            if (ctmp) {
-                tmp2 = tpl_dup(ctmp);
-                if (TPL_SUBST(&tmp2, envid, vals, nb, flags | TPL_KEEPVAR))
-                    return -1;
-                tmp->u.blocks.tab[0] = tmp2;
-            }
-            tmp->is_const = out->is_const = false;
-            return 0;
-          default:
-            return -1;
-        }
-
-      case TPL_OP_APPLY_PURE:
-      case TPL_OP_APPLY_PURE_ASSOC:
+      case TPL_OP_APPLY:
+      case TPL_OP_APPLY_ASSOC:
+      case TPL_OP_APPLY_SEQ:
         tmp = tpl_new();
         tmp->is_const = true;
-        if (NS(tpl_combine_block)(tmp, tpl, envid, vals, nb, flags)) {
-            tpl_delete(&tmp);
-            return -1;
+        if (tpl->op == TPL_OP_APPLY_SEQ) {
+            tmp->op = TPL_OP_SEQ;
+            if (NS(tpl_combine_seq)(tmp, tpl, envid, vals, nb, flags)) {
+                tpl_delete(&tmp);
+                return -1;
+            }
+        } else {
+            if (NS(tpl_combine_block)(tmp, tpl, envid, vals, nb, flags)) {
+                tpl_delete(&tmp);
+                return -1;
+            }
         }
         if (tmp->is_const) {
             int res = tpl_apply(tpl->u.f, out, NULL, tmp);
@@ -163,10 +139,9 @@ static int
 NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
                   uint16_t envid, VAL_TYPE *vals, int nb, int flags)
 {
-    const tpl_t *ctmp;
     tpl_t *tmp;
     VAL_TYPE vtmp;
-    int branch;
+    int branch, res;
 
     switch (tpl->op) {
       case TPL_OP_DATA:
@@ -188,6 +163,13 @@ NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
       case TPL_OP_BLOCK:
         return NS(tpl_fold_block)(out, tpl, envid, vals, nb, flags);
 
+      case TPL_OP_SEQ:
+        /* a SEQ must be under a APPLY_SEQ or SEQ: APPLY_SEQ recurse in
+         * tpl_combine_seq, not in tpl_fold. As such, a fold(SEQ) means
+         * that a SEQ is not under a APPLY_SEQ */
+        assert (false);
+        return -1;
+
       case TPL_OP_IFDEF:
         if (tpl->u.varidx >> 16 != envid)
             return -1;
@@ -197,44 +179,20 @@ NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
         return NS(tpl_fold_blob)(out, tpl->u.blocks.tab[branch], envid,
                                  vals, nb, flags);
 
-      case TPL_OP_APPLY_DELAYED:
-        switch (tpl->u.blocks.len) {
-          case 0:
-            return tpl_apply(tpl->u.f, NULL, out, NULL);
-
-          case 1:
-            if (tpl_apply(tpl->u.f, NULL, out, NULL) < 0)
-                return -1;
-            return NS(tpl_fold_block)(out, tpl, envid, vals, nb, flags);
-
-          case 2:
-            ctmp = tpl->u.blocks.tab[0];
-            tmp = tpl_dup(tpl->u.blocks.tab[1]);
-            if (TPL_SUBST(&tmp, envid, vals, nb,
-                          flags | TPL_KEEPVAR | TPL_LASTSUBST))
-            {
-                return -1;
-            }
-            if ((tpl_apply(tpl->u.f, NULL, out, tmp) < 0)
-            ||  (ctmp && NS(tpl_fold_block)(out, ctmp, envid, vals, nb, flags))
-            ||  NS(tpl_fold_block)(out, tmp, envid, vals, nb, flags))
-            {
-                tpl_delete(&tmp);
-                return -1;
-            }
-            tpl_delete(&tmp);
-            return 0;
-
-          default:
-            return -1;
+      case TPL_OP_APPLY:
+      case TPL_OP_APPLY_ASSOC:
+      case TPL_OP_APPLY_SEQ:
+        tmp = tpl_new();
+        if (tpl->op == TPL_OP_APPLY_SEQ) {
+            tmp->op = TPL_OP_SEQ;
+            res = NS(tpl_combine_seq)(tmp, tpl, envid, vals, nb,
+                                      flags | TPL_KEEPVAR | TPL_LASTSUBST);
+        } else {
+            res = NS(tpl_combine_block)(tmp, tpl, envid, vals, nb,
+                                        flags | TPL_KEEPVAR | TPL_LASTSUBST);
         }
 
-      case TPL_OP_APPLY_PURE:
-      case TPL_OP_APPLY_PURE_ASSOC:
-        if (NS(tpl_combine_block)(tmp = tpl_new(), tpl, envid, vals, nb,
-                                  flags | TPL_KEEPVAR | TPL_LASTSUBST)
-        ||  tpl_apply(tpl->u.f, NULL, out, tmp) < 0)
-        {
+        if (res || tpl_apply(tpl->u.f, NULL, out, tmp) < 0) {
             tpl_delete(&tmp);
             return -1;
         }

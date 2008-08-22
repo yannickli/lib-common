@@ -31,6 +31,8 @@ tpl_t *tpl_new_op(tpl_op op)
         blob_init(&n->u.blob);
     if (op & TPL_OP_BLOCK)
         tpl_array_init(&n->u.blocks);
+
+    n->is_const = (op == TPL_OP_BLOB) || (op == TPL_OP_DATA);
     return n;
 }
 
@@ -80,7 +82,6 @@ void tpl_delete(tpl_t **tpl)
 #define tpl_can_append(t)  \
         (  ((t)->op & TPL_OP_BLOCK)                                     \
         && ((t)->op != TPL_OP_IFDEF || (t)->u.blocks.len < 2)           \
-        && ((t)->op != TPL_OP_APPLY_DELAYED || (t)->u.blocks.len < 2)   \
         )
 #endif
 
@@ -89,6 +90,12 @@ void tpl_add_data(tpl_t *tpl, const byte *data, int len)
     tpl_t *buf;
 
     assert (tpl_can_append(tpl));
+
+    if (tpl_is_seq(tpl)) {
+        tpl_array_append(&tpl->u.blocks, buf = tpl_new_op(TPL_OP_DATA));
+        buf->u.data = (struct tpl_data){ .data = data, .len = len };
+        return;
+    }
 
     if (len <= TPL_COPY_LIMIT_HARD) {
         tpl_copy_data(tpl, data, len);
@@ -156,7 +163,9 @@ void tpl_embed_tpl(tpl_t *out, tpl_t **tplp)
     tpl_t *tpl = *tplp;
     assert (tpl_can_append(out));
 
-    if (tpl->op == TPL_OP_BLOCK && out->op == TPL_OP_BLOCK) {
+    if ((tpl->op == TPL_OP_BLOCK && out->op == TPL_OP_BLOCK)
+    ||  (tpl->op == TPL_OP_SEQ   && out->op == TPL_OP_SEQ))
+    {
         tpl_add_tpls(out, tpl->u.blocks.tab, tpl->u.blocks.len);
         tpl_delete(tplp);
         return;
@@ -268,6 +277,13 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
         }
         break;
 
+      case TPL_OP_SEQ:
+        TRACE("SEQ %d tpls", '\\', tpl->u.blocks.len);
+        for (int i = 0; i < tpl->u.blocks.len; i++) {
+            tpl_dump2(dbg, tpl->u.blocks.tab[i], lvl + 1);
+        }
+        break;
+
       case TPL_OP_IFDEF:
         TRACE("DEF? q=%02x, v=%02x", '\\', tpl->u.varidx >> 16,
               tpl->u.varidx & 0xffff);
@@ -283,21 +299,16 @@ static void tpl_dump2(int dbg, const tpl_t *tpl, int lvl)
         }
         break;
 
-      case TPL_OP_APPLY_DELAYED:
-        TRACE("DELA %p", '\\', tpl->u.f);
-        if (tpl->u.blocks.len <= 0 || !tpl->u.blocks.tab[0]) {
-            TRACE_NULL();
-        } else {
-            tpl_dump2(dbg, tpl->u.blocks.tab[0], lvl + 1);
-        }
-        if (tpl->u.blocks.len > 1) {
-            tpl_dump2(dbg, tpl->u.blocks.tab[1], lvl + 1);
+      case TPL_OP_APPLY:
+      case TPL_OP_APPLY_ASSOC:
+        TRACE("FUNC %p (%d tpls)", '\\', tpl->u.f, tpl->u.blocks.len);
+        for (int i = 0; i < tpl->u.blocks.len; i++) {
+            tpl_dump2(dbg, tpl->u.blocks.tab[i], lvl + 1);
         }
         break;
 
-      case TPL_OP_APPLY_PURE:
-      case TPL_OP_APPLY_PURE_ASSOC:
-        TRACE("FUNC %p (%d tpls)", '\\', tpl->u.f, tpl->u.blocks.len);
+      case TPL_OP_APPLY_SEQ:
+        TRACE("FUNC_SEQ %p (%d tpls)", '\\', tpl->u.f, tpl->u.blocks.len);
         for (int i = 0; i < tpl->u.blocks.len; i++) {
             tpl_dump2(dbg, tpl->u.blocks.tab[i], lvl + 1);
         }
@@ -370,8 +381,9 @@ int tpl_subst(tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb, int flags)
     if (!out->is_const) {
         out = tpl_new();
         out->is_const = true;
-        if (tpl_combine_tpl(out, *tplp, envid, vals, nb, flags) < 0)
+        if (tpl_combine_tpl(out, *tplp, envid, vals, nb, flags) < 0) {
             tpl_delete(&out);
+        } else
         if ((flags & TPL_LASTSUBST) && !out->is_const)
             tpl_delete(&out);
         tpl_delete(tplp);
@@ -419,8 +431,9 @@ int tpl_subst_str(tpl_t **tplp, uint16_t envid,
     if (!out->is_const) {
         out = tpl_new();
         out->is_const = true;
-        if (tpl_combine_str(out, *tplp, envid, vals, nb, flags) < 0)
+        if (tpl_combine_str(out, *tplp, envid, vals, nb, flags) < 0) {
             tpl_delete(&out);
+        } else
         if ((flags & TPL_LASTSUBST) && !out->is_const)
             tpl_delete(&out);
         tpl_delete(tplp);
@@ -455,10 +468,20 @@ static tpl_t *tpl_to_blob(tpl_t **orig)
     return *orig = res;
 }
 
+static void tpl_remove_useless_block(tpl_t **block)
+{
+    tpl_t *tpl = *block;
+
+    if (tpl->op == TPL_OP_BLOCK && tpl->u.blocks.len == 1) {
+        tpl_t *child = tpl_dup(tpl->u.blocks.tab[0]);
+        tpl_delete(block);
+        *block = child;
+    }
+}
+
 void tpl_optimize(tpl_t *tpl)
 {
-    /* OG: Should not assume tpl->op & TPL_OP_BLOCK */
-    if (!tpl || tpl->u.blocks.len < 1)
+    if (!tpl || !(tpl->op & TPL_OP_BLOCK) || tpl->u.blocks.len < 1)
         return;
 
     /* XXX: tpl->u.blocks.len likely to be modified in the loop */
@@ -527,6 +550,10 @@ void tpl_optimize(tpl_t *tpl)
             tpl_array_remove(&tpl->u.blocks, i + 1);
             tpl_delete(&nxt);
         }
+    }
+
+    for (int i = 0; i < tpl->u.blocks.len; i++) {
+        tpl_remove_useless_block(&tpl->u.blocks.tab[i]);
     }
 }
 

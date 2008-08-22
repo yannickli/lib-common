@@ -31,6 +31,52 @@ static int identity(tpl_t *out, blob_t *b, tpl_t **arr, int nb)
     return 0;
 }
 
+static int tst_seq(tpl_t *out, blob_t *blob, tpl_t **arr, int nb)
+{
+    const byte *data1, *data2, *data3;
+    int len1, len2, len3;
+    tpl_t *in;
+
+    if (!blob) {
+        assert(out);
+        blob = tpl_get_blob(out);
+    }
+
+    assert (nb == 3);
+
+    in = *arr++;
+    if (in->op == TPL_OP_BLOB) {
+        data1 = in->u.blob.data;
+        len1  = in->u.blob.len;
+    } else {
+        assert (in->op == TPL_OP_DATA);
+        data1 = in->u.data.data;
+        len1  = in->u.data.len;
+    }
+    in = *arr++;
+    if (in->op == TPL_OP_BLOB) {
+        data2 = in->u.blob.data;
+        len2  = in->u.blob.len;
+    } else {
+        assert (in->op == TPL_OP_DATA);
+        data2 = in->u.data.data;
+        len2  = in->u.data.len;
+    }
+    in = *arr++;
+    if (in->op == TPL_OP_BLOB) {
+        data3 = in->u.blob.data;
+        len3  = in->u.blob.len;
+    } else {
+        assert (in->op == TPL_OP_DATA);
+        data3 = in->u.data.data;
+        len3  = in->u.data.len;
+    }
+
+    blob_append_fmt(blob, "1: %.*s, 2: %.*s, 3: %.*s",
+                    len1, data1, len2, data2, len3, data3);
+    return 0;
+}
+
 int main(int argc, const char **argv)
 {
     tpl_t *tpl, *fun, *res, *var;
@@ -52,7 +98,7 @@ int main(int argc, const char **argv)
     tpl_add_cstr(tpl, "foo");
     tpl_add_cstr(tpl, "foo");
     tpl_add_var(tpl, 0, 0);
-    fun = tpl_add_apply(tpl, TPL_OP_APPLY_PURE, &identity);
+    fun = tpl_add_apply(tpl, TPL_OP_APPLY, &identity);
     tpl_add_var(fun, 0, 0);
     tpl_copy_cstr(fun, "foo");
     tpl_copy_cstr(fun, "foo");
@@ -76,9 +122,33 @@ int main(int argc, const char **argv)
     if (tpl_fold(&b2, &tpl, 0, &var, 1, TPL_LASTSUBST)) {
         e_panic("fold failed");
     }
+    assert(tpl == NULL);
     e_trace(0, "b2 size: %d", b2.len);
 
     blob_wipe(&blob);
     blob_wipe(&b2);
+
+    tpl = tpl_new();
+    tpl_add_cstr(tpl, "foo|");
+    fun = tpl_add_apply(tpl, TPL_OP_APPLY_SEQ, &tst_seq);
+    tpl_add_cstr(fun, "toto");
+    res = tpl_new();
+    tpl_add_cstr(res, "ta");
+    tpl_add_cstr(res, "ta");
+    tpl_add_tpl(fun, res);
+    tpl_delete(&res);
+    tpl_add_cstr(fun, "titi");
+
+    tpl_dump(0, tpl, "apply seq");
+    tpl_optimize(tpl);
+    tpl_dump(0, tpl, "apply seq (opt)");
+    blob_init(&blob);
+    if (tpl_fold(&blob, &tpl, 0, NULL, 0, TPL_LASTSUBST)) {
+        e_panic("fold failed");
+    }
+    assert(tpl == NULL);
+    e_trace(0, "apply seq res: %s", blob.data);
+    blob_wipe(&blob);
+
     return 0;
 }

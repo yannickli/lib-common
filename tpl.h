@@ -40,9 +40,10 @@ typedef enum tpl_op {
 
     TPL_OP_BLOCK = 0x10,
     TPL_OP_IFDEF,
-    TPL_OP_APPLY_PURE,        /* f(x) only depends upon x */
-    TPL_OP_APPLY_DELAYED,     /* assumed pure */
-    TPL_OP_APPLY_PURE_ASSOC,  /* also f(a + b) == f(a) + f(b) */
+    TPL_OP_SEQ,           /* should only be used under APPLYs */
+    TPL_OP_APPLY,         /* f(x) only depends upon x */
+    TPL_OP_APPLY_ASSOC,   /* also f(a + b) == f(a) + f(b) */
+    TPL_OP_APPLY_SEQ,     /* f(a,b,...) */
 } tpl_op;
 
 struct tpl_data {
@@ -95,7 +96,10 @@ static inline void tpl_copy_cstr(tpl_t *tpl, const char *s) {
 }
 void tpl_add_var(tpl_t *tpl, uint16_t envid, uint16_t index);
 void tpl_embed_tpl(tpl_t *out, tpl_t **tpl);
+
+/* XXX: tpl_add_tpl uses tpl_dup: be sure to free 'tpl' afterwards */
 void tpl_add_tpl(tpl_t *out, const tpl_t *tpl);
+
 void tpl_add_tpls(tpl_t *out, tpl_t **tpl, int nb);
 tpl_t *tpl_add_ifdef(tpl_t *tpl, uint16_t envid, uint16_t index);
 tpl_t *tpl_add_apply(tpl_t *tpl, tpl_op op, tpl_apply_f *f);
@@ -120,6 +124,8 @@ int tpl_subst_str(tpl_t **, uint16_t envid, const char **, int nb, int flags);
 void tpl_optimize(tpl_t *tpl);
 
 bool tpl_is_variable(const tpl_t *tpl);
+#define tpl_is_seq(t)  \
+    (((t)->op == TPL_OP_SEQ) || ((t)->op == TPL_OP_APPLY_SEQ))
 
 int tpl_to_iov(struct iovec *, int nr, tpl_t *);
 int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl);
