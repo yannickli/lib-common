@@ -196,9 +196,8 @@ void e_trace_put(int level, const char *module, int lno,
     const char *p;
     va_list ap;
 
-    spin_lock(&spin);
-
     if (e_is_traced_real(level, module, func)) {
+        spin_lock(&spin);
         va_start(ap, fmt);
         blob_append_vfmt(&_G.buf, fmt, ap);
         va_end(ap);
@@ -213,9 +212,8 @@ void e_trace_put(int level, const char *module, int lno,
             blob_kill_at(&_G.buf, p + 1);
             IGNORE(xwrite(STDERR_FILENO, _G.tmpbuf.data, _G.tmpbuf.len));
         }
+        spin_unlock(&spin);
     }
-
-    spin_unlock(&spin);
 }
 
 void e_set_verbosity(int max_debug_level)
