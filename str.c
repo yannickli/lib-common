@@ -13,65 +13,14 @@
 
 #include "str.h"
 
-int strtoip(const char *s, const char **endp)
+static inline int64_t memtoip_impl(const byte *s, int _len, const byte **endp,
+                                   const int64_t min, const int64_t max,
+                                   bool ll, bool use_len)
 {
-    int value = 0;
+    int64_t value = 0;
 
-    if (!s) {
-        errno = EINVAL;
-        goto done;
-    }
-    while (isspace((unsigned char)*s)) {
-        s++;
-    }
-    if (*s == '-') {
-        s++;
-        if (!isdigit((unsigned char)*s)) {
-            errno = EINVAL;
-            goto done;
-        }
-        value = '0' - *s;
-        while (isdigit((unsigned char)(*++s))) {
-            int digit = '0' - *s;
-            if ((value <= INT_MIN / 10)
-            &&  (value < INT_MIN / 10 || digit < INT_MIN % 10)) {
-                errno = ERANGE;
-                value = INT_MIN;
-                /* keep looping inefficiently in case of overflow */
-            } else {
-                value = value * 10 + digit;
-            }
-        }
-    } else {
-        if (*s == '+') {
-            s++;
-        }
-        if (!isdigit((unsigned char)*s)) {
-            errno = EINVAL;
-            goto done;
-        }
-        value = *s - '0';
-        while (isdigit((unsigned char)(*++s))) {
-            int digit = *s - '0';
-            if ((value >= INT_MAX / 10)
-            &&  (value > INT_MAX / 10 || digit > INT_MAX % 10)) {
-                errno = ERANGE;
-                value = INT_MAX;
-                /* keep looping inefficiently in case of overflow */
-            } else {
-                value = value * 10 + digit;
-            }
-        }
-    }
-  done:
-    if (endp)
-        *endp = s;
-    return value;
-}
-
-int memtoip(const byte *s, int len, const byte **endp)
-{
-    int value = 0;
+#define len ((use_len) ? _len : INT_MAX)
+#define declen ((use_len) ? --_len : INT_MAX)
 
     if (!s || len < 0) {
         errno = EINVAL;
@@ -79,7 +28,7 @@ int memtoip(const byte *s, int len, const byte **endp)
     }
     while (len && isspace((unsigned char)*s)) {
         s++;
-        len--;
+        declen;
     }
     if (!len) {
         errno = EINVAL;
@@ -87,18 +36,18 @@ int memtoip(const byte *s, int len, const byte **endp)
     }
     if (*s == '-') {
         s++;
-        len--;
+        declen;
         if (!len || !isdigit((unsigned char)*s)) {
             errno = EINVAL;
             goto done;
         }
         value = '0' - *s++;
-        while (--len && isdigit((unsigned char)*s)) {
+        while (declen && isdigit((unsigned char)*s)) {
             int digit = '0' - *s++;
-            if ((value <= INT_MIN / 10)
-            &&  (value < INT_MIN / 10 || digit < INT_MIN % 10)) {
+            if ((value <= min / 10)
+                &&  (value < min / 10 || digit < min % 10)) {
                 errno = ERANGE;
-                value = INT_MIN;
+                value = min;
                 /* keep looping inefficiently in case of overflow */
             } else {
                 value = value * 10 + digit;
@@ -107,30 +56,48 @@ int memtoip(const byte *s, int len, const byte **endp)
     } else {
         if (*s == '+') {
             s++;
-            len--;
+            declen;
         }
         if (!len || !isdigit((unsigned char)*s)) {
             errno = EINVAL;
             goto done;
         }
         value = *s++ - '0';
-        while (--len && isdigit((unsigned char)*s)) {
+        while (declen && isdigit((unsigned char)*s)) {
             int digit = *s++ - '0';
-            if ((value >= INT_MAX / 10)
-            &&  (value > INT_MAX / 10 || digit > INT_MAX % 10)) {
+            if ((value >= max / 10)
+                &&  (value > max / 10 || digit > max % 10)) {
                 errno = ERANGE;
-                value = INT_MAX;
+                value = max;
                 /* keep looping inefficiently in case of overflow */
             } else {
                 value = value * 10 + digit;
             }
         }
     }
-  done:
+done:
     if (endp) {
         *endp = s;
     }
     return value;
+#undef len
+#undef declen
+}
+
+int strtoip(const char *s, const char **endp)
+{
+    return memtoip_impl((const byte *)s, 0, (const byte **)(void *)endp,
+                        INT_MIN, INT_MAX, false, false);
+}
+
+int memtoip(const byte *s, int len, const byte **endp)
+{
+    return memtoip_impl(s, len, endp, INT_MIN, INT_MAX, false, true);
+}
+
+int64_t memtollp(const byte *s, int len, const byte **endp)
+{
+    return memtoip_impl(s, len, endp, INT64_MIN, INT64_MAX, true, true);
 }
 
 size_t memcspn(const char *s, int len, const char *reject)

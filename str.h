@@ -123,6 +123,8 @@ static inline int vstrtoip(char *p, char **endp) {
     return strtoip(p, (const char **)endp);
 }
 int memtoip(const byte *p, int len, const byte **endp)  __attr_nonnull__((1));
+int64_t memtollp(const byte *s, int len, const byte **endp)
+    __attr_nonnull__((1));
 int64_t parse_number(const char *str);
 size_t memcspn(const char *s, int len, const char *reject);
 

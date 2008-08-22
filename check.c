@@ -19,8 +19,6 @@ int main(void)
     int nf;
     SRunner *sr = srunner_create(NULL);
 
-    e_trace(0, "asdasd\n");
-
     srunner_add_suite(sr, check_string_suite());
     srunner_add_suite(sr, check_make_strconv_suite());
     srunner_add_suite(sr,
