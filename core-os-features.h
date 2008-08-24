@@ -25,3 +25,8 @@
 #if defined(OS_LINUX) /* || defined(__sun) */
 #  define HAVE_NETINET_SCTP_H
 #endif
+
+/* <sys/poll.h> availability */
+#ifndef OS_WINDOWS
+#  define HAVE_SYS_POLL_H
+#endif
