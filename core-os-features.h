@@ -28,5 +28,7 @@
 
 /* <sys/poll.h> availability */
 #ifndef OS_WINDOWS
+# ifndef HAVE_SYS_POLL_H
 #  define HAVE_SYS_POLL_H
+# endif
 #endif
