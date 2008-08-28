@@ -941,6 +941,82 @@ typedef struct stats_bin_hdr_t {
     uint32_t types[];
 } stats_bin_hdr_t;
 
+static int stats_choose_stage(stats_temporal_t *stats, int nb_values,
+                              int *start, int *end, int *freq)
+{
+    int stage;
+    stats_stage *st = stats->file->area->stage;
+
+    /* Choose stage */
+    if (*freq <= 0) {
+        /* No freq was found (interval too large) */
+        for (stage = 0; stage < stats->nb_stages - 1; stage++) {
+            if ((*end - *start) / st[stage].scale <= nb_values)
+                break;
+        }
+        st += stage;
+        *freq = st->scale;
+    } else {
+        for (stage = 1; stage < stats->nb_stages; stage++) {
+            if (st[stage].scale > *freq)
+                break;
+        }
+        --stage;
+        st += stage;
+    }
+    e_trace(3, "stage selected: %d", stage);
+
+    *start /= st->scale;
+    *freq  /= st->scale;
+    *start -= *start % *freq;
+    *end    = (*end - 1) / st->scale + 1;
+
+    e_trace(3, "real values chosen: start: %d, end: %d, freq: %d, "
+            "nbvalues: %d, ratio: %d",
+            *start, *end, *freq, nb_values, (*end - *start) / *freq);
+    return stage;
+}
+
+static void stats_get_accu(stats_temporal_t *stats, bfield_t *mask, int i,
+                           int stage, stats_stage *st, double *accu)
+{
+    int nb_stats = stats->nb_stats;
+    int stageup = stage, stamp = i;
+    stats_stage *stup = st;
+
+    if (i > st->current + 1) {
+        return;
+    }
+    while (stamp <= stup->current - stup->count) {
+        if (stageup >= stats->nb_stages - 1)
+            break;
+
+        e_trace(3, "need next stage");
+        stageup++;
+        stup++;
+        stamp = i * st->scale / stup->scale;
+    }
+    if (stamp <= stup->current - stup->count) {
+        e_trace(3, "no data available, so dump 0");
+    } else {
+        double add;
+        byte *vpup, *bufup_start, *bufup_end;
+
+        bufup_start = (byte *)stats->file->area + stup->offset;
+        bufup_end   = bufup_start + stup->count * stup->incr;
+        vpup        = bufup_start + ((stup->pos + stup->count + stamp - stup->current) %
+                                     stup->count * stup->incr);
+        for (int k = 0; k < nb_stats; k++) {
+            if (!mask || bfield_isset(mask, k)) {
+                add = (double)(stageup ? ((int64_t*)vpup)[k] : ((int32_t*)vpup)[k]);
+                add = (add * st->scale) / stup->scale;
+                e_trace(3, "scaled add %e", add);
+                accu[k] += add;
+            }
+        }
+    }
+}
+
 /* Should return number of samples produced? */
 int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
                               int start, int end, int nb_values,
@@ -1092,35 +1168,8 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
         return count;
     }
 
-    /* Choose stage */
-    st = stats->file->area->stage;
-    if (freq <= 0) {
-        /* No freq was found (interval too large) */
-        for (stage = 0; stage < stats->nb_stages - 1; stage++) {
-            if ((end - start) / st[stage].scale <= nb_values)
-                break;
-        }
-        st += stage;
-        freq = st->scale;
-    } else {
-        for (stage = 1; stage < stats->nb_stages; stage++) {
-            if (st[stage].scale > freq)
-                break;
-        }
-        --stage;
-        st += stage;
-    }
-    e_trace(3, "stage selected: %d", stage);
-
-    start /= st->scale;
-    freq  /= st->scale;
-    start -= start % freq;
-    end    = (end - 1) / st->scale + 1;
-
-    e_trace(3, "real values chosen: start: %d, end: %d, freq: %d, "
-            "nbvalues: %d, ratio: %d",
-            start, end, freq, nb_values, (end - start) / freq);
-
+    stage = stats_choose_stage(stats,  nb_values, &start, &end, &freq);
+    st = stats->file->area->stage + stage;
     p_clear(accu, nb_stats);
     orig_pos = blob->len;
 
@@ -1137,41 +1186,7 @@ int stats_temporal_query_auto(stats_temporal_t *stats, blob_t *blob,
     }
 
     for (int i = start, j = 0; i < end; i++) {
-        int stageup = stage;
-        stats_stage *stup = st;
-        int stamp = i;
-
-        if (i <= st->current + 1) {
-            while (stamp <= stup->current - stup->count) {
-                if (stageup >= stats->nb_stages - 1)
-                    break;
-
-                e_trace(3, "need next stage");
-                stageup++;
-                stup++;
-                stamp = i * st->scale / stup->scale;
-            }
-            if (stamp <= stup->current - stup->count) {
-                e_trace(3, "no data available, so dump 0");
-            } else {
-                double add;
-                byte *vpup, *bufup_start, *bufup_end;
-
-                bufup_start = (byte *)stats->file->area + stup->offset;
-                bufup_end   = bufup_start + stup->count * stup->incr;
-                vpup        = bufup_start + ((stup->pos + stup->count + stamp - stup->current) %
-                                             stup->count * stup->incr);
-                for (int k = 0; k < nb_stats; k++) {
-                    if (!mask || bfield_isset(mask, k)) {
-                        add = (double)(stageup ? ((int64_t*)vpup)[k] : ((int32_t*)vpup)[k]);
-                        add = (add * st->scale) / stup->scale;
-                        e_trace(3, "scaled add %e", add);
-                        accu[k] += add;
-                    }
-                }
-            }
-        }
-
+        stats_get_accu(stats, mask, i, stage, st, accu);
         if (++j < freq)
             continue;
 
