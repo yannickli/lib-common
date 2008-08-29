@@ -14,7 +14,16 @@
 #ifndef IS_LIB_COMMON_UNIX_H
 #define IS_LIB_COMMON_UNIX_H
 
+#define _GNU_SOURCE
 #include "core.h"
+
+#ifndef O_CLOEXEC
+# ifdef OS_LINUX
+#  define O_CLOEXEC	02000000	/* set close_on_exec */
+# else
+#  error "set O_CLOEXEC for your platform here"
+# endif
+#endif
 
 #define O_ISWRITE(m)      (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
 
@@ -53,6 +62,9 @@ bool is_fd_open(int fd);
 int close_fds_higher_than(int fd);
 bool is_fancy_fd(int fd);
 void term_get_size(int *cols, int *rows);
+
+int fd_set_features(int fd, int flags);
+int fd_unset_features(int fd, int flags);
 
 /****************************************************************************/
 /* Misc                                                                     */

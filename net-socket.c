@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "net.h"
+#include "unix.h"
 
 bool sockaddr_equal(const sockunion_t *a1, const sockunion_t *a2)
 {
@@ -49,23 +50,6 @@ static int sock_reuseaddr(int sock)
     return 0;
 }
 
-static int sock_setnonblock(int sock)
-{
-#ifndef OS_WINDOWS
-    int res = fcntl(sock, F_GETFL);
-    if (res < 0)
-        return e_error("sock_setnonblock failed.");
-    return fcntl(sock, F_SETFL, res | O_NONBLOCK);
-#else
-    unsigned long flags = 1;
-    int res = ioctlsocket(sock, FIONBIO, &flags);
-
-    if (res == SOCKET_ERROR)
-        return e_error("ioctlsocket failed: %d", errno);
-    return 0;
-#endif
-}
-
 int socketpairx(int d, int type, int protocol, int flags, int sv[2])
 {
     int res = socketpair(d, type, protocol, sv);
@@ -73,7 +57,7 @@ int socketpairx(int d, int type, int protocol, int flags, int sv[2])
         return res;
     if (!(flags & O_NONBLOCK))
         return 0;
-    if (sock_setnonblock(sv[0]) || sock_setnonblock(sv[1])) {
+    if (fd_set_features(sv[0], flags) || fd_set_features(sv[1], flags)) {
         int save_err = errno;
         close(sv[0]);
         close(sv[1]);
@@ -105,7 +89,7 @@ int bindx(int sock, const sockunion_t *addrs, int cnt,
     if (sock_reuseaddr(sock))
         goto error;
 
-    if ((flags & O_NONBLOCK) && sock_setnonblock(sock))
+    if (fd_set_features(sock, flags))
         goto error;
 
 #ifdef HAVE_NETINET_SCTP_H
@@ -184,7 +168,7 @@ int connectx(int sock, const sockunion_t *addrs, int cnt, int type, int proto,
             return e_error("socket failed: %m");
     }
 
-    if ((flags & O_NONBLOCK) && sock_setnonblock(sock))
+    if (fd_set_features(sock, flags))
         goto error;
 
 #ifdef HAVE_NETINET_SCTP_H
@@ -237,9 +221,9 @@ int acceptx(int server_fd, int flags)
         return -1;
     }
 
-    if ((flags & O_NONBLOCK) && sock_setnonblock(sock)) {
+    if (fd_set_features(sock, flags)) {
         close(sock);
-        return e_error("sock_setnonblock failed.");
+        return e_error("fd_set_features failed.");
     }
 
     return sock;
