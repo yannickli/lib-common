@@ -141,7 +141,7 @@ static uint64_t e_trace_uuid(const char *modname, const char *func)
 
 bool e_is_traced_real(int level, const char *modname, const char *func)
 {
-    static int spin;
+    static spinlock_t spin;
     struct trace_record_t tr, *trp;
     uint64_t uuid;
     bool result;
@@ -192,7 +192,7 @@ static void e_trace_put_normal(int level, const char *module, int lno, const cha
 void e_trace_put(int level, const char *module, int lno,
                  const char *func, const char *fmt, ...)
 {
-    static int spin;
+    static spinlock_t spin;
     const char *p;
     va_list ap;
 

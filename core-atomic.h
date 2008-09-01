@@ -11,26 +11,29 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_OS_FEATURES_H)
+#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_ATOMIC_H)
 #  error "you must include <lib-common/core.h> instead"
 #else
-#define IS_LIB_COMMON_CORE_OS_FEATURES_H
+#define IS_LIB_COMMON_CORE_ATOMIC_H
 
-/* <iconv.h> availability */
-#ifdef OS_LINUX
-#  define HAVE_ICONV_H
-#endif
+#ifdef __GNUC__
 
-/* <netinet/sctp.h> availability */
-#if defined(OS_LINUX) /* || defined(__sun) */
-#  define HAVE_NETINET_SCTP_H
-#endif
+typedef int spinlock_t;
 
-/* <sys/poll.h> availability */
-#ifndef OS_WINDOWS
-# ifndef HAVE_SYS_POLL_H
-#  define HAVE_SYS_POLL_H
-# endif
+#define atomic_add(ptr, v)          IGNORE(__sync_add_and_fetch(ptr, v))
+#define atomic_sub(ptr, v)          IGNORE(__sync_sub_and_fetch(ptr, v))
+#define atomic_add_and_get(ptr, v)  __sync_add_and_fetch(ptr, v)
+#define atomic_sub_and_get(ptr, v)  __sync_sub_and_fetch(ptr, v)
+#define atomic_get_and_add(ptr, v)  __sync_fetch_and_add(ptr, v)
+#define atomic_get_and_sub(ptr, v)  __sync_fetch_and_sub(ptr, v)
+#define atomic_bool_cas(ptr, b, a)  __sync_bool_compare_and_swap(ptr, b, a)
+#define atomic_va_cas(ptr, b, a)    __sync_va_compare_and_swap(ptr, b, a)
+#define memory_barrier()            __sync_synchronize()
+
+#define spin_trylock(ptr)  (!__sync_lock_test_and_set(ptr, 1))
+#define spin_lock(ptr)     do { } while(unlikely(!spin_trylock(ptr)))
+#define spin_unlock(ptr)   __sync_lock_release(ptr)
+
 #endif
 
 #endif

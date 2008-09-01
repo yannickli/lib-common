@@ -13,7 +13,7 @@
 
 #if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_BYTEOPS_H)
 #  error "you must include <lib-common/core.h> instead"
-#endif
+#else
 #define IS_LIB_COMMON_CORE_BYTEOPS_H
 
 typedef uint64_t __bitwise__ be64_t;
@@ -126,4 +126,4 @@ static inline uint64_t le_to_cpu_64(const byte *p) {
 }
 #endif
 
-
+#endif

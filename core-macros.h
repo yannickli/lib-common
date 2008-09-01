@@ -13,7 +13,7 @@
 
 #if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_MACROS_H)
 #  error "you must include <lib-common/core.h> instead"
-#endif
+#else
 #define IS_LIB_COMMON_CORE_MACROS_H
 
 /** \defgroup generic_macros Intersec Generic Macros.
@@ -141,24 +141,6 @@
 #  define __acquires(x)
 #  define __releases(x)
 #  define __needlock(x)
-#endif
-
-/*---------------- Atomic macros ----------------*/
-
-#ifdef __GNUC__
-#define atomic_add(ptr, v)  IGNORE(__sync_add_and_fetch(ptr, v))
-#define atomic_sub(ptr, v)  IGNORE(__sync_sub_and_fetch(ptr, v))
-#define atomic_add_and_get(ptr, v)  __sync_add_and_fetch(ptr, v)
-#define atomic_sub_and_get(ptr, v)  __sync_sub_and_fetch(ptr, v)
-#define atomic_get_and_add(ptr, v)  __sync_fetch_and_add(ptr, v)
-#define atomic_get_and_sub(ptr, v)  __sync_fetch_and_sub(ptr, v)
-
-#define spin_lock(ptr) \
-    do {                                                     \
-        while (unlikely(atomic_get_and_add((ptr), 1) != 0))  \
-            atomic_sub((ptr), 1);                            \
-    } while (0)
-#define spin_unlock(ptr)  do { atomic_sub((ptr), 1); } while (0)
 #endif
 
 /*---------------- Types ----------------*/
@@ -435,3 +417,4 @@ static inline int p_close(int *hdp) {
 #endif
 
 /** \} */
+#endif

@@ -13,7 +13,7 @@
 
 #if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_ERRORS_H)
 #  error "you must include <lib-common/core.h> instead"
-#endif
+#else
 #define IS_LIB_COMMON_CORE_ERRORS_H
 
 typedef void (e_handler_f)(int, const char *, va_list) __attr_printf__(2, 0);
@@ -78,5 +78,7 @@ void e_trace_put(int lvl, const char *fname, int lno, const char *func,
             ifputs_hex(stderr, buf, len);                                    \
         }                                                                    \
     } while (0)
+
+#endif
 
 #endif
