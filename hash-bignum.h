@@ -170,7 +170,7 @@ int mpi_write_file( const char *p, mpi *X, int radix, FILE *fout );
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_read_binary( mpi *X, unsigned char *buf, int buflen );
+int mpi_read_binary( mpi *X, byte *buf, int buflen );
 
 /**
  * \brief          Export X into unsigned binary data, big endian
@@ -185,7 +185,7 @@ int mpi_read_binary( mpi *X, unsigned char *buf, int buflen );
  * \note           Call this function with *buflen = 0 to obtain the
  *                 minimum required buffer size in *buflen.
  */
-int mpi_write_binary( mpi *X, unsigned char *buf, int buflen );
+int mpi_write_binary( mpi *X, byte *buf, int buflen );
 
 /**
  * \brief          Left-shift: X <<= count

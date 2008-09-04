@@ -106,19 +106,6 @@ libcommon_SOURCES = \
 	unix-solaris.c \
 	\
 	$(end_of_list)
-# hand optimized code, ill optimized at -O2
-hash-aes.c_CFLAGS    = -O
-hash-arc4.c_CFLAGS   = -O
-hash-bignum.c_CFLAGS = -O
-hash-des.c_CFLAGS    = -O
-hash-havege.c_CFLAGS = -O
-hash-md2.c_CFLAGS    = -O
-hash-md4.c_CFLAGS    = -O
-hash-md5.c_CFLAGS    = -O
-hash-rsa.c_CFLAGS    = -O
-hash-sha1.c_CFLAGS   = -O
-hash-sha2.c_CFLAGS   = -O
-hash-sha4.c_CFLAGS   = -O
 
 time-lp-simple_SOURCES = time-lp-simple.c
 

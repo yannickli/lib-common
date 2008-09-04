@@ -77,14 +77,14 @@ int padlock_supports( int feature )
  */
 int padlock_xcryptecb( aes_ctx *ctx,
                        int mode,
-                       unsigned char input[16],
-                       unsigned char output[16] )
+                       byte input[16],
+                       byte output[16] )
 {
     int ebx;
-    unsigned long *rk;
-    unsigned long *blk;
-    unsigned long *ctrl;
-    unsigned char buf[256];
+    uint32_t *rk;
+    uint32_t *blk;
+    uint32_t *ctrl;
+    byte buf[256];
 
     rk  = ctx->rk;
     blk = PADLOCK_ALIGN16( buf );
@@ -117,15 +117,15 @@ int padlock_xcryptecb( aes_ctx *ctx,
 int padlock_xcryptcbc( aes_ctx *ctx,
                        int mode,
                        int length,
-                       unsigned char iv[16],
-                       unsigned char *input,
-                       unsigned char *output )
+                       byte iv[16],
+                       byte *input,
+                       byte *output )
 {
     int ebx, count;
-    unsigned long *rk;
-    unsigned long *iw;
-    unsigned long *ctrl;
-    unsigned char buf[256];
+    uint32_t *rk;
+    uint32_t *iw;
+    uint32_t *ctrl;
+    byte buf[256];
 
     if( ( (long) input  & 15 ) != 0 ||
         ( (long) output & 15 ) != 0 )

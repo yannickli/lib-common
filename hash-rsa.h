@@ -150,8 +150,8 @@ int rsa_check_privkey( rsa_ctx *ctx );
  *                 enough (eg. 128 bytes if RSA-1024 is used).
  */
 int rsa_public( rsa_ctx *ctx,
-                unsigned char *input,
-                unsigned char *output );
+                byte *input,
+                byte *output );
 
 /**
  * \brief          Do an RSA private key operation
@@ -166,8 +166,8 @@ int rsa_public( rsa_ctx *ctx,
  *                 enough (eg. 128 bytes if RSA-1024 is used).
  */
 int rsa_private( rsa_ctx *ctx,
-                 unsigned char *input,
-                 unsigned char *output );
+                 byte *input,
+                 byte *output );
 
 /**
  * \brief          Add the message padding, then do an RSA operation
@@ -185,8 +185,8 @@ int rsa_private( rsa_ctx *ctx,
  */
 int rsa_pkcs1_encrypt( rsa_ctx *ctx,
                        int mode, int  ilen,
-                       unsigned char *input,
-                       unsigned char *output );
+                       byte *input,
+                       byte *output );
 
 /**
  * \brief          Do an RSA operation, then remove the message padding
@@ -204,8 +204,8 @@ int rsa_pkcs1_encrypt( rsa_ctx *ctx,
  */
 int rsa_pkcs1_decrypt( rsa_ctx *ctx,
                        int mode, int *olen,
-                       unsigned char *input,
-                       unsigned char *output );
+                       byte *input,
+                       byte *output );
 
 /**
  * \brief          Do a private RSA to sign a message digest
@@ -227,8 +227,8 @@ int rsa_pkcs1_sign( rsa_ctx *ctx,
                     int mode,
                     int hash_id,
                     int hashlen,
-                    unsigned char *hash,
-                    unsigned char *sig );
+                    byte *hash,
+                    byte *sig );
 
 /**
  * \brief          Do a public RSA and check the message digest
@@ -250,8 +250,8 @@ int rsa_pkcs1_verify( rsa_ctx *ctx,
                       int mode,
                       int hash_id,
                       int hashlen,
-                      unsigned char *hash,
-                      unsigned char *sig );
+                      byte *hash,
+                      byte *sig );
 
 /**
  * \brief          Free the components of an RSA key

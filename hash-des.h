@@ -12,8 +12,8 @@
  */
 typedef struct
 {
-    int mode;                   /*!<  encrypt/decrypt   */
-    unsigned long sk[32];       /*!<  DES subkeys       */
+    int mode;              /*!<  encrypt/decrypt   */
+    uint32_t sk[32];       /*!<  DES subkeys       */
 }
 des_ctx;
 
@@ -22,8 +22,8 @@ des_ctx;
  */
 typedef struct
 {
-    int mode;                   /*!<  encrypt/decrypt   */
-    unsigned long sk[96];       /*!<  3DES subkeys      */
+    int mode;              /*!<  encrypt/decrypt   */
+    uint32_t sk[96];       /*!<  3DES subkeys      */
 }
 des3_ctx;
 
@@ -37,7 +37,7 @@ extern "C" {
  * \param ctx      DES context to be initialized
  * \param key      8-byte secret key
  */
-void des_setkey_enc( des_ctx *ctx, unsigned char key[8] );
+void des_setkey_enc( des_ctx *ctx, byte key[8] );
 
 /**
  * \brief          DES key schedule (56-bit, decryption)
@@ -45,7 +45,7 @@ void des_setkey_enc( des_ctx *ctx, unsigned char key[8] );
  * \param ctx      DES context to be initialized
  * \param key      8-byte secret key
  */
-void des_setkey_dec( des_ctx *ctx, unsigned char key[8] );
+void des_setkey_dec( des_ctx *ctx, byte key[8] );
 
 /**
  * \brief          Triple-DES key schedule (112-bit, encryption)
@@ -53,7 +53,7 @@ void des_setkey_dec( des_ctx *ctx, unsigned char key[8] );
  * \param ctx      3DES context to be initialized
  * \param key      16-byte secret key
  */
-void des3_set2key_enc( des3_ctx *ctx, unsigned char key[16] );
+void des3_set2key_enc( des3_ctx *ctx, byte key[16] );
 
 /**
  * \brief          Triple-DES key schedule (112-bit, decryption)
@@ -61,7 +61,7 @@ void des3_set2key_enc( des3_ctx *ctx, unsigned char key[16] );
  * \param ctx      3DES context to be initialized
  * \param key      16-byte secret key
  */
-void des3_set2key_dec( des3_ctx *ctx, unsigned char key[16] );
+void des3_set2key_dec( des3_ctx *ctx, byte key[16] );
 
 /**
  * \brief          Triple-DES key schedule (168-bit, encryption)
@@ -69,7 +69,7 @@ void des3_set2key_dec( des3_ctx *ctx, unsigned char key[16] );
  * \param ctx      3DES context to be initialized
  * \param key      24-byte secret key
  */
-void des3_set3key_enc( des3_ctx *ctx, unsigned char key[24] );
+void des3_set3key_enc( des3_ctx *ctx, byte key[24] );
 
 /**
  * \brief          Triple-DES key schedule (168-bit, decryption)
@@ -77,7 +77,7 @@ void des3_set3key_enc( des3_ctx *ctx, unsigned char key[24] );
  * \param ctx      3DES context to be initialized
  * \param key      24-byte secret key
  */
-void des3_set3key_dec( des3_ctx *ctx, unsigned char key[24] );
+void des3_set3key_dec( des3_ctx *ctx, byte key[24] );
 
 /**
  * \brief          DES-ECB block encryption/decryption
@@ -87,8 +87,8 @@ void des3_set3key_dec( des3_ctx *ctx, unsigned char key[24] );
  * \param output   64-bit output block
  */
 void des_crypt_ecb( des_ctx *ctx,
-                    unsigned char input[8],
-                    unsigned char output[8] );
+                    byte input[8],
+                    byte output[8] );
 
 /**
  * \brief          DES-CBC buffer encryption/decryption
@@ -103,9 +103,9 @@ void des_crypt_ecb( des_ctx *ctx,
 void des_crypt_cbc( des_ctx *ctx,
                     int mode,
                     int length,
-                    unsigned char iv[8],
-                    unsigned char *input,
-                    unsigned char *output );
+                    byte iv[8],
+                    byte *input,
+                    byte *output );
 
 /**
  * \brief          3DES-ECB block encryption/decryption
@@ -115,8 +115,8 @@ void des_crypt_cbc( des_ctx *ctx,
  * \param output   64-bit output block
  */
 void des3_crypt_ecb( des3_ctx *ctx,
-                     unsigned char input[8],
-                     unsigned char output[8] );
+                     byte input[8],
+                     byte output[8] );
 
 /**
  * \brief          3DES-CBC buffer encryption/decryption
@@ -131,9 +131,9 @@ void des3_crypt_ecb( des3_ctx *ctx,
 void des3_crypt_cbc( des3_ctx *ctx,
                      int mode,
                      int length,
-                     unsigned char iv[8],
-                     unsigned char *input,
-                     unsigned char *output );
+                     byte iv[8],
+                     byte *input,
+                     byte *output );
 
 /*
  * \brief          Checkup routine

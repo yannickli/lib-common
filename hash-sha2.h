@@ -9,13 +9,13 @@
  */
 typedef struct
 {
-    unsigned long total[2];     /*!< number of bytes processed  */
-    unsigned long state[8];     /*!< intermediate digest state  */
-    unsigned char buffer[64];   /*!< data block being processed */
+    uint32_t total[2]; /*!< number of bytes processed  */
+    uint32_t state[8]; /*!< intermediate digest state  */
+    byte buffer[64];   /*!< data block being processed */
 
-    unsigned char ipad[64];     /*!< HMAC: inner padding        */
-    unsigned char opad[64];     /*!< HMAC: outer padding        */
-    int is224;                  /*!< 0 => SHA-256, else SHA-224 */
+    byte ipad[64];     /*!< HMAC: inner padding        */
+    byte opad[64];     /*!< HMAC: outer padding        */
+    int is224;         /*!< 0 => SHA-256, else SHA-224 */
 }
 sha2_ctx;
 
@@ -46,7 +46,7 @@ void sha2_update( sha2_ctx *ctx, const void *input, int ilen );
  * \param ctx      SHA-256 context
  * \param output   SHA-224/256 checksum result
  */
-void sha2_finish( sha2_ctx *ctx, unsigned char output[32] );
+void sha2_finish( sha2_ctx *ctx, byte output[32] );
 
 /**
  * \brief          SHA-256 final digest
@@ -65,7 +65,7 @@ void sha2_finish_hex( sha2_ctx *ctx, char output[65] );
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
 void sha2( const void *input, int ilen,
-           unsigned char output[32], int is224 );
+           byte output[32], int is224 );
 
 /**
  * \brief          Output = SHA-256( input buffer )
@@ -87,7 +87,7 @@ void sha2_hex( const void *input, int ilen, char output[65], int is224 );
  * \return         0 if successful, 1 if fopen failed,
  *                 or 2 if fread failed
  */
-int sha2_file(const char *path, unsigned char output[32], int is224 );
+int sha2_file(const char *path, byte output[32], int is224 );
 
 /**
  * \brief          SHA-256 HMAC context setup
@@ -115,7 +115,7 @@ void sha2_hmac_update( sha2_ctx *ctx, const void *input, int ilen );
  * \param ctx      HMAC context
  * \param output   SHA-224/256 HMAC checksum result
  */
-void sha2_hmac_finish( sha2_ctx *ctx, unsigned char output[32] );
+void sha2_hmac_finish( sha2_ctx *ctx, byte output[32] );
 
 /**
  * \brief          Output = HMAC-SHA-256( hmac key, input buffer )
@@ -129,7 +129,7 @@ void sha2_hmac_finish( sha2_ctx *ctx, unsigned char output[32] );
  */
 void sha2_hmac( const void *key, int keylen,
                 const void *input, int ilen,
-                unsigned char output[32], int is224 );
+                byte output[32], int is224 );
 
 /**
  * \brief          Checkup routine

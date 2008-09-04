@@ -15,7 +15,7 @@
 #define PADLOCK_PHE 0x0C00
 #define PADLOCK_PMM 0x3000
 
-#define PADLOCK_ALIGN16(x) (unsigned long *) (16 + ((long) x & ~15))
+#define PADLOCK_ALIGN16(x) (uint32_t *) (16 + ((long) x & ~15))
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,8 +40,8 @@ int padlock_supports( int feature );
  */
 int padlock_xcryptecb( aes_ctx *ctx,
                        int mode,
-                       unsigned char input[16],
-                       unsigned char output[16] );
+                       byte input[16],
+                       byte output[16] );
 
 /**
  * \brief          PadLock AES-CBC buffer en(de)cryption
@@ -58,9 +58,9 @@ int padlock_xcryptecb( aes_ctx *ctx,
 int padlock_xcryptcbc( aes_ctx *ctx,
                        int mode,
                        int length,
-                       unsigned char iv[16],
-                       unsigned char *input,
-                       unsigned char *output );
+                       byte iv[16],
+                       byte *input,
+                       byte *output );
 
 #ifdef __cplusplus
 }

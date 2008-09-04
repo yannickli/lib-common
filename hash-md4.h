@@ -9,12 +9,12 @@
  */
 typedef struct
 {
-    unsigned long total[2];     /*!< number of bytes processed  */
-    unsigned long state[4];     /*!< intermediate digest state  */
-    unsigned char buffer[64];   /*!< data block being processed */
+    uint32_t total[2]; /*!< number of bytes processed  */
+    uint32_t state[4]; /*!< intermediate digest state  */
+    byte buffer[64];   /*!< data block being processed */
 
-    unsigned char ipad[64];     /*!< HMAC: inner padding        */
-    unsigned char opad[64];     /*!< HMAC: outer padding        */
+    byte ipad[64];     /*!< HMAC: inner padding        */
+    byte opad[64];     /*!< HMAC: outer padding        */
 }
 md4_ctx;
 
@@ -44,7 +44,7 @@ void md4_update( md4_ctx *ctx, const void *input, int ilen );
  * \param ctx      MD4 context
  * \param output   MD4 checksum result
  */
-void md4_finish( md4_ctx *ctx, unsigned char output[16] );
+void md4_finish( md4_ctx *ctx, byte output[16] );
 
 /**
  * \brief          Output = MD4( input buffer )
@@ -53,7 +53,7 @@ void md4_finish( md4_ctx *ctx, unsigned char output[16] );
  * \param ilen     length of the input data
  * \param output   MD4 checksum result
  */
-void md4( const void *input, int ilen, unsigned char output[16] );
+void md4( const void *input, int ilen, byte output[16] );
 
 /**
  * \brief          Output = MD4( file contents )
@@ -64,7 +64,7 @@ void md4( const void *input, int ilen, unsigned char output[16] );
  * \return         0 if successful, 1 if fopen failed,
  *                 or 2 if fread failed
  */
-int md4_file( char *path, unsigned char output[16] );
+int md4_file( char *path, byte output[16] );
 
 /**
  * \brief          MD4 HMAC context setup
@@ -90,7 +90,7 @@ void md4_hmac_update( md4_ctx *ctx, const void *input, int ilen );
  * \param ctx      HMAC context
  * \param output   MD4 HMAC checksum result
  */
-void md4_hmac_finish( md4_ctx *ctx, unsigned char output[16] );
+void md4_hmac_finish( md4_ctx *ctx, byte output[16] );
 
 /**
  * \brief          Output = HMAC-MD4( hmac key, input buffer )
@@ -103,7 +103,7 @@ void md4_hmac_finish( md4_ctx *ctx, unsigned char output[16] );
  */
 void md4_hmac( const void *key, int keylen,
                const void *input, int ilen,
-               unsigned char output[16] );
+               byte output[16] );
 
 /**
  * \brief          Checkup routine

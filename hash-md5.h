@@ -9,12 +9,12 @@
  */
 typedef struct
 {
-    unsigned long total[2];     /*!< number of bytes processed  */
-    unsigned long state[4];     /*!< intermediate digest state  */
-    unsigned char buffer[64];   /*!< data block being processed */
+    uint32_t total[2]; /*!< number of bytes processed  */
+    uint32_t state[4]; /*!< intermediate digest state  */
+    byte buffer[64];   /*!< data block being processed */
 
-    unsigned char ipad[64];     /*!< HMAC: inner padding        */
-    unsigned char opad[64];     /*!< HMAC: outer padding        */
+    byte ipad[64];     /*!< HMAC: inner padding        */
+    byte opad[64];     /*!< HMAC: outer padding        */
 }
 md5_ctx;
 
@@ -44,7 +44,7 @@ void md5_update( md5_ctx *ctx, const void *input, int ilen );
  * \param ctx      MD5 context
  * \param output   MD5 checksum result
  */
-void md5_finish( md5_ctx *ctx, unsigned char output[16] );
+void md5_finish( md5_ctx *ctx, byte output[16] );
 
 /**
  * \brief          MD5 final digest
@@ -61,7 +61,7 @@ void md5_finish_hex( md5_ctx *ctx, char output[33] );
  * \param ilen     length of the input data
  * \param output   MD5 checksum result
  */
-void md5( const void *input, int ilen, unsigned char output[16] );
+void md5( const void *input, int ilen, byte output[16] );
 
 /**
  * \brief          Output = MD5( input buffer )
@@ -81,7 +81,7 @@ void md5_hex( const void *input, int ilen, char output[33] );
  * \return         0 if successful, 1 if fopen failed,
  *                 or 2 if fread failed
  */
-int md5_file( char *path, unsigned char output[16] );
+int md5_file( char *path, byte output[16] );
 
 /**
  * \brief          MD5 HMAC context setup
@@ -107,7 +107,7 @@ void md5_hmac_update( md5_ctx *ctx, const void *input, int ilen );
  * \param ctx      HMAC context
  * \param output   MD5 HMAC checksum result
  */
-void md5_hmac_finish( md5_ctx *ctx, unsigned char output[16] );
+void md5_hmac_finish( md5_ctx *ctx, byte output[16] );
 
 /**
  * \brief          Output = HMAC-MD5( hmac key, input buffer )
@@ -120,7 +120,7 @@ void md5_hmac_finish( md5_ctx *ctx, unsigned char output[16] );
  */
 void md5_hmac( const void *key, int keylen,
                const void *input, int ilen,
-               unsigned char output[16] );
+               byte output[16] );
 
 /**
  * \brief          Checkup routine

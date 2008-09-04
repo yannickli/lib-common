@@ -221,7 +221,7 @@ int main( int argc, char *argv[] )
     time_t t;
     int i, j, k;
     havege_state hs;
-    unsigned char buf[1024];
+    byte buf[1024];
 
     if( argc < 2 )
     {

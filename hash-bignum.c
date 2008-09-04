@@ -455,7 +455,7 @@ cleanup:
 /*
  * Import X from unsigned binary data, big endian
  */
-int mpi_read_binary( mpi *X, unsigned char *buf, int buflen )
+int mpi_read_binary( mpi *X, byte *buf, int buflen )
 {
     int ret, i, j, n;
 
@@ -477,7 +477,7 @@ cleanup:
 /*
  * Export X into unsigned binary data, big endian
  */
-int mpi_write_binary( mpi *X, unsigned char *buf, int buflen )
+int mpi_write_binary( mpi *X, byte *buf, int buflen )
 {
     int i, j, n;
 
@@ -489,7 +489,7 @@ int mpi_write_binary( mpi *X, unsigned char *buf, int buflen )
     memset( buf, 0, buflen );
 
     for( i = buflen - 1, j = 0; n > 0; i--, j++, n-- )
-        buf[i] = (unsigned char)( X->p[j / ciL] >> ((j % ciL) << 3) );
+        buf[i] = (byte)( X->p[j / ciL] >> ((j % ciL) << 3) );
 
     return( 0 );
 }
@@ -1642,7 +1642,7 @@ int mpi_is_prime( mpi *X, int (*f_rng)(void *), void *p_rng )
 {
     int ret, i, j, n, s, xs;
     mpi W, R, T, A, RR;
-    unsigned char *p;
+    byte *p;
 
     if( mpi_cmp_int( X, 0 ) == 0 )
         return( 0 );
@@ -1694,9 +1694,9 @@ int mpi_is_prime( mpi *X, int (*f_rng)(void *), void *p_rng )
          */
         MPI_CHK( mpi_grow( &A, X->n ) );
 
-        p = (unsigned char *) A.p;
+        p = (byte *) A.p;
         for( j = 0; j < A.n * ciL; j++ )
-            *p++ = (unsigned char) f_rng( p_rng );
+            *p++ = (byte) f_rng( p_rng );
 
         j = mpi_msb( &A ) - mpi_msb( &W );
         MPI_CHK( mpi_shift_r( &A, j + 1 ) );
@@ -1753,7 +1753,7 @@ int mpi_gen_prime( mpi *X, int nbits, int dh_flag,
                    int (*f_rng)(void *), void *p_rng )
 {
     int ret, k, n;
-    unsigned char *p;
+    byte *p;
     mpi Y;
 
     if( nbits < 3 )
@@ -1766,9 +1766,9 @@ int mpi_gen_prime( mpi *X, int nbits, int dh_flag,
     MPI_CHK( mpi_grow( X, n ) );
     MPI_CHK( mpi_lset( X, 0 ) );
 
-    p = (unsigned char *) X->p;
+    p = (byte *) X->p;
     for( k = 0; k < X->n * ciL; k++ )
-        *p++ = (unsigned char) f_rng( p_rng );
+        *p++ = (byte) f_rng( p_rng );
 
     k = mpi_msb( X );
     if( k < nbits ) MPI_CHK( mpi_shift_l( X, nbits - k ) );

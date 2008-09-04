@@ -41,17 +41,17 @@
 /*
  * ARC4 key schedule
  */
-void arc4_setup( arc4_ctx *ctx, unsigned char *key, int keylen )
+void arc4_setup( arc4_ctx *ctx, byte *key, int keylen )
 {
     int i, j, k, a;
-    unsigned char *m;
+    byte *m;
 
     ctx->x = 0;
     ctx->y = 0;
     m = ctx->m;
 
     for( i = 0; i < 256; i++ )
-        m[i] = (unsigned char) i;
+        m[i] = (byte) i;
 
     j = k = 0;
 
@@ -62,17 +62,17 @@ void arc4_setup( arc4_ctx *ctx, unsigned char *key, int keylen )
         a = m[i];
         j = ( j + a + key[k] ) & 0xFF;
         m[i] = m[j];
-        m[j] = (unsigned char) a;
+        m[j] = (byte) a;
     }
 }
 
 /*
  * ARC4 cipher function
  */
-void arc4_crypt( arc4_ctx *ctx, unsigned char *buf, int buflen )
+void arc4_crypt( arc4_ctx *ctx, byte *buf, int buflen )
 {
     int i, x, y, a, b;
-    unsigned char *m;
+    byte *m;
 
     x = ctx->x;
     y = ctx->y;
@@ -83,11 +83,11 @@ void arc4_crypt( arc4_ctx *ctx, unsigned char *buf, int buflen )
         x = ( x + 1 ) & 0xFF; a = m[x];
         y = ( y + a ) & 0xFF; b = m[y];
 
-        m[x] = (unsigned char) b;
-        m[y] = (unsigned char) a;
+        m[x] = (byte) b;
+        m[y] = (byte) a;
 
-        buf[i] = (unsigned char)
-            ( buf[i] ^ m[(unsigned char)( a + b )] );
+        buf[i] = (byte)
+            ( buf[i] ^ m[(byte)( a + b )] );
     }
 
     ctx->x = x;
@@ -101,21 +101,21 @@ void arc4_crypt( arc4_ctx *ctx, unsigned char *buf, int buflen )
  *
  * http://groups.google.com/group/comp.security.misc/msg/10a300c9d21afca0
  */
-static const unsigned char arc4_test_key[3][8] =
+static const byte arc4_test_key[3][8] =
 {
     { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF },
     { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF },
     { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
 };
 
-static const unsigned char arc4_test_pt[3][8] =
+static const byte arc4_test_pt[3][8] =
 {
     { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF },
     { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
     { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
 };
 
-static const unsigned char arc4_test_ct[3][8] =
+static const byte arc4_test_ct[3][8] =
 {
     { 0x75, 0xB7, 0x87, 0x80, 0x99, 0xE0, 0xC5, 0x96 },
     { 0x74, 0x94, 0xC2, 0xE7, 0x10, 0x4B, 0x08, 0x79 },
@@ -128,7 +128,7 @@ static const unsigned char arc4_test_ct[3][8] =
 int arc4_self_test( int verbose )
 {
     int i;
-    unsigned char buf[8];
+    byte buf[8];
     arc4_ctx ctx;
 
     for( i = 0; i < 3; i++ )
@@ -138,7 +138,7 @@ int arc4_self_test( int verbose )
 
         memcpy( buf, arc4_test_pt[i], 8 );
 
-        arc4_setup( &ctx, (unsigned char *) arc4_test_key[i], 8 );
+        arc4_setup( &ctx, (byte *) arc4_test_key[i], 8 );
         arc4_crypt( &ctx, buf, 8 );
 
         if( memcmp( buf, arc4_test_ct[i], 8 ) != 0 )

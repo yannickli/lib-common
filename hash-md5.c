@@ -41,25 +41,8 @@
 /*
  * 32-bit integer manipulation macros (little endian)
  */
-#ifndef GET_ULONG_LE
-#define GET_ULONG_LE(n,b,i)                             \
-{                                                       \
-    (n) = ( (unsigned long) (b)[(i)    ]       )        \
-        | ( (unsigned long) (b)[(i) + 1] <<  8 )        \
-        | ( (unsigned long) (b)[(i) + 2] << 16 )        \
-        | ( (unsigned long) (b)[(i) + 3] << 24 );       \
-}
-#endif
-
-#ifndef PUT_ULONG_LE
-#define PUT_ULONG_LE(n,b,i)                             \
-{                                                       \
-    (b)[(i)    ] = (unsigned char) ( (n)       );       \
-    (b)[(i) + 1] = (unsigned char) ( (n) >>  8 );       \
-    (b)[(i) + 2] = (unsigned char) ( (n) >> 16 );       \
-    (b)[(i) + 3] = (unsigned char) ( (n) >> 24 );       \
-}
-#endif
+#define GET_U32_LE(n,b,i)  ((n) = cpu_to_le_32(*(uint32_t *)((b) + (i))))
+#define PUT_U32_LE(n,b,i)  (*(uint32_t *)((b) + (i)) = cpu_to_le_32(n))
 
 /*
  * MD5 context setup
@@ -75,26 +58,26 @@ void md5_starts( md5_ctx *ctx )
     ctx->state[3] = 0x10325476;
 }
 
-static void md5_process( md5_ctx *ctx, const unsigned char data[64] )
+static void md5_process( md5_ctx *ctx, const byte data[64] )
 {
-    unsigned long X[16], A, B, C, D;
+    uint32_t X[16], A, B, C, D;
 
-    GET_ULONG_LE( X[ 0], data,  0 );
-    GET_ULONG_LE( X[ 1], data,  4 );
-    GET_ULONG_LE( X[ 2], data,  8 );
-    GET_ULONG_LE( X[ 3], data, 12 );
-    GET_ULONG_LE( X[ 4], data, 16 );
-    GET_ULONG_LE( X[ 5], data, 20 );
-    GET_ULONG_LE( X[ 6], data, 24 );
-    GET_ULONG_LE( X[ 7], data, 28 );
-    GET_ULONG_LE( X[ 8], data, 32 );
-    GET_ULONG_LE( X[ 9], data, 36 );
-    GET_ULONG_LE( X[10], data, 40 );
-    GET_ULONG_LE( X[11], data, 44 );
-    GET_ULONG_LE( X[12], data, 48 );
-    GET_ULONG_LE( X[13], data, 52 );
-    GET_ULONG_LE( X[14], data, 56 );
-    GET_ULONG_LE( X[15], data, 60 );
+    GET_U32_LE( X[ 0], data,  0 );
+    GET_U32_LE( X[ 1], data,  4 );
+    GET_U32_LE( X[ 2], data,  8 );
+    GET_U32_LE( X[ 3], data, 12 );
+    GET_U32_LE( X[ 4], data, 16 );
+    GET_U32_LE( X[ 5], data, 20 );
+    GET_U32_LE( X[ 6], data, 24 );
+    GET_U32_LE( X[ 7], data, 28 );
+    GET_U32_LE( X[ 8], data, 32 );
+    GET_U32_LE( X[ 9], data, 36 );
+    GET_U32_LE( X[10], data, 40 );
+    GET_U32_LE( X[11], data, 44 );
+    GET_U32_LE( X[12], data, 48 );
+    GET_U32_LE( X[13], data, 52 );
+    GET_U32_LE( X[14], data, 56 );
+    GET_U32_LE( X[15], data, 60 );
 
 #define S(x,n) ((x << n) | ((x & 0xFFFFFFFF) >> (32 - n)))
 
@@ -203,9 +186,9 @@ static void md5_process( md5_ctx *ctx, const unsigned char data[64] )
  */
 void md5_update( md5_ctx *ctx, const void *_input, int ilen )
 {
-    const unsigned char *input = _input;
+    const byte *input = _input;
     int fill;
-    unsigned long left;
+    uint32_t left;
 
     if( ilen <= 0 )
         return;
@@ -216,7 +199,7 @@ void md5_update( md5_ctx *ctx, const void *_input, int ilen )
     ctx->total[0] += ilen;
     ctx->total[0] &= 0xFFFFFFFF;
 
-    if( ctx->total[0] < (unsigned long) ilen )
+    if( ctx->total[0] < (uint32_t) ilen )
         ctx->total[1]++;
 
     if( left && ilen >= fill )
@@ -243,7 +226,7 @@ void md5_update( md5_ctx *ctx, const void *_input, int ilen )
     }
 }
 
-static const unsigned char md5_padding[64] =
+static const byte md5_padding[64] =
 {
  0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -254,34 +237,34 @@ static const unsigned char md5_padding[64] =
 /*
  * MD5 final digest
  */
-void md5_finish( md5_ctx *ctx, unsigned char output[16] )
+void md5_finish( md5_ctx *ctx, byte output[16] )
 {
-    unsigned long last, padn;
-    unsigned long high, low;
-    unsigned char msglen[8];
+    uint32_t last, padn;
+    uint32_t high, low;
+    byte msglen[8];
 
     high = ( ctx->total[0] >> 29 )
          | ( ctx->total[1] <<  3 );
     low  = ( ctx->total[0] <<  3 );
 
-    PUT_ULONG_LE( low,  msglen, 0 );
-    PUT_ULONG_LE( high, msglen, 4 );
+    PUT_U32_LE( low,  msglen, 0 );
+    PUT_U32_LE( high, msglen, 4 );
 
     last = ctx->total[0] & 0x3F;
     padn = ( last < 56 ) ? ( 56 - last ) : ( 120 - last );
 
-    md5_update( ctx, (unsigned char *) md5_padding, padn );
+    md5_update( ctx, (byte *) md5_padding, padn );
     md5_update( ctx, msglen, 8 );
 
-    PUT_ULONG_LE( ctx->state[0], output,  0 );
-    PUT_ULONG_LE( ctx->state[1], output,  4 );
-    PUT_ULONG_LE( ctx->state[2], output,  8 );
-    PUT_ULONG_LE( ctx->state[3], output, 12 );
+    PUT_U32_LE( ctx->state[0], output,  0 );
+    PUT_U32_LE( ctx->state[1], output,  4 );
+    PUT_U32_LE( ctx->state[2], output,  8 );
+    PUT_U32_LE( ctx->state[3], output, 12 );
 }
 
 void md5_finish_hex( md5_ctx *ctx, char output[33] )
 {
-    unsigned char digest[16];
+    byte digest[16];
     md5_finish(ctx, digest);
     strconv_hexencode(output, 33, digest, MD5_DIGEST_SIZE);
 }
@@ -289,7 +272,7 @@ void md5_finish_hex( md5_ctx *ctx, char output[33] )
 /*
  * output = MD5( input buffer )
  */
-void md5( const void *input, int ilen, unsigned char output[16] )
+void md5( const void *input, int ilen, byte output[16] )
 {
     md5_ctx ctx;
 
@@ -317,12 +300,12 @@ void md5_hex( const void *input, int ilen, char output[33] )
 /*
  * output = MD5( file contents )
  */
-int md5_file( char *path, unsigned char output[16] )
+int md5_file( char *path, byte output[16] )
 {
     FILE *f;
     size_t n;
     md5_ctx ctx;
-    unsigned char buf[1024];
+    byte buf[1024];
 
     if( ( f = fopen( path, "rb" ) ) == NULL )
         return( 1 );
@@ -351,9 +334,9 @@ int md5_file( char *path, unsigned char output[16] )
  */
 void md5_hmac_starts( md5_ctx *ctx, const void *_key, int keylen )
 {
-    const unsigned char *key = _key;
+    const byte *key = _key;
     int i;
-    unsigned char sum[16];
+    byte sum[16];
 
     if( keylen > 64 )
     {
@@ -367,8 +350,8 @@ void md5_hmac_starts( md5_ctx *ctx, const void *_key, int keylen )
 
     for( i = 0; i < keylen; i++ )
     {
-        ctx->ipad[i] = (unsigned char)( ctx->ipad[i] ^ key[i] );
-        ctx->opad[i] = (unsigned char)( ctx->opad[i] ^ key[i] );
+        ctx->ipad[i] = (byte)( ctx->ipad[i] ^ key[i] );
+        ctx->opad[i] = (byte)( ctx->opad[i] ^ key[i] );
     }
 
     md5_starts( ctx );
@@ -388,9 +371,9 @@ void md5_hmac_update( md5_ctx *ctx, const void *input, int ilen )
 /*
  * MD5 HMAC final digest
  */
-void md5_hmac_finish( md5_ctx *ctx, unsigned char output[16] )
+void md5_hmac_finish( md5_ctx *ctx, byte output[16] )
 {
-    unsigned char tmpbuf[16];
+    byte tmpbuf[16];
 
     md5_finish( ctx, tmpbuf );
     md5_starts( ctx );
@@ -405,7 +388,7 @@ void md5_hmac_finish( md5_ctx *ctx, unsigned char output[16] )
  * output = HMAC-MD5( hmac key, input buffer )
  */
 void md5_hmac( const void *key, int keylen, const void *input, int ilen,
-               unsigned char output[16] )
+               byte output[16] )
 {
     md5_ctx ctx;
 
@@ -420,7 +403,7 @@ void md5_hmac( const void *key, int keylen, const void *input, int ilen,
 /*
  * RFC 1321 test vectors
  */
-static unsigned char md5_test_buf[7][81] =
+static byte md5_test_buf[7][81] =
 {
     { "" }, 
     { "a" },
@@ -437,7 +420,7 @@ static const int md5_test_buflen[7] =
     0, 1, 3, 14, 26, 62, 80
 };
 
-static const unsigned char md5_test_sum[7][16] =
+static const byte md5_test_sum[7][16] =
 {
     { 0xD4, 0x1D, 0x8C, 0xD9, 0x8F, 0x00, 0xB2, 0x04,
       0xE9, 0x80, 0x09, 0x98, 0xEC, 0xF8, 0x42, 0x7E },
@@ -458,7 +441,7 @@ static const unsigned char md5_test_sum[7][16] =
 /*
  * RFC 2202 test vectors
  */
-static unsigned char md5_hmac_test_key[7][26] =
+static byte md5_hmac_test_key[7][26] =
 {
     { "\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B" },
     { "Jefe" },
@@ -475,7 +458,7 @@ static const int md5_hmac_test_keylen[7] =
     16, 4, 16, 25, 16, 80, 80
 };
 
-static unsigned char md5_hmac_test_buf[7][74] =
+static byte md5_hmac_test_buf[7][74] =
 {
     { "Hi There" },
     { "what do ya want for nothing?" },
@@ -500,7 +483,7 @@ static const int md5_hmac_test_buflen[7] =
     8, 28, 50, 50, 20, 54, 73
 };
 
-static const unsigned char md5_hmac_test_sum[7][16] =
+static const byte md5_hmac_test_sum[7][16] =
 {
     { 0x92, 0x94, 0x72, 0x7A, 0x36, 0x38, 0xBB, 0x1C,
       0x13, 0xF4, 0x8E, 0xF8, 0x15, 0x8B, 0xFC, 0x9D },
@@ -524,8 +507,8 @@ static const unsigned char md5_hmac_test_sum[7][16] =
 int md5_self_test( int verbose )
 {
     int i, buflen;
-    unsigned char buf[1024];
-    unsigned char md5sum[16];
+    byte buf[1024];
+    byte md5sum[16];
     md5_ctx ctx;
 
     for( i = 0; i < 7; i++ )

@@ -190,8 +190,8 @@ cleanup:
  * Do an RSA public key operation
  */
 int rsa_public( rsa_ctx *ctx,
-                unsigned char *input,
-                unsigned char *output )
+                byte *input,
+                byte *output )
 {
     int ret, olen;
     mpi T;
@@ -224,8 +224,8 @@ cleanup:
  * Do an RSA private key operation
  */
 int rsa_private( rsa_ctx *ctx,
-                 unsigned char *input,
-                 unsigned char *output )
+                 byte *input,
+                 byte *output )
 {
     int ret, olen;
     mpi T, T1, T2;
@@ -284,11 +284,11 @@ cleanup:
  */
 int rsa_pkcs1_encrypt( rsa_ctx *ctx,
                        int mode, int  ilen,
-                       unsigned char *input,
-                       unsigned char *output )
+                       byte *input,
+                       byte *output )
 {
     int nb_pad, olen;
-    unsigned char *p = output;
+    byte *p = output;
 
     olen = ctx->len;
 
@@ -307,7 +307,7 @@ int rsa_pkcs1_encrypt( rsa_ctx *ctx,
             while( nb_pad-- > 0 )
             {
                 do {
-                    *p = (unsigned char) rand();
+                    *p = (byte) rand();
                 } while( *p == 0 );
                 p++;
             }
@@ -330,12 +330,12 @@ int rsa_pkcs1_encrypt( rsa_ctx *ctx,
  */
 int rsa_pkcs1_decrypt( rsa_ctx *ctx,
                        int mode, int *olen,
-                       unsigned char *input,
-                       unsigned char *output )
+                       byte *input,
+                       byte *output )
 {
     int ret, ilen;
-    unsigned char *p;
-    unsigned char buf[512];
+    byte *p;
+    byte buf[512];
 
     ilen = ctx->len;
 
@@ -385,11 +385,11 @@ int rsa_pkcs1_sign( rsa_ctx *ctx,
                     int mode,
                     int hash_id,
                     int hashlen,
-                    unsigned char *hash,
-                    unsigned char *sig )
+                    byte *hash,
+                    byte *sig )
 {
     int nb_pad, olen;
-    unsigned char *p = sig;
+    byte *p = sig;
 
     olen = ctx->len;
 
@@ -474,12 +474,12 @@ int rsa_pkcs1_verify( rsa_ctx *ctx,
                       int mode,
                       int hash_id,
                       int hashlen,
-                      unsigned char *hash,
-                      unsigned char *sig )
+                      byte *hash,
+                      byte *sig )
 {
     int ret, len, siglen;
-    unsigned char *p, c;
-    unsigned char buf[512];
+    byte *p, c;
+    byte buf[512];
 
     siglen = ctx->len;
 
@@ -631,10 +631,10 @@ int rsa_self_test( int verbose )
 {
     int len;
     rsa_ctx rsa;
-    unsigned char sha1sum[20];
-    unsigned char rsa_plaintext[PT_LEN];
-    unsigned char rsa_decrypted[PT_LEN];
-    unsigned char rsa_ciphertext[KEY_LEN];
+    byte sha1sum[20];
+    byte rsa_plaintext[PT_LEN];
+    byte rsa_decrypted[PT_LEN];
+    byte rsa_ciphertext[KEY_LEN];
 
     memset( &rsa, 0, sizeof( rsa_ctx ) );
 

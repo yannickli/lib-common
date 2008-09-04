@@ -39,7 +39,7 @@
 
 #if defined(XYSSL_MD2_C)
 
-static const unsigned char PI_SUBST[256] =
+static const byte PI_SUBST[256] =
 {
     0x29, 0x2E, 0x43, 0xC9, 0xA2, 0xD8, 0x7C, 0x01, 0x3D, 0x36,
     0x54, 0xA1, 0xEC, 0xF0, 0x06, 0x13, 0x62, 0xA7, 0x05, 0xF3,
@@ -80,32 +80,32 @@ void md2_starts( md2_ctx *ctx )
 static void md2_process( md2_ctx *ctx )
 {
     int i, j;
-    unsigned char t = 0;
+    byte t = 0;
 
     for( i = 0; i < 16; i++ )
     {
         ctx->state[i + 16] = ctx->buffer[i];
         ctx->state[i + 32] =
-            (unsigned char)( ctx->buffer[i] ^ ctx->state[i]);
+            (byte)( ctx->buffer[i] ^ ctx->state[i]);
     }
 
     for( i = 0; i < 18; i++ )
     {
         for( j = 0; j < 48; j++ )
         {
-            ctx->state[j] = (unsigned char)
+            ctx->state[j] = (byte)
                ( ctx->state[j] ^ PI_SUBST[t] );
             t  = ctx->state[j];
         }
 
-        t = (unsigned char)( t + i );
+        t = (byte)( t + i );
     }
 
     t = ctx->cksum[15];
 
     for( i = 0; i < 16; i++ )
     {
-        ctx->cksum[i] = (unsigned char)
+        ctx->cksum[i] = (byte)
            ( ctx->cksum[i] ^ PI_SUBST[ctx->buffer[i] ^ t] );
         t  = ctx->cksum[i];
     }
@@ -116,7 +116,7 @@ static void md2_process( md2_ctx *ctx )
  */
 void md2_update( md2_ctx *ctx, const void *_input, int ilen )
 {
-    const unsigned char *input = _input;
+    const byte *input = _input;
     int fill;
 
     while( ilen > 0 )
@@ -143,12 +143,12 @@ void md2_update( md2_ctx *ctx, const void *_input, int ilen )
 /*
  * MD2 final digest
  */
-void md2_finish( md2_ctx *ctx, unsigned char output[16] )
+void md2_finish( md2_ctx *ctx, byte output[16] )
 {
     int i;
-    unsigned char x;
+    byte x;
 
-    x = (unsigned char)( 16 - ctx->left );
+    x = (byte)( 16 - ctx->left );
 
     for( i = ctx->left; i < 16; i++ )
         ctx->buffer[i] = x;
@@ -164,7 +164,7 @@ void md2_finish( md2_ctx *ctx, unsigned char output[16] )
 /*
  * output = MD2( input buffer )
  */
-void md2( const void *input, int ilen, unsigned char output[16] )
+void md2( const void *input, int ilen, byte output[16] )
 {
     md2_ctx ctx;
 
@@ -178,12 +178,12 @@ void md2( const void *input, int ilen, unsigned char output[16] )
 /*
  * output = MD2( file contents )
  */
-int md2_file( char *path, unsigned char output[16] )
+int md2_file( char *path, byte output[16] )
 {
     FILE *f;
     size_t n;
     md2_ctx ctx;
-    unsigned char buf[1024];
+    byte buf[1024];
 
     if( ( f = fopen( path, "rb" ) ) == NULL )
         return( 1 );
@@ -212,9 +212,9 @@ int md2_file( char *path, unsigned char output[16] )
  */
 void md2_hmac_starts( md2_ctx *ctx, const void *_key, int keylen )
 {
-    const unsigned char *key = _key;
+    const byte *key = _key;
     int i;
-    unsigned char sum[16];
+    byte sum[16];
 
     if( keylen > 64 )
     {
@@ -228,8 +228,8 @@ void md2_hmac_starts( md2_ctx *ctx, const void *_key, int keylen )
 
     for( i = 0; i < keylen; i++ )
     {
-        ctx->ipad[i] = (unsigned char)( ctx->ipad[i] ^ key[i] );
-        ctx->opad[i] = (unsigned char)( ctx->opad[i] ^ key[i] );
+        ctx->ipad[i] = (byte)( ctx->ipad[i] ^ key[i] );
+        ctx->opad[i] = (byte)( ctx->opad[i] ^ key[i] );
     }
 
     md2_starts( ctx );
@@ -249,9 +249,9 @@ void md2_hmac_update( md2_ctx *ctx, const void *input, int ilen )
 /*
  * MD2 HMAC final digest
  */
-void md2_hmac_finish( md2_ctx *ctx, unsigned char output[16] )
+void md2_hmac_finish( md2_ctx *ctx, byte output[16] )
 {
-    unsigned char tmpbuf[16];
+    byte tmpbuf[16];
 
     md2_finish( ctx, tmpbuf );
     md2_starts( ctx );
@@ -266,7 +266,7 @@ void md2_hmac_finish( md2_ctx *ctx, unsigned char output[16] )
  * output = HMAC-MD2( hmac key, input buffer )
  */
 void md2_hmac( const void *key, int keylen, const void *input, int ilen,
-               unsigned char output[16] )
+               byte output[16] )
 {
     md2_ctx ctx;
 
@@ -294,7 +294,7 @@ static const char md2_test_str[7][81] =
       "345678901234567890" }
 };
 
-static const unsigned char md2_test_sum[7][16] =
+static const byte md2_test_sum[7][16] =
 {
     { 0x83, 0x50, 0xE5, 0xA3, 0xE2, 0x4C, 0x15, 0x3D,
       0xF2, 0x27, 0x5C, 0x9F, 0x80, 0x69, 0x27, 0x73 },
@@ -318,14 +318,14 @@ static const unsigned char md2_test_sum[7][16] =
 int md2_self_test( int verbose )
 {
     int i;
-    unsigned char md2sum[16];
+    byte md2sum[16];
 
     for( i = 0; i < 7; i++ )
     {
         if( verbose != 0 )
             printf( "  MD2 test #%d: ", i + 1 );
 
-        md2( (unsigned char *) md2_test_str[i],
+        md2( (byte *) md2_test_str[i],
              strlen( md2_test_str[i] ), md2sum );
 
         if( memcmp( md2sum, md2_test_sum[i], 16 ) != 0 )

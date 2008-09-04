@@ -9,13 +9,13 @@
  */
 typedef struct
 {
-    unsigned char cksum[16];    /*!< checksum of the data block */
-    unsigned char state[48];    /*!< intermediate digest state  */
-    unsigned char buffer[16];   /*!< data block being processed */
+    byte cksum[16];    /*!< checksum of the data block */
+    byte state[48];    /*!< intermediate digest state  */
+    byte buffer[16];   /*!< data block being processed */
 
-    unsigned char ipad[64];     /*!< HMAC: inner padding        */
-    unsigned char opad[64];     /*!< HMAC: outer padding        */
-    int left;                   /*!< amount of data in buffer   */
+    byte ipad[64];     /*!< HMAC: inner padding        */
+    byte opad[64];     /*!< HMAC: outer padding        */
+    int left;          /*!< amount of data in buffer   */
 }
 md2_ctx;
 
@@ -45,7 +45,7 @@ void md2_update( md2_ctx *ctx, const void *input, int ilen );
  * \param ctx      MD2 context
  * \param output   MD2 checksum result
  */
-void md2_finish( md2_ctx *ctx, unsigned char output[16] );
+void md2_finish( md2_ctx *ctx, byte output[16] );
 
 /**
  * \brief          Output = MD2( input buffer )
@@ -54,7 +54,7 @@ void md2_finish( md2_ctx *ctx, unsigned char output[16] );
  * \param ilen     length of the input data
  * \param output   MD2 checksum result
  */
-void md2(const void *input, int ilen, unsigned char output[16] );
+void md2(const void *input, int ilen, byte output[16] );
 
 /**
  * \brief          Output = MD2( file contents )
@@ -65,7 +65,7 @@ void md2(const void *input, int ilen, unsigned char output[16] );
  * \return         0 if successful, 1 if fopen failed,
  *                 or 2 if fread failed
  */
-int md2_file( char *path, unsigned char output[16] );
+int md2_file( char *path, byte output[16] );
 
 /**
  * \brief          MD2 HMAC context setup
@@ -91,7 +91,7 @@ void md2_hmac_update( md2_ctx *ctx, const void *input, int ilen );
  * \param ctx      HMAC context
  * \param output   MD2 HMAC checksum result
  */
-void md2_hmac_finish( md2_ctx *ctx, unsigned char output[16] );
+void md2_hmac_finish( md2_ctx *ctx, byte output[16] );
 
 /**
  * \brief          Output = HMAC-MD2( hmac key, input buffer )
@@ -104,7 +104,7 @@ void md2_hmac_finish( md2_ctx *ctx, unsigned char output[16] );
  */
 void md2_hmac( const void *key, int keylen,
                const void *input, int ilen,
-               unsigned char output[16] );
+               byte output[16] );
 
 /**
  * \brief          Checkup routine

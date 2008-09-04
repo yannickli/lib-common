@@ -44,35 +44,35 @@
 #ifndef GET_UINT64_BE
 #define GET_UINT64_BE(n,b,i)                            \
 {                                                       \
-    (n) = ( (unsigned int64) (b)[(i)    ] << 56 )       \
-        | ( (unsigned int64) (b)[(i) + 1] << 48 )       \
-        | ( (unsigned int64) (b)[(i) + 2] << 40 )       \
-        | ( (unsigned int64) (b)[(i) + 3] << 32 )       \
-        | ( (unsigned int64) (b)[(i) + 4] << 24 )       \
-        | ( (unsigned int64) (b)[(i) + 5] << 16 )       \
-        | ( (unsigned int64) (b)[(i) + 6] <<  8 )       \
-        | ( (unsigned int64) (b)[(i) + 7]       );      \
+    (n) = ( (uint64_t) (b)[(i)    ] << 56 )       \
+        | ( (uint64_t) (b)[(i) + 1] << 48 )       \
+        | ( (uint64_t) (b)[(i) + 2] << 40 )       \
+        | ( (uint64_t) (b)[(i) + 3] << 32 )       \
+        | ( (uint64_t) (b)[(i) + 4] << 24 )       \
+        | ( (uint64_t) (b)[(i) + 5] << 16 )       \
+        | ( (uint64_t) (b)[(i) + 6] <<  8 )       \
+        | ( (uint64_t) (b)[(i) + 7]       );      \
 }
 #endif
 
 #ifndef PUT_UINT64_BE
 #define PUT_UINT64_BE(n,b,i)                            \
 {                                                       \
-    (b)[(i)    ] = (unsigned char) ( (n) >> 56 );       \
-    (b)[(i) + 1] = (unsigned char) ( (n) >> 48 );       \
-    (b)[(i) + 2] = (unsigned char) ( (n) >> 40 );       \
-    (b)[(i) + 3] = (unsigned char) ( (n) >> 32 );       \
-    (b)[(i) + 4] = (unsigned char) ( (n) >> 24 );       \
-    (b)[(i) + 5] = (unsigned char) ( (n) >> 16 );       \
-    (b)[(i) + 6] = (unsigned char) ( (n) >>  8 );       \
-    (b)[(i) + 7] = (unsigned char) ( (n)       );       \
+    (b)[(i)    ] = (byte) ( (n) >> 56 );       \
+    (b)[(i) + 1] = (byte) ( (n) >> 48 );       \
+    (b)[(i) + 2] = (byte) ( (n) >> 40 );       \
+    (b)[(i) + 3] = (byte) ( (n) >> 32 );       \
+    (b)[(i) + 4] = (byte) ( (n) >> 24 );       \
+    (b)[(i) + 5] = (byte) ( (n) >> 16 );       \
+    (b)[(i) + 6] = (byte) ( (n) >>  8 );       \
+    (b)[(i) + 7] = (byte) ( (n)       );       \
 }
 #endif
 
 /*
  * Round constants
  */
-static const unsigned int64 K[80] =
+static const uint64_t K[80] =
 {
     UL64(0x428A2F98D728AE22),  UL64(0x7137449123EF65CD),
     UL64(0xB5C0FBCFEC4D3B2F),  UL64(0xE9B5DBA58189DBBC),
@@ -152,11 +152,11 @@ void sha4_starts( sha4_ctx *ctx, int is384 )
     ctx->is384 = is384;
 }
 
-static void sha4_process( sha4_ctx *ctx, const unsigned char data[128] )
+static void sha4_process( sha4_ctx *ctx, const byte data[128] )
 {
     int i;
-    unsigned int64 temp1, temp2, W[80];
-    unsigned int64 A, B, C, D, E, F, G, H;
+    uint64_t temp1, temp2, W[80];
+    uint64_t A, B, C, D, E, F, G, H;
 
 #define  SHR(x,n) (x >> n)
 #define ROTR(x,n) (SHR(x,n) | (x << (64 - n)))
@@ -226,9 +226,9 @@ static void sha4_process( sha4_ctx *ctx, const unsigned char data[128] )
  */
 void sha4_update( sha4_ctx *ctx, const void *_input, int ilen )
 {
-    const unsigned char *input = _input;
+    const byte *input = _input;
     int fill;
-    unsigned int64 left;
+    uint64_t left;
 
     if( ilen <= 0 )
         return;
@@ -238,7 +238,7 @@ void sha4_update( sha4_ctx *ctx, const void *_input, int ilen )
 
     ctx->total[0] += ilen;
 
-    if( ctx->total[0] < (unsigned int64) ilen )
+    if( ctx->total[0] < (uint64_t) ilen )
         ctx->total[1]++;
 
     if( left && ilen >= fill )
@@ -265,7 +265,7 @@ void sha4_update( sha4_ctx *ctx, const void *_input, int ilen )
     }
 }
 
-static const unsigned char sha4_padding[128] =
+static const byte sha4_padding[128] =
 {
  0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -280,11 +280,11 @@ static const unsigned char sha4_padding[128] =
 /*
  * SHA-512 final digest
  */
-void sha4_finish( sha4_ctx *ctx, unsigned char output[64] )
+void sha4_finish( sha4_ctx *ctx, byte output[64] )
 {
     int last, padn;
-    unsigned int64 high, low;
-    unsigned char msglen[16];
+    uint64_t high, low;
+    byte msglen[16];
 
     high = ( ctx->total[0] >> 61 )
          | ( ctx->total[1] <<  3 );
@@ -296,7 +296,7 @@ void sha4_finish( sha4_ctx *ctx, unsigned char output[64] )
     last = (int)( ctx->total[0] & 0x7F );
     padn = ( last < 112 ) ? ( 112 - last ) : ( 240 - last );
 
-    sha4_update( ctx, (unsigned char *) sha4_padding, padn );
+    sha4_update( ctx, (byte *) sha4_padding, padn );
     sha4_update( ctx, msglen, 16 );
 
     PUT_UINT64_BE( ctx->state[0], output,  0 );
@@ -316,7 +316,7 @@ void sha4_finish( sha4_ctx *ctx, unsigned char output[64] )
 /*
  * output = SHA-512( input buffer )
  */
-void sha4( const void *input, int ilen, unsigned char output[64], int is384 )
+void sha4( const void *input, int ilen, byte output[64], int is384 )
 {
     sha4_ctx ctx;
 
@@ -330,12 +330,12 @@ void sha4( const void *input, int ilen, unsigned char output[64], int is384 )
 /*
  * output = SHA-512( file contents )
  */
-int sha4_file(const char *path, unsigned char output[64], int is384 )
+int sha4_file(const char *path, byte output[64], int is384 )
 {
     FILE *f;
     size_t n;
     sha4_ctx ctx;
-    unsigned char buf[1024];
+    byte buf[1024];
 
     if( ( f = fopen( path, "rb" ) ) == NULL )
         return( 1 );
@@ -364,9 +364,9 @@ int sha4_file(const char *path, unsigned char output[64], int is384 )
  */
 void sha4_hmac_starts( sha4_ctx *ctx, const void *_key, int keylen, int is384 )
 {
-    const unsigned char *key = _key;
+    const byte *key = _key;
     int i;
-    unsigned char sum[64];
+    byte sum[64];
 
     if( keylen > 128 )
     {
@@ -380,8 +380,8 @@ void sha4_hmac_starts( sha4_ctx *ctx, const void *_key, int keylen, int is384 )
 
     for( i = 0; i < keylen; i++ )
     {
-        ctx->ipad[i] = (unsigned char)( ctx->ipad[i] ^ key[i] );
-        ctx->opad[i] = (unsigned char)( ctx->opad[i] ^ key[i] );
+        ctx->ipad[i] = (byte)( ctx->ipad[i] ^ key[i] );
+        ctx->opad[i] = (byte)( ctx->opad[i] ^ key[i] );
     }
 
     sha4_starts( ctx, is384 );
@@ -401,10 +401,10 @@ void sha4_hmac_update( sha4_ctx  *ctx, const void *input, int ilen )
 /*
  * SHA-512 HMAC final digest
  */
-void sha4_hmac_finish( sha4_ctx *ctx, unsigned char output[64] )
+void sha4_hmac_finish( sha4_ctx *ctx, byte output[64] )
 {
     int is384, hlen;
-    unsigned char tmpbuf[64];
+    byte tmpbuf[64];
 
     is384 = ctx->is384;
     hlen = ( is384 == 0 ) ? 64 : 48;
@@ -423,7 +423,7 @@ void sha4_hmac_finish( sha4_ctx *ctx, unsigned char output[64] )
  */
 void sha4_hmac( const void *key, int keylen,
                 const void *input, int ilen,
-                unsigned char output[64], int is384 )
+                byte output[64], int is384 )
 {
     sha4_ctx ctx;
 
@@ -439,7 +439,7 @@ void sha4_hmac( const void *key, int keylen,
 /*
  * FIPS-180-2 test vectors
  */
-static unsigned char sha4_test_buf[3][113] = 
+static byte sha4_test_buf[3][113] = 
 {
     { "abc" },
     { "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmn"
@@ -452,7 +452,7 @@ static const int sha4_test_buflen[3] =
     3, 112, 1000
 };
 
-static const unsigned char sha4_test_sum[6][64] =
+static const byte sha4_test_sum[6][64] =
 {
     /*
      * SHA-384 test vectors
@@ -508,7 +508,7 @@ static const unsigned char sha4_test_sum[6][64] =
 /*
  * RFC 4231 test vectors
  */
-static unsigned char sha4_hmac_test_key[7][26] =
+static byte sha4_hmac_test_key[7][26] =
 {
     { "\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B\x0B"
       "\x0B\x0B\x0B\x0B" },
@@ -528,7 +528,7 @@ static const int sha4_hmac_test_keylen[7] =
     20, 4, 20, 25, 20, 131, 131
 };
 
-static unsigned char sha4_hmac_test_buf[7][153] =
+static byte sha4_hmac_test_buf[7][153] =
 {
     { "Hi There" },
     { "what do ya want for nothing?" },
@@ -554,7 +554,7 @@ static const int sha4_hmac_test_buflen[7] =
     8, 28, 50, 50, 20, 54, 152
 };
 
-static const unsigned char sha4_hmac_test_sum[14][64] =
+static const byte sha4_hmac_test_sum[14][64] =
 {
     /*
      * HMAC-SHA-384 test vectors
@@ -659,8 +659,8 @@ static const unsigned char sha4_hmac_test_sum[14][64] =
 int sha4_self_test( int verbose )
 {
     int i, j, k, buflen;
-    unsigned char buf[1024];
-    unsigned char sha4sum[64];
+    byte buf[1024];
+    byte sha4sum[64];
     sha4_ctx ctx;
 
     for( i = 0; i < 6; i++ )
