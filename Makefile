@@ -62,6 +62,8 @@ libcommon_SOURCES = \
 	core-debug.c   \
 	core-errors.c  \
 	\
+	el.c \
+	\
 	file.c \
 	file-log.c \
 	\
