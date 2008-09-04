@@ -15,45 +15,11 @@
 #define IS_LIB_COMMON_HASH_H
 
 #include "core.h"
+#include "str-conv.h"
 
-uint32_t icrc32(uint32_t crc, const void *data, ssize_t len);
-
-/* BSD Code taken from http://www.ouah.org/ogay/sha2/sha2.tar.gz */
-
-/*-
- * FIPS 180-2 SHA-224/256/384/512 implementation
- * Last update: 05/23/2005
- * Issue date:  04/30/2005
- *
- * Copyright (C) 2005 Olivier Gay <olivier.gay@a3.epfl.ch>
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the project nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE PROJECT AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE PROJECT OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- */
-
-
+#include "hash-config.h"
+#include "hash-bignum.h"
+#include "hash-bn_mul.h"
 
 #define SHA1_DIGEST_SIZE    (160 / 8)
 #define SHA224_DIGEST_SIZE  (224 / 8)
@@ -75,92 +41,23 @@ uint32_t icrc32(uint32_t crc, const void *data, ssize_t len);
 #define SHA384_BLOCK_SIZE   SHA512_BLOCK_SIZE
 #define SHA224_BLOCK_SIZE   SHA256_BLOCK_SIZE
 
-typedef struct sha1_ctx {
-    uint32_t state[5];
-    uint32_t count[2];
-    uint8_t buffer[64];
-} sha1_ctx;
+#include "hash-aes.h"
+#include "hash-arc4.h"
+#include "hash-config.h"
+#include "hash-des.h"
+#include "hash-havege.h"
+#include "hash-md2.h"
+#include "hash-md4.h"
+#include "hash-md5.h"
+#include "hash-padlock.h"
+#include "hash-rsa.h"
+#include "hash-sha1.h"
+#include "hash-sha2.h"
+#include "hash-sha4.h"
 
-typedef struct sha256_ctx {
-    uint32_t tot_len;
-    uint32_t len;
-    uint32_t h[8];
-    byte block[2 * SHA256_BLOCK_SIZE];
-} sha256_ctx;
-
-typedef struct sha512_ctx {
-    uint32_t tot_len;
-    uint32_t len;
-    uint64_t h[8];
-    byte block[2 * SHA512_BLOCK_SIZE];
-} sha512_ctx;
-
-typedef sha512_ctx sha384_ctx;
-typedef sha256_ctx sha224_ctx;
-
-typedef struct md5_ctx {
-    unsigned int offset;
-    unsigned int sz;
-    uint32_t counter[4];
-    unsigned char save[64];
-} md5_ctx;
-
-#define MAKE_UPDATESTR(pfx) \
-    static inline void pfx##_updatestr(pfx##_ctx *ctx, const char *s) { \
-        pfx##_update(ctx, s, strlen(s));                             \
-    }
-
-void md5_init(md5_ctx *ctx);
-void md5_update(md5_ctx *ctx, const void *data, uint32_t len);
-void md5_final(md5_ctx *ctx, byte *digest);
-void md5_final_hex(md5_ctx *ctx, char *digest);
-void md5(const void *message, uint32_t len, byte *digest);
-void md5_hex(const void *message, uint32_t len, char *digest);
-MAKE_UPDATESTR(md5);
-
-void sha1_init(sha1_ctx *ctx);
-void sha1_update(sha1_ctx *ctx, const void *data, uint32_t len);
-void sha1_final(sha1_ctx *ctx, byte *digest);
-void sha1_final_hex(sha1_ctx *ctx, char *digest);
-void sha1(const void *message, uint32_t len, byte *digest);
-void sha1_hex(const void *message, uint32_t len, char *digest);
-MAKE_UPDATESTR(sha1);
-
-void sha224_init(sha224_ctx *ctx);
-void sha224_update(sha224_ctx *ctx, const void *message, uint32_t len);
-void sha224_final(sha224_ctx *ctx, byte *digest);
-void sha224_final_hex(sha224_ctx *ctx, char *digest);
-void sha224(const void *message, uint32_t len, byte *digest);
-void sha224_hex(const void *message, uint32_t len, char *digest);
-MAKE_UPDATESTR(sha224);
-
-void sha256_init(sha256_ctx *ctx);
-void sha256_update(sha256_ctx *ctx, const void *message, uint32_t len);
-void sha256_final(sha256_ctx *ctx, byte *digest);
-void sha256_final_hex(sha256_ctx *ctx, char *digest);
-void sha256(const void *message, uint32_t len, byte *digest);
-void sha256_hex(const void *message, uint32_t len, char *digest);
-MAKE_UPDATESTR(sha256);
-
-void sha384_init(sha384_ctx *ctx);
-void sha384_update(sha384_ctx *ctx, const void *message, uint32_t len);
-void sha384_final(sha384_ctx *ctx, byte *digest);
-void sha384_final_hex(sha384_ctx *ctx, char *digest);
-void sha384(const void *message, uint32_t len, byte *digest);
-void sha384_hex(const void *message, uint32_t len, char *digest);
-MAKE_UPDATESTR(sha384);
-
-void sha512_init(sha512_ctx *ctx);
-void sha512_update(sha512_ctx *ctx, const void *message, uint32_t len);
-void sha512_final(sha512_ctx *ctx, byte *digest);
-void sha512_final_hex(sha512_ctx *ctx, char *digest);
-void sha512(const void *message, uint32_t len, byte *digest);
-void sha512_hex(const void *message, uint32_t len, char *digest);
-MAKE_UPDATESTR(sha512);
-
-int sha_sum_file(const char *filename, char *digest, int shatype, int binary);
+uint32_t icrc32(uint32_t crc, const void *data, ssize_t len);
 
 uint32_t hsieh_hash(const void *s, int len);
 uint32_t jenkins_hash(const void *s, int len);
 
-#endif /* IS_LIB_COMMON_HASH_H */
+#endif

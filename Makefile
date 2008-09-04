@@ -67,11 +67,21 @@ libcommon_SOURCES = \
 	file.c \
 	file-log.c \
 	\
+	hash-aes.c \
+	hash-arc4.c \
+	hash-bignum.c \
 	hash-crc.c \
+	hash-des.c \
 	hash-hash.c \
-	hash-sha2.c \
-	hash-sha1.c \
+	hash-havege.c \
+	hash-md2.c \
+	hash-md4.c \
 	hash-md5.c \
+	hash-padlock.c \
+	hash-rsa.c \
+	hash-sha1.c \
+	hash-sha2.c \
+	hash-sha4.c \
 	\
 	iprintf.c \
 	iprintf-dtoa.c \
@@ -96,6 +106,19 @@ libcommon_SOURCES = \
 	unix-solaris.c \
 	\
 	$(end_of_list)
+# hand optimized code, ill optimized at -O2
+hash-aes.c_CFLAGS    = -O
+hash-arc4.c_CFLAGS   = -O
+hash-bignum.c_CFLAGS = -O
+hash-des.c_CFLAGS    = -O
+hash-havege.c_CFLAGS = -O
+hash-md2.c_CFLAGS    = -O
+hash-md4.c_CFLAGS    = -O
+hash-md5.c_CFLAGS    = -O
+hash-rsa.c_CFLAGS    = -O
+hash-sha1.c_CFLAGS   = -O
+hash-sha2.c_CFLAGS   = -O
+hash-sha4.c_CFLAGS   = -O
 
 time-lp-simple_SOURCES = time-lp-simple.c
 
