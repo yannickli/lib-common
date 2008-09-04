@@ -11,8 +11,7 @@
 #                                                                        #
 ##########################################################################
 
-test_PROGRAMS = btree-dump tst-cfgparser tst-tpl tst-stats tst-htbl \
-                tst-statsdump
+test_PROGRAMS = btree-dump tst-cfgparser tst-tpl tst-htbl
 
 none_LIBRARIES = libcommon time-lp-simple
 
@@ -39,7 +38,6 @@ libcommon_SOURCES = \
 	parseopt.c \
 	psinfo.c \
 	showflags.c \
-	stats-temporal.c \
 	stopper.c \
 	time.c \
 	xml.c \
@@ -107,7 +105,6 @@ tst-cfgparser_SOURCES = tst-cfgparser.c libcommon.a compat/compat.a
 
 tst-tpl_SOURCES = tst-tpl.c libcommon.a
 
-tst-statsdump_SOURCES = tst-statsdump.c libcommon.a compat/compat.a
 tst-blob-iconv_SOURCES = \
 	tst-blob-iconv.c \
 	libcommon.a
@@ -130,7 +127,6 @@ tst-sort_LDFLAGS = -lm
 tst-iprintf-speed_SOURCES = tst-iprintf-speed.c libcommon.a compat/compat.a
 tst-iprintf-speed_CFLAGS = -UCHECK
 
-tst-stats_SOURCES = tst-stats.c libcommon.a compat/compat.a
 tst-htbl_SOURCES = tst-htbl.c libcommon.a compat/compat.a
 tst-path_SOURCES = tst-path.c libcommon.a compat/compat.a
 
@@ -141,7 +137,7 @@ endif
 
 ifneq (,$(MINGCC))
   # Disable some stuff that does not compile under MingW
-  libcommon_SOURCES := $(filter-out unix-linux.c mmappedfile.c psinfo.c btree.c stats-temporal.c, $(libcommon_SOURCES))
+  libcommon_SOURCES := $(filter-out unix-linux.c mmappedfile.c psinfo.c btree.c, $(libcommon_SOURCES))
   test_PROGRAMS := $(filter-out btree-dump, $(test_PROGRAMS))
 endif
 

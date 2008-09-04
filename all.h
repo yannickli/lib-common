@@ -37,7 +37,6 @@
 #include "property-hash.h"
 #include "property.h"
 #include "psinfo.h"
-#include "stats-temporal.h"
 #include "stopper.h"
 #include "str-conv.h"
 #include "str-path.h"
