@@ -21,6 +21,8 @@
 
 #define TIME_T_ERROR  ((time_t)-1)
 
+unsigned long hardclock(void);
+
 /***************************************************************************/
 /* low precision time() and gettimeofday() replacements                    */
 /***************************************************************************/

@@ -11,9 +11,118 @@
 /*                                                                        */
 /**************************************************************************/
 
+
 #include "str.h"
 #include "time.h"
 
+/*
+ *  Portable interface to the CPU cycle counter
+ *
+ *  Copyright (C) 2006-2007  Christophe Devine
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *    * Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in the
+ *      documentation and/or other materials provided with the distribution.
+ *    * Neither the name of XySSL nor the names of its contributors may be
+ *      used to endorse or promote products derived from this software
+ *      without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ *  TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ *  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ *  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * {{{
+ */
+#if (defined(_MSC_VER) && defined(_M_IX86)) || defined(__WATCOMC__)
+
+unsigned long hardclock(void)
+{
+    unsigned long tsc;
+    __asm   rdtsc
+    __asm   mov  [tsc], eax
+    return tsc;
+}
+
+#elif defined(__GNUC__)
+# if defined(__i386__)
+
+unsigned long hardclock(void)
+{
+    unsigned long tsc;
+    asm("rdtsc" : "=a" (tsc));
+    return tsc;
+}
+
+# elif defined(__amd64__) || defined(__x86_64__)
+
+unsigned long hardclock(void)
+{
+    unsigned long lo, hi;
+    asm("rdtsc" : "=a" (lo), "=d" (hi));
+    return lo | (hi << 32);
+}
+
+# elif defined(__powerpc__) || defined(__ppc__)
+
+unsigned long hardclock(void)
+{
+    unsigned long tbl, tbu0, tbu1;
+
+    do {
+        asm("mftbu %0" : "=r" (tbu0));
+        asm("mftb  %0" : "=r" (tbl));
+        asm("mftbu %0" : "=r" (tbu1));
+    } while (tbu0 != tbu1);
+
+    return tbl;
+}
+
+# elif defined(__sparc__)
+
+unsigned long hardclock(void)
+{
+    unsigned long tick;
+    asm(".byte 0x83, 0x41, 0x00, 0x00");
+    asm("mov   %%g1, %0" : "=r" (tick));
+    return tick;
+}
+
+# elif defined(__alpha__)
+
+unsigned long hardclock(void)
+{
+    unsigned long cc;
+    asm("rpcc %0" : "=r" (cc));
+    return cc & 0xFFFFFFFF;
+}
+
+# elif defined(__ia64__)
+
+unsigned long hardclock(void)
+{
+    unsigned long itc;
+    asm("mov %0 = ar.itc" : "=r" (itc));
+    return itc;
+}
+# else
+#  error unimplemented for your arch
+# endif
+#endif
+
+/* }}} */
 /***************************************************************************/
 /* timeval operations                                                      */
 /***************************************************************************/
