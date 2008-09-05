@@ -231,7 +231,7 @@ void ha_srand(void)
     havege_init(&hs_g);
 }
 
-int ha_rand(void)
+uint32_t ha_rand(void)
 {
     return havege_rand(&hs_g);
 }
@@ -240,6 +240,11 @@ int ha_rand_range(int first, int last)
 {
     uint64_t res = ha_rand() * (last - first + 1);
     return first + (res >> 32);
+}
+
+double ha_rand_ranged(double first, double last)
+{
+    return first + (ha_rand() * (last - first + 1)) / (1ULL << 32);
 }
 
 #if defined(XYSSL_RAND_TEST)

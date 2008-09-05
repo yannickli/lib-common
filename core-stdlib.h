@@ -19,7 +19,9 @@
 /*----- core-havege.c -----*/
 
 void ha_srand(void);
-int ha_rand(void);
+uint32_t ha_rand(void);
 int ha_rand_range(int first, int last);
+double ha_rand_ranged(double first, double last);
+
 
 #endif

@@ -313,9 +313,7 @@ void devnull_dup(int fd)
 
 void unix_initialize(void)
 {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    srand(tv.tv_usec);
+    ha_srand();
 
     if (!is_fd_open(STDIN_FILENO)) {
         devnull_dup(STDIN_FILENO);

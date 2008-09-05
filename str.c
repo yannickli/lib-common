@@ -867,7 +867,6 @@ ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t n)
 {
     char *p;
     const char *last;
-    int val;
     static const char hex[16] = "0123456789ABCDEF";
 
     n = MIN(size - offset - 1, n);
@@ -875,16 +874,11 @@ ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t n)
         return -1;
     }
 
-    /* RFE: This is very naive. Should at least call rand() only every 4
+    /* RFE: This is very naive. Should at least call ha_rand() only every 4
      * bytes. */
     last = dest + offset + n;
     for (p = dest + offset; p < last; p++) {
-#if RAND_MAX == 32767
-        val = (int)((16 * rand()) / (RAND_MAX + 1));
-#else
-        val = (int)(((double)16 * rand()) / (RAND_MAX + 1.0));
-#endif
-        *p = hex[val];
+        *p = hex[ha_rand_range(0, 15)];
     }
     *p = '\0';
     return n;
