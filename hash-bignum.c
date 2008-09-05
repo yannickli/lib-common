@@ -32,7 +32,7 @@
  *  This MPI implementation is based on:
  *
  *  http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf
- *  http://www.stillhq.com/extracted/gnupg-api/mpi/
+ *  http://www.stillhq.com/extracted/gnupg-api/mpi_t/
  *  http://math.libtomcrypt.com/files/tommath.pdf
  */
 
@@ -40,9 +40,9 @@
 
 #if defined(XYSSL_BIGNUM_C)
 
-#define ciL    ((int) sizeof(uint32_t))    /* chars in limb  */
-#define biL    (ciL << 3)               /* bits  in limb  */
-#define biH    (ciL << 2)               /* half limb size */
+#define ciL    ssizeof(uint32_t)
+#define biL    (ciL << 3)   /* bits  in limb  */
+#define biH    (ciL << 2)   /* half limb size */
 
 /*
  * Convert between bits/chars and number of limbs
@@ -51,9 +51,9 @@
 #define CHARS_TO_LIMBS(i) (((i) + ciL - 1) / ciL)
 
 /*
- * Initialize one or more mpi
+ * Initialize one or more mpi_t
  */
-void mpi_init(mpi *X, ...)
+void mpi_init(mpi_t *X, ...)
 {
     va_list args;
 
@@ -65,16 +65,16 @@ void mpi_init(mpi *X, ...)
         X->n = 0;
         X->p = NULL;
 
-        X = va_arg(args, mpi*);
+        X = va_arg(args, mpi_t*);
     }
 
     va_end(args);
 }
 
 /*
- * Unallocate one or more mpi
+ * Unallocate one or more mpi_t
  */
-void mpi_free(mpi *X, ...)
+void mpi_free(mpi_t *X, ...)
 {
     va_list args;
 
@@ -92,7 +92,7 @@ void mpi_free(mpi *X, ...)
         X->n = 0;
         X->p = NULL;
 
-        X = va_arg(args, mpi*);
+        X = va_arg(args, mpi_t*);
     }
 
     va_end(args);
@@ -101,7 +101,7 @@ void mpi_free(mpi *X, ...)
 /*
  * Enlarge to the specified number of limbs
  */
-int mpi_grow(mpi *X, int nblimbs)
+int mpi_grow(mpi_t *X, int nblimbs)
 {
     uint32_t *p;
 
@@ -129,7 +129,7 @@ int mpi_grow(mpi *X, int nblimbs)
 /*
  * Copy the contents of Y into X
  */
-int mpi_copy(mpi *X, mpi *Y)
+int mpi_copy(mpi_t *X, mpi_t *Y)
 {
     int ret, i;
 
@@ -156,19 +156,19 @@ cleanup:
 /*
  * Swap the contents of X and Y
  */
-void mpi_swap(mpi *X, mpi *Y)
+void mpi_swap(mpi_t *X, mpi_t *Y)
 {
-    mpi T;
+    mpi_t T;
 
-    memcpy(&T,  X, sizeof(mpi));
-    memcpy( X,  Y, sizeof(mpi));
-    memcpy( Y, &T, sizeof(mpi));
+    memcpy(&T,  X, sizeof(mpi_t));
+    memcpy( X,  Y, sizeof(mpi_t));
+    memcpy( Y, &T, sizeof(mpi_t));
 }
 
 /*
  * Set value from integer
  */
-int mpi_lset(mpi *X, int z)
+int mpi_lset(mpi_t *X, int z)
 {
     int ret;
 
@@ -186,7 +186,7 @@ cleanup:
 /*
  * Return the number of least significant bits
  */
-int mpi_lsb(mpi *X)
+int mpi_lsb(mpi_t *X)
 {
     int i, j, count = 0;
 
@@ -201,7 +201,7 @@ int mpi_lsb(mpi *X)
 /*
  * Return the number of most significant bits
  */
-int mpi_msb(mpi *X)
+int mpi_msb(mpi_t *X)
 {
     int i, j;
 
@@ -219,7 +219,7 @@ int mpi_msb(mpi *X)
 /*
  * Return the total size in bytes
  */
-int mpi_size(mpi *X)
+int mpi_size(mpi_t *X)
 {
     return (mpi_msb(X) + 7) >> 3;
 }
@@ -244,11 +244,11 @@ static int mpi_get_digit(uint32_t *d, int radix, char c)
 /*
  * Import from an ASCII string
  */
-int mpi_read_string(mpi *X, int radix, const char *s)
+int mpi_read_string(mpi_t *X, int radix, const char *s)
 {
     int ret, i, j, n;
     uint32_t d;
-    mpi T;
+    mpi_t T;
 
     if (radix < 2 || radix > 16)
         return XYSSL_ERR_MPI_BAD_INPUT_DATA;
@@ -302,7 +302,7 @@ cleanup:
 /*
  * Helper to write the digits high-order first
  */
-static int mpi_write_hlp(mpi *X, int radix, char **p)
+static int mpi_write_hlp(mpi_t *X, int radix, char **p)
 {
     int ret;
     uint32_t r;
@@ -329,11 +329,11 @@ cleanup:
 /*
  * Export into an ASCII string
  */
-int mpi_write_string(mpi *X, int radix, char *s, int *slen)
+int mpi_write_string(mpi_t *X, int radix, char *s, int *slen)
 {
     int ret = 0, n;
     char *p;
-    mpi T;
+    mpi_t T;
 
     if (radix < 2 || radix > 16)
         return XYSSL_ERR_MPI_BAD_INPUT_DATA;
@@ -392,7 +392,7 @@ cleanup:
 /*
  * Read X from an opened file
  */
-int mpi_read_file(mpi *X, int radix, FILE *fin)
+int mpi_read_file(mpi_t *X, int radix, FILE *fin)
 {
     uint32_t d;
     int slen;
@@ -418,7 +418,7 @@ int mpi_read_file(mpi *X, int radix, FILE *fin)
 /*
  * Write X into an opened file (or stdout if fout == NULL)
  */
-int mpi_write_file(const char *p, mpi *X, int radix, FILE *fout)
+int mpi_write_file(const char *p, mpi_t *X, int radix, FILE *fout)
 {
     int n, ret;
     size_t slen;
@@ -455,7 +455,7 @@ cleanup:
 /*
  * Import X from unsigned binary data, big endian
  */
-int mpi_read_binary(mpi *X, const byte *buf, int buflen)
+int mpi_read_binary(mpi_t *X, const byte *buf, int buflen)
 {
     int ret, i, j, n;
 
@@ -477,7 +477,7 @@ cleanup:
 /*
  * Export X into unsigned binary data, big endian
  */
-int mpi_write_binary(mpi *X, byte *buf, int buflen)
+int mpi_write_binary(mpi_t *X, byte *buf, int buflen)
 {
     int i, j, n;
 
@@ -497,7 +497,7 @@ int mpi_write_binary(mpi *X, byte *buf, int buflen)
 /*
  * Left-shift: X <<= count
  */
-int mpi_shift_l(mpi *X, int count)
+int mpi_shift_l(mpi_t *X, int count)
 {
     int ret, i, v0, t1;
     uint32_t r0 = 0, r1;
@@ -546,7 +546,7 @@ cleanup:
 /*
  * Right-shift: X >>= count
  */
-int mpi_shift_r(mpi *X, int count)
+int mpi_shift_r(mpi_t *X, int count)
 {
     int i, v0, v1;
     uint32_t r0 = 0, r1;
@@ -586,7 +586,7 @@ int mpi_shift_r(mpi *X, int count)
 /*
  * Compare unsigned values
  */
-int mpi_cmp_abs(mpi *X, mpi *Y)
+int mpi_cmp_abs(mpi_t *X, mpi_t *Y)
 {
     int i, j;
 
@@ -616,7 +616,7 @@ int mpi_cmp_abs(mpi *X, mpi *Y)
 /*
  * Compare signed values
  */
-int mpi_cmp_mpi(mpi *X, mpi *Y)
+int mpi_cmp_mpi(mpi_t *X, mpi_t *Y)
 {
     int i, j;
 
@@ -649,9 +649,9 @@ int mpi_cmp_mpi(mpi *X, mpi *Y)
 /*
  * Compare signed values
  */
-int mpi_cmp_int(mpi *X, int z)
+int mpi_cmp_int(mpi_t *X, int z)
 {
-    mpi Y;
+    mpi_t Y;
     uint32_t p[1];
 
     *p  = (z < 0) ? -z : z;
@@ -665,14 +665,14 @@ int mpi_cmp_int(mpi *X, int z)
 /*
  * Unsigned addition: X = |A| + |B|  (HAC 14.7)
  */
-int mpi_add_abs(mpi *X, mpi *A, mpi *B)
+int mpi_add_abs(mpi_t *X, mpi_t *A, mpi_t *B)
 {
     int ret, i, j;
     uint32_t *o, *p, c;
 
     if (X == B)
     {
-        mpi *T = A; A = X; B = T;
+        mpi_t *T = A; A = X; B = T;
     }
 
     if (X != A)
@@ -709,7 +709,7 @@ cleanup:
 }
 
 /*
- * Helper for mpi substraction
+ * Helper for mpi_t substraction
  */
 static void mpi_sub_hlp(int n, uint32_t *s, uint32_t *d)
 {
@@ -732,9 +732,9 @@ static void mpi_sub_hlp(int n, uint32_t *s, uint32_t *d)
 /*
  * Unsigned substraction: X = |A| - |B|  (HAC 14.9)
  */
-int mpi_sub_abs(mpi *X, mpi *A, mpi *B)
+int mpi_sub_abs(mpi_t *X, mpi_t *A, mpi_t *B)
 {
-    mpi TB;
+    mpi_t TB;
     int ret, n;
 
     if (mpi_cmp_abs(A, B) < 0)
@@ -769,7 +769,7 @@ cleanup:
 /*
  * Signed addition: X = A + B
  */
-int mpi_add_mpi(mpi *X, mpi *A, mpi *B)
+int mpi_add_mpi(mpi_t *X, mpi_t *A, mpi_t *B)
 {
     int ret, s = A->s;
 
@@ -800,7 +800,7 @@ cleanup:
 /*
  * Signed substraction: X = A - B
  */
-int mpi_sub_mpi(mpi *X, mpi *A, mpi *B)
+int mpi_sub_mpi(mpi_t *X, mpi_t *A, mpi_t *B)
 {
     int ret, s = A->s;
 
@@ -831,9 +831,9 @@ cleanup:
 /*
  * Signed addition: X = A + b
  */
-int mpi_add_int(mpi *X, mpi *A, int b)
+int mpi_add_int(mpi_t *X, mpi_t *A, int b)
 {
-    mpi _B;
+    mpi_t _B;
     uint32_t p[1];
 
     p[0] = (b < 0) ? -b : b;
@@ -847,9 +847,9 @@ int mpi_add_int(mpi *X, mpi *A, int b)
 /*
  * Signed substraction: X = A - b
  */
-int mpi_sub_int(mpi *X, mpi *A, int b)
+int mpi_sub_int(mpi_t *X, mpi_t *A, int b)
 {
-    mpi _B;
+    mpi_t _B;
     uint32_t p[1];
 
     p[0] = (b < 0) ? -b : b;
@@ -861,7 +861,7 @@ int mpi_sub_int(mpi *X, mpi *A, int b)
 }
 
 /*
- * Helper for mpi multiplication
+ * Helper for mpi_t multiplication
  */ 
 static void mpi_mul_hlp(int i, uint32_t *s, uint32_t *d, uint32_t b)
 {
@@ -927,10 +927,10 @@ static void mpi_mul_hlp(int i, uint32_t *s, uint32_t *d, uint32_t b)
 /*
  * Baseline multiplication: X = A * B  (HAC 14.12)
  */
-int mpi_mul_mpi(mpi *X, mpi *A, mpi *B)
+int mpi_mul_mpi(mpi_t *X, mpi_t *A, mpi_t *B)
 {
     int ret, i, j;
-    mpi TA, TB;
+    mpi_t TA, TB;
 
     mpi_init(&TA, &TB, NULL);
 
@@ -963,9 +963,9 @@ cleanup:
 /*
  * Baseline multiplication: X = A * b
  */
-int mpi_mul_int(mpi *X, mpi *A, uint32_t b)
+int mpi_mul_int(mpi_t *X, mpi_t *A, uint32_t b)
 {
-    mpi _B;
+    mpi_t _B;
     uint32_t p[1];
 
     _B.s = 1;
@@ -977,12 +977,12 @@ int mpi_mul_int(mpi *X, mpi *A, uint32_t b)
 }
 
 /*
- * Division by mpi: A = Q * B + R  (HAC 14.20)
+ * Division by mpi_t: A = Q * B + R  (HAC 14.20)
  */
-int mpi_div_mpi(mpi *Q, mpi *R, mpi *A, mpi *B)
+int mpi_div_mpi(mpi_t *Q, mpi_t *R, mpi_t *A, mpi_t *B)
 {
     int ret, i, n, t, k;
-    mpi X, Y, Z, T1, T2;
+    mpi_t X, Y, Z, T1, T2;
 
     if (mpi_cmp_int(B, 0) == 0)
         return XYSSL_ERR_MPI_DIVISION_BY_ZERO;
@@ -1144,9 +1144,9 @@ cleanup:
  *         1 if memory allocation failed
  *         XYSSL_ERR_MPI_DIVISION_BY_ZERO if b == 0
  */
-int mpi_div_int(mpi *Q, mpi *R, mpi *A, int b)
+int mpi_div_int(mpi_t *Q, mpi_t *R, mpi_t *A, int b)
 {
-    mpi _B;
+    mpi_t _B;
     uint32_t p[1];
 
     p[0] = (b < 0) ? -b : b;
@@ -1160,7 +1160,7 @@ int mpi_div_int(mpi *Q, mpi *R, mpi *A, int b)
 /*
  * Modulo: R = A mod B
  */
-int mpi_mod_mpi(mpi *R, mpi *A, mpi *B)
+int mpi_mod_mpi(mpi_t *R, mpi_t *A, mpi_t *B)
 {
     int ret;
 
@@ -1180,7 +1180,7 @@ cleanup:
 /*
  * Modulo: r = A mod b
  */
-int mpi_mod_int(uint32_t *r, mpi *A, int b)
+int mpi_mod_int(uint32_t *r, mpi_t *A, int b)
 {
     int i;
     uint32_t x, y, z;
@@ -1230,7 +1230,7 @@ int mpi_mod_int(uint32_t *r, mpi *A, int b)
 /*
  * Fast Montgomery initialization (thanks to Tom St Denis)
  */
-static void mpi_montg_init(uint32_t *mm, mpi *N)
+static void mpi_montg_init(uint32_t *mm, mpi_t *N)
 {
     uint32_t x, m0 = N->p[0];
 
@@ -1248,7 +1248,7 @@ static void mpi_montg_init(uint32_t *mm, mpi *N)
 /*
  * Montgomery multiplication: A = A * B * R^-1 mod N  (HAC 14.36)
  */
-static void mpi_montmul(mpi *A, mpi *B, mpi *N, uint32_t mm, mpi *T)
+static void mpi_montmul(mpi_t *A, mpi_t *B, mpi_t *N, uint32_t mm, mpi_t *T)
 {
     int i, n, m;
     uint32_t u0, u1, *d;
@@ -1285,10 +1285,10 @@ static void mpi_montmul(mpi *A, mpi *B, mpi *N, uint32_t mm, mpi *T)
 /*
  * Montgomery reduction: A = A * R^-1 mod N
  */
-static void mpi_montred(mpi *A, mpi *N, uint32_t mm, mpi *T)
+static void mpi_montred(mpi_t *A, mpi_t *N, uint32_t mm, mpi_t *T)
 {
     uint32_t z = 1;
-    mpi U;
+    mpi_t U;
 
     U.n = U.s = z;
     U.p = &z;
@@ -1299,12 +1299,12 @@ static void mpi_montred(mpi *A, mpi *N, uint32_t mm, mpi *T)
 /*
  * Sliding-window exponentiation: X = A^E mod N  (HAC 14.85)
  */
-int mpi_exp_mod(mpi *X, mpi *A, mpi *E, mpi *N, mpi *_RR)
+int mpi_exp_mod(mpi_t *X, mpi_t *A, mpi_t *E, mpi_t *N, mpi_t *_RR)
 {
     int ret, i, j, wsize, wbits;
     int bufsize, nblimbs, nbits;
     uint32_t ei, mm, state;
-    mpi RR, T, W[64];
+    mpi_t RR, T, W[64];
 
     if (mpi_cmp_int(N, 0) < 0 || (N->p[0] & 1) == 0)
         return XYSSL_ERR_MPI_BAD_INPUT_DATA;
@@ -1336,10 +1336,10 @@ int mpi_exp_mod(mpi *X, mpi *A, mpi *E, mpi *N, mpi *_RR)
         MPI_CHK(mpi_mod_mpi(&RR, &RR, N));
 
         if (_RR != NULL)
-            memcpy(_RR, &RR, sizeof(mpi));
+            memcpy(_RR, &RR, sizeof(mpi_t));
     }
     else
-        memcpy(&RR, _RR, sizeof(mpi));
+        memcpy(&RR, _RR, sizeof(mpi_t));
 
     /*
      * W[1] = A * R^2 * R^-1 mod N = A * R mod N
@@ -1478,10 +1478,10 @@ cleanup:
 /*
  * Greatest common divisor: G = gcd(A, B)  (HAC 14.54)
  */
-int mpi_gcd(mpi *G, mpi *A, mpi *B)
+int mpi_gcd(mpi_t *G, mpi_t *A, mpi_t *B)
 {
     int ret;
-    mpi TG, TA, TB;
+    mpi_t TG, TA, TB;
 
     mpi_init(&TG, &TA, &TB, NULL);
 
@@ -1520,10 +1520,10 @@ cleanup:
 /*
  * Modular inverse: X = A^-1 mod N  (HAC 14.61 / 14.64)
  */
-int mpi_inv_mod(mpi *X, mpi *A, mpi *N)
+int mpi_inv_mod(mpi_t *X, mpi_t *A, mpi_t *N)
 {
     int ret;
-    mpi G, TA, TU, U1, U2, TB, TV, V1, V2;
+    mpi_t G, TA, TU, U1, U2, TB, TV, V1, V2;
 
     if (mpi_cmp_int(N, 0) <= 0)
         return XYSSL_ERR_MPI_BAD_INPUT_DATA;
@@ -1638,10 +1638,10 @@ static const int small_prime[] =
 /*
  * Miller-Rabin primality test  (HAC 4.24)
  */
-int mpi_is_prime(mpi *X, int (*f_rng)(void *), void *p_rng)
+int mpi_is_prime(mpi_t *X, int (*f_rng)(void *), void *p_rng)
 {
     int ret, i, j, n, s, xs;
-    mpi W, R, T, A, RR;
+    mpi_t W, R, T, A, RR;
     byte *p;
 
     if (mpi_cmp_int(X, 0) == 0)
@@ -1749,12 +1749,12 @@ cleanup:
 /*
  * Prime number generation
  */
-int mpi_gen_prime(mpi *X, int nbits, int dh_flag,
+int mpi_gen_prime(mpi_t *X, int nbits, int dh_flag,
                    int (*f_rng)(void *), void *p_rng)
 {
     int ret, k, n;
     byte *p;
-    mpi Y;
+    mpi_t Y;
 
     if (nbits < 3)
         return XYSSL_ERR_MPI_BAD_INPUT_DATA;
@@ -1828,7 +1828,7 @@ cleanup:
 int mpi_self_test(int verbose)
 {
     int ret;
-    mpi A, E, N, X, Y, U, V;
+    mpi_t A, E, N, X, Y, U, V;
 
     mpi_init(&A, &E, &N, &X, &Y, &U, &V, NULL);
 

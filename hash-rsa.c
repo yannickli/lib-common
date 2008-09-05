@@ -65,7 +65,7 @@ void rsa_init(rsa_ctx *ctx,
 int rsa_gen_key(rsa_ctx *ctx, int nbits, int exponent)
 {
     int ret;
-    mpi P1, Q1, H, G;
+    mpi_t P1, Q1, H, G;
 
     if (ctx->f_rng == NULL || nbits < 128 || exponent < 3)
         return XYSSL_ERR_RSA_BAD_INPUT_DATA;
@@ -157,7 +157,7 @@ int rsa_check_pubkey(rsa_ctx *ctx)
 int rsa_check_privkey(rsa_ctx *ctx)
 {
     int ret;
-    mpi PQ, DE, P1, Q1, H, I, G;
+    mpi_t PQ, DE, P1, Q1, H, I, G;
 
     if ((ret = rsa_check_pubkey(ctx)) != 0)
         return ret;
@@ -192,7 +192,7 @@ cleanup:
 int rsa_public(rsa_ctx *ctx, const byte *input, byte *output)
 {
     int ret, olen;
-    mpi T;
+    mpi_t T;
 
     mpi_init(&T, NULL);
 
@@ -224,7 +224,7 @@ cleanup:
 int rsa_private(rsa_ctx *ctx, const byte *input, byte *output)
 {
     int ret, olen;
-    mpi T, T1, T2;
+    mpi_t T, T1, T2;
 
     mpi_init(&T, &T1, &T2, NULL);
 

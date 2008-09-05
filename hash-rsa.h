@@ -55,19 +55,19 @@ typedef struct {
     int ver;                    /*!<  always 0          */
     int len;                    /*!<  size(N) in chars  */
 
-    mpi N;                      /*!<  public modulus    */
-    mpi E;                      /*!<  public exponent   */
+    mpi_t N;                    /*!<  public modulus    */
+    mpi_t E;                    /*!<  public exponent   */
 
-    mpi D;                      /*!<  private exponent  */
-    mpi P;                      /*!<  1st prime factor  */
-    mpi Q;                      /*!<  2nd prime factor  */
-    mpi DP;                     /*!<  D % (P - 1)       */
-    mpi DQ;                     /*!<  D % (Q - 1)       */
-    mpi QP;                     /*!<  1 / (Q % P)       */
+    mpi_t D;                    /*!<  private exponent  */
+    mpi_t P;                    /*!<  1st prime factor  */
+    mpi_t Q;                    /*!<  2nd prime factor  */
+    mpi_t DP;                   /*!<  D % (P - 1)       */
+    mpi_t DQ;                   /*!<  D % (Q - 1)       */
+    mpi_t QP;                   /*!<  1 / (Q % P)       */
 
-    mpi RN;                     /*!<  cached R^2 mod N  */
-    mpi RP;                     /*!<  cached R^2 mod P  */
-    mpi RQ;                     /*!<  cached R^2 mod Q  */
+    mpi_t RN;                   /*!<  cached R^2 mod N  */
+    mpi_t RP;                   /*!<  cached R^2 mod P  */
+    mpi_t RQ;                   /*!<  cached R^2 mod Q  */
 
     int padding;                /*!<  1.5 or OAEP/PSS   */
     int hash_id;                /*!<  hash identifier   */
