@@ -14,39 +14,13 @@
 
 #define MPI_CHK(f) if((ret = f) != 0) goto cleanup
 
-/*
- * Define the base integer type, architecture-wise
- */
-#if defined(XYSSL_HAVE_INT8)
-typedef unsigned char  t_int;
-typedef unsigned short t_dbl;
-#else
-#if defined(XYSSL_HAVE_INT16)
-typedef unsigned short t_int;
-typedef unsigned long  t_dbl;
-#else
-  typedef unsigned long t_int;
-  #if defined(_MSC_VER) && defined(_M_IX86)
-  typedef unsigned __int64 t_dbl;
-  #else
-    #if defined(__amd64__) || defined(__x86_64__)    || \
-        defined(__ppc64__) || defined(__powerpc64__) || \
-        defined(__ia64__)  || defined(__alpha__)
-    typedef unsigned int t_dbl __attribute__((mode(TI)));
-    #else
-    typedef unsigned long long t_dbl;
-    #endif
-  #endif
-#endif
-#endif
-
 /**
  * \brief          MPI structure
  */
 typedef struct {
     int s;              /*!<  integer sign      */
     int n;              /*!<  total # of limbs  */
-    t_int *p;           /*!<  pointer to limbs  */
+    uint32_t *p;           /*!<  pointer to limbs  */
 } mpi;
 
 #ifdef __cplusplus
@@ -290,7 +264,7 @@ int mpi_mul_mpi(mpi *X, mpi *A, mpi *B);
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_mul_int(mpi *X, mpi *A, t_int b);
+int mpi_mul_int(mpi *X, mpi *A, uint32_t b);
 
 /**
  * \brief          Division by mpi: A = Q * B + R
@@ -330,7 +304,7 @@ int mpi_mod_mpi(mpi *R, mpi *A, mpi *B);
  *                 1 if memory allocation failed,
  *                 XYSSL_ERR_MPI_DIVISION_BY_ZERO if b == 0
  */
-int mpi_mod_int(t_int *r, mpi *A, int b);
+int mpi_mod_int(uint32_t *r, mpi *A, int b);
 
 /**
  * \brief          Sliding-window exponentiation: X = A^E mod N

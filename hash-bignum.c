@@ -40,7 +40,7 @@
 
 #if defined(XYSSL_BIGNUM_C)
 
-#define ciL    ((int) sizeof(t_int))    /* chars in limb  */
+#define ciL    ((int) sizeof(uint32_t))    /* chars in limb  */
 #define biL    (ciL << 3)               /* bits  in limb  */
 #define biH    (ciL << 2)               /* half limb size */
 
@@ -103,11 +103,11 @@ void mpi_free(mpi *X, ...)
  */
 int mpi_grow(mpi *X, int nblimbs)
 {
-    t_int *p;
+    uint32_t *p;
 
     if (X->n < nblimbs)
     {
-        if ((p = (t_int *) malloc(nblimbs * ciL)) == NULL)
+        if ((p = (uint32_t *) malloc(nblimbs * ciL)) == NULL)
             return 1;
 
         memset(p, 0, nblimbs * ciL);
@@ -227,7 +227,7 @@ int mpi_size(mpi *X)
 /*
  * Convert an ASCII character to digit value
  */
-static int mpi_get_digit(t_int *d, int radix, char c)
+static int mpi_get_digit(uint32_t *d, int radix, char c)
 {
     *d = 255;
 
@@ -235,7 +235,7 @@ static int mpi_get_digit(t_int *d, int radix, char c)
     if (c >= 0x41 && c <= 0x46) *d = c - 0x37;
     if (c >= 0x61 && c <= 0x66) *d = c - 0x57;
 
-    if (*d >= (t_int) radix)
+    if (*d >= (uint32_t) radix)
         return XYSSL_ERR_MPI_INVALID_CHARACTER;
 
     return 0;
@@ -247,7 +247,7 @@ static int mpi_get_digit(t_int *d, int radix, char c)
 int mpi_read_string(mpi *X, int radix, const char *s)
 {
     int ret, i, j, n;
-    t_int d;
+    uint32_t d;
     mpi T;
 
     if (radix < 2 || radix > 16)
@@ -305,7 +305,7 @@ cleanup:
 static int mpi_write_hlp(mpi *X, int radix, char **p)
 {
     int ret;
-    t_int r;
+    uint32_t r;
 
     if (radix < 2 || radix > 16)
         return XYSSL_ERR_MPI_BAD_INPUT_DATA;
@@ -394,7 +394,7 @@ cleanup:
  */
 int mpi_read_file(mpi *X, int radix, FILE *fin)
 {
-    t_int d;
+    uint32_t d;
     int slen;
     char *p;
     char s[1024];
@@ -467,7 +467,7 @@ int mpi_read_binary(mpi *X, const byte *buf, int buflen)
     MPI_CHK(mpi_lset(X, 0));
 
     for (i = buflen - 1, j = 0; i >= n; i--, j++)
-        X->p[j / ciL] |= ((t_int) buf[i]) << ((j % ciL) << 3);
+        X->p[j / ciL] |= ((uint32_t) buf[i]) << ((j % ciL) << 3);
 
 cleanup:
 
@@ -500,7 +500,7 @@ int mpi_write_binary(mpi *X, byte *buf, int buflen)
 int mpi_shift_l(mpi *X, int count)
 {
     int ret, i, v0, t1;
-    t_int r0 = 0, r1;
+    uint32_t r0 = 0, r1;
 
     v0 = count / (biL   );
     t1 = count & (biL - 1);
@@ -549,7 +549,7 @@ cleanup:
 int mpi_shift_r(mpi *X, int count)
 {
     int i, v0, v1;
-    t_int r0 = 0, r1;
+    uint32_t r0 = 0, r1;
 
     v0 = count /  biL;
     v1 = count & (biL - 1);
@@ -652,7 +652,7 @@ int mpi_cmp_mpi(mpi *X, mpi *Y)
 int mpi_cmp_int(mpi *X, int z)
 {
     mpi Y;
-    t_int p[1];
+    uint32_t p[1];
 
     *p  = (z < 0) ? -z : z;
     Y.s = (z < 0) ? -1 : 1;
@@ -668,7 +668,7 @@ int mpi_cmp_int(mpi *X, int z)
 int mpi_add_abs(mpi *X, mpi *A, mpi *B)
 {
     int ret, i, j;
-    t_int *o, *p, c;
+    uint32_t *o, *p, c;
 
     if (X == B)
     {
@@ -711,10 +711,10 @@ cleanup:
 /*
  * Helper for mpi substraction
  */
-static void mpi_sub_hlp(int n, t_int *s, t_int *d)
+static void mpi_sub_hlp(int n, uint32_t *s, uint32_t *d)
 {
     int i;
-    t_int c, z;
+    uint32_t c, z;
 
     for (i = c = 0; i < n; i++, s++, d++)
     {
@@ -834,7 +834,7 @@ cleanup:
 int mpi_add_int(mpi *X, mpi *A, int b)
 {
     mpi _B;
-    t_int p[1];
+    uint32_t p[1];
 
     p[0] = (b < 0) ? -b : b;
     _B.s = (b < 0) ? -1 : 1;
@@ -850,7 +850,7 @@ int mpi_add_int(mpi *X, mpi *A, int b)
 int mpi_sub_int(mpi *X, mpi *A, int b)
 {
     mpi _B;
-    t_int p[1];
+    uint32_t p[1];
 
     p[0] = (b < 0) ? -b : b;
     _B.s = (b < 0) ? -1 : 1;
@@ -863,9 +863,9 @@ int mpi_sub_int(mpi *X, mpi *A, int b)
 /*
  * Helper for mpi multiplication
  */ 
-static void mpi_mul_hlp(int i, t_int *s, t_int *d, t_int b)
+static void mpi_mul_hlp(int i, uint32_t *s, uint32_t *d, uint32_t b)
 {
-    t_int c = 0, t = 0;
+    uint32_t c = 0, t = 0;
 
 #if defined(MULADDC_HUIT)
     for (; i >= 8; i -= 8)
@@ -963,10 +963,10 @@ cleanup:
 /*
  * Baseline multiplication: X = A * b
  */
-int mpi_mul_int(mpi *X, mpi *A, t_int b)
+int mpi_mul_int(mpi *X, mpi *A, uint32_t b)
 {
     mpi _B;
-    t_int p[1];
+    uint32_t p[1];
 
     _B.s = 1;
     _B.n = 1;
@@ -1032,21 +1032,21 @@ int mpi_div_mpi(mpi *Q, mpi *R, mpi *A, mpi *B)
         else
         {
 #if defined(XYSSL_HAVE_LONGLONG)
-            t_dbl r;
+            uint64_t r;
 
-            r  = (t_dbl) X.p[i] << biL;
-            r |= (t_dbl) X.p[i - 1];
+            r  = (uint64_t) X.p[i] << biL;
+            r |= (uint64_t) X.p[i - 1];
             r /= Y.p[t];
-            if (r > ((t_dbl) 1 << biL) - 1)
-                r = ((t_dbl) 1 << biL) - 1;
+            if (r > ((uint64_t) 1 << biL) - 1)
+                r = ((uint64_t) 1 << biL) - 1;
 
-            Z.p[i - t - 1] = (t_int) r;
+            Z.p[i - t - 1] = (uint32_t) r;
 #else
             /*
              * __udiv_qrnnd_c, from gmp/longlong.h
              */
-            t_int q0, q1, r0, r1;
-            t_int d0, d1, d, m;
+            uint32_t q0, q1, r0, r1;
+            uint32_t d0, d1, d, m;
 
             d  = Y.p[t];
             d0 = (d << biH) >> biH;
@@ -1147,7 +1147,7 @@ cleanup:
 int mpi_div_int(mpi *Q, mpi *R, mpi *A, int b)
 {
     mpi _B;
-    t_int p[1];
+    uint32_t p[1];
 
     p[0] = (b < 0) ? -b : b;
     _B.s = (b < 0) ? -1 : 1;
@@ -1180,10 +1180,10 @@ cleanup:
 /*
  * Modulo: r = A mod b
  */
-int mpi_mod_int(t_int *r, mpi *A, int b)
+int mpi_mod_int(uint32_t *r, mpi *A, int b)
 {
     int i;
-    t_int x, y, z;
+    uint32_t x, y, z;
 
     if (b == 0)
         return XYSSL_ERR_MPI_DIVISION_BY_ZERO;
@@ -1230,9 +1230,9 @@ int mpi_mod_int(t_int *r, mpi *A, int b)
 /*
  * Fast Montgomery initialization (thanks to Tom St Denis)
  */
-static void mpi_montg_init(t_int *mm, mpi *N)
+static void mpi_montg_init(uint32_t *mm, mpi *N)
 {
-    t_int x, m0 = N->p[0];
+    uint32_t x, m0 = N->p[0];
 
     x  = m0;
     x += ((m0 + 2) & 4) << 1;
@@ -1248,10 +1248,10 @@ static void mpi_montg_init(t_int *mm, mpi *N)
 /*
  * Montgomery multiplication: A = A * B * R^-1 mod N  (HAC 14.36)
  */
-static void mpi_montmul(mpi *A, mpi *B, mpi *N, t_int mm, mpi *T)
+static void mpi_montmul(mpi *A, mpi *B, mpi *N, uint32_t mm, mpi *T)
 {
     int i, n, m;
-    t_int u0, u1, *d;
+    uint32_t u0, u1, *d;
 
     memset(T->p, 0, T->n * ciL);
 
@@ -1285,9 +1285,9 @@ static void mpi_montmul(mpi *A, mpi *B, mpi *N, t_int mm, mpi *T)
 /*
  * Montgomery reduction: A = A * R^-1 mod N
  */
-static void mpi_montred(mpi *A, mpi *N, t_int mm, mpi *T)
+static void mpi_montred(mpi *A, mpi *N, uint32_t mm, mpi *T)
 {
-    t_int z = 1;
+    uint32_t z = 1;
     mpi U;
 
     U.n = U.s = z;
@@ -1303,7 +1303,7 @@ int mpi_exp_mod(mpi *X, mpi *A, mpi *E, mpi *N, mpi *_RR)
 {
     int ret, i, j, wsize, wbits;
     int bufsize, nblimbs, nbits;
-    t_int ei, mm, state;
+    uint32_t ei, mm, state;
     mpi RR, T, W[64];
 
     if (mpi_cmp_int(N, 0) < 0 || (N->p[0] & 1) == 0)
@@ -1394,7 +1394,7 @@ int mpi_exp_mod(mpi *X, mpi *A, mpi *E, mpi *N, mpi *_RR)
             if (nblimbs-- == 0)
                 break;
 
-            bufsize = sizeof(t_int) << 3;
+            bufsize = sizeof(uint32_t) << 3;
         }
 
         bufsize--;
@@ -1659,7 +1659,7 @@ int mpi_is_prime(mpi *X, int (*f_rng)(void *), void *p_rng)
 
     for (i = 0; small_prime[i] > 0; i++)
     {
-        t_int r;
+        uint32_t r;
 
         if (mpi_cmp_int(X, small_prime[i]) <= 0)
             return 0;

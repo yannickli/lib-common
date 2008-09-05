@@ -635,11 +635,11 @@
 
 #define MULADDC_INIT                    \
 {                                       \
-    t_dbl r;                            \
+    uint64_t r;                            \
     t_int r0, r1;
 
 #define MULADDC_CORE                    \
-    r   = *(s++) * (t_dbl) b;           \
+    r   = *(s++) * (uint64_t) b;           \
     r0  = r;                            \
     r1  = r >> biL;                     \
     r0 += c;  r1 += (r0 <  c);          \
