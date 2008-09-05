@@ -59,8 +59,9 @@ libcommon_SOURCES = \
 	container-list.c \
 	container-ring.c \
 	\
-	core-debug.c   \
-	core-errors.c  \
+	core-debug.c \
+	core-errors.c \
+	core-havege.c \
 	\
 	el.c \
 	\
@@ -73,7 +74,6 @@ libcommon_SOURCES = \
 	hash-crc.c \
 	hash-des.c \
 	hash-hash.c \
-	hash-havege.c \
 	hash-md2.c \
 	hash-md4.c \
 	hash-md5.c \

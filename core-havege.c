@@ -39,7 +39,20 @@
 #include "hash.h"
 #include "time.h"
 
-#if defined(XYSSL_HAVEGE_C)
+#define COLLECT_SIZE  1024
+
+/**
+ * \brief          HAVEGE state structure
+ */
+typedef struct {
+    int PT1, PT2, offset[2];
+    int pool[COLLECT_SIZE];
+    int WALK[8192];
+} havege_state_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* ------------------------------------------------------------------------
  * On average, one iteration accesses two 8-word blocks in the havege WALK
@@ -55,8 +68,8 @@
  * ------------------------------------------------------------------------
  */
 
-#define TST1_ENTER if( PTEST & 1 ) { PTEST ^= 3; PTEST >>= 1;
-#define TST2_ENTER if( PTEST & 1 ) { PTEST ^= 3; PTEST >>= 1;
+#define TST1_ENTER if (PTEST & 1) { PTEST ^= 3; PTEST >>= 1;
+#define TST2_ENTER if (PTEST & 1) { PTEST ^= 3; PTEST >>= 1;
 
 #define TST1_LEAVE U1++; }
 #define TST2_LEAVE U2++; }
@@ -95,7 +108,7 @@
     C = &WALK[PT1 ^ 3]; RES[i++] ^= *C;                 \
     D = &WALK[PT2 ^ 6]; RES[i++] ^= *D;                 \
                                                         \
-    if( PTEST & 1 ) SWAP(int *, A, C);                  \
+    if (PTEST & 1) SWAP(int *, A, C);                  \
                                                         \
     IN = (*A >> (5)) ^ (*A << (27)) ^ CLK;              \
     *A = (*B >> (6)) ^ (*B << (26)) ^ CLK;              \
@@ -128,7 +141,7 @@
     RES[i++] ^= *C;                                     \
     RES[i++] ^= *D;                                     \
                                                         \
-    IN = (*A >> ( 9)) ^ (*A << (23)) ^ CLK;             \
+    IN = (*A >> (9)) ^ (*A << (23)) ^ CLK;             \
     *A = (*B >> (10)) ^ (*B << (22)) ^ CLK;             \
     *B = IN ^ U2;                                       \
     *C = (*C >> (11)) ^ (*C << (21)) ^ CLK;             \
@@ -145,17 +158,17 @@
     *C = (*C >> (15)) ^ (*C << (17)) ^ CLK;             \
     *D = (*D >> (16)) ^ (*D << (16)) ^ CLK;             \
                                                         \
-    PT1 = ( RES[(i - 8) ^ PTX] ^                        \
-            WALK[PT1 ^ PTX ^ 7] ) & (~1);               \
+    PT1 = (RES[(i - 8) ^ PTX] ^                        \
+            WALK[PT1 ^ PTX ^ 7]) & (~1);               \
     PT1 ^= (PT2 ^ 0x10) & 0x10;                         \
                                                         \
-    for( n++, i = 0; i < 16; i++ )                      \
+    for (n++, i = 0; i < 16; i++)                      \
         hs->pool[n % COLLECT_SIZE] ^= RES[i];
 
 /*
  * Entropy gathering function
  */
-static void havege_fill( havege_state *hs )
+static void havege_fill(havege_state_t *hs)
 {
     int i, n = 0;
     int  U1,  U2, *A, *B, *C, *D;
@@ -169,9 +182,9 @@ static void havege_fill( havege_state *hs )
     PTX  = U1 = 0;
     PTY  = U2 = 0;
 
-    memset( RES, 0, sizeof( RES ) );
+    memset(RES, 0, sizeof(RES));
 
-    while( n < COLLECT_SIZE * 4 )
+    while (n < COLLECT_SIZE * 4)
     {
         ONE_ITERATION
         ONE_ITERATION
@@ -189,75 +202,89 @@ static void havege_fill( havege_state *hs )
 /*
  * HAVEGE initialization
  */
-void havege_init( havege_state *hs )
+static void havege_init(havege_state_t *hs)
 {
-    memset( hs, 0, sizeof( havege_state ) );
-
-    havege_fill( hs );
+    p_clear(hs, 1);
+    havege_fill(hs);
 }
 
 /*
  * HAVEGE rand function
  */
-int havege_rand( void *p_rng )
+static int havege_rand(havege_state_t *hs)
 {
     int ret;
-    havege_state *hs = (havege_state *) p_rng;
 
-    if( hs->offset[1] >= COLLECT_SIZE )
-        havege_fill( hs );
+    if (hs->offset[1] >= COLLECT_SIZE)
+        havege_fill(hs);
 
     ret  = hs->pool[hs->offset[0]++];
     ret ^= hs->pool[hs->offset[1]++];
 
-    return( ret );
+    return ret;
+}
+
+static havege_state_t hs_g;
+
+void ha_srand(void)
+{
+    havege_init(&hs_g);
+}
+
+int ha_rand(void)
+{
+    return havege_rand(&hs_g);
+}
+
+int ha_rand_range(int first, int last)
+{
+    uint64_t res = ha_rand() * (last - first + 1);
+    return first + (res >> 32);
 }
 
 #if defined(XYSSL_RAND_TEST)
 
-int main( int argc, char *argv[] )
+int main(int argc, char *argv[])
 {
     FILE *f;
     time_t t;
     int i, j, k;
-    havege_state hs;
+    havege_state_t hs;
     byte buf[1024];
 
-    if( argc < 2 )
+    if (argc < 2)
     {
-        fprintf( stderr, "usage: %s <output filename>\n", argv[0] );
-        return( 1 );
+        fprintf(stderr, "usage: %s <output filename>\n", argv[0]);
+        return 1;
     }
 
-    if( ( f = fopen( argv[1], "wb+" ) ) == NULL )
+    if ((f = fopen(argv[1], "wb+")) == NULL)
     {
-        printf( "failed to open '%s' for writing.\n", argv[0] );
-        return( 1 );
+        printf("failed to open '%s' for writing.\n", argv[0]);
+        return 1;
     }
 
-    havege_init( &hs );
+    havege_init(&hs);
 
-    t = time( NULL );
+    t = time(NULL);
 
-    for( i = 0, k = 32768; i < k; i++ )
+    for (i = 0, k = 32768; i < k; i++)
     {
-        for( j = 0; j < sizeof( buf ); j++ )
-            buf[j] = havege_rand( &hs );
+        for (j = 0; j < sizeof(buf); j++)
+            buf[j] = havege_rand(&hs);
 
-        fwrite( buf, sizeof( buf ), 1, f );
+        fwrite(buf, sizeof(buf), 1, f);
 
-        printf( "Generating 32Mb of data in file '%s'... %04.1f" \
-                "%% done\r", argv[1], (100 * (float) (i + 1)) / k );
-        fflush( stdout );
+        printf("Generating 32Mb of data in file '%s'... %04.1f" \
+                "%% done\r", argv[1], (100 * (float) (i + 1)) / k);
+        fflush(stdout);
     }
 
-    if( t == time( NULL ) )
+    if (t == time(NULL))
         t--;
 
-    fclose( f );
-    return( 0 );
+    fclose(f);
+    return 0;
 }
-
-#endif
 
 #endif

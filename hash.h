@@ -57,7 +57,6 @@
 #include "hash-arc4.h"
 #include "hash-config.h"
 #include "hash-des.h"
-#include "hash-havege.h"
 #include "hash-md2.h"
 #include "hash-md4.h"
 #include "hash-md5.h"
