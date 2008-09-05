@@ -51,8 +51,7 @@
 /**
  * \brief          RSA context structure
  */
-typedef struct
-{
+typedef struct {
     int ver;                    /*!<  always 0          */
     int len;                    /*!<  size(N) in chars  */
 
@@ -74,8 +73,7 @@ typedef struct
     int hash_id;                /*!<  hash identifier   */
     int (*f_rng)(void *);       /*!<  RNG function      */
     void *p_rng;                /*!<  RNG parameter     */
-}
-rsa_ctx;
+} rsa_ctx;
 
 #ifdef __cplusplus
 extern "C" {
@@ -96,11 +94,8 @@ extern "C" {
  * \note           Currently (xyssl-0.8), RSA_PKCS_V21 padding
  *                 is not supported.
  */
-void rsa_init( rsa_ctx *ctx,
-               int padding,
-               int hash_id,
-               int (*f_rng)(void *),
-               void *p_rng );
+void rsa_init(rsa_ctx *ctx, int padding, int hash_id,
+              int (*f_rng)(void *), void *p_rng);
 
 /**
  * \brief          Generate an RSA keypair
@@ -114,7 +109,7 @@ void rsa_init( rsa_ctx *ctx,
  *
  * \return         0 if successful, or an XYSSL_ERR_RSA_XXX error code
  */
-int rsa_gen_key( rsa_ctx *ctx, int nbits, int exponent );
+int rsa_gen_key(rsa_ctx *ctx, int nbits, int exponent);
 
 /**
  * \brief          Check a public RSA key
@@ -123,7 +118,7 @@ int rsa_gen_key( rsa_ctx *ctx, int nbits, int exponent );
  *
  * \return         0 if successful, or an XYSSL_ERR_RSA_XXX error code
  */
-int rsa_check_pubkey( rsa_ctx *ctx );
+int rsa_check_pubkey(rsa_ctx *ctx);
 
 /**
  * \brief          Check a private RSA key
@@ -132,7 +127,7 @@ int rsa_check_pubkey( rsa_ctx *ctx );
  *
  * \return         0 if successful, or an XYSSL_ERR_RSA_XXX error code
  */
-int rsa_check_privkey( rsa_ctx *ctx );
+int rsa_check_privkey(rsa_ctx *ctx);
 
 /**
  * \brief          Do an RSA public key operation
@@ -149,9 +144,7 @@ int rsa_check_privkey( rsa_ctx *ctx );
  * \note           The input and output buffers must be large
  *                 enough (eg. 128 bytes if RSA-1024 is used).
  */
-int rsa_public( rsa_ctx *ctx,
-                byte *input,
-                byte *output );
+int rsa_public(rsa_ctx *ctx, const byte *input, byte *output);
 
 /**
  * \brief          Do an RSA private key operation
@@ -165,9 +158,7 @@ int rsa_public( rsa_ctx *ctx,
  * \note           The input and output buffers must be large
  *                 enough (eg. 128 bytes if RSA-1024 is used).
  */
-int rsa_private( rsa_ctx *ctx,
-                 byte *input,
-                 byte *output );
+int rsa_private(rsa_ctx *ctx, const byte *input, byte *output);
 
 /**
  * \brief          Add the message padding, then do an RSA operation
@@ -183,10 +174,8 @@ int rsa_private( rsa_ctx *ctx,
  * \note           The output buffer must be as large as the size
  *                 of ctx->N (eg. 128 bytes if RSA-1024 is used).
  */
-int rsa_pkcs1_encrypt( rsa_ctx *ctx,
-                       int mode, int  ilen,
-                       byte *input,
-                       byte *output );
+int rsa_pkcs1_encrypt(rsa_ctx *ctx, int mode, int  ilen,
+                      const byte *input, byte *output);
 
 /**
  * \brief          Do an RSA operation, then remove the message padding
@@ -202,10 +191,8 @@ int rsa_pkcs1_encrypt( rsa_ctx *ctx,
  * \note           The output buffer must be as large as the size
  *                 of ctx->N (eg. 128 bytes if RSA-1024 is used).
  */
-int rsa_pkcs1_decrypt( rsa_ctx *ctx,
-                       int mode, int *olen,
-                       byte *input,
-                       byte *output );
+int rsa_pkcs1_decrypt(rsa_ctx *ctx, int mode, int *olen,
+                      const byte *input, byte *output);
 
 /**
  * \brief          Do a private RSA to sign a message digest
@@ -223,12 +210,8 @@ int rsa_pkcs1_decrypt( rsa_ctx *ctx,
  * \note           The "sig" buffer must be as large as the size
  *                 of ctx->N (eg. 128 bytes if RSA-1024 is used).
  */
-int rsa_pkcs1_sign( rsa_ctx *ctx,
-                    int mode,
-                    int hash_id,
-                    int hashlen,
-                    byte *hash,
-                    byte *sig );
+int rsa_pkcs1_sign(rsa_ctx *ctx, int mode, int hash_id, int hashlen,
+                   const byte *hash, byte *sig);
 
 /**
  * \brief          Do a public RSA and check the message digest
@@ -246,24 +229,20 @@ int rsa_pkcs1_sign( rsa_ctx *ctx,
  * \note           The "sig" buffer must be as large as the size
  *                 of ctx->N (eg. 128 bytes if RSA-1024 is used).
  */
-int rsa_pkcs1_verify( rsa_ctx *ctx,
-                      int mode,
-                      int hash_id,
-                      int hashlen,
-                      byte *hash,
-                      byte *sig );
+int rsa_pkcs1_verify(rsa_ctx *ctx, int mode, int hash_id, int hashlen,
+                     const byte *hash, byte *sig);
 
 /**
  * \brief          Free the components of an RSA key
  */
-void rsa_free( rsa_ctx *ctx );
+void rsa_free(rsa_ctx *ctx);
 
 /**
  * \brief          Checkup routine
  *
  * \return         0 if successful, or 1 if the test failed
  */
-int rsa_self_test( int verbose );
+int rsa_self_test(int verbose);
 
 #ifdef __cplusplus
 }

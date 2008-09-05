@@ -26,7 +26,7 @@ extern "C" {
  *
  * \return         1 if CPU has support for the feature, 0 otherwise
  */
-int padlock_supports( int feature );
+int padlock_supports(int feature);
 
 /**
  * \brief          PadLock AES-ECB block en(de)cryption
@@ -38,10 +38,8 @@ int padlock_supports( int feature );
  *
  * \return         0 if success, 1 if operation failed
  */
-int padlock_xcryptecb( aes_ctx *ctx,
-                       int mode,
-                       byte input[16],
-                       byte output[16] );
+int padlock_xcryptecb(aes_ctx *ctx, int mode, const byte input[16],
+                      byte output[16]);
 
 /**
  * \brief          PadLock AES-CBC buffer en(de)cryption
@@ -55,12 +53,8 @@ int padlock_xcryptecb( aes_ctx *ctx,
  *
  * \return         0 if success, 1 if operation failed
  */
-int padlock_xcryptcbc( aes_ctx *ctx,
-                       int mode,
-                       int length,
-                       byte iv[16],
-                       byte *input,
-                       byte *output );
+int padlock_xcryptcbc(aes_ctx *ctx, int mode, int length,
+                      byte iv[16], const byte *input, byte *output);
 
 #ifdef __cplusplus
 }

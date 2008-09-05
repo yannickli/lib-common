@@ -7,13 +7,11 @@
 /**
  * \brief          ARC4 context structure
  */
-typedef struct
-{
+typedef struct {
     int x;             /*!< permutation index */
     int y;             /*!< permutation index */
     byte m[256];       /*!< permutation table */
-}
-arc4_ctx;
+} arc4_ctx;
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,7 +24,7 @@ extern "C" {
  * \param key      the secret key
  * \param keylen   length of the key
  */
-void arc4_setup( arc4_ctx *ctx, byte *key, int keylen );
+void arc4_setup(arc4_ctx *ctx, const byte *key, int keylen);
 
 /**
  * \brief          ARC4 cipher function
@@ -35,14 +33,14 @@ void arc4_setup( arc4_ctx *ctx, byte *key, int keylen );
  * \param buf      buffer to be processed
  * \param buflen   amount of data in buf
  */
-void arc4_crypt( arc4_ctx *ctx, byte *buf, int buflen );
+void arc4_crypt(arc4_ctx *ctx, byte *buf, int buflen);
 
 /*
  * \brief          Checkup routine
  *
  * \return         0 if successful, or 1 if the test failed
  */
-int arc4_self_test( int verbose );
+int arc4_self_test(int verbose);
 
 #ifdef __cplusplus
 }

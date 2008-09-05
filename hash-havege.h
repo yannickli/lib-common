@@ -9,13 +9,11 @@
 /**
  * \brief          HAVEGE state structure
  */
-typedef struct
-{
+typedef struct {
     int PT1, PT2, offset[2];
     int pool[COLLECT_SIZE];
     int WALK[8192];
-}
-havege_state;
+} havege_state;
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,7 +24,7 @@ extern "C" {
  *
  * \param hs       HAVEGE state to be initialized
  */
-void havege_init( havege_state *hs );
+void havege_init(havege_state *hs);
 
 /**
  * \brief          HAVEGE rand function
@@ -35,7 +33,7 @@ void havege_init( havege_state *hs );
  *
  * \return         A random int
  */
-int havege_rand( void *p_rng );
+int havege_rand(void *p_rng);
 
 #ifdef __cplusplus
 }

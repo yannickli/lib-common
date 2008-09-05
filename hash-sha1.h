@@ -7,16 +7,14 @@
 /**
  * \brief          SHA-1 context structure
  */
-typedef struct
-{
+typedef struct {
     uint32_t total[2]; /*!< number of bytes processed  */
     uint32_t state[5]; /*!< intermediate digest state  */
     byte buffer[64];   /*!< data block being processed */
 
     byte ipad[64];     /*!< HMAC: inner padding        */
     byte opad[64];     /*!< HMAC: outer padding        */
-}
-sha1_ctx;
+} sha1_ctx;
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,7 +25,7 @@ extern "C" {
  *
  * \param ctx      context to be initialized
  */
-void sha1_starts( sha1_ctx *ctx );
+void sha1_starts(sha1_ctx *ctx);
 
 /**
  * \brief          SHA-1 process buffer
@@ -36,7 +34,7 @@ void sha1_starts( sha1_ctx *ctx );
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha1_update( sha1_ctx *ctx, const void *input, int ilen );
+void sha1_update(sha1_ctx *ctx, const void *input, int ilen);
 
 /**
  * \brief          SHA-1 final digest
@@ -44,7 +42,7 @@ void sha1_update( sha1_ctx *ctx, const void *input, int ilen );
  * \param ctx      SHA-1 context
  * \param output   SHA-1 checksum result
  */
-void sha1_finish( sha1_ctx *ctx, byte output[20] );
+void sha1_finish(sha1_ctx *ctx, byte output[20]);
 
 /**
  * \brief          SHA-1 final digest
@@ -52,19 +50,19 @@ void sha1_finish( sha1_ctx *ctx, byte output[20] );
  * \param ctx      SHA-1 context
  * \param output   SHA-1 checksum result
  */
-void sha1_finish_hex( sha1_ctx *ctx, char output[41] );
+void sha1_finish_hex(sha1_ctx *ctx, char output[41]);
 
 /**
- * \brief          Output = SHA-1( input buffer )
+ * \brief          Output = SHA-1(input buffer)
  *
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  * \param output   SHA-1 checksum result
  */
-void sha1( const void *input, int ilen, byte output[20] );
+void sha1(const void *input, int ilen, byte output[20]);
 
 /**
- * \brief          Output = SHA-1( file contents )
+ * \brief          Output = SHA-1(file contents)
  *
  * \param path     input file name
  * \param output   SHA-1 checksum result
@@ -72,7 +70,7 @@ void sha1( const void *input, int ilen, byte output[20] );
  * \return         0 if successful, 1 if fopen failed,
  *                 or 2 if fread failed
  */
-int sha1_file( char *path, byte output[20] );
+int sha1_file(char *path, byte output[20]);
 
 /**
  * \brief          SHA-1 HMAC context setup
@@ -81,7 +79,7 @@ int sha1_file( char *path, byte output[20] );
  * \param key      HMAC secret key
  * \param keylen   length of the HMAC key
  */
-void sha1_hmac_starts( sha1_ctx *ctx, const void *key, int keylen );
+void sha1_hmac_starts(sha1_ctx *ctx, const void *key, int keylen);
 
 /**
  * \brief          SHA-1 HMAC process buffer
@@ -90,7 +88,7 @@ void sha1_hmac_starts( sha1_ctx *ctx, const void *key, int keylen );
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha1_hmac_update( sha1_ctx *ctx, const void *input, int ilen );
+void sha1_hmac_update(sha1_ctx *ctx, const void *input, int ilen);
 
 /**
  * \brief          SHA-1 HMAC final digest
@@ -98,10 +96,10 @@ void sha1_hmac_update( sha1_ctx *ctx, const void *input, int ilen );
  * \param ctx      HMAC context
  * \param output   SHA-1 HMAC checksum result
  */
-void sha1_hmac_finish( sha1_ctx *ctx, byte output[20] );
+void sha1_hmac_finish(sha1_ctx *ctx, byte output[20]);
 
 /**
- * \brief          Output = HMAC-SHA-1( hmac key, input buffer )
+ * \brief          Output = HMAC-SHA-1(hmac key, input buffer)
  *
  * \param key      HMAC secret key
  * \param keylen   length of the HMAC key
@@ -109,16 +107,15 @@ void sha1_hmac_finish( sha1_ctx *ctx, byte output[20] );
  * \param ilen     length of the input data
  * \param output   HMAC-SHA-1 result
  */
-void sha1_hmac( const void *key, int keylen,
-                const void *input, int ilen,
-                byte output[20] );
+void sha1_hmac(const void *key, int keylen, const void *input, int ilen,
+               byte output[20]);
 
 /**
  * \brief          Checkup routine
  *
  * \return         0 if successful, or 1 if the test failed
  */
-int sha1_self_test( int verbose );
+int sha1_self_test(int verbose);
 
 #ifdef __cplusplus
 }

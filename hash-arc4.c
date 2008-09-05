@@ -41,7 +41,7 @@
 /*
  * ARC4 key schedule
  */
-void arc4_setup( arc4_ctx *ctx, byte *key, int keylen )
+void arc4_setup(arc4_ctx *ctx, const byte *key, int keylen)
 {
     int i, j, k, a;
     byte *m;
@@ -50,17 +50,17 @@ void arc4_setup( arc4_ctx *ctx, byte *key, int keylen )
     ctx->y = 0;
     m = ctx->m;
 
-    for( i = 0; i < 256; i++ )
+    for (i = 0; i < 256; i++)
         m[i] = (byte) i;
 
     j = k = 0;
 
-    for( i = 0; i < 256; i++, k++ )
+    for (i = 0; i < 256; i++, k++)
     {
-        if( k >= keylen ) k = 0;
+        if (k >= keylen) k = 0;
 
         a = m[i];
-        j = ( j + a + key[k] ) & 0xFF;
+        j = (j + a + key[k]) & 0xFF;
         m[i] = m[j];
         m[j] = (byte) a;
     }
@@ -69,7 +69,7 @@ void arc4_setup( arc4_ctx *ctx, byte *key, int keylen )
 /*
  * ARC4 cipher function
  */
-void arc4_crypt( arc4_ctx *ctx, byte *buf, int buflen )
+void arc4_crypt(arc4_ctx *ctx, byte *buf, int buflen)
 {
     int i, x, y, a, b;
     byte *m;
@@ -78,16 +78,16 @@ void arc4_crypt( arc4_ctx *ctx, byte *buf, int buflen )
     y = ctx->y;
     m = ctx->m;
 
-    for( i = 0; i < buflen; i++ )
+    for (i = 0; i < buflen; i++)
     {
-        x = ( x + 1 ) & 0xFF; a = m[x];
-        y = ( y + a ) & 0xFF; b = m[y];
+        x = (x + 1) & 0xFF; a = m[x];
+        y = (y + a) & 0xFF; b = m[y];
 
         m[x] = (byte) b;
         m[y] = (byte) a;
 
         buf[i] = (byte)
-            ( buf[i] ^ m[(byte)( a + b )] );
+            (buf[i] ^ m[(byte)(a + b)]);
     }
 
     ctx->x = x;
@@ -125,38 +125,38 @@ static const byte arc4_test_ct[3][8] =
 /*
  * Checkup routine
  */
-int arc4_self_test( int verbose )
+int arc4_self_test(int verbose)
 {
     int i;
     byte buf[8];
     arc4_ctx ctx;
 
-    for( i = 0; i < 3; i++ )
+    for (i = 0; i < 3; i++)
     {
-        if( verbose != 0 )
-            printf( "  ARC4 test #%d: ", i + 1 );
+        if (verbose != 0)
+            printf("  ARC4 test #%d: ", i + 1);
 
-        memcpy( buf, arc4_test_pt[i], 8 );
+        memcpy(buf, arc4_test_pt[i], 8);
 
-        arc4_setup( &ctx, (byte *) arc4_test_key[i], 8 );
-        arc4_crypt( &ctx, buf, 8 );
+        arc4_setup(&ctx, (byte *) arc4_test_key[i], 8);
+        arc4_crypt(&ctx, buf, 8);
 
-        if( memcmp( buf, arc4_test_ct[i], 8 ) != 0 )
+        if (memcmp(buf, arc4_test_ct[i], 8) != 0)
         {
-            if( verbose != 0 )
-                printf( "failed\n" );
+            if (verbose != 0)
+                printf("failed\n");
 
-            return( 1 );
+            return 1;
         }
 
-        if( verbose != 0 )
-            printf( "passed\n" );
+        if (verbose != 0)
+            printf("passed\n");
     }
 
-    if( verbose != 0 )
-        printf( "\n" );
+    if (verbose != 0)
+        printf("\n");
 
-    return( 0 );
+    return 0;
 }
 
 #endif

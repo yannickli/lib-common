@@ -7,16 +7,14 @@
 /**
  * \brief          MD4 context structure
  */
-typedef struct
-{
+typedef struct {
     uint32_t total[2]; /*!< number of bytes processed  */
     uint32_t state[4]; /*!< intermediate digest state  */
     byte buffer[64];   /*!< data block being processed */
 
     byte ipad[64];     /*!< HMAC: inner padding        */
     byte opad[64];     /*!< HMAC: outer padding        */
-}
-md4_ctx;
+} md4_ctx;
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,7 +25,7 @@ extern "C" {
  *
  * \param ctx      context to be initialized
  */
-void md4_starts( md4_ctx *ctx );
+void md4_starts(md4_ctx *ctx);
 
 /**
  * \brief          MD4 process buffer
@@ -36,7 +34,7 @@ void md4_starts( md4_ctx *ctx );
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void md4_update( md4_ctx *ctx, const void *input, int ilen );
+void md4_update(md4_ctx *ctx, const void *input, int ilen);
 
 /**
  * \brief          MD4 final digest
@@ -44,19 +42,19 @@ void md4_update( md4_ctx *ctx, const void *input, int ilen );
  * \param ctx      MD4 context
  * \param output   MD4 checksum result
  */
-void md4_finish( md4_ctx *ctx, byte output[16] );
+void md4_finish(md4_ctx *ctx, byte output[16]);
 
 /**
- * \brief          Output = MD4( input buffer )
+ * \brief          Output = MD4(input buffer)
  *
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  * \param output   MD4 checksum result
  */
-void md4( const void *input, int ilen, byte output[16] );
+void md4(const void *input, int ilen, byte output[16]);
 
 /**
- * \brief          Output = MD4( file contents )
+ * \brief          Output = MD4(file contents)
  *
  * \param path     input file name
  * \param output   MD4 checksum result
@@ -64,7 +62,7 @@ void md4( const void *input, int ilen, byte output[16] );
  * \return         0 if successful, 1 if fopen failed,
  *                 or 2 if fread failed
  */
-int md4_file( char *path, byte output[16] );
+int md4_file(char *path, byte output[16]);
 
 /**
  * \brief          MD4 HMAC context setup
@@ -73,7 +71,7 @@ int md4_file( char *path, byte output[16] );
  * \param key      HMAC secret key
  * \param keylen   length of the HMAC key
  */
-void md4_hmac_starts( md4_ctx *ctx, const void *key, int keylen );
+void md4_hmac_starts(md4_ctx *ctx, const void *key, int keylen);
 
 /**
  * \brief          MD4 HMAC process buffer
@@ -82,7 +80,7 @@ void md4_hmac_starts( md4_ctx *ctx, const void *key, int keylen );
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void md4_hmac_update( md4_ctx *ctx, const void *input, int ilen );
+void md4_hmac_update(md4_ctx *ctx, const void *input, int ilen);
 
 /**
  * \brief          MD4 HMAC final digest
@@ -90,10 +88,10 @@ void md4_hmac_update( md4_ctx *ctx, const void *input, int ilen );
  * \param ctx      HMAC context
  * \param output   MD4 HMAC checksum result
  */
-void md4_hmac_finish( md4_ctx *ctx, byte output[16] );
+void md4_hmac_finish(md4_ctx *ctx, byte output[16]);
 
 /**
- * \brief          Output = HMAC-MD4( hmac key, input buffer )
+ * \brief          Output = HMAC-MD4(hmac key, input buffer)
  *
  * \param key      HMAC secret key
  * \param keylen   length of the HMAC key
@@ -101,16 +99,15 @@ void md4_hmac_finish( md4_ctx *ctx, byte output[16] );
  * \param ilen     length of the input data
  * \param output   HMAC-MD4 result
  */
-void md4_hmac( const void *key, int keylen,
-               const void *input, int ilen,
-               byte output[16] );
+void md4_hmac(const void *key, int keylen, const void *input, int ilen,
+              byte output[16]);
 
 /**
  * \brief          Checkup routine
  *
  * \return         0 if successful, or 1 if the test failed
  */
-int md4_self_test( int verbose );
+int md4_self_test(int verbose);
 
 #ifdef __cplusplus
 }

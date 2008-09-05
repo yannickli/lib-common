@@ -332,13 +332,13 @@ static uint32_t RCON[10];
 /*
  * Tables generation code
  */
-#define ROTL8(x) ( ( x << 8 ) & 0xFFFFFFFF ) | ( x >> 24 )
-#define XTIME(x) ( ( x << 1 ) ^ ( ( x & 0x80 ) ? 0x1B : 0x00 ) )
-#define MUL(x,y) ( ( x && y ) ? pow[(log[x]+log[y]) % 255] : 0 )
+#define ROTL8(x) ((x << 8) & 0xFFFFFFFF) | (x >> 24)
+#define XTIME(x) ((x << 1) ^ ((x & 0x80) ? 0x1B : 0x00))
+#define MUL(x,y) ((x && y) ? pow[(log[x]+log[y]) % 255] : 0)
 
 static int aes_init_done = 0;
 
-static void aes_gen_tables( void )
+static void aes_gen_tables(void)
 {
     int i, x, y, z;
     int pow[256];
@@ -347,20 +347,20 @@ static void aes_gen_tables( void )
     /*
      * compute pow and log tables over GF(2^8)
      */
-    for( i = 0, x = 1; i < 256; i++ )
+    for (i = 0, x = 1; i < 256; i++)
     {
         pow[i] = x;
         log[x] = i;
-        x = ( x ^ XTIME( x ) ) & 0xFF;
+        x = (x ^ XTIME(x)) & 0xFF;
     }
 
     /*
      * calculate the round constants
      */
-    for( i = 0, x = 1; i < 10; i++ )
+    for (i = 0, x = 1; i < 10; i++)
     {
         RCON[i] = (uint32_t) x;
-        x = XTIME( x ) & 0xFF;
+        x = XTIME(x) & 0xFF;
     }
 
     /*
@@ -369,14 +369,14 @@ static void aes_gen_tables( void )
     FSb[0x00] = 0x63;
     RSb[0x63] = 0x00;
 
-    for( i = 1; i < 256; i++ )
+    for (i = 1; i < 256; i++)
     {
         x = pow[255 - log[i]];
 
-        y  = x; y = ( (y << 1) | (y >> 7) ) & 0xFF;
-        x ^= y; y = ( (y << 1) | (y >> 7) ) & 0xFF;
-        x ^= y; y = ( (y << 1) | (y >> 7) ) & 0xFF;
-        x ^= y; y = ( (y << 1) | (y >> 7) ) & 0xFF;
+        y  = x; y = ((y << 1) | (y >> 7)) & 0xFF;
+        x ^= y; y = ((y << 1) | (y >> 7)) & 0xFF;
+        x ^= y; y = ((y << 1) | (y >> 7)) & 0xFF;
+        x ^= y; y = ((y << 1) | (y >> 7)) & 0xFF;
         x ^= y ^ 0x63;
 
         FSb[i] = (byte) x;
@@ -386,31 +386,31 @@ static void aes_gen_tables( void )
     /*
      * generate the forward and reverse tables
      */
-    for( i = 0; i < 256; i++ )
+    for (i = 0; i < 256; i++)
     {
         x = FSb[i];
-        y = XTIME( x ) & 0xFF;
-        z =  ( y ^ x ) & 0xFF;
+        y = XTIME(x) & 0xFF;
+        z =  (y ^ x) & 0xFF;
 
-        FT0[i] = ( (uint32_t) y       ) ^
-                 ( (uint32_t) x <<  8 ) ^
-                 ( (uint32_t) x << 16 ) ^
-                 ( (uint32_t) z << 24 );
+        FT0[i] = ((uint32_t) y      ) ^
+                 ((uint32_t) x <<  8) ^
+                 ((uint32_t) x << 16) ^
+                 ((uint32_t) z << 24);
 
-        FT1[i] = ROTL8( FT0[i] );
-        FT2[i] = ROTL8( FT1[i] );
-        FT3[i] = ROTL8( FT2[i] );
+        FT1[i] = ROTL8(FT0[i]);
+        FT2[i] = ROTL8(FT1[i]);
+        FT3[i] = ROTL8(FT2[i]);
 
         x = RSb[i];
 
-        RT0[i] = ( (uint32_t) MUL( 0x0E, x )       ) ^
-                 ( (uint32_t) MUL( 0x09, x ) <<  8 ) ^
-                 ( (uint32_t) MUL( 0x0D, x ) << 16 ) ^
-                 ( (uint32_t) MUL( 0x0B, x ) << 24 );
+        RT0[i] = ((uint32_t) MUL(0x0E, x)      ) ^
+                 ((uint32_t) MUL(0x09, x) <<  8) ^
+                 ((uint32_t) MUL(0x0D, x) << 16) ^
+                 ((uint32_t) MUL(0x0B, x) << 24);
 
-        RT1[i] = ROTL8( RT0[i] );
-        RT2[i] = ROTL8( RT1[i] );
-        RT3[i] = ROTL8( RT2[i] );
+        RT1[i] = ROTL8(RT0[i]);
+        RT2[i] = ROTL8(RT1[i]);
+        RT3[i] = ROTL8(RT2[i]);
     }
 }
 
@@ -419,20 +419,20 @@ static void aes_gen_tables( void )
 /*
  * AES key schedule (encryption)
  */
-void aes_setkey_enc( aes_ctx *ctx, byte *key, int keysize )
+void aes_setkey_enc(aes_ctx *ctx, const byte *key, int keysize)
 {
     int i;
     uint32_t *RK;
 
 #if !defined(XYSSL_AES_ROM_TABLES)
-    if( aes_init_done == 0 )
+    if (aes_init_done == 0)
     {
         aes_gen_tables();
         aes_init_done = 1;
     }
 #endif
 
-    switch( keysize )
+    switch(keysize)
     {
         case 128: ctx->nr = 10; break;
         case 192: ctx->nr = 12; break;
@@ -441,7 +441,7 @@ void aes_setkey_enc( aes_ctx *ctx, byte *key, int keysize )
     }
 
 #if defined(PADLOCK_ALIGN16)
-    ctx->rk = RK = PADLOCK_ALIGN16( ctx->buf );
+    ctx->rk = RK = PADLOCK_ALIGN16(ctx->buf);
 #else
     ctx->rk = RK = ctx->buf;
 #endif
@@ -453,17 +453,17 @@ void aes_setkey_enc( aes_ctx *ctx, byte *key, int keysize )
     }
 #endif
 
-    switch( ctx->nr )
+    switch(ctx->nr)
     {
         case 10:
 
-            for( i = 0; i < 10; i++, RK += 4 )
+            for (i = 0; i < 10; i++, RK += 4)
             {
                 RK[4]  = RK[0] ^ RCON[i] ^
-                    ( FSb[ ( RK[3] >>  8 ) & 0xFF ]       ) ^
-                    ( FSb[ ( RK[3] >> 16 ) & 0xFF ] <<  8 ) ^
-                    ( FSb[ ( RK[3] >> 24 ) & 0xFF ] << 16 ) ^
-                    ( FSb[ ( RK[3]       ) & 0xFF ] << 24 );
+                    (FSb[ (RK[3] >>  8) & 0xFF ]      ) ^
+                    (FSb[ (RK[3] >> 16) & 0xFF ] <<  8) ^
+                    (FSb[ (RK[3] >> 24) & 0xFF ] << 16) ^
+                    (FSb[ (RK[3]      ) & 0xFF ] << 24);
 
                 RK[5]  = RK[1] ^ RK[4];
                 RK[6]  = RK[2] ^ RK[5];
@@ -473,13 +473,13 @@ void aes_setkey_enc( aes_ctx *ctx, byte *key, int keysize )
 
         case 12:
 
-            for( i = 0; i < 8; i++, RK += 6 )
+            for (i = 0; i < 8; i++, RK += 6)
             {
                 RK[6]  = RK[0] ^ RCON[i] ^
-                    ( FSb[ ( RK[5] >>  8 ) & 0xFF ]       ) ^
-                    ( FSb[ ( RK[5] >> 16 ) & 0xFF ] <<  8 ) ^
-                    ( FSb[ ( RK[5] >> 24 ) & 0xFF ] << 16 ) ^
-                    ( FSb[ ( RK[5]       ) & 0xFF ] << 24 );
+                    (FSb[ (RK[5] >>  8) & 0xFF ]      ) ^
+                    (FSb[ (RK[5] >> 16) & 0xFF ] <<  8) ^
+                    (FSb[ (RK[5] >> 24) & 0xFF ] << 16) ^
+                    (FSb[ (RK[5]      ) & 0xFF ] << 24);
 
                 RK[7]  = RK[1] ^ RK[6];
                 RK[8]  = RK[2] ^ RK[7];
@@ -491,23 +491,23 @@ void aes_setkey_enc( aes_ctx *ctx, byte *key, int keysize )
 
         case 14:
 
-            for( i = 0; i < 7; i++, RK += 8 )
+            for (i = 0; i < 7; i++, RK += 8)
             {
                 RK[8]  = RK[0] ^ RCON[i] ^
-                    ( FSb[ ( RK[7] >>  8 ) & 0xFF ]       ) ^
-                    ( FSb[ ( RK[7] >> 16 ) & 0xFF ] <<  8 ) ^
-                    ( FSb[ ( RK[7] >> 24 ) & 0xFF ] << 16 ) ^
-                    ( FSb[ ( RK[7]       ) & 0xFF ] << 24 );
+                    (FSb[ (RK[7] >>  8) & 0xFF ]      ) ^
+                    (FSb[ (RK[7] >> 16) & 0xFF ] <<  8) ^
+                    (FSb[ (RK[7] >> 24) & 0xFF ] << 16) ^
+                    (FSb[ (RK[7]      ) & 0xFF ] << 24);
 
                 RK[9]  = RK[1] ^ RK[8];
                 RK[10] = RK[2] ^ RK[9];
                 RK[11] = RK[3] ^ RK[10];
 
                 RK[12] = RK[4] ^
-                    ( FSb[ ( RK[11]       ) & 0xFF ]       ) ^
-                    ( FSb[ ( RK[11] >>  8 ) & 0xFF ] <<  8 ) ^
-                    ( FSb[ ( RK[11] >> 16 ) & 0xFF ] << 16 ) ^
-                    ( FSb[ ( RK[11] >> 24 ) & 0xFF ] << 24 );
+                    (FSb[ (RK[11]      ) & 0xFF ]      ) ^
+                    (FSb[ (RK[11] >>  8) & 0xFF ] <<  8) ^
+                    (FSb[ (RK[11] >> 16) & 0xFF ] << 16) ^
+                    (FSb[ (RK[11] >> 24) & 0xFF ] << 24);
 
                 RK[13] = RK[5] ^ RK[12];
                 RK[14] = RK[6] ^ RK[13];
@@ -524,14 +524,14 @@ void aes_setkey_enc( aes_ctx *ctx, byte *key, int keysize )
 /*
  * AES key schedule (decryption)
  */
-void aes_setkey_dec( aes_ctx *ctx, byte *key, int keysize )
+void aes_setkey_dec(aes_ctx *ctx, const byte *key, int keysize)
 {
     int i, j;
     aes_ctx cty;
     uint32_t *RK;
     uint32_t *SK;
 
-    switch( keysize )
+    switch(keysize)
     {
         case 128: ctx->nr = 10; break;
         case 192: ctx->nr = 12; break;
@@ -540,12 +540,12 @@ void aes_setkey_dec( aes_ctx *ctx, byte *key, int keysize )
     }
 
 #if defined(PADLOCK_ALIGN16)
-    ctx->rk = RK = PADLOCK_ALIGN16( ctx->buf );
+    ctx->rk = RK = PADLOCK_ALIGN16(ctx->buf);
 #else
     ctx->rk = RK = ctx->buf;
 #endif
 
-    aes_setkey_enc( &cty, key, keysize );
+    aes_setkey_enc(&cty, key, keysize);
     SK = cty.rk + cty.nr * 4;
 
     *RK++ = *SK++;
@@ -553,14 +553,14 @@ void aes_setkey_dec( aes_ctx *ctx, byte *key, int keysize )
     *RK++ = *SK++;
     *RK++ = *SK++;
 
-    for( i = ctx->nr - 1, SK -= 8; i > 0; i--, SK -= 8 )
+    for (i = ctx->nr - 1, SK -= 8; i > 0; i--, SK -= 8)
     {
-        for( j = 0; j < 4; j++, SK++ )
+        for (j = 0; j < 4; j++, SK++)
         {
-            *RK++ = RT0[ FSb[ ( *SK       ) & 0xFF ] ] ^
-                    RT1[ FSb[ ( *SK >>  8 ) & 0xFF ] ] ^
-                    RT2[ FSb[ ( *SK >> 16 ) & 0xFF ] ] ^
-                    RT3[ FSb[ ( *SK >> 24 ) & 0xFF ] ];
+            *RK++ = RT0[ FSb[ (*SK      ) & 0xFF ] ] ^
+                    RT1[ FSb[ (*SK >>  8) & 0xFF ] ] ^
+                    RT2[ FSb[ (*SK >> 16) & 0xFF ] ] ^
+                    RT3[ FSb[ (*SK >> 24) & 0xFF ] ];
         }
     }
 
@@ -569,180 +569,174 @@ void aes_setkey_dec( aes_ctx *ctx, byte *key, int keysize )
     *RK++ = *SK++;
     *RK++ = *SK++;
 
-    memset( &cty, 0, sizeof( aes_ctx ) );
+    memset(&cty, 0, sizeof(aes_ctx));
 }
 
 #define AES_FROUND(X0,X1,X2,X3,Y0,Y1,Y2,Y3)     \
 {                                               \
-    X0 = *RK++ ^ FT0[ ( Y0       ) & 0xFF ] ^   \
-                 FT1[ ( Y1 >>  8 ) & 0xFF ] ^   \
-                 FT2[ ( Y2 >> 16 ) & 0xFF ] ^   \
-                 FT3[ ( Y3 >> 24 ) & 0xFF ];    \
+    X0 = *RK++ ^ FT0[ (Y0      ) & 0xFF ] ^   \
+                 FT1[ (Y1 >>  8) & 0xFF ] ^   \
+                 FT2[ (Y2 >> 16) & 0xFF ] ^   \
+                 FT3[ (Y3 >> 24) & 0xFF ];    \
                                                 \
-    X1 = *RK++ ^ FT0[ ( Y1       ) & 0xFF ] ^   \
-                 FT1[ ( Y2 >>  8 ) & 0xFF ] ^   \
-                 FT2[ ( Y3 >> 16 ) & 0xFF ] ^   \
-                 FT3[ ( Y0 >> 24 ) & 0xFF ];    \
+    X1 = *RK++ ^ FT0[ (Y1      ) & 0xFF ] ^   \
+                 FT1[ (Y2 >>  8) & 0xFF ] ^   \
+                 FT2[ (Y3 >> 16) & 0xFF ] ^   \
+                 FT3[ (Y0 >> 24) & 0xFF ];    \
                                                 \
-    X2 = *RK++ ^ FT0[ ( Y2       ) & 0xFF ] ^   \
-                 FT1[ ( Y3 >>  8 ) & 0xFF ] ^   \
-                 FT2[ ( Y0 >> 16 ) & 0xFF ] ^   \
-                 FT3[ ( Y1 >> 24 ) & 0xFF ];    \
+    X2 = *RK++ ^ FT0[ (Y2      ) & 0xFF ] ^   \
+                 FT1[ (Y3 >>  8) & 0xFF ] ^   \
+                 FT2[ (Y0 >> 16) & 0xFF ] ^   \
+                 FT3[ (Y1 >> 24) & 0xFF ];    \
                                                 \
-    X3 = *RK++ ^ FT0[ ( Y3       ) & 0xFF ] ^   \
-                 FT1[ ( Y0 >>  8 ) & 0xFF ] ^   \
-                 FT2[ ( Y1 >> 16 ) & 0xFF ] ^   \
-                 FT3[ ( Y2 >> 24 ) & 0xFF ];    \
+    X3 = *RK++ ^ FT0[ (Y3      ) & 0xFF ] ^   \
+                 FT1[ (Y0 >>  8) & 0xFF ] ^   \
+                 FT2[ (Y1 >> 16) & 0xFF ] ^   \
+                 FT3[ (Y2 >> 24) & 0xFF ];    \
 }
 
 #define AES_RROUND(X0,X1,X2,X3,Y0,Y1,Y2,Y3)     \
 {                                               \
-    X0 = *RK++ ^ RT0[ ( Y0       ) & 0xFF ] ^   \
-                 RT1[ ( Y3 >>  8 ) & 0xFF ] ^   \
-                 RT2[ ( Y2 >> 16 ) & 0xFF ] ^   \
-                 RT3[ ( Y1 >> 24 ) & 0xFF ];    \
+    X0 = *RK++ ^ RT0[ (Y0      ) & 0xFF ] ^   \
+                 RT1[ (Y3 >>  8) & 0xFF ] ^   \
+                 RT2[ (Y2 >> 16) & 0xFF ] ^   \
+                 RT3[ (Y1 >> 24) & 0xFF ];    \
                                                 \
-    X1 = *RK++ ^ RT0[ ( Y1       ) & 0xFF ] ^   \
-                 RT1[ ( Y0 >>  8 ) & 0xFF ] ^   \
-                 RT2[ ( Y3 >> 16 ) & 0xFF ] ^   \
-                 RT3[ ( Y2 >> 24 ) & 0xFF ];    \
+    X1 = *RK++ ^ RT0[ (Y1      ) & 0xFF ] ^   \
+                 RT1[ (Y0 >>  8) & 0xFF ] ^   \
+                 RT2[ (Y3 >> 16) & 0xFF ] ^   \
+                 RT3[ (Y2 >> 24) & 0xFF ];    \
                                                 \
-    X2 = *RK++ ^ RT0[ ( Y2       ) & 0xFF ] ^   \
-                 RT1[ ( Y1 >>  8 ) & 0xFF ] ^   \
-                 RT2[ ( Y0 >> 16 ) & 0xFF ] ^   \
-                 RT3[ ( Y3 >> 24 ) & 0xFF ];    \
+    X2 = *RK++ ^ RT0[ (Y2      ) & 0xFF ] ^   \
+                 RT1[ (Y1 >>  8) & 0xFF ] ^   \
+                 RT2[ (Y0 >> 16) & 0xFF ] ^   \
+                 RT3[ (Y3 >> 24) & 0xFF ];    \
                                                 \
-    X3 = *RK++ ^ RT0[ ( Y3       ) & 0xFF ] ^   \
-                 RT1[ ( Y2 >>  8 ) & 0xFF ] ^   \
-                 RT2[ ( Y1 >> 16 ) & 0xFF ] ^   \
-                 RT3[ ( Y0 >> 24 ) & 0xFF ];    \
+    X3 = *RK++ ^ RT0[ (Y3      ) & 0xFF ] ^   \
+                 RT1[ (Y2 >>  8) & 0xFF ] ^   \
+                 RT2[ (Y1 >> 16) & 0xFF ] ^   \
+                 RT3[ (Y0 >> 24) & 0xFF ];    \
 }
 
 /*
  * AES-ECB block encryption/decryption
  */
-void aes_crypt_ecb( aes_ctx *ctx,
-                    int mode,
-                    byte input[16],
-                    byte output[16] )
+void aes_crypt_ecb(aes_ctx *ctx, int mode, const byte input[16],
+                   byte output[16])
 {
     int i;
     uint32_t *RK, X0, X1, X2, X3, Y0, Y1, Y2, Y3;
 
 #if defined(XYSSL_PADLOCK_C) && defined(XYSSL_HAVE_X86)
-    if( padlock_supports( PADLOCK_ACE ) )
+    if (padlock_supports(PADLOCK_ACE))
     {
-        if( padlock_xcryptecb( ctx, mode, input, output ) == 0 )
+        if (padlock_xcryptecb(ctx, mode, input, output) == 0)
             return;
     }
 #endif
 
     RK = ctx->rk;
 
-    GET_U32_LE( X0, input,  0 ); X0 ^= *RK++;
-    GET_U32_LE( X1, input,  4 ); X1 ^= *RK++;
-    GET_U32_LE( X2, input,  8 ); X2 ^= *RK++;
-    GET_U32_LE( X3, input, 12 ); X3 ^= *RK++;
+    GET_U32_LE(X0, input,  0); X0 ^= *RK++;
+    GET_U32_LE(X1, input,  4); X1 ^= *RK++;
+    GET_U32_LE(X2, input,  8); X2 ^= *RK++;
+    GET_U32_LE(X3, input, 12); X3 ^= *RK++;
 
-    if( mode == AES_DECRYPT )
+    if (mode == AES_DECRYPT)
     {
-        for( i = (ctx->nr >> 1) - 1; i > 0; i-- )
+        for (i = (ctx->nr >> 1) - 1; i > 0; i--)
         {
-            AES_RROUND( Y0, Y1, Y2, Y3, X0, X1, X2, X3 );
-            AES_RROUND( X0, X1, X2, X3, Y0, Y1, Y2, Y3 );
+            AES_RROUND(Y0, Y1, Y2, Y3, X0, X1, X2, X3);
+            AES_RROUND(X0, X1, X2, X3, Y0, Y1, Y2, Y3);
         }
 
-        AES_RROUND( Y0, Y1, Y2, Y3, X0, X1, X2, X3 );
+        AES_RROUND(Y0, Y1, Y2, Y3, X0, X1, X2, X3);
 
-        X0 = *RK++ ^ ( RSb[ ( Y0       ) & 0xFF ]       ) ^
-                     ( RSb[ ( Y3 >>  8 ) & 0xFF ] <<  8 ) ^
-                     ( RSb[ ( Y2 >> 16 ) & 0xFF ] << 16 ) ^
-                     ( RSb[ ( Y1 >> 24 ) & 0xFF ] << 24 );
+        X0 = *RK++ ^ (RSb[ (Y0      ) & 0xFF ]      ) ^
+                     (RSb[ (Y3 >>  8) & 0xFF ] <<  8) ^
+                     (RSb[ (Y2 >> 16) & 0xFF ] << 16) ^
+                     (RSb[ (Y1 >> 24) & 0xFF ] << 24);
 
-        X1 = *RK++ ^ ( RSb[ ( Y1       ) & 0xFF ]       ) ^
-                     ( RSb[ ( Y0 >>  8 ) & 0xFF ] <<  8 ) ^
-                     ( RSb[ ( Y3 >> 16 ) & 0xFF ] << 16 ) ^
-                     ( RSb[ ( Y2 >> 24 ) & 0xFF ] << 24 );
+        X1 = *RK++ ^ (RSb[ (Y1      ) & 0xFF ]      ) ^
+                     (RSb[ (Y0 >>  8) & 0xFF ] <<  8) ^
+                     (RSb[ (Y3 >> 16) & 0xFF ] << 16) ^
+                     (RSb[ (Y2 >> 24) & 0xFF ] << 24);
 
-        X2 = *RK++ ^ ( RSb[ ( Y2       ) & 0xFF ]       ) ^
-                     ( RSb[ ( Y1 >>  8 ) & 0xFF ] <<  8 ) ^
-                     ( RSb[ ( Y0 >> 16 ) & 0xFF ] << 16 ) ^
-                     ( RSb[ ( Y3 >> 24 ) & 0xFF ] << 24 );
+        X2 = *RK++ ^ (RSb[ (Y2      ) & 0xFF ]      ) ^
+                     (RSb[ (Y1 >>  8) & 0xFF ] <<  8) ^
+                     (RSb[ (Y0 >> 16) & 0xFF ] << 16) ^
+                     (RSb[ (Y3 >> 24) & 0xFF ] << 24);
 
-        X3 = *RK++ ^ ( RSb[ ( Y3       ) & 0xFF ]       ) ^
-                     ( RSb[ ( Y2 >>  8 ) & 0xFF ] <<  8 ) ^
-                     ( RSb[ ( Y1 >> 16 ) & 0xFF ] << 16 ) ^
-                     ( RSb[ ( Y0 >> 24 ) & 0xFF ] << 24 );
+        X3 = *RK++ ^ (RSb[ (Y3      ) & 0xFF ]      ) ^
+                     (RSb[ (Y2 >>  8) & 0xFF ] <<  8) ^
+                     (RSb[ (Y1 >> 16) & 0xFF ] << 16) ^
+                     (RSb[ (Y0 >> 24) & 0xFF ] << 24);
     }
     else /* AES_ENCRYPT */
     {
-        for( i = (ctx->nr >> 1) - 1; i > 0; i-- )
+        for (i = (ctx->nr >> 1) - 1; i > 0; i--)
         {
-            AES_FROUND( Y0, Y1, Y2, Y3, X0, X1, X2, X3 );
-            AES_FROUND( X0, X1, X2, X3, Y0, Y1, Y2, Y3 );
+            AES_FROUND(Y0, Y1, Y2, Y3, X0, X1, X2, X3);
+            AES_FROUND(X0, X1, X2, X3, Y0, Y1, Y2, Y3);
         }
 
-        AES_FROUND( Y0, Y1, Y2, Y3, X0, X1, X2, X3 );
+        AES_FROUND(Y0, Y1, Y2, Y3, X0, X1, X2, X3);
 
-        X0 = *RK++ ^ ( FSb[ ( Y0       ) & 0xFF ]       ) ^
-                     ( FSb[ ( Y1 >>  8 ) & 0xFF ] <<  8 ) ^
-                     ( FSb[ ( Y2 >> 16 ) & 0xFF ] << 16 ) ^
-                     ( FSb[ ( Y3 >> 24 ) & 0xFF ] << 24 );
+        X0 = *RK++ ^ (FSb[ (Y0      ) & 0xFF ]      ) ^
+                     (FSb[ (Y1 >>  8) & 0xFF ] <<  8) ^
+                     (FSb[ (Y2 >> 16) & 0xFF ] << 16) ^
+                     (FSb[ (Y3 >> 24) & 0xFF ] << 24);
 
-        X1 = *RK++ ^ ( FSb[ ( Y1       ) & 0xFF ]       ) ^
-                     ( FSb[ ( Y2 >>  8 ) & 0xFF ] <<  8 ) ^
-                     ( FSb[ ( Y3 >> 16 ) & 0xFF ] << 16 ) ^
-                     ( FSb[ ( Y0 >> 24 ) & 0xFF ] << 24 );
+        X1 = *RK++ ^ (FSb[ (Y1      ) & 0xFF ]      ) ^
+                     (FSb[ (Y2 >>  8) & 0xFF ] <<  8) ^
+                     (FSb[ (Y3 >> 16) & 0xFF ] << 16) ^
+                     (FSb[ (Y0 >> 24) & 0xFF ] << 24);
 
-        X2 = *RK++ ^ ( FSb[ ( Y2       ) & 0xFF ]       ) ^
-                     ( FSb[ ( Y3 >>  8 ) & 0xFF ] <<  8 ) ^
-                     ( FSb[ ( Y0 >> 16 ) & 0xFF ] << 16 ) ^
-                     ( FSb[ ( Y1 >> 24 ) & 0xFF ] << 24 );
+        X2 = *RK++ ^ (FSb[ (Y2      ) & 0xFF ]      ) ^
+                     (FSb[ (Y3 >>  8) & 0xFF ] <<  8) ^
+                     (FSb[ (Y0 >> 16) & 0xFF ] << 16) ^
+                     (FSb[ (Y1 >> 24) & 0xFF ] << 24);
 
-        X3 = *RK++ ^ ( FSb[ ( Y3       ) & 0xFF ]       ) ^
-                     ( FSb[ ( Y0 >>  8 ) & 0xFF ] <<  8 ) ^
-                     ( FSb[ ( Y1 >> 16 ) & 0xFF ] << 16 ) ^
-                     ( FSb[ ( Y2 >> 24 ) & 0xFF ] << 24 );
+        X3 = *RK++ ^ (FSb[ (Y3      ) & 0xFF ]      ) ^
+                     (FSb[ (Y0 >>  8) & 0xFF ] <<  8) ^
+                     (FSb[ (Y1 >> 16) & 0xFF ] << 16) ^
+                     (FSb[ (Y2 >> 24) & 0xFF ] << 24);
     }
 
-    PUT_U32_LE( X0, output,  0 );
-    PUT_U32_LE( X1, output,  4 );
-    PUT_U32_LE( X2, output,  8 );
-    PUT_U32_LE( X3, output, 12 );
+    PUT_U32_LE(X0, output,  0);
+    PUT_U32_LE(X1, output,  4);
+    PUT_U32_LE(X2, output,  8);
+    PUT_U32_LE(X3, output, 12);
 }
 
 /*
  * AES-CBC buffer encryption/decryption
  */
-void aes_crypt_cbc( aes_ctx *ctx,
-                    int mode,
-                    int length,
-                    byte iv[16],
-                    byte *input,
-                    byte *output )
+void aes_crypt_cbc(aes_ctx *ctx, int mode, int length, byte iv[16],
+                   const byte *input, byte *output)
 {
     int i;
     byte temp[16];
 
 #if defined(XYSSL_PADLOCK_C) && defined(XYSSL_HAVE_X86)
-    if( padlock_supports( PADLOCK_ACE ) )
+    if (padlock_supports(PADLOCK_ACE))
     {
-        if( padlock_xcryptcbc( ctx, mode, length, iv, input, output ) == 0 )
+        if (padlock_xcryptcbc(ctx, mode, length, iv, input, output) == 0)
             return;
     }
 #endif
 
-    if( mode == AES_DECRYPT )
+    if (mode == AES_DECRYPT)
     {
-        while( length > 0 )
+        while (length > 0)
         {
-            memcpy( temp, input, 16 );
-            aes_crypt_ecb( ctx, mode, input, output );
+            memcpy(temp, input, 16);
+            aes_crypt_ecb(ctx, mode, input, output);
 
-            for( i = 0; i < 16; i++ )
-                output[i] = (byte)( output[i] ^ iv[i] );
+            for (i = 0; i < 16; i++)
+                output[i] = (byte)(output[i] ^ iv[i]);
 
-            memcpy( iv, temp, 16 );
+            memcpy(iv, temp, 16);
 
             input  += 16;
             output += 16;
@@ -751,13 +745,13 @@ void aes_crypt_cbc( aes_ctx *ctx,
     }
     else
     {
-        while( length > 0 )
+        while (length > 0)
         {
-            for( i = 0; i < 16; i++ )
-                output[i] = (byte)( input[i] ^ iv[i] );
+            for (i = 0; i < 16; i++)
+                output[i] = (byte)(input[i] ^ iv[i]);
 
-            aes_crypt_ecb( ctx, mode, output, output );
-            memcpy( iv, output, 16 );
+            aes_crypt_ecb(ctx, mode, output, output);
+            memcpy(iv, output, 16);
 
             input  += 16;
             output += 16;
@@ -769,25 +763,20 @@ void aes_crypt_cbc( aes_ctx *ctx,
 /*
  * AES-CFB buffer encryption/decryption
  */
-void aes_crypt_cfb( aes_ctx *ctx,
-                    int mode,
-                    int length,
-                    int *iv_off,
-                    byte iv[16],
-                    byte *input,
-                    byte *output )
+void aes_crypt_cfb(aes_ctx *ctx, int mode, int length, int *iv_off,
+                   byte iv[16], const byte *input, byte *output)
 {
     int c, n = *iv_off;
 
-    if( mode == AES_DECRYPT )
+    if (mode == AES_DECRYPT)
     {
-        while( length-- )
+        while (length--)
         {
-            if( n == 0 )
-                aes_crypt_ecb( ctx, AES_ENCRYPT, iv, iv );
+            if (n == 0)
+                aes_crypt_ecb(ctx, AES_ENCRYPT, iv, iv);
 
             c = *input++;
-            *output++ = (byte)( c ^ iv[n] );
+            *output++ = (byte)(c ^ iv[n]);
             iv[n] = (byte) c;
 
             n = (n + 1) & 0x0F;
@@ -795,12 +784,12 @@ void aes_crypt_cfb( aes_ctx *ctx,
     }
     else
     {
-        while( length-- )
+        while (length--)
         {
-            if( n == 0 )
-                aes_crypt_ecb( ctx, AES_ENCRYPT, iv, iv );
+            if (n == 0)
+                aes_crypt_ecb(ctx, AES_ENCRYPT, iv, iv);
 
-            iv[n] = *output++ = (byte)( iv[n] ^ *input++ );
+            iv[n] = *output++ = (byte)(iv[n] ^ *input++);
 
             n = (n + 1) & 0x0F;
         }
@@ -882,7 +871,7 @@ static const byte aes_test_cfb_enc[3][16] =
 /*
  * Checkup routine
  */
-int aes_self_test( int verbose )
+int aes_self_test(int verbose)
 {
     int i, j, u, v, offset;
     byte key[32];
@@ -891,178 +880,178 @@ int aes_self_test( int verbose )
     byte iv[16];
     aes_ctx ctx;
 
-    memset( key, 0, 32 );
+    memset(key, 0, 32);
 
     /*
      * ECB mode
      */
-    for( i = 0; i < 6; i++ )
+    for (i = 0; i < 6; i++)
     {
         u = i >> 1;
         v = i  & 1;
 
-        if( verbose != 0 )
-            printf( "  AES-ECB-%3d (%s): ", 128 + u * 64,
-                    ( v == AES_DECRYPT ) ? "dec" : "enc" );
+        if (verbose != 0)
+            printf("  AES-ECB-%3d (%s): ", 128 + u * 64,
+                    (v == AES_DECRYPT) ? "dec" : "enc");
 
-        memset( buf, 0, 16 );
+        memset(buf, 0, 16);
 
-        if( v == AES_DECRYPT )
+        if (v == AES_DECRYPT)
         {
-            aes_setkey_dec( &ctx, key, 128 + u * 64 );
+            aes_setkey_dec(&ctx, key, 128 + u * 64);
 
-            for( j = 0; j < 10000; j++ )
-                aes_crypt_ecb( &ctx, v, buf, buf );
+            for (j = 0; j < 10000; j++)
+                aes_crypt_ecb(&ctx, v, buf, buf);
 
-            if( memcmp( buf, aes_test_ecb_dec[u], 16 ) != 0 )
+            if (memcmp(buf, aes_test_ecb_dec[u], 16) != 0)
             {
-                if( verbose != 0 )
-                    printf( "failed\n" );
+                if (verbose != 0)
+                    printf("failed\n");
 
-                return( 1 );
+                return 1;
             }
         }
         else
         {
-            aes_setkey_enc( &ctx, key, 128 + u * 64 );
+            aes_setkey_enc(&ctx, key, 128 + u * 64);
 
-            for( j = 0; j < 10000; j++ )
-                aes_crypt_ecb( &ctx, v, buf, buf );
+            for (j = 0; j < 10000; j++)
+                aes_crypt_ecb(&ctx, v, buf, buf);
 
-            if( memcmp( buf, aes_test_ecb_enc[u], 16 ) != 0 )
+            if (memcmp(buf, aes_test_ecb_enc[u], 16) != 0)
             {
-                if( verbose != 0 )
-                    printf( "failed\n" );
+                if (verbose != 0)
+                    printf("failed\n");
 
-                return( 1 );
+                return 1;
             }
         }
 
-        if( verbose != 0 )
-            printf( "passed\n" );
+        if (verbose != 0)
+            printf("passed\n");
     }
 
-    if( verbose != 0 )
-        printf( "\n" );
+    if (verbose != 0)
+        printf("\n");
 
     /*
      * CBC mode
      */
-    for( i = 0; i < 6; i++ )
+    for (i = 0; i < 6; i++)
     {
         u = i >> 1;
         v = i  & 1;
 
-        if( verbose != 0 )
-            printf( "  AES-CBC-%3d (%s): ", 128 + u * 64,
-                    ( v == AES_DECRYPT ) ? "dec" : "enc" );
+        if (verbose != 0)
+            printf("  AES-CBC-%3d (%s): ", 128 + u * 64,
+                    (v == AES_DECRYPT) ? "dec" : "enc");
 
-        memset( iv , 0, 16 );
-        memset( prv, 0, 16 );
-        memset( buf, 0, 16 );
+        memset(iv , 0, 16);
+        memset(prv, 0, 16);
+        memset(buf, 0, 16);
 
-        if( v == AES_DECRYPT )
+        if (v == AES_DECRYPT)
         {
-            aes_setkey_dec( &ctx, key, 128 + u * 64 );
+            aes_setkey_dec(&ctx, key, 128 + u * 64);
 
-            for( j = 0; j < 10000; j++ )
-                aes_crypt_cbc( &ctx, v, 16, iv, buf, buf );
+            for (j = 0; j < 10000; j++)
+                aes_crypt_cbc(&ctx, v, 16, iv, buf, buf);
 
-            if( memcmp( buf, aes_test_cbc_dec[u], 16 ) != 0 )
+            if (memcmp(buf, aes_test_cbc_dec[u], 16) != 0)
             {
-                if( verbose != 0 )
-                    printf( "failed\n" );
+                if (verbose != 0)
+                    printf("failed\n");
 
-                return( 1 );
+                return 1;
             }
         }
         else
         {
-            aes_setkey_enc( &ctx, key, 128 + u * 64 );
+            aes_setkey_enc(&ctx, key, 128 + u * 64);
 
-            for( j = 0; j < 10000; j++ )
+            for (j = 0; j < 10000; j++)
             {
                 byte tmp[16];
 
-                aes_crypt_cbc( &ctx, v, 16, iv, buf, buf );
+                aes_crypt_cbc(&ctx, v, 16, iv, buf, buf);
 
-                memcpy( tmp, prv, 16 );
-                memcpy( prv, buf, 16 );
-                memcpy( buf, tmp, 16 );
+                memcpy(tmp, prv, 16);
+                memcpy(prv, buf, 16);
+                memcpy(buf, tmp, 16);
             }
 
-            if( memcmp( prv, aes_test_cbc_enc[u], 16 ) != 0 )
+            if (memcmp(prv, aes_test_cbc_enc[u], 16) != 0)
             {
-                if( verbose != 0 )
-                    printf( "failed\n" );
+                if (verbose != 0)
+                    printf("failed\n");
 
-                return( 1 );
+                return 1;
             }
         }
 
-        if( verbose != 0 )
-            printf( "passed\n" );
+        if (verbose != 0)
+            printf("passed\n");
     }
 
-    if( verbose != 0 )
-        printf( "\n" );
+    if (verbose != 0)
+        printf("\n");
 
     /*
      * CFB mode
      */
-    for( i = 0; i < 6; i++ )
+    for (i = 0; i < 6; i++)
     {
         u = i >> 1;
         v = i  & 1;
 
-        if( verbose != 0 )
-            printf( "  AES-CFB-%3d (%s): ", 128 + u * 64,
-                    ( v == AES_DECRYPT ) ? "dec" : "enc" );
+        if (verbose != 0)
+            printf("  AES-CFB-%3d (%s): ", 128 + u * 64,
+                    (v == AES_DECRYPT) ? "dec" : "enc");
 
-        memset( iv , 0, 16 );
-        memset( buf, 0, 16 );
+        memset(iv , 0, 16);
+        memset(buf, 0, 16);
         offset = 0;
 
-        if( v == AES_DECRYPT )
+        if (v == AES_DECRYPT)
         {
-            aes_setkey_dec( &ctx, key, 128 + u * 64 );
+            aes_setkey_dec(&ctx, key, 128 + u * 64);
 
-            for( j = 0; j < 10000; j++ )
-                aes_crypt_cfb( &ctx, v, 16, &offset, iv, buf, buf );
+            for (j = 0; j < 10000; j++)
+                aes_crypt_cfb(&ctx, v, 16, &offset, iv, buf, buf);
 
-            if( memcmp( buf, aes_test_cfb_dec[u], 16 ) != 0 )
+            if (memcmp(buf, aes_test_cfb_dec[u], 16) != 0)
             {
-                if( verbose != 0 )
-                    printf( "failed\n" );
+                if (verbose != 0)
+                    printf("failed\n");
 
-                return( 1 );
+                return 1;
             }
         }
         else
         {
-            aes_setkey_enc( &ctx, key, 128 + u * 64 );
+            aes_setkey_enc(&ctx, key, 128 + u * 64);
 
-            for( j = 0; j < 10000; j++ )
-                aes_crypt_cfb( &ctx, v, 16, &offset, iv, buf, buf );
+            for (j = 0; j < 10000; j++)
+                aes_crypt_cfb(&ctx, v, 16, &offset, iv, buf, buf);
 
-            if( memcmp( buf, aes_test_cfb_enc[u], 16 ) != 0 )
+            if (memcmp(buf, aes_test_cfb_enc[u], 16) != 0)
             {
-                if( verbose != 0 )
-                    printf( "failed\n" );
+                if (verbose != 0)
+                    printf("failed\n");
 
-                return( 1 );
+                return 1;
             }
         }
 
-        if( verbose != 0 )
-            printf( "passed\n" );
+        if (verbose != 0)
+            printf("passed\n");
     }
 
 
-    if( verbose != 0 )
-        printf( "\n" );
+    if (verbose != 0)
+        printf("\n");
 
-    return( 0 );
+    return 0;
 }
 
 #endif

@@ -12,7 +12,7 @@
 #define XYSSL_ERR_MPI_DIVISION_BY_ZERO                  -0x000C
 #define XYSSL_ERR_MPI_NOT_ACCEPTABLE                    -0x000E
 
-#define MPI_CHK(f) if( ( ret = f ) != 0 ) goto cleanup
+#define MPI_CHK(f) if((ret = f) != 0) goto cleanup
 
 /*
  * Define the base integer type, architecture-wise
@@ -43,13 +43,11 @@ typedef unsigned long  t_dbl;
 /**
  * \brief          MPI structure
  */
-typedef struct
-{
+typedef struct {
     int s;              /*!<  integer sign      */
     int n;              /*!<  total # of limbs  */
     t_int *p;           /*!<  pointer to limbs  */
-}
-mpi;
+} mpi;
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,12 +56,12 @@ extern "C" {
 /**
  * \brief          Initialize one or more mpi
  */
-void mpi_init( mpi *X, ... );
+void mpi_init(mpi *X, ...);
 
 /**
  * \brief          Unallocate one or more mpi
  */
-void mpi_free( mpi *X, ... );
+void mpi_free(mpi *X, ...);
 
 /**
  * \brief          Enlarge to the specified number of limbs
@@ -71,7 +69,7 @@ void mpi_free( mpi *X, ... );
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_grow( mpi *X, int nblimbs );
+int mpi_grow(mpi *X, int nblimbs);
 
 /**
  * \brief          Copy the contents of Y into X
@@ -79,12 +77,12 @@ int mpi_grow( mpi *X, int nblimbs );
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_copy( mpi *X, mpi *Y );
+int mpi_copy(mpi *X, mpi *Y);
 
 /**
  * \brief          Swap the contents of X and Y
  */
-void mpi_swap( mpi *X, mpi *Y );
+void mpi_swap(mpi *X, mpi *Y);
 
 /**
  * \brief          Set value from integer
@@ -92,22 +90,22 @@ void mpi_swap( mpi *X, mpi *Y );
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_lset( mpi *X, int z );
+int mpi_lset(mpi *X, int z);
 
 /**
  * \brief          Return the number of least significant bits
  */
-int mpi_lsb( mpi *X );
+int mpi_lsb(mpi *X);
 
 /**
  * \brief          Return the number of most significant bits
  */
-int mpi_msb( mpi *X );
+int mpi_msb(mpi *X);
 
 /**
  * \brief          Return the total size in bytes
  */
-int mpi_size( mpi *X );
+int mpi_size(mpi *X);
 
 /**
  * \brief          Import from an ASCII string
@@ -118,7 +116,7 @@ int mpi_size( mpi *X );
  *
  * \return         0 if successful, or an XYSSL_ERR_MPI_XXX error code
  */
-int mpi_read_string( mpi *X, int radix, const char *s );
+int mpi_read_string(mpi *X, int radix, const char *s);
 
 /**
  * \brief          Export into an ASCII string
@@ -133,7 +131,7 @@ int mpi_read_string( mpi *X, int radix, const char *s );
  * \note           Call this function with *slen = 0 to obtain the
  *                 minimum required buffer size in *slen.
  */
-int mpi_write_string( mpi *X, int radix, char *s, int *slen );
+int mpi_write_string(mpi *X, int radix, char *s, int *slen);
 
 /**
  * \brief          Read X from an opened file
@@ -144,7 +142,7 @@ int mpi_write_string( mpi *X, int radix, char *s, int *slen );
  *
  * \return         0 if successful, or an XYSSL_ERR_MPI_XXX error code
  */
-int mpi_read_file( mpi *X, int radix, FILE *fin );
+int mpi_read_file(mpi *X, int radix, FILE *fin);
 
 /**
  * \brief          Write X into an opened file, or stdout
@@ -158,7 +156,7 @@ int mpi_read_file( mpi *X, int radix, FILE *fin );
  *
  * \note           Set fout == NULL to print X on the console.
  */
-int mpi_write_file( const char *p, mpi *X, int radix, FILE *fout );
+int mpi_write_file(const char *p, mpi *X, int radix, FILE *fout);
 
 /**
  * \brief          Import X from unsigned binary data, big endian
@@ -170,7 +168,7 @@ int mpi_write_file( const char *p, mpi *X, int radix, FILE *fout );
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_read_binary( mpi *X, byte *buf, int buflen );
+int mpi_read_binary(mpi *X, const byte *buf, int buflen);
 
 /**
  * \brief          Export X into unsigned binary data, big endian
@@ -185,7 +183,7 @@ int mpi_read_binary( mpi *X, byte *buf, int buflen );
  * \note           Call this function with *buflen = 0 to obtain the
  *                 minimum required buffer size in *buflen.
  */
-int mpi_write_binary( mpi *X, byte *buf, int buflen );
+int mpi_write_binary(mpi *X, byte *buf, int buflen);
 
 /**
  * \brief          Left-shift: X <<= count
@@ -193,7 +191,7 @@ int mpi_write_binary( mpi *X, byte *buf, int buflen );
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_shift_l( mpi *X, int count );
+int mpi_shift_l(mpi *X, int count);
 
 /**
  * \brief          Right-shift: X >>= count
@@ -201,7 +199,7 @@ int mpi_shift_l( mpi *X, int count );
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_shift_r( mpi *X, int count );
+int mpi_shift_r(mpi *X, int count);
 
 /**
  * \brief          Compare unsigned values
@@ -210,7 +208,7 @@ int mpi_shift_r( mpi *X, int count );
  *                -1 if |X| is lesser  than |Y| or
  *                 0 if |X| is equal to |Y|
  */
-int mpi_cmp_abs( mpi *X, mpi *Y );
+int mpi_cmp_abs(mpi *X, mpi *Y);
 
 /**
  * \brief          Compare signed values
@@ -219,7 +217,7 @@ int mpi_cmp_abs( mpi *X, mpi *Y );
  *                -1 if X is lesser  than Y or
  *                 0 if X is equal to Y
  */
-int mpi_cmp_mpi( mpi *X, mpi *Y );
+int mpi_cmp_mpi(mpi *X, mpi *Y);
 
 /**
  * \brief          Compare signed values
@@ -228,7 +226,7 @@ int mpi_cmp_mpi( mpi *X, mpi *Y );
  *                -1 if X is lesser  than z or
  *                 0 if X is equal to z
  */
-int mpi_cmp_int( mpi *X, int z );
+int mpi_cmp_int(mpi *X, int z);
 
 /**
  * \brief          Unsigned addition: X = |A| + |B|
@@ -236,7 +234,7 @@ int mpi_cmp_int( mpi *X, int z );
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_add_abs( mpi *X, mpi *A, mpi *B );
+int mpi_add_abs(mpi *X, mpi *A, mpi *B);
 
 /**
  * \brief          Unsigned substraction: X = |A| - |B|
@@ -244,7 +242,7 @@ int mpi_add_abs( mpi *X, mpi *A, mpi *B );
  * \return         0 if successful,
  *                 XYSSL_ERR_MPI_NEGATIVE_VALUE if B is greater than A
  */
-int mpi_sub_abs( mpi *X, mpi *A, mpi *B );
+int mpi_sub_abs(mpi *X, mpi *A, mpi *B);
 
 /**
  * \brief          Signed addition: X = A + B
@@ -252,7 +250,7 @@ int mpi_sub_abs( mpi *X, mpi *A, mpi *B );
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_add_mpi( mpi *X, mpi *A, mpi *B );
+int mpi_add_mpi(mpi *X, mpi *A, mpi *B);
 
 /**
  * \brief          Signed substraction: X = A - B
@@ -260,7 +258,7 @@ int mpi_add_mpi( mpi *X, mpi *A, mpi *B );
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_sub_mpi( mpi *X, mpi *A, mpi *B );
+int mpi_sub_mpi(mpi *X, mpi *A, mpi *B);
 
 /**
  * \brief          Signed addition: X = A + b
@@ -268,7 +266,7 @@ int mpi_sub_mpi( mpi *X, mpi *A, mpi *B );
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_add_int( mpi *X, mpi *A, int b );
+int mpi_add_int(mpi *X, mpi *A, int b);
 
 /**
  * \brief          Signed substraction: X = A - b
@@ -276,7 +274,7 @@ int mpi_add_int( mpi *X, mpi *A, int b );
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_sub_int( mpi *X, mpi *A, int b );
+int mpi_sub_int(mpi *X, mpi *A, int b);
 
 /**
  * \brief          Baseline multiplication: X = A * B
@@ -284,7 +282,7 @@ int mpi_sub_int( mpi *X, mpi *A, int b );
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_mul_mpi( mpi *X, mpi *A, mpi *B );
+int mpi_mul_mpi(mpi *X, mpi *A, mpi *B);
 
 /**
  * \brief          Baseline multiplication: X = A * b
@@ -292,7 +290,7 @@ int mpi_mul_mpi( mpi *X, mpi *A, mpi *B );
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_mul_int( mpi *X, mpi *A, t_int b );
+int mpi_mul_int(mpi *X, mpi *A, t_int b);
 
 /**
  * \brief          Division by mpi: A = Q * B + R
@@ -303,7 +301,7 @@ int mpi_mul_int( mpi *X, mpi *A, t_int b );
  *
  * \note           Either Q or R can be NULL.
  */
-int mpi_div_mpi( mpi *Q, mpi *R, mpi *A, mpi *B );
+int mpi_div_mpi(mpi *Q, mpi *R, mpi *A, mpi *B);
 
 /**
  * \brief          Division by int: A = Q * b + R
@@ -314,7 +312,7 @@ int mpi_div_mpi( mpi *Q, mpi *R, mpi *A, mpi *B );
  *
  * \note           Either Q or R can be NULL.
  */
-int mpi_div_int( mpi *Q, mpi *R, mpi *A, int b );
+int mpi_div_int(mpi *Q, mpi *R, mpi *A, int b);
 
 /**
  * \brief          Modulo: R = A mod B
@@ -323,7 +321,7 @@ int mpi_div_int( mpi *Q, mpi *R, mpi *A, int b );
  *                 1 if memory allocation failed,
  *                 XYSSL_ERR_MPI_DIVISION_BY_ZERO if B == 0
  */
-int mpi_mod_mpi( mpi *R, mpi *A, mpi *B );
+int mpi_mod_mpi(mpi *R, mpi *A, mpi *B);
 
 /**
  * \brief          Modulo: r = A mod b
@@ -332,7 +330,7 @@ int mpi_mod_mpi( mpi *R, mpi *A, mpi *B );
  *                 1 if memory allocation failed,
  *                 XYSSL_ERR_MPI_DIVISION_BY_ZERO if b == 0
  */
-int mpi_mod_int( t_int *r, mpi *A, int b );
+int mpi_mod_int(t_int *r, mpi *A, int b);
 
 /**
  * \brief          Sliding-window exponentiation: X = A^E mod N
@@ -345,7 +343,7 @@ int mpi_mod_int( t_int *r, mpi *A, int b );
  *                 multiple calls, which speeds up things a bit. It can
  *                 be set to NULL if the extra performance is unneeded.
  */
-int mpi_exp_mod( mpi *X, mpi *A, mpi *E, mpi *N, mpi *_RR );
+int mpi_exp_mod(mpi *X, mpi *A, mpi *E, mpi *N, mpi *_RR);
 
 /**
  * \brief          Greatest common divisor: G = gcd(A, B)
@@ -353,7 +351,7 @@ int mpi_exp_mod( mpi *X, mpi *A, mpi *E, mpi *N, mpi *_RR );
  * \return         0 if successful,
  *                 1 if memory allocation failed
  */
-int mpi_gcd( mpi *G, mpi *A, mpi *B );
+int mpi_gcd(mpi *G, mpi *A, mpi *B);
 
 /**
  * \brief          Modular inverse: X = A^-1 mod N
@@ -363,7 +361,7 @@ int mpi_gcd( mpi *G, mpi *A, mpi *B );
  *                 XYSSL_ERR_MPI_BAD_INPUT_DATA if N is negative or nil
  *                 XYSSL_ERR_MPI_NOT_ACCEPTABLE if A has no inverse mod N
  */
-int mpi_inv_mod( mpi *X, mpi *A, mpi *N );
+int mpi_inv_mod(mpi *X, mpi *A, mpi *N);
 
 /**
  * \brief          Miller-Rabin primality test
@@ -372,7 +370,7 @@ int mpi_inv_mod( mpi *X, mpi *A, mpi *N );
  *                 1 if memory allocation failed,
  *                 XYSSL_ERR_MPI_NOT_ACCEPTABLE if X is not prime
  */
-int mpi_is_prime( mpi *X, int (*f_rng)(void *), void *p_rng );
+int mpi_is_prime(mpi *X, int (*f_rng)(void *), void *p_rng);
 
 /**
  * \brief          Prime number generation
@@ -387,15 +385,15 @@ int mpi_is_prime( mpi *X, int (*f_rng)(void *), void *p_rng );
  *                 1 if memory allocation failed,
  *                 XYSSL_ERR_MPI_BAD_INPUT_DATA if nbits is < 3
  */
-int mpi_gen_prime( mpi *X, int nbits, int dh_flag,
-                   int (*f_rng)(void *), void *p_rng );
+int mpi_gen_prime(mpi *X, int nbits, int dh_flag,
+                  int (*f_rng)(void *), void *p_rng);
 
 /**
  * \brief          Checkup routine
  *
  * \return         0 if successful, or 1 if the test failed
  */
-int mpi_self_test( int verbose );
+int mpi_self_test(int verbose);
 
 #ifdef __cplusplus
 }
