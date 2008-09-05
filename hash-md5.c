@@ -39,12 +39,6 @@
 #if defined(XYSSL_MD5_C)
 
 /*
- * 32-bit integer manipulation macros (little endian)
- */
-#define GET_U32_LE(n,b,i)  ((n) = cpu_to_le_32(*(uint32_t *)((b) + (i))))
-#define PUT_U32_LE(n,b,i)  (*(uint32_t *)((b) + (i)) = cpu_to_le_32(n))
-
-/*
  * MD5 context setup
  */
 void md5_starts( md5_ctx *ctx )

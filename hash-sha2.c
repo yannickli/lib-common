@@ -39,12 +39,6 @@
 #if defined(XYSSL_SHA2_C)
 
 /*
- * 32-bit integer manipulation macros (big endian)
- */
-#define GET_U32_BE(n,b,i)  ((n) = cpu_to_be_32(*(uint32_t *)((b) + (i))))
-#define PUT_U32_BE(n,b,i)  (*(uint32_t *)((b) + (i)) = cpu_to_be_32(n))
-
-/*
  * SHA-256 context setup
  */
 void sha2_starts( sha2_ctx *ctx, int is224 )

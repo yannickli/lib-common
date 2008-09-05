@@ -39,12 +39,6 @@
 
 #if defined(XYSSL_AES_C)
 
-/*
- * 32-bit integer manipulation macros (little endian)
- */
-#define GET_U32_LE(n,b,i)  ((n) = cpu_to_le_32(*(uint32_t *)((b) + (i))))
-#define PUT_U32_LE(n,b,i)  (*(uint32_t *)((b) + (i)) = cpu_to_le_32(n))
-
 #if defined(XYSSL_AES_ROM_TABLES)
 /*
  * Forward S-box
@@ -452,10 +446,12 @@ void aes_setkey_enc( aes_ctx *ctx, byte *key, int keysize )
     ctx->rk = RK = ctx->buf;
 #endif
 
-    for( i = 0; i < (keysize >> 5); i++ )
-    {
-        GET_U32_LE( RK[i], key, i << 2 );
+    memcpy(RK, key, keysize >> 3);
+#if __BYTE_ORDER == __BIG_ENDIAN
+    for (i = 0; i < (keysize >> 5); i++) {
+        RK[i] = swap32(RK[i]);
     }
+#endif
 
     switch( ctx->nr )
     {
