@@ -73,6 +73,11 @@ void generic_list_sort(generic_list **list,
         }                                                                    \
         *list = item;                                                        \
     }                                                                        \
+    static inline void prefix##_list_tappend(type_t ***tail, type_t *item) { \
+        assert (**tail == NULL);                                             \
+        **tail = item;                                                       \
+        *tail = &item->next;                                                 \
+    }                                                                        \
     static inline type_t *prefix##_list_poptail(type_t *list) {              \
         if (list) {                                                          \
             type_t *tmp = list->next;                                        \
