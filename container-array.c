@@ -17,7 +17,7 @@
 /* specific iovec functions                                               */
 /**************************************************************************/
 
-void iovec_vector_kill_first(iovec_vector *iovs, ssize_t len)
+int iovec_vector_kill_first(iovec_vector *iovs, ssize_t len)
 {
     int i = 0;
 
@@ -29,6 +29,7 @@ void iovec_vector_kill_first(iovec_vector *iovs, ssize_t len)
         iovs->tab[0].iov_base = (byte *)iovs->tab[0].iov_base + len;
         iovs->tab[0].iov_len  -= len;
     }
+    return i;
 }
 
 int iovec_vector_getlen(iovec_vector *v)

@@ -245,7 +245,7 @@ static inline int string_array_find(const string_array *arr, const char *val)
 
 DO_VECTOR(struct iovec, iovec);
 
-void iovec_vector_kill_first(iovec_vector *l, ssize_t len);
+int iovec_vector_kill_first(iovec_vector *iovs, ssize_t len);
 int iovec_vector_getlen(iovec_vector *v);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
