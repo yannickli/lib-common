@@ -64,6 +64,26 @@ unsigned char const __str_digit_value[128 + 256] = {
     REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
 };
 
+unsigned char const __str_url_invalid[128 + 256] = {
+    REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
+    REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
+    REPEAT16(255), REPEAT16(255),
+    255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, '*', 255, 255, '-', '.', 255,
+    '0', '1', '2', '3', '4', '5', '6', '7',
+    '8', '9', 255, 255, 255, 255, 255, 255,
+    '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G',
+    'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
+    'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
+    'X', 'Y', 'Z', 255, 255, 255, 255, '_',
+    255, 'a', 'b', 'c', 'd', 'e', 'f', 'g',
+    'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',
+    'p', 'q', 'r', 's', 't', 'u', 'v', 'w',
+    'x', 'y', 'z', 255, 255, 255, 255, 255,
+    REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
+    REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
+};
+
 char const __str_digits_upper[36] =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 char const __str_digits_lower[36] =

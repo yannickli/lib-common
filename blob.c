@@ -671,6 +671,27 @@ void blob_append_urldecode(blob_t *out, const char *encoded, int len,
     out->len += purldecode(encoded, out->data + out->len, len + 1, flags);
 }
 
+void blob_append_urlencode(blob_t *out, const byte *data, int len)
+{
+    if (len < 0) {
+        len = strlen((const char *)data);
+    }
+    blob_grow(out, len);
+
+    while (len) {
+        int c = *data++;
+        len--;
+
+        if (__str_url_invalid[128 + c] == URL_INVALID_CHAR) {
+            blob_append_byte(out, '%');
+            blob_append_byte(out, __str_digits_upper[(c >> 4) & 0xF]);
+            blob_append_byte(out, __str_digits_upper[c & 0xF]);
+        } else {
+            blob_append_byte(out, c);
+        }
+    }
+}
+
 static const char
 b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 

@@ -72,6 +72,29 @@ int tpl_encode_plmn(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
     return 0;
 }
 
+int tpl_encode_msisdn_canonify(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
+{
+    const byte *data;
+    int len;
+    int64_t num;
+
+    if (!blob) {
+        assert(out);
+        blob = tpl_get_blob(out);
+    }
+
+    if (tpl_get_short_data(args, nb, &data, &len))
+        return -1;
+
+    num = msisdn_canonify((const char*)data, len, -1);
+    if (num < 0) {
+        blob_append_data(blob, data, len);
+    } else {
+        blob_append_fmt(blob, "%lld", (long long)num);
+    }
+    return 0;
+}
+
 /****************************************************************************/
 /* Escapings                                                                */
 /****************************************************************************/
@@ -90,6 +113,25 @@ int tpl_encode_xml(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
         } else {
             assert (in->op == TPL_OP_BLOB);
             blob_append_xml_escape(blob, in->u.blob.data, in->u.blob.len);
+        }
+    }
+    return 0;
+}
+
+int tpl_encode_url(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
+{
+    if (!blob) {
+        assert(out);
+        blob = tpl_get_blob(out);
+    }
+
+    while (--nb >= 0) {
+        tpl_t *in = *args++;
+        if (in->op == TPL_OP_DATA) {
+            blob_append_urlencode(blob, in->u.data.data, in->u.data.len);
+        } else {
+            assert (in->op == TPL_OP_BLOB);
+            blob_append_urlencode(blob, in->u.blob.data, in->u.blob.len);
         }
     }
     return 0;
