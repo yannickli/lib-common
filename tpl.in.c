@@ -61,6 +61,7 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
             return 0;
         }
         tpl_array_append(&out->u.blocks, tmp = tpl_new_op(TPL_OP_IFDEF));
+        tmp->u.varidx = tpl->u.varidx;
         tmp->is_const = true;
         for (int i = 0; i < tpl->u.blocks.len; i++) {
             tmp2 = tpl_dup(tpl->u.blocks.tab[i]);
