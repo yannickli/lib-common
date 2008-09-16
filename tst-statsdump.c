@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 {
     blob_t blob;
     int c;
-    int hour;
+    int hour = 0;
     const char *arg0 = argv[0];
 
     while ((c = getopt(argc, argv, "hH")) >= 0) {
