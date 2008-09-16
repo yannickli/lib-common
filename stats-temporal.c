@@ -1506,14 +1506,20 @@ void stats_temporal_dump_auto(byte *mem, int size)
 
         buf_start = mem + st->offset;
         buf_end   = buf_start + st->count * st->incr;
-        vp        = buf_start + ((st->pos + st->count - st->current) %
+        vp        = buf_start + ((st->pos) %
                                  st->count * st->incr);
 
         for (int i = 0; i < st->count; i++) {
+            time_t d = (st->current - (st->count - i)) * st->scale;
+            struct tm t;
+
             if (vp >= buf_end) {
                 vp = buf_start;
             }
-            printf("%d", st->current + (i - st->pos));
+            localtime_r(&d, &t);
+            printf("%d (%04d/%02d/%02d %02d:%02d:%02d)", (int)d,
+                   t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
+                   t.tm_hour, t.tm_min, t.tm_sec);
             for (index = 0; index < file->nb_stats; index++) {
                 printf(" %lld", (long long)(stage ? ((int64_t*)vp)[index] :
                     ((int32_t*)vp)[index]));
