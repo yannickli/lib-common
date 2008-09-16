@@ -80,7 +80,10 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
             tpl_add_tpl(out, tpl);
             return 0;
         }
-        return NS(tpl_combine_seq)(out, tpl, envid, vals, nb, flags);
+        tpl_array_append(&out->u.blocks, tmp = tpl_new_op(TPL_OP_IFDEF));
+        tmp->u.varidx = tpl->u.varidx;
+        tmp->is_const = true;
+        return NS(tpl_combine_seq)(tmp, tpl, envid, vals, nb, flags);
 
       case TPL_OP_APPLY:
       case TPL_OP_APPLY_ASSOC:

@@ -141,12 +141,14 @@ int tpl_compute_len_copy(blob_t *b, tpl_t **args, int nb, int len);
 /****************************************************************************/
 
 int tpl_encode_plmn(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
+int tpl_encode_msisdn_canonify(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 
 /****************************************************************************/
 /* Escapings                                                                */
 /****************************************************************************/
 
 int tpl_encode_xml(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
+int tpl_encode_url(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 int tpl_encode_ira(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 int tpl_encode_ira_bin(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 int tpl_encode_base64(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
