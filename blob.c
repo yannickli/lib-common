@@ -379,7 +379,7 @@ int blob_append_fgets(blob_t *blob, FILE *f)
 }
 
 /* Return number of bytes written or -1 on error */
-int blob_save_to_file(blob_t *blob, const char *filename)
+int blob_save_to_file(const blob_t *blob, const char *filename)
 {
     int len, pos, nwritten;
     int fd;

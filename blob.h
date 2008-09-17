@@ -361,7 +361,7 @@ struct sockaddr;
 int blob_append_recvfrom(blob_t *blob, int fd, int count, int flags,
                              struct sockaddr *from, socklen_t *fromlen);
 
-int blob_save_to_file(blob_t *blob, const char *filename);
+int blob_save_to_file(const blob_t *blob, const char *filename);
 
 /**************************************************************************/
 /* Blob printf functions                                                  */
