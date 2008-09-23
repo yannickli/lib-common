@@ -238,7 +238,7 @@ uint32_t ha_rand(void)
 
 int ha_rand_range(int first, int last)
 {
-    uint64_t res = ha_rand() * (last - first + 1);
+    uint64_t res = (uint64_t)ha_rand() * (uint64_t)(last - first + 1);
     return first + (res >> 32);
 }
 
