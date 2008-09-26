@@ -525,6 +525,7 @@ int string_decode_ira_hex_as_utf8(char *dst, int size,
                                   const char *src, int len);
 int string_decode_ira_bin_as_utf8(char *dst, int size,
                                   const char *src, int len);
+int gsm7_charlen(int c);
 
 /* in blob_ebcdic.c */
 int blob_decode_ebcdic297(blob_t *dst, const byte *src, int len);
