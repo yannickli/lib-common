@@ -306,7 +306,7 @@ int licence_do_signature(const conf_t *conf, char *dst, size_t size)
         "Registered-To", "periodicity",
         "maxrate_sms",   "max_sms",
         "maxrate_mms",   "max_mms",
-        "maxrate_wp",    "max_wp",
+        "maxrate_wpush",    "max_wpush",
         "maxrate_ussd",  "max_ussd",
         "maxrate_email", "max_email",
         "production_use",
