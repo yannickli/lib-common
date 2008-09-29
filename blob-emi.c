@@ -720,12 +720,7 @@ static int unicode_to_gsm7(int c)
         c = X(0x1A);
         break;
       default:
-        if (c > 0xFF) {
-            c = X('?');
-        } else {
-            c = win1252_to_gsm7[c];
-        }
-        break;
+        return c;
     }
     return c;
 }
@@ -733,6 +728,11 @@ static int unicode_to_gsm7(int c)
 int gsm7_charlen(int c)
 {
     c = unicode_to_gsm7(c);
+    if (c > 0xFF) {
+        c = X('?');
+    } else {
+        c = win1252_to_gsm7[c];
+    }
     if (c < 0)
         return -1;
     if (c > 0xff)
@@ -774,6 +774,11 @@ int blob_append_ira_bin(blob_t *dst, const byte *src, int len)
                         src += 2;
                     hasunicode:
                         c = unicode_to_gsm7(c);
+                        if (c > 0xFF) {
+                            c = X('?');
+                        } else {
+                            c = win1252_to_gsm7[c];
+                        }
                         goto hasc;
                     }
                 }
@@ -834,6 +839,11 @@ int blob_append_ira_hex(blob_t *dst, const byte *src, int len)
                         src += 2;
                     hasunicode:
                         c = unicode_to_gsm7(c);
+                        if (c > 0xFF) {
+                            c = X('?');
+                        } else {
+                            c = win1252_to_gsm7[c];
+                        }
                         goto hasc;
                     }
                 }
@@ -1101,6 +1111,11 @@ int blob_append_ira_hex(blob_t *dst, const byte *src, int len)
                         src += 2;
                     hasunicode:
                         c = unicode_to_gsm7(c);
+                        if (c > 0xFF) {
+                            c = X('?');
+                        } else {
+                            c = win1252_to_gsm7_hex[c ^ 0x80];
+                        }
                         goto hasc;
                     }
                 }
