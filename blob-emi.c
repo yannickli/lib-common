@@ -1084,7 +1084,48 @@ int blob_append_ira_hex(blob_t *dst, const byte *src, int len)
                               (src[1] & 0x3F);
                         src += 2;
                     hasunicode:
-                        c = unicode_to_gsm7(c, '?');
+                        switch (c) {
+                        case 0x20AC:    /* EURO */
+                            c = X(0x1B65);
+                            break;
+                        case 0x0394:    /* GREEK CAPITAL LETTER DELTA */
+                            c = X(0x10);
+                            break;
+                        case 0x03A6:    /* GREEK CAPITAL LETTER PHI */
+                            c = X(0x12);
+                            break;
+                        case 0x0393:    /* GREEK CAPITAL LETTER GAMMA */
+                            c = X(0x13);
+                            break;
+                        case 0x039B:    /* GREEK CAPITAL LETTER LAMDA */
+                            c = X(0x14);
+                            break;
+                        case 0x03A9:    /* GREEK CAPITAL LETTER OMEGA */
+                            c = X(0x15);
+                            break;
+                        case 0x03A0:    /* GREEK CAPITAL LETTER PI */
+                            c = X(0x16);
+                            break;
+                        case 0x03A8:    /* GREEK CAPITAL LETTER PSI */
+                            c = X(0x17);
+                            break;
+                        case 0x03A3:    /* GREEK CAPITAL LETTER SIGMA */
+                            c = X(0x18);
+                            break;
+                        case 0x0398:    /* GREEK CAPITAL LETTER THETA */
+                            c = X(0x19);
+                            break;
+                        case 0x039E:    /* GREEK CAPITAL LETTER XI */
+                            c = X(0x1A);
+                            break;
+                        default:
+                            if (c > 0xFF) {
+                                c = X('?');
+                            } else {
+                                c = win1252_to_gsm7_hex[c ^ 0x80];
+                            }
+                            break;
+                        }
                         goto hasc;
                     }
                 }
