@@ -32,7 +32,7 @@ int utf8_getc(const char *s, const char **outp)
       case 0: ret += (unsigned char)*s++;
     }
 
-    if (*outp) {
+    if (outp) {
         *outp = s;
     }
 
