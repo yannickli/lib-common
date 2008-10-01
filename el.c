@@ -509,13 +509,17 @@ static uint64_t get_clock(bool lowres)
     return _G.lp_clk = 1000ull * ts.tv_sec + ts.tv_nsec / 1000000;
 }
 
+/* XXX: if we reschedule in more than half a second, don't care about
+        the high precision */
+#define TIMER_IS_LOWRES(ev, next)   ((ev)->timerlp || (next) >= 500)
+
 ev_t *el_timer_register(int next, int repeat, int flags, el_cb_f *cb, el_data_t priv)
 {
     ev_t *ev = el_create(EV_TIMER, cb, priv, true);
     ev->nomiss  = (flags & EL_TIMER_NOMISS) != 0;
     ev->timerlp = (flags & EL_TIMER_LOWRES) != 0;
     ev->timer.repeat = repeat;
-    ev->timer.expiry = (uint64_t)next + get_clock(ev->timerlp);
+    ev->timer.expiry = (uint64_t)next + get_clock(TIMER_IS_LOWRES(ev, next));
     el_timer_heapinsert(ev);
     return ev;
 }
@@ -530,7 +534,7 @@ void el_timer_restart(ev_t *ev, int restart)
 {
     CHECK_EV_TYPE(ev, EV_TIMER);
     ASSERT("timer isn't a oneshot timer", !ev->timer.repeat);
-    ev->timer.expiry = get_clock(ev->timerlp) + restart;
+    ev->timer.expiry = (uint64_t)restart + get_clock(TIMER_IS_LOWRES(ev, restart));
     ev->updated = true;
     el_timer_heapfix(ev);
 }
