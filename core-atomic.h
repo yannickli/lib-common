@@ -27,7 +27,7 @@ typedef int spinlock_t;
 #define atomic_get_and_add(ptr, v)  __sync_fetch_and_add(ptr, v)
 #define atomic_get_and_sub(ptr, v)  __sync_fetch_and_sub(ptr, v)
 #define atomic_bool_cas(ptr, b, a)  __sync_bool_compare_and_swap(ptr, b, a)
-#define atomic_va_cas(ptr, b, a)    __sync_va_compare_and_swap(ptr, b, a)
+#define atomic_val_cas(ptr, b, a)   __sync_val_compare_and_swap(ptr, b, a)
 #define memory_barrier()            __sync_synchronize()
 
 #define spin_trylock(ptr)  (!__sync_lock_test_and_set(ptr, 1))
