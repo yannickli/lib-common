@@ -76,7 +76,7 @@ fi
 
 # {{{ tools
 
-for tool in lemon flex gperf mtasc swfmill xsltproc; do
+for tool in flex gperf mtasc swfmill xsltproc; do
     check_tool $tool $tool
 done
 
