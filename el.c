@@ -108,6 +108,7 @@ static struct {
     ev_t  *evs[32 - EV_ALLOC_FACTOR];
     int    evs_len;
     ev_t  *evs_free;        /* free el_t's indices in evs                   */
+    ev_t  *evs_timer_tmp;
     ev_t  *evs_fd_tmp;
 } _G = {
     .evs[0]         = _G.evs_initial,
@@ -454,11 +455,14 @@ static el_data_t el_timer_heapremove(ev_t **evp)
         el_timer_heapfix(end);
     }
     (*evp)->timer.heappos = -1;
-    return el_destroy(evp, true);
+    el_list_push(&_G.evs_timer_tmp, *evp);
+    return el_destroy(evp, false);
 }
 
 static void el_timer_process(uint64_t until)
 {
+    while (_G.evs_timer_tmp)
+        el_list_push(&_G.evs_free, el_list_pop(&_G.evs_timer_tmp));
     while (_G.timers.len) {
         ev_t *ev = EVT(0);
 
