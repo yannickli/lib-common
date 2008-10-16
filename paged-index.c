@@ -69,7 +69,9 @@ static int pidx_fsck_recurse(byte *bits, pidx_file *pidx,
                 return -1;
         }
     } else {
+#ifndef NDEBUG
         int page0 = page;
+#endif
         while ((page = pidx->area->pages[page].next) != 0) {
             if (pidx_fsck_mark_page(bits, pidx, page)) {
                 e_trace(1, "bug in data page %d (link of %d)", page, page0);
