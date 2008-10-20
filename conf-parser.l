@@ -54,6 +54,7 @@ static int lexdata_col(struct lexdata *ld, int offs)
 static char const __c_unescape[] = {
     ['a'] = '\a', ['b'] = '\b', ['e'] = '\e', ['t'] = '\t', ['n'] = '\n',
     ['v'] = '\v', ['f'] = '\f', ['r'] = '\r', ['\\'] = '\\',
+    ['"'] = '"',  ['\''] = '\'',
 };
 
 static void blob_append_c_unescape(blob_t *blob, int c) {
@@ -296,7 +297,7 @@ NONSP   [^[:space:];#]
     \\[0-2][0-7]{2}     { blob_append_byte(&yyextra->buf, parse_oct(yytext + 1)); }
     \\x[0-9a-fA-F]{2}   { blob_append_byte(&yyextra->buf, parse_hex(yytext + 2)); }
     \\u[0-9a-fA-F]{4}   { blob_utf8_putc(&yyextra->buf, parse_hex(yytext + 2)); }
-    \\[abetnvfr\\]      { blob_append_c_unescape(&yyextra->buf, yytext[1]); }
+    \\[abetnvfr\\"']    { blob_append_c_unescape(&yyextra->buf, yytext[1]); }
     \\.                 { blob_append_data(&yyextra->buf, yytext, 2); }
     [^\\\n\"]+          { blob_append_data(&yyextra->buf, yytext, yyleng); }
 }
