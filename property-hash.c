@@ -250,22 +250,20 @@ int props_hash_unpack(const byte *buf, int buflen, int *pos,
     return 0;
 }
 
-int props_hash_from_fmtv1_len(props_hash_t *ph, const blob_t *payload,
-                              int p_begin, int p_end)
+int props_hash_from_fmtv1_data_start(props_hash_t *ph, byte *data,
+                                     int len, int start)
 {
-    const char *buf = blob_get_cstr(payload);
+    const char *buf = (const char *)data;
     int pos = 0;
     blob_t key, val;
 
     blob_inita(&key, BUFSIZ);
     blob_inita(&val, BUFSIZ);
 
-    if (p_begin >= 0)
-        pos = p_begin;
-    if (p_end < 0)
-        p_end = payload->len;
+    if (start >= 0)
+        pos = start;
 
-    while (pos < p_end) {
+    while (pos < len) {
         const char *k, *v, *end;
         int klen, vlen;
 
@@ -298,8 +296,21 @@ int props_hash_from_fmtv1_len(props_hash_t *ph, const blob_t *payload,
     return 0;
 }
 
+int props_hash_from_fmtv1_data(props_hash_t *ph, byte *data, int len)
+{
+    return props_hash_from_fmtv1_data_start(ph, data, len, -1);
+}
+
+int props_hash_from_fmtv1_len(props_hash_t *ph, const blob_t *payload,
+                              int p_begin, int p_end)
+{
+    if (p_end < 0)
+        return props_hash_from_fmtv1_data_start(ph, payload->data, payload->len, p_begin);
+    return props_hash_from_fmtv1_data_start(ph, payload->data, p_end, p_begin);
+}
+
 int props_hash_from_fmtv1(props_hash_t *ph, const blob_t *payload)
 {
-    return props_hash_from_fmtv1_len(ph, payload, -1, -1);
+    return props_hash_from_fmtv1_data_start(ph, payload->data, payload->len, -1);
 }
 
