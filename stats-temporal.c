@@ -626,7 +626,7 @@ static int stats_temporal_upd_auto(stats_temporal_t *stats, int date,
             date1 = date / st->scale;
             if (date1 > st->current - st->count) {
                 vp64 = (uint64_t *)((byte *)stats->file->area + st->offset +
-                                    (st->pos + st->count + date - st->current) % st->count *
+                                    (st->pos + st->count + date1 - st->current) % st->count *
                                     st->incr);
                 STAT_UPD_VALUE(type, vp64 + index, vp64 + index_bis, value);
             }
