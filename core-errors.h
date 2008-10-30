@@ -41,14 +41,14 @@ void e_set_handler(e_handler_f *handler);
 
 #ifdef NDEBUG
 
-#  define e_trace(...)
-#  define e_trace_hex(...)
-#  define e_trace_start(...)
-#  define e_trace_cont(...)
-#  define e_trace_end(...)
+#  define e_trace(...)           (void)0
+#  define e_trace_hex(...)       (void)0
+#  define e_trace_start(...)     (void)0
+#  define e_trace_cont(...)      (void)0
+#  define e_trace_end(...)       (void)0
 
-#  define e_set_verbosity(...)
-#  define e_incr_verbosity(...)
+#  define e_set_verbosity(...)   (void)0
+#  define e_incr_verbosity(...)  (void)0
 #  define e_is_traced_real(...)  false
 #  define e_is_traced(...)       false
 
