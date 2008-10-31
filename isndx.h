@@ -24,8 +24,8 @@ typedef struct isndx_file_t MMFILE_ALIAS(struct isndx_file) isndx_file_t;
 MMFILE_FUNCTIONS(isndx_file_t, isndx_real);
 
 #define ISNDX_MAGIC       "ISGX"
-#define ISNDX_MAJOR       0
-#define ISNDX_MINOR       2
+#define ISNDX_MAJOR       1
+#define ISNDX_MINOR       0
 #define ISNDX_PAGESHIFT   10
 #define ISNDX_PAGESIZE    (1 << ISNDX_PAGESHIFT)
 
@@ -40,8 +40,10 @@ MMFILE_FUNCTIONS(isndx_file_t, isndx_real);
 
 struct isndx_file {
     byte magic[4];
-    uint32_t major;
-    uint32_t minor;
+    uint32_t major;       /* isndx internal version */
+    uint32_t minor;       /* isndx internal version */
+    uint32_t user_major;  /* user private version */
+    uint32_t user_minor;  /* user private version */
     uint32_t pageshift;
     uint32_t pagesize;
     uint32_t root;

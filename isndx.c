@@ -194,7 +194,8 @@ isndx_t *isndx_open(const char *path, int flags)
         return NULL;
     }
 
-    if (memcmp(ndx->file->area->magic, ISNDX_MAGIC, 4)) {
+    /* Only perform quick check */
+    if (isndx_check(ndx, 0)) {
         /* Bad magic */
         e_error("Corrupted index file: %s", path);
         isndx_real_close(&ndx->file);
