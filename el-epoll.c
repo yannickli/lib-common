@@ -16,14 +16,8 @@
 
 static int epollfd_g = -1;
 
-el_t el_fd_register(int fd, short events, el_fd_f *cb, el_data_t priv)
+static void el_fd_initialize(void)
 {
-    ev_t *ev = el_create(EV_FD, cb, priv, true);
-    struct epoll_event event = {
-        .data.ptr = ev,
-        .events   = events,
-    };
-
     if (unlikely(epollfd_g == -1)) {
 #ifdef SIGPIPE
         signal(SIGPIPE, SIG_IGN);
@@ -33,6 +27,17 @@ el_t el_fd_register(int fd, short events, el_fd_f *cb, el_data_t priv)
             e_panic(E_UNIXERR("epoll_create"));
         fd_set_features(epollfd_g, O_CLOEXEC);
     }
+}
+
+el_t el_fd_register(int fd, short events, el_fd_f *cb, el_data_t priv)
+{
+    ev_t *ev = el_create(EV_FD, cb, priv, true);
+    struct epoll_event event = {
+        .data.ptr = ev,
+        .events   = events,
+    };
+
+    el_fd_initialize();
     ev->fd.fd = fd;
     ev->fd.events = events;
     if (unlikely(epoll_ctl(epollfd_g, EPOLL_CTL_ADD, fd, &event)))
@@ -74,8 +79,9 @@ static void el_loop_fds(int timeout)
     struct timeval now;
     int res;
 
+    el_fd_initialize();
     res = epoll_wait(epollfd_g, events, countof(events), timeout);
-    assert (res >= 0 || errno == EAGAIN || errno == EINTR || errno != EBADF);
+    assert (res >= 0 || errno == EAGAIN || errno == EINTR);
 
     _G.in_poll = true;
     if (_G.timers.len) {
