@@ -75,7 +75,7 @@ static void el_loop_fds(int timeout)
     int res;
 
     res = epoll_wait(epollfd_g, events, countof(events), timeout);
-    assert (res >= 0 || errno == EAGAIN || errno == EINTR);
+    assert (res >= 0 || errno == EAGAIN || errno == EINTR || errno != EBADF);
 
     _G.in_poll = true;
     if (_G.timers.len) {
