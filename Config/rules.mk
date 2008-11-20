@@ -96,20 +96,3 @@ $$(eval $$(call fun/common-depends,$1,$(3:.swfml=.swf),$3))
 endef
 
 #}}}
-#[ marshaling ]#######################################################{{{#
-
-ext/gen/bp = $(call fun/patsubst-filt,%.bp,%.bp.h,$1)
-
-define ext/expand/bp
-$(3:=.h): %.bp.h: %.bp util/bldutils/bpack
-	$(msg/generate) $$(@R)
-	util/bldutils/bpack -o $$@ $$<
-__$(1D)_generated: $(3:=.h)
-$$(eval $$(call fun/common-depends,$1,$(3:=.h),$3))
-endef
-
-define ext/rule/bp
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/bp,$1,$2,$$t,$4))))
-endef
-
-#}}}
