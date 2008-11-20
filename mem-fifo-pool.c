@@ -155,7 +155,13 @@ static void mfp_free(mem_fifo_pool_t *mfp, void *mem)
     if (--pageof(blk)->used_blocks <= 0) {
         mem_page_t **pagep;
 
-        for (pagep = &mfp->pages; *pagep; pagep = &(*pagep)->next) {
+        if (pageof(blk) == mfp->pages) {
+            mem_page_t *page = pageof(blk);
+            /* if we're the current page, reset our memory and start over */
+            p_clear(page->area, page->used_size);
+            page->used_size = 0;
+        } else
+        for (pagep = &mfp->pages->next; *pagep; pagep = &(*pagep)->next) {
             mem_page_t *page = *pagep;
 
             if (page->used_blocks != 0)
