@@ -83,3 +83,46 @@ int blob_latin9_to_utf8(blob_t *out, const char *s, int len)
 {
     return blob_latin1_to_utf8_aux(out, s, len, 0xc0);
 }
+
+int blob_utf8_to_latin1(blob_t *out, const char *s, int rep)
+{
+    int init_len = out->len;
+
+    for (;;) {
+        const char *p = s;
+        int c;
+
+        while (*p > 0 && *p < 128)
+            p++;
+        blob_append_data(out, s, p - s);
+        s = p;
+
+        c = utf8_getc(s, &s);
+        if (c < 0)
+            goto error;
+
+        if (c == 0)
+            break;
+
+        if (c >= 256) {
+            switch (rep) {
+              case -1:
+                goto error;
+              case 0:
+                continue;
+              default:
+                c = rep;
+                break;
+            }
+        }
+        blob_ensure(out, out->len + 1);
+        out->data[out->len++] = c;
+    }
+    /* set len force invariant, blob is terminated with '\0' */
+    blob_setlen(out, out->len);
+    return 0;
+
+error:
+    blob_setlen(out, init_len);
+    return -1;
+}

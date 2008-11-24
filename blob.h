@@ -535,6 +535,7 @@ int blob_utf8_putc(blob_t *out, int c);
 
 int blob_latin1_to_utf8(blob_t *out, const char *s, int len);
 int blob_latin9_to_utf8(blob_t *out, const char *s, int len);
+int blob_utf8_to_latin1(blob_t *out, const char *s, int rep);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
