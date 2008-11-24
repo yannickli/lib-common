@@ -39,6 +39,29 @@ int utf8_getc(const char *s, const char **outp)
     return ret - __utf8_offs[trail];
 }
 
+int utf8_ngetc(const char *s, int len, const char **outp)
+{
+    uint32_t ret = 0;
+    int trail = __utf8_trail[(unsigned char)*s];
+
+    if (trail + 1 > len)
+        return -2;
+
+    switch (trail) {
+      default: return -1;
+      case 3: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
+      case 2: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
+      case 1: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
+      case 0: ret += (unsigned char)*s++;
+    }
+
+    if (*outp) {
+        *outp = s;
+    }
+
+    return ret - __utf8_offs[trail];
+}
+
 int blob_utf8_putc(blob_t *out, int c)
 {
     int bytes = 1 + (c >= 0x80) + (c >= 0x800) + (c >= 0x10000);
