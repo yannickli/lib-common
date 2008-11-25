@@ -154,6 +154,7 @@ int tpl_encode_ira_bin(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 int tpl_encode_base64(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 int tpl_encode_qp(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 int tpl_encode_wbxml_href(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
+int tpl_encode_latin1(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
 
 /**\}*/
 #endif
