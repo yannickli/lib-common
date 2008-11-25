@@ -377,11 +377,12 @@ tpl_apply(tpl_apply_f *f, tpl_t *out, blob_t *blob, tpl_t *in)
 int tpl_subst(tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb, int flags)
 {
     tpl_t *out = *tplp;
+    int res = 0;
 
     if (!out->is_const) {
         out = tpl_new();
         out->is_const = true;
-        if (tpl_combine_tpl(out, *tplp, envid, vals, nb, flags) < 0) {
+        if ((res = tpl_combine_tpl(out, *tplp, envid, vals, nb, flags))) {
             tpl_delete(&out);
         } else
         if ((flags & TPL_LASTSUBST) && !out->is_const)
@@ -394,7 +395,7 @@ int tpl_subst(tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb, int flags)
             tpl_delete(&vals[i]);
         }
     }
-    return out ? 0 : -1;
+    return res;
 }
 
 int tpl_fold(blob_t *out, tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb,
@@ -403,9 +404,9 @@ int tpl_fold(blob_t *out, tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb,
     int pos = out->len;
     int res = 0;
 
-    if (tpl_fold_blob_tpl(out, *tplp, envid, vals, nb, flags) < 0) {
+    if ((res = tpl_fold_blob_tpl(out, *tplp, envid, vals, nb, flags))) {
         blob_setlen(out, pos);
-        res = -1;
+        return res;
     }
     if (!(flags & TPL_KEEPVAR)) {
         for (int i = 0; i < nb; i++) {
@@ -428,10 +429,12 @@ int tpl_subst_str(tpl_t **tplp, uint16_t envid,
                   const char **vals, int nb, int flags)
 {
     tpl_t *out = *tplp;
+    int res = 0;
+
     if (!out->is_const) {
         out = tpl_new();
         out->is_const = true;
-        if (tpl_combine_str(out, *tplp, envid, vals, nb, flags) < 0) {
+        if ((res = tpl_combine_str(out, *tplp, envid, vals, nb, flags))) {
             tpl_delete(&out);
         } else
         if ((flags & TPL_LASTSUBST) && !out->is_const)
@@ -439,20 +442,19 @@ int tpl_subst_str(tpl_t **tplp, uint16_t envid,
         tpl_delete(tplp);
         *tplp = out;
     }
-    return out ? 0 : -1;
+    return res;
 }
 
 int tpl_fold_str(blob_t *out, tpl_t **tplp, uint16_t envid,
                  const char **vals, int nb, int flags)
 {
-    int pos = out->len;
-    if (tpl_fold_blob_str(out, *tplp, envid, vals, nb, flags) < 0) {
+    int pos = out->len, res = 0;
+
+    if ((res = tpl_fold_blob_str(out, *tplp, envid, vals, nb, flags))) {
         blob_setlen(out, pos);
-        tpl_delete(tplp);
-        return -1;
     }
     tpl_delete(tplp);
-    return 0;
+    return res;
 }
 
 static tpl_t *tpl_to_blob(tpl_t **orig)
