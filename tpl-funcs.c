@@ -137,6 +137,27 @@ int tpl_encode_url(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
     return 0;
 }
 
+int tpl_encode_latin1(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
+{
+    if (!blob) {
+        assert(out);
+        blob = tpl_get_blob(out);
+    }
+
+    while (--nb >= 0) {
+        tpl_t *in = *args++;
+        if (in->op == TPL_OP_DATA) {
+            blob_utf8_to_latin1_n(blob, (const char *)in->u.data.data,
+                                  in->u.data.len, '.');
+        } else {
+            assert (in->op == TPL_OP_BLOB);
+            blob_utf8_to_latin1_n(blob, (const char *)in->u.blob.data,
+                                  in->u.blob.len, '.');
+        }
+    }
+    return 0;
+}
+
 int tpl_encode_ira(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
 {
     if (!blob) {
