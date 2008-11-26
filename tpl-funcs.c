@@ -49,51 +49,6 @@ int tpl_compute_len_copy(blob_t *b, tpl_t **args, int nb, int len)
 /* Short formats                                                            */
 /****************************************************************************/
 
-int tpl_encode_plmn(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
-{
-    const byte *data;
-    int len;
-    int64_t num;
-
-    if (!blob) {
-        assert(out);
-        blob = tpl_get_blob(out);
-    }
-
-    if (tpl_get_short_data(args, nb, &data, &len))
-        return -1;
-
-    num = msisdn_canonify((const char*)data, len, -1);
-    if (num < 0) {
-        blob_append_data(blob, data, len);
-    } else {
-        blob_append_fmt(blob, "+%lld/TYPE=PLMN", (long long)num);
-    }
-    return 0;
-}
-
-int tpl_encode_msisdn_canonify(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
-{
-    const byte *data;
-    int len;
-    int64_t num;
-
-    if (!blob) {
-        assert(out);
-        blob = tpl_get_blob(out);
-    }
-
-    if (tpl_get_short_data(args, nb, &data, &len))
-        return -1;
-
-    num = msisdn_canonify((const char*)data, len, -1);
-    if (num < 0) {
-        blob_append_data(blob, data, len);
-    } else {
-        blob_append_fmt(blob, "%lld", (long long)num);
-    }
-    return 0;
-}
 
 /****************************************************************************/
 /* Escapings                                                                */

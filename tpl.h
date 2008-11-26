@@ -137,13 +137,6 @@ int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl);
 int tpl_compute_len_copy(blob_t *b, tpl_t **args, int nb, int len);
 
 /****************************************************************************/
-/* Short formats                                                            */
-/****************************************************************************/
-
-int tpl_encode_plmn(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
-int tpl_encode_msisdn_canonify(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
-
-/****************************************************************************/
 /* Escapings                                                                */
 /****************************************************************************/
 
