@@ -1455,6 +1455,9 @@ int blob_pack(blob_t *blob, const char *fmt, ...)
             p = convert_int10(buf + sizeof(buf), va_arg(ap, int));
             blob_append_data(blob, p, buf + sizeof(buf) - p);
             continue;
+        case 'l':
+            blob_append_fmt(blob, "%"PRIi64, va_arg(ap, int64_t));
+            continue;
         case 'g':
             blob_append_fmt(blob, "%g", va_arg(ap, double));
             continue;
@@ -1505,6 +1508,7 @@ static int buf_unpack_vfmt(const byte *buf, int buf_len,
     data = buf + *pos;
     for (;;) {
         switch (c = *fmt++) {
+            int64_t i64, *i64p;
             int ival, *ivalp;
             double dval, *dvalp;
             unsigned int uval, *uvalp;
@@ -1517,6 +1521,14 @@ static int buf_unpack_vfmt(const byte *buf, int buf_len,
             ivalp = va_arg(ap, int *);
             if (ivalp) {
                 *ivalp = ival;
+            }
+            n++;
+            continue;
+        case 'l':
+            i64 = strtoll((const char *)data, (const char **)&data, 10);
+            i64p = va_arg(ap, int64_t *);
+            if (i64p) {
+                *i64p = i64;
             }
             n++;
             continue;
