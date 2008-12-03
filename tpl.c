@@ -502,6 +502,9 @@ void tpl_optimize(tpl_t *tpl)
         }
     }
 
+    if (tpl->op & TPL_OP_NOT_MERGEABLE)
+        goto no_seq_merge;
+
     for (int i = 0; i < tpl->u.blocks.len - 1; ) {
         tpl_t *cur = tpl->u.blocks.tab[i];
         tpl_t *nxt = tpl->u.blocks.tab[i + 1];
@@ -553,6 +556,8 @@ void tpl_optimize(tpl_t *tpl)
             tpl_delete(&nxt);
         }
     }
+
+  no_seq_merge:
 
     for (int i = 0; i < tpl->u.blocks.len; i++) {
         tpl_remove_useless_block(&tpl->u.blocks.tab[i]);

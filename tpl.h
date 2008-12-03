@@ -32,6 +32,7 @@
 #define TPL_COPY_LIMIT_HARD    32
 #define TPL_COPY_LIMIT_SOFT   256
 #define TPL_DATA_LIMIT_KEEP  4096
+#define TPL_OP_NOT_MERGEABLE 0x20
 
 typedef enum tpl_op {
     TPL_OP_DATA = 0x00,
@@ -39,11 +40,11 @@ typedef enum tpl_op {
     TPL_OP_VAR,
 
     TPL_OP_BLOCK = 0x10,
+    TPL_OP_SEQ,               /* should only be used under APPLYs */
+    TPL_OP_APPLY,             /* f(x) only depends upon x */
+    TPL_OP_APPLY_ASSOC,       /* also f(a + b) == f(a) + f(b) */
+    TPL_OP_APPLY_SEQ = TPL_OP_BLOCK | TPL_OP_NOT_MERGEABLE,  /* f(a,b,...) */
     TPL_OP_IFDEF,
-    TPL_OP_SEQ,           /* should only be used under APPLYs */
-    TPL_OP_APPLY,         /* f(x) only depends upon x */
-    TPL_OP_APPLY_ASSOC,   /* also f(a + b) == f(a) + f(b) */
-    TPL_OP_APPLY_SEQ,     /* f(a,b,...) */
 } tpl_op;
 
 struct tpl_data {
