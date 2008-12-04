@@ -131,6 +131,16 @@ bool tpl_is_variable(const tpl_t *tpl);
 int tpl_to_iov(struct iovec *, int nr, tpl_t *);
 int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl);
 
+static inline void tpl_blob_append(tpl_t *tpl, blob_t *out)
+{
+    if (tpl->op == TPL_OP_DATA) {
+        blob_append_data(out, tpl->u.data.data, tpl->u.data.len);
+    } else {
+        assert (tpl->op == TPL_OP_BLOB);
+        blob_append_data(out, tpl->u.blob.data, tpl->u.blob.len);
+    }
+}
+
 /****************************************************************************/
 /* Checksums                                                                */
 /****************************************************************************/
