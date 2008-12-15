@@ -1,18 +1,25 @@
 lib-common Upgrading Notes
 ==========================
 
+Parseopt enhancements (Mon, 15 Dec 2008)
+----------------------------------------
+
+* `parseopt` takes a new flags argument. Previous behaviour needs '0' to be
+  passed as last argument.
+
+
 Cleanups (Wed, 26 Nov 2008)
 ---------------------------
 
-* `msisdn_canonify` moved out from the lib-common.
-* `email_canonify`  moved out from the lib-common.
-* `tpl_encode_plmn` moved out from the lib-common.
-* `tpl_encode_msisdn_canonify` moved out from the lib-common.
+* `msisdn_canonify` removed from the lib-common.
+* `email_canonify`  removed from the lib-common.
+* `tpl_encode_plmn` removed from the lib-common.
+* `tpl_encode_msisdn_canonify` removed from the lib-common.
 
 Cleanups (Thu, 04 Sep 2008)
 ---------------------------
 
-* `stats-temporal` moved out from the lib-common.
+* `stats-temporal` removed from the lib-common.
 * `hash-*` modules have been replaced by xyssl ones. Some function have been
   renamed, replacements are too long to quote, but are obvious enough.
 

@@ -147,7 +147,7 @@ static void copyinits(popt_t *opts)
     }
 }
 
-int parseopt(int argc, char **argv, popt_t *opts)
+int parseopt(int argc, char **argv, popt_t *opts, int flags)
 {
     popt_state_t optst = { argv, argc, NULL };
     int n = 0;
@@ -158,6 +158,8 @@ int parseopt(int argc, char **argv, popt_t *opts)
         const char *arg = optst.argv[0];
 
         if (*arg != '-' || !arg[1]) {
+            if (flags & POPT_STOP_AT_NONARG)
+                break;
             argv[n++] = optst.argv[0];
             continue;
         }
