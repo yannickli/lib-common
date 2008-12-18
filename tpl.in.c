@@ -147,7 +147,7 @@ static int
 NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
                   uint16_t envid, VAL_TYPE *vals, int nb, int flags)
 {
-    tpl_t *tmp = tpl_new();
+    tpl_t *tmp;
     VAL_TYPE vtmp;
     int branch, res;
 
@@ -190,6 +190,7 @@ NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
       case TPL_OP_APPLY:
       case TPL_OP_APPLY_ASSOC:
       case TPL_OP_APPLY_SEQ:
+        tmp = tpl_new();
         if (tpl->op == TPL_OP_APPLY_SEQ) {
             tmp->op = TPL_OP_SEQ;
             res = NS(tpl_combine_seq)(tmp, tpl, envid, vals, nb,
