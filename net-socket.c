@@ -138,7 +138,7 @@ int listenx(int sock, const sockunion_t *addrs, int cnt,
         to_close = sock = bindx(-1, addrs, cnt, type, proto, flags);
     }
 
-    if (listen(sock, 0) < 0) {
+    if (listen(sock, SOMAXCONN) < 0) {
         e_error("listen failed.");
         goto error;
     }
