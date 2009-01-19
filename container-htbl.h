@@ -134,6 +134,12 @@ void htbl_invalidate(generic_htbl *t, int pos);
     pfx##_##kind##_insert(pfx##_##kind *t, type_t e) {                       \
         return pfx##_##kind##_ll_insert(t, e);                               \
     }                                                                        \
+    static inline type_t *                                                   \
+    pfx##_##kind##_find_elem(pfx##_##kind *t, type_t e)                      \
+    {                                                                        \
+        idx_t key = get_k(t, &e);                                            \
+        return pfx##_##kind##_ll_find(t, key, key);                          \
+    }                                                                        \
     static inline void pfx##_##kind##_remove_elem(pfx##_##kind *t, type_t e) \
     {                                                                        \
         idx_t key = get_k(t, &e);                                            \
