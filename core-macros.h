@@ -169,6 +169,16 @@ typedef unsigned int gt_uint32_t;
 
 /*---------------- Misc ----------------*/
 
+#ifdef __GNUC__
+#define container_of(obj, type_t, member) \
+    ({ const typeof(((type_t *)0)->member) *__mptr = (obj);              \
+       (type_t *)((char *)__mptr - offsetof(type_t, member)); })
+#else
+#define container_of(obj, type_t, member) \
+    (type_t *)((char *)(obj) - offsetof(type_t, member))
+#endif
+
+
 #define countof(table)  ((ssize_t)(sizeof(table) / sizeof((table)[0]) + \
                          __must_be_array(table)))
 #define ssizeof(foo)    ((ssize_t)sizeof(foo))

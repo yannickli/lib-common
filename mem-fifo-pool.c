@@ -173,7 +173,7 @@ static void mfp_free(mem_fifo_pool_t *mfp, void *mem)
     if (!mem)
         return;
 
-    blk  = (mem_block_t*)((byte *)mem - sizeof(mem_block_t));
+    blk  = container_of(mem, mem_block_t, area);
     page = pageof(blk);
     mfp->occupied -= blk->blk_size;
     VALGRIND_MEMPOOL_FREE(page, blk + sizeof(*blk));
@@ -229,7 +229,7 @@ static void mfp_realloc(mem_fifo_pool_t *mfp, void **memp, int size)
         return;
     }
 
-    blk  = (mem_block_t*)((byte *)mem - sizeof(mem_block_t));
+    blk  = container_of(mem, mem_block_t, area);
     page = pageof(blk);
 
     if (size <= blk->blk_size - ssizeof(*blk)) {
