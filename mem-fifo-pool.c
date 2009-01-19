@@ -14,6 +14,13 @@
 #ifndef NDEBUG
 #  include <valgrind/valgrind.h>
 #  include <valgrind/memcheck.h>
+#  ifndef VALGRIND_MEMPOOL_CHANGE
+#    define VALGRIND_MEMPOOL_CHANGE(pool, oaddr, naddr, size) \
+        do {                                                  \
+             VALGRIND_MEMPOOL_FREE(pool, oaddr);              \
+             VALGRIND_MEMPOOL_ALLOC(pool, naddr, size);       \
+        } while (0)
+#  endif
 #else
 #  define VALGRIND_CREATE_MEMPOOL(...)
 #  define VALGRIND_DESTROY_MEMPOOL(...)
