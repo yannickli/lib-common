@@ -19,7 +19,7 @@
 typedef struct mem_pool_t {
     void *(*mem_alloc)  (struct mem_pool_t *mp, int size);
     void *(*mem_alloc0) (struct mem_pool_t *mp, int size);
-    void *(*mem_realloc)(struct mem_pool_t *mp, void *mem, int size);
+    void  (*mem_realloc)(struct mem_pool_t *mp, void **mem, int size);
     void  (*mem_free)   (struct mem_pool_t *mp, void *mem);
 } mem_pool_t;
 

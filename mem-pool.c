@@ -28,10 +28,9 @@ static void mem_malloc_free(mem_pool_t *mp, void *mem)
     mem_free(mem);
 }
 
-static void *mem_malloc_realloc(mem_pool_t *mp, void *mem, int size)
+static void mem_malloc_realloc(mem_pool_t *mp, void **memp, int size)
 {
-    mem_realloc(&mem, size);
-    return mem;
+    mem_realloc(memp, size);
 }
 
 static mem_pool_t mem_malloc_pool_funcs = {

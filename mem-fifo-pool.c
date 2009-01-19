@@ -12,24 +12,21 @@
 /**************************************************************************/
 
 #ifndef NDEBUG
-#include <valgrind/valgrind.h>
-#include <valgrind/memcheck.h>
-
-/* XXX: this is a hack that detects if the tool may be memcheck or another.
- *      with memecheck, VALGRIND_MAKE_MEM_DEFINED on a function address
- *      returns -1, 0 in other tools.
- */
-#define RUNNING_ON_MEMCHECK \
-    (RUNNING_ON_VALGRIND && \
-    VALGRIND_MAKE_MEM_DEFINED(&mem_fifo_pool_new, sizeof(mem_fifo_pool_new)))
+#  include <valgrind/valgrind.h>
+#  include <valgrind/memcheck.h>
+#else
+#  define VALGRIND_CREATE_MEMPOOL(...)
+#  define VALGRIND_DESTROY_MEMPOOL(...)
+#  define VALGRIND_MAKE_MEM_DEFINED(...)
+#  define VALGRIND_MAKE_MEM_NOACCESS(...)
+#  define VALGRIND_MEMPOOL_ALLOC(...)
+#  define VALGRIND_MEMPOOL_CHANGE(...)
+#  define VALGRIND_MEMPOOL_FREE(...)
 #endif
 #include <sys/mman.h>
-#include "mmappedfile.h"
 #include "mem-pool.h"
 
 #define ROUND_MULTIPLE(n, k) ((((n) + (k) - 1) / (k)) * (k))
-
-#define POOL_DEALLOCATED  1
 
 typedef struct mem_page_t {
     struct mem_page_t *next;
@@ -60,7 +57,16 @@ typedef struct mem_fifo_pool_t {
 
 
 static mem_page_t *pageof(mem_block_t *blk) {
-    return (mem_page_t *)((char *)blk + blk->page_offs);
+    mem_page_t *page;
+
+    VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
+    page = (mem_page_t *)((char *)blk + blk->page_offs);
+    return page;
+}
+
+static inline void blk_protect(mem_block_t *blk)
+{
+    VALGRIND_MAKE_MEM_NOACCESS(blk, sizeof(*blk));
 }
 
 static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp)
@@ -75,22 +81,29 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp)
     }
 
     page->area_size = size;
+    VALGRIND_CREATE_MEMPOOL(page, 0, true);
+    VALGRIND_MAKE_MEM_NOACCESS(page->area, page->area_size);
     return page;
 }
 
 static void mem_page_reset(mem_page_t *page)
 {
-    page->next        = NULL;
+    VALGRIND_MAKE_MEM_DEFINED(page->area, page->used_size);
+    p_clear(page->area, page->used_size);
+    VALGRIND_MAKE_MEM_NOACCESS(page->area, page->area_size);
+
     page->used_size   = 0;
     page->used_blocks = 0;
     page->last        = NULL;
-    p_clear(page->area, page->area_size);
 }
 
 static void mem_page_delete(mem_page_t **pagep)
 {
     if (*pagep) {
-        munmap((*pagep), (*pagep)->area_size + sizeof(mem_page_t));
+        mem_page_t *page = *pagep;
+        VALGRIND_DESTROY_MEMPOOL(page);
+        VALGRIND_MAKE_MEM_NOACCESS(page->area, page->area_size);
+        munmap(page, page->area_size + sizeof(mem_page_t));
         *pagep = NULL;
     }
 }
@@ -104,6 +117,9 @@ static void *mfp_alloc(mem_fifo_pool_t *mfp, int size)
 {
     mem_block_t *blk;
     mem_page_t *page;
+#ifndef NDEBUG
+    int asked = size;
+#endif
 
     /* Must round size up to keep proper alignment */
     size = ROUND_MULTIPLE((unsigned)size + sizeof(mem_block_t), 8);
@@ -130,8 +146,12 @@ static void *mfp_alloc(mem_fifo_pool_t *mfp, int size)
     }
 
     blk = (mem_block_t *)(page->area + page->used_size);
+    VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
+    VALGRIND_MEMPOOL_ALLOC(page, blk + sizeof(*blk), asked);
     blk->page_offs = (intptr_t)page - (intptr_t)blk;
-    blk->blk_size    = size;
+    blk->blk_size  = size;
+    blk_protect(blk);
+
     mfp->occupied   += size;
     page->used_size += size;
     page->used_blocks++;
@@ -141,28 +161,27 @@ static void *mfp_alloc(mem_fifo_pool_t *mfp, int size)
 static void mfp_free(mem_fifo_pool_t *mfp, void *mem)
 {
     mem_block_t *blk;
+    mem_page_t *page;
 
     if (!mem)
         return;
 
-    blk = (mem_block_t*)((byte *)mem - sizeof(mem_block_t));
-    if (blk->page_offs > 0)
-        e_panic("double free heap corruption *** %p ***", mem);
-
+    blk  = (mem_block_t*)((byte *)mem - sizeof(mem_block_t));
+    page = pageof(blk);
     mfp->occupied -= blk->blk_size;
+    VALGRIND_MEMPOOL_FREE(page, blk + sizeof(*blk));
+    blk_protect(blk);
 
     /* if this was the last block, GC the pages */
-    if (--pageof(blk)->used_blocks <= 0) {
+    if (--page->used_blocks <= 0) {
         mem_page_t **pagep;
 
-        if (pageof(blk) == mfp->pages) {
-            mem_page_t *page = pageof(blk);
+        if (page == mfp->pages) {
             /* if we're the current page, reset our memory and start over */
-            p_clear(page->area, page->used_size);
-            page->used_size = 0;
+            mem_page_reset(page);
         } else
         for (pagep = &mfp->pages->next; *pagep; pagep = &(*pagep)->next) {
-            mem_page_t *page = *pagep;
+            page = *pagep;
 
             if (page->used_blocks != 0)
                 continue;
@@ -182,52 +201,54 @@ static void mfp_free(mem_fifo_pool_t *mfp, void *mem)
             }
             break;
         }
-    } else {
-        blk->page_offs = POOL_DEALLOCATED;
     }
 }
 
-static void *mfp_realloc(mem_fifo_pool_t *mfp, void *mem, int size)
+static void mfp_realloc(mem_fifo_pool_t *mfp, void **memp, int size)
 {
     mem_block_t *blk;
     mem_page_t *page;
-    void *res;
+    void *mem = *memp;
 
     if (unlikely(size < 0))
         e_panic(E_PREFIX("invalid memory size %d"), size);
     if (unlikely(size == 0)) {
         mfp_free(mfp, mem);
-        return NULL;
+        return;
     }
 
-    if (!mem)
-        return mfp_alloc(mfp, size);
-
-    blk = (mem_block_t*)((byte *)mem - sizeof(mem_block_t));
-    if (blk->page_offs > 0) {
-        e_error("double free heap corruption *** %p ***", mem);
-        return NULL;
+    if (!mem) {
+        mfp_alloc(mfp, size);
+        return;
     }
 
-    if (size <= blk->blk_size - ssizeof(blk))
-        return mem;
+    blk  = (mem_block_t*)((byte *)mem - sizeof(mem_block_t));
+    page = pageof(blk);
+
+    if (size <= blk->blk_size - ssizeof(*blk)) {
+        VALGRIND_MEMPOOL_CHANGE(page, blk + sizeof(*blk), blk + sizeof(*blk),
+                                size);
+        blk_protect(blk);
+        return;
+    }
 
     /* optimization if it's the last block allocated */
-    page = pageof(blk);
     if (mem == page->last
-    && size + ssizeof(blk) - blk->blk_size <= mem_page_size_left(page))
+    && size + ssizeof(*blk) - blk->blk_size <= mem_page_size_left(page))
     {
+        VALGRIND_MEMPOOL_CHANGE(page, blk + sizeof(*blk), blk + sizeof(*blk),
+                                size);
         size = ROUND_MULTIPLE((size_t)size, 8);
         blk->blk_size   += size;
-        page->used_size += size;
+        blk_protect(blk);
+
         mfp->occupied   += size;
-        return mem;
+        page->used_size += size;
+        return;
     }
 
-    res = mfp_alloc(mfp, size);
-    memcpy(res, mem, blk->blk_size);
+    memcpy(mfp_alloc(mfp, size), mem, blk->blk_size);
     mfp_free(mfp, mem);
-    return res;
 }
 
 static mem_pool_t const mem_fifo_pool_funcs = {
@@ -239,29 +260,15 @@ static mem_pool_t const mem_fifo_pool_funcs = {
 
 mem_pool_t *mem_fifo_pool_new(int page_size_hint)
 {
-    mem_fifo_pool_t *mfp;
+    mem_fifo_pool_t *mfp = p_new(mem_fifo_pool_t, 1);
 
-#ifndef NDEBUG
-    if (RUNNING_ON_MEMCHECK)
-        return mem_malloc_pool_new();
-#endif
-
-    mfp             = p_new(mem_fifo_pool_t, 1);
-    mfp->funcs      = mem_fifo_pool_funcs;
-    mfp->page_size  = MAX(16 * 4096, ROUND_MULTIPLE(page_size_hint, 4096));
-
+    mfp->funcs     = mem_fifo_pool_funcs;
+    mfp->page_size = MAX(16 * 4096, ROUND_MULTIPLE(page_size_hint, 4096));
     return &mfp->funcs;
 }
 
 void mem_fifo_pool_delete(mem_pool_t **poolp)
 {
-#ifndef NDEBUG
-    if (RUNNING_ON_MEMCHECK) {
-        mem_malloc_pool_delete(poolp);
-        return;
-    }
-#endif
-
     if (*poolp) {
         mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)(*poolp);
 
