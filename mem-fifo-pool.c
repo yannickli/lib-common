@@ -221,11 +221,12 @@ static void mfp_realloc(mem_fifo_pool_t *mfp, void **memp, int size)
         e_panic(E_PREFIX("invalid memory size %d"), size);
     if (unlikely(size == 0)) {
         mfp_free(mfp, mem);
+        *memp = NULL;
         return;
     }
 
     if (!mem) {
-        mfp_alloc(mfp, size);
+        *memp = mfp_alloc(mfp, size);
         return;
     }
 
@@ -254,7 +255,7 @@ static void mfp_realloc(mem_fifo_pool_t *mfp, void **memp, int size)
         return;
     }
 
-    memcpy(mfp_alloc(mfp, size), mem, blk->blk_size);
+    memcpy(*memp = mfp_alloc(mfp, size), mem, blk->blk_size);
     mfp_free(mfp, mem);
 }
 
