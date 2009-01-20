@@ -25,19 +25,63 @@ typedef struct rb_node_t {
     struct rb_node_t *left, *right;
 } rb_node_t;
 
-static inline void
-rb_add_node(rb_node_t *parent, rb_node_t **slot, rb_node_t *node)
-{
-    node->__parent = (uintptr_t)parent; /* insert it red */
-    node->left = node->right = NULL;
-}
-
-void rb_fix_color(rb_t *, rb_node_t *);
-void rb_remove(rb_t *, rb_node_t *);
+/*
+ * Do-it-yourself rbtree:
+ *
+ *   for performance reasons, inlining the comparison is a huge win, you have
+ *   to write the searches and insertion procedure this way with the helpers
+ *   container-rbtree provides.
+ *
+ *   entry_t *rb_entry_search(rb_root_t *rb, key_t *key)
+ *   {
+ *        rb_node_t *n = rb->root;
+ *
+ *        while (n) {
+ *            entry_t *e = rb_entry(n, entry_t, some_member);
+ *
+ *            if (key < e->key) {
+ *                n = n->left;
+ *            } else
+ *            if (key > e->key) {
+ *                n = n->right;
+ *            } else {
+ *                return e;
+ *            }
+ *        }
+ *        return NULL;
+ *   }
+ *
+ *
+ *   void rb_entry_insert(rb_root_t *rb, entry_t *e)
+ *   {
+ *        rb_node_t **slot = &rb->root;
+ *
+ *        while (*slot) {
+ *            entry_t *slot_e;
+ *
+ *            slot_e = rb_entry(*slot, entry_t, some_member);
+ *
+ *            if (e->key < slot_e->key) {
+ *                slot = &(*slot)->left;
+ *            } else
+ *            if (e->ken > slot_e->key) {
+ *                slot = &(*slot)->right;
+ *            } else {
+ *                // treat key duplicates here
+ *            }
+ *        }
+ *        rb_add_node(rb, slot, &e->some_member);
+ *    }
+ *
+ */
 
 #define rb_parent(n)                 ((rb_node_t *)((n)->__parent & ~1))
 #define	rb_entry(ptr, type, member)  container_of(ptr, type, member)
 #define	rb_entry_of(ptr, n, member)  container_of(ptr, typeof(*n), member)
+
+void rb_add_node(rb_t *, rb_node_t **slot, rb_node_t *node);
+void rb_del_node(rb_t *, rb_node_t *);
+
 
 static inline rb_node_t *rb_first(rb_t *rb)
 {

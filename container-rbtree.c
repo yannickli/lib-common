@@ -80,7 +80,7 @@ static void rb_rotate_right(rb_t *rb, rb_node_t *y)
     rb_set_parent(y, x);
 }
 
-void rb_fix_color(rb_t *rb, rb_node_t *z)
+static void rb_add_fix_color(rb_t *rb, rb_node_t *z)
 {
     rb_node_t *p_z, *y;
 
@@ -127,8 +127,16 @@ void rb_fix_color(rb_t *rb, rb_node_t *z)
     rb_set_black(rb->root);
 }
 
+void rb_add_node(rb_t *rb, rb_node_t **slot, rb_node_t *node)
+{
+    rb_set_parent(node, *slot); /* insert it red */
+    node->left = node->right = NULL;
+    *slot = node;
+    rb_add_fix_color(rb, node);
+}
 
-static void rb_remove_fix_color(rb_t *rb, rb_node_t *p, rb_node_t *z)
+
+static void rb_del_fix_color(rb_t *rb, rb_node_t *p, rb_node_t *z)
 {
     rb_node_t *w;
 
@@ -188,7 +196,7 @@ static void rb_remove_fix_color(rb_t *rb, rb_node_t *p, rb_node_t *z)
     rb_set_black2(z);
 }
 
-void rb_remove(rb_t *rb, rb_node_t *z)
+void rb_del_node(rb_t *rb, rb_node_t *z)
 {
     struct rb_node_t *child, *p;
     int color;
@@ -225,7 +233,7 @@ void rb_remove(rb_t *rb, rb_node_t *z)
     }
 
     if (!color) /* it's black */
-        rb_remove_fix_color(rb, p, child);
+        rb_del_fix_color(rb, p, child);
 }
 
 
