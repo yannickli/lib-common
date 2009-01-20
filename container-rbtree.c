@@ -14,12 +14,18 @@
 #include "container.h"
 
 #define rb_color(n)      (n->__parent & 1);
-#define rb_is_red(n)     ({ rb_node_t *__n = (n); !rb_color(__n); })
+#define rb_is_red(n)     ({ rb_node_t *__n = (n); __n && !rb_color(__n); })
+#define rb_is_black(n)   ({ rb_node_t *__n = (n); !__n || rb_color(__n); })
 #define rb_set_red(n)    ((n)->__parent &= ~1);
 #define rb_set_black(n)  ((n)->__parent |= 1);
+#define rb_set_black2(n) ({ rb_node_t *__n = (n); if (__n) rb_set_black(__n); })
 
-#define rb_set_parent(n, parent) \
-    (n->__parent = (n->__parent & 1) | (uintptr_t)(parent))
+static inline void rb_set_parent(rb_node_t *n, rb_node_t *p) {
+    n->__parent = (n->__parent & 1) | (uintptr_t)p;
+}
+static inline void rb_copy_color(rb_node_t *n, rb_node_t *n2) {
+    n->__parent = (n->__parent & ~1) | (n2->__parent & 1);
+}
 
 
 /*
@@ -119,6 +125,107 @@ void rb_fix_color(rb_t *rb, rb_node_t *z)
     }
 
     rb_set_black(rb->root);
+}
+
+
+static void rb_remove_fix_color(rb_t *rb, rb_node_t *p, rb_node_t *z)
+{
+    rb_node_t *w;
+
+    while (rb_is_black(z) && z != rb->root) {
+        if (p->left == z) {
+            if (rb_is_red(w = p->right)) {
+                rb_set_black(w);
+                rb_set_red(p);
+                rb_rotate_left(rb, p);
+                w = p->right;
+            }
+            if (rb_is_black(w->left) && rb_is_black(w->right)) {
+                rb_set_red(w);
+                z = p;
+                p = rb_parent(z);
+            } else {
+                if (rb_is_black(w->right)) {
+                    rb_set_black2(w->left);
+                    rb_set_red(w);
+                    rb_rotate_right(rb, w);
+                    w = p->right;
+                }
+                rb_copy_color(w, p);
+                rb_set_black(p);
+                rb_set_black2(w->right);
+                rb_rotate_left(rb, p);
+                z = rb->root;
+                break;
+            }
+        } else {
+            if (rb_is_red(w = p->left)) {
+                rb_set_black(w);
+                rb_set_red(p);
+                rb_rotate_right(rb, p);
+                w = p->left;
+            }
+            if (rb_is_black(w->left) && rb_is_black(w->right)) {
+                rb_set_red(w);
+                z = p;
+                p = rb_parent(z);
+            } else {
+                if (rb_is_black(w->left)) {
+                    rb_set_black2(w->right);
+                    rb_set_red(w);
+                    rb_rotate_left(rb, w);
+                    w = p->left;
+                }
+                rb_copy_color(w, p);
+                rb_set_black(p);
+                rb_set_black2(w->left);
+                rb_rotate_right(rb, p);
+                z = rb->root;
+                break;
+            }
+        }
+    }
+    rb_set_black2(z);
+}
+
+void rb_remove(rb_t *rb, rb_node_t *z)
+{
+    struct rb_node_t *child, *p;
+    int color;
+
+    if (z->left && z->right) {
+        rb_node_t *old = z;
+
+        z     = rb_next(z);
+        child = z->right;
+        p     = rb_parent(z);
+        color = rb_color(z);
+
+        if (child)
+            rb_set_parent(child, p);
+        if (p == old) {
+            p->right = child;
+            p = z;
+        } else {
+            p->left = child;
+        }
+        *z = *old;
+
+        rb_reparent(rb, rb_parent(old), old, z);
+        rb_set_parent(old->left, z);
+        if (old->right)
+            rb_set_parent(old->right, z);
+    } else {
+        child = z->right ?: z->left;
+        p     = rb_parent(z);
+        color = rb_color(z);
+        if (child)
+            rb_set_parent(child, p);
+        rb_reparent(rb, p, z, child);
+    }
+
+    if (!color) /* it's black */
+        rb_remove_fix_color(rb, p, child);
 }
 
 
