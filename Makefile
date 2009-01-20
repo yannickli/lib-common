@@ -55,6 +55,7 @@ libcommon_SOURCES = \
 	conf-parser.l \
 	\
 	container-array.c \
+	container-rbtree.c \
 	container-htbl.c \
 	container-list.c \
 	container-slist.c \

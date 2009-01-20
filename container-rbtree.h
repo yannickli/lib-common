@@ -11,18 +11,30 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_CONTAINER_H
-#define IS_LIB_COMMON_CONTAINER_H
-
-#include "core.h"
-#include "str.h"
-
-#include "container-array.h"
-#include "container-htbl.h"
-#include "container-list.h"
-#include "container-dlist.h"
-#include "container-slist.h"
-#include "container-rbtree.h"
-#include "container-ring.h"
-
+#if !defined(IS_LIB_COMMON_CONTAINER_H) || defined(IS_LIB_COMMON_CONTAINER_RBTREE_H)
+#  error "you must include <lib-common/container.h> instead"
 #endif
+#define IS_LIB_COMMON_CONTAINER_RBTREE_H
+
+typedef struct rb_t {
+    struct rb_node_t *root;
+} rb_t;
+
+typedef struct rb_node_t {
+    uintptr_t __parent;
+    struct rb_node_t *left, *right;
+} rb_node_t;
+
+static inline void
+rb_add_node(rb_node_t *parent, rb_node_t **slot, rb_node_t *node)
+{
+    node->__parent = (uintptr_t)parent; /* insert it red */
+    node->left = node->right = NULL;
+}
+
+void rb_fix_color(rb_t *, rb_node_t *);
+void rb_remove(rb_t *, rb_node_t *);
+
+#define rb_parent(n)                 ((rb_node_t *)((n)->__parent & ~1))
+#define	rb_entry(ptr, type, member)  container_of(ptr, type, member)
+#define	rb_entry_of(ptr, n, member)  container_of(ptr, typeof(*n), member)
