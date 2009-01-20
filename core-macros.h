@@ -170,12 +170,16 @@ typedef unsigned int gt_uint32_t;
 /*---------------- Misc ----------------*/
 
 #ifdef __GNUC__
-#define container_of(obj, type_t, member) \
-    ({ const typeof(((type_t *)0)->member) *__mptr = (obj);              \
-       (type_t *)((char *)__mptr - offsetof(type_t, member)); })
+#  define container_of(obj, type_t, member) \
+      ({ const typeof(((type_t *)0)->member) *__mptr = (obj);              \
+         (type_t *)((char *)__mptr - offsetof(type_t, member)); })
+#  define prefetch(addr)   ({ __builtin_prefetch(addr); 1; })
+#  define prefetchw(addr)  ({ __builtin_prefetch(addr, 1); 1; })
 #else
-#define container_of(obj, type_t, member) \
-    (type_t *)((char *)(obj) - offsetof(type_t, member))
+#  define container_of(obj, type_t, member) \
+      (type_t *)((char *)(obj) - offsetof(type_t, member))
+#  define prefetch(addr)   1
+#  define prefetchw(addr)  1
 #endif
 
 
