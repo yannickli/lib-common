@@ -35,10 +35,10 @@ static inline void slist_pop(struct slist_head *l)
 
 static inline struct slist_head slist_cut_after(struct slist_head *l, struct slist_head *n)
 {
-    struct slist_head *res = l->next;
+    struct slist_head res = *l;
     l->next = n->next;
     n->next = NULL;
-    return (struct slist_head){ .next = res };
+    return res;
 }
 
 static inline struct slist_head **slist_tail(struct slist_head **lp)
