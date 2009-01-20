@@ -85,12 +85,6 @@ static int xml_hash(const char *str, int len)
     return ret;
 }
 
-SLIST_PROTOS(xml_prop_t, xml_prop)
-SLIST_FUNCTIONS(xml_prop_t, xml_prop)
-
-SLIST_PROTOS(xml_tag_t, xml_tag)
-SLIST_FUNCTIONS(xml_tag_t, xml_tag)
-
 void xml_tree_wipe(xml_tree_t *tree)
 {
     mem_fifo_pool_delete(&tree->mp);

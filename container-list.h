@@ -91,39 +91,3 @@ void generic_list_sort(generic_list **list,
             void *priv) {                                                    \
         generic_list_sort((generic_list **)list, (void *)cmp, priv);         \
     }
-
-#define DLIST_FUNCTIONS(type_t, prefix)                                      \
-    static inline type_t *prefix##_list_take(type_t **list, type_t *el) {    \
-        el->next->prev = el->prev;                                           \
-        el->prev->next = el->next;                                           \
-                                                                             \
-        if (list && *list == el) {                                           \
-            *list = (el->next == el) ? NULL : el->next;                      \
-        }                                                                    \
-                                                                             \
-        el->prev = el->next = NULL;                                          \
-                                                                             \
-        return el;                                                           \
-    }                                                                        \
-                                                                             \
-    static inline type_t *prefix##_list_append(type_t **list, type_t *el)    \
-    {                                                                        \
-        if (!*list) {                                                        \
-            return *list = el->next = el->prev = el;                         \
-        }                                                                    \
-                                                                             \
-        el->next = (*list);                                                  \
-        el->prev = (*list)->prev;                                            \
-                                                                             \
-        return (el->prev->next = el->next->prev = el);                       \
-    }                                                                        \
-    static inline type_t *prefix##_list_prepend(type_t **list, type_t *el) { \
-        return *list = prefix##_list_append(list, el);                       \
-    }                                                                        \
-                                                                             \
-    static inline type_t *prefix##_list_popfirst(type_t **list) {            \
-        return prefix##_list_take(list, *list);                              \
-    }                                                                        \
-    static inline type_t *prefix##_list_poplast(type_t **list) {             \
-        return prefix##_list_take(list, (*list)->prev);                      \
-    }
