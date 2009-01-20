@@ -20,6 +20,7 @@
 #include "container-array.h"
 #include "container-htbl.h"
 #include "container-list.h"
+#include "container-slist.h"
 #include "container-ring.h"
 
 #endif

@@ -42,16 +42,15 @@ static uint32_t rand32(void) {
 typedef struct entry_t entry_t;
 
 struct entry_t {
-     entry_t *next;
-     int number;
-     int len;
-     char str[1];
+    struct slist_head entry_list;
+    int number;
+    int len;
+    char str[1];
 };
 
 GENERIC_INIT(entry_t, entry);
 GENERIC_WIPE(entry_t, entry);
 GENERIC_DELETE(entry_t, entry);
-SLIST_FUNCTIONS(entry_t, entry);
 ARRAY_TYPE(entry_t, entry);
 ARRAY_FUNCTIONS(entry_t, entry, entry_delete);
 
@@ -62,8 +61,6 @@ static int repeat_entry = REPEAT;
 
 static inline entry_t *entry_new(const char *str, int len) {
     entry_t *ep = p_new_extra(entry_t, len);
-
-    ep->next = NULL;
     ep->number = ++entry_number;
     ep->len = len;
     memcpy(ep->str, str, len);
@@ -95,7 +92,7 @@ static int entry_compare_str_number(const entry_t *a, const entry_t *b,
 
 #if 0
 static int entry_compare_str_number_reverse(const entry_t *a, const entry_t *b,
-    void *p)
+                                            void *p)
 {
     int cmp;
 
@@ -113,7 +110,7 @@ static int entry_compare_str_reverse(const entry_t *a, const entry_t *b,
 }
 
 static int entry_compare_str_reverse_number(const entry_t *a, const entry_t *b,
-    void *p)
+                                            void *p)
 {
     int cmp;
 
@@ -136,7 +133,7 @@ static int entry_compare_len_str_number(const entry_t *a, const entry_t *b,
     compare_number++;
     if ((cmp = CMP(a->len, b->len)) == 0) {
         if ((cmp = strcmp(a->str, b->str)) == 0)
-              return CMP(a->number, b->number);
+            return CMP(a->number, b->number);
     }
     return cmp;
 }
@@ -170,8 +167,7 @@ static int entry_compare_random(const entry_t *a, const entry_t *b, void *p)
 
 typedef struct dict_t {
     entry_array entries;
-    entry_t *head;
-    entry_t **tailp;
+    struct slist_head head, *tailp;
     int count;
 } dict_t;
 
@@ -189,7 +185,8 @@ static inline void dict_wipe(dict_t *dict)
     entry_array_wipe(&dict->entries);
 
     dict->tailp = NULL;
-    while ((ep = entry_list_pop(&dict->head)) != NULL) {
+    slist_for_each_entry_safe(ep, prev, &dict->head, entry_list) {
+        slist_pop(prev);
         entry_delete(&ep);
     }
 }
@@ -201,10 +198,7 @@ static inline void dict_append(dict_t *dict, entry_t *ep)
     if (!dict->tailp) {
         dict->tailp = &dict->head;
     }
-    while (*dict->tailp) {
-        dict->tailp = &(*dict->tailp)->next;
-    }
-    *dict->tailp = ep;
+    slist_append(slist_tail(&dict->tailp), &ep->entry_list);
     dict->count++;
 }
 
@@ -218,10 +212,10 @@ static int dict_load_file(dict_t *dict, const char *filename)
         /* BUG: -b and -t ignored for stdin */
         fp = stdin;
     } else
-    if ((fp = fopen(filename, "r")) == NULL) {
-        fprintf(stderr, "tst-sort: cannot open %s: %m\n", filename);
-        exit(1);
-    }
+        if ((fp = fopen(filename, "r")) == NULL) {
+            fprintf(stderr, "tst-sort: cannot open %s: %m\n", filename);
+            exit(1);
+        }
 
     total_len = 0;
     while (entry_number < max_entry && fgets(buf, sizeof(buf), fp)) {
@@ -252,13 +246,13 @@ static void dict_dump_file(dict_t *dict, const char *filename, bool fromlist)
         /* BUG: -b and -t ignored for stdin */
         fp = stdout;
     } else
-    if ((fp = fopen(filename, "w")) == NULL) {
-        fprintf(stderr, "tst-sort: cannot open %s: %m\n", filename);
-        exit(1);
-    }
+        if ((fp = fopen(filename, "w")) == NULL) {
+            fprintf(stderr, "tst-sort: cannot open %s: %m\n", filename);
+            exit(1);
+        }
 
     if (fromlist) {
-        for (ep = dict->head; ep; ep = ep->next) {
+        slist_for_each_entry(ep, &dict->head, entry_list) {
             fprintf(fp, "%s\t%d\n", ep->str, ep->number);
         }
     } else {
@@ -287,27 +281,27 @@ struct sort_test {
     int (*checkf)(const entry_t *a, const entry_t *b, void *p);
 } sort_tests[] = {
     { "number entries  ", NULL, 0, 0,
-    NULL, NULL },
+        NULL, NULL },
     { "minimal overhead *", WORK_DIR "w.orig", 0, 0,
-    entry_compare_dummy, entry_compare_dummy },
+        entry_compare_dummy, entry_compare_dummy },
     { "sort by line number *", NULL, 0, 0,
-    entry_compare_number, entry_compare_number },
+        entry_compare_number, entry_compare_number },
     { "sort by string *", WORK_DIR "w.str", 0, 0,
-    entry_compare_str, entry_compare_str_number },
+        entry_compare_str, entry_compare_str_number },
     { "sort by string length  ", WORK_DIR "w.len", 0, 0,
-    entry_compare_len, entry_compare_len_str_number },
+        entry_compare_len, entry_compare_len_str_number },
     { "sort by line number  ", WORK_DIR "w.lineno", 0, 0,
-    entry_compare_number, entry_compare_number },
+        entry_compare_number, entry_compare_number },
     { "sort by reverse lineno R", WORK_DIR "w.rev1", 0, 0,
-    entry_compare_number_reverse, entry_compare_number_reverse },
+        entry_compare_number_reverse, entry_compare_number_reverse },
     { "shuffle  ", WORK_DIR "w.shuffled", 0, 0,
-    entry_compare_random, NULL },
+        entry_compare_random, NULL },
     { "sort by string  ", WORK_DIR "w.str1", 0, 0,
-    entry_compare_str, entry_compare_str_number },
+        entry_compare_str, entry_compare_str_number },
     { "sort by string again *", WORK_DIR "w.str2", 0, 0,
-    entry_compare_str, entry_compare_str_number },
+        entry_compare_str, entry_compare_str_number },
     { "sort by string reverse  ", WORK_DIR "w.rev", 0, 0,
-    entry_compare_str_reverse, entry_compare_str_reverse_number },
+        entry_compare_str_reverse, entry_compare_str_reverse_number },
     { NULL, NULL, 0, 0, NULL, NULL },
 };
 
@@ -315,16 +309,16 @@ struct sort_test {
 static double cmerge1(size_t n, int c)
 {
     switch (n) {
-    case 0:
-    case 1:
+      case 0:
+      case 1:
         return 0;
-    case 2:
+      case 2:
         return 1;
-    case 3:
+      case 3:
         return c == 0 ? 2 : c == 1 ? 2.5 : 3;
-    case 4:
+      case 4:
         return 5;
-    default:
+      default:
         return cmerge1(n >> 1, c) + cmerge1(n - (n >> 1), c) + n - 1;
     }
 }
@@ -333,18 +327,18 @@ static double cmerge1(size_t n, int c)
 static double cmerge2(size_t n, int c)
 {
     switch (n) {
-    case 0:
-    case 1:
+      case 0:
+      case 1:
         return 0;
-    case 2:
+      case 2:
         return 1;
-    case 3:
+      case 3:
         return c == 0 ? 2 : c == 1 ? 2.5 : 3;
-    case 4:
+      case 4:
         return c == 0 ? 3 : c == 1 ? 35.0 / 6 : 7;
-    default:
+      default:
         return cmerge2(n >> 1, c) + cmerge2(n - (n >> 1), c) +
-                (c == 0 ? 1 : 2 + n - 1);
+            (c == 0 ? 1 : 2 + n - 1);
     }
 }
 
@@ -362,16 +356,16 @@ static int ilog2(size_t n)
 static double cmerge3(size_t n, int c)
 {
     switch (n) {
-    case 0:
-    case 1:
+      case 0:
+      case 1:
         return 0;
-    case 2:
+      case 2:
         return 1;
-    case 3:
+      case 3:
         return c == 0 ? 2 : c == 1 ? 2.5 : 3;
-    case 4:
+      case 4:
         return c == 0 ? 3 : c == 1 ? 35.0 / 6 : 7;
-    default:
+      default:
         if (n & (n - 1)) {
             size_t n1, n2, i, rec;
 
@@ -448,33 +442,40 @@ int main(int argc, char **argv)
         if (stp->cmpf) {
             compare_number = 0;
             proctimer_start(&pt);
-            entry_list_sort(&words.head, stp->cmpf, (void*)random_value);
+            slist_sort(&words.head, stp->cmpf, (void*)random_value,
+                       entry_t, entry_list);
             total_elapsed += stp->elapsed = proctimer_stop(&pt);
             total_compare += stp->compare_number = compare_number;
         }
-        if (words.head) {
+        if (words.head.next) {
             if (stp->checkf) {
                 /* Check result sequence for proper order and stability */
                 int (*checkf)(const entry_t *a, const entry_t *b, void *p) =
                     LIST_SORT_IS_STABLE ? stp->checkf : stp->cmpf;
 
-                for (n = 1, ep = words.head; ep->next; n++, ep = ep->next) {
-                    if ((*checkf)(ep, ep->next, NULL) > 0) {
+                n = 1;
+                slist_for_each_entry(ep, &words.head, entry_list) {
+                    entry_t *epnext = slist_next_entry(ep, entry_list);
+                    if (!epnext)
+                        break;
+                    if ((*checkf)(ep, epnext, NULL) > 0) {
                         fprintf(stderr, "%s:%d: out of order\n",
                                 stp->dump_name, n + 1);
                         status = 1;
                         break;
                     }
+                    n++;
                 }
-                if (n != entry_number && !ep->next) {
+                if (n != entry_number && !slist_next_entry(ep, entry_list)) {
                     fprintf(stderr, "%s:%d: missing entry\n",
                             stp->dump_name, n + 1);
                     status = 1;
                 }
             } else {
                 /* just re-number entries */
-                for (n = 0, ep = words.head; ep; n++, ep = ep->next) {
-                    ep->number = n + 1;
+                n = 0;
+                slist_for_each_entry(ep, &words.head, entry_list) {
+                    ep->number = ++n;
                 }
             }
         }

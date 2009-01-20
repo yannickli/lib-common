@@ -57,6 +57,7 @@ libcommon_SOURCES = \
 	container-array.c \
 	container-htbl.c \
 	container-list.c \
+	container-slist.c \
 	container-ring.c \
 	\
 	core-debug.c \
