@@ -40,6 +40,7 @@ static inline void rb_copy_color(rb_node_t *n, rb_node_t *n2) {
  *
  */
 
+__attribute__((always_inline))
 static void rb_reparent(rb_t *rb, rb_node_t *p,
                         rb_node_t *old, rb_node_t *new)
 {
@@ -80,6 +81,7 @@ static void rb_rotate_right(rb_t *rb, rb_node_t *y)
     rb_set_parent(y, x);
 }
 
+__attribute__((always_inline))
 static void rb_add_fix_color(rb_t *rb, rb_node_t *z)
 {
     rb_node_t *p_z, *y;
@@ -136,6 +138,7 @@ void rb_add_node(rb_t *rb, rb_node_t **slot, rb_node_t *node)
 }
 
 
+__attribute__((always_inline))
 static void rb_del_fix_color(rb_t *rb, rb_node_t *p, rb_node_t *z)
 {
     rb_node_t *w;
