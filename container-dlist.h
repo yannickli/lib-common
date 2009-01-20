@@ -98,10 +98,10 @@ static inline bool dlist_is_empty(const struct dlist_head *l) {
          n != (head) && ({ doit; prefetch(__next->next); });          \
          n = __next, __next = n->next)
 
-#define dlist_for_each_safe(n, prev, head) \
-         __dlist_for_each_safe(n, prev, __next_##n, head, )
+#define dlist_for_each_safe(n, head) \
+         __dlist_for_each_safe(n, __next_##n, head, )
 
-#define dlist_for_each_entry_safe(n, prev, head, member) \
-    __dlist_for_each_safe(__real_##n, prev, __next_##n, head,         \
+#define dlist_for_each_entry_safe(n, head, member) \
+    __dlist_for_each_safe(__real_##n, __next_##n, head,         \
                           n = dlist_entry_of(__real_##n, n, member))
 
