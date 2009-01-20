@@ -120,3 +120,33 @@ void rb_fix_color(rb_t *rb, rb_node_t *z)
 
     rb_set_black(rb->root);
 }
+
+
+rb_node_t *rb_next(rb_node_t *n)
+{
+    rb_node_t *p;
+
+    if (n->right) {
+        n = n->right;
+        while (n->left)
+            n = n->left;
+        return n;
+    }
+
+    for (p = rb_parent(n); n == p->right; n = p);
+    return p;
+}
+rb_node_t *rb_prev(rb_node_t *n)
+{
+    rb_node_t *p;
+
+    if (n->left) {
+        n = n->left;
+        while (n->right)
+            n = n->right;
+        return n;
+    }
+
+    for (p = rb_parent(n); n == p->left; n = p);
+    return p;
+}

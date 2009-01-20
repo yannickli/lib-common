@@ -38,3 +38,27 @@ void rb_remove(rb_t *, rb_node_t *);
 #define rb_parent(n)                 ((rb_node_t *)((n)->__parent & ~1))
 #define	rb_entry(ptr, type, member)  container_of(ptr, type, member)
 #define	rb_entry_of(ptr, n, member)  container_of(ptr, typeof(*n), member)
+
+static inline rb_node_t *rb_first(rb_t *rb)
+{
+    struct rb_node_t *n = rb->root;
+
+    if (!n)
+        return NULL;
+    while (n->left)
+        n = n->left;
+    return n;
+}
+static inline rb_node_t *rb_last(rb_t *rb)
+{
+    struct rb_node_t *n = rb->root;
+
+    if (!n)
+        return NULL;
+    while (n->right)
+        n = n->right;
+    return n;
+}
+
+rb_node_t *rb_next(rb_node_t *);
+rb_node_t *rb_prev(rb_node_t *);
