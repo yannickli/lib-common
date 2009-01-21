@@ -106,3 +106,24 @@ static inline rb_node_t *rb_last(rb_t *rb)
 
 rb_node_t *rb_next(rb_node_t *);
 rb_node_t *rb_prev(rb_node_t *);
+
+#define __rb_for_each(it, rb, doit)                             \
+    for (rb_node_t *it = rb_first(rb);                          \
+         it && ({ doit; 1; }); it = rb_next(it))
+
+#define __rb_for_each_safe(it, __next, rb, doit)                \
+    for (rb_node_t *it = rb_first(rb), *__next;                 \
+         it && ({ __next = rb_next(it); doit; 1; });            \
+         it = __next)
+
+#define rb_for_each(it, rb)       __rb_for_each(it, rb, )
+#define rb_for_each_safe(it, rb)  __rb_for_each_safe(it, __next_##it, rb, )
+
+#define rb_for_each_entry(it, rb, member)                       \
+    __rb_for_each(__real_##it, rb,                              \
+                  it = rb_entry_of(__real_##it, it, member))
+
+#define rb_for_each_entry_safe(it, rb, member)                  \
+    __rb_for_each(__real_##it, __next_##it, rb,                 \
+                  it = rb_entry_of(__real_##it, it, member))
+
