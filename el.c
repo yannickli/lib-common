@@ -569,7 +569,7 @@ int el_fd_get_fd(ev_t *ev)
     return -1;
 }
 
-/*----- proxy events  -----*/
+/*----- proxies events  -----*/
 
 ev_t *el_proxy_register(el_proxy_f *cb, el_data_t priv)
 {
@@ -636,6 +636,20 @@ short el_proxy_set_mask(ev_t *ev, short mask)
     return old;
 }
 
+static void el_loop_proxies(void)
+{
+    dlist_for_each_safe(e, &_G.proxy_ready) {
+        ev_t *ev = dlist_entry(e, ev_t, ev_list);
+
+        if (ev->type == EV_UNUSED) {
+            dlist_move(&_G.evs_free, e);
+            continue;
+        }
+
+        (*ev->cb.prox)(ev, ev->events_avail, ev->priv);
+    }
+}
+
 /*----- generic functions  -----*/
 
 el_t el_ref(ev_t *ev)
@@ -675,7 +689,11 @@ void el_loop_timeout(int timeout)
         if (nxt < (uint64_t)timeout + clk)
             timeout = nxt - clk;
     }
+    if (!dlist_is_empty(&_G.proxy_ready)) {
+        timeout = 0;
+    }
     el_loop_fds(timeout);
+    el_loop_proxies();
     el_signal_process();
     ev_list_process(&_G.after, -1);
 }
