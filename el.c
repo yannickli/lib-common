@@ -180,7 +180,7 @@ static el_data_t el_destroy(ev_t **evp, struct dlist_head *l)
     return ev->priv;
 }
 
-static inline void ev_list_process(struct dlist_head *l, int signo)
+static inline void ev_list_process(struct dlist_head *l)
 {
     dlist_for_each_safe(e, l) {
         ev_t *ev = dlist_entry(e, ev_t, ev_list);
@@ -190,12 +190,7 @@ static inline void ev_list_process(struct dlist_head *l, int signo)
             continue;
         }
 
-        if (signo >= 0) {
-            if (ev->signo == signo)
-                (*ev->cb.signal)(ev, signo, ev->priv);
-        } else {
-            (*ev->cb.cb)(ev, ev->priv);
-        }
+        (*ev->cb.cb)(ev, ev->priv);
     }
     dlist_splice(&_G.evs_free, &_G.evs_gc);
 }
@@ -265,17 +260,28 @@ static void el_sighandler(int signum)
 
 static void el_signal_process(void)
 {
+    uint32_t gotsigs = _G.gotsigs;
     struct timeval now;
 
-    if (!_G.gotsigs)
+    if (!gotsigs)
         return;
 
+    _G.gotsigs &= ~gotsigs;
     lp_gettv(&now);
-    do {
-        int sig = __builtin_ctz(_G.gotsigs);
-        _G.gotsigs &= ~(1 << sig);
-        ev_list_process(&_G.sigs, sig);
-    } while (_G.gotsigs);
+
+    dlist_for_each_safe(e, &_G.sigs) {
+        ev_t *ev = dlist_entry(e, ev_t, ev_list);
+        int signo = ev->signo;
+
+        if (ev->type == EV_UNUSED) {
+            dlist_move(&_G.evs_free, e);
+            continue;
+        }
+
+        if (gotsigs & (1 << signo)) {
+            (*ev->cb.signal)(ev, signo, ev->priv);
+        }
+    }
 }
 
 void el_signal_set_hook(el_t ev, el_signal_f *cb)
@@ -679,7 +685,7 @@ void el_loop_timeout(int timeout)
 {
     uint64_t clk;
 
-    ev_list_process(&_G.before, -1);
+    ev_list_process(&_G.before);
     if (_G.timers.len) {
         clk = get_clock(false);
         el_timer_process(clk);
@@ -695,7 +701,7 @@ void el_loop_timeout(int timeout)
     el_loop_fds(timeout);
     el_loop_proxies();
     el_signal_process();
-    ev_list_process(&_G.after, -1);
+    ev_list_process(&_G.after);
 }
 
 void el_loop(void)
