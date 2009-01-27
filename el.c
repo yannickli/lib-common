@@ -56,6 +56,8 @@ typedef struct ev_t {
     flag_t    updated : 1;
     ev_type_t type    : 4;
 
+    uint8_t   signo;
+
     union {
         el_cb_f *cb;
         el_signal_f *signal;
@@ -65,11 +67,7 @@ typedef struct ev_t {
     el_data_t priv;
 
     union {
-        el_t next; /* EV_BEFORE, EV_AFTER */
-        struct {
-            el_t next; /* XXX: must be first */
-            int no;
-        } sig;     /* EV_SIGNAL */
+        el_t next; /* EV_BEFORE, EV_AFTER, EV_SIGNAL */
         struct {
             int fd;
             short events;
@@ -294,7 +292,7 @@ ev_t *el_signal_register(int signo, el_signal_f *cb, el_data_t priv)
 
     ASSERT("signo out of bounds", 0 <= signo && signo < countof(_G.signals));
     ev = el_create(EV_SIGNAL, cb, priv, false);
-    ev->sig.no = signo;
+    ev->signo = signo;
     return el_list_push(&_G.signals[signo], ev);
 }
 
@@ -653,7 +651,7 @@ static void el_show_blockers(el_t evh, int signo, el_data_t priv)
 
             switch (ev->type) {
               case EV_SIGNAL:
-                e_trace_end(0, ":%d", ev->sig.no);
+                e_trace_end(0, ":%d", ev->signo);
                 break;
               case EV_CHILD:
                 e_trace_end(0, ":%d", ev->pid);
