@@ -38,8 +38,8 @@ el_t el_fd_register(int fd, short events, el_fd_f *cb, el_data_t priv)
     };
 
     el_fd_initialize();
-    ev->fd.fd = fd;
-    ev->fd.events = events;
+    ev->fd = fd;
+    ev->events_wanted = events;
     if (unlikely(epoll_ctl(epollfd_g, EPOLL_CTL_ADD, fd, &event)))
         e_panic(E_UNIXERR("epoll_ctl"));
     return ev;
@@ -48,12 +48,12 @@ el_t el_fd_register(int fd, short events, el_fd_f *cb, el_data_t priv)
 void el_fd_set_mask(ev_t *ev, short events)
 {
     CHECK_EV_TYPE(ev, EV_FD);
-    if (ev->fd.events != events) {
+    if (ev->events_wanted != events) {
         struct epoll_event event = {
             .data.ptr = ev,
-            .events   = ev->fd.events = events,
+            .events   = ev->events_wanted = events,
         };
-        if (unlikely(epoll_ctl(epollfd_g, EPOLL_CTL_MOD, ev->fd.fd, &event)))
+        if (unlikely(epoll_ctl(epollfd_g, EPOLL_CTL_MOD, ev->fd, &event)))
             e_panic(E_UNIXERR("epoll_ctl"));
     }
 }
@@ -63,9 +63,9 @@ el_data_t el_fd_unregister(ev_t **evp, bool do_close)
     if (*evp) {
         ev_t *ev = *evp;
         CHECK_EV_TYPE(ev, EV_FD);
-        epoll_ctl(epollfd_g, EPOLL_CTL_DEL, ev->fd.fd, NULL);
+        epoll_ctl(epollfd_g, EPOLL_CTL_DEL, ev->fd, NULL);
         if (likely(do_close))
-            close(ev->fd.fd);
+            close(ev->fd);
         return el_destroy(evp, &_G.evs_gc);
     }
     return (el_data_t)NULL;
@@ -91,6 +91,6 @@ static void el_loop_fds(int timeout)
         int  evs = events[res].events;
 
         if (likely(ev->type == EV_FD))
-            (*ev->cb.fd)(ev, ev->fd.fd, evs, ev->priv);
+            (*ev->cb.fd)(ev, ev->fd, evs, ev->priv);
     }
 }

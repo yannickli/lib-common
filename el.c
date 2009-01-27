@@ -47,16 +47,20 @@ typedef enum ev_type_t {
     EV_CHILD,
     EV_FD,
     EV_TIMER,
+    EV_PROXY,
 } ev_type_t;
 
 typedef struct ev_t {
-    flag_t    nomiss  : 1;
-    flag_t    timerlp : 1;
+    flag_t    nomiss  : 1;         /* EV_TIMER */
+    flag_t    timerlp : 1;         /* EV_TIMER */
+    flag_t    updated : 1;         /* EV_TIMER */
     flag_t    refs    : 1;
-    flag_t    updated : 1;
     ev_type_t type    : 4;
 
-    uint8_t   signo;
+    uint8_t   signo;               /* EV_SIGNAL */
+
+    uint16_t  events_avail;        /* EV_PROXY */
+    uint16_t  events_wanted;       /* EV_PROXY, EV_FD */
 
     union {
         el_cb_f *cb;
@@ -67,17 +71,14 @@ typedef struct ev_t {
     el_data_t priv;
 
     union {
-        struct dlist_head ev_list; /* EV_BEFORE, EV_AFTER, EV_SIGNAL */
-        struct {
-            int fd;
-            short events;
-        } fd;      /* EV_FD */
-        pid_t pid; /* EV_CHILD */
+        struct dlist_head ev_list; /* EV_BEFORE, EV_AFTER, EV_SIGNAL, EV_PROXY */
+        int fd;                    /* EV_FD */
+        pid_t pid;                 /* EV_CHILD */
         struct {
             uint64_t expiry;
             int repeat;
             int heappos;
-        } timer;   /* EV_TIMER */
+        } timer;                   /* EV_TIMER */
     };
 } ev_t;
 DO_ARRAY(ev_t, ev, IGNORE);
@@ -559,7 +560,7 @@ int el_fd_get_fd(ev_t *ev)
 {
     if (likely(ev)) {
         CHECK_EV_TYPE(ev, EV_FD);
-        return ev->fd.fd;
+        return ev->fd;
     }
     return -1;
 }
@@ -624,6 +625,7 @@ static char const * const typenames[] = {
     [EV_CHILD]   = "child",
     [EV_FD]      = "file desc.",
     [EV_TIMER]   = "timer",
+    [EV_PROXY]   = "proxy",
 };
 
 static void el_show_blockers(el_t evh, int signo, el_data_t priv)
@@ -652,7 +654,7 @@ static void el_show_blockers(el_t evh, int signo, el_data_t priv)
                 e_trace_end(0, ":%d", ev->pid);
                 break;
               case EV_FD:
-                e_trace_end(0, ":%d", ev->fd.fd);
+                e_trace_end(0, ":%d (%04x)", ev->fd, ev->events_wanted);
                 break;
               case EV_TIMER:
                 if (ev->timer.repeat) {
@@ -661,6 +663,9 @@ static void el_show_blockers(el_t evh, int signo, el_data_t priv)
                     e_trace_end(0, " repeat:%dms next @%"PRIu64, ev->timer.repeat,
                                 ev->timer.expiry / 1000);
                 }
+                break;
+              case EV_PROXY:
+                e_trace_end(0, ":(w:%04x a:%04x)", ev->events_wanted, ev->events_avail);
                 break;
               default:
                 e_trace_end(0, "");
