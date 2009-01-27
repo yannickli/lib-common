@@ -78,7 +78,7 @@ el_data_t el_blocker_unregister(el_t *);
 el_t el_fd_register(int fd, short events, el_fd_f *, el_data_t);
 void el_fd_set_hook(el_t, el_fd_f *);
 el_data_t el_fd_unregister(el_t *, bool do_close);
-void el_fd_set_mask(el_t, short events);
+short el_fd_set_mask(el_t, short events);
 int el_fd_get_fd(el_t);
 
 /**

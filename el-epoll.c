@@ -45,10 +45,12 @@ el_t el_fd_register(int fd, short events, el_fd_f *cb, el_data_t priv)
     return ev;
 }
 
-void el_fd_set_mask(ev_t *ev, short events)
+short el_fd_set_mask(ev_t *ev, short events)
 {
+    short old = ev->events_wanted;
+
     CHECK_EV_TYPE(ev, EV_FD);
-    if (ev->events_wanted != events) {
+    if (old != events) {
         struct epoll_event event = {
             .data.ptr = ev,
             .events   = ev->events_wanted = events,
@@ -56,6 +58,7 @@ void el_fd_set_mask(ev_t *ev, short events)
         if (unlikely(epoll_ctl(epollfd_g, EPOLL_CTL_MOD, ev->fd, &event)))
             e_panic(E_UNIXERR("epoll_ctl"));
     }
+    return old;
 }
 
 el_data_t el_fd_unregister(ev_t **evp, bool do_close)
