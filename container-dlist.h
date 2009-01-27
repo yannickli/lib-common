@@ -20,6 +20,7 @@ struct dlist_head {
     struct dlist_head *next, *prev;
 };
 
+#define DLIST_HEAD_INIT(name)  { .next = &(name), .prev = &(name) }
 static inline void dlist_head_init(struct dlist_head *l)
 {
     l->next = l->prev = l;
@@ -74,6 +75,34 @@ dlist_is_last(const struct dlist_head *l, const struct dlist_head *n) {
 }
 static inline bool dlist_is_empty(const struct dlist_head *l) {
     return l->next == l;
+}
+
+
+static inline void
+__dlist_splice(struct dlist_head *prev, struct dlist_head *next, struct dlist_head *src)
+{
+	struct dlist_head *first = src->next;
+	struct dlist_head *last = src->prev;
+
+	first->prev = prev;
+	prev->next  = first;
+	last->next  = next;
+	next->prev  = last;
+        dlist_head_init(src);
+}
+
+static inline void
+dlist_splice(struct dlist_head *dst, struct dlist_head *src)
+{
+	if (!dlist_is_empty(src))
+		__dlist_splice(dst, dst->next, src);
+}
+
+static inline void
+dlist_splice_tail(struct dlist_head *dst, struct dlist_head *src)
+{
+	if (!dlist_is_empty(src))
+		__dlist_splice(dst->prev, dst, src);
 }
 
 
