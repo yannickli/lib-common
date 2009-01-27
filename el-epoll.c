@@ -69,7 +69,7 @@ el_data_t el_fd_unregister(ev_t **evp, bool do_close)
         epoll_ctl(epollfd_g, EPOLL_CTL_DEL, ev->fd, NULL);
         if (likely(do_close))
             close(ev->fd);
-        return el_destroy(evp, &_G.evs_gc);
+        return el_destroy(evp);
     }
     return (el_data_t)NULL;
 }

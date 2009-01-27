@@ -100,6 +100,7 @@ static struct {
     struct dlist_head sigs;   /* signals el_t's                             */
     struct dlist_head proxy, proxy_ready;
     ev_array timers;          /* relative timers heap (see comments after)  */
+    ev_array cache;
     ev_assoc_htbl childs;     /* el_t's watching for processes              */
 
     /*----- allocation stuff -----*/
@@ -137,6 +138,16 @@ static ev_t *ev_add(struct dlist_head *l, ev_t *ev)
     return ev;
 }
 
+static void ev_cache_list(struct dlist_head *l)
+{
+    ev_t *ev;
+    ev_array_reset(&_G.cache);
+
+    dlist_for_each_entry(ev, l, ev_list) {
+        ev_array_append(&_G.cache, ev);
+    }
+}
+
 static ev_t *el_create(ev_type_t type, void *cb, el_data_t priv, bool ref)
 {
     ev_t *res;
@@ -166,12 +177,11 @@ static ev_t *el_create(ev_type_t type, void *cb, el_data_t priv, bool ref)
     return ref ? el_ref(res) : res;
 }
 
-static el_data_t el_destroy(ev_t **evp, struct dlist_head *l)
+static el_data_t el_destroy(ev_t **evp)
 {
     ev_t *ev = *evp;
     el_unref(ev);
-    if (l)
-        ev_add(l, ev);
+    ev_add(&_G.evs_gc, ev);
     ev->type = EV_UNUSED;
 #ifndef NDEBUG
     ev->priv.u64 = (uint64_t)-1;
@@ -182,17 +192,14 @@ static el_data_t el_destroy(ev_t **evp, struct dlist_head *l)
 
 static inline void ev_list_process(struct dlist_head *l)
 {
-    dlist_for_each_safe(e, l) {
-        ev_t *ev = dlist_entry(e, ev_t, ev_list);
+    ev_cache_list(l);
+    for (int i = 0; i < _G.cache.len; i++) {
+        ev_t *ev = _G.cache.tab[i];
 
-        if (ev->type == EV_UNUSED) {
-            dlist_move(&_G.evs_free, e);
+        if (unlikely(ev->type == EV_UNUSED))
             continue;
-        }
-
         (*ev->cb.cb)(ev, ev->priv);
     }
-    dlist_splice(&_G.evs_free, &_G.evs_gc);
 }
 
 /*----- blockers, before and after events -----*/
@@ -228,7 +235,7 @@ el_data_t el_blocker_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_BLOCKER);
-        return el_destroy(evp, &_G.evs_free);
+        return el_destroy(evp);
     }
     return (el_data_t)NULL;
 }
@@ -237,7 +244,7 @@ el_data_t el_before_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_BEFORE);
-        return el_destroy(evp, NULL);
+        return el_destroy(evp);
     }
     return (el_data_t)NULL;
 }
@@ -246,7 +253,7 @@ el_data_t el_after_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_AFTER);
-        return el_destroy(evp, NULL);
+        return el_destroy(evp);
     }
     return (el_data_t)NULL;
 }
@@ -269,15 +276,13 @@ static void el_signal_process(void)
     _G.gotsigs &= ~gotsigs;
     lp_gettv(&now);
 
-    dlist_for_each_safe(e, &_G.sigs) {
-        ev_t *ev = dlist_entry(e, ev_t, ev_list);
+    ev_cache_list(&_G.sigs);
+    for (int i = 0; i < _G.cache.len; i++) {
+        ev_t *ev = _G.cache.tab[i];
         int signo = ev->signo;
 
-        if (ev->type == EV_UNUSED) {
-            dlist_move(&_G.evs_free, e);
+        if (unlikely(ev->type == EV_UNUSED))
             continue;
-        }
-
         if (gotsigs & (1 << signo)) {
             (*ev->cb.signal)(ev, signo, ev->priv);
         }
@@ -309,7 +314,7 @@ el_data_t el_signal_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_SIGNAL);
-        return el_destroy(evp, NULL);
+        return el_destroy(evp);
     }
     return (el_data_t)NULL;
 }
@@ -327,7 +332,7 @@ static void el_sigchld_hook(ev_t *ev, int signo, el_data_t priv)
             ev_t *e = ec->ev;
             (*e->cb.child)(e, pid, status, e->priv);
             ev_assoc_htbl_ll_remove(&_G.childs, ec);
-            el_destroy(&e, &_G.evs_free);
+            el_destroy(&e);
         }
     }
 }
@@ -365,7 +370,7 @@ el_data_t el_child_unregister(ev_t **evp)
         ec = ev_assoc_htbl_find(&_G.childs, (*evp)->pid);
         ASSERT("event not found", ec);
         ev_assoc_htbl_ll_remove(&_G.childs, ec);
-        return el_destroy(evp, &_G.evs_free);
+        return el_destroy(evp);
     }
     return (el_data_t)NULL;
 }
@@ -462,7 +467,7 @@ static el_data_t el_timer_heapremove(ev_t **evp)
         el_timer_heapfix(end);
     }
     (*evp)->timer.heappos = -1;
-    return el_destroy(evp, &_G.evs_gc);
+    return el_destroy(evp);
 }
 
 static void el_timer_process(uint64_t until)
@@ -592,7 +597,7 @@ el_data_t el_proxy_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_PROXY);
-        return el_destroy(evp, NULL);
+        return el_destroy(evp);
     }
     return (el_data_t)NULL;
 }
@@ -644,15 +649,14 @@ short el_proxy_set_mask(ev_t *ev, short mask)
 
 static void el_loop_proxies(void)
 {
-    dlist_for_each_safe(e, &_G.proxy_ready) {
-        ev_t *ev = dlist_entry(e, ev_t, ev_list);
+    ev_cache_list(&_G.proxy_ready);
+    for (int i = 0; i < _G.cache.len; i++) {
+        ev_t *ev = _G.cache.tab[i];
 
-        if (ev->type == EV_UNUSED) {
-            dlist_move(&_G.evs_free, e);
+        if (unlikely(ev->type == EV_UNUSED))
             continue;
-        }
-
-        (*ev->cb.prox)(ev, ev->events_avail, ev->priv);
+        if (likely(ev->events_avail & ev->events_wanted))
+            (*ev->cb.prox)(ev, ev->events_avail, ev->priv);
     }
 }
 
@@ -702,6 +706,7 @@ void el_loop_timeout(int timeout)
     el_loop_proxies();
     el_signal_process();
     ev_list_process(&_G.after);
+    dlist_splice(&_G.evs_free, &_G.evs_gc);
 }
 
 void el_loop(void)
