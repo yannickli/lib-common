@@ -67,7 +67,7 @@ typedef struct ev_t {
     el_data_t priv;
 
     union {
-        el_t next; /* EV_BEFORE, EV_AFTER, EV_SIGNAL */
+        struct dlist_head ev_list; /* EV_BEFORE, EV_AFTER, EV_SIGNAL */
         struct {
             int fd;
             short events;
@@ -89,30 +89,35 @@ typedef struct ev_assoc_t {
 DO_HTBL_KEY(ev_assoc_t, uint64_t, ev_assoc, u);
 
 static struct {
-    int    active;          /* number of ev_t keeping the el_loop running   */
-    int    in_poll;         /* have we processed the poll ?                 */
-    uint64_t lp_clk;        /* low precision monotonic clock                */
-    ev_t  *before;          /* list of ev_t to run at the start of the loop */
-    ev_t  *after;           /* list of ev_t to run at the end of the loop   */
-    ev_t  *signals;         /* signals el_t's                               */
-    ev_array timers;        /* relative timers heap (see comments after)    */
-    ev_assoc_htbl childs;   /* el_t's watching for processes                */
     volatile uint32_t gotsigs;
+    int    active;            /* number of ev_t keeping the el_loop running */
+    uint64_t lp_clk;          /* low precision monotonic clock              */
+
+    struct dlist_head before; /* ev_t to run at the start of the loop       */
+    struct dlist_head after;  /* ev_t to run at the end of the loop         */
+    struct dlist_head sigs;   /* signals el_t's                             */
+    ev_array timers;          /* relative timers heap (see comments after)  */
+    ev_assoc_htbl childs;     /* el_t's watching for processes              */
 
     /*----- allocation stuff -----*/
-#define EV_ALLOC_FACTOR  12 /* basic segment is 4096 events                 */
+#define EV_ALLOC_FACTOR  12   /* basic segment is 4096 events               */
     ev_t   evs_initial[1 << EV_ALLOC_FACTOR];
     ev_t  *evs_alloc_next, *evs_alloc_end;
     ev_t  *evs[32 - EV_ALLOC_FACTOR];
     int    evs_len;
-    ev_t  *evs_free;        /* free el_t's indices in evs                   */
-    ev_t  *evs_timer_tmp;
-    ev_t  *evs_fd_tmp;
+    struct dlist_head evs_free;
+    struct dlist_head evs_gc;
 } _G = {
     .evs[0]         = _G.evs_initial,
     .evs_len        = 1,
     .evs_alloc_next = &_G.evs_initial[0],
     .evs_alloc_end  = &_G.evs_initial[countof(_G.evs_initial)],
+
+    .before         = DLIST_HEAD_INIT(_G.before),
+    .after          = DLIST_HEAD_INIT(_G.after),
+    .sigs           = DLIST_HEAD_INIT(_G.sigs),
+    .evs_free       = DLIST_HEAD_INIT(_G.evs_free),
+    .evs_gc         = DLIST_HEAD_INIT(_G.evs_gc),
 };
 
 #define ASSERT(msg, expr)  assert (((void)msg, likely(expr)))
@@ -121,27 +126,17 @@ static struct {
 #define CHECK_EV_TYPE(ev, typ) \
     ASSERT("incorrect type", (ev)->type == typ)
 
-static ev_t *el_list_push(ev_t **list, ev_t *ev)
+static ev_t *ev_add(struct dlist_head *l, ev_t *ev)
 {
-    ev->next = *list;
-    return *list = ev;
-}
-
-static ev_t *el_list_pop(ev_t **list)
-{
-    ev_t *res = *list;
-    if (likely(res)) {
-        *list = res->next;
-        res->next = NULL;
-    }
-    return res;
+    dlist_add(l, &ev->ev_list);
+    return ev;
 }
 
 static ev_t *el_create(ev_type_t type, void *cb, el_data_t priv, bool ref)
 {
-    ev_t *res = el_list_pop(&_G.evs_free);
+    ev_t *res;
 
-    if (unlikely(!res)) {
+    if (unlikely(dlist_is_empty(&_G.evs_free))) {
         if (unlikely(_G.evs_alloc_next >= _G.evs_alloc_end)) {
             int   bucket_len = 1 << (_G.evs_len++ + EV_ALLOC_FACTOR);
             ev_t *bucket     = p_new(ev_t, bucket_len);
@@ -153,6 +148,9 @@ static ev_t *el_create(ev_type_t type, void *cb, el_data_t priv, bool ref)
             _G.evs_alloc_end  = bucket + bucket_len;
         }
         res = _G.evs_alloc_next++;
+    } else {
+        res = container_of(_G.evs_free.next, ev_t, ev_list);
+        dlist_remove(&res->ev_list);
     }
 
     *res = (ev_t){
@@ -163,12 +161,12 @@ static ev_t *el_create(ev_type_t type, void *cb, el_data_t priv, bool ref)
     return ref ? el_ref(res) : res;
 }
 
-static el_data_t el_destroy(ev_t **evp, bool can_collect)
+static el_data_t el_destroy(ev_t **evp, struct dlist_head *l)
 {
     ev_t *ev = *evp;
     el_unref(ev);
-    if (can_collect)
-        el_list_push(&_G.evs_free, ev);
+    if (l)
+        ev_add(l, ev);
     ev->type = EV_UNUSED;
 #ifndef NDEBUG
     ev->priv.u64 = (uint64_t)-1;
@@ -177,23 +175,24 @@ static el_data_t el_destroy(ev_t **evp, bool can_collect)
     return ev->priv;
 }
 
-static inline void el_list_process(ev_t **list, int signo)
+static inline void ev_list_process(struct dlist_head *l, int signo)
 {
-    while (*list) {
-        ev_t *ev = *list;
+    dlist_for_each_safe(e, l) {
+        ev_t *ev = dlist_entry(e, ev_t, ev_list);
 
         if (ev->type == EV_UNUSED) {
-            el_list_push(&_G.evs_free, el_list_pop(list));
+            dlist_move(&_G.evs_free, e);
             continue;
         }
 
-        if (signo >= 0 && ev->signo == signo) {
-            (*ev->cb.signal)(ev, signo, ev->priv);
+        if (signo >= 0) {
+            if (ev->signo == signo)
+                (*ev->cb.signal)(ev, signo, ev->priv);
         } else {
             (*ev->cb.cb)(ev, ev->priv);
         }
-        list = &ev->next;
     }
+    dlist_splice(&_G.evs_free, &_G.evs_gc);
 }
 
 /*----- blockers, before and after events -----*/
@@ -205,12 +204,12 @@ ev_t *el_blocker_register(el_data_t priv)
 
 ev_t *el_before_register(el_cb_f *cb, el_data_t priv)
 {
-    return el_list_push(&_G.before, el_create(EV_BEFORE, cb, priv, true));
+    return ev_add(&_G.before, el_create(EV_BEFORE, cb, priv, true));
 }
 
 ev_t *el_after_register(el_cb_f *cb, el_data_t priv)
 {
-    return el_list_push(&_G.after, el_create(EV_AFTER, cb, priv, true));
+    return ev_add(&_G.after, el_create(EV_AFTER, cb, priv, true));
 }
 
 void el_before_set_hook(el_t ev, el_cb_f *cb)
@@ -229,7 +228,7 @@ el_data_t el_blocker_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_BLOCKER);
-        return el_destroy(evp, true);
+        return el_destroy(evp, &_G.evs_free);
     }
     return (el_data_t)NULL;
 }
@@ -238,7 +237,7 @@ el_data_t el_before_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_BEFORE);
-        return el_destroy(evp, true);
+        return el_destroy(evp, NULL);
     }
     return (el_data_t)NULL;
 }
@@ -247,7 +246,7 @@ el_data_t el_after_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_AFTER);
-        return el_destroy(evp, true);
+        return el_destroy(evp, NULL);
     }
     return (el_data_t)NULL;
 }
@@ -270,7 +269,7 @@ static void el_signal_process(void)
     do {
         int sig = __builtin_ctz(_G.gotsigs);
         _G.gotsigs &= ~(1 << sig);
-        el_list_process(&_G.signals, sig);
+        ev_list_process(&_G.sigs, sig);
     } while (_G.gotsigs);
 }
 
@@ -292,14 +291,14 @@ ev_t *el_signal_register(int signo, el_signal_f *cb, el_data_t priv)
 
     ev = el_create(EV_SIGNAL, cb, priv, false);
     ev->signo = signo;
-    return el_list_push(&_G.signals, ev);
+    return ev_add(&_G.sigs, ev);
 }
 
 el_data_t el_signal_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_SIGNAL);
-        return el_destroy(evp, false);
+        return el_destroy(evp, NULL);
     }
     return (el_data_t)NULL;
 }
@@ -317,7 +316,7 @@ static void el_sigchld_hook(ev_t *ev, int signo, el_data_t priv)
             ev_t *e = ec->ev;
             (*e->cb.child)(e, pid, status, e->priv);
             ev_assoc_htbl_ll_remove(&_G.childs, ec);
-            el_destroy(&e, true);
+            el_destroy(&e, &_G.evs_free);
         }
     }
 }
@@ -355,7 +354,7 @@ el_data_t el_child_unregister(ev_t **evp)
         ec = ev_assoc_htbl_find(&_G.childs, (*evp)->pid);
         ASSERT("event not found", ec);
         ev_assoc_htbl_ll_remove(&_G.childs, ec);
-        return el_destroy(evp, true);
+        return el_destroy(evp, &_G.evs_free);
     }
     return (el_data_t)NULL;
 }
@@ -452,14 +451,11 @@ static el_data_t el_timer_heapremove(ev_t **evp)
         el_timer_heapfix(end);
     }
     (*evp)->timer.heappos = -1;
-    el_list_push(&_G.evs_timer_tmp, *evp);
-    return el_destroy(evp, false);
+    return el_destroy(evp, &_G.evs_gc);
 }
 
 static void el_timer_process(uint64_t until)
 {
-    while (_G.evs_timer_tmp)
-        el_list_push(&_G.evs_free, el_list_pop(&_G.evs_timer_tmp));
     while (_G.timers.len) {
         ev_t *ev = EVT(0);
 
@@ -597,7 +593,7 @@ void el_loop_timeout(int timeout)
 {
     uint64_t clk;
 
-    el_list_process(&_G.before, -1);
+    ev_list_process(&_G.before, -1);
     if (_G.timers.len) {
         clk = get_clock(false);
         el_timer_process(clk);
@@ -609,7 +605,7 @@ void el_loop_timeout(int timeout)
     }
     el_loop_fds(timeout);
     el_signal_process();
-    el_list_process(&_G.after, -1);
+    ev_list_process(&_G.after, -1);
 }
 
 void el_loop(void)

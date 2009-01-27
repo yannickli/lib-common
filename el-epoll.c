@@ -66,9 +66,7 @@ el_data_t el_fd_unregister(ev_t **evp, bool do_close)
         epoll_ctl(epollfd_g, EPOLL_CTL_DEL, ev->fd.fd, NULL);
         if (likely(do_close))
             close(ev->fd.fd);
-        if (_G.in_poll)
-            el_list_push(&_G.evs_fd_tmp, ev);
-        return el_destroy(evp, !_G.in_poll);
+        return el_destroy(evp, &_G.evs_gc);
     }
     return (el_data_t)NULL;
 }
@@ -83,7 +81,6 @@ static void el_loop_fds(int timeout)
     res = epoll_wait(epollfd_g, events, countof(events), timeout);
     assert (res >= 0 || errno == EAGAIN || errno == EINTR);
 
-    _G.in_poll = true;
     if (_G.timers.len) {
         el_timer_process(get_clock(false));
     }
@@ -96,8 +93,4 @@ static void el_loop_fds(int timeout)
         if (likely(ev->type == EV_FD))
             (*ev->cb.fd)(ev, ev->fd.fd, evs, ev->priv);
     }
-    while (unlikely(_G.evs_fd_tmp != NULL)) {
-        el_list_push(&_G.evs_free, el_list_pop(&_G.evs_fd_tmp));
-    }
-    _G.in_poll = false;
 }
