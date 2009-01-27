@@ -94,7 +94,7 @@ static struct {
     uint64_t lp_clk;        /* low precision monotonic clock                */
     ev_t  *before;          /* list of ev_t to run at the start of the loop */
     ev_t  *after;           /* list of ev_t to run at the end of the loop   */
-    ev_t  *signals[32];     /* signals el_t's, one per signal only          */
+    ev_t  *signals;         /* signals el_t's                               */
     ev_array timers;        /* relative timers heap (see comments after)    */
     ev_assoc_htbl childs;   /* el_t's watching for processes                */
     volatile uint32_t gotsigs;
@@ -187,7 +187,7 @@ static inline void el_list_process(ev_t **list, int signo)
             continue;
         }
 
-        if (signo >= 0) {
+        if (signo >= 0 && ev->signo == signo) {
             (*ev->cb.signal)(ev, signo, ev->priv);
         } else {
             (*ev->cb.cb)(ev, ev->priv);
@@ -270,7 +270,7 @@ static void el_signal_process(void)
     do {
         int sig = __builtin_ctz(_G.gotsigs);
         _G.gotsigs &= ~(1 << sig);
-        el_list_process(&_G.signals[sig], sig);
+        el_list_process(&_G.signals, sig);
     } while (_G.gotsigs);
 }
 
@@ -290,10 +290,9 @@ ev_t *el_signal_register(int signo, el_signal_f *cb, el_data_t priv)
     sa.sa_flags = SA_RESTART;
     sigaction(signo, &sa, NULL);
 
-    ASSERT("signo out of bounds", 0 <= signo && signo < countof(_G.signals));
     ev = el_create(EV_SIGNAL, cb, priv, false);
     ev->signo = signo;
-    return el_list_push(&_G.signals[signo], ev);
+    return el_list_push(&_G.signals, ev);
 }
 
 el_data_t el_signal_unregister(ev_t **evp)
