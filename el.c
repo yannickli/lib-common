@@ -67,6 +67,7 @@ typedef struct ev_t {
         el_signal_f *signal;
         el_child_f *child;
         el_fd_f *fd;
+        el_proxy_f *prox;
     } cb;
     el_data_t priv;
 
@@ -97,6 +98,7 @@ static struct {
     struct dlist_head before; /* ev_t to run at the start of the loop       */
     struct dlist_head after;  /* ev_t to run at the end of the loop         */
     struct dlist_head sigs;   /* signals el_t's                             */
+    struct dlist_head proxy, proxy_ready;
     ev_array timers;          /* relative timers heap (see comments after)  */
     ev_assoc_htbl childs;     /* el_t's watching for processes              */
 
@@ -117,6 +119,8 @@ static struct {
     .before         = DLIST_HEAD_INIT(_G.before),
     .after          = DLIST_HEAD_INIT(_G.after),
     .sigs           = DLIST_HEAD_INIT(_G.sigs),
+    .proxy          = DLIST_HEAD_INIT(_G.proxy),
+    .proxy_ready    = DLIST_HEAD_INIT(_G.proxy_ready),
     .evs_free       = DLIST_HEAD_INIT(_G.evs_free),
     .evs_gc         = DLIST_HEAD_INIT(_G.evs_gc),
 };
@@ -563,6 +567,73 @@ int el_fd_get_fd(ev_t *ev)
         return ev->fd;
     }
     return -1;
+}
+
+/*----- proxy events  -----*/
+
+ev_t *el_proxy_register(el_proxy_f *cb, el_data_t priv)
+{
+    return ev_add(&_G.proxy, el_create(EV_PROXY, cb, priv, true));
+}
+
+void el_proxy_set_hook(el_t ev, el_proxy_f *cb)
+{
+    CHECK_EV_TYPE(ev, EV_PROXY);
+    ev->cb.prox = cb;
+}
+
+el_data_t el_proxy_unregister(ev_t **evp)
+{
+    if (*evp) {
+        CHECK_EV_TYPE(*evp, EV_PROXY);
+        return el_destroy(evp, NULL);
+    }
+    return (el_data_t)NULL;
+}
+
+static inline void el_proxy_change_ready(ev_t *ev, bool was_ready)
+{
+    dlist_move(was_ready ? &_G.proxy : &_G.proxy_ready, &ev->ev_list);
+}
+
+static short el_proxy_set_event_full(ev_t *ev, short evt)
+{
+    short old = ev->events_avail;
+
+    if (old != evt) {
+        bool was_ready = (old & ev->events_wanted) != 0;
+        bool is_ready  = (evt & ev->events_wanted) != 0;
+
+        ev->events_avail = evt;
+        if (was_ready != is_ready)
+            el_proxy_change_ready(ev, was_ready);
+    }
+    return old;
+}
+
+short el_proxy_set_event(ev_t *ev, short mask)
+{
+    return el_proxy_set_event_full(ev, ev->events_avail | mask);
+}
+
+short el_proxy_clr_event(ev_t *ev, short mask)
+{
+    return el_proxy_set_event_full(ev, ev->events_avail & ~mask);
+}
+
+short el_proxy_set_mask(ev_t *ev, short mask)
+{
+    short old = ev->events_wanted;
+
+    if (old != mask) {
+        bool was_ready = (old & ev->events_avail) != 0;
+        bool is_ready  = (mask & ev->events_avail) != 0;
+
+        ev->events_wanted = mask;
+        if (was_ready != is_ready)
+            el_proxy_change_ready(ev, was_ready);
+    }
+    return old;
 }
 
 /*----- generic functions  -----*/

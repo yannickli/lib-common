@@ -56,6 +56,7 @@ typedef void (el_cb_f)(el_t, el_data_t);
 typedef void (el_signal_f)(el_t, int, el_data_t);
 typedef void (el_child_f)(el_t, pid_t, int, el_data_t);
 typedef int  (el_fd_f)(el_t, int, short, el_data_t);
+typedef void (el_proxy_f)(el_t, short, el_data_t);
 
 el_t el_blocker_register(el_data_t);
 el_t el_before_register(el_cb_f *, el_data_t);
@@ -73,6 +74,14 @@ el_data_t el_after_unregister(el_t *);
 el_data_t el_signal_unregister(el_t *);
 el_data_t el_child_unregister(el_t *);
 el_data_t el_blocker_unregister(el_t *);
+
+/*----- proxy related -----*/
+el_t el_proxy_register(el_proxy_f *, el_data_t);
+void el_proxy_set_hook(el_t, el_proxy_f *);
+el_data_t el_proxy_unregister(el_t *);
+short el_proxy_set_event(el_t, short mask);
+short el_proxy_clr_event(el_t, short mask);
+short el_proxy_set_mask(el_t, short mask);
 
 /*----- fd related -----*/
 el_t el_fd_register(int fd, short events, el_fd_f *, el_data_t);
