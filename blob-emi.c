@@ -13,6 +13,7 @@
 
 #include "str-conv.h"
 #include "blob.h"
+#include "str.h"
 
 /*---------------- IRA Conversion ----------------*/
 
@@ -1145,6 +1146,48 @@ int blob_append_ira_hex(blob_t *dst, const byte *src, int len)
     *data = '\0';
 
     dst->len = data - dst->data;
+    return 0;
+}
+
+static int blob_append_gsm7_char_packed(blob_t *out, byte c, int *shift)
+{
+    if (out->len) {
+        out->data[out->len - 1] |= c << (8 - *shift);
+    }
+    blob_append_byte(out, (c >> *shift));
+
+    (*shift)++;
+    if (*shift == 8) {
+        out->len--;
+        out->data[out->len] = '\0';
+        *shift = 0;
+    }
+    return 0;
+}
+
+int blob_append_gsm7_packed(blob_t *out, const byte *utf8, int len)
+{
+    const byte *utf8_end = utf8 + len;
+
+    int  c;
+    int  shift = 0;
+
+    while (utf8 < utf8_end) {
+        c = utf8_getc((const char *)utf8, (const char **)&utf8);
+        if (c < 0) {
+            return -1;
+        }
+
+        c = unicode_to_gsm7(c, '?');
+        if (c < 0) {
+            return -1;
+        }
+        if (c > 0xff) {
+            blob_append_gsm7_char_packed(out, (c >> 8), &shift);
+            c &= 0xff;
+        }
+        blob_append_gsm7_char_packed(out, c, &shift);
+    }
     return 0;
 }
 
