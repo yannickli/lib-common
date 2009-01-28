@@ -1154,7 +1154,7 @@ static void blob_append_gsm_aligned_pack(blob_t *out, uint64_t pack, int len)
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     pack = bswap64(pack);
 #endif
-    blob_append_data(out, &pack, len);
+    blob_append_data(out, ((char *)&pack) + 1, len);
 }
 
 int blob_append_gsm7_packed(blob_t *out, const char *utf8, int unknown)
