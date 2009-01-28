@@ -55,7 +55,7 @@ int utf8_ngetc(const char *s, int len, const char **outp)
       case 0: ret += (unsigned char)*s++;
     }
 
-    if (*outp) {
+    if (outp) {
         *outp = s;
     }
 
