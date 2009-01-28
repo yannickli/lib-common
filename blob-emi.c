@@ -1149,46 +1149,46 @@ int blob_append_ira_hex(blob_t *dst, const byte *src, int len)
     return 0;
 }
 
-static int blob_append_gsm7_char_packed(blob_t *out, byte c, int *shift)
+static void blob_append_gsm_aligned_pack(blob_t *out, uint64_t pack, int len)
 {
-    if (out->len) {
-        out->data[out->len - 1] |= c << (8 - *shift);
-    }
-    blob_append_byte(out, (c >> *shift));
-
-    (*shift)++;
-    if (*shift == 8) {
-        out->len--;
-        out->data[out->len] = '\0';
-        *shift = 0;
-    }
-    return 0;
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+    pack = bswap64(pack);
+#endif
+    blob_append_data(out, &pack, len);
 }
 
-int blob_append_gsm7_packed(blob_t *out, const byte *utf8, int len)
+int blob_append_gsm7_packed(blob_t *out, const char *utf8, int unknown)
 {
-    const byte *utf8_end = utf8 + len;
+    uint64_t pack = 0;
+    int septet = 0;
 
-    int  c;
-    int  shift = 0;
+    for (;;) {
+        int c = utf8_getc(utf8, &utf8);
 
-    while (utf8 < utf8_end) {
-        c = utf8_getc((const char *)utf8, (const char **)&utf8);
-        if (c < 0) {
-            return -1;
+        if (c <= 0) {
+            blob_append_gsm_aligned_pack(out, pack, septet);
+            return c;
         }
 
-        c = unicode_to_gsm7(c, '?');
-        if (c < 0) {
+        c = unicode_to_gsm7(c, unknown);
+        if (c < 0)
             return -1;
-        }
+
         if (c > 0xff) {
-            blob_append_gsm7_char_packed(out, (c >> 8), &shift);
-            c &= 0xff;
+            pack = (pack << 7) | (c >> 8);
+            if (++septet == 8) {
+                blob_append_gsm_aligned_pack(out, pack, 7);
+                septet = 0;
+                pack = 0;
+            }
         }
-        blob_append_gsm7_char_packed(out, c, &shift);
+        pack = (pack << 7) | (c & 0x7f);
+        if (++septet == 8) {
+            blob_append_gsm_aligned_pack(out, pack, 7);
+            septet = 0;
+            pack = 0;
+        }
     }
-    return 0;
 }
 
 #undef HEX
