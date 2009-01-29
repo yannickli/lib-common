@@ -1186,7 +1186,7 @@ int blob_append_gsm7_packed(blob_t *out, const char *utf8, int unknown)
         pack |= ((c & 0x7f) << (7 * septet));
         if (++septet == 8) {
             blob_append_gsm_aligned_pack(out, pack, 7);
-            septet = 7;
+            septet = 0;
             pack = 0;
         }
     }
