@@ -1149,24 +1149,25 @@ int blob_append_ira_hex(blob_t *dst, const byte *src, int len)
     return 0;
 }
 
+/* write up to 8 septets in the 56 most significant bits of "pack" */
 static void blob_append_gsm_aligned_pack(blob_t *out, uint64_t pack, int len)
 {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
     pack = bswap64(pack);
 #endif
-    blob_append_data(out, ((char *)&pack) + 1, len);
+    blob_append_data(out, &pack, len);
 }
 
 int blob_append_gsm7_packed(blob_t *out, const char *utf8, int unknown)
 {
     uint64_t pack = 0;
-    int septet = 0;
+    int septet = 7;
 
     for (;;) {
         int c = utf8_getc(utf8, &utf8);
 
         if (c <= 0) {
-            blob_append_gsm_aligned_pack(out, pack, septet);
+            blob_append_gsm_aligned_pack(out, pack, 7 - septet);
             return c;
         }
 
@@ -1175,17 +1176,17 @@ int blob_append_gsm7_packed(blob_t *out, const char *utf8, int unknown)
             return -1;
 
         if (c > 0xff) {
-            pack = (pack << 7) | (c >> 8);
-            if (++septet == 8) {
+            pack |= ((c >> 8) << (8 + 7 * septet));
+            if (septet-- == 0) {
                 blob_append_gsm_aligned_pack(out, pack, 7);
-                septet = 0;
+                septet = 7;
                 pack = 0;
             }
         }
-        pack = (pack << 7) | (c & 0x7f);
-        if (++septet == 8) {
+        pack |= ((c & 0x7f) << (8 + 7 * septet));
+        if (septet-- == 0) {
             blob_append_gsm_aligned_pack(out, pack, 7);
-            septet = 0;
+            septet = 7;
             pack = 0;
         }
     }
