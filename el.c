@@ -177,11 +177,15 @@ static ev_t *el_create(ev_type_t type, void *cb, el_data_t priv, bool ref)
     return ref ? el_ref(res) : res;
 }
 
-static el_data_t el_destroy(ev_t **evp)
+static el_data_t el_destroy(ev_t **evp, bool move)
 {
     ev_t *ev = *evp;
     el_unref(ev);
-    ev_add(&_G.evs_gc, ev);
+    if (move) {
+        dlist_move(&_G.evs_gc, &ev->ev_list);
+    } else {
+        dlist_add(&_G.evs_gc, &ev->ev_list);
+    }
     ev->type = EV_UNUSED;
 #ifndef NDEBUG
     ev->priv.u64 = (uint64_t)-1;
@@ -235,7 +239,7 @@ el_data_t el_blocker_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_BLOCKER);
-        return el_destroy(evp);
+        return el_destroy(evp, false);
     }
     return (el_data_t)NULL;
 }
@@ -244,7 +248,7 @@ el_data_t el_before_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_BEFORE);
-        return el_destroy(evp);
+        return el_destroy(evp, true);
     }
     return (el_data_t)NULL;
 }
@@ -253,7 +257,7 @@ el_data_t el_after_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_AFTER);
-        return el_destroy(evp);
+        return el_destroy(evp, true);
     }
     return (el_data_t)NULL;
 }
@@ -314,7 +318,7 @@ el_data_t el_signal_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_SIGNAL);
-        return el_destroy(evp);
+        return el_destroy(evp, true);
     }
     return (el_data_t)NULL;
 }
@@ -332,7 +336,7 @@ static void el_sigchld_hook(ev_t *ev, int signo, el_data_t priv)
             ev_t *e = ec->ev;
             (*e->cb.child)(e, pid, status, e->priv);
             ev_assoc_htbl_ll_remove(&_G.childs, ec);
-            el_destroy(&e);
+            el_destroy(&e, false);
         }
     }
 }
@@ -370,7 +374,7 @@ el_data_t el_child_unregister(ev_t **evp)
         ec = ev_assoc_htbl_find(&_G.childs, (*evp)->pid);
         ASSERT("event not found", ec);
         ev_assoc_htbl_ll_remove(&_G.childs, ec);
-        return el_destroy(evp);
+        return el_destroy(evp, false);
     }
     return (el_data_t)NULL;
 }
@@ -467,7 +471,7 @@ static el_data_t el_timer_heapremove(ev_t **evp)
         el_timer_heapfix(end);
     }
     (*evp)->timer.heappos = -1;
-    return el_destroy(evp);
+    return el_destroy(evp, false);
 }
 
 static void el_timer_process(uint64_t until)
@@ -597,7 +601,7 @@ el_data_t el_proxy_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_PROXY);
-        return el_destroy(evp);
+        return el_destroy(evp, true);
     }
     return (el_data_t)NULL;
 }
