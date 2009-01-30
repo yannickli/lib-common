@@ -528,6 +528,8 @@ int string_decode_ira_bin_as_utf8(char *dst, int size,
 int gsm7_charlen(int c);
 int blob_append_gsm7_packed(blob_t *out, int gsm_start,
                             const char *utf8, int unknown);
+int blob_decode_gsm7_packed(blob_t *out, const void *src, int len,
+                            int udhlen);
 
 /* in blob_ebcdic.c */
 int blob_decode_ebcdic297(blob_t *dst, const byte *src, int len);

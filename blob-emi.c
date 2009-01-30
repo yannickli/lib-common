@@ -1229,6 +1229,83 @@ int blob_append_gsm7_packed(blob_t *out, int gsm_start,
     }
 }
 
+static void gsm7_char_to_utf8(byte *dst, int c, byte **out)
+{
+    if (c > 0xFF) {
+        c = 256 + (c & 0xff);
+    }
+    c = gsm7_to_unicode[c];
+    if (c < 0x80) {
+        *dst++ = c;
+    } else
+    if (c < 0x1000) {
+        *dst++ = 0xC0 | (((c) >>  6));
+        *dst++ = 0x80 | (((c) >>  0) & 0x3F);
+    } else {
+        *dst++ = 0xE0 | (((c) >> 12));
+        *dst++ = 0x80 | (((c) >>  6) & 0x3F);
+        *dst++ = 0x80 | (((c) >>  0) & 0x3F);
+    }
+
+    *out = dst;
+}
+
+static int decode_gsm7_pack(blob_t *out, uint64_t pack, int nbchars, int c)
+{
+    byte *p;
+
+    blob_grow(out, 8 * 4);
+    p = out->data + out->len;
+    for (int i = 0; i <= nbchars; i++) {
+        c |= pack & 0x7f;
+        pack >>= 7;
+        if (c == 0x1b) {
+            c <<= 8;
+        } else if (c != 0) {
+            gsm7_char_to_utf8(p, c, &p);
+            c = 0;
+        }
+    }
+    blob_setlen(out, p - out->data);
+    return c;
+}
+
+/*
+ * FIXME we may decode more characters than what we really want.
+ *       We can't know for sure when the number of octets is a perfect
+ *       multiple of 7 if the last septet is part of the message or not.
+ *       We need a way to disambiguate.
+ */
+int blob_decode_gsm7_packed(blob_t *out, const void *_src, int len,
+                            int udhlen)
+{
+    const byte *src = (const byte *)_src + udhlen;
+    const byte *end = src + len;
+    uint64_t pack = 0;
+    int c = 0;
+
+    if (udhlen % 7) {
+        /* udh overlaps up to the next (hence +1) septet boundary included */
+        int overlap = (udhlen % 7) + 1;
+
+        src -= udhlen % 7;
+        pack = get_gsm7_pack(src, MIN(7, end - src));
+        c    = decode_gsm7_pack(out, pack >> (7 * overlap), 8 - overlap, c);
+        src += 7;
+    }
+
+    for (; src + 7 < end; src += 7) {
+        pack = get_gsm7_pack(src, 7);
+        c    = decode_gsm7_pack(out, pack, 8, c);
+    }
+
+    if (src < end) {
+        pack = get_gsm7_pack(src, end - src);
+        c    = decode_gsm7_pack(out, pack, end - src, c);
+    }
+    return c ? -1 : 0;
+}
+
 #undef HEX
 #undef X2
 #undef X4
