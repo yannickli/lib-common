@@ -1158,10 +1158,29 @@ static void blob_append_gsm_aligned_pack(blob_t *out, uint64_t pack, int len)
     blob_append_data(out, &pack, len);
 }
 
-int blob_append_gsm7_packed(blob_t *out, const char *utf8, int unknown)
+static uint64_t get_gsm7_pack(const void *src, int len, int nb_rshift)
 {
     uint64_t pack = 0;
-    int septet = 0;
+
+    memcpy(&pack, src, len);
+#if __BYTE_ORDER == __BIG_ENDIAN
+    pack = bswap64(pack);
+#endif
+    pack >>= (7 * nb_rshift);
+    return pack;
+}
+
+int blob_append_gsm7_packed(blob_t *out, int offset, const char *utf8,
+                            int unknown)
+{
+    uint64_t pack = 0;
+    int septet = (out->len - offset) % 7;
+
+    if (septet) {
+        pack = get_gsm7_pack(out->data + out->len - septet, septet, 0);
+        blob_setlen(out, out->len - septet);
+        septet++;
+    }
 
     for (;;) {
         int c = utf8_getc(utf8, &utf8);
