@@ -124,9 +124,6 @@ static void *mfp_alloc(mem_fifo_pool_t *mfp, int size)
 {
     mem_block_t *blk;
     mem_page_t *page;
-#ifndef NDEBUG
-    int asked = size;
-#endif
 
     /* Must round size up to keep proper alignment */
     size = ROUND_MULTIPLE((unsigned)size + sizeof(mem_block_t), 8);
@@ -154,7 +151,7 @@ static void *mfp_alloc(mem_fifo_pool_t *mfp, int size)
 
     blk = (mem_block_t *)(page->area + page->used_size);
     VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
-    VALGRIND_MEMPOOL_ALLOC(page, blk + sizeof(*blk), asked);
+    VALGRIND_MEMPOOL_ALLOC(page, blk->area, size);
     blk->page_offs = (intptr_t)page - (intptr_t)blk;
     blk->blk_size  = size;
     blk_protect(blk);
@@ -176,7 +173,7 @@ static void mfp_free(mem_fifo_pool_t *mfp, void *mem)
     blk  = container_of(mem, mem_block_t, area);
     page = pageof(blk);
     mfp->occupied -= blk->blk_size;
-    VALGRIND_MEMPOOL_FREE(page, blk + sizeof(*blk));
+    VALGRIND_MEMPOOL_FREE(page, blk->area);
     blk_protect(blk);
 
     /* if this was the last block, GC the pages */
@@ -234,8 +231,6 @@ static void mfp_realloc(mem_fifo_pool_t *mfp, void **memp, int size)
     page = pageof(blk);
 
     if (size <= blk->blk_size - ssizeof(*blk)) {
-        VALGRIND_MEMPOOL_CHANGE(page, blk + sizeof(*blk), blk + sizeof(*blk),
-                                size);
         blk_protect(blk);
         return;
     }
@@ -244,10 +239,9 @@ static void mfp_realloc(mem_fifo_pool_t *mfp, void **memp, int size)
     if (mem == page->last
     && size + ssizeof(*blk) - blk->blk_size <= mem_page_size_left(page))
     {
-        VALGRIND_MEMPOOL_CHANGE(page, blk + sizeof(*blk), blk + sizeof(*blk),
-                                size);
         size = ROUND_MULTIPLE((size_t)size, 8);
         blk->blk_size   += size;
+        VALGRIND_MEMPOOL_CHANGE(page, blk->area, blk->area, size);
         blk_protect(blk);
 
         mfp->occupied   += size;
