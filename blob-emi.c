@@ -1149,7 +1149,12 @@ int blob_append_ira_hex(blob_t *dst, const byte *src, int len)
     return 0;
 }
 
-/* write up to 8 septets in the 56 most significant bits of "pack" */
+/*
+ * write up to 8 septets in the 56 most significant bits of "pack"
+ * XXX: the tragic truth about septets is that writing 8 septets means we pass
+ *      `7` as %len value, the same value we use for 7 septets, except that
+ *      for the latter case, it writes 7 bits of padding.
+ */
 static void blob_append_gsm_aligned_pack(blob_t *out, uint64_t pack, int len)
 {
 #if __BYTE_ORDER == __BIG_ENDIAN
@@ -1158,7 +1163,7 @@ static void blob_append_gsm_aligned_pack(blob_t *out, uint64_t pack, int len)
     blob_append_data(out, &pack, len);
 }
 
-static uint64_t get_gsm7_pack(const void *src, int len, int nb_rshift)
+static uint64_t get_gsm7_pack(const void *src, int len)
 {
     uint64_t pack = 0;
 
@@ -1166,18 +1171,31 @@ static uint64_t get_gsm7_pack(const void *src, int len, int nb_rshift)
 #if __BYTE_ORDER == __BIG_ENDIAN
     pack = bswap64(pack);
 #endif
-    pack >>= (7 * nb_rshift);
     return pack;
 }
 
-int blob_append_gsm7_packed(blob_t *out, int offset, const char *utf8,
-                            int unknown)
+/*
+ * gsm_start points to the first octet of out->data holding 7-bits packed GSM
+ * data. blob_append_gsm7_packed is not able to be restartable, it assumes the
+ * octets between position %gsm_start and blob->len are 8bit aligned (UDH) and
+ * pads with 0 bits up to the next septet boundary.
+ *
+ * If we mean to have a restartable API, we need to know the current amount of
+ * septets written since %gsm_start since we have no way to know if when we
+ * have for example gsm->len - gsm_start == 7 if 7 or 8 septets are written.
+ *
+ * For us here, we know that if gsm->len - gsm_start is 7, 7 _octets_ of UDH
+ * are written and no padding is needed to be aligned on the next septet
+ * boundary.
+ */
+int blob_append_gsm7_packed(blob_t *out, int gsm_start,
+                            const char *utf8, int unknown)
 {
     uint64_t pack = 0;
-    int septet = (out->len - offset) % 7;
+    int septet = (out->len - gsm_start) % 7;
 
     if (septet) {
-        pack = get_gsm7_pack(out->data + out->len - septet, septet, 0);
+        pack = get_gsm7_pack(out->data + out->len - septet, septet);
         blob_setlen(out, out->len - septet);
         septet++;
     }
