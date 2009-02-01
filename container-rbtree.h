@@ -123,7 +123,7 @@ rb_node_t *rb_prev(rb_node_t *);
     __rb_for_each(__real_##it, rb,                              \
                   it = rb_entry_of(__real_##it, it, member))
 
-#define rb_for_each_entry_safe(it, rb, member)                  \
-    __rb_for_each(__real_##it, __next_##it, rb,                 \
-                  it = rb_entry_of(__real_##it, it, member))
+#define rb_for_each_entry_safe(it, rb, member)                    \
+    __rb_for_each_safe(__real_##it, __next_##it, rb,              \
+                       it = rb_entry_of(__real_##it, it, member))
 
