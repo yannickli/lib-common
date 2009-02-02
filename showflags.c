@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "str.h"
+#include "core.h"
 
 typedef unsigned int unsigned32;
 

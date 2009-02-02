@@ -18,7 +18,6 @@
 #include "btree.h"
 #include "bstream.h"
 #include "time.h"
-#include "iprintf.h"
 
 #define USE_BSTREAM  0
 

@@ -15,7 +15,6 @@
 #define IS_LIB_COMMON_HASH_H
 
 #include "core.h"
-#include "str-conv.h"
 
 #include "hash-config.h"
 #include "hash-bignum.h"

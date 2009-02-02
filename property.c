@@ -12,7 +12,6 @@
 /**************************************************************************/
 
 #include "property.h"
-#include "str.h"
 
 void props_array_update(props_array *arr, const char *k, const char *v)
 {

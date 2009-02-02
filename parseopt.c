@@ -12,7 +12,6 @@
 /**************************************************************************/
 
 #include "parseopt.h"
-#include "str.h"
 
 #define FLAG_SHORT 1
 #define FLAG_UNSET 2

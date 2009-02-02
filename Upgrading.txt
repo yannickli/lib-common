@@ -1,6 +1,13 @@
 lib-common Upgrading Notes
 ==========================
 
+Parseopt enhancements (Mon, 02 Feb 2009)
+----------------------------------------
+
+* `str-*` headers streamlined. `core.h` now includes `str.h` as almost anyone
+  uses it already (`blob.h`, `container.h` to cite the most used ones).
+* Move iprintf under the `str` namespace.
+
 Parseopt enhancements (Mon, 15 Dec 2008)
 ----------------------------------------
 

@@ -11,9 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <sys/types.h>
-
-#include "str.h"
 #include "blob.h"
 #include "psinfo.h"
 

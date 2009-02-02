@@ -4,10 +4,7 @@
  * original file name: tfformat.c
  */
 
-#include <stdio.h>
-
-#define IPRINTF_HIDE_STDIO  1
-#include "iprintf.h"
+#include "core.h"
 
 typedef struct {
     int line;

@@ -15,7 +15,6 @@
 #define IS_LIB_COMMON_CONTAINER_H
 
 #include "core.h"
-#include "str.h"
 
 #include "container-array.h"
 #include "container-htbl.h"

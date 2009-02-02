@@ -11,8 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "str.h"
-#include "str-conv.h"
 #include "blob.h"
 
 /* For Wap Push ServiceIndication WBXML tokens:

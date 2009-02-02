@@ -11,10 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <string.h>
-
-#include "str.h"
-#include "str-conv.h"
+#include "core.h"
 
 static uint8_t const __utf8_mark[7] = {
     0x00, 0x00, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc

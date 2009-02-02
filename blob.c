@@ -13,9 +13,6 @@
 
 #include "blob.h"
 #include "net.h"
-#include "str.h"
-#include "str-conv.h"
-#include "iprintf.h"
 
 __thread byte blob_slop[1];
 

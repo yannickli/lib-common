@@ -16,7 +16,6 @@
 #include <iconv.h>
 
 #include "blob.h"
-#include "str.h"
 
 #define DEBUG_VERB 4
 

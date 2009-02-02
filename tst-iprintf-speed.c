@@ -12,8 +12,6 @@
 /**************************************************************************/
 
 #include "time.h"
-#include "str.h"
-#include "iprintf.h"
 
 typedef struct mcms_event_t {
     int stamp;

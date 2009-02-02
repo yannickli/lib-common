@@ -12,7 +12,7 @@
 #endif
 
 #if 1
-#include "iprintf.h"
+#include "core.h"
 #define ALT_FUNC  isnprintf
 #endif
 

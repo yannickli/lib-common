@@ -85,9 +85,6 @@ libcommon_SOURCES = \
 	hash-sha2.c \
 	hash-sha4.c \
 	\
-	iprintf.c \
-	iprintf-dtoa.c \
-	\
 	mem-pool.c \
 	mem-fifo-pool.c \
 	\
@@ -98,6 +95,9 @@ libcommon_SOURCES = \
 	\
 	str.c \
 	str-conv.c \
+	str-iprintf.c \
+	str-dtoa.c \
+	\
 	str-path.c \
 	\
 	tpl.c \

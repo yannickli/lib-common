@@ -11,10 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_STR_CONV_H
+#if !defined(IS_LIB_COMMON_STR_H) || defined(IS_LIB_COMMON_STR_CONV_H)
+#  error "you must include <lib-common/str.h> instead"
+#else
 #define IS_LIB_COMMON_STR_CONV_H
-
-#include "core.h"
 
 /* string parsing and conversions */
 extern unsigned char const __str_digit_value[128 + 256];

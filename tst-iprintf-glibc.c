@@ -17,8 +17,7 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
-#define IPRINTF_HIDE_STDIO  1
-#include "iprintf.h"
+#include "core.h"
 
 #define TEST_FLOATING_POINT        1
 #define TEST_POSITIONAL_ARGUMENTS  0

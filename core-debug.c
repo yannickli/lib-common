@@ -15,7 +15,6 @@
 
 #include <fnmatch.h>
 #include "container.h"
-#include "str.h"
 #include "blob.h"
 #include "unix.h"
 

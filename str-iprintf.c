@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #include <endian.h>
-#include "iprintf.h"
+#include "core.h"
 
 /* This code only works on regular architectures: we assume
  *  - integer types are either 32 bit or 64 bit long.

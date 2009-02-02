@@ -11,9 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "str.h"
 #include "tpl.h"
-
 
 int tpl_compute_len_copy(blob_t *b, tpl_t **args, int nb, int len)
 {

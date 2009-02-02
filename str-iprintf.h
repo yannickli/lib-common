@@ -11,14 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_IPRINTF_H
-#define IS_LIB_COMMON_IPRINTF_H
-
-#include "core.h"
-
-#ifdef __CYGWIN__
-#define iprintf  IS_printf
-#endif
+#if !defined(IS_LIB_COMMON_STR_H) || defined(IS_LIB_COMMON_STR_IPRINTF_H)
+#  error "you must include <lib-common/str.h> instead"
+#else
+#define IS_LIB_COMMON_STR_IPRINTF_H
 
 int iprintf(const char *format, ...)
         __attr_printf__(1, 2)  __attr_nonnull__((1));
@@ -80,4 +76,4 @@ static inline char *iasprintf(const char *fmt, ...)
 #define asprintf(...)   iasprintf(__VA_ARGS__)
 #endif
 
-#endif /* IS_LIB_COMMON_IPRINTF_H */
+#endif /* IS_LIB_COMMON_STR_IPRINTF_H */

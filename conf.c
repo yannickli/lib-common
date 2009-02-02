@@ -12,7 +12,6 @@
 /**************************************************************************/
 
 #include "blob.h"
-#include "str.h"
 #include "conf.h"
 
 static conf_section_t *conf_section_init(conf_section_t *section)

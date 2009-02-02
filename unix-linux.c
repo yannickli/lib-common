@@ -14,7 +14,6 @@
 /* holds the linux-dependent implementations for unix.h functions */
 
 #include <dirent.h>
-#include "str.h"
 #include "unix.h"
 #include "time.h"
 

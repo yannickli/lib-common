@@ -21,7 +21,6 @@
 #include <sys/ioctl.h>
 
 #include "conf.h"
-#include "str.h"
 #include "licence.h"
 #include "time.h"
 

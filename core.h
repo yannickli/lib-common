@@ -51,6 +51,6 @@
 #include "core-mem.h"
 #include "core-refcount.h"
 #include "core-stdlib.h"
-#include "iprintf.h"
+#include "str.h"
 
 #endif

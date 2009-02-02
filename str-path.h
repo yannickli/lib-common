@@ -11,10 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_STR_PATH_H
+#if !defined(IS_LIB_COMMON_STR_H) || defined(IS_LIB_COMMON_STR_PATH_H)
+#  error "you must include <lib-common/str.h> instead"
+#else
 #define IS_LIB_COMMON_STR_PATH_H
-
-#include "str.h"
 
 /*----- simple file name splits -----*/
 

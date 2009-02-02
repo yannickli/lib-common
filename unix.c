@@ -14,7 +14,6 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include "unix.h"
-#include "str.h"
 
 /** Create a directory path as mkdir -p
  *

@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "all.h"
+#include "xml.h"
 
 static char *xml_dupstr_mp(xml_tree_t *tree, const char *src, int len)
 {
