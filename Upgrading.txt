@@ -1,12 +1,14 @@
 lib-common Upgrading Notes
 ==========================
 
-Parseopt enhancements (Mon, 02 Feb 2009)
-----------------------------------------
+lib-common cleansing (Mon, 02 Feb 2009)
+---------------------------------------
 
 * `str-*` headers streamlined. `core.h` now includes `str.h` as almost anyone
   uses it already (`blob.h`, `container.h` to cite the most used ones).
 * Move iprintf under the `str` namespace.
+* Removed threading.h: was seldomly used (only agent.c), and not even
+  properly. Gives a false idea of security, so get rid of it.
 
 Parseopt enhancements (Mon, 15 Dec 2008)
 ----------------------------------------

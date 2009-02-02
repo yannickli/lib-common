@@ -38,7 +38,6 @@
 #include "property.h"
 #include "psinfo.h"
 #include "stopper.h"
-#include "threading.h"
 #include "time.h"
 #include "tpl.h"
 #include "unix.h"
