@@ -149,18 +149,6 @@ fi
 test -r /usr/include/netinet/sctp.h || warn "*** missing libsctp, apt-get install libsctp-dev"
 
 # }}}
-# {{{ tcabinet
-# we need 1.1.6 to have the in memory maps APIs
-
-if pkg-config --print-errors "tokyocabinet >= 1.1.6"; then
-    setvar "libtc_CFLAGS" "$(pkg-config --cflags tokyocabinet)"
-    setvar "libtc_LDFLAGS" "$(pkg-config --libs   tokyocabinet)"
-else
-    warn "*** missing libtokyocabinet, apt-get install libtokyocabinet-dev"
-    warn "                             [tokyocabinet-{doc,bin} can help too]"
-fi
-
-# }}}
 # {{{ ffmpeg
 
 if pkg-config --print-errors "libavformat libavcodec"; then
