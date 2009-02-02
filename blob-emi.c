@@ -1271,35 +1271,46 @@ static int decode_gsm7_pack(blob_t *out, uint64_t pack, int nbchars, int c)
 }
 
 /*
- * FIXME we may decode more characters than what we really want.
- *       We can't know for sure when the number of octets is a perfect
- *       multiple of 7 if the last septet is part of the message or not.
- *       We need a way to disambiguate.
+ * %gsmlen is the number of septets in %_src.
+ *
+ * The caller has to ensure %udhlen (in octets) and %gsmlen and the actual
+ * size of the %_src buffer make sense.
+ *
+ * IOW that the size of %_src is equal to (7 * %gsmlen) / 8 and that %udhlen
+ * is smaller or equal to that.
  */
-int blob_decode_gsm7_packed(blob_t *out, const void *_src, int len,
+int blob_decode_gsm7_packed(blob_t *out, const void *_src, int gsmlen,
                             int udhlen)
 {
-    const byte *src = (const byte *)_src + udhlen;
-    const byte *end = src + len;
+    const byte *src = _src;
     int c = 0;
 
+    src    += udhlen - (udhlen % 7);
+    gsmlen -= 8 * (udhlen / 7);
     if (udhlen % 7) {
         /* udh overlaps up to the next (hence +1) septet boundary included */
         int overlap = (udhlen % 7) + 1;
         uint64_t pack;
 
-        src -= udhlen % 7;
-        pack = get_gsm7_pack(src, MIN(7, end - src));
-        c    = decode_gsm7_pack(out, pack >> (7 * overlap), 8 - overlap, c);
-        src += 7;
+        if (gsmlen >= 8) {
+            pack = get_gsm7_pack(src, 7) >> (7 * overlap);
+            c    = decode_gsm7_pack(out, pack, 8 - overlap, c);
+        } else {
+            pack = get_gsm7_pack(src, gsmlen) >> (7 * overlap);
+            c    = decode_gsm7_pack(out, pack, gsmlen - overlap, c);
+            goto done;
+        }
+        src    += 7;
+        gsmlen -= 8;
     }
 
-    for (; src + 7 < end; src += 7) {
+    for (; gsmlen >= 8; src += 7, gsmlen -= 8) {
         c = decode_gsm7_pack(out, get_gsm7_pack(src, 7), 8, c);
     }
-    if (src < end) {
-        c = decode_gsm7_pack(out, get_gsm7_pack(src, end - src), end - src, c);
+    if (gsmlen) {
+        c = decode_gsm7_pack(out, get_gsm7_pack(src, gsmlen), gsmlen, c);
     }
+  done:
     return c ? -1 : 0;
 }
 
