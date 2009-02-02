@@ -161,7 +161,7 @@ int strconv_hexencode(char *dest, int size, const byte *src, int len)
     return prev_len * 2;
 }
 
-static inline int str_escape_value(int x) {
+static int str_escape_value(int x) {
     return __str_escape_value[x + 128];
 }
 

@@ -71,7 +71,7 @@ static mem_page_t *pageof(mem_block_t *blk) {
     return page;
 }
 
-static inline void blk_protect(mem_block_t *blk)
+static void blk_protect(mem_block_t *blk)
 {
     VALGRIND_MAKE_MEM_NOACCESS(blk, sizeof(*blk));
 }
@@ -115,7 +115,7 @@ static void mem_page_delete(mem_page_t **pagep)
     }
 }
 
-static inline int mem_page_size_left(mem_page_t *page)
+static int mem_page_size_left(mem_page_t *page)
 {
     return (page->area_size - page->used_size);
 }

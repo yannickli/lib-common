@@ -22,7 +22,7 @@ typedef int (cmp_f)(const void *, const void *, void *);
 #define DO_CMP(cmp, n1, n2, priv, offset) \
     (cmp)((char *)n1 + offset, (char *)n2 + offset, priv)
 
-static inline struct slist_head *generic_list_skip(struct slist_head *list, int n) {
+static struct slist_head *generic_list_skip(struct slist_head *list, int n) {
     while (n-- > 0) {
         list = list->next;
     }

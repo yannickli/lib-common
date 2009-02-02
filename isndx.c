@@ -99,7 +99,7 @@ FILE *isndx_set_error_stream(isndx_t *ndx, FILE *stream)
     return previous;
 }
 
-static inline byte *isndx_getpage(const isndx_t *ndx, uint32_t pageno)
+static byte *isndx_getpage(const isndx_t *ndx, uint32_t pageno)
 {
     return (byte *)ndx->file->area + (pageno << ndx->pageshift);
 }

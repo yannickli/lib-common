@@ -67,51 +67,19 @@ int set_licence(const char *arg, const char *licence_data)
     exit(1);
 }
 
-#ifndef __sun
-static int parse_hex(int b)
-{
-    if (b >= '0' && b <= '9') {
-        return b - '0';
-    }
-    if (b >= 'a' && b <= 'f') {
-        return b - 'a' + 10;
-    }
-    if (b >= 'A' && b <= 'F') {
-        return b - 'A' + 10;
-    }
-    return -1;
-}
-
-static int parse_hex2(int b1, int b0)
-{
-    int x0, x1;
-
-    x0 = parse_hex(b0);
-    if (x0 < 0 || x0 > 15) {
-        return -1;
-    }
-    x1 = parse_hex(b1);
-    if (x1 < 0 || x1 > 15) {
-        return -1;
-    }
-
-    return (x1 << 4) | x0;
-}
-#endif
-
 #if defined(__CYGWIN__)
 struct if_nameindex {
     int if_index;
     char if_name[32];
 };
 #define ARPHRD_ETHER  0
-static inline struct if_nameindex *if_nameindex(void) {
+static struct if_nameindex *if_nameindex(void) {
     struct if_nameindex *p = calloc(sizeof(struct if_nameindex), 2);
     strcpy(p->if_name, "eth0");
     return p;
 }
 
-static inline void if_freenameindex(struct if_nameindex *p) {
+static void if_freenameindex(struct if_nameindex *p) {
     free(p);
 }
 #endif
@@ -136,19 +104,19 @@ bool is_my_mac_addr(const char *addr)
     ||  addr[11] != ':' || addr[14] != ':') {
         return false;
     }
-#define PARSE_HEX(dst, b0, b1) do { \
-        int x = parse_hex2((b0), (b1)); \
-        if (x < 0 || x > 255) { \
+#define PARSE_HEX(dst, s) do { \
+        int x = hexdecode(s); \
+        if (x < 0) { \
             return false; \
         } \
         dst = x & 0xFF; \
     } while (0)
-    PARSE_HEX(mac[0], addr[0], addr[1]);
-    PARSE_HEX(mac[1], addr[3], addr[4]);
-    PARSE_HEX(mac[2], addr[6], addr[7]);
-    PARSE_HEX(mac[3], addr[9], addr[10]);
-    PARSE_HEX(mac[4], addr[12], addr[13]);
-    PARSE_HEX(mac[5], addr[15], addr[16]);
+    PARSE_HEX(mac[0], addr + 0 * 3);
+    PARSE_HEX(mac[1], addr + 1 * 3);
+    PARSE_HEX(mac[2], addr + 2 * 3);
+    PARSE_HEX(mac[3], addr + 3 * 3);
+    PARSE_HEX(mac[4], addr + 4 * 3);
+    PARSE_HEX(mac[5], addr + 5 * 3);
 #undef PARSE_HEX
 
     iflist = if_nameindex();
@@ -238,9 +206,8 @@ int list_my_macs(char *dst, size_t size)
 #endif
 }
 
-static inline void cpuid(uint32_t request,
-                         uint32_t *eax, uint32_t *ebx,
-                         uint32_t *ecx, uint32_t *edx)
+static void cpuid(uint32_t request, uint32_t *eax, uint32_t *ebx,
+                  uint32_t *ecx, uint32_t *edx)
 {
 #if defined(__i386__)
      /* The IA-32 ABI specifies that %ebx holds the address of the
@@ -506,30 +473,6 @@ int list_my_cpus(char *dst, size_t size)
 /* {{{*/
 #include <check.h>
 
-#ifndef __sun /* TODO PORT */
-START_TEST(check_parse_hex)
-{
-    fail_if(parse_hex('0') != 0x0, "failed\n");
-    fail_if(parse_hex('9') != 0x9, "failed\n");
-    fail_if(parse_hex('a') != 0xa, "failed\n");
-    fail_if(parse_hex('f') != 0xf, "failed\n");
-    fail_if(parse_hex('g') != -1, "failed\n");
-}
-END_TEST
-
-START_TEST(check_parse_hex2)
-{
-    fail_if(parse_hex2('0', '0') != 0x00, "failed\n");
-    fail_if(parse_hex2('0', '1') != 0x01, "failed\n");
-    fail_if(parse_hex2('1', '0') != 0x10, "failed\n");
-    fail_if(parse_hex2('0', 'a') != 0x0a, "failed\n");
-    fail_if(parse_hex2('a', 'a') != 0xaa, "failed\n");
-    fail_if(parse_hex2('f', 'f') != 0xff, "failed\n");
-    fail_if(parse_hex2('g', 'z') != -1, "failed\n");
-}
-END_TEST
-#endif
-
 START_TEST(check_list_my_macs)
 {
     char buf[128];
@@ -613,10 +556,6 @@ Suite *check_licence_suite(void)
     TCase *tc = tcase_create("Core");
 
     suite_add_tcase(s, tc);
-#ifndef __sun /* TODO PORT */
-    tcase_add_test(tc, check_parse_hex);
-    tcase_add_test(tc, check_parse_hex2);
-#endif
 #ifndef __CYGWIN__
     tcase_add_test(tc, check_is_my_mac_addr);
 #endif

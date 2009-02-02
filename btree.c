@@ -174,8 +174,8 @@ static int32_t bt_page_new(btree_t *bt)
     return page;
 }
 
-bt_page_t *vbt_deref(struct btree_priv *bt, int32_t ptr);
-/*static inline*/ bt_page_t *vbt_deref(struct btree_priv *bt, int32_t ptr) {
+static bt_page_t *vbt_deref(struct btree_priv *bt, int32_t ptr)
+{
     int page = BTPP_OFFS(ptr);
     if (page == BTPP_NIL) {
         assert (false);
@@ -188,8 +188,8 @@ bt_page_t *vbt_deref(struct btree_priv *bt, int32_t ptr);
     return bt->pages + page;
 }
 
-static inline
-const bt_page_t *bt_deref(const struct btree_priv *bt, int32_t ptr) {
+static const bt_page_t *bt_deref(const struct btree_priv *bt, int32_t ptr)
+{
     return vbt_deref((struct btree_priv *)bt, ptr);
 }
 
@@ -836,7 +836,7 @@ static int32_t btn_find_leaf(const struct btree_priv *bt, uint64_t key,
 /* code specific to the leaves                                              */
 /****************************************************************************/
 
-static inline enum sign
+static enum sign
 btl_keycmp(uint64_t key, const bt_leaf_t *leaf, int pos)
 {
     union {

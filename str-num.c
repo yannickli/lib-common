@@ -13,9 +13,10 @@
 
 #include "core.h"
 
-static inline int64_t memtoip_impl(const byte *s, int _len, const byte **endp,
-                                   const int64_t min, const int64_t max,
-                                   bool ll, bool use_len)
+__attribute__((always_inline))
+static int64_t memtoip_impl(const byte *s, int _len, const byte **endp,
+                            const int64_t min, const int64_t max,
+                            bool ll, bool use_len)
 {
     int64_t value = 0;
 

@@ -127,7 +127,6 @@ blob_t *tpl_get_blob(tpl_t *tpl)
     return &buf->u.blob;
 }
 
-/* OG: should inline these 2 */
 void tpl_copy_data(tpl_t *tpl, const byte *data, int len)
 {
     if (len > 0) {
@@ -354,7 +353,7 @@ int tpl_get_short_data(tpl_t **tpls, int nb, const byte **data, int *len)
 /* Substitution and optimization                                            */
 /****************************************************************************/
 
-static inline int
+static int
 tpl_apply(tpl_apply_f *f, tpl_t *out, blob_t *blob, tpl_t *in)
 {
     if (in->op & TPL_OP_BLOCK)

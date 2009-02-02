@@ -678,20 +678,6 @@ int str_replace(const char search, const char replace, char *subject)
     return nb_replace;
 }
 
-static inline int hex_to_dec(char c)
-{
-    if (c >= '0' && c <= '9') {
-        return c - '0';
-    }
-    if (c >= 'a' && c <= 'f') {
-        return c + 10 - 'a';
-    }
-    if (c >= 'A' && c <= 'F') {
-        return c + 10 - 'A';
-    }
-    return -1;
-}
-
 /* in and out can be the same pointer for 'in-place' decoding,
  * out has to be at least 'strlen(in) + 1' bytes long.
  *
@@ -728,18 +714,14 @@ size_t purldecode(const char *in, byte *out, size_t size, int flags)
         size -= written;
     }
     while (size > 0 && (*q = *p) != '\0') {
-        int a, b;
+        int c;
 
-        if (*p == '%'
-        &&  (a = hex_to_dec(p[1])) >= 0
-        &&  (b = hex_to_dec(p[2])) >= 0)
-        {
-            byte v = (a << 4) | b;
-            if (ignore_CR && v == 0x0D) {
+        if (*p == '%' && ((c = hexdecode(p + 1)) >= 0)) {
+            if (ignore_CR && c == 0x0D) {
                 /* OG: why strip %0D and not \r ? */
                 p += 3;
             } else {
-                *q++ = v;
+                *q++ = c;
                 p += 3;
                 written++;
                 size--;

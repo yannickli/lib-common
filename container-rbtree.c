@@ -20,10 +20,10 @@
 #define rb_set_black(n)  ((n)->__parent |= 1);
 #define rb_set_black2(n) ({ rb_node_t *__n = (n); if (__n) rb_set_black(__n); })
 
-static inline void rb_set_parent(rb_node_t *n, rb_node_t *p) {
+static void rb_set_parent(rb_node_t *n, rb_node_t *p) {
     n->__parent = (n->__parent & 1) | (uintptr_t)p;
 }
-static inline void rb_copy_color(rb_node_t *n, rb_node_t *n2) {
+static void rb_copy_color(rb_node_t *n, rb_node_t *n2) {
     n->__parent = (n->__parent & ~1) | (n2->__parent & 1);
 }
 

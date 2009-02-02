@@ -29,7 +29,7 @@ int psinfo_get(pid_t pid, blob_t *output)
 #include <sys/time.h>
 #include <linux/limits.h>
 
-static inline unsigned int my_jiffies_to_msecs(const unsigned long j)
+static unsigned int my_jiffies_to_msecs(const unsigned long j)
 {
 #if HZ <= 1000 && !(1000 % HZ)
         return (1000 / HZ) * j;

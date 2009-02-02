@@ -59,7 +59,8 @@ static int compare_number;
 static int max_entry = INT_MAX;
 static int repeat_entry = REPEAT;
 
-static inline entry_t *entry_new(const char *str, int len) {
+static entry_t *entry_new(const char *str, int len)
+{
     entry_t *ep = p_new_extra(entry_t, len);
     ep->number = ++entry_number;
     ep->len = len;
@@ -171,14 +172,14 @@ typedef struct dict_t {
     int count;
 } dict_t;
 
-static inline dict_t *dict_init(dict_t *dict)
+static dict_t *dict_init(dict_t *dict)
 {
     p_clear(dict, 1);
     entry_array_init(&dict->entries);
     return dict;
 }
 
-static inline void dict_wipe(dict_t *dict)
+static void dict_wipe(dict_t *dict)
 {
     entry_t *ep;
 
@@ -191,7 +192,7 @@ static inline void dict_wipe(dict_t *dict)
     }
 }
 
-static inline void dict_append(dict_t *dict, entry_t *ep)
+static void dict_append(dict_t *dict, entry_t *ep)
 {
     entry_array_append(&dict->entries, ep);
 

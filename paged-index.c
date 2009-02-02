@@ -378,7 +378,7 @@ exit:
 /* low level page related functions                                         */
 /****************************************************************************/
 
-static inline int int_bits_range(uint64_t idx, int start, int width)
+static int int_bits_range(uint64_t idx, int start, int width)
 {
     return (idx << start) >> (64 - width);
 }

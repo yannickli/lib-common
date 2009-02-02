@@ -495,7 +495,7 @@ int blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap)
 /* Blob search functions                                                  */
 /**************************************************************************/
 
-static inline int
+static int
 blob_search_data_real(const blob_t *haystack, int pos,
                       const void *needle, int len)
 {
@@ -700,7 +700,7 @@ __decode_base64[256] = {
 #undef REPEAT8
 #undef REPEAT16
 
-static inline int b64_size(int oldlen, int nbpackets)
+static int b64_size(int oldlen, int nbpackets)
 {
     if (nbpackets > 0) {
         int nb_full_lines = oldlen / (3 * nbpackets);
@@ -882,11 +882,11 @@ static byte const __str_encode_flags[128 + 256] = {
 #undef REPEAT16
 };
 
-static inline int test_quoted_printable(int x) {
+static int test_quoted_printable(int x) {
     return __str_encode_flags[x + 128] & QP;
 }
 
-static inline int test_xml_printable(int x) {
+static int test_xml_printable(int x) {
     return !(__str_encode_flags[x + 128] & XP);
 }
 
@@ -1368,7 +1368,7 @@ int blob_append_hex(blob_t *blob, const byte *src, int len)
 
 /*---------------- generic packing ----------------*/
 
-static inline char *convert_int10(char *p, int value)
+static char *convert_int10(char *p, int value)
 {
     /* compute absolute value without tests */
     unsigned int bits = value >> (8 * sizeof(int) - 1);
@@ -1385,7 +1385,7 @@ static inline char *convert_int10(char *p, int value)
     return p;
 }
 
-static inline char *convert_hex(char *p, unsigned int value)
+static char *convert_hex(char *p, unsigned int value)
 {
     static const char hexdigits[16] = "0123456789abcdef";
     int i;
@@ -1398,7 +1398,7 @@ static inline char *convert_hex(char *p, unsigned int value)
 }
 
 /* OG: essentially like strtoip */
-static inline int parse_int10(const byte *data, const byte **datap)
+static int parse_int10(const byte *data, const byte **datap)
 {
     int neg;
     unsigned int digit, value = 0;
@@ -1421,7 +1421,7 @@ static inline int parse_int10(const byte *data, const byte **datap)
     return neg ? -value : value;
 }
 
-static inline int parse_hex(const byte *data, const byte **datap)
+static int parse_hex(const byte *data, const byte **datap)
 {
     unsigned int digit, value = 0;
 
@@ -1930,7 +1930,7 @@ int blob_deserialize(const blob_t *blob, int *pos, const char *fmt, ...)
 #ifdef CHECK
 /* inlines (check invariants) + setup/teardowns                        {{{*/
 
-static inline void check_blob_invariants(blob_t *blob)
+static void check_blob_invariants(blob_t *blob)
 {
     fail_if(blob->len >= blob->size,
             "a blob must have `len < size'. "
@@ -1941,13 +1941,13 @@ static inline void check_blob_invariants(blob_t *blob)
             blob->data[blob->len]);
 }
 
-static inline void check_setup(blob_t *blob, const char *data)
+static void check_setup(blob_t *blob, const char *data)
 {
     blob_init(blob);
     blob_set_cstr(blob, data);
 }
 
-static inline void check_teardown(blob_t *blob, blob_t **blob2)
+static void check_teardown(blob_t *blob, blob_t **blob2)
 {
     blob_wipe(blob);
     if (blob2 && *blob2) {

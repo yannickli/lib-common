@@ -37,9 +37,8 @@ static iconv_t_cache *iconv_handles = NULL;
 /* Work around broken iconv() prototype in GLIBC */
 #define iconv(cd, inbuf, inleft, outbuf, outleft) \
     ciconv(cd, inbuf, inleft, outbuf, outleft)
-static inline size_t ciconv(iconv_t cd,
-                            const char **inbuf, size_t *inbytesleft,
-                            char **outbuf, size_t *outbytesleft)
+static size_t ciconv(iconv_t cd, const char **inbuf, size_t *inbytesleft,
+                     char **outbuf, size_t *outbytesleft)
 {
     return (iconv)(cd, (char **)inbuf, inbytesleft, outbuf, outbytesleft);
 }

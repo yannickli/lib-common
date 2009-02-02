@@ -194,7 +194,7 @@ static el_data_t el_destroy(ev_t **evp, bool move)
     return ev->priv;
 }
 
-static inline void ev_list_process(struct dlist_head *l)
+static void ev_list_process(struct dlist_head *l)
 {
     ev_cache_list(l);
     for (int i = 0; i < _G.cache.len; i++) {
@@ -606,7 +606,7 @@ el_data_t el_proxy_unregister(ev_t **evp)
     return (el_data_t)NULL;
 }
 
-static inline void el_proxy_change_ready(ev_t *ev, bool was_ready)
+static void el_proxy_change_ready(ev_t *ev, bool was_ready)
 {
     dlist_move(was_ready ? &_G.proxy : &_G.proxy_ready, &ev->ev_list);
 }

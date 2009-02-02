@@ -24,7 +24,8 @@ struct generic_list {
 
 typedef int (cmpfun)(generic_list *, generic_list *, void *);
 
-static inline generic_list *generic_list_skip(generic_list *list, int n) {
+static generic_list *generic_list_skip(generic_list *list, int n)
+{
     while (n-- > 0) {
         list = list->next;
     }

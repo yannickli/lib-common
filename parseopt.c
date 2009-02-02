@@ -22,7 +22,7 @@ typedef struct popt_state_t {
     const char *p;
 } popt_state_t;
 
-static inline const char *opt_arg(popt_state_t *st)
+static const char *opt_arg(popt_state_t *st)
 {
     if (st->p) {
         const char *res = st->p;

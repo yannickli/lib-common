@@ -136,9 +136,8 @@ string_array *str_explode(const char *s, const char *tokens)
 
 #define comp(a, b, parm)  (*comp)(*(a), *(b), parm)
 
-#define STATIC_INLINE(p) static inline p
-
-STATIC_INLINE(void copyvp(void **to, void **from, size_t n)) {
+static void copyvp(void **to, void **from, size_t n)
+{
     while (n--) {
         *to++ = *from++;
     }
@@ -148,7 +147,8 @@ STATIC_INLINE(void copyvp(void **to, void **from, size_t n)) {
 #define copychunk(d,s,c) copyvp(d,s,c)
 
 /* swap 2 arrays of pointers a[0..n] and b[0..n] */
-STATIC_INLINE(void vecswap(void **a, void **b, int n)) {
+static void vecswap(void **a, void **b, int n)
+{
     if (n > 0) {
         size_t i = (size_t)(n);
         register void **pi = a;
@@ -162,10 +162,10 @@ STATIC_INLINE(void vecswap(void **a, void **b, int n)) {
 }
 
 /* Merge 2 subarrays a[0..n1] and a[n1..2*n1] */
-STATIC_INLINE(
+static
 void pqmerge2(void **a, size_t n1, void **tmp,
               int (*comp)(const void *p1, const void *p2, void *parm),
-              void *parm))
+              void *parm)
 {
     size_t i, j, k, n3, n;
 
@@ -208,10 +208,10 @@ void pqmerge2(void **a, size_t n1, void **tmp,
 /* find insertion point with binary search, insert key at p2 after all
  * identical keys from a[0..n1]
  */
-STATIC_INLINE(
+static
 int pqfind(void **a, size_t n, void *key,
            int (*comp)(const void *p1, const void *p2, void *parm),
-           void *parm))
+           void *parm)
 {
     size_t i, j, k;
 
@@ -226,10 +226,10 @@ int pqfind(void **a, size_t n, void *key,
 }
 
 /* Merge 2 subarrays a[0..n1] and a[n1..n1+n2], n2 <= n1 */
-STATIC_INLINE(
+static
 void pqmerge(void **a, size_t n1, size_t n2, void **tmp,
              int (*comp)(const void *p1, const void *p2, void *parm),
-             void *parm))
+             void *parm)
 {
     size_t i, j, k, n3, n;
 
@@ -304,10 +304,10 @@ void pqmerge(void **a, size_t n1, size_t n2, void **tmp,
     }
 }
 
-STATIC_INLINE(
+static
 void pqsort(void *base[], size_t n,
             int (*comp)(const void *p1, const void *p2, void *parm),
-            void *parm))
+            void *parm)
 {
 #ifdef OS_WINDOWS
     void *tmp_buffer[BUFSIZ / sizeof(void*)];
