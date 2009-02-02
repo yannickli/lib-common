@@ -95,10 +95,6 @@ endif
 
 CFLAGS += -I$/lib-common/compat -I$/
 
-ifneq (,$(filter CYGWIN%,$(UNAME)))
-  CFLAGS += -DCYGWIN
-endif
-
 ifneq (,$(filter 3.4,$(GCCVERSION)))
   CFLAGS += -fvisibility=hidden
 endif
