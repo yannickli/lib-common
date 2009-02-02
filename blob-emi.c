@@ -1155,7 +1155,7 @@ int blob_append_ira_hex(blob_t *dst, const byte *src, int len)
  *      `7` as %len value, the same value we use for 7 septets, except that
  *      for the latter case, it writes 7 bits of padding.
  */
-static void blob_append_gsm_aligned_pack(blob_t *out, uint64_t pack, int len)
+static void put_gsm_pack(blob_t *out, uint64_t pack, int len)
 {
 #if __BYTE_ORDER == __BIG_ENDIAN
     pack = bswap64(pack);
@@ -1204,8 +1204,9 @@ int blob_append_gsm7_packed(blob_t *out, int gsm_start,
         int c = utf8_getc(utf8, &utf8);
 
         if (c <= 0) {
-            blob_append_gsm_aligned_pack(out, pack, septet);
-            return c;
+            int len = 8 * (out->len - gsm_start) / 7;
+            put_gsm_pack(out, pack, septet);
+            return c < 0 ? c : len + septet;
         }
 
         c = unicode_to_gsm7(c, unknown);
@@ -1215,14 +1216,14 @@ int blob_append_gsm7_packed(blob_t *out, int gsm_start,
         if (c > 0xff) {
             pack |= ((uint64_t)(c >> 8) << (7 * septet));
             if (++septet == 8) {
-                blob_append_gsm_aligned_pack(out, pack, 7);
+                put_gsm_pack(out, pack, 7);
                 septet = 0;
                 pack = 0;
             }
         }
         pack |= ((uint64_t)(c & 0x7f) << (7 * septet));
         if (++septet == 8) {
-            blob_append_gsm_aligned_pack(out, pack, 7);
+            put_gsm_pack(out, pack, 7);
             septet = 0;
             pack = 0;
         }
@@ -1274,10 +1275,9 @@ static int decode_gsm7_pack(blob_t *out, uint64_t pack, int nbchars, int c)
  * %gsmlen is the number of septets in %_src.
  *
  * The caller has to ensure %udhlen (in octets) and %gsmlen and the actual
- * size of the %_src buffer make sense.
- *
- * IOW that the size of %_src is equal to (7 * %gsmlen) / 8 and that %udhlen
- * is smaller or equal to that.
+ * size of the %_src buffer make sense:
+ *   IOW that %udhlen is smaller or equal to the size of %_src,
+ *   which in turn must be equal to (7 * %gsmlen + 7) / 8.
  */
 int blob_decode_gsm7_packed(blob_t *out, const void *_src, int gsmlen,
                             int udhlen)
