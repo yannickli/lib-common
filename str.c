@@ -13,93 +13,6 @@
 
 #include "core.h"
 
-static inline int64_t memtoip_impl(const byte *s, int _len, const byte **endp,
-                                   const int64_t min, const int64_t max,
-                                   bool ll, bool use_len)
-{
-    int64_t value = 0;
-
-#define len ((use_len) ? _len : INT_MAX)
-#define declen ((use_len) ? --_len : INT_MAX)
-
-    if (!s || len < 0) {
-        errno = EINVAL;
-        goto done;
-    }
-    while (len && isspace((unsigned char)*s)) {
-        s++;
-        declen;
-    }
-    if (!len) {
-        errno = EINVAL;
-        goto done;
-    }
-    if (*s == '-') {
-        s++;
-        declen;
-        if (!len || !isdigit((unsigned char)*s)) {
-            errno = EINVAL;
-            goto done;
-        }
-        value = '0' - *s++;
-        while (declen && isdigit((unsigned char)*s)) {
-            int digit = '0' - *s++;
-            if ((value <= min / 10)
-                &&  (value < min / 10 || digit < min % 10)) {
-                errno = ERANGE;
-                value = min;
-                /* keep looping inefficiently in case of overflow */
-            } else {
-                value = value * 10 + digit;
-            }
-        }
-    } else {
-        if (*s == '+') {
-            s++;
-            declen;
-        }
-        if (!len || !isdigit((unsigned char)*s)) {
-            errno = EINVAL;
-            goto done;
-        }
-        value = *s++ - '0';
-        while (declen && isdigit((unsigned char)*s)) {
-            int digit = *s++ - '0';
-            if ((value >= max / 10)
-                &&  (value > max / 10 || digit > max % 10)) {
-                errno = ERANGE;
-                value = max;
-                /* keep looping inefficiently in case of overflow */
-            } else {
-                value = value * 10 + digit;
-            }
-        }
-    }
-done:
-    if (endp) {
-        *endp = s;
-    }
-    return value;
-#undef len
-#undef declen
-}
-
-int strtoip(const char *s, const char **endp)
-{
-    return memtoip_impl((const byte *)s, 0, (const byte **)(void *)endp,
-                        INT_MIN, INT_MAX, false, false);
-}
-
-int memtoip(const byte *s, int len, const byte **endp)
-{
-    return memtoip_impl(s, len, endp, INT_MIN, INT_MAX, false, true);
-}
-
-int64_t memtollp(const byte *s, int len, const byte **endp)
-{
-    return memtoip_impl(s, len, endp, INT64_MIN, INT64_MAX, true, true);
-}
-
 size_t memcspn(const char *s, int len, const char *reject)
 {
     size_t res = 0;
@@ -111,128 +24,6 @@ size_t memcspn(const char *s, int len, const char *reject)
         len--;
     }
     return res;
-}
-
-#define INVALID_NUMBER  INT64_MIN
-int64_t parse_number(const char *str)
-{
-    int64_t value;
-    int64_t mult = 1;
-    int frac = 0;
-    int denom = 1;
-    int exponent;
-
-    value = strtoll(str, &str, 0);
-    if (*str == '.') {
-        for (str++; isdigit((unsigned char)*str); str++) {
-            if (denom <= (INT_MAX / 10)) {
-                frac = frac * 10 + *str - '0';
-                denom *= 10;
-            }
-        }
-    }
-    switch (toupper((unsigned char)*str)) {
-      case 'G':
-        mult <<= 10;
-        /* FALL THRU */
-      case 'M':
-        mult <<= 10;
-        /* FALL THRU */
-      case 'K':
-        mult <<= 10;
-        str++;
-        break;
-      case 'E':
-        exponent = strtol(str + 1, &str, 10);
-        for (; exponent > 0; exponent--) {
-            if (mult > (INT64_MAX / 10))
-                return INVALID_NUMBER;
-            mult *= 10;
-        }
-        break;
-    }
-    if (*str != '\0') {
-        return INVALID_NUMBER;
-    }
-    /* Catch most overflow cases */
-    if ((value | mult) > INT32_MAX && INT64_MAX / mult > value) {
-        return INVALID_NUMBER;
-    }
-    return value * mult + frac * mult / denom;
-}
-
-/** Parses a string to extract a long, checking some constraints.
- * <code>res</code> points to the destination of the long value
- * <code>p</code> points to the string to parse
- * <code>endp</code> points to the end of the parse (the next char to
- *   parse, after the value. spaces after the value are skipped if
- *   STRTOLP_IGNORE_SPACES is set)
- * <code>min</code> and <code>max</code> are extrema values (only checked
- *   if STRTOLP_CHECK_RANGE is set.
- * <code>dest</code> of <code>size</code> bytes.
- *
- * If STRTOLP_IGNORE_SPACES is set, leading and trailing spaces are
- * considered normal and skipped. If not set, then even leading spaces
- * lead to a failure.
- *
- * If STRTOLP_CHECK_END is set, the end of the value is supposed to
- * be the end of the string.
- *
- * @returns 0 if all constraints are met. Otherwise returns a negative
- * value corresponding to the error
- */
-int strtolp(const char *p, const char **endp, int base, long *res,
-            int flags, long min, long max)
-{
-    const char *end;
-    long value;
-    bool clamped;
-
-    if (!endp) {
-        endp = &end;
-    }
-    if (!res) {
-        res = &value;
-    }
-    if (flags & STRTOLP_IGNORE_SPACES) {
-        p = skipspaces(p);
-    } else {
-        if (isspace((unsigned char)*p))
-            return -EINVAL;
-    }
-    errno = 0;
-    *res = strtol(p, endp, base);
-    if (flags & STRTOLP_IGNORE_SPACES) {
-        *endp = skipspaces(*endp);
-    }
-    if ((flags & STRTOLP_CHECK_END) && **endp != '\0') {
-        return -EINVAL;
-    }
-    if (*endp == p && !(flags & STRTOLP_EMPTY_OK)) {
-        return -EINVAL;
-    }
-    clamped = false;
-    if (flags & STRTOLP_CLAMP_RANGE) {
-        if (*res < min) {
-            *res = min;
-            clamped = true;
-        } else
-        if (*res > max) {
-            *res = max;
-            clamped = true;
-        }
-        if (errno == ERANGE)
-            errno = 0;
-    }
-    if (errno) {
-        return -errno;  /* -ERANGE or maybe EINVAL as checked by strtol() */
-    }
-    if (flags & STRTOLP_CHECK_RANGE) {
-        if (clamped || *res < min || *res > max) {
-            return -ERANGE;
-        }
-    }
-    return 0;
 }
 
 /** Copies the string pointed to by <code>src</code> to the buffer
@@ -659,19 +450,6 @@ const char *stristrn(const char *str, const char *needle, size_t nlen)
         }
     }
 }
-
-#if 0
-bool strequal(const char *str1, const char *str2)
-{
-    while (*str1 == *str2) {
-        if (!*str1)
-            return true;
-        str1++;
-        str2++;
-    }
-    return false;
-}
-#endif
 
 /** Find the first occurrence of the needle in haystack.
  *
@@ -1409,68 +1187,6 @@ START_TEST(check_pstrrand)
 }
 END_TEST
 
-#define check_msisdn_canonify_unit(str, val)                \
-    do {                                                    \
-        ret = msisdn_canonify(str, strlen(str), -1);        \
-        fail_if(ret != val,                                 \
-                "failed: msisdn_canonify returned %lld",   \
-                (long long)(ret));                          \
-    } while (0)
-
-START_TEST(check_msisdn_canonify)
-{
-    int64_t ret;
-
-    check_msisdn_canonify_unit("", -1);
-    check_msisdn_canonify_unit("azerty", -1);
-    ret = msisdn_canonify("+33600000002\n", 12, -1);
-    fail_if(ret != 33600000002LL,
-            "failed: msisdn_canonify returned %lld", (long long)ret);
-    check_msisdn_canonify_unit("+33600000000", 33600000000LL);
-    check_msisdn_canonify_unit("+33600000001", 33600000001LL);
-    check_msisdn_canonify_unit("+33600000002", 33600000002LL);
-    check_msisdn_canonify_unit("0122334455", 33122334455LL);
-    check_msisdn_canonify_unit("0612345678", 33612345678LL);
-    check_msisdn_canonify_unit("0692554433", 262692554433LL);
-    check_msisdn_canonify_unit("0693334455", 262693334455LL);
-    check_msisdn_canonify_unit("+33122334455", 33122334455LL);
-    check_msisdn_canonify_unit("+33622334455", 33622334455LL);
-    check_msisdn_canonify_unit("+262692334455", 262692334455LL);
-    check_msisdn_canonify_unit("+262693334455", 262693334455LL);
-    check_msisdn_canonify_unit("+2624455", -1);
-    check_msisdn_canonify_unit("+330622334455", 33622334455LL);
-    check_msisdn_canonify_unit("+3306223344550", -1);
-    check_msisdn_canonify_unit("+3300622334455", -1);
-    check_msisdn_canonify_unit("+4412345", 4412345);
-    check_msisdn_canonify_unit("004412", 4412);
-    check_msisdn_canonify_unit("+4412345123456789087654", -1);
-    check_msisdn_canonify_unit("+33+2620612345678", -1);
-    check_msisdn_canonify_unit("111212", 111212);
-}
-END_TEST
-
-#define check_email_canonify_unit(str, expected)                          \
-    do {                                                                  \
-        len = email_canonify(str, strlen(str), buf, sizeof(buf));         \
-        fail_if(len != strlen(expected),                                  \
-                "failed: msisdn_canonify returned %d != %zd",             \
-                len, strlen(expected));                                   \
-        fail_if(strcmp(buf, expected),                                    \
-                "failed: msisdn_canonify returned %s != %s",              \
-                buf, expected);                                           \
-    } while (0)
-START_TEST(check_email_canonify)
-{
-    int len;
-    char buf[BUFSIZ];
-
-    check_email_canonify_unit("test@intersec.com", "test@intersec.com");
-    check_email_canonify_unit("   test@intersec.com", "test@intersec.com");
-    check_email_canonify_unit("test@intersec.com   ", "test@intersec.com");
-    check_email_canonify_unit("  test@inTERSec.com   ", "test@intersec.com");
-}
-END_TEST
-
 #define check_purldecode_unit(encoded, decoded)                        \
     do {                                                               \
         size_t l = purldecode(encoded, (byte *)buf, sizeof(buf), 0);   \
@@ -1523,8 +1239,6 @@ Suite *check_string_suite(void)
     tcase_add_test(tc, check_buffer_increment);
     tcase_add_test(tc, check_buffer_increment_hex);
     tcase_add_test(tc, check_pstrrand);
-    tcase_add_test(tc, check_msisdn_canonify);
-    tcase_add_test(tc, check_email_canonify);
     tcase_add_test(tc, check_purldecode);
     return s;
 }
