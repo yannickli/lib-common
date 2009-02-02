@@ -1256,7 +1256,7 @@ static int decode_gsm7_pack(blob_t *out, uint64_t pack, int nbchars, int c)
 
     blob_grow(out, 8 * 4);
     p = out->data + out->len;
-    for (int i = 0; i <= nbchars; i++) {
+    for (int i = 0; i < nbchars; i++) {
         c |= pack & 0x7f;
         pack >>= 7;
         if (c == 0x1b) {
@@ -1281,12 +1281,12 @@ int blob_decode_gsm7_packed(blob_t *out, const void *_src, int len,
 {
     const byte *src = (const byte *)_src + udhlen;
     const byte *end = src + len;
-    uint64_t pack = 0;
     int c = 0;
 
     if (udhlen % 7) {
         /* udh overlaps up to the next (hence +1) septet boundary included */
         int overlap = (udhlen % 7) + 1;
+        uint64_t pack;
 
         src -= udhlen % 7;
         pack = get_gsm7_pack(src, MIN(7, end - src));
@@ -1295,13 +1295,10 @@ int blob_decode_gsm7_packed(blob_t *out, const void *_src, int len,
     }
 
     for (; src + 7 < end; src += 7) {
-        pack = get_gsm7_pack(src, 7);
-        c    = decode_gsm7_pack(out, pack, 8, c);
+        c = decode_gsm7_pack(out, get_gsm7_pack(src, 7), 8, c);
     }
-
     if (src < end) {
-        pack = get_gsm7_pack(src, end - src);
-        c    = decode_gsm7_pack(out, pack, end - src, c);
+        c = decode_gsm7_pack(out, get_gsm7_pack(src, end - src), end - src, c);
     }
     return c ? -1 : 0;
 }
