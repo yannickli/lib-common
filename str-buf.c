@@ -45,14 +45,16 @@ char *sb_detach(sb_t *sb, int *len)
 void __sb_rewind_adds(sb_t *sb, const sb_t *orig)
 {
     if (!orig->must_free && sb->must_free) {
+        sb_t tmp = *sb;
         if (orig->skip) {
             sb_init_full(sb, orig->data - orig->skip, orig->len,
                          orig->size + orig->skip, false);
-            memcpy(sb->data, orig->data, orig->len);
+            memcpy(sb->data, tmp.data, orig->len);
         } else {
             *sb = *orig;
             __sb_fixlen(sb, orig->len);
         }
+        mem_free(tmp.data - tmp.skip);
     } else {
         __sb_fixlen(sb, orig->len);
     }
