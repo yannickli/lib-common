@@ -95,10 +95,10 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, bool own)
     return sb;
 }
 
-#define SB(name, size) \
-    sb_t name = {                                                   \
-        .data = alloca(size),                                       \
-        .size = (STATIC_ASSERT((size) < (64 << 10)), size),         \
+#define SB(name, sz) \
+    sb_t name = {                                       \
+        .data = alloca(sz),                             \
+        .size = (STATIC_ASSERT((sz) < (64 << 10)), sz), \
     }
 
 #define SB_1k(name)    SB(name, 1 << 10)
