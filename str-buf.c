@@ -26,10 +26,11 @@ char *sb_detach(sb_t *sb, int *len)
         if (sb->skip)
             memmove(sb->data - sb->skip, sb->data, sb->len + 1);
         s = sb->data - sb->skip;
+        sb_init(sb);
     } else {
         s = p_dupz(sb->data, sb->len);
+        sb_reset(sb);
     }
-    sb_wipe(sb);
     return s;
 }
 
