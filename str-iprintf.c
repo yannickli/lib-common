@@ -1249,8 +1249,9 @@ int ivsprintf(char *str, const char *format, va_list arglist)
     return fmt_output(NULL, str, INT_MAX, format, arglist);
 }
 
-int ifputs_hex(FILE *stream, const byte *buf, int len)
+int ifputs_hex(FILE *stream, const void *_buf, int len)
 {
+    const byte *buf = _buf;
     int line_len, i, ret = 0;
     static const char hexchar[16] = "0123456789ABCDEF";
 

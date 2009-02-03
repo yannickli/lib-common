@@ -686,10 +686,10 @@ int str_replace(const char search, const char replace, char *subject)
  * out[written] == '\0')
  */
 /* OG: broken semantics need to change */
-size_t purldecode(const char *in, byte *out, size_t size, int flags)
+size_t purldecode(const char *in, char *out, size_t size, int flags)
 {
     const char *p;
-    byte *q = out;
+    char *q = out;
     size_t written = 0;
     bool ignore_CR = !!(flags & URLDECODE_IGNORE_CR);
 
@@ -1171,7 +1171,7 @@ END_TEST
 
 #define check_purldecode_unit(encoded, decoded)                        \
     do {                                                               \
-        size_t l = purldecode(encoded, (byte *)buf, sizeof(buf), 0);   \
+        size_t l = purldecode(encoded, buf, sizeof(buf), 0);           \
         fail_if(strcmp(buf, decoded) != 0,                             \
                 "failed to decode: expecting: %s, got %s.",            \
                 decoded, buf);                                         \

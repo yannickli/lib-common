@@ -33,7 +33,7 @@ static int identity(tpl_t *out, blob_t *b, tpl_t **arr, int nb)
 
 static int tst_seq(tpl_t *out, blob_t *blob, tpl_t **arr, int nb)
 {
-    const byte *data1, *data2, *data3;
+    const char *data1, *data2, *data3;
     int len1, len2, len3;
     tpl_t *in;
 
@@ -50,7 +50,7 @@ static int tst_seq(tpl_t *out, blob_t *blob, tpl_t **arr, int nb)
         len1  = in->u.blob.len;
     } else {
         assert (in->op == TPL_OP_DATA);
-        data1 = in->u.data.data;
+        data1 = (char *)in->u.data.data;
         len1  = in->u.data.len;
     }
     in = *arr++;
@@ -59,7 +59,7 @@ static int tst_seq(tpl_t *out, blob_t *blob, tpl_t **arr, int nb)
         len2  = in->u.blob.len;
     } else {
         assert (in->op == TPL_OP_DATA);
-        data2 = in->u.data.data;
+        data2 = (char *)in->u.data.data;
         len2  = in->u.data.len;
     }
     in = *arr++;
@@ -68,7 +68,7 @@ static int tst_seq(tpl_t *out, blob_t *blob, tpl_t **arr, int nb)
         len3  = in->u.blob.len;
     } else {
         assert (in->op == TPL_OP_DATA);
-        data3 = in->u.data.data;
+        data3 = (char *)in->u.data.data;
         len3  = in->u.data.len;
     }
 

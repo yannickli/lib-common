@@ -137,7 +137,7 @@ int blob_iconv_close_all(void)
  * We also give a hint for the detection
  *
  */
-static int detect_encoding(const byte *s, int len, const char *type_hint)
+static int detect_encoding(const char *s, int len, const char *type_hint)
 {
     int i, c, enc;
 
@@ -240,7 +240,7 @@ static int detect_encoding(const byte *s, int len, const char *type_hint)
  * Return - 0 if success
  *        - <0 otherwise
  */
-static int blob_iconv_priv(blob_t *dst, const byte *src, int len,
+static int blob_iconv_priv(blob_t *dst, const char *src, int len,
                            const char *type)
 {
     size_t len_in, len_out, total_len, init_len_out;

@@ -89,11 +89,11 @@ void props_hash_to_xml(xmlpp_t *pp, const props_hash_t *ph);
 /* Unserialize props_hashes                                                 */
 /****************************************************************************/
 
-__must_check__ int props_hash_unpack(const byte *buf, int buflen, int *pos,
+__must_check__ int props_hash_unpack(const void *buf, int buflen, int *pos,
                                      props_hash_t *, int last);
-int props_hash_from_fmtv1_data_start(props_hash_t *ph, byte *data,
+int props_hash_from_fmtv1_data_start(props_hash_t *ph, const void *data,
                                      int len, int start);
-int props_hash_from_fmtv1_data(props_hash_t *ph, byte *data, int len);
+int props_hash_from_fmtv1_data(props_hash_t *ph, const void *data, int len);
 int props_hash_from_fmtv1(props_hash_t *ph, const blob_t *payload);
 int props_hash_from_fmtv1_len(props_hash_t *ph, const blob_t *payload,
                               int begin, int end);

@@ -299,15 +299,12 @@ static int const gsm7_to_unicode[] = {
 /* Achtung: Decode a hex encoded (IRA) byte array into ISO-8859-15
  * subset, not UTF-8
  */
-int blob_decode_ira_hex_as_latin15(blob_t *dst, const char *src, int len)
+int blob_decode_ira_hex_as_latin15(sb_t *dst, const char *src, int len)
 {
-    int pos;
     const char *end;
-    byte *data;
+    char *data;
 
-    pos = dst->len;
-    blob_grow(dst, len / 2 + 1);
-    data = dst->data + pos;
+    data = sb_grow(dst, len / 2 + 1);
     /* trim last char if len is odd */
     end = src + (len & ~1);
     while (src < end) {
@@ -320,20 +317,16 @@ int blob_decode_ira_hex_as_latin15(blob_t *dst, const char *src, int len)
         }
         *data++ = gsm7_to_iso8859_15[ind];
     }
-    data[0] = '\0';
-    dst->len = data - dst->data;
+    __sb_fixlen(dst, data - dst->data);
     return 0;
 }
 
-int blob_decode_ira_bin_as_latin15(blob_t *dst, const char *src, int len)
+int blob_decode_ira_bin_as_latin15(sb_t *dst, const char *src, int len)
 {
-    int pos;
     const char *end;
-    byte *data;
+    char *data;
 
-    pos = dst->len;
-    blob_grow(dst, len);
-    data = dst->data + pos;
+    data = sb_grow(dst, len);
     end = src + len;
     while (src < end) {
         int ind = (byte)*src++;
@@ -343,13 +336,12 @@ int blob_decode_ira_bin_as_latin15(blob_t *dst, const char *src, int len)
         }
         *data++ = gsm7_to_iso8859_15[ind];
     }
-    *data = '\0';
-    dst->len = data - dst->data;
+    __sb_fixlen(dst, data - dst->data);
     return 0;
 }
 
 /* Decode a hex encoded (IRA) char array into UTF-8 at end of blob */
-int blob_decode_ira_hex_as_utf8(blob_t *dst, const char *src, int slen)
+int blob_decode_ira_hex_as_utf8(sb_t *dst, const char *src, int slen)
 {
     int pos, len;
 
@@ -359,7 +351,7 @@ int blob_decode_ira_hex_as_utf8(blob_t *dst, const char *src, int slen)
     pos = dst->len;
     len = slen / 2;
     for (;;) {
-        blob_grow(dst, len);
+        sb_grow(dst, len);
         len = string_decode_ira_hex_as_utf8((char *)dst->data + pos,
                                             dst->size - pos,
                                             (const char*)src, slen);
@@ -370,14 +362,14 @@ int blob_decode_ira_hex_as_utf8(blob_t *dst, const char *src, int slen)
     return 0;
 }
 
-int blob_decode_ira_bin_as_utf8(blob_t *dst, const char *src, int slen)
+int blob_decode_ira_bin_as_utf8(sb_t *dst, const char *src, int slen)
 {
     int pos, len;
 
     pos = dst->len;
     len = slen;
     for (;;) {
-        blob_grow(dst, len);
+        sb_grow(dst, len);
         len = string_decode_ira_bin_as_utf8((char *)dst->data + pos,
                                             dst->size - pos,
                                             (const char*)src, slen);
@@ -723,17 +715,16 @@ int gsm7_charlen(int c)
     return 1 + (c > 0xff);
 }
 
-int blob_append_ira_bin(blob_t *dst, const byte *src, int len)
+int blob_append_ira_bin(sb_t *dst, const void *_src, int len)
 {
-    int c, pos;
+    const byte *src = _src;
     const byte *end;
-    byte *data;
+    char *data;
+    int c;
 
-    pos = dst->len;
     /* Characters may expand to 2 bytes each */
-    blob_extend(dst, len * 2);
-    data = dst->data + pos;
-    end = src + len;
+    data = sb_grow(dst, len * 2);
+    end  = src + len;
     while (src < end) {
         c = *src++;
         if (c & 0x80) {
@@ -770,9 +761,7 @@ int blob_append_ira_bin(blob_t *dst, const byte *src, int len)
         }
         *data++ = c;
     }
-    *data = '\0';
-
-    dst->len = data - dst->data;
+    __sb_fixlen(dst, data - dst->data);
     return 0;
 }
 
@@ -783,16 +772,15 @@ static char const __str_xdigits_upper[16] = "0123456789ABCDEF";
 
 /* More portable, but slower version */
 
-int blob_append_ira_hex(blob_t *dst, const byte *src, int len)
+int blob_append_ira_hex(sb_t *dst, const void *_src, int len)
 {
-    int c, pos;
+    int c;
+    const byte *_src = src;
     const byte *end;
-    byte *data;
+    char *data;
 
-    pos = dst->len;
     /* Characters may expand to 2 bytes each before hex conversion */
-    blob_extend(dst, len * 4);
-    data = dst->data + pos;
+    data = sb_grow(dst, len * 4);
     end = src + len;
     while (src < end) {
         c = *src++;
@@ -1004,17 +992,16 @@ static int const win1252_to_gsm7_hex[] = {
 #undef _
 };
 
-int blob_append_ira_hex(blob_t *dst, const byte *src, int len)
+void blob_append_ira_hex(sb_t *dst, const void *_src, int len)
 {
-    int c, pos;
+    int c;
+    const byte *src = _src;
     const byte *end;
     const byte *end_4;
-    byte *data;
+    char *data;
 
-    pos = dst->len;
     /* Characters may expand to 2 bytes each before hex conversion */
-    blob_extend(dst, len * 4);
-    data = dst->data + pos;
+    data = sb_grow(dst, len * 4);
     end = src + len;
     end_4 = src + len - 4;
 
@@ -1141,10 +1128,7 @@ int blob_append_ira_hex(blob_t *dst, const byte *src, int len)
             data += 4;
         }
     }
-    *data = '\0';
-
-    dst->len = data - dst->data;
-    return 0;
+    __sb_fixlen(dst, data - dst->data);
 }
 
 /*
@@ -1153,12 +1137,12 @@ int blob_append_ira_hex(blob_t *dst, const byte *src, int len)
  *      `7` as %len value, the same value we use for 7 septets, except that
  *      for the latter case, it writes 7 bits of padding.
  */
-static void put_gsm_pack(blob_t *out, uint64_t pack, int len)
+static void put_gsm_pack(sb_t *out, uint64_t pack, int len)
 {
 #if __BYTE_ORDER == __BIG_ENDIAN
     pack = bswap64(pack);
 #endif
-    blob_append_data(out, &pack, len);
+    sb_add(out, &pack, len);
 }
 
 static uint64_t get_gsm7_pack(const void *src, int len)
@@ -1186,7 +1170,7 @@ static uint64_t get_gsm7_pack(const void *src, int len)
  * are written and no padding is needed to be aligned on the next septet
  * boundary.
  */
-int blob_append_gsm7_packed(blob_t *out, int gsm_start,
+int blob_append_gsm7_packed(sb_t *out, int gsm_start,
                             const char *utf8, int unknown)
 {
     uint64_t pack = 0;
@@ -1194,7 +1178,7 @@ int blob_append_gsm7_packed(blob_t *out, int gsm_start,
 
     if (septet) {
         pack = get_gsm7_pack(out->data + out->len - septet, septet);
-        blob_setlen(out, out->len - septet);
+        sb_shrink(out, septet);
         septet++;
     }
 
@@ -1228,7 +1212,7 @@ int blob_append_gsm7_packed(blob_t *out, int gsm_start,
     }
 }
 
-static void gsm7_char_to_utf8(byte *dst, int c, byte **out)
+static void gsm7_char_to_utf8(char *dst, int c, char **out)
 {
     if (c > 0xFF) {
         c = 256 + (c & 0xff);
@@ -1249,12 +1233,10 @@ static void gsm7_char_to_utf8(byte *dst, int c, byte **out)
     *out = dst;
 }
 
-static int decode_gsm7_pack(blob_t *out, uint64_t pack, int nbchars, int c)
+static int decode_gsm7_pack(sb_t *out, uint64_t pack, int nbchars, int c)
 {
-    byte *p;
+    char *p = sb_grow(out, 8 * 4);
 
-    blob_grow(out, 8 * 4);
-    p = out->data + out->len;
     for (int i = 0; i < nbchars; i++) {
         c |= pack & 0x7f;
         pack >>= 7;
@@ -1265,7 +1247,7 @@ static int decode_gsm7_pack(blob_t *out, uint64_t pack, int nbchars, int c)
             c = 0;
         }
     }
-    blob_setlen(out, p - out->data);
+    __sb_fixlen(out, p - out->data);
     return c;
 }
 
@@ -1277,10 +1259,10 @@ static int decode_gsm7_pack(blob_t *out, uint64_t pack, int nbchars, int c)
  *   IOW that %udhlen is smaller or equal to the size of %_src,
  *   which in turn must be equal to (7 * %gsmlen + 7) / 8.
  */
-int blob_decode_gsm7_packed(blob_t *out, const void *_src, int gsmlen,
+int blob_decode_gsm7_packed(sb_t *out, const void *_src, int gsmlen,
                             int udhlen)
 {
-    const byte *src = _src;
+    const char *src = _src;
     int c = 0;
 
     src    += udhlen - (udhlen % 7);

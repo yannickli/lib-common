@@ -84,7 +84,7 @@ void tpl_delete(tpl_t **tpl)
         )
 #endif
 
-void tpl_add_data(tpl_t *tpl, const byte *data, int len)
+void tpl_add_data(tpl_t *tpl, const void *data, int len)
 {
     tpl_t *buf;
 
@@ -127,7 +127,7 @@ blob_t *tpl_get_blob(tpl_t *tpl)
     return &buf->u.blob;
 }
 
-void tpl_copy_data(tpl_t *tpl, const byte *data, int len)
+void tpl_copy_data(tpl_t *tpl, const void *data, int len)
 {
     if (len > 0) {
         blob_append_data(tpl_get_blob(tpl), data, len);
@@ -336,7 +336,7 @@ int tpl_get_short_data(tpl_t **tpls, int nb, const byte **data, int *len)
 
     switch (tpls[0]->op) {
       case TPL_OP_BLOB:
-        *data = tpls[0]->u.blob.data;
+        *data = (byte *)tpls[0]->u.blob.data;
         *len  = tpls[0]->u.blob.len;
         return 0;
       case TPL_OP_DATA:

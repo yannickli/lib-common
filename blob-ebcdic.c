@@ -84,35 +84,22 @@ static int const ebcdic297_to_unicode[] = {
 
 /* Achtung: Decode an ebcdic 297 string into UTF-8
  * */
-int blob_decode_ebcdic297(blob_t *dst, const byte *src, int len)
+int blob_decode_ebcdic297(blob_t *dst, const char *src, int len)
 {
-    int pos;
-    const byte *end;
-    byte *data;
-
-    pos = dst->len;
     /* UTF-8 may take up to 2 bytes from EBCDIC 297 */
-    blob_grow(dst, 2 * len);
-    data = dst->data + pos;
-    end = src + len;
+    char *s = sb_grow(dst, 2 * len);
 
-    while (src < end) {
-        int unicode = ebcdic297_to_unicode[*src];
+    for (const char *end = src + len; src < end; src++) {
+        int unicode = ebcdic297_to_unicode[(byte)*src];
 
         if (unicode < 0x80) {
-            data[0] = unicode;
-            data++;
+            *s++ = unicode;
         } else {
-            data[0] = 0xC0 | ((unicode & 0x7C0) >> 6);
-            data[1] = 0x80 | (unicode & 0x3F);
-            data += 2;
+            *s++ = 0xC0 | ((unicode & 0x7C0) >> 6);
+            *s++ = 0x80 | (unicode & 0x3F);
         }
-
-        src++;
     }
-    data[0] = '\0';
-    dst->len = data - dst->data;
-
+    __sb_fixlen(dst, s - dst->data);
     return 0;
 }
 

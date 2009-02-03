@@ -14,83 +14,6 @@
 #include "blob.h"
 #include "net.h"
 
-__thread byte blob_slop[1];
-
-/**************************************************************************/
-/* Blob creation / deletion                                               */
-/**************************************************************************/
-
-char *blob_detach(blob_t *blob)
-{
-    char *res;
-
-    if (blob->allocated) {
-        if (blob->skip) {
-            memmove(blob->data - blob->skip, blob->data, blob->len + 1);
-        }
-        res = (char *)(blob->data - blob->skip);
-        blob_init(blob);
-    } else {
-        res = p_dupz(blob->data, blob->len);
-        /* Keep the same local blob buffer */
-        blob_reset(blob);
-    }
-    return res;
-}
-
-/* @see strdup(3) */
-blob_t *blob_dup(const blob_t *src)
-{
-    blob_t *dst = blob_new();
-    blob_set(dst, src);
-    return dst;
-}
-
-/*
- * Resize a blob to a new length, preserving its contents upto the
- * smallest of the newlen and oldlen.
- * The byte at newlen is forced to '\0'.
- * If blob is shrunk, memory is not freed back to the system.
- * If blob is extended, its contents between oldlen and newlen is
- * undefined.
- */
-void blob_ensure(blob_t *blob, int newlen)
-{
-    if (newlen < 0)
-        e_panic("trying to allocate insane amount of RAM");
-
-    if (newlen < blob->size)
-        return;
-
-    /* if data fits and skip is worth it, shift it left */
-    if (newlen < blob->skip + blob->size && blob->skip > blob->size / 4) {
-        memmove(blob->data - blob->skip, blob->data, blob->len + 1);
-        blob->data -= blob->skip;
-        blob->size += blob->skip;
-        blob->skip  = 0;
-        return;
-    }
-
-    /* OG: modifying blob->size before realloc is sloppy */
-    blob->size = p_alloc_nr(blob->size + blob->skip);
-    if (blob->size < newlen + 1)
-        blob->size = newlen + 1;
-    if (blob->allocated && !blob->skip) {
-        p_realloc(&blob->data, blob->size);
-    } else {
-        byte *new_area = p_new_raw(byte, blob->size);
-
-        /* Copy the blob data including the trailing '\0' */
-        memcpy(new_area, blob->data, blob->len + 1);
-        if (blob->allocated) {
-            mem_free(blob->data - blob->skip);
-        }
-        blob->allocated = true;
-        blob->data = new_area;
-        blob->skip = 0;
-    }
-}
-
 /**************************************************************************/
 /* Blob manipulations                                                     */
 /**************************************************************************/
@@ -103,10 +26,10 @@ void blob_ensure(blob_t *blob, int newlen)
 /* OG: this API sucks indeed, a more generic and faster method is
  * advisable to quote log message contents.
  */
-void blob_append_data_escaped2(blob_t *blob, const byte *data, size_t len,
+void blob_append_data_escaped2(blob_t *blob, const void *_data, size_t len,
                                const char *toescape, const char *escaped)
 {
-    const byte *p;
+    const byte *p, *data = _data;
     const char *escaped_char;
     char replacement;
     size_t off;
@@ -245,83 +168,6 @@ int blob_append_fread(blob_t *blob, int size, int nmemb, FILE *f)
     }
 
     blob_extend(blob, size * res);
-    blob_check_slop();
-    return res;
-}
-
-/* Return the number of bytes read */
-/* Negative count uses system default of BUFSIZ: undocumented semantics
- * used in aggregatorm subject to change
- */
-int blob_append_read(blob_t *blob, int fd, int count)
-{
-    int res;
-
-    if (count < 0)
-        count = BUFSIZ;
-
-    blob_check_slop();
-    blob_grow(blob, count);
-
-    res = read(fd, blob->data + blob->len, count);
-    if (res < 0) {
-        /* defensive programming, read should not modify it, but... */
-        blob->data[blob->len] = '\0';
-        return res;
-    }
-
-    blob_extend(blob, res);
-    blob_check_slop();
-    return res;
-}
-
-/* Return the number of bytes read */
-/* Negative count uses system default of BUFSIZ: undocumented semantics
- * used in aggregatorm subject to change
- */
-int blob_append_recv(blob_t *blob, int fd, int count)
-{
-    int res;
-
-    if (count < 0)
-        count = BUFSIZ;
-
-    blob_check_slop();
-    blob_grow(blob, count);
-
-    res = recv(fd, blob->data + blob->len, count, 0);
-    if (res < 0) {
-        /* defensive programming, read should not modify it, but... */
-        blob->data[blob->len] = '\0';
-        return res;
-    }
-
-    blob_extend(blob, res);
-    blob_check_slop();
-    return res;
-}
-
-/* Return the number of bytes read */
-int blob_append_recvfrom(blob_t *blob, int fd, int count, int flags,
-                         struct sockaddr *from, socklen_t *fromlen)
-{
-    int res;
-
-    if (count < 0)
-        count = BUFSIZ;
-
-    blob_check_slop();
-    blob_grow(blob, count);
-
-    res = recvfrom(fd, blob->data + blob->len, count, flags,
-                   from, fromlen);
-    if (res < 0) {
-        /* defensive programming, read should not modify it, but... */
-        blob->data[blob->len] = '\0';
-        return res;
-    }
-
-    blob_extend(blob, res);
     blob_check_slop();
     return res;
 }
@@ -499,7 +345,7 @@ static int
 blob_search_data_real(const blob_t *haystack, int pos,
                       const void *needle, int len)
 {
-    const byte *p;
+    const char *p;
 
     if (pos < 0) {
         pos = 0;
@@ -625,7 +471,7 @@ bool blob_cstart(const blob_t *blob, const char *p, const char **pp)
 
 bool blob_start(const blob_t *blob1, const blob_t *blob2, const byte **pp)
 {
-    return blob_cstart(blob1, (const char*)blob2->data, (const char **)pp);
+    return blob_cstart(blob1, blob2->data, (const char **)pp);
 }
 
 bool blob_cistart(const blob_t *blob, const char *p, const char **pp)
@@ -635,7 +481,7 @@ bool blob_cistart(const blob_t *blob, const char *p, const char **pp)
 
 bool blob_istart(const blob_t *blob1, const blob_t *blob2, const byte **pp)
 {
-    return blob_cistart(blob1, (const char*)blob2->data, (const char **)pp);
+    return blob_cistart(blob1, blob2->data, (const char **)pp);
 }
 
 /**************************************************************************/
@@ -645,23 +491,24 @@ bool blob_istart(const blob_t *blob1, const blob_t *blob2, const byte **pp)
 /* OG: should merge these two: blob as destination and take buf+len as source */
 void blob_urldecode(blob_t *url)
 {
-    url->len = purldecode(blob_get_cstr(url), url->data, url->len + 1, 0);
+    url->len = purldecode(url->data, url->data, url->len + 1, 0);
 }
 
-void blob_append_urldecode(blob_t *out, const char *encoded, int len,
+void blob_append_urldecode(blob_t *out, const void *encoded, int len,
                            int flags)
 {
     if (len < 0) {
         len = strlen(encoded);
     }
     blob_grow(out, len);
-    out->len += purldecode(encoded, out->data + out->len, len + 1, flags);
+    out->len += purldecode(encoded, sb_end(out), len + 1, flags);
 }
 
-void blob_append_urlencode(blob_t *out, const byte *data, int len)
+void blob_append_urlencode(blob_t *out, const void *_data, int len)
 {
+    const char *data = _data;
     if (len < 0) {
-        len = strlen((const char *)data);
+        len = strlen(data);
     }
     blob_grow(out, len);
 
@@ -741,7 +588,7 @@ int blob_hexdecode(blob_t *out, const void *_src, int len)
 {
     int oldlen = out->len;
     const char *src = _src;
-    byte *dst;
+    char *dst;
 
     if (len & 1)
         return -1;
@@ -764,10 +611,11 @@ int blob_hexdecode(blob_t *out, const void *_src, int len)
 
 /* TODO: Could be optimized or made more strict to reject base64 strings
  * without '=' paddding */
-int string_decode_base64(byte *dst, int size,
+int string_decode_base64(void *_dst, int size,
                          const char *src, int srclen)
 {
-    byte *p;
+    char *dst = _dst;
+    char *p;
     const char *end;
     byte in[4], v;
     int i, len;
@@ -893,7 +741,7 @@ static int test_xml_printable(int x) {
 #undef QP
 #undef XP
 
-int blob_append_xml_escape(blob_t *dst, const byte *src, int len)
+int blob_append_xml_escape(blob_t *dst, const char *src, int len)
 {
     int i, j, c;
 
@@ -935,9 +783,10 @@ int blob_append_xml_escape(blob_t *dst, const byte *src, int len)
 }
 
 /* OG: should take width as a parameter */
-void blob_append_quoted_printable(blob_t *dst, const byte *src, int len)
+void blob_append_quoted_printable(blob_t *dst, const void *_src, int len)
 {
     int i, j, c, col;
+    const byte *src = _src;
 
     blob_grow(dst, len);
     for (col = i = j = 0; i < len; i++) {
@@ -1038,11 +887,12 @@ void blob_decode_quoted_printable(blob_t *dst, const char *src, int len)
 /* OG: should rewrite this function using start/update/finish functions
  * when output size computation is correct in blob_append_base64_update
  */
-void blob_append_base64(blob_t *dst, const byte *src, int len, int width)
+void blob_append_base64(blob_t *dst, const void *_src, int len, int width)
 {
+    const byte *src = _src;
     const byte *end;
     int pos, packs_per_line, pack_num, newlen;
-    byte *data;
+    char *data;
 
     if (width < 0) {
         packs_per_line = -1;
@@ -1055,8 +905,7 @@ void blob_append_base64(blob_t *dst, const byte *src, int len, int width)
 
     pos = dst->len;
     newlen = b64_size(len, packs_per_line);
-    blob_extend(dst, newlen);
-    data = dst->data + pos;
+    data = sb_grow(dst, newlen);
     pack_num = 0;
 
     end = src + len;
@@ -1109,7 +958,7 @@ void blob_append_base64(blob_t *dst, const byte *src, int len, int width)
     *data = '\0';
 
 #ifdef DEBUG
-    assert (data == dst->data + dst->len);
+    assert (data == sb_end(dst));
 #endif
 }
 
@@ -1135,10 +984,10 @@ void blob_append_base64_start(blob_t *dst, int len, int width,
 void blob_append_base64_update(blob_t *dst, const void *src0, int len,
                                base64enc_ctx *ctx)
 {
-    const byte *src;
-    const byte *end;
+    const char *src;
+    const char *end;
     int packs_per_line, pack_num;
-    byte *data;
+    char *data;
     int c1, c2, c3;
 
     if (len == 0)
@@ -1210,7 +1059,7 @@ void blob_append_base64_update(blob_t *dst, const void *src0, int len,
 
 void blob_append_base64_finish(blob_t *dst, base64enc_ctx *ctx)
 {
-    byte *data;
+    char *data;
 
     blob_grow(dst, 5);
     data = dst->data + dst->len;
@@ -1295,76 +1144,17 @@ void blob_append_date_iso8601(blob_t *dst, time_t date)
                     t.tm_hour, t.tm_min, t.tm_sec);
 }
 
-/*---------------- binary to hex conversion ----------------*/
-
-#if 1
-
-int blob_append_hex(blob_t *dst, const byte *src, int len)
+int blob_append_hex(blob_t *dst, const void *_src, int len)
 {
-    int i, pos;
-    byte *data;
+    const byte *src = _src;
+    char *s = sb_growlen(dst, len * 2);
 
-    pos = dst->len;
-    blob_extend(dst, len * 2);
-    data = dst->data + pos;
-    for (i = 0; i < len; i++) {
-        data[0] = __str_digits_upper[(src[i] >> 4) & 0x0F];
-        data[1] = __str_digits_upper[(src[i] >> 0) & 0x0F];
-        data += 2;
+    for (int i = 0; i < len; i++) {
+        *s++ = __str_digits_upper[(src[i] >> 4) & 0x0F];
+        *s++ = __str_digits_upper[(src[i] >> 0) & 0x0F];
     }
     return 0;
 }
-
-#else
-
-static union {
-    char buf[2];
-    uint16_t us;
-} const __str_uph[256] = {
-#define HEX(x)    ((x) < 10 ? '0' + (x) : 'A' + (x) - 10)
-#define UPH(x)    {{ HEX(((x) >> 4) & 15), HEX(((x) >> 0) & 15) }}
-#define UPH4(n)   UPH(n),   UPH((n) + 1),    UPH((n) + 2),    UPH((n) + 3)
-#define UPH16(n)  UPH4(n),  UPH4((n) + 4),   UPH4((n) + 8),   UPH4((n) + 12)
-#define UPH64(n)  UPH16(n), UPH16((n) + 16), UPH16((n) + 32), UPH16((n) + 48)
-    UPH64(0), UPH64(64), UPH64(128), UPH64(196),
-#undef UPH64
-#undef UPH16
-#undef UPH4
-#undef UPH
-#undef HEX
-};
-
-int blob_append_hex(blob_t *blob, const byte *src, int len)
-{
-    int pos;
-    byte *dst;
-
-    pos = blob->len;
-    blob_extend(blob, len * 2);
-    dst = blob->data + pos;
-    /* XXX: This method is UNSAFE and not portable on some CPUs
-     * because of mis-alignment. */
-
-    /* Unroll loop 4 times */
-    while (len >= 4) {
-        *(uint16_t *)(dst + 0) = __str_uph[src[0]].us;
-        *(uint16_t *)(dst + 2) = __str_uph[src[1]].us;
-        *(uint16_t *)(dst + 4) = __str_uph[src[2]].us;
-        *(uint16_t *)(dst + 6) = __str_uph[src[3]].us;
-        dst += 8;
-        src += 4;
-        len -= 4;
-    }
-    while (len > 0) {
-        *(uint16_t *)(dst + 0) = __str_uph[src[0]].us;
-        dst += 2;
-        src += 1;
-        len -= 1;
-    }
-    return 0;
-}
-
-#endif
 
 /*---------------- generic packing ----------------*/
 
@@ -1618,7 +1408,7 @@ int blob_unpack(const blob_t *blob, int *pos, const char *fmt, ...)
     int res;
 
     va_start(ap, fmt);
-    res = buf_unpack_vfmt(blob->data, blob->len, pos, fmt, ap);
+    res = buf_unpack_vfmt((byte *)blob->data, blob->len, pos, fmt, ap);
     va_end(ap);
 
     return res;
@@ -1920,7 +1710,7 @@ int blob_deserialize(const blob_t *blob, int *pos, const char *fmt, ...)
     int res;
 
     va_start(ap, fmt);
-    res = buf_deserialize_vfmt(blob->data, blob->len, pos, fmt, ap);
+    res = buf_deserialize_vfmt((byte *)blob->data, blob->len, pos, fmt, ap);
     va_end(ap);
 
     return res;
@@ -2031,24 +1821,6 @@ END_TEST
 /*.....................................................................}}}*/
 /* test blob_dup / blob_setlen                                         {{{*/
 
-START_TEST(check_dup)
-{
-    blob_t blob;
-    blob_t * bdup;
-
-    check_setup(&blob, "toto string");
-    bdup = blob_dup(&blob);
-    check_blob_invariants(bdup);
-
-    fail_if(bdup->len != blob.len, "duped blob *must* have same len");
-    if (memcmp(bdup->data, blob.data, blob.len) != 0) {
-        fail("original and dupped blob do not have the same content");
-    }
-
-    check_teardown(&blob, &bdup);
-}
-END_TEST
-
 START_TEST(check_resize)
 {
     blob_t b1;
@@ -2117,29 +1889,13 @@ START_TEST(check_splice)
     blob_set_cstr(b2, "567");
 
 
-    /* splice cstr */
-    blob_splice_cstr(&blob, 1, 2, "1234");
-    check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "A1234D") != 0,
-            "splice failed");
-    fail_if(blob.len != strlen("A1234D"),
-            "splice failed");
-
     /* splice data */
-    blob_splice_data(&blob, 20, 10, "89", 2);
+    sb_splice(&blob, 20, 10, "89", 2);
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, "A1234D89") != 0,
             "splice_data failed");
     fail_if(blob.len != strlen("A1234D89"),
             "splice_data failed");
-
-    /* splice blob */
-    blob_splice(&blob, 6, 0, b2);
-    check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "A1234D56789") != 0,
-            "splice failed");
-    fail_if(blob.len != strlen("A1234D56789"),
-            "splice failed");
 
     check_teardown(&blob, &b2);
 }
@@ -2670,9 +2426,7 @@ START_TEST(check_xml_escape)
 #define TEST_STRING      "<a href=\"Injector\" X='1' value=\"&Gagné!\" />"
 #define TEST_STRING_ENC  "&lt;a href=&#34;Injector&#34; X=&#39;1&#39; value=&#34;&amp;Gagné!&#34; /&gt;"
 
-    blob_append_xml_escape(&dst, (const byte*)TEST_STRING,
-                           strlen(TEST_STRING));
-
+    blob_append_xml_escape(&dst, TEST_STRING, strlen(TEST_STRING));
     fail_if(strcmp(blob_get_cstr(&dst), TEST_STRING_ENC),
             "%s(\"%s\") -> \"%s\" : \"%s\"",
             "blob_append_xml_escape",
@@ -2915,7 +2669,6 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_init_wipe);
     tcase_add_test(tc, check_blob_new);
     tcase_add_test(tc, check_set);
-    tcase_add_test(tc, check_dup);
     tcase_add_test(tc, check_insert);
     tcase_add_test(tc, check_splice);
     tcase_add_test(tc, check_append);

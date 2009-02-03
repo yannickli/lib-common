@@ -28,7 +28,7 @@ int ivfprintf(FILE *stream, const char *format, va_list arglist)
         __attr_printf__(2, 0)  __attr_nonnull__((1, 2));
 int ivsnprintf(char *str, size_t size, const char *format, va_list arglist)
         __attr_printf__(3, 0)  __attr_nonnull__((3));
-int ifputs_hex(FILE *stream, const byte *buf, int len)
+int ifputs_hex(FILE *stream, const void *buf, int len)
         __attr_nonnull__((1, 2));
 
 int isprintf(char *str, const char *format, ...)

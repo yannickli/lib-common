@@ -84,16 +84,16 @@ ARRAY_FUNCTIONS(tpl_t, tpl, tpl_delete);
 
 blob_t *tpl_get_blob(tpl_t *tpl);
 
-void tpl_add_data(tpl_t *tpl, const byte *data, int len);
+void tpl_add_data(tpl_t *tpl, const void *data, int len);
 void tpl_add_byte(tpl_t *tpl, byte b);
 static inline void tpl_add_cstr(tpl_t *tpl, const char *s) {
-    tpl_add_data(tpl, (const byte *)s, strlen(s));
+    tpl_add_data(tpl, s, strlen(s));
 }
 void tpl_add_fmt(tpl_t *tpl, const char *fmt, ...) __attr_printf__(2, 3);
 
-void tpl_copy_data(tpl_t *tpl, const byte *data, int len);
+void tpl_copy_data(tpl_t *tpl, const void *data, int len);
 static inline void tpl_copy_cstr(tpl_t *tpl, const char *s) {
-    tpl_copy_data(tpl, (const byte *)s, strlen(s));
+    tpl_copy_data(tpl, s, strlen(s));
 }
 void tpl_add_var(tpl_t *tpl, uint16_t envid, uint16_t index);
 void tpl_embed_tpl(tpl_t *out, tpl_t **tpl);

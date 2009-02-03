@@ -91,12 +91,12 @@ int strtoip(const char *s, const char **endp)
                         INT_MIN, INT_MAX, false, false);
 }
 
-int memtoip(const byte *s, int len, const byte **endp)
+int memtoip(const void *s, int len, const byte **endp)
 {
     return memtoip_impl(s, len, endp, INT_MIN, INT_MAX, false, true);
 }
 
-int64_t memtollp(const byte *s, int len, const byte **endp)
+int64_t memtollp(const void *s, int len, const byte **endp)
 {
     return memtoip_impl(s, len, endp, INT64_MIN, INT64_MAX, true, true);
 }
