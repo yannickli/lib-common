@@ -249,7 +249,7 @@ static inline void sb_sets(sb_t *sb, const char *s)
 struct sockaddr;
 
 int sb_getline(sb_t *sb, FILE *f);
-int sb_append_fread(sb_t *sb, int size, int nmemb, FILE *f);
+int sb_fread(sb_t *sb, int size, int nmemb, FILE *f);
 int sb_read_file(sb_t *sb, const char *filename);
 int sb_write_file(const sb_t *sb, const char *filename);
 

@@ -33,12 +33,25 @@ char *sb_detach(sb_t *sb, int *len)
     return s;
 }
 
+/*
+ * this function is meant to rewind any change on a sb in a function doing
+ * repetitive appends that may fail.
+ *
+ * It cannot rewind a sb where anything has been skipped between the store and
+ * the rewind. It assumes only appends have been performed.
+ *
+ */
 void __sb_rewind_adds(sb_t *sb, const sb_t *orig)
 {
     if (!orig->must_free && sb->must_free) {
-        mem_free(sb->data - sb->skip);
-        *sb = *orig;
-        __sb_fixlen(sb, sb->len);
+        if (orig->skip) {
+            sb_init_full(sb, orig->data - orig->skip, orig->len,
+                         orig->size + orig->skip, false);
+            memcpy(sb->data, orig->data, orig->len);
+        } else {
+            *sb = *orig;
+            __sb_fixlen(sb, orig->len);
+        }
     } else {
         __sb_fixlen(sb, orig->len);
     }
@@ -52,13 +65,15 @@ void __sb_grow(sb_t *sb, int extra)
     if (unlikely(newlen < 0))
         e_panic("trying to allocate insane amount of memory");
 
-    /* if data fits and skip is worth it, shift it left */
-    if (newlen < sb->skip + sb->size && sb->skip > sb->size / 4) {
-        memmove(sb->data - sb->skip, sb->data, sb->len + 1);
-        sb->data -= sb->skip;
-        sb->size += sb->skip;
-        sb->skip  = 0;
-        return;
+    if (newlen < sb->skip + sb->size) {
+        /* if data fits and skip is worth it, shift it left */
+        if (!sb->must_free || sb->skip > sb->size / 4) {
+            memmove(sb->data - sb->skip, sb->data, sb->len + 1);
+            sb->data -= sb->skip;
+            sb->size += sb->skip;
+            sb->skip  = 0;
+            return;
+        }
     }
 
     newsz = p_alloc_nr(sb->size + sb->skip);
@@ -160,7 +175,7 @@ int sb_getline(sb_t *sb, FILE *f)
 /* OG: returns the number of elements actually appended to the sb,
  * -1 if error
  */
-int sb_append_fread(sb_t *sb, int size, int nmemb, FILE *f)
+int sb_fread(sb_t *sb, int size, int nmemb, FILE *f)
 {
     sb_t orig = *sb;
     int   res = size * nmemb;
