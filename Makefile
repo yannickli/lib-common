@@ -94,6 +94,7 @@ libcommon_SOURCES = \
 	property-hash.c \
 	\
 	str.c \
+	str-buf.c \
 	str-num.c \
 	str-conv.c \
 	str-iprintf.c \
