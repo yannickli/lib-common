@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "net.h"
+#include "unix.h"
 
 char __sb_slop[1];
 
@@ -82,6 +83,7 @@ void __sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
 
     if (len >= dlen) {
         p_move(sb->data, pos + dlen, pos + len, sb->len - pos - len);
+        __sb_fixlen(sb, sb->len + dlen - len);
     } else
     if (len + sb->skip >= dlen) {
         sb->skip -= dlen - len;
@@ -97,6 +99,43 @@ void __sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
     if (data)
         memcpy(sb->data + pos, data, dlen);
 }
+
+/**************************************************************************/
+/* printf function                                                        */
+/**************************************************************************/
+
+int sb_addvf(sb_t *sb, const char *fmt, va_list ap)
+{
+    va_list ap2;
+    int len;
+
+    va_copy(ap2, ap);
+    len = ivsnprintf(sb_end(sb), sb_avail(sb) + 1, fmt, ap2);
+    va_end(ap2);
+
+    if (len < sb_avail(sb)) {
+        __sb_fixlen(sb, sb->len + len);
+    } else {
+        ivsnprintf(sb_growlen(sb, len), len + 1, fmt, ap);
+    }
+    return len;
+}
+
+int sb_addf(sb_t *sb, const char *fmt, ...)
+{
+    int res;
+    va_list args;
+
+    va_start(args, fmt);
+    res = sb_addvf(sb, fmt, args);
+    va_end(args);
+
+    return res;
+}
+
+/**************************************************************************/
+/* FILE *                                                                 */
+/**************************************************************************/
 
 int sb_getline(sb_t *sb, FILE *f)
 {
@@ -117,6 +156,96 @@ int sb_getline(sb_t *sb, FILE *f)
     }
     return 0;
 }
+
+/* OG: returns the number of elements actually appended to the sb,
+ * -1 if error
+ */
+int sb_append_fread(sb_t *sb, int size, int nmemb, FILE *f)
+{
+    sb_t orig = *sb;
+    int   res = size * nmemb;
+    char *buf = sb_grow(sb, size * nmemb);
+
+    if (unlikely(((long long)size * (long long)nmemb) != res))
+        e_panic("trying to allocate insane amount of memory");
+
+    res = fread(buf, size, nmemb, f);
+    if (res < 0) {
+        __sb_rewind_adds(sb, &orig);
+        return res;
+    }
+    __sb_fixlen(sb, sb->len + res * size);
+    return res;
+}
+
+/* Return the number of bytes appended to the sb, negative value
+ * indicates an error.
+ * OG: this function insists on reading a complete file.  If the file
+ * cannot be read completely, no data is kept in the sb and an error
+ * is returned.
+ */
+int sb_read_file(sb_t *sb, const char *filename)
+{
+    sb_t orig = *sb;
+    struct stat st;
+    int fd, origlen = sb->len;
+    char *buf;
+
+    origlen = sb->len;
+
+    if ((fd = open(filename, O_RDONLY)) < 0)
+        return -1;
+
+    if (fstat(fd, &st) < 0 || st.st_size <= 0) {
+        for (;;) {
+            int res = sb_read(sb, fd, 0);
+            if (res < 0) {
+                __sb_rewind_adds(sb, &orig);
+                return -1;
+            }
+            if (res == 0)
+                return sb->len - origlen;
+        }
+    }
+
+    if (st.st_size > INT_MAX) {
+        errno = ENOMEM;
+        return -1;
+    }
+
+    buf = sb_grow(sb, st.st_size);
+    if (xread(fd, buf, st.st_size) < 0) {
+        __sb_rewind_adds(sb, &orig);
+        return -1;
+    }
+    __sb_fixlen(sb, sb->len + st.st_size);
+    return st.st_size;
+}
+
+/* Return number of bytes written or -1 on error */
+int sb_write_file(const sb_t *sb, const char *filename)
+{
+    int fd, res;
+
+    if ((fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0)
+        return -1;
+
+    res = xwrite(fd, sb->data, sb->len);
+    if (res < 0) {
+        int save_errno = errno;
+        unlink(filename);
+        close(fd);
+        errno = save_errno;
+        return -1;
+    }
+    close(fd);
+    return sb->len;
+}
+
+
+/**************************************************************************/
+/* fd and sockets                                                         */
+/**************************************************************************/
 
 int sb_read(sb_t *sb, int fd, int hint)
 {

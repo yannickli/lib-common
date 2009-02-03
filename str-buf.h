@@ -101,6 +101,9 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, bool own)
         .size = (STATIC_ASSERT((size) < (64 << 10)), size),         \
     }
 
+#define SB_1k(name)    SB(name, 1 << 10)
+#define SB_8k(name)    SB(name, 8 << 10)
+
 static inline sb_t *sb_init(sb_t *sb)
 {
     return sb_init_full(sb, __sb_slop, 0, 1, false);
@@ -183,24 +186,16 @@ static inline void sb_adds(sb_t *sb, const char *s)
     sb_add(sb, s, strlen(s));
 }
 
-static inline void sb_set(sb_t *sb, const void *data, int dlen)
-{
-    sb->len = 0;
-    sb_add(sb, data, dlen);
-}
-static inline void sb_sets(sb_t *sb, const char *s)
-{
-    sb_set(sb, s, strlen(s));
-}
-
 /* data == NULL means: please fill with raw data.  */
 void __sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen);
 static inline void
 sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
 {
-    if (pos == sb->len && data)
+    if (pos == sb->len && data) {
         sb_add(sb, data, dlen);
-    __sb_splice(sb, pos, len, data, dlen);
+    } else {
+        __sb_splice(sb, pos, len, data, dlen);
+    }
 }
 
 
@@ -228,6 +223,25 @@ static inline void sb_shrink_upto(sb_t *sb, const void *where)
 }
 
 
+int sb_addvf(sb_t *sb, const char *fmt, va_list ap) __attr_printf__(2, 0);
+int sb_addf(sb_t *sb, const char *fmt, ...)         __attr_printf__(2, 3);
+
+#define sb_setvf(sb, fmt, ap) \
+    ({ sb_t *__b = (sb); sb_reset(__b); sb_addvf(__b, fmt, ap); })
+#define sb_setf(sb, fmt, ...) \
+    ({ sb_t *__b = (sb); sb_reset(__b); sb_addf(__b, fmt, ##__VA_ARGS__); })
+
+static inline void sb_set(sb_t *sb, const void *data, int dlen)
+{
+    sb->len = 0;
+    sb_add(sb, data, dlen);
+}
+static inline void sb_sets(sb_t *sb, const char *s)
+{
+    sb_set(sb, s, strlen(s));
+}
+
+
 /**************************************************************************/
 /* syscall/system wrappers                                                */
 /**************************************************************************/
@@ -235,6 +249,10 @@ static inline void sb_shrink_upto(sb_t *sb, const void *where)
 struct sockaddr;
 
 int sb_getline(sb_t *sb, FILE *f);
+int sb_append_fread(sb_t *sb, int size, int nmemb, FILE *f);
+int sb_read_file(sb_t *sb, const char *filename);
+int sb_write_file(const sb_t *sb, const char *filename);
+
 int sb_read(sb_t *sb, int fd, int hint);
 int sb_recv(sb_t *sb, int fd, int hint, int flags);
 int sb_recvfrom(sb_t *sb, int fd, int hint, int flags,

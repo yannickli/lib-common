@@ -44,24 +44,14 @@ static inline void blob_init2(blob_t *blob, void *buf, int size) {
         blob_init2(blob, alloca(size), size); \
     } while (0)
 
-#define blob_init       sb_init
-#define blob_wipe       sb_wipe
-#define blob_new        sb_new
-#define blob_delete     sb_delete
-#define blob_reinit     sb_wipe
-#define blob_detach(sb) sb_detach(sb, NULL)
-
-/* Get the const char * pointing to blob.data */
-static inline const char *blob_get_cstr(const blob_t *blob) {
-    blob_check_slop();
-    return (const char *)blob->data;
-}
-
-/* Get the pointer to the NUL at the end of the blob */
-static inline const char *blob_get_end(const blob_t *blob) {
-    blob_check_slop();
-    return (const char *)blob->data + blob->len;
-}
+#define blob_init         sb_init
+#define blob_wipe         sb_wipe
+#define blob_new          sb_new
+#define blob_delete       sb_delete
+#define blob_reinit       sb_wipe
+#define blob_detach(sb)   sb_detach(sb, NULL)
+#define blob_get_cstr(sb) ((sb)->data)
+#define blob_get_end      sb_end
 
 /**************************************************************************/
 /* Blob size/len manipulations                                            */
@@ -149,35 +139,21 @@ static inline void blob_set(blob_t *dest, const blob_t *src) {
 /* Blob file functions                                                    */
 /**************************************************************************/
 
-int blob_append_file_data(blob_t *blob, const char *filename);
-int blob_append_fread(blob_t *blob, int size, int nmemb, FILE *f);
-static inline
-int blob_fread(blob_t *blob, int size, int nmemb, FILE *f) {
-    blob_reset(blob);
-    return blob_append_fread(blob, size, nmemb, f);
-}
-int blob_append_fgets(blob_t *blob, FILE *f);
-
-/* negative count means "auto" */
-#define blob_append_read     sb_read
-#define blob_append_recv     sb_recv
-#define blob_append_recvfrom sb_recvfrom
-
-int blob_save_to_file(const blob_t *blob, const char *filename);
+#define blob_append_file_data  sb_read_file
+#define blob_append_fread      sb_fread
+#define blob_append_read       sb_read
+#define blob_append_recv       sb_recv
+#define blob_append_recvfrom   sb_recvfrom
+#define blob_save_to_file      sb_write_file
 
 /**************************************************************************/
 /* Blob printf functions                                                  */
 /**************************************************************************/
 
-int blob_append_vfmt(blob_t *blob, const char *fmt, va_list ap)
-        __attr_printf__(2,0);
-int blob_append_fmt(blob_t *blob, const char *fmt, ...)
-        __attr_printf__(2,3);
-
-int blob_set_vfmt(blob_t *blob, const char *fmt, va_list ap)
-        __attr_printf__(2,0);
-int blob_set_fmt(blob_t *blob, const char *fmt, ...)
-        __attr_printf__(2,3);
+#define blob_append_vfmt       sb_addvf
+#define blob_append_fmt        sb_addf
+#define blob_set_vfmt          sb_setvf
+#define blob_set_fmt           sb_setf
 
 int blob_pack(blob_t *blob, const char *fmt, ...);
 int blob_unpack(const blob_t *blob, int *pos, const char *fmt, ...)

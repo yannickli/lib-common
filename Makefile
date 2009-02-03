@@ -113,9 +113,9 @@ libcommon_SOURCES = \
 
 time-lp-simple_SOURCES = time-lp-simple.c
 
-test_SOURCES = $(libcommon_SOURCES) check.c $/lib-common/compat/check.c
+test_SOURCES = $(libcommon_SOURCES) time-lp-simple.c check.c $/lib-common/compat/check.c
 test_CFLAGS  = -DCHECK=1
-test_LDFLAGS = -lz
+test_LDFLAGS = -lz -lrt
 
 tst-cfgparser_SOURCES = tst-cfgparser.c libcommon.a compat/compat.a
 
