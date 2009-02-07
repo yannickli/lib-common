@@ -23,6 +23,8 @@
 #include "conf.h"
 #include "licence.h"
 #include "time.h"
+#include "hash.h"
+#include "property.h"
 
 #define xstr(x)  #x
 #define str(x)   xstr(x)
@@ -258,32 +260,36 @@ int read_cpu_signature(uint32_t *dst)
     }
 }
 
-int licence_do_signature(const conf_t *conf, char *dst, size_t size)
+int licence_do_signature(const conf_t *conf, char dst[65])
 {
     int version;
-    const char **var, *content, *p;
+    char buf[32];
+    const char *p;
     char c;
-    const char *signed_vars[] = {
-        "vendor",
-        "cpu_signature",
-        "cpu_id",
-        "mac_addresses",
-        "Expires",
-        "Registered-To", "periodicity",
-        "maxrate_sms",   "max_sms",
-        "maxrate_mms",   "max_mms",
-        "maxrate_wpush",    "max_wpush",
-        "maxrate_ussd",  "max_ussd",
-        "maxrate_email", "max_email",
-        "production_use",
-        NULL,
+    const char *blacklisted[] = {
+        "signature",
+        NULL
     };
+    props_array tosign;
+    const conf_section_t *s;
     int k0, k1, k2, k3;
+    int len;
+    sha2_ctx  ctx;
 
     version = conf_get_int(conf, "licence", "version", -1);
     if (version != 1) {
         return -1;
     }
+
+    s = conf_get_section_by_name(conf, "licence");
+    if (!s) {
+        return -1;
+    }
+
+    props_array_init(&tosign);
+    props_array_dup(&tosign, &s->vals);
+    props_array_filterout(&tosign, blacklisted);
+    props_array_qsort(&tosign);
 
     /* XXX: version 1 is weak.
      */
@@ -291,40 +297,46 @@ int licence_do_signature(const conf_t *conf, char *dst, size_t size)
     k1 = 28;
     k2 = 17;
     k3 = 11;
-    for (var = signed_vars; *var; var++) {
-        content = conf_get_raw(conf, "licence", *var);
-        if (!content) {
-            /* If a variable is missing, assume we do not want it. */
-            continue;
-        }
-        k0 += strlen(content);
-        for (p = content; *p; p++) {
-            c = *p;
-            /* Signature is case-insensitive and does not sign non
-             * 'usual' chars. We don't want to get into trouble
-             * because the format of a field slightly changes.
-             * */
-            if ('A' <= c && c <= 'Z') {
-                c = c - 'A' + 'a';
-            } else
-            if (('a' <= c && c <= 'z')
-            ||  ('0' <= c && c <= '9')
-            || c == ':' || c == '-' || c == '+' || c == '*') {
-                /* use it for signature */
-                /* XXX: '-' is very important : sms_max_rate = -1
-                 * means unlimited, whereas '1' means 1/s ! */
+    sha2_starts(&ctx, 0);
+    for (int i = 0; i < tosign.len; i++) {
+#define DO_SIGNATURE(content)                                       \
+        len = strlen(content);                                      \
+        k0 += len;                                                  \
+        for (p = content; *p; p++) {                                \
+            c = *p;                                                 \
+            /* Signature is case-insensitive and does not sign non  \
+             * 'usual' chars. We don't want to get into trouble     \
+             * because the format of a field slightly changes.      \
+             * */                                                   \
+            if ('A' <= c && c <= 'Z') {                             \
+                c = c - 'A' + 'a';                                  \
+            } else                                                  \
+            if (('a' <= c && c <= 'z')                              \
+            ||  ('0' <= c && c <= '9')                              \
+            || c == ':' || c == '-' || c == '+' || c == '*') {      \
+                /* use it for signature */                          \
+                /* XXX: '-' is very important : sms_max_rate = -1   \
+                 * means unlimited, whereas '1' means 1/s ! */      \
+                                                                    \
+            } else {                                                \
+                /* skip */                                          \
+                continue;                                           \
+            }                                                       \
+            k1 = (k1 * c + 371) & 0xFFFF;                           \
+            k2 = (k3 * 21407 + c) & 0xFFFF;                         \
+            k3 = (k2 * 17669 + c) & 0xFFFF;                         \
+        }                                                           \
+        sha2_update(&ctx, content, len);
 
-            } else {
-                /* skip */
-                continue;
-            }
-            k1 = (k1 * c + 371) & 0xFFFF;
-            k2 = (k3 * 21407 + c) & 0xFFFF;
-            k3 = (k2 * 17669 + c) & 0xFFFF;
-        }
+        DO_SIGNATURE(tosign.tab[i]->name);
+        sha2_update(&ctx, ":", 1);
+        DO_SIGNATURE(tosign.tab[i]->value);
     }
     k0 = (k0 * 3643) & 0xFFFF;
-    snprintf(dst, size, "%04X%04X%04X%04X", k0, k1, k2, k3);
+    len = snprintf(buf, sizeof(buf), "%04X%04X%04X%04X", k0, k1, k2, k3);
+    sha2_update(&ctx, buf, len);
+    sha2_finish_hex(&ctx, dst);
+    props_array_wipe(&tosign);
 //    printf("signature = %s\n", dst);
     return 0;
 }
@@ -348,14 +360,14 @@ bool licence_check_expiration_ok(const conf_t *conf)
 
 bool licence_check_signature_ok(const conf_t *conf)
 {
-    char lic_computed[128];
+    char lic_computed[65];
     const char *lic_inconf;
 
     lic_inconf = conf_get_raw(conf, "licence", "signature");
     if (!lic_inconf)
         return false;
 
-    if (licence_do_signature(conf, lic_computed, sizeof(lic_computed))) {
+    if (licence_do_signature(conf, lic_computed)) {
         return false;
     }
 
