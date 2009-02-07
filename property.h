@@ -38,6 +38,9 @@ const char *
 property_findval(const props_array *arr, const char *k, const char *def);
 void props_array_merge(props_array *arr, props_array **old);
 
+void props_array_qsort(props_array *arr);
+void props_array_filterout(props_array *arr, const char **blacklisted);
+
 void props_array_remove_nulls(props_array *arr);
 
 /* appends $nb|$k1|$v1|...|$kn|$vn$last */

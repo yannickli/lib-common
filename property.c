@@ -120,6 +120,32 @@ void props_array_remove_nulls(props_array *arr)
     }
 }
 
+static int property_cmp(const void *a, const void *b)
+{
+    return strcmp((*(const property_t **)a)->name,
+                  (*(const property_t **)b)->name);
+}
+
+void props_array_qsort(props_array *arr)
+{
+    qsort(arr->tab, arr->len, sizeof(*arr->tab), &property_cmp);
+}
+
+void props_array_filterout(props_array *arr, const char **blacklisted)
+{
+    for (int i = arr->len - 1; i >= 0; i--) {
+        property_t *p = arr->tab[i];
+
+        for (const char **bl = blacklisted; *bl; bl++) {
+            if (strequal(p->name, *bl)) {
+                p = props_array_take(arr, i);
+                property_delete(&p);
+                break;
+            }
+        }
+    }
+}
+
 void props_array_pack(blob_t *out, const props_array *arr, int last)
 {
     int i, nulls = 0;
