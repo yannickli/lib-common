@@ -32,15 +32,6 @@ int iovec_vector_kill_first(iovec_vector *iovs, ssize_t len)
     return i;
 }
 
-int iovec_vector_getlen(iovec_vector *v)
-{
-    int res = 0;
-    for (int i = 0; i < v->len; i++) {
-        res += v->tab[i].iov_len;
-    }
-    return res;
-}
-
 /**************************************************************************/
 /* Misc                                                                   */
 /**************************************************************************/

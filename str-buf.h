@@ -86,51 +86,51 @@ extern char __sb_slop[1];
 static inline sb_t *
 sb_init_full(sb_t *sb, void *buf, int blen, int bsize, bool own)
 {
-    *sb = (sb_t){
-        .data = buf,
-        .len = blen,
-        .size = bsize,
-        .must_free = own,
-    };
-    return sb;
+*sb = (sb_t){
+    .data = buf,
+    .len = blen,
+    .size = bsize,
+    .must_free = own,
+};
+return sb;
 }
 
 #define SB(name, sz) \
-    sb_t name = {                                       \
-        .data = alloca(sz),                             \
-        .size = (STATIC_ASSERT((sz) < (64 << 10)), sz), \
-    }
+sb_t name = {                                       \
+    .data = alloca(sz),                             \
+    .size = (STATIC_ASSERT((sz) < (64 << 10)), sz), \
+}
 
 #define SB_1k(name)    SB(name, 1 << 10)
 #define SB_8k(name)    SB(name, 8 << 10)
 
 static inline sb_t *sb_init(sb_t *sb)
 {
-    return sb_init_full(sb, __sb_slop, 0, 1, false);
+return sb_init_full(sb, __sb_slop, 0, 1, false);
 }
 GENERIC_NEW(sb_t, sb);
 static inline void sb_reset(sb_t *sb)
 {
-    sb_init_full(sb, sb->data - sb->skip, 0, sb->size + sb->skip, sb->must_free);
-    sb->data[0] = '\0';
+sb_init_full(sb, sb->data - sb->skip, 0, sb->size + sb->skip, sb->must_free);
+sb->data[0] = '\0';
 }
 static inline void sb_wipe(sb_t *sb)
 {
-    if (sb->must_free) {
-        mem_free(sb->data - sb->skip);
-        sb_init(sb);
-    } else {
-        sb_reset(sb);
-    }
+if (sb->must_free) {
+    mem_free(sb->data - sb->skip);
+    sb_init(sb);
+} else {
+    sb_reset(sb);
+}
 }
 static inline void sb_delete(sb_t **sbp)
 {
-    if (*sbp) {
-        sb_t *sb = *sbp;
-        if (sb->must_free)
-            mem_free(sb->data - sb->skip);
-        p_delete(sbp);
-    }
+if (*sbp) {
+    sb_t *sb = *sbp;
+    if (sb->must_free)
+        mem_free(sb->data - sb->skip);
+    p_delete(sbp);
+}
 }
 
 /**************************************************************************/
@@ -139,11 +139,11 @@ static inline void sb_delete(sb_t **sbp)
 
 static inline char *sb_end(sb_t *sb)
 {
-    return sb->data + sb->len;
+return sb->data + sb->len;
 }
 static inline int sb_avail(sb_t *sb)
 {
-    return sb->size - sb->len - 1;
+return sb->size - sb->len - 1;
 }
 
 char *sb_detach(sb_t *sb, int *len);
@@ -152,21 +152,21 @@ void __sb_rewind_adds(sb_t *sb, const sb_t *orig);
 void __sb_grow(sb_t *sb, int extra);
 static inline void __sb_fixlen(sb_t *sb, int len)
 {
-    sb->len = len;
-    sb->data[sb->len] = '\0';
+sb->len = len;
+sb->data[sb->len] = '\0';
 }
 static inline char *sb_grow(sb_t *sb, int extra)
 {
-    if (sb->len + extra >= sb->size)
-        __sb_grow(sb, extra);
-    return sb_end(sb);
+if (sb->len + extra >= sb->size)
+    __sb_grow(sb, extra);
+return sb_end(sb);
 }
 static inline char *sb_growlen(sb_t *sb, int extra)
 {
-    if (sb->len + extra >= sb->size)
-        __sb_grow(sb, extra);
-    __sb_fixlen(sb, sb->len + extra);
-    return sb_end(sb) - extra;
+if (sb->len + extra >= sb->size)
+    __sb_grow(sb, extra);
+__sb_fixlen(sb, sb->len + extra);
+return sb_end(sb) - extra;
 }
 
 /**************************************************************************/
@@ -175,15 +175,15 @@ static inline char *sb_growlen(sb_t *sb, int extra)
 
 static inline void sb_add(sb_t *sb, const void *data, int dlen)
 {
-    memcpy(sb_growlen(sb, dlen), data, dlen);
+memcpy(sb_growlen(sb, dlen), data, dlen);
 }
 static inline void sb_addc(sb_t *sb, unsigned char c)
 {
-    sb_add(sb, &c, 1);
+sb_add(sb, &c, 1);
 }
 static inline void sb_adds(sb_t *sb, const char *s)
 {
-    sb_add(sb, s, strlen(s));
+sb_add(sb, s, strlen(s));
 }
 
 /* data == NULL means: please fill with raw data.  */
@@ -191,11 +191,11 @@ void __sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen);
 static inline void
 sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
 {
-    if (pos == sb->len && data) {
-        sb_add(sb, data, dlen);
-    } else {
-        __sb_splice(sb, pos, len, data, dlen);
-    }
+if (pos == sb->len && data) {
+    sb_add(sb, data, dlen);
+} else {
+    __sb_splice(sb, pos, len, data, dlen);
+}
 }
 
 

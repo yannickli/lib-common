@@ -129,7 +129,7 @@ void generic_array_sort(generic_array *array,
     }                                                                         \
     static inline void                                                        \
     prefix##suffix##_splice(prefix##suffix *v, int pos, int len,              \
-                            el_typ items[], int count)                        \
+                            el_typ const items[], int count)                  \
     {                                                                         \
         assert (pos >= 0 && len >= 0 && count >= 0);                          \
         if (pos > v->len)                                                     \
@@ -246,7 +246,18 @@ static inline int string_array_find(const string_array *arr, const char *val)
 DO_VECTOR(struct iovec, iovec);
 
 int iovec_vector_kill_first(iovec_vector *iovs, ssize_t len);
-int iovec_vector_getlen(iovec_vector *v);
+
+static inline size_t iovec_len(const struct iovec *iov, int iovlen) {
+    size_t res = 0;
+    for (int i = 0; i < iovlen; i++) {
+        res += iov[i].iov_len;
+    }
+    return res;
+}
+static inline size_t iovec_vector_getlen(iovec_vector *v) {
+    return iovec_len(v->tab, v->len);
+}
+
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
