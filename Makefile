@@ -63,6 +63,7 @@ libcommon_SOURCES = \
 	\
 	core-debug.c \
 	core-errors.c \
+	core-obj.c \
 	core-havege.c \
 	\
 	el.c \
