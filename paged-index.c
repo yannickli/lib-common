@@ -599,8 +599,7 @@ int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
         } else {
             int copy = MIN(len, size - start);
 
-            memcpy(out, pg->payload + sizeof(int32_t) + start, copy);
-            out += copy;
+            out  = mempcpy(out, pg->payload + sizeof(int32_t) + start, copy);
             len -= copy;
             start = 0;
         }

@@ -21,13 +21,6 @@
 #include "str-path.h"
 #include "str-conv.h"
 
-#ifndef __USE_GNU
-static inline void *mempcpy(void *dst, const void *src, size_t n) {
-    memcpy(dst, src, n);
-    return dst + n;
-}
-#endif
-
 __attr_nonnull__((1))
 static inline ssize_t sstrlen(const char *str) {
     return (ssize_t)strlen(str);

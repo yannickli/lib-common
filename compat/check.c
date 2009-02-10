@@ -1423,8 +1423,7 @@ static void pack_str(char **buf, const char *val)
     pack_int(buf, strsz);
 
     if (strsz > 0) {
-        memcpy(*buf, val, strsz);
-        *buf += strsz;
+        *buf = mempcpy(*buf, val, strsz);
     }
 }
 

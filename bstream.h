@@ -160,9 +160,8 @@ static inline ssize_t bread_call(BSTREAM *stream, void *ptr, size_t count)
         }
 
         /* Copy from buffer. */
-        memcpy(buf, stream->pread, n);
+        buf     = mempcpy(buf, stream->pread, n);
         stream->pread += n;
-        buf    += n;
         nbread += n;
         count  -= n;
 
@@ -347,10 +346,9 @@ static ssize_t bwrite_call(BSTREAM *stream, const void *src, size_t count)
     }
 
     if (tocopy) {
-        memcpy(stream->pwrite, buf, tocopy);
+        buf      = mempcpy(stream->pwrite, buf, tocopy);
         stream->pwrite += tocopy;
         avail   -= tocopy;
-        buf     += tocopy;
         written += tocopy;
         count   -= tocopy;
     }
@@ -378,8 +376,7 @@ static ssize_t bwrite_call(BSTREAM *stream, const void *src, size_t count)
 
     if (count > 0) {
         /* Write the rest to the buffer */
-        memcpy(stream->pwrite, buf, count);
-        stream->pwrite += count;
+        stream->pwrite = mempcpy(stream->pwrite, buf, count);
         written += count;
     }
 
@@ -390,8 +387,7 @@ static inline ssize_t bwrite(BSTREAM *stream, const void *buf, size_t count)
 {
     if (count < (size_t)(stream->pwrite_end - stream->pwrite)) {
         /* Handle chunk that fits in the buffer and doesn't fill it. */
-        memcpy(stream->pwrite, buf, count);
-        stream->pwrite += count;
+        stream->pwrite = mempcpy(stream->pwrite, buf, count);
         return count;
     }
     return bwrite_call(stream, buf, count);

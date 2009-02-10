@@ -34,8 +34,7 @@ static inline __attribute__((malloc))
 void *mp_dupstr(mem_pool_t *mp, const void *src, int len)
 {
     char *res = mp->mem_alloc(mp, len + 1);
-    memcpy(res, src, len);
-    res[len] = '\0';
+    memcpyz(res, src, len);
     return res;
 }
 

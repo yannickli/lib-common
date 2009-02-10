@@ -17,6 +17,16 @@
 
 #define IS_LIB_COMMON_CORE_MEM_H
 
+#ifndef __USE_GNU
+static inline void *mempcpy(void *dst, const void *src, size_t n) {
+    memcpy(dst, src, n);
+    return dst + n;
+}
+#endif
+static inline void memcpyz(void *dst, const void *src, size_t n) {
+    *(char *)mempcpy(dst, src, n) = '\0';
+}
+
 #define MEM_ALIGN_SIZE  8
 #define MEM_ALIGN(size) \
     (((size) + MEM_ALIGN_SIZE - 1) & ~((ssize_t)MEM_ALIGN_SIZE - 1))
@@ -102,8 +112,7 @@ static inline void mem_copy(void *p, int to, int from, int len) {
 static inline __attribute__((malloc)) void *p_dupz(const void *src, int len)
 {
     char *res = mem_alloc(len + 1);
-    memcpy(res, src, len);
-    res[len] = '\0';
+    memcpyz(res, src, len);
     return res;
 }
 
