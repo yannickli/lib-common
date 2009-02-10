@@ -429,7 +429,6 @@ bool licence_check_host_ok(const conf_t *conf)
     return true;
 }
 
-#define __USE_GNU
 #include <sched.h>
 
 int list_my_cpus(char *dst, size_t size)

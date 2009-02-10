@@ -20,7 +20,6 @@
 
 //#include "config.h"
 
-#define _GNU_SOURCE
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1827,7 +1826,6 @@ enum print_output get_env_printmode(void)
 
 //==> check_run.c <==
 
-//#define _GNU_SOURCE
 //#include "config.h"
 
 #include <sys/types.h>
