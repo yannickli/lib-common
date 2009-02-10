@@ -106,4 +106,4 @@ endif
 CFLAGS += -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64## lfs
 CFLAGS += -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L#   # all of IEEE 1003.1-2001
 CFLAGS += -D_XOPEN_SOURCE=600#                         # XSI extensions
-CFLAGS += -D_BSD_SOURCE#                               # strn?casecmp :/
+CFLAGS += -D_GNU_SOURCE
