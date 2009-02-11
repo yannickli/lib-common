@@ -11,29 +11,29 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_NET_H
-#define IS_LIB_COMMON_NET_H
-
-#include "core.h"
-
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#ifdef HAVE_NETINET_SCTP_H
-# include <netinet/sctp.h>
-# ifdef SCTP_ADAPTION_LAYER
-    /* see http://www1.ietf.org/mail-archive/web/tsvwg/current/msg05971.html */
-#   define SCTP_ADAPTATION_LAYER         SCTP_ADAPTION_LAYER
-#   define sctp_adaptation_layer_event   sctp_adaption_layer_event
-# endif
-#endif
-#ifdef OS_WINDOWS
-# include <winsock2.h>
+#if !defined(IS_LIB_COMMON_NET_H) || defined(IS_LIB_COMMON_NET_SCTP_H)
+#  error "you must include <lib-common/net.h> instead"
 #else
-# include <sys/socket.h>
-# include <sys/un.h>
-#endif
+#define IS_LIB_COMMON_NET_SCTP_H
 
-#include "net-socket.h"
-#include "net-sctp.h"
+enum sctp_events {
+    SCTP_DATA_IO_EV           = 0x01,
+    SCTP_ASSOCIATION_EV       = 0x02,
+    SCTP_ADDRESS_EV           = 0x04,
+    SCTP_SEND_FAILURE_EV      = 0x08,
+    SCTP_PEER_ERROR_EV        = 0x10,
+    SCTP_SHUTDOWN_EV          = 0x20,
+    SCTP_PARTIAL_DELIVERY_EV  = 0x40,
+    SCTP_ADAPTATION_LAYER_EV  = 0x80,
+};
+
+int sctp_enable_events(int fd, int flags);
+
+ssize_t sctp_sendv(int sd, const struct iovec *iov, int iovlen,
+                   const struct sctp_sndrcvinfo *sinfo, int flags);
+int sctp_addr_len(const sockunion_t *addrs, int count);
+int sctp_close_assoc(int fd, int assoc_id);
+int sctp_getaddrs(int fd, int optnum, sctp_assoc_t id,
+                  struct sockaddr *addrs, int addr_size);
 
 #endif

@@ -90,6 +90,7 @@ libcommon_SOURCES = \
 	mem-fifo-pool.c \
 	\
 	net-socket.c \
+	net-sctp.c \
 	\
 	property.c \
 	property-hash.c \

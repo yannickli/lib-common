@@ -13,7 +13,7 @@
 
 #if !defined(IS_LIB_COMMON_NET_H) || defined(IS_LIB_COMMON_NET_SOCKET_H)
 #  error "you must include <lib-common/net.h> instead"
-#endif
+#else
 #define IS_LIB_COMMON_NET_SOCKET_H
 
 typedef union sockunion_t {
@@ -74,3 +74,5 @@ int acceptx(int server_fd, int flags);
 
 int getsockport(int sock, sa_family_t family);
 int getpeerport(int sock, sa_family_t family);
+
+#endif
