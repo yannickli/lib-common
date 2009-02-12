@@ -276,34 +276,6 @@ static inline int unsafe_mclk_cmp(uint32_t a, uint32_t b) {
      + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(a), uint32_t)) \
      + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(b), uint32_t)))
 
-/*---------------- Type safe conversion functions ----------------*/
-
-#define CONVERSION_FUNCTIONS(type1, type2) \
-    static inline type2 *type1##_to_##type2(type1 *p) \
-    { \
-        return (type2 *)(p); \
-    } \
-    static inline type1 *type2##_to_##type1(type2 *p) \
-    { \
-        return (type1 *)(p); \
-    } \
-    static inline const type2 *type1##_to_##type2##_const(const type1 *p) \
-    { \
-        return (const type2 *)(p); \
-    } \
-    static inline const type1 *type2##_to_##type1##_const(const type2 *p) \
-    { \
-        return (const type1 *)(p); \
-    } \
-    static inline type1 **type2##_to_##type1##_p(type2 **p) \
-    { \
-        return (type1 **)(p); \
-    } \
-    static inline type2 **type1##_to_##type2##_p(type1 **p) \
-    { \
-        return (type2 **)(p); \
-    }
-
 /*---------------- Licence control ----------------*/
 
 int show_flags(const char *arg, int flags);
