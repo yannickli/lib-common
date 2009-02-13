@@ -16,11 +16,6 @@
 #else
 #define IS_LIB_COMMON_CORE_OS_FEATURES_H
 
-/* <iconv.h> availability */
-#ifdef OS_LINUX
-#  define HAVE_ICONV_H
-#endif
-
 /* <netinet/sctp.h> availability */
 #if defined(OS_LINUX) /* || defined(__sun) */
 #  define HAVE_NETINET_SCTP_H

@@ -15,7 +15,7 @@ test_PROGRAMS = btree-dump tst-cfgparser tst-tpl tst-htbl
 
 none_LIBRARIES = libcommon time-lp-simple
 
-none_TESTS += test tst-blob-iconv tst-path tst-hash
+none_TESTS += test tst-path tst-hash
 none_TESTS += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-iprintf-speed
 ifdef CHECK_ALL
   # These tests are just too long to be part of "make check". Sorry.
@@ -47,7 +47,6 @@ libcommon_SOURCES = \
 	blob-ebcdic.c \
 	blob-utf8.c \
 	blob-zlib.c \
-	blob-iconv.c \
 	blob-emi.c \
 	blob-wbxml.c \
 	\
@@ -123,10 +122,6 @@ tst-cfgparser_SOURCES = tst-cfgparser.c libcommon.a compat/compat.a
 
 tst-tpl_SOURCES = tst-tpl.c libcommon.a
 
-tst-blob-iconv_SOURCES = \
-	tst-blob-iconv.c \
-	libcommon.a
-
 tst-iprintf_SOURCES = tst-iprintf.c libcommon.a compat/compat.a
 
 tst-iprintf-fp_CFLAGS = -Wno-format -Wno-missing-format-attribute
@@ -149,8 +144,7 @@ tst-htbl_SOURCES = tst-htbl.c libcommon.a compat/compat.a
 tst-path_SOURCES = tst-path.c libcommon.a compat/compat.a
 
 ifneq (,$(filter CYGWIN%,$(UNAME)))
-  libcommon_SOURCES := $(filter-out blob-iconv.c linux.c psinfo.c,$(libcommon_SOURCES))
-  none_TESTS := $(filter-out tst-blob-iconv,$(none_TESTS))
+  libcommon_SOURCES := $(filter-out linux.c psinfo.c,$(libcommon_SOURCES))
 endif
 
 ifneq (,$(MINGCC))
