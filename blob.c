@@ -63,40 +63,6 @@ void blob_append_data_escaped2(blob_t *blob, const void *_data, size_t len,
 }
 
 /**************************************************************************/
-/* Blob search functions                                                  */
-/**************************************************************************/
-
-static int
-blob_search_data_real(const blob_t *haystack, int pos,
-                      const void *needle, int len)
-{
-    const char *p;
-
-    if (pos < 0) {
-        pos = 0;
-    }
-    if (len < 0 || pos + len > haystack->len)
-        return -1;
-
-    p = memsearch(haystack->data + pos, haystack->len - pos, needle, len);
-    if (!p) {
-        return -1;
-    }
-    return p - haystack->data;
-}
-
-int blob_search(const blob_t *haystack, int pos, const blob_t *needle)
-{
-    return blob_search_data_real(haystack, pos, needle->data, needle->len);
-}
-
-int blob_search_data(const blob_t *haystack, int pos,
-                     const void *needle, int len)
-{
-    return blob_search_data_real(haystack, pos, needle, len);
-}
-
-/**************************************************************************/
 /* Blob filtering                                                         */
 /**************************************************************************/
 
@@ -818,44 +784,6 @@ void blob_append_base64_finish(blob_t *dst, base64enc_ctx *ctx)
 
     *data = '\0';
     dst->len = data - dst->data;
-}
-
-int blob_append_smtp_data(blob_t *dst, const byte *src, int len)
-{
-/*
- From RFC 821, section 4.5.2 :
-         Without some provision for data transparency the character
-         sequence "<CRLF>.<CRLF>" ends the mail text and cannot be sent
-         by the user.  In general, users are not aware of such
-         "forbidden" sequences.  To allow all user composed text to be
-         transmitted transparently the following procedures are used.
-
-            1. Before sending a line of mail text the sender-SMTP checks
-            the first character of the line.  If it is a period, one
-            additional period is inserted at the beginning of the line.
-
-            2. When a line of mail text is received by the receiver-SMTP
-            it checks the line.  If the line is composed of a single
-            period it is the end of mail.  If the first character is a
-            period and there are other characters on the line, the first
-            character is deleted.
-*/
-    const byte *p;
-    int appendlen;
-
-    while (len) {
-        p = memsearch(src, len, "\r\n.", 3);
-        if (!p) {
-            blob_append_data(dst, src, len);
-            return 0;
-        }
-        appendlen = p - src;
-        blob_append_data(dst, src, appendlen);
-        blob_append_cstr(dst, "\r\n..");
-        src += appendlen + 3;
-        len -= appendlen + 3;
-    }
-    return 0;
 }
 
 void blob_append_date_iso8601(blob_t *dst, time_t date)
@@ -1873,69 +1801,6 @@ START_TEST(check_b64)
 END_TEST
 
 /*.....................................................................}}}*/
-/* test blob_smtp_data                                                 {{{*/
-
-START_TEST(check_smtp_data)
-{
-    blob_t blob;
-    blob_init(&blob);
-
-#define TEST_SMTP_DATA(org, enc) \
-    do { \
-    blob_reset(&blob); \
-    blob_append_smtp_data(&blob, (byte *)org, strlen(org)); \
-    check_blob_invariants(&blob); \
-    \
-    fail_if(strcmp((const char *)blob.data, enc) != 0, \
-            "encoding of \"" org "\"failed"); \
-    } while(0)
-
-    TEST_SMTP_DATA("abcdef", "abcdef");
-    TEST_SMTP_DATA("", "");
-    TEST_SMTP_DATA("\r\n.\r\n", "\r\n..\r\n");
-    TEST_SMTP_DATA("\r\n.\r\n\r\n.\r\n", "\r\n..\r\n\r\n..\r\n");
-    TEST_SMTP_DATA("a\r\n.\r\nbcd", "a\r\n..\r\nbcd");
-
-#undef TEST_SMTP_DATA
-
-    blob_wipe(&blob);
-}
-END_TEST
-
-/*.....................................................................}}}*/
-/* test blob_search                                                    {{{*/
-
-START_TEST(check_search)
-{
-    blob_t blob;
-    blob_t *b1 = blob_new();
-    check_setup(&blob, "toto string");
-
-    /* search data */
-    fail_if(blob_search_data(&blob, 0, (void*)"string", 6) != 5,
-            "blob_search fails when needle exists");
-    fail_if(blob_search_data(&blob, 0, (void*)"bloube", 6) != -1,
-            "blob_search fails when needle does not exist");
-
-    /* search cstr */
-    fail_if(blob_search_cstr(&blob, 0, "string") != 5,
-            "blob_search fails when needle exists");
-    fail_if(blob_search_cstr(&blob, 0, "bloube") != -1,
-            "blob_search fails when needle does not exist");
-
-    /* search */
-    blob_set_cstr(b1, "string");
-    fail_if(blob_search(&blob, 0, b1) != 5,
-            "blob_search fails when needle exists");
-    blob_set_cstr(b1, "blouble");
-    fail_if(blob_search(&blob, 0, b1) != -1,
-            "blob_search fails when needle does not exist");
-
-    check_teardown(&blob, &b1);
-}
-END_TEST
-
-/*.....................................................................}}}*/
 /* test check_zlib_compress_uncompress                                 {{{*/
 
 START_TEST(check_zlib_compress_uncompress)
@@ -2402,11 +2267,9 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_printf);
     tcase_add_test(tc, check_url);
     tcase_add_test(tc, check_b64);
-    tcase_add_test(tc, check_smtp_data);
     tcase_add_test(tc, check_ira);
     tcase_add_test(tc, check_quoted_printable);
     tcase_add_test(tc, check_xml_escape);
-    tcase_add_test(tc, check_search);
     tcase_add_test(tc, check_raw_compress_uncompress);
     tcase_add_test(tc, check_zlib_compress_uncompress);
     tcase_add_test(tc, check_gunzip);

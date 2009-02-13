@@ -167,20 +167,6 @@ int buf_deserialize(const byte *buf, int buf_len,
 int blob_deserialize(const blob_t *blob, int *pos, const char *fmt, ...);
 
 /**************************************************************************/
-/* Blob search functions                                                  */
-/**************************************************************************/
-
-/* not very efficent ! */
-
-int blob_search(const blob_t *haystack, int pos, const blob_t *needle);
-int blob_search_data(const blob_t *haystack, int pos,
-                     const void *needle, int len);
-static inline int
-blob_search_cstr(const blob_t *haystack, int pos, const char *needle) {
-    return blob_search_data(haystack, pos, needle, strlen(needle));
-}
-
-/**************************************************************************/
 /* Blob filtering                                                         */
 /**************************************************************************/
 
@@ -242,7 +228,6 @@ static inline int blob_append_xml_escape_cstr(blob_t *dst, const char *s) {
 void blob_append_quoted_printable(blob_t *dst, const void *src, int len);
 void blob_decode_quoted_printable(blob_t *dst, const char *src, int len);
 
-int blob_append_smtp_data(blob_t *dst, const byte *src, int len);
 int blob_append_hex(blob_t *dst, const void *src, int len);
 
 void blob_append_wbxml_href(blob_t *dst, const byte *data, int len);
