@@ -169,14 +169,6 @@ int buf_deserialize(const byte *buf, int buf_len,
 int blob_deserialize(const blob_t *blob, int *pos, const char *fmt, ...);
 
 /**************************************************************************/
-/* Blob filtering                                                         */
-/**************************************************************************/
-
-void blob_ltrim(blob_t *blob);
-void blob_rtrim(blob_t *blob);
-void blob_trim(blob_t *blob);
-
-/**************************************************************************/
 /* Blob string functions                                                  */
 /**************************************************************************/
 

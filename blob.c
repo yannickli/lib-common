@@ -63,41 +63,6 @@ void blob_append_data_escaped2(blob_t *blob, const void *_data, size_t len,
 }
 
 /**************************************************************************/
-/* Blob filtering                                                         */
-/**************************************************************************/
-
-void blob_ltrim(blob_t *blob)
-{
-    int i = 0;
-
-    blob_check_slop();
-    while (isspace((unsigned char)blob->data[i])) {
-        i++;
-    }
-    blob_kill_first(blob, i);
-    blob_check_slop();
-}
-
-void blob_rtrim(blob_t *blob)
-{
-    blob_check_slop();
-    for (int i = blob->len; i > 0; i--) {
-        if (!isspace((unsigned char)blob->data[i - 1])) {
-            blob->len = i;
-            blob->data[i] = '\0';
-            return;
-        }
-    }
-    blob_check_slop();
-}
-
-void blob_trim(blob_t *blob)
-{
-    blob_ltrim(blob);
-    blob_rtrim(blob);
-}
-
-/**************************************************************************/
 /* Blob string functions                                                  */
 /**************************************************************************/
 
