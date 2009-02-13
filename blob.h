@@ -52,6 +52,8 @@ static inline void blob_init2(blob_t *blob, void *buf, int size) {
 #define blob_detach(sb)   sb_detach(sb, NULL)
 #define blob_get_cstr(sb) ((sb)->data)
 #define blob_get_end      sb_end
+#define blob_cmp          sb_cmp
+
 
 /**************************************************************************/
 /* Blob size/len manipulations                                            */
@@ -173,21 +175,6 @@ int blob_deserialize(const blob_t *blob, int *pos, const char *fmt, ...);
 void blob_ltrim(blob_t *blob);
 void blob_rtrim(blob_t *blob);
 void blob_trim(blob_t *blob);
-
-/**************************************************************************/
-/* Blob comparisons                                                       */
-/**************************************************************************/
-
-int blob_cmp(const blob_t *blob1, const blob_t *blob2);
-int blob_icmp(const blob_t *blob1, const blob_t *blob2);
-
-bool blob_is_equal(const blob_t *blob1, const blob_t *blob2);
-bool blob_is_iequal(const blob_t *blob1, const blob_t *blob2);
-
-bool blob_cstart(const blob_t *blob, const char *p, const char **pp);
-bool blob_start(const blob_t *blob1, const blob_t *blob2, const byte **pp);
-bool blob_cistart(const blob_t *blob, const char *p, const char **pp);
-bool blob_istart(const blob_t *blob1, const blob_t *blob2, const byte **pp);
 
 /**************************************************************************/
 /* Blob string functions                                                  */

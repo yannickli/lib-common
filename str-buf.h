@@ -134,6 +134,20 @@ static inline void sb_delete(sb_t **sbp)
 }
 
 /**************************************************************************/
+/* str/mem-functions wrappers                                             */
+/**************************************************************************/
+
+static inline int sb_cmp(const sb_t *sb1, const sb_t *sb2)
+{
+    int len = MIN(sb1->len, sb2->len);
+    int res = memcmp(sb1->data, sb2->data, len);
+    return res ? res : sb1->len - sb2->len;
+}
+
+int sb_search(const sb_t *sb, int pos, const void *what, int wlen);
+
+
+/**************************************************************************/
 /* buffer raw manipulations                                               */
 /**************************************************************************/
 
