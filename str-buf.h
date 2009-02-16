@@ -114,10 +114,12 @@ static inline void sb_reset(sb_t *sb)
     sb_init_full(sb, sb->data - sb->skip, 0, sb->size + sb->skip, sb->must_free);
     sb->data[0] = '\0';
 }
-static inline void __sb_wipe(sb_t *sb)
-{
-    assert (!sb->must_free);
-}
+#ifndef NDEBUG
+#  define __sb_wipe(sb)  assert(!(sb)->must_free)
+#else
+#  define __sb_wipe(sb)  (void)0
+#endif
+
 static inline void sb_wipe(sb_t *sb)
 {
     if (sb->must_free) {
