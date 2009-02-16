@@ -94,7 +94,7 @@ void __sb_grow(sb_t *sb, int extra)
     }
 }
 
-void __sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
+char *__sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
 {
     assert (pos >= 0 && len >= 0 && dlen >= 0);
     assert (pos <= sb->len && pos + len <= sb->len);
@@ -115,7 +115,8 @@ void __sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
         __sb_fixlen(sb, sb->len + dlen - len);
     }
     if (data)
-        memcpy(sb->data + pos, data, dlen);
+        return memcpy(sb->data + pos, data, dlen);
+    return sb->data + pos;
 }
 
 /**************************************************************************/

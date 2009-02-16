@@ -222,15 +222,15 @@ static inline void sb_adds(sb_t *sb, const char *s)
 }
 
 /* data == NULL means: please fill with raw data.  */
-void __sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen);
-static inline void
+char *__sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen);
+static inline char *
 sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
 {
     if (pos == sb->len && data) {
         sb_add(sb, data, dlen);
-    } else {
-        __sb_splice(sb, pos, len, data, dlen);
+        return sb->data + pos;
     }
+    return __sb_splice(sb, pos, len, data, dlen);
 }
 
 

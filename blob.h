@@ -46,15 +46,6 @@ static inline void blob_setlen(blob_t *blob, int newlen) {
 /* Blob manipulations                                                     */
 /**************************************************************************/
 
-static inline void
-blob_grow_front(blob_t *blob, int extralen, char init)
-{
-    assert (extralen >= 0);
-    __sb_splice(blob, 0, 0, NULL, extralen);
-    memset(blob->data, init, extralen);
-    blob_check_slop();
-}
-
 static inline void blob_kill_data(blob_t *blob, int pos, int len) {
     sb_splice(blob, pos, len, NULL, 0);
 }
