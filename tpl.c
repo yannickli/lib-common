@@ -520,8 +520,8 @@ void tpl_optimize(tpl_t *tpl)
                 continue;
             }
             if (nxt->op == TPL_OP_BLOB && nxt->refcnt == 1) {
-                blob_insert_data(&nxt->u.blob, 0, cur->u.data.data,
-                                 cur->u.data.len);
+                sb_splice(&nxt->u.blob, 0, 0,
+                          cur->u.data.data, cur->u.data.len);
                 tpl_array_remove(&tpl->u.blocks, i);
                 tpl_delete(&cur);
                 continue;
@@ -545,7 +545,7 @@ void tpl_optimize(tpl_t *tpl)
             cur = tpl_to_blob(&tpl->u.blocks.tab[i]);
         }
         if (cur->refcnt > 1) {
-            blob_insert(&nxt->u.blob, 0, &cur->u.blob);
+            sb_splice(&nxt->u.blob, 0, 0, cur->u.blob.data, cur->u.blob.len);
             tpl_array_remove(&tpl->u.blocks, i);
             tpl_delete(&cur);
         } else {

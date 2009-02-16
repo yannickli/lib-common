@@ -203,6 +203,10 @@ static inline void sb_add(sb_t *sb, const void *data, int dlen)
 {
     memcpy(sb_growlen(sb, dlen), data, dlen);
 }
+static inline void sb_addsb(sb_t *sb, const sb_t *sb2)
+{
+    sb_add(sb, sb2->data, sb2->len);
+}
 static inline void sb_addc(sb_t *sb, unsigned char c)
 {
     sb_add(sb, &c, 1);
@@ -270,6 +274,10 @@ static inline void sb_set(sb_t *sb, const void *data, int dlen)
 {
     sb->len = 0;
     sb_add(sb, data, dlen);
+}
+static inline void sb_setsb(sb_t *sb, const sb_t *sb2)
+{
+    sb_set(sb, sb2->data, sb2->len);
 }
 static inline void sb_sets(sb_t *sb, const char *s)
 {

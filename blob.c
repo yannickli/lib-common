@@ -1376,47 +1376,6 @@ START_TEST(check_resize)
 END_TEST
 
 /*.....................................................................}}}*/
-/* test insert functions                                               {{{*/
-
-START_TEST(check_insert)
-{
-    blob_t blob;
-    blob_t *b2;
-
-    check_setup(&blob, "05");
-    b2 = blob_new();
-    blob_set_cstr(b2, "67");
-
-
-    /* insert cstr */
-    blob_insert_cstr(&blob, 1, "1234");
-    check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "012345") != 0,
-            "insert failed");
-    fail_if(blob.len != strlen("012345"),
-            "insert failed");
-
-    /* insert data */
-    blob_insert_data(&blob, blob.len, "89", 2);
-    check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "01234589") != 0,
-            "insert_data failed");
-    fail_if(blob.len != strlen("01234589"),
-            "insert_data failed");
-
-    /* insert blob */
-    blob_insert(&blob, 6, b2);
-    check_blob_invariants(&blob);
-    fail_if(strcmp((const char *)blob.data, "0123456789") != 0,
-            "insert failed");
-    fail_if(blob.len != strlen("0123456789"),
-            "insert failed");
-
-    check_teardown(&blob, &b2);
-}
-END_TEST
-
-/*.....................................................................}}}*/
 /* test splice functions                                               {{{*/
 
 START_TEST(check_splice)
@@ -2145,7 +2104,6 @@ Suite *check_make_blob_suite(void)
     tcase_add_test(tc, check_init_wipe);
     tcase_add_test(tc, check_blob_new);
     tcase_add_test(tc, check_set);
-    tcase_add_test(tc, check_insert);
     tcase_add_test(tc, check_splice);
     tcase_add_test(tc, check_append);
     tcase_add_test(tc, check_append_file_data);

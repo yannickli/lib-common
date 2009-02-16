@@ -171,8 +171,8 @@ static void e_trace_put_fancy(int level, const char *module, int lno, const char
     if (_G.tmpbuf.len > cols - 2)
         blob_kill_last(&_G.tmpbuf, _G.tmpbuf.len - cols - 2);
     len = snprintf(escapes, sizeof(escapes), "\r\e[%dC\e[7m ", cols - 2 - _G.tmpbuf.len);
-    blob_insert_data(&_G.tmpbuf, 0, escapes, len);
-    blob_append_cstr(&_G.tmpbuf, " \e[0m\r");
+    sb_splice(&_G.tmpbuf, 0, 0, escapes, len);
+    sb_adds(&_G.tmpbuf, " \e[0m\r");
 
     len = strlen(func);
 #define FUN_WIDTH 20
