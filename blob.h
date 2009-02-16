@@ -24,26 +24,7 @@
 #define blob_check_slop()
 #endif
 
-/**************************************************************************/
-/* Blob creation / deletion                                               */
-/**************************************************************************/
-
-static inline void blob_init2(blob_t *blob, void *buf, int size) {
-    assert (size > 0);
-    *blob = (blob_t){ .data = buf, .size = size };
-    blob->data[0] = '\0';
-}
-
-/* Warning: size is evaluated multiple times, but use of alloca
- * requires implementation as a macro.  size should be a constant
- * anyway.
- */
-#define blob_inita(blob, size)                \
-    do {                                      \
-        STATIC_ASSERT((size) < (64 << 10));   \
-        blob_init2(blob, alloca(size), size); \
-    } while (0)
-
+#define blob_inita        sb_inita
 #define blob_init         sb_init
 #define blob_wipe         sb_wipe
 #define blob_new          sb_new
@@ -53,12 +34,6 @@ static inline void blob_init2(blob_t *blob, void *buf, int size) {
 #define blob_get_cstr(sb) ((sb)->data)
 #define blob_get_end      sb_end
 #define blob_cmp          sb_cmp
-
-
-/**************************************************************************/
-/* Blob size/len manipulations                                            */
-/**************************************************************************/
-
 #define blob_reset sb_reset
 #define blob_grow sb_grow
 #define blob_extend sb_growlen

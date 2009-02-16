@@ -95,6 +95,12 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, bool own)
     return sb;
 }
 
+/* Warning: size is evaluated multiple times, but use of alloca
+ * requires implementation as a macro.  size should be a constant
+ * anyway.
+ */
+#define sb_inita(sb, sz)  sb_init_full(sb, alloca(sz), 0, (sz), false)
+
 #define SB(name, sz) \
     sb_t name = {                                       \
         .data = alloca(sz),                             \
