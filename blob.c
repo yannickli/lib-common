@@ -1438,7 +1438,7 @@ START_TEST(check_append)
 
     /* append escaped */
     blob_setlen(&blob, 0);
-    blob_append_cstr_escaped(&blob, "123\"45\\6", "\"\\");
+    blob_append_cstr_escaped(&blob, "123\"45\\6", "\"\\", "\"\\");
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, "123\\\"45\\\\6") != 0,
             "append escaped failed");
@@ -1446,7 +1446,7 @@ START_TEST(check_append)
             "append escaped failed");
 
     blob_setlen(&blob, 0);
-    blob_append_cstr_escaped(&blob, "123456", "\"\\");
+    blob_append_cstr_escaped2(&blob, "123456", "\"\\", "\"\\");
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, "123456") != 0,
             "append escaped failed on simple string");

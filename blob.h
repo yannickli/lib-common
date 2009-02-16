@@ -79,12 +79,6 @@ static inline void blob_append_cstr_escaped2(blob_t *blob, const char *cstr,
                                const char *toescape, const char *escaped) {
     blob_append_data_escaped2(blob, cstr, strlen(cstr), toescape, escaped);
 }
-static inline void
-blob_append_cstr_escaped(blob_t *blob, const char *cstr, const char *toescape)
-{
-    blob_append_cstr_escaped2(blob, cstr, toescape, toescape);
-}
-
 
 /**************************************************************************/
 /* Blob printf functions                                                  */
