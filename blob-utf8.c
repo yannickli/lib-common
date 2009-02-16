@@ -138,11 +138,8 @@ int blob_utf8_to_latin1(blob_t *out, const char *s, int rep)
                 break;
             }
         }
-        blob_ensure(out, out->len + 1);
-        out->data[out->len++] = c;
+        sb_addc(out, c);
     }
-    /* set len force invariant, blob is terminated with '\0' */
-    blob_setlen(out, out->len);
     return 0;
 
 error:
@@ -184,11 +181,8 @@ int blob_utf8_to_latin1_n(blob_t *out, const char *s, int len, int rep)
                 break;
             }
         }
-        blob_ensure(out, out->len + 1);
-        out->data[out->len++] = c;
+        sb_addc(out, c);
     }
-    /* set len force invariant, blob is terminated with '\0' */
-    blob_setlen(out, out->len);
     return 0;
 
 error:

@@ -38,9 +38,6 @@
 #define blob_grow sb_grow
 #define blob_extend sb_growlen
 
-static inline void blob_ensure(blob_t *blob, int newlen) {
-    sb_grow(blob, newlen - blob->len);
-}
 static inline void blob_setlen(blob_t *blob, int newlen) {
     sb_growlen(blob, newlen - blob->len);
 }
