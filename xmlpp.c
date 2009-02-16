@@ -85,7 +85,7 @@ void xmlpp_closetag(xmlpp_t *pp)
     } else {
         if (pp->was_a_tag) {
             blob_append_byte(pp->buf, '\n');
-            blob_extend2(pp->buf, pp->stack.len * 2, ' ');
+            sb_addnc(pp->buf, pp->stack.len * 2, ' ');
         }
         blob_append_fmt(pp->buf, "</%s>", tag);
     }

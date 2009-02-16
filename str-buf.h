@@ -207,6 +207,15 @@ static inline void sb_addc(sb_t *sb, unsigned char c)
 {
     sb_add(sb, &c, 1);
 }
+static inline void sb_addnc(sb_t *sb, int extralen, unsigned char c)
+{
+    memset(sb_growlen(sb, extralen), c, extralen);
+}
+static inline void sb_add0s(sb_t *sb, int extralen)
+{
+    sb_addnc(sb, extralen, 0);
+}
+
 static inline void sb_adds(sb_t *sb, const char *s)
 {
     sb_add(sb, s, strlen(s));

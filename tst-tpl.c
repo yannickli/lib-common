@@ -85,7 +85,7 @@ int main(int argc, const char **argv)
     e_trace(0, "sizeof(tpl_t) = %zd", sizeof(tpl_t));
     blob_init(&blob);
     blob_init(&b2);
-    blob_extend2(&blob, 4096, ' ');
+    sb_addnc(&blob, 4096, ' ');
 
     var = tpl_new();
     tpl_add_cstr(var, "var");

@@ -42,7 +42,7 @@ void bfield_set(bfield_t *bf, ssize_t pos)
         bf->offs = octet;
     }
     if (octet >= bf->offs + bf->bits.len) {
-        blob_extend2(&bf->bits, octet + 1 - bf->offs - bf->bits.len, 0);
+        sb_add0s(&bf->bits, octet + 1 - bf->offs - bf->bits.len);
     }
     bf->bits.data[octet - bf->offs] |= 1 << (pos & 7);
 }

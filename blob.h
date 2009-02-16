@@ -34,18 +34,12 @@
 #define blob_get_cstr(sb) ((sb)->data)
 #define blob_get_end      sb_end
 #define blob_cmp          sb_cmp
-#define blob_reset sb_reset
-#define blob_grow sb_grow
-#define blob_extend sb_growlen
+#define blob_reset        sb_reset
+#define blob_grow         sb_grow
+#define blob_extend       sb_growlen
 
 static inline void blob_setlen(blob_t *blob, int newlen) {
     sb_growlen(blob, newlen - blob->len);
-}
-
-/* blob_extend2 increases and initializes the available size and len */
-static inline void blob_extend2(blob_t *blob, int extralen, byte init) {
-    assert (extralen >= 0);
-    memset(sb_growlen(blob, extralen), init, extralen);
 }
 
 /**************************************************************************/
