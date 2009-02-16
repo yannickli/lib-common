@@ -237,6 +237,16 @@ sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
     return __sb_splice(sb, pos, len, data, dlen);
 }
 
+static inline void
+sb_splicenc(sb_t *sb, int pos, int len, int extralen, unsigned char c)
+{
+    memset(sb_splice(sb, pos, len, NULL, extralen), c, extralen);
+}
+static inline void sb_splice0s(sb_t *sb, int pos, int len, int extralen)
+{
+    sb_splicenc(sb, pos, len, extralen, 0);
+}
+
 
 static inline void sb_skip(sb_t *sb, int len)
 {
