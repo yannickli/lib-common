@@ -384,6 +384,8 @@ static int b64_size(int oldlen, int nbpackets)
 void sb_add_b64_start(sb_t *dst, int len, int width, sb_b64_ctx_t *ctx)
 {
     p_clear(ctx, 1);
+
+    prefetch(__b64);
     if (width < 0) {
         ctx->packs_per_line = -1;
     } else
@@ -397,10 +399,11 @@ void sb_add_b64_start(sb_t *dst, int len, int width, sb_b64_ctx_t *ctx)
 
 void sb_add_b64_update(sb_t *dst, const void *src0, int len, sb_b64_ctx_t *ctx)
 {
-    const char *src = src0;
-    const char *end = src + len;
-    short packs_per_line, pack_num;
-    unsigned c1, c2, c3;
+    short packs_per_line = ctx->packs_per_line;
+    short pack_num       = ctx->pack_num;
+    const byte *src = src0;
+    const byte *end = src + len;
+    unsigned pack;
     char *data;
 
     if (ctx->trail_len + len < 3) {
@@ -409,38 +412,32 @@ void sb_add_b64_update(sb_t *dst, const void *src0, int len, sb_b64_ctx_t *ctx)
         return;
     }
 
-    packs_per_line = ctx->packs_per_line;
-    pack_num       = ctx->pack_num;
     data = sb_grow(dst, b64_size(ctx->trail_len + len, packs_per_line) + 6);
 
-    if (ctx->trail_len == 1) {
-        c1 = ctx->trail[0];
-        goto has1;
-    }
-    if (ctx->trail_len == 2) {
-        c1 = ctx->trail[0];
-        c2 = ctx->trail[1];
-        goto has2;
+    if (ctx->trail_len) {
+        pack  = ctx->trail[0] << 16;
+        pack |= (ctx->trail_len == 2 ? ctx->trail[1] : *src++) << 8;
+        pack |= *src++;
+        goto initialized;
     }
 
-    while (src + 3 <= end) {
-        c1 = *src++;
-      has1:
-        c2 = *src++;
-      has2:
-        c3 = *src++;
+    do {
+        pack  = *src++ << 16;
+        pack |= *src++ <<  8;
+        pack |= *src++ <<  0;
 
-        *data++ = __b64[c1 >> 2];
-        *data++ = __b64[((c1 << 4) | (c2 >> 4)) & 0x3f];
-        *data++ = __b64[((c2 << 2) | (c3 >> 6)) & 0x3f];
-        *data++ = __b64[c3 & 0x3f];
+      initialized:
+        *data++ = __b64[(pack >> (3 * 6)) & 0x3f];
+        *data++ = __b64[(pack >> (2 * 6)) & 0x3f];
+        *data++ = __b64[(pack >> (1 * 6)) & 0x3f];
+        *data++ = __b64[(pack >> (0 * 6)) & 0x3f];
 
         if (packs_per_line > 0 && ++pack_num >= packs_per_line) {
             pack_num = 0;
             *data++ = '\r';
             *data++ = '\n';
         }
-    }
+    } while (src + 3 <= end);
 
     memcpy(ctx->trail, src, end - src);
     ctx->trail_len = end - src;
