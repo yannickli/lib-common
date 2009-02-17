@@ -24,43 +24,46 @@
 #define blob_check_slop()
 #endif
 
-#define blob_inita                 sb_inita
-#define blob_init                  sb_init
-#define blob_wipe                  sb_wipe
-#define blob_new                   sb_new
-#define blob_delete                sb_delete
-#define blob_reinit                sb_wipe
-#define blob_detach(sb)            sb_detach(sb, NULL)
-#define blob_get_cstr(sb)          ((sb)->data)
-#define blob_get_end               sb_end
-#define blob_cmp                   sb_cmp
-#define blob_reset                 sb_reset
-#define blob_grow                  sb_grow
-#define blob_extend                sb_growlen
-#define blob_kill_first            sb_skip
-#define blob_kill_last             sb_shrink
-#define blob_kill_at               sb_skip_upto
-#define blob_append_data           sb_add
-#define blob_append_cstr           sb_adds
-#define blob_append                sb_addsb
-#define blob_append_byte           sb_addc
-#define blob_set_data              sb_set
-#define blob_set_cstr              sb_sets
-#define blob_set                   sb_setsb
-#define blob_append_file_data      sb_read_file
-#define blob_append_fread          sb_fread
-#define blob_append_read           sb_read
-#define blob_append_recv           sb_recv
-#define blob_append_recvfrom       sb_recvfrom
-#define blob_save_to_file          sb_write_file
-#define blob_append_vfmt           sb_addvf
-#define blob_append_fmt            sb_addf
-#define blob_set_vfmt              sb_setvf
-#define blob_set_fmt               sb_setf
-#define blob_append_data_escaped2  sb_add_slashes
-#define blob_append_cstr_escaped2  sb_adds_slashes
-#define blob_append_urlencode      sb_add_urlencode
-#define blob_append_hex            sb_add_hex
+#define blob_inita                    sb_inita
+#define blob_init                     sb_init
+#define blob_wipe                     sb_wipe
+#define blob_new                      sb_new
+#define blob_delete                   sb_delete
+#define blob_reinit                   sb_wipe
+#define blob_detach(sb)               sb_detach(sb, NULL)
+#define blob_get_cstr(sb)             ((sb)->data)
+#define blob_get_end                  sb_end
+#define blob_cmp                      sb_cmp
+#define blob_reset                    sb_reset
+#define blob_grow                     sb_grow
+#define blob_extend                   sb_growlen
+#define blob_kill_first               sb_skip
+#define blob_kill_last                sb_shrink
+#define blob_kill_at                  sb_skip_upto
+#define blob_append_data              sb_add
+#define blob_append_cstr              sb_adds
+#define blob_append                   sb_addsb
+#define blob_append_byte              sb_addc
+#define blob_set_data                 sb_set
+#define blob_set_cstr                 sb_sets
+#define blob_set                      sb_setsb
+#define blob_append_file_data         sb_read_file
+#define blob_append_fread             sb_fread
+#define blob_append_read              sb_read
+#define blob_append_recv              sb_recv
+#define blob_append_recvfrom          sb_recvfrom
+#define blob_save_to_file             sb_write_file
+#define blob_append_vfmt              sb_addvf
+#define blob_append_fmt               sb_addf
+#define blob_set_vfmt                 sb_setvf
+#define blob_set_fmt                  sb_setf
+#define blob_append_data_escaped2     sb_add_slashes
+#define blob_append_cstr_escaped2     sb_adds_slashes
+#define blob_append_urlencode         sb_add_urlencode
+#define blob_append_hex               sb_add_hex
+#define blob_append_xml_escape        sb_add_xmlescape
+#define blob_append_xml_escape_cstr   sb_adds_xmlescape
+#define blob_append_quoted_printable  sb_add_qpe
 
 
 static inline void blob_setlen(blob_t *blob, int newlen) {
@@ -121,11 +124,6 @@ int blob_raw_uncompress(blob_t *dest, blob_t *src);
 /* Blob encoding                                                          */
 /**************************************************************************/
 
-int blob_append_xml_escape(blob_t *dst, const char *src, int len);
-static inline int blob_append_xml_escape_cstr(blob_t *dst, const char *s) {
-    return blob_append_xml_escape(dst, s, strlen(s));
-}
-void blob_append_quoted_printable(blob_t *dst, const void *src, int len);
 void blob_decode_quoted_printable(blob_t *dst, const char *src, int len);
 
 void blob_append_wbxml_href(blob_t *dst, const byte *data, int len);

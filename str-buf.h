@@ -316,6 +316,11 @@ int sb_recvfrom(sb_t *sb, int fd, int hint, int flags,
 /* usual quoting mechanisms (base64, addslashes, ...)                     */
 /**************************************************************************/
 
+#define __SB_DEFINE_ADDS(sfx) \
+    static inline void sb_adds_##sfx(sb_t *sb, const char *s) { \
+        sb_add_##sfx(sb, s, strlen(s));                         \
+    }
+
 void sb_add_slashes(sb_t *sb, const void *data, int len,
                     const char *toesc, const char *esc);
 static inline void
@@ -325,15 +330,15 @@ sb_adds_slashes(sb_t *sb, const char *s, const char *toesc, const char *esc)
 }
 
 void sb_add_urlencode(sb_t *sb, const void *data, int len);
-static inline void sb_adds_urlencode(sb_t *sb, const char *s)
-{
-    sb_add_urlencode(sb, s, strlen(s));
-}
+__SB_DEFINE_ADDS(urlencode);
 
 void sb_add_hex(sb_t *sb, const void *data, int len);
-static inline void sb_adds_hex(sb_t *sb, const char *s)
-{
-    sb_add_hex(sb, s, strlen(s));
-}
+__SB_DEFINE_ADDS(hex);
+
+void sb_add_xmlescape(sb_t *sb, const void *data, int len);
+__SB_DEFINE_ADDS(xmlescape);
+
+void sb_add_qpe(sb_t *sb, const void *data, int len);
+__SB_DEFINE_ADDS(qpe);
 
 #endif /* IS_LIB_COMMON_STR_BUF_H */
