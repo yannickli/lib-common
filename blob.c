@@ -614,18 +614,6 @@ void blob_append_date_iso8601(blob_t *dst, time_t date)
                     t.tm_hour, t.tm_min, t.tm_sec);
 }
 
-int blob_append_hex(blob_t *dst, const void *_src, int len)
-{
-    const byte *src = _src;
-    char *s = sb_growlen(dst, len * 2);
-
-    for (int i = 0; i < len; i++) {
-        *s++ = __str_digits_upper[(src[i] >> 4) & 0x0F];
-        *s++ = __str_digits_upper[(src[i] >> 0) & 0x0F];
-    }
-    return 0;
-}
-
 /*---------------- generic packing ----------------*/
 
 static char *convert_int10(char *p, int value)

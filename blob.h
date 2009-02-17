@@ -60,6 +60,7 @@
 #define blob_append_data_escaped2  sb_add_slashes
 #define blob_append_cstr_escaped2  sb_adds_slashes
 #define blob_append_urlencode      sb_add_urlencode
+#define blob_append_hex            sb_add_hex
 
 
 static inline void blob_setlen(blob_t *blob, int newlen) {
@@ -126,8 +127,6 @@ static inline int blob_append_xml_escape_cstr(blob_t *dst, const char *s) {
 }
 void blob_append_quoted_printable(blob_t *dst, const void *src, int len);
 void blob_decode_quoted_printable(blob_t *dst, const char *src, int len);
-
-int blob_append_hex(blob_t *dst, const void *src, int len);
 
 void blob_append_wbxml_href(blob_t *dst, const byte *data, int len);
 

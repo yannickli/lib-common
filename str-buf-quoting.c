@@ -88,3 +88,13 @@ void sb_add_urlencode(sb_t *sb, const void *_data, int len)
         }
     }
 }
+
+void sb_add_hex(sb_t *sb, const void *_src, int len)
+{
+    char *s = sb_growlen(dst, len * 2);
+
+    for (const byte *p = _src, *end = p + len; p < end; p++) {
+        *s++ = __str_digits_upper[(*p >> 4) & 0x0f];
+        *s++ = __str_digits_upper[(*p >> 0) & 0x0f];
+    }
+}

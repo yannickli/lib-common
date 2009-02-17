@@ -330,4 +330,10 @@ static inline void sb_adds_urlencode(sb_t *sb, const char *s)
     sb_add_urlencode(sb, s, strlen(s));
 }
 
+void sb_add_hex(sb_t *sb, const void *data, int len);
+static inline void sb_adds_hex(sb_t *sb, const char *s)
+{
+    sb_add_hex(sb, s, strlen(s));
+}
+
 #endif /* IS_LIB_COMMON_STR_BUF_H */
