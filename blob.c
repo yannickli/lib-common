@@ -57,17 +57,6 @@ static int b64_size(int oldlen, int nbpackets)
     }
 }
 
-/* OG: should decode in place or take separate source and
- * destination blobs */
-void blob_b64decode(blob_t *blob)
-{
-    int len;
-    char *dst = sb_detach(blob, &len);
-
-    sb_add_unb64(blob, dst, len);
-    p_delete(&dst);
-}
-
 /*---------------- blob conversion stuff ----------------*/
 
 /* width is the maximum length for output lines, not counting end of

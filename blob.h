@@ -101,7 +101,6 @@ int blob_deserialize(const blob_t *blob, int *pos, const char *fmt, ...);
 
 void blob_urldecode(blob_t *url);
 void blob_append_urldecode(blob_t *out, const void *encoded, int len, int flags);
-void blob_b64decode(blob_t *blob);
 
 /**************************************************************************/
 /* Blob compression/decompression                                         */
