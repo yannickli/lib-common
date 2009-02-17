@@ -208,3 +208,49 @@ void sb_add_qpe(sb_t *sb, const void *data, int len)
     }
     sb_add(sb, src + j, i - j);
 }
+
+void sb_add_unqpe(sb_t *sb, const void *data, int len)
+{
+    const byte *p = data, *end = p + len;
+    sb_grow(sb, len);
+
+    while (p < end) {
+        const byte *q = p;
+
+        while (p < end && *p != '=' && *p != '\r' && *p)
+            p++;
+        sb_add(sb, q, p - q);
+
+        if (p >= end)
+            return;
+        switch (*p++) {
+          case '\0':
+            return;
+
+          case '=':
+            if (end - p < 2) {
+                sb_addc(sb, '=');
+            } else
+            if (p[0] == '\r' && p[1] == '\n') {
+                p += 2;
+            } else {
+                int c = hexdecode((const char *)p);
+                if (c < 0) {
+                    sb_addc(sb, '=');
+                } else {
+                    sb_addc(sb, c);
+                    p += 2;
+                }
+            }
+            break;
+
+          case '\r':
+            if (p < end && *p == '\n') {
+                sb_addc(sb, *p++);
+            } else {
+                sb_addc(sb, '\r');
+            }
+            break;
+        }
+    }
+}

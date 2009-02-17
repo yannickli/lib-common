@@ -13,19 +13,6 @@
 
 #include "core.h"
 
-size_t memcspn(const char *s, int len, const char *reject)
-{
-    size_t res = 0;
-
-    while (len > 0) {
-        if (strchr(reject, *s++))
-            return res;
-        res++;
-        len--;
-    }
-    return res;
-}
-
 /** Copies the string pointed to by <code>src</code> to the buffer
  * <code>dest</code> of <code>size</code> bytes.
  * If <code>dest</code> is not NULL and <code>size</code> is greater

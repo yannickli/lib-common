@@ -64,6 +64,7 @@
 #define blob_append_xml_escape        sb_add_xmlescape
 #define blob_append_xml_escape_cstr   sb_adds_xmlescape
 #define blob_append_quoted_printable  sb_add_qpe
+#define blob_decode_quoted_printable  sb_add_unqpe
 
 
 static inline void blob_setlen(blob_t *blob, int newlen) {
@@ -123,8 +124,6 @@ int blob_raw_uncompress(blob_t *dest, blob_t *src);
 /**************************************************************************/
 /* Blob encoding                                                          */
 /**************************************************************************/
-
-void blob_decode_quoted_printable(blob_t *dst, const char *src, int len);
 
 void blob_append_wbxml_href(blob_t *dst, const byte *data, int len);
 

@@ -131,7 +131,6 @@ int memtoip(const void *p, int len, const byte **endp)  __attr_nonnull__((1));
 int64_t memtollp(const void *s, int len, const byte **endp)
     __attr_nonnull__((1));
 int64_t parse_number(const char *str);
-size_t memcspn(const char *s, int len, const char *reject);
 
 #define STRTOLP_IGNORE_SPACES  (1 << 0)
 #define STRTOLP_CHECK_END      (1 << 1)

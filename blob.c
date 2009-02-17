@@ -211,62 +211,6 @@ int string_decode_base64(void *_dst, int size,
 
 /*---------------- blob conversion stuff ----------------*/
 
-void blob_decode_quoted_printable(blob_t *dst, const char *src, int len)
-{
-    blob_grow(dst, len);
-
-    while (len > 0) {
-        size_t next = memcspn(src, len, "=\r");
-
-        blob_append_data(dst, src, next);
-        src += next;
-        len -= next;
-
-        switch (*src) {
-          case '\0':
-            break;
-
-          case '=':
-            src++;
-            len--;
-            if (len < 2)
-                return;
-
-            if (src[0] == '\r' && src[1] == '\n') {
-                src += 2;
-                len -= 2;
-            } else {
-                int c1, c2;
-
-                c1 = hexdigit(*src++);
-                c2 = hexdigit(*src++);
-                if (c1 >= 0 && c2 >= 0) {
-                    blob_append_byte(dst, c1 << 4 | c2);
-                }
-                len -= 2;
-            }
-            break;
-
-          case '\r':
-            if (src[1] == '\n') {
-                blob_append_byte(dst, '\n');
-                src += 2;
-                len -= 2;
-            } else {
-                blob_append_byte(dst, '\r');
-                src++;
-                len--;
-            }
-            break;
-
-          default:
-            /* Can not happen */
-            break;
-        }
-    }
-
-}
-
 /* width is the maximum length for output lines, not counting end of
  * line markers.  0 for standard 76 character lines, -1 for unlimited
  * line length.

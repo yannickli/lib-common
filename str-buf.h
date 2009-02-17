@@ -339,6 +339,8 @@ void sb_add_xmlescape(sb_t *sb, const void *data, int len);
 __SB_DEFINE_ADDS(xmlescape);
 
 void sb_add_qpe(sb_t *sb, const void *data, int len);
+void sb_add_unqpe(sb_t *sb, const void *data, int len);
 __SB_DEFINE_ADDS(qpe);
+__SB_DEFINE_ADDS(unqpe);
 
 #endif /* IS_LIB_COMMON_STR_BUF_H */
