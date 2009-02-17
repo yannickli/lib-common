@@ -21,9 +21,6 @@ extern unsigned char const __str_digit_value[128 + 256];
 extern char const __str_digits_upper[36];
 extern char const __str_digits_lower[36];
 
-#define URL_INVALID_CHAR  255
-extern unsigned char const __str_url_invalid[128 + 256];
-
 extern char const __utf8_trail[256];
 extern uint32_t const __utf8_offs[6];
 extern const char * const __cp1252_or_latin9_to_utf8[0x40];

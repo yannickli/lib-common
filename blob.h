@@ -59,6 +59,7 @@
 #define blob_set_fmt               sb_setf
 #define blob_append_data_escaped2  sb_add_slashes
 #define blob_append_cstr_escaped2  sb_adds_slashes
+#define blob_append_urlencode      sb_add_urlencode
 
 
 static inline void blob_setlen(blob_t *blob, int newlen) {
@@ -94,7 +95,6 @@ int blob_deserialize(const blob_t *blob, int *pos, const char *fmt, ...);
 
 void blob_urldecode(blob_t *url);
 void blob_append_urldecode(blob_t *out, const void *encoded, int len, int flags);
-void blob_append_urlencode(blob_t *out, const void *data, int len);
 void blob_b64decode(blob_t *blob);
 
 int blob_hexdecode(blob_t *out, const void *src, int len);

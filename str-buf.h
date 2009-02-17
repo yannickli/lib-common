@@ -324,4 +324,10 @@ sb_adds_slashes(sb_t *sb, const char *s, const char *toesc, const char *esc)
     sb_add_slashes(sb, s, strlen(s), toesc, esc);
 }
 
+void sb_add_urlencode(sb_t *sb, const void *data, int len);
+static inline void sb_adds_urlencode(sb_t *sb, const char *s)
+{
+    sb_add_urlencode(sb, s, strlen(s));
+}
+
 #endif /* IS_LIB_COMMON_STR_BUF_H */

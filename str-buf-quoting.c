@@ -13,6 +13,27 @@
 
 #include "core.h"
 
+static unsigned char const __str_url_invalid[256] = {
+#define REPEAT16(x)  x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
+    REPEAT16(255), REPEAT16(255),
+    255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, '*', 255, 255, '-', '.', 255,
+    '0', '1', '2', '3', '4', '5', '6', '7',
+    '8', '9', 255, 255, 255, 255, 255, 255,
+    '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G',
+    'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
+    'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
+    'X', 'Y', 'Z', 255, 255, 255, 255, '_',
+    255, 'a', 'b', 'c', 'd', 'e', 'f', 'g',
+    'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',
+    'p', 'q', 'r', 's', 't', 'u', 'v', 'w',
+    'x', 'y', 'z', 255, 255, 255, 255, 255,
+    REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
+    REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
+#undef REPEAT16
+};
+
+
 void sb_add_slashes(sb_t *sb, const void *_data, int len,
                     const char *toesc, const char *esc)
 {
@@ -30,10 +51,9 @@ void sb_add_slashes(sb_t *sb, const void *_data, int len,
     while (p < end) {
         const byte *q = p;
 
-        while (q < end && !TST_BIT(buf, *q))
-            q++;
-        sb_add(sb, p, q - p);
-        p = q;
+        while (p < end && !TST_BIT(buf, *p))
+            p++;
+        sb_add(sb, q, p - q);
 
         while (p < end && TST_BIT(buf, *p)) {
             byte c = repl[*p++];
@@ -43,6 +63,28 @@ void sb_add_slashes(sb_t *sb, const void *_data, int len,
                 s[0] = '\\';
                 s[1] = c;
             }
+        }
+    }
+}
+
+void sb_add_urlencode(sb_t *sb, const void *_data, int len)
+{
+    const byte *p = _data, *end = p + len;
+
+    sb_grow(sb, len);
+    while (p < end) {
+        const byte *q = p;
+
+        while (p < end && __str_url_invalid[*p] != 255)
+            p++;
+        sb_add(sb, q, p - q);
+
+        while (p < end && __str_url_invalid[*p] == 255) {
+            char *s = sb_growlen(sb, 3);
+            s[0] = '%';
+            s[1] = __str_digits_upper[(*p >> 4) & 0xf];
+            s[2] = __str_digits_upper[(*p >> 0) & 0xf];
+            p++;
         }
     }
 }
