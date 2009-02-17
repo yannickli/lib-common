@@ -320,6 +320,11 @@ int sb_recvfrom(sb_t *sb, int fd, int hint, int flags,
     static inline void sb_adds_##sfx(sb_t *sb, const char *s) { \
         sb_add_##sfx(sb, s, strlen(s));                         \
     }
+#define __SB_DEFINE_ADDS_ERR(sfx) \
+    static inline int sb_adds_##sfx(sb_t *sb, const char *s) {  \
+        return sb_add_##sfx(sb, s, strlen(s));                  \
+    }
+
 
 void sb_add_slashes(sb_t *sb, const void *data, int len,
                     const char *toesc, const char *esc);
@@ -333,7 +338,9 @@ void sb_add_urlencode(sb_t *sb, const void *data, int len);
 __SB_DEFINE_ADDS(urlencode);
 
 void sb_add_hex(sb_t *sb, const void *data, int len);
+int  sb_add_unhex(sb_t *sb, const void *data, int len);
 __SB_DEFINE_ADDS(hex);
+__SB_DEFINE_ADDS_ERR(unhex);
 
 void sb_add_xmlescape(sb_t *sb, const void *data, int len);
 __SB_DEFINE_ADDS(xmlescape);

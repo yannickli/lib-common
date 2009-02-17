@@ -65,6 +65,7 @@
 #define blob_append_xml_escape_cstr   sb_adds_xmlescape
 #define blob_append_quoted_printable  sb_add_qpe
 #define blob_decode_quoted_printable  sb_add_unqpe
+#define blob_hexdecode                sb_add_unhex
 
 
 static inline void blob_setlen(blob_t *blob, int newlen) {
@@ -101,8 +102,6 @@ int blob_deserialize(const blob_t *blob, int *pos, const char *fmt, ...);
 void blob_urldecode(blob_t *url);
 void blob_append_urldecode(blob_t *out, const void *encoded, int len, int flags);
 void blob_b64decode(blob_t *blob);
-
-int blob_hexdecode(blob_t *out, const void *src, int len);
 
 /**************************************************************************/
 /* Blob compression/decompression                                         */

@@ -134,6 +134,26 @@ void sb_add_hex(sb_t *sb, const void *data, int len)
     }
 }
 
+int  sb_add_unhex(sb_t *sb, const void *data, int len)
+{
+    sb_t orig = *sb;
+    char *s;
+
+    if (unlikely(len & 1))
+        return -1;
+
+    s = sb_growlen(sb, len / 2);
+    for (const char *p = data, *end = p + len; p < end; p += 2) {
+        int c = hexdecode(p);
+
+        if (unlikely(c < 0)) {
+            __sb_rewind_adds(sb, &orig);
+            return -1;
+        }
+        *s++ = c;
+    }
+    return 0;
+}
 
 void sb_add_xmlescape(sb_t *sb, const void *data, int len)
 {

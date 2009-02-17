@@ -88,35 +88,6 @@ void blob_b64decode(blob_t *blob)
     p_delete(&dst);
 }
 
-/* OG: API questions:
- * why not take const char *src ?
- * why not accept len=-1 to mean strlen(src) ?
- */
-int blob_hexdecode(blob_t *out, const void *_src, int len)
-{
-    int oldlen = out->len;
-    const char *src = _src;
-    char *dst;
-
-    if (len & 1)
-        return -1;
-
-    len /= 2;
-
-    blob_setlen(out, out->len + len);
-    dst = out->data + oldlen;
-    while (len-- > 0) {
-        int c = hexdecode(src);
-        if (unlikely(c < 0)) {
-            blob_setlen(out, oldlen);
-            return -1;
-        }
-        *dst++ = c;
-        src += 2;
-    }
-    return 0;
-}
-
 /* TODO: Could be optimized or made more strict to reject base64 strings
  * without '=' paddding */
 int string_decode_base64(void *_dst, int size,
