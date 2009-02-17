@@ -311,4 +311,17 @@ int sb_recv(sb_t *sb, int fd, int hint, int flags);
 int sb_recvfrom(sb_t *sb, int fd, int hint, int flags,
                 struct sockaddr *addr, socklen_t *alen);
 
+
+/**************************************************************************/
+/* usual quoting mechanisms (base64, addslashes, ...)                     */
+/**************************************************************************/
+
+void sb_add_slashes(sb_t *sb, const void *data, int len,
+                    const char *toesc, const char *esc);
+static inline void
+sb_adds_slashes(sb_t *sb, const char *s, const char *toesc, const char *esc)
+{
+    sb_add_slashes(sb, s, strlen(s), toesc, esc);
+}
+
 #endif /* IS_LIB_COMMON_STR_BUF_H */

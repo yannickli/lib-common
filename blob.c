@@ -15,54 +15,6 @@
 #include "net.h"
 
 /**************************************************************************/
-/* Blob manipulations                                                     */
-/**************************************************************************/
-
-/* Escape "toescape" chars with '\' followed by corresponding char in
- * "escaped" string. "escaped" string is of the same length as "toescape",
- * and can contain '\0' which means "delete this char".
- * XXX: Should think about a better API.
- */
-/* OG: this API sucks indeed, a more generic and faster method is
- * advisable to quote log message contents.
- */
-void blob_append_data_escaped2(blob_t *blob, const void *_data, size_t len,
-                               const char *toescape, const char *escaped)
-{
-    const byte *p, *data = _data;
-    const char *escaped_char;
-    char replacement;
-    size_t off;
-
-    if (!data)
-        return;
-
-    blob_check_slop();
-    off = pmemcspn(data, len, toescape);
-    while (off < len) {
-        p = data + off;
-        blob_append_data(blob, data, off);
-
-        escaped_char = strchr(toescape, *p);
-        replacement = escaped[escaped_char - toescape];
-        if (replacement) {
-            blob_append_byte(blob, '\\');
-            blob_append_byte(blob, replacement);
-        }
-        len  -= off + 1;
-        data  = p + 1;
-
-        off = pmemcspn(data, len, toescape);
-    }
-
-    /* Append string end, if it exists */
-    if (len > 0) {
-        blob_append_data(blob, data, len);
-    }
-    blob_check_slop();
-}
-
-/**************************************************************************/
 /* Blob string functions                                                  */
 /**************************************************************************/
 
@@ -1438,7 +1390,7 @@ START_TEST(check_append)
 
     /* append escaped */
     blob_setlen(&blob, 0);
-    blob_append_cstr_escaped(&blob, "123\"45\\6", "\"\\", "\"\\");
+    blob_append_cstr_escaped2(&blob, "123\"45\\6", "\"\\", "\"\\");
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, "123\\\"45\\\\6") != 0,
             "append escaped failed");

@@ -530,28 +530,6 @@ bool strfind(const char *keytable, const char *str, int sep)
     }
 }
 
-/** Search a string for a set of characters
- *  The pmemcspn() function calculates the length of the initial segment of
- *  'data' which consists entirely of characters not in 'reject'.
- */
-/* OG: implementation is very naive and inefficient */
-size_t pmemcspn(const byte *data, size_t len, const char *reject)
-{
-    size_t count = 0;
-    ssize_t remaining = len;
-
-    while (remaining >= 0) {
-        if (strchr(reject, *data++) == NULL) {
-            count++;
-            remaining--;
-        } else {
-            return count;
-        }
-    }
-
-    return count;
-}
-
 /** Increment last counter in a buffer
  *
  * <code>buf</code> points to the start of the buffer.

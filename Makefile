@@ -96,6 +96,7 @@ libcommon_SOURCES = \
 	\
 	str.c \
 	str-buf.c \
+	str-buf-quoting.c \
 	str-num.c \
 	str-conv.c \
 	str-iprintf.c \

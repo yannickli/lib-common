@@ -190,8 +190,6 @@ static inline void *vmemsearch(void *haystack, size_t hsize,
     return (void *)memsearch(haystack, hsize, needle, nsize);
 }
 
-size_t pmemcspn(const byte *data, size_t len, const char *reject);
-
 /* find a word in a list of words separated by sep.
  */
 bool strfind(const char *keytable, const char *str, int sep);
