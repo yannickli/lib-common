@@ -380,65 +380,6 @@ int blob_decode_ira_bin_as_utf8(sb_t *dst, const char *src, int slen)
     return 0;
 }
 
-/* Achtung: Decode a hex encoded (IRA) char array into ISO-8859-15
- * subset, not UTF-8
- */
-int string_decode_ira_hex_as_latin15(char *dst, int size,
-                                     const char *src, int len)
-{
-    int pos = 0;
-
-    if (len & 1)
-        return -1;
-
-    while (len >= 2) {
-        int ind = hexdecode(src);
-        if (ind < 0)
-            break;
-
-        src += 2;
-        len -= 2;
-
-        if (ind == 0x1B && len >= 2) {
-            ind = hexdecode(src);
-            if (ind < 0)
-                break;
-            ind += 256;
-            src += 2;
-            len -= 2;
-        }
-        if (++pos < size)
-            *dst++ = gsm7_to_iso8859_15[ind];
-    }
-    if (size > 0) {
-        *dst = '\0';
-    }
-    return pos;
-}
-
-int string_decode_ira_bin_as_latin15(char *dst, int size,
-                                     const char *src, int len)
-{
-    const char *end = src + len;
-    int pos = 0;
-
-    while (src < end) {
-        int ind = (byte)*src++;
-
-        if (ind == 0x1B && src < end) {
-            ind = 256 + (byte)*src++;
-        }
-        ++pos;
-        if (pos < size) {
-            *dst++ = gsm7_to_iso8859_15[ind];
-        }
-    }
-    if (size > 0) {
-        *dst = '\0';
-    }
-    return pos;
-}
-
 /* Parse IRA (hex encoded) string into UTF-8 char array */
 int string_decode_ira_hex_as_utf8(char *dst, int size,
                                   const char *src, int len)
