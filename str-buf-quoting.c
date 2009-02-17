@@ -13,6 +13,9 @@
 
 #include "core.h"
 
+static const char __b64[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
 static unsigned char const __str_url_invalid[256] = {
 #define REPEAT16(x)  x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
     REPEAT16(255), REPEAT16(255),
@@ -356,6 +359,103 @@ void sb_add_unqpe(sb_t *sb, const void *data, int len)
             break;
         }
     }
+}
+
+static int b64_size(int oldlen, int nbpackets)
+{
+    if (nbpackets > 0) {
+        int nb_full_lines = oldlen / (3 * nbpackets);
+        int lastlen = oldlen % (3 * nbpackets);
+
+        if (lastlen % 3) {
+            lastlen += 3 - (lastlen % 3);
+        }
+        lastlen = lastlen * 4 / 3;
+        if (lastlen) {
+            lastlen += 2; /* crlf */
+        }
+
+        return nb_full_lines * (4 * nbpackets + 2) + lastlen;
+    } else {
+        return 4 * ((oldlen + 2) / 3);
+    }
+}
+
+/* width is the maximum length for output lines, not counting end of
+ * line markers.  0 for standard 76 character lines, -1 for unlimited
+ * line length.
+ */
+/* OG: should rewrite this function using start/update/finish functions
+ * when output size computation is correct in blob_append_base64_update
+ */
+void sb_add_b64(sb_t *dst, const void *_src, int len, int width)
+{
+    const byte *src = _src;
+    const byte *end;
+    int pos, packs_per_line, pack_num, newlen;
+    char *data;
+
+    if (width < 0) {
+        packs_per_line = -1;
+    } else
+    if (width == 0) {
+        packs_per_line = 19; /* 76 characters + \r\n */
+    } else {
+        packs_per_line = width / 4;
+    }
+
+    pos      = dst->len;
+    newlen   = b64_size(len, packs_per_line);
+    data     = sb_growlen(dst, newlen);
+    pack_num = 0;
+    end      = src + len;
+
+    while (src < end) {
+        int c1, c2, c3;
+
+        c1      = *src++;
+        *data++ = __b64[c1 >> 2];
+
+        if (src == end) {
+            *data++ = __b64[((c1 & 0x3) << 4)];
+            *data++ = '=';
+            *data++ = '=';
+            if (packs_per_line > 0) {
+                *data++ = '\r';
+                *data++ = '\n';
+            }
+            break;
+        }
+
+        c2      = *src++;
+        *data++ = __b64[((c1 & 0x3) << 4) | ((c2 & 0xf0) >> 4)];
+
+        if (src == end) {
+            *data++ = __b64[((c2 & 0x0f) << 2)];
+            *data++ = '=';
+            if (packs_per_line > 0) {
+                *data++ = '\r';
+                *data++ = '\n';
+            }
+            break;
+        }
+
+        c3 = *src++;
+        *data++ = __b64[((c2 & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
+        *data++ = __b64[c3 & 0x3f];
+
+        if (packs_per_line > 0) {
+            if (++pack_num >= packs_per_line || src == end) {
+                pack_num = 0;
+                *data++ = '\r';
+                *data++ = '\n';
+            }
+        }
+    }
+
+#ifdef DEBUG
+    assert (data == sb_end(dst));
+#endif
 }
 
 int sb_add_unb64(sb_t *sb, const void *data, int len)

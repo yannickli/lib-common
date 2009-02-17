@@ -67,7 +67,7 @@
 #define blob_decode_quoted_printable  sb_add_unqpe
 #define blob_hexdecode                sb_add_unhex
 #define blob_urldecode                sb_urldecode
-
+#define blob_append_base64            sb_add_b64
 
 
 static inline void blob_setlen(blob_t *blob, int newlen) {
@@ -129,9 +129,6 @@ typedef struct base64enc_ctx {
     uint8_t nbmissing;
     byte trail;
 } base64enc_ctx;
-
-/* Simple encoding */
-void blob_append_base64(blob_t *dst, const void *src, int len, int width);
 
 /* base64 encoding per packets */
 void blob_append_base64_start(blob_t *dst, int len, int width,
