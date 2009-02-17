@@ -353,6 +353,17 @@ void sb_add_unqpe(sb_t *sb, const void *data, int len);
 __SB_DEFINE_ADDS(qpe);
 __SB_DEFINE_ADDS(unqpe);
 
+typedef struct sb_b64_ctx_t {
+    short packs_per_line;
+    short pack_num;
+    byte  trail[2];
+    byte  trail_len;
+} sb_b64_ctx_t;
+
+void sb_add_b64_start(sb_t *dst, int len, int width, sb_b64_ctx_t *ctx);
+void sb_add_b64_update(sb_t *dst, const void *src0, int len, sb_b64_ctx_t *ctx);
+void sb_add_b64_finish(sb_t *dst, sb_b64_ctx_t *ctx);
+
 void sb_add_b64(sb_t *sb, const void *data, int len, int width);
 int  sb_add_unb64(sb_t *sb, const void *data, int len);
 static inline void sb_adds_b64(sb_t *sb, const char *s, int width)

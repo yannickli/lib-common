@@ -152,7 +152,7 @@ int tpl_encode_ira_bin(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
 
 int tpl_encode_base64(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
 {
-    base64enc_ctx ctx;
+    sb_b64_ctx_t ctx;
 
     if (!blob) {
         assert(out);

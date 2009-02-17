@@ -68,6 +68,9 @@
 #define blob_hexdecode                sb_add_unhex
 #define blob_urldecode                sb_urldecode
 #define blob_append_base64            sb_add_b64
+#define blob_append_base64_start      sb_add_b64_start
+#define blob_append_base64_update     sb_add_b64_update
+#define blob_append_base64_finish     sb_add_b64_finish
 
 
 static inline void blob_setlen(blob_t *blob, int newlen) {
@@ -121,21 +124,6 @@ int blob_raw_uncompress(blob_t *dest, blob_t *src);
 void blob_append_wbxml_href(blob_t *dst, const byte *data, int len);
 
 void blob_append_date_iso8601(blob_t *dst, time_t date);
-
-/* base64 encoding */
-typedef struct base64enc_ctx {
-    int packs_per_line;
-    int pack_num;
-    uint8_t nbmissing;
-    byte trail;
-} base64enc_ctx;
-
-/* base64 encoding per packets */
-void blob_append_base64_start(blob_t *dst, int len, int width,
-                              base64enc_ctx *ctx);
-void blob_append_base64_update(blob_t *dst, const void *src, int len,
-                               base64enc_ctx *ctx);
-void blob_append_base64_finish(blob_t *dst, base64enc_ctx *ctx);
 
 /* in blob_emi.c */
 void blob_append_ira_hex(blob_t *dst, const void *src, int len);

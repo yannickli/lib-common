@@ -381,81 +381,105 @@ static int b64_size(int oldlen, int nbpackets)
     }
 }
 
+void sb_add_b64_start(sb_t *dst, int len, int width, sb_b64_ctx_t *ctx)
+{
+    p_clear(ctx, 1);
+    if (width < 0) {
+        ctx->packs_per_line = -1;
+    } else
+    if (width == 0) {
+        ctx->packs_per_line = 19; /* 76 characters + \r\n */
+    } else {
+        ctx->packs_per_line = width / 4;
+    }
+    sb_grow(dst, b64_size(len, ctx->packs_per_line));
+}
+
+void sb_add_b64_update(sb_t *dst, const void *src0, int len, sb_b64_ctx_t *ctx)
+{
+    const char *src = src0;
+    const char *end = src + len;
+    short packs_per_line, pack_num;
+    unsigned c1, c2, c3;
+    char *data;
+
+    if (ctx->trail_len + len < 3) {
+        memcpy(ctx->trail + ctx->trail_len, src, len);
+        ctx->trail_len += len;
+        return;
+    }
+
+    packs_per_line = ctx->packs_per_line;
+    pack_num       = ctx->pack_num;
+    data = sb_grow(dst, b64_size(ctx->trail_len + len, packs_per_line) + 6);
+
+    if (ctx->trail_len == 1) {
+        c1 = ctx->trail[0];
+        goto has1;
+    }
+    if (ctx->trail_len == 2) {
+        c1 = ctx->trail[0];
+        c2 = ctx->trail[1];
+        goto has2;
+    }
+
+    while (src + 3 <= end) {
+        c1 = *src++;
+      has1:
+        c2 = *src++;
+      has2:
+        c3 = *src++;
+
+        *data++ = __b64[c1 >> 2];
+        *data++ = __b64[((c1 << 4) | (c2 >> 4)) & 0x3f];
+        *data++ = __b64[((c2 << 2) | (c3 >> 6)) & 0x3f];
+        *data++ = __b64[c3 & 0x3f];
+
+        if (packs_per_line > 0 && ++pack_num >= packs_per_line) {
+            pack_num = 0;
+            *data++ = '\r';
+            *data++ = '\n';
+        }
+    }
+
+    memcpy(ctx->trail, src, end - src);
+    ctx->trail_len = end - src;
+    ctx->pack_num  = pack_num;
+    __sb_fixlen(dst, data - dst->data);
+}
+
+void sb_add_b64_finish(sb_t *dst, sb_b64_ctx_t *ctx)
+{
+    char *data = sb_growlen(dst, ctx->trail_len ? 6 : 2);
+
+    if (ctx->trail_len) {
+        unsigned c1 = ctx->trail[0];
+        unsigned c2 = ctx->trail_len == 2 ? ctx->trail[1] : 0;
+
+        *data++ = __b64[c1 >> 2];
+        *data++ = __b64[((c1 << 4) | (c2 >> 4)) & 0x3f];
+        *data++ = ctx->trail_len == 2 ? __b64[(c2 << 2) & 0x3f] : '=';
+        *data++ = '=';
+    }
+    if (ctx->packs_per_line > 0 && ctx->pack_num != 0) {
+        ctx->pack_num = 0;
+        *data++ = '\r';
+        *data++ = '\n';
+    }
+    ctx->trail_len = 0;
+}
+
 /* width is the maximum length for output lines, not counting end of
  * line markers.  0 for standard 76 character lines, -1 for unlimited
  * line length.
  */
-/* OG: should rewrite this function using start/update/finish functions
- * when output size computation is correct in blob_append_base64_update
- */
 void sb_add_b64(sb_t *dst, const void *_src, int len, int width)
 {
-    const byte *src = _src;
-    const byte *end;
-    int pos, packs_per_line, pack_num, newlen;
-    char *data;
+    sb_b64_ctx_t ctx;
 
-    if (width < 0) {
-        packs_per_line = -1;
-    } else
-    if (width == 0) {
-        packs_per_line = 19; /* 76 characters + \r\n */
-    } else {
-        packs_per_line = width / 4;
-    }
-
-    pos      = dst->len;
-    newlen   = b64_size(len, packs_per_line);
-    data     = sb_growlen(dst, newlen);
-    pack_num = 0;
-    end      = src + len;
-
-    while (src < end) {
-        int c1, c2, c3;
-
-        c1      = *src++;
-        *data++ = __b64[c1 >> 2];
-
-        if (src == end) {
-            *data++ = __b64[((c1 & 0x3) << 4)];
-            *data++ = '=';
-            *data++ = '=';
-            if (packs_per_line > 0) {
-                *data++ = '\r';
-                *data++ = '\n';
-            }
-            break;
-        }
-
-        c2      = *src++;
-        *data++ = __b64[((c1 & 0x3) << 4) | ((c2 & 0xf0) >> 4)];
-
-        if (src == end) {
-            *data++ = __b64[((c2 & 0x0f) << 2)];
-            *data++ = '=';
-            if (packs_per_line > 0) {
-                *data++ = '\r';
-                *data++ = '\n';
-            }
-            break;
-        }
-
-        c3 = *src++;
-        *data++ = __b64[((c2 & 0x0f) << 2) | ((c3 & 0xc0) >> 6)];
-        *data++ = __b64[c3 & 0x3f];
-
-        if (packs_per_line > 0) {
-            if (++pack_num >= packs_per_line || src == end) {
-                pack_num = 0;
-                *data++ = '\r';
-                *data++ = '\n';
-            }
-        }
-    }
-
-#ifdef DEBUG
-    assert (data == sb_end(dst));
-#endif
+    sb_add_b64_start(dst, len, width, &ctx);
+    sb_add_b64_update(dst, _src, len, &ctx);
+    sb_add_b64_finish(dst, &ctx);
 }
 
 int sb_add_unb64(sb_t *sb, const void *data, int len)
