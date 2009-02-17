@@ -403,7 +403,7 @@ int tpl_fold(blob_t *out, tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb,
     int res = 0;
 
     if ((res = tpl_fold_blob_tpl(out, *tplp, envid, vals, nb, flags))) {
-        blob_setlen(out, pos);
+        __sb_fixlen(out, pos);
         return res;
     }
     if (!(flags & TPL_KEEPVAR)) {
@@ -449,7 +449,7 @@ int tpl_fold_str(blob_t *out, tpl_t **tplp, uint16_t envid,
     int pos = out->len, res = 0;
 
     if ((res = tpl_fold_blob_str(out, *tplp, envid, vals, nb, flags))) {
-        blob_setlen(out, pos);
+        __sb_fixlen(out, pos);
     }
     tpl_delete(tplp);
     return res;
