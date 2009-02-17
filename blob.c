@@ -18,22 +18,6 @@
 /* Blob string functions                                                  */
 /**************************************************************************/
 
-/* OG: should merge these two: blob as destination and take buf+len as source */
-void blob_urldecode(blob_t *url)
-{
-    url->len = purldecode(url->data, url->data, url->len + 1, 0);
-}
-
-void blob_append_urldecode(blob_t *out, const void *encoded, int len,
-                           int flags)
-{
-    if (len < 0) {
-        len = strlen(encoded);
-    }
-    blob_grow(out, len);
-    out->len += purldecode(encoded, sb_end(out), len + 1, flags);
-}
-
 static const char
 b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -1168,21 +1152,21 @@ START_TEST(check_url)
     check_teardown(&blob, NULL);
 
     check_setup(&blob, "");
-    blob_append_urldecode(&blob, "toto%20tata", -1, 0);
+    sb_adds_urldecode(&blob, "toto%20tata");
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, "toto tata") != 0,
-            "blob_append_urldecode failed");
+            "sb_adds_urldecode failed");
     fail_if(blob.len != sstrlen("toto tata"),
-            "blob_append_urldecode failed");
+            "sb_adds_urldecode failed");
     check_teardown(&blob, NULL);
 
     check_setup(&blob, "tutu");
-    blob_append_urldecode(&blob, "toto%20tata", -1, 0);
+    sb_adds_urldecode(&blob, "toto%20tata");
     check_blob_invariants(&blob);
     fail_if(strcmp((const char *)blob.data, "tututoto tata") != 0,
-            "blob_append_urldecode failed");
+            "sb_adds_urldecode failed");
     fail_if(blob.len != sstrlen("tututoto tata"),
-            "blob_append_urldecode failed");
+            "sb_adds_urldecode failed");
     check_teardown(&blob, NULL);
 }
 END_TEST

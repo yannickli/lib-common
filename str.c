@@ -643,71 +643,6 @@ int str_replace(const char search, const char replace, char *subject)
     return nb_replace;
 }
 
-/* in and out can be the same pointer for 'in-place' decoding,
- * out has to be at least 'strlen(in) + 1' bytes long.
- *
- * returns the actual number of bytes written to out (doesn't
- * count the final \0, except if we ran out of space: in this case,
- * out[written] == '\0')
- */
-/* OG: broken semantics need to change */
-size_t purldecode(const char *in, char *out, size_t size, int flags)
-{
-    const char *p;
-    char *q = out;
-    size_t written = 0;
-    bool ignore_CR = !!(flags & URLDECODE_IGNORE_CR);
-
-    /* This function will stop on any embedded NULs.
-     */
-
-    if (size <= 0)
-        return 0;
-
-    /* Optimize the general case with a quick scan for % */
-    p = pstrchrnul(in, '%');
-
-    if (p > in) {
-        if ((size_t)(p - in) >= size) {
-            memmove(out, in, size - 1);
-            out[size] = '\0';
-            return size;
-        }
-        memmove(out, in, p - in);
-        written = p - in;
-        q = out + written;
-        size -= written;
-    }
-    while (size > 0 && (*q = *p) != '\0') {
-        int c;
-
-        if (*p == '%' && ((c = hexdecode(p + 1)) >= 0)) {
-            if (ignore_CR && c == 0x0D) {
-                /* OG: why strip %0D and not \r ? */
-                p += 3;
-            } else {
-                *q++ = c;
-                p += 3;
-                written++;
-                size--;
-            }
-        } else {
-            q++;
-            p++;
-            written++;
-            size--;
-        }
-    }
-
-    if (!size) {
-        /* force an ending \0 if we ran out of space */
-        q[-1] = '\0';
-    }
-
-    return written;
-}
-
-
 /*}}}*/
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
@@ -1134,38 +1069,6 @@ START_TEST(check_pstrrand)
 }
 END_TEST
 
-#define check_purldecode_unit(encoded, decoded)                        \
-    do {                                                               \
-        size_t l = purldecode(encoded, buf, sizeof(buf), 0);           \
-        fail_if(strcmp(buf, decoded) != 0,                             \
-                "failed to decode: expecting: %s, got %s.",            \
-                decoded, buf);                                         \
-        fail_if(l != strlen(decoded), "bad decoded len: e = %lld, "    \
-                "got %lld", (long long)strlen(decoded), (long long)l); \
-    } while (0)
-
-START_TEST(check_purldecode)
-{
-    char buf[BUFSIZ];
-#define URLDECODE_TEST1  "azertyuiop"
-#define URLDECODE_TEST2  "azert/y!u%iop"
-#define URLDECODE_TEST3  ""
-#define URLDECODE_TEST4_ENCODED "abcde%66gh"
-#define URLDECODE_TEST4_DECODED "abcdefgh"
-#define URLDECODE_TEST5_ENCODED "%61bcde%66gh"
-#define URLDECODE_TEST5_DECODED "abcdefgh"
-#define URLDECODE_TEST6_ENCODED "%61bcde%66"
-#define URLDECODE_TEST6_DECODED "abcdef"
-
-    check_purldecode_unit(URLDECODE_TEST1, URLDECODE_TEST1);
-    check_purldecode_unit(URLDECODE_TEST2, URLDECODE_TEST2);
-    check_purldecode_unit(URLDECODE_TEST3, URLDECODE_TEST3);
-    check_purldecode_unit(URLDECODE_TEST4_ENCODED, URLDECODE_TEST4_DECODED);
-    check_purldecode_unit(URLDECODE_TEST5_ENCODED, URLDECODE_TEST5_DECODED);
-    check_purldecode_unit(URLDECODE_TEST6_ENCODED, URLDECODE_TEST6_DECODED);
-}
-END_TEST
-
 Suite *check_string_suite(void)
 {
     Suite *s  = suite_create("String");
@@ -1186,7 +1089,6 @@ Suite *check_string_suite(void)
     tcase_add_test(tc, check_buffer_increment);
     tcase_add_test(tc, check_buffer_increment_hex);
     tcase_add_test(tc, check_pstrrand);
-    tcase_add_test(tc, check_purldecode);
     return s;
 }
 

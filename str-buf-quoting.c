@@ -142,6 +142,71 @@ void sb_add_urlencode(sb_t *sb, const void *_data, int len)
     }
 }
 
+void sb_add_urldecode(sb_t *sb, const void *data, int len)
+{
+    const char *p = data, *end = p + len;
+
+    for (;;) {
+        const char *q = p;
+        int c;
+
+        p = memchr(q, '%', end - q);
+        if (!p) {
+            sb_add(sb, q, end - q);
+            return;
+        }
+        sb_add(sb, q, p - q);
+
+        if (end - p < 3) {
+            sb_addc(sb, *p++);
+            continue;
+        }
+        c = hexdecode(p + 1);
+        if (c < 0) {
+            sb_addc(sb, *p++);
+            continue;
+        }
+        sb_addc(sb, c);
+        p += 3;
+    }
+}
+
+void sb_urldecode(sb_t *sb)
+{
+    const char *tmp, *r, *end = sb_end(sb);
+    char *w;
+
+    r = w = memchr(sb->data, '%', sb->len);
+    if (!r)
+        return;
+
+    for (;;) {
+        int c;
+
+        if (end - r < 3) {
+            *w++ = *r++;
+            continue;
+        }
+        c = hexdecode(r + 1);
+        if (c < 0) {
+            *w++ = *r++;
+            continue;
+        }
+        *w++ = c;
+        r   += 3;
+
+        r = memchr(tmp = r, '%', end - r);
+        if (!r) {
+            memmove(w, tmp, end - tmp);
+            w += end - tmp;
+            __sb_fixlen(sb, w - sb->data);
+            return;
+        }
+        memmove(w, tmp, r - tmp);
+        w += r - tmp;
+    }
+}
+
 void sb_add_hex(sb_t *sb, const void *data, int len)
 {
     char *s = sb_growlen(sb, len * 2);

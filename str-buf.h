@@ -335,7 +335,10 @@ sb_adds_slashes(sb_t *sb, const char *s, const char *toesc, const char *esc)
 }
 
 void sb_add_urlencode(sb_t *sb, const void *data, int len);
+void sb_add_urldecode(sb_t *sb, const void *data, int len);
+void sb_urldecode(sb_t *sb);
 __SB_DEFINE_ADDS(urlencode);
+__SB_DEFINE_ADDS(urldecode);
 
 void sb_add_hex(sb_t *sb, const void *data, int len);
 int  sb_add_unhex(sb_t *sb, const void *data, int len);
