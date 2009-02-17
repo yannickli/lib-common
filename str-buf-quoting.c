@@ -33,6 +33,24 @@ static unsigned char const __str_url_invalid[256] = {
 #undef REPEAT16
 };
 
+static unsigned char const __decode_base64[256] = {
+#define INV       255
+#define REPEAT8   INV, INV, INV, INV, INV, INV, INV, INV
+#define REPEAT16  REPEAT8, REPEAT8
+    REPEAT16, REPEAT16,
+    REPEAT8, INV, INV, INV, 62 /* + */, INV, INV, INV, 63 /* / */,
+    52, 53, 54, 55, 56, 57, 58, 59, 60, 61, INV, INV, INV, INV, INV, INV,
+    INV, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 /* O */,
+    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 /* Z */, INV, INV, INV, INV, INV,
+    INV, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40 /* o */,
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51 /* z */, INV, INV, INV, INV, INV,
+    REPEAT16, REPEAT16, REPEAT16, REPEAT16,
+    REPEAT16, REPEAT16, REPEAT16, REPEAT16,
+#undef REPEAT8
+#undef REPEAT16
+#undef INV
+};
+
 static byte const __str_encode_flags[256] = {
 #define REPEAT16(x)  x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
 #define QP  1
@@ -273,4 +291,72 @@ void sb_add_unqpe(sb_t *sb, const void *data, int len)
             break;
         }
     }
+}
+
+int sb_add_unb64(sb_t *sb, const void *data, int len)
+{
+    const byte *src = data, *end = src + len;
+    sb_t orig = *sb;
+
+    while (src < end) {
+        byte in[4];
+        int ilen = 0;
+        char *s;
+
+        while (ilen < 4 && src < end) {
+            int c = *src++;
+
+            if (isspace(c))
+                continue;
+
+            /*
+             * '=' must be at the end, they can only be 1 or 2 of them
+             * IOW we must have 2 or 3 fill `in` bytes already.
+             *
+             * And after them we can only have spaces. No data.
+             *
+             */
+            if (c == '=') {
+                if (ilen < 2)
+                    goto error;
+                if (ilen == 2) {
+                    while (src < end && isspace(*src))
+                        src++;
+                    if (src >= end || *src++ != '=')
+                        goto error;
+                }
+                while (src < end) {
+                    if (!isspace(*src++))
+                        goto error;
+                }
+
+                s = sb_growlen(sb, ilen - 1);
+                if (ilen == 3) {
+                    s[1] = (in[1] << 4) | (in[2] >> 2);
+                }
+                s[0] = (in[0] << 2) | (in[1] >> 4);
+                return 0;
+            }
+
+            in[ilen++] = c = __decode_base64[c];
+            if (unlikely(c == 255))
+                goto error;
+        }
+
+        if (ilen == 0)
+            return 0;
+
+        if (ilen != 4)
+            goto error;
+
+        s    = sb_growlen(sb, 3);
+        s[0] = (in[0] << 2) | (in[1] >> 4);
+        s[1] = (in[1] << 4) | (in[2] >> 2);
+        s[2] = (in[2] << 6) | (in[3] >> 0);
+    }
+    return 0;
+
+error:
+    __sb_rewind_adds(sb, &orig);
+    return -1;
 }

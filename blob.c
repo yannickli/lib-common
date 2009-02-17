@@ -37,24 +37,6 @@ void blob_append_urldecode(blob_t *out, const void *encoded, int len,
 static const char
 b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-#define INV       255
-#define REPEAT8   INV, INV, INV, INV, INV, INV, INV, INV
-#define REPEAT16  REPEAT8, REPEAT8
-static const char
-__decode_base64[256] = {
-    REPEAT16, REPEAT16,
-    REPEAT8, INV, INV, INV, 62 /* + */, INV, INV, INV, 63 /* / */,
-    52, 53, 54, 55, 56, 57, 58, 59, 60, 61, INV, INV, INV, INV, INV, INV,
-    INV, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 /* O */,
-    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 /* Z */, INV, INV, INV, INV, INV,
-    INV, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40 /* o */,
-    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51 /* z */, INV, INV, INV, INV, INV,
-    REPEAT16, REPEAT16, REPEAT16, REPEAT16,
-    REPEAT16, REPEAT16, REPEAT16, REPEAT16,
-};
-#undef REPEAT8
-#undef REPEAT16
-
 static int b64_size(int oldlen, int nbpackets)
 {
     if (nbpackets > 0) {
@@ -75,109 +57,15 @@ static int b64_size(int oldlen, int nbpackets)
     }
 }
 
+/* OG: should decode in place or take separate source and
+ * destination blobs */
 void blob_b64decode(blob_t *blob)
 {
     int len;
-    /* OG: should decode in place or take separate source and
-     * destination blobs */
-    byte *dst = p_new_raw(byte, blob->len);
+    char *dst = sb_detach(blob, &len);
 
-    len = string_decode_base64(dst, blob->len, (const char *)blob->data,
-                               blob->len);
-    blob_set_data(blob, dst, len);
+    sb_add_unb64(blob, dst, len);
     p_delete(&dst);
-}
-
-/* TODO: Could be optimized or made more strict to reject base64 strings
- * without '=' paddding */
-int string_decode_base64(void *_dst, int size,
-                         const char *src, int srclen)
-{
-    char *dst = _dst;
-    char *p;
-    const char *end;
-    byte in[4], v;
-    int i, len;
-
-    if (srclen < 0) {
-        srclen = strlen(src);
-    }
-
-    end = src + srclen;
-    p = dst;
-
-    while (src < end) {
-        for (len = 0, i = 0; i < 4 && src < end;) {
-            v = (unsigned char)*src++;
-
-            if (isspace(v))
-                continue;
-
-            if (v == '=') {
-                in[i++] = 0;
-                continue;
-            }
-
-            if (__decode_base64[v] == INV) {
-                e_trace(1, "invalid char in base64 string");
-                return -1;
-            }
-
-            in[i++] = __decode_base64[v];
-            len++;
-        }
-        switch (len) {
-          case 4:
-            if (size < 3) {
-                return -1;
-            }
-            p[0] = (in[0] << 2) | (in[1] >> 4);
-            p[1] = (in[1] << 4) | (in[2] >> 2);
-            p[2] = (in[2] << 6) | (in[3] >> 0);
-            size -= 3;
-            p += 3;
-            break;
-
-          case 3:
-            if (size < 2) {
-                return -1;
-            }
-            p[0] = (in[0] << 2) | (in[1] >> 4);
-            p[1] = (in[1] << 4) | (in[2] >> 2);
-            size -= 2;
-            p += 2;
-            if (src < end) {
-                /* Should be the end */
-                return -1;
-            }
-            break;
-
-          case 2:
-            if (size < 1) {
-                return -1;
-            }
-            p[0] = (in[0] << 2) | (in[1] >> 4);
-            size -= 1;
-            p++;
-            if (src < end) {
-                /* Should be the end */
-                return -1;
-            }
-            break;
-
-          case 0:
-            if (src < end) {
-                /* Should be the end */
-                return -1;
-            }
-            break;
-
-          default:
-            return -1;
-        }
-    }
-
-    return p - dst;
 }
 
 /*---------------- blob conversion stuff ----------------*/
@@ -1313,47 +1201,46 @@ END_TEST
 /*.....................................................................}}}*/
 /* test blob_b64                                                       {{{*/
 
-#define CHECK_BASE64_CORRECT(enc, dec)          \
-    pstrcpy(encoded, sizeof(encoded), enc);     \
-    res = string_decode_base64(decoded, sizeof(decoded), encoded, -1); \
-    fail_if(res < 0, "string_decode_base64 failed to decode correct base64"); \
-    fail_if(res != strlen(dec), "string_decode_base64: incorrect length"); \
-    decoded[res] = '\0'; \
-    fail_if(!strequal((const char *)decoded, dec), \
-            "string_decode_base64: incorrect decoded string:" \
-            "expected: %s, got: %s", dec, decoded);
+#define CHECK_BASE64_CORRECT(sb, enc, dec) \
+    do {                                                                      \
+        sb_reset((sb));                                                       \
+        fail_if(sb_adds_unb64((sb), enc), "sb_adds_unb64 of %s failed", enc); \
+        fail_if((sb)->len != strlen(dec) ||                                   \
+                memcmp((sb)->data, dec, (sb)->len),                           \
+                "sb_adds_unb64: bad decoding of `%s`:"                        \
+                "expected: %s, got: %s", enc, dec, (sb)->data);               \
+    } while (0)
 
-#define CHECK_BASE64_INCORRECT(enc)          \
-    pstrcpy(encoded, sizeof(encoded), enc);     \
-    res = string_decode_base64(decoded, sizeof(decoded), encoded, -1); \
-    fail_if(res >= 0, "string_decode_base64 failed to detect error");
+#define CHECK_BASE64_INCORRECT(sb, enc) \
+    do {                                                                      \
+        sb_reset(sb);                                                         \
+        fail_if(sb_adds_unb64(sb, enc) == 0,                                  \
+                "sb_adds_unb64 failed to detect error in: %s", enc);          \
+    } while (0)
 
 START_TEST(check_b64)
 {
     blob_t blob;
-    char encoded[BUFSIZ];
-    byte decoded[BUFSIZ];
-    int res;
+    SB_1k(sb);
 
     // Should check blob_append_base64_*
     check_setup(&blob, "abcdef");
     check_blob_invariants(&blob);
 
-    CHECK_BASE64_CORRECT("dHV0dTp0b3Rv", "tutu:toto");
-    CHECK_BASE64_CORRECT("dHV0    dTp0b3Rv", "tutu:toto");
-    CHECK_BASE64_CORRECT("dHV0d\nT p  0b \n3Rv    \n", "tutu:toto");
-    CHECK_BASE64_CORRECT("dHV0dTp0b3RvdA==", "tutu:totot");
-    CHECK_BASE64_CORRECT("dHV0dTp0b3RvdA=  =", "tutu:totot");
-    CHECK_BASE64_CORRECT("dHV0dTp0b3RvdHQ=", "tutu:totott");
-    CHECK_BASE64_CORRECT("dHV0dTp0b3RvdHQ =", "tutu:totott");
+    CHECK_BASE64_CORRECT(&sb, "dHV0dTp0b3Rv", "tutu:toto");
+    CHECK_BASE64_CORRECT(&sb, "dHV0    dTp0b3Rv", "tutu:toto");
+    CHECK_BASE64_CORRECT(&sb, "dHV0d\nT p  0b \n3Rv    \n", "tutu:toto");
+    CHECK_BASE64_CORRECT(&sb, "dHV0dTp0b3RvdA==", "tutu:totot");
+    CHECK_BASE64_CORRECT(&sb, "dHV0dTp0b3RvdA=  =", "tutu:totot");
+    CHECK_BASE64_CORRECT(&sb, "dHV0dTp0b3RvdHQ=", "tutu:totott");
+    CHECK_BASE64_CORRECT(&sb, "dHV0dTp0b3RvdHQ =", "tutu:totott");
 
-    // Our current decoder support base64 encoded strings without '='
-    // padding
-    //CHECK_BASE64_INCORRECT("dHV0dTp0b3R");
-    CHECK_BASE64_INCORRECT("dHV0dTp0b3RvdA==dHV0");
-    CHECK_BASE64_INCORRECT("dHV0dTp0b3RvdHQ=X");
+    CHECK_BASE64_INCORRECT(&sb, "dHV0dTp0b3R");
+    CHECK_BASE64_INCORRECT(&sb, "dHV0dTp0b3RvdA==dHV0");
+    CHECK_BASE64_INCORRECT(&sb, "dHV0dTp0b3RvdHQ=X");
 
     // TODO: check results
+    sb_wipe(&sb);
     check_teardown(&blob, NULL);
 }
 END_TEST
