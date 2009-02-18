@@ -46,6 +46,8 @@ void __sb_rewind_adds(sb_t *sb, const sb_t *orig)
 {
     if (!orig->must_free && sb->must_free) {
         sb_t tmp = *sb;
+        int save_errno = errno;
+
         if (orig->skip) {
             sb_init_full(sb, orig->data - orig->skip, orig->len,
                          orig->size + orig->skip, false);
@@ -55,6 +57,7 @@ void __sb_rewind_adds(sb_t *sb, const sb_t *orig)
             __sb_fixlen(sb, orig->len);
         }
         mem_free(tmp.data - tmp.skip);
+        errno = save_errno;
     } else {
         __sb_fixlen(sb, orig->len);
     }
@@ -218,38 +221,44 @@ int sb_read_file(sb_t *sb, const char *filename)
 {
     sb_t orig = *sb;
     struct stat st;
-    int fd, origlen = sb->len;
+    int res, fd, err;
     char *buf;
-
-    origlen = sb->len;
 
     if ((fd = open(filename, O_RDONLY)) < 0)
         return -1;
 
     if (fstat(fd, &st) < 0 || st.st_size <= 0) {
         for (;;) {
-            int res = sb_read(sb, fd, 0);
+            res = sb_read(sb, fd, 0);
             if (res < 0) {
                 __sb_rewind_adds(sb, &orig);
-                return -1;
+                goto end;
             }
-            if (res == 0)
-                return sb->len - origlen;
+            if (res == 0) {
+                res = sb->len - orig.len;
+                goto end;
+            }
         }
     }
 
     if (st.st_size > INT_MAX) {
         errno = ENOMEM;
-        return -1;
+        res = -1;
+        goto end;
     }
 
-    buf = sb_grow(sb, st.st_size);
-    if (xread(fd, buf, st.st_size) < 0) {
+    res = st.st_size;
+    buf = sb_growlen(sb, res);
+    if (xread(fd, buf, res) < 0) {
         __sb_rewind_adds(sb, &orig);
-        return -1;
+        res = -1;
     }
-    __sb_fixlen(sb, sb->len + st.st_size);
-    return st.st_size;
+
+end:
+    err = errno;
+    close(fd);
+    errno = err;
+    return res;
 }
 
 /* Return number of bytes written or -1 on error */
