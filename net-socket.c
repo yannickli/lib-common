@@ -98,8 +98,23 @@ int bindx(int sock, const sockunion_t *addrs, int cnt,
         if (addrs->family == AF_UNIX) {
             unlink(addrs->sunix.sun_path);
         }
+
         if (bind(sock, &addrs->sa, sockunion_len(addrs)) < 0) {
-            e_error("bind failed.");
+            switch (addrs->family) {
+              case AF_INET:
+                e_error("bind failed (port %d).",
+                        ntohs(addrs->sin.sin_port));
+                break;
+
+              case AF_INET6:
+                e_error("bind failed (port %d).",
+                        ntohs(addrs->sin6.sin6_port));
+                break;
+
+              default:
+                e_error("bind failed.");
+                break;
+            }
             goto error;
         }
 #ifdef HAVE_NETINET_SCTP_H
