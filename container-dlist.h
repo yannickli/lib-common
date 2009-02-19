@@ -16,18 +16,18 @@
 #endif
 #define IS_LIB_COMMON_CONTAINER_DLIST_H
 
-struct dlist_head {
-    struct dlist_head *next, *prev;
-};
+typedef struct dlist_t {
+    struct dlist_t *next, *prev;
+} dlist_t;
 
-#define DLIST_HEAD_INIT(name)  { .next = &(name), .prev = &(name) }
-static inline void dlist_head_init(struct dlist_head *l)
+#define DLIST_INIT(name)  { .next = &(name), .prev = &(name) }
+#define DLIST(name)       dlist_t name = DLIST_INIT(name)
+static inline void dlist_init(dlist_t *l)
 {
     l->next = l->prev = l;
 }
 
-static inline void __dlist_add(struct dlist_head *e, struct dlist_head *prev,
-                               struct dlist_head *next)
+static inline void __dlist_add(dlist_t *e, dlist_t *prev, dlist_t *next)
 {
     next->prev = e;
     e->next = next;
@@ -35,71 +35,71 @@ static inline void __dlist_add(struct dlist_head *e, struct dlist_head *prev,
     prev->next = e;
 }
 static inline void
-__dlist_remove(struct dlist_head *prev, struct dlist_head *next)
+__dlist_remove(dlist_t *prev, dlist_t *next)
 {
     next->prev = prev;
     prev->next = next;
 }
 
-static inline void dlist_add(struct dlist_head *l, struct dlist_head *n) {
+static inline void dlist_add(dlist_t *l, dlist_t *n) {
     __dlist_add(n, l, l->next);
 }
-static inline void dlist_add_tail(struct dlist_head *l, struct dlist_head *n) {
+static inline void dlist_add_tail(dlist_t *l, dlist_t *n) {
     __dlist_add(n, l->prev, l);
 }
 
-static inline void dlist_remove(struct dlist_head *l) {
+static inline void dlist_remove(dlist_t *l) {
     __dlist_remove(l->prev, l->next);
-    dlist_head_init(l);
+    dlist_init(l);
 }
-static inline void dlist_pop(struct dlist_head *l) {
+static inline void dlist_pop(dlist_t *l) {
     dlist_remove(l->next);
 }
 
-static inline void dlist_move(struct dlist_head *l, struct dlist_head *n) {
+static inline void dlist_move(dlist_t *l, dlist_t *n) {
     __dlist_remove(n->prev, n->next);
     dlist_add(l, n);
 }
-static inline void dlist_move_tail(struct dlist_head *l, struct dlist_head *n) {
+static inline void dlist_move_tail(dlist_t *l, dlist_t *n) {
     __dlist_remove(n->prev, n->next);
     dlist_add_tail(l, n);
 }
 
 static inline bool
-dlist_is_first(const struct dlist_head *l, const struct dlist_head *n) {
+dlist_is_first(const dlist_t *l, const dlist_t *n) {
     return n->prev == l;
 }
 static inline bool
-dlist_is_last(const struct dlist_head *l, const struct dlist_head *n) {
+dlist_is_last(const dlist_t *l, const dlist_t *n) {
     return n->next == l;
 }
-static inline bool dlist_is_empty(const struct dlist_head *l) {
+static inline bool dlist_is_empty(const dlist_t *l) {
     return l->next == l;
 }
 
 
 static inline void
-__dlist_splice(struct dlist_head *prev, struct dlist_head *next, struct dlist_head *src)
+__dlist_splice(dlist_t *prev, dlist_t *next, dlist_t *src)
 {
-	struct dlist_head *first = src->next;
-	struct dlist_head *last = src->prev;
+	dlist_t *first = src->next;
+	dlist_t *last = src->prev;
 
 	first->prev = prev;
 	prev->next  = first;
 	last->next  = next;
 	next->prev  = last;
-        dlist_head_init(src);
+        dlist_init(src);
 }
 
 static inline void
-dlist_splice(struct dlist_head *dst, struct dlist_head *src)
+dlist_splice(dlist_t *dst, dlist_t *src)
 {
 	if (!dlist_is_empty(src))
 		__dlist_splice(dst, dst->next, src);
 }
 
 static inline void
-dlist_splice_tail(struct dlist_head *dst, struct dlist_head *src)
+dlist_splice_tail(dlist_t *dst, dlist_t *src)
 {
 	if (!dlist_is_empty(src))
 		__dlist_splice(dst->prev, dst, src);
@@ -113,7 +113,7 @@ dlist_splice_tail(struct dlist_head *dst, struct dlist_head *src)
     dlist_entry(e->member.next, typeof(*e), member)
 
 #define __dlist_for_each(n, head, doit) \
-     for (struct dlist_head *n = (head)->next; \
+     for (dlist_t *n = (head)->next; \
           n != (head) && ({ doit; prefetch(n->next); }); n = n->next)
 
 #define dlist_for_each(n, head)   \
@@ -123,8 +123,8 @@ dlist_splice_tail(struct dlist_head *dst, struct dlist_head *src)
 
 
 #define __dlist_for_each_safe(n, __next, head, doit) \
-    for (struct dlist_head *n = (head)->next, *__next = n->next;      \
-         n != (head) && ({ doit; prefetch(__next->next); });          \
+    for (dlist_t *n = (head)->next, *__next = n->next;      \
+         n != (head) && ({ doit; prefetch(__next->next); });     \
          n = __next, __next = n->next)
 
 #define dlist_for_each_safe(n, head) \

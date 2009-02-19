@@ -72,7 +72,7 @@ typedef struct ev_t {
     el_data_t priv;
 
     union {
-        struct dlist_head ev_list; /* EV_BEFORE, EV_AFTER, EV_SIGNAL, EV_PROXY */
+        dlist_t ev_list; /* EV_BEFORE, EV_AFTER, EV_SIGNAL, EV_PROXY */
         int fd;                    /* EV_FD */
         pid_t pid;                 /* EV_CHILD */
         struct {
@@ -95,10 +95,10 @@ static struct {
     int    active;            /* number of ev_t keeping the el_loop running */
     uint64_t lp_clk;          /* low precision monotonic clock              */
 
-    struct dlist_head before; /* ev_t to run at the start of the loop       */
-    struct dlist_head after;  /* ev_t to run at the end of the loop         */
-    struct dlist_head sigs;   /* signals el_t's                             */
-    struct dlist_head proxy, proxy_ready;
+    dlist_t  before;          /* ev_t to run at the start of the loop       */
+    dlist_t  after;           /* ev_t to run at the end of the loop         */
+    dlist_t  sigs;            /* signals el_t's                             */
+    dlist_t  proxy, proxy_ready;
     ev_array timers;          /* relative timers heap (see comments after)  */
     ev_array cache;
     ev_assoc_htbl childs;     /* el_t's watching for processes              */
@@ -109,21 +109,21 @@ static struct {
     ev_t  *evs_alloc_next, *evs_alloc_end;
     ev_t  *evs[32 - EV_ALLOC_FACTOR];
     int    evs_len;
-    struct dlist_head evs_free;
-    struct dlist_head evs_gc;
+    dlist_t evs_free;
+    dlist_t evs_gc;
 } _G = {
     .evs[0]         = _G.evs_initial,
     .evs_len        = 1,
     .evs_alloc_next = &_G.evs_initial[0],
     .evs_alloc_end  = &_G.evs_initial[countof(_G.evs_initial)],
 
-    .before         = DLIST_HEAD_INIT(_G.before),
-    .after          = DLIST_HEAD_INIT(_G.after),
-    .sigs           = DLIST_HEAD_INIT(_G.sigs),
-    .proxy          = DLIST_HEAD_INIT(_G.proxy),
-    .proxy_ready    = DLIST_HEAD_INIT(_G.proxy_ready),
-    .evs_free       = DLIST_HEAD_INIT(_G.evs_free),
-    .evs_gc         = DLIST_HEAD_INIT(_G.evs_gc),
+    .before         = DLIST_INIT(_G.before),
+    .after          = DLIST_INIT(_G.after),
+    .sigs           = DLIST_INIT(_G.sigs),
+    .proxy          = DLIST_INIT(_G.proxy),
+    .proxy_ready    = DLIST_INIT(_G.proxy_ready),
+    .evs_free       = DLIST_INIT(_G.evs_free),
+    .evs_gc         = DLIST_INIT(_G.evs_gc),
 };
 
 #define ASSERT(msg, expr)  assert (((void)msg, likely(expr)))
@@ -132,13 +132,13 @@ static struct {
 #define CHECK_EV_TYPE(ev, typ) \
     ASSERT("incorrect type", (ev)->type == typ)
 
-static ev_t *ev_add(struct dlist_head *l, ev_t *ev)
+static ev_t *ev_add(dlist_t *l, ev_t *ev)
 {
     dlist_add(l, &ev->ev_list);
     return ev;
 }
 
-static void ev_cache_list(struct dlist_head *l)
+static void ev_cache_list(dlist_t *l)
 {
     ev_t *ev;
     ev_array_reset(&_G.cache);
@@ -194,7 +194,7 @@ static el_data_t el_destroy(ev_t **evp, bool move)
     return ev->priv;
 }
 
-static void ev_list_process(struct dlist_head *l)
+static void ev_list_process(dlist_t *l)
 {
     ev_cache_list(l);
     for (int i = 0; i < _G.cache.len; i++) {
