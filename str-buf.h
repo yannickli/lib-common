@@ -174,7 +174,7 @@ static inline int sb_avail(sb_t *sb)
 
 char *sb_detach(sb_t *sb, int *len);
 
-void __sb_rewind_adds(sb_t *sb, const sb_t *orig);
+int  __sb_rewind_adds(sb_t *sb, const sb_t *orig);
 void __sb_grow(sb_t *sb, int extra);
 static inline void __sb_fixlen(sb_t *sb, int len)
 {

@@ -42,7 +42,7 @@ char *sb_detach(sb_t *sb, int *len)
  * the rewind. It assumes only appends have been performed.
  *
  */
-void __sb_rewind_adds(sb_t *sb, const sb_t *orig)
+int __sb_rewind_adds(sb_t *sb, const sb_t *orig)
 {
     if (!orig->must_free && sb->must_free) {
         sb_t tmp = *sb;
@@ -61,6 +61,7 @@ void __sb_rewind_adds(sb_t *sb, const sb_t *orig)
     } else {
         __sb_fixlen(sb, orig->len);
     }
+    return -1;
 }
 
 void __sb_grow(sb_t *sb, int extra)
@@ -183,10 +184,8 @@ int sb_getline(sb_t *sb, FILE *f)
         sb->len += strlen(buf);
     } while (sb->data[sb->len - 1] == '\n');
 
-    if (ferror(f)) {
-        __sb_rewind_adds(sb, &orig);
-        return -1;
-    }
+    if (ferror(f))
+        return __sb_rewind_adds(sb, &orig);
     return 0;
 }
 
@@ -197,17 +196,14 @@ int sb_fread(sb_t *sb, int size, int nmemb, FILE *f)
 {
     sb_t orig = *sb;
     int   res = size * nmemb;
-    char *buf = sb_grow(sb, size * nmemb);
+    char *buf = sb_growlen(sb, size * nmemb);
 
     if (unlikely(((long long)size * (long long)nmemb) != res))
         e_panic("trying to allocate insane amount of memory");
 
     res = fread(buf, size, nmemb, f);
-    if (res < 0) {
-        __sb_rewind_adds(sb, &orig);
-        return res;
-    }
-    __sb_fixlen(sb, sb->len + res * size);
+    if (res < 0)
+        return __sb_rewind_adds(sb, &orig);
     return res;
 }
 
@@ -250,8 +246,7 @@ int sb_read_file(sb_t *sb, const char *filename)
     res = st.st_size;
     buf = sb_growlen(sb, res);
     if (xread(fd, buf, res) < 0) {
-        __sb_rewind_adds(sb, &orig);
-        res = -1;
+        res = __sb_rewind_adds(sb, &orig);
     }
 
 end:
@@ -294,10 +289,8 @@ int sb_read(sb_t *sb, int fd, int hint)
 
     buf = sb_grow(sb, hint <= 0 ? BUFSIZ : hint);
     res = read(fd, buf, sb_avail(sb));
-    if (res < 0) {
-        __sb_rewind_adds(sb, &orig);
-        return res;
-    }
+    if (res < 0)
+        return __sb_rewind_adds(sb, &orig);
     __sb_fixlen(sb, sb->len + res);
     return res;
 }
@@ -311,10 +304,8 @@ int sb_recvfrom(sb_t *sb, int fd, int hint, int flags,
 
     buf = sb_grow(sb, hint <= 0 ? BUFSIZ : hint);
     res = recvfrom(fd, buf, sb_avail(sb), flags, addr, alen);
-    if (res < 0) {
-        __sb_rewind_adds(sb, &orig);
-        return res;
-    }
+    if (res < 0)
+        return __sb_rewind_adds(sb, &orig);
     __sb_fixlen(sb, sb->len + res);
     return res;
 }

@@ -232,10 +232,8 @@ int  sb_add_unhex(sb_t *sb, const void *data, int len)
     for (const char *p = data, *end = p + len; p < end; p += 2) {
         int c = hexdecode(p);
 
-        if (unlikely(c < 0)) {
-            __sb_rewind_adds(sb, &orig);
-            return -1;
-        }
+        if (unlikely(c < 0))
+            return __sb_rewind_adds(sb, &orig);
         *s++ = c;
     }
     return 0;
@@ -543,6 +541,5 @@ int sb_add_unb64(sb_t *sb, const void *data, int len)
     return 0;
 
 error:
-    __sb_rewind_adds(sb, &orig);
-    return -1;
+    return __sb_rewind_adds(sb, &orig);
 }
