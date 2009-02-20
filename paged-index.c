@@ -644,9 +644,9 @@ void *pidx_data_getslicep(pidx_file *pidx, uint64_t idx,
     return NULL;
 }
 
-int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out)
+int pidx_data_get(pidx_file *pidx, uint64_t idx, sb_t *out)
 {
-    ssize_t pos = out->len;
+    sb_t orig = *out;
     int32_t page;
 
     pidx_real_rlock(pidx);
@@ -658,17 +658,16 @@ int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out)
 
         if (size > PIDX_PAGE - 2 * ssizeof(int32_t))
             goto error;
-        blob_append_data(out, pg->payload + sizeof(int32_t), size);
+        sb_add(out, pg->payload + sizeof(int32_t), size);
         page = pg->next;
     }
 
     pidx_real_unlock(pidx);
-    return out->len - pos;
+    return out->len - orig.len;
 
   error:
     pidx_real_unlock(pidx);
-    blob_kill_last(out, out->len - pos);
-    return -1;
+    return __sb_rewind_adds(out, &orig);
 }
 
 

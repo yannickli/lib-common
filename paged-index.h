@@ -14,7 +14,6 @@
 #ifndef IS_LIB_COMMON_PAGED_INDEX_H
 #define IS_LIB_COMMON_PAGED_INDEX_H
 
-#include "blob.h"
 #include "mmappedfile.h"
 
 typedef struct pidx_page {
@@ -111,7 +110,7 @@ pidx_key_prev(pidx_file *pidx, uint64_t cur, uint64_t *res) {
 /* high level functions                                                     */
 /****************************************************************************/
 
-int pidx_data_get(pidx_file *pidx, uint64_t idx, blob_t *out);
+int pidx_data_get(pidx_file *pidx, uint64_t idx, sb_t *out);
 
 int pidx_data_getslice(pidx_file *pidx, uint64_t idx,
                        byte *out, int start, int len) __must_check__;
