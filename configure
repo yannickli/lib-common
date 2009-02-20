@@ -179,6 +179,12 @@ fi
 # {{{ JNI
 
 if test -z ${JAVA_HOME}; then
+    JAVA_HOME=$(ls -1 -d /usr/lib/jvm/java*sun*/ 2>/dev/null | head -1)
+fi
+if test -z ${JAVA_HOME}; then
+    JAVA_HOME=$(ls -1 -d /usr/lib/jvm/java*/ 2>/dev/null | head -1)
+fi
+if test -z ${JAVA_HOME}; then
     echo 2>&1 "*** JAVA_HOME not set, JNI disabled"
 else
     setvar "jni_CFLAGS" "-I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux"
