@@ -14,6 +14,7 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include "unix.h"
+#include "time.h"
 
 /** Create a directory path as mkdir -p
  *

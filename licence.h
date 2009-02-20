@@ -16,14 +16,17 @@
 
 #include "conf.h"
 
+extern int trace_override;
+#define trace_override  trace_override
+
 bool is_my_mac_addr(const char *addr);
-int list_my_macs(char *dst, size_t size);
-int list_my_cpus(char *dst, size_t size);
-int read_cpu_signature(uint32_t *dst);
+int  list_my_macs(char *dst, size_t size);
+int  list_my_cpus(char *dst, size_t size);
+int  read_cpu_signature(uint32_t *dst);
 bool licence_check_expiration_ok(const conf_t *conf);
 bool licence_check_signature_ok(const conf_t *conf);
 bool licence_check_host_ok(const conf_t *conf);
-int licence_do_signature(const conf_t *conf, char dst[65]);
+int  licence_do_signature(const conf_t *conf, char dst[65]);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

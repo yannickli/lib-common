@@ -36,7 +36,6 @@ libcommon_SOURCES = \
 	mmappedfile.c \
 	paged-index.c \
 	parseopt.c \
-	showflags.c \
 	time.c \
 	xml.c \
 	xmlpp.c \

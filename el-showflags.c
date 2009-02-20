@@ -1,0 +1,248 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2008 INTERSEC SAS                                  */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+#include "licence.h"
+
+#define UA_GET4(src)       (*(const uint32_t*)(src))
+#define UA_PUT4(src, val)  (*(uint32_t*)(src) = (val))
+
+#define getbit_le32_flag(bb, bc, src, ilen, flags) \
+    (bc > 0 ? ((bb>>--bc)&1) : (bc=31,\
+              bb=UA_GET4((src)+ilen), \
+              UA_PUT4((src)+ilen, bb^flags), \
+              flags=(flags<<1)|(flags>>31) \
+              ,ilen+=4,(bb>>31)&1))
+
+#define getbit(bb)         getbit_le32_flag(bb,bc,src,ilen,flags)
+
+static int find_extra_flags(byte *src, unsigned src_len,
+                            unsigned *dst_len, unsigned flags)
+{
+    unsigned bc = 0;
+    uint32_t bb = 0;
+    unsigned ilen = 0, olen = 0, last_m_off = 1;
+
+    for (;;) {
+        unsigned m_off, m_len;
+
+        while (getbit(bb)) {
+            olen++;
+            ilen++;
+        }
+        m_off = 1;
+        do {
+            m_off = m_off * 2 + getbit(bb);
+        } while (!getbit(bb));
+
+        if (m_off == 2) {
+            m_off = last_m_off;
+        } else {
+            m_off = (m_off-3) * 256 + src[ilen++];
+            if (m_off == 0xffffffff)
+                break;
+            last_m_off = ++m_off;
+        }
+        m_len = getbit(bb);
+        m_len = m_len * 2 + getbit(bb);
+        if (m_len == 0) {
+            m_len++;
+            do {
+                m_len = m_len * 2 + getbit(bb);
+            } while (!getbit(bb));
+            m_len += 2;
+        }
+        m_len += (m_off > 0xd00);
+        olen += m_len + 1;
+    }
+    *dst_len = olen;
+    return ilen == src_len ? 0 : (ilen < src_len ? -1 : 1);
+}
+
+__attribute__((unused))
+static int show_flags(const char *arg, int flags)
+{
+    int hd, insize, size0, size1, res = 0;
+    byte *inbuf = NULL;
+    unsigned outsize;
+    unsigned block_outsize;
+    unsigned *header;
+    unsigned *blockhdr;
+    struct stat st;
+
+    if (stat(arg, &st)) {
+        if (flags) fprintf(stderr, "stat\n");
+        return 1;
+    }
+    if ((hd = open(arg, O_RDWR)) < 0) {
+        if (flags) fprintf(stderr, "open\n");
+        return 2;
+    }
+    insize = lseek(hd, 0L, SEEK_END);
+    inbuf = p_new_raw(byte, insize);
+    lseek(hd, 0L, SEEK_SET);
+    if (read(hd, inbuf, insize) != insize) {
+        if (flags) fprintf(stderr, "read\n");
+        res = 3;
+        goto done;
+    }
+
+#if 1
+    if (*(unsigned*)(inbuf + 0x0078) == 0x5850557f) { /* \177UPX */
+        header = (unsigned *)(inbuf + *(unsigned short*)(inbuf + 0x007C));
+    } else {
+        if (flags) fprintf(stderr, "unrecognized\n");
+        goto done;
+    }
+#else
+    header = (unsigned *)(inbuf + 1748);
+    if (header[5] != 0x464c457f) {
+        header = (unsigned *)(inbuf + 1880);
+        if (header[5] != 0x464c457f) {
+            header = (unsigned *)(inbuf + 1972);
+            if (header[5] != 0x464c457f) {
+                if (flags) fprintf(stderr, "unrecognized\n", arg);
+                goto done;
+            }
+        }
+    }
+#endif
+
+    outsize = header[1];
+
+    blockhdr = header + 3;
+    size0 = blockhdr[0];
+    size1 = blockhdr[1] & 0x7fffffff;
+
+    if (blockhdr[1] & 0x80000000) {
+        if (flags) fprintf(stderr, "flagged\n");
+        goto done;
+    }
+    find_extra_flags((byte *)blockhdr + 8, size1,
+                     &block_outsize, st.st_ino);
+    blockhdr[1] |= 0x80000000;
+
+    if (block_outsize != outsize) {
+        if (flags) fprintf(stderr, "size\n");
+        res = 5;
+        goto done;
+    }
+    lseek(hd, 0L, SEEK_SET);
+    if (write(hd, inbuf, insize) != insize) {
+        if (flags) fprintf(stderr, "write\n");
+        res = 6;
+        goto done;
+    }
+    if (flags) fprintf(stderr, "%s flagged\n", arg);
+  done:
+    p_delete(&inbuf);
+    close(hd);
+    return 0;
+}
+
+#ifdef CHECK_TRACE
+static const char *strace_msg_g;
+
+__attribute__((always_inline))
+static inline int sb_skip_lines(sb_t *sb, int n)
+{
+    while (--n >= 0) {
+        const char *p = strchr(sb->data, '\n');
+        if (!p) {
+            strace_msg_g = "Bad status format\n";
+            return -1;
+        }
+        sb_skip_upto(sb, p + 1);
+    }
+    return 0;
+}
+
+__attribute__((always_inline))
+static void check_strace(time_t now)
+{
+    static time_t next_strace_check;
+    const char *p;
+    SB_8k(buf);
+
+    if (now < next_strace_check)
+        return;
+
+#define STRACE_CHECK_INTERVAL 2
+    next_strace_check = now + STRACE_CHECK_INTERVAL;
+
+    if (trace_override)
+        return;
+
+    if (sb_read_file(&buf, "/proc/self/status") < 0) {
+        strace_msg_g = "Could not read status\n";
+        goto end;
+    }
+
+    /* skip Name, State */
+    if (sb_skip_lines(&buf, 2))
+        goto end;
+
+    /* Skip optional SleepAVG (absent in 2.6.24) */
+    if (strstart(buf.data, "SleepAVG:", NULL) && sb_skip_lines(&buf, 1))
+        goto end;
+
+    /* Tgid, Pid, PPid */
+    if (sb_skip_lines(&buf, 3))
+        goto end;
+
+    /* Check for TracerPid: */
+    if (!strstart(buf.data, "TracerPid:", &p)) {
+        strace_msg_g = "Bad status format\n";
+        goto end;
+    }
+
+    if (atoi(p)) {
+        /* Being traced !*/
+        strace_msg_g = "Bad constraint\n";
+        goto end;
+    }
+    sb_wipe(&buf);
+
+end:
+    if (strace_msg_g) {
+        fputs(strace_msg_g, stderr);
+        exit(124);
+    }
+}
+#endif
+
+__attribute__((always_inline))
+static void do_license_checks(void)
+{
+#if defined(CHECK_TRACE) || defined(EXPIRATION_DATE)
+    time_t now = (time)(NULL);
+
+#ifdef EXPIRATION_DATE
+    if (now > EXPIRATION_DATE) {
+        fputs("Licence expired\n", stderr);
+        exit(127);
+    }
+#endif
+#ifdef CHECK_TRACE
+    check_strace(now);
+#endif
+#endif
+}
+
+__attribute__((constructor))
+static void license_checks_initialize(void)
+{
+    do_license_checks();
+    //if (show_flags(__progname, 0)) {
+    //    exit(42);
+    //}
+}

@@ -21,6 +21,13 @@
 
 #define TIME_T_ERROR  ((time_t)-1)
 
+#if defined _BSD_SOURCE || defined _SVID_SOURCE
+/* nanosecond precision on file times from struct stat */
+#define st_atimensec  st_atim.tv_nsec   /* Backward compatibility.  */
+#define st_mtimensec  st_mtim.tv_nsec
+#define st_ctimensec  st_ctim.tv_nsec
+#endif
+
 unsigned long hardclock(void);
 
 /***************************************************************************/

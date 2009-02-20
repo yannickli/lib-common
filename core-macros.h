@@ -276,93 +276,6 @@ static inline int unsafe_mclk_cmp(uint32_t a, uint32_t b) {
      + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(a), uint32_t)) \
      + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(b), uint32_t)))
 
-/*---------------- Licence control ----------------*/
-
-int show_flags(const char *arg, int flags);
-int show_licence(const char *arg);
-int set_licence(const char *arg, const char *licence_data);
-void check_strace(void);
-
-#ifdef OS_LINUX
-#  include <sys/epoll.h>
-
-static inline void check_licence(const struct timeval *tv) {
-#ifdef EXPIRATION_DATE
-    if (tv->tv_sec > EXPIRATION_DATE) {
-        fputs("Licence expired\n", stderr);
-        exit(127);
-    }
-#endif
-}
-
-extern int strace_next_check;
-extern const char *strace_msg;
-extern int trace_override;
-#define trace_override  trace_override
-
-#  define STRACE_CHECK_INTERVAL 2
-
-static inline void check_trace(const struct timeval *tv) {
-#ifdef CHECK_TRACE
-    if (trace_override) {
-        return;
-    }
-    if (tv->tv_sec >= strace_next_check) {
-        strace_next_check = tv->tv_sec + STRACE_CHECK_INTERVAL;
-        check_strace();
-        if (strace_msg) {
-            fputs(strace_msg, stderr);
-            exit(124);
-        }
-    }
-#endif
-}
-
-static struct timeval now_strace_check;
-static inline int epoll_wait_check(int epfd, struct epoll_event * events, int maxevents, int timeout)
-{
-    int res = (epoll_wait)(epfd, events, maxevents, timeout);
-    gettimeofday(&now_strace_check, NULL);
-    check_licence(&now_strace_check);
-    check_trace(&now_strace_check);
-    return res;
-}
-
-#  define epoll_wait(epfd, events, maxevents, timeout) \
-    epoll_wait_check(epfd, events, maxevents, timeout)
-
-static inline int getopt_check(int argc, char * const argv[],
-                               const char *optstring)
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-
-    if (optind <= 1) {
-        if (argv[1]) {
-            if (!strcmp(argv[1], "--show-licence")
-            ||  !strcmp(argv[1], "--check")) {
-                exit(show_licence(argv[0]));
-            }
-            if (!strcmp(argv[1], "--set-licence"))
-                exit(set_licence(argv[0], argv[2]));
-            if (!strcmp(argv[1], "--flags")) {
-                sleep(5);
-                exit(show_flags(argv[0], 1));
-            }
-            check_licence(&tv);
-            //if (show_flags(argv[0], 0)) {
-            //    exit(42);
-            //}
-        }
-    }
-    check_licence(&tv);
-    check_trace(&tv);
-    return (getopt)(argc, argv, optstring);
-}
-#  define getopt(argc, argv, optstring)  getopt_check(argc, argv, optstring)
-
-#endif   /* OS_LINUX */
-
 /*---------------- Defensive programming ----------------*/
 
 #undef sprintf
@@ -394,13 +307,6 @@ static inline int p_close(int *hdp) {
     }
     return 0;
 }
-
-#if defined _BSD_SOURCE || defined _SVID_SOURCE
-/* nanosecond precision on file times from struct stat */
-#define st_atimensec  st_atim.tv_nsec   /* Backward compatibility.  */
-#define st_mtimensec  st_mtim.tv_nsec
-#define st_ctimensec  st_ctim.tv_nsec
-#endif
 
 /** \} */
 #endif

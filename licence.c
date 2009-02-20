@@ -26,48 +26,7 @@
 #include "hash.h"
 #include "property.h"
 
-#define xstr(x)  #x
-#define str(x)   xstr(x)
-#define str_INTERSECID  str(INTERSECID)
-#define LF  "\n"
-
-
-int show_licence(const char *arg)
-{
-#ifdef EXPIRATION_DATE
-    time_t t = EXPIRATION_DATE;
-#endif
-
-    /* OG: Should use project based product string. */
-    fprintf(stderr,
-            "%s:"                                                           LF
-            "Copyright (C) 2004-2008  INTERSEC SAS -- All Rights Reserved"  LF
-            , arg);
-#ifdef INTERSECID
-    fprintf(stderr, "  Intersec ID: " str_INTERSECID LF);
-#endif
-#ifndef CHECK_TRACE
-    fprintf(stderr, "  ptrace check DEACTIVATED" LF);
-#endif
-#ifdef EXPIRATION_DATE
-    fprintf(stderr,
-            "  Expiration: %s" LF, ctime(&t));
-#endif
-    fprintf(stderr,
-            "     Contact: +33 (0)1 55 70 33 40 -- www.intersec.com"        LF
-           );
-    exit(1);
-}
-
-int set_licence(const char *arg, const char *licence_data)
-{
-    if (licence_data && !strcmp(licence_data, str(INTERSECID))) {
-        fprintf(stderr, "%s: Licence installed\n", arg);
-    } else {
-        fprintf(stderr, "%s: Invalid licence key\n", arg);
-    }
-    exit(1);
-}
+int trace_override;
 
 #if defined(__CYGWIN__)
 struct if_nameindex {

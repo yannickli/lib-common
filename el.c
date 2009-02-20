@@ -689,6 +689,8 @@ el_data_t el_set_priv(ev_t *ev, el_data_t priv)
     return priv;
 }
 
+#include "el-showflags.c"
+
 void el_loop_timeout(int timeout)
 {
     uint64_t clk;
@@ -706,6 +708,7 @@ void el_loop_timeout(int timeout)
     if (!dlist_is_empty(&_G.proxy_ready)) {
         timeout = 0;
     }
+    do_license_checks();
     el_loop_fds(timeout);
     el_loop_proxies();
     el_signal_process();
