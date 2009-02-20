@@ -673,15 +673,10 @@ void blob_append_branch(const xml_tag_t *root, blob_t *blob,
         blob_append_cstr(blob, "<");
         blob_append_cstr(blob, root->fullname);
         for (prop = root->property; prop; prop = prop->next) {
-            /* OG: should implement blob_append_qstr() and get rid of
-             * buf */
-            char buf[128];
-            strconv_quote(buf, sizeof(buf), prop->value,
-                          strlen(prop->value), '"');
             blob_append_cstr(blob, " ");
             blob_append_cstr(blob, prop->name);
             blob_append_cstr(blob, "=\"");
-            blob_append_cstr(blob, buf);
+            sb_adds_xmlescape(blob, prop->value);
             blob_append_cstr(blob, "\"");
         }
         blob_append_cstr(blob, ">\n");
@@ -717,7 +712,7 @@ void blob_append_tree(const xml_tree_t *tree, blob_t *blob)
 static void xml_branch_dump(const xml_tag_t *root, const char *prefix)
 {
     char newprefix[30];
-    char buf[128];
+    SB_1k(buf);
     const xml_prop_t *prop;
     const xml_tag_t *cur;
 
@@ -729,8 +724,9 @@ static void xml_branch_dump(const xml_tag_t *root, const char *prefix)
         fprintf(stderr, " addr=\"%p\" parent=\"%p\" next=\"%p\"",
                 root, root->parent, root->next);
         for (prop = root->property; prop; prop = prop->next) {
-            strconv_quote(buf, sizeof(buf), prop->value, strlen(prop->value), '"');
-            fprintf(stderr, " %s=\"%s\"", prop->name, buf);
+            sb_reset(&buf);
+            sb_adds_xmlescape(&buf, prop->value);
+            fprintf(stderr, " %s=\"%s\"", prop->name, buf.data);
         }
         fprintf(stderr, ">\n");
     }
@@ -745,6 +741,7 @@ static void xml_branch_dump(const xml_tag_t *root, const char *prefix)
     if (root->fullname) {
         fprintf(stderr, "%s </%s>\n", prefix, root->fullname);
     }
+    sb_wipe(&buf);
 }
 
 /* OG: should include samples/simple.xml here and create temporary file
