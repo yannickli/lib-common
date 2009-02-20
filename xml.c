@@ -119,6 +119,160 @@ typedef enum parse_t {
         }                                                 \
     } while (0)
 
+/*  unescape XML entities, returns decoded length, or -1 on error
+ * The resulting string is not NUL-terminated
+ **/
+static int strconv_xmlunescape(char *str, int len)
+{
+    char *wpos = str, *start, *end;
+    int res_len = 0;
+
+    if (len < 0) {
+        len = strlen(str);
+    }
+
+    while (len > 0) {
+        char c;
+
+#if 0
+        if (is_utf8_data(str, len)) {
+            int bytes = 1 + (c >= 0x80) + (c >= 0x800) + (c >= 0x10000);
+
+            memcpy(wpos, str, bytes);
+            wpos += bytes;
+            str += bytes;
+            len -= bytes;
+            res_len += bytes;
+            continue;
+        }
+#endif
+
+        c = *str++;
+        len--;
+
+#if 0
+        if (c >= 0xa0) {
+            if (!__cp1252_or_latin9_to_utf8[c & 0x7f]) {
+                int bytes = str_utf8_putc(wpos, c);
+
+                wpos += bytes;
+                res_len += bytes;
+                continue;
+            } else {
+                int bytes = strlen(__cp1252_or_latin9_to_utf8[c & 0x7f]);
+
+                memcpy(wpos, __cp1252_or_latin9_to_utf8[c & 0x7f], bytes);
+                wpos += bytes;
+                str += bytes;
+                len -= bytes;
+                res_len += bytes;
+                continue;
+            }
+        }
+#endif
+
+        if (c == '&') {
+            int val;
+
+            start = str;
+            end = memchr(str, ';', len);
+            if (!end) {
+                e_trace(1, "Could not find entity end (%.*s%s)",
+                        5, str, len > 5 ? "..." : "");
+                goto error;
+            }
+            *end = '\0';
+
+            c = *str;
+            if (c == '#') {
+                str++;
+                if (*str == 'x') {
+                    /* hexadecimal */
+                    str++;
+                    val = strtol(str, (const char **)&str, 16);
+                } else {
+                    /* decimal */
+                    val = strtol(str, (const char **)&str, 10);
+                }
+                if (str != end) {
+                    e_trace(1, "Bad numeric entity, got trailing char: '%c'", *str);
+                    goto error;
+                }
+            } else {
+                /* TODO: Support externally defined entities */
+                /* textual entity */
+                switch (c) {
+                  case 'a':
+                    if (!strcmp(str, "amp")) {
+                        val = '&';
+                    } else
+                    if (!strcmp(str, "apos")) {
+                        val = '\'';
+                    } else {
+                        e_trace(1, "Unsupported entity: %s", str);
+                        goto error;
+                    }
+                    break;
+
+                  case 'l':
+                    if (!strcmp(str, "lt")) {
+                        val = '<';
+                    } else {
+                        e_trace(1, "Unsupported entity: %s", str);
+                        goto error;
+                    }
+                    break;
+
+                  case 'g':
+                    if (!strcmp(str, "gt")) {
+                        val = '>';
+                    } else {
+                        e_trace(1, "Unsupported entity: %s", str);
+                        goto error;
+                    }
+                    break;
+
+                  case 'q':
+                    if (!strcmp(str, "quot")) {
+                        val = '"';
+                    } else {
+                        e_trace(1, "Unsupported entity: %s", str);
+                        goto error;
+                    }
+                    break;
+
+                  default:
+                    /* invalid entity */
+                    e_trace(1, "Unsupported entity: %s", str);
+                    goto error;
+                }
+            }
+
+            /* write unicode char */
+            {
+                int bytes = str_utf8_putc(wpos, val);
+
+                wpos += bytes;
+                res_len += bytes;
+            }
+
+            str = end + 1;
+            len -= str - start;
+            continue;
+        }
+
+        *wpos++ = c;
+        res_len++;
+    }
+
+    return res_len;
+
+  error:
+    /* Cut string */
+    *wpos = '\0';
+    return -1;
+}
+
 /* Parse a property inside a tag and put it in (*dst).
  * Property is of form : prop = "value"
  * Single/Double quoting is supported.
@@ -825,6 +979,37 @@ START_TEST(check_xmlhash)
 }
 END_TEST
 
+START_TEST(check_str_xmlunescape)
+{
+    int res;
+    char dest[BUFSIZ];
+
+    const char *encoded = "3&lt;=8: Toto -&gt; titi &amp; "
+        "t&#xE9;t&#232; : &quot;you&apos;re&quot;";
+    const char *decoded = "3<=8: Toto -> titi & tétè : \"you're\"";
+    const char *badencoded = "3&lt;=8: Toto -&tutu; titi &amp; "
+        "t&#xE9;t&#232; : &quot;you&apos;re&quot;";
+    const char *baddecoded = "3<=8: Toto -";
+
+    pstrcpy(dest, sizeof(dest), encoded);
+
+    res = strconv_xmlunescape(dest, -1);
+    if (res >= 0) {
+        dest[res] = '\0';
+    }
+    fail_if(res != sstrlen(decoded), "strconv_xmlunescape returned bad"
+            "length: expected %zd, got %d. (%s)", strlen(decoded), res, dest);
+    fail_if(strcmp(dest, decoded), "strconv_xmlunescape failed decoding");
+
+    pstrcpy(dest, sizeof(dest), badencoded);
+
+    res = strconv_xmlunescape(dest, -1);
+    fail_if(res != -1, "strconv_xmlunescape did not detect error");
+    fail_if(strcmp(dest, baddecoded), "strconv_xmlunescape failed to clean "
+            "badly encoded str");
+}
+END_TEST
+
 
 Suite *check_xml_suite(void)
 {
@@ -834,6 +1019,7 @@ Suite *check_xml_suite(void)
     suite_add_tcase(s, tc);
     tcase_add_test(tc, check_xmlparse);
     tcase_add_test(tc, check_xmlhash);
+    tcase_add_test(tc, check_str_xmlunescape);
     return s;
 }
 #endif

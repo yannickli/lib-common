@@ -78,8 +78,6 @@ int strconv_hexdecode(byte *dest, int size, const char *src, int len);
 int strconv_hexencode(char *dest, int size, const byte *src, int len);
 int strconv_unquote(char *dest, int size, const char *src, int len);
 int str_utf8_putc(char *dst, int c);
-/* Decode XML entities in place */
-int strconv_xmlunescape(char *str, int len);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
