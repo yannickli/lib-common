@@ -16,50 +16,47 @@
 #else
 #define IS_LIB_COMMON_STR_BUF_H
 
-/* blob_t is a wrapper type for a reallocatable byte array.
- * Its internal representation is accessible to client code but care
- * must be exercised to preserve blob invariants and avoid dangling
- * pointers when blob data is reallocated by blob functions.
+/* sb_t is a wrapper type for a reallocatable byte array.  Its internal
+ * representation is accessible to client code but care must be exercised to
+ * preserve strbuf invariants and avoid dangling pointers when strbuf data is
+ * reallocated by strbuf functions.
  *
- * Here is a description of the blob fields:
+ * Here is a description of the strbuf fields:
  *
- * - <data> is a pointer to the active portion of the byte array.  As
- * <data> may be reallocated by blob operations, it is error prone to
- * copy its value to a local variable for content parsing or other such
- * manipulations.  As <data> may point to non allocated storage, static
- * or dynamic or automatic, returning its value is guaranteed to cause
- * potential problems, current of future.  If some blob data was
- * skipped, <data> may no longer point to the beginning of the original
- * or allocated array.  <data> cannot be NULL.  It is initialized as
- * the address of a global 1 byte array, or a buffer with automatic
- * storage.
+ * - <data> is a pointer to the active portion of the byte array.  As <data>
+ *   may be reallocated by strbuf operations, it is error prone to copy its
+ *   value to a local variable for content parsing or other such
+ *   manipulations.  As <data> may point to non allocated storage, static or
+ *   dynamic or automatic, returning its value is guaranteed to cause
+ *   potential problems, current of future.  If some strbuf data was skipped,
+ *   <data> may no longer point to the beginning of the original or allocated
+ *   array.  <data> cannot be NULL.  It is initialized as the address of a
+ *   global 1 byte array, or a buffer with automatic storage.
  *
- * - <len> is the length in bytes of the blob contents.  A blob invariant
- * specifies that data[len] == '\0'.  This invariant must be kept at
- * all times, and implies that data storage extend at least one byte
- * beyond <len>. <len> is always positive or zero. <len> is initialized
- * to zero for an empty blob.
+ * - <len> is the length in bytes of the strbuf contents.  A strbuf invariant
+ *   specifies that data[len] == '\0'.  This invariant must be kept at all
+ *   times, and implies that data storage extend at least one byte beyond
+ *   <len>. <len> is always positive or zero. <len> is initialized to zero for
+ *   an empty strbuf.
  *
- * - <size> is the number of bytes available for blob contents starting
- * at <data>.  The blob invariant implies that size > len.
+ * - <size> is the number of bytes available for strbuf contents starting at
+ *   <data>.  The strbuf invariant implies that size > len.
  *
- * - <skip> is a count of byte skipped from the beginning of the
- * original data buffer.  It is used for efficient pruning of initial
- * bytes.
+ * - <skip> is a count of byte skipped from the beginning of the original data
+ *   buffer.  It is used for efficient pruning of initial bytes.
  *
- * - <allocated> is a 1 bit boolean to indicate if blob data was
- * allocated with p_new and must be freed.  Actual allocated buffer
- * starts at .data - .skip.
+ * - <allocated> is a 1 bit boolean to indicate if strbuf data was allocated
+ *   with p_new and must be freed.  Actual allocated buffer starts at .data -
+ *   .skip.
  *
- * blob invariants:
- * - blob.data != NULL
- * - blob.len >= 0
- * - blob.size > blob.len
- * - blob.data - blob.skip points to an array of at least
- * blob.size + blob.skip bytes.
- * - blob.data[blob.len] == '\0'
- * - if blob.allocated, blob.data - blob.skip is a pointer handled by
- * mem_alloc / mem_free.
+ * strbuf invariants:
+ * - sb.data != NULL
+ * - sb.len >= 0
+ * - sb.size > sb.len
+ * - sb.data - sb.skip points to an array of at least sb.size + sb.skip bytes.
+ * - sb.data[sb.len] == '\0'
+ * - if sb.must_free, sb.data - sb.skip is a pointer handled by mem_alloc /
+ *   mem_free.
  */
 typedef struct sb_t {
     char *data;
@@ -68,12 +65,12 @@ typedef struct sb_t {
     unsigned int skip : 31;
 } sb_t;
 
-/* Default byte array for empty blobs. It should always stay equal to
- * \0 and is writeable to simplify some blob functions that enforce the
+/* Default byte array for empty strbufs. It should always stay equal to
+ * \0 and is writeable to simplify some strbuf functions that enforce the
  * invariant by writing \0 at data[len].
- * This data is thread specific for obscure and ugly reasons: some blob
+ * This data is thread specific for obscure and ugly reasons: some strbuf
  * functions may temporarily overwrite the '\0' and would cause
- * spurious bugs in other threads sharing the same blob data.
+ * spurious bugs in other threads sharing the same strbuf data.
  * It would be much cleaner if this array was const.
  */
 extern char __sb_slop[1];
