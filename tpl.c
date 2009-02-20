@@ -27,7 +27,7 @@ tpl_t *tpl_new_op(tpl_op op)
     n->op     = op;
     n->refcnt = 1;
     if (op == TPL_OP_BLOB)
-        blob_init(&n->u.blob);
+        sb_init(&n->u.blob);
     if (op & TPL_OP_BLOCK)
         tpl_array_init(&n->u.blocks);
 
@@ -56,7 +56,7 @@ tpl_t *tpl_dup(const tpl_t *tpl)
 static void tpl_wipe(tpl_t *n)
 {
     if (n->op == TPL_OP_BLOB)
-        blob_wipe(&n->u.blob);
+        sb_wipe(&n->u.blob);
     if (n->op & TPL_OP_BLOCK)
         tpl_array_wipe(&n->u.blocks);
 }
@@ -106,7 +106,7 @@ void tpl_add_data(tpl_t *tpl, const void *data, int len)
     {
         buf = tpl->u.blocks.tab[tpl->u.blocks.len - 1];
         if (buf->op == TPL_OP_BLOB && len <= TPL_COPY_LIMIT_SOFT) {
-            blob_append_data(&buf->u.blob, data, len);
+            sb_add(&buf->u.blob, data, len);
             return;
         }
     }
@@ -114,7 +114,7 @@ void tpl_add_data(tpl_t *tpl, const void *data, int len)
     buf->u.data = (struct tpl_data){ .data = data, .len = len };
 }
 
-blob_t *tpl_get_blob(tpl_t *tpl)
+sb_t *tpl_get_blob(tpl_t *tpl)
 {
     tpl_t *buf;
 
@@ -130,7 +130,7 @@ blob_t *tpl_get_blob(tpl_t *tpl)
 void tpl_copy_data(tpl_t *tpl, const void *data, int len)
 {
     if (len > 0) {
-        blob_append_data(tpl_get_blob(tpl), data, len);
+        sb_add(tpl_get_blob(tpl), data, len);
     }
 }
 
@@ -143,7 +143,7 @@ void tpl_add_fmt(tpl_t *tpl, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    blob_append_vfmt(tpl_get_blob(tpl), fmt, ap);
+    sb_addvf(tpl_get_blob(tpl), fmt, ap);
     va_end(ap);
 }
 
@@ -174,7 +174,7 @@ void tpl_embed_tpl(tpl_t *out, tpl_t **tplp)
     {
         tpl_t *buf = out->u.blocks.tab[out->u.blocks.len - 1];
         if (buf->op == TPL_OP_BLOB && buf->refcnt == 1) {
-            blob_append(&buf->u.blob, &tpl->u.blob);
+            sb_addsb(&buf->u.blob, &tpl->u.blob);
             tpl_delete(tplp);
             return;
         }
@@ -197,7 +197,7 @@ void tpl_add_tpl(tpl_t *out, const tpl_t *tpl)
     {
         tpl_t *buf = out->u.blocks.tab[out->u.blocks.len - 1];
         if (buf->op == TPL_OP_BLOB && buf->refcnt == 1) {
-            blob_append(&buf->u.blob, &tpl->u.blob);
+            sb_addsb(&buf->u.blob, &tpl->u.blob);
             return;
         }
     }
@@ -354,7 +354,7 @@ int tpl_get_short_data(tpl_t **tpls, int nb, const byte **data, int *len)
 /****************************************************************************/
 
 static int
-tpl_apply(tpl_apply_f *f, tpl_t *out, blob_t *blob, tpl_t *in)
+tpl_apply(tpl_apply_f *f, tpl_t *out, sb_t *blob, tpl_t *in)
 {
     if (in->op & TPL_OP_BLOCK)
         return (*f)(out, blob, in->u.blocks.tab, in->u.blocks.len);
@@ -368,7 +368,7 @@ tpl_apply(tpl_apply_f *f, tpl_t *out, blob_t *blob, tpl_t *in)
 #define NS(x)          x##_tpl
 #define VAL_TYPE       tpl_t *
 #define DEAL_WITH_VAR  tpl_combine_tpl
-#define DEAL_WITH_VAR2 tpl_fold_blob_tpl
+#define DEAL_WITH_VAR2 tpl_fold_sb_tpl
 #define TPL_SUBST      tpl_subst
 #include "tpl.in.c"
 #endif
@@ -396,13 +396,13 @@ int tpl_subst(tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb, int flags)
     return res;
 }
 
-int tpl_fold(blob_t *out, tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb,
+int tpl_fold(sb_t *out, tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb,
              int flags)
 {
     int pos = out->len;
     int res = 0;
 
-    if ((res = tpl_fold_blob_tpl(out, *tplp, envid, vals, nb, flags))) {
+    if ((res = tpl_fold_sb_tpl(out, *tplp, envid, vals, nb, flags))) {
         __sb_fixlen(out, pos);
         return res;
     }
@@ -419,7 +419,7 @@ int tpl_fold(blob_t *out, tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb,
 #define NS(x)          x##_str
 #define VAL_TYPE       const char *
 #define DEAL_WITH_VAR(t, v, ...)   (tpl_copy_cstr((t), (v)), 0)
-#define DEAL_WITH_VAR2(t, v, ...)  (blob_append_cstr((t), (v)), 0)
+#define DEAL_WITH_VAR2(t, v, ...)  (sb_adds((t), (v)), 0)
 #define TPL_SUBST      tpl_subst_str
 #include "tpl.in.c"
 #endif
@@ -443,26 +443,26 @@ int tpl_subst_str(tpl_t **tplp, uint16_t envid,
     return res;
 }
 
-int tpl_fold_str(blob_t *out, tpl_t **tplp, uint16_t envid,
+int tpl_fold_str(sb_t *out, tpl_t **tplp, uint16_t envid,
                  const char **vals, int nb, int flags)
 {
     int pos = out->len, res = 0;
 
-    if ((res = tpl_fold_blob_str(out, *tplp, envid, vals, nb, flags))) {
+    if ((res = tpl_fold_sb_str(out, *tplp, envid, vals, nb, flags))) {
         __sb_fixlen(out, pos);
     }
     tpl_delete(tplp);
     return res;
 }
 
-static tpl_t *tpl_to_blob(tpl_t **orig)
+static tpl_t *tpl_to_sb(tpl_t **orig)
 {
     tpl_t *res = tpl_new_op(TPL_OP_BLOB);
     assert ((*orig)->op == TPL_OP_DATA || (*orig)->op == TPL_OP_BLOB);
     if ((*orig)->op == TPL_OP_DATA) {
-        blob_set_data(&res->u.blob, (*orig)->u.data.data, (*orig)->u.data.len);
+        sb_set(&res->u.blob, (*orig)->u.data.data, (*orig)->u.data.len);
     } else {
-        blob_set(&res->u.blob, &(*orig)->u.blob);
+        sb_setsb(&res->u.blob, &(*orig)->u.blob);
     }
     tpl_delete(orig);
     return *orig = res;
@@ -526,15 +526,15 @@ void tpl_optimize(tpl_t *tpl)
                 tpl_delete(&cur);
                 continue;
             }
-            cur = tpl_to_blob(&tpl->u.blocks.tab[i]);
+            cur = tpl_to_sb(&tpl->u.blocks.tab[i]);
         }
 
         assert (cur->op == TPL_OP_BLOB);
         if (nxt->op == TPL_OP_DATA) {
             if (cur->refcnt > 1) {
-                cur = tpl_to_blob(&tpl->u.blocks.tab[i]);
+                cur = tpl_to_sb(&tpl->u.blocks.tab[i]);
             }
-            blob_append_data(&cur->u.blob, nxt->u.data.data, nxt->u.data.len);
+            sb_add(&cur->u.blob, nxt->u.data.data, nxt->u.data.len);
             tpl_array_remove(&tpl->u.blocks, i + 1);
             tpl_delete(&nxt);
             continue;
@@ -542,14 +542,14 @@ void tpl_optimize(tpl_t *tpl)
 
         assert (nxt->op == TPL_OP_BLOB);
         if (cur->refcnt > 1 && nxt->refcnt > 1) {
-            cur = tpl_to_blob(&tpl->u.blocks.tab[i]);
+            cur = tpl_to_sb(&tpl->u.blocks.tab[i]);
         }
         if (cur->refcnt > 1) {
             sb_splice(&nxt->u.blob, 0, 0, cur->u.blob.data, cur->u.blob.len);
             tpl_array_remove(&tpl->u.blocks, i);
             tpl_delete(&cur);
         } else {
-            blob_append(&cur->u.blob, &nxt->u.blob);
+            sb_addsb(&cur->u.blob, &nxt->u.blob);
             tpl_array_remove(&tpl->u.blocks, i + 1);
             tpl_delete(&nxt);
         }

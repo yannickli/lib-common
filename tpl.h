@@ -15,7 +15,6 @@
 #define IS_LIB_COMMON_TPL_H
 
 #include "container.h"
-#include "blob.h"
 
 /** \defgroup templates Intersec generic templating API.
  *
@@ -53,7 +52,7 @@ struct tpl_data {
 };
 
 struct tpl_t;
-typedef int (tpl_apply_f)(struct tpl_t *, blob_t *, struct tpl_t **, int nb);
+typedef int (tpl_apply_f)(struct tpl_t *, sb_t *, struct tpl_t **, int nb);
 
 ARRAY_TYPE(struct tpl_t, tpl);
 typedef struct tpl_t {
@@ -62,7 +61,7 @@ typedef struct tpl_t {
     unsigned refcnt : 24;
     union {
         struct tpl_data data;
-        blob_t blob;
+        sb_t   blob;
         uint32_t varidx; /* 16 bits of env, 16 bits of index */
         struct {
             tpl_apply_f *f;
@@ -82,7 +81,7 @@ ARRAY_FUNCTIONS(tpl_t, tpl, tpl_delete);
 /* Build the AST                                                            */
 /****************************************************************************/
 
-blob_t *tpl_get_blob(tpl_t *tpl);
+sb_t *tpl_get_blob(tpl_t *tpl);
 
 void tpl_add_data(tpl_t *tpl, const void *data, int len);
 void tpl_add_byte(tpl_t *tpl, byte b);
@@ -117,8 +116,8 @@ enum {
 
 int tpl_get_short_data(tpl_t **tpls, int nb, const byte **data, int *len);
 
-int tpl_fold(blob_t *, tpl_t **, uint16_t envid, tpl_t **, int nb, int flags);
-int tpl_fold_str(blob_t *, tpl_t **, uint16_t envid, const char **, int nb, int flags);
+int tpl_fold(sb_t *, tpl_t **, uint16_t envid, tpl_t **, int nb, int flags);
+int tpl_fold_str(sb_t *, tpl_t **, uint16_t envid, const char **, int nb, int flags);
 
 int tpl_subst(tpl_t **, uint16_t envid, tpl_t **, int nb, int flags);
 int tpl_subst_str(tpl_t **, uint16_t envid, const char **, int nb, int flags);
@@ -131,13 +130,13 @@ bool tpl_is_variable(const tpl_t *tpl);
 int tpl_to_iov(struct iovec *, int nr, tpl_t *);
 int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl);
 
-static inline void tpl_blob_append(tpl_t *tpl, blob_t *out)
+static inline void tpl_blob_append(tpl_t *tpl, sb_t *out)
 {
     if (tpl->op == TPL_OP_DATA) {
-        blob_append_data(out, tpl->u.data.data, tpl->u.data.len);
+        sb_add(out, tpl->u.data.data, tpl->u.data.len);
     } else {
         assert (tpl->op == TPL_OP_BLOB);
-        blob_append_data(out, tpl->u.blob.data, tpl->u.blob.len);
+        sb_add(out, tpl->u.blob.data, tpl->u.blob.len);
     }
 }
 
@@ -145,20 +144,20 @@ static inline void tpl_blob_append(tpl_t *tpl, blob_t *out)
 /* Checksums                                                                */
 /****************************************************************************/
 
-int tpl_compute_len_copy(blob_t *b, tpl_t **args, int nb, int len);
+int tpl_compute_len_copy(sb_t *b, tpl_t **args, int nb, int len);
 
 /****************************************************************************/
 /* Escapings                                                                */
 /****************************************************************************/
 
-int tpl_encode_xml(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
-int tpl_encode_url(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
-int tpl_encode_ira(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
-int tpl_encode_ira_bin(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
-int tpl_encode_base64(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
-int tpl_encode_qp(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
-int tpl_encode_wbxml_href(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
-int tpl_encode_latin1(tpl_t *out, blob_t *blob, tpl_t **args, int nb);
+int tpl_encode_xml(tpl_t *out, sb_t *sb, tpl_t **args, int nb);
+int tpl_encode_url(tpl_t *out, sb_t *sb, tpl_t **args, int nb);
+int tpl_encode_ira(tpl_t *out, sb_t *sb, tpl_t **args, int nb);
+int tpl_encode_ira_bin(tpl_t *out, sb_t *sb, tpl_t **args, int nb);
+int tpl_encode_base64(tpl_t *out, sb_t *sb, tpl_t **args, int nb);
+int tpl_encode_qp(tpl_t *out, sb_t *sb, tpl_t **args, int nb);
+int tpl_encode_wbxml_href(tpl_t *out, sb_t *sb, tpl_t **args, int nb);
+int tpl_encode_latin1(tpl_t *out, sb_t *sb, tpl_t **args, int nb);
 
 /**\}*/
 #endif

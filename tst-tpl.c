@@ -13,7 +13,7 @@
 
 #include "all.h"
 
-static int identity(tpl_t *out, blob_t *b, tpl_t **arr, int nb)
+static int identity(tpl_t *out, sb_t *b, tpl_t **arr, int nb)
 {
     if (out) {
         tpl_add_tpls(out, arr, nb);
@@ -22,16 +22,16 @@ static int identity(tpl_t *out, blob_t *b, tpl_t **arr, int nb)
     while (--nb >= 0) {
         tpl_t *in = *arr++;
         if (in->op == TPL_OP_BLOB) {
-            blob_append(b, &in->u.blob);
+            sb_addsb(b, &in->u.blob);
         } else {
             assert (in->op == TPL_OP_DATA);
-            blob_append_data(b, in->u.data.data, in->u.data.len);
+            sb_add(b, in->u.data.data, in->u.data.len);
         }
     }
     return 0;
 }
 
-static int tst_seq(tpl_t *out, blob_t *blob, tpl_t **arr, int nb)
+static int tst_seq(tpl_t *out, sb_t *blob, tpl_t **arr, int nb)
 {
     const char *data1, *data2, *data3;
     int len1, len2, len3;
@@ -72,7 +72,7 @@ static int tst_seq(tpl_t *out, blob_t *blob, tpl_t **arr, int nb)
         len3  = in->u.data.len;
     }
 
-    blob_append_fmt(blob, "1: %.*s, 2: %.*s, 3: %.*s",
+    sb_addf(blob, "1: %.*s, 2: %.*s, 3: %.*s",
                     len1, data1, len2, data2, len3, data3);
     return 0;
 }
@@ -80,11 +80,11 @@ static int tst_seq(tpl_t *out, blob_t *blob, tpl_t **arr, int nb)
 int main(int argc, const char **argv)
 {
     tpl_t *tpl, *fun, *res, *var;
-    blob_t blob, b2;
+    sb_t blob, b2;
 
     e_trace(0, "sizeof(tpl_t) = %zd", sizeof(tpl_t));
-    blob_init(&blob);
-    blob_init(&b2);
+    sb_init(&blob);
+    sb_init(&b2);
     sb_addnc(&blob, 4096, ' ');
 
     var = tpl_new();
@@ -125,8 +125,8 @@ int main(int argc, const char **argv)
     assert(tpl == NULL);
     e_trace(0, "b2 size: %d", b2.len);
 
-    blob_wipe(&blob);
-    blob_wipe(&b2);
+    sb_wipe(&blob);
+    sb_wipe(&b2);
 
     tpl = tpl_new();
     tpl_add_cstr(tpl, "foo|");
@@ -142,13 +142,13 @@ int main(int argc, const char **argv)
     tpl_dump(0, tpl, "apply seq");
     tpl_optimize(tpl);
     tpl_dump(0, tpl, "apply seq (opt)");
-    blob_init(&blob);
+    sb_init(&blob);
     if (tpl_fold(&blob, &tpl, 0, NULL, 0, TPL_LASTSUBST)) {
         e_panic("fold failed");
     }
     assert(tpl == NULL);
     e_trace(0, "apply seq res: %s", blob.data);
-    blob_wipe(&blob);
+    sb_wipe(&blob);
 
     return 0;
 }

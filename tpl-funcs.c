@@ -12,19 +12,20 @@
 /**************************************************************************/
 
 #include "tpl.h"
+#include "blob.h"
 
-int tpl_compute_len_copy(blob_t *b, tpl_t **args, int nb, int len)
+int tpl_compute_len_copy(sb_t *b, tpl_t **args, int nb, int len)
 {
     if (b) {
         while (--nb >= 0) {
             tpl_t *in = *args++;
 
             if (in->op == TPL_OP_BLOB) {
-                blob_append(b, &in->u.blob);
+                sb_addsb(b, &in->u.blob);
                 len += in->u.blob.len;
             } else {
                 assert (in->op == TPL_OP_DATA);
-                blob_append_data(b, in->u.data.data, in->u.data.len);
+                sb_add(b, in->u.data.data, in->u.data.len);
                 len += in->u.data.len;
             }
         }
@@ -52,7 +53,7 @@ int tpl_compute_len_copy(blob_t *b, tpl_t **args, int nb, int len)
 /* Escapings                                                                */
 /****************************************************************************/
 
-int tpl_encode_xml(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
+int tpl_encode_xml(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
 {
     if (!blob) {
         assert(out);
@@ -62,17 +63,16 @@ int tpl_encode_xml(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
     while (--nb >= 0) {
         tpl_t *in = *args++;
         if (in->op == TPL_OP_DATA) {
-            blob_append_xml_escape(blob, (char *)in->u.data.data,
-                                   in->u.data.len);
+            sb_add_xmlescape(blob, (char *)in->u.data.data, in->u.data.len);
         } else {
             assert (in->op == TPL_OP_BLOB);
-            blob_append_xml_escape(blob, in->u.blob.data, in->u.blob.len);
+            sb_add_xmlescape(blob, in->u.blob.data, in->u.blob.len);
         }
     }
     return 0;
 }
 
-int tpl_encode_url(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
+int tpl_encode_url(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
 {
     if (!blob) {
         assert(out);
@@ -82,16 +82,16 @@ int tpl_encode_url(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
     while (--nb >= 0) {
         tpl_t *in = *args++;
         if (in->op == TPL_OP_DATA) {
-            blob_append_urlencode(blob, (char *)in->u.data.data, in->u.data.len);
+            sb_add_urlencode(blob, (char *)in->u.data.data, in->u.data.len);
         } else {
             assert (in->op == TPL_OP_BLOB);
-            blob_append_urlencode(blob, in->u.blob.data, in->u.blob.len);
+            sb_add_urlencode(blob, in->u.blob.data, in->u.blob.len);
         }
     }
     return 0;
 }
 
-int tpl_encode_latin1(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
+int tpl_encode_latin1(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
 {
     if (!blob) {
         assert(out);
@@ -112,7 +112,7 @@ int tpl_encode_latin1(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
     return 0;
 }
 
-int tpl_encode_ira(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
+int tpl_encode_ira(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
 {
     if (!blob) {
         assert(out);
@@ -131,7 +131,7 @@ int tpl_encode_ira(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
     return 0;
 }
 
-int tpl_encode_ira_bin(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
+int tpl_encode_ira_bin(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
 {
     if (!blob) {
         assert(out);
@@ -150,7 +150,7 @@ int tpl_encode_ira_bin(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
     return 0;
 }
 
-int tpl_encode_base64(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
+int tpl_encode_base64(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
 {
     sb_b64_ctx_t ctx;
 
@@ -159,25 +159,23 @@ int tpl_encode_base64(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
         blob = tpl_get_blob(out);
     }
 
-    blob_append_base64_start(blob, 0, 0, &ctx);
+    sb_add_b64_start(blob, 0, 0, &ctx);
 
     while (--nb >= 0) {
         tpl_t *arg = *args++;
         if (arg->op == TPL_OP_DATA) {
-            blob_append_base64_update(blob, arg->u.data.data, arg->u.data.len,
-                                      &ctx);
+            sb_add_b64_update(blob, arg->u.data.data, arg->u.data.len, &ctx);
         } else {
             assert (arg->op == TPL_OP_BLOB);
-            blob_append_base64_update(blob, arg->u.blob.data, arg->u.blob.len,
-                                      &ctx);
+            sb_add_b64_update(blob, arg->u.blob.data, arg->u.blob.len, &ctx);
         }
     }
-    blob_append_base64_finish(blob, &ctx);
+    sb_add_b64_finish(blob, &ctx);
 
     return 0;
 }
 
-int tpl_encode_qp(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
+int tpl_encode_qp(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
 {
     if (!blob) {
         assert(out);
@@ -187,21 +185,19 @@ int tpl_encode_qp(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
     while (--nb >= 0) {
         tpl_t *arg = *args++;
         if (arg->op == TPL_OP_DATA) {
-            blob_append_quoted_printable(blob, arg->u.data.data,
-                                         arg->u.data.len);
+            sb_add_qpe(blob, arg->u.data.data, arg->u.data.len);
         } else {
             assert (arg->op == TPL_OP_BLOB);
-            blob_append_quoted_printable(blob, (byte *)arg->u.blob.data,
-                                         arg->u.blob.len);
+            sb_add_qpe(blob, (byte *)arg->u.blob.data, arg->u.blob.len);
         }
     }
     return 0;
 }
 
-int tpl_encode_wbxml_href(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
+int tpl_encode_wbxml_href(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
 {
     tpl_t *arg0;
-    blob_t tmp;
+    SB_1k(tmp);
 
     assert (nb > 0);
     arg0 = *args;
@@ -211,20 +207,18 @@ int tpl_encode_wbxml_href(tpl_t *out, blob_t *blob, tpl_t **args, int nb)
         blob = tpl_get_blob(out);
     }
 
-    blob_inita(&tmp, 1024);
-
     while (--nb >= 0) {
         tpl_t *arg = *args++;
         if (arg->op == TPL_OP_DATA) {
-            blob_append_data(&tmp, arg->u.data.data, arg->u.data.len);
+            sb_add(&tmp, arg->u.data.data, arg->u.data.len);
         } else {
             assert (arg->op == TPL_OP_BLOB);
-            blob_append(&tmp, &arg->u.blob);
+            sb_addsb(&tmp, &arg->u.blob);
         }
     }
 
     blob_append_wbxml_href(blob, (byte *)tmp.data, tmp.len);
-    blob_wipe(&tmp);
+    sb_wipe(&tmp);
 
     return 0;
 }

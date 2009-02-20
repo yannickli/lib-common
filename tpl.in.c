@@ -124,10 +124,10 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
 }
 
 static int
-NS(tpl_fold_blob)(blob_t *, const tpl_t *, uint16_t, VAL_TYPE *, int, int);
+NS(tpl_fold_sb)(sb_t *, const tpl_t *, uint16_t, VAL_TYPE *, int, int);
 
 static int
-NS(tpl_fold_block)(blob_t *out, const tpl_t *tpl,
+NS(tpl_fold_block)(sb_t *out, const tpl_t *tpl,
                    uint16_t envid, VAL_TYPE *vals, int nb, int flags)
 {
     int res;
@@ -136,7 +136,7 @@ NS(tpl_fold_block)(blob_t *out, const tpl_t *tpl,
     for (int i = 0; i < tpl->u.blocks.len; i++) {
         if (!tpl->u.blocks.tab[i])
             continue;
-        res = NS(tpl_fold_blob)(out, tpl->u.blocks.tab[i], envid, vals, nb, flags);
+        res = NS(tpl_fold_sb)(out, tpl->u.blocks.tab[i], envid, vals, nb, flags);
         if (res)
             return res;
     }
@@ -144,8 +144,8 @@ NS(tpl_fold_block)(blob_t *out, const tpl_t *tpl,
 }
 
 static int
-NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
-                  uint16_t envid, VAL_TYPE *vals, int nb, int flags)
+NS(tpl_fold_sb)(sb_t *out, const tpl_t *tpl,
+                uint16_t envid, VAL_TYPE *vals, int nb, int flags)
 {
     tpl_t *tmp;
     VAL_TYPE vtmp;
@@ -153,11 +153,11 @@ NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
 
     switch (tpl->op) {
       case TPL_OP_DATA:
-        blob_append_data(out, tpl->u.data.data, tpl->u.data.len);
+        sb_add(out, tpl->u.data.data, tpl->u.data.len);
         return 0;
 
       case TPL_OP_BLOB:
-        blob_append(out, &tpl->u.blob);
+        sb_addsb(out, &tpl->u.blob);
         return 0;
 
       case TPL_OP_VAR:
@@ -184,8 +184,8 @@ NS(tpl_fold_blob)(blob_t *out, const tpl_t *tpl,
         branch = getvar(tpl->u.varidx, vals, nb) == NULL;
         if (tpl->u.blocks.len <= branch || !tpl->u.blocks.tab[branch])
             return 0;
-        return NS(tpl_fold_blob)(out, tpl->u.blocks.tab[branch], envid,
-                                 vals, nb, flags);
+        return NS(tpl_fold_sb)(out, tpl->u.blocks.tab[branch], envid,
+                               vals, nb, flags);
 
       case TPL_OP_APPLY:
       case TPL_OP_APPLY_ASSOC:
