@@ -37,7 +37,6 @@ libcommon_SOURCES = \
 	paged-index.c \
 	parseopt.c \
 	showflags.c \
-	stopper.c \
 	time.c \
 	xml.c \
 	xmlpp.c \
@@ -65,6 +64,7 @@ libcommon_SOURCES = \
 	core-havege.c \
 	\
 	el.c \
+	el-stopper.c \
 	\
 	file.c \
 	file-log.c \

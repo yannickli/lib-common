@@ -83,6 +83,11 @@ short el_proxy_set_event(el_t, short mask);
 short el_proxy_clr_event(el_t, short mask);
 short el_proxy_set_mask(el_t, short mask);
 
+/*----- stopper API -----*/
+void el_stopper_register(void);
+bool el_stopper_is_waiting(void);
+void el_stopper_unregister(void);
+
 /*----- fd related -----*/
 el_t el_fd_register(int fd, short events, el_fd_f *, el_data_t);
 void el_fd_set_hook(el_t, el_fd_f *);

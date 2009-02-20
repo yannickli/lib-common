@@ -11,13 +11,46 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_STOPPER_H
-#define IS_LIB_COMMON_STOPPER_H
+#include "el.h"
 
-#include "core.h"
+static struct {
+    el_t  stopper;
+    int   stopme;
+} stopper_g;
 
-bool is_stopper_waiting(void);
-void stopper_initialize(void);
-void stopper_shutdown(void);
+static void stopper_dbl_timer(el_t ev, el_data_t priv)
+{
+    stopper_g.stopme = 1;
+}
 
-#endif /* IS_LIB_COMMON_STOPPER_H */
+static void stopper_handler(el_t ev, int signum, el_data_t priv)
+{
+    if (!stopper_g.stopme) {
+        e_info("^C requesting soft termination");
+    }
+
+    if (stopper_g.stopme == 2) {
+        e_info("^C abort.");
+        exit(1);
+    }
+
+    stopper_g.stopme = 2;
+    el_unref(el_timer_register(1000, 0, 0, &stopper_dbl_timer, NULL));
+    e_info("^C Soft termination already requested. "
+           "Double-interrupt to abort");
+}
+
+void el_stopper_register(void)
+{
+    stopper_g.stopper = el_signal_register(SIGINT, &stopper_handler, NULL);
+    el_unref(stopper_g.stopper);
+}
+void el_stopper_unregister(void)
+{
+    el_signal_unregister(&stopper_g.stopper);
+}
+
+bool el_stopper_is_waiting(void)
+{
+    return stopper_g.stopme != 0;
+}
