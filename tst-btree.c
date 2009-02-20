@@ -253,37 +253,37 @@ static void sim_push(uint64_t newkey, const byte *data, int dlen)
 static int sim_extensive_check(const btree_t *bt, long npush)
 {
     int i;
-    blob_t blob;
+    sb_t sb;
 
     fprintf(stderr, "Extensive check #%ld: ", npush);
     fflush(stderr);
 
-    blob_init(&blob);
+    sb_init(&sb);
     for (i = 0; i < sim_nbkeys; i++) {
         sim_record *sp = &sim_array[i];
 
-        blob_reset(&blob);
-        if (btree_fetch(bt, sp->key, &blob) < 0) {
+        sb_reset(&sb);
+        if (btree_fetch(bt, sp->key, &sb) < 0) {
             fprintf(stderr, "btree_fetch(key=%04llx) failed, expected %d bytes\n",
                     (long long)sp->key, sp->dlen);
-            blob_wipe(&blob);
+            sb_wipe(&sb);
             return 1;
         }
-        if (blob.len != sp->dlen) {
+        if (sb.len != sp->dlen) {
             fprintf(stderr, "btree_fetch(key=%04llx) OK, got %d bytes, expected %d\n",
-                    (long long)sp->key, (int)blob.len, sp->dlen);
-            blob_wipe(&blob);
+                    (long long)sp->key, (int)sb.len, sp->dlen);
+            sb_wipe(&sb);
             return 1;
         }
-        if (memcmp(blob.data, sp->data, MIN(sp->dlen, ssizeof(sp->data)))) {
+        if (memcmp(sb.data, sp->data, MIN(sp->dlen, ssizeof(sp->data)))) {
             fprintf(stderr, "btree_fetch(key=%04llx) OK, got %d bytes, Content mismatch\n",
-                    (long long)sp->key, (int)blob.len);
-            blob_wipe(&blob);
+                    (long long)sp->key, (int)sb.len);
+            sb_wipe(&sb);
             return 1;
         }
     }
     fprintf(stderr, "OK\n");
-    blob_wipe(&blob);
+    sb_wipe(&sb);
 
     return 0;
 }
