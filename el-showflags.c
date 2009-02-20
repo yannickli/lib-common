@@ -13,6 +13,20 @@
 
 #include "licence.h"
 
+/*
+ * to use this file, #include it directly in the file that needs protection,
+ * and call do_license_checks() from the point where you want to perform
+ * checks.
+ *
+ * Note that this will significantly bloat your code, and is not a 0-cost
+ * operation, do not put in in tight loops.
+ *
+ * See lib-common/el.c for example of use.
+ *
+ * Also: each time you include it, it adds a new constructor function that
+ * will perform the checks first thing in the program's life.
+ */
+
 #define UA_GET4(src)       (*(const uint32_t*)(src))
 #define UA_PUT4(src, val)  (*(uint32_t*)(src) = (val))
 
