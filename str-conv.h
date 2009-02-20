@@ -76,12 +76,8 @@ static inline int hexdecode(const char *str)
 /* XXX: dest will not be NUL terminated in strconv_hexdecode*/
 int strconv_hexdecode(byte *dest, int size, const char *src, int len);
 int strconv_hexencode(char *dest, int size, const byte *src, int len);
-int strconv_escape(char *dest, int size, const char *src, int len);
-int strconv_unescape(char *dest, int size, const char *src, int len);
 int strconv_quote(char *dest, int size, const char *src, int len, int delim);
 int strconv_unquote(char *dest, int size, const char *src, int len);
-int strconv_quote_char(char *dest, int size, int c, int delim);
-int strconv_unquote_char(int *cp, const char *src, int len);
 int str_utf8_putc(char *dst, int c);
 /* Decode XML entities in place */
 int strconv_xmlunescape(char *str, int len);
