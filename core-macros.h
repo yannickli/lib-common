@@ -197,6 +197,9 @@ typedef unsigned int gt_uint32_t;
 
 #define CLIP(v,m,M)  (((v) > (M)) ? (M) : ((v) < (m)) ? (m) : (v))
 
+#define DIV_ROUND_UP(x, y)   (((x) + (y) - 1) / (y))
+#define ROUND_UP(x, y)       (DIV_ROUND_UP(x, y) * (y))
+
 #ifndef MIN
 #define MIN(a,b)     (((a) > (b)) ? (b) : (a))
 #endif
@@ -231,52 +234,6 @@ enum sign {
 
 #define SWAP(typ, a, b)    do { typ __c = a; a = b; b = __c; } while (0)
 
-/* monotonic clock operations:
-
-   These are supposed to be uint32_t's, and we suppose that we only compare
-   values that were issued within a short time span. That way, the
-   wrapping point is not a singular point anymore.
-
-   These types have bizarre behaviours and should not be used for any kind of
-   time measures, but are used to have a local total order on a distributed
-   network.
-
-   in the monotonic clock world, MAX(UINT32_MAX, 0) is 0.
-
-   `(int32_t)(b - a) >= 0' in that world means that b >= a.
-
-   TODO: rewrite these functions to work as soon that a and b have
-         the same width. The above test is then something like:
-         ((b - a) >> (8 * sizeof(b) - 1)) & 1 == 0;
- */
-static inline uint32_t unsafe_mclk_max(uint32_t a, uint32_t b) {
-    return (int32_t)(b - a) >= 0 ? b : a;
-}
-
-static inline uint32_t unsafe_mclk_min(uint32_t a, uint32_t b) {
-    return (int32_t)(b - a) >= 0 ? a : b;
-}
-
-static inline int unsafe_mclk_cmp(uint32_t a, uint32_t b) {
-    return ((int32_t)(a - b) >= 0) - ((int32_t)(b - a) >= 0);
-}
-
-#define MCLK_MAX(a, b) \
-    (uint32_t)(unsafe_mclk_max(a, b) \
-     + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(a), uint32_t)) \
-     + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(b), uint32_t)))
-
-#define MCLK_MIN(a, b) \
-    (uint32_t)(unsafe_mclk_min(a, b) \
-     + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(a), uint32_t)) \
-     + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(b), uint32_t)))
-
-#define MCLK_CMP(a, b) \
-    (enum sign)(unsafe_mclk_cmp(a, b) \
-     + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(a), uint32_t)) \
-     + STATIC_ASSERTZ(__builtin_types_compatible_p(typeof(b), uint32_t)))
-
-/*---------------- Defensive programming ----------------*/
 
 #undef sprintf
 #define sprintf(...)  NEVER_USE_sprintf(__VA_ARGS__)
