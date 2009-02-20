@@ -11,15 +11,14 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "blob.h"
-#include "psinfo.h"
+#include "unix.h"
 
 #ifdef __sun
 
-int psinfo_get(pid_t pid, blob_t *output)
+int psinfo_get(pid_t pid, sb_t *output)
 {
     /* TODO PORT */
-    blob_append_cstr(output, "Information not available");
+    sb_adds(output, "Information not available");
     return 0;
 }
 
@@ -70,20 +69,20 @@ static unsigned int my_jiffies_to_msecs(const unsigned long j)
 #define PF_MEMPOLICY	0x10000000	/* Non-default NUMA mempolicy */
 #define PF_MUTEX_TESTER	0x20000000	/* Thread belongs to the rt mutex tester */
 
-static int psinfo_read_proc(pid_t pid, blob_t *output, blob_t *buf)
+static int psinfo_read_proc(pid_t pid, sb_t *output, sb_t *buf)
 {
     char path[PATH_MAX];
     const char *p;
     int pos;
 
     snprintf(path, sizeof(path), "/proc/%d/stat", pid);
-    if (blob_append_file_data(buf, path) < 0) {
+    if (sb_read_file(buf, path) < 0) {
         return -1;
     }
 
-    blob_append_fmt(output, "/proc/%d/stat information:\n", pid);
+    sb_addf(output, "/proc/%d/stat information:\n", pid);
 
-    p = blob_get_cstr(buf);
+    p = buf->data;
     pos = 0;
     while (p && *p != '\0') {
         int i;
@@ -100,25 +99,25 @@ static int psinfo_read_proc(pid_t pid, blob_t *output, blob_t *buf)
                     sleep, Z is zombie, T is traced or stopped (on a signal), and W is paging.*/
             switch (*p) {
               case 'R':
-                blob_append_cstr(output, "State: running\n");
+                sb_adds(output, "State: running\n");
                 break;
               case 'S':
-                blob_append_cstr(output, "State: sleeping in an interruptible wait\n");
+                sb_adds(output, "State: sleeping in an interruptible wait\n");
                 break;
               case 'D':
-                blob_append_cstr(output, "State: waiting in uninterruptible disk\n");
+                sb_adds(output, "State: waiting in uninterruptible disk\n");
                 break;
               case 'Z':
-                blob_append_cstr(output, "State: zombie\n");
+                sb_adds(output, "State: zombie\n");
                 break;
               case 'T':
-                blob_append_cstr(output, "State: traced or stopped (on a signal)\n");
+                sb_adds(output, "State: traced or stopped (on a signal)\n");
                 break;
               case 'W':
-                blob_append_cstr(output, "State: paging\n");
+                sb_adds(output, "State: paging\n");
                 break;
               default:
-                blob_append_fmt(output, "State: unknown state: %c\n", *p);
+                sb_addf(output, "State: unknown state: %c\n", *p);
                 break;
             }
             break;
@@ -126,28 +125,28 @@ static int psinfo_read_proc(pid_t pid, blob_t *output, blob_t *buf)
                     The PID of the parent.*/
             i = atoi(p);
             if (i) {
-                blob_append_fmt(output, "Parent process pid: %d\n", i);
+                sb_addf(output, "Parent process pid: %d\n", i);
             }
             break;
           case 4: /*pgrp %d
                     The process group ID of the process.*/
             i = atoi(p);
             if (i) {
-                blob_append_fmt(output, "Process group id: %d\n", i);
+                sb_addf(output, "Process group id: %d\n", i);
             }
             break;
           case 5: /*session %d
                     The session ID of the process.*/
             i = atoi(p);
             if (i) {
-                blob_append_fmt(output, "Session id: %d\n", i);
+                sb_addf(output, "Session id: %d\n", i);
             }
             break;
           case 6: /*tty_nr %d
                     The tty the process uses.*/
             i = atoi(p);
             if (i) {
-                blob_append_fmt(output, "tty number: %d\n", i);
+                sb_addf(output, "tty number: %d\n", i);
             }
             break;
           case 7: /*tpgid %d
@@ -156,9 +155,9 @@ static int psinfo_read_proc(pid_t pid, blob_t *output, blob_t *buf)
           case 8: /*flags %lu
                     The kernel flags word of the process. For bit meanings, see the PF_* defines in <linux/sched.h>.  Details depend on the kernel version.*/
             lu = atol(p);
-#define CHECK_KERNEL_FLAG(flag, txt)                                             \
-            if (lu & flag) {                                                     \
-                blob_append_cstr(output, "kernel flag: " #flag "(" txt ")\n");  \
+#define CHECK_KERNEL_FLAG(flag, txt)                                   \
+            if (lu & flag) {                                           \
+                sb_adds(output, "kernel flag: " #flag "(" txt ")\n");  \
             }
             CHECK_KERNEL_FLAG(PF_ALIGNWARN, "Print alignment warning msgs");
             CHECK_KERNEL_FLAG(PF_STARTING, "being created");
@@ -192,28 +191,28 @@ static int psinfo_read_proc(pid_t pid, blob_t *output, blob_t *buf)
                     The number of minor faults the process has made which have not required loading a memory page from disk.*/
             lu = atol(p);
             if (lu) {
-                blob_append_fmt(output, "minor faults the process has made: %lu\n", lu);
+                sb_addf(output, "minor faults the process has made: %lu\n", lu);
             }
             break;
           case 10: /*cminflt %lu
                     The number of minor faults that the process's waited-for children have made.*/
             lu = atol(p);
             if (lu) {
-                blob_append_fmt(output, "minor faults that the process's waited-for children have made: %lu\n", lu);
+                sb_addf(output, "minor faults that the process's waited-for children have made: %lu\n", lu);
             }
             break;
           case 11: /*majflt %lu
                     The number of major faults the process has made which have required loading a memory page from disk.*/
             lu = atol(p);
             if (lu) {
-                blob_append_fmt(output, "major faults the process has made: %lu\n", lu);
+                sb_addf(output, "major faults the process has made: %lu\n", lu);
             }
             break;
           case 12: /*cmajflt %lu
                     The number of major faults that the process's waited-for children have made.*/
             lu = atol(p);
             if (lu) {
-                blob_append_fmt(output, "major faults that the process's waited-for children have made: %lu\n", lu);
+                sb_addf(output, "major faults that the process's waited-for children have made: %lu\n", lu);
             }
             break;
           case 13: /*utime %lu
@@ -221,7 +220,7 @@ static int psinfo_read_proc(pid_t pid, blob_t *output, blob_t *buf)
             lu = atol(p);
             if (lu) {
                 int ms = my_jiffies_to_msecs(lu);
-                blob_append_fmt(output, "user mode: %dms\n", ms);
+                sb_addf(output, "user mode: %dms\n", ms);
             }
             break;
           case 14: /*stime %lu
@@ -229,7 +228,7 @@ static int psinfo_read_proc(pid_t pid, blob_t *output, blob_t *buf)
             lu = atol(p);
             if (lu) {
                 int ms = my_jiffies_to_msecs(lu);
-                blob_append_fmt(output, "kernel mode: %dms\n", ms);
+                sb_addf(output, "kernel mode: %dms\n", ms);
             }
             break;
           case 15: /*cutime %ld
@@ -237,7 +236,7 @@ static int psinfo_read_proc(pid_t pid, blob_t *output, blob_t *buf)
             l = atol(p);
             if (l) {
                 int ms = my_jiffies_to_msecs(l);
-                blob_append_fmt(output, "this process's waited-for children user mode: %dms\n", ms);
+                sb_addf(output, "this process's waited-for children user mode: %dms\n", ms);
             }
             break;
           case 16: /*cstime %ld
@@ -245,18 +244,18 @@ static int psinfo_read_proc(pid_t pid, blob_t *output, blob_t *buf)
             l = atol(p);
             if (l) {
                 int ms = my_jiffies_to_msecs(l);
-                blob_append_fmt(output, "this process's waited-for children kernel mode: %dms\n", ms);
+                sb_addf(output, "this process's waited-for children kernel mode: %dms\n", ms);
             }
             break;
           case 17: /*priority %ld
                     The standard nice value, plus fifteen.  The value is never negative in the kernel.*/
             l = atol(p);
-            blob_append_fmt(output, "standard nice: %ld\n", l - 15);
+            sb_addf(output, "standard nice: %ld\n", l - 15);
             break;
           case 18: /*nice %ld
                     The nice value ranges from 19 (nicest) to -19 (not nice to others).*/
             l = atol(p);
-            blob_append_fmt(output, "nice: %ld (from 19 (nicest) to -19 (not nice to others))\n", l);
+            sb_addf(output, "nice: %ld (from 19 (nicest) to -19 (not nice to others))\n", l);
             break;
 
           default:
@@ -273,19 +272,18 @@ end:
     return 0;
 }
 
-static int psinfo_read_maps(pid_t pid, blob_t *output, blob_t *buf)
+static int psinfo_read_maps(pid_t pid, sb_t *output, sb_t *buf)
 {
     char path[PATH_MAX];
     const char *p;
     size_t total = 0;
 
     snprintf(path, sizeof(path), "/proc/%d/maps", pid);
-    if (blob_append_file_data(buf, path) < 0) {
+    if (sb_read_file(buf, path) < 0)
         return -1;
-    }
 
-    blob_append_fmt(output, "\n/proc/%d/maps information:\n", pid);
-    p = blob_get_cstr(buf);
+    sb_addf(output, "\n/proc/%d/maps information:\n", pid);
+    p = buf->data;
 
     while (p && *p) {
         const char *end, *q;
@@ -299,38 +297,36 @@ static int psinfo_read_maps(pid_t pid, blob_t *output, blob_t *buf)
         q = p;
         start = strtoll(q, &q, 16);
         if (*q != '-') {
-            blob_append_fmt(output, "Could not parse start: %.*s\n",
-                            (int)(end - p), p);
+            sb_addf(output, "Could not parse start: %.*s\n",
+                    (int)(end - p), p);
             break;
         }
         q++;
         stop = strtoll(q, &q, 16);
         if (*q != ' ') {
-            blob_append_fmt(output, "Could not parse stop: %.*s\n",
-                            (int)(end - p), p);
+            sb_addf(output, "Could not parse stop: %.*s\n",
+                    (int)(end - p), p);
             break;
         }
 
-        blob_append_fmt(output, "% 12lld %.*s\n", (long long)(stop - start),
-                        (int)(end - p), p);
+        sb_addf(output, "% 12lld %.*s\n", (long long)(stop - start),
+                (int)(end - p), p);
         total += stop - start;
 
         p = end + 1;
     }
 
     if (p && *p == '\0') {
-        blob_append_fmt(output, "total mapped size: %lld bytes\n", (long long)total);
+        sb_addf(output, "total mapped size: %lld bytes\n", (long long)total);
     }
 
     return 0;
 }
 
-int psinfo_get(pid_t pid, blob_t *output)
+int psinfo_get(pid_t pid, sb_t *output)
 {
     int res;
-    blob_t buf;
-
-    blob_inita(&buf, BUFSIZ);
+    SB_8k(buf);
 
     if (pid <= 0) {
         pid = getpid();
@@ -338,20 +334,20 @@ int psinfo_get(pid_t pid, blob_t *output)
     /* Retrieve /proc/<pid>/status infos */
     res = psinfo_read_proc(pid, output, &buf);
     if (res) {
-        blob_wipe(&buf);
+        sb_wipe(&buf);
         return res;
     }
 
-    blob_reset(&buf);
+    sb_reset(&buf);
 
     /* Retrieve maps information */
     res = psinfo_read_maps(pid, output, &buf);
     if (res) {
-        blob_wipe(&buf);
+        sb_wipe(&buf);
         return res;
     }
 
-    blob_wipe(&buf);
+    sb_wipe(&buf);
     return 0;
 }
 

@@ -36,7 +36,6 @@ libcommon_SOURCES = \
 	mmappedfile.c \
 	paged-index.c \
 	parseopt.c \
-	psinfo.c \
 	showflags.c \
 	stopper.c \
 	time.c \
@@ -106,6 +105,7 @@ libcommon_SOURCES = \
 	tpl-funcs.c \
 	\
 	unix.c \
+	unix-psinfo.c \
 	unix-linux.c \
 	unix-solaris.c \
 	\
@@ -142,13 +142,9 @@ tst-iprintf-speed_CFLAGS = -UCHECK
 tst-htbl_SOURCES = tst-htbl.c libcommon.a compat/compat.a
 tst-path_SOURCES = tst-path.c libcommon.a compat/compat.a
 
-ifneq (,$(filter CYGWIN%,$(UNAME)))
-  libcommon_SOURCES := $(filter-out linux.c psinfo.c,$(libcommon_SOURCES))
-endif
-
 ifneq (,$(MINGCC))
   # Disable some stuff that does not compile under MingW
-  libcommon_SOURCES := $(filter-out unix-linux.c mmappedfile.c psinfo.c btree.c, $(libcommon_SOURCES))
+  libcommon_SOURCES := $(filter-out unix-linux.c mmappedfile.c btree.c, $(libcommon_SOURCES))
   test_PROGRAMS := $(filter-out btree-dump, $(test_PROGRAMS))
 endif
 

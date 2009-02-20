@@ -74,6 +74,8 @@ static inline void getopt_init(void) {
     optind = 0;
 }
 
+int psinfo_get(pid_t pid, sb_t *output);
+
 void unix_initialize(void);
 
 #endif /* IS_LIB_COMMON_UNIX_H */

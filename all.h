@@ -36,7 +36,6 @@
 #include "parseopt.h"
 #include "property-hash.h"
 #include "property.h"
-#include "psinfo.h"
 #include "stopper.h"
 #include "time.h"
 #include "tpl.h"
