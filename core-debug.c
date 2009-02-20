@@ -15,7 +15,6 @@
 
 #include <fnmatch.h>
 #include "container.h"
-#include "blob.h"
 #include "unix.h"
 
 /*
@@ -45,7 +44,7 @@ DO_VECTOR(struct trace_spec_t, spec);
 static struct {
     spec_vector specs;
     trace_htbl  cache;
-    blob_t      buf, tmpbuf;
+    sb_t        buf, tmpbuf;
 
     int verbosity_level, max_level;
 
@@ -68,8 +67,8 @@ static void e_debug_initialize(void)
 
     trace_htbl_init(&_G.cache);
     spec_vector_init(&_G.specs);
-    blob_init(&_G.buf);
-    blob_init(&_G.tmpbuf);
+    sb_init(&_G.buf);
+    sb_init(&_G.tmpbuf);
     _G.fancy = is_fancy_fd(STDERR_FILENO);
     if (_G.fancy) {
         term_get_size(&_G.cols, &_G.rows);
@@ -167,9 +166,9 @@ static void e_trace_put_fancy(int level, const char *module, int lno, const char
     char escapes[BUFSIZ];
     int len, cols = _G.cols;
 
-    blob_set_fmt(&_G.tmpbuf, "%s:%d", module, lno);
+    sb_setf(&_G.tmpbuf, "%s:%d", module, lno);
     if (_G.tmpbuf.len > cols - 2)
-        blob_kill_last(&_G.tmpbuf, _G.tmpbuf.len - cols - 2);
+        sb_shrink(&_G.tmpbuf, _G.tmpbuf.len - cols - 2);
     len = snprintf(escapes, sizeof(escapes), "\r\e[%dC\e[7m ", cols - 2 - _G.tmpbuf.len);
     sb_splice(&_G.tmpbuf, 0, 0, escapes, len);
     sb_adds(&_G.tmpbuf, " \e[0m\r");
@@ -177,15 +176,15 @@ static void e_trace_put_fancy(int level, const char *module, int lno, const char
     len = strlen(func);
 #define FUN_WIDTH 20
     if (strlen(func) < FUN_WIDTH) {
-        blob_append_fmt(&_G.tmpbuf, "\e[33m%*s\e[0m ", FUN_WIDTH, func);
+        sb_addf(&_G.tmpbuf, "\e[33m%*s\e[0m ", FUN_WIDTH, func);
     } else {
-        blob_append_fmt(&_G.tmpbuf, "\e[33m%.*s...\e[0m ", FUN_WIDTH - 3, func);
+        sb_addf(&_G.tmpbuf, "\e[33m%.*s...\e[0m ", FUN_WIDTH - 3, func);
     }
 }
 
 static void e_trace_put_normal(int level, const char *module, int lno, const char *func)
 {
-    blob_set_fmt(&_G.tmpbuf, "%d %s:%d:%s: ", level, module, lno, func);
+    sb_setf(&_G.tmpbuf, "%d %s:%d:%s: ", level, module, lno, func);
 }
 
 void e_trace_put(int level, const char *module, int lno,
@@ -198,7 +197,7 @@ void e_trace_put(int level, const char *module, int lno,
     if (e_is_traced_real(level, module, func)) {
         spin_lock(&spin);
         va_start(ap, fmt);
-        blob_append_vfmt(&_G.buf, fmt, ap);
+        sb_addvf(&_G.buf, fmt, ap);
         va_end(ap);
 
         while ((p = memchr(_G.buf.data, '\n', _G.buf.len))) {
@@ -207,8 +206,8 @@ void e_trace_put(int level, const char *module, int lno,
             } else {
                 e_trace_put_normal(level, module, lno, func);
             }
-            blob_append_data(&_G.tmpbuf, _G.buf.data, p + 1 - blob_get_cstr(&_G.buf));
-            blob_kill_at(&_G.buf, p + 1);
+            sb_add(&_G.tmpbuf, _G.buf.data, p + 1 - _G.buf.data);
+            sb_skip_upto(&_G.buf, p + 1);
             IGNORE(xwrite(STDERR_FILENO, _G.tmpbuf.data, _G.tmpbuf.len));
         }
         spin_unlock(&spin);
