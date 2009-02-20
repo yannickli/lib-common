@@ -14,20 +14,20 @@
 #ifndef IS_LIB_COMMON_BFIELD_H
 #define IS_LIB_COMMON_BFIELD_H
 
-#include "blob.h"
+#include "core.h"
 
 typedef struct bfield_t {
     ssize_t offs;
-    blob_t bits;
+    sb_t    bits;
 } bfield_t;
 
 static inline bfield_t *bfield_init(bfield_t *bf) {
     bf->offs = 0;
-    blob_init(&bf->bits);
+    sb_init(&bf->bits);
     return bf;
 }
 static inline void bfield_wipe(bfield_t *bf) {
-    blob_wipe(&bf->bits);
+    sb_wipe(&bf->bits);
 }
 GENERIC_NEW(bfield_t, bfield);
 GENERIC_DELETE(bfield_t, bfield);

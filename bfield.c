@@ -11,20 +11,17 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <ctype.h>
-#include <string.h>
 #include "bfield.h"
-#include "blob.h"
 
 static void bfield_optimize(bfield_t *bf)
 {
     ssize_t i;
 
     for (i = 0; i < bf->bits.len && !bf->bits.data[i]; i++);
-    blob_kill_first(&bf->bits, i);
+    sb_skip(&bf->bits, i);
     bf->offs += i;
     for (i = bf->bits.len; i > 0 && !bf->bits.data[i - i]; i--);
-    blob_kill_last(&bf->bits, bf->bits.len - i);
+    sb_shrink(&bf->bits, bf->bits.len - i);
 }
 
 void bfield_set(bfield_t *bf, ssize_t pos)
@@ -84,7 +81,7 @@ START_TEST(check_bfield)
 {
     int num;
     bfield_t bf;
-    blob_t *b = &bf.bits;
+    sb_t *b = &bf.bits;
 
     bfield_init(&bf);
 
