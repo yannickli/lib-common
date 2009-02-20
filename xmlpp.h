@@ -15,17 +15,16 @@
 #define IS_LIB_COMMON_XMLPP_H
 
 #include "container.h"
-#include "blob.h"
 
 typedef struct xmlpp_t {
     flag_t can_do_attr : 1;
     flag_t was_a_tag   : 1;
-    blob_t *buf;
+    sb_t  *buf;
     string_array stack;
 } xmlpp_t;
 
-void xmlpp_open_banner(xmlpp_t *, blob_t *buf);
-void xmlpp_open(xmlpp_t *, blob_t *buf);
+void xmlpp_open_banner(xmlpp_t *, sb_t *buf);
+void xmlpp_open(xmlpp_t *, sb_t *buf);
 void xmlpp_close(xmlpp_t *);
 
 void xmlpp_opentag(xmlpp_t *, const char *tag);
