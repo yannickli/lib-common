@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "blob.h"
 #include "conf.h"
 
 static conf_section_t *conf_section_init(conf_section_t *section)
@@ -90,14 +89,11 @@ conf_t *conf_load(const char *filename)
     return res;
 }
 
-conf_t *conf_load_blob(const blob_t *buf)
+conf_t *conf_load_str(const char *s, int len)
 {
     conf_t *res = conf_section_array_new();
-    if (cfg_parse_buf(blob_get_cstr(buf), buf->len,
-                      &conf_parse_hook, res, CONF_PARSE_OPTS))
-    {
+    if (cfg_parse_buf(s, len, &conf_parse_hook, res, CONF_PARSE_OPTS))
         conf_delete(&res);
-    }
     return res;
 }
 
@@ -398,7 +394,7 @@ START_TEST(check_conf_load)
 
     conf_t *conf;
     conf_section_t *s;
-    blob_t blob;
+    sb_t sb;
     int prev;
     int verb;
     const char *p;
@@ -489,19 +485,19 @@ START_TEST(check_conf_load)
 
     conf_delete(&conf);
 
-    blob_init(&blob);
-    fail_if(blob_append_file_data(&blob, SAMPLE_CONF_FILE) < 0,
+    sb_init(&sb);
+    fail_if(sb_read_file(&sb, SAMPLE_CONF_FILE) < 0,
             "Could not read sample file: %s", SAMPLE_CONF_FILE);
 
-    conf = conf_load_blob(&blob);
+    conf = conf_load_str(sb.buf, sb.len);
 
     fail_if(conf == NULL,
-            "conf_load_blob failed");
+            "conf_load_str failed");
     fail_if(conf->len != SAMPLE_SECTION_NB,
-            "conf_load_blob did not parse the right number of sections (%d != %d)",
+            "conf_load_str did not parse the right number of sections (%d != %d)",
             conf->len, SAMPLE_SECTION_NB);
     conf_delete(&conf);
-    blob_wipe(&blob);
+    sb_wipe(&sb);
 
 #undef SAMPLE_CONF_FILE
 }

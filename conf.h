@@ -44,7 +44,6 @@ baz  += (foobar)
 ---->8----
 }}} */
 
-#include "blob.h"
 #include "container.h"
 #include "property.h"
 
@@ -99,7 +98,7 @@ ARRAY_TYPE(conf_section_t, conf_section);
 typedef conf_section_array conf_t;
 
 conf_t *conf_load(const char *filename);
-conf_t *conf_load_blob(const blob_t *buf);
+conf_t *conf_load_str(const char *s, int len);
 void conf_delete(conf_t **);
 
 int conf_save(const conf_t *conf, const char *filename);

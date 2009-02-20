@@ -13,6 +13,7 @@
 /**************************************************************************/
 
 #include "conf.h"
+#include "blob.h"
 
 struct lexdata {
     flag_t seen_section : 1;
@@ -27,7 +28,7 @@ struct lexdata {
     char  path[PATH_MAX];
 
     FILE *fd;
-    blob_t buf, err;
+    sb_t buf, err;
     yyscan_t scanner;
 };
 
@@ -56,8 +57,8 @@ static char const __c_unescape[] = {
     ['"'] = '"',  ['\''] = '\'',
 };
 
-static void blob_append_c_unescape(blob_t *blob, int c) {
-    blob_append_byte(blob, __c_unescape[c]);
+static void sb_add_c_unescape(sb_t *sb, int c) {
+    sb_addc(sb, __c_unescape[c]);
 }
 static int parse_oct(const char *o) {
     int res = *o - '0';
@@ -102,19 +103,19 @@ __attribute__((unused)) static void yyset_column(int column_no, yyscan_t yyscann
                              yyextra))                                       \
         {                                                                    \
             (*yyextra->hook)(yyextra->data, CFG_PARSE_ERROR,                 \
-                             blob_get_cstr(&yyextra->err), yyextra->err.len, \
+                             yyextra->err.data, yyextra->err.len,            \
                              yyextra);                                       \
             return -1;                                                       \
         }                                                                    \
     } while (0)
-#define HOOKBUF(_evt)  HOOK(_evt, blob_get_cstr(&yyextra->buf), yyextra->buf.len)
+#define HOOKBUF(_evt)  HOOK(_evt, yyextra->buf.data, yyextra->buf.len)
 
 #define ERROR_OFFS(offs, fmt, ...)  \
     do {                                                                     \
-        blob_set_fmt(&yyextra->err, "%s%d:%d:"fmt, yyextra->path,            \
-                     yyextra->lno, lexdata_col(yyextra, (offs)),             \
-                     ##__VA_ARGS__);                                         \
-        HOOK(_ERROR, blob_get_cstr(&yyextra->err), yyextra->err.len);        \
+        sb_setf(&yyextra->err, "%s%d:%d:"fmt, yyextra->path,                 \
+                yyextra->lno, lexdata_col(yyextra, (offs)),                  \
+                ##__VA_ARGS__);                                              \
+        HOOK(_ERROR, yyextra->err.data, yyextra->err.len);                   \
         return -1;                                                           \
     } while (0)
 
@@ -291,14 +292,14 @@ NONSP   [^[:space:];#]
                               break;
                             default: abort();
                           }
-                          blob_reset(&yyextra->buf);
+                          sb_reset(&yyextra->buf);
                         }
-    \\[0-2][0-7]{2}     { blob_append_byte(&yyextra->buf, parse_oct(yytext + 1)); }
-    \\x[0-9a-fA-F]{2}   { blob_append_byte(&yyextra->buf, parse_hex(yytext + 2)); }
+    \\[0-2][0-7]{2}     { sb_addc(&yyextra->buf, parse_oct(yytext + 1)); }
+    \\x[0-9a-fA-F]{2}   { sb_addc(&yyextra->buf, parse_hex(yytext + 2)); }
     \\u[0-9a-fA-F]{4}   { blob_utf8_putc(&yyextra->buf, parse_hex(yytext + 2)); }
-    \\[abetnvfr\\"']    { blob_append_c_unescape(&yyextra->buf, yytext[1]); }
-    \\.                 { blob_append_data(&yyextra->buf, yytext, 2); }
-    [^\\\n\"]+          { blob_append_data(&yyextra->buf, yytext, yyleng); }
+    \\[abetnvfr\\"']    { sb_add_c_unescape(&yyextra->buf, yytext[1]); }
+    \\.                 { sb_add(&yyextra->buf, yytext, 2); }
+    [^\\\n\"]+          { sb_add(&yyextra->buf, yytext, yyleng); }
 }
 
 <*>{ /* default rules to catch end of lines and end of files */
@@ -319,8 +320,8 @@ NONSP   [^[:space:];#]
 
 static struct lexdata *lexdata_fast_init(struct lexdata *ld)
 {
-    blob_init(&ld->buf);
-    blob_init(&ld->err);
+    sb_init(&ld->buf);
+    sb_init(&ld->err);
     ld->lno = 1;
     yylex_init(&ld->scanner);
     yyset_extra(ld, ld->scanner);
@@ -337,8 +338,8 @@ static int check_opts(int opts)
 
 static void lexdata_wipe(struct lexdata *ld)
 {
-    blob_wipe(&ld->buf);
-    blob_wipe(&ld->err);
+    sb_wipe(&ld->buf);
+    sb_wipe(&ld->err);
     yylex_destroy(ld->scanner);
     p_fclose(&ld->fd);
 }
@@ -375,9 +376,9 @@ int cfg_parse_seterr(void *ctx, int offs, const char *fmt, ...)
     struct lexdata *ld = ctx;
     va_list ap;
 
-    blob_set_fmt(&ld->err, "%s%d:%d:", ld->path, ld->lno, lexdata_col(ld, offs));
+    sb_setf(&ld->err, "%s%d:%d:", ld->path, ld->lno, lexdata_col(ld, offs));
     va_start(ap, fmt);
-    blob_append_vfmt(&ld->err, fmt, ap);
+    sb_addvf(&ld->err, fmt, ap);
     va_end(ap);
     return -1;
 }
