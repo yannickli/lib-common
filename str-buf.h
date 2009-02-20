@@ -258,6 +258,11 @@ static inline void sb_skip_upto(sb_t *sb, const void *where)
     sb_skip(sb, (const char *)where - sb->data);
 }
 
+static inline void sb_clip(sb_t *sb, int len)
+{
+    assert (len >= 0 && len <= sb->len);
+    __sb_fixlen(sb, len);
+}
 static inline void sb_shrink(sb_t *sb, int len)
 {
     assert (len >= 0 && len <= sb->len);
