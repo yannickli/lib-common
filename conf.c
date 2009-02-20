@@ -489,7 +489,7 @@ START_TEST(check_conf_load)
     fail_if(sb_read_file(&sb, SAMPLE_CONF_FILE) < 0,
             "Could not read sample file: %s", SAMPLE_CONF_FILE);
 
-    conf = conf_load_str(sb.buf, sb.len);
+    conf = conf_load_str(sb.data, sb.len);
 
     fail_if(conf == NULL,
             "conf_load_str failed");

@@ -39,7 +39,7 @@ static void fmtchk(const char *fmt)
     fprintf(fp, "'\n");
 }
 
-static void fmtst1chk(const char *fmt)
+static void fmtst1zchk(const char *fmt)
 {
     fputs(fmt, fp);
     fprintf(fp, ":\t`");
@@ -130,7 +130,7 @@ main(int argc, char *argv[])
                             "  I am ready for my first lesson today.";
     int result = 0;
 
-    fp = fopen("tst-iprintf-glibc.chk", "w");
+    fp = fopen("ztst-iprintf-glibc.chk", "w");
 
     fmtchk("%.4x");
     fmtchk("%04x");
@@ -302,12 +302,12 @@ main(int argc, char *argv[])
     fp = NULL;
 
     if (sizeof(long) == 8)
-        result |= system("diff tst-iprintf-glibc.chk tst-iprintf-glibc.64.ref");
+        result |= system("diff ztst-iprintf-glibc.chk ztst-iprintf-glibc.64.ref");
     else
-        result |= system("diff tst-iprintf-glibc.chk tst-iprintf-glibc.ref");
+        result |= system("diff ztst-iprintf-glibc.chk ztst-iprintf-glibc.ref");
 
     if (!result)
-        unlink("tst-iprintf-glibc.chk");
+        unlink("ztst-iprintf-glibc.chk");
 
     return (result != 0);
 }

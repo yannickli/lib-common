@@ -11,17 +11,17 @@
 #                                                                        #
 ##########################################################################
 
-test_PROGRAMS = btree-dump tst-cfgparser tst-tpl tst-htbl
+test_PROGRAMS = btree-dump ztst-cfgparser ztst-tpl ztst-htbl
 
 none_LIBRARIES = libcommon time-lp-simple
 
-none_TESTS += test tst-path tst-hash
-none_TESTS += tst-iprintf tst-iprintf-fp tst-iprintf-glibc tst-iprintf-speed
+none_TESTS += ztst ztst-path ztst-hash
+none_TESTS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 ifdef CHECK_ALL
   # These tests are just too long to be part of "make check". Sorry.
-  none_TESTS += tst-btree tst-isndx tst-sort
+  none_TESTS += ztst-btree ztst-isndx ztst-sort
 else
-  test_PROGRAMS += tst-btree tst-isndx tst-sort
+  test_PROGRAMS += ztst-btree ztst-isndx ztst-sort
 endif
 
 btree-dump_SOURCES = btree-dump.c libcommon.a compat/compat.a
@@ -113,34 +113,34 @@ libcommon_SOURCES = \
 
 time-lp-simple_SOURCES = time-lp-simple.c
 
-test_SOURCES = $(libcommon_SOURCES) time-lp-simple.c check.c $/lib-common/compat/check.c
-test_CFLAGS  = -DCHECK=1
-test_LDFLAGS = -lz -lrt
+ztst_SOURCES = $(libcommon_SOURCES) time-lp-simple.c ztst.c $/lib-common/compat/check.c
+ztst_CFLAGS  = -DCHECK=1
+ztst_LDFLAGS = -lz -lrt
 
-tst-cfgparser_SOURCES = tst-cfgparser.c libcommon.a compat/compat.a
+ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a compat/compat.a
 
-tst-tpl_SOURCES = tst-tpl.c libcommon.a
+ztst-tpl_SOURCES = ztst-tpl.c libcommon.a
 
-tst-iprintf_SOURCES = tst-iprintf.c libcommon.a compat/compat.a
+ztst-iprintf_SOURCES = ztst-iprintf.c libcommon.a compat/compat.a
 
-tst-iprintf-fp_CFLAGS = -Wno-format -Wno-missing-format-attribute
-tst-iprintf-fp_SOURCES = tst-iprintf-fp.c libcommon.a
+ztst-iprintf-fp_CFLAGS = -Wno-format -Wno-missing-format-attribute
+ztst-iprintf-fp_SOURCES = ztst-iprintf-fp.c libcommon.a
 
-tst-iprintf-glibc_CFLAGS = -Wno-format -Wno-missing-format-attribute
-tst-iprintf-glibc_SOURCES = tst-iprintf-glibc.c libcommon.a
+ztst-iprintf-glibc_CFLAGS = -Wno-format -Wno-missing-format-attribute
+ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a
 
-tst-hash_SOURCES = tst-hash.c libcommon.a compat/compat.a
+ztst-hash_SOURCES = ztst-hash.c libcommon.a compat/compat.a
 
-tst-btree_SOURCES = tst-btree.c btree.c libcommon.a compat/compat.a
-tst-isndx_SOURCES = tst-isndx.c libcommon.a compat/compat.a
-tst-sort_SOURCES = tst-sort.c libcommon.a compat/compat.a
-tst-sort_CFLAGS = -UCHECK
-tst-sort_LDFLAGS = -lm
-tst-iprintf-speed_SOURCES = tst-iprintf-speed.c libcommon.a compat/compat.a
-tst-iprintf-speed_CFLAGS = -UCHECK
+ztst-btree_SOURCES = ztst-btree.c btree.c libcommon.a compat/compat.a
+ztst-isndx_SOURCES = ztst-isndx.c libcommon.a compat/compat.a
+ztst-sort_SOURCES = ztst-sort.c libcommon.a compat/compat.a
+ztst-sort_CFLAGS = -UCHECK
+ztst-sort_LDFLAGS = -lm
+ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a compat/compat.a
+ztst-iprintf-speed_CFLAGS = -UCHECK
 
-tst-htbl_SOURCES = tst-htbl.c libcommon.a compat/compat.a
-tst-path_SOURCES = tst-path.c libcommon.a compat/compat.a
+ztst-htbl_SOURCES = ztst-htbl.c libcommon.a compat/compat.a
+ztst-path_SOURCES = ztst-path.c libcommon.a compat/compat.a
 
 ifneq (,$(MINGCC))
   # Disable some stuff that does not compile under MingW
