@@ -87,7 +87,7 @@
  *
  * This module is required for RSA and DHM support.
  */
-#define XYSSL_BIGNUM_C
+//#define XYSSL_BIGNUM_C
 
 /*
  * Module:  library/des.c

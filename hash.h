@@ -17,8 +17,6 @@
 #include "core.h"
 
 #include "hash-config.h"
-#include "hash-bignum.h"
-#include "hash-bn_mul.h"
 
 #define SHA1_DIGEST_SIZE    (160 / 8)
 #define SHA224_DIGEST_SIZE  (224 / 8)
@@ -60,7 +58,6 @@
 #include "hash-md4.h"
 #include "hash-md5.h"
 #include "hash-padlock.h"
-#include "hash-rsa.h"
 #include "hash-sha1.h"
 #include "hash-sha2.h"
 #include "hash-sha4.h"
