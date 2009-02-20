@@ -885,7 +885,7 @@ btl_findslot(const bt_leaf_t *leaf, uint64_t key, int32_t *slot)
     return -1;
 }
 
-int btree_fetch(btree_t *bt, uint64_t key, blob_t *out)
+int btree_fetch(btree_t *bt, uint64_t key, sb_t *out)
 {
     int page, pos, len = 0;
     const bt_leaf_t *leaf;
@@ -919,7 +919,7 @@ int btree_fetch(btree_t *bt, uint64_t key, blob_t *out)
             break;
         }
 
-        blob_append_data(out, leaf->data + pos, datalen);
+        sb_add(out, leaf->data + pos, datalen);
         len += datalen;
         pos += datalen;
 
@@ -1283,8 +1283,8 @@ void btree_iter_begin(btree_t *_bt, btree_iter_t *iter)
     iter->pos  = 0;
 }
 
-int btree_iter_next(btree_t *_bt, btree_iter_t *iter,
-                    uint64_t *key, blob_t *out)
+int
+btree_iter_next(btree_t *_bt, btree_iter_t *iter, uint64_t *key, sb_t *out)
 {
     struct btree_priv *bt = _bt->area;
     const bt_leaf_t *leaf;
@@ -1308,7 +1308,7 @@ int btree_iter_next(btree_t *_bt, btree_iter_t *iter,
         leaf = MAP_CONST_LEAF(bt, iter->page);
     }
 
-    blob_reset(out);
+    sb_reset(out);
     /* OG: should check unlikely(leaf->data[iter->pos] == 8 &&
      *                           iter->pos + 1 + 8 > leaf->used)
      */
@@ -1330,7 +1330,7 @@ int btree_iter_next(btree_t *_bt, btree_iter_t *iter,
             break;
         }
 
-        blob_append_data(out, leaf->data + iter->pos, datalen);
+        sb_add(out, leaf->data + iter->pos, datalen);
         iter->pos += datalen;
 
         if (iter->pos >= leaf->used) {
@@ -1463,7 +1463,7 @@ static int32_t fbtn_find_leaf(fbtree_t *fbt, uint64_t key)
     return page;
 }
 
-int fbtree_fetch(fbtree_t *fbt, uint64_t key, blob_t *out)
+int fbtree_fetch(fbtree_t *fbt, uint64_t key, sb_t *out)
 {
     bt_page_t buf;
     int page, pos, len = 0;
@@ -1498,7 +1498,7 @@ int fbtree_fetch(fbtree_t *fbt, uint64_t key, blob_t *out)
         if (unlikely(pos + datalen > leaf->used))
             break;
 
-        blob_append_data(out, leaf->data + pos, datalen);
+        sb_add(out, leaf->data + pos, datalen);
         len += datalen;
         pos += datalen;
 
