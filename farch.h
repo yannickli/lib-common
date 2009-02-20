@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_FARCH_H
 #define IS_LIB_COMMON_FARCH_H
 
-#include "blob.h"
+#include "core.h"
 
 typedef struct farch_t farch_t;
 typedef struct farch_entry_t {
@@ -29,7 +29,7 @@ void farch_delete(farch_t **fa);
 
 const farch_entry_t *farch_find(const farch_t *fa, const char *name);
 
-int farch_get(farch_t *fa, blob_t *buf, const byte **data, int *size,
+int farch_get(farch_t *fa, sb_t *buf, const byte **data, int *size,
               const char *name);
 
 #endif /* IS_LIB_COMMON_FARCH_H */

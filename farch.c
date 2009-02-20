@@ -58,9 +58,9 @@ const farch_entry_t *farch_find(const farch_t *fa, const char *name)
 
 
 /* Get data back in data/size.
- * If we have to allocate it, use the provided blob.
+ * If we have to allocate it, use the provided sb.
  */
-int farch_get(farch_t *fa, blob_t *buf, const byte **data, int *size,
+int farch_get(farch_t *fa, sb_t *buf, const byte **data, int *size,
               const char *name)
 {
     const farch_entry_t *ent;
@@ -68,7 +68,7 @@ int farch_get(farch_t *fa, blob_t *buf, const byte **data, int *size,
     if (fa->use_dir) {
         char fname[PATH_MAX];
         snprintf(fname, sizeof(fname), "%s/%s", fa->dir, name);
-        if (blob_append_file_data(buf, fname) >= 0) {
+        if (sb_read_file(buf, fname) >= 0) {
             *data = (const byte *)buf->data;
             *size = buf->len;
             fa->checked_dir = true;
