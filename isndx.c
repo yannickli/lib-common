@@ -355,7 +355,7 @@ static int isndx_scan(isndx_t *ndx, const byte *page,
 
 static int isndx_fetch1(isndx_t *ndx,
                         int level, uint32_t pageno,
-                        const byte *key, int keylen, blob_t *out)
+                        const byte *key, int keylen, sb_t *out)
 {
     const byte *page, *p;
     scan_state_t sst;
@@ -405,7 +405,7 @@ static int isndx_fetch1(isndx_t *ndx,
         while (sst.exact) {
             found++;
             p = page + sst.offset;
-            blob_append_data(out, p + 3 + p[1], p[2]);
+            sb_add(out, p + 3 + p[1], p[2]);
             sst.offset += 3 + p[1] + p[2];
             p = page + sst.offset;
             sst.exact = (p[0] == keylen && p[1] == 0);
@@ -415,7 +415,7 @@ static int isndx_fetch1(isndx_t *ndx,
     return found;
 }
 
-int isndx_fetch(isndx_t *ndx, const byte *key, int keylen, blob_t *out)
+int isndx_fetch(isndx_t *ndx, const byte *key, int keylen, sb_t *out)
 {
     uint32_t pageno = ndx->file->area->root;
     uint32_t level = ndx->file->area->rootlevel;

@@ -14,7 +14,6 @@
 #ifndef IS_LIB_COMMON_ISNDX_H
 #define IS_LIB_COMMON_ISNDX_H
 
-#include "blob.h"
 #include "mmappedfile.h"
 
 typedef struct isndx_t isndx_t;
@@ -81,11 +80,11 @@ isndx_t *isndx_create(const char *path, isndx_create_parms_t *cp);
 isndx_t *isndx_open(const char *path, int flags);
 void isndx_close(isndx_t **ndx);
 
-int isndx_fetch(isndx_t *ndx, const byte *key, int klen, blob_t *out);
+int isndx_fetch(isndx_t *ndx, const byte *key, int klen, sb_t *out);
 int isndx_push(isndx_t *ndx, const byte *key, int klen,
                const void *data, int len);
 
-static inline int isndx_fetch_uint64(isndx_t *ndx, uint64_t key, blob_t *out)
+static inline int isndx_fetch_uint64(isndx_t *ndx, uint64_t key, sb_t *out)
 {
     return isndx_fetch(ndx, (const byte *)&key, sizeof(key), out);
 }

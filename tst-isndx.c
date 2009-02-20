@@ -533,10 +533,10 @@ int main(int argc, char **argv)
             if (!strcmp(command, "fetch")) {
                 while (*argv) {
                     const char *key;
-                    blob_t out;
+                    sb_t out;
                     int res, chunk;
 
-                    blob_init(&out);
+                    sb_init(&out);
                     key = *argv++;
                     res = isndx_fetch(ndx, (byte*)key, strlen(key), &out);
                     printf("isndx_fetch('%s') -> %d [%d bytes] {",
@@ -550,7 +550,7 @@ int main(int argc, char **argv)
                         printf(" %02X", out.data[i]);
                     }
                     printf("%s\n}\n", out.len > chunk ? " ..." : "");
-                    blob_wipe(&out);
+                    sb_wipe(&out);
                 }
                 continue;
             }
