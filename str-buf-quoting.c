@@ -359,46 +359,42 @@ void sb_add_unqpe(sb_t *sb, const void *data, int len)
     }
 }
 
-static int b64_size(int oldlen, int nbpackets)
+/* computes a slightly overestimated size to write srclen bytes with `ppline`
+ * packs per line, not knowing if we start at column 0 or not.
+ *
+ * The over-estimate is of at most 4 bytes, we can live with that.
+ */
+static int b64_rough_size(int srclen, int ppline)
 {
-    if (nbpackets > 0) {
-        int nb_full_lines = oldlen / (3 * nbpackets);
-        int lastlen = oldlen % (3 * nbpackets);
+    int nbpacks = ((srclen + 2) / 3);
 
-        if (lastlen % 3) {
-            lastlen += 3 - (lastlen % 3);
-        }
-        lastlen = lastlen * 4 / 3;
-        if (lastlen) {
-            lastlen += 2; /* crlf */
-        }
-
-        return nb_full_lines * (4 * nbpackets + 2) + lastlen;
-    } else {
-        return 4 * ((oldlen + 2) / 3);
-    }
+    if (ppline < 0)
+        return 4 * nbpacks;
+    /*
+     * Worst case is we're at `4 * ppline` column so we have to add a \r\n
+     * straight away plus what is need for the rest.
+     */
+    return 4 * nbpacks + 2 + 2 * ((nbpacks + ppline - 1) / ppline);
 }
 
 void sb_add_b64_start(sb_t *dst, int len, int width, sb_b64_ctx_t *ctx)
 {
-    p_clear(ctx, 1);
-
     prefetch(__b64);
-    if (width < 0) {
-        ctx->packs_per_line = -1;
-    } else
+    p_clear(ctx, 1);
     if (width == 0) {
-        ctx->packs_per_line = 19; /* 76 characters + \r\n */
+        width = 19; /* 76 characters + \r\n */
     } else {
-        ctx->packs_per_line = width / 4;
+        /* XXX: >>2 keeps the sign, unlike /4 */
+        width >>= 2;
     }
-    sb_grow(dst, b64_size(len, ctx->packs_per_line));
+    ctx->packs_per_line = width;
+    sb_grow(dst, b64_rough_size(len, width));
 }
 
 void sb_add_b64_update(sb_t *dst, const void *src0, int len, sb_b64_ctx_t *ctx)
 {
-    short packs_per_line = ctx->packs_per_line;
-    short pack_num       = ctx->pack_num;
+    short ppline    = ctx->packs_per_line;
+    short pack_num  = ctx->pack_num;
     const byte *src = src0;
     const byte *end = src + len;
     unsigned pack;
@@ -410,7 +406,7 @@ void sb_add_b64_update(sb_t *dst, const void *src0, int len, sb_b64_ctx_t *ctx)
         return;
     }
 
-    data = sb_grow(dst, b64_size(ctx->trail_len + len, packs_per_line) + 6);
+    data = sb_grow(dst, b64_rough_size(ctx->trail_len + len, ppline));
 
     if (ctx->trail_len) {
         pack  = ctx->trail[0] << 16;
@@ -430,7 +426,7 @@ void sb_add_b64_update(sb_t *dst, const void *src0, int len, sb_b64_ctx_t *ctx)
         *data++ = __b64[(pack >> (1 * 6)) & 0x3f];
         *data++ = __b64[(pack >> (0 * 6)) & 0x3f];
 
-        if (packs_per_line > 0 && ++pack_num >= packs_per_line) {
+        if (ppline > 0 && ++pack_num >= ppline) {
             pack_num = 0;
             *data++ = '\r';
             *data++ = '\n';
