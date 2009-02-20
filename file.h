@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_FILE_H
 #define IS_LIB_COMMON_FILE_H
 
-#include "blob.h"
+#include "core.h"
 
 /* simplified stdio */
 
@@ -35,7 +35,7 @@ typedef struct file_t {
     enum file_flags flags;
     int fd;
     off_t wpos;
-    blob_t obuf;
+    sb_t obuf;
 } file_t;
 
 /*----- open/close -----*/

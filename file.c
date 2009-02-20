@@ -25,7 +25,7 @@
 
 static int file_flush_obuf(file_t *f, int len)
 {
-    blob_t *obuf = &f->obuf;
+    sb_t *obuf = &f->obuf;
     int goal = f->obuf.len - len;
     int fd = f->fd;
 
@@ -36,7 +36,7 @@ static int file_flush_obuf(file_t *f, int len)
         int nb = write(fd, obuf->data, obuf->len);
         if (nb < 0 && errno != EINTR && errno != EAGAIN)
             return -1;
-        blob_kill_first(obuf, nb);
+        sb_skip(obuf, nb);
         f->wpos += nb;
     }
     return 0;
@@ -85,7 +85,7 @@ file_t *file_open(const char *path, enum file_flags flags, mode_t mode)
 
     res = p_new_raw(file_t, 1);
     res->flags = flags;
-    blob_init(&res->obuf);
+    sb_init(&res->obuf);
     res->fd = open(path, oflags, mode);
     if (res->fd < 0)
         FAIL_ERRNO(p_delete(&res), NULL);
@@ -108,7 +108,7 @@ int file_close(file_t **fp)
         file_t *f = *fp;
         int res = 0;
         res = file_flush(f) | p_close(&f->fd);
-        blob_wipe(&f->obuf);
+        sb_wipe(&f->obuf);
         p_delete(fp);
         return res;
     }
@@ -149,7 +149,7 @@ int file_putc(file_t *f, int c)
         errno = EBADF;
         return -1;
     }
-    blob_append_byte(&f->obuf, c);
+    sb_addc(&f->obuf, c);
     if (c == '\n' || f->obuf.len > BUFSIZ) {
         if (file_flush(f))
             return -1;
@@ -173,12 +173,12 @@ off_t file_write(file_t *f, const void *_data, off_t len)
     }
 
     if (f->obuf.len + len < BUFSIZ) {
-        blob_append_data(&f->obuf, data, len);
+        sb_add(&f->obuf, data, len);
         return len;
     }
 
     pos = BUFSIZ - f->obuf.len;
-    blob_append_data(&f->obuf, data, BUFSIZ - f->obuf.len);
+    sb_add(&f->obuf, data, BUFSIZ - f->obuf.len);
     if (file_flush(f))
         return pos;
 
@@ -190,13 +190,13 @@ off_t file_write(file_t *f, const void *_data, off_t len)
         f->wpos += nb;
     }
 
-    blob_set_data(&f->obuf, data + pos, len - pos);
+    sb_set(&f->obuf, data + pos, len - pos);
     return len;
 }
 
 int file_writevf(file_t *f, const char *fmt, va_list ap)
 {
-    blob_append_vfmt(&f->obuf, fmt, ap);
+    sb_addvf(&f->obuf, fmt, ap);
     if (f->obuf.len > BUFSIZ) {
         if (file_flush(f))
             return -1;
