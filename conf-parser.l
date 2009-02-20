@@ -51,15 +51,6 @@ static int lexdata_col(struct lexdata *ld, int offs)
     return 1 + lexdata_relpos(ld, offs) - ld->lstart;
 }
 
-static char const __c_unescape[] = {
-    ['a'] = '\a', ['b'] = '\b', ['e'] = '\e', ['t'] = '\t', ['n'] = '\n',
-    ['v'] = '\v', ['f'] = '\f', ['r'] = '\r', ['\\'] = '\\',
-    ['"'] = '"',  ['\''] = '\'',
-};
-
-static void sb_add_c_unescape(sb_t *sb, int c) {
-    sb_addc(sb, __c_unescape[c]);
-}
 static int parse_oct(const char *o) {
     int res = *o - '0';
     while (*++o) {
@@ -297,7 +288,7 @@ NONSP   [^[:space:];#]
     \\[0-2][0-7]{2}     { sb_addc(&yyextra->buf, parse_oct(yytext + 1)); }
     \\x[0-9a-fA-F]{2}   { sb_addc(&yyextra->buf, parse_hex(yytext + 2)); }
     \\u[0-9a-fA-F]{4}   { blob_utf8_putc(&yyextra->buf, parse_hex(yytext + 2)); }
-    \\[abetnvfr\\"']    { sb_add_c_unescape(&yyextra->buf, yytext[1]); }
+    \\[abetnvfr\\"']    { sb_add_unquoted(&yyextra->buf, yytext, 2); }
     \\.                 { sb_add(&yyextra->buf, yytext, 2); }
     [^\\\n\"]+          { sb_add(&yyextra->buf, yytext, yyleng); }
 }

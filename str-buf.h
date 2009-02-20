@@ -336,6 +336,9 @@ sb_adds_slashes(sb_t *sb, const char *s, const char *toesc, const char *esc)
     sb_add_slashes(sb, s, strlen(s), toesc, esc);
 }
 
+void sb_add_unquoted(sb_t *sb, const void *data, int len);
+__SB_DEFINE_ADDS(unquoted);
+
 void sb_add_urlencode(sb_t *sb, const void *data, int len);
 void sb_add_urldecode(sb_t *sb, const void *data, int len);
 void sb_urldecode(sb_t *sb);

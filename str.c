@@ -118,81 +118,6 @@ ssize_t pstrcpylen(char *dest, ssize_t size, const char *src, ssize_t n)
     return (ssize_t)len;
 }
 
-/* Same as pstrcpylen, but unescape string on the fly */
-/* OG: propably a lame duplicate of strconv_unquote */
-ssize_t pstrcpylen_unescape(char *dest, ssize_t size, const char *src, ssize_t n)
-{
-    const char *p;
-    size_t len, clen, off;
-
-    len = 0;
-
-    if (!dest || size <= 0) {
-        return 0;
-    }
-
-    if (src) {
-        if (n < 0) {
-            len = strlen(src);
-        } else {
-            /* OG: RFE: Should use strnlen */
-            p = (const char *)memchr(src, '\0', n);
-            len = p ? p - src : n;
-        }
-    }
-
-    clen = 0;
-
-    while (len && (p = memsearch(src, len, "\\", 1)) != NULL) {
-        off = p - src;
-        if (off >= (size - clen)) {
-            /* No space left */
-            /* OG: should copy part that fits and compute actual space
-             * needed.
-             */
-            return -1;
-        }
-        memcpy(dest, src, off);
-        dest += off;
-        clen += off;
-        len -= off;
-        src += off;
-
-        if (size - clen < 1) {
-            /* No space left */
-            return -1;
-        }
-        p++;
-        if (*p == '\\' || *p == '"') {
-            /* Unescape */
-            *dest++ = *p;
-            clen++;
-            src += 2;
-            len -= 2;
-        } else {
-            /* else no escaping : */
-            *dest++ = '\\';
-            clen++;
-            src++;
-            len--;
-        }
-    }
-
-    if (len) {
-        if (len > size - clen - 1) {
-            /* Inconsistent: return value should be -1 or actual len
-             * needed
-             */
-            len = size - clen - 1;
-        }
-        memcpy(dest, src, len); /* assuming no overlap */
-        clen += len;
-        dest[len] = '\0';
-    }
-    return (ssize_t)clen;
-}
-
-
 /** Appends the string pointed to by <code>src</code> at the end of
  * the string pointed to by <code>dest</code> not overflowing
  * <code>size</code> bytes.
@@ -761,16 +686,6 @@ START_TEST(check_pstrcpylen)
              "pstrcpylen \"123\", 4 failed");
     fail_if (pstrcpylen(p, sizeof(p), "123", -1) != 3,
              "pstrcpylen \"123\", -1 failed");
-    fail_if (pstrcpylen_unescape(p, sizeof(p), "123456", 6) != 6,
-             "pstrcpylen_escape \"123456\", failed: %s / %s", p, "123456");
-    fail_if (pstrcpylen_unescape(p, sizeof(p), "123\\\"456", 8) != 7,
-             "pstrcpylen_escape \"123\\\"456\", failed: %s / %s", p, "123\"456");
-    fail_if (strcmp(p, "123\"456") != 0,
-             "pstrcpylen_escape \"123\\\"456\", failed %s / %s", p, "123\"456");
-    fail_if (pstrcpylen_unescape(p, sizeof(p), "123\\\"\\\\\\\"456", 12) != 9,
-             "pstrcpylen_escape \"123\\\"456\", failed: %s / %s", p, "123\"\\\"456");
-    fail_if (strcmp(p, "123\"\\\"456") != 0,
-             "pstrcpylen_escape \"123\\\"456\", failed %s / %s", p, "123\"\\\"456");
 }
 END_TEST
 

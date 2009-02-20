@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "core.h"
+#include "blob.h"
 
 static const char __b64[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -120,6 +121,72 @@ void sb_add_slashes(sb_t *sb, const void *_data, int len,
                 s[1] = c;
             }
         }
+    }
+}
+
+static char const __c_unescape[] = {
+    ['a'] = '\a', ['b'] = '\b', ['e'] = '\e', ['t'] = '\t', ['n'] = '\n',
+    ['v'] = '\v', ['f'] = '\f', ['r'] = '\r', ['\\'] = '\\',
+    ['"'] = '"',  ['\''] = '\''
+};
+
+void sb_add_unquoted(sb_t *sb, const void *data, int len)
+{
+    const char *p = data, *end = p + len;
+
+    while (p < end) {
+        const char *q = p;
+        int c;
+
+        p = memchr(q, '\\', end - q);
+        if (!p) {
+            sb_add(sb, q, end - q);
+            return;
+        }
+        sb_add(sb, q, p - q);
+        p += 1;
+
+        if (p == end) {
+            sb_addc(sb, '\\');
+            return;
+        }
+
+        switch (*p) {
+          case 'a': case 'b': case 'e': case 't': case 'n': case 'v':
+          case 'f': case 'r': case '\\': case '"': case '\'':
+            sb_addc(sb, __c_unescape[(unsigned char)*p++]);
+            continue;
+
+          case '0'...'7':
+            c = *p++ - '0';
+            if (p < end && *p >= '0' && *p < '8')
+                c = (c << 3) + *p - '0';
+            if (c < '\40' && p < end && *p >= '0' && *p < '8')
+                c = (c << 3) + *p - '0';
+            sb_addc(sb, c);
+            continue;
+
+          case 'x':
+            if (end - p < 3)
+                break;
+            c = hexdecode(p + 1);
+            if (c < 0)
+                break;
+            sb_addc(sb, c);
+            p += 3;
+            continue;
+
+          case 'u':
+            if (end - p < 5)
+                break;
+            c = (hexdecode(p + 1) << 8) | hexdecode(p + 3);
+            if (c < 0)
+                break;
+            blob_utf8_putc(sb, c);
+            p += 5;
+            continue;
+        }
+        sb_addc(sb, '\\');
     }
 }
 
