@@ -869,7 +869,7 @@ const xml_tag_t* xml_search_subtree(const xml_tree_t *tree,
     return xml_search_branch(subtree, &previous, pattern);
 }
 
-void blob_append_branch(const xml_tag_t *root, blob_t *blob,
+void blob_append_branch(const xml_tag_t *root, sb_t *sb,
                         const char *prefix)
 {
     /* OG: should pass indentation count instead of prefix string */
@@ -881,39 +881,39 @@ void blob_append_branch(const xml_tag_t *root, blob_t *blob,
         return;
 
     if (root->fullname) {
-        blob_append_cstr(blob, prefix);
-        blob_append_cstr(blob, "<");
-        blob_append_cstr(blob, root->fullname);
+        sb_adds(sb, prefix);
+        sb_adds(sb, "<");
+        sb_adds(sb, root->fullname);
         for (prop = root->property; prop; prop = prop->next) {
-            blob_append_cstr(blob, " ");
-            blob_append_cstr(blob, prop->name);
-            blob_append_cstr(blob, "=\"");
-            sb_adds_xmlescape(blob, prop->value);
-            blob_append_cstr(blob, "\"");
+            sb_adds(sb, " ");
+            sb_adds(sb, prop->name);
+            sb_adds(sb, "=\"");
+            sb_adds_xmlescape(sb, prop->value);
+            sb_adds(sb, "\"");
         }
-        blob_append_cstr(blob, ">\n");
+        sb_adds(sb, ">\n");
     }
     snprintf(newprefix, sizeof(newprefix), "%s   ", prefix);
     if (root->text) {
-        blob_append_cstr(blob, newprefix);
-        blob_append_cstr(blob, root->text);
-        blob_append_cstr(blob, "\n");
+        sb_adds(sb, newprefix);
+        sb_adds(sb, root->text);
+        sb_adds(sb, "\n");
     }
 
     for (cur = root->child; cur; cur = cur->next) {
-        blob_append_branch(cur, blob, newprefix);
+        blob_append_branch(cur, sb, newprefix);
     }
     if (root->fullname) {
-        blob_append_cstr(blob, prefix);
-        blob_append_cstr(blob, "</");
-        blob_append_cstr(blob, root->fullname);
-        blob_append_cstr(blob, ">\n");
+        sb_adds(sb, prefix);
+        sb_adds(sb, "</");
+        sb_adds(sb, root->fullname);
+        sb_adds(sb, ">\n");
     }
 }
 
-void blob_append_tree(const xml_tree_t *tree, blob_t *blob)
+void blob_append_tree(const xml_tree_t *tree, sb_t *sb)
 {
-     blob_append_branch(tree->root, blob, "");
+     blob_append_branch(tree->root, sb, "");
 }
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
@@ -962,18 +962,18 @@ static void xml_branch_dump(const xml_tag_t *root, const char *prefix)
 
 START_TEST(check_xmlparse)
 {
-    blob_t blob;
+    sb_t sb;
     xml_tree_t *tree;
     const xml_tag_t *tag, *tag2, *tag3, *tag4;
     int verbose = 0;
     char error_buf[256];
 
     error_buf[0] = '\0';
-    blob_init(&blob);
+    sb_init(&sb);
 
-    fail_if(blob_append_file_data(&blob, "samples/simple.xml") < 0,
+    fail_if(sb_read_file(&sb, "samples/simple.xml") < 0,
             "unable to read sample file");
-    tree = xml_new_tree(blob_get_cstr(&blob), blob.len,
+    tree = xml_new_tree(sb.data, sb.len,
                         error_buf, sizeof(error_buf));
     fail_if(!tree, "simple, %s", error_buf);
     if (tree) {
@@ -1025,7 +1025,7 @@ START_TEST(check_xmlparse)
         xml_tree_delete(&tree);
     }
 
-    blob_wipe(&blob);
+    sb_wipe(&sb);
 }
 END_TEST
 

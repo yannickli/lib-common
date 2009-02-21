@@ -17,7 +17,6 @@
 #include "core.h"
 
 #include "bfield.h"
-#include "blob.h"
 #include "bstream.h"
 #include "btree.h"
 #include "conf.h"

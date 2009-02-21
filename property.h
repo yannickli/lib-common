@@ -15,7 +15,6 @@
 #define IS_LIB_COMMON_PROPERTY_H
 
 #include "container.h"
-#include "blob.h"
 
 typedef struct property_t {
     char *name;
@@ -44,15 +43,15 @@ void props_array_filterout(props_array *arr, const char **blacklisted);
 void props_array_remove_nulls(props_array *arr);
 
 /* appends $nb|$k1|$v1|...|$kn|$vn$last */
-void props_array_pack(blob_t *out, const props_array *arr, int last);
+void props_array_pack(sb_t *out, const props_array *arr, int last);
 
 __must_check__ int
 props_array_unpack(const byte *buf, int buflen,  int *pos,
                    props_array **arr, int last);
 
 int props_from_fmtv1_cstr(const char *buf, props_array *props);
-int props_from_fmtv1(const blob_t *payload, props_array *props);
-void props_to_fmtv1(blob_t *out, const props_array *props);
+int props_from_fmtv1(const sb_t *payload, props_array *props);
+void props_to_fmtv1(sb_t *out, const props_array *props);
 
 void props_array_dup(props_array *to, const props_array *from);
 

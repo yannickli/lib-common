@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "property.h"
+#include "blob.h"
 
 void props_array_update(props_array *arr, const char *k, const char *v)
 {
@@ -146,7 +147,7 @@ void props_array_filterout(props_array *arr, const char **blacklisted)
     }
 }
 
-void props_array_pack(blob_t *out, const props_array *arr, int last)
+void props_array_pack(sb_t *out, const props_array *arr, int last)
 {
     int i, nulls = 0;
 
@@ -161,7 +162,7 @@ void props_array_pack(blob_t *out, const props_array *arr, int last)
     }
 
     if (last) {
-        blob_append_byte(out, last);
+        sb_addc(out, last);
     }
 }
 
@@ -238,12 +239,12 @@ int props_from_fmtv1_cstr(const char *buf, props_array *props)
     return 0;
 }
 
-int props_from_fmtv1(const blob_t *payload, props_array *props)
+int props_from_fmtv1(const sb_t *payload, props_array *props)
 {
-    return props_from_fmtv1_cstr(blob_get_cstr(payload), props);
+    return props_from_fmtv1_cstr(payload->data, props);
 }
 
-void props_to_fmtv1(blob_t *out, const props_array *props)
+void props_to_fmtv1(sb_t *out, const props_array *props)
 {
     int i;
 

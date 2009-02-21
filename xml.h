@@ -15,7 +15,6 @@
 #define IS_LIB_COMMON_XML_H
 
 #include "mem-pool.h"
-#include "blob.h"
 
 typedef struct xml_prop_t xml_prop_t;
 typedef struct xml_tag_t xml_tag_t;
@@ -70,8 +69,8 @@ void xml_tree_wipe(xml_tree_t *tree);
 GENERIC_DELETE(xml_tree_t, xml_tree);
 
 /*TODO do search on tag */
-void blob_append_tree(const xml_tree_t *tree, blob_t *blob);
-void blob_append_branch(const xml_tag_t *root, blob_t *blob,
+void blob_append_tree(const xml_tree_t *tree, sb_t *blob);
+void blob_append_branch(const xml_tag_t *root, sb_t *blob,
                         const char *prefix);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/

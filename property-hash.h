@@ -15,7 +15,6 @@
 #define IS_LIB_COMMON_PROPERTY_HASH_H
 
 #include "container.h"
-#include "blob.h"
 #include "xmlpp.h"
 
 typedef struct prop_t {
@@ -80,9 +79,9 @@ bool props_hash_findval_bool(const props_hash_t *ph, const char *name, bool defv
 /* Serialize props_hashes                                                   */
 /****************************************************************************/
 
-void props_hash_pack(blob_t *out, const props_hash_t *ph, int terminator);
-void props_hash_to_fmtv1(blob_t *out, const props_hash_t *ph);
-void props_hash_to_conf(blob_t *out, const props_hash_t *ph);
+void props_hash_pack(sb_t *out, const props_hash_t *ph, int terminator);
+void props_hash_to_fmtv1(sb_t *out, const props_hash_t *ph);
+void props_hash_to_conf(sb_t *out, const props_hash_t *ph);
 void props_hash_to_xml(xmlpp_t *pp, const props_hash_t *ph);
 
 /****************************************************************************/
@@ -94,8 +93,8 @@ __must_check__ int props_hash_unpack(const void *buf, int buflen, int *pos,
 int props_hash_from_fmtv1_data_start(props_hash_t *ph, const void *data,
                                      int len, int start);
 int props_hash_from_fmtv1_data(props_hash_t *ph, const void *data, int len);
-int props_hash_from_fmtv1(props_hash_t *ph, const blob_t *payload);
-int props_hash_from_fmtv1_len(props_hash_t *ph, const blob_t *payload,
+int props_hash_from_fmtv1(props_hash_t *ph, const sb_t *payload);
+int props_hash_from_fmtv1_len(props_hash_t *ph, const sb_t *payload,
                               int begin, int end);
 
 #endif /* IS_LIB_COMMON_PROPERTY_H */

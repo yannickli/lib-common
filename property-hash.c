@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "property-hash.h"
+#include "blob.h"
 
 /****************************************************************************/
 /* Generic helpers and functions                                            */
@@ -165,35 +166,35 @@ bool props_hash_findval_bool(const props_hash_t *ph, const char *name, bool defv
 /* Serialize props_hashes                                                   */
 /****************************************************************************/
 
-static void pack_one(prop_t *pp, void *blob)
+static void pack_one(prop_t *pp, void *sb)
 {
-    blob_pack(blob, "|s|s", pp->name, pp->value);
+    blob_pack(sb, "|s|s", pp->name, pp->value);
 }
 
-void props_hash_pack(blob_t *out, const props_hash_t *ph, int terminator)
+void props_hash_pack(sb_t *out, const props_hash_t *ph, int terminator)
 {
     blob_pack(out, "d", ph->h.len);
     HTBL_MAP((props_htbl *)&ph->h, pack_one, out);
-    blob_append_byte(out, terminator);
+    sb_addc(out, terminator);
 }
 
-static void one_to_fmtv1(prop_t *pp, void *blob)
+static void one_to_fmtv1(prop_t *pp, void *sb)
 {
-    blob_pack(blob, "s:s\n", pp->name, pp->value);
+    blob_pack(sb, "s:s\n", pp->name, pp->value);
 }
 
-void props_hash_to_fmtv1(blob_t *out, const props_hash_t *ph)
+void props_hash_to_fmtv1(sb_t *out, const props_hash_t *ph)
 {
     HTBL_MAP((props_htbl *)&ph->h, one_to_fmtv1, out);
 }
 
-static void one_to_conf(prop_t *pp, void *blob)
+static void one_to_conf(prop_t *pp, void *sb)
 {
     /* fixme val could have embeded \n */
-    blob_append_fmt(blob, "%s = %s\n", pp->name, pp->value);
+    sb_addf(sb, "%s = %s\n", pp->name, pp->value);
 }
 
-void props_hash_to_conf(blob_t *out, const props_hash_t *ph)
+void props_hash_to_conf(sb_t *out, const props_hash_t *ph)
 {
     HTBL_MAP((props_htbl *)&ph->h, one_to_conf, out);
 }
@@ -255,10 +256,10 @@ int props_hash_from_fmtv1_data_start(props_hash_t *ph,
 {
     const char *buf = _buf;
     int pos = 0;
-    blob_t key, val;
+    sb_t key, val;
 
-    blob_inita(&key, BUFSIZ);
-    blob_inita(&val, BUFSIZ);
+    sb_inita(&key, BUFSIZ);
+    sb_inita(&val, BUFSIZ);
 
     if (start >= 0)
         pos = start;
@@ -281,18 +282,18 @@ int props_hash_from_fmtv1_data_start(props_hash_t *ph,
         while (vlen > 0 && isspace((unsigned char)v[vlen - 1]))
             vlen--;
 
-        blob_set_data(&key, k, klen);
+        sb_set(&key, k, klen);
         if (vlen) {
-            blob_set_data(&val, v, vlen);
-            props_hash_update(ph, blob_get_cstr(&key), blob_get_cstr(&val));
+            sb_set(&val, v, vlen);
+            props_hash_update(ph, key.data, val.data);
         } else {
-            props_hash_update(ph, blob_get_cstr(&key), NULL);
+            props_hash_update(ph, key.data, NULL);
         }
         pos = end + 1 - buf;
     }
 
-    blob_wipe(&key);
-    blob_wipe(&val);
+    sb_wipe(&key);
+    sb_wipe(&val);
     return 0;
 }
 
@@ -301,7 +302,7 @@ int props_hash_from_fmtv1_data(props_hash_t *ph, const void *buf, int len)
     return props_hash_from_fmtv1_data_start(ph, buf, len, -1);
 }
 
-int props_hash_from_fmtv1_len(props_hash_t *ph, const blob_t *payload,
+int props_hash_from_fmtv1_len(props_hash_t *ph, const sb_t *payload,
                               int p_begin, int p_end)
 {
     if (p_end < 0)
@@ -309,7 +310,7 @@ int props_hash_from_fmtv1_len(props_hash_t *ph, const blob_t *payload,
     return props_hash_from_fmtv1_data_start(ph, payload->data, p_end, p_begin);
 }
 
-int props_hash_from_fmtv1(props_hash_t *ph, const blob_t *payload)
+int props_hash_from_fmtv1(props_hash_t *ph, const sb_t *payload)
 {
     return props_hash_from_fmtv1_data_start(ph, payload->data, payload->len, -1);
 }
