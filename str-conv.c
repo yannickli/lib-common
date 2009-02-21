@@ -43,7 +43,7 @@ uint32_t const __utf8_offs[6] = {
     0x03c82080UL, 0xfa082080UL, 0x82082080UL
 };
 
-unsigned char const __str_digit_value[128 + 256] = {
+uint8_t const __str_digit_value[128 + 256] = {
 #define REPEAT16(x)  x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
     REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
     REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
@@ -60,58 +60,43 @@ unsigned char const __str_digit_value[128 + 256] = {
 char const __str_digits_upper[36] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 char const __str_digits_lower[36] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
-int strconv_hexdecode(byte *dest, int size, const char *src, int len)
+int strconv_hexdecode(void *dest, int size, const char *src, int len)
 {
-    int prev_len;
+    const char *end;
+    byte *w = dest;
 
-    if (len < 0) {
+    if (len < 0)
         len = strlen(src);
-    }
-    prev_len = len;
+    end = src + MIN(len, 2 * size);
 
-    if (len & 1) {
-        /* Should accept and ignore white space in source string? */
-        /* Alternatively, we could stop on first non hex character */
+    if (len & 1)
         return -1;
-    }
 
-    while (len && size > 0) {
-        int val = hexdecode(src);
+    for (; src < end; src += 2) {
+        int c = hexdecode(src);
 
-        if (val < 0) {
+        if (c < 0)
             return -1;
-        }
-        *dest++ = val;
-        size--;
-        src += 2;
-        len -= 2;
+        *w++ = c;
     }
 
-    return prev_len / 2;
+    return len / 2;
 }
 
-int strconv_hexencode(char *dest, int size, const byte *src, int len)
+int strconv_hexencode(char *dest, int size, const void *src, int len)
 {
-    int prev_len;
+    const byte *s = src, *end = s + MIN(len, (size - 1) / 2);
 
-    if (len < 0) {
-        return -1;
-    }
-    prev_len = len;
+    if (size <= 0)
+        return 2 * len;
 
-    while (len && size > 1) {
-        *dest++ = __str_digits_lower[(*src >> 4) & 15];
-        *dest++ = __str_digits_lower[(*src++) & 15];
-        size -= 2;
-        len--;
+    while (s < end) {
+        *dest++ = __str_digits_lower[(*s >> 4) & 0xf];
+        *dest++ = __str_digits_lower[(*s++)    & 0xf];
     }
 
-    if (size)
-        *dest = '\0';
-    else
-        *--dest = '\0';
-
-    return prev_len * 2;
+    *dest = '\0';
+    return len * 2;
 }
 
 /****************************************************************************/

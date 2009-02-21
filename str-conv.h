@@ -16,7 +16,7 @@
 #else
 #define IS_LIB_COMMON_STR_CONV_H
 
-extern unsigned char const __str_digit_value[128 + 256];
+extern uint8_t const __str_digit_value[128 + 256];
 extern char const __str_digits_upper[36];
 extern char const __str_digits_lower[36];
 
@@ -47,8 +47,8 @@ static inline int hexdecode(const char *str)
 }
 
 /* XXX: dest will not be NUL terminated in strconv_hexdecode*/
-int strconv_hexdecode(byte *dest, int size, const char *src, int len);
-int strconv_hexencode(char *dest, int size, const byte *src, int len);
+int strconv_hexdecode(void *dest, int size, const char *src, int len);
+int strconv_hexencode(char *dest, int size, const void *src, int len);
 
 
 /****************************************************************************/
