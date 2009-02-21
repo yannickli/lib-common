@@ -132,9 +132,6 @@ void blob_append_date_iso8601(blob_t *dst, time_t date);
 void blob_append_ira_hex(blob_t *dst, const void *src, int len);
 int blob_append_ira_bin(blob_t *dst, const void *src, int len);
 
-int blob_decode_ira_hex_as_latin15(blob_t *dst, const char *src, int len);
-int blob_decode_ira_bin_as_latin15(blob_t *dst, const char *src, int len);
-
 int blob_decode_ira_hex_as_utf8(blob_t *dst, const char *src, int len);
 int blob_decode_ira_bin_as_utf8(blob_t *dst, const char *src, int len);
 
