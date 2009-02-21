@@ -239,20 +239,14 @@ static void __from_latinX_aux(sb_t *sb, const void *data, int len, int limit)
     while (s < end) {
         const char *p = s;
 
-        while (s < end && !(*s & 0x80))
-            s++;
+        s = utf8_skip(s, end);
         sb_add(sb, p, s - p);
 
-        while (s < end && (*s & 0x80)) {
-            if (utf8_ngetc(s, end - s, &p) < 0) {
-                int c = (unsigned char)*s++;
-                if (c < limit)
-                    c = __latinX_to_utf8[c & 0x7f];
-                sb_adduc(sb, c);
-            } else {
-                sb_add(sb, s, p - s);
-                s = p;
-            }
+        if (s < end) {
+            int c = (unsigned char)*s++;
+            if (c < limit)
+                c = __latinX_to_utf8[c & 0x7f];
+            sb_adduc(sb, c);
         }
     }
 }
