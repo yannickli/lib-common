@@ -12,7 +12,6 @@
 /**************************************************************************/
 
 #include "core.h"
-#include "blob.h"
 
 static const char __b64[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -182,7 +181,7 @@ void sb_add_unquoted(sb_t *sb, const void *data, int len)
             c = (hexdecode(p + 1) << 8) | hexdecode(p + 3);
             if (c < 0)
                 break;
-            blob_utf8_putc(sb, c);
+            sb_adduc(sb, c);
             p += 5;
             continue;
         }

@@ -16,10 +16,10 @@
 
 #define IPRINTF_HIDE_STDIO 1
 #include "core.h"
-#include "str-buf.h"
 #include "str-iprintf.h"
 #include "str-path.h"
 #include "str-conv.h"
+#include "str-buf.h"
 
 __attr_nonnull__((1))
 static inline ssize_t sstrlen(const char *str) {
@@ -194,13 +194,6 @@ bool strfind(const char *keytable, const char *str, int sep);
 int buffer_increment(char *buf, int len);
 int buffer_increment_hex(char *buf, int len);
 ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t len);
-
-/* OG: this should be inlined */
-int utf8_getc(const char *s, const char **outp);
-static inline int utf8_vgetc(char *s, char **outp) {
-    return utf8_getc(s, (const char **)outp);
-}
-int utf8_ngetc(const char *s, int len, const char **outp);
 
 /* Return the number of occurences replaced */
 /* OG: need more general API */

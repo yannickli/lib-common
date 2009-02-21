@@ -71,6 +71,8 @@
 #define blob_append_base64_start      sb_add_b64_start
 #define blob_append_base64_update     sb_add_b64_update
 #define blob_append_base64_finish     sb_add_b64_finish
+#define blob_utf8_putc                sb_adduc
+
 
 
 static inline void blob_setlen(blob_t *blob, int newlen) {
@@ -147,10 +149,6 @@ int blob_decode_gsm7_packed(blob_t *out, const void *src, int gsmlen,
 
 /* in blob_ebcdic.c */
 int blob_decode_ebcdic297(blob_t *dst, const char *src, int len);
-
-/* in blob_utf8.c */
-/* OG: should inline this */
-int blob_utf8_putc(blob_t *out, int c);
 
 int blob_latin1_to_utf8(blob_t *out, const char *s, int len);
 int blob_latin9_to_utf8(blob_t *out, const char *s, int len);

@@ -13,20 +13,30 @@
 
 #include "core.h"
 
-static uint8_t const __utf8_mark[7] = {
+uint8_t const __utf8_mark[7] = {
     0x00, 0x00, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc
 };
 
-char const __utf8_trail[256] = {
-#define X (-1)
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X, X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,
-    X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X, X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 3,3,3,3,3,3,3,3,X,X,X,X,X,X,X,X,
+uint8_t const __utf8_clz_to_charlen[31] = {
+#define X  0
+    1, 1, 1, 1, 1, 1, 1, /* <=  7 bits */
+    2, 2, 2, 2,          /* <= 11 bits */
+    3, 3, 3, 3, 3,       /* <= 16 bits */
+    4, 4, 4, 4, 4,       /* <= 21 bits */
+    X, X, X, X, X,       /* <= 26 bits */
+    X, X, X, X, X,       /* <= 31 bits */
+#undef X
+};
+
+uint8_t const __utf8_char_len[32] = {
+#define X  0
+    1, 1, 1, 1, 1, 1, 1, 1,  /* 00... */
+    1, 1, 1, 1, 1, 1, 1, 1,  /* 01... */
+    X, X, X, X, X, X, X, X,  /* 100.. */
+    2, 2, 2, 2,              /* 1100. */
+    3, 3,                    /* 1110. */
+    4,                       /* 11110 */
+    X,                       /* 11111 */
 #undef X
 };
 
@@ -65,55 +75,6 @@ char const __str_digits_upper[36] =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 char const __str_digits_lower[36] =
     "0123456789abcdefghijklmnopqrstuvwxyz";
-
-/* OG: this algorithm assumes s points to a well formed utf8 character.
- * It tests for end of string in the middle of the utf8 encoding, but
- * will not detect end of string at s (*s == '\0')
- * We should split this into an inline function for the ASCII subset
- * and a generic function for the complete treatment.
- */
-int utf8_getc(const char *s, const char **outp)
-{
-    uint32_t ret = 0;
-    int trail = __utf8_trail[(unsigned char)*s];
-
-    switch (trail) {
-      default: return -1;
-      case 3: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
-      case 2: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
-      case 1: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
-      case 0: ret += (unsigned char)*s++;
-    }
-
-    if (outp) {
-        *outp = s;
-    }
-
-    return ret - __utf8_offs[trail];
-}
-
-int utf8_ngetc(const char *s, int len, const char **outp)
-{
-    uint32_t ret = 0;
-    int trail = __utf8_trail[(unsigned char)*s];
-
-    if (trail + 1 > len)
-        return -2;
-
-    switch (trail) {
-      default: return -1;
-      case 3: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
-      case 2: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
-      case 1: ret += (unsigned char)*s++; ret <<= 6; if (!*s) return -1;
-      case 0: ret += (unsigned char)*s++;
-    }
-
-    if (outp) {
-        *outp = s;
-    }
-
-    return ret - __utf8_offs[trail];
-}
 
 int strconv_hexdecode(byte *dest, int size, const char *src, int len)
 {
@@ -259,20 +220,6 @@ int strconv_unquote(char *dest, int size, const char *src, int len)
         dest[j] = '\0';
     }
     return j;
-}
-
-int str_utf8_putc(char *dst, int c)
-{
-    int bytes = 1 + (c >= 0x80) + (c >= 0x800) + (c >= 0x10000);
-
-    switch (bytes) {
-      case 4: dst[3] = (c | 0x80) & 0xbf; c >>= 6;
-      case 3: dst[2] = (c | 0x80) & 0xbf; c >>= 6;
-      case 2: dst[1] = (c | 0x80) & 0xbf; c >>= 6;
-      case 1: dst[0] = (c | __utf8_mark[bytes]);
-    }
-
-    return bytes;
 }
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/

@@ -134,42 +134,8 @@ static int strconv_xmlunescape(char *str, int len)
     while (len > 0) {
         char c;
 
-#if 0
-        if (is_utf8_data(str, len)) {
-            int bytes = 1 + (c >= 0x80) + (c >= 0x800) + (c >= 0x10000);
-
-            memcpy(wpos, str, bytes);
-            wpos += bytes;
-            str += bytes;
-            len -= bytes;
-            res_len += bytes;
-            continue;
-        }
-#endif
-
         c = *str++;
         len--;
-
-#if 0
-        if (c >= 0xa0) {
-            if (!__cp1252_or_latin9_to_utf8[c & 0x7f]) {
-                int bytes = str_utf8_putc(wpos, c);
-
-                wpos += bytes;
-                res_len += bytes;
-                continue;
-            } else {
-                int bytes = strlen(__cp1252_or_latin9_to_utf8[c & 0x7f]);
-
-                memcpy(wpos, __cp1252_or_latin9_to_utf8[c & 0x7f], bytes);
-                wpos += bytes;
-                str += bytes;
-                len -= bytes;
-                res_len += bytes;
-                continue;
-            }
-        }
-#endif
 
         if (c == '&') {
             int val;
@@ -250,7 +216,7 @@ static int strconv_xmlunescape(char *str, int len)
 
             /* write unicode char */
             {
-                int bytes = str_utf8_putc(wpos, val);
+                int bytes = __pstrputuc(wpos, val);
 
                 wpos += bytes;
                 res_len += bytes;

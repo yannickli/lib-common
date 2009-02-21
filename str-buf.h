@@ -208,6 +208,10 @@ static inline void sb_addc(sb_t *sb, unsigned char c)
 {
     sb_add(sb, &c, 1);
 }
+static inline void sb_adduc(sb_t *sb, int c)
+{
+    __sb_fixlen(sb, __pstrputuc(sb_grow(sb, 4), c));
+}
 static inline void sb_addnc(sb_t *sb, int extralen, unsigned char c)
 {
     memset(sb_growlen(sb, extralen), c, extralen);

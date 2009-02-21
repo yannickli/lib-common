@@ -13,14 +13,6 @@
 
 #include "all.h"
 
-int blob_utf8_putc(blob_t *out, int c)
-{
-    int bytes = 1 + (c >= 0x80) + (c >= 0x800) + (c >= 0x10000);
-
-    blob_extend(out, bytes);
-    return str_utf8_putc((char *)out->data + out->len - bytes, c);
-}
-
 /* OG: this function should be made faster for the ASCII subset */
 static int blob_latin1_to_utf8_aux(blob_t *out, const char *s, int len,
                                    int limit)
@@ -29,10 +21,10 @@ static int blob_latin1_to_utf8_aux(blob_t *out, const char *s, int len,
     const char *end = s + len;
 
     while (*s && (len < 0 || s < end)) {
-        if (is_utf8_char(s)) {
-            int trail = __utf8_trail[(unsigned char)*s];
-            blob_append_data(out, s, trail + 1);
-            s += trail + 1;
+        int ulen = utf8_charlen(s);
+        if (ulen) {
+            sb_add(out, s, ulen);
+            s += ulen;
         } else {
             /* assume its cp1252 or latin1 */
             if (*s >= limit || !__cp1252_or_latin9_to_utf8[*s & 0x7f]) {
@@ -97,6 +89,7 @@ error:
     blob_setlen(out, init_len);
     return -1;
 }
+
 int blob_utf8_to_latin1_n(blob_t *out, const char *s, int len, int rep)
 {
     int init_len = out->len;

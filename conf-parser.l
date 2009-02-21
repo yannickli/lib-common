@@ -13,7 +13,6 @@
 /**************************************************************************/
 
 #include "conf.h"
-#include "blob.h"
 
 struct lexdata {
     flag_t seen_section : 1;
@@ -287,7 +286,7 @@ NONSP   [^[:space:];#]
                         }
     \\[0-2][0-7]{2}     { sb_addc(&yyextra->buf, parse_oct(yytext + 1)); }
     \\x[0-9a-fA-F]{2}   { sb_addc(&yyextra->buf, parse_hex(yytext + 2)); }
-    \\u[0-9a-fA-F]{4}   { blob_utf8_putc(&yyextra->buf, parse_hex(yytext + 2)); }
+    \\u[0-9a-fA-F]{4}   { sb_adduc(&yyextra->buf, parse_hex(yytext + 2)); }
     \\[abetnvfr\\"']    { sb_add_unquoted(&yyextra->buf, yytext, 2); }
     \\.                 { sb_add(&yyextra->buf, yytext, 2); }
     [^\\\n\"]+          { sb_add(&yyextra->buf, yytext, yyleng); }
