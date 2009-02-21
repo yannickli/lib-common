@@ -21,11 +21,9 @@ extern char const __str_digits_upper[36];
 extern char const __str_digits_lower[36];
 
 extern uint32_t const __utf8_offs[6];
-extern const char * const __cp1252_or_latin9_to_utf8[0x40];
-
-extern uint8_t const __utf8_clz_to_charlen[31];
-extern uint8_t const __utf8_mark[7];
-extern uint8_t const __utf8_char_len[32];
+extern uint8_t  const __utf8_clz_to_charlen[31];
+extern uint8_t  const __utf8_mark[7];
+extern uint8_t  const __utf8_char_len[32];
 
 
 /****************************************************************************/

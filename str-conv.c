@@ -13,9 +13,7 @@
 
 #include "core.h"
 
-uint8_t const __utf8_mark[7] = {
-    0x00, 0x00, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc
-};
+uint8_t const __utf8_mark[7] = { 0x00, 0x00, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc };
 
 uint8_t const __utf8_clz_to_charlen[31] = {
 #define X  0
@@ -45,18 +43,6 @@ uint32_t const __utf8_offs[6] = {
     0x03c82080UL, 0xfa082080UL, 0x82082080UL
 };
 
-const char * const __cp1252_or_latin9_to_utf8[0x40] = {
-#define XXX  NULL
-    /* cp1252 to utf8 */
-    "€", XXX, "‚", "ƒ", "„", "…", "†", "‡", "ˆ", "‰", "Š", "‹", "Œ", XXX, "Ž", XXX,
-    XXX, "‘", "’", "“", "”", "•", "–", "—", "˜", "™", "š", "›", "œ", XXX, "ž", "Ÿ",
-    /* latin9 to utf8 if != latin1 */
-    XXX, XXX, XXX, XXX, "€", XXX, "Š", XXX, "š", XXX, XXX, XXX, XXX, XXX, XXX, XXX,
-    XXX, XXX, XXX, XXX, "Ž", XXX, XXX, XXX, "ž", XXX, XXX, XXX, "Œ", "œ", "Ÿ", XXX,
-#undef XXX
-};
-
-
 unsigned char const __str_digit_value[128 + 256] = {
 #define REPEAT16(x)  x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
     REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
@@ -71,10 +57,8 @@ unsigned char const __str_digit_value[128 + 256] = {
     REPEAT16(255), REPEAT16(255), REPEAT16(255), REPEAT16(255),
 };
 
-char const __str_digits_upper[36] =
-    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-char const __str_digits_lower[36] =
-    "0123456789abcdefghijklmnopqrstuvwxyz";
+char const __str_digits_upper[36] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+char const __str_digits_lower[36] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 int strconv_hexdecode(byte *dest, int size, const char *src, int len)
 {
@@ -226,6 +210,28 @@ int strconv_unquote(char *dest, int size, const char *src, int len)
 /* Charset conversions                                                      */
 /****************************************************************************/
 
+static uint16_t const __latinX_to_utf8[0x40] = {
+    /* cp1252 to utf8 */
+    /*  "€"            "‚"     "ƒ"     "„"     "…"      "†"    "‡"    */
+    0x20ac,   0x81, 0x201a, 0x0192, 0x201e, 0x2026, 0x2020, 0x2021,
+    /* "ˆ"     "‰"     "Š"     "‹"     "Œ"             "Ž"            */
+    0x02c6, 0x2030, 0x0160, 0x2039, 0x0152,   0x8d, 0x017d,   0x8f,
+    /*         "‘"     "’"     "“"     "”"     "•"     "–"     "—"    */
+      0x90, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014,
+    /* "˜"     "™"     "š"     "›"     "œ"             "ž"     "Ÿ"    */
+    0x02dc, 0x2122, 0x0161, 0x203a, 0x0153,   0x9d, 0x017e, 0x0178,
+
+    /* latin9 to utf8 */
+    /*                                 "€"             "Š"            */
+      0xa0,   0xa1,   0xa2,   0xa3, 0x20ac,   0xa5, 0x0160,   0xa7,
+    /* "š"                                                            */
+    0x0161,   0xa9,   0xaa,   0xab,   0xac,   0xad,   0xae,   0xaf,
+    /*                                 "Ž"                            */
+      0xb0,   0xb1,   0xb2,   0xb3, 0x017d,   0xb5,   0xb6,   0xb7,
+    /* "ž"                             "Œ"     "œ"     "Ÿ"            */
+    0x017e,   0xb9,   0xbb,   0xbb, 0x0152, 0x0153, 0x0178,   0xbf,
+};
+
 static void __from_latinX_aux(sb_t *sb, const void *data, int len, int limit)
 {
     const char *s = data, *end = s + len;
@@ -239,13 +245,10 @@ static void __from_latinX_aux(sb_t *sb, const void *data, int len, int limit)
 
         while (s < end && (*s & 0x80)) {
             if (utf8_ngetc(s, end - s, &p) < 0) {
-                /* assume its cp1252 or latin1 */
-                if (*s >= limit || !__cp1252_or_latin9_to_utf8[*s & 0x7f]) {
-                    sb_adduc(sb, *s);
-                } else {
-                    sb_adds(sb, __cp1252_or_latin9_to_utf8[*s & 0x7f]);
-                }
-                s++;
+                int c = (unsigned char)*s++;
+                if (c < limit)
+                    c = __latinX_to_utf8[c & 0x7f];
+                sb_adduc(sb, c);
             } else {
                 sb_add(sb, s, p - s);
                 s = p;
