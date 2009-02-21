@@ -102,7 +102,7 @@ static inline int utf8_getc(const char *s, const char **out)
 }
 static inline int utf8_ngetc(const char *s, int len, const char **out)
 {
-    if (len < __utf8_char_len[(unsigned char)*s >> 3]);
+    if (len < __utf8_char_len[(unsigned char)*s >> 3])
         return -1;
     return utf8_getc(s, out);
 }
@@ -110,12 +110,12 @@ static inline int utf8_vgetc(char *s, char **out)
 {
     return utf8_getc(s, (const char **)out);
 }
-static const char *utf8_skip(const char *s, const char *end)
+static inline const char *utf8_skip(const char *s, const char *end)
 {
     while (s < end) {
         if (!(*s & 0x80)) {
             s++;
-        } else if (utf8_ngetc(s, &s) < 0) {
+        } else if (utf8_ngetc(s, end - s, &s) < 0) {
             return s;
         }
     }
