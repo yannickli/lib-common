@@ -42,7 +42,6 @@ libcommon_SOURCES = \
 	\
 	blob.c \
 	blob-ebcdic.c \
-	blob-utf8.c \
 	blob-zlib.c \
 	blob-emi.c \
 	blob-wbxml.c \

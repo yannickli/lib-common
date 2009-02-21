@@ -93,6 +93,8 @@ int tpl_encode_url(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
 
 int tpl_encode_latin1(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
 {
+    int res = 0;
+
     if (!blob) {
         assert(out);
         blob = tpl_get_blob(out);
@@ -101,15 +103,13 @@ int tpl_encode_latin1(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
     while (--nb >= 0) {
         tpl_t *in = *args++;
         if (in->op == TPL_OP_DATA) {
-            blob_utf8_to_latin1_n(blob, (const char *)in->u.data.data,
-                                  in->u.data.len, '.');
+            res |= sb_conv_to_latin1(blob, in->u.data.data, in->u.data.len, '.');
         } else {
             assert (in->op == TPL_OP_BLOB);
-            blob_utf8_to_latin1_n(blob, (const char *)in->u.blob.data,
-                                  in->u.blob.len, '.');
+            res |= sb_conv_to_latin1(blob, in->u.blob.data, in->u.blob.len, '.');
         }
     }
-    return 0;
+    return res;
 }
 
 int tpl_encode_ira(tpl_t *out, sb_t *blob, tpl_t **args, int nb)

@@ -381,4 +381,13 @@ static inline void sb_adds_b64(sb_t *sb, const char *s, int width)
 }
 __SB_DEFINE_ADDS_ERR(unb64);
 
+
+/**************************************************************************/
+/* charset conversions (when implicit, charset is utf8)                   */
+/**************************************************************************/
+
+void sb_conv_from_latin1(sb_t *out, const void *s, int len);
+void sb_conv_from_latin9(sb_t *out, const void *s, int len);
+int  sb_conv_to_latin1(sb_t *sb, const void *s, int len, int rep);
+
 #endif /* IS_LIB_COMMON_STR_BUF_H */

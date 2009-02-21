@@ -222,6 +222,79 @@ int strconv_unquote(char *dest, int size, const char *src, int len)
     return j;
 }
 
+/****************************************************************************/
+/* Charset conversions                                                      */
+/****************************************************************************/
+
+static void __from_latinX_aux(sb_t *sb, const void *data, int len, int limit)
+{
+    const char *s = data, *end = s + len;
+
+    while (s < end) {
+        const char *p = s;
+
+        while (s < end && !(*s & 0x80))
+            s++;
+        sb_add(sb, p, s - p);
+
+        while (s < end && (*s & 0x80)) {
+            if (utf8_ngetc(s, end - s, &p) < 0) {
+                /* assume its cp1252 or latin1 */
+                if (*s >= limit || !__cp1252_or_latin9_to_utf8[*s & 0x7f]) {
+                    sb_adduc(sb, *s);
+                } else {
+                    sb_adds(sb, __cp1252_or_latin9_to_utf8[*s & 0x7f]);
+                }
+                s++;
+            } else {
+                sb_add(sb, s, p - s);
+                s = p;
+            }
+        }
+    }
+}
+
+void sb_conv_from_latin1(sb_t *sb, const void *s, int len)
+{
+    __from_latinX_aux(sb, s, len, 0xa0);
+}
+
+void sb_conv_from_latin9(sb_t *sb, const void *s, int len)
+{
+    __from_latinX_aux(sb, s, len, 0xc0);
+}
+
+int sb_conv_to_latin1(sb_t *sb, const void *data, int len, int rep)
+{
+    sb_t orig = *sb;
+    const char *s = data, *end = s + len;
+
+    while (s < end) {
+        const char *p = s;
+
+        while (s < end && !(*s & 0x80))
+            s++;
+        sb_add(sb, p, s - p);
+
+        while (s < end && (*s & 0x80)) {
+            int c = utf8_ngetc(s, end - s, &s);
+
+            if (c < 0)
+                return __sb_rewind_adds(sb, &orig);
+
+            if (c >= 256) {
+                if (rep < 0)
+                    return __sb_rewind_adds(sb, &orig);
+                if (!rep)
+                    continue;
+                c = rep;
+            }
+            sb_addc(sb, c);
+        }
+    }
+    return 0;
+}
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 
