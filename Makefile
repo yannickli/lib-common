@@ -43,7 +43,6 @@ libcommon_SOURCES = \
 	blob.c \
 	blob-ebcdic.c \
 	blob-zlib.c \
-	blob-emi.c \
 	blob-wbxml.c \
 	\
 	conf.c  \
@@ -92,6 +91,7 @@ libcommon_SOURCES = \
 	str.c \
 	str-buf.c \
 	str-buf-quoting.c \
+	str-buf-gsm.c \
 	str-num.c \
 	str-conv.c \
 	str-iprintf.c \

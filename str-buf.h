@@ -369,9 +369,9 @@ typedef struct sb_b64_ctx_t {
     byte  trail_len;
 } sb_b64_ctx_t;
 
-void sb_add_b64_start(sb_t *dst, int len, int width, sb_b64_ctx_t *ctx);
-void sb_add_b64_update(sb_t *dst, const void *src0, int len, sb_b64_ctx_t *ctx);
-void sb_add_b64_finish(sb_t *dst, sb_b64_ctx_t *ctx);
+void sb_add_b64_start(sb_t *sb, int len, int width, sb_b64_ctx_t *ctx);
+void sb_add_b64_update(sb_t *sb, const void *src0, int len, sb_b64_ctx_t *ctx);
+void sb_add_b64_finish(sb_t *sb, sb_b64_ctx_t *ctx);
 
 void sb_add_b64(sb_t *sb, const void *data, int len, int width);
 int  sb_add_unb64(sb_t *sb, const void *data, int len);
@@ -386,8 +386,19 @@ __SB_DEFINE_ADDS_ERR(unb64);
 /* charset conversions (when implicit, charset is utf8)                   */
 /**************************************************************************/
 
-void sb_conv_from_latin1(sb_t *out, const void *s, int len);
-void sb_conv_from_latin9(sb_t *out, const void *s, int len);
+void sb_conv_from_latin1(sb_t *sb, const void *s, int len);
+void sb_conv_from_latin9(sb_t *sb, const void *s, int len);
 int  sb_conv_to_latin1(sb_t *sb, const void *s, int len, int rep);
+
+/* unpacked gsm: one septet per octet */
+int  sb_conv_from_gsm(sb_t *sb, const void *src, int len);
+int  sb_conv_from_gsm_hex(sb_t *sb, const void *src, int len);
+void sb_conv_to_gsm(sb_t *sb, const void *src, int len);
+void sb_conv_to_gsm_hex(sb_t *sb, const void *src, int len);
+
+/* packed gsm */
+int  gsm7_charlen(int c);
+int  sb_conv_to_gsm7(sb_t *sb, int gsm_start, const char *utf8, int unknown);
+int  sb_conv_from_gsm7(sb_t *sb, const void *src, int gsmlen, int udhlen);
 
 #endif /* IS_LIB_COMMON_STR_BUF_H */

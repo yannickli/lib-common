@@ -85,9 +85,9 @@ static inline uint8_t utf8_charlen(const char *s)
 static inline int utf8_getc(const char *s, const char **out)
 {
     uint32_t ret = 0;
-    uint8_t  len = utf8_charlen(s);
+    uint8_t  len = utf8_charlen(s) - 1;
 
-    switch (len - 1) {
+    switch (len) {
       default: return -1;
       case 3:  ret += (unsigned char)*s++; ret <<= 6;
       case 2:  ret += (unsigned char)*s++; ret <<= 6;

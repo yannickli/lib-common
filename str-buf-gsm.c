@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "blob.h"
+#include "core.h"
 
 /*---------------- IRA Conversion ----------------*/
 
@@ -231,8 +231,8 @@ static unsigned short const win1252_to_gsm7[] = {
 #undef X
 };
 
-/* Decode a hex encoded (IRA) char array into UTF-8 at end of blob */
-int blob_decode_ira_hex_as_utf8(sb_t *sb, const void *data, int slen)
+/* Decode a hex encoded (IRA) char array into UTF-8 at end of sb */
+int sb_conv_from_gsm_hex(sb_t *sb, const void *data, int slen)
 {
     const char *p = data, *end = p + slen;
     char *w, *wend;
@@ -275,7 +275,7 @@ int blob_decode_ira_hex_as_utf8(sb_t *sb, const void *data, int slen)
     return __sb_rewind_adds(sb, &orig);
 }
 
-int blob_decode_ira_bin_as_utf8(sb_t *sb, const void *data, int slen)
+int sb_conv_from_gsm(sb_t *sb, const void *data, int slen)
 {
     const byte *p = data, *end = p + slen;
     char *w, *wend;
@@ -344,7 +344,7 @@ int gsm7_charlen(int c)
     return 1 + (c > 0xff);
 }
 
-void blob_append_ira_bin(sb_t *sb, const void *data, int len)
+void sb_conv_to_gsm(sb_t *sb, const void *data, int len)
 {
     const char *p = data, *end = p + len;
     char *w, *wend;
@@ -355,7 +355,7 @@ void blob_append_ira_bin(sb_t *sb, const void *data, int len)
         int c = (unsigned char)*p++;
 
         if (c & 0x80) {
-            int u = utf8_ngetc(p - 1, end - p, &p);
+            int u = utf8_ngetc(p - 1, end - p + 1, &p);
             c = unicode_to_gsm7(u < 0 ? c : u, '?');
         } else {
             c = win1252_to_gsm7[c];
@@ -373,7 +373,7 @@ void blob_append_ira_bin(sb_t *sb, const void *data, int len)
     __sb_fixlen(sb, w - sb->data);
 }
 
-void blob_append_ira_hex(sb_t *sb, const void *data, int len)
+void sb_conv_to_gsm_hex(sb_t *sb, const void *data, int len)
 {
     const char *p = data, *end = p + len;
     char *w, *wend;
@@ -384,7 +384,7 @@ void blob_append_ira_hex(sb_t *sb, const void *data, int len)
         int c = (unsigned char)*p++;
 
         if (c & 0x80) {
-            int u = utf8_ngetc(p - 1, end - p, &p);
+            int u = utf8_ngetc(p - 1, end - p + 1, &p);
             c = unicode_to_gsm7(u < 0 ? c : u, '?');
         } else {
             c = win1252_to_gsm7[c];
@@ -432,8 +432,8 @@ static uint64_t get_gsm7_pack(const void *src, int len)
 
 /*
  * gsm_start points to the first octet of out->data holding 7-bits packed GSM
- * data. blob_append_gsm7_packed is not able to be restartable, it assumes the
- * octets between position %gsm_start and blob->len are 8bit aligned (UDH) and
+ * data. sb_conv_to_gsm7 is not able to be restartable, it assumes the
+ * octets between position %gsm_start and sb->len are 8bit aligned (UDH) and
  * pads with 0 bits up to the next septet boundary.
  *
  * If we mean to have a restartable API, we need to know the current amount of
@@ -444,8 +444,7 @@ static uint64_t get_gsm7_pack(const void *src, int len)
  * are written and no padding is needed to be aligned on the next septet
  * boundary.
  */
-int blob_append_gsm7_packed(sb_t *out, int gsm_start,
-                            const char *utf8, int unknown)
+int sb_conv_to_gsm7(sb_t *out, int gsm_start, const char *utf8, int unknown)
 {
     uint64_t pack = 0;
     int septet = (out->len - gsm_start) % 7;
@@ -513,8 +512,7 @@ static int decode_gsm7_pack(sb_t *out, uint64_t pack, int nbchars, int c)
  *   IOW that %udhlen is smaller or equal to the size of %_src,
  *   which in turn must be equal to (7 * %gsmlen + 7) / 8.
  */
-int blob_decode_gsm7_packed(sb_t *out, const void *_src, int gsmlen,
-                            int udhlen)
+int sb_conv_from_gsm7(sb_t *out, const void *_src, int gsmlen, int udhlen)
 {
     const char *src = _src;
     int c = 0;

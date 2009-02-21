@@ -74,7 +74,12 @@
 #define blob_utf8_putc                sb_adduc
 #define blob_latin1_to_utf8           sb_conv_from_latin1
 #define blob_latin9_to_utf8           sb_conv_from_latin9
-
+#define blob_decode_ira_hex_as_utf8   sb_conv_from_gsm_hex
+#define blob_decode_ira_bin_as_utf8   sb_conv_from_gsm
+#define blob_append_ira_hex           sb_conv_to_gsm_hex
+#define blob_append_ira_bin           sb_conv_to_gsm
+#define blob_append_gsm7_packed       sb_conv_to_gsm7
+#define blob_decode_gsm7_packed       sb_conv_from_gsm
 
 static inline void blob_setlen(blob_t *blob, int newlen) {
     sb_growlen(blob, newlen - blob->len);
@@ -127,19 +132,6 @@ int blob_raw_uncompress(blob_t *dest, blob_t *src);
 void blob_append_wbxml_href(blob_t *dst, const byte *data, int len);
 
 void blob_append_date_iso8601(blob_t *dst, time_t date);
-
-/* in blob_emi.c */
-void blob_append_ira_hex(blob_t *dst, const void *src, int len);
-void blob_append_ira_bin(blob_t *dst, const void *src, int len);
-
-int blob_decode_ira_hex_as_utf8(blob_t *dst, const void *src, int len);
-int blob_decode_ira_bin_as_utf8(blob_t *dst, const void *src, int len);
-
-int gsm7_charlen(int c);
-int blob_append_gsm7_packed(blob_t *out, int gsm_start,
-                            const char *utf8, int unknown);
-int blob_decode_gsm7_packed(blob_t *out, const void *src, int gsmlen,
-                            int udhlen);
 
 /* in blob_ebcdic.c */
 int blob_decode_ebcdic297(blob_t *dst, const char *src, int len);
