@@ -239,6 +239,98 @@ static int strconv_xmlunescape(char *str, int len)
     return -1;
 }
 
+static int str_scanhexdigits(const char *dp, int min, int max, int *cp)
+{
+    int val = 0;
+    int i, digit;
+
+    for (i = 0; i < max; i++) {
+        if ((digit = str_digit_value(dp[i])) < 16) {
+            val = (val << 4) + digit;
+        } else {
+            break;
+        }
+    }
+    if (i < min) {
+        return 0;
+    } else {
+        *cp = val;
+        return i;
+    }
+}
+
+static int strconv_unquote(char *dest, int size, const char *src, int len)
+{
+    int i, j;
+
+    if (len < 0) {
+        len = strlen(src);
+    }
+
+    for (i = j = 0; i < len;) {
+        int c = src[i];
+
+        i += 1;
+        if (c == '\\' && i < len) {
+            c = src[i];
+            i += 1;
+            switch (c) {
+            case 'f':
+                c = '\f';
+                break;
+            case 'n':
+                c = '\n';
+                break;
+            case 'r':
+                c = '\r';
+                break;
+            case 't':
+                c = '\t';
+                break;
+            case 'v':
+                c = '\v';
+                break;
+            case 'b':
+                c = '\b';
+                break;
+            case 'a':
+                c = '\a';
+                break;
+            case '0'...'7':
+                c = c - '0';
+                if (i < len && src[i] >= '0' && src[i] <= '7') {
+                    c = (c << 3) + src[i] - '0';
+                    i++;
+                    if (c < '\040' && i < len
+                    &&  src[i] >= '0' && src[i] <= '7') {
+                        c = (c << 3) + src[i] - '0';
+                        i++;
+                    }
+                }
+                break;
+            case 'u':
+                if (i + 4 <= len && str_scanhexdigits(src + i, 4, 4, &c))
+                    i += 4;
+                break;
+            case 'x':
+                if (i + 2 <= len && str_scanhexdigits(src + i, 2, 2, &c))
+                    i += 2;
+                break;
+            default:
+                break;
+            }
+        }
+        if (j < size) {
+            dest[j] = c;
+        }
+        j++;
+    }
+    if (j < size) {
+        dest[j] = '\0';
+    }
+    return j;
+}
+
 /* Parse a property inside a tag and put it in (*dst).
  * Property is of form : prop = "value"
  * Single/Double quoting is supported.
