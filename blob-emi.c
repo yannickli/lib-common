@@ -396,141 +396,87 @@ static int const win1252_to_gsm7_hex[] = {
 };
 
 /* Decode a hex encoded (IRA) char array into UTF-8 at end of blob */
-int blob_decode_ira_hex_as_utf8(sb_t *dst, const char *src, int slen)
+int blob_decode_ira_hex_as_utf8(sb_t *sb, const void *data, int slen)
 {
-    int pos, len;
+    const char *p = data, *end = p + slen;
+    char *w, *wend;
+    sb_t orig = *sb;
 
     if (slen & 1)
         return -1;
 
-    pos = dst->len;
-    len = slen / 2;
-    for (;;) {
-        sb_grow(dst, len);
-        len = string_decode_ira_hex_as_utf8((char *)dst->data + pos,
-                                            dst->size - pos,
-                                            (const char*)src, slen);
-        if (pos + len < dst->size)
-            break;
+    w    = sb_grow(sb, slen / 2 + 4);
+    wend = sb_end(sb);
+
+    while (p < end) {
+        int c = hexdecode(p);
+
+        p += 2;
+        if (c < 0 || c > 0x7f)
+            goto error;
+
+        if (c == 0x1b) {
+            if (p == end)
+                goto error;
+            c  = hexdecode(p);
+            p += 2;
+            if (c < 0 || c > 0x7f)
+                goto error;
+            c |= 0x80;
+        }
+
+        if (wend - w < 4) {
+            __sb_fixlen(sb, w - sb->data);
+            w    = sb_grow(sb, (end - p) / 2 + 4);
+            wend = sb_end(sb);
+        }
+        w += __pstrputuc(w, gsm7_to_unicode[c]);
     }
-    dst->len += len;
+    __sb_fixlen(sb, w - sb->data);
     return 0;
+
+  error:
+    return __sb_rewind_adds(sb, &orig);
 }
 
-int blob_decode_ira_bin_as_utf8(sb_t *dst, const char *src, int slen)
+int blob_decode_ira_bin_as_utf8(sb_t *sb, const void *data, int slen)
 {
-    int pos, len;
+    const byte *p = data, *end = p + slen;
+    char *w, *wend;
+    sb_t orig = *sb;
 
-    pos = dst->len;
-    len = slen;
-    for (;;) {
-        sb_grow(dst, len);
-        len = string_decode_ira_bin_as_utf8((char *)dst->data + pos,
-                                            dst->size - pos,
-                                            (const char*)src, slen);
-        if (pos + len < dst->size)
-            break;
+    if (slen & 1)
+        return -1;
+
+    w    = sb_grow(sb, slen / 2 + 4);
+    wend = sb_end(sb);
+
+    while (p < end) {
+        int c = *p++;
+
+        if (c & 0x80)
+            goto error;
+        if (c == 0x1b) {
+            if (p == end)
+                goto error;
+            c = *p++;
+            if (c & 0x80)
+                goto error;
+            c |= 0x80;
+        }
+
+        if (wend - w < 4) {
+            __sb_fixlen(sb, w - sb->data);
+            w    = sb_grow(sb, (end - p) / 2 + 4);
+            wend = sb_end(sb);
+        }
+        w += __pstrputuc(w, gsm7_to_unicode[c]);
     }
-    dst->len += len;
+    __sb_fixlen(sb, w - sb->data);
     return 0;
-}
 
-/* Parse IRA (hex encoded) string into UTF-8 char array */
-int string_decode_ira_hex_as_utf8(char *dst, int size,
-                                  const char *src, int len)
-{
-    int pos = 0;
-
-    while (len >= 2) {
-        int c, ind;
-
-        ind = hexdecode(src);
-        if (ind < 0)
-            break;
-
-        src += 2;
-        len -= 2;
-
-        if (ind == 0x1B && len >= 2) {
-            ind = hexdecode(src);
-            if (ind < 0)
-                break;
-            ind |= 0x80;
-            src += 2;
-            len -= 2;
-        }
-        c = gsm7_to_unicode[ind];
-        /* Encode c as UTF-8 */
-        if (c < 0x80) {
-            pos += 1;
-            if (pos < size) {
-                *dst++ = c;
-            }
-        } else
-        if (c < 0x1000) {
-            pos += 2;
-            if (pos < size) {
-                dst[0] = 0xC0 | (((c) >>  6));
-                dst[1] = 0x80 | (((c) >>  0) & 0x3F);
-                dst += 2;
-            }
-        } else {
-            pos += 3;
-            if (pos < size) {
-                dst[0] = 0xE0 | (((c) >> 12));
-                dst[1] = 0x80 | (((c) >>  6) & 0x3F);
-                dst[2] = 0x80 | (((c) >>  0) & 0x3F);
-                dst += 3;
-            }
-        }
-    }
-    if (size > 0) {
-        *dst = '\0';
-    }
-    return pos;
-}
-
-int string_decode_ira_bin_as_utf8(char *dst, int size,
-                                  const char *src, int len)
-{
-    const char *end = src + len;
-    int pos = 0;
-
-    while (src < end) {
-        int c, ind = (byte)*src++;
-
-        if (ind == 0x1B && src < end) {
-            ind = 0x80 | (byte)*src++;
-        }
-        c = gsm7_to_unicode[ind];
-        /* Encode c as UTF-8 */
-        if (c < 0x80) {
-            pos += 1;
-            if (pos < size) {
-                *dst++ = c;
-            }
-        } else
-        if (c < 0x1000) {
-            pos += 2;
-            if (pos < size) {
-                dst[0] = 0xC0 | (((c) >>  6));
-                dst[1] = 0x80 | (((c) >>  0) & 0x3F);
-                dst += 2;
-            }
-        } else {
-            pos += 3;
-            if (pos < size) {
-                dst[0] = 0xE0 | (((c) >> 12));
-                dst[1] = 0x80 | (((c) >>  6) & 0x3F);
-                dst[2] = 0x80 | (((c) >>  0) & 0x3F);
-                dst += 3;
-            }
-        }
-    }
-    if (size > 0) {
-        *dst = '\0';
-    }
-    return pos;
+  error:
+    return __sb_rewind_adds(sb, &orig);
 }
 
 static int unicode_to_gsm7(int c, int unknown)
@@ -843,7 +789,7 @@ int blob_append_gsm7_packed(sb_t *out, int gsm_start,
 
 static int decode_gsm7_pack(sb_t *out, uint64_t pack, int nbchars, int c)
 {
-    char *p = sb_grow(out, 8 * 4);
+    char *p = sb_grow(out, 8 * 3); /* XXX: no gsm char takes 4 bytes in utf8 */
 
     for (int i = 0; i < nbchars; i++) {
         c |= pack & 0x7f;

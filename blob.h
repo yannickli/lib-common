@@ -132,13 +132,9 @@ void blob_append_date_iso8601(blob_t *dst, time_t date);
 void blob_append_ira_hex(blob_t *dst, const void *src, int len);
 int blob_append_ira_bin(blob_t *dst, const void *src, int len);
 
-int blob_decode_ira_hex_as_utf8(blob_t *dst, const char *src, int len);
-int blob_decode_ira_bin_as_utf8(blob_t *dst, const char *src, int len);
+int blob_decode_ira_hex_as_utf8(blob_t *dst, const void *src, int len);
+int blob_decode_ira_bin_as_utf8(blob_t *dst, const void *src, int len);
 
-int string_decode_ira_hex_as_utf8(char *dst, int size,
-                                  const char *src, int len);
-int string_decode_ira_bin_as_utf8(char *dst, int size,
-                                  const char *src, int len);
 int gsm7_charlen(int c);
 int blob_append_gsm7_packed(blob_t *out, int gsm_start,
                             const char *utf8, int unknown);
