@@ -15,6 +15,8 @@
 
 /*---------------- IRA Conversion ----------------*/
 
+/* TODO: support other shift pages than latin1 ! */
+
 /* Convert GSM charset to Unicode */
 static int const gsm7_to_unicode[] = {
 
@@ -52,38 +54,6 @@ static int const gsm7_to_unicode[] = {
        X(70),  X(71),  X(72),  X(73),  X(74),  X(75),  X(76),  X(77),
     /* 0x78,   0x79,   0x7A,   0x7B,   0x7C,   0x7D,   0x7E,   0x7F,    */
        X(78),  X(79),  X(7A),  X(E4),  X(F6),  X(F1),  X(FC),  X(E0),
-    /* 0x80,   0x81,   0x82,   0x83,   0x84,   0x85,   0x86,   0x87,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x88,   0x89,   0x8A,   0x8B,   0x8C,   0x8D,   0x8E,   0x8F,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x90,   0x91,   0x92,   0x93,   0x94,   0x95,   0x96,   0x97,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x98,   0x99,   0x9A,   0x9B,   0x9C,   0x9D,   0x9E,   0x9F,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0xA0,   0xA1,   0xA2,   0xA3,   0xA4,   0xA5,   0xA6,   0xA7,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0xA8,   0xA9,   0xAA,   0xAB,   0xAC,   0xAD,   0xAE,   0xAF,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0xB0,   0xB1,   0xB2,   0xB3,   0xB4,   0xB5,   0xB6,   0xB7,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0xB8,   0xB9,   0xBA,   0xBB,   0xBC,   0xBD,   0xBE,   0xBF,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0xC0,   0xC1,   0xC2,   0xC3,   0xC4,   0xC5,   0xC6,   0xC7,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0xC8,   0xC9,   0xCA,   0xCB,   0xCC,   0xCD,   0xCE,   0xCF,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0xD0,   0xD1,   0xD2,   0xD3,   0xD4,   0xD5,   0xD6,   0xD7,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0xD8,   0xD9,   0xDA,   0xDB,   0xDC,   0xDD,   0xDE,   0xDF,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0xE0,   0xE1,   0xE2,   0xE3,   0xE4,   0xE5,   0xE6,   0xE7,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0xE8,   0xE9,   0xEA,   0xEB,   0xEC,   0xED,   0xEE,   0xEF,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0xF0,   0xF1,   0xF2,   0xF3,   0xF4,   0xF5,   0xF6,   0xF7,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0xF8,   0xF9,   0xFA,   0xFB,   0xFC,   0xFD,   0xFE,   0xFF,    */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
 
     /* 0x1B00, 0x1B01, 0x1B02, 0x1B03, 0x1B04, 0x1B05, 0x1B06, 0x1B07,  */
        UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
@@ -117,38 +87,7 @@ static int const gsm7_to_unicode[] = {
        UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
     /* 0x1B78, 0x1B79, 0x1B7A, 0x1B7B, 0x1B7C, 0x1B7D, 0x1B7E, 0x1B7F,  */
        UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1B80, 0x1B81, 0x1B82, 0x1B83, 0x1B84, 0x1B85, 0x1B86, 0x1B87,  */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1B88, 0x1B89, 0x1B8A, 0x1B8B, 0x1B8C, 0x1B8D, 0x1B8E, 0x1B8F,  */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1B90, 0x1B91, 0x1B92, 0x1B93, 0x1B94, 0x1B95, 0x1B96, 0x1B97,  */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1B98, 0x1B99, 0x1B9A, 0x1B9B, 0x1B9C, 0x1B9D, 0x1B9E, 0x1B9F,  */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1BA0, 0x1BA1, 0x1BA2, 0x1BA3, 0x1BA4, 0x1BA5, 0x1BA6, 0x1BA7,  */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1BA8, 0x1BA9, 0x1BAA, 0x1BAB, 0x1BAC, 0x1BAD, 0x1BAE, 0x1BAF,  */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1BB0, 0x1BB1, 0x1BB2, 0x1BB3, 0x1BB4, 0x1BB5, 0x1BB6, 0x1BB7,  */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1BB8, 0x1BB9, 0x1BBA, 0x1BBB, 0x1BBC, 0x1BBD, 0x1BBE, 0x1BBF,  */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1BC0, 0x1BC1, 0x1BC2, 0x1BC3, 0x1BC4, 0x1BC5, 0x1BC6, 0x1BC7,  */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1BC8, 0x1BC9, 0x1BCA, 0x1BCB, 0x1BCC, 0x1BCD, 0x1BCE, 0x1BCF,  */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1BD0, 0x1BD1, 0x1BD2, 0x1BD3, 0x1BD4, 0x1BD5, 0x1BD6, 0x1BD7,  */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1BD8, 0x1BD9, 0x1BDA, 0x1BDB, 0x1BDC, 0x1BDD, 0x1BDE, 0x1BDF,  */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1BE0, 0x1BE1, 0x1BE2, 0x1BE3, 0x1BE4, 0x1BE5, 0x1BE6, 0x1BE7,  */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1BE8, 0x1BE9, 0x1BEA, 0x1BEB, 0x1BEC, 0x1BED, 0x1BEE, 0x1BEF,  */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1BF0, 0x1BF1, 0x1BF2, 0x1BF3, 0x1BF4, 0x1BF5, 0x1BF6, 0x1BF7,  */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
-    /* 0x1BF8, 0x1BF9, 0x1BFA, 0x1BFB, 0x1BFC, 0x1BFD, 0x1BFE, 0x1BFF   */
-       UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,    UNK,
+
 #undef UNK
 #undef X
 #undef HEX
@@ -214,7 +153,7 @@ int string_decode_ira_hex_as_utf8(char *dst, int size,
             ind = hexdecode(src);
             if (ind < 0)
                 break;
-            ind += 256;
+            ind |= 0x80;
             src += 2;
             len -= 2;
         }
@@ -259,7 +198,7 @@ int string_decode_ira_bin_as_utf8(char *dst, int size,
         int c, ind = (byte)*src++;
 
         if (ind == 0x1B && src < end) {
-            ind = 256 + (byte)*src++;
+            ind = 0x80 | (byte)*src++;
         }
         c = gsm7_to_unicode[ind];
         /* Encode c as UTF-8 */
@@ -967,27 +906,6 @@ int blob_append_gsm7_packed(sb_t *out, int gsm_start,
     }
 }
 
-static void gsm7_char_to_utf8(char *dst, int c, char **out)
-{
-    if (c > 0xFF) {
-        c = 256 + (c & 0xff);
-    }
-    c = gsm7_to_unicode[c];
-    if (c < 0x80) {
-        *dst++ = c;
-    } else
-    if (c < 0x1000) {
-        *dst++ = 0xC0 | (((c) >>  6));
-        *dst++ = 0x80 | (((c) >>  0) & 0x3F);
-    } else {
-        *dst++ = 0xE0 | (((c) >> 12));
-        *dst++ = 0x80 | (((c) >>  6) & 0x3F);
-        *dst++ = 0x80 | (((c) >>  0) & 0x3F);
-    }
-
-    *out = dst;
-}
-
 static int decode_gsm7_pack(sb_t *out, uint64_t pack, int nbchars, int c)
 {
     char *p = sb_grow(out, 8 * 4);
@@ -996,10 +914,11 @@ static int decode_gsm7_pack(sb_t *out, uint64_t pack, int nbchars, int c)
         c |= pack & 0x7f;
         pack >>= 7;
         if (c == 0x1b) {
-            c <<= 8;
-        } else if (c != 0) {
-            gsm7_char_to_utf8(p, c, &p);
-            c = 0;
+            c = 0x80;
+        } else {
+            c  = gsm7_to_unicode[c];
+            p += __pstrputuc(p, c);
+            c  = 0;
         }
     }
     __sb_fixlen(out, p - out->data);
