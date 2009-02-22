@@ -1566,7 +1566,7 @@ static int read_buf(int fdes, char **buf)
 
 static int get_result(char *buf, RcvMsg *rmsg)
 {
-    enum ck_msg_type type;
+    enum ck_msg_type type = -1;
     CheckMsg msg;
     int n;
 
