@@ -32,6 +32,12 @@ CFLAGS += -pipe
 CFLAGS += -std=gnu99
 # optimize even more
 CFLAGS += -O2
+# more aggressive inlining for local functions.
+CFLAGS += -finline-functions
+CFLAGS += -fpredictive-commoning
+CFLAGS += -funswitch-loops
+# ignore for (i = 0; i < limit; i += N) as dangerous for N != 1.
+CFLAGS += -funsafe-loop-optimizations
 # let the type char be unsigned by default
 CFLAGS += -funsigned-char
 CFLAGS += -fno-strict-aliasing
