@@ -30,36 +30,14 @@ GENERIC_NEW(property_t, property);
 GENERIC_DELETE(property_t, property);
 DO_ARRAY(property_t, props, property_delete);
 
-void props_array_update(props_array *arr, const char *k, const char *v);
-
-property_t *property_find(const props_array *arr, const char *k);
 const char *
 property_findval(const props_array *arr, const char *k, const char *def);
-void props_array_merge(props_array *arr, props_array **old);
 
 void props_array_qsort(props_array *arr);
 void props_array_filterout(props_array *arr, const char **blacklisted);
 
-void props_array_remove_nulls(props_array *arr);
-
-/* appends $nb|$k1|$v1|...|$kn|$vn$last */
-void props_array_pack(sb_t *out, const props_array *arr, int last);
-
-__must_check__ int
-props_array_unpack(const byte *buf, int buflen,  int *pos,
-                   props_array **arr, int last);
-
 int props_from_fmtv1_cstr(const char *buf, props_array *props);
-int props_from_fmtv1(const sb_t *payload, props_array *props);
-void props_to_fmtv1(sb_t *out, const props_array *props);
 
 void props_array_dup(props_array *to, const props_array *from);
-
-/* Debug function */
-#ifdef NDEBUG
-#define props_array_dump(...)
-#else
-void props_array_dump(int level, const props_array *props);
-#endif
 
 #endif /* IS_LIB_COMMON_PROPERTY_H */
