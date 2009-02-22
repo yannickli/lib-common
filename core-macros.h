@@ -24,17 +24,6 @@
  * \brief Intersec generic macros.
  */
 
-/*---------------- Guess the OS ----------------*/
-#if defined(__linux__)
-#  define OS_LINUX
-#elif defined(__sun)
-#  define OS_SOLARIS
-#elif defined(__MINGW) || defined(__MINGW32__)
-#  define OS_WINDOWS
-#else
-#  error "we don't know about your OS"
-#endif
-
 /*---------------- GNU extension wrappers ----------------*/
 
 /*
@@ -48,27 +37,16 @@
  * \brief Check a condition at build time.
  * \param[in]  expr    the expression you want to be always true at compile * time.
  * \safemacro
- */
-/** \def STATIC_ASSERTZ
- * \brief Check a condition at build time inside an expression.
  *
- * It works basically like its sister #STATIC_ASSERT, but it evaluates
- * to the value 0 (zero), so it can be embedded in arithmetic expressions.
- *
- * \param[in]  expr    the expression you want to be always true at compile * time.
- * \safemacro
  */
 #ifdef __GNUC__
 #define __error__(msg)          (void)({__asm__(".error \""msg"\"");})
 #define STATIC_ASSERT(cond) \
-    __builtin_choose_expr(__builtin_constant_p(cond), \
-        __builtin_choose_expr(cond, (void)0, __error__("static assertion failed: "#cond"")), \
-        __error__("STATIC_ASSERT argument must be known at compile time"))
+    __builtin_choose_expr(cond, (void)0, __error__("static assertion failed: "#cond""))
 #else
+#define __error__(msg)          0
 #define STATIC_ASSERT(condition) ((void)sizeof(char[1 - 2 * !(condition)]))
 #endif
-#define STATIC_ASSERTZ(cond)     (STATIC_ASSERT(cond), 0)
-
 
 /** \brief Forcefully ignore the value of an expression.
  *
@@ -91,7 +69,7 @@
 #if !defined(__doxygen_mode__)
 #  if (!defined(__GNUC__) || __GNUC__ < 3) && !defined(__attribute__)
 #    define __attribute__(attr)
-#    define __must_be_array(a)   0
+#    define __must_be_array(a)   (void)0
 #  else
 #    define __must_be_array(a) \
          (sizeof(char[1 - 2 * __builtin_types_compatible_p(typeof(a), typeof(&(a)[0]))]) - 1)
@@ -107,12 +85,12 @@
 
 #ifdef __GNUC__
 #  ifndef EXPORT
-#    define EXPORT    extern __attribute__((visibility("default")))
+#    define EXPORT  extern __attribute__((visibility("default")))
 #  endif
 #  define HIDDEN    extern __attribute__((visibility("hidden")))
 #else
 #  ifndef EXPORT
-#    define EXPORT    extern
+#    define EXPORT  extern
 #  endif
 #  define HIDDEN    extern
 #endif
@@ -147,13 +125,6 @@
 
 typedef unsigned char byte;
 typedef unsigned int flag_t;    /* for 1 bit bitfields */
-
-#if defined(__CYGWIN__)
-typedef int gt_int32_t;
-typedef unsigned int gt_uint32_t;
-#define int32_t __int32_t
-#define uint32_t __uint32_t
-#endif
 
 /* OG: should find a better name such as BITSIZEOF(type) */
 #define TYPE_BIT(type_t)    (sizeof(type_t) * CHAR_BIT)

@@ -16,6 +16,17 @@
 #else
 #define IS_LIB_COMMON_CORE_OS_FEATURES_H
 
+/*---------------- Guess the OS ----------------*/
+#if defined(__linux__)
+#  define OS_LINUX
+#elif defined(__sun)
+#  define OS_SOLARIS
+#elif defined(__MINGW) || defined(__MINGW32__)
+#  define OS_WINDOWS
+#else
+#  error "we don't know about your OS"
+#endif
+
 /* <netinet/sctp.h> availability */
 #if defined(OS_LINUX) /* || defined(__sun) */
 #  define HAVE_NETINET_SCTP_H
