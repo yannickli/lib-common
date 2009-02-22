@@ -28,7 +28,6 @@
 #include "hash.h"
 #include "isndx.h"
 #include "licence.h"
-#include "mem-pool.h"
 #include "mmappedfile.h"
 #include "net.h"
 #include "paged-index.h"

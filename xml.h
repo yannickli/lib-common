@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_XML_H
 #define IS_LIB_COMMON_XML_H
 
-#include "mem-pool.h"
+#include "core.h"
 
 typedef struct xml_prop_t xml_prop_t;
 typedef struct xml_tag_t xml_tag_t;

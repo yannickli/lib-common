@@ -595,7 +595,7 @@ END_TEST
 
 START_TEST(check_stristart)
 {
-    const char *p;
+    const char *p = NULL;
     int res;
     res = stristart(week, "monDAY", &p);
     fail_if(!res, "stristart did not find needle");

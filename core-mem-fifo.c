@@ -11,6 +11,14 @@
 /*                                                                        */
 /**************************************************************************/
 
+/*
+ * TODO: make the mem_fifo_pool_t refcounted by its pages + itself
+ *       so that destroying the pool allow data to outlive it.
+ *
+ *       That would mean no more clumsy mchannel segfaults due to pools
+ *       dropped too early.
+ */
+
 #ifndef NDEBUG
 #  include <valgrind/valgrind.h>
 #  include <valgrind/memcheck.h>
@@ -30,17 +38,14 @@
 #  define VALGRIND_MEMPOOL_CHANGE(...)
 #  define VALGRIND_MEMPOOL_FREE(...)
 #endif
-#include <sys/mman.h>
-#include "mem-pool.h"
+#include "core.h"
 
 #define ROUND_MULTIPLE(n, k) ((((n) + (k) - 1) / (k)) * (k))
 
 typedef struct mem_page_t {
-    struct mem_page_t *next;
-
-    int area_size;
-    int used_size;
-    int used_blocks;
+    mem_blk_t page;
+    uint32_t  used_size;
+    uint32_t  used_blocks;
 
     void *last;           /* last result of an allocation */
 
@@ -48,18 +53,18 @@ typedef struct mem_page_t {
 } mem_page_t;
 
 typedef struct mem_block_t {
-    int page_offs;
-    int blk_size;
-    byte area[];
+    uint32_t page_offs;
+    uint32_t blk_size;
+    byte     area[];
 } mem_block_t;
 
 typedef struct mem_fifo_pool_t {
-    mem_pool_t funcs;
-    mem_page_t *pages;
-    mem_page_t *freelist;
-    int page_size;
-    int nb_pages;
-    int occupied;
+    mem_pool_t  funcs;
+    mem_page_t *freepage;
+    mem_page_t *current;
+    uint32_t    page_size;
+    uint32_t    nb_pages;
+    uint32_t    occupied;
 } mem_fifo_pool_t;
 
 
@@ -67,7 +72,7 @@ static mem_page_t *pageof(mem_block_t *blk) {
     mem_page_t *page;
 
     VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
-    page = (mem_page_t *)((char *)blk + blk->page_offs);
+    page = (mem_page_t *)((char *)blk - blk->page_offs);
     return page;
 }
 
@@ -78,8 +83,14 @@ static void blk_protect(mem_block_t *blk)
 
 static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp)
 {
-    int size = mfp->page_size - sizeof(mem_page_t);
+    uint32_t size = mfp->page_size - sizeof(mem_page_t);
     mem_page_t *page;
+
+    if (mfp->freepage) {
+        page = mfp->freepage;
+        mfp->freepage = NULL;
+        return page;
+    }
 
     page = mmap(NULL, mfp->page_size, PROT_READ | PROT_WRITE,
                       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -87,9 +98,13 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp)
         e_panic(E_UNIXERR("mmap"));
     }
 
-    page->area_size = size;
     VALGRIND_CREATE_MEMPOOL(page, 0, true);
-    VALGRIND_MAKE_MEM_NOACCESS(page->area, page->area_size);
+    VALGRIND_MAKE_MEM_NOACCESS(page->area, page->page.size);
+    page->page.start = page->area;
+    page->page.pool  = &mfp->funcs;
+    page->page.size  = size;
+    mem_register(&page->page);
+    mfp->nb_pages++;
     return page;
 }
 
@@ -97,62 +112,56 @@ static void mem_page_reset(mem_page_t *page)
 {
     VALGRIND_MAKE_MEM_DEFINED(page->area, page->used_size);
     p_clear(page->area, page->used_size);
-    VALGRIND_MAKE_MEM_NOACCESS(page->area, page->area_size);
+    VALGRIND_MAKE_MEM_NOACCESS(page->area, page->page.size);
 
     page->used_size   = 0;
     page->used_blocks = 0;
     page->last        = NULL;
 }
 
-static void mem_page_delete(mem_page_t **pagep)
+static void mem_page_delete(mem_fifo_pool_t *mfp, mem_page_t **pagep)
 {
     if (*pagep) {
         mem_page_t *page = *pagep;
+
+        mfp->nb_pages--;
         VALGRIND_DESTROY_MEMPOOL(page);
-        VALGRIND_MAKE_MEM_NOACCESS(page->area, page->area_size);
-        munmap(page, page->area_size + sizeof(mem_page_t));
+        VALGRIND_MAKE_MEM_NOACCESS(page->area, page->page.size);
+        mem_unregister(&page->page);
+        munmap(page, page->page.size + sizeof(mem_page_t));
         *pagep = NULL;
     }
 }
 
-static int mem_page_size_left(mem_page_t *page)
+static uint32_t mem_page_size_left(mem_page_t *page)
 {
-    return (page->area_size - page->used_size);
+    return (page->page.size - page->used_size);
 }
 
-static void *mfp_alloc(mem_fifo_pool_t *mfp, int size)
+static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
 {
+    mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
     mem_page_t *page;
 
     /* Must round size up to keep proper alignment */
     size = ROUND_MULTIPLE((unsigned)size + sizeof(mem_block_t), 8);
 
-    if (size > mfp->page_size - ssizeof(mem_page_t)) {
+    if (unlikely(size > mfp->page_size - sizeof(mem_page_t))) {
         /* Should just map a larger page, yet we need a maximum value */
-        e_panic(E_PREFIX("tried to alloc %d bytes, cannot have more than %d"),
+        e_panic(E_PREFIX("tried to alloc %zd bytes, cannot have more than %d"),
                 size, mfp->page_size);
     }
 
-    page = mfp->pages;
+    page = mfp->current;
     if (!page || mem_page_size_left(page) < size) {
-        if (mfp->freelist) {
-            /* push the first free page on top of the pages list */
-            page = mfp->freelist;
-            mfp->freelist = page->next;
-        } else {
-            /* mmap a new page */
-            page = mem_page_new(mfp);
-            mfp->nb_pages++;
-        }
-        page->next = mfp->pages;
-        mfp->pages = page;
+        mfp->current = page = mem_page_new(mfp);
     }
 
     blk = (mem_block_t *)(page->area + page->used_size);
     VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
     VALGRIND_MEMPOOL_ALLOC(page, blk->area, size);
-    blk->page_offs = (intptr_t)page - (intptr_t)blk;
+    blk->page_offs = (uintptr_t)blk - (uintptr_t)page;
     blk->blk_size  = size;
     blk_protect(blk);
 
@@ -162,8 +171,9 @@ static void *mfp_alloc(mem_fifo_pool_t *mfp, int size)
     return page->last = blk->area;
 }
 
-static void mfp_free(mem_fifo_pool_t *mfp, void *mem)
+static void mfp_free(mem_pool_t *_mfp, void *mem, mem_flags_t flags)
 {
+    mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
     mem_page_t *page;
 
@@ -178,60 +188,54 @@ static void mfp_free(mem_fifo_pool_t *mfp, void *mem)
 
     /* if this was the last block, GC the pages */
     if (--page->used_blocks <= 0) {
-        mem_page_t **pagep;
-
-        if (page == mfp->pages) {
+        if (page == mfp->current) {
             /* if we're the current page, reset our memory and start over */
             mem_page_reset(page);
-        } else
-        for (pagep = &mfp->pages->next; *pagep; pagep = &(*pagep)->next) {
-            page = *pagep;
-
-            if (page->used_blocks != 0)
-                continue;
-
-            *pagep = page->next;
-
-            if (mfp->freelist || mfp->nb_pages == 1) {
-                mem_page_delete(&page);
-                mfp->nb_pages--;
+        } else {
+            if (mfp->freepage || mfp->nb_pages == 1) {
+                mem_page_delete(mfp, &page);
             } else {
                 /* Clear area to 0 to ensure allocated blocks are
                  * cleared.  mfp_malloc relies on this.
                  */
                 mem_page_reset(page);
-                page->next    = mfp->freelist;
-                mfp->freelist = page;
+                mfp->freepage = page;
             }
-            break;
         }
     }
 }
 
-static void mfp_realloc(mem_fifo_pool_t *mfp, void **memp, int size)
+static void mfp_realloc(mem_pool_t *_mfp, void **memp, size_t oldsize, size_t size, mem_flags_t flags)
 {
+    mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
     mem_page_t *page;
     void *mem = *memp;
 
-    if (unlikely(size < 0))
-        e_panic(E_PREFIX("invalid memory size %d"), size);
+    if (unlikely(size > mfp->page_size - sizeof(mem_page_t))) {
+        /* Should just map a larger page, yet we need a maximum value */
+        e_panic(E_PREFIX("tried to alloc %zd bytes, cannot have more than %d"),
+                size, mfp->page_size);
+    }
     if (unlikely(size == 0)) {
-        mfp_free(mfp, mem);
+        mfp_free(_mfp, mem, flags);
         *memp = NULL;
         return;
     }
 
     if (!mem) {
-        *memp = mfp_alloc(mfp, size);
+        *memp = mfp_alloc(_mfp, size, flags);
         return;
     }
 
     blk  = container_of(mem, mem_block_t, area);
     page = pageof(blk);
 
-    if (size <= blk->blk_size - ssizeof(*blk)) {
+    assert (oldsize <= blk->blk_size);
+    if (size <= blk->blk_size - sizeof(*blk)) {
         blk_protect(blk);
+        if (!(flags & MEM_RAW) && oldsize < size)
+            memset(blk->area + oldsize, 0, size - oldsize);
         return;
     }
 
@@ -249,15 +253,18 @@ static void mfp_realloc(mem_fifo_pool_t *mfp, void **memp, int size)
         return;
     }
 
-    memcpy(*memp = mfp_alloc(mfp, size), mem, blk->blk_size);
-    mfp_free(mfp, mem);
+    if (flags & MEM_RAW) {
+        memcpy(*memp = mfp_alloc(_mfp, size, flags), mem, blk->blk_size);
+    } else {
+        memcpy(*memp = mfp_alloc(_mfp, size, flags), mem, oldsize);
+    }
+    mfp_free(_mfp, mem, flags);
 }
 
 static mem_pool_t const mem_fifo_pool_funcs = {
-    (void *)&mfp_alloc,
-    (void *)&mfp_alloc, /* we use maps, always set to 0 */
-    (void *)&mfp_realloc,
-    (void *)&mfp_free,
+    .malloc  = &mfp_alloc,
+    .realloc = &mfp_realloc,
+    .free    = &mfp_free,
 };
 
 mem_pool_t *mem_fifo_pool_new(int page_size_hint)
@@ -269,27 +276,25 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
     return &mfp->funcs;
 }
 
+static void mem_blk_drop(mem_blk_t *blk, void *mfp)
+{
+    mem_page_t *page = container_of(blk, mem_page_t, page);
+    mem_page_delete(mfp, &page);
+}
+
 void mem_fifo_pool_delete(mem_pool_t **poolp)
 {
     if (*poolp) {
-        mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)(*poolp);
+        mem_fifo_pool_t *mfp = container_of(*poolp, mem_fifo_pool_t, funcs);
 
-        while (mfp->freelist) {
-            mem_page_t *page = mfp->freelist;
-
-            mfp->freelist = page->next;
-            mem_page_delete(&page);
-            mfp->nb_pages--;
-        }
-
-        while (mfp->pages) {
-            mem_page_t *page = mfp->pages;
-
-            mfp->pages = page->next;
-            mem_page_delete(&page);
-            mfp->nb_pages--;
-        }
-
+        /* XXX: this code is just silly, but we must do that because of the
+                stupid xml.c abusing the interface and the old feature that
+                did released all the allocated pages at once.
+         */
+        mem_page_delete(mfp, &mfp->current);
+        mem_page_delete(mfp, &mfp->freepage);
+        if (mfp->nb_pages)
+            mem_for_each(&mfp->funcs, &mem_blk_drop, mfp);
         p_delete(poolp);
     }
 }
@@ -299,7 +304,7 @@ void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
     mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)(mp);
     /* we don't want to account the 'spare' page as allocated, it's an
        optimization that should not leak. */
-    *allocated = (mfp->nb_pages - (mfp->freelist != NULL))
+    *allocated = (mfp->nb_pages - (mfp->freepage != NULL))
                * (mfp->page_size - ssizeof(mem_page_t));
     *used      = mfp->occupied;
 }

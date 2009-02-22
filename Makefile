@@ -59,6 +59,8 @@ libcommon_SOURCES = \
 	core-errors.c \
 	core-obj.c \
 	core-havege.c \
+	core-mem.c \
+	core-mem-fifo.c \
 	\
 	el.c \
 	el-stopper.c \
@@ -78,9 +80,6 @@ libcommon_SOURCES = \
 	hash-sha1.c \
 	hash-sha2.c \
 	hash-sha4.c \
-	\
-	mem-pool.c \
-	mem-fifo-pool.c \
 	\
 	net-socket.c \
 	net-sctp.c \

@@ -11,9 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CONTAINER_H) || defined(IS_LIB_COMMON_CONTAINER_RBTREE_H)
+#if !defined(IS_LIB_COMMON_CONTAINER_H) && !defined(IS_LIB_COMMON_CORE_MEM_H)
 #  error "you must include <lib-common/container.h> instead"
 #endif
+#ifndef IS_LIB_COMMON_CONTAINER_RBTREE_H
 #define IS_LIB_COMMON_CONTAINER_RBTREE_H
 
 typedef struct rb_t {
@@ -127,3 +128,4 @@ rb_node_t *rb_prev(rb_node_t *);
     __rb_for_each_safe(__real_##it, __next_##it, rb,              \
                        it = rb_entry_of(__real_##it, it, member))
 
+#endif
