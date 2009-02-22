@@ -14,10 +14,10 @@
 #include "xml.h"
 #include "hash.h"
 
-static char *xml_dupstr_mp(xml_tree_t *tree, const char *src, int len)
+static char *xml_dupz(xml_tree_t *tree, const char *src, int len)
 {
     if (src) {
-        return mp_dupstr(tree->mp, src, len);
+        return mp_dupz(tree->mp, src, len);
     }
     return mp_new(tree->mp, char, len + 1);
 }
@@ -318,7 +318,7 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
         }
         goto error;
     }
-    prop->name = xml_dupstr_mp(tree, name, p - name);
+    prop->name = xml_dupz(tree, name, p - name);
     prop->name_hash = hsieh_hash(prop->name, p - name);
 
     SKIPSPACES(p, len);
@@ -367,7 +367,7 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
     }
 
     unquoted_len = strconv_unquote(NULL, 0, value, p - value);
-    prop->value = xml_dupstr_mp(tree, NULL, unquoted_len);
+    prop->value = xml_dupz(tree, NULL, unquoted_len);
     strconv_unquote(prop->value, unquoted_len + 1, value, p - value);
 
     decoded_len = strconv_xmlunescape(prop->value, unquoted_len);
@@ -506,7 +506,7 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
     }
 
     tag = mp_new(tree->mp, xml_tag_t, 1);
-    tag->fullname = xml_dupstr_mp(tree, name, nameend - name);
+    tag->fullname = xml_dupz(tree, name, nameend - name);
     tag->name = strchr(tag->fullname, ':');
     if (tag->name) {
         /* Skip ':' */
@@ -607,7 +607,7 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
         int decoded_len;
 
         textend++;
-        tag->text = xml_dupstr_mp(tree, text, textend - text);
+        tag->text = xml_dupz(tree, text, textend - text);
         decoded_len = strconv_xmlunescape(tag->text, textend - text);
         if (decoded_len >= 0) {
             tag->text[decoded_len] = '\0';

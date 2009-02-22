@@ -26,12 +26,11 @@ typedef struct mem_pool_t {
 static inline __attribute__((malloc))
 void *memp_dup(mem_pool_t *mp, const void *src, int size)
 {
-    void *res = mp->mem_alloc(mp, size);
-    return memcpy(res, src, size);
+    return memcpy(mp->mem_alloc(mp, size), src, size);
 }
 
 static inline __attribute__((malloc))
-void *mp_dupstr(mem_pool_t *mp, const void *src, int len)
+void *mp_dupz(mem_pool_t *mp, const void *src, int len)
 {
     char *res = mp->mem_alloc(mp, len + 1);
     memcpyz(res, src, len);
