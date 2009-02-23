@@ -59,7 +59,9 @@ typedef unsigned __bitwise__ mem_flags_t;
 #define MEM_RAW        force_cast(mem_flags_t, 1 << 0)
 #define MEM_LIBC       force_cast(mem_flags_t, 1 << 1)
 
+#if __GNUC_PREREQ(4, 3)
 __attribute__((error("you cannot allocate that much memory")))
+#endif
 extern void __imalloc_too_large(void);
 
 /*

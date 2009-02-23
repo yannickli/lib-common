@@ -40,8 +40,6 @@
 #endif
 #include "core.h"
 
-#define ROUND_MULTIPLE(n, k) ((((n) + (k) - 1) / (k)) * (k))
-
 typedef struct mem_page_t {
     mem_blk_t page;
     uint32_t  used_size;
@@ -145,7 +143,7 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
     mem_page_t *page;
 
     /* Must round size up to keep proper alignment */
-    size = ROUND_MULTIPLE((unsigned)size + sizeof(mem_block_t), 8);
+    size = ROUND_UP((unsigned)size + sizeof(mem_block_t), 8);
 
     if (unlikely(size > mfp->page_size - sizeof(mem_page_t))) {
         /* Should just map a larger page, yet we need a maximum value */
@@ -245,7 +243,7 @@ static void mfp_realloc(mem_pool_t *_mfp, void **memp, size_t oldsize, size_t si
     if (mem == page->last
     && size + ssizeof(*blk) - blk->blk_size <= mem_page_size_left(page))
     {
-        size = ROUND_MULTIPLE((size_t)size, 8);
+        size = ROUND_UP((size_t)size, 8);
         blk->blk_size   += size;
         VALGRIND_MEMPOOL_CHANGE(page, blk->area, blk->area, size);
         blk_protect(blk);
@@ -270,7 +268,7 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
     mem_fifo_pool_t *mfp = p_new(mem_fifo_pool_t, 1);
 
     mfp->funcs     = mem_fifo_pool_funcs;
-    mfp->page_size = MAX(16 * 4096, ROUND_MULTIPLE(page_size_hint, 4096));
+    mfp->page_size = MAX(16 * 4096, ROUND_UP(page_size_hint, 4096));
     return &mfp->funcs;
 }
 
