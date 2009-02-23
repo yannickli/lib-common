@@ -92,9 +92,18 @@ typedef struct stack_pool_t {
     frame_t   *stack;
     size_t     minsize;
     size_t     stacksize;
+    size_t     nbpages;
+
+    uint64_t   alloc_sz;
+    uint32_t   alloc_nb;
 
     mem_pool_t funcs;
 } stack_pool_t;
+
+static size_t sp_alloc_mean(stack_pool_t *sp)
+{
+    return sp->alloc_sz / sp->alloc_nb;
+}
 
 static stack_blk_t *blk_entry(dlist_t *l)
 {
@@ -108,12 +117,11 @@ static stack_blk_t *blk_create(stack_pool_t *sp, size_t size_hint)
 
     if (size_hint < sp->minsize)
         size_hint = sp->minsize;
-    if (size_hint < sp->stacksize / 8)
-        size_hint = sp->stacksize / 8;
+    if (size_hint < 64 * sp_alloc_mean(sp))
+        size_hint = 64 * sp_alloc_mean(sp);
     blksize = ROUND_UP(blksize, PAGE_SIZE);
     if (blksize > MEM_ALLOC_MAX)
         e_panic("You cannot allocate that amount of memory");
-    sp->minsize = blksize;
     blk = imalloc(blksize, MEM_RAW | MEM_LIBC);
     blk->blk.pool  = &sp->funcs;
     blk->blk.start = blk->area;
@@ -121,11 +129,14 @@ static stack_blk_t *blk_create(stack_pool_t *sp, size_t size_hint)
     sp->stacksize += blk->blk.size;
     mem_register(&blk->blk);
     dlist_add_tail(&sp->blk_list, &blk->blk_list);
+    sp->nbpages++;
     return blk;
 }
 
 static void blk_destroy(stack_pool_t *sp, stack_blk_t *blk)
 {
+    sp->stacksize -= blk->blk.size;
+    sp->nbpages--;
     mem_unregister(&blk->blk);
     dlist_remove(&blk->blk_list);
     ifree(blk, MEM_LIBC);
@@ -135,7 +146,7 @@ static stack_blk_t *frame_get_next_blk(stack_pool_t *sp, stack_blk_t *cur, size_
 {
     while (cur->blk_list.next != &sp->blk_list) {
         stack_blk_t *blk = dlist_next_entry(cur, blk_list);
-        if (blk->blk.size >= size)
+        if (blk->blk.size >= size && blk->blk.size > 8 * sp_alloc_mean(sp))
             return blk;
         blk_destroy(sp, blk);
     }
@@ -173,6 +184,11 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
     if (!(flags & MEM_RAW))
         memset(res, 0, size);
     frame->pos = res + size;
+    sp->alloc_sz += size;
+    if (++sp->alloc_nb >= UINT16_MAX) {
+        sp->alloc_sz /= 2;
+        sp->alloc_nb /= 2;
+    }
     return frame->last = res;
 }
 
@@ -197,11 +213,12 @@ static void sp_realloc(mem_pool_t *_sp, void **memp,
     if (oldsize >= size)
         return;
 
-    if (mem == frame->last
+    if (mem != NULL && mem == frame->last
     &&  align_boundary(oldsize) == align_boundary(size)
     &&  (byte *)frame->last + size <= frame_end(sp->stack))
     {
         res = sp->stack->pos = (byte *)frame->last + size;
+        sp->alloc_sz += size - oldsize;
     } else {
         res = sp_alloc(_sp, size, flags | MEM_RAW);
         memcpy(res, mem, oldsize);
