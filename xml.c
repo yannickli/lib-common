@@ -28,7 +28,7 @@ static char *xml_dupz(xml_tree_t *tree, const char *src, int len)
 
 void xml_tree_wipe(xml_tree_t *tree)
 {
-    mem_fifo_pool_delete(&tree->mp);
+    mem_stack_pool_delete(&tree->mp);
 }
 
 typedef enum parse_t {
@@ -633,7 +633,7 @@ xml_tree_t *xml_new_tree(const char *payload, size_t len,
     const char *pend = payload;
 
     tree = p_new(xml_tree_t, 1);
-    tree->mp = mem_fifo_pool_new(2 * len);
+    tree->mp = mem_stack_pool_new(2 * len);
 
     tree->root = mp_new(tree->mp, xml_tag_t, 1);
     if (xml_get_xml_tag(tree, payload, len, &pend)) {

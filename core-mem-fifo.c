@@ -272,25 +272,12 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
     return &mfp->funcs;
 }
 
-static void mem_blk_drop(mem_blk_t *blk, void *mfp)
-{
-    mem_page_t *page = container_of(blk, mem_page_t, page);
-    mem_page_delete(mfp, &page);
-}
-
 void mem_fifo_pool_delete(mem_pool_t **poolp)
 {
     if (*poolp) {
         mem_fifo_pool_t *mfp = container_of(*poolp, mem_fifo_pool_t, funcs);
-
-        /* XXX: this code is just silly, but we must do that because of the
-                stupid xml.c abusing the interface and the old feature that
-                did released all the allocated pages at once.
-         */
-        mem_page_delete(mfp, &mfp->current);
-        mem_page_delete(mfp, &mfp->freepage);
         if (mfp->nb_pages)
-            mem_for_each(&mfp->funcs, &mem_blk_drop, mfp);
+            e_trace(0, "dude, you're leaking memory. %d pages left !!", mfp->nb_pages);
         p_delete(poolp);
     }
 }

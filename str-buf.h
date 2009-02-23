@@ -234,7 +234,7 @@ sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
     char *res;
 
     assert (pos >= 0 && len >= 0 && dlen >= 0);
-    assert (pos <= sb->len && pos + len <= sb->len);
+    assert ((unsigned)pos <= (unsigned)sb->len && (unsigned)pos + (unsigned)len <= (unsigned)sb->len);
     if (__builtin_constant_p(dlen)) {
         if (dlen == 0 || (__builtin_constant_p(len) && len >= dlen)) {
             p_move(sb->data, pos + dlen, pos + len, sb->len - pos - len);
