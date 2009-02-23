@@ -72,7 +72,7 @@ void xmlpp_putattr(xmlpp_t *pp, const char *key, const char *val)
 
     sb_shrink(pp->buf, 1);
     sb_addf(pp->buf, " %s=\"", key);
-    sb_add_xmlescape(pp->buf, val, -1);
+    sb_adds_xmlescape(pp->buf, val);
     sb_adds(pp->buf, "\">");
 }
 
