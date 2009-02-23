@@ -290,3 +290,27 @@ const void *mem_stack_pop(mem_pool_t *_sp)
     frame->last = NULL;
     return NULL;
 }
+
+void mem_stack_rewind(mem_pool_t *_sp, const void *cookie)
+{
+    stack_pool_t *sp = container_of(_sp, stack_pool_t, funcs);
+
+    if (cookie == NULL) {
+        sp->base.blk  = blk_entry(&sp->blk_list);
+        sp->base.pos  = blk_entry(&sp->blk_list) + sizeof(*sp);
+        sp->base.last = NULL;
+        sp->stack     = &sp->base;
+        return;
+    }
+#ifndef NDEBUG
+    for (frame_t *frame = sp->stack; frame->next; frame = frame->next) {
+        if (frame == cookie) {
+            sp->stack = frame->next;
+            return;
+        }
+    }
+    e_panic("invalid cookie");
+#else
+    sp->stack = ((frame_t *)cookie)->next;
+#endif
+}

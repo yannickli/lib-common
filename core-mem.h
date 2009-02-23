@@ -396,5 +396,6 @@ void mem_stack_pool_delete(mem_pool_t **);
 
 const void *mem_stack_push(mem_pool_t *);
 const void *mem_stack_pop(mem_pool_t *);
+void mem_stack_rewind(mem_pool_t *, const void *);
 
 #endif
