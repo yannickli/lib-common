@@ -16,16 +16,12 @@ CPPFLAGS :=
 LDFLAGS :=
 
 GCCVERSION := $(shell $(CC) -dumpversion)
-ifneq (,$(filter 4.%,$(GCCVERSION)))
-  GCC4=1
-endif
+GCCMAJOR   := $(word 1,$(subst ., ,$(GCCVERSION)))
+GCCMINOR   := $(word 2,$(subst ., ,$(GCCVERSION)))
+GCC_PREREQ=$(shell test $(GCCMAJOR) -lt $1 || test $(GCCMAJOR) = $1 -a $(GCCMINOR) -lt $2 || echo 1)
 
 LDFLAGS += -Wl,--warn-common,-x
 
-ifdef GCC4
-    # know where the warnings come from
-    CFLAGS += -fdiagnostics-show-option
-endif
 # Use pipes and not temp files.
 CFLAGS += -pipe
 # use C99 to be able to for (int i =...
@@ -34,7 +30,9 @@ CFLAGS += -std=gnu99
 CFLAGS += -O2
 # more aggressive inlining for local functions.
 CFLAGS += -finline-functions
+ifneq (,$(call GCC_PREREQ,4,3))
 CFLAGS += -fpredictive-commoning
+endif
 CFLAGS += -funswitch-loops
 # ignore for (i = 0; i < limit; i += N) as dangerous for N != 1.
 CFLAGS += -funsafe-loop-optimizations
@@ -44,7 +42,13 @@ CFLAGS += -fno-strict-aliasing
 # turn on all common warnings
 CFLAGS += -Wall
 # turn on extra warnings
-CFLAGS += $(if $(GCC4),-Wextra,-W)
+ifneq (,$(call GCC_PREREQ,4,0))
+    CFLAGS += -Wextra
+    # know where the warnings come from
+    CFLAGS += -fdiagnostics-show-option
+else
+    CFLAGS += -W
+endif
 # treat warnings as errors
 CFLAGS += -Werror
 CFLAGS += -Wchar-subscripts
@@ -70,7 +74,9 @@ CFLAGS += -Wno-unused-parameter
 # warn about variable use before initialization
 CFLAGS += -Wuninitialized
 # warn about variables which are initialized with themselves
-CFLAGS += $(if $(GCC4),-Winit-self)
+ifneq (,$(call GCC_PREREQ,4,0))
+    CFLAGS += -Winit-self
+endif
 # warn about pointer arithmetic on void* and function pointers
 CFLAGS += -Wpointer-arith
 # warn about multiple declarations
