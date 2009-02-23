@@ -394,7 +394,7 @@ void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used);
 mem_pool_t *mem_stack_pool_new(int initialsize);
 void mem_stack_pool_delete(mem_pool_t **);
 
-void *mem_stack_push(mem_pool_t *);
-void *mem_stack_pop(mem_pool_t *);
+const void *mem_stack_push(mem_pool_t *);
+const void *mem_stack_pop(mem_pool_t *);
 
 #endif

@@ -14,6 +14,62 @@
 #include <sys/user.h>
 #include "container.h"
 
+/*
+ * Stacked memory allocator
+ * ~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * This mostly works like alloca() wrt your stack, except that it's a chain of
+ * malloc()ed blocks. It also works like alloca in the sense that it aligns
+ * allocated memory bits to the lowest required alignment possible (IOW
+ * allocting blocks of sizes < 2, < 4, < 8, < 16 or >= 16 yield blocks aligned
+ * to a 1, 2, 4, 8, and 16 boundary respectively.
+ *
+ * Additionnally to that, you have mem_stack_{push,pop} APIs that push/pop new
+ * stack frames (ring a bell ?). Anything that has been allocated since the
+ * last push is freed when you call pop.
+ *
+ * push/pop return void* cookies that you can match if you want to be sure
+ * you're not screwing yourself with non matchin push/pops. Matching push/pop
+ * should return the same cookie value.
+ *
+ * Note that a pristine stacked pool has an implicit push() done, with a
+ * matching cookie of `NULL`. Note that this last pop rewinds the stack pool
+ * into its pristine state in the sense that it's ready to allocate memory and
+ * no further push() is needed (an implicit push is done here too).
+ *
+ * Reallocing the last allocated data is efficient in the sense that it tries
+ * to keep the data at the same place.
+ *
+ *
+ * Physical memory is reclaimed based on different heuristics. pop() is not
+ * enough to reclaim the whole pool memory, only deleting the pool does that.
+ * The pool somehow tries to keep the largest chunks of data allocated around,
+ * and to discard the ones that are definitely too small to do anything useful
+ * with them. Also, new blocks allocated are always bigger than the last
+ * biggest block that was allocated (or of the same size).
+ *
+ *
+ * A word on how it works, there is a list of chained blocks, with the huge
+ * kludge that the pool looks like a block enough to be one.
+ *
+ *   [pool]==[blk 1]==[blk 2]==...==[blk n]
+ *     \\                             //
+ *      \=============================/
+ *
+ * The pool contains a based frame pointer, and a stack of chained frames.
+ * The frames are allocated into the stacked allocator, except for the base
+ * one. Frames points to the first octet in the block "rope" that is free.
+ * IOW it looks like this:
+ *
+ * [ fake block 0 == pool ] [  octets of block 1 ]  [ block 2 ] .... [ block n ]
+ *   base_                     frame1_  frame2_                        |
+ *        \____________________/      \_/      \_______________________/
+ *
+ * consecutive frames may or may not be in the same physical block.
+ * the bottom of a frame may or may not bi in the same physical block where it
+ * lives.
+ */
+
 typedef struct stack_blk_t {
     mem_blk_t blk;
     dlist_t   blk_list;
@@ -24,17 +80,18 @@ typedef struct frame_t {
     struct frame_t *next;
     stack_blk_t    *blk;
     void           *pos;
+    void           *last;
 } frame_t;
 
 typedef struct stack_pool_t {
     mem_blk_t  blk;
     dlist_t    blk_list;
 
+    /* XXX: kludge: below this point we're the "blk" data */
     frame_t    base;
     frame_t   *stack;
     size_t     minsize;
     size_t     stacksize;
-    void      *last;
 
     mem_pool_t funcs;
 } stack_pool_t;
@@ -71,6 +128,7 @@ static void blk_destroy(stack_pool_t *sp, stack_blk_t *blk)
 {
     mem_unregister(&blk->blk);
     dlist_remove(&blk->blk_list);
+    ifree(blk, MEM_LIBC);
 }
 
 static stack_blk_t *frame_get_next_blk(stack_pool_t *sp, stack_blk_t *cur, size_t size)
@@ -92,8 +150,8 @@ static byte *frame_end(frame_t *frame)
 
 static inline int align_boundary(size_t size)
 {
-    int bsr   = 31 ^ __builtin_clz(size | 2);
-    return MIN(16, 1 << (bsr - 1));
+    int bsr = 31 ^ __builtin_clz(size | 1);
+    return MIN(16, 1 << bsr);
 }
 
 static byte *align_start(frame_t *frame, size_t size)
@@ -115,7 +173,7 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
     if (!(flags & MEM_RAW))
         memset(res, 0, size);
     frame->pos = res + size;
-    return sp->last = res;
+    return frame->last = res;
 }
 
 static void sp_free(mem_pool_t *_sp, void *mem, mem_flags_t flags)
@@ -126,6 +184,7 @@ static void sp_realloc(mem_pool_t *_sp, void **memp,
                        size_t oldsize, size_t size, mem_flags_t flags)
 {
     stack_pool_t *sp = container_of(_sp, stack_pool_t, funcs);
+    frame_t *frame = sp->stack;
     void *mem = *memp;
     byte *res;
 
@@ -138,11 +197,11 @@ static void sp_realloc(mem_pool_t *_sp, void **memp,
     if (oldsize >= size)
         return;
 
-    if (mem == sp->last
+    if (mem == frame->last
     &&  align_boundary(oldsize) == align_boundary(size)
-    &&  (byte *)sp->last + size <= frame_end(sp->stack))
+    &&  (byte *)frame->last + size <= frame_end(sp->stack))
     {
-        res = sp->stack->pos = (byte *)sp->last + size;
+        res = sp->stack->pos = (byte *)frame->last + size;
     } else {
         res = sp_alloc(_sp, size, flags | MEM_RAW);
         memcpy(res, mem, oldsize);
@@ -191,7 +250,7 @@ void mem_stack_pool_delete(mem_pool_t **spp)
     }
 }
 
-void *mem_stack_push(mem_pool_t *_sp)
+const void *mem_stack_push(mem_pool_t *_sp)
 {
     stack_pool_t *sp = container_of(_sp, stack_pool_t, funcs);
     frame_t *frame = sp_alloc(_sp, sizeof(frame), 0);
@@ -202,14 +261,15 @@ void *mem_stack_push(mem_pool_t *_sp)
     return sp->stack = frame;
 }
 
-void *mem_stack_pop(mem_pool_t *_sp)
+const void *mem_stack_pop(mem_pool_t *_sp)
 {
     stack_pool_t *sp = container_of(_sp, stack_pool_t, funcs);
     frame_t *frame = sp->stack;
 
     if (frame->next)
         return sp->stack = frame->next;
-    frame->blk = blk_entry(&sp->blk_list);
-    frame->pos = blk_entry(&sp->blk_list) + sizeof(*sp);
+    frame->blk  = blk_entry(&sp->blk_list);
+    frame->pos  = blk_entry(&sp->blk_list) + sizeof(*sp);
+    frame->last = NULL;
     return NULL;
 }
