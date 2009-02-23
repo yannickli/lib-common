@@ -73,7 +73,7 @@ typedef struct sb_t {
  * spurious bugs in other threads sharing the same strbuf data.
  * It would be much cleaner if this array was const.
  */
-extern char __sb_slop[1];
+extern __thread char __sb_slop[1];
 
 
 /**************************************************************************/
@@ -227,15 +227,27 @@ static inline void sb_adds(sb_t *sb, const char *s)
 }
 
 /* data == NULL means: please fill with raw data.  */
-char *__sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen);
+char *__sb_splice(sb_t *sb, int pos, int len, int dlen);
 static inline char *
 sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
 {
-    if (pos == sb->len && data) {
-        sb_add(sb, data, dlen);
-        return sb->data + pos;
+    char *res;
+
+    assert (pos >= 0 && len >= 0 && dlen >= 0);
+    assert (pos <= sb->len && pos + len <= sb->len);
+    if (__builtin_constant_p(dlen)) {
+        if (dlen == 0 || (__builtin_constant_p(len) && len >= dlen)) {
+            p_move(sb->data, pos + dlen, pos + len, sb->len - pos - len);
+            __sb_fixlen(sb, sb->len + dlen - len);
+            return sb->data + pos;
+        }
     }
-    return __sb_splice(sb, pos, len, data, dlen);
+    if (__builtin_constant_p(len) && len == 0 && pos == sb->len) {
+        res = sb_growlen(sb, dlen);
+    } else {
+        res = __sb_splice(sb, pos, len, dlen);
+    }
+    return data ? memcpy(res, data, dlen) : res;
 }
 
 static inline void

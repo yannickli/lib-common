@@ -32,12 +32,30 @@ extern uint8_t  const __utf8_char_len[32];
 
 static inline int str_digit_value(int x)
 {
-    return __str_digit_value[x + 128];
+    if (__builtin_constant_p(x)) {
+        switch (x) {
+          case '0' ... '9': return x - '0';
+          case 'a' ... 'z': return 10 + x - 'a';
+          case 'A' ... 'Z': return 10 + x - 'A';
+          default:          return -1;
+        }
+    } else {
+        return __str_digit_value[x + 128];
+    }
 }
 static inline int hexdigit(int x)
 {
-    int i = __str_digit_value[x + 128];
-    return i < 16 ? i : -1;
+    if (__builtin_constant_p(x)) {
+        switch (x) {
+          case '0' ... '9': return x - '0';
+          case 'a' ... 'f': return 10 + x - 'a';
+          case 'A' ... 'F': return 10 + x - 'A';
+          default:          return -1;
+        }
+    } else {
+        int i = __str_digit_value[x + 128];
+        return i < 16 ? i : -1;
+    }
 }
 static inline int hexdecode(const char *str)
 {
@@ -57,8 +75,13 @@ int strconv_hexencode(char *dest, int size, const void *src, int len);
 
 static inline uint8_t __pstrputuc(char *dst, int c)
 {
-    /* XXX: 31 ^ clz(c) is actually bsr in x86 assembly */
-    uint8_t len = __utf8_clz_to_charlen[31 ^ __builtin_clz(c | 1)];
+    uint8_t len;
+    if (__builtin_constant_p(c)) {
+        len = 1 + (c >= 0x80) + (c >= 0x800) + (c >= 0x10000);
+    } else {
+        /* XXX: 31 ^ clz(c) is actually bsr in x86 assembly */
+        len = __utf8_clz_to_charlen[31 ^ __builtin_clz(c | 1)];
+    }
     switch (len) {
       default: dst[3] = (c | 0x80) & 0xbf; c >>= 6;
       case 3:  dst[2] = (c | 0x80) & 0xbf; c >>= 6;

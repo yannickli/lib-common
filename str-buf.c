@@ -14,7 +14,7 @@
 #include "net.h"
 #include "unix.h"
 
-char __sb_slop[1];
+__thread char __sb_slop[1];
 
 char *sb_detach(sb_t *sb, int *len)
 {
@@ -98,7 +98,7 @@ void __sb_grow(sb_t *sb, int extra)
     }
 }
 
-char *__sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
+char *__sb_splice(sb_t *sb, int pos, int len, int dlen)
 {
     assert (pos >= 0 && len >= 0 && dlen >= 0);
     assert (pos <= sb->len && pos + len <= sb->len);
@@ -118,8 +118,6 @@ char *__sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
         p_move(sb->data, pos + dlen, pos + len, sb->len - pos - len);
         __sb_fixlen(sb, sb->len + dlen - len);
     }
-    if (data)
-        return memcpy(sb->data + pos, data, dlen);
     return sb->data + pos;
 }
 
