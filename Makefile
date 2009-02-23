@@ -61,6 +61,7 @@ libcommon_SOURCES = \
 	core-havege.c \
 	core-mem.c \
 	core-mem-fifo.c \
+	core-mem-stack.c \
 	\
 	el.c \
 	el-stopper.c \

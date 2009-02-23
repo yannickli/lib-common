@@ -389,4 +389,12 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint);
 void mem_fifo_pool_delete(mem_pool_t **poolp);
 void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used);
 
+/*----- core-mem-stack.c -----*/
+
+mem_pool_t *mem_stack_pool_new(int initialsize);
+void mem_stack_pool_delete(mem_pool_t **);
+
+void *mem_stack_push(mem_pool_t *);
+void *mem_stack_pop(mem_pool_t *);
+
 #endif
