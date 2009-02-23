@@ -39,6 +39,7 @@ typedef unsigned __bitwise__ mem_flags_t;
  * 512Mo anyways).
  */
 #define MEM_ALLOC_MAX  (1 << 30)
+#define MEM_UNKNOWN    ((size_t)-1)
 
 /*
  * mem_flags_t modify the ialloc functions behaviours.
@@ -47,7 +48,7 @@ typedef unsigned __bitwise__ mem_flags_t;
  *     - imalloc does not zeroes returned memory if set.
  *     - irealloc does not zeroes [oldsize .. size[ if set.
  *       Note that irealloc implementations should not trust oldsize if
- *       MEM_RAW is set.
+ *       MEM_RAW is set and oldsize is MEM_UNKNOWN.
  *
  * %MEM_LIBC::
  *     This flag makes no sense for pools.  irealloc and ifree shall assume
@@ -109,6 +110,10 @@ imalloc(size_t size, mem_flags_t flags)
 __attribute__((always_inline)) static inline void
 ifree(void *mem, mem_flags_t flags)
 {
+    if (__builtin_constant_p(mem)) {
+        if (mem == NULL)
+            return;
+    }
     if (__builtin_constant_p(flags)) {
         if (flags & MEM_LIBC) {
             free(mem);
@@ -121,12 +126,6 @@ ifree(void *mem, mem_flags_t flags)
 __attribute__((always_inline)) static inline void
 irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
 {
-    if (__builtin_constant_p(oldsize)) {
-        if (oldsize == 0) {
-            *mem = imalloc(size, flags);
-            return;
-        }
-    }
     if (__builtin_constant_p(size)) {
         if (size == 0) {
             ifree(*mem, flags);
@@ -141,9 +140,16 @@ irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
             char *res = realloc(*mem, size);
             if (unlikely(res == NULL))
                 e_panic("out of memory");
-            if (!(flags & MEM_RAW) && oldsize < size)
+            if (oldsize < size)
                 memset(res + oldsize, 0, size - oldsize);
             *mem = res;
+            return;
+        }
+
+        if (__builtin_constant_p(oldsize < size)) {
+            __irealloc(mem, oldsize, size, flags | MEM_RAW);
+            if (!(flags & MEM_RAW) && oldsize < size)
+                memset((char *)*mem + oldsize, 0, size - oldsize);
             return;
         }
     }
@@ -155,13 +161,8 @@ irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
 /* Memory high level APIs                                                 */
 /**************************************************************************/
 
-#define mem_alloc(size)               imalloc(size, MEM_LIBC | MEM_RAW)
-#define mem_alloc0(size)              imalloc(size, MEM_LIBC)
-#define mem_realloc(mem, size)        irealloc(mem, 1, size, MEM_LIBC | MEM_RAW)
-#define mem_realloc0(mem, old, size)  irealloc(mem, old, size, MEM_LIBC)
-#define mem_free(mem)                 ifree(mem, MEM_LIBC);
-
-static inline char *mem_strdup(const char *src) {
+static inline char *mem_strdup(const char *src)
+{
     char *res = strdup(src);
     if (unlikely(res == NULL))
         e_panic("out of memory");
@@ -170,7 +171,7 @@ static inline char *mem_strdup(const char *src) {
 
 static inline __attribute__((malloc)) void *mem_dup(const void *src, size_t size)
 {
-    return memcpy(mem_alloc(size), src, size);
+    return memcpy(imalloc(size, MEM_RAW | MEM_LIBC), src, size);
 }
 
 static inline void mem_move(void *p, size_t to, size_t from, size_t len) {
@@ -183,7 +184,7 @@ static inline void mem_copy(void *p, size_t to, size_t from, size_t len) {
 
 static inline __attribute__((malloc)) void *p_dupz(const void *src, size_t len)
 {
-    char *res = mem_alloc(len + 1);
+    char *res = imalloc(len + 1, MEM_RAW | MEM_LIBC);
     memcpyz(res, src, len);
     return res;
 }
@@ -192,9 +193,9 @@ static inline __attribute__((malloc)) void *p_dupz(const void *src, size_t len)
         ((type *)memset(alloca(sizeof(type) * (count)),      \
                         0, sizeof(type) * (count)))
 
-#define p_new_raw(type, count)  ((type *)mem_alloc(sizeof(type) * (count)))
-#define p_new(type, count)      ((type *)mem_alloc0(sizeof(type) * (count)))
-#define p_new_extra(type, size) ((type *)mem_alloc0(sizeof(type) + (size)))
+#define p_new_raw(type, count)  ((type *)imalloc(sizeof(type) * (count), MEM_RAW | MEM_LIBC))
+#define p_new(type, count)      ((type *)imalloc(sizeof(type) * (count), MEM_LIBC))
+#define p_new_extra(type, size) ((type *)imalloc(sizeof(type) + (size), MEM_LIBC))
 #define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
 #define p_dup(p, count)         mem_dup((p), sizeof(*(p)) * (count))
 #define p_strdup(p)             mem_strdup(p)
@@ -204,21 +205,22 @@ static inline __attribute__((malloc)) void *p_dupz(const void *src, size_t len)
 #  define p_delete(pp)                        \
         ({                                    \
             typeof(**(pp)) **__ptr = (pp);    \
-            mem_free(*__ptr);                 \
+            ifree(*__ptr, MEM_LIBC);          \
             *__ptr = NULL;                    \
         })
 
-#  define p_realloc(pp, count)                                     \
-        ({                                                         \
-            typeof(**(pp)) **__ptr = (pp);                         \
-            mem_realloc((void*)__ptr, sizeof(**__ptr) * (count));  \
+#  define p_realloc(pp, count)                                        \
+        ({                                                            \
+            typeof(**(pp)) **__ptr = (pp);                            \
+            irealloc((void*)__ptr, MEM_UNKNOWN,                       \
+                     sizeof(**__ptr) * (count), MEM_LIBC | MEM_RAW);  \
         })
 
-#define p_realloc0(pp, old, now)                                   \
-    ({                                                             \
-        typeof(**(pp)) **__ptr = (pp);                             \
-        size_t sz = sizeof(**__ptr);                               \
-        mem_realloc0((void *)__ptr, sz * (old), sz * (now));       \
+#define p_realloc0(pp, old, now)                                      \
+    ({                                                                \
+        typeof(**(pp)) **__ptr = (pp);                                \
+        size_t sz = sizeof(**__ptr);                                  \
+        irealloc((void *)__ptr, sz * (old), sz * (now), MEM_LIBC);    \
     })
 
 #else
@@ -226,14 +228,14 @@ static inline __attribute__((malloc)) void *p_dupz(const void *src, size_t len)
 #  define p_delete(pp)                           \
         do {                                     \
             void *__ptr = (pp);                  \
-            mem_free(*(void **)__ptr);           \
+            ifree(*(void **)__ptr, MEM_LIBC);    \
             *(void **)__ptr = NULL;              \
         } while (0)
 
 #  define p_realloc(pp, count)                      \
-    mem_realloc((void*)(pp), sizeof(**(pp)) * (count))
+    irealloc((void*)(pp), MEM_UNKNOWN, sizeof(**(pp)) * (count), MEM_LIBC | MEM_RAW)
 #  define p_realloc0(pp, old, now)                    \
-    mem_realloc0((void *)(pp), sizeof(**(pp)) * (old), sizeof(**(pp)) * (now))
+    irealloc((void *)(pp), sizeof(**(pp)) * (old), sizeof(**(pp)) * (now), MEM_LIBC)
 
 #endif
 static inline void (p_delete)(void **p) {

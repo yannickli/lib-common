@@ -56,12 +56,12 @@ void generic_vector_ensure(generic_vector *v, int newlen, int el_siz)
     if (v->size < newlen)
         v->size = newlen;
     if (v->allocated && !v->skip) {
-        mem_realloc(&v->tab, v->size * el_siz);
+        irealloc(&v->tab, v->len * el_siz, v->size * el_siz, MEM_RAW | MEM_LIBC);
     } else {
-        byte *new_area = mem_alloc(v->size * el_siz);
+        byte *new_area = imalloc(v->size * el_siz, MEM_RAW | MEM_LIBC);
         memcpy(new_area, v->tab, v->len * el_siz);
         if (v->allocated) {
-            mem_free((char *)v->tab - v->skip * el_siz);
+            ifree((char *)v->tab - v->skip * el_siz, MEM_LIBC);
         }
         v->allocated = true;
         v->tab  = new_area;

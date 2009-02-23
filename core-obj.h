@@ -137,10 +137,9 @@ void obj_wipe_real(object_t *o);
     } while (0)
 
 #define obj_new(pfx)      \
-    (pfx##_t *)obj_init_real(pfx##_class(), mem_alloc0(ssizeof(pfx##_t)))
+    (pfx##_t *)obj_init_real(pfx##_class(), p_new(pfx##_t, 1))
 #define obj_mp_new(mp, pfx) \
-    (pfx##_t *)obj_init_real(pfx##_class(), \
-                             (mp)->mem_alloc0((mp), ssizeof(pfx##_t)))
+    (pfx##_t *)obj_init_real(pfx##_class(), mp_new(mp, pfx##_t, 1))
 #define obj_init(pfx, v)  \
     (pfx##_t *)obj_init_real(pfx##_class(), memset(v, 0, sizeof(*v)))
 #define obj_wipe(o)            obj_wipe_real(obj_vcast(object, o))

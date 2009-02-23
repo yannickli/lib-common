@@ -56,7 +56,7 @@ int __sb_rewind_adds(sb_t *sb, const sb_t *orig)
             *sb = *orig;
             __sb_fixlen(sb, orig->len);
         }
-        mem_free(tmp.data - tmp.skip);
+        ifree(tmp.data - tmp.skip, MEM_LIBC);
         errno = save_errno;
     } else {
         __sb_fixlen(sb, orig->len);
@@ -93,7 +93,7 @@ void __sb_grow(sb_t *sb, int extra)
 
         memcpy(s, sb->data, sb->len + 1);
         if (sb->must_free)
-            mem_free(sb->data - sb->skip);
+            ifree(sb->data - sb->skip, MEM_LIBC);
         sb_init_full(sb, s, sb->len, newsz, true);
     }
 }

@@ -55,8 +55,8 @@
  * - sb.size > sb.len
  * - sb.data - sb.skip points to an array of at least sb.size + sb.skip bytes.
  * - sb.data[sb.len] == '\0'
- * - if sb.must_free, sb.data - sb.skip is a pointer handled by mem_alloc /
- *   mem_free.
+ * - if sb.must_free, sb.data - sb.skip is a pointer handled by ialloc /
+ *   ifree.
  */
 typedef struct sb_t {
     char *data;
@@ -126,7 +126,7 @@ static inline void sb_reset(sb_t *sb)
 static inline void sb_wipe(sb_t *sb)
 {
     if (sb->must_free) {
-        mem_free(sb->data - sb->skip);
+        ifree(sb->data - sb->skip, MEM_LIBC);
         sb_init(sb);
     } else {
         sb_reset(sb);
@@ -137,7 +137,7 @@ static inline void sb_delete(sb_t **sbp)
     if (*sbp) {
         sb_t *sb = *sbp;
         if (sb->must_free)
-            mem_free(sb->data - sb->skip);
+            ifree(sb->data - sb->skip, MEM_LIBC);
         p_delete(sbp);
     }
 }

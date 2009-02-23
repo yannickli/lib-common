@@ -231,6 +231,8 @@ static void mfp_realloc(mem_pool_t *_mfp, void **memp, size_t oldsize, size_t si
     blk  = container_of(mem, mem_block_t, area);
     page = pageof(blk);
 
+    if ((flags & MEM_RAW) && oldsize == MEM_UNKNOWN)
+        oldsize = blk->blk_size;
     assert (oldsize <= blk->blk_size);
     if (size <= blk->blk_size - sizeof(*blk)) {
         blk_protect(blk);
@@ -253,11 +255,7 @@ static void mfp_realloc(mem_pool_t *_mfp, void **memp, size_t oldsize, size_t si
         return;
     }
 
-    if (flags & MEM_RAW) {
-        memcpy(*memp = mfp_alloc(_mfp, size, flags), mem, blk->blk_size);
-    } else {
-        memcpy(*memp = mfp_alloc(_mfp, size, flags), mem, oldsize);
-    }
+    *memp = memcpy(mfp_alloc(_mfp, size, flags), mem, oldsize);
     mfp_free(_mfp, mem, flags);
 }
 

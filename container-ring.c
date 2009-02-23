@@ -26,7 +26,7 @@ void generic_ring_ensure(generic_ring *r, int newlen, int el_siz)
     r->size = p_alloc_nr(r->size);
     if (r->size < newlen)
         r->size = newlen;
-    mem_realloc(&r->tab, r->size * el_siz);
+    irealloc(&r->tab, r->len * el_siz, r->size * el_siz, MEM_RAW | MEM_LIBC);
 
     /* if elements are split in two parts. Move the shortest one */
     if (r->first + r->len > cursize) {

@@ -98,10 +98,6 @@ void __irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
     mem_blk_t *blk;
     char *res;
 
-    if (oldsize == 0) {
-        *mem = imalloc(size, flags);
-        return;
-    }
     if (size == 0) {
         ifree(*mem, flags);
         *mem = NULL;
