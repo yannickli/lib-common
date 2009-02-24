@@ -14,18 +14,6 @@
 #include "xml.h"
 #include "hash.h"
 
-static char *xml_dupz(xml_tree_t *tree, const char *src, int len)
-{
-    if (src) {
-        return mp_dupz(tree->mp, src, len);
-    }
-    return mp_new(tree->mp, char, len + 1);
-}
-
-#define xml_deletestr_mp(p)   (*(p) = NULL)
-#define xml_prop_delete(p)    (*(p) = NULL)
-#define xml_tag_delete(p)     (*(p) = NULL)
-
 void xml_tree_wipe(xml_tree_t *tree)
 {
     mem_stack_pool_delete(&tree->mp);
@@ -60,126 +48,6 @@ typedef enum parse_t {
         }                                                 \
     } while (0)
 
-/*  unescape XML entities, returns decoded length, or -1 on error
- * The resulting string is not NUL-terminated
- **/
-static int strconv_xmlunescape(char *str, int len)
-{
-    char *wpos = str, *start, *end;
-    int res_len = 0;
-
-    if (len < 0) {
-        len = strlen(str);
-    }
-
-    while (len > 0) {
-        char c;
-
-        c = *str++;
-        len--;
-
-        if (c == '&') {
-            int val;
-
-            start = str;
-            end = memchr(str, ';', len);
-            if (!end) {
-                e_trace(1, "Could not find entity end (%.*s%s)",
-                        5, str, len > 5 ? "..." : "");
-                goto error;
-            }
-            *end = '\0';
-
-            c = *str;
-            if (c == '#') {
-                str++;
-                if (*str == 'x') {
-                    /* hexadecimal */
-                    str++;
-                    val = strtol(str, (const char **)&str, 16);
-                } else {
-                    /* decimal */
-                    val = strtol(str, (const char **)&str, 10);
-                }
-                if (str != end) {
-                    e_trace(1, "Bad numeric entity, got trailing char: '%c'", *str);
-                    goto error;
-                }
-            } else {
-                /* TODO: Support externally defined entities */
-                /* textual entity */
-                switch (c) {
-                  case 'a':
-                    if (!strcmp(str, "amp")) {
-                        val = '&';
-                    } else
-                    if (!strcmp(str, "apos")) {
-                        val = '\'';
-                    } else {
-                        e_trace(1, "Unsupported entity: %s", str);
-                        goto error;
-                    }
-                    break;
-
-                  case 'l':
-                    if (!strcmp(str, "lt")) {
-                        val = '<';
-                    } else {
-                        e_trace(1, "Unsupported entity: %s", str);
-                        goto error;
-                    }
-                    break;
-
-                  case 'g':
-                    if (!strcmp(str, "gt")) {
-                        val = '>';
-                    } else {
-                        e_trace(1, "Unsupported entity: %s", str);
-                        goto error;
-                    }
-                    break;
-
-                  case 'q':
-                    if (!strcmp(str, "quot")) {
-                        val = '"';
-                    } else {
-                        e_trace(1, "Unsupported entity: %s", str);
-                        goto error;
-                    }
-                    break;
-
-                  default:
-                    /* invalid entity */
-                    e_trace(1, "Unsupported entity: %s", str);
-                    goto error;
-                }
-            }
-
-            /* write unicode char */
-            {
-                int bytes = __pstrputuc(wpos, val);
-
-                wpos += bytes;
-                res_len += bytes;
-            }
-
-            str = end + 1;
-            len -= str - start;
-            continue;
-        }
-
-        *wpos++ = c;
-        res_len++;
-    }
-
-    return res_len;
-
-  error:
-    /* Cut string */
-    *wpos = '\0';
-    return -1;
-}
-
 /* Parse a property inside a tag and put it in (*dst).
  * Property is of form : prop = "value"
  * Single/Double quoting is supported.
@@ -193,7 +61,6 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
     const char *p;
     xml_prop_t *prop;
     char quot;
-    int decoded_len;
     parse_t ret;
 
     prop = NULL;
@@ -226,7 +93,7 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
         }
         goto error;
     }
-    prop->name = xml_dupz(tree, name, p - name);
+    prop->name = mp_dupz(tree->mp, name, p - name);
     prop->name_hash = hsieh_hash(prop->name, p - name);
 
     SKIPSPACES(p, len);
@@ -274,10 +141,18 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
         goto error;
     }
 
-    prop->value = xml_dupz(tree, value, p - value);
-    decoded_len = strconv_xmlunescape(prop->value, p - value);
-    if (decoded_len >= 0) {
-        prop->value[decoded_len] = '\0';
+    prop->value = mp_new(tree->mp, char, p - value + 1);
+    {
+        sb_t sb;
+
+        sb_init_full(&sb, prop->value, 0, p - value + 1, false);
+        if (sb_add_xmlunescape(&sb, value, p - value)) {
+            snprintf(error_buf, buf_len,
+                     "Unable to unescape property value %s of tag %s",
+                     prop->name, tag_name);
+            goto error;
+        }
+        __sb_wipe(&sb);
     }
 
     if (quot) {
@@ -411,7 +286,7 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
     }
 
     tag = mp_new(tree->mp, xml_tag_t, 1);
-    tag->fullname = xml_dupz(tree, name, nameend - name);
+    tag->fullname = mp_dupz(tree->mp, name, nameend - name);
     tag->name = strchr(tag->fullname, ':');
     if (tag->name) {
         /* Skip ':' */
@@ -509,14 +384,17 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
         goto error;
     }
     if (text != p) {
-        int decoded_len;
+        sb_t sb;
 
         textend++;
-        tag->text = xml_dupz(tree, text, textend - text);
-        decoded_len = strconv_xmlunescape(tag->text, textend - text);
-        if (decoded_len >= 0) {
-            tag->text[decoded_len] = '\0';
+        tag->text = mp_new(tree->mp, char, textend - text + 1);
+        sb_init_full(&sb, tag->text, 0, textend - text + 1, false);
+        if (sb_add_xmlunescape(&sb, text, textend - text)) {
+            snprintf(error_buf, buf_len,
+                     "Unable to decode text value of tag %s", tag->name);
+            goto error;
         }
+        __sb_wipe(&sb);
     }
 
 end:
@@ -532,7 +410,6 @@ error:
     if (pend) {
         *pend = p;
     }
-    xml_tag_delete(&tag);
     return PARSE_ERROR;
 }
 
@@ -877,31 +754,24 @@ END_TEST
 START_TEST(check_str_xmlunescape)
 {
     int res;
-    char dest[BUFSIZ];
+    SB_8k(sb);
 
     const char *encoded = "3&lt;=8: Toto -&gt; titi &amp; "
         "t&#xE9;t&#232; : &quot;you&apos;re&quot;";
     const char *decoded = "3<=8: Toto -> titi & tétè : \"you're\"";
     const char *badencoded = "3&lt;=8: Toto -&tutu; titi &amp; "
         "t&#xE9;t&#232; : &quot;you&apos;re&quot;";
-    const char *baddecoded = "3<=8: Toto -";
 
-    pstrcpy(dest, sizeof(dest), encoded);
+    res = sb_adds_xmlunescape(&sb, encoded);
+    fail_if(sb.len != sstrlen(decoded), "strconv_xmlunescape returned bad"
+            "length: expected %zd, got %d. (%s)", strlen(decoded),
+            sb.len, sb.data);
+    fail_if(strcmp(sb.data, decoded), "strconv_xmlunescape failed decoding");
 
-    res = strconv_xmlunescape(dest, -1);
-    if (res >= 0) {
-        dest[res] = '\0';
-    }
-    fail_if(res != sstrlen(decoded), "strconv_xmlunescape returned bad"
-            "length: expected %zd, got %d. (%s)", strlen(decoded), res, dest);
-    fail_if(strcmp(dest, decoded), "strconv_xmlunescape failed decoding");
-
-    pstrcpy(dest, sizeof(dest), badencoded);
-
-    res = strconv_xmlunescape(dest, -1);
+    sb_reset(&sb);
+    res = sb_adds_xmlunescape(&sb, badencoded);
     fail_if(res != -1, "strconv_xmlunescape did not detect error");
-    fail_if(strcmp(dest, baddecoded), "strconv_xmlunescape failed to clean "
-            "badly encoded str");
+    sb_wipe(&sb);
 }
 END_TEST
 
@@ -912,8 +782,8 @@ Suite *check_xml_suite(void)
     TCase *tc = tcase_create("Core");
 
     suite_add_tcase(s, tc);
-    tcase_add_test(tc, check_xmlparse);
     tcase_add_test(tc, check_str_xmlunescape);
+    tcase_add_test(tc, check_xmlparse);
     return s;
 }
 #endif
