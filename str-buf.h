@@ -89,6 +89,8 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, bool own)
         .size = bsize,
         .must_free = own,
     };
+    assert (blen < bsize);
+    sb->data[blen] = '\0';
     return sb;
 }
 
