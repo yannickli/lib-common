@@ -202,7 +202,7 @@ void props_hash_to_conf(sb_t *out, const props_hash_t *ph)
 static void one_to_xml(prop_t *pp, void *xpp)
 {
     xmlpp_opentag(xpp, pp->name);
-    xmlpp_puttext(xpp, pp->value, -1);
+    xmlpp_puts(xpp, pp->value);
     xmlpp_closetag(xpp);
 }
 

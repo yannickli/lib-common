@@ -34,8 +34,11 @@ void xmlpp_putattr(xmlpp_t *, const char *key, const char *val);
 void xmlpp_putattrfmt(xmlpp_t *, const char *key,
                       const char *fmt, ...) __attr_printf__(3, 4);
 
-void xmlpp_puttext(xmlpp_t *, const char *s, int len);
-void xmlpp_put(xmlpp_t *, const char *fmt, ...) __attr_printf__(2, 3);
+void xmlpp_put(xmlpp_t *, const void *data, int len);
+static inline void xmlpp_puts(xmlpp_t *pp, const char *s) {
+    xmlpp_put(pp, s, strlen(s));
+}
+void xmlpp_putf(xmlpp_t *, const char *fmt, ...) __attr_printf__(2, 3);
 
 
 static inline void xmlpp_closentag(xmlpp_t *pp, int n) {

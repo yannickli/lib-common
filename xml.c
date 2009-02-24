@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "xml.h"
+#include "xmlpp.h"
 #include "hash.h"
 
 void xml_tree_wipe(xml_tree_t *tree)
@@ -591,51 +592,35 @@ const xml_tag_t* xml_search_subtree(const xml_tree_t *tree,
     return xml_search_branch(subtree, &previous, pattern);
 }
 
-void blob_append_branch(const xml_tag_t *root, sb_t *sb,
-                        const char *prefix)
+static void xml_pp_tag(xmlpp_t *pp, const xml_tag_t *tag)
 {
-    /* OG: should pass indentation count instead of prefix string */
-    char newprefix[32];
-    const xml_prop_t *prop;
-    const xml_tag_t *cur;
-
-    if (!root)
+    if (!tag)
         return;
 
-    if (root->fullname) {
-        sb_adds(sb, prefix);
-        sb_adds(sb, "<");
-        sb_adds(sb, root->fullname);
-        for (prop = root->property; prop; prop = prop->next) {
-            sb_adds(sb, " ");
-            sb_adds(sb, prop->name);
-            sb_adds(sb, "=\"");
-            sb_adds_xmlescape(sb, prop->value);
-            sb_adds(sb, "\"");
+    if (tag->fullname) {
+        xmlpp_opentag(pp, tag->fullname);
+        for (xml_prop_t *prop = tag->property; prop; prop = prop->next) {
+            xmlpp_putattr(pp, prop->name, prop->value);
         }
-        sb_adds(sb, ">\n");
     }
-    snprintf(newprefix, sizeof(newprefix), "%s   ", prefix);
-    if (root->text) {
-        sb_adds(sb, newprefix);
-        sb_adds(sb, root->text);
-        sb_adds(sb, "\n");
-    }
+    if (tag->text)
+        xmlpp_puts(pp, tag->text);
 
-    for (cur = root->child; cur; cur = cur->next) {
-        blob_append_branch(cur, sb, newprefix);
+    for (xml_tag_t *cur = tag->child; cur; cur = cur->next) {
+        xml_pp_tag(pp, cur);
     }
-    if (root->fullname) {
-        sb_adds(sb, prefix);
-        sb_adds(sb, "</");
-        sb_adds(sb, root->fullname);
-        sb_adds(sb, ">\n");
+    if (tag->fullname) {
+        xmlpp_closetag(pp);
     }
 }
 
-void blob_append_tree(const xml_tree_t *tree, sb_t *sb)
+void sb_add_xmltag(sb_t *sb, const xml_tag_t *root)
 {
-     blob_append_branch(tree->root, sb, "");
+    xmlpp_t pp;
+
+    xmlpp_open(&pp, sb);
+    xml_pp_tag(&pp, root);
+    xmlpp_close(&pp);
 }
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/

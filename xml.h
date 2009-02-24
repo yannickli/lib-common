@@ -68,10 +68,7 @@ const xml_tag_t *xml_search(const xml_tree_t *tree,
 void xml_tree_wipe(xml_tree_t *tree);
 GENERIC_DELETE(xml_tree_t, xml_tree);
 
-/*TODO do search on tag */
-void blob_append_tree(const xml_tree_t *tree, sb_t *blob);
-void blob_append_branch(const xml_tag_t *root, sb_t *blob,
-                        const char *prefix);
+void sb_add_xmltag(sb_t *sb, const xml_tag_t *root);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

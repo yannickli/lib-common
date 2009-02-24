@@ -95,14 +95,14 @@ void xmlpp_putattrfmt(xmlpp_t *pp, const char *key, const char *fmt, ...)
     sb_wipe(&tmp);
 }
 
-void xmlpp_puttext(xmlpp_t *pp, const char *s, int len)
+void xmlpp_put(xmlpp_t *pp, const void *data, int len)
 {
     pp->can_do_attr = false;
     pp->was_a_tag   = false;
-    sb_add_xmlescape(pp->buf, s, len);
+    sb_add_xmlescape(pp->buf, data, len);
 }
 
-void xmlpp_put(xmlpp_t *pp, const char *fmt, ...)
+void xmlpp_putf(xmlpp_t *pp, const char *fmt, ...)
 {
     va_list ap;
     SB_8k(tmp);
@@ -110,6 +110,6 @@ void xmlpp_put(xmlpp_t *pp, const char *fmt, ...)
     va_start(ap, fmt);
     sb_addvf(&tmp, fmt, ap);
     va_end(ap);
-    xmlpp_puttext(pp, tmp.data, tmp.len);
+    xmlpp_put(pp, tmp.data, tmp.len);
     sb_wipe(&tmp);
 }
