@@ -369,8 +369,11 @@ int  sb_add_unhex(sb_t *sb, const void *data, int len);
 __SB_DEFINE_ADDS(hex);
 __SB_DEFINE_ADDS_ERR(unhex);
 
+/* this all assumes utf8 data ! */
 void sb_add_xmlescape(sb_t *sb, const void *data, int len);
+int  sb_add_xmlunescape(sb_t *sb, const void *data, int len);
 __SB_DEFINE_ADDS(xmlescape);
+__SB_DEFINE_ADDS_ERR(xmlunescape);
 
 void sb_add_qpe(sb_t *sb, const void *data, int len);
 void sb_add_unqpe(sb_t *sb, const void *data, int len);

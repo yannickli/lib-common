@@ -334,6 +334,126 @@ void sb_add_xmlescape(sb_t *sb, const void *data, int len)
     }
 }
 
+int sb_add_xmlunescape(sb_t *sb, const void *data, int len)
+{
+    sb_t orig = *sb;
+    const char *p = data, *end = p + len;
+
+    while (p < end) {
+        const char *q = p;
+        const char *semi;
+
+        while (p < end && *p != '<' && *p != '&')
+            p++;
+        sb_add(sb, q, p - q);
+
+        if (p == end)
+            return 0;
+
+        if (*p++ == '<') {
+            if (p + 3 > end)
+                goto error;
+
+            /* strip out comments */
+            if (!memcmp(p, "!--", 3)) {
+                p += 3;
+                for (;;) {
+                    p = memchr(p, '-', end - p);
+                    if (!p || p + 3 > end)
+                        goto error;
+                    if (!memcmp(p, "-->", 3)) {
+                        p += 3;
+                        break;
+                    }
+                }
+                continue;
+            }
+
+            /* extract CDATA stuff */
+            if (p + 8 > end || memcmp(p, "![CDATA[", 8))
+                goto error;
+            q = (p += 7);
+            for (;;) {
+                p = memchr(p, ']', end - p);
+                if (!p || p + 3 > end)
+                    goto error;
+                if (!memcmp(p, "]]>", 3)) {
+                    sb_add(sb, q, p - q);
+                    p += 3;
+                    break;
+                }
+            }
+            continue;
+        }
+
+        /* entities */
+        semi = memchr(p, ';', end - p);
+        if (!semi || p + 1 > semi)
+            goto error;
+
+        if (*p == '#') {
+            int c = 0;
+
+            if (semi - p > 7)
+                goto error;
+
+            if (p[1] == 'x') {
+                for (p += 2; p < semi; p++) {
+                    c = (c << 4) | hexdigit(*p);
+                }
+                if (c < 0)
+                    goto error;
+            } else {
+                c = memtoip(p + 1, semi - p - 1, (const byte **)&p);
+                if (p != semi)
+                    goto error;
+            }
+            sb_adduc(sb, c);
+        } else {
+            /* &lt; &gt; &apos; &amp; &quot */
+            switch (semi - p) {
+              case 2:
+                if (!memcmp(p, "lt", 2)) {
+                    sb_addc(sb, '<');
+                    break;
+                }
+                if (!memcmp(p, "gt", 2)) {
+                    sb_addc(sb, '>');
+                    break;
+                }
+                goto error;
+
+              case 3:
+                if (!memcmp(p, "amp", 3)) {
+                    sb_addc(sb, '&');
+                    break;
+                }
+                goto error;
+
+              case 4:
+                if (!memcmp(p, "apos", 4)) {
+                    sb_addc(sb, '\'');
+                    break;
+                }
+                if (!memcmp(p, "quot", 4)) {
+                    sb_addc(sb, '"');
+                    break;
+                }
+                goto error;
+
+              default:
+                goto error;
+            }
+        }
+
+        p = semi + 1;
+    }
+    return 0;
+
+  error:
+    return __sb_rewind_adds(sb, &orig);
+}
+
 /* OG: should take width as a parameter */
 void sb_add_qpe(sb_t *sb, const void *data, int len)
 {
