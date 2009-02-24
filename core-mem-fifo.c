@@ -19,25 +19,7 @@
  *       dropped too early.
  */
 
-#ifndef NDEBUG
-#  include <valgrind/valgrind.h>
-#  include <valgrind/memcheck.h>
-#  ifndef VALGRIND_MEMPOOL_CHANGE
-#    define VALGRIND_MEMPOOL_CHANGE(pool, oaddr, naddr, size) \
-        do {                                                  \
-             VALGRIND_MEMPOOL_FREE(pool, oaddr);              \
-             VALGRIND_MEMPOOL_ALLOC(pool, naddr, size);       \
-        } while (0)
-#  endif
-#else
-#  define VALGRIND_CREATE_MEMPOOL(...)
-#  define VALGRIND_DESTROY_MEMPOOL(...)
-#  define VALGRIND_MAKE_MEM_DEFINED(...)
-#  define VALGRIND_MAKE_MEM_NOACCESS(...)
-#  define VALGRIND_MEMPOOL_ALLOC(...)
-#  define VALGRIND_MEMPOOL_CHANGE(...)
-#  define VALGRIND_MEMPOOL_FREE(...)
-#endif
+#include "core-mem-valgrind.h"
 #include "core.h"
 
 typedef struct mem_page_t {
@@ -96,8 +78,6 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp)
         e_panic(E_UNIXERR("mmap"));
     }
 
-    VALGRIND_CREATE_MEMPOOL(page, 0, true);
-    VALGRIND_MAKE_MEM_NOACCESS(page->area, page->page.size);
     page->page.start = page->area;
     page->page.pool  = &mfp->funcs;
     page->page.size  = size;
@@ -110,7 +90,7 @@ static void mem_page_reset(mem_page_t *page)
 {
     VALGRIND_MAKE_MEM_DEFINED(page->area, page->used_size);
     p_clear(page->area, page->used_size);
-    VALGRIND_MAKE_MEM_NOACCESS(page->area, page->page.size);
+    VALGRIND_PROT_BLK(&page->page);
 
     page->used_size   = 0;
     page->used_blocks = 0;
@@ -123,8 +103,6 @@ static void mem_page_delete(mem_fifo_pool_t *mfp, mem_page_t **pagep)
         mem_page_t *page = *pagep;
 
         mfp->nb_pages--;
-        VALGRIND_DESTROY_MEMPOOL(page);
-        VALGRIND_MAKE_MEM_NOACCESS(page->area, page->page.size);
         mem_unregister(&page->page);
         munmap(page, page->page.size + sizeof(mem_page_t));
         *pagep = NULL;

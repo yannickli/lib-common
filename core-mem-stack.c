@@ -12,11 +12,14 @@
 /**************************************************************************/
 
 #include <sys/user.h>
+#include "core-mem-valgrind.h"
 #include "container.h"
 
 /*
  * Stacked memory allocator
  * ~~~~~~~~~~~~~~~~~~~~~~~~
+ *
+ * This allocator mostly has the same properties as the GNU Obstack have.
  *
  * This mostly works like alloca() wrt your stack, except that it's a chain of
  * malloc()ed blocks. It also works like alloca in the sense that it aligns
@@ -50,16 +53,20 @@
  *
  *
  * A word on how it works, there is a list of chained blocks, with the huge
- * kludge that the pool looks like a block enough to be one.
+ * kludge that the pool looks like a block enough to be one (it allows to have
+ * no single point and that the list of blocks is never empty even when there
+ * is no physical block of memory allocated). The pool also contains the base
+ * frame so that the base frame doesn't prevent any block from being collected
+ * at any moment.
  *
  *   [pool]==[blk 1]==[blk 2]==...==[blk n]
  *     \\                             //
  *      \=============================/
  *
- * The pool contains a based frame pointer, and a stack of chained frames.
- * The frames are allocated into the stacked allocator, except for the base
- * one. Frames points to the first octet in the block "rope" that is free.
- * IOW it looks like this:
+ * In addition to the based frame pointer, The pool contains a stack of
+ * chained frames.  The frames are allocated into the stacked allocator,
+ * except for the base one. Frames points to the first octet in the block
+ * "rope" that is free.  IOW it looks like this:
  *
  * [ fake block 0 == pool ] [  octets of block 1 ]  [ block 2 ] .... [ block n ]
  *   base_                     frame1_  frame2_                        |
@@ -110,6 +117,13 @@ static stack_blk_t *blk_entry(dlist_t *l)
     return container_of(l, stack_blk_t, blk_list);
 }
 
+static inline uint8_t align_boundary(size_t size)
+{
+    int bsr = 31 ^ __builtin_clz(size | 1);
+    return MIN(16, 1 << bsr);
+}
+#define ALIGN(what, al)  ((what + al - 1) & ~(al - 1))
+
 static stack_blk_t *blk_create(stack_pool_t *sp, size_t size_hint)
 {
     size_t blksize = size_hint + sizeof(stack_blk_t);
@@ -159,15 +173,9 @@ static byte *frame_end(frame_t *frame)
     return blk->area + blk->blk.size;
 }
 
-static inline int align_boundary(size_t size)
-{
-    int bsr = 31 ^ __builtin_clz(size | 1);
-    return MIN(16, 1 << bsr);
-}
-
 static byte *align_start(frame_t *frame, size_t size)
 {
-    return (byte *)ROUND_UP((uintptr_t)frame->pos, align_boundary(size));
+    return (byte *)ALIGN((uintptr_t)frame->pos, align_boundary(size));
 }
 
 static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
@@ -181,6 +189,7 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
         frame->blk = blk;
         frame->pos = res = blk->area;
     }
+    VALGRIND_MAKE_MEM_UNDEFINED(res, size);
     if (!(flags & MEM_RAW))
         memset(res, 0, size);
     frame->pos = res + size;
@@ -217,15 +226,16 @@ static void sp_realloc(mem_pool_t *_sp, void **memp,
     &&  align_boundary(oldsize) == align_boundary(size)
     &&  (byte *)frame->last + size <= frame_end(sp->stack))
     {
-        res = sp->stack->pos = (byte *)frame->last + size;
-        sp->alloc_sz += size - oldsize;
+        sp->stack->pos = (byte *)frame->last + size;
+        sp->alloc_sz  += size - oldsize;
+        VALGRIND_MAKE_MEM_DEFINED(mem, size);
+        res = mem;
     } else {
-        res = sp_alloc(_sp, size, flags | MEM_RAW);
+        *memp = res = sp_alloc(_sp, size, flags | MEM_RAW);
         memcpy(res, mem, oldsize);
     }
     if (!(flags & MEM_RAW))
         memset(res + oldsize, 0, oldsize - size);
-    *memp = res;
 }
 
 static mem_pool_t const pool_funcs = {
@@ -278,16 +288,35 @@ const void *mem_stack_push(mem_pool_t *_sp)
     return sp->stack = frame;
 }
 
+#ifndef NDEBUG
+static void mem_stack_protect(stack_pool_t *sp)
+{
+    stack_blk_t *blk = sp->stack->blk;
+    size_t remainsz = frame_end(sp->stack) - (byte *)sp->stack->pos;
+
+    VALGRIND_MAKE_MEM_NOACCESS(sp->stack->pos, remainsz);
+    dlist_for_each_entry_continue(blk, blk, &sp->blk_list, blk_list) {
+        VALGRIND_PROT_BLK(&blk->blk);
+    }
+}
+#else
+#define mem_stack_protect(sp)
+#endif
+
 const void *mem_stack_pop(mem_pool_t *_sp)
 {
     stack_pool_t *sp = container_of(_sp, stack_pool_t, funcs);
     frame_t *frame = sp->stack;
 
-    if (frame->next)
-        return sp->stack = frame->next;
+    if (frame->next) {
+        sp->stack = frame->next;
+        mem_stack_protect(sp);
+        return sp->stack;
+    }
     frame->blk  = blk_entry(&sp->blk_list);
     frame->pos  = blk_entry(&sp->blk_list) + sizeof(*sp);
     frame->last = NULL;
+    mem_stack_protect(sp);
     return NULL;
 }
 
@@ -300,12 +329,14 @@ void mem_stack_rewind(mem_pool_t *_sp, const void *cookie)
         sp->base.pos  = blk_entry(&sp->blk_list) + sizeof(*sp);
         sp->base.last = NULL;
         sp->stack     = &sp->base;
+        mem_stack_protect(sp);
         return;
     }
 #ifndef NDEBUG
     for (frame_t *frame = sp->stack; frame->next; frame = frame->next) {
         if (frame == cookie) {
             sp->stack = frame->next;
+            mem_stack_protect(sp);
             return;
         }
     }

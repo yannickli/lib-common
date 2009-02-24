@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "core.h"
+#include "core-mem-valgrind.h"
 
 static rb_t blks_g;
 
@@ -33,11 +33,13 @@ void mem_register(mem_blk_t *blk)
     }
 
     rb_add_node(&blks_g, n, &blk->node);
+    VALGRIND_REG_BLK(blk);
 }
 
 void mem_unregister(mem_blk_t *blk)
 {
     rb_del_node(&blks_g, &blk->node);
+    VALGRIND_UNREG_BLK(blk);
 }
 
 mem_blk_t *mem_blk_find(const void *addr)
