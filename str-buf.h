@@ -212,7 +212,8 @@ static inline void sb_addc(sb_t *sb, unsigned char c)
 }
 static inline void sb_adduc(sb_t *sb, int c)
 {
-    __sb_fixlen(sb, __pstrputuc(sb_grow(sb, 4), c));
+    int len = __pstrputuc(sb_grow(sb, 4), c);
+    __sb_fixlen(sb, sb->len + len);
 }
 static inline void sb_addnc(sb_t *sb, int extralen, unsigned char c)
 {
