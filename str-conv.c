@@ -123,7 +123,7 @@ static uint16_t const __latinX_to_utf8[0x40] = {
     /*                                 "Ž"                            */
       0xb0,   0xb1,   0xb2,   0xb3, 0x017d,   0xb5,   0xb6,   0xb7,
     /* "ž"                             "Œ"     "œ"     "Ÿ"            */
-    0x017e,   0xb9,   0xbb,   0xbb, 0x0152, 0x0153, 0x0178,   0xbf,
+    0x017e,   0xb9,   0xba,   0xbb, 0x0152, 0x0153, 0x0178,   0xbf,
 };
 
 static void __from_latinX_aux(sb_t *sb, const void *data, int len, int limit)
