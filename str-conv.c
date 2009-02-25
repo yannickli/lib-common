@@ -136,7 +136,7 @@ static void __from_latinX_aux(sb_t *sb, const void *data, int len, int limit)
     while (s < end) {
         const char *p = s;
 
-        s = utf8_skip(s, end);
+        s = utf8_skip_valid(s, end);
         sb_add(sb, p, s - p);
 
         if (s < end) {

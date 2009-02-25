@@ -137,7 +137,7 @@ static inline int utf8_vgetc(char *s, char **out)
 {
     return utf8_getc(s, (const char **)out);
 }
-static inline const char *utf8_skip(const char *s, const char *end)
+static inline const char *utf8_skip_valid(const char *s, const char *end)
 {
     while (s < end) {
         if (!(*s & 0x80)) {
