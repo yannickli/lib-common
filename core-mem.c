@@ -14,11 +14,13 @@
 #include "core-mem-valgrind.h"
 
 static rb_t blks_g;
+static spinlock_t lock_g;
 
 void mem_register(mem_blk_t *blk)
 {
     rb_node_t **n = &blks_g.root;
 
+    spin_lock(&lock_g);
     while (*n) {
         mem_blk_t *e = rb_entry(*n, mem_blk_t, node);
         int cmp = CMP(blk->start, e->start);
@@ -33,18 +35,24 @@ void mem_register(mem_blk_t *blk)
     }
 
     rb_add_node(&blks_g, n, &blk->node);
+    spin_unlock(&lock_g);
     VALGRIND_REG_BLK(blk);
 }
 
 void mem_unregister(mem_blk_t *blk)
 {
+    spin_lock(&lock_g);
     rb_del_node(&blks_g, &blk->node);
+    spin_unlock(&lock_g);
     VALGRIND_UNREG_BLK(blk);
 }
 
 mem_blk_t *mem_blk_find(const void *addr)
 {
-    rb_node_t *n = blks_g.root;
+    rb_node_t *n;
+
+    spin_lock(&lock_g);
+    n = blks_g.root;
 
     while (n) {
         mem_blk_t *e = rb_entry(n, mem_blk_t, node);
@@ -54,17 +62,22 @@ mem_blk_t *mem_blk_find(const void *addr)
         } else if ((const char *)addr >= (const char *)e->start + e->size) {
             n = n->right;
         } else {
+            spin_unlock(&lock_g);
             return e;
         }
     }
+
+    spin_unlock(&lock_g);
 
     return NULL;
 }
 
 void mem_for_each(mem_pool_t *mp, void (*fn)(mem_blk_t *, void *), void *priv)
 {
+    spin_lock(&lock_g);
     rb_for_each_safe(it, &blks_g)
         (*fn)(rb_entry(it, mem_blk_t, node), priv);
+    spin_unlock(&lock_g);
 }
 
 void *__imalloc(size_t size, mem_flags_t flags)
