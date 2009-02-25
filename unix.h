@@ -74,6 +74,7 @@ static inline void getopt_init(void) {
     optind = 0;
 }
 
+/* if pid <= 0, retrieve infos for the current process */
 int psinfo_get(pid_t pid, sb_t *output);
 
 void unix_initialize(void);

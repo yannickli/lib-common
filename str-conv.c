@@ -61,6 +61,9 @@ uint8_t const __str_digit_value[128 + 256] = {
 char const __str_digits_upper[36] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 char const __str_digits_lower[36] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
+/* XXX: strconv_hexdecode does not check source correcness beyond
+ * dest size, not a big issue for current uses.
+ */
 int strconv_hexdecode(void *dest, int size, const char *src, int len)
 {
     const char *end;

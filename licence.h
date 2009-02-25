@@ -26,6 +26,9 @@ int  read_cpu_signature(uint32_t *dst);
 bool licence_check_expiration_ok(const conf_t *conf);
 bool licence_check_signature_ok(const conf_t *conf);
 bool licence_check_host_ok(const conf_t *conf);
+/* WARNING: dst must be at least 65 char long, but the compiler will
+ * not enforce this check, no matter what the prototype looks like.
+ */
 int  licence_do_signature(const conf_t *conf, char dst[65]);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
