@@ -21,7 +21,7 @@ extern char const __str_digits_upper[36];
 extern char const __str_digits_lower[36];
 
 extern uint32_t const __utf8_offs[6];
-extern uint8_t  const __utf8_clz_to_charlen[31];
+extern uint8_t  const __utf8_clz_to_charlen[32];
 extern uint8_t  const __utf8_mark[7];
 extern uint8_t  const __utf8_char_len[32];
 
@@ -73,11 +73,16 @@ int strconv_hexencode(char *dest, int size, const void *src, int len);
 /* utf-8 and charset conversions                                            */
 /****************************************************************************/
 
-static inline uint8_t __pstrputuc(char *dst, int c)
+static inline uint8_t __pstrputuc(char *dst, int32_t c)
 {
     uint8_t len;
+
     if (__builtin_constant_p(c)) {
-        len = 1 + (c >= 0x80) + (c >= 0x800) + (c >= 0x10000);
+        if (c >= 0 && c < 0x200000) {
+            len = 1 + (c >= 0x80) + (c >= 0x800) + (c >= 0x10000);
+        } else {
+            len = 0;
+        }
     } else {
         /* XXX: 31 ^ clz(c) is actually bsr in x86 assembly */
         len = __utf8_clz_to_charlen[31 ^ __builtin_clz(c | 1)];

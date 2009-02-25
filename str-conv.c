@@ -15,7 +15,7 @@
 
 uint8_t const __utf8_mark[7] = { 0x00, 0x00, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc };
 
-uint8_t const __utf8_clz_to_charlen[31] = {
+uint8_t const __utf8_clz_to_charlen[32] = {
 #define X  0
     1, 1, 1, 1, 1, 1, 1, /* <=  7 bits */
     2, 2, 2, 2,          /* <= 11 bits */
@@ -23,6 +23,7 @@ uint8_t const __utf8_clz_to_charlen[31] = {
     4, 4, 4, 4, 4,       /* <= 21 bits */
     X, X, X, X, X,       /* <= 26 bits */
     X, X, X, X, X,       /* <= 31 bits */
+    X,                   /* 0x80000000 and beyond */
 #undef X
 };
 
