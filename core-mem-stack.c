@@ -101,7 +101,7 @@ typedef struct stack_pool_t {
     size_t     stacksize;
     size_t     nbpages;
 
-    uint64_t   alloc_sz;
+    uint32_t   alloc_sz;
     uint32_t   alloc_nb;
 
     mem_pool_t funcs;
@@ -193,11 +193,12 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
     if (!(flags & MEM_RAW))
         memset(res, 0, size);
     frame->pos = res + size;
-    sp->alloc_sz += size;
-    if (++sp->alloc_nb >= UINT16_MAX) {
+    if (unlikely(sp->alloc_sz + size < sp->alloc_sz) || unlikely(sp->alloc_nb >= UINT16_MAX)) {
         sp->alloc_sz /= 2;
         sp->alloc_nb /= 2;
     }
+    sp->alloc_sz += size;
+    sp->alloc_nb += 1;
     return frame->last = res;
 }
 
@@ -262,6 +263,7 @@ mem_pool_t *mem_stack_pool_new(int initialsize)
         initialsize = 640 << 10;
     sp->minsize    = ROUND_UP(MAX(1, initialsize), PAGE_SIZE);
     sp->funcs      = pool_funcs;
+    sp->alloc_nb   = 1; /* avoid the division by 0 */
     return &sp->funcs;
 }
 
