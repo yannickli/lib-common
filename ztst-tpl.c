@@ -73,7 +73,7 @@ static int tst_seq(tpl_t *out, sb_t *blob, tpl_t **arr, int nb)
     }
 
     sb_addf(blob, "1: %.*s, 2: %.*s, 3: %.*s",
-                    len1, data1, len2, data2, len3, data3);
+            len1, data1, len2, data2, len3, data3);
     return 0;
 }
 

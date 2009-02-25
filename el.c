@@ -51,16 +51,16 @@ typedef enum ev_type_t {
 } ev_type_t;
 
 typedef struct ev_t {
-    flag_t    nomiss  : 1;         /* EV_TIMER */
-    flag_t    timerlp : 1;         /* EV_TIMER */
-    flag_t    updated : 1;         /* EV_TIMER */
+    flag_t    nomiss  : 1;      /* EV_TIMER */
+    flag_t    timerlp : 1;      /* EV_TIMER */
+    flag_t    updated : 1;      /* EV_TIMER */
     flag_t    refs    : 1;
     ev_type_t type    : 4;
 
-    uint8_t   signo;               /* EV_SIGNAL */
+    uint8_t   signo;            /* EV_SIGNAL */
 
-    uint16_t  events_avail;        /* EV_PROXY */
-    uint16_t  events_wanted;       /* EV_PROXY, EV_FD */
+    uint16_t  events_avail;     /* EV_PROXY */
+    uint16_t  events_wanted;    /* EV_PROXY, EV_FD */
 
     union {
         el_cb_f *cb;
@@ -72,14 +72,14 @@ typedef struct ev_t {
     el_data_t priv;
 
     union {
-        dlist_t ev_list; /* EV_BEFORE, EV_AFTER, EV_SIGNAL, EV_PROXY */
-        int fd;                    /* EV_FD */
-        pid_t pid;                 /* EV_CHILD */
+        dlist_t ev_list;        /* EV_BEFORE, EV_AFTER, EV_SIGNAL, EV_PROXY */
+        int fd;                 /* EV_FD */
+        pid_t pid;              /* EV_CHILD */
         struct {
             uint64_t expiry;
             int repeat;
             int heappos;
-        } timer;                   /* EV_TIMER */
+        } timer;                /* EV_TIMER */
     };
 } ev_t;
 DO_ARRAY(ev_t, ev, IGNORE);

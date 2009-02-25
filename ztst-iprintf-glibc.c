@@ -39,7 +39,7 @@ static void fmtchk(const char *fmt)
     fprintf(fp, "'\n");
 }
 
-static void fmtst1zchk(const char *fmt)
+static void fmtst1chk(const char *fmt)
 {
     fputs(fmt, fp);
     fprintf(fp, ":\t`");
