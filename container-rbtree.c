@@ -267,7 +267,7 @@ void rb_del_node(rb_t *rb, rb_node_t *z)
     }
     check_rbt(rb, false);
 
-    if (!color) /* it's black */
+    if (color) /* it's black */
         rb_del_fix_color(rb, p, child);
     check_rbt(rb, true);
 }
