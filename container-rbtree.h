@@ -56,11 +56,11 @@ typedef struct rb_node_t {
  *   void rb_entry_insert(rb_root_t *rb, entry_t *e)
  *   {
  *        rb_node_t **slot = &rb->root;
+ *        rb_node_t *parent = NULL;
  *
  *        while (*slot) {
- *            entry_t *slot_e;
- *
  *            slot_e = rb_entry(*slot, entry_t, some_member);
+ *            parent = *slot;
  *
  *            if (e->key < slot_e->key) {
  *                slot = &(*slot)->left;
@@ -71,7 +71,7 @@ typedef struct rb_node_t {
  *                // treat key duplicates here
  *            }
  *        }
- *        rb_add_node(rb, slot, &e->some_member);
+ *        rb_add_node(rb, parent, *slot = &e->some_member);
  *    }
  *
  */
@@ -80,7 +80,7 @@ typedef struct rb_node_t {
 #define	rb_entry(ptr, type, member)  container_of(ptr, type, member)
 #define	rb_entry_of(ptr, n, member)  container_of(ptr, typeof(*n), member)
 
-void rb_add_node(rb_t *, rb_node_t **slot, rb_node_t *node);
+void rb_add_node(rb_t *, rb_node_t *parent, rb_node_t *node);
 void rb_del_node(rb_t *, rb_node_t *);
 
 

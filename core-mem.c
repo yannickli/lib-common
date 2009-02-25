@@ -19,10 +19,11 @@ static spinlock_t lock_g;
 void mem_register(mem_blk_t *blk)
 {
     rb_node_t **n = &blks_g.root;
+    rb_node_t *parent = NULL;
 
     spin_lock(&lock_g);
     while (*n) {
-        mem_blk_t *e = rb_entry(*n, mem_blk_t, node);
+        mem_blk_t *e = rb_entry(parent = *n, mem_blk_t, node);
         int cmp = CMP(blk->start, e->start);
 
         if (cmp < 0) {
@@ -34,7 +35,7 @@ void mem_register(mem_blk_t *blk)
         }
     }
 
-    rb_add_node(&blks_g, n, &blk->node);
+    rb_add_node(&blks_g, parent, *n = &blk->node);
     spin_unlock(&lock_g);
     VALGRIND_REG_BLK(blk);
 }

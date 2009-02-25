@@ -27,6 +27,36 @@ static void rb_copy_color(rb_node_t *n, rb_node_t *n2) {
     n->__parent = (n->__parent & ~1) | (n2->__parent & 1);
 }
 
+#if 0 /* DEBUG RBTREES */
+static void check_rbnode(rb_node_t *p, bool do_colors)
+{
+    rb_node_t *l = p->left;
+    rb_node_t *r = p->right;
+
+    if (rb_is_red(p) && do_colors) {
+        assert (rb_is_black(l));
+        assert (rb_is_black(r));
+    }
+
+    if (l) {
+        assert (rb_parent(l) == p);
+        check_rbnode(l, do_colors);
+    }
+    if (r) {
+        assert (rb_parent(r) == p);
+        check_rbnode(r, do_colors);
+    }
+}
+static void check_rbt(rb_t *rb, bool do_colors)
+{
+    assert (rb_parent(rb->root) == NULL);
+    if (rb->root)
+        check_rbnode(rb->root, do_colors);
+}
+#else
+#  define check_rbt(...)
+#endif
+
 
 /*
  *
@@ -129,12 +159,13 @@ static void rb_add_fix_color(rb_t *rb, rb_node_t *z)
     rb_set_black(rb->root);
 }
 
-void rb_add_node(rb_t *rb, rb_node_t **slot, rb_node_t *node)
+void rb_add_node(rb_t *rb, rb_node_t *parent, rb_node_t *node)
 {
-    rb_set_parent(node, *slot); /* insert it red */
+    node->__parent = (uintptr_t)parent;  /* insert it red */
     node->left = node->right = NULL;
-    *slot = node;
+    check_rbt(rb, false);
     rb_add_fix_color(rb, node);
+    check_rbt(rb, true);
 }
 
 
@@ -234,9 +265,11 @@ void rb_del_node(rb_t *rb, rb_node_t *z)
             rb_set_parent(child, p);
         rb_reparent(rb, p, z, child);
     }
+    check_rbt(rb, false);
 
     if (!color) /* it's black */
         rb_del_fix_color(rb, p, child);
+    check_rbt(rb, true);
 }
 
 
