@@ -49,9 +49,10 @@ static void check_rbnode(rb_node_t *p, bool do_colors)
 }
 static void check_rbt(rb_t *rb, bool do_colors)
 {
-    assert (rb_parent(rb->root) == NULL);
-    if (rb->root)
+    if (rb->root) {
+        assert (rb_parent(rb->root) == NULL);
         check_rbnode(rb->root, do_colors);
+    }
 }
 #else
 #  define check_rbt(...)
