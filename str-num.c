@@ -119,7 +119,13 @@ int64_t parse_number(const char *str)
             }
         }
     }
-    switch (toupper((unsigned char)*str)) {
+    switch (*str) {
+      case 'P':
+        mult <<= 10;
+        /* FALL THRU */
+      case 'T':
+        mult <<= 10;
+        /* FALL THRU */
       case 'G':
         mult <<= 10;
         /* FALL THRU */
@@ -130,7 +136,24 @@ int64_t parse_number(const char *str)
         mult <<= 10;
         str++;
         break;
+      case 'p':
+        mult *= 1000;
+        /* FALL THRU */
+      case 't':
+        mult *= 1000;
+        /* FALL THRU */
+      case 'g':
+        mult *= 1000;
+        /* FALL THRU */
+      case 'm':
+        mult *= 1000;
+        /* FALL THRU */
+      case 'k':
+        mult *= 1000;
+        str++;
+        break;
       case 'E':
+      case 'e':
         exponent = strtol(str + 1, &str, 10);
         for (; exponent > 0; exponent--) {
             if (mult > (INT64_MAX / 10))
