@@ -194,7 +194,7 @@ int sb_fread(sb_t *sb, int size, int nmemb, FILE *f)
 {
     sb_t orig = *sb;
     int   res = size * nmemb;
-    char *buf = sb_growlen(sb, size * nmemb);
+    char *buf = sb_grow(sb, size * nmemb);
 
     if (unlikely(((long long)size * (long long)nmemb) != res))
         e_panic("trying to allocate insane amount of memory");
@@ -202,6 +202,8 @@ int sb_fread(sb_t *sb, int size, int nmemb, FILE *f)
     res = fread(buf, size, nmemb, f);
     if (res < 0)
         return __sb_rewind_adds(sb, &orig);
+
+    __sb_fixlen(sb, sb->len + res * size);
     return res;
 }
 
