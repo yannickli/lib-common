@@ -173,7 +173,7 @@ static int blob_generic_uncompress(blob_t *dest, const blob_t *src,
     blob_reset(dest);
     blob_setlen(dest, len);
     data = dest->data;
-    while ((err = (*uncomp_fct)((void *)data, &len, (void *)src->data, src->len)) != Z_OK &&
+    while ((err = (*uncomp_fct)((void *)data, &len, (const void *)src->data, src->len)) != Z_OK &&
            try < 2)
     {
         if (err == Z_BUF_ERROR) {
@@ -234,7 +234,7 @@ static int blob_generic_compress(blob_t *dest, const blob_t *src,
     len = src->len + 256;
     blob_setlen(dest, len);
     data = dest->data;
-    while ((err = (*comp_fct)((void *)data, &len, (void *)src->data, src->len)) != Z_OK &&
+    while ((err = (*comp_fct)((void *)data, &len, (const void *)src->data, src->len)) != Z_OK &&
            try < 2)
     {
         if (err == Z_BUF_ERROR) {
@@ -299,7 +299,7 @@ int blob_gzip_compress(blob_t *dest, const blob_t *src)
     blob_reset(dest);
 
     crc_src = crc32(0L, NULL, 0);
-    crc_src = crc32(crc_src, (void *)src->data, src->len);
+    crc_src = crc32(crc_src, (const void *)src->data, src->len);
 
     res = blob_generic_compress(dest, src, intersec_compress);
 
