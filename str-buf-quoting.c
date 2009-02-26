@@ -351,11 +351,8 @@ int sb_add_xmlunescape(sb_t *sb, const void *data, int len)
             return 0;
 
         if (*p++ == '<') {
-            if (p + 3 > end)
-                goto error;
-
             /* strip out comments */
-            if (!memcmp(p, "!--", 3)) {
+            if (p + 3 <= end && !memcmp(p, "!--", 3)) {
                 p += 3;
                 for (;;) {
                     p = memchr(p, '-', end - p);
@@ -365,28 +362,31 @@ int sb_add_xmlunescape(sb_t *sb, const void *data, int len)
                         p += 3;
                         break;
                     }
+                    p++;
                 }
                 continue;
             }
 
             /* extract CDATA stuff */
-            if (p + 8 > end || memcmp(p, "![CDATA[", 8))
-                goto error;
-            q = (p += 7);
-            for (;;) {
-                p = memchr(p, ']', end - p);
-                if (!p || p + 3 > end)
-                    goto error;
-                if (!memcmp(p, "]]>", 3)) {
-                    sb_add(sb, q, p - q);
-                    p += 3;
-                    break;
+            if (p + 8 <= end && !memcmp(p, "![CDATA[", 8)) {
+                p += 8;
+                for (q = p;;) {
+                    p = memchr(p, ']', end - p);
+                    if (!p || p + 3 > end)
+                        goto error;
+                    if (!memcmp(p, "]]>", 3)) {
+                        sb_add(sb, q, p - q);
+                        p += 3;
+                        break;
+                    }
+                    p++;
                 }
+                continue;
             }
-            continue;
+            goto error;
         }
 
-        /* entities */
+        /* entities: we have (p[-1] == '&') */
         semi = memchr(p, ';', end - p);
         if (!semi || p + 1 > semi)
             goto error;
