@@ -627,12 +627,13 @@ void sb_add_b64_update(sb_t *dst, const void *src0, int len, sb_b64_ctx_t *ctx)
 
 void sb_add_b64_finish(sb_t *dst, sb_b64_ctx_t *ctx)
 {
-    char *data = sb_growlen(dst, ctx->trail_len ? 6 : 2);
+    char *data;
 
     if (ctx->trail_len) {
         unsigned c1 = ctx->trail[0];
         unsigned c2 = ctx->trail_len == 2 ? ctx->trail[1] : 0;
 
+        data    = sb_growlen(dst, 4);
         *data++ = __b64[c1 >> 2];
         *data++ = __b64[((c1 << 4) | (c2 >> 4)) & 0x3f];
         *data++ = ctx->trail_len == 2 ? __b64[(c2 << 2) & 0x3f] : '=';
@@ -640,6 +641,7 @@ void sb_add_b64_finish(sb_t *dst, sb_b64_ctx_t *ctx)
     }
     if (ctx->packs_per_line > 0 && ctx->pack_num != 0) {
         ctx->pack_num = 0;
+        data    = sb_growlen(dst, 2);
         *data++ = '\r';
         *data++ = '\n';
     }
