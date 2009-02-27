@@ -269,12 +269,16 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
 
     mfp->alive = false;
     mem_page_delete(mfp, &mfp->freepage);
+    if (mfp->current->used_blocks == 0) {
+        mem_page_delete(mfp, &mfp->current);
+    } else {
+        mfp->current = NULL;
+    }
 
     if (mfp->nb_pages) {
         e_trace(0, "keep fifo-pool alive: %d pages in use (mem: %dbytes)",
                 mfp->nb_pages, mfp->occupied);
         mfp->owner   = poolp;
-        mfp->current = NULL;
         return;
     }
     p_delete(poolp);
