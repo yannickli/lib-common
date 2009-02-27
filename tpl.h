@@ -77,6 +77,15 @@ tpl_t *tpl_dup(const tpl_t *);
 void tpl_delete(tpl_t **);
 ARRAY_FUNCTIONS(tpl_t, tpl, tpl_delete);
 
+/* XXX: This function does not copy str content */
+static inline tpl_t *tpl_new_cstr(const void *str, int len)
+{
+    tpl_t *tpl = tpl_new_op(TPL_OP_DATA);
+    tpl->u.data.data = str;
+    tpl->u.data.len = len < 0 ? sstrlen(str) : len;
+    return tpl;
+}
+
 /****************************************************************************/
 /* Build the AST                                                            */
 /****************************************************************************/
