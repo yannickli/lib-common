@@ -269,7 +269,7 @@ void mem_fifo_pool_delete(mem_pool_t **poolp)
 
     mfp->alive = false;
     mem_page_delete(mfp, &mfp->freepage);
-    if (mfp->current->used_blocks == 0) {
+    if (mfp->current && mfp->current->used_blocks == 0) {
         mem_page_delete(mfp, &mfp->current);
     } else {
         mfp->current = NULL;
