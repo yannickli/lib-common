@@ -163,6 +163,7 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
 #endif
 
 
+#define fieldsizeof(type_t, m)  sizeof(((type_t *)0)->m)
 #define countof(table)  ((ssize_t)(sizeof(table) / sizeof((table)[0]) + \
                          __must_be_array(table)))
 #define ssizeof(foo)    ((ssize_t)sizeof(foo))
