@@ -11,14 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-/*
- * TODO: make the mem_fifo_pool_t refcounted by its pages + itself
- *       so that destroying the pool allow data to outlive it.
- *
- *       That would mean no more clumsy mchannel segfaults due to pools
- *       dropped too early.
- */
-
 #include "core-mem-valgrind.h"
 #include "core.h"
 
@@ -45,6 +37,10 @@ typedef struct mem_fifo_pool_t {
     uint32_t    page_size;
     uint32_t    nb_pages;
     uint32_t    occupied;
+
+    /* p_delete codepath */
+    bool        alive;
+    mem_pool_t **owner;
 } mem_fifo_pool_t;
 
 
@@ -99,14 +95,14 @@ static void mem_page_reset(mem_page_t *page)
 
 static void mem_page_delete(mem_fifo_pool_t *mfp, mem_page_t **pagep)
 {
-    if (*pagep) {
-        mem_page_t *page = *pagep;
+    mem_page_t *page = *pagep;
 
+    if (page) {
         mfp->nb_pages--;
         mem_unregister(&page->page);
         munmap(page, page->page.size + sizeof(mem_page_t));
-        *pagep = NULL;
     }
+    *pagep = NULL;
 }
 
 static uint32_t mem_page_size_left(mem_page_t *page)
@@ -122,6 +118,9 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
 
     /* Must round size up to keep proper alignment */
     size = ROUND_UP((unsigned)size + sizeof(mem_block_t), 8);
+
+    if (unlikely(!mfp->alive))
+        e_panic("trying to allocate from a dead pool");
 
     if (unlikely(size > mfp->page_size - sizeof(mem_page_t))) {
         /* Should just map a larger page, yet we need a maximum value */
@@ -162,22 +161,29 @@ static void mfp_free(mem_pool_t *_mfp, void *mem, mem_flags_t flags)
     VALGRIND_MEMPOOL_FREE(page, blk->area);
     blk_protect(blk);
 
-    /* if this was the last block, GC the pages */
-    if (--page->used_blocks <= 0) {
-        if (page == mfp->current) {
-            /* if we're the current page, reset our memory and start over */
-            mem_page_reset(page);
-        } else {
-            if (mfp->freepage || mfp->nb_pages == 1) {
-                mem_page_delete(mfp, &page);
-            } else {
-                /* Clear area to 0 to ensure allocated blocks are
-                 * cleared.  mfp_malloc relies on this.
-                 */
-                mem_page_reset(page);
-                mfp->freepage = page;
-            }
-        }
+    if (--page->used_blocks > 0)
+        return;
+
+    /* this was the last block, collect this page */
+    if (page == mfp->current) {
+        mem_page_reset(page);
+        return;
+    }
+
+    /* specific case for a dying pool */
+    if (unlikely(!mfp->alive)) {
+        mem_page_delete(mfp, &page);
+        if (mfp->nb_pages == 0)
+            p_delete(mfp->owner);
+        return;
+    }
+
+    /* keep the page around if we have none kept around yet */
+    if (mfp->freepage || mfp->nb_pages == 1) {
+        mem_page_delete(mfp, &page);
+    } else {
+        mem_page_reset(page);
+        mfp->freepage = page;
     }
 }
 
@@ -187,6 +193,9 @@ static void mfp_realloc(mem_pool_t *_mfp, void **memp, size_t oldsize, size_t si
     mem_block_t *blk;
     mem_page_t *page;
     void *mem = *memp;
+
+    if (unlikely(!mfp->alive))
+        e_panic("trying to reallocate from a dead pool");
 
     if (unlikely(size > mfp->page_size - sizeof(mem_page_t))) {
         /* Should just map a larger page, yet we need a maximum value */
@@ -247,17 +256,28 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
 
     mfp->funcs     = mem_fifo_pool_funcs;
     mfp->page_size = MAX(16 * 4096, ROUND_UP(page_size_hint, 4096));
+    mfp->alive     = true;
     return &mfp->funcs;
 }
 
 void mem_fifo_pool_delete(mem_pool_t **poolp)
 {
-    if (*poolp) {
-        mem_fifo_pool_t *mfp = container_of(*poolp, mem_fifo_pool_t, funcs);
-        if (mfp->nb_pages)
-            e_trace(0, "dude, you're leaking memory. %d pages left !!", mfp->nb_pages);
-        p_delete(poolp);
+    mem_fifo_pool_t *mfp = container_of(*poolp, mem_fifo_pool_t, funcs);
+
+    if (!*poolp)
+        return;
+
+    mfp->alive = false;
+    mem_page_delete(mfp, &mfp->freepage);
+
+    if (mfp->nb_pages) {
+        e_trace(0, "keep fifo-pool alive: %d pages in use (mem: %dbytes)",
+                mfp->nb_pages, mfp->occupied);
+        mfp->owner   = poolp;
+        mfp->current = NULL;
+        return;
     }
+    p_delete(poolp);
 }
 
 void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
