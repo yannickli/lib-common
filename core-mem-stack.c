@@ -236,7 +236,7 @@ static void sp_realloc(mem_pool_t *_sp, void **memp,
         memcpy(res, mem, oldsize);
     }
     if (!(flags & MEM_RAW))
-        memset(res + oldsize, 0, oldsize - size);
+        memset(res + oldsize, 0, size - oldsize);
 }
 
 static mem_pool_t const pool_funcs = {
