@@ -152,6 +152,10 @@ void irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
         }
 
         if (__builtin_constant_p(oldsize < size)) {
+            /* Test this condition here to allow for a better expansion
+             * of memset when the compiler can detect correct alignment
+             * and known size for reallocated part.
+             */
             __irealloc(mem, oldsize, size, flags | MEM_RAW);
             if (!(flags & MEM_RAW) && oldsize < size)
                 memset((char *)*mem + oldsize, 0, size - oldsize);
