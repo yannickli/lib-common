@@ -25,6 +25,9 @@ extern uint8_t  const __utf8_clz_to_charlen[32];
 extern uint8_t  const __utf8_mark[7];
 extern uint8_t  const __utf8_char_len[32];
 
+extern uint16_t const __str_unicode_upper[512];
+extern uint16_t const __str_unicode_lower[512];
+extern uint32_t const __str_unicode_general_ci[512];
 
 /****************************************************************************/
 /* Base 36 stuff                                                            */
@@ -68,10 +71,21 @@ static inline int hexdecode(const char *str)
 int strconv_hexdecode(void *dest, int size, const char *src, int len);
 int strconv_hexencode(char *dest, int size, const void *src, int len);
 
-
 /****************************************************************************/
 /* utf-8 and charset conversions                                            */
 /****************************************************************************/
+
+static inline int unicode_toupper(int c)
+{
+    return (unsigned)c < countof(__str_unicode_upper) ?
+            __str_unicode_upper[c] : c;
+}
+
+static inline int unicode_tolower(int c)
+{
+    return (unsigned)c < countof(__str_unicode_lower) ?
+            __str_unicode_lower[c] : c;
+}
 
 static inline uint8_t __pstrputuc(char *dst, int32_t c)
 {
