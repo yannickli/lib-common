@@ -45,8 +45,8 @@ typedef unsigned __bitwise__ mem_flags_t;
  * mem_flags_t modify the ialloc functions behaviours.
  *
  * %MEM_RAW::
- *     - imalloc does not zeroes returned memory if set.
- *     - irealloc does not zeroes [oldsize .. size[ if set.
+ *     - imalloc does not zero returned memory if set.
+ *     - irealloc does not zero [oldsize .. size[ if set.
  *       Note that irealloc implementations should not trust oldsize if
  *       MEM_RAW is set and oldsize is MEM_UNKNOWN.
  *
@@ -68,27 +68,30 @@ extern void __imalloc_too_large(void);
  * Intersec memory allocation wrappers allow people to write APIs that are not
  * aware that the memory was actually allocated from a pool.
  *
- * This requires that the pool (as in non malloc-ed memory) the memory comes
- * from has registered its address ranges into the Intersec memory management
- * module. If it had, then calling irealloc/ifree will look up if the address
- * we're trying to realloc/free is part of a pool, if yess it'll call the pool
- * operations, else it will fallback to realloc/free.
+ * In order for ifree and irealloc to distinguish malloc-ed memory from
+ * non malloc-ed pool memory, address ranges for pool memory must be
+ * registered with the Intersec memory management module.
+ * ifree and irealloc first look up if the address we're trying to
+ * free/realloc is part of a pool, dispatching to the appropriate
+ * handlers, either the pool handlers or standard libc realloc/free.
  *
- * Of course, this is expensive (not too much, but enough so that you don't
- * want this to happen in the fast path of some code), so there is a flag to
- * specify you don't want that search: %MEM_LIBC. Note that if the flags
- * passed to ialloc functions is known at compile time and that MEM_LIBC is
- * set, imalloc/irealloc/ifree will compile to a straight call to
+ * Of course, this is somewhat expensive (not too much, but enough so
+ * that you don't want this to happen in the fast path of some code),
+ * so there is a flag to specify you don't want that search: %MEM_LIBC.
+ * Note that if the flags passed to ialloc functions is known at
+ * compile time and that MEM_LIBC is set, calls to
+ * imalloc/irealloc/ifree will compile to straight calls to
  * malloc/realloc/free.
  */
 void *__imalloc(size_t size, mem_flags_t flags) __attribute__((malloc));
 void __irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t);
 void __ifree(void *mem, mem_flags_t flags);
 
-__attribute__((malloc,always_inline)) static inline void *
-imalloc(size_t size, mem_flags_t flags)
+__attribute__((malloc, always_inline)) static inline
+void *imalloc(size_t size, mem_flags_t flags)
 {
     void *res;
+
     if (__builtin_constant_p(size)) {
         if (size == 0)
             return NULL;
@@ -109,8 +112,8 @@ imalloc(size_t size, mem_flags_t flags)
     return res;
 }
 
-__attribute__((always_inline)) static inline void
-ifree(void *mem, mem_flags_t flags)
+__attribute__((always_inline)) static inline
+void ifree(void *mem, mem_flags_t flags)
 {
     if (__builtin_constant_p(mem)) {
         if (mem == NULL)
@@ -125,8 +128,8 @@ ifree(void *mem, mem_flags_t flags)
     __ifree(mem, flags);
 }
 
-__attribute__((always_inline)) static inline void
-irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
+__attribute__((always_inline)) static inline
+void irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
 {
     if (__builtin_constant_p(size)) {
         if (size == 0) {
@@ -160,7 +163,7 @@ irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
 
 
 /**************************************************************************/
-/* Memory high level APIs                                                 */
+/* High Level memory APIs                                                 */
 /**************************************************************************/
 
 static inline char *mem_strdup(const char *src)
@@ -171,7 +174,8 @@ static inline char *mem_strdup(const char *src)
     return res;
 }
 
-static inline __attribute__((malloc)) void *mem_dup(const void *src, size_t size)
+__attribute__((malloc)) static inline
+void *mem_dup(const void *src, size_t size)
 {
     return memcpy(imalloc(size, MEM_RAW | MEM_LIBC), src, size);
 }
@@ -184,7 +188,8 @@ static inline void mem_copy(void *p, size_t to, size_t from, size_t len) {
     memcpy((char *)p + to, (const char *)p + from, len);
 }
 
-static inline __attribute__((malloc)) void *p_dupz(const void *src, size_t len)
+__attribute__((malloc)) static inline
+void *p_dupz(const void *src, size_t len)
 {
     char *res = imalloc(len + 1, MEM_RAW | MEM_LIBC);
     memcpyz(res, src, len);
@@ -293,11 +298,12 @@ static inline void (p_delete)(void **p) {
  * those pools register the address ranges they work on.
  *
  * Of course, it's impractical for a general purpose malloc. This clearly
- * assume that you allocator work on relatively few address ranges.
+ * assume that your allocator work on a relatively small number of
+ * address ranges.
  *
  * The pool is free to either embed the mem_blk_t structure into its block
  * structure, or to allocate new ones. It's not assumed that the mem_blk_t
- * actually is inside of the block it describes.
+ * actually reside inside of the block it describes.
  *
  * TODO: interestingly enough, the pool doesn't need to track its blocks,
  * mem_register does it already. So maybe there is something to work on
