@@ -96,22 +96,21 @@ void *__imalloc(size_t size, mem_flags_t flags)
 
 void __ifree(void *mem, mem_flags_t flags)
 {
-    mem_blk_t *blk;
+    if (!(flags & MEM_LIBC)) {
+        /* Check for pool managed memory */
+        mem_blk_t *blk = mem_blk_find(mem);
 
-    if (flags & MEM_LIBC) {
-      libc:
-        free(mem);
-        return;
+        if (blk) {
+            blk->pool->free(blk->pool, mem, flags);
+            return;
+        }
     }
-    blk = mem_blk_find(mem);
-    if (!blk)
-        goto libc;
-    blk->pool->free(blk->pool, mem, flags);
+
+    free(mem);
 }
 
 void __irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
 {
-    mem_blk_t *blk;
     char *res;
 
     if (size == 0) {
@@ -121,19 +120,22 @@ void __irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
     }
     if (size > MEM_ALLOC_MAX)
         e_panic("You cannot allocate that amount of memory");
-    if (flags & MEM_LIBC) {
-      libc:
-        res = realloc(*mem, size);
-        if (unlikely(res == NULL))
-            e_panic("out of memory");
-        if (!(flags & MEM_RAW) && oldsize < size)
-            memset(res + oldsize, 0, size - oldsize);
-        *mem = res;
-        return;
+
+    if (!(flags & MEM_LIBC)) {
+        mem_blk_t *blk = mem_blk_find(mem);
+
+        if (blk) {
+            blk->pool->realloc(blk->pool, mem, oldsize, size, flags);
+            return;
+        }
     }
 
-    blk = mem_blk_find(mem);
-    if (!blk)
-        goto libc;
-    blk->pool->realloc(blk->pool, mem, oldsize, size, flags);
+    res = realloc(*mem, size);
+    if (unlikely(res == NULL))
+        e_panic("out of memory");
+
+    if (!(flags & MEM_RAW) && oldsize < size)
+        memset(res + oldsize, 0, size - oldsize);
+
+    *mem = res;
 }
