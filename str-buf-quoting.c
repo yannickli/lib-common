@@ -158,10 +158,10 @@ void sb_add_unquoted(sb_t *sb, const void *data, int len)
 
           case '0'...'7':
             c = *p++ - '0';
-            if (p < end && *p >= '0' && *p < '8')
-                c = (c << 3) + *p - '0';
-            if (c < '\40' && p < end && *p >= '0' && *p < '8')
-                c = (c << 3) + *p - '0';
+            if (p < end && *p >= '0' && *p <= '7')
+                c = (c << 3) + *p++ - '0';
+            if (c < '\040' && p < end && *p >= '0' && *p <= '7')
+                c = (c << 3) + *p++ - '0';
             sb_addc(sb, c);
             continue;
 
@@ -171,8 +171,8 @@ void sb_add_unquoted(sb_t *sb, const void *data, int len)
             c = hexdecode(p + 1);
             if (c < 0)
                 break;
-            sb_addc(sb, c);
             p += 3;
+            sb_addc(sb, c);
             continue;
 
           case 'u':
@@ -181,8 +181,8 @@ void sb_add_unquoted(sb_t *sb, const void *data, int len)
             c = (hexdecode(p + 1) << 8) | hexdecode(p + 3);
             if (c < 0)
                 break;
-            sb_adduc(sb, c);
             p += 5;
+            sb_adduc(sb, c);
             continue;
         }
         sb_addc(sb, '\\');
