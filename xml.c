@@ -142,6 +142,14 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
         goto error;
     }
 
+    /* XXX: quick and dirty hack for fast copyless xml parsing!
+     * The unescaped output will be at most the same size as the
+     * source, thus we can allocate pool memory for the source size and
+     * wrap that in an sb_t that should not get reallocated by
+     * sb_add_xmlunescape.  We probably should prevent
+     * sb_add_xmlunescape from reallocating memory altogether,
+     * but sb_t do not provide a way to do that yet.
+     */
     prop->value = mp_new(tree->mp, char, p - value + 1);
     {
         sb_t sb;
@@ -153,6 +161,9 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
                      prop->name, tag_name);
             goto error;
         }
+        /* XXX: if sb data has been reallocated, parsing will be
+         * incorrect, __sb_wipe is here to ensure it doesn't happen.
+         */
         __sb_wipe(&sb);
     }
 
@@ -385,6 +396,9 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
         goto error;
     }
     if (text != p) {
+        /* XXX: same remark as above, allocation of converted space is
+         * conservative and sb simply wraps allocated destination buffer.
+         */
         sb_t sb;
 
         textend++;
