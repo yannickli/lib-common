@@ -262,11 +262,12 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
 
 void mem_fifo_pool_delete(mem_pool_t **poolp)
 {
-    mem_fifo_pool_t *mfp = container_of(*poolp, mem_fifo_pool_t, funcs);
+    mem_fifo_pool_t *mfp;
 
     if (!*poolp)
         return;
 
+    mfp = container_of(*poolp, mem_fifo_pool_t, funcs);
     mfp->alive = false;
     mem_page_delete(mfp, &mfp->freepage);
     if (mfp->current && mfp->current->used_blocks == 0) {
