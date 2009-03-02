@@ -23,8 +23,9 @@ static inline void *mempcpy(void *dst, const void *src, size_t n) {
     return (char *)dst + n;
 }
 #endif
-static inline void memcpyz(void *dst, const void *src, size_t n) {
+static inline void *memcpyz(void *dst, const void *src, size_t n) {
     *(char *)mempcpy(dst, src, n) = '\0';
+    return dst;
 }
 
 /**************************************************************************/
@@ -196,8 +197,7 @@ __attribute__((malloc)) static inline
 void *p_dupz(const void *src, size_t len)
 {
     char *res = imalloc(len + 1, MEM_RAW | MEM_LIBC);
-    memcpyz(res, src, len);
-    return res;
+    return memcpyz(res, src, len);
 }
 
 #define p_alloca(type, count)                                \
@@ -341,8 +341,7 @@ __attribute__((malloc))
 static inline void *mp_dupz(mem_pool_t *mp, const void *src, size_t len)
 {
     char *res = mp->malloc(mp, len + 1, MEM_RAW);
-    memcpyz(res, src, len);
-    return res;
+    return memcpyz(res, src, len);
 }
 __attribute__((malloc))
 static inline void *mp_strdup(mem_pool_t *mp, const char *src)
