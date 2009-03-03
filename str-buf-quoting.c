@@ -103,6 +103,11 @@ void sb_add_slashes(sb_t *sb, const void *_data, int len,
         repl[c] = *esc++;
     }
 
+    if (!TST_BIT(buf, '\\')) {
+        SET_BIT(buf, '\\');
+        repl['\\'] = '\\';
+    }
+
     sb_grow(sb, len);
     while (p < end) {
         const byte *q = p;
