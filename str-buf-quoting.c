@@ -128,6 +128,44 @@ void sb_add_slashes(sb_t *sb, const void *_data, int len,
     }
 }
 
+void sb_add_unslashes(sb_t *sb, const void *_data, int len,
+                      const char *tounesc, const char *unesc)
+{
+    uint32_t buf[BITS_TO_ARRAY_LEN(uint32_t, 256)] = { 0, };
+    uint8_t  repl[256];
+    const byte *p = _data, *end = p + len;
+
+    while (*tounesc) {
+        byte c = *tounesc++;
+        SET_BIT(buf, c);
+        repl[c] = *unesc++;
+    }
+
+    if (!TST_BIT(buf, '\\')) {
+        SET_BIT(buf, '\\');
+        repl['\\'] = '\\';
+    }
+
+    while (p < end) {
+        const byte *q = p;
+
+        /* -1 so that we always have a char after \ */
+        p = memchr(p, '\\', end - p - 1);
+        if (!p) {
+            p = q;
+            break;
+        }
+        sb_add(sb, q, p - q);
+
+        if (TST_BIT(buf, *++p)) {
+            sb_addc(sb, repl[*p++]);
+        } else {
+            sb_addc(sb, '\\');
+        }
+    }
+    sb_add(sb, p, end - p);
+}
+
 static char const __c_unescape[] = {
     ['a'] = '\a', ['b'] = '\b', ['e'] = '\e', ['t'] = '\t', ['n'] = '\n',
     ['v'] = '\v', ['f'] = '\f', ['r'] = '\r', ['\\'] = '\\',

@@ -354,6 +354,13 @@ sb_adds_slashes(sb_t *sb, const char *s, const char *toesc, const char *esc)
 {
     sb_add_slashes(sb, s, strlen(s), toesc, esc);
 }
+void sb_add_unslashes(sb_t *sb, const void *data, int len,
+                      const char *tounesc, const char *unesc);
+static inline void
+sb_adds_unslashes(sb_t *sb, const char *s, const char *tounesc, const char *unesc)
+{
+    sb_add_unslashes(sb, s, strlen(s), tounesc, unesc);
+}
 
 void sb_add_unquoted(sb_t *sb, const void *data, int len);
 __SB_DEFINE_ADDS(unquoted);
