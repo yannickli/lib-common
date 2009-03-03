@@ -180,20 +180,14 @@ void sb_add_unquoted(sb_t *sb, const void *data, int len)
         const char *q = p;
         int c;
 
-        p = memchr(q, '\\', end - q);
+        p = memchr(q, '\\', end - q - 1);
         if (!p) {
-            sb_add(sb, q, end - q);
-            return;
+            p = q;
+            break;
         }
         sb_add(sb, q, p - q);
-        p += 1;
 
-        if (p == end) {
-            sb_addc(sb, '\\');
-            return;
-        }
-
-        switch (*p) {
+        switch (*++p) {
           case 'a': case 'b': case 'e': case 't': case 'n': case 'v':
           case 'f': case 'r': case '\\': case '"': case '\'':
             sb_addc(sb, __c_unescape[(unsigned char)*p++]);
@@ -230,6 +224,8 @@ void sb_add_unquoted(sb_t *sb, const void *data, int len)
         }
         sb_addc(sb, '\\');
     }
+
+    sb_add(sb, p, end - p);
 }
 
 void sb_add_urlencode(sb_t *sb, const void *_data, int len)
@@ -262,25 +258,22 @@ void sb_add_urldecode(sb_t *sb, const void *data, int len)
         const char *q = p;
         int c;
 
-        p = memchr(q, '%', end - q);
+        p = memchr(q, '%', end - q - 3);
         if (!p) {
-            sb_add(sb, q, end - q);
-            return;
+            p = q;
+            break;
         }
         sb_add(sb, q, p - q);
 
-        if (end - p < 3) {
-            sb_addc(sb, *p++);
-            continue;
-        }
-        c = hexdecode(p + 1);
+        c = hexdecode(++p);
         if (c < 0) {
-            sb_addc(sb, *p++);
-            continue;
+            sb_addc(sb, '%');
+        } else {
+            sb_addc(sb, c);
+            p += 2;
         }
-        sb_addc(sb, c);
-        p += 3;
     }
+    sb_add(sb, p, end - p);
 }
 
 void sb_urldecode(sb_t *sb)
@@ -398,8 +391,8 @@ int sb_add_xmlunescape(sb_t *sb, const void *data, int len)
             if (p + 3 <= end && !memcmp(p, "!--", 3)) {
                 p += 3;
                 for (;;) {
-                    p = memchr(p, '-', end - p);
-                    if (!p || p + 3 > end)
+                    p = memchr(p, '-', end - p - 3);
+                    if (!p)
                         goto error;
                     if (!memcmp(p, "-->", 3)) {
                         p += 3;
@@ -414,8 +407,8 @@ int sb_add_xmlunescape(sb_t *sb, const void *data, int len)
             if (p + 8 <= end && !memcmp(p, "![CDATA[", 8)) {
                 p += 8;
                 for (q = p;;) {
-                    p = memchr(p, ']', end - p);
-                    if (!p || p + 3 > end)
+                    p = memchr(p, ']', end - p - 3);
+                    if (!p)
                         goto error;
                     if (!memcmp(p, "]]>", 3)) {
                         sb_add(sb, q, p - q);
