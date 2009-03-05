@@ -12,9 +12,13 @@
 /**************************************************************************/
 
 #include <sys/wait.h>
+#include <pthread.h>
 #include "container.h"
 #include "time.h"
 #include "el.h"
+
+static pthread_mutex_t big_lock_g = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+static bool use_big_lock_g = false;
 
 /** \addtogroup lc_el
  * \{
@@ -714,6 +718,26 @@ void el_loop_timeout(int timeout)
     el_signal_process();
     ev_list_process(&_G.after);
     dlist_splice(&_G.evs_free, &_G.evs_gc);
+}
+
+void el_bl_use(void)
+{
+    if (use_big_lock_g)
+        e_panic("el bl use has been called twice !");
+    use_big_lock_g = true;
+    pthread_mutex_lock(&big_lock_g);
+}
+
+void el_bl_lock(void)
+{
+    if (use_big_lock_g)
+        pthread_mutex_lock(&big_lock_g);
+}
+
+void el_bl_unlock(void)
+{
+    if (use_big_lock_g)
+        pthread_mutex_unlock(&big_lock_g);
 }
 
 void el_loop(void)

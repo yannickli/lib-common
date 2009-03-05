@@ -18,6 +18,8 @@
 
 #ifdef __GNUC__
 
+#include <sched.h>
+
 typedef int spinlock_t;
 
 #define atomic_add(ptr, v)          IGNORE(__sync_add_and_fetch(ptr, v))
@@ -31,7 +33,7 @@ typedef int spinlock_t;
 #define memory_barrier()            __sync_synchronize()
 
 #define spin_trylock(ptr)  (!__sync_lock_test_and_set(ptr, 1))
-#define spin_lock(ptr)     do { } while(unlikely(!spin_trylock(ptr)))
+#define spin_lock(ptr)     ({ while (unlikely(!spin_trylock(ptr))) { sched_yield(); }})
 #define spin_unlock(ptr)   __sync_lock_release(ptr)
 
 #endif

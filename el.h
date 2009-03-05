@@ -137,6 +137,10 @@ el_t el_ref(el_t);
 el_t el_unref(el_t);
 el_data_t el_set_priv(el_t, el_data_t);
 
+void el_bl_use(void);
+void el_bl_lock(void);
+void el_bl_unlock(void);
+
 void el_loop(void);
 void el_loop_timeout(int msecs);
 

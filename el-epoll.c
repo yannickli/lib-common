@@ -81,7 +81,9 @@ static void el_loop_fds(int timeout)
     int res;
 
     el_fd_initialize();
+    el_bl_unlock();
     res = epoll_wait(epollfd_g, events, countof(events), timeout);
+    el_bl_lock();
     assert (res >= 0 || errno == EAGAIN || errno == EINTR);
 
     if (_G.timers.len) {
