@@ -27,6 +27,11 @@ static inline void *memcpyz(void *dst, const void *src, size_t n) {
     *(char *)mempcpy(dst, src, n) = '\0';
     return dst;
 }
+static inline void *mempcpyz(void *dst, const void *src, size_t n) {
+    dst = mempcpy(dst, src, n);
+    *(char *)dst = '\0';
+    return (char *)dst + 1;
+}
 
 /**************************************************************************/
 /* Intersec memory pools and APIs core stuff                              */
