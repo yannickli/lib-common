@@ -316,7 +316,7 @@ const void *mem_stack_pop(mem_pool_t *_sp)
         return sp->stack;
     }
     frame->blk  = blk_entry(&sp->blk_list);
-    frame->pos  = blk_entry(&sp->blk_list) + sizeof(*sp);
+    frame->pos  = sp + 1; /* XXX: end of sp, see kludge remarks above */
     frame->last = NULL;
     mem_stack_protect(sp);
     return NULL;
@@ -328,7 +328,7 @@ void mem_stack_rewind(mem_pool_t *_sp, const void *cookie)
 
     if (cookie == NULL) {
         sp->base.blk  = blk_entry(&sp->blk_list);
-        sp->base.pos  = blk_entry(&sp->blk_list) + sizeof(*sp);
+        sp->base.pos  = sp + 1; /* XXX: end of sp, see kludge remarks above */
         sp->base.last = NULL;
         sp->stack     = &sp->base;
         mem_stack_protect(sp);
