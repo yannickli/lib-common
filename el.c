@@ -108,7 +108,7 @@ static struct {
     ev_assoc_htbl childs;     /* el_t's watching for processes              */
 
     /*----- allocation stuff -----*/
-#define EV_ALLOC_FACTOR  12   /* basic segment is 4096 events               */
+#define EV_ALLOC_FACTOR  10   /* basic segment is 1024 events               */
     ev_t   evs_initial[1 << EV_ALLOC_FACTOR];
     ev_t  *evs_alloc_next, *evs_alloc_end;
     ev_t  *evs[32 - EV_ALLOC_FACTOR];
