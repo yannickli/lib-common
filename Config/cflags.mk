@@ -28,8 +28,6 @@ CFLAGS += -pipe
 CFLAGS += -std=gnu99
 # optimize even more
 CFLAGS += -O2
-# more aggressive inlining for local functions.
-CFLAGS += -finline-functions
 ifneq (,$(call GCC_PREREQ,4,3))
 CFLAGS += -fpredictive-commoning
 endif
