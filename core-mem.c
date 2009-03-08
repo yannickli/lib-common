@@ -87,31 +87,42 @@ void *__imalloc(size_t size, mem_flags_t flags)
         return NULL;
     if (size > MEM_ALLOC_MAX)
         e_panic("You cannot allocate that amount of memory");
-    if (flags & MEM_RAW) {
-        return malloc(size);
-    } else {
-        return calloc(1, size);
+    switch (flags & MEM_POOL_MASK) {
+      case MEM_STATIC:
+      default:
+        e_panic("You cannot allocate from pool %d with imalloc",
+                flags & MEM_POOL_MASK);
+      case MEM_LIBC:
+        return libc_malloc(size, flags);
+      case MEM_STACK:
+        return stack_malloc(size, flags);
     }
 }
 
 void __ifree(void *mem, mem_flags_t flags)
 {
-    if (!(flags & MEM_LIBC)) {
-        /* Check for pool managed memory */
-        mem_blk_t *blk = mem_blk_find(mem);
+    mem_blk_t *blk;
 
+    switch (flags & MEM_POOL_MASK) {
+      case MEM_STATIC:
+      case MEM_STACK:
+        return;
+      default:
+        blk = mem_blk_find(mem);
         if (blk) {
             blk->pool->free(blk->pool, mem, flags);
             return;
         }
+        /* FALLTRHOUGH */
+      case MEM_LIBC:
+        libc_free(mem, flags);
+        return;
     }
-
-    free(mem);
 }
 
 void __irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
 {
-    char *res;
+    mem_blk_t *blk;
 
     if (size == 0) {
         ifree(*mem, flags);
@@ -121,21 +132,21 @@ void __irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
     if (size > MEM_ALLOC_MAX)
         e_panic("You cannot allocate that amount of memory");
 
-    if (!(flags & MEM_LIBC)) {
-        mem_blk_t *blk = mem_blk_find(mem);
-
+    switch (flags & MEM_POOL_MASK) {
+      case MEM_STATIC:
+        e_panic("You cannot realloc alloca-ed memory");
+      case MEM_STACK:
+        stack_realloc(mem, oldsize, size, flags);
+        return;
+      default:
+        blk = mem_blk_find(mem);
         if (blk) {
             blk->pool->realloc(blk->pool, mem, oldsize, size, flags);
             return;
         }
+        /* FALLTRHOUGH */
+      case MEM_LIBC:
+        libc_realloc(mem, oldsize, size, flags);
+        return;
     }
-
-    res = realloc(*mem, size);
-    if (unlikely(res == NULL))
-        e_panic("out of memory");
-
-    if (!(flags & MEM_RAW) && oldsize < size)
-        memset(res + oldsize, 0, size - oldsize);
-
-    *mem = res;
 }

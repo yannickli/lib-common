@@ -347,3 +347,22 @@ void mem_stack_rewind(mem_pool_t *_sp, const void *cookie)
     sp->stack = ((frame_t *)cookie)->next;
 #endif
 }
+
+mem_pool_t *t_pool(void)
+{
+    static mem_pool_t *sp;
+    if (unlikely(!sp)) {
+        sp = mem_stack_pool_new(64 << 10);
+    }
+    return sp;
+}
+
+void *stack_malloc(size_t size, mem_flags_t flags)
+{
+    return sp_alloc(t_pool(), size, flags);
+}
+
+void stack_realloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
+{
+    return sp_realloc(t_pool(), mem, oldsize, size, flags);
+}

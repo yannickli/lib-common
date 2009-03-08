@@ -56,19 +56,78 @@ typedef unsigned __bitwise__ mem_flags_t;
  *       Note that irealloc implementations should not trust oldsize if
  *       MEM_RAW is set and oldsize is MEM_UNKNOWN.
  *
+ * pool origins:
+ *
+ * %MEM_STATIC::
+ *     memory comes from alloca() or a static buffer.
+ *
  * %MEM_LIBC::
  *     This flag makes no sense for pools.  irealloc and ifree shall assume
  *     that this memory is allocated using the libc allocator (malloc or
  *     calloc).
  *
+ * %MEM_STACK::
+ *     This flags asks the allocations to be performed on the system default
+ *     stack pool.
+ *
  */
-#define MEM_RAW        force_cast(mem_flags_t, 1 << 0)
-#define MEM_LIBC       force_cast(mem_flags_t, 1 << 1)
+#define MEM_POOL_MASK  force_cast(mem_flags_t, 0x00ff)
+#define MEM_STATIC     force_cast(mem_flags_t, 0)
+#define MEM_OTHER      force_cast(mem_flags_t, 1)
+#define MEM_LIBC       force_cast(mem_flags_t, 2)
+#define MEM_STACK      force_cast(mem_flags_t, 3)
+#define MEM_FLAGS_MASK force_cast(mem_flags_t, 0xff00)
+#define MEM_RAW        force_cast(mem_flags_t, 1 << 8)
 
 #if __GNUC_PREREQ(4, 3)
 __attribute__((error("you cannot allocate that much memory")))
 #endif
 extern void __imalloc_too_large(void);
+
+#if __GNUC_PREREQ(4, 3)
+__attribute__((error("imalloc can only allocate from stack or libc")))
+#endif
+extern void __imalloc_cannot_do_this_pool(void);
+
+#if __GNUC_PREREQ(4, 3)
+__attribute__((error("reallocaing alloca()ed memory isn't possible")))
+#endif
+extern void __irealloc_cannot_handle_alloca(void);
+
+void *stack_malloc(size_t size, mem_flags_t flags);
+void stack_realloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags);
+
+static inline void *libc_malloc(size_t size, mem_flags_t flags)
+{
+    void *res;
+
+    if (flags & MEM_RAW) {
+        res = malloc(size);
+    } else {
+        res = calloc(1, size);
+    }
+    if (unlikely(res == NULL))
+        e_panic("out of memory");
+    return res;
+}
+
+static inline void libc_realloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
+{
+    char *res = realloc(*mem, size);
+
+    if (unlikely(res == NULL))
+        e_panic("out of memory");
+
+    if (!(flags & MEM_RAW) && oldsize < size)
+        memset(res + oldsize, 0, size - oldsize);
+    *mem = res;
+    return;
+}
+
+static inline void libc_free(void *mem, mem_flags_t flags)
+{
+    free(mem);
+}
 
 /*
  * Intersec memory allocation wrappers allow people to write APIs that are not
@@ -96,8 +155,6 @@ void __ifree(void *mem, mem_flags_t flags);
 __attribute__((malloc, always_inline)) static inline
 void *imalloc(size_t size, mem_flags_t flags)
 {
-    void *res;
-
     if (__builtin_constant_p(size)) {
         if (size == 0)
             return NULL;
@@ -105,17 +162,17 @@ void *imalloc(size_t size, mem_flags_t flags)
             __imalloc_too_large();
     }
     if (__builtin_constant_p(flags)) {
-        if (flags & MEM_RAW) {
-            res = malloc(size);
-        } else {
-            res = calloc(1, size);
+        switch (flags & MEM_POOL_MASK) {
+          case MEM_STATIC:
+          default:
+            __imalloc_cannot_do_this_pool();
+          case MEM_LIBC:
+            return libc_malloc(size, flags);
+          case MEM_STACK:
+            return stack_malloc(size, flags);
         }
-    } else {
-        res = __imalloc(size, flags);
     }
-    if (unlikely(res == NULL))
-        e_panic("out of memory");
-    return res;
+    return __imalloc(size, flags);
 }
 
 __attribute__((always_inline)) static inline
@@ -126,9 +183,15 @@ void ifree(void *mem, mem_flags_t flags)
             return;
     }
     if (__builtin_constant_p(flags)) {
-        if (flags & MEM_LIBC) {
-            free(mem);
+        switch (flags & MEM_POOL_MASK) {
+          case MEM_STATIC:
+          case MEM_STACK:
             return;
+          case MEM_LIBC:
+            libc_free(mem, flags);
+            return;
+          default:
+            break;
         }
     }
     __ifree(mem, flags);
@@ -147,14 +210,17 @@ void irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
             __imalloc_too_large();
     }
     if (__builtin_constant_p(flags)) {
-        if (flags & MEM_LIBC) {
-            char *res = realloc(*mem, size);
-            if (unlikely(res == NULL))
-                e_panic("out of memory");
-            if (oldsize < size)
-                memset(res + oldsize, 0, size - oldsize);
-            *mem = res;
+        switch (flags & MEM_POOL_MASK) {
+          case MEM_STATIC:
+            __irealloc_cannot_handle_alloca();
+          case MEM_LIBC:
+            libc_realloc(mem, oldsize, size, flags);
             return;
+          case MEM_STACK:
+            stack_realloc(mem, oldsize, size, flags);
+            return;
+          default:
+            break;
         }
 
         if (__builtin_constant_p(oldsize < size)) {
@@ -411,5 +477,20 @@ void mem_stack_pool_delete(mem_pool_t **);
 const void *mem_stack_push(mem_pool_t *);
 const void *mem_stack_pop(mem_pool_t *);
 void mem_stack_rewind(mem_pool_t *, const void *);
+
+mem_pool_t *t_pool(void) __attribute__((pure));
+
+#define t_push()      mem_stack_push(t_pool())
+#define t_pop()       mem_stack_pop(t_pool())
+#define t_rewind(p)   mem_stack_rewind(t_pool(), p)
+
+#define t_new(type_t)      \
+    ((type_t *)imalloc(sizeof(type_t), MEM_STACK))
+#define t_new_raw(type_t)  \
+    ((type_t *)imalloc(sizeof(type_t), MEM_STACK | MEM_RAW))
+#define t_new_extra(type_t, extra) \
+    ((type_t *)imalloc(sizeof(type_t) + extra, MEM_STACK))
+#define t_dup(p, count)    mp_dup(t_pool(), p, count)
+#define t_dupz(p, count)   mp_dupz(t_pool(), p, count)
 
 #endif
