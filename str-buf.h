@@ -119,11 +119,10 @@ static inline void sb_reset(sb_t *sb)
     sb_init_full(sb, sb->data - sb->skip, 0, sb->size + sb->skip, sb->must_free);
     sb->data[0] = '\0';
 }
-#ifndef NDEBUG
-#  define __sb_wipe(sb)  assert(!(sb)->must_free)
-#else
-#  define __sb_wipe(sb)  (void)0
-#endif
+static inline void sb_wipe_not_needed(sb_t *sb)
+{
+    assert (sb->mem_pool == MEM_STATIC);
+}
 
 static inline void sb_wipe(sb_t *sb)
 {
@@ -134,15 +133,7 @@ static inline void sb_wipe(sb_t *sb)
         sb_reset(sb);
     }
 }
-static inline void sb_delete(sb_t **sbp)
-{
-    if (*sbp) {
-        sb_t *sb = *sbp;
-        if (sb->must_free)
-            ifree(sb->data - sb->skip, MEM_LIBC);
-        p_delete(sbp);
-    }
-}
+GENERIC_DELETE(sb_t, sb);
 
 /**************************************************************************/
 /* str/mem-functions wrappers                                             */

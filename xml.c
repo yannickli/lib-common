@@ -161,10 +161,7 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
                      prop->name, tag_name);
             goto error;
         }
-        /* XXX: if sb data has been reallocated, parsing will be
-         * incorrect, __sb_wipe is here to ensure it doesn't happen.
-         */
-        __sb_wipe(&sb);
+        sb_wipe_not_needed(&sb);
     }
 
     if (quot) {
@@ -409,7 +406,7 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
                      "Unable to decode text value of tag %s", tag->name);
             goto error;
         }
-        __sb_wipe(&sb);
+        sb_wipe_not_needed(&sb);
     }
 
 end:
