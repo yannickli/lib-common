@@ -55,14 +55,14 @@
  * - sb.size > sb.len
  * - sb.data - sb.skip points to an array of at least sb.size + sb.skip bytes.
  * - sb.data[sb.len] == '\0'
- * - if sb.must_free, sb.data - sb.skip is a pointer handled by ialloc /
- *   ifree.
+ * - sb.data - sb.skip is a pointer handled by ialloc / ifree for the pool
+ *   sb.mem_pool.
  */
 typedef struct sb_t {
     char *data;
     int len, size;
-    flag_t must_free  :  1;
-    unsigned int skip : 31;
+    flag_t mem_pool   :  2;
+    unsigned int skip : 30;
 } sb_t;
 
 /* Default byte array for empty strbufs. It should always stay equal to
@@ -81,13 +81,13 @@ extern __thread char __sb_slop[1];
 /**************************************************************************/
 
 static inline sb_t *
-sb_init_full(sb_t *sb, void *buf, int blen, int bsize, bool own)
+sb_init_full(sb_t *sb, void *buf, int blen, int bsize, int mem_pool)
 {
     *sb = (sb_t){
         .data = buf,
         .len = blen,
         .size = bsize,
-        .must_free = own,
+        .mem_pool = mem_pool,
     };
     assert (blen < bsize);
     sb->data[blen] = '\0';
@@ -98,7 +98,7 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, bool own)
  * requires implementation as a macro.  size should be a constant
  * anyway.
  */
-#define sb_inita(sb, sz)  sb_init_full(sb, alloca(sz), 0, (sz), false)
+#define sb_inita(sb, sz)  sb_init_full(sb, alloca(sz), 0, (sz), MEM_STATIC)
 
 #define SB(name, sz) \
     sb_t name = {                                       \
@@ -111,12 +111,12 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, bool own)
 
 static inline sb_t *sb_init(sb_t *sb)
 {
-    return sb_init_full(sb, __sb_slop, 0, 1, false);
+    return sb_init_full(sb, __sb_slop, 0, 1, MEM_STATIC);
 }
 GENERIC_NEW(sb_t, sb);
 static inline void sb_reset(sb_t *sb)
 {
-    sb_init_full(sb, sb->data - sb->skip, 0, sb->size + sb->skip, sb->must_free);
+    sb_init_full(sb, sb->data - sb->skip, 0, sb->size + sb->skip, sb->mem_pool);
     sb->data[0] = '\0';
 }
 static inline void sb_wipe_not_needed(sb_t *sb)
@@ -126,8 +126,8 @@ static inline void sb_wipe_not_needed(sb_t *sb)
 
 static inline void sb_wipe(sb_t *sb)
 {
-    if (sb->must_free) {
-        ifree(sb->data - sb->skip, MEM_LIBC);
+    if (sb->mem_pool != MEM_STATIC) {
+        ifree(sb->data - sb->skip, sb->mem_pool);
         sb_init(sb);
     } else {
         sb_reset(sb);

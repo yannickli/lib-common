@@ -154,7 +154,7 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
     {
         sb_t sb;
 
-        sb_init_full(&sb, prop->value, 0, p - value + 1, false);
+        sb_init_full(&sb, prop->value, 0, p - value + 1, MEM_STATIC);
         if (sb_add_xmlunescape(&sb, value, p - value)) {
             snprintf(error_buf, buf_len,
                      "Unable to unescape property value %s of tag %s",
@@ -400,7 +400,7 @@ static parse_t xml_get_tag(xml_tree_t *tree, xml_tag_t **dst,
 
         textend++;
         tag->text = mp_new(tree->mp, char, textend - text + 1);
-        sb_init_full(&sb, tag->text, 0, textend - text + 1, false);
+        sb_init_full(&sb, tag->text, 0, textend - text + 1, MEM_STATIC);
         if (sb_add_xmlunescape(&sb, text, textend - text)) {
             snprintf(error_buf, buf_len,
                      "Unable to decode text value of tag %s", tag->name);

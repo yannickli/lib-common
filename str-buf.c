@@ -22,7 +22,7 @@ char *sb_detach(sb_t *sb, int *len)
 
     if (len)
         *len = sb->len;
-    if (sb->must_free) {
+    if (sb->mem_pool != MEM_STATIC) {
         if (sb->skip)
             memmove(sb->data - sb->skip, sb->data, sb->len + 1);
         s = sb->data - sb->skip;
@@ -44,13 +44,13 @@ char *sb_detach(sb_t *sb, int *len)
  */
 int __sb_rewind_adds(sb_t *sb, const sb_t *orig)
 {
-    if (!orig->must_free && sb->must_free) {
+    if (orig->mem_pool == MEM_STATIC && sb->mem_pool == MEM_LIBC) {
         sb_t tmp = *sb;
         int save_errno = errno;
 
         if (orig->skip) {
             sb_init_full(sb, orig->data - orig->skip, orig->len,
-                         orig->size + orig->skip, false);
+                         orig->size + orig->skip, MEM_STATIC);
             memcpy(sb->data, tmp.data, orig->len);
         } else {
             *sb = *orig;
@@ -64,6 +64,14 @@ int __sb_rewind_adds(sb_t *sb, const sb_t *orig)
     return -1;
 }
 
+static void sb_destroy_skip(sb_t *sb)
+{
+    memmove(sb->data - sb->skip, sb->data, sb->len + 1);
+    sb->data -= sb->skip;
+    sb->size += sb->skip;
+    sb->skip  = 0;
+}
+
 void __sb_grow(sb_t *sb, int extra)
 {
     int newlen = sb->len + extra;
@@ -72,29 +80,33 @@ void __sb_grow(sb_t *sb, int extra)
     if (unlikely(newlen < 0))
         e_panic("trying to allocate insane amount of memory");
 
-    if (newlen < sb->skip + sb->size) {
-        /* if data fits and skip is worth it, shift it left */
-        if (!sb->must_free || sb->skip > sb->size / 4) {
-            memmove(sb->data - sb->skip, sb->data, sb->len + 1);
-            sb->data -= sb->skip;
-            sb->size += sb->skip;
-            sb->skip  = 0;
+    /* if data fits and skip is worth it, shift it left */
+    if (newlen < sb->skip + sb->size && sb->skip > sb->size / 4) {
+        sb_destroy_skip(sb);
+        return;
+    }
+
+    /* most of our pool have expensive reallocs wrt a typical memcpy,
+     * and optimize the last realloc so we don't want to alloc and free
+     */
+    if (sb->mem_pool != MEM_LIBC) {
+        sb_destroy_skip(sb);
+        if (newlen < sb->size)
             return;
-        }
     }
 
     newsz = p_alloc_nr(sb->size + sb->skip);
     if (newsz < newlen + 1)
         newsz = newlen + 1;
-    if (sb->must_free && !sb->skip) {
-        p_realloc(&sb->data, sb->size = newsz);
-    } else {
+    if (sb->mem_pool == MEM_STATIC || sb->skip) {
         char *s = p_new_raw(char, newsz);
 
         memcpy(s, sb->data, sb->len + 1);
-        if (sb->must_free)
-            ifree(sb->data - sb->skip, MEM_LIBC);
-        sb_init_full(sb, s, sb->len, newsz, true);
+        if (sb->mem_pool != MEM_STATIC)
+            libc_free(sb->data - sb->skip, 0);
+        sb_init_full(sb, s, sb->len, newsz, MEM_LIBC);
+    } else {
+        irealloc((void **)&sb->data, sb->len + 1, sb->size = newsz, sb->mem_pool | MEM_RAW);
     }
 }
 
