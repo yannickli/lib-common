@@ -34,6 +34,20 @@ char *sb_detach(sb_t *sb, int *len)
     return s;
 }
 
+void sb_wipe(sb_t *sb)
+{
+    switch (sb->mem_pool & MEM_POOL_MASK) {
+      case MEM_STATIC:
+      case MEM_STACK:
+        sb_reset(sb);
+        return;
+      default:
+        ifree(sb->data - sb->skip, sb->mem_pool);
+        sb_init(sb);
+        return;
+    }
+}
+
 /*
  * this function is meant to rewind any change on a sb in a function doing
  * repetitive appends that may fail.
