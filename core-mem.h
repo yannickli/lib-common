@@ -56,6 +56,9 @@ typedef unsigned __bitwise__ mem_flags_t;
  *       Note that irealloc implementations should not trust oldsize if
  *       MEM_RAW is set and oldsize is MEM_UNKNOWN.
  *
+ * %MEM_ERRORS_OK::
+ *     caller can deal with allocation errors from malloc or realloc.
+ *
  * pool origins:
  *
  * %MEM_STATIC::
@@ -78,6 +81,7 @@ typedef unsigned __bitwise__ mem_flags_t;
 #define MEM_STACK      force_cast(mem_flags_t, 3)
 #define MEM_FLAGS_MASK force_cast(mem_flags_t, 0xff00)
 #define MEM_RAW        force_cast(mem_flags_t, 1 << 8)
+#define MEM_ERRORS_OK  force_cast(mem_flags_t, 1 << 9)
 
 #if __GNUC_PREREQ(4, 3)
 __attribute__((error("you cannot allocate that much memory")))

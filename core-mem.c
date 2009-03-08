@@ -90,8 +90,11 @@ void *libc_malloc(size_t size, mem_flags_t flags)
     } else {
         res = calloc(1, size);
     }
-    if (unlikely(res == NULL))
+    if (unlikely(res == NULL)) {
+        if (flags & MEM_ERRORS_OK)
+            return NULL;
         e_panic("out of memory");
+    }
     return res;
 }
 
@@ -99,8 +102,11 @@ void *libc_realloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
 {
     char *res = realloc(mem, size);
 
-    if (unlikely(res == NULL && size))
+    if (unlikely(res == NULL)) {
+        if (!size || (flags & MEM_ERRORS_OK))
+            return NULL;
         e_panic("out of memory");
+    }
     if (!(flags & MEM_RAW) && oldsize < size)
         memset(res + oldsize, 0, size - oldsize);
     return res;
