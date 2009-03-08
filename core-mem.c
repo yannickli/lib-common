@@ -81,6 +81,31 @@ void mem_for_each(mem_pool_t *mp, void (*fn)(mem_blk_t *, void *), void *priv)
     spin_unlock(&lock_g);
 }
 
+void *libc_malloc(size_t size, mem_flags_t flags)
+{
+    void *res;
+
+    if (flags & MEM_RAW) {
+        res = malloc(size);
+    } else {
+        res = calloc(1, size);
+    }
+    if (unlikely(res == NULL))
+        e_panic("out of memory");
+    return res;
+}
+
+void *libc_realloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
+{
+    char *res = realloc(mem, size);
+
+    if (unlikely(res == NULL && size))
+        e_panic("out of memory");
+    if (!(flags & MEM_RAW) && oldsize < size)
+        memset(res + oldsize, 0, size - oldsize);
+    return res;
+}
+
 void *__imalloc(size_t size, mem_flags_t flags)
 {
     if (size == 0)
@@ -120,14 +145,13 @@ void __ifree(void *mem, mem_flags_t flags)
     }
 }
 
-void __irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
+void *__irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
 {
     mem_blk_t *blk;
 
     if (size == 0) {
-        ifree(*mem, flags);
-        *mem = NULL;
-        return;
+        ifree(mem, flags);
+        return NULL;
     }
     if (size > MEM_ALLOC_MAX)
         e_panic("You cannot allocate that amount of memory");
@@ -136,17 +160,13 @@ void __irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
       case MEM_STATIC:
         e_panic("You cannot realloc alloca-ed memory");
       case MEM_STACK:
-        stack_realloc(mem, oldsize, size, flags);
-        return;
+        return stack_realloc(mem, oldsize, size, flags);
       default:
         blk = mem_blk_find(mem);
-        if (blk) {
-            blk->pool->realloc(blk->pool, mem, oldsize, size, flags);
-            return;
-        }
+        if (blk)
+            return blk->pool->realloc(blk->pool, mem, oldsize, size, flags);
         /* FALLTRHOUGH */
       case MEM_LIBC:
-        libc_realloc(mem, oldsize, size, flags);
-        return;
+        return libc_realloc(mem, oldsize, size, flags);
     }
 }

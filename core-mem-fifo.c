@@ -187,12 +187,12 @@ static void mfp_free(mem_pool_t *_mfp, void *mem, mem_flags_t flags)
     }
 }
 
-static void mfp_realloc(mem_pool_t *_mfp, void **memp, size_t oldsize, size_t size, mem_flags_t flags)
+static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t size, mem_flags_t flags)
 {
     mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
     mem_page_t *page;
-    void *mem = *memp;
+    void *res;
 
     if (unlikely(!mfp->alive))
         e_panic("trying to reallocate from a dead pool");
@@ -204,14 +204,11 @@ static void mfp_realloc(mem_pool_t *_mfp, void **memp, size_t oldsize, size_t si
     }
     if (unlikely(size == 0)) {
         mfp_free(_mfp, mem, flags);
-        *memp = NULL;
-        return;
+        return NULL;
     }
 
-    if (!mem) {
-        *memp = mfp_alloc(_mfp, size, flags);
-        return;
-    }
+    if (!mem)
+        return mfp_alloc(_mfp, size, flags);
 
     blk  = container_of(mem, mem_block_t, area);
     page = pageof(blk);
@@ -223,7 +220,7 @@ static void mfp_realloc(mem_pool_t *_mfp, void **memp, size_t oldsize, size_t si
         blk_protect(blk);
         if (!(flags & MEM_RAW) && oldsize < size)
             memset(blk->area + oldsize, 0, size - oldsize);
-        return;
+        return mem;
     }
 
     /* optimization if it's the last block allocated */
@@ -237,11 +234,12 @@ static void mfp_realloc(mem_pool_t *_mfp, void **memp, size_t oldsize, size_t si
 
         mfp->occupied   += size;
         page->used_size += size;
-        return;
+        return mem;
     }
 
-    *memp = memcpy(mfp_alloc(_mfp, size, flags), mem, oldsize);
+    res = memcpy(mfp_alloc(_mfp, size, flags), mem, oldsize);
     mfp_free(_mfp, mem, flags);
+    return res;
 }
 
 static mem_pool_t const mem_fifo_pool_funcs = {

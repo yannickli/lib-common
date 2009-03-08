@@ -206,22 +206,19 @@ static void sp_free(mem_pool_t *_sp, void *mem, mem_flags_t flags)
 {
 }
 
-static void sp_realloc(mem_pool_t *_sp, void **memp,
-                       size_t oldsize, size_t size, mem_flags_t flags)
+static void *sp_realloc(mem_pool_t *_sp, void *mem,
+                        size_t oldsize, size_t size, mem_flags_t flags)
 {
     stack_pool_t *sp = container_of(_sp, stack_pool_t, funcs);
     frame_t *frame = sp->stack;
-    void *mem = *memp;
     byte *res;
 
     if (unlikely(oldsize == MEM_UNKNOWN))
         e_panic("stack pools do not support reallocs with unknown old size");
-    if (size == 0) {
-        *memp = NULL;
-        return;
-    }
+    if (size == 0)
+        return NULL;
     if (oldsize >= size)
-        return;
+        return mem;
 
     if (mem != NULL && mem == frame->last
     &&  align_boundary(oldsize) == align_boundary(size)
@@ -232,11 +229,12 @@ static void sp_realloc(mem_pool_t *_sp, void **memp,
         VALGRIND_MAKE_MEM_DEFINED(mem, size);
         res = mem;
     } else {
-        *memp = res = sp_alloc(_sp, size, flags | MEM_RAW);
+        res = sp_alloc(_sp, size, flags | MEM_RAW);
         memcpy(res, mem, oldsize);
     }
     if (!(flags & MEM_RAW))
         memset(res + oldsize, 0, size - oldsize);
+    return res;
 }
 
 static mem_pool_t const pool_funcs = {
@@ -362,7 +360,7 @@ void *stack_malloc(size_t size, mem_flags_t flags)
     return sp_alloc(t_pool(), size, flags);
 }
 
-void stack_realloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
+void *stack_realloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
 {
     return sp_realloc(t_pool(), mem, oldsize, size, flags);
 }
