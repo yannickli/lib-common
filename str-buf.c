@@ -120,7 +120,9 @@ void __sb_grow(sb_t *sb, int extra)
             libc_free(sb->data - sb->skip, 0);
         sb_init_full(sb, s, sb->len, newsz, MEM_LIBC);
     } else {
-        sb->data = irealloc(sb->data, sb->len + 1, sb->size = newsz, sb->mem_pool | MEM_RAW);
+        sb->data = irealloc(sb->data, sb->len + 1, newsz,
+                            sb->mem_pool | MEM_RAW);
+        sb->size = newsz;
     }
 }
 

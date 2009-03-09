@@ -36,8 +36,18 @@ int iovec_vector_kill_first(iovec_vector *iovs, ssize_t len)
 /* Misc                                                                   */
 /**************************************************************************/
 
+static void vector_destroy_skip(generic_vector *v, int el_siz)
+{
+    memmove((byte *)v->tab - v->skip * el_siz, v->tab, v->len * el_siz);
+    v->tab   = (byte *)v->tab - (v->skip * el_siz);
+    v->size += v->skip;
+    v->skip  = 0;
+}
+
 void generic_vector_ensure(generic_vector *v, int newlen, int el_siz)
 {
+    int newsz;
+
     if (newlen < 0 || newlen * el_siz < 0)
         e_panic("trying to allocate insane amount of RAM");
 
@@ -46,26 +56,36 @@ void generic_vector_ensure(generic_vector *v, int newlen, int el_siz)
 
     /* if data fits and skip is worth it, shift it left */
     if (newlen <= v->skip + v->size && v->skip > v->size / 4) {
-        memmove((byte *)v->tab - v->skip * el_siz, v->tab, v->len * el_siz);
-        v->tab   = (byte *)v->tab - (v->skip * el_siz);
-        v->size += v->skip;
-        v->skip  = 0;
+        vector_destroy_skip(v, el_siz);
         return;
     }
-    v->size = p_alloc_nr(v->size + v->skip);
-    if (v->size < newlen)
-        v->size = newlen;
-    if (v->allocated && !v->skip) {
-        v->tab = irealloc(v->tab, v->len * el_siz, v->size * el_siz, MEM_RAW | MEM_LIBC);
-    } else {
-        byte *new_area = imalloc(v->size * el_siz, MEM_RAW | MEM_LIBC);
+
+    /* most of our pool have expensive reallocs wrt a typical memcpy,
+     * and optimize the last realloc so we don't want to alloc and free
+     */
+    if (v->mem_pool != MEM_LIBC) {
+        vector_destroy_skip(v, el_siz);
+        if (newlen <= v->size)
+            return;
+    }
+
+    newsz = p_alloc_nr(v->size + v->skip);
+    if (newsz < newlen)
+        newsz = newlen;
+    if (v->mem_pool == MEM_STATIC || v->skip) {
+        char *new_area = p_new_raw(char, newsz * el_siz);
+
         memcpy(new_area, v->tab, v->len * el_siz);
-        if (v->allocated) {
-            ifree((char *)v->tab - v->skip * el_siz, MEM_LIBC);
-        }
-        v->allocated = true;
-        v->tab  = new_area;
-        v->skip = 0;
+        if (v->mem_pool != MEM_STATIC)
+            libc_free(v->tab, 0);
+        v->tab      = new_area;
+        v->mem_pool = MEM_LIBC;
+        v->skip     = 0;
+        v->size     = newsz;
+    } else {
+        v->tab = irealloc(v->tab, v->len * el_siz, newsz * el_siz,
+                          v->mem_pool | MEM_RAW);
+        v->size = newsz;
     }
 }
 

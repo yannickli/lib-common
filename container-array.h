@@ -20,16 +20,16 @@
     typedef struct prefix##_vector { \
         el_typ *tab;                 \
         int len, size;               \
-        flag_t allocated  :  1;      \
-        unsigned int skip : 31;      \
+        flag_t mem_pool   :  2;      \
+        unsigned int skip : 30;      \
     } prefix##_vector
 
 #define ARRAY_TYPE(el_typ, prefix)   \
     typedef struct prefix##_array {  \
         el_typ **tab;                \
         int len, size;               \
-        flag_t allocated  :  1;      \
-        unsigned int skip : 31;      \
+        flag_t mem_pool   :  2;      \
+        unsigned int skip : 30;      \
     } prefix##_array
 VECTOR_TYPE(void, generic);
 ARRAY_TYPE(void, generic);
@@ -51,14 +51,24 @@ void generic_array_sort(generic_array *array,
                         int (*cmp)(const void *p1, const void *p2, void *parm),
                         void *parm);
 
-#define vector_inita(v, nb)                                               \
+#define vector_init_full(v, _tab, _len, _size, _mem_pool) \
     do {                                                                  \
-        p_clear(v, 1);                                                    \
-        STATIC_ASSERT((nb) * sizeof((v)->tab[0]) < (64 << 10));           \
-        (v)->size = (nb);                                                 \
-        (v)->tab = alloca((v)->size * sizeof((v)->tab[0]));               \
+        *(v) = (typeof(*v)){                                              \
+            .tab  = (_tab),                                               \
+            .len  = (_len),                                               \
+            .size = (_size),                                              \
+            .mem_pool = (_mem_pool),                                      \
+        };                                                                \
     } while (0)
-#define array_inita(a, nb)    vector_inita(a, nb)
+#define vector_init_pool(v, pool)  vector_init_full(v, NULL, 0, 0, pool)
+#define array_init_pool(v, pool)   vector_init_full(v, NULL, 0, 0, pool)
+#define vector_inita(v, nb) \
+    do {                                                                  \
+        size_t size = (nb) * sizeof((v)->tab[0]);                         \
+        STATIC_ASSERT((nb) * sizeof((v)->tab[0])< (64 << 10));            \
+        vector_init_full(v, alloca(size), 0, (nb), MEM_STATIC);           \
+    } while (0)
+#define array_inita(a, nb)         vector_inita(a, nb)
 
 
 /**************************************************************************/
@@ -160,9 +170,7 @@ void generic_array_sort(generic_array *array,
 #define VECTOR_FUNCTIONS(el_typ, prefix)                                      \
     static inline void prefix##_vector_wipe(prefix##_vector *v) {             \
         v->tab -= v->skip;                                                    \
-        if (v->allocated) {                                                   \
-            p_delete(&v->tab);                                                \
-        }                                                                     \
+        ifree(v->tab, v->mem_pool);                                           \
         p_clear(v, 1);                                                        \
     }                                                                         \
     VECTOR_BASE_FUNCTIONS(el_typ, prefix, _vector)
@@ -173,9 +181,7 @@ void generic_array_sort(generic_array *array,
             wipe(&v->tab[i]);                                                 \
         }                                                                     \
         v->tab -= v->skip;                                                    \
-        if (v->allocated) {                                                   \
-            p_delete(&v->tab);                                                \
-        }                                                                     \
+        ifree(v->tab, v->mem_pool);                                           \
         p_clear(v, 1);                                                        \
     }                                                                         \
     VECTOR_BASE_FUNCTIONS(el_typ, prefix, suffix)
