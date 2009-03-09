@@ -29,6 +29,7 @@ void xmlpp_close(xmlpp_t *);
 
 void xmlpp_opentag(xmlpp_t *, const char *tag);
 void xmlpp_closetag(xmlpp_t *);
+void xmlpp_nl(xmlpp_t *);
 
 void xmlpp_putattr(xmlpp_t *, const char *key, const char *val);
 void xmlpp_putattrfmt(xmlpp_t *, const char *key,

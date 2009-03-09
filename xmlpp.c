@@ -65,6 +65,16 @@ void xmlpp_closetag(xmlpp_t *pp)
     p_delete(&tag);
 }
 
+void xmlpp_nl(xmlpp_t *pp)
+{
+    if (pp->can_do_attr) {
+        sb_shrink(pp->buf, 1);
+        sb_addf(pp->buf, "%-*c>", 2 * pp->stack.len, '\n');
+    } else {
+        sb_addf(pp->buf, "%-*c", 2 * pp->stack.len, '\n');
+    }
+}
+
 void xmlpp_putattr(xmlpp_t *pp, const char *key, const char *val)
 {
     if (!pp->can_do_attr)
