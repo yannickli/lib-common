@@ -353,7 +353,8 @@ void devnull_dup(int fd)
     }
 }
 
-void unix_initialize(void)
+__attribute__((constructor))
+static void unix_initialize(void)
 {
     ha_srand();
 
