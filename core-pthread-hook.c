@@ -18,7 +18,7 @@
 static pthread_key_t key_g;
 
 struct start_pair {
-    void *(*start_routine)(void *);
+    void *(*fn)(void *);
     void *arg;
 };
 
@@ -31,21 +31,31 @@ static void libcommon_thread_on_exit(void *unused)
 static void *start_wrapper(void *data)
 {
     struct start_pair *pair = data;
+    void *(*fn)(void *) = pair->fn;
+    void *arg = pair->arg;
+
+    p_delete(&data);
     pthread_setspecific(key_g, (void *)1);
-    return pair->start_routine(pair->arg);
+    return fn(arg);
 }
 
 __attribute__((visibility("default")))
 int pthread_create(pthread_t *restrict thread,
                    const pthread_attr_t *restrict attr,
-                   void *(*start_routine)(void *), void *restrict arg)
+                   void *(*fn)(void *), void *restrict arg)
 {
-    static typeof(pthread_create) *fn;
-    struct start_pair pair = { start_routine, arg };
+    static typeof(pthread_create) *real_pthread_create;
+    struct start_pair *pair = p_new(struct start_pair, 1);
+    int res;
 
-    if (unlikely(!fn)) {
+    if (unlikely(!real_pthread_create)) {
         pthread_key_create(&key_g, &libcommon_thread_on_exit);
-        fn = dlsym(RTLD_NEXT, "pthread_create");
+        real_pthread_create = dlsym(RTLD_NEXT, "pthread_create");
     }
-    return (*fn)(thread, attr, &start_wrapper, &pair);
+    pair->fn  = fn;
+    pair->arg = arg;
+    res = (*real_pthread_create)(thread, attr, &start_wrapper, pair);
+    if (res < 0)
+        p_delete(&pair);
+    return res;
 }
