@@ -88,11 +88,11 @@ geoip_OBJS=${geoip_PATH}/libGeoIP/.libs
 
 if test -r /usr/lib/libGeoIP.so; then
     setvar "libgeoip_CFLAGS"
-    setvar "libgeoip_LDFLAGS" "-lGeoIP"
+    setvar "libgeoip_LIBS" "-lGeoIP"
 elif test -d ${geoip_PATH}; then
     setvar "libgeoip_CFLAGS" "-I${geoip_PATH}/libGeoIP"
     # We are not allowed to statically with the only object we really need.
-    setvar "libgeoip_LDFLAGS" "-L${geoip_PATH}/libGeoIP/.libs -Wl,--rpath,${geoip_PATH}/libGeoIP/.libs" \
+    setvar "libgeoip_LIBS" "-L${geoip_PATH}/libGeoIP/.libs -Wl,--rpath,${geoip_PATH}/libGeoIP/.libs" \
            "-lGeoIP ${geoip_PATH}/libGeoIP/.libs/libGeoIP.a"
 else
     warn "*** libGeoIP is missing, on unstable: apt-get install libgeoip-dev"
@@ -104,7 +104,7 @@ fi
 
 if pkg-config --print-errors lua5.1; then
     setvar "lua_CFLAGS" "$(pkg-config --cflags lua5.1)"
-    setvar "lua_LDFLAGS" "$(pkg-config --libs lua5.1)"
+    setvar "lua_LIBS" "$(pkg-config --libs lua5.1)"
 else
     warn "*** liblua5.1-dev is missing, apt-get install liblua5.1-dev"
 fi
@@ -117,7 +117,7 @@ oracle_PATH=/opt/intersec/oracle-$(uname -m)
 
 if test -d ${oracle_PATH}; then
     setvar "oracle_CFLAGS" "-Wno-strict-prototypes -I${oracle_PATH}/include"
-    setvar "oracle_LDFLAGS" "-L${oracle_PATH}/lib -Wl,--rpath,${oracle_PATH}/lib -lclntsh"
+    setvar "oracle_LIBS" "-L${oracle_PATH}/lib -Wl,--rpath,${oracle_PATH}/lib -lclntsh"
 else
     warn "*** missing oracle headers, link /opt/intersec to /home/data/build"
     warn "    or unpack /home/data/software/oracle/oracle-sdk.tar.gz"
@@ -128,7 +128,7 @@ fi
 
 if test -r /usr/include/pcap.h; then
     setvar "libpcap_CFLAGS"
-    setvar "libpcap_LDFLAGS" "-lpcap"
+    setvar "libpcap_LIBS" "-lpcap"
 else
     warn "*** missing libpcap, apt-get install libpcap-dev"
 fi
@@ -138,7 +138,7 @@ fi
 
 if test -r /usr/lib/libreadline.so; then
     setvar "readline_CFLAGS"
-    setvar "readline_LDFLAGS" "-lreadline"
+    setvar "readline_LIBS" "-lreadline"
 else
     warn "*** missing libreadline, apt-get install libreadline-dev"
 fi
@@ -153,7 +153,7 @@ test -r /usr/include/netinet/sctp.h || warn "*** missing libsctp, apt-get instal
 
 if pkg-config --print-errors "libavformat libavcodec"; then
     setvar "ffmpeg_CFLAGS" "$(pkg-config --cflags libavformat libavcodec)"
-    setvar "ffmpeg_LDFLAGS" "$(pkg-config --libs  libavformat libavcodec)"
+    setvar "ffmpeg_LIBS" "$(pkg-config --libs  libavformat libavcodec)"
 fi
 
 # }}}
@@ -161,7 +161,7 @@ fi
 
 if pkg-config --print-errors ImageMagick; then
     setvar "libmagick_CFLAGS"  "$(pkg-config --cflags ImageMagick)"
-    setvar "libmagick_LDFLAGS" "$(pkg-config --libs ImageMagick)"
+    setvar "libmagick_LIBS" "$(pkg-config --libs ImageMagick)"
 else
     warn "*** missing ImageMagick, apt-get install libmagick9-dev"
 fi
@@ -220,7 +220,7 @@ fi
 if which net-snmp-config >/dev/null 2>/dev/null && which mib2c >/dev/null 2>/dev/null
 then
     setvar "net_snmp_CFLAGS" "$(net-snmp-config --cflags)"
-    setvar "net_snmp_LDFLAGS" "$(net-snmp-config --libs)"
+    setvar "net_snmp_LIBS" "$(net-snmp-config --libs)"
 else
     warn "*** net-snmp-config or mib2c is missing, apt-get install libsnmp-base libsnmp-dev"
 fi

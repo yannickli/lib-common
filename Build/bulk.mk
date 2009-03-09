@@ -180,7 +180,7 @@ __dump_targets:
 	    echo '$v += $(call fun/msq,$(call fun/rebase,$(CURDIR),$($v)))';)
 	$(foreach v,$(filter %_DEPENDS %_SOURCES,$(.VARIABLES)),\
 	    echo '$.$v += $(call fun/msq,$(call fun/rebase,$(CURDIR),$($v)))';)
-	$(foreach v,$(filter %FLAGS %_SOVERSION,$(filter-out MAKE%,$(.VARIABLES))),\
+	$(foreach v,$(filter %LIBS %FLAGS %_SOVERSION,$(filter-out MAKE%,$(.VARIABLES))),\
 	    echo '$.$v += $(call fun/msq,$($v))';)
 	echo '$._CLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(CLEANFILES)))'
 	echo 'DISTCLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(DISTCLEANFILES)))'

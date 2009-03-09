@@ -149,7 +149,8 @@ $~$1.so$$(tmp/$1/build):
 	    -fPIC -shared -o $$@ $$(filter %.o %.ld,$$^) \
 	    $(LDFLAGS) $$($(1D)/_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
-	    -Wl,--no-whole-archive $$(filter %.a,$$^) $$($1_LIBS) \
+	    -Wl,--no-whole-archive $$(filter %.a,$$^) \
+	    $(LIBS) $$($(1D)/_LIBS) $$($(1D)_LIBS) $$($1_LIBS) \
 	    -Wl,-soname,$(1F).so$$(tmp/$1/sover)
 	$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so)
 
@@ -171,7 +172,8 @@ $~$1.exe:
 	    -o $$@ $$(filter %.o %.ld,$$^) \
 	    $(LDFLAGS) $$($(1D)/_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
-	    -Wl,--no-whole-archive $$(filter %.a,$$^) $$($1_LIBS)
+	    -Wl,--no-whole-archive $$(filter %.a,$$^) \
+	    $(LIBS) $$($(1D)/_LIBS) $$($(1D)_LIBS) $$($1_LIBS)
 $(1D)/clean::
 	$(RM) $1$(EXEEXT)
 endef
