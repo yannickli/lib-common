@@ -348,7 +348,7 @@ void mem_stack_rewind(mem_pool_t *_sp, const void *cookie)
 
 mem_pool_t *t_pool(void)
 {
-    static mem_pool_t *sp;
+    static __thread mem_pool_t *sp;
     if (unlikely(!sp)) {
         sp = mem_stack_pool_new(64 << 10);
     }
