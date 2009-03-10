@@ -457,7 +457,7 @@ mem_pool_t *t_pool(void) __attribute__((pure));
 #define t_new_raw(type_t)  \
     ((type_t *)imalloc(sizeof(type_t), MEM_STACK | MEM_RAW))
 #define t_new_extra(type_t, extra) \
-    ((type_t *)imalloc(sizeof(type_t) + extra, MEM_STACK))
+    ((type_t *)imalloc(sizeof(type_t) + (extra), MEM_STACK))
 #define t_dup(p, count)    mp_dup(t_pool(), p, count)
 #define t_dupz(p, count)   mp_dupz(t_pool(), p, count)
 
