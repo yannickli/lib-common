@@ -53,7 +53,11 @@ static inline socklen_t sockunion_len(const sockunion_t *su) {
       case AF_INET6:
         return sizeof(struct sockaddr_in6);
       case AF_UNIX:
-        return offsetof(struct sockaddr_un, sun_path) + strlen(su->sunix.sun_path);
+        /* XXX: the +1 isn't a bug, it's really what we mean
+         *      it's to support linux abstract sockets
+         */
+        return offsetof(struct sockaddr_un, sun_path)
+            +  strlen(su->sunix.sun_path + 1);
       default:
         return (socklen_t)-1;
     }
