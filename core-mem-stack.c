@@ -280,7 +280,7 @@ void mem_stack_pool_delete(mem_pool_t **spp)
 const void *mem_stack_push(mem_pool_t *_sp)
 {
     stack_pool_t *sp = container_of(_sp, stack_pool_t, funcs);
-    frame_t *frame = sp_alloc(_sp, sizeof(frame), 0);
+    frame_t *frame = sp_alloc(_sp, sizeof(*frame), 0);
 
     frame->blk  = sp->stack->blk;
     frame->pos  = sp->stack->pos;
