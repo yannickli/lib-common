@@ -100,7 +100,7 @@ void *libc_malloc(size_t size, mem_flags_t flags)
 
 void *libc_realloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
 {
-    char *res = realloc(mem, size);
+    byte *res = realloc(mem, size);
 
     if (unlikely(res == NULL)) {
         if (!size || (flags & MEM_ERRORS_OK))
@@ -144,7 +144,7 @@ void __ifree(void *mem, mem_flags_t flags)
             blk->pool->free(blk->pool, mem, flags);
             return;
         }
-        /* FALLTRHOUGH */
+        /* FALL THRU */
       case MEM_LIBC:
         libc_free(mem, flags);
         return;
@@ -171,7 +171,7 @@ void *__irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
         blk = mem_blk_find(mem);
         if (blk)
             return blk->pool->realloc(blk->pool, mem, oldsize, size, flags);
-        /* FALLTRHOUGH */
+        /* FALL THRU */
       case MEM_LIBC:
         return libc_realloc(mem, oldsize, size, flags);
     }

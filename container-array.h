@@ -65,7 +65,7 @@ void generic_array_sort(generic_array *array,
 #define vector_inita(v, nb) \
     do {                                                                  \
         size_t size = (nb) * sizeof((v)->tab[0]);                         \
-        STATIC_ASSERT((nb) * sizeof((v)->tab[0])< (64 << 10));            \
+        STATIC_ASSERT((nb) * sizeof((v)->tab[0]) < (64 << 10));           \
         vector_init_full(v, alloca(size), 0, (nb), MEM_STATIC);           \
     } while (0)
 #define array_inita(a, nb)         vector_inita(a, nb)
