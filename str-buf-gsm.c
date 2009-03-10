@@ -281,10 +281,7 @@ int sb_conv_from_gsm(sb_t *sb, const void *data, int slen)
     char *w, *wend;
     sb_t orig = *sb;
 
-    if (slen & 1)
-        return -1;
-
-    w    = sb_grow(sb, slen / 2 + 4);
+    w    = sb_grow(sb, slen + 4);
     wend = sb_end(sb);
 
     while (p < end) {

@@ -79,7 +79,6 @@
 #define blob_append_ira_hex           sb_conv_to_gsm_hex
 #define blob_append_ira_bin           sb_conv_to_gsm
 #define blob_append_gsm7_packed       sb_conv_to_gsm7
-#define blob_decode_gsm7_packed       sb_conv_from_gsm
 
 static inline void blob_setlen(blob_t *blob, int newlen) {
     sb_growlen(blob, newlen - blob->len);
