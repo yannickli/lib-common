@@ -142,6 +142,7 @@ void el_bl_lock(void);
 void el_bl_unlock(void);
 
 void el_loop(void);
+void el_unloop(void);
 void el_loop_timeout(int msecs);
 
 /**\}*/

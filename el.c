@@ -96,7 +96,8 @@ DO_HTBL_KEY(ev_assoc_t, uint64_t, ev_assoc, u);
 
 static struct {
     volatile uint32_t gotsigs;
-    int    active;            /* number of ev_t keeping the el_loop running */
+    int      active;          /* number of ev_t keeping the el_loop running */
+    int      unloop;          /* @see el_unloop()                           */
     uint64_t lp_clk;          /* low precision monotonic clock              */
 
     dlist_t  before;          /* ev_t to run at the start of the loop       */
@@ -714,6 +715,8 @@ void el_loop_timeout(int timeout)
         timeout = 0;
     }
     do_license_checks();
+    if (unlikely(_G.unloop))
+        return;
     el_loop_fds(timeout);
     el_loop_proxies();
     el_signal_process();
@@ -743,9 +746,15 @@ void el_bl_unlock(void)
 
 void el_loop(void)
 {
-    while (likely(_G.active)) {
+    while (likely(_G.active) && likely(!_G.unloop)) {
         el_loop_timeout(59000); /* arbitrary: 59 seconds */
     }
+    _G.unloop = false;
+}
+
+void el_unloop(void)
+{
+    _G.unloop = true;
 }
 
 #ifndef NDEBUG
