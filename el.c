@@ -115,7 +115,8 @@ static struct {
     int    evs_len;
     dlist_t evs_free;
     dlist_t evs_gc;
-} _G = {
+} el_g = {
+#define _G el_g
     .evs[0]         = _G.evs_initial,
     .evs_len        = 1,
     .evs_alloc_next = &_G.evs_initial[0],
