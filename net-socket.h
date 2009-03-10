@@ -57,7 +57,7 @@ static inline socklen_t sockunion_len(const sockunion_t *su) {
          *      it's to support linux abstract sockets
          */
         return offsetof(struct sockaddr_un, sun_path)
-            +  strlen(su->sunix.sun_path + 1);
+            + 1 + strlen(su->sunix.sun_path + 1);
       default:
         return (socklen_t)-1;
     }
