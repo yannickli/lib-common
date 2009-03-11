@@ -419,7 +419,7 @@ void sb_conv_to_gsm_hex(sb_t *sb, const void *data, int len)
 }
 
 /*
- * write up to 8 septets in the 56 most significant bits of "pack"
+ * write up to 8 septets in the 56 least significant bits of "pack"
  * XXX: the tragic truth about septets is that writing 8 septets means we pass
  *      `7` as %len value, the same value we use for 7 septets, except that
  *      for the latter case, it writes 7 bits of padding.
