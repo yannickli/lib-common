@@ -116,8 +116,10 @@ void __sb_grow(sb_t *sb, int extra)
         char *s = p_new_raw(char, newsz);
 
         memcpy(s, sb->data, sb->len + 1);
-        if (sb->mem_pool != MEM_STATIC)
+        if (sb->mem_pool != MEM_STATIC) {
+            /* XXX: If we have sb->skip, then mem_pool == MEM_LIBC */
             libc_free(sb->data - sb->skip, 0);
+        }
         sb_init_full(sb, s, sb->len, newsz, MEM_LIBC);
     } else {
         sb->data = irealloc(sb->data, sb->len + 1, newsz,
