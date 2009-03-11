@@ -208,7 +208,7 @@ int sb_getline(sb_t *sb, FILE *f)
             break;
 
         sb->len += strlen(buf);
-    } while (sb->data[sb->len - 1] == '\n');
+    } while (sb->data[sb->len - 1] != '\n');
 
     if (ferror(f))
         return __sb_rewind_adds(sb, &orig);
