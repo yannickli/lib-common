@@ -521,6 +521,9 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                 format++;
                 prec = va_arg(ap, int);
                 if (prec < 0) {
+                    /* OG: should be treated as if precision were
+                     * omitted, ie: prec = 1, flags &= ~FLAG_PREC
+                     */
                     prec = 0;
                 }
             } else
