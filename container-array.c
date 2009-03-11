@@ -76,8 +76,10 @@ void generic_vector_ensure(generic_vector *v, int newlen, int el_siz)
         char *new_area = p_new_raw(char, newsz * el_siz);
 
         memcpy(new_area, v->tab, v->len * el_siz);
-        if (v->mem_pool != MEM_STATIC)
+        if (v->mem_pool != MEM_STATIC) {
+            /* XXX: v->skip != 0 implies mem_pool == MEM_LIBC */
             libc_free((char *)v->tab - v->skip * el_siz, 0);
+        }
         v->tab      = new_area;
         v->mem_pool = MEM_LIBC;
         v->skip     = 0;
