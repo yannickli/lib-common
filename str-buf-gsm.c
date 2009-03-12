@@ -341,6 +341,22 @@ int gsm7_charlen(int c)
     return 1 + (c > 0xff);
 }
 
+bool sb_conv_to_gsm_isok(const void *data, int len)
+{
+    const char *p = data, *end = p + len;
+
+    while (p < end) {
+        int c = (unsigned char)*p++;
+
+        if (c & 0x80) {
+            int u = utf8_ngetc(p - 1, end - p + 1, &p);
+            if (unicode_to_gsm7(u < 0 ? c : u, -1) < 0)
+                return false;
+        }
+    }
+    return true;
+}
+
 void sb_conv_to_gsm(sb_t *sb, const void *data, int len)
 {
     const char *p = data, *end = p + len;
