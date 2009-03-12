@@ -424,6 +424,78 @@ int sb_conv_to_latin1(sb_t *sb, const void *data, int len, int rep)
     return 0;
 }
 
+int  sb_conv_to_ucs2be(sb_t *sb, const void *data, int len)
+{
+    sb_t orig = *sb;
+    const char *s = data, *end = s + len;
+
+    sb_grow(sb, 2 * len);
+
+    while (s < end) {
+        const char *p = s;
+        char *buf;
+
+        while (s < end && !(*s & 0x80))
+            s++;
+        buf = sb_growlen(sb, (s - p) * 2);
+        for (; p < s; p++) {
+            *buf++ = '\0';
+            *buf++ = *p;
+        }
+
+        while (s < end && (*s & 0x80)) {
+            int c = utf8_ngetc(s, end - s, &s);
+
+            if (c < 0)
+                c = (unsigned char )*s++;
+            if (c > 0xffff)
+                return __sb_rewind_adds(sb, &orig);
+            sb_addc(sb, c >> 8);
+            sb_addc(sb, c);
+        }
+    }
+    return 0;
+}
+
+int  sb_conv_to_ucs2be_hex(sb_t *sb, const void *data, int len)
+{
+    sb_t orig = *sb;
+    const char *s = data, *end = s + len;
+
+    sb_grow(sb, 4 * len);
+
+    while (s < end) {
+        const char *p = s;
+        char *buf;
+
+        while (s < end && !(*s & 0x80))
+            s++;
+        buf = sb_growlen(sb, (s - p) * 4);
+        for (; p < s; p++) {
+            buf[0] = '0';
+            buf[1] = '0';
+            buf[2] = __str_digits_upper[(*p >> 4) & 0xf];
+            buf[3] = __str_digits_upper[(*p >> 0) & 0xf];
+            buf += 4;
+        }
+
+        while (s < end && (*s & 0x80)) {
+            int c = utf8_ngetc(s, end - s, &s);
+
+            if (c < 0)
+                c = (unsigned char )*s++;
+            if (c > 0xffff)
+                return __sb_rewind_adds(sb, &orig);
+            buf = sb_growlen(sb, 4);
+            buf[0] = __str_digits_upper[(c >> 12) & 0xf];
+            buf[1] = __str_digits_upper[(c >>  8) & 0xf];
+            buf[2] = __str_digits_upper[(c >>  4) & 0xf];
+            buf[3] = __str_digits_upper[(c >>  0) & 0xf];
+        }
+    }
+    return 0;
+}
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 
