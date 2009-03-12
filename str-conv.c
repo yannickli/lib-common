@@ -424,6 +424,41 @@ int sb_conv_to_latin1(sb_t *sb, const void *data, int len, int rep)
     return 0;
 }
 
+int  sb_conv_to_ucs2le(sb_t *sb, const void *data, int len)
+{
+    sb_t orig = *sb;
+    const char *s = data, *end = s + len;
+
+    sb_grow(sb, 2 * len);
+
+    while (s < end) {
+        const char *p = s;
+        char *buf;
+
+        while (s < end && !(*s & 0x80))
+            s++;
+        buf = sb_growlen(sb, (s - p) * 2);
+        for (; p < s; p++) {
+            buf[0] = *p;
+            buf[1] = '\0';
+            buf += 2;
+        }
+
+        while (s < end && (*s & 0x80)) {
+            int c = utf8_ngetc(s, end - s, &s);
+
+            if (c < 0)
+                c = (unsigned char )*s++;
+            if (c > 0xffff)
+                return __sb_rewind_adds(sb, &orig);
+            buf = sb_grow(sb, 2);
+            buf[0] = c;
+            buf[1] = c >> 8;
+        }
+    }
+    return 0;
+}
+
 int  sb_conv_to_ucs2be(sb_t *sb, const void *data, int len)
 {
     sb_t orig = *sb;
@@ -439,8 +474,9 @@ int  sb_conv_to_ucs2be(sb_t *sb, const void *data, int len)
             s++;
         buf = sb_growlen(sb, (s - p) * 2);
         for (; p < s; p++) {
-            *buf++ = '\0';
-            *buf++ = *p;
+            buf[0] = '\0';
+            buf[1] = *p;
+            buf += 2;
         }
 
         while (s < end && (*s & 0x80)) {
@@ -450,8 +486,9 @@ int  sb_conv_to_ucs2be(sb_t *sb, const void *data, int len)
                 c = (unsigned char )*s++;
             if (c > 0xffff)
                 return __sb_rewind_adds(sb, &orig);
-            sb_addc(sb, c >> 8);
-            sb_addc(sb, c);
+            buf = sb_grow(sb, 2);
+            buf[0] = c >> 8;
+            buf[1] = c;
         }
     }
     return 0;
