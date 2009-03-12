@@ -150,6 +150,44 @@ int tpl_encode_ira_bin(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
     return 0;
 }
 
+int tpl_encode_ucs2be(tpl_t *out, sb_t *sb, tpl_t **args, int nb)
+{
+    if (!sb) {
+        assert(out);
+        sb = tpl_get_blob(out);
+    }
+
+    while (--nb >= 0) {
+        tpl_t *arg = *args++;
+        if (arg->op == TPL_OP_DATA) {
+            sb_conv_to_ucs2be(sb, arg->u.data.data, arg->u.data.len);
+        } else {
+            assert (arg->op == TPL_OP_BLOB);
+            sb_conv_to_ucs2be(sb, arg->u.blob.data, arg->u.blob.len);
+        }
+    }
+    return 0;
+}
+
+int tpl_encode_ucs2be_hex(tpl_t *out, sb_t *sb, tpl_t **args, int nb)
+{
+    if (!sb) {
+        assert(out);
+        sb = tpl_get_blob(out);
+    }
+
+    while (--nb >= 0) {
+        tpl_t *arg = *args++;
+        if (arg->op == TPL_OP_DATA) {
+            sb_conv_to_ucs2be_hex(sb, arg->u.data.data, arg->u.data.len);
+        } else {
+            assert (arg->op == TPL_OP_BLOB);
+            sb_conv_to_ucs2be_hex(sb, arg->u.blob.data, arg->u.blob.len);
+        }
+    }
+    return 0;
+}
+
 int tpl_encode_base64(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
 {
     sb_b64_ctx_t ctx;
