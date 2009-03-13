@@ -140,7 +140,7 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
 #endif
 
 #if 1
-static int isndx_word_test(const char *indexname)
+static int isndx_word_test(const char *indexname, const char *dictfile)
 {
     struct stat st;
     proctimer_t pt, pt1;
@@ -150,18 +150,16 @@ static int isndx_word_test(const char *indexname)
     isndx_t *ndx;
 
     char buf[MAX_KEYLEN + 1];
-    const char *dictfile = "/tmp/words";
-    const char *dictfile2 = "/usr/share/dict/words";
     byte *key, *p, *data;
     int keylen, datalen, lineno = 0;
     int i, repeat;
     BSTREAM *fp;
 
+    if (!dictfile)
+        dictfile = "/usr/share/dict/words";
+
     fp = bopen(dictfile, O_RDONLY);
 
-    if (!fp) {
-        fp = bopen(dictfile2, O_RDONLY);
-    }
     if (!fp) {
         printf("isndx: failed to open file '%s'\n", dictfile);
         return 1;
@@ -514,7 +512,7 @@ int main(int argc, char **argv)
     }
 
     if (!strcmp(argv[1], "words")) {
-        return isndx_word_test("/tmp/words.ndx");
+        return isndx_word_test("/tmp/words.ndx", argv[2]);
     }
 
     indexname = *++argv;
@@ -594,7 +592,7 @@ int main(int argc, char **argv)
 
   usage:
     printf("usage: tst-isndx linear\n"
-           "       tst-isndx words\n"
+           "       tst-isndx words WORDFILE\n"
            "       tst-isndx compare\n"
            "       tst-isndx indexfile check\n"
            "       tst-isndx indexfile dump [enumerate | all | keys | pages | PAGENO...]\n"

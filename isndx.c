@@ -753,7 +753,7 @@ static int isndx_enumerate_page(isndx_t *ndx, uint32_t pageno, int level,
             }
         } else {
             nkeys++;
-            if ((*cb)(opaque, ndx, key, keylen, p + 3, p[2]))
+            if ((*cb)(opaque, ndx, key, keylen, p + 3 + p[1], p[2]))
                 return 1;
         }
         p = p1;
@@ -1010,7 +1010,7 @@ static void isndx_dump_key(isndx_t *ndx, const byte *key, int keylen, FILE *fp)
     int i, binary;
 
     for (binary = i = 0; i < keylen; i++) {
-        if (key[i] < 0x20)
+        if (key[i] < 0x20 || key[i] >= 0x7f)
             binary++;
     }
     if (binary) {
@@ -1056,7 +1056,7 @@ static void isndx_dump_data(isndx_t *ndx, const byte *p, int len, FILE *fp)
     int i, binary;
 
     for (binary = i = 0; i < len; i++) {
-        if (p[i] < 0x20)
+        if (p[i] < 0x20 || p[i] >= 0x7f)
             binary++;
     }
     if (binary) {
@@ -1159,7 +1159,7 @@ static int isndx_dump_fun(void *opaque, isndx_t *ndx,
     fprintf(fp, "key: ");
     isndx_dump_key(ndx, key, klen, fp);
     fprintf(fp, ", data: ");
-    isndx_dump_data(ndx, key, klen, fp);
+    isndx_dump_data(ndx, data, len, fp);
     fprintf(fp, "\n");
 
     return 0;
