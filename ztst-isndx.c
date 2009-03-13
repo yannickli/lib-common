@@ -139,7 +139,7 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
 #define bclose(sp)       (*(sp) ? (fclose(*(sp)), *(sp) = NULL) : 0)
 #endif
 
-#if 0
+#if 1
 static int isndx_word_test(const char *indexname)
 {
     struct stat st;
@@ -193,7 +193,7 @@ static int isndx_word_test(const char *indexname)
 
     nkeys = 0;
 
-    repeat = 300;
+    repeat = 1;
     for (i = 0; i < repeat; i++) {
         brewind(fp);
         while (bgets(fp, buf, sizeof(buf))) {
@@ -360,7 +360,7 @@ static int isndx_linear_test(const char *indexname, int64_t start, int bswap,
     printf("    check OK (times: %s)\n", proctimer_report(&pt1, NULL));
     fflush(stdout);
 
-    unlink(indexname);
+    //unlink(indexname);
     return status;
 }
 
@@ -513,6 +513,10 @@ int main(int argc, char **argv)
         return benchmark_index_methods();
     }
 
+    if (!strcmp(argv[1], "words")) {
+        return isndx_word_test("/tmp/words.ndx");
+    }
+
     indexname = *++argv;
     ndx = isndx_open(indexname, O_RDWR);
     if (!ndx) {
@@ -569,6 +573,10 @@ int main(int argc, char **argv)
                 if (!strcmp(*argv, "pages")) {
                     argv++;
                     isndx_dump(ndx, ISNDX_DUMP_PAGES, stdout);
+                } else
+                if (!strcmp(*argv, "enumerate")) {
+                    argv++;
+                    isndx_dump(ndx, ISNDX_DUMP_ENUMERATE, stdout);
                 } else {
                     uint32_t pageno;
                     isndx_dump(ndx, 0, stdout);
@@ -586,9 +594,10 @@ int main(int argc, char **argv)
 
   usage:
     printf("usage: tst-isndx linear\n"
+           "       tst-isndx words\n"
            "       tst-isndx compare\n"
            "       tst-isndx indexfile check\n"
-           "       tst-isndx indexfile dump [all | keys | pages | PAGENO...]\n"
+           "       tst-isndx indexfile dump [enumerate | all | keys | pages | PAGENO...]\n"
            "       tst-isndx indexfile fetch key\n");
     return 1;
 }

@@ -102,14 +102,20 @@ int isndx_check(isndx_t *ndx, int flags);
 int isndx_check_page(isndx_t *ndx, uint32_t pageno, int level,
                      int upkeylen, const byte *upkey, int flags);
 
-#define ISNDX_DUMP_ALL      1
-#define ISNDX_DUMP_PAGES    2
-#define ISNDX_DUMP_KEYS     4
+#define ISNDX_DUMP_ALL        1
+#define ISNDX_DUMP_PAGES      2
+#define ISNDX_DUMP_KEYS       4
+#define ISNDX_DUMP_ENUMERATE  8
 
 void isndx_dump(isndx_t *ndx, int flags, FILE *fp);
 void isndx_dump_page(isndx_t *ndx, uint32_t pageno, int flags, FILE *fp);
 
 int isndx_get_error(isndx_t *ndx, char *buf, int size);
 FILE *isndx_set_error_stream(isndx_t *ndx, FILE *stream);
+
+int isndx_enumerate(isndx_t *ndx, void *opaque,
+                    int (*cb)(void *opaque, isndx_t *ndx,
+                              const byte *key, int klen,
+                              const void *data, int len));
 
 #endif /* IS_LIB_COMMON_ISNDX_H */
