@@ -659,6 +659,155 @@ int isndx_push(isndx_t *ndx, const byte *key, int keylen,
     return isndx_insert_one(ndx, &ist, 0, key, keylen, data, datalen);
 }
 
+static int isndx_enumerate_page(isndx_t *ndx, uint32_t pageno, int level,
+                                int upkeylen, const byte *upkey, int flags,
+                                void *opaque,
+                                int (*cb)(void *opaque, isndx_t *ndx,
+                                          const byte *key, int klen,
+                                          const void *data, int len))
+{
+    byte key[2 * (MAX_KEYLEN + 1)];
+    uint32_t childpageno;
+    int pagelen, keylen;
+    int status = 0;
+    const byte *page, *p, *p1, *p2;
+    int tail, nkeys;
+
+    page = isndx_getpage(ndx, pageno);
+
+    pagelen = NDX_GET_PAGELEN(page);
+
+    if (level != page[0]) {
+        status |= ISNDX_ERROR(ndx, "page %u: invalid level=%d, expected=%d",
+                              pageno, page[0], level);
+        status = -1;
+    }
+
+    if (pagelen < 7 || pagelen > (int)ndx->file->area->pagesize) {
+        status |= ISNDX_ERROR(ndx, "page %u: invalid pagelen=%d",
+                              pageno, pagelen);
+        status = -1;
+        return status;
+    }
+
+    tail = ((flags & ISNDX_CHECK_ISRIGHTMOST) && level) ? 6 : 3;
+
+    if (page[1] != tail) {
+        status |= ISNDX_ERROR(ndx, "page %u: incorrect page tail=%d,"
+                              " expected=%d",
+                              pageno, page[1], tail);
+    }
+
+    nkeys = 0;
+    p = page + 4;
+    p2 = page + pagelen - tail;
+    keylen = 0;
+
+    while (p < p2) {
+        p1 = p + 3 + p[1] + p[2];
+        if (p1 > p2) {
+            status |= ISNDX_ERROR(ndx, "page %u:%d: key data overflow",
+                                  pageno, (int)(p - page));
+        }
+        if (p[0] > keylen) {
+            status |= ISNDX_ERROR(ndx, "page %u:%d: incorrect common=%d keylen=%d",
+                                  pageno, (int)(p - page), p[0], keylen);
+        }
+        if (p[0] + p[1] == 0) {
+            status |= ISNDX_ERROR(ndx, "page %u:%d: invalid empty key",
+                                  pageno, (int)(p - page));
+        }
+        if (p[0] + p[1] > MAX_KEYLEN) {
+            status |= ISNDX_ERROR(ndx, "page %u:%d: incorrect suffix=%d keylen=%d",
+                                  pageno, (int)(p - page), p[1], p[0] + p[1]);
+        }
+        if (p[0] < keylen) {
+            if (p[1] == 0 || p[3] < key[p[0]]) {
+                status |= ISNDX_ERROR(ndx, "page %u:%d: key out of order",
+                                      pageno, (int)(p - page));
+            } else
+            if (p[3] == key[p[0]]) {
+                status |= ISNDX_ERROR(ndx, "page %u:%d: incorrect prefix",
+                                      pageno, (int)(p - page));
+            }
+        }
+        memcpy(key + p[0], p + 3, p[1]);
+        keylen = p[0] + p[1];
+        if (level > 0) {
+            if (p[2] != 3) {
+                status |= ISNDX_ERROR(ndx, "page %u:%d: incorrect datalen=%d",
+                                      pageno, (int)(p - page), p[2]);
+            }
+            childpageno = NDX_GET_PAGENO(p + 3 + p[1]);
+            if (childpageno < 1 || childpageno >= ndx->file->area->nbpages) {
+                status |= ISNDX_ERROR(ndx, "page %u:%d: incorrect child page=%u",
+                                      pageno, (int)(p - page), childpageno);
+            } else {
+                int res = isndx_enumerate_page(ndx, childpageno, level - 1,
+                                               keylen, key,
+                                               flags & ~ISNDX_CHECK_ISRIGHTMOST,
+                                               opaque, cb);
+                if (res == 1)
+                    return 1;
+                status |= res;
+            }
+        } else {
+            nkeys++;
+            if ((*cb)(opaque, ndx, key, keylen, p + 3, p[2]))
+                return 1;
+        }
+        p = p1;
+    }
+    if (p[0] != 0 || p[1] != 0 || p[2] != tail - 3) {
+        status |= ISNDX_ERROR(ndx, "page %u:%d: invalid tail %d %d %d",
+                              pageno, (int)(p - page), p[0], p[1], p[2]);
+    }
+    if (tail == 6) {
+        childpageno = NDX_GET_PAGENO(p + 3);
+        if (childpageno < 1 || childpageno >= ndx->file->area->nbpages) {
+            status |= ISNDX_ERROR(ndx, "page %u:%d: incorrect child page=%u",
+                                  pageno, (int)(p - page), childpageno);
+        } else {
+            int res = isndx_enumerate_page(ndx, childpageno, level - 1,
+                                           upkeylen, upkey,
+                                           flags | ISNDX_CHECK_ISRIGHTMOST,
+                                           opaque, cb);
+            if (res == 1)
+                return 1;
+            status |= res;
+        }
+    } else {
+        if (upkeylen) {
+            if (keylen != upkeylen || memcmp(key, upkey, keylen)) {
+                status |= ISNDX_ERROR(ndx, "page %u:%d: upkey differs from last key"
+                                      " '%.*s' != '%.*s'",
+                                      pageno, (int)(p - page),
+                                      keylen, key, upkeylen, upkey);
+            }
+        }
+    }
+    //ndx->nkeys += nkeys;
+    //ndx->npages++;
+
+    return status;
+}
+
+int isndx_enumerate(isndx_t *ndx, void *opaque,
+                    int (*cb)(void *opaque, isndx_t *ndx,
+                              const byte *key, int klen,
+                              const void *data, int len))
+{
+    uint32_t root;
+    int rootlevel;
+
+    root = ndx->file->area->root;
+    rootlevel = ndx->file->area->rootlevel;
+
+    return isndx_enumerate_page(ndx, root, rootlevel,
+                                0, NULL, ISNDX_CHECK_ISRIGHTMOST,
+                                opaque, cb);
+}
+
 int isndx_check_page(isndx_t *ndx, uint32_t pageno, int level,
                      int upkeylen, const byte *upkey, int flags)
 {
@@ -1001,6 +1150,21 @@ void isndx_dump_page(isndx_t *ndx, uint32_t pageno, int flags, FILE *fp)
     }
 }
 
+static int isndx_dump_fun(void *opaque, isndx_t *ndx,
+                          const byte *key, int klen,
+                          const void *data, int len)
+{
+    FILE *fp = opaque;
+
+    fprintf(fp, "key: ");
+    isndx_dump_key(ndx, key, klen, fp);
+    fprintf(fp, ", data: ");
+    isndx_dump_data(ndx, key, klen, fp);
+    fprintf(fp, "\n");
+
+    return 0;
+}
+
 void isndx_dump(isndx_t *ndx, int flags, FILE *fp)
 {
     uint32_t pageno;
@@ -1020,6 +1184,11 @@ void isndx_dump(isndx_t *ndx, int flags, FILE *fp)
     fprintf(fp, "    datalen : %d..%d\n",
             ndx->file->area->mindatalen,
             ndx->file->area->maxdatalen);
+
+    if (flags & ISNDX_DUMP_ENUMERATE) {
+        fprintf(fp, "\n");
+        isndx_enumerate(ndx, fp, isndx_dump_fun);
+    }
 
     if (flags & (ISNDX_DUMP_ALL | ISNDX_DUMP_KEYS | ISNDX_DUMP_PAGES)) {
         fprintf(fp, "\n");
