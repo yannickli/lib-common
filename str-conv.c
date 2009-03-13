@@ -424,7 +424,7 @@ int sb_conv_to_latin1(sb_t *sb, const void *data, int len, int rep)
     return 0;
 }
 
-int  sb_conv_to_ucs2le(sb_t *sb, const void *data, int len)
+int sb_conv_to_ucs2le(sb_t *sb, const void *data, int len)
 {
     sb_t orig = *sb;
     const char *s = data, *end = s + len;
@@ -448,10 +448,10 @@ int  sb_conv_to_ucs2le(sb_t *sb, const void *data, int len)
             int c = utf8_ngetc(s, end - s, &s);
 
             if (c < 0)
-                c = (unsigned char )*s++;
+                c = (unsigned char)*s++;
             if (c > 0xffff)
                 return __sb_rewind_adds(sb, &orig);
-            buf = sb_grow(sb, 2);
+            buf = sb_growlen(sb, 2);
             buf[0] = c;
             buf[1] = c >> 8;
         }
@@ -459,7 +459,7 @@ int  sb_conv_to_ucs2le(sb_t *sb, const void *data, int len)
     return 0;
 }
 
-int  sb_conv_to_ucs2be(sb_t *sb, const void *data, int len)
+int sb_conv_to_ucs2be(sb_t *sb, const void *data, int len)
 {
     sb_t orig = *sb;
     const char *s = data, *end = s + len;
@@ -483,10 +483,10 @@ int  sb_conv_to_ucs2be(sb_t *sb, const void *data, int len)
             int c = utf8_ngetc(s, end - s, &s);
 
             if (c < 0)
-                c = (unsigned char )*s++;
+                c = (unsigned char)*s++;
             if (c > 0xffff)
                 return __sb_rewind_adds(sb, &orig);
-            buf = sb_grow(sb, 2);
+            buf = sb_growlen(sb, 2);
             buf[0] = c >> 8;
             buf[1] = c;
         }
@@ -494,7 +494,7 @@ int  sb_conv_to_ucs2be(sb_t *sb, const void *data, int len)
     return 0;
 }
 
-int  sb_conv_to_ucs2be_hex(sb_t *sb, const void *data, int len)
+int sb_conv_to_ucs2be_hex(sb_t *sb, const void *data, int len)
 {
     sb_t orig = *sb;
     const char *s = data, *end = s + len;
@@ -520,7 +520,7 @@ int  sb_conv_to_ucs2be_hex(sb_t *sb, const void *data, int len)
             int c = utf8_ngetc(s, end - s, &s);
 
             if (c < 0)
-                c = (unsigned char )*s++;
+                c = (unsigned char)*s++;
             if (c > 0xffff)
                 return __sb_rewind_adds(sb, &orig);
             buf = sb_growlen(sb, 4);
