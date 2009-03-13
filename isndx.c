@@ -938,8 +938,14 @@ int isndx_check(isndx_t *ndx, int flags)
     }
     if (ndx->file->area->major != ISNDX_MAJOR
     ||  ndx->file->area->minor != ISNDX_MINOR) {
-        return ISNDX_ERROR(ndx, "invalid version number: %d.%d",
-                           ndx->file->area->major, ndx->file->area->minor);
+        if (ndx->file->area->major == 0 && ndx->file->area->minor == 2) {
+            STATIC_ASSERT(ISNDX_MAJOR == 1);
+            STATIC_ASSERT(ISNDX_MINOR == 0);
+            /* Accept version by auto upgrading (by doing nothing by the way) */
+        } else {
+            return ISNDX_ERROR(ndx, "invalid version number: %d.%d",
+                               ndx->file->area->major, ndx->file->area->minor);
+        }
     }
     if (ndx->file->area->pagesize < 256 || ndx->file->area->pagesize > 65536) {
         return ISNDX_ERROR(ndx, "invalid pagesize: %u",

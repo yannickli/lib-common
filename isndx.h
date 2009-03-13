@@ -41,8 +41,6 @@ struct isndx_file {
     byte magic[4];
     uint32_t major;       /* isndx internal version */
     uint32_t minor;       /* isndx internal version */
-    uint32_t user_major;  /* user private version */
-    uint32_t user_minor;  /* user private version */
     uint32_t pageshift;
     uint32_t pagesize;
     uint32_t root;
@@ -53,6 +51,8 @@ struct isndx_file {
     int32_t maxkeylen;
     int32_t mindatalen;
     int32_t maxdatalen;
+    uint32_t user_major;  /* user private version */
+    uint32_t user_minor;  /* user private version */
 };
 
 struct isndx_t {
