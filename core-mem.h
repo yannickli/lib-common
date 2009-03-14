@@ -452,10 +452,10 @@ mem_pool_t *t_pool(void) __attribute__((pure));
 #define t_pop()       mem_stack_pop(t_pool())
 #define t_rewind(p)   mem_stack_rewind(t_pool(), p)
 
-#define t_new(type_t)      \
-    ((type_t *)imalloc(sizeof(type_t), MEM_STACK))
-#define t_new_raw(type_t)  \
-    ((type_t *)imalloc(sizeof(type_t), MEM_STACK | MEM_RAW))
+#define t_new(type_t, n) \
+    ((type_t *)imalloc((n) * sizeof(type_t), MEM_STACK))
+#define t_new_raw(type_t, n)  \
+    ((type_t *)imalloc((n) * sizeof(type_t), MEM_STACK | MEM_RAW))
 #define t_new_extra(type_t, extra) \
     ((type_t *)imalloc(sizeof(type_t) + (extra), MEM_STACK))
 #define t_dup(p, count)    mp_dup(t_pool(), p, count)
