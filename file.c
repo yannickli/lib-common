@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include "container.h"
 #include "file.h"
 
 /****************************************************************************/
@@ -157,41 +158,62 @@ int file_putc(file_t *f, int c)
     return 0;
 }
 
-off_t file_write(file_t *f, const void *_data, off_t len)
+int file_writev(file_t *f, const struct iovec *iov, size_t iovcnt)
 {
-    const byte *data = _data;
-    off_t pos;
-    int fd = f->fd;
+    struct iovec *iov2;
+    size_t len = f->obuf.len;
+    int fd = f->fd, res = 0;
+    size_t ilen;
 
-    if (!(f->flags & FILE_WRONLY)) {
+    if (unlikely(!(f->flags & FILE_WRONLY))) {
         errno = EBADF;
         return -1;
     }
-    if (len < 0) {
+    if (unlikely(iovcnt > IOV_MAX)) {
         errno = EINVAL;
         return -1;
     }
 
-    if (f->obuf.len + len < BUFSIZ) {
-        sb_add(&f->obuf, data, len);
-        return len;
+    for (size_t i = 0; i < iovcnt; i++)
+        len += iov[i].iov_len;
+
+    t_push();
+    iov2 = t_new(struct iovec, ilen = iovcnt + 1);
+    iov2[0] = MAKE_IOVEC(f->obuf.data, f->obuf.len);
+    memcpy(iov2 + 1, iov, iovcnt);
+
+    while (len >= BUFSIZ) {
+        ssize_t resv = writev(fd, iov2, ilen);
+        int i;
+
+        if (resv < 0 && errno != EINTR && errno != EAGAIN) {
+            res = -1;
+            break;
+        }
+
+        f->wpos += resv;
+        len     -= resv;
+        if (len == 0)
+            goto done;
+        for (i = 0; iov2[i].iov_len <= (size_t)resv; i++)
+            resv -= iov2[i].iov_len;
+        iov2 += i;
+        ilen -= i;
+        iov2->iov_base  = (char *)iov2->iov_base + resv;
+        iov2->iov_len  -= resv;
     }
 
-    pos = BUFSIZ - f->obuf.len;
-    sb_add(&f->obuf, data, BUFSIZ - f->obuf.len);
-    if (file_flush(f))
-        return pos;
-
-    while (len - pos > BUFSIZ) {
-        int nb = write(fd, data + pos, len - pos);
-        if (nb < 0 && errno != EINTR && errno != EAGAIN)
-            return pos;
-        pos += nb;
-        f->wpos += nb;
+    if (ilen == iovcnt) {
+        sb_skip_upto(&f->obuf, iov2->iov_base);
+    } else {
+        sb_set(&f->obuf, iov2->iov_base, iov2->iov_len);
     }
-
-    sb_set(&f->obuf, data + pos, len - pos);
-    return len;
+    for (size_t i = 1; i < ilen; i++) {
+        sb_add(&f->obuf, iov2[i].iov_base, iov2[i].iov_len);
+    }
+done:
+    t_pop();
+    return res;
 }
 
 int file_writevf(file_t *f, const char *fmt, va_list ap)

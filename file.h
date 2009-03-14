@@ -52,8 +52,12 @@ static inline __must_check__ off_t file_rewind(file_t *f) {
 
 /*----- writing -----*/
 int file_putc(file_t *f, int c);
-off_t file_write(file_t *f, const void *data, off_t len);
-static inline off_t file_puts(file_t *f, const char *s) {
+int file_writev(file_t *f, const struct iovec *iov, size_t iovcnt);
+static inline int file_write(file_t *f, const void *data, size_t len) {
+    struct iovec iov = { .iov_base = (void *)data, .iov_len = len };
+    return file_writev(f, &iov, 1);
+}
+static inline int file_puts(file_t *f, const char *s) {
     return file_write(f, s, strlen(s));
 }
 
