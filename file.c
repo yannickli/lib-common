@@ -35,8 +35,12 @@ static int file_flush_obuf(file_t *f, int len)
 
     while (obuf->len > goal) {
         int nb = write(fd, obuf->data, obuf->len);
-        if (nb < 0 && errno != EINTR && errno != EAGAIN)
-            return -1;
+
+        if (nb < 0) {
+            if (errno != EINTR && errno != EAGAIN)
+                return -1;
+            continue;
+        }
         sb_skip(obuf, nb);
         f->wpos += nb;
     }
@@ -161,9 +165,8 @@ int file_putc(file_t *f, int c)
 int file_writev(file_t *f, const struct iovec *iov, size_t iovcnt)
 {
     struct iovec *iov2;
-    size_t len = f->obuf.len;
-    int fd = f->fd, res = 0;
-    size_t ilen;
+    size_t iov2cnt, len;
+    int res = 0;
 
     if (unlikely(!(f->flags & FILE_WRONLY))) {
         errno = EBADF;
@@ -174,44 +177,59 @@ int file_writev(file_t *f, const struct iovec *iov, size_t iovcnt)
         return -1;
     }
 
+    len = f->obuf.len;
     for (size_t i = 0; i < iovcnt; i++)
         len += iov[i].iov_len;
 
     t_push();
-    iov2 = t_new(struct iovec, ilen = iovcnt + 1);
-    iov2[0] = MAKE_IOVEC(f->obuf.data, f->obuf.len);
-    memcpy(iov2 + 1, iov, iovcnt);
+    if (f->obuf.len == 0) {
+        iov2    = t_dup(iov, iovcnt);
+        iov2cnt = iovcnt;
+    } else {
+        iov2    = t_new(struct iovec, iovcnt + 1);
+        iov2[0] = MAKE_IOVEC(f->obuf.data, f->obuf.len);
+        memcpy(iov2 + 1, iov, iovcnt);
+        iov2cnt = iovcnt + 1;
+    }
 
     while (len >= BUFSIZ) {
-        ssize_t resv = writev(fd, iov2, ilen);
-        int i;
+        ssize_t resv = writev(f->fd, iov2, iov2cnt);
 
-        if (resv < 0 && errno != EINTR && errno != EAGAIN) {
-            res = -1;
-            break;
+        if (resv < 0) {
+            if (errno != EINTR && errno != EAGAIN) {
+                res = -1;
+                break;
+            }
+        } else {
+            int cnt;
+
+            f->wpos += resv;
+            len     -= resv;
+            if (len == 0) {
+                iov2cnt = 0;
+                break;
+            }
+            for (cnt = 0; iov2[cnt].iov_len <= (size_t)resv; cnt++)
+                resv -= iov2[cnt].iov_len;
+            iov2    += cnt;
+            iov2cnt -= cnt;
+            iov2->iov_base  = (char *)iov2->iov_base + resv;
+            iov2->iov_len  -= resv;
         }
-
-        f->wpos += resv;
-        len     -= resv;
-        if (len == 0)
-            goto done;
-        for (i = 0; iov2[i].iov_len <= (size_t)resv; i++)
-            resv -= iov2[i].iov_len;
-        iov2 += i;
-        ilen -= i;
-        iov2->iov_base  = (char *)iov2->iov_base + resv;
-        iov2->iov_len  -= resv;
     }
 
-    if (ilen == iovcnt) {
-        sb_skip_upto(&f->obuf, iov2->iov_base);
+    if (iov2cnt == 0) {
+        sb_reset(&f->obuf);
     } else {
-        sb_set(&f->obuf, iov2->iov_base, iov2->iov_len);
+        if (iov2cnt == iovcnt + 1) {
+            sb_skip_upto(&f->obuf, iov2->iov_base);
+        } else {
+            sb_set(&f->obuf, iov2->iov_base, iov2->iov_len);
+        }
+        for (size_t i = 1; i < iov2cnt; i++) {
+            sb_add(&f->obuf, iov2[i].iov_base, iov2[i].iov_len);
+        }
     }
-    for (size_t i = 1; i < ilen; i++) {
-        sb_add(&f->obuf, iov2[i].iov_base, iov2[i].iov_len);
-    }
-done:
     t_pop();
     return res;
 }
