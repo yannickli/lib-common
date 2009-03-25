@@ -242,7 +242,7 @@ int sb_conv_from_gsm_hex(sb_t *sb, const void *data, int slen)
         return -1;
 
     w    = sb_grow(sb, slen / 2 + 4);
-    wend = sb_end(sb);
+    wend = sb->data + sb_avail(sb);
 
     while (p < end) {
         int c = hexdecode(p);
@@ -264,7 +264,7 @@ int sb_conv_from_gsm_hex(sb_t *sb, const void *data, int slen)
         if (wend - w < 4) {
             __sb_fixlen(sb, w - sb->data);
             w    = sb_grow(sb, (end - p) / 2 + 4);
-            wend = sb_end(sb);
+            wend = sb->data + sb_avail(sb);
         }
         w += __pstrputuc(w, gsm7_to_unicode[c]);
     }
@@ -282,7 +282,7 @@ int sb_conv_from_gsm(sb_t *sb, const void *data, int slen)
     sb_t orig = *sb;
 
     w    = sb_grow(sb, slen + 4);
-    wend = sb_end(sb);
+    wend = sb->data + sb_avail(sb);
 
     while (p < end) {
         int c = *p++;
@@ -301,7 +301,7 @@ int sb_conv_from_gsm(sb_t *sb, const void *data, int slen)
         if (wend - w < 4) {
             __sb_fixlen(sb, w - sb->data);
             w    = sb_grow(sb, (end - p) / 2 + 4);
-            wend = sb_end(sb);
+            wend = sb->data + sb_avail(sb);
         }
         w += __pstrputuc(w, gsm7_to_unicode[c]);
     }
@@ -363,7 +363,7 @@ void sb_conv_to_gsm(sb_t *sb, const void *data, int len)
     char *w, *wend;
 
     w    = sb_grow(sb, len + 2);
-    wend = sb_end(sb);
+    wend = sb->data + sb_avail(sb);
     while (p < end) {
         int c = (unsigned char)*p++;
 
@@ -377,7 +377,7 @@ void sb_conv_to_gsm(sb_t *sb, const void *data, int len)
         if (wend - w < 2) {
             __sb_fixlen(sb, w - sb->data);
             w    = sb_grow(sb, len + 2);
-            wend = sb_end(sb);
+            wend = sb->data + sb_avail(sb);
         }
         if (c > 0xff)
             *w++ = (c >> 8);
@@ -392,7 +392,7 @@ void sb_conv_to_gsm_hex(sb_t *sb, const void *data, int len)
     char *w, *wend;
 
     w    = sb_grow(sb, 2 * len + 4);
-    wend = sb_end(sb);
+    wend = sb->data + sb_avail(sb);
     while (p < end) {
         int c = (unsigned char)*p++;
 
@@ -406,7 +406,7 @@ void sb_conv_to_gsm_hex(sb_t *sb, const void *data, int len)
         if (wend - w < 2) {
             __sb_fixlen(sb, w - sb->data);
             w    = sb_grow(sb, 2 * len + 4);
-            wend = sb_end(sb);
+            wend = sb->data + sb_avail(sb);
         }
         if (c > 0xff) {
             *w++ = __str_digits_upper[(c >> 12) & 0xf];
