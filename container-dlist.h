@@ -109,10 +109,10 @@ dlist_splice_tail(dlist_t *dst, dlist_t *src)
 #define dlist_entry(ptr, type, member)  container_of(ptr, type, member)
 #define dlist_entry_of(ptr, n, member)  dlist_entry(ptr, typeof(*n), member)
 
-#define dlist_next_entry(e, mber)  dlist_entry(e->mber.next, typeof(*e), mber)
-#define dlist_prev_entry(e, mber)  dlist_entry(e->mber.prev, typeof(*e), mber)
-#define dlist_first_entry(l, type, mber)  dlist_entry(l->next, type, mber)
-#define dlist_last_entry(l, type, mber)   dlist_entry(l->prev, type, mber)
+#define dlist_next_entry(e, mber)  dlist_entry((e)->mber.next, typeof(*e), mber)
+#define dlist_prev_entry(e, mber)  dlist_entry((e)->mber.prev, typeof(*e), mber)
+#define dlist_first_entry(l, type, mber)  dlist_entry((l)->next, type, mber)
+#define dlist_last_entry(l, type, mber)   dlist_entry((l)->prev, type, mber)
 
 #define __dlist_for_each(pos, n, head, doit) \
      for (dlist_t *n = (pos)->next; \
