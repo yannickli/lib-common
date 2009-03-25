@@ -533,6 +533,53 @@ int sb_conv_to_ucs2be_hex(sb_t *sb, const void *data, int len)
     return 0;
 }
 
+static int sb_conv_from_ucs2_hex(sb_t *sb, const void *s, int slen, bool is_be)
+{
+    const char *p = s, *end = p + slen;
+    char *w, *wend;
+    sb_t orig = *sb;
+
+    slen /= 2;
+    if (slen & 1)
+        return -1;
+
+    w    = sb_grow(sb, slen / 2);
+    wend = sb->data + sb_avail(sb);
+
+    while (p < end) {
+        int ch, cl, c;
+
+        ch = hexdecode(p);
+        cl = hexdecode(p + 2);
+        p += 4;
+        if (is_be) {
+            c = (ch << 8) | cl;
+        } else {
+            c = (cl << 8) | ch;
+        }
+
+        if (unlikely(c < 0))
+            return __sb_rewind_adds(sb, &orig);
+
+        if (wend - w < 4) {
+            __sb_fixlen(sb, w - sb->data);
+            w    = sb_grow(sb, (end - p) / 2 + 4);
+            wend = sb->data + sb_avail(sb);
+        }
+        w += __pstrputuc(w, c);
+    }
+    __sb_fixlen(sb, w - sb->data);
+    return 0;
+}
+int sb_conv_from_ucs2be_hex(sb_t *sb, const void *s, int slen)
+{
+    return sb_conv_from_ucs2_hex(sb, s, slen, true);
+}
+int sb_conv_from_ucs2le_hex(sb_t *sb, const void *s, int slen)
+{
+    return sb_conv_from_ucs2_hex(sb, s, slen, false);
+}
+
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 
