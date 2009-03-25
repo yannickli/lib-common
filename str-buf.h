@@ -419,6 +419,8 @@ int  sb_conv_to_latin1(sb_t *sb, const void *s, int len, int rep);
 int  sb_conv_to_ucs2le(sb_t *sb, const void *s, int len);
 int  sb_conv_to_ucs2be(sb_t *sb, const void *s, int len);
 int  sb_conv_to_ucs2be_hex(sb_t *sb, const void *s, int len);
+int  sb_conv_from_ucs2be_hex(sb_t *sb, const void *s, int slen);
+int  sb_conv_from_ucs2le_hex(sb_t *sb, const void *s, int slen);
 
 /* unpacked gsm: one septet per octet */
 int  sb_conv_from_gsm(sb_t *sb, const void *src, int len);
