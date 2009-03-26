@@ -272,7 +272,7 @@ static inline void sb_shrink(sb_t *sb, int len)
 }
 static inline void sb_shrink_upto(sb_t *sb, const void *where)
 {
-    sb_shrink(sb, (const char *)where - sb->data);
+    sb_clip(sb, (const char *)where - sb->data);
 }
 
 
