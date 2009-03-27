@@ -275,7 +275,7 @@ int sb_conv_from_gsm_hex(sb_t *sb, const void *data, int slen)
     return __sb_rewind_adds(sb, &orig);
 }
 
-int sb_conv_from_gsm(sb_t *sb, const void *data, int slen)
+int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
 {
     const byte *p = data, *end = p + slen;
     char *w, *wend;
@@ -289,7 +289,10 @@ int sb_conv_from_gsm(sb_t *sb, const void *data, int slen)
 
         if (c & 0x80)
             goto error;
+
         if (c == 0x1b) {
+            if (plan != GSM_LATIN1_PLAN)
+                goto error;
             if (p == end)
                 goto error;
             c = *p++;
@@ -297,13 +300,14 @@ int sb_conv_from_gsm(sb_t *sb, const void *data, int slen)
                 goto error;
             c |= 0x80;
         }
+        c = gsm7_to_unicode[c];
 
         if (wend - w < 4) {
             __sb_fixlen(sb, w - sb->data);
             w    = sb_grow(sb, (end - p) / 2 + 4);
             wend = sb->data + sb_avail(sb);
         }
-        w += __pstrputuc(w, gsm7_to_unicode[c]);
+        w += __pstrputuc(w, c);
     }
     __sb_fixlen(sb, w - sb->data);
     return 0;
