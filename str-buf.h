@@ -425,6 +425,7 @@ int  sb_conv_from_ucs2le_hex(sb_t *sb, const void *s, int slen);
 typedef enum gsm_conv_plan_t {
     GSM_DEFAULT_PLAN = 0,
     GSM_LATIN1_PLAN  = 1,
+    GSM_CIMD_PLAN    = 2,
 } gsm_conv_plan_t;
 
 int  sb_conv_from_gsm_plan(sb_t *sb, const void *src, int len, int plan);

@@ -231,6 +231,61 @@ static unsigned short const win1252_to_gsm7[] = {
 #undef X
 };
 
+struct cimd_esc_table {
+    uint16_t check;
+    uint16_t unicode;
+};
+
+#define CIMD_H(c1, c2) \
+    ((uint8_t)(((c1) ^ 0x33) + ((((uint8_t)c2) << 4) | (((uint8_t)c2) >> 4))))
+
+struct cimd_esc_table cimd_esc_map[256] = {
+#define E(c1, c2, codepoint) \
+    [CIMD_H(c1, c2)] = { .check = (c1 << 8) | c2, .unicode = codepoint, }
+
+    E('O', 'a',  '@'),    E('L', '-',  0x00A3), E('Y', '-', 0x0024 ),
+    E('e', '`',  0x00A5), E('e', '\'', 0x00E9), E('u', '`', 0x00FA ),
+    E('i', '`',  0x00EC), E('o', '`',  0x00F2), E('C', ',', 0x00C7 ),
+    E('O', '/',  0x00D8), E('o', '/',  0x00F8), E('A', '*', 0x00C5 ),
+    E('a', '*',  0x00E5), E('g', 'd',  0x0394), E('-', '-', '_'),
+    E('g', 'f',  0x03A6), E('g', 'g',  0x0393), E('g', 'l', 0x039B),
+    E('g', 'o',  0x03A9), E('g', 'p',  0x03A0), E('g', 'i', 0x03A8),
+    E('g', 's',  0x03A3), E('g', 't',  0x0398), E('g', 'x', 0x039E),
+    E('A', 'E',  0x00C6), E('a', 'e',  0x00E6), E('s', 's', 0x00DF),
+    E('E', '\'', 0x00C9), E('q', 'q',  '"'),    E('o', 'x', 0x00A4),
+    E('!', '!',  0x00A1), E('A', '"',  0x00C4), E('O', '"', 0x00D6),
+    E('N', '~',  0x00D1), E('U', '"',  0x00DC), E('s', 'o', 0x00A7),
+    E('?', '?',  0x00BF), E('a', '"',  0x00E4), E('o', '"', 0x00F6),
+    E('n', '~',  0x00F1), E('u', '"',  0x00FC), E('a', '`', 0x00E0),
+
+#undef E
+};
+
+static int cimd_to_unicode(const byte *p, const byte *end, const byte **out)
+{
+    uint8_t hash;
+    struct cimd_esc_table *esc;
+
+    if (p + 2 > end)
+        return -1;
+
+    if (p[0] == 'X') {
+        if (p[1] != 'X')
+            return -1;
+        p += 2;
+
+        /* TODO: */
+        return -1;
+    }
+
+    hash = CIMD_H(p[0], p[1]);
+    esc  = &cimd_esc_map[hash];
+    if (esc->check != ((p[0] << 8) | p[1]))
+        return -1;
+    *out = p + 2;
+    return esc->unicode;
+}
+
 /* Decode a hex encoded (IRA) char array into UTF-8 at end of sb */
 int sb_conv_from_gsm_hex(sb_t *sb, const void *data, int slen)
 {
@@ -291,9 +346,9 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
             goto error;
 
         if (c == 0x1b) {
-            if (plan != GSM_LATIN1_PLAN)
+            if (unlikely(plan != GSM_LATIN1_PLAN))
                 goto error;
-            if (p == end)
+            if (unlikely(p == end))
                 goto error;
             c = *p++;
             if (c & 0x80)
@@ -301,6 +356,11 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
             c |= 0x80;
         }
         c = gsm7_to_unicode[c];
+        if (c == '_' && plan == GSM_CIMD_PLAN) {
+            c = cimd_to_unicode(p, end, &p);
+            if (unlikely(c < 0))
+                goto error;
+        }
 
         if (wend - w < 4) {
             __sb_fixlen(sb, w - sb->data);
