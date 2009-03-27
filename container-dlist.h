@@ -105,6 +105,24 @@ dlist_splice_tail(dlist_t *dst, dlist_t *src)
 		__dlist_splice(dst->prev, dst, src);
 }
 
+static inline void
+dlist_cut_at(dlist_t *src, dlist_t *e, dlist_t *dst)
+{
+    if (dlist_is_empty(src) || src == e) {
+        dlist_init(dst);
+    } else {
+	dlist_t *e_next = e->next;
+
+	dst->next = src->next;
+	dst->next->prev = dst;
+	dst->prev = e;
+	e->next = dst;
+
+	src->next = e_next;
+	e_next->prev = src;
+    }
+}
+
 
 #define dlist_entry(ptr, type, member)  container_of(ptr, type, member)
 #define dlist_entry_of(ptr, n, member)  dlist_entry(ptr, typeof(*n), member)
