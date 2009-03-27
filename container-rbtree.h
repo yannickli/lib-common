@@ -33,7 +33,7 @@ typedef struct rb_node_t {
  *   to write the searches and insertion procedure this way with the helpers
  *   container-rbtree provides.
  *
- *   entry_t *rb_entry_search(rb_root_t *rb, key_t *key)
+ *   entry_t *rb_entry_search(rb_t *rb, key_t *key)
  *   {
  *        rb_node_t *n = rb->root;
  *
@@ -53,15 +53,15 @@ typedef struct rb_node_t {
  *   }
  *
  *
- *   void rb_entry_insert(rb_root_t *rb, entry_t *e)
+ *   void rb_entry_insert(rb_t *rb, entry_t *e)
  *   {
  *        rb_node_t **slot = &rb->root;
  *        rb_node_t *parent = NULL;
  *
  *        while (*slot) {
- *            slot_e = rb_entry(*slot, entry_t, some_member);
- *            parent = *slot;
+ *            entry_t *slot_e = rb_entry(*slot, entry_t, some_member);
  *
+ *            parent = *slot;
  *            if (e->key < slot_e->key) {
  *                slot = &(*slot)->left;
  *            } else
