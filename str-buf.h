@@ -405,8 +405,17 @@ int  sb_conv_to_ucs2be_hex(sb_t *sb, const void *s, int len);
 int  sb_conv_from_ucs2be_hex(sb_t *sb, const void *s, int slen);
 int  sb_conv_from_ucs2le_hex(sb_t *sb, const void *s, int slen);
 
-/* unpacked gsm: one septet per octet */
-int  sb_conv_from_gsm(sb_t *sb, const void *src, int len);
+typedef enum gsm_conv_plan_t {
+    GSM_DEFAULT_PLAN = 0,
+    GSM_LATIN1_PLAN  = 1,
+    GSM_CIMD_PLAN    = 2,
+} gsm_conv_plan_t;
+
+int  sb_conv_from_gsm_plan(sb_t *sb, const void *src, int len, int plan);
+static inline int sb_conv_from_gsm(sb_t *sb, const void *src, int len) {
+    return sb_conv_from_gsm_plan(sb, src, len, GSM_LATIN1_PLAN);
+}
+
 int  sb_conv_from_gsm_hex(sb_t *sb, const void *src, int len);
 bool sb_conv_to_gsm_isok(const void *src, int len);
 void sb_conv_to_gsm(sb_t *sb, const void *src, int len);
