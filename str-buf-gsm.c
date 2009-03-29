@@ -270,12 +270,40 @@ static int cimd_to_unicode(const byte *p, const byte *end, const byte **out)
         return -1;
 
     if (p[0] == 'X') {
+        int c;
+
         if (p[1] != 'X')
             return -1;
         p += 2;
+        if (p + 1 < end)
+            return -1;
 
-        /* TODO: */
-        return -1;
+        switch (*p++) {
+          case '(':  c = '{';  break;
+          case ')':  c = '}';  break;
+          case '\n': c = '\n'; break;
+          case '<':  c = '[';  break;
+          case '>':  c = ']';  break;
+          case '=':  c = '~';  break;
+          case '\\': c = '/';  break;
+          case '_':
+            if (p + 2 > end)
+                return -1;
+            if (p[0] == '!' && p[1] == '!') {
+                c  = '|';
+                p += 2;
+                break;
+            }
+            if (p[0] == 'g' && p[1] == 'l') {
+                c  = '^';
+                p += 2;
+                break;
+            }
+          default:
+            return -1;
+        }
+        *out = p;
+        return c;
     }
 
     hash = CIMD_H(p[0], p[1]);
@@ -283,7 +311,7 @@ static int cimd_to_unicode(const byte *p, const byte *end, const byte **out)
     if (esc->check != ((p[0] << 8) | p[1]))
         return -1;
     *out = p + 2;
-    return esc->unicode;
+    return esc->unicode ? esc->unicode : -1;
 }
 
 /* Decode a hex encoded (IRA) char array into UTF-8 at end of sb */
