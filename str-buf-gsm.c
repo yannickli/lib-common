@@ -13,15 +13,12 @@
 
 #include "core.h"
 
-/*---------------- IRA Conversion ----------------*/
-
 /* TODO: support other shift pages than latin1 ! */
 
 /* Convert GSM charset to Unicode */
-static int const gsm7_to_unicode[] = {
-
+static int16_t const __gsm7_to_unicode[] = {
 #define X(x)     (0x##x)
-#define UNK      '.'
+#define UNK      -1
     /* 0x00,   0x01,   0x02,   0x03,   0x04,   0x05,   0x06,   0x07,    */
        X(40),  X(A3),  X(24),  X(A5),  X(E8),  X(E9),  X(FA),  X(EC),
     /* 0x08,   0x09,   0x0A,   0x0B,   0x0C,   0x0D,   0x0E,   0x0F,    */
@@ -90,13 +87,11 @@ static int const gsm7_to_unicode[] = {
 
 #undef UNK
 #undef X
-#undef HEX
 };
 
-static unsigned short const win1252_to_gsm7[] = {
+static int16_t const win1252_to_gsm7[] = {
 #define X(x)  (x)
-#define UNK  '.'
-#define _
+#define UNK    -1
 
     /*0x00,   0x01,    0x02,    0x03,    0x04,    0x05,    0x06,    0x07 */
     /*0x00,   0x01,    0x02,    0x03,    0x04,    0x05,    0x06,    0x07 */
@@ -226,7 +221,6 @@ static unsigned short const win1252_to_gsm7[] = {
     /* 'ø',    'ù',     'ú',     'û',     'ü',     'ý',     'þ',     'ÿ' */
     X(0x0C), X(0x06), X(0x75), X(0x75), X(0x7E), X(0x79),  X(UNK), X(0x79),
 
-#undef _
 #undef UNK
 #undef X
 };
@@ -260,6 +254,36 @@ struct cimd_esc_table cimd_esc_map[256] = {
 
 #undef E
 };
+
+static int unicode_to_gsm7(int c, int unknown)
+{
+    if ((unsigned)c <= 0xff) {
+        c = win1252_to_gsm7[c];
+        return unlikely(c < 0) ? unknown : c;
+    }
+
+    switch (c) {
+      case 0x20AC:  return 0x1B65;  /* EURO */
+      case 0x0394:  return 0x10;    /* GREEK CAPITAL LETTER DELTA */
+      case 0x03A6:  return 0x12;    /* GREEK CAPITAL LETTER PHI */
+      case 0x0393:  return 0x13;    /* GREEK CAPITAL LETTER GAMMA */
+      case 0x039B:  return 0x14;    /* GREEK CAPITAL LETTER LAMDA */
+      case 0x03A9:  return 0x15;    /* GREEK CAPITAL LETTER OMEGA */
+      case 0x03A0:  return 0x16;    /* GREEK CAPITAL LETTER PI */
+      case 0x03A8:  return 0x17;    /* GREEK CAPITAL LETTER PSI */
+      case 0x03A3:  return 0x18;    /* GREEK CAPITAL LETTER SIGMA */
+      case 0x0398:  return 0x19;    /* GREEK CAPITAL LETTER THETA */
+      case 0x039E:  return 0x1A;    /* GREEK CAPITAL LETTER XI */
+      default:      return unknown;
+    }
+}
+
+__attribute__((always_inline))
+static int gsm7_to_unicode(uint8_t u8, int unknown)
+{
+    int c = __gsm7_to_unicode[u8];
+    return unlikely(c < 0) ? unknown : c;
+}
 
 static int cimd_to_unicode(const byte *p, const byte *end, const byte **out)
 {
@@ -343,13 +367,13 @@ int sb_conv_from_gsm_hex(sb_t *sb, const void *data, int slen)
                 goto error;
             c |= 0x80;
         }
-
+        c = gsm7_to_unicode(c, '.');
         if (wend - w < 4) {
             __sb_fixlen(sb, w - sb->data);
             w    = sb_grow(sb, (end - p) / 2 + 4);
             wend = sb->data + sb_avail(sb);
         }
-        w += __pstrputuc(w, gsm7_to_unicode[c]);
+        w += __pstrputuc(w, c);
     }
     __sb_fixlen(sb, w - sb->data);
     return 0;
@@ -383,7 +407,7 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
                 goto error;
             c |= 0x80;
         }
-        c = gsm7_to_unicode[c];
+        c = gsm7_to_unicode(c, '.');
         if (c == '_' && plan == GSM_CIMD_PLAN) {
             c = cimd_to_unicode(p, end, &p);
             if (unlikely(c < 0))
@@ -402,27 +426,6 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
 
   error:
     return __sb_rewind_adds(sb, &orig);
-}
-
-static int unicode_to_gsm7(int c, int unknown)
-{
-    if ((unsigned)c <= 0xff)
-        return win1252_to_gsm7[c];
-
-    switch (c) {
-      case 0x20AC:  return 0x1B65;  /* EURO */
-      case 0x0394:  return 0x10;    /* GREEK CAPITAL LETTER DELTA */
-      case 0x03A6:  return 0x12;    /* GREEK CAPITAL LETTER PHI */
-      case 0x0393:  return 0x13;    /* GREEK CAPITAL LETTER GAMMA */
-      case 0x039B:  return 0x14;    /* GREEK CAPITAL LETTER LAMDA */
-      case 0x03A9:  return 0x15;    /* GREEK CAPITAL LETTER OMEGA */
-      case 0x03A0:  return 0x16;    /* GREEK CAPITAL LETTER PI */
-      case 0x03A8:  return 0x17;    /* GREEK CAPITAL LETTER PSI */
-      case 0x03A3:  return 0x18;    /* GREEK CAPITAL LETTER SIGMA */
-      case 0x0398:  return 0x19;    /* GREEK CAPITAL LETTER THETA */
-      case 0x039E:  return 0x1A;    /* GREEK CAPITAL LETTER XI */
-      default:      return unknown;
-    }
 }
 
 int gsm7_charlen(int c)
@@ -461,10 +464,10 @@ void sb_conv_to_gsm(sb_t *sb, const void *data, int len)
 
         if (c & 0x80) {
             int u = utf8_ngetc(p - 1, end - p + 1, &p);
-            c = unicode_to_gsm7(u < 0 ? c : u, '?');
-        } else {
-            c = win1252_to_gsm7[c];
+            if (u >= 0)
+                c = u;
         }
+        c = unicode_to_gsm7(c, '.');
 
         if (wend - w < 2) {
             __sb_fixlen(sb, w - sb->data);
@@ -490,10 +493,10 @@ void sb_conv_to_gsm_hex(sb_t *sb, const void *data, int len)
 
         if (c & 0x80) {
             int u = utf8_ngetc(p - 1, end - p + 1, &p);
-            c = unicode_to_gsm7(u < 0 ? c : u, '?');
-        } else {
-            c = win1252_to_gsm7[c];
+            if (u >= 0)
+                c = u;
         }
+        c = unicode_to_gsm7(c, '.');
 
         if (wend - w < 2) {
             __sb_fixlen(sb, w - sb->data);
@@ -600,7 +603,7 @@ static int decode_gsm7_pack(sb_t *out, uint64_t pack, int nbchars, int c)
         if (c == 0x1b) {
             c = 0x80;
         } else {
-            c  = gsm7_to_unicode[c];
+            c  = gsm7_to_unicode(c, '.');
             p += __pstrputuc(p, c);
             c  = 0;
         }
