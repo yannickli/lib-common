@@ -83,7 +83,7 @@ file_t *file_open(const char *path, enum file_flags flags, mode_t mode)
     if (flags & FILE_TRUNC)
         oflags |= O_TRUNC;
 
-    res = p_new_raw(file_t, 1);
+    res = p_new(file_t, 1);
     res->flags = flags;
     sb_init(&res->obuf);
     res->fd = open(path, oflags, mode);
