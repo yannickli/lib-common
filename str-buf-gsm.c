@@ -232,16 +232,16 @@ static unsigned short const win1252_to_gsm7[] = {
 };
 
 struct cimd_esc_table {
-    uint16_t check;
+    uint8_t  c1, c2;
     uint16_t unicode;
 };
 
-#define CIMD_H(c1, c2) \
-    ((uint8_t)(((c1) ^ 0x33) + ((((uint8_t)c2) << 4) | (((uint8_t)c2) >> 4))))
+#define CIMD_HASH(c1, c2) \
+    ((uint8_t)(((c1) ^ 0x33) + ((((uint8_t)(c2)) << 4) | (((uint8_t)(c2)) >> 4))))
 
-struct cimd_esc_table cimd_esc_map[256] = {
-#define E(c1, c2, codepoint) \
-    [CIMD_H(c1, c2)] = { .check = (c1 << 8) | c2, .unicode = codepoint, }
+struct cimd_esc_table const cimd_esc_map[256] = {
+#define E(C1, C2, codepoint) \
+    [CIMD_HASH(C1, C2)] = { .c1 = C1, .c2 = C2, .unicode = codepoint, }
 
     E('O', 'a',  '@'),    E('L', '-',  0x00A3), E('Y', '-', 0x0024 ),
     E('e', '`',  0x00A5), E('e', '\'', 0x00E9), E('u', '`', 0x00FA ),
@@ -264,7 +264,7 @@ struct cimd_esc_table cimd_esc_map[256] = {
 static int cimd_to_unicode(const byte *p, const byte *end, const byte **out)
 {
     uint8_t hash;
-    struct cimd_esc_table *esc;
+    struct cimd_esc_table const *esc;
 
     if (p + 2 > end)
         return -1;
@@ -275,17 +275,18 @@ static int cimd_to_unicode(const byte *p, const byte *end, const byte **out)
         if (p[1] != 'X')
             return -1;
         p += 2;
-        if (p + 1 < end)
+        if (p + 1 > end)
             return -1;
 
         switch (*p++) {
-          case '(':  c = '{';  break;
-          case ')':  c = '}';  break;
-          case '\n': c = '\n'; break;
-          case '<':  c = '[';  break;
-          case '>':  c = ']';  break;
-          case '=':  c = '~';  break;
-          case '\\': c = '/';  break;
+          case 'e':  c = 0x20AC; break;   /* EURO symbol */
+          case '(':  c = '{';    break;
+          case ')':  c = '}';    break;
+          case '\n': c = '\n';   break;   /* should be '\f' ? */
+          case '<':  c = '[';    break;
+          case '>':  c = ']';    break;
+          case '=':  c = '~';    break;
+          case '/':  c = '\\';   break;
           case '_':
             if (p + 2 > end)
                 return -1;
@@ -306,12 +307,13 @@ static int cimd_to_unicode(const byte *p, const byte *end, const byte **out)
         return c;
     }
 
-    hash = CIMD_H(p[0], p[1]);
+    hash = CIMD_HASH(p[0], p[1]);
     esc  = &cimd_esc_map[hash];
-    if (esc->check != ((p[0] << 8) | p[1]))
-        return -1;
-    *out = p + 2;
-    return esc->unicode ? esc->unicode : -1;
+    if (esc->c1 == p[0] && esc->c2 == p[1] && esc->unicode) {
+        *out = p + 2;
+        return esc->unicode;
+    }
+    return -1;
 }
 
 /* Decode a hex encoded (IRA) char array into UTF-8 at end of sb */
