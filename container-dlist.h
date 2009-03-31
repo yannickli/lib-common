@@ -47,6 +47,12 @@ static inline void dlist_add(dlist_t *l, dlist_t *n) {
 static inline void dlist_add_tail(dlist_t *l, dlist_t *n) {
     __dlist_add(n, l->prev, l);
 }
+static inline void dlist_add_before(dlist_t *e, dlist_t *n) {
+    __dlist_add(n, e->prev, e);
+}
+static inline void dlist_add_after(dlist_t *e, dlist_t *n) {
+    __dlist_add(n, e, e->next);
+}
 
 static inline void dlist_remove(dlist_t *l) {
     __dlist_remove(l->prev, l->next);
@@ -75,6 +81,12 @@ dlist_is_last(const dlist_t *l, const dlist_t *n) {
 }
 static inline bool dlist_is_empty(const dlist_t *l) {
     return l->next == l;
+}
+static inline bool dlist_is_singular(const dlist_t *l) {
+    return l->next != l && l->next == l->prev;
+}
+static inline bool dlist_is_empty_or_singular(const dlist_t *l) {
+    return l->next == l->prev;
 }
 
 
