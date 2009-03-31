@@ -285,7 +285,8 @@ rb_node_t *rb_next(rb_node_t *n)
         return n;
     }
 
-    for (p = rb_parent(n); p && n == p->right; n = p);
+    while ((p = rb_parent(n)) != NULL && n == p->right)
+        n = p;
     return p;
 }
 rb_node_t *rb_prev(rb_node_t *n)
@@ -299,6 +300,7 @@ rb_node_t *rb_prev(rb_node_t *n)
         return n;
     }
 
-    for (p = rb_parent(n); p && n == p->left; n = p);
+    while ((p = rb_parent(n)) != NULL && n == p->left)
+        n = p;
     return p;
 }
