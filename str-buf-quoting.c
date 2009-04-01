@@ -58,9 +58,7 @@ static byte const __str_encode_flags[256] = {
 #define REPEAT16(x)  x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x
 #define QP  1
 #define XP  2
-    0,     0,     0,     0,     0,     0,     0,     0,
-    0,     QP,    0,     0,     0,     0,     0,     0,      /* TAB */
-    REPEAT16(0),
+    REPEAT16(0), REPEAT16(0),
     0,     QP,    XP|QP, QP,    QP,    QP,    XP|QP, XP|QP,  /* "&' */
     QP,    QP,    QP,    QP,    QP,    QP,    0,     QP,     /* . */
     QP,    QP,    QP,    QP,    QP,    QP,    QP,    QP,
@@ -500,46 +498,52 @@ int sb_add_xmlunescape(sb_t *sb, const void *data, int len)
 /* OG: should take width as a parameter */
 void sb_add_qpe(sb_t *sb, const void *data, int len)
 {
-    int i, j, c, col;
+    int c, i = 0, j = 0, col = 0;
     const byte *src = data;
 
     sb_grow(sb, len);
-    for (col = i = j = 0; i < len; i++) {
+    while (i < len) {
         if (col + i - j >= 75) {
             sb_add(sb, src + j, 75 - col);
             sb_adds(sb, "=\r\n");
             j  += 75 - col;
             col = 0;
         }
-        if (!test_quoted_printable(c = src[i])) {
-            /* only encode '.' if at the beginning of a line */
-            if (c == '.' && i == j && col)
+        if (test_quoted_printable(c = src[i++]))
+            continue;
+        /* only encode '.' if at the beginning of a line */
+        if (c == '.' && col)
+            continue;
+        /* encode spaces only at end on line */
+        if (isblank(c)) {
+            if (!(i + 2 <= len && !memcmp(src + i, "\r\n", 2)))
                 continue;
-            /* encode spaces only at end on line */
-            if (isblank(c) && (i < len - 1 && src[i + 1] != '\n')) {
-                continue;
-            }
-            sb_add(sb, src + j, i - j);
-            col += i - j;
-            if (c == '\n') {
-                sb_adds(sb, "\r\n");
-                col = 0;
-            } else {
-                char *s;
-                if (col > 75 - 3) {
-                    sb_adds(sb, "=\r\n");
-                    col = 0;
-                }
-                s = sb_growlen(sb, 3);
-                s[0] = '=';
-                s[1] = __str_digits_upper[(c >> 4) & 0xf];
-                s[2] = __str_digits_upper[(c >> 0) & 0xf];
-                col += 3;
-            }
-            j = i + 1;
         }
+        /* \r\n remain the same and reset col to 0 */
+        if (c == '\r' && i + 1 <= len && src[i] == '\n') {
+            i++;
+            sb_add(sb, src + j, i - j);
+            col = 0;
+        } else {
+            char *s;
+
+            sb_add(sb, src + j, i - 1 - j);
+            col += i - 1 - j ;
+            if (col > 75 - 3) {
+                sb_adds(sb, "=\r\n");
+                col = 0;
+            }
+            s = sb_growlen(sb, 3);
+            s[0] = '=';
+            s[1] = __str_digits_upper[(c >> 4) & 0xf];
+            s[2] = __str_digits_upper[(c >> 0) & 0xf];
+            col += 3;
+        }
+        j = i;
     }
     sb_add(sb, src + j, i - j);
+    if (sb->data[sb->len - 1] != '\n')
+        sb_adds(sb, "=\r\n");
 }
 
 void sb_add_unqpe(sb_t *sb, const void *data, int len)
