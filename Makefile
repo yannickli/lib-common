@@ -97,8 +97,8 @@ libcommon_SOURCES = \
 	str-conv.c \
 	str-iprintf.c \
 	str-dtoa.c \
-	\
 	str-path.c \
+	str-stream.c \
 	\
 	tpl.c \
 	tpl-funcs.c \
