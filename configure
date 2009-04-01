@@ -111,19 +111,6 @@ fi
 check_tool luac lua5.1
 
 # }}}
-# {{{ oracle
-
-oracle_PATH=/opt/intersec/oracle-$(uname -m)
-
-if test -d ${oracle_PATH}; then
-    setvar "oracle_CFLAGS" "-Wno-strict-prototypes -I${oracle_PATH}/include"
-    setvar "oracle_LIBS" "-L${oracle_PATH}/lib -Wl,--rpath,${oracle_PATH}/lib -lclntsh"
-else
-    warn "*** missing oracle headers, link /opt/intersec to /home/data/build"
-    warn "    or unpack /home/data/software/oracle/oracle-sdk.tar.gz"
-fi
-
-# }}}
 # {{{ libpcap-dev
 
 if test -r /usr/include/pcap.h; then
@@ -154,16 +141,6 @@ test -r /usr/include/netinet/sctp.h || warn "*** missing libsctp, apt-get instal
 if pkg-config --print-errors "libavformat libavcodec"; then
     setvar "ffmpeg_CFLAGS" "$(pkg-config --cflags libavformat libavcodec)"
     setvar "ffmpeg_LIBS" "$(pkg-config --libs  libavformat libavcodec)"
-fi
-
-# }}}
-# {{{ ImageMagick
-
-if pkg-config --print-errors ImageMagick; then
-    setvar "libmagick_CFLAGS"  "$(pkg-config --cflags ImageMagick)"
-    setvar "libmagick_LIBS" "$(pkg-config --libs ImageMagick)"
-else
-    warn "*** missing ImageMagick, apt-get install libmagick9-dev"
 fi
 
 # }}}
