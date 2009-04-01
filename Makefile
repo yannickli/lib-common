@@ -114,7 +114,7 @@ time-lp-simple_SOURCES = time-lp-simple.c
 
 ztst_SOURCES = $(libcommon_SOURCES) time-lp-simple.c ztst.c $/lib-common/compat/check.c
 ztst_CFLAGS  = -DCHECK=1
-ztst_LIBS = -lz -lrt
+ztst_LIBS = -lz -lrt -ldl
 
 ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a compat/compat.a
 
