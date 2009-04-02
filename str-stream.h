@@ -181,13 +181,11 @@ static inline int ps_clip_at(pstream_t *ps, const void *p) {
 }
 
 static inline int ps_skipdata(pstream_t *ps, const void *data, size_t len) {
-    PS_CHECK(ps_startswith(ps, data, len));
+    PS_WANT(ps_startswith(ps, data, len));
     return __ps_skip(ps, len);
 }
 static inline int ps_skipstr(pstream_t *ps, const char *s) {
-    size_t len = strlen(s);
-    PS_CHECK(ps_startswith(ps, s, len));
-    return __ps_skip(ps, len);
+    return ps_skipdata(ps, s, strlen(s));
 }
 static inline void ps_skipspaces(pstream_t *ps) {
     while (!ps_done(ps) && isspace(ps->b[0]))
