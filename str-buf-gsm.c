@@ -243,9 +243,9 @@ struct cimd_esc_table const cimd_esc_map[256] = {
 #define E(C1, C2, codepoint) \
     [CIMD_HASH(C1, C2)] = { .c1 = C1, .c2 = C2, .unicode = codepoint, }
 
-    E('O', 'a',  '@'),    E('L', '-',  0x00A3), E('Y', '-', 0x0024 ),
-    E('e', '`',  0x00A5), E('e', '\'', 0x00E9), E('u', '`', 0x00FA ),
-    E('i', '`',  0x00EC), E('o', '`',  0x00F2), E('C', ',', 0x00C7 ),
+    E('O', 'a',  '@'),    E('L', '-',  0x00A3), E('Y', '-', 0x00A5 ),
+    E('e', '`',  0x00E8), E('e', '\'', 0x00E9), E('u', '`', 0x00F9 ),
+    E('i', '`',  0x00EC), E('o', '`',  0x00F2), E('C', ',', 0x00E7 ),
     E('O', '/',  0x00D8), E('o', '/',  0x00F8), E('A', '*', 0x00C5 ),
     E('a', '*',  0x00E5), E('g', 'd',  0x0394), E('-', '-', '_'),
     E('g', 'f',  0x03A6), E('g', 'g',  0x0393), E('g', 'l', 0x039B),
