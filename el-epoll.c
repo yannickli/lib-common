@@ -105,3 +105,18 @@ static void el_loop_fds(int timeout)
             (*ev->cb.fd)(ev, ev->fd, evs, ev->priv);
     }
 }
+
+int el_fd_loop(ev_t *ev, int timeout)
+{
+    struct pollfd pfd = { .fd = ev->fd, .events = ev->events_wanted };
+    int res;
+
+    CHECK_EV_TYPE(ev, EV_FD);
+
+    res = poll(&pfd, 1, timeout);
+    if (_G.timers.len)
+        el_timer_process(get_clock(false));
+    if (res == 1 && likely(ev->type == EV_FD))
+        (*ev->cb.fd)(ev, ev->fd, pfd.revents, ev->priv);
+    return res;
+}

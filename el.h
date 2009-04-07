@@ -92,9 +92,11 @@ void el_stopper_unregister(void);
 el_t el_fd_register(int fd, short events, el_fd_f *, el_data_t);
 void el_fd_set_hook(el_t, el_fd_f *);
 el_data_t el_fd_unregister(el_t *, bool do_close);
+
+int   el_fd_loop(el_t, int timeout);
 short el_fd_get_mask(el_t);
 short el_fd_set_mask(el_t, short events);
-int el_fd_get_fd(el_t);
+int   el_fd_get_fd(el_t);
 
 /**
  * \defgroup el_timers Event Loop timers
