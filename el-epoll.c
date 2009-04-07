@@ -45,6 +45,12 @@ el_t el_fd_register(int fd, short events, el_fd_f *cb, el_data_t priv)
     return ev;
 }
 
+short el_fd_get_mask(ev_t *ev)
+{
+    CHECK_EV_TYPE(ev, EV_FD);
+    return ev->events_wanted;
+}
+
 short el_fd_set_mask(ev_t *ev, short events)
 {
     short old = ev->events_wanted;
