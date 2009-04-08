@@ -102,6 +102,16 @@ fi
 # }}}
 # {{{ lua
 
+if pkg-config --print-errors fuse; then
+    setvar "fuse_CFLAGS" "$(pkg-config --cflags fuse)"
+    setvar "fuse_LIBS" "$(pkg-config --libs fuse)"
+else
+    warn "*** libfuse-dev is missing, apt-get install libfuse-dev"
+fi
+
+# }}}
+# {{{ lua
+
 if pkg-config --print-errors lua5.1; then
     setvar "lua_CFLAGS" "$(pkg-config --cflags lua5.1)"
     setvar "lua_LIBS" "$(pkg-config --libs lua5.1)"
