@@ -111,6 +111,16 @@ fi
 check_tool luac lua5.1
 
 # }}}
+# {{{ fuse
+
+if pkg-config --print-errors fuse; then
+    setvar "fuse_CFLAGS" "$(pkg-config --cflags fuse)"
+    setvar "fuse_LIBS" "$(pkg-config --libs fuse)"
+else
+    warn "*** libfuse-dev is missing, apt-get install libfuse-dev"
+fi
+
+# }}}
 # {{{ libpcap-dev
 
 if test -r /usr/include/pcap.h; then
