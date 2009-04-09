@@ -1,4 +1,5 @@
 /conf-parser.c
+/core-version.c
 /charsets.def
 /Upgrading.html
 

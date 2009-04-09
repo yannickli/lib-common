@@ -27,6 +27,12 @@ endif
 btree-dump_SOURCES = btree-dump.c libcommon.a compat/compat.a
 btree-dump_LDFLAGS = -lm
 
+DISTCLEANFILES = core-version.c
+core-version.c: scripts/version.sh FORCE
+	$(msg/generate) $@
+	$< rcsid libcommon > $@+
+	$(call fun/update-if-changed,$@+,$@)
+
 libcommon_SOURCES = \
 	bfield.c \
 	btree.c \
@@ -62,6 +68,7 @@ libcommon_SOURCES = \
 	core-mem.c \
 	core-mem-fifo.c \
 	core-mem-stack.c \
+	core-version.c \
 	\
 	el.c \
 	el-stopper.c \

@@ -139,3 +139,5 @@ void __irealloc(void **mem, size_t oldsize, size_t size, mem_flags_t flags)
 
     *mem = res;
 }
+
+#include "core-version.c"
