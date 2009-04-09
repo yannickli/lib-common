@@ -128,4 +128,93 @@ rb_node_t *rb_prev(rb_node_t *);
     __rb_for_each_safe(__real_##it, __next_##it, rb,              \
                        it = rb_entry_of(__real_##it, it, member))
 
+
+#define RB_SEARCH_I(entry_t, pfx, node_member, key_member) \
+    entry_t *pfx##_search(rb_t rb, fieldtypeof(entry_t, key_member) key)     \
+    {                                                                        \
+        rb_node_t *n = rb.root;                                              \
+                                                                             \
+        while (n) {                                                          \
+            entry_t *e = rb_entry(n, entry_t, node_member);                  \
+                                                                             \
+            if (key < e->key_member) {                                       \
+                n = n->left;                                                 \
+            } else                                                           \
+            if (key > e->key_member) {                                       \
+                n = n->right;                                                \
+            } else {                                                         \
+                return e;                                                    \
+            }                                                                \
+        }                                                                    \
+        return NULL;                                                         \
+    }
+
+#define RB_SEARCH_P(entry_t, pfx, node_member, key_member, cmp_f) \
+    entry_t *pfx##_search(rb_t rb, fieldtypeof(entry_t, key_member) *key)    \
+    {                                                                        \
+        rb_node_t *n = rb.root;                                              \
+                                                                             \
+        while (n) {                                                          \
+            entry_t *e = rb_entry(n, entry_t, node_member);                  \
+            int cmp = cmp_f(key, &e->key_member);                            \
+                                                                             \
+            if (cmp < 0) {                                                   \
+                n = n->left;                                                 \
+            } else                                                           \
+            if (cmp > 0) {                                                   \
+                n = n->right;                                                \
+            } else {                                                         \
+                return e;                                                    \
+            }                                                                \
+        }                                                                    \
+        return NULL;                                                         \
+    }
+
+#define RB_INSERT_I(entry_t, pfx, node_member, key_member) \
+    rb_node_t **pfx##_insert(rb_t *rb, entry_t *e)                           \
+    {                                                                        \
+        rb_node_t **slot = &rb->root;                                        \
+        rb_node_t *parent = NULL;                                            \
+                                                                             \
+        while (*slot) {                                                      \
+            entry_t *slot_e = rb_entry(*slot, entry_t, node_member);         \
+                                                                             \
+            parent = *slot;                                                  \
+            if (e->key_member < slot_e->key_member) {                        \
+                slot = &(*slot)->left;                                       \
+            } else                                                           \
+            if (e->key_member > slot_e->key_member) {                        \
+                slot = &(*slot)->right;                                      \
+            } else {                                                         \
+                return slot;                                                 \
+            }                                                                \
+        }                                                                    \
+        rb_add_node(rb, parent, *slot = &e->node_member);                    \
+        return NULL;                                                         \
+    }
+
+#define RB_INSERT_P(entry_t, pfx, node_member, key_member, cmp_f) \
+    rb_node_t **pfx##_insert(rb_t *rb, entry_t *e)                           \
+    {                                                                        \
+        rb_node_t **slot = &rb->root;                                        \
+        rb_node_t *parent = NULL;                                            \
+                                                                             \
+        while (*slot) {                                                      \
+            entry_t *slot_e = rb_entry(*slot, entry_t, node_member);         \
+            int cmp = cmp_f(&e->key_member, &slot_e->key_member);            \
+                                                                             \
+            parent = *slot;                                                  \
+            if (cmp < 0) {                                                   \
+                slot = &(*slot)->left;                                       \
+            } else                                                           \
+            if (cmp > 0) {                                                   \
+                slot = &(*slot)->right;                                      \
+            } else {                                                         \
+                return slot;                                                 \
+            }                                                                \
+        }                                                                    \
+        rb_add_node(rb, parent, *slot = &e->node_member);                    \
+        return NULL;                                                         \
+    }
+
 #endif

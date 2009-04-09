@@ -16,26 +16,16 @@
 static rb_t blks_g;
 static spinlock_t lock_g;
 
+static RB_INSERT_I(mem_blk_t, mem_blk, node, start);
+static RB_SEARCH_I(mem_blk_t, mem_blk, node, start);
+
 void mem_register(mem_blk_t *blk)
 {
-    rb_node_t **n = &blks_g.root;
-    rb_node_t *parent = NULL;
+    rb_node_t **n;
 
     spin_lock(&lock_g);
-    while (*n) {
-        mem_blk_t *e = rb_entry(parent = *n, mem_blk_t, node);
-        int cmp = CMP(blk->start, e->start);
-
-        if (cmp < 0) {
-            n = &(*n)->left;
-        } else if (cmp > 0) {
-            n = &(*n)->right;
-        } else {
-            assert (false);
-        }
-    }
-
-    rb_add_node(&blks_g, parent, *n = &blk->node);
+    n = mem_blk_insert(&blks_g, blk);
+    assert (!n);
     spin_unlock(&lock_g);
     VALGRIND_REG_BLK(blk);
 }
@@ -50,27 +40,12 @@ void mem_unregister(mem_blk_t *blk)
 
 mem_blk_t *mem_blk_find(const void *addr)
 {
-    rb_node_t *n;
+    mem_blk_t *res;
 
     spin_lock(&lock_g);
-    n = blks_g.root;
-
-    while (n) {
-        mem_blk_t *e = rb_entry(n, mem_blk_t, node);
-
-        if (addr < e->start) {
-            n = n->left;
-        } else if ((const char *)addr >= (const char *)e->start + e->size) {
-            n = n->right;
-        } else {
-            spin_unlock(&lock_g);
-            return e;
-        }
-    }
-
+    res = mem_blk_search(blks_g, addr);
     spin_unlock(&lock_g);
-
-    return NULL;
+    return res;
 }
 
 void mem_for_each(mem_pool_t *mp, void (*fn)(mem_blk_t *, void *), void *priv)
