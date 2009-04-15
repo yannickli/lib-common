@@ -100,13 +100,13 @@ else
 fi
 
 # }}}
-# {{{ lua
+# {{{ libxml
 
-if pkg-config --print-errors fuse; then
-    setvar "fuse_CFLAGS" "$(pkg-config --cflags fuse)"
-    setvar "fuse_LIBS" "$(pkg-config --libs fuse)"
+if pkg-config --print-errors libxml-2.0; then
+    setvar "libxml2_CFLAGS" "$(pkg-config --cflags libxml-2.0)"
+    setvar "libxml2_LIBS" "$(pkg-config --libs libxml-2.0)"
 else
-    warn "*** libfuse-dev is missing, apt-get install libfuse-dev"
+    warn "*** libxml2-dev is missing, apt-get install libxml2-dev"
 fi
 
 # }}}
