@@ -33,12 +33,6 @@ core-version.c: scripts/version.sh FORCE
 	$< rcsid libcommon > $@+
 	$(call fun/update-if-changed,$@+,$@)
 
-DISTCLEANFILES = core-version.c
-core-version.c: scripts/version.sh FORCE
-	$(msg/generate) $@
-	$< rcsid libcommon > $@+
-	$(call fun/update-if-changed,$@+,$@)
-
 libcommon_SOURCES = \
 	bfield.c \
 	btree.c \
