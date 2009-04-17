@@ -512,7 +512,7 @@ static uint64_t get_clock(bool lowres)
     struct timespec ts;
     int res;
 
-    if (lowres && likely(_G.lp_clk))
+    if (_G.timers.len > 1 && lowres && likely(_G.lp_clk))
         return _G.lp_clk;
 
 #if   defined(CLOCK_MONOTONIC) /* POSIX   */
