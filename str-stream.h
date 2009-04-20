@@ -95,7 +95,7 @@ typedef struct pstream_t {
     } while (0)
 #else
 #define PS_WANT(c)   do { if (unlikely(!(c)))    return -1; } while (0)
-#define PS_CHECK(c)  do { if (unlikely((c) < 0)) return -1; } while (0)
+#define PS_CHECK(c)  RETHROW(c)
 #endif
 
 static inline pstream_t ps_initptr(const void *s, const void *p) {

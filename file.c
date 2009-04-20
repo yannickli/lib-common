@@ -129,10 +129,8 @@ off_t file_seek(file_t *f, off_t offset, int whence)
 {
     off_t res;
 
-    if (f->flags & FILE_WRONLY) {
-        if (file_flush(f))
-            return -1;
-    }
+    if (f->flags & FILE_WRONLY)
+        RETHROW(file_flush(f));
     res = lseek(f->fd, offset, whence);
     if (res != (off_t)-1) {
         f->wpos = res;
@@ -157,8 +155,7 @@ int file_putc(file_t *f, int c)
     }
     sb_addc(&f->obuf, c);
     if (c == '\n' || f->obuf.len > BUFSIZ) {
-        if (file_flush(f))
-            return -1;
+        RETHROW(file_flush(f));
     }
     return 0;
 }
@@ -238,9 +235,7 @@ int file_writev(file_t *f, const struct iovec *iov, size_t iovcnt)
 int file_writevf(file_t *f, const char *fmt, va_list ap)
 {
     sb_addvf(&f->obuf, fmt, ap);
-    if (f->obuf.len > BUFSIZ) {
-        if (file_flush(f))
-            return -1;
-    }
+    if (f->obuf.len > BUFSIZ)
+        RETHROW(file_flush(f));
     return 0;
 }

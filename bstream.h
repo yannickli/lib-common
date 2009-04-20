@@ -75,9 +75,6 @@ static inline BSTREAM *battach_bufsize(int fd, int mode, int bufsize)
     }
 
     stream = p_new_extra(BSTREAM, bufsize);
-    if (!stream)
-        return NULL;
-
     stream->mode   = mode;
     stream->fd     = fd;
     stream->pos    = 0;

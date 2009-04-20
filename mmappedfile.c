@@ -110,9 +110,7 @@ int mmfile_unlockfile(mmfile *mf)
         return -1;
     }
 
-    if (close(mf->fd) < 0)
-        return -1;
-
+    RETHROW(close(mf->fd));
     mf->locked = false;
     mf->fd = -1;
     return 0;

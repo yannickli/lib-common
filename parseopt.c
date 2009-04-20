@@ -166,8 +166,7 @@ int parseopt(int argc, char **argv, popt_t *opts, int flags)
         if (arg[1] != '-') {
             optst.p = arg + 1;
             do {
-                if (parse_short_opt(&optst, opts) < 0)
-                    return -1;
+                RETHROW(parse_short_opt(&optst, opts));
             } while (optst.p);
             continue;
         }
@@ -177,8 +176,7 @@ int parseopt(int argc, char **argv, popt_t *opts, int flags)
             break;
         }
 
-        if (parse_long_opt(&optst, arg + 2, opts))
-            return -1;
+        RETHROW(parse_long_opt(&optst, arg + 2, opts));
     }
 
     memmove(argv + n, optst.argv, optst.argc * sizeof(argv));

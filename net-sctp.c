@@ -136,9 +136,8 @@ int sctp_recvmsg(int sd, void *_msg, size_t len,
     };
 
     int res = recvmsg(sd, &msg, 0);
-    if (res < 0)
-        return res;
 
+    RETHROW(res);
     if (fromlen)
         *fromlen = msg.msg_namelen;
     if (sinfo) {
@@ -198,8 +197,7 @@ int sctp_connectx(int fd, struct sockaddr *addrs, int count)
 {
     int size = sctp_addr_len((const sockunion_t *)addrs, count);
 
-    if (unlikely(size < 0))
-        return -1;
+    RETHROW(size);
     return setsockopt(fd, SOL_SCTP, SCTP_SOCKOPT_CONNECTX, addrs, size);
 }
 
@@ -211,9 +209,7 @@ int sctp_getaddrs(int fd, int optnum, sctp_assoc_t id,
     socklen_t len = addr_size;
 
     ga->assoc_id = id;
-    res = getsockopt(fd, SOL_SCTP, optnum, ga, &len);
-    if (res < 0)
-        return -1;
+    RETHROW(getsockopt(fd, SOL_SCTP, optnum, ga, &len));
     res = ga->addr_num;
     memmove(ga, ga + 1, len);
     return res;
