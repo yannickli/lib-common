@@ -13,6 +13,7 @@
 /**************************************************************************/
 
 #include "conf.h"
+#include "unix.h"
 
 struct lexdata {
     flag_t seen_section : 1;

@@ -1,6 +1,13 @@
 lib-common Upgrading Notes
 ==========================
 
+lib-common macros cleansing (Mon, 20 Apr 2009)
+----------------------------------------------
+
+* `TYPE_BIT` is renamed bitsizeof.
+* `p_close` and `p_fclose` go to `unix.h` instead of `core-macros.h`.
+
+
 lib-common cleansing (Mon, 02 Feb 2009)
 ---------------------------------------
 

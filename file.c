@@ -13,6 +13,7 @@
 
 #include "container.h"
 #include "file.h"
+#include "unix.h"
 
 /****************************************************************************/
 /* helpers                                                                  */

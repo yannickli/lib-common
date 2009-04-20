@@ -35,46 +35,6 @@
 #  endif
 #endif
 
-/*
- * __attr_unused__             => unused vars
- * __attr_noreturn__           => functions that perform abord()/exit()
- * __attr_printf__(pos_fmt, pos_first_arg) => printf format
- * __attr_scanf__(pos_fmt, pos_first_arg) => scanf format
- */
-
-/** \def STATIC_ASSERT
- * \brief Check a condition at build time.
- * \param[in]  expr    the expression you want to be always true at compile * time.
- * \safemacro
- *
- */
-#ifdef __GNUC__
-#define __error__(msg)          (void)({__asm__(".error \""msg"\"");})
-#define STATIC_ASSERT(cond) \
-    __builtin_choose_expr(cond, (void)0, __error__("static assertion failed: "#cond""))
-#else
-#define __error__(msg)          0
-#define STATIC_ASSERT(condition) ((void)sizeof(char[1 - 2 * !(condition)]))
-#endif
-
-/** \brief Forcefully ignore the value of an expression.
- *
- * Use this to explicitly ignore return values of functions declared with
- * __attribute__((warn_unused_result)).
- *
- * \param[in]  expr    the expression.
- * \safemacro
- */
-#define IGNORE(expr)             do { if (expr) (void)0; } while (0)
-
-/** \brief Convenient functional macro that always expands to true.
- *
- * \warning This macro ignores all of its arguments. The arguments are
- *          not evaluated at all.
- */
-#define TRUEFN(...)              true
-
-
 #if !defined(__doxygen_mode__)
 #  if (!defined(__GNUC__) || __GNUC__ < 3) && !defined(__attribute__)
 #    define __attribute__(attr)
@@ -84,6 +44,12 @@
          (sizeof(char[1 - 2 * __builtin_types_compatible_p(typeof(a), typeof(&(a)[0]))]) - 1)
 #  endif
 
+/*
+ * __attr_unused__             => unused vars
+ * __attr_noreturn__           => functions that perform abord()/exit()
+ * __attr_printf__(pos_fmt, pos_first_arg) => printf format
+ * __attr_scanf__(pos_fmt, pos_first_arg) => scanf format
+ */
 #  define __unused__             __attribute__((unused))
 #  define __must_check__         __attribute__((warn_unused_result))
 #  define __attr_noreturn__      __attribute__((noreturn))
@@ -104,13 +70,50 @@
 #  define HIDDEN    extern
 #endif
 
+
+/** \def STATIC_ASSERT
+ * \brief Check a condition at build time.
+ * \param[in]  expr    the expression you want to be always true at compile * time.
+ * \safemacro
+ *
+ */
 #ifdef __GNUC__
+#  define __error__(msg)          (void)({__asm__(".error \""msg"\"");})
+#  define STATIC_ASSERT(cond) \
+      __builtin_choose_expr(cond, (void)0, \
+                            __error__("static assertion failed: "#cond""))
+#  define ASSERT_COMPATIBLE(e1, e2) \
+    STATIC_ASSERT(__builtin_types_compatible_p(typeof(e1), typeof(e2)))
 #  define likely(expr)    __builtin_expect(!!(expr), 1)
 #  define unlikely(expr)  __builtin_expect((expr), 0)
+#  define prefetch(addr)   ({ __builtin_prefetch(addr); 1; })
+#  define prefetchw(addr)  ({ __builtin_prefetch(addr, 1); 1; })
 #else
+#  define __error__(msg)            0
+#  define STATIC_ASSERT(condition)  ((void)sizeof(char[1 - 2 * !(condition)]))
+#  define ASSERT_COMPATIBLE(e1, e2)
 #  define likely(expr)    expr
 #  define unlikely(expr)  expr
+#  define prefetch(addr)   1
+#  define prefetchw(addr)  1
 #endif
+
+/** \brief Forcefully ignore the value of an expression.
+ *
+ * Use this to explicitly ignore return values of functions declared with
+ * __attribute__((warn_unused_result)).
+ *
+ * \param[in]  expr    the expression.
+ * \safemacro
+ */
+#define IGNORE(expr)             do { if (expr) (void)0; } while (0)
+
+/** \brief Convenient functional macro that always expands to true.
+ *
+ * \warning This macro ignores all of its arguments. The arguments are
+ *          not evaluated at all.
+ */
+#define TRUEFN(...)              true
 
 #undef __acquires
 #undef __releases
@@ -130,51 +133,15 @@
 #  define __needlock(x)
 #endif
 
-/*---------------- Types ----------------*/
+/*---------------- useful expressions ----------------*/
 
-typedef unsigned char byte;
-typedef unsigned int flag_t;    /* for 1 bit bitfields */
-
-/* OG: should find a better name such as BITSIZEOF(type) */
-#define TYPE_BIT(type_t)    (sizeof(type_t) * CHAR_BIT)
-#define BITS_TO_ARRAY_LEN(type_t, nbits)  \
-    (((nbits) + TYPE_BIT(type_t) - 1) / TYPE_BIT(type_t))
-
-#define OP_BIT(bits, n, shift, op) \
-    ((bits)[(unsigned)(n) / (shift)] op (1 << ((n) & ((shift) - 1))))
-#define TST_BIT(bits, n)  OP_BIT(bits, n, TYPE_BIT(*(bits)), &  )
-#define SET_BIT(bits, n)  (void)OP_BIT(bits, n, TYPE_BIT(*(bits)), |= )
-#define RST_BIT(bits, n)  (void)OP_BIT(bits, n, TYPE_BIT(*(bits)), &=~)
-#define XOR_BIT(bits, n)  (void)OP_BIT(bits, n, TYPE_BIT(*(bits)), ^= )
-
-/*---------------- Misc ----------------*/
-
-#ifdef __GNUC__
-#  define container_of(obj, type_t, member) \
-      ({ const typeof(((type_t *)0)->member) *__mptr = (obj);              \
-         (type_t *)((char *)__mptr - offsetof(type_t, member)); })
-#  define prefetch(addr)   ({ __builtin_prefetch(addr); 1; })
-#  define prefetchw(addr)  ({ __builtin_prefetch(addr, 1); 1; })
-#else
-#  define container_of(obj, type_t, member) \
-      (type_t *)((char *)(obj) - offsetof(type_t, member))
-#  define prefetch(addr)   1
-#  define prefetchw(addr)  1
-#endif
-
-
-#define fieldsizeof(type_t, m)  sizeof(((type_t *)0)->m)
-#define fieldtypeof(type_t, m)  typeof(((type_t *)0)->m)
-#define countof(table)  ((ssize_t)(sizeof(table) / sizeof((table)[0]) + \
-                         __must_be_array(table)))
-#define ssizeof(foo)    ((ssize_t)sizeof(foo))
-
-#ifdef __SPARSE__ /* avoids lots of warning with this trivial hack */
-#include <sys/param.h>
-#endif
 #ifndef MAX
 #define MAX(a,b)     (((a) > (b)) ? (a) : (b))
 #endif
+#ifndef MIN
+#define MIN(a,b)     (((a) > (b)) ? (b) : (a))
+#endif
+#define MIN3(a,b,c)  (((a) > (b)) ? MIN(b, c) : MIN(a, c))
 #define MAX3(a,b,c)  (((a) > (b)) ? MAX(a, c) : MAX(b, c))
 
 #define CLIP(v,m,M)  (((v) > (M)) ? (M) : ((v) < (m)) ? (m) : (v))
@@ -182,12 +149,21 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
 #define DIV_ROUND_UP(x, y)   (((x) + (y) - 1) / (y))
 #define ROUND_UP(x, y)       (DIV_ROUND_UP(x, y) * (y))
 
-#ifndef MIN
-#define MIN(a,b)     (((a) > (b)) ? (b) : (a))
-#endif
-#define MIN3(a,b,c)  (((a) > (b)) ? MIN(b, c) : MIN(a, c))
-
 #define NEXTARG(argc, argv)  (argc--, *argv++)
+
+#define RETHROW(e)        \
+    ({ typeof(e) __res = (e);                          \
+       if (unlikely(__res < 0))                        \
+           return __res;                               \
+       __res;                                          \
+    })
+
+#define RETHROW_P(e)        \
+    ({ typeof(e) __res = (e);                          \
+       if (unlikely(__res == NULL))                    \
+           return NULL;                                \
+       __res;                                          \
+    })
 
 #ifdef CMP
 #error CMP already defined
@@ -202,20 +178,55 @@ enum sign {
     POSITIVE = 1,
 };
 
-#define CMP(x, y)    ((enum sign)(((x) > (y)) - ((x) < (y))))
-#define CMP_LESS     NEGATIVE
-#define CMP_EQUAL    ZERO
-#define CMP_GREATER  POSITIVE
-#define SIGN(x)      CMP(x, 0)
+#define CMP(x, y)     ((enum sign)(((x) > (y)) - ((x) < (y))))
+#define CMP_LESS      NEGATIVE
+#define CMP_EQUAL     ZERO
+#define CMP_GREATER   POSITIVE
+#define SIGN(x)       CMP(x, 0)
 
-#define PAD4(len)    (((len) + 3) & ~3)
-#define PAD4EXT(len) (3 - (((len) - 1) & 3))
+#define PAD4(len)     (((len) + 3) & ~3)
+#define PAD4EXT(len)  (3 - (((len) - 1) & 3))
 
 #define TOSTR_AUX(x)  #x
 #define TOSTR(x)      TOSTR_AUX(x)
 
 #define SWAP(typ, a, b)    do { typ __c = a; a = b; b = __c; } while (0)
 
+
+/*---------------- Types ----------------*/
+
+typedef unsigned char byte;
+typedef unsigned int flag_t;    /* for 1 bit bitfields */
+
+#define fieldsizeof(type_t, m)  sizeof(((type_t *)0)->m)
+#define fieldtypeof(type_t, m)  typeof(((type_t *)0)->m)
+#define countof(table)          ((ssize_t)(sizeof(table) / sizeof((table)[0]) \
+                                           + __must_be_array(table)))
+#define ssizeof(foo)            ((ssize_t)sizeof(foo))
+
+#define bitsizeof(type_t)       (sizeof(type_t) * CHAR_BIT)
+#define BITS_TO_ARRAY_LEN(type_t, nbits)  \
+    DIV_ROUND_UP(nbits, bitsizeof(type_t))
+
+#define OP_BIT(bits, n, shift, op) \
+    ((bits)[(unsigned)(n) / (shift)] op (1 << ((n) & ((shift) - 1))))
+#define TST_BIT(bits, n)  OP_BIT(bits, n, bitsizeof(*(bits)), &  )
+#define SET_BIT(bits, n)  (void)OP_BIT(bits, n, bitsizeof(*(bits)), |= )
+#define RST_BIT(bits, n)  (void)OP_BIT(bits, n, bitsizeof(*(bits)), &=~)
+#define CLR_BIT(bits, n)  RST_BIT(bits, n)
+#define XOR_BIT(bits, n)  (void)OP_BIT(bits, n, bitsizeof(*(bits)), ^= )
+
+#ifdef __GNUC__
+#  define container_of(obj, type_t, member) \
+      ({ const typeof(((type_t *)0)->member) *__mptr = (obj);              \
+         (type_t *)((char *)__mptr - offsetof(type_t, member)); })
+#else
+#  define container_of(obj, type_t, member) \
+      (type_t *)((char *)(obj) - offsetof(type_t, member))
+#endif
+
+
+/*---------------- Dangerous APIs ----------------*/
 
 #undef sprintf
 #define sprintf(...)  NEVER_USE_sprintf(__VA_ARGS__)
@@ -225,27 +236,6 @@ enum sign {
 #define strncpy(...)  NEVER_USE_strncpy(__VA_ARGS__)
 #undef strncat
 #define strncat(...)  NEVER_USE_strncat(__VA_ARGS__)
-
-__attr_nonnull__((1))
-static inline int p_fclose(FILE **fpp) {
-    FILE *fp = *fpp;
-
-    *fpp = NULL;
-    return fp ? fclose(fp) : 0;
-}
-
-__attr_nonnull__((1))
-static inline int p_close(int *hdp) {
-    int hd = *hdp;
-    *hdp = -1;
-    if (hd < 0)
-        return 0;
-    while (close(hd) < 0) {
-        if (errno != EINTR)
-            return -1;
-    }
-    return 0;
-}
 
 /** \} */
 #endif

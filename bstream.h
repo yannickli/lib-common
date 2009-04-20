@@ -15,6 +15,7 @@
 #define IS_LIB_COMMON_BSTREAM_H
 
 #include "core.h"
+#include "unix.h"
 
 #if !defined(__USE_FILE_OFFSET64) && !defined(_LARGEFILE64_SOURCE) && \
     !defined(__USE_LARGEFILE64) && !defined(__MINGW) && !defined(__MINGW32__)

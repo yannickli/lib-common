@@ -65,6 +65,27 @@ void term_get_size(int *cols, int *rows);
 int fd_set_features(int fd, int flags);
 int fd_unset_features(int fd, int flags);
 
+__attr_nonnull__((1))
+static inline int p_fclose(FILE **fpp) {
+    FILE *fp = *fpp;
+
+    *fpp = NULL;
+    return fp ? fclose(fp) : 0;
+}
+
+__attr_nonnull__((1))
+static inline int p_close(int *hdp) {
+    int hd = *hdp;
+    *hdp = -1;
+    if (hd < 0)
+        return 0;
+    while (close(hd) < 0) {
+        if (errno != EINTR)
+            return -1;
+    }
+    return 0;
+}
+
 /****************************************************************************/
 /* Misc                                                                     */
 /****************************************************************************/
