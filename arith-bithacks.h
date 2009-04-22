@@ -11,12 +11,36 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_ARITH_H
-#define IS_LIB_COMMON_ARITH_H
+#if !defined(IS_LIB_COMMON_ARITH_H) || defined(IS_LIB_COMMON_ARITH_BIHACKS_H)
+#  error "you must include <lib-common/arith.h> instead"
+#else
+#define IS_LIB_COMMON_ARITH_BIHACKS_H
 
-#include "core.h"
+extern uint8_t const __bitcount11[1 << 11];
 
-#include "arith-endianess.h"
-#include "arith-bithacks.h"
+
+
+static inline uint8_t bitcount8(uint8_t n) {
+    return __bitcount11[n];
+}
+static inline uint8_t bitcount16(size_t n) {
+    return bitcount8(n) + bitcount8(n >> 8);
+}
+
+static inline uint8_t bitcount32(size_t n) {
+    return __bitcount11[(n >>  0) & 0x7ff]
+        +  __bitcount11[(n >> 11) & 0x7ff]
+        +  __bitcount11[(n >> 22) & 0x7ff];
+}
+static inline uint8_t bitcount64(uint64_t n) {
+    return __bitcount11[(n >>  0) & 0x7ff]
+        +  __bitcount11[(n >> 11) & 0x7ff]
+        +  __bitcount11[(n >> 22) & 0x7ff]
+        +  __bitcount11[(n >> 33) & 0x7ff]
+        +  __bitcount11[(n >> 44) & 0x7ff]
+        +  __bitcount11[(n >> 55)];
+}
+
+size_t membitcount(const void *ptr, size_t n);
 
 #endif

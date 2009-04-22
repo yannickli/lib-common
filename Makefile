@@ -46,6 +46,8 @@ libcommon_SOURCES = \
 	xml.c \
 	xmlpp.c \
 	\
+	arith-bithacks.c \
+	\
 	blob.c \
 	blob-ebcdic.c \
 	blob-zlib.c \
