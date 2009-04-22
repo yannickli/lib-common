@@ -41,17 +41,17 @@ static inline le32_t __ps_get_le32(pstream_t *ps) { __PS_GET(ps, 32, le); }
 static inline le64_t __ps_get_le64(pstream_t *ps) { __PS_GET(ps, 64, le); }
 
 static inline uint16_t __ps_get_cpu16(pstream_t *ps) {
-    uint16_t res = cpu16_get_unaligned(ps->p);
+    uint16_t res = get_unaligned_cpu16(ps->p);
     __ps_skip(ps, 16 / 8);
     return res;
 }
 static inline uint32_t __ps_get_cpu32(pstream_t *ps) {
-    uint32_t res = cpu32_get_unaligned(ps->p);
+    uint32_t res = get_unaligned_cpu32(ps->p);
     __ps_skip(ps, 32 / 8);
     return res;
 }
 static inline uint64_t __ps_get_cpu64(pstream_t *ps) {
-    uint64_t res = cpu64_get_unaligned(ps->p);
+    uint64_t res = get_unaligned_cpu64(ps->p);
     __ps_skip(ps, 64 / 8);
     return res;
 }
