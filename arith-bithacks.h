@@ -16,9 +16,23 @@
 #else
 #define IS_LIB_COMMON_ARITH_BIHACKS_H
 
+
+/* XXX bit scan reverse, only defined for u != 0
+ * bsr32(0x1f) == 4 because first bit set from the "left" is 2^4
+ */
+static inline size_t bsr32(uint32_t u) { return __builtin_clz(u) ^ 31; }
+static inline size_t bsr64(uint64_t u) { return __builtin_clzll(u) ^ 63; }
+
+/* XXX bit scan forward, only defined for u != 0
+ * bsf32(0xf10) == 4 because first bit set from the "right" is 2^4
+ */
+static inline size_t bsf32(uint32_t u) { return __builtin_ctz(u); }
+static inline size_t bsf64(uint64_t u) { return __builtin_ctzll(u); }
+
+
+/*----- bitcount -----*/
+
 extern uint8_t const __bitcount11[1 << 11];
-
-
 
 static inline uint8_t bitcount8(uint8_t n) {
     return __bitcount11[n];
