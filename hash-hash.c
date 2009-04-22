@@ -13,13 +13,6 @@
 
 #include "hash.h"
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-#define get16bits(d)  (*((const uint16_t *)(d)))
-#else
-#define get16bits(d)  (((uint32_t)(((const uint8_t *)(d))[1]) << 8) \
-                      | (uint32_t)(((const uint8_t *)(d))[0])       )
-#endif
-
 uint32_t hsieh_hash(const void *_data, int len)
 {
     const byte *data = _data;
@@ -35,8 +28,8 @@ uint32_t hsieh_hash(const void *_data, int len)
 
     /* Main loop */
     for (; len > 0; len--, data += 4) {
-        hash  += get16bits(data);
-        tmp    = (get16bits(data + 2) << 11) ^ hash;
+        hash  += cpu_to_le16pu(data);
+        tmp    = (cpu_to_le16pu(data + 2) << 11) ^ hash;
         hash   = (hash << 16) ^ tmp;
         hash  += hash >> 11;
     }
@@ -44,13 +37,13 @@ uint32_t hsieh_hash(const void *_data, int len)
     /* Handle end cases */
     switch (rem) {
       case 3:
-        hash += get16bits(data);
+        hash += cpu_to_le16pu(data);
         hash ^= hash << 16;
         hash ^= data[2] << 18;
         hash += hash >> 11;
         break;
       case 2:
-        hash += get16bits(data);
+        hash += cpu_to_le16pu(data);
         hash ^= hash << 11;
         hash += hash >> 17;
         break;
