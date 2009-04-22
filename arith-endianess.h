@@ -77,12 +77,12 @@ static inline uint16_t bswap16(uint16_t x) { return (x >> 8) | (x << 8); }
 #  define CPU_TO_LE_CONST(w, x)  force_cast(le##w##_t, bswap##w##_const(x))
 #  define CPU_TO_BE_CONST(w, x)  force_cast(be##w##_t, x)
 #else
-#  define CPU_TO_LE(w, x)        force_cast(le##w##_t, bswap##w(x))
-#  define CPU_TO_BE(w, x)        force_cast(be##w##_t, x)
-#  define LE_TO_CPU(w, x)        force_cast(uint##w##_t, bswap##w(x))
-#  define BE_TO_CPU(w, x)        force_cast(uint##w##_t, x)
-#  define CPU_TO_LE_CONST(w, x)  force_cast(le##w##_t, bswap##w##_const(x))
-#  define CPU_TO_BE_CONST(w, x)  force_cast(be##w##_t, x)
+#  define CPU_TO_LE(w, x)        force_cast(le##w##_t, x)
+#  define CPU_TO_BE(w, x)        force_cast(be##w##_t, bswap##w(x))
+#  define LE_TO_CPU(w, x)        force_cast(uint##w##_t, x)
+#  define BE_TO_CPU(w, x)        force_cast(uint##w##_t, bswap##w(x))
+#  define CPU_TO_LE_CONST(w, x)  force_cast(le##w##_t, x)
+#  define CPU_TO_BE_CONST(w, x)  force_cast(be##w##_t, bswap##w##_const(x))
 #endif
 
 #define BE16_T(x)  CPU_TO_BE_CONST(16, x)
