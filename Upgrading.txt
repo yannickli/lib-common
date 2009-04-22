@@ -1,6 +1,13 @@
 lib-common Upgrading Notes
 ==========================
 
+lib-common arith (Mon, 22 Apr 2009)
+-----------------------------------
+
+* New module: `arit.h`, replaces `core-byteops.h` for many things:
+  - cpu_to_?e_* becomes cpu_to_le*.
+  - ?e_to_cpu_* becomes ?e_to_cpu*pu (for unaligned access).
+
 lib-common cleansing (Mon, 02 Feb 2009)
 ---------------------------------------
 
