@@ -354,49 +354,4 @@ static inline const void *ps_get_block(pstream_t *ps, size_t len, size_t align) 
 #define ps_get_type8(ps, type_t)    ((type_t *)ps_get_block(ps, sizeof(type_t), 8))
 
 
-#define __PS_GET(ps, width, endianess)                  \
-    do {                                                \
-        uint##width##_t res;                            \
-        memcpy(&res, ps->b, width / 8);                 \
-        if (__BYTE_ORDER != endianess)                  \
-            res = bswap##width(res);                    \
-        __ps_skip(ps, width / 8);                       \
-        return res;                                     \
-    } while (0)
-
-#define PS_GET(ps, res, width, endianess)               \
-    do {                                                \
-        PS_WANT(ps_has(ps, width / 8));                 \
-        *res = __ps_get_##endianess##width(ps);         \
-        return 0;                                       \
-    } while (0)
-
-static inline uint16_t __ps_get_be16(pstream_t *ps) { __PS_GET(ps, 16, __BIG_ENDIAN); }
-static inline uint32_t __ps_get_be32(pstream_t *ps) { __PS_GET(ps, 32, __BIG_ENDIAN); }
-static inline uint64_t __ps_get_be64(pstream_t *ps) { __PS_GET(ps, 64, __BIG_ENDIAN); }
-
-static inline uint16_t __ps_get_le16(pstream_t *ps) { __PS_GET(ps, 16, __LITTLE_ENDIAN); }
-static inline uint32_t __ps_get_le32(pstream_t *ps) { __PS_GET(ps, 32, __LITTLE_ENDIAN); }
-static inline uint64_t __ps_get_le64(pstream_t *ps) { __PS_GET(ps, 64, __LITTLE_ENDIAN); }
-
-static inline uint16_t __ps_get_cpu16(pstream_t *ps) { __PS_GET(ps, 16, __BYTE_ORDER); }
-static inline uint32_t __ps_get_cpu32(pstream_t *ps) { __PS_GET(ps, 32, __BYTE_ORDER); }
-static inline uint64_t __ps_get_cpu64(pstream_t *ps) { __PS_GET(ps, 64, __BYTE_ORDER); }
-
-static inline int ps_get_be16(pstream_t *ps, uint16_t *res) { PS_GET(ps, res, 16, be); }
-static inline int ps_get_be32(pstream_t *ps, uint32_t *res) { PS_GET(ps, res, 32, be); }
-static inline int ps_get_be64(pstream_t *ps, uint64_t *res) { PS_GET(ps, res, 64, be); }
-
-static inline int ps_get_le16(pstream_t *ps, uint16_t *res) { PS_GET(ps, res, 16, le); }
-static inline int ps_get_le32(pstream_t *ps, uint32_t *res) { PS_GET(ps, res, 32, le); }
-static inline int ps_get_le64(pstream_t *ps, uint64_t *res) { PS_GET(ps, res, 64, le); }
-
-static inline int ps_get_cpu16(pstream_t *ps, uint16_t *res) { PS_GET(ps, res, 16, cpu); }
-static inline int ps_get_cpu32(pstream_t *ps, uint32_t *res) { PS_GET(ps, res, 32, cpu); }
-static inline int ps_get_cpu64(pstream_t *ps, uint64_t *res) { PS_GET(ps, res, 64, cpu); }
-
-#undef __PS_GET
-#undef PS_GET
-
 #endif
-

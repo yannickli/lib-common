@@ -195,6 +195,18 @@ enum sign {
 
 /*---------------- Types ----------------*/
 
+typedef uint64_t cpu64_t;
+typedef uint64_t __bitwise__ be64_t;
+typedef uint64_t __bitwise__ le64_t;
+typedef uint32_t cpu32_t;
+typedef uint32_t __bitwise__ le32_t;
+typedef uint32_t __bitwise__ be32_t;
+typedef uint16_t cpu16_t;
+typedef uint16_t __bitwise__ le16_t;
+typedef uint16_t __bitwise__ be16_t;
+
+#define MAKE64(hi, lo)  (((uint64_t)(uint32_t)(hi) << 32) | (uint32_t)(lo))
+
 typedef unsigned char byte;
 typedef unsigned int flag_t;    /* for 1 bit bitfields */
 

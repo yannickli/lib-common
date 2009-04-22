@@ -15,6 +15,7 @@
 #define IS_LIB_COMMON_HASH_H
 
 #include "core.h"
+#include "arith.h"
 
 #include "hash-config.h"
 
@@ -38,17 +39,10 @@
 #define SHA384_BLOCK_SIZE   SHA512_BLOCK_SIZE
 #define SHA224_BLOCK_SIZE   SHA256_BLOCK_SIZE
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-#define GET_U32_LE(n,b,i)    memcpy(&(n), (b) + (i), 4)
-#define PUT_U32_LE(n,b,i)    (*(uint32_t *)((b) + (i)) = (n))
-#define GET_U32_BE(n,b,i)    (memcpy(&(n), (b) + (i), 4), (n) = bswap32(n))
-#define PUT_U32_BE(n,b,i)    (*(uint32_t *)((b) + (i)) = bswap32(n))
-#else
-#define GET_U32_LE(n,b,i)    (memcpy(&(n), (b) + (i), 4), (n) = bswap32(n))
-#define PUT_U32_LE(n,b,i)    (*(uint32_t *)((b) + (i)) = bswap32(n))
-#define GET_U32_BE(n,b,i)    memcpy(&(n), (b) + (i), 4)
-#define PUT_U32_BE(n,b,i)    (*(uint32_t *)((b) + (i)) = (n))
-#endif
+#define GET_U32_LE(n,b,i)    ((n) = cpu_to_le32pu((b) + (i)))
+#define PUT_U32_LE(n,b,i)    (*(le32_t *)((b) + (i)) = cpu_to_le32(n))
+#define GET_U32_BE(n,b,i)    ((n) = cpu_to_be32pu((b) + (i)))
+#define PUT_U32_BE(n,b,i)    (*(be32_t *)((b) + (i)) = cpu_to_be32(n))
 
 #include "hash-aes.h"
 #include "hash-arc4.h"

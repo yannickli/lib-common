@@ -47,7 +47,6 @@
 #include "core-os-features.h"
 #include "core-macros.h"
 #include "core-atomic.h"
-#include "core-byteops.h"
 #include "core-errors.h"
 #include "core-mem.h"
 #include "core-refcount.h"
