@@ -101,6 +101,7 @@ libcommon_SOURCES = \
 	str-buf-gsm.c \
 	str-num.c \
 	str-conv.c \
+	str-ctype.c \
 	str-iprintf.c \
 	str-dtoa.c \
 	\

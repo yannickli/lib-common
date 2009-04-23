@@ -1,0 +1,84 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2009 INTERSEC SAS                                  */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+#include "str.h"
+
+/* ctype description for tokens "abcdefghijklmnopqrstuvwxyz" */
+ctype_desc_t const ctype_islower = {
+    {
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x07fffffe,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+    }
+};
+
+/* ctype description for tokens "ABCDEFGHIJKLMNOPQRSTUVWXYZ" */
+ctype_desc_t const ctype_isupper = {
+    {
+        0x00000000,
+        0x00000000,
+        0x07fffffe,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+    }
+};
+
+/* ctype description for tokens "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" */
+ctype_desc_t const ctype_isalpha = {
+    {
+        0x00000000,
+        0x00000000,
+        0x07fffffe,
+        0x07fffffe,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+    }
+};
+
+/* ctype description for tokens "0123456789" */
+ctype_desc_t const ctype_isdigit = {
+    {
+        0x00000000,
+        0x03ff0000,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+    }
+};
+
+/* ctype description for tokens " \r\n\t\v" */
+ctype_desc_t const ctype_isspace = {
+    {
+        0x00002e00,
+        0x00000001,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+    }
+};
