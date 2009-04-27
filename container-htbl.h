@@ -119,10 +119,8 @@ void htbl_invalidate(generic_htbl *t, int pos);
                                                                              \
     static inline void                                                       \
     pfx##_##kind##_ll_remove(pfx##_##kind *t, type_t *e) {                   \
-        if (e) {                                                             \
-            assert (t->tab <= e && e < t->tab + t->size);                    \
-            htbl_invalidate((generic_htbl *)t, e - t->tab);                  \
-        }                                                                    \
+        assert (t->tab <= e && e < t->tab + t->size);                        \
+        htbl_invalidate((generic_htbl *)t, e - t->tab);                      \
     }
 
 #define DO_HTBL_KEY_COMMON(kind, type_t, idx_t, get_h, get_k, pfx)           \
