@@ -31,6 +31,7 @@ CONTAINER_TYPE(htbl, void, generic);
 
 uint32_t htbl_get_size(uint32_t len);
 uint32_t htbl_scan_pos(generic_htbl *t, uint32_t pos);
+uint32_t htbl_free_id(generic_htbl *t);
 
 void htbl_init(generic_htbl *t, int size);
 void htbl_wipe(generic_htbl *t);
@@ -119,6 +120,9 @@ void htbl_invalidate(generic_htbl *t, uint32_t pos);
         return NULL;                                                         \
     }                                                                        \
                                                                              \
+    static inline uint32_t pfx##_##kind##_free_id(pfx##_##kind *t) {         \
+        return htbl_free_id((generic_htbl *)t);                              \
+    }                                                                        \
     static inline void                                                       \
     pfx##_##kind##_invalidate(pfx##_##kind *t, int pos) {                    \
         htbl_invalidate((generic_htbl *)t, pos);                             \

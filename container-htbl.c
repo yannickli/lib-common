@@ -54,6 +54,19 @@ uint32_t htbl_scan_pos(generic_htbl *t, uint32_t pos)
     }
 }
 
+uint32_t htbl_free_id(generic_htbl *t)
+{
+    static uint32_t seed = 0xfaceb00c;
+
+    if (!t->size)
+        return seed;
+
+    do {
+        seed = 1664525 * seed + 1013904223;
+    } while (TST_BIT(t->setbits, seed % t->size));
+    return seed % t->size;
+}
+
 void htbl_init(generic_htbl *t, int size)
 {
     const size_t bits = bitsizeof(t->setbits[0]);
