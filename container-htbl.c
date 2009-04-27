@@ -14,6 +14,30 @@
 #include "container.h"
 #include "hash.h"
 
+/* 2^i < prime[i] */
+static uint32_t const prime_list[32] = {
+    11ul,         11ul,         11ul,         23ul,
+    53ul,         97ul,         193ul,        389ul,
+    769ul,        1543ul,       3079ul,       6151ul,
+    12289ul,      24593ul,      49157ul,      98317ul,
+    196613ul,     393241ul,     786433ul,     1572869ul,
+    3145739ul,    6291469ul,    12582917ul,   25165843ul,
+    50331653ul,   100663319ul,  201326611ul,  402653189ul,
+    805306457ul,  1610612741ul, 3221225473ul, 4294967291ul
+};
+
+uint32_t htbl_get_size(uint32_t len)
+{
+    uint32_t size = 2 * (len + 1);
+    int bsr = bsr32(size);
+
+    if (unlikely(size >= INT32_MAX))
+        e_panic("out of memory");
+    while (prime_list[bsr] < size)
+        bsr++;
+    return prime_list[bsr];
+}
+
 void htbl_init(generic_htbl *t, int size)
 {
     t->size      = size;

@@ -29,6 +29,7 @@
 
 CONTAINER_TYPE(htbl, void, generic);
 
+uint32_t htbl_get_size(uint32_t len);
 void htbl_init(generic_htbl *t, int size);
 void htbl_wipe(generic_htbl *t);
 void htbl_invalidate(generic_htbl *t, int pos);
@@ -40,11 +41,13 @@ void htbl_invalidate(generic_htbl *t, int pos);
     GENERIC_DELETE(pfx##_##kind, pfx##_##kind)                               \
                                                                              \
     static inline type_t *pfx##_##kind##_ll_insert(pfx##_##kind *, type_t);  \
-    static inline void pfx##_##kind##_resize(pfx##_##kind *t, int newsize) { \
+    static inline void pfx##_##kind##_resize(pfx##_##kind *t) {              \
+        uint32_t size = htbl_get_size(t->len);                               \
         pfx##_##kind old = *t;                                               \
-        htbl_init((generic_htbl *)t, newsize);                               \
+                                                                             \
+        htbl_init((generic_htbl *)t, size);                                  \
         t->deny_shrink = true;                                               \
-        t->tab  = p_new(type_t, newsize);                                    \
+        t->tab  = p_new(type_t, size);                                       \
         for (int i = 0; i < old.size; i++) {                                 \
             if (TST_BIT(old.setbits, i))                                     \
                 pfx##_##kind##_ll_insert(t, old.tab[i]);                     \
@@ -76,14 +79,10 @@ void htbl_invalidate(generic_htbl *t, int pos);
         unsigned size, pos;                                                  \
         int ghost = -1;                                                      \
                                                                              \
-        if (t->len >= t->size / 2) {                                         \
-            pfx##_##kind##_resize(t, p_alloc_nr(t->size));                   \
-        } else                                                               \
-        if (t->len + t->ghosts >= t->size / 2) {                             \
-            pfx##_##kind##_resize(t, t->size);                               \
-        } else                                                               \
-        if (t->len < t->size / 16 && !t->deny_shrink) {                      \
-            pfx##_##kind##_resize(t, p_alloc_nr(t->len));                    \
+        if ((t->len + t->ghosts) * 3 >= t->size * 2                          \
+        ||  (t->len < t->size / 16 && !t->deny_shrink))                      \
+        {                                                                    \
+            pfx##_##kind##_resize(t);                                        \
         }                                                                    \
                                                                              \
         size = (unsigned)t->size;                                            \
