@@ -22,8 +22,8 @@
         unsigned *setbits;                                                   \
         unsigned *ghostbits;                                                 \
         int len, size, ghosts;                                               \
-        flag_t inmap : 1;                                                    \
         flag_t name_inline : 1;                                              \
+        flag_t deny_shrink : 1;                                              \
         short name_offs;                                                     \
     } pfx##_##kind
 
@@ -43,12 +43,14 @@ void htbl_invalidate(generic_htbl *t, int pos);
     static inline void pfx##_##kind##_resize(pfx##_##kind *t, int newsize) { \
         pfx##_##kind old = *t;                                               \
         htbl_init((generic_htbl *)t, newsize);                               \
+        t->deny_shrink = true;                                               \
         t->tab  = p_new(type_t, newsize);                                    \
         for (int i = 0; i < old.size; i++) {                                 \
             if (TST_BIT(old.setbits, i))                                     \
                 pfx##_##kind##_ll_insert(t, old.tab[i]);                     \
         }                                                                    \
         htbl_wipe((generic_htbl *)&old);                                     \
+        t->deny_shrink = false;                                              \
     }                                                                        \
                                                                              \
     static inline type_t *                                                   \
@@ -74,12 +76,14 @@ void htbl_invalidate(generic_htbl *t, int pos);
         unsigned size, pos;                                                  \
         int ghost = -1;                                                      \
                                                                              \
-        assert (!t->inmap);                                                  \
         if (t->len >= t->size / 2) {                                         \
             pfx##_##kind##_resize(t, p_alloc_nr(t->size));                   \
         } else                                                               \
         if (t->len + t->ghosts >= t->size / 2) {                             \
             pfx##_##kind##_resize(t, t->size);                               \
+        } else                                                               \
+        if (t->len < t->size / 16 && !t->deny_shrink) {                      \
+            pfx##_##kind##_resize(t, p_alloc_nr(t->len));                    \
         }                                                                    \
                                                                              \
         size = (unsigned)t->size;                                            \
@@ -114,8 +118,6 @@ void htbl_invalidate(generic_htbl *t, int pos);
         if (e) {                                                             \
             assert (t->tab <= e && e < t->tab + t->size);                    \
             htbl_invalidate((generic_htbl *)t, e - t->tab);                  \
-            if (!t->inmap && 8 * (t->len + 16) < t->size)                    \
-                pfx##_##kind##_resize(t, 4 * (t->len + 16));                 \
         }                                                                    \
     }
 
@@ -201,13 +203,10 @@ void htbl_invalidate(generic_htbl *t, int pos);
 /* you can use htbl_ll_remove's in HTBL_MAP's */
 #define HTBL_MAP(t, f, ...)                                                  \
     do {                                                                     \
-        assert (!(t)->inmap);                                                \
-        (t)->inmap = true;                                                   \
         for (int __i = 0; __i < (t)->size; __i++) {                          \
             if (TST_BIT((t)->setbits, __i))                                  \
                  f((t)->tab + __i, ##__VA_ARGS__);                           \
         }                                                                    \
-        (t)->inmap = false;                                                  \
     } while (0)
 
 uint64_t htbl_hash_string(const void *s, int len);
@@ -305,7 +304,6 @@ bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
  */
 #define HTBL_STR_MAP(t, f, ...)                                              \
     do {                                                                     \
-        (t)->inmap = true;                                                   \
         for (int __i = 0; __i < (t)->size; __i++) {                          \
             if (TST_BIT((t)->setbits, __i)) {                                \
                 f(&(t)->tab[__i].e, ##__VA_ARGS__);                          \
@@ -313,7 +311,6 @@ bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
                     htbl_invalidate((generic_htbl *)(t), __i);               \
             }                                                                \
         }                                                                    \
-        (t)->inmap = false;                                                  \
     } while (0)
 
 DO_HTBL_STROFFS(char, string, 0, true);
