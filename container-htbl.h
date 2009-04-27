@@ -30,10 +30,11 @@
 CONTAINER_TYPE(htbl, void, generic);
 
 uint32_t htbl_get_size(uint32_t len);
+uint32_t htbl_scan_pos(generic_htbl *t, uint32_t pos);
+
 void htbl_init(generic_htbl *t, int size);
 void htbl_wipe(generic_htbl *t);
-void htbl_invalidate(generic_htbl *t, int pos);
-int htbl_next_pos(generic_htbl *t, int pos);
+void htbl_invalidate(generic_htbl *t, uint32_t pos);
 
 #define DO_LL_CONTAINER(kind, type_t, idx_t, pfx, get_h, get_k, key_equal)   \
     static inline void pfx##_##kind##_wipe(pfx##_##kind *t) {                \
@@ -208,9 +209,9 @@ int htbl_next_pos(generic_htbl *t, int pos);
                         pfx##_htbl_get_h, pfx##_htbl_get_k, pfx)
 
 #define __htbl_for_each(i, t, doit) \
-    for (int i = htbl_next_pos((generic_htbl *)(t), 0);                      \
+    for (int i = htbl_scan_pos((generic_htbl *)(t), 0);                      \
          i < (t)->size && (doit, true);                                      \
-         i = htbl_next_pos((generic_htbl *)(t), i + 1))
+         i = htbl_scan_pos((generic_htbl *)(t), i + 1))
 
 #define htbl_for_each_pos(i, t)  __htbl_for_each(i, t, (void)0)
 #define htbl_for_each(e, t)      __htbl_for_each(e##_i, t, e = (t)->tab[e##_i])

@@ -14,16 +14,16 @@
 #include "container.h"
 #include "hash.h"
 
-/* 2^i < prime[i] */
+/* 2^i < prime[i], and often prime[i] > 2^i */
 static uint32_t const prime_list[32] = {
-    11ul,         11ul,         11ul,         23ul,
-    53ul,         97ul,         193ul,        389ul,
-    769ul,        1543ul,       3079ul,       6151ul,
-    12289ul,      24593ul,      49157ul,      98317ul,
-    196613ul,     393241ul,     786433ul,     1572869ul,
-    3145739ul,    6291469ul,    12582917ul,   25165843ul,
-    50331653ul,   100663319ul,  201326611ul,  402653189ul,
-    805306457ul,  1610612741ul, 3221225473ul, 4294967291ul
+    11,         11,         11,         11,
+    23,         53,         97,         193,
+    389,        769,        1543,       3079,
+    6151,       12289,      24593,      49157,
+    98317,      196613,     393241,     786433,
+    1572869,    3145739,    6291469,    12582917,
+    25165843,   50331653,   100663319,  201326611,
+    402653189,  805306457,  1610612741, 3221225473,
 };
 
 uint32_t htbl_get_size(uint32_t len)
@@ -38,29 +38,33 @@ uint32_t htbl_get_size(uint32_t len)
     return prime_list[bsr];
 }
 
-int htbl_next_pos(generic_htbl *t, int pos)
+uint32_t htbl_scan_pos(generic_htbl *t, uint32_t pos)
 {
-    while (pos < t->size) {
+    /* XXX: see htbl_init to understand why this stops */
+    for (;;) {
         const size_t bits = bitsizeof(t->setbits[0]);
-        int word_idx = pos / bits;
-        int bits_idx = (pos & (bits - 1));
-        unsigned long word = t->setbits[word_idx];
+        unsigned long word = t->setbits[pos / bits];
+        int bits_idx = pos & (bits - 1);
 
+        pos  &= ~(bits - 1);
         word &= ~((1 << bits_idx) - 1);
         if (word)
-            return word_idx + __builtin_ctzl(word);
-        pos += bits - bits_idx;
+            return pos + __builtin_ctzl(word);
+        pos += bits;
     }
-    return t->size;
 }
 
 void htbl_init(generic_htbl *t, int size)
 {
+    const size_t bits = bitsizeof(t->setbits[0]);
+
     t->size      = size;
     t->len       = 0;
     t->ghosts    = 0;
     t->setbits   = p_new(unsigned long, BITS_TO_ARRAY_LEN(unsigned long, size));
     t->ghostbits = p_new(unsigned long, BITS_TO_ARRAY_LEN(unsigned long, size));
+    /* XXX: at least 2 bits beyond t->size are set to stop htbl_scan_pos */
+    t->setbits[size / bits] = 1 << (size % bits);
 }
 
 void htbl_wipe(generic_htbl *t)
@@ -70,7 +74,7 @@ void htbl_wipe(generic_htbl *t)
     p_delete(&t->ghostbits);
 }
 
-void htbl_invalidate(generic_htbl *t, int pos)
+void htbl_invalidate(generic_htbl *t, uint32_t pos)
 {
     if (TST_BIT(t->setbits, pos)) {
         RST_BIT(t->setbits, pos);
