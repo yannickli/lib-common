@@ -125,6 +125,16 @@ static inline bool ps_contains(const pstream_t *ps, const void *p) {
     return p >= ps->p && p <= ps->p_end;
 }
 
+static inline bool ps_is_equal(pstream_t ps1, pstream_t ps2)
+{
+    return ps_len(&ps1) == ps_len(&ps2) && !memcmp(ps1.b, ps2.b, ps_len(&ps1));
+}
+static inline int ps_cmp(pstream_t ps1, pstream_t ps2)
+{
+    size_t len = MIN(ps_len(&ps1), ps_len(&ps2));
+    return memcmp(ps1.b, ps2.b, len) ?: CMP(ps_len(&ps1), ps_len(&ps2));
+}
+
 static inline bool ps_startswith(const pstream_t *ps, const void *data, size_t len)
 {
     return ps_len(ps) >= len && !memcmp(ps->p, data, len);
