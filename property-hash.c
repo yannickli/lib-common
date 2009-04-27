@@ -68,7 +68,9 @@ props_hash_t *props_hash_dup(const props_hash_t *ph)
 
 void props_hash_wipe(props_hash_t *ph)
 {
-    HTBL_MAP(&ph->h, prop_wipe);
+    htbl_for_each_pos(i, &ph->h) {
+        prop_wipe(&ph->h.tab[i]);
+    }
     props_htbl_wipe(&ph->h);
     p_delete(&ph->name);
 }
@@ -101,15 +103,14 @@ void props_hash_remove(props_hash_t *ph, const char *name)
     props_hash_update(ph, name, NULL);
 }
 
-static void update_one(prop_t *p, void *to)
-{
-    props_hash_update(to, p->name, p->value);
-}
-
 void props_hash_merge(props_hash_t *to, const props_hash_t *src)
 {
+    prop_t *pp;
+
     assert (to->names == src->names);
-    HTBL_MAP((props_htbl *)&src->h, update_one, to);
+    htbl_for_each_p(pp, &src->h) {
+        props_hash_update(to, pp->name, pp->value);
+    }
 }
 
 /****************************************************************************/
@@ -166,49 +167,44 @@ bool props_hash_findval_bool(const props_hash_t *ph, const char *name, bool defv
 /* Serialize props_hashes                                                   */
 /****************************************************************************/
 
-static void pack_one(prop_t *pp, void *sb)
-{
-    blob_pack(sb, "|s|s", pp->name, pp->value);
-}
-
 void props_hash_pack(sb_t *out, const props_hash_t *ph, int terminator)
 {
-    blob_pack(out, "d", ph->h.len);
-    HTBL_MAP((props_htbl *)&ph->h, pack_one, out);
-    sb_addc(out, terminator);
-}
+    prop_t *pp;
 
-static void one_to_fmtv1(prop_t *pp, void *sb)
-{
-    blob_pack(sb, "s:s\n", pp->name, pp->value);
+    blob_pack(out, "d", ph->h.len);
+    htbl_for_each_p(pp, &ph->h) {
+        blob_pack(out, "|s|s", pp->name, pp->value);
+    }
+    sb_addc(out, terminator);
 }
 
 void props_hash_to_fmtv1(sb_t *out, const props_hash_t *ph)
 {
-    HTBL_MAP((props_htbl *)&ph->h, one_to_fmtv1, out);
-}
+    prop_t *pp;
 
-static void one_to_conf(prop_t *pp, void *sb)
-{
-    /* fixme val could have embeded \n */
-    sb_addf(sb, "%s = %s\n", pp->name, pp->value);
+    htbl_for_each_p(pp, &ph->h) {
+        blob_pack(out, "s:s\n", pp->name, pp->value);
+    }
 }
 
 void props_hash_to_conf(sb_t *out, const props_hash_t *ph)
 {
-    HTBL_MAP((props_htbl *)&ph->h, one_to_conf, out);
+    prop_t *pp;
+
+    htbl_for_each_p(pp, &ph->h) {
+        sb_addf(out, "%s = %s\n", pp->name, pp->value);
+    }
 }
 
-static void one_to_xml(prop_t *pp, void *xpp)
+void props_hash_to_xml(xmlpp_t *xpp, const props_hash_t *ph)
 {
-    xmlpp_opentag(xpp, pp->name);
-    xmlpp_puts(xpp, pp->value);
-    xmlpp_closetag(xpp);
-}
+    prop_t *pp;
 
-void props_hash_to_xml(xmlpp_t *pp, const props_hash_t *ph)
-{
-    HTBL_MAP((props_htbl *)&ph->h, one_to_xml, pp);
+    htbl_for_each_p(pp, &ph->h) {
+        xmlpp_opentag(xpp, pp->name);
+        xmlpp_puts(xpp, pp->value);
+        xmlpp_closetag(xpp);
+    }
 }
 
 /****************************************************************************/
