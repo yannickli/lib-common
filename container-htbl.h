@@ -19,8 +19,8 @@
 #define CONTAINER_TYPE(kind, type_t, pfx)                                    \
     typedef struct pfx##_##kind {                                            \
         type_t *tab;                                                         \
-        unsigned *setbits;                                                   \
-        unsigned *ghostbits;                                                 \
+        unsigned long *setbits;                                              \
+        unsigned long *ghostbits;                                            \
         int len, size, ghosts;                                               \
         flag_t name_inline : 1;                                              \
         flag_t deny_shrink : 1;                                              \
@@ -33,6 +33,7 @@ uint32_t htbl_get_size(uint32_t len);
 void htbl_init(generic_htbl *t, int size);
 void htbl_wipe(generic_htbl *t);
 void htbl_invalidate(generic_htbl *t, int pos);
+int htbl_next_pos(generic_htbl *t, int pos);
 
 #define DO_LL_CONTAINER(kind, type_t, idx_t, pfx, get_h, get_k, key_equal)   \
     static inline void pfx##_##kind##_wipe(pfx##_##kind *t) {                \
@@ -202,12 +203,20 @@ void htbl_invalidate(generic_htbl *t, int pos);
     DO_HTBL_PKEY_COMMON(htbl, type_t, idx_t,                                 \
                         pfx##_htbl_get_h, pfx##_htbl_get_k, pfx)
 
+#define __htbl_for_each(i, t, doit) \
+    for (int i = htbl_next_pos((generic_htbl *)(t), 0);                      \
+         i < (t)->size && (doit, true);                                      \
+         i = htbl_next_pos((generic_htbl *)(t), i + 1))
+
+#define htbl_for_each_pos(i, t)  __htbl_for_each(i, t, (void)0)
+#define htbl_for_each(e, t)      __htbl_for_each(e##_i, t, e = (t)->tab[e##_i])
+#define htbl_for_each_p(e, t)    __htbl_for_each(e##_i, t, e = (t)->tab + e##_i)
+
 /* you can use htbl_ll_remove's in HTBL_MAP's */
 #define HTBL_MAP(t, f, ...)                                                  \
     do {                                                                     \
-        for (int __i = 0; __i < (t)->size; __i++) {                          \
-            if (TST_BIT((t)->setbits, __i))                                  \
-                 f((t)->tab + __i, ##__VA_ARGS__);                           \
+        htbl_for_each_pos(__i, t) {                                          \
+            f((t)->tab + __i, ##__VA_ARGS__);                                \
         }                                                                    \
     } while (0)
 
@@ -306,12 +315,10 @@ bool htbl_keyequal(uint64_t h, const void *k1, const void *k2);
  */
 #define HTBL_STR_MAP(t, f, ...)                                              \
     do {                                                                     \
-        for (int __i = 0; __i < (t)->size; __i++) {                          \
-            if (TST_BIT((t)->setbits, __i)) {                                \
-                f(&(t)->tab[__i].e, ##__VA_ARGS__);                          \
-                if ((t)->tab[__i].e == NULL)                                 \
-                    htbl_invalidate((generic_htbl *)(t), __i);               \
-            }                                                                \
+        htbl_for_each_pos(__i, t) {                                          \
+            f(&(t)->tab[__i].e, ##__VA_ARGS__);                              \
+            if ((t)->tab[__i].e == NULL)                                     \
+                htbl_invalidate((generic_htbl *)(t), __i);                   \
         }                                                                    \
     } while (0)
 

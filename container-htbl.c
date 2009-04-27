@@ -38,13 +38,29 @@ uint32_t htbl_get_size(uint32_t len)
     return prime_list[bsr];
 }
 
+int htbl_next_pos(generic_htbl *t, int pos)
+{
+    while (pos < t->size) {
+        const size_t bits = bitsizeof(t->setbits[0]);
+        int word_idx = pos / bits;
+        int bits_idx = (pos & (bits - 1));
+        unsigned long word = t->setbits[word_idx];
+
+        word &= ~((1 << bits_idx) - 1);
+        if (word)
+            return word_idx + __builtin_ctzl(word);
+        pos += bits - bits_idx;
+    }
+    return t->size;
+}
+
 void htbl_init(generic_htbl *t, int size)
 {
     t->size      = size;
     t->len       = 0;
     t->ghosts    = 0;
-    t->setbits   = p_new(unsigned, BITS_TO_ARRAY_LEN(unsigned, size));
-    t->ghostbits = p_new(unsigned, BITS_TO_ARRAY_LEN(unsigned, size));
+    t->setbits   = p_new(unsigned long, BITS_TO_ARRAY_LEN(unsigned long, size));
+    t->ghostbits = p_new(unsigned long, BITS_TO_ARRAY_LEN(unsigned long, size));
 }
 
 void htbl_wipe(generic_htbl *t)
