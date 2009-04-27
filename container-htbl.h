@@ -59,11 +59,12 @@ void htbl_invalidate(generic_htbl *t, int pos);
     static inline type_t *                                                   \
     pfx##_##kind##_ll_find(const pfx##_##kind *t, uint64_t h, idx_t key) {   \
         unsigned size = (unsigned)t->size;                                   \
+        unsigned inc, pos;                                                   \
         if (!size)                                                           \
             return NULL;                                                     \
-        for (unsigned pos = h % size;; pos++) {                              \
-            if (pos == size)                                                 \
-                 pos = 0;                                                    \
+        pos = h % size;                                                      \
+        inc = 1 + h % (size - 1);                                            \
+        for (;;) {                                                           \
             if (!TST_BIT(t->ghostbits, pos)) {                               \
                 type_t *ep = t->tab + pos;                                   \
                 if (!TST_BIT(t->setbits, pos))                               \
@@ -71,12 +72,14 @@ void htbl_invalidate(generic_htbl *t, int pos);
                 if (get_h(ep) == h && key_equal(h, get_k(t, ep), key))       \
                     return t->tab + pos;                                     \
             }                                                                \
+            pos = pos + inc - (pos + inc < size ? 0 : size);                 \
         }                                                                    \
     }                                                                        \
                                                                              \
     static inline type_t *                                                   \
     pfx##_##kind##_ll_insert(pfx##_##kind *t, type_t e) {                    \
-        unsigned size, pos;                                                  \
+        uint64_t k;                                                          \
+        unsigned size, pos, inc;                                             \
         int ghost = -1;                                                      \
                                                                              \
         if ((t->len + t->ghosts) * 3 >= t->size * 2                          \
@@ -86,9 +89,10 @@ void htbl_invalidate(generic_htbl *t, int pos);
         }                                                                    \
                                                                              \
         size = (unsigned)t->size;                                            \
-        for (pos = get_h(&e) % size; ; pos++) {                              \
-            if (pos == size)                                                 \
-                pos = 0;                                                     \
+        k = get_h(&e);                                                       \
+        pos = k % size;                                                      \
+        inc = 1 + k % (size - 1);                                            \
+        for (;;) {                                                           \
             if (!TST_BIT(t->ghostbits, pos)) {                               \
                 type_t *ep = t->tab + pos;                                   \
                 if (!TST_BIT(t->setbits, pos))                               \
@@ -100,6 +104,7 @@ void htbl_invalidate(generic_htbl *t, int pos);
             } else if (ghost < 0) {                                          \
                 ghost = pos;                                                 \
             }                                                                \
+            pos = pos + inc - (pos + inc < size ? 0 : size);                 \
         }                                                                    \
         if (ghost >= 0) {                                                    \
             pos = ghost;                                                     \

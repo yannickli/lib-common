@@ -56,21 +56,11 @@ void htbl_wipe(generic_htbl *t)
 
 void htbl_invalidate(generic_htbl *t, int pos)
 {
-    int next = pos + 1 == t->size ? 0 : pos + 1;
-
     if (TST_BIT(t->setbits, pos)) {
         RST_BIT(t->setbits, pos);
         t->len--;
         SET_BIT(t->ghostbits, pos);
         t->ghosts++;
-    }
-    if (TST_BIT(t->setbits, next) || TST_BIT(t->ghostbits, next))
-        return;
-    while (TST_BIT(t->ghostbits, pos)) {
-        RST_BIT(t->ghostbits, pos);
-        t->ghosts--;
-        if (pos-- == 0)
-            pos = t->size - 1;
     }
 }
 
