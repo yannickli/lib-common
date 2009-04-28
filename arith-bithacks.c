@@ -20,10 +20,10 @@
 uint8_t const __bitcount11[1 << 11] = {
 #define X4(n)       BC12(n), BC12(n + 1), BC12(n + 2),  BC12(n + 3)
 #define X16(n)      X4(n),   X4(n + 4),   X4(n + 8),    X4(n + 12)
-#define X64(n)      X16(n),  X16(n + 16), X16(n + 32),  X16(n + 64)
+#define X64(n)      X16(n),  X16(n + 16), X16(n + 32),  X16(n + 48)
 #define X256(n)     X64(n),  X64(n + 64), X64(n + 128), X64(n + 192)
-    X256(0), X256(1), X256(2), X256(3),
-    X256(4), X256(5), X256(6), X256(7),
+    X256(0x000), X256(0x100), X256(0x200), X256(0x300),
+    X256(0x400), X256(0x500), X256(0x600), X256(0x700),
 };
 
 static size_t membitcount_naive(const uint8_t *p, const uint8_t *end)
