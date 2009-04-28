@@ -38,7 +38,8 @@ void htbl_wipe(generic_htbl *t);
 void htbl_invalidate(generic_htbl *t, uint32_t pos);
 
 #define __htbl_for_each(i, t, doit) \
-    for (int i = t->len ? htbl_scan_pos((generic_htbl *)(t), 0) : t->size;   \
+    for (int i = (t)->len ? (int)htbl_scan_pos((generic_htbl *)(t), 0)       \
+                          : (t)->size;                                       \
          i < (t)->size && (doit, true);                                      \
          i = htbl_scan_pos((generic_htbl *)(t), i + 1))
 
