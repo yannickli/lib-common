@@ -141,7 +141,7 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
     (((nbits) + TYPE_BIT(type_t) - 1) / TYPE_BIT(type_t))
 
 #define OP_BIT(bits, n, shift, op) \
-    ((bits)[(unsigned)(n) / (shift)] op (1 << ((n) & ((shift) - 1))))
+    ((bits)[(unsigned)(n) / (shift)] op (1ULL << ((n) & ((shift) - 1))))
 #define TST_BIT(bits, n)  OP_BIT(bits, n, TYPE_BIT(*(bits)), &  )
 #define SET_BIT(bits, n)  (void)OP_BIT(bits, n, TYPE_BIT(*(bits)), |= )
 #define RST_BIT(bits, n)  (void)OP_BIT(bits, n, TYPE_BIT(*(bits)), &=~)
