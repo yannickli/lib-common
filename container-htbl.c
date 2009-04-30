@@ -69,15 +69,13 @@ uint32_t htbl_free_id(generic_htbl *t)
 
 void htbl_init(generic_htbl *t, int size)
 {
-    const size_t bits = bitsizeof(t->setbits[0]);
-
     t->size      = size;
     t->len       = 0;
     t->ghosts    = 0;
     t->setbits   = p_new(unsigned long, BITS_TO_ARRAY_LEN(unsigned long, size));
     t->ghostbits = p_new(unsigned long, BITS_TO_ARRAY_LEN(unsigned long, size));
     /* XXX: at least 2 bits beyond t->size are set to stop htbl_scan_pos */
-    t->setbits[size / bits] = 1 << (size % bits);
+    SET_BIT(t->setbits, size);
 }
 
 void htbl_wipe(generic_htbl *t)
