@@ -27,6 +27,9 @@ enum sctp_events {
     SCTP_ADAPTATION_LAYER_EV  = 0x80,
 };
 
+#define sctp_connectx  sctp_connectx_old
+int sctp_connectx_old(int fd, struct sockaddr *addrs, int count);
+
 int sctp_enable_events(int fd, int flags);
 
 ssize_t sctp_sendv(int sd, const struct iovec *iov, int iovlen,
