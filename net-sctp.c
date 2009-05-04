@@ -193,7 +193,7 @@ int sctp_addr_len(const sockunion_t *addrs, int count)
     return buf - (const byte *)addrs;
 }
 
-int sctp_connectx(int fd, struct sockaddr *addrs, int count)
+int sctp_connectx_old(int fd, struct sockaddr *addrs, int count)
 {
     int size = sctp_addr_len((const sockunion_t *)addrs, count);
 
