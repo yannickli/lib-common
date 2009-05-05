@@ -47,7 +47,7 @@ uint32_t htbl_scan_pos(generic_htbl *t, uint32_t pos)
         int bits_idx = pos & (bits - 1);
 
         pos  &= ~(bits - 1);
-        word &= ~((1 << bits_idx) - 1);
+        word &= ~((1UL << bits_idx) - 1);
         if (word)
             return pos + __builtin_ctzl(word);
         pos += bits;
