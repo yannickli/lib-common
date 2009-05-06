@@ -155,11 +155,12 @@ void sb_add_unslashes(sb_t *sb, const void *_data, int len,
         }
         sb_add(sb, q, p - q);
 
-        if (TST_BIT(buf, *++p)) {
-            sb_addc(sb, repl[*p++]);
+        if (TST_BIT(buf, p[1])) {
+            sb_addc(sb, repl[*++p]);
         } else {
             sb_addc(sb, '\\');
         }
+        p++;
     }
     sb_add(sb, p, end - p);
 }
