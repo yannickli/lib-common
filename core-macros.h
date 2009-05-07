@@ -197,6 +197,20 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
 
 #define NEXTARG(argc, argv)  (argc--, *argv++)
 
+#define RETHROW(e)        \
+    ({ typeof(e) __res = (e);                          \
+       if (unlikely(__res < 0))                        \
+           return __res;                               \
+       __res;                                          \
+    })
+
+#define RETHROW_P(e)        \
+    ({ typeof(e) __res = (e);                          \
+       if (unlikely(__res == NULL))                    \
+           return NULL;                                \
+       __res;                                          \
+    })
+
 #ifdef CMP
 #error CMP already defined
 #endif
