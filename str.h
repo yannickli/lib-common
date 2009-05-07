@@ -16,11 +16,8 @@
 
 #define IPRINTF_HIDE_STDIO 1
 #include "core.h"
-#include "str-iprintf.h"
 #include "str-ctype.h"
-#include "str-path.h"
-#include "str-conv.h"
-#include "str-buf.h"
+#include "str-iprintf.h"
 
 __attr_nonnull__((1))
 static inline ssize_t sstrlen(const char *str) {
@@ -199,6 +196,11 @@ ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t len);
 /* Return the number of occurences replaced */
 /* OG: need more general API */
 int str_replace(const char search, const char replace, char *subject);
+
+#include "str-path.h"
+#include "str-conv.h"
+#include "str-buf.h"
+#include "str-stream.h"
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

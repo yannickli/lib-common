@@ -25,7 +25,7 @@ else
 endif
 
 btree-dump_SOURCES = btree-dump.c libcommon.a compat/compat.a
-btree-dump_LDFLAGS = -lm
+btree-dump_LIBS = -lm
 
 DISTCLEANFILES = core-version.c
 core-version.c: scripts/version.sh FORCE
@@ -106,8 +106,8 @@ libcommon_SOURCES = \
 	str-ctype.c \
 	str-iprintf.c \
 	str-dtoa.c \
-	\
 	str-path.c \
+	str-stream.c \
 	\
 	tpl.c \
 	tpl-funcs.c \
@@ -123,7 +123,7 @@ time-lp-simple_SOURCES = time-lp-simple.c
 
 ztst_SOURCES = $(libcommon_SOURCES) time-lp-simple.c ztst.c $/lib-common/compat/check.c
 ztst_CFLAGS  = -DCHECK=1
-ztst_LDFLAGS = -lz -lrt
+ztst_LIBS = -lz -lrt -ldl
 
 ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a compat/compat.a
 
@@ -143,7 +143,7 @@ ztst-btree_SOURCES = ztst-btree.c btree.c libcommon.a compat/compat.a
 ztst-isndx_SOURCES = ztst-isndx.c libcommon.a compat/compat.a
 ztst-sort_SOURCES = ztst-sort.c libcommon.a compat/compat.a
 ztst-sort_CFLAGS = -UCHECK
-ztst-sort_LDFLAGS = -lm
+ztst-sort_LIBS = -lm
 ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a compat/compat.a
 ztst-iprintf-speed_CFLAGS = -UCHECK
 
