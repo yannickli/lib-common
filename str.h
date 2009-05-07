@@ -17,6 +17,7 @@
 #define IPRINTF_HIDE_STDIO 1
 #include "core.h"
 #include "str-iprintf.h"
+#include "str-ctype.h"
 #include "str-path.h"
 #include "str-conv.h"
 #include "str-buf.h"
