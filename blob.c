@@ -13,6 +13,7 @@
 
 #include "blob.h"
 #include "net.h"
+#include "arith.h"
 
 /**************************************************************************/
 /* Blob string functions                                                  */
@@ -337,7 +338,7 @@ int blob_serialize(blob_t *blob, const char *fmt, ...)
                     /* %lld: 64 bits int */
                     fmt += 2;
                     val_ll = va_arg(ap, long long);
-                    val_ll = cpu_to_le_64(val_ll);
+                    val_ll = cpu_to_le64(val_ll);
                     blob_append_byte(blob, SERIALIZE_LONG_LONG);
                     blob_append_data(blob, &val_ll, sizeof(long long));
                 } else if (fmt[0] == 'd') {
@@ -346,11 +347,11 @@ int blob_serialize(blob_t *blob, const char *fmt, ...)
                     val_l = va_arg(ap, long);
                     switch (sizeof(long)) {
                       case 4:
-                        val_l = cpu_to_le_32(val_l);
+                        val_l = cpu_to_le32(val_l);
                         blob_append_byte(blob, SERIALIZE_LONG_32);
                         break;
                       case 8:
-                        val_l = cpu_to_le_64(val_l);
+                        val_l = cpu_to_le64(val_l);
                         blob_append_byte(blob, SERIALIZE_LONG_64);
                         break;
                       default:
@@ -362,7 +363,7 @@ int blob_serialize(blob_t *blob, const char *fmt, ...)
               case 'd':
                 /* %d: 32 bits int */
                 val_d = va_arg(ap, int);
-                val_d = cpu_to_le_32(val_d);
+                val_d = cpu_to_le32(val_d);
                 blob_append_byte(blob, SERIALIZE_INT);
                 blob_append_data(blob, &val_d, sizeof(int));
                 continue;
@@ -382,7 +383,7 @@ int blob_serialize(blob_t *blob, const char *fmt, ...)
                 blob_append_byte(blob, SERIALIZE_BINARY);
                 val_len = va_arg(ap, int);
                 val_b = va_arg(ap, const byte *);
-                val_len_net = cpu_to_le_32(val_len);
+                val_len_net = cpu_to_le32(val_len);
                 blob_append_data(blob, &val_len_net, sizeof(int));
                 blob_append_data(blob, val_b, val_len);
                 continue;
@@ -465,7 +466,7 @@ static int buf_deserialize_vfmt(const byte *buf, int buf_len,
                 if (data + sizeof(int) > dataend) {
                     goto error;
                 }
-                *ivalp = le_to_cpu_32(data);
+                *ivalp = le_to_cpu32pu(data);
                 data += sizeof(int);
                 n++;
                 break;
@@ -482,14 +483,14 @@ static int buf_deserialize_vfmt(const byte *buf, int buf_len,
                         if (*data++ != SERIALIZE_LONG_32) {
                             goto error;
                         }
-                        *lvalp = le_to_cpu_32(data);
+                        *lvalp = le_to_cpu32pu(data);
                         break;
                       case 8:
                         /* %ld => 64 bits "long" */
                         if (*data++ != SERIALIZE_LONG_64) {
                             goto error;
                         }
-                        *lvalp = le_to_cpu_64(data);
+                        *lvalp = le_to_cpu64pu(data);
                         break;
                       default:
                         goto error;
@@ -506,7 +507,7 @@ static int buf_deserialize_vfmt(const byte *buf, int buf_len,
                     if (*data++ != SERIALIZE_LONG_LONG) {
                         goto error;
                     }
-                    *llvalp = le_to_cpu_64(data);
+                    *llvalp = le_to_cpu64pu(data);
                     data += sizeof(long long);
                     n++;
                 } else {
@@ -541,7 +542,7 @@ static int buf_deserialize_vfmt(const byte *buf, int buf_len,
                 }
                 ivalp = va_arg(ap, int*);
                 bpvalp = va_arg(ap, const byte **);
-                *ivalp = le_to_cpu_32(data);
+                *ivalp = le_to_cpu32pu(data);
                 data += sizeof(int);
                 *bpvalp = (const byte *)data;
                 data += *ivalp;

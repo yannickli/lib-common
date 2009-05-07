@@ -11,34 +11,30 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_ALL_H
-#define IS_LIB_COMMON_ALL_H
-
-#include "core.h"
-
-#include "arith.h"
-#include "bfield.h"
-#include "bstream.h"
-#include "btree.h"
-#include "conf.h"
-#include "container.h"
-#include "elf.h"
-#include "farch.h"
-#include "file-log.h"
-#include "file.h"
-#include "hash.h"
-#include "isndx.h"
-#include "licence.h"
-#include "mmappedfile.h"
 #include "net.h"
-#include "paged-index.h"
-#include "parseopt.h"
-#include "property-hash.h"
-#include "property.h"
-#include "time.h"
-#include "tpl.h"
-#include "unix.h"
-#include "xml.h"
-#include "xmlpp.h"
+#include "str.h"
 
-#endif
+int ps_copyv(pstream_t *ps, struct iovec *iov, size_t *iov_len, int *flags)
+{
+    int orig_len = ps_len(ps);
+    size_t i;
+
+    for (i = 0; !ps_done(ps) && i < *iov_len; i++) {
+        if (iov[i].iov_len > ps_len(ps))
+            iov[i].iov_len = ps_len(ps);
+        memcpy(iov[i].iov_base, ps->b, iov[i].iov_len);
+        ps_skip(ps, iov[i].iov_len);
+    }
+    *iov_len = i;
+
+    if (flags) {
+        if (ps_done(ps)) {
+            *flags &= ~MSG_TRUNC;
+            return orig_len;
+        }
+        if (*flags & MSG_TRUNC)
+            return orig_len;
+        *flags |= MSG_TRUNC;
+    }
+    return orig_len - ps_len(ps);
+}

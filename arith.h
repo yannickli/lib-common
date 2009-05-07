@@ -11,34 +11,12 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_ALL_H
-#define IS_LIB_COMMON_ALL_H
+#ifndef IS_LIB_COMMON_ARITH_H
+#define IS_LIB_COMMON_ARITH_H
 
 #include "core.h"
 
-#include "arith.h"
-#include "bfield.h"
-#include "bstream.h"
-#include "btree.h"
-#include "conf.h"
-#include "container.h"
-#include "elf.h"
-#include "farch.h"
-#include "file-log.h"
-#include "file.h"
-#include "hash.h"
-#include "isndx.h"
-#include "licence.h"
-#include "mmappedfile.h"
-#include "net.h"
-#include "paged-index.h"
-#include "parseopt.h"
-#include "property-hash.h"
-#include "property.h"
-#include "time.h"
-#include "tpl.h"
-#include "unix.h"
-#include "xml.h"
-#include "xmlpp.h"
+#include "arith-endianess.h"
+#include "arith-bithacks.h"
 
 #endif

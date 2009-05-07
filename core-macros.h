@@ -132,8 +132,17 @@
 
 /*---------------- Types ----------------*/
 
+typedef uint64_t __bitwise__ be64_t;
+typedef uint64_t __bitwise__ le64_t;
+typedef uint32_t __bitwise__ le32_t;
+typedef uint32_t __bitwise__ be32_t;
+typedef uint16_t __bitwise__ le16_t;
+typedef uint16_t __bitwise__ be16_t;
+
 typedef unsigned char byte;
 typedef unsigned int flag_t;    /* for 1 bit bitfields */
+
+#define MAKE64(hi, lo)  (((uint64_t)(uint32_t)(hi) << 32) | (uint32_t)(lo))
 
 /* OG: should find a better name such as BITSIZEOF(type) */
 #define TYPE_BIT(type_t)    (sizeof(type_t) * CHAR_BIT)
