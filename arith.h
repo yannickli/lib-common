@@ -18,5 +18,6 @@
 
 #include "arith-endianess.h"
 #include "arith-bithacks.h"
+#include "arith-str-stream.h"
 
 #endif
