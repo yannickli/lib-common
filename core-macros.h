@@ -220,13 +220,19 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
 #define BITS_TO_ARRAY_LEN(type_t, nbits)  \
     DIV_ROUND_UP(nbits, bitsizeof(type_t))
 
+#define BITMASK_NTH(type_t, n) ( (type_t)1 << ((n) & (bitsizeof(type_t) - 1)))
+#define BITMASK_GT(type_t, n)  (-BITMASK_GT(type_t, n))
+#define BITMASK_GE(type_t, n)  (~(type_t)0 << ((n) & (bitsizeof(type_t) - 1)))
+#define BITMASK_LE(type_t, n)  (~(type_t)0 >> ((~(n)) & (bitsizeof(type_t) - 1)))
+#define BITMASK_LT(type_t, n)  (BITMASK_NTH(type_t, n) - 1)
+
 #define OP_BIT(bits, n, shift, op) \
-    ((bits)[(unsigned)(n) / (shift)] op ((typeof(*(bits)))1 << ((n) & ((shift) - 1))))
-#define TST_BIT(bits, n)  OP_BIT(bits, n, bitsizeof(*(bits)), &  )
-#define SET_BIT(bits, n)  (void)OP_BIT(bits, n, bitsizeof(*(bits)), |= )
-#define RST_BIT(bits, n)  (void)OP_BIT(bits, n, bitsizeof(*(bits)), &=~)
-#define CLR_BIT(bits, n)  RST_BIT(bits, n)
-#define XOR_BIT(bits, n)  (void)OP_BIT(bits, n, bitsizeof(*(bits)), ^= )
+    ((bits)[(unsigned)(n) / (shift)] op BITMASK_NTH(typeof(*(bits)), n))
+#define TST_BIT(bits, n)    OP_BIT(bits, n, bitsizeof(*(bits)), &  )
+#define SET_BIT(bits, n)    (void)OP_BIT(bits, n, bitsizeof(*(bits)), |= )
+#define RST_BIT(bits, n)    (void)OP_BIT(bits, n, bitsizeof(*(bits)), &=~)
+#define CLR_BIT(bits, n)    RST_BIT(bits, n)
+#define XOR_BIT(bits, n)    (void)OP_BIT(bits, n, bitsizeof(*(bits)), ^= )
 
 #ifdef __GNUC__
 #  define container_of(obj, type_t, member) \

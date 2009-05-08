@@ -44,10 +44,9 @@ uint32_t htbl_scan_pos(generic_htbl *t, uint32_t pos)
     for (;;) {
         const size_t bits = bitsizeof(t->setbits[0]);
         size_t word = t->setbits[pos / bits];
-        int bits_idx = pos & (bits - 1);
 
+        word &= BITMASK_LT(size_t, pos);
         pos  &= ~(bits - 1);
-        word &= ~((1UL << bits_idx) - 1);
         if (word)
             return pos + __builtin_ctzl(word);
         pos += bits;
