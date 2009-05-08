@@ -43,7 +43,7 @@ uint32_t htbl_scan_pos(generic_htbl *t, uint32_t pos)
     /* XXX: see htbl_init to understand why this stops */
     for (;;) {
         const size_t bits = bitsizeof(t->setbits[0]);
-        unsigned long word = t->setbits[pos / bits];
+        size_t word = t->setbits[pos / bits];
         int bits_idx = pos & (bits - 1);
 
         pos  &= ~(bits - 1);
@@ -72,8 +72,8 @@ void htbl_init(generic_htbl *t, int size)
     t->size      = size;
     t->len       = 0;
     t->ghosts    = 0;
-    t->setbits   = p_new(unsigned long, BITS_TO_ARRAY_LEN(unsigned long, size));
-    t->ghostbits = p_new(unsigned long, BITS_TO_ARRAY_LEN(unsigned long, size));
+    t->setbits   = p_new(size_t, BITS_TO_ARRAY_LEN(size_t, size));
+    t->ghostbits = p_new(size_t, BITS_TO_ARRAY_LEN(size_t, size));
     /* XXX: at least 2 bits beyond t->size are set to stop htbl_scan_pos */
     SET_BIT(t->setbits, size);
 }

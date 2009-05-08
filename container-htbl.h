@@ -19,8 +19,8 @@
 #define CONTAINER_TYPE(kind, type_t, pfx)                                    \
     typedef struct pfx##_##kind {                                            \
         type_t *tab;                                                         \
-        unsigned long *setbits;                                              \
-        unsigned long *ghostbits;                                            \
+        size_t *setbits;                                                     \
+        size_t *ghostbits;                                                   \
         int len, size, ghosts;                                               \
         flag_t name_inline : 1;                                              \
         flag_t deny_shrink : 1;                                              \
