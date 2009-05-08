@@ -17,6 +17,40 @@
 #define BC4(x)      BIT(x, 0) + BIT(x, 1) + BIT(x, 2) + BIT(x, 3)
 #define BC12(x)     BC4(x) + BC4((x) >> 4) + BC4((x) >> 8)
 
+/* __firstfit8[n] is the index of the least significant non 0 bit in
+ * `n' or 8 if n has all bits 0.
+ */
+uint8_t const __firstfit_fwd8[256] = {
+#define A(m)   (((m) & 0x01) ? 0 : ((m) & 0x02) ? 1 : \
+                ((m) & 0x04) ? 2 : ((m) & 0x08) ? 3 : \
+                ((m) & 0x10) ? 4 : ((m) & 0x20) ? 5 : \
+                ((m) & 0x40) ? 6 : ((m) & 0x80) ? 7 : 8)
+#define B(n)  A(n),A(n+1),A(n+2),A(n+3),A(n+4),A(n+5),A(n+6),A(n+7)
+    B(0x00), B(0x08), B(0x10), B(0x18), B(0x20), B(0x28), B(0x30), B(0x38),
+    B(0x40), B(0x48), B(0x50), B(0x58), B(0x60), B(0x68), B(0x70), B(0x78),
+    B(0x80), B(0x88), B(0x90), B(0x98), B(0xA0), B(0xA8), B(0xB0), B(0xB8),
+    B(0xC0), B(0xC8), B(0xD0), B(0xD8), B(0xE0), B(0xE8), B(0xF0), B(0xF8),
+#undef B
+#undef A
+};
+
+/* __firstfit8[n] is the index of the most significant non 0 bit in
+ * `n' or 8 if n has all bits 0.
+ */
+uint8_t const __firstfit_rev8[256] = {
+#define A(m)   (((m) & 0x80) ? 0 : ((m) & 0x40) ? 1 : \
+                ((m) & 0x20) ? 2 : ((m) & 0x10) ? 3 : \
+                ((m) & 0x08) ? 4 : ((m) & 0x04) ? 5 : \
+                ((m) & 0x02) ? 6 : ((m) & 0x01) ? 7 : 8)
+#define B(n)  A(n),A(n+1),A(n+2),A(n+3),A(n+4),A(n+5),A(n+6),A(n+7)
+    B(0x00), B(0x08), B(0x10), B(0x18), B(0x20), B(0x28), B(0x30), B(0x38),
+    B(0x40), B(0x48), B(0x50), B(0x58), B(0x60), B(0x68), B(0x70), B(0x78),
+    B(0x80), B(0x88), B(0x90), B(0x98), B(0xA0), B(0xA8), B(0xB0), B(0xB8),
+    B(0xC0), B(0xC8), B(0xD0), B(0xD8), B(0xE0), B(0xE8), B(0xF0), B(0xF8),
+#undef B
+#undef A
+};
+
 uint8_t const __bitcount11[1 << 11] = {
 #define X4(n)       BC12(n), BC12(n + 1), BC12(n + 2),  BC12(n + 3)
 #define X16(n)      X4(n),   X4(n + 4),   X4(n + 8),    X4(n + 12)
@@ -24,6 +58,10 @@ uint8_t const __bitcount11[1 << 11] = {
 #define X256(n)     X64(n),  X64(n + 64), X64(n + 128), X64(n + 192)
     X256(0x000), X256(0x100), X256(0x200), X256(0x300),
     X256(0x400), X256(0x500), X256(0x600), X256(0x700),
+#undef X256
+#undef X64
+#undef X16
+#undef X4
 };
 
 static size_t membitcount_naive(const uint8_t *p, const uint8_t *end)

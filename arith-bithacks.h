@@ -29,6 +29,10 @@
 /* XXX bit scan reverse, only defined for u != 0
  * bsr32(0x1f) == 4 because first bit set from the "left" is 2^4
  */
+extern uint8_t const __firstbit_rev8[256];
+
+static inline size_t bsr8 (uint8_t  u) { return __firstbit_rev8[u]; }
+static inline size_t bsr16(uint16_t u) { return __builtin_clz(u) ^ 31; }
 static inline size_t bsr32(uint32_t u) { return __builtin_clz(u) ^ 31; }
 static inline size_t bsr64(uint64_t u) { return __builtin_clzll(u) ^ 63; }
 static inline size_t bsrsz(size_t   u) { return I_FASTBITCALL(bsr)(u); }
@@ -36,6 +40,10 @@ static inline size_t bsrsz(size_t   u) { return I_FASTBITCALL(bsr)(u); }
 /* XXX bit scan forward, only defined for u != 0
  * bsf32(0xf10) == 4 because first bit set from the "right" is 2^4
  */
+extern uint8_t const __firstbit_fwd8[256];
+
+static inline size_t bsf8 (uint8_t  u) { return __firstbit_fwd8[u]; }
+static inline size_t bsf16(uint16_t u) { return __builtin_ctz(u); }
 static inline size_t bsf32(uint32_t u) { return __builtin_ctz(u); }
 static inline size_t bsf64(uint64_t u) { return __builtin_ctzll(u); }
 static inline size_t bsfsz(size_t   u) { return I_FASTBITCALL(bsf)(u); }
