@@ -11,14 +11,22 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_ARITH_H
-#define IS_LIB_COMMON_ARITH_H
+#if !defined(IS_LIB_COMMON_ARITH_H) || defined(IS_LIB_COMMON_ARITH_CMP_H)
+#  error "you must include <lib-common/arith.h> instead"
+#else
+#define IS_LIB_COMMON_ARITH_CMP_H
 
-#include "core.h"
+static inline int min_int(int a, int b)          { return MIN(a, b); }
+static inline int max_int(int a, int b)          { return MAX(a, b); }
+static inline int clamp_int(int a, int m, int M) { return CLIP(a, m, M); }
 
-#include "arith-endianess.h"
-#include "arith-cmp.h"
-#include "arith-bithacks.h"
-#include "arith-str-stream.h"
+static inline void maximize(int *pi, int val) {
+    if (*pi < val)
+        *pi = val;
+}
+static inline void minimize(int *pi, int val) {
+    if (*pi > val)
+        *pi = val;
+}
 
 #endif
