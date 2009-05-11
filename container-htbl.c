@@ -48,7 +48,7 @@ uint32_t htbl_scan_pos(generic_htbl *t, uint32_t pos)
         word &= BITMASK_GE(size_t, pos);
         pos  &= ~(bits - 1);
         if (word)
-            return pos + bsrsz(word);
+            return pos + bsfsz(word);
         pos += bits;
     }
 }
