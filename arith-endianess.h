@@ -199,13 +199,13 @@ static inline uint64_t be_to_cpu64pu(const void *x) {
 }
 
 static inline void *put_unaligned_be16(void *p, uint16_t x) {
-    return put_unaligned_cpu16(p, CPU_TO_LE(16, x));
+    return put_unaligned_cpu16(p, CPU_TO_BE(16, x));
 }
 static inline void *put_unaligned_be32(void *p, uint32_t x) {
-    return put_unaligned_cpu32(p, CPU_TO_LE(32, x));
+    return put_unaligned_cpu32(p, CPU_TO_BE(32, x));
 }
 static inline void *put_unaligned_be64(void *p, uint64_t x) {
-    return put_unaligned_cpu64(p, CPU_TO_LE(64, x));
+    return put_unaligned_cpu64(p, CPU_TO_BE(64, x));
 }
 
 #endif
