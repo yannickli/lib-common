@@ -64,7 +64,13 @@ def parse_lines(lines):
 def run_test(file):
     try:
         p = S.Popen([file], stdout=None, stderr=S.PIPE)
-        return parse_lines(p.communicate()[1].split("\n"))
+        lines = p.communicate()[1].split("\n")
+        if p.returncode:
+            parse_lines(lines)
+            sys.stderr.write("%s: %s returned with value %d\n" %
+                    (mkcolor(31, "FAIL"), file, p.returncode))
+            return 1
+        return parse_lines(lines)
     except OSError, e:
         sys.stderr.write("unable to fork %s: %s\n" % (file, os.strerror(e.errno)))
         return 1
