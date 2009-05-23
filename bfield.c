@@ -72,14 +72,9 @@ int bfield_count(const bfield_t *bf)
     return count;
 }
 
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-/* {{{*/
-#include <check.h>
 
-START_TEST(check_bfield)
+TEST_DECL("testing bfield_set", 0)
 {
-    int num;
     bfield_t bf;
     sb_t *b = &bf.bits;
 
@@ -90,31 +85,37 @@ START_TEST(check_bfield)
     bfield_set(&bf, 4);
     bfield_set(&bf, 7);
 
-    fail_if(b->len != 1, "bfield_set failed");
-    fail_if(b->data[0] != 0x95, "bfield_set failed");
+    TEST_FAIL_IF(b->len != 1,           "bfield_set");
+    TEST_FAIL_IF(b->data[0] != 0x95,    "bfield_set");
 
-    fail_if(!bfield_isset(&bf, 0),
-            "bfield_isset failed");
-    fail_if(!bfield_isset(&bf, 2),
-            "bfield_isset failed");
-    fail_if(!bfield_isset(&bf, 4),
-            "bfield_isset failed");
-    fail_if(!bfield_isset(&bf, 7),
-            "bfield_isset failed");
+    TEST_FAIL_IF(!bfield_isset(&bf, 0), "bfield_isset");
+    TEST_FAIL_IF(bfield_isset(&bf, 1),  "bfield_isset");
+    TEST_FAIL_IF(!bfield_isset(&bf, 2), "bfield_isset");
+    TEST_FAIL_IF(bfield_isset(&bf, 3),  "bfield_isset");
+    TEST_FAIL_IF(!bfield_isset(&bf, 4), "bfield_isset");
+    TEST_FAIL_IF(bfield_isset(&bf, 5),  "bfield_isset");
+    TEST_FAIL_IF(bfield_isset(&bf, 6),  "bfield_isset");
+    TEST_FAIL_IF(!bfield_isset(&bf, 7), "bfield_isset");
+    TEST_FAIL_IF(bfield_isset(&bf, 8),  "bfield_isset");
+    TEST_FAIL_IF(bfield_isset(&bf, 40), "bfield_isset");
 
+    bfield_wipe(&bf);
+    TEST_DONE();
+}
+
+TEST_DECL("testing bfield_set", 0)
+{
+    bfield_t bf;
+    int num;
+
+    bfield_init(&bf);
     bfield_set(&bf, 3);
-    fail_if(!bfield_isset(&bf, 3),
-            "bfield_set failed");
+    TEST_FAIL_IF(!bfield_isset(&bf, 3),  "bfield_set");
     bfield_set(&bf, 30);
-    fail_if(!bfield_isset(&bf, 30),
-            "bfield_set failed");
+    TEST_FAIL_IF(!bfield_isset(&bf, 30), "bfield_set");
     bfield_set(&bf, 70);
-    fail_if(!bfield_isset(&bf, 70),
-            "bfield_set failed");
+    TEST_FAIL_IF(!bfield_isset(&bf, 70), "bfield_set");
 
-    /* 10011101 -> 9D */
-    fail_if(b->data[0] != 0x9D,
-            "bfield_set failed");
 
     num = 43987;
     /* (num / 8) * 8 = 43984 */
@@ -122,32 +123,16 @@ START_TEST(check_bfield)
     bfield_set(&bf, 43985);
     bfield_set(&bf, 43986);
 
-    fail_if(!bfield_isset(&bf, 43984),
-            "bfield_isset failed");
-    fail_if(!bfield_isset(&bf, 43985),
-            "bfield_isset failed");
-    fail_if(!bfield_isset(&bf, 43986),
-            "bfield_isset failed");
+    TEST_FAIL_IF(!bfield_isset(&bf, 43984), "bfield_isset");
+    TEST_FAIL_IF(!bfield_isset(&bf, 43985), "bfield_isset");
+    TEST_FAIL_IF(!bfield_isset(&bf, 43986), "bfield_isset");
 
     bfield_set(&bf, num);
-    fail_if(!bfield_isset(&bf, num),
-            "bfield_set failed");
+    TEST_FAIL_IF(!bfield_isset(&bf, num), "bfield_set");
 
     bfield_unset(&bf, num);
-    fail_if(bfield_isset(&bf, num),
-            "bfield_unset failed");
+    TEST_FAIL_IF(bfield_isset(&bf, num),  "bfield_unset");
 
     bfield_wipe(&bf);
+    TEST_DONE();
 }
-END_TEST
-
-Suite *check_bfield_suite(void)
-{
-    Suite *s  = suite_create("bfield");
-    TCase *tc = tcase_create("Core");
-
-    suite_add_tcase(s, tc);
-    tcase_add_test(tc, check_bfield);
-    return s;
-}
-#endif

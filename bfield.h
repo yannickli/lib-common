@@ -42,12 +42,4 @@ static inline void bfield_purge(bfield_t *bf) {
     bfield_init(bf);
 }
 
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-#include <check.h>
-
-Suite *check_bfield_suite(void);
-
 #endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
-#endif /* IS_LIB_COMMON_XML_H */
