@@ -49,6 +49,7 @@ typedef struct tst_t {
 #define TEST_PASS_UNLESS(expr, fmt, ...)  TEST_FAIL_IF(expr, fmt, ##__VA_ARGS__)
 #define TEST_PASS_IF(expr, fmt, ...)      TEST_FAIL_IF(!(expr), fmt, ##__VA_ARGS__)
 #define TEST_FAIL_UNLESS(expr, fmt, ...)  TEST_FAIL_IF(!(expr), fmt, ##__VA_ARGS__)
+#define TEST_SKIP(fmt, ...)               test_skip(fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 #define TEST_DONE()                       do { return 0; } while (0)
 
 int test_run(int argc, const char **argv);
