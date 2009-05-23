@@ -15,20 +15,21 @@ else:
 def print_report1(color, pfx, g):
     sys.stdout.write("%s:%s:%s %s\n" % (g['file'], g['line'], mkcolor(color, pfx), g['desc']))
 
-def full_report(g):
+def full_report(file, g):
     tfail = g['fail']
     tpass = g['pass']
     tskip = g['skip']
     total = tfail + tpass + tskip
-    sys.stdout.write("*** ")
-    sys.stdout.write(mkcolor(32, "PASS: %2d  " % (tpass)))
+    sys.stdout.write("%24s  " % (file));
+    sys.stdout.write(mkcolor(32, "PASS: %3d  " % (tpass)))
     if tskip:
-        sys.stdout.write(mkcolor(33, "SKIP: %2d  " % (tskip)))
+        sys.stdout.write(mkcolor(33, "SKIP: %3d  " % (tskip)))
     if tfail:
-        sys.stdout.write(mkcolor(31, "FAIL: %2d  " % (tfail)))
+        sys.stdout.write(mkcolor(31, "FAIL: %3d  " % (tfail)))
     sys.stdout.write("--  %s\n" % (g['desc']))
+    sys.stdout.flush()
 
-def parse_lines(lines):
+def parse_lines(file, lines):
     res = 0
     cur = None
     for line in lines:
@@ -38,7 +39,7 @@ def parse_lines(lines):
 
         if g['res'] == 'desc':
             if cur:
-                full_report(cur)
+                full_report(file, cur)
             cur = g
             cur['pass'] = 0
             cur['fail'] = 0
@@ -58,7 +59,7 @@ def parse_lines(lines):
                 print_report1(33, "skip", g)
             cur[g['res']] += 1
     if cur:
-        full_report(cur)
+        full_report(file, cur)
     return res
 
 def run_test(file):
@@ -66,11 +67,11 @@ def run_test(file):
         p = S.Popen([file], stdout=None, stderr=S.PIPE)
         lines = p.communicate()[1].split("\n")
         if p.returncode:
-            parse_lines(lines)
+            parse_lines(file, lines)
             sys.stderr.write("%s: %s returned with value %d\n" %
                     (mkcolor(31, "FAIL"), file, p.returncode))
             return 1
-        return parse_lines(lines)
+        return parse_lines(file, lines)
     except OSError, e:
         sys.stderr.write("unable to fork %s: %s\n" % (file, os.strerror(e.errno)))
         return 1
