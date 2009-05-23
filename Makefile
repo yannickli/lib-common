@@ -11,7 +11,7 @@
 #                                                                        #
 ##########################################################################
 
-test_PROGRAMS = btree-dump ztst-cfgparser ztst-tpl ztst-htbl
+test_PROGRAMS = zchk btree-dump ztst-cfgparser ztst-tpl ztst-htbl
 
 none_LIBRARIES = libcommon time-lp-simple
 
@@ -71,6 +71,7 @@ libcommon_SOURCES = \
 	core-mem-fifo.c \
 	core-mem-stack.c \
 	core-pthread-hook.c \
+	core-test.c \
 	core-version.c \
 	\
 	el.c \
@@ -121,6 +122,12 @@ libcommon_SOURCES = \
 	$(end_of_list)
 
 time-lp-simple_SOURCES = time-lp-simple.c
+
+zchk_SOURCES = zchk.c \
+	$/lib-common/libcommon.wa \
+	$/lib-common/time-lp-simple.a
+
+zchk_LIBS = -lz -lrt -ldl
 
 ztst_SOURCES = $(libcommon_SOURCES) time-lp-simple.c ztst.c $/lib-common/compat/check.c
 ztst_CFLAGS  = -DCHECK=1

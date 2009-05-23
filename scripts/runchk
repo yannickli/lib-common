@@ -1,0 +1,77 @@
+#!/usr/bin/python
+
+import subprocess as S
+import sys, os, re
+
+linere = re.compile('tst (?P<res>[a-z]*) (?P<file>[^:]*):(?P<line>[0-9]*):(?P<desc>.*)')
+
+if os.getenv("TERM") and sys.stdout.isatty():
+    def mkcolor(color, txt):
+        return "\033[1;%im%s\033[0m" % (color, txt)
+else:
+    def mkcolor(color, txt):
+        return txt
+
+def print_report1(color, pfx, g):
+    sys.stdout.write("%s:%s:%s %s\n" % (g['file'], g['line'], mkcolor(color, pfx), g['desc']))
+
+def full_report(g):
+    tfail = g['fail']
+    tpass = g['pass']
+    tskip = g['skip']
+    total = tfail + tpass + tskip
+    sys.stdout.write("*** ")
+    sys.stdout.write(mkcolor(32, "PASS: %2d  " % (tpass)))
+    if tskip:
+        sys.stdout.write(mkcolor(33, "SKIP: %2d  " % (tskip)))
+    if tfail:
+        sys.stdout.write(mkcolor(31, "FAIL: %2d  " % (tfail)))
+    sys.stdout.write("--  %s\n" % (g['desc']))
+
+def parse_lines(lines):
+    res = 0
+    cur = None
+    for line in lines:
+        reres = linere.match(line)
+        if not reres: continue
+        g = reres.groupdict()
+
+        if g['res'] == 'desc':
+            if cur:
+                full_report(cur)
+            cur = g
+            cur['pass'] = 0
+            cur['fail'] = 0
+            cur['skip'] = 0
+            continue
+
+        if g['res'] not in ('skip', 'pass', 'fail'):
+            sys.stderr.write("Unknown tst command %s\n" % (g['res']))
+            sys.exit(-1)
+
+        if g['res'] == 'fail':
+            res = 1
+            cur['fail'] += 1
+            print_report1(31, "fail", g)
+        else:
+            if g['res'] == 'skip':
+                print_report1(33, "skip", g)
+            cur[g['res']] += 1
+    if cur:
+        full_report(cur)
+    return res
+
+def run_test(file):
+    try:
+        p = S.Popen([file], stdout=None, stderr=S.PIPE)
+        return parse_lines(p.communicate()[1].split("\n"))
+    except OSError, e:
+        sys.stderr.write("unable to fork %s: %s\n" % (file, os.strerror(e.errno)))
+        return 1
+
+if __name__ == "__main__":
+    res = 0
+    #TODO: run tests in parallel
+    for file in sys.argv[1:]:
+        res += run_test(file)
+    sys.exit(res and 1)
