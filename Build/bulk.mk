@@ -23,9 +23,9 @@ endif
 endif
 
 
-all clean distclean::
+all check clean distclean::
 FORCE: ;
-.PHONY: all clean distclean FORCE
+.PHONY: all check clean distclean FORCE
 
 var/sources    = $(sort $(foreach v,$(filter %_SOURCES,$(.VARIABLES)),$($v)))
 var/cleanfiles = $(sort $(foreach v,$(filter %_CLEANFILES,$(.VARIABLES)),$($v)))
@@ -64,8 +64,10 @@ tags: $(var/generated)
 define fun/subdirs-targets
 $(foreach d,$1,
 $(patsubst ./%,%,$(dir $(d:/=)))all::       $(d)all
+$(patsubst ./%,%,$(dir $(d:/=)))check::     $(d)check
 $(patsubst ./%,%,$(dir $(d:/=)))clean::     $(d)clean
 $(d)all::
+$(d)check::
 $(d)clean::
 	find $~$(d) -type f \! -name vars.mk -print0 | xargs -0 $(RM)
 	$(call fun/expand-if2,$(RM),$(filter-out %/,$($(d)_CLEANFILES)))
@@ -103,7 +105,7 @@ toplevel:
 .PHONY: toplevel
 
 all:: toplevel
-all clean distclean:: | __setup_buildsys_trampoline
+all check clean distclean:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
 
 tags: | __setup_buildsys_trampoline
