@@ -34,7 +34,6 @@ var/generated  = $(sort $(foreach f,$(filter ext/gen/%,$(.VARIABLES)),$(call $f,
 var/staticlibs = $(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIES,$(.VARIABLES))),$($v))
 var/sharedlibs = $(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v))
 var/programs   = $(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v))
-var/tests      = $(foreach v,$(filter %_TESTS,$(.VARIABLES)),$($v))
 var/datas      = $(foreach v,$(filter %_DATAS,$(.VARIABLES)),$($v))
 
 ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
@@ -54,7 +53,6 @@ distclean::
 	$(msg/rm) copied targets
 	$(call fun/expand-if2,$(RM),$(var/datas))
 	$(call fun/expand-if2,$(RM),$(var/programs:=$(EXEEXT)))
-	$(call fun/expand-if2,$(RM),$(var/tests:=$(EXEEXT)))
 	$(call fun/expand-if2,$(RM),$(var/sharedlibs:=.so*))
 	$(call fun/expand-if2,$(RM),$(var/staticlibs:=.a) $(var/staticlibs:=.wa))
 	$(msg/rm) build system
@@ -80,7 +78,6 @@ $(eval $(call fun/subdirs-targets,$(patsubst $/%Makefile,%,$(var/makefiles))))
 $(foreach p,$(var/staticlibs),$(eval $(call rule/staticlib,$p)))
 $(foreach p,$(var/sharedlibs),$(eval $(call rule/sharedlib,$p)))
 $(foreach p,$(var/programs),$(eval $(call rule/program,$p)))
-$(foreach p,$(var/tests),$(eval $(call rule/test,$p)))
 $(foreach p,$(var/datas),$(eval $(call rule/datas,$p)))
 # }}}
 else
@@ -123,7 +120,6 @@ ignore:
 	$(foreach v,$(var/generated),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/datas),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/programs:=$(EXEEXT)),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
-	$(foreach v,$(var/tests:=$(EXEEXT)),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/sharedlibs:=.so),grep -q '^/$v\*$$' .gitignore || echo '/$v\*' >> .gitignore;)
 endif
 # }}}
@@ -133,7 +129,6 @@ ifeq (,$(findstring p,$(MAKEFLAGS)))
 
 $(sort $(var/generated) $(var/datas)) \
 $(var/programs:=$(EXEEXT))    \
-$(var/tests:=$(EXEEXT))       \
 $(var/sharedlibs:=.so)        \
 $(var/staticlibs:=.a)         \
 $(var/staticlibs:=.wa)        \
@@ -176,7 +171,7 @@ ifeq (__dump_targets,$(MAKECMDGOALS))
 
 __dump_targets: . = $(patsubst $(var/srcdir)/%,%,$(realpath $(CURDIR))/)
 __dump_targets:
-	$(foreach v,$(filter %_DATAS %_TESTS %_PROGRAMS %_LIBRARIES,$(.VARIABLES)),\
+	$(foreach v,$(filter %_DATAS %_PROGRAMS %_LIBRARIES,$(.VARIABLES)),\
 	    echo '$v += $(call fun/msq,$(call fun/rebase,$(CURDIR),$($v)))';)
 	$(foreach v,$(filter %_DEPENDS %_SOURCES,$(.VARIABLES)),\
 	    echo '$.$v += $(call fun/msq,$(call fun/rebase,$(CURDIR),$($v)))';)

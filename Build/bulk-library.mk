@@ -183,9 +183,6 @@ $(1D)/all:: $1$(EXEEXT)
 $$(eval $$(call rule/exe,$1,$2,$3))
 endef
 
-define rule/test
-$$(eval $$(call rule/exe,$1,$2,$3,.tst))
-endef
 #}}}
 #[ _DATAS ]###########################################################{{{#
 
