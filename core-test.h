@@ -28,8 +28,8 @@ typedef struct tst_t {
 #ifndef NDEBUG
 #  define __TEST_DECL2(name, what, fl) \
     static tst_f TST_##name##_fun;                     \
-    static __attribute__((used,section(".intersec.tests"))) tst_t const      \
-    TST_##name  = {                                                          \
+    static __attribute__((used,section(".intersec.tests."__FILE__":"#name))) \
+    tst_t const TST_##name = {                                               \
         .fun    = &TST_##name##_fun,                                         \
         .text   = what,                                                      \
         .file   = __FILE__,                                                  \
