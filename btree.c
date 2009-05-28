@@ -1504,6 +1504,8 @@ int fbtree_fetch(fbtree_t *fbt, uint64_t key, sb_t *out)
 
         if (pos >= leaf->used) {
             pos  = 0;
+            if (BTPP_OFFS(leaf->next) == BTPP_NIL)
+                break;
             if (fbtree_readpage(fbt, leaf->next, &buf) || leaf->used <= 0)
                 break;
         }
