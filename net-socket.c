@@ -161,7 +161,8 @@ int listenx(int sock, const sockunion_t *addrs, int cnt,
     return sock;
 
   error:
-    close(to_close);
+    if (to_close >= 0)
+        close(to_close);
     return -1;
 }
 
