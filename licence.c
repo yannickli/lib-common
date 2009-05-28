@@ -198,7 +198,7 @@ static void cpuid(uint32_t request, uint32_t *eax, uint32_t *ebx,
                     : "=a" (*eax), "=b" (*ebx), "=c" (*ecx), "=d" (*edx)
                     : "0" (request)
                     : "memory");
-#elif
+#else
 #  error Your arch is unsupported
 #endif
 }
