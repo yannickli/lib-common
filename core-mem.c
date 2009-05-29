@@ -89,8 +89,6 @@ void *libc_realloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
 
 void *__imalloc(size_t size, mem_flags_t flags)
 {
-    if (size == 0)
-        return NULL;
     if (size > MEM_ALLOC_MAX)
         e_panic("You cannot allocate that amount of memory");
     switch (flags & MEM_POOL_MASK) {

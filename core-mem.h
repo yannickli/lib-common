@@ -141,8 +141,6 @@ __attribute__((malloc, always_inline, warn_unused_result))
 static inline void *imalloc(size_t size, mem_flags_t flags)
 {
     if (__builtin_constant_p(size)) {
-        if (size == 0)
-            return NULL;
         if (size > MEM_ALLOC_MAX)
             __imalloc_too_large();
     }
