@@ -83,8 +83,6 @@ void mem_for_each(mem_pool_t *mp, void (*fn)(mem_blk_t *, void *), void *priv)
 
 void *__imalloc(size_t size, mem_flags_t flags)
 {
-    if (size == 0)
-        return NULL;
     if (size > MEM_ALLOC_MAX)
         e_panic("You cannot allocate that amount of memory");
     if (flags & MEM_RAW) {

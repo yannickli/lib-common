@@ -94,8 +94,6 @@ void *imalloc(size_t size, mem_flags_t flags)
     void *res;
 
     if (__builtin_constant_p(size)) {
-        if (size == 0)
-            return NULL;
         if (size > MEM_ALLOC_MAX)
             __imalloc_too_large();
     }
