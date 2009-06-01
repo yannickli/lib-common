@@ -45,7 +45,10 @@ void htbl_invalidate(generic_htbl *t, uint32_t pos);
 
 #define htbl_for_each_pos(i, t)  __htbl_for_each(i, t, (void)0)
 #define htbl_for_each(e, t)      __htbl_for_each(e##_i, t, e = (t)->tab[e##_i])
-#define htbl_for_each_p(e, t)    __htbl_for_each(e##_i, t, e = (t)->tab + e##_i)
+#define htbl_for_each_p(e, t)                                                \
+    __htbl_for_each(e##_i, t, e = (t)->tab + e##_i)
+#define htbl_str_for_each(v, t)                                              \
+    __htbl_for_each(v##_i, t, v = (t)->tab[v##_i].e)
 
 #define DO_LL_CONTAINER(kind, type_t, idx_t, pfx, get_h, get_k, key_equal)   \
     static inline void pfx##_##kind##_wipe(pfx##_##kind *t) {                \
