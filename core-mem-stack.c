@@ -84,7 +84,7 @@ typedef struct stack_blk_t {
 } stack_blk_t;
 
 typedef struct frame_t {
-    struct frame_t *next;
+    struct frame_t *prev;
     stack_blk_t    *blk;
     void           *pos;
     void           *last;
@@ -178,27 +178,39 @@ static byte *align_start(frame_t *frame, size_t size)
     return (byte *)ALIGN((uintptr_t)frame->pos, align_boundary(size));
 }
 
-static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
+static void *sp_reserve(stack_pool_t *sp, size_t size, stack_blk_t **blkp)
 {
-    stack_pool_t *sp = container_of(_sp, stack_pool_t, funcs);
     frame_t *frame = sp->stack;
     byte *res = align_start(frame, size);
 
     if (res + size > frame_end(frame)) {
         stack_blk_t *blk = frame_get_next_blk(sp, frame->blk, size);
-        frame->blk = blk;
-        frame->pos = res = blk->area;
+
+        *blkp = blk;
+        res = blk->area;
+    } else {
+        *blkp = frame->blk;
     }
     VALGRIND_MAKE_MEM_UNDEFINED(res, size);
-    if (!(flags & MEM_RAW))
-        memset(res, 0, size);
-    frame->pos = res + size;
     if (unlikely(sp->alloc_sz + size < sp->alloc_sz) || unlikely(sp->alloc_nb >= UINT16_MAX)) {
         sp->alloc_sz /= 2;
         sp->alloc_nb /= 2;
     }
     sp->alloc_sz += size;
     sp->alloc_nb += 1;
+    return res;
+}
+
+static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
+{
+    stack_pool_t *sp = container_of(_sp, stack_pool_t, funcs);
+    frame_t *frame = sp->stack;
+    byte *res;
+
+    res = sp_reserve(sp, size, &frame->blk);
+    if (!(flags & MEM_RAW))
+        memset(res, 0, size);
+    frame->pos = res + size;
     return frame->last = res;
 }
 
@@ -282,11 +294,15 @@ void mem_stack_pool_delete(mem_pool_t **spp)
 const void *mem_stack_push(mem_pool_t *_sp)
 {
     stack_pool_t *sp = container_of(_sp, stack_pool_t, funcs);
-    frame_t *frame = sp_alloc(_sp, sizeof(*frame), 0);
+    stack_blk_t *blk;
+    byte *res = sp_reserve(sp, sizeof(frame_t), &blk);
+    frame_t *frame;
 
-    frame->blk  = sp->stack->blk;
-    frame->pos  = sp->stack->pos;
-    frame->next = sp->stack;
+    frame = (frame_t *)res;
+    frame->blk  = blk;
+    frame->pos  = res + sizeof(frame_t);
+    frame->last = frame->pos;
+    frame->prev = sp->stack;
     return sp->stack = frame;
 }
 
@@ -310,8 +326,8 @@ const void *mem_stack_pop(mem_pool_t *_sp)
     stack_pool_t *sp = container_of(_sp, stack_pool_t, funcs);
     frame_t *frame = sp->stack;
 
-    if (frame->next) {
-        sp->stack = frame->next;
+    if (frame->prev) {
+        sp->stack = frame->prev;
         mem_stack_protect(sp);
         return sp->stack;
     }
@@ -335,15 +351,15 @@ void mem_stack_rewind(mem_pool_t *_sp, const void *cookie)
         return;
     }
 #ifndef NDEBUG
-    for (frame_t *frame = sp->stack; frame->next; frame = frame->next) {
+    for (frame_t *frame = sp->stack; frame->prev; frame = frame->prev) {
         if (frame == cookie) {
-            sp->stack = frame->next;
+            sp->stack = frame->prev;
             mem_stack_protect(sp);
             return;
         }
     }
     e_panic("invalid cookie");
 #else
-    sp->stack = ((frame_t *)cookie)->next;
+    sp->stack = ((frame_t *)cookie)->prev;
 #endif
 }
