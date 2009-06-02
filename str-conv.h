@@ -124,7 +124,7 @@ static inline uint8_t utf8_charlen(const char *s)
     }
 }
 
-static inline int utf8_getc(const char *s, const char **out)
+static inline int utf8_getc_slow(const char *s, const char **out)
 {
     uint32_t ret = 0;
     uint8_t  len = utf8_charlen(s) - 1;
@@ -141,12 +141,32 @@ static inline int utf8_getc(const char *s, const char **out)
         *out = s;
     return ret - __utf8_offs[len];
 }
+
+__attribute__((always_inline))
+static inline int utf8_getc(const char *s, const char **out)
+{
+    if ((unsigned char)*s < 0x80) {
+        if (out)
+            *out = s + 1;
+        return (unsigned char)*s;
+    } else {
+        return utf8_getc_slow(s, out);
+    }
+}
+
+__attribute__((always_inline))
 static inline int utf8_ngetc(const char *s, int len, const char **out)
 {
-    if (len < __utf8_char_len[(unsigned char)*s >> 3])
+    if (len && (unsigned char)*s < 0x80) {
+        if (out)
+            *out = s + 1;
+        return (unsigned char)*s;
+    }
+    if (unlikely(len < __utf8_char_len[(unsigned char)*s >> 3]))
         return -1;
-    return utf8_getc(s, out);
+    return utf8_getc_slow(s, out);
 }
+
 static inline int utf8_vgetc(char *s, char **out)
 {
     return utf8_getc(s, (const char **)out);
@@ -154,11 +174,8 @@ static inline int utf8_vgetc(char *s, char **out)
 static inline const char *utf8_skip_valid(const char *s, const char *end)
 {
     while (s < end) {
-        if (!(*s & 0x80)) {
-            s++;
-        } else if (utf8_ngetc(s, end - s, &s) < 0) {
+        if (utf8_ngetc(s, end - s, &s) < 0)
             return s;
-        }
     }
     return end;
 }
