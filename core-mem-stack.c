@@ -192,7 +192,9 @@ static void *sp_reserve(stack_pool_t *sp, size_t size, stack_blk_t **blkp)
         *blkp = frame->blk;
     }
     VALGRIND_MAKE_MEM_UNDEFINED(res, size);
-    if (unlikely(sp->alloc_sz + size < sp->alloc_sz) || unlikely(sp->alloc_nb >= UINT16_MAX)) {
+    if (unlikely(sp->alloc_sz + size < sp->alloc_sz)
+    ||  unlikely(sp->alloc_nb >= UINT16_MAX))
+    {
         sp->alloc_sz /= 2;
         sp->alloc_nb /= 2;
     }
@@ -267,7 +269,7 @@ mem_pool_t *mem_stack_pool_new(int initialsize)
     sp->blk.size   = sizeof(stack_pool_t) - sizeof(stack_blk_t);
 
     sp->base.blk   = blk_entry(&sp->blk_list);
-    sp->base.pos   = blk_entry(&sp->blk_list) + sizeof(*sp);
+    sp->base.pos   = sp + 1;
     sp->stack      = &sp->base;
 
     /* 640k should be enough for everybody =) */
@@ -301,7 +303,7 @@ const void *mem_stack_push(mem_pool_t *_sp)
     frame = (frame_t *)res;
     frame->blk  = blk;
     frame->pos  = res + sizeof(frame_t);
-    frame->last = frame->pos;
+    frame->last = NULL;
     frame->prev = sp->stack;
     return sp->stack = frame;
 }
