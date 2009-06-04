@@ -17,7 +17,14 @@
 #include "time.h"
 #include "el.h"
 
-static pthread_mutex_t big_lock_g = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+static struct {
+    pthread_mutex_t mutex;
+    pthread_t owner;
+    int count;
+} big_lock_g = {
+    .mutex = PTHREAD_MUTEX_INITIALIZER,
+};
+
 static bool use_big_lock_g = false;
 
 /** \addtogroup lc_el
@@ -728,20 +735,41 @@ void el_bl_use(void)
 {
     if (use_big_lock_g)
         e_panic("el bl use has been called twice !");
+
     use_big_lock_g = true;
-    pthread_mutex_lock(&big_lock_g);
+    el_bl_lock();
 }
 
 void el_bl_lock(void)
 {
-    if (use_big_lock_g)
-        pthread_mutex_lock(&big_lock_g);
+    pthread_t self;
+
+    if (!use_big_lock_g)
+        return;
+
+    self = pthread_self();
+
+    if (big_lock_g.owner == self) {
+        big_lock_g.count++;
+    } else {
+        pthread_mutex_lock(&big_lock_g.mutex);
+        big_lock_g.count = 1;
+        big_lock_g.owner = self;
+    }
 }
 
 void el_bl_unlock(void)
 {
-    if (use_big_lock_g)
-        pthread_mutex_unlock(&big_lock_g);
+    if (!use_big_lock_g)
+        return;
+
+    assert(big_lock_g.count > 0);
+
+    big_lock_g.count--;
+    if (big_lock_g.count == 0) {
+        big_lock_g.owner = (pthread_t)0;
+        pthread_mutex_unlock(&big_lock_g.mutex);
+    }
 }
 
 void el_loop(void)
