@@ -772,6 +772,23 @@ void el_bl_unlock(void)
     }
 }
 
+void el_cond_wait(pthread_cond_t *cond)
+{
+    int count;
+
+    count = big_lock_g.count;
+    big_lock_g.count = 0;
+
+    pthread_cond_wait(cond, &big_lock_g.mutex);
+
+    big_lock_g.count = count;
+}
+
+void el_cond_signal(pthread_cond_t *cond)
+{
+    pthread_cond_signal(cond);
+}
+
 void el_loop(void)
 {
     while (likely(_G.active) && likely(!_G.unloop)) {

@@ -144,6 +144,9 @@ void el_bl_use(void);
 void el_bl_lock(void);
 void el_bl_unlock(void);
 
+void el_cond_wait(pthread_cond_t *);
+void el_cond_signal(pthread_cond_t *);
+
 void el_loop(void);
 void el_unloop(void);
 void el_loop_timeout(int msecs);
