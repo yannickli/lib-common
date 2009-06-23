@@ -451,10 +451,10 @@ mem_pool_t *t_pool(void) __attribute__((pure));
 #define t_rewind(p)   mem_stack_rewind(t_pool(), p)
 
 #define __t_pop_and_do(expr)    ({ t_pop(); expr; })
-#define t_pop_and_return(expr)  t_pop_and_do(return expr)
-#define t_pop_and_break()       t_pop_and_do(break)
-#define t_pop_and_continue()    t_pop_and_do(continue)
-#define t_pop_and_goto(lbl)     t_pop_and_do(goto lbl)
+#define t_pop_and_return(expr)  __t_pop_and_do(return expr)
+#define t_pop_and_break()       __t_pop_and_do(break)
+#define t_pop_and_continue()    __t_pop_and_do(continue)
+#define t_pop_and_goto(lbl)     __t_pop_and_do(goto lbl)
 
 #define t_new(type_t, n) \
     ((type_t *)imalloc((n) * sizeof(type_t), MEM_STACK))
