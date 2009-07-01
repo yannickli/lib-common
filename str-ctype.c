@@ -69,6 +69,22 @@ ctype_desc_t const ctype_isdigit = {
     }
 };
 
+/* ctype description for tokens "0123456789abcdefABCDEF" */
+ctype_desc_t const ctype_ishexdigit = {
+    {
+        0x00000000, 0x03ff0000, 0x0000007e, 0x0000007e,
+        0x00000000, 0x00000000, 0x00000000, 0x00000000,
+    }
+};
+
+/* ctype description for tokens "01" */
+ctype_desc_t const ctype_isbindigit = {
+    {
+        0x00000000, 0x00030000, 0x00000000, 0x00000000,
+        0x00000000, 0x00000000, 0x00000000, 0x00000000,
+    }
+};
+
 /* ctype description for tokens " \r\n\t\v" */
 ctype_desc_t const ctype_isspace = {
     {
