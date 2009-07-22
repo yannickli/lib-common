@@ -30,7 +30,7 @@ int mkdir_p(const char *dir, mode_t mode)
     char *p;
     struct stat buf;
     char dir2[PATH_MAX];
-    bool needmkdir = 0;
+    bool needmkdir = false;
 
     if (strlen(dir) + 1 > PATH_MAX) {
         return -1;
@@ -44,7 +44,7 @@ int mkdir_p(const char *dir, mode_t mode)
         if (errno != ENOENT) {
             return -1;
         }
-        needmkdir = 1;
+        needmkdir = true;
         p = strrchr(dir2, '/');
         if (p == NULL) {
             goto creation;

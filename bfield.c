@@ -58,7 +58,7 @@ bool bfield_isset(const bfield_t *bf, ssize_t pos)
     ssize_t octet = (pos >> 3) - bf->offs;
 
     if (octet < 0 || octet >= bf->bits.len)
-        return 0;
+        return false;
 
     return (bf->bits.data[octet] >> (pos & 7)) & 1;
 }

@@ -52,7 +52,7 @@ static inline int berror(BSTREAM *stream) {
 }
 
 static inline void bclearerr(BSTREAM *stream) {
-    stream->eof = stream->error = 0;
+    stream->eof = stream->error = false;
 }
 
 static inline int bfileno(BSTREAM *stream) {
@@ -81,8 +81,8 @@ static inline BSTREAM *battach_bufsize(int fd, int mode, int bufsize)
     stream->pread  = stream->pread_end =
         stream->pwrite = stream->pwrite_end =
         stream->pwrite_start = stream->buf;
-    stream->eof    = 0;
-    stream->error  = 0;
+    stream->eof = false;
+    stream->error = false;
     stream->bufsiz = bufsize;
     if (BSTREAM_ISWRITE(stream->mode)) {
         stream->pwrite_end += bufsize;
@@ -130,10 +130,10 @@ static inline int bfilbuf(BSTREAM *stream)
 
     n = bread_buffer(stream->fd, stream->buf, stream->bufsiz);
     if (n < 0) {
-        stream->error = 1;
+        stream->error = true;
     } else
     if (n == 0) {
-        stream->eof = 1;
+        stream->eof = true;
     } else {
         stream->pos       += n;
         stream->pread_end += n;
@@ -179,11 +179,11 @@ static inline ssize_t bread_call(BSTREAM *stream, void *ptr, size_t count)
             toread = count - (count % stream->bufsiz);
             n = bread_buffer(stream->fd, buf, toread);
             if (n < 0) {
-                stream->error = 1;
+                stream->error = true;
                 continue;
             }
             if (n == 0) {
-                stream->eof = 1;
+                stream->eof = true;
                 continue;
             }
             stream->pos += n;
@@ -415,7 +415,7 @@ static inline off64_t bseek64(BSTREAM *stream, long offset, int whence)
 {
     /* Should check if seeking inside buffer */
     bflush(stream);
-    stream->eof = 0;
+    stream->eof = false;
     return stream->pos = lseek64(stream->fd, offset, whence);
 }
 
@@ -423,7 +423,7 @@ static inline int brewind(BSTREAM *stream)
 {
     /* Should check if seeking inside buffer */
     bflush(stream);
-    stream->eof = 0;
+    stream->eof = false;
     stream->pos = lseek(stream->fd, 0L, SEEK_SET);
     return 0;
 }
