@@ -432,9 +432,7 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
 
 int gsm7_charlen(int c)
 {
-    c = unicode_to_gsm7(c, -1);
-    if (c < 0)
-        return -1;
+    c = RETHROW(unicode_to_gsm7(c, -1));
     return 1 + (c > 0xff);
 }
 
@@ -574,10 +572,7 @@ int sb_conv_to_gsm7(sb_t *out, int gsm_start, const char *utf8, int unknown)
             return c < 0 ? c : len + septet;
         }
 
-        c = unicode_to_gsm7(c, unknown);
-        if (c < 0)
-            return -1;
-
+        c = RETHROW(unicode_to_gsm7(c, unknown));
         if (c > 0xff) {
             pack |= ((uint64_t)(c >> 8) << (7 * septet));
             if (++septet == 8) {

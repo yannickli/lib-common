@@ -292,10 +292,7 @@ static int btn_insert(btree_t *bt, intpair nodes[], int level, int32_t rpage)
     lpage = nodes[level++].page;
     if (level > bt->area->depth) {
         /* Need a new level */
-        page = bt_page_new(bt);
-        if (page < 0)
-            return -1;
-
+        page = RETHROW(bt_page_new(bt));
         node = MAP_NODE(bt->area, page);
         if (!node)
             return -1;
@@ -352,10 +349,7 @@ static int btn_insert(btree_t *bt, intpair nodes[], int level, int32_t rpage)
         }
     }
 
-    npage = bt_page_new(bt);
-    if (npage < 0)
-        return -1;
-
+    npage = RETHROW(bt_page_new(bt));
     npage |= BTPP_NODE_MASK;
     /* remap pages because bt_page_new may have moved bt->area */
     node    = MAP_NODE(bt->area, page);
@@ -1472,17 +1466,13 @@ int fbtree_fetch(fbtree_t *fbt, uint64_t key, sb_t *out)
     if (fbt->ismap)
         return btree_fetch(fbt->bt, key, out);
 
-    page = fbtn_find_leaf(fbt, key);
-    if (page < 0)
-        return -1;
+    page = RETHROW(fbtn_find_leaf(fbt, key));
 
     leaf = &buf.leaf;
     if (fbtree_readpage(fbt, page, &buf))
         return -1;
 
-    pos = btl_findslot(leaf, key, NULL);
-    if (pos < 0)
-        return -1;
+    pos = RETHROW(btl_findslot(leaf, key, NULL));
 
     do {
         int datalen;

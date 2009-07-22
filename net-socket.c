@@ -52,9 +52,7 @@ static int sock_reuseaddr(int sock)
 
 int socketpairx(int d, int type, int protocol, int flags, int sv[2])
 {
-    int res = socketpair(d, type, protocol, sv);
-    if (res < 0)
-        return res;
+    RETHROW(socketpair(d, type, protocol, sv));
     if (!(flags & O_NONBLOCK))
         return 0;
     if (fd_set_features(sv[0], flags) || fd_set_features(sv[1], flags)) {

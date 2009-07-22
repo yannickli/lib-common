@@ -279,8 +279,7 @@ static int psinfo_read_maps(pid_t pid, sb_t *output, sb_t *buf)
     size_t total = 0;
 
     snprintf(path, sizeof(path), "/proc/%d/maps", pid);
-    if (sb_read_file(buf, path) < 0)
-        return -1;
+    RETHROW(sb_read_file(buf, path));
 
     sb_addf(output, "\n/proc/%d/maps information:\n", pid);
     p = buf->data;

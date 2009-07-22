@@ -249,10 +249,7 @@ int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
         return -1;
     }
 
-    res = fcntl(fd, cmd, &lock);
-
-    if (res < 0)
-        return res;
+    res = RETHROW(fcntl(fd, cmd, &lock));
     if (cmd == F_GETLK) {
         if (lock.l_type == F_UNLCK) {
             return 0;
@@ -292,8 +289,7 @@ int tmpfd(void)
     mode_t mask = umask(0177);
     int fd = mkstemp(path);
     umask(mask);
-    if (fd < 0)
-        return fd;
+    RETHROW(fd);
     unlink(path);
     return fd;
 }

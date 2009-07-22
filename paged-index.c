@@ -65,8 +65,7 @@ static int pidx_fsck_recurse(byte *bits, pidx_file *pidx,
             if (pidx_fsck_mark_page(bits, pidx, pg))
                 return -1;
 
-            if (pidx_fsck_recurse(bits, pidx, pg, seglevel - 1) < 0)
-                return -1;
+            RETHROW(pidx_fsck_recurse(bits, pidx, pg, seglevel - 1));
         }
     } else {
 #ifndef NDEBUG

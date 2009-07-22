@@ -599,11 +599,8 @@ int tpl_to_iov(struct iovec *iov, int nr, tpl_t *tpl)
         return 1;
       case TPL_OP_BLOCK:
         for (int i = n = 0; i < tpl->u.blocks.len; i++) {
-            int res = tpl_to_iov(iov + n, n < nr ? nr - n : 0,
-                                 tpl->u.blocks.tab[i]);
-            if (res < 0)
-                return -1;
-            n += res;
+            n += RETHROW(tpl_to_iov(iov + n, n < nr ? nr - n : 0,
+                         tpl->u.blocks.tab[i]));
         }
         return n;
       default:

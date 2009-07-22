@@ -250,9 +250,7 @@ int sb_read_file(sb_t *sb, const char *filename)
     int res, fd, err;
     char *buf;
 
-    if ((fd = open(filename, O_RDONLY)) < 0)
-        return -1;
-
+    fd = RETHROW(open(filename, O_RDONLY));
     if (fstat(fd, &st) < 0 || st.st_size <= 0) {
         for (;;) {
             res = sb_read(sb, fd, 0);
@@ -291,9 +289,7 @@ int sb_write_file(const sb_t *sb, const char *filename)
 {
     int fd, res;
 
-    if ((fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0)
-        return -1;
-
+    fd = RETHROW(open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644));
     res = xwrite(fd, sb->data, sb->len);
     if (res < 0) {
         int save_errno = errno;

@@ -312,11 +312,7 @@ int strconv_hexdecode(void *dest, int size, const char *src, int len)
         return -1;
 
     for (; src < end; src += 2) {
-        int c = hexdecode(src);
-
-        if (c < 0)
-            return -1;
-        *w++ = c;
+        *w++ = RETHROW(hexdecode(src));
     }
 
     return len / 2;

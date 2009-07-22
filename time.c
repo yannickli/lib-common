@@ -363,10 +363,7 @@ int strtotm(const char *date, struct tm *t)
     if (*p++ != '-')
         return -1;
 
-    year = atoi(p);
-    if (year < 0)
-        return -1;
-
+    year = RETHROW(atoi(p));
     if (year < 70) {
         year += 2000;
     } else

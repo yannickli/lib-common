@@ -564,9 +564,8 @@ static int isndx_insert_one(isndx_t *ndx, insert_state *ist, int level,
              * pass offset to get the right slot in case of multiple
              * identical keys.
              */
-            if (isndx_scan(ndx, page, key, keylen,
-                           ist->cache[level].offset, &sst) < 0)
-                return -1;
+            RETHROW(isndx_scan(ndx, page, key, keylen,
+                    ist->cache[level].offset, &sst));
         } else {
             sst.offset = ist->cache[0].offset;
             sst.common_prev = ist->cache[0].common_prev;
