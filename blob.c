@@ -37,7 +37,7 @@ void blob_append_date_iso8601(blob_t *dst, time_t date)
 static char *convert_int10(char *p, int value)
 {
     /* compute absolute value without tests */
-    unsigned int bits = value >> (8 * sizeof(int) - 1);
+    unsigned int bits = value >> (bitsizeof(int) - 1);
     unsigned int num = (value ^ bits) + (bits & 1);
 
     while (num >= 10) {

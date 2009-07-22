@@ -195,7 +195,7 @@ static inline size_t strnlen(const char *str, size_t n)
 static inline char *convert_int10(char *p, int value)
 {
     /* compute absolute value without tests */
-    unsigned int bits = value >> (8 * sizeof(int) - 1);
+    unsigned int bits = value >> (bitsizeof(int) - 1);
     unsigned int num = (value ^ bits) + (bits & 1);
 
     while (num >= 10) {
@@ -681,7 +681,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                 int_value = va_arg(ap, int);
               convert_int:
                 {
-                    unsigned int bits = int_value >> (8 * sizeof(int_value) - 1);
+                    unsigned int bits = int_value >> (bitsizeof(int_value) - 1);
                     unsigned int num = (int_value ^ bits) + (bits & 1);
                     sign = '-' & bits;
                     lp = convert_uint(buf + sizeof(buf), num, 10);
@@ -691,7 +691,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
               case TYPE_long:
                 {
                     long value = va_arg(ap, long);
-                    unsigned long bits = value >> (8 * sizeof(value) - 1);
+                    unsigned long bits = value >> (bitsizeof(value) - 1);
                     unsigned long num = (value ^ bits) + (bits & 1);
                     sign = '-' & bits;
                     lp = convert_ulong(buf + sizeof(buf), num, 10);
@@ -702,7 +702,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
               case TYPE_llong:
                 {
                     long long value = va_arg(ap, long long);
-                    unsigned long long bits = value >> (8 * sizeof(value) - 1);
+                    unsigned long long bits = value >> (bitsizeof(value) - 1);
                     unsigned long long num = (value ^ bits) + (bits & 1);
                     sign = '-' & bits;
                     lp = convert_ullong(buf + sizeof(buf), num, 10);
@@ -713,7 +713,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
               case TYPE_int32:
                 {
                     int32_t value = va_arg(ap, int32_t);
-                    uint32_t bits = value >> (8 * sizeof(value) - 1);
+                    uint32_t bits = value >> (bitsizeof(value) - 1);
                     uint32_t num = (value ^ bits) + (bits & 1);
                     sign = '-' & bits;
                     lp = convert_uint32(buf + sizeof(buf), num, 10);
@@ -724,7 +724,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
               case TYPE_int64:
                 {
                     int64_t value = va_arg(ap, int64_t);
-                    uint64_t bits = value >> (8 * sizeof(value) - 1);
+                    uint64_t bits = value >> (bitsizeof(value) - 1);
                     uint64_t num = (value ^ bits) + (bits & 1);
                     sign = '-' & bits;
                     lp = convert_uint64(buf + sizeof(buf), num, 10);
