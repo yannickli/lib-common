@@ -850,7 +850,7 @@ pow5mult
         ACQUIRE_DTOA_LOCK(1);
         if (!(p5 = p5s)) {
             p5 = p5s = i2b(625);
-            p5->next = 0;
+            p5->next = NULL;
         }
         FREE_DTOA_LOCK(1);
 #else
@@ -871,7 +871,7 @@ pow5mult
             ACQUIRE_DTOA_LOCK(1);
             if (!(p51 = p5->next)) {
                 p51 = p5->next = mult(p5,p5);
-                p51->next = 0;
+                p51->next = NULL;
             }
             FREE_DTOA_LOCK(1);
 #else
