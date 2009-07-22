@@ -608,7 +608,7 @@ static int b64_rough_size(int srclen, int ppline)
      * Worst case is we're at `4 * ppline` column so we have to add a \r\n
      * straight away plus what is need for the rest.
      */
-    return 4 * nbpacks + 2 + 2 * ((nbpacks + ppline - 1) / ppline);
+    return 4 * nbpacks + 2 + 2 * DIV_ROUND_UP(nbpacks, ppline);
 }
 
 void sb_add_b64_start(sb_t *dst, int len, int width, sb_b64_ctx_t *ctx)

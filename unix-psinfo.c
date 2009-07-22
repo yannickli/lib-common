@@ -33,7 +33,7 @@ static unsigned int my_jiffies_to_msecs(const unsigned long j)
 #if HZ <= 1000 && !(1000 % HZ)
         return (1000 / HZ) * j;
 #elif HZ > 1000 && !(HZ % 1000)
-        return (j + (HZ / 1000) - 1)/(HZ / 1000);
+        return DIV_ROUND_UP(j, HZ / 1000);
 #else
         return (j * 1000) / HZ;
 #endif
