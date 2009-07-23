@@ -86,7 +86,8 @@ static inline bool ctype_desc_contains(const ctype_desc_t *d, byte b)
  * TODO binary operation on memory instead of a stupid bit per bit operating
  */
 static inline void
-ctype_desc_combine(ctype_desc_t *dst, ctype_desc_t *d1, ctype_desc_t *d2)
+ctype_desc_combine(ctype_desc_t *dst,
+                   const ctype_desc_t *d1, const ctype_desc_t *d2)
 {
     for (int i = 0; i < countof(d1->tab); i++) {
         dst->tab[i] = d1->tab[i] | d2->tab[i];
@@ -96,8 +97,7 @@ ctype_desc_combine(ctype_desc_t *dst, ctype_desc_t *d1, ctype_desc_t *d2)
 /* @func ctype_desc_invert
  * param[inout] d
  */
-static inline void
-ctype_desc_invert(ctype_desc_t *d)
+static inline void ctype_desc_invert(ctype_desc_t *d)
 {
     for (int i = 0 ; i < countof(d->tab) ; i++)
         d->tab[i] = ~(d->tab[i]);
