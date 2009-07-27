@@ -98,6 +98,7 @@ ARRAY_TYPE(conf_section_t, conf_section);
 typedef conf_section_array conf_t;
 
 conf_t *conf_load(const char *filename);
+int conf_merge_dir(conf_t *conf, const char *path);
 conf_t *conf_load_str(const char *s, int len);
 void conf_delete(conf_t **);
 

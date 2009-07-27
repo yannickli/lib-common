@@ -13,6 +13,8 @@
 
 #include "conf.h"
 
+#include <dirent.h>
+
 static conf_section_t *conf_section_init(conf_section_t *section)
 {
     props_array_init(&section->vals);
@@ -87,6 +89,38 @@ conf_t *conf_load(const char *filename)
     if (cfg_parse(filename, &conf_parse_hook, res, CONF_PARSE_OPTS))
         conf_delete(&res);
     return res;
+}
+
+int conf_merge_dir(conf_t *conf, const char *path)
+{
+    struct dirent *file;
+    DIR *conf_dir = opendir(path);
+
+    if (!conf_dir) {
+        return e_error("cannot open configuration directory <%s>", path);
+    }
+
+    while ((file = readdir(conf_dir))) {
+        char buf[PATH_MAX];
+        pstream_t file_ps = ps_initstr(file->d_name);
+
+        if (file_ps.s[0] == '.')
+            continue;
+
+        if (ps_skip_upto(&file_ps, file_ps.b_end - strlen(".ini")))
+            continue;
+
+        if (ps_strequal(&file_ps, ".ini")) {
+            snprintf(buf, sizeof(buf), "%s/%s", path, file->d_name);
+            if (cfg_parse(buf, &conf_parse_hook, conf, CONF_PARSE_OPTS)) {
+                closedir(conf_dir);
+                return e_error("cannot parse <%s>", buf);
+            }
+        }
+    }
+
+    closedir(conf_dir);
+    return 0;
 }
 
 conf_t *conf_load_str(const char *s, int len)
