@@ -150,7 +150,7 @@ tmp/makefiles := $(shell find "$(var/srcdir)" -name Makefile -type f \( -path '*
                          grep -q 'include.*base.mk' $$file && echo $$file; done)
 tmp/vars      := $(patsubst $(var/srcdir)/%Makefile,$(var/builddir)/%vars.mk,$(tmp/makefiles))
 
-$(tmp/vars): $(var/builddir)%/vars.mk: $(var/srcdir)%/Makefile $(var/toolsdir)/*
+$(tmp/vars): $(var/builddir)%/vars.mk: $(var/srcdir)%/Makefile $!deps.mk $(var/toolsdir)/*
 	$(msg/generate) $(@R)
 	mkdir -p $(@D)
 	$(MAKE) --no-print-directory -rsC $(var/srcdir)$* __dump_targets > $@
