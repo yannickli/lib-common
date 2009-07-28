@@ -16,7 +16,7 @@ missing_dep=
 profile=
 out=/dev/stdout
 
-# {{{ library 
+# {{{ library
 
 die() {
     echo 2>&1 "$@"
@@ -192,21 +192,25 @@ fi
 # }}}
 # {{{ php
 
-case "$profile" in
-    platon)
+if test -z "${PHP_VERSION}"; then
+    case "$profile" in
+        platon)
         PHP_CONFIG=/opt/php-5.1.1/bin/php-config
         ;;
-    solaris*)
+        solaris*)
         PHP_CONFIG=/usr/local/php/bin/php-config
         ;;
-    *)
+        *)
         if which php-config >/dev/null 2>/dev/null; then
-           PHP_CONFIG=php-config
+            PHP_CONFIG=php-config
         else
-           warn "*** php-config is missing, apt-get install php5-dev"
+            warn "*** php-config is missing, apt-get install php5-dev"
         fi
         ;;
-esac
+    esac
+else
+    PHP_CONFIG=/opt/php-${PHP_VERSION}/bin/php-config
+fi
 if test -n "$PHP_CONFIG"; then
     setvar "php5_CFLAGS" "$("$PHP_CONFIG" --includes)"
 fi
