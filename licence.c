@@ -396,21 +396,22 @@ int list_my_cpus(char *dst, size_t size)
     /* OG: Should use cpu_set_t type and macros ? */
     /* OG: Should check return value of these system calls */
     int i = 0, pos = 0, res = -1;
-    unsigned long oldmask, newmask;
+    cpu_set_t oldmask, newmask;
 
-    if (sched_getaffinity(0, sizeof(oldmask), (void*)&oldmask))
+    if (sched_getaffinity(0, sizeof(oldmask), &oldmask))
         goto exit;
 
     for (i = 0; i < ssizeof(oldmask) * 8; i++) {
         uint32_t cpusig;
 
         /* Only enumerate cpus enabled by default */
-        newmask = 1L << i;
-        if (!(newmask & oldmask))
+        if (!CPU_ISSET(i, &oldmask))
             continue;
+        CPU_ZERO(&newmask);
+        CPU_SET(i, &newmask);
 
         /* Tell linux we prefer to run on CPU number i. */
-        if (sched_setaffinity(0, sizeof(newmask), (void*)&newmask))
+        if (sched_setaffinity(0, sizeof(newmask), &newmask))
             goto exit;
 
         /* OG: this might not be necessary. */
