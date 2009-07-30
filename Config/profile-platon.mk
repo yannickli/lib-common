@@ -11,9 +11,9 @@
 #                                                                        #
 ##########################################################################
 
-include $(var/cfgdir)/cflags.mk
+include $(var/cfgdir)/profile-release.mk
 
-CFLAGS += -Wno-error -DNDEBUG -D_FORTIFY_SOURCE=1
+CFLAGS += -Wno-error
 ifneq (,$(EXPIRATION_DATE))
 # Tuesday, March 6th 2007 at noon CET.
 # date -d "03/06/2007 12:00:00" +"%s" --> 1173178800
