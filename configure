@@ -115,6 +115,9 @@ fi
 if pkg-config --print-errors lua5.1; then
     setvar "lua_CFLAGS" "$(pkg-config --cflags lua5.1)"
     setvar "lua_LIBS" "$(pkg-config --libs lua5.1)"
+elif pkg-config --print-errors lua; then
+    setvar "lua_CFLAGS" "$(pkg-config --cflags lua)"
+    setvar "lua_LIBS" "$(pkg-config --libs lua)"
 else
     warn "*** liblua5.1-dev is missing, apt-get install liblua5.1-dev"
 fi
