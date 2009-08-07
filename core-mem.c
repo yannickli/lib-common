@@ -17,7 +17,6 @@ static rb_t blks_g;
 static spinlock_t lock_g;
 
 static RB_INSERT_I(mem_blk_t, mem_blk, node, start);
-static RB_SEARCH_I(mem_blk_t, mem_blk, node, start);
 
 void mem_register(mem_blk_t *blk)
 {
@@ -40,12 +39,27 @@ void mem_unregister(mem_blk_t *blk)
 
 mem_blk_t *mem_blk_find(const void *addr)
 {
-    mem_blk_t *res;
+    rb_node_t *n;
 
     spin_lock(&lock_g);
-    res = mem_blk_search(blks_g, addr);
+    n = blks_g.root;
+
+    while (n) {
+        mem_blk_t *e = rb_entry(n, mem_blk_t, node);
+
+        if (addr < e->start) {
+            n = n->left;
+        } else if ((const char *)addr >= (const char *)e->start + e->size) {
+            n = n->right;
+        } else {
+            spin_unlock(&lock_g);
+            return e;
+        }
+    }
+
     spin_unlock(&lock_g);
-    return res;
+
+    return NULL;
 }
 
 void mem_for_each(mem_pool_t *mp, void (*fn)(mem_blk_t *, void *), void *priv)
