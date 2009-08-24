@@ -352,6 +352,10 @@ void devnull_dup(int fd)
 __attribute__((constructor))
 static void unix_initialize(void)
 {
+    struct timeval tm;
+
+    gettimeofday(&tm, NULL);
+    srand(tm.tv_sec + tm.tv_usec + getpid());
     ha_srand();
 
     if (!is_fd_open(STDIN_FILENO)) {
