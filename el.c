@@ -95,11 +95,7 @@ typedef struct ev_t {
 } ev_t;
 DO_ARRAY(ev_t, ev, IGNORE);
 
-typedef struct ev_assoc_t {
-    uint64_t u;
-    ev_t *ev;
-} ev_assoc_t;
-DO_HTBL_KEY(ev_assoc_t, uint64_t, ev_assoc, u);
+qm_k32_t(ev_assoc, ev_t *);
 
 static struct {
     volatile uint32_t gotsigs;
@@ -113,7 +109,7 @@ static struct {
     dlist_t  proxy, proxy_ready;
     ev_array timers;          /* relative timers heap (see comments after)  */
     ev_array cache;
-    ev_assoc_htbl childs;     /* el_t's watching for processes              */
+    qm_t(ev_assoc) childs;    /* el_t's watching for processes              */
 
     /*----- allocation stuff -----*/
 #define EV_ALLOC_FACTOR  10   /* basic segment is 1024 events               */
@@ -137,6 +133,7 @@ static struct {
     .proxy_ready    = DLIST_INIT(_G.proxy_ready),
     .evs_free       = DLIST_INIT(_G.evs_free),
     .evs_gc         = DLIST_INIT(_G.evs_gc),
+    .childs         = QM_INIT(ev_assoc, _G.childs, false),
 };
 
 #define ASSERT(msg, expr)  assert (((void)msg, likely(expr)))
@@ -344,12 +341,12 @@ static void el_sigchld_hook(ev_t *ev, int signo, el_data_t priv)
     int status;
 
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-        ev_assoc_t *ec = ev_assoc_htbl_find(&_G.childs, pid);
-        if (likely(ec)) {
-            ev_t *e = ec->ev;
+        int32_t pos = qm_del_key(ev_assoc, &_G.childs, pid);
+
+        if (likely(pos >= 0)) {
+            ev_t *e = _G.childs.values[pos];
             (*e->cb.child)(e, pid, status, e->priv);
-            ev_assoc_htbl_ll_remove(&_G.childs, ec);
-            el_destroy(&e, false);
+            el_destroy(&_G.childs.values[pos], false);
         }
     }
 }
@@ -365,28 +362,25 @@ ev_t *el_child_register(pid_t pid, el_child_f *cb, el_data_t priv)
     static bool hooked;
 
     ev_t *ev = el_create(EV_CHILD, cb, priv, true);
-    ev_assoc_t *ec;
 
     if (unlikely(!hooked)) {
         hooked = true;
         el_signal_register(SIGCHLD, el_sigchld_hook, NULL);
     }
 
-    ec = ev_assoc_htbl_insert(&_G.childs, (ev_assoc_t){ .u = pid, .ev = ev });
+    if (qm_add(ev_assoc, &_G.childs, pid, ev) < 0) {
+        ASSERT("pid is already watched", false);
+    }
     ev->pid = pid;
-    ASSERT("pid is already watched", !ec);
     return ev;
 }
 
 el_data_t el_child_unregister(ev_t **evp)
 {
     if (*evp) {
-        ev_assoc_t *ec;
-
         CHECK_EV_TYPE(*evp, EV_SIGNAL);
-        ec = ev_assoc_htbl_find(&_G.childs, (*evp)->pid);
-        ASSERT("event not found", ec);
-        ev_assoc_htbl_ll_remove(&_G.childs, ec);
+        if (qm_del_key(ev_assoc, &_G.childs, (*evp)->pid) < 0)
+            ASSERT("event not found", false);
         return el_destroy(evp, false);
     }
     return (el_data_t)NULL;
