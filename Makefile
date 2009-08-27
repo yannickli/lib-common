@@ -57,11 +57,12 @@ libcommon_SOURCES = \
 	conf-parser.l \
 	\
 	container-array.c \
-	container-rbtree.c \
 	container-htbl.c \
 	container-list.c \
-	container-slist.c \
+	container-qhash.c \
+	container-rbtree.c \
 	container-ring.c \
+	container-slist.c \
 	\
 	core-debug.c \
 	core-errors.c \

@@ -17,11 +17,12 @@
 #include "core.h"
 
 #include "container-array.h"
+#include "container-dlist.h"
 #include "container-htbl.h"
 #include "container-list.h"
-#include "container-dlist.h"
-#include "container-slist.h"
+#include "container-qhash.h"
 #include "container-rbtree.h"
 #include "container-ring.h"
+#include "container-slist.h"
 
 #endif
