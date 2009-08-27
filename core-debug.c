@@ -28,11 +28,7 @@
  *   to remember the answer we previously gave.
  */
 
-struct trace_record_t {
-    uint64_t uuid;
-    int level;
-};
-DO_HTBL_KEY(struct trace_record_t, uint64_t, trace, uuid);
+qm_k64_t(trace, int);
 
 struct trace_spec_t {
     const char *path;
@@ -43,7 +39,7 @@ DO_VECTOR(struct trace_spec_t, spec);
 
 static struct {
     spec_vector specs;
-    trace_htbl  cache;
+    qm_t(trace) cache;
     sb_t        buf, tmpbuf;
 
     int verbosity_level, max_level;
@@ -52,6 +48,7 @@ static struct {
     bool fancy;
 } _G = {
     .verbosity_level = 1,
+    .cache           = QM_INIT(trace, _G.cache, false),
 };
 
 static void on_sigwinch(int signo)
@@ -65,7 +62,6 @@ static void e_debug_initialize(void)
 {
     char *p;
 
-    trace_htbl_init(&_G.cache);
     spec_vector_init(&_G.specs);
     sb_init(&_G.buf);
     sb_init(&_G.tmpbuf);
@@ -140,8 +136,8 @@ static uint64_t e_trace_uuid(const char *modname, const char *func)
 bool e_is_traced_real(int level, const char *modname, const char *func)
 {
     static spinlock_t spin;
-    struct trace_record_t tr, *trp;
     uint64_t uuid;
+    int32_t pos, tr_level;
     bool result;
 
     if (level > _G.max_level)
@@ -149,14 +145,14 @@ bool e_is_traced_real(int level, const char *modname, const char *func)
 
     spin_lock(&spin);
     uuid = e_trace_uuid(modname, func);
-    trp  = trace_htbl_find(&_G.cache, uuid);
-    if (unlikely(trp == NULL)) {
-        tr.uuid  = uuid;
-        tr.level = e_find_level(modname, func);
-        trace_htbl_insert(&_G.cache, tr);
-        trp = &tr;
+    pos  = qm_find(trace, &_G.cache, uuid);
+    if (unlikely(pos < 0)) {
+        tr_level = e_find_level(modname, func);
+        qm_add(trace, &_G.cache, uuid, tr_level);
+    } else {
+        tr_level = _G.cache.values[pos];
     }
-    result = level <= trp->level;
+    result = level <= tr_level;
     spin_unlock(&spin);
     return result;
 }
