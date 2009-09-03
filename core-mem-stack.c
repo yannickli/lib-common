@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <sys/user.h>
 #include "core-mem-valgrind.h"
 #include "container.h"
 
