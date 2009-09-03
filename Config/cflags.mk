@@ -36,6 +36,9 @@ CFLAGS += -funswitch-loops
 CFLAGS += -funsafe-loop-optimizations
 # let the type char be unsigned by default
 CFLAGS += -funsigned-char
+# let overflow be defined
+CFLAGS += -fwrapv
+# do not use strict aliasing, pointers of different types may alias.
 CFLAGS += -fno-strict-aliasing
 # turn on all common warnings
 CFLAGS += -Wall
