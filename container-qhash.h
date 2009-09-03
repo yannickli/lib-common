@@ -118,7 +118,7 @@ static inline size_t qhash_slot_is_set(const size_t *bits, uint32_t pos)
     return TST_BIT(bits, 2 * pos);
 }
 
-static inline int32_t qhash_del(qhash_t *qh, uint32_t pos)
+static inline void qhash_del(qhash_t *qh, uint32_t pos)
 {
     qhash_hdr_t *hdr = &qh->hdr;
     qhash_hdr_t *old = qh->old;
@@ -127,14 +127,11 @@ static inline int32_t qhash_del(qhash_t *qh, uint32_t pos)
         qhash_slot_inv_flags(hdr->bits, pos);
         hdr->len--;
         qh->ghosts++;
-        return pos;
-    }
+    } else
     if (unlikely(old != NULL) && qhash_slot_is_set(old->bits, pos)) {
         qhash_slot_inv_flags(old->bits, pos);
         hdr->len--;
-        return pos;
     }
-    return -1;
 }
 
 static inline uint32_t qhash_hash_u32(const qhash_t *qh, uint32_t u32)
@@ -212,8 +209,8 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     static inline void pfx##_wipe(pfx##_t *qh) {                             \
         qhash_wipe(&qh->qh);                                                 \
     }                                                                        \
-    static inline int32_t pfx##_del(pfx##_t *qh, uint32_t pos) {             \
-        return qhash_del(&qh->qh, pos);                                      \
+    static inline void pfx##_del(pfx##_t *qh, uint32_t pos) {                \
+        qhash_del(&qh->qh, pos);                                             \
     }                                                                        \
     static inline int32_t pfx##_len(const pfx##_t *qh) {                     \
         return qh->hdr.len;                                                  \
