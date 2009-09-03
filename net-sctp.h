@@ -27,6 +27,10 @@ enum sctp_events {
     SCTP_ADAPTATION_LAYER_EV  = 0x80,
 };
 
+#ifdef SCTP_SOCKOPT_CONNECTX_OLD
+#  undef SCTP_SOCKOPT_CONNECTX
+#  define SCTP_SOCKOPT_CONNECTX SCTP_SOCKOPT_CONNECTX_OLD
+#endif
 #define sctp_connectx  sctp_connectx_old
 int sctp_connectx_old(int fd, struct sockaddr *addrs, int count);
 
