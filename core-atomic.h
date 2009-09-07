@@ -36,6 +36,8 @@ typedef int spinlock_t;
 #define spin_lock(ptr)     ({ while (unlikely(!spin_trylock(ptr))) { sched_yield(); }})
 #define spin_unlock(ptr)   __sync_lock_release(ptr)
 
+#define access_once(x)     (*(volatile typeof(x) *)&(x))
+
 #endif
 
 #endif
