@@ -91,16 +91,19 @@ static inline bool dlist_is_empty_or_singular(const dlist_t *l) {
 
 
 static inline void
+__dlist_splice2(dlist_t *prev, dlist_t *next, dlist_t *first, dlist_t *last)
+{
+    first->prev = prev;
+    prev->next  = first;
+    last->next  = next;
+    next->prev  = last;
+}
+
+static inline void
 __dlist_splice(dlist_t *prev, dlist_t *next, dlist_t *src)
 {
-	dlist_t *first = src->next;
-	dlist_t *last = src->prev;
-
-	first->prev = prev;
-	prev->next  = first;
-	last->next  = next;
-	next->prev  = last;
-        dlist_init(src);
+    __dlist_splice2(prev, next, src->next, src->prev);
+    dlist_init(src);
 }
 
 static inline void
