@@ -275,6 +275,32 @@ static inline void sb_shrink_upto(sb_t *sb, const void *where)
     sb_clip(sb, (const char *)where - sb->data);
 }
 
+static inline void sb_ltrim_ctype(sb_t *sb, const ctype_desc_t *desc)
+{
+    const char *p = sb->data, *end = p + sb->len;
+
+    while (p < end && ctype_desc_contains(desc, *p))
+        p++;
+    sb_skip_upto(sb, p);
+}
+#define sb_ltrim(sb)  sb_ltrim_ctype(sb, &ctype_isspace)
+
+static inline void sb_rtrim_ctype(sb_t *sb, const ctype_desc_t *desc)
+{
+    const char *p = sb->data, *end = p + sb->len;
+
+    while (p < end && ctype_desc_contains(desc, end[-1]))
+        --end;
+    sb_shrink_upto(sb, end);
+}
+#define sb_rtrim(sb)  sb_rtrim_ctype(sb, &ctype_isspace)
+
+static inline void sb_trim_ctype(sb_t *sb, const ctype_desc_t *desc)
+{
+    sb_ltrim_ctype(sb, desc);
+    sb_rtrim_ctype(sb, desc);
+}
+#define sb_trim(sb)  sb_trim_ctype(sb, &ctype_isspace)
 
 int sb_addvf(sb_t *sb, const char *fmt, va_list ap) __attr_printf__(2, 0);
 int sb_addf(sb_t *sb, const char *fmt, ...)         __attr_printf__(2, 3);
