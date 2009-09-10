@@ -118,7 +118,7 @@ static inline size_t qhash_slot_is_set(const size_t *bits, uint32_t pos)
     return TST_BIT(bits, 2 * pos);
 }
 
-static inline void qhash_del(qhash_t *qh, uint32_t pos)
+static inline void qhash_del_at(qhash_t *qh, uint32_t pos)
 {
     qhash_hdr_t *hdr = &qh->hdr;
     qhash_hdr_t *old = qh->old;
@@ -209,8 +209,8 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     static inline void pfx##_wipe(pfx##_t *qh) {                             \
         qhash_wipe(&qh->qh);                                                 \
     }                                                                        \
-    static inline void pfx##_del(pfx##_t *qh, uint32_t pos) {                \
-        qhash_del(&qh->qh, pos);                                             \
+    static inline void pfx##_del_at(pfx##_t *qh, uint32_t pos) {             \
+        qhash_del_at(&qh->qh, pos);                                          \
     }                                                                        \
     static inline int32_t pfx##_len(const pfx##_t *qh) {                     \
         return qh->hdr.len;                                                  \
@@ -478,10 +478,10 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qh_add_h(name, qh, h, key)          qh_##name##_add_h(qh, h, key)
 #define qh_replace(name, qh, key)           qh_##name##_replace(qh, key)
 #define qh_replace_h(name, qh, h, key)      qh_##name##_replace_h(qh, h, key)
-#define qh_del(name, qh, pos)               qh_##name##_del(qh, pos)
+#define qh_del_at(name, qh, pos)            qh_##name##_del_at(qh, pos)
 #define qh_del_key(name, qh, key)  \
     ({ int32_t __pos = qh_find(name, qh, key);                           \
-       if (likely(__pos >= 0)) qh_del(name, qh, __pos);                  \
+       if (likely(__pos >= 0)) qh_del_at(name, qh, __pos);               \
        __pos; })
 
 #define qm_for_each_pos(name, pos, h)       qhash_for_each_pos(pos, &(h)->qh)
@@ -500,10 +500,10 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qm_add_h(name, qh, h, key, v)       qm_##name##_add_h(qh, h, key, v)
 #define qm_replace(name, qh, key, v)        qm_##name##_replace(qh, key, v)
 #define qm_replace_h(name, qh, h, key, v)   qm_##name##_replace_h(qh, h, key, v)
-#define qm_del(name, qh, pos)               qm_##name##_del(qh, pos)
+#define qm_del_at(name, qh, pos)            qm_##name##_del_at(qh, pos)
 #define qm_del_key(name, qh, key)  \
     ({ int32_t __pos = qm_find(name, qh, key);                           \
-       if (likely(__pos >= 0)) qm_del(name, qh, __pos);                  \
+       if (likely(__pos >= 0)) qm_del_at(name, qh, __pos);               \
        __pos; })
 
 #endif

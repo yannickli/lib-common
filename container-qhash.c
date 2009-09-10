@@ -276,7 +276,7 @@ TEST_DECL("qhash self search", 0)
         int32_t pos = qh_find(test, &h, i);
 
         TEST_FAIL_IF(pos < 0, "qh_find should find %d", i);
-        qh_del(test, &h, pos);
+        qh_del_at(test, &h, pos);
     }
 
     TEST_PASS_IF(h.hdr.len == 0, "deleting everything makes len == 0");
@@ -306,7 +306,7 @@ TEST_DECL("qhash string", 0)
                  "inserting two elements should make len == 2 (got %u)",
                  qh_len(test_str, &h));
 
-    qh_del(test_str, &h, pos);
+    qh_del_at(test_str, &h, pos);
     qh_for_each_pos(test_str, i, &h) {
         TEST_FAIL_IF(h.keys[i] != t1, "qh_for_each_pos has failed");
     }
@@ -314,7 +314,7 @@ TEST_DECL("qhash string", 0)
     /* Remove t1 */
     pos = qh_find(test_str, &h, t1);
     TEST_FAIL_IF(pos < 0, "can't find t1 ('%s')", t1);
-    qh_del(test_str, &h, pos);
+    qh_del_at(test_str, &h, pos);
     TEST_PASS_IF(true, "can't delete t1");
 
     TEST_FAIL_IF(qh_len(test_str, &h) != 0,
