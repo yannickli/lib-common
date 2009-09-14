@@ -118,10 +118,19 @@ static stack_blk_t *blk_entry(dlist_t *l)
 
 static inline uint8_t align_boundary(size_t size)
 {
-    int bsr = 31 ^ __builtin_clz(size | 1);
-    return MIN(16, 1 << bsr);
+    return MIN(16, 1 << bsrsz(size | 1));
 }
-#define ALIGN(what, al)  ((what + al - 1) & ~(al - 1))
+
+static inline bool is_aligned_to(const void *addr, size_t boundary)
+{
+    return ((uintptr_t)addr & (boundary - 1)) == 0;
+}
+
+static byte *align_for(frame_t *frame, size_t size)
+{
+    size_t bmask = align_boundary(size) - 1;
+    return (byte *)(((uintptr_t)frame->pos + bmask) & ~bmask);
+}
 
 static stack_blk_t *blk_create(stack_pool_t *sp, size_t size_hint)
 {
@@ -172,15 +181,10 @@ static byte *frame_end(frame_t *frame)
     return blk->area + blk->blk.size;
 }
 
-static byte *align_start(frame_t *frame, size_t size)
-{
-    return (byte *)ALIGN((uintptr_t)frame->pos, align_boundary(size));
-}
-
 static void *sp_reserve(stack_pool_t *sp, size_t size, stack_blk_t **blkp)
 {
     frame_t *frame = sp->stack;
-    byte *res = align_start(frame, size);
+    byte *res = align_for(frame, size);
 
     if (res + size > frame_end(frame)) {
         stack_blk_t *blk = frame_get_next_blk(sp, frame->blk, size);
@@ -238,7 +242,7 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem,
     }
 
     if (mem != NULL && mem == frame->last
-    &&  align_boundary(oldsize) >= align_boundary(size)
+    &&  is_aligned_to(mem, align_boundary(size))
     &&  (byte *)frame->last + size <= frame_end(sp->stack))
     {
         sp->stack->pos = (byte *)frame->last + size;
