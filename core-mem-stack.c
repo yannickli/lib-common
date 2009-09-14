@@ -228,13 +228,17 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem,
 
     if (unlikely(oldsize == MEM_UNKNOWN))
         e_panic("stack pools do not support reallocs with unknown old size");
-    if (size == 0)
-        return NULL;
-    if (oldsize >= size)
-        return mem;
+
+    if (oldsize >= size) {
+        if (mem == frame->last) {
+            sp->stack->pos = (byte *)mem + size;
+        }
+        VALGRIND_MAKE_MEM_NOACCESS((byte *)mem + size, oldsize - size);
+        return size ? mem : NULL;
+    }
 
     if (mem != NULL && mem == frame->last
-    &&  align_boundary(oldsize) == align_boundary(size)
+    &&  align_boundary(oldsize) >= align_boundary(size)
     &&  (byte *)frame->last + size <= frame_end(sp->stack))
     {
         sp->stack->pos = (byte *)frame->last + size;
@@ -244,6 +248,7 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem,
     } else {
         res = sp_alloc(_sp, size, flags | MEM_RAW);
         memcpy(res, mem, oldsize);
+        VALGRIND_MAKE_MEM_UNDEFINED(mem, oldsize);
     }
     if (!(flags & MEM_RAW))
         memset(res + oldsize, 0, size - oldsize);
