@@ -18,12 +18,17 @@
 
 #ifdef __GNUC__
 
+#define barrier()          asm volatile("":::"memory")
+
 #if defined(__i386__) || defined(__x86_64__)
-#  define cpu_relax()               asm volatile("rep; nop":::"memory")
+#  include "core-atomic-x86.h"
 #else
 #  include <sched.h>
 #  define cpu_relax()  sched_yield()
+
+#  error "please implement core-atomic-$arch.h"
 #endif
+
 
 typedef int spinlock_t;
 
