@@ -313,6 +313,27 @@ int xwrite(int fd, const void *data, ssize_t len)
     return 0;
 }
 
+int xwritev(int fd, struct iovec *iov, int iovcnt)
+{
+    while (iovcnt) {
+        ssize_t nb = writev(fd, iov, iovcnt);
+
+        if (nb < 0) {
+            if (errno == EINTR || errno == EAGAIN)
+                continue;
+            return -1;
+        }
+        while ((size_t)nb >= iov->iov_len) {
+            nb -= iov->iov_len;
+            iovcnt--;
+            iov++;
+        }
+        iov->iov_len  -= nb;
+        iov->iov_base  = (char *)iov->iov_base + nb;
+    }
+    return 0;
+}
+
 int xread(int fd, void *data, ssize_t len)
 {
     char *s = data;

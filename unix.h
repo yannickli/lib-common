@@ -55,6 +55,8 @@ void devnull_dup(int fd);
 __attribute__((warn_unused_result))
 int xwrite(int fd, const void *data, ssize_t dlen);
 __attribute__((warn_unused_result))
+int xwritev(int fd, struct iovec *iov, int iovcnt);
+__attribute__((warn_unused_result))
 int xread(int fd, void *data, ssize_t dlen);
 bool is_fd_open(int fd);
 /* FIXME: Find a better name. */
