@@ -18,7 +18,12 @@
 
 #ifdef __GNUC__
 
-#include <sched.h>
+#if defined(__i386__) || defined(__x86_64__)
+#  define cpu_relax()               asm volatile("rep; nop":::"memory")
+#else
+#  include <sched.h>
+#  define cpu_relax()  sched_yield()
+#endif
 
 typedef int spinlock_t;
 
@@ -33,7 +38,7 @@ typedef int spinlock_t;
 #define memory_barrier()            __sync_synchronize()
 
 #define spin_trylock(ptr)  (!__sync_lock_test_and_set(ptr, 1))
-#define spin_lock(ptr)     ({ while (unlikely(!spin_trylock(ptr))) { sched_yield(); }})
+#define spin_lock(ptr)     ({ while (unlikely(!spin_trylock(ptr))) { cpu_relax(); }})
 #define spin_unlock(ptr)   __sync_lock_release(ptr)
 
 #define access_once(x)     (*(volatile typeof(x) *)&(x))
