@@ -214,6 +214,13 @@ int log_fprintf(log_file_t *log_file, const char *format, ...)
     return res;
 }
 
+int log_fwrite(log_file_t *log_file, const void *data, size_t len)
+{
+    if (log_check_rotate(log_file))
+        return -1;
+    return file_write(log_file->_internal, data, len);
+}
+
 int log_file_flush(log_file_t *log_file)
 {
     if (log_file->_internal)
