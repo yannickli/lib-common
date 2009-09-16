@@ -323,13 +323,17 @@ int xwritev(int fd, struct iovec *iov, int iovcnt)
                 continue;
             return -1;
         }
-        while ((size_t)nb >= iov->iov_len) {
-            nb -= iov->iov_len;
-            iovcnt--;
-            iov++;
+        while (nb) {
+            if ((size_t)nb >= iov->iov_len) {
+                nb -= iov->iov_len;
+                iovcnt--;
+                iov++;
+            } else {
+                iov->iov_len  -= nb;
+                iov->iov_base  = (char *)iov->iov_base + nb;
+                break;
+            }
         }
-        iov->iov_len  -= nb;
-        iov->iov_base  = (char *)iov->iov_base + nb;
     }
     return 0;
 }
