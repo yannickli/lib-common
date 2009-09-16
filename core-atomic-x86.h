@@ -76,4 +76,7 @@ atomic_xchg_(volatile void *p, unsigned long v, int len)
 
 #define cpu_relax()     asm volatile("rep; nop":::"memory")
 
+#define shared_read(p)      (rmc(), access_once(p))
+#define shared_write(p, v)  (access_once(p) = (v), wmc(), (v))
+
 #endif

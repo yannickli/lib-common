@@ -19,6 +19,7 @@
 #ifdef __GNUC__
 
 #define barrier()          asm volatile("":::"memory")
+#define access_once(x)     (*(volatile typeof(x) *)&(x))
 
 #if defined(__i386__) || defined(__x86_64__)
 #  include "core-atomic-x86.h"
@@ -45,8 +46,6 @@ typedef int spinlock_t;
 #define spin_trylock(ptr)  (!__sync_lock_test_and_set(ptr, 1))
 #define spin_lock(ptr)     ({ while (unlikely(!spin_trylock(ptr))) { cpu_relax(); }})
 #define spin_unlock(ptr)   __sync_lock_release(ptr)
-
-#define access_once(x)     (*(volatile typeof(x) *)&(x))
 
 #endif
 
