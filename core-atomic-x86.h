@@ -48,7 +48,7 @@ atomic_xchg_(volatile void *p, unsigned long v, int len)
     switch (len) {
       case 4: return atomic_xchg32(p, v);
       case 8: return atomic_xchg64(p, v);
-      default: assert(false);
+      default: assert(false); return 0;
     }
 }
 #define xchg(p, v) \
