@@ -61,13 +61,13 @@ atomic_xchg_(volatile void *p, unsigned long v, int len)
 #endif
 
 #ifdef __x86_64__
-#  define mb()          asm volatile("lock; addl $0,0(%%esp)":::"memory")
-#  define rmb()         asm volatile("lock; addl $0,0(%%esp)":::"memory")
-#  define wmb()         asm volatile("lock; addl $0,0(%%esp)":::"memory")
-#else
 #  define mb()          asm volatile("mfence":::"memory")
 #  define rmb()         asm volatile("lfence":::"memory")
 #  define wmb()         asm volatile("sfence":::"memory")
+#else
+#  define mb()          asm volatile("lock; addl $0,0(%%esp)":::"memory")
+#  define rmb()         asm volatile("lock; addl $0,0(%%esp)":::"memory")
+#  define wmb()         asm volatile("lock; addl $0,0(%%esp)":::"memory")
 #endif
 
 #define mc()            barrier()
