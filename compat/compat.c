@@ -184,7 +184,8 @@ int fstatat(int dir_fd, const char *pathname, struct stat *buf,
         return -1;
     }
 
-    ret = stat(pathname, buf);
+    ret = flags & AT_SYMLINK_NOFOLLOW ? lstat(pathname, buf)
+                                      :  stat(pathname, buf);
     err = errno;
 
     /* This won't fail because we kept cwd_fd open */

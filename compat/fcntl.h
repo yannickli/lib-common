@@ -93,5 +93,9 @@ static inline int fcntl (int __fd, int __cmd, ...)
 
 #endif
 
+#ifndef __USE_ATFILE
+#  define AT_SYMLINK_NOFOLLOW  0x100  /* Do not follow symbolic links. */
+#endif
+
 #endif /* !IS_COMPAT_FCNTL_H */
 
