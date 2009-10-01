@@ -137,8 +137,8 @@ __attribute__((warn_unused_result))
 void *__irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t);
 void __ifree(void *mem, mem_flags_t flags);
 
-__attribute__((malloc, always_inline, warn_unused_result))
-static inline void *imalloc(size_t size, mem_flags_t flags)
+__attribute__((malloc, warn_unused_result))
+static ALWAYS_INLINE void *imalloc(size_t size, mem_flags_t flags)
 {
     if (__builtin_constant_p(size)) {
         if (size > MEM_ALLOC_MAX)
@@ -158,8 +158,7 @@ static inline void *imalloc(size_t size, mem_flags_t flags)
     return __imalloc(size, flags);
 }
 
-__attribute__((always_inline)) static inline
-void ifree(void *mem, mem_flags_t flags)
+static ALWAYS_INLINE void ifree(void *mem, mem_flags_t flags)
 {
     if (__builtin_constant_p(mem)) {
         if (mem == NULL)
@@ -180,8 +179,9 @@ void ifree(void *mem, mem_flags_t flags)
     __ifree(mem, flags);
 }
 
-__attribute__((always_inline, warn_unused_result)) static inline
-void *irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
+__attribute__((warn_unused_result))
+static ALWAYS_INLINE void *
+irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
 {
     if (__builtin_constant_p(size)) {
         if (size == 0) {

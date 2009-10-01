@@ -19,7 +19,7 @@
 #else
 #define IS_LIB_COMMON_CORE_ATOMIC_ARCH_H
 
-static inline __attribute__((always_inline)) unsigned int
+static inline ALWAYS_INLINE unsigned int
 atomic_xchg32(volatile unsigned int *p, unsigned int v)
 {
     unsigned int res;
@@ -31,7 +31,7 @@ atomic_xchg32(volatile unsigned int *p, unsigned int v)
 }
 
 #ifdef __x86_64__
-static inline __attribute__((always_inline)) unsigned long
+static inline ALWAYS_INLINE unsigned long
 atomic_xchg64(volatile unsigned long *p, unsigned long v)
 {
     unsigned long res;
@@ -42,7 +42,7 @@ atomic_xchg64(volatile unsigned long *p, unsigned long v)
     return res;
 }
 
-static inline __attribute__((always_inline)) unsigned long
+static inline ALWAYS_INLINE unsigned long
 atomic_xchg_(volatile void *p, unsigned long v, int len)
 {
     switch (len) {

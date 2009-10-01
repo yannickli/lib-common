@@ -166,8 +166,8 @@ static int show_flags(const char *arg, int flags)
 #ifdef CHECK_TRACE
 static const char *strace_msg_g;
 
-__attribute__((always_inline))
-static inline int sb_skip_lines(sb_t *sb, int n)
+
+static ALWAYS_INLINE int sb_skip_lines(sb_t *sb, int n)
 {
     while (--n >= 0) {
         const char *p = strchr(sb->data, '\n');
@@ -180,8 +180,8 @@ static inline int sb_skip_lines(sb_t *sb, int n)
     return 0;
 }
 
-__attribute__((always_inline))
-static void check_strace(time_t now)
+
+static ALWAYS_INLINE void check_strace(time_t now)
 {
     static time_t next_strace_check;
     const char *p;
@@ -234,8 +234,7 @@ end:
 }
 #endif
 
-__attribute__((always_inline))
-static void do_license_checks(void)
+static ALWAYS_INLINE void do_license_checks(void)
 {
 #if defined(CHECK_TRACE) || defined(EXPIRATION_DATE)
     time_t now = (time)(NULL);

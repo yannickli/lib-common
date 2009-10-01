@@ -278,8 +278,7 @@ static int unicode_to_gsm7(int c, int unknown)
     }
 }
 
-__attribute__((always_inline))
-static int gsm7_to_unicode(uint8_t u8, int unknown)
+static ALWAYS_INLINE int gsm7_to_unicode(uint8_t u8, int unknown)
 {
     int c = __gsm7_to_unicode[u8];
     return unlikely(c < 0) ? unknown : c;

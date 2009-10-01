@@ -63,11 +63,21 @@
 #    define EXPORT  extern __attribute__((visibility("default")))
 #  endif
 #  define HIDDEN    extern __attribute__((visibility("hidden")))
+#  ifdef __OPTIMIZE__
+#    if __GNUC_PREREQ(4, 3)
+#      define ALWAYS_INLINE inline __attribute__((always_inline,artificial))
+#    else
+#      define ALWAYS_INLINE inline __attribute__((always_inline))
+#    endif
+#  else
+#    define ALWAYS_INLINE inline
+#  endif
 #else
 #  ifndef EXPORT
 #    define EXPORT  extern
 #  endif
 #  define HIDDEN    extern
+#  define ALWAYS_INLINE inline
 #endif
 
 

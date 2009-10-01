@@ -142,8 +142,7 @@ static inline int utf8_getc_slow(const char *s, const char **out)
     return ret - __utf8_offs[len];
 }
 
-__attribute__((always_inline))
-static inline int utf8_getc(const char *s, const char **out)
+static ALWAYS_INLINE int utf8_getc(const char *s, const char **out)
 {
     if ((unsigned char)*s < 0x80) {
         if (out)
@@ -154,8 +153,7 @@ static inline int utf8_getc(const char *s, const char **out)
     }
 }
 
-__attribute__((always_inline))
-static inline int utf8_ngetc(const char *s, int len, const char **out)
+static ALWAYS_INLINE int utf8_ngetc(const char *s, int len, const char **out)
 {
     if (len && (unsigned char)*s < 0x80) {
         if (out)
