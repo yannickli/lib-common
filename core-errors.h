@@ -31,6 +31,7 @@ error_f e_error;
 error_f e_warning;
 error_f e_notice;
 error_f e_info;
+error_f e_debug;
 
 void e_init_stderr(void);
 void e_set_handler(e_handler_f *handler);

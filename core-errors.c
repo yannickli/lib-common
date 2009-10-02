@@ -27,6 +27,7 @@ static void stderr_handler(int priority, const char *format, va_list args)
         [LOG_WARNING]  = "warn:  ",
         [LOG_NOTICE]   = "note:  ",
         [LOG_INFO]     = "info:  ",
+        [LOG_DEBUG]    = "debug: ",
     };
     fputs(prefixes[priority], stderr);
     vfprintf(stderr, format, args);
@@ -54,6 +55,7 @@ E_FUNCTION(e_error,   LOG_ERR,     return -1);
 E_FUNCTION(e_warning, LOG_WARNING, return -1);
 E_FUNCTION(e_notice,  LOG_NOTICE,  return  0);
 E_FUNCTION(e_info,    LOG_INFO,    return  0);
+E_FUNCTION(e_debug,   LOG_DEBUG,   return  0);
 
 void e_set_handler(e_handler_f *handler)
 {
