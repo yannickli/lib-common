@@ -72,12 +72,14 @@
 #  else
 #    define ALWAYS_INLINE inline
 #  endif
+#  define NEVER_INLINE __attribute__((noinline))
 #else
 #  ifndef EXPORT
 #    define EXPORT  extern
 #  endif
 #  define HIDDEN    extern
 #  define ALWAYS_INLINE inline
+#  define NEVER_INLINE __attribute__((noinline))
 #endif
 
 
