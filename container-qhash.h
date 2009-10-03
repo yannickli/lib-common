@@ -99,6 +99,7 @@ typedef bool     (qhash_kequ_f)(const qhash_t *, const void *, const void *);
 
 uint32_t qhash_scan(const qhash_t *qh, uint32_t pos);
 void     qhash_init(qhash_t *qh, uint16_t k_size, uint16_t v_size, bool doh);
+void     qhash_clear(qhash_t *qh);
 void     qhash_set_minsize(qhash_t *qh, uint32_t minsize);
 void     qhash_wipe(qhash_t *qh);
 
@@ -468,6 +469,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qh_len(name, qh)                    qh_##name##_len(qh)
 #define qh_set_minsize(name, h, sz)         qhash_set_minsize(&(h)->qh, sz)
 #define qh_wipe(name, qh)                   qh_##name##_wipe(qh)
+#define qh_clear(name, qh)                  qh_##name##_clear(qh)
 #define qh_find(name, qh, key)              qh_##name##_find(qh, key)
 #define qh_find_h(name, qh, h, key)         qh_##name##_find_h(qh, h, key)
 #define qh_find_safe(name, qh, key)         qh_##name##_find_safe(qh, key)
@@ -490,6 +492,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qm_len(name, qh)                    qm_##name##_len(qh)
 #define qm_set_minsize(name, h, sz)         qhash_set_minsize(&(h)->qh, sz)
 #define qm_wipe(name, qh)                   qm_##name##_wipe(qh)
+#define qm_clear(name, qh)                  qm_##name##_clear(qh)
 #define qm_find(name, qh, key)              qm_##name##_find(qh, key)
 #define qm_find_h(name, qh, h, key)         qm_##name##_find_h(qh, h, key)
 #define qm_find_safe(name, qh, key)         qm_##name##_find_safe(qh, key)

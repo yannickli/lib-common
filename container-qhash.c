@@ -118,6 +118,17 @@ void qhash_wipe(qhash_t *qh)
     p_delete(&qh->keys);
 }
 
+void qhash_clear(qhash_t *qh)
+{
+    if (qh->old) {
+        p_delete(&qh->old->bits);
+        p_delete(&qh->old);
+    }
+    p_clear(qh->hdr.bits, BITS_TO_ARRAY_LEN(size_t, 2 * qh->hdr.size));
+    SET_BIT(qh->hdr.bits, 2 * qh->hdr.size);
+    qh->hdr.len = 0;
+}
+
 uint32_t qhash_scan(const qhash_t *qh, uint32_t pos)
 {
     const qhash_hdr_t *hdr = &qh->hdr;
