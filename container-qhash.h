@@ -210,6 +210,9 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     static inline void pfx##_wipe(pfx##_t *qh) {                             \
         qhash_wipe(&qh->qh);                                                 \
     }                                                                        \
+    static inline void pfx##_clear(pfx##_t *qh) {                            \
+        qhash_clear(&qh->qh);                                                \
+    }                                                                        \
     static inline void pfx##_del_at(pfx##_t *qh, uint32_t pos) {             \
         qhash_del_at(&qh->qh, pos);                                          \
     }                                                                        \
