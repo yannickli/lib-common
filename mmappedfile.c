@@ -63,7 +63,7 @@ mmfile *mmfile_open(const char *path, int flags, int oflags, off_t minsize)
         goto error;
 
     if (prot & PROT_WRITE && st.st_size < minsize) {
-        if (ftruncate(mf->fd, minsize))
+        if (xftruncate(mf->fd, minsize))
             goto error;
         if (posix_fallocate(mf->fd, 0, minsize) && errno != ENOSYS)
             goto error;

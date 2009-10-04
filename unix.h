@@ -52,12 +52,10 @@ void devnull_dup(int fd);
 /* file descriptor related                                                  */
 /****************************************************************************/
 
-__attribute__((warn_unused_result))
-int xwrite(int fd, const void *data, ssize_t dlen);
-__attribute__((warn_unused_result))
-int xwritev(int fd, struct iovec *iov, int iovcnt);
-__attribute__((warn_unused_result))
-int xread(int fd, void *data, ssize_t dlen);
+__must_check__ int xwrite(int fd, const void *data, ssize_t dlen);
+__must_check__ int xwritev(int fd, struct iovec *iov, int iovcnt);
+__must_check__ int xftruncate(int fd, off_t offs);
+__must_check__ int xread(int fd, void *data, ssize_t dlen);
 bool is_fd_open(int fd);
 /* FIXME: Find a better name. */
 int close_fds_higher_than(int fd);

@@ -355,6 +355,17 @@ int xread(int fd, void *data, ssize_t len)
     return 0;
 }
 
+int xftruncate(int fd, off_t offs)
+{
+    for (;;) {
+        int res = ftruncate(fd, offs);
+
+        if (res < 0 && (errno == EINTR || errno == EAGAIN))
+            continue;
+        return res;
+    }
+}
+
 bool is_fd_open(int fd)
 {
     return fcntl(fd, F_GETFD) != -1 || errno != EBADF;
