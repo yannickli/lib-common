@@ -119,7 +119,7 @@ static inline void *put_unaligned_double_be(void *p, double x) {
 }
 
 static inline float get_unaligned_float_le(const void *p) {
-    struct { uint32_t u32; float d; } u;
+    union { uint32_t u32; float d; } u;
     u.u32 = get_unaligned_cpu32(p);
 #if __FLOAT_WORD_ORDER != __LITTLE_ENDIAN
     u.u32 = bswap32(u.u32);
@@ -127,7 +127,7 @@ static inline float get_unaligned_float_le(const void *p) {
     return u.d;
 }
 static inline double get_unaligned_double_le(const void *p) {
-    struct { uint64_t u64; double d; } u;
+    union { uint64_t u64; double d; } u;
     u.u64 = get_unaligned_cpu64(p);
 #if __FLOAT_WORD_ORDER != __LITTLE_ENDIAN
     u.u64 = bswap64(u.u64);
@@ -136,7 +136,7 @@ static inline double get_unaligned_double_le(const void *p) {
 }
 
 static inline float get_unaligned_float_be(const void *p) {
-    struct { uint32_t u32; float d; } u;
+    union { uint32_t u32; float d; } u;
     u.u32 = get_unaligned_cpu32(p);
 #if __FLOAT_WORD_ORDER != __BIG_ENDIAN
     u.u32 = bswap32(u.u32);
@@ -144,7 +144,7 @@ static inline float get_unaligned_float_be(const void *p) {
     return u.d;
 }
 static inline double get_unaligned_double_be(const void *p) {
-    struct { uint64_t u64; double d; } u;
+    union { uint64_t u64; double d; } u;
     u.u64 = get_unaligned_cpu64(p);
 #if __FLOAT_WORD_ORDER != __BIG_ENDIAN
     u.u64 = bswap64(u.u64);
