@@ -153,7 +153,7 @@ dlist_cut_at(dlist_t *src, dlist_t *e, dlist_t *dst)
 #define dlist_last_entry(l, type, mber)   dlist_entry((l)->prev, type, mber)
 
 #define __dlist_for_each(pos, n, head, doit) \
-     for (dlist_t *n = (pos)->next; \
+     for (dlist_t *n = (pos); \
           n != (head) && ({ doit; prefetch(n->next); }); n = n->next)
 
 #define dlist_for_each(n, head) \
@@ -178,7 +178,7 @@ dlist_cut_at(dlist_t *src, dlist_t *e, dlist_t *dst)
 
 
 #define __dlist_for_each_rev(pos, n, head, doit) \
-     for (dlist_t *n = (pos)->prev; \
+     for (dlist_t *n = (pos); \
           n != (head) && ({ doit; prefetch(n->prev); }); n = n->prev)
 
 #define dlist_for_each_rev(n, head) \
@@ -219,8 +219,8 @@ dlist_cut_at(dlist_t *src, dlist_t *e, dlist_t *dst)
                           n = dlist_entry_of(__real_##n, n, member))
 
 #define dlist_for_each_entry_safe(n, head, member) \
-    __dlist_for_each_safe((head)->next, n, head, member)
+    __dlist_for_each_entry_safe((head)->next, n, head, member)
 #define dlist_for_each_entry_safe_start(pos, n, head, member) \
-    __dlist_for_each_entry(&(pos)->member, n, head, member)
+    __dlist_for_each_entry_safe(&(pos)->member, n, head, member)
 #define dlist_for_each_entry_safe_continue(pos, n, head, member) \
-    __dlist_for_each_entry((pos)->member.next, n, head, member)
+    __dlist_for_each_entry_safe((pos)->member.next, n, head, member)
