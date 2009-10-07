@@ -41,6 +41,29 @@ extern void *mremap(void *__addr, size_t __old_len, size_t __new_len,
 #else
 #  include_next <sys/mman.h>
 
+/* Fix mremap when using valgrind
+ * @see: https://bugs.kde.org/show_bug.cgi?id=204484
+ */
+#ifndef NDEBUG
+#include <valgrind/valgrind.h>
+#include <valgrind/memcheck.h>
+
+static inline void *
+mremap_diverted(void *old_address, size_t old_size, size_t new_size, int flags)
+{
+    void *mres;
+    mres = mremap(old_address, old_size, new_size, flags);
+
+    if (mres != MAP_FAILED) {
+        VALGRIND_MAKE_MEM_NOACCESS(old_address, old_size);
+        VALGRIND_MAKE_MEM_DEFINED(mres, new_size);
+    }
+
+    return mres;
+}
+#define mremap(...) mremap_diverted(__VA_ARGS__)
+#endif
+
 #ifdef __sun
 extern int madvise(void *, size_t, int);
 #endif
