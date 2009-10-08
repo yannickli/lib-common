@@ -226,3 +226,56 @@ char *path_expand(char *buf, int len, const char *path)
     /* XXX: The use of path_canonify() here is debatable. */
     return path_canonify(buf, len, path) < 0 ? NULL : buf;
 }
+
+
+/* This function checks if the given path try to leave its chroot
+ * XXX this do not work with symbolic links in path (but it's a feature ;) )*/
+bool path_is_safe(const char *path)
+{
+    const char *ptr = path;
+
+    /* Get rid of: '/', '../' and '..' */
+    if (path[0] == '/') {
+        return false;
+    } else
+    if (path[0] == '.' && path[1] == '.'
+    &&  (path[2] == '/' || path[2] == '\0'))
+    {
+        return false;
+    }
+
+    /* Check for `.* '/../' .* | '/..'$` */
+    while ((ptr = strchr(ptr, '/')) != NULL) {
+        if (ptr[1] == '.' && ptr[2] == '.'
+        &&  (ptr[3] == '/' || ptr[3] == '\0'))
+        {
+            return false;
+        }
+        ptr++;
+    }
+    return true;
+}
+
+/* tests {{{ */
+
+TEST_DECL("path_is_safe test", 0)
+{
+    const char *path = "/foo";
+    TEST_FAIL_IF(path_is_safe(path), "failed %s", path);
+
+    path = "../foo";
+    TEST_FAIL_IF(path_is_safe(path), "failed %s", path);
+
+    path = "foo/bar";
+    TEST_PASS_IF(path_is_safe(path), "failed %s", path);
+
+    path = "foo/bar/foo/../../../../bar";
+    TEST_FAIL_IF(path_is_safe(path), "failed %s", path);
+
+    path = "foo/bar///foo/../../../../bar";
+    TEST_FAIL_IF(path_is_safe(path), "failed %s", path);
+
+    TEST_DONE();
+}
+
+/* }}} */
