@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 SECTIONS {
-    .rodata : {
+    .data : {
         . = ALIGN(64); /* must be larger than sizeof(tst_t) */
         PROVIDE_HIDDEN(intersec_tests_start = . );
         *(SORT( .intersec.tests.* ))
