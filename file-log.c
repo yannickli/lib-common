@@ -182,7 +182,7 @@ static int log_file_rotate(log_file_t *file, time_t now)
         return -1;
     }
     if (file->rotate_delay > 0)
-        file->rotate_date += file->rotate_delay;
+        file->rotate_date = now + file->rotate_delay;
     return 0;
 }
 
