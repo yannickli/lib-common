@@ -216,4 +216,43 @@ static inline void *put_unaligned_be64(void *p, uint64_t x) {
     return put_unaligned_cpu64(p, CPU_TO_BE(64, x));
 }
 
+/* 24 and 48 bits helpers */
+static inline void *put_unaligned_le24(void *p, uint32_t x) {
+    x = CPU_TO_LE(32, x);
+    return mempcpy(p, &x, 3);
+}
+static inline void *put_unaligned_be24(void *p, uint32_t x) {
+    x = CPU_TO_BE(32, x);
+    return mempcpy(p, &x, 3);
+}
+
+static inline void *put_unaligned_le48(void *p, uint64_t x) {
+    x = CPU_TO_LE(64, x);
+    return mempcpy(p, &x, 3);
+}
+static inline void *put_unaligned_be48(void *p, uint64_t x) {
+    x = CPU_TO_BE(64, x);
+    return mempcpy(p, &x, 3);
+}
+
+static inline int32_t get_unaligned_le24(const void *p) {
+    const uint8_t *p8 = p;
+    return get_unaligned_le16(p8) | (p8[2] << 16);
+}
+
+static inline uint32_t get_unaligned_be24(const void *p) {
+    const uint8_t *p8 = p;
+    return get_unaligned_be16(p8 + 1) | (p8[0] << 16);
+}
+
+static inline uint64_t get_unaligned_le48(const void *p) {
+    const uint8_t *p8 = p;
+    return get_unaligned_le32(p8) | ((uint64_t)get_unaligned_le16(p8 + 4) << 32);
+}
+
+static inline uint64_t get_unaligned_be48(const void *p) {
+    const uint8_t *p8 = p;
+    return get_unaligned_be32(p8 + 2) | ((uint64_t)get_unaligned_be16(p) << 32);
+}
+
 #endif

@@ -224,9 +224,13 @@ enum sign {
 typedef uint64_t cpu64_t;
 typedef uint64_t __bitwise__ be64_t;
 typedef uint64_t __bitwise__ le64_t;
+typedef uint64_t __bitwise__ le48_t;
+typedef uint64_t __bitwise__ be48_t;
 typedef uint32_t cpu32_t;
 typedef uint32_t __bitwise__ le32_t;
 typedef uint32_t __bitwise__ be32_t;
+typedef uint32_t __bitwise__ le24_t;
+typedef uint32_t __bitwise__ be24_t;
 typedef uint16_t cpu16_t;
 typedef uint16_t __bitwise__ le16_t;
 typedef uint16_t __bitwise__ be16_t;

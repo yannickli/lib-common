@@ -18,11 +18,11 @@
 
 #include "str.h"
 
-#define __PS_GET(ps, w, endianess)                               \
-    do {                                                         \
-        endianess##w##_t res = endianess##_to_cpu##w##pu(ps->p); \
-        __ps_skip(ps, w / 8);                                    \
-        return res;                                              \
+#define __PS_GET(ps, w, endianess)                                   \
+    do {                                                             \
+        endianess##w##_t res = get_unaligned_##endianess##w(ps->p);  \
+        __ps_skip(ps, w / 8);                                        \
+        return res;                                                  \
     } while (0)
 
 #define PS_GET(ps, res, w, endianess)               \
@@ -33,11 +33,15 @@
     } while (0)
 
 static inline uint16_t __ps_get_be16(pstream_t *ps) { __PS_GET(ps, 16, be); }
+static inline uint32_t __ps_get_be24(pstream_t *ps) { __PS_GET(ps, 24, be); }
 static inline uint32_t __ps_get_be32(pstream_t *ps) { __PS_GET(ps, 32, be); }
+static inline uint64_t __ps_get_be48(pstream_t *ps) { __PS_GET(ps, 48, be); }
 static inline uint64_t __ps_get_be64(pstream_t *ps) { __PS_GET(ps, 64, be); }
 
 static inline uint16_t __ps_get_le16(pstream_t *ps) { __PS_GET(ps, 16, le); }
+static inline uint32_t __ps_get_le24(pstream_t *ps) { __PS_GET(ps, 24, le); }
 static inline uint32_t __ps_get_le32(pstream_t *ps) { __PS_GET(ps, 32, le); }
+static inline uint64_t __ps_get_le48(pstream_t *ps) { __PS_GET(ps, 48, le); }
 static inline uint64_t __ps_get_le64(pstream_t *ps) { __PS_GET(ps, 64, le); }
 
 static inline uint16_t __ps_get_cpu16(pstream_t *ps) {
@@ -99,11 +103,15 @@ static inline int ps_get_double_be(pstream_t *ps, double *out) {
 }
 
 static inline int ps_get_be16(pstream_t *ps, uint16_t *res) { PS_GET(ps, res, 16, be); }
+static inline int ps_get_be24(pstream_t *ps, uint32_t *res) { PS_GET(ps, res, 24, be); }
 static inline int ps_get_be32(pstream_t *ps, uint32_t *res) { PS_GET(ps, res, 32, be); }
+static inline int ps_get_be48(pstream_t *ps, uint64_t *res) { PS_GET(ps, res, 48, be); }
 static inline int ps_get_be64(pstream_t *ps, uint64_t *res) { PS_GET(ps, res, 64, be); }
 
 static inline int ps_get_le16(pstream_t *ps, uint16_t *res) { PS_GET(ps, res, 16, le); }
+static inline int ps_get_le24(pstream_t *ps, uint32_t *res) { PS_GET(ps, res, 24, le); }
 static inline int ps_get_le32(pstream_t *ps, uint32_t *res) { PS_GET(ps, res, 32, le); }
+static inline int ps_get_le48(pstream_t *ps, uint64_t *res) { PS_GET(ps, res, 48, le); }
 static inline int ps_get_le64(pstream_t *ps, uint64_t *res) { PS_GET(ps, res, 64, le); }
 
 static inline int ps_get_cpu16(pstream_t *ps, uint16_t *res) { PS_GET(ps, res, 16, cpu); }
