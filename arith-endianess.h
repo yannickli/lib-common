@@ -155,6 +155,10 @@ static inline uint64_t le_to_cpu64pu(const void *x) {
     return LE_TO_CPU(64, get_unaligned_cpu64(x));
 }
 
+#define get_unaligned_le16  cpu_to_le16pu
+#define get_unaligned_le32  cpu_to_le16pu
+#define get_unaligned_le64  cpu_to_le16pu
+
 static inline void *put_unaligned_le16(void *p, uint16_t x) {
     return put_unaligned_cpu16(p, CPU_TO_LE(16, x));
 }
@@ -197,6 +201,10 @@ static inline uint32_t be_to_cpu32pu(const void *x) {
 static inline uint64_t be_to_cpu64pu(const void *x) {
     return BE_TO_CPU(64, get_unaligned_cpu64(x));
 }
+
+#define get_unaligned_be16  cpu_to_be16pu
+#define get_unaligned_be32  cpu_to_be16pu
+#define get_unaligned_be64  cpu_to_be16pu
 
 static inline void *put_unaligned_be16(void *p, uint16_t x) {
     return put_unaligned_cpu16(p, CPU_TO_BE(16, x));
