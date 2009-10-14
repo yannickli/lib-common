@@ -46,6 +46,13 @@ static inline size_t bsf32(uint32_t u) { return __builtin_ctz(u); }
 static inline size_t bsf64(uint64_t u) { return __builtin_ctzll(u); }
 static inline size_t bsfsz(size_t   u) { return DO_SZ(bsf)(u); }
 
+#define __SIGN_EXTEND_HELPER(T, x, bits)  (((T)(x) << (bits)) >> (bits))
+#define sign_extend(x, bits) \
+    ({ int __bits = (bits);                                                  \
+       __builtin_choose_expr(bitsizeof(x) <= bitsizeof(uint32_t),            \
+                             __SIGN_EXTEND_HELPER(int32_t, x, 32 - __bits),  \
+                             __SIGN_EXTEND_HELPER(int64_t, x, 64 - __bits)); \
+     })
 
 /*----- bitcount -----*/
 
