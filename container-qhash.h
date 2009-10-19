@@ -328,7 +328,8 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     __QH_FIND2(_vec, pfx, name, key_t *, hashK, iseqK);                      \
                                                                              \
     static inline uint32_t                                                   \
-    __##pfx##_put_h(pfx##_t *qh, uint32_t h, key_t *key, uint32_t fl) {      \
+    __##pfx##_put_h(pfx##_t *qh, uint32_t h,                                 \
+                    const key_t *key, uint32_t fl) {                         \
         uint32_t (*hf)(const qhash_t *, const key_t*) = &hashK;              \
         bool     (*ef)(const qhash_t *, const key_t*, const key_t*) = &iseqK;\
         uint32_t pos = __qhash_put_vec(&qh->qh, h, key, fl,                  \
@@ -340,7 +341,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         }                                                                    \
         return pos;                                                          \
     }                                                                        \
-    __QH_ADD(_vec, pfx, name, key_t *, hashK)
+    __QH_ADD(_vec, pfx, name, const key_t *, hashK)
 
 /* }}} */
 /*----- macros to define QM's -{{{-*/
@@ -408,7 +409,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     __QH_FIND2(_vec, pfx, name, key_t *, hashK, iseqK);                      \
     static inline uint32_t                                                   \
     __##pfx##_put_h(pfx##_t *qh, uint32_t h,                                 \
-                    key_t *key, val_t v, uint32_t fl) {                      \
+                    const key_t *key, val_t v, uint32_t fl) {                \
         uint32_t (*hf)(const qhash_t *, const key_t*) = &hashK;              \
         bool     (*ef)(const qhash_t *, const key_t*, const key_t*) = &iseqK;\
         uint32_t pos = __qhash_put_vec(&qh->qh, h, key, fl,                  \
@@ -421,7 +422,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         }                                                                    \
         return pos;                                                          \
     }                                                                        \
-    __QM_ADD(_vec, pfx, name, key_t *, val_t, hashK)
+    __QM_ADD(_vec, pfx, name, const key_t *, val_t, hashK)
 
 /* }}} */
 
