@@ -26,6 +26,7 @@ typedef struct ctype_desc_t {
     uint32_t tab[256 / 32];
 } ctype_desc_t;
 
+extern ctype_desc_t const ctype_isalnum;
 extern ctype_desc_t const ctype_isalpha;
 extern ctype_desc_t const ctype_islower;
 extern ctype_desc_t const ctype_isupper;

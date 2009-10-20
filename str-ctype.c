@@ -41,6 +41,20 @@ ctype_desc_t const ctype_isupper = {
     }
 };
 
+/* ctype description for tokens "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" */
+ctype_desc_t const ctype_isalnum = {
+    {
+        0x00000000,
+        0x03ff0000,
+        0x07fffffe,
+        0x07fffffe,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+    }
+};
+
 /* ctype description for tokens "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" */
 ctype_desc_t const ctype_isalpha = {
     {
