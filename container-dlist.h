@@ -27,6 +27,13 @@ static inline void dlist_init(dlist_t *l)
     l->next = l->prev = l;
 }
 
+static inline void __dlist_repair(dlist_t *e)
+{
+    /* Use this to repair a dlist_t node in a structure after a realloc() */
+    e->next->prev = e;
+    e->prev->next = e;
+}
+
 static inline void __dlist_add(dlist_t *e, dlist_t *prev, dlist_t *next)
 {
     next->prev = e;
