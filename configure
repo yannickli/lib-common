@@ -230,5 +230,21 @@ else
 fi
 
 # }}}
+# {{{ eiconcard X.25
+
+eiconcard_x25_PATH=/opt/intersec/eiconcard
+eiconcard_x25_INCDIR="$eiconcard_x25_PATH/usr/include"
+eiconcard_x25_LIBDIR="$eiconcard_x25_PATH/usr/lib"
+
+if test -d $eiconcard_x25_PATH; then
+    setvar "eiconcard_x25_CFLAGS" "-DEC_UNIX -DSCO -I$eiconcard_x25_INCDIR"
+    setvar "eiconcard_x25_LIBS" "$eiconcard_x25_LIBDIR/libEx25.a $eiconcard_x25_LIBDIR/libEec.a"
+else
+    warn "*** The eiconcard X.25 SDK is missing"
+    warn "    Take it in software/eiconcard/sdk/X25/Linux/dev_tools/common"
+    warn "    and software/eiconcard/usr, and install it in $eiconcard_x25_PATH"
+fi
+
+# }}}
 
 test -z "$missing_dep" || die "*** Missing dependencies, please upgrade your system"
