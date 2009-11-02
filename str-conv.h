@@ -97,15 +97,19 @@ static inline uint8_t __pstrputuc(char *dst, int32_t c)
         } else {
             len = 0;
         }
-    } else {
-        /* XXX: 31 ^ clz(c) is actually bsr in x86 assembly */
-        len = __utf8_clz_to_charlen[31 ^ __builtin_clz(c | 1)];
+        return len;
     }
-    switch (len) {
+    if (c < 0x80) {
+        *dst = c;
+        return 1;
+    }
+    /* XXX: 31 ^ clz(c) is actually bsr in x86 assembly */
+    len = __utf8_clz_to_charlen[31 ^ __builtin_clz(c | 1)];
+    switch (__builtin_expect(len, 2)) {
       default: dst[3] = (c | 0x80) & 0xbf; c >>= 6;
       case 3:  dst[2] = (c | 0x80) & 0xbf; c >>= 6;
       case 2:  dst[1] = (c | 0x80) & 0xbf; c >>= 6;
-      case 1:  dst[0] = (c | __utf8_mark[len]);
+               dst[0] = (c | __utf8_mark[len]);
       case 0:  break;
     }
     return len;
