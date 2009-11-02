@@ -91,20 +91,20 @@ static inline uint8_t __pstrputuc(char *dst, int32_t c)
 {
     uint8_t len;
 
+    if (c < 0x80) {
+        *dst = c;
+        return 1;
+    }
     if (__builtin_constant_p(c)) {
         if (c >= 0 && c < 0x200000) {
             len = 1 + (c >= 0x80) + (c >= 0x800) + (c >= 0x10000);
         } else {
             len = 0;
         }
-        return len;
+    } else {
+        /* XXX: 31 ^ clz(c) is actually bsr in x86 assembly */
+        len = __utf8_clz_to_charlen[31 ^ __builtin_clz(c | 1)];
     }
-    if (c < 0x80) {
-        *dst = c;
-        return 1;
-    }
-    /* XXX: 31 ^ clz(c) is actually bsr in x86 assembly */
-    len = __utf8_clz_to_charlen[31 ^ __builtin_clz(c | 1)];
     switch (__builtin_expect(len, 2)) {
       default: dst[3] = (c | 0x80) & 0xbf; c >>= 6;
       case 3:  dst[2] = (c | 0x80) & 0xbf; c >>= 6;
