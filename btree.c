@@ -13,6 +13,7 @@
 
 #include <sys/mman.h>
 
+#include "container.h"
 #include "btree.h"
 #include "unix.h"
 
@@ -63,6 +64,8 @@
 
 #define BT_ARITY          ((BT_PAGE_SIZE - 4 * 4) / (8 + 4))
                                /**< L constant in the b-tree terminology */
+
+DO_VECTOR(struct bt_key_range_rec, btkrr);
 
 static const union {
     char     s[4];
@@ -830,18 +833,18 @@ static int32_t btn_find_leaf(const struct btree_priv *bt, uint64_t key,
 /* code specific to the leaves                                              */
 /****************************************************************************/
 
+static ALWAYS_INLINE uint64_t btl_getkey(const bt_leaf_t *leaf, int pos)
+{
+    assert (0 <= pos && pos + 1 + 8 + 1 <= leaf->used);
+    assert (leaf->data[pos] == 8);
+
+    return get_unaligned_cpu64(leaf->data + pos + 1);
+}
+
 static enum sign
 btl_keycmp(uint64_t key, const bt_leaf_t *leaf, int pos)
 {
-    union {
-        uint64_t key;
-        byte c[8];
-    } u;
-    assert (0 <= pos && pos + 1 + 8 + 1 <= leaf->used);
-    assert (leaf->data[pos] == 8);
-    memcpy(u.c, leaf->data + pos + 1, 8);
-
-    return CMP(key, u.key);
+    return CMP(key, btl_getkey(leaf, pos));
 }
 
 static int
@@ -933,6 +936,93 @@ int btree_fetch(btree_t *bt, uint64_t key, sb_t *out)
     return len;
 
   error:
+    bt_real_unlock(bt);
+    return -1;
+}
+
+int btree_fetch_range(btree_t *bt, uint64_t kmin, uint64_t kmax,
+                      struct bt_key_range *btkr)
+{
+    int page, pos, len = 0;
+    const bt_leaf_t *leaf;
+    struct bt_key_range_rec btkrr = { .key = kmin };
+    btkrr_vector vec;
+    sb_t out;
+
+    sb_init(&out);
+    btkrr_vector_init(&vec);
+
+    bt_real_rlock(bt);
+    page = btn_find_leaf(bt->area, kmin, NULL);
+    if (page < 0)
+        goto error;
+
+    leaf = MAP_CONST_LEAF(bt->area, page);
+    if (!leaf)
+        goto error;
+
+    btl_findslot(leaf, kmin, &pos);
+    for (;;) {
+        uint64_t key;
+        int datalen;
+
+        if (pos >= leaf->used) {
+            pos = 0;
+            if (leaf->next == BTPP_NIL)
+                break;
+            leaf = MAP_CONST_LEAF(bt->area, leaf->next);
+            if (!leaf || leaf->used <= 0) {
+                /* should flag btree structure error */
+                break;
+            }
+        }
+
+        /* skip key */
+        key  = btl_getkey(leaf, pos);
+        pos += 1 + 8;
+        /* XXX: kmax may well be UINT64_MAX hence the underflow test */
+        if (key > kmax || key < kmin)
+            break;
+
+        if (key != btkrr.key) {
+            if (btkrr.dlen) {
+                btkrr_vector_append(&vec, btkrr);
+            }
+            btkrr.key  = key;
+            btkrr.dpos = out.len;
+            btkrr.dlen = 0;
+        }
+
+        if (unlikely(pos >= leaf->used)) {
+            /* should flag btree struture error: no data length */
+            break;
+        }
+
+        datalen = leaf->data[pos++];
+        if (unlikely(pos + datalen > leaf->used)) {
+            /* should flag btree struture error: not enough data */
+            break;
+        }
+
+        sb_add(&out, leaf->data + pos, datalen);
+        btkrr.dlen += datalen;
+        len        += datalen;
+        pos        += datalen;
+    };
+
+    if (btkrr.dlen)
+        btkrr_vector_append(&vec, btkrr);
+    *btkr = (struct bt_key_range){
+        .nkeys = vec.len,
+        .keys  = vec.tab,
+        { .data  = sb_detach(&out, NULL) },
+    };
+    bt_real_unlock(bt);
+    return 0;
+
+  error:
+    sb_wipe(&out);
+    btkrr_vector_wipe(&vec);
     bt_real_unlock(bt);
     return -1;
 }
@@ -1480,7 +1570,7 @@ int fbtree_fetch(fbtree_t *fbt, uint64_t key, sb_t *out)
         /* skip key */
         pos += 1 + 8;
         /* should flag error if there is no data length */
-        if (unlikely(pos + 1 >= leaf->used))
+        if (unlikely(pos >= leaf->used))
             break;
 
         datalen = leaf->data[pos++];
@@ -1502,6 +1592,91 @@ int fbtree_fetch(fbtree_t *fbt, uint64_t key, sb_t *out)
     } while (btl_keycmp(key, leaf, pos) == CMP_EQUAL);
 
     return len;
+}
+
+int fbtree_fetch_range(fbtree_t *fbt, uint64_t kmin, uint64_t kmax,
+                       struct bt_key_range *btkr)
+{
+    bt_page_t buf;
+    int page, pos, len = 0;
+    const bt_leaf_t *leaf;
+    struct bt_key_range_rec btkrr = { .key = kmin };
+    btkrr_vector vec;
+    sb_t out;
+
+    if (fbt->ismap)
+        return btree_fetch_range(fbt->bt, kmin, kmax, btkr);
+
+    sb_init(&out);
+    btkrr_vector_init(&vec);
+
+    page = fbtn_find_leaf(fbt, kmin);
+    if (page < 0)
+        goto error;
+
+    leaf = &buf.leaf;
+    if (fbtree_readpage(fbt, page, &buf))
+        goto error;
+
+    btl_findslot(leaf, kmin, &pos);
+    for (;;) {
+        uint64_t key;
+        int datalen;
+
+        if (pos >= leaf->used) {
+            pos  = 0;
+            if (BTPP_OFFS(leaf->next) == BTPP_NIL)
+                break;
+            if (fbtree_readpage(fbt, leaf->next, &buf) || leaf->used <= 0)
+                break;
+        }
+
+        /* skip key */
+        key  = btl_getkey(leaf, pos);
+        pos += 1 + 8;
+        /* XXX: kmax may well be UINT64_MAX hence the underflow test */
+        if (key > kmax || key < kmin)
+            break;
+
+        if (key != btkrr.key) {
+            if (btkrr.dlen) {
+                btkrr_vector_append(&vec, btkrr);
+            }
+            btkrr.key  = key;
+            btkrr.dpos = out.len;
+            btkrr.dlen = 0;
+        }
+
+        if (unlikely(pos >= leaf->used)) {
+            /* should flag btree struture error: no data length */
+            break;
+        }
+
+        datalen = leaf->data[pos++];
+        if (unlikely(pos + datalen > leaf->used)) {
+            /* should flag btree struture error: not enough data */
+            break;
+        }
+
+        sb_add(&out, leaf->data + pos, datalen);
+        btkrr.dlen += datalen;
+        len        += datalen;
+        pos        += datalen;
+    }
+
+    if (btkrr.dlen)
+        btkrr_vector_append(&vec, btkrr);
+    *btkr = (struct bt_key_range){
+        .nkeys = vec.len,
+        .keys  = vec.tab,
+        { .data  = sb_detach(&out, NULL) },
+    };
+    return 0;
+
+  error:
+    sb_wipe(&out);
+    btkrr_vector_wipe(&vec);
+    return -1;
 }
 
 /*---------------- Debug interface ----------------*/

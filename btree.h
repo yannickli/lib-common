@@ -33,6 +33,25 @@ void btree_close(btree_t **tree);
 
 typedef struct { int32_t page; int32_t pos; }  btree_iter_t;
 
+struct bt_key_range {
+    int nkeys;
+    struct bt_key_range_rec {
+        uint64_t key;
+        int      dpos;
+        int      dlen;
+    } *keys;
+    union {
+        uint8_t  *u8;
+        uint32_t *u32;
+        void     *data;
+    };
+};
+
+static inline void btree_key_range_wipe(struct bt_key_range *btkr) {
+    p_delete(&btkr->keys);
+    p_delete(&btkr->u8);
+}
+
 void btree_iter_begin(btree_t *bt, btree_iter_t *iter);
 int  btree_iter_next(btree_t *bt, btree_iter_t *iter, uint64_t *key, sb_t *data);
 
@@ -42,6 +61,8 @@ int  btree_iter_next(btree_t *bt, btree_iter_t *iter, uint64_t *key, sb_t *data)
  * keys, the module itself and function/type prefix should be btree64.
  */
 int btree_fetch(btree_t *bt, uint64_t key, sb_t *out);
+int btree_fetch_range(btree_t *bt, uint64_t kmin, uint64_t kmax,
+                      struct bt_key_range *out);
 int btree_push(btree_t *bt, uint64_t key, const void *data, int len);
 
 void btree_dump(btree_t *bt, btree_print_fun *fun, FILE *arg);
@@ -50,7 +71,9 @@ typedef struct fbtree_t fbtree_t;
 
 fbtree_t *fbtree_open(const char *path);
 fbtree_t *fbtree_unlocked_dup(const char *path, btree_t *bt);
-int fbtree_fetch(fbtree_t *, uint64_t key, sb_t *out);
+int  fbtree_fetch(fbtree_t *, uint64_t key, sb_t *out);
+int  fbtree_fetch_range(fbtree_t *, uint64_t kmin, uint64_t kmax,
+                        struct bt_key_range *out);
 void fbtree_close(fbtree_t **f);
 
 #endif
