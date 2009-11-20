@@ -906,13 +906,13 @@ int btree_fetch(btree_t *bt, uint64_t key, sb_t *out)
         /* skip key */
         pos += 1 + 8;
         if (unlikely(pos >= leaf->used)) {
-            /* should flag btree struture error: no data length */
+            /* should flag btree structure error: no data length */
             break;
         }
 
         datalen = leaf->data[pos++];
         if (unlikely(pos + datalen > leaf->used)) {
-            /* should flag btree struture error: not enough data */
+            /* should flag btree structure error: not enough data */
             break;
         }
 
@@ -994,13 +994,13 @@ int btree_fetch_range(btree_t *bt, uint64_t kmin, uint64_t kmax,
         }
 
         if (unlikely(pos >= leaf->used)) {
-            /* should flag btree struture error: no data length */
+            /* should flag btree structure error: no data length */
             break;
         }
 
         datalen = leaf->data[pos++];
         if (unlikely(pos + datalen > leaf->used)) {
-            /* should flag btree struture error: not enough data */
+            /* should flag btree structure error: not enough data */
             break;
         }
 
@@ -1008,7 +1008,7 @@ int btree_fetch_range(btree_t *bt, uint64_t kmin, uint64_t kmax,
         btkrr.dlen += datalen;
         len        += datalen;
         pos        += datalen;
-    };
+    }
 
     if (btkrr.dlen)
         btkrr_vector_append(&vec, btkrr);
@@ -1404,13 +1404,13 @@ btree_iter_next(btree_t *_bt, btree_iter_t *iter, uint64_t *key, sb_t *out)
         /* skip key */
         iter->pos += 1 + 8;
         if (unlikely(iter->pos >= leaf->used)) {
-            /* should flag btree struture error: no data length */
+            /* should flag btree structure error: no data length */
             break;
         }
 
         datalen = leaf->data[iter->pos++];
         if (unlikely(iter->pos + datalen > leaf->used)) {
-            /* should flag btree struture error: not enough data */
+            /* should flag btree structure error: not enough data */
             break;
         }
 
@@ -1648,13 +1648,13 @@ int fbtree_fetch_range(fbtree_t *fbt, uint64_t kmin, uint64_t kmax,
         }
 
         if (unlikely(pos >= leaf->used)) {
-            /* should flag btree struture error: no data length */
+            /* should flag btree structure error: no data length */
             break;
         }
 
         datalen = leaf->data[pos++];
         if (unlikely(pos + datalen > leaf->used)) {
-            /* should flag btree struture error: not enough data */
+            /* should flag btree structure error: not enough data */
             break;
         }
 
