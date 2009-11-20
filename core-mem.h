@@ -259,6 +259,8 @@ static inline void *p_dupz(const void *src, size_t len)
 #define p_new_raw(type, count)  ((type *)imalloc(sizeof(type) * (count), MEM_RAW | MEM_LIBC))
 #define p_new(type, count)      ((type *)imalloc(sizeof(type) * (count), MEM_LIBC))
 #define p_new_extra(type, size) ((type *)imalloc(sizeof(type) + (size), MEM_LIBC))
+#define p_new_extra_field(type, field, size) \
+    p_new_extra(type, fieldsizeof(type, field[0]) * (size))
 #define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
 #define p_dup(p, count)         mem_dup((p), sizeof(*(p)) * (count))
 #define p_strdup(p)             mem_strdup(p)
@@ -393,6 +395,8 @@ static inline void *mp_strdup(mem_pool_t *mp, const char *src)
         ((type *)(mp)->malloc((mp), sizeof(type) * (count), 0))
 #define mp_new_extra(mp, type, size) \
         ((type *)(mp)->malloc((mp), sizeof(type) + (size), 0))
+#define mp_new_extra_field(mp, type, field, size) \
+        mp_new_extra(mp, type, fieldsizeof(type, field[0]) * (size))
 #define mp_dup(mp, p, count)        \
         memp_dup((mp), (p), sizeof(*(p)) * (count))
 
@@ -462,6 +466,8 @@ mem_pool_t *t_pool(void) __attribute__((pure));
     ((type_t *)imalloc((n) * sizeof(type_t), MEM_STACK | MEM_RAW))
 #define t_new_extra(type_t, extra) \
     ((type_t *)imalloc(sizeof(type_t) + (extra), MEM_STACK))
+#define t_new_extra_field(type_t, field, extra) \
+    t_new_extra(type_t, fieldsizeof(type_t, field[0]) * (extra))
 #define t_dup(p, count)    mp_dup(t_pool(), p, count)
 #define t_dupz(p, count)   mp_dupz(t_pool(), p, count)
 
