@@ -39,7 +39,10 @@ typedef struct file_t {
 } file_t;
 
 /*----- open/close -----*/
-__must_check__ file_t *file_open(const char *path, enum file_flags flags, mode_t mode);
+__must_check__ file_t *file_open_at(int dfd, const char *path,
+                                    enum file_flags flags, mode_t mode);
+__must_check__ file_t *file_open(const char *path,
+                                 enum file_flags flags, mode_t mode);
 __must_check__ int file_flush(file_t *);
 __must_check__ int file_close(file_t **);
 

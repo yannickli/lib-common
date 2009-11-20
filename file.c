@@ -52,6 +52,54 @@ static int file_flush_obuf(file_t *f, int len)
 /* open/close                                                               */
 /****************************************************************************/
 
+file_t *file_open_at(int dfd, const char *path,
+                     enum file_flags flags, mode_t mode)
+{
+    file_t *res;
+    int oflags;
+
+    switch (flags & FILE_OPEN_MODE_MASK) {
+      case FILE_RDONLY:
+        oflags = O_RDONLY;
+#if 0
+        break;
+#else
+        errno = ENOSYS;
+        return NULL;
+#endif
+      case FILE_WRONLY:
+        oflags = O_WRONLY;
+        break;
+      case FILE_RDWR:
+        oflags = O_RDWR;
+#if 0
+        break;
+#else
+        errno = ENOSYS;
+        return NULL;
+#endif
+      default:
+        errno = EINVAL;
+        return NULL;
+    }
+
+    if (flags & FILE_CREATE)
+        oflags |= O_CREAT;
+    if (flags & FILE_EXCL)
+        oflags |= O_EXCL;
+    if (flags & FILE_TRUNC)
+        oflags |= O_TRUNC;
+
+    res = p_new(file_t, 1);
+    res->flags = flags;
+    sb_init(&res->obuf);
+    res->fd = openat(dfd, path, oflags, mode);
+    if (res->fd < 0)
+        FAIL_ERRNO(p_delete(&res), NULL);
+
+    return res;
+}
+
 file_t *file_open(const char *path, enum file_flags flags, mode_t mode)
 {
     file_t *res;
