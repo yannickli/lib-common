@@ -57,6 +57,7 @@
 #include "hash-sha4.h"
 
 uint32_t icrc32(uint32_t crc, const void *data, ssize_t len);
+uint64_t icrc64(uint64_t crc, const void *data, ssize_t len);
 
 uint32_t hsieh_hash(const void *s, int len);
 uint32_t jenkins_hash(const void *s, int len);

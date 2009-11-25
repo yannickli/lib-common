@@ -34,6 +34,20 @@
 #include "hash-crc.h"
 #include "hash-crc32-table.c"
 
+/* Simplistic crc32 calculator, almost compatible with zlib version,
+ * except for crc type as uint32_t instead of unsigned long
+ */
+static ALWAYS_INLINE
+uint32_t naive_icrc32(uint32_t crc, const uint8_t *buf, ssize_t len)
+{
+    if (len) {
+        do {
+            crc = crc32table[0][*buf++ ^ A(crc)] ^ S8(crc);
+        } while (--len);
+    }
+    return crc;
+}
+
 /* If you make any changes, do some bench marking! Seemingly unrelated
  * changes can very easily ruin the performance (and very probably is
  * very compiler dependent).
@@ -74,25 +88,7 @@ static uint32_t fast_icrc32(uint32_t crc, const uint8_t *buf, size_t size)
             ^ crc32table[0][D(tmp)];
     } while (--words);
 
-    size &= (size_t)7;
-    if (size) {
-        do {
-            crc = crc32table[0][*buf++ ^ A(crc)] ^ S8(crc);
-        } while (--size);
-    }
-
-    return crc;
-}
-
-/* Simplistic crc32 calculator, almost compatible with zlib version,
- * except for crc type as uint32_t instead of unsigned long
- */
-static uint32_t naive_icrc32(uint32_t crc, const uint8_t *buf, ssize_t len)
-{
-    while (len-- > 0) {
-        crc = crc32table[0][*buf++ ^ A(crc)] ^ S8(crc);
-    }
-    return crc;
+    return naive_icrc32(crc, buf, size & (size_t)7);
 }
 
 __attribute__((flatten))

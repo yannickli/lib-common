@@ -31,6 +31,7 @@
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 #   define A(x)   ((x) >> 24)
+#   define A1(x)  ((x) >> 56)
 #   define B(x)   (((x) >> 16) & 0xFF)
 #   define C(x)   (((x) >> 8) & 0xFF)
 #   define D(x)   ((x) & 0xFF)
@@ -39,6 +40,7 @@
 #   define S32(x) ((x) << 32)
 #else
 #   define A(x)   ((x) & 0xFF)
+#   define A1(x)  A(x)
 #   define B(x)   (((x) >> 8) & 0xFF)
 #   define C(x)   (((x) >> 16) & 0xFF)
 #   define D(x)   ((x) >> 24)
