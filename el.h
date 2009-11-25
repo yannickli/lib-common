@@ -75,6 +75,9 @@ el_data_t el_signal_unregister(el_t *);
 el_data_t el_child_unregister(el_t *);
 el_data_t el_blocker_unregister(el_t *);
 
+/*----- child related -----*/
+pid_t el_child_getpid(el_t);
+
 /*----- proxy related -----*/
 el_t el_proxy_register(el_proxy_f *, el_data_t);
 void el_proxy_set_hook(el_t, el_proxy_f *);

@@ -386,6 +386,12 @@ el_data_t el_child_unregister(ev_t **evp)
     return (el_data_t)NULL;
 }
 
+pid_t el_child_getpid(el_t ev)
+{
+    CHECK_EV_TYPE(ev, EV_CHILD);
+    return ev->pid;
+}
+
 /*----- timer events -----*/
 /*
  * timers are extremely efficient, and use a binary-min-heap as a base
