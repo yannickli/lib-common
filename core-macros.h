@@ -251,10 +251,10 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
     DIV_ROUND_UP(nbits, bitsizeof(type_t))
 
 #define BITMASK_NTH(type_t, n) ( (type_t)1 << ((n) & (bitsizeof(type_t) - 1)))
-#define BITMASK_GT(type_t, n)  (-BITMASK_NTH(type_t, n))
-#define BITMASK_GE(type_t, n)  (~(type_t)0 << ((n) & (bitsizeof(type_t) - 1)))
-#define BITMASK_LE(type_t, n)  (~(type_t)0 >> ((~(n)) & (bitsizeof(type_t) - 1)))
 #define BITMASK_LT(type_t, n)  (BITMASK_NTH(type_t, n) - 1)
+#define BITMASK_LE(type_t, n)  ((BITMASK_NTH(type_t, n) << 1) - 1)
+#define BITMASK_GE(type_t, n)  (~(type_t)0 << ((n) & (bitsizeof(type_t) - 1)))
+#define BITMASK_GT(type_t, n)  (BITMASK_GE(type_t, n) << 1)
 
 #define OP_BIT(bits, n, shift, op) \
     ((bits)[(unsigned)(n) / (shift)] op BITMASK_NTH(typeof(*(bits)), n))
