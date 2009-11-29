@@ -25,6 +25,8 @@ const char *lp_getsec_str(void)
 
 time_t lp_getsec(void)
 {
+    if (unlikely(!lp_time_g.sec))
+        return time(NULL);
     return lp_time_g.sec;
 }
 
