@@ -53,7 +53,7 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
 
       case TPL_OP_VAR:
         if (tpl->u.varidx >> 16 == envid) {
-            VAL_TYPE vtmp = getvar(tpl->u.varidx, vals, nb);
+            VAL_TYPE_P vtmp = GETVAR(tpl->u.varidx, vals, nb);
             if (!vtmp) {
                 e_trace(2, "cound not find var %x (in env %d)", tpl->u.varidx,
                         envid);
@@ -73,7 +73,7 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
 
       case TPL_OP_IFDEF:
         if (tpl->u.varidx >> 16 == envid) {
-            int branch = getvar(tpl->u.varidx, vals, nb) == NULL;
+            int branch = GETVAR(tpl->u.varidx, vals, nb) == NULL;
             if (tpl->u.blocks.len <= branch || !tpl->u.blocks.tab[branch])
                 return 0;
             return NS(tpl_combine)(out, tpl->u.blocks.tab[branch], envid,
@@ -148,7 +148,7 @@ NS(tpl_fold_sb)(sb_t *out, const tpl_t *tpl,
                 uint16_t envid, VAL_TYPE *vals, int nb, int flags)
 {
     tpl_t *tmp;
-    VAL_TYPE vtmp;
+    VAL_TYPE_P vtmp;
     int branch, res;
 
     switch (tpl->op) {
@@ -163,7 +163,7 @@ NS(tpl_fold_sb)(sb_t *out, const tpl_t *tpl,
       case TPL_OP_VAR:
         if (tpl->u.varidx >> 16 != envid)
             return -1;
-        vtmp = getvar(tpl->u.varidx, vals, nb);
+        vtmp = GETVAR(tpl->u.varidx, vals, nb);
         if (!vtmp)
             return -1;
         return DEAL_WITH_VAR2(out, vtmp, envid, vals, nb, flags);
@@ -181,7 +181,7 @@ NS(tpl_fold_sb)(sb_t *out, const tpl_t *tpl,
       case TPL_OP_IFDEF:
         if (tpl->u.varidx >> 16 != envid)
             return -1;
-        branch = getvar(tpl->u.varidx, vals, nb) == NULL;
+        branch = GETVAR(tpl->u.varidx, vals, nb) == NULL;
         if (tpl->u.blocks.len <= branch || !tpl->u.blocks.tab[branch])
             return 0;
         return NS(tpl_fold_sb)(out, tpl->u.blocks.tab[branch], envid,
@@ -217,6 +217,8 @@ NS(tpl_fold_sb)(sb_t *out, const tpl_t *tpl,
 
 #undef NS
 #undef VAL_TYPE
+#undef VAL_TYPE_P
 #undef DEAL_WITH_VAR
 #undef DEAL_WITH_VAR2
 #undef TPL_SUBST
+#undef GETVAR

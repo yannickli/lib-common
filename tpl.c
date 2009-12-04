@@ -362,11 +362,12 @@ tpl_apply(tpl_apply_f *f, tpl_t *out, sb_t *blob, tpl_t *in)
 }
 
 #ifndef __doxygen_mode__
-#define getvar(id, vals, nb) \
-    (((vals) && ((id) & 0xffff) < (uint16_t)(nb)) ? (vals)[(id) & 0xffff] : NULL)
 
+#define GETVAR(id, vals, nb) \
+    (((vals) && ((id) & 0xffff) < (uint16_t)(nb)) ? (vals)[(id) & 0xffff] : NULL)
 #define NS(x)          x##_tpl
 #define VAL_TYPE       tpl_t *
+#define VAL_TYPE_P     tpl_t *
 #define DEAL_WITH_VAR  tpl_combine_tpl
 #define DEAL_WITH_VAR2 tpl_fold_sb_tpl
 #define TPL_SUBST      tpl_subst
@@ -416,15 +417,18 @@ int tpl_fold(sb_t *out, tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb,
 }
 
 #ifndef __doxygen_mode__
+#define GETVAR(id, vals, nb) \
+    (((vals) && ((id) & 0xffff) < (uint16_t)(nb)) ? &(vals)[(id) & 0xffff] : NULL)
 #define NS(x)          x##_str
-#define VAL_TYPE       const tpl_str_t *
+#define VAL_TYPE       const tpl_str_t
+#define VAL_TYPE_P     const tpl_str_t *
 #define DEAL_WITH_VAR(t, v, ...)   (tpl_copy_data((t), (v)->s, tpl_str_len(v)), 0)
 #define DEAL_WITH_VAR2(t, v, ...)  (sb_add((t), (v)->s, tpl_str_len(v)), 0)
 #define TPL_SUBST      tpl_subst_str
 #include "tpl.in.c"
 #endif
 int tpl_subst_str(tpl_t **tplp, uint16_t envid,
-                  const tpl_str_t **vals, int nb, int flags)
+                  const tpl_str_t *vals, int nb, int flags)
 {
     tpl_t *out = *tplp;
     int res = 0;
@@ -444,7 +448,7 @@ int tpl_subst_str(tpl_t **tplp, uint16_t envid,
 }
 
 int tpl_fold_str(sb_t *out, tpl_t **tplp, uint16_t envid,
-                 const tpl_str_t **vals, int nb, int flags)
+                 const tpl_str_t *vals, int nb, int flags)
 {
     int pos = out->len, res = 0;
 

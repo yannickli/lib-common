@@ -135,10 +135,10 @@ static inline int tpl_str_len(const tpl_str_t *ts) {
 int tpl_get_short_data(tpl_t **tpls, int nb, const byte **data, int *len);
 
 int tpl_fold(sb_t *, tpl_t **, uint16_t envid, tpl_t **, int nb, int flags);
-int tpl_fold_str(sb_t *, tpl_t **, uint16_t envid, const tpl_str_t **, int nb, int flags);
+int tpl_fold_str(sb_t *, tpl_t **, uint16_t envid, const tpl_str_t *, int nb, int flags);
 
 int tpl_subst(tpl_t **, uint16_t envid, tpl_t **, int nb, int flags);
-int tpl_subst_str(tpl_t **, uint16_t envid, const tpl_str_t **, int nb, int flags);
+int tpl_subst_str(tpl_t **, uint16_t envid, const tpl_str_t *, int nb, int flags);
 void tpl_optimize(tpl_t *tpl);
 
 bool tpl_is_variable(const tpl_t *tpl);
