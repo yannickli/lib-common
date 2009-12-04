@@ -417,14 +417,14 @@ int tpl_fold(sb_t *out, tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb,
 
 #ifndef __doxygen_mode__
 #define NS(x)          x##_str
-#define VAL_TYPE       const char *
-#define DEAL_WITH_VAR(t, v, ...)   (tpl_copy_cstr((t), (v)), 0)
-#define DEAL_WITH_VAR2(t, v, ...)  (sb_adds((t), (v)), 0)
+#define VAL_TYPE       const tpl_str_t *
+#define DEAL_WITH_VAR(t, v, ...)   (tpl_copy_data((t), (v)->s, tpl_str_len(v)), 0)
+#define DEAL_WITH_VAR2(t, v, ...)  (sb_add((t), (v)->s, tpl_str_len(v)), 0)
 #define TPL_SUBST      tpl_subst_str
 #include "tpl.in.c"
 #endif
 int tpl_subst_str(tpl_t **tplp, uint16_t envid,
-                  const char **vals, int nb, int flags)
+                  const tpl_str_t **vals, int nb, int flags)
 {
     tpl_t *out = *tplp;
     int res = 0;
@@ -444,7 +444,7 @@ int tpl_subst_str(tpl_t **tplp, uint16_t envid,
 }
 
 int tpl_fold_str(sb_t *out, tpl_t **tplp, uint16_t envid,
-                 const char **vals, int nb, int flags)
+                 const tpl_str_t **vals, int nb, int flags)
 {
     int pos = out->len, res = 0;
 
