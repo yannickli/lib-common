@@ -22,6 +22,7 @@
 
 enum log_file_flags {
     LOG_FILE_USE_LAST = (1 << 0),
+    LOG_FILE_COMPRESS = (1 << 1), /* Use gzip on results */
 };
 
 typedef struct log_file_t {

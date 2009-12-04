@@ -13,8 +13,10 @@
 
 #include <dirent.h>
 #include <glob.h>
+#include <sys/resource.h>
 
 #include "file-log.h"
+#include "el.h"
 
 /* log file names should depend on rotation scheme: slower rotation
  * scheme should shorten log filename so reopening it yields the same
@@ -32,23 +34,21 @@ static int build_real_path(char *buf, int size, log_file_t *log_file, time_t dat
 
 static void log_check_max_files(log_file_t *log_file)
 {
-    if (log_file->max_files > 0) {
-        glob_t globbuf;
-        char buf[PATH_MAX];
-        int dl;
+    glob_t globbuf;
+    char buf[PATH_MAX];
+    int dl;
 
-        snprintf(buf, sizeof(buf), "%s_????????_??????.%s",
-                 log_file->prefix, log_file->ext);
-        if (glob(buf, 0, NULL, &globbuf)) {
-            globfree(&globbuf);
-            return;
-        }
-        dl = (int)globbuf.gl_pathc - log_file->max_files;
-        for (int i = 0; i < dl; i++) {
-            unlink(globbuf.gl_pathv[i]);
-        }
+    snprintf(buf, sizeof(buf), "%s_????????_??????.%s{,gz}",
+             log_file->prefix, log_file->ext);
+    if (glob(buf, GLOB_BRACE, NULL, &globbuf)) {
         globfree(&globbuf);
+        return;
     }
+    dl = (int)globbuf.gl_pathc - log_file->max_files;
+    for (int i = 0; i < dl; i++) {
+        unlink(globbuf.gl_pathv[i]);
+    }
+    globfree(&globbuf);
 }
 
 static file_t *log_file_open_new(log_file_t *log_file, time_t date)
@@ -70,7 +70,8 @@ static file_t *log_file_open_new(log_file_t *log_file, time_t date)
     if (symlink(real_path, sym_path)) {
         e_trace(1, "Could not symlink %s to %s (%m)", real_path, sym_path);
     }
-    log_check_max_files(log_file);
+    if (log_file->max_files > 0)
+        log_check_max_files(log_file);
     return res;
 }
 
@@ -171,9 +172,52 @@ void log_file_set_rotate_delay(log_file_t *file, time_t delay)
     file->rotate_date = file->open_date + file->rotate_delay;
 }
 
+static void
+log_file_bgcompress_check(el_t ev, pid_t pid, int st, el_data_t priv)
+{
+    if (!WIFEXITED(st) || WEXITSTATUS(st) != 0) {
+        e_error("background compression of log file failed");
+    }
+}
+
+static void log_file_bgcompress(const char *path)
+{
+    sigset_t set;
+    pid_t pid;
+
+    sigemptyset(&set);
+    sigaddset(&set, SIGCHLD);
+    sigprocmask(SIG_BLOCK, &set, NULL);
+
+    pid = fork();
+    if (pid < 0) {
+        sigprocmask(SIG_UNBLOCK, &set, NULL);
+        e_error("unable to fork gzip in the background, %m");
+        return;
+    }
+    if (pid > 0) {
+        el_unref(el_child_register(pid, log_file_bgcompress_check, NULL));
+        sigprocmask(SIG_UNBLOCK, &set, NULL);
+    } else {
+        setsid();
+        setpriority(PRIO_PROCESS, getpid(), NZERO / 4);
+        execl("gzip", "gzip", "-9", path, NULL);
+        e_fatal("execl failed: %m");
+    }
+}
+
 static int log_file_rotate_(log_file_t *file, time_t now)
 {
-    IGNORE(file_close(&file->_internal));
+    if (file->_internal) {
+        char path[PATH_MAX];
+
+        IGNORE(file_close(&file->_internal));
+        build_real_path(path, sizeof(path), file, file->open_date);
+        if (file->flags & LOG_FILE_COMPRESS) {
+            log_file_bgcompress(path);
+        }
+    }
+
     file->_internal = log_file_open_new(file, now);
     file->open_date = now;
     if (!file->_internal) {
