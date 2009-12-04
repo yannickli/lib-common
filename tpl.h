@@ -124,7 +124,7 @@ enum {
 };
 
 typedef struct tpl_str_t {
-    char *s;
+    const char *s;
     int len;
 } tpl_str_t;
 
