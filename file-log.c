@@ -38,7 +38,7 @@ static void log_check_max_files(log_file_t *log_file)
     char buf[PATH_MAX];
     int dl;
 
-    snprintf(buf, sizeof(buf), "%s_????????_??????.%s{,gz}",
+    snprintf(buf, sizeof(buf), "%s_????????_??????.%s{,.gz}",
              log_file->prefix, log_file->ext);
     if (glob(buf, GLOB_BRACE, NULL, &globbuf)) {
         globfree(&globbuf);
