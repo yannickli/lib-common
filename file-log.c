@@ -201,7 +201,7 @@ static void log_file_bgcompress(const char *path)
     } else {
         setsid();
         setpriority(PRIO_PROCESS, getpid(), NZERO / 4);
-        execl("gzip", "gzip", "-9", path, NULL);
+        execlp("gzip", "gzip", "-9", path, NULL);
         e_fatal("execl failed: %m");
     }
 }
