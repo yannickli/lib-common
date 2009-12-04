@@ -25,19 +25,20 @@ enum log_file_flags {
 };
 
 typedef struct log_file_t {
-    flag_t use_last : 1;
-    char prefix[PATH_MAX];
-    char ext[32];
-    int max_size;
-    int max_files;
-    time_t open_date;
-    time_t rotate_date;
-    time_t rotate_delay;
-    file_t *_internal;
+    uint32_t flags;
+    int      max_size;
+    int      max_files;
+    time_t   open_date;
+    time_t   rotate_date;
+    time_t   rotate_delay;
+    file_t  *_internal;
+    char     prefix[PATH_MAX];
+    char     ext[8];
 } log_file_t;
 
 __must_check__ log_file_t *log_file_open(const char *nametpl, int flags);
 __must_check__ int log_file_close(log_file_t **log_file);
+__must_check__ int log_file_rotate(log_file_t *log_file);
 
 void log_file_set_maxsize(log_file_t *file, int max);
 void log_file_set_rotate_delay(log_file_t *file, time_t delay);

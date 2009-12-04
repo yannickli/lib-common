@@ -65,7 +65,7 @@ static file_t *log_file_open_new(log_file_t *log_file, time_t date)
 
     /* Add a symlink */
     snprintf(sym_path, sizeof(sym_path), "%s%s.%s", log_file->prefix,
-             log_file->use_last ? "_last" : "", log_file->ext);
+             log_file->flags & LOG_FILE_USE_LAST ? "_last" : "", log_file->ext);
     unlink(sym_path);
     if (symlink(real_path, sym_path)) {
         e_trace(1, "Could not symlink %s to %s (%m)", real_path, sym_path);
@@ -111,8 +111,7 @@ log_file_t *log_file_open(const char *nametpl, int flags)
     int len = strlen(nametpl);
 
     log_file = p_new(log_file_t, 1);
-    if (flags & LOG_FILE_USE_LAST)
-        log_file->use_last = true;
+    log_file->flags = flags;
 
     if (len + 8 + 1 + 6 + 4 >= ssizeof(log_file->prefix)) {
         e_trace(1, "Path format too long");
@@ -172,7 +171,7 @@ void log_file_set_rotate_delay(log_file_t *file, time_t delay)
     file->rotate_date = file->open_date + file->rotate_delay;
 }
 
-static int log_file_rotate(log_file_t *file, time_t now)
+static int log_file_rotate_(log_file_t *file, time_t now)
 {
     IGNORE(file_close(&file->_internal));
     file->_internal = log_file_open_new(file, now);
@@ -191,14 +190,19 @@ static int log_check_rotate(log_file_t *log_file)
     if (log_file->max_size > 0) {
         off_t size = file_tell(log_file->_internal);
         if (size >= log_file->max_size)
-             return log_file_rotate(log_file, time(NULL));
+             return log_file_rotate_(log_file, time(NULL));
     }
     if (log_file->rotate_delay > 0) {
         time_t now = time(NULL);
         if (log_file->rotate_date <= now)
-            return log_file_rotate(log_file, now);
+            return log_file_rotate_(log_file, now);
     }
     return 0;
+}
+
+int log_file_rotate(log_file_t *file)
+{
+    return log_file_rotate_(file, time(NULL));
 }
 
 int log_fprintf(log_file_t *log_file, const char *format, ...)
