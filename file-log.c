@@ -32,11 +32,12 @@ static int build_real_path(char *buf, int size, log_file_t *log_file, time_t dat
                     log_file->ext);
 }
 
-static void log_check_max_files(log_file_t *log_file)
+static void log_check_max_total_limits(log_file_t *log_file)
 {
     glob_t globbuf;
     char buf[PATH_MAX];
-    int dl;
+    char **fv;
+    int  fc;
 
     snprintf(buf, sizeof(buf), "%s_????????_??????.%s{,.gz}",
              log_file->prefix, log_file->ext);
@@ -44,9 +45,24 @@ static void log_check_max_files(log_file_t *log_file)
         globfree(&globbuf);
         return;
     }
-    dl = (int)globbuf.gl_pathc - log_file->max_files;
-    for (int i = 0; i < dl; i++) {
-        unlink(globbuf.gl_pathv[i]);
+    fv = globbuf.gl_pathv;
+    fc = globbuf.gl_pathc;
+    if (log_file->max_files) {
+        for (; fc > log_file->max_files; fc--, fv++) {
+            unlink(fv[0]);
+        }
+    }
+    if (log_file->max_total_size) {
+        int64_t totalsize = log_file->max_total_size << 20;
+        struct stat st;
+
+        while (totalsize >= 0 && fc-- > 0) {
+            if (stat(fv[fc], &st) == 0)
+                totalsize -= st.st_size;
+        }
+        while (fc-- > 0) {
+            unlink(fv[fc]);
+        }
     }
     globfree(&globbuf);
 }
@@ -70,8 +86,8 @@ static file_t *log_file_open_new(log_file_t *log_file, time_t date)
     if (symlink(real_path, sym_path)) {
         e_trace(1, "Could not symlink %s to %s (%m)", real_path, sym_path);
     }
-    if (log_file->max_files > 0)
-        log_check_max_files(log_file);
+    if (log_file->max_files > 0 || log_file->max_total_size > 0)
+        log_check_max_total_limits(log_file);
     return res;
 }
 
@@ -164,6 +180,11 @@ void log_file_set_maxfiles(log_file_t *file, int maxfiles)
         maxfiles = 0;
     }
     file->max_files = maxfiles;
+}
+
+void log_file_set_maxtotalsize(log_file_t *file, int maxtotalsize)
+{
+    file->max_total_size = MAX(0, maxtotalsize);
 }
 
 void log_file_set_rotate_delay(log_file_t *file, time_t delay)

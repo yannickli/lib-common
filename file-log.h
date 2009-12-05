@@ -29,6 +29,7 @@ typedef struct log_file_t {
     uint32_t flags;
     int      max_size;
     int      max_files;
+    int      max_total_size; /* in Mo */
     time_t   open_date;
     time_t   rotate_date;
     time_t   rotate_delay;
@@ -44,6 +45,7 @@ __must_check__ int log_file_rotate(log_file_t *log_file);
 void log_file_set_maxsize(log_file_t *file, int max);
 void log_file_set_rotate_delay(log_file_t *file, time_t delay);
 void log_file_set_maxfiles(log_file_t *file, int maxfiles);
+void log_file_set_maxtotalsize(log_file_t *file, int maxtotalsize);
 
 int log_fwrite(log_file_t *log_file, const void *data, size_t len);
 int log_fprintf(log_file_t *log_file, const char *format, ...)
