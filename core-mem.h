@@ -460,6 +460,9 @@ mem_pool_t *t_pool(void) __attribute__((pure));
 #define t_pop_and_continue()    __t_pop_and_do(continue)
 #define t_pop_and_goto(lbl)     __t_pop_and_do(goto lbl)
 
+__attr_printf__(2, 3)
+char *t_fmt(int *out, const char *fmt, ...);
+
 #define t_new(type_t, n) \
     ((type_t *)imalloc((n) * sizeof(type_t), MEM_STACK))
 #define t_new_raw(type_t, n)  \
