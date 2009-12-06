@@ -32,14 +32,15 @@ typedef struct log_file_t {
     int      max_files;
     int      max_total_size; /* in Mo */
     time_t   open_date;
-    time_t   rotate_date;
     time_t   rotate_delay;
     file_t  *_internal;
     char     prefix[PATH_MAX];
     char     ext[8];
 } log_file_t;
 
-__must_check__ log_file_t *log_file_open(const char *nametpl, int flags);
+log_file_t *log_file_init(log_file_t *, const char *nametpl, int flags);
+log_file_t *log_file_new(const char *nametpl, int flags);
+__must_check__ int log_file_open(log_file_t *log_file);
 __must_check__ int log_file_close(log_file_t **log_file);
 __must_check__ int log_file_rotate(log_file_t *log_file);
 

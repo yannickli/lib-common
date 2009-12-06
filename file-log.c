@@ -36,7 +36,46 @@ static int build_real_path(char *buf, int size, log_file_t *log_file, time_t dat
                     log_file->ext);
 }
 
-static void log_check_max_total_limits(log_file_t *log_file)
+static void
+log_file_bgcompress_check(el_t ev, pid_t pid, int st, el_data_t priv)
+{
+    if (!WIFEXITED(st) || WEXITSTATUS(st) != 0) {
+        e_error("background compression of log file failed");
+    }
+}
+
+static void log_file_bgcompress(const char *path)
+{
+    sigset_t set;
+    pid_t pid;
+
+    sigemptyset(&set);
+    sigaddset(&set, SIGCHLD);
+    sigprocmask(SIG_BLOCK, &set, NULL);
+
+    pid = fork();
+    if (pid < 0) {
+        sigprocmask(SIG_UNBLOCK, &set, NULL);
+        e_error("unable to fork gzip in the background, %m");
+        return;
+    }
+    if (pid > 0) {
+        el_unref(el_child_register(pid, log_file_bgcompress_check, NULL));
+        sigprocmask(SIG_UNBLOCK, &set, NULL);
+    } else {
+        setsid();
+        setpriority(PRIO_PROCESS, getpid(), NZERO / 4);
+        execlp("gzip", "gzip", "-9", path, NULL);
+        e_fatal("execl failed: %m");
+    }
+}
+
+static int qsort_strcmp(const void *sp1, const void *sp2)
+{
+    return strcmp(*(const char **)sp1, *(const char **)sp2);
+}
+
+static void log_check_invariants(log_file_t *log_file)
 {
     glob_t globbuf;
     char buf[PATH_MAX];
@@ -51,6 +90,7 @@ static void log_check_max_total_limits(log_file_t *log_file)
     }
     fv = globbuf.gl_pathv;
     fc = globbuf.gl_pathc;
+    qsort(fv, fc, sizeof(fv[0]), qsort_strcmp);
     if (log_file->max_files) {
         for (; fc > log_file->max_files; fc--, fv++) {
             unlink(fv[0]);
@@ -60,12 +100,23 @@ static void log_check_max_total_limits(log_file_t *log_file)
         int64_t totalsize = log_file->max_total_size << 20;
         struct stat st;
 
-        while (totalsize >= 0 && fc-- > 0) {
-            if (stat(fv[fc], &st) == 0)
+        for (int i = fc; i-- > 0; ) {
+            if (stat(fv[i], &st) == 0)
                 totalsize -= st.st_size;
+            if (totalsize < 0) {
+                for (int j = 0; j <= i; j++)
+                    unlink(fv[j]);
+                fv += i + 1;
+                fc -= i + 1;
+                break;
+            }
         }
-        while (fc-- > 0) {
-            unlink(fv[fc]);
+    }
+    if (log_file->flags & LOG_FILE_COMPRESS) {
+        for (int i = 0; i < fc - 1; i++) {
+            if (!strequal(path_extnul(fv[i]), ".gz")) {
+                log_file_bgcompress(fv[i]);
+            }
         }
     }
     globfree(&globbuf);
@@ -90,12 +141,11 @@ static file_t *log_file_open_new(log_file_t *log_file, time_t date)
     if (symlink(real_path, sym_path)) {
         e_trace(1, "Could not symlink %s to %s (%m)", real_path, sym_path);
     }
-    if (log_file->max_files > 0 || log_file->max_total_size > 0)
-        log_check_max_total_limits(log_file);
+    log_check_invariants(log_file);
     return res;
 }
 
-static time_t log_last_date(log_file_t *log_file)
+static void log_file_find_last_date(log_file_t *log_file)
 {
     char buf[PATH_MAX];
     glob_t globbuf;
@@ -115,30 +165,34 @@ static time_t log_last_date(log_file_t *log_file)
         tm.tm_mon  = memtoip(d, 2, &d) - 1;
         tm.tm_mday = memtoip(d, 2, &d);
         if (*d++ != '_')
-            return -1;
+            goto not_found;
         tm.tm_hour = memtoip(d, 2, &d);
         tm.tm_min  = memtoip(d, 2, &d);
         tm.tm_sec  = memtoip(d, 2, &d);
-        res = mktime(&tm);
+        if (log_file->flags & LOG_FILE_UTCSTAMP) {
+            res = timegm(&tm);
+        } else {
+            res = mktime(&tm);
+        }
+
+        log_file->open_date = res;
+    } else {
+      not_found:
+        log_file->open_date = time(NULL);
     }
     globfree(&globbuf);
-    return res;
 }
 
-log_file_t *log_file_open(const char *nametpl, int flags)
+log_file_t *log_file_init(log_file_t *log_file, const char *nametpl, int flags)
 {
-    log_file_t *log_file;
     const char *ext = path_ext(nametpl);
     int len = strlen(nametpl);
 
     log_file = p_new(log_file_t, 1);
     log_file->flags = flags;
 
-    if (len + 8 + 1 + 6 + 4 >= ssizeof(log_file->prefix)) {
-        e_trace(1, "Path format too long");
-        IGNORE(log_file_close(&log_file));
-        return NULL;
-    }
+    if (len + 8 + 1 + 6 + 4 >= ssizeof(log_file->prefix))
+        e_fatal("Path format too long");
     if (ext) {
         pstrcpy(log_file->ext, sizeof(log_file->ext), ext + 1);
         len -= strlen(ext);
@@ -146,16 +200,23 @@ log_file_t *log_file_open(const char *nametpl, int flags)
         pstrcpy(log_file->ext, sizeof(log_file->ext), "log");
     }
     pstrcpylen(log_file->prefix, sizeof(log_file->prefix), nametpl, len);
-    log_file->open_date = log_last_date(log_file);
-    if (log_file->open_date == -1) {
-        log_file->open_date = time(NULL);
-    }
+    return log_file;
+}
+
+log_file_t *log_file_new(const char *nametpl, int flags)
+{
+    return log_file_init(p_new(log_file_t, 1), nametpl, flags);
+}
+
+int log_file_open(log_file_t *log_file)
+{
+    log_file_find_last_date(log_file);
     log_file->_internal = log_file_open_new(log_file, log_file->open_date);
     if (!log_file->_internal) {
         e_trace(1, "Could not open first log file");
-        IGNORE(log_file_close(&log_file));
+        return -1;
     }
-    return log_file;
+    return 0;
 }
 
 int log_file_close(log_file_t **lfp)
@@ -194,54 +255,11 @@ void log_file_set_maxtotalsize(log_file_t *file, int maxtotalsize)
 void log_file_set_rotate_delay(log_file_t *file, time_t delay)
 {
     file->rotate_delay = delay;
-    file->rotate_date = file->open_date + file->rotate_delay;
-}
-
-static void
-log_file_bgcompress_check(el_t ev, pid_t pid, int st, el_data_t priv)
-{
-    if (!WIFEXITED(st) || WEXITSTATUS(st) != 0) {
-        e_error("background compression of log file failed");
-    }
-}
-
-static void log_file_bgcompress(const char *path)
-{
-    sigset_t set;
-    pid_t pid;
-
-    sigemptyset(&set);
-    sigaddset(&set, SIGCHLD);
-    sigprocmask(SIG_BLOCK, &set, NULL);
-
-    pid = fork();
-    if (pid < 0) {
-        sigprocmask(SIG_UNBLOCK, &set, NULL);
-        e_error("unable to fork gzip in the background, %m");
-        return;
-    }
-    if (pid > 0) {
-        el_unref(el_child_register(pid, log_file_bgcompress_check, NULL));
-        sigprocmask(SIG_UNBLOCK, &set, NULL);
-    } else {
-        setsid();
-        setpriority(PRIO_PROCESS, getpid(), NZERO / 4);
-        execlp("gzip", "gzip", "-9", path, NULL);
-        e_fatal("execl failed: %m");
-    }
 }
 
 static int log_file_rotate_(log_file_t *file, time_t now)
 {
-    if (file->_internal) {
-        char path[PATH_MAX];
-
-        IGNORE(file_close(&file->_internal));
-        build_real_path(path, sizeof(path), file, file->open_date);
-        if (file->flags & LOG_FILE_COMPRESS) {
-            log_file_bgcompress(path);
-        }
-    }
+    IGNORE(file_close(&file->_internal));
 
     file->_internal = log_file_open_new(file, now);
     file->open_date = now;
@@ -249,22 +267,20 @@ static int log_file_rotate_(log_file_t *file, time_t now)
         e_trace(1, "Could not rotate");
         return -1;
     }
-    if (file->rotate_delay > 0)
-        file->rotate_date = now + file->rotate_delay;
     return 0;
 }
 
-static int log_check_rotate(log_file_t *log_file)
+static int log_check_rotate(log_file_t *lf)
 {
-    if (log_file->max_size > 0) {
-        off_t size = file_tell(log_file->_internal);
-        if (size >= log_file->max_size)
-             return log_file_rotate_(log_file, time(NULL));
+    if (lf->max_size > 0) {
+        off_t size = file_tell(lf->_internal);
+        if (size >= lf->max_size)
+             return log_file_rotate_(lf, time(NULL));
     }
-    if (log_file->rotate_delay > 0) {
+    if (lf->rotate_delay > 0) {
         time_t now = time(NULL);
-        if (log_file->rotate_date <= now)
-            return log_file_rotate_(log_file, now);
+        if (lf->open_date + lf->rotate_delay <= now)
+            return log_file_rotate_(lf, now);
     }
     return 0;
 }
