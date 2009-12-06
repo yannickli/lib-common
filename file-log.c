@@ -25,7 +25,11 @@
 static int build_real_path(char *buf, int size, log_file_t *log_file, time_t date)
 {
     struct tm tm;
-    localtime_r(&date, &tm);
+    if (log_file->flags & LOG_FILE_UTCSTAMP) {
+        gmtime_r(&date, &tm);
+    } else {
+        localtime_r(&date, &tm);
+    }
     return snprintf(buf, size, "%s_%04d%02d%02d_%02d%02d%02d.%s",
                     log_file->prefix, tm.tm_year + 1900, tm.tm_mon + 1,
                     tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec,
