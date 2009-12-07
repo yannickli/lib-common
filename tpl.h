@@ -127,6 +127,12 @@ typedef struct tpl_str_t {
     const char *s;
     int len;
 } tpl_str_t;
+#define TPL_STR_NULL        (tpl_str_t){ .s = NULL, .len = 0 }
+#define TPL_STR_EMPTY       (tpl_str_t){ .s = "", .len = 0 }
+#define TPL_STR2(str, _len) (tpl_str_t){ .s = (str), .len = (_len) }
+#define TPL_STR(str)        TPL_STR2(str, strlen(str))
+#define TPL_CSTR(str)       (tpl_str_t){ .s = (str), .len = sizeof(str) - 1 }
+#define TPL_SBSTR(sb)       (tpl_str_t){ .s = (sb)->data, .len = (sb)->len }
 
 static inline int tpl_str_len(const tpl_str_t *ts) {
     return ts->len >= 0 ? ts->len : (int)strlen(ts->s);
