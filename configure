@@ -207,6 +207,18 @@ else
 fi
 
 # }}}
+# {{{ Kit SIMPA SFR
+
+simpadir="/home/data/projects/kiosque/Doc confidentiel SFR pour NSN 30102009/SIMPA_Kit Marchand_Java_V5.20.02_20091029.zip"
+if test -f "$simpadir" -a -r "$simpadir"; then
+    setenv "ENABLE_SFR_SIMPA" "1"
+    setenv "WITH_SFR_SIMPA" "1"
+else
+    setenv "ENABLE_SFR_SIMPA" "0"
+    echo 2>&1 "*** kit SIMPA SFR not found"
+fi
+
+# }}}
 # {{{ php
 
 if test -z "${PHP_VERSION}"; then
