@@ -183,13 +183,20 @@ if test -z ${JAVA_HOME}; then
     JAVA_HOME=${JAVA_HOME%/*}
 fi
 if test -z ${JAVA_HOME}; then
-    JAVA_HOME=$(ls -1 -d /usr/lib/jvm/java*/include2>/dev/null | head -1)
+    JAVA_HOME=$(ls -1 -d /usr/lib/jvm/java*/include 2>/dev/null | head -1)
     JAVA_HOME=${JAVA_HOME%/*}
 fi
 if test -z ${JAVA_HOME}; then
     echo 2>&1 "*** JAVA_HOME not set, JNI disabled"
 else
     setvar "jni_CFLAGS" "-I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux"
+    if test -d ${JAVA_HOME}/jre/lib/i386/server; then
+        setvar "jvm_LDFLAGS" "-L${JAVA_HOME}/jre/lib/i386/server -Wl,--rpath,${JAVA_HOME}/jre/lib/i386/server -ljvm"
+    elif test -d ${JAVA_HOME}/jre/lib/amd64/server; then
+        setvar "jvm_LDFLAGS" "-L${JAVA_HOME}/jre/lib/amd64/server -Wl,--rpath,${JAVA_HOME}/jre/lib/amd64/server -ljvm"
+    else
+         warn "*** missing libjvm, apt-get install sun-java6-bin"
+    fi
 fi
 
 # }}}
