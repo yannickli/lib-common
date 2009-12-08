@@ -246,17 +246,6 @@ if test -n "$PHP_CONFIG"; then
 fi
 
 # }}}
-# {{{ snmp
-
-if which net-snmp-config >/dev/null 2>/dev/null && which mib2c >/dev/null 2>/dev/null
-then
-    setvar "net_snmp_CFLAGS" "$(net-snmp-config --cflags)"
-    setvar "net_snmp_LIBS" "$(net-snmp-config --libs)"
-else
-    warn "*** net-snmp-config or mib2c is missing, apt-get install libsnmp-base libsnmp-dev"
-fi
-
-# }}}
 # {{{ eiconcard X.25
 
 eiconcard_x25_PATH=/opt/intersec/eiconcard
