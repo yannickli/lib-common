@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include <sys/ioctl.h>
+#include <sys/resource.h>
 #include <termios.h>
 #include "unix.h"
 #include "time.h"
@@ -382,26 +383,6 @@ void devnull_dup(int fd)
     if (fd != nullfd) {
         dup2(nullfd, fd);
         close(nullfd);
-    }
-}
-
-__attribute__((constructor))
-static void unix_initialize(void)
-{
-    struct timeval tm;
-
-    gettimeofday(&tm, NULL);
-    srand(tm.tv_sec + tm.tv_usec + getpid());
-    ha_srand();
-
-    if (!is_fd_open(STDIN_FILENO)) {
-        devnull_dup(STDIN_FILENO);
-    }
-    if (!is_fd_open(STDOUT_FILENO)) {
-        devnull_dup(STDOUT_FILENO);
-    }
-    if (!is_fd_open(STDERR_FILENO)) {
-        dup2(STDOUT_FILENO, STDERR_FILENO);
     }
 }
 

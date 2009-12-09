@@ -868,4 +868,33 @@ hook_sigpwr(void)
 }
 #endif
 
+__attribute__((constructor))
+static void el_initialize(void)
+{
+    struct timeval tm;
+    struct rlimit lim;
+
+    gettimeofday(&tm, NULL);
+    srand(tm.tv_sec + tm.tv_usec + getpid());
+    ha_srand();
+
+    if (getrlimit(RLIMIT_NOFILE, &lim) < 0)
+        e_panic(E_UNIXERR("getrlimit"));
+    if (lim.rlim_cur < lim.rlim_max) {
+        lim.rlim_cur = lim.rlim_max;
+        if (setrlimit(RLIMIT_NOFILE, &lim) < 0)
+            e_error(E_UNIXERR("setrlimit"));
+    }
+
+    if (!is_fd_open(STDIN_FILENO)) {
+        devnull_dup(STDIN_FILENO);
+    }
+    if (!is_fd_open(STDOUT_FILENO)) {
+        devnull_dup(STDOUT_FILENO);
+    }
+    if (!is_fd_open(STDERR_FILENO)) {
+        dup2(STDOUT_FILENO, STDERR_FILENO);
+    }
+}
+
 /**\}*/
