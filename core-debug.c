@@ -47,7 +47,7 @@ static struct {
     int maxlen, rows, cols;
     bool fancy;
 } _G = {
-    .verbosity_level = 1,
+    .verbosity_level = 0,
     .cache           = QM_INIT(trace, _G.cache, false),
 };
 
