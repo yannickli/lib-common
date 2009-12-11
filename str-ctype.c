@@ -112,3 +112,17 @@ ctype_desc_t const ctype_isspace = {
         0x00000000,
     }
 };
+
+/* ctype describing characters of a word */
+ctype_desc_t const ctype_iswordpart = {
+    {
+        0x00000000,
+        0x03ff0010,
+        0x07ffffff,
+        0x07fffffe,
+        0xffffffff,
+        0xffffffff,
+        0xffffffff,
+        0xffffffff,
+    }
+};
