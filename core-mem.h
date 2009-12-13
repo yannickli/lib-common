@@ -351,10 +351,8 @@ static inline void (p_delete)(void **p) {
  * here...
  */
 typedef struct mem_pool_t {
-    void *(*malloc) (struct mem_pool_t *, size_t, mem_flags_t)
-        __attribute__((warn_unused_result));
-    void *(*realloc)(struct mem_pool_t *, void *, size_t, size_t, mem_flags_t)
-        __attribute__((warn_unused_result));
+    void *(*malloc) (struct mem_pool_t *, size_t, mem_flags_t);
+    void *(*realloc)(struct mem_pool_t *, void *, size_t, size_t, mem_flags_t);
     void  (*free)   (struct mem_pool_t *, void *, mem_flags_t);
 } mem_pool_t;
 
