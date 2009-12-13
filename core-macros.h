@@ -167,7 +167,7 @@
     ({ typeof(e) __res = (e);                          \
        if (unlikely(__res < 0))                        \
            return __res;                               \
-       __res;                                          \
+       __res = __res;                                  \
     })
 
 #define RETHROW_P(e)        \
