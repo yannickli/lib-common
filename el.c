@@ -489,6 +489,9 @@ static el_data_t el_timer_heapremove(ev_t **evp)
 
 static void el_timer_process(uint64_t until)
 {
+    struct timeval tv;
+
+    lp_gettv(&tv);
     while (_G.timers.len) {
         ev_t *ev = EVT(0);
 
