@@ -26,6 +26,9 @@
 
 #define O_ISWRITE(m)      (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
 
+#define PROTECT_ERRNO(expr) \
+    ({ int save_errno__ = errno; expr; errno = save_errno__; })
+
 /****************************************************************************/
 /* process related                                                          */
 /****************************************************************************/

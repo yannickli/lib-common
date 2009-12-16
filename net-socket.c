@@ -45,9 +45,7 @@ static int sock_reuseaddr(int sock)
 {
     int v = 1;
     /* XXX the char * cast is needed for mingcc */
-    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&v, sizeof(v)))
-        return e_error("setsockopt SO_REUSEADDR failed.");
-    return 0;
+    return setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&v, sizeof(v));
 }
 
 int socketpairx(int d, int type, int protocol, int flags, int sv[2])
@@ -56,11 +54,8 @@ int socketpairx(int d, int type, int protocol, int flags, int sv[2])
     if (!(flags & O_NONBLOCK))
         return 0;
     if (fd_set_features(sv[0], flags) || fd_set_features(sv[1], flags)) {
-        int save_err = errno;
-        close(sv[0]);
-        close(sv[1]);
+        PROTECT_ERRNO(({ close(sv[0]); close(sv[1]); }));
         sv[0] = sv[1] = -1;
-        errno = save_err;
         return -1;
     }
     return 0;
@@ -79,9 +74,7 @@ int bindx(int sock, const sockunion_t *addrs, int cnt,
 #endif
 
     if (sock < 0) {
-        to_close = sock = socket(addrs->family, type, proto);
-        if (sock < 0)
-            return e_error("socket failed %m");
+        to_close = sock = RETHROW(socket(addrs->family, type, proto));
     }
 
     if (sock_reuseaddr(sock))
@@ -97,24 +90,8 @@ int bindx(int sock, const sockunion_t *addrs, int cnt,
             unlink(addrs->sunix.sun_path);
         }
 
-        if (bind(sock, &addrs->sa, sockunion_len(addrs)) < 0) {
-            switch (addrs->family) {
-              case AF_INET:
-                e_error("bind failed (port %d).",
-                        ntohs(addrs->sin.sin_port));
-                break;
-
-              case AF_INET6:
-                e_error("bind failed (port %d).",
-                        ntohs(addrs->sin6.sin6_port));
-                break;
-
-              default:
-                e_error("bind failed.");
-                break;
-            }
+        if (bind(sock, &addrs->sa, sockunion_len(addrs)) < 0)
             goto error;
-        }
 #ifdef HAVE_NETINET_SCTP_H
     } else {
         socklen_t sz = 0;
@@ -123,15 +100,12 @@ int bindx(int sock, const sockunion_t *addrs, int cnt,
             socklen_t len = sockunion_len(su);
             if (len == (socklen_t)-1) {
                 errno = EINVAL;
-                e_error("bind failed.");
                 goto error;
             }
             sz += len;
         }
-        if (setsockopt(sock, SOL_SCTP, SCTP_SOCKOPT_BINDX_ADD, addrs, sz)) {
-            e_error("sctp_bindx failed.");
+        if (setsockopt(sock, SOL_SCTP, SCTP_SOCKOPT_BINDX_ADD, addrs, sz))
             goto error;
-        }
     }
 #endif
 
@@ -151,16 +125,13 @@ int listenx(int sock, const sockunion_t *addrs, int cnt,
         to_close = sock = bindx(-1, addrs, cnt, type, proto, flags);
     }
 
-    if (listen(sock, SOMAXCONN) < 0) {
-        e_error("listen failed.");
+    if (listen(sock, SOMAXCONN) < 0)
         goto error;
-    }
-
     return sock;
 
   error:
     if (to_close >= 0)
-        close(to_close);
+        PROTECT_ERRNO(close(to_close));
     return -1;
 }
 
@@ -177,9 +148,7 @@ int connectx(int sock, const sockunion_t *addrs, int cnt, int type, int proto,
 #endif
 
     if (sock < 0) {
-        to_close = sock = socket(addrs->family, type, proto);
-        if (sock < 0)
-            return e_error("socket failed: %m");
+        to_close = sock = RETHROW(socket(addrs->family, type, proto));
     }
 
     if (fd_set_features(sock, flags))
@@ -195,7 +164,6 @@ int connectx(int sock, const sockunion_t *addrs, int cnt, int type, int proto,
         &&  errno != EINPROGRESS
 #endif
         ) {
-            e_error("connect failed (%m).");
             goto error;
         }
 #ifdef HAVE_NETINET_SCTP_H
@@ -206,40 +174,30 @@ int connectx(int sock, const sockunion_t *addrs, int cnt, int type, int proto,
             socklen_t len = sockunion_len(su);
             if (len == (socklen_t)-1) {
                 errno = EINVAL;
-                e_error("bind failed.");
                 goto error;
             }
             sz += len;
         }
-        if (setsockopt(sock, SOL_SCTP, SCTP_SOCKOPT_CONNECTX, addrs, sz)) {
-            e_error("sctp_connectx failed.");
+        if (setsockopt(sock, SOL_SCTP, SCTP_SOCKOPT_CONNECTX, addrs, sz))
             goto error;
-        }
     }
 #endif
 
     return sock;
 
   error:
-    close(to_close);
+    PROTECT_ERRNO(close(to_close));
     return -1;
 }
 
 int acceptx(int server_fd, int flags)
 {
-    int sock = accept(server_fd, NULL, NULL);
-
-    if (sock < 0) {
-        if (errno != EAGAIN)
-            return e_error("accept failed");
-        return -1;
-    }
+    int sock = RETHROW(accept(server_fd, NULL, NULL));
 
     if (fd_set_features(sock, flags)) {
-        close(sock);
-        return e_error("fd_set_features failed.");
+        PROTECT_ERRNO(close(sock));
+        return -1;
     }
-
     return sock;
 }
 
