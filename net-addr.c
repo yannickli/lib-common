@@ -11,16 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef OS_WINDOWS
-#include <net/if.h>
 #include <netdb.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/wait.h>
-#else
-#include <ws2tcpip.h> /* getaddrinfo */
-#endif
 #include "net.h"
 
 bool sockaddr_equal(const sockunion_t *a1, const sockunion_t *a2)
