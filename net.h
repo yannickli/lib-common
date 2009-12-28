@@ -33,6 +33,7 @@
 # include <sys/un.h>
 #endif
 
+#include "net-addr.h"
 #include "net-socket.h"
 #include "net-sctp.h"
 
