@@ -11,7 +11,8 @@
 #                                                                        #
 ##########################################################################
 
-test_PROGRAMS = zchk btree-dump ztst-cfgparser ztst-tpl ztst-htbl
+test_PROGRAMS += zchk btree-dump ztst-cfgparser ztst-tpl ztst-htbl
+test_PROGRAMS += ztst-lzo
 
 none_LIBRARIES = libcommon time-lp-simple
 
@@ -101,6 +102,9 @@ libcommon_SOURCES = \
 	property.c \
 	property-hash.c \
 	\
+	qlzo-c.c \
+	qlzo-d.c \
+	\
 	str.c \
 	str-buf.c \
 	str-buf-quoting.c \
@@ -146,6 +150,9 @@ ztst-iprintf-fp_SOURCES = ztst-iprintf-fp.c libcommon.a
 
 ztst-iprintf-glibc_CFLAGS = -Wno-format -Wno-missing-format-attribute
 ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a
+
+ztst-lzo_SOURCES = ztst-lzo.c libcommon.a compat/compat.a
+ztst-lzo_LDFLAGS = -lrt
 
 ztst-hash_SOURCES = ztst-hash.c libcommon.a compat/compat.a
 

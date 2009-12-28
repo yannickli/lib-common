@@ -1,0 +1,237 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2009 INTERSEC SAS                                  */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+#include <lib-common/arith.h>
+#include "qlzo.h"
+
+typedef struct ostream_t {
+    uint8_t *b;
+    uint8_t *b_end;
+} ostream_t;
+
+static ALWAYS_INLINE
+int lzo_get_varlen(pstream_t *in, unsigned u, unsigned mask)
+{
+    unsigned sz = u & mask;
+    const uint8_t *b = in->b;
+
+    if (!sz) {
+        do {
+            if (unlikely(++b >= in->b_end))
+                return LZO_ERR_INPUT_OVERRUN;
+        } while (!*b);
+        sz = *b + mask + 255 * (b - in->b - 1);
+    }
+    in->b = b + 1;
+    return sz;
+}
+
+static ALWAYS_INLINE
+int lzo_copy_input(pstream_t *in, ostream_t *os, unsigned sz)
+{
+    const uint8_t *src = in->b;
+    uint8_t *dst = os->b;
+    uint8_t *opt_end = dst + ROUND_UP(sz, 2 * sizeof(size_t));
+
+    if (unlikely(!ps_has(in, sz)))
+        return LZO_ERR_INPUT_OVERRUN;
+    if (likely(opt_end <= os->b_end)) {
+        do {
+            memcpy(dst, src, 2 * sizeof(size_t));
+            src += 2 * sizeof(size_t);
+            dst += 2 * sizeof(size_t);
+        } while (dst < opt_end);
+    } else {
+        if (unlikely(dst + sz > os->b_end))
+            return LZO_ERR_OUTPUT_OVERRUN;
+        memcpy(dst, src, sz);
+    }
+    os->b += sz;
+    return __ps_skip(in, sz);
+}
+
+/* XXX: assumes sz <= 4 */
+static ALWAYS_INLINE
+int lzo_copy_input_small(pstream_t *in, ostream_t *os, unsigned sz)
+{
+    const uint8_t *src = in->b;
+    uint8_t *dst = os->b;
+
+    if (unlikely(!ps_has(in, sz)))
+        return LZO_ERR_INPUT_OVERRUN;
+    if (likely(dst + 4 <= os->b_end)) {
+        put_unaligned_cpu32(dst, get_unaligned_cpu32(src));
+    } else {
+        if (unlikely(dst + sz > os->b_end))
+            return LZO_ERR_OUTPUT_OVERRUN;
+        dst[0] = src[0];
+        if (sz > 1) {
+            dst[1] = src[1];
+            if (sz > 2)
+                dst[1] = src[1];
+        }
+    }
+    os->b += sz;
+    return __ps_skip(in, sz);
+}
+
+static ALWAYS_INLINE
+int lzo_copy_backptr(ostream_t *os, const uint8_t *out_orig,
+                     unsigned back, unsigned sz)
+{
+    const uint8_t *src = os->b - back;
+    uint8_t *dst = os->b;
+
+    if (unlikely(src < out_orig))
+        return LZO_ERR_BACKPTR_OVERRUN;
+    os->b += sz;
+
+    if (back == 1) {
+        if (unlikely(dst + sz > os->b_end))
+            return LZO_ERR_OUTPUT_OVERRUN;
+        memset(dst, *src, sz);
+    } else {
+        if (likely(dst + 8 <= os->b_end)) {
+            put_unaligned_cpu16(dst + 0, get_unaligned_cpu16(src + 0));
+            put_unaligned_cpu16(dst + 2, get_unaligned_cpu16(src + 2));
+            put_unaligned_cpu16(dst + 4, get_unaligned_cpu16(src + 4));
+            put_unaligned_cpu16(dst + 6, get_unaligned_cpu16(src + 6));
+            if ((int)(sz -= 8) < 0)
+                return 0;
+            src += 8;
+            dst += 8;
+            if (likely(dst + 8 <= os->b_end)) {
+                put_unaligned_cpu16(dst + 0, get_unaligned_cpu16(src + 0));
+                put_unaligned_cpu16(dst + 2, get_unaligned_cpu16(src + 2));
+                put_unaligned_cpu16(dst + 4, get_unaligned_cpu16(src + 4));
+                put_unaligned_cpu16(dst + 6, get_unaligned_cpu16(src + 6));
+                if ((int)(sz -= 8) < 0)
+                    return 0;
+                src += 8;
+                dst += 8;
+                if (likely(dst + 8 <= os->b_end)) {
+                    put_unaligned_cpu16(dst + 0, get_unaligned_cpu16(src + 0));
+                    put_unaligned_cpu16(dst + 2, get_unaligned_cpu16(src + 2));
+                    put_unaligned_cpu16(dst + 4, get_unaligned_cpu16(src + 4));
+                    put_unaligned_cpu16(dst + 6, get_unaligned_cpu16(src + 6));
+                    if ((int)(sz -= 8) < 0)
+                        return 0;
+                    src += 8;
+                    dst += 8;
+                }
+            }
+        }
+        if (unlikely(dst + sz > os->b_end))
+            return LZO_ERR_OUTPUT_OVERRUN;
+        for (; sz > back; sz -= back, back <<= 1) {
+            dst = mempcpy(dst, src, back);
+        }
+        memcpy(dst, src, sz);
+    }
+    return 0;
+}
+
+static ALWAYS_INLINE int
+lzo_copy_backptr2(ostream_t *os, const uint8_t *out_orig, unsigned back)
+{
+    const uint8_t *src = os->b - back;
+    uint8_t *dst = os->b;
+
+    if (unlikely(src < out_orig))
+        return LZO_ERR_BACKPTR_OVERRUN;
+    if (unlikely(dst + 2 > os->b_end))
+        return LZO_ERR_OUTPUT_OVERRUN;
+
+    dst[0] = src[0];
+    dst[1] = src[1];
+    os->b += 2;
+    return 0;
+}
+
+static ALWAYS_INLINE
+int lzo_copy_backptr3(ostream_t *os, const uint8_t *out_orig, unsigned back)
+{
+    const uint8_t *src = os->b - back;
+    uint8_t *dst = os->b;
+
+    if (unlikely(src < out_orig))
+        return LZO_ERR_BACKPTR_OVERRUN;
+    if (unlikely(dst + 3 > os->b_end))
+        return LZO_ERR_OUTPUT_OVERRUN;
+
+    dst[0] = src[0];
+    dst[1] = src[1];
+    dst[2] = src[2];
+    os->b += 3;
+    return 0;
+}
+
+ssize_t qlzo1x_decompress(void *_out, size_t outlen, pstream_t in)
+{
+    uint8_t *out_orig = _out;
+    ostream_t os = {
+        .b      = out_orig,
+        .b_end  = out_orig + outlen,
+    };
+
+    if (in.b[0] > 17)
+        RETHROW(lzo_copy_input(&in, &os, __ps_getc(&in) - 17));
+    for (;;) {
+        unsigned u, sz, back;
+
+        if ((u = in.b[0]) >= LZO_M4_MARKER) {
+          match_2to4:
+            if (u >= LZO_M2_MARKER) {
+                sz    = (u >> 5) + 1;
+                back  = (in.b[1] << 3) + ((u >> 2) & 7) + 1;
+                __ps_skip(&in, 2);
+            } else if (u >= LZO_M3_MARKER) {
+                sz    = RETHROW(lzo_get_varlen(&in, u, 31)) + 2;
+                u     = __ps_get_le16(&in);
+                back  = (u >> 2) + 1;
+            } else {
+                sz    = RETHROW(lzo_get_varlen(&in, u, 7)) + 2;
+                back  = ((u & 8) << 11);
+                u     = __ps_get_le16(&in);
+                back += (u >> 2);
+                if (back == 0)
+                    break;
+                back += LZO_M3_MAX_OFFSET;
+            }
+            RETHROW(lzo_copy_backptr(&os, out_orig, back, sz));
+        } else {
+            sz    = RETHROW(lzo_get_varlen(&in, u, 15)) + 3;
+            RETHROW(lzo_copy_input(&in, &os, sz));
+            if ((u = in.b[0]) >= LZO_M4_MARKER)
+                goto match_2to4;
+            back  = (1 << 11) + (in.b[1] << 2) + (u >> 2) + 1;
+            __ps_skip(&in, 2);
+            RETHROW(lzo_copy_backptr3(&os, out_orig, back));
+        }
+
+        while ((sz = (u & 3))) {
+            RETHROW(lzo_copy_input_small(&in, &os, sz));
+            if ((u = in.b[0]) >= LZO_M4_MARKER)
+                goto match_2to4;
+            back = (in.b[1] << 2) + (u >> 2) + 1;
+            __ps_skip(&in, 2);
+            RETHROW(lzo_copy_backptr2(&os, out_orig, back));
+        }
+    }
+
+    if (likely(in.b == in.b_end))
+        return os.b - out_orig;
+    if (in.b < in.b_end)
+        return LZO_ERR_INPUT_NOT_CONSUMED;
+    return LZO_ERR_INPUT_OVERRUN;
+}
