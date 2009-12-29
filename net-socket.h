@@ -31,4 +31,7 @@ int acceptx(int server_fd, int flags);
 int getsockport(int sock, sa_family_t family);
 int getpeerport(int sock, sa_family_t family);
 
+/* returns -1 if broken, 0 if in progress, 1 if connected */
+int socket_connect_status(int sock);
+
 #endif

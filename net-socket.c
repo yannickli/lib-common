@@ -193,3 +193,15 @@ int getpeerport(int sock, sa_family_t family)
     }
     return sockunion_getport(&local);
 }
+
+int socket_connect_status(int sock)
+{
+    int err;
+    socklen_t size = sizeof(err);
+
+    RETHROW(getsockopt(sock, SOL_SOCKET, SO_ERROR, (void *)&err, &size));
+    if (!err)
+        return 1;
+    errno = err;
+    return ERR_CONNECT_RETRIABLE(err) ? 0 : -1;
+}

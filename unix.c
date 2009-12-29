@@ -366,7 +366,7 @@ int xftruncate(int fd, off_t offs)
     for (;;) {
         int res = ftruncate(fd, offs);
 
-        if (nb < 0 && ERR_RW_RETRIABLE(errno))
+        if (res < 0 && ERR_RW_RETRIABLE(errno))
             continue;
         return res;
     }
