@@ -61,35 +61,42 @@ typedef enum ev_type_t {
     EV_PROXY,
 } ev_type_t;
 
+enum ev_flags_t {
+    EV_FLAG_REFS          = (1U <<  0),
+
+    EV_FLAG_TIMER_NOMISS  = (1U <<  8),
+    EV_FLAG_TIMER_LOWRES  = (1U <<  9),
+    EV_FLAG_TIMER_UPDATED = (1U << 10),
+
+#define EV_FLAG_HAS(ev, f)   ((ev)->flags & EV_FLAG_##f)
+#define EV_FLAG_SET(ev, f)   ((ev)->flags |= EV_FLAG_##f)
+#define EV_FLAG_RST(ev, f)   ((ev)->flags &= ~EV_FLAG_##f)
+};
+
 typedef struct ev_t {
-    flag_t    nomiss  : 1;      /* EV_TIMER */
-    flag_t    timerlp : 1;      /* EV_TIMER */
-    flag_t    updated : 1;      /* EV_TIMER */
-    flag_t    refs    : 1;
-    ev_type_t type    : 4;
-
+    uint8_t   type;             /* ev_type_t */
     uint8_t   signo;            /* EV_SIGNAL */
-
+    uint16_t  flags;
     uint16_t  events_avail;     /* EV_PROXY */
     uint16_t  events_wanted;    /* EV_PROXY, EV_FD */
 
     union {
-        el_cb_f *cb;
+        el_cb_f     *cb;
         el_signal_f *signal;
-        el_child_f *child;
-        el_fd_f *fd;
-        el_proxy_f *prox;
+        el_child_f  *child;
+        el_fd_f     *fd;
+        el_proxy_f  *prox;
     } cb;
     el_data_t priv;
 
     union {
         dlist_t ev_list;        /* EV_BEFORE, EV_AFTER, EV_SIGNAL, EV_PROXY */
-        int fd;                 /* EV_FD */
-        pid_t pid;              /* EV_CHILD */
+        int     fd;             /* EV_FD */
+        pid_t   pid;            /* EV_CHILD */
         struct {
             uint64_t expiry;
-            int repeat;
-            int heappos;
+            int      repeat;
+            int      heappos;
         } timer;                /* EV_TIMER */
     };
 } ev_t;
@@ -190,13 +197,15 @@ static ev_t *el_create(ev_type_t type, void *cb, el_data_t priv, bool ref)
 static el_data_t el_destroy(ev_t **evp, bool move)
 {
     ev_t *ev = *evp;
+
     el_unref(ev);
     if (move) {
         dlist_move(&_G.evs_gc, &ev->ev_list);
     } else {
         dlist_add(&_G.evs_gc, &ev->ev_list);
     }
-    ev->type = EV_UNUSED;
+    ev->type  = EV_UNUSED;
+    ev->flags = 0;
 #ifndef NDEBUG
     ev->priv.u64 = (uint64_t)-1;
 #endif
@@ -499,7 +508,7 @@ static void el_timer_process(uint64_t until)
         if (ev->timer.expiry > until)
             return;
 
-        ev->updated = false;
+        EV_FLAG_RST(ev, TIMER_UPDATED);
         (*ev->cb.cb)(ev, ev->priv);
 
         /* ev has been unregistered in (*cb) */
@@ -508,7 +517,7 @@ static void el_timer_process(uint64_t until)
 
         if (ev->timer.repeat) {
             ev->timer.expiry += ev->timer.repeat;
-            if (!ev->nomiss && ev->timer.expiry < until) {
+            if (!EV_FLAG_HAS(ev, TIMER_NOMISS) && ev->timer.expiry < until) {
                 uint64_t delta  = until - ev->timer.expiry;
                 uint64_t missed = DIV_ROUND_UP((uint64_t)ev->timer.repeat, delta);
 
@@ -517,7 +526,7 @@ static void el_timer_process(uint64_t until)
             }
             el_timer_heapdown(0);
         } else
-        if (!ev->updated) {
+        if (!EV_FLAG_HAS(ev, TIMER_UPDATED)) {
             el_timer_heapremove(&ev);
         }
     }
@@ -544,13 +553,16 @@ static uint64_t get_clock(bool lowres)
 
 /* XXX: if we reschedule in more than half a second, don't care about
         the high precision */
-#define TIMER_IS_LOWRES(ev, next)   ((ev)->timerlp || (next) >= 500)
+#define TIMER_IS_LOWRES(ev, next)   (EV_FLAG_HAS(ev, TIMER_LOWRES) || (next) >= 500)
 
 ev_t *el_timer_register(int next, int repeat, int flags, el_cb_f *cb, el_data_t priv)
 {
     ev_t *ev = el_create(EV_TIMER, cb, priv, true);
-    ev->nomiss  = (flags & EL_TIMER_NOMISS) != 0;
-    ev->timerlp = (flags & EL_TIMER_LOWRES) != 0;
+
+    if (flags & EL_TIMER_NOMISS)
+        EV_FLAG_SET(ev, TIMER_NOMISS);
+    if (flags & EL_TIMER_LOWRES)
+        EV_FLAG_SET(ev, TIMER_LOWRES);
     ev->timer.repeat = repeat;
     ev->timer.expiry = (uint64_t)next + get_clock(TIMER_IS_LOWRES(ev, next));
     el_timer_heapinsert(ev);
@@ -568,7 +580,7 @@ void el_timer_restart(ev_t *ev, int restart)
     CHECK_EV_TYPE(ev, EV_TIMER);
     ASSERT("timer isn't a oneshot timer", !ev->timer.repeat);
     ev->timer.expiry = (uint64_t)restart + get_clock(TIMER_IS_LOWRES(ev, restart));
-    ev->updated = true;
+    EV_FLAG_SET(ev, TIMER_UPDATED);
     el_timer_heapfix(ev);
 }
 
@@ -685,16 +697,20 @@ static void el_loop_proxies(void)
 el_t el_ref(ev_t *ev)
 {
     CHECK_EV(ev);
-    _G.active += !ev->refs;
-    ev->refs = true;
+    if (!EV_FLAG_HAS(ev, REFS)) {
+        _G.active++;
+        EV_FLAG_SET(ev, REFS);
+    }
     return ev;
 }
 
 el_t el_unref(ev_t *ev)
 {
     CHECK_EV(ev);
-    _G.active -= ev->refs;
-    ev->refs = false;
+    if (EV_FLAG_HAS(ev, REFS)) {
+        _G.active--;
+        EV_FLAG_RST(ev, REFS);
+    }
     return ev;
 }
 
@@ -828,7 +844,7 @@ static void el_show_blockers(el_t evh, int signo, el_data_t priv)
         for (int j = 0; j < bucket_len; j++) {
             ev_t *ev = &_G.evs[i][j];
 
-            if (ev->type == EV_UNUSED || !ev->refs)
+            if (ev->type == EV_UNUSED || !EV_FLAG_HAS(ev, REFS))
                 continue;
 
             e_trace_start(0, "ev %p │ cb %p │ data %p │ type %d %s",
