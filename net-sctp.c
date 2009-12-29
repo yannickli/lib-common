@@ -225,7 +225,7 @@ int sctp_close_assoc(int fd, int assoc_id)
             .sinfo_flags      = SCTP_EOF | SCTP_ABORT,
         };
         res = sctp_sendv(fd, NULL, 0, &sinfo, 0);
-        if (res < 0 && (errno == EAGAIN || errno == EINTR))
+        if (res < 0 && ERR_RW_RETRIABLE(errno))
             continue;
         return res;
     }

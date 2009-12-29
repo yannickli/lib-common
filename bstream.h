@@ -106,9 +106,10 @@ static inline ssize_t bread_buffer(int fd, unsigned char *buf, size_t count)
 {
     for (;;) {
         ssize_t n = read(fd, buf, count);
-        if (n >= 0 || (errno != EINTR && errno != EAGAIN)) {
-            return n;
-        }
+
+        if (n < 0 && ERR_RW_RETRIABLE(errno))
+            continue;
+        return n;
     }
 }
 
@@ -276,9 +277,8 @@ static inline ssize_t bwrite_buffer(int fd, const unsigned char *buf,
     while (count) {
         n = write(fd, buf, count);
         if (n <= 0) {
-            if (n < 0 && (errno == EINTR || errno == EAGAIN)) {
+            if (n < 0 && ERR_RW_RETRIABLE(errno))
                 continue;
-            }
             break;
         } else {
             buf     += n;

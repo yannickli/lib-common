@@ -90,7 +90,7 @@ static void el_loop_fds(int timeout)
     el_bl_unlock();
     res = epoll_wait(epollfd_g, events, countof(events), timeout);
     el_bl_lock();
-    assert (res >= 0 || errno == EAGAIN || errno == EINTR);
+    assert (res >= 0 || ERR_RW_RETRIABLE(errno));
 
     if (_G.timers.len) {
         el_timer_process(get_clock(false));

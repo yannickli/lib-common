@@ -146,7 +146,7 @@ int filecopy(const char *pathin, const char *pathout)
         if (nread == 0)
             break;
         if (nread < 0) {
-            if (errno == EINTR || errno == EAGAIN)
+            if (ERR_RW_RETRIABLE(errno))
                 continue;
             goto error;
         }
@@ -156,7 +156,7 @@ int filecopy(const char *pathin, const char *pathout)
                 goto error;
             }
             if (nwrite < 0) {
-                if (errno == EINTR || errno == EAGAIN)
+                if (ERR_RW_RETRIABLE(errno))
                     continue;
                 goto error;
             }
@@ -302,14 +302,17 @@ int tmpfd(void)
 int xwrite(int fd, const void *data, ssize_t len)
 {
     const char *s = data;
+
     while (len > 0) {
         ssize_t nb = write(fd, s, len);
-        if (nb < 0 && errno != EINTR && errno != EAGAIN)
+
+        if (nb < 0) {
+            if (ERR_RW_RETRIABLE(errno))
+                continue;
             return -1;
-        if (nb > 0) {
-            s += nb;
-            len -= nb;
         }
+        s   += nb;
+        len -= nb;
     }
     return 0;
 }
@@ -320,7 +323,7 @@ int xwritev(int fd, struct iovec *iov, int iovcnt)
         ssize_t nb = writev(fd, iov, iovcnt);
 
         if (nb < 0) {
-            if (errno == EINTR || errno == EAGAIN)
+            if (ERR_RW_RETRIABLE(errno))
                 continue;
             return -1;
         }
@@ -344,14 +347,16 @@ int xread(int fd, void *data, ssize_t len)
     char *s = data;
     while (len > 0) {
         ssize_t nb = read(fd, s, len);
-        if (nb < 0 && errno != EINTR && errno != EAGAIN)
+
+        if (nb < 0) {
+            if (ERR_RW_RETRIABLE(errno))
+                continue;
             return -1;
+        }
         if (nb == 0)
             return -1;
-        if (nb > 0) {
-            s += nb;
-            len -= nb;
-        }
+        s   += nb;
+        len -= nb;
     }
     return 0;
 }
@@ -361,7 +366,7 @@ int xftruncate(int fd, off_t offs)
     for (;;) {
         int res = ftruncate(fd, offs);
 
-        if (res < 0 && (errno == EINTR || errno == EAGAIN))
+        if (nb < 0 && ERR_RW_RETRIABLE(errno))
             continue;
         return res;
     }

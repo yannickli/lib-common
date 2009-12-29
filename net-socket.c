@@ -131,12 +131,8 @@ int connectx(int sock, const sockunion_t *addrs, int cnt, int type, int proto,
     if (proto != IPPROTO_SCTP || cnt == 1) {
 #endif
         if (connect(sock, &addrs->sa, sockunion_len(addrs)) < 0
-#ifdef OS_WINDOWS
-        &&  WSAGetLastError() != WSAEWOULDBLOCK
-#else
-        &&  errno != EINPROGRESS
-#endif
-        ) {
+        &&  !ERR_CONNECT_RETRIABLE(errno))
+        {
             goto error;
         }
 #ifdef HAVE_NETINET_SCTP_H

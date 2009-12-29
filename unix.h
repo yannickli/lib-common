@@ -29,6 +29,13 @@
 #define PROTECT_ERRNO(expr) \
     ({ int save_errno__ = errno; expr; errno = save_errno__; })
 
+#define ERR_RW_RETRIABLE(err) \
+    ((err) == EINTR || (err) == EAGAIN)
+#define ERR_CONNECT_RETRIABLE(err) \
+    ((err) == EINTR || (err) == EINPROGRESS)
+#define ERR_ACCEPT_RETRIABLE(err) \
+    ((err) == EINTR || (err) == EAGAIN || (err) == ECONNABORTED)
+
 /****************************************************************************/
 /* process related                                                          */
 /****************************************************************************/
@@ -83,7 +90,7 @@ static inline int p_close(int *hdp) {
     if (hd < 0)
         return 0;
     while (close(hd) < 0) {
-        if (errno != EINTR)
+        if (!ERR_RW_RETRIABLE(errno))
             return -1;
     }
     return 0;

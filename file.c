@@ -38,9 +38,9 @@ static int file_flush_obuf(file_t *f, int len)
         int nb = write(fd, obuf->data, obuf->len);
 
         if (nb < 0) {
-            if (errno != EINTR && errno != EAGAIN)
-                return -1;
-            continue;
+            if (ERR_RW_RETRIABLE(errno))
+                continue;
+            return -1;
         }
         sb_skip(obuf, nb);
         f->wpos += nb;
@@ -242,7 +242,7 @@ int file_writev(file_t *f, const struct iovec *iov, size_t iovcnt)
         ssize_t resv = writev(f->fd, iov2, iov2cnt);
 
         if (resv < 0) {
-            if (errno != EINTR && errno != EAGAIN) {
+            if (!ERR_RW_RETRIABLE(errno)) {
                 res = -1;
                 break;
             }

@@ -1512,7 +1512,7 @@ static int fbtree_readpage(fbtree_t *fbt, int32_t page, bt_page_t *buf)
     for (int pos = 0; pos < ssizeof(*buf); ) {
         int nb = pread(fbt->fd, buf + pos, sizeof(*buf) - pos, offs + pos);
         if (nb < 0) {
-            if (errno == EINTR || errno == EAGAIN)
+            if (ERR_RW_RETRIABLE(errno))
                 continue;
             return -1;
         }
