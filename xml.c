@@ -83,6 +83,9 @@ static parse_t xml_get_prop(xml_tree_t *tree, xml_prop_t **dst,
         if (!isalnum((unsigned char)*p) && *p != ':' && *p != '-') {
             break;
         }
+        if (*p == ':') {
+            name = p + 1;
+        }
         len--;
         p++;
     }
