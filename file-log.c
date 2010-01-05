@@ -97,7 +97,7 @@ static void log_check_invariants(log_file_t *log_file)
         }
     }
     if (log_file->max_total_size) {
-        int64_t totalsize = log_file->max_total_size << 20;
+        int64_t totalsize = (int64_t)log_file->max_total_size << 20;
         struct stat st;
 
         for (int i = fc; i-- > 0; ) {
