@@ -416,9 +416,19 @@ int tpl_fold(sb_t *out, tpl_t **tplp, uint16_t envid, tpl_t **vals, int nb,
     return res;
 }
 
+static inline const tpl_str_t *
+tpl_str_get_var(uint16_t id, const tpl_str_t *vals, int nb)
+{
+    const tpl_str_t *res;
+
+    if (!vals || id >= nb)
+        return NULL;
+    res = &vals[id];
+    return res->s ? res : NULL;
+}
+
 #ifndef __doxygen_mode__
-#define GETVAR(id, vals, nb) \
-    (((vals) && ((id) & 0xffff) < (uint16_t)(nb)) ? &(vals)[(id) & 0xffff] : NULL)
+#define GETVAR(id, vals, nb)  tpl_str_get_var(id, vals, nb)
 #define NS(x)          x##_str
 #define VAL_TYPE       const tpl_str_t
 #define VAL_TYPE_P     const tpl_str_t *
