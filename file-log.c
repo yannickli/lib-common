@@ -270,11 +270,6 @@ static int log_file_rotate_(log_file_t *file, time_t now)
     return 0;
 }
 
-int log_file_force_rotate(log_file_t *file)
-{
-    return log_file_rotate(file, time(NULL));
-}
-
 static int log_check_rotate(log_file_t *lf)
 {
     if (lf->max_size > 0) {

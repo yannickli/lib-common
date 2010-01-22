@@ -44,7 +44,6 @@ __must_check__ int log_file_open(log_file_t *log_file);
 __must_check__ int log_file_close(log_file_t **log_file);
 __must_check__ int log_file_rotate(log_file_t *log_file);
 
-int  log_file_force_rotate(log_file_t *file);
 void log_file_set_maxsize(log_file_t *file, int max);
 void log_file_set_rotate_delay(log_file_t *file, time_t delay);
 void log_file_set_maxfiles(log_file_t *file, int maxfiles);
