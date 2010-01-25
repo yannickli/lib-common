@@ -172,7 +172,7 @@ void log_file_set_rotate_delay(log_file_t *file, time_t delay)
     file->rotate_date = file->open_date + file->rotate_delay;
 }
 
-static int log_file_rotate(log_file_t *file, time_t now)
+static int log_file_rotate_(log_file_t *file, time_t now)
 {
     IGNORE(file_close(&file->_internal));
     file->_internal = log_file_open_new(file, now);
@@ -186,17 +186,22 @@ static int log_file_rotate(log_file_t *file, time_t now)
     return 0;
 }
 
+int log_file_rotate(log_file_t *lf)
+{
+    return log_file_rotate_(lf, time(NULL));
+}
+
 static int log_check_rotate(log_file_t *log_file)
 {
     if (log_file->max_size > 0) {
         off_t size = file_tell(log_file->_internal);
         if (size >= log_file->max_size)
-             return log_file_rotate(log_file, time(NULL));
+             return log_file_rotate_(log_file, time(NULL));
     }
     if (log_file->rotate_delay > 0) {
         time_t now = time(NULL);
         if (log_file->rotate_date <= now)
-            return log_file_rotate(log_file, now);
+            return log_file_rotate_(log_file, now);
     }
     return 0;
 }
