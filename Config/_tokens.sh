@@ -30,6 +30,8 @@ do_h() {
 #ifndef IS_${UPPERCASE_NAME}_TOKENS_H
 #define IS_${UPPERCASE_NAME}_TOKENS_H
 
+#include <lib-common/str.h>
+
 enum ${LOWERCASE_NAME}_token {
     ${UPPERCASE_NAME}_TK_unknown,
 `tr 'a-z-./ ' 'A-Z____' | sed -e "s/^[^/].*/    ${UPPERCASE_NAME}_TK_&,/"`
@@ -38,6 +40,10 @@ enum ${LOWERCASE_NAME}_token {
 __attribute__((pure))
 enum ${LOWERCASE_NAME}_token
 ${LOWERCASE_NAME}_get_token(const char *s, int len);
+
+__attribute__((pure))
+enum ${LOWERCASE_NAME}_token
+${LOWERCASE_NAME}_get_token_ps(pstream_t ps);
 #endif /* IS_${UPPERCASE_NAME}_TOKEN_H */
 EOF
 }
@@ -85,10 +91,23 @@ ${LOWERCASE_NAME}_get_token(const char *s, int len)
 
     if (len) {
         const struct tok *res = ${LOWERCASE_NAME}_get_token_aux(s, len);
-        return res ? res->val : ${UPPERCASE_NAME}_TK_unknown;
-    } else {
-        return ${UPPERCASE_NAME}_TK_unknown;
+        if (res)
+            return res->val;
     }
+    return ${UPPERCASE_NAME}_TK_unknown;
+}
+
+enum ${LOWERCASE_NAME}_token
+${LOWERCASE_NAME}_get_token_ps(pstream_t ps)
+{
+    size_t len = ps_len(&ps);
+
+    if (len) {
+        const struct tok *res = ${LOWERCASE_NAME}_get_token_aux(ps.s, len);
+        if (res)
+            return res->val;
+    }
+    return ${UPPERCASE_NAME}_TK_unknown;
 }
 EOF
 }
