@@ -38,6 +38,7 @@ typedef struct log_file_t {
 
 __must_check__ log_file_t *log_file_open(const char *nametpl, int flags);
 __must_check__ int log_file_close(log_file_t **log_file);
+__must_check__ int log_file_rotate(log_file_t *log_file);
 
 int  log_file_force_rotate(log_file_t *file);
 void log_file_set_maxsize(log_file_t *file, int max);
