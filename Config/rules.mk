@@ -24,6 +24,26 @@ $$(eval $$(call ext/rule/c,$1,$2,$(3:.tokens=tokens.c),$4))
 endef
 
 #}}}
+#[ perf ]#############################################################{{{#
+
+ext/gen/perf = $(call fun/patsubst-filt,%.perf,%.c,$1)
+
+define ext/expand/perf
+
+$(3:.perf=.c): %.c: %.perf
+	$(msg/generate) $$(@R)
+	gperf --language=ANSI-C --output-file=$$@ $$<
+
+__$(1D)_generated: $(3:.perf=.c)
+$$(eval $$(call fun/common-depends,$1,$(3:.perf=.c),$3))
+endef
+
+define ext/rule/perf
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t-tok,$$(call ext/expand/perf,$1,$2,$$t,$4))))
+$$(eval $$(call ext/rule/c,$1,$2,$(3:.perf=.c),$4))
+endef
+
+#}}}
 #[ lua ]##############################################################{{{#
 
 ext/gen/lua = $(call fun/patsubst-filt,%.lua,%.lc.bin,$1)
