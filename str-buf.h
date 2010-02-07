@@ -113,15 +113,11 @@ static inline sb_t *sb_init(sb_t *sb)
 {
     return sb_init_full(sb, __sb_slop, 0, 1, MEM_STATIC);
 }
+void sb_reset(sb_t *sb);
 void sb_wipe(sb_t *sb);
 GENERIC_NEW(sb_t, sb);
 GENERIC_DELETE(sb_t, sb);
 
-static inline void sb_reset(sb_t *sb)
-{
-    sb_init_full(sb, sb->data - sb->skip, 0, sb->size + sb->skip, sb->mem_pool);
-    sb->data[0] = '\0';
-}
 static inline void sb_wipe_not_needed(sb_t *sb)
 {
     assert (sb->mem_pool == MEM_STATIC);
@@ -250,10 +246,13 @@ static inline void sb_splice0s(sb_t *sb, int pos, int len, int extralen)
 static inline void sb_skip(sb_t *sb, int len)
 {
     assert (len >= 0 && len <= sb->len);
-    sb->skip += len;
-    sb->data += len;
-    sb->size -= len;
-    sb->len  -= len;
+    if ((sb->len -= len)) {
+        sb->data += len;
+        sb->skip += len;
+        sb->size -= len;
+    } else {
+        sb_reset(sb);
+    }
 }
 static inline void sb_skip_upto(sb_t *sb, const void *where)
 {

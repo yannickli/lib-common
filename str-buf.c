@@ -34,6 +34,17 @@ char *sb_detach(sb_t *sb, int *len)
     return s;
 }
 
+void sb_reset(sb_t *sb)
+{
+    if (sb->mem_pool == MEM_LIBC && sb->skip + sb->size > (128 << 10)) {
+        sb_wipe(sb);
+        /* sb_init(sb) unneeded */
+    } else {
+        sb_init_full(sb, sb->data - sb->skip, 0, sb->size + sb->skip, sb->mem_pool);
+        sb->data[0] = '\0';
+    }
+}
+
 void sb_wipe(sb_t *sb)
 {
     switch (sb->mem_pool & MEM_POOL_MASK) {
