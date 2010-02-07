@@ -128,7 +128,7 @@ int path_join(char *buf, int len, const char *path)
  * aaa/../ -> /
  * //+$    -> $
  */
-int path_simplify(char *in)
+int path_simplify2(char *in, bool keep_trailing_slash)
 {
     bool absolute = *in == '/';
     char *start = in + absolute, *out = in + absolute;
@@ -138,56 +138,48 @@ int path_simplify(char *in)
         return -1;
 
     for (;;) {
+        const char *p;
+
 #if 0
         e_info("state: `%.*s` \tin: `%s`", (int)(out - (start - absolute)),
                start - absolute, in);
 #endif
-        switch (*in) {
-          case '/':
+        while (*in == '/')
             in++;
-            break;
-
-          case '.':
+        if (*in == '.') {
             if (in[1] == '/') {
                 in += 2;
                 continue;
             }
             if (in[1] == '.' && (!in[2] || in[2] == '/')) {
+                in += 2;
                 if (atoms) {
                     atoms--;
                     while (out > start && *--out != '/');
                 } else {
-                    if (!absolute) {
-                        if (out > start)
-                            *out++ = '/';
-                        *out++ = '.';
-                        *out++ = '.';
-                    }
+                    if (!absolute)
+                        out = mempcpy(out, "..", 2);
                 }
-                in += 2;
                 continue;
             }
-            /* FALLTHROUGH */
-
-          default:
-            if (out > start && out[-1] != '/')
-                *out++ = '/';
-            /* FALLTHROUGH */
-
-          case '\0':
-            atoms++;
-            while (*in != '/') {
-                if (!*in) {
-                    start -= absolute;
-                    if (out == start)
-                        *out++ = '.';
-                    *out = '\0';
-                    return out - start;
-                }
-                *out++ = *in++;
-            }
         }
+
+        in = strchrnul(p = in, '/');
+        memmove(out, p, in - p);
+        out += in - p;
+        atoms++;
+        if (!*in)
+            break;
+        *out++ = '/';
     }
+
+    start -= absolute;
+    if (!keep_trailing_slash && out > start && out[-1] == '/')
+        --out;
+    if (out == start)
+        *out++ = '.';
+    *out = '\0';
+    return out - start;
 }
 
 /* TODO: make our own without the PATH_MAX craziness */

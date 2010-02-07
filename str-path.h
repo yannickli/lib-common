@@ -42,7 +42,8 @@ int path_basename(char *buf, int len, const char *path);
 /*----- path manipulations -----*/
 
 int path_join(char *buf, int len, const char *path);
-int path_simplify(char *path);
+int path_simplify2(char *path, bool keep_trailing_slash);
+#define path_simplify(path)   path_simplify2(path, false)
 int path_canonify(char *buf, int len, const char *path);
 char *path_expand(char *buf, int len, const char *path);
 
