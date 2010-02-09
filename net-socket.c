@@ -95,17 +95,15 @@ int listenx(int sock, const sockunion_t *addrs, int cnt,
     int to_close = -1;
 
     if (sock < 0) {
-        to_close = sock = bindx(-1, addrs, cnt, type, proto, flags);
+        to_close = sock = RETHROW(bindx(-1, addrs, cnt, type, proto, flags));
     }
 
-    if (listen(sock, SOMAXCONN) < 0)
-        goto error;
+    if (listen(sock, SOMAXCONN) < 0) {
+        if (to_close >= 0)
+            PROTECT_ERRNO(close(to_close));
+        return -1;
+    }
     return sock;
-
-  error:
-    if (to_close >= 0)
-        PROTECT_ERRNO(close(to_close));
-    return -1;
 }
 
 int connectx(int sock, const sockunion_t *addrs, int cnt, int type, int proto,
