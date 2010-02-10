@@ -37,6 +37,7 @@ typedef struct mem_fifo_pool_t {
     uint32_t    page_size;
     uint32_t    nb_pages;
     uint32_t    occupied;
+    size_t      map_size;
 
     /* p_delete codepath */
     bool        alive;
@@ -57,28 +58,34 @@ static void blk_protect(mem_block_t *blk)
     VALGRIND_MAKE_MEM_NOACCESS(blk, sizeof(*blk));
 }
 
-static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp)
+static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
 {
-    uint32_t size = mfp->page_size - sizeof(mem_page_t);
-    mem_page_t *page;
+    mem_page_t *page = mfp->freepage;
+    uint32_t mapsize;
 
-    if (mfp->freepage) {
-        page = mfp->freepage;
+    if (page && page->page.size >= minsize) {
         mfp->freepage = NULL;
         return page;
     }
 
-    page = mmap(NULL, mfp->page_size, PROT_READ | PROT_WRITE,
-                      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (minsize < mfp->page_size) {
+        mapsize = mfp->page_size;
+    } else {
+        mapsize = ROUND_UP(minsize + sizeof(mem_page_t), 4096);
+    }
+
+    page = mmap(NULL, mapsize, PROT_READ | PROT_WRITE,
+                MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (page == MAP_FAILED) {
         e_panic(E_UNIXERR("mmap"));
     }
 
     page->page.start = page->area;
     page->page.pool  = &mfp->funcs;
-    page->page.size  = size;
+    page->page.size  = mapsize - sizeof(mem_page_t);
     mem_register(&page->page);
     mfp->nb_pages++;
+    mfp->map_size   += mapsize;
     return page;
 }
 
@@ -99,6 +106,7 @@ static void mem_page_delete(mem_fifo_pool_t *mfp, mem_page_t **pagep)
 
     if (page) {
         mfp->nb_pages--;
+        mfp->map_size -= page->page.size;
         mem_unregister(&page->page);
         munmap(page, page->page.size + sizeof(mem_page_t));
     }
@@ -122,15 +130,9 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
     if (unlikely(!mfp->alive))
         e_panic("trying to allocate from a dead pool");
 
-    if (unlikely(size > mfp->page_size - sizeof(mem_page_t))) {
-        /* Should just map a larger page, yet we need a maximum value */
-        e_panic(E_PREFIX("tried to alloc %zd bytes, cannot have more than %d"),
-                size, mfp->page_size);
-    }
-
     page = mfp->current;
     if (!page || mem_page_size_left(page) < size) {
-        mfp->current = page = mem_page_new(mfp);
+        page = mfp->current = mem_page_new(mfp, size);
     }
 
     blk = (mem_block_t *)(page->area + page->used_size);
@@ -197,11 +199,6 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
     if (unlikely(!mfp->alive))
         e_panic("trying to reallocate from a dead pool");
 
-    if (unlikely(size > mfp->page_size - sizeof(mem_page_t))) {
-        /* Should just map a larger page, yet we need a maximum value */
-        e_panic(E_PREFIX("tried to alloc %zd bytes, cannot have more than %d"),
-                size, mfp->page_size);
-    }
     if (unlikely(size == 0)) {
         mfp_free(_mfp, mem, flags);
         return NULL;
@@ -288,7 +285,6 @@ void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
     mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)(mp);
     /* we don't want to account the 'spare' page as allocated, it's an
        optimization that should not leak. */
-    *allocated = (mfp->nb_pages - (mfp->freepage != NULL))
-               * (mfp->page_size - ssizeof(mem_page_t));
+    *allocated = mfp->map_size -= mfp->freepage ? mfp->freepage->page.size : 0;
     *used      = mfp->occupied;
 }
