@@ -44,6 +44,22 @@ check_tool() {
     which "$1" >/dev/null 2>&1 || warn "*** $1 is missing, apt-get install $2"
 }
 
+pkg_config_setvar() {
+    pfx="$1"; shift
+    deb="$1"; shift
+
+    while test $# != 0; do
+        pkg="$1"
+        if pkg-config --print-errors "$pkg"; then
+            setvar "${pfx}_CFLAGS" "$(pkg-config --cflags "$pkg")"
+            setvar "${pfx}_LIBS"   "$(pkg-config --libs "$pkg")"
+            return 0
+        fi
+        shift
+    done
+    warn "*** $deb is missing (apt-get install $deb)"
+}
+
 # }}}
 
 while test $# != 0; do
@@ -106,38 +122,15 @@ else
 fi
 
 # }}}
-# {{{ libxml
+# {{{ pkg-config packages
 
-if pkg-config --print-errors libxml-2.0; then
-    setvar "libxml2_CFLAGS" "$(pkg-config --cflags libxml-2.0)"
-    setvar "libxml2_LIBS" "$(pkg-config --libs libxml-2.0)"
-else
-    warn "*** libxml2-dev is missing, apt-get install libxml2-dev"
-fi
+pkg_config_setvar "libxml2" "libxml2-dev"   "libxml-2.0"
+pkg_config_setvar "lua"     "liblua5.1-dev" "lua5.1" "lua"
+pkg_config_setvar "zlib"    "zlib1g-dev"    "zlib"
 
-# }}}
-# {{{ lua
-
-if pkg-config --print-errors lua5.1; then
-    setvar "lua_CFLAGS" "$(pkg-config --cflags lua5.1)"
-    setvar "lua_LIBS" "$(pkg-config --libs lua5.1)"
-elif pkg-config --print-errors lua; then
-    setvar "lua_CFLAGS" "$(pkg-config --cflags lua)"
-    setvar "lua_LIBS" "$(pkg-config --libs lua)"
-else
-    warn "*** liblua5.1-dev is missing, apt-get install liblua5.1-dev"
-fi
 check_tool luac lua5.1
 
-# }}}
-# {{{ fuse
-
-if pkg-config --print-errors fuse; then
-    setvar "fuse_CFLAGS" "$(pkg-config --cflags fuse)"
-    setvar "fuse_LIBS" "$(pkg-config --libs fuse)"
-else
-    warn "*** libfuse-dev is missing, apt-get install libfuse-dev"
-fi
+pkg_config_setvar "fuse" "libfuse-dev" "fuse"
 
 # }}}
 # {{{ libpcap-dev
