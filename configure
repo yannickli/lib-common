@@ -262,5 +262,15 @@ else
 fi
 
 # }}}
+# {{{ mysql
+
+if which mysql_config 1>/dev/null 2>/dev/null; then
+    setvar "mysqlclient_CFLAGS" "$(mysql_config --include)"
+    setvar "mysqlclient_LIBS"   "$(mysql_config --libs | sed -e 's/-rdynamic//g')"
+else
+    warn "*** libmysqlclient-dev is missing, apt-get install liblua5.1-dev"
+fi
+
+# }}}
 
 test -z "$missing_dep" || die "*** Missing dependencies, please upgrade your system"
