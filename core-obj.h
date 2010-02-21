@@ -137,11 +137,11 @@ void obj_wipe_real(object_t *o);
     } while (0)
 
 #define obj_new(pfx)      \
-    (pfx##_t *)obj_init_real(pfx##_class(), p_new(pfx##_t, 1))
+    ((pfx##_t *)obj_init_real(pfx##_class(), p_new(pfx##_t, 1)))
 #define obj_mp_new(mp, pfx) \
-    (pfx##_t *)obj_init_real(pfx##_class(), mp_new(mp, pfx##_t, 1))
+    ((pfx##_t *)obj_init_real(pfx##_class(), mp_new(mp, pfx##_t, 1)))
 #define obj_init(pfx, v)  \
-    (pfx##_t *)obj_init_real(pfx##_class(), memset(v, 0, sizeof(*v)))
+    ((pfx##_t *)obj_init_real(pfx##_class(), memset(v, 0, sizeof(*v))))
 #define obj_wipe(o)            obj_wipe_real(obj_vcast(object, o))
 #define obj_delete(op)         obj_delete_with_expr(op, p_delete(op))
 #define obj_mp_delete(mp, op)  obj_delete_with_expr(op, mp_delete(mp, op))
