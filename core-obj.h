@@ -136,6 +136,10 @@ void obj_wipe_real(object_t *o);
         }                                                                    \
     } while (0)
 
+#define obj_class(pfx)    ((const object_class_t *)pfx##_class())
+#define obj_new_of_class(pfx, cls) \
+    ((pfx##_t *)obj_init_real(cls, p_new(char, (cls)->type_size)))
+
 #define obj_new(pfx)      \
     ((pfx##_t *)obj_init_real(pfx##_class(), p_new(pfx##_t, 1)))
 #define obj_mp_new(mp, pfx) \
