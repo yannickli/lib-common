@@ -196,9 +196,9 @@ else
     setvar "jni_CFLAGS" "-I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux"
     if test -d ${JAVA_HOME}/jre/lib/i386/server; then
         # -ljsig to use signal chaining of the JVM
-        setvar "jvm_LDFLAGS" "-L${JAVA_HOME}/jre/lib/i386/server -Wl,--rpath,${JAVA_HOME}/jre/lib/i386/server -ljvm -ljsig"
+        setvar "jvm_LDFLAGS" "-L${JAVA_HOME}/jre/lib/i386/server -Wl,--rpath=${JAVA_HOME}/jre/lib/i386/server:/usr/java/default/lib/i386i/server -ljvm -ljsig"
     elif test -d ${JAVA_HOME}/jre/lib/amd64/server; then
-        setvar "jvm_LDFLAGS" "-L${JAVA_HOME}/jre/lib/amd64/server -Wl,--rpath,${JAVA_HOME}/jre/lib/amd64/server -ljvm -ljsig"
+        setvar "jvm_LDFLAGS" "-L${JAVA_HOME}/jre/lib/amd64/server -Wl,--rpath=${JAVA_HOME}/jre/lib/amd64/server:/usr/java/default/lib/amd64/server -ljvm -ljsig"
     else
          warn "*** missing libjvm, apt-get install sun-java6-bin"
     fi
