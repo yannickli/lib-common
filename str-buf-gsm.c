@@ -408,10 +408,12 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
                 goto error;
             c |= 0x80;
         }
-        if (c == '_' && plan == GSM_CIMD_PLAN) {
-            c = cimd_to_unicode(p, end, &p);
-            if (unlikely(c < 0))
-                goto error;
+        if (plan == GSM_CIMD_PLAN) {
+            if (c == '_') {
+                c = cimd_to_unicode(p, end, &p);
+                if (unlikely(c < 0))
+                    goto error;
+            }
         } else {
             c = gsm7_to_unicode(c, '.');
         }
