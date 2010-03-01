@@ -206,9 +206,6 @@ static el_data_t el_destroy(ev_t **evp, bool move)
     }
     ev->type  = EV_UNUSED;
     ev->flags = 0;
-#ifndef NDEBUG
-    ev->priv.u64 = (uint64_t)-1;
-#endif
     *evp = NULL;
     return ev->priv;
 }
