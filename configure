@@ -209,7 +209,12 @@ fi
 
 simpadir0="/home/data/projects/kiosque/Doc confidentiel SFR pour NSN 30102009/SIMPA_Kit Marchand_Java_V5.20.02_20091029.zip"
 simpadir1="/opt/kitmarchand"
-if test \( -f "$simpadir0" -a -r "$simpadir0" \) -o -d "$simpadir1"; then
+
+dir_exists() {
+    test -d "$1" -a -r "$1"
+}
+
+if dir_exists "$simpadir0" || dir_exists "$simpadir1"; then
     setenv "ENABLE_SFR_SIMPA" "1"
     setenv "WITH_SFR_SIMPA" "1"
 else
