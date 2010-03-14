@@ -23,21 +23,25 @@ void xmlpp_open(xmlpp_t *pp, sb_t *buf)
 void xmlpp_open_banner(xmlpp_t *pp, sb_t *buf)
 {
     xmlpp_open(pp, buf);
-    sb_adds(buf, "<?xml version=\"1.0\"?>");
+    sb_adds(buf, "<?xml version=\"1.0\"?>\n");
 }
 
 void xmlpp_close(xmlpp_t *pp)
 {
     while (pp->stack.len)
         xmlpp_closetag(pp);
-    if (pp->buf->data[pp->buf->len - 1] != '\n')
+    if (!pp->nospace && pp->buf->data[pp->buf->len - 1] != '\n')
         sb_addc(pp->buf, '\n');
     string_array_wipe(&pp->stack);
 }
 
 void xmlpp_opentag(xmlpp_t *pp, const char *tag)
 {
-    sb_addf(pp->buf, "%-*c<%s>", pp->stack.len * 2 + 1, '\n', tag);
+    if (pp->nospace) {
+        sb_addf(pp->buf, "<%s>", tag);
+    } else {
+        sb_addf(pp->buf, "%-*c<%s>", pp->stack.len * 2 + 1, '\n', tag);
+    }
     string_array_append(&pp->stack, p_strdup(tag));
     pp->can_do_attr = true;
     pp->was_a_tag   = true;
@@ -54,7 +58,7 @@ void xmlpp_closetag(xmlpp_t *pp)
         sb_shrink(pp->buf, 1);
         sb_adds(pp->buf, " />");
     } else {
-        if (pp->was_a_tag) {
+        if (pp->was_a_tag && !pp->nospace) {
             sb_addc(pp->buf, '\n');
             sb_addnc(pp->buf, pp->stack.len * 2, ' ');
         }
@@ -67,6 +71,8 @@ void xmlpp_closetag(xmlpp_t *pp)
 
 void xmlpp_nl(xmlpp_t *pp)
 {
+    if (pp->nospace)
+        return;
     if (pp->can_do_attr) {
         sb_shrink(pp->buf, 1);
         sb_addf(pp->buf, "%-*c>", 2 * pp->stack.len, '\n');

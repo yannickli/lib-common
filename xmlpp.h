@@ -19,6 +19,7 @@
 typedef struct xmlpp_t {
     flag_t can_do_attr : 1;
     flag_t was_a_tag   : 1;
+    flag_t nospace     : 1;
     sb_t  *buf;
     string_array stack;
 } xmlpp_t;
