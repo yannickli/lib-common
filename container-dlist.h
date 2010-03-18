@@ -27,6 +27,19 @@ static inline void dlist_init(dlist_t *l)
     l->next = l->prev = l;
 }
 
+/* XXX: WARNING THIS DOESN'T WORK ON A SINGLE NODE OUTSIDE A LIST
+ *
+ * If this can happen, you have to:
+ *
+ *   bool was_empty = dlist_is_empty(&ptr->link);
+ *   ptr = realloc(ptr, 1209);
+ *   if (was_empty) {
+ *       dlist_init(&ptr->link);
+ *   } else {
+ *       __dlist_repair(&ptr->link);
+ *   }
+ *
+ */
 static inline void __dlist_repair(dlist_t *e)
 {
     /* Use this to repair a dlist_t node in a structure after a realloc() */
