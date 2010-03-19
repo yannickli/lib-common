@@ -275,5 +275,15 @@ else
 fi
 
 # }}}
+# {{{ goes
+
+if which geos-config 1>/dev/null 2>/dev/null; then
+    setvar "geos_CFLAGS" "$(geos-config --cflags)"
+    setvar "geos_LIBS"   "$(geos-config --libs)"
+else
+    warn "*** libgeos-dev is missing, apt-get install libgeos-dev"
+fi
+
+# }}}
 
 test -z "$missing_dep" || die "*** Missing dependencies, please upgrade your system"
