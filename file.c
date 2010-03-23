@@ -234,7 +234,7 @@ int file_writev(file_t *f, const struct iovec *iov, size_t iovcnt)
     } else {
         iov2    = t_new(struct iovec, iovcnt + 1);
         iov2[0] = MAKE_IOVEC(f->obuf.data, f->obuf.len);
-        memcpy(iov2 + 1, iov, sizeof(*iov) * iovcnt);
+        p_copy(iov2 + 1, iov, iovcnt);
         iov2cnt = iovcnt + 1;
     }
 

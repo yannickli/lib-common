@@ -208,10 +208,10 @@ static void btn_shift(bt_node_t *node, int dst, int src, int count)
     assert (dst + count <= BT_ARITY);
     assert (src + count <= BT_ARITY);
 
-    p_move(node->ptrs, dst, src, count + 1);
+    p_move2(node->ptrs, dst, src, count + 1);
 
     if (count > 0) {
-        p_move(node->keys, dst, src, count);
+        p_move2(node->keys, dst, src, count);
     }
 }
 
@@ -1272,7 +1272,7 @@ int btree_push(btree_t *bt, uint64_t key, const void *_data, int dlen)
             lleaf->used = pos1;
 
             memcpy(nleaf->data + nleaf->used, rleaf->data, pos2);
-            p_move(rleaf->data, 0, pos2, rleaf->used - pos2);
+            p_move2(rleaf->data, 0, pos2, rleaf->used - pos2);
             nleaf->used += pos2;
             rleaf->used -= pos2;
 
@@ -1283,7 +1283,7 @@ int btree_push(btree_t *bt, uint64_t key, const void *_data, int dlen)
             goto restart;
         }
 
-        p_move(rleaf->data, shift, 0, rleaf->used);
+        p_move2(rleaf->data, shift, 0, rleaf->used);
         memcpy(rleaf->data, lleaf->data + oldpos, shift);
         lleaf->used -= shift;
         rleaf->used += shift;
@@ -1308,12 +1308,12 @@ int btree_push(btree_t *bt, uint64_t key, const void *_data, int dlen)
         pos += 1 + 8 + 1;
 
         assert (pos <= lleaf->used);
-        p_move(p, pos + need, pos, lleaf->used - pos);
+        p_move2(p, pos + need, pos, lleaf->used - pos);
 
     } else {
 
         assert (pos <= lleaf->used);
-        p_move(p, pos + need, pos, lleaf->used - pos);
+        p_move2(p, pos + need, pos, lleaf->used - pos);
 
         /* insert key */
         p[pos] = 8;

@@ -145,7 +145,7 @@ char *__sb_splice(sb_t *sb, int pos, int len, int dlen)
     assert (pos <= sb->len && pos + len <= sb->len);
 
     if (len >= dlen) {
-        p_move(sb->data, pos + dlen, pos + len, sb->len - pos - len);
+        p_move2(sb->data, pos + dlen, pos + len, sb->len - pos - len);
         __sb_fixlen(sb, sb->len + dlen - len);
     } else
     if (len + sb->skip >= dlen) {
@@ -153,10 +153,10 @@ char *__sb_splice(sb_t *sb, int pos, int len, int dlen)
         sb->data -= dlen - len;
         sb->size += dlen - len;
         sb->len  += dlen - len;
-        p_move(sb->data, 0, dlen - len, pos);
+        p_move2(sb->data, 0, dlen - len, pos);
     } else {
         sb_grow(sb, dlen - len);
-        p_move(sb->data, pos + dlen, pos + len, sb->len - pos - len);
+        p_move2(sb->data, pos + dlen, pos + len, sb->len - pos - len);
         __sb_fixlen(sb, sb->len + dlen - len);
     }
     return sb->data + pos;

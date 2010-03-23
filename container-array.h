@@ -112,7 +112,7 @@ void generic_array_sort(generic_array *array,
         assert (pos >= 0);                                                    \
         prefix##suffix##_ensure(v, v->len + 1);                               \
         if (pos < v->len) {                                                   \
-            p_move(v->tab, pos + 1, pos, v->len - pos);                       \
+            p_move2(v->tab, pos + 1, pos, v->len - pos);                      \
         } else {                                                              \
             pos = v->len;                                                     \
         }                                                                     \
@@ -156,10 +156,10 @@ void generic_array_sort(generic_array *array,
         } else                                                                \
         if (len != count) {                                                   \
             prefix##suffix##_ensure(v, v->len + count - len);                 \
-            p_move(v->tab, pos + count, pos + len, v->len - pos - len);       \
+            p_move2(v->tab, pos + count, pos + len, v->len - pos - len);      \
             v->len += count - len;                                            \
         }                                                                     \
-        memcpy(v->tab + pos, items, count * sizeof(*items));                  \
+        p_copy(v->tab + pos, items, count);                                   \
     }                                                                         \
     /* OG: this API is very error prone. */                                   \
     /*     should have an API to remove array element by value. */            \

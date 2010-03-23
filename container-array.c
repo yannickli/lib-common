@@ -100,7 +100,7 @@ void *generic_array_take(generic_array *array, int pos)
     }
 
     ptr = array->tab[pos];
-    p_move(array->tab, pos, pos + 1, array->len - pos - 1);
+    p_move2(array->tab, pos, pos + 1, array->len - pos - 1);
     array->len--;
 
     return ptr;

@@ -237,14 +237,6 @@ static inline void *mem_dup(const void *src, size_t size)
     return memcpy(imalloc(size, MEM_RAW | MEM_LIBC), src, size);
 }
 
-static inline void mem_move(void *p, size_t to, size_t from, size_t len) {
-    memmove((char *)p + to, (const char *)p + from, len);
-}
-
-static inline void mem_copy(void *p, size_t to, size_t from, size_t len) {
-    memcpy((char *)p + to, (const char *)p + from, len);
-}
-
 __attribute__((malloc, warn_unused_result))
 static inline void *p_dupz(const void *src, size_t len)
 {
@@ -291,10 +283,13 @@ static inline void (p_delete)(void **p) {
 }
 
 
-#define p_move(p, to, from, n)    \
-    mem_move((p), sizeof(*(p)) * (to), sizeof(*(p)) * (from), sizeof(*(p)) * (n))
-#define p_copy(p, to, from, n)    \
-    mem_copy((p), sizeof(*(p)) * (to), sizeof(*(p)) * (from), sizeof(*(p)) * (n))
+#define p_move(to, from, n)  memmove(to, from, sizeof(*(to)) * (n))
+#define p_copy(to, from, n)  memcpy(to, from, sizeof(*(to)) * (n))
+
+#define p_move2(p, to, from, n) \
+    ({ typeof(*(p)) *__p = (p); p_move(__p + (to), __p + (from), n); })
+#define p_copy2(p, to, from, n) \
+    ({ typeof(*(p)) __p = (p); p_copy(__p + (to), __p + (from), n); })
 
 #define p_alloc_nr(x) (((x) + 16) * 3 / 2)
 
