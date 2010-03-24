@@ -110,11 +110,13 @@ static inline long long vstrtoll(char *str, char **endp, int base) {
 #define strtoll(str, endp, base)  cstrtoll(str, endp, base)
 
 __attr_nonnull__((1))
-static inline long long cstrtoull(const char *str, const char **endp, int base) {
+static inline unsigned long long
+cstrtoull(const char *str, const char **endp, int base) {
     return (strtoull)(str, (char **)endp, base);
 }
 __attr_nonnull__((1))
-static inline long long vstrtoull(char *str, char **endp, int base) {
+static inline unsigned long long
+vstrtoull(char *str, char **endp, int base) {
     return (strtoull)(str, endp, base);
 }
 #define strtoull(str, endp, base)  cstrtoull(str, endp, base)
