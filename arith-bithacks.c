@@ -86,6 +86,10 @@ static size_t membitcount_aligned(const uint8_t *p, const uint8_t *end)
         count += bitcount32(((uint32_t *)p)[1]);
         count += bitcount32(((uint32_t *)p)[2]);
         count += bitcount32(((uint32_t *)p)[3]);
+        count += bitcount32(((uint32_t *)p)[4]);
+        count += bitcount32(((uint32_t *)p)[5]);
+        count += bitcount32(((uint32_t *)p)[6]);
+        count += bitcount32(((uint32_t *)p)[7]);
         p += 32;
     }
 
