@@ -208,38 +208,17 @@ int file_putc(file_t *f, int c)
     return 0;
 }
 
-int file_writev(file_t *f, const struct iovec *iov, size_t iovcnt)
+static int __file_writev(file_t *f, struct iovec *iov, size_t iovcnt)
 {
-    struct iovec *iov2;
-    size_t iov2cnt, len;
+    size_t oldcnt = iovcnt;
+    size_t len = 0;
     int res = 0;
 
-    if (unlikely(!(f->flags & FILE_WRONLY))) {
-        errno = EBADF;
-        return -1;
-    }
-    if (unlikely(iovcnt > IOV_MAX)) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    len = f->obuf.len;
     for (size_t i = 0; i < iovcnt; i++)
         len += iov[i].iov_len;
 
-    t_push();
-    if (f->obuf.len == 0) {
-        iov2    = t_dup(iov, iovcnt);
-        iov2cnt = iovcnt;
-    } else {
-        iov2    = t_new(struct iovec, iovcnt + 1);
-        iov2[0] = MAKE_IOVEC(f->obuf.data, f->obuf.len);
-        p_copy(iov2 + 1, iov, iovcnt);
-        iov2cnt = iovcnt + 1;
-    }
-
     while (len >= BUFSIZ) {
-        ssize_t resv = writev(f->fd, iov2, iov2cnt);
+        ssize_t resv = writev(f->fd, iov, iovcnt);
 
         if (resv < 0) {
             if (!ERR_RW_RETRIABLE(errno)) {
@@ -247,37 +226,56 @@ int file_writev(file_t *f, const struct iovec *iov, size_t iovcnt)
                 break;
             }
         } else {
-            int cnt;
-
             f->wpos += resv;
             len     -= resv;
-            if (len == 0) {
-                iov2cnt = 0;
-                break;
+            while (resv > 0) {
+                if (iov[0].iov_len > (size_t)resv) {
+                    iov->iov_base = (char *)iov->iov_base + resv;
+                    iov->iov_len -= resv;
+                    break;
+                }
+                resv -= iov[0].iov_len;
+                iov++;
+                iovcnt--;
             }
-            for (cnt = 0; iov2[cnt].iov_len <= (size_t)resv; cnt++)
-                resv -= iov2[cnt].iov_len;
-            iov2    += cnt;
-            iov2cnt -= cnt;
-            iov2->iov_base  = (char *)iov2->iov_base + resv;
-            iov2->iov_len  -= resv;
         }
     }
 
-    if (iov2cnt == 0) {
-        sb_reset(&f->obuf);
-    } else {
-        if (iov2cnt == iovcnt + 1) {
-            sb_skip_upto(&f->obuf, iov2->iov_base);
-        } else {
-            sb_set(&f->obuf, iov2->iov_base, iov2->iov_len);
-        }
-        for (size_t i = 1; i < iov2cnt; i++) {
-            sb_add(&f->obuf, iov2[i].iov_base, iov2[i].iov_len);
+    if (f->obuf.len) {
+        if (iovcnt < oldcnt) {
+            sb_reset(&f->obuf);
+        } else
+        if (iovcnt == oldcnt) {
+            sb_skip_upto(&f->obuf, iov->iov_base);
+            iov++;
+            iovcnt--;
         }
     }
-    t_pop();
+    for (size_t i = 0; i < iovcnt; i++) {
+        sb_add(&f->obuf, iov[i].iov_base, iov[i].iov_len);
+    }
     return res;
+}
+
+int file_writev(file_t *f, const struct iovec *iov, size_t iovcnt)
+{
+    struct iovec iov2[IOV_MAX];
+
+    if (unlikely(!(f->flags & FILE_WRONLY))) {
+        errno = EBADF;
+        return -1;
+    }
+    if (unlikely(iovcnt + 1 >= IOV_MAX)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    iov2[0] = MAKE_IOVEC(f->obuf.data, f->obuf.len);
+    p_copy(iov2 + 1, iov, iovcnt);
+
+    if (f->obuf.len == 0)
+        return __file_writev(f, iov2 + 1, iovcnt);
+    return __file_writev(f, iov2, iovcnt + 1);
 }
 
 int file_writevf(file_t *f, const char *fmt, va_list ap)
@@ -286,4 +284,21 @@ int file_writevf(file_t *f, const char *fmt, va_list ap)
     if (f->obuf.len > BUFSIZ)
         RETHROW(file_flush(f));
     return 0;
+}
+
+int file_write(file_t *f, const void *data, size_t len)
+{
+    struct iovec iov[2];
+
+    if (unlikely(!(f->flags & FILE_WRONLY))) {
+        errno = EBADF;
+        return -1;
+    }
+    if (f->obuf.len) {
+        iov[0] = MAKE_IOVEC(f->obuf.data, f->obuf.len);
+        iov[1] = MAKE_IOVEC(data, len);
+        return __file_writev(f, iov, 2);
+    }
+    iov[0] = MAKE_IOVEC(data, len);
+    return __file_writev(f, iov, 1);
 }
