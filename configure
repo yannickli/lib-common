@@ -279,7 +279,7 @@ fi
 
 if which geos-config 1>/dev/null 2>/dev/null; then
     setvar "geos_CFLAGS" "$(geos-config --cflags)"
-    setvar "geos_LIBS"   "$(geos-config --libs)"
+    setvar "geos_LIBS"   "$(geos-config --libs|sed -e 's/-lgeos/-lgeos_c/g')"
 else
     warn "*** libgeos-dev is missing, apt-get install libgeos-dev"
 fi
