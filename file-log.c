@@ -51,17 +51,17 @@ static void log_file_bgcompress(const char *path)
 
     sigemptyset(&set);
     sigaddset(&set, SIGCHLD);
-    sigprocmask(SIG_BLOCK, &set, NULL);
+    pthread_sigmask(SIG_BLOCK, &set, NULL);
 
     pid = fork();
     if (pid < 0) {
-        sigprocmask(SIG_UNBLOCK, &set, NULL);
+        pthread_sigmask(SIG_UNBLOCK, &set, NULL);
         e_error("unable to fork gzip in the background, %m");
         return;
     }
     if (pid > 0) {
         el_unref(el_child_register(pid, log_file_bgcompress_check, NULL));
-        sigprocmask(SIG_UNBLOCK, &set, NULL);
+        pthread_sigmask(SIG_UNBLOCK, &set, NULL);
     } else {
         setsid();
         setpriority(PRIO_PROCESS, getpid(), NZERO / 4);
