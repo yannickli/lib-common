@@ -186,7 +186,7 @@ static void *sp_reserve(stack_pool_t *sp, size_t size, stack_blk_t **blkp)
     frame_t *frame = sp->stack;
     byte *res = align_for(frame, size);
 
-    if (res + size > frame_end(frame)) {
+    if (unlikely(res + size > frame_end(frame))) {
         stack_blk_t *blk = frame_get_next_blk(sp, frame->blk, size);
 
         *blkp = blk;
@@ -206,6 +206,7 @@ static void *sp_reserve(stack_pool_t *sp, size_t size, stack_blk_t **blkp)
     return res;
 }
 
+__attribute__((flatten))
 static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
 {
     stack_pool_t *sp = container_of(_sp, stack_pool_t, funcs);
@@ -334,7 +335,7 @@ const void *mem_stack_pop(mem_pool_t *_sp)
     stack_pool_t *sp = container_of(_sp, stack_pool_t, funcs);
     frame_t *frame = sp->stack;
 
-    if (frame->prev) {
+    if (likely(frame->prev)) {
         sp->stack = frame->prev;
         mem_stack_protect(sp);
         return sp->stack;
