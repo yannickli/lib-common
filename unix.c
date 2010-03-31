@@ -14,6 +14,7 @@
 #include <sys/ioctl.h>
 #include <sys/resource.h>
 #include <termios.h>
+#include <ftw.h>
 #include "unix.h"
 #include "time.h"
 
@@ -85,6 +86,38 @@ int mkdir_p(const char *dir, mode_t mode)
     }
 
     return 1;
+}
+
+static __thread int rmdir_r_dirfd;
+
+static int
+rmdir_cb(const char *fpath, const struct stat *sb, int flags, struct FTW *buf)
+{
+    if (flags == FTW_DNR || flags == FTW_NS)
+        return -1;
+    if (buf->level == 0)
+        return 0;
+    if (S_ISDIR(sb->st_mode)) {
+        if (flags == FTW_DP)
+            return unlinkat(rmdir_r_dirfd, fpath, AT_REMOVEDIR);
+        return 0;
+    } else {
+        return unlinkat(rmdir_r_dirfd, fpath, 0);
+    }
+}
+
+int rmdir_r(const char *dir, bool only_content)
+{
+    int res;
+
+    rmdir_r_dirfd = RETHROW(open(dir, O_RDONLY));
+    res = nftw(dir, rmdir_cb, 32, FTW_DEPTH | FTW_PHYS);
+    if (res) {
+        PROTECT_ERRNO(close(rmdir_r_dirfd));
+        return res;
+    }
+    close(rmdir_r_dirfd);
+    return only_content ? 0 : rmdir(dir);
 }
 
 /** Retrieve time of last modification

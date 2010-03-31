@@ -47,6 +47,7 @@ int pid_get_starttime(pid_t pid, struct timeval *tv);
 /****************************************************************************/
 
 int mkdir_p(const char *dir, mode_t mode);
+int rmdir_r(const char *dir, bool only_content);
 
 int get_mtime(const char *filename, time_t *t);
 
