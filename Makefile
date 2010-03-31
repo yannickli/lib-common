@@ -122,6 +122,7 @@ libcommon_SOURCES = \
 	tpl-funcs.c \
 	\
 	unix.c \
+	unix-fts.c \
 	unix-psinfo.c \
 	unix-linux.c \
 	unix-solaris.c \
