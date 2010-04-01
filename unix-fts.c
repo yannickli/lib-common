@@ -51,7 +51,7 @@ int rmdir_r(const char *dir, bool only_content)
     }
     fts_close(fts);
 
-    if (only_content && rmdir(dir))
+    if (!only_content && rmdir(dir))
         res = -1;
     return res;
 }
