@@ -512,7 +512,7 @@ static void el_timer_process(uint64_t until)
         if (ev->type == EV_UNUSED)
             continue;
 
-        if (ev->timer.repeat) {
+        if (ev->timer.repeat > 0) {
             ev->timer.expiry += ev->timer.repeat;
             if (!EV_FLAG_HAS(ev, TIMER_NOMISS) && ev->timer.expiry < until) {
                 uint64_t delta  = until - ev->timer.expiry;
@@ -560,7 +560,11 @@ ev_t *el_timer_register(int next, int repeat, int flags, el_cb_f *cb, el_data_t 
         EV_FLAG_SET(ev, TIMER_NOMISS);
     if (flags & EL_TIMER_LOWRES)
         EV_FLAG_SET(ev, TIMER_LOWRES);
-    ev->timer.repeat = repeat;
+    if (repeat > 0) {
+        ev->timer.repeat = repeat;
+    } else {
+        ev->timer.repeat = -next;
+    }
     ev->timer.expiry = (uint64_t)next + get_clock(TIMER_IS_LOWRES(ev, next));
     el_timer_heapinsert(ev);
     return ev;
@@ -572,13 +576,20 @@ void el_timer_set_hook(el_t ev, el_cb_f *cb)
     ev->cb.cb = cb;
 }
 
-void el_timer_restart(ev_t *ev, int restart)
+static ALWAYS_INLINE void el_timer_restart_fast(ev_t *ev, uint64_t restart)
 {
-    CHECK_EV_TYPE(ev, EV_TIMER);
-    ASSERT("timer isn't a oneshot timer", !ev->timer.repeat);
     ev->timer.expiry = (uint64_t)restart + get_clock(TIMER_IS_LOWRES(ev, restart));
     EV_FLAG_SET(ev, TIMER_UPDATED);
     el_timer_heapfix(ev);
+}
+
+void el_timer_restart(ev_t *ev, int restart)
+{
+    CHECK_EV_TYPE(ev, EV_TIMER);
+    ASSERT("timer isn't a oneshot timer", ev->timer.repeat < 0);
+    if (restart <= 0)
+        restart = -ev->timer.repeat;
+    el_timer_restart_fast(ev, restart);
 }
 
 el_data_t el_timer_unregister(ev_t **evp)
@@ -885,7 +896,7 @@ static void el_show_blockers(el_t evh, int signo, el_data_t priv)
                 e_trace_end(0, ":%d (%04x)", ev->fd, ev->events_wanted);
                 break;
               case EV_TIMER:
-                if (ev->timer.repeat) {
+                if (ev->timer.repeat < 0) {
                     e_trace_end(0, " one shot @%"PRIu64, ev->timer.expiry / 1000);
                 } else {
                     e_trace_end(0, " repeat:%dms next @%"PRIu64, ev->timer.repeat,
