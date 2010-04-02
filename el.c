@@ -634,7 +634,7 @@ static ALWAYS_INLINE void el_fd_fire(ev_t *ev, short evs)
 
 static void el_act_timer(el_t ev, el_data_t priv)
 {
-    el_fd_fire(el_fd_act_timer_unregister(ev), -1);
+    el_fd_fire(el_fd_act_timer_unregister(ev), EL_EVENTS_NOACT);
 }
 
 static ALWAYS_INLINE ev_t *el_fd_act_timer_register(ev_t *ev, int timeout)

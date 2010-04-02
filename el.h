@@ -101,6 +101,7 @@ short el_fd_get_mask(el_t);
 short el_fd_set_mask(el_t, short events);
 int   el_fd_get_fd(el_t);
 
+#define EL_EVENTS_NOACT  ((short)-1)
 int   el_fd_watch_activity(el_t, short mask, int timeout);
 
 /**
