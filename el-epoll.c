@@ -45,12 +45,6 @@ el_t el_fd_register(int fd, short events, el_fd_f *cb, el_data_t priv)
     return ev;
 }
 
-short el_fd_get_mask(ev_t *ev)
-{
-    CHECK_EV_TYPE(ev, EV_FD);
-    return ev->events_wanted;
-}
-
 short el_fd_set_mask(ev_t *ev, short events)
 {
     short old = ev->events_wanted;
@@ -71,6 +65,7 @@ el_data_t el_fd_unregister(ev_t **evp, bool do_close)
 {
     if (*evp) {
         ev_t *ev = *evp;
+
         CHECK_EV_TYPE(ev, EV_FD);
         epoll_ctl(epollfd_g, EPOLL_CTL_DEL, ev->fd, NULL);
         if (likely(do_close))
@@ -101,22 +96,8 @@ static void el_loop_fds(int timeout)
         ev_t *ev = events[res].data.ptr;
         int  evs = events[res].events;
 
-        if (likely(ev->type == EV_FD))
-            (*ev->cb.fd)(ev, ev->fd, evs, ev->priv);
+        if (unlikely(ev->type != EV_FD))
+            continue;
+        el_fd_fire(ev, evs);
     }
-}
-
-int el_fd_loop(ev_t *ev, int timeout)
-{
-    struct pollfd pfd = { .fd = ev->fd, .events = ev->events_wanted };
-    int res;
-
-    CHECK_EV_TYPE(ev, EV_FD);
-
-    res = poll(&pfd, 1, timeout);
-    if (_G.timers.len)
-        el_timer_process(get_clock(false));
-    if (res == 1 && likely(ev->type == EV_FD))
-        (*ev->cb.fd)(ev, ev->fd, pfd.revents, ev->priv);
-    return res;
 }

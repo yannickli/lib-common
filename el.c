@@ -588,6 +588,11 @@ el_data_t el_timer_unregister(ev_t **evp)
 
 /*----- fd events -----*/
 
+static ALWAYS_INLINE void el_fd_fire(ev_t *ev, short evs)
+{
+    (*ev->cb.fd)(ev, ev->fd, evs, ev->priv);
+}
+
 #ifdef __linux__
 #  include "el-epoll.c"
 #else
@@ -600,6 +605,12 @@ void el_fd_set_hook(el_t ev, el_fd_f *cb)
     ev->cb.fd = cb;
 }
 
+short el_fd_get_mask(ev_t *ev)
+{
+    CHECK_EV_TYPE(ev, EV_FD);
+    return ev->events_wanted;
+}
+
 int el_fd_get_fd(ev_t *ev)
 {
     if (likely(ev)) {
@@ -607,6 +618,21 @@ int el_fd_get_fd(ev_t *ev)
         return ev->fd;
     }
     return -1;
+}
+
+int el_fd_loop(ev_t *ev, int timeout)
+{
+    struct pollfd pfd = { .fd = ev->fd, .events = ev->events_wanted };
+    int res;
+
+    CHECK_EV_TYPE(ev, EV_FD);
+
+    res = poll(&pfd, 1, timeout);
+    if (_G.timers.len)
+        el_timer_process(get_clock(false));
+    if (res == 1 && likely(ev->type == EV_FD))
+        el_fd_fire(ev, pfd.revents);
+    return res;
 }
 
 /*----- proxies events  -----*/
