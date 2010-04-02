@@ -70,6 +70,8 @@ el_data_t el_fd_unregister(ev_t **evp, bool do_close)
         epoll_ctl(epollfd_g, EPOLL_CTL_DEL, ev->fd, NULL);
         if (likely(do_close))
             close(ev->fd);
+        if (EV_FLAG_HAS(ev, FD_WATCHED))
+            el_fd_act_timer_unregister(ev->priv.ptr);
         return el_destroy(evp, false);
     }
     return (el_data_t)NULL;

@@ -68,6 +68,7 @@ enum ev_flags_t {
     EV_FLAG_TIMER_LOWRES  = (1U <<  9),
     EV_FLAG_TIMER_UPDATED = (1U << 10),
 
+    EV_FLAG_FD_WATCHED    = (1U <<  8),
 #define EV_FLAG_HAS(ev, f)   ((ev)->flags & EV_FLAG_##f)
 #define EV_FLAG_SET(ev, f)   ((ev)->flags |= EV_FLAG_##f)
 #define EV_FLAG_RST(ev, f)   ((ev)->flags &= ~EV_FLAG_##f)
@@ -77,7 +78,10 @@ typedef struct ev_t {
     uint8_t   type;             /* ev_type_t */
     uint8_t   signo;            /* EV_SIGNAL */
     uint16_t  flags;
-    uint16_t  events_avail;     /* EV_PROXY */
+    union {
+        uint16_t  events_avail; /* EV_PROXY */
+        uint16_t  events_act;   /* EV_FD    */
+    };
     uint16_t  events_wanted;    /* EV_PROXY, EV_FD */
 
     union {
@@ -103,6 +107,7 @@ typedef struct ev_t {
 DO_ARRAY(ev_t, ev, IGNORE);
 
 qm_k32_t(ev_assoc, ev_t *);
+qm_k64_t(ev, ev_t *);
 
 static struct {
     volatile uint32_t gotsigs;
@@ -117,6 +122,7 @@ static struct {
     ev_array timers;          /* relative timers heap (see comments after)  */
     ev_array cache;
     qm_t(ev_assoc) childs;    /* el_t's watching for processes              */
+    qm_t(ev) fd_act;          /* el_t's timers to el_t fds map              */
 
     /*----- allocation stuff -----*/
 #define EV_ALLOC_FACTOR  10   /* basic segment is 1024 events               */
@@ -141,6 +147,7 @@ static struct {
     .evs_free       = DLIST_INIT(_G.evs_free),
     .evs_gc         = DLIST_INIT(_G.evs_gc),
     .childs         = QM_INIT(ev_assoc, _G.childs, false),
+    .fd_act         = QM_INIT(ev, _G.fd_act, false),
 };
 
 #define ASSERT(msg, expr)  assert (((void)msg, likely(expr)))
@@ -599,9 +606,45 @@ el_data_t el_timer_unregister(ev_t **evp)
 
 /*----- fd events -----*/
 
+static ALWAYS_INLINE ev_t *el_fd_act_timer_unregister(ev_t *timer)
+{
+    int pos = qm_del_key(ev, &_G.fd_act, (uint64_t)(uintptr_t)timer);
+    ev_t *ev;
+
+    assert (pos >= 0);
+    ev = _G.fd_act.values[pos];
+    EV_FLAG_RST(ev, FD_WATCHED);
+    ev->priv = timer->priv;
+    el_timer_heapremove(&timer);
+    return ev;
+}
+
 static ALWAYS_INLINE void el_fd_fire(ev_t *ev, short evs)
 {
-    (*ev->cb.fd)(ev, ev->fd, evs, ev->priv);
+    if (EV_FLAG_HAS(ev, FD_WATCHED)) {
+        ev_t *timer = ev->priv.ptr;
+
+        if (evs & ev->events_act)
+            el_timer_restart_fast(timer, -timer->timer.repeat);
+        (*ev->cb.fd)(ev, ev->fd, evs, timer->priv);
+    } else {
+        (*ev->cb.fd)(ev, ev->fd, evs, ev->priv);
+    }
+}
+
+static void el_act_timer(el_t ev, el_data_t priv)
+{
+    el_fd_fire(el_fd_act_timer_unregister(ev), -1);
+}
+
+static ALWAYS_INLINE ev_t *el_fd_act_timer_register(ev_t *ev, int timeout)
+{
+    ev_t *timer = el_timer_register(timeout, 0, 0, &el_act_timer, ev->priv);
+
+    ev->priv.ptr = el_unref(timer);
+    EV_FLAG_SET(ev, FD_WATCHED);
+    qm_replace(ev, &_G.fd_act, (uint64_t)(uintptr_t)timer, ev);
+    return timer;
 }
 
 #ifdef __linux__
@@ -629,6 +672,32 @@ int el_fd_get_fd(ev_t *ev)
         return ev->fd;
     }
     return -1;
+}
+
+int el_fd_watch_activity(el_t ev, short mask, int timeout)
+{
+    el_t timer;
+    int res;
+
+    CHECK_EV_TYPE(ev, EV_FD);
+
+    if (!EV_FLAG_HAS(ev, FD_WATCHED)) {
+        if (timeout <= 0)
+            return 0;
+        timer = el_fd_act_timer_register(ev, timeout);
+        res   = 0;
+    } else {
+        timer = ev->priv.ptr;
+        res   = -timer->timer.repeat;
+    }
+    ev->events_act = mask;
+
+    if (timeout == 0) {
+        el_fd_act_timer_unregister(timer);
+    } else {
+        el_timer_restart(timer, timeout);
+    }
+    return res;
 }
 
 int el_fd_loop(ev_t *ev, int timeout)
@@ -751,6 +820,8 @@ el_t el_unref(ev_t *ev)
 el_data_t el_set_priv(ev_t *ev, el_data_t priv)
 {
     CHECK_EV(ev);
+    if (ev->type == EV_FD && EV_FLAG_HAS(ev, FD_WATCHED))
+        return el_set_priv(ev->priv.ptr, priv);
     SWAP(el_data_t, ev->priv, priv);
     return priv;
 }
