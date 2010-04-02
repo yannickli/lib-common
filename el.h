@@ -101,6 +101,18 @@ short el_fd_get_mask(el_t);
 short el_fd_set_mask(el_t, short events);
 int   el_fd_get_fd(el_t);
 
+/*
+ * \param[in]  ev       a file descriptor el_t.
+ * \param[in]  mask     the POLL* mask of events that resets activity to 0
+ * \param[in]  timeout
+ *    what to do with the activity watch timer:
+ *    - 0 means unregister the activity timer ;
+ *    - >0 means register (or reset) the activity timer with this timeout in
+ *      miliseconds;
+ *    - < 0 means reset the activity timer using the timeout it was registered
+ *      with. In particular if no activity timer is set up for this given file
+ *      descriptor el_t, then this is a no-op.
+ */
 #define EL_EVENTS_NOACT  ((short)-1)
 int   el_fd_watch_activity(el_t, short mask, int timeout);
 
