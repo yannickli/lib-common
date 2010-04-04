@@ -71,6 +71,7 @@ libcommon_SOURCES = \
 	core-havege.c \
 	core-mem.c \
 	core-mem-fifo.c \
+	core-mem-ring.c \
 	core-mem-stack.c \
 	core-pthread-hook.c \
 	core-test.c \

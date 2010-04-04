@@ -22,8 +22,8 @@ struct start_pair {
 
 static void libcommon_thread_on_exit(void *unused)
 {
-    mem_pool_t *t = t_pool();
-    mem_stack_pool_delete(&t);
+    t_pool_destroy();
+    r_pool_destroy();
 }
 
 static void *start_wrapper(void *data)

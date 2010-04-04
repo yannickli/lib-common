@@ -445,8 +445,8 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint);
 void mem_fifo_pool_delete(mem_pool_t **poolp);
 void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used);
 
-/*----- core-mem-stack.c -----*/
 
+/*----- core-mem-stack.c -----*/
 mem_pool_t *mem_stack_pool_new(int initialsize);
 void mem_stack_pool_delete(mem_pool_t **);
 
@@ -455,6 +455,7 @@ const void *mem_stack_pop(mem_pool_t *);
 void mem_stack_rewind(mem_pool_t *, const void *);
 
 mem_pool_t *t_pool(void) __attribute__((pure));
+void t_pool_destroy(void);
 
 #define t_push()      mem_stack_push(t_pool())
 #define t_pop()       mem_stack_pop(t_pool())
@@ -479,5 +480,36 @@ char *t_fmt(int *out, const char *fmt, ...);
     t_new_extra(type_t, fieldsizeof(type_t, field[0]) * (extra))
 #define t_dup(p, count)    mp_dup(t_pool(), p, count)
 #define t_dupz(p, count)   mp_dupz(t_pool(), p, count)
+
+
+/*----- core-mem-ring.c -----*/
+mem_pool_t *mem_ring_pool_new(int initialsize);
+void mem_ring_pool_delete(mem_pool_t **);
+
+const void *mem_ring_newframe(mem_pool_t *);
+const void *mem_ring_getframe(mem_pool_t *);
+const void *mem_ring_seal(mem_pool_t *);
+
+const void *mem_ring_checkpoint(mem_pool_t *);
+void mem_ring_rewind(mem_pool_t *, const void *);
+
+void mem_ring_release(const void *);
+void mem_ring_dump(const mem_pool_t *);
+
+mem_pool_t *r_pool(void) __attribute__((pure));
+void r_pool_destroy(void);
+
+#define r_newframe()                mem_ring_newframe(r_pool())
+#define r_seal()                    mem_ring_seal(r_pool())
+#define r_getframe()                mem_ring_getframe(r_pool())
+#define r_release(ptr)              mem_ring_release(ptr)
+#define r_checkpoint()              mem_ring_checkpoint(r_pool())
+#define r_rewind(ptr)               mem_ring_rewind(r_pool(), ptr)
+
+#define r_new(type_t, n)            mp_new(r_pool(), type_t, n)
+#define r_new_raw(type_t, n)        mp_new_raw(r_pool(), type_t, n)
+#define r_new_extra(type_t, extra)  mp_new_extra(r_pool(), type_t, extra)
+#define r_dup(p, count)             mp_dup(r_pool(), p, count)
+#define r_dupz(p, count)            mp_dupz(r_pool(), p, count)
 
 #endif

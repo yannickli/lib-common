@@ -373,13 +373,19 @@ void mem_stack_rewind(mem_pool_t *_sp, const void *cookie)
 #endif
 }
 
+static __thread mem_pool_t *t_pool_g;
+
 mem_pool_t *t_pool(void)
 {
-    static __thread mem_pool_t *sp;
-    if (unlikely(!sp)) {
-        sp = mem_stack_pool_new(64 << 10);
+    if (unlikely(!t_pool_g)) {
+        t_pool_g = mem_stack_pool_new(64 << 10);
     }
-    return sp;
+    return t_pool_g;
+}
+
+void t_pool_destroy(void)
+{
+    mem_stack_pool_delete(&t_pool_g);
 }
 
 void *stack_malloc(size_t size, mem_flags_t flags)
