@@ -214,12 +214,15 @@ file_exists() {
     test -e "$1" -a -r "$1"
 }
 
-if file_exists "$simpa0" || file_exists "$simpa1"; then
+if file_exists "$simpa1"; then
     setenv "ENABLE_SFR_SIMPA" "1"
     setenv "WITH_SFR_SIMPA" "1"
 else
     setenv "ENABLE_SFR_SIMPA" "0"
     echo 2>&1 "*** kit SIMPA SFR not found"
+    if test -r "$simpa0"; then
+        echo 2>&1 "***   see $simpa0"
+    fi
 fi
 
 # }}}
