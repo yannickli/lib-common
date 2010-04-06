@@ -290,8 +290,9 @@ mem_pool_t *mem_stack_pool_new(int initialsize)
 
 void mem_stack_pool_delete(mem_pool_t **spp)
 {
-    stack_pool_t *sp = container_of(*spp, stack_pool_t, funcs);
-    if (sp) {
+    if (*spp) {
+        stack_pool_t *sp = container_of(*spp, stack_pool_t, funcs);
+
         dlist_for_each_safe(e, &sp->blk_list) {
             blk_destroy(sp, blk_entry(e));
         }
