@@ -591,7 +591,7 @@ static ALWAYS_INLINE void el_timer_restart_fast(ev_t *ev, uint64_t restart)
 void el_timer_restart(ev_t *ev, int restart)
 {
     CHECK_EV_TYPE(ev, EV_TIMER);
-    ASSERT("timer isn't a oneshot timer", ev->timer.repeat < 0);
+    ASSERT("timer isn't a oneshot timer", ev->timer.repeat <= 0);
     if (restart <= 0)
         restart = -ev->timer.repeat;
     el_timer_restart_fast(ev, restart);
