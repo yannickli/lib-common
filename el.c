@@ -494,10 +494,8 @@ static void el_timer_process(uint64_t until)
             ev->timer.expiry += ev->timer.repeat;
             if (!ev->nomiss && ev->timer.expiry < until) {
                 uint64_t delta  = until - ev->timer.expiry;
-                uint64_t missed = ((uint64_t)ev->timer.repeat + delta - 1) / delta;
 
-                e_trace(1, "timer %p missed %"PRIu64" events", ev, missed);
-                ev->timer.expiry += missed * ev->timer.repeat;
+                ev->timer.expiry += ROUND_UP(delta, (uint64_t)ev->timer.repeat);
             }
             el_timer_heapdown(0);
         } else
