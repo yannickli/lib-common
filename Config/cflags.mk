@@ -81,7 +81,6 @@ endif
 ifneq (,$(call GCC_PREREQ,4,5))
 CFLAGS += -Wenum-compare
 CFLAGS += -Wlogical-op
-CFLAGS += -Wjump-misses-init
 endif
 # warn about pointer arithmetic on void* and function pointers
 CFLAGS += -Wpointer-arith
