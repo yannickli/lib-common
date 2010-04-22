@@ -74,9 +74,14 @@ CFLAGS += -Wno-unused-parameter
 #CFLAGS += -Wno-unused-value
 # warn about variable use before initialization
 CFLAGS += -Wuninitialized
-# warn about variables which are initialized with themselves
 ifneq (,$(call GCC_PREREQ,4,0))
+# warn about variables which are initialized with themselves
     CFLAGS += -Winit-self
+endif
+ifneq (,$(call GCC_PREREQ,4,5))
+CFLAGS += -Wenum-compare
+CFLAGS += -Wlogical-op
+CFLAGS += -Wjump-misses-init
 endif
 # warn about pointer arithmetic on void* and function pointers
 CFLAGS += -Wpointer-arith
