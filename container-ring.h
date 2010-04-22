@@ -63,7 +63,7 @@ void generic_ring_ensure(generic_ring *r, int newlen, int el_siz);
                                                                        \
     static inline void pfx##_ring_unshift(pfx##_ring *r, type_t e) {   \
         generic_ring_ensure((void *)r, ++r->len, sizeof(type_t));      \
-        r->first = r->first ? --r->first : r->size - 1;                \
+        r->first = r->first ? r->first - 1 : r->size - 1;              \
         r->tab[r->first] = e;                                          \
     }                                                                  \
     static inline void pfx##_ring_push(pfx##_ring *r, type_t e) {      \
