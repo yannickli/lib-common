@@ -43,6 +43,7 @@ CFLAGS += -fno-strict-aliasing
 # turn on all common warnings
 CFLAGS += -Wall
 # turn on extra warnings
+CFLAGS += -fshow-column
 ifneq (,$(call GCC_PREREQ,4,0))
     CFLAGS += -Wextra
     # know where the warnings come from
