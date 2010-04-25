@@ -226,6 +226,20 @@ else
 fi
 
 # }}}
+# {{{ CCN SDK
+
+ccn0="/home/data/build/ccn"
+ccn1="/opt/ccn"
+
+if file_exists "$ccn0" || file_exists "$ccn1"; then
+    setenv "ENABLE_CCN" "1"
+    setenv "WITH_CCN" "1"
+else
+    setenv "ENABLE_CCN" "0"
+    echo 2>&1 "*** CCN SDk not found"
+fi
+
+# }}}
 # {{{ php
 
 if test -z "${PHP_VERSION}"; then
