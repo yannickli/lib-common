@@ -679,16 +679,15 @@ int el_fd_watch_activity(el_t ev, short mask, int timeout)
 
     CHECK_EV_TYPE(ev, EV_FD);
 
+    ev->events_act = mask;
     if (!EV_FLAG_HAS(ev, FD_WATCHED)) {
         if (timeout <= 0)
             return 0;
-        timer = el_fd_act_timer_register(ev, timeout);
-        res   = 0;
-    } else {
-        timer = ev->priv.ptr;
-        res   = -timer->timer.repeat;
+        el_fd_act_timer_register(ev, timeout);
+        return 0;
     }
-    ev->events_act = mask;
+    timer = ev->priv.ptr;
+    res   = -timer->timer.repeat;
 
     if (timeout == 0) {
         el_fd_act_timer_unregister(timer);
