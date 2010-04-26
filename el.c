@@ -592,8 +592,11 @@ void el_timer_restart(ev_t *ev, int restart)
 {
     CHECK_EV_TYPE(ev, EV_TIMER);
     ASSERT("timer isn't a oneshot timer", ev->timer.repeat <= 0);
-    if (restart <= 0)
+    if (restart <= 0) {
         restart = -ev->timer.repeat;
+    } else {
+        ev->timer.repeat = -restart;
+    }
     el_timer_restart_fast(ev, restart);
 }
 
