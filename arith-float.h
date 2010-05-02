@@ -97,25 +97,17 @@ static inline be64_t double_bits_be(double x) {
 }
 
 static inline void *put_unaligned_float_le(void *p, float x) {
-    struct __attribute__((packed)) { le32_t x; } *s = p;
-    s->x = float_bits_le(x);
-    return s + 1;
+    return put_unaligned(p, float_bits_le(x));
 }
 static inline void *put_unaligned_double_le(void *p, double x) {
-    struct __attribute__((packed)) { le64_t x; } *s = p;
-    s->x = double_bits_le(x);
-    return s + 1;
+    return put_unaligned(p, double_bits_le(x));
 }
 
 static inline void *put_unaligned_float_be(void *p, float x) {
-    struct __attribute__((packed)) { be32_t x; } *s = p;
-    s->x = float_bits_be(x);
-    return s + 1;
+    return put_unaligned(p, float_bits_be(x));
 }
 static inline void *put_unaligned_double_be(void *p, double x) {
-    struct __attribute__((packed)) { be64_t x; } *s = p;
-    s->x = double_bits_be(x);
-    return s + 1;
+    return put_unaligned(p, double_bits_be(x));
 }
 
 static inline float get_unaligned_float_le(const void *p) {

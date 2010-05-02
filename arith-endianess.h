@@ -94,32 +94,23 @@ static inline uint16_t bswap16(uint16_t x) { return (x >> 8) | (x << 8); }
 #define LE64_T(x)  CPU_TO_LE_CONST(64, x)
 
 static inline uint16_t get_unaligned_cpu16(const void *p) {
-    const struct __attribute__((packed)) { uint16_t x; } *s = p;
-    return s->x;
+    return get_unaligned_type(uint16_t, p);
 }
 static inline uint32_t get_unaligned_cpu32(const void *p) {
-    const struct __attribute__((packed)) { uint32_t x; } *s = p;
-    return s->x;
+    return get_unaligned_type(uint32_t, p);
 }
 static inline uint64_t get_unaligned_cpu64(const void *p) {
-    const struct __attribute__((packed)) { uint64_t x; } *s = p;
-    return s->x;
+    return get_unaligned_type(uint64_t, p);
 }
 
 static inline void *put_unaligned_cpu16(void *p, uint16_t x) {
-    struct __attribute__((packed)) { uint16_t x; } *s = p;
-    s->x = x;
-    return (uint8_t *)p + sizeof(uint16_t);
+    return put_unaligned(p, x);
 }
 static inline void *put_unaligned_cpu32(void *p, uint32_t x) {
-    struct __attribute__((packed)) { uint32_t x; } *s = p;
-    s->x = x;
-    return (uint8_t *)p + sizeof(uint32_t);
+    return put_unaligned(p, x);
 }
 static inline void *put_unaligned_cpu64(void *p, uint64_t x) {
-    struct __attribute__((packed)) { uint64_t x; } *s = p;
-    s->x = x;
-    return (uint8_t *)p + sizeof(uint64_t);
+    return put_unaligned(p, x);
 }
 
 static inline le16_t cpu_to_le16(uint16_t x) { return CPU_TO_LE(16, x); }
