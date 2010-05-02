@@ -218,6 +218,25 @@ enum sign {
 
 #define SWAP(typ, a, b)    do { typ __c = a; a = b; b = __c; } while (0)
 
+#define get_unaligned_type(type_t, ptr)        \
+    ({                                         \
+        struct __attribute__((packed)) {       \
+            type_t __v;                        \
+        } *__p = (void *)(ptr);                \
+        __p->__v;                              \
+    })
+#define get_unaligned(ptr)  get_unaligned_type(typeof(*(ptr)), ptr)
+
+#define put_unaligned_type(type_t, ptr, v)     \
+    ({                                         \
+        struct __attribute__((packed)) {       \
+            type_t __v;                        \
+        } *__p = (void *)(ptr);                \
+        type_t __v = (v);                      \
+        __p->__v = __v;                        \
+        __p + 1;                               \
+    })
+#define put_unaligned(ptr, v)  put_unaligned_type(typeof(v), ptr, v)
 
 /*---------------- Types ----------------*/
 
