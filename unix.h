@@ -63,6 +63,7 @@ void devnull_dup(int fd);
 /* file descriptor related                                                  */
 /****************************************************************************/
 
+__must_check__ int xwrite_file(const char *file, const void *data, ssize_t dlen);
 __must_check__ int xwrite(int fd, const void *data, ssize_t dlen);
 __must_check__ int xwritev(int fd, struct iovec *iov, int iovcnt);
 __must_check__ int xftruncate(int fd, off_t offs);

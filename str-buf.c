@@ -295,24 +295,10 @@ end:
     return res;
 }
 
-/* Return number of bytes written or -1 on error */
 int sb_write_file(const sb_t *sb, const char *filename)
 {
-    int fd, res;
-
-    fd = RETHROW(open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644));
-    res = xwrite(fd, sb->data, sb->len);
-    if (res < 0) {
-        int save_errno = errno;
-        unlink(filename);
-        close(fd);
-        errno = save_errno;
-        return -1;
-    }
-    close(fd);
-    return sb->len;
+    return xwrite_file(filename, sb->data, sb->len);
 }
-
 
 /**************************************************************************/
 /* fd and sockets                                                         */

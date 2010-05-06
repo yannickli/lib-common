@@ -317,6 +317,23 @@ int xwrite(int fd, const void *data, ssize_t len)
     return 0;
 }
 
+int xwrite_file(const char *path, const void *data, ssize_t dlen)
+{
+    int fd, res;
+
+    fd = RETHROW(open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644));
+    res = xwrite(fd, data, dlen);
+    if (res < 0) {
+        int save_errno = errno;
+        unlink(path);
+        close(fd);
+        errno = save_errno;
+        return -1;
+    }
+    close(fd);
+    return dlen;
+}
+
 int xwritev(int fd, struct iovec *iov, int iovcnt)
 {
     while (iovcnt) {
