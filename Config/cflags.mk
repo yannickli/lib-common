@@ -30,6 +30,8 @@ CFLAGS += -std=gnu99
 CFLAGS += -O2
 ifneq (,$(call GCC_PREREQ,4,3))
 CFLAGS += -fpredictive-commoning
+CFLAGS += -ftree-vectorize
+CFLAGS += -fgcse-after-reload
 endif
 CFLAGS += -funswitch-loops
 # ignore for (i = 0; i < limit; i += N) as dangerous for N != 1.
