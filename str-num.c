@@ -28,7 +28,7 @@ memtoip_impl(const byte *s, int _len, const byte **endp,
     }
     while (len && isspace((unsigned char)*s)) {
         s++;
-        declen;
+        (void)declen;
     }
     if (!len) {
         errno = EINVAL;
@@ -36,7 +36,7 @@ memtoip_impl(const byte *s, int _len, const byte **endp,
     }
     if (*s == '-') {
         s++;
-        declen;
+        (void)declen;
         if (!len || !isdigit((unsigned char)*s)) {
             errno = EINVAL;
             goto done;
@@ -56,7 +56,7 @@ memtoip_impl(const byte *s, int _len, const byte **endp,
     } else {
         if (*s == '+') {
             s++;
-            declen;
+            (void)declen;
         }
         if (!len || !isdigit((unsigned char)*s)) {
             errno = EINVAL;

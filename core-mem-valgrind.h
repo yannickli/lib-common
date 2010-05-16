@@ -38,7 +38,7 @@
 
 static inline void VALGRIND_PROT_BLK(mem_blk_t *blk)
 {
-    VALGRIND_MAKE_MEM_NOACCESS(blk->start, blk->size);
+    (void)VALGRIND_MAKE_MEM_NOACCESS(blk->start, blk->size);
 }
 
 static inline void VALGRIND_REG_BLK(mem_blk_t *blk)

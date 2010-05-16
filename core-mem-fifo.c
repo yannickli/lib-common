@@ -48,14 +48,14 @@ typedef struct mem_fifo_pool_t {
 static mem_page_t *pageof(mem_block_t *blk) {
     mem_page_t *page;
 
-    VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
+    (void)VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
     page = (mem_page_t *)((char *)blk - blk->page_offs);
     return page;
 }
 
 static void blk_protect(mem_block_t *blk)
 {
-    VALGRIND_MAKE_MEM_NOACCESS(blk, sizeof(*blk));
+    (void)VALGRIND_MAKE_MEM_NOACCESS(blk, sizeof(*blk));
 }
 
 static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
@@ -91,7 +91,7 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
 
 static void mem_page_reset(mem_page_t *page)
 {
-    VALGRIND_MAKE_MEM_DEFINED(page->area, page->used_size);
+    (void)VALGRIND_MAKE_MEM_DEFINED(page->area, page->used_size);
     p_clear(page->area, page->used_size);
     VALGRIND_PROT_BLK(&page->page);
 
@@ -136,7 +136,7 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
     }
 
     blk = (mem_block_t *)(page->area + page->used_size);
-    VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
+    (void)VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
     VALGRIND_MEMPOOL_ALLOC(page, blk->area, size);
     blk->page_offs = (uintptr_t)blk - (uintptr_t)page;
     blk->blk_size  = size;

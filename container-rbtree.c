@@ -13,11 +13,11 @@
 
 #include "container.h"
 
-#define rb_color(n)      (n->__parent & 1);
+#define rb_color(n)      (n->__parent & 1)
 #define rb_is_red(n)     ({ rb_node_t *__n = (n); __n && !rb_color(__n); })
 #define rb_is_black(n)   ({ rb_node_t *__n = (n); !__n || rb_color(__n); })
-#define rb_set_red(n)    ((n)->__parent &= ~1);
-#define rb_set_black(n)  ((n)->__parent |= 1);
+#define rb_set_red(n)    ((n)->__parent &= ~1)
+#define rb_set_black(n)  ((n)->__parent |= 1)
 #define rb_set_black2(n) ({ rb_node_t *__n = (n); if (__n) rb_set_black(__n); })
 
 static void rb_set_parent(rb_node_t *n, rb_node_t *p) {

@@ -194,7 +194,7 @@ static void *sp_reserve(stack_pool_t *sp, size_t size, stack_blk_t **blkp)
     } else {
         *blkp = frame->blk;
     }
-    VALGRIND_MAKE_MEM_UNDEFINED(res, size);
+    (void)VALGRIND_MAKE_MEM_UNDEFINED(res, size);
     if (unlikely(sp->alloc_sz + size < sp->alloc_sz)
     ||  unlikely(sp->alloc_nb >= UINT16_MAX))
     {
@@ -238,7 +238,7 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem,
         if (mem == frame->last) {
             sp->stack->pos = (byte *)mem + size;
         }
-        VALGRIND_MAKE_MEM_NOACCESS((byte *)mem + size, oldsize - size);
+        (void)VALGRIND_MAKE_MEM_NOACCESS((byte *)mem + size, oldsize - size);
         return size ? mem : NULL;
     }
 
@@ -248,12 +248,12 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem,
     {
         sp->stack->pos = (byte *)frame->last + size;
         sp->alloc_sz  += size - oldsize;
-        VALGRIND_MAKE_MEM_DEFINED(mem, size);
+        (void)VALGRIND_MAKE_MEM_DEFINED(mem, size);
         res = mem;
     } else {
         res = sp_alloc(_sp, size, flags | MEM_RAW);
         memcpy(res, mem, oldsize);
-        VALGRIND_MAKE_MEM_UNDEFINED(mem, oldsize);
+        (void)VALGRIND_MAKE_MEM_UNDEFINED(mem, oldsize);
     }
     if (!(flags & MEM_RAW))
         memset(res + oldsize, 0, size - oldsize);
@@ -322,7 +322,7 @@ static void mem_stack_protect(stack_pool_t *sp)
     stack_blk_t *blk = sp->stack->blk;
     size_t remainsz = frame_end(sp->stack) - (byte *)sp->stack->pos;
 
-    VALGRIND_MAKE_MEM_NOACCESS(sp->stack->pos, remainsz);
+    (void)VALGRIND_MAKE_MEM_NOACCESS(sp->stack->pos, remainsz);
     dlist_for_each_entry_continue(blk, blk, &sp->blk_list, blk_list) {
         VALGRIND_PROT_BLK(&blk->blk);
     }

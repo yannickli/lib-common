@@ -98,16 +98,16 @@
     STATIC_ASSERT(__builtin_types_compatible_p(typeof(e1), typeof(e2)))
 #  define likely(expr)    __builtin_expect(!!(expr), 1)
 #  define unlikely(expr)  __builtin_expect((expr), 0)
-#  define prefetch(addr)   ({ __builtin_prefetch(addr); 1; })
-#  define prefetchw(addr)  ({ __builtin_prefetch(addr, 1); 1; })
+#  define prefetch(addr)   __builtin_prefetch(addr)
+#  define prefetchw(addr)  __builtin_prefetch(addr, 1)
 #else
 #  define __error__(msg)            0
 #  define STATIC_ASSERT(condition)  ((void)sizeof(char[1 - 2 * !(condition)]))
 #  define ASSERT_COMPATIBLE(e1, e2)
 #  define likely(expr)    expr
 #  define unlikely(expr)  expr
-#  define prefetch(addr)   1
-#  define prefetchw(addr)  1
+#  define prefetch(addr)  (void)0
+#  define prefetchw(addr) (void)0
 #endif
 
 /** \brief Forcefully ignore the value of an expression.

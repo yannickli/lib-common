@@ -408,7 +408,7 @@ int list_my_cpus(char *dst, size_t size)
         if (!CPU_ISSET(i, &oldmask))
             continue;
         CPU_ZERO(&newmask);
-        CPU_SET(i, &newmask);
+        (void)CPU_SET(i, &newmask);
 
         /* Tell linux we prefer to run on CPU number i. */
         if (sched_setaffinity(0, sizeof(newmask), &newmask))

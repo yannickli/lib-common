@@ -98,10 +98,10 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
                 break;
         }
         ISPUTC(8, fp);
-        ISFWRITE(&key, sizeof(int64_t), 1, fp);
+        IGNORE(ISFWRITE(&key, sizeof(int64_t), 1, fp));
         ISPUTC(nb, fp);
         while (n < n1) {
-            ISFWRITE(&entries.tab[n]->data, sizeof(int32_t), 1, fp);
+            IGNORE(ISFWRITE(&entries.tab[n]->data, sizeof(int32_t), 1, fp));
             n++;
         }
 #else
@@ -258,8 +258,7 @@ static int isndx_word_test(const char *indexname, const char *dictfile)
     printf("    check OK (times: %s)\n", proctimer_report(&pt1, NULL));
     fflush(stdout);
 
-    bclose(&fp);
-
+    IGNORE(bclose(&fp));
     return status;
 }
 #endif

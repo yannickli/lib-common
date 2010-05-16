@@ -231,7 +231,7 @@ ssize_t qlzo1x_decompress(void *_out, size_t outlen, pstream_t in)
 
     if (likely(in.b == in.b_end)) {
 #ifndef NDEBUG
-        VALGRIND_MAKE_MEM_DEFINED(out_orig, os.b - out_orig);
+        (void)VALGRIND_MAKE_MEM_DEFINED(out_orig, os.b - out_orig);
 #endif
         return os.b - out_orig;
     }
