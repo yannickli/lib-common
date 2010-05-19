@@ -76,6 +76,8 @@ libcommon_SOURCES = \
 	core-pthread-hook.c \
 	core-test.c \
 	core-version.c \
+	qpage.c \
+	qtlsf.c \
 	\
 	el.c \
 	el-stopper.c \
