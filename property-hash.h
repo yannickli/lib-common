@@ -16,6 +16,7 @@
 
 #include "container.h"
 #include "xmlpp.h"
+#include "container-htbl.h"
 
 typedef struct prop_t {
     union {

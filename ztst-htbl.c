@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "container.h"
+#include "container-htbl.h"
 
 cstring_htbl h;
 

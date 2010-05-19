@@ -11,9 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CONTAINER_H) || defined(IS_LIB_COMMON_CONTAINER_HTBL_H)
-#  error "you must include <lib-common/container.h> instead"
-#endif
+#ifndef IS_LIB_COMMON_CONTAINER_HTBL_H
 #define IS_LIB_COMMON_CONTAINER_HTBL_H
 
 #define CONTAINER_TYPE(kind, type_t, pfx)                                    \
@@ -343,3 +341,5 @@ static inline void string_htbl_deep_wipe(string_htbl *t) {
     HTBL_STR_MAP(t, p_delete);
     string_htbl_wipe(t);
 }
+
+#endif

@@ -14,20 +14,21 @@
 #include "container.h"
 #include "farch.h"
 
-DO_HTBL_STR(const farch_entry_t, fe, name, false);
+qm_kptr_t(fe, const char, const farch_entry_t *,
+          qhash_hash_string, qhash_strequal);
 
 struct farch_t {
-    flag_t use_dir     : 1;
-    flag_t checked_dir : 1;
-    fe_htbl h;
-    char dir[PATH_MAX];
+    flag_t   use_dir     : 1;
+    flag_t   checked_dir : 1;
+    qm_t(fe) h;
+    char     dir[PATH_MAX];
 };
 
 farch_t *farch_new(const farch_entry_t files[], const char *overridedir)
 {
     farch_t *fa = p_new(farch_t, 1);
 
-    fe_htbl_init(&fa->h);
+    qm_init(fe, &fa->h, true);
     fa->use_dir = overridedir && *overridedir;
     if (fa->use_dir) {
         pstrcpy(fa->dir, sizeof(fa->dir), overridedir);
@@ -38,22 +39,22 @@ farch_t *farch_new(const farch_entry_t files[], const char *overridedir)
 
 void farch_add(farch_t *fa, const farch_entry_t files[])
 {
-    while (files->name) {
-        fe_htbl_insert2(&fa->h, files++);
+    for (; files->name; files++) {
+        qm_add(fe, &fa->h, files->name, files);
     }
 }
 
 void farch_delete(farch_t **fap)
 {
     if (*fap) {
-        fe_htbl_wipe(&(*fap)->h);
+        qm_wipe(fe, &(*fap)->h);
         p_delete(fap);
     }
 }
 
 const farch_entry_t *farch_find(const farch_t *fa, const char *name)
 {
-    return fe_htbl_get2(&fa->h, name);
+    return fa->h.values[RETHROW_NP(qm_find_safe(fe, &fa->h, name))];
 }
 
 

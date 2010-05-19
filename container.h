@@ -18,7 +18,6 @@
 
 #include "container-array.h"
 #include "container-dlist.h"
-#include "container-htbl.h"
 #include "container-list.h"
 #include "container-qhash.h"
 #include "container-rbtree.h"

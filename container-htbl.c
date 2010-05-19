@@ -13,6 +13,7 @@
 
 #include "container.h"
 #include "hash.h"
+#include "container-htbl.h"
 
 /* 2^i < prime[i], and often prime[i] > 2^i */
 static uint32_t const prime_list[32] = {
