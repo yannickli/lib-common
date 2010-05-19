@@ -103,25 +103,6 @@ for tool in flex gperf mtasc swfmill xsltproc; do
 done
 
 # }}}
-# {{{ libgeoip
-
-geoip_PATH=/opt/intersec/GeoIP-1.4.3-$(uname -m)
-geoip_OBJS=${geoip_PATH}/libGeoIP/.libs
-
-if test -r /usr/lib/libGeoIP.so; then
-    setvar "libgeoip_CFLAGS"
-    setvar "libgeoip_LIBS" "-lGeoIP"
-elif test -d ${geoip_PATH}; then
-    setvar "libgeoip_CFLAGS" "-I${geoip_PATH}/libGeoIP"
-    # We are not allowed to statically with the only object we really need.
-    setvar "libgeoip_LIBS" "-L${geoip_PATH}/libGeoIP/.libs -Wl,--rpath,${geoip_PATH}/libGeoIP/.libs" \
-           "-lGeoIP ${geoip_PATH}/libGeoIP/.libs/libGeoIP.a"
-else
-    warn "*** libGeoIP is missing, on unstable: apt-get install libgeoip-dev"
-    warn "    or link /opt/intersec to /home/data/build"
-fi
-
-# }}}
 # {{{ pkg-config packages
 
 pkg_config_setvar "libxml2" "libxml2-dev"   "libxml-2.0"
