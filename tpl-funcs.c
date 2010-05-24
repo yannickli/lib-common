@@ -234,12 +234,9 @@ int tpl_encode_qp(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
 
 int tpl_encode_wbxml_href(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
 {
-    tpl_t *arg0;
     SB_1k(tmp);
 
     assert (nb > 0);
-    arg0 = *args;
-
     if (!blob) {
         assert (out);
         blob = tpl_get_blob(out);

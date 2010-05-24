@@ -25,20 +25,23 @@
         } while (0)
 #  endif
 #else
-#  define VALGRIND_CREATE_MEMPOOL(...)
-#  define VALGRIND_DESTROY_MEMPOOL(...)
-#  define VALGRIND_MAKE_MEM_DEFINED(...)
-#  define VALGRIND_MAKE_MEM_NOACCESS(...)
-#  define VALGRIND_MAKE_MEM_UNDEFINED(...)
-#  define VALGRIND_MEMPOOL_ALLOC(...)
-#  define VALGRIND_MEMPOOL_CHANGE(...)
-#  define VALGRIND_MEMPOOL_FREE(...)
+#  define VALGRIND_CREATE_MEMPOOL(...)           0
+#  define VALGRIND_DESTROY_MEMPOOL(...)          0
+#  define VALGRIND_MAKE_MEM_DEFINED(...)         0
+#  define VALGRIND_MAKE_MEM_NOACCESS(...)        0
+#  define VALGRIND_MAKE_MEM_UNDEFINED(...)       0
+#  define VALGRIND_MEMPOOL_ALLOC(...)            0
+#  define VALGRIND_MEMPOOL_CHANGE(...)           0
+#  define VALGRIND_MEMPOOL_FREE(...)             0
 #endif
 #include "core.h"
 
+#if __GNUC_PREREQ(4, 5)
+#  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#endif
 static inline void VALGRIND_PROT_BLK(mem_blk_t *blk)
 {
-    (void)VALGRIND_MAKE_MEM_NOACCESS(blk->start, blk->size);
+    (void)(VALGRIND_MAKE_MEM_NOACCESS(blk->start, blk->size));
 }
 
 static inline void VALGRIND_REG_BLK(mem_blk_t *blk)
@@ -52,5 +55,8 @@ static inline void VALGRIND_UNREG_BLK(mem_blk_t *blk)
     VALGRIND_DESTROY_MEMPOOL(blk);
     VALGRIND_PROT_BLK(blk);
 }
+#if __GNUC_PREREQ(4, 5)
+#  pragma GCC diagnostic error "-Wunused-but-set-variable"
+#endif
 
 #endif

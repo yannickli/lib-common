@@ -358,7 +358,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
     char buf[(64 + 2) / 3 + 1 + 1];
     int c, count, len, len1, width, prec, base, flags, type_flags;
     int left_pad, prefix_len, zero_pad, right_pad;
-    const char *format0, *lp;
+    const char *lp;
     int sign;
 
     if (size > INT_MAX) {
@@ -472,7 +472,6 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         }
 
         /* general case: parse complete format syntax */
-        format0 = format;
         flags = 0;
 
         /* parse optional flags */

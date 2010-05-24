@@ -118,6 +118,9 @@ static uint32_t mem_page_size_left(mem_page_t *page)
     return (page->page.size - page->used_size);
 }
 
+#if __GNUC_PREREQ(4, 5)
+#  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#endif
 static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
 {
     mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
@@ -136,7 +139,7 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
     }
 
     blk = (mem_block_t *)(page->area + page->used_size);
-    (void)VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
+    VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
     VALGRIND_MEMPOOL_ALLOC(page, blk->area, size);
     blk->page_offs = (uintptr_t)blk - (uintptr_t)page;
     blk->blk_size  = size;
@@ -238,6 +241,9 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
     mfp_free(_mfp, mem, flags);
     return res;
 }
+#if __GNUC_PREREQ(4, 5)
+#  pragma GCC diagnostic error "-Wunused-but-set-variable"
+#endif
 
 static mem_pool_t const mem_fifo_pool_funcs = {
     .malloc  = &mfp_alloc,

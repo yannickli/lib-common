@@ -230,7 +230,6 @@ int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
         .l_start  = start,
         .l_len    = len,
     };
-    int res;
 
     switch (cmd) {
       case F_LOCK:
@@ -250,7 +249,7 @@ int p_lockf(int fd, int mode, int cmd, off_t start, off_t len)
         return -1;
     }
 
-    res = RETHROW(fcntl(fd, cmd, &lock));
+    RETHROW(fcntl(fd, cmd, &lock));
     if (cmd == F_GETLK) {
         if (lock.l_type == F_UNLCK) {
             return 0;
