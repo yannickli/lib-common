@@ -109,6 +109,8 @@ libcommon_SOURCES = \
 	qlzo-c.c \
 	qlzo-d.c \
 	\
+	sort-32-64.c \
+	\
 	str.c \
 	str-buf.c \
 	str-buf-quoting.c \
