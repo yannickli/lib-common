@@ -16,10 +16,7 @@
 #include "container.h"
 #include "isndx.h"
 #include "btree.h"
-#include "bstream.h"
 #include "time.h"
-
-#define USE_BSTREAM  0
 
 typedef struct entry_t {
     int64_t key;
@@ -114,7 +111,7 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
     entry_array_reset(&entries);
     entry_array_wipe(&entries);
     free(entry_tab);
-    p_fclose(&fp);
+    fclose(fp);
 
     proctimer_stop(&pt);
     stat(indexname, &st);
@@ -131,14 +128,6 @@ static int array_linear_test(const char *indexname, int64_t start, int bswap,
 #define MAX_KEYLEN   255
 #define MAX_DATALEN  255
 
-#if !USE_BSTREAM
-#define BSTREAM          FILE
-#define bopen(fn, mode)  fopen(fn, "r")
-#define brewind(s)       rewind(s)
-#define bgets(s,b,n)     fgets(b,n,s)
-#define bclose(sp)       (*(sp) ? (fclose(*(sp)), *(sp) = NULL) : 0)
-#endif
-
 #if 1
 static int isndx_word_test(const char *indexname, const char *dictfile)
 {
@@ -153,12 +142,12 @@ static int isndx_word_test(const char *indexname, const char *dictfile)
     byte *key, *p, *data;
     int keylen, datalen, lineno = 0;
     int i, repeat;
-    BSTREAM *fp;
+    FILE *fp;
 
     if (!dictfile)
         dictfile = "/usr/share/dict/words";
 
-    fp = bopen(dictfile, O_RDONLY);
+    fp = fopen(dictfile, O_RDONLY);
 
     if (!fp) {
         printf("isndx: failed to open file '%s'\n", dictfile);
@@ -193,8 +182,8 @@ static int isndx_word_test(const char *indexname, const char *dictfile)
 
     repeat = 1;
     for (i = 0; i < repeat; i++) {
-        brewind(fp);
-        while (bgets(fp, buf, sizeof(buf))) {
+        rewind(fp);
+        while (fgets(buf, sizeof(buf), fp)) {
             lineno++;
 #if 1
             for (key = (byte*)buf; isspace((unsigned char)*key); key++)
@@ -258,7 +247,7 @@ static int isndx_word_test(const char *indexname, const char *dictfile)
     printf("    check OK (times: %s)\n", proctimer_report(&pt1, NULL));
     fflush(stdout);
 
-    IGNORE(bclose(&fp));
+    fclose(fp);
     return status;
 }
 #endif

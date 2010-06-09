@@ -18,7 +18,6 @@
 
 #include "arith.h"
 #include "bfield.h"
-#include "bstream.h"
 #include "btree.h"
 #include "conf.h"
 #include "container.h"
