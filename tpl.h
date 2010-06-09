@@ -182,7 +182,6 @@ int tpl_encode_ucs2be(tpl_t *out, sb_t *sb, tpl_t **args, int nb);
 int tpl_encode_ucs2be_hex(tpl_t *out, sb_t *sb, tpl_t **args, int nb);
 int tpl_encode_base64(tpl_t *out, sb_t *sb, tpl_t **args, int nb);
 int tpl_encode_qp(tpl_t *out, sb_t *sb, tpl_t **args, int nb);
-int tpl_encode_wbxml_href(tpl_t *out, sb_t *sb, tpl_t **args, int nb);
 int tpl_encode_latin1(tpl_t *out, sb_t *sb, tpl_t **args, int nb);
 
 /**\}*/

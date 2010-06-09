@@ -35,8 +35,6 @@ int blob_deserialize(const sb_t *blob, int *pos, const char *fmt, ...);
 /* Blob encoding                                                          */
 /**************************************************************************/
 
-void blob_append_wbxml_href(sb_t *dst, const byte *data, int len);
-
 void blob_append_date_iso8601(sb_t *dst, time_t date);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/

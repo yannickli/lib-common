@@ -231,29 +231,3 @@ int tpl_encode_qp(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
     }
     return 0;
 }
-
-int tpl_encode_wbxml_href(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
-{
-    SB_1k(tmp);
-
-    assert (nb > 0);
-    if (!blob) {
-        assert (out);
-        blob = tpl_get_blob(out);
-    }
-
-    while (--nb >= 0) {
-        tpl_t *arg = *args++;
-        if (arg->op == TPL_OP_DATA) {
-            sb_add(&tmp, arg->u.data.data, arg->u.data.len);
-        } else {
-            assert (arg->op == TPL_OP_BLOB);
-            sb_addsb(&tmp, &arg->u.blob);
-        }
-    }
-
-    blob_append_wbxml_href(blob, (const byte *)tmp.data, tmp.len);
-    sb_wipe(&tmp);
-
-    return 0;
-}

@@ -50,7 +50,6 @@ libcommon_SOURCES = \
 	arith-bithacks.c \
 	\
 	blob.c \
-	blob-wbxml.c \
 	\
 	conf.c  \
 	conf-parser.l \
