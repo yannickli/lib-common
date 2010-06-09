@@ -51,7 +51,6 @@ libcommon_SOURCES = \
 	\
 	blob.c \
 	blob-ebcdic.c \
-	blob-zlib.c \
 	blob-wbxml.c \
 	\
 	conf.c  \

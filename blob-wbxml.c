@@ -18,12 +18,12 @@
  * /home/data/doc/wpush/2.1/WAP-167-ServiceInd-20010731-a.pdf
  *
  * */
-static void append_href_string(blob_t *out, const byte *data, int len)
+static void append_href_string(sb_t *out, const byte *data, int len)
 {
     const byte *p;
     int written = 0, pos = 0;
 
-    blob_append_byte(out, 0x03);
+    sb_addc(out, 0x03);
     while (pos < len && (p = memchr(data + pos, '.', len - pos))) {
         if (len - (p - data) < 5) {
             /* Not enough data to contain extension */
@@ -34,11 +34,11 @@ static void append_href_string(blob_t *out, const byte *data, int len)
 #define CASE_VALUE_TOKEN(c1, c2, c3, tok)                                   \
           case c1:                                                          \
             if (p[2] == c2 && p[3] == c3 && p[4] == '/') {                  \
-                blob_append_data(out, data + written, (p - data) - written);\
-                blob_append_byte(out, 0x00);                                \
-                blob_append_byte(out, tok);                                 \
+                sb_add(out, data + written, (p - data) - written);\
+                sb_addc(out, 0x00);                                \
+                sb_addc(out, tok);                                 \
                 if (len - (p - data) > 5) { /* some characters remain */            \
-                    blob_append_byte(out, 0x03);                            \
+                    sb_addc(out, 0x03);                            \
                 }                                                           \
                 pos = written = (p - data) + 5;                             \
                 continue;                                                   \
@@ -55,12 +55,12 @@ static void append_href_string(blob_t *out, const byte *data, int len)
     }
 
     if (written < len) {
-        blob_append_data(out, data + written, len - written);
-        blob_append_byte(out, 0x00);
+        sb_add(out, data + written, len - written);
+        sb_addc(out, 0x00);
     }
 }
 
-void blob_append_wbxml_href(blob_t *dst, const byte *data, int len)
+void blob_append_wbxml_href(sb_t *dst, const byte *data, int len)
 {
     if (len < sstrlen("http://")) {
         goto no_encoding;
@@ -81,12 +81,12 @@ void blob_append_wbxml_href(blob_t *dst, const byte *data, int len)
         if (len >= sstrlen("https://www.")
         &&  !memcmp(data + 8, "www.", 4))
         {
-            blob_append_byte(dst, 0x0F); /* href + "https://www." */
+            sb_addc(dst, 0x0F); /* href + "https://www." */
             append_href_string(dst, data + 12, len - 12);
             return;
         }
 
-        blob_append_byte(dst, 0x0E); /* href + "https://" */
+        sb_addc(dst, 0x0E); /* href + "https://" */
         append_href_string(dst, data + 8, len - 8);
         return;
     }
@@ -98,17 +98,17 @@ void blob_append_wbxml_href(blob_t *dst, const byte *data, int len)
     if (len >= sstrlen("http://www.")
     &&  !memcmp(data + 7, "www.", 4))
     {
-        blob_append_byte(dst, 0x0D); /* href + "http://www." */
+        sb_addc(dst, 0x0D); /* href + "http://www." */
         append_href_string(dst, data + 11, len - 11);
         return;
     }
 
-    blob_append_byte(dst, 0x0C); /* href + "http://" */
+    sb_addc(dst, 0x0C); /* href + "http://" */
     append_href_string(dst, data + 7, len - 7);
     return;
 
   no_encoding:
-    blob_append_byte(dst, 0x0B);
+    sb_addc(dst, 0x0B);
     append_href_string(dst, data, len);
 }
 
@@ -135,7 +135,7 @@ void blob_append_wbxml_href(blob_t *dst, const byte *data, int len)
 
 START_TEST(check_append_href)
 {
-    blob_t dst;
+    sb_t dst;
 
     blob_init(&dst);
 

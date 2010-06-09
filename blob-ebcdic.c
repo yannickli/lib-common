@@ -84,7 +84,7 @@ static int const ebcdic297_to_unicode[] = {
 
 /* Achtung: Decode an ebcdic 297 string into UTF-8
  * */
-int blob_decode_ebcdic297(blob_t *dst, const char *src, int len)
+int blob_decode_ebcdic297(sb_t *dst, const char *src, int len)
 {
     /* UTF-8 may take up to 2 bytes from EBCDIC 297 */
     char *s = sb_grow(dst, 2 * len);
@@ -110,20 +110,20 @@ int blob_decode_ebcdic297(blob_t *dst, const char *src, int len)
 
 START_TEST(check_ebcdic_to_utf8)
 {
-    blob_t dst;
-    blob_t src;
+    sb_t dst;
+    sb_t src;
 
     blob_init(&dst);
     blob_init(&src);
 
-    fail_if(blob_append_file_data(&src, "samples/ebcdic.sample") < 0,
+    fail_if(sb_read_file(&src, "samples/ebcdic.sample") < 0,
             "Could not read sample file 'samples/ebcdic.sample'");
 
     fail_if(blob_decode_ebcdic297(&dst, src.data, src.len),
             "blob_decode_ebcdic297 failed");
 
     blob_reset(&src);
-    fail_if(blob_append_file_data(&src, "samples/ebcdic.sample.utf-8") < 0,
+    fail_if(sb_read_file(&src, "samples/ebcdic.sample.utf-8") < 0,
             "Could not read sample file 'samples/ebcdic.sample.utf-8'");
 
     fail_if(strcmp(blob_get_cstr(&dst), blob_get_cstr(&src)),

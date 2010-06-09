@@ -122,10 +122,10 @@ int tpl_encode_ira(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
     while (--nb >= 0) {
         tpl_t *arg = *args++;
         if (arg->op == TPL_OP_DATA) {
-            blob_append_ira_hex(blob, arg->u.data.data, arg->u.data.len);
+            sb_conv_to_gsm_hex(blob, arg->u.data.data, arg->u.data.len);
         } else {
             assert (arg->op == TPL_OP_BLOB);
-            blob_append_ira_hex(blob, arg->u.blob.data, arg->u.blob.len);
+            sb_conv_to_gsm_hex(blob, arg->u.blob.data, arg->u.blob.len);
         }
     }
     return 0;
@@ -141,10 +141,10 @@ int tpl_encode_ira_bin(tpl_t *out, sb_t *blob, tpl_t **args, int nb)
     while (--nb >= 0) {
         tpl_t *arg = *args++;
         if (arg->op == TPL_OP_DATA) {
-            blob_append_ira_bin(blob, arg->u.data.data, arg->u.data.len);
+            sb_conv_to_gsm(blob, arg->u.data.data, arg->u.data.len);
         } else {
             assert (arg->op == TPL_OP_BLOB);
-            blob_append_ira_bin(blob, arg->u.blob.data, arg->u.blob.len);
+            sb_conv_to_gsm(blob, arg->u.blob.data, arg->u.blob.len);
         }
     }
     return 0;
