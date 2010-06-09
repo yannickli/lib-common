@@ -25,17 +25,6 @@ int blob_unpack(const sb_t *blob, int *pos, const char *fmt, ...)
     __must_check__;
 int buf_unpack(const byte *buf, int buf_len, int *pos, const char *fmt, ...)
     __must_check__;
-int blob_serialize(sb_t *blob, const char *fmt, ...)
-    __attr_printf__(2, 3);
-int buf_deserialize(const byte *buf, int buf_len,
-                    int *pos, const char *fmt, ...);
-int blob_deserialize(const sb_t *blob, int *pos, const char *fmt, ...);
-
-/**************************************************************************/
-/* Blob encoding                                                          */
-/**************************************************************************/
-
-void blob_append_date_iso8601(sb_t *dst, time_t date);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK

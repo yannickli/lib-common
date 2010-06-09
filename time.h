@@ -43,6 +43,40 @@ time_t lp_getsec(void);
 void lp_gettv(struct timeval *);
 
 /***************************************************************************/
+/* iso8601                                                                 */
+/***************************************************************************/
+
+static inline void time_fmt_iso8601(char buf[static 21], time_t t)
+{
+    struct tm tm;
+
+    gmtime_r(&t, &tm);
+    sprintf(buf, "%04d-%02d-%02dT%02d:%02d:%02dZ",
+            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+            tm.tm_hour, tm.tm_min, tm.tm_sec);
+}
+
+static inline void time_fmt_iso8601_msec(char buf[static 25], time_t t, int msec)
+{
+    struct tm tm;
+
+    gmtime_r(&t, &tm);
+    sprintf(buf, "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ",
+            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+            tm.tm_hour, tm.tm_min, tm.tm_sec, msec);
+}
+
+static inline void sb_add_time_iso8601(sb_t *sb, time_t t)
+{
+    time_fmt_iso8601(sb_growlen(sb, 20), t);
+}
+static inline void sb_add_time_iso8601_msec(sb_t *sb, time_t t, int msec)
+{
+    time_fmt_iso8601_msec(sb_growlen(sb, 24), t, msec);
+}
+
+
+/***************************************************************************/
 /* timeval operations                                                      */
 /***************************************************************************/
 
