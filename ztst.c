@@ -13,7 +13,6 @@
 
 #include <check.h>
 #include "all.h"
-#include "blob.h"
 
 int main(void)
 {
