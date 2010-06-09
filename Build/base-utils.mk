@@ -11,6 +11,13 @@
 #                                                                        #
 ##########################################################################
 
+#
+# mangle path names
+#
+define fun/path-mangle
+$(subst .,_,$(subst /,_,$1))
+endef
+
 # update-if-changed
 #
 # $(call fun/update-if-changed,<SRC>,<DST>)

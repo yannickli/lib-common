@@ -48,6 +48,7 @@ endef
 
 define ext/expand/c
 $3: $~%$$(tmp/$2/ns)$4.o: %.c | __$(1D)_generated
+	mkdir -p $$(@D)
 	$(msg/COMPILE.c) $$(<R)
 	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$*.c_CFLAGS) \
 	    -MP -MMD -MT $$@ -MF $$(@:o=dep) \
@@ -56,7 +57,7 @@ $3: $~%$$(tmp/$2/ns)$4.o: %.c | __$(1D)_generated
 endef
 
 define ext/rule/c
-tmp/$2/ns   := $$(if $$($(1D)/_CFLAGS)$$($1_CFLAGS),.$(2F))
+tmp/$2/ns   := $$(if $$($(1D)/_CFLAGS)$$($1_CFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))
 tmp/$2/objs := $$(patsubst %.c,$~%$$(tmp/$2/ns)$4.o,$3)
 $2: $$(tmp/$2/objs)
 $$(foreach o,$$(tmp/$2/objs),$$(eval $$(call fun/do-once,ext/expand/c/$$o,$$(call ext/expand/c,$1,$2,$$o,$4))))
