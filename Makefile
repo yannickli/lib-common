@@ -50,7 +50,6 @@ libcommon_SOURCES = \
 	arith-bithacks.c \
 	\
 	blob.c \
-	blob-ebcdic.c \
 	blob-wbxml.c \
 	\
 	conf.c  \
@@ -116,6 +115,7 @@ libcommon_SOURCES = \
 	str-buf-gsm.c \
 	str-num.c \
 	str-conv.c \
+	str-conv-ebcdic.c \
 	str-ctype.c \
 	str-iprintf.c \
 	str-dtoa.c \

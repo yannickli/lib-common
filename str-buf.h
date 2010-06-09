@@ -422,6 +422,7 @@ __SB_DEFINE_ADDS_ERR(unb64);
 void sb_conv_from_latin1(sb_t *sb, const void *s, int len);
 void sb_conv_from_latin9(sb_t *sb, const void *s, int len);
 int  sb_conv_to_latin1(sb_t *sb, const void *s, int len, int rep);
+int  sb_conv_from_ebcdic297(sb_t *dst, const char *src, int len);
 
 /* ucs2 */
 int  sb_conv_to_ucs2le(sb_t *sb, const void *s, int len);

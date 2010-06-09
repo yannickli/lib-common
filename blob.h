@@ -16,12 +16,6 @@
 
 #include "core.h"
 
-#if 0
-#define blob_check_slop()   assert (__sb_slop[0] == '\0')
-#else
-#define blob_check_slop()
-#endif
-
 /**************************************************************************/
 /* Blob printf functions                                                  */
 /**************************************************************************/
@@ -44,9 +38,6 @@ int blob_deserialize(const sb_t *blob, int *pos, const char *fmt, ...);
 void blob_append_wbxml_href(sb_t *dst, const byte *data, int len);
 
 void blob_append_date_iso8601(sb_t *dst, time_t date);
-
-/* in blob_ebcdic.c */
-int blob_decode_ebcdic297(sb_t *dst, const char *src, int len);
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
