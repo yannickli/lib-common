@@ -52,13 +52,40 @@ static int compress(const char *in, const char *out)
     return 0;
 }
 
+static int do_self_test(void)
+{
+    char *ibuf, *cbuf, *obuf;
+    ssize_t ilen, clen, olen;
+    byte dict[LZO_BUF_MEM_SIZE];
+
+    ha_srand();
+    for (int i = 0;; i++) {
+        t_push();
+        ilen = (ha_rand() % (64 << 10));
+        ibuf  = t_new_raw(char, ilen + 1);
+        obuf = t_new_raw(char, ilen);
+
+        for (ssize_t j = 0; j < ilen / 2; j++)
+            ((uint16_t *)ibuf)[j] = rand();
+
+        clen = lzo_cbuf_size(ilen);
+        cbuf = t_new_raw(char, clen + LZO_INPUT_PADDING);
+        clen = qlzo1x_compress(cbuf, clen, ps_init(ibuf, ilen), dict);
+
+        olen = qlzo1x_decompress(obuf, ilen, ps_init(cbuf, clen));
+        assert (olen == ilen && memcmp(ibuf, obuf, ilen) == 0);
+        e_trace(0, "%d: %zd bytes ok", i, ilen);
+        t_pop();
+    }
+}
+
 int main(int argc, char **argv)
 {
     const char *out = NULL;
     int mode = MODE_C;
     int c;
 
-    while ((c = getopt(argc, argv, "cdo:")) >= 0) {
+    while ((c = getopt(argc, argv, "cdo:r")) >= 0) {
         switch (c) {
           case 'c':
             mode = MODE_C;
@@ -69,6 +96,8 @@ int main(int argc, char **argv)
           case 'o':
             out = optarg;
             break;
+          case 'r':
+            return do_self_test();
           default:
             fprintf(stderr, "error: unknown option '%c'", c);
             exit(1);
