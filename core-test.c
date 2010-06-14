@@ -11,7 +11,37 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "core.h"
+#include "container.h"
+
+#ifndef NDEBUG
+static struct {
+    const tst_t *start;
+    const tst_t *end;
+} test_g;
+#define _G  test_g
+
+void test_register(const tst_t *tst)
+{
+    if (!_G.start || tst < _G.start)
+        _G.start = tst;
+    if (!_G.end || tst > _G.end)
+        _G.end = tst + 1;
+}
+
+int test_run(int argc, const char **argv)
+{
+    size_t test_count = _G.end - _G.start;
+    int res = 0;
+
+    for (size_t i = 0; i < test_count; i++) {
+        const tst_t *t = _G.start + i;
+
+        fprintf(stderr, "tst desc %s:%d:%s\n", t->file, t->lineno, t->text);
+        res |= (*t->fun)();
+    }
+
+    return res;
+}
 
 int test_report(bool fail, const char *fmt, const char *file, int lno, ...)
 {
@@ -38,27 +68,22 @@ int test_skip(const char *fmt, const char *file, int lno, ...)
     fflush(stderr);
     return 0;
 }
-
-#ifndef NDEBUG
-extern tst_t const intersec_tests_start[];
-extern tst_t const intersec_tests_end[];
-
-int test_run(int argc, const char **argv)
-{
-    size_t test_count = intersec_tests_end - intersec_tests_start;
-    int res = 0;
-
-    for (size_t i = 0; i < test_count; i++) {
-        const tst_t *t = intersec_tests_start + i;
-
-        fprintf(stderr, "tst desc %s:%d:%s\n", t->file, t->lineno, t->text);
-        res |= (*t->fun)();
-    }
-
-    return res;
-}
 #else
 int test_run(int argc, const char **argv)
+{
+    return 0;
+}
+
+void test_register(const tst_t *tst)
+{
+}
+
+int test_report(bool fail, const char *fmt, const char *file, int lno, ...)
+{
+    return 0;
+}
+
+int test_skip(const char *fmt, const char *file, int lno, ...)
 {
     return 0;
 }

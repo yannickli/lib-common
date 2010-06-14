@@ -36,6 +36,9 @@ typedef struct tst_t {
         .lineno = __LINE__,                                                  \
         .flags  = (fl),                                                      \
     };                                                                       \
+    __attribute__((constructor)) static void TST_CTOR_##name(void) {         \
+        test_register(&TST_##name);                                          \
+    }                                                                        \
     static int TST_##name##_fun(void)
 #else
 #  define __TEST_DECL2(name, what, fl) \
@@ -52,6 +55,7 @@ typedef struct tst_t {
 #define TEST_SKIP(fmt, ...)               test_skip(fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 #define TEST_DONE()                       do { return 0; } while (0)
 
+void test_register(const tst_t *tst);
 int test_run(int argc, const char **argv);
 __attribute__((format(printf, 2, 5)))
 int test_report(bool fail, const char *fmt, const char *file, int lno, ...);

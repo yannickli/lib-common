@@ -138,7 +138,7 @@ zchk_SOURCES = zchk.c \
 	$/lib-common/libcommon.wa \
 	$/lib-common/time-lp-simple.a
 
-zchk_LIBS = -lz -lrt -ldl
+zchk_LIBS = -lz -lrt -ldl -lpthread
 
 ztst_SOURCES = $(libcommon_SOURCES) time-lp-simple.c ztst.c $/lib-common/compat/check.c
 ztst_CFLAGS  = -DCHECK=1
