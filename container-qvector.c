@@ -13,14 +13,6 @@
 
 #include "container.h"
 
-void qvector_reset(qvector_t *vec, int v_size)
-{
-    vec->size += vec->skip;
-    vec->tab  += vec->skip * v_size;
-    vec->skip  = 0;
-    vec->len   = 0;
-}
-
 void qvector_wipe(qvector_t *vec, int v_size)
 {
     switch (vec->mem_pool & MEM_POOL_MASK) {

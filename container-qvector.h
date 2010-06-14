@@ -41,7 +41,13 @@ __qvector_init(qvector_t *vec, void *buf, int blen, int bsize, int mem_pool)
 void  qvector_wipe(qvector_t *vec, int v_size);
 void  __qvector_grow(qvector_t *, int v_size, int extra);
 void *__qvector_splice(qvector_t *, int v_size, int pos, int len, int dlen);
-void  qvector_reset(qvector_t *, int v_size);
+static inline void qvector_reset(qvector_t *vec, int v_size)
+{
+    vec->size += vec->skip;
+    vec->tab  += vec->skip * v_size;
+    vec->skip  = 0;
+    vec->len   = 0;
+}
 
 static inline void *qvector_grow(qvector_t *vec, int v_size, int extra)
 {
@@ -133,28 +139,33 @@ qvector_splice(qvector_t *vec, int v_size,
 #define qvector_t(n, val_t)                 __QVECTOR_BASE(qv_##n, val_t)
 
 #define qv_t(n)                             qv_##n##_t
+#define __qv_sz(n)                          fieldsizeof(qv_t(n), tab[0])
 #define __qv_init(n, vec, b, bl, bs, mp)    __qv_##n##_init(vec, b, bl, bs, mp)
 #define qv_inita(n, vec, len) \
-    ({ size_t __len = (len), _sz = __len * sizeof((vec)->tab[0]); \
+    ({ size_t __len = (len), _sz = __len * __qv_sz(n); \
        __qv_init(n, vec, alloca(_sz), 0, __len, MEM_STATIC); })
 #define t_qv_init(n, vec, len) \
-    ({ size_t __len = (len), _sz = __len * sizeof((vec)->tab[0]); \
+    ({ size_t __len = (len), _sz = __len * __qv_sz(n); \
        __qv_init(n, vec, t_new_raw(char, _sz), 0, __len, MEM_STACK); })
 
 #define qv_init(n, vec)                     p_clear(vec, 1)
-#define qv_clear(n, vec)                    (void)((vec)->len = 0)
+#define qv_clear(n, vec)                    qvector_reset(&(vec)->qv, __qv_sz(n))
 #define qv_wipe(n, vec)                     qv_##n##_wipe(vec)
 #define qv_new(n)                           p_new(qv_t(n), 1)
 #define qv_delete(n, vec)                   qv_##n##_delete(vec)
+
+#define qv_last(n, vec)                     ({ qv_t(n) *__vec = (vec);  \
+                                               assert (__vec->len > 0); \
+                                               __vec->tab + __vec->len - 1; })
 
 #define __qv_splice(n, vec, pos, l, dl)     __qv_##n##_splice(vec, pos, l, dl)
 #define qv_splice(n, vec, pos, l, tab, dl)  qv_##n##_splice(vec, pos, l, tab, dl)
 #define qv_growlen(n, vec, extra)           qv_##n##_growlen(vec, extra)
 #define qv_clip(n, vec, len)                qv_##n##_clip(vec, len)
 #define qv_shrink(n, vec, len)              qv_##n##_shrink(vec, len)
-#define qv_skip(n, vec, len)                __qv_splice(n, vec, 0, len, 0)
-#define qv_remove(n, vec, i)                __qv_splice(n, vec, i,   1, 0)
-#define qv_pop(n, vec)                      __qv_splice(n, vec, 0,   1, 0)
+#define qv_skip(n, vec, len)                (void)__qv_splice(n, vec, 0, len, 0)
+#define qv_remove(n, vec, i)                (void)__qv_splice(n, vec, i,   1, 0)
+#define qv_pop(n, vec)                      (void)__qv_splice(n, vec, 0,   1, 0)
 
 #define qv_insert(n, vec, i, v)             (*__qv_splice(n, vec, i, 0, 1) = (v))
 #define qv_append(n, vec, v)                (*qv_growlen(n, vec, 1) = (v))
