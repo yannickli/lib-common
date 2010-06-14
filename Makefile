@@ -58,6 +58,7 @@ libcommon_SOURCES = \
 	container-htbl.c \
 	container-list.c \
 	container-qhash.c \
+	container-qvector.c \
 	container-rbtree.c \
 	container-ring.c \
 	container-slist.c \

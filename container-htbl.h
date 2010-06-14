@@ -14,6 +14,8 @@
 #ifndef IS_LIB_COMMON_CONTAINER_HTBL_H
 #define IS_LIB_COMMON_CONTAINER_HTBL_H
 
+#include "core.h"
+
 #define CONTAINER_TYPE(kind, type_t, pfx)                                    \
     typedef struct pfx##_##kind {                                            \
         type_t *tab;                                                         \

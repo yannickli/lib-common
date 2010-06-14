@@ -20,6 +20,7 @@
 #include "container-dlist.h"
 #include "container-list.h"
 #include "container-qhash.h"
+#include "container-qvector.h"
 #include "container-rbtree.h"
 #include "container-ring.h"
 #include "container-slist.h"
