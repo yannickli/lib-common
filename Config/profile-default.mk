@@ -17,4 +17,3 @@ include $(var/cfgdir)/cflags.mk
 ifndef SPARSE
     CFLAGS += $(if $(filter -D_FORTIFY_SOURCE=%,$(ADD_CFLAGS)),,-D_FORTIFY_SOURCE=2)
 endif
-LDFLAGS += $/lib-common/core.ld
