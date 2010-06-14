@@ -65,7 +65,7 @@
 #define BT_ARITY          ((BT_PAGE_SIZE - 4 * 4) / (8 + 4))
                                /**< L constant in the b-tree terminology */
 
-DO_VECTOR(struct bt_key_range_rec, btkrr);
+qvector_t(btkrr, struct bt_key_range_rec);
 
 static const union {
     char     s[4];
@@ -946,11 +946,11 @@ int btree_fetch_range(btree_t *bt, uint64_t kmin, uint64_t kmax,
     int page, pos, len = 0;
     const bt_leaf_t *leaf;
     struct bt_key_range_rec btkrr = { .key = kmin };
-    btkrr_vector vec;
+    qv_t(btkrr) vec;
     sb_t out;
 
     sb_init(&out);
-    btkrr_vector_init(&vec);
+    qv_init(btkrr, &vec);
 
     bt_real_rlock(bt);
     page = btn_find_leaf(bt->area, kmin, NULL);
@@ -986,7 +986,7 @@ int btree_fetch_range(btree_t *bt, uint64_t kmin, uint64_t kmax,
 
         if (key != btkrr.key) {
             if (btkrr.dlen) {
-                btkrr_vector_append(&vec, btkrr);
+                qv_append(btkrr, &vec, btkrr);
             }
             btkrr.key  = key;
             btkrr.dpos = out.len;
@@ -1011,7 +1011,7 @@ int btree_fetch_range(btree_t *bt, uint64_t kmin, uint64_t kmax,
     }
 
     if (btkrr.dlen)
-        btkrr_vector_append(&vec, btkrr);
+        qv_append(btkrr, &vec, btkrr);
     *btkr = (struct bt_key_range){
         .nkeys = vec.len,
         .keys  = vec.tab,
@@ -1022,7 +1022,7 @@ int btree_fetch_range(btree_t *bt, uint64_t kmin, uint64_t kmax,
 
   error:
     sb_wipe(&out);
-    btkrr_vector_wipe(&vec);
+    qv_wipe(btkrr, &vec);
     bt_real_unlock(bt);
     return -1;
 }
@@ -1601,14 +1601,14 @@ int fbtree_fetch_range(fbtree_t *fbt, uint64_t kmin, uint64_t kmax,
     int page, pos, len = 0;
     const bt_leaf_t *leaf;
     struct bt_key_range_rec btkrr = { .key = kmin };
-    btkrr_vector vec;
+    qv_t(btkrr) vec;
     sb_t out;
 
     if (fbt->ismap)
         return btree_fetch_range(fbt->bt, kmin, kmax, btkr);
 
     sb_init(&out);
-    btkrr_vector_init(&vec);
+    qv_init(btkrr, &vec);
 
     page = fbtn_find_leaf(fbt, kmin);
     if (page < 0)
@@ -1640,7 +1640,7 @@ int fbtree_fetch_range(fbtree_t *fbt, uint64_t kmin, uint64_t kmax,
 
         if (key != btkrr.key) {
             if (btkrr.dlen) {
-                btkrr_vector_append(&vec, btkrr);
+                qv_append(btkrr, &vec, btkrr);
             }
             btkrr.key  = key;
             btkrr.dpos = out.len;
@@ -1665,7 +1665,7 @@ int fbtree_fetch_range(fbtree_t *fbt, uint64_t kmin, uint64_t kmax,
     }
 
     if (btkrr.dlen)
-        btkrr_vector_append(&vec, btkrr);
+        qv_append(btkrr, &vec, btkrr);
     *btkr = (struct bt_key_range){
         .nkeys = vec.len,
         .keys  = vec.tab,
@@ -1675,7 +1675,7 @@ int fbtree_fetch_range(fbtree_t *fbt, uint64_t kmin, uint64_t kmax,
 
   error:
     sb_wipe(&out);
-    btkrr_vector_wipe(&vec);
+    qv_wipe(btkrr, &vec);
     return -1;
 }
 

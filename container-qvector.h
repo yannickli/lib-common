@@ -151,6 +151,12 @@ qvector_splice(qvector_t *vec, int v_size,
 #define qv_init(n, vec)                     p_clear(vec, 1)
 #define qv_clear(n, vec)                    qvector_reset(&(vec)->qv, __qv_sz(n))
 #define qv_wipe(n, vec)                     qv_##n##_wipe(vec)
+#define qv_deep_wipe(n, vec, wipe) \
+    ({ qv_t(n) *__vec = (vec);              \
+       qv_for_each_pos(n, __i, __vec) {     \
+           wipe(&__vec->tab[__i]);          \
+       }                                    \
+       qv_wipe(n, __vec); })
 #define qv_new(n)                           p_new(qv_t(n), 1)
 #define qv_delete(n, vec)                   qv_##n##_delete(vec)
 
@@ -188,3 +194,4 @@ qvector_t(u32,    uint32_t);
 qvector_t(i64,    int64_t);
 qvector_t(u64,    uint64_t);
 qvector_t(double, double);
+qvector_t(str,    char *);

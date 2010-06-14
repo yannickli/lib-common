@@ -102,7 +102,7 @@ static void
 F(qhash_move)(qhash_t *qh, qhash_hdr_t *old, uint32_t pos __F_PROTO)
 {
     uint32_t v_size = qh->v_size;
-    uint32_vector moves;
+    qv_t(u32) moves;
 
 #ifdef QH_DEEP_COPY
     uint32_t k_size = qh->k_size;
@@ -116,13 +116,13 @@ F(qhash_move)(qhash_t *qh, qhash_hdr_t *old, uint32_t pos __F_PROTO)
     uint8_t  cycle_v[v_size];
     bool     has_loop = false;
 
-    vector_inita(&moves, 1024);
+    qv_inita(u32, &moves, 1024);
 
     do {
         key_t    k = getK(qh, pos);
         uint32_t h = hashK(qh, pos, k);
 
-        uint32_vector_append(&moves, pos);
+        qv_append(u32, &moves, pos);
         qhash_slot_inv_flags(old->bits, pos);
         F(qhash_put_ll)(qh, NULL, false, h, k, &pos __F_ARGS);
 
@@ -176,7 +176,7 @@ F(qhash_move)(qhash_t *qh, qhash_hdr_t *old, uint32_t pos __F_PROTO)
     }
 
     qh->hdr.len -= moves.len;
-    uint32_vector_wipe(&moves);
+    qv_wipe(u32, &moves);
 }
 
 static void

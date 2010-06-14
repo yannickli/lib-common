@@ -35,10 +35,10 @@ struct trace_spec_t {
     const char *func;
     int level;
 };
-DO_VECTOR(struct trace_spec_t, spec);
+qvector_t(spec, struct trace_spec_t);
 
 static struct {
-    spec_vector specs;
+    qv_t(spec)  specs;
     qm_t(trace) cache;
     sb_t        buf, tmpbuf;
 
@@ -62,7 +62,7 @@ static void e_debug_initialize(void)
 {
     char *p;
 
-    spec_vector_init(&_G.specs);
+    qv_init(spec, &_G.specs);
     sb_init(&_G.buf);
     sb_init(&_G.tmpbuf);
     _G.fancy = is_fancy_fd(STDERR_FILENO);
@@ -106,7 +106,7 @@ static void e_debug_initialize(void)
             *p++ = '\0';
 
         _G.max_level = MAX(_G.max_level, spec.level);
-        spec_vector_append(&_G.specs, spec);
+        qv_append(spec, &_G.specs, spec);
     }
 }
 

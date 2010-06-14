@@ -17,7 +17,7 @@ void xmlpp_open(xmlpp_t *pp, sb_t *buf)
 {
     p_clear(pp, 1);
     pp->buf = buf;
-    string_array_init(&pp->stack);
+    qv_init(str, &pp->stack);
 }
 
 void xmlpp_open_banner(xmlpp_t *pp, sb_t *buf)
@@ -32,7 +32,7 @@ void xmlpp_close(xmlpp_t *pp)
         xmlpp_closetag(pp);
     if (!pp->nospace && pp->buf->data[pp->buf->len - 1] != '\n')
         sb_addc(pp->buf, '\n');
-    string_array_wipe(&pp->stack);
+    qv_deep_wipe(str, &pp->stack, p_delete);
 }
 
 void xmlpp_opentag(xmlpp_t *pp, const char *tag)
@@ -42,7 +42,7 @@ void xmlpp_opentag(xmlpp_t *pp, const char *tag)
     } else {
         sb_addf(pp->buf, "%-*c<%s>", pp->stack.len * 2 + 1, '\n', tag);
     }
-    string_array_append(&pp->stack, p_strdup(tag));
+    qv_append(str, &pp->stack, p_strdup(tag));
     pp->can_do_attr = true;
     pp->was_a_tag   = true;
 }
@@ -53,7 +53,8 @@ void xmlpp_closetag(xmlpp_t *pp)
     if (!pp->stack.len)
         return;
 
-    tag = string_array_take(&pp->stack, pp->stack.len - 1);
+    tag = *qv_last(str, &pp->stack);
+    qv_shrink(str, &pp->stack, 1);
     if (pp->can_do_attr) {
         sb_shrink(pp->buf, 1);
         sb_adds(pp->buf, " />");

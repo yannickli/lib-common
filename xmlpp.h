@@ -21,7 +21,7 @@ typedef struct xmlpp_t {
     flag_t was_a_tag   : 1;
     flag_t nospace     : 1;
     sb_t  *buf;
-    string_array stack;
+    qv_t(str) stack;
 } xmlpp_t;
 
 void xmlpp_open_banner(xmlpp_t *, sb_t *buf);

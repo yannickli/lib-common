@@ -104,7 +104,7 @@ typedef struct ev_t {
         } timer;                /* EV_TIMER */
     };
 } ev_t;
-DO_ARRAY(ev_t, ev, IGNORE);
+qvector_t(ev, ev_t *);
 
 qm_k32_t(ev_assoc, ev_t *);
 qm_k64_t(ev, ev_t *);
@@ -119,8 +119,8 @@ static struct {
     dlist_t  after;           /* ev_t to run at the end of the loop         */
     dlist_t  sigs;            /* signals el_t's                             */
     dlist_t  proxy, proxy_ready;
-    ev_array timers;          /* relative timers heap (see comments after)  */
-    ev_array cache;
+    qv_t(ev) timers;          /* relative timers heap (see comments after)  */
+    qv_t(ev) cache;
     qm_t(ev_assoc) childs;    /* el_t's watching for processes              */
     qm_t(ev) fd_act;          /* el_t's timers to el_t fds map              */
 
@@ -165,10 +165,10 @@ static ev_t *ev_add(dlist_t *l, ev_t *ev)
 static void ev_cache_list(dlist_t *l)
 {
     ev_t *ev;
-    ev_array_reset(&_G.cache);
 
+    qv_clear(ev, &_G.cache);
     dlist_for_each_entry(ev, l, ev_list) {
-        ev_array_append(&_G.cache, ev);
+        qv_append(ev, &_G.cache, ev);
     }
 }
 
@@ -470,7 +470,7 @@ static void el_timer_heapup(int pos)
 
 static void el_timer_heapinsert(ev_t *ev)
 {
-    ev_array_append(&_G.timers, ev);
+    qv_append(ev, &_G.timers, ev);
     ev->timer.heappos = _G.timers.len - 1;
     el_timer_heapup(_G.timers.len - 1);
 }
@@ -489,8 +489,9 @@ static void el_timer_heapfix(ev_t *ev)
 static el_data_t el_timer_heapremove(ev_t **evp)
 {
     int   pos = (*evp)->timer.heappos;
-    ev_t *end = ev_array_take(&_G.timers, _G.timers.len - 1);
+    ev_t *end = *qv_last(ev, &_G.timers);
 
+    qv_shrink(ev, &_G.timers, 1);
     CHECK_EV_TYPE(*evp, EV_TIMER);
     if (*evp != end) {
         EVTSET(pos, end);
