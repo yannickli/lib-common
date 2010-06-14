@@ -28,17 +28,17 @@ typedef struct tst_t {
 #ifndef NDEBUG
 #  define __TEST_DECL2(name, what, fl) \
     static tst_f TST_##name##_fun;                     \
-    static __attribute__((used,section(".intersec.tests."__FILE__":"#name))) \
-    tst_t const TST_##name = {                                               \
-        .fun    = &TST_##name##_fun,                                         \
-        .text   = what,                                                      \
-        .file   = __FILE__,                                                  \
-        .lineno = __LINE__,                                                  \
-        .flags  = (fl),                                                      \
-    };                                                                       \
-    __attribute__((constructor)) static void TST_CTOR_##name(void) {         \
-        test_register(&TST_##name);                                          \
-    }                                                                        \
+    static __attribute__((used,section(".intersec.tests."__FILE__))) \
+    tst_t const TST_##name = {                                       \
+        .fun    = &TST_##name##_fun,                                 \
+        .text   = what,                                              \
+        .file   = __FILE__,                                          \
+        .lineno = __LINE__,                                          \
+        .flags  = (fl),                                              \
+    };                                                               \
+    __attribute__((constructor)) static void TST_CTOR_##name(void) { \
+        test_register(&TST_##name);                                  \
+    }                                                                \
     static int TST_##name##_fun(void)
 #else
 #  define __TEST_DECL2(name, what, fl) \
