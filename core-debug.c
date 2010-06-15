@@ -40,7 +40,6 @@ qvector_t(spec, struct trace_spec_t);
 static struct {
     qv_t(spec)  specs;
     qm_t(trace) cache;
-    sb_t        buf, tmpbuf;
 
     int verbosity_level, max_level;
 
@@ -85,6 +84,8 @@ static void e_debug_initialize(void)
         signal(SIGWINCH, &on_sigwinch);
     }
 
+    e_debug_initialize_thread();
+
     p = getenv("IS_DEBUG");
     if (!p)
         return;
@@ -122,8 +123,6 @@ static void e_debug_initialize(void)
         _G.max_level = MAX(_G.max_level, spec.level);
         qv_append(spec, &_G.specs, spec);
     }
-
-    e_debug_initialize_thread();
 }
 
 static int e_find_level(const char *modname, const char *func)
