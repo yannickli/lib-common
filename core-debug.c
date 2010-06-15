@@ -51,11 +51,27 @@ static struct {
     .cache           = QM_INIT(trace, _G.cache, false),
 };
 
+static __thread sb_t buf_g;
+static __thread sb_t tmpbuf_g;
+
 static void on_sigwinch(int signo)
 {
     term_get_size(&_G.cols, &_G.rows);
 }
 
+static void e_debug_initialize_thread(void)
+{
+    sb_init(&buf_g);
+    sb_init(&tmpbuf_g);
+}
+thread_init(e_debug_initialize_thread);
+
+static void e_debug_shutdown_thread(void)
+{
+    sb_wipe(&buf_g);
+    sb_wipe(&tmpbuf_g);
+}
+thread_exit(e_debug_shutdown_thread);
 
 __attribute__((constructor))
 static void e_debug_initialize(void)
@@ -63,8 +79,6 @@ static void e_debug_initialize(void)
     char *p;
 
     qv_init(spec, &_G.specs);
-    sb_init(&_G.buf);
-    sb_init(&_G.tmpbuf);
     _G.fancy = is_fancy_fd(STDERR_FILENO);
     if (_G.fancy) {
         term_get_size(&_G.cols, &_G.rows);
@@ -108,6 +122,8 @@ static void e_debug_initialize(void)
         _G.max_level = MAX(_G.max_level, spec.level);
         qv_append(spec, &_G.specs, spec);
     }
+
+    e_debug_initialize_thread();
 }
 
 static int e_find_level(const char *modname, const char *func)
@@ -138,13 +154,12 @@ bool e_is_traced_real(int level, const char *modname, const char *func)
     static spinlock_t spin;
     uint64_t uuid;
     int32_t pos, tr_level;
-    bool result;
 
     if (level > _G.max_level)
         return false;
 
-    spin_lock(&spin);
     uuid = e_trace_uuid(modname, func);
+    spin_lock(&spin);
     pos  = qm_find(trace, &_G.cache, uuid);
     if (unlikely(pos < 0)) {
         tr_level = e_find_level(modname, func);
@@ -152,9 +167,8 @@ bool e_is_traced_real(int level, const char *modname, const char *func)
     } else {
         tr_level = _G.cache.values[pos];
     }
-    result = level <= tr_level;
     spin_unlock(&spin);
-    return result;
+    return level <= tr_level;
 }
 
 static void e_trace_put_fancy(int level, const char *module, int lno, const char *func)
@@ -162,52 +176,49 @@ static void e_trace_put_fancy(int level, const char *module, int lno, const char
     char escapes[BUFSIZ];
     int len, cols = _G.cols;
 
-    sb_setf(&_G.tmpbuf, "%s:%d:%s", module, lno,
+    sb_setf(&tmpbuf_g, "%s:%d:%s", module, lno,
             program_invocation_short_name);
-    if (_G.tmpbuf.len > cols - 2)
-        sb_shrink(&_G.tmpbuf, _G.tmpbuf.len - cols - 2);
-    len = snprintf(escapes, sizeof(escapes), "\r\e[%dC\e[7m ", cols - 2 - _G.tmpbuf.len);
-    sb_splice(&_G.tmpbuf, 0, 0, escapes, len);
-    sb_adds(&_G.tmpbuf, " \e[0m\r");
+    if (tmpbuf_g.len > cols - 2)
+        sb_shrink(&tmpbuf_g, tmpbuf_g.len - cols - 2);
+    len = snprintf(escapes, sizeof(escapes), "\r\e[%dC\e[7m ", cols - 2 - tmpbuf_g.len);
+    sb_splice(&tmpbuf_g, 0, 0, escapes, len);
+    sb_adds(&tmpbuf_g, " \e[0m\r");
 
     len = strlen(func);
 #define FUN_WIDTH 20
     if (strlen(func) < FUN_WIDTH) {
-        sb_addf(&_G.tmpbuf, "\e[33m%*s\e[0m ", FUN_WIDTH, func);
+        sb_addf(&tmpbuf_g, "\e[33m%*s\e[0m ", FUN_WIDTH, func);
     } else {
-        sb_addf(&_G.tmpbuf, "\e[33m%.*s...\e[0m ", FUN_WIDTH - 3, func);
+        sb_addf(&tmpbuf_g, "\e[33m%.*s...\e[0m ", FUN_WIDTH - 3, func);
     }
 }
 
 static void e_trace_put_normal(int level, const char *module, int lno, const char *func)
 {
-    sb_setf(&_G.tmpbuf, "%d %s:%d:%s: ", level, module, lno, func);
+    sb_setf(&tmpbuf_g, "%d %s:%d:%s: ", level, module, lno, func);
 }
 
 void e_trace_put(int level, const char *module, int lno,
                  const char *func, const char *fmt, ...)
 {
-    static spinlock_t spin;
     const char *p;
     va_list ap;
 
     if (e_is_traced_real(level, module, func)) {
-        spin_lock(&spin);
         va_start(ap, fmt);
-        sb_addvf(&_G.buf, fmt, ap);
+        sb_addvf(&buf_g, fmt, ap);
         va_end(ap);
 
-        while ((p = memchr(_G.buf.data, '\n', _G.buf.len))) {
+        while ((p = memchr(buf_g.data, '\n', buf_g.len))) {
             if (_G.fancy) {
                 e_trace_put_fancy(level, module, lno, func);
             } else {
                 e_trace_put_normal(level, module, lno, func);
             }
-            sb_add(&_G.tmpbuf, _G.buf.data, p + 1 - _G.buf.data);
-            sb_skip_upto(&_G.buf, p + 1);
-            IGNORE(xwrite(STDERR_FILENO, _G.tmpbuf.data, _G.tmpbuf.len));
+            sb_add(&tmpbuf_g, buf_g.data, p + 1 - buf_g.data);
+            sb_skip_upto(&buf_g, p + 1);
+            IGNORE(xwrite(STDERR_FILENO, tmpbuf_g.data, tmpbuf_g.len));
         }
-        spin_unlock(&spin);
     }
 }
 
