@@ -500,6 +500,7 @@ void r_pool_destroy(void)
 {
     mem_ring_pool_delete(&r_pool_g);
 }
+thread_exit(t_pool_destroy);
 
 static size_t frame_getsize(frame_t *frame, const byte *pos)
 {

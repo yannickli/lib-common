@@ -20,19 +20,14 @@ struct start_pair {
     void *arg;
 };
 
-static void libcommon_thread_on_exit(void *unused)
-{
-    t_pool_destroy();
-    r_pool_destroy();
-}
-
 static void *start_wrapper(void *data)
 {
     struct start_pair *pair = data;
     void *(*fn)(void *) = pair->fn;
     void *arg = pair->arg, *res = NULL;
 
-    pthread_cleanup_push(libcommon_thread_on_exit, NULL);
+    intersec_thread_on_init();
+    pthread_cleanup_push(intersec_thread_on_exit, NULL);
     p_delete(&data);
     res = fn(arg);
     pthread_cleanup_pop(1);

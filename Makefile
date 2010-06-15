@@ -71,6 +71,7 @@ libcommon_SOURCES = \
 	core-mem-fifo.c \
 	core-mem-ring.c \
 	core-mem-stack.c \
+	core-pthread.c \
 	core-pthread-hook.c \
 	core-test.c \
 	core-version.c \
