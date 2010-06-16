@@ -112,14 +112,15 @@ libcommon_SOURCES = \
 	\
 	str.c \
 	str-buf.c \
-	str-buf-quoting.c \
 	str-buf-gsm.c \
-	str-num.c \
-	str-conv.c \
+	str-buf-quoting.c \
 	str-conv-ebcdic.c \
+	str-conv.c \
 	str-ctype.c \
-	str-iprintf.c \
 	str-dtoa.c \
+	str-iprintf.c \
+	str-num.c \
+	str-outbuf.c \
 	str-path.c \
 	str-stream.c \
 	\
