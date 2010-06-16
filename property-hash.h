@@ -16,40 +16,27 @@
 
 #include "container.h"
 #include "xmlpp.h"
-#include "container-htbl.h"
 
-typedef struct prop_t {
-    union {
-        uintptr_t key;
-        const char *name;
-    };
-    char *value;
-} prop_t;
-
-static inline void prop_wipe(prop_t *p) {
-    p_delete(&p->value);
-}
-
-DO_HTBL_KEY(prop_t, uintptr_t, props, key);
+qm_k64_t(proph, char *);
 
 typedef struct props_hash_t {
     char *name;
-    props_htbl h;
-    string_htbl *names;
+    qm_t(proph) h;
+    qh_t(str)  *names;
 } props_hash_t;
 
 /****************************************************************************/
 /* Create hashtables, update records                                        */
 /****************************************************************************/
 
-static inline props_hash_t *props_hash_init(props_hash_t *ph, string_htbl *names)
+static inline props_hash_t *props_hash_init(props_hash_t *ph, qh_t(str) *names)
 {
     p_clear(ph, 1);
-    props_htbl_init(&ph->h);
+    qm_init(proph, &ph->h, false);
     ph->names = names;
     return ph;
 }
-static inline props_hash_t *props_hash_new(string_htbl *names)
+static inline props_hash_t *props_hash_new(qh_t(str) *names)
 {
     return props_hash_init(p_new_raw(props_hash_t, 1), names);
 }
@@ -60,8 +47,6 @@ GENERIC_DELETE(props_hash_t, props_hash);
 void props_hash_update(props_hash_t *ph, const char *name, const char *value);
 void props_hash_remove(props_hash_t *ph, const char *name);
 void props_hash_merge(props_hash_t *, const props_hash_t *);
-
-#define PROPS_HASH_MAP(ph, f, ...)   HTBL_MAP(&(ph)->h, f, ##__VA_ARGS__)
 
 /****************************************************************************/
 /* Search in props_hashes                                                   */

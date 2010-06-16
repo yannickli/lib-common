@@ -32,8 +32,9 @@
 
 static uint64_t getkey(const props_hash_t *ph, const char *name, bool insert)
 {
-    char buf[BUFSIZ], *s, **sp;
-    int len = 0;
+    char buf[BUFSIZ], *s;
+    int len = 0, pos;
+    uint32_t h;
 
     STATIC_ASSERT(sizeof(uint64_t) >= sizeof(uintptr_t));
 
@@ -42,14 +43,14 @@ static uint64_t getkey(const props_hash_t *ph, const char *name, bool insert)
     }
     buf[len] = '\0';
 
-    sp = string_htbl_find(ph->names, buf, len);
-    if (sp)
-        return (uintptr_t)*sp;
+    h   = hsieh_hash(buf, len);
+    pos = qh_find_h(str, ph->names, h, buf);
+    if (pos >= 0)
+        return (uintptr_t)ph->names->keys[pos];
     if (!insert)
         return 0; /* NULL */
-
     s = p_dupz(buf, len);
-    string_htbl_insert(ph->names, s, len);
+    qh_add_h(str, ph->names, h, s);
     return (uintptr_t)s;
 }
 
@@ -68,34 +69,35 @@ props_hash_t *props_hash_dup(const props_hash_t *ph)
 
 void props_hash_wipe(props_hash_t *ph)
 {
-    htbl_for_each_pos(i, &ph->h) {
-        prop_wipe(&ph->h.tab[i]);
+    qm_for_each_pos(proph, i, &ph->h) {
+        p_delete(&ph->h.values[i]);
     }
-    props_htbl_wipe(&ph->h);
+    qm_wipe(proph, &ph->h);
     p_delete(&ph->name);
+}
+
+static void props_hash_update_key(props_hash_t *ph, uint64_t key, const char *value)
+{
+    if (value) {
+        char *v = p_strdup(value);
+        int pos = __qm_put(proph, &ph->h, key, v, 0);
+
+        if (pos & QHASH_COLLISION) {
+            pos ^= QHASH_COLLISION;
+            p_delete(&ph->h.values[pos]);
+            ph->h.values[pos] = v;
+        }
+    } else {
+        int pos = qm_del_key(proph, &ph->h, key);
+
+        if (pos >= 0)
+            p_delete(&ph->h.values[pos]);
+    }
 }
 
 void props_hash_update(props_hash_t *ph, const char *name, const char *value)
 {
-    uint64_t key = getkey(ph, name, true);
-    prop_t *pp;
-
-    if (value) {
-        char *v = p_strdup(value);
-        prop_t prop = { .value = v };
-        prop.key = key;
-        pp = props_htbl_insert(&ph->h, prop);
-        if (pp) {
-            SWAP(char *, pp->value, v);
-            p_delete(&v);
-        }
-    } else {
-        pp = props_htbl_find(&ph->h, key);
-        if (pp) {
-            p_delete(&pp->value);
-            props_htbl_ll_remove(&ph->h, pp);
-        }
-    }
+    props_hash_update_key(ph, getkey(ph, name, true), value);
 }
 
 void props_hash_remove(props_hash_t *ph, const char *name)
@@ -105,11 +107,9 @@ void props_hash_remove(props_hash_t *ph, const char *name)
 
 void props_hash_merge(props_hash_t *to, const props_hash_t *src)
 {
-    prop_t *pp;
-
     assert (to->names == src->names);
-    htbl_for_each_p(pp, &src->h) {
-        props_hash_update(to, pp->name, pp->value);
+    qm_for_each_pos(proph, pos, &src->h) {
+        props_hash_update_key(to, src->h.keys[pos], src->h.values[pos]);
     }
 }
 
@@ -120,16 +120,15 @@ void props_hash_merge(props_hash_t *to, const props_hash_t *src)
 const char *props_hash_findval(const props_hash_t *ph, const char *name, const char *def)
 {
     uint64_t key = getkey(ph, name, false);
-    prop_t  *pp = props_htbl_find(&ph->h, key);
+    int pos = qm_find_safe(proph, &ph->h, key);
 
-    return (key && pp) ? pp->value : def;
+    return pos < 0 ? def : ph->h.values[pos];
 }
 
 int props_hash_findval_int(const props_hash_t *ph, const char *name, int defval)
 {
-    const char *result;
+    const char *result = props_hash_findval(ph, name, NULL);
 
-    result = props_hash_findval(ph, name, NULL);
     if (result) {
         return atoi(result);
     } else {
@@ -169,40 +168,35 @@ bool props_hash_findval_bool(const props_hash_t *ph, const char *name, bool defv
 
 void props_hash_pack(sb_t *out, const props_hash_t *ph, int terminator)
 {
-    prop_t *pp;
-
-    blob_pack(out, "d", ph->h.len);
-    htbl_for_each_p(pp, &ph->h) {
-        blob_pack(out, "|s|s", pp->name, pp->value);
+    blob_pack(out, "d", qm_len(proph, &ph->h));
+    qm_for_each_pos(proph, pos, &ph->h) {
+        blob_pack(out, "|s|s", (char *)(uintptr_t)ph->h.keys[pos],
+                  ph->h.values[pos]);
     }
     sb_addc(out, terminator);
 }
 
 void props_hash_to_fmtv1(sb_t *out, const props_hash_t *ph)
 {
-    prop_t *pp;
-
-    htbl_for_each_p(pp, &ph->h) {
-        blob_pack(out, "s:s\n", pp->name, pp->value);
+    qm_for_each_pos(proph, pos, &ph->h) {
+        blob_pack(out, "s:s\n", (char *)(uintptr_t)ph->h.keys[pos],
+                  ph->h.values[pos]);
     }
 }
 
 void props_hash_to_conf(sb_t *out, const props_hash_t *ph)
 {
-    prop_t *pp;
-
-    htbl_for_each_p(pp, &ph->h) {
-        sb_addf(out, "%s = %s\n", pp->name, pp->value);
+    qm_for_each_pos(proph, pos, &ph->h) {
+        sb_addf(out, "%s = %s\n", (char *)(uintptr_t)ph->h.keys[pos],
+                ph->h.values[pos]);
     }
 }
 
 void props_hash_to_xml(xmlpp_t *xpp, const props_hash_t *ph)
 {
-    prop_t *pp;
-
-    htbl_for_each_p(pp, &ph->h) {
-        xmlpp_opentag(xpp, pp->name);
-        xmlpp_puts(xpp, pp->value);
+    qm_for_each_pos(proph, pos, &ph->h) {
+        xmlpp_opentag(xpp, (char *)(uintptr_t)ph->h.keys[pos]);
+        xmlpp_puts(xpp, ph->h.values[pos]);
         xmlpp_closetag(xpp);
     }
 }

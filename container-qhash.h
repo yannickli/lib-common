@@ -513,4 +513,5 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
        if (likely(__pos >= 0)) qm_del_at(name, qh, __pos);               \
        __pos; })
 
+qh_kptr_t(str, char, qhash_hash_string, qhash_strequal);
 #endif
