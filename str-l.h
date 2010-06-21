@@ -36,9 +36,23 @@ typedef struct clstr_t {
 #define LSTR_SB(sb)           LSTR_INIT((sb)->data, (sb)->len)
 #define LSTR_SB_V(sb)         LSTR_INIT_V((sb)->data, (sb)->len)
 
-#define T_LSTR_DUP(str, len)  ({ int __len = (len); LSTR_INIT(t_dupz(str, __len), __len); })
+#define T_LSTR_DUP(str, len)  ({ int __len = (len); LSTR_INIT_V(t_dupz(str, __len), __len); })
 #define T_LSTR_DUP2(str)      ({ const char *__s = (str); T_LSTR_DUP2(__s, strlen(__s)); })
 
+static inline lstr_t lstr_dup(const lstr_t s)
+{
+    return LSTR_INIT_V(p_dupz(s.s, s.len), s.len);
+}
+
+static inline lstr_t t_lstr_dup(const lstr_t s)
+{
+    return T_LSTR_DUP(s.s, s.len);
+}
+
+static inline lstr_t mp_lstr_dup(mem_pool_t *mp, const lstr_t s)
+{
+    return LSTR_INIT_V(mp_dupz(mp, s.s, s.len), s.len);
+}
 
 #define CLSTR_INIT(s_, len_)  { .s = (s_), .len = (len_) }
 #define CLSTR_INIT_V(s, len)  (clstr_t)CLSTR_INIT(s, len)
@@ -52,8 +66,13 @@ typedef struct clstr_t {
 #define CLSTR_SB(sb)          CLSTR_INIT((sb)->data, (sb)->len)
 #define CLSTR_SB_V(sb)        CLSTR_INIT_V((sb)->data, (sb)->len)
 
-#define T_CLSTR_DUP(str, len) ({ int __len = (len); CLSTR_INIT(t_dupz(str, __len), __len); })
+#define T_CLSTR_DUP(str, len) ({ int __len = (len); CLSTR_INIT_V(t_dupz(str, __len), __len); })
 #define T_CLSTR_DUP2(str)     ({ const char *__s = (str); T_CLSTR_DUP2(__s, strlen(__s)); })
+
+static inline clstr_t t_clstr_dup(const clstr_t s)
+{
+    return T_CLSTR_DUP(s.s, s.len);
+}
 
 static inline bool lstr_equal(const lstr_t *s1, const lstr_t *s2)
 {
