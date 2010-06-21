@@ -37,7 +37,7 @@ typedef struct clstr_t {
 #define LSTR_SB_V(sb)         LSTR_INIT_V((sb)->data, (sb)->len)
 
 #define T_LSTR_DUP(str, len)  ({ int __len = (len); LSTR_INIT_V(t_dupz(str, __len), __len); })
-#define T_LSTR_DUP2(str)      ({ const char *__s = (str); T_LSTR_DUP2(__s, strlen(__s)); })
+#define T_LSTR_DUP2(str)      ({ const char *__s = (str); T_LSTR_DUP(__s, strlen(__s)); })
 
 static inline lstr_t lstr_dup(const lstr_t s)
 {
@@ -67,7 +67,7 @@ static inline lstr_t mp_lstr_dup(mem_pool_t *mp, const lstr_t s)
 #define CLSTR_SB_V(sb)        CLSTR_INIT_V((sb)->data, (sb)->len)
 
 #define T_CLSTR_DUP(str, len) ({ int __len = (len); CLSTR_INIT_V(t_dupz(str, __len), __len); })
-#define T_CLSTR_DUP2(str)     ({ const char *__s = (str); T_CLSTR_DUP2(__s, strlen(__s)); })
+#define T_CLSTR_DUP2(str)     ({ const char *__s = (str); T_CLSTR_DUP(__s, strlen(__s)); })
 
 static inline clstr_t t_clstr_dup(const clstr_t s)
 {
