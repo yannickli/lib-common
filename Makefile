@@ -11,7 +11,7 @@
 #                                                                        #
 ##########################################################################
 
-test_PROGRAMS += zchk btree-dump ztst-cfgparser ztst-tpl ztst-htbl
+test_PROGRAMS += zchk btree-dump ztst-cfgparser ztst-tpl
 test_PROGRAMS += ztst-lzo
 
 none_LIBRARIES = libcommon time-lp-simple
@@ -44,7 +44,6 @@ libcommon_SOURCES = \
 	paged-index.c \
 	parseopt.c \
 	time.c \
-	xml.c \
 	xmlpp.c \
 	\
 	arith-bithacks.c \
@@ -55,7 +54,6 @@ libcommon_SOURCES = \
 	conf-parser.l \
 	\
 	container-array.c \
-	container-htbl.c \
 	container-list.c \
 	container-qhash.c \
 	container-qvector.c \
@@ -172,7 +170,6 @@ ztst-sort_LIBS = -lm
 ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a compat/compat.a
 ztst-iprintf-speed_CFLAGS = -UCHECK
 
-ztst-htbl_SOURCES = ztst-htbl.c libcommon.a compat/compat.a
 ztst-path_SOURCES = ztst-path.c libcommon.a compat/compat.a
 
 ifneq (,$(MINGCC))

@@ -37,7 +37,6 @@
 #include "time.h"
 #include "tpl.h"
 #include "unix.h"
-#include "xml.h"
 #include "xmlpp.h"
 
 #endif
