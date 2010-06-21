@@ -195,3 +195,5 @@ qvector_t(i64,    int64_t);
 qvector_t(u64,    uint64_t);
 qvector_t(double, double);
 qvector_t(str,    char *);
+qvector_t(lstr,   lstr_t);
+qvector_t(clstr,  clstr_t);

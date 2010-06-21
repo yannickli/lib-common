@@ -151,17 +151,6 @@ static inline uint32_t qhash_hash_ptr(const qhash_t *qh, const void *ptr)
     return qhash_hash_u64(qh, (uintptr_t)ptr);
 }
 
-static inline uint32_t qhash_hash_string(const qhash_t *qh, const char *s)
-{
-    return hsieh_hash(s, -1);
-}
-
-static inline bool
-qhash_strequal(const qhash_t *qh, const char *s1, const char *s2)
-{
-    return strequal(s1, s2);
-}
-
 #define __qhash_for_each(i, qh, doit) \
     for (uint32_t i = (qh)->hdr.len ? qhash_scan(qh, 0) : UINT32_MAX; \
          i != UINT32_MAX && (doit, true);                             \
@@ -513,5 +502,41 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
        if (likely(__pos >= 0)) qm_del_at(name, qh, __pos);               \
        __pos; })
 
-qh_kptr_t(str, char, qhash_hash_string, qhash_strequal);
+static inline uint32_t qhash_str_hash(const qhash_t *qh, const char *s)
+{
+    return hsieh_hash(s, -1);
+}
+
+static inline bool
+qhash_str_equal(const qhash_t *qh, const char *s1, const char *s2)
+{
+    return strequal(s1, s2);
+}
+
+static inline uint32_t qhash_lstr_hash(const qhash_t *qh, const lstr_t *ls)
+{
+    return hsieh_hash(ls->s, ls->len);
+}
+
+static inline bool
+qhash_lstr_equal(const qhash_t *qh, const lstr_t *s1, const lstr_t *s2)
+{
+    return lstr_equal(s1, s2);
+}
+
+static inline uint32_t qhash_clstr_hash(const qhash_t *qh, const clstr_t *ls)
+{
+    return hsieh_hash(ls->s, ls->len);
+}
+
+static inline bool
+qhash_clstr_equal(const qhash_t *qh, const clstr_t *s1, const clstr_t *s2)
+{
+    return clstr_equal(s1, s2);
+}
+
+qh_kptr_t(str,   char,    qhash_str_hash,   qhash_str_equal);
+qh_kvec_t(lstr,  lstr_t,  qhash_lstr_hash,  qhash_lstr_equal);
+qh_kvec_t(clstr, clstr_t, qhash_clstr_hash, qhash_clstr_equal);
+
 #endif
