@@ -372,6 +372,81 @@ static inline const char *ps_gets(pstream_t *ps, int *len) {
     return res;
 }
 
+static inline int ps_skipcasedata(pstream_t *ps, const char *s, int len)
+{
+    PS_WANT(ps_has(ps, len));
+    for (int i = 0; i < len; i++)
+        PS_WANT(tolower(ps->s[i]) == s[i]);
+    return __ps_skip(ps, len);
+}
+
+static inline int ps_skipcasestr(pstream_t *ps, const char *s)
+{
+    return ps_skipcasedata(ps, s, strlen(s));
+}
+
+static inline void ps_skip_span(pstream_t *ps, const ctype_desc_t *d)
+{
+    while (ps->b < ps->b_end && ctype_desc_contains(d, *ps->b))
+        ps->b++;
+}
+
+static inline void ps_skip_cspan(pstream_t *ps, const ctype_desc_t *d)
+{
+    while (ps->b < ps->b_end && !ctype_desc_contains(d, *ps->b))
+        ps->b++;
+}
+
+/* @func ps_get_span
+ * @param[in] ps
+ * @param[in] d
+ * @return a sub pstream spanning on the first characters
+ *         contained by d
+ */
+static inline pstream_t ps_get_span(pstream_t *ps, const ctype_desc_t *d)
+{
+    const byte *b = ps->b;
+
+    while (b < ps->b_end && ctype_desc_contains(d, *b))
+        b++;
+    return __ps_get_ps_upto(ps, b);
+}
+
+/* @func ps_get_span
+ * @param[in] ps
+ * @param[in] d
+ * @return a sub pstream spanning on the first characters
+ *         not contained by d
+ */
+static inline pstream_t ps_get_cspan(pstream_t *ps, const ctype_desc_t *d)
+{
+    const byte *b = ps->b;
+
+    while (b < ps->b_end && !ctype_desc_contains(d, *b))
+        b++;
+    return __ps_get_ps_upto(ps, b);
+}
+
+static inline pstream_t ps_get_tok(pstream_t *ps, const ctype_desc_t *d)
+{
+    pstream_t out = ps_get_cspan(ps, d);
+    ps_skip_span(ps, d);
+    return out;
+}
+
+static inline void ps_ltrim(pstream_t *ps) {
+    while (ps->b < ps->b_end && isspace(ps->b[0]))
+        ps->b++;
+}
+static inline void ps_rtrim(pstream_t *ps) {
+    while (ps->b < ps->b_end && isspace(ps->b_end[-1]))
+        ps->b_end--;
+}
+static inline void ps_trim(pstream_t *ps) {
+    ps_ltrim(ps);
+    ps_rtrim(ps);
+}
+
 
 /****************************************************************************/
 /* binary parsing helpers                                                   */
