@@ -12,4 +12,4 @@
 ##########################################################################
 
 include $(var/cfgdir)/profile-default.mk
-CFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions
+CFLAGS += -g3 -O0 -Wno-uninitialized -fno-inline -fno-inline-functions
