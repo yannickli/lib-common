@@ -284,5 +284,24 @@ else
 fi
 
 # }}}
+# {{{ Farsite XOT SDK
+
+found=false
+farsite_dirs="/home/data/software/xot/fsx25-3.03.06/fsx25/64bit/fsx25-3.23.0/src/lib
+              /opt/intersec/software/xot/fsx25-3.03.06/fsx25/64bit/fsx25-3.23.0/src/lib"
+
+for d in $farsite_dirs; do
+    if file_exists "$d/fsx25api.h"; then
+        setvar "farsite_CFLAGS" "-I$d"
+        found=true
+        break
+    fi
+done
+
+if test $found = false; then
+    warn "*** Farsite XOT headers are missing"
+fi
+
+# }}}
 
 test -z "$missing_dep" || die "*** Missing dependencies, please upgrade your system"
