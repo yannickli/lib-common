@@ -105,9 +105,10 @@ done
 # }}}
 # {{{ pkg-config packages
 
-pkg_config_setvar "libxml2" "libxml2-dev"   "libxml-2.0"
-pkg_config_setvar "lua"     "liblua5.1-dev" "lua5.1" "lua"
-pkg_config_setvar "zlib"    "zlib1g-dev"    "zlib"
+pkg_config_setvar "libxml2" "libxml2-dev"    "libxml-2.0"
+pkg_config_setvar "lua"     "liblua5.1-dev"  "lua5.1" "lua"
+pkg_config_setvar "zlib"    "zlib1g-dev"     "zlib"
+pkg_config_setvar "sqlite"  "libsqlite3-dev" "sqlite3"
 
 check_tool luac lua5.1
 
@@ -257,9 +258,9 @@ if test -d $eiconcard_x25_PATH; then
     setvar "eiconcard_x25_CFLAGS" "-DEC_UNIX -DSCO -I$eiconcard_x25_INCDIR"
     setvar "eiconcard_x25_LIBS" "$eiconcard_x25_LIBDIR/libEx25.a $eiconcard_x25_LIBDIR/libEec.a"
 else
-    warn "*** The eiconcard X.25 SDK is missing"
-    warn "    Take it in software/eiconcard/sdk/X25/Linux/dev_tools/common"
-    warn "    and software/eiconcard/usr, and install it in $eiconcard_x25_PATH"
+    echo 2>&1 "*** The eiconcard X.25 SDK is missing"
+    echo 2>&1 "    Take it in software/eiconcard/sdk/X25/Linux/dev_tools/common"
+    echo 2>&1 "    and software/eiconcard/usr, and install it in $eiconcard_x25_PATH"
 fi
 
 # }}}
