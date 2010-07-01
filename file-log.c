@@ -189,7 +189,7 @@ log_file_t *log_file_init(log_file_t *log_file, const char *nametpl, int flags)
     const char *ext = path_ext(nametpl);
     int len = strlen(nametpl);
 
-    log_file = p_new(log_file_t, 1);
+    p_clear(log_file, 1);
     log_file->flags = flags;
 
     if (len + 8 + 1 + 6 + 4 >= ssizeof(log_file->prefix))
@@ -206,7 +206,7 @@ log_file_t *log_file_init(log_file_t *log_file, const char *nametpl, int flags)
 
 log_file_t *log_file_new(const char *nametpl, int flags)
 {
-    return log_file_init(p_new(log_file_t, 1), nametpl, flags);
+    return log_file_init(p_new_raw(log_file_t, 1), nametpl, flags);
 }
 
 int log_file_open(log_file_t *log_file)
