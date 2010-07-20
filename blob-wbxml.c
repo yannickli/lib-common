@@ -23,6 +23,10 @@ static void append_href_string(blob_t *out, const byte *data, int len)
     const byte *p;
     int written = 0, pos = 0;
 
+    /* if input is empty, nothing is appended. */
+    if (len < 1)
+        return;
+
     blob_append_byte(out, 0x03);
     while (pos < len && (p = memchr(data + pos, '.', len - pos))) {
         if (len - (p - data) < 5) {
