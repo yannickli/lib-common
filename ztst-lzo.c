@@ -77,6 +77,8 @@ static int do_self_test(void)
         e_trace(0, "%d: %zd bytes ok", i, ilen);
         t_pop();
     }
+
+    return 0;
 }
 
 int main(int argc, char **argv)
