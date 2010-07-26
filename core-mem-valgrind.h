@@ -25,14 +25,14 @@
         } while (0)
 #  endif
 #else
-#  define VALGRIND_CREATE_MEMPOOL(...)           0
-#  define VALGRIND_DESTROY_MEMPOOL(...)          0
+#  define VALGRIND_CREATE_MEMPOOL(...)           ((void)0)
+#  define VALGRIND_DESTROY_MEMPOOL(...)          ((void)0)
 #  define VALGRIND_MAKE_MEM_DEFINED(...)         0
 #  define VALGRIND_MAKE_MEM_NOACCESS(...)        0
 #  define VALGRIND_MAKE_MEM_UNDEFINED(...)       0
-#  define VALGRIND_MEMPOOL_ALLOC(...)            0
-#  define VALGRIND_MEMPOOL_CHANGE(...)           0
-#  define VALGRIND_MEMPOOL_FREE(...)             0
+#  define VALGRIND_MEMPOOL_ALLOC(...)            ((void)0)
+#  define VALGRIND_MEMPOOL_CHANGE(...)           ((void)0)
+#  define VALGRIND_MEMPOOL_FREE(...)             ((void)0)
 #endif
 #include "core.h"
 
