@@ -139,7 +139,7 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
     }
 
     blk = (mem_block_t *)(page->area + page->used_size);
-    VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
+    (void)VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
     VALGRIND_MEMPOOL_ALLOC(page, blk->area, size);
     blk->page_offs = (uintptr_t)blk - (uintptr_t)page;
     blk->blk_size  = size;
