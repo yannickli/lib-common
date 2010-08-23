@@ -20,7 +20,7 @@ GCCMAJOR   := $(word 1,$(subst ., ,$(GCCVERSION)))
 GCCMINOR   := $(word 2,$(subst ., ,$(GCCVERSION)))
 GCC_PREREQ=$(shell test $(GCCMAJOR) -lt $1 || test $(GCCMAJOR) = $1 -a $(GCCMINOR) -lt $2 || echo 1)
 
-LDFLAGS += -Wl,--warn-common,--as-needed
+LDFLAGS += -Wl,--as-needed
 
 # Use pipes and not temp files.
 CFLAGS += -pipe
@@ -84,6 +84,7 @@ endif
 ifneq (,$(call GCC_PREREQ,4,5))
 CFLAGS += -Wenum-compare
 CFLAGS += -Wlogical-op
+CFLAGS += -flto
 endif
 # warn about pointer arithmetic on void* and function pointers
 CFLAGS += -Wpointer-arith
