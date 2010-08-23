@@ -29,6 +29,7 @@ var/nocolor   := $(M)$(NOCOLOR)$(MONOCHROME)
 var/squote    := $(shell echo "'")
 var/tab       := $(shell printf '\t')
 var/uname     := $(shell uname -s)
+var/comma     := ,
 
 ifeq (,$(var/verbose))
     msg/echo  := echo

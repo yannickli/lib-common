@@ -147,7 +147,8 @@ $$(eval $$(call fun/foreach-ext-rule,$1,$~$1.so$$(tmp/$1/build),$$($1_SOURCES),.
 $~$1.so$$(tmp/$1/build):
 	$(msg/LINK.c) $$(@R)
 	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) \
-	    -fPIC -shared -o $$@ $$(filter %.o %.ld,$$^) \
+	    -fPIC -shared -o $$@ $$(filter %.o,$$^) \
+	    $$(addprefix -Wl$$(var/comma)--version-script$$(var/comma),$$(filter %.ld,$$^)) \
 	    $(LDFLAGS) $$($(1D)/_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) \
