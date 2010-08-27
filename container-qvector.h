@@ -189,10 +189,13 @@ qvector_splice(qvector_t *vec, int v_size,
 
 
 /* Define several common types */
+qvector_t(i16,    int16_t);
+qvector_t(u16,    uint16_t);
 qvector_t(i32,    int32_t);
 qvector_t(u32,    uint32_t);
 qvector_t(i64,    int64_t);
 qvector_t(u64,    uint64_t);
+qvector_t(void,   void *);
 qvector_t(double, double);
 qvector_t(str,    char *);
 qvector_t(lstr,   lstr_t);
