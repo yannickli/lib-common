@@ -485,22 +485,17 @@ int pidx_key_first(pidx_file *pidx, uint64_t minval, uint64_t *res)
         while (!pages[page].refs[key]) {
             int rbits;
 
-            if (++key < countof(pages[page].refs)) {
-                rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
-                minval = ((minval >> rbits) + 1) << rbits;
-            } else {
-                uint64_t old = minval;
-
+            while (++key == countof(pages[page].refs)) {
                 if (--pos < 0)
                     goto notfound;
-                page   = path[pos];
-                rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
-                minval = ((minval >> rbits) + 1) << rbits;
-                if (minval < old) /* overflow */
-                    goto notfound;
-                key    = int_bits_range(minval, skip + PIDX_SHIFT * pos,
-                                        PIDX_SHIFT);
+                page    = path[pos];
+                rbits   = 64 - PIDX_SHIFT * (pos + 1) - skip;
+                minval &= BITMASK_GE(uint64_t, rbits);
+                key     = int_bits_range(minval, skip + PIDX_SHIFT * pos,
+                                         PIDX_SHIFT);
             }
+            rbits  = 64 - PIDX_SHIFT * (pos + 1) - skip;
+            minval = ((minval >> rbits) + 1) << rbits;
         }
 
         if (pos == pidx->area->nbsegs) {
