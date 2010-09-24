@@ -81,7 +81,8 @@ void ps_panic_sighandler(int signum)
         close(fd);
     }
 #ifndef NDEBUG
-    ps_dump_backtrace(signum, program_invocation_short_name, fd, false);
+    ps_dump_backtrace(signum, program_invocation_short_name,
+                      STDERR_FILENO, false);
 #endif
     raise(signum);
 }
