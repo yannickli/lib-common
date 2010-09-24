@@ -33,9 +33,11 @@ CFLAGS += -fpredictive-commoning
 CFLAGS += -ftree-vectorize
 CFLAGS += -fgcse-after-reload
 endif
+ifneq (clang,$(CC))
 CFLAGS += -funswitch-loops
 # ignore for (i = 0; i < limit; i += N) as dangerous for N != 1.
 CFLAGS += -funsafe-loop-optimizations
+endif
 # let the type char be unsigned by default
 CFLAGS += -funsigned-char
 # let overflow be defined
@@ -44,8 +46,10 @@ CFLAGS += -fwrapv
 CFLAGS += -fno-strict-aliasing
 # turn on all common warnings
 CFLAGS += -Wall
+ifneq (clang,$(CC))
 # turn on extra warnings
 CFLAGS += -fshow-column
+endif
 ifneq (,$(call GCC_PREREQ,4,0))
     CFLAGS += -Wextra
     # know where the warnings come from
@@ -60,8 +64,6 @@ CFLAGS += -Wchar-subscripts
 CFLAGS += -Wundef
 # warn about local variable shadowing another local variable
 CFLAGS += -Wshadow -D"index(s,c)=index__(s,c)"
-# warn about casting of pointers to increased alignment requirements
-CFLAGS += -Wcast-align
 # make string constants const
 CFLAGS += -Wwrite-strings
 # warn about implicit conversions with side effects
@@ -73,8 +75,13 @@ CFLAGS += -Wsign-compare
 CFLAGS += -Wunused
 # do not warn about unused function parameters
 CFLAGS += -Wno-unused-parameter
+ifneq (clang,$(CC))
+# warn about casting of pointers to increased alignment requirements
+CFLAGS += -Wcast-align
+else
 # do not warn about unused statement value
-#CFLAGS += -Wno-unused-value
+CFLAGS += -Wno-unused-value
+endif
 # warn about variable use before initialization
 CFLAGS += -Wuninitialized
 ifneq (,$(call GCC_PREREQ,4,0))
