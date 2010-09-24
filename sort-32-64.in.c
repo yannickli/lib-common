@@ -14,7 +14,7 @@
 /* Multipass stable byte based radix sort */
 void dsort(type_t base[], size_t n)
 {
-    volatile uint32_t count[sizeof(type_t)][256];
+    volatile uint32_t count[sizeof(type_t)][256] = { { 0, } };
     const uint8_t *bp = (const uint8_t *)base;
     type_t *tmp, *p1, *p2;
 
@@ -29,7 +29,6 @@ void dsort(type_t base[], size_t n)
     t_push();
 
     /* Achtung little endian version */
-    memset(count, 0, sizeof(count));
     for (size_t i = 0; i < n; i++) {
         count[0][bp[0]]++;
         count[1][bp[1]]++;

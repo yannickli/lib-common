@@ -206,7 +206,9 @@ static void *sp_reserve(stack_pool_t *sp, size_t size, stack_blk_t **blkp)
     return res;
 }
 
+#ifndef __clang__
 __attribute__((flatten))
+#endif
 static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
 {
     stack_pool_t *sp = container_of(_sp, stack_pool_t, funcs);
