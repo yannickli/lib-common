@@ -123,13 +123,6 @@ endif
 
 CFLAGS += -I$/lib-common/compat -I$/
 
-ifneq (,$(filter 3.4,$(GCCVERSION)))
-  CFLAGS += -fvisibility=hidden
-endif
-ifneq (,$(filter 4.%,$(GCCVERSION)))
-  CFLAGS += -fvisibility=hidden
-endif
-
 # POSIX norms we want to support see feature_test_macros(7)
 CFLAGS += -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64## lfs
 CFLAGS += -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L#   # all of IEEE 1003.1-2001

@@ -12,5 +12,5 @@
 ##########################################################################
 
 include $(var/cfgdir)/cflags.mk
-CFLAGS += -DNDEBUG -D_FORTIFY_SOURCE=0
+CFLAGS += -DNDEBUG -fvisibility=hidden
 LDFLAGS += -Wl,-x

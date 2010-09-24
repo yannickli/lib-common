@@ -11,7 +11,7 @@
 #                                                                        #
 ##########################################################################
 
-include $(var/cfgdir)/cflags.mk
+include $(var/cfgdir)/profile-release.mk
 
 #Could be of use sometimes, need recent libc though IIRC
 ifndef SPARSE
