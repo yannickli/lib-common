@@ -14,10 +14,94 @@
 /* holds the linux-dependent implementations for unix.h functions */
 
 #include <dirent.h>
+#include <execinfo.h> /* backtrace_symbols_fd */
 #include "unix.h"
 #include "time.h"
 
 #ifdef __linux__
+
+void ps_dump_backtrace(int signum, const char *prog, int fd, bool full)
+{
+#define XWRITE(s)  IGNORE(xwrite(fd, s, strlen(s)))
+    char  buf[256];
+    void *arr[256];
+    int   bt, n;
+
+    n = snprintf(buf, sizeof(buf), "---> %s[%d] %s\n\n",
+                 prog, getpid(), sys_siglist[signum]);
+    if (xwrite(fd, buf, n) < 0)
+        return;
+
+    bt = backtrace(arr, countof(arr));
+    backtrace_symbols_fd(arr, bt, fd);
+
+    if (full) {
+        int maps_fd = open("/proc/self/smaps", O_RDONLY);
+
+        if (maps_fd != -1) {
+            XWRITE("\n--- Memory maps:\n\n");
+            for (;;) {
+                n = read(maps_fd, buf, sizeof(buf));
+                if (n < 0) {
+                    if (ERR_RW_RETRIABLE(errno))
+                        continue;
+                    break;
+                }
+                if (n == 0)
+                    break;
+                if (xwrite(fd, buf, n) < 0)
+                    break;
+            }
+            close(maps_fd);
+        }
+    } else {
+        XWRITE("\n");
+    }
+#undef XWRITE
+}
+
+void ps_panic_sighandler(int signum)
+{
+    static const struct sigaction sa = {
+        .sa_flags   = SA_RESTART,
+        .sa_handler = SIG_DFL,
+    };
+
+    char   path[128];
+    int    fd;
+
+    sigaction(signum, &sa, NULL);
+    snprintf(path, sizeof(path), "/tmp/%s.%ld.%d.debug",
+             program_invocation_short_name, (long)getpid(),
+             (uint32_t)time(NULL));
+    fd = open(path, O_EXCL | O_CREAT | O_WRONLY | O_TRUNC, 0600);
+
+    if (fd >= 0) {
+        ps_dump_backtrace(signum, program_invocation_short_name, fd, true);
+        close(fd);
+    }
+#ifndef NDEBUG
+    ps_dump_backtrace(signum, program_invocation_short_name, fd, false);
+#endif
+    raise(signum);
+}
+
+void ps_install_panic_sighandlers(void)
+{
+    struct sigaction sa = {
+        .sa_flags   = SA_RESTART,
+        .sa_handler = &ps_panic_sighandler,
+    };
+
+    sigaction(SIGABRT,   &sa, NULL);
+    sigaction(SIGILL,    &sa, NULL);
+    sigaction(SIGFPE,    &sa, NULL);
+    sigaction(SIGSEGV,   &sa, NULL);
+    sigaction(SIGBUS,    &sa, NULL);
+#if defined(__linux__)
+    sigaction(SIGSTKFLT, &sa, NULL);
+#endif
+}
 
 static int hertz;
 
