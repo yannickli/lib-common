@@ -11,9 +11,5 @@
 #                                                                        #
 ##########################################################################
 
-include $(var/cfgdir)/profile-release.mk
-
-#Could be of use sometimes, need recent libc though IIRC
-ifndef SPARSE
-    CFLAGS += $(if $(filter -D_FORTIFY_SOURCE=%,$(ADD_CFLAGS)),,-D_FORTIFY_SOURCE=0)
-endif
+FORTIFY_SOURCE=
+include $(var/cfgdir)/profile-default.mk

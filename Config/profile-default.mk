@@ -12,9 +12,11 @@
 ##########################################################################
 
 include $(var/cfgdir)/cflags.mk
+FORTIFY_SOURCE?=-D_FORTIFY_SOURCE=2
+
 
 #Could be of use sometimes, need recent libc though IIRC
 ifndef SPARSE
-    CFLAGS += $(if $(filter -D_FORTIFY_SOURCE=%,$(ADD_CFLAGS)),,-D_FORTIFY_SOURCE=2)
+    CFLAGS += $(if $(filter -D_FORTIFY_SOURCE=%,$(ADD_CFLAGS)),,$(FORTIFY_SOURCE))
 endif
 LDFLAGS += -rdynamic
