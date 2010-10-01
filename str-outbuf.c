@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #include <sys/sendfile.h>
-#include <lib-common/unix.h>
+#include "unix.h"
 #include "str-outbuf.h"
 
 void ob_check_invariants(outbuf_t *ob)

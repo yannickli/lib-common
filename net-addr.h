@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #if !defined(IS_LIB_COMMON_NET_H) || defined(IS_LIB_COMMON_NET_ADDR_H)
-#  error "you must include <lib-common/net.h> instead"
+#  error "you must include net.h instead"
 #else
 #define IS_LIB_COMMON_NET_ADDR_H
 

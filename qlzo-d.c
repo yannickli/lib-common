@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <lib-common/arith.h>
+#include "arith.h"
 #include "qlzo.h"
 
 typedef struct ostream_t {

@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_QLZO_H
 #define IS_LIB_COMMON_QLZO_H
 
-#include <lib-common/core.h>
+#include "core.h"
 
 #define LZO_M1_MAX_OFFSET       0x0400
 #define LZO_M2_MAX_OFFSET       0x0800

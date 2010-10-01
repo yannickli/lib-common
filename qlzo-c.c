@@ -16,7 +16,7 @@
 #else
 #  define RUNNING_ON_VALGRIND  false
 #endif
-#include <lib-common/arith.h>
+#include "arith.h"
 #include "qlzo.h"
 
 #define D_BITS          14

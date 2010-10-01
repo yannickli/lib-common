@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #include <sys/epoll.h>
-#include <lib-common/unix.h>
+#include "unix.h"
 
 static int epollfd_g = -1;
 

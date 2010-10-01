@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_MEM_H)
-#  error "you must include <lib-common/core.h> instead"
+#  error "you must include core.h instead"
 #else
 #define IS_LIB_COMMON_CORE_MEM_H
 #include "container-rbtree.h"

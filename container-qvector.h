@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #if !defined(IS_LIB_COMMON_CONTAINER_H) || defined(IS_LIB_COMMON_CONTAINER_QVECTOR_H)
-#  error "you must include <lib-common/container.h> instead"
+#  error "you must include container.h instead"
 #endif
 #define IS_LIB_COMMON_CONTAINER_QVECTOR_H
 

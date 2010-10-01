@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <lib-common/core.h>
+#include "core.h"
 
 static struct {
     void (*init[32])(void);

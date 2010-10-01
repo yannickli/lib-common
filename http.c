@@ -11,8 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <lib-common/unix.h>
-#include <lib-common/time.h>
+#include "unix.h"
+#include "time.h"
 
 #include "http.h"
 #include "httptokens.h"

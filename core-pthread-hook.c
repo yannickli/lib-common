@@ -13,7 +13,7 @@
 
 #include <pthread.h>
 #include <dlfcn.h>
-#include <lib-common/core.h>
+#include "core.h"
 
 struct start_pair {
     void *(*fn)(void *);

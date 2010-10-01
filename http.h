@@ -14,9 +14,9 @@
 #ifndef IS_LIB_INET_HTTP_H
 #define IS_LIB_INET_HTTP_H
 
-#include <lib-common/el.h>
-#include <lib-common/net.h>
-#include <lib-common/str-outbuf.h>
+#include "el.h"
+#include "net.h"
+#include "str-outbuf.h"
 
 typedef enum http_method_t {
     HTTP_METHOD_ERROR = -1,

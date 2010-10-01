@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #if !defined(IS_LIB_COMMON_ARITH_H) || defined(IS_LIB_COMMON_ARITH_STR_STREAM_H)
-#  error "you must include <lib-common/arith.h> instead"
+#  error "you must include arith.h instead"
 #else
 #define IS_LIB_COMMON_ARITH_STR_STREAM_H
 

@@ -12,11 +12,11 @@
 /**************************************************************************/
 
 #if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_OBJ_H)
-#  error "you must include <lib-common/core.h> instead"
+#  error "you must include core.h instead"
 #else
 #define IS_LIB_COMMON_CORE_OBJ_H
 
-#include <lib-common/core.h>
+#include "core.h"
 
 /** \defgroup lc_obj Intersec Object Oriented C
  *
