@@ -19,3 +19,6 @@
 /ztst-tpl
 /zchk
 /ztst-lzo
+/http-hdr.c
+/httptokens.c
+/httptokens.h

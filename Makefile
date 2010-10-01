@@ -132,6 +132,12 @@ libcommon_SOURCES = \
 	unix-linux.c \
 	unix-solaris.c \
 	\
+	http.c \
+	http-srv-static.c \
+	http-def.c \
+	http-hdr.perf \
+	http.tokens \
+	\
 	$(end_of_list)
 
 time-lp-simple_SOURCES = time-lp-simple.c
