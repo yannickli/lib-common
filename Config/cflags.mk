@@ -109,8 +109,6 @@ CFLAGS += -Wmissing-format-attribute
 #CFLAGS += -Wcast-qual
 
 ifndef CPLUSPLUS
-  # warn about function call cast to non matching type
-  CFLAGS += -Wbad-function-cast
   # warn about functions declared without complete a prototype
   CFLAGS += -Wstrict-prototypes
   CFLAGS += -Wmissing-prototypes
