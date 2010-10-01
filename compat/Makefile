@@ -13,7 +13,7 @@
 
 none_LIBRARIES := compat
 
-compat_SOURCES := compat.c check.c
+compat_SOURCES := compat.c check.c data.c runtime.c
 
 ifneq (,$(MINGCC))
   # Being able to build a "check" program would be a good idea under

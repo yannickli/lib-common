@@ -14,6 +14,7 @@
 #ifndef IS_LIB_COMMON_CORE_H
 #define IS_LIB_COMMON_CORE_H
 
+#include <Block.h>
 #include <alloca.h>
 #include <assert.h>
 #include <ctype.h>
