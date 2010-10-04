@@ -112,4 +112,4 @@ echo -Wnested-externs
 # warn when a declaration is found after a statement in a block
 echo -Wdeclaration-after-statement
 
-echo -D_GNU_SOURCE
+echo -D_GNU_SOURCE $(getconf LFS_CFLAGS)
