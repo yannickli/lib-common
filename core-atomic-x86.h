@@ -57,7 +57,7 @@ atomic_xchg_(volatile void *p, unsigned long v, int len)
 #else
 #define xchg(p, v) \
   (STATIC_ASSERT(sizeof(*(p)) == 4), \
-   (typeof(*(p)))atomic_xchg32((p), (unsigned int)(v), sizeof(*(p))))
+   (typeof(*(p)))atomic_xchg32((const void *)(p), (unsigned int)(v), sizeof(*(p))))
 #endif
 
 #ifdef __x86_64__
