@@ -109,9 +109,7 @@ echo -Wmissing-prototypes
 echo -Wmissing-declarations
 # warn about extern declarations inside functions
 echo -Wnested-externs
-if false; then
-    # warn when a declaration is found after a statement in a block
-    echo -Wdeclaration-after-statement
-fi
+# warn when a declaration is found after a statement in a block
+echo -Wdeclaration-after-statement
 
 echo -D_GNU_SOURCE
