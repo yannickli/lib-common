@@ -116,3 +116,25 @@ $$(eval $$(call fun/common-depends,$1,$(3:.swfml=.swf),$3))
 endef
 
 #}}}
+#[ blocks ]###########################################################{{{#
+
+ext/gen/blk = $(call fun/patsubst-filt,%.blk,%.c,$1)
+
+define ext/expand/blk
+$(3:blk=c): %.c: %.blk
+	$(msg/generate) $$(@R)
+	$(RM) $$@
+	clang -cc1 $$(CLANGFLAGS) \
+	    $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$*.c_CFLAGS) \
+	    -fblocks -rewrite-blocks -o $$@ $$<
+	chmod a-w $$@
+__$(1D)_generated: $(3:blk=c)
+$$(eval $$(call fun/common-depends,$1,$(3:blk=c),$3))
+endef
+
+define ext/rule/blk
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/blk,$1,$2,$$t,$4))))
+$$(eval $$(call ext/rule/c,$1,$2,$(3:blk=c),$4))
+endef
+
+#}}}
