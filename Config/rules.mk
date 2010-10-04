@@ -54,7 +54,7 @@ $(3:lua=lc): %.lc: %.lua
 	luac -o $$@ $$<
 
 $(3:lua=lc.bin): %.lc.bin: %.lc
-	util/bldutils/blob2c $$< > $$@ || ($(RM) $$@; exit 1)
+	blob2c $$< > $$@ || ($(RM) $$@; exit 1)
 
 __$(1D)_generated: $(3:.lua=.lc.bin)
 $$(eval $$(call fun/common-depends,$1,$(3:.lua=.lc.bin),$3))
@@ -71,10 +71,10 @@ endef
 ext/gen/farch = $(call fun/patsubst-filt,%.farch,%farch.h,$1) $(call fun/patsubst-filt,%.farch,%farch.c,$1)
 
 define ext/rule/farch
-$(3:.farch=farch.c): %farch.c: %farch.h util/bldutils/buildfarch
-$(3:.farch=farch.h): %farch.h: %.farch  util/bldutils/buildfarch
+$(3:.farch=farch.c): %farch.c: %farch.h
+$(3:.farch=farch.h): %farch.h: %.farch
 	$(msg/generate) $$(@R)
-	cd $$(@D) && $/util/bldutils/buildfarch -r $(1D)/ -d $!$$@.dep -n $$(*F) `cat $$(<F)`
+	cd $$(@D) && buildfarch -r $(1D)/ -d $!$$@.dep -n $$(*F) `cat $$(<F)`
 
 $$(eval $$(call ext/rule/c,$1,$2,$(3:.farch=farch.c),$4))
 __$(1D)_generated: $(3:.farch=farch.h) $(3:.farch=farch.c)
@@ -87,9 +87,9 @@ endef
 ext/gen/fc = $(call fun/patsubst-filt,%.fc,%.fc.c,$1)
 
 define ext/rule/fc
-$(3:=.c): %.fc.c: %.fc util/bldutils/farchc
+$(3:=.c): %.fc.c: %.fc
 	$(msg/generate) $$(@R)
-	$/util/bldutils/farchc -d $~$$@.dep -o $$@ $$<
+	farchc -d $~$$@.dep -o $$@ $$<
 __$(1D)_generated: $(3:=.c)
 -include $$(patsubst %,$~%.c.dep,$3)
 $$(eval $$(call fun/common-depends,$1,$(3:=.c),$3))
