@@ -50,6 +50,7 @@
 #include "core-macros.h"
 #include "core-test.h"
 #include "core-atomic.h"
+#include "core-blocks.h"
 #include "core-errors.h"
 #include "core-mem.h"
 #include "core-refcount.h"
