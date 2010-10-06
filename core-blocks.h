@@ -22,4 +22,17 @@ typedef void (^block_t)(void);
 typedef void (*block_t)(void);
 #endif
 
+static inline void block_run(void *blk_)
+{
+    block_t blk = blk_;
+    blk();
+}
+
+static inline void block_run_and_release(void *blk_)
+{
+    block_t blk = blk_;
+    blk();
+    Block_release(blk);
+}
+
 #endif
