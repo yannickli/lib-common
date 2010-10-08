@@ -123,7 +123,7 @@ ignore:
 	$(foreach v,$(var/generated),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/datas),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/programs:=$(EXEEXT)),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
-	$(foreach v,$(var/sharedlibs:=.so),grep -q '^/$v\*$$' .gitignore || echo '/$v\*' >> .gitignore;)
+	$(foreach v,$(var/sharedlibs:=.so),grep -q '^/$v[*]$$' .gitignore || echo '/$v*' >> .gitignore;)
 endif
 # }}}
 ##########################################################################
