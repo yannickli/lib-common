@@ -205,7 +205,7 @@ static int isndx_word_test(const char *indexname, const char *dictfile)
                     datalen--;
                 }
                 if (isndx_push(ndx, key, keylen, data, datalen) < 0) {
-                    printf("isndx: failed to insert key \"%.*s\" value %d\n",
+                    printf("isndx: failed to insert key \"%*pM\" value %d\n",
                            keylen, key, lineno);
                     isndx_check(ndx, ISNDX_CHECK_ALL);
                     isndx_dump(ndx, ISNDX_DUMP_ALL, stdout);
@@ -214,7 +214,7 @@ static int isndx_word_test(const char *indexname, const char *dictfile)
                 }
 #if 0
                 if (isndx_check(ndx, ISNDX_CHECK_ALL)) {
-                    printf("isndx: check failed after insert key \"%.*s\" value %d\n",
+                    printf("isndx: check failed after insert key \"%*pM\" value %d\n",
                            keylen, key, lineno);
                     isndx_dump(ndx, ISNDX_DUMP_ALL, stdout);
                     return 1;

@@ -188,7 +188,7 @@ static void e_trace_put_fancy(int level, const char *module, int lno, const char
     if (strlen(func) < FUN_WIDTH) {
         sb_addf(&tmpbuf_g, "\e[33m%*s\e[0m ", FUN_WIDTH, func);
     } else {
-        sb_addf(&tmpbuf_g, "\e[33m%.*s...\e[0m ", FUN_WIDTH - 3, func);
+        sb_addf(&tmpbuf_g, "\e[33m%*pM...\e[0m ", FUN_WIDTH - 3, func);
     }
 }
 

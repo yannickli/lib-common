@@ -470,6 +470,22 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             len = strnlen(lp, len);
             goto haslp;
         }
+        /* also special case %*pM, understand it as "put memory content here"
+         */
+        if (memcmp(format, "#*pM", 4)) {
+            format += 4;
+            len = va_arg(ap, int);
+            lp  = va_arg(ap, const char *);
+            if (unlikely(isalnum((unsigned char)*format))) {
+                e_trace(0, "trailing garbage after %%p format");
+                do { format++; } while (isalnum((unsigned char)*format));
+            }
+            if (lp == NULL) {
+                lp = "(null)";
+                len = 6;
+            }
+            goto haslp;
+        }
 
         /* general case: parse complete format syntax */
         flags = 0;
@@ -784,6 +800,10 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         case 'p':
             flags |= FLAG_ALT;
             base = 16;
+            if (unlikely(isalnum((unsigned char)*format))) {
+                e_trace(0, "trailing garbage after %%p format");
+                do { format++; } while (isalnum((unsigned char)*format));
+            }
             {
                 void *vp = va_arg(ap, void *);
 

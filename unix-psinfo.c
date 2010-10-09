@@ -296,19 +296,19 @@ static int psinfo_read_maps(pid_t pid, sb_t *output, sb_t *buf)
         q = p;
         start = strtoll(q, &q, 16);
         if (*q != '-') {
-            sb_addf(output, "Could not parse start: %.*s\n",
+            sb_addf(output, "Could not parse start: %*pM\n",
                     (int)(end - p), p);
             break;
         }
         q++;
         stop = strtoll(q, &q, 16);
         if (*q != ' ') {
-            sb_addf(output, "Could not parse stop: %.*s\n",
+            sb_addf(output, "Could not parse stop: %*pM\n",
                     (int)(end - p), p);
             break;
         }
 
-        sb_addf(output, "% 12lld %.*s\n", (long long)(stop - start),
+        sb_addf(output, "% 12lld %*pM\n", (long long)(stop - start),
                 (int)(end - p), p);
         total += stop - start;
 

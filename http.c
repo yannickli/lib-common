@@ -894,7 +894,7 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
                 break;
               default:
                 httpd_reject(q, NOT_IMPLEMENTED,
-                             "Transfer-Encoding %.*s is unimplemented",
+                             "Transfer-Encoding %*pM is unimplemented",
                              (int)ps_len(&qhdr->val), qhdr->val.s);
                 break;
             }
@@ -1395,7 +1395,7 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
     int clen = -1, res;
 
     if (ps_len(ps) > 0 && dlist_is_empty(&w->query_list)) {
-        e_trace(0, "UHOH spurious data from the HTTP server: %.*s",
+        e_trace(0, "UHOH spurious data from the HTTP server: %*pM",
                 (int)ps_len(ps), ps->s);
         return PARSE_ERROR;
     }

@@ -779,7 +779,7 @@ static int isndx_enumerate_page(isndx_t *ndx, uint32_t pageno, int level,
         if (upkeylen) {
             if (keylen != upkeylen || memcmp(key, upkey, keylen)) {
                 status |= ISNDX_ERROR(ndx, "page %u:%d: upkey differs from last key"
-                                      " '%.*s' != '%.*s'",
+                                      " '%*pM' != '%*pM'",
                                       pageno, (int)(p - page),
                                       keylen, key, upkeylen, upkey);
             }
@@ -914,7 +914,7 @@ int isndx_check_page(isndx_t *ndx, uint32_t pageno, int level,
         if (upkeylen) {
             if (keylen != upkeylen || memcmp(key, upkey, keylen)) {
                 status |= ISNDX_ERROR(ndx, "page %u:%d: upkey differs from last key"
-                                      " '%.*s' != '%.*s'",
+                                      " '%*pM' != '%*pM'",
                                       pageno, (int)(p - page),
                                       keylen, key, upkeylen, upkey);
             }
@@ -1038,7 +1038,7 @@ static void isndx_dump_key(isndx_t *ndx, const byte *key, int keylen, FILE *fp)
         }
     } else {
         /* Print key as C string */
-        //fprintf(fp, "\"%.*s\"", keylen, key);
+        //fprintf(fp, "\"%*pM\"", keylen, key);
         putc('\"', fp);
         for (i = 0; i < keylen; i++) {
             int c = key[i];
@@ -1083,7 +1083,7 @@ static void isndx_dump_data(isndx_t *ndx, const byte *p, int len, FILE *fp)
         }
     } else {
         /* Print data as C string */
-        //fprintf(fp, "\"%.*s\"", datalen, data);
+        //fprintf(fp, "\"%*pM\"", datalen, data);
         putc('\"', fp);
         for (i = 0; i < len; i++) {
             int c = p[i];

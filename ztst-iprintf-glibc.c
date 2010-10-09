@@ -218,7 +218,7 @@ main(int argc, char *argv[])
     {
         char buf[20];
         char buf2[512];
-        fprintf(fp, "snprintf(\"%%30s\", \"foo\") == %d, \"%.*s\"\n",
+        fprintf(fp, "snprintf(\"%%30s\", \"foo\") == %d, \"%*pM\"\n",
                snprintf(buf, sizeof(buf), "%30s", "foo"),(int) sizeof(buf),
                buf);
         fprintf(fp, "snprintf(\"%%.999999u\", 10) == %d\n",
