@@ -472,17 +472,13 @@ static int fmt_output(FILE *stream, char *str, size_t size,
         }
         /* also special case %*pM, understand it as "put memory content here"
          */
-        if (!memcmp(format, "#*pM", 4)) {
-            format += 4;
+        if (!memcmp(format, "*pM", 3)) {
+            format += 3;
             len = va_arg(ap, int);
             lp  = va_arg(ap, const char *);
             if (unlikely(isalnum((unsigned char)*format))) {
                 e_trace(0, "trailing garbage after %%p format");
                 do { format++; } while (isalnum((unsigned char)*format));
-            }
-            if (lp == NULL) {
-                lp = "(null)";
-                len = 6;
             }
             goto haslp;
         }
