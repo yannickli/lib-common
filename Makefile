@@ -12,7 +12,7 @@
 ##########################################################################
 
 test_PROGRAMS += zchk btree-dump ztst-cfgparser ztst-tpl
-test_PROGRAMS += ztst-lzo
+test_PROGRAMS += ztst-lzo ztst-asn1 ztst-asn1-wr
 
 none_LIBRARIES = libcommon time-lp-simple
 
@@ -48,6 +48,9 @@ libcommon_SOURCES = \
 	time.c \
 	\
 	arith-bithacks.c \
+	\
+	asn1.c \
+	asn1-writer.c \
 	\
 	blob.c \
 	\
@@ -151,6 +154,12 @@ zchk_SOURCES = zchk.c \
 	$/lib-common/time-lp-simple.a
 
 zchk_LIBS = $(libxml2_LIBS) -lz -lrt -ldl -lpthread
+
+ztst-asn1_SOURCES = ztst-asn1.c \
+	$/lib-common/libcommon.a
+
+ztst-asn1-wr_SOURCES = ztst-asn1-writer.c \
+	$/lib-common/libcommon.a
 
 ztst_SOURCES = $(libcommon_SOURCES) time-lp-simple.c ztst.c $/lib-common/compat/check.c
 ztst_CFLAGS  = -DCHECK=1
