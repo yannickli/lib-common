@@ -4,10 +4,11 @@ import subprocess as S
 import sys, os, re
 
 linere = re.compile('tst (?P<res>[a-z]*) (?P<file>[^:]*):(?P<line>[0-9]*):(?P<desc>.*)')
+modre  = re.compile('(?P<mod>[^:]*): *(?P<rest>.*)')
 
 if os.getenv("TERM") and sys.stdout.isatty():
-    def mkcolor(color, txt):
-        return "\033[1;%im%s\033[0m" % (color, txt)
+    def mkcolor(color, txt, bold = 1):
+        return "\033[%d;%im%s\033[0m" % (bold, color, txt)
 else:
     def mkcolor(color, txt):
         return txt
@@ -26,7 +27,12 @@ def full_report(file, g):
         sys.stdout.write(mkcolor(33, "SKIP: %3d  " % (tskip)))
     if tfail:
         sys.stdout.write(mkcolor(31, "FAIL: %3d  " % (tfail)))
-    sys.stdout.write("--  %s\n" % (g['desc']))
+    modreres = modre.match(g['desc'])
+    if modreres:
+        d = modreres.groupdict()
+        sys.stdout.write("--  %s: %s\n" % (mkcolor(33, d['mod'], 0), d['rest']))
+    else:
+        sys.stdout.write("--  %s\n" % (g['desc']))
     sys.stdout.flush()
 
 def parse_lines(file, lines):
