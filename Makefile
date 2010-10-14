@@ -34,6 +34,8 @@ core-version.c: scripts/version.sh FORCE
 	$< rcsid libcommon > $@+
 	$(call fun/update-if-changed,$@+,$@)
 
+_CFLAGS  = $(libxml2_CFLAGS)
+
 libcommon_SOURCES = \
 	bfield.c \
 	btree.c \
@@ -44,7 +46,6 @@ libcommon_SOURCES = \
 	paged-index.c \
 	parseopt.c \
 	time.c \
-	xmlpp.c \
 	\
 	arith-bithacks.c \
 	\
@@ -138,6 +139,9 @@ libcommon_SOURCES = \
 	http-hdr.perf \
 	http.tokens \
 	\
+	xmlpp.c \
+	xmlr.c \
+	\
 	$(end_of_list)
 
 time-lp-simple_SOURCES = time-lp-simple.c
@@ -146,7 +150,7 @@ zchk_SOURCES = zchk.c \
 	$/lib-common/libcommon.wa \
 	$/lib-common/time-lp-simple.a
 
-zchk_LIBS = -lz -lrt -ldl -lpthread
+zchk_LIBS = $(libxml2_LIBS) -lz -lrt -ldl -lpthread
 
 ztst_SOURCES = $(libcommon_SOURCES) time-lp-simple.c ztst.c $/lib-common/compat/check.c
 ztst_CFLAGS  = -DCHECK=1
