@@ -185,14 +185,7 @@ char *dtoa(double d, int mode, int ndigits, int *decpt, int *sign, char **rve);
 
 /*---------------- helpers ----------------*/
 
-#define strnlen gt_strnlen
-static inline size_t strnlen(const char *str, size_t n)
-{
-    const char *p = memchr(str, '\0', n);
-    return (p ? (size_t)(p - str) : n);
-}
-
-static inline char *convert_int10(char *p, int value)
+static ALWAYS_INLINE char *convert_int10(char *p, int value)
 {
     /* compute absolute value without tests */
     unsigned int bits = value >> (bitsizeof(int) - 1);
@@ -209,7 +202,8 @@ static inline char *convert_int10(char *p, int value)
     return p;
 }
 
-static inline char *convert_uint(char *p, unsigned int value, int base)
+static ALWAYS_INLINE
+char *convert_uint(char *p, unsigned int value, int base)
 {
     if (base == 10) {
         while (value > 0) {
@@ -231,7 +225,7 @@ static inline char *convert_uint(char *p, unsigned int value, int base)
     return p;
 }
 
-static inline char *
+static ALWAYS_INLINE char *
 convert_uint_10_8_0(char *p, unsigned int value)
 {
     int i;
@@ -320,7 +314,7 @@ static char *convert_uint64(char *p, uint64_t value, int base)
 }
 #endif
 
-static inline
+static ALWAYS_INLINE
 int fmt_output_chars(FILE *stream, char *str, size_t size,
                      size_t count, int c, ssize_t n)
 {
@@ -342,7 +336,7 @@ int fmt_output_chars(FILE *stream, char *str, size_t size,
     return count + n;
 }
 
-static inline
+static ALWAYS_INLINE
 int fmt_output_chunk(FILE *stream, char *str, size_t size,
                      size_t count, const char *lp, size_t len)
 {
