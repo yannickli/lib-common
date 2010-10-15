@@ -13,10 +13,11 @@
 
 mcms_PROGRAMS = str-ctype-maker
 
-str-ctype-maker_SOURCES = 	 \
-	str-ctype-maker.c                       \
+str-ctype-maker_SOURCES = \
+	str-ctype-maker.c \
 	\
-	$/lib-common/libcommon.a        \
+	$/lib-common/core.ld \
+	$/lib-common/libcommon.a \
 	$/lib-common/time-lp-simple.a
 str-ctype-maker_LIBS = -lrt
 
