@@ -491,7 +491,7 @@ int pidx_key_first(pidx_file *pidx, uint64_t minval, uint64_t *res)
                     goto notfound;
                 page    = path[pos];
                 rbits   = 64 - PIDX_SHIFT * (pos + 1) - skip;
-                minval &= BITMASK_GE(uint64_t, rbits);
+                minval &= ~((1ULL << (rbits % 64)) - 1);
                 key     = int_bits_range(minval, skip + PIDX_SHIFT * pos,
                                          PIDX_SHIFT);
             }
