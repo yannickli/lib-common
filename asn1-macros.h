@@ -20,10 +20,19 @@
 #define ASN1_OBJ_MODE(mode)  ASN1_OBJ_MODE_##mode
 
 /*{{{ Macros for description function getters */
+
 #define ASN1_GET_DESC(pfx)  asn1_##pfx##_desc()
 
 #define ASN1_DESC(pfx) \
     const asn1_desc_t *asn1_##pfx##_desc(void)
+
+#define ASN1_TYPEDEF(src_pfx, dst_pfx) \
+    typedef src_pfx##_t dst_pfx##_t;                                         \
+    static inline ASN1_DESC(dst_pfx)                                         \
+    {                                                                        \
+        return ASN1_GET_DESC(src_pfx);                                       \
+    }
+
 
 /* Registers ASN.1 sequences implicitly. */
 #define ASN1_DESC_BEGIN(desc, pfx) \
@@ -111,8 +120,8 @@
         .chc_fld = choice,                                                   \
     }                                                                        \
 }
-/*}}}*/
 
+/*}}}*/
 /*{{{ Common registering macros */
 /*****************/
 /* COMMON MACROS */
@@ -142,8 +151,8 @@
 #define ASN1_COMMON_FIELDS(ctype_t, st, field, tg, typ, mod, ptd)  \
     ASN1_COMMON_FIELDS_NO_NAME(ctype_t, st, field, tg, typ, mod, ptd)
 #endif
-/*}}}*/
 
+/*}}}*/
 /*{{{ Scalar types registering macros */
 /***************************/
 /* MACROS FOR SCALAR TYPES */
@@ -369,8 +378,8 @@
         }                                                                    \
         __error__("Incorrect field type regarding desc.");                   \
     } while(0)
-/*}}}*/
 
+/*}}}*/
 /*{{{ String types registering macros */
 /***************************/
 /* MACROS FOR STRING TYPES */
@@ -428,8 +437,8 @@
         };                                                                   \
         asn1_reg_field(desc, &tmp);                                          \
     } while (0)
-/*}}}*/
 
+/*}}}*/
 /*{{{ Opaque type registering macros */
 /***************************/
 /* MACROS FOR OPAQUE TYPES */
@@ -494,12 +503,13 @@
         };                                                                   \
         asn1_reg_field(desc, &tmp);                                          \
     } while (0)
-/*}}}*/
 
+/*}}}*/
 /*{{{ Sequence registering macros */
 /****************************/
 /* MACROS FOR SEQUENCE TYPE */
 /****************************/
+
 #define asn1_reg_sequence(desc, st_pfx, pfx, field, tag) \
     do {                                                                     \
         if (!(tag & ASN1_TAG_CONSTRUCTED(0))) {                              \
@@ -561,12 +571,13 @@
         }                                                                    \
         asn1_reg_field(desc, &tmp);                                          \
     } while (0)
-/*}}}*/
 
+/*}}}*/
 /*{{{ Choice registering macros */
 /**************************/
 /* MACROS FOR CHOICE TYPE */
 /**************************/
+
 #define asn1_reg_choice(desc, st_pfx, pfx, field, tag) \
     do {                                                                     \
         if (ASN1_IS_FIELD_TYPE(pfx##_t, field, st_pfx##_t)) {                \
@@ -622,12 +633,13 @@
         }                                                                    \
         asn1_reg_field(desc, &tmp);                                          \
     } while (0)
-/*}}}*/
 
+/*}}}*/
 /*{{{ Untagged choice registering macros */
 /***********************************/
 /* MACROS FOR UNTAGGED CHOICE TYPE */
 /***********************************/
+
 #define asn1_reg_untagged_choice(desc, st_pfx, pfx, field) \
     do {                                                                     \
         if (ASN1_IS_FIELD_TYPE(pfx##_t, field, st_pfx##_t)) {                \
@@ -683,12 +695,13 @@
         }                                                                    \
         asn1_reg_field(desc, &tmp);                                          \
     } while (0)
-/*}}}*/
 
+/*}}}*/
 /*{{{ External fields registering macros */
 /*******************************/
 /* MACROS FOR EXT TYPE */
 /*******************************/
+
 #define asn1_reg_ext(desc, st_pfx, field, tag) \
     do {                                                                     \
         if (ASN1_IS_FIELD_TYPE(asn1_ext_t, field, st_pfx##_t)) {             \
@@ -725,12 +738,13 @@
         };                                                                   \
         asn1_reg_field(desc, &tmp);                                          \
     } while (0)
-/*}}}*/
 
+/*}}}*/
 /*{{{ Field skipping macro */
 /**********************/
 /* MACRO FOR TLV SKIP */
 /**********************/
+
 #ifndef NDEBUG
 #define asn1_reg_skip(desc, field_name, tg) \
     do {                                                                     \
@@ -757,7 +771,7 @@
         asn1_reg_field(desc, &tmp);                                          \
     } while (0)
 #endif
-/*}}}*/
 
+/*}}}*/
 #endif /* IS_LIB_COMMON_ASN1_WRITER_MACROS_H */
 
