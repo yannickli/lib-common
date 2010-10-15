@@ -320,43 +320,51 @@ static char *convert_uint64(char *p, uint64_t value, int base)
 }
 #endif
 
-static inline int fmt_output_chars(FILE *stream, char *str, size_t size,
-                                   int count, int c, int n)
+static inline
+int fmt_output_chars(FILE *stream, char *str, size_t size,
+                     size_t count, int c, ssize_t n)
 {
-    while (n-- > 0) {
-        if (stream) {
+    size_t n1 = n;
+
+    if (n < 0)
+        n1 = n = 0;
+
+    if (stream) {
+        while (n1-- > 0) {
             ISPUTC(c, stream);
-        } else {
-            if ((size_t)count < size)
-                str[count] = c;
         }
-        count++;
+    } else {
+        if (count + n1 >= size) {
+            n1 = count >= size ? 0 : size - count - 1;
+        }
+        memset(str + count, c, n1);
     }
-    return count;
+    return count + n;
 }
 
-static inline int fmt_output_chunk(FILE *stream, char *str, size_t size,
-                                   int count, const char *lp, int len)
+static inline
+int fmt_output_chunk(FILE *stream, char *str, size_t size,
+                     size_t count, const char *lp, size_t len)
 {
-    int i;
+    size_t len1 = len;
 
-    for (i = 0; i < len; i++) {
-        if (stream) {
+    if (stream) {
+        for (size_t i = 0; i < len; i++)
             ISPUTC(lp[i], stream);
-        } else {
-            if ((size_t)count < size)
-                str[count] = lp[i];
+    } else {
+        if (count + len1 >= size) {
+            len1 = count >= size ? 0 : size - count - 1;
         }
-        count++;
+        memcpy(str + count, lp, len1);
     }
-    return count;
+    return count + len;
 }
 
 static int fmt_output(FILE *stream, char *str, size_t size,
                       const char *format, va_list ap)
 {
     char buf[(64 + 2) / 3 + 1 + 1];
-    int c, count, len, len1, width, prec, base, flags, type_flags;
+    int c, count, len, width, prec, base, flags, type_flags;
     int left_pad, prefix_len, zero_pad, right_pad;
     const char *format0, *lp;
     int sign;
@@ -390,45 +398,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             continue;
         len = format - lp;
       haslp:
-        if (stream) {
-            switch (len) {
-            default:
-                count += ISFWRITE(lp, 1, (size_t)len, stream);
-                break;
-            case 8: ISPUTC(*lp++, stream);
-            case 7: ISPUTC(*lp++, stream);
-            case 6: ISPUTC(*lp++, stream);
-            case 5: ISPUTC(*lp++, stream);
-            case 4: ISPUTC(*lp++, stream);
-            case 3: ISPUTC(*lp++, stream);
-            case 2: ISPUTC(*lp++, stream);
-            case 1: ISPUTC(*lp++, stream);
-            case 0: count += len;
-                break;
-            }
-        } else {
-            len1 = len;
-            if ((size_t)(count + len1) > size) {
-                len1 = ((size_t)count > size) ? 0 : size - count;
-            }
-            switch (len1) {
-            default:
-                memcpy(str + count, lp, len1);
-                count += len;
-                break;
-            case 8: str[count + 7] = lp[7];
-            case 7: str[count + 6] = lp[6];
-            case 6: str[count + 5] = lp[5];
-            case 5: str[count + 4] = lp[4];
-            case 4: str[count + 3] = lp[3];
-            case 3: str[count + 2] = lp[2];
-            case 2: str[count + 1] = lp[1];
-            case 1: str[count + 0] = lp[0];
-            case 0: count += len;
-                break;
-            }
-        }
-
+        count = fmt_output_chunk(stream, str, size, count, lp, len);
         if (right_pad) {
             count = fmt_output_chars(stream, str, size, count, ' ', right_pad);
         }

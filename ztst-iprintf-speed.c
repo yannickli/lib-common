@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include "unix.h"
 #include "time.h"
 
 typedef struct mcms_event_t {
