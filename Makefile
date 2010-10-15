@@ -24,7 +24,7 @@ else
   test_PROGRAMS += ztst-btree ztst-isndx ztst-sort
 endif
 
-btree-dump_SOURCES = btree-dump.c libcommon.a compat/compat.a
+btree-dump_SOURCES = btree-dump.c core.ld libcommon.a compat/compat.a
 btree-dump_LIBS = -lm
 
 DISTCLEANFILES = core-version.c
@@ -126,6 +126,7 @@ libcommon_SOURCES = \
 time-lp-simple_SOURCES = time-lp-simple.c
 
 zchk_SOURCES = zchk.c \
+	$/lib-common/core.ld \
 	$/lib-common/libcommon.wa \
 	$/lib-common/time-lp-simple.a
 
@@ -135,30 +136,30 @@ ztst_SOURCES = $(libcommon_SOURCES) time-lp-simple.c ztst.c $/lib-common/compat/
 ztst_CFLAGS  = -DCHECK=1
 ztst_LIBS = -lz -lrt -ldl
 
-ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a compat/compat.a
+ztst-cfgparser_SOURCES = ztst-cfgparser.c core.ld core.ld libcommon.a compat/compat.a
 
-ztst-tpl_SOURCES = ztst-tpl.c libcommon.a
+ztst-tpl_SOURCES = ztst-tpl.c core.ld libcommon.a
 
-ztst-iprintf_SOURCES = ztst-iprintf.c libcommon.a compat/compat.a
+ztst-iprintf_SOURCES = ztst-iprintf.c core.ld libcommon.a compat/compat.a
 
 ztst-iprintf-fp_CFLAGS = -Wno-format -Wno-missing-format-attribute
-ztst-iprintf-fp_SOURCES = ztst-iprintf-fp.c libcommon.a
+ztst-iprintf-fp_SOURCES = ztst-iprintf-fp.c core.ld libcommon.a
 
 ztst-iprintf-glibc_CFLAGS = -Wno-format -Wno-missing-format-attribute
-ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a
+ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c core.ld libcommon.a
 
-ztst-hash_SOURCES = ztst-hash.c libcommon.a compat/compat.a
+ztst-hash_SOURCES = ztst-hash.c core.ld libcommon.a compat/compat.a
 
-ztst-btree_SOURCES = ztst-btree.c btree.c libcommon.a compat/compat.a
-ztst-isndx_SOURCES = ztst-isndx.c libcommon.a compat/compat.a
-ztst-sort_SOURCES = ztst-sort.c libcommon.a compat/compat.a
+ztst-btree_SOURCES = ztst-btree.c btree.c core.ld libcommon.a compat/compat.a
+ztst-isndx_SOURCES = ztst-isndx.c core.ld libcommon.a compat/compat.a
+ztst-sort_SOURCES = ztst-sort.c core.ld libcommon.a compat/compat.a
 ztst-sort_CFLAGS = -UCHECK
 ztst-sort_LIBS = -lm
-ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a compat/compat.a
+ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c core.ld libcommon.a compat/compat.a
 ztst-iprintf-speed_CFLAGS = -UCHECK
 
-ztst-htbl_SOURCES = ztst-htbl.c libcommon.a compat/compat.a
-ztst-path_SOURCES = ztst-path.c libcommon.a compat/compat.a
+ztst-htbl_SOURCES = ztst-htbl.c core.ld libcommon.a compat/compat.a
+ztst-path_SOURCES = ztst-path.c core.ld libcommon.a compat/compat.a
 
 ifneq (,$(MINGCC))
   # Disable some stuff that does not compile under MingW
