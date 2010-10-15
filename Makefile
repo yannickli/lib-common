@@ -17,7 +17,7 @@ test_PROGRAMS += ztst-lzo ztst-asn1 ztst-asn1-wr
 none_LIBRARIES = libcommon time-lp-simple
 
 none_TESTS += ztst ztst-path ztst-hash
-none_TESTS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
+none_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 ifdef CHECK_ALL
   # These tests are just too long to be part of "make check". Sorry.
   none_TESTS += ztst-btree ztst-isndx ztst-sort
