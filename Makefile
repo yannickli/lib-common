@@ -11,22 +11,13 @@
 #                                                                        #
 ##########################################################################
 
-test_PROGRAMS += zchk btree-dump ztst-cfgparser ztst-tpl
+test_PROGRAMS += zchk ztst-cfgparser ztst-tpl
 test_PROGRAMS += ztst-lzo ztst-asn1-wr
 
 none_LIBRARIES = libcommon time-lp-simple
 
-none_TESTS += ztst
+none_TESTS += ztst ztst-sort
 none_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
-ifdef CHECK_ALL
-  # These tests are just too long to be part of "make check". Sorry.
-  none_TESTS += ztst-btree ztst-isndx ztst-sort
-else
-  test_PROGRAMS += ztst-btree ztst-isndx ztst-sort
-endif
-
-btree-dump_SOURCES = btree-dump.c libcommon.a compat/compat.a
-btree-dump_LIBS = -lm
 
 DISTCLEANFILES = core-version.c
 core-version.c: scripts/version.sh FORCE
@@ -38,9 +29,7 @@ _CFLAGS  = $(libxml2_CFLAGS)
 
 libcommon_SOURCES = \
 	bfield.c \
-	btree.c \
 	farch.c \
-	isndx.c \
 	licence.c \
 	mmappedfile.c \
 	paged-index.c \
@@ -177,19 +166,11 @@ ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a
 ztst-lzo_SOURCES = ztst-lzo.c libcommon.a compat/compat.a
 ztst-lzo_LDFLAGS = -lrt
 
-ztst-btree_SOURCES = ztst-btree.c btree.c libcommon.a compat/compat.a
-ztst-isndx_SOURCES = ztst-isndx.c libcommon.a compat/compat.a
 ztst-sort_SOURCES = ztst-sort.c libcommon.a compat/compat.a
 ztst-sort_CFLAGS = -UCHECK
 ztst-sort_LIBS = -lm
 ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a compat/compat.a
 ztst-iprintf-speed_CFLAGS = -UCHECK
-
-ifneq (,$(MINGCC))
-  # Disable some stuff that does not compile under MingW
-  libcommon_SOURCES := $(filter-out unix-linux.c mmappedfile.c btree.c, $(libcommon_SOURCES))
-  test_PROGRAMS := $(filter-out btree-dump, $(test_PROGRAMS))
-endif
 
 ifneq (SunOS,$(shell uname -s))
 DISTCLEANFILES=Upgrading.html

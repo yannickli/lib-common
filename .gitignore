@@ -6,18 +6,15 @@
 /httptokens.c
 /httptokens.h
 
-/btree-dump
 /zchk
 /ztst
 /ztst-asn1-wr
 /ztst-blob-iconv
-/ztst-btree
 /ztst-cfgparser
 /ztst-iprintf
 /ztst-iprintf-fp
 /ztst-iprintf-glibc
 /ztst-iprintf-speed
-/ztst-isndx
 /ztst-lzo
 /ztst-sort
 /ztst-tpl

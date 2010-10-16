@@ -18,7 +18,6 @@
 
 #include "arith.h"
 #include "bfield.h"
-#include "btree.h"
 #include "conf.h"
 #include "container.h"
 #include "elf.h"
@@ -26,7 +25,6 @@
 #include "file-log.h"
 #include "file.h"
 #include "hash.h"
-#include "isndx.h"
 #include "licence.h"
 #include "mmappedfile.h"
 #include "net.h"
