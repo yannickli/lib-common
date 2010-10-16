@@ -55,6 +55,50 @@ int ber_decode_len32(pstream_t *ps, uint32_t *_len)
     return 0;
 }
 
+TEST_DECL("asn1: ber_decode_len32", 0)
+{
+    pstream_t ps;
+    uint32_t len32;
+
+#define TEST_DEC(v) \
+    ({ ps = ps_init(buf, sizeof(buf)); ber_decode_len32(&ps, &len32); \
+       TEST_FAIL_IF(len32 != v, "got %x, expected %x", len32, v); })
+
+    {
+        const byte buf[4] = { 0x80 | 0x3, 0xfa, 0x56, 0x09 };
+        TEST_DEC(0xfa5609);
+    }
+
+    {
+        const byte buf[1] = { 0x3 };
+        TEST_DEC(3);
+    }
+#undef TEST_DEC
+
+    {
+        const byte buf[3] = { 0x80, 0xb5, 0x45 };
+        ps = ps_init(buf, sizeof(buf));
+        TEST_PASS_IF(ber_decode_len32(&ps, &len32) == 1, "indefinite length");
+    }
+
+#define TEST_DEC_ERR(why) \
+    ({ ps = ps_init(buf, sizeof(buf)); \
+       TEST_PASS_IF(ber_decode_len32(&ps, &len32) < 0, "should fail: "why); })
+
+    {
+        const byte buf[7] = { 0x85, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6 };
+        TEST_DEC_ERR("length too long");
+    }
+
+    {
+        const byte buf[4] = { 0x84, 0x1, 0x2, 0x3};
+        TEST_DEC_ERR("not enough data...");
+    }
+#undef TEST_DEC_ERR
+    TEST_DONE();
+}
+
+
 /** \brief Decode a ber-encoded integer.
   * \param[inout]ps Input byte stream.
   * \param[out]_val Output value.
@@ -107,3 +151,31 @@ BER_DECODE_UINT_IMPL(uint16);
 BER_DECODE_UINT_IMPL(uint32);
 BER_DECODE_UINT_IMPL(uint64);
 
+TEST_DECL("asn1: ber_decode_int32", 0)
+{
+    pstream_t ps;
+    int32_t int32;
+
+#define TEST_DEC(v) \
+    ({ ps = ps_init(buf, sizeof(buf)); ber_decode_int32(&ps, &int32); \
+       TEST_FAIL_IF(int32 != v, "got %x, expected %x", int32, v); })
+
+    {
+        const byte buf[4] = { 0x3, 0xfa, 0x56, 0x09 };
+        TEST_DEC(0x3fa5609);
+    }
+
+    {
+        const byte buf[3] = { 0x83, 0xfa, 0x56 };
+        TEST_DEC((int32_t)0xff83fa56);
+    }
+#undef TEST_DEC
+
+    {
+        const byte buf[5] = { 0xff, 0xfa, 0x56, 0x45, 0xf5 };
+        ps = ps_init(buf, 5);
+
+        TEST_PASS_IF(ber_decode_int32(&ps, &int32) < 0, "integer too long");
+    }
+    TEST_DONE();
+}

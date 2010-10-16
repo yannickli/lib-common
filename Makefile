@@ -12,7 +12,7 @@
 ##########################################################################
 
 test_PROGRAMS += zchk btree-dump ztst-cfgparser ztst-tpl
-test_PROGRAMS += ztst-lzo ztst-asn1 ztst-asn1-wr
+test_PROGRAMS += ztst-lzo ztst-asn1-wr
 
 none_LIBRARIES = libcommon time-lp-simple
 
@@ -154,9 +154,6 @@ zchk_SOURCES = zchk.c \
 	$/lib-common/time-lp-simple.a
 
 zchk_LIBS = $(libxml2_LIBS) -lz -lrt -ldl -lpthread
-
-ztst-asn1_SOURCES = ztst-asn1.c \
-	$/lib-common/libcommon.a
 
 ztst-asn1-wr_SOURCES = ztst-asn1-writer.c \
 	$/lib-common/libcommon.a
