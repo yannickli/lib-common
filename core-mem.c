@@ -166,7 +166,7 @@ void *__irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
 
 #include "core-version.c"
 
-TEST_DECL("testing bfield_set", 0)
+TEST_DECL("core: BITMASKS", 0)
 {
 #define CHECK_BITMASK_(e, res)    TEST_FAIL_IF(e != res, #e " == " #res)
 #define CHECK_BITMASK(op, w, res) CHECK_BITMASK_(op(uint32_t, w), res)

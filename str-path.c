@@ -250,7 +250,7 @@ bool path_is_safe(const char *path)
 
 /* tests {{{ */
 
-TEST_DECL("path_is_safe test", 0)
+TEST_DECL("str-path: path_is_safe test", 0)
 {
     const char *path = "/foo";
     TEST_FAIL_IF(path_is_safe(path), "failed %s", path);

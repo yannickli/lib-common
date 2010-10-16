@@ -232,7 +232,7 @@ qm_k64_t(test_qh_64, uint32_t);
 
 qh_kptr_t(test_str, const char, qhash_str_hash, qhash_str_equal);
 
-TEST_DECL("qhash insertion", 0)
+TEST_DECL("qhash: insertion", 0)
 {
     QH(test, h, false);
     uint64_t bits[2];
@@ -259,7 +259,7 @@ TEST_DECL("qhash insertion", 0)
     TEST_DONE();
 }
 
-TEST_DECL("qhash collision", 0)
+TEST_DECL("qhash: collision", 0)
 {
     QH(test, h, false);
 
@@ -275,7 +275,7 @@ TEST_DECL("qhash collision", 0)
     TEST_DONE();
 }
 
-TEST_DECL("qhash self search", 0)
+TEST_DECL("qhash: self search", 0)
 {
     QH(test, h, false);
 
@@ -296,7 +296,7 @@ TEST_DECL("qhash self search", 0)
     TEST_DONE();
 }
 
-TEST_DECL("qhash string", 0)
+TEST_DECL("qhash: string", 0)
 {
     const char *t1 = "test1";
     const char *t2 = "test2";

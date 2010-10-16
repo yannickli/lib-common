@@ -73,7 +73,7 @@ int bfield_count(const bfield_t *bf)
 }
 
 
-TEST_DECL("testing bfield_set", 0)
+TEST_DECL("bfield: testing bfield_set", 0)
 {
     bfield_t bf;
     sb_t *b = &bf.bits;
@@ -103,7 +103,7 @@ TEST_DECL("testing bfield_set", 0)
     TEST_DONE();
 }
 
-TEST_DECL("testing bfield_set", 0)
+TEST_DECL("bfield: testing bfield_set", 0)
 {
     bfield_t bf;
     int num;
