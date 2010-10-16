@@ -30,9 +30,7 @@ int buf_unpack(const byte *buf, int buf_len, int *pos, const char *fmt, ...)
 #ifdef CHECK
 #include <check.h>
 
-Suite *check_make_blob_suite(void);
 Suite *check_append_blob_ebcdic_suite(Suite *blob_suite);
-Suite *check_append_blob_wbxml_suite(Suite *blob_suite);
 
 #endif
 /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/

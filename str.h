@@ -104,12 +104,4 @@ ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t len);
 /* OG: need more general API */
 int str_replace(const char search, const char replace, char *subject);
 
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-#include <check.h>
-
-Suite *check_string_suite(void);
-
-#endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
 #endif /* IS_LIB_COMMON_STR_IS_H */

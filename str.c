@@ -263,6 +263,23 @@ int strstart(const char *str, const char *p, const char **pp)
     return 1;
 }
 
+TEST_DECL("str: strstart", 0)
+{
+    static const char *week =
+        "Monday Tuesday Wednesday Thursday Friday Saturday Sunday";
+    const char *p = NULL;
+    int res;
+
+    res = strstart(week, "Monday", &p);
+    TEST_FAIL_IF(!res, "finding Monday in week");
+    TEST_FAIL_IF(p != week + strlen("Monday"), "finding Monday at the proper position");
+
+    p = NULL;
+    res = strstart(week, "Tuesday", &p);
+    TEST_FAIL_IF(res, "week doesn't start with Tuesday");
+    TEST_DONE();
+}
+
 /** Tells whether str begins with p, case insensitive.
  *
  * @param pp if not null and str begins with p, pp is given the address of the
@@ -283,6 +300,24 @@ int stristart(const char *str, const char *p, const char **pp)
         *pp = str;
     return 1;
 }
+
+TEST_DECL("str: stristart", 0)
+{
+    static const char *week =
+        "Monday Tuesday Wednesday Thursday Friday Saturday Sunday";
+    const char *p = NULL;
+    int res;
+
+    res = stristart(week, "monDay", &p);
+    TEST_FAIL_IF(!res, "finding monDay in week");
+    TEST_FAIL_IF(p != week + strlen("monDay"), "finding monDay at the proper position");
+
+    p = NULL;
+    res = stristart(week, "tUESDAY", &p);
+    TEST_FAIL_IF(res, "string doesn't start with tUESDAY");
+    TEST_DONE();
+}
+
 
 /** Find the first occurrence of the substring needle in str, case
  *  insensitively.
@@ -321,6 +356,26 @@ const char *stristrn(const char *str, const char *needle, size_t nlen)
     }
 }
 
+TEST_DECL("str: stristrn", 0)
+{
+    static const char *alphabet = "abcdefghijklmnopqrstuvwxyz";
+    const char *p;
+
+    p = stristr(alphabet, "aBC");
+    TEST_FAIL_IF(p != alphabet, "not found at start of string");
+
+    p = stristr(alphabet, "Z");
+    TEST_FAIL_IF(p != alphabet + 25, "not found at end of string");
+
+    p = stristr(alphabet, "mn");
+    TEST_FAIL_IF(p != alphabet + 12, "not found in the middle of the string");
+
+    p = stristr(alphabet, "123");
+    TEST_FAIL_IF(p != NULL, "unexistant string found");
+
+    TEST_DONE();
+}
+
 
 /* find a word in a list of words separated by sep.
  */
@@ -353,6 +408,22 @@ bool strfind(const char *keytable, const char *str, int sep)
         }
     }
 }
+
+TEST_DECL("str: strfind", 0)
+{
+    TEST_FAIL_IF(strfind("1,2,3,4", "1", ',') != true, "");
+    TEST_FAIL_IF(strfind("1,2,3,4", "2", ',') != true, "");
+    TEST_FAIL_IF(strfind("1,2,3,4", "4", ',') != true, "");
+    TEST_FAIL_IF(strfind("11,12,13,14", "1", ',') != false, "");
+    TEST_FAIL_IF(strfind("11,12,13,14", "2", ',') != false, "");
+    TEST_FAIL_IF(strfind("11,12,13,14", "11", ',') != true, "");
+    TEST_FAIL_IF(strfind("11,12,13,14", "111", ',') != false, "");
+    TEST_FAIL_IF(strfind("toto,titi,tata,tutu", "to", ',') != false, "");
+    TEST_FAIL_IF(strfind("1|2|3|4|", "", '|') != false, "");
+    TEST_FAIL_IF(strfind("1||3|4|", "", '|') != true, "");
+    TEST_DONE();
+}
+
 
 /** Increment last counter in a buffer
  *
@@ -392,6 +463,32 @@ int buffer_increment(char *buf, int len)
     }
     return 1;
 }
+
+#define check_buffer_increment_unit(initval, expectedval, expectedret)       \
+    do {                                                                     \
+        pstrcpy(buf, sizeof(buf), initval);                                  \
+        ret = buffer_increment(buf, -1);                                     \
+        TEST_FAIL_IF(strcmp(buf, expectedval),                               \
+            "value is \"%s\", expecting \"%s\"", buf, expectedval);          \
+        TEST_FAIL_IF(ret != expectedret, "bad return value for \"%s\"", initval); \
+    } while (0)
+TEST_DECL("str: buffer_increment", 0)
+{
+    char buf[32];
+    int ret;
+    check_buffer_increment_unit("0", "1", 0);
+    check_buffer_increment_unit("1", "2", 0);
+    check_buffer_increment_unit("00", "01", 0);
+    check_buffer_increment_unit("42", "43", 0);
+    check_buffer_increment_unit("09", "10", 0);
+    check_buffer_increment_unit("99", "00", 1);
+    check_buffer_increment_unit(" 99", " 00", 1);
+    check_buffer_increment_unit("", "", 1);
+    check_buffer_increment_unit("foobar-00", "foobar-01", 0);
+    check_buffer_increment_unit("foobar-0-99", "foobar-0-00", 1);
+    TEST_DONE();
+}
+
 
 /** Increment last counter in an hexadecimal buffer
  *
@@ -439,6 +536,38 @@ int buffer_increment_hex(char *buf, int len)
     return 1;
 }
 
+#define check_buffer_increment_hex_unit(initval, expectedval, expectedret)   \
+    do {                                                                     \
+        pstrcpy(buf, sizeof(buf), initval);                                  \
+        ret = buffer_increment_hex(buf, -1);                                 \
+        TEST_FAIL_IF(strcmp(buf, expectedval),                               \
+                     "value is \"%s\", expecting \"%s\"", buf, expectedval); \
+        TEST_FAIL_IF(ret != expectedret, "bad return value for \"%s\"", initval); \
+    } while (0)
+TEST_DECL("str: buffer_increment_hex", 0)
+{
+    char buf[32];
+    int ret;
+    check_buffer_increment_hex_unit("0", "1", 0);
+    check_buffer_increment_hex_unit("1", "2", 0);
+    check_buffer_increment_hex_unit("9", "A", 0);
+    check_buffer_increment_hex_unit("a", "b", 0);
+    check_buffer_increment_hex_unit("Ab", "Ac", 0);
+    check_buffer_increment_hex_unit("00", "01", 0);
+    check_buffer_increment_hex_unit("42", "43", 0);
+    check_buffer_increment_hex_unit("09", "0A", 0);
+    check_buffer_increment_hex_unit("0F", "10", 0);
+    check_buffer_increment_hex_unit("FFF", "000", 1);
+    check_buffer_increment_hex_unit(" FFF", " 000", 1);
+    check_buffer_increment_hex_unit("FFFFFFFFFFFFFFF", "000000000000000", 1);
+    check_buffer_increment_hex_unit("", "", 1);
+    check_buffer_increment_hex_unit("foobar", "foobar", 1);
+    check_buffer_increment_hex_unit("foobaff", "foobb00", 0);
+    check_buffer_increment_hex_unit("foobar-00", "foobar-01", 0);
+    check_buffer_increment_hex_unit("foobar-0-ff", "foobar-0-00", 1);
+    TEST_DONE();
+}
+
 /** Put random hexadecimal digits in destination buffer
  *
  * @return the number of digits set.
@@ -464,6 +593,40 @@ ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t n)
     return n;
 }
 
+TEST_DECL("str: strrand", 0)
+{
+    char buf[32];
+    int n, ret;
+
+    for (n = 0; n < countof(buf); n++) {
+        buf[n] = 'B' + n;
+    }
+
+    ret = pstrrand(buf, sizeof(buf), 0, 0);
+    TEST_FAIL_IF(buf[0] != '\0', "Missing padding after len=0");
+    TEST_FAIL_IF(ret != 0, "Bad return value for len=0");
+
+    ret = pstrrand(buf, sizeof(buf), 0, 3);
+    TEST_FAIL_IF(buf[3] != '\0', "Missing padding after len=3");
+    TEST_FAIL_IF(ret != 3, "Bad return value for len=3");
+
+    /* Ask for 32 bytes, where buffer can only contain 31. */
+    ret = pstrrand(buf, sizeof(buf), 0, sizeof(buf));
+    TEST_FAIL_IF(buf[31] != '\0', "Missing padding after len=sizeof(buf)");
+    TEST_FAIL_IF(ret != sizeof(buf) - 1, "Bad return value for len=sizeof(buf)");
+    //fprintf(stderr, "buf:%s\n", buf);
+
+    buf[0] = buf[1] = buf[2] = 'Z';
+    buf[3] = buf[4] = buf[5] = buf[6] = 0x42;
+    ret = pstrrand(buf, sizeof(buf), 3, 2);
+    TEST_FAIL_IF(buf[3] == 0x42 || buf[4] == 0x42, "len=2 did not set buffer");
+    TEST_FAIL_IF(buf[5] != 0, "Missing 0 after len=2");
+    TEST_FAIL_IF(buf[6] != 0x42, "len=2 set the buffer incorrectly");
+    TEST_FAIL_IF(ret != 2, "Bad return value for len=2");
+    //fprintf(stderr, "buf:%s\n", buf);
+    TEST_DONE();
+}
+
 int str_replace(const char search, const char replace, char *subject)
 {
     int nb_replace = 0;
@@ -479,385 +642,3 @@ int str_replace(const char search, const char replace, char *subject)
     }
     return nb_replace;
 }
-
-/*}}}*/
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-/* {{{*/
-#include <check.h>
-
-static const char *week = "Monday Tuesday Wednesday Thursday Friday "
-                          "Saturday Sunday";
-START_TEST(check_strstart)
-{
-    const char *p = NULL;
-    int res;
-    res = strstart(week, "Monday", &p);
-    fail_if(!res, "strstart did not find needle");
-    fail_if(p != week + strlen("Monday"),
-            "strstart did not set pp correctly"
-            " (week=\"%s\", p=\"%s\")", week, p);
-
-    p = NULL;
-    res = strstart(week, "Tuesday", &p);
-    fail_if(res, "strstart did not fail");
-    fail_if(p != NULL, "strstart did set pp");
-}
-END_TEST
-
-START_TEST(check_stristart)
-{
-    const char *p = NULL;
-    int res;
-    res = stristart(week, "monDAY", &p);
-    fail_if(!res, "stristart did not find needle");
-    fail_if(p != week + strlen("MonDAY"),
-            "stristart did not set pp correctly"
-            " (week=\"%s\", p=\"%s\")", week, p);
-
-    p = NULL;
-    res = stristart(week, "tUESDAY", &p);
-    fail_if(res, "stristart did not fail");
-    fail_if(p != NULL, "stristart did set pp");
-}
-END_TEST
-
-static const char *alphabet = "abcdefghijklmnopqrstuvwxyz";
-START_TEST(check_stristr)
-{
-    const char *p;
-
-    p = stristr(alphabet, "aBC");
-    fail_if(p != alphabet, "not found at start of string");
-
-    p = stristr(alphabet, "Z");
-    fail_if(p != alphabet + 25, "not found at end of string");
-
-    p = stristr(alphabet, "mn");
-    fail_if(p != alphabet + 12, "not found in the middle of the string");
-
-    p = stristr(alphabet, "123");
-    fail_if(p != NULL, "unexistant string found");
-}
-END_TEST
-
-START_TEST(check_pstrcpylen)
-{
-    char p[128];
-    fail_if (pstrcpylen(p, sizeof(p), "123", 4) != 3,
-             "pstrcpylen \"123\", 4 failed");
-    fail_if (pstrcpylen(p, sizeof(p), "123", -1) != 3,
-             "pstrcpylen \"123\", -1 failed");
-}
-END_TEST
-
-#define check_strtoip_unit(p, err_exp, val_exp, end_i)                  \
-    do {                                                                \
-        const char *endp;                                               \
-        int val;                                                        \
-        int end_exp = (end_i >= 0) ? end_i : (int)strlen(p);            \
-                                                                        \
-        errno = 0;                                                      \
-        val = strtoip(p, &endp);                                        \
-                                                                        \
-        fail_if (err_exp != errno || val != val_exp || endp != p + end_exp, \
-                 "('%s', &endp)"                                        \
-                 "val=%d (expected %d), endp='%s' expected '%s'\n",     \
-                 p, val, val_exp, endp, p + end_exp);                   \
-    } while (0)
-
-START_TEST(check_strtoip)
-{
-    check_strtoip_unit("123", 0, 123, -1);
-    check_strtoip_unit(" 123", 0, 123, -1);
-    check_strtoip_unit(" +123", 0, 123, -1);
-    check_strtoip_unit("  -123", 0, -123, -1);
-    check_strtoip_unit(" +-123", EINVAL, 0, 2);
-    check_strtoip_unit("123 ", 0, 123, 3);
-    check_strtoip_unit("123z", 0, 123, 3);
-    check_strtoip_unit("123+", 0, 123, 3);
-    check_strtoip_unit("2147483647", 0, 2147483647, -1);
-    check_strtoip_unit("2147483648", ERANGE, 2147483647, -1);
-    check_strtoip_unit("21474836483047203847094873", ERANGE, 2147483647, -1);
-    check_strtoip_unit("000000000000000000000000000000000001", 0, 1, -1);
-    check_strtoip_unit("-2147483647", 0, -2147483647, -1);
-    check_strtoip_unit("-2147483648", 0, -2147483647 - 1, -1);
-    check_strtoip_unit("-2147483649", ERANGE, -2147483647 - 1, -1);
-    check_strtoip_unit("-21474836483047203847094873", ERANGE, -2147483647 - 1, -1);
-    check_strtoip_unit("-000000000000000000000000000000000001", 0, -1, -1);
-    check_strtoip_unit("", EINVAL, 0, -1);
-    check_strtoip_unit("          ", EINVAL, 0, -1);
-    check_strtoip_unit("0", 0, 0, -1);
-    check_strtoip_unit("0x0", 0, 0, 1);
-    check_strtoip_unit("010", 0, 10, -1);
-}
-END_TEST
-
-#define check_memtoip_unit(p, err_exp, val_exp, end_i)                  \
-    do {                                                                \
-        const byte *endp;                                               \
-        int val, len = strlen(p);                                       \
-        int end_exp = (end_i >= 0) ? end_i : len;                       \
-                                                                        \
-        errno = 0;                                                      \
-        val = memtoip((const byte *)p, len, &endp);                     \
-                                                                        \
-        fail_if (err_exp != errno || val != val_exp || endp != (const byte *)p + end_exp, \
-                 "(\"%s\", %d, &endp)\n -> "                            \
-                 "val=%d (expected %d), endp='%s' (expected '%s'), "    \
-                 "errno=%d (expected %d)\n",                            \
-                 p, len, val, val_exp, endp, p + end_exp, errno, err_exp); \
-    } while (0)
-
-START_TEST(check_memtoip)
-{
-    check_memtoip_unit("123", 0, 123, -1);
-    check_memtoip_unit(" 123", 0, 123, -1);
-    check_memtoip_unit(" +123", 0, 123, -1);
-    check_memtoip_unit("  -123", 0, -123, -1);
-    check_memtoip_unit(" +-123", EINVAL, 0, 2);
-    check_memtoip_unit("123 ", 0, 123, 3);
-    check_memtoip_unit("123z", 0, 123, 3);
-    check_memtoip_unit("123+", 0, 123, 3);
-    check_memtoip_unit("2147483647", 0, 2147483647, -1);
-    check_memtoip_unit("2147483648", ERANGE, 2147483647, -1);
-    check_memtoip_unit("21474836483047203847094873", ERANGE, 2147483647, -1);
-    check_memtoip_unit("000000000000000000000000000000000001", 0, 1, -1);
-    check_memtoip_unit("-2147483647", 0, -2147483647, -1);
-    check_memtoip_unit("-2147483648", 0, -2147483647 - 1, -1);
-    check_memtoip_unit("-2147483649", ERANGE, -2147483647 - 1, -1);
-    check_memtoip_unit("-21474836483047203847094873", ERANGE, -2147483647 - 1, -1);
-    check_memtoip_unit("-000000000000000000000000000000000001", 0, -1, -1);
-    check_memtoip_unit("", EINVAL, 0, -1);
-    check_memtoip_unit("          ", EINVAL, 0, -1);
-    check_memtoip_unit("0", 0, 0, -1);
-    check_memtoip_unit("0x0", 0, 0, 1);
-    check_memtoip_unit("010", 0, 10, -1);
-}
-END_TEST
-
-#define check_strtolp_unit(p, flags, min, max, val_exp, ret_exp, end_i) \
-    do {                                                                \
-        const char *endp;                                               \
-        int ret;                                                        \
-        long val;                                                       \
-                                                                        \
-        ret = strtolp(p, &endp, 0, &val, flags, min, max);              \
-                                                                        \
-        fail_if(ret != ret_exp,                                         \
-                "(\"%s\", flags=%d, min=%ld, max=%ld, val_exp=%ld, ret_exp=%d, end_i=%d)" \
-                " -> ret=%d (expected %d)\n",                           \
-                p, flags, (long)(min), (long)(max), (long)(val_exp),    \
-                ret_exp, end_i, ret, ret_exp);                          \
-                                                                        \
-        if (ret == 0) {                                                 \
-            fail_if(val != val_exp,                                     \
-                    "(\"%s\", flags=%d, min=%ld, max=%ld, val_exp=%ld, ret_exp=%d, end_i=%d)" \
-                    " -> val=%ld (expected %ld)\n",                     \
-                    p, flags, (long)(min), (long)(max), (long)(val_exp),\
-                    ret_exp, end_i, (long)(val), (long)(val_exp));      \
-        }                                                               \
-    } while (0)
-
-START_TEST(check_strtolp)
-{
-    check_strtolp_unit("123", 0,
-                       0, 1000,
-                       123, 0, 3);
-
-    /* Check min/max */
-    check_strtolp_unit("123", STRTOLP_CHECK_RANGE,
-                       0, 100,
-                       123, -ERANGE, 3);
-    check_strtolp_unit("123", STRTOLP_CHECK_RANGE,
-                       1000, 2000,
-                       123, -ERANGE, 3);
-
-    /* check min/max corner cases */
-    check_strtolp_unit("123", STRTOLP_CHECK_RANGE,
-                       0, 123,
-                       123, 0, 3);
-    check_strtolp_unit("123", STRTOLP_CHECK_RANGE,
-                       0, 122,
-                       123, -ERANGE, 3);
-    check_strtolp_unit("123", STRTOLP_CHECK_RANGE,
-                       123, 1000,
-                       123, 0, 3);
-    check_strtolp_unit("123", STRTOLP_CHECK_RANGE,
-                       124, 1000,
-                       123, -ERANGE, 3);
-
-    /* Check skipspaces */
-    check_strtolp_unit(" 123", 0,
-                       0, 1000,
-                       123, -EINVAL, 3);
-
-    check_strtolp_unit("123 ", STRTOLP_CHECK_END,
-                       0, 100,
-                       123, -EINVAL, 3);
-
-    check_strtolp_unit(" 123 ", STRTOLP_CHECK_END | STRTOLP_CHECK_RANGE,
-                       0, 100,
-                       123, -EINVAL, 3);
-
-    check_strtolp_unit(" 123", STRTOLP_IGNORE_SPACES,
-                       0, 100,
-                       123, 0, 3);
-
-    check_strtolp_unit(" 123 ", STRTOLP_IGNORE_SPACES,
-                       0, 100,
-                       123, 0, 4);
-
-    check_strtolp_unit(" 123 ", STRTOLP_IGNORE_SPACES | STRTOLP_CHECK_RANGE,
-                       0, 100,
-                       123, -ERANGE, 3);
-
-    check_strtolp_unit(" 123 ", STRTOLP_IGNORE_SPACES | STRTOLP_CLAMP_RANGE,
-                       0, 100,
-                       100, 0, 3);
-
-    check_strtolp_unit("123456789012345678901234567890", 0,
-                       0, 100,
-                       123, -ERANGE, 3);
-
-    check_strtolp_unit("123456789012345678901234567890 ", STRTOLP_CHECK_END,
-                       0, 100,
-                       123, -EINVAL, 3);
-
-    check_strtolp_unit("123456789012345678901234567890", STRTOLP_CLAMP_RANGE,
-                       0, 100,
-                       100, 0, 3);
-}
-END_TEST
-
-START_TEST(check_strfind)
-{
-    fail_if(strfind("1,2,3,4", "1", ',') != true, "");
-    fail_if(strfind("1,2,3,4", "2", ',') != true, "");
-    fail_if(strfind("1,2,3,4", "4", ',') != true, "");
-    fail_if(strfind("11,12,13,14", "1", ',') != false, "");
-    fail_if(strfind("11,12,13,14", "2", ',') != false, "");
-    fail_if(strfind("11,12,13,14", "11", ',') != true, "");
-    fail_if(strfind("11,12,13,14", "111", ',') != false, "");
-    fail_if(strfind("toto,titi,tata,tutu", "to", ',') != false, "");
-    fail_if(strfind("1|2|3|4|", "", '|') != false, "");
-    fail_if(strfind("1||3|4|", "", '|') != true, "");
-}
-END_TEST
-
-#define check_buffer_increment_unit(initval, expectedval, expectedret)       \
-    do {                                                                     \
-        pstrcpy(buf, sizeof(buf), initval);                                  \
-        ret = buffer_increment(buf, -1);                                     \
-        fail_if(strcmp(buf, expectedval),                                    \
-            "value is \"%s\", expecting \"%s\"", buf, expectedval);          \
-        fail_if(ret != expectedret, "bad return value for \"%s\"", initval); \
-    } while (0)
-START_TEST(check_buffer_increment)
-{
-    char buf[32];
-    int ret;
-    check_buffer_increment_unit("0", "1", 0);
-    check_buffer_increment_unit("1", "2", 0);
-    check_buffer_increment_unit("00", "01", 0);
-    check_buffer_increment_unit("42", "43", 0);
-    check_buffer_increment_unit("09", "10", 0);
-    check_buffer_increment_unit("99", "00", 1);
-    check_buffer_increment_unit(" 99", " 00", 1);
-    check_buffer_increment_unit("", "", 1);
-    check_buffer_increment_unit("foobar-00", "foobar-01", 0);
-    check_buffer_increment_unit("foobar-0-99", "foobar-0-00", 1);
-}
-END_TEST
-
-#define check_buffer_increment_hex_unit(initval, expectedval, expectedret)   \
-    do {                                                                     \
-        pstrcpy(buf, sizeof(buf), initval);                                  \
-        ret = buffer_increment_hex(buf, -1);                                 \
-        fail_if(strcmp(buf, expectedval),                                    \
-            "value is \"%s\", expecting \"%s\"", buf, expectedval);          \
-        fail_if(ret != expectedret, "bad return value for \"%s\"", initval); \
-    } while (0)
-START_TEST(check_buffer_increment_hex)
-{
-    char buf[32];
-    int ret;
-    check_buffer_increment_hex_unit("0", "1", 0);
-    check_buffer_increment_hex_unit("1", "2", 0);
-    check_buffer_increment_hex_unit("9", "A", 0);
-    check_buffer_increment_hex_unit("a", "b", 0);
-    check_buffer_increment_hex_unit("Ab", "Ac", 0);
-    check_buffer_increment_hex_unit("00", "01", 0);
-    check_buffer_increment_hex_unit("42", "43", 0);
-    check_buffer_increment_hex_unit("09", "0A", 0);
-    check_buffer_increment_hex_unit("0F", "10", 0);
-    check_buffer_increment_hex_unit("FFF", "000", 1);
-    check_buffer_increment_hex_unit(" FFF", " 000", 1);
-    check_buffer_increment_hex_unit("FFFFFFFFFFFFFFF", "000000000000000", 1);
-    check_buffer_increment_hex_unit("", "", 1);
-    check_buffer_increment_hex_unit("foobar", "foobar", 1);
-    check_buffer_increment_hex_unit("foobaff", "foobb00", 0);
-    check_buffer_increment_hex_unit("foobar-00", "foobar-01", 0);
-    check_buffer_increment_hex_unit("foobar-0-ff", "foobar-0-00", 1);
-}
-END_TEST
-
-START_TEST(check_pstrrand)
-{
-    char buf[32];
-    int n, ret;
-
-    for (n = 0; n < countof(buf); n++) {
-        buf[n] = 'B' + n;
-    }
-
-    ret = pstrrand(buf, sizeof(buf), 0, 0);
-    fail_if(buf[0] != '\0', "Missing padding after len=0");
-    fail_if(ret != 0, "Bad return value for len=0");
-
-    ret = pstrrand(buf, sizeof(buf), 0, 3);
-    fail_if(buf[3] != '\0', "Missing padding after len=3");
-    fail_if(ret != 3, "Bad return value for len=3");
-
-    /* Ask for 32 bytes, where buffer can only contain 31. */
-    ret = pstrrand(buf, sizeof(buf), 0, sizeof(buf));
-    fail_if(buf[31] != '\0', "Missing padding after len=sizeof(buf)");
-    fail_if(ret != sizeof(buf) - 1, "Bad return value for len=sizeof(buf)");
-    //fprintf(stderr, "buf:%s\n", buf);
-
-    buf[0] = buf[1] = buf[2] = 'Z';
-    buf[3] = buf[4] = buf[5] = buf[6] = 0x42;
-    ret = pstrrand(buf, sizeof(buf), 3, 2);
-    fail_if(buf[3] == 0x42 || buf[4] == 0x42, "len=2 did not set buffer");
-    fail_if(buf[5] != 0, "Missing 0 after len=2");
-    fail_if(buf[6] != 0x42, "len=2 set the buffer incorrectly");
-    fail_if(ret != 2, "Bad return value for len=2");
-    //fprintf(stderr, "buf:%s\n", buf);
-}
-END_TEST
-
-Suite *check_string_suite(void)
-{
-    Suite *s  = suite_create("String");
-    TCase *tc = tcase_create("Core");
-
-    suite_add_tcase(s, tc);
-    tcase_add_test(tc, check_strstart);
-    tcase_add_test(tc, check_stristart);
-    tcase_add_test(tc, check_stristr);
-    tcase_add_test(tc, check_strfind);
-    tcase_add_test(tc, check_pstrlen);
-    tcase_add_test(tc, check_pstrcpylen);
-    tcase_add_test(tc, check_pstrchrcount);
-    tcase_add_test(tc, check_strtoip);
-    tcase_add_test(tc, check_memtoip);
-    tcase_add_test(tc, check_strtolp);
-    tcase_add_test(tc, check_buffer_increment);
-    tcase_add_test(tc, check_buffer_increment_hex);
-    tcase_add_test(tc, check_pstrrand);
-    return s;
-}
-
-/*.....................................................................}}}*/
-#endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
