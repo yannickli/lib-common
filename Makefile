@@ -31,8 +31,6 @@ libcommon_SOURCES = \
 	bfield.c \
 	farch.c \
 	licence.c \
-	mmappedfile.c \
-	paged-index.c \
 	parseopt.c \
 	time.c \
 	\
