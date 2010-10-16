@@ -41,8 +41,6 @@ libcommon_SOURCES = \
 	asn1.c \
 	asn1-writer.c \
 	\
-	blob.c \
-	\
 	conf.c  \
 	conf-parser.l \
 	\
