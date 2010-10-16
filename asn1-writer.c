@@ -783,7 +783,7 @@ void asn1_reg_field(asn1_desc_t *desc, asn1_field_t *field)
                 "tagged as a sequence.", field->name);
     }
 
-    asn1_field_vector_append(&desc->vec, *field);
+    qv_append(asn1_field, &desc->vec, *field);
 }
 
 static void asn1_choice_desc_set_field(asn1_choice_desc_t *desc,
@@ -1261,7 +1261,7 @@ asn1_unpack_u_choice_val(pstream_t *ps, const asn1_field_t *choice_spec,
     int choice;
     const asn1_choice_desc_t *choice_desc =
         container_of(choice_spec->u.comp, asn1_choice_desc_t, desc);
-    const asn1_field_vector *vec = &choice_desc->desc.vec;
+    const qv_t(asn1_field) *vec = &choice_desc->desc.vec;
     const asn1_field_t *enum_spec = &vec->tab[0];
 
     if (ps_done(ps)

@@ -42,8 +42,7 @@
         static asn1_desc_t *desc;                                            \
                                                                              \
         if (unlikely(!desc)) {                                               \
-            desc = p_new(asn1_desc_t, 1);                                    \
-            asn1_field_vector_init(&desc->vec)
+            desc = p_new(asn1_desc_t, 1)
 
 #define ASN1_DESC_END(desc) \
             assert (desc->type == ASN1_CSTD_TYPE_SEQUENCE);                  \
@@ -66,7 +65,6 @@
                                                                              \
         if (unlikely(!desc)) {                                               \
             desc = &p_new(asn1_choice_desc_t, 1)->desc;                      \
-            asn1_field_vector_init(&desc->vec);                              \
             desc->type = ASN1_CSTD_TYPE_CHOICE;                              \
             asn1_reg_enum(desc, pfx, enum_pfx, enum_field,                   \
                           ASN1_TAG_INVALID)

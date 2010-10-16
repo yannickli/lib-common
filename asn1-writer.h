@@ -237,12 +237,12 @@ typedef struct {
     } u;
 } asn1_field_t;
 
-DO_VECTOR(asn1_field_t, asn1_field);
+qvector_t(asn1_field, asn1_field_t);
 
 /** \brief Message descriptor.
   */
 typedef struct asn1_desc_t {
-    asn1_field_vector     vec;
+    qv_t(asn1_field)      vec;
     enum asn1_cstd_type   type;
 } asn1_desc_t;
 

@@ -54,7 +54,7 @@ struct tpl_data {
 struct tpl_t;
 typedef int (tpl_apply_f)(struct tpl_t *, sb_t *, struct tpl_t **, int nb);
 
-ARRAY_TYPE(struct tpl_t, tpl);
+qvector_t(tpl, struct tpl_t *);
 typedef struct tpl_t {
     flag_t is_const :  1; /* if the subtree has TPL_OP_VARs in it */
     tpl_op op       :  7;
@@ -65,7 +65,7 @@ typedef struct tpl_t {
         uint32_t varidx; /* 16 bits of env, 16 bits of index */
         struct {
             tpl_apply_f *f;
-            tpl_array blocks;
+            qv_t(tpl)    blocks;
         };
     } u;
 } tpl_t;
@@ -75,7 +75,6 @@ tpl_t *tpl_new_op(tpl_op op);
 tpl_t *tpl_new_var(uint16_t envid, uint16_t index);
 tpl_t *tpl_dup(const tpl_t *);
 void tpl_delete(tpl_t **);
-ARRAY_FUNCTIONS(tpl_t, tpl, tpl_delete);
 
 /* XXX: This function does not copy str content */
 static inline tpl_t *tpl_new_cstr(const void *str, int len)
