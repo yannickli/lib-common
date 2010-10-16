@@ -10,7 +10,7 @@ if os.getenv("TERM") and sys.stdout.isatty():
     def mkcolor(color, txt, bold = 1):
         return "\033[%d;%im%s\033[0m" % (bold, color, txt)
 else:
-    def mkcolor(color, txt):
+    def mkcolor(color, txt, bold = 1):
         return txt
 
 def print_report1(color, pfx, g):

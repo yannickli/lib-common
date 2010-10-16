@@ -155,10 +155,15 @@ int path_simplify2(char *in, bool keep_trailing_slash)
                 in += 2;
                 if (atoms) {
                     atoms--;
-                    while (out > start && *--out != '/');
+                    out--;
+                    while (out > start && out[-1] != '/')
+                        out--;
                 } else {
-                    if (!absolute)
+                    if (!absolute) {
                         out = mempcpy(out, "..", 2);
+                        if (*in)
+                            *out++ = '/';
+                    }
                 }
                 continue;
             }
@@ -180,6 +185,31 @@ int path_simplify2(char *in, bool keep_trailing_slash)
         *out++ = '.';
     *out = '\0';
     return out - start;
+}
+
+TEST_DECL("str-path: path_simplify", 0)
+{
+    char in[PATH_MAX] = "";
+
+    TEST_PASS_IF(path_simplify(in) < 0, "");
+
+#define TEST(s0, s1)  \
+    ({ pstrcpy(in, sizeof(in), s0); path_simplify(in);           \
+       TEST_PASS_IF(strequal(in, s1), "%s, expect %s, got %s", s0, s1, in); })
+
+    TEST("/a/b/../../foo/./", "/foo");
+    TEST("/test/..///foo/./", "/foo");
+    TEST("/../test//foo///",  "/test/foo");
+    TEST("./test/bar",        "test/bar");
+    TEST("./test/../bar",     "bar");
+    TEST("./../test",         "../test");
+    TEST(".//test",           "test");
+    TEST("a/..",              ".");
+    TEST("a/../../..",        "../..");
+    TEST("a/../../b/../c",    "../c");
+
+    TEST_DONE();
+#undef TEST
 }
 
 /* TODO: make our own without the PATH_MAX craziness */
@@ -248,8 +278,6 @@ bool path_is_safe(const char *path)
     return true;
 }
 
-/* tests {{{ */
-
 TEST_DECL("str-path: path_is_safe test", 0)
 {
     const char *path = "/foo";
@@ -269,5 +297,3 @@ TEST_DECL("str-path: path_is_safe test", 0)
 
     TEST_DONE();
 }
-
-/* }}} */

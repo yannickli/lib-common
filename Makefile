@@ -16,7 +16,7 @@ test_PROGRAMS += ztst-lzo ztst-asn1 ztst-asn1-wr
 
 none_LIBRARIES = libcommon time-lp-simple
 
-none_TESTS += ztst ztst-path ztst-hash
+none_TESTS += ztst ztst-hash
 none_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 ifdef CHECK_ALL
   # These tests are just too long to be part of "make check". Sorry.
@@ -189,8 +189,6 @@ ztst-sort_CFLAGS = -UCHECK
 ztst-sort_LIBS = -lm
 ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a compat/compat.a
 ztst-iprintf-speed_CFLAGS = -UCHECK
-
-ztst-path_SOURCES = ztst-path.c libcommon.a compat/compat.a
 
 ifneq (,$(MINGCC))
   # Disable some stuff that does not compile under MingW
