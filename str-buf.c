@@ -168,7 +168,7 @@ char *__sb_splice(sb_t *sb, int pos, int len, int dlen)
 
 int sb_search(const sb_t *sb, int pos, const void *what, int wlen)
 {
-    const char *p = memsearch(sb->data + pos, sb->len - pos, what, wlen);
+    const char *p = memmem(sb->data + pos, sb->len - pos, what, wlen);
     return p ? p - sb->data : -1;
 }
 

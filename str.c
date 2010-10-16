@@ -179,27 +179,6 @@ ssize_t pstrcat(char *dest, ssize_t size, const char *src)
 #endif
 }
 
-/** Counts the number of occurrences of character <code>c</code>
- * in string <code>str</code>.
- *
- * @returns the number of occurrences, returns 0 if <code>size</code>
- * is <code>NULL</code>.
- */
-int pstrchrcount(const char *str, int c)
-{
-    const char *p = str;
-    int res = 0;
-
-    if (p) {
-        while ((p = strchr(p, c)) != NULL) {
-            res++;
-            p++;
-        }
-    }
-
-    return res;
-}
-
 /** Skips initial blanks as per isspace(c).
  *
  * use vskipspaces for non const parameters
@@ -340,52 +319,6 @@ const char *stristrn(const char *str, const char *needle, size_t nlen)
             }
         }
     }
-}
-
-/** Find the first occurrence of the needle in haystack.
- *
- * @return a pointer to the beginning of needle, or NULL if
- * it was not found.
- */
-const void *memsearch(const void *_haystack, size_t hsize,
-                      const void *_needle, size_t nsize)
-{
-    const unsigned char *haystack = (const unsigned char *)_haystack;
-    const unsigned char *needle = (const unsigned char *)_needle;
-    const unsigned char *last;
-    unsigned char first;
-    size_t pos;
-
-    if (nsize == 0) {
-        return haystack;
-    }
-
-    if (nsize == 1) {
-        return memchr(haystack, *needle, hsize);
-    }
-
-    first = *needle;
-
-    for (last = haystack + (hsize - nsize + 1); haystack < last; haystack++) {
-        if (*haystack == first) {
-            for (pos = 0;;) {
-                if (++pos >= nsize)
-                    return haystack;
-                if (haystack[pos] != needle[pos])
-                    break;
-            }
-        }
-    }
-    return NULL;
-}
-
-const void *pmemrchr(const void *s, int c, ssize_t n)
-{
-    for (const char *p = (const char *)s + n; p-- > (const char *)s;) {
-        if (*p == c)
-            return p;
-    }
-    return NULL;
 }
 
 
@@ -605,45 +538,6 @@ START_TEST(check_stristr)
 
     p = stristr(alphabet, "123");
     fail_if(p != NULL, "unexistant string found");
-}
-END_TEST
-
-START_TEST(check_memsearch)
-{
-    const void *p;
-
-    p = memsearch(alphabet, 5, "abcdef", 5);
-    fail_if(p != alphabet, "exact match not found");
-
-    p = memsearch(alphabet, 26, alphabet, 26);
-    fail_if(p != alphabet, "exact match not found");
-
-    p = memsearch(alphabet, 5, "ab", 2);
-    fail_if(p != alphabet, "not found at start of zone");
-
-    p = memsearch(alphabet, 26, "yz", 2);
-    fail_if(p != alphabet + 24, "2 byte string not found at end of zone");
-
-    p = memsearch(alphabet, 26, "uvwxyz", 6);
-    fail_if(p != alphabet + 20, "6 byte string not found at end of zone");
-
-    p = memsearch(alphabet, 26, "mn", 2);
-    fail_if(p != alphabet + 12, "not found in the middle of the zone");
-
-    p = memsearch(alphabet, 26, "123", 3);
-    fail_if(p != NULL, "found bogus occurrence");
-
-    p = memsearch(alphabet, 0, "ab", 2);
-    fail_if(p != NULL, "match found in empty zone");
-
-    p = memsearch(alphabet, 0, "ab", 0);
-    fail_if(p != alphabet, "empty needle not found in empty zone");
-
-    p = memsearch(alphabet, 1, "ab", 2);
-    fail_if(p != NULL, "found partial match");
-
-    p = memsearch(alphabet, 5, "ab", 0);
-    fail_if(p != alphabet, "empty needle not found in non-empty zone");
 }
 END_TEST
 
@@ -951,7 +845,6 @@ Suite *check_string_suite(void)
     tcase_add_test(tc, check_strstart);
     tcase_add_test(tc, check_stristart);
     tcase_add_test(tc, check_stristr);
-    tcase_add_test(tc, check_memsearch);
     tcase_add_test(tc, check_strfind);
     tcase_add_test(tc, check_pstrlen);
     tcase_add_test(tc, check_pstrcpylen);

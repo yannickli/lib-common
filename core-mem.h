@@ -206,6 +206,9 @@ irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
 /* High Level memory APIs                                                 */
 /**************************************************************************/
 
+/* forward pointer for str-mem.h */
+static inline void *memcpyz(void *dst, const void *src, size_t n);
+
 __attribute__((malloc, warn_unused_result))
 static inline char *mem_strdup(const char *src)
 {
@@ -265,28 +268,6 @@ static inline void *p_dupz(const void *src, size_t len)
 static inline void (p_delete)(void **p) {
     p_delete(p);
 }
-
-#define sizeof_type_is_one(t) \
-    __builtin_choose_expr(__builtin_types_compatible_p(t, void *), 1,        \
-                          sizeof(t) == 1)
-
-#define memcpy_check_types(e1, e2) \
-    STATIC_ASSERT(                                                           \
-        __builtin_choose_expr(                                               \
-            __builtin_choose_expr(                                           \
-                __builtin_types_compatible_p(typeof(e2), void *),            \
-                true, sizeof(*(e2)) == 1), true,                             \
-            __builtin_types_compatible_p(typeof(*(e1)), typeof(*(e2)))))
-
-#define p_move(to, src, n) \
-    ({ memcpy_check_types(to, src); memmove(to, src, sizeof(*(to)) * (n)); })
-#define p_copy(to, src, n) \
-    ({ memcpy_check_types(to, src); memcpy(to, src, sizeof(*(to)) * (n)); })
-
-#define p_move2(p, to, from, n) \
-    ({ typeof(*(p)) *__p = (p); p_move(__p + (to), __p + (from), n); })
-#define p_copy2(p, to, from, n) \
-    ({ typeof(*(p)) __p = (p); p_copy(__p + (to), __p + (from), n); })
 
 #define p_alloc_nr(x) (((x) + 16) * 3 / 2)
 

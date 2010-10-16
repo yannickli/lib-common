@@ -16,24 +16,15 @@
 
 #define IPRINTF_HIDE_STDIO 1
 #include "core.h"
+#include "str-mem.h"
 #include "str-ctype.h"
 #include "str-iprintf.h"
-
-#ifndef __USE_GNU
-static inline void *mempcpy(void *dst, const void *src, size_t n) {
-    memcpy(dst, src, n);
-    return (char *)dst + n;
-}
-#endif
-static inline void *memcpyz(void *dst, const void *src, size_t n) {
-    *(char *)mempcpy(dst, src, n) = '\0';
-    return dst;
-}
-static inline void *mempcpyz(void *dst, const void *src, size_t n) {
-    dst = mempcpy(dst, src, n);
-    *(char *)dst = '\0';
-    return (char *)dst + 1;
-}
+#include "str-num.h"
+#include "str-l.h"
+#include "str-path.h"
+#include "str-conv.h"
+#include "str-buf.h"
+#include "str-stream.h"
 
 __attr_nonnull__((1))
 static inline ssize_t sstrlen(const char *str) {
@@ -64,69 +55,6 @@ static inline char *vskipblanks(char *s) {
 
 /* Trim spaces at end of string, return pointer to '\0' */
 char *strrtrim(char *str);
-
-/* Wrappers to fix constness issue in strtol() */
-__attr_nonnull__((1))
-static inline unsigned long cstrtoul(const char *str, const char **endp, int base) {
-    return (strtoul)(str, (char **)endp, base);
-}
-
-__attr_nonnull__((1))
-static inline unsigned long vstrtoul(char *str, char **endp, int base) {
-    return (strtoul)(str, endp, base);
-}
-#define strtoul(str, endp, base)  cstrtoul(str, endp, base)
-
-__attr_nonnull__((1))
-static inline long cstrtol(const char *str, const char **endp, int base) {
-    return (strtol)(str, (char **)endp, base);
-}
-
-__attr_nonnull__((1))
-static inline long vstrtol(char *str, char **endp, int base) {
-    return (strtol)(str, endp, base);
-}
-#define strtol(str, endp, base)  cstrtol(str, endp, base)
-
-__attr_nonnull__((1))
-static inline long long cstrtoll(const char *str, const char **endp, int base) {
-    return (strtoll)(str, (char **)endp, base);
-}
-__attr_nonnull__((1))
-static inline long long vstrtoll(char *str, char **endp, int base) {
-    return (strtoll)(str, endp, base);
-}
-#define strtoll(str, endp, base)  cstrtoll(str, endp, base)
-
-__attr_nonnull__((1))
-static inline unsigned long long
-cstrtoull(const char *str, const char **endp, int base) {
-    return (strtoull)(str, (char **)endp, base);
-}
-__attr_nonnull__((1))
-static inline unsigned long long
-vstrtoull(char *str, char **endp, int base) {
-    return (strtoull)(str, endp, base);
-}
-#define strtoull(str, endp, base)  cstrtoull(str, endp, base)
-
-int strtoip(const char *p, const char **endp)  __attr_nonnull__((1));
-static inline int vstrtoip(char *p, char **endp) {
-    return strtoip(p, (const char **)endp);
-}
-int memtoip(const void *p, int len, const byte **endp)  __attr_nonnull__((1));
-int64_t memtollp(const void *s, int len, const byte **endp)
-    __attr_nonnull__((1));
-int64_t parse_number(const char *str);
-
-#define STRTOLP_IGNORE_SPACES  (1 << 0)
-#define STRTOLP_CHECK_END      (1 << 1)
-#define STRTOLP_EMPTY_OK       (1 << 2)
-#define STRTOLP_CHECK_RANGE    (1 << 3)
-#define STRTOLP_CLAMP_RANGE    (1 << 4)
-/* returns 0 if success, negative errno if error */
-int strtolp(const char *p, const char **endp, int base, long *res,
-            int flags, long min, long max);
 
 int strstart(const char *str, const char *p, const char **pp);
 static inline int vstrstart(char *str, const char *p, char **pp) {
@@ -164,18 +92,6 @@ static inline bool strequal(const char *str1, const char *str2) {
     return !strcmp(str1, str2);
 }
 
-const void *memsearch(const void *haystack, size_t hsize,
-                      const void *needle, size_t nsize)
-        __attr_nonnull__((1, 3));
-
-const void *pmemrchr(const void *s, int c, ssize_t n) __attr_nonnull__((1));
-
-__attr_nonnull__((1, 3))
-static inline void *vmemsearch(void *haystack, size_t hsize,
-                               const void *needle, size_t nsize) {
-    return (void *)memsearch(haystack, hsize, needle, nsize);
-}
-
 /* find a word in a list of words separated by sep.
  */
 bool strfind(const char *keytable, const char *str, int sep);
@@ -187,12 +103,6 @@ ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t len);
 /* Return the number of occurences replaced */
 /* OG: need more general API */
 int str_replace(const char search, const char replace, char *subject);
-
-#include "str-l.h"
-#include "str-path.h"
-#include "str-conv.h"
-#include "str-buf.h"
-#include "str-stream.h"
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
