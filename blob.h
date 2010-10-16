@@ -26,12 +26,4 @@ int blob_unpack(const sb_t *blob, int *pos, const char *fmt, ...)
 int buf_unpack(const byte *buf, int buf_len, int *pos, const char *fmt, ...)
     __must_check__;
 
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-#include <check.h>
-
-Suite *check_append_blob_ebcdic_suite(Suite *blob_suite);
-
-#endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
 #endif /* IS_LIB_COMMON_BLOB_H */

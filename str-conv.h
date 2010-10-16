@@ -182,13 +182,4 @@ static inline const char *utf8_skip_valid(const char *s, const char *end)
     return end;
 }
 
-
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-#include <check.h>
-
-Suite *check_make_strconv_suite(void);
-
-#endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
 #endif /* IS_LIB_COMMON_STR_CONV_H */

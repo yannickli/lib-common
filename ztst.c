@@ -19,13 +19,7 @@ int main(void)
     int nf;
     SRunner *sr = srunner_create(NULL);
 
-    srunner_add_suite(sr, check_make_strconv_suite());
-    srunner_add_suite(sr, check_append_blob_ebcdic_suite());
     srunner_add_suite(sr, check_licence_suite());
-    srunner_add_suite(sr, check_xml_suite());
-    srunner_add_suite(sr, check_make_timeval_suite());
-    srunner_add_suite(sr, check_bfield_suite());
-    srunner_add_suite(sr, check_str_array_suite());
     srunner_add_suite(sr, check_conf_suite());
 
     srunner_run_all(sr, CK_NORMAL);

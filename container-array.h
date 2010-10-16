@@ -264,14 +264,4 @@ static inline size_t iovec_vector_getlen(iovec_vector *v) {
     return iovec_len(v->tab, v->len);
 }
 
-
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-#include <check.h>
-
-Suite *check_str_array_suite(void);
-
-#endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
-
 #endif

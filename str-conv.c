@@ -318,6 +318,30 @@ int strconv_hexdecode(void *dest, int size, const char *src, int len)
     return len / 2;
 }
 
+TEST_DECL("str: strconv_hexdecode", 0)
+{
+    int res;
+    byte dest[BUFSIZ];
+
+    const char *encoded = "30313233";
+    const char *decoded = "0123";
+
+    res = strconv_hexdecode(dest, sizeof(dest), encoded, -1);
+
+    TEST_FAIL_IF((size_t)res != strlen(encoded) / 2, "str_hexdecode returned bad"
+                 "length: expected %zd, got %d.", strlen(encoded) / 2, res);
+    TEST_FAIL_IF(memcmp(dest, decoded, res), "str_hexdecode failed decoding");
+
+    encoded = "1234567";
+    TEST_FAIL_IF(strconv_hexdecode(dest, sizeof(dest), encoded, -1) >= 0,
+                 "str_hexdecode should not accept odd-length strings");
+    encoded = "1234567X";
+    TEST_FAIL_IF(strconv_hexdecode(dest, sizeof(dest), encoded, -1) >= 0,
+                 "str_hexdecode accepted non hexadecimal string");
+    TEST_DONE();
+}
+
+
 int strconv_hexencode(char *dest, int size, const void *src, int len)
 {
     const byte *s = src, *end = s + MIN(len, (size - 1) / 2);
@@ -578,29 +602,6 @@ int sb_conv_from_ucs2le_hex(sb_t *sb, const void *s, int slen)
 
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
-
-START_TEST(check_str_hexdecode)
-{
-    int res;
-    byte dest[BUFSIZ];
-
-    const char *encoded = "30313233";
-    const char *decoded = "0123";
-
-    res = strconv_hexdecode(dest, sizeof(dest), encoded, -1);
-
-    fail_if((size_t)res != strlen(encoded) / 2, "str_hexdecode returned bad"
-            "length: expected %zd, got %d.", strlen(encoded) / 2, res);
-    fail_if(memcmp(dest, decoded, res), "str_hexdecode failed decoding");
-
-    encoded = "1234567";
-    fail_if(strconv_hexdecode(dest, sizeof(dest), encoded, -1) >= 0,
-            "str_hexdecode should not accept odd-length strings");
-    encoded = "1234567X";
-    fail_if(strconv_hexdecode(dest, sizeof(dest), encoded, -1) >= 0,
-            "str_hexdecode accepted non hexadecimal string");
-}
-END_TEST
 
 Suite *check_make_strconv_suite(void)
 {

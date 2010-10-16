@@ -145,6 +145,47 @@ string_array *str_explode(const char *s, const char *tokens)
     return res;
 }
 
+TEST_DECL("str-array: str_explode", 0)
+{
+    string_array *arr;
+
+#define STR_EXPL_CORRECT_TEST(str1, str2, str3, sep)                       \
+    arr = str_explode(str1 sep str2 sep str3, sep);                        \
+                                                                           \
+    TEST_FAIL_IF(arr == NULL, "str_explode failed, res == NULL");               \
+    TEST_FAIL_IF(arr->len != 3, "str_explode failed: len = %d != 3", arr->len); \
+    TEST_FAIL_IF(strcmp(arr->tab[0], str1),                                     \
+                 "str_explode failed: tab[0] (%s) != %s",                       \
+                 arr->tab[0], str1);                                            \
+    TEST_FAIL_IF(strcmp(arr->tab[1], str2),                                     \
+                 "str_explode failed: tab[1] (%s) != %s",                       \
+                 arr->tab[1], str2);                                            \
+    TEST_FAIL_IF(strcmp(arr->tab[2], str3),                                     \
+                 "str_explode failed: tab[2] (%s) != %s",                       \
+                 arr->tab[2], str3);                                            \
+    string_array_delete(&arr);
+
+    STR_EXPL_CORRECT_TEST("123", "abc", "!%*", "/");
+    STR_EXPL_CORRECT_TEST("123", "abc", "!%*", " ");
+    STR_EXPL_CORRECT_TEST("123", "abc", "!%*", "$");
+    STR_EXPL_CORRECT_TEST("   ", ":::", "!!!", ",");
+
+    arr = str_explode("secret1 secret2 secret3", " ,;");
+    TEST_FAIL_IF(arr == NULL, "str_explode failed, res == NULL");
+    TEST_FAIL_IF(arr->len != 3, "str_explode failed: len = %d != 3", arr->len);
+    string_array_delete(&arr);
+    arr = str_explode("secret1;secret2;secret3", " ,;");
+    TEST_FAIL_IF(arr == NULL, "str_explode failed, res == NULL");
+    TEST_FAIL_IF(arr->len != 3, "str_explode failed: len = %d != 3", arr->len);
+    string_array_delete(&arr);
+    arr = str_explode("secret1,secret2 secret3", " ,;");
+    TEST_FAIL_IF(arr == NULL, "str_explode failed, res == NULL");
+    TEST_FAIL_IF(arr->len != 2, "str_explode failed: len = %d != 2", arr->len);
+    string_array_delete(&arr);
+
+    TEST_DONE();
+}
+
 /*---------------- Optimized Array Merge Sort ----------------*/
 
 #define comp(a, b, parm)  (*comp)(*(a), *(b), parm)
@@ -374,59 +415,3 @@ void generic_array_sort(generic_array *array,
 {
     pqsort(array->tab, array->len, comp, parm);
 }
-
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-/* {{{*/
-#include <check.h>
-
-START_TEST(check_str_explode)
-{
-    string_array *arr;
-
-#define STR_EXPL_CORRECT_TEST(str1, str2, str3, sep)                       \
-    arr = str_explode(str1 sep str2 sep str3, sep);                        \
-                                                                           \
-    fail_if(arr == NULL, "str_explode failed, res == NULL");               \
-    fail_if(arr->len != 3, "str_explode failed: len = %d != 3", arr->len); \
-    fail_if(strcmp(arr->tab[0], str1),                                     \
-            "str_explode failed: tab[0] (%s) != %s",                       \
-            arr->tab[0], str1);                                            \
-    fail_if(strcmp(arr->tab[1], str2),                                     \
-            "str_explode failed: tab[1] (%s) != %s",                       \
-            arr->tab[1], str2);                                            \
-    fail_if(strcmp(arr->tab[2], str3),                                     \
-            "str_explode failed: tab[2] (%s) != %s",                       \
-            arr->tab[2], str3);                                            \
-                                                                           \
-    string_array_delete(&arr);
-    STR_EXPL_CORRECT_TEST("123", "abc", "!%*", "/");
-    STR_EXPL_CORRECT_TEST("123", "abc", "!%*", " ");
-    STR_EXPL_CORRECT_TEST("123", "abc", "!%*", "$");
-    STR_EXPL_CORRECT_TEST("   ", ":::", "!!!", ",");
-
-    arr = str_explode("secret1 secret2 secret3", " ,;");
-    fail_if(arr == NULL, "str_explode failed, res == NULL");
-    fail_if(arr->len != 3, "str_explode failed: len = %d != 3", arr->len);
-    string_array_delete(&arr);
-    arr = str_explode("secret1;secret2;secret3", " ,;");
-    fail_if(arr == NULL, "str_explode failed, res == NULL");
-    fail_if(arr->len != 3, "str_explode failed: len = %d != 3", arr->len);
-    string_array_delete(&arr);
-    arr = str_explode("secret1,secret2 secret3", " ,;");
-    fail_if(arr == NULL, "str_explode failed, res == NULL");
-    fail_if(arr->len != 2, "str_explode failed: len = %d != 2", arr->len);
-    string_array_delete(&arr);
-}
-END_TEST
-
-Suite *check_str_array_suite(void)
-{
-    Suite *s  = suite_create("str_array");
-    TCase *tc = tcase_create("Core");
-
-    suite_add_tcase(s, tc);
-    tcase_add_test(tc, check_str_explode);
-    return s;
-}
-#endif

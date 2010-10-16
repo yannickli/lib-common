@@ -103,51 +103,28 @@ int sb_conv_from_ebcdic297(sb_t *dst, const char *src, int len)
     return 0;
 }
 
-
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-/* public testing API                                                  {{{*/
-
-START_TEST(check_ebcdic_to_utf8)
+TEST_DECL("str: sb_conv_from_ebcdic297", 0)
 {
-    sb_t dst;
-    sb_t src;
+    static char const ebcdic[] = {
+#include "samples/ebcdic.sample.bin"
+        0
+    };
+    static char const utf8[] = {
+#include "samples/ebcdic.sample.utf-8.bin"
+        0
+    };
+    SB_8k(sb);
 
-    sb_init(&dst);
-    sb_init(&src);
+    TEST_FAIL_IF(sb_conv_from_ebcdic297(&sb, ebcdic, sizeof(ebcdic) - 1),
+                 "sb_conv_from_ebcdic297 failed");
 
-    fail_if(sb_read_file(&src, "samples/ebcdic.sample") < 0,
-            "Could not read sample file 'samples/ebcdic.sample'");
+    TEST_FAIL_IF(sb.len != sizeof(utf8) - 1 || memcmp(sb.data, utf8, sb.len),
+                 "EBCDIC -> UTF-8 conversion failed :\n"
+                 "correct text:\n-----\n%s\n-------\n"
+                 "converted text:\n-----\n%s\n-------\n",
+                 utf8, sb.data);
 
-    fail_if(sb_conv_from_ebcdic297(&dst, src.data, src.len),
-            "sb_conv_from_ebcdic297 failed");
+    sb_wipe(&sb);
 
-    sb_reset(&src);
-    fail_if(sb_read_file(&src, "samples/ebcdic.sample.utf-8") < 0,
-            "Could not read sample file 'samples/ebcdic.sample.utf-8'");
-
-    fail_if(strcmp(dst.data, src.data),
-            "EBCDIC -> UTF-8 conversion failed :\n"
-            "correct text:\n-----\n%s\n-------\n"
-            "converted text:\n-----\n%s\n-------\n",
-            src.data, dst.data);
-
-    sb_wipe(&dst);
-    sb_wipe(&src);
+    TEST_DONE();
 }
-END_TEST
-
-Suite *check_append_blob_ebcdic_suite(Suite *blob_suite)
-{
-    Suite *s  = blob_suite;
-    TCase *tc = tcase_create("EBCDIC");
-
-    suite_add_tcase(s, tc);
-    tcase_add_test(tc, check_ebcdic_to_utf8);
-
-    return s;
-}
-
-/*.....................................................................}}}*/
-#endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/

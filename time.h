@@ -275,12 +275,4 @@ const char *proctimerstat_report(proctimerstat_t *pts, const char *fmt);
  */
 const char *proctimer_report(proctimer_t *tp, const char *fmt);
 
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-#include <check.h>
-
-Suite *check_make_timeval_suite(void);
-
-#endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
 #endif /* IS_LIB_COMMON_TIMEVAL_H */
