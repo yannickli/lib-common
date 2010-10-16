@@ -26,7 +26,7 @@ const char *path_filepart(const char *filename)
 {
     const char *base = filename;
     for (;;) {
-        filename = pstrchrnul(filename, '/');
+        filename = strchrnul(filename, '/');
         if (!*filename)
             return base;
         base = ++filename;
@@ -47,7 +47,7 @@ const char *path_ext(const char *filename)
         base++;
     }
     for (;;) {
-        base = pstrchrnul(base, '.');
+        base = strchrnul(base, '.');
         if (!*base)
             return lastdot;
         lastdot = base++;
@@ -63,7 +63,7 @@ const char *path_extnul(const char *filename)
         base++;
     }
     for (;;) {
-        base = pstrchrnul(base, '.');
+        base = strchrnul(base, '.');
         if (!*base)
             return lastdot ? lastdot : base;
         lastdot = base++;
@@ -94,7 +94,7 @@ int path_dirname(char *buf, int len, const char *path)
 int path_basename(char *buf, int len, const char *path)
 {
     for (;;) {
-        const char *end = pstrchrnul(path, '/');
+        const char *end = strchrnul(path, '/');
         const char *p = end;
         while (*p == '/')
             p++;

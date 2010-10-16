@@ -179,27 +179,6 @@ ssize_t pstrcat(char *dest, ssize_t size, const char *src)
 #endif
 }
 
-/** Returns the length of <code>str</code> not overflowing
- * <code>size</code> bytes.
- *
- * @returns the length of the string, or -1 if the string does
- * not end in the first <code>size</code> bytes.
- */
-ssize_t pstrlen(const char *str, ssize_t size)
-{
-    /* TODO: use memchr() */
-    /* TODO: inconsistent semantics: should return size instead of -1 */
-    ssize_t len;
-
-    for (len = 0; len < size; len++) {
-        if (!*str) {
-            return len;
-        }
-        str++;
-    }
-    return -1;
-}
-
 /** Counts the number of occurrences of character <code>c</code>
  * in string <code>str</code>.
  *
@@ -668,17 +647,6 @@ START_TEST(check_memsearch)
 }
 END_TEST
 
-START_TEST(check_pstrlen)
-{
-    const char *p = NULL;
-    fail_if (pstrlen("123", 4) != 3, "pstrlen \"123\", 4 failed");
-    fail_if (pstrlen("", 4) != 0, "pstrlen \"\", 4 failed");
-    fail_if (pstrlen(p, 0) != -1, "pstrlen NULL, 0 failed");
-    fail_if (pstrlen("abc\0def", 2) != -1, "pstrlen \"abc<NIL>def\", 2 failed");
-    fail_if (pstrlen("abc\0def", 6) != 3, "pstrlen \"abc<NIL>def\", 6 failed");
-}
-END_TEST
-
 START_TEST(check_pstrcpylen)
 {
     char p[128];
@@ -686,16 +654,6 @@ START_TEST(check_pstrcpylen)
              "pstrcpylen \"123\", 4 failed");
     fail_if (pstrcpylen(p, sizeof(p), "123", -1) != 3,
              "pstrcpylen \"123\", -1 failed");
-}
-END_TEST
-
-START_TEST(check_pstrchrcount)
-{
-    fail_if(pstrchrcount("1111", '1') != 4, "bad count 1");
-    fail_if(pstrchrcount("1221", '1') != 2, "bad count 2");
-    fail_if(pstrchrcount("2222", '1') != 0, "bad count 3");
-    fail_if(pstrchrcount(NULL,   '1') != 0, "bad count 4");
-    fail_if(pstrchrcount("a|b|c|d|", '|') != 4, "bad count 5");
 }
 END_TEST
 

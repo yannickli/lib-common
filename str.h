@@ -19,46 +19,35 @@
 #include "str-ctype.h"
 #include "str-iprintf.h"
 
+#ifndef __USE_GNU
+static inline void *mempcpy(void *dst, const void *src, size_t n) {
+    memcpy(dst, src, n);
+    return (char *)dst + n;
+}
+#endif
+static inline void *memcpyz(void *dst, const void *src, size_t n) {
+    *(char *)mempcpy(dst, src, n) = '\0';
+    return dst;
+}
+static inline void *mempcpyz(void *dst, const void *src, size_t n) {
+    dst = mempcpy(dst, src, n);
+    *(char *)dst = '\0';
+    return (char *)dst + 1;
+}
+
 __attr_nonnull__((1))
 static inline ssize_t sstrlen(const char *str) {
     return (ssize_t)strlen(str);
 }
 
-static inline ssize_t sstrnlen(const char *str, ssize_t n)
-{
-    const char *p = memchr(str, '\0', n);
-    return p ? p - str : n;
-}
-
 ssize_t pstrcpy(char *dest, ssize_t size, const char *src);
 ssize_t pstrcpylen(char *dest, ssize_t size, const char *src, ssize_t n);
 ssize_t pstrcat(char *dest, ssize_t size, const char *src);
-ssize_t pstrlen(const char *str, ssize_t size)  __attr_nonnull__((1));
-
-/* OG: RFE: should have a generic naming convention for functions that
- * return the end of string upon failure to find or completion.
- * use that for strcpy, strcat, memcpy, memmove, memchr, strstr,
- * memsearch, stristr stristrn, pstrcpy, pstrcat, pstrcpylen... and
- * their v* equivalent
- */
-static inline const char *pstrchrnul(const char *s, int c) {
-    while (*s && *s != c)
-        s++;
-    return s;
-}
-
-/* count number of occurences of c in str */
-int pstrchrcount(const char *str, int c);
 
 const char *skipspaces(const char *s)  __attr_nonnull__((1));
 __attr_nonnull__((1))
 static inline char *vskipspaces(char *s) {
     return (char*)skipspaces(s);
-}
-
-__attr_nonnull__((1))
-static inline const byte *bskipspaces(const byte *s) {
-    return (const byte*)skipspaces((const char *)s);
 }
 
 const char *strnextspace(const char *s)  __attr_nonnull__((1));
