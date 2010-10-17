@@ -94,7 +94,7 @@ qvector_splice(qvector_t *vec, int v_size,
     return tab ? memcpy(res, tab, dlen * v_size) : res;
 }
 
-#define __QVECTOR_BASE(pfx, val_t) \
+#define __QVECTOR_BASE(pfx, const, val_t) \
     typedef union pfx##_t {                                                 \
         qvector_t qv;                                                       \
         STRUCT_QVECTOR_T(val_t);                                            \
@@ -136,7 +136,8 @@ qvector_splice(qvector_t *vec, int v_size,
         return qvector_growlen(&vec->qv, sizeof(val_t), extra);             \
     }
 
-#define qvector_t(n, val_t)                 __QVECTOR_BASE(qv_##n, val_t)
+#define qvector_t(n, val_t)                 __QVECTOR_BASE(qv_##n, const, val_t)
+#define qvector_const_t(n, val_t)           __QVECTOR_BASE(qv_##n, , const val_t)
 
 #define qv_t(n)                             qv_##n##_t
 #define __qv_sz(n)                          fieldsizeof(qv_t(n), tab[0])
@@ -200,3 +201,6 @@ qvector_t(double, double);
 qvector_t(str,    char *);
 qvector_t(lstr,   lstr_t);
 qvector_t(clstr,  clstr_t);
+
+qvector_const_t(cvoid,  void *);
+qvector_const_t(cstr,   char *);
