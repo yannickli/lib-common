@@ -39,19 +39,31 @@ typedef struct clstr_t {
 #define T_LSTR_DUP(str, len)  ({ int __len = (len); LSTR_INIT_V(t_dupz(str, __len), __len); })
 #define T_LSTR_DUP2(str)      ({ const char *__s = (str); T_LSTR_DUP(__s, strlen(__s)); })
 
-static inline lstr_t lstr_dup(const lstr_t s)
+static inline lstr_t lstr_dup(const void *s, int len)
 {
-    return LSTR_INIT_V(p_dupz(s.s, s.len), s.len);
+    return LSTR_INIT_V(p_dupz(s, len), len);
 }
 
-static inline lstr_t t_lstr_dup(const lstr_t s)
+static inline lstr_t t_lstr_dup(const void *s, int len)
 {
-    return T_LSTR_DUP(s.s, s.len);
+    return T_LSTR_DUP(s, len);
 }
 
-static inline lstr_t mp_lstr_dup(mem_pool_t *mp, const lstr_t s)
+static inline lstr_t mp_lstr_dup(mem_pool_t *mp, const void *s, int len)
 {
-    return LSTR_INIT_V(mp_dupz(mp, s.s, s.len), s.len);
+    return LSTR_INIT_V(mp_dupz(mp, s, len), len);
+}
+
+static inline void lstr_wipe(lstr_t *s)
+{
+    p_delete(&s->s);
+    s->len = 0;
+}
+
+static inline void mp_lstr_wipe(mem_pool_t *mp, lstr_t *s)
+{
+    mp_delete(mp, &s->s);
+    s->len = 0;
 }
 
 #define CLSTR_INIT(s_, len_)  { .s = (s_), .len = (len_) }
