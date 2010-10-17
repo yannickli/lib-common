@@ -87,7 +87,7 @@ enum ${LOWERCASE_NAME}_token
 ${LOWERCASE_NAME}_get_token(const char *s, int len)
 {
     if (len < 0)
-        len = sstrlen(s);
+        len = strlen(s);
 
     if (len) {
         const struct tok *res = ${LOWERCASE_NAME}_get_token_aux(s, len);
