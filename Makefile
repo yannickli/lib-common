@@ -12,7 +12,7 @@
 ##########################################################################
 
 none_LIBRARIES = libcommon time-lp-simple
-test_PROGRAMS += zchk ztst-cfgparser ztst-tpl ztst-lzo ztst-asn1-wr
+test_PROGRAMS += zchk ztst-cfgparser ztst-tpl ztst-lzo #ztst-asn1-wr
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 
 DISTCLEANFILES = core-version.c
