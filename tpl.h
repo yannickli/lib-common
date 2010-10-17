@@ -81,7 +81,9 @@ static inline tpl_t *tpl_new_cstr(const void *str, int len)
 {
     tpl_t *tpl = tpl_new_op(TPL_OP_DATA);
     tpl->u.data.data = str;
-    tpl->u.data.len = len < 0 ? sstrlen(str) : len;
+    if (len < 0)
+        len = strlen(str);
+    tpl->u.data.len = len;
     return tpl;
 }
 

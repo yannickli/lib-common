@@ -90,7 +90,7 @@ ASN1_DEF_VECTOR(void, void);
 #define ASN1_STRING(data, len)  ASN1_VECTOR(asn1_string_t, data, len)
 #define ASN1_STRING_NULL        ASN1_STRING(NULL, 0)
 #define ASN1_SSTRING(str)       ASN1_STRING(str, sizeof(str) - 1)
-#define ASN1_STRSTRING(data)    ASN1_STRING(data, sstrlen(data)) /* dynamic */
+#define ASN1_STRSTRING(data)    ASN1_STRING(data, strlen(data)) /* dynamic */
 
 #define ASN1_BIT_STRING(dt, bln) \
     (asn1_bit_string_t){ .data = dt, .bit_len = bln }

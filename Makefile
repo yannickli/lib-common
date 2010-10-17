@@ -94,9 +94,9 @@ libcommon_SOURCES = \
 	sort-32-64.c \
 	\
 	str.c \
-	str-buf.c \
 	str-buf-gsm.c \
 	str-buf-quoting.c \
+	str-buf.c \
 	str-conv-ebcdic.c \
 	str-conv.c \
 	str-ctype.c \

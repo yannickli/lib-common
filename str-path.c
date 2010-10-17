@@ -35,7 +35,7 @@ const char *path_filepart(const char *filename)
 
 ssize_t path_dirpart(char *dir, ssize_t size, const char *filename)
 {
-    return pstrcpylen(dir, size, filename, path_filepart(filename) - filename);
+    return pstrcpymem(dir, size, filename, path_filepart(filename) - filename);
 }
 
 const char *path_ext(const char *filename)
@@ -85,7 +85,7 @@ int path_dirname(char *buf, int len, const char *path)
     while (end > path && end[-1] == '/')
         --end;
     if (end > path)
-        return pstrcpylen(buf, len, path, end - path);
+        return pstrcpymem(buf, len, path, end - path);
     if (*path == '/')
         return pstrcpy(buf, len, "/");
     return pstrcpy(buf, len, ".");
@@ -99,7 +99,7 @@ int path_basename(char *buf, int len, const char *path)
         while (*p == '/')
             p++;
         if (!*p)
-            return pstrcpylen(buf, len, path, end - path);
+            return pstrcpymem(buf, len, path, end - path);
         path = p;
     }
 }
@@ -216,10 +216,11 @@ TEST_DECL("str-path: path_simplify", 0)
 int path_canonify(char *buf, int len, const char *path)
 {
     char *out = len >= PATH_MAX ? buf : p_alloca(char, PATH_MAX);
-    out = realpath(path, out);
-    if (out && len < PATH_MAX)
+
+    out = RETHROW_PN(realpath(path, out));
+    if (len < PATH_MAX)
         pstrcpy(buf, len, out);
-    return out ? sstrlen(out) : -1;
+    return strlen(out);
 }
 
 /* Expand '~/' at the start of a path.

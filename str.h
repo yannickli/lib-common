@@ -26,15 +26,6 @@
 #include "str-buf.h"
 #include "str-stream.h"
 
-__attr_nonnull__((1))
-static inline ssize_t sstrlen(const char *str) {
-    return (ssize_t)strlen(str);
-}
-
-ssize_t pstrcpy(char *dest, ssize_t size, const char *src);
-ssize_t pstrcpylen(char *dest, ssize_t size, const char *src, ssize_t n);
-ssize_t pstrcat(char *dest, ssize_t size, const char *src);
-
 const char *skipspaces(const char *s)  __attr_nonnull__((1));
 __attr_nonnull__((1))
 static inline char *vskipspaces(char *s) {
