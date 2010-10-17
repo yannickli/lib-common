@@ -17,7 +17,7 @@
 
 static conf_section_t *conf_section_init(conf_section_t *section)
 {
-    props_array_init(&section->vals);
+    qv_init(props, &section->vals);
     return section;
 }
 static void conf_section_wipe(conf_section_t *section)
@@ -61,7 +61,7 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
         sect = conf->tab[conf->len - 1];
         prop = property_new();
         prop->name = p_dupz(v, vlen);
-        props_array_append(&sect->vals, prop);
+        qv_append(props, &sect->vals, prop);
         return 0;
 
       case CFG_PARSE_VALUE:
@@ -143,7 +143,7 @@ static void section_add_var(conf_section_t *section,
     property_t *prop = property_new();
     prop->name  = p_dupz(variable, variable_len);
     prop->value = p_dupz(value, value_len);
-    props_array_append(&section->vals, prop);
+    qv_append(props, &section->vals, prop);
 }
 
 int conf_save(const conf_t *conf, const char *filename)
@@ -358,7 +358,7 @@ const char *conf_put(conf_t *conf, const char *section,
                     return prop->value = p_dupz(value, value_len);
                 } else {
                     /* delete value */
-                    props_array_remove(&s->vals, j);
+                    qv_remove(props, &s->vals, j);
                     property_delete(&prop);
                     return NULL;
                 }

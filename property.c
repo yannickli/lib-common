@@ -14,7 +14,7 @@
 #include "property.h"
 
 const char *
-property_findval(const props_array *arr, const char *k, const char *def)
+property_findval(const qv_t(props) *arr, const char *k, const char *def)
 {
     int i;
 
@@ -34,19 +34,19 @@ static int property_cmp(const void *a, const void *b)
                   (*(const property_t **)b)->name);
 }
 
-void props_array_qsort(props_array *arr)
+void props_array_qsort(qv_t(props) *arr)
 {
     qsort(arr->tab, arr->len, sizeof(*arr->tab), &property_cmp);
 }
 
-void props_array_filterout(props_array *arr, const char **blacklisted)
+void props_array_filterout(qv_t(props) *arr, const char **blacklisted)
 {
     for (int i = arr->len - 1; i >= 0; i--) {
         property_t *p = arr->tab[i];
 
         for (const char **bl = blacklisted; *bl; bl++) {
             if (strequal(p->name, *bl)) {
-                p = props_array_take(arr, i);
+                qv_remove(props, arr, i);
                 property_delete(&p);
                 break;
             }
@@ -55,7 +55,7 @@ void props_array_filterout(props_array *arr, const char **blacklisted)
 }
 
 /* OG: should take buf+len with len<0 for strlen */
-int props_from_fmtv1_cstr(const char *buf, props_array *props)
+int props_from_fmtv1_cstr(const char *buf, qv_t(props) *props)
 {
     int pos = 0;
     int len = strlen(buf);
@@ -85,7 +85,7 @@ int props_from_fmtv1_cstr(const char *buf, props_array *props)
 #if 0   // XXX: NULL triggers Segfaults in user code :(
         prop->value = vlen ? p_dupz(v, vlen) : NULL;
 #endif
-        props_array_append(props, prop);
+        qv_append(props, props, prop);
 
         pos = end + 1 - buf;
     }
@@ -93,13 +93,13 @@ int props_from_fmtv1_cstr(const char *buf, props_array *props)
     return 0;
 }
 
-void props_array_dup(props_array *to, const props_array *from)
+void props_array_dup(qv_t(props) *to, const qv_t(props) *from)
 {
     for (int i = 0; i < from->len; i++) {
         property_t *prop = property_new();
 
         prop->name  = p_strdup(from->tab[i]->name);
         prop->value = p_strdup(from->tab[i]->value);
-        props_array_append(to, prop);
+        qv_append(props, to, prop);
     }
 }

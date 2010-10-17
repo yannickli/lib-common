@@ -92,7 +92,7 @@ int cfg_parse_seterr(void *ctx, int offs, const char *fmt, ...);
 
 typedef struct conf_section_t {
     char *name;
-    props_array vals;
+    qv_t(props) vals;
 } conf_section_t;
 qvector_t(conf_section, conf_section_t *);
 typedef qv_t(conf_section) conf_t;

@@ -229,7 +229,7 @@ int licence_do_signature(const conf_t *conf, char dst[65])
         "signature",
         NULL
     };
-    props_array tosign;
+    qv_t(props) tosign;
     const conf_section_t *s;
     int k0, k1, k2, k3;
     int len;
@@ -245,7 +245,7 @@ int licence_do_signature(const conf_t *conf, char dst[65])
         return -1;
     }
 
-    props_array_init(&tosign);
+    qv_init(props, &tosign);
     props_array_dup(&tosign, &s->vals);
     props_array_filterout(&tosign, blacklisted);
     props_array_qsort(&tosign);
