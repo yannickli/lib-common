@@ -1,6 +1,7 @@
 /Upgrading.html
 /charsets.def
 /conf-parser.c
+/container-qvector.c
 /core-version.c
 /http-hdr.c
 /httptokens.c

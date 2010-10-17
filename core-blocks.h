@@ -17,8 +17,10 @@
 #define IS_LIB_COMMON_CORE_BLOCKS_H
 
 #ifdef __BLOCKS__
+#define BLOCK_CARET  ^
 typedef void (^block_t)(void);
 #else
+#define BLOCK_CARET  *
 typedef void (*block_t)(void);
 #endif
 

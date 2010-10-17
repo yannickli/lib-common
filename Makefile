@@ -40,7 +40,7 @@ libcommon_SOURCES = \
 	\
 	container-list.c \
 	container-qhash.c \
-	container-qvector.c \
+	container-qvector.blk \
 	container-rbtree.c \
 	container-ring.c \
 	container-slist.c \
@@ -131,12 +131,12 @@ time-lp-simple_SOURCES = time-lp-simple.c
 
 zchk_SOURCES = zchk.c \
 	$/lib-common/libcommon.wa \
-	$/lib-common/time-lp-simple.a
+	$/lib-common/time-lp-simple.a \
+	$/lib-common/compat/compat.a
 
 zchk_LIBS = $(libxml2_LIBS) -lz -lrt -ldl -lpthread
 
-ztst-asn1-wr_SOURCES = ztst-asn1-writer.c \
-	$/lib-common/libcommon.a
+ztst-asn1-wr_SOURCES = ztst-asn1-writer.c libcommon.a compat/compat.a
 
 ztst_SOURCES = $(libcommon_SOURCES) time-lp-simple.c ztst.c $/lib-common/compat/check.c
 ztst_CFLAGS  = -DCHECK=1
@@ -144,15 +144,15 @@ ztst_LIBS = -lz -lrt -ldl
 
 ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a compat/compat.a
 
-ztst-tpl_SOURCES = ztst-tpl.c libcommon.a
+ztst-tpl_SOURCES = ztst-tpl.c libcommon.a compat/compat.a
 
 ztst-iprintf_SOURCES = ztst-iprintf.c libcommon.a compat/compat.a
 
 ztst-iprintf-fp_CFLAGS = -Wno-format -Wno-missing-format-attribute
-ztst-iprintf-fp_SOURCES = ztst-iprintf-fp.c libcommon.a
+ztst-iprintf-fp_SOURCES = ztst-iprintf-fp.c libcommon.a compat/compat.a
 
 ztst-iprintf-glibc_CFLAGS = -Wno-format -Wno-missing-format-attribute
-ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a
+ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a compat/compat.a
 
 ztst-lzo_SOURCES = ztst-lzo.c libcommon.a compat/compat.a
 ztst-lzo_LDFLAGS = -lrt

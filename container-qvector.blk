@@ -1,0 +1,246 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+#include "container.h"
+
+void qvector_wipe(qvector_t *vec, size_t v_size)
+{
+    switch (vec->mem_pool & MEM_POOL_MASK) {
+      case MEM_STATIC:
+      case MEM_STACK:
+        qvector_reset(vec, v_size);
+        return;
+      default:
+        ifree(vec->tab - v_size * vec->skip, vec->mem_pool);
+        p_clear(vec, 1);
+        return;
+    }
+}
+
+static void qvector_destroy_skip(qvector_t *vec, size_t v_size)
+{
+    memmove(vec->tab - v_size * vec->skip, vec->tab, v_size * vec->len);
+    vec->tab -= v_size * vec->skip;
+    vec->size += v_size * vec->skip;
+    vec->skip  = 0;
+}
+
+void __qvector_grow(qvector_t *vec, size_t v_size, int extra)
+{
+    int newlen = vec->len + extra;
+    int newsz;
+
+    if (unlikely(newlen < 0))
+        e_panic("trying to allocate insane amount of memory");
+
+    /* if tab fits and skip is worth it, shift it left */
+    if (newlen < vec->skip + vec->size && vec->skip > vec->size / 4) {
+        qvector_destroy_skip(vec, v_size);
+        return;
+    }
+
+    /* most of our pool have expensive reallocs wrt a typical memcpy,
+     * and optimize the last realloc so we don't want to alloc and free
+     */
+    if (vec->mem_pool != MEM_LIBC) {
+        qvector_destroy_skip(vec, v_size);
+        if (newlen < vec->size)
+            return;
+    }
+
+    newsz = p_alloc_nr(vec->size + vec->skip);
+    if (newsz < newlen)
+        newsz = newlen;
+    if (vec->mem_pool == MEM_STATIC || vec->skip) {
+        uint8_t *s = p_new_raw(uint8_t, newsz * v_size);
+
+        memcpy(s, vec->tab, vec->len * v_size);
+        if (vec->mem_pool != MEM_STATIC) {
+            /* XXX: If we have vec->skip, then mem_pool == MEM_LIBC */
+            libc_free(vec->tab - vec->skip, 0);
+        }
+        __qvector_init(vec, s, vec->len, newsz, MEM_LIBC);
+    } else {
+        vec->tab = irealloc(vec->tab, vec->len * v_size, newsz * v_size,
+                             vec->mem_pool | MEM_RAW);
+        vec->size = newsz;
+    }
+}
+
+void *__qvector_splice(qvector_t *vec, size_t v_size, int pos, int len, int dlen)
+{
+    assert (pos >= 0 && len >= 0 && dlen >= 0);
+    assert (pos <= vec->len && pos + len <= vec->len);
+
+    if (len >= dlen) {
+        memmove(vec->tab + v_size * (pos + dlen),
+                vec->tab + v_size * (pos + len),
+                v_size * (vec->len - pos - len));
+    } else
+    if (len + vec->skip >= dlen) {
+        vec->skip -= dlen - len;
+        vec->tab -= (dlen - len) * v_size;
+        vec->size += dlen - len;
+        memmove(vec->tab, vec->tab + v_size * (dlen - len), pos * v_size);
+    } else {
+        qvector_grow(vec, v_size, dlen - len);
+        memmove(vec->tab + v_size * (pos + dlen),
+                vec->tab + v_size * (pos + len),
+                v_size * (vec->len - pos - len));
+    }
+    vec->len += dlen - len;
+    return vec->tab + pos * v_size;
+}
+
+static void ___qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_f cmp)
+{
+    uint8_t tmp[v_size], meantmp[v_size];
+    void   *mean, *i, *j;
+    size_t  n1;
+
+#define swap(p,q)        ({ memcpy(tmp, p, v_size);      \
+                            memcpy(p, q, v_size);        \
+                            memcpy(q, tmp, v_size); })
+#define rotate(p,r,q)    ({ memcpy(tmp, p, v_size);      \
+                            memcpy(p, q, v_size);        \
+                            memcpy(q, r, v_size);        \
+                            memcpy(r, tmp, v_size); })
+
+#define nth(base, i)     ((void *)((uint8_t *)(base) + (i) * v_size))
+
+    if (n <= 1)
+        return;
+
+    for (;;) {
+        i = a;
+        j = nth(a, n - 1);
+
+        if (cmp(i, j) > 0) {
+            swap(i, j);
+        }
+        if (n == 2)
+            return;
+
+        mean = nth(i, n >> 1);
+        if (cmp(i, mean) > 0) {
+            swap(i, mean);
+        } else
+        if (cmp(mean, j) > 0) {
+            swap(j, mean);
+        }
+
+        if (n == 3)
+            return;         /* in case of 3 items */
+
+        memcpy(meantmp, mean, v_size);  /* cause *mean is gonna change */
+        for (;;) {
+            /* We do not have guards in these loops because we assume
+             * compare(x, x) returns 0.  If the comparison function is not
+             * regular and returns != 0 on identical arguments, all bets
+             * are off and this code may crash.
+             */
+            do {
+                i = nth(i, 1);
+            } while (cmp(meantmp, i) > 0);  /* find GE in left part */
+
+            do {
+                j = nth(j, -1);
+            } while (cmp(j, meantmp) > 0);  /* find LE in right part */
+
+            if (i < j) {
+                swap(i, j);        /* swap if needed */
+                continue;
+            }
+            break;
+        }
+
+        /* i >= j : we're done and need to recurse on both ranges.
+         * either i == j   : don't look at the ith element
+         * or     i == j+1 : and split between them.
+         */
+
+        /* Fix ranges: [a..i[ U [j+1..a+n[ become [a..a+n[ U [j..j+n1[ */
+        j  = nth(j, 1);
+        n1 = ((uint8_t *)nth(a, n) - (uint8_t *)j) / v_size;
+        n  = ((uint8_t *)i - (uint8_t *)a) / v_size;
+
+        /* We want to recurse on [a..a+n[ and [j..j+n1[, but in order
+         * to minimize stack usage, we only recurse on the smaller
+         * range and loop on the other.  First test the intersection as it may
+         * cause to loop on the larger segment.
+         */
+        if (n <= n1) {
+            SWAP(size_t, n, n1);
+            SWAP(void *, a, j);
+        }
+
+        if (n1 > 1) {
+            ___qv_sort(j, v_size, n1, cmp);
+        }
+    }
+#undef nth
+#undef swap
+#undef rotate
+}
+
+#ifndef __clang__
+__attribute__((flatten))
+#endif
+void __qv_sort32(void *a, size_t n, qvector_cmp_f cmp)
+{
+    ___qv_sort(a, 4, n, cmp);
+}
+
+#ifndef __clang__
+__attribute__((flatten))
+#endif
+void __qv_sort64(void *a, size_t n, qvector_cmp_f cmp)
+{
+    ___qv_sort(a, 8, n, cmp);
+}
+
+#ifndef __clang__
+__attribute__((flatten))
+#endif
+void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_f cmp)
+{
+    ___qv_sort(a, v_size, n, cmp);
+}
+
+static int qv_sort_tst(void)
+{
+    int (^qv_sort_cmp)(const uint32_t *, const uint32_t *) =
+        ^int (const uint32_t *v1, const uint32_t *v2) {
+            return CMP(*v1, *v2);
+        };
+    bool ok = true;
+    qv_t(u32) tab;
+
+#define N  128
+    qv_inita(u32, &tab, N);
+    for (int i = 0; i < N; i++)
+        qv_append(u32, &tab, rand());
+    qv_sort(u32, &tab, qv_sort_cmp);
+    for (int i = 1; ok && i < tab.len; i++) {
+        ok = tab.tab[i - 1] <= tab.tab[i];
+    }
+#undef N
+
+    return ok;
+}
+
+TEST_DECL("qvector: qv_sort", 0)
+{
+    TEST_PASS_IF(qv_sort_tst(), "sort random uint32_t's");
+    TEST_DONE();
+}

@@ -26,6 +26,12 @@
 
 typedef STRUCT_QVECTOR_T(uint8_t) qvector_t;
 
+#ifdef __BLOCKS__
+typedef int (^qvector_cmp_f)(const void *, const void *);
+#else
+typedef int (*qvector_cmp_f)(const void *, const void *);
+#endif
+
 static inline qvector_t *
 __qvector_init(qvector_t *vec, void *buf, int blen, int bsize, int mem_pool)
 {
@@ -38,10 +44,27 @@ __qvector_init(qvector_t *vec, void *buf, int blen, int bsize, int mem_pool)
     return vec;
 }
 
-void  qvector_wipe(qvector_t *vec, int v_size);
-void  __qvector_grow(qvector_t *, int v_size, int extra);
-void *__qvector_splice(qvector_t *, int v_size, int pos, int len, int dlen);
-static inline void qvector_reset(qvector_t *vec, int v_size)
+void  qvector_wipe(qvector_t *vec, size_t v_size);
+void  __qvector_grow(qvector_t *, size_t v_size, int extra);
+void *__qvector_splice(qvector_t *, size_t v_size, int pos, int len, int dlen);
+void __qv_sort32(void *a, size_t n, qvector_cmp_f cmp);
+void __qv_sort64(void *a, size_t n, qvector_cmp_f cmp);
+void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_f cmp);
+
+static ALWAYS_INLINE void
+__qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_f cmp)
+{
+    if (v_size == 8) {
+        __qv_sort64(vec->tab, vec->len, cmp);
+    } else
+    if (v_size == 4) {
+        __qv_sort32(vec->tab, vec->len, cmp);
+    } else {
+        __qv_sort(vec->tab, v_size, vec->len, cmp);
+    }
+}
+
+static inline void qvector_reset(qvector_t *vec, size_t v_size)
 {
     vec->size += vec->skip;
     vec->tab  += vec->skip * v_size;
@@ -49,14 +72,14 @@ static inline void qvector_reset(qvector_t *vec, int v_size)
     vec->len   = 0;
 }
 
-static inline void *qvector_grow(qvector_t *vec, int v_size, int extra)
+static inline void *qvector_grow(qvector_t *vec, size_t v_size, int extra)
 {
     if (vec->len + extra > vec->size)
         __qvector_grow(vec, v_size, extra);
     return vec->tab + vec->len * v_size;
 }
 
-static inline void *qvector_growlen(qvector_t *vec, int v_size, int extra)
+static inline void *qvector_growlen(qvector_t *vec, size_t v_size, int extra)
 {
     void *res;
 
@@ -68,7 +91,7 @@ static inline void *qvector_growlen(qvector_t *vec, int v_size, int extra)
 }
 
 static inline void *
-qvector_splice(qvector_t *vec, int v_size,
+qvector_splice(qvector_t *vec, size_t v_size,
                int pos, int len, const void *tab, int dlen)
 {
     char *res;
@@ -134,6 +157,11 @@ qvector_splice(qvector_t *vec, int v_size,
     }                                                                       \
     static inline val_t *pfx##_growlen(pfx##_t *vec, int extra) {           \
         return qvector_growlen(&vec->qv, sizeof(val_t), extra);             \
+    }                                                                       \
+    static inline void                                                      \
+    pfx##_sort(pfx##_t *vec, int (BLOCK_CARET cmp)(const val_t *,           \
+                                                   const val_t *)) {        \
+        __qvector_sort(&vec->qv, sizeof(val_t), (qvector_cmp_f)cmp);        \
     }
 
 #define qvector_t(n, val_t)                 __QVECTOR_BASE(qv_##n, const, val_t)
@@ -160,6 +188,7 @@ qvector_splice(qvector_t *vec, int v_size,
        qv_wipe(n, __vec); })
 #define qv_new(n)                           p_new(qv_t(n), 1)
 #define qv_delete(n, vec)                   qv_##n##_delete(vec)
+#define qv_sort(n, vec, cmp)                qv_##n##_sort(vec, cmp)
 
 #define qv_last(n, vec)                     ({ qv_t(n) *__vec = (vec);  \
                                                assert (__vec->len > 0); \
