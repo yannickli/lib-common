@@ -94,8 +94,8 @@ typedef struct conf_section_t {
     char *name;
     props_array vals;
 } conf_section_t;
-ARRAY_TYPE(conf_section_t, conf_section);
-typedef conf_section_array conf_t;
+qvector_t(conf_section, conf_section_t *);
+typedef qv_t(conf_section) conf_t;
 
 conf_t *conf_load(const char *filename);
 int conf_merge_dir(conf_t *conf, const char *path);

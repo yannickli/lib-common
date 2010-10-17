@@ -11,13 +11,9 @@
 #                                                                        #
 ##########################################################################
 
-test_PROGRAMS += zchk ztst-cfgparser ztst-tpl
-test_PROGRAMS += ztst-lzo ztst-asn1-wr
-
 none_LIBRARIES = libcommon time-lp-simple
-
-none_TESTS += ztst ztst-sort
-none_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
+test_PROGRAMS += zchk ztst-cfgparser ztst-tpl ztst-lzo ztst-asn1-wr
+test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 
 DISTCLEANFILES = core-version.c
 core-version.c: scripts/version.sh FORCE
@@ -162,9 +158,6 @@ ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a
 ztst-lzo_SOURCES = ztst-lzo.c libcommon.a compat/compat.a
 ztst-lzo_LDFLAGS = -lrt
 
-ztst-sort_SOURCES = ztst-sort.c libcommon.a compat/compat.a
-ztst-sort_CFLAGS = -UCHECK
-ztst-sort_LIBS = -lm
 ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a compat/compat.a
 ztst-iprintf-speed_CFLAGS = -UCHECK
 
