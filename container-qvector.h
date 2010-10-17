@@ -188,7 +188,7 @@ qvector_splice(qvector_t *vec, size_t v_size,
        qv_wipe(n, __vec); })
 #define qv_new(n)                           p_new(qv_t(n), 1)
 #define qv_delete(n, vec)                   qv_##n##_delete(vec)
-#define qv_sort(n, vec, cmp)                qv_##n##_sort(vec, cmp)
+#define qv_sort(n)                          qv_##n##_sort
 
 #define qv_last(n, vec)                     ({ qv_t(n) *__vec = (vec);  \
                                                assert (__vec->len > 0); \
