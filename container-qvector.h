@@ -175,7 +175,7 @@ qvector_splice(qvector_t *vec, int v_size,
 
 #define qv_insert(n, vec, i, v)             (*__qv_splice(n, vec, i, 0, 1) = (v))
 #define qv_append(n, vec, v)                (*qv_growlen(n, vec, 1) = (v))
-#define qv_push(n, vec, v)                  qv_insert(n, vec, 0, v)
+#define qv_push(n, vec, v)                  qv_insert(n, vec, 0, (v))
 #define qv_insertp(n, vec, i, v)            qv_insert(n, vec, i, *(v))
 #define qv_appendp(n, vec, v)               qv_append(n, vec, *(v))
 #define qv_pushp(n, vec, v)                 qv_push(n, vec, *(v))

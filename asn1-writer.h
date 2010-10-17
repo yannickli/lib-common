@@ -252,9 +252,9 @@ typedef struct asn1_choice_desc_t {
 } asn1_choice_desc_t;
 
 int asn1_pack_size_(const void *st, const asn1_desc_t *desc,
-                    int_vector *stack);
+                    qv_t(i32) *stack);
 uint8_t *asn1_pack_(uint8_t *dst, const void *st, const asn1_desc_t *desc,
-                    int_vector *stack);
+                    qv_t(i32) *stack);
 int asn1_unpack_(pstream_t *ps, const asn1_desc_t *desc,
                  mem_pool_t *mem_pool, void *st, bool copy);
 

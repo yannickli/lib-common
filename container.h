@@ -16,7 +16,6 @@
 
 #include "core.h"
 
-#include "container-array.h"
 #include "container-dlist.h"
 #include "container-htlist.h"
 #include "container-list.h"

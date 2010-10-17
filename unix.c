@@ -506,3 +506,19 @@ int close_fds_higher_than(int fd)
     return 0;
 }
 #endif
+
+int iovec_vector_kill_first(qv_t(iovec) *iovs, ssize_t len)
+{
+    int i = 0;
+
+    while (i < iovs->len && len >= (ssize_t)iovs->tab[i].iov_len) {
+        len -= iovs->tab[i++].iov_len;
+    }
+    qv_splice(iovec, iovs, 0, i, NULL, 0);
+    if (iovs->len > 0 && len) {
+        iovs->tab[0].iov_base = (byte *)iovs->tab[0].iov_base + len;
+        iovs->tab[0].iov_len  -= len;
+    }
+    return i;
+}
+

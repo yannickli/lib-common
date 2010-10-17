@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_TPL_H
 #define IS_LIB_COMMON_TPL_H
 
-#include "container.h"
+#include "unix.h"
 
 /** \defgroup templates Intersec generic templating API.
  *
@@ -151,7 +151,7 @@ bool tpl_is_variable(const tpl_t *tpl);
     (((t)->op == TPL_OP_SEQ) || ((t)->op == TPL_OP_APPLY_SEQ))
 
 int tpl_to_iov(struct iovec *, int nr, tpl_t *);
-int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl);
+int tpl_to_iovec_vector(qv_t(iovec) *iov, tpl_t *tpl);
 
 static inline void tpl_blob_append(tpl_t *tpl, sb_t *out)
 {

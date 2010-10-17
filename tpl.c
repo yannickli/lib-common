@@ -626,19 +626,17 @@ int tpl_to_iov(struct iovec *iov, int nr, tpl_t *tpl)
     }
 }
 
-int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl)
+int tpl_to_iovec_vector(qv_t(iovec) *iov, tpl_t *tpl)
 {
     int oldlen = iov->len;
 
     switch (tpl->op) {
       case TPL_OP_DATA:
-        iovec_vector_append(iov, MAKE_IOVEC(tpl->u.data.data,
-                                            tpl->u.data.len));
+        qv_append(iovec, iov, MAKE_IOVEC(tpl->u.data.data, tpl->u.data.len));
         return 0;
 
       case TPL_OP_BLOB:
-        iovec_vector_append(iov, MAKE_IOVEC(tpl->u.blob.data,
-                                            tpl->u.blob.len));
+        qv_append(iovec, iov, MAKE_IOVEC(tpl->u.blob.data, tpl->u.blob.len));
         return 0;
 
       case TPL_OP_BLOCK:

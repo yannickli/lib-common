@@ -38,7 +38,6 @@ libcommon_SOURCES = \
 	conf.c  \
 	conf-parser.l \
 	\
-	container-array.c \
 	container-list.c \
 	container-qhash.c \
 	container-qvector.c \
