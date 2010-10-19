@@ -121,7 +121,7 @@ endef
 ext/gen/blk = $(call fun/patsubst-filt,%.blk,%.c,$1)
 
 define ext/expand/blk
-$(3:blk=c): %.c: %.blk
+$(3:blk=c): %.c: %.blk $(shell which clang)
 	$(msg/generate) $$(@R)
 	$(RM) $$@
 	clang -cc1 $$(CLANGFLAGS) \
