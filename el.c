@@ -231,9 +231,9 @@ static void ev_list_process(dlist_t *l)
 
 /*----- blockers, before and after events -----*/
 
-ev_t *el_blocker_register(el_data_t priv)
+ev_t *el_blocker_register(void)
 {
-    return el_create(EV_BLOCKER, NULL, priv, true);
+    return el_create(EV_BLOCKER, NULL, NULL, true);
 }
 
 ev_t *el_before_register(el_cb_f *cb, el_data_t priv)
@@ -258,13 +258,12 @@ void el_after_set_hook(el_t ev, el_cb_f *cb)
     ev->cb.cb = cb;
 }
 
-el_data_t el_blocker_unregister(ev_t **evp)
+void el_blocker_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_BLOCKER);
-        return el_destroy(evp, false);
+        el_destroy(evp, false);
     }
-    return (el_data_t)NULL;
 }
 
 el_data_t el_before_unregister(ev_t **evp)
