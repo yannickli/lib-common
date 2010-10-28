@@ -183,7 +183,6 @@ static void e_trace_put_fancy(int level, const char *module, int lno, const char
     sb_splice(&tmpbuf_g, 0, 0, escapes, len);
     sb_adds(&tmpbuf_g, " \e[0m\r");
 
-    len = strlen(func);
 #define FUN_WIDTH 20
     if (strlen(func) < FUN_WIDTH) {
         sb_addf(&tmpbuf_g, "\e[33m%*s\e[0m ", FUN_WIDTH, func);

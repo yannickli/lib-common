@@ -973,8 +973,10 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                     goto has_string_len;
                 }
                 if (!finite(fpvalue)) {
-                    if (fpvalue < 0)
+                    if (fpvalue < 0) {
+                        /* FIXME: clang reports this is never used */
                         sign = '-';
+                    }
                     lp = "Inf";
                     len = 3;
                     goto has_string_len;

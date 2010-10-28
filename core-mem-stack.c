@@ -137,10 +137,11 @@ static stack_blk_t *blk_create(stack_pool_t *sp, size_t size_hint)
     size_t blksize = size_hint + sizeof(stack_blk_t);
     stack_blk_t *blk;
 
-    if (size_hint < sp->minsize)
-        size_hint = sp->minsize;
-    if (size_hint < 64 * sp_alloc_mean(sp))
-        size_hint = 64 * sp_alloc_mean(sp);
+    blksize += sizeof(stack_blk_t);
+    if (blksize < sp->minsize)
+        blksize = sp->minsize;
+    if (blksize < 64 * sp_alloc_mean(sp))
+        blksize = 64 * sp_alloc_mean(sp);
     blksize = ROUND_UP(blksize, PAGE_SIZE);
     if (blksize > MEM_ALLOC_MAX)
         e_panic("You cannot allocate that amount of memory");

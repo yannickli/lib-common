@@ -680,10 +680,10 @@ void sb_add_b64_finish(sb_t *dst, sb_b64_ctx_t *ctx)
         unsigned c2 = ctx->trail_len == 2 ? ctx->trail[1] : 0;
         char *data  = sb_growlen(dst, 4);
 
-        *data++ = __b64[c1 >> 2];
-        *data++ = __b64[((c1 << 4) | (c2 >> 4)) & 0x3f];
-        *data++ = ctx->trail_len == 2 ? __b64[(c2 << 2) & 0x3f] : '=';
-        *data++ = '=';
+        data[0] = __b64[c1 >> 2];
+        data[1] = __b64[((c1 << 4) | (c2 >> 4)) & 0x3f];
+        data[2] = ctx->trail_len == 2 ? __b64[(c2 << 2) & 0x3f] : '=';
+        data[3] = '=';
     }
     if (ctx->packs_per_line > 0 && ctx->pack_num != 0) {
         ctx->pack_num = 0;

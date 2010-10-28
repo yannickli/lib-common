@@ -831,17 +831,16 @@ el_data_t el_set_priv(ev_t *ev, el_data_t priv)
 
 void el_loop_timeout(int timeout)
 {
-    uint64_t clk;
-
     ev_list_process(&_G.before);
     if (_G.timers.len) {
-        clk = get_clock(false);
+        uint64_t clk = get_clock(false);
+
         el_timer_process(clk);
-    }
-    if (_G.timers.len) {
-        uint64_t nxt = EVT(0)->timer.expiry;
-        if (nxt < (uint64_t)timeout + clk)
-            timeout = nxt - clk;
+        if (_G.timers.len) {
+            uint64_t nxt = EVT(0)->timer.expiry;
+            if (nxt < (uint64_t)timeout + clk)
+                timeout = nxt - clk;
+        }
     }
     if (!dlist_is_empty(&_G.proxy_ready)) {
         timeout = 0;

@@ -325,7 +325,7 @@ httpd_qinfo_t *httpd_qinfo_dup(const httpd_qinfo_t *info)
     res->vars.s        = p;
     res->vars.s_end    = p = mempcpy(p, info->vars.s, ps_len(&info->vars));
     res->hdrs_ps.s     = p;
-    res->hdrs_ps.s_end = p = mempcpy(p, info->hdrs_ps.s, ps_len(&info->hdrs_ps));
+    res->hdrs_ps.s_end = mempcpy(p, info->hdrs_ps.s, ps_len(&info->hdrs_ps));
 
     offs = res->hdrs_ps.s - info->hdrs_ps.s;
     for (int i = 0; i < res->hdrs_len; i++) {
@@ -1233,7 +1233,7 @@ static int httpd_on_event(el_t evh, int fd, short events, el_data_t priv)
         goto close;
 
     if (events & POLLIN) {
-        if ((res = sb_read(&w->ibuf, fd, 0)) <= 0)
+        if (sb_read(&w->ibuf, fd, 0) <= 0)
             goto close;
 
         ps = ps_initsb(&w->ibuf);
@@ -1338,7 +1338,7 @@ static httpc_qinfo_t *httpc_qinfo_dup(const httpc_qinfo_t *info)
     res->reason.s      = p;
     res->reason.s_end  = p = mempcpy(p, info->reason.s, ps_len(&info->reason));
     res->hdrs_ps.s     = p;
-    res->hdrs_ps.s_end = p = mempcpy(p, info->hdrs_ps.s, ps_len(&info->hdrs_ps));
+    res->hdrs_ps.s_end = mempcpy(p, info->hdrs_ps.s, ps_len(&info->hdrs_ps));
 
     offs = res->hdrs_ps.s - info->hdrs_ps.s;
     for (int i = 0; i < res->hdrs_len; i++) {
@@ -1744,7 +1744,7 @@ static int httpc_on_event(el_t evh, int fd, short events, el_data_t priv)
         goto close;
 
     if (events & POLLIN) {
-        if ((res = sb_read(&w->ibuf, fd, 0)) <= 0)
+        if (sb_read(&w->ibuf, fd, 0) <= 0)
             goto close;
 
         ps = ps_initsb(&w->ibuf);

@@ -235,7 +235,7 @@ qh_kptr_t(test_str, const char, qhash_str_hash, qhash_str_equal);
 TEST_DECL("qhash: insertion", 0)
 {
     QH(test, h, false);
-    uint64_t bits[2];
+    uint64_t bits[2] = { 0, 0 };
 
     for (int i = 0; i < 128; i++) {
         qh_add(test, &h, i);

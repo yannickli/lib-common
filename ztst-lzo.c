@@ -29,11 +29,8 @@ static int compress(const char *in, const char *out)
     if (in) {
         RETHROW(sb_read_file(&sb, in));
     } else {
-        int fd = RETHROW(open(in, O_RDONLY));
-
-        while (RETHROW(sb_read(&sb, fd, 0)) > 0) {
+        while (RETHROW(sb_read(&sb, STDIN_FILENO, 0)) > 0) {
         }
-        close(fd);
     }
 
     sb_add(&sbout, &sb.len, 4);

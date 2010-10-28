@@ -1166,6 +1166,7 @@ static int asn1_unpack_field(pstream_t *ps, const asn1_field_t *spec,
 
       case ASN1_OBJ_MODE(OPTIONAL):
         if (ps_has(ps, 1) && *ps->b == spec->tag) {
+            /* FIXME, wtf with value ? */
             void *value = asn1_alloc_if_pointed(spec, mem_pool, st);
 
             value = asn1_opt_field_w(GET_PTR(st, spec, void), spec->type,
