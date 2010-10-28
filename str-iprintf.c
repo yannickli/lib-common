@@ -362,6 +362,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
     int left_pad, prefix_len, zero_pad, right_pad;
     const char *lp;
     int sign;
+    int save_errno = errno;
 
     if (size > INT_MAX) {
         size = 0;
@@ -615,7 +616,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             goto has_string_len;
 
         case 'm':
-            lp = strerror(errno);
+            lp = strerror(save_errno);
             goto has_string;
 
         case 's':
