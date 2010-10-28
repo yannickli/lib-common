@@ -65,13 +65,13 @@ static inline char *iasprintf(const char *fmt, ...)
     va_list ap;
 
     va_start(ap, fmt);
-    len = vsnprintf(buf, ssizeof(buf), fmt, ap);
+    len = ivsnprintf(buf, ssizeof(buf), fmt, ap);
     va_end(ap);
 
     if (len < ssizeof(buf))
         return p_dupz(buf, len);
     va_start(ap, fmt);
-    vsnprintf(s = p_new(char, len + 1), len + 1, fmt, ap);
+    ivsnprintf(s = p_new(char, len + 1), len + 1, fmt, ap);
     va_end(ap);
     return s;
 }
