@@ -60,17 +60,14 @@ typedef void (el_proxy_f)(el_t, short, el_data_t);
 
 el_t el_blocker_register(void);
 el_t el_before_register(el_cb_f *, el_data_t);
-el_t el_after_register(el_cb_f *, el_data_t);
 el_t el_signal_register(int signo, el_signal_f *, el_data_t);
 el_t el_child_register(pid_t pid, el_child_f *, el_data_t);
 
 void el_before_set_hook(el_t, el_cb_f *);
-void el_after_set_hook(el_t, el_cb_f *);
 void el_signal_set_hook(el_t, el_signal_f *);
 void el_child_set_hook(el_t, el_child_f *);
 
 el_data_t el_before_unregister(el_t *);
-el_data_t el_after_unregister(el_t *);
 el_data_t el_signal_unregister(el_t *);
 el_data_t el_child_unregister(el_t *);
 void      el_blocker_unregister(el_t *);
