@@ -77,7 +77,7 @@ bool cls_inherits(const void *cls, const void *vptr);
     struct pfx##_class_t {                                                   \
         const superclass##_class_t *super;                                   \
         const char *type_name;                                               \
-        int type_size;                                                       \
+        size_t      type_size;                                               \
         methods(pfx##_t);                                                    \
     };                                                                       \
                                                                              \
@@ -107,49 +107,46 @@ bool cls_inherits(const void *cls, const void *vptr);
         return res;                                                          \
     }
 
+#define OBJECT_REFCNT_AUTO    ((size_t)1)
+#define OBJECT_REFCNT_STATIC  ((size_t)-1)
+#define OBJECT_REFCNT_LAST    ((size_t)-2)
+
 #define OBJECT_FIELDS(pfx) \
     union {                                                                  \
         const object_class_t *as_obj_cls;                                    \
         const pfx##_class_t  *ptr;                                           \
-    } v
+    } v;                                                                     \
+    size_t refcnt
 
 #define OBJECT_METHODS(type_t) \
     type_t *(*init)(type_t *);                  \
-    bool    (*can_wipe)(type_t *);              \
-    void    (*wipe)(type_t *)
+    void    (*wipe)(type_t *);                  \
+    type_t *(*retain)(type_t *);                \
+    void    (*release)(type_t *);               \
+    bool    (*can_wipe)(type_t *)
 
 OBJ_CLASS(object, object, OBJECT_FIELDS, OBJECT_METHODS);
 
 
-void *obj_init_real(const void *cls, void *o);
+void *obj_init_real(const void *cls, void *o, size_t refcnt);
 void obj_wipe_real(object_t *o);
-
-#define obj_delete_with_expr(op, destruct_expr) \
-    do {                                                                     \
-        if (*op) {                                                           \
-            object_t *o = obj_vcast(object, *(op));                          \
-            if (!obj_vmethod(o, can_wipe) || obj_vcall(o, can_wipe)) {       \
-                obj_wipe(o);                                                 \
-                destruct_expr;                                               \
-            } else {                                                         \
-                *(op) = NULL;                                                \
-            }                                                                \
-        }                                                                    \
-    } while (0)
 
 #define obj_class(pfx)    ((const object_class_t *)pfx##_class())
 #define obj_new_of_class(pfx, cls) \
-    ((pfx##_t *)obj_init_real(cls, p_new(char, (cls)->type_size)))
+    ((pfx##_t *)obj_init_real(cls, p_new(char, (cls)->type_size),            \
+                              OBJECT_REFCNT_AUTO))
 
 #define obj_new(pfx)      \
-    ((pfx##_t *)obj_init_real(pfx##_class(), p_new(pfx##_t, 1)))
-#define obj_mp_new(mp, pfx) \
-    ((pfx##_t *)obj_init_real(pfx##_class(), mp_new(mp, pfx##_t, 1)))
+    ((pfx##_t *)obj_init_real(pfx##_class(), p_new(pfx##_t, 1),              \
+                              OBJECT_REFCNT_AUTO))
+#define obj_retain(o)   obj_vcall(o, retain)
+#define obj_release(o)  obj_vcall(o, release)
+#define obj_delete(op)  ({ if (*(op)) obj_release(*(op)); *(op) = NULL; })
+
 #define obj_init(pfx, v)  \
-    ((pfx##_t *)obj_init_real(pfx##_class(), memset(v, 0, sizeof(*v))))
+    ((pfx##_t *)obj_init_real(pfx##_class(), memset(v, 0, sizeof(*v)),       \
+                              OBJECT_REFCNT_STATIC))
 #define obj_wipe(o)            obj_wipe_real(obj_vcast(object, o))
-#define obj_delete(op)         obj_delete_with_expr(op, p_delete(op))
-#define obj_mp_delete(mp, op)  obj_delete_with_expr(op, mp_delete(mp, op))
 
 /**\}*/
 #endif

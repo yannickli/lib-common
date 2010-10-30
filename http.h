@@ -306,8 +306,6 @@ struct httpd_qinfo_t {
     httpd_trigger_cb_t *trig_cb;                                    \
     dlist_t             query_link;                                 \
                                                                     \
-    int16_t             refcnt;                                     \
-                                                                    \
     /* User flags    */                                             \
     flag_t              traced        : 1;                          \
                                                                     \
@@ -345,8 +343,6 @@ struct httpd_qinfo_t {
     OBJECT_METHODS(type_t)
 
 OBJ_CLASS(httpd_query, object, HTTPD_QUERY_FIELDS, HTTPD_QUERY_METHODS);
-
-#define httpd_query_dup(q)  ({ typeof(*(q)) *__q = (q); __q->refcnt++; q; })
 
 void httpd_bufferize(httpd_query_t *q, unsigned maxsize);
 

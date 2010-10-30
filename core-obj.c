@@ -47,12 +47,13 @@ static void obj_init_real_aux(object_t *o, const object_class_t *cls)
     (*init)(o);
 }
 
-void *obj_init_real(const void *_cls, void *_o)
+void *obj_init_real(const void *_cls, void *_o, size_t refcnt)
 {
     const object_class_t *cls = _cls;
     object_t *o = _o;
 
-    o->v.ptr = cls;
+    o->refcnt = refcnt;
+    o->v.ptr  = cls;
     obj_init_real_aux(o, cls);
     return o;
 }
@@ -70,6 +71,43 @@ void obj_wipe_real(object_t *o)
                 return;
         } while (wipe == cls->wipe);
     }
+    o->refcnt = 0;
+}
+
+static object_t *obj_retain_(object_t *obj)
+{
+    switch (obj->refcnt) {
+      default:
+        ++obj->refcnt;
+        break;
+      case OBJECT_REFCNT_LAST:
+        e_panic("too many refcounts");
+      case OBJECT_REFCNT_STATIC:
+        e_panic("forbidden to call retain on a statically allocated ojbect");
+    }
+    return obj;
+}
+
+static void obj_release_(object_t *obj)
+{
+    switch (obj->refcnt) {
+      case 0:
+        e_panic("should not happen");
+      case OBJECT_REFCNT_STATIC:
+        if (!obj_vmethod(obj, can_wipe) || obj_vcall(obj, can_wipe)) {
+            obj_wipe_real(obj);
+        }
+        break;
+      case 1:
+        if (!obj_vmethod(obj, can_wipe) || obj_vcall(obj, can_wipe)) {
+            obj_wipe_real(obj);
+        }
+        p_delete(&obj);
+        break;
+      default:
+        --obj->refcnt;
+        break;
+    }
 }
 
 const object_class_t *object_class(void)
@@ -77,6 +115,9 @@ const object_class_t *object_class(void)
     static object_class_t const klass = {
         .type_size = sizeof(object_t),
         .type_name = "object",
+
+        .retain    = obj_retain_,
+        .release   = obj_release_,
     };
     return &klass;
 }

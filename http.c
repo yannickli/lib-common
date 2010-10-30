@@ -379,11 +379,6 @@ static httpd_query_t *httpd_query_init(httpd_query_t *q)
     return q;
 }
 
-static bool httpd_query_can_wipe(httpd_query_t *q)
-{
-    return --q->refcnt == 0;
-}
-
 static void httpd_query_wipe(httpd_query_t *q)
 {
     if (q->trig_cb && q->trig_cb->on_query_wipe)
@@ -434,7 +429,6 @@ void httpd_bufferize(httpd_query_t *q, unsigned maxsize)
 OBJ_VTABLE(httpd_query)
     httpd_query.init     = httpd_query_init;
     httpd_query.wipe     = httpd_query_wipe;
-    httpd_query.can_wipe = httpd_query_can_wipe;
 OBJ_VTABLE_END()
 
 
