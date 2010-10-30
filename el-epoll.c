@@ -29,7 +29,7 @@ static void el_fd_initialize(void)
     }
 }
 
-el_t el_fd_register(int fd, short events, el_fd_f *cb, el_data_t priv)
+el_t el_fd_register_d(int fd, short events, el_fd_f *cb, el_data_t priv)
 {
     ev_t *ev = el_create(EV_FD, cb, priv, true);
     struct epoll_event event = {

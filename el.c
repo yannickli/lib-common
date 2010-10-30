@@ -230,10 +230,10 @@ static void ev_list_process(dlist_t *l)
 
 ev_t *el_blocker_register(void)
 {
-    return el_create(EV_BLOCKER, NULL, NULL, true);
+    return el_create(EV_BLOCKER, NULL, (el_data_t)NULL, true);
 }
 
-ev_t *el_before_register(el_cb_f *cb, el_data_t priv)
+ev_t *el_before_register_d(el_cb_f *cb, el_data_t priv)
 {
     return ev_add(&_G.before, el_create(EV_BEFORE, cb, priv, true));
 }
@@ -298,7 +298,7 @@ void el_signal_set_hook(el_t ev, el_signal_f *cb)
     ev->cb.signal = cb;
 }
 
-ev_t *el_signal_register(int signo, el_signal_f *cb, el_data_t priv)
+ev_t *el_signal_register_d(int signo, el_signal_f *cb, el_data_t priv)
 {
     struct sigaction sa;
     ev_t *ev;
@@ -346,7 +346,7 @@ void el_child_set_hook(el_t ev, el_child_f *cb)
     ev->cb.child = cb;
 }
 
-ev_t *el_child_register(pid_t pid, el_child_f *cb, el_data_t priv)
+ev_t *el_child_register_d(pid_t pid, el_child_f *cb, el_data_t priv)
 {
     static bool hooked;
 
@@ -534,7 +534,7 @@ static uint64_t get_clock(bool lowres)
         the high precision */
 #define TIMER_IS_LOWRES(ev, next)   (EV_FLAG_HAS(ev, TIMER_LOWRES) || (next) >= 500)
 
-ev_t *el_timer_register(int next, int repeat, int flags, el_cb_f *cb, el_data_t priv)
+ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb, el_data_t priv)
 {
     ev_t *ev = el_create(EV_TIMER, cb, priv, true);
 
@@ -617,7 +617,7 @@ static void el_act_timer(el_t ev, el_data_t priv)
 
 static ALWAYS_INLINE ev_t *el_fd_act_timer_register(ev_t *ev, int timeout)
 {
-    ev_t *timer = el_timer_register(timeout, 0, 0, &el_act_timer, ev->priv);
+    ev_t *timer = el_timer_register_d(timeout, 0, 0, &el_act_timer, ev->priv);
 
     ev->priv.ptr = el_unref(timer);
     EV_FLAG_SET(ev, FD_WATCHED);
@@ -694,7 +694,7 @@ int el_fd_loop(ev_t *ev, int timeout)
 
 /*----- proxies events  -----*/
 
-ev_t *el_proxy_register(el_proxy_f *cb, el_data_t priv)
+ev_t *el_proxy_register_d(el_proxy_f *cb, el_data_t priv)
 {
     return ev_add(&_G.proxy, el_create(EV_PROXY, cb, priv, true));
 }
