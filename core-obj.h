@@ -115,7 +115,7 @@ bool cls_inherits(const void *cls, const void *vptr);
 
 #define OBJECT_METHODS(type_t) \
     type_t *(*init)(type_t *);                  \
-    bool    (*release)(type_t *);               \
+    bool    (*can_wipe)(type_t *);              \
     void    (*wipe)(type_t *)
 
 OBJ_CLASS(object, object, OBJECT_FIELDS, OBJECT_METHODS);
@@ -128,7 +128,7 @@ void obj_wipe_real(object_t *o);
     do {                                                                     \
         if (*op) {                                                           \
             object_t *o = obj_vcast(object, *(op));                          \
-            if (!obj_vmethod(o, release) || obj_vcall(o, release)) {         \
+            if (!obj_vmethod(o, can_wipe) || obj_vcall(o, can_wipe)) {       \
                 obj_wipe(o);                                                 \
                 destruct_expr;                                               \
             } else {                                                         \
