@@ -119,11 +119,13 @@ bool cls_inherits(const void *cls, const void *vptr);
     size_t refcnt
 
 #define OBJECT_METHODS(type_t) \
-    type_t *(*init)(type_t *);                  \
-    void    (*wipe)(type_t *);                  \
-    type_t *(*retain)(type_t *);                \
-    void    (*release)(type_t *);               \
-    bool    (*can_wipe)(type_t *)
+    type_t  *(*init)(type_t *);                                              \
+    void     (*wipe)(type_t *);                                              \
+    uint32_t (*hash)(const type_t *);                                        \
+    bool     (*equal)(const type_t *, const type_t *);                       \
+    type_t  *(*retain)(type_t *);                                            \
+    void     (*release)(type_t *);                                           \
+    bool     (*can_wipe)(type_t *)
 
 OBJ_CLASS(object, object, OBJECT_FIELDS, OBJECT_METHODS);
 

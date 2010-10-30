@@ -110,6 +110,20 @@ static void obj_release_(object_t *obj)
     }
 }
 
+static uint32_t obj_hash_(const object_t *o)
+{
+    uintptr_t p = (uintptr_t)o;
+
+    if (sizeof(o) == 4)
+        return p;
+    return (uint32_t)(p >> 32) ^ (uint32_t)p;
+}
+
+static bool obj_equal_(const object_t *o1, const object_t *o2)
+{
+    return o1 == o2;
+}
+
 const object_class_t *object_class(void)
 {
     static object_class_t const klass = {
@@ -118,6 +132,8 @@ const object_class_t *object_class(void)
 
         .retain    = obj_retain_,
         .release   = obj_release_,
+        .hash      = obj_hash_,
+        .equal     = obj_equal_,
     };
     return &klass;
 }
