@@ -24,7 +24,6 @@ core-version.c: scripts/version.sh FORCE
 _CFLAGS  = $(libxml2_CFLAGS)
 
 libcommon_SOURCES = \
-	bfield.c \
 	farch.c \
 	licence.c \
 	parseopt.c \

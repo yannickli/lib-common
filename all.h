@@ -17,7 +17,6 @@
 #include "core.h"
 
 #include "arith.h"
-#include "bfield.h"
 #include "conf.h"
 #include "container.h"
 #include "elf.h"
