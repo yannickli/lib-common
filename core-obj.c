@@ -116,7 +116,7 @@ static uint32_t obj_hash_(const object_t *o)
 
     if (sizeof(o) == 4)
         return p;
-    return (uint32_t)(p >> 32) ^ (uint32_t)p;
+    return (uint32_t)((uint64_t)p >> 32) ^ (uint32_t)p;
 }
 
 static bool obj_equal_(const object_t *o1, const object_t *o2)
