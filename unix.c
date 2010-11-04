@@ -354,6 +354,10 @@ int xwritev(int fd, struct iovec *iov, int iovcnt)
                 break;
             }
         }
+        while (iovcnt && iov[0].iov_len == 0) {
+            iovcnt--;
+            iov++;
+        }
     }
     return 0;
 }
