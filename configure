@@ -102,6 +102,10 @@ for tool in flex gperf mtasc swfmill xsltproc; do
     check_tool $tool $tool
 done
 
+if ! test -f /usr/include/sys/capability.h; then
+    warn "*** mising libcap-dev (for <sys/capability.h>)"
+fi
+
 # }}}
 # {{{ pkg-config packages
 
