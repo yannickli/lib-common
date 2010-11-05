@@ -1,5 +1,10 @@
-<!-- callout.xsl: converts asciidoc callouts to man page format -->
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+
+<!-- these params silence some output from xmlto -->
+<xsl:param name="man.output.quietly" select="1"/>
+<xsl:param name="refentry.meta.get.quietly" select="1"/>
+
+<!-- callout.xsl: converts asciidoc callouts to man page format -->
 <xsl:template match="co">
 	<xsl:value-of select="concat('\fB(',substring-after(@id,'-'),')\fR')"/>
 </xsl:template>
