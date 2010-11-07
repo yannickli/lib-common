@@ -33,15 +33,16 @@
 
 typedef int spinlock_t;
 
-#define atomic_add(ptr, v)          IGNORE(__sync_add_and_fetch(ptr, v))
-#define atomic_sub(ptr, v)          IGNORE(__sync_sub_and_fetch(ptr, v))
-#define atomic_add_and_get(ptr, v)  __sync_add_and_fetch(ptr, v)
-#define atomic_sub_and_get(ptr, v)  __sync_sub_and_fetch(ptr, v)
-#define atomic_get_and_add(ptr, v)  __sync_fetch_and_add(ptr, v)
-#define atomic_get_and_sub(ptr, v)  __sync_fetch_and_sub(ptr, v)
-#define atomic_bool_cas(ptr, b, a)  __sync_bool_compare_and_swap(ptr, b, a)
-#define atomic_val_cas(ptr, b, a)   __sync_val_compare_and_swap(ptr, b, a)
-#define memory_barrier()            __sync_synchronize()
+#define atomic_add(ptr, v)          ((void)__sync_add_and_fetch(ptr, v))
+#define atomic_sub(ptr, v)          ((void)__sync_sub_and_fetch(ptr, v))
+#define atomic_add_and_get(ptr, v)  ((typeof(*(ptr)))__sync_add_and_fetch(ptr, v))
+#define atomic_sub_and_get(ptr, v)  ((typeof(*(ptr)))__sync_sub_and_fetch(ptr, v))
+#define atomic_get_and_add(ptr, v)  ((typeof(*(ptr)))__sync_fetch_and_add(ptr, v))
+#define atomic_get_and_sub(ptr, v)  ((typeof(*(ptr)))__sync_fetch_and_sub(ptr, v))
+
+#define atomic_xchg(ptr, v)         ((typeof(*(ptr)))__sync_lock_test_and_set(ptr, v))
+#define atomic_bool_cas(ptr, b, a)  ((typeof(*(ptr)))__sync_bool_compare_and_swap(ptr, b, a))
+#define atomic_val_cas(ptr, b, a)   ((typeof(*(ptr)))__sync_val_compare_and_swap(ptr, b, a))
 
 #define spin_trylock(ptr)  (!__sync_lock_test_and_set(ptr, 1))
 #define spin_lock(ptr)     ({ while (unlikely(!spin_trylock(ptr))) { cpu_relax(); }})
