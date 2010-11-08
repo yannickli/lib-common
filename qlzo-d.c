@@ -78,7 +78,7 @@ int lzo_copy_input_small(pstream_t *in, ostream_t *os, unsigned sz)
         if (sz > 1) {
             dst[1] = src[1];
             if (sz > 2)
-                dst[1] = src[1];
+                dst[2] = src[2];
         }
     }
     os->b += sz;
