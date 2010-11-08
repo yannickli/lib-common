@@ -155,6 +155,9 @@ qvector_splice(qvector_t *vec, size_t v_size,
                  const val_t *tab, int dlen) {                              \
         return qvector_splice(&vec->qv, sizeof(val_t), pos, len, tab, dlen);\
     }                                                                       \
+    static inline val_t *pfx##_grow(pfx##_t *vec, int extra) {              \
+        return qvector_grow(&vec->qv, sizeof(val_t), extra);                \
+    }                                                                       \
     static inline val_t *pfx##_growlen(pfx##_t *vec, int extra) {           \
         return qvector_growlen(&vec->qv, sizeof(val_t), extra);             \
     }                                                                       \
@@ -196,6 +199,7 @@ qvector_splice(qvector_t *vec, size_t v_size,
 
 #define __qv_splice(n, vec, pos, l, dl)     __qv_##n##_splice(vec, pos, l, dl)
 #define qv_splice(n, vec, pos, l, tab, dl)  qv_##n##_splice(vec, pos, l, tab, dl)
+#define qv_grow(n, vec, extra)              qv_##n##_grow(vec, extra)
 #define qv_growlen(n, vec, extra)           qv_##n##_growlen(vec, extra)
 #define qv_clip(n, vec, len)                qv_##n##_clip(vec, len)
 #define qv_shrink(n, vec, len)              qv_##n##_shrink(vec, len)
