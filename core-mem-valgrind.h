@@ -46,7 +46,7 @@ static inline void VALGRIND_PROT_BLK(mem_blk_t *blk)
 
 static inline void VALGRIND_REG_BLK(mem_blk_t *blk)
 {
-    VALGRIND_CREATE_MEMPOOL(blk, 0, true);
+    VALGRIND_CREATE_MEMPOOL(blk, 0, false);
     VALGRIND_PROT_BLK(blk);
 }
 

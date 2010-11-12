@@ -45,17 +45,19 @@ typedef struct mem_fifo_pool_t {
 } mem_fifo_pool_t;
 
 
-static mem_page_t *pageof(mem_block_t *blk) {
-    mem_page_t *page;
-
+static ALWAYS_INLINE void blk_unprotect(mem_block_t *blk)
+{
     (void)VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
-    page = (mem_page_t *)((char *)blk - blk->page_offs);
-    return page;
 }
 
-static void blk_protect(mem_block_t *blk)
+static ALWAYS_INLINE void blk_protect(mem_block_t *blk)
 {
     (void)VALGRIND_MAKE_MEM_NOACCESS(blk, sizeof(*blk));
+}
+
+static ALWAYS_INLINE mem_page_t *pageof(mem_block_t *blk)
+{
+    return (mem_page_t *)((char *)blk - blk->page_offs);
 }
 
 static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
@@ -91,7 +93,6 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
 
 static void mem_page_reset(mem_page_t *page)
 {
-    (void)VALGRIND_MAKE_MEM_DEFINED(page->area, page->used_size);
     p_clear(page->area, page->used_size);
     VALGRIND_PROT_BLK(&page->page);
 
@@ -139,7 +140,8 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
     }
 
     blk = (mem_block_t *)(page->area + page->used_size);
-    (void)VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
+    blk_unprotect(blk);
+    VALGRIND_MALLOCLIKE_BLOCK(blk->area, size, 0, true);
     VALGRIND_MEMPOOL_ALLOC(page, blk->area, size);
     blk->page_offs = (uintptr_t)blk - (uintptr_t)page;
     blk->blk_size  = size;
@@ -161,9 +163,11 @@ static void mfp_free(mem_pool_t *_mfp, void *mem, mem_flags_t flags)
         return;
 
     blk  = container_of(mem, mem_block_t, area);
+    blk_unprotect(blk);
     page = pageof(blk);
     mfp->occupied -= blk->blk_size;
     VALGRIND_MEMPOOL_FREE(page, blk->area);
+    VALGRIND_FREELIKE_BLOCK(mem, 0);
     blk_protect(blk);
 
     if (--page->used_blocks > 0)
@@ -197,7 +201,6 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
     mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
     mem_page_t *page;
-    void *res;
 
     if (unlikely(!mfp->alive))
         e_panic("trying to reallocate from a dead pool");
@@ -211,35 +214,43 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
         return mfp_alloc(_mfp, size, flags);
 
     blk  = container_of(mem, mem_block_t, area);
+    blk_unprotect(blk);
     page = pageof(blk);
 
     if ((flags & MEM_RAW) && oldsize == MEM_UNKNOWN)
         oldsize = blk->blk_size;
     assert (oldsize <= blk->blk_size);
     if (size <= blk->blk_size - sizeof(*blk)) {
-        blk_protect(blk);
+        VALGRIND_FREELIKE_BLOCK(mem, 0);
+        VALGRIND_MEMPOOL_CHANGE(page, mem, mem, size);
+        VALGRIND_MALLOCLIKE_BLOCK(mem, size, 0, false);
         if (!(flags & MEM_RAW) && oldsize < size)
             memset(blk->area + oldsize, 0, size - oldsize);
-        return mem;
-    }
-
+    } else
     /* optimization if it's the last block allocated */
     if (mem == page->last
     && size + ssizeof(*blk) - blk->blk_size <= mem_page_size_left(page))
     {
         size = ROUND_UP((size_t)size, 8);
         blk->blk_size   += size;
-        VALGRIND_MEMPOOL_CHANGE(page, blk->area, blk->area, size);
         blk_protect(blk);
 
         mfp->occupied   += size;
         page->used_size += size;
-        return mem;
+        VALGRIND_FREELIKE_BLOCK(mem, 0);
+        VALGRIND_MEMPOOL_CHANGE(page, mem, mem, size);
+        VALGRIND_MALLOCLIKE_BLOCK(mem, size, 0, false);
+    } else {
+        void *old = mem;
+
+
+        mem = mfp_alloc(_mfp, size, flags);
+        memcpy(mem, old, oldsize);
+        mfp_free(_mfp, old, flags);
     }
 
-    res = memcpy(mfp_alloc(_mfp, size, flags), mem, oldsize);
-    mfp_free(_mfp, mem, flags);
-    return res;
+    blk_protect(blk);
+    return mem;
 }
 #if __GNUC_PREREQ(4, 6)
 #  pragma GCC diagnostic error "-Wunused-but-set-variable"
