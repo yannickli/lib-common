@@ -308,6 +308,7 @@ static ALWAYS_INLINE void arena_insert(tlsf_pool_t *mp, arena_t *a)
 {
     blk_hdr_t *blk = blk_of(a);
 
+    VALGRIND_MALLOCLIKE_BLOCK(blk_next(blk, blk_size(blk))->data, 0, 0, 0);
     tlsf_free(&mp->pool, blk_next(blk, blk_size(blk))->data, 0);
 }
 
@@ -426,6 +427,7 @@ void *tlsf_malloc(mem_pool_t *_mp, size_t size, mem_flags_t flags)
         blk->flags  &= ~BLK_FREE;
     }
 
+    VALGRIND_MALLOCLIKE_BLOCK(blk->data, asked, 0, false);
     if (!(flags & MEM_RAW))
         memset(blk->data, 0, asked);
     blk->asked = asked;
@@ -471,6 +473,8 @@ void *tlsf_realloc(mem_pool_t *_mp, void *ptr,
             goto split;
         blk->asked = asked;
         res = blk->data;
+        VALGRIND_FREELIKE_BLOCK(ptr, 0);
+        VALGRIND_MALLOCLIKE_BLOCK(ptr, asked, 0, false);
     } else
     if ((next->flags & BLK_FREE) && newsize <= tsize + blk_size(next)) {
         size_t nsz = blk_remove(mp, next);
@@ -490,6 +494,8 @@ void *tlsf_realloc(mem_pool_t *_mp, void *ptr,
         }
         blk->asked = asked;
         res = blk->data;
+        VALGRIND_FREELIKE_BLOCK(ptr, 0);
+        VALGRIND_MALLOCLIKE_BLOCK(ptr, asked, 0, false);
     } else {
         res = tlsf_malloc(&mp->pool, newsize, 0);
         if (!res)
@@ -513,6 +519,7 @@ void tlsf_free(mem_pool_t *_mp, void *ptr, mem_flags_t flags)
     if (unlikely(PTR_IS_EMPTY(ptr)))
         return;
 
+    VALGRIND_FREELIKE_BLOCK(ptr, 0);
     blk = blk_of(ptr);
     bsz = blk_size(blk);
     tmp = blk_next(blk, bsz);
