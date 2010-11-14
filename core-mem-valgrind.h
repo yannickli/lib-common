@@ -33,6 +33,8 @@
 #  define VALGRIND_MEMPOOL_ALLOC(...)            ((void)0)
 #  define VALGRIND_MEMPOOL_CHANGE(...)           ((void)0)
 #  define VALGRIND_MEMPOOL_FREE(...)             ((void)0)
+#  define VALGRIND_MALLOCLIKE_BLOCK(...)         ((void)0)
+#  define VALGRIND_FREELIKE_BLOCK(...)           ((void)0)
 #endif
 #include "core.h"
 

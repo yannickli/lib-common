@@ -18,6 +18,7 @@
 #include "arith.h"
 #include "container.h"
 #include "qtlsf.h"
+#include "core-mem-valgrind.h"
 
 /*
  * Set this to 1 if you want malloc of sizes < BLK_SIZE_MIN to be allocated
