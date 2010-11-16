@@ -162,7 +162,8 @@ qvector_splice(qvector_t *vec, size_t v_size,
         return qvector_growlen(&vec->qv, sizeof(val_t), extra);             \
     }                                                                       \
     static inline void                                                      \
-    pfx##_sort(pfx##_t *vec, int (BLOCK_CARET cmp)(const val_t *,           \
+    pfx##_sort_do_not_use_directly(pfx##_t *vec,                            \
+                                   int (BLOCK_CARET cmp)(const val_t *,     \
                                                    const val_t *)) {        \
         __qvector_sort(&vec->qv, sizeof(val_t), (qvector_cmp_f)cmp);        \
     }
@@ -191,7 +192,10 @@ qvector_splice(qvector_t *vec, size_t v_size,
        qv_wipe(n, __vec); })
 #define qv_new(n)                           p_new(qv_t(n), 1)
 #define qv_delete(n, vec)                   qv_##n##_delete(vec)
-#define qv_sort(n)                          qv_##n##_sort
+#ifdef __block
+/* You must be in a .blk to use qv_sort, because it expects blocks ! */
+#define qv_sort(n)                          qv_##n##_sort_do_not_use_directly
+#endif
 
 #define qv_last(n, vec)                     ({ qv_t(n) *__vec = (vec);  \
                                                assert (__vec->len > 0); \
