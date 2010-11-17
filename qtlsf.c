@@ -196,7 +196,10 @@ static ALWAYS_INLINE blk_hdr_t *blk_next(blk_hdr_t *blk, size_t size)
 
 static ALWAYS_INLINE void blk_set_prev(blk_hdr_t *blk, blk_hdr_t *prev)
 {
-    ((blk_hdr_t **)blk)[-1] = prev;
+    blk_hdr_t **ptr = (blk_hdr_t **)blk - 1;
+
+    VALGRIND_MAKE_MEM_UNDEFINED(ptr, sizeof(ptr));
+    *ptr = prev;
 }
 
 static ALWAYS_INLINE blk_hdr_t *blk_get_prev(blk_hdr_t *blk)
@@ -232,6 +235,7 @@ static inline void blk_insert(tlsf_pool_t *mp, blk_hdr_t *blk, size_t bsz)
 {
     uint32_t fl, sl;
 
+    VALGRIND_MAKE_MEM_UNDEFINED(blk, offsetof(blk_hdr_t, prev_hdr));
     blk->flags = bsz | BLK_PREV_USED | BLK_FREE;
 #if QTLSF_CONFIG_TINY_BLOCKS
     if (likely(bsz >= BLK_SIZE_MIN))
@@ -363,6 +367,7 @@ ssize_t NEVER_INLINE tlsf_pool_add_arena(mem_pool_t *_mp, void *ptr, size_t size
     }
 
     dlist_add(&mp->arena_head, &a0->arena_list);
+    VALGRIND_MALLOCLIKE_BLOCK(blk0->data, 0, 0, 0);
     tlsf_free(&mp->pool, blk0->data, 0);
     return blk_size(blk0);
 }
@@ -428,10 +433,12 @@ void *tlsf_malloc(mem_pool_t *_mp, size_t size, mem_flags_t flags)
         blk->flags  &= ~BLK_FREE;
     }
 
+    VALGRIND_MAKE_MEM_NOACCESS(blk->data, size);
     VALGRIND_MALLOCLIKE_BLOCK(blk->data, asked, 0, false);
     if (!(flags & MEM_RAW))
         memset(blk->data, 0, asked);
     blk->asked = asked;
+    VALGRIND_MAKE_MEM_NOACCESS(blk->data, BLK_OVERHEAD);
     return blk->data;
 }
 
@@ -521,6 +528,7 @@ void tlsf_free(mem_pool_t *_mp, void *ptr, mem_flags_t flags)
         return;
 
     VALGRIND_FREELIKE_BLOCK(ptr, 0);
+
     blk = blk_of(ptr);
     bsz = blk_size(blk);
     tmp = blk_next(blk, bsz);
