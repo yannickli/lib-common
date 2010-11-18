@@ -27,9 +27,9 @@
 #else
 #  define VALGRIND_CREATE_MEMPOOL(...)           ((void)0)
 #  define VALGRIND_DESTROY_MEMPOOL(...)          ((void)0)
-#  define VALGRIND_MAKE_MEM_DEFINED(...)         0
-#  define VALGRIND_MAKE_MEM_NOACCESS(...)        0
-#  define VALGRIND_MAKE_MEM_UNDEFINED(...)       0
+#  define VALGRIND_MAKE_MEM_DEFINED(...)         ((void)0)
+#  define VALGRIND_MAKE_MEM_NOACCESS(...)        ((void)0)
+#  define VALGRIND_MAKE_MEM_UNDEFINED(...)       ((void)0)
 #  define VALGRIND_MEMPOOL_ALLOC(...)            ((void)0)
 #  define VALGRIND_MEMPOOL_CHANGE(...)           ((void)0)
 #  define VALGRIND_MEMPOOL_FREE(...)             ((void)0)
