@@ -93,6 +93,7 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
 
 static void mem_page_reset(mem_page_t *page)
 {
+    VALGRIND_MAKE_MEM_UNDEFINED(page->area, page->used_size);
     p_clear(page->area, page->used_size);
     VALGRIND_PROT_BLK(&page->page);
 
