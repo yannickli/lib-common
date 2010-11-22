@@ -333,12 +333,8 @@ bool licence_check_signature_ok(const conf_t *conf)
     return strequal(lic_inconf, lic_computed);
 }
 
-bool licence_check_host_ok(const conf_t *conf)
+bool licence_check_general_ok(const conf_t *conf)
 {
-    uint32_t cpusig;
-    char buf[64];
-    const char *p;
-
     if (!licence_check_signature_ok(conf)) {
         return false;
     }
@@ -348,6 +344,14 @@ bool licence_check_host_ok(const conf_t *conf)
     if (conf_get_int(conf, "licence", "version", -1) != 1) {
         return false;
     }
+    return true;
+}
+
+bool licence_check_specific_host_ok(const conf_t *conf)
+{
+    uint32_t cpusig;
+    char buf[64];
+    const char *p;
 
     /* cpu_signature is optional in licence section : If it does not
      * appear, we do not check it. */
@@ -387,6 +391,15 @@ bool licence_check_host_ok(const conf_t *conf)
   mac_ok:
     return true;
 }
+
+bool licence_check_host_ok(const conf_t *conf)
+{
+    if (licence_check_general_ok(conf) == false) {
+        return false;
+    }
+    return licence_check_specific_host_ok(conf);
+}
+
 
 #include <sched.h>
 
