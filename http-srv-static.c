@@ -45,6 +45,7 @@ static void mime_put_http_ctype(outbuf_t *ob, const char *path)
         E("pcap",  "application/x-pcap"),
 
         E("pdf",   "application/pdf"),
+        E("csv",   "application/csv"),
 
         E("tar",   "application/x-tar"),
         E2("tgz",  "application/x-tar", "gzip"),
