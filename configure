@@ -23,8 +23,12 @@ die() {
     exit 1
 }
 
-warn() {
+log() {
     echo 2>&1 "$@"
+}
+
+warn() {
+    log "$@"
     missing_dep=t
 }
 
@@ -80,7 +84,7 @@ while test $# != 0; do
     esac
 done
 
-echo 1>&2 "*** start configure"
+log "*** start configure"
 test -n "$out" -a "$out" != "/dev/stdout" && rm -f "$out"
 
 
@@ -117,6 +121,28 @@ pkg_config_setvar "sqlite"  "libsqlite3-dev" "sqlite3"
 check_tool luac lua5.1
 
 pkg_config_setvar "fuse" "libfuse-dev" "fuse"
+
+# }}}
+# {{{ zookeeper
+
+if test -r /usr/include/c-client-src/zookeeper.h; then
+    setenv "WITH_ZK"   "1"
+    setvar "zk_CFLAGS" "-I/usr/include/c-client-src/"
+    setvar "zk_LIBS"   "-lzookeeper"
+else
+    log "*** You are missing zookeeper, apt-get install zookeeper-dev"
+fi
+
+# }}}
+# {{{ libv8-dev
+
+if test -r /usr/include/v8.h; then
+    setenv "WITH_V8" "1"
+    setvar "v8_CFLAGS"
+    setvar "v8_LIBS" "-lv8"
+else
+    log "*** You are missing libv8, apt-get install libv8-dev"
+fi
 
 # }}}
 # {{{ libpcap-dev
@@ -176,7 +202,7 @@ if test -z ${JAVA_HOME}; then
     JAVA_HOME=${JAVA_HOME%/*}
 fi
 if test -z ${JAVA_HOME}; then
-    echo 2>&1 "*** JAVA_HOME not set, JNI disabled"
+    log "*** JAVA_HOME not set, JNI disabled"
 else
     setenv "WITH_JNI" "1"
     setvar "jni_CFLAGS" "-I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux"
@@ -205,9 +231,9 @@ if file_exists "$simpa1"; then
     setenv "WITH_SFR_SIMPA" "1"
 else
     setenv "ENABLE_SFR_SIMPA" "0"
-    echo 2>&1 "*** kit SIMPA SFR not found"
+    log "*** kit SIMPA SFR not found"
     if test -r "$simpa0"; then
-        echo 2>&1 "***   see $simpa0"
+        log "***   see $simpa0"
     fi
 fi
 
@@ -222,7 +248,7 @@ if file_exists "$ccn0" || file_exists "$ccn1"; then
     setenv "WITH_CCN" "1"
 else
     setenv "ENABLE_CCN" "0"
-    echo 2>&1 "*** CCN SDk not found"
+    log "*** CCN SDk not found"
 fi
 
 # }}}
