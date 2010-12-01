@@ -64,6 +64,26 @@ $$(foreach o,$$(tmp/$2/objs),$$(eval $$(call fun/do-once,ext/expand/c/$$o,$$(cal
 $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/objs),$3))
 endef
 
+#[ cc ]###################################################################
+
+define ext/expand/cc
+$3: $~%$$(tmp/$2/ns)$4.o: %.cc | __$(1D)_generated
+	mkdir -p $$(@D)
+	$(msg/COMPILE.C) $$(<R)
+	$(CXX) $(CXXFLAGS) $$($(1D)/_CXXFLAGS) $$($1_CXXFLAGS) $$($$*.c_CXXFLAGS) \
+	    -MP -MMD -MT $$@ -MF $$(@:o=dep) \
+	    $$(if $$(findstring .pic,$4),-fPIC) -g -c -o $$@ $$<
+-include $(3:o=dep)
+endef
+
+define ext/rule/cc
+tmp/$2/ns   := $$(if $$($(1D)/_CXXFLAGS)$$($1_CXXFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))
+tmp/$2/objs := $$(patsubst %.cc,$~%$$(tmp/$2/ns)$4.o,$3)
+$2: $$(tmp/$2/objs)
+$$(foreach o,$$(tmp/$2/objs),$$(eval $$(call fun/do-once,ext/expand/cc/$$o,$$(call ext/expand/cc,$1,$2,$$o,$4))))
+$$(eval $$(call fun/common-depends,$1,$$(tmp/$2/objs),$3))
+endef
+
 #[ lex ]##################################################################
 
 ext/gen/l = $(call fun/patsubst-filt,%.l,%.c,$1)
@@ -146,7 +166,7 @@ $1.so: $~$1.so$$(tmp/$1/build) FORCE
 $$(eval $$(call fun/foreach-ext-rule,$1,$~$1.so$$(tmp/$1/build),$$($1_SOURCES),.pic))
 $~$1.so$$(tmp/$1/build):
 	$(msg/LINK.c) $$(@R)
-	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) \
+	$$(or $$($1_LINKER),$(CC)) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) \
 	    -fPIC -shared -o $$@ $$(filter %.o,$$^) \
 	    $$(addprefix -Wl$$(var/comma)--version-script$$(var/comma),$$(filter %.ld,$$^)) \
 	    $(LDFLAGS) $$($(1D)/_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
@@ -170,7 +190,7 @@ $1$(EXEEXT): $~$1.exe FORCE
 $$(eval $$(call fun/foreach-ext-rule,$1,$~$1.exe,$$($1_SOURCES),$4))
 $~$1.exe:
 	$(msg/LINK.c) $$(@R)
-	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) \
+	$$(or $$($1_LINKER),$(CC)) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) \
 	    -o $$@ $$(filter %.o %.ld,$$^) \
 	    $(LDFLAGS) $$($(1D)/_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
