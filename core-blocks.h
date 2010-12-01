@@ -26,13 +26,13 @@ typedef void (*block_t)(void);
 
 static inline void block_run(void *blk_)
 {
-    block_t blk = blk_;
+    block_t blk = (block_t)blk_;
     blk();
 }
 
 static inline void block_run_and_release(void *blk_)
 {
-    block_t blk = blk_;
+    block_t blk = (block_t)blk_;
     blk();
     Block_release(blk);
 }

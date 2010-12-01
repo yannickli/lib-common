@@ -62,14 +62,14 @@
 
 typedef struct pstream_t {
     union {
+        const void *p;
         const char *s;
         const byte *b;
-        const void *p;
     };
     union {
+        const void *p_end;
         const char *s_end;
         const byte *b_end;
-        const void *p_end;
     };
 } pstream_t;
 
@@ -186,7 +186,7 @@ static inline int ps_clip(pstream_t *ps, size_t len) {
     return unlikely(!ps_has(ps, len)) ? -1 : __ps_clip(ps, len);
 }
 static inline int __ps_clip_at(pstream_t *ps, const void *p) {
-    ps->s_end = p;
+    ps->p_end = p;
     return 0;
 }
 static inline int ps_clip_at(pstream_t *ps, const void *p) {
@@ -205,11 +205,11 @@ static inline void ps_skipspaces(pstream_t *ps) {
         __ps_skip(ps, 1);
 }
 static inline int ps_skip_uptochr(pstream_t *ps, int c) {
-    const char *p = memchr(ps->p, c, ps_len(ps));
+    const void *p = memchr(ps->p, c, ps_len(ps));
     return likely(p) ? __ps_skip_upto(ps, p) : -1;
 }
 static inline int ps_skip_afterchr(pstream_t *ps, int c) {
-    const char *p = memchr(ps->p, c, ps_len(ps));
+    const char *p = (const char *)memchr(ps->p, c, ps_len(ps));
     return likely(p) ? __ps_skip_upto(ps, p + 1) : -1;
 }
 
@@ -310,7 +310,7 @@ static inline int ps_hexdecode(pstream_t *ps) {
 }
 
 static inline const char *ps_gets(pstream_t *ps, int *len) {
-    const char *end = memchr(ps->s, '\0', ps_len(ps));
+    const char *end = (const char *)memchr(ps->s, '\0', ps_len(ps));
     const char *res = ps->s;
 
     if (unlikely(!end))

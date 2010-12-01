@@ -20,7 +20,9 @@
 #include "str-ctype.h"
 #include "str-iprintf.h"
 #include "str-num.h"
+#ifndef __cplusplus
 #include "str-l.h"
+#endif
 #include "str-path.h"
 #include "str-conv.h"
 #include "str-buf.h"

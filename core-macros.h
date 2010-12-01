@@ -36,9 +36,11 @@
 #endif
 
 #if !defined(__doxygen_mode__)
-#  if (!defined(__GNUC__) || __GNUC__ < 3) && !defined(__attribute__)
+#  if !__GNUC_PREREQ(3, 0)
 #    define __attribute__(attr)
-#    define __must_be_array(a)   (void)0
+#  endif
+#  if !defined(__GNUC__) || defined(__cplusplus)
+#    define __must_be_array(a)   0
 #  else
 #    define __must_be_array(a) \
          (sizeof(char[1 - 2 * __builtin_types_compatible_p(typeof(a), typeof(&(a)[0]))]) - 1)

@@ -83,13 +83,12 @@ extern __thread char __sb_slop[1];
 static inline sb_t *
 sb_init_full(sb_t *sb, void *buf, int blen, int bsize, int mem_pool)
 {
-    *sb = (sb_t){
-        .data = buf,
-        .len = blen,
-        .size = bsize,
-        .mem_pool = mem_pool,
-    };
     assert (blen < bsize);
+    sb->data = (char *)buf;
+    sb->len  = blen;
+    sb->size = bsize;
+    sb->skip = 0;
+    sb->mem_pool = mem_pool;
     sb->data[blen] = '\0';
     return sb;
 }
@@ -217,6 +216,7 @@ sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
 
     assert (pos >= 0 && len >= 0 && dlen >= 0);
     assert ((unsigned)pos <= (unsigned)sb->len && (unsigned)pos + (unsigned)len <= (unsigned)sb->len);
+#ifndef __cplusplus
     if (__builtin_constant_p(dlen)) {
         if (dlen == 0 || (__builtin_constant_p(len) && len >= dlen)) {
             p_move2(sb->data, pos + dlen, pos + len, sb->len - pos - len);
@@ -229,7 +229,10 @@ sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
     } else {
         res = __sb_splice(sb, pos, len, dlen);
     }
-    return data ? memcpy(res, data, dlen) : res;
+#else
+    res = __sb_splice(sb, pos, len, dlen);
+#endif
+    return data ? (char *)memcpy(res, data, dlen) : res;
 }
 
 static inline void
