@@ -8,7 +8,7 @@ minor=$(echo "$version"|cut -d. -f2)
 gcc_prereq()
 {
     case "$cc" in
-        cc*|gcc*) ;;
+        cc*|gcc*|c++*|g++*) ;;
         *) return 1;
     esac
     if test $major -lt "$1"; then
@@ -25,8 +25,16 @@ is_clang()
     test "$cc" = "clang"
 }
 
+is_cpp()
+{
+    case "$cc" in
+        *++*) return 0;;
+        *) return 1;;
+    esac
+}
+
 # use C99 to be able to for (int i =...
-echo -std=gnu99
+is_cpp || echo -std=gnu99
 # optimize even more
 echo -O2
 if gcc_prereq 4 3; then
@@ -95,7 +103,7 @@ echo -Wredundant-decls
 # warn if the format string is not a string literal
 echo -Wformat-nonliteral
 # do not warn about zero-length formats.
-echo -Wno-format-zero-length
+is_cpp || echo -Wno-format-zero-length
 # do not warn about strftime format with y2k issues
 echo -Wno-format-y2k
 # warn about functions without format attribute that should have one
@@ -103,13 +111,15 @@ echo -Wmissing-format-attribute
 # barf if we change constness
 #echo -Wcast-qual
 
-# warn about functions declared without complete a prototype
-echo -Wstrict-prototypes
-echo -Wmissing-prototypes
-echo -Wmissing-declarations
-# warn about extern declarations inside functions
-echo -Wnested-externs
-# warn when a declaration is found after a statement in a block
-echo -Wdeclaration-after-statement
+if ! is_cpp; then
+    # warn about functions declared without complete a prototype
+    echo -Wstrict-prototypes
+    echo -Wmissing-prototypes
+    echo -Wmissing-declarations
+    # warn about extern declarations inside functions
+    echo -Wnested-externs
+    # warn when a declaration is found after a statement in a block
+    echo -Wdeclaration-after-statement
+fi
 
 echo -D_GNU_SOURCE $(getconf LFS_CFLAGS)
