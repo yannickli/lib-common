@@ -120,6 +120,10 @@ the goal, the use of `goal_DEPENDS` is the proper way.
 Also, in-tree generated files are built first for this target, you don't need
 to do anything special about it.
 
+`_LINKER`::
+	This variable allow to override the command used to link. Usually this
+        variable is set to `$(CXX)` when the program or library is a c++ one.
+
 `_LDFLAGS`::
         This variable holds the list of additional link flags to pass to the
         link command.
