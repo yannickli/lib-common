@@ -133,6 +133,12 @@
 #undef __releases
 #undef __needlock
 
+#ifdef __cplusplus
+#  define cast(type, v)    static_cast<type>(v)
+#else
+#  define cast(type, v)    (type)(v)
+#endif
+
 #ifdef __SPARSE__
 #  define __bitwise__   __attribute__((bitwise))
 #  define force_cast(type, expr)    (__attribute__((force)) type)(expr)
@@ -141,7 +147,7 @@
 #  define __needlock(x)  __attribute__((context(x, 1, 1)))
 #else
 #  define __bitwise__
-#  define force_cast(type, expr)    (type)(expr)
+#  define force_cast(type, expr)    cast(type, expr)
 #  define __acquires(x)
 #  define __releases(x)
 #  define __needlock(x)

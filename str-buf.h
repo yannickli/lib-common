@@ -84,7 +84,7 @@ static inline sb_t *
 sb_init_full(sb_t *sb, void *buf, int blen, int bsize, int mem_pool)
 {
     assert (blen < bsize);
-    sb->data = (char *)buf;
+    sb->data = cast(char *, buf);
     sb->len  = blen;
     sb->size = bsize;
     sb->skip = 0;
