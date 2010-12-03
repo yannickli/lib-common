@@ -48,6 +48,7 @@
 #define IPRINTF_HIDE_STDIO 1
 #include "core-os-features.h"
 #include "core-macros.h"
+#include "core-macros++.h"
 #include "core-test.h"
 #include "core-atomic.h"
 #include "core-blocks.h"
