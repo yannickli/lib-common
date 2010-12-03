@@ -136,7 +136,7 @@
 #ifdef __cplusplus
 #  define cast(type, v)    static_cast<type>(v)
 #else
-#  define cast(type, v)    (type)(v)
+#  define cast(type, v)    ((type)(v))
 #endif
 
 #ifdef __SPARSE__
@@ -212,7 +212,7 @@ enum sign {
     POSITIVE = 1,
 };
 
-#define CMP(x, y)     ((enum sign)(((x) > (y)) - ((x) < (y))))
+#define CMP(x, y)     cast(enum sign, ((x) > (y)) - ((x) < (y)))
 #define CMP_LESS      NEGATIVE
 #define CMP_EQUAL     ZERO
 #define CMP_GREATER   POSITIVE
@@ -230,7 +230,7 @@ enum sign {
     ({                                         \
         struct __attribute__((packed)) {       \
             type_t __v;                        \
-        } *__p = (void *)(ptr);                \
+        } *__p = cast(void *, ptr);            \
         __p->__v;                              \
     })
 #define get_unaligned(ptr)  get_unaligned_type(typeof(*(ptr)), ptr)
@@ -239,7 +239,7 @@ enum sign {
     ({                                         \
         struct __attribute__((packed)) {       \
             type_t __v;                        \
-        } *__p = (void *)(ptr);                \
+        } *__p = cast(void *, ptr);            \
         type_t __v = (v);                      \
         __p->__v = __v;                        \
         __p + 1;                               \
@@ -267,20 +267,20 @@ typedef uint16_t __bitwise__ be16_t;
 typedef unsigned char byte;
 typedef unsigned int flag_t;    /* for 1 bit bitfields */
 
-#define fieldsizeof(type_t, m)  sizeof(((type_t *)0)->m)
-#define fieldtypeof(type_t, m)  typeof(((type_t *)0)->m)
-#define countof(table)          ((ssize_t)(sizeof(table) / sizeof((table)[0]) \
-                                           + __must_be_array(table)))
-#define ssizeof(foo)            ((ssize_t)sizeof(foo))
+#define fieldsizeof(type_t, m)  sizeof(cast(type_t *, 0)->m)
+#define fieldtypeof(type_t, m)  typeof(cast(type_t *, 0)->m)
+#define countof(table)          (cast(ssize_t, sizeof(table) / sizeof((table)[0]) \
+                                      + __must_be_array(table)))
+#define ssizeof(foo)            (cast(ssize_t, sizeof(foo)))
 
 #define bitsizeof(type_t)       (sizeof(type_t) * CHAR_BIT)
 #define BITS_TO_ARRAY_LEN(type_t, nbits)  \
     DIV_ROUND_UP(nbits, bitsizeof(type_t))
 
-#define BITMASK_NTH(type_t, n) ( (type_t)1 << ((n) & (bitsizeof(type_t) - 1)))
+#define BITMASK_NTH(type_t, n) ( cast(type_t, 1) << ((n) & (bitsizeof(type_t) - 1)))
 #define BITMASK_LT(type_t, n)  (BITMASK_NTH(type_t, n) - 1)
 #define BITMASK_LE(type_t, n)  ((BITMASK_NTH(type_t, n) << 1) - 1)
-#define BITMASK_GE(type_t, n)  (~(type_t)0 << ((n) & (bitsizeof(type_t) - 1)))
+#define BITMASK_GE(type_t, n)  (~cast(type_t, 0) << ((n) & (bitsizeof(type_t) - 1)))
 #define BITMASK_GT(type_t, n)  (BITMASK_GE(type_t, n) << 1)
 
 #define OP_BIT(bits, n, shift, op) \
@@ -293,11 +293,11 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
 
 #ifdef __GNUC__
 #  define container_of(obj, type_t, member) \
-      ({ const typeof(((type_t *)0)->member) *__mptr = (obj);              \
-         (type_t *)((char *)__mptr - offsetof(type_t, member)); })
+      ({ const typeof(cast(type_t *, 0)->member) *__mptr = (obj);              \
+         cast(type_t *, cast(char *, __mptr) - offsetof(type_t, member)); })
 #else
 #  define container_of(obj, type_t, member) \
-      (type_t *)((char *)(obj) - offsetof(type_t, member))
+      cast(type_t *, cast(char *, (obj) - offsetof(type_t, member)))
 #endif
 
 
