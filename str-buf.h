@@ -63,6 +63,13 @@ typedef struct sb_t {
     int len, size;
     flag_t mem_pool   :  2;
     unsigned int skip : 30;
+#ifdef __cplusplus
+    inline sb_t();
+    inline ~sb_t();
+
+  private:
+    DISALLOW_COPY_AND_ASSIGN(sb_t);
+#endif
 } sb_t;
 
 /* Default byte array for empty strbufs. It should always stay equal to
@@ -116,6 +123,17 @@ void sb_reset(sb_t *sb);
 void sb_wipe(sb_t *sb);
 GENERIC_NEW(sb_t, sb);
 GENERIC_DELETE(sb_t, sb);
+#ifdef __cplusplus
+sb_t::sb_t() :
+    data(__sb_slop),
+    len(0),
+    size(1),
+    mem_pool(MEM_STATIC),
+    skip(0)
+{
+}
+sb_t::~sb_t() { sb_wipe(this); }
+#endif
 
 static inline void sb_wipe_not_needed(sb_t *sb)
 {
