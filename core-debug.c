@@ -31,6 +31,7 @@
 struct trace_spec_t {
     const char *path;
     const char *func;
+    const char *name;
     int level;
 };
 qvector_t(spec, struct trace_spec_t);
@@ -89,23 +90,29 @@ static void e_debug_initialize(void)
 
     /*
      * parses blank separated <specs>
-     * <specs> ::= [<path-pattern>][@<funcname>][:<level>]
+     * <specs> ::= [<path-pattern>][@<funcname>][+<featurename>][:<level>]
      */
     while (*p) {
         struct trace_spec_t spec = {
             .path = NULL,
             .func = NULL,
+            .name = NULL,
             .level = INT_MAX,
         };
         int len;
 
-        len = strcspn(p, "@: \t\r\n\v\f");
+        len = strcspn(p, "@+: \t\r\n\v\f");
         if (len)
             spec.path = p;
         p += len;
         if (*p == '@') {
             *p++ = '\0';
             spec.func = p;
+            p += strcspn(p, "+: \t\r\n\v\f");
+        }
+        if (*p == '+') {
+            *p++ = '\0';
+            spec.name = p;
             p += strcspn(p, ": \t\r\n\v\f");
         }
         if (*p == ':') {
@@ -121,7 +128,8 @@ static void e_debug_initialize(void)
     }
 }
 
-int e_is_traced_(int lvl, const char *modname, const char *func)
+int e_is_traced_(int lvl, const char *modname, const char *func,
+                 const char *name)
 {
     int level = _G.verbosity_level;
 
@@ -134,6 +142,8 @@ int e_is_traced_(int lvl, const char *modname, const char *func)
         if (spec->path && fnmatch(spec->path, modname, FNM_PATHNAME) != 0)
             continue;
         if (spec->func && fnmatch(spec->func, func, 0) != 0)
+            continue;
+        if (spec->name && (name == NULL || fnmatch(spec->name, name, 0) != 0))
             continue;
         level = spec->level;
     }
@@ -169,11 +179,15 @@ static void e_trace_put_normal(int level, const char *module, int lno, const cha
 }
 
 void e_trace_put_(int level, const char *module, int lno,
-                  const char *func, const char *fmt, ...)
+                  const char *func, const char *name, const char *fmt, ...)
 {
     const char *p;
     va_list ap;
 
+    if (name != NULL) {
+        sb_adds(&buf_g, name);
+        sb_adds(&buf_g, ": ");
+    }
     va_start(ap, fmt);
     sb_addvf(&buf_g, fmt, ap);
     va_end(ap);

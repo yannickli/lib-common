@@ -42,49 +42,68 @@ void e_set_handler(e_handler_f *handler);
 
 #ifdef NDEBUG
 
-#  define e_trace(...)           (void)0
-#  define e_trace_hex(...)       (void)0
-#  define e_trace_start(...)     (void)0
-#  define e_trace_cont(...)      (void)0
-#  define e_trace_end(...)       (void)0
+#  define e_trace(...)              (void)0
+#  define e_trace_hex(...)          (void)0
+#  define e_trace_start(...)        (void)0
+#  define e_trace_cont(...)         (void)0
+#  define e_trace_end(...)          (void)0
 
-#  define e_set_verbosity(...)   (void)0
-#  define e_incr_verbosity(...)  (void)0
-#  define e_is_traced(...)       false
+#  define e_named_trace(...)        (void)0
+#  define e_named_trace_hex(...)    (void)0
+#  define e_named_trace_start(...)  (void)0
+#  define e_named_trace_cont(...)   (void)0
+#  define e_named_trace_end(...)    (void)0
+
+#  define e_set_verbosity(...)      (void)0
+#  define e_incr_verbosity(...)     (void)0
+#  define e_is_traced(...)          false
+#  define e_name_is_trace(...)      false
 
 #else
 
 void e_set_verbosity(int max_debug_level);
 void e_incr_verbosity(void);
 
-int  e_is_traced_(int level, const char *fname, const char *func);
+int  e_is_traced_(int level, const char *fname, const char *func,
+                  const char *name);
 
-#define e_is_traced(lvl) \
+#define e_name_is_traced(lvl, name) \
     ({ static int8_t e_traced;                                               \
        if (unlikely(e_traced == 0))                                          \
-           e_traced = e_is_traced_(lvl, __FILE__, __func__);                 \
+           e_traced = e_is_traced_(lvl, __FILE__, __func__, name);           \
        likely(e_traced > 0); })
+#define e_is_traced(lvl)  e_name_is_traced(lvl, NULL)
 
 void e_trace_put_(int lvl, const char *fname, int lno, const char *func,
-                  const char *fmt, ...) __attr_printf__(5, 6);
+                  const char *name, const char *fmt, ...)
+                  __attr_printf__(6, 7);
 
-#define e_trace_start(lvl, fmt, ...)                                         \
+#define e_named_trace_start(lvl, name, fmt, ...) \
     do {                                                                     \
-        if (e_is_traced(lvl))                                                \
+        if (e_name_is_traced(lvl, name))                                     \
             e_trace_put_(lvl, __FILE__, __LINE__, __func__,                  \
-                         fmt, ##__VA_ARGS__);                                \
+                         name, fmt, ##__VA_ARGS__);                          \
     } while (0)
-#define e_trace_cont(lvl, fmt, ...)   e_trace_start(lvl, fmt, ##__VA_ARGS__)
-#define e_trace_end(lvl, fmt, ...)    e_trace_start(lvl, fmt "\n", ##__VA_ARGS__)
-#define e_trace(lvl, fmt, ...)        e_trace_start(lvl, fmt "\n", ##__VA_ARGS__)
-
-#define e_trace_hex(lvl, str, buf, len)                                      \
+#define e_named_trace_cont(lvl, name, fmt, ...) \
+    e_named_trace_start(lvl, name, fmt, ##__VA_ARGS__)
+#define e_named_trace_end(lvl, name, fmt, ...) \
+    e_named_trace_start(lvl, name, fmt "\n", ##__VA_ARGS__)
+#define e_named_trace(lvl, name, fmt, ...) \
+    e_named_trace_start(lvl, name, fmt "\n", ##__VA_ARGS__)
+#define e_named_trace_hex(lvl, name, str, buf, len)                          \
     do {                                                                     \
-        if (e_is_traced(lvl)) {                                              \
+        if (e_name_is_traced(lvl, name)) {                                   \
             e_trace(lvl, "--%s (%d)--\n", str, len);                         \
             ifputs_hex(stderr, buf, len);                                    \
         }                                                                    \
     } while (0)
+
+#define e_trace_start(lvl, fmt, ...)  e_named_trace_start(lvl, NULL, fmt, ##__VA_ARGS__)
+#define e_trace_cont(lvl, fmt, ...)   e_named_trace_cont(lvl, NULL, fmt, ##__VA_ARGS__)
+#define e_trace_end(lvl, fmt, ...)    e_named_trace_end(lvl, NULL, fmt, ##__VA_ARGS__)
+#define e_trace(lvl, fmt, ...)        e_named_trace(lvl, NULL, fmt, ##__VA_ARGS__)
+#define e_trace_hex(lvl, str, buf, len) \
+    e_named_trace_hex(lvl, NULL, str, buf, len)
 
 #endif
 
