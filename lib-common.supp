@@ -1,23 +1,10 @@
 {
-    lib-common/e_trace-1
+    lib-common/e_trace
     Memcheck:Leak
-    fun:calloc
     ...
-    fun:e_trace_put
-}
-{
-    lib-common/e_trace-2
-    Memcheck:Leak
-    fun:malloc
+    fun:strdup
     ...
-    fun:e_trace_put
-}
-{
-    lib-common/e_trace-3
-    Memcheck:Leak
-    fun:realloc
-    ...
-    fun:e_trace_put
+    fun:e_debug_initialize
 }
 
 {

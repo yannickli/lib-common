@@ -50,7 +50,6 @@ void e_set_handler(e_handler_f *handler);
 
 #  define e_set_verbosity(...)   (void)0
 #  define e_incr_verbosity(...)  (void)0
-#  define e_is_traced_real(...)  false
 #  define e_is_traced(...)       false
 
 #else
@@ -58,16 +57,23 @@ void e_set_handler(e_handler_f *handler);
 void e_set_verbosity(int max_debug_level);
 void e_incr_verbosity(void);
 
-bool e_is_traced_real(int level, const char *fname, const char *func);
+int  e_is_traced_(int level, const char *fname, const char *func);
 
-void e_trace_put(int lvl, const char *fname, int lno, const char *func,
-                 const char *fmt, ...)
-                 __attr_printf__(5, 6);
+#define e_is_traced(lvl) \
+    ({ static int8_t e_traced;                                               \
+       if (unlikely(e_traced == 0))                                          \
+           e_traced = e_is_traced_(lvl, __FILE__, __func__);                 \
+       likely(e_traced > 0); })
 
-#define e_is_traced(lvl)              e_is_traced_real(lvl, __FILE__, __func__)
+void e_trace_put_(int lvl, const char *fname, int lno, const char *func,
+                  const char *fmt, ...) __attr_printf__(5, 6);
 
 #define e_trace_start(lvl, fmt, ...)                                         \
-    e_trace_put(lvl, __FILE__, __LINE__, __func__, fmt, ##__VA_ARGS__)
+    do {                                                                     \
+        if (e_is_traced(lvl))                                                \
+            e_trace_put_(lvl, __FILE__, __LINE__, __func__,                  \
+                         fmt, ##__VA_ARGS__);                                \
+    } while (0)
 #define e_trace_cont(lvl, fmt, ...)   e_trace_start(lvl, fmt, ##__VA_ARGS__)
 #define e_trace_end(lvl, fmt, ...)    e_trace_start(lvl, fmt "\n", ##__VA_ARGS__)
 #define e_trace(lvl, fmt, ...)        e_trace_start(lvl, fmt "\n", ##__VA_ARGS__)
