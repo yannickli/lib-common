@@ -147,6 +147,8 @@ static void e_trace_put_fancy(int level, const char *name,
     char escapes[BUFSIZ];
     int len, cols = _G.cols;
 
+    sb_setf(&tmpbuf_g, "%s:%d:%s", module, lno,
+            program_invocation_short_name);
     if (tmpbuf_g.len > cols - 2)
         sb_shrink(&tmpbuf_g, tmpbuf_g.len - cols - 2);
     len = snprintf(escapes, sizeof(escapes), "\r\e[%dC\e[7m ", cols - 2 - tmpbuf_g.len);
