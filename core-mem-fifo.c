@@ -21,7 +21,7 @@ typedef struct mem_page_t {
 
     void *last;           /* last result of an allocation */
 
-    byte area[];
+    byte __attribute__((aligned(8))) area[];
 } mem_page_t;
 
 typedef struct mem_block_t {
@@ -267,6 +267,7 @@ mem_pool_t *mem_fifo_pool_new(int page_size_hint)
 {
     mem_fifo_pool_t *mfp = p_new(mem_fifo_pool_t, 1);
 
+    STATIC_ASSERT((offsetof(mem_page_t, area) % 8) == 0);
     mfp->funcs     = mem_fifo_pool_funcs;
     mfp->page_size = MAX(16 * 4096, ROUND_UP(page_size_hint, 4096));
     mfp->alive     = true;
