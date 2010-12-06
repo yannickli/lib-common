@@ -17,17 +17,6 @@
 #include "container.h"
 #include "unix.h"
 
-/*
- * The debug module uses a brutally-memoize-answers approach.
- *
- *   (1) There aren't that many [__FILE__,__func__] pairs,
- *   (2) Those points into our binary that is less than gigabyte big.
- *
- *   Hence the lower 32bits from the __FILE__ string and the lower 32 bits
- *   from the __func__ one combined are a unique id we can use in a hashtable,
- *   to remember the answer we previously gave.
- */
-
 struct trace_spec_t {
     const char *path;
     const char *func;
@@ -152,13 +141,12 @@ int e_is_traced_(int lvl, const char *modname, const char *func,
     return 1;
 }
 
-static void e_trace_put_fancy(int level, const char *module, int lno, const char *func)
+static void e_trace_put_fancy(int level, const char *name,
+                              const char *module, int lno, const char *func)
 {
     char escapes[BUFSIZ];
     int len, cols = _G.cols;
 
-    sb_setf(&tmpbuf_g, "%s:%d:%s", module, lno,
-            program_invocation_short_name);
     if (tmpbuf_g.len > cols - 2)
         sb_shrink(&tmpbuf_g, tmpbuf_g.len - cols - 2);
     len = snprintf(escapes, sizeof(escapes), "\r\e[%dC\e[7m ", cols - 2 - tmpbuf_g.len);
@@ -171,11 +159,18 @@ static void e_trace_put_fancy(int level, const char *module, int lno, const char
     } else {
         sb_addf(&tmpbuf_g, "\e[33m%*pM...\e[0m ", FUN_WIDTH - 3, func);
     }
+    if (name)
+        sb_addf(&tmpbuf_g, "\e[1;30m{%s}\e[0m ", name);
 }
 
-static void e_trace_put_normal(int level, const char *module, int lno, const char *func)
+static void e_trace_put_normal(int level, const char *name,
+                               const char *module, int lno, const char *func)
 {
-    sb_setf(&tmpbuf_g, "%d %s:%d:%s: ", level, module, lno, func);
+    if (name) {
+        sb_setf(&tmpbuf_g, "%d %s:%d:%s:{%s} ", level, module, lno, func, name);
+    } else {
+        sb_setf(&tmpbuf_g, "%d %s:%d:%s: ", level, module, lno, func);
+    }
 }
 
 void e_trace_put_(int level, const char *module, int lno,
@@ -184,19 +179,15 @@ void e_trace_put_(int level, const char *module, int lno,
     const char *p;
     va_list ap;
 
-    if (name != NULL) {
-        sb_adds(&buf_g, name);
-        sb_adds(&buf_g, ": ");
-    }
     va_start(ap, fmt);
     sb_addvf(&buf_g, fmt, ap);
     va_end(ap);
 
     while ((p = memchr(buf_g.data, '\n', buf_g.len))) {
         if (_G.fancy) {
-            e_trace_put_fancy(level, module, lno, func);
+            e_trace_put_fancy(level, name, module, lno, func);
         } else {
-            e_trace_put_normal(level, module, lno, func);
+            e_trace_put_normal(level, name, module, lno, func);
         }
         sb_add(&tmpbuf_g, buf_g.data, p + 1 - buf_g.data);
         sb_skip_upto(&buf_g, p + 1);
