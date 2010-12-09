@@ -28,63 +28,49 @@
  */
 int mkdir_p(const char *dir, mode_t mode)
 {
-    char *p;
-    struct stat buf;
-    char dir2[PATH_MAX];
-    bool needmkdir = false;
+    char path[PATH_MAX], *p;
+    int atoms = 0;
 
-    if (strlen(dir) + 1 > PATH_MAX) {
-        return -1;
-    }
-    pstrcpy(dir2, sizeof(dir2), dir);
+    pstrcpy(path, sizeof(path), dir);
+    path_simplify(path);
+    p = path + strlen(path);
 
-    /* Creating "/a/b/c/d" where "/a/b" exists but not "/a/b/c".
-     * First find that "/a/b" exists, replacing slashes by \0 (see below)
-     */
-    while (stat(dir2, &buf) != 0) {
-        if (errno != ENOENT) {
+    for (;;) {
+        struct stat st;
+
+        p = memrchr(path, '/', p - path) ?: path;
+        if (stat(path, &st) == 0) {
+            if (S_ISDIR(st.st_mode)) {
+                if (atoms == 0)
+                    return 0;
+                break;
+            }
+            errno = ENOTDIR;
             return -1;
         }
-        needmkdir = true;
-        p = strrchr(dir2, '/');
-        if (p == NULL) {
-            goto creation;
-        }
-        /* OG: should check if p == dir2 */
+        if (errno != ENOENT)
+            return -1;
+        atoms++;
+        if (p == path)
+            break;
         *p = '\0';
     }
-    if (!S_ISDIR(buf.st_mode)) {
-        errno = ENOTDIR;
-        return -1;
-    }
-    if (!needmkdir) {
-        /* Directory already exists */
-        return 0;
-    }
 
-  creation:
-    /* Then, create /a/b/c and /a/b/c/d : we just have to put '/' where
-     * we put \0 in the previous loop. */
+    assert (atoms);
     for (;;) {
-        if (mkdir(dir2, mode) != 0) {
+        int res = 1;
 
-            /* if dir = "/a/../b", then we do a mkdir("/a/..") => EEXIST,
-             * but we want to continue walking the path to create /b !
-             */
-            if (errno != EEXIST) {
-                // XXX: We might have created only a part of the
-                // path, and fail now...
+        if (mkdir(path, mode) < 0) {
+            if (errno != EEXIST)
                 return -1;
-            }
+            res = 0;
         }
-        if (!strcmp(dir, dir2)) {
-            break;
-        }
-        p = dir2 + strlen(dir2);
-        *p = '/';
+        if (--atoms == 0)
+            return res;
+        if (p > path)
+            *p = '/';
+        p += strlen(p);
     }
-
-    return 1;
 }
 
 /** Retrieve time of last modification
