@@ -28,10 +28,10 @@
  */
 int mkdir_p(const char *dir, mode_t mode)
 {
-    char path[PATH_MAX], *p;
-    int atoms = 0;
+    char path[PATH_MAX + 1], *p;
+    int atoms = 0, res;
 
-    pstrcpy(path, sizeof(path), dir);
+    pstrcpy(path, sizeof(path) - 1, dir);
     path_simplify(path);
     p = path + strlen(path);
 
@@ -52,25 +52,49 @@ int mkdir_p(const char *dir, mode_t mode)
             return -1;
         atoms++;
         if (p == path)
-            break;
+            goto make_everything;
         *p = '\0';
     }
 
     assert (atoms);
     for (;;) {
-        int res = 1;
-
+        p += strlen(p);
+        *p = '/';
+      make_everything:
         if (mkdir(path, mode) < 0) {
             if (errno != EEXIST)
                 return -1;
             res = 0;
+        } else {
+            res = 1;
         }
         if (--atoms == 0)
             return res;
-        if (p > path)
-            *p = '/';
-        p += strlen(p);
     }
+}
+
+TEST_DECL("unix: mkdir_p", 0)
+{
+    int res;
+    struct stat st;
+    const char *absdir = "/tmp/mkdir_p";
+    const char *reldir = "tst/toto";
+
+    rmdir(absdir);
+    res = mkdir_p(absdir, 0755);
+    TEST_FAIL_IF(res != 1, "check mkdir_p(%s)", absdir);
+    TEST_FAIL_IF(stat(absdir, &st) < 0 || !S_ISDIR(st.st_mode),
+                 "%s not really made", absdir);
+    rmdir(absdir);
+
+    res = mkdir_p(reldir, 0755);
+    TEST_FAIL_IF(res != 1, "check mkdir_p(%s)", reldir);
+    TEST_FAIL_IF(stat(reldir, &st) < 0 || !S_ISDIR(st.st_mode),
+                 "%s not really made", reldir);
+    rmdir(reldir);
+    rmdir("tst");
+
+    TEST_DONE();
 }
 
 /** Retrieve time of last modification
