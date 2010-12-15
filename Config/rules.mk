@@ -7,11 +7,11 @@ tmp/$2/toks_h := $(patsubst %.tokens,%tokens.h,$3)
 tmp/$2/toks_c := $(patsubst %.tokens,%tokens.c,$3)
 
 $$(tmp/$2/toks_h): %tokens.h: %.tokens $(var/cfgdir)/_tokens.sh
-	$(msg/generate) $$(@R)
+	$(msg/generate) $$(<R)
 	cd $$(<D) && $(var/cfgdir)/_tokens.sh $$(<F) $$(@F) || ($(RM) $$(@F) && exit 1)
 
 $$(tmp/$2/toks_c): %tokens.c: %.tokens %tokens.h $(var/cfgdir)/_tokens.sh
-	$(msg/generate) $$(@R)
+	$(msg/generate) $$(<R)
 	cd $$(<D) && $(var/cfgdir)/_tokens.sh $$(<F) $$(@F) || ($(RM) $$(@F) && exit 1)
 
 __$(1D)_generated: $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
@@ -31,7 +31,7 @@ ext/gen/perf = $(call fun/patsubst-filt,%.perf,%.c,$1)
 define ext/expand/perf
 
 $(3:.perf=.c): %.c: %.perf
-	$(msg/generate) $$(@R)
+	$(msg/generate) $$(<R)
 	gperf --language=ANSI-C --output-file=$$@ $$<
 
 __$(1D)_generated: $(3:.perf=.c)
@@ -73,7 +73,7 @@ ext/gen/farch = $(call fun/patsubst-filt,%.farch,%farch.h,$1) $(call fun/patsubs
 define ext/rule/farch
 $(3:.farch=farch.c): %farch.c: %farch.h
 $(3:.farch=farch.h): %farch.h: %.farch
-	$(msg/generate) $$(@R)
+	$(msg/generate) $$(<R)
 	cd $$(@D) && buildfarch -r $(1D)/ -d $!$$@.dep -n $$(*F) `cat $$(<F)`
 
 $$(eval $$(call ext/rule/c,$1,$2,$(3:.farch=farch.c),$4))
@@ -88,7 +88,7 @@ ext/gen/fc = $(call fun/patsubst-filt,%.fc,%.fc.c,$1)
 
 define ext/rule/fc
 $(3:=.c): %.fc.c: %.fc
-	$(msg/generate) $$(@R)
+	$(msg/generate) $$(<R)
 	farchc -d $~$$@.dep -o $$@ $$<
 __$(1D)_generated: $(3:=.c)
 -include $$(patsubst %,$~%.c.dep,$3)
@@ -122,7 +122,7 @@ ext/gen/blk = $(call fun/patsubst-filt,%.blk,%.c,$1)
 
 define ext/expand/blk
 $(3:blk=c): %.c: %.blk $(shell which clang)
-	$(msg/generate) $$(@R)
+	$(msg/COMPILE) " BLK" $$(<R)
 	$(RM) $$@
 	clang -cc1 $$(CLANGFLAGS) \
 	    $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$*.c_CFLAGS) \

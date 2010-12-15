@@ -90,7 +90,7 @@ ext/gen/l = $(call fun/patsubst-filt,%.l,%.c,$1)
 
 define ext/expand/l
 $(3:l=c): %.c: %.l
-	$(msg/COMPILE.l) $$(@R)
+	$(msg/COMPILE.l) $$(<R)
 	$(RM) $$@
 	flex -R -o $$@ $$<
 	sed -i -e 's/^extern int isatty.*;//' \
