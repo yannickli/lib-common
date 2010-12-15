@@ -57,7 +57,7 @@ void e_set_handler(e_handler_f *handler);
 #  define e_set_verbosity(...)      (void)0
 #  define e_incr_verbosity(...)     (void)0
 #  define e_is_traced(...)          false
-#  define e_name_is_trace(...)      false
+#  define e_name_is_traced(...)     false
 
 #else
 
