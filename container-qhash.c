@@ -159,12 +159,13 @@ uint32_t qhash_scan(const qhash_t *qh, uint32_t pos)
             if (likely(word)) {
                 pos += bsfsz(word);
                 /* test for guard bit */
-                if (pos == minsize)
+                if (pos >= minsize)
                     break;
                 return pos / 2;
             }
             pos += bitsizeof(size_t);
         }
+        pos = minsize;
     }
 
     for (;;) {
@@ -174,7 +175,7 @@ uint32_t qhash_scan(const qhash_t *qh, uint32_t pos)
         pos  &= -bitsizeof(size_t);
         if (likely(word)) {
             pos += bsfsz(word);
-            if (pos == maxsize)
+            if (pos >= maxsize)
                 return UINT32_MAX;
             return pos / 2;
         }
