@@ -538,7 +538,7 @@ static void *remap(void *ptr, size_t old_n, uint32_t old_seg,
         } else {
             next->flags &= ~BLK_PREV_FREE;
         }
-        blk_setup_backptrs(blk, BLK_PREV_USED, new_n);
+        blk_setup_backptrs(blk, (blk->flags & BLK_PREV_FREE), new_n);
         spin_unlock(&_G.lock);
 
         if (zero) {
