@@ -483,9 +483,9 @@ void *tlsf_realloc(mem_pool_t *_mp, void *ptr,
             split = blk_next(blk, newsize);
             blk_insert(mp, split, tsize - BLK_OVERHEAD - newsize);
             blk_set_prev(next, split);
-            blk->flags = newsize;
+            blk->flags = newsize | (blk->flags & BLK_PREV_FREE);
         } else {
-            blk->flags = tsize;
+            blk->flags = tsize | (blk->flags & BLK_PREV_FREE);
             next->flags &= ~BLK_PREV_FREE;
         }
         blk->asked = asked;
