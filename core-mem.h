@@ -406,7 +406,7 @@ static inline void *mp_strdup(mem_pool_t *mp, const char *src)
     static inline DO_MP_DELETE(mp, type, prefix)
 
 /*----- core-mem-debug.c -----*/
-mem_pool_t mem_pool_malloc;
+extern mem_pool_t mem_pool_malloc;
 
 /*----- core-mem-fifo.c -----*/
 mem_pool_t *mem_fifo_pool_new(int page_size_hint);
