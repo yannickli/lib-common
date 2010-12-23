@@ -152,22 +152,24 @@ uint32_t qhash_scan(const qhash_t *qh, uint32_t pos)
             maxbits = old->bits;
         }
 
-        while (pos < minsize) {
-            size_t word = minbits[pos / bitsizeof(size_t)]
-                        | maxbits[pos / bitsizeof(size_t)];
+        if (pos < minsize) {
+            do {
+                size_t word = minbits[pos / bitsizeof(size_t)]
+                    | maxbits[pos / bitsizeof(size_t)];
 
-            word &= (QH_SETBITS_MASK << (pos % bitsizeof(size_t)));
-            pos  &= -bitsizeof(size_t);
-            if (likely(word)) {
-                pos += bsfsz(word);
-                /* test for guard bit */
-                if (pos >= minsize)
-                    break;
-                return pos / 2;
-            }
-            pos += bitsizeof(size_t);
+                word &= (QH_SETBITS_MASK << (pos % bitsizeof(size_t)));
+                pos  &= -bitsizeof(size_t);
+                if (likely(word)) {
+                    pos += bsfsz(word);
+                    /* test for guard bit */
+                    if (pos >= minsize)
+                        break;
+                    return pos / 2;
+                }
+                pos += bitsizeof(size_t);
+            } while (pos < minsize);
+            pos = minsize;
         }
-        pos = minsize;
     }
 
     for (;;) {
