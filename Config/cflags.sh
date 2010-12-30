@@ -125,7 +125,6 @@ fi
 if is_cpp; then
     echo -Wnon-virtual-dtor
     echo -Weffc++
-    echo -Wold-style-cast
     echo -Woverloaded-virtual
 fi
 
