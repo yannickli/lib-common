@@ -14,6 +14,12 @@
 #ifndef IS_LIB_COMMON_CORE_H
 #define IS_LIB_COMMON_CORE_H
 
+#ifndef __STDC_LIMIT_MACROS
+#define __STDC_LIMIT_MACROS 1
+#endif
+#ifndef __STDC_CONSTANT_MACROS
+#define __STDC_CONSTANT_MACROS 1
+#endif
 #include <Block.h>
 #include <alloca.h>
 #include <assert.h>
@@ -48,7 +54,13 @@
 #define IPRINTF_HIDE_STDIO 1
 #include "core-os-features.h"
 #include "core-macros.h"
+#ifdef __cplusplus
+}
+#endif
 #include "core-macros++.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "core-test.h"
 #include "core-atomic.h"
 #include "core-blocks.h"

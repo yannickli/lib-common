@@ -36,11 +36,13 @@ static inline void arith_float_assumptions(void) {
 }
 
 static inline uint32_t float_bits_(float x) {
-    union { float x; uint32_t u32; } u = { .x = x };
+    union { float x; uint32_t u32; } u;
+    u.x = x;
     return u.u32;
 }
 static inline uint64_t double_bits_(double x) {
-    union { double x; uint64_t u64; } u = { .x = x };
+    union { double x; uint64_t u64; } u;
+    u.x = x;
     return u.u64;
 }
 

@@ -227,22 +227,22 @@ static inline void *put_unaligned_be48(void *p, uint64_t x) {
 }
 
 static inline uint32_t get_unaligned_le24(const void *p) {
-    const uint8_t *p8 = p;
+    const uint8_t *p8 = cast(const uint8_t *, p);
     return get_unaligned_le16(p8) | (p8[2] << 16);
 }
 
 static inline uint32_t get_unaligned_be24(const void *p) {
-    const uint8_t *p8 = p;
+    const uint8_t *p8 = cast(const uint8_t *, p);
     return get_unaligned_be16(p8 + 1) | (p8[0] << 16);
 }
 
 static inline uint64_t get_unaligned_le48(const void *p) {
-    const uint8_t *p8 = p;
+    const uint8_t *p8 = cast(const uint8_t *, p);
     return get_unaligned_le32(p8) | ((uint64_t)get_unaligned_le16(p8 + 4) << 32);
 }
 
 static inline uint64_t get_unaligned_be48(const void *p) {
-    const uint8_t *p8 = p;
+    const uint8_t *p8 = cast(const uint8_t *, p);
     return get_unaligned_be32(p8 + 2) | ((uint64_t)get_unaligned_be16(p) << 32);
 }
 

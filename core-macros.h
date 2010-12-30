@@ -84,6 +84,18 @@
 #  define NEVER_INLINE __attribute__((noinline))
 #endif
 
+#ifdef __GNUC__
+#  define likely(expr)    __builtin_expect(!!(expr), 1)
+#  define unlikely(expr)  __builtin_expect((expr), 0)
+#  define prefetch(addr)   __builtin_prefetch(addr)
+#  define prefetchw(addr)  __builtin_prefetch(addr, 1)
+#else
+#  define likely(expr)    expr
+#  define unlikely(expr)  expr
+#  define prefetch(addr)  (void)0
+#  define prefetchw(addr) (void)0
+#endif
+
 
 /** \def STATIC_ASSERT
  * \brief Check a condition at build time.
@@ -91,6 +103,7 @@
  * \safemacro
  *
  */
+#ifndef __cplusplus
 #ifdef __GNUC__
 #  define __error__(msg)          (void)({__asm__(".error \""msg"\"");})
 #  define STATIC_ASSERT(cond) \
@@ -98,18 +111,11 @@
                             __error__("static assertion failed: "#cond""))
 #  define ASSERT_COMPATIBLE(e1, e2) \
     STATIC_ASSERT(__builtin_types_compatible_p(typeof(e1), typeof(e2)))
-#  define likely(expr)    __builtin_expect(!!(expr), 1)
-#  define unlikely(expr)  __builtin_expect((expr), 0)
-#  define prefetch(addr)   __builtin_prefetch(addr)
-#  define prefetchw(addr)  __builtin_prefetch(addr, 1)
 #else
 #  define __error__(msg)            0
 #  define STATIC_ASSERT(condition)  ((void)sizeof(char[1 - 2 * !(condition)]))
 #  define ASSERT_COMPATIBLE(e1, e2)
-#  define likely(expr)    expr
-#  define unlikely(expr)  expr
-#  define prefetch(addr)  (void)0
-#  define prefetchw(addr) (void)0
+#endif
 #endif
 
 /** \brief Forcefully ignore the value of an expression.
@@ -133,8 +139,8 @@
 #undef __releases
 #undef __needlock
 
-#ifdef __cplusplus
-#  define cast(type, v)    static_cast<type>(v)
+#if 0 && defined(__cplusplus)
+#  define cast(type, v)    reinterpret_cast<type>(v)
 #else
 #  define cast(type, v)    ((type)(v))
 #endif
@@ -147,7 +153,7 @@
 #  define __needlock(x)  __attribute__((context(x, 1, 1)))
 #else
 #  define __bitwise__
-#  define force_cast(type, expr)    cast(type, expr)
+#  define force_cast(type, expr)    (expr)
 #  define __acquires(x)
 #  define __releases(x)
 #  define __needlock(x)
@@ -230,7 +236,8 @@ enum sign {
     ({                                         \
         struct __attribute__((packed)) {       \
             type_t __v;                        \
-        } *__p = cast(void *, ptr);            \
+        } const *__p;                          \
+        __p = cast(typeof(__p), ptr);          \
         __p->__v;                              \
     })
 #define get_unaligned(ptr)  get_unaligned_type(typeof(*(ptr)), ptr)
@@ -239,8 +246,9 @@ enum sign {
     ({                                         \
         struct __attribute__((packed)) {       \
             type_t __v;                        \
-        } *__p = cast(void *, ptr);            \
+        } *__p;                                \
         type_t __v = (v);                      \
+        __p = cast(typeof(__p), ptr);          \
         __p->__v = __v;                        \
         __p + 1;                               \
     })

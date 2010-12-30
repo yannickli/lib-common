@@ -35,4 +35,19 @@
   TypeName();                                    \
   DISALLOW_COPY_AND_ASSIGN(TypeName)
 
+namespace i {
+    template <bool b> class StaticAssert {
+      public:
+        StaticAssert() { }
+    };
+
+    template <> class StaticAssert<false> {
+      private:
+        StaticAssert();
+    };
+};
+
+#define STATIC_ASSERT(cond)  { i::StaticAssert<cond> __stat_assert; }
+
 #endif
+

@@ -36,10 +36,11 @@ static inline qvector_t *
 __qvector_init(qvector_t *vec, void *buf, int blen, int bsize, int mem_pool)
 {
     *vec = (qvector_t){
-        .tab      = buf,
-        .len      = blen,
-        .size     = bsize,
-        .mem_pool = mem_pool,
+        cast(uint8_t *, buf),
+        blen,
+        bsize,
+        mem_pool,
+        0,
     };
     return vec;
 }
@@ -94,7 +95,7 @@ static inline void *
 qvector_splice(qvector_t *vec, size_t v_size,
                int pos, int len, const void *tab, int dlen)
 {
-    char *res;
+    void *res;
 
     assert (pos >= 0 && len >= 0 && dlen >= 0);
     assert ((unsigned)pos <= (unsigned)vec->len);
@@ -140,7 +141,8 @@ qvector_splice(qvector_t *vec, size_t v_size,
                                                                             \
     static inline val_t *                                                   \
     __##pfx##_splice(pfx##_t *vec, int pos, int len, int dlen) {            \
-        return __qvector_splice(&vec->qv, sizeof(val_t), pos, len, dlen);   \
+        return (val_t *)__qvector_splice(&vec->qv, sizeof(val_t),           \
+                                         pos, len, dlen);                   \
     }                                                                       \
     static inline void pfx##_clip(pfx##_t *vec, int at) {                   \
         assert (0 <= at && at <= vec->len);                                 \
@@ -153,13 +155,17 @@ qvector_splice(qvector_t *vec, size_t v_size,
     static inline val_t *                                                   \
     pfx##_splice(pfx##_t *vec, int pos, int len,                            \
                  const val_t *tab, int dlen) {                              \
-        return qvector_splice(&vec->qv, sizeof(val_t), pos, len, tab, dlen);\
+        void *res = qvector_splice(&vec->qv, sizeof(val_t), pos, len,       \
+                                   tab, dlen);                              \
+        return cast(val_t *, res);                                          \
     }                                                                       \
     static inline val_t *pfx##_grow(pfx##_t *vec, int extra) {              \
-        return qvector_grow(&vec->qv, sizeof(val_t), extra);                \
+        void *res = qvector_grow(&vec->qv, sizeof(val_t), extra);           \
+        return cast(val_t *, res);                                          \
     }                                                                       \
     static inline val_t *pfx##_growlen(pfx##_t *vec, int extra) {           \
-        return qvector_growlen(&vec->qv, sizeof(val_t), extra);             \
+        void *res = qvector_growlen(&vec->qv, sizeof(val_t), extra);        \
+        return cast(val_t *, res);                                          \
     }                                                                       \
     static inline void                                                      \
     pfx##_sort_do_not_use_directly(pfx##_t *vec,                            \
@@ -236,8 +242,10 @@ qvector_t(u64,    uint64_t);
 qvector_t(void,   void *);
 qvector_t(double, double);
 qvector_t(str,    char *);
+#ifndef __cplusplus
 qvector_t(lstr,   lstr_t);
 qvector_t(clstr,  clstr_t);
+#endif
 
 qvector_const_t(cvoid,  void *);
 qvector_const_t(cstr,   char *);
