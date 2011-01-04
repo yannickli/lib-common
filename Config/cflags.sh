@@ -123,6 +123,8 @@ if ! is_cpp; then
 fi
 
 if is_cpp; then
+    echo -fno-exceptions
+    echo -fno-rtti
     echo -Wnon-virtual-dtor
     echo -Weffc++
     echo -Woverloaded-virtual
