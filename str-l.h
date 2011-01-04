@@ -26,7 +26,7 @@ typedef struct clstr_t {
     int         len;
 } clstr_t;
 
-#define LSTR_INIT(s_, len_)   { .s = (s_), .len = (len_) }
+#define LSTR_INIT(s_, len_)   { (s_), (len_) }
 #define LSTR_INIT_V(s, len)   (lstr_t)LSTR_INIT(s, len)
 #define LSTR_IMMED(str)       LSTR_INIT(str, sizeof(str) - 1)
 #define LSTR_IMMED_V(str)     LSTR_INIT_V(str, sizeof(str) - 1)
@@ -36,12 +36,12 @@ typedef struct clstr_t {
 #define LSTR_SB(sb)           LSTR_INIT((sb)->data, (sb)->len)
 #define LSTR_SB_V(sb)         LSTR_INIT_V((sb)->data, (sb)->len)
 
-#define T_LSTR_DUP(str, len)  ({ int __len = (len); LSTR_INIT_V(t_dupz(str, __len), __len); })
+#define T_LSTR_DUP(str, len)  ({ int __len = (len); LSTR_INIT_V(cast(char *, t_dupz(str, __len)), __len); })
 #define T_LSTR_DUP2(str)      ({ const char *__s = (str); T_LSTR_DUP(__s, strlen(__s)); })
 
 static inline lstr_t lstr_dup(const void *s, int len)
 {
-    return LSTR_INIT_V(p_dupz(s, len), len);
+    return LSTR_INIT_V(cast(char *, p_dupz(s, len)), len);
 }
 
 static inline lstr_t t_lstr_dup(const void *s, int len)
@@ -51,7 +51,7 @@ static inline lstr_t t_lstr_dup(const void *s, int len)
 
 static inline lstr_t mp_lstr_dup(mem_pool_t *mp, const void *s, int len)
 {
-    return LSTR_INIT_V(mp_dupz(mp, s, len), len);
+    return LSTR_INIT_V(cast(char *, mp_dupz(mp, s, len)), len);
 }
 
 static inline void lstr_wipe(lstr_t *s)
@@ -66,7 +66,7 @@ static inline void mp_lstr_wipe(mem_pool_t *mp, lstr_t *s)
     s->len = 0;
 }
 
-#define CLSTR_INIT(s_, len_)  { .s = (s_), .len = (len_) }
+#define CLSTR_INIT(s_, len_)  { (s_), (len_) }
 #define CLSTR_INIT_V(s, len)  (clstr_t)CLSTR_INIT(s, len)
 #define CLSTR_IMMED(str)      CLSTR_INIT(str, sizeof(str) - 1)
 #define CLSTR_IMMED_V(str)    CLSTR_INIT_V(str, sizeof(str) - 1)
@@ -78,7 +78,7 @@ static inline void mp_lstr_wipe(mem_pool_t *mp, lstr_t *s)
 #define CLSTR_SB(sb)          CLSTR_INIT((sb)->data, (sb)->len)
 #define CLSTR_SB_V(sb)        CLSTR_INIT_V((sb)->data, (sb)->len)
 
-#define T_CLSTR_DUP(str, len) ({ int __len = (len); CLSTR_INIT_V(t_dupz(str, __len), __len); })
+#define T_CLSTR_DUP(str, len) ({ int __len = (len); CLSTR_INIT_V(cast(const char *, t_dupz(str, __len)), __len); })
 #define T_CLSTR_DUP2(str)     ({ const char *__s = (str); T_CLSTR_DUP(__s, strlen(__s)); })
 
 static inline clstr_t t_clstr_dup(const clstr_t s)
