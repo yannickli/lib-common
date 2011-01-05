@@ -86,13 +86,18 @@ endef
 
 ext/gen/fc = $(call fun/patsubst-filt,%.fc,%.fc.c,$1)
 
-define ext/rule/fc
+define ext/expand/fc
 $(3:=.c): %.fc.c: %.fc
 	$(msg/generate) $$(<R)
 	farchc -d $~$$@.dep -o $$@ $$<
 __$(1D)_generated: $(3:=.c)
 -include $$(patsubst %,$~%.c.dep,$3)
 $$(eval $$(call fun/common-depends,$1,$(3:=.c),$3))
+endef
+
+define ext/rule/fc
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/fc,$1,$2,$$t,$4))))
+$$(eval $$(call ext/rule/c,$1,$2,$(3:=.c),$4))
 endef
 
 #}}}
