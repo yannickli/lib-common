@@ -171,15 +171,29 @@ char *sb_detach(sb_t *sb, int *len);
 
 int  __sb_rewind_adds(sb_t *sb, const sb_t *orig);
 void __sb_grow(sb_t *sb, int extra);
+void __sb_optimize(sb_t *sb);
 static inline void __sb_fixlen(sb_t *sb, int len)
 {
     sb->len = len;
     sb->data[sb->len] = '\0';
 }
+
+static inline void sb_optimize(sb_t *sb)
+{
+    size_t size = sb->size + sb->skip;
+    size_t len  = sb->len + 1;
+
+    if (unlikely(size > BUFSIZ && len * 3 < size * 4))
+        __sb_optimize(sb);
+}
+
 static inline char *sb_grow(sb_t *sb, int extra)
 {
-    if (sb->len + extra >= sb->size)
+    if (sb->len + extra >= sb->size) {
         __sb_grow(sb, extra);
+    } else {
+        sb_optimize(sb);
+    }
     return sb_end(sb);
 }
 static inline char *sb_growlen(sb_t *sb, int extra)
