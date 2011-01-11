@@ -97,12 +97,12 @@ static void sb_destroy_skip(sb_t *sb)
     sb->skip  = 0;
 }
 
-void __sb_optimize(sb_t *sb)
+void __sb_optimize(sb_t *sb, size_t len)
 {
-    size_t sz = p_alloc_nr(sb->len + 1);
+    size_t sz = p_alloc_nr(len + 1);
     char *buf;
 
-    if (sb->len == 0) {
+    if (len == 0) {
         sb_reset(sb);
         return;
     }
@@ -176,7 +176,7 @@ char *__sb_splice(sb_t *sb, int pos, int len, int dlen)
         p_move2(sb->data, pos + dlen, pos + len, sb->len - pos - len);
         __sb_fixlen(sb, sb->len + dlen - len);
     }
-    sb_optimize(sb);
+    sb_optimize(sb, 0);
     return sb->data + pos;
 }
 
