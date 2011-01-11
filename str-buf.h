@@ -183,7 +183,7 @@ static inline void sb_optimize(sb_t *sb, size_t extra)
     size_t size = sb->size + sb->skip;
     size_t len  = sb->len + 1;
 
-    if (unlikely(size > BUFSIZ && len + extra < size * 8))
+    if (unlikely(size > BUFSIZ && (len + extra) * 8 < size))
         __sb_optimize(sb, len + extra);
 }
 
