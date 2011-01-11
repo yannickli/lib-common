@@ -230,20 +230,22 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
     } else
     /* optimization if it's the last block allocated */
     if (mem == page->last
-    && size + ssizeof(*blk) - blk->blk_size <= mem_page_size_left(page))
+    && sizeof(*blk) + size <= mem_page_size_left(page) + blk->blk_size)
     {
+        ssize_t diff;
+
         size = ROUND_UP((size_t)size, 8);
-        blk->blk_size   += size;
+        diff = size - blk->blk_size;
+        blk->blk_size    = size;
         blk_protect(blk);
 
-        mfp->occupied   += size;
-        page->used_size += size;
+        mfp->occupied   += diff;
+        page->used_size += diff;
         VALGRIND_FREELIKE_BLOCK(mem, 0);
         VALGRIND_MEMPOOL_CHANGE(page, mem, mem, size);
         VALGRIND_MALLOCLIKE_BLOCK(mem, size, 0, false);
     } else {
         void *old = mem;
-
 
         mem = mfp_alloc(_mfp, size, flags);
         memcpy(mem, old, oldsize);
