@@ -45,8 +45,10 @@ __qvector_init(qvector_t *vec, void *buf, int blen, int bsize, int mem_pool)
     return vec;
 }
 
+void  qvector_reset(qvector_t *vec, size_t v_size);
 void  qvector_wipe(qvector_t *vec, size_t v_size);
 void  __qvector_grow(qvector_t *, size_t v_size, int extra);
+void  __qvector_optimize(qvector_t *, size_t v_size, size_t len);
 void *__qvector_splice(qvector_t *, size_t v_size, int pos, int len, int dlen);
 void __qv_sort32(void *a, size_t n, qvector_cmp_f cmp);
 void __qv_sort64(void *a, size_t n, qvector_cmp_f cmp);
@@ -65,18 +67,24 @@ __qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_f cmp)
     }
 }
 
-static inline void qvector_reset(qvector_t *vec, size_t v_size)
+
+static inline void
+qvector_optimize(qvector_t *vec, size_t v_size, size_t extra)
 {
-    vec->size += vec->skip;
-    vec->tab  += vec->skip * v_size;
-    vec->skip  = 0;
-    vec->len   = 0;
+    size_t size = vec->size + vec->skip;
+    size_t len  = vec->len;
+
+    if (unlikely(size * v_size > BUFSIZ && (len + extra) * 8 < size))
+        __qvector_optimize(vec, v_size, len + extra);
 }
 
 static inline void *qvector_grow(qvector_t *vec, size_t v_size, int extra)
 {
-    if (vec->len + extra > vec->size)
+    if (vec->len + extra > vec->size) {
         __qvector_grow(vec, v_size, extra);
+    } else {
+        qvector_optimize(vec, v_size, extra);
+    }
     return vec->tab + vec->len * v_size;
 }
 

@@ -13,6 +13,19 @@
 
 #include "container.h"
 
+void qvector_reset(qvector_t *vec, size_t v_size)
+{
+    size_t sz = vec->size + vec->skip;
+
+    if (vec->mem_pool == MEM_LIBC && sz * v_size > (128 << 10)) {
+        libc_free(vec->tab - vec->skip * v_size, 0);
+        p_clear(vec, 1);
+    } else {
+        __qvector_init(vec, vec->tab - vec->skip * v_size,
+                       0, sz, vec->mem_pool);
+    }
+}
+
 void qvector_wipe(qvector_t *vec, size_t v_size)
 {
     switch (vec->mem_pool & MEM_POOL_MASK) {
@@ -77,6 +90,23 @@ void __qvector_grow(qvector_t *vec, size_t v_size, int extra)
     }
 }
 
+void __qvector_optimize(qvector_t *vec, size_t v_size, size_t len)
+{
+    size_t sz = p_alloc_nr(len);
+    char *buf;
+
+    if (len == 0) {
+        qvector_reset(vec, v_size);
+        return;
+    }
+    if (vec->mem_pool != MEM_LIBC)
+        return;
+    buf = p_new_raw(char, sz * v_size);
+    memcpy(buf, vec->tab, vec->len * v_size);
+    libc_free(vec->tab - vec->skip, 0);
+    __qvector_init(vec, buf, vec->len, sz, MEM_LIBC);
+}
+
 void *__qvector_splice(qvector_t *vec, size_t v_size, int pos, int len, int dlen)
 {
     assert (pos >= 0 && len >= 0 && dlen >= 0);
@@ -99,6 +129,7 @@ void *__qvector_splice(qvector_t *vec, size_t v_size, int pos, int len, int dlen
                 v_size * (vec->len - pos - len));
     }
     vec->len += dlen - len;
+    qvector_optimize(vec, v_size, 0);
     return vec->tab + pos * v_size;
 }
 
