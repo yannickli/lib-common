@@ -19,9 +19,7 @@
 #include "container-dlist.h"
 #include "container-htlist.h"
 #include "container-list.h"
-#ifndef __cplusplus
 #include "container-qhash.h"
-#endif
 #include "container-qvector.h"
 #include "container-rbtree.h"
 #include "container-ring.h"
