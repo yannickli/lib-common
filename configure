@@ -130,7 +130,7 @@ if test -r /usr/include/c-client-src/zookeeper.h; then
     setvar "zk_CFLAGS" "-I/usr/include/c-client-src/"
     setvar "zk_LIBS"   "-lzookeeper_mt"
 else
-    log "*** You are missing zookeeper, apt-get install zookeeper-dev"
+    log "*** You are missing zookeeper, apt-get install libzookeeper-dev"
 fi
 
 # }}}
