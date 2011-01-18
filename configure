@@ -127,7 +127,7 @@ pkg_config_setvar "fuse" "libfuse-dev" "fuse"
 
 if test -r /usr/include/c-client-src/zookeeper.h; then
     setenv "WITH_ZK"   "1"
-    setvar "zk_CFLAGS" "-I/usr/include/c-client-src/"
+    setvar "zk_CFLAGS" "-I/usr/include/c-client-src/ -DZK_THREADED"
     setvar "zk_LIBS"   "-lzookeeper_mt"
 else
     log "*** You are missing zookeeper, apt-get install libzookeeper-dev"
