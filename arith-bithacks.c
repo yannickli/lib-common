@@ -17,10 +17,10 @@
 #define BC4(x)      BIT(x, 0) + BIT(x, 1) + BIT(x, 2) + BIT(x, 3)
 #define BC12(x)     BC4(x) + BC4((x) >> 4) + BC4((x) >> 8)
 
-/* __firstfit8[n] is the index of the least significant non 0 bit in
+/* __firstbit8[n] is the index of the least significant non 0 bit in
  * `n' or 8 if n has all bits 0.
  */
-uint8_t const __firstfit_fwd8[256] = {
+uint8_t const __firstbit_fwd8[256] = {
 #define A(m)   (((m) & 0x01) ? 0 : ((m) & 0x02) ? 1 : \
                 ((m) & 0x04) ? 2 : ((m) & 0x08) ? 3 : \
                 ((m) & 0x10) ? 4 : ((m) & 0x20) ? 5 : \
@@ -34,10 +34,10 @@ uint8_t const __firstfit_fwd8[256] = {
 #undef A
 };
 
-/* __firstfit8[n] is the index of the most significant non 0 bit in
+/* __firstbit8[n] is the index of the most significant non 0 bit in
  * `n' or 8 if n has all bits 0.
  */
-uint8_t const __firstfit_rev8[256] = {
+uint8_t const __firstbit_rev8[256] = {
 #define A(m)   (((m) & 0x80) ? 0 : ((m) & 0x40) ? 1 : \
                 ((m) & 0x20) ? 2 : ((m) & 0x10) ? 3 : \
                 ((m) & 0x08) ? 4 : ((m) & 0x04) ? 5 : \
