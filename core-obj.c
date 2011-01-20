@@ -83,7 +83,7 @@ static object_t *obj_retain_(object_t *obj)
       case OBJECT_REFCNT_LAST:
         e_panic("too many refcounts");
       case OBJECT_REFCNT_STATIC:
-        e_panic("forbidden to call retain on a statically allocated ojbect");
+        e_panic("forbidden to call retain on a statically allocated object");
     }
     return obj;
 }

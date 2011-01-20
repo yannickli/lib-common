@@ -19,7 +19,7 @@
   Then, to really define your class, you must call the macro
   <tt>OBJ_CLASS</tt> this way:
   \code
-  OBJ_CLASS(${my_class}, ${MY_CLASS}_FIELDS, ${MY_CLASS}_METHODS, ${my_super_class});
+  OBJ_CLASS(${my_class}, ${my_super_class}, ${MY_CLASS}_FIELDS, ${MY_CLASS}_METHODS);
   \endcode
 
   For example, if we had the class <tt>shape</tt> and that you want to
@@ -30,11 +30,11 @@
       point_t center;        \
       int radius
 
-  #define CIRCLE_METHORS(type_t) \
+  #define CIRCLE_METHODS(type_t) \
       SHAPE_FIELDS(type_t);      \
       void (*draw)(type_t *self)
 
-  OBJ_CLASS(circle, CIRCLE_FIELDS, CIRCLE_METHORS, shape);
+  OBJ_CLASS(circle, CIRCLE_FIELDS, CIRCLE_METHODS, shape);
   \endcode
 
 
