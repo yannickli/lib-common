@@ -330,6 +330,7 @@ struct httpd_qinfo_t {
     int                 chunk_hdr_offs;                             \
     int                 chunk_prev_length;                          \
     unsigned            payload_max_size;                           \
+    int                 ready_threshold;                            \
                                                                     \
     sb_t                payload;                                    \
     outbuf_t           *ob;                                         \
@@ -337,7 +338,8 @@ struct httpd_qinfo_t {
     void               *priv;                                       \
                                                                     \
     void              (*on_data)(httpd_query_t *q, pstream_t ps);   \
-    void              (*on_done)(httpd_query_t *q)
+    void              (*on_done)(httpd_query_t *q);                 \
+    void              (*on_ready)(httpd_query_t *q);
 
 #define HTTPD_QUERY_METHODS(type_t) \
     OBJECT_METHODS(type_t)
@@ -370,6 +372,7 @@ outbuf_t *httpd_reply_hdrs_start(httpd_query_t *q, int code, bool cacheable);
 void      httpd_put_date_hdr(outbuf_t *ob, const char *hdr, time_t now);
 void      httpd_reply_hdrs_done(httpd_query_t *q, int content_length, bool chunked);
 void      httpd_reply_done(httpd_query_t *q);
+void      httpd_signal_write(httpd_query_t *q);
 
 static inline void httpd_reply_chunk_start(httpd_query_t *q, outbuf_t *ob)
 {

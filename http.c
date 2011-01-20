@@ -505,6 +505,18 @@ void httpd_reply_done(httpd_query_t *q)
     httpd_mark_query_answered(w, q);
 }
 
+static void httpd_set_mask(httpd_t *w);
+
+void httpd_signal_write(httpd_query_t *q)
+{
+    httpd_t *w = q->owner;
+
+    if (w) {
+        assert (q->hdrs_done && !q->answered && !q->chunk_started);
+        httpd_set_mask(w);
+    }
+}
+
 /*---- high level httpd_query reply functions ----*/
 
 static ALWAYS_INLINE void httpd_query_reply_100continue_(httpd_query_t *q)
@@ -762,6 +774,7 @@ static void httpd_mark_query_answered(httpd_t *w, httpd_query_t *q)
     q->answered = true;
     q->on_data  = NULL;
     q->on_done  = NULL;
+    q->on_ready = NULL;
     if (w) {
         w->queries_done++;
         if (dlist_is_first(&w->query_list, &q->query_link))
@@ -1237,8 +1250,22 @@ static int httpd_on_event(el_t evh, int fd, short events, el_data_t priv)
         sb_skip_upto(&w->ibuf, ps.s);
     }
 
-    if (ob_write(&w->ob, fd) < 0 && !ERR_RW_RETRIABLE(errno))
-        goto close;
+    {
+        int oldlen = w->ob.length;
+        if (ob_write(&w->ob, fd) < 0 && !ERR_RW_RETRIABLE(errno))
+            goto close;
+
+        if (!dlist_is_empty(&w->query_list)) {
+            httpd_query_t *query = dlist_first_entry(&w->query_list,
+                                                     httpd_query_t, query_link);
+            if (!query->answered && query->on_ready != NULL
+            && oldlen >= query->ready_threshold
+            && w->ob.length < query->ready_threshold) {
+                (*query->on_ready)(query);
+            }
+        }
+    }
+
     if (unlikely(w->state == HTTP_PARSER_CLOSE)) {
         if (w->queries == 0 && ob_is_empty(&w->ob))
             goto close;
