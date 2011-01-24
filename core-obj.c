@@ -94,14 +94,14 @@ static void obj_release_(object_t *obj)
       case 0:
         e_panic("should not happen");
       case OBJECT_REFCNT_STATIC:
-        if (!obj_vmethod(obj, can_wipe) || obj_vcall(obj, can_wipe)) {
-            obj_wipe_real(obj);
-        }
+        if (obj_vmethod(obj, can_wipe) && !obj_vcall(obj, can_wipe))
+            return;
+        obj_wipe_real(obj);
         break;
       case 1:
-        if (!obj_vmethod(obj, can_wipe) || obj_vcall(obj, can_wipe)) {
-            obj_wipe_real(obj);
-        }
+        if (obj_vmethod(obj, can_wipe) && !obj_vcall(obj, can_wipe))
+            return;
+        obj_wipe_real(obj);
         p_delete(&obj);
         break;
       default:
