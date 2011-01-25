@@ -155,6 +155,8 @@ el_t el_timer_register(int next, int repeat, int flags, el_cb_f *f, void *ptr)
 {
     return el_timer_register_d(next, repeat, flags, f, (el_data_t){ ptr });
 }
+bool el_timer_is_repeated(el_t ev);
+
 /** \brief restart a single shot timer.
  *
  * Note that if the timer hasn't expired yet, it just sets it to a later time.

@@ -582,6 +582,13 @@ el_data_t el_timer_unregister(ev_t **evp)
     return *evp ? el_timer_heapremove(evp) : (el_data_t)NULL;
 }
 
+bool el_timer_is_repeated(el_t ev)
+{
+    CHECK_EV_TYPE(ev, EV_TIMER);
+
+    return ev->timer.repeat > 0;
+}
+
 /*----- fd events -----*/
 
 static ALWAYS_INLINE ev_t *el_fd_act_timer_unregister(ev_t *timer)
