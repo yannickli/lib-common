@@ -205,6 +205,21 @@
        __res;                                          \
     })
 
+#define RETURN_IF(e, val)                              \
+    do {                                               \
+        if (unlikely(e))                               \
+            return (val);                              \
+    } while (0)
+#define RETURN_UNLESS(e, val)   RETURN_IF(!(e), val)
+
+#define RETURN_NULL_IF(e)       RETURN_IF(e, NULL)
+#define RETURN_NULL_UNLESS(e)   RETURN_UNLESS(e, NULL)
+#define RETURN_ERR_IF(e)        RETURN_IF(e, -1)
+#define RETURN_ERR_UNLESS(e)    RETURN_UNLESS(e, -1)
+#define RETURN_FALSE_IF(e)      RETURN_IF(e, false)
+#define RETURN_FALSE_UNLESS(e)  RETURN_UNLESS(e, false)
+
+
 #ifdef CMP
 #error CMP already defined
 #endif
