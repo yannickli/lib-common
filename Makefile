@@ -12,7 +12,7 @@
 ##########################################################################
 
 none_LIBRARIES = libcommon time-lp-simple
-test_PROGRAMS += zchk ztst-cfgparser ztst-tpl ztst-lzo #ztst-asn1-wr
+test_PROGRAMS += zchk ztst-cfgparser ztst-tpl ztst-lzo
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 
 DISTCLEANFILES = core-version.c
@@ -33,6 +33,7 @@ libcommon_SOURCES = \
 	\
 	asn1.c \
 	asn1-writer.c \
+	ztst-asn1-writer.c \
 	\
 	conf.c  \
 	conf-parser.l \
@@ -133,8 +134,6 @@ zchk_SOURCES = zchk.c \
 	$/lib-common/time-lp-simple.a
 
 zchk_LIBS = $(libxml2_LIBS) -lz -lrt -ldl -lpthread
-
-ztst-asn1-wr_SOURCES = ztst-asn1-writer.c libcommon.a
 
 ztst_SOURCES = $(libcommon_SOURCES) time-lp-simple.c ztst.c $/lib-common/compat/check.c
 ztst_CFLAGS  = -DCHECK=1

@@ -45,7 +45,6 @@
             desc = p_new(asn1_desc_t, 1)
 
 #define ASN1_DESC_END(desc) \
-            assert (desc->type == ASN1_CSTD_TYPE_SEQUENCE);                  \
         }                                                                    \
                                                                              \
         return desc;                                                         \
@@ -55,7 +54,12 @@
     ASN1_DESC_BEGIN(desc, pfx);                                              \
     desc->type = ASN1_CSTD_TYPE_SEQUENCE;
 
-#define ASN1_SEQUENCE_DESC_END(desc)  ASN1_DESC_END(desc)
+#define ASN1_SEQUENCE_DESC_END(desc) \
+            assert (desc->type == ASN1_CSTD_TYPE_SEQUENCE);                  \
+        }                                                                    \
+                                                                             \
+        return desc;                                                         \
+    }
 
 #define ASN1_CHOICE_DESC_BEGIN(desc, pfx, enum_pfx, enum_field) \
     __attribute__((pure))                                                    \
