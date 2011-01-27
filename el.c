@@ -62,6 +62,7 @@ typedef enum ev_type_t {
 
 enum ev_flags_t {
     EV_FLAG_REFS          = (1U <<  0),
+    EV_FLAG_TRACE         = (1U <<  1),
 
     EV_FLAG_TIMER_NOMISS  = (1U <<  8),
     EV_FLAG_TIMER_LOWRES  = (1U <<  9),
@@ -71,6 +72,12 @@ enum ev_flags_t {
 #define EV_FLAG_HAS(ev, f)   ((ev)->flags & EV_FLAG_##f)
 #define EV_FLAG_SET(ev, f)   ((ev)->flags |= EV_FLAG_##f)
 #define EV_FLAG_RST(ev, f)   ((ev)->flags &= ~EV_FLAG_##f)
+
+#ifndef NDEBUG
+#define EV_IS_TRACED(ev)   unlikely(EV_FLAG_HAS(ev, TRACE))
+#else
+#define EV_IS_TRACED(ev)   0
+#endif
 };
 
 typedef struct ev_t {
@@ -606,6 +613,10 @@ static ALWAYS_INLINE ev_t *el_fd_act_timer_unregister(ev_t *timer)
 
 static ALWAYS_INLINE void el_fd_fire(ev_t *ev, short evs)
 {
+    if (EV_IS_TRACED(ev)) {
+        e_trace(0, "e-fdv(%p): got event %s%s (%04x)", ev,
+                evs & POLLIN ? "IN" : "", evs & POLLOUT ? "OUT" : "", evs);
+    }
     if (EV_FLAG_HAS(ev, FD_WATCHED)) {
         ev_t *timer = ev->priv.ptr;
 
@@ -780,6 +791,25 @@ static void el_loop_proxies(void)
 }
 
 /*----- generic functions  -----*/
+
+#ifndef NDEBUG
+bool el_set_trace(el_t ev, bool trace)
+{
+    bool res = EV_FLAG_HAS(ev, TRACE);
+
+    if (res == trace)
+        return res;
+
+    if (trace) {
+        e_trace(0, "el(%p): trace", ev);
+        EV_FLAG_SET(ev, TRACE);
+    } else {
+        e_trace(0, "el(%p): untrace", ev);
+        EV_FLAG_RST(ev, TRACE);
+    }
+    return res;
+}
+#endif
 
 el_t el_ref(ev_t *ev)
 {

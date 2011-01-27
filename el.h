@@ -177,6 +177,11 @@ el_data_t el_timer_unregister(el_t *);
 
 el_t el_ref(el_t);
 el_t el_unref(el_t);
+#ifndef NDEBUG
+bool el_set_trace(el_t, bool trace);
+#else
+#define el_set_trace(ev, trace)
+#endif
 el_data_t el_set_priv(el_t, el_data_t);
 
 void el_bl_use(void);

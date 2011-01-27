@@ -49,6 +49,10 @@ short el_fd_set_mask(ev_t *ev, short events)
 {
     short old = ev->events_wanted;
 
+    if (EV_IS_TRACED(ev)) {
+        e_trace(0, "ev-fd(%p): set mask to %s%s", ev,
+                events & POLLIN ? "IN" : "", events & POLLOUT ? "OUT" : "");
+    }
     CHECK_EV_TYPE(ev, EV_FD);
     if (old != events) {
         struct epoll_event event = {
