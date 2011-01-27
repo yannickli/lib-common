@@ -39,11 +39,10 @@
     __attribute__((pure))                                                    \
     ASN1_DESC(pfx)                                                           \
     {                                                                        \
-        static asn1_desc_t *desc;                                            \
+        static asn1_desc_t *desc = NULL;                                     \
                                                                              \
         if (unlikely(!desc)) {                                               \
-            desc = p_new(asn1_desc_t, 1);                                    \
-            asn1_field_vector_init(&desc->vec)
+            desc = asn1_desc_new();
 
 #define ASN1_DESC_END(desc) \
         }                                                                    \

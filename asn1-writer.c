@@ -783,6 +783,13 @@ void asn1_reg_field(asn1_desc_t *desc, asn1_field_t *field)
                 "tagged as a sequence.", field->name);
     }
 
+    if (field->mode == ASN1_OBJ_MODE(OPTIONAL)) {
+        qv_append(u16, &desc->opt_fields, desc->vec.len);
+    }
+
+    /* TODO same thing with extensions */
+
+    asn1_field_init_info(field);
     asn1_field_vector_append(&desc->vec, *field);
 }
 

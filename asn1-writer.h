@@ -16,6 +16,8 @@
 #else
 #define IS_LIB_COMMON_ASN1_WRITER_H
 
+#include "asn1-tools.h"
+
 /* ASN1 writing API
  * Need an example ? Please read tst-asn1-writer.[hc] .
  */
@@ -214,6 +216,124 @@ enum asn1_cstd_type {
     ASN1_CSTD_TYPE_SET,
 };
 
+/* Special field information {{{ */
+
+/* XXX we use special values (INT64_MIN, INT64_MAX) because PER support far
+ *     more than 64 bits integers
+ */
+typedef struct asn1_int_info_t {
+    int64_t       min; /* XXX INT64_MIN if minus infinity */
+    int64_t       max; /* XXX INT64_MAX if infinity */
+
+    /* Pre-processed information */
+    flag_t        constrained;   /* XXX means fully constrained        */
+    uint16_t      max_blen;      /* XXX needed only if constrained     */
+    uint8_t       max_olen_blen; /* XXX needed only for max_blen > 16  */
+
+    /* Extensions */
+    flag_t        extended;
+    int64_t       ext_min; /* XXX INT64_MIN if minus infinity */
+    int64_t       ext_max; /* XXX INT64_MAX if infinity */
+} asn1_int_info_t;
+
+static inline void
+asn1_int_info_update(asn1_int_info_t *info)
+{
+    int64_t d_max;
+
+    if (!info)
+        return;
+
+    if (info->min == INT64_MIN || info->max == INT64_MAX) {
+        info->constrained = false;
+
+        return;
+    }
+
+    info->constrained = true;
+
+    d_max = info->max - info->min;
+    info->max_blen = u64_blen(d_max);
+
+    if (info->max_blen > 16) {
+        info->max_olen_blen = u64_blen(u64_olen(d_max));
+    }
+}
+
+static inline asn1_int_info_t *asn1_int_info_init(asn1_int_info_t *info)
+{
+    p_clear(info, 1);
+
+    info->min     = INT64_MIN;
+    info->max     = INT64_MAX;
+    info->ext_min = INT64_MIN;
+    info->ext_max = INT64_MAX;
+
+    return info;
+}
+
+typedef struct asn1_cnt_info_t {
+    size_t        min;
+    size_t        max; /* XXX SIZE_MAX if infinity */
+
+    flag_t        extended;
+    size_t        ext_min;
+    size_t        ext_max; /* XXX SIZE_MAX if infinity */
+} asn1_cnt_info_t;
+
+static inline asn1_cnt_info_t *asn1_cnt_info_init(asn1_cnt_info_t *info)
+{
+    p_clear(info, 1);
+    info->max     = SIZE_MAX;
+    info->ext_max = SIZE_MAX;
+
+    return info;
+}
+
+typedef struct asn1_enum_info_t {
+    qv_t(u32)     values;  /* XXX Enumeration values in canonical order */
+    size_t        blen;
+
+    flag_t        extended;
+} asn1_enum_info_t;
+
+static inline asn1_enum_info_t *asn1_enum_info_init(asn1_enum_info_t *e)
+{
+    p_clear(e, 1);
+    qv_init(u32, &e->values);
+
+    return e;
+}
+
+/* TODO optimize */
+static inline int asn1_enum_pos(const asn1_enum_info_t *e, uint32_t val)
+{
+    qv_for_each_pos(u32, pos, &e->values) {
+        if (e->values.tab[pos] == val) {
+            return pos;
+        }
+    }
+
+    return -1;
+}
+
+static inline void asn1_enum_append(asn1_enum_info_t *e, uint32_t val)
+{
+    assert (e->values.len <= 255);
+    assert (asn1_enum_pos(e, val) < 0);
+
+    qv_append(u32, &e->values, val);
+
+    if (e->values.len > 1) {
+        e->blen = bsr8(e->values.len - 1) + 1;
+    } else {
+        e->blen = 0;
+    }
+}
+
+
+/* }}} */
+
 /** \brief Define specification of an asn1 field.
   * \note This structure is designed to be used only
   *       with dedicated functions and macros.
@@ -232,10 +352,25 @@ typedef struct {
     uint16_t        size;       /**< Message content structure size. */
 
     union {
-        const struct asn1_desc_t *comp;
-        asn1_void_t                   opaque;
+        const struct asn1_desc_t   *comp;
+        asn1_void_t                 opaque;
     } u;
+
+    asn1_int_info_t             int_info;
+    asn1_cnt_info_t             str_info;
+    asn1_enum_info_t            enum_info;
+
+    /* Only for SEQUENCE OF */
+    asn1_cnt_info_t seq_of_info;
 } asn1_field_t;
+
+static inline void asn1_field_init_info(asn1_field_t *field)
+{
+    asn1_int_info_init(&field->int_info);
+    asn1_cnt_info_init(&field->str_info);
+    asn1_enum_info_init(&field->enum_info);
+    asn1_cnt_info_init(&field->seq_of_info);
+}
 
 DO_VECTOR(asn1_field_t, asn1_field);
 
@@ -244,7 +379,22 @@ DO_VECTOR(asn1_field_t, asn1_field);
 typedef struct asn1_desc_t {
     asn1_field_vector     vec;
     enum asn1_cstd_type   type;
+
+    /* PER information */
+    qv_t(u16)             opt_fields;
+    qv_t(u16)             ext_fields;
 } asn1_desc_t;
+
+static inline asn1_desc_t *asn1_desc_init(asn1_desc_t *desc)
+{
+    p_clear(desc, 1);
+    asn1_field_vector_init(&desc->vec);
+    qv_init(u16, &desc->opt_fields);
+
+    return desc;
+}
+
+GENERIC_NEW(asn1_desc_t, asn1_desc);
 
 typedef struct asn1_choice_desc_t {
     asn1_desc_t desc;

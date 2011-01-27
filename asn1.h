@@ -86,39 +86,4 @@ int ber_decode_oid(const byte *p, int size, int *oid, int size_oid);
 
 int ber_decode_bit_string_len(pstream_t *ps);
 
-static ALWAYS_INLINE size_t asn1_int32_size(int32_t i32)
-{
-    int32_t zzi = (i32 >> 31) ^ (i32 << 1);
-
-    return 1 + bsr32(zzi | 1) / 8;
-}
-
-static ALWAYS_INLINE size_t asn1_int64_size(int64_t i64)
-{
-    int64_t zzi = (i64 >> 63) ^ (i64 << 1);
-
-    return 1 + bsr64(zzi | 1) / 8;
-}
-
-static ALWAYS_INLINE size_t asn1_uint32_size(uint32_t u32)
-{
-    return asn1_int64_size(u32);
-}
-
-static ALWAYS_INLINE size_t asn1_uint64_size(uint64_t u64)
-{
-    if (unlikely((0x1ULL << 63) & u64))
-        return 9;
-
-    return asn1_int64_size(u64);
-}
-
-static ALWAYS_INLINE size_t asn1_length_size(uint32_t len)
-{
-    if (len < 0x80)
-        return 1;
-
-    return 2 + bsr32(len) / 8;
-}
-
 #endif
