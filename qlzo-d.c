@@ -169,7 +169,6 @@ int lzo_copy_backptr3(ostream_t *os, const uint8_t *out_orig, unsigned back)
     if (unlikely(dst + 3 > os->b_end))
         return LZO_ERR_OUTPUT_OVERRUN;
 
-    memcpy(dst, src, 3);
     dst[0] = src[0];
     dst[1] = src[1];
     dst[2] = src[2];
