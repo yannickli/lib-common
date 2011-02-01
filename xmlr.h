@@ -14,8 +14,8 @@
 #ifndef IS_LIB_INET_XMLR_H
 #define IS_LIB_INET_XMLR_H
 
-#include <libxml/xmlreader.h>
 #include <lib-common/core.h>
+#include <libxml/xmlreader.h>
 
 typedef xmlTextReaderPtr xml_reader_t;
 
