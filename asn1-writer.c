@@ -127,7 +127,7 @@ static ALWAYS_INLINE bool asn1_field_is_tagged(const asn1_field_t *field)
 /*----- PACKER -{{{- */
 #define ASN1_BOOL_TRUE_VALUE 0x01
 
-static const void *asn1_opt_field(const void *field, enum obj_type type)
+const void *asn1_opt_field(const void *field, enum obj_type type)
 {
      switch (type) {
        case ASN1_OBJ_TYPE(bool):

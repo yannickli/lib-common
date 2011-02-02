@@ -306,32 +306,7 @@ static inline asn1_enum_info_t *asn1_enum_info_init(asn1_enum_info_t *e)
     return e;
 }
 
-/* TODO optimize */
-static inline int asn1_enum_pos(const asn1_enum_info_t *e, uint32_t val)
-{
-    qv_for_each_pos(u32, pos, &e->values) {
-        if (e->values.tab[pos] == val) {
-            return pos;
-        }
-    }
-
-    return -1;
-}
-
-static inline void asn1_enum_append(asn1_enum_info_t *e, uint32_t val)
-{
-    assert (e->values.len <= 255);
-    assert (asn1_enum_pos(e, val) < 0);
-
-    qv_append(u32, &e->values, val);
-
-    if (e->values.len > 1) {
-        e->blen = bsr8(e->values.len - 1) + 1;
-    } else {
-        e->blen = 0;
-    }
-}
-
+GENERIC_NEW(asn1_enum_info_t, asn1_enum_info);
 
 /* }}} */
 
@@ -359,7 +334,7 @@ typedef struct {
 
     asn1_int_info_t             int_info;
     asn1_cnt_info_t             str_info;
-    asn1_enum_info_t            enum_info;
+    const asn1_enum_info_t     *enum_info;
 
     /* Only for SEQUENCE OF */
     asn1_cnt_info_t seq_of_info;
@@ -369,7 +344,6 @@ static inline void asn1_field_init_info(asn1_field_t *field)
 {
     asn1_int_info_init(&field->int_info);
     asn1_cnt_info_init(&field->str_info);
-    asn1_enum_info_init(&field->enum_info);
     asn1_cnt_info_init(&field->seq_of_info);
 }
 
@@ -383,7 +357,8 @@ typedef struct asn1_desc_t {
 
     /* PER information */
     qv_t(u16)             opt_fields;
-    qv_t(u16)             ext_fields;
+    flag_t                extended;
+    uint16_t              ext_pos;
 } asn1_desc_t;
 
 static inline asn1_desc_t *asn1_desc_init(asn1_desc_t *desc)
@@ -413,5 +388,8 @@ void asn1_reg_field(asn1_desc_t *desc, asn1_field_t *field);
 void asn1_build_choice_table(asn1_choice_desc_t *desc);
 
 const char *t_asn1_oid_print(const asn1_data_t *oid);
+
+/* Private */
+const void *asn1_opt_field(const void *field, enum obj_type type);
 
 #endif
