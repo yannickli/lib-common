@@ -95,9 +95,20 @@ static inline bool lstr_equal(const lstr_t *s1, const lstr_t *s2)
     return s1->len == s2->len && memcmp(s1->s, s2->s, s1->len) == 0;
 }
 
+static inline bool lstr_equal2(const lstr_t s1, const lstr_t s2)
+{
+    return s1.len == s2.len && memcmp(s1.s, s2.s, s1.len) == 0;
+}
+
+
 static inline bool clstr_equal(const clstr_t *s1, const clstr_t *s2)
 {
     return s1->len == s2->len && memcmp(s1->s, s2->s, s1->len) == 0;
+}
+
+static inline bool clstr_equal2(const clstr_t s1, const clstr_t s2)
+{
+    return s1.len == s2.len && memcmp(s1.s, s2.s, s1.len) == 0;
 }
 
 #endif
