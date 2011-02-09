@@ -416,7 +416,7 @@ static inline bool ps_aligned(const pstream_t *ps, size_t align) {
 #define ps_aligned8(ps)   ps_aligned(ps, 8)
 
 static inline int __ps_align(pstream_t *ps, uintptr_t align) {
-    return __ps_skip_upto(ps, (const void *)(((uintptr_t)ps->b + align - 1) & ~align));
+    return __ps_skip_upto(ps, (const void *)ROUND_UP((uintptr_t)ps->b, align));
 }
 static inline const void *__ps_get_block(pstream_t *ps, size_t len, size_t align) {
     const void *p = ps->p;
@@ -429,7 +429,7 @@ static inline const void *__ps_get_block(pstream_t *ps, size_t len, size_t align
 #define __ps_get_type8(ps, type_t)  ((type_t *)__ps_get_block(ps, sizeof(type_t), 8))
 
 static inline int ps_align(pstream_t *ps, uintptr_t align) {
-    const void *p = (const void *)(((uintptr_t)ps->b + align - 1) & ~align);
+    const void *p = (const void *)ROUND_UP((uintptr_t)ps->b, align);
     PS_WANT(p <= ps->p_end);
     return __ps_skip_upto(ps, p);
 }
