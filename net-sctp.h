@@ -40,7 +40,9 @@ ssize_t sctp_sendv(int sd, const struct iovec *iov, int iovlen,
                    const struct sctp_sndrcvinfo *sinfo, int flags);
 int sctp_addr_len(const sockunion_t *addrs, int count);
 int sctp_close_assoc(int fd, int assoc_id);
+#ifndef __cplusplus
 int sctp_getaddrs(int fd, int optnum, sctp_assoc_t id,
                   struct sockaddr *addrs, int addr_size);
+#endif
 
 #endif
