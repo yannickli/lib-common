@@ -733,11 +733,13 @@ TEST_DECL("asn1: BER encoder/decoder - constructed types", 0)
 typedef struct open_type_t {
     asn1_data_t ot1;
     asn1_string_t ot2;
+    asn1_data_t ot3;
 } open_type_t;
 
 static ASN1_SEQUENCE_DESC_BEGIN(desc, open_type);
     asn1_reg_open_type(desc, open_type, ot1);
-    asn1_reg_open_type(desc, open_type, ot2);
+    asn1_reg_opt_open_type(desc, open_type, ot2);
+    asn1_reg_opt_open_type(desc, open_type, ot3);
 ASN1_SEQUENCE_DESC_END(desc);
 
 TEST_DECL("asn1: open type", 0)

@@ -146,10 +146,8 @@ static const void *asn1_opt_field(const void *field, enum obj_type type)
        case ASN1_OBJ_TYPE(OPT_NULL):
          return *(const bool *)field ? field : NULL;
        case ASN1_OBJ_TYPE(asn1_data_t): case ASN1_OBJ_TYPE(asn1_string_t):
-       case ASN1_OBJ_TYPE(asn1_bit_string_t):
+       case ASN1_OBJ_TYPE(OPEN_TYPE):   case ASN1_OBJ_TYPE(asn1_bit_string_t):
          return ((const asn1_data_t *)field)->data ? field : NULL;
-       case ASN1_OBJ_TYPE(OPEN_TYPE): /* Should not happen. */
-         return NULL;
        case ASN1_OBJ_TYPE(asn1_ext_t):
          return ((const asn1_ext_t *)field)->data ? field : NULL;
        case ASN1_OBJ_TYPE(OPAQUE): case ASN1_OBJ_TYPE(SEQUENCE):
@@ -912,7 +910,7 @@ static void *asn1_opt_field_w(void *field, enum obj_type type, bool has_field)
         *(bool *)field = has_field;
         return field;
       case ASN1_OBJ_TYPE(asn1_data_t): case ASN1_OBJ_TYPE(asn1_string_t):
-      case ASN1_OBJ_TYPE(asn1_bit_string_t):
+      case ASN1_OBJ_TYPE(OPEN_TYPE):   case ASN1_OBJ_TYPE(asn1_bit_string_t):
         if (!has_field) {
             ((asn1_data_t *)field)->data = NULL;
             ((asn1_data_t *)field)->len  = 0;
@@ -1198,7 +1196,9 @@ static int asn1_unpack_field(pstream_t *ps, const asn1_field_t *spec,
         break;
 
       case ASN1_OBJ_MODE(OPTIONAL):
-        if (ps_has(ps, 1) && *ps->b == spec->tag) {
+        if (!ps_done(ps)
+        &&  (!asn1_field_is_tagged(spec) || *ps->b == spec->tag))
+        {
             void *value = asn1_alloc_if_pointed(spec, mem_pool, st);
 
             value = asn1_opt_field_w(GET_PTR(st, spec, void), spec->type,
