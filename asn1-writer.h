@@ -151,6 +151,7 @@ enum obj_type {
     /* String types */
     ASN1_OBJ_TYPE(asn1_data_t),
     ASN1_OBJ_TYPE(asn1_string_t),
+    ASN1_OBJ_TYPE(OPEN_TYPE),
     ASN1_OBJ_TYPE(asn1_bit_string_t),
 
     /* Opaque -- External */

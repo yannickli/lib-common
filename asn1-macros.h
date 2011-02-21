@@ -442,6 +442,28 @@
     } while (0)
 
 /*}}}*/
+/*{{{ Open Type registering macro */
+
+#define asn1_reg_open_type(desc, st_pfx, field)  \
+    do {                                                                     \
+        if (ASN1_IS_FIELD_TYPE(asn1_data_t, field, st_pfx##_t)) {            \
+            ASN1_REG_OPEN_TYPE(desc, st_pfx##_t, asn1_data_t, field);        \
+        }                                                                    \
+        if (ASN1_IS_FIELD_TYPE(asn1_string_t, field, st_pfx##_t)) {          \
+            ASN1_REG_OPEN_TYPE(desc, st_pfx##_t, asn1_string_t, field);      \
+        }                                                                    \
+    } while (0)
+
+#define ASN1_REG_OPEN_TYPE(desc, st, ctype_t, field)  \
+    do {                                                                     \
+        asn1_field_t tmp = {                                                 \
+            ASN1_COMMON_FIELDS(ctype_t, st, field, 0, OPEN_TYPE,             \
+                               MANDATORY, false),                            \
+        };                                                                   \
+        asn1_reg_field(desc, &tmp);                                          \
+    } while (0)
+
+/*}}} */
 /*{{{ Opaque type registering macros */
 /***************************/
 /* MACROS FOR OPAQUE TYPES */

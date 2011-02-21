@@ -33,6 +33,7 @@ static const char *asn1_type_name(enum obj_type type)
         CASE(OPT_NULL);
         CASE(asn1_data_t);
         CASE(asn1_string_t);
+        CASE(OPEN_TYPE);
         CASE(asn1_bit_string_t);
         CASE(OPAQUE);
         CASE(asn1_ext_t);
@@ -111,6 +112,17 @@ const char *t_asn1_oid_print(const asn1_data_t *oid)
     return str;
 }
 
+static ALWAYS_INLINE bool asn1_field_is_tagged(const asn1_field_t *field)
+{
+    switch (field->type) {
+      case ASN1_OBJ_TYPE(UNTAGGED_CHOICE):
+      case ASN1_OBJ_TYPE(OPEN_TYPE):
+        return false;
+      default:
+        return true;
+    }
+}
+
 /* }}} */
 /*----- PACKER -{{{- */
 #define ASN1_BOOL_TRUE_VALUE 0x01
@@ -136,6 +148,8 @@ static const void *asn1_opt_field(const void *field, enum obj_type type)
        case ASN1_OBJ_TYPE(asn1_data_t): case ASN1_OBJ_TYPE(asn1_string_t):
        case ASN1_OBJ_TYPE(asn1_bit_string_t):
          return ((const asn1_data_t *)field)->data ? field : NULL;
+       case ASN1_OBJ_TYPE(OPEN_TYPE): /* Should not happen. */
+         return NULL;
        case ASN1_OBJ_TYPE(asn1_ext_t):
          return ((const asn1_ext_t *)field)->data ? field : NULL;
        case ASN1_OBJ_TYPE(OPAQUE): case ASN1_OBJ_TYPE(SEQUENCE):
@@ -408,6 +422,7 @@ static int asn1_pack_value_size(const void *dt, const asn1_field_t *spec,
         int_vector_append(stack, 0);
         break;
       case ASN1_OBJ_TYPE(asn1_data_t): case ASN1_OBJ_TYPE(asn1_string_t):
+      case ASN1_OBJ_TYPE(OPEN_TYPE):
         /* IF ASSERT: user maybe forgot to declare field as optional */
         if (!((asn1_data_t *)dt)->data) {
            e_trace(0, "%s", spec->name);
@@ -459,7 +474,7 @@ static int asn1_pack_value_size(const void *dt, const asn1_field_t *spec,
     }
 
 
-    if (unlikely(spec->type == ASN1_OBJ_TYPE(UNTAGGED_CHOICE))) {
+    if (unlikely(!asn1_field_is_tagged(spec))) {
         *len += data_size;
     } else {
         *len += data_size + asn1_length_size(data_size) + spec->tag_len;
@@ -589,7 +604,7 @@ static uint8_t *asn1_pack_value(uint8_t *dst, const void *dt,
 {
     int32_t data_size = stack->tab[stack->len++];
 
-    if (likely(spec->type != ASN1_OBJ_TYPE(UNTAGGED_CHOICE))) {
+    if (likely(asn1_field_is_tagged(spec))) {
        dst = asn1_pack_tag(dst, spec->tag, spec->tag_len);
        dst = asn1_pack_len(dst, data_size);
     }
@@ -639,6 +654,7 @@ static uint8_t *asn1_pack_value(uint8_t *dst, const void *dt,
       case ASN1_OBJ_TYPE(OPT_NULL):
         break;
       case ASN1_OBJ_TYPE(asn1_data_t): case ASN1_OBJ_TYPE(asn1_string_t):
+      case ASN1_OBJ_TYPE(OPEN_TYPE):
         dst = asn1_pack_data(dst, (const asn1_data_t *)dt);
         e_trace_hex(4, "Value :", ((const asn1_data_t *)dt)->data,
                     ((const asn1_data_t *)dt)->len);
@@ -988,29 +1004,36 @@ static int asn1_unpack_value(pstream_t *ps, const asn1_field_t *spec,
     pstream_t field_ps;
     bool indef_len;
 
-    if (spec->type == ASN1_OBJ_TYPE(SKIP)) {
+    switch (spec->type) {
+      case ASN1_OBJ_TYPE(SKIP):
         return asn1_skip_field(ps, false, NULL);
-    }
-
-    RETHROW(ps_skip(ps, 1));
-
-    if (!RETHROW(ber_decode_len32(ps, &data_size))) {
-        if (ps_get_ps(ps, data_size, &field_ps) < 0) {
-            e_trace(1, "P-stream does not have enough bytes "
-                    "(got %zd needed %u).", ps_len(ps), data_size);
-            return -1;
-        }
-
+      case ASN1_OBJ_TYPE(OPEN_TYPE):
+        RETHROW(asn1_skip_field(ps, false, &field_ps));
+        data_size = ps_len(&field_ps);
         indef_len = false;
-    } else {
-        field_ps = *ps;
+        break;
+      default:
+        RETHROW(ps_skip(ps, 1));
 
-        if (spec->type < ASN1_OBJ_TYPE(asn1_ext_t)) {
-            e_trace(1, "Error: unexpected indefinite length.");
-            return -1;
+        if (!RETHROW(ber_decode_len32(ps, &data_size))) {
+            if (ps_get_ps(ps, data_size, &field_ps) < 0) {
+                e_trace(1, "P-stream does not have enough bytes "
+                        "(got %zd needed %u).", ps_len(ps), data_size);
+                return -1;
+            }
+
+            indef_len = false;
+        } else {
+            field_ps = *ps;
+
+            if (spec->type < ASN1_OBJ_TYPE(asn1_ext_t)) {
+                e_trace(1, "Error: unexpected indefinite length.");
+                return -1;
+            }
+
+            indef_len = true;
         }
-
-        indef_len = true;
+        break;
     }
 
     switch (spec->type) {
@@ -1062,6 +1085,7 @@ static int asn1_unpack_value(pstream_t *ps, const asn1_field_t *spec,
       case ASN1_OBJ_TYPE(OPT_NULL):
         break;
       case ASN1_OBJ_TYPE(asn1_data_t): case ASN1_OBJ_TYPE(asn1_string_t):
+      case ASN1_OBJ_TYPE(OPEN_TYPE):
         if (copy) {
             ((asn1_data_t *)dt)->data = mp_dup(mem_pool, field_ps.b,
                                                  ps_len(&field_ps));
@@ -1154,7 +1178,9 @@ static int asn1_unpack_field(pstream_t *ps, const asn1_field_t *spec,
 {
     switch (spec->mode) {
       case ASN1_OBJ_MODE(MANDATORY):
-        if (ps_has(ps, 1) && *ps->b == spec->tag) {
+        if (!asn1_field_is_tagged(spec)
+        ||  (ps_has(ps, 1) && *ps->b == spec->tag))
+        {
             void *value = asn1_alloc_if_pointed(spec, mem_pool, st);
 
             RETHROW(asn1_unpack_value(ps, spec, mem_pool, depth, value,
