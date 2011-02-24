@@ -235,15 +235,16 @@ int sb_getline(sb_t *sb, FILE *f)
     do {
         char *buf = sb_grow(sb, BUFSIZ);
 
-        if (!fgets(buf, sb_avail(sb) + 1, f))
+        if (!fgets(buf, sb_avail(sb) + 1, f)) {
+            if (ferror(f))
+                return __sb_rewind_adds(sb, &orig);
             break;
+        }
 
         sb->len += strlen(buf);
     } while (sb->data[sb->len - 1] != '\n');
 
-    if (ferror(f))
-        return __sb_rewind_adds(sb, &orig);
-    return 0;
+    return sb->len - orig.len;
 }
 
 /* OG: returns the number of elements actually appended to the sb,

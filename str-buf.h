@@ -365,6 +365,36 @@ static inline void sb_sets(sb_t *sb, const char *s)
 
 struct sockaddr;
 
+/** reads a line from file f.
+ *
+ * Typical use is (boilerplate removed for clarity)
+ *
+ * <code>
+ * int res;
+ * sb_t sb;
+ * FILE *f = fopen(...)
+ *
+ * if (f == NULL)
+ *     return -1;
+ *
+ * while ((res = sb_getline(sb, f)) > 0) {
+ *     // use sb
+ * }
+ * if (res == 0) {
+ *     // EOF
+ * } else {
+ *     assert (res < 0);
+ *     // ERROR
+ * }
+ *
+ * </code>
+ *
+ *
+ * \returns
+ *   -1 if an error was met, check ferror(f) and/or errno
+ *   0 if at EOF
+ *   >0 the number of octets read
+ */
 int sb_getline(sb_t *sb, FILE *f);
 int sb_fread(sb_t *sb, int size, int nmemb, FILE *f);
 int sb_read_file(sb_t *sb, const char *filename);
