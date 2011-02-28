@@ -1,6 +1,8 @@
+*.blk.c
+*.fc.c
+
 /Upgrading.html
 /conf-parser.c
-/container-qvector.c
 /core-version.c
 /http-hdr.c
 /httptokens.c
