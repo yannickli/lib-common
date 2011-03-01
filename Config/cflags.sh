@@ -94,7 +94,9 @@ echo -Winit-self
 if gcc_prereq 4 5; then
     echo -Wenum-compare
     echo -Wlogical-op
-    #echo -flto -fuse-linker-plugin
+fi
+if gcc_prereq 4 6; then
+    echo -flto -fuse-linker-plugin
 fi
 # warn about pointer arithmetic on void* and function pointers
 echo -Wpointer-arith
