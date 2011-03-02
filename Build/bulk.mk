@@ -116,7 +116,7 @@ tags: | __setup_buildsys_trampoline
 	    --exclude=".build*" --exclude="Build" --exclude="Config" \
 	    --exclude=".git" --exclude=".svn" --exclude="CVS" \
 	    --exclude="old" --exclude="new" --exclude="ogu" --exclude="xxx" \
-	    --exclude="*.exe" --exclude="*.js"
+	    --exclude="*.exe" --exclude="*.js" --exclude="*.blk.c"
 
 ignore:
 	$(foreach v,$(CLEANFILES:/=),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
