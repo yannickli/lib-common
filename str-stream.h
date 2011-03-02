@@ -142,6 +142,11 @@ static inline bool ps_startswith(const pstream_t *ps, const void *data, size_t l
 {
     return ps_len(ps) >= len && !memcmp(ps->p, data, len);
 }
+static inline bool ps_startswithstr(const pstream_t *ps, const char *s)
+{
+    return ps_startswith(ps, s, strlen(s));
+}
+
 static inline bool ps_memequal(const pstream_t *ps, const void *data, size_t len)
 {
     return ps_len(ps) == len && !memcmp(ps->p, data, len);
