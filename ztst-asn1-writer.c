@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -254,9 +254,9 @@ uint8_t il_test_input[] = {
 static int serialize_test_0(uint8_t *dst, const test_0_t *t0)
 {
     int32_t length;
-    int_vector stack;
+    qv_t(i32) stack;
 
-    vector_init_pool(&stack, MEM_LIBC);
+    qv_init(i32, &stack);
     length = RETHROW(asn1_pack_size_(t0, asn1_test_0_desc(), &stack));
     asn1_pack_(dst, t0, asn1_test_0_desc(), &stack);
     return length;
@@ -265,9 +265,9 @@ static int serialize_test_0(uint8_t *dst, const test_0_t *t0)
 static int serialize_test_1(uint8_t *dst, const test_1_t *t1)
 {
     int32_t length;
-    int_vector stack;
+    qv_t(i32) stack;
 
-    vector_init_pool(&stack, MEM_LIBC);
+    qv_init(i32, &stack);
     length = RETHROW(asn1_pack_size_(t1, asn1_test_1_desc(), &stack));
     asn1_pack_(dst, t1, asn1_test_1_desc(), &stack);
     return length;
@@ -276,9 +276,9 @@ static int serialize_test_1(uint8_t *dst, const test_1_t *t1)
 static int serialize_test_2(uint8_t *dst, const test_2_t *t2)
 {
     int32_t length;
-    int_vector stack;
+    qv_t(i32) stack;
 
-    vector_init_pool(&stack, MEM_LIBC);
+    qv_init(i32, &stack);
     length = RETHROW(asn1_pack_size_(t2, asn1_test_2_desc(), &stack));
     asn1_pack_(dst, t2, asn1_test_2_desc(), &stack);
     return length;
@@ -287,9 +287,9 @@ static int serialize_test_2(uint8_t *dst, const test_2_t *t2)
 static int serialize_test_3(uint8_t *dst, const test_3_t *t3)
 {
     int32_t length;
-    int_vector stack;
+    qv_t(i32) stack;
 
-    vector_init_pool(&stack, MEM_LIBC);
+    qv_init(i32, &stack);
     length = RETHROW(asn1_pack_size(test_3, t3, &stack));
     asn1_pack(test_3, dst, t3, &stack);
     return length;
@@ -495,7 +495,7 @@ TEST_DECL("asn1: BER encoder/decoder - constructed types", 0)
     pstream_t choice_ps = ps_init(choice_input, sizeof(choice_input));
     test_vector_t test_vector;
     test_array_t test_array;
-    int_vector stack;
+    qv_t(i32) stack;
     il_test_base_t il;
     int ret;
 
@@ -528,7 +528,7 @@ TEST_DECL("asn1: BER encoder/decoder - constructed types", 0)
         .u32 = 0x3456
     };
 
-    vector_inita(&stack, 1024);
+    qv_inita(i32, &stack, 1024);
 
     len = serialize_test_0(buf, &t0);
     if (len != sizeof(expected_0) || memcmp(expected_0, buf, len)) {
@@ -747,7 +747,7 @@ TEST_DECL("asn1: open type", 0)
     uint8_t buf[256];
     int len;
     pstream_t ps;
-    int_vector stack;
+    qv_t(i32)  stack;
     open_type_t ot;
 
     uint8_t expected_ot[] = {
@@ -755,7 +755,7 @@ TEST_DECL("asn1: open type", 0)
     };
 
     ps = ps_init(expected_ot, countof(expected_ot));
-    vector_inita(&stack, 1024);
+    qv_inita(i32, &stack, 1024);
 
     TEST_FAIL_IF(asn1_unpack(open_type, &ps, t_pool(), &ot, false),
                  "Open type unpacking");

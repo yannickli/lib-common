@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -36,11 +36,13 @@ static inline void arith_float_assumptions(void) {
 }
 
 static inline uint32_t float_bits_(float x) {
-    union { float x; uint32_t u32; } u = { .x = x };
+    union { float x; uint32_t u32; } u;
+    u.x = x;
     return u.u32;
 }
 static inline uint64_t double_bits_(double x) {
-    union { double x; uint64_t u64; } u = { .x = x };
+    union { double x; uint64_t u64; } u;
+    u.x = x;
     return u.u64;
 }
 
@@ -96,6 +98,64 @@ static inline be64_t double_bits_be(double x) {
 #endif
 }
 
+
+static inline float bits_to_float_(uint32_t x) {
+    union { float x; uint32_t u32; } u;
+    u.u32 = x;
+    return u.x;
+}
+
+static inline double bits_to_double_(uint64_t x) {
+    union { double x; uint64_t u64; } u;
+    u.u64 = x;
+    return u.x;
+}
+
+static inline float bits_to_float_cpu(uint32_t x) {
+#if __FLOAT_WORD_ORDER == __BYTE_ORDER
+    return bits_to_float_(x);
+#else
+    return bits_to_float_(bswap32(x));
+#endif
+}
+static inline double bits_to_double_cpu(uint64_t x) {
+#if __FLOAT_WORD_ORDER == __BYTE_ORDER
+    return bits_to_double_(x);
+#else
+    return bits_to_double_(bswap64(x));
+#endif
+}
+
+static inline float bits_to_float_le(le32_t x) {
+#if __FLOAT_WORD_ORDER == __LITTLE_ENDIAN
+    return bits_to_float_(force_cast(uint32_t, x));
+#else
+    return bits_to_float_(bswap32(force_cast(uint32_t, x)));
+#endif
+}
+static inline double bits_to_double_le(le64_t x) {
+#if __FLOAT_WORD_ORDER == __LITTLE_ENDIAN
+    return bits_to_double_(force_cast(uint64_t, x));
+#else
+    return bits_to_double_(bswap64(force_cast(uint64_t, x)));
+#endif
+}
+
+static inline float bits_to_float_be(le32_t x) {
+#if __FLOAT_WORD_ORDER == __LITTLE_ENDIAN
+    return bits_to_float_(bswap32(force_cast(uint32_t, x)));
+#else
+    return bits_to_float_(force_cast(uint32_t, x));
+#endif
+}
+static inline double bits_to_double_be(le64_t x) {
+#if __FLOAT_WORD_ORDER == __LITTLE_ENDIAN
+    return bits_to_double_(bswap64(force_cast(uint64_t, x)));
+#else
+    return bits_to_double_(force_cast(uint64_t, x));
+#endif
+}
+
 static inline void *put_unaligned_float_le(void *p, float x) {
     return put_unaligned(p, float_bits_le(x));
 }
@@ -111,37 +171,17 @@ static inline void *put_unaligned_double_be(void *p, double x) {
 }
 
 static inline float get_unaligned_float_le(const void *p) {
-    union { uint32_t u32; float d; } u;
-    u.u32 = get_unaligned_cpu32(p);
-#if __FLOAT_WORD_ORDER != __LITTLE_ENDIAN
-    u.u32 = bswap32(u.u32);
-#endif
-    return u.d;
+    return bits_to_float_(get_unaligned_le32(p));
 }
 static inline double get_unaligned_double_le(const void *p) {
-    union { uint64_t u64; double d; } u;
-    u.u64 = get_unaligned_cpu64(p);
-#if __FLOAT_WORD_ORDER != __LITTLE_ENDIAN
-    u.u64 = bswap64(u.u64);
-#endif
-    return u.d;
+    return bits_to_double_(get_unaligned_le64(p));
 }
 
 static inline float get_unaligned_float_be(const void *p) {
-    union { uint32_t u32; float d; } u;
-    u.u32 = get_unaligned_cpu32(p);
-#if __FLOAT_WORD_ORDER != __BIG_ENDIAN
-    u.u32 = bswap32(u.u32);
-#endif
-    return u.d;
+    return bits_to_float_(get_unaligned_be32(p));
 }
 static inline double get_unaligned_double_be(const void *p) {
-    union { uint64_t u64; double d; } u;
-    u.u64 = get_unaligned_cpu64(p);
-#if __FLOAT_WORD_ORDER != __BIG_ENDIAN
-    u.u64 = bswap64(u.u64);
-#endif
-    return u.d;
+    return bits_to_double_(get_unaligned_be64(p));
 }
 
 #endif

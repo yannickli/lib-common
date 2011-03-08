@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -18,47 +18,6 @@
 #  error "you must include core.h instead"
 #else
 #define IS_LIB_COMMON_CORE_ATOMIC_ARCH_H
-
-static inline ALWAYS_INLINE unsigned int
-atomic_xchg32(volatile unsigned int *p, unsigned int v)
-{
-    unsigned int res;
-    asm volatile("xchgl %0, %1"
-                 : "=&r"(res), "=m"(*p)
-                 : "0"(v), "m"(*p)
-                 : "memory");
-    return res;
-}
-
-#ifdef __x86_64__
-static inline ALWAYS_INLINE unsigned long
-atomic_xchg64(volatile unsigned long *p, unsigned long v)
-{
-    unsigned long res;
-    asm volatile("xchgq %0, %1"
-                 : "=&r"(res), "=m"(*p)
-                 : "0"(v), "m"(*p)
-                 : "memory");
-    return res;
-}
-
-static inline ALWAYS_INLINE unsigned long
-atomic_xchg_(volatile void *p, unsigned long v, int len)
-{
-    switch (len) {
-      case 4: return atomic_xchg32(p, v);
-      case 8: return atomic_xchg64(p, v);
-      default: assert(false); return 0;
-    }
-}
-#define xchg(p, v) \
-  (STATIC_ASSERT(sizeof(*(p)) == 4 || sizeof(*(p)) == 8), \
-   (typeof(*(p)))atomic_xchg_((p), (unsigned long)(v), sizeof(*(p))))
-#else
-#define xchg(p, v) \
-  (STATIC_ASSERT(sizeof(*(p)) == 4), \
-   (typeof(*(p)))atomic_xchg32((volatile void *)(p), (unsigned int)(v)))
-#endif
 
 #ifdef __x86_64__
 #  define mb()          asm volatile("mfence":::"memory")

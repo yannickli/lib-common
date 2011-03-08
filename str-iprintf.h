@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -36,25 +36,6 @@ int isprintf(char *str, const char *format, ...)
 int ivsprintf(char *str, const char *format, va_list arglist)
         __attr_printf__(2, 0)  __attr_nonnull__((2));
 
-__attr_printf__(1, 2)  __attr_nonnull__((1))
-static inline char *iasprintf(const char *fmt, ...)
-{
-    char buf[BUFSIZ], *s;
-    int len;
-    va_list ap;
-
-    va_start(ap, fmt);
-    len = vsnprintf(buf, ssizeof(buf), fmt, ap);
-    va_end(ap);
-
-    if (len < ssizeof(buf))
-        return p_dupz(buf, len);
-    va_start(ap, fmt);
-    vsnprintf(s = p_new(char, len + 1), len + 1, fmt, ap);
-    va_end(ap);
-    return s;
-}
-
 #if defined(IPRINTF_HIDE_STDIO) && IPRINTF_HIDE_STDIO
 #undef sprintf
 #define sprintf(...)    isprintf(__VA_ARGS__)
@@ -75,5 +56,24 @@ static inline char *iasprintf(const char *fmt, ...)
 #undef asprintf
 #define asprintf(...)   iasprintf(__VA_ARGS__)
 #endif
+
+__attr_printf__(1, 2)  __attr_nonnull__((1))
+static inline char *iasprintf(const char *fmt, ...)
+{
+    char buf[BUFSIZ], *s;
+    int len;
+    va_list ap;
+
+    va_start(ap, fmt);
+    len = ivsnprintf(buf, ssizeof(buf), fmt, ap);
+    va_end(ap);
+
+    if (len < ssizeof(buf))
+        return (char *)p_dupz(buf, len);
+    va_start(ap, fmt);
+    ivsnprintf(s = p_new(char, len + 1), len + 1, fmt, ap);
+    va_end(ap);
+    return s;
+}
 
 #endif /* IS_LIB_COMMON_STR_IPRINTF_H */

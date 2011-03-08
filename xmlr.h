@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -14,8 +14,8 @@
 #ifndef IS_LIB_INET_XMLR_H
 #define IS_LIB_INET_XMLR_H
 
-#include <libxml/xmlreader.h>
 #include <lib-common/core.h>
+#include <libxml/xmlreader.h>
 
 typedef xmlTextReaderPtr xml_reader_t;
 

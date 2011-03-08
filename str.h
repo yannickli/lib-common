@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -25,15 +25,6 @@
 #include "str-conv.h"
 #include "str-buf.h"
 #include "str-stream.h"
-
-__attr_nonnull__((1))
-static inline ssize_t sstrlen(const char *str) {
-    return (ssize_t)strlen(str);
-}
-
-ssize_t pstrcpy(char *dest, ssize_t size, const char *src);
-ssize_t pstrcpylen(char *dest, ssize_t size, const char *src, ssize_t n);
-ssize_t pstrcat(char *dest, ssize_t size, const char *src);
 
 const char *skipspaces(const char *s)  __attr_nonnull__((1));
 __attr_nonnull__((1))

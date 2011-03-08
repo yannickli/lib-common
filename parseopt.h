@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -22,6 +22,7 @@ enum popt_kind {
     OPTION_INT,
     OPTION_STR,
     OPTION_GROUP,
+    OPTION_CHAR,
 };
 
 enum popt_options {
@@ -40,6 +41,7 @@ typedef struct popt_t {
 #define OPT_FLAG(s, l, v, h)   { OPTION_FLAG, (s), (l), (v), 0, (h) }
 #define OPT_STR(s, l, v, h)    { OPTION_STR, (s), (l), (v), 0, (h) }
 #define OPT_INT(s, l, v, h)    { OPTION_INT, (s), (l), (v), 0, (h) }
+#define OPT_CHAR(s, l, v, h)   { OPTION_CHAR, (s), (l), (v), 0, (h) }
 #define OPT_GROUP(h)           { OPTION_GROUP, 0, NULL, NULL, 0, (h) }
 #define OPT_END()              { OPTION_END, 0, NULL, NULL, 0, NULL }
 

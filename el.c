@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -53,7 +53,6 @@ typedef enum ev_type_t {
     EV_UNUSED,
     EV_BLOCKER,
     EV_BEFORE,
-    EV_AFTER,
     EV_SIGNAL,
     EV_CHILD,
     EV_FD,
@@ -63,6 +62,7 @@ typedef enum ev_type_t {
 
 enum ev_flags_t {
     EV_FLAG_REFS          = (1U <<  0),
+    EV_FLAG_TRACE         = (1U <<  1),
 
     EV_FLAG_TIMER_NOMISS  = (1U <<  8),
     EV_FLAG_TIMER_LOWRES  = (1U <<  9),
@@ -72,6 +72,12 @@ enum ev_flags_t {
 #define EV_FLAG_HAS(ev, f)   ((ev)->flags & EV_FLAG_##f)
 #define EV_FLAG_SET(ev, f)   ((ev)->flags |= EV_FLAG_##f)
 #define EV_FLAG_RST(ev, f)   ((ev)->flags &= ~EV_FLAG_##f)
+
+#ifndef NDEBUG
+#define EV_IS_TRACED(ev)   unlikely(EV_FLAG_HAS(ev, TRACE))
+#else
+#define EV_IS_TRACED(ev)   0
+#endif
 };
 
 typedef struct ev_t {
@@ -94,7 +100,7 @@ typedef struct ev_t {
     el_data_t priv;
 
     union {
-        dlist_t ev_list;        /* EV_BEFORE, EV_AFTER, EV_SIGNAL, EV_PROXY */
+        dlist_t ev_list;        /* EV_BEFORE, EV_SIGNAL, EV_PROXY */
         int     fd;             /* EV_FD */
         pid_t   pid;            /* EV_CHILD */
         struct {
@@ -115,8 +121,7 @@ static struct {
     int      unloop;          /* @see el_unloop()                           */
     uint64_t lp_clk;          /* low precision monotonic clock              */
 
-    dlist_t  before;          /* ev_t to run at the start of the loop       */
-    dlist_t  after;           /* ev_t to run at the end of the loop         */
+    dlist_t  before;          /* ev_t to run just before the epoll call     */
     dlist_t  sigs;            /* signals el_t's                             */
     dlist_t  proxy, proxy_ready;
     qv_t(ev) timers;          /* relative timers heap (see comments after)  */
@@ -140,7 +145,6 @@ static struct {
     .evs_alloc_end  = &_G.evs_initial[countof(_G.evs_initial)],
 
     .before         = DLIST_INIT(_G.before),
-    .after          = DLIST_INIT(_G.after),
     .sigs           = DLIST_INIT(_G.sigs),
     .proxy          = DLIST_INIT(_G.proxy),
     .proxy_ready    = DLIST_INIT(_G.proxy_ready),
@@ -229,21 +233,16 @@ static void ev_list_process(dlist_t *l)
     }
 }
 
-/*----- blockers, before and after events -----*/
+/*----- blockers and before events -----*/
 
-ev_t *el_blocker_register(el_data_t priv)
+ev_t *el_blocker_register(void)
 {
-    return el_create(EV_BLOCKER, NULL, priv, true);
+    return el_create(EV_BLOCKER, NULL, (el_data_t)NULL, true);
 }
 
-ev_t *el_before_register(el_cb_f *cb, el_data_t priv)
+ev_t *el_before_register_d(el_cb_f *cb, el_data_t priv)
 {
     return ev_add(&_G.before, el_create(EV_BEFORE, cb, priv, true));
-}
-
-ev_t *el_after_register(el_cb_f *cb, el_data_t priv)
-{
-    return ev_add(&_G.after, el_create(EV_AFTER, cb, priv, true));
 }
 
 void el_before_set_hook(el_t ev, el_cb_f *cb)
@@ -252,34 +251,18 @@ void el_before_set_hook(el_t ev, el_cb_f *cb)
     ev->cb.cb = cb;
 }
 
-void el_after_set_hook(el_t ev, el_cb_f *cb)
-{
-    CHECK_EV_TYPE(ev, EV_AFTER);
-    ev->cb.cb = cb;
-}
-
-el_data_t el_blocker_unregister(ev_t **evp)
+void el_blocker_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_BLOCKER);
-        return el_destroy(evp, false);
+        el_destroy(evp, false);
     }
-    return (el_data_t)NULL;
 }
 
 el_data_t el_before_unregister(ev_t **evp)
 {
     if (*evp) {
         CHECK_EV_TYPE(*evp, EV_BEFORE);
-        return el_destroy(evp, true);
-    }
-    return (el_data_t)NULL;
-}
-
-el_data_t el_after_unregister(ev_t **evp)
-{
-    if (*evp) {
-        CHECK_EV_TYPE(*evp, EV_AFTER);
         return el_destroy(evp, true);
     }
     return (el_data_t)NULL;
@@ -322,7 +305,7 @@ void el_signal_set_hook(el_t ev, el_signal_f *cb)
     ev->cb.signal = cb;
 }
 
-ev_t *el_signal_register(int signo, el_signal_f *cb, el_data_t priv)
+ev_t *el_signal_register_d(int signo, el_signal_f *cb, el_data_t priv)
 {
     struct sigaction sa;
     ev_t *ev;
@@ -370,7 +353,7 @@ void el_child_set_hook(el_t ev, el_child_f *cb)
     ev->cb.child = cb;
 }
 
-ev_t *el_child_register(pid_t pid, el_child_f *cb, el_data_t priv)
+ev_t *el_child_register_d(pid_t pid, el_child_f *cb, el_data_t priv)
 {
     static bool hooked;
 
@@ -558,7 +541,7 @@ static uint64_t get_clock(bool lowres)
         the high precision */
 #define TIMER_IS_LOWRES(ev, next)   (EV_FLAG_HAS(ev, TIMER_LOWRES) || (next) >= 500)
 
-ev_t *el_timer_register(int next, int repeat, int flags, el_cb_f *cb, el_data_t priv)
+ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb, el_data_t priv)
 {
     ev_t *ev = el_create(EV_TIMER, cb, priv, true);
 
@@ -606,6 +589,13 @@ el_data_t el_timer_unregister(ev_t **evp)
     return *evp ? el_timer_heapremove(evp) : (el_data_t)NULL;
 }
 
+bool el_timer_is_repeated(el_t ev)
+{
+    CHECK_EV_TYPE(ev, EV_TIMER);
+
+    return ev->timer.repeat > 0;
+}
+
 /*----- fd events -----*/
 
 static ALWAYS_INLINE ev_t *el_fd_act_timer_unregister(ev_t *timer)
@@ -623,6 +613,10 @@ static ALWAYS_INLINE ev_t *el_fd_act_timer_unregister(ev_t *timer)
 
 static ALWAYS_INLINE void el_fd_fire(ev_t *ev, short evs)
 {
+    if (EV_IS_TRACED(ev)) {
+        e_trace(0, "e-fdv(%p): got event %s%s (%04x)", ev,
+                evs & POLLIN ? "IN" : "", evs & POLLOUT ? "OUT" : "", evs);
+    }
     if (EV_FLAG_HAS(ev, FD_WATCHED)) {
         ev_t *timer = ev->priv.ptr;
 
@@ -641,7 +635,7 @@ static void el_act_timer(el_t ev, el_data_t priv)
 
 static ALWAYS_INLINE ev_t *el_fd_act_timer_register(ev_t *ev, int timeout)
 {
-    ev_t *timer = el_timer_register(timeout, 0, 0, &el_act_timer, ev->priv);
+    ev_t *timer = el_timer_register_d(timeout, 0, 0, &el_act_timer, ev->priv);
 
     ev->priv.ptr = el_unref(timer);
     EV_FLAG_SET(ev, FD_WATCHED);
@@ -718,7 +712,7 @@ int el_fd_loop(ev_t *ev, int timeout)
 
 /*----- proxies events  -----*/
 
-ev_t *el_proxy_register(el_proxy_f *cb, el_data_t priv)
+ev_t *el_proxy_register_d(el_proxy_f *cb, el_data_t priv)
 {
     return ev_add(&_G.proxy, el_create(EV_PROXY, cb, priv, true));
 }
@@ -798,6 +792,25 @@ static void el_loop_proxies(void)
 
 /*----- generic functions  -----*/
 
+#ifndef NDEBUG
+bool el_set_trace(el_t ev, bool trace)
+{
+    bool res = EV_FLAG_HAS(ev, TRACE);
+
+    if (res == trace)
+        return res;
+
+    if (trace) {
+        e_trace(0, "el(%p): trace", ev);
+        EV_FLAG_SET(ev, TRACE);
+    } else {
+        e_trace(0, "el(%p): untrace", ev);
+        EV_FLAG_RST(ev, TRACE);
+    }
+    return res;
+}
+#endif
+
 el_t el_ref(ev_t *ev)
 {
     CHECK_EV(ev);
@@ -831,17 +844,15 @@ el_data_t el_set_priv(ev_t *ev, el_data_t priv)
 
 void el_loop_timeout(int timeout)
 {
-    uint64_t clk;
+    if (_G.timers.len) {
+        uint64_t clk = get_clock(false);
 
-    ev_list_process(&_G.before);
-    if (_G.timers.len) {
-        clk = get_clock(false);
         el_timer_process(clk);
-    }
-    if (_G.timers.len) {
-        uint64_t nxt = EVT(0)->timer.expiry;
-        if (nxt < (uint64_t)timeout + clk)
-            timeout = nxt - clk;
+        if (_G.timers.len) {
+            uint64_t nxt = EVT(0)->timer.expiry;
+            if (nxt < (uint64_t)timeout + clk)
+                timeout = nxt - clk;
+        }
     }
     if (!dlist_is_empty(&_G.proxy_ready)) {
         timeout = 0;
@@ -849,10 +860,10 @@ void el_loop_timeout(int timeout)
     do_license_checks();
     if (unlikely(_G.unloop))
         return;
+    ev_list_process(&_G.before);
     el_loop_fds(timeout);
     el_loop_proxies();
     el_signal_process();
-    ev_list_process(&_G.after);
     dlist_splice(&_G.evs_free, &_G.evs_gc);
 }
 
@@ -931,7 +942,6 @@ void el_unloop(void)
 static char const * const typenames[] = {
     [EV_BLOCKER] = "blocker",
     [EV_BEFORE]  = "before loop",
-    [EV_AFTER]   = "after loop",
     [EV_SIGNAL]  = "signal",
     [EV_CHILD]   = "child",
     [EV_FD]      = "file desc.",

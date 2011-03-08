@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <sys/sendfile.h>
 #include "unix.h"
 #include "str-outbuf.h"
 
@@ -20,7 +19,7 @@ void ob_check_invariants(outbuf_t *ob)
     int len = ob->length, sb_len = ob->sb.len;
 
     htlist_for_each(it, &ob->chunks_list) {
-        outbuf_chunk_t *obc = htlist_first_entry(&ob->chunks_list, outbuf_chunk_t, chunks_link);
+        outbuf_chunk_t *obc = htlist_entry(it, outbuf_chunk_t, chunks_link);
 
         sb_len -= obc->sb_leading;
         len    -= obc->sb_leading;
@@ -31,19 +30,16 @@ void ob_check_invariants(outbuf_t *ob)
     assert (sb_len == ob->sb_trailing);
 }
 
-void ob_chunk_close(outbuf_chunk_t *obc)
+void ob_chunk_wipe(outbuf_chunk_t *obc)
 {
-    close(obc->u.fd);
-}
-
-void ob_chunk_free(outbuf_chunk_t *obc)
-{
-    p_delete(&obc->u.vp);
-}
-
-void ob_chunk_munmap(outbuf_chunk_t *obc)
-{
-    munmap(obc->u.vp, obc->length);
+    switch (obc->on_wipe) {
+      case OUTBUF_DO_FREE:
+        ifree(obc->u.vp, MEM_LIBC);
+        break;
+      case OUTBUF_DO_MUNMAP:
+        munmap(obc->u.vp, obc->length);
+        break;
+    }
 }
 
 static void ob_merge_(outbuf_t *dst, outbuf_t *src, bool wipe)
@@ -53,7 +49,8 @@ static void ob_merge_(outbuf_t *dst, outbuf_t *src, bool wipe)
     sb_addsb(&dst->sb, &src->sb);
 
     if (!htlist_is_empty(&src->chunks_list)) {
-        obc = htlist_first_entry(&src->chunks_list, outbuf_chunk_t, chunks_link);
+        obc = htlist_first_entry(&src->chunks_list, outbuf_chunk_t,
+                                 chunks_link);
         obc->sb_leading  += dst->sb_trailing;
         dst->sb_trailing  = src->sb_trailing;
         htlist_splice_tail(&dst->chunks_list, &src->chunks_list);
@@ -93,8 +90,9 @@ void ob_merge_delete(outbuf_t *dst, outbuf_t **srcp)
 void ob_wipe(outbuf_t *ob)
 {
     while (!htlist_is_empty(&ob->chunks_list)) {
-        outbuf_chunk_t *obc = htlist_pop_entry(&ob->chunks_list, outbuf_chunk_t, chunks_link);
+        outbuf_chunk_t *obc;
 
+        obc = htlist_pop_entry(&ob->chunks_list, outbuf_chunk_t, chunks_link);
         ob_chunk_delete(&obc);
     }
     sb_wipe(&ob->sb);
@@ -116,7 +114,7 @@ int ob_xread(outbuf_t *ob, int fd, int size)
     return 0;
 }
 
-int ob_add_file(outbuf_t *ob, const char *file, int size, bool use_mmap)
+int ob_add_file(outbuf_t *ob, const char *file, int size)
 {
     int fd = RETHROW(open(file, O_RDONLY));
 
@@ -136,10 +134,7 @@ int ob_add_file(outbuf_t *ob, const char *file, int size, bool use_mmap)
             return -1;
         }
         close(fd);
-        return 0;
-    }
-
-    if (use_mmap) {
+    } else {
         void *map = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
 
         PROTECT_ERRNO(close(fd));
@@ -147,8 +142,6 @@ int ob_add_file(outbuf_t *ob, const char *file, int size, bool use_mmap)
             return -1;
         madvise(map, size, MADV_SEQUENTIAL);
         ob_add_memmap(ob, map, size);
-    } else {
-        ob_add_sendfile(ob, fd, 0, size, true);
     }
     return 0;
 }
@@ -158,8 +151,10 @@ static int ob_consume(outbuf_t *ob, int len)
     ob->length -= len;
 
     while (!htlist_is_empty(&ob->chunks_list)) {
-        outbuf_chunk_t *obc = htlist_first_entry(&ob->chunks_list, outbuf_chunk_t, chunks_link);
+        outbuf_chunk_t *obc;
 
+        obc = htlist_first_entry(&ob->chunks_list, outbuf_chunk_t,
+                                 chunks_link);
         if (len < obc->sb_leading) {
             sb_skip(&ob->sb, len);
             obc->sb_leading -= len;
@@ -188,48 +183,36 @@ static int ob_consume(outbuf_t *ob, int len)
 
 int ob_write(outbuf_t *ob, int fd)
 {
+#define PREPARE_AT_LEAST  (64U << 10)
     struct iovec iov[IOV_MAX];
-    int iovcnt = 0, sb_pos = 0;
-    ssize_t res;
-    off_t offs;
+    size_t iovcnt = 0, sb_pos = 0, iov_size = 0;
 
     if (!ob->length)
         return 0;
 
     htlist_for_each(it, &ob->chunks_list) {
         outbuf_chunk_t *obc = htlist_entry(it, outbuf_chunk_t, chunks_link);
+        size_t len;
 
-        if (unlikely(iovcnt + 2 >= countof(iov)))
-            break;
+        len = obc->sb_leading;
+        if (len) {
+            iov[iovcnt++] = MAKE_IOVEC(ob->sb.data + sb_pos, len);
+            sb_pos   += len;
+            iov_size += len;
+        }
 
-        if (obc->sb_leading) {
-            iov[iovcnt++] = MAKE_IOVEC(ob->sb.data + sb_pos, obc->sb_leading);
-            sb_pos += obc->sb_leading;
-        }
-        if (obc->outbuf_chunk_kind == OUTBUF_CHUNK_KIND_PTR) {
-            iov[iovcnt++] = MAKE_IOVEC(obc->u.b + obc->offset,
-                                       obc->length - obc->offset);
-            continue;
-        }
-        if (iovcnt) {
-            res = RETHROW(writev(fd, iov, iovcnt));
-        } else
-        switch (obc->outbuf_chunk_kind) {
-          case OUTBUF_CHUNK_KIND_SENFILE:
-            offs = obc->offset;
-            res  = RETHROW(sendfile(fd, obc->u.fd, &offs,
-                                    obc->length - obc->offset));
-            break;
-
-          default:
-            res = 0;
-        }
-        return ob_consume(ob, res);
+        len = obc->length - obc->offset;
+        iov[iovcnt++] = MAKE_IOVEC(obc->u.b + obc->offset, len);
+        iov_size += len;
+        if (iov_size > PREPARE_AT_LEAST || iovcnt + 2 >= sizeof(iov))
+            goto doit;
     }
+
     if (ob->sb_trailing) {
         iov[iovcnt++] = MAKE_IOVEC(ob->sb.data + sb_pos, ob->sb_trailing);
-        assert (ob->sb.len == sb_pos + ob->sb_trailing);
+        assert ((size_t)ob->sb.len == sb_pos + ob->sb_trailing);
     }
-    res = RETHROW(writev(fd, iov, iovcnt));
-    return ob_consume(ob, res);
+
+  doit:
+    return ob_consume(ob, RETHROW(writev(fd, iov, iovcnt)));
 }

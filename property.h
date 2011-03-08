@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -28,16 +28,24 @@ static inline void property_wipe(property_t *property) {
 GENERIC_INIT(property_t, property);
 GENERIC_NEW(property_t, property);
 GENERIC_DELETE(property_t, property);
-DO_ARRAY(property_t, props, property_delete);
+qvector_t(props, property_t *);
+
+static inline void props_array_wipe(qv_t(props) *arr)
+{
+    qv_for_each_pos(props, pos, arr)
+        property_delete(&arr->tab[pos]);
+    qv_wipe(props, arr);
+}
+GENERIC_DELETE(qv_t(props), props_array);
 
 const char *
-property_findval(const props_array *arr, const char *k, const char *def);
+property_findval(const qv_t(props) *arr, const char *k, const char *def);
 
-void props_array_qsort(props_array *arr);
-void props_array_filterout(props_array *arr, const char **blacklisted);
+void props_array_qsort(qv_t(props) *arr);
+void props_array_filterout(qv_t(props) *arr, const char **blacklisted);
 
-int props_from_fmtv1_cstr(const char *buf, props_array *props);
+int props_from_fmtv1_cstr(const char *buf, qv_t(props) *props);
 
-void props_array_dup(props_array *to, const props_array *from);
+void props_array_dup(qv_t(props) *to, const qv_t(props) *from);
 
 #endif /* IS_LIB_COMMON_PROPERTY_H */

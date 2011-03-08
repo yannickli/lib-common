@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -45,6 +45,7 @@ static void mime_put_http_ctype(outbuf_t *ob, const char *path)
         E("pcap",  "application/x-pcap"),
 
         E("pdf",   "application/pdf"),
+        E("csv",   "application/csv"),
 
         E("tar",   "application/x-tar"),
         E2("tgz",  "application/x-tar", "gzip"),

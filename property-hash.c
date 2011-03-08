@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -12,7 +12,6 @@
 /**************************************************************************/
 
 #include "property-hash.h"
-#include "blob.h"
 
 /****************************************************************************/
 /* Generic helpers and functions                                            */
@@ -166,24 +165,6 @@ bool props_hash_findval_bool(const props_hash_t *ph, const char *name, bool defv
 /* Serialize props_hashes                                                   */
 /****************************************************************************/
 
-void props_hash_pack(sb_t *out, const props_hash_t *ph, int terminator)
-{
-    blob_pack(out, "d", qm_len(proph, &ph->h));
-    qm_for_each_pos(proph, pos, &ph->h) {
-        blob_pack(out, "|s|s", (char *)(uintptr_t)ph->h.keys[pos],
-                  ph->h.values[pos]);
-    }
-    sb_addc(out, terminator);
-}
-
-void props_hash_to_fmtv1(sb_t *out, const props_hash_t *ph)
-{
-    qm_for_each_pos(proph, pos, &ph->h) {
-        blob_pack(out, "s:s\n", (char *)(uintptr_t)ph->h.keys[pos],
-                  ph->h.values[pos]);
-    }
-}
-
 void props_hash_to_conf(sb_t *out, const props_hash_t *ph)
 {
     qm_for_each_pos(proph, pos, &ph->h) {
@@ -204,42 +185,6 @@ void props_hash_to_xml(xmlpp_t *xpp, const props_hash_t *ph)
 /****************************************************************************/
 /* Unserialize props_hashes                                                 */
 /****************************************************************************/
-
-/* TODO check for validity first in a separate pass */
-int props_hash_unpack(const void *_buf, int buflen, int *pos,
-                      props_hash_t *ph, int last)
-{
-    const byte *buf = _buf;
-    int len, pos0 = *pos;
-
-    if (buf_unpack(buf, buflen, pos, "d|", &len) < 1) {
-        char fmt[3] = {'d', last, '\0' };
-        if (buf_unpack(buf, buflen, pos, fmt, &len) < 1 || len != 0) {
-            goto error;
-        }
-    }
-
-    while (len-- > 0) {
-        static char fmt[5] = {'s', '|', 's', '|', '\0'};
-        char *key, *val;
-        int res;
-
-        fmt[3] = len ? '|' : last;
-        res = buf_unpack(buf, buflen, pos, fmt, &key, &val);
-        if (res < 2) {
-            p_delete(&key);
-            goto error;
-        }
-        props_hash_update(ph, key, val);
-        p_delete(&val);
-        p_delete(&key);
-    }
-    return 1;
-
-  error:
-    *pos = pos0;
-    return 0;
-}
 
 int props_hash_from_fmtv1_data_start(props_hash_t *ph,
                                      const void *_buf, int len, int start)

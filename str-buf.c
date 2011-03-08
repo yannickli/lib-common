@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -97,6 +97,23 @@ static void sb_destroy_skip(sb_t *sb)
     sb->skip  = 0;
 }
 
+void __sb_optimize(sb_t *sb, size_t len)
+{
+    size_t sz = p_alloc_nr(len + 1);
+    char *buf;
+
+    if (len == 0) {
+        sb_reset(sb);
+        return;
+    }
+    if (sb->mem_pool != MEM_LIBC)
+        return;
+    buf = p_new_raw(char, sz);
+    p_copy(buf, sb->data, sb->len + 1);
+    libc_free(sb->data - sb->skip, 0);
+    sb_init_full(sb, buf, sb->len, sz, MEM_LIBC);
+}
+
 void __sb_grow(sb_t *sb, int extra)
 {
     int newlen = sb->len + extra;
@@ -159,6 +176,7 @@ char *__sb_splice(sb_t *sb, int pos, int len, int dlen)
         p_move2(sb->data, pos + dlen, pos + len, sb->len - pos - len);
         __sb_fixlen(sb, sb->len + dlen - len);
     }
+    sb_optimize(sb, 0);
     return sb->data + pos;
 }
 
@@ -217,15 +235,16 @@ int sb_getline(sb_t *sb, FILE *f)
     do {
         char *buf = sb_grow(sb, BUFSIZ);
 
-        if (!fgets(buf, sb_avail(sb) + 1, f))
+        if (!fgets(buf, sb_avail(sb) + 1, f)) {
+            if (ferror(f))
+                return __sb_rewind_adds(sb, &orig);
             break;
+        }
 
         sb->len += strlen(buf);
     } while (sb->data[sb->len - 1] != '\n');
 
-    if (ferror(f))
-        return __sb_rewind_adds(sb, &orig);
-    return 0;
+    return sb->len - orig.len;
 }
 
 /* OG: returns the number of elements actually appended to the sb,

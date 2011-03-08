@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -27,12 +27,14 @@
 #else
 #  define VALGRIND_CREATE_MEMPOOL(...)           ((void)0)
 #  define VALGRIND_DESTROY_MEMPOOL(...)          ((void)0)
-#  define VALGRIND_MAKE_MEM_DEFINED(...)         0
-#  define VALGRIND_MAKE_MEM_NOACCESS(...)        0
-#  define VALGRIND_MAKE_MEM_UNDEFINED(...)       0
+#  define VALGRIND_MAKE_MEM_DEFINED(...)         ((void)0)
+#  define VALGRIND_MAKE_MEM_NOACCESS(...)        ((void)0)
+#  define VALGRIND_MAKE_MEM_UNDEFINED(...)       ((void)0)
 #  define VALGRIND_MEMPOOL_ALLOC(...)            ((void)0)
 #  define VALGRIND_MEMPOOL_CHANGE(...)           ((void)0)
 #  define VALGRIND_MEMPOOL_FREE(...)             ((void)0)
+#  define VALGRIND_MALLOCLIKE_BLOCK(...)         ((void)0)
+#  define VALGRIND_FREELIKE_BLOCK(...)           ((void)0)
 #endif
 #include "core.h"
 
@@ -46,7 +48,7 @@ static inline void VALGRIND_PROT_BLK(mem_blk_t *blk)
 
 static inline void VALGRIND_REG_BLK(mem_blk_t *blk)
 {
-    VALGRIND_CREATE_MEMPOOL(blk, 0, true);
+    VALGRIND_CREATE_MEMPOOL(blk, 0, false);
     VALGRIND_PROT_BLK(blk);
 }
 

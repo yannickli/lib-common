@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -200,7 +200,7 @@ log_file_t *log_file_init(log_file_t *log_file, const char *nametpl, int flags)
     } else {
         pstrcpy(log_file->ext, sizeof(log_file->ext), "log");
     }
-    pstrcpylen(log_file->prefix, sizeof(log_file->prefix), nametpl, len);
+    pstrcpymem(log_file->prefix, sizeof(log_file->prefix), nametpl, len);
     return log_file;
 }
 

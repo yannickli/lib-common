@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -29,11 +29,8 @@ static int compress(const char *in, const char *out)
     if (in) {
         RETHROW(sb_read_file(&sb, in));
     } else {
-        int fd = RETHROW(open(in, O_RDONLY));
-
-        while (RETHROW(sb_read(&sb, fd, 0)) > 0) {
+        while (RETHROW(sb_read(&sb, STDIN_FILENO, 0)) > 0) {
         }
-        close(fd);
     }
 
     sb_add(&sbout, &sb.len, 4);

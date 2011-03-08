@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -325,7 +325,7 @@ httpd_qinfo_t *httpd_qinfo_dup(const httpd_qinfo_t *info)
     res->vars.s        = p;
     res->vars.s_end    = p = mempcpy(p, info->vars.s, ps_len(&info->vars));
     res->hdrs_ps.s     = p;
-    res->hdrs_ps.s_end = p = mempcpy(p, info->hdrs_ps.s, ps_len(&info->hdrs_ps));
+    res->hdrs_ps.s_end = mempcpy(p, info->hdrs_ps.s, ps_len(&info->hdrs_ps));
 
     offs = res->hdrs_ps.s - info->hdrs_ps.s;
     for (int i = 0; i < res->hdrs_len; i++) {
@@ -379,11 +379,6 @@ static httpd_query_t *httpd_query_init(httpd_query_t *q)
     return q;
 }
 
-static bool httpd_query_release(httpd_query_t *q)
-{
-    return --q->refcnt == 0;
-}
-
 static void httpd_query_wipe(httpd_query_t *q)
 {
     if (q->trig_cb && q->trig_cb->on_query_wipe)
@@ -432,9 +427,8 @@ void httpd_bufferize(httpd_query_t *q, unsigned maxsize)
 }
 
 OBJ_VTABLE(httpd_query)
-    httpd_query.init    = httpd_query_init;
-    httpd_query.wipe    = httpd_query_wipe;
-    httpd_query.release = httpd_query_release;
+    httpd_query.init     = httpd_query_init;
+    httpd_query.wipe     = httpd_query_wipe;
 OBJ_VTABLE_END()
 
 
@@ -509,6 +503,18 @@ void httpd_reply_done(httpd_query_t *q)
     if (q->chunked)
         ob_adds(ob, "\r\n0\r\n\r\n");
     httpd_mark_query_answered(w, q);
+}
+
+static void httpd_set_mask(httpd_t *w);
+
+void httpd_signal_write(httpd_query_t *q)
+{
+    httpd_t *w = q->owner;
+
+    if (w) {
+        assert (q->hdrs_done && !q->answered && !q->chunk_started);
+        httpd_set_mask(w);
+    }
 }
 
 /*---- high level httpd_query reply functions ----*/
@@ -768,6 +774,7 @@ static void httpd_mark_query_answered(httpd_t *w, httpd_query_t *q)
     q->answered = true;
     q->on_data  = NULL;
     q->on_done  = NULL;
+    q->on_ready = NULL;
     if (w) {
         w->queries_done++;
         if (dlist_is_first(&w->query_list, &q->query_link))
@@ -1233,7 +1240,7 @@ static int httpd_on_event(el_t evh, int fd, short events, el_data_t priv)
         goto close;
 
     if (events & POLLIN) {
-        if ((res = sb_read(&w->ibuf, fd, 0)) <= 0)
+        if (sb_read(&w->ibuf, fd, 0) <= 0)
             goto close;
 
         ps = ps_initsb(&w->ibuf);
@@ -1243,8 +1250,22 @@ static int httpd_on_event(el_t evh, int fd, short events, el_data_t priv)
         sb_skip_upto(&w->ibuf, ps.s);
     }
 
-    if (ob_write(&w->ob, fd) < 0 && !ERR_RW_RETRIABLE(errno))
-        goto close;
+    {
+        int oldlen = w->ob.length;
+        if (ob_write(&w->ob, fd) < 0 && !ERR_RW_RETRIABLE(errno))
+            goto close;
+
+        if (!dlist_is_empty(&w->query_list)) {
+            httpd_query_t *query = dlist_first_entry(&w->query_list,
+                                                     httpd_query_t, query_link);
+            if (!query->answered && query->on_ready != NULL
+            && oldlen >= query->ready_threshold
+            && w->ob.length < query->ready_threshold) {
+                (*query->on_ready)(query);
+            }
+        }
+    }
+
     if (unlikely(w->state == HTTP_PARSER_CLOSE)) {
         if (w->queries == 0 && ob_is_empty(&w->ob))
             goto close;
@@ -1338,7 +1359,7 @@ static httpc_qinfo_t *httpc_qinfo_dup(const httpc_qinfo_t *info)
     res->reason.s      = p;
     res->reason.s_end  = p = mempcpy(p, info->reason.s, ps_len(&info->reason));
     res->hdrs_ps.s     = p;
-    res->hdrs_ps.s_end = p = mempcpy(p, info->hdrs_ps.s, ps_len(&info->hdrs_ps));
+    res->hdrs_ps.s_end = mempcpy(p, info->hdrs_ps.s, ps_len(&info->hdrs_ps));
 
     offs = res->hdrs_ps.s - info->hdrs_ps.s;
     for (int i = 0; i < res->hdrs_len; i++) {
@@ -1744,7 +1765,7 @@ static int httpc_on_event(el_t evh, int fd, short events, el_data_t priv)
         goto close;
 
     if (events & POLLIN) {
-        if ((res = sb_read(&w->ibuf, fd, 0)) <= 0)
+        if (sb_read(&w->ibuf, fd, 0) <= 0)
             goto close;
 
         ps = ps_initsb(&w->ibuf);

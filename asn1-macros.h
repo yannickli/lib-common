@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -69,7 +69,6 @@
                                                                              \
         if (unlikely(!desc)) {                                               \
             desc = &p_new(asn1_choice_desc_t, 1)->desc;                      \
-            asn1_field_vector_init(&desc->vec);                              \
             desc->type = ASN1_CSTD_TYPE_CHOICE;                              \
             asn1_reg_enum(desc, pfx, enum_pfx, enum_field,                   \
                           ASN1_TAG_INVALID)

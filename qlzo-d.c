@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -169,7 +169,6 @@ int lzo_copy_backptr3(ostream_t *os, const uint8_t *out_orig, unsigned back)
     if (unlikely(dst + 3 > os->b_end))
         return LZO_ERR_OUTPUT_OVERRUN;
 
-    memcpy(dst, src, 3);
     dst[0] = src[0];
     dst[1] = src[1];
     dst[2] = src[2];
@@ -230,12 +229,8 @@ ssize_t qlzo1x_decompress(void *_out, size_t outlen, pstream_t in)
         }
     }
 
-    if (likely(in.b == in.b_end)) {
-#ifndef NDEBUG
-        (void)VALGRIND_MAKE_MEM_DEFINED(out_orig, os.b - out_orig);
-#endif
+    if (likely(in.b == in.b_end))
         return os.b - out_orig;
-    }
     if (in.b < in.b_end)
         return LZO_ERR_INPUT_NOT_CONSUMED;
     return LZO_ERR_INPUT_OVERRUN;

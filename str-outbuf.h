@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -17,28 +17,9 @@
 #include "str.h"
 #include "container.h"
 
-#define OUTBUF_CHUNK_MIN_SIZE    (16 << 10)
-
-enum outbuf_chunk_kind {
-    OUTBUF_CHUNK_KIND_PTR,
-    OUTBUF_CHUNK_KIND_SENFILE,
-    /* TODO: OUTBUF_CHUNK_KIND_SPLICE/_TEE */
-};
-
-typedef struct outbuf_chunk_t {
-    htnode_t  chunks_link;
-    int       outbuf_chunk_kind;
-    int       length;
-    int       offset;
-    int       sb_leading;
-    union {
-        const void    *p;
-        const uint8_t *b;
-        void          *vp;
-        int            fd;
-    } u;
-    void (*wipe)(struct outbuf_chunk_t *);
-} outbuf_chunk_t;
+/****************************************************************************/
+/* Outbuf                                                                   */
+/****************************************************************************/
 
 typedef struct outbuf_t {
     int      length;
@@ -48,17 +29,6 @@ typedef struct outbuf_t {
 } outbuf_t;
 
 void ob_check_invariants(outbuf_t *ob);
-
-static inline void ob_chunk_wipe(outbuf_chunk_t *obc) {
-    if (obc->wipe)
-        (*obc->wipe)(obc);
-}
-GENERIC_DELETE(outbuf_chunk_t, ob_chunk);
-
-void ob_chunk_close(outbuf_chunk_t *);
-void ob_chunk_free(outbuf_chunk_t *);
-void ob_chunk_munmap(outbuf_chunk_t *);
-
 
 static inline outbuf_t *ob_init(outbuf_t *ob)
 {
@@ -70,6 +40,7 @@ static inline outbuf_t *ob_init(outbuf_t *ob)
 }
 #define ob_inita(ob, sb_size) \
     ({ ob_init(ob); sb_inita(&ob->sb, sb_size); })
+
 void ob_wipe(outbuf_t *ob);
 GENERIC_NEW(outbuf_t, ob);
 GENERIC_DELETE(outbuf_t, ob);
@@ -80,6 +51,37 @@ static inline bool ob_is_empty(const outbuf_t *ob) {
     return ob->length == 0;
 }
 
+int ob_write(outbuf_t *ob, int fd);
+int ob_xread(outbuf_t *ob, int fd, int size);
+
+
+/****************************************************************************/
+/* Chunks                                                                   */
+/****************************************************************************/
+
+#define OUTBUF_CHUNK_MIN_SIZE    (16 << 10)
+
+enum outbuf_on_wipe {
+    OUTBUF_DO_NOTHING,
+    OUTBUF_DO_FREE,
+    OUTBUF_DO_MUNMAP,
+};
+
+typedef struct outbuf_chunk_t {
+    htnode_t  chunks_link;
+    int       length;
+    int       offset;
+    int       sb_leading;
+    int       on_wipe;
+    union {
+        const void    *p;
+        const uint8_t *b;
+        void          *vp;
+    } u;
+} outbuf_chunk_t;
+void ob_chunk_wipe(outbuf_chunk_t *obc);
+GENERIC_DELETE(outbuf_chunk_t, ob_chunk);
+
 static inline void ob_add_chunk(outbuf_t *ob, outbuf_chunk_t *obc)
 {
     htlist_add_tail(&ob->chunks_list, &obc->chunks_link);
@@ -87,8 +89,6 @@ static inline void ob_add_chunk(outbuf_t *ob, outbuf_chunk_t *obc)
     obc->sb_leading = ob->sb_trailing;
     ob->sb_trailing = 0;
 }
-
-int ob_write(outbuf_t *ob, int fd);
 
 static inline sb_t *outbuf_sb_start(outbuf_t *ob, int *oldlen) {
     *oldlen = ob->sb.len;
@@ -117,8 +117,6 @@ static inline void outbuf_sb_end(outbuf_t *ob, int oldlen) {
 #define ob_addsb(ob, sb)         OB_WRAP(sb_addsb, ob, sb)
 #define ob_adds_urlencode(ob, s) OB_WRAP(sb_adds_urlencode, ob, s)
 
-int ob_xread(outbuf_t *ob, int fd, int size);
-
 /* XXX: invalidated as sonn as the outbuf is consumed ! */
 static inline int ob_reserve(outbuf_t *ob, unsigned len)
 {
@@ -130,7 +128,8 @@ static inline int ob_reserve(outbuf_t *ob, unsigned len)
     return res;
 }
 
-static inline void ob_add_memchunk(outbuf_t *ob, const void *ptr, int len, bool is_const)
+static inline
+void ob_add_memchunk(outbuf_t *ob, const void *ptr, int len, bool is_const)
 {
     if (len <= OUTBUF_CHUNK_MIN_SIZE) {
         ob_add(ob, ptr, len);
@@ -142,7 +141,7 @@ static inline void ob_add_memchunk(outbuf_t *ob, const void *ptr, int len, bool 
         obc->u.p    = ptr;
         obc->length = len;
         if (!is_const)
-            obc->wipe   = &ob_chunk_free;
+            obc->on_wipe = OUTBUF_DO_FREE;
         ob_add_chunk(ob, obc);
     }
 }
@@ -155,25 +154,13 @@ static inline void ob_add_memmap(outbuf_t *ob, void *map, int len)
     } else {
         outbuf_chunk_t *obc = p_new(outbuf_chunk_t, 1);
 
-        obc->u.p    = map;
-        obc->length = len;
-        obc->wipe   = &ob_chunk_munmap;
+        obc->u.p     = map;
+        obc->length  = len;
+        obc->on_wipe = OUTBUF_DO_MUNMAP;
         ob_add_chunk(ob, obc);
     }
 }
 
-static inline void ob_add_sendfile(outbuf_t *ob, int fd, int offset, int size, bool autoclose)
-{
-    outbuf_chunk_t *obc = p_new(outbuf_chunk_t, 1);
-
-    obc->u.fd   = fd;
-    obc->length = size;
-    obc->offset = offset;
-    if (autoclose)
-        obc->wipe = &ob_chunk_close;
-    ob_add_chunk(ob, obc);
-}
-
-int ob_add_file(outbuf_t *ob, const char *file, int size, bool use_mmap);
+int ob_add_file(outbuf_t *ob, const char *file, int size);
 
 #endif

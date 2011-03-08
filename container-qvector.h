@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -26,37 +26,69 @@
 
 typedef STRUCT_QVECTOR_T(uint8_t) qvector_t;
 
+#ifdef __BLOCKS__
+typedef int (^qvector_cmp_f)(const void *, const void *);
+#else
+typedef int (*qvector_cmp_f)(const void *, const void *);
+#endif
+
 static inline qvector_t *
 __qvector_init(qvector_t *vec, void *buf, int blen, int bsize, int mem_pool)
 {
     *vec = (qvector_t){
-        .tab      = buf,
-        .len      = blen,
-        .size     = bsize,
-        .mem_pool = mem_pool,
+        cast(uint8_t *, buf),
+        blen,
+        bsize,
+        mem_pool,
+        0,
     };
     return vec;
 }
 
-void  qvector_wipe(qvector_t *vec, int v_size);
-void  __qvector_grow(qvector_t *, int v_size, int extra);
-void *__qvector_splice(qvector_t *, int v_size, int pos, int len, int dlen);
-static inline void qvector_reset(qvector_t *vec, int v_size)
+void  qvector_reset(qvector_t *vec, size_t v_size);
+void  qvector_wipe(qvector_t *vec, size_t v_size);
+void  __qvector_grow(qvector_t *, size_t v_size, int extra);
+void  __qvector_optimize(qvector_t *, size_t v_size, size_t len);
+void *__qvector_splice(qvector_t *, size_t v_size, int pos, int len, int dlen);
+void __qv_sort32(void *a, size_t n, qvector_cmp_f cmp);
+void __qv_sort64(void *a, size_t n, qvector_cmp_f cmp);
+void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_f cmp);
+
+static ALWAYS_INLINE void
+__qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_f cmp)
 {
-    vec->size += vec->skip;
-    vec->tab  += vec->skip * v_size;
-    vec->skip  = 0;
-    vec->len   = 0;
+    if (v_size == 8) {
+        __qv_sort64(vec->tab, vec->len, cmp);
+    } else
+    if (v_size == 4) {
+        __qv_sort32(vec->tab, vec->len, cmp);
+    } else {
+        __qv_sort(vec->tab, v_size, vec->len, cmp);
+    }
 }
 
-static inline void *qvector_grow(qvector_t *vec, int v_size, int extra)
+
+static inline void
+qvector_optimize(qvector_t *vec, size_t v_size, size_t extra)
 {
-    if (vec->len + extra > vec->size)
+    size_t size = vec->size + vec->skip;
+    size_t len  = vec->len;
+
+    if (unlikely(size * v_size > BUFSIZ && (len + extra) * 8 < size))
+        __qvector_optimize(vec, v_size, len + extra);
+}
+
+static inline void *qvector_grow(qvector_t *vec, size_t v_size, int extra)
+{
+    if (vec->len + extra > vec->size) {
         __qvector_grow(vec, v_size, extra);
+    } else {
+        qvector_optimize(vec, v_size, extra);
+    }
     return vec->tab + vec->len * v_size;
 }
 
-static inline void *qvector_growlen(qvector_t *vec, int v_size, int extra)
+static inline void *qvector_growlen(qvector_t *vec, size_t v_size, int extra)
 {
     void *res;
 
@@ -68,10 +100,10 @@ static inline void *qvector_growlen(qvector_t *vec, int v_size, int extra)
 }
 
 static inline void *
-qvector_splice(qvector_t *vec, int v_size,
+qvector_splice(qvector_t *vec, size_t v_size,
                int pos, int len, const void *tab, int dlen)
 {
-    char *res;
+    void *res;
 
     assert (pos >= 0 && len >= 0 && dlen >= 0);
     assert ((unsigned)pos <= (unsigned)vec->len);
@@ -94,7 +126,7 @@ qvector_splice(qvector_t *vec, int v_size,
     return tab ? memcpy(res, tab, dlen * v_size) : res;
 }
 
-#define __QVECTOR_BASE(pfx, val_t) \
+#define __QVECTOR_BASE(pfx, const, val_t) \
     typedef union pfx##_t {                                                 \
         qvector_t qv;                                                       \
         STRUCT_QVECTOR_T(val_t);                                            \
@@ -117,7 +149,8 @@ qvector_splice(qvector_t *vec, int v_size,
                                                                             \
     static inline val_t *                                                   \
     __##pfx##_splice(pfx##_t *vec, int pos, int len, int dlen) {            \
-        return __qvector_splice(&vec->qv, sizeof(val_t), pos, len, dlen);   \
+        return (val_t *)__qvector_splice(&vec->qv, sizeof(val_t),           \
+                                         pos, len, dlen);                   \
     }                                                                       \
     static inline void pfx##_clip(pfx##_t *vec, int at) {                   \
         assert (0 <= at && at <= vec->len);                                 \
@@ -130,16 +163,27 @@ qvector_splice(qvector_t *vec, int v_size,
     static inline val_t *                                                   \
     pfx##_splice(pfx##_t *vec, int pos, int len,                            \
                  const val_t *tab, int dlen) {                              \
-        return qvector_splice(&vec->qv, sizeof(val_t), pos, len, tab, dlen);\
+        void *res = qvector_splice(&vec->qv, sizeof(val_t), pos, len,       \
+                                   tab, dlen);                              \
+        return cast(val_t *, res);                                          \
     }                                                                       \
     static inline val_t *pfx##_grow(pfx##_t *vec, int extra) {              \
-        return qvector_grow(&vec->qv, sizeof(val_t), extra);                \
+        void *res = qvector_grow(&vec->qv, sizeof(val_t), extra);           \
+        return cast(val_t *, res);                                          \
     }                                                                       \
     static inline val_t *pfx##_growlen(pfx##_t *vec, int extra) {           \
-        return qvector_growlen(&vec->qv, sizeof(val_t), extra);             \
+        void *res = qvector_growlen(&vec->qv, sizeof(val_t), extra);        \
+        return cast(val_t *, res);                                          \
+    }                                                                       \
+    static inline void                                                      \
+    pfx##_sort_do_not_use_directly(pfx##_t *vec,                            \
+                                   int (BLOCK_CARET cmp)(const val_t *,     \
+                                                   const val_t *)) {        \
+        __qvector_sort(&vec->qv, sizeof(val_t), (qvector_cmp_f)cmp);        \
     }
 
-#define qvector_t(n, val_t)                 __QVECTOR_BASE(qv_##n, val_t)
+#define qvector_t(n, val_t)                 __QVECTOR_BASE(qv_##n, const, val_t)
+#define qvector_const_t(n, val_t)           __QVECTOR_BASE(qv_##n, , const val_t)
 
 #define qv_t(n)                             qv_##n##_t
 #define __qv_sz(n)                          fieldsizeof(qv_t(n), tab[0])
@@ -162,6 +206,10 @@ qvector_splice(qvector_t *vec, int v_size,
        qv_wipe(n, __vec); })
 #define qv_new(n)                           p_new(qv_t(n), 1)
 #define qv_delete(n, vec)                   qv_##n##_delete(vec)
+#ifdef __block
+/* You must be in a .blk to use qv_sort, because it expects blocks ! */
+#define qv_sort(n)                          qv_##n##_sort_do_not_use_directly
+#endif
 
 #define qv_last(n, vec)                     ({ qv_t(n) *__vec = (vec);  \
                                                assert (__vec->len > 0); \
@@ -179,7 +227,7 @@ qvector_splice(qvector_t *vec, int v_size,
 
 #define qv_insert(n, vec, i, v)             (*__qv_splice(n, vec, i, 0, 1) = (v))
 #define qv_append(n, vec, v)                (*qv_growlen(n, vec, 1) = (v))
-#define qv_push(n, vec, v)                  qv_insert(n, vec, 0, v)
+#define qv_push(n, vec, v)                  qv_insert(n, vec, 0, (v))
 #define qv_insertp(n, vec, i, v)            qv_insert(n, vec, i, *(v))
 #define qv_appendp(n, vec, v)               qv_append(n, vec, *(v))
 #define qv_pushp(n, vec, v)                 qv_push(n, vec, *(v))
@@ -202,5 +250,10 @@ qvector_t(u64,    uint64_t);
 qvector_t(void,   void *);
 qvector_t(double, double);
 qvector_t(str,    char *);
+#ifndef __cplusplus
 qvector_t(lstr,   lstr_t);
 qvector_t(clstr,  clstr_t);
+#endif
+
+qvector_const_t(cvoid,  void *);
+qvector_const_t(cstr,   char *);

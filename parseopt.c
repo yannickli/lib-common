@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -74,6 +74,20 @@ static int get_value(popt_state_t *st, popt_t *opt, int flags)
         }
         return 0;
 
+      case OPTION_CHAR:
+        if (flags & FLAG_UNSET) {
+            *(char *)opt->value = (char)opt->init;
+        } else {
+            const char *value;
+            if (!st->p && st->argc < 2)
+                return opterror(opt, "requires a value", flags);
+            value = opt_arg(st);
+            if (strlen(value) != 1)
+                return opterror(opt, "expects a single character", flags);
+            *(char *)opt->value = value[0];
+        }
+        return 0;
+
       case OPTION_INT:
         if (flags & FLAG_UNSET) {
             *(int *)opt->value = opt->init;
@@ -136,6 +150,9 @@ static void copyinits(popt_t *opts)
             break;
           case OPTION_STR:
             opts->init = (intptr_t)*(const char **)opts->value;
+            break;
+          case OPTION_CHAR:
+            opts->init = *(char *)opts->value;
             break;
           default:
             break;

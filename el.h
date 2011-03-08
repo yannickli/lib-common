@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -48,9 +48,10 @@
 typedef struct ev_t *el_t;
 
 typedef union el_data_t {
+    void    *ptr;
+    uint32_t u32;
     uint64_t u64;
-    void *ptr;
-} el_data_t __attribute__((transparent_union));
+} el_data_t;
 
 typedef void (el_cb_f)(el_t, el_data_t);
 typedef void (el_signal_f)(el_t, int, el_data_t);
@@ -58,28 +59,38 @@ typedef void (el_child_f)(el_t, pid_t, int, el_data_t);
 typedef int  (el_fd_f)(el_t, int, short, el_data_t);
 typedef void (el_proxy_f)(el_t, short, el_data_t);
 
-el_t el_blocker_register(el_data_t);
-el_t el_before_register(el_cb_f *, el_data_t);
-el_t el_after_register(el_cb_f *, el_data_t);
-el_t el_signal_register(int signo, el_signal_f *, el_data_t);
-el_t el_child_register(pid_t pid, el_child_f *, el_data_t);
+el_t el_blocker_register(void);
+el_t el_before_register_d(el_cb_f *, el_data_t);
+el_t el_signal_register_d(int signo, el_signal_f *, el_data_t);
+el_t el_child_register_d(pid_t pid, el_child_f *, el_data_t);
+
+static inline el_t el_before_register(el_cb_f *f, void *ptr) {
+    return el_before_register_d(f, (el_data_t){ ptr });
+}
+static inline el_t el_signal_register(int signo, el_signal_f *f, void *ptr) {
+    return el_signal_register_d(signo, f, (el_data_t){ ptr });
+}
+static inline el_t el_child_register(pid_t pid, el_child_f *f, void *ptr) {
+    return el_child_register_d(pid, f, (el_data_t){ ptr });
+}
 
 void el_before_set_hook(el_t, el_cb_f *);
-void el_after_set_hook(el_t, el_cb_f *);
 void el_signal_set_hook(el_t, el_signal_f *);
 void el_child_set_hook(el_t, el_child_f *);
 
 el_data_t el_before_unregister(el_t *);
-el_data_t el_after_unregister(el_t *);
 el_data_t el_signal_unregister(el_t *);
 el_data_t el_child_unregister(el_t *);
-el_data_t el_blocker_unregister(el_t *);
+void      el_blocker_unregister(el_t *);
 
 /*----- child related -----*/
 pid_t el_child_getpid(el_t);
 
 /*----- proxy related -----*/
-el_t el_proxy_register(el_proxy_f *, el_data_t);
+el_t el_proxy_register_d(el_proxy_f *, el_data_t);
+static inline el_t el_proxy_register(el_proxy_f *f, void *ptr) {
+    return el_proxy_register_d(f, (el_data_t){ ptr });
+}
 void el_proxy_set_hook(el_t, el_proxy_f *);
 el_data_t el_proxy_unregister(el_t *);
 short el_proxy_set_event(el_t, short mask);
@@ -92,7 +103,10 @@ bool el_stopper_is_waiting(void);
 void el_stopper_unregister(void);
 
 /*----- fd related -----*/
-el_t el_fd_register(int fd, short events, el_fd_f *, el_data_t);
+el_t el_fd_register_d(int fd, short events, el_fd_f *, el_data_t);
+static inline el_t el_fd_register(int fd, short events, el_fd_f *f, void *ptr) {
+    return el_fd_register_d(fd, events, f, (el_data_t){ ptr });
+}
 void el_fd_set_hook(el_t, el_fd_f *);
 el_data_t el_fd_unregister(el_t *, bool do_close);
 
@@ -135,7 +149,14 @@ enum {
  * \param[in]  priv    private data.
  * \return the timer handler descriptor.
  */
-el_t el_timer_register(int next, int repeat, int flags, el_cb_f *, el_data_t);
+el_t el_timer_register_d(int next, int repeat, int flags, el_cb_f *, el_data_t);
+static inline
+el_t el_timer_register(int next, int repeat, int flags, el_cb_f *f, void *ptr)
+{
+    return el_timer_register_d(next, repeat, flags, f, (el_data_t){ ptr });
+}
+bool el_timer_is_repeated(el_t ev);
+
 /** \brief restart a single shot timer.
  *
  * Note that if the timer hasn't expired yet, it just sets it to a later time.
@@ -156,6 +177,11 @@ el_data_t el_timer_unregister(el_t *);
 
 el_t el_ref(el_t);
 el_t el_unref(el_t);
+#ifndef NDEBUG
+bool el_set_trace(el_t, bool trace);
+#else
+#define el_set_trace(ev, trace)
+#endif
 el_data_t el_set_priv(el_t, el_data_t);
 
 void el_bl_use(void);

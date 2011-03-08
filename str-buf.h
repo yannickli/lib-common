@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -63,6 +63,13 @@ typedef struct sb_t {
     int len, size;
     flag_t mem_pool   :  2;
     unsigned int skip : 30;
+#ifdef __cplusplus
+    inline sb_t();
+    inline ~sb_t();
+
+  private:
+    DISALLOW_COPY_AND_ASSIGN(sb_t);
+#endif
 } sb_t;
 
 /* Default byte array for empty strbufs. It should always stay equal to
@@ -83,13 +90,12 @@ extern __thread char __sb_slop[1];
 static inline sb_t *
 sb_init_full(sb_t *sb, void *buf, int blen, int bsize, int mem_pool)
 {
-    *sb = (sb_t){
-        .data = buf,
-        .len = blen,
-        .size = bsize,
-        .mem_pool = mem_pool,
-    };
     assert (blen < bsize);
+    sb->data = cast(char *, buf);
+    sb->len  = blen;
+    sb->size = bsize;
+    sb->skip = 0;
+    sb->mem_pool = mem_pool;
     sb->data[blen] = '\0';
     return sb;
 }
@@ -117,6 +123,17 @@ void sb_reset(sb_t *sb);
 void sb_wipe(sb_t *sb);
 GENERIC_NEW(sb_t, sb);
 GENERIC_DELETE(sb_t, sb);
+#ifdef __cplusplus
+sb_t::sb_t() :
+    data(__sb_slop),
+    len(0),
+    size(1),
+    mem_pool(MEM_STATIC),
+    skip(0)
+{
+}
+sb_t::~sb_t() { sb_wipe(this); }
+#endif
 
 static inline void sb_wipe_not_needed(sb_t *sb)
 {
@@ -154,15 +171,29 @@ char *sb_detach(sb_t *sb, int *len);
 
 int  __sb_rewind_adds(sb_t *sb, const sb_t *orig);
 void __sb_grow(sb_t *sb, int extra);
+void __sb_optimize(sb_t *sb, size_t len);
 static inline void __sb_fixlen(sb_t *sb, int len)
 {
     sb->len = len;
     sb->data[sb->len] = '\0';
 }
+
+static inline void sb_optimize(sb_t *sb, size_t extra)
+{
+    size_t size = sb->size + sb->skip;
+    size_t len  = sb->len + 1;
+
+    if (unlikely(size > BUFSIZ && (len + extra) * 8 < size))
+        __sb_optimize(sb, len + extra);
+}
+
 static inline char *sb_grow(sb_t *sb, int extra)
 {
-    if (sb->len + extra >= sb->size)
+    if (sb->len + extra >= sb->size) {
         __sb_grow(sb, extra);
+    } else {
+        sb_optimize(sb, extra);
+    }
     return sb_end(sb);
 }
 static inline char *sb_growlen(sb_t *sb, int extra)
@@ -217,6 +248,7 @@ sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
 
     assert (pos >= 0 && len >= 0 && dlen >= 0);
     assert ((unsigned)pos <= (unsigned)sb->len && (unsigned)pos + (unsigned)len <= (unsigned)sb->len);
+#ifndef __cplusplus
     if (__builtin_constant_p(dlen)) {
         if (dlen == 0 || (__builtin_constant_p(len) && len >= dlen)) {
             p_move2(sb->data, pos + dlen, pos + len, sb->len - pos - len);
@@ -229,7 +261,10 @@ sb_splice(sb_t *sb, int pos, int len, const void *data, int dlen)
     } else {
         res = __sb_splice(sb, pos, len, dlen);
     }
-    return data ? memcpy(res, data, dlen) : res;
+#else
+    res = __sb_splice(sb, pos, len, dlen);
+#endif
+    return data ? (char *)memcpy(res, data, dlen) : res;
 }
 
 static inline void
@@ -330,6 +365,36 @@ static inline void sb_sets(sb_t *sb, const char *s)
 
 struct sockaddr;
 
+/** reads a line from file f.
+ *
+ * Typical use is (boilerplate removed for clarity)
+ *
+ * <code>
+ * int res;
+ * sb_t sb;
+ * FILE *f = fopen(...)
+ *
+ * if (f == NULL)
+ *     return -1;
+ *
+ * while ((res = sb_getline(sb, f)) > 0) {
+ *     // use sb
+ * }
+ * if (res == 0) {
+ *     // EOF
+ * } else {
+ *     assert (res < 0);
+ *     // ERROR
+ * }
+ *
+ * </code>
+ *
+ *
+ * \returns
+ *   -1 if an error was met, check ferror(f) and/or errno
+ *   0 if at EOF
+ *   >0 the number of octets read
+ */
 int sb_getline(sb_t *sb, FILE *f);
 int sb_fread(sb_t *sb, int size, int nmemb, FILE *f);
 int sb_read_file(sb_t *sb, const char *filename);

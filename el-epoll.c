@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -29,7 +29,7 @@ static void el_fd_initialize(void)
     }
 }
 
-el_t el_fd_register(int fd, short events, el_fd_f *cb, el_data_t priv)
+el_t el_fd_register_d(int fd, short events, el_fd_f *cb, el_data_t priv)
 {
     ev_t *ev = el_create(EV_FD, cb, priv, true);
     struct epoll_event event = {
@@ -49,6 +49,10 @@ short el_fd_set_mask(ev_t *ev, short events)
 {
     short old = ev->events_wanted;
 
+    if (EV_IS_TRACED(ev)) {
+        e_trace(0, "ev-fd(%p): set mask to %s%s", ev,
+                events & POLLIN ? "IN" : "", events & POLLOUT ? "OUT" : "");
+    }
     CHECK_EV_TYPE(ev, EV_FD);
     if (old != events) {
         struct epoll_event event = {

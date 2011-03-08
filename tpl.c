@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -29,7 +29,7 @@ tpl_t *tpl_new_op(tpl_op op)
     if (op == TPL_OP_BLOB)
         sb_init(&n->u.blob);
     if (op & TPL_OP_BLOCK)
-        tpl_array_init(&n->u.blocks);
+        qv_init(tpl, &n->u.blocks);
 
     n->is_const = (op == TPL_OP_BLOB) || (op == TPL_OP_DATA);
     return n;
@@ -57,8 +57,12 @@ static void tpl_wipe(tpl_t *n)
 {
     if (n->op == TPL_OP_BLOB)
         sb_wipe(&n->u.blob);
-    if (n->op & TPL_OP_BLOCK)
-        tpl_array_wipe(&n->u.blocks);
+    if (n->op & TPL_OP_BLOCK) {
+        qv_for_each_pos_safe(tpl, pos, &n->u.blocks) {
+            tpl_delete(&n->u.blocks.tab[pos]);
+        }
+        qv_wipe(tpl, &n->u.blocks);
+    }
 }
 
 void tpl_delete(tpl_t **tpl)
@@ -91,7 +95,7 @@ void tpl_add_data(tpl_t *tpl, const void *data, int len)
     assert (tpl_can_append(tpl));
 
     if (tpl_is_seq(tpl)) {
-        tpl_array_append(&tpl->u.blocks, buf = tpl_new_op(TPL_OP_DATA));
+        qv_append(tpl, &tpl->u.blocks, buf = tpl_new_op(TPL_OP_DATA));
         buf->u.data = (struct tpl_data){ .data = data, .len = len };
         return;
     }
@@ -110,7 +114,7 @@ void tpl_add_data(tpl_t *tpl, const void *data, int len)
             return;
         }
     }
-    tpl_array_append(&tpl->u.blocks, buf = tpl_new_op(TPL_OP_DATA));
+    qv_append(tpl, &tpl->u.blocks, buf = tpl_new_op(TPL_OP_DATA));
     buf->u.data = (struct tpl_data){ .data = data, .len = len };
 }
 
@@ -122,7 +126,7 @@ sb_t *tpl_get_blob(tpl_t *tpl)
 
     buf = tpl->u.blocks.len > 0 ? tpl->u.blocks.tab[tpl->u.blocks.len - 1] : NULL;
     if (!buf || buf->op != TPL_OP_BLOB || buf->refcnt > 1) {
-        tpl_array_append(&tpl->u.blocks, buf = tpl_new_op(TPL_OP_BLOB));
+        qv_append(tpl, &tpl->u.blocks, buf = tpl_new_op(TPL_OP_BLOB));
     }
     return &buf->u.blob;
 }
@@ -152,7 +156,7 @@ void tpl_add_var(tpl_t *tpl, uint16_t array, uint16_t index)
     tpl_t *var;
 
     assert (tpl_can_append(tpl));
-    tpl_array_append(&tpl->u.blocks, var = tpl_new_op(TPL_OP_VAR));
+    qv_append(tpl, &tpl->u.blocks, var = tpl_new_op(TPL_OP_VAR));
     var->u.varidx = ((uint32_t)array << 16) | index;
 }
 
@@ -179,7 +183,7 @@ void tpl_embed_tpl(tpl_t *out, tpl_t **tplp)
             return;
         }
     }
-    tpl_array_append(&out->u.blocks, tpl);
+    qv_append(tpl, &out->u.blocks, tpl);
     *tplp = NULL;
 }
 
@@ -201,7 +205,7 @@ void tpl_add_tpl(tpl_t *out, const tpl_t *tpl)
             return;
         }
     }
-    tpl_array_append(&out->u.blocks, tpl_dup(tpl));
+    qv_append(tpl, &out->u.blocks, tpl_dup(tpl));
 }
 
 void tpl_add_tpls(tpl_t *out, tpl_t **tpls, int nb)
@@ -209,7 +213,7 @@ void tpl_add_tpls(tpl_t *out, tpl_t **tpls, int nb)
     int pos = out->u.blocks.len;
 
     assert (tpl_can_append(out));
-    tpl_array_splice(&out->u.blocks, pos, 0, tpls, nb);
+    qv_splice(tpl, &out->u.blocks, pos, 0, (const tpl_t **)tpls, nb);
     for (int i = pos; i < pos + nb; i++) {
         out->u.blocks.tab[i]->refcnt++;
     }
@@ -220,7 +224,7 @@ tpl_t *tpl_add_ifdef(tpl_t *tpl, uint16_t array, uint16_t index)
     tpl_t *var;
 
     assert (tpl_can_append(tpl));
-    tpl_array_append(&tpl->u.blocks, var = tpl_new_op(TPL_OP_IFDEF));
+    qv_append(tpl, &tpl->u.blocks, var = tpl_new_op(TPL_OP_IFDEF));
     var->u.varidx = ((uint32_t)array << 16) | index;
     return var;
 }
@@ -230,7 +234,7 @@ tpl_t *tpl_add_apply(tpl_t *tpl, tpl_op op, tpl_apply_f *f)
     tpl_t *app;
 
     assert (tpl_can_append(tpl));
-    tpl_array_append(&tpl->u.blocks, app = tpl_new_op(op));
+    qv_append(tpl, &tpl->u.blocks, app = tpl_new_op(op));
     app->u.f = f;
     return app;
 }
@@ -503,7 +507,7 @@ void tpl_optimize(tpl_t *tpl)
         tpl_t *cur = tpl->u.blocks.tab[i];
 
         if (cur->op == TPL_OP_BLOCK && tpl->op == TPL_OP_BLOCK) {
-            tpl_array_remove(&tpl->u.blocks, i);
+            qv_remove(tpl, &tpl->u.blocks, i);
             tpl_add_tpls(tpl, cur->u.blocks.tab, cur->u.blocks.len);
             tpl_delete(&cur);
         } else {
@@ -536,7 +540,7 @@ void tpl_optimize(tpl_t *tpl)
             if (nxt->op == TPL_OP_BLOB && nxt->refcnt == 1) {
                 sb_splice(&nxt->u.blob, 0, 0,
                           cur->u.data.data, cur->u.data.len);
-                tpl_array_remove(&tpl->u.blocks, i);
+                qv_remove(tpl, &tpl->u.blocks, i);
                 tpl_delete(&cur);
                 continue;
             }
@@ -549,7 +553,7 @@ void tpl_optimize(tpl_t *tpl)
                 cur = tpl_to_sb(&tpl->u.blocks.tab[i]);
             }
             sb_add(&cur->u.blob, nxt->u.data.data, nxt->u.data.len);
-            tpl_array_remove(&tpl->u.blocks, i + 1);
+            qv_remove(tpl, &tpl->u.blocks, i + 1);
             tpl_delete(&nxt);
             continue;
         }
@@ -560,11 +564,11 @@ void tpl_optimize(tpl_t *tpl)
         }
         if (cur->refcnt > 1) {
             sb_splice(&nxt->u.blob, 0, 0, cur->u.blob.data, cur->u.blob.len);
-            tpl_array_remove(&tpl->u.blocks, i);
+            qv_remove(tpl, &tpl->u.blocks, i);
             tpl_delete(&cur);
         } else {
             sb_addsb(&cur->u.blob, &nxt->u.blob);
-            tpl_array_remove(&tpl->u.blocks, i + 1);
+            qv_remove(tpl, &tpl->u.blocks, i + 1);
             tpl_delete(&nxt);
         }
     }
@@ -622,19 +626,17 @@ int tpl_to_iov(struct iovec *iov, int nr, tpl_t *tpl)
     }
 }
 
-int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl)
+int tpl_to_iovec_vector(qv_t(iovec) *iov, tpl_t *tpl)
 {
     int oldlen = iov->len;
 
     switch (tpl->op) {
       case TPL_OP_DATA:
-        iovec_vector_append(iov, MAKE_IOVEC(tpl->u.data.data,
-                                            tpl->u.data.len));
+        qv_append(iovec, iov, MAKE_IOVEC(tpl->u.data.data, tpl->u.data.len));
         return 0;
 
       case TPL_OP_BLOB:
-        iovec_vector_append(iov, MAKE_IOVEC(tpl->u.blob.data,
-                                            tpl->u.blob.len));
+        qv_append(iovec, iov, MAKE_IOVEC(tpl->u.blob.data, tpl->u.blob.len));
         return 0;
 
       case TPL_OP_BLOCK:

@@ -1,6 +1,6 @@
 ##########################################################################
 #                                                                        #
-#  Copyright (C) 2004-2010 INTERSEC SAS                                  #
+#  Copyright (C) 2004-2011 INTERSEC SAS                                  #
 #                                                                        #
 #  Should you receive a copy of this source code, you must check you     #
 #  have a proper, written authorization of INTERSEC to hold it. If you   #
@@ -11,22 +11,9 @@
 #                                                                        #
 ##########################################################################
 
-test_PROGRAMS += zchk btree-dump ztst-cfgparser ztst-tpl
-test_PROGRAMS += ztst-lzo
-
 none_LIBRARIES = libcommon time-lp-simple
-
-none_TESTS += ztst
-none_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
-ifdef CHECK_ALL
-  # These tests are just too long to be part of "make check". Sorry.
-  none_TESTS += ztst-btree ztst-isndx ztst-sort
-else
-  test_PROGRAMS += ztst-btree ztst-isndx ztst-sort
-endif
-
-btree-dump_SOURCES = btree-dump.c libcommon.a compat/compat.a
-btree-dump_LIBS = -lm
+test_PROGRAMS += zchk ztst-cfgparser ztst-tpl ztst-lzo
+test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 
 DISTCLEANFILES = core-version.c
 core-version.c: scripts/version.sh FORCE
@@ -37,13 +24,8 @@ core-version.c: scripts/version.sh FORCE
 _CFLAGS  = $(libxml2_CFLAGS)
 
 libcommon_SOURCES = \
-	bfield.c \
-	btree.c \
 	farch.c \
-	isndx.c \
 	licence.c \
-	mmappedfile.c \
-	paged-index.c \
 	parseopt.c \
 	time.c \
 	\
@@ -53,15 +35,12 @@ libcommon_SOURCES = \
 	asn1-writer.c \
 	ztst-asn1-writer.c \
 	\
-	blob.c \
-	\
 	conf.c  \
 	conf-parser.l \
 	\
-	container-array.c \
 	container-list.c \
 	container-qhash.c \
-	container-qvector.c \
+	container-qvector.blk \
 	container-rbtree.c \
 	container-ring.c \
 	container-slist.c \
@@ -115,9 +94,9 @@ libcommon_SOURCES = \
 	sort-32-64.c \
 	\
 	str.c \
-	str-buf.c \
 	str-buf-gsm.c \
 	str-buf-quoting.c \
+	str-buf.c \
 	str-conv-ebcdic.c \
 	str-conv.c \
 	str-ctype.c \
@@ -144,9 +123,9 @@ libcommon_SOURCES = \
 	http.tokens \
 	\
 	xmlpp.c \
-	xmlr.c \
-	\
-	$(end_of_list)
+	xmlr.c
+
+libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 
 time-lp-simple_SOURCES = time-lp-simple.c
 
@@ -160,11 +139,11 @@ ztst_SOURCES = $(libcommon_SOURCES) time-lp-simple.c ztst.c $/lib-common/compat/
 ztst_CFLAGS  = -DCHECK=1
 ztst_LIBS = -lz -lrt -ldl
 
-ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a compat/compat.a
+ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
 
 ztst-tpl_SOURCES = ztst-tpl.c libcommon.a
 
-ztst-iprintf_SOURCES = ztst-iprintf.c libcommon.a compat/compat.a
+ztst-iprintf_SOURCES = ztst-iprintf.c libcommon.a
 
 ztst-iprintf-fp_CFLAGS = -Wno-format -Wno-missing-format-attribute
 ztst-iprintf-fp_SOURCES = ztst-iprintf-fp.c libcommon.a
@@ -172,22 +151,11 @@ ztst-iprintf-fp_SOURCES = ztst-iprintf-fp.c libcommon.a
 ztst-iprintf-glibc_CFLAGS = -Wno-format -Wno-missing-format-attribute
 ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a
 
-ztst-lzo_SOURCES = ztst-lzo.c libcommon.a compat/compat.a
+ztst-lzo_SOURCES = ztst-lzo.c libcommon.a
 ztst-lzo_LDFLAGS = -lrt
 
-ztst-btree_SOURCES = ztst-btree.c btree.c libcommon.a compat/compat.a
-ztst-isndx_SOURCES = ztst-isndx.c libcommon.a compat/compat.a
-ztst-sort_SOURCES = ztst-sort.c libcommon.a compat/compat.a
-ztst-sort_CFLAGS = -UCHECK
-ztst-sort_LIBS = -lm
-ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a compat/compat.a
+ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a
 ztst-iprintf-speed_CFLAGS = -UCHECK
-
-ifneq (,$(MINGCC))
-  # Disable some stuff that does not compile under MingW
-  libcommon_SOURCES := $(filter-out unix-linux.c mmappedfile.c btree.c, $(libcommon_SOURCES))
-  test_PROGRAMS := $(filter-out btree-dump, $(test_PROGRAMS))
-endif
 
 ifneq (SunOS,$(shell uname -s))
 DISTCLEANFILES=Upgrading.html

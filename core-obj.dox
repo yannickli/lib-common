@@ -19,7 +19,7 @@
   Then, to really define your class, you must call the macro
   <tt>OBJ_CLASS</tt> this way:
   \code
-  OBJ_CLASS(${my_class}, ${MY_CLASS}_FIELDS, ${MY_CLASS}_METHODS, ${my_super_class});
+  OBJ_CLASS(${my_class}, ${my_super_class}, ${MY_CLASS}_FIELDS, ${MY_CLASS}_METHODS);
   \endcode
 
   For example, if we had the class <tt>shape</tt> and that you want to
@@ -30,11 +30,11 @@
       point_t center;        \
       int radius
 
-  #define CIRCLE_METHORS(type_t) \
+  #define CIRCLE_METHODS(type_t) \
       SHAPE_FIELDS(type_t);      \
       void (*draw)(type_t *self)
 
-  OBJ_CLASS(circle, CIRCLE_FIELDS, CIRCLE_METHORS, shape);
+  OBJ_CLASS(circle, CIRCLE_FIELDS, CIRCLE_METHODS, shape);
   \endcode
 
 
@@ -73,11 +73,20 @@
   objects properly.
 
   To help with reference counting and various delayed deletion schemes,
-  objects also provide a <tt>boo release(type_t *)</tt> method. This method is
+  objects also provide a <tt>boo can_wipe(type_t *)</tt> method. This method is
   called (if it exists, else a <b>true</b> return value is assumed) each
   time someone calls <tt>obj_delete</tt> on your object. If it returns
   <b>false</b>, then the object is <em>not really</em> deinitialized, only the
-  pointer passed as an argument is set to <tt>NULL</tt>.
+  pointer passed as an argument is set to <tt>NULL</tt>. THIS FEATURE IS
+  DEPRECATED USE BUILTIN REFCOUNTING INSTEAD.
+
+  Objects are refcounted in builtin, with two methods: <tt>retain</tt> and
+  <tt>release</tt> working like in ObjC. Objects are either created as
+  automatic variable with <tt>obj_init</tt> and released with
+  <tt>obj_wipe</tt>, or on the heap using <tt>obj_new</tt> and
+  <tt>obj_release</tt> (or <tt>obj_delete</tt> which is an alias). Using
+  <tt>obj_{retain,release,delete</tt> on an object created using
+  <tt>obj_init</tt> is invalid.
 
 
   <h2>Dive into the hacks</h2>

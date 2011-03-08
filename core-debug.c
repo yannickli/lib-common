@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -17,29 +17,16 @@
 #include "container.h"
 #include "unix.h"
 
-/*
- * The debug module uses a brutally-memoize-answers approach.
- *
- *   (1) There aren't that many [__FILE__,__func__] pairs,
- *   (2) Those points into our binary that is less than gigabyte big.
- *
- *   Hence the lower 32bits from the __FILE__ string and the lower 32 bits
- *   from the __func__ one combined are a unique id we can use in a hashtable,
- *   to remember the answer we previously gave.
- */
-
-qm_k64_t(trace, int);
-
 struct trace_spec_t {
     const char *path;
     const char *func;
+    const char *name;
     int level;
 };
 qvector_t(spec, struct trace_spec_t);
 
 static struct {
     qv_t(spec)  specs;
-    qm_t(trace) cache;
 
     int verbosity_level, max_level;
 
@@ -47,7 +34,6 @@ static struct {
     bool fancy;
 } _G = {
     .verbosity_level = 0,
-    .cache           = QM_INIT(trace, _G.cache, false),
 };
 
 static __thread sb_t buf_g;
@@ -93,23 +79,29 @@ static void e_debug_initialize(void)
 
     /*
      * parses blank separated <specs>
-     * <specs> ::= [<path-pattern>][@<funcname>][:<level>]
+     * <specs> ::= [<path-pattern>][@<funcname>][+<featurename>][:<level>]
      */
     while (*p) {
         struct trace_spec_t spec = {
             .path = NULL,
             .func = NULL,
+            .name = NULL,
             .level = INT_MAX,
         };
         int len;
 
-        len = strcspn(p, "@: \t\r\n\v\f");
+        len = strcspn(p, "@+: \t\r\n\v\f");
         if (len)
             spec.path = p;
         p += len;
         if (*p == '@') {
             *p++ = '\0';
             spec.func = p;
+            p += strcspn(p, "+: \t\r\n\v\f");
+        }
+        if (*p == '+') {
+            *p++ = '\0';
+            spec.name = p;
             p += strcspn(p, ": \t\r\n\v\f");
         }
         if (*p == ':') {
@@ -125,9 +117,13 @@ static void e_debug_initialize(void)
     }
 }
 
-static int e_find_level(const char *modname, const char *func)
+int e_is_traced_(int lvl, const char *modname, const char *func,
+                 const char *name)
 {
     int level = _G.verbosity_level;
+
+    if (lvl > _G.max_level)
+        return -1;
 
     for (int i = 0; i < _G.specs.len; i++) {
         struct trace_spec_t *spec = &_G.specs.tab[i];
@@ -136,41 +132,17 @@ static int e_find_level(const char *modname, const char *func)
             continue;
         if (spec->func && fnmatch(spec->func, func, 0) != 0)
             continue;
+        if (spec->name && (name == NULL || fnmatch(spec->name, name, 0) != 0))
+            continue;
         level = spec->level;
     }
-    return level;
+    if (lvl > level)
+        return -1;
+    return 1;
 }
 
-static uint64_t e_trace_uuid(const char *modname, const char *func)
-{
-    uint32_t mod_lo = (uintptr_t)modname;
-    uint32_t fun_lo = (uintptr_t)func;
-    return MAKE64(mod_lo, fun_lo);
-}
-
-bool e_is_traced_real(int level, const char *modname, const char *func)
-{
-    static spinlock_t spin;
-    uint64_t uuid;
-    int32_t pos, tr_level;
-
-    if (level > _G.max_level)
-        return false;
-
-    uuid = e_trace_uuid(modname, func);
-    spin_lock(&spin);
-    pos  = qm_find(trace, &_G.cache, uuid);
-    if (unlikely(pos < 0)) {
-        tr_level = e_find_level(modname, func);
-        qm_add(trace, &_G.cache, uuid, tr_level);
-    } else {
-        tr_level = _G.cache.values[pos];
-    }
-    spin_unlock(&spin);
-    return level <= tr_level;
-}
-
-static void e_trace_put_fancy(int level, const char *module, int lno, const char *func)
+static void e_trace_put_fancy(int level, const char *name,
+                              const char *module, int lno, const char *func)
 {
     char escapes[BUFSIZ];
     int len, cols = _G.cols;
@@ -183,41 +155,45 @@ static void e_trace_put_fancy(int level, const char *module, int lno, const char
     sb_splice(&tmpbuf_g, 0, 0, escapes, len);
     sb_adds(&tmpbuf_g, " \e[0m\r");
 
-    len = strlen(func);
 #define FUN_WIDTH 20
     if (strlen(func) < FUN_WIDTH) {
         sb_addf(&tmpbuf_g, "\e[33m%*s\e[0m ", FUN_WIDTH, func);
     } else {
         sb_addf(&tmpbuf_g, "\e[33m%*pM...\e[0m ", FUN_WIDTH - 3, func);
     }
+    if (name)
+        sb_addf(&tmpbuf_g, "\e[1;30m{%s}\e[0m ", name);
 }
 
-static void e_trace_put_normal(int level, const char *module, int lno, const char *func)
+static void e_trace_put_normal(int level, const char *name,
+                               const char *module, int lno, const char *func)
 {
-    sb_setf(&tmpbuf_g, "%d %s:%d:%s: ", level, module, lno, func);
+    if (name) {
+        sb_setf(&tmpbuf_g, "%d %s:%d:%s:{%s} ", level, module, lno, func, name);
+    } else {
+        sb_setf(&tmpbuf_g, "%d %s:%d:%s: ", level, module, lno, func);
+    }
 }
 
-void e_trace_put(int level, const char *module, int lno,
-                 const char *func, const char *fmt, ...)
+void e_trace_put_(int level, const char *module, int lno,
+                  const char *func, const char *name, const char *fmt, ...)
 {
     const char *p;
     va_list ap;
 
-    if (e_is_traced_real(level, module, func)) {
-        va_start(ap, fmt);
-        sb_addvf(&buf_g, fmt, ap);
-        va_end(ap);
+    va_start(ap, fmt);
+    sb_addvf(&buf_g, fmt, ap);
+    va_end(ap);
 
-        while ((p = memchr(buf_g.data, '\n', buf_g.len))) {
-            if (_G.fancy) {
-                e_trace_put_fancy(level, module, lno, func);
-            } else {
-                e_trace_put_normal(level, module, lno, func);
-            }
-            sb_add(&tmpbuf_g, buf_g.data, p + 1 - buf_g.data);
-            sb_skip_upto(&buf_g, p + 1);
-            IGNORE(xwrite(STDERR_FILENO, tmpbuf_g.data, tmpbuf_g.len));
+    while ((p = memchr(buf_g.data, '\n', buf_g.len))) {
+        if (_G.fancy) {
+            e_trace_put_fancy(level, name, module, lno, func);
+        } else {
+            e_trace_put_normal(level, name, module, lno, func);
         }
+        sb_add(&tmpbuf_g, buf_g.data, p + 1 - buf_g.data);
+        sb_skip_upto(&buf_g, p + 1);
+        IGNORE(xwrite(STDERR_FILENO, tmpbuf_g.data, tmpbuf_g.len));
     }
 }
 

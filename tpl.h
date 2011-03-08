@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_TPL_H
 #define IS_LIB_COMMON_TPL_H
 
-#include "container.h"
+#include "unix.h"
 
 /** \defgroup templates Intersec generic templating API.
  *
@@ -54,7 +54,7 @@ struct tpl_data {
 struct tpl_t;
 typedef int (tpl_apply_f)(struct tpl_t *, sb_t *, struct tpl_t **, int nb);
 
-ARRAY_TYPE(struct tpl_t, tpl);
+qvector_t(tpl, struct tpl_t *);
 typedef struct tpl_t {
     flag_t is_const :  1; /* if the subtree has TPL_OP_VARs in it */
     tpl_op op       :  7;
@@ -65,7 +65,7 @@ typedef struct tpl_t {
         uint32_t varidx; /* 16 bits of env, 16 bits of index */
         struct {
             tpl_apply_f *f;
-            tpl_array blocks;
+            qv_t(tpl)    blocks;
         };
     } u;
 } tpl_t;
@@ -75,14 +75,15 @@ tpl_t *tpl_new_op(tpl_op op);
 tpl_t *tpl_new_var(uint16_t envid, uint16_t index);
 tpl_t *tpl_dup(const tpl_t *);
 void tpl_delete(tpl_t **);
-ARRAY_FUNCTIONS(tpl_t, tpl, tpl_delete);
 
 /* XXX: This function does not copy str content */
 static inline tpl_t *tpl_new_cstr(const void *str, int len)
 {
     tpl_t *tpl = tpl_new_op(TPL_OP_DATA);
     tpl->u.data.data = str;
-    tpl->u.data.len = len < 0 ? sstrlen(str) : len;
+    if (len < 0)
+        len = strlen(str);
+    tpl->u.data.len = len;
     return tpl;
 }
 
@@ -152,7 +153,7 @@ bool tpl_is_variable(const tpl_t *tpl);
     (((t)->op == TPL_OP_SEQ) || ((t)->op == TPL_OP_APPLY_SEQ))
 
 int tpl_to_iov(struct iovec *, int nr, tpl_t *);
-int tpl_to_iovec_vector(iovec_vector *iov, tpl_t *tpl);
+int tpl_to_iovec_vector(qv_t(iovec) *iov, tpl_t *tpl);
 
 static inline void tpl_blob_append(tpl_t *tpl, sb_t *out)
 {

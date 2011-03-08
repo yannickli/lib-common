@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -99,10 +99,10 @@ static ring_blk_t *blk_create(ring_pool_t *rp, size_t size_hint)
     size_t blksize = size_hint + sizeof(ring_blk_t);
     ring_blk_t *blk;
 
-    if (size_hint < rp->minsize)
-        size_hint = rp->minsize;
-    if (size_hint < 64 * rp_alloc_mean(rp))
-        size_hint = 64 * rp_alloc_mean(rp);
+    if (blksize < rp->minsize)
+        blksize = rp->minsize;
+    if (blksize < 64 * rp_alloc_mean(rp))
+        blksize = 64 * rp_alloc_mean(rp);
     blksize = ROUND_UP(blksize, PAGE_SIZE);
     if (blksize > MEM_ALLOC_MAX)
         e_panic("You cannot allocate that amount of memory");

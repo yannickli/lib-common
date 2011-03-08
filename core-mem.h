@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -227,7 +227,7 @@ static inline void *mem_dup(const void *src, size_t size)
 __attribute__((malloc, warn_unused_result))
 static inline void *p_dupz(const void *src, size_t len)
 {
-    char *res = imalloc(len + 1, MEM_RAW | MEM_LIBC);
+    void *res = imalloc(len + 1, MEM_RAW | MEM_LIBC);
     return memcpyz(res, src, len);
 }
 
@@ -265,9 +265,11 @@ static inline void *p_dupz(const void *src, size_t len)
         *__ptr = irealloc(*__ptr, sz * (old), sz * (now), MEM_LIBC);         \
     })
 
+#ifndef __cplusplus
 static inline void (p_delete)(void **p) {
     p_delete(p);
 }
+#endif
 
 #define p_alloc_nr(x) (((x) + 16) * 3 / 2)
 
@@ -350,7 +352,7 @@ static inline void *memp_dup(mem_pool_t *mp, const void *src, size_t size)
 __attribute__((malloc, warn_unused_result))
 static inline void *mp_dupz(mem_pool_t *mp, const void *src, size_t len)
 {
-    char *res = mp->malloc(mp, len + 1, MEM_RAW);
+    void *res = mp->malloc(mp, len + 1, MEM_RAW);
     return memcpyz(res, src, len);
 }
 __attribute__((malloc, warn_unused_result))

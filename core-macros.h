@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -36,9 +36,11 @@
 #endif
 
 #if !defined(__doxygen_mode__)
-#  if (!defined(__GNUC__) || __GNUC__ < 3) && !defined(__attribute__)
+#  if !__GNUC_PREREQ(3, 0)
 #    define __attribute__(attr)
-#    define __must_be_array(a)   (void)0
+#  endif
+#  if !defined(__GNUC__) || defined(__cplusplus)
+#    define __must_be_array(a)   0
 #  else
 #    define __must_be_array(a) \
          (sizeof(char[1 - 2 * __builtin_types_compatible_p(typeof(a), typeof(&(a)[0]))]) - 1)
@@ -82,6 +84,18 @@
 #  define NEVER_INLINE __attribute__((noinline))
 #endif
 
+#ifdef __GNUC__
+#  define likely(expr)    __builtin_expect(!!(expr), 1)
+#  define unlikely(expr)  __builtin_expect((expr), 0)
+#  define prefetch(addr)   __builtin_prefetch(addr)
+#  define prefetchw(addr)  __builtin_prefetch(addr, 1)
+#else
+#  define likely(expr)    expr
+#  define unlikely(expr)  expr
+#  define prefetch(addr)  (void)0
+#  define prefetchw(addr) (void)0
+#endif
+
 
 /** \def STATIC_ASSERT
  * \brief Check a condition at build time.
@@ -89,6 +103,7 @@
  * \safemacro
  *
  */
+#ifndef __cplusplus
 #ifdef __GNUC__
 #  define __error__(msg)          (void)({__asm__(".error \""msg"\"");})
 #  define STATIC_ASSERT(cond) \
@@ -96,18 +111,11 @@
                             __error__("static assertion failed: "#cond""))
 #  define ASSERT_COMPATIBLE(e1, e2) \
     STATIC_ASSERT(__builtin_types_compatible_p(typeof(e1), typeof(e2)))
-#  define likely(expr)    __builtin_expect(!!(expr), 1)
-#  define unlikely(expr)  __builtin_expect((expr), 0)
-#  define prefetch(addr)   __builtin_prefetch(addr)
-#  define prefetchw(addr)  __builtin_prefetch(addr, 1)
 #else
 #  define __error__(msg)            0
 #  define STATIC_ASSERT(condition)  ((void)sizeof(char[1 - 2 * !(condition)]))
 #  define ASSERT_COMPATIBLE(e1, e2)
-#  define likely(expr)    expr
-#  define unlikely(expr)  expr
-#  define prefetch(addr)  (void)0
-#  define prefetchw(addr) (void)0
+#endif
 #endif
 
 /** \brief Forcefully ignore the value of an expression.
@@ -131,6 +139,12 @@
 #undef __releases
 #undef __needlock
 
+#if 0 && defined(__cplusplus)
+#  define cast(type, v)    reinterpret_cast<type>(v)
+#else
+#  define cast(type, v)    ((type)(v))
+#endif
+
 #ifdef __SPARSE__
 #  define __bitwise__   __attribute__((bitwise))
 #  define force_cast(type, expr)    (__attribute__((force)) type)(expr)
@@ -139,7 +153,7 @@
 #  define __needlock(x)  __attribute__((context(x, 1, 1)))
 #else
 #  define __bitwise__
-#  define force_cast(type, expr)    (type)(expr)
+#  define force_cast(type, expr)    (expr)
 #  define __acquires(x)
 #  define __releases(x)
 #  define __needlock(x)
@@ -167,7 +181,7 @@
     ({ typeof(e) __res = (e);                          \
        if (unlikely(__res < 0))                        \
            return __res;                               \
-       __res = __res;                                  \
+       __res;                                          \
     })
 
 #define RETHROW_P(e)        \
@@ -191,6 +205,21 @@
        __res;                                          \
     })
 
+#define RETURN_IF(e, val)                              \
+    do {                                               \
+        if (unlikely(e))                               \
+            return (val);                              \
+    } while (0)
+#define RETURN_UNLESS(e, val)   RETURN_IF(!(e), val)
+
+#define RETURN_NULL_IF(e)       RETURN_IF(e, NULL)
+#define RETURN_NULL_UNLESS(e)   RETURN_UNLESS(e, NULL)
+#define RETURN_ERR_IF(e)        RETURN_IF(e, -1)
+#define RETURN_ERR_UNLESS(e)    RETURN_UNLESS(e, -1)
+#define RETURN_FALSE_IF(e)      RETURN_IF(e, false)
+#define RETURN_FALSE_UNLESS(e)  RETURN_UNLESS(e, false)
+
+
 #ifdef CMP
 #error CMP already defined
 #endif
@@ -204,7 +233,7 @@ enum sign {
     POSITIVE = 1,
 };
 
-#define CMP(x, y)     ((enum sign)(((x) > (y)) - ((x) < (y))))
+#define CMP(x, y)     cast(enum sign, ((x) > (y)) - ((x) < (y)))
 #define CMP_LESS      NEGATIVE
 #define CMP_EQUAL     ZERO
 #define CMP_GREATER   POSITIVE
@@ -222,7 +251,8 @@ enum sign {
     ({                                         \
         struct __attribute__((packed)) {       \
             type_t __v;                        \
-        } *__p = (void *)(ptr);                \
+        } const *__p;                          \
+        __p = cast(typeof(__p), ptr);          \
         __p->__v;                              \
     })
 #define get_unaligned(ptr)  get_unaligned_type(typeof(*(ptr)), ptr)
@@ -231,8 +261,9 @@ enum sign {
     ({                                         \
         struct __attribute__((packed)) {       \
             type_t __v;                        \
-        } *__p = (void *)(ptr);                \
+        } *__p;                                \
         type_t __v = (v);                      \
+        __p = cast(typeof(__p), ptr);          \
         __p->__v = __v;                        \
         __p + 1;                               \
     })
@@ -259,20 +290,20 @@ typedef uint16_t __bitwise__ be16_t;
 typedef unsigned char byte;
 typedef unsigned int flag_t;    /* for 1 bit bitfields */
 
-#define fieldsizeof(type_t, m)  sizeof(((type_t *)0)->m)
-#define fieldtypeof(type_t, m)  typeof(((type_t *)0)->m)
-#define countof(table)          ((ssize_t)(sizeof(table) / sizeof((table)[0]) \
-                                           + __must_be_array(table)))
-#define ssizeof(foo)            ((ssize_t)sizeof(foo))
+#define fieldsizeof(type_t, m)  sizeof(cast(type_t *, 0)->m)
+#define fieldtypeof(type_t, m)  typeof(cast(type_t *, 0)->m)
+#define countof(table)          (cast(ssize_t, sizeof(table) / sizeof((table)[0]) \
+                                      + __must_be_array(table)))
+#define ssizeof(foo)            (cast(ssize_t, sizeof(foo)))
 
 #define bitsizeof(type_t)       (sizeof(type_t) * CHAR_BIT)
 #define BITS_TO_ARRAY_LEN(type_t, nbits)  \
     DIV_ROUND_UP(nbits, bitsizeof(type_t))
 
-#define BITMASK_NTH(type_t, n) ( (type_t)1 << ((n) & (bitsizeof(type_t) - 1)))
+#define BITMASK_NTH(type_t, n) ( cast(type_t, 1) << ((n) & (bitsizeof(type_t) - 1)))
 #define BITMASK_LT(type_t, n)  (BITMASK_NTH(type_t, n) - 1)
 #define BITMASK_LE(type_t, n)  ((BITMASK_NTH(type_t, n) << 1) - 1)
-#define BITMASK_GE(type_t, n)  (~(type_t)0 << ((n) & (bitsizeof(type_t) - 1)))
+#define BITMASK_GE(type_t, n)  (~cast(type_t, 0) << ((n) & (bitsizeof(type_t) - 1)))
 #define BITMASK_GT(type_t, n)  (BITMASK_GE(type_t, n) << 1)
 
 #define OP_BIT(bits, n, shift, op) \
@@ -285,11 +316,11 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
 
 #ifdef __GNUC__
 #  define container_of(obj, type_t, member) \
-      ({ const typeof(((type_t *)0)->member) *__mptr = (obj);              \
-         (type_t *)((char *)__mptr - offsetof(type_t, member)); })
+      ({ const typeof(cast(type_t *, 0)->member) *__mptr = (obj);              \
+         cast(type_t *, cast(char *, __mptr) - offsetof(type_t, member)); })
 #else
 #  define container_of(obj, type_t, member) \
-      (type_t *)((char *)(obj) - offsetof(type_t, member))
+      cast(type_t *, cast(char *, (obj) - offsetof(type_t, member)))
 #endif
 
 

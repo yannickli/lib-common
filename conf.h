@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -92,10 +92,10 @@ int cfg_parse_seterr(void *ctx, int offs, const char *fmt, ...);
 
 typedef struct conf_section_t {
     char *name;
-    props_array vals;
+    qv_t(props) vals;
 } conf_section_t;
-ARRAY_TYPE(conf_section_t, conf_section);
-typedef conf_section_array conf_t;
+qvector_t(conf_section, conf_section_t *);
+typedef qv_t(conf_section) conf_t;
 
 conf_t *conf_load(const char *filename);
 int conf_merge_dir(conf_t *conf, const char *path);

@@ -11,15 +11,4 @@
 #                                                                        #
 ##########################################################################
 
-none_LIBRARIES := compat
-
-compat_SOURCES := compat.c check.c data.c runtime.c
-
-ifneq (,$(MINGCC))
-  # Being able to build a "check" program would be a good idea under
-  # MingGW. Needs more work though.
-  compat_SOURCES := $(filter-out check.c, $(compat_SOURCES))
-  compat_SOURCES += inet_ntop.c
-endif
-
 include ../../Build/base.mk

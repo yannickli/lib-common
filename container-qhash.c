@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -238,7 +238,7 @@ qh_kptr_t(test_str, const char, qhash_str_hash, qhash_str_equal);
 TEST_DECL("qhash: insertion", 0)
 {
     QH(test, h, false);
-    uint64_t bits[2];
+    uint64_t bits[2] = { 0, 0 };
 
     for (int i = 0; i < 128; i++) {
         qh_add(test, &h, i);

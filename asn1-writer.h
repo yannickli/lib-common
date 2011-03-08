@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -92,7 +92,7 @@ ASN1_DEF_VECTOR(void, void);
 #define ASN1_STRING(data, len)  ASN1_VECTOR(asn1_string_t, data, len)
 #define ASN1_STRING_NULL        ASN1_STRING(NULL, 0)
 #define ASN1_SSTRING(str)       ASN1_STRING(str, sizeof(str) - 1)
-#define ASN1_STRSTRING(data)    ASN1_STRING(data, sstrlen(data)) /* dynamic */
+#define ASN1_STRSTRING(data)    ASN1_STRING(data, strlen(data)) /* dynamic */
 
 #define ASN1_BIT_STRING(dt, bln) \
     (asn1_bit_string_t){ .data = dt, .bit_len = bln }
@@ -347,12 +347,12 @@ static inline void asn1_field_init_info(asn1_field_t *field)
     asn1_cnt_info_init(&field->seq_of_info);
 }
 
-DO_VECTOR(asn1_field_t, asn1_field);
+qvector_t(asn1_field, asn1_field_t);
 
 /** \brief Message descriptor.
   */
 typedef struct asn1_desc_t {
-    asn1_field_vector     vec;
+    qv_t(asn1_field)      vec;
     enum asn1_cstd_type   type;
 
     /* PER information */
@@ -364,7 +364,7 @@ typedef struct asn1_desc_t {
 static inline asn1_desc_t *asn1_desc_init(asn1_desc_t *desc)
 {
     p_clear(desc, 1);
-    asn1_field_vector_init(&desc->vec);
+    qv_init(asn1_field, &desc->vec);
     qv_init(u16, &desc->opt_fields);
 
     return desc;
@@ -378,9 +378,9 @@ typedef struct asn1_choice_desc_t {
 } asn1_choice_desc_t;
 
 int asn1_pack_size_(const void *st, const asn1_desc_t *desc,
-                    int_vector *stack);
+                    qv_t(i32) *stack);
 uint8_t *asn1_pack_(uint8_t *dst, const void *st, const asn1_desc_t *desc,
-                    int_vector *stack);
+                    qv_t(i32) *stack);
 int asn1_unpack_(pstream_t *ps, const asn1_desc_t *desc,
                  mem_pool_t *mem_pool, void *st, bool copy);
 

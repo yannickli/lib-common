@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -60,8 +60,8 @@ file_t *file_open_at(int dfd, const char *path,
 
     switch (flags & FILE_OPEN_MODE_MASK) {
       case FILE_RDONLY:
-        oflags = O_RDONLY;
 #if 0
+        oflags = O_RDONLY;
         break;
 #else
         errno = ENOSYS;
@@ -71,8 +71,8 @@ file_t *file_open_at(int dfd, const char *path,
         oflags = O_WRONLY;
         break;
       case FILE_RDWR:
-        oflags = O_RDWR;
 #if 0
+        oflags = O_RDWR;
         break;
 #else
         errno = ENOSYS;
@@ -107,8 +107,8 @@ file_t *file_open(const char *path, enum file_flags flags, mode_t mode)
 
     switch (flags & FILE_OPEN_MODE_MASK) {
       case FILE_RDONLY:
-        oflags = O_RDONLY;
 #if 0
+        oflags = O_RDONLY;
         break;
 #else
         errno = ENOSYS;
@@ -118,8 +118,8 @@ file_t *file_open(const char *path, enum file_flags flags, mode_t mode)
         oflags = O_WRONLY;
         break;
       case FILE_RDWR:
-        oflags = O_RDWR;
 #if 0
+        oflags = O_RDWR;
         break;
 #else
         errno = ENOSYS;

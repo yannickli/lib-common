@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 NUMERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 NUMERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of NUMERSEC to hold it. If you   */

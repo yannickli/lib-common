@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -12,172 +12,6 @@
 /**************************************************************************/
 
 #include "core.h"
-
-/** Copies the string pointed to by <code>src</code> to the buffer
- * <code>dest</code> of <code>size</code> bytes.
- * If <code>dest</code> is not NULL and <code>size</code> is greater
- * than 0, a terminating '\0' character will be put at the end of
- * the copied string.
- *
- * The source and destination strings should not overlap.
- * No assumption should be made on the values of the characters
- * after the first '\0' character in the destination buffer.
- *
- * @return the length of the source string.
- * @see pstrcpylen
- *
- * RFE/RFC: In a lot of cases, we do not care that much about the length of
- * the source string. What we want is "has the string been truncated
- * and we should stop here, or is everything fine ?". Therefore, may be
- * we need a function like :
- * int pstrcpy_ok(char *dest, ssize_t size, const char *src)
- * {
- *     if (pstrcpy(dest, size, src) < size) {
- *        return 0;
- *     } else {
- *        return 1;
- *     }
- * }
- *
- */
-ssize_t pstrcpy(char *dest, ssize_t size, const char *src)
-{
-#ifdef FAST_LIBC
-    size_t len, clen;
-
-    len = src ? strlen(src) : 0;
-    if (dest && size > 0) {
-        clen = len;
-        if (clen > (size_t)size - 1)
-            clen = (size_t)size - 1;
-        memcpy(dest, src, clen); /* assuming no overlap */
-        dest[clen] = '\0';
-    }
-    return (ssize_t)len;
-#else
-    const char *start = src;
-
-    if (src) {
-        if (dest && size > 0) {
-            char *stop = dest + size - 1;
-            while (dest < stop) {
-                if ((*dest++ = *src++) == '\0')
-                    return src - start - 1;
-            }
-            *dest = '\0';
-        }
-        while (*src++)
-            continue;
-        return src - start - 1;
-    }
-    if (dest && size > 0) {
-        *dest = '\0';
-    }
-    return 0;
-#endif
-}
-
-/** Copies at most <code>n</code> characters from the string pointed
- * to by <code>src</code> to the buffer <code>dest</code> of
- * <code>size</code> bytes.
- * If <code>dest</code> is not NULL and <code>size</code> is greater
- * than 0, a terminating '\0' character will be put at the end of
- * the copied string.
- *
- * The source and destination strings should not overlap.
- * No assumption should be made on the values of the characters
- * after the first '\0' character in the destination buffer.
- *
- * If <code>n</code> is negative, the whole string is copied.
- * @return the length of the source string or <code>n</code> if smaller
- * and positive.
- */
-ssize_t pstrcpylen(char *dest, ssize_t size, const char *src, ssize_t n)
-{
-    size_t len, clen;
-
-    len = 0;
-
-    if (src) {
-        if (n < 0) {
-            len = strlen(src);
-        } else {
-            /* OG: RFE: Should use strnlen */
-            const char *p = (const char *)memchr(src, '\0', n);
-            len = p ? p - src : n;
-        }
-    }
-
-    if (dest && size > 0) {
-        clen = len;
-        if (clen > (size_t)size - 1)
-            clen = (size_t)size - 1;
-        memcpy(dest, src, clen); /* assuming no overlap */
-        dest[clen] = '\0';
-    }
-    return (ssize_t)len;
-}
-
-/** Appends the string pointed to by <code>src</code> at the end of
- * the string pointed to by <code>dest</code> not overflowing
- * <code>size</code> bytes.
- *
- * The source and destination strings should not overlap.
- * No assumption should be made on the values of the characters
- * after the first '\0' character in the destination buffer.
- *
- * If the destination buffer doesn't contain a properly '\0' terminated
- * string, dest is unchanged and the value returned is size+strlen(src).
- *
- * @return the length of the source string plus the length of the
- * destination string.
- */
-ssize_t pstrcat(char *dest, ssize_t size, const char *src)
-{
-#ifdef FAST_LIBC
-    size_t len, clen, dlen;
-
-    dlen = 0;
-    len = src ? strlen(src) : 0;
-
-    if (dest && size > 0) {
-        /* There is a problem here if the dest buffer is not properly
-         * '\0' terminated.  Unlike BSD's strlcpy, we do not want do
-         * read from dest beyond size, therefore we assume use size for
-         * the value of dlen.  Calling pstrcat with various values of
-         * size for the same dest and src may return different results.
-         */
-        /* OG: RFE: should use strnlen() */
-        const char *p = memchr(dest, '\0', size);
-
-        if (p == NULL) {
-            dlen = size;
-        } else {
-            dlen = p - dest;
-            clen = len;
-            if (clen > (size_t)size - dlen - 1)
-                clen = (size_t)size - dlen - 1;
-
-            memcpy(dest + dlen, src, clen); /* assuming no overlap */
-            dest[dlen + clen] = '\0';
-        }
-    }
-    return (ssize_t)(dlen + len);
-#else
-    /* Assumes size > strlen(dest), ie well formed strings */
-    size_t dlen = 0;
-
-    if (dest) {
-        char *start = dest;
-        while (size > 0 && *dest != '\0') {
-            dest++;
-            size--;
-        }
-        dlen = dest - start;
-    }
-    return dlen + pstrcpy(dest, size, src);
-#endif
-}
 
 /** Skips initial blanks as per isspace(c).
  *
@@ -616,6 +450,7 @@ TEST_DECL("str: strrand", 0)
     TEST_FAIL_IF(ret != sizeof(buf) - 1, "Bad return value for len=sizeof(buf)");
     //fprintf(stderr, "buf:%s\n", buf);
 
+#if 0 /* Buggy test, sometimes rand returns 0x42 ! */
     buf[0] = buf[1] = buf[2] = 'Z';
     buf[3] = buf[4] = buf[5] = buf[6] = 0x42;
     ret = pstrrand(buf, sizeof(buf), 3, 2);
@@ -624,6 +459,7 @@ TEST_DECL("str: strrand", 0)
     TEST_FAIL_IF(buf[6] != 0x42, "len=2 set the buffer incorrectly");
     TEST_FAIL_IF(ret != 2, "Bad return value for len=2");
     //fprintf(stderr, "buf:%s\n", buf);
+#endif
     TEST_DONE();
 }
 
@@ -641,4 +477,16 @@ int str_replace(const char search, const char replace, char *subject)
         p = strchr(p, search);
     }
     return nb_replace;
+}
+
+size_t pstrcpymem(char *dest, ssize_t size, const void *src, size_t n)
+{
+    size_t clen = n;
+
+    if (size > 0) {
+        if (unlikely(clen > (size_t)size - 1))
+            clen = (size_t)size - 1;
+        memcpyz(dest, src, clen); /* assuming no overlap */
+    }
+    return n;
 }

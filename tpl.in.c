@@ -29,7 +29,7 @@ NS(tpl_combine_seq)(tpl_t *out, const tpl_t *tpl,
             return res;
         }
         out->is_const &= tmp2->is_const;
-        tpl_array_append(&out->u.blocks, tmp2);
+        qv_append(tpl, &out->u.blocks, tmp2);
     }
     return 0;
 }
@@ -84,7 +84,7 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
             tpl_add_tpl(out, tpl);
             return 0;
         }
-        tpl_array_append(&out->u.blocks, tmp = tpl_new_op(TPL_OP_IFDEF));
+        qv_append(tpl, &out->u.blocks, tmp = tpl_new_op(TPL_OP_IFDEF));
         tmp->u.varidx = tpl->u.varidx;
         tmp->is_const = true;
         return NS(tpl_combine_seq)(tmp, tpl, envid, vals, nb, flags);
@@ -115,7 +115,7 @@ NS(tpl_combine)(tpl_t *out, const tpl_t *tpl,
         tmp->op  = tpl->op;
         tmp->u.f = tpl->u.f;
         out->is_const = false;
-        tpl_array_append(&out->u.blocks, tmp);
+        qv_append(tpl, &out->u.blocks, tmp);
         return 0;
     }
 

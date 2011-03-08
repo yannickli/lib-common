@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -62,14 +62,14 @@
 
 typedef struct pstream_t {
     union {
+        const void *p;
         const char *s;
         const byte *b;
-        const void *p;
     };
     union {
+        const void *p_end;
         const char *s_end;
         const byte *b_end;
-        const void *p_end;
     };
 } pstream_t;
 
@@ -142,6 +142,11 @@ static inline bool ps_startswith(const pstream_t *ps, const void *data, size_t l
 {
     return ps_len(ps) >= len && !memcmp(ps->p, data, len);
 }
+static inline bool ps_startswithstr(const pstream_t *ps, const char *s)
+{
+    return ps_startswith(ps, s, strlen(s));
+}
+
 static inline bool ps_memequal(const pstream_t *ps, const void *data, size_t len)
 {
     return ps_len(ps) == len && !memcmp(ps->p, data, len);
@@ -186,7 +191,7 @@ static inline int ps_clip(pstream_t *ps, size_t len) {
     return unlikely(!ps_has(ps, len)) ? -1 : __ps_clip(ps, len);
 }
 static inline int __ps_clip_at(pstream_t *ps, const void *p) {
-    ps->s_end = p;
+    ps->p_end = p;
     return 0;
 }
 static inline int ps_clip_at(pstream_t *ps, const void *p) {
@@ -205,11 +210,11 @@ static inline void ps_skipspaces(pstream_t *ps) {
         __ps_skip(ps, 1);
 }
 static inline int ps_skip_uptochr(pstream_t *ps, int c) {
-    const char *p = memchr(ps->p, c, ps_len(ps));
+    const void *p = memchr(ps->p, c, ps_len(ps));
     return likely(p) ? __ps_skip_upto(ps, p) : -1;
 }
 static inline int ps_skip_afterchr(pstream_t *ps, int c) {
-    const char *p = memchr(ps->p, c, ps_len(ps));
+    const char *p = (const char *)memchr(ps->p, c, ps_len(ps));
     return likely(p) ? __ps_skip_upto(ps, p + 1) : -1;
 }
 
@@ -310,7 +315,7 @@ static inline int ps_hexdecode(pstream_t *ps) {
 }
 
 static inline const char *ps_gets(pstream_t *ps, int *len) {
-    const char *end = memchr(ps->s, '\0', ps_len(ps));
+    const char *end = (const char *)memchr(ps->s, '\0', ps_len(ps));
     const char *res = ps->s;
 
     if (unlikely(!end))
@@ -416,7 +421,7 @@ static inline bool ps_aligned(const pstream_t *ps, size_t align) {
 #define ps_aligned8(ps)   ps_aligned(ps, 8)
 
 static inline int __ps_align(pstream_t *ps, uintptr_t align) {
-    return __ps_skip_upto(ps, (const void *)(((uintptr_t)ps->b + align - 1) & ~align));
+    return __ps_skip_upto(ps, (const void *)ROUND_UP((uintptr_t)ps->b, align));
 }
 static inline const void *__ps_get_block(pstream_t *ps, size_t len, size_t align) {
     const void *p = ps->p;
@@ -429,7 +434,7 @@ static inline const void *__ps_get_block(pstream_t *ps, size_t len, size_t align
 #define __ps_get_type8(ps, type_t)  ((type_t *)__ps_get_block(ps, sizeof(type_t), 8))
 
 static inline int ps_align(pstream_t *ps, uintptr_t align) {
-    const void *p = (const void *)(((uintptr_t)ps->b + align - 1) & ~align);
+    const void *p = (const void *)ROUND_UP((uintptr_t)ps->b, align);
     PS_WANT(p <= ps->p_end);
     return __ps_skip_upto(ps, p);
 }

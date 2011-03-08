@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -306,8 +306,6 @@ struct httpd_qinfo_t {
     httpd_trigger_cb_t *trig_cb;                                    \
     dlist_t             query_link;                                 \
                                                                     \
-    int16_t             refcnt;                                     \
-                                                                    \
     /* User flags    */                                             \
     flag_t              traced        : 1;                          \
                                                                     \
@@ -332,6 +330,7 @@ struct httpd_qinfo_t {
     int                 chunk_hdr_offs;                             \
     int                 chunk_prev_length;                          \
     unsigned            payload_max_size;                           \
+    int                 ready_threshold;                            \
                                                                     \
     sb_t                payload;                                    \
     outbuf_t           *ob;                                         \
@@ -339,14 +338,13 @@ struct httpd_qinfo_t {
     void               *priv;                                       \
                                                                     \
     void              (*on_data)(httpd_query_t *q, pstream_t ps);   \
-    void              (*on_done)(httpd_query_t *q)
+    void              (*on_done)(httpd_query_t *q);                 \
+    void              (*on_ready)(httpd_query_t *q);
 
 #define HTTPD_QUERY_METHODS(type_t) \
     OBJECT_METHODS(type_t)
 
 OBJ_CLASS(httpd_query, object, HTTPD_QUERY_FIELDS, HTTPD_QUERY_METHODS);
-
-#define httpd_query_dup(q)  ({ typeof(*(q)) *__q = (q); __q->refcnt++; q; })
 
 void httpd_bufferize(httpd_query_t *q, unsigned maxsize);
 
@@ -374,6 +372,7 @@ outbuf_t *httpd_reply_hdrs_start(httpd_query_t *q, int code, bool cacheable);
 void      httpd_put_date_hdr(outbuf_t *ob, const char *hdr, time_t now);
 void      httpd_reply_hdrs_done(httpd_query_t *q, int content_length, bool chunked);
 void      httpd_reply_done(httpd_query_t *q);
+void      httpd_signal_write(httpd_query_t *q);
 
 static inline void httpd_reply_chunk_start(httpd_query_t *q, outbuf_t *ob)
 {

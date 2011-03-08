@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_UNIX_H
 #define IS_LIB_COMMON_UNIX_H
 
-#include "core.h"
+#include "container.h"
 
 #ifndef O_CLOEXEC
 # ifdef OS_LINUX
@@ -65,6 +65,27 @@ void devnull_dup(int fd);
 /****************************************************************************/
 /* file descriptor related                                                  */
 /****************************************************************************/
+
+/* `data' is cast to `void *' to remove the const: iovec structs are used
+ * for input and output, thus `iov_base' cannot be `const void *' even
+ * for write operations.
+ */
+#define MAKE_IOVEC(data, len)  \
+     (struct iovec){ .iov_base = (void *)(data), .iov_len = (len) }
+
+qvector_t(iovec, struct iovec);
+
+static inline size_t iovec_len(const struct iovec *iov, int iovlen)
+{
+    size_t res = 0;
+    for (int i = 0; i < iovlen; i++) {
+        res += iov[i].iov_len;
+    }
+    return res;
+}
+
+int iovec_vector_kill_first(qv_t(iovec) *iovs, ssize_t len);
+
 
 __must_check__ int xwrite_file(const char *file, const void *data, ssize_t dlen);
 __must_check__ int xwrite(int fd, const void *data, ssize_t dlen);

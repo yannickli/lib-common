@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -17,8 +17,6 @@
 #include "core.h"
 
 #include "arith.h"
-#include "bfield.h"
-#include "btree.h"
 #include "conf.h"
 #include "container.h"
 #include "elf.h"
@@ -26,11 +24,8 @@
 #include "file-log.h"
 #include "file.h"
 #include "hash.h"
-#include "isndx.h"
 #include "licence.h"
-#include "mmappedfile.h"
 #include "net.h"
-#include "paged-index.h"
 #include "parseopt.h"
 #include "property-hash.h"
 #include "property.h"

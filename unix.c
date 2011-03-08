@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -28,63 +28,73 @@
  */
 int mkdir_p(const char *dir, mode_t mode)
 {
-    char *p;
-    struct stat buf;
-    char dir2[PATH_MAX];
-    bool needmkdir = false;
+    char path[PATH_MAX + 1], *p;
+    int atoms = 0, res;
 
-    if (strlen(dir) + 1 > PATH_MAX) {
-        return -1;
-    }
-    pstrcpy(dir2, sizeof(dir2), dir);
+    pstrcpy(path, sizeof(path) - 1, dir);
+    path_simplify(path);
+    p = path + strlen(path);
 
-    /* Creating "/a/b/c/d" where "/a/b" exists but not "/a/b/c".
-     * First find that "/a/b" exists, replacing slashes by \0 (see below)
-     */
-    while (stat(dir2, &buf) != 0) {
-        if (errno != ENOENT) {
+    for (;;) {
+        struct stat st;
+
+        p = memrchr(path, '/', p - path) ?: path;
+        if (stat(path, &st) == 0) {
+            if (S_ISDIR(st.st_mode)) {
+                if (atoms == 0)
+                    return 0;
+                break;
+            }
+            errno = ENOTDIR;
             return -1;
         }
-        needmkdir = true;
-        p = strrchr(dir2, '/');
-        if (p == NULL) {
-            goto creation;
-        }
-        /* OG: should check if p == dir2 */
+        if (errno != ENOENT)
+            return -1;
+        atoms++;
+        if (p == path)
+            goto make_everything;
         *p = '\0';
     }
-    if (!S_ISDIR(buf.st_mode)) {
-        errno = ENOTDIR;
-        return -1;
-    }
-    if (!needmkdir) {
-        /* Directory already exists */
-        return 0;
-    }
 
-  creation:
-    /* Then, create /a/b/c and /a/b/c/d : we just have to put '/' where
-     * we put \0 in the previous loop. */
+    assert (atoms);
     for (;;) {
-        if (mkdir(dir2, mode) != 0) {
-
-            /* if dir = "/a/../b", then we do a mkdir("/a/..") => EEXIST,
-             * but we want to continue walking the path to create /b !
-             */
-            if (errno != EEXIST) {
-                // XXX: We might have created only a part of the
-                // path, and fail now...
-                return -1;
-            }
-        }
-        if (!strcmp(dir, dir2)) {
-            break;
-        }
-        p = dir2 + strlen(dir2);
+        p += strlen(p);
         *p = '/';
+      make_everything:
+        if (mkdir(path, mode) < 0) {
+            if (errno != EEXIST)
+                return -1;
+            res = 0;
+        } else {
+            res = 1;
+        }
+        if (--atoms == 0)
+            return res;
     }
+}
 
-    return 1;
+TEST_DECL("unix: mkdir_p", 0)
+{
+    int res;
+    struct stat st;
+    const char *absdir = "/tmp/mkdir_p";
+    const char *reldir = "tst/toto";
+
+    rmdir(absdir);
+    res = mkdir_p(absdir, 0755);
+    TEST_FAIL_IF(res != 1, "check mkdir_p(%s)", absdir);
+    TEST_FAIL_IF(stat(absdir, &st) < 0 || !S_ISDIR(st.st_mode),
+                 "%s not really made", absdir);
+    rmdir(absdir);
+
+    res = mkdir_p(reldir, 0755);
+    TEST_FAIL_IF(res != 1, "check mkdir_p(%s)", reldir);
+    TEST_FAIL_IF(stat(reldir, &st) < 0 || !S_ISDIR(st.st_mode),
+                 "%s not really made", reldir);
+    rmdir(reldir);
+    rmdir("tst");
+
+    TEST_DONE();
 }
 
 /** Retrieve time of last modification
@@ -354,6 +364,10 @@ int xwritev(int fd, struct iovec *iov, int iovcnt)
                 break;
             }
         }
+        while (iovcnt && iov[0].iov_len == 0) {
+            iovcnt--;
+            iov++;
+        }
     }
     return 0;
 }
@@ -506,3 +520,19 @@ int close_fds_higher_than(int fd)
     return 0;
 }
 #endif
+
+int iovec_vector_kill_first(qv_t(iovec) *iovs, ssize_t len)
+{
+    int i = 0;
+
+    while (i < iovs->len && len >= (ssize_t)iovs->tab[i].iov_len) {
+        len -= iovs->tab[i++].iov_len;
+    }
+    qv_splice(iovec, iovs, 0, i, NULL, 0);
+    if (iovs->len > 0 && len) {
+        iovs->tab[0].iov_base = (byte *)iovs->tab[0].iov_base + len;
+        iovs->tab[0].iov_len  -= len;
+    }
+    return i;
+}
+

@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -17,20 +17,22 @@
 #define IS_LIB_COMMON_CORE_BLOCKS_H
 
 #ifdef __BLOCKS__
+#define BLOCK_CARET  ^
 typedef void (^block_t)(void);
 #else
+#define BLOCK_CARET  *
 typedef void (*block_t)(void);
 #endif
 
 static inline void block_run(void *blk_)
 {
-    block_t blk = blk_;
+    block_t blk = (block_t)blk_;
     blk();
 }
 
 static inline void block_run_and_release(void *blk_)
 {
-    block_t blk = blk_;
+    block_t blk = (block_t)blk_;
     blk();
     Block_release(blk);
 }

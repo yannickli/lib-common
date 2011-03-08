@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -17,7 +17,7 @@
 
 static conf_section_t *conf_section_init(conf_section_t *section)
 {
-    props_array_init(&section->vals);
+    qv_init(props, &section->vals);
     return section;
 }
 static void conf_section_wipe(conf_section_t *section)
@@ -27,11 +27,16 @@ static void conf_section_wipe(conf_section_t *section)
 }
 GENERIC_NEW(conf_section_t, conf_section);
 GENERIC_DELETE(conf_section_t, conf_section);
-ARRAY_FUNCTIONS(conf_section_t, conf_section, conf_section_delete);
-void conf_delete(conf_t **conf)
+
+GENERIC_INIT(conf_t, conf);
+static void conf_wipe(conf_t *conf)
 {
-    conf_section_array_delete(conf);
+    qv_for_each_pos_safe(conf_section, pos, conf)
+        conf_section_delete(&conf->tab[pos]);
+    qv_wipe(conf_section, conf);
 }
+GENERIC_NEW(conf_t, conf);
+DO_DELETE(conf_t, conf);
 
 static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
                            const char *v, int vlen, void *ctx)
@@ -45,7 +50,7 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
       case CFG_PARSE_SECTION:
         sect = conf_section_new();
         sect->name = p_dupz(v, vlen);
-        conf_section_array_append(conf, sect);
+        qv_append(conf_section, conf, sect);
         return 0;
 
       case CFG_PARSE_SECTION_ID:
@@ -56,7 +61,7 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
         sect = conf->tab[conf->len - 1];
         prop = property_new();
         prop->name = p_dupz(v, vlen);
-        props_array_append(&sect->vals, prop);
+        qv_append(props, &sect->vals, prop);
         return 0;
 
       case CFG_PARSE_VALUE:
@@ -85,7 +90,7 @@ static int conf_parse_hook(void *_conf, cfg_parse_evt evt,
 #define CONF_PARSE_OPTS  (CFG_PARSE_OLD_NAMESPACES | CFG_PARSE_OLD_KEYS)
 conf_t *conf_load(const char *filename)
 {
-    conf_t *res = conf_section_array_new();
+    conf_t *res = conf_new();
     if (cfg_parse(filename, &conf_parse_hook, res, CONF_PARSE_OPTS))
         conf_delete(&res);
     return res;
@@ -125,7 +130,7 @@ int conf_merge_dir(conf_t *conf, const char *path)
 
 conf_t *conf_load_str(const char *s, int len)
 {
-    conf_t *res = conf_section_array_new();
+    conf_t *res = conf_new();
     if (cfg_parse_buf(s, len, &conf_parse_hook, res, CONF_PARSE_OPTS))
         conf_delete(&res);
     return res;
@@ -138,7 +143,7 @@ static void section_add_var(conf_section_t *section,
     property_t *prop = property_new();
     prop->name  = p_dupz(variable, variable_len);
     prop->value = p_dupz(value, value_len);
-    props_array_append(&section->vals, prop);
+    qv_append(props, &section->vals, prop);
 }
 
 int conf_save(const conf_t *conf, const char *filename)
@@ -353,7 +358,7 @@ const char *conf_put(conf_t *conf, const char *section,
                     return prop->value = p_dupz(value, value_len);
                 } else {
                     /* delete value */
-                    props_array_remove(&s->vals, j);
+                    qv_remove(props, &s->vals, j);
                     property_delete(&prop);
                     return NULL;
                 }
@@ -369,7 +374,7 @@ const char *conf_put(conf_t *conf, const char *section,
         /* add variable in new section */
         s = conf_section_new();
         s->name = p_strdup(section);
-        conf_section_array_append(conf, s);
+        qv_append(conf_section, conf, s);
         section_add_var(s, var, var_len, value, value_len);
         return s->vals.tab[0]->value;
     }
