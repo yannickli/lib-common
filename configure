@@ -131,6 +131,7 @@ if test -r /usr/include/c-client-src/zookeeper.h && test -f /usr/lib/libzookeepe
     setvar "zk_LIBS"   "-lzookeeper_st"
 else
     log "*** You are missing zookeeper, apt-get install libzookeeper-dev"
+    log "(debian users see b0f4ca6ddb3cb77e56eea3e8b732f27b08ee5c3f)"
 fi
 
 # }}}
