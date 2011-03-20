@@ -141,4 +141,24 @@ $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/blk,$1,$2,$$t
 $$(eval $$(call ext/rule/c,$1,$2,$(3:=.c),$4))
 endef
 
+
+ext/gen/blkk = $(call fun/patsubst-filt,%.blkk,%.blkk.cc,$1)
+
+define ext/expand/blkk
+$(3:=.cc): %.cc: % $(shell which clang++)
+	$(msg/COMPILE) " BLK" $$(<R)
+	$(RM) $$@
+	clang++ -cc1 $$(CLANGXXFLAGS) \
+	    $$($(1D)/_CXXFLAGS) $$($1_CXXFLAGS) $$($$*.cc_CXXFLAGS) \
+	    -fblocks -rewrite-blocks -o $$@ $$<
+	chmod a-w $$@
+__$(1D)_generated: $(3:=.cc)
+$$(eval $$(call fun/common-depends,$1,$(3:=.cc),$3))
+endef
+
+define ext/rule/blkk
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/blkk,$1,$2,$$t,$4))))
+$$(eval $$(call ext/rule/cc,$1,$2,$(3:=.cc),$4))
+endef
+
 #}}}

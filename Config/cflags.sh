@@ -22,7 +22,10 @@ gcc_prereq()
 
 is_clang()
 {
-    test "$cc" = "clang"
+    case "$cc" in
+        clang*) return 0;;
+        *) return 1;;
+    esac
 }
 
 is_cpp()
@@ -34,7 +37,7 @@ is_cpp()
 }
 
 # use C99 to be able to for (int i =...
-is_cpp || echo -std=gnu99
+( is_cpp && echo "-std=gnu++0x" ) || echo -std=gnu99
 # optimize even more
 echo -O2
 if gcc_prereq 4 3; then
@@ -124,7 +127,7 @@ if ! is_cpp; then
     echo -Wdeclaration-after-statement
 fi
 
-if is_cpp; then
+if is_cpp && ! is_clang; then
     echo -fno-exceptions
     echo -fno-rtti
     echo -Wnon-virtual-dtor

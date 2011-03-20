@@ -25,3 +25,4 @@ LDFLAGS += -Wl,--as-needed
 CFLAGS     := $(shell $(var/cfgdir)/cflags.sh "$(CC)") -I$/lib-common/compat -I$/
 CXXFLAGS   := $(shell $(var/cfgdir)/cflags.sh "$(CXX)") -I$/lib-common/compat -I$/
 CLANGFLAGS := $(shell $(var/cfgdir)/cflags.sh "clang" "rewrite") -I$/lib-common/compat -I$/
+CLANGXXFLAGS := $(shell $(var/cfgdir)/cflags.sh "clang++" "rewrite") -I$/lib-common/compat -I$/
