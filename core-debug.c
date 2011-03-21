@@ -16,6 +16,7 @@
 #include <fnmatch.h>
 #include "container.h"
 #include "unix.h"
+#include "thr.h"
 
 struct trace_spec_t {
     const char *path;

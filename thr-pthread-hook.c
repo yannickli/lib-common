@@ -11,9 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <pthread.h>
 #include <dlfcn.h>
-#include "core.h"
+#include "thr.h"
 
 struct start_pair {
     void *(*fn)(void *);

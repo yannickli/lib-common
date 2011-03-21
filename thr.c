@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "core.h"
+#include "thr.h"
 
 static struct {
     void (*init[32])(void);
@@ -44,4 +44,3 @@ void intersec_thread_on_exit(void *unused)
     for (int i = 0; i < _G.exitlen; i++)
         _G.exit[i]();
 }
-

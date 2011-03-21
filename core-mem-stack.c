@@ -13,6 +13,7 @@
 
 #include "core-mem-valgrind.h"
 #include "container.h"
+#include "thr.h"
 
 /*
  * Stacked memory allocator

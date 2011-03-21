@@ -14,6 +14,7 @@
 none_LIBRARIES = libcommon time-lp-simple
 test_PROGRAMS += zchk ztst-cfgparser ztst-tpl ztst-lzo
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
+test_PROGRAMS += ztst-thrjob
 
 DISTCLEANFILES = core-version.c
 core-version.c: scripts/version.sh FORCE
@@ -54,8 +55,6 @@ libcommon_SOURCES = \
 	core-mem-fifo.c \
 	core-mem-ring.c \
 	core-mem-stack.c \
-	core-pthread.c \
-	core-pthread-hook.c \
 	core-test.c \
 	core-version.c \
 	qpage.c \
@@ -107,6 +106,13 @@ libcommon_SOURCES = \
 	str-path.c \
 	str-stream.c \
 	\
+	thr.c \
+	thr-pthread-hook.c \
+	thr-evc.c \
+	thr-job.blk \
+	thr-mpsc.c \
+	thr-spsc.c \
+	\
 	tpl.c \
 	tpl-funcs.c \
 	\
@@ -156,6 +162,12 @@ ztst-lzo_LDFLAGS = -lrt
 
 ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a
 ztst-iprintf-speed_CFLAGS = -UCHECK
+
+ztst-thrjob_SOURCES = \
+	ztst-thrjob.blk \
+	$/lib-common/libcommon.a \
+	$/lib-common/time-lp-simple.a
+ztst-thrjob_LIBS = -lrt -ldl -lpthread -lm
 
 ifneq (SunOS,$(shell uname -s))
 DISTCLEANFILES=Upgrading.html

@@ -11,10 +11,17 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_PTHREAD_H)
-#  error "you must include core.h instead"
-#else
-#define IS_LIB_COMMON_CORE_PTHREAD_H
+#ifndef IS_LIB_COMMON_THR_H
+#define IS_LIB_COMMON_THR_H
+
+#include <Block.h>
+#include <pthread.h>
+#include "core.h"
+
+#include "thr-evc.h"
+#include "thr-job.h"
+#include "thr-spsc.h"
+#include "thr-mpsc.h"
 
 void intersec_phtread_init(void (*fn)(void));
 void intersec_phtread_exit(void (*fn)(void));

@@ -14,6 +14,7 @@
 #include "core-mem-valgrind.h"
 #include "arith.h"
 #include "container.h"
+#include "thr.h"
 
 /*
  * Ring memory allocator

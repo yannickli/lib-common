@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "xmlr.h"
+#include "thr.h"
 
 /*
  * This libxml wrapper supposes the following:
