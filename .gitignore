@@ -20,3 +20,7 @@
 /ztst-lzo
 /ztst-sort
 /ztst-tpl
+/container-qvector.blk.c
+/thr-job.blk.c
+/ztst-thrjob.blk.c
+/ztst-thrjob
