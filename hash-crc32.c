@@ -91,9 +91,7 @@ static uint32_t fast_icrc32(uint32_t crc, const uint8_t *buf, size_t size)
     return naive_icrc32(crc, buf, size & (size_t)7);
 }
 
-#ifndef __clang__
-__attribute__((flatten))
-#endif
+__flatten
 uint32_t icrc32(uint32_t crc, const void *data, ssize_t len)
 {
     crc = ~le_to_cpu32(crc);

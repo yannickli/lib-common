@@ -279,9 +279,7 @@ int xmlr_node_enter(xml_reader_t xr, const char *s, size_t len, int flags)
 /* }}} */
 /* Reading values {{{ */
 
-#ifndef __clang__
-__attribute__((flatten))
-#endif
+__flatten
 int xmlr_get_cstr_start(xml_reader_t xr,
                         bool nullok, const char **out, int *lenp)
 {

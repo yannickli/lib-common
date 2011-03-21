@@ -224,25 +224,19 @@ static void ___qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_f cmp)
 #undef rotate
 }
 
-#ifndef __clang__
-__attribute__((flatten))
-#endif
+__flatten
 void __qv_sort32(void *a, size_t n, qvector_cmp_f cmp)
 {
     ___qv_sort(a, 4, n, cmp);
 }
 
-#ifndef __clang__
-__attribute__((flatten))
-#endif
+__flatten
 void __qv_sort64(void *a, size_t n, qvector_cmp_f cmp)
 {
     ___qv_sort(a, 8, n, cmp);
 }
 
-#ifndef __clang__
-__attribute__((flatten))
-#endif
+__flatten
 void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_f cmp)
 {
     ___qv_sort(a, v_size, n, cmp);

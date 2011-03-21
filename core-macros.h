@@ -24,6 +24,16 @@
  * \brief Intersec generic macros.
  */
 
+#ifndef __has_feature
+#  define __has_feature(x)  0
+#endif
+#ifndef __has_builtin
+#  define __has_builtin(x)  0
+#endif
+#ifndef __has_attribute
+#  define __has_attribute(x)  0
+#endif
+
 /*---------------- GNU extension wrappers ----------------*/
 
 #ifndef __GNUC_PREREQ
@@ -34,9 +44,13 @@
 #    define __GNUC_PREREQ(maj, min)   0
 #  endif
 #endif
+#ifdef __clang__
+#  undef  __GNUC_PREREQ
+#  define __GNUC_PREREQ(maj, min)   0
+#endif
 
 #if !defined(__doxygen_mode__)
-#  if !__GNUC_PREREQ(3, 0)
+#  if !__GNUC_PREREQ(3, 0) && !defined(__clang__)
 #    define __attribute__(attr)
 #  endif
 #  if !defined(__GNUC__) || defined(__cplusplus)
@@ -66,7 +80,7 @@
 #  endif
 #  define HIDDEN    extern __attribute__((visibility("hidden")))
 #  ifdef __OPTIMIZE__
-#    if __GNUC_PREREQ(4, 3)
+#    if __GNUC_PREREQ(4, 3) || __has_attribute(artificial)
 #      define ALWAYS_INLINE inline __attribute__((always_inline,artificial))
 #    else
 #      define ALWAYS_INLINE inline __attribute__((always_inline))
@@ -75,6 +89,16 @@
 #    define ALWAYS_INLINE inline
 #  endif
 #  define NEVER_INLINE __attribute__((noinline))
+#  if __GNUC_PREREQ(4, 3) || __has_attribute(cold)
+#    define __cold __attribute__((cold))
+#  else
+#    define __cold
+#  endif
+#  if __GNUC_PREREQ(4, 1) || __has_attribute(flatten)
+#    define __flatten __attribute__((flatten))
+#  else
+#    define __flatten
+#  endif
 #else
 #  ifndef EXPORT
 #    define EXPORT  extern
@@ -85,15 +109,15 @@
 #endif
 
 #ifdef __GNUC__
-#  define likely(expr)    __builtin_expect(!!(expr), 1)
-#  define unlikely(expr)  __builtin_expect((expr), 0)
+#  define likely(expr)     __builtin_expect(!!(expr), 1)
+#  define unlikely(expr)   __builtin_expect((expr), 0)
 #  define prefetch(addr)   __builtin_prefetch(addr)
 #  define prefetchw(addr)  __builtin_prefetch(addr, 1)
 #else
-#  define likely(expr)    expr
-#  define unlikely(expr)  expr
-#  define prefetch(addr)  (void)0
-#  define prefetchw(addr) (void)0
+#  define likely(expr)     (expr)
+#  define unlikely(expr)   (expr)
+#  define prefetch(addr)   ((void)0)
+#  define prefetchw(addr)  ((void)0)
 #endif
 
 

@@ -11,9 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef __clang__
-__attribute__((flatten))
-#endif
+__flatten
 int F(xmlr_get)(xml_reader_t xr, ARGS_P)
 {
     assert (xmlr_on_element(xr, false));

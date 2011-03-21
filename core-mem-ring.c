@@ -194,9 +194,7 @@ static void *rp_reserve(ring_pool_t *rp, size_t size, ring_blk_t **blkp)
     return res;
 }
 
-#ifndef __clang__
-__attribute__((flatten))
-#endif
+__flatten
 static void *rp_alloc(mem_pool_t *_rp, size_t size, mem_flags_t flags)
 {
     ring_pool_t *rp = container_of(_rp, ring_pool_t, funcs);

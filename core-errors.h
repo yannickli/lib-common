@@ -25,10 +25,10 @@ typedef int (error_f)(const char *, ...) __attr_printf__(1, 2);
 #define E_UNIXERR(funcname)  funcname ": %m"
 
 /* These functions are meant to correspond to the syslog levels.  */
-error_f e_fatal  __attr_noreturn__;
-error_f e_panic  __attr_noreturn__;
-error_f e_error;
-error_f e_warning;
+error_f e_fatal  __attr_noreturn__ __cold;
+error_f e_panic  __attr_noreturn__ __cold;
+error_f e_error  __cold;
+error_f e_warning __cold;
 error_f e_notice;
 error_f e_info;
 error_f e_debug;
@@ -74,9 +74,9 @@ int  e_is_traced_(int level, const char *fname, const char *func,
        likely(e_traced > 0); })
 #define e_is_traced(lvl)  e_name_is_traced(lvl, NULL)
 
+__attr_printf__(6, 7) __cold
 void e_trace_put_(int lvl, const char *fname, int lno, const char *func,
-                  const char *name, const char *fmt, ...)
-                  __attr_printf__(6, 7);
+                  const char *name, const char *fmt, ...);
 
 #define e_named_trace_start(lvl, name, fmt, ...) \
     do {                                                                     \

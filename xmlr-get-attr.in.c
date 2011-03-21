@@ -11,9 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef __clang__
-__attribute__((flatten))
-#endif
+__flatten
 int F(xmlr_getattr)(xml_reader_t xr, xmlAttrPtr attr, ARGS_P)
 {
     const char *name = (const char *)attr->name;

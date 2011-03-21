@@ -67,17 +67,17 @@ typedef unsigned __bitwise__ mem_flags_t;
 #define MEM_RAW        force_cast(mem_flags_t, 1 << 8)
 #define MEM_ERRORS_OK  force_cast(mem_flags_t, 1 << 9)
 
-#if __GNUC_PREREQ(4, 3)
+#if __GNUC_PREREQ(4, 3) || __has_attribute(error)
 __attribute__((error("you cannot allocate that much memory")))
 #endif
 extern void __imalloc_too_large(void);
 
-#if __GNUC_PREREQ(4, 3)
+#if __GNUC_PREREQ(4, 3) || __has_attribute(error)
 __attribute__((error("imalloc can only allocate from stack or libc")))
 #endif
 extern void __imalloc_cannot_do_this_pool(void);
 
-#if __GNUC_PREREQ(4, 3)
+#if __GNUC_PREREQ(4, 3) || __has_attribute(error)
 __attribute__((error("reallocaing alloca()ed memory isn't possible")))
 #endif
 extern void __irealloc_cannot_handle_alloca(void);

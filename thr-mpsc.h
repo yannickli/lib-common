@@ -37,6 +37,8 @@ struct mpsc_queue_t {
 };
 
 mpsc_queue_t *mpsc_queue_init(mpsc_queue_t *q);
+
+__cold
 bool mpsc_queue_pop_slow(mpsc_queue_t *q, mpsc_node_t *head, bool block);
 
 static inline bool mpsc_queue_looks_empty(mpsc_queue_t *q)
