@@ -242,7 +242,7 @@ static inline lstr_t t_lstr_cat(const lstr_t s1, const lstr_t s2)
 {
     int    len = s1.len + s2.len;
     lstr_t res = lstr_init_(t_new_raw(char, len + 1), len, MEM_STACK);
-    char  *s   = res.v;
+    void  *s   = (void *)res.v;
 
     s = mempcpy(s, s1.s, s1.len);
     mempcpyz(s, s2.s, s2.len);
@@ -255,7 +255,7 @@ static inline lstr_t t_lstr_cat3(const lstr_t s1, const lstr_t s2, const lstr_t 
 {
     int    len = s1.len + s2.len + s3.len;
     lstr_t res = lstr_init_(t_new_raw(char, len + 1), len, MEM_STACK);
-    char  *s   = res.v;
+    void  *s   = (void *)res.v;
 
     s = mempcpy(s, s1.s, s1.len);
     s = mempcpy(s, s2.s, s2.len);
