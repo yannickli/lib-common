@@ -16,6 +16,21 @@
 #else
 #define IS_LIB_COMMON_NET_ADDR_H
 
+typedef struct addr_filter_t {
+    union {
+      struct {
+        in_addr_t addr; /* 0 = 'any' */
+        in_addr_t mask;
+      } v4;
+      struct {
+        struct in6_addr addr;
+        struct in6_addr mask;
+      } v6;
+    } u;
+    uint16_t  port; /* 0 = 'any' */
+    sa_family_t family;
+} addr_filter_t;
+
 typedef union sockunion_t {
     struct sockaddr_storage ss;
     struct sockaddr_in      sin;
@@ -27,26 +42,26 @@ typedef union sockunion_t {
     sa_family_t             family;
 } sockunion_t;
 
-bool sockaddr_equal(const sockunion_t *, const sockunion_t *);
+bool sockunion_equal(const sockunion_t *, const sockunion_t *);
 
-static inline be32_t sockaddr_getip4(const struct sockaddr_in *addr) {
-    return force_cast(be32_t, addr->sin_addr.s_addr);
-}
-static inline int sockunion_getport(const sockunion_t *su) {
+static inline int sockunion_getport(const sockunion_t *su)
+{
     switch (su->family) {
       case AF_INET:  return ntohs(su->sin.sin_port);
       case AF_INET6: return ntohs(su->sin6.sin6_port);
       default:       return 0;
     }
 }
-static inline void sockunion_setport(sockunion_t *su, int port) {
+static inline void sockunion_setport(sockunion_t *su, int port)
+{
     switch (su->family) {
       case AF_INET:  su->sin.sin_port   = ntohs(port); break;
       case AF_INET6: su->sin6.sin6_port = ntohs(port); break;
       default:       e_panic("should not happen");
     }
 }
-static inline socklen_t sockunion_len(const sockunion_t *su) {
+static inline socklen_t sockunion_len(const sockunion_t *su)
+{
     switch (su->family) {
       case AF_INET:
         return sizeof(struct sockaddr_in);
@@ -79,5 +94,7 @@ addr_info_str(sockunion_t *su, const char *host, int port, int af)
 {
     return addr_info(su, af, ps_initstr(host), port);
 }
+
+int addr_filter_matches(const addr_filter_t *filter, const sockunion_t *peer);
 
 #endif

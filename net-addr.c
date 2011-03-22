@@ -14,7 +14,7 @@
 #include <netdb.h>
 #include "net.h"
 
-bool sockaddr_equal(const sockunion_t *a1, const sockunion_t *a2)
+bool sockunion_equal(const sockunion_t *a1, const sockunion_t *a2)
 {
     if (a1->family != a2->family)
         return false;
@@ -113,5 +113,35 @@ int addr_info(sockunion_t *su, sa_family_t af, pstream_t host, in_port_t port)
     memcpy(su, ai->ai_addr, ai->ai_addrlen);
     freeaddrinfo(ai);
     sockunion_setport(su, port);
+    return 0;
+}
+
+int addr_filter_matches(const addr_filter_t *filter, const sockunion_t *peer)
+{
+    if (peer->family != filter->family)
+        return -1;
+
+    if (filter->port && filter->port != sockunion_getport(peer))
+        return -1;
+
+    if (filter->family == AF_INET) {
+        if (filter->u.v4.addr
+        && ((filter->u.v4.addr & filter->u.v4.mask)
+            != (peer->sin.sin_addr.s_addr & filter->u.v4.mask)))
+        {
+            return -1;
+        }
+    } else {
+        /* filter->family == AF_INET6 */
+        for (int i = 3; i >= 0; i--) {
+            if ((filter->u.v6.addr.s6_addr32[i]
+                 & filter->u.v6.mask.s6_addr32[i])
+            != (peer->sin6.sin6_addr.s6_addr32[i]
+                  & filter->u.v6.mask.s6_addr32[i])) {
+                return -1;
+            }
+        }
+    }
+
     return 0;
 }
