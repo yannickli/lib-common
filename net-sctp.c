@@ -232,3 +232,61 @@ int sctp_close_assoc(int fd, int assoc_id)
     }
 }
 
+void sctp_dump_notif(char *buf, int len)
+{
+    struct sctp_assoc_change *sac;
+    struct sctp_send_failed *ssf;
+    struct sctp_remote_error *sre;
+    union sctp_notification *snp;
+
+    if (len < ssizeof(snp->sn_header)) {
+        e_fatal("invalid NOTIF: len = %d != %zd", len, sizeof(snp->sn_header));
+    }
+
+    snp = (union sctp_notification *)buf;
+
+    switch (snp->sn_header.sn_type) {
+      case SCTP_ASSOC_CHANGE:
+        if (len < ssizeof(struct sctp_assoc_change)) {
+            e_fatal("invalid NOTIF assoc change: len = %d != %zd", len, sizeof(struct sctp_assoc_change));
+        }
+
+        sac = &snp->sn_assoc_change;
+        e_trace(0, "SCTP_ASSOC_CHANGE");
+        e_trace(0, "state=%u, error=%u, instreams=%u, outstreams=%u)",
+                sac->sac_state, sac->sac_error,
+                sac->sac_inbound_streams,
+                sac->sac_outbound_streams);
+        break;
+
+      case SCTP_SEND_FAILED:
+        if (len < ssizeof(struct sctp_send_failed)) {
+            e_fatal("invalid NOTIF send_failed: len = %d != %zd", len, sizeof(struct sctp_send_failed));
+        }
+        ssf = &snp->sn_send_failed;
+        e_trace(0, "SCTP_SEND_FAILED");
+        e_trace(0, "sendfailed: len=%u, err=%d",
+                ssf->ssf_length, ssf->ssf_error);
+        break;
+
+      case SCTP_REMOTE_ERROR:
+        if (len < ssizeof(struct sctp_remote_error)) {
+            e_fatal("invalid NOTIF remote_error: len = %d != %zd", len, sizeof(struct sctp_remote_error));
+        }
+        sre = &snp->sn_remote_error;
+        e_trace(0, "SCTP_REMOTE_ERROR");
+        e_trace(0, "remote_error: err=%u", ntohs(sre->sre_error));
+        break;
+
+      case SCTP_SHUTDOWN_EVENT:
+        if (len < ssizeof(struct sctp_send_failed)) {
+            e_fatal("invalid NOTIF send_failed: len = %d != %zd", len, sizeof(struct sctp_send_failed));
+        }
+        e_trace(0, "SCTP_SHUTDOWN_EVENT");
+        break;
+
+      default:
+        e_trace(0, "Unknown type: %u", snp->sn_header.sn_type);
+        break;
+    }
+}

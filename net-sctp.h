@@ -45,4 +45,6 @@ int sctp_getaddrs(int fd, int optnum, sctp_assoc_t id,
                   struct sockaddr *addrs, int addr_size);
 #endif
 
+void sctp_dump_notif(char *buf, int len);
+
 #endif
