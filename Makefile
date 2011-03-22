@@ -28,7 +28,6 @@ libcommon_SOURCES = \
 	farch.c \
 	licence.c \
 	parseopt.c \
-	time.c \
 	\
 	arith-bithacks.c \
 	\
@@ -119,6 +118,9 @@ libcommon_SOURCES = \
 	thr-job.blk \
 	thr-mpsc.c \
 	thr-spsc.c \
+	\
+	time.c \
+	time-iso8601.c \
 	\
 	tpl.c \
 	tpl-funcs.c \

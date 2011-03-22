@@ -75,6 +75,12 @@ static inline void sb_add_time_iso8601_msec(sb_t *sb, time_t t, int msec)
     time_fmt_iso8601_msec(sb_growlen(sb, 24), t, msec);
 }
 
+int time_parse_iso8601(pstream_t *ps, time_t *res);
+static inline int time_parse_iso8601s(const char *s, time_t *res) {
+    pstream_t ps = ps_initstr(s);
+    /* FIXME: do we want to err if !ps_done(&ps) at the end ? */
+    return time_parse_iso8601(&ps, res);
+}
 
 /***************************************************************************/
 /* timeval operations                                                      */
