@@ -63,11 +63,9 @@ tags: $(var/generated)
 
 define fun/subdirs-targets
 $(foreach d,$1,
-$(patsubst ./%,%,$(dir $(d:/=)))_generated: $(d)_generated
 $(patsubst ./%,%,$(dir $(d:/=)))all::       $(d)all
 $(patsubst ./%,%,$(dir $(d:/=)))check::     $(d)check
 $(patsubst ./%,%,$(dir $(d:/=)))clean::     $(d)clean
-$(d)_generated:
 $(d)all::
 $(d)check::
 $(d)clean::
@@ -127,6 +125,9 @@ ignore:
 	$(foreach v,$(var/programs:=$(EXEEXT)),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/sharedlibs:=.so),grep -q '^/$v[*]$$' .gitignore || echo '/$v*' >> .gitignore;)
 endif
+_generated_hdr:
+_generated: _generated_hdr
+.PHONY: _generated_hdr _generated
 # }}}
 ##########################################################################
 # {{{ target exports from the build system

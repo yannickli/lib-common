@@ -14,7 +14,7 @@ $$(tmp/$2/toks_c): %tokens.c: %.tokens %tokens.h $(var/cfgdir)/_tokens.sh
 	$(msg/generate) $$(<R)
 	cd $$(<D) && $(var/cfgdir)/_tokens.sh $$(<F) $$(@F) || ($(RM) $$(@F) && exit 1)
 
-$(1D)/_generated: $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
+_generated: $$(tmp/$2/toks_h) $$(tmp/$2/toks_c)
 $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/toks_h) $$(tmp/$2/toks_c),$3))
 endef
 
@@ -34,7 +34,7 @@ $(3:.perf=.c): %.c: %.perf
 	$(msg/generate) $$(<R)
 	gperf --language=ANSI-C --output-file=$$@ $$<
 
-$(1D)/_generated: $(3:.perf=.c)
+_generated: $(3:.perf=.c)
 $$(eval $$(call fun/common-depends,$1,$(3:.perf=.c),$3))
 endef
 
@@ -56,7 +56,7 @@ $(3:lua=lc): %.lc: %.lua
 $(3:lua=lc.bin): %.lc.bin: %.lc
 	blob2c $$< > $$@ || ($(RM) $$@; exit 1)
 
-$(1D)/_generated: $(3:.lua=.lc.bin)
+_generated: $(3:.lua=.lc.bin)
 $$(eval $$(call fun/common-depends,$1,$(3:.lua=.lc.bin),$3))
 .INTERMEDIATE: $(3:lua=lc)
 endef
@@ -77,7 +77,8 @@ $(3:.farch=farch.h): %farch.h: %.farch
 	cd $$(@D) && buildfarch -r $(1D)/ -d $!$$@.dep -n $$(*F) `cat $$(<F)`
 
 $$(eval $$(call ext/rule/c,$1,$2,$(3:.farch=farch.c),$4))
-$(1D)/_generated: $(3:.farch=farch.h) $(3:.farch=farch.c)
+_generated_hdr: $(3:.farch=farch.h)
+_generated: $(3:.farch=farch.c)
 -include $$(patsubst %,$~%.c.dep,$3)
 $$(eval $$(call fun/common-depends,$1,$(3:.farch=farch.h) $(3:.farch=farch.c),$3))
 endef
@@ -90,7 +91,7 @@ define ext/expand/fc
 $(3:=.c): %.fc.c: %.fc
 	$(msg/generate) $$(<R)
 	farchc -d $~$$@.dep -o $$@ $$<
-$(1D)/_generated: $(3:=.c)
+_generated: $(3:=.c)
 -include $$(patsubst %,$~%.c.dep,$3)
 $$(eval $$(call fun/common-depends,$1,$(3:=.c),$3))
 endef
@@ -114,7 +115,8 @@ $(3:=.c): %.iop.c: %.iop $(IOPC)
 	$(RM) $$@
 	cd $$(<D) && $(IOPC) -I$/lib-inet:$/qrrd/iop $$(<F)
 	chmod a-w $$@
-$(1D)/_generated: $(3:=.h)
+_generated_hdr: $(3:=.h)
+_generated: $(3:=.c)
 $$(eval $$(call fun/common-depends,$1,$(3:=.c),$3))
 endef
 
@@ -156,7 +158,7 @@ $(3:=.c): %.c: % $(shell which clang)
 	    $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$*.c_CFLAGS) \
 	    -fblocks -rewrite-blocks -o $$@ $$<
 	chmod a-w $$@
-$(1D)/_generated: $(3:=.c)
+_generated: $(3:=.c)
 $$(eval $$(call fun/common-depends,$1,$(3:=.c),$3))
 endef
 

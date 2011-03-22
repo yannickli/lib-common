@@ -96,7 +96,7 @@ $(3:l=c): %.c: %.l
 	sed -i -e 's/^extern int isatty.*;//' \
 	       -e 's/^\t\tint n; \\/		size_t n; \\/' $$@
 	chmod a-w $$@
-$(1D)/_generated: $(3:l=c)
+_generated: $(3:l=c)
 $$(eval $$(call fun/common-depends,$1,$(3:l=c),$3))
 endef
 
