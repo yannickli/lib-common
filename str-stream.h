@@ -105,7 +105,7 @@ static inline pstream_t ps_init(const void *s, size_t len) {
     return ps_initptr(s, (const byte *)s + len);
 }
 static inline pstream_t ps_initstr(const char *s) {
-    return ps_initptr(s, rawmemchr(s, '\0'));
+    return ps_initptr(s, s + strlen(s));
 }
 static inline pstream_t ps_initsb(const sb_t *sb) {
     return ps_init(sb->data, sb->len);
