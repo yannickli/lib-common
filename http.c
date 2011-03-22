@@ -590,7 +590,7 @@ void httpd_reject_unauthorized(httpd_query_t *q, const char *auth_realm)
 /* }}} */
 /* HTTPD Triggers {{{ */
 
-static httpd_trigger_t *httpd_trigger_new(httpd_trigger_t *parent, clstr_t path)
+static httpd_trigger_t *httpd_trigger_new(httpd_trigger_t *parent, lstr_t path)
 {
     httpd_trigger_t *node;
     int pos;
@@ -639,7 +639,7 @@ httpd_trigger_register_(httpd_trigger_t *n, const char *path,
         path++;
     while (*path) {
         const char  *q = strchrnul(path, '/');
-        clstr_t s = CLSTR_INIT(path, q - path);
+        lstr_t s = LSTR_INIT(path, q - path);
 
         n = httpd_trigger_new(n, s);
         while (*q == '/')
@@ -664,7 +664,7 @@ static bool httpd_trigger_unregister__(httpd_trigger_t *n, const char *path,
         n->cb = NULL;
     } else {
         const char *q = strchrnul(path, '/');
-        clstr_t     s = CLSTR_INIT(path, q - path);
+        lstr_t      s = LSTR_INIT(path, q - path);
         int pos       = qm_find(http_path, &n->childs, &s);
 
         if (pos < 0)
@@ -696,7 +696,7 @@ httpd_trigger_resolve(httpd_trigger_t *n, httpd_qinfo_t *req)
 
     req->prefix = ps_initptr(p, p);
     while (p++ < q) {
-        clstr_t s;
+        lstr_t s;
         int pos;
 
         s.s   = p;

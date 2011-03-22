@@ -198,8 +198,8 @@ typedef struct httpd_cfg_t httpd_cfg_t;
 typedef struct httpd_trigger_t    httpd_trigger_t;
 typedef struct httpd_trigger_cb_t httpd_trigger_cb_t;
 
-qm_kvec_t(http_path, clstr_t, httpd_trigger_t *,
-          qhash_clstr_hash, qhash_clstr_equal);
+qm_kvec_t(http_path, lstr_t, httpd_trigger_t *,
+          qhash_lstr_hash, qhash_lstr_equal);
 
 typedef struct httpd_t {
     httpd_cfg_t       *cfg;

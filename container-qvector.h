@@ -252,7 +252,7 @@ qvector_t(double, double);
 qvector_t(str,    char *);
 #ifndef __cplusplus
 qvector_t(lstr,   lstr_t);
-qvector_t(clstr,  clstr_t);
+qvector_t(clstr,  lstr_t);
 #endif
 
 qvector_const_t(cvoid,  void *);
