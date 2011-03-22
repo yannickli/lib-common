@@ -12,8 +12,6 @@
 /**************************************************************************/
 
 #include "asn1.h"
-#include <lib-inet/sms.h>
-#include <lib-inet/ss7-nplan.h>
 
 enum test_tf {
     ASN1_TEST_TRUE = 666,
