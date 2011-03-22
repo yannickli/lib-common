@@ -198,7 +198,7 @@ int iop_bskip(const iop_struct_t *desc, pstream_t *ps);
 __must_check__
 int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc);
 
-/*----- IOP to JSON interfaces -----*/
+#include "iop-xml.h"
 #include "iop-json.h"
 
 #endif
