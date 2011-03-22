@@ -80,6 +80,10 @@ libcommon_SOURCES = \
 	hash-sha2.c \
 	hash-sha4.c \
 	\
+	iop-cfolder.c \
+	iop-json.c \
+	iop.c \
+	\
 	net-addr.c \
 	net-socket.c \
 	net-sctp.c \
