@@ -11,7 +11,9 @@
 #                                                                        #
 ##########################################################################
 
+ifeq (,$(TOOLS_REPOSITORY))
 examples_PROGRAMS = ex-iop
+endif
 
 _LIBS = -lrt -lm
 
