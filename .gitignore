@@ -7,12 +7,15 @@
 /http-hdr.c
 /httptokens.c
 /httptokens.h
+/tstiop.iop.*
 
 /zchk
 /ztst
 /ztst-asn1-wr
 /ztst-blob-iconv
 /ztst-cfgparser
+/ztst-httpd
+/ztst-iop
 /ztst-iprintf
 /ztst-iprintf-fp
 /ztst-iprintf-glibc

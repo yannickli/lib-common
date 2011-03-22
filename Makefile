@@ -12,9 +12,11 @@
 ##########################################################################
 
 none_LIBRARIES = libcommon time-lp-simple
-test_PROGRAMS += zchk ztst-cfgparser ztst-tpl ztst-lzo
+test_PROGRAMS += zchk ztst-cfgparser ztst-tpl ztst-lzo ztst-thrjob
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
-test_PROGRAMS += ztst-thrjob
+ifeq (,$(TOOLS_REPOSITORY))
+test_PROGRAMS += ztst-iop ztst-httpd
+endif
 
 DISTCLEANFILES = core-version.c
 core-version.c: scripts/version.sh FORCE
@@ -160,6 +162,20 @@ ztst_CFLAGS  = -DCHECK=1
 ztst_LIBS = -lz -lrt -ldl
 
 ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
+
+ztst-iop_SOURCES = \
+	ztst-iop.c \
+	tstiop.iop \
+	$/lib-common/libcommon.a \
+	$/lib-common/time-lp-simple.a
+ztst-iop_LIBS = $(libxml2_LIBS) -lrt -ldl
+
+ztst-httpd_SOURCES = \
+	ztst-httpd.c \
+	tstiop.iop \
+	$/lib-common/libcommon.a \
+	$/lib-common/time-lp-simple.a
+ztst-httpd_LIBS = $(libxml2_LIBS) -lrt -ldl
 
 ztst-tpl_SOURCES = ztst-tpl.c libcommon.a
 

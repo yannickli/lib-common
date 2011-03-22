@@ -1,0 +1,196 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+
+/* This file is used to test the IOPs and act as a non-regression test. This
+ * file should always compile correctly */
+package tstiop;
+
+/* Types of base */
+
+enum MyEnumA {
+    A = 0x0,
+    B = 0x1,
+    C = 0x2,
+};
+
+enum MyEnumB {
+    A,
+    B,
+    C,
+};
+
+union MyUnionA {
+    int    ua;
+    byte   ub;
+    string us;
+};
+
+struct MyStructA {
+    int a;
+    uint b;
+    byte cOfMyStructA;
+    ubyte d;
+    short e;
+    ushort f;
+    long g;
+    ulong h;
+    bytes i;
+    string j;
+    xml xmlField;
+    MyEnumA k;
+    MyUnionA l;
+    double m;
+    bool n;
+};
+
+struct MyStructAOpt {
+    int? a;
+    uint? b;
+    byte? cOfMyStructA;
+    ubyte? d;
+    short? e;
+    ushort? f;
+    long? g;
+    ulong? h;
+    bytes? i;
+    string? j;
+    MyEnumA? k;
+    MyUnionA? l;
+    double? m;
+    bool? n;
+};
+
+struct MyStructB {
+    int? a;
+    int[] b;
+};
+
+
+/* Recursion */
+struct MyStructC {
+    int a;
+    MyStructC? b;
+    MyStructC[] c;
+};
+
+/* Tags */
+struct MyStructD {
+0x2:
+    int a;
+42:
+    int b;
+};
+
+struct MyStructE {
+    int a;
+    MyUnionA b;
+    MyStructB c;
+};
+
+struct MyStructF {
+    string[] a;
+    bytes[] b;
+    MyStructB[] c;
+    MyUnionA[] d;
+};
+
+/* Default values */
+struct MyStructG {
+    int a       = -1;
+    uint b      = 2;
+    byte cOfG   = 3;
+    ubyte d     = 4;
+    short e     = 5;
+    ushort f    = 6;
+    long g      = 7;
+    ulong h     = 8;
+    bytes i     = "default data value";
+    string j    = "fo\"o?cbaré©";
+    MyEnumA k;
+    double l    = 10.5;
+    bool m      = true;
+};
+
+/* Constant folding */
+struct MyStructH {
+    int a = 10 + 2 * 3 * 4 - 10;                    // 24 => 0x18
+    int b = 10 * 2 + 3 + 4 * 10;                    // 63 => 0x3f
+    int c = 8 + 4 + - 2 + 2 * - 5 / 2 + 1;          // 6
+    int d = 32 / 4 ** 2 / 2;                        // 1
+    int e = 8 / 4 / 2;                              // 1
+    int f = 8 / (4 / 2);                            // 4
+    int g = 4 ** 3 ** 2;                            // 262144 => 0x40000
+    int h = 4 + - 2 ** 2;                           // 0
+    int i = 1 + 4 ** 3 ** 1 + 1 - 1;                // 65 => 41
+    int j = 0xfffff & 32 << 2 | 3;                  // 131 => 0x83
+    int k = (1 << 17) - 1;                          // 131071 => 0x1ffff
+    int l = -1 + 2 * 30 + ~3;                       // 55 => 0x37
+};
+
+/* Constant folding with enums */
+enum MyEnumC {
+    A = 1 << 0,
+    B = 1 << 1,
+    C = 1 << 2,
+    D = 1 << 3,
+    E = 1 << 4,
+};
+
+struct MyAException {
+    int    errcode;
+    string desc;
+};
+
+struct MyBException {
+    int    errcode;
+    string desc;
+    bool   foo;
+};
+
+union MyExceptions {
+    MyAException a;
+    MyBException b;
+};
+
+/* Interfaces */
+interface MyIfaceA {
+    funA in (int a, MyStructA b) out (MyUnionA c, int d);
+    funb out (int a, int b);
+    funC in MyStructA out MyStructB;
+    funD out MyStructA;
+    funE in void out (int a);
+    funF in (int a, int b) out MyStructB;
+    funG;
+    funH in void out void;
+    funI out void;
+    funJ in void;
+    funK in MyStructA out (int a, int b);
+    funL in MyUnionA;
+    funM in MyStructA out (int a, int b) throw (int err);
+    funN in MyStructA out (int a, int b) throw MyAException;
+    funO in MyStructA out (int a, int b) throw MyExceptions;
+    funAsync in (int test) out null;
+};
+
+module MyModA {
+    MyIfaceA a;
+};
+
+interface Iface {
+    f in (int i) out (int i);
+};
+
+module T {
+    Iface iface;
+};
