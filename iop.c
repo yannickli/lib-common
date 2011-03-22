@@ -637,7 +637,7 @@ lstr_t t_iop_bpack_struct(const iop_struct_t *st, const void *v)
     qv_inita(i32, &sizes, 1024);
 
     len  = iop_bpack_size(st, v, &sizes);
-    data = t_new(char, res.len);
+    data = t_new_raw(char, len);
 
     iop_bpack(data, st, v, sizes.tab);
     qv_wipe(i32, &sizes);
