@@ -27,4 +27,11 @@ void iop_xpack(sb_t *sb, const iop_struct_t *, const void *v,
                bool verbose, bool with_enums);
 int  iop_xunpack(void *xp, mem_pool_t *mp, const iop_struct_t *, void *v);
 
+qh_k32_t(xwsdl_impl);
+void iop_xwsdl(sb_t *sb, const iop_mod_t *mod, qh_t(xwsdl_impl) *impl,
+               const char *ns, const char *addr, bool with_auth,
+               bool with_enums);
+#define xwsdl_register(h, _mod, _if, _rpc) \
+    qh_add(xwsdl_impl, h, IOP_RPC_CMD(_mod, _if, _rpc))
+
 #endif

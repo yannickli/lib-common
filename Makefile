@@ -84,6 +84,7 @@ libcommon_SOURCES = \
 	iop-json.c \
 	iop-xml-pack.c \
 	iop-xml-unpack.c \
+	iop-xml-wsdl.c \
 	iop.c \
 	\
 	net-addr.c \
