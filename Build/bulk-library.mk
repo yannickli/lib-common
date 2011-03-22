@@ -47,7 +47,7 @@ endef
 #[ c ]####################################################################
 
 define ext/expand/c
-$3: $~%$$(tmp/$2/ns)$4.o: %.c | __$(1D)_generated
+$3: $~%$$(tmp/$2/ns)$4.o: %.c | _generated
 	mkdir -p $$(@D)
 	$(msg/COMPILE.c) $$(<R)
 	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$*.c_CFLAGS) \
@@ -67,7 +67,7 @@ endef
 #[ cc ]###################################################################
 
 define ext/expand/cc
-$3: $~%$$(tmp/$2/ns)$4.o: %.cc | __$(1D)_generated
+$3: $~%$$(tmp/$2/ns)$4.o: %.cc | _generated
 	mkdir -p $$(@D)
 	$(msg/COMPILE.C) $$(<R)
 	$(CXX) $(CXXFLAGS) $$($(1D)/_CXXFLAGS) $$($1_CXXFLAGS) $$($$*.c_CXXFLAGS) \
@@ -96,7 +96,7 @@ $(3:l=c): %.c: %.l
 	sed -i -e 's/^extern int isatty.*;//' \
 	       -e 's/^\t\tint n; \\/		size_t n; \\/' $$@
 	chmod a-w $$@
-__$(1D)_generated: $(3:l=c)
+$(1D)/_generated: $(3:l=c)
 $$(eval $$(call fun/common-depends,$1,$(3:l=c),$3))
 endef
 
@@ -114,10 +114,8 @@ endef
 var/exts = $(patsubst ext/rule/%,%,$(filter ext/rule/%,$(.VARIABLES)))
 define fun/foreach-ext-rule
 $$(foreach e,$(var/exts),$$(if $$(filter %.$$e,$3),$$(eval $$(call ext/rule/$$e,$1,$2,$$(filter %.$$e,$3),$4))))
-$2: | $$($1_SOURCES) __$(1D)_generated
+$2: | $$($1_SOURCES) _generated
 $$(eval $$(call fun/common-depends,$1,$2,$1))
-__$(1D)_generated:
-.PHONY: __$(1D)_generated
 endef
 
 #

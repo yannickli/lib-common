@@ -63,9 +63,11 @@ tags: $(var/generated)
 
 define fun/subdirs-targets
 $(foreach d,$1,
+$(patsubst ./%,%,$(dir $(d:/=)))_generated: $(d)_generated
 $(patsubst ./%,%,$(dir $(d:/=)))all::       $(d)all
 $(patsubst ./%,%,$(dir $(d:/=)))check::     $(d)check
 $(patsubst ./%,%,$(dir $(d:/=)))clean::     $(d)clean
+$(d)_generated:
 $(d)all::
 $(d)check::
 $(d)clean::
