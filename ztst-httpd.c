@@ -15,7 +15,7 @@
 #include <lib-common/parseopt.h>
 #include <lib-common/unix.h>
 #include <lib-common/iop-rpc.h>
-#include "tstiop.iop.h"
+#include "iop/tstiop.iop.h"
 
 static struct {
     int   port;

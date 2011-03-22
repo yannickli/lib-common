@@ -14,7 +14,7 @@
 #include <lib-common/iop.h>
 #include <lib-common/parseopt.h>
 #include <lib-common/xmlr.h>
-#include "tstiop.iop.h"
+#include "iop/tstiop.iop.h"
 
 /* ---- opts -{{{- */
 static struct {

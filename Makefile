@@ -165,14 +165,14 @@ ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
 
 ztst-iop_SOURCES = \
 	ztst-iop.c \
-	tstiop.iop \
+	$/lib-common/iop/tstiop.a \
 	$/lib-common/libcommon.a \
 	$/lib-common/time-lp-simple.a
 ztst-iop_LIBS = $(libxml2_LIBS) -lrt -ldl
 
 ztst-httpd_SOURCES = \
 	ztst-httpd.c \
-	tstiop.iop \
+	$/lib-common/iop/tstiop.a \
 	$/lib-common/libcommon.a \
 	$/lib-common/time-lp-simple.a
 ztst-httpd_LIBS = $(libxml2_LIBS) -lrt -ldl
