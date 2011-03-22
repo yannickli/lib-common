@@ -86,6 +86,11 @@ libcommon_SOURCES = \
 	iop-xml-wsdl.c \
 	iop.c \
 	\
+	iop-rpc-channel.c \
+	iop-rpc-http-pack.c \
+	iop-rpc-http-unpack.c \
+	ic.iop.c \
+	\
 	net-addr.c \
 	net-socket.c \
 	net-sctp.c \
