@@ -16,27 +16,62 @@
 
 #include <Block.h>
 #include <pthread.h>
-#include "core.h"
+#include "container.h"
 
 #include "thr-evc.h"
 #include "thr-job.h"
 #include "thr-spsc.h"
 #include "thr-mpsc.h"
 
-void intersec_phtread_init(void (*fn)(void));
-void intersec_phtread_exit(void (*fn)(void));
+extern struct thr_hooks {
+    dlist_t init_cbs;
+    dlist_t exit_cbs;
+} thr_hooks_g;
 
+struct thr_ctor {
+    dlist_t link;
+    void   (*cb)(void);
+};
+
+/** \brief declare a function to be run at pthread_create() time.
+ *
+ * The function is run when pthread_create() is called, but is not run
+ * automatically for the main thread.
+ *
+ * This code is active if and only if the code uses pthread_create() directly
+ * (or through thr_initialize(), or pthread_force_use()).
+ *
+ * \param[in]  fn  name of the function to run.
+ */
 #define thread_init(fn) \
     static __attribute__((constructor)) void PT_##fn##_init(void) {  \
-        intersec_phtread_init(fn);                                   \
+        static struct thr_ctor ctor = { .cb = (fn) };                \
+        dlist_add_tail(&thr_hooks_g.init_cbs, &ctor.link);           \
     }
 
+/** \brief declare a function to be run when a thread exits.
+ *
+ * The function is run when a thread exit, even when it is the main.
+ *
+ * The functions are always run for the main thread, even if pthreads are not in use.
+ * Though, for the other threads, hooks are run if and only if the code uses
+ * pthread_create() directly (or through thr_initialize(), or
+ * pthread_force_use()).
+ *
+ * \param[in]  fn  name of the function to run.
+ */
 #define thread_exit(fn) \
     static __attribute__((constructor)) void PT_##fn##_exit(void) {  \
-        intersec_phtread_exit(fn);                                   \
+        static struct thr_ctor ctor = { .cb = (fn) };                \
+        dlist_add_tail(&thr_hooks_g.exit_cbs, &ctor.link);           \
     }
 
-void intersec_thread_on_init(void);
-void intersec_thread_on_exit(void *);
+/** \brief pulls the pthread hook module (forces a dependency upon pthreads).
+ *
+ * This function has no other side effects than to pull the intersec phtread
+ * hooking mechanism. This call is required when building a public shared
+ * library.
+ */
+void pthread_force_use(void);
 
 #endif

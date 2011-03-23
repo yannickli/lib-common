@@ -13,34 +13,20 @@
 
 #include "thr.h"
 
-static struct {
-    void (*init[32])(void);
-    void (*exit[32])(void);
-    int initlen;
-    int exitlen;
-} core_thread_g;
-#define _G  core_thread_g
+struct thr_hooks thr_hooks_g = {
+    .init_cbs = DLIST_INIT(thr_hooks_g.init_cbs),
+    .exit_cbs = DLIST_INIT(thr_hooks_g.exit_cbs),
+};
 
-void intersec_phtread_init(void (*fn)(void))
+static void thr_main_atexit(void)
 {
-    assert (_G.initlen < countof(_G.init));
-    _G.init[_G.initlen++] = fn;
+    dlist_for_each(it, &thr_hooks_g.exit_cbs) {
+        (container_of(it, struct thr_ctor, link)->cb)();
+    }
 }
 
-void intersec_phtread_exit(void (*fn)(void))
+__attribute__((constructor))
+static void thr_run_dtors_at_exit(void)
 {
-    assert (_G.exitlen < countof(_G.exit));
-    _G.exit[_G.exitlen++] = fn;
-}
-
-void intersec_thread_on_init(void)
-{
-    for (int i = 0; i < _G.initlen; i++)
-        _G.init[i]();
-}
-
-void intersec_thread_on_exit(void *unused)
-{
-    for (int i = 0; i < _G.exitlen; i++)
-        _G.exit[i]();
+    atexit(thr_main_atexit);
 }
