@@ -50,14 +50,12 @@ static void e_debug_initialize_thread(void)
     sb_init(&buf_g);
     sb_init(&tmpbuf_g);
 }
-thread_init(e_debug_initialize_thread);
-
 static void e_debug_shutdown_thread(void)
 {
     sb_wipe(&buf_g);
     sb_wipe(&tmpbuf_g);
 }
-thread_exit(e_debug_shutdown_thread);
+thr_hooks(e_debug_initialize_thread, e_debug_shutdown_thread);
 
 __attribute__((constructor))
 static void e_debug_initialize(void)

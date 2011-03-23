@@ -74,7 +74,7 @@ static void xmlr_shutdown(void)
     xmlr_clear_err();
     xmlr_delete(&xmlr_g);
 }
-thread_exit(xmlr_shutdown);
+thr_hooks(NULL, xmlr_shutdown);
 
 void xmlr_clear_err(void)
 {

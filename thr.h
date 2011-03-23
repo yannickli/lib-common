@@ -33,37 +33,34 @@ struct thr_ctor {
     void   (*cb)(void);
 };
 
-/** \brief declare a function to be run at pthread_create() time.
+/** \brief declare a function to be run when a thread starts and exits.
  *
- * The function is run when pthread_create() is called, but is not run
- * automatically for the main thread.
+ * The init function is run when a thread inits, but not for the main thread,
+ * it's up to the programmer to be sure it's done or not needed for this
+ * thread.
  *
- * This code is active if and only if the code uses pthread_create() directly
- * (or through thr_initialize(), or pthread_force_use()).
+ * The exit function is run when a thread exit, even when it is the main.
  *
- * \param[in]  fn  name of the function to run.
+ * If pthreads are in use, and that the host program uses #pthread_create (or
+ * #thr_initialize or #pthread_force_use) then this system is active, else
+ * hooks are not run for threads.
+ *
+ * The exit hooks are always run for the main thread, independently from
+ * pthreads and this system beeing active or not.
+ *
+ * \param[in]  init  name of the function to run at thread init.
+ * \param[in]  init  name of the function to run at thread exit.
  */
-#define thread_init(fn) \
-    static __attribute__((constructor)) void PT_##fn##_init(void) {  \
-        static struct thr_ctor ctor = { .cb = (fn) };                \
-        dlist_add_tail(&thr_hooks_g.init_cbs, &ctor.link);           \
-    }
-
-/** \brief declare a function to be run when a thread exits.
- *
- * The function is run when a thread exit, even when it is the main.
- *
- * The functions are always run for the main thread, even if pthreads are not in use.
- * Though, for the other threads, hooks are run if and only if the code uses
- * pthread_create() directly (or through thr_initialize(), or
- * pthread_force_use()).
- *
- * \param[in]  fn  name of the function to run.
- */
-#define thread_exit(fn) \
-    static __attribute__((constructor)) void PT_##fn##_exit(void) {  \
-        static struct thr_ctor ctor = { .cb = (fn) };                \
-        dlist_add_tail(&thr_hooks_g.exit_cbs, &ctor.link);           \
+#define thr_hooks(init, exit) \
+    static __attribute__((constructor)) void PT_##fn##_exit(void) {          \
+        __builtin_choose_expr(__builtin_constant_p(init), (void)0, ({        \
+            static struct thr_ctor ctor = { .cb = (init) };                  \
+            dlist_add_tail(&thr_hooks_g.init_cbs, &ctor.link);               \
+        }));                                                                 \
+        __builtin_choose_expr(__builtin_constant_p(exit), (void)0, ({        \
+            static struct thr_ctor ctor = { .cb = (exit) };                  \
+            dlist_add(&thr_hooks_g.exit_cbs, &ctor.link);                    \
+        }));                                                                 \
     }
 
 /** \brief pulls the pthread hook module (forces a dependency upon pthreads).
