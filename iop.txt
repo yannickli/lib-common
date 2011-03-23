@@ -132,7 +132,20 @@ The different types of base are: `int` (`int32_t`), `uint` (`uint32_t`), `byte`
 These types are wrapped either in a `struct` type or a `union` type.
 Differences between `struct` and `union` are the sames as in C.
 
-...
+A structure member can be:
+
+Mandatory::
+    Which means that the field must always be present when encoding/decoding
+    the IOP structure. Example: `int foo;`.
+
+Optional::
+    Which means that the field could be omitted when encoding/decoding the IOp
+    structure. Example: `int? foo;`.
+
+Repeated::
+    Which means that the field could be either omitted or repeated several
+    times when encoding/decoding the structure. See it as a sort of array.
+    Example: `int[] foo;`.
 
 
 IOP C Backend
@@ -145,9 +158,54 @@ Each function of the IOP unpacker expects a stacked memory allocator:
 `stack_pool_t` which you can obtain by a function like `t_pool` or
 `mem_stack_pool_new`. Never use another memory allocator with the unpacker.
 
+Scalar types usage
+~~~~~~~~~~~~~~~~~~
 
-Using the union
-~~~~~~~~~~~~~~~
+A mandatory scalar member is converted in the most simple way as it would be
+written in C. So `int foo;` becomes `int32_t foo;`.
+
+An optional scalar member is converter in an `iop_opt_xxx_t` structure. You
+should never access it directly but using the `IOP_OPT*` macros defined in
+`iop-macros.h`.
+
+A repeated scalar member is converter to a structure containing a `len` member
+which gives the number of element and a `tab` member which gives a pointer on
+the first element. To set such a field you should use the `IOP_ARRAY*` macros
+defined in `iop-macros.h`.
+
+Bytes and strings usage
+~~~~~~~~~~~~~~~~~~~~~~~
+
+`bytes` and `string` types are handled in a similar way, but not converted to
+the same structure.
+
+`bytes`, which contains binary buffer, is converted to a `iop_data_t { .data,
+.len }` with the member `len` corresponding to the buffer length and the
+member `data` which is the pointer on the first byte of the buffer. `bytes`
+members should be set using the `IOP_DATA*` macros defined in `iop-macros.h`.
+
+`string`, which contains a null terminated string, is converted to a `lstr_t`.
+See `str-l.h` for their documentation.
+
+When a member is optional, you will know if it is present or not by testing
+if the pointer is NULL.
+
+In case of a repeated field, usage is exactly the same as for scalar types.
+
+Structures usage
+~~~~~~~~~~~~~~~~
+
+A mandatory `struct` or `union` member is directly inlined in the C structure.
+So you access it in the most simple way.
+
+An optional `struct` or `union` member is converted to a pointer on the value,
+so you test its nullity to know if the field is here and you deference it to
+access the value.
+
+In case of a repeated field, usage is exactly the same as for scalar types.
+
+Unions usage
+~~~~~~~~~~~~
 
 A `union` is an `iop_struct_t` with the flag `is_union` set. In the code, we
 can see a `union` as a `struct` with a unique and required field. Of course we
@@ -168,7 +226,7 @@ struct __foo_t {
 
 On the user side, you have several macros to use them:
 
-`IOP_UNION_SWITCH(type, var)`::
+`IOP_UNION_SWITCH(var)`::
     Start a switch on the selected value in the union.
 
 `IOP_UNION_CASE(type, var, field_name, v)`::
@@ -185,16 +243,26 @@ On the user side, you have several macros to use them:
     Get a pointer on `field` if the field is selected, `NULL` otherwise.
 
 `pkg__uname__copy(dst, v, field)`::
-    Copy the value of `field` in `dst` and return 0 and -1 if the field isn't
-    selected.
+    Copy the value of `field` in `dst` and return true or false if the field
+    isn't selected.
 
 `IOP_UNION(type, field, val)`::
     Store a scalar value in an iop union. Example: `u = IOP_UNION(my_union,
     my_field, 42);`.
 
+`IOP_UNION_CST(type, field, val)`::
+    Store a scalar value in an iop union initializer.
+
 `IOP_UNION_VA(type, field, ...)`::
     Store a complex value (like a structure) in an iop union. Example: `u
     = IOP_UNION_VA(my_union, my_field, .foo = 10, .bar = 42);`
+
+`IOP_UNION_VA_CST(type, field, ...)`::
+    Store a complex value (like a structure) in an iop union initializer.
+
+
+NEVER EVER USE A `continue` OR A `break` STATEMENT INSIDE OF AN
+IOP_UNION_SWITCH.
 
 Restrictions
 ^^^^^^^^^^^^

@@ -16,17 +16,22 @@
 #else
 #define IS_LIB_COMMON_IOP_MACROS_H
 
-/* iop_data_t helpers */
+/*----- iop_data_t initializers (bytes) -----*/
 #define IOP_DATA(ddata, dlen)  (iop_data_t){ .data = (ddata), .len = (dlen) }
 #define IOP_DATA_NULL          (iop_data_t){ .data = NULL, .len = 0 }
 #define IOP_DATA_EMPTY         (iop_data_t){ .data = (void *) "", .len = 0 }
 #define IOP_SBDATA(sb)         (iop_data_t){ .data = (sb)->data,             \
                                              .len  = (sb)->len }
-/* iop array helpers */
+
+/*----- IOP array initializers (repetead) -----*/
 #define IOP_ARRAY(_data, _len)  { { .tab = (_data) }, .len = (_len) }
 #define IOP_ARRAY_EMPTY         IOP_ARRAY(NULL, 0)
 #define IOP_ARRAY_TAB(vec)      IOP_ARRAY((vec)->tab, (vec)->len)
 
+
+/*----- IOP union helpers ----*/
+
+/* get the tag value of a union field */
 #define IOP_UNION_TAG(pfx, field) pfx##__##field##__ft
 
 /* To use the union type */
@@ -80,7 +85,8 @@
 #define IOP_UNION_VA(pfx, field, ...) \
     (pfx##__t){ IOP_UNION_TAG(pfx, field), { .field = { __VA_ARGS__ } } }
 
-/* Optional values usage */
+
+/*----- Optional scalar values usage -----*/
 #define IOP_OPT(val)           { .v = (val), .has_field = true }
 #define IOP_OPT_NONE           { .has_field = false }
 #define IOP_OPT_IF(cond, val)  { .has_field = (cond), .v = (cond) ? (val) : 0 }
@@ -99,7 +105,7 @@
        }                                                   \
     })
 
-/* Packing */
+/*----- Data packing helpers -----*/
 #define t_iop_bpack(_mod, _type, _val)                     \
     ({                                                     \
         const _mod##__##_type##__t *_tval = _val;          \
@@ -125,13 +131,14 @@
     })
 
 
-/* Rpcs */
+/*----- RPC helpers -----*/
 #define IOP_RPC(_mod, _if, _rpc)          _mod##__##_if(_rpc##__rpc)
 #define IOP_RPC_T(_mod, _if, _rpc, what)  _mod##__##_if(_rpc##_##what##__t)
 #define IOP_RPC_CMD(_mod, _if, _rpc) \
     (_mod##__##_if##__TAG << 16) | _mod##__##_if(_rpc##__rpc__tag)
 
-/* code-gen */
+
+/*----- generate several typed helpers -----*/
 #define IOP_ENUM(pfx) \
     static inline const char *pfx##__to_str(pfx##__t v) {                    \
         return iop_enum_to_str(&pfx##__e, v).s;                              \
