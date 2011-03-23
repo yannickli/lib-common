@@ -118,6 +118,15 @@ tags: | __setup_buildsys_trampoline
 	    --exclude="old" --exclude="new" --exclude="ogu" --exclude="xxx" \
 	    --exclude="*.exe" --exclude="*.js" --exclude="*.blk.c" --exclude="*.blkk.cc"
 
+etags: | __setup_buildsys_trampoline
+	$(MAKEPARALLEL) -C $/ -f $!Makefile tags
+	@$(if $(shell which etags.emacs),,$(error "etags.emacs not found"))
+	cd $/ && rm TAGS && \
+		find . -name \*.h -or -name \*.hh \
+			-or -name \*.blk -or -name \*.cc \
+			-or \( -name \*.c -and -not -name \*.blk.c \) \
+			-exec etags.emacs -a '{}' \;
+
 ignore:
 	$(foreach v,$(CLEANFILES:/=),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/generated),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
