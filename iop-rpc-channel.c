@@ -64,7 +64,7 @@ ic_msg_t *ic_msg_new(int len)
 
 ic_msg_t *ic_msg_proxy_new(int fd, uint64_t slot, const ic__hdr__t *hdr)
 {
-    ic_msg_t *msg = mp_new(ic_mp_g, ic_msg_t, 1);
+    ic_msg_t *msg = mp_new_extra(ic_mp_g, ic_msg_t, sizeof(slot));
 
     *(uint64_t *)msg->priv = slot;
     msg->fd  = fd;
