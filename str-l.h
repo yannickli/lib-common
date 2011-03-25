@@ -144,6 +144,8 @@ static inline lstr_t lstr_dupc(const lstr_t s)
  */
 static inline lstr_t lstr_dups(const char *s, int len)
 {
+    if (!s)
+        return LSTR_NULL_V;
     return lstr_init_(p_dupz(s, len), len, MEM_LIBC);
 }
 
@@ -151,6 +153,8 @@ static inline lstr_t lstr_dups(const char *s, int len)
  */
 static inline lstr_t lstr_dup(const lstr_t s)
 {
+    if (!s.s)
+        return LSTR_NULL_V;
     return lstr_init_(p_dupz(s.s, s.len), s.len, MEM_LIBC);
 }
 
@@ -158,6 +162,8 @@ static inline lstr_t lstr_dup(const lstr_t s)
  */
 static inline lstr_t mp_lstr_dups(mem_pool_t *mp, const char *s, int len)
 {
+    if (!s)
+        return LSTR_NULL_V;
     return lstr_init_(mp_dupz(mp, s, len), len, MEM_OTHER);
 }
 
@@ -165,6 +171,8 @@ static inline lstr_t mp_lstr_dups(mem_pool_t *mp, const char *s, int len)
  */
 static inline lstr_t mp_lstr_dup(mem_pool_t *mp, const lstr_t s)
 {
+    if (!s.s)
+        return LSTR_NULL_V;
     return lstr_init_(mp_dupz(mp, s.s, s.len), s.len, MEM_OTHER);
 }
 
