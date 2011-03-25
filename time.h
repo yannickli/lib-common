@@ -143,6 +143,14 @@ static inline int timeval_diff(const struct timeval *tv2,
             (tv2->tv_usec - tv1->tv_usec);
 }
 
+static inline int64_t timeval_diffmsec(const struct timeval *tv2,
+                                       const struct timeval *tv1)
+{
+    int64_t delta = tv2->tv_sec - tv1->tv_sec;
+
+    return delta * 1000 + (tv2->tv_usec - tv1->tv_usec) / 1000;
+}
+
 static inline bool timeval_is_lt0(const struct timeval t) {
     return  t.tv_sec < 0;
 }
