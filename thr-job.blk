@@ -22,19 +22,21 @@
 #  error "this file assumes a strict memory model and is probably buggy on !x86"
 #endif
 
+#define CACHE_LINE_SIZE   64
+
 typedef struct thr_qnode_t thr_qnode_t;
 struct thr_qnode_t {
     mpsc_node_t  qnode;
     thr_job_t   *job;
     thr_syn_t   *syn;
-} __attribute__((aligned(64)));
+} __attribute__((aligned(CACHE_LINE_SIZE)));
 
 struct thr_queue_t {
     thr_job_t             run;
     thr_job_t             destroy;
     mpsc_queue_t          q;
     unsigned volatile     closing;
-} __attribute__((aligned(64)));
+} __attribute__((aligned(CACHE_LINE_SIZE)));
 
 typedef struct thr_info_t {
     /** top of the deque.
@@ -50,18 +52,20 @@ typedef struct thr_info_t {
      * values through a write barrier.
      */
     unsigned   bot;
+    unsigned   alive;
+    pthread_t  thr;
+    char       padding_0[CACHE_LINE_SIZE];
+
     struct deque_entry {
         thr_job_t *job;
         thr_syn_t *syn;
     } q[THR_JOB_MAX];
-
-    unsigned    tid;
-    unsigned    is_main;
-    pthread_t   thr;
+    char       padding_1[CACHE_LINE_SIZE];
 
 #define NCACHE_MAX    1024
     size_t       ncache_sz;
     thr_qnode_t  ncache;
+
 #ifndef NDEBUG
     struct thr_acc {
         uint64_t time;
@@ -69,7 +73,7 @@ typedef struct thr_info_t {
         unsigned jobs_run;
         unsigned ec_gets;
         unsigned ec_waits;
-    } __attribute__((aligned(64))) acc;
+    } acc;
 #endif
 } thr_info_t;
 
@@ -78,7 +82,7 @@ static struct {
     thr_evc_t         ec;
     pthread_barrier_t start_bar;
 
-    thr_info_t       *threads[THR_TID_MAX];
+    thr_info_t       *threads;
     el_t              before;
     thr_queue_t       main_queue;
     uint64_t          reset_time;
@@ -86,7 +90,8 @@ static struct {
 } thr_job_g;
 #define _G  thr_job_g
 
-static __thread thr_info_t self_g;
+static __thread int self_tid_g = (-1);
+static __thread thr_info_t *self_g;
 
 size_t thr_parallelism_g;
 thr_queue_t *const thr_queue_main_g = &_G.main_queue;
@@ -97,7 +102,7 @@ thr_queue_t *const thr_queue_main_g = &_G.main_queue;
 void thr_acc_reset(void)
 {
     for (size_t i = 0; i < thr_parallelism_g; i++) {
-        p_clear(&_G.threads[i]->acc, 1);
+        p_clear(&_G.threads[i].acc, 1);
     }
     _G.reset_time = hardclock();
     proctimer_start(&_G.st);
@@ -119,7 +124,7 @@ void thr_acc_set_affinity(size_t offs)
 
         CPU_ZERO(&set);
         CPU_SET((i + offs) % thr_parallelism_g, &set);
-        if (pthread_setaffinity_np(_G.threads[i]->thr, sizeof(set), &set))
+        if (pthread_setaffinity_np(_G.threads[i].thr, sizeof(set), &set))
             e_panic("cannot set affinity");
     }
 }
@@ -142,7 +147,7 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
 
     width.time = int_width(wall / 1000000);
     for (size_t i = 0; i < thr_parallelism_g; i++) {
-        struct thr_acc *acc = &_G.threads[i]->acc;
+        struct thr_acc *acc = &_G.threads[i].acc;
 
         total.time        += acc->time;
         total.jobs_queued += acc->jobs_queued;
@@ -168,7 +173,7 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
 #define TIME_FMT_ARG(t)   (int)width.time, (int)((t) / 1000000)
 
     for (size_t i = 0; i < thr_parallelism_g; i++) {
-        struct thr_acc *acc = &_G.threads[i]->acc;
+        struct thr_acc *acc = &_G.threads[i].acc;
 
         e_trace(lvl, " %2zd: %*uM, %*u queued, %*u run, "
                 "%*u gets, %*u waits", i, TIME_FMT_ARG(acc->time),
@@ -207,7 +212,7 @@ static bool job_run(thr_job_t *job, thr_syn_t *syn)
 #ifndef NDEBUG
     unsigned long start = hardclock();
 
-    self_g.acc.jobs_run++;
+    self_g->acc.jobs_run++;
 #endif
 
     if ((uintptr_t)job & 3) {
@@ -220,7 +225,7 @@ static bool job_run(thr_job_t *job, thr_syn_t *syn)
         (*job->run)(job, syn);
     }
 #ifndef NDEBUG
-    self_g.acc.time += (hardclock() - start);
+    self_g->acc.time += (hardclock() - start);
 #endif
     if (syn)
         thr_syn__job_done(syn);
@@ -233,22 +238,22 @@ void thr_syn_schedule(thr_syn_t *syn, thr_job_t *job)
     struct deque_entry *e;
 
 #ifndef NDEBUG
-    self_g.acc.jobs_queued++;
+    self_g->acc.jobs_queued++;
 #endif
 
     if (syn)
         thr_syn__job_prepare(syn);
-    bot = shared_read(self_g.bot);
-    top = shared_read(self_g.top);
+    bot = shared_read(self_g->bot);
+    top = shared_read(self_g->top);
     if (unlikely((int)(bot - top) >= THR_JOB_MAX)) {
         job_run(job, syn);
         return;
     }
 
-    e = &self_g.q[bot % THR_JOB_MAX];
+    e = &self_g->q[bot % THR_JOB_MAX];
     shared_write(e->job, job);
     shared_write(e->syn, syn);
-    shared_write(self_g.bot, bot + 1);
+    shared_write(self_g->bot, bot + 1);
 
     thr_ec_signal_relaxed(&_G.ec);
     if (syn)
@@ -270,22 +275,22 @@ static bool thr_job_dequeue(void)
     thr_job_t *job;
     thr_syn_t *syn;
 
-    bot = shared_read(self_g.bot) - 1;
-    e   = &self_g.q[bot % THR_JOB_MAX];
+    bot = shared_read(self_g->bot) - 1;
+    e   = &self_g->q[bot % THR_JOB_MAX];
     job = shared_read(e->job);
     syn = shared_read(e->syn);
-    shared_write(self_g.bot, bot);
+    shared_write(self_g->bot, bot);
 
     mb();
 
-    top = shared_read(self_g.top);
+    top = shared_read(self_g->top);
     if (likely((int)(bot - top) > 0))
         return job_run(job, syn);
-    if (likely(bot == top) && cas_top(&self_g, top)) {
-        shared_write(self_g.bot, top + 1);
+    if (likely(bot == top) && cas_top(self_g, top)) {
+        shared_write(self_g->bot, top + 1);
         return job_run(job, syn);
     }
-    shared_write(self_g.bot, bot + 1);
+    shared_write(self_g->bot, bot + 1);
     return false;
 }
 
@@ -311,16 +316,12 @@ static bool thr_job_try_steal(thr_info_t *ti)
 /* FIXME: optimize for large number of threads, with a loopless fastpath */
 static bool thr_job_steal(void)
 {
-    for (size_t i = self_g.tid; i-- > 0; ) {
-        thr_info_t *ti = access_once(_G.threads[i]);
-
-        if (ti && thr_job_try_steal(ti))
+    for (size_t i = self_tid_g; i-- > 0; ) {
+        if (thr_job_try_steal(&_G.threads[i]))
             return true;
     }
-    for (size_t i = self_g.tid; ++i < thr_parallelism_g; ) {
-        thr_info_t *ti = access_once(_G.threads[i]);
-
-        if (ti && thr_job_try_steal(ti))
+    for (size_t i = self_tid_g; ++i < thr_parallelism_g; ) {
+        if (thr_job_try_steal(&_G.threads[i]))
             return true;
     }
     return false;
@@ -336,11 +337,11 @@ static ALWAYS_INLINE thr_qnode_t *thr_qnode_of(mpsc_node_t *node)
 
 static thr_qnode_t *thr_qnode_create(void)
 {
-    if (likely(self_g.ncache.qnode.next)) {
-        thr_qnode_t *n = thr_qnode_of(self_g.ncache.qnode.next);
+    if (likely(self_g->ncache.qnode.next)) {
+        thr_qnode_t *n = thr_qnode_of(self_g->ncache.qnode.next);
 
-        self_g.ncache.qnode.next = n->qnode.next;
-        self_g.ncache_sz--;
+        self_g->ncache.qnode.next = n->qnode.next;
+        self_g->ncache_sz--;
         return n;
     }
     return memalign(64, sizeof(thr_qnode_t));
@@ -348,10 +349,10 @@ static thr_qnode_t *thr_qnode_create(void)
 
 static void thr_qnode_destroy(mpsc_node_t *n)
 {
-    if (likely(self_g.ncache_sz < NCACHE_MAX)) {
-        self_g.ncache_sz++;
-        n->next = self_g.ncache.qnode.next;
-        self_g.ncache.qnode.next = n;
+    if (likely(self_g->ncache_sz < NCACHE_MAX)) {
+        self_g->ncache_sz++;
+        n->next = self_g->ncache.qnode.next;
+        self_g->ncache.qnode.next = n;
     } else {
         free(thr_qnode_of(n));
     }
@@ -431,7 +432,7 @@ void thr_syn_queue(thr_syn_t *syn, thr_queue_t *q, thr_job_t *job)
         assert (!q->closing || job == &q->destroy);
         if (mpsc_queue_push(&q->q, &n->qnode)) {
             if (q == thr_queue_main_g) {
-                pthread_kill(_G.threads[0]->thr, SIGCHLD);
+                pthread_kill(_G.threads[0].thr, SIGCHLD);
             } else {
                 thr_schedule(&q->run);
             }
@@ -456,8 +457,8 @@ void thr_queue_sync(thr_queue_t *q, thr_job_t *job)
      */
     assert (!q->closing || job == &q->destroy);
     if (mpsc_queue_push(&q->q, &n->qnode)) {
-        if (q == thr_queue_main_g && !self_g.is_main) {
-            pthread_kill(_G.threads[0]->thr, SIGCHLD);
+        if (q == thr_queue_main_g && self_tid_g != 0) {
+            pthread_kill(_G.threads[0].thr, SIGCHLD);
         } else {
             thr_queue_drain(q);
             return;
@@ -497,10 +498,10 @@ void thr_queue_destroy(thr_queue_t *q, bool wait)
 
 static void thr_info_init(int tid)
 {
-    self_g.tid     = tid;
-    self_g.is_main = (tid == 0);
-    self_g.thr     = pthread_self();
-    shared_write(_G.threads[tid], &self_g);
+    self_tid_g = tid;
+    self_g     = _G.threads + tid;
+    shared_write(self_g->alive, true);
+    shared_write(self_g->thr, pthread_self());
     pthread_barrier_wait(&_G.start_bar);
     mb();
 }
@@ -508,16 +509,16 @@ static void thr_info_init(int tid)
 static void thr_info_cleanup(void *unused)
 {
     do {
-        if (self_g.is_main)
+        if (self_tid_g == 0)
             thr_queue_drain(thr_queue_main_g);
     } while (thr_job_dequeue());
-    if (self_g.is_main)
+    if (self_tid_g == 0)
         thr_queue_wipe(thr_queue_main_g);
-    _G.threads[self_g.tid] = NULL;
-    while (self_g.ncache.qnode.next) {
-        thr_qnode_t *n = thr_qnode_of(self_g.ncache.qnode.next);
+    shared_write(self_g->alive, false);
+    while (self_g->ncache.qnode.next) {
+        thr_qnode_t *n = thr_qnode_of(self_g->ncache.qnode.next);
 
-        self_g.ncache.qnode.next = n->qnode.next;
+        self_g->ncache.qnode.next = n->qnode.next;
         free(n);
     }
 }
@@ -534,13 +535,13 @@ static void *thr_job_main(void *arg)
             uint64_t key = thr_ec_get(&_G.ec);
 
 #ifndef NDEBUG
-            self_g.acc.ec_gets++;
+            self_g->acc.ec_gets++;
 #endif
             if (thr_job_steal())
                 continue;
             if (!shared_read(_G.stopping)) {
 #ifndef NDEBUG
-                self_g.acc.ec_waits++;
+                self_g->acc.ec_waits++;
 #endif
                 thr_ec_wait(&_G.ec, key);
             }
@@ -556,6 +557,7 @@ static void *thr_job_main(void *arg)
 static void thr_job_atfork(void)
 {
     el_before_unregister(&_G.before);
+    p_delete(&_G.threads);
     p_clear(&_G, 1);
     thr_parallelism_g = 0;
 }
@@ -567,7 +569,7 @@ static void thr_before(el_t ev, el_data_t priv)
 
 void thr_queue_main_drain(void)
 {
-    assert (self_g.tid == 0);
+    assert (self_tid_g == 0);
     thr_queue_drain(thr_queue_main_g);
 }
 
@@ -581,10 +583,10 @@ void thr_initialize(void)
     if (!thr_parallelism_g) {
         pthread_atfork(NULL, NULL, thr_job_atfork);
 
-        thr_parallelism_g = CLIP(sysconf(_SC_NPROCESSORS_CONF),
-                                 2, countof(_G.threads));
+        thr_parallelism_g = MAX(sysconf(_SC_NPROCESSORS_CONF), 2);
         if (unlikely(RUNNING_ON_VALGRIND))
             thr_parallelism_g = MIN(2, thr_parallelism_g);
+        _G.threads = p_new(thr_info_t, thr_parallelism_g);
 
         pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
@@ -613,9 +615,8 @@ void thr_shutdown(void)
         thr_ec_broadcast(&_G.ec);
 
         for (size_t i = 1; i < thr_parallelism_g; i++) {
-            /* XXX: writing stopping is racy wrt the call to futex() */
             mb();
-            while (access_once(_G.threads[i])) {
+            while (access_once(_G.threads[i].alive)) {
                 thr_ec_broadcast(&_G.ec);
                 sched_yield();
             }
@@ -624,6 +625,7 @@ void thr_shutdown(void)
         thr_info_cleanup(NULL);
 
         el_before_unregister(&_G.before);
+        p_delete(&_G.threads);
         p_clear(&_G, 1);
         thr_parallelism_g = 0;
     }
@@ -633,7 +635,7 @@ void thr_shutdown(void)
 
 size_t thr_id(void)
 {
-    return self_g.tid;
+    return self_tid_g;
 }
 
 void thr_syn_wait(thr_syn_t *syn)
@@ -641,7 +643,7 @@ void thr_syn_wait(thr_syn_t *syn)
     while (shared_read(syn->pending)) {
         if (likely(thr_job_dequeue()))
             continue;
-        if (self_g.tid == 0)
+        if (self_tid_g == 0)
             thr_queue_main_drain();
         if (!thr_job_steal()) {
             uint64_t key = thr_ec_get(&syn->ec);

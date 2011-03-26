@@ -16,7 +16,6 @@
 #else
 #define IS_LIB_COMMON_THR_JOB_H
 
-#define THR_TID_MAX    64
 #define THR_JOB_MAX   256
 
 typedef struct thr_job_t   thr_job_t;
