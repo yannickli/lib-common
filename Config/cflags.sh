@@ -37,7 +37,7 @@ is_cpp()
 }
 
 # use C99 to be able to for (int i =...
-( is_cpp && echo "-std=gnu++0x" ) || echo -std=gnu99
+( is_cpp && echo -std=gnu++98 ) || echo -std=gnu99
 # optimize even more
 echo -O2
 if gcc_prereq 4 3; then
