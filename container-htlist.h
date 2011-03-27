@@ -124,6 +124,14 @@ htlist_splice(htlist_t *dst, htlist_t *src)
 }
 
 static inline void
+htlist_move(htlist_t *dst, htlist_t *src)
+{
+    htlist_init(dst);
+    htlist_splice(dst, src);
+    htlist_init(src);
+}
+
+static inline void
 htlist_splice_tail(htlist_t *dst, htlist_t *src)
 {
     if (!htlist_is_empty(src)) {
