@@ -152,6 +152,7 @@ static inline void *spsc_queue_pop_ptr(spsc_queue_t *q)
     static inline spsc_t(name) *spsc__##name##_init(spsc_t(name) *q) {     \
         STATIC_ASSERT(sizeof(type_t) <= 8);                                \
         spsc_queue_init(&q->q, sizeof(type_t));                            \
+        return q;                                                          \
     }                                                                      \
     static inline void spsc__##name##_wipe(spsc_t(name) *q) {              \
         spsc_queue_wipe(&q->q);                                            \
@@ -172,8 +173,8 @@ static inline void *spsc_queue_pop_ptr(spsc_queue_t *q)
 
 #define spsc_init(name, q)      spsc__##name##_init(q)
 #define spsc_wipe(name, q)      spsc__##name##_wipe(q)
-#define spsc_push(name,  q, v)  spsc__##name##_push(q, v)
+#define spsc_push(name, q, v)   spsc__##name##_push(q, v)
 #define spsc_pop(name,  q, v)   spsc__##name##_pop(q, v)
-#define spsc_pop2(name, q)      spsc__##name##_pop_ptr(q, v)
+#define spsc_pop2(name, q)      spsc__##name##_pop_ptr(q)
 
 #endif
