@@ -131,6 +131,13 @@ static ALWAYS_INLINE bool lstr_equal2(const lstr_t s1, const lstr_t s2)
     return lstr_equal(&s1, &s2);
 }
 
+/** \breif returns wheter \v s starts with \v p
+ */
+static ALWAYS_INLINE bool lstr_startswith(const lstr_t s, const lstr_t p)
+{
+    return s.len >= p.len && memcmp(s.s, p.s, p.len);
+}
+
 
 /*--------------------------------------------------------------------------*/
 /** \brief returns a constant copy of \v s.
