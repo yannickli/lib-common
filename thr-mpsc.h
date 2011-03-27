@@ -56,6 +56,11 @@ static inline bool mpsc_queue_push(mpsc_queue_t *q, mpsc_node_t *n)
     return prev == &q->head;
 }
 
+static inline mpsc_node_t *mpsc_queue_peek(mpsc_queue_t *q)
+{
+    return q->head.next;
+}
+
 static inline mpsc_node_t *mpsc_queue_pop(mpsc_queue_t *q, bool block)
 {
     mpsc_node_t *head = q->head.next;
