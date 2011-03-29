@@ -2,8 +2,25 @@
 
 cc="$1"
 version=$("$cc" -dumpversion)
-major=$(echo "$version"|cut -d. -f1)
-minor=$(echo "$version"|cut -d. -f2)
+
+prereq() {
+    want="$1"
+    has="$2"
+
+    test "$want" = "$has" && return 0
+    while test -n "$want"; do
+        test -z "$has" && return 1
+        w="${want%%.*}"
+        h="${has%%.*}"
+        case "$want" in *.*) want="${want#*.}";; *) want=""; esac
+        case "$has" in *.*)  has="${has#*.}";;   *) has=""; esac
+
+        test "$w" -lt "$h" && return 0
+        test "$w" -gt "$h" && return 1
+    done
+
+    return 0
+}
 
 gcc_prereq()
 {
@@ -11,13 +28,7 @@ gcc_prereq()
         cc*|gcc*|c++*|g++*) ;;
         *) return 1;
     esac
-    if test $major -lt "$1"; then
-        return 0
-    fi
-    if test $major = "$1" -a $minor -lt "$2"; then
-        return 1
-    fi
-    return 0
+    prereq "$1" "$version"
 }
 
 is_clang()
@@ -40,7 +51,7 @@ is_cpp()
 ( is_cpp && echo -std=gnu++98 ) || echo -std=gnu99
 # optimize even more
 echo -O2
-if gcc_prereq 4 3; then
+if gcc_prereq 4.3; then
     echo -fpredictive-commoning
     echo -ftree-vectorize
     echo -fgcse-after-reload
@@ -94,11 +105,11 @@ fi
 echo -Wuninitialized
 # warn about variables which are initialized with themselves
 echo -Winit-self
-if gcc_prereq 4 5; then
+if gcc_prereq 4.5; then
     echo -Wenum-compare
     echo -Wlogical-op
 fi
-if gcc_prereq 4 6; then
+if gcc_prereq 4.6; then
     echo -flto -fuse-linker-plugin
     echo -Wsuggest-attribute=const
     echo -Wsuggest-attribute=pure

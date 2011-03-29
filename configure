@@ -68,6 +68,25 @@ pkg_config_setvar() {
     warn "$deb is missing (apt-get install $deb)"
 }
 
+prereq() {
+    want="$1"
+    has="$2"
+
+    test "$want" = "$has" && return 0
+    while test -n "$want"; do
+        test -z "$has" && return 1
+        w="${want%%.*}"
+        h="${has%%.*}"
+        case "$want" in *.*) want="${want#*.}";; *) want=""; esac
+        case "$has" in *.*)  has="${has#*.}";;   *) has=""; esac
+
+        test "$w" -lt "$h" && return 0
+        test "$w" -gt "$h" && return 1
+    done
+
+    return 0
+}
+
 # }}}
 
 while test $# != 0; do
