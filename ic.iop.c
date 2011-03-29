@@ -6,7 +6,7 @@
 
 static iop_field_t const ic__simple_hdr__desc_fields[] = {
     {
-        .name      = CLSTR_IMMED("login"),
+        .name      = LSTR_IMMED("login"),
         .tag       = 1,
         .tag_len   = 0,
         .repeat    = IOP_R_OPTIONAL,
@@ -14,7 +14,7 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .data_offs = offsetof(ic__simple_hdr__t, login),
     },
     {
-        .name      = CLSTR_IMMED("password"),
+        .name      = LSTR_IMMED("password"),
         .tag       = 2,
         .tag_len   = 0,
         .repeat    = IOP_R_OPTIONAL,
@@ -22,7 +22,7 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .data_offs = offsetof(ic__simple_hdr__t, password),
     },
     {
-        .name      = CLSTR_IMMED("kind"),
+        .name      = LSTR_IMMED("kind"),
         .tag       = 3,
         .tag_len   = 0,
         .repeat    = IOP_R_OPTIONAL,
@@ -30,7 +30,7 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .data_offs = offsetof(ic__simple_hdr__t, kind),
     },
     {
-        .name      = CLSTR_IMMED("payload"),
+        .name      = LSTR_IMMED("payload"),
         .tag       = 4,
         .tag_len   = 0,
         .repeat    = IOP_R_DEFVAL,
@@ -44,7 +44,7 @@ static int const ic__simple_hdr__s_ranges[] = {
     4,
 };
 const iop_struct_t ic__simple_hdr__s = {
-    .fullname   = CLSTR_IMMED("ic.SimpleHdr"),
+    .fullname   = LSTR_IMMED("ic.SimpleHdr"),
     .fields     = ic__simple_hdr__desc_fields,
     .ranges     = ic__simple_hdr__s_ranges,
     .fields_len = countof(ic__simple_hdr__desc_fields),
@@ -57,7 +57,7 @@ const iop_struct_t ic__simple_hdr__s = {
 
 static iop_field_t const ic__hdr__desc_fields[] = {
     {
-        .name      = CLSTR_IMMED("simple"),
+        .name      = LSTR_IMMED("simple"),
         .tag       = 1,
         .tag_len   = 0,
         .repeat    = IOP_R_REQUIRED,
@@ -72,13 +72,47 @@ static int const ic__hdr__s_ranges[] = {
     1,
 };
 const iop_struct_t ic__hdr__s = {
-    .fullname   = CLSTR_IMMED("ic.Hdr"),
+    .fullname   = LSTR_IMMED("ic.Hdr"),
     .fields     = ic__hdr__desc_fields,
     .ranges     = ic__hdr__s_ranges,
     .fields_len = countof(ic__hdr__desc_fields),
     .ranges_len = countof(ic__hdr__s_ranges) / 2,
     .size       = sizeof(ic__hdr__t),
     .is_union   = true,
+};
+
+/* }}} */
+/* Package ic {{{ */
+
+static const iop_pkg_t *const ic__deps[] = {
+    NULL,
+};
+
+static const iop_enum_t *const ic__enums[] = {
+    NULL,
+};
+
+static const iop_struct_t *const ic__structs[] = {
+    &ic__simple_hdr__s,
+    &ic__hdr__s,
+    NULL,
+};
+
+static const iop_iface_t *const ic__ifaces[] = {
+    NULL,
+};
+
+static const iop_mod_t *const ic__mods[] = {
+    NULL,
+};
+
+iop_pkg_t const ic__pkg = {
+    .name    = LSTR_IMMED("ic"),
+    .deps    = ic__deps,
+    .enums   = ic__enums,
+    .structs = ic__structs,
+    .ifaces  = ic__ifaces,
+    .mods    = ic__mods,
 };
 
 /* }}} */
