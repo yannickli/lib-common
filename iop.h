@@ -188,7 +188,7 @@ int iop_enum_from_str2(const iop_enum_t *, const char *s, int len, bool *found);
         int _res = iop_ranges_search((_type_desc).ranges,               \
                                      (_type_desc).ranges_len,           \
                                      (_data)->iop_tag);                 \
-        _res >= 0 ? (_type_desc).fields[_res].name : NULL;              \
+        _res >= 0 ? (_type_desc).fields[_res].name.s : NULL;            \
     })
 
 /*----- IOP binary native interfaces -----*/
