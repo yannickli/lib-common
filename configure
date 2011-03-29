@@ -18,17 +18,21 @@ out=/dev/stdout
 
 # {{{ library
 
-die() {
+log_() {
     echo 2>&1 "$@"
+}
+
+die() {
+    log_ '/!\' "$@" '/!\'
     exit 1
 }
 
 log() {
-    echo 2>&1 "$@"
+    log_ "..." "$@"
 }
 
 warn() {
-    log "$@"
+    log_ "***" "$@"
     missing_dep=t
 }
 
@@ -45,7 +49,7 @@ setvar() {
 }
 
 check_tool() {
-    which "$1" >/dev/null 2>&1 || warn "*** $1 is missing, apt-get install $2"
+    which "$1" >/dev/null 2>&1 || warn "$1 is missing, apt-get install $2"
 }
 
 pkg_config_setvar() {
@@ -61,7 +65,7 @@ pkg_config_setvar() {
         fi
         shift
     done
-    warn "*** $deb is missing (apt-get install $deb)"
+    warn "$deb is missing (apt-get install $deb)"
 }
 
 # }}}
@@ -84,7 +88,7 @@ while test $# != 0; do
     esac
 done
 
-log "*** start configure"
+log "start configure"
 test -n "$out" -a "$out" != "/dev/stdout" && rm -f "$out"
 
 
@@ -107,7 +111,7 @@ for tool in flex gperf mtasc swfmill xsltproc; do
 done
 
 if ! test -f /usr/include/sys/capability.h; then
-    warn "*** mising libcap-dev (for <sys/capability.h>)"
+    warn "mising libcap-dev (for <sys/capability.h>)"
 fi
 
 # }}}
@@ -130,7 +134,7 @@ if test -r /usr/include/v8.h; then
     setvar "v8_CFLAGS"
     setvar "v8_LIBS" "-lv8"
 else
-    log "*** You are missing libv8, apt-get install libv8-dev"
+    log "You are missing libv8, apt-get install libv8-dev"
 fi
 
 # }}}
@@ -140,7 +144,7 @@ if test -r /usr/include/pcap.h; then
     setvar "libpcap_CFLAGS"
     setvar "libpcap_LIBS" "-lpcap"
 else
-    warn "*** missing libpcap, apt-get install libpcap-dev"
+    warn "missing libpcap, apt-get install libpcap-dev"
 fi
 
 # }}}
@@ -150,13 +154,13 @@ if test -r /usr/lib/libreadline.so; then
     setvar "readline_CFLAGS"
     setvar "readline_LIBS" "-lreadline"
 else
-    warn "*** missing libreadline, apt-get install libreadline-dev"
+    warn "missing libreadline, apt-get install libreadline-dev"
 fi
 
 # }}}
 # {{{ libsctp-dev
 
-test -r /usr/include/netinet/sctp.h || warn "*** missing libsctp, apt-get install libsctp-dev"
+test -r /usr/include/netinet/sctp.h || warn "missing libsctp, apt-get install libsctp-dev"
 
 # }}}
 # {{{ ffmpeg
@@ -191,7 +195,7 @@ if test -z ${JAVA_HOME}; then
     JAVA_HOME=${JAVA_HOME%/*}
 fi
 if test -z ${JAVA_HOME}; then
-    log "*** JAVA_HOME not set, JNI disabled"
+    log "JAVA_HOME not set, JNI disabled"
 else
     setenv "WITH_JNI" "1"
     setvar "jni_CFLAGS" "-I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux"
@@ -201,7 +205,7 @@ else
     elif test -d ${JAVA_HOME}/jre/lib/amd64/server; then
         setvar "jvm_LDFLAGS" "-L${JAVA_HOME}/jre/lib/amd64/server -Wl,--rpath=${JAVA_HOME}/jre/lib/amd64/server:/usr/java/default/lib/amd64/server -ljvm -ljsig"
     else
-         warn "*** missing libjvm, apt-get install sun-java6-bin"
+         warn "missing libjvm, apt-get install sun-java6-bin"
     fi
 fi
 
@@ -220,9 +224,10 @@ if file_exists "$simpa1"; then
     setenv "WITH_SFR_SIMPA" "1"
 else
     setenv "ENABLE_SFR_SIMPA" "0"
-    log "*** kit SIMPA SFR not found"
     if test -r "$simpa0"; then
-        log "***   see $simpa0"
+        log "kit SIMPA SFR not found (see $simpa0)"
+    else
+        log "kit SIMPA SFR not found"
     fi
 fi
 
@@ -237,7 +242,7 @@ if file_exists "$ccn0" || file_exists "$ccn1"; then
     setenv "WITH_CCN" "1"
 else
     setenv "ENABLE_CCN" "0"
-    log "*** CCN SDk not found"
+    log "CCN SDK not found"
 fi
 
 # }}}
@@ -255,7 +260,7 @@ if test -z "${PHP_VERSION}"; then
         if which php-config >/dev/null 2>/dev/null; then
             PHP_CONFIG=php-config
         else
-            warn "*** php-config is missing, apt-get install php5-dev"
+            warn "php-config is missing, apt-get install php5-dev"
         fi
         ;;
     esac
@@ -273,7 +278,7 @@ if which mysql_config 1>/dev/null 2>/dev/null; then
     setvar "mysqlclient_CFLAGS" "$(mysql_config --include)"
     setvar "mysqlclient_LIBS"   "$(mysql_config --libs | sed -e 's/-rdynamic//g')"
 else
-    warn "*** libmysqlclient-dev is missing, apt-get install libmysqlclient-dev"
+    warn "libmysqlclient-dev is missing, apt-get install libmysqlclient-dev"
 fi
 
 # }}}
@@ -283,9 +288,9 @@ if which geos-config 1>/dev/null 2>/dev/null; then
     setvar "geos_CFLAGS" "$(geos-config --cflags)"
     setvar "geos_LIBS"   "$(geos-config --libs|sed -e 's/-lgeos/-lgeos_c/g')"
 else
-    warn "*** libgeos-dev is missing, apt-get install libgeos-dev"
+    warn "libgeos-dev is missing, apt-get install libgeos-dev"
 fi
 
 # }}}
 
-test -z "$missing_dep" || die "*** Missing dependencies, please upgrade your system"
+test -z "$missing_dep" || die "Missing dependencies, please upgrade your system"

@@ -51,6 +51,7 @@ msg/COMPILE.C := $(msg/color) '1;34' " CXX"
 msg/LINK.a    := $(msg/color) '1;35' " AR "
 msg/LINK.c    := $(msg/color) '1;36' " LD "
 msg/rm        := $(msg/echo)  " RM "
+msg/alert     := $(msg/color) '1;38;41' "***"
 
 ##########################################################################
 # Setup make properly

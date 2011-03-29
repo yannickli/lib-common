@@ -93,7 +93,7 @@ ifeq (0,$(MAKELEVEL))
 
 $!deps.mk: $/configure
 	mkdir -p $(@D)
-	$< -p $(var/profile) -o $@
+	$< -p $(var/profile) -o $@ || ($(RM) $@; $(msg/alert) 'configure failed')
 
 __setup_buildsys_trampoline: $!deps.mk
 	$(msg/echo) 'checking build-system ...'
