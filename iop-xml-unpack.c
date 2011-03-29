@@ -194,7 +194,7 @@ static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
         datasize += fdesc->size;
 
         /* Check for another repeated element */
-    } while (RETHROW(xmlr_node_is(xr, fdesc->name, fdesc->name_len)));
+    } while (RETHROW(xmlr_node_is(xr, fdesc->name.s, fdesc->name.len)));
     return 0;
 }
 
@@ -231,7 +231,7 @@ static int xunpack_block_vec(xml_reader_t xr, mem_pool_t *mp,
         chain[0] = prev;
         chain[1] = ptr;
         prev     = chain;
-    } while (RETHROW(xmlr_node_is(xr, fdesc->name, fdesc->name_len)));
+    } while (RETHROW(xmlr_node_is(xr, fdesc->name.s, fdesc->name.len)));
 
     /* Now we can rebuild the array of value */
     data->len  = n;

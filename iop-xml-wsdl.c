@@ -119,7 +119,7 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
               xmlpp_opentag(&wpp->pp, "element");
         }
 
-        xmlpp_putattr(&wpp->pp, "name", f->name);
+        xmlpp_putattr(&wpp->pp, "name", f->name.s);
         switch (f->repeat) {
           case IOP_R_DEFVAL:
           case IOP_R_OPTIONAL:
@@ -150,24 +150,24 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
             switch (f->type) {
               case IOP_T_BOOL:
                 wpp_add_comment(wpp, "\n", "default: %s=%s",
-                                f->name, f->defval.u64 ? "true" : "false");
+                                f->name.s, f->defval.u64 ? "true" : "false");
                 break;
               case IOP_T_I8: case IOP_T_I16: case IOP_T_I32: case IOP_T_I64:
               case IOP_T_ENUM:
                 wpp_add_comment(wpp, "\n", "default: %s=%"PRIi64,
-                                f->name, f->defval.u64);
+                                f->name.s, f->defval.u64);
                 break;
               case IOP_T_U8: case IOP_T_U16: case IOP_T_U32: case IOP_T_U64:
                 wpp_add_comment(wpp, "\n", "default: %s=%"PRIu64,
-                                f->name, f->defval.u64);
+                                f->name.s, f->defval.u64);
                 break;
               case IOP_T_DOUBLE:
                 wpp_add_comment(wpp, "\n", "default: %s=%.22g",
-                                f->name, f->defval.d);
+                                f->name.s, f->defval.d);
                 break;
               case IOP_T_STRING:
                 wpp_add_comment(wpp, "\n", "default: %s=%s",
-                                f->name, ((clstr_t *)f->defval.ptr)->s);
+                                f->name.s, ((clstr_t *)f->defval.ptr)->s);
                 break;
             }
         }
@@ -306,7 +306,7 @@ iop_xwsdl_put_types(wsdlpp_t *wpp, const iop_mod_t *mod, const char *ns)
                     assert(f->type == IOP_T_STRUCT);
                     xmlpp_opentag(&wpp->pp, "element");
                     xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.%sFault",
-                                     alias->name.s, rpc->name.s, f->name);
+                                     alias->name.s, rpc->name.s, f->name.s);
                     xmlpp_putattrfmt(&wpp->pp, "type", "tns:%s",
                                      st->fullname.s);
                     xmlpp_closetag(&wpp->pp);
@@ -377,7 +377,7 @@ static void iop_xwsdl_put_msgs(wsdlpp_t *wpp, const iop_mod_t *mod)
                     char suffix[32];
                     assert(f->type == IOP_T_STRUCT);
 
-                    snprintf(suffix, sizeof(suffix), ".%sFault", f->name);
+                    snprintf(suffix, sizeof(suffix), ".%sFault", f->name.s);
                     iop_xwsdl_put_msg(wpp, mod->ifaces[i].name.s, rpc->name.s,
                                       suffix);
                 }
@@ -429,9 +429,9 @@ static void iop_xwsdl_put_ports(wsdlpp_t *wpp, const iop_mod_t *mod)
 
                     xmlpp_opensib(&wpp->pp, "fault");
                     xmlpp_putattrfmt(&wpp->pp, "message", "tns:%s.%s.%sFault",
-                                     alias->name.s, rpc->name.s, f->name);
+                                     alias->name.s, rpc->name.s, f->name.s);
                     xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.%sFault",
-                                     alias->name.s, rpc->name.s, f->name);
+                                     alias->name.s, rpc->name.s, f->name.s);
                 }
             } else {
                 xmlpp_opensib(&wpp->pp, "fault");
@@ -503,10 +503,10 @@ static void iop_xwsdl_put_bindings(wsdlpp_t *wpp, const iop_mod_t *mod)
                     assert(f->type == IOP_T_STRUCT);
                     xmlpp_opensib(&wpp->pp, "fault");
                     xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.%sFault",
-                                     alias->name.s, rpc->name.s, f->name);
+                                     alias->name.s, rpc->name.s, f->name.s);
                     xmlpp_opentag(&wpp->pp, "soap:fault");
                     xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.%sFault",
-                                     alias->name.s, rpc->name.s, f->name);
+                                     alias->name.s, rpc->name.s, f->name.s);
                     xmlpp_putattr(&wpp->pp, "use", "literal");
                     xmlpp_closetag(&wpp->pp);
                 }

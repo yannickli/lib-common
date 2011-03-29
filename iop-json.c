@@ -99,8 +99,8 @@ enum {
     ({ const iop_struct_t *_desc  = _s;                                     \
        const iop_field_t  *_fdesc = _f;                                     \
        ll->err_str = mp_new(ll->mp, char,                                   \
-                            _desc->fullname.len + _fdesc->name_len + 2);    \
-       sprintf(ll->err_str, "%s:%s", _desc->fullname.s, _fdesc->name);      \
+                            _desc->fullname.len + _fdesc->name.len + 2);    \
+       sprintf(ll->err_str, "%s:%s", _desc->fullname.s, _fdesc->name.s);    \
        RJERROR(_err);                                                       \
     })
 
@@ -665,7 +665,7 @@ find_field_by_name(const iop_struct_t *desc, const void *s, int len)
 {
     const iop_field_t *field = desc->fields;
     for (int i = 0; i < desc->fields_len; i++) {
-        if (len == field->name_len && !memcmp(field->name, s, len))
+        if (len == field->name.len && !memcmp(field->name.s, s, len))
             return i;
         field++;
     }
@@ -995,7 +995,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                     fdesc = desc->fields + ifield;
                     if (seen[ifield])
                         return RJERROR_SARG(IOP_JERR_DUPLICATED_MEMBER,
-                                            fdesc->name);
+                                            fdesc->name.s);
                     seen[ifield] = true;
                 }
             }
@@ -1245,7 +1245,7 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
         if (!desc->is_union)
             INDENT();
         PUTS("\"");
-        PUTS(fdesc->name);
+        PUTS(fdesc->name.s);
         PUTS(repeated ? "\": [ " : "\": ");
 
         for (int j = 0; j < n; j++) {

@@ -18,6 +18,8 @@
 #include "iop-macros.h"
 #include "iop-cfolder.h"
 
+#define IOP_ABI_VERSION  1
+
 typedef enum iop_repeat_t {
     IOP_R_REQUIRED,
     IOP_R_DEFVAL,
@@ -52,14 +54,13 @@ typedef enum iop_type_t {
 } iop_type_t;
 
 typedef struct iop_field_t {
-    const char  *name;
-    uint16_t     name_len;
+    lstr_t       name;
     uint16_t     tag;
-    uint8_t      tag_len;     /* 0 to 3                   */
-    uint8_t      repeat;      /* iop_repeat_t             */
-    uint8_t      type;        /* iop_type_t               */
-    int          size;        /* sizeof(type);            */
-    int          data_offs;   /* offset to the data       */
+    uint16_t     tag_len;     /* 0 to 3                   */
+    uint16_t     repeat;      /* iop_repeat_t             */
+    uint16_t     type;        /* iop_type_t               */
+    uint16_t     size;        /* sizeof(type);            */
+    uint16_t     data_offs;   /* offset to the data       */
     union {
         void    *ptr;
         uint64_t u64;
@@ -93,6 +94,7 @@ typedef struct iop_field_t {
  */
 typedef struct iop_enum_t {
     const lstr_t name;
+    const lstr_t fullname;
     const lstr_t *names;
     const int *values;
     const int *ranges;

@@ -224,7 +224,7 @@ get_field_by_name(const iop_struct_t *desc, const iop_field_t *start,
     int len = strlen(name);
 
     while (fdesc < end) {
-        if (fdesc->name_len == len && !memcmp(fdesc->name, name, len))
+        if (fdesc->name.len == len && !memcmp(fdesc->name.s, name, len))
             return fdesc;
         fdesc++;
     }

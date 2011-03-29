@@ -41,9 +41,9 @@ xpack_value(sb_t *sb, const iop_field_t *f, const void *v, bool verbose,
     };
     const clstr_t *s;
 
-    sb_grow(sb, 64 + f->name_len * 2);
+    sb_grow(sb, 64 + f->name.len * 2);
     sb_addc(sb, '<');
-    sb_add(sb, f->name, f->name_len);
+    sb_add(sb, f->name.s, f->name.len);
     if (verbose && !(wenums && f->type == IOP_T_ENUM)) {
         sb_add(sb, types[f->type].s, types[f->type].len);
     } else {
@@ -101,7 +101,7 @@ xpack_value(sb_t *sb, const iop_field_t *f, const void *v, bool verbose,
         break;
     }
     sb_adds(sb, "</");
-    sb_add(sb, f->name, f->name_len);
+    sb_add(sb, f->name.s, f->name.len);
     sb_addc(sb, '>');
 }
 

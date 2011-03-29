@@ -6,8 +6,7 @@
 
 static iop_field_t const ic__simple_hdr__desc_fields[] = {
     {
-        .name      = "login",
-        .name_len  = 5,
+        .name      = CLSTR_IMMED("login"),
         .tag       = 1,
         .tag_len   = 0,
         .repeat    = IOP_R_OPTIONAL,
@@ -15,8 +14,7 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .data_offs = offsetof(ic__simple_hdr__t, login),
     },
     {
-        .name      = "password",
-        .name_len  = 8,
+        .name      = CLSTR_IMMED("password"),
         .tag       = 2,
         .tag_len   = 0,
         .repeat    = IOP_R_OPTIONAL,
@@ -24,8 +22,7 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .data_offs = offsetof(ic__simple_hdr__t, password),
     },
     {
-        .name      = "kind",
-        .name_len  = 4,
+        .name      = CLSTR_IMMED("kind"),
         .tag       = 3,
         .tag_len   = 0,
         .repeat    = IOP_R_OPTIONAL,
@@ -33,8 +30,7 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .data_offs = offsetof(ic__simple_hdr__t, kind),
     },
     {
-        .name      = "payload",
-        .name_len  = 7,
+        .name      = CLSTR_IMMED("payload"),
         .tag       = 4,
         .tag_len   = 0,
         .repeat    = IOP_R_DEFVAL,
@@ -61,8 +57,7 @@ const iop_struct_t ic__simple_hdr__s = {
 
 static iop_field_t const ic__hdr__desc_fields[] = {
     {
-        .name      = "simple",
-        .name_len  = 6,
+        .name      = CLSTR_IMMED("simple"),
         .tag       = 1,
         .tag_len   = 0,
         .repeat    = IOP_R_REQUIRED,
