@@ -140,6 +140,16 @@ typedef struct iop_mod_t {
     int ifaces_len;
 } iop_mod_t;
 
+typedef struct iop_pkg_t iop_pkg_t;
+struct iop_pkg_t {
+    const lstr_t               name;
+    iop_enum_t   const *const *enums;
+    iop_struct_t const *const *structs;
+    iop_iface_t  const *const *ifaces;
+    iop_mod_t    const *const *mods;
+    iop_pkg_t    const *const *deps;
+};
+
 #define IOP_ARRAY_OF(type_t)   struct { union { type_t *tab; type_t *data; }; int32_t len; }
 typedef struct { void *data; int32_t len; } iop_data_t;
 
