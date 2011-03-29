@@ -106,7 +106,7 @@ int iop_junpack(iop_json_lex_t *, const iop_struct_t *, void *,
 
 
 static inline int iop_sb_write(void *_b, const void *buf, int len) {
-    sb_add(_b, buf, len);
+    sb_add((sb_t *)_b, buf, len);
     return len;
 }
 
