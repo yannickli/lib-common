@@ -154,27 +154,27 @@
 #define IOP_GENERIC(pfx) \
     static inline bool pfx##__equals(const pfx##__t *v1, const pfx##__t *v2) \
     {                                                                        \
-        return iop_equals(&pfx##__s, v1, v2);                                \
+        return iop_equals(&pfx##__s, (void *)v1, (void *)v2);                \
     }                                                                        \
     static inline void pfx##__init(pfx##__t *v) {                            \
-        iop_init(&pfx##__s, v);                                              \
+        iop_init(&pfx##__s, (void *)v);                                      \
     }                                                                        \
     static inline pfx##__t *pfx##__dup(mem_pool_t *mp, const pfx##__t *v) {  \
-        return iop_dup(mp, &pfx##__s, v);                                    \
+        return (pfx##__t *)iop_dup(mp, &pfx##__s, (const void *)v);          \
     }                                                                        \
     static inline void                                                       \
     pfx##__copy(mem_pool_t *mp, pfx##__t **out, const pfx##__t *v) {         \
-        iop_copy(mp, &pfx##__s, (void **)out, v);                            \
+        iop_copy(mp, &pfx##__s, (void **)out, (const void *)v);              \
     }                                                                        \
     static inline int                                                        \
     pfx##__jpack(const pfx##__t *v,                                          \
                  int (*wcb)(void *, const void *, int), void *priv) {        \
-        return iop_jpack(&pfx##__s, v, wcb, priv, false);                    \
+        return iop_jpack(&pfx##__s, (const void *)v, wcb, priv, false);      \
     }                                                                        \
     static inline int pfx##__junpack(iop_json_lex_t *ll, pfx##__t *v,        \
                                      bool single)                            \
     {                                                                        \
-        return iop_junpack(ll, &pfx##__s, v, single);                        \
+        return iop_junpack(ll, &pfx##__s, (void *)v, single);                \
     }
 
 #endif
