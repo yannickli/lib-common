@@ -872,10 +872,7 @@ int asn1_pack_size_(const void *st, const asn1_desc_t *desc,
 /* ASN.1 Reader part */
 /*********************/
 
-#define GET_PTR(st, spec, typ)  \
-        ((typ *)((char *)(st) + (spec->offset)))
-
-static void *asn1_opt_field_w(void *field, enum obj_type type, bool has_field)
+void *asn1_opt_field_w(void *field, enum obj_type type, bool has_field)
 {
     switch (type) {
       case ASN1_OBJ_TYPE(bool):

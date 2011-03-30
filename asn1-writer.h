@@ -336,8 +336,13 @@ typedef struct {
     asn1_cnt_info_t             str_info;
     const asn1_enum_info_t     *enum_info;
 
-    /* Only for SEQUENCE OF */
-    asn1_cnt_info_t seq_of_info;
+    /* XXX SEQUENCE OF only */
+    asn1_cnt_info_t       seq_of_info;
+
+    /* Only for open type fields */
+    /* XXX eg. type is <...>.&<...> */
+    flag_t                      is_open_type;
+    size_t                      open_type_buf_len;
 } asn1_field_t;
 
 static inline void asn1_field_init_info(asn1_field_t *field)
@@ -355,6 +360,12 @@ typedef struct asn1_desc_t {
     qv_t(asn1_field)      vec;
     enum asn1_cstd_type   type;
 
+    /* TODO add SEQUENCE OF into constructed type enum */
+    flag_t                is_seq_of;
+
+    /* XXX CHOICE only */
+    asn1_int_info_t       choice_info;
+
     /* PER information */
     qv_t(u16)             opt_fields;
     flag_t                extended;
@@ -366,6 +377,7 @@ static inline asn1_desc_t *asn1_desc_init(asn1_desc_t *desc)
     p_clear(desc, 1);
     qv_init(asn1_field, &desc->vec);
     qv_init(u16, &desc->opt_fields);
+    asn1_int_info_init(&desc->choice_info);
 
     return desc;
 }
@@ -391,5 +403,6 @@ const char *t_asn1_oid_print(const asn1_data_t *oid);
 
 /* Private */
 const void *asn1_opt_field(const void *field, enum obj_type type);
+void *asn1_opt_field_w(void *field, enum obj_type type, bool has_field);
 
-#endif
+#endif /* IS_LIB_SIGTRAN_ASN1_WRITER_H */

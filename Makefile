@@ -33,7 +33,11 @@ libcommon_SOURCES = \
 	\
 	asn1.c \
 	asn1-writer.c \
+	asn1-per.c \
 	ztst-asn1-writer.c \
+	\
+	bit-stream.c \
+	bit-buf.c \
 	\
 	conf.c  \
 	conf-parser.l \
