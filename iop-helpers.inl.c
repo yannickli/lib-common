@@ -152,7 +152,7 @@ pack_tag(uint8_t *dst, uint32_t tag, uint32_t taglen, uint8_t wt)
         return dst;
     }
     *dst++ = wt | IOP_LONG_TAG(2);
-    return put_unaligned_le16(dst, tag);
+    return (uint8_t *)put_unaligned_le16((void *)dst, tag);
 }
 
 static ALWAYS_INLINE uint8_t *
@@ -169,8 +169,8 @@ pack_len(uint8_t *dst, uint32_t tag, uint32_t taglen, uint32_t i)
         return dst;
     }
     if (likely(bits == 8))
-        return put_unaligned_le16(dst, i);
-    return put_unaligned_le32(dst, i);
+        return (uint8_t *)put_unaligned_le16((void *)dst, i);
+    return (uint8_t *)put_unaligned_le32((void *)dst, i);
 }
 
 static ALWAYS_INLINE uint8_t *
@@ -188,8 +188,8 @@ pack_int32(uint8_t *dst, uint32_t tag, uint32_t taglen, int32_t i)
         return dst;
     }
     if (likely(zzbits == 8))
-        return put_unaligned_le16(dst, i);
-    return put_unaligned_le32(dst, i);
+        return (uint8_t *)put_unaligned_le16((void *)dst, i);
+    return (uint8_t *)put_unaligned_le32((void *)dst, i);
 }
 
 static ALWAYS_INLINE uint8_t *
@@ -198,7 +198,7 @@ pack_int64(uint8_t *dst, uint32_t tag, uint32_t taglen, int64_t i)
     if ((int64_t)(int32_t)i == i)
         return pack_int32(dst, tag, taglen, i);
     dst = pack_tag(dst, tag, taglen, IOP_WIRE_MASK(QUAD));
-    return put_unaligned_le64(dst, i);
+    return (uint8_t *)put_unaligned_le64((uint8_t *)dst, i);
 }
 
 /* Read in a buffer the selected field of a union */
