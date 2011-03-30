@@ -19,6 +19,37 @@
 #define ASN1_OBJ_TYPE(type)  ASN1_OBJ_TYPE_##type
 #define ASN1_OBJ_MODE(mode)  ASN1_OBJ_MODE_##mode
 
+/*{{{ Macros for memory manipulation */
+
+#define GET_PTR(st, spec, typ)  \
+        ((typ *)((char *)(st) + (spec->offset)))
+#define GET_CONST_PTR(st, typ, off)  \
+        ((const typ *)((const char *)(st) + (off)))
+
+/**
+ * Gets a const pointer on the data field
+ * without having to know whether the data is pointed.
+ */
+#define GET_DATA_P(st, field, typ) \
+    (field->pointed                                        \
+     ? *GET_CONST_PTR(st, typ *, field->offset)            \
+     :  GET_CONST_PTR(st, typ, field->offset))
+
+/**
+ * Gets the const value of the data field
+ * without having to know whether the data is pointed.
+ */
+#define GET_DATA(st, field, typ) \
+    (field->pointed                                        \
+     ? **GET_CONST_PTR(st, typ *, field->offset)           \
+     :  *GET_CONST_PTR(st, typ, field->offset))
+
+#define GET_VECTOR_DATA(st, field) \
+    GET_CONST_PTR(st, ASN1_VECTOR_OF(void), field->offset)->data
+#define GET_VECTOR_LEN(st, field) \
+    GET_CONST_PTR(st, ASN1_VECTOR_OF(void), field->offset)->len
+
+/*}}} */
 /*{{{ Macros for description function getters */
 
 #define ASN1_GET_DESC(pfx)  asn1_##pfx##_desc()
