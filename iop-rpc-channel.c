@@ -596,7 +596,9 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         }
 
         if (res < 0) {
-            if (!ERR_RW_RETRIABLE(errno))
+            /* XXX: Workaround linux < 2.6.24 bug: it returns -EAGAIN *
+             * instead of 0 in the hangup case for SOCK_SEQPACKETS    */
+            if ((events & POLLHUP) || !ERR_RW_RETRIABLE(errno))
                 return -1;
             return 0;
         }
