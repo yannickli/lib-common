@@ -117,6 +117,14 @@ static inline void lstr_transfer(lstr_t *dst, lstr_t *src)
 
 
 /*--------------------------------------------------------------------------*/
+/** \brief returns "memcmp" ordering of \v s1 and \v s2.
+ */
+static ALWAYS_INLINE bool lstr_cmp(const lstr_t *s1, const lstr_t *s2)
+{
+    int len = MIN(s1->len, s2->len);
+    return memcmp(s1->s, s2->s, len) ?: CMP(s1->len, s2->len);
+}
+
 /** \brief returns whether \v s1 and \v s2 contents are equal.
  */
 static ALWAYS_INLINE bool lstr_equal(const lstr_t *s1, const lstr_t *s2)
