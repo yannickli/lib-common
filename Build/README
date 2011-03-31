@@ -5,7 +5,7 @@ Introduction
 ------------
 
 Our build system is goal and sources driven: you just list the goals, and
-the sources each of them needs. Tehere is a full set of magic variables for
+the sources each of them needs. There is a full set of magic variables for
 this purpose.
 
 
