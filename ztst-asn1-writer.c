@@ -728,3 +728,46 @@ TEST_DECL("asn1: BER encoder/decoder - constructed types", 0)
     TEST_DONE();
 }
 
+typedef struct open_type_t {
+    asn1_data_t ot1;
+    asn1_string_t ot2;
+    asn1_data_t ot3;
+} open_type_t;
+
+static ASN1_SEQUENCE_DESC_BEGIN(desc, open_type);
+    asn1_reg_open_type(desc, open_type, ot1);
+    asn1_reg_opt_open_type(desc, open_type, ot2);
+    asn1_reg_opt_open_type(desc, open_type, ot3);
+ASN1_SEQUENCE_DESC_END(desc);
+
+TEST_DECL("asn1: open type", 0)
+{
+    uint8_t buf[256];
+    int len;
+    pstream_t ps;
+    qv_t(i32)  stack;
+    open_type_t ot;
+
+    uint8_t expected_ot[] = {
+        0xa1, 0x03, 0x01, 0x02, 0x03, 0xa2, 0x05, 0x31, 0x32, 0x33, 0x34, 0x00
+    };
+
+    ps = ps_init(expected_ot, countof(expected_ot));
+    qv_inita(i32, &stack, 1024);
+
+    TEST_FAIL_IF(asn1_unpack(open_type, &ps, t_pool(), &ot, false),
+                 "Open type unpacking");
+    len = asn1_pack_size(open_type, &ot, &stack);
+
+    TEST_FAIL_IF(len != countof(expected_ot),
+                 "Length check (expected %zd, got %d)",
+                 countof(expected_ot), len);
+
+    asn1_pack(open_type, buf, &ot, &stack);
+
+    TEST_FAIL_IF(memcmp(expected_ot, buf, countof(expected_ot)),
+                 "Content check");
+
+    TEST_DONE();
+}
+

@@ -16,6 +16,8 @@
 #else
 #define IS_LIB_COMMON_ASN1_WRITER_H
 
+#include "asn1-helpers-inl.c"
+
 /* ASN1 writing API
  * Need an example ? Please read tst-asn1-writer.[hc] .
  */
@@ -149,6 +151,7 @@ enum obj_type {
     /* String types */
     ASN1_OBJ_TYPE(asn1_data_t),
     ASN1_OBJ_TYPE(asn1_string_t),
+    ASN1_OBJ_TYPE(OPEN_TYPE),
     ASN1_OBJ_TYPE(asn1_bit_string_t),
 
     /* Opaque -- External */
@@ -214,6 +217,99 @@ enum asn1_cstd_type {
     ASN1_CSTD_TYPE_SET,
 };
 
+/* Special field information {{{ */
+
+/* XXX we use special values (INT64_MIN, INT64_MAX) because PER support far
+ *     more than 64 bits integers
+ */
+typedef struct asn1_int_info_t {
+    int64_t       min; /* XXX INT64_MIN if minus infinity */
+    int64_t       max; /* XXX INT64_MAX if infinity */
+
+    /* Pre-processed information */
+    flag_t        constrained;   /* XXX means fully constrained        */
+    uint16_t      max_blen;      /* XXX needed only if constrained     */
+    uint8_t       max_olen_blen; /* XXX needed only for max_blen > 16  */
+
+    /* Extensions */
+    flag_t        extended;
+    int64_t       ext_min; /* XXX INT64_MIN if minus infinity */
+    int64_t       ext_max; /* XXX INT64_MAX if infinity */
+} asn1_int_info_t;
+
+static inline void
+asn1_int_info_update(asn1_int_info_t *info)
+{
+    int64_t d_max;
+
+    if (!info)
+        return;
+
+    if (info->min == INT64_MIN || info->max == INT64_MAX) {
+        info->constrained = false;
+
+        return;
+    }
+
+    info->constrained = true;
+
+    d_max = info->max - info->min;
+    info->max_blen = u64_blen(d_max);
+
+    if (info->max_blen > 16) {
+        info->max_olen_blen = u64_blen(u64_olen(d_max));
+    }
+}
+
+static inline asn1_int_info_t *asn1_int_info_init(asn1_int_info_t *info)
+{
+    p_clear(info, 1);
+
+    info->min     = INT64_MIN;
+    info->max     = INT64_MAX;
+    info->ext_min = INT64_MIN;
+    info->ext_max = INT64_MAX;
+
+    return info;
+}
+
+typedef struct asn1_cnt_info_t {
+    size_t        min;
+    size_t        max; /* XXX SIZE_MAX if infinity */
+
+    flag_t        extended;
+    size_t        ext_min;
+    size_t        ext_max; /* XXX SIZE_MAX if infinity */
+} asn1_cnt_info_t;
+
+static inline asn1_cnt_info_t *asn1_cnt_info_init(asn1_cnt_info_t *info)
+{
+    p_clear(info, 1);
+    info->max     = SIZE_MAX;
+    info->ext_max = SIZE_MAX;
+
+    return info;
+}
+
+typedef struct asn1_enum_info_t {
+    qv_t(u32)     values;  /* XXX Enumeration values in canonical order */
+    size_t        blen;
+
+    flag_t        extended;
+} asn1_enum_info_t;
+
+static inline asn1_enum_info_t *asn1_enum_info_init(asn1_enum_info_t *e)
+{
+    p_clear(e, 1);
+    qv_init(u32, &e->values);
+
+    return e;
+}
+
+GENERIC_NEW(asn1_enum_info_t, asn1_enum_info);
+
+/* }}} */
+
 /** \brief Define specification of an asn1 field.
   * \note This structure is designed to be used only
   *       with dedicated functions and macros.
@@ -232,10 +328,29 @@ typedef struct {
     uint16_t        size;       /**< Message content structure size. */
 
     union {
-        const struct asn1_desc_t *comp;
-        asn1_void_t                   opaque;
+        const struct asn1_desc_t   *comp;
+        asn1_void_t                 opaque;
     } u;
+
+    asn1_int_info_t             int_info;
+    asn1_cnt_info_t             str_info;
+    const asn1_enum_info_t     *enum_info;
+
+    /* XXX SEQUENCE OF only */
+    asn1_cnt_info_t       seq_of_info;
+
+    /* Only for open type fields */
+    /* XXX eg. type is <...>.&<...> */
+    flag_t                      is_open_type;
+    size_t                      open_type_buf_len;
 } asn1_field_t;
+
+static inline void asn1_field_init_info(asn1_field_t *field)
+{
+    asn1_int_info_init(&field->int_info);
+    asn1_cnt_info_init(&field->str_info);
+    asn1_cnt_info_init(&field->seq_of_info);
+}
 
 qvector_t(asn1_field, asn1_field_t);
 
@@ -244,7 +359,30 @@ qvector_t(asn1_field, asn1_field_t);
 typedef struct asn1_desc_t {
     qv_t(asn1_field)      vec;
     enum asn1_cstd_type   type;
+
+    /* TODO add SEQUENCE OF into constructed type enum */
+    flag_t                is_seq_of;
+
+    /* XXX CHOICE only */
+    asn1_int_info_t       choice_info;
+
+    /* PER information */
+    qv_t(u16)             opt_fields;
+    flag_t                extended;
+    uint16_t              ext_pos;
 } asn1_desc_t;
+
+static inline asn1_desc_t *asn1_desc_init(asn1_desc_t *desc)
+{
+    p_clear(desc, 1);
+    qv_init(asn1_field, &desc->vec);
+    qv_init(u16, &desc->opt_fields);
+    asn1_int_info_init(&desc->choice_info);
+
+    return desc;
+}
+
+GENERIC_NEW(asn1_desc_t, asn1_desc);
 
 typedef struct asn1_choice_desc_t {
     asn1_desc_t desc;
@@ -263,4 +401,8 @@ void asn1_build_choice_table(asn1_choice_desc_t *desc);
 
 const char *t_asn1_oid_print(const asn1_data_t *oid);
 
-#endif
+/* Private */
+const void *asn1_opt_field(const void *field, enum obj_type type);
+void *asn1_opt_field_w(void *field, enum obj_type type, bool has_field);
+
+#endif /* IS_LIB_SIGTRAN_ASN1_WRITER_H */

@@ -19,6 +19,37 @@
 #define ASN1_OBJ_TYPE(type)  ASN1_OBJ_TYPE_##type
 #define ASN1_OBJ_MODE(mode)  ASN1_OBJ_MODE_##mode
 
+/*{{{ Macros for memory manipulation */
+
+#define GET_PTR(st, spec, typ)  \
+        ((typ *)((char *)(st) + (spec->offset)))
+#define GET_CONST_PTR(st, typ, off)  \
+        ((const typ *)((const char *)(st) + (off)))
+
+/**
+ * Gets a const pointer on the data field
+ * without having to know whether the data is pointed.
+ */
+#define GET_DATA_P(st, field, typ) \
+    (field->pointed                                        \
+     ? *GET_CONST_PTR(st, typ *, field->offset)            \
+     :  GET_CONST_PTR(st, typ, field->offset))
+
+/**
+ * Gets the const value of the data field
+ * without having to know whether the data is pointed.
+ */
+#define GET_DATA(st, field, typ) \
+    (field->pointed                                        \
+     ? **GET_CONST_PTR(st, typ *, field->offset)           \
+     :  *GET_CONST_PTR(st, typ, field->offset))
+
+#define GET_VECTOR_DATA(st, field) \
+    GET_CONST_PTR(st, ASN1_VECTOR_OF(void), field->offset)->data
+#define GET_VECTOR_LEN(st, field) \
+    GET_CONST_PTR(st, ASN1_VECTOR_OF(void), field->offset)->len
+
+/*}}} */
 /*{{{ Macros for description function getters */
 
 #define ASN1_GET_DESC(pfx)  asn1_##pfx##_desc()
@@ -39,10 +70,10 @@
     __attribute__((pure))                                                    \
     ASN1_DESC(pfx)                                                           \
     {                                                                        \
-        static asn1_desc_t *desc;                                            \
+        static asn1_desc_t *desc = NULL;                                     \
                                                                              \
         if (unlikely(!desc)) {                                               \
-            desc = p_new(asn1_desc_t, 1)
+            desc = asn1_desc_new();
 
 #define ASN1_DESC_END(desc) \
         }                                                                    \
@@ -441,6 +472,42 @@
     } while (0)
 
 /*}}}*/
+/*{{{ Open Type registering macro */
+
+#define asn1_reg_open_type(desc, st_pfx, field)                              \
+    do {                                                                     \
+        if (ASN1_IS_FIELD_TYPE(asn1_data_t, field, st_pfx##_t)) {            \
+            ASN1_REG_OPEN_TYPE(desc, st_pfx##_t, asn1_data_t, MANDATORY,     \
+                               field);                                       \
+        }                                                                    \
+        if (ASN1_IS_FIELD_TYPE(asn1_string_t, field, st_pfx##_t)) {          \
+            ASN1_REG_OPEN_TYPE(desc, st_pfx##_t, asn1_string_t, MANDATORY,   \
+                               field);                                       \
+        }                                                                    \
+    } while (0)
+
+#define asn1_reg_opt_open_type(desc, st_pfx, field)                          \
+    do {                                                                     \
+        if (ASN1_IS_FIELD_TYPE(asn1_data_t, field, st_pfx##_t)) {            \
+            ASN1_REG_OPEN_TYPE(desc, st_pfx##_t, asn1_data_t, OPTIONAL,      \
+                               field);                                       \
+        }                                                                    \
+        if (ASN1_IS_FIELD_TYPE(asn1_string_t, field, st_pfx##_t)) {          \
+            ASN1_REG_OPEN_TYPE(desc, st_pfx##_t, asn1_string_t, OPTIONAL,    \
+                               field);                                       \
+        }                                                                    \
+    } while (0)
+
+#define ASN1_REG_OPEN_TYPE(desc, st, ctype_t, mode, field)                   \
+    do {                                                                     \
+        asn1_field_t tmp = {                                                 \
+            ASN1_COMMON_FIELDS(ctype_t, st, field, 0, OPEN_TYPE,             \
+                               mode, false),                                 \
+        };                                                                   \
+        asn1_reg_field(desc, &tmp);                                          \
+    } while (0)
+
+/*}}} */
 /*{{{ Opaque type registering macros */
 /***************************/
 /* MACROS FOR OPAQUE TYPES */
