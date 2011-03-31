@@ -185,10 +185,10 @@ ztst-tpl_SOURCES = ztst-tpl.c libcommon.a
 
 ztst-iprintf_SOURCES = ztst-iprintf.c libcommon.a
 
-ztst-iprintf-fp_CFLAGS = -Wno-format -Wno-missing-format-attribute
+ztst-iprintf-fp_CFLAGS = -Wno-format -Wno-missing-format-attribute -Wno-format-nonliteral
 ztst-iprintf-fp_SOURCES = ztst-iprintf-fp.c libcommon.a
 
-ztst-iprintf-glibc_CFLAGS = -Wno-format -Wno-missing-format-attribute
+ztst-iprintf-glibc_CFLAGS = -Wno-format -Wno-missing-format-attribute -Wno-format-nonliteral
 ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a
 
 ztst-lzo_SOURCES = ztst-lzo.c libcommon.a
