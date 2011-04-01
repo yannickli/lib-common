@@ -89,5 +89,7 @@ void generic_list_sort(generic_list **list,
     static inline void prefix##_list_sort(type_t **list,                     \
             int (*cmp)(const type_t *, const type_t *, void *),              \
             void *priv) {                                                    \
-        generic_list_sort((generic_list **)list, (void *)cmp, priv);         \
+        generic_list_sort((generic_list **)list,                             \
+                          (int (*)(generic_list*, generic_list*, void*))cmp, \
+                          priv);                                             \
     }

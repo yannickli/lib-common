@@ -51,8 +51,8 @@ OBJ_CLASS(ichttp_query, httpd_query,
 /* HTTP Triggers                                                          */
 /**************************************************************************/
 
-qm_kptr_t(ichttp_cbs, const char, ichttp_cb_t *,
-          qhash_str_hash, qhash_str_equal);
+qm_kptr_ckey_t(ichttp_cbs, char, ichttp_cb_t *,
+               qhash_str_hash, qhash_str_equal);
 
 typedef struct ichttp_trigger_cb_t {
     httpd_trigger_cb_t       cb;
