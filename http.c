@@ -1487,6 +1487,7 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
         RETHROW((*q->on_hdrs)(q));
     if (conn_close) {
         w->max_queries = 0;
+        httpc_set_busy(w);
         dlist_for_each_entry_safe_continue(q, q, &w->query_list, query_link) {
             httpc_query_abort(q);
         }
