@@ -71,9 +71,9 @@ void ps_panic_sighandler(int signum)
     int    fd;
 
     sigaction(signum, &sa, NULL);
-    snprintf(path, sizeof(path), "/tmp/%s.%ld.%d.debug",
-             program_invocation_short_name, (long)getpid(),
-             (uint32_t)time(NULL));
+    snprintf(path, sizeof(path), "/tmp/%s.%d.%ld.debug",
+             program_invocation_short_name, (uint32_t)time(NULL),
+             (long)getpid());
     fd = open(path, O_EXCL | O_CREAT | O_WRONLY | O_TRUNC, 0600);
 
     if (fd >= 0) {
