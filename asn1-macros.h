@@ -76,6 +76,12 @@
             desc = asn1_desc_new();
 
 #define ASN1_DESC_END(desc) \
+            if (desc->is_seq_of) {                                           \
+                assert (desc->vec.len == 1);                                 \
+                assert (desc->vec.tab[0].mode == ASN1_OBJ_MODE(SEQ_OF));     \
+            }                                                                \
+                                                                             \
+            assert (desc->type == ASN1_CSTD_TYPE_SEQUENCE);                  \
         }                                                                    \
                                                                              \
         return desc;                                                         \
@@ -106,6 +112,9 @@
 
 #define ASN1_CHOICE_DESC_END(desc) \
             assert (desc->type == ASN1_CSTD_TYPE_CHOICE);                    \
+            desc->choice_info.min = 0;                                       \
+            desc->choice_info.max = desc->vec.len - 1;                       \
+            asn1_int_info_update(&desc->choice_info);                        \
             asn1_build_choice_table((asn1_choice_desc_t *)desc);             \
         }                                                                    \
                                                                              \
@@ -205,6 +214,7 @@
 #define ASN1_REG_OPT_SCALAR(desc, st, ctype_t, field, tag) \
     ASN1_REG_SCALAR_WITH_MODE(desc, st, ctype_t, field, tag, OPTIONAL)
 #define ASN1_REG_SEQ_OF_SCALAR(desc, st, ctype_t, field, tag) \
+    desc->is_seq_of = true;                                                  \
     ASN1_REG_SCALAR_WITH_MODE(desc, st, ctype_t, field, tag, SEQ_OF)
 
 #define asn1_reg_scalar(desc, st_pfx, field, tag) \
@@ -364,6 +374,8 @@
 
 #define asn1_reg_seq_of_enum(desc, st_pfx, enum_sfx, field, tag) \
     do {                                                                     \
+        desc->is_seq_of = true;                                              \
+                                                                             \
         if (ASN1_IS_FIELD_TYPE(ASN1_VECTOR_TYPE(enum_sfx), field,            \
                                st_pfx##_t)) {                                \
             ASN1_REG_ENUM(desc, st_pfx, enum_sfx, field, tag, SEQ_OF);       \
@@ -446,6 +458,8 @@
 
 #define ASN1_REG_SEQ_OF_STRING(desc, st, field, tag) \
     do {                                                                     \
+        desc->is_seq_of = true;                                              \
+                                                                             \
         if (ASN1_IS_FIELD_TYPE(ASN1_VECTOR_TYPE(data), field, st)) {         \
             ASN1_REG_STRING(desc, st, asn1_data_t, field, tag, SEQ_OF);      \
             break;                                                           \
@@ -543,6 +557,8 @@
 
 #define asn1_reg_seq_of_opaque(desc, st_pfx, ctype, pfx, field, tag) \
     do {                                                                     \
+        desc->is_seq_of = true;                                              \
+                                                                             \
         if (ASN1_IS_FIELD_TYPE(ASN1_VECTOR_TYPE(pfx)), field, st_pfx##_t) {  \
             ASN1_REG_OPAQUE(desc, st_pfx##_t, ctype, pfx, field, tag,        \
                             SEQ_OF, false);                                  \
@@ -614,6 +630,8 @@
 
 #define asn1_reg_seq_of_sequence(desc, st_pfx, pfx, field, tag) \
     do {                                                                     \
+        desc->is_seq_of = true;                                              \
+                                                                             \
         if (ASN1_IS_FIELD_TYPE(ASN1_VECTOR_TYPE(pfx), field, st_pfx##_t)) {  \
             ASN1_REG_SEQUENCE(desc, st_pfx##_t, pfx, field, tag, SEQ_OF,     \
                               false);                                        \
@@ -676,6 +694,8 @@
 
 #define asn1_reg_seq_of_choice(desc, st_pfx, pfx, field, tag) \
     do {                                                                     \
+        desc->is_seq_of = true;                                              \
+                                                                             \
         if (ASN1_IS_FIELD_TYPE(ASN1_VECTOR_TYPE(pfx), field, st_pfx##_t)) {  \
             ASN1_REG_CHOICE(desc, st_pfx##_t, pfx, field, tag, SEQ_OF,       \
                               false);                                        \
@@ -738,6 +758,8 @@
 
 #define asn1_reg_seq_of_untagged_choice(desc, st_pfx, pfx, field) \
     do {                                                                     \
+        desc->is_seq_of = true;                                              \
+                                                                             \
         if (ASN1_IS_FIELD_TYPE(ASN1_VECTOR_TYPE(pfx), field, st_pfx##_t)) {  \
             ASN1_REG_UNTAGGED_CHOICE(desc, st_pfx##_t, pfx, field, SEQ_OF,   \
                                      false);                                 \
@@ -791,6 +813,8 @@
 
 #define asn1_reg_seq_of_ext(desc, st_pfx, field, tag) \
     do {                                                                     \
+        desc->is_seq_of = true;                                              \
+                                                                             \
         if (ASN1_IS_FIELD_TYPE(asn1_ext_vector_t, field,                     \
                                st_pfx##_t)) {                                \
             ASN1_REG_EXT(desc, st_pfx##_t, field, tag, SEQ_OF);              \
