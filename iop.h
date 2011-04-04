@@ -150,8 +150,13 @@ struct iop_pkg_t {
     iop_pkg_t    const *const *deps;
 };
 
-#define IOP_ARRAY_OF(type_t)   struct { union { type_t *tab; type_t *data; }; int32_t len; }
-typedef struct { void *data; int32_t len; } iop_data_t;
+#define IOP_ARRAY_OF(type_t)                     \
+    struct {                                     \
+        union { type_t *tab; type_t *data; };    \
+        int32_t len;                             \
+        unsigned flags;                          \
+    }
+typedef struct { void *data; int32_t len; unsigned flags; } iop_data_t;
 
 #define IOP_OPT_OF(type_t)     struct { type_t v; bool has_field; }
 typedef IOP_OPT_OF(int8_t)     iop_opt_i8_t;
