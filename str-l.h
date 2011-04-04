@@ -139,11 +139,18 @@ static ALWAYS_INLINE bool lstr_equal2(const lstr_t s1, const lstr_t s2)
     return lstr_equal(&s1, &s2);
 }
 
-/** \breif returns wheter \v s starts with \v p
+/** \brief returns whether \v s starts with \v p
  */
 static ALWAYS_INLINE bool lstr_startswith(const lstr_t s, const lstr_t p)
 {
-    return s.len >= p.len && memcmp(s.s, p.s, p.len);
+    return s.len >= p.len && memcmp(s.s, p.s, p.len) == 0;
+}
+
+/** \brief returns whether \c s ends with \c p.
+ */
+static ALWAYS_INLINE bool lstr_endswith(const lstr_t s, const lstr_t p)
+{
+    return s.len >= p.len && memcmp(s.s + s.len - p.len, p.s, p.len) == 0;
 }
 
 
