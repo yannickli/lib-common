@@ -341,11 +341,6 @@ void ic_flush(ichannel_t *ic);
 #define IOP_RPC_CB(_m, _i, _r) \
     IOP_RPC_NAME(_m, _i, _r, cb)(IOP_RPC_CB_ARGS(_m, _i, _r))
 
-#define CHOOSE_EXPR_1(a, b)      a
-#define CHOOSE_EXPR_0(a, b)      b
-#define CHOOSE_EXPR_(cond, a, b) CHOOSE_EXPR_##cond(a, b)
-#define CHOOSE_EXPR(cond, a, b)  CHOOSE_EXPR_(cond, a, b)
-
 /*
  * XXX this is an ugly piece of preprocessing because we lack templates and
  *     because __builtin_choose_expr generates syntaxic errors *sigh*.
