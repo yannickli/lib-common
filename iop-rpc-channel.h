@@ -315,6 +315,63 @@ void ic_flush(ichannel_t *ic);
     IOP_RPC_T(_mod, _i, _r, res) *res,                 \
     IOP_RPC_T(_mod, _i, _r, exn) *exn
 
+/* some useful macros to define IOP rpcs and callbacks */
+
+/** \brief builds an RPC name.
+ * \param[in]  _m     name of the package+module of the RPC
+ * \param[in]  _i     name of the interface of the RPC
+ * \param[in]  _r     name of the rpc
+ * \param[in]  sfx    a unique suffix to distinguish usages (cb, impl, ...)
+ */
+#define IOP_RPC_NAME(_m, _i, _r, sfx)  _m##__##_i##__##_r##__##sfx
+
+/** \brief builds an RPC Implementation prototype.
+ * \param[in]  _m     name of the package+module of the RPC
+ * \param[in]  _i     name of the interface of the RPC
+ * \param[in]  _r     name of the rpc
+ */
+#define IOP_RPC_IMPL(_m, _i, _r) \
+    IOP_RPC_NAME(_m, _i, _r, impl)(IOP_RPC_IMPL_ARGS(_m, _i, _r))
+
+/** \brief builds an RPC Callback prototype.
+ * \param[in]  _m     name of the package+module of the RPC
+ * \param[in]  _i     name of the interface of the RPC
+ * \param[in]  _r     name of the rpc
+ */
+#define IOP_RPC_CB(_m, _i, _r) \
+    IOP_RPC_NAME(_m, _i, _r, cb)(IOP_RPC_CB_ARGS(_m, _i, _r))
+
+#define CHOOSE_EXPR_1(a, b)      a
+#define CHOOSE_EXPR_0(a, b)      b
+#define CHOOSE_EXPR_(cond, a, b) CHOOSE_EXPR_##cond(a, b)
+#define CHOOSE_EXPR(cond, a, b)  CHOOSE_EXPR_(cond, a, b)
+
+/*
+ * XXX this is an ugly piece of preprocessing because we lack templates and
+ *     because __builtin_choose_expr generates syntaxic errors *sigh*.
+ *
+ * First IOP_RPC_CB_REF calls IOP_RPC_CB_REF_ with the async-ness of the rpc
+ * as a macro.
+ *
+ * We recurse into IOP_RPC_CB_REF__ so that 'async' evaluates to 0 or 1.
+ *
+ * We catenate it to IOP_RPC_CB_REF__ which means it will either:
+ * - evaluate to IOP_RPC_CB_REF__0(...) -> build cb name
+ * - evaluate to IOP_RPC_CB_REF__1(...) -> NULL
+ */
+#define IOP_RPC_CB_REF__0(_m, _i, _r)        IOP_RPC_NAME(_m, _i, _r, cb)
+#define IOP_RPC_CB_REF__1(_m, _i, _r)        NULL
+#define IOP_RPC_CB_REF__(async, _m, _i, _r)  IOP_RPC_CB_REF__##async(_m, _i, _r)
+#define IOP_RPC_CB_REF_(async, _m, _i, _r)   IOP_RPC_CB_REF__(async, _m, _i, _r)
+
+/** \brief builds an RPC callback reference (NULL if the RPC is async).
+ * \param[in]  _m     name of the package+module of the RPC
+ * \param[in]  _i     name of the interface of the RPC
+ * \param[in]  _r     name of the rpc
+ */
+#define IOP_RPC_CB_REF(_m, _i, _r) \
+    IOP_RPC_CB_REF_(_m##__##_i(_r##__rpc__async), _m, _i, _r)
+
 /** \brief register a local callback for an rpc.
  * \param[in]  h
  *    the qm_t(ic_cbs) of implementation to register the rpc
@@ -326,7 +383,7 @@ void ic_flush(ichannel_t *ic);
  *    the implementation callback. Its type should be:
  *    <tt>void (*)(IOP_RPC_IMPL_ARGS(_mod, _if, _rpc))</tt>
  */
-#define ic_register(h, _mod, _if, _rpc, _cb) \
+#define ic_register_(h, _mod, _if, _rpc, _cb) \
     do {                                                                     \
         void (*__cb)(IOP_RPC_IMPL_ARGS(_mod, _if, _rpc)) = _cb;              \
         uint32_t cmd    = IOP_RPC_CMD(_mod, _if, _rpc);                      \
@@ -339,6 +396,10 @@ void ic_flush(ichannel_t *ic);
         };                                                                   \
         qm_add(ic_cbs, h, cmd, e);                                           \
     } while (0)
+
+/** \brief same as #ic_register_ but auto-computes the rpc name. */
+#define ic_register(h, _m, _i, _r) \
+    ic_register_(h, _m, _i, _r, IOP_RPC_NAME(_m, _i, _r, impl))
 
 /** \brief register a proxy destination for the given rpc with forced header.
  * \param[in]  h
@@ -527,6 +588,46 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
     __ic_query(ic, ic_build_query(_msg, _cb, _mod, _if, _rpc, __VA_ARGS__))
 /** \brief helper to send a query to a given ic.
  *
+ * \param[in]  ic     the #ichannel_t to send the query to.
+ * \param[in]  _msg   the #ic_msg_t to fill.
+ * \param[in]  _cb    the rpc reply callback to use
+ * \param[in]  _mod   name of the package+module of the RPC
+ * \param[in]  _if    name of the interface of the RPC
+ * \param[in]  _rpc   name of the rpc
+ * \param[in]  v      a <tt>${_mod}__${_if}__${_rpc}_args__t *</tt> value.
+ */
+#define ic_query_p(ic, _msg, _cb, _mod, _if, _rpc, v) \
+    __ic_query(ic, ic_build_query_p(_msg, _cb, _mod, _if, _rpc, v))
+
+/** \brief helper to send a query to a given ic, computes callback name.
+ *
+ * \param[in]  ic     the #ichannel_t to send the query to.
+ * \param[in]  _msg   the #ic_msg_t to fill.
+ * \param[in]  _mod   name of the package+module of the RPC
+ * \param[in]  _if    name of the interface of the RPC
+ * \param[in]  _rpc   name of the rpc
+ * \param[in]  ...
+ *   the initializers of the value on the form <tt>.field = value</tt>
+ */
+#define ic_query2(ic, _msg, _mod, _if, _rpc, ...) \
+    __ic_query(ic, ic_build_query(_msg, IOP_RPC_CB_REF(_mod, _if, _rpc), \
+                                  _mod, _if, _rpc, __VA_ARGS__))
+/** \brief helper to send a query to a given ic, computes callback name.
+ *
+ * \param[in]  ic     the #ichannel_t to send the query to.
+ * \param[in]  _msg   the #ic_msg_t to fill.
+ * \param[in]  _cb    the rpc reply callback to use
+ * \param[in]  _mod   name of the package+module of the RPC
+ * \param[in]  _if    name of the interface of the RPC
+ * \param[in]  _rpc   name of the rpc
+ * \param[in]  v      a <tt>${_mod}__${_if}__${_rpc}_args__t *</tt> value.
+ */
+#define ic_query2_p(ic, _msg, _mod, _if, _rpc, v) \
+    __ic_query(ic, ic_build_query_p(_msg, IOP_RPC_CB_REF(_mod, _if, _rpc), \
+                                    _mod, _if, _rpc, v))
+
+/** \brief helper to send a query to a given ic.
+ *
  * Same as #ic_query but waits for the query to be sent before the call
  * returns. DO NOT USE unless you have a really good reason.
  *
@@ -541,19 +642,6 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  */
 #define ic_query_sync(ic, _msg, _cb, _mod, _if, _rpc, ...) \
     __ic_query_sync(ic, ic_build_query(_msg, _cb, _mod, _if, _rpc, __VA_ARGS__))
-
-/** \brief helper to send a query to a given ic.
- *
- * \param[in]  ic     the #ichannel_t to send the query to.
- * \param[in]  _msg   the #ic_msg_t to fill.
- * \param[in]  _cb    the rpc reply callback to use
- * \param[in]  _mod   name of the package+module of the RPC
- * \param[in]  _if    name of the interface of the RPC
- * \param[in]  _rpc   name of the rpc
- * \param[in]  v      a <tt>${_mod}__${_if}__${_rpc}_args__t *</tt> value.
- */
-#define ic_query_p(ic, _msg, _cb, _mod, _if, _rpc, v) \
-    __ic_query(ic, ic_build_query_p(_msg, _cb, _mod, _if, _rpc, v))
 /** \brief helper to send a query to a given ic.
  *
  * Same as #ic_query_p but waits for the query to be sent before the call

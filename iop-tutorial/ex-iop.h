@@ -17,47 +17,19 @@
 #include <lib-common/iop-rpc.h>
 #include "exiop.iop.h"
 
-/* ---- Global to the product ---- */
-
-/* Define several macros to ease IOP implementations and callbacks declaration */
-#define HELLO_RPC_NAME(_i, _r, sfx)  _i##__##_r##__##sfx
-#define HELLO_RPC_IMPL(_p, _m, _i, _r) \
-    HELLO_RPC_NAME(_i, _r, impl)(IOP_RPC_IMPL_ARGS(_p##__##_m, _i, _r))
-
-#define HELLO_RPC_CB(_p, _m, _i, _r) \
-    HELLO_RPC_NAME(_i, _r, cb)(IOP_RPC_CB_ARGS(_p##__##_m, _i, _r))
-#define HELLO_REGISTER(h, _p, _m, _i, _r) \
-    ic_register(h, _p##__##_m, _i, _r, HELLO_RPC_NAME(_i, _r, impl))
-
-
 /* ---- Module HelloMod helpers ---- */
 
 /* Standard implementations and callbacks helpers */
-#define HELLO_MOD_RPC_IMPL(_i, _r)     HELLO_RPC_IMPL(exiop, hello_mod, _i, _r)
-#define HELLO_MOD_RPC_CB(_i, _r)       HELLO_RPC_CB(exiop, hello_mod, _i, _r)
+#define HELLO_MOD_RPC_IMPL(_i, _r)     IOP_RPC_IMPL(exiop__hello_mod, _i, _r)
+#define HELLO_MOD_RPC_CB(_i, _r)       IOP_RPC_CB(exiop__hello_mod, _i, _r)
 #define HELLO_MOD_RPC_CB_ARGS(_i, _r)  IOP_RPC_CB_ARGS(exiop__hello_mod, _i, _r)
-#define HELLO_MOD_REGISTER(h, _i, _r)  HELLO_REGISTER(h, exiop, hello_mod, _i, _r)
+#define HELLO_MOD_REGISTER(h, _i, _r)  ic_register(h, exiop__hello_mod, _i, _r)
 
 /* Send queries */
-#define ic_hello_mod_query2(ic, msg, cb, _i, _r, ...) \
-    ic_query(ic, msg, cb, exiop__hello_mod, _i, _r, ##__VA_ARGS__)
 #define ic_hello_mod_query(ic, msg, _i, _r, ...) \
-    ({ STATIC_ASSERT(exiop__hello_mod##__##_i(_r##__rpc__async) == 0); \
-       ic_hello_mod_query2(ic, msg, &HELLO_RPC_NAME(_i, _r, cb), _i, \
-                           _r, ##__VA_ARGS__); })
-#define ic_hello_mod_async(ic, _i, _r, ...) \
-    ({ STATIC_ASSERT(exiop__hello_mod##__##_i(_r##__rpc__async) == 1); \
-       ic_hello_mod_query2(ic, ic_msg_new(0), NULL, _i, _r, ##__VA_ARGS__); })
-
-#define ic_hello_mod_query2_p(ic, msg, cb, _i, _r, v) \
-    ic_query_p(ic, msg, cb, exiop__hello_mod, _i, _r, v)
+    ic_query2(ic, msg, exiop__hello_mod, _i, _r, __VA_ARGS__)
 #define ic_hello_mod_query_p(ic, msg, _i, _r, v) \
-    ({ STATIC_ASSERT(exiop__hello_mod##__##_i(_r##__rpc__async) == 0); \
-       ic_hello_mod_query2_p(ic, msg, &HELLO_RPC_NAME(_i, _r, cb), _i, \
-                             _r, v); })
-#define ic_hello_mod_async_p(ic, _i, _r, v) \
-    ({ STATIC_ASSERT(exiop__hello_mod##__##_i(_r##__rpc__async) == 1); \
-       ic_hello_mod_query2_p(ic, ic_msg_new(0), NULL, _i, _r, v); })
+    ic_query2_p(ic, msg, exiop__hello_mod, _i, _r, v)
 
 /* Reply and throw exception at queries */
 #define ic_hello_mod_reply(ic, slot, _if, _rpc, ...) \
