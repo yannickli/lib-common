@@ -17,6 +17,10 @@
 #include "time.h"
 #include "el.h"
 
+#ifndef NDEBUG
+//#define T_STACK_DEBUG
+#endif
+
 static struct {
     pthread_mutex_t mutex;
     pthread_t owner;
@@ -507,13 +511,22 @@ static void el_timer_process(uint64_t until)
     lp_gettv(&tv);
     while (_G.timers.len) {
         ev_t *ev = EVT(0);
+#ifdef T_STACK_DEBUG
+        const void *ptr;
+#endif
 
         ASSERT("should be a timer", ev->type == EV_TIMER);
         if (ev->timer.expiry > until)
             return;
 
         EV_FLAG_RST(ev, TIMER_UPDATED);
+#ifdef T_STACK_DEBUG
+        ptr = t_push();
+#endif
         (*ev->cb.cb)(ev, ev->priv);
+#ifdef T_STACK_DEBUG
+        assert (ptr == t_pop());
+#endif
 
         /* ev has been unregistered in (*cb) */
         if (ev->type == EV_UNUSED)
@@ -622,6 +635,10 @@ static ALWAYS_INLINE ev_t *el_fd_act_timer_unregister(ev_t *timer)
 
 static ALWAYS_INLINE void el_fd_fire(ev_t *ev, short evs)
 {
+#ifdef T_STACK_DEBUG
+    const void *ptr = t_push();
+#endif
+
     if (EV_FLAG_HAS(ev, FD_WATCHED)) {
         ev_t *timer = ev->priv.ptr;
 
@@ -631,6 +648,9 @@ static ALWAYS_INLINE void el_fd_fire(ev_t *ev, short evs)
     } else {
         (*ev->cb.fd)(ev, ev->fd, evs, ev->priv);
     }
+#ifdef T_STACK_DEBUG
+    assert (ptr == t_pop());
+#endif
 }
 
 static void el_act_timer(el_t ev, el_data_t priv)
