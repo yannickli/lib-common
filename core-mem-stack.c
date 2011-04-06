@@ -339,7 +339,7 @@ const void *mem_stack_pop(mem_pool_t *_sp)
     if (likely(frame->prev)) {
         sp->stack = frame->prev;
         mem_stack_protect(sp);
-        return sp->stack;
+        return frame;
     }
     frame->blk  = blk_entry(&sp->blk_list);
     frame->pos  = sp + 1; /* XXX: end of sp, see kludge remarks above */
