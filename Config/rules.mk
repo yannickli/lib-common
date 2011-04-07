@@ -88,9 +88,9 @@ endef
 ext/gen/fc = $(call fun/patsubst-filt,%.fc,%.fc.c,$1)
 
 define ext/expand/fc
-$(3:=.c): %.fc.c: %.fc
+$$(patsubst %,$~%.c.dep,$3) $(3:=.c): $3
 	$(msg/generate) $$(<R)
-	farchc -d $~$$@.dep -o $$@ $$<
+	farchc -d $~$3.c.dep -o $3.c $$<
 _generated: $(3:=.c)
 -include $$(patsubst %,$~%.c.dep,$3)
 $$(eval $$(call fun/common-depends,$1,$(3:=.c),$3))
