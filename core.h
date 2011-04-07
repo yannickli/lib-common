@@ -14,15 +14,6 @@
 #ifndef IS_LIB_COMMON_CORE_H
 #define IS_LIB_COMMON_CORE_H
 
-#ifndef __STDC_LIMIT_MACROS
-#define __STDC_LIMIT_MACROS 1
-#endif
-#ifndef __STDC_CONSTANT_MACROS
-#define __STDC_CONSTANT_MACROS 1
-#endif
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS 1
-#endif
 #include <Block.h>
 #include <alloca.h>
 #include <assert.h>

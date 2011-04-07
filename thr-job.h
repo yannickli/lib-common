@@ -31,10 +31,12 @@ struct thr_syn_t {
     unsigned     pending;
 } __attribute__((aligned(64)));
 
+#ifdef __has_blocks
 static ALWAYS_INLINE thr_job_t *thr_job_from_blk(block_t blk)
 {
     return (thr_job_t *)((uintptr_t)Block_copy(blk) | 1);
 }
+#endif
 
 /** \brief returns the amount of parralelism (number of threads) used.
  *
@@ -101,6 +103,7 @@ size_t thr_id(void);
 void thr_schedule(thr_job_t *job);
 void thr_syn_schedule(thr_syn_t *syn, thr_job_t *job);
 
+#ifdef __has_blocks
 static ALWAYS_INLINE void thr_schedule_b(block_t blk)
 {
     thr_schedule(thr_job_from_blk(blk));
@@ -109,6 +112,7 @@ static ALWAYS_INLINE void thr_syn_schedule_b(thr_syn_t *syn, block_t blk)
 {
     thr_syn_schedule(syn, thr_job_from_blk(blk));
 }
+#endif
 
 thr_queue_t *thr_queue_create(void);
 void thr_queue_destroy(thr_queue_t *q, bool wait);
@@ -125,6 +129,7 @@ void thr_queue(thr_queue_t *q, thr_job_t *job);
 void thr_queue_sync(thr_queue_t *q, thr_job_t *job);
 void thr_syn_queue(thr_syn_t *syn, thr_queue_t *q, thr_job_t *job);
 
+#ifdef __has_blocks
 static ALWAYS_INLINE void thr_queue_b(thr_queue_t *q, block_t blk)
 {
     thr_queue(q, thr_job_from_blk(blk));
@@ -137,6 +142,7 @@ static ALWAYS_INLINE void thr_syn_queue_b(thr_syn_t *syn, thr_queue_t *q, block_
 {
     thr_syn_queue(syn, q, thr_job_from_blk(blk));
 }
+#endif
 
 /** \brief initializes a #thr_syn_t structure.
  *
@@ -163,11 +169,13 @@ static ALWAYS_INLINE void thr_syn_destroy(thr_syn_t *syn)
  * before the actual completion due to races.
  */
 void thr_syn_notify(thr_syn_t *syn, thr_queue_t *q, thr_job_t *job);
+#ifdef __has_blocks
 static ALWAYS_INLINE
 void thr_syn_notify_b(thr_syn_t *syn, thr_queue_t *q, block_t blk)
 {
     thr_syn_notify(syn, q, thr_job_from_blk(blk));
 }
+#endif
 
 /** \brief low level function to account for a task
  */

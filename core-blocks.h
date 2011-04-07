@@ -17,13 +17,16 @@
 #define IS_LIB_COMMON_CORE_BLOCKS_H
 
 #ifdef __BLOCKS__
-#define BLOCK_CARET  ^
-typedef void (^block_t)(void);
-#else
-#define BLOCK_CARET  *
-typedef void (*block_t)(void);
+#   define __has_blocks
+#   define BLOCK_CARET  ^
+    typedef void (^block_t)(void);
+#elif defined(__block)  /* ugly works because it's defined by the rewriter */
+#   define __has_blocks
+#   define BLOCK_CARET  *
+    typedef void (*block_t)(void);
 #endif
 
+#ifdef __has_blocks
 static inline void block_run(void *blk_)
 {
     block_t blk = (block_t)blk_;
@@ -36,5 +39,6 @@ static inline void block_run_and_release(void *blk_)
     blk();
     Block_release(blk);
 }
+#endif
 
 #endif
