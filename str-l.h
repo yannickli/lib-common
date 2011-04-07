@@ -44,6 +44,7 @@ typedef struct lstr_t {
 #define LSTR_EMPTY_V          LSTR_INIT_V("", 0)
 #define LSTR_SB(sb)           LSTR_INIT((sb)->data, (sb)->len)
 #define LSTR_SB_V(sb)         LSTR_INIT_V((sb)->data, (sb)->len)
+#define LSTR_FMT_ARG(s_)      (s_).len, (s_).s
 
 /* obsolete stuff, please try not to use anymore */
 #define clstr_t        lstr_t
