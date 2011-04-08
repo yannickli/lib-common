@@ -106,11 +106,18 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, int mem_pool)
  */
 #define sb_inita(sb, sz)  sb_init_full(sb, alloca(sz), 0, (sz), MEM_STATIC)
 
+#ifdef __cplusplus
+#define SB(name, sz)                                    \
+    STATIC_ASSERT((sz) < (64 << 10));                   \
+    sb_t name;                                          \
+    sb_inita(&name, sz)
+#else
 #define SB(name, sz) \
     sb_t name = {                                       \
         .data = alloca(sz),                             \
         .size = (STATIC_ASSERT((sz) < (64 << 10)), sz), \
     }
+#endif
 
 #define SB_1k(name)    SB(name, 1 << 10)
 #define SB_8k(name)    SB(name, 8 << 10)
