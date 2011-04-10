@@ -186,6 +186,17 @@ void plwah64_append_word(plwah64_t *map, int *len, plwah64_t word)
                 V++;                                                         \
             }                                                                \
         }
+#define SWAP_VARS(x, y)  do {                                                \
+            typeof(x) __tmp = x;                                             \
+            x = y;                                                           \
+            y = __tmp;                                                       \
+        } while (0)
+#define SWAP()  do {                                                         \
+            SWAP_VARS(x, y);                                                 \
+            SWAP_VARS(xlen, ylen);                                           \
+            SWAP_VARS(xpos, ypos);                                           \
+            SWAP_VARS(xword, yword);                                         \
+        } while (0)
 
 static inline
 void plwah64_or(plwah64_t *map, int *len, const plwah64_t *x, int xlen,
@@ -200,6 +211,9 @@ void plwah64_or(plwah64_t *map, int *len, const plwah64_t *x, int xlen,
     while (xlen > 0 && ylen > 0) {
         READ(x);
         READ(y);
+        /* TODO: Efficient implementation when the one of the words a 1-fill
+         * word.
+         */
         if (xword.fill.is_fill && yword.fill.is_fill) {
             int words = MIN(xpos, ypos);
             int type  = !!(xword.fill.val | yword.fill.val);
@@ -227,8 +241,13 @@ void plwah64_or(plwah64_t *map, int *len, const plwah64_t *x, int xlen,
         NEXT(y);
     }
     if (xlen == 0) {
-        x = y;
-        xlen = ylen;
+        SWAP();
+    }
+    if (xpos > 0) {
+        if (xword.fill.is_fill) {
+            xword.fill.counter = xpos;
+        }
+        plwah64_append_word(map, len, xword);
     }
     for (int i = 0; i < xlen; i++) {
         plwah64_append_word(map, len, x[i]);
@@ -248,6 +267,9 @@ void plwah64_and(plwah64_t *map, int *len, const plwah64_t *x, int xlen,
     while (xlen > 0 && ylen > 0) {
         READ(x);
         READ(y);
+        /* TODO: Efficient implementation when one of the words is a 0-fill
+         * word.
+         */
         if (xword.fill.is_fill && yword.fill.is_fill) {
             int words = MIN(xpos, ypos);
             int type  = !!(xword.fill.val & yword.fill.val);
@@ -276,6 +298,8 @@ void plwah64_and(plwah64_t *map, int *len, const plwah64_t *x, int xlen,
     }
 }
 
+#undef SWAP
+#undef SWAP_VARS
 #undef NEXT
 #undef APPLY_POS
 #undef READ
