@@ -51,6 +51,7 @@ uint8_t const __firstbit_rev8[256] = {
 #undef A
 };
 
+#ifndef __POPCNT__
 uint8_t const __bitcount11[1 << 11] = {
 #define X4(n)       BC12(n), BC12(n + 1), BC12(n + 2),  BC12(n + 3)
 #define X16(n)      X4(n),   X4(n + 4),   X4(n + 8),    X4(n + 12)
@@ -63,6 +64,7 @@ uint8_t const __bitcount11[1 << 11] = {
 #undef X16
 #undef X4
 };
+#endif
 
 static size_t membitcount_naive(const uint8_t *p, const uint8_t *end)
 {
