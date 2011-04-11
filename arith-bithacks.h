@@ -60,10 +60,10 @@ static inline size_t bsfsz(size_t   u) { return DO_SZ(bsf)(u); }
 static inline uint8_t bitcount8(uint8_t n) {
     return __builtin_popcount(n);
 }
-static inline uint8_t bitcount16(size_t n) {
+static inline uint8_t bitcount16(uint16_t n) {
     return __builtin_popcount(n);
 }
-static inline uint8_t bitcount32(size_t n) {
+static inline uint8_t bitcount32(uint32_t n) {
     return __builtin_popcount(n);
 }
 static inline uint8_t bitcount64(uint64_t n) {
@@ -76,11 +76,11 @@ extern uint8_t const __bitcount11[1 << 11];
 static inline uint8_t bitcount8(uint8_t n) {
     return __bitcount11[n];
 }
-static inline uint8_t bitcount16(size_t n) {
+static inline uint8_t bitcount16(uint16_t n) {
     return bitcount8(n) + bitcount8(n >> 8);
 }
 
-static inline uint8_t bitcount32(size_t n) {
+static inline uint8_t bitcount32(uint32_t n) {
     return __bitcount11[(n >>  0) & 0x7ff]
         +  __bitcount11[(n >> 11) & 0x7ff]
         +  __bitcount11[(n >> 22) & 0x7ff];
