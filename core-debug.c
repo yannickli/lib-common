@@ -74,6 +74,14 @@ static void e_debug_initialize(void)
     p = getenv("IS_DEBUG");
     if (!p)
         return;
+
+    /* XXX This string is "leaked" because we could need debug information
+     *     written in it *ANYTIME* (including at shutdown).
+     *
+     *     If related valgrind error is boring you, please add
+     *         --suppressions=<path-to-lib-common>/lib-common.supp
+     *     to your valgrind command line.
+     */
     p = p_strdup(skipspaces(p));
 
     /*
