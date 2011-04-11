@@ -217,6 +217,10 @@ int log_file_open(log_file_t *log_file)
         e_trace(1, "Could not open first log file");
         return -1;
     }
+    if (log_file->log_file_cb_f && file_tell(log_file->_internal) == 0) {
+        log_file->log_file_cb_f(log_file, LOG_FILE_CREATE,
+                                log_file->priv_cb);
+    }
     return 0;
 }
 
@@ -225,6 +229,11 @@ int log_file_close(log_file_t **lfp)
     int res = 0;
     if (*lfp) {
         log_file_t *log_file = *lfp;
+
+        if (log_file->log_file_cb_f) {
+            log_file->log_file_cb_f(log_file, LOG_FILE_CLOSE,
+                                    log_file->priv_cb);
+        }
         log_file_flush(log_file);
         res = file_close(&log_file->_internal);
         p_delete(lfp);
@@ -258,6 +267,15 @@ void log_file_set_rotate_delay(log_file_t *file, time_t delay)
     file->rotate_delay = delay;
 }
 
+void
+log_file_set_file_cb(log_file_t *file,
+                     void (*file_cb)(log_file_t*, int, void*),
+                     void *priv)
+{
+    file->log_file_cb_f = file_cb;
+    file->priv_cb = priv;
+}
+
 static int log_file_rotate_(log_file_t *file, time_t now)
 {
     IGNORE(file_close(&file->_internal));
@@ -267,6 +285,10 @@ static int log_file_rotate_(log_file_t *file, time_t now)
     if (!file->_internal) {
         e_trace(1, "Could not rotate");
         return -1;
+    }
+    if (file->log_file_cb_f) {
+        file->log_file_cb_f(file, LOG_FILE_CREATE,
+                            file->priv_cb);
     }
     return 0;
 }
