@@ -57,7 +57,7 @@ static uint32_t fast_icrc32(uint32_t crc, const uint8_t *buf, size_t size)
     size_t words;
 
     if (unlikely((uintptr_t)buf & 7)) {
-        size -= (uintptr_t)buf & 7;
+        size -= 8 - ((uintptr_t)buf & 7);
         do {
             crc = crc32table[0][*buf++ ^ A(crc)] ^ S8(crc);
         } while ((uintptr_t)buf & 7);
