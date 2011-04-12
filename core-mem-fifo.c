@@ -225,6 +225,7 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
         VALGRIND_FREELIKE_BLOCK(mem, 0);
         VALGRIND_MEMPOOL_CHANGE(page, mem, mem, size);
         VALGRIND_MALLOCLIKE_BLOCK(mem, size, 0, false);
+        VALGRIND_MAKE_MEM_DEFINED(mem, oldsize);
         if (!(flags & MEM_RAW) && oldsize < size)
             memset(blk->area + oldsize, 0, size - oldsize);
     } else
@@ -244,6 +245,7 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
         VALGRIND_FREELIKE_BLOCK(mem, 0);
         VALGRIND_MEMPOOL_CHANGE(page, mem, mem, size);
         VALGRIND_MALLOCLIKE_BLOCK(mem, size, 0, false);
+        VALGRIND_MAKE_MEM_DEFINED(mem, oldsize);
     } else {
         void *old = mem;
 

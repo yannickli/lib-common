@@ -483,6 +483,7 @@ void *tlsf_realloc(mem_pool_t *_mp, void *ptr,
         res = blk->data;
         VALGRIND_FREELIKE_BLOCK(ptr, 0);
         VALGRIND_MALLOCLIKE_BLOCK(ptr, asked, 0, false);
+        VALGRIND_MAKE_MEM_DEFINED(ptr, aksed);
     } else
     if ((next->flags & BLK_FREE) && newsize <= tsize + blk_size(next)) {
         size_t nsz = blk_remove(mp, next);
@@ -504,6 +505,7 @@ void *tlsf_realloc(mem_pool_t *_mp, void *ptr,
         res = blk->data;
         VALGRIND_FREELIKE_BLOCK(ptr, 0);
         VALGRIND_MALLOCLIKE_BLOCK(ptr, asked, 0, false);
+        VALGRIND_MAKE_MEM_DEFINED(ptr, aksed);
     } else {
         res = tlsf_malloc(&mp->pool, newsize, 0);
         if (!res)
