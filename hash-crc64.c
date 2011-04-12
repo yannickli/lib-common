@@ -48,7 +48,7 @@ static uint64_t fast_icrc64(uint64_t crc, const uint8_t *buf, size_t size)
     size_t words;
 
     if (unlikely((uintptr_t)buf & 3)) {
-        size -= 8 - ((uintptr_t)buf & 3);
+        size -= 4 - ((uintptr_t)buf & 3);
         do {
             crc = crc64table[0][*buf++ ^ A1(crc)] ^ S8(crc);
         } while ((uintptr_t)buf & 3);
