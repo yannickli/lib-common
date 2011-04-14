@@ -105,7 +105,8 @@ uint64_t thr_ec_get(thr_evc_t *ec)
     mb();
     return ec->key;
 }
-void thr_ec_wait(thr_evc_t *ec, uint64_t key);
+void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout);
+#define thr_ec_wait(ec, key)  thr_ec_timedwait(ec, key, 0)
 void thr_ec_signal_n(thr_evc_t *ec, int count);
 
 static ALWAYS_INLINE

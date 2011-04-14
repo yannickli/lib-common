@@ -62,7 +62,7 @@ static void thr_ec_wait_cleanup(void *arg)
     atomic_sub(&ec->waiters, 1);
 }
 
-void thr_ec_wait(thr_evc_t *ec, uint64_t key)
+void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
 {
     int canceltype, res;
 
@@ -89,10 +89,16 @@ void thr_ec_wait(thr_evc_t *ec, uint64_t key)
     pthread_cleanup_push(&thr_ec_wait_cleanup, ec);
     pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &canceltype);
 
-    res = futex_wait(&ec->count, (uint32_t)key, NULL);
+    if (timeout > 0) {
+        struct timespec spec = {
+            .tv_sec  = timeout / 1000,
+            .tv_nsec = timeout % 1000,
+        };
+        res = futex_wait(&ec->count, (uint32_t)key, &spec);
+    } else {
+        res = futex_wait(&ec->count, (uint32_t)key, NULL);
+    }
 
     pthread_setcanceltype(canceltype, NULL);
     pthread_cleanup_pop(1);
-    if (res == 0)
-        sched_yield();
 }
