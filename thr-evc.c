@@ -92,7 +92,7 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
     if (timeout > 0) {
         struct timespec spec = {
             .tv_sec  = timeout / 1000,
-            .tv_nsec = timeout % 1000,
+            .tv_nsec = (timeout % 1000) * 1000000,
         };
         res = futex_wait(&ec->count, (uint32_t)key, &spec);
     } else {
