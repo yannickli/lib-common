@@ -185,6 +185,14 @@ void thr_syn__job_prepare(thr_syn_t *syn)
     atomic_add(&syn->pending, 1);
 }
 
+/** \brief low level function to wake up people waiting on a thr_syn_t
+ */
+static ALWAYS_INLINE
+void thr_syn__broacast(thr_syn_t *syn)
+{
+    thr_ec_broadcast(&syn->ec);
+}
+
 /** \brief low level function to notify a task is done.
  */
 static ALWAYS_INLINE
@@ -196,7 +204,7 @@ void thr_syn__job_done(thr_syn_t *syn)
         e_panic("dead-lock detected");
 
     if (res == 0)
-        thr_ec_broadcast(&syn->ec);
+        thr_syn__broacast(syn);
 }
 
 /** \brief wait for the completion of a given macro task.
