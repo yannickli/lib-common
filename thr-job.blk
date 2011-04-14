@@ -643,8 +643,11 @@ void thr_syn_wait(thr_syn_t *syn)
     while (shared_read(syn->pending)) {
         if (likely(thr_job_dequeue()))
             continue;
-        if (self_tid_g == 0)
-            thr_queue_main_drain();
+        if (self_tid_g == 0 && !mpsc_queue_looks_empty(&thr_queue_main_g->q))
+        {
+            thr_queue_drain(thr_queue_main_g);
+            continue;
+        }
         if (!thr_job_steal()) {
             uint64_t key = thr_ec_get(&syn->ec);
 
@@ -652,7 +655,7 @@ void thr_syn_wait(thr_syn_t *syn)
                 continue;
             if (!shared_read(syn->pending))
                 break;
-            thr_ec_wait(&syn->ec, key);
+            thr_ec_timedwait(&syn->ec, key, 100);
         }
     }
 }
