@@ -28,9 +28,11 @@ enum log_file_flags {
 
 enum log_file_event {
     LOG_FILE_CREATE, /* just after a new file creation */
+    LOG_FILE_CLOSE,  /* called before file_close is called */
+#if 0
     LOG_FILE_ROTATE, /* TODO: just before rotation, to allow writing a
                         footer or similar */
-    LOG_FILE_CLOSE,  /* called before file_close is called */
+#endif
 };
 
 typedef struct log_file_t {
