@@ -149,6 +149,10 @@
     static inline int pfx##__from_str2(const char *s, int len, bool *found)  \
     {                                                                        \
         return iop_enum_from_str2(&pfx##__e, s, len, found);                 \
+    }                                                                        \
+    static inline int pfx##__from_lstr(const lstr_t s, bool *found)          \
+    {                                                                        \
+        return iop_enum_from_lstr(&pfx##__e, s, found);                      \
     }
 
 #define IOP_GENERIC(pfx) \

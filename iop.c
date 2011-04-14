@@ -720,6 +720,21 @@ int iop_enum_from_str(const iop_enum_t *e, const char *s, int len, int err)
     return (found) ? val : err;
 }
 
+int iop_enum_from_lstr(const iop_enum_t *e, const lstr_t s, bool *found)
+{
+    *found = false;
+    for (int i = 0; i < e->enum_len; i++) {
+        if (s.len == e->names[i].len
+        &&  strncasecmp(e->names[i].s, s.s, s.len) == 0)
+        {
+            *found = true;
+            return e->values[i];
+        }
+    }
+    return -1;
+}
+
+
 static int iop_skip_field(pstream_t *ps, iop_wire_type_t wt)
 {
     uint32_t u32;

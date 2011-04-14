@@ -187,6 +187,7 @@ static inline lstr_t iop_enum_to_str(const iop_enum_t *ed, int v) {
 }
 int iop_enum_from_str(const iop_enum_t *, const char *s, int len, int err);
 int iop_enum_from_str2(const iop_enum_t *, const char *s, int len, bool *found);
+int iop_enum_from_lstr(const iop_enum_t *, const lstr_t s, bool *found);
 
 #define IOP_UNION_TYPE_TO_STR(_data, _type_desc)                        \
     ({                                                                  \
