@@ -756,6 +756,9 @@ static int ic_event(el_t ev, int fd, short events, el_data_t priv)
 {
     ichannel_t *ic = priv.ptr;
 
+    if (events == EL_EVENTS_NOACT)
+        goto close;
+
     if ((events & POLLIN) && ic_read(ic, events, fd)) {
         if (errno)
             e_trace(1, "ic_read error: %m");
@@ -1118,6 +1121,7 @@ static int __ic_connect(ichannel_t *ic, int flags)
         }
         fd_set_features(sock, O_NONBLOCK);
     }
+    el_fd_watch_activity(ic->elh, POLLINOUT, ic->watch_act);
     if (ic->do_el_unref)
         el_unref(ic->elh);
     return 0;
@@ -1147,6 +1151,7 @@ void ic_spawn(ichannel_t *ic, int fd, ic_creds_f *creds_fn)
     ic->on_creds   = creds_fn;
 
     ic->elh = el_fd_register(fd, POLLIN, &ic_event, ic);
+    el_fd_watch_activity(ic->elh, POLLINOUT, ic->watch_act);
     if (ic->do_el_unref)
         el_unref(ic->elh);
     if (ic_mark_connected(ic, fd)) {

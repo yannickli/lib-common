@@ -133,30 +133,30 @@ struct ichannel_t {
     flag_t cancel_guard :  1;
     flag_t nextslot     : 24;   /**< next slot id to try                    */
 
-    el_t elh;
-    el_t timer;
+    el_t         elh;
+    el_t         timer;
     ichannel_t **owner;        /**< content set to NULL on deletion        */
-    void *priv;                /**< user private data                      */
-    void *peer;                /**< user field to identify the peer        */
+    void        *priv;         /**< user private data                      */
+    void        *peer;         /**< user field to identify the peer        */
 
-    sockunion_t su;
-    int protocol;              /**< transport layer protocol (0 = default) */
+    int          watch_act;    /**< use in el_fd_watch_activity            */
+    int          protocol;     /**< transport layer protocol (0 = default) */
+    sockunion_t  su;
     const qm_t(ic_cbs) *impl;
-    ic_hook_f  *on_event;
-    ic_creds_f *on_creds;
+    ic_hook_f   *on_event;
+    ic_creds_f  *on_creds;
 
     /* private */
     qm_t(ic_msg) queries;      /**< hash of queries waiting for an answer  */
     ic_msg_t *q, **qv, **qend; /**< list of messages to send               */
-    int current_fd;            /**< used to store the current fd           */
-    int pending;
-    int urgents;
+    int          current_fd;   /**< used to store the current fd           */
+    int          pending;
 
     /* Buffers */
-    qv_t(iovec) iov;
-    int  iov_total_len;
-    int  wpos;
-    sb_t rbuf;
+    qv_t(iovec)  iov;
+    int          iov_total_len;
+    int          wpos;
+    sb_t         rbuf;
 
 #ifdef IC_DEBUG_REPLIES
     qh_t(ic_replies) dbg_replies;
@@ -194,6 +194,13 @@ static inline bool ic_is_ready(const ichannel_t *ic) {
 
 static inline bool ic_slot_is_async(uint64_t slot) {
     return slot == 0;
+}
+
+static inline void ic_watch_activity(ichannel_t *ic, int timeout)
+{
+    ic->watch_act = timeout;
+    if (ic->elh)
+        el_fd_watch_activity(ic->elh, POLLINOUT, timeout);
 }
 
 ichannel_t *ic_get_by_id(uint32_t id);
