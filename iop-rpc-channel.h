@@ -196,13 +196,7 @@ static inline bool ic_slot_is_async(uint64_t slot) {
     return slot == 0;
 }
 
-static inline void ic_watch_activity(ichannel_t *ic, int timeout)
-{
-    ic->watch_act = timeout;
-    if (ic->elh)
-        el_fd_watch_activity(ic->elh, POLLINOUT, timeout);
-}
-
+void ic_watch_activity(ichannel_t *ic, int timeout);
 ichannel_t *ic_get_by_id(uint32_t id);
 ichannel_t *ic_init(ichannel_t *);
 void ic_wipe(ichannel_t *);

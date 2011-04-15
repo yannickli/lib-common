@@ -225,6 +225,7 @@ static void ic_msg_filter_on_bye(ichannel_t *ic)
 static int ic_write_stream(ichannel_t *ic, int fd)
 {
     ic_msg_t *msg = *ic->qv;
+    bool timer_restarted = false;
 
     do {
         while (msg && ic->iov_total_len < IC_PKT_MAX) {
@@ -240,6 +241,10 @@ static int ic_write_stream(ichannel_t *ic, int fd)
 
             if (res < 0)
                 return ERR_RW_RETRIABLE(errno) ? 0 : -1;
+            if (ic->timer && !timer_restarted) {
+                el_timer_restart(ic->timer, 0);
+                timer_restarted = true;
+            }
             killed = iovec_vector_kill_first(&ic->iov, res);
             ic->iov_total_len -= res;
 
@@ -290,6 +295,7 @@ static void ic_prepare_cmsg(ichannel_t *ic, struct msghdr *msgh,
 
 static int ic_write_seq(ichannel_t *ic, int fd)
 {
+    bool timer_restarted = false;
     int  fdv[32];
     struct iovec iov[IOV_MAX];
     int fdc = 0, size = 0, wpos = ic->wpos;
@@ -334,6 +340,11 @@ static int ic_write_seq(ichannel_t *ic, int fd)
             res = sendmsg(fd, &msgh, 0);
             if (res < 0)
                 return ERR_RW_RETRIABLE(errno) ? 0 : -1;
+
+            if (ic->timer && !timer_restarted) {
+                el_timer_restart(ic->timer, 0);
+                timer_restarted = true;
+            }
         }
 
         size = fdc = iovc = 0;
@@ -1092,6 +1103,27 @@ static int ic_connecting(el_t ev, int fd, short events, el_data_t priv)
     return 0;
 }
 
+static void ic_watch_act_nop(el_t ev, el_data_t priv)
+{
+    ic_nop(priv.ptr);
+    el_timer_restart(ev, 0);
+}
+
+static void __ic_watch_activity(ichannel_t *ic)
+{
+    int wa = ic->watch_act;
+
+    if (!ic->elh)
+        return;
+
+    el_fd_watch_activity(ic->elh, POLLIN, wa);
+    el_timer_unregister(&ic->timer);
+    if (wa <= 0)
+        return;
+    ic->timer = el_timer_register(0, wa / 3, 0, ic_watch_act_nop, ic);
+    el_unref(ic->timer);
+}
+
 static int __ic_connect(ichannel_t *ic, int flags)
 {
     int type, sock;
@@ -1121,10 +1153,16 @@ static int __ic_connect(ichannel_t *ic, int flags)
         }
         fd_set_features(sock, O_NONBLOCK);
     }
-    el_fd_watch_activity(ic->elh, POLLINOUT, ic->watch_act);
+    __ic_watch_activity(ic);
     if (ic->do_el_unref)
         el_unref(ic->elh);
     return 0;
+}
+
+void ic_watch_activity(ichannel_t *ic, int timeout)
+{
+    ic->watch_act = timeout;
+    __ic_watch_activity(ic);
 }
 
 int ic_connect(ichannel_t *ic)
@@ -1151,7 +1189,7 @@ void ic_spawn(ichannel_t *ic, int fd, ic_creds_f *creds_fn)
     ic->on_creds   = creds_fn;
 
     ic->elh = el_fd_register(fd, POLLIN, &ic_event, ic);
-    el_fd_watch_activity(ic->elh, POLLINOUT, ic->watch_act);
+    __ic_watch_activity(ic);
     if (ic->do_el_unref)
         el_unref(ic->elh);
     if (ic_mark_connected(ic, fd)) {
