@@ -209,50 +209,50 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         return qh->hdr.len;                                                  \
     }
 
-#define __QH_FIND(sfx, pfx, name, constk, key_t, hashK) \
-    static inline int32_t pfx##_find(pfx##_t *qh, constk key_t key) {        \
+#define __QH_FIND(sfx, pfx, name, ckey_t, key_t, hashK) \
+    static inline int32_t pfx##_find(pfx##_t *qh, ckey_t key) {              \
         return qhash_get##sfx(&qh->qh, hashK(&qh->qh, key), key);            \
     }                                                                        \
     static inline int32_t                                                    \
-    pfx##_find_h(pfx##_t *qh, uint32_t h, constk key_t key) {                \
+    pfx##_find_h(pfx##_t *qh, uint32_t h, ckey_t key) {                      \
         return qhash_get##sfx(&qh->qh, h, key);                              \
     }                                                                        \
     static inline int32_t                                                    \
-    pfx##_find_safe(const pfx##_t *qh, constk key_t key) {                   \
+    pfx##_find_safe(const pfx##_t *qh, ckey_t key) {                         \
         return qhash_safe_get##sfx(&qh->qh, hashK(&qh->qh, key), key);       \
     }                                                                        \
     static inline int32_t                                                    \
-    pfx##_find_safe_h(const pfx##_t *qh, uint32_t h, constk key_t key) {     \
+    pfx##_find_safe_h(const pfx##_t *qh, uint32_t h, ckey_t key) {           \
         return qhash_safe_get##sfx(&qh->qh, h, key);                         \
     }
 
-#define __QH_FIND2(sfx, pfx, name, constk, key_t, hashK, iseqK) \
-    static inline int32_t pfx##_find(pfx##_t *qh, constk key_t key) {        \
-        uint32_t (*hf)(const qhash_t *, constk key_t) = &hashK;              \
-        bool     (*ef)(const qhash_t *, constk key_t, constk key_t) = &iseqK;\
+#define __QH_FIND2(sfx, pfx, name, ckey_t, key_t, hashK, iseqK) \
+    static inline int32_t pfx##_find(pfx##_t *qh, ckey_t key) {              \
+        uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
+        bool     (*ef)(const qhash_t *, ckey_t, ckey_t) = &iseqK;            \
         uint32_t h = (*hf)(&qh->qh, key);                                    \
         return qhash_get##sfx(&qh->qh, h, key,                               \
                               (qhash_khash_f *)hf, (qhash_kequ_f *)ef);      \
     }                                                                        \
     static inline int32_t                                                    \
-    pfx##_find_h(pfx##_t *qh, uint32_t h, constk key_t key) {                \
-        uint32_t (*hf)(const qhash_t *, constk key_t) = &hashK;              \
-        bool     (*ef)(const qhash_t *, constk key_t, constk key_t) = &iseqK;\
+    pfx##_find_h(pfx##_t *qh, uint32_t h, ckey_t key) {                      \
+        uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
+        bool     (*ef)(const qhash_t *, ckey_t, ckey_t) = &iseqK;            \
         return qhash_get##sfx(&qh->qh, h, key,                               \
                               (qhash_khash_f *)hf, (qhash_kequ_f *)ef);      \
     }                                                                        \
     static inline int32_t                                                    \
-    pfx##_find_safe(const pfx##_t *qh, constk key_t key) {                   \
-        uint32_t (*hf)(const qhash_t *, constk key_t) = &hashK;              \
-        bool     (*ef)(const qhash_t *, constk key_t, constk key_t) = &iseqK;\
+    pfx##_find_safe(const pfx##_t *qh, ckey_t key) {                         \
+        uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
+        bool     (*ef)(const qhash_t *, ckey_t, ckey_t) = &iseqK;            \
         uint32_t h = (*hf)(&qh->qh, key);                                    \
         return qhash_safe_get##sfx(&qh->qh, h, key,                          \
                               (qhash_khash_f *)hf, (qhash_kequ_f *)ef);      \
     }                                                                        \
     static inline int32_t                                                    \
-    pfx##_find_safe_h(const pfx##_t *qh, uint32_t h, constk key_t key) {     \
-        uint32_t (*hf)(const qhash_t *, constk key_t) = &hashK;              \
-        bool     (*ef)(const qhash_t *, constk key_t, constk key_t) = &iseqK;\
+    pfx##_find_safe_h(const pfx##_t *qh, uint32_t h, ckey_t key) {           \
+        uint32_t (*hf)(const qhash_t *, ckey_t) = &hashK;                    \
+        bool     (*ef)(const qhash_t *, ckey_t, ckey_t) = &iseqK;            \
         return qhash_safe_get##sfx(&qh->qh, h, key,                          \
                                    (qhash_khash_f *)hf, (qhash_kequ_f *)ef); \
     }
@@ -281,7 +281,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 
 #define __QH_IKEY(sfx, pfx, name, key_t)  \
     __QH_BASE(sfx, pfx, name, key_t, void, 0);                               \
-    __QH_FIND(sfx, pfx, name, const, key_t, qhash_hash_u##sfx);              \
+    __QH_FIND(sfx, pfx, name, key_t const, key_t, qhash_hash_u##sfx);        \
                                                                              \
     static inline uint32_t                                                   \
     __##pfx##_put_h(pfx##_t *qh, uint32_t h, key_t key, uint32_t fl) {       \
@@ -294,15 +294,14 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     }                                                                        \
     __QH_ADD(sfx, pfx, name, key_t, qhash_hash_u##sfx)
 
-#define __QH_PKEY(pfx, name, constk, key_t, hashK, iseqK) \
+#define __QH_PKEY(pfx, name, ckey_t, key_t, hashK, iseqK) \
     __QH_BASE(_ptr, pfx, name, key_t *, void, 0);                            \
-    __QH_FIND2(_ptr, pfx, name, constk, key_t *, hashK, iseqK);              \
+    __QH_FIND2(_ptr, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
                                                                              \
     static inline uint32_t                                                   \
     __##pfx##_put_h(pfx##_t *qh, uint32_t h, key_t *key, uint32_t fl) {      \
-        uint32_t (*hf)(const qhash_t *, constk key_t*) = &hashK;             \
-        bool     (*ef)(const qhash_t *, constk key_t*, constk key_t*) =      \
-            &iseqK;                                                          \
+        uint32_t (*hf)(const qhash_t *, ckey_t *) = &hashK;                  \
+        bool     (*ef)(const qhash_t *, ckey_t *, ckey_t *) = &iseqK;        \
         uint32_t pos = __qhash_put_ptr(&qh->qh, h, key, fl,                  \
                               (qhash_khash_f *)hf, (qhash_kequ_f *)ef);      \
                                                                              \
@@ -313,16 +312,14 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     }                                                                        \
     __QH_ADD(_ptr, pfx, name, key_t *, hashK)
 
-#define __QH_VKEY(pfx, name, constk, key_t, hashK, iseqK) \
+#define __QH_VKEY(pfx, name, ckey_t, key_t, hashK, iseqK) \
     __QH_BASE(_vec, pfx, name, key_t, void, 0);                              \
-    __QH_FIND2(_vec, pfx, name, constk, key_t *, hashK, iseqK);              \
+    __QH_FIND2(_vec, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
                                                                              \
     static inline uint32_t                                                   \
-    __##pfx##_put_h(pfx##_t *qh, uint32_t h,                                 \
-                    constk key_t *key, uint32_t fl) {                        \
-        uint32_t (*hf)(const qhash_t *, constk key_t*) = &hashK;             \
-        bool     (*ef)(const qhash_t *, constk key_t*, constk key_t*) =      \
-            &iseqK;                                                          \
+    __##pfx##_put_h(pfx##_t *qh, uint32_t h, ckey_t *key, uint32_t fl) {     \
+        uint32_t (*hf)(const qhash_t *, ckey_t*) = &hashK;                   \
+        bool     (*ef)(const qhash_t *, ckey_t*, ckey_t*) =  &iseqK;         \
         uint32_t pos = __qhash_put_vec(&qh->qh, h, key, fl,                  \
                                        (qhash_khash_f *)hf,                  \
                                        (qhash_kequ_f *)ef);                  \
@@ -332,7 +329,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         }                                                                    \
         return pos;                                                          \
     }                                                                        \
-    __QH_ADD(_vec, pfx, name, constk key_t *, hashK)
+    __QH_ADD(_vec, pfx, name, ckey_t *, hashK)
 
 /* }}} */
 /*----- macros to define QM's -{{{-*/
@@ -360,7 +357,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 
 #define __QM_IKEY(sfx, pfx, name, key_t, val_t)  \
     __QH_BASE(sfx, pfx, name, key_t, val_t, sizeof(val_t));                  \
-    __QH_FIND(sfx, pfx, name, const, key_t, qhash_hash_u##sfx);              \
+    __QH_FIND(sfx, pfx, name, key_t const, key_t, qhash_hash_u##sfx);        \
                                                                              \
     static inline uint32_t                                                   \
     __##pfx##_put_h(pfx##_t *qh, uint32_t h,                                 \
@@ -375,16 +372,15 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     }                                                                        \
     __QM_ADD(sfx, pfx, name, key_t, val_t, qhash_hash_u##sfx)
 
-#define __QM_PKEY(pfx, name, constk, key_t, val_t, hashK, iseqK) \
+#define __QM_PKEY(pfx, name, ckey_t, key_t, val_t, hashK, iseqK) \
     __QH_BASE(_ptr, pfx, name, key_t *, val_t, sizeof(val_t));               \
-    __QH_FIND2(_ptr, pfx, name, constk, key_t *, hashK, iseqK);              \
+    __QH_FIND2(_ptr, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
                                                                              \
     static inline uint32_t                                                   \
     __##pfx##_put_h(pfx##_t *qh, uint32_t h,                                 \
                     key_t *key, val_t v, uint32_t fl) {                      \
-        uint32_t (*hf)(const qhash_t *, constk key_t*) = &hashK;             \
-        bool     (*ef)(const qhash_t *, constk key_t*, constk key_t*) =      \
-            &iseqK;                                                          \
+        uint32_t (*hf)(const qhash_t *, ckey_t*) = &hashK;                   \
+        bool     (*ef)(const qhash_t *, ckey_t*, ckey_t*) = &iseqK;          \
         uint32_t pos = __qhash_put_ptr(&qh->qh, h, key, fl,                  \
                               (qhash_khash_f *)hf, (qhash_kequ_f *)ef);      \
                                                                              \
@@ -396,15 +392,14 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     }                                                                        \
     __QM_ADD(_ptr, pfx, name, key_t *, val_t, hashK)
 
-#define __QM_VKEY(pfx, name, constk, key_t, val_t, hashK, iseqK) \
+#define __QM_VKEY(pfx, name, ckey_t, key_t, val_t, hashK, iseqK) \
     __QH_BASE(_vec, pfx, name, key_t, val_t, sizeof(val_t));                 \
-    __QH_FIND2(_vec, pfx, name, constk, key_t *, hashK, iseqK);              \
+    __QH_FIND2(_vec, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
     static inline uint32_t                                                   \
     __##pfx##_put_h(pfx##_t *qh, uint32_t h,                                 \
-                    constk key_t *key, val_t v, uint32_t fl) {               \
-        uint32_t (*hf)(const qhash_t *, constk key_t*) = &hashK;             \
-        bool     (*ef)(const qhash_t *, constk key_t*, constk key_t*) =      \
-            &iseqK;                                                          \
+                    ckey_t *key, val_t v, uint32_t fl) {                     \
+        uint32_t (*hf)(const qhash_t *, ckey_t*) = &hashK;                   \
+        bool     (*ef)(const qhash_t *, ckey_t*, ckey_t*) = &iseqK;          \
         uint32_t pos = __qhash_put_vec(&qh->qh, h, key, fl,                  \
                                        (qhash_khash_f *)hf,                  \
                                        (qhash_kequ_f *)ef);                  \
@@ -415,7 +410,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         }                                                                    \
         return pos;                                                          \
     }                                                                        \
-    __QM_ADD(_vec, pfx, name, constk key_t *, val_t, hashK)
+    __QM_ADD(_vec, pfx, name, ckey_t *, val_t, hashK)
 
 /* }}} */
 
@@ -432,19 +427,17 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 
 #define qh_k32_t(name)                  __QH_IKEY(32, qh_##name, name, uint32_t)
 #define qh_k64_t(name)                  __QH_IKEY(64, qh_##name, name, uint64_t)
-#define qh_kvec_t(name, key_t, hf, ef)  __QH_VKEY(qh_##name, name, const, key_t, hf, ef)
-#define qh_kptr_t(name, key_t, hf, ef)  __QH_PKEY(qh_##name, name, const, key_t, hf, ef)
-#define qh_kvec_t(name, key_t, hf, ef)  __QH_VKEY(qh_##name, name, const, key_t, hf, ef)
-#define qh_kptr_t(name, key_t, hf, ef)  __QH_PKEY(qh_##name, name, const, key_t, hf, ef)
-#define qh_kvec_ckey_t(name, key_t, hf, ef)  __QH_VKEY(qh_##name, name, , const key_t, hf, ef)
-#define qh_kptr_ckey_t(name, key_t, hf, ef)  __QH_PKEY(qh_##name, name, , const key_t, hf, ef)
+#define qh_kvec_t(name, key_t, hf, ef)  __QH_VKEY(qh_##name, name, key_t const, key_t, hf, ef)
+#define qh_kptr_t(name, key_t, hf, ef)  __QH_PKEY(qh_##name, name, key_t const, key_t, hf, ef)
+#define qh_kvec_t(name, key_t, hf, ef)  __QH_VKEY(qh_##name, name, key_t const, key_t, hf, ef)
+#define qh_kptr_t(name, key_t, hf, ef)  __QH_PKEY(qh_##name, name, key_t const, key_t, hf, ef)
+#define qh_kptr_ckey_t(name, key_t, hf, ef)  __QH_PKEY(qh_##name, name, key_t const, key_t const, hf, ef)
 
 #define qm_k32_t(name, val_t)                  __QM_IKEY(32, qm_##name, name, uint32_t, val_t)
 #define qm_k64_t(name, val_t)                  __QM_IKEY(64, qm_##name, name, uint64_t, val_t)
-#define qm_kvec_t(name, key_t, val_t, hf, ef)  __QM_VKEY(qm_##name, name, const, key_t, val_t, hf, ef)
-#define qm_kptr_t(name, key_t, val_t, hf, ef)  __QM_PKEY(qm_##name, name, const, key_t, val_t, hf, ef)
-#define qm_kvec_ckey_t(name, key_t, val_t, hf, ef)  __QM_VKEY(qm_##name, name, , const key_t, val_t, hf, ef)
-#define qm_kptr_ckey_t(name, key_t, val_t, hf, ef)  __QM_PKEY(qm_##name, name, , const key_t, val_t, hf, ef)
+#define qm_kvec_t(name, key_t, val_t, hf, ef)  __QM_VKEY(qm_##name, name, key_t const, key_t, val_t, hf, ef)
+#define qm_kptr_t(name, key_t, val_t, hf, ef)  __QM_PKEY(qm_##name, name, key_t const, key_t, val_t, hf, ef)
+#define qm_kptr_ckey_t(name, key_t, val_t, hf, ef)  __QM_PKEY(qm_##name, name, key_t const, key_t const, val_t, hf, ef)
 
 #define QH_INIT(name, var, cacheh) \
     { .qh = {                                   \

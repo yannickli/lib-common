@@ -213,7 +213,7 @@ void tpl_add_tpls(tpl_t *out, tpl_t **tpls, int nb)
     int pos = out->u.blocks.len;
 
     assert (tpl_can_append(out));
-    qv_splice(tpl, &out->u.blocks, pos, 0, (const tpl_t **)tpls, nb);
+    qv_splice(tpl, &out->u.blocks, pos, 0, (tpl_t *const*)tpls, nb);
     for (int i = pos; i < pos + nb; i++) {
         out->u.blocks.tab[i]->refcnt++;
     }

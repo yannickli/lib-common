@@ -127,16 +127,16 @@ qvector_splice(qvector_t *vec, size_t v_size,
 }
 
 #ifdef __has_blocks
-#define __QVECTOR_BASE_BLOCKS(pfx, const, val_t) \
+#define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t) \
     static inline void pfx##_sort(pfx##_t *vec,                             \
-        int (BLOCK_CARET cmp)(const val_t *, const val_t *)) {              \
+        int (BLOCK_CARET cmp)(cval_t *, cval_t *)) {                        \
         __qvector_sort(&vec->qv, sizeof(val_t), (qvector_cmp_f)cmp);        \
     }
 #else
-#define __QVECTOR_BASE_BLOCKS(pfx, const, val_t)
+#define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)
 #endif
 
-#define __QVECTOR_BASE(pfx, const, val_t) \
+#define __QVECTOR_BASE(pfx, cval_t, val_t) \
     typedef union pfx##_t {                                                 \
         qvector_t qv;                                                       \
         STRUCT_QVECTOR_T(val_t);                                            \
@@ -171,8 +171,7 @@ qvector_splice(qvector_t *vec, size_t v_size,
         vec->len -= at;                                                     \
     }                                                                       \
     static inline val_t *                                                   \
-    pfx##_splice(pfx##_t *vec, int pos, int len,                            \
-                 const val_t *tab, int dlen) {                              \
+    pfx##_splice(pfx##_t *vec, int pos, int len, cval_t *tab, int dlen) {   \
         void *res = qvector_splice(&vec->qv, sizeof(val_t), pos, len,       \
                                    tab, dlen);                              \
         return cast(val_t *, res);                                          \
@@ -185,10 +184,9 @@ qvector_splice(qvector_t *vec, size_t v_size,
         void *res = qvector_growlen(&vec->qv, sizeof(val_t), extra);        \
         return cast(val_t *, res);                                          \
     }                                                                       \
-    __QVECTOR_BASE_BLOCKS(pfx, const, val_t)
+    __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)
 
-#define qvector_t(n, val_t)                 __QVECTOR_BASE(qv_##n, const, val_t)
-#define qvector_const_t(n, val_t)           __QVECTOR_BASE(qv_##n, , const val_t)
+#define qvector_t(n, val_t)                 __QVECTOR_BASE(qv_##n, val_t const, val_t)
 
 #define qv_t(n)                             qv_##n##_t
 #define __qv_sz(n)                          fieldsizeof(qv_t(n), tab[0])
@@ -260,5 +258,5 @@ qvector_t(lstr,   lstr_t);
 qvector_t(clstr,  lstr_t);
 #endif
 
-qvector_const_t(cvoid,  void *);
-qvector_const_t(cstr,   char *);
+qvector_t(cvoid, const void *);
+qvector_t(cstr,  const char *);
