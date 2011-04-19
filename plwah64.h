@@ -128,6 +128,35 @@ typedef struct plwah64_map_t {
         __word;                                                              \
     })
 
+#define BUILD_POS(i, Dest, Src)                                              \
+      case i: {                                                              \
+        size_t __bit = bsf64(Src);                                           \
+        (Dest).position##i = __bit + 1;                                      \
+        (Src) &= ~(UINT64_C(1) << __bit);                                    \
+      }
+
+#define BUILD_POSITIONS(Dest, Src, DONE_CASE, ERR_CASE)                      \
+    do {                                                                     \
+        uint64_t __word = (Src);                                             \
+        if ((Dest).val) {                                                    \
+            __word |= UINT64_C(1) << 63;                                     \
+            __word  = ~__word;                                               \
+        }                                                                    \
+        switch (bitcount64(__word)) {                                        \
+          BUILD_POS(0, Dest, __word);                                        \
+          BUILD_POS(1, Dest, __word);                                        \
+          BUILD_POS(2, Dest, __word);                                        \
+          BUILD_POS(3, Dest, __word);                                        \
+          BUILD_POS(4, Dest, __word);                                        \
+          BUILD_POS(5, Dest, __word);                                        \
+          DONE_CASE;                                                         \
+          break;                                                             \
+         default:                                                            \
+          ERR_CASE;                                                          \
+          break;                                                             \
+        }                                                                    \
+    } while (0)
+
 static inline
 void plwah64_append_fill(qv_t(plwah64) *map, plwah64_fill_t fill)
 {
@@ -165,33 +194,8 @@ void plwah64_append_literal(qv_t(plwah64) *map, plwah64_literal_t lit)
     }
     last = qv_last(plwah64, map);
     if (last->is_fill && last->fillp.positions == 0) {
-        uint64_t word = lit.bits;;
-        if (last->fill.val == 1) {
-            word = ~word;
-        };
-#define FIND_AND_SET_POS(i)  do {                                            \
-            size_t __bit = bsf64(word);                                      \
-            last->fill.position##i = __bit + 1;                              \
-            word = word & ~(1UL << __bit);                                   \
-        } while (0)
-        switch (bitcount64(word)) {
-          case 6:
-            FIND_AND_SET_POS(5);
-          case 5:
-            FIND_AND_SET_POS(4);
-          case 4:
-            FIND_AND_SET_POS(3);
-          case 3:
-            FIND_AND_SET_POS(2);
-          case 2:
-            FIND_AND_SET_POS(1);
-          case 1:
-            FIND_AND_SET_POS(0);
-            return;
-          case 0:
-            e_panic("This should not happen");
-#undef FIND_AND_SET_POS
-      }
+        BUILD_POSITIONS(last->fill, lit.bits, return,
+                        e_panic("This should not happen"));
     }
     qv_append(plwah64, map, (plwah64_t)lit);
 }
@@ -632,33 +636,8 @@ void plwah64_set_(plwah64_map_t *map, uint32_t pos, bool set)
             if (i > 0) {
                 plwah64_t prev = map->bits.tab[i - 1];
                 if (prev.is_fill && prev.fillp.positions == 0) {
-                    if (prev.fill.val) {
-                        res_mask |= UINT64_C(1) << 63;
-                        res_mask  = ~res_mask;
-                    }
-#define FIND_AND_SET_POS(i)  do {                                            \
-                        size_t __bit = bsf64(res_mask);                      \
-                        map->bits.tab[i - 1].fill.position##i = __bit + 1;   \
-                        res_mask = res_mask & ~(1UL << __bit);               \
-                    } while (0)
-                    switch (bitcount64(res_mask)) {
-                      case 6:
-                        FIND_AND_SET_POS(5);
-                      case 5:
-                        FIND_AND_SET_POS(4);
-                      case 4:
-                        FIND_AND_SET_POS(3);
-                      case 3:
-                        FIND_AND_SET_POS(2);
-                      case 2:
-                        FIND_AND_SET_POS(1);
-                      case 1:
-                        FIND_AND_SET_POS(0);
-                        qv_remove(plwah64, &map->bits, i);
-                      case 0:
-                        break;
-                     }
-#undef FIND_AND_SET_POS
+                    BUILD_POSITIONS(map->bits.tab[i - 1].fill, res_mask,
+                                    qv_remove(plwah64, &map->bits, i),);
                 }
             }
             if (map->bits.len <= i) {
@@ -677,34 +656,8 @@ void plwah64_set_(plwah64_map_t *map, uint32_t pos, bool set)
                     word = map->bits.tab[i];
                 } else
                 if (!next.is_fill) {
-                    res_mask = next.bits;
-                    if (word.fill.val) {
-                        res_mask |= UINT64_C(1) << 63;
-                        res_mask  = ~res_mask;
-                    }
-#define FIND_AND_SET_POS(i)  do {                                            \
-                        size_t __bit = bsf64(res_mask);                      \
-                        map->bits.tab[i].fill.position##i = __bit + 1;       \
-                        res_mask = res_mask & ~(1UL << __bit);               \
-                    } while (0)
-                    switch (bitcount64(res_mask)) {
-                      case 6:
-                        FIND_AND_SET_POS(5);
-                      case 5:
-                        FIND_AND_SET_POS(4);
-                      case 4:
-                        FIND_AND_SET_POS(3);
-                      case 3:
-                        FIND_AND_SET_POS(2);
-                      case 2:
-                        FIND_AND_SET_POS(1);
-                      case 1:
-                        FIND_AND_SET_POS(0);
-                        qv_remove(plwah64, &map->bits, i + 1);
-                      case 0:
-                        break;
-                    }
-#undef FIND_AND_SET_POS
+                    BUILD_POSITIONS(map->bits.tab[i].fill, next.bits,
+                                    qv_remove(plwah64, &map->bits, i + 1),);
                 }
             }
             if (i > 0) {
@@ -725,6 +678,9 @@ void plwah64_set_(plwah64_map_t *map, uint32_t pos, bool set)
 
 #undef APPLY_POS
 #undef APPLY_POSITIONS
+
+#undef BUILD_POS
+#undef BUILD_POSITIONS
 
 static inline
 void plwah64_set(plwah64_map_t *map, uint32_t pos)
