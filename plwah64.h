@@ -361,8 +361,6 @@ int plwah64_build_bit(plwah64_t data[static 2], uint32_t pos)
     }
 }
 
-/* }}} */
-
 static inline
 void plwah64_add_(plwah64_map_t *map, const byte *bits, uint64_t bit_len,
                   bool fill_with_1)
@@ -449,6 +447,8 @@ void plwah64_add_(plwah64_map_t *map, const byte *bits, uint64_t bit_len,
 #undef READ_BITS
 }
 
+/* }}} */
+
 static inline
 void plwah64_add(plwah64_map_t *map, const byte *bits, uint64_t bit_len)
 {
@@ -468,7 +468,7 @@ void plwah64_add1s(plwah64_map_t *map, uint64_t bit_len)
 }
 
 static inline
-void plwah64_reset(plwah64_map_t *map)
+void plwah64_reset_map(plwah64_map_t *map)
 {
     map->bits.len = 0;
     map->bit_len  = 0;
