@@ -602,9 +602,19 @@ void plwah64_set_(plwah64_map_t *map, uint32_t pos, bool set)
             pos -= count;
             if (pos < 63 && word.fillp.positions != 0) {
 #define CASE(i, Val)  if ((uint64_t)(Val) == pos) return;
-                int unused_slot = READ_POSITIONS(word.fill, CASE) - 1;
-#undef CASE
-                if (unused_slot < 0) {
+#define SET_POS(i)                                                           \
+                  case i:                                                    \
+                    map->bits.tab[i].fill.position##i = pos + 1;             \
+                    return;
+
+                switch (READ_POSITIONS(word.fill, CASE) - 1) {
+                  SET_POS(0);
+                  SET_POS(1);
+                  SET_POS(2);
+                  SET_POS(3);
+                  SET_POS(4);
+                  SET_POS(5);
+                  default: {
                     plwah64_t new_word = APPLY_POSITIONS(word.fill);
                     if (set) {
                         new_word.word |= UINT64_C(1) << pos;
@@ -614,22 +624,10 @@ void plwah64_set_(plwah64_map_t *map, uint32_t pos, bool set)
                     qv_insert(plwah64, &map->bits, i + 1, new_word);
                     map->bits.tab[i].fillp.positions = 0;
                     return;
-                } else {
-#define SET_POS(i)                                                           \
-                    case i:                                                  \
-                      map->bits.tab[i].fill.position##i = pos + 1;           \
-                      return;
-                    switch (unused_slot) {
-                      SET_POS(0);
-                      SET_POS(1);
-                      SET_POS(2);
-                      SET_POS(3);
-                      SET_POS(4);
-                      SET_POS(5);
-                    }
-#undef SET_POS
-                    e_panic("This should not happen");
+                  } break;
                 }
+#undef SET_POS
+#undef CASE
             }
         } else
         if (pos < 63) {
