@@ -14,6 +14,8 @@
 #ifndef QKV_PLWAH64_H
 #define QKV_PLWAH64_H
 
+#include <lib-common/container.h>
+
 typedef struct plwah64_literal_t {
 #if __BYTE_ORDER == __BIG_ENDIAN
     uint64_t is_fill : 1;
@@ -29,38 +31,47 @@ typedef struct plwah64_fill_t {
     uint64_t is_fill   : 1; /* Always 1 */
     uint64_t val       : 1; /* 0 describe a sequence of 0,
                                1 describe a sequence of 1 */
-    union {
-        struct {
-            uint64_t position5 : 6;
-            uint64_t position4 : 6;
-            uint64_t position3 : 6;
-            uint64_t position2 : 6;
-            uint64_t position1 : 6;
-            uint64_t position0 : 6;
-        };
-        uint64_t positions : 36;
-    };
+    uint64_t position5 : 6;
+    uint64_t position4 : 6;
+    uint64_t position3 : 6;
+    uint64_t position2 : 6;
+    uint64_t position1 : 6;
+    uint64_t position0 : 6;
     uint64_t counter   : 26; /* Can adress at most 63 * (2^26 - 1) bits in a
                                 single word. */
 #else
     uint64_t counter   : 26; /* Can adress at most 63 * (2^26 - 1) bits in a
                                 single word. */
-    union {
-        struct {
-            uint64_t position0 : 6;
-            uint64_t position1 : 6;
-            uint64_t position2 : 6;
-            uint64_t position3 : 6;
-            uint64_t position4 : 6;
-            uint64_t position5 : 6;
-        };
-        uint64_t positions : 36;
-    };
+    uint64_t position0 : 6;
+    uint64_t position1 : 6;
+    uint64_t position2 : 6;
+    uint64_t position3 : 6;
+    uint64_t position4 : 6;
+    uint64_t position5 : 6;
     uint64_t val       : 1; /* 0 describe a sequence of 0,
                                1 describe a sequence of 1 */
     uint64_t is_fill   : 1; /* Always 1 */
 #endif
 } plwah64_fill_t;
+
+typedef struct plwah64_fillp_t {
+#if __BYTE_ORDER == __BIG_ENDIAN
+    uint64_t is_fill   : 1; /* Always 1 */
+    uint64_t val       : 1; /* 0 describe a sequence of 0,
+                               1 describe a sequence of 1 */
+    uint64_t positions : 36;
+    uint64_t counter   : 26; /* Can adress at most 63 * (2^26 - 1) bits in a
+                                single word. */
+#else
+    uint64_t counter   : 26; /* Can adress at most 63 * (2^26 - 1) bits in a
+                                single word. */
+    uint64_t positions : 36;
+    uint64_t val       : 1; /* 0 describe a sequence of 0,
+                               1 describe a sequence of 1 */
+    uint64_t is_fill   : 1; /* Always 1 */
+#endif
+} plwah64_fillp_t;
+
 #define PLWAH64_FILL_INIT(Type, Count)                                       \
         { .is_fill = 1, .val = Type, .counter = Count }
 #define PLWAH64_FILL_INIT_V(Type, Count)                                     \
@@ -72,51 +83,63 @@ typedef union plwah64_t {
     uint64_t          word;
     plwah64_literal_t lit;
     plwah64_fill_t    fill;
+    plwah64_fillp_t   fillp;
+    struct {
+#if __BYTE_ORDER == __BIG_ENDIAN
+        uint64_t is_fill : 1;
+        uint64_t bits    : 63;
+#else
+        uint64_t bits    : 63;
+        uint64_t is_fill : 1; /* Always 0 */
+#endif
+    };
 } plwah64_t;
+qvector_t(plwah64, plwah64_t);
 
 static inline
-void plwah64_append_fill(plwah64_t *map, int *len, plwah64_fill_t fill)
+void plwah64_append_fill(qv_t(plwah64) *map, plwah64_fill_t fill)
 {
-    plwah64_t last;
+    plwah64_t  elm = { .fill = fill };
+    plwah64_t *last;
     assert (fill.is_fill);
-    if (*len == 0) {
-        map[*len++].fill = fill;
+    if (map->len == 0) {
+        qv_append(plwah64, map, elm);
         return;
     }
-    last = map[*len - 1];
-    if (last.fill.is_fill && last.fill.val == fill.val
-    && last.fill.positions == 0) {
-        map[*len - 1].fill.counter += fill.counter;
+    last = qv_last(plwah64, map);
+    if (last->is_fill && last->fill.val == fill.val && !last->fillp.positions) {
+        last->fill.counter   += fill.counter;
+        last->fillp.positions = elm.fillp.positions;
     } else {
-        map[*len++].fill = fill;
+        qv_append(plwah64, map, elm);
     }
 }
 
 static inline
-void plwah64_append_literal(plwah64_t *map, int *len, plwah64_literal_t lit)
+void plwah64_append_literal(qv_t(plwah64) *map, plwah64_literal_t lit)
 {
-    plwah64_t last;
+    plwah64_t *last;
     assert (!lit.is_fill);
     if (lit.bits == 0) {
-        plwah64_append_fill(map, len, PLWAH64_FILL_INIT_V(0, 1));
+        plwah64_append_fill(map, PLWAH64_FILL_INIT_V(0, 1));
         return;
     } else
     if (lit.bits == 0x7fffffffffffffffUL) {
-        plwah64_append_fill(map, len, PLWAH64_FILL_INIT_V(1, 1));
+        plwah64_append_fill(map, PLWAH64_FILL_INIT_V(1, 1));
     }
-    if (*len == 0) {
-        map[*len++].lit = lit;
+    if (map->len == 0) {
+        qv_append(plwah64, map, (plwah64_t)lit);
         return;
     }
-    last = map[*len - 1];
-    if (last.fill.is_fill && last.fill.positions == 0) {
+    last = qv_last(plwah64, map);
+    if (last->is_fill && last->fillp.positions == 0) {
         uint64_t word = lit.bits;;
-        if (last.fill.val == 1) {
+        if (last->fill.val == 1) {
             word = ~word;
         };
 #define FIND_AND_SET_POS(i)  do {                                            \
             size_t __bit = bsf64(word);                                      \
-            last.fill.position##i = __bit + 1;                               \
+            last->fill.position##i = __bit + 1;                              \
             word = word & ~(1UL << __bit);                                   \
         } while (0)
         switch (bitcount64(word)) {
@@ -138,19 +161,19 @@ void plwah64_append_literal(plwah64_t *map, int *len, plwah64_literal_t lit)
 #undef FIND_AND_SET_POS
       }
     }
-    map[*len++].lit = lit;
+    qv_append(plwah64, map, (plwah64_t)lit);
 }
 
 static inline
-void plwah64_append_word(plwah64_t *map, int *len, plwah64_t word)
+void plwah64_append_word(qv_t(plwah64) *map, plwah64_t word)
 {
     STATIC_ASSERT(sizeof(plwah64_t) == sizeof(uint64_t));
     STATIC_ASSERT(sizeof(plwah64_literal_t) == sizeof(uint64_t));
     STATIC_ASSERT(sizeof(plwah64_fill_t) == sizeof(uint64_t));
-    if (word.lit.is_fill) {
-        plwah64_append_fill(map, len, word.fill);
+    if (word.is_fill) {
+        plwah64_append_fill(map, word.fill);
     } else {
-        plwah64_append_literal(map, len, word.lit);
+        plwah64_append_literal(map, word.lit);
     }
 }
 
@@ -171,7 +194,7 @@ void plwah64_append_word(plwah64_t *map, int *len, plwah64_t word)
         }
 #define NEXT(V)                                                              \
         if (V##pos == 0) {                                                   \
-            if (V##word.fill.is_fill && V##word.fill.positions) {            \
+            if (V##word.fill.is_fill && V##word.fillp.positions) {           \
                 uint64_t word = 0;                                           \
                 APPLY_POS(V, 0);                                             \
                 APPLY_POS(V, 1);                                             \
@@ -186,20 +209,17 @@ void plwah64_append_word(plwah64_t *map, int *len, plwah64_t word)
                 V++;                                                         \
             }                                                                \
         }
-#define SWAP_VARS(x, y)  do {                                                \
-            typeof(x) __tmp = x;                                             \
-            x = y;                                                           \
-            y = __tmp;                                                       \
-        } while (0)
-#define SWAP()  do {                                                         \
-            SWAP_VARS(x, y);                                                 \
-            SWAP_VARS(xlen, ylen);                                           \
-            SWAP_VARS(xpos, ypos);                                           \
-            SWAP_VARS(xword, yword);                                         \
+
+#define TYPSWAP(x, y)  SWAP(typeof(x), x, y)
+#define SWAP_VARS()  do {                                                    \
+            TYPSWAP(x, y);                                                   \
+            TYPSWAP(xlen, ylen);                                             \
+            TYPSWAP(xpos, ypos);                                             \
+            TYPSWAP(xword, yword);                                           \
         } while (0)
 
 static inline
-void plwah64_or(plwah64_t *map, int *len, const plwah64_t *x, int xlen,
+void plwah64_or(qv_t(plwah64) *map, const plwah64_t *x, int xlen,
                 const plwah64_t *y, int ylen)
 {
     int xpos = 0;
@@ -217,22 +237,22 @@ void plwah64_or(plwah64_t *map, int *len, const plwah64_t *x, int xlen,
         if (xword.fill.is_fill && yword.fill.is_fill) {
             int words = MIN(xpos, ypos);
             int type  = !!(xword.fill.val | yword.fill.val);
-            plwah64_append_fill(map, len, PLWAH64_FILL_INIT_V(type, words));
+            plwah64_append_fill(map, PLWAH64_FILL_INIT_V(type, words));
             xpos -= words;
             ypos -= words;
         } else {
             if ((xword.fill.is_fill && xword.fill.val)
             || (yword.fill.is_fill && yword.fill.val)) {
-                plwah64_append_fill(map, len, PLWAH64_FILL_INIT_V(1, 1));
+                plwah64_append_fill(map, PLWAH64_FILL_INIT_V(1, 1));
             } else
             if (xword.fill.is_fill) {
-                plwah64_append_literal(map, len, yword.lit);
+                plwah64_append_literal(map, yword.lit);
             } else
             if (yword.fill.is_fill) {
-                plwah64_append_literal(map, len, xword.lit);
+                plwah64_append_literal(map, xword.lit);
             } else {
                 xword.word |= yword.word;
-                plwah64_append_literal(map, len, yword.lit);
+                plwah64_append_literal(map, yword.lit);
             }
             xpos--;
             ypos--;
@@ -241,21 +261,21 @@ void plwah64_or(plwah64_t *map, int *len, const plwah64_t *x, int xlen,
         NEXT(y);
     }
     if (xlen == 0) {
-        SWAP();
+        SWAP_VARS();
     }
     if (xpos > 0) {
         if (xword.fill.is_fill) {
             xword.fill.counter = xpos;
         }
-        plwah64_append_word(map, len, xword);
+        plwah64_append_word(map, xword);
     }
     for (int i = 0; i < xlen; i++) {
-        plwah64_append_word(map, len, x[i]);
+        plwah64_append_word(map, x[i]);
     }
 }
 
 static inline
-void plwah64_and(plwah64_t *map, int *len, const plwah64_t *x, int xlen,
+void plwah64_and(qv_t(plwah64) *map, const plwah64_t *x, int xlen,
                  const plwah64_t *y, int ylen)
 {
     int xpos = 0;
@@ -273,22 +293,22 @@ void plwah64_and(plwah64_t *map, int *len, const plwah64_t *x, int xlen,
         if (xword.fill.is_fill && yword.fill.is_fill) {
             int words = MIN(xpos, ypos);
             int type  = !!(xword.fill.val & yword.fill.val);
-            plwah64_append_fill(map, len, PLWAH64_FILL_INIT_V(type, words));
+            plwah64_append_fill(map, PLWAH64_FILL_INIT_V(type, words));
             xpos -= words;
             ypos -= words;
         } else {
             if ((xword.fill.is_fill && !xword.fill.val)
             || (yword.fill.is_fill && !yword.fill.val)) {
-                plwah64_append_fill(map, len, PLWAH64_FILL_INIT_V(1, 0));
+                plwah64_append_fill(map, PLWAH64_FILL_INIT_V(1, 0));
             } else
             if (xword.fill.is_fill) {
-                plwah64_append_literal(map, len, yword.lit);
+                plwah64_append_literal(map, yword.lit);
             } else
             if (yword.fill.is_fill) {
-                plwah64_append_literal(map, len, xword.lit);
+                plwah64_append_literal(map, xword.lit);
             } else {
                 xword.word &= yword.word;
-                plwah64_append_literal(map, len, yword.lit);
+                plwah64_append_literal(map, yword.lit);
             }
             xpos--;
             ypos--;
@@ -298,7 +318,6 @@ void plwah64_and(plwah64_t *map, int *len, const plwah64_t *x, int xlen,
     }
 }
 
-#undef SWAP
 #undef SWAP_VARS
 #undef NEXT
 #undef APPLY_POS
@@ -341,7 +360,7 @@ bool plwah64_get(const plwah64_t *map, int len, uint32_t pos)
                 return !!word.fill.val;
             }
             pos -= count;
-            if (pos < 63 && word.fill.positions != 0) {
+            if (pos < 63 && word.fillp.positions != 0) {
 #define CHECK_POS(i)                                                         \
                 if (word.fill.position##i == pos + 1) {                      \
                     return !word.fill.val;                                   \
@@ -363,6 +382,20 @@ bool plwah64_get(const plwah64_t *map, int len, uint32_t pos)
         }
     }
     return false;
+}
+
+static inline
+void plwah64_debug_print(const plwah64_t *map, int len)
+{
+    for (int i = 0; i < len; i++) {
+        plwah64_t m = map[i];
+        if (m.is_fill) {
+            fprintf(stderr, "* fill word with %d, counter %d, pos %lx\n",
+                    m.fill.val, m.fill.counter, (uint64_t)m.fillp.positions);
+        } else {
+            fprintf(stderr, "* literal word %lx\n", (uint64_t)m.lit.bits);
+        }
+    }
 }
 
 #endif
