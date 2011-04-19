@@ -17,44 +17,47 @@
 
 PLWAH64_TEST("fill")
 {
-    qv_t(plwah64) v;
-    qv_init(plwah64, &v);
+    plwah64_map_t map = PLWAH64_MAP_INIT;
 
     STATIC_ASSERT(sizeof(plwah64_t) == sizeof(uint64_t));
     STATIC_ASSERT(sizeof(plwah64_fill_t) == sizeof(uint64_t));
     STATIC_ASSERT(sizeof(plwah64_literal_t) == sizeof(uint64_t));
 
-    plwah64_append_fill(&v, PLWAH64_FILL_INIT_V(0, 1));
-    TEST_FAIL_IF(v.len != 1, "bad bitmap length: %d", v.len);
+    plwah64_add0s(&map, 63);
+    TEST_FAIL_IF(map.bits.len != 1, "bad bitmap length: %d", map.bits.len);
     for (int i = 0; i < 2 * 63; i++) {
-        if (plwah64_get(v.tab, v.len, i)) {
+        if (plwah64_get(&map, i)) {
             TEST_FAIL_IF(true, "bad bit at %d", i);
         }
     }
-    plwah64_append_fill(&v, PLWAH64_FILL_INIT_V(0, 3));
-    TEST_FAIL_IF(v.len != 1, "bad bitmap length: %d", v.len);
+    plwah64_add0s(&map, 3 * 63);
+    TEST_FAIL_IF(map.bits.len != 1, "bad bitmap length: %d", map.bits.len);
     for (int i = 0; i < 5 * 63; i++) {
-        if (plwah64_get(v.tab, v.len, i)) {
+        if (plwah64_get(&map, i)) {
             TEST_FAIL_IF(true, "bad bit at %d", i);
         }
     }
 
-    v.len = 0;
-    plwah64_append_fill(&v, PLWAH64_FILL_INIT_V(1, 1));
-    TEST_FAIL_IF(v.len != 1, "bad bitmap length: %d", v.len);
+    plwah64_reset(&map);
+    plwah64_add1s(&map, 63);
+    TEST_FAIL_IF(map.bits.len != 1, "bad bitmap length: %d", map.bits.len);
     for (int i = 0; i < 2 * 63; i++) {
-        bool bit = plwah64_get(v.tab, v.len, i);
+        bool bit = plwah64_get(&map, i);
         if ((i < 63 && !bit) || (i >= 63 && bit)) {
             TEST_FAIL_IF(true, "bad bit at %d", i);
         }
     }
-    plwah64_append_fill(&v, PLWAH64_FILL_INIT_V(1, 3));
-    TEST_FAIL_IF(v.len != 1, "bad bitmap length: %d", v.len);
+    plwah64_add1s(&map, 3 * 63);
+    TEST_FAIL_IF(map.bits.len != 1, "bad bitmap length: %d", map.bits.len);
     for (int i = 0; i < 5 * 63; i++) {
-        bool bit = plwah64_get(v.tab, v.len, i);
+        bool bit = plwah64_get(&map, i);
         if ((i < 4 * 63 && !bit) || (i >= 4 * 63 && bit)) {
             TEST_FAIL_IF(true, "bad bit at %d", i);
         }
     }
+
+    qv_wipe(plwah64, &map.bits);
     TEST_DONE();
 }
+
+

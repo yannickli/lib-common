@@ -16,6 +16,8 @@
 
 #include <lib-common/container.h>
 
+/* Structures {{{ */
+
 typedef struct plwah64_literal_t {
 #if __BYTE_ORDER == __BIG_ENDIAN
     uint64_t is_fill : 1;
@@ -95,6 +97,17 @@ typedef union plwah64_t {
     };
 } plwah64_t;
 qvector_t(plwah64, plwah64_t);
+
+typedef struct plwah64_map_t {
+    uint64_t      bit_len;
+    uint8_t       remain;
+    qv_t(plwah64) bits;
+} plwah64_map_t;
+#define PLWAH64_MAP_INIT    { .bit_len = 0, .remain = 0 }
+#define PLWAH64_MAP_INIT_V  (plwah64_map_t)PLWAH64_MAP_INIT
+
+/* }}} */
+/* Utility functions {{{ */
 
 static inline
 void plwah64_append_fill(qv_t(plwah64) *map, plwah64_fill_t fill)
@@ -348,12 +361,128 @@ int plwah64_build_bit(plwah64_t data[static 2], uint32_t pos)
     }
 }
 
-static inline
-bool plwah64_get(const plwah64_t *map, int len, uint32_t pos)
-{
+/* }}} */
 
-    for (int i = 0; i < len; i++) {
-        plwah64_t word = map[i];
+static inline
+void plwah64_add_(plwah64_map_t *map, const byte *bits, uint64_t bit_len,
+                  bool fill_with_1)
+{
+    uint64_t bits_pos = 0;
+
+#define READ_BITS(count)  ({                                                 \
+        uint64_t __bits  = 0;                                                \
+        uint8_t __count = (count);                                           \
+        if (bits == NULL) {                                                  \
+            if (fill_with_1) {                                               \
+                __bits = (UINT64_C(1) << __count) - 1;                       \
+            }                                                                \
+            bits_pos += __count;                                             \
+        } else {                                                             \
+            uint64_t __off   = 0;                                            \
+            while (__count > 0) {                                            \
+                uint8_t __read = MIN(8 - (bits_pos & 7), __count);           \
+                uint8_t __mask = ((1 << __read) - 1) << (bits_pos & 7);      \
+                __bits  |= (uint64_t)(bits[bits_pos >> 3] & __mask) << __off;\
+                bits_pos += __read;                                          \
+                __count  -= __read;                                          \
+                __off    += __read;                                          \
+            }                                                                \
+        }                                                                    \
+        __bits;                                                              \
+    })
+
+    if (map->remain != 0) {
+        int take = MIN(bit_len, map->remain);
+        plwah64_t word = { .word = READ_BITS(take) };
+        plwah64_t *last;
+        assert (map->bits.len > 0);
+        word.word <<= 63 - map->remain;
+        assert (!word.is_fill);
+        last = qv_last(plwah64, &map->bits);
+        if (last->is_fill && last->fillp.positions == 0) {
+            assert (last->fill.val == 0);
+            if (last->fill.counter == 0) {
+                map->bits.len--;
+            } else {
+                last->fill.counter--;
+            }
+            plwah64_append_literal(&map->bits, word.lit);
+        } else
+        if (last->is_fill) {
+            uint64_t old_bits = 0;
+#define APPLY_POS(i)                                                         \
+            if (last->fill.position##i) {                                    \
+                old_bits |= 1UL << (last->fill.position##i - 1);             \
+            }
+            APPLY_POS(0);
+            APPLY_POS(1);
+            APPLY_POS(2);
+            APPLY_POS(3);
+            APPLY_POS(4);
+            APPLY_POS(5);
+#undef APPLY_POS
+            if (last->fill.val) {
+                old_bits = ~old_bits;
+            }
+            assert ((old_bits & (UINT64_MAX << (63 - map->remain))) == 0);
+            word.word |= old_bits;
+            last->fillp.positions = 0;
+            plwah64_append_literal(&map->bits, word.lit);
+        } else {
+            assert ((last->word & (UINT64_MAX << (63 - map->remain))) == 0);
+            last->word |= word.word;
+        }
+        map->bit_len += take;
+        map->remain  -= take;
+    }
+    while (bits_pos < bit_len) {
+        int take = MIN(63, bit_len);
+        plwah64_t word = { .word = READ_BITS(take) };
+        assert (map->remain == 0);
+        assert (!word.is_fill);
+        plwah64_append_literal(&map->bits, word.lit);
+        map->bit_len += take;
+        if (take != 63) {
+            map->remain = 63 - take;
+        }
+    }
+#undef READ_BITS
+}
+
+static inline
+void plwah64_add(plwah64_map_t *map, const byte *bits, uint64_t bit_len)
+{
+    plwah64_add_(map, bits, bit_len, false);
+}
+
+static inline
+void plwah64_add0s(plwah64_map_t *map, uint64_t bit_len)
+{
+    plwah64_add_(map, NULL, bit_len, false);
+}
+
+static inline
+void plwah64_add1s(plwah64_map_t *map, uint64_t bit_len)
+{
+    plwah64_add_(map, NULL, bit_len, true);
+}
+
+static inline
+void plwah64_reset(plwah64_map_t *map)
+{
+    map->bits.len = 0;
+    map->bit_len  = 0;
+    map->remain   = 0;
+}
+
+static inline
+bool plwah64_get(const plwah64_map_t *map, uint32_t pos)
+{
+    if (pos >= map->bit_len) {
+        return false;
+    }
+    for (int i = 0; i < map->bits.len; i++) {
+        plwah64_t word = map->bits.tab[i];
         if (word.lit.is_fill) {
             uint64_t count = word.fill.counter * 63;
             if (pos < count) {
@@ -385,10 +514,10 @@ bool plwah64_get(const plwah64_t *map, int len, uint32_t pos)
 }
 
 static inline
-void plwah64_debug_print(const plwah64_t *map, int len)
+void plwah64_debug_print(const plwah64_map_t *map, int len)
 {
     for (int i = 0; i < len; i++) {
-        plwah64_t m = map[i];
+        plwah64_t m = map->bits.tab[i];
         if (m.is_fill) {
             fprintf(stderr, "* fill word with %d, counter %d, pos %lx\n",
                     m.fill.val, m.fill.counter, (uint64_t)m.fillp.positions);
