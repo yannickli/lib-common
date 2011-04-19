@@ -615,8 +615,107 @@ void plwah64_set_(plwah64_map_t *map, uint32_t pos, bool set)
             }
         } else
         if (pos < 63) {
+            uint64_t res_mask;
             /* TODO: the word can be merged in previous or following word ? */
-            word.word |= UINT64_C(1) << pos;
+            if (!set) {
+                word.word &= ~(UINT64_C(1) << pos);
+            } else {
+                word.word |= UINT64_C(1) << pos;
+            }
+            res_mask = word.bits;
+            if (res_mask == 0) {
+                map->bits.tab[i].fill = PLWAH64_FILL_INIT_V(0, 1);
+            } else
+            if (res_mask == 0x7fffffffffffffffUL) {
+                map->bits.tab[i].fill = PLWAH64_FILL_INIT_V(1, 1);
+            } else
+            if (i > 0) {
+                plwah64_t prev = map->bits.tab[i - 1];
+                if (prev.is_fill && prev.fillp.positions == 0) {
+                    if (prev.fill.val) {
+                        res_mask |= UINT64_C(1) << 63;
+                        res_mask  = ~res_mask;
+                    }
+#define FIND_AND_SET_POS(i)  do {                                            \
+                        size_t __bit = bsf64(res_mask);                      \
+                        map->bits.tab[i - 1].fill.position##i = __bit + 1;   \
+                        res_mask = res_mask & ~(1UL << __bit);               \
+                    } while (0)
+                    switch (bitcount64(res_mask)) {
+                      case 6:
+                        FIND_AND_SET_POS(5);
+                      case 5:
+                        FIND_AND_SET_POS(4);
+                      case 4:
+                        FIND_AND_SET_POS(3);
+                      case 3:
+                        FIND_AND_SET_POS(2);
+                      case 2:
+                        FIND_AND_SET_POS(1);
+                      case 1:
+                        FIND_AND_SET_POS(0);
+                        qv_remove(plwah64, &map->bits, i);
+                      case 0:
+                        break;
+                     }
+#undef FIND_AND_SET_POS
+                }
+            }
+            if (map->bits.len <= i) {
+                return;
+            }
+            word = map->bits.tab[i];
+            if (!word.is_fill) {
+                return;
+            }
+            if (i < map->bits.len - 1) {
+                plwah64_t next = map->bits.tab[i + 1];
+                if (next.is_fill && next.fill.val == word.fill.val
+                && word.fillp.positions == 0) {
+                    map->bits.tab[i + 1].fill.counter += word.fill.counter;
+                    qv_remove(plwah64, &map->bits, i);
+                    word = map->bits.tab[i];
+                } else
+                if (!next.is_fill) {
+                    res_mask = next.bits;
+                    if (word.fill.val) {
+                        res_mask |= UINT64_C(1) << 63;
+                        res_mask  = ~res_mask;
+                    }
+#define FIND_AND_SET_POS(i)  do {                                            \
+                        size_t __bit = bsf64(res_mask);                      \
+                        map->bits.tab[i].fill.position##i = __bit + 1;       \
+                        res_mask = res_mask & ~(1UL << __bit);               \
+                    } while (0)
+                    switch (bitcount64(res_mask)) {
+                      case 6:
+                        FIND_AND_SET_POS(5);
+                      case 5:
+                        FIND_AND_SET_POS(4);
+                      case 4:
+                        FIND_AND_SET_POS(3);
+                      case 3:
+                        FIND_AND_SET_POS(2);
+                      case 2:
+                        FIND_AND_SET_POS(1);
+                      case 1:
+                        FIND_AND_SET_POS(0);
+                        qv_remove(plwah64, &map->bits, i + 1);
+                      case 0:
+                        break;
+                    }
+#undef FIND_AND_SET_POS
+                }
+            }
+            if (i > 0) {
+                plwah64_t prev = map->bits.tab[i - 1];
+                if (prev.is_fill && prev.fill.val == word.fill.val
+                && prev.fillp.positions == 0) {
+                    map->bits.tab[i - 1].fill.counter += word.fill.counter;
+                    map->bits.tab[i - 1].fillp.positions = word.fillp.positions;
+                    qv_remove(plwah64, &map->bits, i);
+                }
+            }
             return;
         } else {
             pos -= 63;
