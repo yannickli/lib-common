@@ -106,6 +106,9 @@ typedef struct plwah64_map_t {
 #define PLWAH64_MAP_INIT    { .bit_len = 0, .remain = 0 }
 #define PLWAH64_MAP_INIT_V  (plwah64_map_t)PLWAH64_MAP_INIT
 
+#define PLWAH64_ALL_1     UINT64_C(0x7fffffffffffffff)
+#define PLWAH64_ALL_0     UINT64_C(0)
+
 /* }}} */
 /* Utility functions {{{ */
 
@@ -215,11 +218,10 @@ void plwah64_append_literal(qv_t(plwah64) *map, plwah64_literal_t lit)
 {
     plwah64_t *last;
     assert (!lit.is_fill);
-    if (lit.bits == 0) {
+    if (lit.bits == PLWAH64_ALL_0) {
         plwah64_append_fill(map, PLWAH64_FILL_INIT_V(0, 1));
-        return;
     } else
-    if (lit.bits == 0x7fffffffffffffffUL) {
+    if (lit.bits == PLWAH64_ALL_1) {
         plwah64_append_fill(map, PLWAH64_FILL_INIT_V(1, 1));
     }
     if (map->len == 0) {
@@ -639,10 +641,10 @@ void plwah64_set_(plwah64_map_t *map, uint32_t pos, bool set)
                 word.word |= UINT64_C(1) << pos;
             }
             res_mask = word.bits;
-            if (res_mask == 0) {
+            if (res_mask == PLWAH64_ALL_0) {
                 map->bits.tab[i].fill = PLWAH64_FILL_INIT_V(0, 1);
             } else
-            if (res_mask == 0x7fffffffffffffffUL) {
+            if (res_mask == PLWAH64_ALL_1) {
                 map->bits.tab[i].fill = PLWAH64_FILL_INIT_V(1, 1);
             } else
             if (i > 0) {
