@@ -157,6 +157,40 @@ typedef struct plwah64_map_t {
         }                                                                    \
     } while (0)
 
+#define READ_POSITIONS(Src, CASE)  ({                                        \
+        int set_pos = 0;                                                     \
+        if ((Src).position0) {                                               \
+            CASE(0, (Src).position0 - 1);                                    \
+            if ((Src).position1) {                                           \
+                CASE(1, (Src).position1 - 1);                                \
+                if ((Src).position2) {                                       \
+                    CASE(2, (Src).position2 - 1);                            \
+                    if ((Src).position3) {                                   \
+                        CASE(3, (Src).position3 - 1);                        \
+                        if ((Src).position4) {                               \
+                            CASE(4, (Src).position4 - 1);                    \
+                            if ((Src).position5) {                           \
+                                CASE(5, (Src).position5 - 1);                \
+                                set_pos = 6;                                 \
+                            } else {                                         \
+                                set_pos = 5;                                 \
+                            }                                                \
+                        } else {                                             \
+                            set_pos = 4;                                     \
+                        }                                                    \
+                    } else {                                                 \
+                        set_pos = 3;                                         \
+                    }                                                        \
+                } else {                                                     \
+                    set_pos = 2;                                             \
+                }                                                            \
+            } else {                                                         \
+                set_pos = 1;                                                 \
+            }                                                                \
+        }                                                                    \
+        set_pos;                                                             \
+    })
+
 static inline
 void plwah64_append_fill(qv_t(plwah64) *map, plwah64_fill_t fill)
 {
@@ -487,17 +521,9 @@ bool plwah64_get(const plwah64_map_t *map, uint32_t pos)
             }
             pos -= count;
             if (pos < 63 && word.fillp.positions != 0) {
-#define CHECK_POS(i)                                                         \
-                if (word.fill.position##i == pos + 1) {                      \
-                    return !word.fill.val;                                   \
-                }
-                CHECK_POS(0);
-                CHECK_POS(1);
-                CHECK_POS(2);
-                CHECK_POS(3);
-                CHECK_POS(4);
-                CHECK_POS(5);
-#undef CHECK_POS
+#define CASE(p, Val)  if ((uint64_t)(Val) == pos) return !word.fill.val;
+                READ_POSITIONS(word.fill, CASE);
+#undef CASE
                 pos -= 63;
             }
         } else
@@ -575,21 +601,9 @@ void plwah64_set_(plwah64_map_t *map, uint32_t pos, bool set)
             }
             pos -= count;
             if (pos < 63 && word.fillp.positions != 0) {
-                int unused_slot = -1;
-#define CHECK_POS(i)                                                         \
-                if (word.fill.position##i == pos + 1) {                      \
-                    return;                                                  \
-                } else                                                       \
-                if (word.fill.position##i == 0 && unused_slot < 0) {         \
-                    unused_slot = i;                                         \
-                }
-                CHECK_POS(0);
-                CHECK_POS(1);
-                CHECK_POS(2);
-                CHECK_POS(3);
-                CHECK_POS(4);
-                CHECK_POS(5);
-#undef CHECK_POS
+#define CASE(i, Val)  if ((uint64_t)(Val) == pos) return;
+                int unused_slot = READ_POSITIONS(word.fill, CASE) - 1;
+#undef CASE
                 if (unused_slot < 0) {
                     plwah64_t new_word = APPLY_POSITIONS(word.fill);
                     if (set) {
