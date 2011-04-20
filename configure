@@ -114,10 +114,12 @@ test -n "$out" -a "$out" != "/dev/stdout" && rm -f "$out"
 if test -n "$profile" -a -d /opt/intersec/${profile}; then
     export BUILDFOR_PREFIX="/opt/intersec/${profile}"
     export PKG_CONFIG_LIBDIR="${BUILDFOR_PREFIX}/usr/lib/pkgconfig"
+    export PKG_CONFIG_LIBDIR="/usr/lib64/pkgconfig:${PKG_CONFIG_LIBDIR}"
     export PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1
     export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
 else
-    export PKG_CONFIG_LIBDIR="/usr/local/lib/pkgconfig:/usr/lib64/pkgconfig:/usr/lib/pkgconfig"
+    export PKG_CONFIG_LIBDIR="/usr/local/lib/pkgconfig:/usr/lib/pkgconfig"
+    export PKG_CONFIG_LIBDIR="/usr/lib64/pkgconfig:${PKG_CONFIG_LIBDIR}"
     if test "$(uname -s)" = "SunOS"; then
         export PKG_CONFIG_LIBDIR="/opt/csw/lib/pkgconfig:${PKG_CONFIG_LIBDIR}"
     fi
@@ -174,7 +176,7 @@ fi
 # }}}
 # {{{ libreadline-dev
 
-if test -r /usr/lib/libreadline.so; then
+if test -r /usr/lib/libreadline.so -o /usr/lib64/libreadline.so; then
     setvar "readline_CFLAGS"
     setvar "readline_LIBS" "-lreadline"
 else
