@@ -78,8 +78,10 @@ typedef struct plwah64_fillp_t {
         { .is_fill = 1, .val = Type, .counter = Count }
 #define PLWAH64_FILL_INIT_V(Type, Count)                                     \
         (plwah64_fill_t)PLWAH64_FILL_INIT(Type, Count)
+
+#define PLWAH64_WORD_BITS         (63)
 #define PLWAH64_MAX_COUNTER       ((1UL << 26) - 1)
-#define PLWAH64_MAX_BITS_IN_WORD  (63 * PLWAH64_MAX_COUNTER)
+#define PLWAH64_MAX_BITS_IN_WORD  (PLWAH64_WORD_BITS * PLWAH64_MAX_COUNTER)
 
 typedef union plwah64_t {
     uint64_t          word;
@@ -106,7 +108,7 @@ typedef struct plwah64_map_t {
 #define PLWAH64_MAP_INIT    { .bit_len = 0, .remain = 0 }
 #define PLWAH64_MAP_INIT_V  (plwah64_map_t)PLWAH64_MAP_INIT
 
-#define PLWAH64_ALL_1     UINT64_C(0x7fffffffffffffff)
+#define PLWAH64_ALL_1     ((UINT64_C(1) << PLWAH64_WORD_BITS) - 1)
 #define PLWAH64_ALL_0     UINT64_C(0)
 
 /* }}} */
@@ -132,7 +134,7 @@ typedef struct plwah64_map_t {
     })
 
 #define BUILD_POS(i, Dest, Src)                                              \
-      case i: {                                                              \
+      case i + 1: {                                                          \
         size_t __bit = bsf64(Src);                                           \
         (Dest).position##i = __bit + 1;                                      \
         (Src) &= ~(UINT64_C(1) << __bit);                                    \
@@ -146,12 +148,12 @@ typedef struct plwah64_map_t {
             __word  = ~__word;                                               \
         }                                                                    \
         switch (bitcount64(__word)) {                                        \
-          BUILD_POS(0, Dest, __word);                                        \
-          BUILD_POS(1, Dest, __word);                                        \
-          BUILD_POS(2, Dest, __word);                                        \
-          BUILD_POS(3, Dest, __word);                                        \
-          BUILD_POS(4, Dest, __word);                                        \
           BUILD_POS(5, Dest, __word);                                        \
+          BUILD_POS(4, Dest, __word);                                        \
+          BUILD_POS(3, Dest, __word);                                        \
+          BUILD_POS(2, Dest, __word);                                        \
+          BUILD_POS(1, Dest, __word);                                        \
+          BUILD_POS(0, Dest, __word);                                        \
           DONE_CASE;                                                         \
           break;                                                             \
          default:                                                            \
@@ -220,9 +222,11 @@ void plwah64_append_literal(qv_t(plwah64) *map, plwah64_literal_t lit)
     assert (!lit.is_fill);
     if (lit.bits == PLWAH64_ALL_0) {
         plwah64_append_fill(map, PLWAH64_FILL_INIT_V(0, 1));
+        return;
     } else
     if (lit.bits == PLWAH64_ALL_1) {
         plwah64_append_fill(map, PLWAH64_FILL_INIT_V(1, 1));
+        return;
     }
     if (map->len == 0) {
         qv_append(plwah64, map, (plwah64_t)lit);
@@ -446,7 +450,7 @@ void plwah64_add_(plwah64_map_t *map, const byte *bits, uint64_t bit_len,
         last = qv_last(plwah64, &map->bits);
         if (last->is_fill && last->fillp.positions == 0) {
             assert (last->fill.val == 0);
-            if (last->fill.counter == 0) {
+            if (last->fill.counter == 1) {
                 map->bits.len--;
             } else {
                 last->fill.counter--;
@@ -467,7 +471,7 @@ void plwah64_add_(plwah64_map_t *map, const byte *bits, uint64_t bit_len,
         map->remain  -= take;
     }
     while (bits_pos < bit_len) {
-        int take = MIN(63, bit_len);
+        int take = MIN(63, bit_len - bits_pos);
         plwah64_t word = { .word = READ_BITS(take) };
         assert (map->remain == 0);
         assert (!word.is_fill);
@@ -548,7 +552,7 @@ void plwah64_set_(plwah64_map_t *map, uint32_t pos, bool set)
         } else {
             plwah64_add0s(map, pos - map->bit_len + 1);
         }
-        assert (map->bit_len == pos);
+        assert (map->bit_len == pos + 1);
         return;
     }
 
@@ -706,6 +710,31 @@ static inline
 void plwah64_reset(plwah64_map_t *map, uint32_t pos)
 {
     plwah64_set_(map, pos, false);
+}
+
+static inline
+uint64_t plwah64_bit_count(const plwah64_map_t *map)
+{
+#define CASE(...)
+    uint64_t count = 0;
+    for (int i = 0; i < map->bits.len; i++) {
+        plwah64_t word = map->bits.tab[i];
+        if (word.is_fill && word.fill.val) {
+            count += word.fill.counter * PLWAH64_WORD_BITS;
+            if (word.fillp.positions) {
+                count += PLWAH64_WORD_BITS - READ_POSITIONS(word.fill, CASE);
+            }
+        } else
+        if (word.is_fill) {
+            if (word.fillp.positions) {
+                count += READ_POSITIONS(word.fill, CASE);
+            }
+        } else {
+            count += bitcount64(word.word);
+        }
+    }
+#undef CASE
+    return count;
 }
 
 static inline

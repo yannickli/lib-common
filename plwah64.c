@@ -60,4 +60,13 @@ PLWAH64_TEST("fill")
     TEST_DONE();
 }
 
+PLWAH64_TEST("set")
+{
+    plwah64_map_t map = PLWAH64_MAP_INIT;
 
+    plwah64_set(&map, 135);
+    TEST_FAIL_IF(plwah64_bit_count(&map) != 1, "invalid bit count: %d",
+                 (int)plwah64_bit_count(&map));
+    TEST_FAIL_IF(!plwah64_get(&map, 135), "bad bit");
+    TEST_DONE();
+}
