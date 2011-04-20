@@ -200,47 +200,87 @@ typedef struct plwah64_map_t {
     })
 
 static inline
-void plwah64_append_fill(qv_t(plwah64) *map, plwah64_fill_t fill)
+void plwah64_normalize_fill_(qv_t(plwah64) *map, int at, int *into)
 {
-    plwah64_t  elm = { .fill = fill };
-    plwah64_t *last;
-    assert (fill.is_fill);
-    if (map->len == 0) {
-        qv_append(plwah64, map, elm);
-        return;
-    }
-    last = qv_last(plwah64, map);
-    if (last->is_fill && last->fill.val == fill.val && !last->fillp.positions) {
-        last->fill.counter   += fill.counter;
-        last->fillp.positions = elm.fillp.positions;
+    plwah64_t *prev = &map->tab[*into];
+    plwah64_t *cur  = &map->tab[at];
+    if (prev->is_fill && prev->fill.val == cur->fill.val
+    && !prev->fillp.positions) {
+        prev->fill.counter   += cur->fill.counter;
+        prev->fillp.positions = cur->fillp.positions;
     } else {
-        qv_append(plwah64, map, elm);
+        (*into)++;
+        if (*into != at) {
+            map->tab[*into] = *cur;
+        }
     }
 }
 
 static inline
-void plwah64_append_literal(qv_t(plwah64) *map, plwah64_literal_t lit)
+void plwah64_normalize_literal_(qv_t(plwah64) *map, int at, int *into)
 {
-    plwah64_t *last;
-    assert (!lit.is_fill);
-    if (lit.bits == PLWAH64_ALL_0) {
-        plwah64_append_fill(map, PLWAH64_FILL_INIT_V(0, 1));
-        return;
+    plwah64_t *prev = &map->tab[*into];
+    plwah64_t *cur  = &map->tab[at];
+    if (prev->is_fill && prev->fillp.positions == 0) {
+        BUILD_POSITIONS(prev->fill, cur->bits, return,);
+    }
+    (*into)++;
+    if (*into != at) {
+        map->tab[*into] = *cur;
+    }
+}
+
+static inline
+bool plwah64_normalize_cleanup_(qv_t(plwah64) *map, int at)
+{
+    plwah64_t *cur  = &map->tab[at];
+    if (cur->is_fill) {
+        if (cur->fill.counter == 0 && cur->fillp.positions == 0) {
+            /* just drop this word */
+            return false;
+        } else
+        if (cur->fill.counter == 0) {
+            *cur = APPLY_POSITIONS(cur->fill);
+            return true;
+        }
     } else
-    if (lit.bits == PLWAH64_ALL_1) {
-        plwah64_append_fill(map, PLWAH64_FILL_INIT_V(1, 1));
-        return;
+    if (cur->bits == PLWAH64_ALL_0) {
+        *cur = (plwah64_t){ .fill = PLWAH64_FILL_INIT(0, 1) };
+        return true;
+    } else
+    if (cur->bits == PLWAH64_ALL_1) {
+        *cur = (plwah64_t){ .fill = PLWAH64_FILL_INIT(1, 1) };
+        return true;
     }
-    if (map->len == 0) {
-        qv_append(plwah64, map, (plwah64_t)lit);
-        return;
+    return true;
+}
+
+static inline
+void plwah64_normalize(qv_t(plwah64) *map, int from, int to)
+{
+    int pos = from <= 0 ? 0 : from - 1;
+    if (to >= map->len) {
+        to = map->len;
     }
-    last = qv_last(plwah64, map);
-    if (last->is_fill && last->fillp.positions == 0) {
-        BUILD_POSITIONS(last->fill, lit.bits, return,
-                        e_panic("This should not happen"));
+    if (from < 0) {
+        from = 0;
     }
-    qv_append(plwah64, map, (plwah64_t)lit);
+    for (int i = from; i < to; i++) {
+        if (!plwah64_normalize_cleanup_(map, i)) {
+            continue;
+        }
+        if (i == 0) {
+            continue;
+        }
+        if (map->tab[i].is_fill) {
+            plwah64_normalize_fill_(map, i, &pos);
+        } else {
+            plwah64_normalize_literal_(map, i, &pos);
+        }
+    }
+    if (pos + 1 != to) {
+        qv_splice(plwah64, map, pos + 1, to - pos - 1, NULL, 0);
+    }
 }
 
 static inline
@@ -249,11 +289,22 @@ void plwah64_append_word(qv_t(plwah64) *map, plwah64_t word)
     STATIC_ASSERT(sizeof(plwah64_t) == sizeof(uint64_t));
     STATIC_ASSERT(sizeof(plwah64_literal_t) == sizeof(uint64_t));
     STATIC_ASSERT(sizeof(plwah64_fill_t) == sizeof(uint64_t));
-    if (word.is_fill) {
-        plwah64_append_fill(map, word.fill);
-    } else {
-        plwah64_append_literal(map, word.lit);
-    }
+    qv_append(plwah64, map, word);
+    plwah64_normalize(map, map->len - 2, map->len);
+}
+
+static inline
+void plwah64_append_fill(qv_t(plwah64) *map, plwah64_fill_t fill)
+{
+    assert (fill.is_fill);
+    plwah64_append_word(map, (plwah64_t){ .fill = fill });
+}
+
+static inline
+void plwah64_append_literal(qv_t(plwah64) *map, plwah64_literal_t lit)
+{
+    assert (!lit.is_fill);
+    plwah64_append_word(map, (plwah64_t){ .lit = lit });
 }
 
 
@@ -412,89 +463,6 @@ int plwah64_build_bit(plwah64_t data[static 2], uint32_t pos)
         data[1].fill = PLWAH64_FILL_INIT_V(0, counter);
         data[1].fill.position0 = pos + 1;
         return 2;
-    }
-}
-
-static inline
-void plwah64_normalize_fill_(qv_t(plwah64) *map, int at, int *into)
-{
-    plwah64_t *prev = &map->tab[*into];
-    plwah64_t *cur  = &map->tab[at];
-    if (prev->is_fill && prev->fill.val == cur->fill.val
-    && !prev->fillp.positions) {
-        prev->fill.counter   += cur->fill.counter;
-        prev->fillp.positions = cur->fillp.positions;
-    } else {
-        (*into)++;
-        if (*into != at) {
-            map->tab[*into] = *cur;
-        }
-    }
-}
-
-static inline
-void plwah64_normalize_literal_(qv_t(plwah64) *map, int at, int *into)
-{
-    plwah64_t *prev = &map->tab[*into];
-    plwah64_t *cur  = &map->tab[at];
-    if (cur->bits == PLWAH64_ALL_0) {
-        *cur = (plwah64_t){ .fill = PLWAH64_FILL_INIT(0, 1) };
-        plwah64_normalize_fill_(map, at, into);
-        return;
-    } else
-    if (cur->bits == PLWAH64_ALL_1) {
-        *cur = (plwah64_t){ .fill = PLWAH64_FILL_INIT(1, 1) };
-        plwah64_normalize_fill_(map, at, into);
-        return;
-    } else
-    if (prev->is_fill && prev->fillp.positions == 0) {
-        BUILD_POSITIONS(prev->fill, cur->bits, return,);
-    }
-    (*into)++;
-    if (*into != at) {
-        map->tab[*into] = *cur;
-    }
-}
-
-static inline
-bool plwah64_normalize_cleanup_(qv_t(plwah64) *map, int at)
-{
-    plwah64_t *cur  = &map->tab[at];
-    if (cur->is_fill) {
-        if (cur->fill.counter == 0 && cur->fillp.positions == 0) {
-            /* just drop this word */
-            return false;
-        } else
-        if (cur->fill.counter == 0) {
-            *cur = APPLY_POSITIONS(cur->fill);
-            return true;
-        }
-    }
-    return true;
-}
-
-static inline
-void plwah64_normalize(qv_t(plwah64) *map, int from, int to)
-{
-    int pos = from == 0 ? 0 : from - 1;
-    if (to >= map->len) {
-        to = map->len;
-    }
-    for (int i = from; i < to; i++) {
-        if (!plwah64_normalize_cleanup_(map, i)) {
-            continue;
-        }
-        if (i == 0) {
-            continue;
-        }
-        if (map->tab[i].is_fill) {
-            plwah64_normalize_fill_(map, i, &pos);
-        } else {
-            plwah64_normalize_literal_(map, i, &pos);
-        }
-    }
-    if (pos != to) {
-        qv_splice(plwah64, map, pos + 1, to - pos, NULL, 0);
     }
 }
 
