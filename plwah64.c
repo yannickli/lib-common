@@ -115,5 +115,13 @@ PLWAH64_TEST("set bitmap")
                  "invalid bit count: %d, expected %d",
                  (int)plwah64_bit_count(&map),
                  (int)membitcount(data, sizeof(data)));
+    for (int i = 0; i < countof(data); i++) {
+#define CHECK_BIT(p)  (!!(data[i] & (1 << p)) == !!plwah64_get(&map, i * 8 + p))
+        if (!CHECK_BIT(0) || !CHECK_BIT(1) || !CHECK_BIT(2) || !CHECK_BIT(3)
+        ||  !CHECK_BIT(4) || !CHECK_BIT(5) || !CHECK_BIT(6) || !CHECK_BIT(7)) {
+            TEST_FAIL_IF(true, "invalid byte %d", i);
+        }
+#undef CHECK_BIT
+    }
     TEST_DONE();
 }

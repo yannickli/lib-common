@@ -79,10 +79,6 @@ typedef struct plwah64_fillp_t {
 #define PLWAH64_FILL_INIT_V(Type, Count)                                     \
         (plwah64_fill_t)PLWAH64_FILL_INIT(Type, Count)
 
-#define PLWAH64_WORD_BITS         (63)
-#define PLWAH64_MAX_COUNTER       ((1UL << 26) - 1)
-#define PLWAH64_MAX_BITS_IN_WORD  (PLWAH64_WORD_BITS * PLWAH64_MAX_COUNTER)
-
 typedef union plwah64_t {
     uint64_t          word;
     plwah64_literal_t lit;
@@ -105,6 +101,13 @@ typedef struct plwah64_map_t {
     uint8_t       remain;
     qv_t(plwah64) bits;
 } plwah64_map_t;
+
+#define PLWAH64_WORD_BITS         (63)
+#define PLWAH64_POSITION_COUNT    (6)
+#define PLWAH64_MAX_COUNTER       ((1UL << 26) - 1)
+#define PLWAH64_MAX_BITS_IN_WORD  (PLWAH64_WORD_BITS * PLWAH64_MAX_COUNTER)
+
+
 #define PLWAH64_MAP_INIT    { .bit_len = 0, .remain = 0 }
 #define PLWAH64_MAP_INIT_V  (plwah64_map_t)PLWAH64_MAP_INIT
 
@@ -413,6 +416,89 @@ int plwah64_build_bit(plwah64_t data[static 2], uint32_t pos)
 }
 
 static inline
+void plwah64_normalize_fill_(qv_t(plwah64) *map, int at, int *into)
+{
+    plwah64_t *prev = &map->tab[*into];
+    plwah64_t *cur  = &map->tab[at];
+    if (prev->is_fill && prev->fill.val == cur->fill.val
+    && !prev->fillp.positions) {
+        prev->fill.counter   += cur->fill.counter;
+        prev->fillp.positions = cur->fillp.positions;
+    } else {
+        (*into)++;
+        if (*into != at) {
+            map->tab[*into] = *cur;
+        }
+    }
+}
+
+static inline
+void plwah64_normalize_literal_(qv_t(plwah64) *map, int at, int *into)
+{
+    plwah64_t *prev = &map->tab[*into];
+    plwah64_t *cur  = &map->tab[at];
+    if (cur->bits == PLWAH64_ALL_0) {
+        *cur = (plwah64_t){ .fill = PLWAH64_FILL_INIT(0, 1) };
+        plwah64_normalize_fill_(map, at, into);
+        return;
+    } else
+    if (cur->bits == PLWAH64_ALL_1) {
+        *cur = (plwah64_t){ .fill = PLWAH64_FILL_INIT(1, 1) };
+        plwah64_normalize_fill_(map, at, into);
+        return;
+    } else
+    if (prev->is_fill && prev->fillp.positions == 0) {
+        BUILD_POSITIONS(prev->fill, cur->bits, return,);
+    }
+    (*into)++;
+    if (*into != at) {
+        map->tab[*into] = *cur;
+    }
+}
+
+static inline
+bool plwah64_normalize_cleanup_(qv_t(plwah64) *map, int at)
+{
+    plwah64_t *cur  = &map->tab[at];
+    if (cur->is_fill) {
+        if (cur->fill.counter == 0 && cur->fillp.positions == 0) {
+            /* just drop this word */
+            return false;
+        } else
+        if (cur->fill.counter == 0) {
+            *cur = APPLY_POSITIONS(cur->fill);
+            return true;
+        }
+    }
+    return true;
+}
+
+static inline
+void plwah64_normalize(qv_t(plwah64) *map, int from, int to)
+{
+    int pos = from == 0 ? 0 : from - 1;
+    if (to >= map->len) {
+        to = map->len;
+    }
+    for (int i = from; i < to; i++) {
+        if (!plwah64_normalize_cleanup_(map, i)) {
+            continue;
+        }
+        if (i == 0) {
+            continue;
+        }
+        if (map->tab[i].is_fill) {
+            plwah64_normalize_fill_(map, i, &pos);
+        } else {
+            plwah64_normalize_literal_(map, i, &pos);
+        }
+    }
+    if (pos != to) {
+        qv_splice(plwah64, map, pos + 1, to - pos, NULL, 0);
+    }
+}
+
+static inline
 void plwah64_add_(plwah64_map_t *map, const byte *bits, uint64_t bit_len,
                   bool fill_with_1)
 {
@@ -654,57 +740,12 @@ void plwah64_set_(plwah64_map_t *map, uint32_t pos, bool set)
             }
         } else
         if (pos < 63) {
-            plwah64_t cword = *word;
-            uint64_t res_mask;
-            /* TODO: the word can be merged in previous or following word ? */
             if (!set) {
-                cword.word &= ~(UINT64_C(1) << pos);
+                word->word &= ~(UINT64_C(1) << pos);
             } else {
-                cword.word |= UINT64_C(1) << pos;
+                word->word |= UINT64_C(1) << pos;
             }
-            res_mask = cword.bits;
-            if (res_mask == PLWAH64_ALL_0) {
-                word->fill = PLWAH64_FILL_INIT_V(0, 1);
-            } else
-            if (res_mask == PLWAH64_ALL_1) {
-                word->fill = PLWAH64_FILL_INIT_V(1, 1);
-            } else
-            if (i > 0) {
-                plwah64_t prev = map->bits.tab[i - 1];
-                if (prev.is_fill && prev.fillp.positions == 0) {
-                    BUILD_POSITIONS(map->bits.tab[i - 1].fill, res_mask,
-                                    qv_remove(plwah64, &map->bits, i),);
-                }
-            }
-            if (map->bits.len <= i) {
-                return;
-            }
-            word = &map->bits.tab[i];
-            if (!word->is_fill) {
-                return;
-            }
-            if (i < map->bits.len - 1) {
-                plwah64_t next = map->bits.tab[i + 1];
-                if (next.is_fill && next.fill.val == word->fill.val
-                && word->fillp.positions == 0) {
-                    map->bits.tab[i + 1].fill.counter += word->fill.counter;
-                    qv_remove(plwah64, &map->bits, i);
-                    word = &map->bits.tab[i];
-                } else
-                if (!next.is_fill) {
-                    BUILD_POSITIONS(word->fill, next.bits,
-                                    qv_remove(plwah64, &map->bits, i + 1),);
-                }
-            }
-            if (i > 0) {
-                plwah64_t prev = map->bits.tab[i - 1];
-                if (prev.is_fill && prev.fill.val == word->fill.val
-                && prev.fillp.positions == 0) {
-                    map->bits.tab[i - 1].fill.counter += word->fill.counter;
-                    map->bits.tab[i - 1].fillp.positions = word->fillp.positions;
-                    qv_remove(plwah64, &map->bits, i);
-                }
-            }
+            plwah64_normalize(&map->bits, i, i + 2);
             return;
         } else {
             pos -= 63;
