@@ -112,13 +112,14 @@ PLWAH64_TEST("set bitmap")
     byte res[2 * countof(data)];
 #endif
 
+    uint64_t      bc;
     plwah64_map_t map = PLWAH64_MAP_INIT;
     plwah64_add(&map, data, bitsizeof(data));
+    bc = membitcount(data, sizeof(data));
 
-    TEST_FAIL_IF(plwah64_bit_count(&map) != membitcount(data, sizeof(data)),
+    TEST_FAIL_IF(plwah64_bit_count(&map) != bc,
                  "invalid bit count: %d, expected %d",
-                 (int)plwah64_bit_count(&map),
-                 (int)membitcount(data, sizeof(data)));
+                 (int)plwah64_bit_count(&map), (int)bc);
     for (int i = 0; i < countof(data); i++) {
 #define CHECK_BIT(p)  (!!(data[i] & (1 << p)) == !!plwah64_get(&map, i * 8 + p))
         if (!CHECK_BIT(0) || !CHECK_BIT(1) || !CHECK_BIT(2) || !CHECK_BIT(3)
@@ -127,6 +128,20 @@ PLWAH64_TEST("set bitmap")
         }
 #undef CHECK_BIT
     }
+
+    plwah64_not(&map);
+    TEST_FAIL_IF(plwah64_bit_count(&map) != bitsizeof(data) - bc,
+                 "invalid bit count: %d, expected %d",
+                 (int)plwah64_bit_count(&map), (int)(bitsizeof(data) - bc));
+    for (int i = 0; i < countof(data); i++) {
+#define CHECK_BIT(p)  (!!(data[i] & (1 << p)) != !!plwah64_get(&map, i * 8 + p))
+        if (!CHECK_BIT(0) || !CHECK_BIT(1) || !CHECK_BIT(2) || !CHECK_BIT(3)
+        ||  !CHECK_BIT(4) || !CHECK_BIT(5) || !CHECK_BIT(6) || !CHECK_BIT(7)) {
+            TEST_FAIL_IF(true, "invalid byte %d", i);
+        }
+#undef CHECK_BIT
+    }
+
     plwah64_wipe(&map);
     TEST_DONE();
 }

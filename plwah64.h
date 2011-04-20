@@ -727,6 +727,37 @@ void plwah64_reset(plwah64_map_t *map, uint32_t pos)
     plwah64_set_(map, pos, false);
 }
 
+static inline
+void plwah64_not(plwah64_map_t *map)
+{
+    for (int i = 0; i < map->bits.len; i++) {
+        plwah64_t *word = &map->bits.tab[i];
+        if (word->is_fill) {
+            word->fill.val = ~word->fill.val;
+        } else {
+            word->bits = ~word->bits;
+        }
+    }
+    if (map->remain > 0) {
+        plwah64_t *last = qv_last(plwah64, &map->bits);
+        uint64_t   mask = (UINT64_C(1) << (PLWAH64_WORD_BITS - map->remain)) - 1;
+        if (last->is_fill && last->fillp.positions) {
+            plwah64_t new_word = APPLY_POSITIONS(last->fill);
+            new_word.word &= mask;
+            last->fillp.positions = 0;
+            qv_append(plwah64, &map->bits, new_word);
+        } else
+        if (last->is_fill) {
+            assert (last->fill.val);
+            last->fill.counter--;
+            qv_append(plwah64, &map->bits, (plwah64_t){ .word = mask });
+        } else {
+            last->bits &= mask;
+        }
+        plwah64_normalize(&map->bits, map->bits.len - 2, map->bits.len);
+    }
+}
+
 static inline __must_check__
 uint64_t plwah64_bit_count(const plwah64_map_t *map)
 {
@@ -807,6 +838,7 @@ plwah64_map_t *plwah64_dup(const plwah64_map_t *map)
 }
 
 /* }}} */
+/* Debug {{{ */
 
 static inline
 void plwah64_debug_print(const plwah64_map_t *map, int len)
@@ -830,4 +862,5 @@ void plwah64_debug_print(const plwah64_map_t *map, int len)
 
 #undef READ_POSITIONS
 
+/* }}} */
 #endif
