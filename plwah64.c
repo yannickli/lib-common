@@ -60,7 +60,7 @@ PLWAH64_TEST("fill")
     TEST_DONE();
 }
 
-PLWAH64_TEST("set")
+PLWAH64_TEST("set and reset")
 {
     plwah64_map_t map = PLWAH64_MAP_INIT;
 
@@ -88,5 +88,32 @@ PLWAH64_TEST("set")
     TEST_FAIL_IF(!plwah64_get(&map, 134), "bad bit");
     TEST_FAIL_IF(plwah64_get(&map, 135), "bad bit");
     TEST_FAIL_IF(!plwah64_get(&map, 136), "bad bit");
+    TEST_DONE();
+}
+
+PLWAH64_TEST("set bitmap")
+{
+    const byte data[] = {
+        0x1f, 0x00, 0x00, 0x8c,
+        0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0x80,
+        0x00, 0x10, 0x40, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x21
+    };
+#if 0
+    byte res[2 * countof(data)];
+#endif
+
+    plwah64_map_t map = PLWAH64_MAP_INIT;
+    plwah64_add(&map, data, bitsizeof(data));
+
+    TEST_FAIL_IF(plwah64_bit_count(&map) != membitcount(data, sizeof(data)),
+                 "invalid bit count: %d, expected %d",
+                 (int)plwah64_bit_count(&map),
+                 (int)membitcount(data, sizeof(data)));
     TEST_DONE();
 }

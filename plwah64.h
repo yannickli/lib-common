@@ -430,8 +430,9 @@ void plwah64_add_(plwah64_map_t *map, const byte *bits, uint64_t bit_len,
             uint64_t __off   = 0;                                            \
             while (__count > 0) {                                            \
                 uint8_t __read = MIN(8 - (bits_pos & 7), __count);           \
-                uint8_t __mask = ((1 << __read) - 1) << (bits_pos & 7);      \
-                __bits  |= (uint64_t)(bits[bits_pos >> 3] & __mask) << __off;\
+                uint8_t __mask = ((1 << __read) - 1);                        \
+                uint8_t __val  = bits[bits_pos >> 3] >> (bits_pos & 7);      \
+                __bits  |= (uint64_t)(__val & __mask) << __off;              \
                 bits_pos += __read;                                          \
                 __count  -= __read;                                          \
                 __off    += __read;                                          \
@@ -711,11 +712,6 @@ void plwah64_set_(plwah64_map_t *map, uint32_t pos, bool set)
     }
 }
 
-#undef APPLY_POS
-#undef APPLY_POSITIONS
-
-#undef BUILD_POS
-#undef BUILD_POSITIONS
 
 static inline
 void plwah64_set(plwah64_map_t *map, uint32_t pos)
@@ -743,9 +739,7 @@ uint64_t plwah64_bit_count(const plwah64_map_t *map)
             }
         } else
         if (word.is_fill) {
-            if (word.fillp.positions) {
-                count += READ_POSITIONS(word.fill, CASE);
-            }
+            count += READ_POSITIONS(word.fill, CASE);
         } else {
             count += bitcount64(word.word);
         }
@@ -767,5 +761,13 @@ void plwah64_debug_print(const plwah64_map_t *map, int len)
         }
     }
 }
+
+#undef APPLY_POS
+#undef APPLY_POSITIONS
+
+#undef BUILD_POS
+#undef BUILD_POSITIONS
+
+#undef READ_POSITIONS
 
 #endif
