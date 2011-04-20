@@ -38,6 +38,9 @@ PLWAH64_TEST("fill")
         }
     }
 
+    plwah64_trim(&map);
+    TEST_FAIL_IF(map.bits.len != 0, "bad bitmap length: %d", map.bits.len);
+
     plwah64_reset_map(&map);
     plwah64_add1s(&map, 63);
     TEST_FAIL_IF(map.bits.len != 1, "bad bitmap length: %d", map.bits.len);

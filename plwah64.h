@@ -202,8 +202,8 @@ typedef struct plwah64_map_t {
 static inline
 void plwah64_normalize_fill_(qv_t(plwah64) *map, int at, int *into)
 {
-    plwah64_t *prev = &map->tab[*into];
-    plwah64_t *cur  = &map->tab[at];
+    plwah64_t * restrict prev = &map->tab[*into];
+    plwah64_t * restrict cur  = &map->tab[at];
     if (prev->is_fill && prev->fill.val == cur->fill.val
     && !prev->fillp.positions) {
         prev->fill.counter   += cur->fill.counter;
@@ -219,8 +219,8 @@ void plwah64_normalize_fill_(qv_t(plwah64) *map, int at, int *into)
 static inline
 void plwah64_normalize_literal_(qv_t(plwah64) *map, int at, int *into)
 {
-    plwah64_t *prev = &map->tab[*into];
-    plwah64_t *cur  = &map->tab[at];
+    plwah64_t * restrict prev = &map->tab[*into];
+    plwah64_t * restrict cur  = &map->tab[at];
     if (prev->is_fill && prev->fillp.positions == 0) {
         BUILD_POSITIONS(prev->fill, cur->bits, return,);
     }
@@ -233,7 +233,7 @@ void plwah64_normalize_literal_(qv_t(plwah64) *map, int at, int *into)
 static inline
 bool plwah64_normalize_cleanup_(qv_t(plwah64) *map, int at)
 {
-    plwah64_t *cur  = &map->tab[at];
+    plwah64_t * restrict cur  = &map->tab[at];
     if (cur->is_fill) {
         if (cur->fill.counter == 0 && cur->fillp.positions == 0) {
             /* just drop this word */
@@ -560,8 +560,7 @@ void plwah64_add1s(plwah64_map_t *map, uint64_t bit_len)
     plwah64_add_(map, NULL, bit_len, true);
 }
 
-
-static inline
+static inline __must_check__
 bool plwah64_get(const plwah64_map_t *map, uint32_t pos)
 {
     if (pos >= map->bit_len) {
@@ -728,7 +727,7 @@ void plwah64_reset(plwah64_map_t *map, uint32_t pos)
     plwah64_set_(map, pos, false);
 }
 
-static inline
+static inline __must_check__
 uint64_t plwah64_bit_count(const plwah64_map_t *map)
 {
 #define CASE(...)
@@ -749,6 +748,22 @@ uint64_t plwah64_bit_count(const plwah64_map_t *map)
     }
 #undef CASE
     return count;
+}
+
+static inline
+void plwah64_trim(plwah64_map_t *map)
+{
+    while (map->bits.len > 0) {
+        const plwah64_t *word = qv_last(plwah64, &map->bits);
+        if (word->is_fill && !word->fill.val && !word->fillp.positions) {
+            uint64_t count = word->fill.counter * PLWAH64_WORD_BITS;
+            map->bit_len -= count - map->remain;
+            map->remain   = 0;
+            --map->bits.len;
+            continue;
+        }
+        return;
+    }
 }
 
 /* }}} */
