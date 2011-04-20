@@ -56,7 +56,7 @@ PLWAH64_TEST("fill")
         }
     }
 
-    qv_wipe(plwah64, &map.bits);
+    plwah64_wipe(&map);
     TEST_DONE();
 }
 
@@ -88,6 +88,7 @@ PLWAH64_TEST("set and reset")
     TEST_FAIL_IF(!plwah64_get(&map, 134), "bad bit");
     TEST_FAIL_IF(plwah64_get(&map, 135), "bad bit");
     TEST_FAIL_IF(!plwah64_get(&map, 136), "bad bit");
+    plwah64_wipe(&map);
     TEST_DONE();
 }
 
@@ -123,5 +124,6 @@ PLWAH64_TEST("set bitmap")
         }
 #undef CHECK_BIT
     }
+    plwah64_wipe(&map);
     TEST_DONE();
 }

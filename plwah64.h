@@ -540,6 +540,7 @@ void plwah64_add_(plwah64_map_t *map, const byte *bits, uint64_t bit_len,
 }
 
 /* }}} */
+/* Public API {{{ */
 
 static inline
 void plwah64_add(plwah64_map_t *map, const byte *bits, uint64_t bit_len)
@@ -559,13 +560,6 @@ void plwah64_add1s(plwah64_map_t *map, uint64_t bit_len)
     plwah64_add_(map, NULL, bit_len, true);
 }
 
-static inline
-void plwah64_reset_map(plwah64_map_t *map)
-{
-    map->bits.len = 0;
-    map->bit_len  = 0;
-    map->remain   = 0;
-}
 
 static inline
 bool plwah64_get(const plwah64_map_t *map, uint32_t pos)
@@ -756,6 +750,48 @@ uint64_t plwah64_bit_count(const plwah64_map_t *map)
 #undef CASE
     return count;
 }
+
+/* }}} */
+/* Allocation {{{ */
+
+static inline
+void plwah64_reset_map(plwah64_map_t *map)
+{
+    map->bits.len = 0;
+    map->bit_len  = 0;
+    map->remain   = 0;
+}
+
+GENERIC_INIT(plwah64_map_t, plwah64);
+GENERIC_NEW(plwah64_map_t, plwah64);
+
+static inline
+void plwah64_wipe(plwah64_map_t *map)
+{
+    if (map) {
+        qv_wipe(plwah64, &map->bits);
+    }
+}
+GENERIC_DELETE(plwah64_map_t, plwah64);
+
+static inline
+void plwah64_copy(plwah64_map_t *map, const plwah64_map_t *src)
+{
+    map->bit_len = src->bit_len;
+    map->remain  = src->remain;
+    map->bits.len = 0;
+    qv_splice(plwah64, &map->bits, 0, 0, src->bits.tab, src->bits.len);
+}
+
+static inline
+plwah64_map_t *plwah64_dup(const plwah64_map_t *map)
+{
+    plwah64_map_t *m = plwah64_new();
+    plwah64_copy(m, map);
+    return m;
+}
+
+/* }}} */
 
 static inline
 void plwah64_debug_print(const plwah64_map_t *map, int len)
