@@ -68,5 +68,18 @@ PLWAH64_TEST("set")
     TEST_FAIL_IF(plwah64_bit_count(&map) != 1, "invalid bit count: %d",
                  (int)plwah64_bit_count(&map));
     TEST_FAIL_IF(!plwah64_get(&map, 135), "bad bit");
+
+    plwah64_set(&map, 136);
+    TEST_FAIL_IF(plwah64_bit_count(&map) != 2, "invalid bit count: %d",
+                 (int)plwah64_bit_count(&map));
+    TEST_FAIL_IF(!plwah64_get(&map, 135), "bad bit");
+    TEST_FAIL_IF(!plwah64_get(&map, 136), "bad bit");
+
+    plwah64_set(&map, 134);
+    TEST_FAIL_IF(plwah64_bit_count(&map) != 3, "invalid bit count: %d",
+                 (int)plwah64_bit_count(&map));
+    TEST_FAIL_IF(!plwah64_get(&map, 134), "bad bit");
+    TEST_FAIL_IF(!plwah64_get(&map, 135), "bad bit");
+    TEST_FAIL_IF(!plwah64_get(&map, 136), "bad bit");
     TEST_DONE();
 }

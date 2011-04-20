@@ -608,18 +608,19 @@ void plwah64_set_(plwah64_map_t *map, uint32_t pos, bool set)
             pos -= count;
             if (pos < 63 && word.fillp.positions != 0) {
 #define CASE(i, Val)  if ((uint64_t)(Val) == pos) return;
-#define SET_POS(i)                                                           \
-                  case i:                                                    \
-                    map->bits.tab[i].fill.position##i = pos + 1;             \
+#define SET_POS(p)                                                           \
+                  case p:                                                    \
+                    map->bits.tab[i].fill.position##p = pos + 1;             \
                     return;
 
-                switch (READ_POSITIONS(word.fill, CASE) - 1) {
-                  SET_POS(0);
+                switch (READ_POSITIONS(word.fill, CASE)) {
                   SET_POS(1);
                   SET_POS(2);
                   SET_POS(3);
                   SET_POS(4);
                   SET_POS(5);
+                  case 0:
+                    e_panic("This should not happen");
                   default: {
                     plwah64_t new_word = APPLY_POSITIONS(word.fill);
                     if (set) {
