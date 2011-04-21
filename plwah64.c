@@ -98,15 +98,15 @@ PLWAH64_TEST("set and reset")
 PLWAH64_TEST("set bitmap")
 {
     const byte data[] = {
-        0x1f, 0x00, 0x00, 0x8c,
-        0xff, 0xff, 0xff, 0xff,
-        0xff, 0xff, 0xff, 0xff,
-        0xff, 0xff, 0xff, 0x80,
-        0x00, 0x10, 0x40, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x21
+        0x1f, 0x00, 0x00, 0x8c, /* 0, 1, 2, 3, 4, 26, 27, 31 (32) */
+        0xff, 0xff, 0xff, 0xff, /* 32 -> 63                  (64) */
+        0xff, 0xff, 0xff, 0xff, /* 64 -> 95                  (96) */
+        0xff, 0xff, 0xff, 0x80, /* 96 -> 119, 127            (128)*/
+        0x00, 0x10, 0x40, 0x00, /* 140, 150                  (160)*/
+        0x00, 0x00, 0x00, 0x00, /*                           (192)*/
+        0x00, 0x00, 0x00, 0x00, /*                           (224)*/
+        0x00, 0x00, 0x00, 0x00, /*                           (256)*/
+        0x00, 0x00, 0x00, 0x21  /* 280, 285                  (288)*/
     };
 #if 0
     byte res[2 * countof(data)];
@@ -114,6 +114,7 @@ PLWAH64_TEST("set bitmap")
 
     uint64_t      bc;
     plwah64_map_t map = PLWAH64_MAP_INIT;
+    uint64_t      e;
     plwah64_add(&map, data, bitsizeof(data));
     bc = membitcount(data, sizeof(data));
 
@@ -128,6 +129,16 @@ PLWAH64_TEST("set bitmap")
         }
 #undef CHECK_BIT
     }
+
+    e = 0;
+    plwah64_for_each_1(en, &map) {
+        if (!(data[en.key >> 3] & (1 << (en.key & 7)))) {
+            TEST_FAIL_IF(true, "bad enumerated bit: %d", (int)en.key);
+        }
+        e++;
+    }
+    TEST_FAIL_IF(e != bc, "invalid number of enumerated bits: %d, expected %d",
+                 (int)e, (int)bc);
 
     plwah64_not(&map);
     TEST_FAIL_IF(plwah64_bit_count(&map) != bitsizeof(data) - bc,

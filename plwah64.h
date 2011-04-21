@@ -843,6 +843,101 @@ void plwah64_trim(plwah64_map_t *map)
 /* }}} */
 /* Enumeration {{{ */
 
+typedef struct plwah64_enum_t {
+    const plwah64_map_t *map;
+    int        word_offset;
+    plwah64_t  current_word;
+    uint64_t   remain_in_word;
+    uint64_t   key;
+} plwah64_enum_t;
+
+static inline
+void plwah64_enum_next(plwah64_enum_t *en, bool first)
+{
+    if (en->current_word.is_fill) {
+        if (en->current_word.fill.val && en->remain_in_word) {
+            if (!first) {
+                en->key++;
+            }
+            en->remain_in_word--;
+            return;
+        } else {
+            en->key += en->remain_in_word;
+            if (en->current_word.fillp.positions) {
+                en->current_word   = APPLY_POSITIONS(en->current_word.fill);
+                en->remain_in_word = PLWAH64_WORD_BITS;
+            } else {
+                goto read_next;
+            }
+        }
+    }
+    if (!en->current_word.word) {
+        en->key += en->remain_in_word;
+        goto read_next;
+    } else {
+        uint8_t next_bit = bsf64(en->current_word.word);
+        en->current_word.word >>= (next_bit + 1);
+        if (first) {
+            en->key += next_bit;
+        } else {
+            en->key += next_bit + 1;
+        }
+        en->remain_in_word -= next_bit + 1;
+    }
+    return;
+
+  read_next:
+    en->word_offset++;
+    if (en->word_offset >= en->map->bits.len) {
+        en->word_offset = -1;
+        return;
+    }
+    en->current_word = en->map->bits.tab[en->word_offset];
+    if (en->current_word.is_fill) {
+        en->remain_in_word
+            = en->current_word.fill.counter * PLWAH64_WORD_BITS;
+    } else {
+        en->remain_in_word = PLWAH64_WORD_BITS;
+    }
+    return plwah64_enum_next(en, false);
+}
+
+static inline
+plwah64_enum_t plwah64_enum_start(const plwah64_map_t *map, uint64_t at)
+{
+    plwah64_path_t path = plwah64_find(map, at);
+    plwah64_enum_t en = {
+        .map            = map,
+        .word_offset    = path.word_offset,
+        .key            = at,
+        .remain_in_word = 0,
+    };
+    if (path.word_offset < 0) {
+        return en;
+    }
+    en.current_word = map->bits.tab[en.word_offset];
+    if (path.in_pos) {
+        en.current_word = APPLY_POSITIONS(en.current_word.fill);
+    }
+    if (en.current_word.is_fill) {
+        en.remain_in_word  = en.current_word.fill.counter * PLWAH64_WORD_BITS;
+        en.remain_in_word -= path.bit_in_word;
+    } else
+    if (path.bit_in_word) {
+        en.current_word.word >>= path.bit_in_word - 1;
+        en.remain_in_word      = PLWAH64_WORD_BITS - path.bit_in_word;
+    } else {
+        en.remain_in_word = PLWAH64_WORD_BITS;
+    }
+    plwah64_enum_next(&en, true);
+    return en;
+}
+
+#define plwah64_for_each_1(en, map)                                          \
+    for (plwah64_enum_t en = plwah64_enum_start(map, 0);                     \
+         en.word_offset >= 0;                                                \
+         plwah64_enum_next(&en, false))
+
 /* }}} */
 /* Allocation {{{ */
 
@@ -887,9 +982,9 @@ plwah64_map_t *plwah64_dup(const plwah64_map_t *map)
 /* Debug {{{ */
 
 static inline
-void plwah64_debug_print(const plwah64_map_t *map, int len)
+void plwah64_debug_print(const plwah64_map_t *map)
 {
-    for (int i = 0; i < len; i++) {
+    for (int i = 0; i < map->bits.len; i++) {
         plwah64_t m = map->bits.tab[i];
         if (m.is_fill) {
             fprintf(stderr, "* fill word with %d, counter %d, pos %lx\n",
