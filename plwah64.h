@@ -96,6 +96,12 @@ typedef union plwah64_t {
 } plwah64_t;
 qvector_t(plwah64, plwah64_t);
 
+typedef struct plwah64_path_t {
+    uint64_t bit_in_word;
+    int      word_offset;
+    bool     in_pos;
+} plwah64_path_t;
+
 typedef struct plwah64_map_t {
     uint64_t      bit_len;
     uint8_t       remain;
@@ -539,6 +545,189 @@ void plwah64_add_(plwah64_map_t *map, const byte *bits, uint64_t bit_len,
 #undef READ_BITS
 }
 
+static inline
+plwah64_path_t plwah64_find(const plwah64_map_t *map, uint64_t pos)
+{
+    if (pos >= map->bit_len) {
+        return (plwah64_path_t){
+            .word_offset = -1,
+            .bit_in_word = pos - map->bit_len,
+        };
+    }
+    for (int i = 0; i < map->bits.len; i++) {
+        plwah64_t word = map->bits.tab[i];
+        if (word.is_fill) {
+            uint64_t count = word.fill.counter * 63;
+            if (pos < count) {
+                return (plwah64_path_t){
+                    .word_offset = i,
+                    .bit_in_word = pos
+                };
+            }
+            pos -= count;
+            if (pos < 63 && word.fillp.positions != 0) {
+                return (plwah64_path_t){
+                    .word_offset = i,
+                    .bit_in_word = pos,
+                    .in_pos      = true,
+                };
+            }
+        } else
+        if (pos < 63) {
+            return (plwah64_path_t){
+                .word_offset = i,
+                .bit_in_word = pos,
+            };
+        } else {
+            pos -= 63;
+        }
+    }
+    e_panic("This should not happen");
+}
+
+static inline __must_check__
+bool plwah64_get_(const plwah64_map_t *map, plwah64_path_t path)
+{
+    plwah64_t word;
+    if (path.word_offset < 0) {
+        return false;
+    }
+
+    word = map->bits.tab[path.word_offset];
+    if (word.is_fill) {
+        if (path.in_pos) {
+#define CASE(p, Val)                                                         \
+            if ((uint64_t)(Val) == path.bit_in_word) {                       \
+                return !word.fill.val;                                       \
+            }
+            READ_POSITIONS(word.fill, CASE);
+#undef CASE
+        }
+        return !!word.fill.val;
+    } else {
+        return !!(word.word & (UINT64_C(1) << path.bit_in_word));
+    }
+}
+
+static inline
+void plwah64_set_(plwah64_map_t *map, plwah64_path_t path, bool set)
+{
+    plwah64_t *word;
+    const int i = path.word_offset;
+    const uint64_t pos = path.bit_in_word;
+    if (path.word_offset < 0) {
+        if (set) {
+            plwah64_add_(map, NULL, path.bit_in_word, false);
+            plwah64_add_(map, NULL, 1, true);
+        } else {
+            plwah64_add_(map, NULL, path.bit_in_word + 1, false);
+        }
+    }
+
+    word = &map->bits.tab[path.word_offset];
+    if (word->is_fill) {
+        if (path.in_pos) {
+#define CASE(i, Val)                                                         \
+            if ((uint64_t)(Val) == pos) {                                    \
+                if (!!word->fill.val != !!set) {                             \
+                    /* Bit is already at the expected value */               \
+                    return;                                                  \
+                }                                                            \
+                switch (i) {                                                 \
+                  case 0: word->fill.position0 = word->fill.position1;       \
+                  case 1: word->fill.position1 = word->fill.position2;       \
+                  case 2: word->fill.position2 = word->fill.position3;       \
+                  case 3: word->fill.position3 = word->fill.position4;       \
+                  case 4: word->fill.position4 = word->fill.position5;       \
+                  case 5: word->fill.position5 = 0;                          \
+                }                                                            \
+                return;                                                      \
+            }
+#define SET_POS(p)                                                           \
+              case p:                                                        \
+                word->fill.position##p = pos + 1;                            \
+                return;
+
+            switch (READ_POSITIONS(word->fill, CASE)) {
+              SET_POS(1);
+              SET_POS(2);
+              SET_POS(3);
+              SET_POS(4);
+              SET_POS(5);
+              case 0:
+                e_panic("This should not happen");
+              default: {
+                plwah64_t new_word = APPLY_POSITIONS(word->fill);
+                if (set) {
+                    new_word.word |= UINT64_C(1) << pos;
+                } else {
+                    new_word.word &= ~(UINT64_C(1) << pos);
+                }
+                word->fillp.positions = 0;
+                qv_insert(plwah64, &map->bits, i + 1, new_word);
+                return;
+              } break;
+            }
+#undef SET_POS
+#undef CASE
+        } else {
+            uint64_t bit_offset;
+            uint64_t word_offset;
+            if (!!word->fill.val == !!set) {
+                /* The bit is already at the good value */
+                return;
+            }
+            bit_offset = pos % 63;
+            word_offset = pos / 63;
+
+            /* Split the fill word */
+            if (word_offset == (uint64_t)(word->fill.counter - 1)) {
+                if (word->fillp.positions) {
+                    plwah64_t new_word = APPLY_POSITIONS(word->fill);
+                    word->fillp.positions = 0;
+                    qv_insert(plwah64, &map->bits, i + 1, new_word);
+                }
+                if (word_offset == 0) {
+                    uint64_t new_word = UINT64_C(1) << bit_offset;
+                    if (!set) {
+                        new_word = ~new_word;
+                    }
+                    word->is_fill = false;
+                    word->bits    = new_word;
+                } else {
+                    word->fill.counter--;
+                    word->fill.position0 = bit_offset + 1;
+                }
+            } else {
+                word->fill.counter -= word_offset + 1;
+                if (word_offset == 0) {
+                    plwah64_t new_word = { .word = UINT64_C(1) << bit_offset };
+                    if (!set) {
+                        new_word.word = ~new_word.word;
+                        new_word.is_fill = false;
+                    }
+                    qv_insert(plwah64, &map->bits, i, new_word);
+                } else {
+                    plwah64_t new_word = {
+                        .fill = PLWAH64_FILL_INIT(!set, word_offset),
+                    };
+                    new_word.fill.position0 = bit_offset + 1;
+                    qv_insert(plwah64, &map->bits, i, new_word);
+                }
+            }
+            return;
+        }
+    } else {
+        if (!set) {
+            word->word &= ~(UINT64_C(1) << pos);
+        } else {
+            word->word |= UINT64_C(1) << pos;
+        }
+        plwah64_normalize(&map->bits, i, i + 2);
+        return;
+    }
+}
+
 /* }}} */
 /* Public API {{{ */
 
@@ -561,170 +750,24 @@ void plwah64_add1s(plwah64_map_t *map, uint64_t bit_len)
 }
 
 static inline __must_check__
-bool plwah64_get(const plwah64_map_t *map, uint32_t pos)
+bool plwah64_get(const plwah64_map_t *map, uint64_t pos)
 {
-    if (pos >= map->bit_len) {
-        return false;
-    }
-    for (int i = 0; i < map->bits.len; i++) {
-        plwah64_t word = map->bits.tab[i];
-        if (word.is_fill) {
-            uint64_t count = word.fill.counter * 63;
-            if (pos < count) {
-                return !!word.fill.val;
-            }
-            pos -= count;
-            if (pos < 63 && word.fillp.positions != 0) {
-#define CASE(p, Val)  if ((uint64_t)(Val) == pos) return !word.fill.val;
-                READ_POSITIONS(word.fill, CASE);
-#undef CASE
-                pos -= 63;
-            }
-        } else
-        if (pos < 63) {
-            return !!(word.word & (1UL << pos));
-        } else {
-            pos -= 63;
-        }
-    }
-    return false;
+    plwah64_path_t path = plwah64_find(map, pos);
+    return plwah64_get_(map, path);
 }
 
 static inline
-void plwah64_set_(plwah64_map_t *map, uint32_t pos, bool set)
+void plwah64_set(plwah64_map_t *map, uint64_t pos)
 {
-    if (pos >= map->bit_len) {
-        if (set) {
-            plwah64_add0s(map, pos - map->bit_len);
-            plwah64_add1s(map, 1);
-        } else {
-            plwah64_add0s(map, pos - map->bit_len + 1);
-        }
-        assert (map->bit_len == pos + 1);
-        return;
-    }
-
-    for (int i = 0; i < map->bits.len; i++) {
-        plwah64_t *word = &map->bits.tab[i];
-        if (word->is_fill) {
-            uint64_t count = word->fill.counter * 63;
-            if (pos < count) {
-                uint64_t offset;
-                if (!!word->fill.val == !!set) {
-                    /* The bit is already at the good value */
-                    return;
-                }
-                offset = pos % 63;
-                count  = pos / 63;
-                /* Split the fill word */
-                if (count == (uint64_t)(word->fill.counter - 1)) {
-                    if (word->fillp.positions) {
-                        plwah64_t new_word = APPLY_POSITIONS(word->fill);
-                        word->fillp.positions = 0;
-                        qv_insert(plwah64, &map->bits, i + 1, new_word);
-                    }
-                    if (count == 0) {
-                        uint64_t new_word = UINT64_C(1) << offset;
-                        if (!set) {
-                            new_word = ~new_word;
-                        }
-                        word->is_fill = false;
-                        word->bits    = new_word;
-                    } else {
-                        word->fill.counter--;
-                        word->fill.position0 = offset + 1;
-                    }
-                } else {
-                    word->fill.counter -= count + 1;
-                    if (count == 0) {
-                        plwah64_t new_word = { .word = UINT64_C(1) << offset };
-                        if (!set) {
-                            new_word.word = ~new_word.word;
-                            new_word.is_fill = false;
-                        }
-                        qv_insert(plwah64, &map->bits, i, new_word);
-                    } else {
-                        plwah64_t new_word = {
-                            .fill = PLWAH64_FILL_INIT(!set, count),
-                        };
-                        new_word.fill.position0 = offset + 1;
-                        qv_insert(plwah64, &map->bits, i, new_word);
-                    }
-                }
-                return;
-            }
-            pos -= count;
-            if (pos < 63 && word->fillp.positions != 0) {
-#define CASE(i, Val)                                                         \
-                if ((uint64_t)(Val) == pos) {                                \
-                    if (!!word->fill.val != !!set) {                         \
-                        /* Bit is already at the expected value */           \
-                        return;                                              \
-                    }                                                        \
-                    switch (i) {                                             \
-                      case 0: word->fill.position0 = word->fill.position1;   \
-                      case 1: word->fill.position1 = word->fill.position2;   \
-                      case 2: word->fill.position2 = word->fill.position3;   \
-                      case 3: word->fill.position3 = word->fill.position4;   \
-                      case 4: word->fill.position4 = word->fill.position5;   \
-                      case 5: word->fill.position5 = 0;                      \
-                    }                                                        \
-                    return;                                                  \
-                }
-#define SET_POS(p)                                                           \
-                  case p:                                                    \
-                    word->fill.position##p = pos + 1;                        \
-                    return;
-
-                switch (READ_POSITIONS(word->fill, CASE)) {
-                  SET_POS(1);
-                  SET_POS(2);
-                  SET_POS(3);
-                  SET_POS(4);
-                  SET_POS(5);
-                  case 0:
-                    e_panic("This should not happen");
-                  default: {
-                    plwah64_t new_word = APPLY_POSITIONS(word->fill);
-                    if (set) {
-                        new_word.word |= UINT64_C(1) << pos;
-                    } else {
-                        new_word.word &= ~(UINT64_C(1) << pos);
-                    }
-                    word->fillp.positions = 0;
-                    qv_insert(plwah64, &map->bits, i + 1, new_word);
-                    return;
-                  } break;
-                }
-#undef SET_POS
-#undef CASE
-            }
-        } else
-        if (pos < 63) {
-            if (!set) {
-                word->word &= ~(UINT64_C(1) << pos);
-            } else {
-                word->word |= UINT64_C(1) << pos;
-            }
-            plwah64_normalize(&map->bits, i, i + 2);
-            return;
-        } else {
-            pos -= 63;
-        }
-    }
-}
-
-
-static inline
-void plwah64_set(plwah64_map_t *map, uint32_t pos)
-{
-    plwah64_set_(map, pos, true);
+    plwah64_path_t path = plwah64_find(map, pos);
+    plwah64_set_(map, path, true);
 }
 
 static inline
-void plwah64_reset(plwah64_map_t *map, uint32_t pos)
+void plwah64_reset(plwah64_map_t *map, uint64_t pos)
 {
-    plwah64_set_(map, pos, false);
+    plwah64_path_t path = plwah64_find(map, pos);
+    plwah64_set_(map, path, false);
 }
 
 static inline
@@ -796,6 +839,9 @@ void plwah64_trim(plwah64_map_t *map)
         return;
     }
 }
+
+/* }}} */
+/* Enumeration {{{ */
 
 /* }}} */
 /* Allocation {{{ */
