@@ -156,3 +156,87 @@ PLWAH64_TEST("set bitmap")
     plwah64_wipe(&map);
     TEST_DONE();
 }
+
+PLWAH64_TEST("binop")
+{
+    const byte data1[] = {
+        0x1f, 0x00, 0x00, 0x8c, /* 0, 1, 2, 3, 4, 26, 27, 31 (32) */
+        0xff, 0xff, 0xff, 0xff, /* 32 -> 63                  (64) */
+        0xff, 0xff, 0xff, 0xff, /* 64 -> 95                  (96) */
+        0xff, 0xff, 0xff, 0x80, /* 96 -> 119, 127            (128)*/
+        0x00, 0x10, 0x40, 0x00, /* 140, 150                  (160)*/
+        0x00, 0x00, 0x00, 0x00, /*                           (192)*/
+        0x00, 0x00, 0x00, 0x00, /*                           (224)*/
+        0x00, 0x00, 0x00, 0x00, /*                           (256)*/
+        0x00, 0x00, 0x00, 0x21  /* 280, 285                  (288)*/
+    };
+
+    const byte data2[] = {
+        0x00, 0x00, 0x00, 0x00, /*                                     (32) */
+        0x00, 0x00, 0x00, 0x80, /* 63                                  (64) */
+        0x00, 0x10, 0x20, 0x00, /* 76, 85                              (96) */
+        0x00, 0x00, 0xc0, 0x20, /* 118, 119, 125                       (128)*/
+        0xff, 0xfc, 0xff, 0x12  /* 128 -> 135, 138 -> 151, 153, 156    (160)*/
+    };
+
+    /* And result:
+     *                                                                 (32)
+     * 63                                                              (64)
+     * 76, 85                                                          (96)
+     * 118, 119                                                        (128)
+     * 140, 150                                                        (160)
+     */
+
+    /* Or result:
+     * 0 -> 4, 26, 27, 31                                              (32)
+     * 32 -> 63                                                        (64)
+     * 64 -> 95                                                        (96)
+     * 96 -> 119, 125, 127                                             (128)
+     * 128 -> 135, 138 -> 151, 153, 156                                (160)
+     *                                                                 (192)
+     *                                                                 (224)
+     *                                                                 (256)
+     * 280, 285                                                        (288)
+     */
+
+    plwah64_map_t map1 = PLWAH64_MAP_INIT;
+    plwah64_map_t map2 = PLWAH64_MAP_INIT;
+
+    plwah64_add(&map1, data1, bitsizeof(data1));
+    plwah64_add(&map2, data2, bitsizeof(data2));
+    plwah64_and(&map1, &map2);
+    for (int i = 0; i < countof(data1); i++) {
+        byte b = data1[i];
+        if (i < countof(data2)) {
+            b &= data2[i];
+        } else {
+            b = 0;
+        }
+#define CHECK_BIT(p)  (!!(b & (1 << p)) == !!plwah64_get(&map1, i * 8 + p))
+        if (!CHECK_BIT(0) || !CHECK_BIT(1) || !CHECK_BIT(2) || !CHECK_BIT(3)
+        ||  !CHECK_BIT(4) || !CHECK_BIT(5) || !CHECK_BIT(6) || !CHECK_BIT(7)) {
+            TEST_FAIL_IF(true, "invalid byte %d", i);
+        }
+#undef CHECK_BIT
+    }
+
+    plwah64_reset_map(&map1);
+    plwah64_add(&map1, data1, bitsizeof(data1));
+    plwah64_or(&map1, &map2);
+    for (int i = 0; i < countof(data1); i++) {
+        byte b = data1[i];
+        if (i < countof(data2)) {
+            b |= data2[i];
+        }
+#define CHECK_BIT(p)  (!!(b & (1 << p)) == !!plwah64_get(&map1, i * 8 + p))
+        if (!CHECK_BIT(0) || !CHECK_BIT(1) || !CHECK_BIT(2) || !CHECK_BIT(3)
+        ||  !CHECK_BIT(4) || !CHECK_BIT(5) || !CHECK_BIT(6) || !CHECK_BIT(7)) {
+            TEST_FAIL_IF(true, "invalid byte %d", i);
+        }
+#undef CHECK_BIT
+    }
+
+    plwah64_wipe(&map1);
+    plwah64_wipe(&map2);
+    TEST_DONE();
+}

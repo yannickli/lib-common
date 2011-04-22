@@ -337,7 +337,7 @@ void plwah64_append_literal(qv_t(plwah64) *map, plwah64_literal_t lit)
 
 
 #define READ(V)                                                              \
-        if (V##pos < 0) {                                                    \
+        if (V##pos <= 0) {                                                   \
             V##word = V[0];                                                  \
             if (V##word.lit.is_fill) {                                       \
                 V##pos = V##word.fill.counter;                               \
@@ -366,8 +366,8 @@ void plwah64_append_literal(qv_t(plwah64) *map, plwah64_literal_t lit)
         } while (0)
 
 static inline
-void plwah64_or(qv_t(plwah64) *map, const plwah64_t *x, int xlen,
-                const plwah64_t *y, int ylen)
+void plwah64_or_(qv_t(plwah64) *map, const plwah64_t *x, int xlen,
+                 const plwah64_t *y, int ylen)
 {
     int xpos = 0;
     int ypos = 0;
@@ -399,7 +399,7 @@ void plwah64_or(qv_t(plwah64) *map, const plwah64_t *x, int xlen,
                 plwah64_append_literal(map, xword.lit);
             } else {
                 xword.word |= yword.word;
-                plwah64_append_literal(map, yword.lit);
+                plwah64_append_literal(map, xword.lit);
             }
             xpos--;
             ypos--;
@@ -408,6 +408,9 @@ void plwah64_or(qv_t(plwah64) *map, const plwah64_t *x, int xlen,
         NEXT(y);
     }
     if (xlen == 0) {
+        if (ylen == 0) {
+            return;
+        }
         SWAP_VARS();
     }
     if (xpos > 0) {
@@ -422,8 +425,8 @@ void plwah64_or(qv_t(plwah64) *map, const plwah64_t *x, int xlen,
 }
 
 static inline
-void plwah64_and(qv_t(plwah64) *map, const plwah64_t *x, int xlen,
-                 const plwah64_t *y, int ylen)
+void plwah64_and_(qv_t(plwah64) *map, const plwah64_t *x, int xlen,
+                  const plwah64_t *y, int ylen)
 {
     int xpos = 0;
     int ypos = 0;
@@ -446,7 +449,7 @@ void plwah64_and(qv_t(plwah64) *map, const plwah64_t *x, int xlen,
         } else {
             if ((xword.fill.is_fill && !xword.fill.val)
             || (yword.fill.is_fill && !yword.fill.val)) {
-                plwah64_append_fill(map, PLWAH64_FILL_INIT(1, 0));
+                plwah64_append_fill(map, PLWAH64_FILL_INIT(0, 1));
             } else
             if (xword.fill.is_fill) {
                 plwah64_append_literal(map, yword.lit);
@@ -455,13 +458,25 @@ void plwah64_and(qv_t(plwah64) *map, const plwah64_t *x, int xlen,
                 plwah64_append_literal(map, xword.lit);
             } else {
                 xword.word &= yword.word;
-                plwah64_append_literal(map, yword.lit);
+                plwah64_append_literal(map, xword.lit);
             }
             xpos--;
             ypos--;
         }
         NEXT(x);
         NEXT(y);
+    }
+    if (xlen == 0) {
+        if (ylen == 0) {
+            return;
+        }
+        SWAP_VARS();
+    }
+    while (xlen > 0) {
+        READ(x);
+        plwah64_append_fill(map, PLWAH64_FILL_INIT(0, xpos));
+        xpos = 0;
+        NEXT(x);
     }
 }
 
@@ -581,7 +596,7 @@ plwah64_path_t plwah64_find(const plwah64_map_t *map, uint64_t pos)
     for (int i = 0; i < map->bits.len; i++) {
         plwah64_t word = map->bits.tab[i];
         if (word.is_fill) {
-            uint64_t count = word.fill.counter * 63;
+            uint64_t count = word.fill.counter * PLWAH64_WORD_BITS;
             if (pos < count) {
                 return (plwah64_path_t){
                     /* .bit_in_word = */ pos,
@@ -590,22 +605,25 @@ plwah64_path_t plwah64_find(const plwah64_map_t *map, uint64_t pos)
                 };
             }
             pos -= count;
-            if (pos < 63 && word.fillp.positions != 0) {
-                return (plwah64_path_t){
-                    /* .bit_in_word = */ pos,
-                    /* .word_offset = */ i,
-                    /* .in_pos      = */ true,
-                };
+            if (word.fillp.positions != 0) {
+                if (pos < PLWAH64_WORD_BITS) {
+                    return (plwah64_path_t){
+                        /* .bit_in_word = */ pos,
+                        /* .word_offset = */ i,
+                        /* .in_pos      = */ true,
+                    };
+                }
+                pos -= PLWAH64_WORD_BITS;
             }
         } else
-        if (pos < 63) {
+        if (pos < PLWAH64_WORD_BITS) {
             return (plwah64_path_t){
                 /* .bit_in_word = */ pos,
                 /* .word_offset = */ i,
                 /* .in_pos      = */ false,
             };
         } else {
-            pos -= 63;
+            pos -= PLWAH64_WORD_BITS;
         }
     }
     e_panic("This should not happen");
@@ -831,6 +849,46 @@ void plwah64_not(plwah64_map_t *map)
     map->generation++;
 }
 
+static inline
+void plwah64_and(plwah64_map_t * restrict map,
+                 const plwah64_map_t * restrict other)
+{
+    /* TODO: efficient in-place implementation */
+    const plwah64_t *src;
+    int src_len;
+    t_push();
+    src     = (const plwah64_t *)t_dup(map->bits.tab, map->bits.len);
+    src_len = map->bits.len;
+    map->bits.len = 0;
+    plwah64_and_(&map->bits, src, src_len, other->bits.tab, other->bits.len);
+    if (map->bit_len < other->bit_len) {
+        map->bit_len = other->bit_len;
+        map->remain  = other->remain;
+    }
+    map->generation++;
+    t_pop();
+}
+
+static inline
+void plwah64_or(plwah64_map_t * restrict map,
+                const plwah64_map_t * restrict other)
+{
+    /* TODO: efficient in-place implementation */
+    const plwah64_t *src;
+    int src_len;
+    t_push();
+    src     = (const plwah64_t *)t_dup(map->bits.tab, map->bits.len);
+    src_len = map->bits.len;
+    map->bits.len = 0;
+    plwah64_or_(&map->bits, src, src_len, other->bits.tab, other->bits.len);
+    if (map->bit_len < other->bit_len) {
+        map->bit_len = other->bit_len;
+        map->remain  = other->remain;
+    }
+    map->generation++;
+    t_pop();
+}
+
 static inline __must_check__
 uint64_t plwah64_bit_count(const plwah64_map_t *map)
 {
@@ -1044,11 +1102,14 @@ void plwah64_debug_print(const plwah64_map_t *map)
     for (int i = 0; i < map->bits.len; i++) {
         plwah64_t m = map->bits.tab[i];
         if (m.is_fill) {
-            fprintf(stderr, "* fill word with %d, counter %"PRIi64
-                    ", pos %"PRIx64"\n", (int)m.fill.val,
-                    (uint64_t)m.fill.counter, (uint64_t)m.fillp.positions);
+            fprintf(stderr, "* fill word with %d, counter %"PRIi64,
+                    (int)m.fill.val, (uint64_t)m.fill.counter);
+#define CASE(p, val)  fprintf(stderr, ", pos%d: %d", (int)p, (int)val);
+            READ_POSITIONS(m.fill, CASE);
+#undef CASE
+            fprintf(stderr, "\n");
         } else {
-            fprintf(stderr, "* literal word %"PRIx64"\n", (uint64_t)m.lit.bits);
+            fprintf(stderr, "* literal word %016"PRIx64"\n", (uint64_t)m.lit.bits);
         }
     }
 }
