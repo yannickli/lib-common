@@ -495,8 +495,37 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qm_find_safe_h(name, qh, h, key)    qm_##name##_find_safe_h(qh, h, key)
 #define __qm_put(name, qh, key, v, fl)      __qm_##name##_put(qh, key, v, fl)
 #define __qm_put_h(name, qh, h, key, v, fl) __qm_##name##_put_h(qh, h, key, v, fl)
+
+/**
+ * Adds a new key/value pair into the qmap.
+ *
+ * @note When key already exists in the qmap, the add function fails.
+ * If you want to insert or overwrite existing values the replace macro
+ * shall be used.
+ *
+ * @param name the base name of the qmap
+ * @param qh   pointer to the qmap in wich the value shall be inserted
+ * @param key  the value of the key
+ * @param v    the value associated to the key
+ *
+ * @return     0 if inserted in the qmap, -1 if insertion fails.
+ */
 #define qm_add(name, qh, key, v)            qm_##name##_add(qh, key, v)
 #define qm_add_h(name, qh, h, key, v)       qm_##name##_add_h(qh, h, key, v)
+
+/**
+ * Replaces value for a given key the qmap.
+ *
+ * If the key does not exists in the current qmap, then the pair key/value
+ * is created and inserted.
+ *
+ * @param name the base name of the qmap
+ * @param qh   pointer to the qmap in wich the value shall be inserted
+ * @param key  the value of the key
+ * @param v    the value associated to the key
+ *
+ * @return     0 if it's an insertion, -1 if it's a replace.
+ */
 #define qm_replace(name, qh, key, v)        qm_##name##_replace(qh, key, v)
 #define qm_replace_h(name, qh, h, key, v)   qm_##name##_replace_h(qh, h, key, v)
 #define qm_del_at(name, qh, pos)            qm_##name##_del_at(qh, pos)
