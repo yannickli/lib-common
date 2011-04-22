@@ -13,5 +13,5 @@
 
 include $(var/cfgdir)/cflags.mk
 CFLAGS += -DNDEBUG -fvisibility=hidden
-CXXFLAGS += -DNDEBUG -fvisibility=hidden
+CXXFLAGS += -DNDEBUG -fvisibility=hidden -flto -fuse-linker-plugin
 LDFLAGS += -Wl,-x
