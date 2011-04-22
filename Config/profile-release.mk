@@ -12,6 +12,14 @@
 ##########################################################################
 
 include $(var/cfgdir)/cflags.mk
+
+GCCVERSION = $(shell gcc -dumpversion)
+
 CFLAGS += -DNDEBUG -fvisibility=hidden
-CXXFLAGS += -DNDEBUG -fvisibility=hidden -flto -fuse-linker-plugin
+CXXFLAGS += -DNDEBUG -fvisibility=hidden
 LDFLAGS += -Wl,-x
+
+ifeq "$(GCCVERSION)" "4.6.0"
+	CFLAGS += -flto -fuse-linker-plugin
+	CXXFLAGS += -flto -fuse-linker-plugin
+endif
