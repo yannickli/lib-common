@@ -309,6 +309,10 @@ static NEVER_INLINE arena_t *arena_prepare(void *ptr, size_t size)
     return a;
 }
 
+#if __GNUC_PREREQ(4, 6)
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#endif
+
 static ALWAYS_INLINE void arena_insert(tlsf_pool_t *mp, arena_t *a)
 {
     blk_hdr_t *blk = blk_of(a);

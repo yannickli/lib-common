@@ -64,7 +64,7 @@ static void thr_ec_wait_cleanup(void *arg)
 
 void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
 {
-    int canceltype, res;
+    int canceltype;
 
     mb();
 
@@ -94,9 +94,9 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
             .tv_sec  = timeout / 1000,
             .tv_nsec = (timeout % 1000) * 1000000,
         };
-        res = futex_wait(&ec->count, (uint32_t)key, &spec);
+        futex_wait(&ec->count, (uint32_t)key, &spec);
     } else {
-        res = futex_wait(&ec->count, (uint32_t)key, NULL);
+        futex_wait(&ec->count, (uint32_t)key, NULL);
     }
 
     pthread_setcanceltype(canceltype, NULL);

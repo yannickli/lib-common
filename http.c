@@ -81,12 +81,12 @@ static inline int http_getline(pstream_t *ps, pstream_t *out)
     const char *p = memmem(ps->s, ps_len(ps), "\r\n", 2);
 
     if (unlikely(!p)) {
+        *out = ps_initptr(NULL, NULL);
         if (ps_len(ps) > _G.header_line_max)
             return PARSE_ERROR;
         return PARSE_MISSING_DATA;
     }
-    out->s     = ps->s;
-    out->s_end = p;
+    *out = ps_initptr(ps->s, p);
     return __ps_skip_upto(ps, p + 2);
 }
 
