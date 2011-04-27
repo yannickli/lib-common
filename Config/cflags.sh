@@ -110,6 +110,7 @@ if gcc_prereq 4.5; then
     echo -Wlogical-op
 fi
 if gcc_prereq 4.6; then
+    echo -flto -fuse-linker-plugin
     echo -Wsuggest-attribute=noreturn
 fi
 # warn about pointer arithmetic on void* and function pointers
