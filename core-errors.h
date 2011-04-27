@@ -93,7 +93,8 @@ void e_trace_put_(int lvl, const char *fname, int lno, const char *func,
 #define e_named_trace_hex(lvl, name, str, buf, len)                          \
     do {                                                                     \
         if (e_name_is_traced(lvl, name)) {                                   \
-            e_trace(lvl, "--%s (%d)--\n", str, len);                         \
+            e_trace_put_(lvl, __FILE__, __LINE__, __func__,                  \
+                         name, "--%s (%d)--\n", str, len);                   \
             ifputs_hex(stderr, buf, len);                                    \
         }                                                                    \
     } while (0)
