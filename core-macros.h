@@ -209,14 +209,14 @@
     })
 
 #define RETHROW_P(e)        \
-    ({ typeof(*(e)) *__res = (e);                      \
+    ({ typeof(e) __res = (e);                          \
        if (unlikely(__res == NULL))                    \
            return NULL;                                \
        __res;                                          \
     })
 
 #define RETHROW_PN(e)        \
-    ({ typeof(*(e)) *__res = (e);                      \
+    ({ typeof(e) __res = (e);                          \
        if (unlikely(__res == NULL))                    \
            return -1;                                  \
        __res;                                          \
