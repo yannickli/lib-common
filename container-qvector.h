@@ -214,8 +214,8 @@ qvector_splice(qvector_t *vec, size_t v_size,
 #define qv_sort(n)                          qv_##n##_sort
 #endif
 
-#define qv_last(n, vec)                     ({ qv_t(n) *__vec = (vec);  \
-                                               assert (__vec->len > 0); \
+#define qv_last(n, vec)                     ({ const qv_t(n) *__vec = (vec); \
+                                               assert (__vec->len > 0);      \
                                                __vec->tab + __vec->len - 1; })
 
 #define __qv_splice(n, vec, pos, l, dl)     __qv_##n##_splice(vec, pos, l, dl)
