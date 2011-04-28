@@ -137,6 +137,9 @@ static inline uint8_t __bs_get_bits(bit_stream_t *bs, size_t blen)
 {
     uint8_t u8;
 
+    if (unlikely(!blen))
+        return 0;
+
     if (bs->rbit + blen > 8) {
         be16_t    be16;
         uint16_t  u16;
