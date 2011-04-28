@@ -21,14 +21,7 @@
 //#define T_STACK_DEBUG
 #endif
 
-static struct {
-    pthread_mutex_t mutex;
-    pthread_t owner;
-    int count;
-} big_lock_g = {
-    .mutex = PTHREAD_MUTEX_INITIALIZER,
-};
-
+static pthread_mutex_t big_lock_g;
 static bool use_big_lock_g = false;
 
 /** \addtogroup lc_el
@@ -889,55 +882,34 @@ void el_loop_timeout(int timeout)
 
 void el_bl_use(void)
 {
+    pthread_mutexattr_t attr;
+
     if (use_big_lock_g)
         e_panic("el bl use has been called twice !");
 
     use_big_lock_g = true;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
+    pthread_mutex_init(&big_lock_g, &attr);
+    pthread_mutexattr_destroy(&attr);
     el_bl_lock();
 }
 
 void el_bl_lock(void)
 {
-    pthread_t self;
-
-    if (!use_big_lock_g)
-        return;
-
-    self = pthread_self();
-
-    if (big_lock_g.owner == self) {
-        big_lock_g.count++;
-    } else {
-        pthread_mutex_lock(&big_lock_g.mutex);
-        big_lock_g.count = 1;
-        big_lock_g.owner = self;
-    }
+    if (use_big_lock_g)
+        pthread_mutex_lock(&big_lock_g);
 }
 
 void el_bl_unlock(void)
 {
-    if (!use_big_lock_g)
-        return;
-
-    assert(big_lock_g.count > 0);
-
-    big_lock_g.count--;
-    if (big_lock_g.count == 0) {
-        big_lock_g.owner = (pthread_t)0;
-        pthread_mutex_unlock(&big_lock_g.mutex);
-    }
+    if (use_big_lock_g)
+        pthread_mutex_unlock(&big_lock_g);
 }
 
 void el_cond_wait(pthread_cond_t *cond)
 {
-    int count;
-
-    count = big_lock_g.count;
-    big_lock_g.count = 0;
-
-    pthread_cond_wait(cond, &big_lock_g.mutex);
-
-    big_lock_g.count = count;
+    pthread_cond_wait(cond, &big_lock_g);
 }
 
 void el_cond_signal(pthread_cond_t *cond)

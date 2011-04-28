@@ -25,6 +25,7 @@ core-version.c: scripts/version.sh FORCE
 	$(call fun/update-if-changed,$@+,$@)
 
 _CFLAGS  = $(libxml2_CFLAGS)
+_LIBS    = -lz -lrt -ldl -lpthread
 
 libcommon_SOURCES = \
 	farch.c \
@@ -158,12 +159,10 @@ time-lp-simple_SOURCES = time-lp-simple.c
 zchk_SOURCES = zchk.c \
 	$/lib-common/libcommon.wa \
 	$/lib-common/time-lp-simple.a
-
-zchk_LIBS = $(libxml2_LIBS) -lz -lrt -ldl -lpthread
+zchk_LIBS = $(libxml2_LIBS)
 
 ztst_SOURCES = $(libcommon_SOURCES) time-lp-simple.c ztst.c $/lib-common/compat/check.c
 ztst_CFLAGS  = -DCHECK=1
-ztst_LIBS = -lz -lrt -ldl
 
 ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
 
@@ -172,14 +171,14 @@ ztst-iop_SOURCES = \
 	$/lib-common/iop/tstiop.a \
 	$/lib-common/libcommon.a \
 	$/lib-common/time-lp-simple.a
-ztst-iop_LIBS = $(libxml2_LIBS) -lrt -ldl
+ztst-iop_LIBS = $(libxml2_LIBS)
 
 ztst-httpd_SOURCES = \
 	ztst-httpd.c \
 	$/lib-common/iop/tstiop.a \
 	$/lib-common/libcommon.a \
 	$/lib-common/time-lp-simple.a
-ztst-httpd_LIBS = $(libxml2_LIBS) -lrt -ldl
+ztst-httpd_LIBS = $(libxml2_LIBS)
 
 ztst-tpl_SOURCES = ztst-tpl.c libcommon.a
 
@@ -192,7 +191,6 @@ ztst-iprintf-glibc_CFLAGS = -Wno-format -Wno-missing-format-attribute -Wno-forma
 ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a
 
 ztst-lzo_SOURCES = ztst-lzo.c libcommon.a
-ztst-lzo_LDFLAGS = -lrt
 
 ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a
 ztst-iprintf-speed_CFLAGS = -UCHECK
