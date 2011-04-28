@@ -21,6 +21,7 @@
 typedef struct bb_t {
     sb_t        sb;
     uint8_t     wbit;
+    flag_t      not_sb_owner : 1;
 #ifndef NDEBUG
     qv_t(u32)   marks;
 #endif
@@ -39,7 +40,10 @@ static ALWAYS_INLINE bb_t *bb_init(bb_t *bb)
 
 static ALWAYS_INLINE void bb_wipe(bb_t *bb)
 {
-    sb_wipe(&bb->sb);
+    if (likely(!bb->not_sb_owner)) {
+        sb_wipe(&bb->sb);
+    }
+
 #ifndef NDEBUG
     qv_wipe(u32, &bb->marks);
 #endif
@@ -51,6 +55,10 @@ static ALWAYS_INLINE bb_t bb_init_sb(sb_t *sb)
 
     p_clear(&bb, 1);
     bb.sb = *sb;
+    bb.not_sb_owner = true;
+#ifndef NDEBUG
+    qv_init(u32, &bb.marks);
+#endif
 
     return bb;
 }

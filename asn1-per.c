@@ -630,6 +630,8 @@ aper_encode_seq_of(bb_t *bb, const void *st, const asn1_field_t *field)
     bb_push_mark(bb);
 
     if (aper_encode_len(bb, elem_cnt, &field->seq_of_info) < 0) {
+        bb_pop_mark(bb);
+
         return e_error("Failed to encode SEQUENCE OF length (n = %zd)",
                        elem_cnt);
     }
@@ -701,6 +703,7 @@ int aper_encode_desc(sb_t *sb, const void *st, const asn1_desc_t *desc)
     }
 
     *sb = bb.sb;
+    bb_wipe(&bb);
 
     /* Ref : [1] 10.1.3 */
     if (unlikely(!sb->len)) {
