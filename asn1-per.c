@@ -1256,7 +1256,7 @@ t_aper_decode_bit_string(bit_stream_t *bs, const asn1_cnt_info_t *info,
     bb_add_bs(&bb, bstring);
     data = memp_dup(t_pool(), bb.sb.data, size);
     *bit_string = ASN1_BIT_STRING(data, bs_len(&bstring));
-    bb_wipe(&bb)
+    bb_wipe(&bb);
 
     return 0;
 }
