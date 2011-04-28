@@ -1243,12 +1243,17 @@ t_aper_decode_bit_string(bit_stream_t *bs, const asn1_cnt_info_t *info,
 {
     bit_stream_t bstring;
     bb_t bb;
+    uint8_t *data;
+    size_t size;
 
     RETHROW(t_aper_decode_bstring(bs, info, false, &bstring));
 
-    bb_inita(&bb, ps_len(&bs->ps) + 1);
+    size = ps_len(&bstring.ps) + 1;
+    bb_inita(&bb, size);
     bb_add_bs(&bb, bstring);
-    *bit_string = ASN1_BIT_STRING((uint8_t *)bb.sb.data, bs_len(&bstring));
+    data = memp_dup(t_pool(), bb.sb.data, size);
+    *bit_string = ASN1_BIT_STRING(data, bs_len(&bstring));
+    bb_wipe(&bb)
 
     return 0;
 }
