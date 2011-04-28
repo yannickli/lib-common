@@ -180,6 +180,7 @@ static inline bool bs_equals(bit_stream_t bs1, bit_stream_t bs2)
 /* Printing helpers {{{ */
 static inline char *t_print_bs(bit_stream_t bs, size_t *len)
 {
+    char *res;
     SB_1k(sb);
 
     while (!bs_done(&bs)) {
@@ -194,7 +195,10 @@ static inline char *t_print_bs(bit_stream_t bs, size_t *len)
         *len = sb.len;
     }
 
-    return t_dupz(sb.data, sb.len);
+    res = t_dupz(sb.data, sb.len);
+
+    sb_wipe(&sb);
+    return res;
 }
 
 #ifndef NDEBUG
