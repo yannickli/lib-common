@@ -293,6 +293,7 @@ iop_type_to_error_str(iop_type_t type)
       case IOP_T_DOUBLE:
         return "a decimal value";
       case IOP_T_DATA:
+        return "a bytes value";
       case IOP_T_STRING:
       case IOP_T_XML:
         return "a string value";
@@ -786,8 +787,25 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
                 return RJERROR_WARG(IOP_JERR_PARSE_NUM);
             goto do_double;
 
-          case IOP_T_STRING:
           case IOP_T_DATA:
+            data = (iop_data_t *)value;
+            if (ll->b.len == 0) {
+                data->data = mp_new(ll->mp, char, 1);
+                data->len  = 0;
+            } else {
+                sb_t  sb;
+                int   blen = DIV_ROUND_UP(ll->b.len * 3, 4);
+                char *buf  = mp_new_raw(ll->mp, char, blen + 1);
+
+                sb_init_full(&sb, buf, 0, blen + 1, MEM_OTHER);
+                if (sb_add_unb64(&sb, ll->b.data, ll->b.len))
+                    return RJERROR_WARG(IOP_JERR_BAD_VALUE);
+                data->data = buf;
+                data->len  = sb.len;
+            }
+            return 0;
+
+          case IOP_T_STRING:
           case IOP_T_XML:
             data = (iop_data_t *)value;
             data->data = mp_dupz(ll->mp, ll->b.data, ll->b.len);
@@ -1320,28 +1338,23 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                 break;
 
               case IOP_T_DATA:
-                ps = ps_init(IOP_FIELD(const iop_data_t, ptr, j).data,
-                             IOP_FIELD(const iop_data_t, ptr, j).len);
+                if (IOP_FIELD(const iop_data_t, ptr, j).len) {
+                    int dlen = IOP_FIELD(const iop_data_t, ptr, j).len;
+                    int blen = 1 + DIV_ROUND_UP(dlen * 4, 3) + 1 + 1;
+                    sb_t sb;
 
-                PUTS("\"");
-                while (!ps_done(&ps)) {
-                    const uint8_t *p = ps.b;
-
-                    while (p < ps.b_end && *p >= ' ' && *p < 127 && *p != '"') {
-                        p++;
-                    }
-                    WRITE(ps.b, p - ps.b);
-                    __ps_skip_upto(&ps, p);
-
-                    if (ps_done(&ps))
-                        break;
-                    if (strict) {
-                        WRITE(ibuf, sprintf(ibuf, "\\u%04x", __ps_getc(&ps)));
-                    } else {
-                        WRITE(ibuf, sprintf(ibuf, "\\x%02x", __ps_getc(&ps)));
-                    }
+                    t_push();
+                    sb_init_full(&sb, t_new_raw(char, blen), 0,
+                                 blen, MEM_STACK);
+                    sb_addc(&sb, '"');
+                    sb_add_b64(&sb, IOP_FIELD(const iop_data_t, ptr, j).data,
+                               dlen, -1);
+                    sb_addc(&sb, '"');
+                    WRITE(sb.data, sb.len);
+                    t_pop();
+                } else {
+                    PUTS("\"\"");
                 }
-                PUTS("\"");
                 break;
 
               default:
