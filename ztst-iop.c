@@ -677,6 +677,5 @@ int main(int argc, char **argv)
         makeusage(c < 0, argv[0], usage[0], usage + 1, popt);
     }
 
-    t_pool_destroy();
     return EXIT_SUCCESS;
 }

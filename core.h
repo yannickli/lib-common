@@ -60,6 +60,7 @@ extern "C" {
 #include "core-blocks.h"
 #include "core-errors.h"
 #include "core-mem.h"
+#include "core-mem-stack.h"
 #include "core-refcount.h"
 #include "core-stdlib.h"
 #include "core-obj.h"

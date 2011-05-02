@@ -11,9 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CONTAINER_H) || defined(IS_LIB_COMMON_CONTAINER_DLIST_H)
-#  error "you must include container.h instead"
-#endif
+#ifndef IS_LIB_COMMON_CONTAINER_DLIST_H
 #define IS_LIB_COMMON_CONTAINER_DLIST_H
 
 typedef struct dlist_t {
@@ -244,3 +242,5 @@ dlist_cut_at(dlist_t *src, dlist_t *e, dlist_t *dst)
     __dlist_for_each_entry_safe(&(pos)->member, n, head, member)
 #define dlist_for_each_entry_safe_continue(pos, n, head, member) \
     __dlist_for_each_entry_safe((pos)->member.next, n, head, member)
+
+#endif

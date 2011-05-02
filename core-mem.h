@@ -416,42 +416,6 @@ void mem_fifo_pool_delete(mem_pool_t **poolp);
 void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used);
 
 
-/*----- core-mem-stack.c -----*/
-mem_pool_t *mem_stack_pool_new(int initialsize);
-void mem_stack_pool_delete(mem_pool_t **);
-
-const void *mem_stack_push(mem_pool_t *);
-const void *mem_stack_pop(mem_pool_t *);
-void mem_stack_rewind(mem_pool_t *, const void *);
-
-mem_pool_t *t_pool(void) __attribute__((pure));
-void t_pool_destroy(void);
-
-#define t_push()      mem_stack_push(t_pool())
-#define t_pop()       mem_stack_pop(t_pool())
-#define t_rewind(p)   mem_stack_rewind(t_pool(), p)
-
-#define __t_pop_and_do(expr)    ({ t_pop(); expr; })
-#define t_pop_and_return(expr)  __t_pop_and_do(return expr)
-#define t_pop_and_break()       __t_pop_and_do(break)
-#define t_pop_and_continue()    __t_pop_and_do(continue)
-#define t_pop_and_goto(lbl)     __t_pop_and_do(goto lbl)
-
-__attr_printf__(2, 3)
-char *t_fmt(int *out, const char *fmt, ...);
-
-#define t_new(type_t, n) \
-    ((type_t *)imalloc((n) * sizeof(type_t), MEM_STACK))
-#define t_new_raw(type_t, n)  \
-    ((type_t *)imalloc((n) * sizeof(type_t), MEM_STACK | MEM_RAW))
-#define t_new_extra(type_t, extra) \
-    ((type_t *)imalloc(sizeof(type_t) + (extra), MEM_STACK))
-#define t_new_extra_field(type_t, field, extra) \
-    t_new_extra(type_t, fieldsizeof(type_t, field[0]) * (extra))
-#define t_dup(p, count)    mp_dup(t_pool(), p, count)
-#define t_dupz(p, count)   mp_dupz(t_pool(), p, count)
-
-
 /*----- core-mem-ring.c -----*/
 mem_pool_t *mem_ring_pool_new(int initialsize);
 void mem_ring_pool_delete(mem_pool_t **);
