@@ -128,6 +128,7 @@ extern __thread mem_stack_pool_t t_pool_g;
 #define t_pop()       mem_stack_pop(&t_pool_g)
 #define t_rewind(p)   mem_stack_rewind(&t_pool_g, p)
 
+/* Deprecated: do not use */
 #define __t_pop_and_do(expr)    ({ t_pop(); expr; })
 #define t_pop_and_return(expr)  __t_pop_and_do(return expr)
 #define t_pop_and_break()       __t_pop_and_do(break)
@@ -148,5 +149,45 @@ char *t_fmt(int *out, const char *fmt, ...);
 #define t_dup(p, count)    mp_dup(&t_pool_g.funcs, p, count)
 #define t_dupz(p, count)   mp_dupz(&t_pool_g.funcs, p, count)
 
+/*
+ * t_scope protects all the code after its use up to the end of the block
+ * scope with an implicit t_push(), t_pop() pair.
+ *
+ * It works using the same principle as C++ RAII, see the C++ TScope class
+ * below, but for C.
+ *
+ * As a rule, it's better to use `t_scope;` just after the scope opening so
+ * that it gards the full block properly, e.g.:
+ *
+ *     {
+ *         t_scope;
+ *         char *buf = t_new_raw(char, BUFSIZ); // safe
+ *
+ *         // ...
+ *     }
+ */
+static ALWAYS_INLINE void t_scope_cleanup(int *unused)
+{
+    t_pop();
+}
+#define t_scope__(n)  \
+    int t_scope_##n __attribute__((unused,cleanup(t_scope_cleanup))) = (t_push(), 42)
+#define t_scope_(n)  t_scope__(n)
+#define t_scope      t_scope_(__COUNTER__)
+
+#ifdef __cplusplus
+/*
+ * RAII scoped t_push/t_pop
+ */
+class TScope {
+  public:
+    inline TScope() { t_push(); };
+    inline ~TScope() { t_pop(); };
+  private:
+    DISALLOW_COPY_AND_ASSIGN(TScope);
+    void* operator new(size_t);
+    void  operator delete(void *, size_t);
+};
+#endif
 
 #endif
