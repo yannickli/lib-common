@@ -855,10 +855,10 @@ static inline
 void plwah64_and(plwah64_map_t * restrict map,
                  const plwah64_map_t * restrict other)
 {
-    /* TODO: efficient in-place implementation */
     const plwah64_t *src;
     int src_len;
-    t_push();
+    t_scope;
+
     src     = (const plwah64_t *)t_dup(map->bits.tab, map->bits.len);
     src_len = map->bits.len;
     map->bits.len = 0;
@@ -868,17 +868,16 @@ void plwah64_and(plwah64_map_t * restrict map,
         map->remain  = other->remain;
     }
     map->generation++;
-    t_pop();
 }
 
 static inline
 void plwah64_or(plwah64_map_t * restrict map,
                 const plwah64_map_t * restrict other)
 {
-    /* TODO: efficient in-place implementation */
     const plwah64_t *src;
     int src_len;
-    t_push();
+    t_scope;
+
     src     = (const plwah64_t *)t_dup(map->bits.tab, map->bits.len);
     src_len = map->bits.len;
     map->bits.len = 0;
@@ -888,7 +887,6 @@ void plwah64_or(plwah64_map_t * restrict map,
         map->remain  = other->remain;
     }
     map->generation++;
-    t_pop();
 }
 
 static inline __must_check__
