@@ -297,11 +297,11 @@ static inline lstr_t t_lstr_cat3(const lstr_t s1, const lstr_t s2, const lstr_t 
 
 /*--------------------------------------------------------------------------*/
 #define lstr_fmt(fmt, ...) \
-    ({ const char *s = asprintf(fmt, ##__VA_ARGS__); \
-       lstr_init_(s, strlen(s), MEM_LIBC); })
+    ({ const char *__s = asprintf(fmt, ##__VA_ARGS__); \
+       lstr_init_(__s, strlen(__s), MEM_LIBC); })
 
 #define t_lstr_fmt(fmt, ...) \
-    ({ int len; const char *s = t_fmt(&len, fmt, ##__VA_ARGS__); \
-       lstr_init_(s, len, MEM_STACK); })
+    ({ int __len; const char *__s = t_fmt(&__len, fmt, ##__VA_ARGS__); \
+       lstr_init_(__s, __len, MEM_STACK); })
 
 #endif
