@@ -118,15 +118,24 @@ void              mem_stack_pool_wipe(mem_stack_pool_t *);
 void              mem_stack_pool_delete(mem_pool_t **);
 
 const void *mem_stack_push(mem_stack_pool_t *);
+#ifndef NDEBUG
 const void *mem_stack_pop(mem_stack_pool_t *);
-void        mem_stack_rewind(mem_stack_pool_t *, const void *);
+#else
+static ALWAYS_INLINE const void *mem_stack_pop(mem_stack_pool_t *sp)
+{
+    mem_stack_frame_t *frame = sp->stack;
+
+    assert (frame->prev);
+    sp->stack = frame->prev;
+    return frame;
+}
+#endif
 
 extern __thread mem_stack_pool_t t_pool_g;
 #define t_pool()  (&t_pool_g.funcs)
 
 #define t_push()      mem_stack_push(&t_pool_g)
 #define t_pop()       mem_stack_pop(&t_pool_g)
-#define t_rewind(p)   mem_stack_rewind(&t_pool_g, p)
 
 /* Deprecated: do not use */
 #define __t_pop_and_do(expr)    ({ t_pop(); expr; })

@@ -246,49 +246,19 @@ static void mem_stack_protect(mem_stack_pool_t *sp)
         VALGRIND_PROT_BLK(&blk->blk);
     }
 }
-#else
-#define mem_stack_protect(sp)
-#endif
 
 const void *mem_stack_pop(mem_stack_pool_t *sp)
 {
     mem_stack_frame_t *frame = sp->stack;
 
-    if (likely(frame->prev)) {
-        sp->stack = frame->prev;
-        mem_stack_protect(sp);
-        return frame;
-    }
-    frame->blk  = blk_entry(&sp->blk_list);
-    frame->pos  = sp + 1; /* XXX: end of sp, see kludge remarks above */
-    frame->last = NULL;
+    assert (frame->prev);
+    sp->stack = frame->prev;
     mem_stack_protect(sp);
-    return NULL;
+    return frame;
 }
-
-void mem_stack_rewind(mem_stack_pool_t *sp, const void *cookie)
-{
-    if (cookie == NULL) {
-        sp->base.blk  = blk_entry(&sp->blk_list);
-        sp->base.pos  = sp + 1; /* XXX: end of sp, see kludge remarks above */
-        sp->base.last = NULL;
-        sp->stack     = &sp->base;
-        mem_stack_protect(sp);
-        return;
-    }
-#ifndef NDEBUG
-    for (mem_stack_frame_t *frame = sp->stack; frame->prev; frame = frame->prev) {
-        if (frame == cookie) {
-            sp->stack = frame->prev;
-            mem_stack_protect(sp);
-            return;
-        }
-    }
-    e_panic("invalid cookie");
 #else
-    sp->stack = ((mem_stack_frame_t *)cookie)->prev;
+#define mem_stack_protect(sp)
 #endif
-}
 
 __attribute__((constructor))
 static void t_pool_init(void)
