@@ -175,12 +175,17 @@ char *t_fmt(int *out, const char *fmt, ...);
  *         // ...
  *     }
  */
-static ALWAYS_INLINE void t_scope_cleanup(int *unused)
+static ALWAYS_INLINE void t_scope_cleanup(const void **unused)
 {
+#ifndef NDEBUG
+    if (unlikely(*unused != t_pop()))
+        e_panic("unbalanced t_stack");
+#else
     t_pop();
+#endif
 }
 #define t_scope__(n)  \
-    int t_scope_##n __attribute__((unused,cleanup(t_scope_cleanup))) = (t_push(), 42)
+    const void *t_scope_##n __attribute__((unused,cleanup(t_scope_cleanup))) = t_push()
 #define t_scope_(n)  t_scope__(n)
 #define t_scope      t_scope_(__COUNTER__)
 

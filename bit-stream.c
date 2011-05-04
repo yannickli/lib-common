@@ -16,6 +16,7 @@
 /* Tests {{{ */
 TEST_DECL("bit-buf/bit-stream: full check", 0)
 {
+    t_scope;
     BB_1k(bb);
     bit_stream_t bs;
 
@@ -32,15 +33,11 @@ TEST_DECL("bit-buf/bit-stream: full check", 0)
     bs = bs_init_bb(&bb);
     TEST_FAIL_UNLESS(bs_len(&bs) == 10, "Check length #1");
     bb_add_bits(&bb, 0x1a, 7); /* 0011010 */
-    t_push();
     TEST_FAIL_IF(strcmp("0101100", t_print_bits(0x1a, 0, 7)), "t_print_bits");
-    t_pop();
 
     bs = bs_init_bb(&bb);
-    t_push();
     TEST_FAIL_IF(strcmp(".10110001.01001101.0",
                         t_print_bs(bs, NULL)), "t_print_bs");
-    t_pop();
 
     TEST_FAIL_UNLESS(bs_len(&bs) == 17, "Check length #2");
     TEST_FAIL_UNLESS(__bs_get_bit(&bs) == true,  "Check bit #1");

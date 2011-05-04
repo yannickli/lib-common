@@ -202,14 +202,16 @@ void __ichttp_proxify(uint64_t slot, int cmd, const void *data, int dlen)
         return;
     }
 
-    t_push();
-    v  = t_new_raw(char, st->size);
-    ps = ps_init(data, dlen);
-    if (unlikely(iop_bunpack(t_pool(), st, v, ps, false) < 0)) {
-        e_trace(0, "%s: answer with invalid encoding", rpc->name.s);
-        __ichttp_reply_err(slot, IC_MSG_INVALID);
-    } else {
-        __ichttp_reply(slot, cmd, st, v);
+    {
+        t_scope;
+
+        v  = t_new_raw(char, st->size);
+        ps = ps_init(data, dlen);
+        if (unlikely(iop_bunpack(t_pool(), st, v, ps, false) < 0)) {
+            e_trace(0, "%s: answer with invalid encoding", rpc->name.s);
+            __ichttp_reply_err(slot, IC_MSG_INVALID);
+        } else {
+            __ichttp_reply(slot, cmd, st, v);
+        }
     }
-    t_pop();
 }

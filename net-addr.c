@@ -95,17 +95,11 @@ char *t_addr_fmt(const sockunion_t *su, int *slen)
 
 int addr_info(sockunion_t *su, sa_family_t af, pstream_t host, in_port_t port)
 {
+    t_scope;
     struct addrinfo *ai = NULL;
     struct addrinfo hint = { .ai_family = af };
-    int res;
 
-    t_push();
-    res = getaddrinfo(t_dupz(host.p, ps_len(&host)), NULL, &hint, &ai);
-    t_pop();
-
-    if (res < 0)
-        return -1;
-
+    RETHROW(getaddrinfo(t_dupz(host.p, ps_len(&host)), NULL, &hint, &ai));
     if (ai->ai_addrlen > ssizeof(*su)) {
         freeaddrinfo(ai);
         return -1;

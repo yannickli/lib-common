@@ -57,7 +57,8 @@ static int do_self_test(void)
 
     ha_srand();
     for (int i = 0;; i++) {
-        t_push();
+        t_scope;
+
         ilen = (ha_rand() % (64 << 10));
         ibuf  = t_new_raw(char, ilen + 1);
         obuf = t_new_raw(char, ilen);
@@ -72,7 +73,6 @@ static int do_self_test(void)
         olen = qlzo1x_decompress(obuf, ilen, ps_init(cbuf, clen));
         assert (olen == ilen && memcmp(ibuf, obuf, ilen) == 0);
         e_trace(0, "%d: %zd bytes ok", i, ilen);
-        t_pop();
     }
 
     return 0;

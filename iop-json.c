@@ -1339,11 +1339,11 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
 
               case IOP_T_DATA:
                 if (IOP_FIELD(const iop_data_t, ptr, j).len) {
+                    t_scope;
                     int dlen = IOP_FIELD(const iop_data_t, ptr, j).len;
                     int blen = 1 + DIV_ROUND_UP(dlen * 4, 3) + 1 + 1;
                     sb_t sb;
 
-                    t_push();
                     sb_init_full(&sb, t_new_raw(char, blen), 0,
                                  blen, MEM_STACK);
                     sb_addc(&sb, '"');
@@ -1351,7 +1351,6 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                                dlen, -1);
                     sb_addc(&sb, '"');
                     WRITE(sb.data, sb.len);
-                    t_pop();
                 } else {
                     PUTS("\"\"");
                 }

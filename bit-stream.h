@@ -203,17 +203,16 @@ static inline char *t_print_bs(bit_stream_t bs, size_t *len)
 
 #ifndef NDEBUG
 #  define e_trace_bs(lvl, bs, fmt, ...)  \
-{                                                                      \
-    static const char spaces[] = "         ";                          \
-                                                                       \
-    uint8_t start_blank = (bs)->rbit ? (bs)->rbit + 1 : 0;             \
-                                                                       \
-    t_push();                                                          \
-    e_trace(lvl, "[ %s%s%s ] --(%2zu) " fmt, spaces + 9 - start_blank, \
-            t_print_bs(*(bs), NULL), spaces + 9 - (bs)->pad,           \
-            bs_len(bs), ##__VA_ARGS__);                                \
-    t_pop();                                                           \
-}
+    ({                                                                     \
+        t_scope;                                                           \
+        static const char spaces[] = "         ";                          \
+                                                                           \
+        uint8_t start_blank = (bs)->rbit ? (bs)->rbit + 1 : 0;             \
+                                                                           \
+        e_trace(lvl, "[ %s%s%s ] --(%2zu) " fmt, spaces + 9 - start_blank, \
+                t_print_bs(*(bs), NULL), spaces + 9 - (bs)->pad,           \
+                bs_len(bs), ##__VA_ARGS__);                                \
+    })
 
 #else
 #  define e_trace_bs(...)

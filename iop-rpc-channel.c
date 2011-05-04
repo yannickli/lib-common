@@ -389,9 +389,6 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
     const iop_struct_t *st;
     void *value;
     pstream_t ps;
-#ifndef NDEBUG
-    const void *t_check;
-#endif
 
     if (unlikely(!tmp)) {
         errno = 0;
@@ -416,30 +413,23 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
         ic_msg_delete(&tmp);
         return 0;
     }
+    {
+        t_scope;
 
-#ifndef NDEBUG
-    t_check = t_push();
-#else
-    t_push();
-#endif
-    value = t_new_raw(char, st->size);
-    ps    = ps_init(data, dlen);
-    if (unlikely(iop_bunpack(t_pool(), st, value, ps, false) < 0)) {
-        e_trace(0, "rpc(%04x:%04x):%s: answer with invalid encoding",
-                (tmp->cmd >> 16) & 0x7fff, tmp->cmd & 0x7fff,
-                tmp->rpc->name.s);
-        (*tmp->cb)(ic, tmp, IC_MSG_INVALID, NULL, NULL);
-    } else
-    if (cmd == IC_MSG_OK) {
-        (*tmp->cb)(ic, tmp, cmd, value, NULL);
-    } else {
-        (*tmp->cb)(ic, tmp, cmd, NULL, value);
+        value = t_new_raw(char, st->size);
+        ps    = ps_init(data, dlen);
+        if (unlikely(iop_bunpack(t_pool(), st, value, ps, false) < 0)) {
+            e_trace(0, "rpc(%04x:%04x):%s: answer with invalid encoding",
+                    (tmp->cmd >> 16) & 0x7fff, tmp->cmd & 0x7fff,
+                    tmp->rpc->name.s);
+            (*tmp->cb)(ic, tmp, IC_MSG_INVALID, NULL, NULL);
+        } else
+        if (cmd == IC_MSG_OK) {
+            (*tmp->cb)(ic, tmp, cmd, value, NULL);
+        } else {
+            (*tmp->cb)(ic, tmp, cmd, NULL, value);
+        }
     }
-#ifndef NDEBUG
-    assert (t_check == t_pop());
-#else
-    t_pop();
-#endif
     ic_msg_delete(&tmp);
     return 0;
 }
@@ -455,9 +445,6 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
     void *value;
     pstream_t ps;
     int pos;
-#ifndef NDEBUG
-    const void *t_check;
-#endif
 
     pos = qm_find_safe(ic_cbs, ic->impl, cmd);
     if (unlikely(pos < 0)) {
@@ -472,47 +459,39 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
     switch (e->cb_type) {
       case IC_CB_NORMAL:
       case IC_CB_WS_SHARED:
-#ifndef NDEBUG
-        t_check = t_push();
-#else
-        t_push();
-#endif
+        {
+            t_scope;
 
-        /* XXX works for both IC_CB_NORMAL & IC_CB_WS_SHARED */
-        st    = e->u.cb.rpc->args;
-        value = t_new_raw(char, st->size);
-        ps    = ps_init(data, dlen);
-        if (unlikely(flags & IC_MSG_HAS_HDR)) {
-            hdr = t_new_raw(ic__hdr__t, 1);
-            if (unlikely(iop_bunpack_multi(t_pool(), &ic__hdr__s, hdr, &ps, false)) < 0)
-            {
-                e_trace(0, "query %04x:%04x, type %s: invalid header encoding",
+            /* XXX works for both IC_CB_NORMAL & IC_CB_WS_SHARED */
+            st    = e->u.cb.rpc->args;
+            value = t_new_raw(char, st->size);
+            ps    = ps_init(data, dlen);
+            if (unlikely(flags & IC_MSG_HAS_HDR)) {
+                hdr = t_new_raw(ic__hdr__t, 1);
+                if (unlikely(iop_bunpack_multi(t_pool(), &ic__hdr__s, hdr, &ps, false)) < 0)
+                {
+                    e_trace(0, "query %04x:%04x, type %s: invalid header encoding",
+                            (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s);
+                    goto invalid;
+                }
+                /* XXX on simple header we write the payload size of the iop query */
+                if (unlikely(hdr->iop_tag == IOP_UNION_TAG(ic__hdr, simple))) {
+                    ic__simple_hdr__t *shdr = &hdr->simple;
+                    if (shdr->payload < 0)
+                        shdr->payload = dlen;
+                }
+            }
+
+            if (unlikely(iop_bunpack(t_pool(), st, value, ps, false) < 0)) {
+                e_trace(0, "query %04x:%04x, type %s: invalid encoding",
                         (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s);
-                goto invalid;
-            }
-            /* XXX on simple header we write the payload size of the iop query */
-            if (unlikely(hdr->iop_tag == IOP_UNION_TAG(ic__hdr, simple))) {
-                ic__simple_hdr__t *shdr = &hdr->simple;
-                if (shdr->payload < 0)
-                    shdr->payload = dlen;
+              invalid:
+                if (slot)
+                    ic_reply_err(ic, MAKE64(ic->id, slot), IC_MSG_INVALID);
+            } else {
+                (*e->u.cb.cb)(ic, MAKE64(ic->id, slot), value, hdr);
             }
         }
-
-        if (unlikely(iop_bunpack(t_pool(), st, value, ps, false) < 0)) {
-            e_trace(0, "query %04x:%04x, type %s: invalid encoding",
-                    (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s);
-          invalid:
-            if (slot)
-                ic_reply_err(ic, MAKE64(ic->id, slot), IC_MSG_INVALID);
-        } else {
-            (*e->u.cb.cb)(ic, MAKE64(ic->id, slot), value, hdr);
-        }
-
-#ifndef NDEBUG
-        assert (t_check == t_pop());
-#else
-        t_pop();
-#endif
         return;
 
       case IC_CB_PROXY_P:

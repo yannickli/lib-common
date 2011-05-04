@@ -155,6 +155,7 @@ static int is_ctype_json(const httpd_qinfo_t *info)
 
 static void ichttp_query_on_done(httpd_query_t *q)
 {
+    t_scope;
     ichttp_query_t *iq  = obj_vcast(ichttp_query, q);
     ichttp_trigger_cb_t *tcb = container_of(iq->trig_cb, ichttp_trigger_cb_t, cb);
     ic__hdr__t      hdr = IOP_UNION_VA(ic__hdr, simple,
@@ -171,8 +172,6 @@ static void ichttp_query_on_done(httpd_query_t *q)
     void *value;
     int res;
 
-    t_push();
-
     ps_skipstr(&url, "/");
     iq->refcnt++;
 
@@ -182,7 +181,7 @@ static void ichttp_query_on_done(httpd_query_t *q)
         if (ps_skip_uptochr(&url, '/') < 0) {
           not_found:
             httpd_reject(obj_vcast(httpd_query, iq), NOT_FOUND, "");
-            goto end;
+            return;
         }
         __ps_skip(&url, 1);
         if (ps_skip_uptochr(&url, '/') < 0) {
@@ -201,13 +200,13 @@ static void ichttp_query_on_done(httpd_query_t *q)
         } else {
             httpd_reject(obj_vcast(httpd_query, iq), NOT_ACCEPTABLE,
                          "Content-Type must be application/json");
-            goto end;
+            return;
         }
     } else {
         res = t_parse_soap(iq, &hdr.simple, &cbe, &value);
     }
     if (unlikely(res < 0))
-        goto end;
+        return;
 
     if (t_httpd_qinfo_get_basic_auth(q->qinfo, &login, &pw) == 0) {
         hdr.simple.login    = CLSTR_INIT_V(login.s, ps_len(&login));
@@ -222,7 +221,7 @@ static void ichttp_query_on_done(httpd_query_t *q)
             httpd_reply_202accepted(q);
             obj_delete(&q);
         }
-        goto end;
+        return;
 
       case IC_CB_PROXY_P:
         pxy     = e->u.proxy_p.ic_p;
@@ -279,9 +278,6 @@ static void ichttp_query_on_done(httpd_query_t *q)
     } else {
         __ichttp_reply_err(slot, IC_MSG_PROXY_ERROR);
     }
-
-  end:
-    t_pop();
 }
 
 static void httpd_trigger__ichttp_destroy(httpd_trigger_cb_t *tcb)

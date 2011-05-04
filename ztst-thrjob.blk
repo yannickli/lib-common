@@ -178,11 +178,11 @@ static void par_qsort_run(thr_job_t *job, thr_syn_t *syn)
 
 static void test_qsort(bool use_blocks)
 {
+    t_scope;
     const size_t len = (8 << 20);
     uint32_t *vec[thr_parallelism_g];
     thr_syn_t syn;
 
-    t_push();
     for (size_t j = 0; j < thr_parallelism_g; j++) {
         vec[j] = t_new_raw(uint32_t, len);
         srand(0);
@@ -213,7 +213,6 @@ static void test_qsort(bool use_blocks)
     }
     thr_syn_wait(&syn);
     thr_acc_trace(0, "%s", __func__);
-    t_pop();
 }
 
 static void test_queue(void)

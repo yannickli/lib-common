@@ -791,6 +791,7 @@ static void httpd_do_trace(httpd_t *w, httpd_query_t *q, httpd_qinfo_t *req);
 
 static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
 {
+    t_scope;
     size_t start = w->chunk_length > 4 ? w->chunk_length - 4 : 0;
     httpd_qinfo_t req;
     const uint8_t *p;
@@ -807,7 +808,7 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
             q = httpd_query_create(w, NULL);
             httpd_reject(q, FORBIDDEN, "Headers exceed %d octets",
                          _G.header_size_max);
-            goto unrecoverable_error_no_pop;
+            goto unrecoverable_error;
         }
         w->chunk_length = ps_len(ps);
         return PARSE_MISSING_DATA;
@@ -816,7 +817,6 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
     if (--w->max_queries == 0)
         w->connection_close = true;
 
-    t_push();
     req.hdrs_ps = ps_initptr(ps->s, p + 4);
     if (t_http_parse_request_line(ps, &req) < 0) {
         q = httpd_query_create(w, NULL);
@@ -947,12 +947,9 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
         break;
     }
     httpd_query_reply_100continue_(q);
-    t_pop();
     return PARSE_OK;
 
   unrecoverable_error:
-    t_pop();
-  unrecoverable_error_no_pop:
     w->connection_close = true;
     httpd_query_done(w, q, true);
     return PARSE_OK;
@@ -1188,10 +1185,10 @@ static void httpd_do_any(httpd_t *w, httpd_query_t *q, httpd_qinfo_t *req)
 
     if (cb) {
         if (cb->auth) {
-            t_push();
+            t_scope;
+
             t_httpd_qinfo_get_basic_auth(req, &user, &pw);
             (*cb->auth)(cb, q, user, pw);
-            t_pop();
         }
         if (likely(!q->answered)) {
             (*cb->cb)(cb, q, req);
@@ -1406,6 +1403,7 @@ static inline void httpc_qinfo_delete(httpc_qinfo_t **infop)
 
 static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
 {
+    t_scope;
     size_t start = w->chunk_length > 4 ? w->chunk_length - 4 : 0;
     httpc_qinfo_t req;
     const uint8_t *p;
@@ -1435,8 +1433,6 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
 
     buf = __ps_get_ps_upto(ps, p + 2);
     __ps_skip_upto(ps, p + 4);
-    t_push();
-
     t_qv_init(qhdr, &hdrs, 64);
 
     while (!ps_done(&buf)) {
@@ -1445,12 +1441,12 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
         /* TODO: normalize, make "lists" */
         qhdr->key = ps_get_cspan(&buf, &http_non_token);
         if (ps_len(&qhdr->key) == 0 || __ps_getc(&buf) != ':')
-            goto error;
+            return PARSE_ERROR;
         qhdr->val.s = buf.s;
         for (;;) {
             ps_skip_afterchr(&buf, '\r');
             if (__ps_getc(&buf) != '\n')
-                goto error;
+                return PARSE_ERROR;
             qhdr->val.s_end = buf.s - 2;
             if (ps_done(&buf))
                 break;
@@ -1476,14 +1472,14 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
                 chunked = true;
                 break;
               default:
-                goto error;
+                return PARSE_ERROR;
             }
             break;
 
           case HTTP_WKHDR_CONTENT_LENGTH:
             clen = memtoip(qhdr->val.b, ps_len(&qhdr->val), &p);
             if (p != qhdr->val.b_end)
-                goto error;
+                return PARSE_ERROR;
             break;
 
           default:
@@ -1516,12 +1512,7 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
         ob_init(&w->ob);
     }
 
-    t_pop();
     return PARSE_OK;
-
-  error:
-    t_pop();
-    return PARSE_ERROR;
 }
 
 static int httpc_parse_body(httpc_t *w, pstream_t *ps)

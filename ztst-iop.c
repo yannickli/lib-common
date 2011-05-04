@@ -423,13 +423,13 @@ static void test_json(void)
 /* ---- iop std test -{{{- */
 static void test_iop(void)
 {
+    t_scope;
     char dst[BUFSIZ];
     qv_t(i32) szs;
     int len, i = 0;
 
     qv_inita(i32, &szs, 1024);
     p_clear(dst, 1);
-    t_push();
 
     {
         tstiop__my_struct_a__t sa = {
@@ -495,9 +495,7 @@ static void test_iop(void)
         IGNORE(tstiop__my_struct_a_opt__dup(t_pool(), &sa_opt_res));
     }
 
-
     qv_wipe(i32, &szs);
-    t_pop();
 }
 /* -}}}- */
 

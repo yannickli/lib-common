@@ -174,13 +174,12 @@ static inline void bb_reset_mark(bb_t *bb)
 }
 
 #    define e_trace_bb_tail(lvl, bb, fmt, ...)  \
-{                                                                      \
-    bit_stream_t bs = bs_init_bb(bb);                                  \
-                                                                       \
-    t_push();                                                          \
-    __bs_skip(&bs, bb->marks.tab[bb->marks.len - 1]);                  \
-    e_trace_bs(lvl, &bs, fmt, ##__VA_ARGS__);                          \
-}
+    ({                                                                     \
+        bit_stream_t bs = bs_init_bb(bb);                                  \
+                                                                           \
+        __bs_skip(&bs, bb->marks.tab[bb->marks.len - 1]);                  \
+        e_trace_bs(lvl, &bs, fmt, ##__VA_ARGS__);                          \
+    })
 
 #else
 #    define bb_push_mark(...)

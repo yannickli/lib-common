@@ -1602,6 +1602,7 @@ int t_aper_decode_desc(pstream_t *ps, const asn1_desc_t *desc,
 
 TEST_DECL("aligned per: aper_write_u16_m/aper_read_u16_m", 0)
 {
+    t_scope;
     BB_1k(bb);
     char *str;
     bit_stream_t bs;
@@ -1618,11 +1619,9 @@ TEST_DECL("aligned per: aper_write_u16_m/aper_read_u16_m", 0)
                      "Call aper_read_u16_m");                          \
         TEST_FAIL_IF(u16 != d, "%u ?= %u", u16, d);                    \
     }                                                                  \
-    t_push();                                                          \
     str = t_print_bb(&bb, NULL);                                       \
     TEST_FAIL_IF(strcmp(expected, str),                                \
-                 "expected [ "expected" ] | got [ %s ]", str);         \
-    t_pop();
+                 "expected [ "expected" ] | got [ %s ]", str)
 
     APER_U16_M_CHECK(    0,     0,  "");
     APER_U16_M_CHECK(  0xe,    57,  ".001110");
@@ -1638,6 +1637,7 @@ TEST_DECL("aligned per: aper_write_u16_m/aper_read_u16_m", 0)
 
 TEST_DECL("aligned per: aper_write_len/aper_read_len", 0)
 {
+    t_scope;
     BB_1k(bb);
     char *str;
     bit_stream_t bs;
@@ -1650,11 +1650,9 @@ TEST_DECL("aligned per: aper_write_len/aper_read_len", 0)
     TEST_FAIL_IF(aper_read_len(&bs, l_min, l_max, &len) < 0,           \
                  "Call aper_read_len");                                \
     TEST_FAIL_IF(len != l, "%zd ?= %u", len, l);                       \
-    t_push();                                                          \
     str = t_print_bb(&bb, NULL);                                       \
     TEST_FAIL_IF(strcmp(expected, str),                                \
-                 "expected [ "expected" ] | got [ %s ]", str);         \
-    t_pop();
+                 "expected [ "expected" ] | got [ %s ]", str)
 
     APER_LEN_CHECK(15,    15,           15, "");
     APER_LEN_CHECK(7,      3,           18, ".0100");
@@ -1670,6 +1668,7 @@ TEST_DECL("aligned per: aper_write_len/aper_read_len", 0)
 
 TEST_DECL("aligned per: aper_write_nsnnwn/aper_read_nsnnwn", 0)
 {
+    t_scope;
     BB_1k(bb);
     char *str;
     bit_stream_t bs;
@@ -1682,11 +1681,9 @@ TEST_DECL("aligned per: aper_write_nsnnwn/aper_read_nsnnwn", 0)
     TEST_FAIL_IF(aper_read_nsnnwn(&bs, &len) < 0,                      \
                  "Call aper_read_nsnnwn");                             \
     TEST_FAIL_IF(len != n, "%zd ?= %u", len, n);                       \
-    t_push();                                                          \
     str = t_print_bb(&bb, NULL);                                       \
     TEST_FAIL_IF(strcmp(expected, str),                                \
-                 "expected [ "expected" ] | got [ %s ]", str);         \
-    t_pop();
+                 "expected [ "expected" ] | got [ %s ]", str)
 
     APER_NSNNWN_CHECK(  0,  ".0000000");
     APER_NSNNWN_CHECK(0xe,  ".0001110");
@@ -1702,6 +1699,7 @@ TEST_DECL("aligned per: aper_write_nsnnwn/aper_read_nsnnwn", 0)
 
 TEST_DECL("aligned per: aper_encode_number/aper_decode_number", 0)
 {
+    t_scope;
     BB_1k(bb);
     char *str;
     bit_stream_t bs;
@@ -1748,11 +1746,9 @@ TEST_DECL("aligned per: aper_encode_number/aper_decode_number", 0)
     TEST_FAIL_IF(aper_decode_number(&bs, info, &i64) < 0,              \
                  "Call aper_decode_number");                           \
     TEST_FAIL_IF(i64 != i, "%"PRIi64" ?= "#i, i64);                    \
-    t_push();                                                          \
     str = t_print_bb(&bb, NULL);                                       \
     TEST_FAIL_IF(strcmp(expected, str),                                \
-                 "expected [ "expected" ] | got [ %s ]", str);         \
-    t_pop();
+                 "expected [ "expected" ] | got [ %s ]", str)
     APER_NUMBER_CHECK(1234,  &uc,  ".00000010.00000100.11010010");
     APER_NUMBER_CHECK(1234,  NULL, ".00000010.00000100.11010010");
     APER_NUMBER_CHECK(-1234, NULL, ".00000010.11111011.00101110");
@@ -1777,6 +1773,7 @@ TEST_DECL("aligned per: aper_encode_number/aper_decode_number", 0)
 
 TEST_DECL("aligned per: aper_encode_ostring/t_aper_decode_ostring", 0)
 {
+    t_scope;
     BB_1k(bb);
     char *str;
     bit_stream_t bs;
@@ -1819,21 +1816,17 @@ TEST_DECL("aligned per: aper_encode_ostring/t_aper_decode_ostring", 0)
     };                                                                 \
     aper_encode_ostring(&bb, &src, info);                              \
     if (sizeof(os) - 1 < 4) {                                          \
-        t_push();                                                      \
         str = t_print_bb(&bb, NULL);                                   \
         TEST_FAIL_IF(strcmp(expected, str),                            \
                      "expected [ "expected" ] | got [ %s ]", str);     \
-        t_pop();                                                       \
     }                                                                  \
     bs = bs_init_bb(&bb);                                              \
-    t_push();                                                          \
     TEST_FAIL_IF(t_aper_decode_ostring(&bs, info, copy, &dst) < 0,     \
                  "Call t_aper_decode_ostring");                        \
     TEST_FAIL_IF(dst.len != src.len, "Length check : %zd ?= %zd",      \
                  dst.len, src.len);                                    \
     TEST_FAIL_IF(memcmp(dst.data, src.data, src.len),                  \
-                 "Content check");                                     \
-    t_pop();
+                 "Content check")
     APER_OSTRING_CHECK("aaa", &uc,  true,
                        ".00000011.01100001.01100001.01100001");
     APER_OSTRING_CHECK("aaa", NULL, true,
@@ -1858,6 +1851,7 @@ TEST_DECL("aligned per: aper_encode_ostring/t_aper_decode_ostring", 0)
 
 TEST_DECL("aligned per: aper_encode_bstring/t_aper_decode_bstring", 0)
 {
+    t_scope;
     BB_1k(bb);
     BB_1k(src_bb);
     char *str;
@@ -1908,20 +1902,16 @@ TEST_DECL("aligned per: aper_encode_bstring/t_aper_decode_bstring", 0)
                                                                        \
     src = bs_init_bb(&src_bb);                                         \
     aper_encode_bstring(&bb, &src, info);                              \
-    t_push();                                                          \
     str = t_print_bb(&bb, NULL);                                       \
     TEST_FAIL_IF(strcmp(expected, str),                                \
                  "expected [ "expected" ] | got [ %s ]", str);         \
-    t_pop();                                                           \
     bs = bs_init_bb(&bb);                                              \
-    t_push();                                                          \
     TEST_FAIL_IF(t_aper_decode_bstring(&bs, info, copy, &dst) < 0,     \
                  "Call t_aper_decode_bstring");                        \
     TEST_FAIL_IF(bs_len(&dst) != bs_len(&src),                         \
                  "Length check : %zd ?= %zd",                          \
                  bs_len(&dst), bs_len(&src));                          \
-    TEST_FAIL_UNLESS(bs_equals(dst, src), "Content check");            \
-    t_pop();
+    TEST_FAIL_UNLESS(bs_equals(dst, src), "Content check")
 
     APER_BSTRING_CHECK("01010101",  &uc,  false, ".00001000.01010101");
     APER_BSTRING_CHECK("01010101", NULL,  true, ".00001000.01010101");
@@ -1941,6 +1931,7 @@ TEST_DECL("aligned per: aper_encode_bstring/t_aper_decode_bstring", 0)
 
 TEST_DECL("aligned per: aper_encode_enum/aper_decode_enum", 0)
 {
+    t_scope;
     BB_1k(bb);
     char *str;
     bit_stream_t bs;
@@ -1976,11 +1967,9 @@ TEST_DECL("aligned per: aper_encode_enum/aper_decode_enum", 0)
     TEST_FAIL_IF(aper_decode_enum(&bs, e, &res) < 0,                   \
                  "Call aper_decode_enum");                             \
     TEST_FAIL_IF(res != val, "%u ?= %u", res, val);                    \
-    t_push();                                                          \
     str = t_print_bb(&bb, NULL);                                       \
     TEST_FAIL_IF(strcmp(expected, str),                                \
-                 "expected [ "expected" ] | got [ %s ]", str);         \
-    t_pop();
+                 "expected [ "expected" ] | got [ %s ]", str)
 
     APER_ENUM_CHECK(5,   &e1, ".0");
     APER_ENUM_CHECK(18,  &e1, ".1");
