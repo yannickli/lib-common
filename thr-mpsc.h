@@ -84,7 +84,7 @@ static inline mpsc_node_t *mpsc_queue_pop(mpsc_queue_t *q, bool block)
     do {                                                                   \
         mpsc_queue_t *q_ = (q);                                            \
         mpsc_node_t  *q_head = q_->head.next;                              \
-        mpsc_node_t  *q_next, *q_tail;                                     \
+        mpsc_node_t  *q_next;                                              \
                                                                            \
         /* breaks if someone called mpsc_queue_pop with the queue empty */ \
         assert (q_head);                                                   \
@@ -99,9 +99,8 @@ static inline mpsc_node_t *mpsc_queue_pop(mpsc_queue_t *q, bool block)
             }                                                              \
             doit(q_head, false);                                           \
                                                                            \
-            q_tail = q_->tail;                                             \
-            if (q_head == q_tail) {                                        \
-                if (atomic_bool_cas(&q_->tail, q_tail, &q_->head)) {       \
+            if (q_head == q_->tail) {                                      \
+                if (atomic_bool_cas(&q_->tail, q_head, &q_->head)) {       \
                     freenode(q_head);                                      \
                     break;                                                 \
                 }                                                          \
