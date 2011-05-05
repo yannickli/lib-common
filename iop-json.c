@@ -1344,8 +1344,7 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                     int blen = 1 + DIV_ROUND_UP(dlen * 4, 3) + 1 + 1;
                     sb_t sb;
 
-                    sb_init_full(&sb, t_new_raw(char, blen), 0,
-                                 blen, MEM_STACK);
+                    t_sb_init(&sb, blen);
                     sb_addc(&sb, '"');
                     sb_add_b64(&sb, IOP_FIELD(const iop_data_t, ptr, j).data,
                                dlen, -1);

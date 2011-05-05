@@ -126,6 +126,12 @@ static inline sb_t *sb_init(sb_t *sb)
 {
     return sb_init_full(sb, __sb_slop, 0, 1, MEM_STATIC);
 }
+
+static inline sb_t *t_sb_init(sb_t *sb, int size)
+{
+    return sb_init_full(sb, t_new(char, size), 0, size, MEM_STACK);
+}
+
 void sb_reset(sb_t *sb);
 void sb_wipe(sb_t *sb);
 GENERIC_NEW(sb_t, sb);

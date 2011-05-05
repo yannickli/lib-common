@@ -1158,7 +1158,7 @@ int t_httpd_qinfo_get_basic_auth(const httpd_qinfo_t *info,
         ps_trim(&v);
 
         len = ps_len(&v);
-        sb_init_full(&sb, t_new(char, len + 1), 0, len + 1, MEM_STACK);
+        t_sb_init(&sb, len + 1);
         PS_CHECK(sb_add_unb64(&sb, v.s, len));
         colon = strchr(sb.data, ':');
         if (!colon)
