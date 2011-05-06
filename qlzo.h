@@ -41,6 +41,15 @@ static inline size_t lzo_cbuf_size(size_t insz) {
 #define LZO_ERR_INPUT_NOT_CONSUMED (-4)
 
 size_t  qlzo1x_compress(void *out, size_t outlen, pstream_t in, void *buf);
+
+/*
+ * qlzo1x_decompress is unsafe and assumes that the input stream can be
+ * overread of LZO_INPUT_PADDING octets.
+ *
+ * qlzo1x_decompress_safe makes no such assumption but is significantly
+ * slower.
+ */
 ssize_t qlzo1x_decompress(void *out, size_t outlen, pstream_t in);
+ssize_t qlzo1x_decompress_safe(void *out, size_t outlen, pstream_t in);
 
 #endif
