@@ -94,8 +94,13 @@ static byte *frame_end(mem_stack_frame_t *frame)
 static void *sp_reserve(mem_stack_pool_t *sp, size_t size, mem_stack_blk_t **blkp)
 {
     mem_stack_frame_t *frame = sp->stack;
-    byte *res = align_for(frame, size);
+    byte *res;
 
+#ifndef NDEBUG
+    size += sizeof(void *);
+#endif
+
+    res = align_for(frame, size);
     if (unlikely(res + size > frame_end(frame))) {
         mem_stack_blk_t *blk = frame_get_next_blk(sp, frame->blk, size);
 
@@ -113,6 +118,10 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t size, mem_stack_blk_t **blk
     }
     sp->alloc_sz += size;
     sp->alloc_nb += 1;
+
+#ifndef NDEBUG
+    res = mempcpy(res, &sp->stack, sizeof(sp->stack));
+#endif
     return res;
 }
 
@@ -143,6 +152,16 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem,
 
     if (unlikely(oldsize == MEM_UNKNOWN))
         e_panic("stack pools do not support reallocs with unknown old size");
+
+#ifndef NDEBUG
+    if (mem != NULL) {
+        if (unlikely(((void **)mem)[-1] != sp->stack))
+            e_panic("%p wasn't allocated in that frame, realloc is forbidden", mem);
+        mem      = ((void **)mem) - 1;
+        oldsize += sizeof(void *);
+        size    += sizeof(void *);
+    }
+#endif
 
     if (oldsize >= size) {
         if (mem == frame->last) {
