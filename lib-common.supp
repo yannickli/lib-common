@@ -31,3 +31,14 @@
     ...
     fun:sp_reserve
 }
+
+# see https://support.intersec.com/issues/3694
+{
+    lib-common/pthread-hook/dlsym_leak
+    Memcheck:Leak
+    fun:calloc
+    fun:_dl_allocate_tls
+    fun:pthread_create@@GLIBC_2.2.5
+    ...
+    fun:thr_initialize
+}
