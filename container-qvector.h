@@ -67,6 +67,27 @@ __qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_f cmp)
     }
 }
 
+/** \brief optimize vector for space.
+ *
+ * \param[in]   vec          the vector to optimize
+ * \param[in]   v_size       sizeof(val_t) for this qvector
+ * \param[in]   ratio        the ratio of garbage allowed.
+ * \param[in]   extra_ratio  the extra size to add when resizing.
+ *
+ * If there is more than vec->len * (ratio / 100) empty cells, the array is
+ * resize to vec->len + vec->len * (extra_ratio / 100).
+ *
+ * In particular, qvector_optimize(vec, ..., 0, 0) forces the vector
+ * allocation to have no waste.
+ */
+static inline void
+qvector_optimize(qvector_t *vec, size_t v_size, size_t ratio, size_t extra_ratio)
+{
+    size_t cur_waste = vec->size + vec->skip - vec->len;
+
+    if (vec->len * ratio < 100 * cur_waste)
+        __qvector_optimize(vec, v_size, vec->len + vec->len * extra_ratio / 100);
+}
 
 static inline void *qvector_grow(qvector_t *vec, size_t v_size, int extra)
 {
@@ -171,6 +192,9 @@ qvector_splice(qvector_t *vec, size_t v_size,
                                    tab, dlen);                              \
         return cast(val_t *, res);                                          \
     }                                                                       \
+    static inline void pfx##_optimize(pfx##_t *vec, size_t r1, size_t r2) { \
+        qvector_optimize(&vec->qv, sizeof(val_t), r1, r2);                  \
+    }                                                                       \
     static inline val_t *pfx##_grow(pfx##_t *vec, int extra) {              \
         void *res = qvector_grow(&vec->qv, sizeof(val_t), extra);           \
         return cast(val_t *, res);                                          \
@@ -215,6 +239,7 @@ qvector_splice(qvector_t *vec, size_t v_size,
 
 #define __qv_splice(n, vec, pos, l, dl)     __qv_##n##_splice(vec, pos, l, dl)
 #define qv_splice(n, vec, pos, l, tab, dl)  qv_##n##_splice(vec, pos, l, tab, dl)
+#define qv_optimize(n, vec, r1, r2)         qv_##n##_optimize(vec, r1, r2)
 #define qv_grow(n, vec, extra)              qv_##n##_grow(vec, extra)
 #define qv_growlen(n, vec, extra)           qv_##n##_growlen(vec, extra)
 #define qv_clip(n, vec, len)                qv_##n##_clip(vec, len)
