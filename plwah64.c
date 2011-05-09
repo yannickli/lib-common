@@ -16,34 +16,43 @@
 /* Helpers {{{ */
 
 static inline
-void plwah64_normalize_fill_(qv_t(plwah64) *map, int at, int *into)
+void plwah64_normalize_fill_(qv_t(plwah64) *map, int at, int *into,
+                             bool *touched)
 {
     plwah64_t * restrict prev = &map->tab[*into];
     plwah64_t * restrict cur  = &map->tab[at];
-    if (prev->is_fill && prev->fill.val == cur->fill.val
+    if (*touched && prev->is_fill && prev->fill.val == cur->fill.val
     && !prev->fillp.positions) {
         prev->fill.counter   += cur->fill.counter;
         prev->fillp.positions = cur->fillp.positions;
+        *touched = true;
     } else {
-        (*into)++;
+        if (*touched) {
+            (*into)++;
+        }
         if (*into != at) {
             map->tab[*into] = *cur;
         }
+        *touched = true;
     }
 }
 
 static inline
-void plwah64_normalize_literal_(qv_t(plwah64) *map, int at, int *into)
+void plwah64_normalize_literal_(qv_t(plwah64) *map, int at, int *into,
+                                bool *touched)
 {
     plwah64_t * restrict prev = &map->tab[*into];
     plwah64_t * restrict cur  = &map->tab[at];
-    if (prev->is_fill && prev->fillp.positions == 0) {
+    if (*touched && prev->is_fill && prev->fillp.positions == 0) {
         PLWAH64_BUILD_POSITIONS(prev->fill, cur->bits, return,);
     }
-    (*into)++;
+    if (*touched) {
+        (*into)++;
+    }
     if (*into != at) {
         map->tab[*into] = *cur;
     }
+    *touched = true;
 }
 
 static inline
@@ -75,6 +84,7 @@ static inline
 void plwah64_normalize(qv_t(plwah64) *map, int from, int to)
 {
     int pos = from <= 0 ? 0 : from - 1;
+    bool touched = false;
     if (to >= map->len) {
         to = map->len;
     }
@@ -86,16 +96,21 @@ void plwah64_normalize(qv_t(plwah64) *map, int from, int to)
             continue;
         }
         if (i == 0) {
+            /* We preserve the first word */
+            touched = true;
             continue;
         }
         if (map->tab[i].is_fill) {
-            plwah64_normalize_fill_(map, i, &pos);
+            plwah64_normalize_fill_(map, i, &pos, &touched);
         } else {
-            plwah64_normalize_literal_(map, i, &pos);
+            plwah64_normalize_literal_(map, i, &pos, &touched);
         }
     }
-    if (pos + 1 != to) {
-        qv_splice(plwah64, map, pos + 1, to - pos - 1, NULL, 0);
+    if (touched) {
+        pos++;
+    }
+    if (pos != to) {
+        qv_splice(plwah64, map, pos, to - pos, NULL, 0);
     }
 }
 
@@ -637,6 +652,25 @@ void plwah64_trim(plwah64_map_t *map)
 /* Unit tests {{{ */
 
 #define PLWAH64_TEST(name)  TEST_DECL("plwah64: " name, 0)
+
+PLWAH64_TEST("simple")
+{
+    plwah64_map_t map = PLWAH64_MAP_INIT;
+    plwah64_add0s(&map, 3);
+    TEST_FAIL_IF(map.bits.len != 1, "bad bitmap length: %d", map.bits.len);
+    plwah64_not(&map);
+    TEST_FAIL_IF(map.bits.len != 1, "bad bitmap length: %d", map.bits.len);
+    for (int i = 0; i < 3; i++) {
+        if (!plwah64_get(&map, i)) {
+            TEST_FAIL_IF(true, "bad bit at offset %d", i);
+        }
+    }
+    if (plwah64_get(&map, 3)) {
+        TEST_FAIL_IF(true, "bad bit at offset 3");
+    }
+    plwah64_wipe(&map);
+    TEST_DONE();
+}
 
 PLWAH64_TEST("fill")
 {
