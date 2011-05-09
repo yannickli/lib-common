@@ -90,21 +90,20 @@ void __qvector_grow(qvector_t *vec, size_t v_size, int extra)
     }
 }
 
-void __qvector_optimize(qvector_t *vec, size_t v_size, size_t len)
+void __qvector_optimize(qvector_t *vec, size_t v_size, size_t size)
 {
-    size_t sz = p_alloc_nr(len);
     char *buf;
 
-    if (len == 0) {
+    if (size == 0) {
         qvector_reset(vec, v_size);
         return;
     }
     if (vec->mem_pool != MEM_LIBC)
         return;
-    buf = p_new_raw(char, sz * v_size);
+    buf = p_new_raw(char, size * v_size);
     memcpy(buf, vec->tab, vec->len * v_size);
     libc_free(vec->tab - vec->skip, 0);
-    __qvector_init(vec, buf, vec->len, sz, MEM_LIBC);
+    __qvector_init(vec, buf, vec->len, size, MEM_LIBC);
 }
 
 void *__qvector_splice(qvector_t *vec, size_t v_size, int pos, int len, int dlen)
@@ -116,12 +115,14 @@ void *__qvector_splice(qvector_t *vec, size_t v_size, int pos, int len, int dlen
         memmove(vec->tab + v_size * (pos + dlen),
                 vec->tab + v_size * (pos + len),
                 v_size * (vec->len - pos - len));
+        qvector_grow(vec, v_size, 0);
     } else
     if (len + vec->skip >= dlen) {
         vec->skip -= dlen - len;
         vec->tab -= (dlen - len) * v_size;
         vec->size += dlen - len;
         memmove(vec->tab, vec->tab + v_size * (dlen - len), pos * v_size);
+        qvector_grow(vec, v_size, 0);
     } else {
         qvector_grow(vec, v_size, dlen - len);
         memmove(vec->tab + v_size * (pos + dlen),
@@ -129,7 +130,6 @@ void *__qvector_splice(qvector_t *vec, size_t v_size, int pos, int len, int dlen
                 v_size * (vec->len - pos - len));
     }
     vec->len += dlen - len;
-    qvector_optimize(vec, v_size, 0);
     return vec->tab + pos * v_size;
 }
 
