@@ -366,16 +366,7 @@ GENERIC_DELETE(thr_queue_t, thr_queue);
 
 static void thr_queue_drain(thr_queue_t *q)
 {
-#define doit(n_, can_free) \
-    ({ thr_qnode_t *n = thr_qnode_of(n_);  \
-       thr_job_t *job = n->job;            \
-       thr_syn_t *syn = n->syn;            \
-                                           \
-       if (can_free)                       \
-           thr_qnode_destroy(n_);          \
-       job_run(job, syn);                  \
-    })
-#define relax()  ({ thr_job_dequeue() ?: thr_job_steal(); })
+    mpsc_it_t it;
 
     if (unlikely(mpsc_queue_looks_empty(&q->q))) {
         /* The queue should not be marked empty *and* scheduled. the only
@@ -385,9 +376,21 @@ static void thr_queue_drain(thr_queue_t *q)
         assert (q == thr_queue_main_g);
         return;
     }
-    __mpsc_queue_drain(&q->q, doit, thr_qnode_destroy, relax);
+
+#define doit(n) \
+    ({  thr_job_t *job = thr_qnode_of(n)->job; \
+        thr_syn_t *syn = thr_qnode_of(n)->syn; \
+                                               \
+        thr_qnode_destroy(n);                  \
+        job_run(job, syn);                     \
+    })
+    mpsc_queue_drain_start(&it, &q->q);
+    do {
+        thr_qnode_t *n = thr_qnode_of(mpsc_queue_drain_fast(&it, doit));
+        job_run(n->job, n->syn);
+    } while (!__mpsc_queue_drain_end(&it, thr_qnode_destroy,
+                                     thr_job_dequeue() ?: thr_job_steal()));
 #undef doit
-#undef relax
 
     if (q->closing)
         thr_queue_delete(&q);

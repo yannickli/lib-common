@@ -58,37 +58,46 @@ static inline bool mpsc_queue_push(mpsc_queue_t *q, mpsc_node_t *n)
     return prev == &q->head;
 }
 
-#define __mpsc_queue_drain(q, doit, freenode, relax) \
-    do {                                                                   \
-        mpsc_queue_t *q_ = (q);                                            \
-        mpsc_node_t  *q_head = q_->head.next;                              \
-        mpsc_node_t  *q_next;                                              \
+typedef struct mpsc_it_t {
+    mpsc_queue_t *q;
+    mpsc_node_t  *h;
+} mpsc_it_t;
+
+static inline void mpsc_queue_drain_start(mpsc_it_t *it, mpsc_queue_t *q)
+{
+    it->q = q;
+    it->h = q->head.next;
+    q->head.next = NULL;
+    /* breaks if someone called mpsc_queue_drain_start with the queue empty */
+    assert (it->h);
+}
+
+#define mpsc_queue_drain_fast(it, doit, ...) \
+    ({                                                                     \
+        mpsc_it_t   *it_ = (it);                                           \
+        mpsc_node_t *h_  = it_->h;                                         \
+        for (mpsc_node_t *n_; likely(n_ = h_->next); h_ = n_)              \
+            doit(h_, ##__VA_ARGS__);                                       \
+        it_->h = h_;                                                       \
+    })
+
+#define __mpsc_queue_drain_end(it, freenode, relax) \
+    ({                                                                     \
+        mpsc_it_t    *it_ = (it);                                          \
+        mpsc_queue_t *q_  = it_->q;                                        \
+        mpsc_node_t  *h_  = it_->h;                                        \
                                                                            \
-        /* breaks if someone called mpsc_queue_pop with the queue empty */ \
-        assert (q_head);                                                   \
-                                                                           \
-        q_->head.next = NULL;                                              \
-        for (;;) {                                                         \
-            q_next = q_head->next;                                         \
-            while (likely(q_next)) {                                       \
-                doit(q_head, true);                                        \
-                q_head = q_next;                                           \
-                q_next = q_head->next;                                     \
+        if (h_ == q_->tail && atomic_bool_cas(&q_->tail, h_, &q_->head)) { \
+            it_->h = NULL;                                                 \
+        } else {                                                           \
+            while ((it_->h = h_->next) == NULL) {                          \
+                relax;                                                     \
             }                                                              \
-            doit(q_head, false);                                           \
-                                                                           \
-            if (q_head == q_->tail) {                                      \
-                if (atomic_bool_cas(&q_->tail, q_head, &q_->head)) {       \
-                    freenode(q_head);                                      \
-                    break;                                                 \
-                }                                                          \
-            }                                                              \
-            while ((q_next = q_head->next) == NULL) {                      \
-                relax();                                                   \
-            }                                                              \
-            freenode(q_head);                                              \
-            q_head = q_next;                                               \
         }                                                                  \
-    } while (0)
+        freenode(h_);                                                      \
+        it_->h == NULL;                                                    \
+    })
+#define mpsc_queue_drain_end(it, freenode) \
+    __mpsc_queue_drain_end(it, freenode, cpu_relax())
 
 #endif
