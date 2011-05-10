@@ -128,7 +128,6 @@ libcommon_SOURCES = \
 	thr-pthread-hook.c \
 	thr-evc.c \
 	thr-job.blk \
-	thr-mpsc.c \
 	thr-spsc.c \
 	\
 	time.c \

@@ -28,7 +28,7 @@ typedef struct mpsc_node_t  mpsc_node_t;
 typedef struct mpsc_queue_t mpsc_queue_t;
 
 struct mpsc_node_t {
-    mpsc_node_t * volatile next;
+    mpsc_node_t *volatile next;
 };
 
 struct mpsc_queue_t {
@@ -36,10 +36,12 @@ struct mpsc_queue_t {
     mpsc_node_t *volatile tail;
 };
 
-mpsc_queue_t *mpsc_queue_init(mpsc_queue_t *q);
-
-__cold
-bool mpsc_queue_pop_slow(mpsc_queue_t *q, mpsc_node_t *head, bool block);
+static inline mpsc_queue_t *mpsc_queue_init(mpsc_queue_t *q)
+{
+    p_clear(q, 1);
+    q->tail = &q->head;
+    return q;
+}
 
 static inline bool mpsc_queue_looks_empty(mpsc_queue_t *q)
 {
@@ -54,30 +56,6 @@ static inline bool mpsc_queue_push(mpsc_queue_t *q, mpsc_node_t *n)
     prev = atomic_xchg(&q->tail, n);
     prev->next = n;
     return prev == &q->head;
-}
-
-static inline mpsc_node_t *mpsc_queue_peek(mpsc_queue_t *q)
-{
-    return q->head.next;
-}
-
-static inline mpsc_node_t *mpsc_queue_pop(mpsc_queue_t *q, bool block)
-{
-    mpsc_node_t *head = q->head.next;
-    mpsc_node_t *next;
-
-    if (head == NULL)
-        return NULL;
-
-    if (likely(next = head->next)) {
-        q->head.next = next;
-        return head;
-    }
-    if (block) {
-        mpsc_queue_pop_slow(q, head, block);
-        return head;
-    }
-    return mpsc_queue_pop_slow(q, head, block) ? head : NULL;
 }
 
 #define __mpsc_queue_drain(q, doit, freenode, relax) \
