@@ -70,4 +70,23 @@ int log_fprintf(log_file_t *log_file, const char *format, ...)
 
 int log_file_flush(log_file_t *log_file);
 
+static inline off_t log_file_tell(log_file_t *log_file)
+{
+    if (log_file->_internal)
+        return file_tell(log_file->_internal);
+    errno = EBADF;
+    return -1;
+}
+static inline int log_file_truncate(log_file_t *log_file, off_t len)
+{
+    if (log_file->_internal)
+        return file_truncate(log_file->_internal, len);
+    errno = EBADF;
+    return -1;
+}
+static inline bool log_file_isopen(log_file_t *log_file)
+{
+    return (log_file->_internal != NULL);
+}
+
 #endif /* IS_LIB_COMMON_LOG_FILE_H */
