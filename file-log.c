@@ -22,18 +22,20 @@
  * scheme should shorten log filename so reopening it yields the same
  * file
  */
-static int build_real_path(char *buf, int size, log_file_t *log_file, time_t date)
+static const char *t_build_real_path(int *size, log_file_t *log_file,
+                                     time_t date)
 {
     struct tm tm;
+
     if (log_file->flags & LOG_FILE_UTCSTAMP) {
         gmtime_r(&date, &tm);
     } else {
         localtime_r(&date, &tm);
     }
-    return snprintf(buf, size, "%s_%04d%02d%02d_%02d%02d%02d.%s",
-                    log_file->prefix, tm.tm_year + 1900, tm.tm_mon + 1,
-                    tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec,
-                    log_file->ext);
+    return t_fmt(size, "%s_%04d%02d%02d_%02d%02d%02d.%s",
+                 log_file->prefix, tm.tm_year + 1900, tm.tm_mon + 1,
+                 tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec,
+                 log_file->ext);
 }
 
 static void
@@ -76,6 +78,23 @@ static int qsort_strcmp(const void *sp1, const void *sp2)
     return strcmp(*(const char **)sp1, *(const char **)sp2);
 }
 
+static void log_file_call_cb(log_file_t *l, enum log_file_event evt,
+                             const char *fname)
+{
+    if (!l->on_event)
+        return;
+
+    {
+        t_scope;
+
+        if (!fname) {
+            fname = t_build_real_path(NULL, l, l->open_date);
+        }
+
+        (*l->on_event)(l, evt, fname, l->priv_cb);
+    }
+}
+
 static void log_check_invariants(log_file_t *log_file)
 {
     glob_t globbuf;
@@ -94,6 +113,7 @@ static void log_check_invariants(log_file_t *log_file)
     qsort(fv, fc, sizeof(fv[0]), qsort_strcmp);
     if (log_file->max_files) {
         for (; fc > log_file->max_files; fc--, fv++) {
+            log_file_call_cb(log_file, LOG_FILE_DELETE, fv[0]);
             unlink(fv[0]);
         }
     }
@@ -105,8 +125,10 @@ static void log_check_invariants(log_file_t *log_file)
             if (stat(fv[i], &st) == 0)
                 totalsize -= st.st_size;
             if (totalsize < 0) {
-                for (int j = 0; j <= i; j++)
+                for (int j = 0; j <= i; j++) {
+                    log_file_call_cb(log_file, LOG_FILE_DELETE, fv[j]);
                     unlink(fv[j]);
+                }
                 fv += i + 1;
                 fc -= i + 1;
                 break;
@@ -125,11 +147,12 @@ static void log_check_invariants(log_file_t *log_file)
 
 static file_t *log_file_open_new(log_file_t *log_file, time_t date)
 {
-    char real_path[PATH_MAX];
+    t_scope;
+    const char *real_path;
     char sym_path[PATH_MAX];
     file_t *res;
 
-    build_real_path(real_path, sizeof(real_path), log_file, date);
+    real_path = t_build_real_path(NULL, log_file, date);
     res = file_open(real_path, FILE_WRONLY | FILE_CREATE, 0644);
     if (!res || file_seek(res, 0, SEEK_END) == (off_t)-1) {
         e_trace(1, "Could not open log file: %s (%m)", real_path);
@@ -217,9 +240,8 @@ int log_file_open(log_file_t *log_file)
         e_trace(1, "Could not open first log file");
         return -1;
     }
-    if (log_file->log_file_cb_f && file_tell(log_file->_internal) == 0) {
-        log_file->log_file_cb_f(log_file, LOG_FILE_CREATE,
-                                log_file->priv_cb);
+    if (file_tell(log_file->_internal) == 0) {
+        log_file_call_cb(log_file, LOG_FILE_CREATE, NULL);
     }
     return 0;
 }
@@ -230,10 +252,7 @@ int log_file_close(log_file_t **lfp)
     if (*lfp) {
         log_file_t *log_file = *lfp;
 
-        if (log_file->log_file_cb_f) {
-            log_file->log_file_cb_f(log_file, LOG_FILE_CLOSE,
-                                    log_file->priv_cb);
-        }
+        log_file_call_cb(log_file, LOG_FILE_CLOSE, NULL);
         log_file_flush(log_file);
         res = file_close(&log_file->_internal);
         p_delete(lfp);
@@ -269,10 +288,10 @@ void log_file_set_rotate_delay(log_file_t *file, time_t delay)
 
 void
 log_file_set_file_cb(log_file_t *file,
-                     void (*file_cb)(log_file_t*, int, void*),
+                     log_file_cb_f *on_event,
                      void *priv)
 {
-    file->log_file_cb_f = file_cb;
+    file->on_event = on_event;
     file->priv_cb = priv;
 }
 
@@ -286,10 +305,8 @@ static int log_file_rotate_(log_file_t *file, time_t now)
         e_trace(1, "Could not rotate");
         return -1;
     }
-    if (file->log_file_cb_f) {
-        file->log_file_cb_f(file, LOG_FILE_CREATE,
-                            file->priv_cb);
-    }
+    log_file_call_cb(file, LOG_FILE_CREATE, NULL);
+
     return 0;
 }
 

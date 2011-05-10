@@ -29,11 +29,22 @@ enum log_file_flags {
 enum log_file_event {
     LOG_FILE_CREATE, /* just after a new file creation */
     LOG_FILE_CLOSE,  /* called before file_close is called */
+    LOG_FILE_DELETE, /* called before a log file is deleted. */
 #if 0
     LOG_FILE_ROTATE, /* TODO: just before rotation, to allow writing a
                         footer or similar */
 #endif
 };
+
+struct log_file_t;
+
+/* Log file event callback. fpath is built using the prefix passed during
+ * the log_file initialization. So, fpath will be absolute if the log_file
+ * was constructed with an absolute prefix, or else, fpath is relative
+ * to the current working directory at log_file_new() time. */
+typedef void (log_file_cb_f)(struct log_file_t *file,
+                             enum log_file_event event,
+                             const char *fpath, void *priv);
 
 typedef struct log_file_t {
     uint32_t flags;
@@ -45,8 +56,10 @@ typedef struct log_file_t {
     file_t  *_internal;
     char     prefix[PATH_MAX];
     char     ext[8];
-    void     (*log_file_cb_f)(struct log_file_t *file, int event, void *priv);
-    void     *priv_cb;
+
+    /* Event callback */
+    log_file_cb_f *on_event;
+    void          *priv_cb;
 } log_file_t;
 
 log_file_t *log_file_init(log_file_t *, const char *nametpl, int flags);
@@ -60,8 +73,7 @@ void log_file_set_rotate_delay(log_file_t *file, time_t delay);
 void log_file_set_maxfiles(log_file_t *file, int maxfiles);
 void log_file_set_maxtotalsize(log_file_t *file, int maxtotalsize);
 void
-log_file_set_file_cb(log_file_t *file,
-                     void (*file_cb)(log_file_t*, int event, void* priv),
+log_file_set_file_cb(log_file_t *file, log_file_cb_f *on_event,
                      void *priv);
 
 int log_fwrite(log_file_t *log_file, const void *data, size_t len);
