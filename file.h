@@ -71,5 +71,6 @@ static inline int file_writef(file_t *f, const char *fmt, ...) {
     va_end(ap);
     return res;
 }
+int file_truncate(file_t *f, off_t len);
 
 #endif /* IS_LIB_COMMON_FILE_H */

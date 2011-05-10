@@ -302,3 +302,83 @@ int file_write(file_t *f, const void *data, size_t len)
     iov[0] = MAKE_IOVEC(data, len);
     return __file_writev(f, iov, 1);
 }
+
+int file_truncate(file_t *f, off_t len)
+{
+    if (len < f->wpos) {
+        RETHROW(ftruncate(f->fd, len));
+        RETHROW(lseek(f->fd, len, SEEK_SET));
+        f->wpos = len;
+        sb_reset(&f->obuf);
+    } else if (len <= f->wpos + f->obuf.len) {
+        sb_clip(&f->obuf, len - f->wpos);
+    } else { /* len > f->wpos + f->obuf.len */
+        if (len - f->wpos > BUFSIZ) {
+            /* Buffer would be too big: flush */
+            RETHROW(file_flush(f));
+            RETHROW(ftruncate(f->fd, len));
+            RETHROW(lseek(f->fd, len, SEEK_SET));
+            f->wpos = len;
+        } else {
+            sb_add0s(&f->obuf, len - (f->wpos + f->obuf.len));
+        }
+    }
+
+    return 0;
+}
+
+TEST_DECL("file: truncate", 0)
+{
+    SB_1k(buf);
+    file_t *f;
+    const char *path = "/tmp/zchk.file.truncate";
+
+    f = file_open(path, FILE_WRONLY | FILE_CREATE, 0600);
+
+    TEST_FAIL_IF(!f, "could not open test file: %m");
+    if (!f)
+        goto end;
+
+    TEST_FAIL_IF(file_write(f, "test12", 6) < 0,
+                 "could not write to test file: %m");
+
+    TEST_FAIL_IF(file_flush(f) < 0, "could not flush test file: %m");
+
+    TEST_FAIL_IF(file_truncate(f, 2) < 0,
+                 "could not truncate test file case 1: %m");
+
+    TEST_FAIL_IF(sb_read_file(&buf, path) < 0 || strcmp("te", buf.data),
+                 "Truncate failed on test file (case 1)");
+
+    TEST_FAIL_IF(file_truncate(f, 0) < 0,
+                 "could not truncate test file to empty: %m");
+
+    sb_reset(&buf);
+    TEST_FAIL_IF(sb_read_file(&buf, path) < 0 || buf.len != 0
+                 || f->obuf.len > 0 || f->wpos > 0,
+                 "Truncate to empty failed on test file");
+
+    TEST_FAIL_IF(file_truncate(f, 32) < 0 || f->wpos > 0 || f->obuf.len != 32,
+                 "could not truncate test file to 32: %m");
+
+    sb_reset(&buf);
+    TEST_FAIL_IF(file_flush(f) < 0 || f->wpos != 32 || f->obuf.len != 0,
+                 "could not flush test file: %m");
+    TEST_FAIL_IF(sb_read_file(&buf, path) < 0 || buf.len != 32,
+                 "Truncate to 32 failed on test file (len = %d)",
+                 buf.len);
+
+    TEST_FAIL_IF(file_truncate(f, 2 * BUFSIZ + 45) < 0,
+                 "could not truncate test file to large buf: %m");
+
+    sb_reset(&buf);
+    TEST_FAIL_IF(sb_read_file(&buf, path) < 0 || buf.len != 2 * BUFSIZ + 45,
+                 "Truncate to large failed on test file");
+
+  end:
+    sb_wipe(&buf);
+    IGNORE(file_close(&f));
+    unlink(path);
+    TEST_DONE();
+}
+
