@@ -329,9 +329,13 @@ void plwah64_add_(plwah64_map_t *map, const byte *bits, uint64_t bit_len,
         } else {                                                             \
             uint64_t __off   = 0;                                            \
             while (__count > 0) {                                            \
-                uint8_t __read = MIN(8 - (bits_pos & 7), __count);           \
-                uint8_t __mask = ((1 << __read) - 1);                        \
-                uint8_t __val  = bits[bits_pos >> 3] >> (bits_pos & 7);      \
+                uint8_t __read;                                              \
+                uint8_t __mask;                                              \
+                uint8_t __val;                                               \
+                __read = MIN(8 - (bits_pos & 7), __count);                   \
+                assert (__read < 8);                                         \
+                __mask = ((1 << __read) - 1);                                \
+                __val  = bits[bits_pos >> 3] >> (bits_pos & 7);              \
                 __bits  |= (uint64_t)(__val & __mask) << __off;              \
                 bits_pos += __read;                                          \
                 __count  -= __read;                                          \
