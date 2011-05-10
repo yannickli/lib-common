@@ -524,6 +524,7 @@ plwah64_map_t *plwah64_dup(const plwah64_map_t *map)
 /* }}} */
 /* Debug {{{ */
 
+__cold
 static inline
 void plwah64_debug_print(const plwah64_map_t *map)
 {
