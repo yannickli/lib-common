@@ -34,6 +34,8 @@ core-version.c: scripts/version.sh FORCE
 	$< rcsid libcommon > $@+
 	$(call fun/update-if-changed,$@+,$@)
 
+_LIBS = -lpthread
+
 libcommon_SOURCES = \
 	bfield.c \
 	btree.c \
