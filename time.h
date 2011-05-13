@@ -46,6 +46,9 @@ void lp_gettv(struct timeval *);
 /* iso8601                                                                 */
 /***************************************************************************/
 
+/* XXX: Array parameter qualifiers are not supported in C++98. */
+#ifndef __cplusplus
+
 static inline void time_fmt_iso8601(char buf[static 21], time_t t)
 {
     struct tm tm;
@@ -81,6 +84,8 @@ static inline int time_parse_iso8601s(const char *s, time_t *res) {
     /* FIXME: do we want to err if !ps_done(&ps) at the end ? */
     return time_parse_iso8601(&ps, res);
 }
+
+#endif
 
 /***************************************************************************/
 /* timeval operations                                                      */
