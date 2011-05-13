@@ -35,6 +35,7 @@ core-version.c: scripts/version.sh FORCE
 	$(call fun/update-if-changed,$@+,$@)
 
 _CFLAGS  = $(libxml2_CFLAGS)
+_LIBS    = -lpthread
 
 libcommon_SOURCES = \
 	bfield.c \

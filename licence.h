@@ -25,6 +25,8 @@ int  list_my_cpus(char *dst, size_t size);
 int  read_cpu_signature(uint32_t *dst);
 bool licence_check_expiration_ok(const conf_t *conf);
 bool licence_check_signature_ok(const conf_t *conf);
+bool licence_check_specific_host_ok(const conf_t *conf);
+bool licence_check_general_ok(const conf_t *conf);
 bool licence_check_host_ok(const conf_t *conf);
 /* WARNING: dst must be at least 65 char long, but the compiler will
  * not enforce this check, no matter what the prototype looks like.
