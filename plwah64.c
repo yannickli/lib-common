@@ -874,6 +874,19 @@ PLWAH64_TEST("for_each")
     TEST_FAIL_IF(c != nbc, "bad number of enumerated entries %d, expected %d",
                  (int)c, (int)nbc);
 
+
+    for (int i = 0; i < (int)bitsizeof(data) + 100; i++) {
+        plwah64_path_t path = plwah64_find(&map, i);
+        if (plwah64_get_pos(&map, &path) != (uint64_t)i) {
+            TEST_FAIL_IF(true, "invalid path for bit %d", i);
+        }
+    }
+    {
+        plwah64_path_t last = plwah64_last(&map);
+        uint64_t pos = plwah64_get_pos(&map, &last);
+        TEST_FAIL_IF(pos != map.bit_len - 1, "bad pos for last %d", (int)pos);
+    }
+
     plwah64_wipe(&map);
     TEST_DONE();
 }
