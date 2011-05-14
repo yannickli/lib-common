@@ -275,6 +275,61 @@ plwah64_path_t plwah64_find(const plwah64_map_t *map, uint64_t pos)
     e_panic("This should not happen");
 }
 
+static inline
+plwah64_path_t plwah64_last(const plwah64_map_t *map)
+{
+    const plwah64_t *last;
+    if (map->bit_len == 0) {
+        return (plwah64_path_t){
+            /* .bit_in_word = */ 0,
+            /* .word_offset = */ -1,
+            /* .in_pos      = */ false
+        };
+    }
+    last = qv_last(plwah64, &map->bits);
+    if (!last->is_fill || last->fillp.positions != 0) {
+        return (plwah64_path_t){
+            /* .bit_in_word = */ PLWAH64_WORD_BITS - 1 - map->remain,
+            /* .word_offset = */ map->bits.len - 1,
+            /* .in_pos      = */ !!last->is_fill,
+        };
+    } else {
+        uint64_t count = last->fill.counter * PLWAH64_WORD_BITS;
+        return (plwah64_path_t){
+            /* .bit_in_word = */ count - 1 - map->remain,
+            /* .word_offset = */ map->bits.len - 1,
+            /* .in_pos      = */ false,
+        };
+    }
+}
+
+static inline
+uint64_t plwah64_get_pos(const plwah64_map_t *map, const plwah64_path_t *path)
+{
+    uint64_t pos = 0;
+    assert (path->word_offset < map->bits.len);
+    if (path->word_offset < 0) {
+        return map->bit_len + path->bit_in_word;
+    }
+    for (int i = 0; i < path->word_offset; i++) {
+        plwah64_t word = map->bits.tab[i];
+        if (word.is_fill) {
+            pos += word.fill.counter * PLWAH64_WORD_BITS;
+            if (word.fillp.positions != 0) {
+                pos += PLWAH64_WORD_BITS;
+            }
+        } else {
+            pos += PLWAH64_WORD_BITS;
+        }
+    }
+    if (path->in_pos) {
+        plwah64_t word = map->bits.tab[path->word_offset];
+        assert (word.is_fill);
+        pos += word.fill.counter * PLWAH64_WORD_BITS;
+    }
+    return pos + path->bit_in_word;
+}
+
 static inline __must_check__
 bool plwah64_get_(const plwah64_map_t *map, plwah64_path_t path)
 {
@@ -308,8 +363,23 @@ void plwah64_add0s(plwah64_map_t *map, uint64_t bit_len);
 void plwah64_add1s(plwah64_map_t *map, uint64_t bit_len);
 void plwah64_trim(plwah64_map_t *map);
 
-void plwah64_set(plwah64_map_t *map, uint64_t pos);
-void plwah64_reset(plwah64_map_t *map, uint64_t pos);
+
+bool plwah64_set_at(plwah64_map_t *map, plwah64_path_t *pos);
+bool plwah64_reset_at(plwah64_map_t *map, plwah64_path_t *pos);
+
+static ALWAYS_INLINE
+bool plwah64_set(plwah64_map_t *map, uint64_t pos)
+{
+    plwah64_path_t path = plwah64_find(map, pos);
+    return plwah64_set_at(map, &path);
+}
+
+static ALWAYS_INLINE
+bool plwah64_reset(plwah64_map_t *map, uint64_t pos)
+{
+    plwah64_path_t path = plwah64_find(map, pos);
+    return plwah64_reset_at(map, &path);
+}
 
 void plwah64_not(plwah64_map_t *map);
 void plwah64_and(plwah64_map_t * restrict map,

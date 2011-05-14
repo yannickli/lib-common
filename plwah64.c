@@ -391,28 +391,30 @@ void plwah64_add_(plwah64_map_t *map, const byte *bits, uint64_t bit_len,
 }
 
 static inline
-void plwah64_set_(plwah64_map_t *map, plwah64_path_t path, bool set)
+bool plwah64_set_(plwah64_map_t *map, plwah64_path_t *path, bool set)
 {
     plwah64_t *word;
-    const int i = path.word_offset;
-    const uint64_t pos = path.bit_in_word;
-    if (path.word_offset < 0) {
+    const int i = path->word_offset;
+    const uint64_t pos = path->bit_in_word;
+    if (path->word_offset < 0) {
         if (set) {
-            plwah64_add_(map, NULL, path.bit_in_word, false);
+            plwah64_add_(map, NULL, path->bit_in_word, false);
             plwah64_add_(map, NULL, 1, true);
         } else {
-            plwah64_add_(map, NULL, path.bit_in_word + 1, false);
+            plwah64_add_(map, NULL, path->bit_in_word + 1, false);
         }
+        *path = plwah64_last(map);
+        return false;
     }
 
-    word = &map->bits.tab[path.word_offset];
+    word = &map->bits.tab[path->word_offset];
     if (word->is_fill) {
-        if (path.in_pos) {
+        if (path->in_pos) {
 #define CASE(i, Val)                                                         \
             if ((uint64_t)(Val) == pos) {                                    \
                 if (!!word->fill.val != !!set) {                             \
                     /* Bit is already at the expected value */               \
-                    return;                                                  \
+                    return set;                                              \
                 }                                                            \
                 switch (i) {                                                 \
                   case 0: word->fill.position0 = word->fill.position1;       \
@@ -422,13 +424,13 @@ void plwah64_set_(plwah64_map_t *map, plwah64_path_t path, bool set)
                   case 4: word->fill.position4 = word->fill.position5;       \
                   case 5: word->fill.position5 = 0;                          \
                 }                                                            \
-                return;                                                      \
+                return !set;                                                 \
             }
 #define SET_POS(p)                                                           \
               case p:                                                        \
                 word->fill.position##p = pos + 1;                            \
                 map->generation++;                                           \
-                return;
+                return !set;
 
             switch (PLWAH64_READ_POSITIONS(word->fill, CASE)) {
               SET_POS(1);
@@ -448,7 +450,7 @@ void plwah64_set_(plwah64_map_t *map, plwah64_path_t path, bool set)
                 word->fillp.positions = 0;
                 qv_insert(plwah64, &map->bits, i + 1, new_word);
                 map->generation++;
-                return;
+                return !set;
               } break;
             }
 #undef SET_POS
@@ -458,7 +460,7 @@ void plwah64_set_(plwah64_map_t *map, plwah64_path_t path, bool set)
             uint64_t word_offset;
             if (!!word->fill.val == !!set) {
                 /* The bit is already at the good value */
-                return;
+                return set;
             }
             bit_offset  = pos % PLWAH64_WORD_BITS;
             word_offset = pos / PLWAH64_WORD_BITS;
@@ -498,7 +500,7 @@ void plwah64_set_(plwah64_map_t *map, plwah64_path_t path, bool set)
                 }
             }
             map->generation++;
-            return;
+            return !set;
         }
     } else {
         if (!set) {
@@ -508,8 +510,9 @@ void plwah64_set_(plwah64_map_t *map, plwah64_path_t path, bool set)
         }
         plwah64_normalize(&map->bits, i, i + 2);
         map->generation++;
-        return;
+        return !set;
     }
+    return set;
 }
 
 /* }}} */
@@ -536,16 +539,14 @@ bool plwah64_get(const plwah64_map_t *map, uint64_t pos)
     return plwah64_get_(map, path);
 }
 
-void plwah64_set(plwah64_map_t *map, uint64_t pos)
+bool plwah64_set_at(plwah64_map_t *map, plwah64_path_t *path)
 {
-    plwah64_path_t path = plwah64_find(map, pos);
-    plwah64_set_(map, path, true);
+    return plwah64_set_(map, path, true);
 }
 
-void plwah64_reset(plwah64_map_t *map, uint64_t pos)
+bool plwah64_reset_at(plwah64_map_t *map, plwah64_path_t *path)
 {
-    plwah64_path_t path = plwah64_find(map, pos);
-    plwah64_set_(map, path, false);
+    return plwah64_set_(map, path, false);
 }
 
 void plwah64_not(plwah64_map_t *map)
