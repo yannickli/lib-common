@@ -83,19 +83,21 @@ bool plwah64_normalize_cleanup_(qv_t(plwah64) *map, int at)
 static inline
 void plwah64_normalize(qv_t(plwah64) *map, int from, int to)
 {
-    int pos = from <= 0 ? 0 : from - 1;
+    int pos;
     bool touched = false;
     if (to >= map->len) {
         to = map->len;
     }
+    from--;
     if (from < 0) {
         from = 0;
     }
+    pos = from;
     for (int i = from; i < to; i++) {
         if (!plwah64_normalize_cleanup_(map, i)) {
             continue;
         }
-        if (i == 0) {
+        if (i == from) {
             /* We preserve the first word */
             touched = true;
             continue;
@@ -333,7 +335,7 @@ void plwah64_add_(plwah64_map_t *map, const byte *bits, uint64_t bit_len,
                 uint8_t __mask;                                              \
                 uint8_t __val;                                               \
                 __read = MIN(8 - (bits_pos & 7), __count);                   \
-                assert (__read < 8);                                         \
+                assert (__read <= 8);                                        \
                 __mask = ((1 << __read) - 1);                                \
                 __val  = bits[bits_pos >> 3] >> (bits_pos & 7);              \
                 __bits  |= (uint64_t)(__val & __mask) << __off;              \
