@@ -326,33 +326,6 @@ void plwah64_next(plwah64_path_t *path)
     path->bit_in_word++;
 }
 
-static inline
-bool plwah64_check_path(const plwah64_map_t *map, const plwah64_path_t *path)
-{
-    uint64_t pos = 0;
-    assert (path->word_offset < map->bits.len);
-    if (path->word_offset < 0) {
-        return path->bit_in_map == map->bit_len + path->bit_in_word;
-    }
-    for (int i = 0; i < path->word_offset; i++) {
-        plwah64_t word = map->bits.tab[i];
-        if (word.is_fill) {
-            pos += word.fill.counter * PLWAH64_WORD_BITS;
-            if (word.fillp.positions != 0) {
-                pos += PLWAH64_WORD_BITS;
-            }
-        } else {
-            pos += PLWAH64_WORD_BITS;
-        }
-    }
-    if (path->in_pos) {
-        plwah64_t word = map->bits.tab[path->word_offset];
-        assert (word.is_fill);
-        pos += word.fill.counter * PLWAH64_WORD_BITS;
-    }
-    return path->bit_in_map == pos + path->bit_in_word;
-}
-
 static inline __must_check__
 bool plwah64_get_at(const plwah64_map_t *map, const plwah64_path_t *path)
 {
@@ -393,22 +366,14 @@ static ALWAYS_INLINE
 bool plwah64_set(plwah64_map_t *map, uint64_t pos)
 {
     plwah64_path_t path = plwah64_find(map, pos);
-    bool ret = plwah64_set_at(map, &path);
-#ifdef PLWAH64_MORE_CHECKS
-    assert (plwah64_check_path(map, &path));
-#endif
-    return ret;
+    return plwah64_set_at(map, &path);
 }
 
 static ALWAYS_INLINE
 bool plwah64_reset(plwah64_map_t *map, uint64_t pos)
 {
     plwah64_path_t path = plwah64_find(map, pos);
-    bool ret = plwah64_reset_at(map, &path);
-#ifdef PLWAH64_MORE_CHECKS
-    assert (plwah64_check_path(map, &path));
-#endif
-    return ret;
+    return plwah64_reset_at(map, &path);
 }
 
 static ALWAYS_INLINE
@@ -427,8 +392,12 @@ void plwah64_and(plwah64_map_t * restrict map,
 void plwah64_or(plwah64_map_t * restrict map,
                 const plwah64_map_t * restrict other);
 
-__must_check__
-uint64_t plwah64_bit_count(const plwah64_map_t *map);
+static ALWAYS_INLINE __must_check__
+uint64_t plwah64_bit_count(const plwah64_map_t *map)
+{
+    return map->bit_count;
+}
+
 
 /* }}} */
 /* Enumeration {{{ */

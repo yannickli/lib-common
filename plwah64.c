@@ -15,7 +15,7 @@
 
 /* Helpers {{{ */
 
-static inline
+static
 void plwah64_normalize_fill_(qv_t(plwah64) *map, int at, int *into,
                              bool *touched, bool is_in_current,
                              plwah64_path_t *path)
@@ -47,7 +47,7 @@ void plwah64_normalize_fill_(qv_t(plwah64) *map, int at, int *into,
     }
 }
 
-static inline
+static
 void plwah64_normalize_literal_(qv_t(plwah64) *map, int at, int *into,
                                 bool *touched, bool is_in_current,
                                 plwah64_path_t *path)
@@ -73,7 +73,7 @@ void plwah64_normalize_literal_(qv_t(plwah64) *map, int at, int *into,
     *touched = true;
 }
 
-static inline
+static
 bool plwah64_normalize_cleanup_(qv_t(plwah64) *map, int at)
 {
     plwah64_t * restrict cur  = &map->tab[at];
@@ -98,7 +98,7 @@ bool plwah64_normalize_cleanup_(qv_t(plwah64) *map, int at)
     return true;
 }
 
-static inline
+static
 void plwah64_normalize(qv_t(plwah64) *map, plwah64_path_t *path)
 {
     int from = path->word_offset - 1;
@@ -143,7 +143,7 @@ void plwah64_normalize(qv_t(plwah64) *map, plwah64_path_t *path)
     }
 }
 
-static inline
+static
 void plwah64_append_word(qv_t(plwah64) *map, plwah64_t word)
 {
     plwah64_path_t path = { .word_offset = map->len - 1 };
@@ -154,14 +154,14 @@ void plwah64_append_word(qv_t(plwah64) *map, plwah64_t word)
     plwah64_normalize(map, &path);
 }
 
-static inline
+static
 void plwah64_append_fill(qv_t(plwah64) *map, plwah64_fill_t fill)
 {
     assert (fill.is_fill);
     plwah64_append_word(map, PLWAH64_FROM_FILL(fill));
 }
 
-static inline
+static
 void plwah64_append_literal(qv_t(plwah64) *map, plwah64_literal_t lit)
 {
     assert (!lit.is_fill);
@@ -198,7 +198,7 @@ void plwah64_append_literal(qv_t(plwah64) *map, plwah64_literal_t lit)
             TYPSWAP(xword, yword);                                           \
         } while (0)
 
-static inline
+static
 void plwah64_or_(qv_t(plwah64) *map, const plwah64_t *x, int xlen,
                  const plwah64_t *y, int ylen)
 {
@@ -257,7 +257,7 @@ void plwah64_or_(qv_t(plwah64) *map, const plwah64_t *x, int xlen,
     }
 }
 
-static inline
+static
 void plwah64_and_(qv_t(plwah64) *map, const plwah64_t *x, int xlen,
                   const plwah64_t *y, int ylen)
 {
@@ -317,32 +317,7 @@ void plwah64_and_(qv_t(plwah64) *map, const plwah64_t *x, int xlen,
 #undef NEXT
 #undef READ
 
-static inline
-int plwah64_build_bit(plwah64_t data[2], uint32_t pos)
-{
-    uint32_t counter = pos / PLWAH64_WORD_BITS;
-    if (counter != 0) {
-        pos = pos % PLWAH64_WORD_BITS;
-    }
-
-    if (counter == 0) {
-        data[0].word = 1UL << pos;
-        return 1;
-    } else
-    if (pos < PLWAH64_MAX_BITS_IN_WORD) {
-        data[0].fill = PLWAH64_FILL_INIT(0, counter);
-        data[0].fill.position0 = pos + 1;
-        return 1;
-    } else {
-        counter -= PLWAH64_MAX_COUNTER;
-        data[0].fill = PLWAH64_FILL_INIT(0, PLWAH64_MAX_COUNTER);
-        data[1].fill = PLWAH64_FILL_INIT(0, counter);
-        data[1].fill.position0 = pos + 1;
-        return 2;
-    }
-}
-
-static inline
+static
 void plwah64_add_(plwah64_map_t *map, const byte *bits, uint64_t bit_len,
                   bool fill_with_1)
 {
@@ -420,7 +395,7 @@ void plwah64_add_(plwah64_map_t *map, const byte *bits, uint64_t bit_len,
 #undef READ_BITS
 }
 
-static inline
+static
 bool plwah64_set_(plwah64_map_t *map, plwah64_path_t *path, bool set)
 {
     plwah64_t *word;
@@ -650,17 +625,20 @@ void plwah64_add(plwah64_map_t *map, const byte *bits, uint64_t bit_len)
     }
 }
 
+__flatten
 void plwah64_add0s(plwah64_map_t *map, uint64_t bit_len)
 {
     plwah64_add_(map, NULL, bit_len, false);
 }
 
+__flatten
 void plwah64_add1s(plwah64_map_t *map, uint64_t bit_len)
 {
     plwah64_add_(map, NULL, bit_len, true);
     map->bit_count += bit_len;
 }
 
+__flatten
 bool plwah64_set_at(plwah64_map_t *map, plwah64_path_t *path)
 {
     bool ret = plwah64_set_(map, path, true);
@@ -670,6 +648,7 @@ bool plwah64_set_at(plwah64_map_t *map, plwah64_path_t *path)
     return ret;
 }
 
+__flatten
 bool plwah64_reset_at(plwah64_map_t *map, plwah64_path_t *path)
 {
     bool ret = plwah64_set_(map, path, false);
@@ -751,19 +730,16 @@ void plwah64_or(plwah64_map_t * restrict map,
     map->bit_count = plwah64_bit_count_(map);
 }
 
+__flatten
 void plwah64_scanf(const plwah64_map_t *map, plwah64_path_t *path)
 {
     plwah64_scanf_(map, path, true);
 }
 
+__flatten
 void plwah64_scanzf(const plwah64_map_t *map, plwah64_path_t *path)
 {
     plwah64_scanf_(map, path, false);
-}
-
-uint64_t plwah64_bit_count(const plwah64_map_t *map)
-{
-    return map->bit_count;
 }
 
 void plwah64_trim(plwah64_map_t *map)
@@ -783,6 +759,35 @@ void plwah64_trim(plwah64_map_t *map)
 
 /* }}} */
 /* Unit tests {{{ */
+
+static
+bool plwah64_check_path(const plwah64_map_t *map, const plwah64_path_t *path)
+{
+    uint64_t pos = 0;
+    assert (path->word_offset < map->bits.len);
+    if (path->word_offset < 0) {
+        return path->bit_in_map == map->bit_len + path->bit_in_word;
+    }
+    for (int i = 0; i < path->word_offset; i++) {
+        plwah64_t word = map->bits.tab[i];
+        if (word.is_fill) {
+            pos += word.fill.counter * PLWAH64_WORD_BITS;
+            if (word.fillp.positions != 0) {
+                pos += PLWAH64_WORD_BITS;
+            }
+        } else {
+            pos += PLWAH64_WORD_BITS;
+        }
+    }
+    if (path->in_pos) {
+        plwah64_t word = map->bits.tab[path->word_offset];
+        assert (word.is_fill);
+        pos += word.fill.counter * PLWAH64_WORD_BITS;
+    }
+    return path->bit_in_map == pos + path->bit_in_word;
+}
+
+
 
 #define PLWAH64_TEST(name)  TEST_DECL("plwah64: " name, 0)
 
