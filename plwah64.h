@@ -102,6 +102,7 @@ typedef struct plwah64_path_t {
 
 typedef struct plwah64_map_t {
     uint64_t      bit_len;
+    uint64_t      bit_count;
     uint32_t      generation;
     uint8_t       remain;
     qv_t(plwah64) bits;

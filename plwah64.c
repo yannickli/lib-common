@@ -611,12 +611,43 @@ void plwah64_scanf_(const plwah64_map_t *map, plwah64_path_t *path,
     path->word_offset = -1;
 }
 
+static __must_check__
+uint64_t plwah64_bit_count_(const plwah64_map_t *map)
+{
+#define CASE(...)
+    uint64_t count = 0;
+    for (int i = 0; i < map->bits.len; i++) {
+        plwah64_t word = map->bits.tab[i];
+        if (word.is_fill && word.fill.val) {
+            count += word.fill.counter * PLWAH64_WORD_BITS;
+            if (word.fillp.positions) {
+                count += PLWAH64_WORD_BITS - PLWAH64_READ_POSITIONS(word.fill, CASE);
+            }
+        } else
+        if (word.is_fill) {
+            count += PLWAH64_READ_POSITIONS(word.fill, CASE);
+        } else {
+            count += bitcount64(word.word);
+        }
+    }
+#undef CASE
+    return count;
+}
+
 /* }}} */
 /* Public API {{{ */
 
 void plwah64_add(plwah64_map_t *map, const byte *bits, uint64_t bit_len)
 {
+    uint8_t last;
+    uint8_t remain = bit_len & 0x7;
     plwah64_add_(map, bits, bit_len, false);
+    map->bit_count += membitcount(bits, bit_len / 8);
+    if (remain != 0) {
+        last  = bits[bit_len / 8];
+        last &= 0xff >> (8 - remain);
+        map->bit_count += bitcount8(last);
+    }
 }
 
 void plwah64_add0s(plwah64_map_t *map, uint64_t bit_len)
@@ -627,16 +658,25 @@ void plwah64_add0s(plwah64_map_t *map, uint64_t bit_len)
 void plwah64_add1s(plwah64_map_t *map, uint64_t bit_len)
 {
     plwah64_add_(map, NULL, bit_len, true);
+    map->bit_count += bit_len;
 }
 
 bool plwah64_set_at(plwah64_map_t *map, plwah64_path_t *path)
 {
-    return plwah64_set_(map, path, true);
+    bool ret = plwah64_set_(map, path, true);
+    if (!ret) {
+        map->bit_count++;
+    }
+    return ret;
 }
 
 bool plwah64_reset_at(plwah64_map_t *map, plwah64_path_t *path)
 {
-    return plwah64_set_(map, path, false);
+    bool ret = plwah64_set_(map, path, false);
+    if (ret) {
+        map->bit_count--;
+    }
+    return ret;
 }
 
 void plwah64_not(plwah64_map_t *map)
@@ -670,6 +710,7 @@ void plwah64_not(plwah64_map_t *map)
         plwah64_normalize(&map->bits, &path);
     }
     map->generation++;
+    map->bit_count = map->bit_len - map->bit_count;
 }
 
 void plwah64_and(plwah64_map_t * restrict map,
@@ -688,6 +729,7 @@ void plwah64_and(plwah64_map_t * restrict map,
         map->remain  = other->remain;
     }
     map->generation++;
+    map->bit_count = plwah64_bit_count_(map);
 }
 
 void plwah64_or(plwah64_map_t * restrict map,
@@ -706,6 +748,7 @@ void plwah64_or(plwah64_map_t * restrict map,
         map->remain  = other->remain;
     }
     map->generation++;
+    map->bit_count = plwah64_bit_count_(map);
 }
 
 void plwah64_scanf(const plwah64_map_t *map, plwah64_path_t *path)
@@ -720,24 +763,7 @@ void plwah64_scanzf(const plwah64_map_t *map, plwah64_path_t *path)
 
 uint64_t plwah64_bit_count(const plwah64_map_t *map)
 {
-#define CASE(...)
-    uint64_t count = 0;
-    for (int i = 0; i < map->bits.len; i++) {
-        plwah64_t word = map->bits.tab[i];
-        if (word.is_fill && word.fill.val) {
-            count += word.fill.counter * PLWAH64_WORD_BITS;
-            if (word.fillp.positions) {
-                count += PLWAH64_WORD_BITS - PLWAH64_READ_POSITIONS(word.fill, CASE);
-            }
-        } else
-        if (word.is_fill) {
-            count += PLWAH64_READ_POSITIONS(word.fill, CASE);
-        } else {
-            count += bitcount64(word.word);
-        }
-    }
-#undef CASE
-    return count;
+    return map->bit_count;
 }
 
 void plwah64_trim(plwah64_map_t *map)
