@@ -573,9 +573,11 @@ void plwah64_scanf_(const plwah64_map_t *map, plwah64_path_t *path,
             if (!word->fill.val == !val) {
                 return;
             }
+            path->bit_in_map += (count - path->bit_in_word);
             path->bit_in_word = count;
         } else {
             uint64_t bits;
+            int      pos;
             if (path->bit_in_word >= PLWAH64_WORD_BITS) {
                 path->bit_in_word -= PLWAH64_WORD_BITS;
                 path->word_offset++;
@@ -592,12 +594,15 @@ void plwah64_scanf_(const plwah64_map_t *map, plwah64_path_t *path,
             }
             bits = bits >> path->bit_in_word;
             if (bits == 0) {
+                path->bit_in_map += PLWAH64_WORD_BITS - path->bit_in_word;
                 path->bit_in_word = 0;
                 path->in_pos = false;
                 path->word_offset++;
                 continue;
             }
-            path->bit_in_word += bsf64(bits);
+            pos = bsf64(bits);
+            path->bit_in_map  += pos;
+            path->bit_in_word += pos;
             return;
         }
     }
@@ -974,14 +979,14 @@ PLWAH64_TEST("for_each")
 
     for (int i = 0; i < (int)bitsizeof(data) + 100; i++) {
         plwah64_path_t path = plwah64_find(&map, i);
-        if (plwah64_get_pos(&map, &path) != (uint64_t)i) {
+        if (!plwah64_check_path(&map, &path)) {
             TEST_FAIL_IF(true, "invalid path for bit %d", i);
         }
     }
     {
         plwah64_path_t last = plwah64_last(&map);
-        uint64_t pos = plwah64_get_pos(&map, &last);
-        TEST_FAIL_IF(pos != map.bit_len - 1, "bad pos for last %d", (int)pos);
+        TEST_FAIL_IF(!plwah64_check_path(&map, &last),
+                     "bad pos for last %d", (int)last.bit_in_map);
     }
 
     plwah64_wipe(&map);

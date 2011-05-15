@@ -94,6 +94,7 @@ typedef union plwah64_t {
 qvector_t(plwah64, plwah64_t);
 
 typedef struct plwah64_path_t {
+    uint64_t bit_in_map;
     uint64_t bit_in_word;
     int      word_offset;
     bool     in_pos;
@@ -232,8 +233,10 @@ typedef struct plwah64_map_t {
 static inline
 plwah64_path_t plwah64_find(const plwah64_map_t *map, uint64_t pos)
 {
+    const uint64_t global_pos = pos;
     if (pos >= map->bit_len) {
         return (plwah64_path_t){
+            /* .bit_in_map  = */ global_pos,
             /* .bit_in_word = */ pos - map->bit_len,
             /* .word_offset = */ -1,
             /* .in_pos      = */ false
@@ -245,6 +248,7 @@ plwah64_path_t plwah64_find(const plwah64_map_t *map, uint64_t pos)
             uint64_t count = word.fill.counter * PLWAH64_WORD_BITS;
             if (pos < count) {
                 return (plwah64_path_t){
+                    /* .bit_in_map  = */ global_pos,
                     /* .bit_in_word = */ pos,
                     /* .word_offset = */ i,
                     /* .in_pos      = */ 0,
@@ -254,6 +258,7 @@ plwah64_path_t plwah64_find(const plwah64_map_t *map, uint64_t pos)
             if (word.fillp.positions != 0) {
                 if (pos < PLWAH64_WORD_BITS) {
                     return (plwah64_path_t){
+                        /* .bit_in_map  = */ global_pos,
                         /* .bit_in_word = */ pos,
                         /* .word_offset = */ i,
                         /* .in_pos      = */ true,
@@ -264,6 +269,7 @@ plwah64_path_t plwah64_find(const plwah64_map_t *map, uint64_t pos)
         } else
         if (pos < PLWAH64_WORD_BITS) {
             return (plwah64_path_t){
+                /* .bit_in_map  = */ global_pos,
                 /* .bit_in_word = */ pos,
                 /* .word_offset = */ i,
                 /* .in_pos      = */ false,
@@ -281,6 +287,7 @@ plwah64_path_t plwah64_last(const plwah64_map_t *map)
     const plwah64_t *last;
     if (map->bit_len == 0) {
         return (plwah64_path_t){
+            /* .bit_in_map  = */ map->bit_len - 1,
             /* .bit_in_word = */ 0,
             /* .word_offset = */ -1,
             /* .in_pos      = */ false
@@ -289,6 +296,7 @@ plwah64_path_t plwah64_last(const plwah64_map_t *map)
     last = qv_last(plwah64, &map->bits);
     if (!last->is_fill || last->fillp.positions != 0) {
         return (plwah64_path_t){
+            /* .bit_in_map  = */ map->bit_len - 1,
             /* .bit_in_word = */ PLWAH64_WORD_BITS - 1 - map->remain,
             /* .word_offset = */ map->bits.len - 1,
             /* .in_pos      = */ !!last->is_fill,
@@ -296,6 +304,7 @@ plwah64_path_t plwah64_last(const plwah64_map_t *map)
     } else {
         uint64_t count = last->fill.counter * PLWAH64_WORD_BITS;
         return (plwah64_path_t){
+            /* .bit_in_map  = */ map->bit_len - 1,
             /* .bit_in_word = */ count - 1 - map->remain,
             /* .word_offset = */ map->bits.len - 1,
             /* .in_pos      = */ false,
@@ -304,12 +313,12 @@ plwah64_path_t plwah64_last(const plwah64_map_t *map)
 }
 
 static inline
-uint64_t plwah64_get_pos(const plwah64_map_t *map, const plwah64_path_t *path)
+bool plwah64_check_path(const plwah64_map_t *map, const plwah64_path_t *path)
 {
     uint64_t pos = 0;
     assert (path->word_offset < map->bits.len);
     if (path->word_offset < 0) {
-        return map->bit_len + path->bit_in_word;
+        return path->bit_in_map == map->bit_len + path->bit_in_word;
     }
     for (int i = 0; i < path->word_offset; i++) {
         plwah64_t word = map->bits.tab[i];
@@ -327,7 +336,7 @@ uint64_t plwah64_get_pos(const plwah64_map_t *map, const plwah64_path_t *path)
         assert (word.is_fill);
         pos += word.fill.counter * PLWAH64_WORD_BITS;
     }
-    return pos + path->bit_in_word;
+    return path->bit_in_map == pos + path->bit_in_word;
 }
 
 static inline __must_check__
@@ -372,7 +381,7 @@ bool plwah64_set(plwah64_map_t *map, uint64_t pos)
     plwah64_path_t path = plwah64_find(map, pos);
     bool ret = plwah64_set_at(map, &path);
 #ifdef PLWAH64_MORE_CHECKS
-    assert (pos == plwah64_get_pos(map, &path));
+    assert (plwah64_check_path(map, &path));
 #endif
     return ret;
 }
@@ -383,7 +392,7 @@ bool plwah64_reset(plwah64_map_t *map, uint64_t pos)
     plwah64_path_t path = plwah64_find(map, pos);
     bool ret = plwah64_reset_at(map, &path);
 #ifdef PLWAH64_MORE_CHECKS
-    assert (pos == plwah64_get_pos(map, &path));
+    assert (plwah64_check_path(map, &path));
 #endif
     return ret;
 }
