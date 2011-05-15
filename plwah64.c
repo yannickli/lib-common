@@ -567,12 +567,6 @@ void plwah64_add1s(plwah64_map_t *map, uint64_t bit_len)
     plwah64_add_(map, NULL, bit_len, true);
 }
 
-bool plwah64_get(const plwah64_map_t *map, uint64_t pos)
-{
-    plwah64_path_t path = plwah64_find(map, pos);
-    return plwah64_get_(map, path);
-}
-
 bool plwah64_set_at(plwah64_map_t *map, plwah64_path_t *path)
 {
     return plwah64_set_(map, path, true);

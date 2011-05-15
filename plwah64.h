@@ -331,18 +331,18 @@ uint64_t plwah64_get_pos(const plwah64_map_t *map, const plwah64_path_t *path)
 }
 
 static inline __must_check__
-bool plwah64_get_(const plwah64_map_t *map, plwah64_path_t path)
+bool plwah64_get_at(const plwah64_map_t *map, const plwah64_path_t *path)
 {
     plwah64_t word;
-    if (path.word_offset < 0) {
+    if (path->word_offset < 0) {
         return false;
     }
 
-    word = map->bits.tab[path.word_offset];
+    word = map->bits.tab[path->word_offset];
     if (word.is_fill) {
-        if (path.in_pos) {
+        if (path->in_pos) {
 #define CASE(p, Val)                                                         \
-            if ((uint64_t)(Val) == path.bit_in_word) {                       \
+            if ((uint64_t)(Val) == path->bit_in_word) {                      \
                 return !word.fill.val;                                       \
             }
             PLWAH64_READ_POSITIONS(word.fill, CASE);
@@ -350,7 +350,7 @@ bool plwah64_get_(const plwah64_map_t *map, plwah64_path_t path)
         }
         return !!word.fill.val;
     } else {
-        return !!(word.word & (UINT64_C(1) << path.bit_in_word));
+        return !!(word.word & (UINT64_C(1) << path->bit_in_word));
     }
 }
 
@@ -362,7 +362,6 @@ void plwah64_add(plwah64_map_t *map, const byte *bits, uint64_t bit_len);
 void plwah64_add0s(plwah64_map_t *map, uint64_t bit_len);
 void plwah64_add1s(plwah64_map_t *map, uint64_t bit_len);
 void plwah64_trim(plwah64_map_t *map);
-
 
 bool plwah64_set_at(plwah64_map_t *map, plwah64_path_t *pos);
 bool plwah64_reset_at(plwah64_map_t *map, plwah64_path_t *pos);
@@ -389,14 +388,19 @@ bool plwah64_reset(plwah64_map_t *map, uint64_t pos)
     return ret;
 }
 
+static ALWAYS_INLINE
+bool plwah64_get(const plwah64_map_t *map, uint64_t pos)
+{
+    plwah64_path_t path = plwah64_find(map, pos);
+    return plwah64_get_at(map, &path);
+}
+
+
 void plwah64_not(plwah64_map_t *map);
 void plwah64_and(plwah64_map_t * restrict map,
                  const plwah64_map_t * restrict other);
 void plwah64_or(plwah64_map_t * restrict map,
                 const plwah64_map_t * restrict other);
-
-__must_check__
-bool plwah64_get(const plwah64_map_t *map, uint64_t pos);
 
 __must_check__
 uint64_t plwah64_bit_count(const plwah64_map_t *map);
