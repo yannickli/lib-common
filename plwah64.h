@@ -396,6 +396,7 @@ bool plwah64_get(const plwah64_map_t *map, uint64_t pos)
 }
 
 void plwah64_scanf(const plwah64_map_t *map, plwah64_path_t *path);
+void plwah64_scanzf(const plwah64_map_t *map, plwah64_path_t *path);
 
 void plwah64_not(plwah64_map_t *map);
 void plwah64_and(plwah64_map_t * restrict map,
