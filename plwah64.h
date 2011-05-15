@@ -371,14 +371,22 @@ static ALWAYS_INLINE
 bool plwah64_set(plwah64_map_t *map, uint64_t pos)
 {
     plwah64_path_t path = plwah64_find(map, pos);
-    return plwah64_set_at(map, &path);
+    bool ret = plwah64_set_at(map, &path);
+#ifdef PLWAH64_MORE_CHECKS
+    assert (pos == plwah64_get_pos(map, &path));
+#endif
+    return ret;
 }
 
 static ALWAYS_INLINE
 bool plwah64_reset(plwah64_map_t *map, uint64_t pos)
 {
     plwah64_path_t path = plwah64_find(map, pos);
-    return plwah64_reset_at(map, &path);
+    bool ret = plwah64_reset_at(map, &path);
+#ifdef PLWAH64_MORE_CHECKS
+    assert (pos == plwah64_get_pos(map, &path));
+#endif
+    return ret;
 }
 
 void plwah64_not(plwah64_map_t *map);

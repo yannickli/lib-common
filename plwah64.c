@@ -17,18 +17,28 @@
 
 static inline
 void plwah64_normalize_fill_(qv_t(plwah64) *map, int at, int *into,
-                             bool *touched)
+                             bool *touched, bool is_in_current,
+                             plwah64_path_t *path)
 {
     plwah64_t * restrict prev = &map->tab[*into];
     plwah64_t * restrict cur  = &map->tab[at];
     if (*touched && prev->is_fill && prev->fill.val == cur->fill.val
     && !prev->fillp.positions) {
+        if (is_in_current) {
+            path->word_offset = *into;
+            if (!path->in_pos) {
+                path->bit_in_word += prev->fill.counter * PLWAH64_WORD_BITS;
+            }
+        }
         prev->fill.counter   += cur->fill.counter;
         prev->fillp.positions = cur->fillp.positions;
         *touched = true;
     } else {
         if (*touched) {
             (*into)++;
+        }
+        if (is_in_current) {
+            path->word_offset = *into;
         }
         if (*into != at) {
             map->tab[*into] = *cur;
@@ -39,15 +49,23 @@ void plwah64_normalize_fill_(qv_t(plwah64) *map, int at, int *into,
 
 static inline
 void plwah64_normalize_literal_(qv_t(plwah64) *map, int at, int *into,
-                                bool *touched)
+                                bool *touched, bool is_in_current,
+                                plwah64_path_t *path)
 {
     plwah64_t * restrict prev = &map->tab[*into];
     plwah64_t * restrict cur  = &map->tab[at];
     if (*touched && prev->is_fill && prev->fillp.positions == 0) {
+        if (is_in_current) {
+            path->word_offset = *into;
+            path->in_pos = true;
+        }
         PLWAH64_BUILD_POSITIONS(prev->fill, cur->bits, return,);
     }
     if (*touched) {
         (*into)++;
+    }
+    if (is_in_current) {
+        path->word_offset = *into;
     }
     if (*into != at) {
         map->tab[*into] = *cur;
@@ -81,8 +99,10 @@ bool plwah64_normalize_cleanup_(qv_t(plwah64) *map, int at)
 }
 
 static inline
-void plwah64_normalize(qv_t(plwah64) *map, int from, int to)
+void plwah64_normalize(qv_t(plwah64) *map, plwah64_path_t *path)
 {
+    int from = path->word_offset - 1;
+    int to   = path->word_offset + 2;
     int pos;
     bool touched = false;
     if (to >= map->len) {
@@ -94,7 +114,12 @@ void plwah64_normalize(qv_t(plwah64) *map, int from, int to)
     }
     pos = from;
     for (int i = from; i < to; i++) {
+        bool is_in_current = (path->word_offset == i);
         if (!plwah64_normalize_cleanup_(map, i)) {
+            assert (!is_in_current);
+            if (i > path->word_offset) {
+                path->word_offset--;
+            }
             continue;
         }
         if (i == from) {
@@ -103,9 +128,11 @@ void plwah64_normalize(qv_t(plwah64) *map, int from, int to)
             continue;
         }
         if (map->tab[i].is_fill) {
-            plwah64_normalize_fill_(map, i, &pos, &touched);
+            plwah64_normalize_fill_(map, i, &pos, &touched,
+                                    is_in_current, path);
         } else {
-            plwah64_normalize_literal_(map, i, &pos, &touched);
+            plwah64_normalize_literal_(map, i, &pos, &touched,
+                                       is_in_current, path);
         }
     }
     if (touched) {
@@ -119,11 +146,12 @@ void plwah64_normalize(qv_t(plwah64) *map, int from, int to)
 static inline
 void plwah64_append_word(qv_t(plwah64) *map, plwah64_t word)
 {
+    plwah64_path_t path = { .word_offset = map->len - 1 };
     STATIC_ASSERT(sizeof(plwah64_t) == sizeof(uint64_t));
     STATIC_ASSERT(sizeof(plwah64_literal_t) == sizeof(uint64_t));
     STATIC_ASSERT(sizeof(plwah64_fill_t) == sizeof(uint64_t));
     qv_append(plwah64, map, word);
-    plwah64_normalize(map, map->len - 2, map->len);
+    plwah64_normalize(map, &path);
 }
 
 static inline
@@ -451,6 +479,7 @@ bool plwah64_set_(plwah64_map_t *map, plwah64_path_t *path, bool set)
                 }
                 word->fillp.positions = 0;
                 qv_insert(plwah64, &map->bits, i + 1, new_word);
+                path->word_offset++;
                 map->generation++;
                 return !set;
               } break;
@@ -473,6 +502,7 @@ bool plwah64_set_(plwah64_map_t *map, plwah64_path_t *path, bool set)
                     plwah64_t new_word = PLWAH64_APPLY_POSITIONS(word->fill);
                     word->fillp.positions = 0;
                     qv_insert(plwah64, &map->bits, i + 1, new_word);
+                    word = &map->bits.tab[path->word_offset];
                 }
                 if (word_offset == 0) {
                     uint64_t new_word = UINT64_C(1) << bit_offset;
@@ -498,6 +528,8 @@ bool plwah64_set_(plwah64_map_t *map, plwah64_path_t *path, bool set)
                     plwah64_t new_word = PLWAH64_FROM_FILL(
                         PLWAH64_FILL_INIT(!set, word_offset));
                     new_word.fill.position0 = bit_offset + 1;
+                    path->in_pos = true;
+                    path->bit_in_word = bit_offset;
                     qv_insert(plwah64, &map->bits, i, new_word);
                 }
             }
@@ -510,7 +542,7 @@ bool plwah64_set_(plwah64_map_t *map, plwah64_path_t *path, bool set)
         } else {
             word->word |= UINT64_C(1) << pos;
         }
-        plwah64_normalize(&map->bits, i, i + 2);
+        plwah64_normalize(&map->bits, path);
         map->generation++;
         return !set;
     }
@@ -562,6 +594,7 @@ void plwah64_not(plwah64_map_t *map)
         }
     }
     if (map->remain > 0) {
+        plwah64_path_t path;
         plwah64_t *last = qv_last(plwah64, &map->bits);
         uint64_t   mask = (UINT64_C(1) << (PLWAH64_WORD_BITS - map->remain)) - 1;
         if (last->is_fill && last->fillp.positions) {
@@ -577,7 +610,8 @@ void plwah64_not(plwah64_map_t *map)
         } else {
             last->bits &= mask;
         }
-        plwah64_normalize(&map->bits, map->bits.len - 2, map->bits.len);
+        path = (plwah64_path_t){ .word_offset = map->bits.len - 1 };
+        plwah64_normalize(&map->bits, &path);
     }
     map->generation++;
 }
