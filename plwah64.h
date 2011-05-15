@@ -283,6 +283,12 @@ plwah64_path_t plwah64_find(const plwah64_map_t *map, uint64_t pos)
 }
 
 static inline
+plwah64_path_t plwah64_first(const plwah64_map_t *map)
+{
+    return plwah64_find(map, 0);
+}
+
+static inline
 plwah64_path_t plwah64_last(const plwah64_map_t *map)
 {
     const plwah64_t *last;
@@ -311,6 +317,13 @@ plwah64_path_t plwah64_last(const plwah64_map_t *map)
             /* .in_pos      = */ false,
         };
     }
+}
+
+static inline
+void plwah64_next(plwah64_path_t *path)
+{
+    path->bit_in_map++;
+    path->bit_in_word++;
 }
 
 static inline
