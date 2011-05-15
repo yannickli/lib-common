@@ -577,6 +577,58 @@ bool plwah64_reset_at(plwah64_map_t *map, plwah64_path_t *path)
     return plwah64_set_(map, path, false);
 }
 
+void plwah64_scanf(const plwah64_map_t *map, plwah64_path_t *path)
+{
+    if (path->word_offset < 0) {
+        return;
+    }
+
+    while (path->word_offset < map->bits.len) {
+        const plwah64_t *word = &map->bits.tab[path->word_offset];
+        if (word->is_fill && !path->in_pos) {
+            uint64_t count = word->fill.counter * PLWAH64_WORD_BITS;
+            if (path->bit_in_word >= count) {
+                path->bit_in_word -= count;
+                if (word->fillp.positions != 0) {
+                    path->in_pos = true;
+                } else {
+                    path->word_offset++;
+                }
+                continue;
+            }
+            if (word->fill.val) {
+                return;
+            }
+            path->bit_in_word = count;
+        } else {
+            uint64_t bits;
+            if (path->bit_in_word >= PLWAH64_WORD_BITS) {
+                path->bit_in_word -= PLWAH64_WORD_BITS;
+                path->word_offset++;
+                path->in_pos = false;
+                continue;
+            }
+            if (word->is_fill) {
+                bits = word->bits;
+            } else {
+                bits = PLWAH64_APPLY_POSITIONS(word->fill).bits;
+            }
+            bits = bits >> path->bit_in_word;
+            if (bits == 0) {
+                path->bit_in_word = 0;
+                path->in_pos = false;
+                path->word_offset++;
+                continue;
+            }
+            path->bit_in_word += bsf64(bits);
+            return;
+        }
+    }
+
+    /* Reached the end of the stream, that's all */
+    path->word_offset = -1;
+}
+
 void plwah64_not(plwah64_map_t *map)
 {
     for (int i = 0; i < map->bits.len; i++) {
