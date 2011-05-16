@@ -142,6 +142,12 @@ qvector_splice(qvector_t *vec, size_t v_size,
     return tab ? memcpy(res, tab, dlen * v_size) : res;
 }
 
+#define __QVECTOR_BASE_TYPE(pfx, cval_t, val_t)                             \
+    typedef union pfx##_t {                                                 \
+        qvector_t qv;                                                       \
+        STRUCT_QVECTOR_T(val_t);                                            \
+    } pfx##_t;
+
 #ifdef __has_blocks
 #define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t) \
     static inline void pfx##_sort(pfx##_t *vec,                             \
@@ -152,12 +158,7 @@ qvector_splice(qvector_t *vec, size_t v_size,
 #define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)
 #endif
 
-#define __QVECTOR_BASE(pfx, cval_t, val_t) \
-    typedef union pfx##_t {                                                 \
-        qvector_t qv;                                                       \
-        STRUCT_QVECTOR_T(val_t);                                            \
-    } pfx##_t;                                                              \
-                                                                            \
+#define __QVECTOR_BASE_FUNCTIONS(pfx, cval_t, val_t) \
     static inline pfx##_t *                                                 \
     __##pfx##_init(pfx##_t *vec, void *buf, int blen, int bsize, int mp) {  \
         __qvector_init(&vec->qv, buf, blen, bsize, mp);                     \
@@ -205,7 +206,30 @@ qvector_splice(qvector_t *vec, size_t v_size,
     }                                                                       \
     __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)
 
-#define qvector_t(n, val_t)                 __QVECTOR_BASE(qv_##n, val_t const, val_t)
+/** Declare a new vector type.
+ *
+ * qvector_type_t and qvector_funcs_t allow recursive declaraion of structure
+ * types that contain a qvector of itself:
+ *
+ * \code
+ * qvector_type_t(vec_type, struct mytype_t);
+ * struct mytype_t {
+ *     qv_t(vec_type) children;
+ * };
+ * qvector_funcs_t(vec_type, struct mytype_t);
+ * \endcode
+ *
+ * For most use cases you should use qvector_t() that declares both the type
+ * and the functions.
+ */
+#define qvector_type_t(n, val_t) \
+    __QVECTOR_BASE_TYPE(qv_##n, val_t const, val_t)
+#define qvector_funcs_t(n, val_t) \
+    __QVECTOR_BASE_FUNCTIONS(qv_##n, val_t const, val_t)
+
+#define qvector_t(n, val_t)                                                  \
+    qvector_type_t(n, val_t);                                                \
+    qvector_funcs_t(n, val_t);
 
 #define qv_t(n)                             qv_##n##_t
 #define __qv_sz(n)                          fieldsizeof(qv_t(n), tab[0])
