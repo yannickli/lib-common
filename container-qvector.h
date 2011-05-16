@@ -26,10 +26,8 @@
 
 typedef STRUCT_QVECTOR_T(uint8_t) qvector_t;
 
-#ifdef __BLOCKS__
-typedef int (^qvector_cmp_f)(const void *, const void *);
-#else
-typedef int (*qvector_cmp_f)(const void *, const void *);
+#ifdef __has_blocks
+typedef int (BLOCK_CARET qvector_cmp_f)(const void *, const void *);
 #endif
 
 static inline qvector_t *
@@ -50,6 +48,7 @@ void  qvector_wipe(qvector_t *vec, size_t v_size);
 void  __qvector_grow(qvector_t *, size_t v_size, int extra);
 void  __qvector_optimize(qvector_t *, size_t v_size, size_t size);
 void *__qvector_splice(qvector_t *, size_t v_size, int pos, int len, int dlen);
+#ifdef __has_blocks
 void __qv_sort32(void *a, size_t n, qvector_cmp_f cmp);
 void __qv_sort64(void *a, size_t n, qvector_cmp_f cmp);
 void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_f cmp);
@@ -66,6 +65,7 @@ __qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_f cmp)
         __qv_sort(vec->tab, v_size, vec->len, cmp);
     }
 }
+#endif
 
 /** \brief optimize vector for space.
  *
