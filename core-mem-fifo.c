@@ -118,7 +118,7 @@ static uint32_t mem_page_size_left(mem_page_t *page)
     return (page->page.size - page->used_size);
 }
 
-#if __GNUC_PREREQ(4, 6)
+#if __GNUC_PREREQ(4, 6) && !__VALGRIND_PREREQ(3, 7)
 #  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #endif
 static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
@@ -241,7 +241,7 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
     mfp_free(_mfp, mem, flags);
     return res;
 }
-#if __GNUC_PREREQ(4, 6)
+#if __GNUC_PREREQ(4, 6) && !__VALGRIND_PREREQ(3, 7)
 #  pragma GCC diagnostic error "-Wunused-but-set-variable"
 #endif
 
