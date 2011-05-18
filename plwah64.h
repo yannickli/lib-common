@@ -107,6 +107,7 @@ typedef struct plwah64_map_t {
     uint8_t       remain;
     qv_t(plwah64) bits;
 } plwah64_map_t;
+qvector_t(plwah64_map, plwah64_map_t);
 
 #define PLWAH64_WORD_BITS         (bitsizeof(plwah64_t) - 1)
 #define PLWAH64_POSITION_COUNT    (6)
