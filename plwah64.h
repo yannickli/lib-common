@@ -556,6 +556,7 @@ static inline
 void plwah64_reset_map(plwah64_map_t *map)
 {
     map->bits.len   = 0;
+    map->bit_count  = 0;
     map->bit_len    = 0;
     map->remain     = 0;
     map->generation++;
