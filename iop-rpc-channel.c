@@ -1039,13 +1039,6 @@ ichannel_t *ic_init(ichannel_t *ic)
 static int ic_mark_connected(ichannel_t *ic, int fd)
 {
     el_fd_set_hook(ic->elh, ic_event);
-    if (ic->q) {
-        el_fd_set_mask(ic->elh, POLLINOUT);
-        if (!ic->q)
-            ic_nop(ic);
-    } else {
-        el_fd_set_mask(ic->elh, POLLIN);
-    }
     ic->on_event(ic, IC_EVT_CONNECTED);
     if (ic->on_creds && !ic->is_stream) {
         struct ucred ucred;
@@ -1054,6 +1047,10 @@ static int ic_mark_connected(ichannel_t *ic, int fd)
         RETHROW(getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &ucred, &len));
         RETHROW((*ic->on_creds)(ic, &ucred));
     }
+    /* force an exchange at connect time, so force NOP if queue is empty */
+    if (!ic->q)
+        ic_nop(ic);
+    el_fd_set_mask(ic->elh, POLLINOUT);
     return 0;
 }
 
