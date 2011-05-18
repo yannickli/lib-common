@@ -365,15 +365,28 @@ bool plwah64_reset_at(plwah64_map_t *map, plwah64_path_t *pos);
 static ALWAYS_INLINE
 bool plwah64_set(plwah64_map_t *map, uint64_t pos)
 {
-    plwah64_path_t path = plwah64_find(map, pos);
-    return plwah64_set_at(map, &path);
+    if (pos >= map->bit_len) {
+        if (pos > map->bit_len) {
+            plwah64_add0s(map, pos - map->bit_len);
+        }
+        plwah64_add1s(map, 1);
+        return false;
+    } else {
+        plwah64_path_t path = plwah64_find(map, pos);
+        return plwah64_set_at(map, &path);
+    }
 }
 
 static ALWAYS_INLINE
 bool plwah64_reset(plwah64_map_t *map, uint64_t pos)
 {
-    plwah64_path_t path = plwah64_find(map, pos);
-    return plwah64_reset_at(map, &path);
+    if (pos >= map->bit_len) {
+        plwah64_add0s(map, map->bit_len - pos + 1);
+        return false;
+    } else {
+        plwah64_path_t path = plwah64_find(map, pos);
+        return plwah64_reset_at(map, &path);
+    }
 }
 
 static ALWAYS_INLINE
