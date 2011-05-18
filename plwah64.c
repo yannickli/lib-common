@@ -391,7 +391,6 @@ void plwah64_add_(plwah64_map_t *map, const byte *bits, uint64_t bit_len,
             map->remain = PLWAH64_WORD_BITS - take;
         }
     }
-    map->generation++;
 #undef READ_BITS
 }
 
@@ -434,7 +433,6 @@ bool plwah64_set_(plwah64_map_t *map, plwah64_path_t *path, bool set)
 #define SET_POS(p)                                                           \
               case p:                                                        \
                 word->fill.position##p = pos + 1;                            \
-                map->generation++;                                           \
                 return !set;
 
             switch (PLWAH64_READ_POSITIONS(word->fill, CASE)) {
@@ -455,7 +453,6 @@ bool plwah64_set_(plwah64_map_t *map, plwah64_path_t *path, bool set)
                 word->fillp.positions = 0;
                 qv_insert(plwah64, &map->bits, i + 1, new_word);
                 path->word_offset++;
-                map->generation++;
                 return !set;
               } break;
             }
@@ -508,7 +505,6 @@ bool plwah64_set_(plwah64_map_t *map, plwah64_path_t *path, bool set)
                     qv_insert(plwah64, &map->bits, i, new_word);
                 }
             }
-            map->generation++;
             return !set;
         }
     } else {
@@ -518,7 +514,6 @@ bool plwah64_set_(plwah64_map_t *map, plwah64_path_t *path, bool set)
             word->word |= UINT64_C(1) << pos;
         }
         plwah64_normalize(&map->bits, path);
-        map->generation++;
         return !set;
     }
     return set;
@@ -688,7 +683,6 @@ void plwah64_not(plwah64_map_t *map)
         path = (plwah64_path_t){ .word_offset = map->bits.len - 1 };
         plwah64_normalize(&map->bits, &path);
     }
-    map->generation++;
     map->bit_count = map->bit_len - map->bit_count;
 }
 
@@ -707,7 +701,6 @@ void plwah64_and(plwah64_map_t * restrict map,
         map->bit_len = other->bit_len;
         map->remain  = other->remain;
     }
-    map->generation++;
     map->bit_count = plwah64_bit_count_(map);
 }
 
@@ -726,7 +719,6 @@ void plwah64_or(plwah64_map_t * restrict map,
         map->bit_len = other->bit_len;
         map->remain  = other->remain;
     }
-    map->generation++;
     map->bit_count = plwah64_bit_count_(map);
 }
 

@@ -103,7 +103,6 @@ typedef struct plwah64_path_t {
 typedef struct plwah64_map_t {
     uint64_t      bit_len;
     uint64_t      bit_count;
-    uint32_t      generation;
     uint8_t       remain;
     qv_t(plwah64) bits;
 } plwah64_map_t;
@@ -410,7 +409,6 @@ typedef struct plwah64_enum_t {
     plwah64_t  current_word;
     uint64_t   remain_in_word;
     uint64_t   key;
-    uint32_t   generation;
 } plwah64_enum_t;
 
 
@@ -465,31 +463,25 @@ void plwah64_enum_next(plwah64_enum_t *en, bool first)
     return;
 
   read_next:
-    if (en->generation == en->map->generation) {
-        en->word_offset++;
-        if (en->word_offset >= en->map->bits.len) {
-            en->word_offset = -1;
-            return;
-        }
-        en->current_word = en->map->bits.tab[en->word_offset];
-        if (en->current_word.is_fill) {
-            en->remain_in_word
-                = en->current_word.fill.counter * PLWAH64_WORD_BITS;
-            if (!en->val) {
-                en->current_word.fill.val = ~en->current_word.fill.val;
-            }
-        } else {
-            en->remain_in_word = PLWAH64_WORD_BITS;
-            if (!en->val) {
-                en->current_word.bits = ~en->current_word.bits;
-            }
-        }
-        plwah64_enum_next(en, false);
-        return;
-    } else {
-        plwah64_enum_fetch(en, false);
+    en->word_offset++;
+    if (en->word_offset >= en->map->bits.len) {
+        en->word_offset = -1;
         return;
     }
+    en->current_word = en->map->bits.tab[en->word_offset];
+    if (en->current_word.is_fill) {
+        en->remain_in_word
+            = en->current_word.fill.counter * PLWAH64_WORD_BITS;
+        if (!en->val) {
+            en->current_word.fill.val = ~en->current_word.fill.val;
+        }
+    } else {
+        en->remain_in_word = PLWAH64_WORD_BITS;
+        if (!en->val) {
+            en->current_word.bits = ~en->current_word.bits;
+        }
+    }
+    plwah64_enum_next(en, false);
 }
 
 static inline
@@ -497,7 +489,6 @@ void plwah64_enum_fetch(plwah64_enum_t *en, bool first)
 {
     plwah64_path_t path = plwah64_find(en->map, en->key);
     en->word_offset    = path.word_offset;
-    en->generation     = en->map->generation;
     if (path.word_offset < 0) {
         return;
     }
@@ -560,7 +551,6 @@ void plwah64_reset_map(plwah64_map_t *map)
     map->bit_count  = 0;
     map->bit_len    = 0;
     map->remain     = 0;
-    map->generation++;
 }
 
 static inline
@@ -588,7 +578,6 @@ void plwah64_copy(plwah64_map_t *map, const plwah64_map_t *src)
     map->remain  = src->remain;
     map->bits.len = 0;
     qv_splice(plwah64, &map->bits, 0, 0, src->bits.tab, src->bits.len);
-    map->generation++;
 }
 
 static inline
