@@ -52,6 +52,11 @@ typedef struct wah_t {
 /* }}} */
 /* Public API {{{ */
 
+wah_t *wah_init(wah_t *map);
+void wah_wipe(wah_t *map);
+GENERIC_DELETE(wah_t, wah);
+GENERIC_NEW(wah_t, wah);
+
 void wah_add0s(wah_t *map, uint64_t count);
 void wah_add1s(wah_t *map, uint64_t count);
 

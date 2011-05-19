@@ -13,6 +13,18 @@
 
 #include "wah.h"
 
+wah_t *wah_init(wah_t *map)
+{
+    qv_init(wah, &map->data);
+    wah_reset_map(map);
+    return map;
+}
+
+void wah_wipe(wah_t *map)
+{
+    qv_wipe(wah, &map->data);
+}
+
 static ALWAYS_INLINE
 wah_header_t *wah_last_run_header(wah_t *map)
 {
@@ -259,6 +271,11 @@ void wah_not(wah_t *map)
             pos++;
         }
     }
+    if ((map->len % WAH_BIT_IN_WORD) != 0) {
+        uint32_t mask = UINT32_MAX >> (32 - (map->len % WAH_BIT_IN_WORD));
+        map->pending  = ~map->pending;
+        map->pending &= mask;
+    }
     map->active = map->len - map->active;
 }
 
@@ -310,3 +327,338 @@ bool wah_get(const wah_t *map, uint64_t pos)
     }
     e_panic("This should not happen");
 }
+
+
+/* Tests {{{ */
+#define WAH_TEST(name)  TEST_DECL("wah: " name, 0)
+
+WAH_TEST("simple")
+{
+    wah_t map;
+    wah_init(&map);
+    wah_add0s(&map, 3);
+    for (int i = 0; i < 3; i++) {
+        if (wah_get(&map, i)) {
+            TEST_FAIL_IF(true, "bad bit at offset %d", i);
+        }
+    }
+    if (wah_get(&map, 3)) {
+        TEST_FAIL_IF(true, "bad bit at offset 3");
+    }
+
+    wah_not(&map);
+    for (int i = 0; i < 3; i++) {
+        if (!wah_get(&map, i)) {
+            TEST_FAIL_IF(true, "bad bit at offset %d", i);
+        }
+    }
+    if (wah_get(&map, 3)) {
+        TEST_FAIL_IF(true, "bad bit at offset 3");
+    }
+    wah_wipe(&map);
+    TEST_DONE();
+}
+
+#if 0
+
+WAH_TEST("fill")
+{
+    wah_t map = WAH_MAP_INIT;
+
+    STATIC_ASSERT(sizeof(wah_t) == sizeof(uint64_t));
+    STATIC_ASSERT(sizeof(wah_fill_t) == sizeof(uint64_t));
+    STATIC_ASSERT(sizeof(wah_literal_t) == sizeof(uint64_t));
+
+    wah_add0s(&map, 63);
+    TEST_FAIL_IF(map.bits.len != 1, "bad bitmap length: %d", map.bits.len);
+    for (int i = 0; i < 2 * 63; i++) {
+        if (wah_get(&map, i)) {
+            TEST_FAIL_IF(true, "bad bit at %d", i);
+        }
+    }
+    wah_add0s(&map, 3 * 63);
+    TEST_FAIL_IF(map.bits.len != 1, "bad bitmap length: %d", map.bits.len);
+    for (int i = 0; i < 5 * 63; i++) {
+        if (wah_get(&map, i)) {
+            TEST_FAIL_IF(true, "bad bit at %d", i);
+        }
+    }
+
+    wah_trim(&map);
+    TEST_FAIL_IF(map.bits.len != 0, "bad bitmap length: %d", map.bits.len);
+
+    wah_reset_map(&map);
+    wah_add1s(&map, 63);
+    TEST_FAIL_IF(map.bits.len != 1, "bad bitmap length: %d", map.bits.len);
+    for (int i = 0; i < 2 * 63; i++) {
+        bool bit = wah_get(&map, i);
+        if ((i < 63 && !bit) || (i >= 63 && bit)) {
+            TEST_FAIL_IF(true, "bad bit at %d", i);
+        }
+    }
+    wah_add1s(&map, 3 * 63);
+    TEST_FAIL_IF(map.bits.len != 1, "bad bitmap length: %d", map.bits.len);
+    for (int i = 0; i < 5 * 63; i++) {
+        bool bit = wah_get(&map, i);
+        if ((i < 4 * 63 && !bit) || (i >= 4 * 63 && bit)) {
+            TEST_FAIL_IF(true, "bad bit at %d", i);
+        }
+    }
+
+    wah_wipe(&map);
+    TEST_DONE();
+}
+
+WAH_TEST("set and reset")
+{
+    wah_t map = WAH_MAP_INIT;
+
+    wah_set(&map, 135);
+    TEST_FAIL_IF(wah_bit_count(&map) != 1, "invalid bit count: %d",
+                 (int)wah_bit_count(&map));
+    TEST_FAIL_IF(!wah_get(&map, 135), "bad bit");
+
+    wah_set(&map, 136);
+    TEST_FAIL_IF(wah_bit_count(&map) != 2, "invalid bit count: %d",
+                 (int)wah_bit_count(&map));
+    TEST_FAIL_IF(!wah_get(&map, 135), "bad bit");
+    TEST_FAIL_IF(!wah_get(&map, 136), "bad bit");
+
+    wah_set(&map, 134);
+    TEST_FAIL_IF(wah_bit_count(&map) != 3, "invalid bit count: %d",
+                 (int)wah_bit_count(&map));
+    TEST_FAIL_IF(!wah_get(&map, 134), "bad bit");
+    TEST_FAIL_IF(!wah_get(&map, 135), "bad bit");
+    TEST_FAIL_IF(!wah_get(&map, 136), "bad bit");
+
+    wah_reset(&map, 135);
+    TEST_FAIL_IF(wah_bit_count(&map) != 2, "invalid bit count: %d",
+                 (int)wah_bit_count(&map));
+    TEST_FAIL_IF(!wah_get(&map, 134), "bad bit");
+    TEST_FAIL_IF(wah_get(&map, 135), "bad bit");
+    TEST_FAIL_IF(!wah_get(&map, 136), "bad bit");
+    wah_wipe(&map);
+    TEST_DONE();
+}
+
+WAH_TEST("set bitmap")
+{
+    const byte data[] = {
+        0x1f, 0x00, 0x00, 0x8c, /* 0, 1, 2, 3, 4, 26, 27, 31 (32) */
+        0xff, 0xff, 0xff, 0xff, /* 32 -> 63                  (64) */
+        0xff, 0xff, 0xff, 0xff, /* 64 -> 95                  (96) */
+        0xff, 0xff, 0xff, 0x80, /* 96 -> 119, 127            (128)*/
+        0x00, 0x10, 0x40, 0x00, /* 140, 150                  (160)*/
+        0x00, 0x00, 0x00, 0x00, /*                           (192)*/
+        0x00, 0x00, 0x00, 0x00, /*                           (224)*/
+        0x00, 0x00, 0x00, 0x00, /*                           (256)*/
+        0x00, 0x00, 0x00, 0x21  /* 280, 285                  (288)*/
+    };
+
+    uint64_t      bc;
+    wah_t map = WAH_MAP_INIT;
+    wah_add(&map, data, bitsizeof(data));
+    bc = membitcount(data, sizeof(data));
+
+    TEST_FAIL_IF(wah_bit_count(&map) != bc,
+                 "invalid bit count: %d, expected %d",
+                 (int)wah_bit_count(&map), (int)bc);
+    for (int i = 0; i < countof(data); i++) {
+#define CHECK_BIT(p)  (!!(data[i] & (1 << p)) == !!wah_get(&map, i * 8 + p))
+        if (!CHECK_BIT(0) || !CHECK_BIT(1) || !CHECK_BIT(2) || !CHECK_BIT(3)
+        ||  !CHECK_BIT(4) || !CHECK_BIT(5) || !CHECK_BIT(6) || !CHECK_BIT(7)) {
+            TEST_FAIL_IF(true, "invalid byte %d", i);
+        }
+#undef CHECK_BIT
+    }
+
+    wah_not(&map);
+    TEST_FAIL_IF(wah_bit_count(&map) != bitsizeof(data) - bc,
+                 "invalid bit count: %d, expected %d",
+                 (int)wah_bit_count(&map), (int)(bitsizeof(data) - bc));
+    for (int i = 0; i < countof(data); i++) {
+#define CHECK_BIT(p)  (!!(data[i] & (1 << p)) != !!wah_get(&map, i * 8 + p))
+        if (!CHECK_BIT(0) || !CHECK_BIT(1) || !CHECK_BIT(2) || !CHECK_BIT(3)
+        ||  !CHECK_BIT(4) || !CHECK_BIT(5) || !CHECK_BIT(6) || !CHECK_BIT(7)) {
+            TEST_FAIL_IF(true, "invalid byte %d", i);
+        }
+#undef CHECK_BIT
+    }
+
+    wah_wipe(&map);
+    TEST_DONE();
+}
+
+WAH_TEST("for_each")
+{
+    const byte data[] = {
+        0x1f, 0x00, 0x00, 0x8c, /* 0, 1, 2, 3, 4, 26, 27, 31 (32) */
+        0xff, 0xff, 0xff, 0xff, /* 32 -> 63                  (64) */
+        0xff, 0xff, 0xff, 0xff, /* 64 -> 95                  (96) */
+        0xff, 0xff, 0xff, 0x80, /* 96 -> 119, 127            (128)*/
+        0x00, 0x10, 0x40, 0x00, /* 140, 150                  (160)*/
+        0x00, 0x00, 0x00, 0x00, /*                           (192)*/
+        0x00, 0x00, 0x00, 0x00, /*                           (224)*/
+        0x00, 0x00, 0x00, 0x00, /*                           (256)*/
+        0x00, 0x00, 0x00, 0x21  /* 280, 285                  (288)*/
+    };
+
+    uint64_t      bc;
+    uint64_t      nbc;
+    wah_t map = WAH_MAP_INIT;
+    uint64_t      c;
+    uint64_t      previous;
+    wah_add(&map, data, bitsizeof(data));
+    bc  = membitcount(data, sizeof(data));
+    nbc = bitsizeof(data) - bc;
+
+    TEST_FAIL_IF(wah_bit_count(&map) != bc,
+                 "invalid bit count: %d, expected %d",
+                 (int)wah_bit_count(&map), (int)bc);
+
+    c = 0;
+    previous = 0;
+    wah_for_each_1(en, &map) {
+        if (c != 0) {
+            if (previous >= en.key) {
+                TEST_FAIL_IF(true, "misordered enumeration: %d after %d",
+                             (int)en.key, (int)previous);
+            }
+        }
+        previous = en.key;
+        c++;
+        if (en.key >= bitsizeof(data)) {
+            TEST_FAIL_IF(true, "enumerate too far: %d", (int)en.key);
+        }
+        if (!(data[en.key >> 3] & (1 << (en.key & 0x7)))) {
+            TEST_FAIL_IF(true, "bit %d is not set", (int)en.key);
+        }
+    }
+    TEST_FAIL_IF(c != bc, "bad number of enumerated entries %d, expected %d",
+                 (int)c, (int)bc);
+
+    c = 0;
+    previous = 0;
+    wah_for_each_0(en, &map) {
+        if (c != 0) {
+            if (previous >= en.key) {
+                TEST_FAIL_IF(true, "misordered enumeration: %d after %d",
+                             (int)en.key, (int)previous);
+            }
+        }
+        previous = en.key;
+        c++;
+        if (en.key >= bitsizeof(data)) {
+            TEST_FAIL_IF(true, "enumerate too far: %d", (int)en.key);
+        }
+        if ((data[en.key >> 3] & (1 << (en.key & 0x7)))) {
+            TEST_FAIL_IF(true, "bit %d is set", (int)en.key);
+        }
+    }
+    TEST_FAIL_IF(c != nbc, "bad number of enumerated entries %d, expected %d",
+                 (int)c, (int)nbc);
+
+
+    for (int i = 0; i < (int)bitsizeof(data) + 100; i++) {
+        wah_path_t path = wah_find(&map, i);
+        if (!wah_check_path(&map, &path)) {
+            TEST_FAIL_IF(true, "invalid path for bit %d", i);
+        }
+    }
+    {
+        wah_path_t last = wah_last(&map);
+        TEST_FAIL_IF(!wah_check_path(&map, &last),
+                     "bad pos for last %d", (int)last.bit_in_map);
+    }
+
+    wah_wipe(&map);
+    TEST_DONE();
+}
+
+
+WAH_TEST("binop")
+{
+    const byte data1[] = {
+        0x1f, 0x00, 0x00, 0x8c, /* 0, 1, 2, 3, 4, 26, 27, 31 (32) */
+        0xff, 0xff, 0xff, 0xff, /* 32 -> 63                  (64) */
+        0xff, 0xff, 0xff, 0xff, /* 64 -> 95                  (96) */
+        0xff, 0xff, 0xff, 0x80, /* 96 -> 119, 127            (128)*/
+        0x00, 0x10, 0x40, 0x00, /* 140, 150                  (160)*/
+        0x00, 0x00, 0x00, 0x00, /*                           (192)*/
+        0x00, 0x00, 0x00, 0x00, /*                           (224)*/
+        0x00, 0x00, 0x00, 0x00, /*                           (256)*/
+        0x00, 0x00, 0x00, 0x21  /* 280, 285                  (288)*/
+    };
+
+    const byte data2[] = {
+        0x00, 0x00, 0x00, 0x00, /*                                     (32) */
+        0x00, 0x00, 0x00, 0x80, /* 63                                  (64) */
+        0x00, 0x10, 0x20, 0x00, /* 76, 85                              (96) */
+        0x00, 0x00, 0xc0, 0x20, /* 118, 119, 125                       (128)*/
+        0xff, 0xfc, 0xff, 0x12  /* 128 -> 135, 138 -> 151, 153, 156    (160)*/
+    };
+
+    /* And result:
+     *                                                                 (32)
+     * 63                                                              (64)
+     * 76, 85                                                          (96)
+     * 118, 119                                                        (128)
+     * 140, 150                                                        (160)
+     */
+
+    /* Or result:
+     * 0 -> 4, 26, 27, 31                                              (32)
+     * 32 -> 63                                                        (64)
+     * 64 -> 95                                                        (96)
+     * 96 -> 119, 125, 127                                             (128)
+     * 128 -> 135, 138 -> 151, 153, 156                                (160)
+     *                                                                 (192)
+     *                                                                 (224)
+     *                                                                 (256)
+     * 280, 285                                                        (288)
+     */
+
+    wah_t map1 = WAH_MAP_INIT;
+    wah_t map2 = WAH_MAP_INIT;
+
+    wah_add(&map1, data1, bitsizeof(data1));
+    wah_add(&map2, data2, bitsizeof(data2));
+    wah_and(&map1, &map2);
+    for (int i = 0; i < countof(data1); i++) {
+        byte b = data1[i];
+        if (i < countof(data2)) {
+            b &= data2[i];
+        } else {
+            b = 0;
+        }
+#define CHECK_BIT(p)  (!!(b & (1 << p)) == !!wah_get(&map1, i * 8 + p))
+        if (!CHECK_BIT(0) || !CHECK_BIT(1) || !CHECK_BIT(2) || !CHECK_BIT(3)
+        ||  !CHECK_BIT(4) || !CHECK_BIT(5) || !CHECK_BIT(6) || !CHECK_BIT(7)) {
+            TEST_FAIL_IF(true, "invalid byte %d", i);
+        }
+#undef CHECK_BIT
+    }
+
+    wah_reset_map(&map1);
+    wah_add(&map1, data1, bitsizeof(data1));
+    wah_or(&map1, &map2);
+    for (int i = 0; i < countof(data1); i++) {
+        byte b = data1[i];
+        if (i < countof(data2)) {
+            b |= data2[i];
+        }
+#define CHECK_BIT(p)  (!!(b & (1 << p)) == !!wah_get(&map1, i * 8 + p))
+        if (!CHECK_BIT(0) || !CHECK_BIT(1) || !CHECK_BIT(2) || !CHECK_BIT(3)
+        ||  !CHECK_BIT(4) || !CHECK_BIT(5) || !CHECK_BIT(6) || !CHECK_BIT(7)) {
+            TEST_FAIL_IF(true, "invalid byte %d", i);
+        }
+#undef CHECK_BIT
+    }
+
+    wah_wipe(&map1);
+    wah_wipe(&map2);
+    TEST_DONE();
+}
+
+#endif
+/* }}} */
