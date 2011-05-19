@@ -255,15 +255,27 @@ struct cimd_esc_table const cimd_esc_map[256] = {
 #undef E
 };
 
-static int unicode_to_gsm7(int c, int unknown)
+static int unicode_to_gsm7(int c, int unknown, gsm_conv_plan_t plan)
 {
+    assert (plan != GSM_CIMD_PLAN);
+
     if ((unsigned)c <= 0xff) {
         c = win1252_to_gsm7[c];
-        return unlikely(c < 0) ? unknown : c;
+        if (unlikely(c < 0))
+            return unknown;
+        if (plan == GSM_DEFAULT_PLAN && c > 0xff)
+            return unknown;
+        return c;
+    }
+
+    if (plan == GSM_LATIN1_PLAN) {
+        switch (c) {
+          case 0x20AC:  return 0x1B65;  /* EURO */
+          default:      break;
+        }
     }
 
     switch (c) {
-      case 0x20AC:  return 0x1B65;  /* EURO */
       case 0x0394:  return 0x10;    /* GREEK CAPITAL LETTER DELTA */
       case 0x03A6:  return 0x12;    /* GREEK CAPITAL LETTER PHI */
       case 0x0393:  return 0x13;    /* GREEK CAPITAL LETTER GAMMA */
@@ -434,7 +446,7 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
 
 int gsm7_charlen(int c)
 {
-    c = RETHROW(unicode_to_gsm7(c, -1));
+    c = RETHROW(unicode_to_gsm7(c, -1, GSM_LATIN1_PLAN));
     return 1 + (c > 0xff);
 }
 
@@ -447,7 +459,7 @@ bool sb_conv_to_gsm_isok(const void *data, int len)
 
         if (c & 0x80) {
             int u = utf8_ngetc(p - 1, end - p + 1, &p);
-            if (unicode_to_gsm7(u < 0 ? c : u, -1) < 0)
+            if (unicode_to_gsm7(u < 0 ? c : u, -1, GSM_LATIN1_PLAN) < 0)
                 return false;
         }
     }
@@ -469,7 +481,7 @@ void sb_conv_to_gsm(sb_t *sb, const void *data, int len)
             if (u >= 0)
                 c = u;
         }
-        c = unicode_to_gsm7(c, '.');
+        c = unicode_to_gsm7(c, '.', GSM_LATIN1_PLAN);
 
         if (wend - w < 2) {
             __sb_fixlen(sb, w - sb->data);
@@ -498,7 +510,7 @@ void sb_conv_to_gsm_hex(sb_t *sb, const void *data, int len)
             if (u >= 0)
                 c = u;
         }
-        c = unicode_to_gsm7(c, '.');
+        c = unicode_to_gsm7(c, '.', GSM_LATIN1_PLAN);
 
         if (wend - w < 2) {
             __sb_fixlen(sb, w - sb->data);
@@ -574,7 +586,7 @@ int sb_conv_to_gsm7(sb_t *out, int gsm_start, const char *utf8, int unknown)
             return c < 0 ? c : len + septet;
         }
 
-        c = RETHROW(unicode_to_gsm7(c, unknown));
+        c = RETHROW(unicode_to_gsm7(c, unknown, GSM_LATIN1_PLAN));
         if (c > 0xff) {
             pack |= ((uint64_t)(c >> 8) << (7 * septet));
             if (++septet == 8) {
