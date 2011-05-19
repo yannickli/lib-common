@@ -566,7 +566,8 @@ static uint64_t get_gsm7_pack(const void *src, int len)
  * are written and no padding is needed to be aligned on the next septet
  * boundary.
  */
-int sb_conv_to_gsm7(sb_t *out, int gsm_start, const char *utf8, int unknown)
+int sb_conv_to_gsm7(sb_t *out, int gsm_start, const char *utf8, int unknown,
+                    gsm_conv_plan_t plan)
 {
     uint64_t pack = 0;
     int septet = (out->len - gsm_start) % 7;
@@ -586,7 +587,7 @@ int sb_conv_to_gsm7(sb_t *out, int gsm_start, const char *utf8, int unknown)
             return c < 0 ? c : len + septet;
         }
 
-        c = RETHROW(unicode_to_gsm7(c, unknown, GSM_LATIN1_PLAN));
+        c = RETHROW(unicode_to_gsm7(c, unknown, plan));
         if (c > 0xff) {
             pack |= ((uint64_t)(c >> 8) << (7 * septet));
             if (++septet == 8) {

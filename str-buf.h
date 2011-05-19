@@ -527,7 +527,8 @@ void sb_conv_to_gsm_hex(sb_t *sb, const void *src, int len);
 
 /* packed gsm */
 int  gsm7_charlen(int c);
-int  sb_conv_to_gsm7(sb_t *sb, int gsm_start, const char *utf8, int unknown);
+int  sb_conv_to_gsm7(sb_t *sb, int gsm_start, const char *utf8, int unknown,
+                     gsm_conv_plan_t plan);
 int  sb_conv_from_gsm7(sb_t *sb, const void *src, int gsmlen, int udhlen);
 
 #endif /* IS_LIB_COMMON_STR_BUF_H */
