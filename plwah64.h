@@ -15,7 +15,6 @@
 #define QKV_PLWAH64_H
 
 #include <lib-common/container.h>
-#include "wah.h"
 
 /* Structures {{{ */
 
