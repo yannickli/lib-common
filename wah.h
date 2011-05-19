@@ -288,21 +288,181 @@ bool wah_get(const wah_t *map, uint64_t pos)
     e_panic("This should not happen");
 }
 
+typedef struct wah_word_enum_t {
+    const wah_t *map;
+
+    int      pos;
+    bool     in_pending;
+    bool     in_header;
+    bool     header_bit;
+    bool     end;
+    uint32_t remain_words;
+} wah_word_enum_t;
+
+static inline
+wah_word_enum_t wah_word_enum_start(const wah_t *map)
+{
+    wah_word_enum_t en = { map, -1, false, false, false, false, 0 };
+    if (map->len == 0) {
+        en.end = true;
+        return en;
+    }
+    if (map->first_run_head.words > 0) {
+        en.in_header  = true;
+        en.in_pending = false;
+        en.header_bit = map->first_run_head.bit;
+        en.remain_words = map->first_run_head.words;
+    } else
+    if (map->first_run_len > 0) {
+        en.in_header    = false;
+        en.in_pending   = false;
+        en.pos          = map->first_run_len;
+        en.remain_words = map->first_run_len;
+    } else {
+        en.in_pending   = true;
+        en.in_header    = false;
+        en.remain_words = 1;
+    }
+    return en;
+}
+
+static inline
+void wah_word_enum_next(wah_word_enum_t *en)
+{
+    if (en->end) {
+        return;
+    }
+    en->remain_words--;
+    if (en->remain_words != 0) {
+        return;
+    }
+    if (en->in_pending) {
+        en->end = true;
+        return;
+    } else
+    if (en->in_header) {
+        if (en->pos == -1) {
+            en->remain_words = en->map->first_run_len;
+            en->pos          = en->remain_words;
+        } else {
+            en->pos++;
+            en->remain_words = en->map->data.tab[en->pos++].count;
+            en->pos         += en->remain_words;
+        }
+        en->in_header = false;
+    }
+
+    if (en->remain_words != 0) {
+        return;
+    }
+
+    if (en->pos == en->map->data.len) {
+        if ((en->map->len % WAH_BIT_IN_WORD)) {
+            en->in_pending   = true;
+            en->remain_words = 1;
+            return;
+        } else {
+            en->end = true;
+            return;
+        }
+    }
+    en->in_header    = true;
+    en->header_bit   = en->map->data.tab[en->pos].head.bit;
+    en->remain_words = en->map->data.tab[en->pos].head.words;
+}
+
+static inline
+uint32_t wah_word_enum_current(const wah_word_enum_t *en)
+{
+    if (en->end) {
+        return 0;
+    } else
+    if (en->in_header) {
+        if (en->header_bit) {
+            return UINT32_MAX;
+        } else {
+            return 0;
+        }
+    } else
+    if (en->in_pending) {
+        return en->map->pending;
+    } else {
+        return en->map->data.tab[en->pos - en->remain_words].literal;
+    }
+}
+
 static inline
 void wah_and(wah_t *map, const wah_t *other)
 {
     t_scope;
     const wah_t *src = ({
-        wah_t *m = t_dup(map, 1);
-        m->data.tab      = t_dup(map->data.tab, map->data.len);
+        wah_t *m = (wah_t *)t_dup(map, 1);
+        m->data.tab      = (wah_word_t *)t_dup(map->data.tab, map->data.len);
         m->data.size     = map->data.len;
         m->data.mem_pool = MEM_STACK;
         m;
     });
-    int src_pos   = -1;
-    int other_pos = -1;
+    wah_word_enum_t src_en   = wah_word_enum_start(src);
+    wah_word_enum_t other_en = wah_word_enum_start(other);
 
     wah_reset_map(map);
+    while (!src_en.end || !src_en.end) {
+        map->pending = wah_word_enum_current(&src_en)
+                     & wah_word_enum_current(&other_en);
+        if ((src_en.end && other_en.in_pending)
+        ||  (other_en.end && src_en.in_pending)
+        ||  (other_en.in_pending && src_en.in_pending)) {
+            map->len += MAX(other->len % WAH_BIT_IN_WORD,
+                            src->len % WAH_BIT_IN_WORD);
+            map->active += bitcount32(map->pending);
+        } else {
+            map->len    += WAH_BIT_IN_WORD;
+            map->active += bitcount32(map->pending);
+            wah_push_pending(map, 1);
+        }
+        wah_word_enum_next(&src_en);
+        wah_word_enum_next(&other_en);
+    }
+
+    assert (map->len == MAX(src->len, other->len));
+    assert (map->active <= MIN(src->active, other->active));
+}
+
+static inline
+void wah_or(wah_t *map, const wah_t *other)
+{
+    t_scope;
+    const wah_t *src = ({
+        wah_t *m = (wah_t *)t_dup(map, 1);
+        m->data.tab      = (wah_word_t *)t_dup(map->data.tab, map->data.len);
+        m->data.size     = map->data.len;
+        m->data.mem_pool = MEM_STACK;
+        m;
+    });
+    wah_word_enum_t src_en   = wah_word_enum_start(src);
+    wah_word_enum_t other_en = wah_word_enum_start(other);
+
+    wah_reset_map(map);
+    while (!src_en.end || !src_en.end) {
+        map->pending = wah_word_enum_current(&src_en)
+                     | wah_word_enum_current(&other_en);
+        if ((src_en.end && other_en.in_pending)
+        ||  (other_en.end && src_en.in_pending)
+        ||  (other_en.in_pending && src_en.in_pending)) {
+            map->len += MAX(other->len % WAH_BIT_IN_WORD,
+                            src->len % WAH_BIT_IN_WORD);
+            map->active += bitcount32(map->pending);
+        } else {
+            map->len    += WAH_BIT_IN_WORD;
+            map->active += bitcount32(map->pending);
+            wah_push_pending(map, 1);
+        }
+        wah_word_enum_next(&src_en);
+        wah_word_enum_next(&other_en);
+    }
+
+    assert (map->len == MAX(src->len, other->len));
+    assert (map->active >= MAX(src->active, other->active));
 }
 
 #endif
