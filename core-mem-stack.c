@@ -125,6 +125,8 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
     byte *res;
 
 #ifndef NDEBUG
+    if (frame->sealed)
+        e_panic("allocation performed on a sealed stack");
     size += sizeof(void *);
 #endif
     res = sp_reserve(sp, size, &frame->blk);
@@ -148,6 +150,10 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem,
     mem_stack_frame_t *frame = sp->stack;
     byte *res;
 
+#ifndef NDEBUG
+    if (frame->sealed)
+        e_panic("allocation performed on a sealed stack");
+#endif
     if (unlikely(oldsize == MEM_UNKNOWN))
         e_panic("stack pools do not support reallocs with unknown old size");
 
@@ -246,6 +252,9 @@ const void *mem_stack_push(mem_stack_pool_t *sp)
     frame->pos  = res + sizeof(mem_stack_frame_t);
     frame->last = NULL;
     frame->prev = sp->stack;
+#ifndef NDEBUG
+    frame->sealed = false;
+#endif
     return sp->stack = frame;
 }
 
