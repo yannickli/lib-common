@@ -426,9 +426,6 @@ typedef struct plwah64_enum_t {
 
 
 static inline
-void plwah64_enum_fetch(plwah64_enum_t *en, bool first);
-
-static inline
 void plwah64_enum_next(plwah64_enum_t *en, bool first)
 {
     if (en->current_word.is_fill) {
