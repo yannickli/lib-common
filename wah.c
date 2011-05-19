@@ -102,7 +102,7 @@ void wah_push_pending(wah_t *map, uint32_t words)
         && (!head->bit == !map->pending || head->words == 0)) {
             /* Merge with previous */
             head->words += words;
-            head->bit    = !map->pending;
+            head->bit    = !!map->pending;
         } else {
             /* Create a new run */
             wah_header_t new_head;
@@ -126,6 +126,7 @@ void wah_add0s(wah_t *map, uint64_t count)
         return;
     }
     if (remain > 0) {
+        remain = 32 - remain;
         if (count < remain) {
             map->len += count;
             return;
@@ -151,6 +152,7 @@ void wah_add1s(wah_t *map, uint64_t count)
         return;
     }
     if (remain > 0) {
+        remain = 32 - remain;
         if (count < remain) {
             uint32_t mask = UINT32_MAX >> (32 - count);
             mask <<= (32 - remain);
@@ -159,7 +161,7 @@ void wah_add1s(wah_t *map, uint64_t count)
             map->active  += count;
             return;
         } else {
-            uint32_t mask = UINT32_MAX << (32 - remain);
+            uint32_t mask = UINT32_MAX << remain;
             map->pending |= mask;
             map->len     += remain;
             map->active  += remain;
@@ -359,37 +361,30 @@ WAH_TEST("simple")
     TEST_DONE();
 }
 
-#if 0
-
 WAH_TEST("fill")
 {
-    wah_t map = WAH_MAP_INIT;
+    wah_t map;
+    wah_init(&map);
 
-    STATIC_ASSERT(sizeof(wah_t) == sizeof(uint64_t));
-    STATIC_ASSERT(sizeof(wah_fill_t) == sizeof(uint64_t));
-    STATIC_ASSERT(sizeof(wah_literal_t) == sizeof(uint64_t));
+    STATIC_ASSERT(sizeof(wah_word_t) == sizeof(uint32_t));
+    STATIC_ASSERT(sizeof(wah_header_t) == sizeof(uint32_t));
 
     wah_add0s(&map, 63);
-    TEST_FAIL_IF(map.bits.len != 1, "bad bitmap length: %d", map.bits.len);
     for (int i = 0; i < 2 * 63; i++) {
         if (wah_get(&map, i)) {
             TEST_FAIL_IF(true, "bad bit at %d", i);
         }
     }
+
     wah_add0s(&map, 3 * 63);
-    TEST_FAIL_IF(map.bits.len != 1, "bad bitmap length: %d", map.bits.len);
     for (int i = 0; i < 5 * 63; i++) {
         if (wah_get(&map, i)) {
             TEST_FAIL_IF(true, "bad bit at %d", i);
         }
     }
 
-    wah_trim(&map);
-    TEST_FAIL_IF(map.bits.len != 0, "bad bitmap length: %d", map.bits.len);
-
     wah_reset_map(&map);
     wah_add1s(&map, 63);
-    TEST_FAIL_IF(map.bits.len != 1, "bad bitmap length: %d", map.bits.len);
     for (int i = 0; i < 2 * 63; i++) {
         bool bit = wah_get(&map, i);
         if ((i < 63 && !bit) || (i >= 63 && bit)) {
@@ -397,7 +392,6 @@ WAH_TEST("fill")
         }
     }
     wah_add1s(&map, 3 * 63);
-    TEST_FAIL_IF(map.bits.len != 1, "bad bitmap length: %d", map.bits.len);
     for (int i = 0; i < 5 * 63; i++) {
         bool bit = wah_get(&map, i);
         if ((i < 4 * 63 && !bit) || (i >= 4 * 63 && bit)) {
@@ -408,6 +402,8 @@ WAH_TEST("fill")
     wah_wipe(&map);
     TEST_DONE();
 }
+
+#if 0
 
 WAH_TEST("set and reset")
 {

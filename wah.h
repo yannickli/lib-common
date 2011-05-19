@@ -73,6 +73,7 @@ void wah_reset_map(wah_t *map)
     map->len                  = 0;
     map->active               = 0;
     map->first_run_head.words = 0;
+    map->first_run_head.bit   = 0;
     map->first_run_len        = 0;
     map->previous_run_pos     = -1;
     map->last_run_pos         = -1;
