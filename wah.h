@@ -204,4 +204,75 @@ void wah_add1s(wah_t *map, uint64_t count)
     map->active += count;
 }
 
+static inline
+void wah_not(wah_t *map)
+{
+    uint32_t pos;
+    map->first_run_head.bit = !map->first_run_head.bit;
+    for (pos = 0; pos < map->first_run_len; pos++) {
+        map->data.tab[pos].literal = ~map->data.tab[pos].literal;
+    }
+
+    while (pos < (uint32_t)map->data.len) {
+        wah_header_t *head  = &map->data.tab[pos++].head;
+        uint32_t      count = map->data.tab[pos++].count;
+        head->bit = !head->bit;
+        for (uint32_t i = 0; i < count; i++) {
+            map->data.tab[pos].literal = ~map->data.tab[pos].literal;
+            pos++;
+        }
+    }
+    map->active = map->len - map->active;
+}
+
+static inline __must_check__
+bool wah_get(const wah_t *map, uint64_t pos)
+{
+    uint64_t count;
+    uint32_t remain = map->len % WAH_BIT_IN_WORD;
+    int i = 0;
+    if (pos >= map->len) {
+        return false;
+    }
+    if (pos >= map->len - remain) {
+        pos %= WAH_BIT_IN_WORD;
+        return map->pending & (1 << pos);
+    }
+
+    count = map->first_run_head.words * WAH_BIT_IN_WORD;
+    if (pos < count) {
+        return !!map->first_run_head.bit;
+    }
+    pos -= count;
+    count = map->first_run_len * WAH_BIT_IN_WORD;
+    if (pos < count) {
+        i    = pos / WAH_BIT_IN_WORD;
+        pos %= WAH_BIT_IN_WORD;
+        return !!(map->data.tab[i].literal & (1 << pos));
+    }
+    pos -= count;
+    i    = map->first_run_len;
+
+    while (i < map->data.len) {
+        wah_header_t head  = map->data.tab[i++].head;
+        uint32_t     words = map->data.tab[i++].count;
+
+        count = head.words * WAH_BIT_IN_WORD;
+        if (pos < count) {
+            return !!head.bit;
+        }
+        pos -= count;
+
+        count = words * WAH_BIT_IN_WORD;
+        if (pos < count) {
+            i   += pos / WAH_BIT_IN_WORD;
+            pos %= WAH_BIT_IN_WORD;
+            return !!(map->data.tab[i].literal & (1 << pos));
+        }
+        pos -= count;
+        i   += words;
+    }
+    e_panic("This should not happen");
+}
+
 #endif
