@@ -205,6 +205,19 @@ void wah_add1s(wah_t *map, uint64_t count)
 }
 
 static inline
+void wah_reset_map(wah_t *map)
+{
+    map->len                  = 0;
+    map->active               = 0;
+    map->first_run_head.words = 0;
+    map->first_run_len        = 0;
+    map->previous_run_pos     = -1;
+    map->last_run_pos         = -1;
+    map->data.len             = 0;
+    map->pending              = 0;
+}
+
+static inline
 void wah_not(wah_t *map)
 {
     uint32_t pos;
@@ -273,6 +286,23 @@ bool wah_get(const wah_t *map, uint64_t pos)
         i   += words;
     }
     e_panic("This should not happen");
+}
+
+static inline
+void wah_and(wah_t *map, const wah_t *other)
+{
+    t_scope;
+    const wah_t *src = ({
+        wah_t *m = t_dup(map, 1);
+        m->data.tab      = t_dup(map->data.tab, map->data.len);
+        m->data.size     = map->data.len;
+        m->data.mem_pool = MEM_STACK;
+        m;
+    });
+    int src_pos   = -1;
+    int other_pos = -1;
+
+    wah_reset_map(map);
 }
 
 #endif
