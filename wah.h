@@ -59,6 +59,7 @@ GENERIC_NEW(wah_t, wah);
 
 void wah_add0s(wah_t *map, uint64_t count);
 void wah_add1s(wah_t *map, uint64_t count);
+void wah_add(wah_t *map, const void *data, uint64_t count);
 
 void wah_and(wah_t *map, const wah_t *other);
 void wah_or(wah_t *map, const wah_t *other);

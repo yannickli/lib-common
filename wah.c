@@ -184,6 +184,63 @@ void wah_add1s(wah_t *map, uint64_t count)
     map->active += count;
 }
 
+void wah_add(wah_t *map, const void *data, uint64_t count)
+{
+    const uint8_t *src = data;
+    while (count > 0) {
+        uint64_t word = get_unaligned_le64(src);
+        int      bits = 0;
+        bool     on_0 = true;
+
+        if (count > 64) {
+            word = get_unaligned_le64(src);
+            bits = 64;
+            src += 8;
+        } else
+        if (count > 32) {
+            word = get_unaligned_le32(src);
+            bits = 32;
+            src += 4;
+        } else {
+            word = *src;
+            src++;
+            if (count > 8) {
+                bits = 8;
+            } else {
+                bits = count;
+            }
+        }
+
+        while (bits > 0) {
+            if (word == 0) {
+                if (on_0) {
+                    wah_add0s(map, bits);
+                } else {
+                    wah_add1s(map, bits);
+                }
+                bits = 64;
+            } else {
+                int first = bsf64(word);
+                if (first > bits) {
+                    first = bits;
+                }
+                if (first != 0) {
+                    if (on_0) {
+                        wah_add0s(map, first);
+                    } else {
+                        wah_add1s(map, first);
+                    }
+                    bits  -= first;
+                    word >>= first;
+                }
+                word = ~word;
+                on_0 = !on_0;
+            }
+        }
+        count -= 64;
+    }
+}
+
 void wah_and(wah_t *map, const wah_t *other)
 {
     t_scope;
@@ -403,40 +460,6 @@ WAH_TEST("fill")
     TEST_DONE();
 }
 
-#if 0
-
-WAH_TEST("set and reset")
-{
-    wah_t map = WAH_MAP_INIT;
-
-    wah_set(&map, 135);
-    TEST_FAIL_IF(wah_bit_count(&map) != 1, "invalid bit count: %d",
-                 (int)wah_bit_count(&map));
-    TEST_FAIL_IF(!wah_get(&map, 135), "bad bit");
-
-    wah_set(&map, 136);
-    TEST_FAIL_IF(wah_bit_count(&map) != 2, "invalid bit count: %d",
-                 (int)wah_bit_count(&map));
-    TEST_FAIL_IF(!wah_get(&map, 135), "bad bit");
-    TEST_FAIL_IF(!wah_get(&map, 136), "bad bit");
-
-    wah_set(&map, 134);
-    TEST_FAIL_IF(wah_bit_count(&map) != 3, "invalid bit count: %d",
-                 (int)wah_bit_count(&map));
-    TEST_FAIL_IF(!wah_get(&map, 134), "bad bit");
-    TEST_FAIL_IF(!wah_get(&map, 135), "bad bit");
-    TEST_FAIL_IF(!wah_get(&map, 136), "bad bit");
-
-    wah_reset(&map, 135);
-    TEST_FAIL_IF(wah_bit_count(&map) != 2, "invalid bit count: %d",
-                 (int)wah_bit_count(&map));
-    TEST_FAIL_IF(!wah_get(&map, 134), "bad bit");
-    TEST_FAIL_IF(wah_get(&map, 135), "bad bit");
-    TEST_FAIL_IF(!wah_get(&map, 136), "bad bit");
-    wah_wipe(&map);
-    TEST_DONE();
-}
-
 WAH_TEST("set bitmap")
 {
     const byte data[] = {
@@ -452,13 +475,14 @@ WAH_TEST("set bitmap")
     };
 
     uint64_t      bc;
-    wah_t map = WAH_MAP_INIT;
+    wah_t map;
+    wah_init(&map);
     wah_add(&map, data, bitsizeof(data));
     bc = membitcount(data, sizeof(data));
 
-    TEST_FAIL_IF(wah_bit_count(&map) != bc,
+    TEST_FAIL_IF(map.active != bc,
                  "invalid bit count: %d, expected %d",
-                 (int)wah_bit_count(&map), (int)bc);
+                 (int)map.active, (int)bc);
     for (int i = 0; i < countof(data); i++) {
 #define CHECK_BIT(p)  (!!(data[i] & (1 << p)) == !!wah_get(&map, i * 8 + p))
         if (!CHECK_BIT(0) || !CHECK_BIT(1) || !CHECK_BIT(2) || !CHECK_BIT(3)
@@ -469,9 +493,9 @@ WAH_TEST("set bitmap")
     }
 
     wah_not(&map);
-    TEST_FAIL_IF(wah_bit_count(&map) != bitsizeof(data) - bc,
+    TEST_FAIL_IF(map.active != bitsizeof(data) - bc,
                  "invalid bit count: %d, expected %d",
-                 (int)wah_bit_count(&map), (int)(bitsizeof(data) - bc));
+                 (int)map.active, (int)(bitsizeof(data) - bc));
     for (int i = 0; i < countof(data); i++) {
 #define CHECK_BIT(p)  (!!(data[i] & (1 << p)) != !!wah_get(&map, i * 8 + p))
         if (!CHECK_BIT(0) || !CHECK_BIT(1) || !CHECK_BIT(2) || !CHECK_BIT(3)
@@ -484,6 +508,8 @@ WAH_TEST("set bitmap")
     wah_wipe(&map);
     TEST_DONE();
 }
+
+#if 0
 
 WAH_TEST("for_each")
 {
