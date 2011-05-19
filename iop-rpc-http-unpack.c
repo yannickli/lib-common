@@ -216,11 +216,13 @@ static void ichttp_query_on_done(httpd_query_t *q)
     switch ((e = &cbe->e)->cb_type) {
       case IC_CB_NORMAL:
       case IC_CB_WS_SHARED:
+        t_seal();
         (*e->u.cb.cb)(NULL, slot, value, &hdr);
         if (cbe->fun->async) {
             httpd_reply_202accepted(q);
             obj_delete(&q);
         }
+        t_unseal();
         return;
 
       case IC_CB_PROXY_P:

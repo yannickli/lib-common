@@ -422,11 +422,14 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
             e_trace(0, "rpc(%04x:%04x):%s: answer with invalid encoding",
                     (tmp->cmd >> 16) & 0x7fff, tmp->cmd & 0x7fff,
                     tmp->rpc->name.s);
+            t_seal();
             (*tmp->cb)(ic, tmp, IC_MSG_INVALID, NULL, NULL);
         } else
         if (cmd == IC_MSG_OK) {
+            t_seal();
             (*tmp->cb)(ic, tmp, cmd, value, NULL);
         } else {
+            t_seal();
             (*tmp->cb)(ic, tmp, cmd, NULL, value);
         }
     }
@@ -486,9 +489,11 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                 e_trace(0, "query %04x:%04x, type %s: invalid encoding",
                         (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s);
               invalid:
+                t_seal();
                 if (slot)
                     ic_reply_err(ic, MAKE64(ic->id, slot), IC_MSG_INVALID);
             } else {
+                t_seal();
                 (*e->u.cb.cb)(ic, MAKE64(ic->id, slot), value, hdr);
             }
         }
