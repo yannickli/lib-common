@@ -15,14 +15,21 @@
 
 wah_t *wah_init(wah_t *map)
 {
-    qv_init(wah, &map->data);
+    qv_init(wah_word, &map->data);
     wah_reset_map(map);
     return map;
 }
 
 void wah_wipe(wah_t *map)
 {
-    qv_wipe(wah, &map->data);
+    qv_wipe(wah_word, &map->data);
+}
+
+void wah_copy(wah_t *map, const wah_t *src)
+{
+    p_copy(map, src, 1);
+    qv_init(wah_word, &map->data);
+    qv_splice(wah_word, &map->data, 0, 0, src->data.tab, src->data.len);
 }
 
 static ALWAYS_INLINE
@@ -50,9 +57,9 @@ void wah_append_header(wah_t *map, wah_header_t head)
 {
     wah_word_t word;
     word.head = head;
-    qv_append(wah, &map->data, word);
+    qv_append(wah_word, &map->data, word);
     word.count = 0;
-    qv_append(wah, &map->data, word);
+    qv_append(wah_word, &map->data, word);
 }
 
 static ALWAYS_INLINE
@@ -60,7 +67,7 @@ void wah_append_literal(wah_t *map, uint32_t val)
 {
     wah_word_t word;
     word.literal = val;
-    qv_append(wah, &map->data, word);
+    qv_append(wah_word, &map->data, word);
 }
 
 static inline

@@ -33,20 +33,22 @@ typedef union wah_word_t {
     uint32_t     count;
     uint32_t     literal;
 } wah_word_t;
-qvector_t(wah, wah_word_t);
+qvector_t(wah_word, wah_word_t);
 
 typedef struct wah_t {
     uint64_t  len;
     uint64_t  active;
 
-    wah_header_t first_run_head;
-    uint32_t     first_run_len;
+    wah_header_t   first_run_head;
+    uint32_t       first_run_len;
 
-    int       previous_run_pos;
-    int       last_run_pos;
-    qv_t(wah) data;
-    uint32_t  pending;
+    int            previous_run_pos;
+    int            last_run_pos;
+    qv_t(wah_word) data;
+    uint32_t       pending;
 } wah_t;
+qvector_t(wah, wah_t);
+
 #define WAH_BIT_IN_WORD  bitsizeof(wah_word_t)
 
 /* }}} */
@@ -56,6 +58,8 @@ wah_t *wah_init(wah_t *map);
 void wah_wipe(wah_t *map);
 GENERIC_DELETE(wah_t, wah);
 GENERIC_NEW(wah_t, wah);
+
+void wah_copy(wah_t *map, const wah_t *src);
 
 void wah_add0s(wah_t *map, uint64_t count);
 void wah_add1s(wah_t *map, uint64_t count);
