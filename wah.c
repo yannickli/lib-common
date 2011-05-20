@@ -32,6 +32,23 @@ void wah_copy(wah_t *map, const wah_t *src)
     qv_splice(wah_word, &map->data, 0, 0, src->data.tab, src->data.len);
 }
 
+wah_t *t_wah_new(int size)
+{
+    wah_t *map = t_new(wah_t, 1);
+    wah_reset_map(map);
+    t_qv_init(wah_word, &map->data, size);
+    return map;
+}
+
+wah_t *t_wah_dup(const wah_t *src)
+{
+    wah_t *map = t_new(wah_t, 1);
+    p_copy(map, src, 1);
+    t_qv_init(wah_word, &map->data, src->data.len);
+    qv_splice(wah_word, &map->data, 0, 0, src->data.tab, src->data.len);
+    return map;
+}
+
 static ALWAYS_INLINE
 wah_header_t *wah_last_run_header(wah_t *map)
 {
@@ -251,13 +268,7 @@ void wah_add(wah_t *map, const void *data, uint64_t count)
 void wah_and(wah_t *map, const wah_t *other)
 {
     t_scope;
-    const wah_t *src = ({
-        wah_t *m = (wah_t *)t_dup(map, 1);
-        m->data.tab      = (wah_word_t *)t_dup(map->data.tab, map->data.len);
-        m->data.size     = map->data.len;
-        m->data.mem_pool = MEM_STACK;
-        m;
-    });
+    const wah_t *src = t_wah_dup(map);
     wah_word_enum_t src_en   = wah_word_enum_start(src);
     wah_word_enum_t other_en = wah_word_enum_start(other);
 
@@ -291,13 +302,7 @@ void wah_and(wah_t *map, const wah_t *other)
 void wah_or(wah_t *map, const wah_t *other)
 {
     t_scope;
-    const wah_t *src = ({
-        wah_t *m = (wah_t *)t_dup(map, 1);
-        m->data.tab      = (wah_word_t *)t_dup(map->data.tab, map->data.len);
-        m->data.size     = map->data.len;
-        m->data.mem_pool = MEM_STACK;
-        m;
-    });
+    const wah_t *src = t_wah_dup(map);
     wah_word_enum_t src_en   = wah_word_enum_start(src);
     wah_word_enum_t other_en = wah_word_enum_start(other);
 
