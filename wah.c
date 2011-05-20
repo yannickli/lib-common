@@ -262,19 +262,23 @@ void wah_and(wah_t *map, const wah_t *other)
     wah_word_enum_t other_en = wah_word_enum_start(other);
 
     wah_reset_map(map);
-    while (!src_en.end || !src_en.end) {
+    while (src_en.state != WAH_ENUM_END || other_en.state != WAH_ENUM_END) {
         map->pending = wah_word_enum_current(&src_en)
                      & wah_word_enum_current(&other_en);
-        if ((src_en.end && other_en.in_pending)
-        ||  (other_en.end && src_en.in_pending)
-        ||  (other_en.in_pending && src_en.in_pending)) {
+        switch (src_en.state | (other_en.state << 16)) {
+          case WAH_ENUM_END | (WAH_ENUM_PENDING << 16):
+          case WAH_ENUM_PENDING | (WAH_ENUM_END << 16):
+          case WAH_ENUM_PENDING | (WAH_ENUM_PENDING << 16):
             map->len += MAX(other->len % WAH_BIT_IN_WORD,
                             src->len % WAH_BIT_IN_WORD);
             map->active += bitcount32(map->pending);
-        } else {
+            break;
+
+          default:
             map->len    += WAH_BIT_IN_WORD;
             map->active += bitcount32(map->pending);
             wah_push_pending(map, 1);
+            break;
         }
         wah_word_enum_next(&src_en);
         wah_word_enum_next(&other_en);
@@ -298,19 +302,23 @@ void wah_or(wah_t *map, const wah_t *other)
     wah_word_enum_t other_en = wah_word_enum_start(other);
 
     wah_reset_map(map);
-    while (!src_en.end || !src_en.end) {
+    while (src_en.state != WAH_ENUM_END || other_en.state != WAH_ENUM_END) {
         map->pending = wah_word_enum_current(&src_en)
                      | wah_word_enum_current(&other_en);
-        if ((src_en.end && other_en.in_pending)
-        ||  (other_en.end && src_en.in_pending)
-        ||  (other_en.in_pending && src_en.in_pending)) {
+        switch (src_en.state | (other_en.state << 16)) {
+          case WAH_ENUM_END | (WAH_ENUM_PENDING << 16):
+          case WAH_ENUM_PENDING | (WAH_ENUM_END << 16):
+          case WAH_ENUM_PENDING | (WAH_ENUM_PENDING << 16):
             map->len += MAX(other->len % WAH_BIT_IN_WORD,
                             src->len % WAH_BIT_IN_WORD);
             map->active += bitcount32(map->pending);
-        } else {
+            break;
+
+          default:
             map->len    += WAH_BIT_IN_WORD;
             map->active += bitcount32(map->pending);
             wah_push_pending(map, 1);
+            break;
         }
         wah_word_enum_next(&src_en);
         wah_word_enum_next(&other_en);
