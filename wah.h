@@ -212,6 +212,14 @@ static inline
 void wah_bit_enum_find_word(wah_bit_enum_t *en)
 {
     while (en->word_en.state != WAH_ENUM_END) {
+        if ((en->reverse && en->word_en.state == WAH_ENUM_HEADER_1)
+        ||  (!en->reverse && en->word_en.state == WAH_ENUM_HEADER_0)) {
+            en->key += en->word_en.remain_words * 32;
+            en->word_en.remain_words = 1;
+            wah_word_enum_next(&en->word_en);
+            continue;
+        }
+
         if (en->reverse) {
             en->current_word = ~wah_word_enum_current(&en->word_en);
         } else {
@@ -222,6 +230,7 @@ void wah_bit_enum_find_word(wah_bit_enum_t *en)
         }
         assert ((en->key % WAH_BIT_IN_WORD) == 0);
         en->key += 32;
+        /* Skip ranges of 0s */
         wah_word_enum_next(&en->word_en);
     }
     if (en->word_en.state == WAH_ENUM_END) {
