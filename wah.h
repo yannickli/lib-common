@@ -188,5 +188,88 @@ uint32_t wah_word_enum_current(const wah_word_enum_t *en)
     }
 }
 
+
+typedef struct wah_bit_enum_t {
+    wah_word_enum_t word_en;
+    uint64_t        key;
+    uint32_t        current_word;
+    uint32_t        remain_bit;
+    bool            reverse;
+} wah_bit_enum_t;
+
+static inline
+void wah_bit_enum_find_word(wah_bit_enum_t *en)
+{
+    while (!en->word_en.end) {
+        en->current_word = wah_word_enum_current(&en->word_en);
+        if (en->reverse) {
+            en->current_word = ~en->current_word;
+        }
+        if (en->current_word == 0) {
+            en->key += 32;
+            wah_word_enum_next(&en->word_en);
+            continue;
+        }
+        if (en->word_en.in_pending) {
+            en->remain_bit = en->word_en.map->len % WAH_BIT_IN_WORD;
+        } else {
+            en->remain_bit = 32;
+        }
+        return;
+    }
+}
+
+static inline
+void wah_bit_enum_next(wah_bit_enum_t *en)
+{
+    int bit;
+    if (en->word_en.end) {
+        return;
+    }
+    if (en->remain_bit == 0 || en->current_word == 0) {
+        en->key += en->remain_bit;
+        wah_bit_enum_find_word(en);
+        if (en->word_en.end) {
+            return;
+        }
+    }
+    bit = bsf32(en->current_word);
+    if (bit >= (int)en->remain_bit) {
+        wah_bit_enum_find_word(en);
+        assert (en->word_en.end);
+        return;
+    }
+    en->key += bit + 1;
+    en->remain_bit    -= bit + 1;
+    en->current_word >>= bit + 1;
+}
+
+static inline
+wah_bit_enum_t wah_bit_enum_start(const wah_t *wah, bool reverse)
+{
+    wah_bit_enum_t en;
+    int            bit;
+    en.word_en = wah_word_enum_start(wah);
+    en.key     = 0;
+    en.reverse = reverse;
+    wah_bit_enum_find_word(&en);
+    if (en.word_en.end) {
+        return en;
+    }
+    bit = bsf32(en.current_word);
+    en.key           += bit;
+    en.remain_bit    -= bit + 1;
+    en.current_word >>= bit + 1;
+    return en;
+}
+
+#define wah_for_each_1(en, map)                                              \
+    for (wah_bit_enum_t en = wah_bit_enum_start(map, false);                 \
+         !en.word_en.end; wah_bit_enum_next(&en))
+
+#define wah_for_each_0(en, map)                                              \
+    for (wah_bit_enum_t en = wah_bit_enum_start(map, true);                  \
+         !en.word_en.end; wah_bit_enum_next(&en))
+
 /* }}} */
 #endif

@@ -509,8 +509,6 @@ WAH_TEST("set bitmap")
     TEST_DONE();
 }
 
-#if 0
-
 WAH_TEST("for_each")
 {
     const byte data[] = {
@@ -525,18 +523,19 @@ WAH_TEST("for_each")
         0x00, 0x00, 0x00, 0x21  /* 280, 285                  (288)*/
     };
 
-    uint64_t      bc;
-    uint64_t      nbc;
-    wah_t map = WAH_MAP_INIT;
-    uint64_t      c;
-    uint64_t      previous;
+    uint64_t bc;
+    uint64_t nbc;
+    wah_t    map;
+    uint64_t c;
+    uint64_t previous;
+    wah_init(&map);
     wah_add(&map, data, bitsizeof(data));
     bc  = membitcount(data, sizeof(data));
     nbc = bitsizeof(data) - bc;
 
-    TEST_FAIL_IF(wah_bit_count(&map) != bc,
+    TEST_FAIL_IF(map.active != bc,
                  "invalid bit count: %d, expected %d",
-                 (int)wah_bit_count(&map), (int)bc);
+                 (int)map.active, (int)bc);
 
     c = 0;
     previous = 0;
@@ -580,7 +579,7 @@ WAH_TEST("for_each")
     TEST_FAIL_IF(c != nbc, "bad number of enumerated entries %d, expected %d",
                  (int)c, (int)nbc);
 
-
+#if 0
     for (int i = 0; i < (int)bitsizeof(data) + 100; i++) {
         wah_path_t path = wah_find(&map, i);
         if (!wah_check_path(&map, &path)) {
@@ -592,12 +591,11 @@ WAH_TEST("for_each")
         TEST_FAIL_IF(!wah_check_path(&map, &last),
                      "bad pos for last %d", (int)last.bit_in_map);
     }
+#endif
 
     wah_wipe(&map);
     TEST_DONE();
 }
-
-#endif
 
 WAH_TEST("binop")
 {
