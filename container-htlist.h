@@ -154,12 +154,12 @@ htlist_splice_tail(htlist_t *dst, htlist_t *src)
           n != n##_end_ && ({ doit; prefetch(n->next); 1; }); n = n->next)
 
 #define htlist_for_each(n, hd)    __htlist_for_each((hd)->head, n, hd, )
-#define htlist_for_each_continue(pos, n, hd)    __htlist_for_each(pos, n, hd, )
+#define htlist_for_each_start(pos, n, hd)    __htlist_for_each(pos, n, hd, )
 
 #define htlist_for_each_entry(n, hd, member) \
     __htlist_for_each((hd)->head, __real_##n, hd,                   \
                      n = htlist_entry_of(__real_##n, n, member))
-#define htlist_for_each_entry_continue(pos, n, hd, member) \
+#define htlist_for_each_entry_start(pos, n, hd, member) \
     __htlist_for_each(&(pos)->member, __real_##n, hd,               \
                      n = htlist_entry_of(__real_##n, n, member))
 
