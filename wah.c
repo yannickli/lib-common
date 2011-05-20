@@ -597,6 +597,7 @@ WAH_TEST("for_each")
     TEST_DONE();
 }
 
+#endif
 
 WAH_TEST("binop")
 {
@@ -640,8 +641,10 @@ WAH_TEST("binop")
      * 280, 285                                                        (288)
      */
 
-    wah_t map1 = WAH_MAP_INIT;
-    wah_t map2 = WAH_MAP_INIT;
+    wah_t map1;
+    wah_t map2;
+    wah_init(&map1);
+    wah_init(&map2);
 
     wah_add(&map1, data1, bitsizeof(data1));
     wah_add(&map2, data2, bitsizeof(data2));
@@ -682,5 +685,4 @@ WAH_TEST("binop")
     TEST_DONE();
 }
 
-#endif
 /* }}} */
