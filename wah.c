@@ -41,7 +41,7 @@ uint32_t *wah_last_run_count(wah_t *map)
     if (map->last_run_pos < 0) {
         return &map->first_run_len;
     } else {
-        return &map->data.tab[map->last_run_pos].count;
+        return &map->data.tab[map->last_run_pos + 1].count;
     }
 }
 
@@ -161,7 +161,7 @@ void wah_add1s(wah_t *map, uint64_t count)
             map->active  += count;
             return;
         } else {
-            uint32_t mask = UINT32_MAX << remain;
+            uint32_t mask = UINT32_MAX << (32 - remain);
             map->pending |= mask;
             map->len     += remain;
             map->active  += remain;
@@ -188,7 +188,7 @@ void wah_add(wah_t *map, const void *data, uint64_t count)
 {
     const uint8_t *src = data;
     while (count > 0) {
-        uint64_t word = get_unaligned_le64(src);
+        uint64_t word;
         int      bits = 0;
         bool     on_0 = true;
 
@@ -210,6 +210,7 @@ void wah_add(wah_t *map, const void *data, uint64_t count)
                 bits = count;
             }
         }
+        count -= bits;
 
         while (bits > 0) {
             if (word == 0) {
@@ -218,7 +219,7 @@ void wah_add(wah_t *map, const void *data, uint64_t count)
                 } else {
                     wah_add1s(map, bits);
                 }
-                bits = 64;
+                bits = 0;
             } else {
                 int first = bsf64(word);
                 if (first > bits) {
@@ -237,7 +238,6 @@ void wah_add(wah_t *map, const void *data, uint64_t count)
                 on_0 = !on_0;
             }
         }
-        count -= 64;
     }
 }
 
