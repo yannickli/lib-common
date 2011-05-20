@@ -203,7 +203,8 @@ typedef struct wah_bit_enum_t {
     wah_word_enum_t word_en;
     uint64_t        key;
     uint64_t        current_word;
-    uint32_t        remain_bit;
+    uint64_t        remain_bits;
+    bool            all_one;
     bool            reverse;
     bool            end;
 } wah_bit_enum_t;
@@ -218,6 +219,14 @@ void wah_bit_enum_find_word(wah_bit_enum_t *en)
             en->word_en.remain_words = 1;
             wah_word_enum_next(&en->word_en);
             continue;
+        } else
+        if ((en->reverse && en->word_en.state == WAH_ENUM_HEADER_0)
+        ||  (!en->reverse && en->word_en.state == WAH_ENUM_HEADER_1)) {
+            en->current_word = UINT64_MAX;
+            en->all_one      = true;
+            en->remain_bits  = en->word_en.remain_words * 32;
+            en->word_en.remain_words = 1;
+            return;
         }
 
         if (en->reverse) {
@@ -226,6 +235,7 @@ void wah_bit_enum_find_word(wah_bit_enum_t *en)
             en->current_word = wah_word_enum_current(&en->word_en);
         }
         if (en->current_word != 0) {
+            en->all_one = false;
             break;
         }
         assert ((en->key % WAH_BIT_IN_WORD) == 0);
@@ -238,10 +248,10 @@ void wah_bit_enum_find_word(wah_bit_enum_t *en)
         return;
     }
     if (en->word_en.state == WAH_ENUM_PENDING) {
-        en->remain_bit = en->word_en.map->len % WAH_BIT_IN_WORD;
+        en->remain_bits = en->word_en.map->len % WAH_BIT_IN_WORD;
         return;
     } else {
-        en->remain_bit = 32;
+        en->remain_bits = 32;
     }
     wah_word_enum_next(&en->word_en);
     if (en->reverse) {
@@ -250,10 +260,10 @@ void wah_bit_enum_find_word(wah_bit_enum_t *en)
         en->current_word |= ((uint64_t)(wah_word_enum_current(&en->word_en))) << 32;
     }
     if (en->word_en.state == WAH_ENUM_PENDING) {
-        en->remain_bit += en->word_en.map->len % WAH_BIT_IN_WORD;
+        en->remain_bits += en->word_en.map->len % WAH_BIT_IN_WORD;
     } else
     if (en->word_en.state != WAH_ENUM_END) {
-        en->remain_bit += 32;
+        en->remain_bits += 32;
     }
 }
 
@@ -265,8 +275,8 @@ void wah_bit_enum_next(wah_bit_enum_t *en)
     if (en->end) {
         return;
     }
-    if (en->remain_bit == 0 || en->current_word == 0) {
-        en->key += en->remain_bit + 1;
+    if (en->remain_bits == 0 || en->current_word == 0) {
+        en->key += en->remain_bits + 1;
         wah_word_enum_next(&en->word_en);
         wah_bit_enum_find_word(en);
         if (en->end) {
@@ -274,8 +284,15 @@ void wah_bit_enum_next(wah_bit_enum_t *en)
         }
         new_word = true;
     }
+    if (en->all_one) {
+        en->remain_bits--;
+        if (!new_word) {
+            en->key++;
+        }
+        return;
+    }
     bit = bsf64(en->current_word);
-    if (bit >= (int)en->remain_bit) {
+    if (bit >= (int)en->remain_bits) {
         wah_word_enum_next(&en->word_en);
         assert (en->word_en.state == WAH_ENUM_END);
         en->end = true;
@@ -285,8 +302,8 @@ void wah_bit_enum_next(wah_bit_enum_t *en)
     if (!new_word) {
         en->key++;
     }
-    en->remain_bit -= bit + 1;
-    if (en->remain_bit != 0) {
+    en->remain_bits -= bit + 1;
+    if (en->remain_bits != 0) {
         en->current_word >>= bit + 1;
     }
 }
@@ -300,14 +317,19 @@ wah_bit_enum_t wah_bit_enum_start(const wah_t *wah, bool reverse)
     en.key     = 0;
     en.reverse = reverse;
     en.end     = false;
+    en.all_one = false;
     wah_bit_enum_find_word(&en);
     if (en.end) {
         return en;
     }
+    if (en.all_one) {
+        en.remain_bits--;
+        return en;
+    }
     bit = bsf64(en.current_word);
     en.key           += bit;
-    en.remain_bit    -= bit + 1;
-    if (en.remain_bit != 0) {
+    en.remain_bits   -= bit + 1;
+    if (en.remain_bits != 0) {
         en.current_word >>= bit + 1;
     }
     return en;
