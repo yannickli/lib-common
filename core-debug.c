@@ -139,7 +139,7 @@ int e_is_traced_(int lvl, const char *modname, const char *func,
             continue;
         if (spec->func && fnmatch(spec->func, func, 0) != 0)
             continue;
-        if (spec->name && (name == NULL || fnmatch(spec->name, name, 0) != 0))
+        if (spec->name && (name == NULL || fnmatch(spec->name, name, FNM_PATHNAME | FNM_LEADING_DIR) != 0))
             continue;
         level = spec->level;
     }
