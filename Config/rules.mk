@@ -109,14 +109,15 @@ ext/gen/iop = $(call fun/patsubst-filt,%.iop,%.iop.c,$1) \
     $(call fun/patsubst-filt,%.iop,%.iop.h,$1)
 
 define ext/expand/iop
-$(3:=.h): $(3:=.c)
+$(3:=.h) $$(patsubst %,$~%.dep,$3): $3.c
 $(3:=.c): %.iop.c: %.iop $(IOPC)
 	$(msg/COMPILE.iop) $$(<R)
 	$(RM) $$@
-	$(IOPC) --c-resolve-includes -I$/lib-inet:$/qrrd/iop $$<
+	$(IOPC) --c-resolve-includes -d$~$$<.dep -I$/lib-inet:$/qrrd/iop $$<
 _generated_hdr: $(3:=.h)
 _generated: $(3:=.c)
 $$(eval $$(call fun/common-depends,$1,$(3:=.c),$3))
+-include $$(patsubst %,$~%.dep,$3)
 endef
 
 define ext/rule/iop
