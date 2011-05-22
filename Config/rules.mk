@@ -113,8 +113,7 @@ $(3:=.h): $(3:=.c)
 $(3:=.c): %.iop.c: %.iop $(IOPC)
 	$(msg/COMPILE.iop) $$(<R)
 	$(RM) $$@
-	cd $$(<D) && $(IOPC) -I$/lib-inet:$/qrrd/iop $$(<F)
-	chmod a-w $$@
+	$(IOPC) --c-resolve-includes -I$/lib-inet:$/qrrd/iop $$<
 _generated_hdr: $(3:=.h)
 _generated: $(3:=.c)
 $$(eval $$(call fun/common-depends,$1,$(3:=.c),$3))
