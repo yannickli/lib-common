@@ -42,6 +42,7 @@
 #endif
 #include "core.h"
 
+#pragma GCC diagnostic push
 #if __GNUC_PREREQ(4, 6) && !__VALGRIND_PREREQ(3, 7)
 #  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #endif
@@ -61,8 +62,6 @@ static inline void VALGRIND_UNREG_BLK(mem_blk_t *blk)
     VALGRIND_DESTROY_MEMPOOL(blk);
     VALGRIND_PROT_BLK(blk);
 }
-#if __GNUC_PREREQ(4, 6) && !__VALGRIND_PREREQ(3, 7)
-#  pragma GCC diagnostic error "-Wunused-but-set-variable"
-#endif
+#pragma GCC diagnostic pop
 
 #endif
