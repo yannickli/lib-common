@@ -270,12 +270,37 @@ static
 void wah_add_aligned(wah_t *map, const uint8_t *src, uint64_t count)
 {
     int aligned_words = count / 32;
-    map->len    += aligned_words * 32;
-    map->active += membitcount(src, aligned_words * 4);
-    while (count >= WAH_BIT_IN_WORD) {
+    map->len += aligned_words * 32;
+    while (count >= 64) {
+        union {
+            struct {
+#if __BYTE_ORDER == __BIG_ENDIAN
+                uint32_t high;
+                uint32_t low;
+#else
+                uint32_t low;
+                uint32_t high;
+#endif
+            };
+            uint64_t val;
+        } word = { .val = get_unaligned_le64(src) };
+        src += 8;
+        count -= 64;
+        map->active += bitcount64(word.val);
+        map->pending = word.low;
+        if (word.low == word.high) {
+            wah_push_pending(map, 2);
+        } else {
+            wah_push_pending(map, 1);
+            map->pending = word.high;
+            wah_push_pending(map, 1);
+        }
+    }
+    if (count >= WAH_BIT_IN_WORD) {
         map->pending = get_unaligned_le32(src);
         src   += 4;
         count -= WAH_BIT_IN_WORD;
+        map->active += bitcount32(map->pending);
         wah_push_pending(map, 1);
     }
     if (count > 0) {
