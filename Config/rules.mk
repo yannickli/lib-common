@@ -71,7 +71,9 @@ endef
 ext/gen/fc = $(call fun/patsubst-filt,%.fc,%.fc.c,$1)
 
 define ext/expand/fc
-$$(patsubst %,$~%.c.dep,$3): $~%.c.dep: %.c
+$$(patsubst %,$~%.c.dep,$3): $~%.c.dep: %
+	$(msg/generate) $$(<R)
+	farchc -d $~$3.c.dep -o $3.c $$<
 $(3:=.c): %.fc.c: %.fc
 	$(msg/generate) $$(<R)
 	farchc -d $~$3.c.dep -o $3.c $$<
@@ -94,7 +96,10 @@ ext/gen/iop = $(call fun/patsubst-filt,%.iop,%.iop.c,$1) \
 
 define ext/expand/iop
 $(3:=.h): %.h: %.c
-$$(patsubst %,$~%.dep,$3): $~%.dep: %.c
+$$(patsubst %,$~%.dep,$3): $~%.dep: % $(IOPC)
+	$(msg/COMPILE.iop) $$(<R)
+	$(RM) $$@
+	$(IOPC) --c-resolve-includes -d$~$$<.dep -I$/lib-inet:$/qrrd/iop $$<
 $(3:=.c): %.iop.c: %.iop $(IOPC)
 	$(msg/COMPILE.iop) $$(<R)
 	$(RM) $$@
