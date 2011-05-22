@@ -66,24 +66,7 @@ $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/lua,$1,$2,$$t
 endef
 
 #}}}
-#[ farchs/fcs ]#######################################################{{{#
-
-ext/gen/farch = $(call fun/patsubst-filt,%.farch,%farch.h,$1) $(call fun/patsubst-filt,%.farch,%farch.c,$1)
-
-define ext/rule/farch
-$(3:.farch=farch.c): %farch.c: %farch.h
-$(3:.farch=farch.h): %farch.h: %.farch
-	$(msg/generate) $$(<R)
-	cd $$(@D) && buildfarch -r $(1D)/ -d $!$$@.dep -n $$(*F) `cat $$(<F)`
-
-$$(eval $$(call ext/rule/c,$1,$2,$(3:.farch=farch.c),$4))
-_generated_hdr: $(3:.farch=farch.h)
-_generated: $(3:.farch=farch.c)
--include $$(patsubst %,$~%.c.dep,$3)
-$$(eval $$(call fun/common-depends,$1,$(3:.farch=farch.h) $(3:.farch=farch.c),$3))
-endef
-
-# -- fcs
+#[ fc ]###############################################################{{{#
 
 ext/gen/fc = $(call fun/patsubst-filt,%.fc,%.fc.c,$1)
 
