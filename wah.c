@@ -208,9 +208,9 @@ void wah_add1s(wah_t *map, uint64_t count)
     map->active += count;
 }
 
-void wah_add(wah_t *map, const void *data, uint64_t count)
+static
+const void *wah_add_unaligned(wah_t *map, const uint8_t *src, uint64_t count)
 {
-    const uint8_t *src = data;
     while (count > 0) {
         uint64_t word;
         int      bits = 0;
@@ -263,6 +263,40 @@ void wah_add(wah_t *map, const void *data, uint64_t count)
             }
         }
     }
+    return src;
+}
+
+static
+void wah_add_aligned(wah_t *map, const uint8_t *src, uint64_t count)
+{
+    int aligned_words = count / 32;
+    map->len    += aligned_words * 32;
+    map->active += membitcount(src, aligned_words * 4);
+    while (count >= WAH_BIT_IN_WORD) {
+        map->pending = get_unaligned_le32(src);
+        src   += 4;
+        count -= WAH_BIT_IN_WORD;
+        wah_push_pending(map, 1);
+    }
+    if (count > 0) {
+        wah_add_unaligned(map, src, count);
+    }
+}
+
+void wah_add(wah_t *map, const void *data, uint64_t count)
+{
+    uint32_t remain = WAH_BIT_IN_WORD - (map->len % WAH_BIT_IN_WORD);
+    if (remain != WAH_BIT_IN_WORD) {
+        if (remain >= count || (remain % 8) != 0) {
+            wah_add_unaligned(map, data, count);
+            return;
+        } else {
+            data   = wah_add_unaligned(map, data, remain);
+            count -= remain;
+        }
+    }
+    assert (map->len % WAH_BIT_IN_WORD == 0);
+    wah_add_aligned(map, data, count);
 }
 
 void wah_and(wah_t *map, const wah_t *other)
