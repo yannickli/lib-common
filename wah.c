@@ -118,8 +118,11 @@ void wah_push_pending(wah_t *map, uint32_t words)
         if (wah_last_run_header(map)->words < 2) {
             wah_flatten_last_run(map);
         }
-        *wah_last_run_count(map) += 1;
-        wah_append_literal(map, map->pending);
+        *wah_last_run_count(map) += words;
+        while (words > 0) {
+            wah_append_literal(map, map->pending);
+            words--;
+        }
     } else {
         wah_header_t *head = wah_last_run_header(map);
         if (*wah_last_run_count(map) == 0
