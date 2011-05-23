@@ -204,6 +204,17 @@ qvector_splice(qvector_t *vec, size_t v_size,
         void *res = qvector_growlen(&vec->qv, sizeof(val_t), extra);        \
         return cast(val_t *, res);                                          \
     }                                                                       \
+    static inline void pfx##_qsort(pfx##_t *vec,                            \
+                                   int (*cb)(cval_t *, cval_t *)) {         \
+        qsort(vec->qv.tab, vec->qv.len, sizeof(cval_t),                     \
+                (int (*)(const void *, const void *))cb);                   \
+    }                                                                       \
+    static inline void pfx##_qsort_r(pfx##_t *vec,                          \
+                                     int (*cb)(cval_t *, cval_t *, void *), \
+                                     void *priv) {                          \
+        qsort_r(vec->qv.tab, vec->qv.len, sizeof(cval_t),                   \
+                (int (*)(const void *, const void *, void *))cb, priv);     \
+    }                                                                       \
     __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)
 
 /** Declare a new vector type.
@@ -250,12 +261,21 @@ qvector_splice(qvector_t *vec, size_t v_size,
            wipe(&__vec->tab[__i]);          \
        }                                    \
        qv_wipe(n, __vec); })
+#define qv_deep_delete(n, vecp, wipe) \
+    ({ qv_t(n) **__vecp = (vecp);           \
+       qv_for_each_pos(n, __i, *__vecp) {   \
+           wipe(&(*__vecp)->tab[__i]);      \
+       }                                    \
+       qv_delete(n, __vecp); })
 #define qv_new(n)                           p_new(qv_t(n), 1)
 #define qv_delete(n, vec)                   qv_##n##_delete(vec)
+
 #ifdef __has_blocks
 /* You must be in a .blk to use qv_sort, because it expects blocks ! */
 #define qv_sort(n)                          qv_##n##_sort
 #endif
+#define qv_qsort(n, vec, cmp)               qv_##n##_qsort(vec, cmp)
+#define qv_qsort_r(n, vec, cmp, priv)       qv_##n##_qsort_r(vec, cmp, priv)
 
 #define qv_last(n, vec)                     ({ const qv_t(n) *__vec = (vec); \
                                                assert (__vec->len > 0);      \
