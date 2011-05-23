@@ -147,4 +147,5 @@ if is_cpp && ! is_clang; then
     echo -Woverloaded-virtual
 fi
 
+echo -Wno-error=deprecated-declarations
 echo -D_GNU_SOURCE $(getconf LFS_CFLAGS)
