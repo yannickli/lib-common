@@ -316,6 +316,8 @@ wah_bit_enum_t wah_bit_enum_start(const wah_t *wah, bool reverse)
 {
     wah_bit_enum_t en;
     int            bit;
+
+    p_clear(&en, 1);
     en.word_en = wah_word_enum_start(wah);
     en.key     = 0;
     en.reverse = reverse;
