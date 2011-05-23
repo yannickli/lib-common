@@ -120,8 +120,8 @@ static uint32_t mem_page_size_left(mem_page_t *page)
     return (page->page.size - page->used_size);
 }
 
-#pragma GCC diagnostic push
 #if __GNUC_PREREQ(4, 6) && !__VALGRIND_PREREQ(3, 7)
+#  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #endif
 static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
@@ -258,7 +258,9 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
     blk_protect(blk);
     return mem;
 }
-#pragma GCC diagnostic pop
+#if __GNUC_PREREQ(4, 6) && !__VALGRIND_PREREQ(3, 7)
+#  pragma GCC diagnostic pop
+#endif
 
 static mem_pool_t const mem_fifo_pool_funcs = {
     .malloc  = &mfp_alloc,
