@@ -132,7 +132,7 @@ if ! prereq "$IOPC_VER" "$(iopc --version)"; then
     warn "iopc version $IOPC_VER required (update your tools.git + make -C ~/dev/tools/iopc install)"
 fi
 
-for tool in flex gperf mtasc swfmill xsltproc; do
+for tool in flex gperf mtasc swfmill xsltproc scons; do
     check_tool $tool $tool
 done
 
