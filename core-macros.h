@@ -99,6 +99,11 @@
 #  else
 #    define __flatten
 #  endif
+#  if __GNUC_PREREQ(4, 5) || defined(__clang__)
+#    define __deprecated__(msg)    __attribute__((deprecated(msg)))
+#  else
+#    define __deprecated__(msg)    __attribute__((deprecated))
+#  endif
 #else
 #  ifndef EXPORT
 #    define EXPORT  extern
