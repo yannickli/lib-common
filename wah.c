@@ -212,6 +212,24 @@ void wah_add1s(wah_t *map, uint64_t count)
 }
 
 static
+uint32_t wah_read_remaining(const uint8_t *src, uint64_t count)
+{
+    uint32_t mask = UINT32_MAX >> (32 - count);
+    uint32_t res  = 0;
+    int shift = 0;
+    while (count > 8) {
+        res   |= ((uint32_t)get_unaligned_le16(src)) << shift;
+        src   += 2;
+        shift += 16;
+        count -= MIN(16, count);
+    }
+    if (count > 0) {
+        res |= ((uint32_t)*src) << shift;
+    }
+    return (res & mask);
+}
+
+static
 const void *wah_add_unaligned(wah_t *map, const uint8_t *src, uint64_t count)
 {
     while (count > 0) {
@@ -229,13 +247,9 @@ const void *wah_add_unaligned(wah_t *map, const uint8_t *src, uint64_t count)
             bits = 32;
             src += 4;
         } else {
-            word = *src;
-            src++;
-            if (count > 8) {
-                bits = 8;
-            } else {
-                bits = count;
-            }
+            word  = wah_read_remaining(src, count);
+            bits  = count;
+            count = 0;
         }
         count -= bits;
 
@@ -307,7 +321,9 @@ void wah_add_aligned(wah_t *map, const uint8_t *src, uint64_t count)
         wah_push_pending(map, 1);
     }
     if (count > 0) {
-        wah_add_unaligned(map, src, count);
+        map->pending = wah_read_remaining(src, count);
+        map->len    += count;
+        map->active += bitcount32(map->pending);
     }
 }
 
