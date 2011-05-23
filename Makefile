@@ -160,9 +160,6 @@ zchk_SOURCES = zchk.c \
 	$/lib-common/time-lp-simple.a
 zchk_LIBS = $(libxml2_LIBS)
 
-ztst_SOURCES = $(libcommon_SOURCES) time-lp-simple.c ztst.c $/lib-common/compat/check.c
-ztst_CFLAGS  = -DCHECK=1
-
 ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
 
 ztst-iop_SOURCES = \

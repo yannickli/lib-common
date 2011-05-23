@@ -19,7 +19,6 @@
 #include "arith.h"
 #include "conf.h"
 #include "container.h"
-#include "elf.h"
 #include "farch.h"
 #include "file-log.h"
 #include "file.h"

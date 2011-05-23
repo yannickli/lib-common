@@ -9,7 +9,6 @@
 /httptokens.h
 
 /zchk
-/ztst
 /ztst-asn1-wr
 /ztst-blob-iconv
 /ztst-cfgparser
@@ -22,7 +21,4 @@
 /ztst-lzo
 /ztst-sort
 /ztst-tpl
-/container-qvector.blk.c
-/thr-job.blk.c
-/ztst-thrjob.blk.c
 /ztst-thrjob

@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "all.h"
+#include "tpl.h"
 
 static int identity(tpl_t *out, sb_t *b, tpl_t **arr, int nb)
 {
