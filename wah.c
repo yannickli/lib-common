@@ -212,21 +212,39 @@ void wah_add1s(wah_t *map, uint64_t count)
 }
 
 static
-uint32_t wah_read_remaining(const uint8_t *src, uint64_t count)
+const void *wah_read_word(const uint8_t *src, uint64_t count,
+                          uint64_t *res, int *bits)
 {
-    uint32_t mask = UINT32_MAX >> (32 - count);
-    uint32_t res  = 0;
-    int shift = 0;
-    while (count > 8) {
-        res   |= ((uint32_t)get_unaligned_le16(src)) << shift;
-        src   += 2;
-        shift += 16;
-        count -= MIN(16, count);
+    uint64_t mask;
+    if (count >= 64) {
+        *res  = get_unaligned_le64(src);
+        *bits = 64;
+        return src + 8;
     }
-    if (count > 0) {
-        res |= ((uint32_t)*src) << shift;
+
+    *res  = 0;
+    *bits = 0;
+    mask  = UINT64_MAX >> (64 - count);
+#define get_unaligned_le8(src)  (*src)
+#define READ_SIZE(Size)                                                      \
+    if (count > (Size - 8)) {                                                \
+        const uint64_t to_read = MIN(count, Size);                           \
+        *res   |= ((uint64_t)get_unaligned_le##Size(src)) << *bits;          \
+        *bits  += to_read;                                                   \
+        src    += Size / 8;                                                  \
+        if (to_read == count) {                                              \
+            *res &= mask;                                                    \
+            return src;                                                      \
+        }                                                                    \
+        count -= to_read;                                                    \
     }
-    return (res & mask);
+    READ_SIZE(32);
+    READ_SIZE(24);
+    READ_SIZE(16);
+    READ_SIZE(8);
+#undef READ_SIZE
+    *res &= mask;
+    return src;
 }
 
 static
@@ -237,20 +255,7 @@ const void *wah_add_unaligned(wah_t *map, const uint8_t *src, uint64_t count)
         int      bits = 0;
         bool     on_0 = true;
 
-        if (count > 64) {
-            word = get_unaligned_le64(src);
-            bits = 64;
-            src += 8;
-        } else
-        if (count > 32) {
-            word = get_unaligned_le32(src);
-            bits = 32;
-            src += 4;
-        } else {
-            word  = wah_read_remaining(src, count);
-            bits  = count;
-            count = 0;
-        }
+        src    = wah_read_word(src, count, &word, &bits);
         count -= bits;
 
         while (bits > 0) {
@@ -286,9 +291,9 @@ const void *wah_add_unaligned(wah_t *map, const uint8_t *src, uint64_t count)
 static
 void wah_add_aligned(wah_t *map, const uint8_t *src, uint64_t count)
 {
-    int aligned_words = count / 32;
-    map->len += aligned_words * 32;
-    while (count >= 64) {
+    map->len += count;
+    while (count > 0) {
+        int bits;
         union {
             struct {
 #if __BYTE_ORDER == __BIG_ENDIAN
@@ -300,30 +305,26 @@ void wah_add_aligned(wah_t *map, const uint8_t *src, uint64_t count)
 #endif
             };
             uint64_t val;
-        } word = { .val = get_unaligned_le64(src) };
-        src += 8;
-        count -= 64;
+        } word;
+        src = wah_read_word(src, count, &word.val, &bits);
+        count -= bits;
         map->active += bitcount64(word.val);
         map->pending = word.low;
-        if (word.low == word.high) {
-            wah_push_pending(map, 2);
-        } else {
+        if (bits == 64) {
+            if (word.low == word.high) {
+                wah_push_pending(map, 2);
+            } else {
+                wah_push_pending(map, 1);
+                map->pending = word.high;
+                wah_push_pending(map, 1);
+            }
+        } else
+        if (bits >= 32) {
             wah_push_pending(map, 1);
             map->pending = word.high;
-            wah_push_pending(map, 1);
+        } else {
+            assert (count == 0);
         }
-    }
-    if (count >= WAH_BIT_IN_WORD) {
-        map->pending = get_unaligned_le32(src);
-        src   += 4;
-        count -= WAH_BIT_IN_WORD;
-        map->active += bitcount32(map->pending);
-        wah_push_pending(map, 1);
-    }
-    if (count > 0) {
-        map->pending = wah_read_remaining(src, count);
-        map->len    += count;
-        map->active += bitcount32(map->pending);
     }
 }
 
