@@ -127,7 +127,7 @@ fi
 
 # {{{ tools
 
-IOPC_VER=1.2.0
+IOPC_VER=1.2.1
 if ! prereq "$IOPC_VER" "$(iopc --version)"; then
     warn "iopc version $IOPC_VER required (update your tools.git + make -C ~/dev/tools/iopc install)"
 fi
