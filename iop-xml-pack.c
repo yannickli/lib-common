@@ -60,7 +60,7 @@ xpack_value(sb_t *sb, const iop_field_t *f, const void *v, bool verbose,
         if (!wenums) {
             sb_addf(sb, "%i",      *( int32_t *)v);
         } else {
-            clstr_t str = iop_enum_to_str(f->desc, *(int32_t *)v);
+            clstr_t str = iop_enum_to_str(f->u1.en_desc, *(int32_t *)v);
             if (!str.s) {
                 sb_addf(sb, "%i",      *( int32_t *)v);
             } else {
@@ -93,11 +93,11 @@ xpack_value(sb_t *sb, const iop_field_t *f, const void *v, bool verbose,
         sb_add(sb, s->s, s->len);
         break;
       case IOP_T_UNION:
-        xpack_union(sb, f->desc, v, verbose, wenums);
+        xpack_union(sb, f->u1.st_desc, v, verbose, wenums);
         break;
       case IOP_T_STRUCT:
       default:
-        xpack_struct(sb, f->desc, v, verbose, wenums);
+        xpack_struct(sb, f->u1.st_desc, v, verbose, wenums);
         break;
     }
     sb_adds(sb, "</");

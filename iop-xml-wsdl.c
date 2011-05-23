@@ -134,11 +134,11 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
         }
 
         if ((1 << f->type) & IOP_STRUCTS_OK) {
-            const iop_struct_t *desc = f->desc;
+            const iop_struct_t *desc = f->u1.st_desc;
             xmlpp_putattrfmt(&wpp->pp, "type", "tns:%s", desc->fullname.s);
         } else
         if (wpp->wenums && f->type == IOP_T_ENUM) {
-            const iop_enum_t *desc = f->desc;
+            const iop_enum_t *desc = f->u1.en_desc;
             /* TODO maybe use a fullname (pkg.name) */
             xmlpp_putattrfmt(&wpp->pp, "type", "tns:%s", desc->name.s);
         } else
@@ -150,24 +150,27 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
             switch (f->type) {
               case IOP_T_BOOL:
                 wpp_add_comment(wpp, "\n", "default: %s=%s",
-                                f->name.s, f->defval.u64 ? "true" : "false");
+                                f->name.s, f->u1.defval_u64 ? "true" : "false");
                 break;
               case IOP_T_I8: case IOP_T_I16: case IOP_T_I32: case IOP_T_I64:
+                wpp_add_comment(wpp, "\n", "default: %s=%jd",
+                                f->name.s, f->u1.defval_u64);
+                break;
               case IOP_T_ENUM:
-                wpp_add_comment(wpp, "\n", "default: %s=%"PRIi64,
-                                f->name.s, f->defval.u64);
+                wpp_add_comment(wpp, "\n", "default: %s=%d",
+                                f->name.s, f->u0.defval_enum);
                 break;
               case IOP_T_U8: case IOP_T_U16: case IOP_T_U32: case IOP_T_U64:
-                wpp_add_comment(wpp, "\n", "default: %s=%"PRIu64,
-                                f->name.s, f->defval.u64);
+                wpp_add_comment(wpp, "\n", "default: %s=%ju",
+                                f->name.s, f->u1.defval_u64);
                 break;
               case IOP_T_DOUBLE:
                 wpp_add_comment(wpp, "\n", "default: %s=%.22g",
-                                f->name.s, f->defval.d);
+                                f->name.s, f->u1.defval_d);
                 break;
               case IOP_T_STRING:
                 wpp_add_comment(wpp, "\n", "default: %s=%s",
-                                f->name.s, ((clstr_t *)f->defval.ptr)->s);
+                                f->name.s, (const char *)f->u1.defval_data);
                 break;
             }
         }
@@ -185,12 +188,12 @@ iop_xwsdl_scan_types(wsdlpp_t *wpp, const iop_struct_t *st, qh_t(iop_type) *h,
     for (int i = 0; i < st->fields_len; i++) {
         const iop_field_t *f = &st->fields[i];
         if ((1 << f->type) & IOP_STRUCTS_OK) {
-            iop_xwsdl_scan_types(wpp, f->desc, h, a, b);
+            iop_xwsdl_scan_types(wpp, f->u1.st_desc, h, a, b);
         } else
         if (f->type == IOP_T_ENUM && wpp->wenums) {
-            if (qh_add(iop_type, h, f->desc))
+            if (qh_add(iop_type, h, f->u1.st_desc))
                 continue;
-            qv_append(iop_enum, b, f->desc);
+            qv_append(iop_enum, b, f->u1.en_desc);
         }
     }
     qv_append(iop_type, a, st);
@@ -230,7 +233,7 @@ iop_xwsdl_put_types(wsdlpp_t *wpp, const iop_mod_t *mod, const char *ns)
                 for (int k = 0; k < st->fields_len; k++) {
                     const iop_field_t *f = st->fields + k;
                     assert(f->type == IOP_T_STRUCT);
-                    iop_xwsdl_scan_types(wpp, f->desc, &h, &a, &b);
+                    iop_xwsdl_scan_types(wpp, f->u1.st_desc, &h, &a, &b);
                 }
             } else {
                 iop_xwsdl_scan_types(wpp, st, &h, &a, &b);
@@ -302,7 +305,7 @@ iop_xwsdl_put_types(wsdlpp_t *wpp, const iop_mod_t *mod, const char *ns)
                 /* XXX An union is understood as a sequence of exceptions */
                 for (int k = 0; k < rpc->exn->fields_len; k++) {
                     const iop_field_t *f   = rpc->exn->fields + k;
-                    const iop_struct_t *st = f->desc;
+                    const iop_struct_t *st = f->u1.st_desc;
                     assert(f->type == IOP_T_STRUCT);
                     xmlpp_opentag(&wpp->pp, "element");
                     xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.%sFault",

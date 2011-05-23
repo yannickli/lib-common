@@ -771,7 +771,7 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
             goto integer;
 
           case IOP_T_ENUM:
-            edesc = fdesc->desc;
+            edesc = fdesc->u1.en_desc;
             for (int i = 0; i < edesc->enum_len; i++) {
                 if (!strcasecmp(edesc->names[i].s, ll->b.data)) {
                     ll->u.i = edesc->values[i];
@@ -855,10 +855,10 @@ do_double:
 
       case '{':
         if (fdesc->type == IOP_T_STRUCT) {
-            return unpack_struct(ll, fdesc->desc, value, false);
+            return unpack_struct(ll, fdesc->u1.st_desc, value, false);
         } else
         if (fdesc->type == IOP_T_UNION) {
-            return unpack_union(ll, fdesc->desc, value, false);
+            return unpack_union(ll, fdesc->u1.st_desc, value, false);
         }
         return RJERROR_EXP_TYPE(fdesc->type);
 
@@ -866,13 +866,13 @@ do_double:
       case '.':
         if (fdesc->type != IOP_T_UNION)
             return RJERROR(IOP_JERR_UNION_RESERVED);
-        return unpack_union(ll, fdesc->desc, value, true);
+        return unpack_union(ll, fdesc->u1.st_desc, value, true);
 
         /* Prefix extended syntax */
       case '@':
         if (fdesc->type != IOP_T_STRUCT)
             return RJERROR_EXP_TYPE(fdesc->type);
-        return unpack_struct(ll, fdesc->desc, value, true);
+        return unpack_struct(ll, fdesc->u1.st_desc, value, true);
 
       case IOP_JSON_EOF:
         return RJERROR_WARG(IOP_JERR_EXP_SMTH);
@@ -1281,7 +1281,7 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
 #undef CASE
 
               case IOP_T_ENUM:
-                v = iop_enum_to_str(fdesc->desc, IOP_FIELD(int, ptr, j)).s;
+                v = iop_enum_to_str(fdesc->u1.en_desc, IOP_FIELD(int, ptr, j)).s;
                 if (likely(v)) {
                     PUTS("\""); PUTS(v); PUTS("\"");
                 } else {
@@ -1306,7 +1306,7 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
               case IOP_T_UNION:
               case IOP_T_STRUCT:
                 v   = &IOP_FIELD(const char, ptr, j * fdesc->size);
-                len = RETHROW(pack_txt(fdesc->desc, v, lvl, writecb, priv, strict));
+                len = RETHROW(pack_txt(fdesc->u1.st_desc, v, lvl, writecb, priv, strict));
                 res += len;
                 break;
 

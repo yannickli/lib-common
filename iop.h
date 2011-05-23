@@ -18,7 +18,7 @@
 #include "iop-macros.h"
 #include "iop-cfolder.h"
 
-#define IOP_ABI_VERSION  1
+#define IOP_ABI_VERSION  2
 
 typedef enum iop_repeat_t {
     IOP_R_REQUIRED,
@@ -53,6 +53,9 @@ typedef enum iop_type_t {
     IOP_T_XML,
 } iop_type_t;
 
+typedef struct iop_struct_t iop_struct_t;
+typedef struct iop_enum_t   iop_enum_t;
+
 typedef struct iop_field_t {
     lstr_t       name;
     uint16_t     tag;
@@ -61,12 +64,30 @@ typedef struct iop_field_t {
     uint16_t     type;        /* iop_type_t               */
     uint16_t     size;        /* sizeof(type);            */
     uint16_t     data_offs;   /* offset to the data       */
+    /**
+     *   unused for IOP_T_{U,I}{8,16,32,64}, IOP_T_DOUBLE
+     *   unused for IOP_T_{UNION,STRUCT}
+     *   defval_enum holds the default value for IOP_T_ENUM
+     *   defval_len  holds the default value length for IOP_T_{XML,STRING,DATA}
+     */
     union {
-        void    *ptr;
-        uint64_t u64;
-        double   d;
-    } defval;
-    const void  *desc;        /* sub-type or enum*/
+        int      defval_enum;
+        int      defval_len;
+    } u0;
+    /**
+     *   defval_u64  holds the default value for IOP_T_{U,I}{8,16,32,64}
+     *   defval_d    holds the default value for IOP_T_DOUBLE
+     *   defval_data holds the default value data for IOP_T_{XML,STRING,DATA}
+     *   st_desc     holds a pointer to the struct desc for IOP_T_{STRUCT,UNION}
+     *   en_desc     holds a pointer to the enum desc for IOP_T_ENUM
+     */
+    union {
+        const void         *defval_data;
+        uint64_t            defval_u64;
+        double              defval_d;
+        const iop_struct_t *st_desc;
+        const iop_enum_t   *en_desc;
+    } u1;
 } iop_field_t;
 
 /*
@@ -92,46 +113,45 @@ typedef struct iop_field_t {
  * description in .fields is:  (i_k + T - t_k)
  *
  */
-typedef struct iop_enum_t {
-    const lstr_t name;
-    const lstr_t fullname;
-    const lstr_t *names;
-    const int *values;
-    const int *ranges;
-    int enum_len;
-    int ranges_len;
-} iop_enum_t;
+struct iop_enum_t {
+    const lstr_t        name;
+    const lstr_t        fullname;
+    const lstr_t       *names;
+    const int          *values;
+    const int          *ranges;
+    int                 enum_len;
+    int                 ranges_len;
+};
 
-typedef struct iop_struct_t {
-    const lstr_t fullname;
-    const iop_field_t *fields;
-    const int *ranges;
-    uint16_t ranges_len;
-    uint16_t fields_len;
-    int      size;              /* sizeof(type);                     */
-    flag_t   is_union : 1;     /* Distinguish a struct from an union */
-} iop_struct_t;
-
+struct iop_struct_t {
+    const lstr_t        fullname;
+    const iop_field_t  *fields;
+    const int          *ranges;
+    uint16_t            ranges_len;
+    uint16_t            fields_len;
+    unsigned            size     : 31;  /* sizeof(type);       */
+    unsigned            is_union :  1;  /* struct or union ?   */
+};
 
 typedef struct iop_rpc_t {
-    const lstr_t name;
+    const lstr_t        name;
     const iop_struct_t *args;
     const iop_struct_t *result;
     const iop_struct_t *exn;
-    uint32_t tag;
-    bool     async;
+    uint32_t            tag;
+    bool                async;
 } iop_rpc_t;
 
 typedef struct iop_iface_t {
-    const lstr_t fullname;
-    const iop_rpc_t *funs;
-    int funs_len;
+    const lstr_t        fullname;
+    const iop_rpc_t    *funs;
+    int                 funs_len;
 } iop_iface_t;
 
 typedef struct iop_iface_alias_t {
-    const iop_iface_t *iface;
-    const lstr_t name;
-    uint32_t tag;
+    const iop_iface_t  *iface;
+    const lstr_t        name;
+    uint32_t            tag;
 } iop_iface_alias_t;
 
 typedef struct iop_mod_t {

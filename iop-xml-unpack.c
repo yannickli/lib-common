@@ -53,7 +53,7 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
         RETHROW(xmlr_get_cstr_start(xr, false, &xval, &len));
 
         /* Try to unpack the string value */
-        intval = iop_enum_from_str2(fdesc->desc, xval, len, &found);
+        intval = iop_enum_from_str2(fdesc->u1.en_desc, xval, len, &found);
         if (!found)
             RETHROW(parse_int(xr, xval, &intval));
         *(uint32_t *)v = intval;
@@ -116,9 +116,9 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
         }
         break;
       case IOP_T_UNION:
-        return xunpack_union(xr, mp, fdesc->desc, v);
+        return xunpack_union(xr, mp, fdesc->u1.st_desc, v);
       case IOP_T_STRUCT:
-        return xunpack_struct(xr, mp, fdesc->desc, v);
+        return xunpack_struct(xr, mp, fdesc->u1.st_desc, v);
       default:
         e_panic("should not happen");
     }
@@ -161,7 +161,7 @@ static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
             RETHROW(xmlr_get_cstr_start(xr, false, &xval, &len));
 
             /* Try to unpack the string value */
-            intval = iop_enum_from_str2(fdesc->desc, xval, -1, &found);
+            intval = iop_enum_from_str2(fdesc->u1.en_desc, xval, -1, &found);
             if (!found)
                 RETHROW(parse_int(xr, xval, &intval));
             ((uint32_t *)data->data)[data->len] = intval;

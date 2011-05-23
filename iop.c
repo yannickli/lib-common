@@ -24,7 +24,7 @@ iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
         if (fdesc->repeat == IOP_R_REQUIRED && fdesc->type == IOP_T_STRUCT) {
             /* We can't handle the unions here since we don't know which field
              * has been selected */
-            const iop_struct_t *desc = fdesc->desc;
+            const iop_struct_t *desc = fdesc->u1.st_desc;
 
             iop_init_fields(ptr, desc->fields, desc->fields +
                             desc->fields_len);
@@ -32,30 +32,34 @@ iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
         if (fdesc->repeat == IOP_R_DEFVAL) {
             switch (fdesc->type) {
               case IOP_T_I8: case IOP_T_U8:
-                *(uint8_t *)ptr  = fdesc->defval.u64;
+                *(uint8_t *)ptr  = fdesc->u1.defval_u64;
                 break;
               case IOP_T_I16: case IOP_T_U16:
-                *(uint16_t *)ptr = fdesc->defval.u64;
+                *(uint16_t *)ptr = fdesc->u1.defval_u64;
                 break;
               case IOP_T_ENUM:
+                *(uint32_t *)ptr = fdesc->u0.defval_enum;
+                break;
               case IOP_T_I32: case IOP_T_U32:
-                *(uint32_t *)ptr = fdesc->defval.u64;
+                *(uint32_t *)ptr = fdesc->u1.defval_u64;
                 break;
               case IOP_T_I64: case IOP_T_U64:
-                *(uint64_t *)ptr = fdesc->defval.u64;
+                *(uint64_t *)ptr = fdesc->u1.defval_u64;
                 break;
               case IOP_T_BOOL:
-                *(bool *)ptr     = !!fdesc->defval.u64; /* Map to 0/1 */
+                *(bool *)ptr     = !!fdesc->u1.defval_u64; /* Map to 0/1 */
                 break;
               case IOP_T_DOUBLE:
-                *(double *)ptr   = fdesc->defval.d;
+                *(double *)ptr   = fdesc->u1.defval_d;
                 break;
               case IOP_T_STRING:
               case IOP_T_XML:
-                *(lstr_t *)ptr = *(lstr_t *)fdesc->defval.ptr;
+                *(lstr_t *)ptr = LSTR_INIT_V(fdesc->u1.defval_data, fdesc->u0.defval_len);
                 break;
               case IOP_T_DATA:
-                *(iop_data_t *)ptr = *(iop_data_t *)fdesc->defval.ptr;
+                ((iop_data_t *)ptr)->len  = fdesc->u0.defval_len;
+                ((iop_data_t *)ptr)->data = (void *)fdesc->u1.defval_data;
+                ((iop_data_t *)ptr)->flags = 0;
                 break;
               default:
                 e_panic("unsupported");
@@ -111,7 +115,7 @@ static size_t iop_dup_size(const iop_struct_t *desc, const void *val)
         if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
             for (int j = 0; j < n; j++) {
                 const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
-                len += iop_dup_size(fdesc->desc, v);
+                len += iop_dup_size(fdesc->u1.st_desc, v);
             }
         } else {
             for (int j = 0; j < n; j++) {
@@ -172,7 +176,7 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
                 const void *rv = &IOP_FIELD(const char, rp, j * fdesc->size);
                 void *wv = &IOP_FIELD(char, wp, j * fdesc->size);
 
-                dst = __iop_copy(fdesc->desc, dst, wv, rv);
+                dst = __iop_copy(fdesc->u1.st_desc, dst, wv, rv);
             }
         } else {
             for (int j = 0; j < n; j++) {
@@ -292,7 +296,7 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
                 const void *t1 = &IOP_FIELD(const uint8_t, r1, i * fdesc->size);
                 const void *t2 = &IOP_FIELD(const uint8_t, r2, i * fdesc->size);
 
-                if (!__iop_equals(fdesc->desc, t1, t2))
+                if (!__iop_equals(fdesc->u1.st_desc, t1, t2))
                     return false;
             }
         } else
@@ -408,7 +412,7 @@ int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
                 int32_t offs = szs->len, i32;
 
                 qv_growlen(i32, szs, 1);
-                i32  = iop_bpack_size(fdesc->desc, v, szs);
+                i32  = iop_bpack_size(fdesc->u1.st_desc, v, szs);
                 szs->tab[offs] = i32;
                 len += get_len_len(i32) + i32;
             }
@@ -468,11 +472,11 @@ pack_value(uint8_t *dst, const iop_field_t *f, const void *v, const int **szsp)
         return dst;
       case IOP_T_UNION:
         dst = pack_len(dst, f->tag, f->tag_len, *(*szsp)++);
-        return pack_union(dst, f->desc, v, szsp);
+        return pack_union(dst, f->u1.st_desc, v, szsp);
       case IOP_T_STRUCT:
       default:
         dst = pack_len(dst, f->tag, f->tag_len, *(*szsp)++);
-        return pack_struct(dst, f->desc, v, szsp);
+        return pack_struct(dst, f->u1.st_desc, v, szsp);
     }
 }
 
@@ -557,7 +561,7 @@ static uint8_t *pack_value_vec(uint8_t *dst, const iop_field_t *f,
       case IOP_T_UNION:
         do {
             dst = pack_len(dst, 0, 0, *(*szsp)++);
-            dst = pack_union(dst, f->desc, v, szsp);
+            dst = pack_union(dst, f->u1.st_desc, v, szsp);
             v   = (char *)v + f->size;
         } while (--n > 0);
         return dst;
@@ -565,7 +569,7 @@ static uint8_t *pack_value_vec(uint8_t *dst, const iop_field_t *f,
       default:
         do {
             dst = pack_len(dst, 0, 0, *(*szsp)++);
-            dst = pack_struct(dst, f->desc, v, szsp);
+            dst = pack_struct(dst, f->u1.st_desc, v, szsp);
             v   = (char *)v + f->size;
         } while (--n > 0);
         return dst;
@@ -800,7 +804,7 @@ int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc)
     void *ptr = (char *)value + fdesc->data_offs;
 
     if (fdesc->repeat == IOP_R_REQUIRED) {
-        const iop_struct_t *desc = fdesc->desc;
+        const iop_struct_t *desc = fdesc->u1.st_desc;
 
         /* For a required field, only structs can be absents, be careful that
          * union must be presents */
@@ -813,30 +817,34 @@ int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc)
     if (fdesc->repeat == IOP_R_DEFVAL) {
         switch (fdesc->type) {
           case IOP_T_I8: case IOP_T_U8:
-            *(uint8_t *)ptr  = fdesc->defval.u64;
+            *(uint8_t *)ptr  = fdesc->u1.defval_u64;
             break;
           case IOP_T_I16: case IOP_T_U16:
-            *(uint16_t *)ptr = fdesc->defval.u64;
+            *(uint16_t *)ptr = fdesc->u1.defval_u64;
             break;
           case IOP_T_ENUM:
+            *(uint32_t *)ptr = fdesc->u0.defval_enum;
+            break;
           case IOP_T_I32: case IOP_T_U32:
-            *(uint32_t *)ptr = fdesc->defval.u64;
+            *(uint32_t *)ptr = fdesc->u1.defval_u64;
             break;
           case IOP_T_I64: case IOP_T_U64:
-            *(uint64_t *)ptr = fdesc->defval.u64;
+            *(uint64_t *)ptr = fdesc->u1.defval_u64;
             break;
           case IOP_T_BOOL:
-            *(bool *)ptr     = !!fdesc->defval.u64; /* Map to 0/1 */
+            *(bool *)ptr     = !!fdesc->u1.defval_u64; /* Map to 0/1 */
             break;
           case IOP_T_DOUBLE:
-            *(double *)ptr   = fdesc->defval.d;
+            *(double *)ptr   = fdesc->u1.defval_d;
             break;
           case IOP_T_STRING:
           case IOP_T_XML:
-            *(lstr_t *)ptr = *(lstr_t *)fdesc->defval.ptr;
+            *(lstr_t *)ptr = LSTR_INIT_V(fdesc->u1.defval_data, fdesc->u0.defval_len);
             break;
           case IOP_T_DATA:
-            *(iop_data_t *)ptr = *(iop_data_t *)fdesc->defval.ptr;
+            ((iop_data_t *)ptr)->len  = fdesc->u0.defval_len;
+            ((iop_data_t *)ptr)->data = (void *)fdesc->u1.defval_data;
+            ((iop_data_t *)ptr)->flags = 0;
             break;
           default:
             PS_CHECK(-1);
@@ -888,10 +896,10 @@ static int unpack_value(mem_pool_t *mp, iop_wire_type_t wt,
             return __ps_skip(ps, u32);
           case IOP_T_UNION:
             ps_tmp = __ps_get_ps(ps, u32);
-            return unpack_union(mp, fdesc->desc, v, &ps_tmp, copy);
+            return unpack_union(mp, fdesc->u1.st_desc, v, &ps_tmp, copy);
           case IOP_T_STRUCT:
             ps_tmp = __ps_get_ps(ps, u32);
-            return unpack_struct(mp, fdesc->desc, v, &ps_tmp, copy);
+            return unpack_struct(mp, fdesc->u1.st_desc, v, &ps_tmp, copy);
         }
         return -1;
 

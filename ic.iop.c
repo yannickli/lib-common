@@ -36,7 +36,7 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .repeat    = IOP_R_DEFVAL,
         .type      = IOP_T_I32,
         .data_offs = offsetof(ic__simple_hdr__t, payload),
-        .defval    = { .u64 = 0xffffffffffffffff },
+        .u1        = { .defval_u64 = 0xffffffffffffffff },
     },
 };
 static int const ic__simple_hdr__s_ranges[] = {
@@ -64,7 +64,7 @@ static iop_field_t const ic__hdr__desc_fields[] = {
         .type      = IOP_T_STRUCT,
         .data_offs = offsetof(ic__hdr__t, simple),
         .size      = sizeof(ic__simple_hdr__t),
-        .desc      = &ic__simple_hdr__s,
+        .u1        = { .st_desc = &ic__simple_hdr__s },
     },
 };
 static int const ic__hdr__s_ranges[] = {
