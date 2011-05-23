@@ -155,13 +155,7 @@ pkg_config_setvar "fuse" "libfuse-dev" "fuse"
 # }}}
 # {{{ libv8-dev
 
-if test -r /usr/include/v8.h; then
-    setenv "WITH_V8" "1"
-    setvar "v8_CFLAGS"
-    setvar "v8_LIBS" "-lv8"
-else
-    log "You are missing libv8, apt-get install libv8-dev"
-fi
+setvar "v8_LIBS"    "$(dirname "$0")/js/v8/libv8.a"
 
 # }}}
 # {{{ libpcap-dev
