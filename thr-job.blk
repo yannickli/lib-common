@@ -389,7 +389,7 @@ static void thr_queue_drain(thr_queue_t *q)
         thr_qnode_t *n = thr_qnode_of(mpsc_queue_drain_fast(&it, doit));
         job_run(n->job, n->syn);
     } while (!__mpsc_queue_drain_end(&it, thr_qnode_destroy,
-                                     thr_job_dequeue() ?: thr_job_steal()));
+                                     ({ thr_job_dequeue() ?: thr_job_steal(); })));
 #undef doit
 
     if (q->closing)
