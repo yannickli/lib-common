@@ -90,7 +90,6 @@ endef
 #[ iop ]##############################################################{{{#
 
 IOPC := $(shell which iopc)
-msg/COMPILE.iop := $(msg/color) '0;36' " IOP"
 ext/gen/iop = $(call fun/patsubst-filt,%.iop,%.iop.c,$1) \
     $(call fun/patsubst-filt,%.iop,%.iop.h,$1)
 
@@ -145,7 +144,7 @@ $(3:=.c): %.c: % $(shell which clang)
 	$(msg/COMPILE) " BLK" $$(<R)
 	$(RM) $$@
 	clang -cc1 $$(CLANGFLAGS) \
-	    $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$*.c_CFLAGS) \
+	    $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$@_CFLAGS) \
 	    -fblocks -rewrite-blocks -o $$@ $$<
 	chmod a-w $$@
 _generated: $(3:=.c)
@@ -165,7 +164,7 @@ $(3:=.cc): %.cc: % $(shell which clang++)
 	$(msg/COMPILE) " BLK" $$(<R)
 	$(RM) $$@
 	clang++ -cc1 $$(CLANGXXFLAGS) \
-	    $$($(1D)/_CXXFLAGS) $$($1_CXXFLAGS) $$($$*.cc_CXXFLAGS) \
+	    $$($(1D)/_CXXFLAGS) $$($1_CXXFLAGS) $$($$@_CXXFLAGS) \
 	    -fblocks -rewrite-blocks -o $$@ $$<
 	chmod a-w $$@
 __$(1D)_generated: $(3:=.cc)

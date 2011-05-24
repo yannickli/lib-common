@@ -42,16 +42,40 @@ else
     msg/echo  := @:
     msg/color := @:
 endif
-msg/generate  := $(msg/color) '0;33' " GEN"
-msg/depends   := $(msg/color) '0;33' " DEP"
-msg/COMPILE   := $(msg/color) '0;33'
-msg/COMPILE.l := $(msg/color) '0;33' " LEX"
-msg/COMPILE.c := $(msg/color) '1;34' " CC "
-msg/COMPILE.C := $(msg/color) '1;34' " CXX"
-msg/LINK.a    := $(msg/color) '1;35' " AR "
-msg/LINK.c    := $(msg/color) '1;36' " LD "
-msg/rm        := $(msg/echo)  " RM "
-msg/alert     := $(msg/color) '1;38;41' "***"
+
+col/black       := 30
+col/red         := 31
+col/green       := 32
+col/yellow      := 33
+col/blue        := 34
+col/magenta     := 35
+col/cyan        := 36
+col/white       := 37
+col/default     := 38
+
+col/bg_black    := 40
+col/bg_red      := 41
+col/bg_green    := 42
+col/bg_yellow   := 43
+col/bg_blue     := 44
+col/bg_magenta  := 45
+col/bg_cyan     := 46
+col/bg_white    := 47
+col/bg_default  := 48
+
+msg/generate    := $(msg/color) '0;$(col/yellow)'  " GEN"
+msg/depends     := $(msg/color) '0;$(col/yellow)'  " DEP"
+msg/CHECK.c     := $(msg/color) '0;$(col/green)'   " CC "
+msg/CHECK.C     := $(msg/color) '0;$(col/green)'   " CXX"
+msg/COMPILE     := $(msg/color) '1;$(col/blue)'
+msg/COMPILE.c   := $(msg/color) '1;$(col/blue)'    " CC "
+msg/COMPILE.C   := $(msg/color) '1;$(col/blue)'    " CXX"
+msg/COMPILE.l   := $(msg/color) '0;$(col/yellow)'  " LEX"
+msg/COMPILE.iop := $(msg/color) '0;$(col/cyan)'    " IOP"
+msg/LINK.a      := $(msg/color) '1;$(col/magenta)' " AR "
+msg/LINK.c      := $(msg/color) '1;$(col/cyan)'    " LD "
+msg/rm          := $(msg/color) '0;$(col/default)' " RM "
+msg/alert       := $(msg/color) '1;$(col/white)$(col/bg_red)' "***"
 
 ##########################################################################
 # Setup make properly

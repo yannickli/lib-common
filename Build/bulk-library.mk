@@ -50,7 +50,7 @@ define ext/expand/c
 $3: $~%$$(tmp/$2/ns)$4.o: %.c | _generated
 	mkdir -p $$(@D)
 	$(msg/COMPILE.c) $$(<R)
-	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$*.c_CFLAGS) \
+	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$<_CFLAGS) \
 	    -MP -MMD -MT $$@ -MF $$(@:o=dep) \
 	    $$(if $$(findstring .pic,$4),-fPIC) -g -c -o $$@ $$<
 -include $(3:o=dep)
@@ -70,7 +70,7 @@ define ext/expand/cc
 $3: $~%$$(tmp/$2/ns)$4.o: %.cc | _generated
 	mkdir -p $$(@D)
 	$(msg/COMPILE.C) $$(<R)
-	$(CXX) $(CXXFLAGS) $$($(1D)/_CXXFLAGS) $$($1_CXXFLAGS) $$($$*.c_CXXFLAGS) \
+	$(CXX) $(CXXFLAGS) $$($(1D)/_CXXFLAGS) $$($1_CXXFLAGS) $$($$<_CXXFLAGS) \
 	    -MP -MMD -MT $$@ -MF $$(@:o=dep) \
 	    $$(if $$(findstring .pic,$4),-fPIC) -g -c -o $$@ $$<
 -include $(3:o=dep)
