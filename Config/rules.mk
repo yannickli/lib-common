@@ -140,6 +140,7 @@ endef
 ext/gen/blk = $(call fun/patsubst-filt,%.blk,%.blk.c,$1)
 
 define ext/expand/blk
+$$(foreach t,$3,$$(eval $3.c_NOCHECK = block))
 $(3:=.c): %.c: % $(shell which clang)
 	$(msg/COMPILE) " BLK" $$(<R)
 	$(RM) $$@
@@ -160,6 +161,7 @@ endef
 ext/gen/blkk = $(call fun/patsubst-filt,%.blkk,%.blkk.cc,$1)
 
 define ext/expand/blkk
+$$(foreach t,$3,$$(eval $3.cc_NOCHECK = block))
 $(3:=.cc): %.cc: % $(shell which clang++)
 	$(msg/COMPILE) " BLK" $$(<R)
 	$(RM) $$@
