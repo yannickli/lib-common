@@ -183,7 +183,7 @@ static uint8_t *asn1_pack_int32(uint8_t *dst, int32_t i)
     ({  asn1_pack_##pfx(buf, v);                                             \
         TEST_FAIL_IF((size = asn1_##pfx##_size(v)) != sizeof(exp) ||         \
                      memcmp(buf, exp, sizeof(exp)),                          \
-                     "packing of %016"PRIx64, (uint64_t)(v)); })
+                     "packing of %016jx", (uint64_t)(v)); })
 
 static uint8_t *asn1_pack_int64(uint8_t *dst, int64_t i)
 {
@@ -642,11 +642,11 @@ static uint8_t *asn1_pack_value(uint8_t *dst, const void *dt,
         break;
       case ASN1_OBJ_TYPE(int64_t):
         dst = asn1_pack_int64(dst, *(int64_t *)dt);
-        e_trace(4, "Value : %"PRIi64, *(int64_t *)dt);
+        e_trace(4, "Value : %jd", *(int64_t *)dt);
         break;
       case ASN1_OBJ_TYPE(uint64_t):
         dst = asn1_pack_uint64(dst, *(uint64_t *)dt);
-        e_trace(4, "Value : %"PRIu64, *(uint64_t *)dt);
+        e_trace(4, "Value : %ju", *(uint64_t *)dt);
         break;
       case ASN1_OBJ_TYPE(NULL):
       case ASN1_OBJ_TYPE(OPT_NULL):
@@ -1070,11 +1070,11 @@ static int asn1_unpack_value(pstream_t *ps, const asn1_field_t *spec,
         break;
       case ASN1_OBJ_TYPE(int64_t):
         RETHROW(ber_decode_int64(&field_ps, (int64_t *)dt));
-        e_trace(4, "Value : %"PRIi64, *(int64_t *)dt);
+        e_trace(4, "Value : %jd", *(int64_t *)dt);
         break;
       case ASN1_OBJ_TYPE(uint64_t):
         RETHROW(ber_decode_uint64(&field_ps, (uint64_t *)dt));
-        e_trace(4, "Value : %"PRIu64, *(uint64_t *)dt);
+        e_trace(4, "Value : %ju", *(uint64_t *)dt);
         break;
       case ASN1_OBJ_TYPE(NULL):
       case ASN1_OBJ_TYPE(OPT_NULL):

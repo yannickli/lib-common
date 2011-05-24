@@ -184,10 +184,10 @@ void httpd_reply_file(httpd_query_t *q, int dfd, const char *file, bool head)
     ob = httpd_reply_hdrs_start(q, HTTP_CODE_OK, false);
     httpd_put_date_hdr(ob, "Last-Modified", st.st_mtime);
     if (st.st_mtime >= lp_getsec() - 10) {
-        ob_addf(ob, "ETag: W/\"%"PRIx64"-%"PRIx64"x-%lx\"\r\n",
+        ob_addf(ob, "ETag: W/\"%jx-%jxx-%lx\"\r\n",
                 st.st_ino, st.st_size, st.st_mtime);
     } else {
-        ob_addf(ob, "ETag: \"%"PRIx64"-%"PRIx64"x-%lx\"\r\n",
+        ob_addf(ob, "ETag: \"%jx-%jxx-%lx\"\r\n",
                 st.st_ino, st.st_size, st.st_mtime);
     }
     mime_put_http_ctype(ob, file);

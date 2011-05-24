@@ -290,7 +290,7 @@ aper_encode_number(bb_t *bb, int64_t n, const asn1_int_info_t *info)
                 return 0;
             } else {
                 e_error("Root constraint not respected: "
-                        "%"PRIi64" is not in [ %"PRIi64", %"PRIi64" ]",
+                        "%jd is not in [ %jd, %jd ]",
                         n, info->min, info->max);
 
                 return -1;
@@ -1058,7 +1058,7 @@ aper_decode_number(bit_stream_t *bs, const asn1_int_info_t *info, int64_t *n)
 
         if (info && (res < info->min || res > info->max)) {
             e_error("Root constraint not respected: "
-                    "%"PRIi64" is not in [ %"PRIi64", %"PRIi64" ]",
+                    "%jd is not in [ %jd, %jd ]",
                     res, info->min, info->max);
 
             return -1;
@@ -1282,7 +1282,7 @@ t_aper_decode_value(bit_stream_t *bs, const asn1_field_t *field,
             int64_t i64;                                                  \
                                                                           \
             RETHROW(aper_decode_number(bs, &field->int_info, &i64));      \
-            e_trace(5, "Decoded number value (n = %"PRIi64")", i64);      \
+            e_trace(5, "Decoded number value (n = %jd)", i64);            \
                                                                           \
             *(type_t *)v = i64;                                           \
                                                                           \
@@ -1745,7 +1745,7 @@ TEST_DECL("aligned per: aper_encode_number/aper_decode_number", 0)
     bs = bs_init_bb(&bb);                                              \
     TEST_FAIL_IF(aper_decode_number(&bs, info, &i64) < 0,              \
                  "Call aper_decode_number");                           \
-    TEST_FAIL_IF(i64 != i, "%"PRIi64" ?= "#i, i64);                    \
+    TEST_FAIL_IF(i64 != i, "%jd ?= "#i, i64);                          \
     str = t_print_bb(&bb, NULL);                                       \
     TEST_FAIL_IF(strcmp(expected, str),                                \
                  "expected [ "expected" ] | got [ %s ]", str)

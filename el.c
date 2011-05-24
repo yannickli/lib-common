@@ -951,9 +951,9 @@ static void el_show_blockers(el_t evh, int signo, el_data_t priv)
                 break;
               case EV_TIMER:
                 if (ev->timer.repeat < 0) {
-                    e_trace_end(0, " one shot @%"PRIu64, ev->timer.expiry / 1000);
+                    e_trace_end(0, " one shot @%ju", ev->timer.expiry / 1000);
                 } else {
-                    e_trace_end(0, " repeat:%dms next @%"PRIu64, ev->timer.repeat,
+                    e_trace_end(0, " repeat:%dms next @%ju", ev->timer.repeat,
                                 ev->timer.expiry / 1000);
                 }
                 break;

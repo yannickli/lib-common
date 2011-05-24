@@ -69,8 +69,8 @@ xpack_value(sb_t *sb, const iop_field_t *f, const void *v, bool verbose,
         }
         break;
       case IOP_T_U32:    sb_addf(sb, "%u",      *(uint32_t *)v); break;
-      case IOP_T_I64:    sb_addf(sb, "%"PRIi64, *( int64_t *)v); break;
-      case IOP_T_U64:    sb_addf(sb, "%"PRIu64, *(uint64_t *)v); break;
+      case IOP_T_I64:    sb_addf(sb, "%jd",     *( int64_t *)v); break;
+      case IOP_T_U64:    sb_addf(sb, "%ju",     *(uint64_t *)v); break;
       case IOP_T_DOUBLE: sb_addf(sb, "%.17e",   *(double *)v);   break;
       case IOP_T_BOOL:
         if (*(bool *)v) {

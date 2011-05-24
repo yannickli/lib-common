@@ -510,7 +510,7 @@ static void test_cfold(void)
         e_info("Error when feeding with %c", _op)
 #define result() \
     if (err == 0 && iop_cfolder_get_result(folder, &res) == 0) { \
-        e_info("Operation result: %"PRIi64, (int64_t) res); \
+        e_info("Operation result: %jd", (int64_t) res); \
     } else { \
         e_info("Constant folder error"); \
     } \
