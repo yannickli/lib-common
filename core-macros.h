@@ -116,13 +116,9 @@
 #ifdef __GNUC__
 #  define likely(expr)     __builtin_expect(!!(expr), 1)
 #  define unlikely(expr)   __builtin_expect((expr), 0)
-#  define prefetch(addr)   __builtin_prefetch(addr)
-#  define prefetchw(addr)  __builtin_prefetch(addr, 1)
 #else
 #  define likely(expr)     (expr)
 #  define unlikely(expr)   (expr)
-#  define prefetch(addr)   ((void)0)
-#  define prefetchw(addr)  ((void)0)
 #endif
 
 

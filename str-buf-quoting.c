@@ -613,7 +613,6 @@ static int b64_rough_size(int srclen, int ppline)
 
 void sb_add_b64_start(sb_t *dst, int len, int width, sb_b64_ctx_t *ctx)
 {
-    prefetch(__b64);
     p_clear(ctx, 1);
     if (width == 0) {
         width = 19; /* 76 characters + \r\n */

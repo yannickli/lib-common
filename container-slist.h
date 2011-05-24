@@ -71,7 +71,7 @@ void __slist_sort(struct slist_head *l,
 
 #define __slist_for_each(n, head, doit) \
      for (struct slist_head *n = (head)->next; \
-          n && ({ doit; prefetch(n->next); 1; }); n = n->next)
+          n && ({ doit; 1; }); n = n->next)
 
 #define slist_for_each(n, head)   \
     __slist_for_each(n, head, )
@@ -80,8 +80,8 @@ void __slist_sort(struct slist_head *l,
 
 
 #define __slist_for_each_safe(n, prev, __cur, head, doit) \
-    for (struct slist_head *prev = (head), *n = prev->next, *__cur;     \
-         (__cur = n = prev->next) && ({ doit; prefetch(n->next); 1; }); \
+    for (struct slist_head *prev = (head), *n = prev->next, *__cur; \
+         (__cur = n = prev->next) && ({ doit; 1; }); \
          prev = __cur == prev->next ? prev->next : prev)
 
 #define slist_for_each_safe(n, prev, head) \

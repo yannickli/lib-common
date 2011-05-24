@@ -151,7 +151,7 @@ htlist_splice_tail(htlist_t *dst, htlist_t *src)
 
 #define __htlist_for_each(pos, n, hd, doit) \
      for (htnode_t *n##_end_ = *(hd)->tail, *n = (pos); \
-          n != n##_end_ && ({ doit; prefetch(n->next); 1; }); n = n->next)
+          n != n##_end_ && ({ doit; 1; }); n = n->next)
 
 #define htlist_for_each(n, hd)    __htlist_for_each((hd)->head, n, hd, )
 #define htlist_for_each_start(pos, n, hd)    __htlist_for_each(pos, n, hd, )
