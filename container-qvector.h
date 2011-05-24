@@ -209,12 +209,6 @@ qvector_splice(qvector_t *vec, size_t v_size,
         qsort(vec->qv.tab, vec->qv.len, sizeof(cval_t),                     \
                 (int (*)(const void *, const void *))cb);                   \
     }                                                                       \
-    static inline void pfx##_qsort_r(pfx##_t *vec,                          \
-                                     int (*cb)(cval_t *, cval_t *, void *), \
-                                     void *priv) {                          \
-        qsort_r(vec->qv.tab, vec->qv.len, sizeof(cval_t),                   \
-                (int (*)(const void *, const void *, void *))cb, priv);     \
-    }                                                                       \
     __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)
 
 /** Declare a new vector type.
