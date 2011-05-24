@@ -47,12 +47,36 @@ is_cpp()
     esac
 }
 
+getppid()
+{
+    read pid comm state ppid rest < /proc/$1/stat
+    echo $ppid
+}
+
+from_editor()
+{
+    test -f /proc/self/exe || return 1
+    pid=$(getppid self)
+    while test "$pid" != 1; do
+        case "$(readlink /proc/$pid/exe)" in
+            *vim*|*emacs*)
+                return 0;;
+            *)
+                pid=$(getppid $pid);;
+        esac
+    done
+    return 1
+}
+
 # use C99 to be able to for (int i =...
 ( is_cpp && echo -std=gnu++98 ) || echo -std=gnu99
 # optimize even more
 echo -O2
 
 if is_clang; then
+    if $(from_editor); then
+        echo -fno-caret-diagnostics
+    fi
     if test "$2" != "rewrite"; then
         echo -fdiagnostics-show-category=name
     fi
