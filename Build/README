@@ -61,6 +61,9 @@ At the moment, the following set of variables are used at the directory level:
 `_LDFLAGS`::
         To force some `LDFLAGS` to the local directory goals.
 
+`_NOCHECK`::
+	To disable checks to the local directory goals.
+
 `_DEPENDS`::
         This variable holds a list of local targets that must be remade before
         doing anything else automatic (meaning that it's not honoured for
@@ -132,6 +135,9 @@ to do anything special about it.
         This variable holds the additional C compilation flags to use for
         this goal.
 
+`_NOCHECK`::
+	To disable checks when building this target.
+
 `_DEPENDS`::
         This variable holds a number of other goals (relative to the
         Makefile's directory) that must be remade before remaking this goal.
@@ -183,6 +189,9 @@ that are remade before the lexer is compiled.
         lexers), the name of the generated souce must be used.
 +
 Example: `something.c_CFLAGS = -Wno-error`
+
+`_NOCHECK` on `.c` files::
+	To disable checks when building this C file.
 
 // }}}
 
@@ -302,6 +311,12 @@ forced to `-O0 -fno-inlines -Wno-uninitialized`.
         The build-system in silent mode echoes commands using some color.
         Setting `$M`, `$MONOCHROME` (or for backward compatibility `$NOCOLOR`)
         disables that.
+
+`NOCHECK`::
+	The build-system doesn't run "CHECK" targets (mostly clang at the
+        time).
+`NOFATALCHECK`::
+	keep the check phase but make it non fatal
 
 // }}}
 

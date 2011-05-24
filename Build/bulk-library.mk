@@ -49,6 +49,10 @@ endef
 define ext/expand/c
 $3: $~%$$(tmp/$2/ns)$4.o: %.c | _generated
 	mkdir -p $$(@D)
+	$$(if $(findstring clang,$(CC))$(NOCHECK)$$($(1D)/_NOCHECK)$$($1_NOCKECK)$$($$<_NOCHECK),,\
+	    $(msg/CHECK.c) $$(<R); \
+	    clang $(CLANGFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$<_CFLAGS) \
+	    -O0 -c -o /dev/null $$<)$(if $(NOFATALCHECK),|| true)
 	$(msg/COMPILE.c) $$(<R)
 	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$<_CFLAGS) \
 	    -MP -MMD -MT $$@ -MF $$(@:o=dep) \
@@ -69,6 +73,10 @@ endef
 define ext/expand/cc
 $3: $~%$$(tmp/$2/ns)$4.o: %.cc | _generated
 	mkdir -p $$(@D)
+	$$(if $(findstring clang,$(CXX))$(NOCHECK)$$($(1D)/_NOCHECK)$$($1_NOCKECK)$$($$<_NOCHECK),,\
+	    $(msg/CHECK.C) $$(<R); \
+	    clang++ $(CLANGXXFLAGS) $$($(1D)/_CXXFLAGS) $$($1_CXXFLAGS) $$($$<_CXXFLAGS) \
+	    -O0 -c -o /dev/null $$<)$(if $(NOFATALCHECK),|| true)
 	$(msg/COMPILE.C) $$(<R)
 	$(CXX) $(CXXFLAGS) $$($(1D)/_CXXFLAGS) $$($1_CXXFLAGS) $$($$<_CXXFLAGS) \
 	    -MP -MMD -MT $$@ -MF $$(@:o=dep) \

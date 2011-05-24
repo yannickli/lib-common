@@ -65,8 +65,8 @@ col/bg_default  := 48
 
 msg/generate    := $(msg/color) '0;$(col/yellow)'  " GEN"
 msg/depends     := $(msg/color) '0;$(col/yellow)'  " DEP"
-msg/CHECK.c     := $(msg/color) '0;$(col/green)'   " CC "
-msg/CHECK.C     := $(msg/color) '0;$(col/green)'   " CXX"
+msg/CHECK.c     := $(msg/color) '0;$(col/green)'   ".CC "
+msg/CHECK.C     := $(msg/color) '0;$(col/green)'   ".CXX"
 msg/COMPILE     := $(msg/color) '1;$(col/blue)'
 msg/COMPILE.c   := $(msg/color) '1;$(col/blue)'    " CC "
 msg/COMPILE.C   := $(msg/color) '1;$(col/blue)'    " CXX"
