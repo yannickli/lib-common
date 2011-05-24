@@ -160,8 +160,10 @@ echo -Wmissing-format-attribute
 #echo -Wcast-qual
 
 if is_cpp; then
-    echo -fno-rtti
-    echo -fno-exceptions
+    if test "$2" != "rewrite"; then
+        echo -fno-rtti
+        echo -fno-exceptions
+    fi
     echo -Wnon-virtual-dtor
     echo -Woverloaded-virtual
     echo -Weffc++
