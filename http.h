@@ -580,4 +580,15 @@ static inline void httpc_query_chunk_done(httpc_query_t *q, outbuf_t *ob)
         httpc_query_chunk_done_(q, ob);
 }
 
+void httpc_query_hdrs_add_auth(httpc_query_t *q, lstr_t login, lstr_t passwd);
+
+static inline void httpc_query_hdrs_add(httpc_query_t *q, lstr_t hdr)
+{
+    outbuf_t *ob = &q->owner->ob;
+
+    assert (q->hdrs_started && !q->hdrs_done);
+    ob_add(ob, hdr.s, hdr.len);
+    ob_adds(ob, "\r\n");
+}
+
 #endif

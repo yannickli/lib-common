@@ -1976,4 +1976,26 @@ void httpc_query_done(httpc_query_t *q)
     httpc_set_mask(q->owner);
 }
 
+void httpc_query_hdrs_add_auth(httpc_query_t *q, lstr_t login, lstr_t passwd)
+{
+    outbuf_t *ob = &q->owner->ob;
+    sb_t *sb;
+    sb_b64_ctx_t ctx;
+    int oldlen;
+
+    assert (q->hdrs_started && !q->hdrs_done);
+
+    sb = outbuf_sb_start(ob, &oldlen);
+
+    sb_adds(sb, "Authorization: Basic ");
+    sb_add_b64_start(sb, 0, -1, &ctx);
+    sb_add_b64_update(sb, login.s, login.len, &ctx);
+    sb_add_b64_update(sb, ":", 1, &ctx);
+    sb_add_b64_update(sb, passwd.s, passwd.len, &ctx);
+    sb_add_b64_finish(sb, &ctx);
+    sb_adds(sb, "\r\n");
+
+    outbuf_sb_end(ob, oldlen);
+}
+
 /* }}} */
