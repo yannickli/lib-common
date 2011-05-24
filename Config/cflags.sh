@@ -51,18 +51,25 @@ is_cpp()
 ( is_cpp && echo -std=gnu++98 ) || echo -std=gnu99
 # optimize even more
 echo -O2
-if gcc_prereq 4.3; then
-    echo -fpredictive-commoning
-    echo -ftree-vectorize
-    echo -fgcse-after-reload
-fi
-if ! is_clang; then
+
+if is_clang; then
+    if test "$2" != "rewrite"; then
+        echo -fdiagnostics-show-category=name
+    fi
+else
     echo -funswitch-loops
     # ignore for (i = 0; i < limit; i += N) as dangerous for N != 1.
     echo -funsafe-loop-optimizations
-    # turn on extra warnings
     echo -fshow-column
+    if gcc_prereq 4.3; then
+        echo -fpredictive-commoning
+        echo -ftree-vectorize
+        echo -fgcse-after-reload
+    fi
 fi
+# know where the warnings come from
+echo -fdiagnostics-show-option
+
 if test "$2" != "rewrite"; then
     # let the type char be unsigned by default
     echo -funsigned-char
@@ -71,13 +78,22 @@ if test "$2" != "rewrite"; then
 fi
 # let overflow be defined
 echo -fwrapv
+
 # turn on all common warnings
 echo -Wall
 echo -Wextra
-# know where the warnings come from
-echo -fdiagnostics-show-option
-# treat warnings as errors
+
+# treat warnings as errors but for a small few
 echo -Werror
+if gcc_prereq 4.3 || is_clang; then
+    echo -Wno-error=deprecated-declarations
+else
+    echo -Wno-deprecated-declarations
+fi
+if gcc_prereq 4.6; then
+    echo -Wno-error=unused-but-set-variable
+fi
+
 echo -Wchar-subscripts
 # warn about undefined preprocessor identifiers
 echo -Wundef
@@ -94,13 +110,6 @@ echo -Wsign-compare
 echo -Wunused
 # do not warn about unused function parameters
 echo -Wno-unused-parameter
-if is_clang; then
-    # do not warn about unused statement value
-    echo -Wno-unused-value
-else
-    # warn about casting of pointers to increased alignment requirements
-    echo -Wcast-align
-fi
 # warn about variable use before initialization
 echo -Wuninitialized
 # warn about variables which are initialized with themselves
@@ -119,8 +128,6 @@ echo -Wpointer-arith
 echo -Wredundant-decls
 # warn if the format string is not a string literal
 echo -Wformat-nonliteral
-# do not warn about zero-length formats.
-is_cpp || echo -Wno-format-zero-length
 # do not warn about strftime format with y2k issues
 echo -Wno-format-y2k
 # warn about functions without format attribute that should have one
@@ -128,7 +135,13 @@ echo -Wmissing-format-attribute
 # barf if we change constness
 #echo -Wcast-qual
 
-if ! is_cpp; then
+if is_cpp; then
+    echo -fno-rtti
+    echo -fno-exceptions
+    echo -Wnon-virtual-dtor
+    echo -Woverloaded-virtual
+    echo -Weffc++
+else
     # warn about functions declared without complete a prototype
     echo -Wstrict-prototypes
     echo -Wmissing-prototypes
@@ -137,15 +150,8 @@ if ! is_cpp; then
     echo -Wnested-externs
     # warn when a declaration is found after a statement in a block
     echo -Wdeclaration-after-statement
+    # do not warn about zero-length formats.
+    echo -Wno-format-zero-length
 fi
 
-if is_cpp && ! is_clang; then
-    echo -fno-exceptions
-    echo -fno-rtti
-    echo -Wnon-virtual-dtor
-    echo -Weffc++
-    echo -Woverloaded-virtual
-fi
-
-echo -Wno-error=deprecated-declarations
 echo -D_GNU_SOURCE $(getconf LFS_CFLAGS)
