@@ -345,7 +345,7 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
          cast(type_t *, cast(char *, __mptr) - offsetof(type_t, member)); })
 #else
 #  define container_of(obj, type_t, member) \
-      cast(type_t *, cast(char *, (obj) - offsetof(type_t, member)))
+      cast(type_t *, cast(char *, (obj)) - offsetof(type_t, member))
 #endif
 
 
