@@ -29,6 +29,7 @@ struct thr_job_t {
 struct thr_syn_t {
     thr_evc_t    ec;
     unsigned     pending;
+    unsigned     unsafe;
 } __attribute__((aligned(64)));
 
 #ifdef __has_blocks
@@ -182,6 +183,7 @@ void thr_syn_notify_b(thr_syn_t *syn, thr_queue_t *q, block_t blk)
 static ALWAYS_INLINE
 void thr_syn__job_prepare(thr_syn_t *syn)
 {
+    shared_write(syn->unsafe, 1);
     atomic_add(&syn->pending, 1);
 }
 
@@ -203,8 +205,10 @@ void thr_syn__job_done(thr_syn_t *syn)
     if (unlikely(res == UINT_MAX))
         e_panic("dead-lock detected");
 
-    if (res == 0)
+    if (res == 0) {
         thr_syn__broacast(syn);
+        shared_write(syn->unsafe, 0);
+    }
 }
 
 /** \brief wait for the completion of a given macro task.

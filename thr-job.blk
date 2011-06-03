@@ -661,6 +661,8 @@ void thr_syn_wait(thr_syn_t *syn)
             thr_ec_timedwait(&syn->ec, key, 100);
         }
     }
+    while (shared_read(syn->unsafe))
+        mb();
 }
 
 void thr_syn_notify(thr_syn_t *syn, thr_queue_t *q, thr_job_t *job)
