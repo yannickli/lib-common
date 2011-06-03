@@ -95,6 +95,7 @@ static __thread thr_info_t *self_g;
 
 size_t thr_parallelism_g;
 thr_queue_t *const thr_queue_main_g = &_G.main_queue;
+static thr_evc_t *thr0_cur_ec_g;
 
 /* Tracing {{{ */
 #ifndef NDEBUG
@@ -422,6 +423,20 @@ static thr_queue_t *thr_queue_init(thr_queue_t *q)
     return q;
 }
 
+static void thr_wakeup_thr0(void)
+{
+    if (self_tid_g != 0) {
+        thr_evc_t *ec = atomic_xchg(&thr0_cur_ec_g, NULL);
+
+        if (ec) {
+            thr_ec_broadcast(ec);
+            shared_write(thr0_cur_ec_g, ec);
+        } else {
+            pthread_kill(_G.threads[0].thr, SIGCHLD);
+        }
+    }
+}
+
 void thr_syn_queue(thr_syn_t *syn, thr_queue_t *q, thr_job_t *job)
 {
     if (likely(q)) {
@@ -435,7 +450,7 @@ void thr_syn_queue(thr_syn_t *syn, thr_queue_t *q, thr_job_t *job)
         assert (!q->closing || job == &q->destroy);
         if (mpsc_queue_push(&q->q, &n->qnode)) {
             if (q == thr_queue_main_g) {
-                pthread_kill(_G.threads[0].thr, SIGCHLD);
+                thr_wakeup_thr0();
             } else {
                 thr_schedule(&q->run);
             }
@@ -461,7 +476,7 @@ void thr_queue_sync(thr_queue_t *q, thr_job_t *job)
     assert (!q->closing || job == &q->destroy);
     if (mpsc_queue_push(&q->q, &n->qnode)) {
         if (q == thr_queue_main_g && self_tid_g != 0) {
-            pthread_kill(_G.threads[0].thr, SIGCHLD);
+            thr_wakeup_thr0();
         } else {
             thr_queue_drain(q);
             return;
@@ -643,22 +658,45 @@ size_t thr_id(void)
 
 void thr_syn_wait(thr_syn_t *syn)
 {
-    while (shared_read(syn->pending)) {
-        if (likely(thr_job_dequeue()))
-            continue;
-        if (self_tid_g == 0 && !mpsc_queue_looks_empty(&thr_queue_main_g->q))
-        {
-            thr_queue_drain(thr_queue_main_g);
-            continue;
-        }
-        if (!thr_job_steal()) {
-            uint64_t key = thr_ec_get(&syn->ec);
+    if (self_tid_g == 0) {
+        while (shared_read(syn->pending)) {
+            uint64_t key;
 
+            if (!mpsc_queue_looks_empty(&thr_queue_main_g->q)) {
+                thr_queue_drain(thr_queue_main_g);
+                continue;
+            }
+            if (likely(thr_job_dequeue()))
+                continue;
             if (thr_job_steal())
                 continue;
+
+            shared_write(thr0_cur_ec_g, &syn->ec);
+            key = thr_ec_get(&syn->ec);
             if (!shared_read(syn->pending))
-                break;
-            thr_ec_timedwait(&syn->ec, key, 100);
+                goto cas;
+            if (!mpsc_queue_looks_empty(&thr_queue_main_g->q))
+                goto cas;
+            if (thr_job_steal())
+                goto cas;
+            thr_ec_wait(&syn->ec, key);
+          cas:
+            while (unlikely(!atomic_bool_cas(&thr0_cur_ec_g, &syn->ec, NULL)))
+                sched_yield();
+        }
+    } else {
+        while (shared_read(syn->pending)) {
+            if (likely(thr_job_dequeue()))
+                continue;
+            if (!thr_job_steal()) {
+                uint64_t key = thr_ec_get(&syn->ec);
+
+                if (!shared_read(syn->pending))
+                    break;
+                if (thr_job_steal())
+                    continue;
+                thr_ec_timedwait(&syn->ec, key, 100);
+            }
         }
     }
     while (shared_read(syn->unsafe))
