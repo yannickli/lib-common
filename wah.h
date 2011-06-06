@@ -16,6 +16,13 @@
 
 #include <lib-common/container.h>
 
+/** \defgroup qkv__ll__wah Word Aligned Hybrid bitmaps.
+ * \ingroup qkv__ll
+ * \brief Word Aligned Hybrid bitmaps.
+ *
+ * \{
+ */
+
 /* Structures {{{ */
 
 typedef struct wah_header_t {
@@ -343,4 +350,5 @@ wah_bit_enum_t wah_bit_enum_start(const wah_t *wah, bool reverse)
          !en.end; wah_bit_enum_next(&en))
 
 /* }}} */
+/** \} */
 #endif
