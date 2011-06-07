@@ -137,6 +137,7 @@ ignore:
 endif
 _generated_hdr:
 _generated: _generated_hdr
+	$(msg/echo) ' ... generating sources done'
 .PHONY: _generated_hdr _generated
 # }}}
 ##########################################################################
