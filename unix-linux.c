@@ -60,7 +60,7 @@ void ps_dump_backtrace(int signum, const char *prog, int fd, bool full)
 #undef XWRITE
 }
 
-void ps_panic_sighandler(int signum)
+void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
 {
     static const struct sigaction sa = {
         .sa_flags   = SA_RESTART,
@@ -90,8 +90,8 @@ void ps_panic_sighandler(int signum)
 void ps_install_panic_sighandlers(void)
 {
     struct sigaction sa = {
-        .sa_flags   = SA_RESTART,
-        .sa_handler = &ps_panic_sighandler,
+        .sa_flags     = SA_RESTART | SA_SIGINFO,
+        .sa_sigaction = &ps_panic_sighandler,
     };
 
     sigaction(SIGABRT,   &sa, NULL);

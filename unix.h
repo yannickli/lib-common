@@ -42,7 +42,7 @@
 
 int  pid_get_starttime(pid_t pid, struct timeval *tv);
 void ps_dump_backtrace(int signum, const char *prog, int fd, bool full);
-void ps_panic_sighandler(int signum);
+void ps_panic_sighandler(int signum, siginfo_t *si, void *addr);
 void ps_install_panic_sighandlers(void);
 
 /****************************************************************************/
