@@ -153,9 +153,17 @@ static file_t *log_file_open_new(log_file_t *log_file, time_t date)
     file_t *res;
 
     real_path = t_build_real_path(NULL, log_file, date);
-    res = file_open(real_path, FILE_WRONLY | FILE_CREATE, 0644);
-    if (!res || file_seek(res, 0, SEEK_END) == (off_t)-1) {
-        e_trace(1, "Could not open log file: %s (%m)", real_path);
+
+    res = file_open(real_path, FILE_WRONLY | FILE_CREATE | FILE_EXCL, 0644);
+    if (res) {
+        log_file_call_cb(log_file, LOG_FILE_CREATE, NULL);
+    } else {
+        if (errno == EEXIST) {
+            res = file_open(real_path, FILE_WRONLY, 0644);
+        }
+        if (!res || file_seek(res, 0, SEEK_END) == (off_t)-1) {
+            e_trace(1, "Could not open log file: %s (%m)", real_path);
+        }
     }
 
     /* Add a symlink */
@@ -240,9 +248,6 @@ int log_file_open(log_file_t *log_file)
         e_trace(1, "Could not open first log file");
         return -1;
     }
-    if (file_tell(log_file->_internal) == 0) {
-        log_file_call_cb(log_file, LOG_FILE_CREATE, NULL);
-    }
     return 0;
 }
 
@@ -299,13 +304,12 @@ static int log_file_rotate_(log_file_t *file, time_t now)
 {
     IGNORE(file_close(&file->_internal));
 
-    file->_internal = log_file_open_new(file, now);
     file->open_date = now;
+    file->_internal = log_file_open_new(file, now);
     if (!file->_internal) {
         e_trace(1, "Could not rotate");
         return -1;
     }
-    log_file_call_cb(file, LOG_FILE_CREATE, NULL);
 
     return 0;
 }
