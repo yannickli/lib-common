@@ -84,7 +84,6 @@ el_data_t el_fd_unregister(ev_t **evp, bool do_close)
 static void el_loop_fds(int timeout)
 {
     struct epoll_event events[FD_SETSIZE];
-    struct timeval now;
     int res;
 
     el_fd_initialize();
@@ -93,12 +92,8 @@ static void el_loop_fds(int timeout)
     el_bl_lock();
     assert (res >= 0 || ERR_RW_RETRIABLE(errno));
 
-    if (_G.timers.len) {
-        el_timer_process(get_clock(false));
-    }
-
-    lp_gettv(&now);
-    while (--res >= 0) {
+    el_timer_process(get_clock(false));
+    while (res-- > 0) {
         ev_t *ev = events[res].data.ptr;
         int  evs = events[res].events;
 
