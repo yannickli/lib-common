@@ -84,15 +84,22 @@ el_data_t el_fd_unregister(ev_t **evp, bool do_close)
 static void el_loop_fds(int timeout)
 {
     struct epoll_event events[FD_SETSIZE];
+    uint64_t before, now;
     int res;
 
     el_fd_initialize();
     el_bl_unlock();
-    res = epoll_wait(epollfd_g, events, countof(events), timeout);
+    before = get_clock(false);
+    res    = epoll_wait(epollfd_g, events, countof(events), timeout);
+    now    = get_clock(false);
     el_bl_lock();
     assert (res >= 0 || ERR_RW_RETRIABLE(errno));
 
-    el_timer_process(get_clock(false));
+    if (now - before > 100)
+        dlist_splice_tail(&_G.idle, &_G.idle_parked);
+
+    _G.has_run = false;
+    el_timer_process(now);
     while (res-- > 0) {
         ev_t *ev = events[res].data.ptr;
         int  evs = events[res].events;

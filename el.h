@@ -61,11 +61,15 @@ typedef void (el_proxy_f)(el_t, short, el_data_t);
 
 el_t el_blocker_register(void);
 el_t el_before_register_d(el_cb_f *, el_data_t);
+el_t el_idle_register_d(el_cb_f, el_data_t);
 el_t el_signal_register_d(int signo, el_signal_f *, el_data_t);
 el_t el_child_register_d(pid_t pid, el_child_f *, el_data_t);
 
 static inline el_t el_before_register(el_cb_f *f, void *ptr) {
     return el_before_register_d(f, (el_data_t){ ptr });
+}
+static inline el_t el_idle_register(el_cb_f *f, void *ptr) {
+    return el_idle_register_d(f, (el_data_t){ ptr });
 }
 static inline el_t el_signal_register(int signo, el_signal_f *f, void *ptr) {
     return el_signal_register_d(signo, f, (el_data_t){ ptr });
@@ -75,13 +79,18 @@ static inline el_t el_child_register(pid_t pid, el_child_f *f, void *ptr) {
 }
 
 void el_before_set_hook(el_t, el_cb_f *);
+void el_idle_set_hook(el_t, el_cb_f *);
 void el_signal_set_hook(el_t, el_signal_f *);
 void el_child_set_hook(el_t, el_child_f *);
 
 el_data_t el_before_unregister(el_t *);
+el_data_t el_idle_unregister(el_t *);
 el_data_t el_signal_unregister(el_t *);
 el_data_t el_child_unregister(el_t *);
 void      el_blocker_unregister(el_t *);
+
+/*----- idle related -----*/
+void el_idle_unpark(el_t);
 
 /*----- child related -----*/
 pid_t el_child_getpid(el_t);

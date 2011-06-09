@@ -51,6 +51,7 @@ typedef enum ev_type_t {
     EV_FD,
     EV_TIMER,
     EV_PROXY,
+    EV_IDLE,
 } ev_type_t;
 
 enum ev_flags_t {
@@ -111,9 +112,12 @@ qm_k64_t(ev, ev_t *);
 static struct {
     volatile uint32_t gotsigs;
     int      active;          /* number of ev_t keeping the el_loop running */
-    int      unloop;          /* @see el_unloop()                           */
+    uint8_t  unloop;          /* @see el_unloop()                           */
+    uint8_t  has_run;         /* true if we did something during a loop     */
     uint64_t lp_clk;          /* low precision monotonic clock              */
 
+    dlist_t  idle;            /* ev_t to run when we're "idle"              */
+    dlist_t  idle_parked;     /* list to hide idle hooks for a while        */
     dlist_t  before;          /* ev_t to run just before the epoll call     */
     dlist_t  sigs;            /* signals el_t's                             */
     dlist_t  proxy, proxy_ready;
@@ -137,6 +141,8 @@ static struct {
     .evs_alloc_next = &_G.evs_initial[0],
     .evs_alloc_end  = &_G.evs_initial[countof(_G.evs_initial)],
 
+    .idle           = DLIST_INIT(_G.idle),
+    .idle_parked    = DLIST_INIT(_G.idle_parked),
     .before         = DLIST_INIT(_G.before),
     .sigs           = DLIST_INIT(_G.sigs),
     .proxy          = DLIST_INIT(_G.proxy),
@@ -226,7 +232,7 @@ static void ev_list_process(dlist_t *l)
     }
 }
 
-/*----- blockers and before events -----*/
+/*----- blockers, before and idle events -----*/
 
 ev_t *el_blocker_register(void)
 {
@@ -261,6 +267,53 @@ el_data_t el_before_unregister(ev_t **evp)
     return (el_data_t)NULL;
 }
 
+ev_t *el_idle_register_d(el_cb_f *cb, el_data_t priv)
+{
+    return ev_add(&_G.idle, el_create(EV_IDLE, cb, priv, false));
+}
+
+void el_idle_set_hook(el_t ev, el_cb_f *cb)
+{
+    CHECK_EV_TYPE(ev, EV_IDLE);
+    ev->cb.cb = cb;
+}
+
+el_data_t el_idle_unregister(ev_t **evp)
+{
+    if (*evp) {
+        CHECK_EV_TYPE(*evp, EV_IDLE);
+        return el_destroy(evp, true);
+    }
+    return (el_data_t)NULL;
+}
+
+void el_idle_unpark(ev_t *ev)
+{
+    CHECK_EV_TYPE(ev, EV_IDLE);
+    dlist_move(&_G.idle, &ev->ev_list);
+}
+
+static void el_idle_process(uint64_t now)
+{
+    static uint64_t last_run = UINT64_MAX;
+
+    if (now - last_run > 10 * 60 * 1000)
+        dlist_splice_tail(&_G.idle, &_G.idle_parked);
+    if (!_G.has_run) {
+        ev_cache_list(&_G.idle);
+        dlist_splice(&_G.idle_parked, &_G.idle);
+        last_run = now;
+
+        for (int i = 0; i < _G.cache.len; i++) {
+            ev_t *ev = _G.cache.tab[i];
+
+            if (unlikely(ev->type == EV_UNUSED))
+                continue;
+            (*ev->cb.cb)(ev, ev->priv);
+        }
+    }
+}
+
 /*----- signal events -----*/
 
 static void el_sighandler(int signum)
@@ -288,6 +341,7 @@ static void el_signal_process(void)
             continue;
         if (gotsigs & (1 << signo)) {
             (*ev->cb.signal)(ev, signo, ev->priv);
+            _G.has_run = true;
         }
     }
 }
@@ -491,6 +545,7 @@ static void el_timer_process(uint64_t until)
 
         EV_FLAG_RST(ev, TIMER_UPDATED);
         (*ev->cb.cb)(ev, ev->priv);
+        _G.has_run = true;
 
         /* ev has been unregistered in (*cb) */
         if (ev->type == EV_UNUSED)
@@ -619,6 +674,7 @@ static ALWAYS_INLINE void el_fd_fire(ev_t *ev, short evs)
     } else {
         (*ev->cb.fd)(ev, ev->fd, evs, ev->priv);
     }
+    _G.has_run = true;
 }
 
 static void el_act_timer(el_t ev, el_data_t priv)
@@ -778,8 +834,10 @@ static void el_loop_proxies(void)
 
         if (unlikely(ev->type == EV_UNUSED))
             continue;
-        if (likely(ev->events_avail & ev->events_wanted))
+        if (likely(ev->events_avail & ev->events_wanted)) {
             (*ev->cb.prox)(ev, ev->events_avail, ev->priv);
+            _G.has_run = true;
+        }
     }
 }
 
@@ -845,13 +903,13 @@ void el_loop_timeout(int timeout)
         if (nxt < (uint64_t)timeout + clk)
             timeout = nxt - clk;
     }
-    if (!dlist_is_empty(&_G.proxy_ready)) {
-        timeout = 0;
-    }
     do_license_checks();
     if (unlikely(_G.unloop))
         return;
     ev_list_process(&_G.before);
+    el_idle_process(clk);
+    if (!dlist_is_empty(&_G.proxy_ready) || !dlist_is_empty(&_G.idle))
+        timeout = 0;
     el_loop_fds(timeout);
     el_loop_proxies();
     el_signal_process();
