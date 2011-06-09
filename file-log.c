@@ -302,6 +302,9 @@ log_file_set_file_cb(log_file_t *file,
 
 static int log_file_rotate_(log_file_t *file, time_t now)
 {
+    if (file->open_date == now)
+        return 0;
+
     IGNORE(file_close(&file->_internal));
 
     file->open_date = now;
