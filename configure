@@ -182,14 +182,6 @@ fi
 test -r /usr/include/netinet/sctp.h || warn "missing libsctp, apt-get install libsctp-dev"
 
 # }}}
-# {{{ ffmpeg
-
-if pkg-config --print-errors "libavformat libavcodec"; then
-    setvar "ffmpeg_CFLAGS" "$(pkg-config --cflags libavformat libavcodec)"
-    setvar "ffmpeg_LIBS" "$(pkg-config --libs  libavformat libavcodec)"
-fi
-
-# }}}
 # {{{ JNI
 
 if test -z ${JAVA_HOME}; then
