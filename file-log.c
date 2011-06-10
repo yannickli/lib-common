@@ -145,23 +145,26 @@ static void log_check_invariants(log_file_t *log_file)
     globfree(&globbuf);
 }
 
-static file_t *log_file_open_new(log_file_t *log_file, time_t date)
+static void log_file_open_new(log_file_t *log_file, time_t date)
 {
     t_scope;
     const char *real_path;
     char sym_path[PATH_MAX];
-    file_t *res;
 
     real_path = t_build_real_path(NULL, log_file, date);
 
-    res = file_open(real_path, FILE_WRONLY | FILE_CREATE | FILE_EXCL, 0644);
-    if (res) {
+    log_file->open_date = date;
+    log_file->_internal = file_open(real_path, FILE_WRONLY | FILE_CREATE |
+                                    FILE_EXCL, 0644);
+    if (log_file->_internal) {
         log_file_call_cb(log_file, LOG_FILE_CREATE, NULL);
     } else {
         if (errno == EEXIST) {
-            res = file_open(real_path, FILE_WRONLY, 0644);
+            log_file->_internal = file_open(real_path, FILE_WRONLY, 0644);
         }
-        if (!res || file_seek(res, 0, SEEK_END) == (off_t)-1) {
+        if (!log_file->_internal
+        ||  file_seek(log_file->_internal, 0, SEEK_END) == (off_t)-1)
+        {
             e_trace(1, "Could not open log file: %s (%m)", real_path);
         }
     }
@@ -174,7 +177,6 @@ static file_t *log_file_open_new(log_file_t *log_file, time_t date)
         e_trace(1, "Could not symlink %s to %s (%m)", real_path, sym_path);
     }
     log_check_invariants(log_file);
-    return res;
 }
 
 static void log_file_find_last_date(log_file_t *log_file)
@@ -243,7 +245,7 @@ log_file_t *log_file_new(const char *nametpl, int flags)
 int log_file_open(log_file_t *log_file)
 {
     log_file_find_last_date(log_file);
-    log_file->_internal = log_file_open_new(log_file, log_file->open_date);
+    log_file_open_new(log_file, log_file->open_date);
     if (!log_file->_internal) {
         e_trace(1, "Could not open first log file");
         return -1;
@@ -307,8 +309,7 @@ static int log_file_rotate_(log_file_t *file, time_t now)
 
     IGNORE(file_close(&file->_internal));
 
-    file->open_date = now;
-    file->_internal = log_file_open_new(file, now);
+    log_file_open_new(file, now);
     if (!file->_internal) {
         e_trace(1, "Could not rotate");
         return -1;
