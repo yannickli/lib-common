@@ -218,7 +218,7 @@ typedef struct httpd_t {
 } httpd_t;
 
 /** type for HTTPD triggers authentication callbacks.
- * The authentication callback is always called as soon as there is on on a
+ * The authentication callback is always called as soon as there is one on a
  * given trigger descriptor.
  *
  * Though so that the authentication callback can allow non authenticated
