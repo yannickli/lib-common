@@ -11,10 +11,11 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef QKV_WAH_H
-#define QKV_WAH_H
-
-#include <lib-common/container.h>
+#if (!defined(QKV_LIB_H) || defined(QKV_LIB_WAH_H)) \
+&& !defined(__doxygen_mode__)
+#  error "you must include qkv-lib.h instead"
+#else
+#define QKV_LIB_WAH_H
 
 /** \defgroup qkv__ll__wah Word Aligned Hybrid bitmaps.
  * \ingroup qkv__ll
