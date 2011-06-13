@@ -217,7 +217,34 @@ typedef struct httpd_t {
     outbuf_t           ob;
 } httpd_t;
 
-typedef void (httpd_trigger_auth_f)(httpd_trigger_cb_t *, struct httpd_query_t *,
+/** type for HTTPD triggers authentication callbacks.
+ * The authentication callback is always called as soon as there is on on a
+ * given trigger descriptor.
+ *
+ * Though so that the authentication callback can allow non authenticated
+ * content to be returned, it is ALSO called if there was no Authorization:
+ * header in the HTTP query. In that case, \a user and \a pw are set to the
+ * "NULL" pstream (meaning <code>{ NULL, NULL }</code>). In the other case
+ * both \a user and \a pw point to valid NUL-terminated strings.
+ *
+ * If the Authorization field isn't valid, then of course the query is
+ * rejected by the http library and the callback isn't called.
+ *
+ * This callback is fired as soon as the HTTP headers are received, meaning
+ * that for many reasons the actual query may never happen (connection lost,
+ * invalid formatting of the rest of the query, etc…). So be very careful if
+ * you store allocated information in the query descriptor to either:
+ * - use the httpd_trigger_cb_t#query_cls trick;
+ * - make good use of httpd_trigger_cb_t#on_query_wipe;
+ * so that this data gets properly deallocated.
+ *
+ * \param[in]  cb   the callback that was matched.
+ * \param[in]  q    the descriptor of the incoming query.
+ * \param[in]  user "user" part of the Authorization field.
+ * \param[in]  pw   "password" part of the Authorization field.
+ */
+typedef void (httpd_trigger_auth_f)(httpd_trigger_cb_t *cb,
+                                    struct httpd_query_t *q,
                                     pstream_t user, pstream_t pw);
 
 struct httpd_trigger_cb_t {
