@@ -241,7 +241,7 @@ const void *mem_stack_push(mem_stack_pool_t *sp)
 }
 
 #ifndef NDEBUG
-static void mem_stack_protect(mem_stack_pool_t *sp)
+void mem_stack_protect(mem_stack_pool_t *sp)
 {
     mem_stack_blk_t *blk = sp->stack->blk;
     size_t remainsz = frame_end(sp->stack) - sp->stack->pos;
@@ -251,18 +251,6 @@ static void mem_stack_protect(mem_stack_pool_t *sp)
         VALGRIND_PROT_BLK(&blk->blk);
     }
 }
-
-const void *mem_stack_pop(mem_stack_pool_t *sp)
-{
-    mem_stack_frame_t *frame = sp->stack;
-
-    assert (frame->prev);
-    sp->stack = frame->prev;
-    mem_stack_protect(sp);
-    return frame;
-}
-#else
-#define mem_stack_protect(sp)
 #endif
 
 __attribute__((constructor))

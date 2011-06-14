@@ -120,29 +120,32 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *, int initialsize);
 void              mem_stack_pool_wipe(mem_stack_pool_t *);
 void              mem_stack_pool_delete(mem_pool_t **);
 
-const void *mem_stack_push(mem_stack_pool_t *);
 #ifndef NDEBUG
-const void *mem_stack_pop(mem_stack_pool_t *);
+void mem_stack_protect(mem_stack_pool_t *sp);
 /*
  * sealing a stack frame ensures that people wanting to allocate in that stack
  * use a t_push/t_pop or a t_scope first.
  *
  * It's not necessary to unseal before a pop().
  */
-#define mem_stack_seal(sp)   ((void)((sp)->stack->sealed = true))
-#define mem_stack_unseal(sp) ((void)((sp)->stack->sealed = false))
+#  define mem_stack_seal(sp)   ((void)((sp)->stack->sealed = true))
+#  define mem_stack_unseal(sp) ((void)((sp)->stack->sealed = false))
 #else
+#  define mem_stack_seal(sp)     ((void)0)
+#  define mem_stack_unseal(sp)   ((void)0)
+#  define mem_stack_protect(sp)  ((void)0)
+#endif
+
+const void *mem_stack_push(mem_stack_pool_t *);
 static ALWAYS_INLINE const void *mem_stack_pop(mem_stack_pool_t *sp)
 {
     mem_stack_frame_t *frame = sp->stack;
 
     assert (frame->prev);
     sp->stack = frame->prev;
+    mem_stack_protect(sp);
     return frame;
 }
-#define mem_stack_seal(sp)   ((void)0)
-#define mem_stack_unseal(sp) ((void)0)
-#endif
 
 extern __thread mem_stack_pool_t t_pool_g;
 #define t_pool()  (&t_pool_g.funcs)
