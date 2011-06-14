@@ -89,13 +89,10 @@ typedef struct mem_stack_blk_t {
 typedef struct mem_stack_frame_t mem_stack_frame_t;
 
 struct mem_stack_frame_t {
-    mem_stack_frame_t *prev;
-    mem_stack_blk_t   *blk;
-    uint8_t           *pos;
-    uint8_t           *last;
-#ifndef NDEBUG
-    bool               sealed;
-#endif
+    uintptr_t        prev;
+    mem_stack_blk_t *blk;
+    uint8_t         *pos;
+    uint8_t         *last;
 };
 
 typedef struct mem_stack_pool_t {
@@ -129,9 +126,11 @@ void mem_stack_protect(mem_stack_pool_t *sp);
  *
  * It's not necessary to unseal before a pop().
  */
-#  define mem_stack_seal(sp)   ((void)((sp)->stack->sealed = true))
-#  define mem_stack_unseal(sp) ((void)((sp)->stack->sealed = false))
+#  define mem_stack_prev(frame)  ((mem_stack_frame_t *)((frame)->prev & ~1L))
+#  define mem_stack_seal(sp)     ((void)((sp)->stack->prev |=  1L))
+#  define mem_stack_unseal(sp)   ((void)((sp)->stack->prev &= ~1L))
 #else
+#  define mem_stack_prev(frame)  ((mem_stack_frame_t *)(frame)->prev)
 #  define mem_stack_seal(sp)     ((void)0)
 #  define mem_stack_unseal(sp)   ((void)0)
 #  define mem_stack_protect(sp)  ((void)0)
@@ -147,8 +146,8 @@ static ALWAYS_INLINE const void *mem_stack_pop(mem_stack_pool_t *sp)
 {
     mem_stack_frame_t *frame = sp->stack;
 
-    assert (frame->prev);
-    sp->stack = frame->prev;
+    sp->stack = mem_stack_prev(frame);
+    assert (sp->stack);
     mem_stack_protect(sp);
     if (++sp->nbpops >= UINT16_MAX && mem_stack_is_at_top(sp)) {
         sp->nbpops = 0;

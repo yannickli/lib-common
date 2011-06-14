@@ -132,7 +132,7 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
     uint8_t *res;
 
 #ifndef NDEBUG
-    if (frame->sealed)
+    if (frame->prev & 1)
         e_panic("allocation performed on a sealed stack");
     size += __BIGGEST_ALIGNMENT__;
 #endif
@@ -159,7 +159,7 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem,
     uint8_t *res;
 
 #ifndef NDEBUG
-    if (frame->sealed)
+    if (frame->prev & 1)
         e_panic("allocation performed on a sealed stack");
     if (mem != NULL && unlikely(((void **)mem)[-1] != sp->stack))
         e_panic("%p wasn't allocated in that frame, realloc is forbidden", mem);
@@ -254,10 +254,7 @@ const void *mem_stack_push(mem_stack_pool_t *sp)
     frame->blk  = blk;
     frame->pos  = end;
     frame->last = NULL;
-    frame->prev = sp->stack;
-#ifndef NDEBUG
-    frame->sealed = false;
-#endif
+    frame->prev = (uintptr_t)sp->stack;
     return sp->stack = frame;
 }
 
