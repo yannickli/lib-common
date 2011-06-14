@@ -15,6 +15,10 @@
 #include "container.h"
 #include "thr.h"
 
+#ifndef __BIGGEST_ALIGNMENT__
+#define __BIGGEST_ALIGNMENT__  16
+#endif
+
 static ALWAYS_INLINE size_t sp_alloc_mean(mem_stack_pool_t *sp)
 {
     return sp->alloc_sz / sp->alloc_nb;
@@ -82,7 +86,7 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, mem_stack_blk_t **bl
 {
     mem_stack_frame_t *frame = sp->stack;
     uint8_t           *res   = frame->pos;
-    size_t             size  = ROUND_UP(asked, 16);
+    size_t             size  = ROUND_UP(asked, __BIGGEST_ALIGNMENT__);
 
     if (unlikely(res + size > frame_end(frame))) {
         mem_stack_blk_t *blk = frame_get_next_blk(sp, frame->blk, size);
@@ -128,14 +132,15 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
 #ifndef NDEBUG
     if (frame->sealed)
         e_panic("allocation performed on a sealed stack");
-    size += sizeof(void *);
+    size += __BIGGEST_ALIGNMENT__;
 #endif
     res = sp_reserve(sp, size, &frame->blk);
     if (!(flags & MEM_RAW))
         memset(res, 0, size);
     frame->pos = res + size;
 #ifndef NDEBUG
-    res = mempcpy(res, &sp->stack, sizeof(sp->stack));
+    res += __BIGGEST_ALIGNMENT__;
+    ((void **)res)[-1] = sp->stack;
 #endif
     return frame->last = res;
 }
@@ -149,7 +154,7 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem,
 {
     mem_stack_pool_t *sp = container_of(_sp, mem_stack_pool_t, funcs);
     mem_stack_frame_t *frame = sp->stack;
-    size_t size  = ROUND_UP(asked, 16);
+    size_t size  = ROUND_UP(asked, __BIGGEST_ALIGNMENT__);
     uint8_t *res;
 
 #ifndef NDEBUG
