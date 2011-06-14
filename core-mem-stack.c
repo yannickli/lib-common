@@ -25,28 +25,11 @@ static mem_stack_blk_t *blk_entry(dlist_t *l)
     return container_of(l, mem_stack_blk_t, blk_list);
 }
 
-static inline uint8_t align_boundary(size_t size)
-{
-    return MIN(16, 1 << bsrsz(size | 1));
-}
-
-static inline bool is_aligned_to(const void *addr, size_t boundary)
-{
-    return ((uintptr_t)addr & (boundary - 1)) == 0;
-}
-
-static byte *align_for(mem_stack_frame_t *frame, size_t size)
-{
-    size_t bmask = align_boundary(size) - 1;
-    return (byte *)(((uintptr_t)frame->pos + bmask) & ~bmask);
-}
-
 static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
 {
     size_t blksize = size_hint + sizeof(mem_stack_blk_t);
     mem_stack_blk_t *blk;
 
-    blksize += sizeof(mem_stack_blk_t);
     if (blksize < sp->minsize)
         blksize = sp->minsize;
     if (blksize < 64 * sp_alloc_mean(sp))
@@ -91,16 +74,17 @@ static byte *frame_end(mem_stack_frame_t *frame)
     return blk->area + blk->blk.size;
 }
 
-static void *sp_reserve(mem_stack_pool_t *sp, size_t size, mem_stack_blk_t **blkp)
+static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, mem_stack_blk_t **blkp)
 {
     mem_stack_frame_t *frame = sp->stack;
-    byte *res = align_for(frame, size);
+    uint8_t           *res   = frame->pos;
+    size_t             size  = ROUND_UP(asked, 16);
 
     if (unlikely(res + size > frame_end(frame))) {
         mem_stack_blk_t *blk = frame_get_next_blk(sp, frame->blk, size);
 
         *blkp = blk;
-        res = blk->area;
+        res   = blk->area;
     } else {
         *blkp = frame->blk;
     }
@@ -144,11 +128,12 @@ static void sp_free(mem_pool_t *_sp, void *mem, mem_flags_t flags)
 }
 
 static void *sp_realloc(mem_pool_t *_sp, void *mem,
-                        size_t oldsize, size_t size, mem_flags_t flags)
+                        size_t oldsize, size_t asked, mem_flags_t flags)
 {
     mem_stack_pool_t *sp = container_of(_sp, mem_stack_pool_t, funcs);
     mem_stack_frame_t *frame = sp->stack;
-    byte *res;
+    size_t size  = ROUND_UP(asked, 16);
+    uint8_t *res;
 
 #ifndef NDEBUG
     if (frame->sealed)
@@ -168,13 +153,12 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem,
         if (mem == frame->last) {
             sp->stack->pos = (byte *)mem + size;
         }
-        (void)VALGRIND_MAKE_MEM_NOACCESS((byte *)mem + size, oldsize - size);
+        (void)VALGRIND_MAKE_MEM_NOACCESS((uint8_t *)mem + asked, oldsize - asked);
         return size ? mem : NULL;
     }
 
     if (mem != NULL && mem == frame->last
-    &&  is_aligned_to(mem, align_boundary(size))
-    &&  (byte *)frame->last + size <= frame_end(sp->stack))
+    && frame->last + size <= frame_end(sp->stack))
     {
         sp->stack->pos = (byte *)frame->last + size;
         sp->alloc_sz  += size - oldsize;
