@@ -15,16 +15,17 @@
 #include "container.h"
 #include "thr.h"
 
-static size_t sp_alloc_mean(mem_stack_pool_t *sp)
+static ALWAYS_INLINE size_t sp_alloc_mean(mem_stack_pool_t *sp)
 {
     return sp->alloc_sz / sp->alloc_nb;
 }
 
-static mem_stack_blk_t *blk_entry(dlist_t *l)
+static ALWAYS_INLINE mem_stack_blk_t *blk_entry(dlist_t *l)
 {
     return container_of(l, mem_stack_blk_t, blk_list);
 }
 
+__cold
 static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
 {
     size_t blksize = size_hint + sizeof(mem_stack_blk_t);
@@ -35,7 +36,7 @@ static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
     if (blksize < 64 * sp_alloc_mean(sp))
         blksize = 64 * sp_alloc_mean(sp);
     blksize = ROUND_UP(blksize, PAGE_SIZE);
-    if (blksize > MEM_ALLOC_MAX)
+    if (unlikely(blksize > MEM_ALLOC_MAX))
         e_panic("You cannot allocate that amount of memory");
     blk = imalloc(blksize, MEM_RAW | MEM_LIBC);
     blk->blk.pool  = &sp->funcs;
@@ -48,6 +49,7 @@ static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
     return blk;
 }
 
+__cold
 static void blk_destroy(mem_stack_pool_t *sp, mem_stack_blk_t *blk)
 {
     sp->stacksize -= blk->blk.size;
@@ -57,7 +59,8 @@ static void blk_destroy(mem_stack_pool_t *sp, mem_stack_blk_t *blk)
     ifree(blk, MEM_LIBC);
 }
 
-static mem_stack_blk_t *frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t size)
+static ALWAYS_INLINE mem_stack_blk_t *
+frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t size)
 {
     while (cur->blk_list.next != &sp->blk_list) {
         mem_stack_blk_t *blk = dlist_next_entry(cur, blk_list);
@@ -68,7 +71,7 @@ static mem_stack_blk_t *frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t
     return blk_create(sp, size);
 }
 
-static byte *frame_end(mem_stack_frame_t *frame)
+static ALWAYS_INLINE uint8_t *frame_end(mem_stack_frame_t *frame)
 {
     mem_stack_blk_t *blk = frame->blk;
     return blk->area + blk->blk.size;
@@ -106,7 +109,7 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
 {
     mem_stack_pool_t *sp = container_of(_sp, mem_stack_pool_t, funcs);
     mem_stack_frame_t *frame = sp->stack;
-    byte *res;
+    uint8_t *res;
 
 #ifndef NDEBUG
     if (frame->sealed)
@@ -138,20 +141,15 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem,
 #ifndef NDEBUG
     if (frame->sealed)
         e_panic("allocation performed on a sealed stack");
-#endif
+    if (mem != NULL && unlikely(((void **)mem)[-1] != sp->stack))
+        e_panic("%p wasn't allocated in that frame, realloc is forbidden", mem);
     if (unlikely(oldsize == MEM_UNKNOWN))
         e_panic("stack pools do not support reallocs with unknown old size");
-
-#ifndef NDEBUG
-    if (mem != NULL) {
-        if (unlikely(((void **)mem)[-1] != sp->stack))
-            e_panic("%p wasn't allocated in that frame, realloc is forbidden", mem);
-    }
 #endif
 
     if (oldsize >= size) {
         if (mem == frame->last) {
-            sp->stack->pos = (byte *)mem + size;
+            sp->stack->pos = (uint8_t *)mem + size;
         }
         (void)VALGRIND_MAKE_MEM_NOACCESS((uint8_t *)mem + asked, oldsize - asked);
         return size ? mem : NULL;
@@ -160,7 +158,7 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem,
     if (mem != NULL && mem == frame->last
     && frame->last + size <= frame_end(sp->stack))
     {
-        sp->stack->pos = (byte *)frame->last + size;
+        sp->stack->pos = frame->last + size;
         sp->alloc_sz  += size - oldsize;
         (void)VALGRIND_MAKE_MEM_DEFINED(mem, size);
         res = mem;
@@ -170,7 +168,7 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem,
         (void)VALGRIND_MAKE_MEM_UNDEFINED(mem, oldsize);
     }
     if (!(flags & MEM_RAW))
-        memset(res + oldsize, 0, size - oldsize);
+        p_clear(res + oldsize, asked - oldsize);
     return res;
 }
 
@@ -189,7 +187,7 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
     sp->blk.size   = sizeof(mem_stack_pool_t) - sizeof(mem_stack_blk_t);
 
     sp->base.blk   = blk_entry(&sp->blk_list);
-    sp->base.pos   = sp + 1;
+    sp->base.pos   = (void *)(sp + 1);
     sp->stack      = &sp->base;
 
     /* 640k should be enough for everybody =) */
@@ -228,7 +226,7 @@ void mem_stack_pool_delete(mem_pool_t **spp)
 const void *mem_stack_push(mem_stack_pool_t *sp)
 {
     mem_stack_blk_t *blk;
-    byte *res = sp_reserve(sp, sizeof(mem_stack_frame_t), &blk);
+    uint8_t *res = sp_reserve(sp, sizeof(mem_stack_frame_t), &blk);
     mem_stack_frame_t *frame;
 
     frame = (mem_stack_frame_t *)res;
@@ -246,7 +244,7 @@ const void *mem_stack_push(mem_stack_pool_t *sp)
 static void mem_stack_protect(mem_stack_pool_t *sp)
 {
     mem_stack_blk_t *blk = sp->stack->blk;
-    size_t remainsz = frame_end(sp->stack) - (byte *)sp->stack->pos;
+    size_t remainsz = frame_end(sp->stack) - sp->stack->pos;
 
     (void)VALGRIND_MAKE_MEM_NOACCESS(sp->stack->pos, remainsz);
     dlist_for_each_entry_continue(blk, blk, &sp->blk_list, blk_list) {
@@ -290,7 +288,7 @@ void *stack_realloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
 
 char *t_fmt(int *out, const char *fmt, ...)
 {
-#define T_FMT_LEN   256
+#define T_FMT_LEN   1024
     va_list ap;
     char *res;
     int len;
@@ -299,7 +297,9 @@ char *t_fmt(int *out, const char *fmt, ...)
     va_start(ap, fmt);
     len = vsnprintf(res, T_FMT_LEN, fmt, ap);
     va_end(ap);
-    if (unlikely(len >= T_FMT_LEN)) {
+    if (likely(len < T_FMT_LEN)) {
+        sp_realloc(t_pool(), res, T_FMT_LEN, len + 1, MEM_RAW);
+    } else {
         res = sp_realloc(t_pool(), res, 0, len + 1, MEM_RAW);
         va_start(ap, fmt);
         len = vsnprintf(res, len + 1, fmt, ap);

@@ -83,7 +83,7 @@
 typedef struct mem_stack_blk_t {
     mem_blk_t blk;
     dlist_t   blk_list;
-    byte      area[];
+    uint8_t   area[];
 } mem_stack_blk_t;
 
 typedef struct mem_stack_frame_t mem_stack_frame_t;
@@ -91,8 +91,8 @@ typedef struct mem_stack_frame_t mem_stack_frame_t;
 struct mem_stack_frame_t {
     mem_stack_frame_t *prev;
     mem_stack_blk_t   *blk;
-    void              *pos;
-    void              *last;
+    uint8_t           *pos;
+    uint8_t           *last;
 #ifndef NDEBUG
     bool               sealed;
 #endif
@@ -105,12 +105,12 @@ typedef struct mem_stack_pool_t {
     /* XXX: kludge: below this point we're the "blk" data */
     mem_stack_frame_t    base;
     mem_stack_frame_t   *stack;
-    size_t               minsize;
     size_t               stacksize;
-    size_t               nbpages;
+    uint32_t             minsize;
+    uint32_t             nbpages;
 
-    uint32_t             alloc_sz;
     uint32_t             alloc_nb;
+    size_t               alloc_sz;
 
     mem_pool_t           funcs;
 } mem_stack_pool_t;
@@ -163,11 +163,11 @@ __attr_printf__(2, 3)
 char *t_fmt(int *out, const char *fmt, ...);
 
 #define t_new(type_t, n) \
-    ((type_t *)imalloc((n) * sizeof(type_t), MEM_STACK))
+    ((type_t *)stack_malloc((n) * sizeof(type_t), MEM_STACK))
 #define t_new_raw(type_t, n)  \
-    ((type_t *)imalloc((n) * sizeof(type_t), MEM_STACK | MEM_RAW))
+    ((type_t *)stack_malloc((n) * sizeof(type_t), MEM_STACK | MEM_RAW))
 #define t_new_extra(type_t, extra) \
-    ((type_t *)imalloc(sizeof(type_t) + (extra), MEM_STACK))
+    ((type_t *)stack_malloc(sizeof(type_t) + (extra), MEM_STACK))
 #define t_new_extra_field(type_t, field, extra) \
     t_new_extra(type_t, fieldsizeof(type_t, field[0]) * (extra))
 #define t_dup(p, count)    mp_dup(&t_pool_g.funcs, p, count)
