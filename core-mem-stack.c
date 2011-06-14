@@ -82,7 +82,8 @@ static ALWAYS_INLINE uint8_t *frame_end(mem_stack_frame_t *frame)
     return blk->area + blk->blk.size;
 }
 
-static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, mem_stack_blk_t **blkp)
+static void *sp_reserve(mem_stack_pool_t *sp, size_t asked,
+                        mem_stack_blk_t **blkp, uint8_t **end)
 {
     mem_stack_frame_t *frame = sp->stack;
     uint8_t           *res   = frame->pos;
@@ -119,6 +120,7 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, mem_stack_blk_t **bl
         sp->alloc_nb += 1;
     }
 
+    *end = res + size;
     return res;
 }
 
@@ -134,10 +136,9 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
         e_panic("allocation performed on a sealed stack");
     size += __BIGGEST_ALIGNMENT__;
 #endif
-    res = sp_reserve(sp, size, &frame->blk);
+    res = sp_reserve(sp, size, &frame->blk, &frame->pos);
     if (!(flags & MEM_RAW))
         memset(res, 0, size);
-    frame->pos = res + size;
 #ifndef NDEBUG
     res += __BIGGEST_ALIGNMENT__;
     ((void **)res)[-1] = sp->stack;
@@ -245,12 +246,13 @@ void mem_stack_pool_delete(mem_pool_t **spp)
 const void *mem_stack_push(mem_stack_pool_t *sp)
 {
     mem_stack_blk_t *blk;
-    uint8_t *res = sp_reserve(sp, sizeof(mem_stack_frame_t), &blk);
+    uint8_t *end;
+    uint8_t *res = sp_reserve(sp, sizeof(mem_stack_frame_t), &blk, &end);
     mem_stack_frame_t *frame;
 
     frame = (mem_stack_frame_t *)res;
     frame->blk  = blk;
-    frame->pos  = res + sizeof(mem_stack_frame_t);
+    frame->pos  = end;
     frame->last = NULL;
     frame->prev = sp->stack;
 #ifndef NDEBUG
