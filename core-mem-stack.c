@@ -132,6 +132,8 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
     uint8_t *res;
 
 #ifndef NDEBUG
+    if (unlikely(frame == &sp->base))
+        e_panic("allocation performed without a t_scope/t_push");
     if (frame->prev & 1)
         e_panic("allocation performed on a sealed stack");
     size += __BIGGEST_ALIGNMENT__;
