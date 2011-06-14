@@ -62,9 +62,10 @@ static void blk_destroy(mem_stack_pool_t *sp, mem_stack_blk_t *blk)
 static ALWAYS_INLINE mem_stack_blk_t *
 frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t size)
 {
-    while (cur->blk_list.next != &sp->blk_list) {
-        mem_stack_blk_t *blk = dlist_next_entry(cur, blk_list);
-        if (blk->blk.size >= size && blk->blk.size > 8 * sp_alloc_mean(sp))
+    mem_stack_blk_t *blk;
+
+    dlist_for_each_entry_safe_continue(cur, blk, &sp->blk_list, blk_list) {
+        if (blk->blk.size >= size)
             return blk;
         blk_destroy(sp, blk);
     }
@@ -91,15 +92,28 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, mem_stack_blk_t **bl
     } else {
         *blkp = frame->blk;
     }
-    (void)VALGRIND_MAKE_MEM_UNDEFINED(res, size);
-    if (unlikely(sp->alloc_sz + size < sp->alloc_sz)
-    ||  unlikely(sp->alloc_nb >= UINT16_MAX))
-    {
-        sp->alloc_sz /= 2;
-        sp->alloc_nb /= 2;
+    (void)VALGRIND_MAKE_MEM_UNDEFINED(res, asked);
+    /* compute a progressively forgotten mean of the allocation size.
+     *
+     * Every 64k allocations, we divide the sum of allocations by four so that
+     * the distant past has less and less consequences on the mean in the hope
+     * that it will converge.
+     *
+     * As the t_stack should not be used for large allocations, at least it's
+     * clearly not its typical usage, ignore the allocation larger than 128M
+     * from this computation. Those hence will always yield a malloc (actually
+     * a mmap) which is fine.
+     */
+    if (size < 128 << 20) {
+        if (unlikely(sp->alloc_sz + size < sp->alloc_sz)
+        ||  unlikely(sp->alloc_nb >= UINT16_MAX))
+        {
+            sp->alloc_sz /= 4;
+            sp->alloc_nb /= 4;
+        }
+        sp->alloc_sz += size;
+        sp->alloc_nb += 1;
     }
-    sp->alloc_sz += size;
-    sp->alloc_nb += 1;
 
     return res;
 }
@@ -160,12 +174,12 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem,
     {
         sp->stack->pos = frame->last + size;
         sp->alloc_sz  += size - oldsize;
-        (void)VALGRIND_MAKE_MEM_DEFINED(mem, size);
+        (void)VALGRIND_MAKE_MEM_UNDEFINED(mem + oldsize, asked - oldsize);
         res = mem;
     } else {
         res = sp_alloc(_sp, size, flags | MEM_RAW);
         memcpy(res, mem, oldsize);
-        (void)VALGRIND_MAKE_MEM_UNDEFINED(mem, oldsize);
+        (void)VALGRIND_MAKE_MEM_NOACCESS(mem, oldsize);
     }
     if (!(flags & MEM_RAW))
         p_clear(res + oldsize, asked - oldsize);

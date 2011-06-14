@@ -108,6 +108,7 @@ typedef struct mem_stack_pool_t {
     size_t               stacksize;
     uint32_t             minsize;
     uint32_t             nbpages;
+    uint32_t             nbpops;
 
     uint32_t             alloc_nb;
     size_t               alloc_sz;
@@ -136,6 +137,11 @@ void mem_stack_protect(mem_stack_pool_t *sp);
 #  define mem_stack_protect(sp)  ((void)0)
 #endif
 
+static ALWAYS_INLINE bool mem_stack_is_at_top(mem_stack_pool_t *sp)
+{
+    return sp->stack == &sp->base;
+}
+
 const void *mem_stack_push(mem_stack_pool_t *);
 static ALWAYS_INLINE const void *mem_stack_pop(mem_stack_pool_t *sp)
 {
@@ -144,6 +150,10 @@ static ALWAYS_INLINE const void *mem_stack_pop(mem_stack_pool_t *sp)
     assert (frame->prev);
     sp->stack = frame->prev;
     mem_stack_protect(sp);
+    if (++sp->nbpops >= UINT16_MAX && mem_stack_is_at_top(sp)) {
+        sp->nbpops = 0;
+        mem_stack_pool_wipe(sp);
+    }
     return frame;
 }
 
