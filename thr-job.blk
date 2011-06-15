@@ -338,7 +338,7 @@ static ALWAYS_INLINE thr_qnode_t *thr_qnode_of(mpsc_node_t *node)
 
 static thr_qnode_t *thr_qnode_create(void)
 {
-    if (likely(self_g->ncache.qnode.next)) {
+    if (likely(self_g && self_g->ncache.qnode.next)) {
         thr_qnode_t *n = thr_qnode_of(self_g->ncache.qnode.next);
 
         self_g->ncache.qnode.next = n->qnode.next;
@@ -350,7 +350,7 @@ static thr_qnode_t *thr_qnode_create(void)
 
 static void thr_qnode_destroy(mpsc_node_t *n)
 {
-    if (likely(self_g->ncache_sz < NCACHE_MAX)) {
+    if (likely(self_g && self_g->ncache_sz < NCACHE_MAX)) {
         self_g->ncache_sz++;
         n->next = self_g->ncache.qnode.next;
         self_g->ncache.qnode.next = n;
