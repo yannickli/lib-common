@@ -313,10 +313,8 @@ qvector_t(u64,    uint64_t);
 qvector_t(void,   void *);
 qvector_t(double, double);
 qvector_t(str,    char *);
-#ifndef __cplusplus
 qvector_t(lstr,   lstr_t);
 qvector_t(clstr,  lstr_t);
-#endif
 
 qvector_t(cvoid, const void *);
 qvector_t(cstr,  const char *);
