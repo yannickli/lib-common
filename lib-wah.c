@@ -654,20 +654,6 @@ WAH_TEST("for_each")
     TEST_FAIL_IF(c != nbc, "bad number of enumerated entries %d, expected %d",
                  (int)c, (int)nbc);
 
-#if 0
-    for (int i = 0; i < (int)bitsizeof(data) + 100; i++) {
-        wah_path_t path = wah_find(&map, i);
-        if (!wah_check_path(&map, &path)) {
-            TEST_FAIL_IF(true, "invalid path for bit %d", i);
-        }
-    }
-    {
-        wah_path_t last = wah_last(&map);
-        TEST_FAIL_IF(!wah_check_path(&map, &last),
-                     "bad pos for last %d", (int)last.bit_in_map);
-    }
-#endif
-
     wah_wipe(&map);
     TEST_DONE();
 }
