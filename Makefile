@@ -204,7 +204,7 @@ Upgrading.html: Upgrading.txt ../Config/asciidoc.conf
 	@echo " DOC $(@F)"
 	@$(RM) $@
 	@asciidoc -f ../Config/asciidoc.conf -b xhtml11 -o $@ $<
-	@fromdos $@
+	@dos2unix $@
 endif
 
 include ../Build/base.mk
