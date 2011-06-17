@@ -224,7 +224,7 @@ static inline int ps_skip_afterchr(pstream_t *ps, int c) {
 static inline
 int ps_skip_upto_data(pstream_t *ps, const void *data, size_t len)
 {
-    const char *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), data, len));
+    void *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), data, len));
     return __ps_skip_upto(ps, mem);
 }
 
@@ -234,8 +234,8 @@ int ps_skip_upto_data(pstream_t *ps, const void *data, size_t len)
 static inline
 int ps_skip_after_data(pstream_t *ps, const void *data, size_t len)
 {
-    const char *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), data, len));
-    return __ps_skip_upto(ps, mem + len);
+    void *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), data, len));
+    return __ps_skip_upto(ps, (char *)mem + len);
 }
 
 
@@ -290,7 +290,7 @@ static inline int ps_get_ps_chr(pstream_t *ps, int c, pstream_t *out) {
 static inline int
 ps_get_ps_upto_data(pstream_t *ps, const void *d, size_t len, pstream_t *out)
 {
-    const char *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), d, len));
+    void *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), d, len));
     *out = __ps_get_ps_upto(ps, mem);
     return 0;
 }
@@ -302,9 +302,9 @@ static inline int
 ps_get_ps_upto_data_and_skip(pstream_t *ps,
                              const void *data, size_t len, pstream_t *out)
 {
-    const char *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), data, len));
+    void *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), data, len));
     *out = __ps_get_ps_upto(ps, mem);
-    __ps_skip_upto(ps, mem + len);
+    __ps_skip_upto(ps, (char *)mem + len);
     return 0;
 }
 
