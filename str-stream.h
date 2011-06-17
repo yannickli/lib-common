@@ -218,6 +218,27 @@ static inline int ps_skip_afterchr(pstream_t *ps, int c) {
     return likely(p) ? __ps_skip_upto(ps, p + 1) : -1;
 }
 
+/** \brief  Skips up to the (\a data, \a len) word
+ * \return -1 if the word cannot be found
+ */
+static inline
+int ps_skip_upto_data(pstream_t *ps, const void *data, size_t len)
+{
+    const char *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), data, len));
+    return __ps_skip_upto(ps, mem);
+}
+
+/** \brief  Skips after the (\a data, \a len) word
+ * \return -1 if the word cannot be found
+ */
+static inline
+int ps_skip_after_data(pstream_t *ps, const void *data, size_t len)
+{
+    const char *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), data, len));
+    return __ps_skip_upto(ps, mem + len);
+}
+
+
 /****************************************************************************/
 /* extracting sub pstreams                                                  */
 /****************************************************************************/
@@ -259,6 +280,31 @@ static inline int ps_get_ps_chr(pstream_t *ps, int c, pstream_t *out) {
     const void *p = memchr(ps->s, c, ps_len(ps));
     PS_WANT(p);
     *out = __ps_get_ps_upto(ps, p);
+    return 0;
+}
+
+
+/** \brief  Returns the bytes un tp the (\a d, \a len) word
+ * \return -1 if the word cannot be found
+ */
+static inline int
+ps_get_ps_upto_data(pstream_t *ps, const void *d, size_t len, pstream_t *out)
+{
+    const char *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), d, len));
+    *out = __ps_get_ps_upto(ps, mem);
+    return 0;
+}
+
+/** \brief  Returns the bytes un tp the (\a data, \a len) word, and skip it.
+ * \return -1 if the word cannot be found
+ */
+static inline int
+ps_get_ps_upto_data_and_skip(pstream_t *ps,
+                             const void *data, size_t len, pstream_t *out)
+{
+    const char *mem = RETHROW_PN(memmem(ps->p, ps_len(ps), data, len));
+    *out = __ps_get_ps_upto(ps, mem);
+    __ps_skip_upto(ps, mem + len);
     return 0;
 }
 
