@@ -154,9 +154,9 @@ IOP C Backend
 Memory pool
 ~~~~~~~~~~~
 
-Each function of the IOP unpacker expects a stacked memory allocator:
-`stack_pool_t` which you can obtain by a function like `t_pool` or
-`mem_stack_pool_new`. Never use another memory allocator with the unpacker.
+Each function of the IOP unpacker expects a memory allocator able to
+deallocate all tiny allocations at once like `t_pool` or `r_pool`.
+Never use another memory allocator with the unpacker.
 
 Scalar types usage
 ~~~~~~~~~~~~~~~~~~

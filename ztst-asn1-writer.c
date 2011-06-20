@@ -393,12 +393,12 @@ static bool test_array_equal(const test_array_t *t1, const test_array_t *t2)
 
 TEST_DECL("asn1: BER encoder/decoder - constructed types", 0)
 {
+    t_scope;
     uint8_t buf[256];
     int len;
     uint8_t bs_content[] = { 0xF };
     bool fail = false;
     pstream_t ps;
-    mem_pool_t *mem_pool = mem_stack_pool_new(1024);
 
     uint8_t expected_0[] = {
         0xab, 0x01, 0xff, 0xcd, 0x05, 0x00, 0x87, 0x65,
@@ -560,7 +560,7 @@ TEST_DECL("asn1: BER encoder/decoder - constructed types", 0)
     len = asn1_pack_size(test_reader, &exp_rdr_out, &stack);
     asn1_pack(test_reader, buf, &exp_rdr_out, &stack);
     ps = ps_init(buf, len);
-    if (asn1_unpack(test_reader, &ps, mem_pool, &rdr_out, false) < 0
+    if (asn1_unpack(test_reader, &ps, t_pool(), &rdr_out, false) < 0
     || rdr_out.i1 != exp_rdr_out.i1 || rdr_out.i2 != exp_rdr_out.i2
     || rdr_out.str.len != exp_rdr_out.str.len
     || memcmp(rdr_out.str.data, exp_rdr_out.str.data, rdr_out.str.len)
@@ -602,7 +602,7 @@ TEST_DECL("asn1: BER encoder/decoder - constructed types", 0)
         fail = true;
     }
     ps = ps_init(buf, len);
-    if (asn1_unpack(simple_array, &ps, mem_pool, &simple_array_out,
+    if (asn1_unpack(simple_array, &ps, t_pool(), &simple_array_out,
                            false) < 0
     || !simple_array_equal(&simple_array_out, &simple_array))
     {
@@ -649,7 +649,7 @@ TEST_DECL("asn1: BER encoder/decoder - constructed types", 0)
 
     e_trace(1, "Choice unpacking test.");
     ps = ps_init(buf, len);
-    if (asn1_unpack(test_u_choice, &ps, mem_pool, &u_choice_out, false) < 0
+    if (asn1_unpack(test_u_choice, &ps, t_pool(), &u_choice_out, false) < 0
     || u_choice.i != u_choice_out.i
     || u_choice.choice->type != u_choice_out.choice->type
     || u_choice.choice->choice2 != u_choice_out.choice->choice2)
@@ -674,7 +674,7 @@ TEST_DECL("asn1: BER encoder/decoder - constructed types", 0)
         fail = true;
     }
     ps = ps_init(buf, len);
-    if (asn1_unpack(test_vector, &ps, mem_pool, &test_vector, false) < 0
+    if (asn1_unpack(test_vector, &ps, t_pool(), &test_vector, false) < 0
     ||  test_vector.choice.len != 3
     ||  !test_vector_equal(&test_vector, &test_vector_in))
     {
@@ -695,7 +695,7 @@ TEST_DECL("asn1: BER encoder/decoder - constructed types", 0)
         fail = true;
     }
     ps = ps_init(buf, len);
-    if (asn1_unpack(test_array, &ps, mem_pool, &test_array, false) < 0
+    if (asn1_unpack(test_array, &ps, t_pool(), &test_array, false) < 0
     ||  test_array.choice.len != 3
     ||  !test_array_equal(&test_array, &test_array_in))
     {
@@ -705,7 +705,7 @@ TEST_DECL("asn1: BER encoder/decoder - constructed types", 0)
     }
 
     ps = ps_init(il_test_input, sizeof(il_test_input));
-    if ((ret = asn1_unpack(il_test_base, &ps, mem_pool, &il, false)) < 0
+    if ((ret = asn1_unpack(il_test_base, &ps, t_pool(), &il, false)) < 0
     ||  il.t.i1 != 0x1000 || il.t.i2 != 0x0)
     {
         e_trace(0, "INDEFINITE LENGTH UNPACKING TEST FAILED");
