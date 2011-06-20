@@ -222,26 +222,10 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
     return sp;
 }
 
-mem_pool_t *mem_stack_pool_new(int initialsize)
-{
-    return &mem_stack_pool_init(p_new_raw(mem_stack_pool_t, 1), initialsize)->funcs;
-}
-
 void mem_stack_pool_wipe(mem_stack_pool_t *sp)
 {
     dlist_for_each_safe(e, &sp->blk_list) {
         blk_destroy(sp, blk_entry(e));
-    }
-}
-
-void mem_stack_pool_delete(mem_pool_t **spp)
-{
-    if (*spp) {
-        mem_stack_pool_t *sp = container_of(*spp, mem_stack_pool_t, funcs);
-
-        mem_stack_pool_wipe(sp);
-        p_delete(&sp);
-        *spp = NULL;
     }
 }
 

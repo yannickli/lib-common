@@ -113,10 +113,8 @@ typedef struct mem_stack_pool_t {
     mem_pool_t           funcs;
 } mem_stack_pool_t;
 
-mem_pool_t       *mem_stack_pool_new(int initialsize);
 mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *, int initialsize);
 void              mem_stack_pool_wipe(mem_stack_pool_t *);
-void              mem_stack_pool_delete(mem_pool_t **);
 
 #ifndef NDEBUG
 void mem_stack_protect(mem_stack_pool_t *sp);
