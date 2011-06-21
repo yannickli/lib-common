@@ -169,9 +169,13 @@ if is_cpp; then
         echo -fno-rtti
         echo -fno-exceptions
     fi
-    echo -Wnon-virtual-dtor
-    echo -Woverloaded-virtual
-    echo -Weffc++
+    if gcc_prereq 4.2; then
+        echo -Wnon-virtual-dtor
+        echo -Woverloaded-virtual
+        echo -Weffc++
+    else
+        echo -Wno-shadow
+    fi
 else
     # warn about functions declared without complete a prototype
     echo -Wstrict-prototypes
