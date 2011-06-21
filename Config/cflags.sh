@@ -150,8 +150,13 @@ fi
 echo -Wpointer-arith
 # warn about multiple declarations
 echo -Wredundant-decls
-# warn if the format string is not a string literal
-echo -Wformat-nonliteral
+if gcc_prereq 4.2; then
+    # XXX: this is disabled for 4.1 because we sometimes need to disable it
+    #      and GCC diagostic pragmas is a 4.2 feature only. As gcc-4.1 is no
+    #      longer used for development this isn't a problem.
+    # warn if the format string is not a string literal
+    echo -Wformat-nonliteral
+fi
 # do not warn about strftime format with y2k issues
 echo -Wno-format-y2k
 # warn about functions without format attribute that should have one
