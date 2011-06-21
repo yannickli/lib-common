@@ -104,7 +104,8 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, int mem_pool)
  * requires implementation as a macro.  size should be a constant
  * anyway.
  */
-#define sb_inita(sb, sz)  sb_init_full(sb, alloca(sz), 0, (sz), MEM_STATIC)
+#define sb_inita(sb, sz)                                \
+    sb_init_full(sb, memset(alloca(sz), 0, 1), 0, (sz), MEM_STATIC)
 
 #ifdef __cplusplus
 #define SB(name, sz)                                    \
@@ -114,7 +115,7 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, int mem_pool)
 #else
 #define SB(name, sz) \
     sb_t name = {                                       \
-        .data = alloca(sz),                             \
+        .data = memset(alloca(sz), 0, 1),               \
         .size = (STATIC_ASSERT((sz) < (64 << 10)), sz), \
     }
 #endif
