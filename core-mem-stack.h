@@ -212,7 +212,11 @@ static ALWAYS_INLINE void t_scope_cleanup(const void **unused)
 #define t_scope__(n)  \
     const void *t_scope_##n __attribute__((unused,cleanup(t_scope_cleanup))) = t_push()
 #define t_scope_(n)  t_scope__(n)
-#define t_scope      t_scope_(__COUNTER__)
+#ifdef __COUNTER__
+#  define t_scope      t_scope_(__COUNTER__)
+#else
+#  define t_scope      t_scope_(__LINE__)
+#endif
 
 #ifdef __cplusplus
 /*
