@@ -160,13 +160,13 @@ $$(eval $$(call fun/foreach-ext-rule,$1,$~$1.a,$$($1_SOURCES)))
 $~$1.a:
 	$(msg/LINK.a) $$(@R)
 	$(RM) $$@
-	$(AR) crs $$@ $$(filter %.o,$$^)
+	$(AR) crs $$@ $$(filter %.o %.oo,$$^)
 
 $$(eval $$(call fun/foreach-ext-rule,$1,$~$1.pic.a,$$($1_SOURCES),.pic))
 $~$1.pic.a:
 	$(msg/LINK.a) $$(@R)
 	$(RM) $$@
-	$(AR) crs $$@ $$(filter %.o,$$^)
+	$(AR) crs $$@ $$(filter %.o %.oo,$$^)
 endef
 
 #}}}
@@ -186,7 +186,7 @@ $$(eval $$(call fun/foreach-ext-rule,$1,$~$1.so$$(tmp/$1/build),$$($1_SOURCES),.
 $~$1.so$$(tmp/$1/build):
 	$(msg/LINK.c) $$(@R)
 	$$(or $$($1_LINKER),$(CC)) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) \
-	    -fPIC -shared -o $$@ $$(filter %.o,$$^) \
+	    -fPIC -shared -o $$@ $$(filter %.o %.oo,$$^) \
 	    $$(addprefix -Wl$$(var/comma)--version-script$$(var/comma),$$(filter %.ld,$$^)) \
 	    $(LDFLAGS) $$($(1D)/_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
@@ -210,7 +210,7 @@ $$(eval $$(call fun/foreach-ext-rule,$1,$~$1.exe,$$($1_SOURCES),$4))
 $~$1.exe:
 	$(msg/LINK.c) $$(@R)
 	$$(or $$($1_LINKER),$(CC)) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) \
-	    -o $$@ $$(filter %.o %.ld,$$^) \
+	    -o $$@ $$(filter %.o %.oo %.ld,$$^) \
 	    $(LDFLAGS) $$($(1D)/_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) \
