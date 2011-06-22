@@ -247,10 +247,20 @@ fi
 
 ccn0="/home/data/build/ccn"
 ccn1="/opt/ccn"
+ccn2="/srv/build/ccn"
 
-if file_exists "$ccn0" || file_exists "$ccn1"; then
+if file_exists "$ccn0"; then
     setenv "ENABLE_CCN" "1"
     setenv "WITH_CCN" "1"
+    setenv "CCN_PATH" "$ccn0"
+elif file_exists "$ccn1"; then
+    setenv "ENABLE_CCN" "1"
+    setenv "WITH_CCN" "1"
+    setenv "CCN_PATH" "$ccn1"
+elif file_exists "$ccn2"; then
+    setenv "ENABLE_CCN" "1"
+    setenv "WITH_CCN" "1"
+    setenv "CCN_PATH" "$ccn2" 
 else
     setenv "ENABLE_CCN" "0"
     log "CCN SDK not found"
