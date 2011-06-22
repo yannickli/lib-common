@@ -225,21 +225,20 @@ fi
 
 simpa0="/home/data/projects/kiosque/Doc confidentiel SFR pour NSN 30102009/SIMPA_Kit Marchand_Java_V5.20.02_20091029.zip"
 simpa1="/opt/kitmarchand"
+simpa2="/srv/build/kitmarchand"
 
 file_exists() {
     test -e "$1" -a -r "$1"
 }
 
 if file_exists "$simpa1"; then
-    setenv "ENABLE_SFR_SIMPA" "1"
-    setenv "WITH_SFR_SIMPA" "1"
+    setenv "SIMPA_PATH" "$sympa1";
+elif file_exists "$simpa2"; then
+    setenv "SIMPA_PATH" "$sympa2";
+elif file_exists "$simpa0"; then
+    setenv "SIMPA_PATH" "$sympa0";
 else
-    setenv "ENABLE_SFR_SIMPA" "0"
-    if test -r "$simpa0"; then
-        log "kit SIMPA SFR not found (see $simpa0)"
-    else
-        log "kit SIMPA SFR not found"
-    fi
+    log "kit SIMPA SFR not found"
 fi
 
 # }}}
