@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <math.h>
 #include "unix.h"
 #include "iop.h"
 #include "iop-helpers.inl.c"
@@ -1299,8 +1300,15 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                 break;
 
               case IOP_T_DOUBLE:
-                WRITE(ibuf, sprintf(ibuf, "%.17e",
-                                    IOP_FIELD(double, ptr, j)));
+                {
+                    double d = IOP_FIELD(double, ptr, j);
+
+                    if (isinf(d)) {
+                        PUTS(d < 0 ? "-Infinity" : "Infinity");
+                    } else {
+                        WRITE(ibuf, sprintf(ibuf, "%.17e", d));
+                    }
+                }
                 break;
 
               case IOP_T_UNION:

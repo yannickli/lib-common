@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <math.h>
 #include "iop.h"
 #include "iop-helpers.inl.c"
 
@@ -51,6 +52,8 @@ xpack_value(sb_t *sb, const iop_field_t *f, const void *v, bool verbose,
     }
 
     switch (f->type) {
+        double d;
+
       case IOP_T_I8:     sb_addf(sb, "%i",      *(  int8_t *)v); break;
       case IOP_T_U8:     sb_addf(sb, "%u",      *( uint8_t *)v); break;
       case IOP_T_I16:    sb_addf(sb, "%i",      *( int16_t *)v); break;
@@ -71,7 +74,14 @@ xpack_value(sb_t *sb, const iop_field_t *f, const void *v, bool verbose,
       case IOP_T_U32:    sb_addf(sb, "%u",      *(uint32_t *)v); break;
       case IOP_T_I64:    sb_addf(sb, "%jd",     *( int64_t *)v); break;
       case IOP_T_U64:    sb_addf(sb, "%ju",     *(uint64_t *)v); break;
-      case IOP_T_DOUBLE: sb_addf(sb, "%.17e",   *(double *)v);   break;
+      case IOP_T_DOUBLE:
+        d = *(double *)v;
+        if (isinf(d)) {
+            sb_adds(sb, d < 0 ? "-INF" : "INF");
+        } else {
+            sb_addf(sb, "%.17e", d);
+        }
+        break;
       case IOP_T_BOOL:
         if (*(bool *)v) {
             sb_addc(sb, '1');
