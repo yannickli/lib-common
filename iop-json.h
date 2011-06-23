@@ -103,6 +103,24 @@ int iop_jpack(const iop_struct_t *, const void *value,
               bool strict);
 int iop_junpack(iop_json_lex_t *, const iop_struct_t *, void *,
                 bool single_value);
+void iop_jtrace_(int lvl, const char *fname, int lno, const char *func,
+                 const char *name, const iop_struct_t *, const void *);
+#define iop_jtrace(lvl, st, v) \
+    do {                                                     \
+        if (e_is_traced(lvl)) {                              \
+            const st##__t *__v = (v);                        \
+            iop_jtrace_(lvl, __FILE__, __LINE__, __func__,   \
+                        NULL, &st##__s, __v);                \
+        }                                                    \
+    } while (0)
+#define iop_named_jtrace(lvl, name, st, v)                   \
+    do {                                                     \
+        if (e_name_is_traced(lvl, name)) {                   \
+            const st##__t *__v = (v);                        \
+            iop_jtrace_(lvl, __FILE__, __LINE__, __func__,   \
+                        name, &st##__s, __v);                \
+        }                                                    \
+    } while (0)
 
 
 static inline int iop_sb_write(void *_b, const void *buf, int len) {

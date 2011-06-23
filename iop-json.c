@@ -1400,3 +1400,34 @@ int iop_jpack(const iop_struct_t *desc, const void *value,
 }
 
 /* }}} */
+
+struct jtrace {
+    int lvl;
+    int lno;
+    const char *fname;
+    const char *func;
+    const char *name;
+};
+
+static int iop_jtrace_write(void *_b, const void *buf, int len)
+{
+    struct jtrace *jt = _b;
+
+    e_trace_put_(jt->lvl, jt->fname, jt->lno, jt->func, jt->name,
+                 "%*pM", len, buf);
+    return len;
+}
+
+void iop_jtrace_(int lvl, const char *fname, int lno, const char *func,
+                 const char *name, const iop_struct_t *st, const void *v)
+{
+    struct jtrace jt = {
+        .lvl   = lvl,
+        .lno   = lno,
+        .fname = fname,
+        .func  = func,
+        .name  = name,
+    };
+    iop_jpack(st, v, iop_jtrace_write, &jt, false);
+    e_trace_put_(lvl, fname, lno, func, name, "\n");
+}
