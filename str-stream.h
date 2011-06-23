@@ -376,7 +376,7 @@ static inline int ps_skipcasedata(pstream_t *ps, const char *s, int len)
 {
     PS_WANT(ps_has(ps, len));
     for (int i = 0; i < len; i++)
-        PS_WANT(tolower(ps->s[i]) == s[i]);
+        PS_WANT(tolower((unsigned char)ps->s[i]) == tolower((unsigned char)s[i]));
     return __ps_skip(ps, len);
 }
 
