@@ -652,6 +652,7 @@ static void test_cfold(void)
 /* IOP testing */
 int main(int argc, char **argv)
 {
+    t_scope;
     int c = parseopt(argc - 1, argv + 1, popt, 0);
     if (c < 0 || opts.help)
         makeusage(c < 0, argv[0], usage[0], usage + 1, popt);
