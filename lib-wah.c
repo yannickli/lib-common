@@ -104,7 +104,7 @@ void wah_flatten_last_run(wah_t *map)
     if (map->previous_run_pos < 0) {
         map->first_run_len++;
     } else {
-        map->data.tab[map->previous_run_pos].count++;
+        map->data.tab[map->previous_run_pos + 1].count++;
     }
     map->last_run_pos     = map->previous_run_pos;
     map->previous_run_pos = -2;
