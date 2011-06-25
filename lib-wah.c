@@ -760,4 +760,32 @@ WAH_TEST("binop")
     TEST_DONE();
 }
 
+WAH_TEST("redmine_4576")
+{
+    const byte data[] = {
+        0x1f, 0x00, 0x1f, 0x1f,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x1f, 0x1f, 0x1f, 0x1f,
+        0x00, 0x00, 0x00, 0x00,
+        0x1f, 0x1f, 0x1f, 0x1f,
+        0x00, 0x00, 0x00, 0x00
+    };
+
+    wah_t map;
+    wah_init(&map);
+    wah_add(&map, data, bitsizeof(data));
+
+    for (int i = 0; i < countof(data); i++) {
+#define CHECK_BIT(p)  (!!(data[i] & (1 << p)) == !!wah_get(&map, i * 8 + p))
+        for (int j = 0; j < 8; j++) {
+            TEST_PASS_IF(CHECK_BIT(j),"invalid byte %d", i);
+        }
+#undef CHECK_BIT
+    }
+    wah_wipe(&map);
+    TEST_DONE();
+}
+
 /* }}} */
