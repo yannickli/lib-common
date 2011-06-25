@@ -131,6 +131,8 @@ wah_word_enum_t wah_word_enum_start(const wah_t *map)
         en.state        = WAH_ENUM_LITERAL;
         en.pos          = map->first_run_len;
         en.remain_words = map->first_run_len;
+        assert (en.pos <= map->data.len);
+        assert ((int)en.remain_words <= en.pos);
     } else {
         en.state        = WAH_ENUM_PENDING;
         en.remain_words = 1;
@@ -163,6 +165,8 @@ void wah_word_enum_next(wah_word_enum_t *en)
             en->remain_words = en->map->data.tab[en->pos++].count;
             en->pos         += en->remain_words;
         }
+        assert (en->pos <= en->map->data.len);
+        assert ((int)en->remain_words <= en->pos);
         en->state = WAH_ENUM_LITERAL;
         if (en->remain_words != 0) {
             return;
@@ -204,6 +208,7 @@ uint32_t wah_word_enum_current(const wah_word_enum_t *en)
         return UINT32_MAX;
 
       case WAH_ENUM_LITERAL:
+        assert ((int)(en->pos - en->remain_words) < en->map->data.len);
         return en->map->data.tab[en->pos - en->remain_words].literal;
     }
     e_panic("This should not happen");
@@ -289,6 +294,7 @@ void wah_bit_enum_find_bit(wah_bit_enum_t *en, bool first)
         en->remain_bits--;
         return;
     }
+
     bit = bsf64(en->current_word);
     if (bit >= (int)en->remain_bits) {
         wah_word_enum_next(&en->word_en);

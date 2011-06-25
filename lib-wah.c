@@ -87,6 +87,16 @@ void wah_append_literal(wah_t *map, uint32_t val)
     qv_append(wah_word, &map->data, word);
 }
 
+static ALWAYS_INLINE
+void wah_check_invariant(wah_t *map)
+{
+    if (map->last_run_pos < 0) {
+        assert ((int)*wah_last_run_count(map) == map->data.len);
+    } else {
+        assert ((int)*wah_last_run_count(map) + map->last_run_pos + 2 == map->data.len);
+    }
+}
+
 static inline
 void wah_flatten_last_run(wah_t *map)
 {
@@ -108,6 +118,7 @@ void wah_flatten_last_run(wah_t *map)
     }
     map->last_run_pos     = map->previous_run_pos;
     map->previous_run_pos = -2;
+    wah_check_invariant(map);
 }
 
 static inline
@@ -143,6 +154,7 @@ void wah_push_pending(wah_t *map, uint32_t words)
             wah_append_header(map, new_head);
         }
     }
+    wah_check_invariant(map);
     map->pending = 0;
 }
 
@@ -285,6 +297,7 @@ const void *wah_add_unaligned(wah_t *map, const uint8_t *src, uint64_t count)
             }
         }
     }
+    wah_check_invariant(map);
     return src;
 }
 
@@ -326,6 +339,7 @@ void wah_add_aligned(wah_t *map, const uint8_t *src, uint64_t count)
             assert (count == 0);
         }
     }
+    wah_check_invariant(map);
 }
 
 void wah_add(wah_t *map, const void *data, uint64_t count)
@@ -342,6 +356,7 @@ void wah_add(wah_t *map, const void *data, uint64_t count)
     }
     assert (map->len % WAH_BIT_IN_WORD == 0);
     wah_add_aligned(map, data, count);
+    wah_check_invariant(map);
 }
 
 void wah_and(wah_t *map, const wah_t *other)
@@ -373,6 +388,7 @@ void wah_and(wah_t *map, const wah_t *other)
         wah_word_enum_next(&src_en);
         wah_word_enum_next(&other_en);
     }
+    wah_check_invariant(map);
 
     assert (map->len == MAX(src->len, other->len));
     assert (map->active <= MIN(src->active, other->active));
@@ -407,6 +423,7 @@ void wah_or(wah_t *map, const wah_t *other)
         wah_word_enum_next(&src_en);
         wah_word_enum_next(&other_en);
     }
+    wah_check_invariant(map);
 
     assert (map->len == MAX(src->len, other->len));
     assert (map->active >= MAX(src->active, other->active));
@@ -434,6 +451,7 @@ void wah_not(wah_t *map)
         map->pending  = ~map->pending;
         map->pending &= mask;
     }
+    wah_check_invariant(map);
     map->active = map->len - map->active;
 }
 
