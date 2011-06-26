@@ -42,17 +42,20 @@ void e_set_handler(e_handler_f *handler);
 
 #ifdef NDEBUG
 
-#  define e_trace(...)              (void)0
-#  define e_trace_hex(...)          (void)0
-#  define e_trace_start(...)        (void)0
-#  define e_trace_cont(...)         (void)0
-#  define e_trace_end(...)          (void)0
+static ALWAYS_INLINE void e_ignore(int level, ...) { }
+#define e_trace_ignore(level, ...) if (false) e_ignore(level, ##__VA_ARGS__)
 
-#  define e_named_trace(...)        (void)0
-#  define e_named_trace_hex(...)    (void)0
-#  define e_named_trace_start(...)  (void)0
-#  define e_named_trace_cont(...)   (void)0
-#  define e_named_trace_end(...)    (void)0
+#  define e_trace(level, ...)              e_trace_ignore(level, ##__VA_ARGS__)
+#  define e_trace_hex(level, ...)          e_trace_ignore(level, ##__VA_ARGS__)
+#  define e_trace_start(level, ...)        e_trace_ignore(level, ##__VA_ARGS__)
+#  define e_trace_cont(level, ...)         e_trace_ignore(level, ##__VA_ARGS__)
+#  define e_trace_end(level, ...)          e_trace_ignore(level, ##__VA_ARGS__)
+
+#  define e_named_trace(level, ...)        e_trace_ignore(level, ##__VA_ARGS__)
+#  define e_named_trace_hex(level, ...)    e_trace_ignore(level, ##__VA_ARGS__)
+#  define e_named_trace_start(level, ...)  e_trace_ignore(level, ##__VA_ARGS__)
+#  define e_named_trace_cont(level, ...)   e_trace_ignore(level, ##__VA_ARGS__)
+#  define e_named_trace_end(level, ...)    e_trace_ignore(level, ##__VA_ARGS__)
 
 #  define e_set_verbosity(...)      (void)0
 #  define e_incr_verbosity(...)     (void)0
