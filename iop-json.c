@@ -1409,6 +1409,7 @@ struct jtrace {
     const char *name;
 };
 
+#ifndef NDEBUG
 static int iop_jtrace_write(void *_b, const void *buf, int len)
 {
     struct jtrace *jt = _b;
@@ -1431,3 +1432,4 @@ void iop_jtrace_(int lvl, const char *fname, int lno, const char *func,
     iop_jpack(st, v, iop_jtrace_write, &jt, false);
     e_trace_put_(lvl, fname, lno, func, name, "\n");
 }
+#endif

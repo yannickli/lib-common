@@ -103,6 +103,7 @@ int iop_jpack(const iop_struct_t *, const void *value,
               bool strict);
 int iop_junpack(iop_json_lex_t *, const iop_struct_t *, void *,
                 bool single_value);
+#ifndef NDEBUG
 void iop_jtrace_(int lvl, const char *fname, int lno, const char *func,
                  const char *name, const iop_struct_t *, const void *);
 #define iop_jtrace(lvl, st, v) \
@@ -121,7 +122,10 @@ void iop_jtrace_(int lvl, const char *fname, int lno, const char *func,
                         name, &st##__s, __v);                \
         }                                                    \
     } while (0)
-
+#else
+#define iop_jtrace(lvl, st, v)
+#define iop_named_jtrace(lvl, name, st, v)
+#endif
 
 static inline int iop_sb_write(void *_b, const void *buf, int len) {
     sb_add((sb_t *)_b, buf, len);
