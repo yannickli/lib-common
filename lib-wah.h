@@ -113,12 +113,13 @@ typedef struct wah_word_enum_t {
     wah_enum_state_t state;
     int              pos;
     uint32_t         remain_words;
+    uint32_t         current;
 } wah_word_enum_t;
 
 static inline
 wah_word_enum_t wah_word_enum_start(const wah_t *map)
 {
-    wah_word_enum_t en = { map, WAH_ENUM_END, -1, 0 };
+    wah_word_enum_t en = { map, WAH_ENUM_END, -1, 0, 0 };
     if (map->len == 0) {
         en.state = WAH_ENUM_END;
         return en;
@@ -126,16 +127,19 @@ wah_word_enum_t wah_word_enum_start(const wah_t *map)
     if (map->first_run_head.words > 0) {
         en.state        = (wah_enum_state_t)(WAH_ENUM_HEADER_0 + map->first_run_head.bit);
         en.remain_words = map->first_run_head.words;
+        en.current      = 0 - map->first_run_head.bit;
     } else
     if (map->first_run_len > 0) {
         en.state        = WAH_ENUM_LITERAL;
         en.pos          = map->first_run_len;
         en.remain_words = map->first_run_len;
+        en.current      = map->data.tab[0].literal;
         assert (en.pos <= map->data.len);
         assert ((int)en.remain_words <= en.pos);
     } else {
         en.state        = WAH_ENUM_PENDING;
         en.remain_words = 1;
+        en.current      = map->pending;
     }
     return en;
 }
@@ -145,6 +149,9 @@ void wah_word_enum_next(wah_word_enum_t *en)
 {
     en->remain_words--;
     if (en->remain_words != 0) {
+        if (en->state == WAH_ENUM_LITERAL) {
+            en->current = en->map->data.tab[en->pos - en->remain_words].literal;
+        }
         return;
     }
     switch (en->state) {
@@ -152,7 +159,8 @@ void wah_word_enum_next(wah_word_enum_t *en)
         return;
 
       case WAH_ENUM_PENDING:
-        en->state = WAH_ENUM_END;
+        en->state   = WAH_ENUM_END;
+        en->current = 0;
         return;
 
       case WAH_ENUM_HEADER_1:
@@ -169,6 +177,7 @@ void wah_word_enum_next(wah_word_enum_t *en)
         assert ((int)en->remain_words <= en->pos);
         en->state = WAH_ENUM_LITERAL;
         if (en->remain_words != 0) {
+            en->current = en->map->data.tab[en->pos - en->remain_words].literal;
             return;
         }
 
@@ -179,41 +188,20 @@ void wah_word_enum_next(wah_word_enum_t *en)
             if ((en->map->len % WAH_BIT_IN_WORD)) {
                 en->state = WAH_ENUM_PENDING;
                 en->remain_words = 1;
+                en->current = en->map->pending;
                 return;
             } else {
-                en->state = WAH_ENUM_END;
+                en->state   = WAH_ENUM_END;
+                en->current = 0;
                 return;
             }
         }
         en->state = (wah_enum_state_t)(WAH_ENUM_HEADER_0 + en->map->data.tab[en->pos].head.bit);
         en->remain_words = en->map->data.tab[en->pos].head.words;
+        en->current = 0 - en->map->data.tab[en->pos].head.bit;
         return;
     }
 }
-
-static ALWAYS_INLINE
-uint32_t wah_word_enum_current(const wah_word_enum_t *en)
-{
-    switch (en->state) {
-      case WAH_ENUM_END:
-        return 0;
-
-      case WAH_ENUM_PENDING:
-        return en->map->pending;
-
-      case WAH_ENUM_HEADER_0:
-        return 0;
-
-      case WAH_ENUM_HEADER_1:
-        return UINT32_MAX;
-
-      case WAH_ENUM_LITERAL:
-        assert ((int)(en->pos - en->remain_words) < en->map->data.len);
-        return en->map->data.tab[en->pos - en->remain_words].literal;
-    }
-    e_panic("This should not happen");
-}
-
 
 typedef struct wah_bit_enum_t {
     wah_word_enum_t word_en;
@@ -246,9 +234,9 @@ void wah_bit_enum_find_word(wah_bit_enum_t *en)
         }
 
         if (en->reverse) {
-            en->current_word = ~wah_word_enum_current(&en->word_en);
+            en->current_word = ~en->word_en.current;
         } else {
-            en->current_word = wah_word_enum_current(&en->word_en);
+            en->current_word = en->word_en.current;
         }
         if (en->current_word != 0) {
             en->all_one = false;
@@ -271,9 +259,9 @@ void wah_bit_enum_find_word(wah_bit_enum_t *en)
     }
     wah_word_enum_next(&en->word_en);
     if (en->reverse) {
-        en->current_word |= ((uint64_t)(~wah_word_enum_current(&en->word_en))) << 32;
+        en->current_word |= ((uint64_t)(~en->word_en.current)) << 32;
     } else {
-        en->current_word |= ((uint64_t)(wah_word_enum_current(&en->word_en))) << 32;
+        en->current_word |= ((uint64_t)(en->word_en.current)) << 32;
     }
     if (en->word_en.state == WAH_ENUM_PENDING) {
         en->remain_bits += en->word_en.map->len % WAH_BIT_IN_WORD;
