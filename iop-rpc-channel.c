@@ -1101,7 +1101,7 @@ static void __ic_watch_activity(ichannel_t *ic)
     el_timer_unregister(&ic->timer);
     if (wa <= 0)
         return;
-    ic->timer = el_timer_register(0, wa / 3, 0, ic_watch_act_nop, ic);
+    ic->timer = el_timer_register(wa / 3, 0, 0, ic_watch_act_nop, ic);
     el_unref(ic->timer);
 }
 
