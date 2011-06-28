@@ -307,5 +307,11 @@ wah_bit_enum_t wah_bit_enum_start(const wah_t *wah, bool reverse)
          en.word_en.state != WAH_ENUM_END; wah_bit_enum_next(&en))
 
 /* }}} */
+/* Debugging {{{ */
+
+__cold
+void wah_debug_print(const wah_t *wah, bool print_content);
+
+/* }}} */
 /** \} */
 #endif

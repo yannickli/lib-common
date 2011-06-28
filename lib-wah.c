@@ -502,7 +502,72 @@ bool wah_get(const wah_t *map, uint64_t pos)
     e_panic("This should not happen");
 }
 
+/* Printer {{{ */
 
+static
+uint64_t wah_debug_print_run(uint64_t pos, const wah_header_t head)
+{
+    if (head.words != 0) {
+        fprintf(stderr, "\e[1;30m[%08x] \e[33mRUN %d \e[0m%d words (%d bits)\n",
+                (uint32_t)pos, head.bit, head.words, head.words * 32);
+    }
+    return head.words * 32;
+}
+
+static
+void wah_debug_print_literal(uint64_t pos, const uint32_t lit)
+{
+    fprintf(stderr, "\e[1;30m[%08x] \e[33mLITERAL \e[0m%08x\n",
+            (uint32_t)pos, lit);
+}
+
+static
+uint64_t wah_debug_print_literals(uint64_t pos, uint32_t len)
+{
+    if (len != 0) {
+        fprintf(stderr, "\e[1;30m[%08x] \e[33mLITERAL \e[0m%u words\n",
+                (uint32_t)pos, len);
+    }
+    return len * 32;
+}
+
+static
+void wah_debug_print_pending(uint64_t pos, const uint32_t pending, int len)
+{
+    if (len > 0) {
+        fprintf(stderr, "\e[1;30m[%08x] \e[33mPENDING \e[0m%d bits: %08x\n",
+                (uint32_t)pos, len, pending);
+    }
+}
+
+
+void wah_debug_print(const wah_t *wah, bool print_content)
+{
+    uint64_t pos = wah_debug_print_run(0, wah->first_run_head);
+    uint32_t len = wah->first_run_len;
+    int      off = 0;
+
+    for (;;) {
+        if (print_content) {
+            for (uint32_t i = 0; i < len; i++) {
+                wah_debug_print_literal(pos, wah->data.tab[off++].literal);
+                pos += 32;
+            }
+        } else {
+            off += len;
+            pos += wah_debug_print_literals(pos, len);
+        }
+        if (off < wah->data.len) {
+            pos += wah_debug_print_run(pos, wah->data.tab[off++].head);
+            len  = wah->data.tab[off++].count;
+        } else {
+            break;
+        }
+    }
+    wah_debug_print_pending(pos, wah->pending, wah->len % 32);
+}
+
+/* }}} */
 /* Tests {{{ */
 #define WAH_TEST(name)  TEST_DECL("wah: " name, 0)
 
