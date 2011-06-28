@@ -202,6 +202,14 @@ bool wah_word_enum_next(wah_word_enum_t *en)
     }
 }
 
+/*
+ * invariants for an enumerator not a WAH_ENUM_END:
+ *  - current_word is non 0 and its last bit is set
+ *  - if remain_bits <= WAH_BIT_IN_WORD we're consuming "current_word" else
+ *    we're streaming ones.
+ *  - remain_bits is the number of yet to stream bits including the current
+ *    one.
+ */
 typedef struct wah_bit_enum_t {
     wah_word_enum_t word_en;
     uint64_t        key;
@@ -211,77 +219,65 @@ typedef struct wah_bit_enum_t {
 } wah_bit_enum_t;
 
 static inline
-bool wah_bit_enum_find_word(wah_bit_enum_t *en)
+bool wah_bit_enum_scan_word(wah_bit_enum_t *en)
 {
-    while (likely(en->word_en.state != WAH_ENUM_END)) {
+    /* realign to a word boundary */
+    assert (en->current_word == 0);
+    en->key += en->remain_bits;
+    assert (en->word_en.state <= WAH_ENUM_PENDING ||
+            (en->key % WAH_BIT_IN_WORD) == 0);
+
+    while (wah_word_enum_next(&en->word_en)) {
+        en->current_word = en->reverse ^ en->word_en.current;
         if (en->word_en.state == WAH_ENUM_RUN) {
-            if (en->reverse ^ en->word_en.current) {
-                en->current_word = UINT32_MAX;
-                en->remain_bits  = en->word_en.remain_words * 32;
+            if (en->current_word) {
+                en->remain_bits  = en->word_en.remain_words * WAH_BIT_IN_WORD;
                 en->word_en.remain_words = 1;
                 return true;
             }
-            en->key += en->word_en.remain_words * 32;
+            en->key += en->word_en.remain_words * WAH_BIT_IN_WORD;
             en->word_en.remain_words = 1;
         } else {
-            en->current_word = en->reverse ^ en->word_en.current;
-            if (en->current_word != 0) {
-                if (en->word_en.state != WAH_ENUM_PENDING) {
-                    en->remain_bits = 32;
-                } else {
-                    en->remain_bits = en->word_en.map->len % WAH_BIT_IN_WORD;
-                }
+            if (unlikely(en->word_en.state == WAH_ENUM_PENDING)) {
+                en->remain_bits  = en->word_en.map->len % WAH_BIT_IN_WORD;
+                en->current_word &= BITMASK_LT(uint32_t, en->remain_bits);
+            } else {
+                en->remain_bits  = WAH_BIT_IN_WORD;
+            }
+            if (likely(en->current_word)) {
                 return true;
             }
-            assert ((en->key % WAH_BIT_IN_WORD) == 0);
-            en->key += 32;
+            en->key += WAH_BIT_IN_WORD;
         }
-        wah_word_enum_next(&en->word_en);
     }
     return false;
 }
 
 static ALWAYS_INLINE
-void wah_bit_enum_find_bit(wah_bit_enum_t *en, bool first)
+void wah_bit_enum_scan(wah_bit_enum_t *en)
 {
-    int bit;
-    if (!first) {
-        en->key++;
-    }
-    if (en->current_word == UINT32_MAX) {
-        en->remain_bits--;
+    if (en->current_word == 0 && !wah_bit_enum_scan_word(en))
         return;
-    }
 
-    bit = bsf32(en->current_word);
-    if (bit >= (int)en->remain_bits) {
-        wah_word_enum_next(&en->word_en);
-        assert (en->word_en.state == WAH_ENUM_END);
-        return;
-    }
-    en->key += bit;
-    en->remain_bits -= bit + 1;
-    if (en->remain_bits != 0) {
-        en->current_word >>= bit + 1;
-    }
+    assert (en->current_word);
+    if (en->remain_bits <= WAH_BIT_IN_WORD) {
+        uint32_t bit = bsf32(en->current_word);
 
+        assert (bit < en->remain_bits);
+        en->key           += bit;
+        en->current_word >>= bit;
+        en->remain_bits   -= bit;
+    }
 }
 
 static ALWAYS_INLINE
 void wah_bit_enum_next(wah_bit_enum_t *en)
 {
-    bool new_word = false;
-
-    if (likely(en->word_en.state != WAH_ENUM_END)) {
-        if (en->remain_bits == 0 || en->current_word == 0) {
-            en->key += en->remain_bits + 1;
-            wah_word_enum_next(&en->word_en);
-            if (!wah_bit_enum_find_word(en))
-                return;
-            new_word = true;
-        }
-        wah_bit_enum_find_bit(en, new_word);
-    }
+    en->key++;
+    if (en->remain_bits <= WAH_BIT_IN_WORD)
+        en->current_word >>= 1;
+    en->remain_bits--;
+    wah_bit_enum_scan(en);
 }
 
 static inline
@@ -291,10 +287,16 @@ wah_bit_enum_t wah_bit_enum_start(const wah_t *wah, bool reverse)
 
     p_clear(&en, 1);
     en.word_en = wah_word_enum_start(wah);
-    en.key     = 0;
     en.reverse = 0 - reverse;
-    if (wah_bit_enum_find_word(&en))
-        wah_bit_enum_find_bit(&en, true);
+    if (en.word_en.state != WAH_ENUM_END) {
+        en.current_word = en.reverse ^ en.word_en.current;
+        en.remain_bits  = WAH_BIT_IN_WORD;
+        if (en.word_en.state == WAH_ENUM_PENDING) {
+            en.remain_bits   = en.word_en.map->len % WAH_BIT_IN_WORD;
+            en.current_word &= BITMASK_LT(uint32_t, en.remain_bits);
+        }
+        wah_bit_enum_scan(&en);
+    }
     return en;
 }
 
