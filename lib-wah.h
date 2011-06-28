@@ -144,23 +144,23 @@ wah_word_enum_t wah_word_enum_start(const wah_t *map)
 }
 
 static ALWAYS_INLINE
-void wah_word_enum_next(wah_word_enum_t *en)
+bool wah_word_enum_next(wah_word_enum_t *en)
 {
-    en->remain_words--;
-    if (en->remain_words != 0) {
+    if (en->remain_words != 1) {
+        en->remain_words--;
         if (en->state == WAH_ENUM_LITERAL) {
             en->current = en->map->data.tab[en->pos - en->remain_words].literal;
         }
-        return;
+        return true;
     }
     switch (__builtin_expect(en->state, WAH_ENUM_RUN)) {
       case WAH_ENUM_END:
-        return;
+        return false;
 
       case WAH_ENUM_PENDING:
         en->state   = WAH_ENUM_END;
         en->current = 0;
-        return;
+        return false;
 
       default: /* WAH_ENUM_RUN */
         assert (en->state == WAH_ENUM_RUN);
@@ -177,7 +177,7 @@ void wah_word_enum_next(wah_word_enum_t *en)
         en->state = WAH_ENUM_LITERAL;
         if (en->remain_words != 0) {
             en->current = en->map->data.tab[en->pos - en->remain_words].literal;
-            return;
+            return true;
         }
 
         /* Transition to literal, so don't break here */
@@ -188,17 +188,17 @@ void wah_word_enum_next(wah_word_enum_t *en)
                 en->state = WAH_ENUM_PENDING;
                 en->remain_words = 1;
                 en->current = en->map->pending;
-                return;
+                return true;
             } else {
                 en->state   = WAH_ENUM_END;
                 en->current = 0;
-                return;
+                return false;
             }
         }
         en->state = WAH_ENUM_RUN;
         en->remain_words = en->map->data.tab[en->pos].head.words;
         en->current = 0 - en->map->data.tab[en->pos].head.bit;
-        return;
+        return true;
     }
 }
 
