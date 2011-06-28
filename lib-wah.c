@@ -369,10 +369,10 @@ void wah_and(wah_t *map, const wah_t *other)
     wah_reset_map(map);
     while (src_en.state != WAH_ENUM_END || other_en.state != WAH_ENUM_END) {
         map->pending = src_en.current & other_en.current;
-        switch (src_en.state | (other_en.state << 16)) {
-          case WAH_ENUM_END | (WAH_ENUM_PENDING << 16):
-          case WAH_ENUM_PENDING | (WAH_ENUM_END << 16):
-          case WAH_ENUM_PENDING | (WAH_ENUM_PENDING << 16):
+        switch (src_en.state | (other_en.state << 2)) {
+          case WAH_ENUM_END     | (WAH_ENUM_PENDING << 2):
+          case WAH_ENUM_PENDING | (WAH_ENUM_END     << 2):
+          case WAH_ENUM_PENDING | (WAH_ENUM_PENDING << 2):
             map->len += MAX(other->len % WAH_BIT_IN_WORD,
                             src->len % WAH_BIT_IN_WORD);
             map->active += bitcount32(map->pending);
@@ -403,10 +403,10 @@ void wah_or(wah_t *map, const wah_t *other)
     wah_reset_map(map);
     while (src_en.state != WAH_ENUM_END || other_en.state != WAH_ENUM_END) {
         map->pending = src_en.current | other_en.current;
-        switch (src_en.state | (other_en.state << 16)) {
-          case WAH_ENUM_END | (WAH_ENUM_PENDING << 16):
-          case WAH_ENUM_PENDING | (WAH_ENUM_END << 16):
-          case WAH_ENUM_PENDING | (WAH_ENUM_PENDING << 16):
+        switch (src_en.state | (other_en.state << 2)) {
+          case WAH_ENUM_END     | (WAH_ENUM_PENDING << 2):
+          case WAH_ENUM_PENDING | (WAH_ENUM_END     << 2):
+          case WAH_ENUM_PENDING | (WAH_ENUM_PENDING << 2):
             map->len += MAX(other->len % WAH_BIT_IN_WORD,
                             src->len % WAH_BIT_IN_WORD);
             map->active += bitcount32(map->pending);
