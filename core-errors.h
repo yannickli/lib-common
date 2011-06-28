@@ -45,6 +45,10 @@ void e_set_handler(e_handler_f *handler);
 static ALWAYS_INLINE void e_ignore(int level, ...) { }
 #define e_trace_ignore(level, ...) if (false) e_ignore(level, ##__VA_ARGS__)
 
+static ALWAYS_INLINE void assert_ignore(bool cond) { }
+#undef  assert
+#define assert(Cond)  if (false) assert_ignore(Cond)
+
 #  define e_trace(level, ...)              e_trace_ignore(level, ##__VA_ARGS__)
 #  define e_trace_hex(level, ...)          e_trace_ignore(level, ##__VA_ARGS__)
 #  define e_trace_start(level, ...)        e_trace_ignore(level, ##__VA_ARGS__)
