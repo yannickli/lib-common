@@ -116,6 +116,23 @@ void xmlpp_putattrfmt(xmlpp_t *pp, const char *key, const char *fmt, ...)
     sb_wipe(&tmp);
 }
 
+void xmlpp_put_cdata(xmlpp_t *pp, const char *s, size_t len)
+{
+    const char *p;
+
+    pp->can_do_attr = false;
+    pp->was_a_tag   = false;
+    sb_adds(pp->buf, "<![CDATA[");
+    while (unlikely((p = memmem(s, len, "]]>", 3)) != NULL)) {
+        sb_add(pp->buf, s, p - s);
+        sb_adds(pp->buf, "]]>]]<![CDATA[>");
+        len -= (p - s) + 3;
+        s    = p + 3;
+    }
+    sb_add(pp->buf, s, len);
+    sb_adds(pp->buf, "]]>");
+}
+
 void xmlpp_put(xmlpp_t *pp, const void *data, int len)
 {
     pp->can_do_attr = false;
