@@ -47,7 +47,7 @@ endef
 #[ c ]####################################################################
 
 define ext/expand/c
-$3: $~%$$(tmp/$2/ns)$4.o: %.c | _generated
+$3: $~%$$(tmp/$2/ns)$4.o: % | _generated
 	mkdir -p $$(@D)
 	$$(if $(findstring clang,$(CC))$(NOCHECK)$$($(1D)/_NOCHECK)$$($1_NOCKECK)$$($$<_NOCHECK),,\
 	    $(msg/CHECK.c) $$(<R))
@@ -56,14 +56,14 @@ $3: $~%$$(tmp/$2/ns)$4.o: %.c | _generated
 	    -O0 -fsyntax-only -o /dev/null $$<$(if $(NOFATALCHECK),|| true))
 	$(msg/COMPILE.c) $$(<R)
 	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$<_CFLAGS) \
-	    -MP -MMD -MT $$@ -MF $$(@:o=dep) \
+	    -MP -MMD -MT $$@ -MF $$(@:=d) \
 	    $$(if $$(findstring .pic,$4),-fPIC) -g -c -o $$@ $$<
--include $(3:o=dep)
+-include $(3:=d)
 endef
 
 define ext/rule/c
 tmp/$2/ns   := $$(if $$($(1D)/_CFLAGS)$$($1_CFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))
-tmp/$2/objs := $$(patsubst %.c,$~%$$(tmp/$2/ns)$4.o,$3)
+tmp/$2/objs := $$(patsubst %,$~%$$(tmp/$2/ns)$4.o,$3)
 $2: $$(tmp/$2/objs)
 $$(foreach o,$$(tmp/$2/objs),$$(eval $$(call fun/do-once,ext/expand/c/$$o,$$(call ext/expand/c,$1,$2,$$o,$4))))
 $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/objs),$3))
@@ -72,7 +72,7 @@ endef
 #[ cc ]###################################################################
 
 define ext/expand/cc
-$3: $~%$$(tmp/$2/ns)$4.oo: %.cc | _generated
+$3: $~%$$(tmp/$2/ns)$4.o: % | _generated
 	mkdir -p $$(@D)
 	$$(if $(findstring clang,$(CXX))$(NOCHECK)$$($(1D)/_NOCHECK)$$($1_NOCKECK)$$($$<_NOCHECK),,\
 	    $(msg/CHECK.C) $$(<R))
@@ -81,14 +81,14 @@ $3: $~%$$(tmp/$2/ns)$4.oo: %.cc | _generated
 	    -O0 -fsyntax-only -o /dev/null $$<$(if $(NOFATALCHECK),|| true))
 	$(msg/COMPILE.C) $$(<R)
 	$(CXX) $(CXXFLAGS) $$($(1D)/_CXXFLAGS) $$($1_CXXFLAGS) $$($$<_CXXFLAGS) \
-	    -MP -MMD -MT $$@ -MF $$(@:oo=dep) \
+	    -MP -MMD -MT $$@ -MF $$(@:=d) \
 	    $$(if $$(findstring .pic,$4),-fPIC) -g -c -o $$@ $$<
--include $(3:oo=dep)
+-include $(3:=d)
 endef
 
 define ext/rule/cc
 tmp/$2/ns   := $$(if $$($(1D)/_CXXFLAGS)$$($1_CXXFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))
-tmp/$2/objs := $$(patsubst %.cc,$~%$$(tmp/$2/ns)$4.oo,$3)
+tmp/$2/objs := $$(patsubst %,$~%$$(tmp/$2/ns)$4.o,$3)
 $2: $$(tmp/$2/objs)
 $$(foreach o,$$(tmp/$2/objs),$$(eval $$(call fun/do-once,ext/expand/cc/$$o,$$(call ext/expand/cc,$1,$2,$$o,$4))))
 $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/objs),$3))
