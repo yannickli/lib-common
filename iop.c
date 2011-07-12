@@ -947,14 +947,27 @@ static int unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
 
         PS_CHECK(__get_tag_wt(ps, &tag, &wt));
         while (unlikely(tag > fdesc->tag)) {
+            e_named_trace(5, "iop/c/unpacker",
+                          "unpacking struct %*pM, skipping %*pM field",
+                          LSTR_FMT_ARG(desc->fullname),
+                          LSTR_FMT_ARG(fdesc->name));
             PS_CHECK(__iop_skip_absent_field_desc(value, fdesc));
             if (++fdesc == end)
                 return 0;
         }
         if (unlikely(tag < fdesc->tag)) {
+            e_named_trace(5, "iop/c/unpacker",
+                          "unpacking struct %*pM, skipping %*pM field",
+                          LSTR_FMT_ARG(desc->fullname),
+                          LSTR_FMT_ARG(fdesc->name));
             PS_CHECK(iop_skip_field(ps, wt));
             continue;
         }
+
+        e_named_trace(5, "iop/c/unpacker",
+                      "unpacking struct %*pM, unpacking %*pM field",
+                      LSTR_FMT_ARG(desc->fullname),
+                      LSTR_FMT_ARG(fdesc->name));
 
         if (wt == IOP_WIRE_REPEAT) {
             PS_CHECK(get_uint32(ps, 4, &n));
@@ -992,6 +1005,10 @@ static int unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
     }
 
     for (; fdesc < end; fdesc++) {
+        e_named_trace(5, "iop/c/unpacker",
+                      "unpacking struct %*pM, skipping %*pM field",
+                      LSTR_FMT_ARG(desc->fullname),
+                      LSTR_FMT_ARG(fdesc->name));
         PS_CHECK(__iop_skip_absent_field_desc(value, fdesc));
     }
     return 0;
@@ -1021,6 +1038,8 @@ static int unpack_union(mem_pool_t *mp, const iop_struct_t *desc, void *value,
     /* Write the selected field */
     *((uint16_t *)value) = fdesc->tag;
 
+    e_named_trace(5, "iop/c/unpacker", "unpacking union %*pM field %*pM",
+                  LSTR_FMT_ARG(desc->fullname), LSTR_FMT_ARG(fdesc->name));
     PS_CHECK(unpack_value(mp, wt, fdesc, (char *)value + fdesc->data_offs, ps,
                           copy));
     return ps_done(ps) ? 0 : 1;
@@ -1029,6 +1048,8 @@ static int unpack_union(mem_pool_t *mp, const iop_struct_t *desc, void *value,
 int iop_bunpack(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                 pstream_t ps, bool copy)
 {
+    e_named_trace(5, "iop/c/unpacker", "unpacking IOP object %*pM",
+                  LSTR_FMT_ARG(desc->fullname));
     if (desc->is_union) {
         return unpack_union(mp, desc, value, &ps, copy) ? -1 : 0;
     }
@@ -1047,6 +1068,8 @@ int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *desc, void *value,
 {
     assert(desc->is_union);
 
+    e_named_trace(5, "iop/c/unpacker", "unpacking IOP union(s) %*pM",
+                  LSTR_FMT_ARG(desc->fullname));
     return (unpack_union(mp, desc, value, ps, copy) < 0) ? -1 : 0;
 }
 
