@@ -64,6 +64,9 @@ static void iop_xwsdl_put_enum(wsdlpp_t *wpp, const iop_enum_t *e)
     xmlpp_opentag(&wpp->pp, "simpleType");
     /* TODO maybe use a fullname (pkg.name) */
     xmlpp_putattr(&wpp->pp, "name", e->name.s);
+    xmlpp_opentag(&wpp->pp, "union");
+
+    xmlpp_opentag(&wpp->pp, "simpleType");
     xmlpp_opentag(&wpp->pp, "restriction");
     xmlpp_putattr(&wpp->pp, "base", "string");
 
@@ -72,10 +75,13 @@ static void iop_xwsdl_put_enum(wsdlpp_t *wpp, const iop_enum_t *e)
         xmlpp_putattr(&wpp->pp, "value", e->names[i].s);
         xmlpp_closetag(&wpp->pp);
     }
+    xmlpp_closentag(&wpp->pp, 2);
 
-    xmlpp_opentag(&wpp->pp, "pattern");
-    xmlpp_putattr(&wpp->pp, "value", "[0-9][0-9]*");
-    xmlpp_closentag(&wpp->pp, 3);
+    xmlpp_opentag(&wpp->pp, "simpleType");
+    xmlpp_opentag(&wpp->pp, "restriction");
+    xmlpp_putattr(&wpp->pp, "base", "integer");
+
+    xmlpp_closentag(&wpp->pp, 4);
 }
 
 static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
