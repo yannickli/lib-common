@@ -233,7 +233,7 @@ qh_k64_t(test_qh_64);
 qm_k32_t(test, uint32_t);
 qm_k64_t(test_qh_64, uint32_t);
 
-qh_kptr_t(test_str, const char, qhash_hash_string, qhash_strequal);
+qh_kptr_t(test_str, const char, qhash_str_hash, qhash_str_equal);
 
 TEST_DECL("qhash insertion", 0)
 {

@@ -64,6 +64,7 @@ libcommon_SOURCES = \
 	container-rbtree.c \
 	container-ring.c \
 	container-slist.c \
+	container-qvector.c \
 	\
 	core-debug.c \
 	core-errors.c \
@@ -73,8 +74,6 @@ libcommon_SOURCES = \
 	core-mem-fifo.c \
 	core-mem-ring.c \
 	core-mem-stack.c \
-	core-pthread.c \
-	core-pthread-hook.c \
 	core-test.c \
 	core-version.c \
 	qpage.c \
@@ -124,6 +123,11 @@ libcommon_SOURCES = \
 	str-dtoa.c \
 	str-path.c \
 	str-stream.c \
+	\
+	thr.c \
+	thr-evc.c \
+	thr-job.c \
+	thr-pthread-hook.c \
 	\
 	tpl.c \
 	tpl-funcs.c \
