@@ -73,6 +73,16 @@
 #    define ALWAYS_INLINE inline
 #  endif
 #  define NEVER_INLINE __attribute__((noinline))
+#  if __GNUC_PREREQ(4, 3)
+#    define __cold __attribute__((cold))
+#  else
+#    define __cold
+#  endif
+#  if __GNUC_PREREQ(4, 1)
+#    define __flatten __attribute__((flatten))
+#  else
+#    define __flatten
+#  endif
 #else
 #  ifndef EXPORT
 #    define EXPORT  extern
@@ -130,6 +140,12 @@
 #undef __acquires
 #undef __releases
 #undef __needlock
+
+#if 0 && defined(__cplusplus)
+#  define cast(type, v)    reinterpret_cast<type>(v)
+#else
+#  define cast(type, v)    ((type)(v))
+#endif
 
 #ifdef __SPARSE__
 #  define __bitwise__   __attribute__((bitwise))

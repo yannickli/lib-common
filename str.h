@@ -18,6 +18,7 @@
 #include "core.h"
 #include "str-ctype.h"
 #include "str-iprintf.h"
+#include "str-l.h"
 
 __attr_nonnull__((1))
 static inline ssize_t sstrlen(const char *str) {

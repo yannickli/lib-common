@@ -1,0 +1,166 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+#if !defined(IS_LIB_COMMON_CONTAINER_H) || defined(IS_LIB_COMMON_CONTAINER_HTLIST_H)
+#  error "you must include container.h instead"
+#else
+#define IS_LIB_COMMON_CONTAINER_HTLIST_H
+
+
+/* An implementation of anchor-based htlists.
+ *
+ * Htlists are basically single-linked lists with head and tail pointers.
+ *
+ * You can add prepend and append elements in O(1), or concatenate such
+ * lists in O(1).
+ *
+ * Htlists point to a sublist of elements and can even overlap.
+ *
+ * Here is an example with 3 htlists and 7 htnodes:
+ *
+ *             l3-------------------.
+ * l1-----------|-------.  l2-------|-----.
+ *  |           |       |   |       |     |
+ *  v           v       v   v       v     v
+ *  x --> x --> x --> x --> x --> x --> x --> NULL
+ *
+ * You can add elements to l1 at the end, it won't break l3, and will
+ * make it "longer". If you insert elements at the beginning of l2,
+ * they will not be shared by l3.
+ *
+ * IOW, for an htlist, the tail pointer may point to an element whose
+ * "next" pointer is _not_ NULL without breaking anything.
+ *
+ * The programmer is responsible for potential side effects when lists are
+ * modified: in the example above, doing htlist_add_tail(l1, l3) will
+ * result in a big mess:
+ *
+ *                      .-----------.
+ * l1-------------------'  l2-------|-----.
+ *  |                       |       |     |
+ *  v                       v       v     v
+ *  x --> x --> x --> x     x --> x --> x --> NULL
+ *              ^     |
+ *              `-----'
+ *
+ * Note that an empty htlist looks like this:
+ *
+ *     l--.
+ *     |  |
+ *     |<-'
+ *     v
+ *     ?? (may not be NULL, should not be dereferenced)
+ *
+ * For now, no function is provided to remove elements inside an
+ * htlist, only pop at the start.  Such an operation would be
+ * inefficient and rather ill defined anyway.
+ */
+
+typedef struct htnode_t {
+    struct htnode_t *next;
+} htnode_t;
+
+typedef struct htlist_t {
+    htnode_t *head;
+    htnode_t **tail;
+} htlist_t;
+
+#define HTLIST(name)              htlist_t name = HTLIST_INIT(name)
+#define HTLIST_INIT(name)         { .tail = &(name).head }
+#define HTLIST_ATOMIC_INIT(name)  { .l = HTLIST_INIT(name.l) }
+static inline void htlist_init(htlist_t *l) {
+    l->head = NULL;
+    l->tail = &l->head;
+}
+
+static inline bool htlist_is_empty(const htlist_t *l) {
+    return l->tail == &l->head;
+}
+
+static inline void htlist_add(htlist_t *l, htnode_t *n) {
+    n->next = l->head;
+    l->head = n;
+    if (l->tail == &l->head)
+        l->tail = &n->next;
+}
+
+static inline void htlist_add_tail(htlist_t *l, htnode_t *n) {
+    n->next  = *l->tail;
+    *l->tail = n;
+    l->tail  = &n->next;
+}
+
+static inline htnode_t *htlist_pop(htlist_t *l) {
+    htnode_t *res = l->head;
+
+    assert (!htlist_is_empty(l));
+
+    l->head = res->next;
+    if (l->tail == &res->next) {
+        l->tail = &l->head;
+    }
+    return res;
+}
+
+static inline void
+htlist_splice(htlist_t *dst, htlist_t *src)
+{
+    if (!htlist_is_empty(src)) {
+        *src->tail = dst->head;
+        dst->head  = src->head;
+        if (dst->tail == &dst->head)
+            dst->tail = src->tail;
+    }
+}
+
+static inline void
+htlist_move(htlist_t *dst, htlist_t *src)
+{
+    htlist_init(dst);
+    htlist_splice(dst, src);
+    htlist_init(src);
+}
+
+static inline void
+htlist_splice_tail(htlist_t *dst, htlist_t *src)
+{
+    if (!htlist_is_empty(src)) {
+        *src->tail = *dst->tail;
+        *dst->tail = src->head;
+        /* XXX: src->tail points to an actual element because src is
+         * not empty.
+         */
+        dst->tail = src->tail;
+    }
+}
+
+#define htlist_entry(ptr, type, member)    container_of(ptr, type, member)
+#define htlist_entry_of(ptr, n, member)    htlist_entry(ptr, typeof(*(n)), member)
+#define htlist_first_entry(l, type, member)  htlist_entry((l)->head, type, member)
+#define htlist_pop_entry(hd, type, member) htlist_entry(htlist_pop(hd), type, member)
+
+#define __htlist_for_each(pos, n, hd, doit) \
+     for (htnode_t *n##_end_ = *(hd)->tail, *n = (pos); \
+          n != n##_end_ && ({ doit; 1; }); n = n->next)
+
+#define htlist_for_each(n, hd)    __htlist_for_each((hd)->head, n, hd, )
+#define htlist_for_each_start(pos, n, hd)    __htlist_for_each(pos, n, hd, )
+
+#define htlist_for_each_entry(n, hd, member) \
+    __htlist_for_each((hd)->head, __real_##n, hd,                   \
+                     n = htlist_entry_of(__real_##n, n, member))
+#define htlist_for_each_entry_start(pos, n, hd, member) \
+    __htlist_for_each(&(pos)->member, __real_##n, hd,               \
+                     n = htlist_entry_of(__real_##n, n, member))
+
+#endif

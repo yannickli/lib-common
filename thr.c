@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -11,19 +11,22 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_CONTAINER_H
-#define IS_LIB_COMMON_CONTAINER_H
+#include "thr.h"
 
-#include "core.h"
+struct thr_hooks thr_hooks_g = {
+    .init_cbs = DLIST_INIT(thr_hooks_g.init_cbs),
+    .exit_cbs = DLIST_INIT(thr_hooks_g.exit_cbs),
+};
 
-#include "container-array.h"
-#include "container-dlist.h"
-#include "container-list.h"
-#include "container-htlist.h"
-#include "container-qhash.h"
-#include "container-qvector.h"
-#include "container-rbtree.h"
-#include "container-ring.h"
-#include "container-slist.h"
+static void thr_main_atexit(void)
+{
+    dlist_for_each(it, &thr_hooks_g.exit_cbs) {
+        (container_of(it, struct thr_ctor, link)->cb)();
+    }
+}
 
-#endif
+__attribute__((constructor))
+static void thr_run_dtors_at_exit(void)
+{
+    atexit(thr_main_atexit);
+}

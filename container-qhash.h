@@ -151,13 +151,13 @@ static inline uint32_t qhash_hash_ptr(const qhash_t *qh, const void *ptr)
     return qhash_hash_u64(qh, (uintptr_t)ptr);
 }
 
-static inline uint32_t qhash_hash_string(const qhash_t *qh, const char *s)
+static inline uint32_t qhash_str_hash(const qhash_t *qh, const char *s)
 {
     return hsieh_hash(s, -1);
 }
 
 static inline bool
-qhash_strequal(const qhash_t *qh, const char *s1, const char *s2)
+qhash_str_equal(const qhash_t *qh, const char *s1, const char *s2)
 {
     return strequal(s1, s2);
 }

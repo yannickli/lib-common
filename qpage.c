@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -78,7 +78,8 @@ typedef struct page_desc_t {
         uint32_t             blk_prev;
     };
 } page_desc_t;
-DO_ARRAY(page_desc_t, page_desc, IGNORE);
+
+qvector_t(pgd, page_desc_t *);
 
 typedef struct page_run_t {
     qpage_t     *mem_pages;
@@ -90,7 +91,7 @@ typedef struct page_run_t {
 static struct {
     size_t          bits[BITS_TO_ARRAY_LEN(size_t, CLASSES)];
     page_desc_t    *blks[CLASSES];
-    page_desc_array segs;
+    qv_t(pgd)       segs;
     spinlock_t      lock;
 } qpages_g;
 #define _G  qpages_g
@@ -338,7 +339,7 @@ static NEVER_INLINE int create_arena(size_t npages)
     run->mem_pages = pgs;
     run->npages    = npages;
     run->segment   = _G.segs.len;
-    page_desc_array_append(&_G.segs, run->pages);
+    qv_append(pgd, &_G.segs, run->pages);
     for (uint32_t i = 0; i <= npages; i++) {
         run->pages[i].blkno = i;
     }
@@ -624,5 +625,5 @@ void qpage_shutdown(void)
     for (int i = 0; i < _G.segs.len; i++) {
         free(run_of(_G.segs.tab[i], 0));
     }
-    page_desc_array_wipe(&_G.segs);
+    qv_wipe(pgd, &_G.segs);
 }
