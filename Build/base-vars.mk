@@ -85,7 +85,7 @@ msg/alert       := $(msg/color) '1;$(col/white)$(col/bg_red)' "***"
 SUFFIXES      :=
 MAKEFLAGS     := $(MAKEFLAGS)r$(if $(var/verbose),,s)
 ifeq (,$(L)$(LINEAR))
-MAKEPARALLEL  := $(MAKE) -j$(shell expr $$(getconf _NPROCESSORS_ONLN) + 1)
+MAKEPARALLEL  := $(MAKE) -j$(shell $/Build/getncpu.sh)
 else
 MAKEPARALLEL  := $(MAKE)
 endif
