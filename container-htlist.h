@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -124,6 +124,14 @@ htlist_splice(htlist_t *dst, htlist_t *src)
 }
 
 static inline void
+htlist_move(htlist_t *dst, htlist_t *src)
+{
+    htlist_init(dst);
+    htlist_splice(dst, src);
+    htlist_init(src);
+}
+
+static inline void
 htlist_splice_tail(htlist_t *dst, htlist_t *src)
 {
     if (!htlist_is_empty(src)) {
@@ -143,15 +151,15 @@ htlist_splice_tail(htlist_t *dst, htlist_t *src)
 
 #define __htlist_for_each(pos, n, hd, doit) \
      for (htnode_t *n##_end_ = *(hd)->tail, *n = (pos); \
-          n != n##_end_ && ({ doit; prefetch(n->next); 1; }); n = n->next)
+          n != n##_end_ && ({ doit; 1; }); n = n->next)
 
 #define htlist_for_each(n, hd)    __htlist_for_each((hd)->head, n, hd, )
-#define htlist_for_each_continue(pos, n, hd)    __htlist_for_each(pos, n, hd, )
+#define htlist_for_each_start(pos, n, hd)    __htlist_for_each(pos, n, hd, )
 
 #define htlist_for_each_entry(n, hd, member) \
     __htlist_for_each((hd)->head, __real_##n, hd,                   \
                      n = htlist_entry_of(__real_##n, n, member))
-#define htlist_for_each_entry_continue(pos, n, hd, member) \
+#define htlist_for_each_entry_start(pos, n, hd, member) \
     __htlist_for_each(&(pos)->member, __real_##n, hd,               \
                      n = htlist_entry_of(__real_##n, n, member))
 

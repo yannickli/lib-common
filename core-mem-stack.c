@@ -13,6 +13,7 @@
 
 #include "core-mem-valgrind.h"
 #include "container.h"
+#include "thr.h"
 
 /*
  * Stacked memory allocator
@@ -390,7 +391,7 @@ void t_pool_destroy(void)
 {
     mem_stack_pool_delete(&t_pool_g);
 }
-thread_exit(t_pool_destroy);
+thr_hooks(NULL, t_pool_destroy);
 
 void *stack_malloc(size_t size, mem_flags_t flags)
 {

@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*                                                                        */
-/*  Copyright (C) 2004-2010 INTERSEC SAS                                  */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
 /*                                                                        */
 /*  Should you receive a copy of this source code, you must check you     */
 /*  have a proper, written authorization of INTERSEC to hold it. If you   */
@@ -11,25 +11,22 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_PTHREAD_H)
-#  error "you must include core.h instead"
-#else
-#define IS_LIB_COMMON_CORE_PTHREAD_H
+#include "thr.h"
 
-void intersec_phtread_init(void (*fn)(void));
-void intersec_phtread_exit(void (*fn)(void));
+struct thr_hooks thr_hooks_g = {
+    .init_cbs = DLIST_INIT(thr_hooks_g.init_cbs),
+    .exit_cbs = DLIST_INIT(thr_hooks_g.exit_cbs),
+};
 
-#define thread_init(fn) \
-    static __attribute__((constructor)) void PT_##fn##_init(void) {  \
-        intersec_phtread_init(fn);                                   \
+static void thr_main_atexit(void)
+{
+    dlist_for_each(it, &thr_hooks_g.exit_cbs) {
+        (container_of(it, struct thr_ctor, link)->cb)();
     }
+}
 
-#define thread_exit(fn) \
-    static __attribute__((constructor)) void PT_##fn##_exit(void) {  \
-        intersec_phtread_exit(fn);                                   \
-    }
-
-void intersec_thread_on_init(void);
-void intersec_thread_on_exit(void *);
-
-#endif
+__attribute__((constructor))
+static void thr_run_dtors_at_exit(void)
+{
+    atexit(thr_main_atexit);
+}
