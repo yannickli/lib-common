@@ -442,7 +442,6 @@ void *tlsf_malloc(mem_pool_t *_mp, size_t size, mem_flags_t flags)
     if (!(flags & MEM_RAW))
         memset(blk->data, 0, asked);
     blk->asked = asked;
-    VALGRIND_MAKE_MEM_NOACCESS(blk->data, BLK_OVERHEAD);
     return blk->data;
 }
 
