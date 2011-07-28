@@ -118,8 +118,10 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
 
         switch (f->type) {
             case IOP_T_XML:
-              /* Any means "any valid xml element " */
+              /* xsd:any with the attribute processContents="skip" means "any
+               * valid xml element" */
               xmlpp_opentag(&wpp->pp, "any");
+              xmlpp_putattr(&wpp->pp, "processContents", "skip");
               break;
             default:
               xmlpp_opentag(&wpp->pp, "element");
