@@ -380,6 +380,39 @@ void wah_add(wah_t *map, const void *data, uint64_t count)
             wah_word_enum_skip(&other_en, __run);                            \
         })
 
+#define PUSH_COPY(Run, Data) ({                                              \
+            wah_word_enum_t *__src   = &(Data);                              \
+            wah_word_enum_t *__other = &(Run);                               \
+            uint32_t __run = MIN(__other->remain_words, __src->remain_words);\
+                                                                             \
+            assert (__run > 0);                                              \
+            wah_word_enum_skip(__other, __run);                              \
+                                                                             \
+            if (unlikely(!__src->current || __src->current == UINT32_MAX)) { \
+                map->pending  = __src->current;                              \
+                map->active  += bitcount32(map->pending);                    \
+                map->len     += WAH_BIT_IN_WORD;                             \
+                wah_push_pending(map, 1);                                    \
+                wah_word_enum_next(__src);                                   \
+                __run--;                                                     \
+            }                                                                \
+            if (likely(__run > 0)) {                                         \
+                const wah_word_t *__words;                                   \
+                                                                             \
+                __words = &__src->map->data.tab[__src->pos - __src->remain_words];\
+                wah_word_enum_skip(__src, __run);                            \
+                                                                             \
+                if (wah_last_run_header(map)->words < 2) {                   \
+                    wah_flatten_last_run(map);                               \
+                }                                                            \
+                *wah_last_run_count(map) += __run;                           \
+                qv_splice(wah_word, &map->data, map->data.len, 0,            \
+                          __words, __run);                                   \
+                map->len    += __run * WAH_BIT_IN_WORD;                      \
+                map->active += membitcount(__words, __run * sizeof(wah_word_t));\
+            }                                                                \
+        })
+
 
 void wah_and(wah_t *map, const wah_t *other)
 {
@@ -404,16 +437,18 @@ void wah_and(wah_t *map, const wah_t *other)
 
           case WAH_ENUM_RUN     | (WAH_ENUM_LITERAL << 2):
             if (src_en.current) {
-                goto simple;
+                PUSH_COPY(src_en, other_en);
+            } else {
+                PUSH_0RUN(src_en.remain_words);
             }
-            PUSH_0RUN(src_en.remain_words);
             break;
 
           case WAH_ENUM_LITERAL | (WAH_ENUM_RUN     << 2):
             if (other_en.current) {
-                goto simple;
+                PUSH_COPY(other_en, src_en);
+            } else {
+                PUSH_0RUN(other_en.remain_words);
             }
-            PUSH_0RUN(other_en.remain_words);
             break;
 
           case WAH_ENUM_RUN     | (WAH_ENUM_RUN     << 2):
@@ -433,7 +468,6 @@ void wah_and(wah_t *map, const wah_t *other)
             break;
 
           default:
-          simple:
             map->len    += WAH_BIT_IN_WORD;
             map->pending = src_en.current & other_en.current;
             map->active += bitcount32(map->pending);
@@ -472,16 +506,18 @@ void wah_or(wah_t *map, const wah_t *other)
 
           case WAH_ENUM_RUN     | (WAH_ENUM_LITERAL << 2):
             if (!src_en.current) {
-                goto simple;
+                PUSH_COPY(src_en, other_en);
+            } else {
+                PUSH_1RUN(src_en.remain_words);
             }
-            PUSH_1RUN(src_en.remain_words);
             break;
 
           case WAH_ENUM_LITERAL | (WAH_ENUM_RUN     << 2):
             if (!other_en.current) {
-                goto simple;
+                PUSH_COPY(other_en, src_en);
+            } else {
+                PUSH_1RUN(other_en.remain_words);
             }
-            PUSH_1RUN(other_en.remain_words);
             break;
 
           case WAH_ENUM_RUN     | (WAH_ENUM_RUN     << 2):
@@ -501,7 +537,6 @@ void wah_or(wah_t *map, const wah_t *other)
             break;
 
           default:
-          simple:
             map->len    += WAH_BIT_IN_WORD;
             map->pending = src_en.current | other_en.current;
             map->active += bitcount32(map->pending);
@@ -517,6 +552,7 @@ void wah_or(wah_t *map, const wah_t *other)
     assert (map->active >= MAX(src->active, other->active));
 }
 
+#undef PUSH_COPY
 #undef PUSH_0RUN
 #undef PUSH_1RUN
 
