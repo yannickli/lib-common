@@ -455,24 +455,79 @@ void wah_or(wah_t *map, const wah_t *other)
 
     wah_reset_map(map);
     while (src_en.state != WAH_ENUM_END || other_en.state != WAH_ENUM_END) {
-        map->pending = src_en.current | other_en.current;
         switch (src_en.state | (other_en.state << 2)) {
           case WAH_ENUM_END     | (WAH_ENUM_PENDING << 2):
           case WAH_ENUM_PENDING | (WAH_ENUM_END     << 2):
           case WAH_ENUM_PENDING | (WAH_ENUM_PENDING << 2):
             map->len += MAX(other->len % WAH_BIT_IN_WORD,
                             src->len % WAH_BIT_IN_WORD);
+            map->pending = src_en.current | other_en.current;
             map->active += bitcount32(map->pending);
+            wah_word_enum_next(&src_en);
+            wah_word_enum_next(&other_en);
+            break;
+
+          case WAH_ENUM_RUN     | (WAH_ENUM_LITERAL << 2):
+            if (!src_en.current) {
+                goto simple;
+            }
+            map->pending  = UINT32_MAX;
+            map->len     += src_en.remain_words * WAH_BIT_IN_WORD;
+            map->active  += src_en.remain_words * WAH_BIT_IN_WORD;
+            wah_push_pending(map, src_en.remain_words);
+            wah_word_enum_skip(&other_en, src_en.remain_words);
+            wah_word_enum_skip(&src_en, src_en.remain_words);
+            break;
+
+          case WAH_ENUM_LITERAL | (WAH_ENUM_RUN     << 2):
+            if (!other_en.current) {
+                goto simple;
+            }
+            map->pending  = UINT32_MAX;
+            map->len     += other_en.remain_words * WAH_BIT_IN_WORD;
+            map->active  += other_en.remain_words * WAH_BIT_IN_WORD;
+            wah_push_pending(map, other_en.remain_words);
+            wah_word_enum_skip(&src_en, other_en.remain_words);
+            wah_word_enum_skip(&other_en, other_en.remain_words);
+            break;
+
+          case WAH_ENUM_RUN     | (WAH_ENUM_RUN     << 2):
+            if (other_en.current || src_en.current) {
+                uint32_t run = 0;
+
+                if (other_en.current) {
+                    run = other_en.remain_words;
+                }
+                if (src_en.current) {
+                    run = MAX(run, src_en.remain_words);
+                }
+                map->pending  = UINT32_MAX;
+                map->len     += run * WAH_BIT_IN_WORD;
+                map->active  += run * WAH_BIT_IN_WORD;
+                wah_push_pending(map, run);
+                wah_word_enum_skip(&other_en, run);
+                wah_word_enum_skip(&src_en, run);
+            } else {
+                uint32_t run = MIN(other_en.remain_words, src_en.remain_words);
+
+                map->pending  = 0;
+                map->len     += run * WAH_BIT_IN_WORD;
+                wah_push_pending(map, run);
+                wah_word_enum_skip(&other_en, run);
+                wah_word_enum_skip(&src_en, run);
+            }
             break;
 
           default:
+          simple:
             map->len    += WAH_BIT_IN_WORD;
+            map->pending = src_en.current | other_en.current;
             map->active += bitcount32(map->pending);
             wah_push_pending(map, 1);
+            wah_word_enum_next(&src_en);
+            wah_word_enum_next(&other_en);
             break;
         }
-        wah_word_enum_next(&src_en);
-        wah_word_enum_next(&other_en);
     }
     wah_check_invariant(map);
 
