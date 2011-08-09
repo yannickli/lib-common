@@ -202,6 +202,37 @@ bool wah_word_enum_next(wah_word_enum_t *en)
     }
 }
 
+static ALWAYS_INLINE
+bool wah_word_enum_skip(wah_word_enum_t *en, uint32_t skip)
+{
+    uint32_t skippable = 0;
+
+    while (skip != 0) {
+        switch (__builtin_expect(en->state, WAH_ENUM_RUN)) {
+          case WAH_ENUM_END:
+            return false;
+
+          case WAH_ENUM_PENDING:
+            return wah_word_enum_next(en);
+
+          default:
+            skippable = MIN(skip, en->remain_words);
+            skip -= skippable;
+
+            /* XXX: Use next to skip the last word because:
+             *  - if we reach the end of a run, this will automatically select
+             *    the next run
+             *  - if we end within a run of literal, this will properly update
+             *    'en->current' with the next literal word
+             */
+            en->remain_words -= skippable - 1;
+            wah_word_enum_next(en);
+            break;
+        }
+    }
+    return true;
+}
+
 /*
  * invariants for an enumerator not a WAH_ENUM_END:
  *  - current_word is non 0 and its last bit is set
