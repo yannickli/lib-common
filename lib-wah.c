@@ -427,36 +427,37 @@ void wah_add(wah_t *map, const void *data, uint64_t count)
             wah_word_enum_skip(&other_en, __run);                            \
         })
 
-#define PUSH_COPY(Run, Data) ({                                              \
-            wah_word_enum_t *__src   = &(Data);                              \
-            wah_word_enum_t *__other = &(Run);                               \
-            uint32_t __run = MIN(__other->remain_words, __src->remain_words);\
-                                                                             \
-            assert (__run > 0);                                              \
-            wah_word_enum_skip(__other, __run);                              \
-                                                                             \
-            if (unlikely(!__src->current || __src->current == UINT32_MAX)) { \
-                map->pending  = __src->current;                              \
-                map->active  += bitcount32(map->pending);                    \
-                map->len     += WAH_BIT_IN_WORD;                             \
-                wah_push_pending(map, 1);                                    \
-                wah_word_enum_next(__src);                                   \
-                __run--;                                                     \
-            }                                                                \
-            if (likely(__run > 0)) {                                         \
-                const wah_word_t *__words;                                   \
-                                                                             \
-                __words = &__src->map->data.tab[__src->pos - __src->remain_words];\
-                wah_word_enum_skip(__src, __run);                            \
-                                                                             \
-                wah_flatten_last_run(map);                                   \
-                *wah_last_run_count(map) += __run;                           \
-                qv_splice(wah_word, &map->data, map->data.len, 0,            \
-                          __words, __run);                                   \
-                map->len    += __run * WAH_BIT_IN_WORD;                      \
-                map->active += membitcount(__words, __run * sizeof(wah_word_t));\
-            }                                                                \
-        })
+static
+void wah_copy_run(wah_t *map, wah_word_enum_t *run, wah_word_enum_t *data)
+{
+    uint32_t count = MIN(run->remain_words, data->remain_words);
+
+    assert (count > 0);
+    wah_word_enum_skip(run, count);
+
+    if (unlikely(!data->current || data->current == UINT32_MAX)) {
+        map->pending  = data->current;
+        map->active  += bitcount32(map->pending);
+        map->len     += WAH_BIT_IN_WORD;
+        wah_push_pending(map, 1);
+        wah_word_enum_next(data);
+        count--;
+    }
+    if (likely(count > 0)) {
+        const wah_word_t *words;
+
+        words = &data->map->data.tab[data->pos - data->remain_words];
+        wah_word_enum_skip(data, count);
+
+        wah_flatten_last_run(map);
+        *wah_last_run_count(map) += count;
+        qv_splice(wah_word, &map->data, map->data.len, 0, words, count);
+        map->len    += count * WAH_BIT_IN_WORD;
+        map->active += membitcount(words, count * sizeof(wah_word_t));
+    }
+}
+
+#define PUSH_COPY(Run, Data)  wah_copy_run(map, &(Run), &(Data))
 
 
 void wah_and(wah_t *map, const wah_t *other)
