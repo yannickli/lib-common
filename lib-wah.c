@@ -13,6 +13,8 @@
 
 #include "lib.h"
 
+//#define WAH_CHECK_NORMALIZED  1
+
 wah_t *wah_init(wah_t *map)
 {
     qv_init(wah_word, &map->data);
@@ -87,23 +89,14 @@ void wah_append_literal(wah_t *map, uint32_t val)
     qv_append(wah_word, &map->data, word);
 }
 
-static ALWAYS_INLINE
-void wah_check_invariant(wah_t *map)
-{
-    if (map->last_run_pos < 0) {
-        assert ((int)*wah_last_run_count(map) == map->data.len);
-    } else {
-        assert ((int)*wah_last_run_count(map) + map->last_run_pos + 2 == map->data.len);
-    }
-}
-
 static inline
 void wah_check_normalized(wah_t *map)
 {
     uint32_t pos;
     uint32_t prev_word = 0xcafebabe;
 
-    assert (map->first_run_head.words == 0 || map->first_run_head.words >= 2);
+    assert (map->first_run_head.words == 0 || map->first_run_head.words >= 2
+         || map->first_run_len == 0);
     if (map->first_run_head.words > 0) {
         prev_word = map->first_run_head.bit ? UINT32_MAX : 0;
     }
@@ -119,7 +112,7 @@ void wah_check_normalized(wah_t *map)
         wah_header_t *head  = &map->data.tab[pos++].head;
         uint32_t      count = map->data.tab[pos++].count;
 
-        assert (head->words >= 2);
+        assert (head->words >= 2 || pos == (uint32_t)map->data.len);
         if (prev_word == UINT32_MAX || prev_word == 0) {
             assert (prev_word != head->bit ? UINT32_MAX : 0);
             prev_word = head->bit ? UINT32_MAX : 0;
@@ -134,18 +127,37 @@ void wah_check_normalized(wah_t *map)
     }
 }
 
+static ALWAYS_INLINE
+void wah_check_invariant(wah_t *map)
+{
+    if (map->last_run_pos < 0) {
+        assert ((int)*wah_last_run_count(map) == map->data.len);
+    } else {
+        assert ((int)*wah_last_run_count(map) + map->last_run_pos + 2 == map->data.len);
+    }
+#ifdef WAH_CHECK_NORMALIZED
+    wah_check_normalized(map);
+#endif
+}
+
+
 static inline
 void wah_flatten_last_run(wah_t *map)
 {
     wah_header_t *head;
-    if (map->last_run_pos < 0) {
+
+    head = wah_last_run_header(map);
+    if (likely(head->words != 1)) {
         return;
     }
     assert (*wah_last_run_count(map) == 0);
-    head = wah_last_run_header(map);
-    assert (head->words == 1);
-    assert (map->data.len == map->last_run_pos + 2);
-    map->data.len -= 2;
+
+    if (map->last_run_pos > 0) {
+        assert (map->data.len == map->last_run_pos + 2);
+        map->data.len -= 2;
+    } else {
+        head->words = 0;
+    }
     wah_append_literal(map, head->bit ? UINT32_MAX : 0);
 
     if (map->previous_run_pos < 0) {
@@ -163,9 +175,7 @@ void wah_push_pending(wah_t *map, uint32_t words)
 {
     const bool is_trivial = map->pending == UINT32_MAX || map->pending == 0;
     if (!is_trivial) {
-        if (wah_last_run_header(map)->words < 2) {
-            wah_flatten_last_run(map);
-        }
+        wah_flatten_last_run(map);
         *wah_last_run_count(map) += words;
         while (words > 0) {
             wah_append_literal(map, map->pending);
@@ -439,9 +449,7 @@ void wah_add(wah_t *map, const void *data, uint64_t count)
                 __words = &__src->map->data.tab[__src->pos - __src->remain_words];\
                 wah_word_enum_skip(__src, __run);                            \
                                                                              \
-                if (wah_last_run_header(map)->words < 2) {                   \
-                    wah_flatten_last_run(map);                               \
-                }                                                            \
+                wah_flatten_last_run(map);                                   \
                 *wah_last_run_count(map) += __run;                           \
                 qv_splice(wah_word, &map->data, map->data.len, 0,            \
                           __words, __run);                                   \
