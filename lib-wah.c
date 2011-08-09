@@ -98,6 +98,43 @@ void wah_check_invariant(wah_t *map)
 }
 
 static inline
+void wah_check_normalized(wah_t *map)
+{
+    uint32_t pos;
+    uint32_t prev_word = 0xcafebabe;
+
+    assert (map->first_run_head.words == 0 || map->first_run_head.words >= 2);
+    if (map->first_run_head.words > 0) {
+        prev_word = map->first_run_head.bit ? UINT32_MAX : 0;
+    }
+
+    for (pos = 0; pos < map->first_run_len; pos++) {
+        if (prev_word == UINT32_MAX || prev_word == 0) {
+            assert (prev_word != map->data.tab[pos].literal);
+        }
+        prev_word = map->data.tab[pos].literal;
+    }
+
+    while (pos < (uint32_t)map->data.len) {
+        wah_header_t *head  = &map->data.tab[pos++].head;
+        uint32_t      count = map->data.tab[pos++].count;
+
+        assert (head->words >= 2);
+        if (prev_word == UINT32_MAX || prev_word == 0) {
+            assert (prev_word != head->bit ? UINT32_MAX : 0);
+            prev_word = head->bit ? UINT32_MAX : 0;
+        }
+
+        for (uint32_t i = 0; i < count; i++) {
+            if (prev_word == UINT32_MAX || prev_word == 0) {
+                assert (prev_word != map->data.tab[pos].literal);
+            }
+            prev_word = map->data.tab[pos++].literal;
+        }
+    }
+}
+
+static inline
 void wah_flatten_last_run(wah_t *map)
 {
     wah_header_t *head;
