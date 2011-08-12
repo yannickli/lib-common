@@ -16,6 +16,19 @@ $2: $(1D)/Makefile $(var/toolsdir)/* $(var/cfgdir)/*.mk
 $2: $$(foreach s,$3,$$($$s_DEPENDS)) | $$($(1D)/_DEPENDS)
 endef
 
+define fun/obj-compress
+objcopy --compress-debug-sections $1 >/dev/null 2>&1 || true
+endef
+
+ifeq (,$(filter %compress-debug%,$(LDFLAGS)))
+define fun/bin-compress
+objcopy --compress-debug-sections $1 >/dev/null 2>&1 || true
+endef
+else
+define fun/bin-compress
+endef
+endif
+
 #
 # extension driven rules
 # ~~~~~~~~~~~~~~~~~~~~~~
@@ -58,6 +71,7 @@ $3: $~%$$(tmp/$2/ns)$4.o: % | _generated
 	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$<_CFLAGS) \
 	    -MP -MMD -MT $$@ -MF $$(@:=d) \
 	    $$(if $$(findstring .pic,$4),-fPIC) -g -c -o $$@ $$<
+	$$(call fun/obj-compress,$$@)
 -include $(3:=d)
 endef
 
@@ -83,6 +97,7 @@ $3: $~%$$(tmp/$2/ns)$4.o: % | _generated
 	$(CXX) $(CXXFLAGS) $$($(1D)/_CXXFLAGS) $$($1_CXXFLAGS) $$($$<_CXXFLAGS) \
 	    -MP -MMD -MT $$@ -MF $$(@:=d) \
 	    $$(if $$(findstring .pic,$4),-fPIC) -g -c -o $$@ $$<
+	$$(call fun/obj-compress,$$@)
 -include $(3:=d)
 endef
 
@@ -161,9 +176,6 @@ $~$1.a:
 	$(msg/LINK.a) $$(@R)
 	$(RM) $$@
 	$(AR) crs $$@ $$(filter %.o %.oo,$$^)
-	if objcopy --help | grep compress-debug-sections; then \
-	    objcopy --compress-debug-sections $$@; \
-	fi
 
 $$(eval $$(call fun/foreach-ext-rule,$1,$~$1.pic.a,$$($1_SOURCES),.pic))
 $~$1.pic.a:
@@ -197,6 +209,7 @@ $~$1.so$$(tmp/$1/build):
 	    $(LIBS) $$($(1D)/_LIBS) $$($(1D)_LIBS) $$($1_LIBS) \
 	    -Wl,-soname,$(1F).so$$(tmp/$1/sover)
 	$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so)
+	$$(call fun/bin-compress,$$@)
 
 $(1D)/clean::
 	$(RM) $1.so*
@@ -218,6 +231,7 @@ $~$1.exe:
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) \
 	    $(LIBS) $$($(1D)/_LIBS) $$($(1D)_LIBS) $$($1_LIBS)
+	$$(call fun/bin-compress,$$@)
 $(1D)/clean::
 	$(RM) $1$(EXEEXT)
 endef
