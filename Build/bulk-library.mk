@@ -161,6 +161,9 @@ $~$1.a:
 	$(msg/LINK.a) $$(@R)
 	$(RM) $$@
 	$(AR) crs $$@ $$(filter %.o %.oo,$$^)
+	if objcopy --help | grep compress-debug-sections; then \
+	    objcopy --compress-debug-sections $$@; \
+	fi
 
 $$(eval $$(call fun/foreach-ext-rule,$1,$~$1.pic.a,$$($1_SOURCES),.pic))
 $~$1.pic.a:
