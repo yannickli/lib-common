@@ -334,6 +334,104 @@ int strconv_hexencode(char *dest, int size, const void *src, int len)
     return len * 2;
 }
 
+int utf8_stricmp(const char *str1, int len1,
+                 const char *str2, int len2, bool strip)
+{
+    int c1, c2, cc1, cc2;
+    int off1 = 0, off2 = 0;
+
+    /* GET_CHAR decodes invalid byte sequences as latin1
+     * characters.
+     */
+#define GET_CHAR(i)  ({                                                      \
+        int __c = utf8_ngetc_at(str##i, len##i, &off##i);                    \
+                                                                             \
+        if (__c < 0 && unlikely(off##i < len##i)) {                          \
+            __c = str##i[off##i++];                                          \
+        }                                                                    \
+        __c;                                                                 \
+    })
+
+    for (;;) {
+        c1 = GET_CHAR(1);
+        c2 = GET_CHAR(2);
+        if (c1 < 0) {
+            goto eos1;
+        }
+        if (c2 < 0) {
+            goto eos2;
+        }
+        if (c1 == c2) {
+            continue;
+        }
+
+        if ((c1 | c2) >= countof(__str_unicode_general_ci)) {
+            /* large characters require exact match */
+            break;
+        }
+        cc1 = __str_unicode_general_ci[c1];
+        cc2 = __str_unicode_general_ci[c2];
+    again:
+        if (cc1 == cc2) {
+            continue;
+        }
+        c1 = cc1 & STR_COLLATE_MASK;
+        c2 = cc2 & STR_COLLATE_MASK;
+        if (c1 != c2) {
+            break;
+        }
+        /* first collate characters are identical but cc1 != cc2,
+         * thus we know at least one of cc1 or cc2 has a second collate
+         * character.
+         */
+        c1 = STR_COLLATE_SHIFT(cc1);
+        c2 = STR_COLLATE_SHIFT(cc2);
+        if (c1 == 0) {
+            c1 = GET_CHAR(1);
+            if (c1 < 0)
+                c1 = 0;
+            if (c1 >= countof(__str_unicode_general_ci))
+                break;
+            cc1 = __str_unicode_general_ci[c1];
+        } else
+        if (c2 == 0) {
+            c2 = GET_CHAR(2);
+            if (c2 < 0)
+                c2 = 0;
+            if (c2 >= countof(__str_unicode_general_ci))
+                break;
+            cc2 = __str_unicode_general_ci[c2];
+        }
+        goto again;
+    }
+    return (c1 > c2) - (c1 < c2);
+
+  eos1:
+    if (strip) {
+        /* Ignore trailing white space */
+        while (c2 == ' ') {
+            c2 = GET_CHAR(2);
+        }
+    }
+    if (c2 < 0)
+        return 0;
+
+    return -1;
+
+  eos2:
+    if (strip) {
+        /* Ignore trailing white space */
+        while (c1 == ' ') {
+            c1 = GET_CHAR(1);
+        }
+    }
+    if (c1 < 0)
+        return 0;
+
+    return 1;
+#undef GET_CHAR
+}
+
 /****************************************************************************/
 /* Charset conversions                                                      */
 /****************************************************************************/
