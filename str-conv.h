@@ -169,6 +169,23 @@ static ALWAYS_INLINE int utf8_ngetc(const char *s, int len, const char **out)
     return utf8_getc_slow(s, out);
 }
 
+static ALWAYS_INLINE int utf8_ngetc_at(const char *s, int len, int *offp)
+{
+    int off = *offp;
+    const char *out;
+    int res;
+
+    if (off < 0 || off >= len) {
+        return -1;
+    }
+    s   += off;
+    len -= off;
+    res = RETHROW(utf8_ngetc(s, len, &out));
+
+    *offp += (out - s);
+    return res;
+}
+
 static inline int utf8_vgetc(char *s, char **out)
 {
     return utf8_getc(s, (const char **)out);
