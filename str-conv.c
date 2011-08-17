@@ -371,7 +371,8 @@ int utf8_stricmp(const char *str1, int len1,
         }
         cc1 = __str_unicode_general_ci[c1];
         cc2 = __str_unicode_general_ci[c2];
-    again:
+
+      again:
         if (cc1 == cc2) {
             continue;
         }
@@ -404,7 +405,7 @@ int utf8_stricmp(const char *str1, int len1,
         }
         goto again;
     }
-    return (c1 > c2) - (c1 < c2);
+    return CMP(c1, c2);
 
   eos1:
     if (strip) {
@@ -413,10 +414,8 @@ int utf8_stricmp(const char *str1, int len1,
             c2 = GET_CHAR(2);
         }
     }
-    if (c2 < 0)
-        return 0;
 
-    return -1;
+    return c2 < 0 ? 0 : -1;
 
   eos2:
     if (strip) {
@@ -425,10 +424,9 @@ int utf8_stricmp(const char *str1, int len1,
             c1 = GET_CHAR(1);
         }
     }
-    if (c1 < 0)
-        return 0;
 
-    return 1;
+    return c1 < 0 ? 0 : 1;
+
 #undef GET_CHAR
 }
 
