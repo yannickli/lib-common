@@ -18,7 +18,6 @@
 #include "core.h"
 #include "str-ctype.h"
 #include "str-iprintf.h"
-#include "str-l.h"
 
 __attr_nonnull__((1))
 static inline ssize_t sstrlen(const char *str) {
@@ -202,6 +201,7 @@ int str_replace(const char search, const char replace, char *subject);
 
 #include "str-path.h"
 #include "str-conv.h"
+#include "str-l.h"
 #include "str-buf.h"
 #include "str-stream.h"
 
