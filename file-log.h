@@ -77,6 +77,7 @@ log_file_set_file_cb(log_file_t *file, log_file_cb_f *on_event,
                      void *priv);
 
 int log_fwrite(log_file_t *log_file, const void *data, size_t len);
+int log_fwritev(log_file_t *log_file, struct iovec *iov, size_t iovlen);
 int log_fprintf(log_file_t *log_file, const char *format, ...)
     __attr_printf__(2, 3)  __attr_nonnull__((1, 2));
 
