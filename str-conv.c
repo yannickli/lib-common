@@ -384,9 +384,9 @@ int utf8_stricmp(const char *str1, int len1,
          * thus we know at least one of cc1 or cc2 has a second collate
          * character.
          */
-        c1 = STR_COLLATE_SHIFT(cc1);
-        c2 = STR_COLLATE_SHIFT(cc2);
-        if (c1 == 0) {
+        cc1 = STR_COLLATE_SHIFT(cc1);
+        cc2 = STR_COLLATE_SHIFT(cc2);
+        if (cc1 == 0) {
             c1 = GET_CHAR(1);
             if (c1 < 0)
                 c1 = 0;
@@ -394,7 +394,7 @@ int utf8_stricmp(const char *str1, int len1,
                 break;
             cc1 = __str_unicode_general_ci[c1];
         } else
-        if (c2 == 0) {
+        if (cc2 == 0) {
             c2 = GET_CHAR(2);
             if (c2 < 0)
                 c2 = 0;
