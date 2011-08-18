@@ -50,6 +50,7 @@ void log_file_set_maxfiles(log_file_t *file, int maxfiles);
 void log_file_set_maxtotalsize(log_file_t *file, int maxtotalsize);
 
 int log_fwrite(log_file_t *log_file, const void *data, size_t len);
+int log_fwritev(log_file_t *log_file, struct iovec *iov, size_t iovlen);
 int log_fprintf(log_file_t *log_file, const char *format, ...)
     __attr_printf__(2, 3)  __attr_nonnull__((1, 2));
 

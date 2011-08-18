@@ -358,6 +358,102 @@ int strconv_hexencode(char *dest, int size, const void *src, int len)
     return len * 2;
 }
 
+int utf8_stricmp(const char *str1, int len1,
+                 const char *str2, int len2, bool strip)
+{
+    int c1, c2, cc1, cc2;
+    int off1 = 0, off2 = 0;
+
+    /* GET_CHAR decodes invalid byte sequences as latin1
+     * characters.
+     */
+#define GET_CHAR(i)  ({                                                      \
+        int __c = utf8_ngetc_at(str##i, len##i, &off##i);                    \
+                                                                             \
+        if (__c < 0 && unlikely(off##i < len##i)) {                          \
+            __c = str##i[off##i++];                                          \
+        }                                                                    \
+        __c;                                                                 \
+    })
+
+    for (;;) {
+        c1 = GET_CHAR(1);
+        c2 = GET_CHAR(2);
+        if (c1 < 0) {
+            goto eos1;
+        }
+        if (c2 < 0) {
+            goto eos2;
+        }
+        if (c1 == c2) {
+            continue;
+        }
+
+        if ((c1 | c2) >= countof(__str_unicode_general_ci)) {
+            /* large characters require exact match */
+            break;
+        }
+        cc1 = __str_unicode_general_ci[c1];
+        cc2 = __str_unicode_general_ci[c2];
+
+      again:
+        if (cc1 == cc2) {
+            continue;
+        }
+        c1 = cc1 & STR_COLLATE_MASK;
+        c2 = cc2 & STR_COLLATE_MASK;
+        if (c1 != c2) {
+            break;
+        }
+        /* first collate characters are identical but cc1 != cc2,
+         * thus we know at least one of cc1 or cc2 has a second collate
+         * character.
+         */
+        cc1 = STR_COLLATE_SHIFT(cc1);
+        cc2 = STR_COLLATE_SHIFT(cc2);
+        if (cc1 == 0) {
+            c1 = GET_CHAR(1);
+            if (c1 < 0)
+                c1 = 0;
+            if (c1 >= countof(__str_unicode_general_ci))
+                break;
+            cc1 = __str_unicode_general_ci[c1];
+        } else
+        if (cc2 == 0) {
+            c2 = GET_CHAR(2);
+            if (c2 < 0)
+                c2 = 0;
+            if (c2 >= countof(__str_unicode_general_ci))
+                break;
+            cc2 = __str_unicode_general_ci[c2];
+        }
+        goto again;
+    }
+    return CMP(c1, c2);
+
+  eos1:
+    if (strip) {
+        /* Ignore trailing white space */
+        while (c2 == ' ') {
+            c2 = GET_CHAR(2);
+        }
+    }
+
+    return c2 < 0 ? 0 : -1;
+
+  eos2:
+    if (strip) {
+        /* Ignore trailing white space */
+        while (c1 == ' ') {
+            c1 = GET_CHAR(1);
+        }
+    }
+
+    return c1 < 0 ? 0 : 1;
+
+#undef GET_CHAR
+}
+
 /****************************************************************************/
 /* Charset conversions                                                      */
 /****************************************************************************/
@@ -600,6 +696,64 @@ int sb_conv_from_ucs2le_hex(sb_t *sb, const void *s, int slen)
     return sb_conv_from_ucs2_hex(sb, s, slen, false);
 }
 
+
+/* tests {{{ */
+
+#define RUN_UTF8_TEST_(Str1, Str2, Strip, Val)  do {                         \
+        int len1 = strlen(Str1);                                             \
+        int len2 = strlen(Str2);                                             \
+        int cmp  = utf8_stricmp(Str1, len1, Str2, len2, Strip);              \
+                                                                             \
+        TEST_FAIL_IF(cmp != Val, "utf8_stricmp(\"%.*s\", \"%.*s\", %d) "     \
+                     "returned bad value: %d, expected %d",                  \
+                     len1, Str1, len2, Str2, Strip, cmp, Val);               \
+    } while (0)
+
+#define RUN_UTF8_TEST(Str1, Str2, Val) do {                                  \
+        RUN_UTF8_TEST_(Str1, Str2, false, Val);                              \
+        RUN_UTF8_TEST_(Str2, Str1, false, -(Val));                           \
+        RUN_UTF8_TEST_(Str1, Str2, true, Val);                               \
+        RUN_UTF8_TEST_(Str2, Str1, true, -(Val));                            \
+        RUN_UTF8_TEST_(Str1"   ", Str2, true, Val);                          \
+        RUN_UTF8_TEST_(Str1, Str2"    ", true, Val);                         \
+        RUN_UTF8_TEST_(Str1"     ", Str2"  ", true, Val);                    \
+        if (Val == 0) {                                                      \
+            RUN_UTF8_TEST_(Str1"   ", Str2, false, 1);                       \
+            RUN_UTF8_TEST_(Str1, Str2"   ", false, -1);                      \
+            RUN_UTF8_TEST_(Str1"  ", Str2"    ", false, -1);                 \
+        }                                                                    \
+    } while (0)
+
+
+TEST_DECL("utf8_stricmp test", 0)
+{
+    /* Basic tests and case tests */
+    RUN_UTF8_TEST("abcdef", "abcdef", 0);
+    RUN_UTF8_TEST("AbCdEf", "abcdef", 0);
+    RUN_UTF8_TEST("abcdef", "abbdef", 1);
+    RUN_UTF8_TEST("aBCdef", "abbdef", 1);
+
+    /* Accentuation tests */
+    RUN_UTF8_TEST("abcdéf", "abcdef", 0);
+    RUN_UTF8_TEST("abcdÉf", "abcdef", 0);
+    RUN_UTF8_TEST("àbcdèf", "abcdef", 0);
+
+    /* Collation tests */
+    RUN_UTF8_TEST("æbcdef", "aebcdef", 0);
+    RUN_UTF8_TEST("æbcdef", "aébcdef", 0);
+    RUN_UTF8_TEST("abcdœf", "abcdoef", 0);
+    RUN_UTF8_TEST("abcdŒf", "abcdoef", 0);
+
+    RUN_UTF8_TEST("æ", "a", 1);
+    RUN_UTF8_TEST("æ", "ae", 0);
+    RUN_UTF8_TEST("ß", "ss", 0);
+    RUN_UTF8_TEST("ßß", "ssss", 0);
+    RUN_UTF8_TEST("ßß", "sßs", 0); /* Overlapping collations */
+
+    TEST_DONE();
+}
+
+/* }}} */
 /*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
 #ifdef CHECK
 

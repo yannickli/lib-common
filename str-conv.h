@@ -29,6 +29,9 @@ extern uint16_t const __str_unicode_upper[512];
 extern uint16_t const __str_unicode_lower[512];
 extern uint32_t const __str_unicode_general_ci[512];
 
+#define STR_COLLATE_MASK      0xffff
+#define STR_COLLATE_SHIFT(c)  ((unsigned)(c) >> 16)
+
 /****************************************************************************/
 /* Base 36 stuff                                                            */
 /****************************************************************************/
@@ -169,6 +172,23 @@ static ALWAYS_INLINE int utf8_ngetc(const char *s, int len, const char **out)
     return utf8_getc_slow(s, out);
 }
 
+static ALWAYS_INLINE int utf8_ngetc_at(const char *s, int len, int *offp)
+{
+    int off = *offp;
+    const char *out;
+    int res;
+
+    if (off < 0 || off >= len) {
+        return -1;
+    }
+    s   += off;
+    len -= off;
+    res = RETHROW(utf8_ngetc(s, len, &out));
+
+    *offp += (out - s);
+    return res;
+}
+
 static inline int utf8_vgetc(char *s, char **out)
 {
     return utf8_getc(s, (const char **)out);
@@ -180,6 +200,20 @@ static inline const char *utf8_skip_valid(const char *s, const char *end)
             return s;
     }
     return end;
+}
+
+/** Return utf8 case-independent collating comparison as -1, 0, 1.
+ *
+ * \param[in] strip trailing spaces are ignored for comparison.
+ */
+int utf8_stricmp(const char *str1, int len1,
+                 const char *str2, int len2, bool strip);
+
+static inline
+bool utf8_striequal(const char *str1, int len1,
+                    const char *str2, int len2, bool strip)
+{
+    return utf8_stricmp(str1, len1, str2, len2, strip) == 0;
 }
 
 #endif /* IS_LIB_COMMON_STR_CONV_H */
