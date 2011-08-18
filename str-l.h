@@ -314,6 +314,38 @@ static inline lstr_t t_lstr_cat3(const lstr_t s1, const lstr_t s2, const lstr_t 
     return res;
 }
 
+/** \brief return the trimmed lstr.
+ */
+static inline lstr_t lstr_trim(lstr_t s)
+{
+    /* ltrim */
+    while (s.len && isspace((unsigned char)s.s[0])) {
+        s.s++;
+        s.len--;
+    }
+
+    /* rtrim */
+    while (s.len && isspace((unsigned char)s.s[s.len - 1]))
+        s.len--;
+
+    return s;
+}
+
+/** \brief lower case the given lstr. Work only with ascii strings.
+ */
+static inline void lstr_ascii_tolower(lstr_t *s)
+{
+    for (int i = 0; i < s->len; i++)
+        s->v[i] = tolower((unsigned char)s->v[i]);
+}
+
+/** \brief upper case the given lstr. Work only with ascii strings.
+ */
+static inline void lstr_ascii_toupper(lstr_t *s)
+{
+    for (int i = 0; i < s->len; i++)
+        s->v[i] = toupper((unsigned char)s->v[i]);
+}
 
 /*--------------------------------------------------------------------------*/
 #define lstr_fmt(fmt, ...) \
