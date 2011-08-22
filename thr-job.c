@@ -679,8 +679,6 @@ void thr_syn_wait(thr_syn_t *syn)
                 goto cas;
             if (!mpsc_queue_looks_empty(&thr_queue_main_g->q))
                 goto cas;
-            if (thr_job_steal())
-                goto cas;
             thr_ec_wait(&syn->ec, key);
           cas:
             while (unlikely(!atomic_bool_cas(&thr0_cur_ec_g, &syn->ec, NULL)))
