@@ -56,6 +56,7 @@ pkg_config_setvar() {
     pfx="$1"; shift
     deb="$1"; shift
 
+
     while test $# != 0; do
         pkg="$1"
         if pkg-config --print-errors "$pkg"; then
