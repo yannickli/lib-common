@@ -246,7 +246,10 @@ qvector_splice(qvector_t *vec, size_t v_size,
     ({ size_t __len = (len), _sz = __len * __qv_sz(n); \
        __qv_init(n, vec, t_new_raw(char, _sz), 0, __len, MEM_STACK); })
 
-#define qv_init(n, vec)                     p_clear(vec, 1)
+#define qv_init(n, vec)  \
+    ({ qv_t(n) *__vec = (vec);              \
+       p_clear(__vec, 1);                   \
+    })
 #define qv_clear(n, vec)                    qvector_reset(&(vec)->qv, __qv_sz(n))
 #define qv_wipe(n, vec)                     qv_##n##_wipe(vec)
 #define qv_deep_wipe(n, vec, wipe) \
