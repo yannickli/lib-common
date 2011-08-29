@@ -1143,8 +1143,6 @@ GENERIC_DELETE(httpd_t, httpd);
 int t_httpd_qinfo_get_basic_auth(const httpd_qinfo_t *info,
                                  pstream_t *user, pstream_t *pw)
 {
-    *pw = *user = ps_initptr(NULL, NULL);
-
     for (int i = info->hdrs_len; i-- > 0; ) {
         const http_qhdr_t *hdr = info->hdrs + i;
         pstream_t v;
@@ -1171,7 +1169,8 @@ int t_httpd_qinfo_get_basic_auth(const httpd_qinfo_t *info,
         return 0;
     }
 
-    return -1;
+    *pw = *user = ps_initptr(NULL, NULL);
+    return 0;
 }
 
 static void httpd_do_any(httpd_t *w, httpd_query_t *q, httpd_qinfo_t *req)
@@ -1188,7 +1187,10 @@ static void httpd_do_any(httpd_t *w, httpd_query_t *q, httpd_qinfo_t *req)
         if (cb->auth) {
             t_scope;
 
-            t_httpd_qinfo_get_basic_auth(req, &user, &pw);
+            if (unlikely(t_httpd_qinfo_get_basic_auth(req, &user, &pw) < 0)) {
+                httpd_reject(q, BAD_REQUEST, "invalid Authentication header");
+                return;
+            }
             (*cb->auth)(cb, q, user, pw);
         }
         if (likely(!q->answered)) {
