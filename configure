@@ -150,6 +150,7 @@ pkg_config_setvar "sqlite"  "libsqlite3-dev" "sqlite3"
 check_tool luac lua5.1
 
 pkg_config_setvar "fuse" "libfuse-dev" "fuse"
+pkg_config_setvar "imlib2"  "libimlib2-dev" "imlib2"
 
 # }}}
 # {{{ libv8-dev
