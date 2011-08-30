@@ -76,12 +76,18 @@ ENUM_C will be described with the following XML Schema description:
 
 ----------------------------------
 <simpleType name="MyEnum">
-  <restriction base="string">
-    <enumeration value="ENUM_A" />
-    <enumeration value="ENUM_B" />
-    <enumeration value="ENUM_C" />
-    <pattern value="[0-9][0-9]*" />
-  </restriction>
+    <union>
+        <simpleType>
+            <restriction base="string">
+                <enumeration value="ENUM_A" />
+                <enumeration value="ENUM_B" />
+                <enumeration value="ENUM_C" />
+            </restriction>
+        </simpleType>
+        <simpleType>
+            <restriction base=”integer” />
+        </simpleType>
+    </union>
 </simpleType>
 ----------------------------------
 
