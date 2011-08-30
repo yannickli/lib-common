@@ -299,9 +299,11 @@ qvector_splice(qvector_t *vec, size_t v_size,
 #define qv_pushp(n, vec, v)                 qv_push(n, vec, *(v))
 
 #define qv_for_each_pos(n, pos, vec) \
+    ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]); \
     for (int pos = 0; pos < (vec)->len; pos++)
 
 #define qv_for_each_pos_safe(n, pos, vec) \
+    ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]); \
     for (int pos = (vec)->len; pos-- > 0; )
 
 
