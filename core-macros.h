@@ -141,6 +141,8 @@
 #  define STATIC_ASSERT(condition)  ((void)sizeof(char[1 - 2 * !(condition)]))
 #  define ASSERT_COMPATIBLE(e1, e2)
 #endif
+#else
+#  define ASSERT_COMPATIBLE(e1, e2)
 #endif
 
 /** \brief Forcefully ignore the value of an expression.
