@@ -208,10 +208,6 @@ static inline int ps_skipdata(pstream_t *ps, const void *data, size_t len) {
 static inline int ps_skipstr(pstream_t *ps, const char *s) {
     return ps_skipdata(ps, s, strlen(s));
 }
-static inline void ps_skipspaces(pstream_t *ps) {
-    while (!ps_done(ps) && isspace(ps->b[0]))
-        __ps_skip(ps, 1);
-}
 static inline int ps_skip_uptochr(pstream_t *ps, int c) {
     const void *p = memchr(ps->p, c, ps_len(ps));
     return likely(p) ? __ps_skip_upto(ps, p) : -1;
@@ -388,16 +384,24 @@ static inline int ps_skipcasestr(pstream_t *ps, const char *s)
     return ps_skipcasedata(ps, s, strlen(s));
 }
 
-static inline void ps_skip_span(pstream_t *ps, const ctype_desc_t *d)
+static inline size_t ps_skip_span(pstream_t *ps, const ctype_desc_t *d)
 {
-    while (ps->b < ps->b_end && ctype_desc_contains(d, *ps->b))
-        ps->b++;
+    size_t l = 0;
+
+    while (ps->b + l < ps->b_end && ctype_desc_contains(d, ps->b[l]))
+        l++;
+    ps->b += l;
+    return l;
 }
 
-static inline void ps_skip_cspan(pstream_t *ps, const ctype_desc_t *d)
+static inline size_t ps_skip_cspan(pstream_t *ps, const ctype_desc_t *d)
 {
-    while (ps->b < ps->b_end && !ctype_desc_contains(d, *ps->b))
-        ps->b++;
+    size_t l = 0;
+
+    while (ps->b + l < ps->b_end && !ctype_desc_contains(d, ps->b[l]))
+        l++;
+    ps->b += l;
+    return l;
 }
 
 /* @func ps_get_span
@@ -437,17 +441,25 @@ static inline pstream_t ps_get_tok(pstream_t *ps, const ctype_desc_t *d)
     return out;
 }
 
-static inline void ps_ltrim(pstream_t *ps) {
-    while (ps->b < ps->b_end && isspace(ps->b[0]))
-        ps->b++;
+static inline size_t ps_ltrim(pstream_t *ps)
+{
+    return ps_skip_span(ps, &ctype_isspace);
 }
-static inline void ps_rtrim(pstream_t *ps) {
-    while (ps->b < ps->b_end && isspace(ps->b_end[-1]))
-        ps->b_end--;
+#define ps_skipspaces ps_ltrim
+static inline size_t ps_rtrim(pstream_t *ps)
+{
+    const uint8_t *end = ps->b_end;
+    size_t res;
+
+    while (ps->b < end && ctype_desc_contains(&ctype_isspace, end[-1]))
+        end--;
+    res = ps->b_end - end;
+    ps->b_end = end;
+    return res;
 }
-static inline void ps_trim(pstream_t *ps) {
-    ps_ltrim(ps);
-    ps_rtrim(ps);
+static inline size_t ps_trim(pstream_t *ps)
+{
+    return ps_ltrim(ps) + ps_rtrim(ps);
 }
 
 
