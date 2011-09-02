@@ -99,19 +99,12 @@ ctype_desc_t const ctype_isbindigit = {
     }
 };
 
-/* ctype description for tokens " \r\n\t\v" */
-ctype_desc_t const ctype_isspace = {
-    {
-        0x00002e00,
-        0x00000001,
-        0x00000000,
-        0x00000000,
-        0x00000000,
-        0x00000000,
-        0x00000000,
-        0x00000000,
-    }
-};
+/* ctype description for s:" \f\n\r\t\v" */
+ctype_desc_t const ctype_isspace = { {
+    0x00003e00, 0x00000001, 0x00000000, 0x00000000,
+    0x00000000, 0x00000000, 0x00000000, 0x00000000,
+} };
+
 
 /* ctype describing characters of a word */
 ctype_desc_t const ctype_iswordpart = {

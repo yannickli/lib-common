@@ -31,7 +31,7 @@ int main(int argc, char **argv)
         const char *s = argv[i];
 
         if (strstart(s, "s:", &s)) {
-            sb_adds_unquoted(&buf, argv[2]);
+            sb_adds_unquoted(&buf, argv[2] + 2);
             continue;
         }
 
