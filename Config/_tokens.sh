@@ -44,6 +44,12 @@ ${LOWERCASE_NAME}_get_token(const char *s, int len);
 __attribute__((pure))
 enum ${LOWERCASE_NAME}_token
 ${LOWERCASE_NAME}_get_token_ps(pstream_t ps);
+
+static ALWAYS_INLINE enum ${LOWERCASE_NAME}_token
+${LOWERCASE_NAME}_get_token_lstr(lstr_t s)
+{
+    return ${LOWERCASE_NAME}_get_token(s.s, s.len);
+}
 #endif /* IS_${UPPERCASE_NAME}_TOKEN_H */
 EOF
 }
