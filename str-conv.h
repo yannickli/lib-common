@@ -175,7 +175,7 @@ static ALWAYS_INLINE int utf8_ngetc(const char *s, int len, const char **out)
 static ALWAYS_INLINE int utf8_ngetc_at(const char *s, int len, int *offp)
 {
     int off = *offp;
-    const char *out;
+    const char *out = NULL;
     int res;
 
     if (off < 0 || off >= len) {
