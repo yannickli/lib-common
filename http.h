@@ -195,9 +195,9 @@ enum http_parser_state {
 struct httpd_query_t;
 typedef struct httpd_qinfo_t httpd_qinfo_t;
 
-typedef struct httpd_cfg_t httpd_cfg_t;
+typedef struct httpd_cfg_t          httpd_cfg_t;
 typedef struct httpd_trigger_node_t httpd_trigger_node_t;
-typedef struct httpd_trigger_cb_t   httpd_trigger_cb_t;
+typedef struct httpd_trigger_t      httpd_trigger_t;
 
 qm_kvec_t(http_path, lstr_t, httpd_trigger_node_t *,
           qhash_lstr_hash, qhash_lstr_equal);
@@ -235,8 +235,8 @@ typedef struct httpd_t {
  * that for many reasons the actual query may never happen (connection lost,
  * invalid formatting of the rest of the query, etc…). So be very careful if
  * you store allocated information in the query descriptor to either:
- * - use the httpd_trigger_cb_t#query_cls trick;
- * - make good use of httpd_trigger_cb_t#on_query_wipe;
+ * - use the httpd_trigger_t#query_cls trick;
+ * - make good use of httpd_trigger_t#on_query_wipe;
  * so that this data gets properly deallocated.
  *
  * \param[in]  cb   the callback that was matched.
@@ -244,24 +244,24 @@ typedef struct httpd_t {
  * \param[in]  user "user" part of the Authorization field.
  * \param[in]  pw   "password" part of the Authorization field.
  */
-typedef void (httpd_trigger_auth_f)(httpd_trigger_cb_t *cb,
+typedef void (httpd_trigger_auth_f)(httpd_trigger_t *cb,
                                     struct httpd_query_t *q,
                                     pstream_t user, pstream_t pw);
 
-struct httpd_trigger_cb_t {
+struct httpd_trigger_t {
     lstr_t                auth_realm;
     httpd_trigger_auth_f *auth;
     const object_class_t *query_cls;
 
-    void (*cb)(httpd_trigger_cb_t *, struct httpd_query_t *, const httpd_qinfo_t *);
-    void (*destroy)(httpd_trigger_cb_t *);
+    void (*cb)(httpd_trigger_t *, struct httpd_query_t *, const httpd_qinfo_t *);
+    void (*destroy)(httpd_trigger_t *);
     void (*on_query_wipe)(struct httpd_query_t *q);
 };
 
 struct httpd_trigger_node_t {
-    qm_t(http_path)       childs;
-    httpd_trigger_cb_t   *cb;
-    char                  path[];
+    qm_t(http_path)  childs;
+    httpd_trigger_t *cb;
+    char             path[];
 };
 
 struct httpd_cfg_t {
@@ -285,19 +285,19 @@ el_t     httpd_listen(sockunion_t *su, httpd_cfg_t *);
 void     httpd_unlisten(el_t *ev);
 httpd_t *httpd_spawn(int fd, httpd_cfg_t *);
 
-GENERIC_INIT(httpd_trigger_cb_t, httpd_trigger_cb);
-GENERIC_NEW(httpd_trigger_cb_t, httpd_trigger_cb);
-void httpd_trigger_cb_destroy(httpd_trigger_cb_t *cb);
+GENERIC_INIT(httpd_trigger_t, httpd_trigger);
+GENERIC_NEW(httpd_trigger_t, httpd_trigger);
+void httpd_trigger_destroy(httpd_trigger_t *cb);
 
-httpd_trigger_cb_t *
+httpd_trigger_t *
 httpd_trigger_register_(httpd_trigger_node_t *, const char *path,
-                        httpd_trigger_cb_t *cb);
-httpd_trigger_cb_t *
+                        httpd_trigger_t *cb);
+httpd_trigger_t *
 httpd_trigger_unregister_(httpd_trigger_node_t *, const char *path);
 
 static inline void
-httpd_trigger_cb__set_auth(httpd_trigger_cb_t *cb, httpd_trigger_auth_f *auth,
-                           const char *auth_realm)
+httpd_trigger_set_auth(httpd_trigger_t *cb, httpd_trigger_auth_f *auth,
+                       const char *auth_realm)
 {
     lstr_t s = LSTR_STR_V(auth_realm ?: "Intersec HTTP Server");
 
@@ -333,7 +333,7 @@ struct httpd_qinfo_t {
     OBJECT_FIELDS(pfx);                                             \
                                                                     \
     httpd_t            *owner;                                      \
-    httpd_trigger_cb_t *trig_cb;                                    \
+    httpd_trigger_t    *trig_cb;                                    \
     dlist_t             query_link;                                 \
                                                                     \
     /* User flags    */                                             \
@@ -437,7 +437,7 @@ void httpd_reject_unauthorized(httpd_query_t *q, lstr_t auth_realm);
 void httpd_reply_make_index(httpd_query_t *q, int dirfd, bool head);
 void httpd_reply_file(httpd_query_t *q, int dirfd, const char *file, bool head);
 
-httpd_trigger_cb_t *httpd_trigger__static_dir(const char *path);
+httpd_trigger_t *httpd_trigger__static_dir_new(const char *path);
 
 
 /**************************************************************************/

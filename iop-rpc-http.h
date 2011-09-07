@@ -54,26 +54,30 @@ OBJ_CLASS(ichttp_query, httpd_query,
 qm_kptr_ckey_t(ichttp_cbs, char, ichttp_cb_t *,
                qhash_str_hash, qhash_str_equal);
 
-typedef struct ichttp_trigger_cb_t {
-    httpd_trigger_cb_t       cb;
+typedef struct httpd_trigger__ic_t {
+    httpd_trigger_t          cb;
     unsigned                 query_max_size;
     const char              *schema;
     const char              *auth_kind;
     const iop_iface_alias_t *mod;
     qm_t(ichttp_cbs)         impl;
 
-    void (*on_reply)(const struct ichttp_trigger_cb_t *,
+    void (*on_reply)(const struct httpd_trigger__ic_t *,
                      const ichttp_query_t *, size_t res_size,
                      http_code_t res_code);
-} ichttp_trigger_cb_t;
+} httpd_trigger__ic_t;
+
+/* compat for qrrd */
+#define ichttp_trigger_cb_t    httpd_trigger__ic_t
+#define httpd_trigger__ichttp  httpd_trigger__ic_new
 
 
 /**************************************************************************/
 /* APIs                                                                   */
 /**************************************************************************/
 
-ichttp_trigger_cb_t *
-httpd_trigger__ichttp(const iop_mod_t *mod, const char *schema,
+httpd_trigger__ic_t *
+httpd_trigger__ic_new(const iop_mod_t *mod, const char *schema,
                       unsigned szmax);
 
 /** \brief internal do not use directly, or know what you're doing. */
@@ -101,7 +105,7 @@ void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const char *err);
 
 /** \brief internal do not use directly, or know what you're doing. */
 ichttp_cb_t *
-__ichttp_register(ichttp_trigger_cb_t *tcb,
+__ichttp_register(httpd_trigger__ic_t *tcb,
                   const iop_iface_alias_t *alias,
                   const iop_rpc_t *fun, int32_t cmd);
 
@@ -113,7 +117,7 @@ __ichttp_register(ichttp_trigger_cb_t *tcb,
 
 /** \brief register a local callback for an rpc on the given http iop trigger.
  * \param[in]  tcb
- *    the #ichttp_trigger_cb_t to register the callback implementation into.
+ *    the #httpd_trigger__ic_t to register the callback implementation into.
  * \param[in]  _mod   name of the package+module of the RPC
  * \param[in]  _i     name of the interface of the RPC
  * \param[in]  _r     name of the rpc
@@ -139,7 +143,7 @@ __ichttp_register(ichttp_trigger_cb_t *tcb,
 /** \brief register a proxy for an rpc on the given http iop trigger.
  * \see #ic_register_proxy_hdr
  * \param[in]  tcb
- *    the #ichttp_trigger_cb_t to register the callback implementation into.
+ *    the #httpd_trigger__ic_t to register the callback implementation into.
  * \param[in]  _mod   name of the package+module of the RPC
  * \param[in]  _i     name of the interface of the RPC
  * \param[in]  _r     name of the rpc
@@ -157,7 +161,7 @@ __ichttp_register(ichttp_trigger_cb_t *tcb,
 /** \brief register a proxy for an rpc on the given http iop trigger.
  * \see #ic_register_proxy
  * \param[in]  tcb
- *    the #ichttp_trigger_cb_t to register the callback implementation into.
+ *    the #httpd_trigger__ic_t to register the callback implementation into.
  * \param[in]  _mod   name of the package+module of the RPC
  * \param[in]  _i     name of the interface of the RPC
  * \param[in]  _r     name of the rpc
@@ -170,7 +174,7 @@ __ichttp_register(ichttp_trigger_cb_t *tcb,
 /** \brief register a pointed proxy for an rpc on the given http iop trigger.
  * \see #ic_register_proxy_hdr_p
  * \param[in]  tcb
- *    the #ichttp_trigger_cb_t to register the callback implementation into.
+ *    the #httpd_trigger__ic_t to register the callback implementation into.
  * \param[in]  _mod   name of the package+module of the RPC
  * \param[in]  _i     name of the interface of the RPC
  * \param[in]  _r     name of the rpc
@@ -190,7 +194,7 @@ __ichttp_register(ichttp_trigger_cb_t *tcb,
 /** \brief register a pointed proxy for an rpc on the given http iop trigger.
  * \see #ic_register_proxy_p
  * \param[in]  tcb
- *    the #ichttp_trigger_cb_t to register the callback implementation into.
+ *    the #httpd_trigger__ic_t to register the callback implementation into.
  * \param[in]  _mod   name of the package+module of the RPC
  * \param[in]  _i     name of the interface of the RPC
  * \param[in]  _r     name of the rpc
@@ -205,7 +209,7 @@ __ichttp_register(ichttp_trigger_cb_t *tcb,
 /** \brief register a dynamic proxy for an rpc on the given http iop trigger.
  * \see #ic_register_dynproxy
  * \param[in]  tcb
- *    the #ichttp_trigger_cb_t to register the callback implementation into.
+ *    the #httpd_trigger__ic_t to register the callback implementation into.
  * \param[in]  _mod   name of the package+module of the RPC
  * \param[in]  _i     name of the interface of the RPC
  * \param[in]  _r     name of the rpc

@@ -74,7 +74,7 @@ static int t_parse_soap(ichttp_query_t *iq, ic__simple_hdr__t *hdr,
     const char *buf = iq->payload.data;
     int         len = iq->payload.len;
 
-    ichttp_trigger_cb_t *tcb = container_of(iq->trig_cb, ichttp_trigger_cb_t, cb);
+    httpd_trigger__ic_t *tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
     ichttp_cb_t *cbe;
     char *xval;
     int pos;
@@ -157,7 +157,7 @@ static void ichttp_query_on_done(httpd_query_t *q)
 {
     t_scope;
     ichttp_query_t *iq  = obj_vcast(ichttp_query, q);
-    ichttp_trigger_cb_t *tcb = container_of(iq->trig_cb, ichttp_trigger_cb_t, cb);
+    httpd_trigger__ic_t *tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
     ic__hdr__t      hdr = IOP_UNION_VA(ic__hdr, simple,
        .kind = (tcb->auth_kind ? CLSTR_STR_V(tcb->auth_kind) : CLSTR_NULL_V),
        .payload = iq->payload.len,
@@ -282,21 +282,21 @@ static void ichttp_query_on_done(httpd_query_t *q)
     }
 }
 
-static void httpd_trigger__ichttp_destroy(httpd_trigger_cb_t *tcb)
+static void httpd_trigger__ic_destroy(httpd_trigger_t *tcb)
 {
-    ichttp_trigger_cb_t *cb = container_of(tcb, ichttp_trigger_cb_t, cb);
+    httpd_trigger__ic_t *cb = container_of(tcb, httpd_trigger__ic_t, cb);
 
     qm_for_each_pos(ichttp_cbs, pos, &cb->impl) {
         ichttp_cb_delete(&cb->impl.values[pos]);
     }
     qm_wipe(ichttp_cbs, &cb->impl);
-    httpd_trigger_cb_destroy(tcb);
+    httpd_trigger_destroy(tcb);
 }
 
-static void httpd_trigger__ichttp_cb(httpd_trigger_cb_t *tcb, httpd_query_t *q,
-                                     const httpd_qinfo_t *req)
+static void httpd_trigger__ic_cb(httpd_trigger_t *tcb, httpd_query_t *q,
+                                 const httpd_qinfo_t *req)
 {
-    ichttp_trigger_cb_t *cb = container_of(tcb, ichttp_trigger_cb_t, cb);
+    httpd_trigger__ic_t *cb = container_of(tcb, httpd_trigger__ic_t, cb);
 
     httpd_bufferize(q, cb->query_max_size);
     q->on_done = ichttp_query_on_done;
@@ -304,15 +304,15 @@ static void httpd_trigger__ichttp_cb(httpd_trigger_cb_t *tcb, httpd_query_t *q,
 }
 
 
-ichttp_trigger_cb_t *
-httpd_trigger__ichttp(const iop_mod_t *mod, const char *schema,
+httpd_trigger__ic_t *
+httpd_trigger__ic_new(const iop_mod_t *mod, const char *schema,
                       unsigned szmax)
 {
-    ichttp_trigger_cb_t *cb = p_new(ichttp_trigger_cb_t, 1);
+    httpd_trigger__ic_t *cb = p_new(httpd_trigger__ic_t, 1);
 
-    cb->cb.cb          = &httpd_trigger__ichttp_cb;
+    cb->cb.cb          = &httpd_trigger__ic_cb;
     cb->cb.query_cls   = obj_class(ichttp_query);
-    cb->cb.destroy     = &httpd_trigger__ichttp_destroy;
+    cb->cb.destroy     = &httpd_trigger__ic_destroy;
     cb->schema         = schema;
     cb->mod            = mod->ifaces;
     cb->query_max_size = szmax;
@@ -321,7 +321,7 @@ httpd_trigger__ichttp(const iop_mod_t *mod, const char *schema,
 }
 
 ichttp_cb_t *
-__ichttp_register(ichttp_trigger_cb_t *tcb,
+__ichttp_register(httpd_trigger__ic_t *tcb,
                   const iop_iface_alias_t *alias,
                   const iop_rpc_t *fun,
                   int32_t cmd)

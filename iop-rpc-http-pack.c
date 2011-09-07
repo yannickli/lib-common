@@ -19,7 +19,7 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
 {
     ichttp_query_t *iq = ichttp_slot_to_query(slot);
     httpd_query_t  *q  = obj_vcast(httpd_query, iq);
-    ichttp_trigger_cb_t *tcb;
+    httpd_trigger__ic_t *tcb;
     outbuf_t *ob;
     sb_t *out;
     int oldlen;
@@ -43,7 +43,7 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
     httpd_reply_chunk_start(q, ob);
 
     out = outbuf_sb_start(ob, &oldlen);
-    tcb = container_of(iq->trig_cb, ichttp_trigger_cb_t, cb);
+    tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
 
     if (iq->json) {
         iop_jpack(st, v, iop_sb_write, out, true);
@@ -100,7 +100,7 @@ void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const char *err)
 {
     ichttp_query_t *iq = ichttp_slot_to_query(slot);
     httpd_query_t  *q  = obj_vcast(httpd_query, iq);
-    ichttp_trigger_cb_t *tcb;
+    httpd_trigger__ic_t *tcb;
     outbuf_t *ob;
     sb_t *out;
     int oldlen;
@@ -140,7 +140,7 @@ void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const char *err)
     oblen = ob->length - oblen;
     httpd_reply_done(q);
 
-    tcb = container_of(iq->trig_cb, ichttp_trigger_cb_t, cb);
+    tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
     if (tcb->on_reply)
         (*tcb->on_reply)(tcb, iq, oblen, HTTP_CODE_INTERNAL_SERVER_ERROR);
     obj_delete(&q);

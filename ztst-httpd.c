@@ -25,7 +25,7 @@ static struct {
     el_t  httpd;
     el_t  blocker;
 
-    ichttp_trigger_cb_t *itcb;
+    httpd_trigger__ic_t *itcb;
 } httpd_g = {
 #define _G  httpd_g
     .port = 1080,
@@ -75,10 +75,10 @@ int main(int argc, char **argv)
     }
 
     cfg = httpd_cfg_new();
-    httpd_trigger_register(cfg, GET,  "t", httpd_trigger__static_dir("/boot"));
-    httpd_trigger_register(cfg, HEAD, "t", httpd_trigger__static_dir("/boot"));
+    httpd_trigger_register(cfg, GET,  "t", httpd_trigger__static_dir_new("/boot"));
+    httpd_trigger_register(cfg, HEAD, "t", httpd_trigger__static_dir_new("/boot"));
 
-    _G.itcb = httpd_trigger__ichttp(&tstiop__t__mod, SCHEMA, 2 << 20);
+    _G.itcb = httpd_trigger__ic_new(&tstiop__t__mod, SCHEMA, 2 << 20);
     _G.itcb->query_max_size = 2 << 20;
     httpd_trigger_register(cfg, POST, "iop", &_G.itcb->cb);
     ichttp_register(_G.itcb, tstiop__t, iface, f, f_cb);

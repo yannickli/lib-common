@@ -210,17 +210,17 @@ void httpd_reply_file(httpd_query_t *q, int dfd, const char *file, bool head)
 }
 
 
-typedef struct trigger_cb__dir_t {
-    httpd_trigger_cb_t cb;
+typedef struct httpd_trigger__dir_t {
+    httpd_trigger_t cb;
     int  dirlen;
     char dirpath[];
-} trigger_cb__dir_t;
+} httpd_trigger__dir_t;
 
-static void trigger_cb__dir_cb(httpd_trigger_cb_t *cb, httpd_query_t *q,
-                               const httpd_qinfo_t *req)
+static void httpd_trigger__dir_cb(httpd_trigger_t *cb, httpd_query_t *q,
+                                  const httpd_qinfo_t *req)
 {
     t_scope;
-    trigger_cb__dir_t *cb2 = container_of(cb, trigger_cb__dir_t, cb);
+    httpd_trigger__dir_t *cb2 = container_of(cb, httpd_trigger__dir_t, cb);
     char *buf;
 
     buf = t_new_raw(char, cb2->dirlen + ps_len(&req->query) + 1);
@@ -229,14 +229,14 @@ static void trigger_cb__dir_cb(httpd_trigger_cb_t *cb, httpd_query_t *q,
     httpd_reply_file(q, AT_FDCWD, buf, req->method == HTTP_METHOD_HEAD);
 }
 
-httpd_trigger_cb_t *httpd_trigger__static_dir(const char *path)
+httpd_trigger_t *httpd_trigger__static_dir_new(const char *path)
 {
     int len   = strlen(path);
-    trigger_cb__dir_t *cbdir = p_new_extra(trigger_cb__dir_t, len + 1);
+    httpd_trigger__dir_t *cbdir = p_new_extra(httpd_trigger__dir_t, len + 1);
 
     while (len > 0 && path[len - 1] == '/')
         len--;
-    cbdir->cb.cb  = &trigger_cb__dir_cb;
+    cbdir->cb.cb  = &httpd_trigger__dir_cb;
     cbdir->dirlen = len;
     memcpy(cbdir->dirpath, path, len + 1);
     return &cbdir->cb;

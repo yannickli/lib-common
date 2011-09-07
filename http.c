@@ -339,7 +339,7 @@ httpd_qinfo_t *httpd_qinfo_dup(const httpd_qinfo_t *info)
     return res;
 }
 
-static httpd_query_t *httpd_query_create(httpd_t *w, httpd_trigger_cb_t *cb)
+static httpd_query_t *httpd_query_create(httpd_t *w, httpd_trigger_t *cb)
 {
     httpd_query_t *q;
 
@@ -620,7 +620,7 @@ static void httpd_trigger_node_wipe(httpd_trigger_node_t *node)
     qm_wipe(http_path, &node->childs);
 }
 
-void httpd_trigger_cb_destroy(httpd_trigger_cb_t *cb)
+void httpd_trigger_destroy(httpd_trigger_t *cb)
 {
     if (cb) {
         lstr_wipe(&cb->auth_realm);
@@ -632,11 +632,11 @@ void httpd_trigger_cb_destroy(httpd_trigger_cb_t *cb)
     }
 }
 
-httpd_trigger_cb_t *
+httpd_trigger_t *
 httpd_trigger_register_(httpd_trigger_node_t *n, const char *path,
-                        httpd_trigger_cb_t *cb)
+                        httpd_trigger_t *cb)
 {
-    httpd_trigger_cb_t *res;
+    httpd_trigger_t *res;
 
     while (*path == '/')
         path++;
@@ -657,7 +657,7 @@ httpd_trigger_register_(httpd_trigger_node_t *n, const char *path,
 }
 
 static bool httpd_trigger_unregister__(httpd_trigger_node_t *n, const char *path,
-                                       httpd_trigger_cb_t **out)
+                                       httpd_trigger_t **out)
 {
     while (*path == '/')
         path++;
@@ -680,20 +680,20 @@ static bool httpd_trigger_unregister__(httpd_trigger_node_t *n, const char *path
     return qm_len(http_path, &n->childs) == 0;
 }
 
-httpd_trigger_cb_t *
+httpd_trigger_t *
 httpd_trigger_unregister_(httpd_trigger_node_t *n, const char *path)
 {
-    httpd_trigger_cb_t *res = NULL;
+    httpd_trigger_t *res = NULL;
 
     httpd_trigger_unregister__(n, path, &res);
     return res;
 }
 
 /* XXX: assumes path is canonical wrt '/' and starts with one */
-static httpd_trigger_cb_t *
+static httpd_trigger_t *
 httpd_trigger_resolve(httpd_trigger_node_t *n, httpd_qinfo_t *req)
 {
-    httpd_trigger_cb_t *res = n->cb;
+    httpd_trigger_t *res = n->cb;
     const char *p = req->query.s;
     const char *q = req->query.s_end;
 
@@ -803,7 +803,7 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
     bool chunked = false;
     httpd_query_t *q;
     qv_t(qhdr) hdrs;
-    httpd_trigger_cb_t *cb = NULL;
+    httpd_trigger_t *cb = NULL;
     struct timeval now;
 
     if ((p = memmem(ps->s + start, ps_len(ps) - start, "\r\n\r\n", 4)) == NULL) {
@@ -1178,7 +1178,7 @@ int t_httpd_qinfo_get_basic_auth(const httpd_qinfo_t *info,
 
 static void httpd_do_any(httpd_t *w, httpd_query_t *q, httpd_qinfo_t *req)
 {
-    httpd_trigger_cb_t *cb = q->trig_cb;
+    httpd_trigger_t *cb = q->trig_cb;
     pstream_t user, pw;
 
     if (ps_memequal(&req->query, "*", 1)) {
