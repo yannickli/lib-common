@@ -31,7 +31,7 @@ typedef enum http_method_t {
     HTTP_METHOD_CONNECT,
     HTTP_METHOD__MAX,
 } http_method_t;
-extern char const * const http_method_str[HTTP_METHOD__MAX];
+extern lstr_t const http_method_str[HTTP_METHOD__MAX];
 
 typedef enum http_code_t {
     HTTP_CODE_CONTINUE                 = 100,
@@ -79,7 +79,8 @@ typedef enum http_code_t {
     HTTP_CODE_GATEWAY_TIMEOUT          = 504,
     HTTP_CODE_VERSION_NOT_SUPPORTED    = 505,
 } http_code_t;
-const char *http_code_to_str(http_code_t code);
+__attribute__((pure))
+lstr_t http_code_to_str(http_code_t code);
 
 typedef enum http_wkhdr_t {
     HTTP_WKHDR_OTHER_HEADER = -1,
@@ -248,9 +249,10 @@ typedef void (httpd_trigger_auth_f)(httpd_trigger_cb_t *cb,
                                     pstream_t user, pstream_t pw);
 
 struct httpd_trigger_cb_t {
-    char  *auth_realm;
+    lstr_t                auth_realm;
     httpd_trigger_auth_f *auth;
     const object_class_t *query_cls;
+
     void (*cb)(httpd_trigger_cb_t *, struct httpd_query_t *, const httpd_qinfo_t *);
     void (*destroy)(httpd_trigger_cb_t *);
     void (*on_query_wipe)(struct httpd_query_t *q);
@@ -297,9 +299,10 @@ static inline void
 httpd_trigger_cb__set_auth(httpd_trigger_cb_t *cb, httpd_trigger_auth_f *auth,
                            const char *auth_realm)
 {
-    p_delete(&cb->auth_realm);
-    cb->auth_realm = p_strdup(auth_realm ?: "Intersec HTTP Server");
-    cb->auth       = auth;
+    lstr_t s = LSTR_STR_V(auth_realm ?: "Intersec HTTP Server");
+
+    lstr_copy(&cb->auth_realm, s);
+    cb->auth = auth;
 }
 
 #define httpd_trigger_register(cfg, m, p, cb) \
@@ -427,7 +430,7 @@ __attribute__((format(printf, 3, 4)))
 void httpd_reject_(httpd_query_t *q, int code, const char *fmt, ...);
 #define httpd_reject(q, code, fmt, ...) \
     httpd_reject_(q, HTTP_CODE_##code, fmt, ##__VA_ARGS__)
-void httpd_reject_unauthorized(httpd_query_t *q, const char *auth_realm);
+void httpd_reject_unauthorized(httpd_query_t *q, lstr_t auth_realm);
 
 
 /*---- http-srv-static.c ----*/
@@ -480,7 +483,7 @@ void     httpc_close(httpc_t **);
 
 struct httpc_pool_t {
     httpc_cfg_t *cfg;
-    char        *host;
+    lstr_t       host;
     sockunion_t  su;
 
     int          len;
@@ -586,7 +589,7 @@ static ALWAYS_INLINE outbuf_t *httpc_get_ob(httpc_query_t *q) {
 }
 
 void httpc_query_start(httpc_query_t *q, http_method_t m,
-                       const char *host, const char *uri);
+                       lstr_t host, lstr_t uri);
 void httpc_query_hdrs_done(httpc_query_t *q, int clen, bool chunked);
 void httpc_query_done(httpc_query_t *q);
 

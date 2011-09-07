@@ -13,8 +13,8 @@
 
 #include "http.h"
 
-char const * const http_method_str[HTTP_METHOD__MAX] = {
-#define V(v) [HTTP_METHOD_##v] = #v
+lstr_t const http_method_str[HTTP_METHOD__MAX] = {
+#define V(v) [HTTP_METHOD_##v] = LSTR_IMMED(#v)
     V(OPTIONS),
     V(GET),
     V(HEAD),
@@ -27,10 +27,10 @@ char const * const http_method_str[HTTP_METHOD__MAX] = {
 };
 
 /* rfc 2616: §6.1.1: Status Code and Reason Phrase */
-const char *http_code_to_str(http_code_t code)
+lstr_t http_code_to_str(http_code_t code)
 {
     switch (code) {
-#define CASE(c, v)  case HTTP_CODE_##c: return v
+#define CASE(c, v)  case HTTP_CODE_##c: return LSTR_IMMED_V(v)
         CASE(CONTINUE                , "Continue");
         CASE(SWITCHING_PROTOCOL      , "Switching Protocols");
 
@@ -78,5 +78,5 @@ const char *http_code_to_str(http_code_t code)
         CASE(VERSION_NOT_SUPPORTED   , "HTTP Version not supported");
 #undef CASE
     }
-    return "<unknown>";
+    return LSTR_IMMED_V("<unknown>");
 }

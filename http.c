@@ -443,8 +443,8 @@ outbuf_t *httpd_reply_hdrs_start(httpd_query_t *q, int code, bool force_uncachea
     assert (!q->hdrs_started && !q->hdrs_done);
 
     q->answer_code = code;
-    ob_addf(ob, "HTTP/1.%d %d %s\r\n", HTTP_MINOR(q->http_version),
-            code, http_code_to_str(code));
+    ob_addf(ob, "HTTP/1.%d %d %*pM\r\n", HTTP_MINOR(q->http_version),
+            code, LSTR_FMT_ARG(http_code_to_str(code)));
     ob_add(ob, date_cache_g.buf, sizeof(date_cache_g.buf) - 1);
     if (q->owner && q->owner->connection_close) {
         if (!q->conn_close) {
@@ -558,8 +558,8 @@ void httpd_reject_(httpd_query_t *q, int code, const char *fmt, ...)
     httpd_reply_hdrs_done(q, -1, true);
 
     httpd_reply_chunk_start(q, ob);
-    ob_addf(ob, "<html><body><h1>%d - %s</h1><p>",
-            code, http_code_to_str(code));
+    ob_addf(ob, "<html><body><h1>%d - %*pM</h1><p>",
+            code, LSTR_FMT_ARG(http_code_to_str(code)));
     va_start(ap, fmt);
     ob_addvf(ob, fmt, ap);
     va_end(ap);
@@ -569,7 +569,7 @@ void httpd_reject_(httpd_query_t *q, int code, const char *fmt, ...)
     httpd_reply_done(q);
 }
 
-void httpd_reject_unauthorized(httpd_query_t *q, const char *auth_realm)
+void httpd_reject_unauthorized(httpd_query_t *q, lstr_t auth_realm)
 {
     outbuf_t *ob;
 
@@ -581,7 +581,8 @@ void httpd_reject_unauthorized(httpd_query_t *q, const char *auth_realm)
 
     ob = httpd_reply_hdrs_start(q, HTTP_CODE_UNAUTHORIZED, false);
     ob_adds(ob, "Content-Type: text/html\r\n");
-    ob_addf(ob, "WWW-Authenticate: Basic realm=\"%s\"\r\n", auth_realm);
+    ob_addf(ob, "WWW-Authenticate: Basic realm=\"%*pM\"\r\n",
+            LSTR_FMT_ARG(auth_realm));
     httpd_reply_hdrs_done(q, sizeof(AUTH_REQUIRED_BODY) - 1, false);
     ob_adds(ob, "<html><body><h1>401 - Authentication required</h1></body></html>");
     httpd_reply_done(q);
@@ -620,7 +621,7 @@ static void httpd_trigger_wipe(httpd_trigger_t *node)
 void httpd_trigger_cb_destroy(httpd_trigger_cb_t *cb)
 {
     if (cb) {
-        p_delete(&cb->auth_realm);
+        lstr_wipe(&cb->auth_realm);
         if (cb->destroy) {
             cb->destroy(cb);
         } else {
@@ -1652,7 +1653,7 @@ void httpc_pool_wipe(httpc_pool_t *pool)
     dlist_for_each_safe(it, &pool->ready_list) {
         httpc_pool_detach(dlist_entry(it, httpc_t, pool_link));
     }
-    p_delete(&pool->host);
+    lstr_wipe(&pool->host);
     httpc_cfg_delete(&pool->cfg);
 }
 
@@ -1906,35 +1907,24 @@ void httpc_bufferize(httpc_query_t *q, unsigned maxsize)
 }
 
 void httpc_query_start(httpc_query_t *q, http_method_t m,
-                       const char *host, const char *uri)
+                       lstr_t host, lstr_t uri)
 {
-    static char const * const methods[] = {
-#define M(m)  [HTTP_METHOD_##m] = #m" "
-        M(OPTIONS),
-        M(GET),
-        M(HEAD),
-        M(POST),
-        M(PUT),
-        M(DELETE),
-        M(TRACE),
-        M(CONNECT),
-#undef M
-    };
-
     httpc_t  *w  = q->owner;
     outbuf_t *ob = &w->ob;
 
     assert (!q->hdrs_started && !q->hdrs_done);
 
     if (w->cfg->use_proxy) {
-        ob_addf(ob, "%shttp://%s", methods[m], host);
-        ob_adds_urlencode(ob, uri);
+        ob_addf(ob, "%*pM http://%*pM", LSTR_FMT_ARG(http_method_str[m]),
+                LSTR_FMT_ARG(host));
+        ob_add_urlencode(ob, uri.s, uri.len);
         ob_adds(ob, " HTTP/1.1\r\n");
     } else {
-        ob_adds(ob, methods[m]);
-        ob_adds_urlencode(ob, uri);
+        ob_add(ob, http_method_str[m].s, http_method_str[m].len);
+        ob_adds(ob, " ");
+        ob_add_urlencode(ob, uri.s, uri.len);
         ob_addf(ob, " HTTP/1.1\r\n"
-                "Host: %s\r\n", host);
+                "Host: %*pM\r\n", LSTR_FMT_ARG(host));
     }
     http_update_date_cache(&date_cache_g, lp_getsec());
     ob_add(ob, date_cache_g.buf, sizeof(date_cache_g.buf) - 1);
