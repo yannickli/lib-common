@@ -110,12 +110,13 @@ static inline void outbuf_sb_end(outbuf_t *ob, int oldlen) {
         __ob->length      += __ob->sb.len - curlen;  \
     } while (0)
 
-#define ob_add(ob, data, len)    OB_WRAP(sb_add,   ob, data, len)
-#define ob_adds(ob, data)        OB_WRAP(sb_adds,  ob, data)
-#define ob_addf(ob, fmt, ...)    OB_WRAP(sb_addf,  ob, fmt, ##__VA_ARGS__)
-#define ob_addvf(ob, fmt, ap)    OB_WRAP(sb_addvf, ob, fmt, ap)
-#define ob_addsb(ob, sb)         OB_WRAP(sb_addsb, ob, sb)
-#define ob_adds_urlencode(ob, s) OB_WRAP(sb_adds_urlencode, ob, s)
+#define ob_add(ob, data, len)       OB_WRAP(sb_add,   ob, data, len)
+#define ob_adds(ob, data)           OB_WRAP(sb_adds,  ob, data)
+#define ob_addf(ob, fmt, ...)       OB_WRAP(sb_addf,  ob, fmt, ##__VA_ARGS__)
+#define ob_addvf(ob, fmt, ap)       OB_WRAP(sb_addvf, ob, fmt, ap)
+#define ob_addsb(ob, sb)            OB_WRAP(sb_addsb, ob, sb)
+#define ob_add_urlencode(ob, s, l)  OB_WRAP(sb_add_urlencode, ob, s, l)
+#define ob_adds_urlencode(ob, s)    OB_WRAP(sb_adds_urlencode, ob, s)
 
 /* XXX: invalidated as sonn as the outbuf is consumed ! */
 static inline int ob_reserve(outbuf_t *ob, unsigned len)
