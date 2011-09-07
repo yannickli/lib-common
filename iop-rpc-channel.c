@@ -701,10 +701,14 @@ static void ic_reconnect(el_t ev, el_data_t priv)
 {
     ichannel_t *ic = priv.ptr;
 
+    /* XXX: ic->timer can be either the watch_activity or the reconnection
+     * timer. This code ensure the watch_activity timer is properly
+     * unregistered and that it will not be leaked in the event-loop.
+     */
+    el_timer_unregister(&ic->timer);
     if (ic_connect(ic) < 0) {
-        el_timer_restart(ev, 1000);
-    } else {
-        ic->timer = NULL;
+        ic->timer = el_timer_register(1000, 0, 0, ic_reconnect, ic);
+        el_unref(ic->timer);
     }
 }
 
@@ -1063,6 +1067,7 @@ static void ic_mark_disconnected(ichannel_t *ic)
 {
     ic_disconnect(ic);
     if (!ic->is_spawned && ic->auto_reconn) {
+        assert (ic->timer == NULL);
         ic->timer = el_timer_register(1000, 0, 0, ic_reconnect, ic);
         el_unref(ic->timer);
     }
@@ -1101,6 +1106,7 @@ static void __ic_watch_activity(ichannel_t *ic)
     el_timer_unregister(&ic->timer);
     if (wa <= 0)
         return;
+    assert (ic->timer == NULL);
     ic->timer = el_timer_register(wa / 3, 0, 0, ic_watch_act_nop, ic);
     el_unref(ic->timer);
 }
