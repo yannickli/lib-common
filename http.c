@@ -620,9 +620,12 @@ static void httpd_trigger_node_wipe(httpd_trigger_node_t *node)
     qm_wipe(http_path, &node->childs);
 }
 
-void httpd_trigger_destroy(httpd_trigger_t *cb)
+static void httpd_trigger_destroy(httpd_trigger_t *cb, unsigned delta)
 {
-    if (cb) {
+    assert (cb->refcnt >= delta);
+
+    cb->refcnt -= delta;
+    if (cb->refcnt == 0) {
         lstr_wipe(&cb->auth_realm);
         if (cb->destroy) {
             cb->destroy(cb);
@@ -632,12 +635,19 @@ void httpd_trigger_destroy(httpd_trigger_t *cb)
     }
 }
 
-httpd_trigger_t *
-httpd_trigger_register_(httpd_trigger_node_t *n, const char *path,
-                        httpd_trigger_t *cb)
+void httpd_trigger_persist(httpd_trigger_t *cb)
 {
-    httpd_trigger_t *res;
+    cb->refcnt |= 1;
+}
 
+void httpd_trigger_loose(httpd_trigger_t *cb)
+{
+    httpd_trigger_destroy(cb, cb->refcnt & 1);
+}
+
+void httpd_trigger_register_(httpd_trigger_node_t *n, const char *path,
+                             httpd_trigger_t *cb)
+{
     while (*path == '/')
         path++;
     while (*path) {
@@ -649,21 +659,22 @@ httpd_trigger_register_(httpd_trigger_node_t *n, const char *path,
             q++;
         path = q;
     }
-    res = n->cb;
+    if (n->cb)
+        httpd_trigger_destroy(n->cb, 2);
+    cb->refcnt += 2;
     n->cb = cb;
     if (unlikely(cb->query_cls == NULL))
         cb->query_cls = obj_class(httpd_query);
-    return res;
 }
 
-static bool httpd_trigger_unregister__(httpd_trigger_node_t *n, const char *path,
-                                       httpd_trigger_t **out)
+static bool httpd_trigger_unregister__(httpd_trigger_node_t *n, const char *path)
 {
     while (*path == '/')
         path++;
 
     if (!*path) {
-        *out = n->cb;
+        if (n->cb)
+            httpd_trigger_destroy(n->cb, 2);
         n->cb = NULL;
     } else {
         const char *q = strchrnul(path, '/');
@@ -672,7 +683,7 @@ static bool httpd_trigger_unregister__(httpd_trigger_node_t *n, const char *path
 
         if (pos < 0)
             return false;
-        if (httpd_trigger_unregister__(n->childs.values[pos], q, out)) {
+        if (httpd_trigger_unregister__(n->childs.values[pos], q)) {
             httpd_trigger_node_delete(&n->childs.values[pos]);
             qm_del_at(http_path, &n->childs, pos);
         }
@@ -680,13 +691,9 @@ static bool httpd_trigger_unregister__(httpd_trigger_node_t *n, const char *path
     return qm_len(http_path, &n->childs) == 0;
 }
 
-httpd_trigger_t *
-httpd_trigger_unregister_(httpd_trigger_node_t *n, const char *path)
+void httpd_trigger_unregister_(httpd_trigger_node_t *n, const char *path)
 {
-    httpd_trigger_t *res = NULL;
-
-    httpd_trigger_unregister__(n, path, &res);
-    return res;
+    httpd_trigger_unregister__(n, path);
 }
 
 /* XXX: assumes path is canonical wrt '/' and starts with one */

@@ -235,8 +235,9 @@ typedef struct httpd_t {
  * that for many reasons the actual query may never happen (connection lost,
  * invalid formatting of the rest of the query, etc…). So be very careful if
  * you store allocated information in the query descriptor to either:
- * - use the httpd_trigger_t#query_cls trick;
- * - make good use of httpd_trigger_t#on_query_wipe;
+ * - use the httpd_trigger_t#query_cls trick, and deallocate this information
+ *   in the class destructor;
+ * - make good use of httpd_trigger_t#on_query_wipe to finalize the query.
  * so that this data gets properly deallocated.
  *
  * \param[in]  cb   the callback that was matched.
@@ -248,7 +249,34 @@ typedef void (httpd_trigger_auth_f)(httpd_trigger_t *cb,
                                     struct httpd_query_t *q,
                                     pstream_t user, pstream_t pw);
 
+/** an HTTP trigger that can be fired on given path fragments.
+ *
+ * An httpd trigger captures everything under the path fragment it was
+ * registered under with #httpd_trigger_register. Unless there is a better
+ * match for the query path.
+ *
+ * Note that an httpd_trigger are meant to be allocated then registered into
+ * one or more httpd trigger trees. Once registered at least once, the trigger
+ * is owned by all those trees.
+ *
+ * If a trigger should survive the http tree it is registered into, then
+ * #httpd_trigger_persist() must be called. #httpd_trigger_loose() is its
+ * contrary, and if the trigger wasn't registered anywhere a call to this
+ * function will destroy the trigger. Hence if you're not sure whether a
+ * trigger you create will be registered or not, the proper sequence to avoid
+ * leaks is:
+ *
+ * <code>
+ *   httpd_trigger_t *cb = httpd_trigger_new();
+ *
+ *   cb->... = ...; // configure callback
+ *   httpd_trigger_persist(cb);
+ *   call_some_function_that_may_register_cb_somewhere_or_maybe_not(cb);
+ *   httpd_trigger_loose(cb);
+ * </code>
+ */
 struct httpd_trigger_t {
+    unsigned              refcnt;
     lstr_t                auth_realm;
     httpd_trigger_auth_f *auth;
     const object_class_t *query_cls;
@@ -287,13 +315,12 @@ httpd_t *httpd_spawn(int fd, httpd_cfg_t *);
 
 GENERIC_INIT(httpd_trigger_t, httpd_trigger);
 GENERIC_NEW(httpd_trigger_t, httpd_trigger);
-void httpd_trigger_destroy(httpd_trigger_t *cb);
+void httpd_trigger_persist(httpd_trigger_t *);
+void httpd_trigger_loose(httpd_trigger_t *);
 
-httpd_trigger_t *
-httpd_trigger_register_(httpd_trigger_node_t *, const char *path,
-                        httpd_trigger_t *cb);
-httpd_trigger_t *
-httpd_trigger_unregister_(httpd_trigger_node_t *, const char *path);
+void httpd_trigger_register_(httpd_trigger_node_t *, const char *path,
+                             httpd_trigger_t *cb);
+void httpd_trigger_unregister_(httpd_trigger_node_t *, const char *path);
 
 static inline void
 httpd_trigger_set_auth(httpd_trigger_t *cb, httpd_trigger_auth_f *auth,
