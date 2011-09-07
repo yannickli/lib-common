@@ -207,4 +207,65 @@ static inline void mpsc_queue_drain_start(mpsc_it_t *it, mpsc_queue_t *q)
 #define mpsc_queue_drain_end(it, freenode) \
     __mpsc_queue_drain_end(it, freenode, cpu_relax())
 
+
+
+/** \internal
+ */
+static inline __cold
+bool mpsc_queue_pop_slow(mpsc_queue_t *q, mpsc_node_t *head, bool block)
+{
+    mpsc_node_t *tail = q->tail;
+    mpsc_node_t *next;
+
+    if (head == tail) {
+        q->head.next = NULL;
+        if (atomic_bool_cas(&q->tail, tail, &q->head))
+            return true;
+        q->head.next = head;
+    }
+
+    next = head->next;
+    if (next == NULL) {
+        if (!block)
+            return false;
+        while ((next = head->next) == NULL)
+            cpu_relax();
+    }
+    q->head.next = next;
+    return true;
+}
+
+/** \brief pop one entry from the mpsc queue.
+ *
+ * \param[in] q      The queue.
+ * \param[in] block  If the pop emptied the queue while an insertion is in
+ *                   progress, wait for this insertion to be finished.
+ *
+ * \returns
+ *   The node extracted from the queue or NULL if the queue is empty.
+ *
+ * \warning
+ *   This API is unsafe and should be used only in specific use-cases where
+ *   the enumeration of a queue must support imbrication (that is a call that
+ *   enumerate the queue within an enumeration).
+ */
+static inline mpsc_node_t *mpsc_queue_pop(mpsc_queue_t *q, bool block)
+{
+    mpsc_node_t *head = q->head.next;
+    mpsc_node_t *next;
+
+    if (head == NULL)
+        return NULL;
+
+    if (likely(next = head->next)) {
+        q->head.next = next;
+        return head;
+    }
+    if (block) {
+        mpsc_queue_pop_slow(q, head, block);
+        return head;
+    }
+    return mpsc_queue_pop_slow(q, head, block) ? head : NULL;
+}
+
 #endif
