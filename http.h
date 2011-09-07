@@ -196,10 +196,10 @@ struct httpd_query_t;
 typedef struct httpd_qinfo_t httpd_qinfo_t;
 
 typedef struct httpd_cfg_t httpd_cfg_t;
-typedef struct httpd_trigger_t    httpd_trigger_t;
-typedef struct httpd_trigger_cb_t httpd_trigger_cb_t;
+typedef struct httpd_trigger_node_t httpd_trigger_node_t;
+typedef struct httpd_trigger_cb_t   httpd_trigger_cb_t;
 
-qm_kvec_t(http_path, lstr_t, httpd_trigger_t *,
+qm_kvec_t(http_path, lstr_t, httpd_trigger_node_t *,
           qhash_lstr_hash, qhash_lstr_equal);
 
 typedef struct httpd_t {
@@ -258,7 +258,7 @@ struct httpd_trigger_cb_t {
     void (*on_query_wipe)(struct httpd_query_t *q);
 };
 
-struct httpd_trigger_t {
+struct httpd_trigger_node_t {
     qm_t(http_path)       childs;
     httpd_trigger_cb_t   *cb;
     char                  path[];
@@ -275,7 +275,7 @@ struct httpd_cfg_t {
     unsigned max_conns;
     uint16_t pipeline_depth;
 
-    httpd_trigger_t roots[HTTP_METHOD_DELETE + 1];
+    httpd_trigger_node_t roots[HTTP_METHOD_DELETE + 1];
 };
 httpd_cfg_t *httpd_cfg_init(httpd_cfg_t *cfg);
 void         httpd_cfg_wipe(httpd_cfg_t *cfg);
@@ -290,10 +290,10 @@ GENERIC_NEW(httpd_trigger_cb_t, httpd_trigger_cb);
 void httpd_trigger_cb_destroy(httpd_trigger_cb_t *cb);
 
 httpd_trigger_cb_t *
-httpd_trigger_register_(httpd_trigger_t *, const char *path,
+httpd_trigger_register_(httpd_trigger_node_t *, const char *path,
                         httpd_trigger_cb_t *cb);
 httpd_trigger_cb_t *
-httpd_trigger_unregister_(httpd_trigger_t *, const char *path);
+httpd_trigger_unregister_(httpd_trigger_node_t *, const char *path);
 
 static inline void
 httpd_trigger_cb__set_auth(httpd_trigger_cb_t *cb, httpd_trigger_auth_f *auth,
