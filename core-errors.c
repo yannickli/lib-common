@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <syslog.h>
 #include "core.h"
 
 static void stderr_handler(int priority, const char *format, va_list args)
@@ -38,24 +37,61 @@ static void stderr_handler(int priority, const char *format, va_list args)
 /* public API                                                             */
 /**************************************************************************/
 
-#define E_FUNCTION(name, level, action)   \
-    int name(const char *fmt, ...) {      \
-        va_list ap;                       \
-        va_start(ap, fmt);                \
-        (*handler_g)(level, fmt, ap);     \
-        va_end(ap);                       \
-        action;                           \
+#define E_FUNCTION_VF(name, level, action)                 \
+    __attr_printf__(1,0)                                   \
+    static int name##_vf(const char *fmt, va_list args) {  \
+        (*handler_g)(level, fmt, args);                    \
+        action;                                            \
     }
+
+#define E_FUNCTION(name, level, action)                    \
+    int name(const char *fmt, ...) {                       \
+        va_list ap;                                        \
+        va_start(ap, fmt);                                 \
+        (*handler_g)(level, fmt, ap);                      \
+        va_end(ap);                                        \
+        action;                                            \
+    }
+
+#define E_FUNCTIONS(name, level, action)                   \
+    E_FUNCTION_VF(name, level, action)                     \
+    E_FUNCTION(name, level, action)
 
 /* Error reporting functions */
 
-E_FUNCTION(e_panic,   LOG_CRIT,    abort());
-E_FUNCTION(e_fatal,   LOG_CRIT,    exit(127));
-E_FUNCTION(e_error,   LOG_ERR,     return -1);
-E_FUNCTION(e_warning, LOG_WARNING, return -1);
-E_FUNCTION(e_notice,  LOG_NOTICE,  return  0);
-E_FUNCTION(e_info,    LOG_INFO,    return  0);
-E_FUNCTION(e_debug,   LOG_DEBUG,   return  0);
+E_FUNCTION(e_panic,    LOG_CRIT,    abort());
+E_FUNCTIONS(e_fatal,   LOG_CRIT,    exit(127));
+E_FUNCTIONS(e_error,   LOG_ERR,     return -1);
+E_FUNCTIONS(e_warning, LOG_WARNING, return -1);
+E_FUNCTIONS(e_notice,  LOG_NOTICE,  return  0);
+E_FUNCTIONS(e_info,    LOG_INFO,    return  0);
+E_FUNCTIONS(e_debug,   LOG_DEBUG,   return  0);
+
+typedef int (error_vf_f)(const char *, va_list) __attr_printf__(1,0);
+
+__attribute__((format(printf, 2, 3)))
+int e_log(int priority, const char *fmt, ...)
+{
+    static error_vf_f *functions[] = {
+        [LOG_CRIT]    = e_fatal_vf,
+        [LOG_ERR]     = e_error_vf,
+        [LOG_WARNING] = e_warning_vf,
+        [LOG_NOTICE]  = e_notice_vf,
+        [LOG_INFO]    = e_info_vf,
+        [LOG_DEBUG]   = e_debug_vf,
+    };
+    int res;
+    va_list args;
+
+    if ((unsigned)priority >= countof(functions) || !functions[priority])
+        priority = LOG_ERR;
+
+    va_start(args, fmt);
+    res = (*functions[priority])(fmt, args);
+    va_end(args);
+
+    return res;
+}
 
 void e_set_handler(e_handler_f *handler)
 {

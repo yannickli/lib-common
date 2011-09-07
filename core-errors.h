@@ -16,6 +16,8 @@
 #else
 #define IS_LIB_COMMON_CORE_ERRORS_H
 
+#include <syslog.h>
+
 typedef void (e_handler_f)(int, const char *, va_list) __attr_printf__(2, 0);
 typedef int (error_f)(const char *, ...) __attr_printf__(1, 2);
 
@@ -32,6 +34,9 @@ error_f e_warning __cold;
 error_f e_notice;
 error_f e_info;
 error_f e_debug;
+
+__attribute__((format(printf, 2, 3)))
+int e_log(int priority, const char *fmt, ...);
 
 void e_init_stderr(void);
 void e_set_handler(e_handler_f *handler);
