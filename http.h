@@ -188,6 +188,17 @@ enum http_parser_state {
     HTTP_PARSER_CLOSE,
 };
 
+static inline const http_qhdr_t *
+http_qhdr_find(const http_qhdr_t *tab, size_t len, http_wkhdr_t wkhdr)
+{
+    /* scan from the end because the last header prevails */
+    for (size_t i = len; i-- > 0; ) {
+        if (tab[i].wkhdr == wkhdr)
+            return tab + i;
+    }
+    return NULL;
+}
+
 /**************************************************************************/
 /* HTTP Server                                                            */
 /**************************************************************************/

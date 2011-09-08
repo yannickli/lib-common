@@ -138,17 +138,15 @@ static int t_parse_soap(ichttp_query_t *iq, ic__simple_hdr__t *hdr,
 
 static int is_ctype_json(const httpd_qinfo_t *info)
 {
-    for (int i = info->hdrs_len; i-- > 0; ) {
-        const http_qhdr_t *hdr = info->hdrs + i;
+    const http_qhdr_t *ctype;
 
-        if (hdr->wkhdr == HTTP_WKHDR_CONTENT_TYPE) {
-            pstream_t v = hdr->val;
+    ctype = http_qhdr_find(info->hdrs, info->hdrs_len,
+                           HTTP_WKHDR_CONTENT_TYPE);
+    if (ctype) {
+        pstream_t v = ctype->val;
 
-            ps_skipspaces(&v);
-            if (ps_skipcasestr(&v, "application/json"))
-                return false;
-            return true;
-        }
+        ps_skipspaces(&v);
+        return ps_skipcasestr(&v, "application/json") == 0;
     }
     return false;
 }
