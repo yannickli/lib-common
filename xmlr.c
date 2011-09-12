@@ -282,6 +282,16 @@ int xmlr_node_enter(xml_reader_t xr, const char *s, size_t len, int flags)
     return res ?: 1;
 }
 
+int xmlr_node_skip_until(xml_reader_t xr, const char *s, int len)
+{
+    while (!RETHROW(xmlr_node_is_closing(xr))) {
+        if (xmlr_node_is(xr, s, len))
+            break;
+        RETHROW(xmlr_next_sibling(xr));
+    }
+    return xmlr_fail(xr, "missing <%s> tag", s);
+}
+
 /* }}} */
 /* Reading values {{{ */
 

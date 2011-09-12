@@ -149,6 +149,12 @@ static inline int xmlr_node_skip_s(xml_reader_t xr, const char *s, int flags)
     return 0;
 }
 
+int xmlr_node_skip_until(xml_reader_t xr, const char *s, int len);
+static inline int xmlr_node_skip_until_s(xml_reader_t xr, const char *s)
+{
+    return xmlr_node_skip_until(xr, s, strlen(s));
+}
+
 
 /* \brief Get the current node value, and go to the next node.
  *
