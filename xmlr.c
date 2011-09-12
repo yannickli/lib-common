@@ -220,6 +220,18 @@ int xmlr_setup(xml_reader_t *xrp, const void *buf, int len)
     return xmlr_scan_node(xr, false);
 }
 
+int xmlr_node_get_local_name(xml_reader_t xr, lstr_t *out)
+{
+    const char *s;
+
+    assert (xmlr_on_element(xr, false));
+    s = (const char *)xmlTextReaderConstLocalName(xr);
+    if (s == NULL)
+        return XMLR_ERROR;
+    *out = LSTR_STR_V(s);
+    return 0;
+}
+
 int xmlr_next_node(xml_reader_t xr)
 {
     assert (xmlr_on_element(xr, true));

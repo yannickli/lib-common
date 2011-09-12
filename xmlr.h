@@ -80,18 +80,15 @@ static inline int xmlr_node_is_closing(xml_reader_t xr)
     return RETHROW(xmlTextReaderNodeType(xr)) == XML_READER_TYPE_END_ELEMENT;
 }
 
+int xmlr_node_get_local_name(xml_reader_t xr, lstr_t *out);
+
 static inline int xmlr_node_is(xml_reader_t xr, const char *s, size_t len)
 {
-    const char *s2;
+    lstr_t name;
 
-    if (RETHROW(xmlr_node_is_closing(xr)))
-        return false;
-    s2 = (const char *)xmlTextReaderConstLocalName(xr);
-    if (s2 == NULL)
-        return XMLR_ERROR;
-    if (len != strlen(s2))
-        return false;
-    return memcmp(s, s2, len) == 0;
+    return !RETHROW(xmlr_node_is_closing(xr))
+        && RETHROW(xmlr_node_get_local_name(xr, &name)) >= 0
+        && lstr_equal2(name, LSTR_INIT_V(s, len));
 }
 static inline int xmlr_node_is_s(xml_reader_t xr, const char *s)
 {
