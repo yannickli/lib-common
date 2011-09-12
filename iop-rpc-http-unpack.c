@@ -76,7 +76,6 @@ static int t_parse_soap(ichttp_query_t *iq, ic__simple_hdr__t *hdr,
 
     httpd_trigger__ic_t *tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
     ichttp_cb_t *cbe;
-    char *xval;
     int pos;
 
     /* Initialize the xmlReader object */
@@ -89,12 +88,10 @@ static int t_parse_soap(ichttp_query_t *iq, ic__simple_hdr__t *hdr,
 
             if (res == 1) {
                 XCHECK(xmlr_node_want_s(xr, "login"));
-                XCHECK(t_xmlr_get_str(xr, false, &xval, &hdr->login.len));
-                hdr->login.s = xval;
+                XCHECK(t_xmlr_get_str(xr, false, &hdr->login));
 
                 XCHECK(xmlr_node_want_s(xr, "password"));
-                XCHECK(t_xmlr_get_str(xr, false, &xval, &hdr->password.len));
-                hdr->password.s = xval;
+                XCHECK(t_xmlr_get_str(xr, false, &hdr->password));
 
                 XCHECK(xmlr_node_close(xr)); /* </callerIdentity> */
             } else

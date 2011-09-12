@@ -11,8 +11,12 @@
 /*                                                                        */
 /**************************************************************************/
 
+#ifndef PRE_ARGS_P
+#define PRE_ARGS_P
+#endif
+
 __flatten
-int F(xmlr_get)(xml_reader_t xr, ARGS_P)
+int F(xmlr_get)(PRE_ARGS_P xml_reader_t xr, ARGS_P)
 {
     assert (xmlr_on_element(xr, false));
 
@@ -41,3 +45,4 @@ int F(xmlr_get)(xml_reader_t xr, ARGS_P)
 #undef F
 #undef ARGS
 #undef ARGS_P
+#undef PRE_ARGS_P

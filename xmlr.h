@@ -154,16 +154,13 @@ static inline int xmlr_node_skip_s(xml_reader_t xr, const char *s, int flags)
  *
  * This function fails if the node has childen.
  */
-int xmlr_get_cstr_start(xml_reader_t xr, bool nullok, const char **out, int *lenp);
+int xmlr_get_cstr_start(xml_reader_t xr, bool nullok, lstr_t *out);
 int xmlr_get_cstr_done(xml_reader_t xr);
 
-int xmlr_get_strdup(xml_reader_t xr, bool nullok, char **out, int *lenp);
-int t_xmlr_get_str(xml_reader_t xr, bool nullok, char **out, int *lenp);
-static ALWAYS_INLINE
-int t_xmlr_get_cstr(xml_reader_t xr, bool nullok, const char **out, int *lenp)
-{
-    return t_xmlr_get_str(xr, nullok, (char **)out, lenp);
-}
+int xmlr_get_strdup(xml_reader_t xr, bool nullok, lstr_t *out);
+int mp_xmlr_get_strdup(mem_pool_t *mp, xml_reader_t xr,
+                       bool nullok, lstr_t *out);
+int t_xmlr_get_str(xml_reader_t xr, bool nullok, lstr_t *out);
 
 int xmlr_get_int_range(xml_reader_t xr, int minv, int maxv, int *ip);
 int xmlr_get_bool(xml_reader_t xr, bool *bp);
@@ -171,7 +168,9 @@ int xmlr_get_i64(xml_reader_t xr, int64_t *i64p);
 int xmlr_get_u64(xml_reader_t xr, uint64_t *u64p);
 int xmlr_get_dbl(xml_reader_t xr, double *dp);
 
-int xmlr_get_inner_xml(xml_reader_t xr, char **out, int *lenp);
+/* XXX: out must be lstr_wipe()d */
+int xmlr_get_inner_xml(xml_reader_t xr, lstr_t *out);
+int mp_xmlr_get_inner_xml(mem_pool_t *mp, xml_reader_t xr, lstr_t *out);
 
 /* attributes stuff */
 
@@ -190,13 +189,7 @@ xmlr_find_attr_s(xml_reader_t xr, const char *name, bool needed)
 /* \brief Get the current node attribute value.
  */
 int t_xmlr_getattr_str(xml_reader_t xr, xmlAttrPtr attr,
-                       bool nullok, char **out, int *lenp);
-static ALWAYS_INLINE int
-t_xmlr_getattr_cstr(xml_reader_t xr, xmlAttrPtr attr,
-                    bool nullok, const char **out, int *lenp)
-{
-    return t_xmlr_getattr_str(xr, attr, nullok, (char **)out, lenp);
-}
+                       bool nullok, lstr_t *out);
 
 int xmlr_getattr_int_range(xml_reader_t xr, xmlAttrPtr attr,
                            int minv, int maxv, int *ip);

@@ -36,9 +36,8 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
                          const iop_field_t *fdesc, void *v)
 {
     int64_t intval = 0;
-    const char *xval;
+    lstr_t xval;
     bool found = false;
-    int len;
 
     switch (fdesc->type) {
       case IOP_T_I8: case IOP_T_U8:
@@ -50,12 +49,12 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
         *(uint16_t *)v = intval;
         break;
       case IOP_T_ENUM:
-        RETHROW(xmlr_get_cstr_start(xr, false, &xval, &len));
+        RETHROW(xmlr_get_cstr_start(xr, false, &xval));
 
         /* Try to unpack the string value */
-        intval = iop_enum_from_str2(fdesc->u1.en_desc, xval, len, &found);
+        intval = iop_enum_from_lstr(fdesc->u1.en_desc, xval, &found);
         if (!found)
-            RETHROW(parse_int(xr, xval, &intval));
+            RETHROW(parse_int(xr, xval.s, &intval));
         *(uint32_t *)v = intval;
         RETHROW(xmlr_get_cstr_done(xr));
         break;
@@ -74,19 +73,13 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
         RETHROW(xmlr_get_dbl(xr, (double *)v));
         break;
       case IOP_T_STRING:
-        {
-            clstr_t *str = v;
-
-            RETHROW(xmlr_get_cstr_start(xr, true, &str->s, &str->len));
-            str->s = mp_dupz(mp, str->s, str->len);
-            RETHROW(xmlr_get_cstr_done(xr));
-        }
+        RETHROW(mp_xmlr_get_strdup(mp, xr, true, (lstr_t *)v));
         break;
       case IOP_T_DATA:
         {
-            clstr_t *str = v;
+            lstr_t *str = v;
 
-            RETHROW(xmlr_get_cstr_start(xr, true, &str->s, &str->len));
+            RETHROW(xmlr_get_cstr_start(xr, true, str));
             if (str->len == 0) {
                 str->s = mp_new(mp, char , 1);
             } else {
@@ -104,16 +97,7 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
         }
         break;
       case IOP_T_XML:
-        {
-            clstr_t *str = v;
-            char *xres;
-
-            /* Get xml block */
-            RETHROW(xmlr_get_inner_xml(xr, &xres, &str->len));
-            str->s = mp_dupz(mp, xres, str->len);
-            free(xres); /* Free the stupid string allocated by the libxml */
-            return 0;
-        }
+        RETHROW(mp_xmlr_get_inner_xml(mp, xr, (lstr_t *)v));
         break;
       case IOP_T_UNION:
         return xunpack_union(xr, mp, fdesc->u1.st_desc, v);
@@ -133,11 +117,10 @@ static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
 {
     iop_data_t *data = v;
     int bufsize = 0, datasize = fdesc->size;
-    int len;
 
     do {
         int64_t intval = 0;
-        const char *xval;
+        lstr_t xval;
         bool found = false;
 
         if (datasize >= bufsize) {
@@ -158,12 +141,12 @@ static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
             break;
 
           case IOP_T_ENUM:
-            RETHROW(xmlr_get_cstr_start(xr, false, &xval, &len));
+            RETHROW(xmlr_get_cstr_start(xr, false, &xval));
 
             /* Try to unpack the string value */
-            intval = iop_enum_from_str2(fdesc->u1.en_desc, xval, -1, &found);
+            intval = iop_enum_from_lstr(fdesc->u1.en_desc, xval, &found);
             if (!found)
-                RETHROW(parse_int(xr, xval, &intval));
+                RETHROW(parse_int(xr, xval.s, &intval));
             ((uint32_t *)data->data)[data->len] = intval;
             RETHROW(xmlr_get_cstr_done(xr));
             break;
