@@ -567,6 +567,8 @@ qhash_clstr_equal(const qhash_t *qh, const lstr_t *s1, const lstr_t *s2)
     return lstr_equal(s1, s2);
 }
 
+qh_k32_t(u32);
+qh_k64_t(u64);
 qh_kptr_t(str,   char,    qhash_str_hash,  qhash_str_equal);
 qh_kvec_t(lstr,  lstr_t,  qhash_lstr_hash, qhash_lstr_equal);
 qh_kvec_t(clstr, lstr_t,  qhash_lstr_hash, qhash_lstr_equal);
