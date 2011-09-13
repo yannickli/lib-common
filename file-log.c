@@ -102,7 +102,7 @@ static void log_check_invariants(log_file_t *log_file)
         struct stat st;
 
         for (int i = fc; i-- > 0; ) {
-            if (stat(fv[i], &st) == 0)
+            if (lstat(fv[i], &st) == 0 && S_ISREG(st.st_mode))
                 totalsize -= st.st_size;
             if (totalsize < 0) {
                 for (int j = 0; j <= i; j++)
@@ -126,7 +126,6 @@ static void log_check_invariants(log_file_t *log_file)
 static file_t *log_file_open_new(log_file_t *log_file, time_t date)
 {
     char real_path[PATH_MAX];
-    char sym_path[PATH_MAX];
     file_t *res;
 
     build_real_path(real_path, sizeof(real_path), log_file, date);
@@ -135,12 +134,15 @@ static file_t *log_file_open_new(log_file_t *log_file, time_t date)
         e_trace(1, "Could not open log file: %s (%m)", real_path);
     }
 
-    /* Add a symlink */
-    snprintf(sym_path, sizeof(sym_path), "%s%s.%s", log_file->prefix,
-             log_file->flags & LOG_FILE_USE_LAST ? "_last" : "", log_file->ext);
-    unlink(sym_path);
-    if (symlink(real_path, sym_path)) {
-        e_trace(1, "Could not symlink %s to %s (%m)", real_path, sym_path);
+    if (!(log_file->flags & LOG_FILE_NOSYMLINK)) {
+        char sym_path[PATH_MAX];
+
+        snprintf(sym_path, sizeof(sym_path), "%s%s.%s", log_file->prefix,
+                 log_file->flags & LOG_FILE_USE_LAST ? "_last" : "", log_file->ext);
+        unlink(sym_path);
+        if (symlink(real_path, sym_path)) {
+            e_trace(1, "Could not symlink %s to %s (%m)", real_path, sym_path);
+        }
     }
     log_check_invariants(log_file);
     return res;
