@@ -122,7 +122,7 @@ static void log_check_invariants(log_file_t *log_file)
         struct stat st;
 
         for (int i = fc; i-- > 0; ) {
-            if (stat(fv[i], &st) == 0)
+            if (lstat(fv[i], &st) == 0 && S_ISREG(st.st_mode))
                 totalsize -= st.st_size;
             if (totalsize < 0) {
                 for (int j = 0; j <= i; j++) {
@@ -149,7 +149,6 @@ static void log_file_open_new(log_file_t *log_file, time_t date)
 {
     t_scope;
     const char *real_path;
-    char sym_path[PATH_MAX];
 
     real_path = t_build_real_path(NULL, log_file, date);
 
@@ -169,12 +168,15 @@ static void log_file_open_new(log_file_t *log_file, time_t date)
         }
     }
 
-    /* Add a symlink */
-    snprintf(sym_path, sizeof(sym_path), "%s%s.%s", log_file->prefix,
-             log_file->flags & LOG_FILE_USE_LAST ? "_last" : "", log_file->ext);
-    unlink(sym_path);
-    if (symlink(real_path, sym_path)) {
-        e_trace(1, "Could not symlink %s to %s (%m)", real_path, sym_path);
+    if (!(log_file->flags & LOG_FILE_NOSYMLINK)) {
+        char sym_path[PATH_MAX];
+
+        snprintf(sym_path, sizeof(sym_path), "%s%s.%s", log_file->prefix,
+                 log_file->flags & LOG_FILE_USE_LAST ? "_last" : "", log_file->ext);
+        unlink(sym_path);
+        if (symlink(real_path, sym_path)) {
+            e_trace(1, "Could not symlink %s to %s (%m)", real_path, sym_path);
+        }
     }
     log_check_invariants(log_file);
 }
