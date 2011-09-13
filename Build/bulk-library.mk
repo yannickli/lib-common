@@ -16,6 +16,8 @@ $2: $(1D)/Makefile $(var/toolsdir)/* $(var/cfgdir)/*.mk
 $2: $$(foreach s,$3,$$($$s_DEPENDS)) | $$($(1D)/_DEPENDS)
 endef
 
+ifeq (,$(NOCOMPRESS))
+
 define fun/obj-compress
 objcopy --compress-debug-sections $1 >/dev/null 2>&1 || true
 endef
@@ -28,6 +30,15 @@ else
 define fun/bin-compress
 endef
 endif
+
+else # NOCOMPRESS
+define fun/obj-compress
+endef
+
+define fun/bin-compress
+endef
+endif
+
 
 #
 # extension driven rules
