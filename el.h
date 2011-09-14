@@ -59,11 +59,35 @@ typedef void (el_child_f)(el_t, pid_t, int, el_data_t);
 typedef int  (el_fd_f)(el_t, int, short, el_data_t);
 typedef void (el_proxy_f)(el_t, short, el_data_t);
 
+#ifdef __has_blocks
+typedef void (BLOCK_CARET el_cb_b)(el_t);
+typedef void (BLOCK_CARET el_signal_b)(el_t, int);
+typedef void (BLOCK_CARET el_child_b)(el_t, pid_t, int);
+typedef int  (BLOCK_CARET el_fd_b)(el_t, int, short);
+typedef void (BLOCK_CARET el_proxy_b)(el_t, short);
+#endif
+
 el_t el_blocker_register(void);
 el_t el_before_register_d(el_cb_f *, el_data_t);
 el_t el_idle_register_d(el_cb_f, el_data_t);
 el_t el_signal_register_d(int signo, el_signal_f *, el_data_t);
 el_t el_child_register_d(pid_t pid, el_child_f *, el_data_t);
+
+#ifdef __has_blocks
+/* The block based API takes a block version of the callback and a second
+ * optional block called when the el_t is unregistered. The purpose of this
+ * second block is to wipe() the environment of the callback.
+ *
+ * You cannot change the blocks attached to an el_t after registration (that
+ * is, el_set_priv and el_*_set_hook cannot be used on el_t initialized with
+ * blocks.
+ */
+
+el_t el_before_register_blk(el_cb_b, block_t wipe);
+el_t el_idle_register_blk(el_cb_b, block_t wipe);
+el_t el_signal_register_blk(int signo, el_signal_b, block_t);
+el_t el_child_register_blk(pid_t pid, el_child_b, block_t);
+#endif
 
 static inline el_t el_before_register(el_cb_f *f, void *ptr) {
     return el_before_register_d(f, (el_data_t){ ptr });
@@ -97,6 +121,9 @@ pid_t el_child_getpid(el_t);
 
 /*----- proxy related -----*/
 el_t el_proxy_register_d(el_proxy_f *, el_data_t);
+#ifdef __has_blocks
+el_t el_proxy_register_blk(el_proxy_b, block_t);
+#endif
 static inline el_t el_proxy_register(el_proxy_f *f, void *ptr) {
     return el_proxy_register_d(f, (el_data_t){ ptr });
 }
@@ -113,6 +140,9 @@ void el_stopper_unregister(void);
 
 /*----- fd related -----*/
 el_t el_fd_register_d(int fd, short events, el_fd_f *, el_data_t);
+#ifdef __has_blocks
+el_t el_fd_register_blk(int fd, short events, el_fd_b, block_t);
+#endif
 static inline el_t el_fd_register(int fd, short events, el_fd_f *f, void *ptr) {
     return el_fd_register_d(fd, events, f, (el_data_t){ ptr });
 }
@@ -159,6 +189,9 @@ enum {
  * \return the timer handler descriptor.
  */
 el_t el_timer_register_d(int next, int repeat, int flags, el_cb_f *, el_data_t);
+#ifdef __has_blocks
+el_t el_timer_register_blk(int next, int repeat, int flags, el_cb_b, block_t);
+#endif
 static inline
 el_t el_timer_register(int next, int repeat, int flags, el_cb_f *f, void *ptr)
 {

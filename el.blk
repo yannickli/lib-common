@@ -15,7 +15,7 @@
 #include <pthread.h>
 #include "container.h"
 #include "time.h"
-#include "el.h"
+#include "el-priv.h"
 
 static pthread_mutex_t big_lock_g;
 static bool use_big_lock_g = false;
@@ -57,6 +57,7 @@ typedef enum ev_type_t {
 enum ev_flags_t {
     EV_FLAG_REFS          = (1U <<  0),
     EV_FLAG_TRACE         = (1U <<  1),
+    EV_FLAG_IS_BLK        = (1U <<  2),
 
     EV_FLAG_TIMER_NOMISS  = (1U <<  8),
     EV_FLAG_TIMER_LOWRES  = (1U <<  9),
@@ -90,8 +91,17 @@ typedef struct ev_t {
         el_child_f  *child;
         el_fd_f     *fd;
         el_proxy_f  *prox;
+
+        el_cb_b      cb_blk;
+        el_signal_b  signal_blk;
+        el_child_b   child_blk;
+        el_fd_b      fd_blk;
+        el_proxy_b   proxy_blk;
     } cb;
-    el_data_t priv;
+    union {
+        el_data_t priv;
+        block_t   wipe;
+    };
 
     union {
         dlist_t ev_list;        /* EV_BEFORE, EV_SIGNAL, EV_PROXY */
@@ -104,7 +114,6 @@ typedef struct ev_t {
         } timer;                /* EV_TIMER */
     };
 } ev_t;
-qvector_t(ev, ev_t *);
 
 qm_k32_t(ev_assoc, ev_t *);
 qm_k64_t(ev, ev_t *);
@@ -204,10 +213,31 @@ static ev_t *el_create(ev_type_t type, void *cb, el_data_t priv, bool ref)
     return ref ? el_ref(res) : res;
 }
 
+static ev_t *el_blk_register(ev_t *ev, void *cb, block_t wipe)
+{
+    el_cb_b blk = cb;
+
+    EV_FLAG_SET(ev, IS_BLK);
+    ev->cb.cb_blk = Block_copy(blk);
+    ev->wipe      = wipe ? Block_copy(wipe) : NULL;
+    return ev;
+}
+
 static el_data_t el_destroy(ev_t **evp, bool move)
 {
     ev_t *ev = *evp;
 
+    if (EV_FLAG_HAS(ev, IS_BLK)) {
+        block_t wipe = ev->wipe;
+
+        if (wipe) {
+            wipe();
+            Block_release(wipe);
+        }
+        Block_release(ev->cb.cb);
+        EV_FLAG_RST(ev, IS_BLK);
+        ev->priv = (el_data_t)NULL;
+    }
     el_unref(ev);
     if (move) {
         dlist_move(&_G.evs_gc, &ev->ev_list);
@@ -228,7 +258,11 @@ static void ev_list_process(dlist_t *l)
 
         if (unlikely(ev->type == EV_UNUSED))
             continue;
-        (*ev->cb.cb)(ev, ev->priv);
+        if (EV_FLAG_HAS(ev, IS_BLK)) {
+            ev->cb.cb_blk(ev);
+        } else {
+            (*ev->cb.cb)(ev, ev->priv);
+        }
     }
 }
 
@@ -244,9 +278,15 @@ ev_t *el_before_register_d(el_cb_f *cb, el_data_t priv)
     return ev_add(&_G.before, el_create(EV_BEFORE, cb, priv, true));
 }
 
+ev_t *el_before_register_blk(el_cb_b blk, block_t wipe)
+{
+    return el_blk_register(el_before_register(NULL, NULL), blk, wipe);
+}
+
 void el_before_set_hook(el_t ev, el_cb_f *cb)
 {
     CHECK_EV_TYPE(ev, EV_BEFORE);
+    assert (!EV_FLAG_HAS(ev, IS_BLK));
     ev->cb.cb = cb;
 }
 
@@ -272,9 +312,15 @@ ev_t *el_idle_register_d(el_cb_f *cb, el_data_t priv)
     return ev_add(&_G.idle, el_create(EV_IDLE, cb, priv, false));
 }
 
+ev_t *el_idle_register_blk(el_cb_b blk, block_t wipe)
+{
+    return el_blk_register(el_idle_register(NULL, NULL), blk, wipe);
+}
+
 void el_idle_set_hook(el_t ev, el_cb_f *cb)
 {
     CHECK_EV_TYPE(ev, EV_IDLE);
+    assert (!EV_FLAG_HAS(ev, IS_BLK));
     ev->cb.cb = cb;
 }
 
@@ -309,7 +355,11 @@ static void el_idle_process(uint64_t now)
 
             if (unlikely(ev->type == EV_UNUSED))
                 continue;
-            (*ev->cb.cb)(ev, ev->priv);
+            if (EV_FLAG_HAS(ev, IS_BLK)) {
+                ev->cb.cb_blk(ev);
+            } else {
+                (*ev->cb.cb)(ev, ev->priv);
+            }
         }
     }
 }
@@ -340,7 +390,11 @@ static void el_signal_process(void)
         if (unlikely(ev->type == EV_UNUSED))
             continue;
         if (gotsigs & (1 << signo)) {
-            (*ev->cb.signal)(ev, signo, ev->priv);
+            if (EV_FLAG_HAS(ev, IS_BLK)) {
+                ev->cb.signal_blk(ev, signo);
+            } else {
+                (*ev->cb.signal)(ev, signo, ev->priv);
+            }
             _G.has_run = true;
         }
     }
@@ -349,6 +403,7 @@ static void el_signal_process(void)
 void el_signal_set_hook(el_t ev, el_signal_f *cb)
 {
     CHECK_EV_TYPE(ev, EV_SIGNAL);
+    assert (!EV_FLAG_HAS(ev, IS_BLK));
     ev->cb.signal = cb;
 }
 
@@ -365,6 +420,11 @@ ev_t *el_signal_register_d(int signo, el_signal_f *cb, el_data_t priv)
     ev = el_create(EV_SIGNAL, cb, priv, false);
     ev->signo = signo;
     return ev_add(&_G.sigs, ev);
+}
+
+ev_t *el_signal_register_blk(int signo, el_signal_b blk, block_t wipe)
+{
+    return el_blk_register(el_signal_register(signo, NULL, NULL), blk, wipe);
 }
 
 el_data_t el_signal_unregister(ev_t **evp)
@@ -388,7 +448,11 @@ static void el_sigchld_hook(ev_t *ev, int signo, el_data_t priv)
 
         if (likely(pos >= 0)) {
             ev_t *e = _G.childs.values[pos];
-            (*e->cb.child)(e, pid, status, e->priv);
+            if (EV_FLAG_HAS(ev, IS_BLK)) {
+                e->cb.child_blk(e, pid, status);
+            } else {
+                (*e->cb.child)(e, pid, status, e->priv);
+            }
             el_destroy(&_G.childs.values[pos], false);
         }
     }
@@ -397,6 +461,7 @@ static void el_sigchld_hook(ev_t *ev, int signo, el_data_t priv)
 void el_child_set_hook(el_t ev, el_child_f *cb)
 {
     CHECK_EV_TYPE(ev, EV_CHILD);
+    assert (!EV_FLAG_HAS(ev, IS_BLK));
     ev->cb.child = cb;
 }
 
@@ -416,6 +481,11 @@ ev_t *el_child_register_d(pid_t pid, el_child_f *cb, el_data_t priv)
     }
     ev->pid = pid;
     return ev;
+}
+
+ev_t *el_child_register_blk(pid_t pid, el_child_b blk, block_t wipe)
+{
+    return el_blk_register(el_child_register(pid, NULL, NULL), blk, wipe);
 }
 
 el_data_t el_child_unregister(ev_t **evp)
@@ -544,7 +614,11 @@ static void el_timer_process(uint64_t until)
             return;
 
         EV_FLAG_RST(ev, TIMER_UPDATED);
-        (*ev->cb.cb)(ev, ev->priv);
+        if (EV_FLAG_HAS(ev, IS_BLK)) {
+            ev->cb.cb_blk(ev);
+        } else {
+            (*ev->cb.cb)(ev, ev->priv);
+        }
         _G.has_run = true;
 
         /* ev has been unregistered in (*cb) */
@@ -607,9 +681,16 @@ ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb, el_data_
     return ev;
 }
 
+ev_t *el_timer_register_blk(int next, int repeat, int flags, el_cb_b blk, block_t wipe)
+{
+    return el_blk_register(el_timer_register(next, repeat, flags, NULL, NULL),
+                           blk, wipe);
+}
+
 void el_timer_set_hook(el_t ev, el_cb_f *cb)
 {
     CHECK_EV_TYPE(ev, EV_TIMER);
+    assert (!EV_FLAG_HAS(ev, IS_BLK));
     ev->cb.cb = cb;
 }
 
@@ -661,6 +742,8 @@ static ALWAYS_INLINE ev_t *el_fd_act_timer_unregister(ev_t *timer)
 
 static ALWAYS_INLINE void el_fd_fire(ev_t *ev, short evs)
 {
+    const int fd = ev->fd;
+
     if (EV_IS_TRACED(ev)) {
         e_trace(0, "e-fdv(%p): got event %s%s (%04x)", ev,
                 evs & POLLIN ? "IN" : "", evs & POLLOUT ? "OUT" : "", evs);
@@ -670,9 +753,17 @@ static ALWAYS_INLINE void el_fd_fire(ev_t *ev, short evs)
 
         if (evs & ev->events_act)
             el_timer_restart_fast(timer, -timer->timer.repeat);
-        (*ev->cb.fd)(ev, ev->fd, evs, timer->priv);
+        if (EV_FLAG_HAS(ev, IS_BLK)) {
+            ev->cb.fd_blk(ev, fd, evs);
+        } else {
+            (*ev->cb.fd)(ev, fd, evs, timer->priv);
+        }
     } else {
-        (*ev->cb.fd)(ev, ev->fd, evs, ev->priv);
+        if (EV_FLAG_HAS(ev, IS_BLK)) {
+            ev->cb.fd_blk(ev, fd, evs);
+        } else {
+            (*ev->cb.fd)(ev, fd, evs, ev->priv);
+        }
     }
     _G.has_run = true;
 }
@@ -698,9 +789,15 @@ static ALWAYS_INLINE ev_t *el_fd_act_timer_register(ev_t *ev, int timeout)
 #  error one has to port el to your OS
 #endif
 
+ev_t *el_fd_register_blk(int fd, short events, el_fd_b blk, block_t wipe)
+{
+    return el_blk_register(el_fd_register(fd, events, NULL, NULL), blk, wipe);
+}
+
 void el_fd_set_hook(el_t ev, el_fd_f *cb)
 {
     CHECK_EV_TYPE(ev, EV_FD);
+    assert (!EV_FLAG_HAS(ev, IS_BLK));
     ev->cb.fd = cb;
 }
 
@@ -766,9 +863,15 @@ ev_t *el_proxy_register_d(el_proxy_f *cb, el_data_t priv)
     return ev_add(&_G.proxy, el_create(EV_PROXY, cb, priv, true));
 }
 
+ev_t *el_proxy_register_blk(el_proxy_b blk, block_t wipe)
+{
+    return el_blk_register(el_proxy_register(NULL, NULL), blk, wipe);
+}
+
 void el_proxy_set_hook(el_t ev, el_proxy_f *cb)
 {
     CHECK_EV_TYPE(ev, EV_PROXY);
+    assert (!EV_FLAG_HAS(ev, IS_BLK));
     ev->cb.prox = cb;
 }
 
@@ -830,12 +933,17 @@ static void el_loop_proxies(void)
 {
     ev_cache_list(&_G.proxy_ready);
     for (int i = 0; i < _G.cache.len; i++) {
-        ev_t *ev = _G.cache.tab[i];
+        ev_t *ev    = _G.cache.tab[i];
+        int   avail = ev->events_avail;
 
         if (unlikely(ev->type == EV_UNUSED))
             continue;
-        if (likely(ev->events_avail & ev->events_wanted)) {
-            (*ev->cb.prox)(ev, ev->events_avail, ev->priv);
+        if (likely(avail & ev->events_wanted)) {
+            if (EV_FLAG_HAS(ev, IS_BLK)) {
+                ev->cb.proxy_blk(ev, avail);
+            } else {
+                (*ev->cb.prox)(ev, avail, ev->priv);
+            }
             _G.has_run = true;
         }
     }
@@ -885,6 +993,7 @@ el_t el_unref(ev_t *ev)
 el_data_t el_set_priv(ev_t *ev, el_data_t priv)
 {
     CHECK_EV(ev);
+    assert (!EV_FLAG_HAS(ev, IS_BLK));
     if (ev->type == EV_FD && EV_FLAG_HAS(ev, FD_WATCHED))
         return el_set_priv(ev->priv.ptr, priv);
     SWAP(el_data_t, ev->priv, priv);

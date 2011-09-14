@@ -66,7 +66,7 @@ libcommon_SOURCES = \
 	qpage.c \
 	qtlsf.c \
 	\
-	el.c \
+	el.blk \
 	el-stopper.c \
 	\
 	file.c \
