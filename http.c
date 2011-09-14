@@ -63,7 +63,7 @@ static ctype_desc_t const http_non_token = {
     }
 };
 
-static void httpd_mark_query_answered(httpd_t *w, httpd_query_t *q);
+static void httpd_mark_query_answered(httpd_query_t *q);
 
 /* RFC 2616 helpers {{{ */
 
@@ -298,6 +298,13 @@ static void http_chunk_patch(outbuf_t *ob, char *buf, unsigned len)
 /* }}} */
 /* HTTPD Queries {{{ */
 
+/*
+ * HTTPD queries refcounting holds:
+ *  - 1 for the fact that it has an owner.
+ *  - 1 for the fact it hasn't been answered yet.
+ * Hence it's obj_retained() on creation, always.
+ */
+
 httpd_qinfo_t *httpd_qinfo_dup(const httpd_qinfo_t *info)
 {
     httpd_qinfo_t *res;
@@ -348,8 +355,11 @@ static httpd_query_t *httpd_query_create(httpd_t *w, httpd_trigger_cb_t *cb)
     } else {
         q = obj_new(httpd_query);
     }
+
     if (w->queries == 0)
         q->ob = &w->ob;
+    /* retain for the fact that we're owned */
+    obj_retain(q);
     q->owner = w;
     w->queries++;
     dlist_add_tail(&w->query_list, &q->query_link);
@@ -357,17 +367,18 @@ static httpd_query_t *httpd_query_create(httpd_t *w, httpd_trigger_cb_t *cb)
     return q;
 }
 
-static ALWAYS_INLINE void httpd_query_detach(httpd_t *w, httpd_query_t *q, bool delete)
+static ALWAYS_INLINE void httpd_query_detach(httpd_query_t *q)
 {
+    httpd_t *w = q->owner;
+
     if (w) {
-        q->owner = NULL;
         if (!q->own_ob)
             q->ob = NULL;
         dlist_remove(&q->query_link);
         w->queries--;
         w->queries_done -= q->answered;
-        if (delete)
-            obj_delete(&q);
+        q->owner = NULL;
+        obj_release(q);
     }
 }
 
@@ -375,7 +386,6 @@ static httpd_query_t *httpd_query_init(httpd_query_t *q)
 {
     sb_init(&q->payload);
     q->http_version = HTTP_1_1;
-    q->refcnt = 1;
     return q;
 }
 
@@ -390,9 +400,9 @@ static void httpd_query_wipe(httpd_query_t *q)
         q->trig_cb->on_query_wipe(q);
     if (q->own_ob)
         ob_delete(&q->ob);
-    httpd_query_detach(q->owner, q, false);
     httpd_qinfo_delete(&q->qinfo);
     sb_wipe(&q->payload);
+    httpd_query_detach(q);
 }
 
 static void httpd_query_on_data_bufferize(httpd_query_t *q, pstream_t ps)
@@ -502,13 +512,12 @@ void httpd_reply_chunk_done_(httpd_query_t *q, outbuf_t *ob)
 
 void httpd_reply_done(httpd_query_t *q)
 {
-    httpd_t *w = q->owner;
     outbuf_t *ob = httpd_get_ob(q);
 
     assert (q->hdrs_done && !q->answered && !q->chunk_started);
     if (q->chunked)
         ob_adds(ob, "\r\n0\r\n\r\n");
-    httpd_mark_query_answered(w, q);
+    httpd_mark_query_answered(q);
 }
 
 /*---- high level httpd_query reply functions ----*/
@@ -740,7 +749,7 @@ static void httpd_flush_answered(httpd_t *w)
             break;
         }
         if (likely(q->parsed))
-            httpd_query_detach(w, q, true);
+            httpd_query_detach(q);
     }
     httpd_set_mask(w);
 }
@@ -763,12 +772,16 @@ static void httpd_query_done(httpd_t *w, httpd_query_t *q, bool flush)
     w->chunk_length = 0;
 }
 
-static void httpd_mark_query_answered(httpd_t *w, httpd_query_t *q)
+static void httpd_mark_query_answered(httpd_query_t *q)
 {
+    assert (!q->answered);
     q->answered = true;
     q->on_data  = NULL;
     q->on_done  = NULL;
-    if (w) {
+    q->on_ready = NULL;
+    if (q->owner) {
+        httpd_t *w = q->owner;
+
         w->queries_done++;
         if (dlist_is_first(&w->query_list, &q->query_link))
             httpd_flush_answered(w);
@@ -776,6 +789,7 @@ static void httpd_mark_query_answered(httpd_t *w, httpd_query_t *q)
             httpd_query_done(w, q, false);
     }
     q->expect100cont = false;
+    obj_release(q);
 }
 
 qvector_t(qhdr, http_qhdr_t);
@@ -1127,7 +1141,7 @@ static void httpd_wipe(httpd_t *w)
     sb_wipe(&w->ibuf);
     ob_wipe(&w->ob);
     dlist_for_each_safe(it, &w->query_list) {
-        httpd_query_detach(w, dlist_entry(it, httpd_query_t, query_link), true);
+        httpd_query_detach(dlist_entry(it, httpd_query_t, query_link));
     }
     w->cfg->nb_conns--;
     httpd_cfg_delete(&w->cfg);
@@ -1271,6 +1285,13 @@ static int httpd_on_event(el_t evh, int fd, short events, el_data_t priv)
     return 0;
 
   close:
+    if (!dlist_is_empty(&w->query_list)) {
+        httpd_query_t *q;
+
+        q = dlist_first_entry(&w->query_list, httpd_query_t, query_link);
+        if (!q->parsed && !q->answered)
+            obj_release(q);
+    }
     httpd_delete(&w);
     return 0;
 }
