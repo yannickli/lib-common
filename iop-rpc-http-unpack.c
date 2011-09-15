@@ -168,7 +168,6 @@ static void ichttp_query_on_done(httpd_query_t *q)
     int res;
 
     ps_skipstr(&url, "/");
-    iq->refcnt++;
 
     if (ps_len(&url)) {
         pstream_t ps = url;
@@ -213,10 +212,8 @@ static void ichttp_query_on_done(httpd_query_t *q)
       case IC_CB_WS_SHARED:
         t_seal();
         (*e->u.cb.cb)(NULL, slot, value, &hdr);
-        if (cbe->fun->async) {
+        if (cbe->fun->async)
             httpd_reply_202accepted(q);
-            obj_delete(&q);
-        }
         t_unseal();
         return;
 
@@ -268,10 +265,8 @@ static void ichttp_query_on_done(httpd_query_t *q)
         }
         __ic_bpack(msg, cbe->fun->args, value);
         __ic_query(pxy, msg);
-        if (msg->async) {
+        if (msg->async)
             httpd_reply_202accepted(q);
-            obj_delete(&q);
-        }
     } else {
         __ichttp_reply_err(slot, IC_MSG_PROXY_ERROR);
     }

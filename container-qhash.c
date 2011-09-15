@@ -114,6 +114,7 @@ void qhash_wipe(qhash_t *qh)
     p_delete(&qh->values);
     p_delete(&qh->hashes);
     p_delete(&qh->keys);
+    qhash_init(qh, 0, 0, false);
 }
 
 void qhash_clear(qhash_t *qh)
