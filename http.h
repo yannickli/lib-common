@@ -326,6 +326,50 @@ struct httpd_qinfo_t {
     http_qhdr_t  *hdrs;
 };
 
+/** \typedef http_query_t.
+ * \brief HTTP Query base class.
+ *
+ * An http_query_t is the base class for queries received on an #httpd_t.
+ *
+ * It is refcounted, and is valid until it's answered (no matter if the
+ * underlying #httpd_t available as http_query_t#owner is still valid or not).
+ *
+ * As a consequence it means that nobody should ever suppose that a query is
+ * still valid once #httpd_reply_done() #httpd_reject() or any function using
+ * them internaly (#httpd_reply_202accepted() e.g.) is called.
+ *
+ * If this is required, then use #obj_retain() and #obj_release() accordingly
+ * to ensure the liveness of the #httpd_query_t.
+ *
+ * <h1>How to use an #http_query_t</h1>
+ *
+ *   When a the Headers of an HTTP query is received, the matching
+ *   #httpd_trigger_t is looked up, the #httpd_query_t (or a subclass if
+ *   httpd_trigger_t#query_cls is set) is created. Then if there is a
+ *   httpd_trigger_t#auth callback, it is called (possibly with empty
+ *   #pstream_t's if there is no Authentication header).
+ *
+ *   If the authentication callback hasn't rejected the query, then the
+ *   httpd_trigger_t#cb callback is called with the created query (no body
+ *   still has been received at this point). This is the moment to setup the
+ *   #httpd_query_t on_data/on_done/on_ready e.g. using #httpd_bufferize().
+ *
+ *   Note that the httpd_query_t#on_done hook may never ever be called if the
+ *   HTTP query was invalid or the connection lost. That's why it's important
+ *   to properly use the httpd_trigger_t#on_query_wipe hook (for when no
+ *   subclassing of the #httpd_query_t has been done and its
+ *   httpd_query_t#priv pointer is used) or properly augment the
+ *   httpd_query_t#wipe implementation to wipe all memory clean.
+ *
+ * <h1>Important considerations</h1>
+ *
+ *   #httpd_query_t can be answered to asynchronously, but that does not mean
+ *   that the underlying connection is still here. One can know at each time
+ *   if there is still a connection looking at httpd_query_t#owner pointer. If
+ *   it's NULL, the #httpd_t is dead. In that case it is correct to
+ *   #obj_release() the query and go away since anything that would else be
+ *   answered would be discarded anyway.
+ */
 #define HTTPD_QUERY_FIELDS(pfx) \
     OBJECT_FIELDS(pfx);                                             \
                                                                     \

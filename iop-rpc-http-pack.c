@@ -93,7 +93,6 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
     httpd_reply_done(q);
     if (tcb->on_reply)
         (*tcb->on_reply)(tcb, iq, oblen, code);
-    obj_delete(&q);
 }
 
 void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const char *err)
@@ -143,7 +142,6 @@ void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const char *err)
     tcb = container_of(iq->trig_cb, ichttp_trigger_cb_t, cb);
     if (tcb->on_reply)
         (*tcb->on_reply)(tcb, iq, oblen, HTTP_CODE_INTERNAL_SERVER_ERROR);
-    obj_delete(&q);
 }
 
 void __ichttp_reply_err(uint64_t slot, int err)
