@@ -359,7 +359,7 @@ static httpd_query_t *httpd_query_create(httpd_t *w, httpd_trigger_cb_t *cb)
     if (w->queries == 0)
         q->ob = &w->ob;
     /* retain for the fact that we're owned */
-    obj_retain(q);
+    q->refcnt++;
     q->owner = w;
     w->queries++;
     dlist_add_tail(&w->query_list, &q->query_link);
@@ -378,7 +378,7 @@ static ALWAYS_INLINE void httpd_query_detach(httpd_query_t *q)
         w->queries--;
         w->queries_done -= q->answered;
         q->owner = NULL;
-        obj_release(q);
+        obj_delete(&q);
     }
 }
 
@@ -778,7 +778,6 @@ static void httpd_mark_query_answered(httpd_query_t *q)
     q->answered = true;
     q->on_data  = NULL;
     q->on_done  = NULL;
-    q->on_ready = NULL;
     if (q->owner) {
         httpd_t *w = q->owner;
 
@@ -789,7 +788,7 @@ static void httpd_mark_query_answered(httpd_query_t *q)
             httpd_query_done(w, q, false);
     }
     q->expect100cont = false;
-    obj_release(q);
+    obj_delete(&q);
 }
 
 qvector_t(qhdr, http_qhdr_t);
@@ -1290,7 +1289,7 @@ static int httpd_on_event(el_t evh, int fd, short events, el_data_t priv)
 
         q = dlist_first_entry(&w->query_list, httpd_query_t, query_link);
         if (!q->parsed && !q->answered)
-            obj_release(q);
+            obj_delete(&q);
     }
     httpd_delete(&w);
     return 0;
