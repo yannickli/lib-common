@@ -14,15 +14,12 @@
 #include "xmlr.h"
 #include "iop-rpc.h"
 
-#define XML_CNAME(xr) \
-    (const char *)xmlTextReaderConstLocalName(xr)
-
 void ichttp_cb_wipe(ichttp_cb_t *rpc)
 {
-    p_delete(&rpc->name);
-    p_delete(&rpc->name_uri);
-    p_delete(&rpc->name_res);
-    p_delete(&rpc->name_exn);
+    lstr_wipe(&rpc->name);
+    lstr_wipe(&rpc->name_uri);
+    lstr_wipe(&rpc->name_res);
+    lstr_wipe(&rpc->name_exn);
 }
 
 static void ichttp_query_wipe(ichttp_query_t *q)
@@ -76,6 +73,7 @@ static int t_parse_soap(ichttp_query_t *iq, ic__simple_hdr__t *hdr,
 
     httpd_trigger__ic_t *tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
     ichttp_cb_t *cbe;
+    lstr_t s;
     int pos;
 
     /* Initialize the xmlReader object */
@@ -105,8 +103,8 @@ static int t_parse_soap(ichttp_query_t *iq, ic__simple_hdr__t *hdr,
     }
 
     XCHECK(xmlr_node_open_s(xr, "Body"));
-
-    pos = qm_find(ichttp_cbs, &tcb->impl, XML_CNAME(xr));
+    XCHECK(xmlr_node_get_local_name(xr, &s));
+    pos = qm_find(ichttp_cbs, &tcb->impl, &s);
     if (pos < 0) {
         __ichttp_reply_soap_err(ichttp_query_to_slot(iq), false, "unknown rpc");
         goto error;
@@ -170,7 +168,8 @@ static void ichttp_query_on_done(httpd_query_t *q)
     ps_skipstr(&url, "/");
 
     if (ps_len(&url)) {
-        pstream_t ps = url;
+        const char *url_s = url.s;
+        lstr_t s;
 
         if (ps_skip_uptochr(&url, '/') < 0) {
           not_found:
@@ -179,11 +178,11 @@ static void ichttp_query_on_done(httpd_query_t *q)
         }
         __ps_skip(&url, 1);
         if (ps_skip_uptochr(&url, '/') < 0) {
-            ps.s_end = url.s_end;
+            s = LSTR_INIT_V(url_s, url.s_end - url_s);
         } else {
-            ps.s_end = url.s;
+            s = LSTR_INIT_V(url_s, url.s - url_s);
         }
-        res = qm_find(ichttp_cbs, &tcb->impl, t_dupz(ps.s, ps_len(&ps)));
+        res = qm_find(ichttp_cbs, &tcb->impl, &s);
         if (res < 0)
             goto not_found;
         iq->cbe = cbe = ichttp_cb_dup(tcb->impl.values[res]);
@@ -317,20 +316,15 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
                   int32_t cmd)
 {
     ichttp_cb_t *cb = ichttp_cb_new();
-    int keysize = alias->name.len + 1 + fun->name.len;
 
     cb->cmd      = cmd;
     cb->fun      = fun;
-    cb->name     = p_new(char, keysize + sizeof("Req"));
-    cb->name_uri = p_new(char, keysize + sizeof(""));
-    cb->name_res = p_new(char, keysize + sizeof("Res"));
-    cb->name_exn = p_new(char, keysize + sizeof(".Fault"));
-    sprintf(cb->name,     "%s.%sReq",    alias->name.s, fun->name.s);
-    sprintf(cb->name_uri, "%s/%s",       alias->name.s, fun->name.s);
-    sprintf(cb->name_res, "%s.%sRes",    alias->name.s, fun->name.s);
-    sprintf(cb->name_exn, "%s.%s.Fault", alias->name.s, fun->name.s);
-    if (qm_add(ichttp_cbs, &tcb->impl, cb->name, cb))
+    cb->name     = lstr_fmt("%s.%sReq",    alias->name.s, fun->name.s);
+    cb->name_uri = lstr_fmt("%s/%s",       alias->name.s, fun->name.s);
+    cb->name_res = lstr_fmt("%s.%sRes",    alias->name.s, fun->name.s);
+    cb->name_exn = lstr_fmt("%s.%s.Fault", alias->name.s, fun->name.s);
+    if (qm_add(ichttp_cbs, &tcb->impl, &cb->name, cb))
         e_panic("programming error");
-    qm_add(ichttp_cbs, &tcb->impl, cb->name_uri, ichttp_cb_dup(cb));
+    qm_add(ichttp_cbs, &tcb->impl, &cb->name_uri, ichttp_cb_dup(cb));
     return cb;
 }

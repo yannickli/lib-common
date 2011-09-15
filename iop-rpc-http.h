@@ -25,10 +25,10 @@ typedef struct ichttp_cb_t {
     int32_t          cmd;
     ic_cb_entry_t    e;
     const iop_rpc_t *fun;
-    char            *name;
-    char            *name_uri;
-    char            *name_res;
-    char            *name_exn;
+    lstr_t           name;
+    lstr_t           name_uri;
+    lstr_t           name_res;
+    lstr_t           name_exn;
 } ichttp_cb_t;
 GENERIC_INIT(ichttp_cb_t, ichttp_cb);
 void ichttp_cb_wipe(ichttp_cb_t *rpc);
@@ -51,8 +51,8 @@ OBJ_CLASS(ichttp_query, httpd_query,
 /* HTTP Triggers                                                          */
 /**************************************************************************/
 
-qm_kptr_ckey_t(ichttp_cbs, char, ichttp_cb_t *,
-               qhash_str_hash, qhash_str_equal);
+qm_kvec_t(ichttp_cbs, lstr_t, ichttp_cb_t *,
+          qhash_lstr_hash, qhash_lstr_equal);
 
 typedef struct httpd_trigger__ic_t {
     httpd_trigger_t          cb;

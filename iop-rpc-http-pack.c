@@ -57,11 +57,11 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
             ichttp_cb_t *cbe = iq->cbe;
 
             if (v) {
-                sb_addf(out, "<n:%s>", cbe->name_res);
+                sb_addf(out, "<n:%*pM>", LSTR_FMT_ARG(cbe->name_res));
                 iop_xpack(out, st, v, false, true);
-                sb_addf(out, "</n:%s>", cbe->name_res);
+                sb_addf(out, "</n:%*pM>", LSTR_FMT_ARG(cbe->name_res));
             } else {
-                sb_addf(out, "<n:%s />", cbe->name_res);
+                sb_addf(out, "<n:%*pM />", LSTR_FMT_ARG(cbe->name_res));
             }
         } else {
             ichttp_cb_t *cbe = iq->cbe;
@@ -74,11 +74,11 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
 
             /* FIXME handle union of exceptions which are an array of exceptions */
             if (v) {
-                sb_addf(out, "<n:%s>", cbe->name_exn);
+                sb_addf(out, "<n:%*pM", LSTR_FMT_ARG(cbe->name_exn));
                 iop_xpack(out, st, v, false, true);
-                sb_addf(out, "</n:%s>", cbe->name_exn);
+                sb_addf(out, "</n:%*pM>", LSTR_FMT_ARG(cbe->name_exn));
             } else {
-                sb_addf(out, "<n:%s />", cbe->name_exn);
+                sb_addf(out, "<n:%*pM />", LSTR_FMT_ARG(cbe->name_exn));
             }
         }
         pp.can_do_attr = false;
