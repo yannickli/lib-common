@@ -217,11 +217,10 @@ get_union_field(const iop_struct_t *desc, const void *val)
 
 static inline const iop_field_t *
 get_field_by_name(const iop_struct_t *desc, const iop_field_t *start,
-                  const char *name)
+                  const char *name, int len)
 {
     const iop_field_t *fdesc = start;
     const iop_field_t *end   = desc->fields + desc->fields_len;
-    int len = strlen(name);
 
     while (fdesc < end) {
         if (fdesc->name.len == len && !memcmp(fdesc->name.s, name, len))

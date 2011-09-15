@@ -15,9 +15,6 @@
 #include "iop.h"
 #include "iop-helpers.inl.c"
 
-#define XML_CNAME(xr) \
-    (const char *)xmlTextReaderConstLocalName(xr)
-
 static int
 xunpack_struct(xml_reader_t, mem_pool_t *, const iop_struct_t *, void *);
 static int
@@ -244,15 +241,17 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
         return res;
     do {
         const iop_field_t *xfdesc;
+        lstr_t name;
         void *v;
 
         if (unlikely(fdesc == end))
             return xmlr_fail(xr, "expecting closing tag");
 
         /* Find the field description by the tag name */
-        xfdesc = get_field_by_name(desc, fdesc, XML_CNAME(xr));
+        RETHROW(xmlr_node_get_local_name(xr, &name));
+        xfdesc = get_field_by_name(desc, fdesc, name.s, name.len);
         if (unlikely(!xfdesc || xfdesc->tag < fdesc->tag))
-            return xmlr_fail(xr, "unknown tag <%s>", XML_CNAME(xr));
+            return xmlr_fail(xr, "unknown tag <%*pM>", LSTR_FMT_ARG(name));
 
         /* Handle optional fields */
         while (unlikely(xfdesc != fdesc)) {
@@ -292,11 +291,13 @@ xunpack_union(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
               void *value)
 {
     const iop_field_t *fdesc;
+    lstr_t name;
 
     RETHROW(xmlr_next_child(xr));
-    fdesc = get_field_by_name(desc, desc->fields, XML_CNAME(xr));
+    RETHROW(xmlr_node_get_local_name(xr, &name));
+    fdesc = get_field_by_name(desc, desc->fields, name.s, name.len);
     if (unlikely(!fdesc))
-        return xmlr_fail(xr, "unknown tag <%s>", XML_CNAME(xr));
+        return xmlr_fail(xr, "unknown tag <%*pM>", LSTR_FMT_ARG(name));
 
     /* Write the selected tag */
     *((uint16_t *)value) = fdesc->tag;
