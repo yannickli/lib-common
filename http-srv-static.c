@@ -109,10 +109,9 @@ static void httpd_query_reply_make_index_(httpd_query_t *q, int dfd,
     ob = httpd_reply_hdrs_start(q, HTTP_CODE_OK, false);
     httpd_put_date_hdr(ob, "Last-Modified", st->st_mtime);
     ob_adds(ob, "Content-Type: text/html\r\n");
-    httpd_reply_hdrs_done(q, -1, true);
+    httpd_reply_hdrs_done(q, -1, false);
     if (!head) {
         t_scope;
-        httpd_reply_chunk_start(q, ob);
 
         ob_adds(ob, "<html><body><h1>Index</h1>");
 
@@ -134,8 +133,7 @@ static void httpd_query_reply_make_index_(httpd_query_t *q, int dfd,
         }
         closedir(dir);
 
-        ob_adds(ob, "</body></html>");
-        httpd_reply_chunk_done(q, ob);
+        ob_adds(ob, "</body></html>\r\n");
     }
     httpd_reply_done(q);
 }

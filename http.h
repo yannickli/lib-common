@@ -430,6 +430,7 @@ struct httpd_qinfo_t {
     flag_t              hdrs_started  : 1;                          \
     flag_t              hdrs_done     : 1;                          \
     flag_t              chunk_started : 1;                          \
+    flag_t              clength_hack  : 1;                          \
     flag_t              answered      : 1;                          \
     flag_t              chunked       : 1;                          \
     flag_t              conn_close    : 1;                          \
@@ -482,10 +483,38 @@ static inline outbuf_t *httpd_get_ob(httpd_query_t *q)
 
 outbuf_t *httpd_reply_hdrs_start(httpd_query_t *q, int code, bool cacheable);
 void      httpd_put_date_hdr(outbuf_t *ob, const char *hdr, time_t now);
+/** Ends the headers, setups for the body streaming.
+ *
+ * \param[in]  q      the query
+ * \param[in]  clen
+ *   the content length if known. If positive or 0, \a chunked is ignored.
+ *   if it is negative then the behaviour depends on \a chunked.
+ * \param[in]  chunked
+ *   true if you want to stream packets of data with returns to the event
+ *   loop, else pass false (even when \a clen is negative).
+ *   In this way, the content-length that #httpd_reply_hdrs_done() generates
+ *   leaves a place-holder to be patched later. Of course this is only
+ *   possible when the body will be generated without any return to the event
+ *   loop (else the #httpd_t could begin the stream the Headers, which is
+ *   incorrect).
+ *
+ *
+ * If you don't intend to stream your answer bit by bit, but generate the body
+ * at once, always pass \c false as the \a chunked value:
+ * - it generates less traffic
+ * - when the client advertises as HTTP/1.0, since it doesn't support chunked
+ *   encoding, when \c true is passed we go in "ugly" mode, forcing the
+ *   connection to be closed at the end of the answer, which is wrong but is
+ *   the sole thing we can do.
+ */
 void      httpd_reply_hdrs_done(httpd_query_t *q, int content_length, bool chunked);
 void      httpd_reply_done(httpd_query_t *q);
 void      httpd_signal_write(httpd_query_t *q);
 
+/** starts a new chunk.
+ * Note that the http chunk has to be ended with #httpd_reply_chunk_done()
+ * before going back to the event loop.
+ */
 static inline void httpd_reply_chunk_start(httpd_query_t *q, outbuf_t *ob)
 {
     if (!q->chunked)
@@ -653,6 +682,7 @@ struct httpc_query_t {
     flag_t         hdrs_done     : 1;
     flag_t         chunked       : 1;
     flag_t         chunk_started : 1;
+    flag_t         clength_hack  : 1;
     flag_t         query_done    : 1;
 
     int          (*on_hdrs)(httpc_query_t *q);
@@ -672,9 +702,32 @@ static ALWAYS_INLINE outbuf_t *httpc_get_ob(httpc_query_t *q) {
 
 void httpc_query_start(httpc_query_t *q, http_method_t m,
                        lstr_t host, lstr_t uri);
+/** Ends the headers, setups for the body streaming.
+ *
+ * \param[in]  q      the query
+ * \param[in]  clen
+ *   the content length if known. If positive or 0, \a chunked is ignored.
+ *   if it is negative then the behaviour depends on \a chunked.
+ * \param[in]  chunked
+ *   true if you want to stream packets of data with returns to the event
+ *   loop, else pass false (even when \a clen is negative).
+ *   In this way, the content-length that #httpc_query_hdrs_done generates
+ *   leaves a place-holder to be patched later. Of course this is only
+ *   possible when the body will be generated without any return to the event
+ *   loop (else the #httpd_t could begin the stream the Headers, which is
+ *   incorrect).
+ *
+ * Unlike #httpd_reply_hdrs_done() it's not a problem to pass \c true for \a
+ * chunked (except maybe for the additional space it takes) since we're an
+ * HTTP/1.1 client.
+ */
 void httpc_query_hdrs_done(httpc_query_t *q, int clen, bool chunked);
 void httpc_query_done(httpc_query_t *q);
 
+/** starts a new chunk.
+ * Note that the http chunk has to be ended with #httpc_query_chunk_done()
+ * before going back to the event loop.
+ */
 static inline void httpc_query_chunk_start(httpc_query_t *q, outbuf_t *ob)
 {
     if (!q->chunked)

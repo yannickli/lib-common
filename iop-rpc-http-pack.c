@@ -37,10 +37,8 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
     } else {
         ob_adds(ob, "Content-Type: text/xml; charset=utf-8\r\n");
     }
-    httpd_reply_hdrs_done(q, -1, true);
+    httpd_reply_hdrs_done(q, -1, false);
     oblen = ob->length;
-
-    httpd_reply_chunk_start(q, ob);
 
     out = outbuf_sb_start(ob, &oldlen);
     tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
@@ -88,7 +86,6 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
     }
     outbuf_sb_end(ob, oldlen);
 
-    httpd_reply_chunk_done(q, ob);
     oblen = ob->length - oblen;
     httpd_reply_done(q);
     if (tcb->on_reply)
@@ -110,10 +107,8 @@ void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const char *err)
 
     ob = httpd_reply_hdrs_start(q, HTTP_CODE_INTERNAL_SERVER_ERROR, true);
     ob_adds(ob, "Content-Type: text/xml; charset=utf-8\r\n");
-    httpd_reply_hdrs_done(q, -1, true);
+    httpd_reply_hdrs_done(q, -1, false);
     oblen = ob->length;
-
-    httpd_reply_chunk_start(q, ob);
 
     out = outbuf_sb_start(ob, &oldlen);
     xmlpp_open_banner(&pp, out);
@@ -135,7 +130,6 @@ void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const char *err)
     xmlpp_close(&pp);
     outbuf_sb_end(ob, oldlen);
 
-    httpd_reply_chunk_done(q, ob);
     oblen = ob->length - oblen;
     httpd_reply_done(q);
 

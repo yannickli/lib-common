@@ -295,6 +295,16 @@ static void http_chunk_patch(outbuf_t *ob, char *buf, unsigned len)
         buf[11] = '\n';
     }
 }
+
+#define CLENGTH_RESERVE  12
+
+static void
+http_clength_patch(outbuf_t *ob, char s[static CLENGTH_RESERVE], unsigned len)
+{
+    (sprintf)(s, "%10d\r", len);
+    s[CLENGTH_RESERVE - 1] = '\n';
+}
+
 /* }}} */
 /* HTTPD Queries {{{ */
 
@@ -478,22 +488,37 @@ void httpd_reply_hdrs_done(httpd_query_t *q, int clen, bool chunked)
     assert (!q->hdrs_done);
     q->hdrs_done = true;
 
-    if (clen >= 0)
-        ob_addf(ob, "Content-Length: %d\r\n", clen);
+    if (clen >= 0) {
+        ob_addf(ob, "Content-Length: %d\r\n\r\n", clen);
+        return;
+    }
+
     if (chunked) {
         if (likely(q->http_version != HTTP_1_0)) {
             q->chunked = true;
             ob_adds(ob, "Transfer-Encoding: chunked\r\n");
-            return;
+            /* XXX: no \r\n because http_chunk_patch adds it */
+        } else {
+            /* FIXME: we aren't allowed to fallback to the non chunked case
+             *        here because it would break assumptions from the caller
+             *        that it can stream the answer with returns in the event
+             *        loop
+             */
+            if (!q->conn_close) {
+                ob_adds(ob, "Connection: close\r\n");
+                q->conn_close = true;
+            }
+            if (q->owner)
+                q->owner->connection_close = true;
+            ob_adds(ob, "\r\n");
         }
-        if (!q->conn_close) {
-            ob_adds(ob, "Connection: close\r\n");
-            q->conn_close = true;
-        }
-        if (q->owner)
-            q->owner->connection_close = true;
+    } else {
+        q->clength_hack = true;
+        ob_adds(ob, "Content-Length: ");
+        q->chunk_hdr_offs    = ob_reserve(ob, CLENGTH_RESERVE);
+        ob_adds(ob, "\r\n");
+        q->chunk_prev_length = ob->length;
     }
-    ob_adds(ob, "\r\n");
 }
 
 void httpd_reply_chunk_done_(httpd_query_t *q, outbuf_t *ob)
@@ -511,6 +536,11 @@ void httpd_reply_done(httpd_query_t *q)
     assert (q->hdrs_done && !q->answered && !q->chunk_started);
     if (q->chunked)
         ob_adds(ob, "\r\n0\r\n\r\n");
+    if (q->clength_hack) {
+        http_clength_patch(ob, ob->sb.data + q->chunk_hdr_offs,
+                           ob->length - q->chunk_prev_length);
+        q->clength_hack = false;
+    }
     httpd_mark_query_answered(q);
 }
 
@@ -564,36 +594,33 @@ void httpd_reject_(httpd_query_t *q, int code, const char *fmt, ...)
 
     ob = httpd_reply_hdrs_start(q, code, false);
     ob_adds(ob, "Content-Type: text/html\r\n");
-    httpd_reply_hdrs_done(q, -1, true);
+    httpd_reply_hdrs_done(q, -1, false);
 
-    httpd_reply_chunk_start(q, ob);
     ob_addf(ob, "<html><body><h1>%d - %*pM</h1><p>",
             code, LSTR_FMT_ARG(http_code_to_str(code)));
     va_start(ap, fmt);
     ob_addvf(ob, fmt, ap);
     va_end(ap);
-    ob_adds(ob, "</p></body></html>");
-    httpd_reply_chunk_done(q, ob);
-
+    ob_adds(ob, "</p></body></html>\r\n");
     httpd_reply_done(q);
 }
 
 void httpd_reject_unauthorized(httpd_query_t *q, lstr_t auth_realm)
 {
+    const lstr_t body = LSTR_IMMED_V("<html><body>"
+                                     "<h1>401 - Authentication required</h1>"
+                                     "</body></html>\r\n");
     outbuf_t *ob;
 
     if (q->answered || q->hdrs_started)
         return;
 
-#define AUTH_REQUIRED_BODY \
-    "<html><body><h1>401 - Authentication required</h1></body></html>"
-
     ob = httpd_reply_hdrs_start(q, HTTP_CODE_UNAUTHORIZED, false);
     ob_adds(ob, "Content-Type: text/html\r\n");
     ob_addf(ob, "WWW-Authenticate: Basic realm=\"%*pM\"\r\n",
             LSTR_FMT_ARG(auth_realm));
-    httpd_reply_hdrs_done(q, sizeof(AUTH_REQUIRED_BODY) - 1, false);
-    ob_adds(ob, "<html><body><h1>401 - Authentication required</h1></body></html>");
+    httpd_reply_hdrs_done(q, body.len, false);
+    ob_add(ob, body.s, body.len);
     httpd_reply_done(q);
 }
 
@@ -1969,13 +1996,20 @@ void httpc_query_hdrs_done(httpc_query_t *q, int clen, bool chunked)
     assert (!q->hdrs_done);
     q->hdrs_done = true;
 
-    if (clen >= 0)
-        ob_addf(ob, "Content-Length: %d\r\n", clen);
+    if (clen >= 0) {
+        ob_addf(ob, "Content-Length: %d\r\n\r\n", clen);
+        return;
+    }
     if (chunked) {
         q->chunked = true;
         ob_adds(ob, "Transfer-Encoding: chunked\r\n");
+        /* XXX: no \r\n because http_chunk_patch adds it */
     } else {
+        q->clength_hack = true;
+        ob_adds(ob, "Content-Length: ");
+        q->chunk_hdr_offs    = ob_reserve(ob, CLENGTH_RESERVE);
         ob_adds(ob, "\r\n");
+        q->chunk_prev_length = ob->length;
     }
 }
 
@@ -1994,6 +2028,11 @@ void httpc_query_done(httpc_query_t *q)
     assert (q->hdrs_done && !q->query_done && !q->chunk_started);
     if (q->chunked)
         ob_adds(ob, "\r\n0\r\n\r\n");
+    if (q->clength_hack) {
+        http_clength_patch(ob, ob->sb.data + q->chunk_hdr_offs,
+                           ob->length - q->chunk_prev_length);
+        q->clength_hack = false;
+    }
     q->query_done = true;
     httpc_set_mask(q->owner);
 }
