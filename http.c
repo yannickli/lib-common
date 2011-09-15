@@ -302,6 +302,7 @@ static void http_chunk_patch(outbuf_t *ob, char *buf, unsigned len)
  * HTTPD queries refcounting holds:
  *  - 1 for the fact that it has an owner.
  *  - 1 for the fact it hasn't been answered yet.
+ *  - 1 for the fact it hasn't been parsed yet.
  * Hence it's obj_retained() on creation, always.
  */
 
@@ -358,7 +359,8 @@ static httpd_query_t *httpd_query_create(httpd_t *w, httpd_trigger_cb_t *cb)
 
     if (w->queries == 0)
         q->ob = &w->ob;
-    /* retain for the fact that we're owned */
+    /* ensure refcount is 3: owned, unanwsered, unparsed */
+    q->refcnt++;
     q->refcnt++;
     q->owner = w;
     w->queries++;
@@ -754,22 +756,22 @@ static void httpd_flush_answered(httpd_t *w)
     httpd_set_mask(w);
 }
 
-static void httpd_query_done(httpd_t *w, httpd_query_t *q, bool flush)
+static void httpd_query_done(httpd_t *w, httpd_query_t *q)
 {
     struct timeval now;
 
     lp_gettv(&now);
     q->query_sec  = now.tv_sec;
     q->query_usec = now.tv_usec;
-    q->parsed = true;
-    if (flush)
-        httpd_flush_answered(w);
+    httpd_flush_answered(w);
     if (w->connection_close) {
         w->state = HTTP_PARSER_CLOSE;
     } else {
         w->state = HTTP_PARSER_IDLE;
     }
     w->chunk_length = 0;
+    q->parsed = true;
+    obj_delete(&q);
 }
 
 static void httpd_mark_query_answered(httpd_query_t *q)
@@ -784,8 +786,6 @@ static void httpd_mark_query_answered(httpd_query_t *q)
         w->queries_done++;
         if (dlist_is_first(&w->query_list, &q->query_link))
             httpd_flush_answered(w);
-        if (q->expect100cont)
-            httpd_query_done(w, q, false);
     }
     q->expect100cont = false;
     obj_delete(&q);
@@ -960,7 +960,7 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
     t_pop();
   unrecoverable_error_no_pop:
     w->connection_close = true;
-    httpd_query_done(w, q, true);
+    httpd_query_done(w, q);
     return PARSE_OK;
 }
 
@@ -977,7 +977,7 @@ static int httpd_parse_body(httpd_t *w, pstream_t *ps)
             q->on_data(q, tmp);
         if (q->on_done)
             q->on_done(q);
-        httpd_query_done(w, q, true);
+        httpd_query_done(w, q);
         return PARSE_OK;
     }
 
@@ -1027,7 +1027,7 @@ static int httpd_parse_chunk_hdr(httpd_t *w, pstream_t *ps)
   cancel_query:
     httpd_reject(q, BAD_REQUEST, "Chunked header is unparseable");
     w->connection_close = true;
-    httpd_query_done(w, q, true);
+    httpd_query_done(w, q);
     return PARSE_OK;
 }
 
@@ -1042,7 +1042,7 @@ static int httpd_parse_chunk(httpd_t *w, pstream_t *ps)
         if (ps_skipstr(ps, "\r\n")) {
             httpd_reject(q, BAD_REQUEST, "Chunked header is unparseable");
             w->connection_close = true;
-            httpd_query_done(w, q, true);
+            httpd_query_done(w, q);
             return PARSE_ERROR;
         }
         if (q->on_data)
@@ -1070,7 +1070,7 @@ static int httpd_parse_chunk_trailer(httpd_t *w, pstream_t *ps)
         if (res < 0) {
             httpd_reject(q, BAD_REQUEST, "Trailer headers are unparseable");
             w->connection_close = true;
-            httpd_query_done(w, q, true);
+            httpd_query_done(w, q);
             return PARSE_OK;
         }
         if (res > 0)
@@ -1078,7 +1078,7 @@ static int httpd_parse_chunk_trailer(httpd_t *w, pstream_t *ps)
     } while (ps_len(&line));
     if (q->on_done)
         q->on_done(q);
-    httpd_query_done(w, q, true);
+    httpd_query_done(w, q);
     return PARSE_OK;
 }
 
@@ -1288,8 +1288,7 @@ static int httpd_on_event(el_t evh, int fd, short events, el_data_t priv)
         httpd_query_t *q;
 
         q = dlist_first_entry(&w->query_list, httpd_query_t, query_link);
-        if (!q->parsed && !q->answered)
-            obj_delete(&q);
+        q->refcnt -= !q->parsed + !q->answered;
     }
     httpd_delete(&w);
     return 0;
