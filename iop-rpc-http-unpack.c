@@ -279,7 +279,7 @@ static void httpd_trigger__ic_destroy(httpd_trigger_t *tcb)
         ichttp_cb_delete(&cb->impl.values[pos]);
     }
     qm_wipe(ichttp_cbs, &cb->impl);
-    p_delete(&tcb);
+    p_delete(&cb);
 }
 
 static void httpd_trigger__ic_cb(httpd_trigger_t *tcb, httpd_query_t *q,

@@ -806,6 +806,7 @@ static void httpd_query_done(httpd_t *w, httpd_query_t *q)
     lp_gettv(&now);
     q->query_sec  = now.tv_sec;
     q->query_usec = now.tv_usec;
+    q->parsed     = true;
     httpd_flush_answered(w);
     if (w->connection_close) {
         w->state = HTTP_PARSER_CLOSE;
@@ -813,7 +814,6 @@ static void httpd_query_done(httpd_t *w, httpd_query_t *q)
         w->state = HTTP_PARSER_IDLE;
     }
     w->chunk_length = 0;
-    q->parsed = true;
     obj_release(q);
 }
 
@@ -1347,7 +1347,6 @@ static int httpd_on_event(el_t evh, int fd, short events, el_data_t priv)
             obj_release(q);
         if (!q->answered)
             obj_release(q);
-        q->refcnt -= !q->parsed + !q->answered;
     }
     httpd_delete(&w);
     return 0;
