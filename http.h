@@ -344,9 +344,9 @@ httpd_trigger_set_auth(httpd_trigger_t *cb, httpd_trigger_auth_f *auth,
 }
 
 #define httpd_trigger_register(cfg, m, p, cb) \
-    httpd_trigger_register_(&cfg->roots[HTTP_METHOD_##m], p, cb)
+    httpd_trigger_register_(&(cfg)->roots[HTTP_METHOD_##m], p, cb)
 #define httpd_trigger_unregister(cfg, m, p) \
-    httpd_trigger_unregister_(&cfg->roots[HTTP_METHOD_##m], p)
+    httpd_trigger_unregister_(&(cfg)->roots[HTTP_METHOD_##m], p)
 
 
 /**************************************************************************/
