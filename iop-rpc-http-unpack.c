@@ -334,7 +334,8 @@ __ichttp_register(ichttp_trigger_cb_t *tcb,
     sprintf(cb->name_uri, "%s/%s",       alias->name.s, fun->name.s);
     sprintf(cb->name_res, "%s.%sRes",    alias->name.s, fun->name.s);
     sprintf(cb->name_exn, "%s.%s.Fault", alias->name.s, fun->name.s);
-    qm_add(ichttp_cbs, &tcb->impl, cb->name, cb);
-    qm_add(ichttp_cbs, &tcb->impl, cb->name_uri, cb);
+    if (qm_add(ichttp_cbs, &tcb->impl, cb->name, cb))
+        e_panic("programming error");
+    qm_add(ichttp_cbs, &tcb->impl, cb->name_uri, ichttp_cb_dup(cb));
     return cb;
 }
