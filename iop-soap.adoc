@@ -347,7 +347,7 @@ For each RPC, the message names are constructed this way:
     (as in Response);
 -   Exceptions for this query are built with the RPC name with an appended
     ``.Fault'' (with the leading dot).
-                                                                                     the leading dot).
+
 [cols="header,4asciidoc"]
 |===
 | Method definition
