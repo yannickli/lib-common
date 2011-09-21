@@ -13,11 +13,11 @@
 
 #include "hash.h"
 
-uint32_t hsieh_hash(const void *_data, int len)
+uint32_t hsieh_hash(const void *_data, ssize_t len)
 {
     const byte *data = _data;
     uint32_t hash, tmp;
-    int rem;
+    size_t rem;
 
     if (len < 0)
         len = strlen((const char *)data);
@@ -64,7 +64,7 @@ uint32_t hsieh_hash(const void *_data, int len)
     return hash;
 }
 
-uint32_t jenkins_hash(const void *_s, int len)
+uint32_t jenkins_hash(const void *_s, ssize_t len)
 {
     const byte *s = _s;
     uint32_t hash = 0;

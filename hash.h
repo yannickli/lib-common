@@ -59,8 +59,8 @@
 uint32_t icrc32(uint32_t crc, const void *data, ssize_t len);
 uint64_t icrc64(uint64_t crc, const void *data, ssize_t len);
 
-uint32_t hsieh_hash(const void *s, int len);
-uint32_t jenkins_hash(const void *s, int len);
+uint32_t hsieh_hash(const void *s, ssize_t len);
+uint32_t jenkins_hash(const void *s, ssize_t len);
 
 #ifdef __cplusplus
 #define murmur_128bits_buf char out[]
@@ -74,5 +74,16 @@ void     murmur_hash3_x86_128(const void *key, size_t len, uint32_t seed,
 uint32_t murmur_hash3_x64_32 (const void *key, size_t len, uint32_t seed);
 void     murmur_hash3_x64_128(const void *key, size_t len, uint32_t seed,
                               murmur_128bits_buf);
+
+static inline uint32_t mem_hash32(const void *data, size_t len)
+{
+#if defined(__x86_64__)
+    return murmur_hash3_x64_32(data, len, 0xdeadc0de);
+#elif defined(__i386__)
+    return murmur_hash3_x86_32(data, len, 0xdeadc0de);
+#else
+    return jenkins_hash(data, len);
+#endif
+}
 
 #endif
