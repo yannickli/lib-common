@@ -1190,6 +1190,16 @@ static void httpd_wipe(httpd_t *w)
 GENERIC_NEW(httpd_t, httpd);
 GENERIC_DELETE(httpd_t, httpd);
 
+void httpd_close_gently(httpd_t *w)
+{
+    w->connection_close = true;
+    if (w->state == HTTP_PARSER_IDLE) {
+        w->state = HTTP_PARSER_CLOSE;
+        /* let the event loop maybe destroy us later, not now */
+        el_fd_set_mask(w->ev, POLLOUT);
+    }
+}
+
 int t_httpd_qinfo_get_basic_auth(const httpd_qinfo_t *info,
                                  pstream_t *user, pstream_t *pw)
 {
@@ -1791,6 +1801,15 @@ static void httpc_wipe(httpc_t *w)
     httpc_cfg_delete(&w->cfg);
 }
 GENERIC_DELETE(httpc_t, httpc);
+
+void httpc_close_gently(httpc_t *w)
+{
+    w->connection_close = true;
+    if (!w->busy)
+        httpc_set_busy(w);
+    /* let the event loop maybe destroy us later, not now */
+    el_fd_set_mask(w->ev, POLLOUT);
+}
 
 void httpc_close(httpc_t **wp)
 {

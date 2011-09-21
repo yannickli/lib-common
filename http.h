@@ -323,6 +323,13 @@ DO_REFCNT(httpd_cfg_t, httpd_cfg);
 el_t     httpd_listen(sockunion_t *su, httpd_cfg_t *);
 void     httpd_unlisten(el_t *ev);
 httpd_t *httpd_spawn(int fd, httpd_cfg_t *);
+/** gently close an httpd connection.
+ *
+ * The httpd_t is never destroyed after this function call to ensure
+ * consistent behavior. Instead it is scheduled for "writing" so that the
+ * event loop destroys it in its next iteration.
+ */
+void     httpd_close_gently(httpd_t *w);
 
 GENERIC_INIT(httpd_trigger_t, httpd_trigger);
 GENERIC_NEW(httpd_trigger_t, httpd_trigger);
@@ -590,6 +597,13 @@ typedef struct httpc_t {
 
 httpc_t *httpc_spawn(int fd, httpc_cfg_t *, httpc_pool_t *);
 httpc_t *httpc_connect(const sockunion_t *, httpc_cfg_t *, httpc_pool_t *);
+/** gently close an httpc connection.
+ *
+ * The httpc_t is never destroyed after this function call to ensure
+ * consistent behavior. Instead it is scheduled for "writing" so that the
+ * event loop destroys it in its next iteration.
+ */
+void     httpc_close_gently(httpc_t *);
 void     httpc_close(httpc_t **);
 
 struct httpc_pool_t {
