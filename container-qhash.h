@@ -536,7 +536,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 
 static inline uint32_t qhash_str_hash(const qhash_t *qh, const char *s)
 {
-    return hsieh_hash(s, -1);
+    return jenkins_hash(s, -1);
 }
 
 static inline bool
@@ -547,7 +547,7 @@ qhash_str_equal(const qhash_t *qh, const char *s1, const char *s2)
 
 static inline uint32_t qhash_lstr_hash(const qhash_t *qh, const lstr_t *ls)
 {
-    return hsieh_hash(ls->s, ls->len);
+    return jenkins_hash(ls->s, ls->len);
 }
 
 static inline bool
@@ -558,7 +558,7 @@ qhash_lstr_equal(const qhash_t *qh, const lstr_t *s1, const lstr_t *s2)
 
 static inline uint32_t qhash_clstr_hash(const qhash_t *qh, const lstr_t *ls)
 {
-    return hsieh_hash(ls->s, ls->len);
+    return jenkins_hash(ls->s, ls->len);
 }
 
 static inline bool
