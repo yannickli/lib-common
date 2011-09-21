@@ -75,8 +75,10 @@ uint32_t murmur_hash3_x64_32 (const void *key, size_t len, uint32_t seed);
 void     murmur_hash3_x64_128(const void *key, size_t len, uint32_t seed,
                               murmur_128bits_buf);
 
-static inline uint32_t mem_hash32(const void *data, size_t len)
+static inline uint32_t mem_hash32(const void *data, ssize_t len)
 {
+    if (unlikely(len < 0))
+        len = strlen(data);
 #if defined(__x86_64__)
     return murmur_hash3_x64_32(data, len, 0xdeadc0de);
 #elif defined(__i386__)
