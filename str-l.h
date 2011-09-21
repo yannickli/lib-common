@@ -35,8 +35,8 @@ typedef struct lstr_t {
 
 #define LSTR_INIT(s_, len_)   { { (s_) }, (len_), 0 }
 #define LSTR_INIT_V(s, len)   (lstr_t)LSTR_INIT(s, len)
-#define LSTR_IMMED(str)       LSTR_INIT(str, sizeof(str) - 1)
-#define LSTR_IMMED_V(str)     LSTR_INIT_V(str, sizeof(str) - 1)
+#define LSTR_IMMED(str)       LSTR_INIT(""str, sizeof(str) - 1)
+#define LSTR_IMMED_V(str)     LSTR_INIT_V(""str, sizeof(str) - 1)
 #define LSTR_STR_V(str)       ({ const char *__s = (str); LSTR_INIT_V(__s, strlen(__s)); })
 #define LSTR_NULL             LSTR_INIT(NULL, 0)
 #define LSTR_NULL_V           LSTR_INIT_V(NULL, 0)
