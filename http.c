@@ -388,6 +388,7 @@ static httpd_query_t *httpd_query_init(httpd_query_t *q)
 {
     sb_init(&q->payload);
     q->http_version = HTTP_1_1;
+    q->refcnt = 1;
     return q;
 }
 
