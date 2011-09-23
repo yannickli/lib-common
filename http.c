@@ -1147,6 +1147,7 @@ httpd_cfg_t *httpd_cfg_init(httpd_cfg_t *cfg)
     p_clear(cfg, 1);
 
     dlist_init(&cfg->httpd_list);
+    cfg->httpd_cls         = obj_class(httpd);
     cfg->outbuf_max_size   = _G.outbuf_max_size;
     cfg->on_data_threshold = _G.on_data_threshold;
     cfg->pipeline_depth    = _G.pipeline_depth_in;
@@ -1169,7 +1170,6 @@ void httpd_cfg_wipe(httpd_cfg_t *cfg)
 
 static httpd_t *httpd_init(httpd_t *w)
 {
-    p_clear(w, 1);
     dlist_init(&w->query_list);
     dlist_init(&w->httpd_link);
     sb_init(&w->ibuf);
@@ -1191,8 +1191,10 @@ static void httpd_wipe(httpd_t *w)
     httpd_cfg_delete(&w->cfg);
 }
 
-GENERIC_NEW(httpd_t, httpd);
-GENERIC_DELETE(httpd_t, httpd);
+OBJ_VTABLE(httpd)
+    httpd.init = httpd_init,
+    httpd.wipe = httpd_wipe,
+OBJ_VTABLE_END()
 
 void httpd_close_gently(httpd_t *w)
 {
@@ -1362,7 +1364,7 @@ static int httpd_on_event(el_t evh, int fd, short events, el_data_t priv)
         if (!q->answered)
             obj_release(q);
     }
-    httpd_delete(&w);
+    obj_delete(&w);
     return 0;
 }
 
@@ -1401,7 +1403,7 @@ void httpd_unlisten(el_t *ev)
 
 httpd_t *httpd_spawn(int fd, httpd_cfg_t *cfg)
 {
-    httpd_t *w = httpd_new();
+    httpd_t *w = obj_new_of_class(httpd, cfg->httpd_cls);
 
     cfg->nb_conns++;
     w->cfg         = httpd_cfg_dup(cfg);

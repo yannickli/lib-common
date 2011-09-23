@@ -213,22 +213,27 @@ typedef struct httpd_trigger_t      httpd_trigger_t;
 qm_kvec_t(http_path, lstr_t, httpd_trigger_node_t *,
           qhash_lstr_hash, qhash_lstr_equal);
 
-typedef struct httpd_t {
-    dlist_t            httpd_link;
-    httpd_cfg_t       *cfg;
-    el_t               ev;
-    sb_t               ibuf;
+#define HTTPD_FIELDS(pfx) \
+    OBJECT_FIELDS(pfx);                                    \
+    dlist_t            httpd_link;                         \
+    httpd_cfg_t       *cfg;                                \
+    el_t               ev;                                 \
+    sb_t               ibuf;                               \
+                                                           \
+    flag_t             connection_close   : 1;             \
+    uint8_t            state;                              \
+    uint16_t           queries;                            \
+    uint16_t           queries_done;                       \
+    unsigned           max_queries;                        \
+    unsigned           chunk_length;                       \
+                                                           \
+    dlist_t            query_list;                         \
+    outbuf_t           ob
 
-    flag_t             connection_close   : 1;
-    uint8_t            state;
-    uint16_t           queries;
-    uint16_t           queries_done;
-    unsigned           max_queries;
-    unsigned           chunk_length;
+#define HTTPD_METHODS(type_t) \
+    OBJECT_METHODS(type_t)
 
-    dlist_t            query_list;
-    outbuf_t           ob;
-} httpd_t;
+OBJ_CLASS(httpd, object, HTTPD_FIELDS, HTTPD_METHODS);
 
 /** type for HTTPD triggers authentication callbacks.
  * The authentication callback is always called as soon as there is one on a
@@ -315,8 +320,9 @@ struct httpd_cfg_t {
     unsigned max_conns;
     uint16_t pipeline_depth;
 
-    dlist_t              httpd_list;
-    httpd_trigger_node_t roots[HTTP_METHOD_DELETE + 1];
+    dlist_t               httpd_list;
+    const object_class_t *httpd_cls;
+    httpd_trigger_node_t  roots[HTTP_METHOD_DELETE + 1];
 };
 httpd_cfg_t *httpd_cfg_init(httpd_cfg_t *cfg);
 void         httpd_cfg_wipe(httpd_cfg_t *cfg);
@@ -461,7 +467,7 @@ struct httpd_qinfo_t {
                                                                     \
     void              (*on_data)(httpd_query_t *q, pstream_t ps);   \
     void              (*on_done)(httpd_query_t *q);                 \
-    void              (*on_ready)(httpd_query_t *q);
+    void              (*on_ready)(httpd_query_t *q)
 
 #define HTTPD_QUERY_METHODS(type_t) \
     OBJECT_METHODS(type_t)
