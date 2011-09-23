@@ -255,7 +255,10 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
 
         /* Handle optional fields */
         while (unlikely(xfdesc != fdesc)) {
-            RETHROW(__iop_skip_absent_field_desc(value, fdesc));
+            if (__iop_skip_absent_field_desc(value, fdesc) < 0) {
+                return xmlr_fail(xr, "missing mandatory tag <%*pM>",
+                                 LSTR_FMT_ARG(fdesc->name));
+            }
             fdesc++;
         }
 
@@ -281,7 +284,10 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
     /* Check for absent fields */
   end:
     for (; fdesc < end; fdesc++) {
-        RETHROW(__iop_skip_absent_field_desc(value, fdesc));
+        if (__iop_skip_absent_field_desc(value, fdesc) < 0) {
+            return xmlr_fail(xr, "missing mandatory tag <%*pM>",
+                             LSTR_FMT_ARG(fdesc->name));
+        }
     }
     return xmlr_node_close(xr);
 }

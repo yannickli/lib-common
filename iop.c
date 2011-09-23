@@ -808,8 +808,7 @@ int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc)
 
         /* For a required field, only structs can be absents, be careful that
          * union must be presents */
-        if (fdesc->type != IOP_T_STRUCT)
-            PS_CHECK(-1);
+        PS_WANT(fdesc->type == IOP_T_STRUCT);
         for (int i = 0; i < desc->fields_len; i++)
             PS_CHECK(__iop_skip_absent_field_desc(ptr, desc->fields + i));
         return 0;
@@ -847,7 +846,7 @@ int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc)
             ((iop_data_t *)ptr)->flags = 0;
             break;
           default:
-            PS_CHECK(-1);
+            return -1;
         }
     } else
     if (fdesc->repeat == IOP_R_REPEATED) {
