@@ -1146,6 +1146,7 @@ httpd_cfg_t *httpd_cfg_init(httpd_cfg_t *cfg)
 {
     p_clear(cfg, 1);
 
+    dlist_init(&cfg->httpd_list);
     cfg->outbuf_max_size   = _G.outbuf_max_size;
     cfg->on_data_threshold = _G.on_data_threshold;
     cfg->pipeline_depth    = _G.pipeline_depth_in;
@@ -1163,12 +1164,14 @@ void httpd_cfg_wipe(httpd_cfg_t *cfg)
     for (int i = 0; i < countof(cfg->roots); i++) {
         httpd_trigger_node_wipe(&cfg->roots[i]);
     }
+    assert (dlist_is_empty(&cfg->httpd_list));
 }
 
 static httpd_t *httpd_init(httpd_t *w)
 {
     p_clear(w, 1);
     dlist_init(&w->query_list);
+    dlist_init(&w->httpd_link);
     sb_init(&w->ibuf);
     ob_init(&w->ob);
     w->state = HTTP_PARSER_IDLE;
@@ -1184,6 +1187,7 @@ static void httpd_wipe(httpd_t *w)
         httpd_query_detach(dlist_entry(it, httpd_query_t, query_link));
     }
     w->cfg->nb_conns--;
+    dlist_remove(&w->httpd_link);
     httpd_cfg_delete(&w->cfg);
 }
 
@@ -1404,6 +1408,7 @@ httpd_t *httpd_spawn(int fd, httpd_cfg_t *cfg)
     w->ev          = el_unref(el_fd_register(fd, POLLIN, &httpd_on_event, w));
     w->max_queries = cfg->max_queries;
     el_fd_watch_activity(w->ev, POLLINOUT, w->cfg->noact_delay);
+    dlist_add_tail(&cfg->httpd_list, &w->httpd_link);
     return w;
 }
 
