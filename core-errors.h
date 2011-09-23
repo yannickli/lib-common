@@ -52,7 +52,7 @@ static ALWAYS_INLINE void e_ignore(int level, ...) { }
 
 static ALWAYS_INLINE void assert_ignore(bool cond) { }
 #undef  assert
-#define assert(Cond)  if (false) assert_ignore(Cond)
+#define assert(Cond)  ({ if (false) assert_ignore(Cond); (void)0; })
 
 #  define e_trace(level, ...)              e_trace_ignore(level, ##__VA_ARGS__)
 #  define e_trace_hex(level, ...)          e_trace_ignore(level, ##__VA_ARGS__)
