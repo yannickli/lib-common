@@ -135,8 +135,9 @@ void obj_wipe_real(object_t *o);
 
 #define obj_class(pfx)    ((const object_class_t *)pfx##_class())
 #define obj_new_of_class(pfx, cls) \
-    ((pfx##_t *)obj_init_real(cls, p_new(char, (cls)->type_size),            \
-                              OBJECT_REFCNT_AUTO))
+    ((pfx##_t *)(assert(cls_inherits(cls, obj_class(pfx))),                  \
+                 obj_init_real(cls, p_new(char, (cls)->type_size),           \
+                               OBJECT_REFCNT_AUTO)))
 
 #define obj_new(pfx)      \
     ((pfx##_t *)obj_init_real(pfx##_class(), p_new(pfx##_t, 1),              \
