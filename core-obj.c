@@ -47,7 +47,7 @@ static void obj_init_real_aux(object_t *o, const object_class_t *cls)
     (*init)(o);
 }
 
-void *obj_init_real(const void *_cls, void *_o, size_t refcnt)
+void *obj_init_real(const void *_cls, void *_o, ssize_t refcnt)
 {
     const object_class_t *cls = _cls;
     object_t *o = _o;
@@ -63,6 +63,11 @@ void obj_wipe_real(object_t *o)
     const object_class_t *cls = o->v.ptr;
     void (*wipe)(object_t *);
 
+    /* a crash here means obj_wipe was called on a reachable object.
+     * It's likely the caller should have used obj_release() instead.
+     */
+    assert (o->refcnt == OBJECT_REFCNT_STATIC || o->refcnt == 1);
+
     while ((wipe = cls->wipe)) {
         (*wipe)(o);
         do {
@@ -76,37 +81,46 @@ void obj_wipe_real(object_t *o)
 
 static object_t *obj_retain_(object_t *obj)
 {
-    switch (obj->refcnt) {
-      default:
-        ++obj->refcnt;
-        break;
-      case OBJECT_REFCNT_LAST:
+    if (likely(obj->refcnt > 0)) {
+        if (likely(++obj->refcnt > 0))
+            return obj;
         e_panic("too many refcounts");
+    }
+
+    switch (obj->refcnt) {
+      case 0:
+        e_panic("probably acting on a deleted object");
       case OBJECT_REFCNT_STATIC:
         e_panic("forbidden to call retain on a statically allocated object");
+      default:
+        /* WTF?! probably a memory corruption */
+        e_panic("should not happen");
     }
-    return obj;
 }
 
 static void obj_release_(object_t *obj)
 {
-    switch (obj->refcnt) {
-      case 0:
-        e_panic("should not happen");
-      case OBJECT_REFCNT_STATIC:
-        if (obj_vmethod(obj, can_wipe) && !obj_vcall(obj, can_wipe))
-            return;
-        obj_wipe_real(obj);
-        break;
-      case 1:
+    if (obj->refcnt > 1) {
+        --obj->refcnt;
+        return;
+    }
+    if (obj->refcnt == 1) {
         if (obj_vmethod(obj, can_wipe) && !obj_vcall(obj, can_wipe))
             return;
         obj_wipe_real(obj);
         p_delete(&obj);
-        break;
+        return;
+    }
+
+    switch (obj->refcnt) {
+      case 0:
+        e_panic("object refcounting issue");
+      case OBJECT_REFCNT_STATIC:
+        /* you should call obj_wipe instead */
+        e_panic("forbidden to call release on a statically allocated object");
       default:
-        --obj->refcnt;
-        break;
+        /* WTF?! probably a memory corruption we should have hit 0 first */
+        e_panic("should not happen");
     }
 }
 

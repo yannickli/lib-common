@@ -107,16 +107,15 @@ bool cls_inherits(const void *cls, const void *vptr);
         return res;                                                          \
     }
 
-#define OBJECT_REFCNT_AUTO    ((size_t)1)
-#define OBJECT_REFCNT_STATIC  ((size_t)-1)
-#define OBJECT_REFCNT_LAST    ((size_t)-2)
+#define OBJECT_REFCNT_AUTO    (1)
+#define OBJECT_REFCNT_STATIC  (-1)
 
 #define OBJECT_FIELDS(pfx) \
     union {                                                                  \
         const object_class_t *as_obj_cls;                                    \
         const pfx##_class_t  *ptr;                                           \
     } v;                                                                     \
-    size_t refcnt
+    ssize_t refcnt
 
 #define OBJECT_METHODS(type_t) \
     type_t  *(*init)(type_t *);                                              \
@@ -130,7 +129,7 @@ bool cls_inherits(const void *cls, const void *vptr);
 OBJ_CLASS(object, object, OBJECT_FIELDS, OBJECT_METHODS);
 
 
-void *obj_init_real(const void *cls, void *o, size_t refcnt);
+void *obj_init_real(const void *cls, void *o, ssize_t refcnt);
 void obj_wipe_real(object_t *o);
 
 #define obj_class(pfx)    ((const object_class_t *)pfx##_class())
@@ -149,7 +148,7 @@ void obj_wipe_real(object_t *o);
 #define obj_init(pfx, v)  \
     ((pfx##_t *)obj_init_real(pfx##_class(), memset(v, 0, sizeof(*v)),       \
                               OBJECT_REFCNT_STATIC))
-#define obj_wipe(o)            obj_wipe_real(obj_vcast(object, o))
+#define obj_wipe(o)     obj_wipe_real(obj_vcast(object, o))
 
 /**\}*/
 #endif
