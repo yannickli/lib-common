@@ -395,7 +395,7 @@ ev_t *el_child_register(pid_t pid, el_child_f *cb, el_data_t priv)
 el_data_t el_child_unregister(ev_t **evp)
 {
     if (*evp) {
-        CHECK_EV_TYPE(*evp, EV_SIGNAL);
+        CHECK_EV_TYPE(*evp, EV_CHILD);
         if (qm_del_key(ev_assoc, &_G.childs, (*evp)->pid) < 0)
             ASSERT("event not found", false);
         return el_destroy(evp, false);
