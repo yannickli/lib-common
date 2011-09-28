@@ -19,10 +19,12 @@ var/toolsdir  := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 var/srcdir    := $(realpath $(dir $(var/toolsdir)))
 var/cfgdir    ?= $(realpath $(var/srcdir)/Config)
 var/profile   := $(or $(P),$(PROFILE),$(BUILDFOR),default)
-var/builddir  := $(var/srcdir)/.build-$(var/profile)-$(shell hostname)
+var/hostname  ?= $(shell hostname)
+var/builddir  ?= $(var/srcdir)/.build-$(var/profile)-$(var/hostname)
 /             := $(var/srcdir)/
 !             := $(var/builddir)/
-~             := .build-$(var/profile)-$(shell hostname)/
+~             := .build-$(var/profile)-$(var/hostname)/
+export var/hostname
 
 var/verbose   := $(V)$(VERBOSE)
 var/nocolor   := $(M)$(NOCOLOR)$(MONOCHROME)
@@ -85,9 +87,9 @@ msg/alert       := $(msg/color) '1;$(col/white)$(col/bg_red)' "***"
 SUFFIXES      :=
 MAKEFLAGS     := $(MAKEFLAGS)r$(if $(var/verbose),,s)
 ifeq (,$(L)$(LINEAR))
-MAKEPARALLEL  := $(MAKE) -j$(shell $/Build/getncpu.sh)
+MAKEPARALLEL  ?= $(MAKE) -j$(shell $/Build/getncpu.sh)
 else
-MAKEPARALLEL  := $(MAKE)
+MAKEPARALLEL  ?= $(MAKE)
 endif
 
 ##########################################################################
