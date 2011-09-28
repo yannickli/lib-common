@@ -131,10 +131,13 @@ IOPC_VER=1.3.3
 if ! prereq "$IOPC_VER" "$(iopc --version)"; then
     warn "iopc version $IOPC_VER required (update your tools.git + make -C ~/dev/tools/iopc install)"
 fi
+setenv "IOPC" "$(which iopc)"
 
-for tool in flex gperf mtasc swfmill xsltproc scons; do
+for tool in clang clang++ flex gperf mtasc swfmill xsltproc scons; do
     check_tool $tool $tool
 done
+setenv "CLANG"   "$(which clang)"
+setenv "CLANGXX" "$(which clang++)"
 
 if ! test -f /usr/include/sys/capability.h; then
     warn "mising libcap-dev (for <sys/capability.h>)"

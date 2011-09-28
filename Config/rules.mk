@@ -90,7 +90,6 @@ endef
 #}}}
 #[ iop ]##############################################################{{{#
 
-IOPC := $(shell which iopc)
 ext/gen/iop = $(call fun/patsubst-filt,%.iop,%.iop.c,$1) \
     $(call fun/patsubst-filt,%.iop,%.iop.h,$1)
 
@@ -142,10 +141,10 @@ ext/gen/blk = $(call fun/patsubst-filt,%.blk,%.blk.c,$1)
 
 define ext/expand/blk
 $$(foreach t,$3,$$(eval $3.c_NOCHECK = block))
-$(3:=.c): %.c: % $(shell which clang)
+$(3:=.c): %.c: % $(CLANG)
 	$(msg/COMPILE) " BLK" $$(<R)
 	$(RM) $$@
-	clang -cc1 $$(CLANGFLAGS) \
+	$(CLANG) -cc1 $$(CLANGFLAGS) \
 	    $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$@_CFLAGS) \
 	    -fblocks -rewrite-blocks -o $$@ $$<
 	chmod a-w $$@
@@ -163,10 +162,10 @@ ext/gen/blkk = $(call fun/patsubst-filt,%.blkk,%.blkk.cc,$1)
 
 define ext/expand/blkk
 $$(foreach t,$3,$$(eval $3.cc_NOCHECK = block))
-$(3:=.cc): %.cc: % $(shell which clang++)
+$(3:=.cc): %.cc: % $(CLANGXX)
 	$(msg/COMPILE) " BLK" $$(<R)
 	$(RM) $$@
-	clang++ -cc1 $$(CLANGXXFLAGS) \
+	$(CLANGXX) -cc1 $$(CLANGXXFLAGS) \
 	    $$($(1D)/_CXXFLAGS) $$($1_CXXFLAGS) $$($$@_CXXFLAGS) \
 	    -fblocks -rewrite-blocks -o $$@ $$<
 	chmod a-w $$@
