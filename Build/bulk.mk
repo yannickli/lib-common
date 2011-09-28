@@ -165,10 +165,11 @@ tmp/makefiles := $(shell find "$(var/srcdir)" -name Makefile -type f \( -path '*
                          grep -q 'include.*base.mk' $$file && echo $$file; done)
 tmp/vars      := $(patsubst $(var/srcdir)/%Makefile,$(var/builddir)/%vars.mk,$(tmp/makefiles))
 
+$(tmp/vars): MAKEFLAGS=rsC
 $(tmp/vars): $(var/builddir)%/vars.mk: $(var/srcdir)%/Makefile $!deps.mk $(var/toolsdir)/*
 	$(msg/generate) $(@R)
 	mkdir -p $(@D)
-	$(MAKE) --no-print-directory -rsC $(var/srcdir)$* __dump_targets > $@
+	make --no-print-directory -rsC $(var/srcdir)$* __dump_targets > $@
 
 $(var/builddir)/Makefile: $(var/srcdir)/configure $(tmp/vars) $(var/toolsdir)/*
 	$(msg/generate) $(@R)
@@ -197,7 +198,7 @@ __dump_targets:
 	echo '$._CLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(CLEANFILES)))'
 	echo 'DISTCLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(DISTCLEANFILES)))'
 	echo ''
-	$(MAKE) -nspqr | $(var/toolsdir)/_local_targets.sh \
+	make -nspqr | $(var/toolsdir)/_local_targets.sh \
 	    "$(var/srcdir)" "$." "$(var/toolsdir)" "$(var/cfgdir)" | \
 	    sed -n -e 's~$$~ FORCE ; $$(MAKE) -w$(if $.,C $.) $$(subst $.,,$$@)~p'
 
