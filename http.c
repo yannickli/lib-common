@@ -414,7 +414,7 @@ static httpd_query_t *httpd_query_create(httpd_t *w, httpd_trigger_t *cb)
     q->owner = w;
     w->queries++;
     dlist_add_tail(&w->query_list, &q->query_link);
-    q->trig_cb = cb;
+    q->trig_cb = httpd_trigger_dup(cb);
     return q;
 }
 
@@ -442,8 +442,11 @@ static httpd_query_t *httpd_query_init(httpd_query_t *q)
 
 static void httpd_query_wipe(httpd_query_t *q)
 {
-    if (q->trig_cb && q->trig_cb->on_query_wipe)
-        q->trig_cb->on_query_wipe(q);
+    if (q->trig_cb) {
+        if (q->trig_cb->on_query_wipe)
+            q->trig_cb->on_query_wipe(q);
+        httpd_trigger_delete(&q->trig_cb);
+    }
     if (q->own_ob)
         ob_delete(&q->ob);
     httpd_qinfo_delete(&q->qinfo);
