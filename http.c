@@ -65,6 +65,45 @@ static ctype_desc_t const http_non_token = {
 
 static void httpd_mark_query_answered(httpd_query_t *q);
 
+static void httpd_trigger_destroy(httpd_trigger_t *cb, unsigned delta)
+{
+    assert (cb->refcnt >= delta);
+
+    cb->refcnt -= delta;
+    if (cb->refcnt == 0) {
+        lstr_wipe(&cb->auth_realm);
+        if (cb->destroy) {
+            cb->destroy(cb);
+        } else {
+            p_delete(&cb);
+        }
+    }
+}
+
+static httpd_trigger_t *httpd_trigger_dup(httpd_trigger_t *cb)
+{
+    cb->refcnt += 2;
+    return cb;
+}
+
+static void httpd_trigger_delete(httpd_trigger_t **cbp)
+{
+    if (*cbp) {
+        httpd_trigger_destroy(*cbp, 2);
+        *cbp = NULL;
+    }
+}
+
+void httpd_trigger_persist(httpd_trigger_t *cb)
+{
+    cb->refcnt |= 1;
+}
+
+void httpd_trigger_loose(httpd_trigger_t *cb)
+{
+    httpd_trigger_destroy(cb, cb->refcnt & 1);
+}
+
 /* RFC 2616 helpers {{{ */
 
 #define PARSE_RETHROW(e)  ({ int __e = (e); if (unlikely(__e)) return __e; })
@@ -658,31 +697,6 @@ static void httpd_trigger_node_wipe(httpd_trigger_node_t *node)
     qm_wipe(http_path, &node->childs);
 }
 
-static void httpd_trigger_destroy(httpd_trigger_t *cb, unsigned delta)
-{
-    assert (cb->refcnt >= delta);
-
-    cb->refcnt -= delta;
-    if (cb->refcnt == 0) {
-        lstr_wipe(&cb->auth_realm);
-        if (cb->destroy) {
-            cb->destroy(cb);
-        } else {
-            p_delete(&cb);
-        }
-    }
-}
-
-void httpd_trigger_persist(httpd_trigger_t *cb)
-{
-    cb->refcnt |= 1;
-}
-
-void httpd_trigger_loose(httpd_trigger_t *cb)
-{
-    httpd_trigger_destroy(cb, cb->refcnt & 1);
-}
-
 void httpd_trigger_register_(httpd_trigger_node_t *n, const char *path,
                              httpd_trigger_t *cb)
 {
@@ -697,10 +711,8 @@ void httpd_trigger_register_(httpd_trigger_node_t *n, const char *path,
             q++;
         path = q;
     }
-    if (n->cb)
-        httpd_trigger_destroy(n->cb, 2);
-    cb->refcnt += 2;
-    n->cb = cb;
+    httpd_trigger_delete(&n->cb);
+    n->cb = httpd_trigger_dup(cb);
     if (unlikely(cb->query_cls == NULL))
         cb->query_cls = obj_class(httpd_query);
 }
@@ -711,9 +723,7 @@ static bool httpd_trigger_unregister__(httpd_trigger_node_t *n, const char *path
         path++;
 
     if (!*path) {
-        if (n->cb)
-            httpd_trigger_destroy(n->cb, 2);
-        n->cb = NULL;
+        httpd_trigger_delete(&n->cb);
     } else {
         const char *q = strchrnul(path, '/');
         lstr_t      s = LSTR_INIT(path, q - path);
