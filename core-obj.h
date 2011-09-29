@@ -31,8 +31,8 @@
 
 bool cls_inherits(const void *cls, const void *vptr);
 
-#define obj_is_a(obj, pfx)         \
-    (!(obj) || cls_inherits((obj)->v.as_obj_cls, pfx##_class()))
+#define obj_is_a(obj, pfx)  \
+    cls_inherits((obj)->v.as_obj_cls, pfx##_class())
 
 #define obj_vfield(o, field)       ((o)->v.ptr->field)
 #define obj_vmethod(o, method)     ((o)->v.ptr->method)
@@ -41,7 +41,7 @@ bool cls_inherits(const void *cls, const void *vptr);
 #if !defined(NDEBUG) && defined(__GNUC__)
 #  define obj_cast_debug(pfx, o) \
     ({ typeof(o) __##pfx##_o = (o);                                          \
-       if (unlikely(!obj_is_a(__##pfx##_o, pfx))) {                          \
+       if (__##pfx##_o && unlikely(!obj_is_a(__##pfx##_o, pfx))) {           \
            e_panic("%s:%d: cannot cast (%p : %s) into a %s",                 \
                    __FILE__, __LINE__, __##pfx##_o,                          \
                    obj_vfield(__##pfx##_o, type_name),                       \
