@@ -1467,8 +1467,8 @@ static void httpc_query_on_done(httpc_query_t *q, int status)
     httpc_t *w = q->owner;
 
     if (w) {
-        if (--w->queries < w->cfg->pipeline_depth && w->max_queries)
-            httpc_set_ready(w);
+        if (--w->queries < w->cfg->pipeline_depth && w->max_queries && w->busy)
+            obj_vcall(w, set_ready, false);
         q->owner = NULL;
     }
     dlist_remove(&q->query_link);
@@ -1596,7 +1596,8 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
         RETHROW((*q->on_hdrs)(q));
     if (conn_close) {
         w->max_queries = 0;
-        httpc_set_busy(w);
+        if (!w->busy)
+            obj_vcall(w, set_busy);
         dlist_for_each_entry_safe_continue(q, q, &w->query_list, query_link) {
             httpc_query_abort(q);
         }
@@ -1824,17 +1825,45 @@ static void httpc_disconnect(httpc_t *w)
     }
 }
 
+static void httpc_set_ready(httpc_t *w, bool first)
+{
+    httpc_pool_t *pool = w->pool;
+
+    assert (w->busy);
+    w->busy = false;
+    if (pool) {
+        dlist_move(&pool->ready_list, &w->pool_link);
+        if (pool->on_ready)
+            (*pool->on_ready)(pool, w);
+    }
+}
+
+static void httpc_set_busy(httpc_t *w)
+{
+    httpc_pool_t *pool = w->pool;
+
+    assert (!w->busy);
+    w->busy = true;
+    if (pool) {
+        dlist_move(&pool->busy_list, &w->pool_link);
+        if (pool->on_busy)
+            (*pool->on_busy)(pool, w);
+    }
+}
+
 OBJ_VTABLE(httpc)
     httpc.init       = httpc_init;
     httpc.disconnect = httpc_disconnect;
     httpc.wipe       = httpc_wipe;
+    httpc.set_ready  = httpc_set_ready;
+    httpc.set_busy   = httpc_set_busy;
 OBJ_VTABLE_END()
 
 void httpc_close_gently(httpc_t *w)
 {
     w->connection_close = true;
     if (!w->busy)
-        httpc_set_busy(w);
+        obj_vcall(w, set_busy);
     /* let the event loop maybe destroy us later, not now */
     el_fd_set_mask(w->ev, POLLOUT);
 }
@@ -1905,7 +1934,7 @@ static int httpc_on_connect(el_t evh, int fd, short events, el_data_t priv)
     if (res > 0) {
         el_fd_set_hook(evh, httpc_on_event);
         httpc_set_mask(w);
-        httpc_set_ready(w);
+        obj_vcall(w, set_ready, true);
     } else
     if (res < 0) {
         obj_vcall(w, disconnect);
@@ -1987,10 +2016,11 @@ void httpc_query_attach(httpc_query_t *q, httpc_t *w)
     dlist_add_tail(&w->query_list, &q->query_link);
     if (--w->max_queries == 0) {
         w->connection_close = true;
-        httpc_set_busy(w);
+        if (!w->busy)
+            obj_vcall(w, set_busy);
     }
-    if (++w->queries >= w->cfg->pipeline_depth)
-        httpc_set_busy(w);
+    if (++w->queries >= w->cfg->pipeline_depth && !w->busy)
+        obj_vcall(w, set_busy);
 }
 
 static int httpc_query_on_data_bufferize(httpc_query_t *q, pstream_t ps)

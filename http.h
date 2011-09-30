@@ -605,7 +605,9 @@ DO_REFCNT(httpc_cfg_t, httpc_cfg);
     outbuf_t      ob
 
 #define HTTPC_METHODS(type_t) \
-    OBJECT_METHODS(type_t);              \
+    OBJECT_METHODS(type_t);                  \
+    void (*set_ready)(type_t *, bool first); \
+    void (*set_busy)(type_t *);              \
     void (*disconnect)(type_t *)
 
 OBJ_CLASS(httpc, object, HTTPC_FIELDS, HTTPC_METHODS);
@@ -646,34 +648,6 @@ void httpc_pool_detach(httpc_t *w);
 void httpc_pool_attach(httpc_t *w, httpc_pool_t *pool);
 httpc_t *httpc_pool_launch(httpc_pool_t *pool);
 httpc_t *httpc_pool_get(httpc_pool_t *pool);
-
-static inline void httpc_set_ready(httpc_t *w)
-{
-    httpc_pool_t *pool = w->pool;
-
-    if (unlikely(!w->busy))
-        return;
-    w->busy = false;
-    if (pool) {
-        dlist_move(&pool->ready_list, &w->pool_link);
-        if (pool->on_ready)
-            (*pool->on_ready)(pool, w);
-    }
-}
-
-static inline void httpc_set_busy(httpc_t *w)
-{
-    httpc_pool_t *pool = w->pool;
-
-    if (unlikely(w->busy))
-        return;
-    w->busy = true;
-    if (pool) {
-        dlist_move(&pool->busy_list, &w->pool_link);
-        if (pool->on_busy)
-            (*pool->on_busy)(pool, w);
-    }
-}
 
 /**************************************************************************/
 /* HTTP Client Queries                                                    */
