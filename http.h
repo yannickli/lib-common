@@ -580,28 +580,35 @@ typedef struct httpc_cfg_t {
     unsigned     noact_delay;
     unsigned     max_queries;
     unsigned     on_data_threshold;
+    const object_class_t *httpc_cls;
 } httpc_cfg_t;
 httpc_cfg_t *httpc_cfg_init(httpc_cfg_t *cfg);
 void         httpc_cfg_wipe(httpc_cfg_t *cfg);
 DO_REFCNT(httpc_cfg_t, httpc_cfg);
 
-typedef struct httpc_t {
-    httpc_pool_t *pool;
-    httpc_cfg_t  *cfg;
-    dlist_t       pool_link;
-    el_t          ev;
-    sb_t          ibuf;
+#define HTTPC_FIELDS(pfx) \
+    OBJECT_FIELDS(pfx);                  \
+    httpc_pool_t *pool;                  \
+    httpc_cfg_t  *cfg;                   \
+    dlist_t       pool_link;             \
+    el_t          ev;                    \
+    sb_t          ibuf;                  \
+                                         \
+    flag_t        connection_close : 1;  \
+    flag_t        busy             : 1;  \
+    uint8_t       state;                 \
+    uint16_t      queries;               \
+    unsigned      chunk_length;          \
+    unsigned      max_queries;           \
+                                         \
+    dlist_t       query_list;            \
+    outbuf_t      ob
 
-    flag_t        connection_close : 1;
-    flag_t        busy             : 1;
-    uint8_t       state;
-    uint16_t      queries;
-    unsigned      chunk_length;
-    unsigned      max_queries;
+#define HTTPC_METHODS(type_t) \
+    OBJECT_METHODS(type_t);              \
+    void (*disconnect)(type_t *)
 
-    dlist_t       query_list;
-    outbuf_t      ob;
-} httpc_t;
+OBJ_CLASS(httpc, object, HTTPC_FIELDS, HTTPC_METHODS);
 
 httpc_t *httpc_spawn(int fd, httpc_cfg_t *, httpc_pool_t *);
 httpc_t *httpc_connect(const sockunion_t *, httpc_cfg_t *, httpc_pool_t *);
@@ -612,7 +619,6 @@ httpc_t *httpc_connect(const sockunion_t *, httpc_cfg_t *, httpc_pool_t *);
  * event loop destroys it in its next iteration.
  */
 void     httpc_close_gently(httpc_t *);
-void     httpc_close(httpc_t **);
 
 struct httpc_pool_t {
     httpc_cfg_t *cfg;
@@ -714,6 +720,13 @@ struct httpc_query_t {
 void httpc_query_init(httpc_query_t *q);
 void httpc_query_reset(httpc_query_t *q);
 void httpc_query_wipe(httpc_query_t *q);
+/** Call this to schedule a given allocated #httpc_query_t on a #httpc_t.
+ *
+ * It is up to the caller to ensure that the httpc_t isn't disconnected
+ * (httpc_t#ev != NULL) and can still send queries (httpc_t#max_queries > 0).
+ *
+ * The #httpc_query_t must not have been serialized yet.
+ */
 void httpc_query_attach(httpc_query_t *q, httpc_t *w);
 
 void httpc_bufferize(httpc_query_t *q, unsigned maxsize);

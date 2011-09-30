@@ -1705,6 +1705,7 @@ httpc_cfg_t *httpc_cfg_init(httpc_cfg_t *cfg)
     cfg->pipeline_depth    = _G.pipeline_depth_out;
     cfg->noact_delay       = _G.noact_delay;
     cfg->max_queries       = _G.max_queries_out;
+    cfg->httpc_cls         = obj_class(httpc);
     return cfg;
 }
 
@@ -1727,9 +1728,7 @@ void httpc_pool_close_clients(httpc_pool_t *pool)
     dlist_splice(&lst, &pool->busy_list);
     dlist_splice(&lst, &pool->ready_list);
     dlist_for_each_safe(it, &lst) {
-        httpc_t *hc = dlist_entry(it, httpc_t, pool_link);
-
-        httpc_close(&hc);
+        obj_release(dlist_entry(it, httpc_t, pool_link));
     }
 }
 
@@ -1800,27 +1799,36 @@ httpc_t *httpc_pool_get(httpc_pool_t *pool)
 
 static httpc_t *httpc_init(httpc_t *w)
 {
-    p_clear(w, 1);
     dlist_init(&w->query_list);
     sb_init(&w->ibuf);
     ob_init(&w->ob);
     w->state = HTTP_PARSER_IDLE;
     return w;
 }
-GENERIC_NEW(httpc_t, httpc);
 
 static void httpc_wipe(httpc_t *w)
 {
-    httpc_pool_detach(w);
-    el_fd_unregister(&w->ev, true);
+    if (w->ev)
+        obj_vcall(w, disconnect);
     sb_wipe(&w->ibuf);
     ob_wipe(&w->ob);
+    httpc_cfg_delete(&w->cfg);
+}
+
+static void httpc_disconnect(httpc_t *w)
+{
+    httpc_pool_detach(w);
+    el_fd_unregister(&w->ev, true);
     dlist_for_each_safe(it, &w->query_list) {
         httpc_query_abort(dlist_entry(it, httpc_query_t, query_link));
     }
-    httpc_cfg_delete(&w->cfg);
 }
-GENERIC_DELETE(httpc_t, httpc);
+
+OBJ_VTABLE(httpc)
+    httpc.init       = httpc_init;
+    httpc.disconnect = httpc_disconnect;
+    httpc.wipe       = httpc_wipe;
+OBJ_VTABLE_END()
 
 void httpc_close_gently(httpc_t *w)
 {
@@ -1829,11 +1837,6 @@ void httpc_close_gently(httpc_t *w)
         httpc_set_busy(w);
     /* let the event loop maybe destroy us later, not now */
     el_fd_set_mask(w->ev, POLLOUT);
-}
-
-void httpc_close(httpc_t **wp)
-{
-    httpc_delete(wp);
 }
 
 static void httpc_set_mask(httpc_t *w)
@@ -1889,7 +1892,8 @@ static int httpc_on_event(el_t evh, int fd, short events, el_data_t priv)
         if (q->qinfo)
             httpc_query_on_done(q, st);
     }
-    httpc_delete(&w);
+    obj_vcall(w, disconnect);
+    obj_delete(&w);
     return 0;
 }
 
@@ -1904,7 +1908,8 @@ static int httpc_on_connect(el_t evh, int fd, short events, el_data_t priv)
         httpc_set_ready(w);
     } else
     if (res < 0) {
-        httpc_delete(&w);
+        obj_vcall(w, disconnect);
+        obj_delete(&w);
     }
     return 0;
 }
@@ -1915,7 +1920,7 @@ httpc_t *httpc_connect(const sockunion_t *su, httpc_cfg_t *cfg, httpc_pool_t *po
     int fd;
 
     fd = RETHROW_NP(connectx(-1, su, 1, SOCK_STREAM, IPPROTO_TCP, O_NONBLOCK));
-    w  = httpc_new();
+    w  = obj_new_of_class(httpc, cfg->httpc_cls);
     w->cfg         = httpc_cfg_dup(cfg);
     w->ev          = el_unref(el_fd_register(fd, POLLOUT, &httpc_on_connect, w));
     w->max_queries = cfg->max_queries;
@@ -1928,7 +1933,7 @@ httpc_t *httpc_connect(const sockunion_t *su, httpc_cfg_t *cfg, httpc_pool_t *po
 
 httpc_t *httpc_spawn(int fd, httpc_cfg_t *cfg, httpc_pool_t *pool)
 {
-    httpc_t *w = httpc_new();
+    httpc_t *w = obj_new_of_class(httpc, cfg->httpc_cls);
 
     w->cfg         = httpc_cfg_dup(cfg);
     w->ev          = el_unref(el_fd_register(fd, POLLIN, &httpc_on_event, w));
@@ -1976,7 +1981,8 @@ void httpc_query_wipe(httpc_query_t *q)
 
 void httpc_query_attach(httpc_query_t *q, httpc_t *w)
 {
-    assert (w->max_queries > 0 && !q->hdrs_started && !q->hdrs_done);
+    assert (w->ev && w->max_queries > 0);
+    assert (!q->hdrs_started && !q->hdrs_done);
     q->owner = w;
     dlist_add_tail(&w->query_list, &q->query_link);
     if (--w->max_queries == 0) {
