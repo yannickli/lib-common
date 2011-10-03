@@ -694,6 +694,7 @@ GENERIC_DELETE(httpd_trigger_node_t, httpd_trigger_node);
 
 static void httpd_trigger_node_wipe(httpd_trigger_node_t *node)
 {
+    httpd_trigger_delete(&node->cb);
     qm_for_each_pos(http_path, pos, &node->childs) {
         httpd_trigger_node_delete(&node->childs.values[pos]);
         qm_del_at(http_path, &node->childs, pos);
