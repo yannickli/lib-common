@@ -414,7 +414,8 @@ static httpd_query_t *httpd_query_create(httpd_t *w, httpd_trigger_t *cb)
     q->owner = w;
     w->queries++;
     dlist_add_tail(&w->query_list, &q->query_link);
-    q->trig_cb = httpd_trigger_dup(cb);
+    if (cb)
+        q->trig_cb = httpd_trigger_dup(cb);
     return q;
 }
 
