@@ -257,7 +257,7 @@ static int t_http_parse_request_line(pstream_t *ps, httpd_qinfo_t *req)
         CASE(TRACE);
       default:
         req->method = HTTP_METHOD_ERROR;
-        break;
+        return PARSE_ERROR;
 #undef  CASE
     }
 
