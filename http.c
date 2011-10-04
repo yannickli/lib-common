@@ -1207,7 +1207,19 @@ static void httpd_do_any(httpd_t *w, httpd_query_t *q, httpd_qinfo_t *req)
             (*cb->cb)(cb, q, req);
         }
     } else {
-        httpd_reject(q, NOT_IMPLEMENTED, "");
+        int              method = req->method;
+        lstr_t           ms     = LSTR_STR_V(http_method_str[method]);
+        httpd_trigger_t *n      = &w->cfg->roots[method];
+
+        if (n->cb || qm_len(http_path, &n->childs)) {
+            httpd_reject(q, NOT_FOUND,
+                         "%*pM %*pM HTTP/1.%d", LSTR_FMT_ARG(ms),
+                         (int)ps_len(&req->query), req->query.s,
+                         HTTP_MINOR(req->http_version));
+        } else {
+            httpd_reject(q, NOT_IMPLEMENTED,
+                         "no handler for %*pM", LSTR_FMT_ARG(ms));
+        }
     }
 }
 
