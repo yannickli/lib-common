@@ -16,9 +16,11 @@
 #include "iop-helpers.inl.c"
 
 static int
-xunpack_struct(xml_reader_t, mem_pool_t *, const iop_struct_t *, void *);
+xunpack_struct(xml_reader_t, mem_pool_t *, const iop_struct_t *, void *,
+               int flags);
 static int
-xunpack_union(xml_reader_t, mem_pool_t *, const iop_struct_t *, void *);
+xunpack_union(xml_reader_t, mem_pool_t *, const iop_struct_t *, void *,
+              int flags);
 
 static int parse_int(xml_reader_t xr, const char *s, int64_t *i64p)
 {
@@ -30,7 +32,7 @@ static int parse_int(xml_reader_t xr, const char *s, int64_t *i64p)
 }
 
 static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
-                         const iop_field_t *fdesc, void *v)
+                         const iop_field_t *fdesc, void *v, int flags)
 {
     int64_t intval = 0;
     lstr_t xval;
@@ -97,9 +99,9 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
         RETHROW(mp_xmlr_get_inner_xml(mp, xr, (lstr_t *)v));
         break;
       case IOP_T_UNION:
-        return xunpack_union(xr, mp, fdesc->u1.st_desc, v);
+        return xunpack_union(xr, mp, fdesc->u1.st_desc, v, flags);
       case IOP_T_STRUCT:
-        return xunpack_struct(xr, mp, fdesc->u1.st_desc, v);
+        return xunpack_struct(xr, mp, fdesc->u1.st_desc, v, flags);
       default:
         e_panic("should not happen");
     }
@@ -195,7 +197,7 @@ static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
  *  to fill the new continous array.
  */
 static int xunpack_block_vec(xml_reader_t xr, mem_pool_t *mp,
-                             const iop_field_t *fdesc, void *v)
+                             const iop_field_t *fdesc, void *v, int flags)
 {
     iop_data_t *data = v;
     void **prev = NULL, **chain, *ptr;
@@ -204,7 +206,7 @@ static int xunpack_block_vec(xml_reader_t xr, mem_pool_t *mp,
     do {
         ptr = mp_new(mp, char, fdesc->size);
 
-        RETHROW(xunpack_value(xr, mp, fdesc, ptr));
+        RETHROW(xunpack_value(xr, mp, fdesc, ptr, flags));
         n++;
 
         chain    = mp_new(mp, void *, 2);
@@ -228,7 +230,7 @@ static int xunpack_block_vec(xml_reader_t xr, mem_pool_t *mp,
 
 static int
 xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
-               void *value)
+               void *value, int flags)
 {
     const iop_field_t *fdesc = desc->fields;
     const iop_field_t *end   = desc->fields + desc->fields_len;
@@ -250,8 +252,20 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
         /* Find the field description by the tag name */
         RETHROW(xmlr_node_get_local_name(xr, &name));
         xfdesc = get_field_by_name(desc, fdesc, name.s, name.len);
-        if (unlikely(!xfdesc || xfdesc->tag < fdesc->tag))
+        if (unlikely(!xfdesc)) {
+            if (!(flags & IOP_XUNPACK_IGNORE_UNKNOWN))
+                return xmlr_fail(xr, "unknown tag <%*pM>", LSTR_FMT_ARG(name));
+            do {
+                RETHROW(xmlr_next_sibling(xr));
+                if (RETHROW(xmlr_node_is_closing(xr)))
+                    goto end;
+                RETHROW(xmlr_node_get_local_name(xr, &name));
+                xfdesc = get_field_by_name(desc, fdesc, name.s, name.len);
+            } while (!xfdesc);
+        }
+        if (unlikely(xfdesc->tag < fdesc->tag)) {
             return xmlr_fail(xr, "unknown tag <%*pM>", LSTR_FMT_ARG(name));
+        }
 
         /* Handle optional fields */
         while (unlikely(xfdesc != fdesc)) {
@@ -266,7 +280,7 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
         v = (char *)value + fdesc->data_offs;
         if (fdesc->repeat == IOP_R_REPEATED) {
             if ((1 << fdesc->type) & IOP_BLK_OK) {
-                RETHROW(xunpack_block_vec(xr, mp, fdesc, v));
+                RETHROW(xunpack_block_vec(xr, mp, fdesc, v, flags));
             } else {
                 RETHROW(xunpack_scalar_vec(xr, mp, fdesc, v));
             }
@@ -277,7 +291,7 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
             v = iop_value_set_here(mp, fdesc, v);
         }
 
-        RETHROW(xunpack_value(xr, mp, fdesc, v));
+        RETHROW(xunpack_value(xr, mp, fdesc, v, flags));
         fdesc++;
     } while (!xmlr_node_is_closing(xr));
 
@@ -289,12 +303,14 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
                              LSTR_FMT_ARG(fdesc->name));
         }
     }
+    if (flags & IOP_XUNPACK_IGNORE_UNKNOWN)
+        return xmlr_next_uncle(xr);
     return xmlr_node_close(xr);
 }
 
 static int
 xunpack_union(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
-              void *value)
+              void *value, int flags)
 {
     const iop_field_t *fdesc;
     lstr_t name;
@@ -307,7 +323,8 @@ xunpack_union(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
 
     /* Write the selected tag */
     *((uint16_t *)value) = fdesc->tag;
-    RETHROW(xunpack_value(xr, mp, fdesc, (char *)value + fdesc->data_offs));
+    RETHROW(xunpack_value(xr, mp, fdesc, (char *)value + fdesc->data_offs,
+                          flags));
     return xmlr_node_close(xr);
 }
 
@@ -319,8 +336,14 @@ xunpack_union(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
 int iop_xunpack(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
                 void *value)
 {
+    return iop_xunpack_flags(xr, mp, desc, value, 0);
+}
+
+int iop_xunpack_flags(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
+                      void *value, int flags)
+{
     if (desc->is_union) {
-        return xunpack_union(xr, mp, desc, value);
+        return xunpack_union(xr, mp, desc, value, flags);
     }
-    return xunpack_struct(xr, mp, desc, value);
+    return xunpack_struct(xr, mp, desc, value, flags);
 }
