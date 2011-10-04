@@ -470,10 +470,13 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qh_find_h(name, qh, h, key)         qh_##name##_find_h(qh, h, key)
 #define qh_find_safe(name, qh, key)         qh_##name##_find_safe(qh, key)
 #define qh_find_safe_h(name, qh, h, key)    qh_##name##_find_safe_h(qh, h, key)
+/** \see __qm_put */
 #define __qh_put(name, qh, key, fl)         __qh_##name##_put(qh, key, fl)
 #define __qh_put_h(name, qh, h, key, fl)    __qh_##name##_put_h(qh, h, key, fl)
+/** \see __qm_add */
 #define qh_add(name, qh, key)               qh_##name##_add(qh, key)
 #define qh_add_h(name, qh, h, key)          qh_##name##_add_h(qh, h, key)
+/** \see __qm_replace */
 #define qh_replace(name, qh, key)           qh_##name##_replace(qh, key)
 #define qh_replace_h(name, qh, h, key)      qh_##name##_replace_h(qh, h, key)
 #define qh_del_at(name, qh, pos)            qh_##name##_del_at(qh, pos)
@@ -493,15 +496,50 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qm_find_h(name, qh, h, key)         qm_##name##_find_h(qh, h, key)
 #define qm_find_safe(name, qh, key)         qm_##name##_find_safe(qh, key)
 #define qm_find_safe_h(name, qh, h, key)    qm_##name##_find_safe_h(qh, h, key)
+
+/** Find-reserve slot to insert {key,v} pair.
+ *
+ * This function finds the slot where to insert {\a key, \a v} in the qmap.
+ * If there is no collision, the slot is reserved and filled with
+ * {\a key, \a v}, else the behavior depends upon the \a fl argument.
+ *
+ * This function is useful to write efficient code (spare one lookup) in code
+ * that could naively be written:
+ * <code>
+ * if (qm_find(..., qh, key) < 0) {
+ *     // prepare 'v'
+ *     qm_add(..., qh, key, v);
+ * }
+ * </code>
+ * and can instead be written:
+ * <code>
+ * pos = __qm_put(..., qh, key, v, 0);
+ * if (!(pos & QHASH_COLLISION)) {
+ *     // fixup qh->{keys,values}[pos];
+ * }
+ * </code>
+ *
+ * @param name the base name of the qmap
+ * @param qh   pointer to the qmap in wich the value shall be inserted
+ * @param key  the value of the key
+ * @param v    the value associated to the key
+ * @param fl
+ *   0 or QHASH_OVERWRITE. If QHASH_OVERWRITE is set, \a key and \a v are used
+ *   to overwrite the {key,value} stored in the qmap when there is a
+ *   collision.
+ * @return
+ *   the posistion of the slot is returned in the 31 least significant bits.
+ *   The most significant bit is used to tell if there was a collision.
+ *   The constant #QHASH_COLLISION is provided to extract and mask this most
+ *   significant bit.
+ */
 #define __qm_put(name, qh, key, v, fl)      __qm_##name##_put(qh, key, v, fl)
 #define __qm_put_h(name, qh, h, key, v, fl) __qm_##name##_put_h(qh, h, key, v, fl)
 
-/**
- * Adds a new key/value pair into the qmap.
+/** Adds a new key/value pair into the qmap.
  *
- * @note When key already exists in the qmap, the add function fails.
- * If you want to insert or overwrite existing values the replace macro
- * shall be used.
+ * When key already exists in the qmap, the add function fails.  If you want
+ * to insert or overwrite existing values the replace macro shall be used.
  *
  * @param name the base name of the qmap
  * @param qh   pointer to the qmap in wich the value shall be inserted
@@ -513,8 +551,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qm_add(name, qh, key, v)            qm_##name##_add(qh, key, v)
 #define qm_add_h(name, qh, h, key, v)       qm_##name##_add_h(qh, h, key, v)
 
-/**
- * Replaces value for a given key the qmap.
+/** Replaces value for a given key the qmap.
  *
  * If the key does not exists in the current qmap, then the pair key/value
  * is created and inserted.
