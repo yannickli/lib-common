@@ -239,6 +239,14 @@ static void test_soap(void)
         if (ret < 0) {
             e_info("%s", xmlr_get_err());
             exit(1);
+        }
+
+        ret =  xmlr_setup(&xp, sb.data, sb.len)
+            ?: iop_xunpack_flags(xp, t_pool(), &tstiop__my_struct_f__s,
+                                 &sf_ret, IOP_XUNPACK_IGNORE_UNKNOWN);
+        if (ret < 0) {
+            e_info("%s", xmlr_get_err());
+            exit(1);
         } else {
             sb_reset(&sb);
             iop_xpack(&sb, &tstiop__my_struct_f__s, &sf_ret, verbose, true);
@@ -247,6 +255,57 @@ static void test_soap(void)
 
         xmlr_close(xp);
     }
+
+    /* XXX 4th example: test IOP_XUNPACK_IGNORE_UNKNOWN */
+
+    sb_reset(&sb);
+    sb_adds(&sb, "<root "
+            "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
+            "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+            ">\n");
+
+    /* data packing */
+
+    sb_adds(&sb,
+            "<unk1></unk1>"
+            "<a>foo</a><a>bar</a><a>foobar</a>"
+            "<b>VGVzdA==</b><b>Rm9v</b><b>QkFS</b>"
+            "<c><unk2>foo</unk2></c><c><a>55</a><unk3 /></c><c />"
+            "<c><a>55</a><b>2</b><unk3 /></c>"
+            "<unk4>foo</unk4>");
+    sb_adds(&sb, "</root>\n");
+    printf("*** Packed 4:\n%s\n\n*** Unpacked 4:\n", sb.data);
+
+    {
+        tstiop__my_struct_f__t sf_ret;
+        tstiop__my_struct_f__init(&sf_ret);
+
+        ret =  xmlr_setup(&xp, sb.data, sb.len)
+            ?: iop_xunpack(xp, t_pool(), &tstiop__my_struct_f__s, &sf_ret);
+        if (ret < 0) {
+            e_info("expected failure because of unknown tags: %s",
+                   xmlr_get_err());
+        } else {
+            e_info("unexpected pass");
+            exit(1);
+        }
+
+        ret =  xmlr_setup(&xp, sb.data, sb.len)
+            ?: iop_xunpack_flags(xp, t_pool(), &tstiop__my_struct_f__s,
+                                 &sf_ret, IOP_XUNPACK_IGNORE_UNKNOWN);
+        if (ret < 0) {
+            e_info("unexpected failure using IGNORE_UNKNOWN: %s",
+                   xmlr_get_err());
+            exit(1);
+        } else {
+            sb_reset(&sb);
+            iop_xpack(&sb, &tstiop__my_struct_f__s, &sf_ret, verbose, true);
+            printf("%s\n\n", sb.data);
+        }
+
+        xmlr_close(xp);
+    }
+
 
 #if 0
     /* data wsdl */
