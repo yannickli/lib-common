@@ -181,6 +181,8 @@ static ALWAYS_INLINE int xmlr_scan_node(xml_reader_t xr, bool stop_on_text)
 {
     for (;;) {
         switch (xmlTextReaderNodeType(xr)) {
+          case -1:
+            return xmlr_fail(xr, "unable to get node type");
           case XTYPE(ELEMENT):
           case XTYPE(END_ELEMENT):
           case XTYPE(NONE):
@@ -244,12 +246,12 @@ int xmlr_next_child(xml_reader_t xr)
 {
     assert (xmlr_on_element(xr, false));
 
-    if (xmlr_node_is_empty(xr)) {
+    if (RETHROW(xmlr_node_is_empty(xr))) {
         xmlr_fail(xr, "node has no children");
         return XMLR_NOCHILD;
     }
     RETHROW(xmlr_next_node(xr));
-    if (xmlr_node_is_closing(xr)) {
+    if (RETHROW(xmlr_node_is_closing(xr))) {
         xmlr_fail(xr, "node has no children");
         return XMLR_NOCHILD;
     }
@@ -277,13 +279,13 @@ int xmlr_node_enter(xml_reader_t xr, const char *s, size_t len, int flags)
 {
     int res = XMLR_NOCHILD;
 
-    if (!xmlr_node_is(xr, s, len)) {
+    if (!RETHROW(xmlr_node_is(xr, s, len))) {
         if (flags & XMLR_ENTER_MISSING_OK)
             return 0;
         return xmlr_fail(xr, "expecting tag <%s>", s);
     }
 
-    if (!xmlr_node_is_empty(xr))
+    if (!RETHROW(xmlr_node_is_empty(xr)))
         res = xmlr_next_child(xr);
 
     if (res == XMLR_NOCHILD) {
@@ -297,7 +299,7 @@ int xmlr_node_enter(xml_reader_t xr, const char *s, size_t len, int flags)
 int xmlr_node_skip_until(xml_reader_t xr, const char *s, int len)
 {
     while (!RETHROW(xmlr_node_is_closing(xr))) {
-        if (xmlr_node_is(xr, s, len))
+        if (RETHROW(xmlr_node_is(xr, s, len)))
             return 0;
         RETHROW(xmlr_next_sibling(xr));
     }
@@ -314,11 +316,11 @@ int xmlr_get_cstr_start(xml_reader_t xr, bool nullok, lstr_t *out)
 
     assert (xmlr_on_element(xr, false));
 
-    if (!xmlTextReaderIsEmptyElement(xr)) {
+    if (!RETHROW(xmlr_node_is_empty(xr))) {
         if (RETHROW(xmlTextReaderRead(xr)) != 1)
             return xmlr_fail(xr, "expecting text or closing element");
         RETHROW(xmlr_scan_node(xr, true));
-        if (xmlTextReaderNodeType(xr) == XTYPE(TEXT))
+        if (RETHROW(xmlTextReaderNodeType(xr)) == XTYPE(TEXT))
             s = (const char *)xmlTextReaderConstValue(xr);
     }
     if (s) {
@@ -333,11 +335,11 @@ int xmlr_get_cstr_start(xml_reader_t xr, bool nullok, lstr_t *out)
 
 int xmlr_get_cstr_done(xml_reader_t xr)
 {
-    if (!xmlTextReaderIsEmptyElement(xr)) {
-        if (xmlTextReaderNodeType(xr) == XTYPE(TEXT)) {
+    if (!RETHROW(xmlr_node_is_empty(xr))) {
+        if (RETHROW(xmlTextReaderNodeType(xr)) == XTYPE(TEXT)) {
             RETHROW(xmlr_scan_node(xr, false));
         }
-        if (xmlTextReaderNodeType(xr) != XTYPE(END_ELEMENT))
+        if (RETHROW(xmlTextReaderNodeType(xr)) != XTYPE(END_ELEMENT))
             return xmlr_fail(xr, "expecting closing tag");
     }
     return xmlr_next_node(xr);
