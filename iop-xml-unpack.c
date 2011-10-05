@@ -246,8 +246,11 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
         lstr_t name;
         void *v;
 
-        if (unlikely(fdesc == end))
-            return xmlr_fail(xr, "expecting closing tag");
+        if (unlikely(fdesc == end)) {
+            if (!(flags & IOP_XUNPACK_IGNORE_UNKNOWN))
+                return xmlr_fail(xr, "expecting closing tag");
+            return xmlr_next_uncle(xr);
+        }
 
         /* Find the field description by the tag name */
         RETHROW(xmlr_node_get_local_name(xr, &name));
@@ -303,8 +306,6 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
                              LSTR_FMT_ARG(fdesc->name));
         }
     }
-    if (flags & IOP_XUNPACK_IGNORE_UNKNOWN)
-        return xmlr_next_uncle(xr);
     return xmlr_node_close(xr);
 }
 
