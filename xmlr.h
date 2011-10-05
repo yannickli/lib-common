@@ -159,13 +159,13 @@ static inline int xmlr_node_skip_until_s(xml_reader_t xr, const char *s)
  *
  * This function fails if the node has childen.
  */
-int xmlr_get_cstr_start(xml_reader_t xr, bool nullok, lstr_t *out);
+int xmlr_get_cstr_start(xml_reader_t xr, bool emptyok, lstr_t *out);
 int xmlr_get_cstr_done(xml_reader_t xr);
 
-int xmlr_get_strdup(xml_reader_t xr, bool nullok, lstr_t *out);
+int xmlr_get_strdup(xml_reader_t xr, bool emptyok, lstr_t *out);
 int mp_xmlr_get_strdup(mem_pool_t *mp, xml_reader_t xr,
-                       bool nullok, lstr_t *out);
-int t_xmlr_get_str(xml_reader_t xr, bool nullok, lstr_t *out);
+                       bool emptyok, lstr_t *out);
+int t_xmlr_get_str(xml_reader_t xr, bool emptyok, lstr_t *out);
 
 int xmlr_get_int_range(xml_reader_t xr, int minv, int maxv, int *ip);
 int xmlr_get_bool(xml_reader_t xr, bool *bp);

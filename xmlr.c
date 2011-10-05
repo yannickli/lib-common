@@ -310,7 +310,7 @@ int xmlr_node_skip_until(xml_reader_t xr, const char *s, int len)
 /* Reading values {{{ */
 
 __flatten
-int xmlr_get_cstr_start(xml_reader_t xr, bool nullok, lstr_t *out)
+int xmlr_get_cstr_start(xml_reader_t xr, bool emptyok, lstr_t *out)
 {
     const char *s = NULL;
 
@@ -326,9 +326,9 @@ int xmlr_get_cstr_start(xml_reader_t xr, bool nullok, lstr_t *out)
     if (s) {
         *out = LSTR_STR_V(s);
     } else {
-        if (!nullok)
+        if (!emptyok)
             return xmlr_fail(xr, "node value is missing");
-        *out = LSTR_NULL_V;
+        *out = LSTR_EMPTY_V;
     }
     return 0;
 }
@@ -346,55 +346,55 @@ int xmlr_get_cstr_done(xml_reader_t xr)
 }
 
 static int xmlr_val_strdup(xml_reader_t xr, const char *s,
-                           bool nullok, lstr_t *out)
+                           bool emptyok, lstr_t *out)
 {
     if (s) {
         *out = lstr_dups(s, strlen(s));
     } else {
-        if (!nullok)
+        if (!emptyok)
             return xmlr_fail(xr, "node value is missing");
-        *out = LSTR_NULL_V;
+        *out = LSTR_EMPTY_V;
     }
     return 0;
 }
 #define F(x)    x##_strdup
-#define ARGS_P  bool nullok, lstr_t *out
-#define ARGS    nullok, out
+#define ARGS_P  bool emptyok, lstr_t *out
+#define ARGS    emptyok, out
 #include "xmlr-get-value.in.c"
 
 static int mp_xmlr_val_strdup(xml_reader_t xr, const char *s,
-                              mem_pool_t *mp, bool nullok, lstr_t *out)
+                              mem_pool_t *mp, bool emptyok, lstr_t *out)
 {
     if (s) {
         *out = mp_lstr_dups(mp, s, strlen(s));
     } else {
-        if (!nullok)
+        if (!emptyok)
             return xmlr_fail(xr, "node value is missing");
-        *out = LSTR_NULL_V;
+        *out = LSTR_EMPTY_V;
     }
     return 0;
 }
 #define F(x)       mp_##x##_strdup
 #define PRE_ARGS_P mem_pool_t *mp,
-#define ARGS_P     bool nullok, lstr_t *out
-#define ARGS       mp, nullok, out
+#define ARGS_P     bool emptyok, lstr_t *out
+#define ARGS       mp, emptyok, out
 #include "xmlr-get-value.in.c"
 
 static int t_xmlr_val_str(xml_reader_t xr, const char *s,
-                          bool nullok, lstr_t *out)
+                          bool emptyok, lstr_t *out)
 {
     if (s) {
         *out = t_lstr_dups(s, strlen(s));
     } else {
-        if (!nullok)
+        if (!emptyok)
             return xmlr_fail(xr, "node value is missing");
-        *out = LSTR_NULL_V;
+        *out = LSTR_EMPTY_V;
     }
     return 0;
 }
 #define F(x)    t_##x##_str
-#define ARGS_P  bool nullok, lstr_t *out
-#define ARGS    nullok, out
+#define ARGS_P  bool emptyok, lstr_t *out
+#define ARGS    emptyok, out
 #include "xmlr-get-value.in.c"
 
 static int xmlr_val_int_range(xml_reader_t xr, const char *s,
@@ -534,20 +534,20 @@ xmlr_find_attr(xml_reader_t xr, const char *name, size_t len, bool needed)
 }
 
 static int t_xmlr_attr_str(xml_reader_t xr, const char *name, const char *s,
-                           bool nullok, lstr_t *out)
+                           bool emptyok, lstr_t *out)
 {
     if (s) {
         *out = t_lstr_dups(s, strlen(s));
     } else {
-        if (!nullok)
+        if (!emptyok)
             return xmlr_fail(xr, "[%s] value is missing", name);
-        *out = LSTR_NULL_V;
+        *out = LSTR_EMPTY_V;
     }
     return 0;
 }
 #define F(x)    t_##x##_str
-#define ARGS_P  bool nullok, lstr_t *out
-#define ARGS    nullok, out
+#define ARGS_P  bool emptyok, lstr_t *out
+#define ARGS    emptyok, out
 #include "xmlr-get-attr.in.c"
 
 static int xmlr_attr_int_range(xml_reader_t xr, const char *name, const char *s,
