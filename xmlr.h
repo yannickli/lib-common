@@ -156,15 +156,15 @@ static inline int xmlr_node_skip_s(xml_reader_t xr, const char *s, int flags)
  *
  * This function fails if the node has childen.
  */
-int xmlr_get_cstr_start(xml_reader_t xr, bool nullok, const char **out, int *lenp);
+int xmlr_get_cstr_start(xml_reader_t xr, bool emptyok, const char **out, int *lenp);
 int xmlr_get_cstr_done(xml_reader_t xr);
 
-int xmlr_get_strdup(xml_reader_t xr, bool nullok, char **out, int *lenp);
-int t_xmlr_get_str(xml_reader_t xr, bool nullok, char **out, int *lenp);
+int xmlr_get_strdup(xml_reader_t xr, bool emptyok, char **out, int *lenp);
+int t_xmlr_get_str(xml_reader_t xr, bool emptyok, char **out, int *lenp);
 static ALWAYS_INLINE
-int t_xmlr_get_cstr(xml_reader_t xr, bool nullok, const char **out, int *lenp)
+int t_xmlr_get_cstr(xml_reader_t xr, bool emptyok, const char **out, int *lenp)
 {
-    return t_xmlr_get_str(xr, nullok, (char **)out, lenp);
+    return t_xmlr_get_str(xr, emptyok, (char **)out, lenp);
 }
 
 int xmlr_get_int_range(xml_reader_t xr, int minv, int maxv, int *ip);
@@ -192,12 +192,12 @@ xmlr_find_attr_s(xml_reader_t xr, const char *name, bool needed)
 /* \brief Get the current node attribute value.
  */
 int t_xmlr_getattr_str(xml_reader_t xr, xmlAttrPtr attr,
-                       bool nullok, char **out, int *lenp);
+                       bool emptyok, char **out, int *lenp);
 static ALWAYS_INLINE int
 t_xmlr_getattr_cstr(xml_reader_t xr, xmlAttrPtr attr,
-                    bool nullok, const char **out, int *lenp)
+                    bool emptyok, const char **out, int *lenp)
 {
-    return t_xmlr_getattr_str(xr, attr, nullok, (char **)out, lenp);
+    return t_xmlr_getattr_str(xr, attr, emptyok, (char **)out, lenp);
 }
 
 int xmlr_getattr_int_range(xml_reader_t xr, xmlAttrPtr attr,

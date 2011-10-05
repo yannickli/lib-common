@@ -289,9 +289,9 @@ int xmlr_node_enter(xml_reader_t xr, const char *s, size_t len, int flags)
 
 __flatten
 int xmlr_get_cstr_start(xml_reader_t xr,
-                        bool nullok, const char **out, int *lenp)
+                        bool emptyok, const char **out, int *lenp)
 {
-    const char *s = NULL;
+    const char *s = "";
 
     assert (xmlr_on_element(xr, false));
 
@@ -306,7 +306,7 @@ int xmlr_get_cstr_start(xml_reader_t xr,
         if (lenp)
             *lenp = strlen(s);
     } else {
-        if (!nullok)
+        if (!emptyok)
             return xmlr_fail(xr, "node value is missing");
         if (lenp)
             *lenp = 0;
@@ -328,49 +328,47 @@ int xmlr_get_cstr_done(xml_reader_t xr)
 }
 
 static int xmlr_val_strdup(xml_reader_t xr, const char *s,
-                           bool nullok, char **out, int *lenp)
+                           bool emptyok, char **out, int *lenp)
 {
     int len;
 
     if (s) {
         len  = strlen(s);
-        *out = p_dupz(s, len);
     } else {
-        if (!nullok)
+        if (!emptyok)
             return xmlr_fail(xr, "node value is missing");
         len  = 0;
-        *out = NULL;
     }
     if (lenp)
         *lenp = len;
+    *out = p_dupz(s, len);
     return 0;
 }
 #define F(x)    x##_strdup
-#define ARGS_P  bool nullok, char **out, int *lenp
-#define ARGS    nullok, out, lenp
+#define ARGS_P  bool emptyok, char **out, int *lenp
+#define ARGS    emptyok, out, lenp
 #include "xmlr-get-value.in.c"
 
 static int t_xmlr_val_str(xml_reader_t xr, const char *s,
-                          bool nullok, char **out, int *lenp)
+                          bool emptyok, char **out, int *lenp)
 {
     int len;
 
     if (s) {
         len  = strlen(s);
-        *out = t_dupz(s, len);
     } else {
-        if (!nullok)
+        if (!emptyok)
             return xmlr_fail(xr, "node value is missing");
         len  = 0;
-        *out = NULL;
     }
     if (lenp)
         *lenp = len;
+    *out = t_dupz(s, len);
     return 0;
 }
 #define F(x)    t_##x##_str
-#define ARGS_P  bool nullok, char **out, int *lenp
-#define ARGS    nullok, out, lenp
+#define ARGS_P  bool emptyok, char **out, int *lenp
+#define ARGS    emptyok, out, lenp
 #include "xmlr-get-value.in.c"
 
 static int xmlr_val_int_range(xml_reader_t xr, const char *s,
@@ -498,26 +496,25 @@ xmlr_find_attr(xml_reader_t xr, const char *name, size_t len, bool needed)
 }
 
 static int t_xmlr_attr_str(xml_reader_t xr, const char *name, const char *s,
-                           bool nullok, char **out, int *lenp)
+                           bool emptyok, char **out, int *lenp)
 {
     int len;
 
     if (s) {
         len  = strlen(s);
-        *out = t_dupz(s, len);
     } else {
-        if (!nullok)
+        if (!emptyok)
             return xmlr_fail(xr, "[%s] value is missing", name);
         len  = 0;
-        *out = NULL;
     }
     if (lenp)
         *lenp = len;
+    *out = t_dupz(s, len);
     return 0;
 }
 #define F(x)    t_##x##_str
-#define ARGS_P  bool nullok, char **out, int *lenp
-#define ARGS    nullok, out, lenp
+#define ARGS_P  bool emptyok, char **out, int *lenp
+#define ARGS    emptyok, out, lenp
 #include "xmlr-get-attr.in.c"
 
 static int xmlr_attr_int_range(xml_reader_t xr, const char *name, const char *s,
