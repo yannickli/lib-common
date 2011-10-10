@@ -13,7 +13,7 @@
 
 define fun/common-depends
 $2: $(1D)/Makefile $(var/toolsdir)/* $(var/cfgdir)/*.mk
-$2: $$(foreach s,$3,$$($$s_DEPENDS)) | $$($(1D)/_DEPENDS)
+$2: $(foreach s,$3,$($s_DEPENDS)) | $($(1D)/_DEPENDS)
 endef
 
 ifeq (,$(NOCOMPRESS))
@@ -61,11 +61,11 @@ $2: $3
 endef
 
 define ext/rule/a
-$2: $$(patsubst %.a,$~%$4.a,$3)
+$2: $(patsubst %.a,$~%$4.a,$3)
 endef
 
 define ext/rule/wa
-$2: $$(patsubst %.wa,$~%$4.wa,$3)
+$2: $(patsubst %.wa,$~%$4.wa,$3)
 endef
 
 #}}}
@@ -74,21 +74,21 @@ endef
 define ext/expand/c
 $3: $~%$$(tmp/$2/ns)$4.o: % | _generated
 	mkdir -p $$(@D)
-	$$(if $(findstring clang,$(CC))$(NOCHECK)$$($(1D)/_NOCHECK)$$($1_NOCKECK)$$($$<_NOCHECK),,\
+	$$(if $(findstring clang,$(CC))$(NOCHECK)$($(1D)/_NOCHECK)$($1_NOCKECK)$$($$<_NOCHECK),,\
 	    $(msg/CHECK.c) $$(<R))
-	$$(if $(findstring clang,$(CC))$(NOCHECK)$$($(1D)/_NOCHECK)$$($1_NOCKECK)$$($$<_NOCHECK),,\
-	    clang $(CLANGFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$<_CFLAGS) \
-	    -O0 -fsyntax-only -o /dev/null $$<$(if $(NOFATALCHECK),|| true))
+	$$(if $(findstring clang,$(CC))$(NOCHECK)$($(1D)/_NOCHECK)$($1_NOCKECK)$$($$<_NOCHECK),,\
+	    clang $(CLANGFLAGS) $($(1D)/_CFLAGS) $($1_CFLAGS) $$($$<_CFLAGS) \
+	    -O0 -fsyntax-only -o /dev/null $$<$(if $(NOFATALCHECK), || true))
 	$(msg/COMPILE.c) $$(<R)
-	$(CC) $(CFLAGS) $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$<_CFLAGS) \
-	    -MP -MMD -MT $$@ -MF $$(@:=d) \
-	    $$(if $$(findstring .pic,$4),-fPIC) -g -c -o $$@ $$<
-	$$(call fun/obj-compress,$$@)
--include $(3:=d)
+	$(CC) $(CFLAGS) $($(1D)/_CFLAGS) $($1_CFLAGS) $$($$<_CFLAGS) \
+	    -MP -MMD -MT $3 -MF $3.d \
+	    $(if $(findstring .pic,$4),-fPIC) -g -c -o $3 $$<
+	$(call fun/obj-compress,$3)
+-include $3.d
 endef
 
 define ext/rule/c
-tmp/$2/ns   := $$(if $$($(1D)/_CFLAGS)$$($1_CFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))
+tmp/$2/ns   := $(if $($(1D)/_CFLAGS)$($1_CFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))
 tmp/$2/objs := $$(patsubst %,$~%$$(tmp/$2/ns)$4.o,$3)
 $2: $$(tmp/$2/objs)
 $$(foreach o,$$(tmp/$2/objs),$$(eval $$(call fun/do-once,ext/expand/c/$$o,$$(call ext/expand/c,$1,$2,$$o,$4))))
@@ -102,21 +102,21 @@ endef
 define ext/expand/cc
 $3: $~%$$(tmp/$2/ns)$4.o: % | _generated
 	mkdir -p $$(@D)
-	$$(if $(findstring clang,$(CXX))$(NOCHECK)$$($(1D)/_NOCHECK)$$($1_NOCKECK)$$($$<_NOCHECK),,\
+	$$(if $(findstring clang,$(CXX))$(NOCHECK)$($(1D)/_NOCHECK)$($1_NOCKECK)$$($$<_NOCHECK),,\
 	    $(msg/CHECK.C) $$(<R))
-	$$(if $(findstring clang,$(CC))$(NOCHECK)$$($(1D)/_NOCHECK)$$($1_NOCKECK)$$($$<_NOCHECK),,\
-	    clang++ $(CLANGXXFLAGS) $$($(1D)/_CXXFLAGS) $$($1_CXXFLAGS) $$($$<_CXXFLAGS) \
+	$$(if $(findstring clang,$(CC))$(NOCHECK)$($(1D)/_NOCHECK)$($1_NOCKECK)$$($$<_NOCHECK),,\
+	    clang++ $(CLANGXXFLAGS) $($(1D)/_CXXFLAGS) $($1_CXXFLAGS) $$($$<_CXXFLAGS) \
 	    -O0 -fsyntax-only -o /dev/null $$<$(if $(NOFATALCHECK),|| true))
 	$(msg/COMPILE.C) $$(<R)
-	$(CXX) $(CXXFLAGS) $$($(1D)/_CXXFLAGS) $$($1_CXXFLAGS) $$($$<_CXXFLAGS) \
-	    -MP -MMD -MT $$@ -MF $$(@:=d) \
-	    $$(if $$(findstring .pic,$4),-fPIC) -g -c -o $$@ $$<
-	$$(call fun/obj-compress,$$@)
--include $(3:=d)
+	$(CXX) $(CXXFLAGS) $($(1D)/_CXXFLAGS) $($1_CXXFLAGS) $$($$<_CXXFLAGS) \
+	    -MP -MMD -MT $3 -MF $3.d \
+	    $(if $(findstring .pic,$4),-fPIC) -g -c -o $3 $$<
+	$(call fun/obj-compress,$3)
+-include $3.d
 endef
 
 define ext/rule/cc
-tmp/$2/ns   := $$(if $$($(1D)/_CXXFLAGS)$$($1_CXXFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))
+tmp/$2/ns   := $$(if $($(1D)/_CXXFLAGS)$($1_CXXFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))
 tmp/$2/objs := $$(patsubst %,$~%$$(tmp/$2/ns)$4.o,$3)
 $2: $$(tmp/$2/objs)
 $$(foreach o,$$(tmp/$2/objs),$$(eval $$(call fun/do-once,ext/expand/cc/$$o,$$(call ext/expand/cc,$1,$2,$$o,$4))))
@@ -128,11 +128,11 @@ endef
 
 define ext/expand/h
 _generated: $3
-$$(eval $$(call fun/common-depends,$1,$3,$3))
+$(eval $(call fun/common-depends,$1,$3,$3))
 endef
 
 define ext/rule/h
-$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/h,$1,$2,$$t,$4))))
+$(foreach t,$3,$(eval $(call fun/do-once,$t,$(call ext/expand/h,$1,$2,$t,$4))))
 endef
 
 #}}}
@@ -149,12 +149,12 @@ $(3:l=c): %.c: %.l
 	       -e 's/^\t\tint n; \\/		size_t n; \\/' $$@
 	chmod a-w $$@
 _generated: $(3:l=c)
-$$(eval $$(call fun/common-depends,$1,$(3:l=c),$3))
+$(eval $(call fun/common-depends,$1,$(3:l=c),$3))
 endef
 
 define ext/rule/l
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/l,$1,$2,$$t,$4))))
-$$(eval $$(call ext/rule/c,$1,$2,$(3:l=c),$4))
+$(eval $(call ext/rule/c,$1,$2,$(3:l=c),$4))
 endef
 
 #}}}
@@ -166,8 +166,8 @@ endef
 var/exts = $(patsubst ext/rule/%,%,$(filter ext/rule/%,$(.VARIABLES)))
 define fun/foreach-ext-rule
 $$(foreach e,$(var/exts),$$(if $$(filter %.$$e,$3),$$(eval $$(call ext/rule/$$e,$1,$2,$$(filter %.$$e,$3),$4))))
-$2: | $$($1_SOURCES) _generated
-$$(eval $$(call fun/common-depends,$1,$2,$1))
+$2: | $($1_SOURCES) _generated
+$(eval $(call fun/common-depends,$1,$2,$1))
 endef
 
 #
@@ -187,13 +187,13 @@ $1.pic.wa: $~$1.pic.wa
 .PHONY: $1.a $1.wa $1.pic.a $1.pic.wa
 
 $(1D)/all:: $~$1.a
-$$(eval $$(call fun/foreach-ext-rule,$1,$~$1.a,$$($1_SOURCES)))
+$(eval $(call fun/foreach-ext-rule,$1,$~$1.a,$($1_SOURCES)))
 $~$1.a:
 	$(msg/LINK.a) $$(@R)
 	$(RM) $$@
 	$(AR) crs $$@ $$(filter %.o %.oo,$$^)
 
-$$(eval $$(call fun/foreach-ext-rule,$1,$~$1.pic.a,$$($1_SOURCES),.pic))
+$(eval $(call fun/foreach-ext-rule,$1,$~$1.pic.a,$($1_SOURCES),.pic))
 $~$1.pic.a:
 	$(msg/LINK.a) $$(@R)
 	$(RM) $$@
@@ -254,7 +254,7 @@ endef
 
 define rule/program
 $(1D)/all:: $1$(EXEEXT)
-$$(eval $$(call rule/exe,$1,$2,$3))
+$(eval $(call rule/exe,$1,$2,$3))
 $(if $(filter %chk,$1),
 $(1D)/check:: $1$(EXEEXT)
 	$$/lib-common/scripts/runchk $1
@@ -266,7 +266,7 @@ endef
 
 define rule/datas
 $(1D)/all:: $1
-$$(eval $$(call fun/foreach-ext-rule,$1,$1,$$($1_SOURCES)))
+$(eval $(call fun/foreach-ext-rule,$1,$1,$($1_SOURCES)))
 endef
 
 #}}}

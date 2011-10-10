@@ -21,7 +21,7 @@ endef
 
 define ext/rule/tokens
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t-tok,$$(call ext/expand/tokens,$1,$2,$$t,$4))))
-$$(eval $$(call ext/rule/c,$1,$2,$(3:.tokens=tokens.c),$4))
+$(eval $(call ext/rule/c,$1,$2,$(3:.tokens=tokens.c),$4))
 endef
 
 #}}}
@@ -36,12 +36,12 @@ $(3:.perf=.c): %.c: %.perf
 	gperf --language=ANSI-C --output-file=$$@ $$<
 
 _generated: $(3:.perf=.c)
-$$(eval $$(call fun/common-depends,$1,$(3:.perf=.c),$3))
+$(eval $(call fun/common-depends,$1,$(3:.perf=.c),$3))
 endef
 
 define ext/rule/perf
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t-tok,$$(call ext/expand/perf,$1,$2,$$t,$4))))
-$$(eval $$(call ext/rule/c,$1,$2,$(3:.perf=.c),$4))
+$(eval $(call ext/rule/c,$1,$2,$(3:.perf=.c),$4))
 endef
 
 #}}}
@@ -58,7 +58,7 @@ $(3:lua=lc.bin): %.lc.bin: %.lc
 	blob2c $$< > $$@ || ($(RM) $$@; exit 1)
 
 _generated: $(3:.lua=.lc.bin)
-$$(eval $$(call fun/common-depends,$1,$(3:.lua=.lc.bin),$3))
+$(eval $(call fun/common-depends,$1,$(3:.lua=.lc.bin),$3))
 .INTERMEDIATE: $(3:lua=lc)
 endef
 
@@ -79,8 +79,8 @@ $(3:=.c): %.fc.c: %.fc
 	$(msg/generate) $$(<R)
 	farchc -d $~$3.c.dep -o $3.c $$<
 _generated: $(3:=.c)
--include $$(patsubst %,$~%.c.dep,$3)
-$$(eval $$(call fun/common-depends,$1,$(3:=.c),$3))
+-include $(patsubst %,$~%.c.dep,$3)
+$(eval $(call fun/common-depends,$1,$(3:=.c),$3))
 endef
 
 define ext/rule/fc
@@ -105,13 +105,13 @@ $(3:=.c): %.iop.c: %.iop $(IOPC)
 	$(IOPC) --c-resolve-includes --Wextra -d$~$$<.dep -I$/lib-inet:$/qrrd/iop $$<
 _generated_hdr: $(3:=.h)
 _generated: $(3:=.c)
-$$(eval $$(call fun/common-depends,$1,$(3:=.c),$3))
--include $$(patsubst %,$~%.dep,$3)
+$(eval $(call fun/common-depends,$1,$(3:=.c),$3))
+-include $(patsubst %,$~%.dep,$3)
 endef
 
 define ext/rule/iop
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/iop,$1,$2,$$t,$4))))
-$$(eval $$(call ext/rule/c,$1,$2,$(3:=.c),$4))
+$(eval $(call ext/rule/c,$1,$2,$(3:=.c),$4))
 endef
 
 #}}}
@@ -131,7 +131,7 @@ $$(patsubst %,$~%.dep,$3): $~%.dep: % $(var/cfgdir)/swfml-deps.xsl
 $(3:.swfml=.swf): %.swf: %.swfml
 	$(msg/COMPILE) " SWF" $$@
 	cd $$(<D) && swfmill simple $$(<F) $$(@F)
-$$(eval $$(call fun/common-depends,$1,$(3:.swfml=.swf),$3))
+$(eval $(call fun/common-depends,$1,$(3:.swfml=.swf),$3))
 endef
 
 #}}}
@@ -140,28 +140,28 @@ endef
 ext/gen/blk = $(call fun/patsubst-filt,%.blk,%.blk.c,$1)
 
 define ext/expand/blk
-$$(foreach t,$3,$$(eval $3.c_NOCHECK = block))
+$(foreach t,$3,$(eval $3.c_NOCHECK = block))
 $(3:=.c): %.c: % $(CLANG)
 	$(msg/COMPILE) " BLK" $$(<R)
 	$(RM) $$@
-	$(CLANG) -cc1 $$(CLANGFLAGS) \
-	    $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$@_CFLAGS) \
+	$(CLANG) -cc1 $(CLANGFLAGS) \
+	    $($(1D)/_CFLAGS) $($1_CFLAGS) $($$@_CFLAGS) \
 	    -rewrite-blocks -o $$@ $$<
 	chmod a-w $$@
 _generated: $(3:=.c)
-$$(eval $$(call fun/common-depends,$1,$(3:=.c),$3))
+$(eval $(call fun/common-depends,$1,$(3:=.c),$3))
 endef
 
 define ext/rule/blk
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/blk,$1,$2,$$t,$4))))
-$$(eval $$(call ext/rule/c,$1,$2,$(3:=.c),$4))
+$(eval $(call ext/rule/c,$1,$2,$(3:=.c),$4))
 endef
 
 
 ext/gen/blkk = $(call fun/patsubst-filt,%.blkk,%.blkk.cc,$1)
 
 define ext/expand/blkk
-$$(foreach t,$3,$$(eval $3.cc_NOCHECK = block))
+$(foreach t,$3,$(eval $3.cc_NOCHECK = block))
 $(3:=.cc): %.cc: % $(CLANGXX)
 	$(msg/COMPILE) " BLK" $$(<R)
 	$(RM) $$@
@@ -170,12 +170,12 @@ $(3:=.cc): %.cc: % $(CLANGXX)
 	    -rewrite-blocks -o $$@ $$<
 	chmod a-w $$@
 __$(1D)_generated: $(3:=.cc)
-$$(eval $$(call fun/common-depends,$1,$(3:=.cc),$3))
+$(eval $(call fun/common-depends,$1,$(3:=.cc),$3))
 endef
 
 define ext/rule/blkk
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/blkk,$1,$2,$$t,$4))))
-$$(eval $$(call ext/rule/cc,$1,$2,$(3:=.cc),$4))
+$(eval $(call ext/rule/cc,$1,$2,$(3:=.cc),$4))
 endef
 
 #}}}
