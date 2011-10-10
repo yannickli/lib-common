@@ -22,7 +22,7 @@ endef
 #
 # $(call fun/update-if-changed,<SRC>,<DST>)
 define fun/update-if-changed
-if test -f $2 && cmp -s $1 $2; then $(RM) $1; else mv $1 $2; fi
+if test -f $2 && cmp -s $1 $2; then $(RM) $1; else $(MV) $1 $2; fi
 endef
 
 # escape for the shell

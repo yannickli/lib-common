@@ -27,6 +27,31 @@ ifneq (,$(shell ld --help | grep compress-debug-sections))
 endif
 endif
 
+$!clang-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*.mk
+	echo -n "CLANGFLAGS := "                                  >  $@+
+	$(var/cfgdir)/cflags.sh "clang" "rewrite" | tr '\n' ' '   >> $@+
+	echo                                                      >> $@+
+	echo -n "CLANGXXFLAGS := "                                >> $@+
+	$(var/cfgdir)/cflags.sh "clang++" "rewrite" | tr '\n' ' ' >> $@+
+	echo                                                      >> $@+
+	$(MV) $@+ $@
+
+$!cc-$(CC)-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*.mk
+	echo -n "CFLAGS := "                          >  $@+
+	$(var/cfgdir)/cflags.sh "$(CC)" | tr '\n' ' ' >> $@+
+	echo                                          >> $@+
+	$(MV) $@+ $@
+
+$!cxx-$(CXX)-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*.mk
+	echo -n "CXXFLAGS := "                         >  $@+
+	$(var/cfgdir)/cflags.sh "$(CXX)" | tr '\n' ' ' >> $@+
+	echo                                           >> $@+
+	$(MV) $@+ $@
+
+-include $!clang-flags.mk
+-include $!cc-$(CC)-flags.mk
+-include $!cxx-$(CXX)-flags.mk
+
 CFLAGS       += -I$/lib-common/compat -I$/
 CXXFLAGS     += -I$/lib-common/compat -I$/
 CXXFLAGS     += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS

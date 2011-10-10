@@ -109,6 +109,7 @@ endif
 # Custom tools
 #
 FASTCP := ln -f
+MV     := mv -f
 
 ##########################################################################
 # Load our build profile
