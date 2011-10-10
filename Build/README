@@ -321,11 +321,14 @@ forced to `-O0 -fno-inlines -Wno-uninitialized`.
         time).
 
 `NOCOMPRESS`::
-    The build-system doesn't compress the debug section of binaries leading to
-    larger binary files. This can be used if you have to work with tools that
-    does not support compressed-debug sections (like valgrind, pahole or some
-    old version of gdb).
+	The build-system doesn't compress the debug section of binaries
+	leading to larger binary files. This can be used if you have to work
+	with tools that does not support compressed-debug sections (like
+	valgrind, pahole or some old version of gdb).
+
+`NOLINK`::
+	Do not perform links (to gain speed on some builds).
 
 // }}}
 
-// vim:filetype=asciidoc:tw=78
+// vim:filetype=asciidoc:tw=78:noet
