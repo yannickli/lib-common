@@ -80,6 +80,7 @@ if is_clang; then
     if test "$2" != "rewrite"; then
         echo -fdiagnostics-show-category=name
     fi
+    echo "-fblocks"
 else
     echo -funswitch-loops
     # ignore for (i = 0; i < limit; i += N) as dangerous for N != 1.

@@ -54,7 +54,7 @@ endif
 #  For a given .tla the macro ext/gen/tla is called with a list of sources and
 #  returns a list of intermediate generated files this extension products.
 #
-######################################################################{{{#
+#[ ld,a,wa ]##########################################################{{{#
 
 define ext/rule/ld
 $2: $3
@@ -68,7 +68,8 @@ define ext/rule/wa
 $2: $$(patsubst %.wa,$~%$4.wa,$3)
 endef
 
-#[ c ]####################################################################
+#}}}
+#[ c ]################################################################{{{#
 
 define ext/expand/c
 $3: $~%$$(tmp/$2/ns)$4.o: % | _generated
@@ -94,8 +95,10 @@ $$(foreach o,$$(tmp/$2/objs),$$(eval $$(call fun/do-once,ext/expand/c/$$o,$$(cal
 $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/objs),$3))
 endef
 
-#[ cc ]###################################################################
+#}}}
+#[ cc ]###############################################################{{{#
 
+# ext/expand/c <PHONY>,<TARGET>,<OBJ>,<NS>,<C>
 define ext/expand/cc
 $3: $~%$$(tmp/$2/ns)$4.o: % | _generated
 	mkdir -p $$(@D)
@@ -120,7 +123,8 @@ $$(foreach o,$$(tmp/$2/objs),$$(eval $$(call fun/do-once,ext/expand/cc/$$o,$$(ca
 $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/objs),$3))
 endef
 
-#[ h ]####################################################################
+#}}}
+#[ h ]################################################################{{{#
 
 define ext/expand/h
 _generated: $3
@@ -131,7 +135,8 @@ define ext/rule/h
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/h,$1,$2,$$t,$4))))
 endef
 
-#[ lex ]##################################################################
+#}}}
+#[ lex ]##############################################################{{{#
 
 ext/gen/l = $(call fun/patsubst-filt,%.l,%.c,$1)
 

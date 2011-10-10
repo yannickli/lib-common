@@ -146,7 +146,7 @@ $(3:=.c): %.c: % $(CLANG)
 	$(RM) $$@
 	$(CLANG) -cc1 $$(CLANGFLAGS) \
 	    $$($(1D)/_CFLAGS) $$($1_CFLAGS) $$($$@_CFLAGS) \
-	    -fblocks -rewrite-blocks -o $$@ $$<
+	    -rewrite-blocks -o $$@ $$<
 	chmod a-w $$@
 _generated: $(3:=.c)
 $$(eval $$(call fun/common-depends,$1,$(3:=.c),$3))
@@ -167,7 +167,7 @@ $(3:=.cc): %.cc: % $(CLANGXX)
 	$(RM) $$@
 	$(CLANGXX) -cc1 $$(CLANGXXFLAGS) \
 	    $$($(1D)/_CXXFLAGS) $$($1_CXXFLAGS) $$($$@_CXXFLAGS) \
-	    -fblocks -rewrite-blocks -o $$@ $$<
+	    -rewrite-blocks -o $$@ $$<
 	chmod a-w $$@
 __$(1D)_generated: $(3:=.cc)
 $$(eval $$(call fun/common-depends,$1,$(3:=.cc),$3))
