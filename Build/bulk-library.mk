@@ -131,13 +131,9 @@ endef
 #}}}
 #[ h ]################################################################{{{#
 
-define ext/expand/h
-_generated: $3
-$(eval $(call fun/common-depends,$1,$3,$3))
-endef
-
 define ext/rule/h
-$(foreach t,$3,$(eval $(call fun/do-once,$t,$(call ext/expand/h,$1,$2,$t,$4))))
+$(eval $(call fun/common-depends,$1,$3,$3))
+_generated: $3
 endef
 
 #}}}
@@ -152,13 +148,13 @@ $(3:l=c): $3
 	sed -i -e 's/^extern int isatty.*;//' \
 	       -e 's/^\t\tint n; \\/		size_t n; \\/' $$@+
 	$(MV) $$@+ $$@ && chmod a-w $$@
-_generated: $(3:l=c)
-$(eval $(call fun/common-depends,$1,$(3:l=c),$3))
 endef
 
 define ext/rule/l
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/l,$1,$2,$$t,$4))))
 $(eval $(call ext/rule/c,$1,$2,$(3:l=c),$4))
+$(eval $(call fun/common-depends,$1,$(3:l=c),$3))
+_generated: $(3:l=c)
 endef
 
 #}}}

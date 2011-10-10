@@ -34,8 +34,8 @@ endef
 define ext/rule/perf
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t-tok,$$(call ext/expand/perf,$1,$2,$$t,$4))))
 $(eval $(call ext/rule/c,$1,$2,$(3:.perf=.c),$4))
-_generated: $(3:.perf=.c)
 $(eval $(call fun/common-depends,$1,$(3:.perf=.c),$3))
+_generated: $(3:.perf=.c)
 endef
 
 #}}}
@@ -50,13 +50,13 @@ $~$3.c.dep: $3
 $3.c: $3
 	$(msg/generate) $3
 	farchc -d $~$3.c.dep -o $3.c $$<
-_generated: $3.c
 -include $~$3.c.dep
 endef
 
 define ext/rule/fc
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/fc,$1,$2,$$t,$4))))
 $(eval $(call fun/common-depends,$1,$(3:=.c),$3))
+_generated: $(3:=.c)
 endef
 
 #}}}
@@ -75,8 +75,6 @@ $3.c: $3 $(IOPC)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
 	$(IOPC) --c-resolve-includes --Wextra -d$~$$<.dep -I$/lib-inet:$/qrrd/iop $$<
-_generated_hdr: $3.h
-_generated: $3.c
 -include $~$3.dep
 endef
 
@@ -84,6 +82,8 @@ define ext/rule/iop
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/iop,$1,$2,$$t,$4))))
 $(eval $(call fun/common-depends,$1,$(3:=.c),$3))
 $(eval $(call ext/rule/c,$1,$2,$(3:=.c),$4))
+_generated_hdr: $(3:=.h)
+_generated: $(3:=.c)
 endef
 
 #}}}
@@ -124,7 +124,7 @@ define ext/rule/blk
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/blk,$1,$2,$$t,$4))))
 $(eval $(call fun/common-depends,$1,$(3:=.c),$3))
 $(eval $(call ext/rule/c,$1,$2,$(3:=.c),$4))
-__$(1D)_generated: $(3:=.c)
+_generated: $(3:=.c)
 endef
 
 
@@ -143,7 +143,7 @@ define ext/rule/blkk
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/blkk,$1,$2,$$t,$4))))
 $(eval $(call fun/common-depends,$1,$(3:=.cc),$3))
 $(eval $(call ext/rule/cc,$1,$2,$(3:=.cc),$4))
-__$(1D)_generated: $(3:=.cc)
+_generated: $(3:=.cc)
 endef
 
 #}}}
