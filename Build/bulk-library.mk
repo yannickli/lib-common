@@ -90,11 +90,11 @@ $5: $3 | _generated
 endef
 
 define ext/rule/c
-tmp/$2/ns   := $(if $($(1D)/_CFLAGS)$($1_CFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))
-tmp/$2/objs := $$(patsubst %,$~%$$(tmp/$2/ns)$4.o,$3)
+tmp/$2/ns   := $(if $($(1D)/_CFLAGS)$($1_CFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))$4
+tmp/$2/objs := $$(patsubst %,$~%$$(tmp/$2/ns).o,$3)
 $2: $$(tmp/$2/objs)
 $$(foreach c,$3,$$(eval $$(call fun/do-once,ext/expand/c/$$c$$(tmp/$2/ns),\
-    $$(call ext/expand/c,$1,$2,$$c,$4,$~$$c$$(tmp/$2/ns)$4.o))))
+    $$(call ext/expand/c,$1,$2,$$c,$4,$~$$c$$(tmp/$2/ns).o))))
 $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/objs),$3))
 endef
 
@@ -120,11 +120,11 @@ $5: $3 | _generated
 endef
 
 define ext/rule/cc
-tmp/$2/ns   := $$(if $($(1D)/_CXXFLAGS)$($1_CXXFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))
-tmp/$2/objs := $$(patsubst %,$~%$$(tmp/$2/ns)$4.o,$3)
+tmp/$2/ns   := $$(if $($(1D)/_CXXFLAGS)$($1_CXXFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))$4
+tmp/$2/objs := $$(patsubst %,$~%$$(tmp/$2/ns).o,$3)
 $2: $$(tmp/$2/objs)
 $$(foreach c,$3,$$(eval $$(call fun/do-once,ext/expand/c/$$c$$(tmp/$2/ns),\
-    $$(call ext/expand/cc,$1,$2,$$c,$4,$~$$c$$(tmp/$2/ns)$4.o))))
+    $$(call ext/expand/cc,$1,$2,$$c,$4,$~$$c$$(tmp/$2/ns).o))))
 $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/objs),$3))
 endef
 
@@ -236,7 +236,7 @@ define rule/exe
 $1$(EXEEXT): $~$1.exe FORCE
 	$$(if $$(NOLINK),:,$(FASTCP) $$< $$@)
 
-$$(eval $$(call fun/foreach-ext-rule,$1,$~$1.exe,$$($1_SOURCES),$4))
+$(eval $(call fun/foreach-ext-rule,$1,$~$1.exe,$($1_SOURCES),$4))
 $~$1.exe:
 	$(msg/LINK.c) $$(@R)
 	$$(if $$(NOLINK),:,$(or $($1_LINKER),$(CC)) $(CFLAGS) $($(1D)/_CFLAGS) $($1_CFLAGS) \
