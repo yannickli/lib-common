@@ -233,6 +233,36 @@ bool wah_word_enum_skip(wah_word_enum_t *en, uint32_t skip)
     return true;
 }
 
+static ALWAYS_INLINE
+uint32_t wah_word_enum_skip0(wah_word_enum_t *en)
+{
+    uint32_t skipped = 0;
+
+    while (en->current == 0) {
+        switch (__builtin_expect(en->state, WAH_ENUM_RUN)) {
+          case WAH_ENUM_END:
+            return skipped;
+
+          case WAH_ENUM_PENDING:
+            skipped++;
+            wah_word_enum_next(en);
+            return skipped;
+
+          case WAH_ENUM_RUN:
+            skipped += en->remain_words;
+            en->remain_words = 1;
+            wah_word_enum_next(en);
+            break;
+
+          case WAH_ENUM_LITERAL:
+            skipped++;
+            wah_word_enum_next(en);
+            break;
+        }
+    }
+    return skipped;
+}
+
 /*
  * invariants for an enumerator not a WAH_ENUM_END:
  *  - current_word is non 0 and its last bit is set
