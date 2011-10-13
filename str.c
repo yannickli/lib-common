@@ -97,23 +97,6 @@ int strstart(const char *str, const char *p, const char **pp)
     return 1;
 }
 
-TEST_DECL("str: strstart", 0)
-{
-    static const char *week =
-        "Monday Tuesday Wednesday Thursday Friday Saturday Sunday";
-    const char *p = NULL;
-    int res;
-
-    res = strstart(week, "Monday", &p);
-    TEST_FAIL_IF(!res, "finding Monday in week");
-    TEST_FAIL_IF(p != week + strlen("Monday"), "finding Monday at the proper position");
-
-    p = NULL;
-    res = strstart(week, "Tuesday", &p);
-    TEST_FAIL_IF(res, "week doesn't start with Tuesday");
-    TEST_DONE();
-}
-
 /** Tells whether str begins with p, case insensitive.
  *
  * @param pp if not null and str begins with p, pp is given the address of the
@@ -133,23 +116,6 @@ int stristart(const char *str, const char *p, const char **pp)
     if (pp)
         *pp = str;
     return 1;
-}
-
-TEST_DECL("str: stristart", 0)
-{
-    static const char *week =
-        "Monday Tuesday Wednesday Thursday Friday Saturday Sunday";
-    const char *p = NULL;
-    int res;
-
-    res = stristart(week, "monDay", &p);
-    TEST_FAIL_IF(!res, "finding monDay in week");
-    TEST_FAIL_IF(p != week + strlen("monDay"), "finding monDay at the proper position");
-
-    p = NULL;
-    res = stristart(week, "tUESDAY", &p);
-    TEST_FAIL_IF(res, "string doesn't start with tUESDAY");
-    TEST_DONE();
 }
 
 
@@ -190,26 +156,6 @@ const char *stristrn(const char *str, const char *needle, size_t nlen)
     }
 }
 
-TEST_DECL("str: stristrn", 0)
-{
-    static const char *alphabet = "abcdefghijklmnopqrstuvwxyz";
-    const char *p;
-
-    p = stristr(alphabet, "aBC");
-    TEST_FAIL_IF(p != alphabet, "not found at start of string");
-
-    p = stristr(alphabet, "Z");
-    TEST_FAIL_IF(p != alphabet + 25, "not found at end of string");
-
-    p = stristr(alphabet, "mn");
-    TEST_FAIL_IF(p != alphabet + 12, "not found in the middle of the string");
-
-    p = stristr(alphabet, "123");
-    TEST_FAIL_IF(p != NULL, "unexistant string found");
-
-    TEST_DONE();
-}
-
 
 /* find a word in a list of words separated by sep.
  */
@@ -241,21 +187,6 @@ bool strfind(const char *keytable, const char *str, int sep)
                 break;
         }
     }
-}
-
-TEST_DECL("str: strfind", 0)
-{
-    TEST_FAIL_IF(strfind("1,2,3,4", "1", ',') != true, "");
-    TEST_FAIL_IF(strfind("1,2,3,4", "2", ',') != true, "");
-    TEST_FAIL_IF(strfind("1,2,3,4", "4", ',') != true, "");
-    TEST_FAIL_IF(strfind("11,12,13,14", "1", ',') != false, "");
-    TEST_FAIL_IF(strfind("11,12,13,14", "2", ',') != false, "");
-    TEST_FAIL_IF(strfind("11,12,13,14", "11", ',') != true, "");
-    TEST_FAIL_IF(strfind("11,12,13,14", "111", ',') != false, "");
-    TEST_FAIL_IF(strfind("toto,titi,tata,tutu", "to", ',') != false, "");
-    TEST_FAIL_IF(strfind("1|2|3|4|", "", '|') != false, "");
-    TEST_FAIL_IF(strfind("1||3|4|", "", '|') != true, "");
-    TEST_DONE();
 }
 
 
@@ -296,31 +227,6 @@ int buffer_increment(char *buf, int len)
         }
     }
     return 1;
-}
-
-#define check_buffer_increment_unit(initval, expectedval, expectedret)       \
-    do {                                                                     \
-        pstrcpy(buf, sizeof(buf), initval);                                  \
-        ret = buffer_increment(buf, -1);                                     \
-        TEST_FAIL_IF(strcmp(buf, expectedval),                               \
-            "value is \"%s\", expecting \"%s\"", buf, expectedval);          \
-        TEST_FAIL_IF(ret != expectedret, "bad return value for \"%s\"", initval); \
-    } while (0)
-TEST_DECL("str: buffer_increment", 0)
-{
-    char buf[32];
-    int ret;
-    check_buffer_increment_unit("0", "1", 0);
-    check_buffer_increment_unit("1", "2", 0);
-    check_buffer_increment_unit("00", "01", 0);
-    check_buffer_increment_unit("42", "43", 0);
-    check_buffer_increment_unit("09", "10", 0);
-    check_buffer_increment_unit("99", "00", 1);
-    check_buffer_increment_unit(" 99", " 00", 1);
-    check_buffer_increment_unit("", "", 1);
-    check_buffer_increment_unit("foobar-00", "foobar-01", 0);
-    check_buffer_increment_unit("foobar-0-99", "foobar-0-00", 1);
-    TEST_DONE();
 }
 
 
@@ -370,38 +276,6 @@ int buffer_increment_hex(char *buf, int len)
     return 1;
 }
 
-#define check_buffer_increment_hex_unit(initval, expectedval, expectedret)   \
-    do {                                                                     \
-        pstrcpy(buf, sizeof(buf), initval);                                  \
-        ret = buffer_increment_hex(buf, -1);                                 \
-        TEST_FAIL_IF(strcmp(buf, expectedval),                               \
-                     "value is \"%s\", expecting \"%s\"", buf, expectedval); \
-        TEST_FAIL_IF(ret != expectedret, "bad return value for \"%s\"", initval); \
-    } while (0)
-TEST_DECL("str: buffer_increment_hex", 0)
-{
-    char buf[32];
-    int ret;
-    check_buffer_increment_hex_unit("0", "1", 0);
-    check_buffer_increment_hex_unit("1", "2", 0);
-    check_buffer_increment_hex_unit("9", "A", 0);
-    check_buffer_increment_hex_unit("a", "b", 0);
-    check_buffer_increment_hex_unit("Ab", "Ac", 0);
-    check_buffer_increment_hex_unit("00", "01", 0);
-    check_buffer_increment_hex_unit("42", "43", 0);
-    check_buffer_increment_hex_unit("09", "0A", 0);
-    check_buffer_increment_hex_unit("0F", "10", 0);
-    check_buffer_increment_hex_unit("FFF", "000", 1);
-    check_buffer_increment_hex_unit(" FFF", " 000", 1);
-    check_buffer_increment_hex_unit("FFFFFFFFFFFFFFF", "000000000000000", 1);
-    check_buffer_increment_hex_unit("", "", 1);
-    check_buffer_increment_hex_unit("foobar", "foobar", 1);
-    check_buffer_increment_hex_unit("foobaff", "foobb00", 0);
-    check_buffer_increment_hex_unit("foobar-00", "foobar-01", 0);
-    check_buffer_increment_hex_unit("foobar-0-ff", "foobar-0-00", 1);
-    TEST_DONE();
-}
-
 /** Put random hexadecimal digits in destination buffer
  *
  * @return the number of digits set.
@@ -425,42 +299,6 @@ ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t n)
     }
     *p = '\0';
     return n;
-}
-
-TEST_DECL("str: strrand", 0)
-{
-    char buf[32];
-    int n, ret;
-
-    for (n = 0; n < countof(buf); n++) {
-        buf[n] = 'B' + n;
-    }
-
-    ret = pstrrand(buf, sizeof(buf), 0, 0);
-    TEST_FAIL_IF(buf[0] != '\0', "Missing padding after len=0");
-    TEST_FAIL_IF(ret != 0, "Bad return value for len=0");
-
-    ret = pstrrand(buf, sizeof(buf), 0, 3);
-    TEST_FAIL_IF(buf[3] != '\0', "Missing padding after len=3");
-    TEST_FAIL_IF(ret != 3, "Bad return value for len=3");
-
-    /* Ask for 32 bytes, where buffer can only contain 31. */
-    ret = pstrrand(buf, sizeof(buf), 0, sizeof(buf));
-    TEST_FAIL_IF(buf[31] != '\0', "Missing padding after len=sizeof(buf)");
-    TEST_FAIL_IF(ret != sizeof(buf) - 1, "Bad return value for len=sizeof(buf)");
-    //fprintf(stderr, "buf:%s\n", buf);
-
-#if 0 /* Buggy test, sometimes rand returns 0x42 ! */
-    buf[0] = buf[1] = buf[2] = 'Z';
-    buf[3] = buf[4] = buf[5] = buf[6] = 0x42;
-    ret = pstrrand(buf, sizeof(buf), 3, 2);
-    TEST_FAIL_IF(buf[3] == 0x42 || buf[4] == 0x42, "len=2 did not set buffer");
-    TEST_FAIL_IF(buf[5] != 0, "Missing 0 after len=2");
-    TEST_FAIL_IF(buf[6] != 0x42, "len=2 set the buffer incorrectly");
-    TEST_FAIL_IF(ret != 2, "Bad return value for len=2");
-    //fprintf(stderr, "buf:%s\n", buf);
-#endif
-    TEST_DONE();
 }
 
 int str_replace(const char search, const char replace, char *subject)
