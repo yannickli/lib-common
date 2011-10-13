@@ -38,6 +38,10 @@ def full_report(file, g):
 def parse_lines(file, lines):
     res = 0
     cur = None
+    if len(lines) and re.match(r'^\s*\d+\.\.\d+', lines[0]):
+        print "\n".join(lines)
+        return res
+
     for line in lines:
         reres = linere.match(line)
         if not reres: continue
@@ -84,6 +88,7 @@ def run_test(file):
         return 1
 
 if __name__ == "__main__":
+    os.environ['Z_HARNESS'] = "1";
     res = 0
     #TODO: run tests in parallel
     for file in sys.argv[1:]:

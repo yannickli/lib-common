@@ -149,7 +149,8 @@ libcommon_SOURCES = \
 	http.tokens \
 	\
 	xmlpp.c \
-	xmlr.c
+	xmlr.c \
+	z.blk
 
 libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 
