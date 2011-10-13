@@ -1,0 +1,150 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+#include "container.h"
+#include "z.h"
+
+
+/* Keep these here, it's to check the macros are used and built */
+qh_k32_t(test);
+qh_k64_t(test_qh_64);
+
+qm_k32_t(test, uint32_t);
+qm_k64_t(test_qh_64, uint32_t);
+
+qh_kptr_t(test_str, const char, qhash_str_hash, qhash_str_equal);
+
+Z_GROUP_EXPORT(qhash)
+{
+    Z_TEST(insertion, "qhash: insertion") {
+        QH(test, h, false);
+        uint64_t bits[2] = { 0, 0 };
+
+        for (int i = 0; i < 128; i++) {
+            qh_add(test, &h, i);
+            SET_BIT(bits, i);
+        }
+        Z_ASSERT_EQ(h.hdr.len, 128U);
+
+        qh_for_each_pos(test, pos, &h) {
+            uint32_t v = h.keys[pos];
+
+            Z_ASSERT(v < bitsizeof(bits) && TST_BIT(bits, v));
+            CLR_BIT(bits, v);
+        }
+
+        Z_ASSERT(bits[0] == 0, "all values should have been seen");
+        Z_ASSERT(bits[1] == 0, "all values should have been seen");
+        qh_wipe(test, &h);
+    } Z_TEST_END;
+
+    Z_TEST(collision, "qhash: collision") {
+        QH(test, h, false);
+
+        for (int i = 0; i < 128; i++) {
+            qh_add(test, &h, i);
+        }
+
+        for (int i = 10; i < 128; i += 7) {
+            Z_ASSERT(qh_add(test, &h, i), "double insertion of %d", i);
+        }
+
+        qh_wipe(test, &h);
+    } Z_TEST_END;
+
+    Z_TEST(self , "qhash: self search") {
+        QH(test, h, false);
+
+        for (int i = 0; i < 128; i++) {
+            qh_add(test, &h, i);
+        }
+
+        for (int i = 128; i-- > 0; ) {
+            int32_t pos = qh_find(test, &h, i);
+
+            Z_ASSERT(pos >= 0, "qh_find should find %d", i);
+            qh_del_at(test, &h, pos);
+        }
+
+        Z_ASSERT_EQ(h.hdr.len, 0U);
+
+        qh_wipe(test, &h);
+    } Z_TEST_END;
+
+    Z_TEST(string, "qhash: string") {
+        const char *t1 = "test1";
+        const char *t2 = "test2";
+        int32_t pos;
+        QH(test_str, h, false);
+
+        qh_add(test_str, &h, t1);
+        qh_add(test_str, &h, t2);
+
+        pos = qh_find(test_str, &h, t1);
+        Z_ASSERT(pos >= 0, "qh_find should find %s", t1);
+        Z_ASSERT_STREQUAL(h.keys[pos], t1);
+
+        pos = qh_find(test_str, &h, t2);
+        Z_ASSERT(pos >= 0, "qh_find should find %s", t2);
+
+        Z_ASSERT_EQ(qh_len(test_str, &h), 2);
+
+        qh_del_at(test_str, &h, pos);
+        qh_for_each_pos(test_str, i, &h) {
+            Z_ASSERT_STREQUAL(h.keys[i], t1, "qh_for_each_pos has failed");
+        }
+
+        /* Remove t1 */
+        pos = qh_find(test_str, &h, t1);
+        Z_ASSERT(pos >= 0, "can't find t1 ('%s')", t1);
+        qh_del_at(test_str, &h, pos);
+        Z_ASSERT_EQ(qh_len(test_str, &h), 0);
+
+        qh_add(test_str, &h, t1);
+        Z_ASSERT_EQ(qh_len(test_str, &h), 1);
+
+        pos = qh_find(test_str, &h, t1);
+        Z_ASSERT(pos >= 0, "can't find t1 ('%s')", t1);
+        qh_for_each_pos(test_str, i, &h) {
+            Z_ASSERT_STREQUAL(h.keys[i], t1, "2nd qh_for_each_pos has failed");
+        }
+        qh_wipe(test_str, &h);
+    } Z_TEST_END;
+} Z_GROUP_END
+
+static _Bool qv_sort_tst(void)
+{
+    bool ok = true;
+    qv_t(u32) tab;
+
+#define N  128
+    qv_inita(u32, &tab, N);
+    for (int i = 0; i < N; i++)
+        qv_append(u32, &tab, rand());
+    qv_sort(u32)(&tab, ^int (const uint32_t *v1, const uint32_t *v2) {
+        return CMP(*v1, *v2);
+    });
+    for (int i = 1; ok && i < tab.len; i++) {
+        ok = tab.tab[i - 1] <= tab.tab[i];
+    }
+#undef N
+
+    return ok;
+}
+
+Z_GROUP_EXPORT(qvector)
+{
+    Z_TEST(qv_sort, "qvector: qv_sort") {
+        Z_ASSERT(qv_sort_tst());
+    } Z_TEST_END;
+} Z_GROUP_END;

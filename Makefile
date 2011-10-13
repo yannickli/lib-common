@@ -157,6 +157,7 @@ time-lp-simple_SOURCES = time-lp-simple.c
 zchk_SOURCES = zchk.c \
 	zchk-asn1-writer.c \
 	zchk-bithacks.c \
+	zchk-container.blk \
 	zchk-str.c \
 	zchk-time.c \
 	$/lib-common/libcommon.wa \
