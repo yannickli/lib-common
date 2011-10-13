@@ -290,33 +290,6 @@ time_t localtime_nextday(time_t date)
     return mktime(&t);
 }
 
-TEST_DECL("time: localtime_{next,cur}day", 0)
-{
-    int date, res;
-
-    /* date -d "03/06/2007 12:34:13" +"%s" */
-    date = 1173180853;
-
-    res = localtime_curday(date);
-    /* date -d "03/06/2007 00:00:00" +"%s" -> 1173135600 */
-    TEST_FAIL_IF(res != 1173135600,
-                 "Invalid current day time: %d != %d", res, 1173135600);
-
-    res = localtime_nextday(date);
-    /* date -d "03/07/2007 00:00:00" +"%s" -> 1173222000 */
-    TEST_FAIL_IF(res != 1173222000,
-                 "Invalid next day time: %d != %d", res, 1173222000);
-
-    /* The following test may fail if we are ***very*** unlucky, call
-     * it the midnight bug!
-     */
-    TEST_FAIL_IF(localtime_curday(0) != localtime_curday(time(NULL)),
-                 "Invalid handling of date = 0");
-    TEST_FAIL_IF(localtime_nextday(0) != localtime_nextday(time(NULL)),
-                 "Invalid handling of date = 0");
-    TEST_DONE();
-}
-
 static const char * const __abbr_months[] = {
     "jan",
     "feb",
@@ -413,41 +386,6 @@ int strtotm(const char *date, struct tm *t)
     /* OG: should also update t->tm_wday and t->tm_yday */
 
     return 0;
-}
-
-TEST_DECL("time: strtom", 0)
-{
-    struct tm t;
-    const char *date;
-
-    p_clear(&t, 1);
-
-    date = "23-Jul-97";
-    TEST_FAIL_IF(strtotm(date, &t),
-                 "strtotm could not parse %s", date);
-    TEST_FAIL_IF(t.tm_mday != 23,
-                 "strtotm failed to parse mday: %d != %d", t.tm_mday, 23);
-    TEST_FAIL_IF(t.tm_mon + 1 != 7,
-                 "strtotm failed to parse month: %d != %d", t.tm_mon + 1, 7);
-    TEST_FAIL_IF(t.tm_year + 1900 != 1997,
-                 "strtotm failed to parse year: %d != %d", t.tm_year + 1900, 1997);
-
-    date = "32-Jul-97";
-    TEST_FAIL_IF(!strtotm(date, &t),
-                 "strtotm should not have parsed %s", date);
-    date = "29-Feb-96";
-    TEST_FAIL_IF(strtotm(date, &t),
-                 "strtotm should have parsed %s", date);
-    date = "29-Feb-2000";
-    TEST_FAIL_IF(strtotm(date, &t),
-                 "strtotm should have parsed %s", date);
-    date = "01-Jun-07";
-    TEST_FAIL_IF(strtotm(date, &t),
-                 "strtotm should have parsed %s", date);
-    date = "31-Jun-07";
-    TEST_FAIL_IF(!strtotm(date, &t),
-                 "strtotm should not have parsed %s", date);
-    TEST_DONE();
 }
 
 

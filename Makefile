@@ -155,9 +155,10 @@ libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 time-lp-simple_SOURCES = time-lp-simple.c
 
 zchk_SOURCES = zchk.c \
-	zchk-bithacks.c \
 	zchk-asn1-writer.c \
+	zchk-bithacks.c \
 	zchk-str.c \
+	zchk-time.c \
 	$/lib-common/libcommon.wa \
 	$/lib-common/time-lp-simple.a
 zchk_LIBS = $(libxml2_LIBS)
