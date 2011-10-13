@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "asn1-per.h"
+#include "z.h"
 
 /* XXX Tracing policy:
  *     5: Low level writer/reader
@@ -1598,390 +1599,349 @@ int t_aper_decode_desc(pstream_t *ps, const asn1_desc_t *desc,
 /* }}} */
 /* Check {{{ */
 
-/* aper_write_u16_m/aper_read_u16_m {{{ */
-
-TEST_DECL("aligned per: aper_write_u16_m/aper_read_u16_m", 0)
-{
-    t_scope;
-    BB_1k(bb);
-    char *str;
-    bit_stream_t bs;
-    size_t blen;
-    uint16_t u16 = 0;
-
-#define APER_U16_M_CHECK(d, d_max, expected)  \
-    bb_reset(&bb);                                                     \
-    blen = u64_blen(d_max);                                            \
-    aper_write_u16_m(&bb, d, u64_blen(d_max));                         \
-    bs = bs_init_bb(&bb);                                              \
-    if (blen) {                                                        \
-        TEST_FAIL_IF(aper_read_u16_m(&bs, blen, &u16) < 0,             \
-                     "Call aper_read_u16_m");                          \
-        TEST_FAIL_IF(u16 != d, "%u ?= %u", u16, d);                    \
-    }                                                                  \
-    str = t_print_bb(&bb, NULL);                                       \
-    TEST_FAIL_IF(strcmp(expected, str),                                \
-                 "expected [ "expected" ] | got [ %s ]", str)
-
-    APER_U16_M_CHECK(    0,     0,  "");
-    APER_U16_M_CHECK(  0xe,    57,  ".001110");
-    APER_U16_M_CHECK( 0x8d,   255,  ".10001101");
-    APER_U16_M_CHECK(0xabd, 33000,  ".00001010.10111101");
-#undef APER_U16_M_CHECK
-
-    TEST_DONE();
-}
-
-/* }}} */
-/* aper_write_len/aper_read_len {{{ */
-
-TEST_DECL("aligned per: aper_write_len/aper_read_len", 0)
-{
-    t_scope;
-    BB_1k(bb);
-    char *str;
+Z_GROUP_EXPORT(asn1_aligned_per) {
     bit_stream_t bs;
     size_t len;
 
-#define APER_LEN_CHECK(l, l_min, l_max, expected)  \
-    bb_reset(&bb);                                                     \
-    aper_write_len(&bb, l, l_min, l_max);                              \
-    bs = bs_init_bb(&bb);                                              \
-    TEST_FAIL_IF(aper_read_len(&bs, l_min, l_max, &len) < 0,           \
-                 "Call aper_read_len");                                \
-    TEST_FAIL_IF(len != l, "%zd ?= %u", len, l);                       \
-    str = t_print_bb(&bb, NULL);                                       \
-    TEST_FAIL_IF(strcmp(expected, str),                                \
-                 "expected [ "expected" ] | got [ %s ]", str)
+    Z_TEST(u16, "aligned per: aper_write_u16_m/aper_read_u16_m") {
+        t_scope;
+        BB_1k(bb);
 
-    APER_LEN_CHECK(15,    15,           15, "");
-    APER_LEN_CHECK(7,      3,           18, ".0100");
-    APER_LEN_CHECK(15,     0, ASN1_MAX_LEN, ".00001111");
-    APER_LEN_CHECK(0x1b34, 0, ASN1_MAX_LEN, ".10011011.00110100");
-#undef APER_LEN_CHECK
+        struct {
+            size_t d, d_max;
+            const char *s;
+        } t[] = {
+            {     0,     0,  "" },
+            {   0xe,    57,  ".001110" },
+            {  0x8d,   255,  ".10001101" },
+            { 0xabd, 33000,  ".00001010.10111101" },
+        };
 
-    TEST_DONE();
-}
+        for (int i = 0; i < countof(t); i++) {
+            bb_reset(&bb);
+            len = u64_blen(t[i].d_max);
+            aper_write_u16_m(&bb, t[i].d, u64_blen(t[i].d_max));
+            bs = bs_init_bb(&bb);
+            if (len) {
+                uint16_t u16 = t[i].d - 1;
 
-/* }}} */
-/* aper_write_nsnnwn/aper_read_nsnnwn {{{ */
+                Z_ASSERT_N(aper_read_u16_m(&bs, len, &u16), "[i:%d]", i);
+                Z_ASSERT_EQ(u16, t[i].d, "[i:%d]", i);
+            }
+            Z_ASSERT_STREQUAL(t[i].s, t_print_bb(&bb, NULL), "[i:%d]", i);
+        }
+    } Z_TEST_END;
 
-TEST_DECL("aligned per: aper_write_nsnnwn/aper_read_nsnnwn", 0)
-{
-    t_scope;
-    BB_1k(bb);
-    char *str;
-    bit_stream_t bs;
-    size_t len;
+    Z_TEST(len, "aligned per: aper_write_len/aper_read_len") {
+        t_scope;
+        BB_1k(bb);
 
-#define APER_NSNNWN_CHECK(n, expected)  \
-    bb_reset(&bb);                                                     \
-    aper_write_nsnnwn(&bb, n);                                         \
-    bs = bs_init_bb(&bb);                                              \
-    TEST_FAIL_IF(aper_read_nsnnwn(&bs, &len) < 0,                      \
-                 "Call aper_read_nsnnwn");                             \
-    TEST_FAIL_IF(len != n, "%zd ?= %u", len, n);                       \
-    str = t_print_bb(&bb, NULL);                                       \
-    TEST_FAIL_IF(strcmp(expected, str),                                \
-                 "expected [ "expected" ] | got [ %s ]", str)
+        struct {
+            size_t l, l_min, l_max;
+            const char *s;
+        } t[] = {
+            { 15,    15,           15, "" },
+            { 7,      3,           18, ".0100" },
+            { 15,     0, ASN1_MAX_LEN, ".00001111" },
+            { 0x1b34, 0, ASN1_MAX_LEN, ".10011011.00110100" },
+        };
 
-    APER_NSNNWN_CHECK(  0,  ".0000000");
-    APER_NSNNWN_CHECK(0xe,  ".0001110");
-    APER_NSNNWN_CHECK(96,   ".10000000.00000001.01100000");
-    APER_NSNNWN_CHECK(128,  ".10000000.00000001.10000000");
-#undef APER_NSNNWN_CHECK
+        for (int i = 0; i < countof(t); i++) {
+            bb_reset(&bb);
+            aper_write_len(&bb, t[i].l, t[i].l_min, t[i].l_max);
+            bs = bs_init_bb(&bb);
+            Z_ASSERT_N(aper_read_len(&bs, t[i].l_min, t[i].l_max, &len),
+                       "[i:%d]", i);
+            Z_ASSERT_EQ(len, t[i].l, "[i:%d]", i);
+            Z_ASSERT_STREQUAL(t[i].s, t_print_bb(&bb, NULL), "[i:%d]", i);
+        }
+    } Z_TEST_END;
 
-    TEST_DONE();
-}
+    Z_TEST(nsnnwn, "aligned per: aper_write_nsnnwn/aper_read_nsnnwn") {
+        t_scope;
+        BB_1k(bb);
 
-/* }}} */
-/* aper_encode_number/aper_decode_number {{{ */
+        struct {
+            size_t n;
+            const char *s;
+        } t[] = {
+            {   0,  ".0000000" },
+            { 0xe,  ".0001110" },
+            { 96,   ".10000000.00000001.01100000" },
+            { 128,  ".10000000.00000001.10000000" },
+        };
 
-TEST_DECL("aligned per: aper_encode_number/aper_decode_number", 0)
-{
-    t_scope;
-    BB_1k(bb);
-    char *str;
-    bit_stream_t bs;
-    int64_t i64;
+        for (int i = 0; i < countof(t); i++) {
+            bb_reset(&bb);
+            aper_write_nsnnwn(&bb, t[i].n);
+            bs = bs_init_bb(&bb);
+            Z_ASSERT_N(aper_read_nsnnwn(&bs, &len), "[i:%d]", i);
+            Z_ASSERT_EQ(len, t[i].n, "[i:%d]", i);
+            Z_ASSERT_STREQUAL(t[i].s, t_print_bb(&bb, NULL), "[i:%d]", i);
+        }
+    } Z_TEST_END;
 
-    asn1_int_info_t uc = { /* Unconstrained */
-        .min     = INT64_MIN,
-        .max     = INT64_MAX,
-    };
+    Z_TEST(number, "aligned per: aper_{encode,decode}_number") {
+        t_scope;
+        BB_1k(bb);
 
-    asn1_int_info_t sc = { /* Semi-constrained */
-        .min     = -5,
-        .max     = INT64_MAX,
-    };
+        asn1_int_info_t uc = { /* Unconstrained */
+            .min     = INT64_MIN,
+            .max     = INT64_MAX,
+        };
 
-    asn1_int_info_t fc1 = { /* Fully constrained */
-        .min     = -5,
-        .max     = -1,
-    };
+        asn1_int_info_t sc = { /* Semi-constrained */
+            .min     = -5,
+            .max     = INT64_MAX,
+        };
 
-    asn1_int_info_t fc2 = { /* Fully constrained */
-        .min     = 0,
-        .max     = 100000,
-    };
+        asn1_int_info_t fc1 = { /* Fully constrained */
+            .min     = -5,
+            .max     = -1,
+        };
 
-    asn1_int_info_t fc3 = { /* Fully constrained */
-        .min     = 666,
-        .max     = 666,
-    };
+        asn1_int_info_t fc2 = { /* Fully constrained */
+            .min     = 0,
+            .max     = 100000,
+        };
 
-    asn1_int_info_t ext = { /* Extended */
-        .min       = 0,
-        .max       = 7,
-        .extended  = true,
-        .ext_min   = 0,
-        .ext_max   = INT64_MAX,
-    };
+        asn1_int_info_t fc3 = { /* Fully constrained */
+            .min     = 666,
+            .max     = 666,
+        };
 
-#define APER_NUMBER_CHECK(i, info, expected)  \
-    bb_reset(&bb);                                                     \
-    asn1_int_info_update(info);                                        \
-    aper_encode_number(&bb, i, info);                                  \
-    bs = bs_init_bb(&bb);                                              \
-    TEST_FAIL_IF(aper_decode_number(&bs, info, &i64) < 0,              \
-                 "Call aper_decode_number");                           \
-    TEST_FAIL_IF(i64 != i, "%jd ?= "#i, i64);                          \
-    str = t_print_bb(&bb, NULL);                                       \
-    TEST_FAIL_IF(strcmp(expected, str),                                \
-                 "expected [ "expected" ] | got [ %s ]", str)
-    APER_NUMBER_CHECK(1234,  &uc,  ".00000010.00000100.11010010");
-    APER_NUMBER_CHECK(1234,  NULL, ".00000010.00000100.11010010");
-    APER_NUMBER_CHECK(-1234, NULL, ".00000010.11111011.00101110");
-    APER_NUMBER_CHECK(0,     NULL, ".00000001.00000000");
-    APER_NUMBER_CHECK(0,     &sc,  ".00000001.00000101");
-    APER_NUMBER_CHECK(-3,    &fc1, ".010");
-    APER_NUMBER_CHECK(-1,    &fc1, ".100");
-    APER_NUMBER_CHECK(-1,    NULL, ".00000001.11111111");
-    APER_NUMBER_CHECK(45,    &fc2, ".01000000.00101101");
-    APER_NUMBER_CHECK(128,   &fc2, ".01000000.10000000");
-    APER_NUMBER_CHECK(666,   &fc3, "");
-    APER_NUMBER_CHECK(5,     &ext, ".0101");
-    APER_NUMBER_CHECK(8,     &ext, ".10000000.00000001.00001000");
+        asn1_int_info_t ext = { /* Extended */
+            .min       = 0,
+            .max       = 7,
+            .extended  = true,
+            .ext_min   = 0,
+            .ext_max   = INT64_MAX,
+        };
 
-#undef APER_NUMBER_CHECK
+        struct {
+            int64_t         i;
+            asn1_int_info_t *info;
+            const char      *s;
+        } t[] = {
+            { 1234,  &uc,  ".00000010.00000100.11010010" },
+            { 1234,  NULL, ".00000010.00000100.11010010" },
+            { -1234, NULL, ".00000010.11111011.00101110" },
+            { 0,     NULL, ".00000001.00000000" },
+            { 0,     &sc,  ".00000001.00000101" },
+            { -3,    &fc1, ".010" },
+            { -1,    &fc1, ".100" },
+            { -1,    NULL, ".00000001.11111111" },
+            { 45,    &fc2, ".01000000.00101101" },
+            { 128,   &fc2, ".01000000.10000000" },
+            { 666,   &fc3, "" },
+            { 5,     &ext, ".0101" },
+            { 8,     &ext, ".10000000.00000001.00001000" },
+        };
 
-    TEST_DONE();
-}
+        for (int i = 0; i < countof(t); i++) {
+            int64_t i64;
 
-/* }}} */
-/* aper_encode_ostring/t_aper_decode_ostring {{{ */
+            bb_reset(&bb);
+            asn1_int_info_update(t[i].info);
+            aper_encode_number(&bb, t[i].i, t[i].info);
+            bs = bs_init_bb(&bb);
+            Z_ASSERT_N(aper_decode_number(&bs, t[i].info, &i64), "[i:%d]", i);
+            Z_ASSERT_EQ(i64, t[i].i, "[i:%d]", i);
+            Z_ASSERT_STREQUAL(t[i].s, t_print_bb(&bb, NULL), "[i:%d]", i);
+        }
+    } Z_TEST_END;
 
-TEST_DECL("aligned per: aper_encode_ostring/t_aper_decode_ostring", 0)
-{
-    t_scope;
-    BB_1k(bb);
-    char *str;
-    bit_stream_t bs;
-    asn1_ostring_t src;
-    asn1_ostring_t dst;
+    Z_TEST(ostring, "aligned per: aper_{encode,decode}_ostring") {
+        t_scope;
+        BB_1k(bb);
 
-    asn1_cnt_info_t uc = { /* Unconstrained */
-        .max     = SIZE_MAX,
-    };
+        asn1_cnt_info_t uc = { /* Unconstrained */
+            .max     = SIZE_MAX,
+        };
 
-    asn1_cnt_info_t fc1 = { /* Fully constrained */
-        .min     = 3,
-        .max     = 3,
-    };
+        asn1_cnt_info_t fc1 = { /* Fully constrained */
+            .min     = 3,
+            .max     = 3,
+        };
 
-    asn1_cnt_info_t fc2 = { /* Fully constrained */
-        .max     = 23,
-    };
+        asn1_cnt_info_t fc2 = { /* Fully constrained */
+            .max     = 23,
+        };
 
-    asn1_cnt_info_t ext1 = { /* Extended */
-        .min      = 1,
-        .max      = 2,
-        .extended = true,
-        .ext_min  = 3,
-        .ext_max  = 3,
-    };
+        asn1_cnt_info_t ext1 = { /* Extended */
+            .min      = 1,
+            .max      = 2,
+            .extended = true,
+            .ext_min  = 3,
+            .ext_max  = 3,
+        };
 
-    asn1_cnt_info_t ext2 = { /* Extended */
-        .min      = 2,
-        .max      = 2,
-        .extended = true,
-        .ext_max  = SIZE_MAX,
-    };
+        asn1_cnt_info_t ext2 = { /* Extended */
+            .min      = 2,
+            .max      = 2,
+            .extended = true,
+            .ext_max  = SIZE_MAX,
+        };
 
-#define APER_OSTRING_CHECK(os, info, copy, expected)  \
-    bb_reset(&bb);                                                     \
-    src = (asn1_ostring_t){                                            \
-        .data = (const uint8_t *)os,                                   \
-        .len = sizeof(os) - 1                                          \
-    };                                                                 \
-    aper_encode_ostring(&bb, &src, info);                              \
-    if (sizeof(os) - 1 < 4) {                                          \
-        str = t_print_bb(&bb, NULL);                                   \
-        TEST_FAIL_IF(strcmp(expected, str),                            \
-                     "expected [ "expected" ] | got [ %s ]", str);     \
-    }                                                                  \
-    bs = bs_init_bb(&bb);                                              \
-    TEST_FAIL_IF(t_aper_decode_ostring(&bs, info, copy, &dst) < 0,     \
-                 "Call t_aper_decode_ostring");                        \
-    TEST_FAIL_IF(dst.len != src.len, "Length check : %zd ?= %zd",      \
-                 dst.len, src.len);                                    \
-    TEST_FAIL_IF(memcmp(dst.data, src.data, src.len),                  \
-                 "Content check")
-    APER_OSTRING_CHECK("aaa", &uc,  true,
-                       ".00000011.01100001.01100001.01100001");
-    APER_OSTRING_CHECK("aaa", NULL, true,
-                       ".00000011.01100001.01100001.01100001");
-    APER_OSTRING_CHECK("aaa", NULL, false,
-                       ".00000011.01100001.01100001.01100001");
-    APER_OSTRING_CHECK("aaa", &fc1, false, ".01100001.01100001.01100001");
-    APER_OSTRING_CHECK("aaa", &fc2, false,
-                       ".00011000.01100001.01100001.01100001");
-    APER_OSTRING_CHECK("aa", &ext1, true, ".01000000.01100001.01100001");
-    APER_OSTRING_CHECK("aaa", &ext1, true,
-                       ".10000000.00000011.01100001.01100001.01100001");
-    APER_OSTRING_CHECK("aa", &ext2, true, ".00110000.10110000.1");
-    APER_OSTRING_CHECK("a",  &ext2, true, ".10000000.00000001.01100001");
-#undef APER_OSTRING_CHECK
+        struct {
+            const char      *os;
+            asn1_cnt_info_t *info;
+            bool             copy;
+            const char      *s;
+        } t[] = {
+            { "aaa", &uc,   true,  ".00000011.01100001.01100001.01100001" },
+            { "aaa", NULL,  true,  ".00000011.01100001.01100001.01100001" },
+            { "aaa", NULL,  false, ".00000011.01100001.01100001.01100001" },
+            { "aaa", &fc1,  false, ".01100001.01100001.01100001" },
+            { "aaa", &fc2,  false, ".00011000.01100001.01100001.01100001" },
+            { "aa",  &ext1, true,  ".01000000.01100001.01100001" },
+            { "aaa", &ext1, true,  ".10000000.00000011.01100001.01100001.01100001" },
+            { "aa",  &ext2, true,  ".00110000.10110000.1" },
+            { "a",   &ext2, true,  ".10000000.00000001.01100001" },
+        };
 
-    TEST_DONE();
-}
+        for (int i = 0; i < countof(t); i++) {
+            asn1_ostring_t src = {
+                .data = (const uint8_t *)t[i].os,
+                .len = strlen(t[i].os),
+            };
+            asn1_ostring_t dst;
 
-/* }}} */
-/* aper_encode_bstring/t_aper_decode_bstring {{{ */
+            bb_reset(&bb);
+            aper_encode_ostring(&bb, &src, t[i].info);
+            if (src.len < 4) {
+                Z_ASSERT_STREQUAL(t[i].s, t_print_bb(&bb, NULL),"[i:%d]", i);
+            }
+            bs = bs_init_bb(&bb);
+            Z_ASSERT_N(t_aper_decode_ostring(&bs, t[i].info, t[i].copy, &dst),
+                       "[i:%d]", i);
+            Z_ASSERT_LSTREQUAL(LSTR_INIT_V((void *)dst.data, dst.len),
+                               LSTR_INIT_V((void *)src.data, src.len),
+                               "[i:%d]", i);
+        }
+    } Z_TEST_END;
 
-TEST_DECL("aligned per: aper_encode_bstring/t_aper_decode_bstring", 0)
-{
-    t_scope;
-    BB_1k(bb);
-    BB_1k(src_bb);
-    char *str;
-    bit_stream_t bs;
-    bit_stream_t src;
-    bit_stream_t dst;
+    Z_TEST(bstring, "aligned per: aper_{encode,decode}_bstring") {
+        t_scope;
+        BB_1k(bb);
+        BB_1k(src_bb);
 
-    asn1_cnt_info_t uc = { /* Unconstrained */
-        .max     = SIZE_MAX,
-    };
+        asn1_cnt_info_t uc = { /* Unconstrained */
+            .max     = SIZE_MAX,
+        };
 
-    asn1_cnt_info_t fc1 = { /* Fully constrained */
-        .min     = 3,
-        .max     = 3,
-    };
+        asn1_cnt_info_t fc1 = { /* Fully constrained */
+            .min     = 3,
+            .max     = 3,
+        };
 
-    asn1_cnt_info_t fc2 = { /* Fully constrained */
-        .max     = 23,
-    };
+        asn1_cnt_info_t fc2 = { /* Fully constrained */
+            .max     = 23,
+        };
 
-    asn1_cnt_info_t ext1 = { /* Extended */
-        .min      = 1,
-        .max      = 2,
-        .extended = true,
-        .ext_min  = 3,
-        .ext_max  = 3,
-    };
+        asn1_cnt_info_t ext1 = { /* Extended */
+            .min      = 1,
+            .max      = 2,
+            .extended = true,
+            .ext_min  = 3,
+            .ext_max  = 3,
+        };
 
-    asn1_cnt_info_t ext2 = { /* Extended */
-        .min      = 2,
-        .max      = 2,
-        .extended = true,
-        .ext_max  = SIZE_MAX,
-    };
+        asn1_cnt_info_t ext2 = { /* Extended */
+            .min      = 2,
+            .max      = 2,
+            .extended = true,
+            .ext_max  = SIZE_MAX,
+        };
 
-#define APER_BSTRING_CHECK(bit_str, info, copy, expected)  \
-    bb_reset(&bb);                                                     \
-    bb_reset(&src_bb);                                                 \
-                                                                       \
-    for (int i = 0; bit_str[i]; i++) {                                 \
-        if (bit_str[i] == '1') {                                       \
-            bb_add_bit(&src_bb, true);                                 \
-        }                                                              \
-        if (bit_str[i] == '0') {                                       \
-            bb_add_bit(&src_bb, false);                                \
-        }                                                              \
-    }                                                                  \
-                                                                       \
-    src = bs_init_bb(&src_bb);                                         \
-    aper_encode_bstring(&bb, &src, info);                              \
-    str = t_print_bb(&bb, NULL);                                       \
-    TEST_FAIL_IF(strcmp(expected, str),                                \
-                 "expected [ "expected" ] | got [ %s ]", str);         \
-    bs = bs_init_bb(&bb);                                              \
-    TEST_FAIL_IF(t_aper_decode_bstring(&bs, info, copy, &dst) < 0,     \
-                 "Call t_aper_decode_bstring");                        \
-    TEST_FAIL_IF(bs_len(&dst) != bs_len(&src),                         \
-                 "Length check : %zd ?= %zd",                          \
-                 bs_len(&dst), bs_len(&src));                          \
-    TEST_FAIL_UNLESS(bs_equals(dst, src), "Content check")
+        struct {
+            const char      *bs;
+            asn1_cnt_info_t *info;
+            bool             copy;
+            const char      *s;
+        } t[] = {
+            { "01010101", &uc,   false, ".00001000.01010101" },
+            { "01010101", NULL,  true,  ".00001000.01010101" },
+            { "101",      &fc1,  true,  ".101" },
+            { "101",      &fc2,  true,  ".00011101" },
+            { "10",       &ext1, true,  ".0110" },
+            { "011",      &ext1, true,  ".10000000.00000011.011" },
+            { "11",       &ext2, true,  ".011" },
+            { "011",      &ext2, true,  ".10000000.00000011.011" },
+        };
 
-    APER_BSTRING_CHECK("01010101",  &uc,  false, ".00001000.01010101");
-    APER_BSTRING_CHECK("01010101", NULL,  true, ".00001000.01010101");
-    APER_BSTRING_CHECK("101",      &fc1,  true, ".101");
-    APER_BSTRING_CHECK("101",      &fc2,  true, ".00011101");
-    APER_BSTRING_CHECK("10",       &ext1, true, ".0110");
-    APER_BSTRING_CHECK("011",      &ext1, true, ".10000000.00000011.011");
-    APER_BSTRING_CHECK("11",       &ext2, true, ".011");
-    APER_BSTRING_CHECK("011",      &ext2, true, ".10000000.00000011.011");
-#undef APER_BSTRING_CHECK
+        for (int i = 0; i < countof(t); i++) {
+            bit_stream_t src;
+            bit_stream_t dst;
 
-    TEST_DONE();
-}
+            bb_reset(&bb);
+            bb_reset(&src_bb);
+            for (const char *s = t[i].bs; *s; s++) {
+                if (*s == '1' || *s == '0') {
+                    bb_add_bit(&src_bb, *s == '1');
+                }
+            }
+            src = bs_init_bb(&src_bb);
+            aper_encode_bstring(&bb, &src, t[i].info);
+            Z_ASSERT_STREQUAL(t[i].s, t_print_bb(&bb, NULL), "[i:%d]", i);
+            bs = bs_init_bb(&bb);
+            Z_ASSERT_N(t_aper_decode_bstring(&bs, t[i].info, t[i].copy, &dst),
+                       "[i:%d]", i);
+            Z_ASSERT_EQ(bs_len(&dst), bs_len(&src), "[i:%d]", i);
+            Z_ASSERT(bs_equals(dst, src), "[i:%d]", i);
+        }
+    } Z_TEST_END;
 
-/* }}} */
-/* aper_encode_enum/aper_decode_enum {{{ */
+    Z_TEST(enum, "aligned per: aper_{encode,decode}_enum") {
+        t_scope;
+        BB_1k(bb);
 
-TEST_DECL("aligned per: aper_encode_enum/aper_decode_enum", 0)
-{
-    t_scope;
-    BB_1k(bb);
-    char *str;
-    bit_stream_t bs;
-    uint32_t res;
+        asn1_enum_info_t e1;
+        asn1_enum_info_t e2;
+        asn1_enum_info_t e3;
 
-    asn1_enum_info_t e1;
-    asn1_enum_info_t e2;
-    asn1_enum_info_t e3;
+        struct {
+            uint32_t          val;
+            asn1_enum_info_t *e;
+            const char       *s;
+        } t[] = {
+            { 5,   &e1, ".0" },
+            { 18,  &e1, ".1" },
+            { 48,  &e2, ".00110000" },
+            { 104, &e2, ".11000000.00000001.01101000" },
+            { 192, &e2, ".11000000.00000001.11000000" },
+            { 20,  &e3, ".10010100" },
+        };
 
-    asn1_enum_info_init(&e1);
-    asn1_enum_append(&e1, 5);
-    asn1_enum_append(&e1, 18);
+        asn1_enum_info_init(&e1);
+        asn1_enum_append(&e1, 5);
+        asn1_enum_append(&e1, 18);
 
-    asn1_enum_info_init(&e2);
-    e2.extended = true;
+        asn1_enum_info_init(&e2);
+        e2.extended = true;
 
-    for (uint32_t u = 0; u < 100; u++) {
-        asn1_enum_append(&e2, u);
-    }
+        for (uint32_t u = 0; u < 100; u++) {
+            asn1_enum_append(&e2, u);
+        }
 
-    asn1_enum_info_init(&e3);
-    e3.extended = true;
+        asn1_enum_info_init(&e3);
+        e3.extended = true;
 
-    for (uint32_t u = 0; u < 18; u++) {
-        asn1_enum_append(&e3, u);
-    }
+        for (uint32_t u = 0; u < 18; u++) {
+            asn1_enum_append(&e3, u);
+        }
 
-#define APER_ENUM_CHECK(val, e, expected)  \
-    bb_reset(&bb);                                                     \
-    TEST_FAIL_IF(aper_encode_enum(&bb, val, e) < 0,                    \
-                 "Call aper_encode_enum");                             \
-    bs = bs_init_bb(&bb);                                              \
-    TEST_FAIL_IF(aper_decode_enum(&bs, e, &res) < 0,                   \
-                 "Call aper_decode_enum");                             \
-    TEST_FAIL_IF(res != val, "%u ?= %u", res, val);                    \
-    str = t_print_bb(&bb, NULL);                                       \
-    TEST_FAIL_IF(strcmp(expected, str),                                \
-                 "expected [ "expected" ] | got [ %s ]", str)
+        for (int i = 0; i < countof(t); i++) {
+            uint32_t res;
 
-    APER_ENUM_CHECK(5,   &e1, ".0");
-    APER_ENUM_CHECK(18,  &e1, ".1");
-    APER_ENUM_CHECK(48,  &e2, ".00110000");
-    APER_ENUM_CHECK(104, &e2, ".11000000.00000001.01101000");
-    APER_ENUM_CHECK(192, &e2, ".11000000.00000001.11000000");
-    APER_ENUM_CHECK(20,  &e3, ".10010100");
-#undef APER_ENUM_CHECK
-
-    TEST_DONE();
-}
-
-/* }}} */
+            bb_reset(&bb);
+            Z_ASSERT_N(aper_encode_enum(&bb, t[i].val, t[i].e), "[i:%d]", i);
+            bs = bs_init_bb(&bb);
+            Z_ASSERT_N(aper_decode_enum(&bs, t[i].e, &res), "[i:%d]", i);
+            Z_ASSERT_EQ(res, t[i].val, "[i:%d]", i);
+            Z_ASSERT_STREQUAL(t[i].s, t_print_bb(&bb, NULL), "[i:%d]", i);
+        }
+    } Z_TEST_END;
+} Z_GROUP_END
 
 /* }}} */

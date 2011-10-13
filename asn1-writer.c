@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "asn1.h"
+#include "z.h"
 
 /*----- COMMON -{{{- */
 #ifndef NDEBUG
@@ -179,12 +180,6 @@ static uint8_t *asn1_pack_int32(uint8_t *dst, int32_t i)
     return mempcpy(dst, (char *)&be32 + 4 - len, len);
 }
 
-#define ASN1_PACKER_TEST(pfx, v, exp, txt) \
-    ({  asn1_pack_##pfx(buf, v);                                             \
-        TEST_FAIL_IF((size = asn1_##pfx##_size(v)) != sizeof(exp) ||         \
-                     memcmp(buf, exp, sizeof(exp)),                          \
-                     "packing of %016jx", (uint64_t)(v)); })
-
 static uint8_t *asn1_pack_int64(uint8_t *dst, int64_t i)
 {
     be64_t be64 = cpu_to_be64(i);
@@ -193,66 +188,9 @@ static uint8_t *asn1_pack_int64(uint8_t *dst, int64_t i)
     return mempcpy(dst, (char *)&be64 + 8 - len, len);
 }
 
-TEST_DECL("asn1: int64 packer", 0)
-{
-    int size;
-    uint8_t buf[10];
-    int64_t i1 = 0xffffffffffffffffLL;
-    uint8_t exp1[] = { 0xff };
-    int64_t i2 = 0xffffffffffffffLL;
-    uint8_t exp2[] = { 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-    int64_t i3 = 0x8000000000000000LL;
-    uint8_t exp3[] = { 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-
-    ASN1_PACKER_TEST(int64, i1, exp1, "-1");
-    ASN1_PACKER_TEST(int64, i2, exp2, "2^56 - 1");
-    ASN1_PACKER_TEST(int64, i3, exp3, "-0");
-    TEST_DONE();
-}
-
-TEST_DECL("asn1: int32 packer", 0)
-{
-    uint8_t buf[10];
-    int size;
-    int32_t i1 = 255;
-    uint8_t exp1[] = { 0x00, 0xff };
-    int32_t i2 = -255;
-    uint8_t exp2[] = { 0xff, 0x01 };
-    int32_t i3 = (1 << 16) - 1;
-    uint8_t exp3[] = { 0x00, 0xff, 0xff };
-    int32_t i4 = 0xffffffff;
-    uint8_t exp4[] = { 0xff };
-
-    ASN1_PACKER_TEST(int32, i1, exp1, "255");
-    ASN1_PACKER_TEST(int32, i2, exp2, "-255");
-    ASN1_PACKER_TEST(int32, i3, exp3, "2^16 - 1");
-    ASN1_PACKER_TEST(int32, i4, exp4, "-1");
-    TEST_DONE();
-}
-
 static uint8_t *asn1_pack_uint32(uint8_t *dst, uint32_t i)
 {
     return asn1_pack_int64(dst, i);
-}
-
-TEST_DECL("asn1: uint32 packer", 0)
-{
-    int size;
-    uint8_t buf[10];
-    uint32_t u1 = 255;
-    uint8_t exp1[] = { 0x00, 0xff };
-    uint32_t u2 = 256;
-    uint8_t exp2[] = { 0x01, 0x00 };
-    uint32_t u3 = (1 << 16) - 1;
-    uint8_t exp3[] = { 0x00, 0xff, 0xff };
-    uint32_t u4 = 0xffffffff;
-    uint8_t exp4[] = { 0x00, 0xff, 0xff, 0xff, 0xff };
-
-    ASN1_PACKER_TEST(uint32, u1, exp1, "255");
-    ASN1_PACKER_TEST(uint32, u2, exp2, "256");
-    ASN1_PACKER_TEST(uint32, u3, exp3, "2^16 - 1");
-    ASN1_PACKER_TEST(uint32, u4, exp4, "MAX UINT32");
-    TEST_DONE();
 }
 
 static uint8_t *asn1_pack_uint64(uint8_t *dst, uint64_t u)
@@ -266,25 +204,6 @@ static uint8_t *asn1_pack_uint64(uint8_t *dst, uint64_t u)
     return asn1_pack_int64(dst, (int64_t)u);
 }
 
-TEST_DECL("asn1: uint64 packer", 0)
-{
-    int size;
-    uint8_t buf[10];
-    uint64_t u1 = 0xffffffffffffffffULL;
-    uint8_t exp1[] = { 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-    uint64_t u2 = 0xffffffffffffffULL;
-    uint8_t exp2[] = { 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-    uint64_t u3 = 0x8000000000000000ULL;
-    uint8_t exp3[] = { 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-
-    ASN1_PACKER_TEST(uint64, u1, exp1, "MAX UINT64");
-    ASN1_PACKER_TEST(uint64, u2, exp2, "2^56 - 1");
-    ASN1_PACKER_TEST(uint64, u3, exp3, "2^63");
-    TEST_DONE();
-}
-
-#undef ASN1_PACKER_TEST
-
 static uint8_t *asn1_pack_len(uint8_t *dst, uint32_t i)
 {
     if (i >= 0x80) {
@@ -297,25 +216,6 @@ static uint8_t *asn1_pack_len(uint8_t *dst, uint32_t i)
     *dst++ = i;
     return dst;
 }
-
-TEST_DECL("asn1: len packer", 0)
-{
-    uint8_t buf[10];
-    int32_t l1 = 127;
-    uint8_t exp1[] = { 0x7f };
-    int32_t l2 = 128;
-    uint8_t exp2[] = { 0x81, 0x80 };
-
-#define ASN1_LEN_TEST(l, exp) \
-    asn1_pack_len(buf, l); \
-    TEST_FAIL_IF(memcmp(buf, exp, sizeof(exp)), "packing of %d", l)
-
-    ASN1_LEN_TEST(l1, exp1);
-    ASN1_LEN_TEST(l2, exp2);
-#undef ASN1_LEN_TEST
-    TEST_DONE();
-}
-
 
 static uint8_t *asn1_pack_tag(uint8_t *dst, uint32_t tag, uint8_t len)
 {
@@ -1502,3 +1402,87 @@ int asn1_unpack_(pstream_t *ps, const asn1_desc_t *desc,
     return asn1_unpack_rec(ps, desc, mem_pool, 0, st, copy, false);
 }
 /*  */
+
+Z_GROUP_EXPORT(asn1_packer)
+{
+    uint8_t buf[BUFSIZ];
+
+#define T(pfx, v, exp, txt) \
+    ({  Z_ASSERT_EQ(asn1_pack_##pfx(buf, v) - buf, ssizeof(exp), txt); \
+        Z_ASSERT_EQ(asn1_##pfx##_size(v), sizeof(exp), txt);           \
+        Z_ASSERT(memcmp(buf, exp, sizeof(exp)) == 0, txt); })
+
+    Z_TEST(i64, "asn1: int64 packer") {
+        int64_t i1     = 0xffffffffffffffffLL;
+        uint8_t exp1[] = { 0xff };
+        int64_t i2     = 0xffffffffffffffLL;
+        uint8_t exp2[] = { 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+        int64_t i3     = 0x8000000000000000LL;
+        uint8_t exp3[] = { 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
+        T(int64, i1, exp1, "-1");
+        T(int64, i2, exp2, "2^56 - 1");
+        T(int64, i3, exp3, "-0");
+    } Z_TEST_END;
+
+    Z_TEST(i32, "asn1: int32 packer") {
+        int32_t i1     = 255;
+        uint8_t exp1[] = { 0x00, 0xff };
+        int32_t i2     = -255;
+        uint8_t exp2[] = { 0xff, 0x01 };
+        int32_t i3     = (1 << 16) - 1;
+        uint8_t exp3[] = { 0x00, 0xff, 0xff };
+        int32_t i4     = 0xffffffff;
+        uint8_t exp4[] = { 0xff };
+
+        T(int32, i1, exp1, "255");
+        T(int32, i2, exp2, "-255");
+        T(int32, i3, exp3, "2^16 - 1");
+        T(int32, i4, exp4, "-1");
+    } Z_TEST_END;
+
+    Z_TEST(u32, "asn1: uint32 packer") {
+        uint32_t u1     = 255;
+        uint8_t  exp1[] = { 0x00, 0xff };
+        uint32_t u2     = 256;
+        uint8_t  exp2[] = { 0x01, 0x00 };
+        uint32_t u3     = (1 << 16) - 1;
+        uint8_t  exp3[] = { 0x00, 0xff, 0xff };
+        uint32_t u4     = 0xffffffff;
+        uint8_t  exp4[] = { 0x00, 0xff, 0xff, 0xff, 0xff };
+
+        T(uint32, u1, exp1, "255");
+        T(uint32, u2, exp2, "256");
+        T(uint32, u3, exp3, "2^16 - 1");
+        T(uint32, u4, exp4, "MAX UINT32");
+    } Z_TEST_END;
+
+    Z_TEST(u64, "asn1: uint64 packer") {
+        uint64_t u1     = 0xffffffffffffffffULL;
+        uint8_t  exp1[] = { 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+        uint64_t u2     = 0xffffffffffffffULL;
+        uint8_t  exp2[] = { 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+        uint64_t u3     = 0x8000000000000000ULL;
+        uint8_t  exp3[] = { 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
+        T(uint64, u1, exp1, "MAX UINT64");
+        T(uint64, u2, exp2, "2^56 - 1");
+        T(uint64, u3, exp3, "2^63");
+    } Z_TEST_END;
+
+#undef T
+
+    Z_TEST(len, "asn1: len packer") {
+        int32_t const l1     = 127;
+        uint8_t const exp1[] = { 0x7f };
+        int32_t const l2     = 128;
+        uint8_t const exp2[] = { 0x81, 0x80 };
+
+        Z_ASSERT_EQ(asn1_pack_len(buf, l1) - buf, ssizeof(exp1));
+        Z_ASSERT_ZERO(memcmp(buf, exp1, sizeof(exp1)));
+
+        Z_ASSERT_EQ(asn1_pack_len(buf, l2) - buf, ssizeof(exp2));
+        Z_ASSERT_ZERO(memcmp(buf, exp2, sizeof(exp2)));
+    } Z_TEST_END;
+} Z_GROUP_END;
+

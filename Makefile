@@ -37,9 +37,7 @@ libcommon_SOURCES = \
 	asn1.c \
 	asn1-writer.c \
 	asn1-per.c \
-	ztst-asn1-writer.c \
 	\
-	bit-stream.c \
 	bit-buf.c \
 	\
 	conf.c  \
@@ -157,6 +155,7 @@ libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 time-lp-simple_SOURCES = time-lp-simple.c
 
 zchk_SOURCES = zchk.c \
+	zchk-asn1-writer.c \
 	$/lib-common/libcommon.wa \
 	$/lib-common/time-lp-simple.a
 zchk_LIBS = $(libxml2_LIBS)
