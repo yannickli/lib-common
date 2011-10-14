@@ -11,16 +11,7 @@
 #                                                                        #
 ##########################################################################
 
-CFLAGS :=
-CPPFLAGS :=
-LDFLAGS :=
-
-GCCVERSION := $(shell $(CC) -dumpversion)
-GCCMAJOR   := $(word 1,$(subst ., ,$(GCCVERSION)))
-GCCMINOR   := $(word 2,$(subst ., ,$(GCCVERSION)))
-GCC_PREREQ=$(shell test $(GCCMAJOR) -lt $1 || test $(GCCMAJOR) = $1 -a $(GCCMINOR) -lt $2 || echo 1)
-
-LDFLAGS += -Wl,--as-needed
+LDFLAGS := -Wl,--as-needed
 ifeq (,$(NOCOMPRESS))
 ifneq (,$(shell ld --help | grep compress-debug-sections))
     LDFLAGS += -Wl,--compress-debug-sections=zlib
