@@ -133,7 +133,7 @@ endef
 
 define ext/rule/h
 $(eval $(call fun/common-depends,$1,$3,$3))
-_generated: $3
+_generated_hdr: $3
 endef
 
 #}}}

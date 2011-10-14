@@ -114,7 +114,7 @@ ext/gen/blk = $(call fun/patsubst-filt,%.blk,%.blk.c,$1)
 define ext/expand/blk
 $(foreach t,$3,$(eval $3.c_NOCHECK = block))
 $3.c: FL_=$($(1D)/_CFLAGS) $($1_CFLAGS) $($3.c_CFLAGS)
-$3.c: $3 $(CLANG)
+$3.c: $3 $(CLANG) | _generated_hdr
 	$(msg/COMPILE) " BLK" $3
 	$(CLANG) -cc1 $(CLANGFLAGS) $$(FL_) -rewrite-blocks -o $$@+ $$<
 	$(MV) $$@+ $$@ && chmod a-w $$@
@@ -133,7 +133,7 @@ ext/gen/blkk = $(call fun/patsubst-filt,%.blkk,%.blkk.cc,$1)
 define ext/expand/blkk
 $(foreach t,$3,$(eval $3.cc_NOCHECK = block))
 $3.cc: FL_=$($(1D)/_CXXLAGS) $($1_CXXLAGS) $($3.c_CXXLAGS)
-$3.cc: $3 $(CLANGXX)
+$3.cc: $3 $(CLANGXX) | _generated_hdr
 	$(msg/COMPILE) " BLK" $3
 	$(CLANGXX) -cc1 $(CLANGXXFLAGS) $$(FL_) -rewrite-blocks -o $$@+ $$<
 	$(MV) $$@+ $$@ && chmod a-w $$@
