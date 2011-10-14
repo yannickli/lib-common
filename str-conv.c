@@ -318,30 +318,6 @@ int strconv_hexdecode(void *dest, int size, const char *src, int len)
     return len / 2;
 }
 
-TEST_DECL("str: strconv_hexdecode", 0)
-{
-    int res;
-    byte dest[BUFSIZ];
-
-    const char *encoded = "30313233";
-    const char *decoded = "0123";
-
-    res = strconv_hexdecode(dest, sizeof(dest), encoded, -1);
-
-    TEST_FAIL_IF((size_t)res != strlen(encoded) / 2, "str_hexdecode returned bad"
-                 "length: expected %zd, got %d.", strlen(encoded) / 2, res);
-    TEST_FAIL_IF(memcmp(dest, decoded, res), "str_hexdecode failed decoding");
-
-    encoded = "1234567";
-    TEST_FAIL_IF(strconv_hexdecode(dest, sizeof(dest), encoded, -1) >= 0,
-                 "str_hexdecode should not accept odd-length strings");
-    encoded = "1234567X";
-    TEST_FAIL_IF(strconv_hexdecode(dest, sizeof(dest), encoded, -1) >= 0,
-                 "str_hexdecode accepted non hexadecimal string");
-    TEST_DONE();
-}
-
-
 int strconv_hexencode(char *dest, int size, const void *src, int len)
 {
     const byte *s = src, *end = s + MIN(len, (size - 1) / 2);
@@ -695,78 +671,3 @@ int sb_conv_from_ucs2le_hex(sb_t *sb, const void *s, int slen)
 {
     return sb_conv_from_ucs2_hex(sb, s, slen, false);
 }
-
-
-/* tests {{{ */
-
-#define RUN_UTF8_TEST_(Str1, Str2, Strip, Val)  do {                         \
-        int len1 = strlen(Str1);                                             \
-        int len2 = strlen(Str2);                                             \
-        int cmp  = utf8_stricmp(Str1, len1, Str2, len2, Strip);              \
-                                                                             \
-        TEST_FAIL_IF(cmp != Val, "utf8_stricmp(\"%.*s\", \"%.*s\", %d) "     \
-                     "returned bad value: %d, expected %d",                  \
-                     len1, Str1, len2, Str2, Strip, cmp, Val);               \
-    } while (0)
-
-#define RUN_UTF8_TEST(Str1, Str2, Val) do {                                  \
-        RUN_UTF8_TEST_(Str1, Str2, false, Val);                              \
-        RUN_UTF8_TEST_(Str2, Str1, false, -(Val));                           \
-        RUN_UTF8_TEST_(Str1, Str2, true, Val);                               \
-        RUN_UTF8_TEST_(Str2, Str1, true, -(Val));                            \
-        RUN_UTF8_TEST_(Str1"   ", Str2, true, Val);                          \
-        RUN_UTF8_TEST_(Str1, Str2"    ", true, Val);                         \
-        RUN_UTF8_TEST_(Str1"     ", Str2"  ", true, Val);                    \
-        if (Val == 0) {                                                      \
-            RUN_UTF8_TEST_(Str1"   ", Str2, false, 1);                       \
-            RUN_UTF8_TEST_(Str1, Str2"   ", false, -1);                      \
-            RUN_UTF8_TEST_(Str1"  ", Str2"    ", false, -1);                 \
-        }                                                                    \
-    } while (0)
-
-
-TEST_DECL("utf8_stricmp test", 0)
-{
-    /* Basic tests and case tests */
-    RUN_UTF8_TEST("abcdef", "abcdef", 0);
-    RUN_UTF8_TEST("AbCdEf", "abcdef", 0);
-    RUN_UTF8_TEST("abcdef", "abbdef", 1);
-    RUN_UTF8_TEST("aBCdef", "abbdef", 1);
-
-    /* Accentuation tests */
-    RUN_UTF8_TEST("abcdéf", "abcdef", 0);
-    RUN_UTF8_TEST("abcdÉf", "abcdef", 0);
-    RUN_UTF8_TEST("àbcdèf", "abcdef", 0);
-
-    /* Collation tests */
-    RUN_UTF8_TEST("æbcdef", "aebcdef", 0);
-    RUN_UTF8_TEST("æbcdef", "aébcdef", 0);
-    RUN_UTF8_TEST("abcdœf", "abcdoef", 0);
-    RUN_UTF8_TEST("abcdŒf", "abcdoef", 0);
-
-    RUN_UTF8_TEST("æ", "a", 1);
-    RUN_UTF8_TEST("æ", "ae", 0);
-    RUN_UTF8_TEST("ß", "ss", 0);
-    RUN_UTF8_TEST("ßß", "ssss", 0);
-    RUN_UTF8_TEST("ßß", "sßs", 0); /* Overlapping collations */
-
-    TEST_DONE();
-}
-
-/* }}} */
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-
-Suite *check_make_strconv_suite(void)
-{
-    Suite *s  = suite_create("Strconv");
-    TCase *tc = tcase_create("Core");
-
-    suite_add_tcase(s, tc);
-    tcase_add_test(tc, check_str_hexdecode);
-
-    return s;
-}
-
-#endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/

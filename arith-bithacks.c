@@ -105,24 +105,3 @@ size_t membitcount(const void *ptr, size_t n)
         return membitcount_naive(ptr, end);
     return membitcount_aligned(ptr, end);
 }
-
-/* Tests {{{ */
-TEST_DECL("arith-bithacks: check bsr8", 0)
-{
-    for (uint8_t i = 1; i < 255; i++) {
-        TEST_FAIL_IF(bsr8(i) != bsr16(i),
-                     "[%u] Expected %zu, got %zu", i, bsr16(i), bsr8(i));
-    }
-
-    TEST_DONE();
-}
-
-TEST_DECL("arith-bithacks: check bsf8", 0)
-{
-    for (uint8_t i = 1; i < 255; i++) {
-        TEST_FAIL_IF(bsf8(i) != bsf16(i),
-                     "[%u] Expected %zu, got %zu", i, bsf16(i), bsf8(i));
-    }
-
-    TEST_DONE();
-}

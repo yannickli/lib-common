@@ -187,31 +187,6 @@ int path_simplify2(char *in, bool keep_trailing_slash)
     return out - start;
 }
 
-TEST_DECL("str-path: path_simplify", 0)
-{
-    char in[PATH_MAX] = "";
-
-    TEST_PASS_IF(path_simplify(in) < 0, "");
-
-#define TEST(s0, s1)  \
-    ({ pstrcpy(in, sizeof(in), s0); path_simplify(in);           \
-       TEST_PASS_IF(strequal(in, s1), "%s, expect %s, got %s", s0, s1, in); })
-
-    TEST("/a/b/../../foo/./", "/foo");
-    TEST("/test/..///foo/./", "/foo");
-    TEST("/../test//foo///",  "/test/foo");
-    TEST("./test/bar",        "test/bar");
-    TEST("./test/../bar",     "bar");
-    TEST("./../test",         "../test");
-    TEST(".//test",           "test");
-    TEST("a/..",              ".");
-    TEST("a/../../..",        "../..");
-    TEST("a/../../b/../c",    "../c");
-
-    TEST_DONE();
-#undef TEST
-}
-
 /* TODO: make our own without the PATH_MAX craziness */
 int path_canonify(char *buf, int len, const char *path)
 {
@@ -277,24 +252,4 @@ bool path_is_safe(const char *path)
         ptr++;
     }
     return true;
-}
-
-TEST_DECL("str-path: path_is_safe test", 0)
-{
-    const char *path = "/foo";
-    TEST_FAIL_IF(path_is_safe(path), "failed %s", path);
-
-    path = "../foo";
-    TEST_FAIL_IF(path_is_safe(path), "failed %s", path);
-
-    path = "foo/bar";
-    TEST_PASS_IF(path_is_safe(path), "failed %s", path);
-
-    path = "foo/bar/foo/../../../../bar";
-    TEST_FAIL_IF(path_is_safe(path), "failed %s", path);
-
-    path = "foo/bar///foo/../../../../bar";
-    TEST_FAIL_IF(path_is_safe(path), "failed %s", path);
-
-    TEST_DONE();
 }

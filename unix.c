@@ -73,30 +73,6 @@ int mkdir_p(const char *dir, mode_t mode)
     }
 }
 
-TEST_DECL("unix: mkdir_p", 0)
-{
-    int res;
-    struct stat st;
-    const char *absdir = "/tmp/mkdir_p";
-    const char *reldir = "tst/toto";
-
-    rmdir(absdir);
-    res = mkdir_p(absdir, 0755);
-    TEST_FAIL_IF(res != 1, "check mkdir_p(%s)", absdir);
-    TEST_FAIL_IF(stat(absdir, &st) < 0 || !S_ISDIR(st.st_mode),
-                 "%s not really made", absdir);
-    rmdir(absdir);
-
-    res = mkdir_p(reldir, 0755);
-    TEST_FAIL_IF(res != 1, "check mkdir_p(%s)", reldir);
-    TEST_FAIL_IF(stat(reldir, &st) < 0 || !S_ISDIR(st.st_mode),
-                 "%s not really made", reldir);
-    rmdir(reldir);
-    rmdir("tst");
-
-    TEST_DONE();
-}
-
 /** Retrieve time of last modification
  *
  * @param filename  relative or absolute path

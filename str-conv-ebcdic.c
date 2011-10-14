@@ -102,29 +102,3 @@ int sb_conv_from_ebcdic297(sb_t *dst, const char *src, int len)
     __sb_fixlen(dst, s - dst->data);
     return 0;
 }
-
-TEST_DECL("str: sb_conv_from_ebcdic297", 0)
-{
-    static char const ebcdic[] = {
-#include "samples/ebcdic.sample.bin"
-        0
-    };
-    static char const utf8[] = {
-#include "samples/ebcdic.sample.utf-8.bin"
-        0
-    };
-    SB_8k(sb);
-
-    TEST_FAIL_IF(sb_conv_from_ebcdic297(&sb, ebcdic, sizeof(ebcdic) - 1),
-                 "sb_conv_from_ebcdic297 failed");
-
-    TEST_FAIL_IF(sb.len != sizeof(utf8) - 1 || memcmp(sb.data, utf8, sb.len),
-                 "EBCDIC -> UTF-8 conversion failed :\n"
-                 "correct text:\n-----\n%s\n-------\n"
-                 "converted text:\n-----\n%s\n-------\n",
-                 utf8, sb.data);
-
-    sb_wipe(&sb);
-
-    TEST_DONE();
-}

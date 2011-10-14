@@ -241,29 +241,3 @@ void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_f cmp)
 {
     ___qv_sort(a, v_size, n, cmp);
 }
-
-static int qv_sort_tst(void)
-{
-    bool ok = true;
-    qv_t(u32) tab;
-
-#define N  128
-    qv_inita(u32, &tab, N);
-    for (int i = 0; i < N; i++)
-        qv_append(u32, &tab, rand());
-    qv_sort(u32)(&tab, ^int (const uint32_t *v1, const uint32_t *v2) {
-        return CMP(*v1, *v2);
-    });
-    for (int i = 1; ok && i < tab.len; i++) {
-        ok = tab.tab[i - 1] <= tab.tab[i];
-    }
-#undef N
-
-    return ok;
-}
-
-TEST_DECL("qvector: qv_sort", 0)
-{
-    TEST_PASS_IF(qv_sort_tst(), "sort random uint32_t's");
-    TEST_DONE();
-}

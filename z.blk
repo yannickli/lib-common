@@ -1,0 +1,779 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+#include <sys/wait.h>
+#include <fnmatch.h>
+#include "unix.h"
+#include "z.h"
+
+enum z_state {
+    Z_START,
+    Z_COUNT,
+    Z_RUN,
+    Z_CHILD_DIE,
+};
+
+struct z_grp {
+    lstr_t name;
+
+    int    state;
+    lstr_t skip_reason;
+    lstr_t todo_reason;
+
+    int    n_total;
+    int    n_total_digits;
+
+    int    t_idx;
+    int    t_running;
+    int    t_asserts;
+
+    int    t_skipped;
+    int    t_failed;
+    int    t_passed;
+    int    t_todo_passed;
+    int    t_todo_failed;
+
+    lstr_t t_name;
+    lstr_t t_skip_reason;
+    lstr_t t_todo_reason;
+    lstr_t t_fail_reason;
+};
+
+struct z_export *z_exports_g;
+
+static struct {
+    bool          stopping;
+    int           res;
+    lstr_t        arg0;
+    char         *wd;
+    struct z_grp  grp;
+    qv_t(z_cbs)   cbs;
+    qv_t(lstr)    only;
+    qv_t(z_blk)   blks;
+
+    qh_t(lstr)    tag_skip;
+} z_ctx_g = {
+#define _G  z_ctx_g
+    .tag_skip = QH_INIT(lstr, _G.tag_skip, true),
+};
+
+lstr_t z_tmpdir_g;
+
+/* private helpers {{{ */
+
+static void lstr_detach_sb(lstr_t *out, sb_t *sb)
+{
+    const char *s;
+    int len;
+
+    s = sb_detach(sb, &len);
+    lstr_wipe(out);
+    *out = lstr_init_(s, len, MEM_LIBC);
+}
+
+__attr_printf__(2, 0)
+static void _z_vfmt(lstr_t *out, const char *fmt, va_list ap)
+{
+    sb_t sb;
+
+    sb_init(&sb);
+    sb_addvf(&sb, fmt, ap);
+    lstr_detach_sb(out, &sb);
+}
+#define _z_fmt(out, fmt) \
+    ({ va_list ap; va_start(ap, fmt); _z_vfmt(out, fmt, ap); va_end(ap); })
+
+#define IN_TEST        assert (_G.grp.t_running)
+#define NOT_IN_TEST    assert (!_G.grp.t_running)
+
+static void blktst_wipe(struct z_blktst *t)
+{
+    lstr_wipe(&t->name);
+    Block_release(t->run);
+}
+
+void z_blkgrp_wipe(struct z_blkgrp *g, bool delete_tests)
+{
+    for (size_t i = 0; i < g->len; i++) {
+        blktst_wipe(&g->tests[i]);
+    }
+    lstr_wipe(&g->name);
+    if (delete_tests)
+        p_delete(&g->tests);
+    Block_release(g->before);
+    Block_release(g->after);
+    Block_release(g->setup);
+    Block_release(g->teardown);
+}
+
+__attribute__((destructor))
+static void z_shutdown(void)
+{
+    qv_for_each_pos(z_blk, i, &_G.blks) {
+        z_blkgrp_wipe(&_G.blks.tab[i], true);
+    }
+    qv_wipe(z_blk, &_G.blks);
+    qv_wipe(z_cbs, &_G.cbs);
+    qv_wipe(lstr, &_G.only);
+    qh_wipe(lstr, &_G.tag_skip);
+    lstr_wipe(&_G.arg0);
+    p_delete(&_G.wd);
+    lstr_wipe(&z_tmpdir_g);
+}
+
+/* }}} */
+/* skipping, marking as todo {{{ */
+
+bool _z_step_check_flags(int unused, ...)
+{
+    const char *s;
+    va_list ap;
+    bool hit = false;
+
+    IN_TEST;
+
+    va_start(ap, unused);
+    while (!hit && (s = va_arg(ap, const char *))) {
+        lstr_t t = LSTR_STR_V(s);
+
+        if (qh_find(lstr, &_G.tag_skip, &t) >= 0) {
+            _z_step_skip("skipping tests flagged '%*pM'", LSTR_FMT_ARG(t));
+            hit = true;
+            break;
+        }
+    }
+    va_end(ap);
+
+    return hit;
+}
+
+static inline void assert_one_liner(lstr_t s)
+{
+    assert (memchr(s.s, '\n', s.len) == NULL);
+}
+
+void _z_step_skip(const char *reason, ...)
+{
+    IN_TEST;
+    _z_fmt(&_G.grp.t_skip_reason, reason);
+    assert_one_liner(_G.grp.t_skip_reason);
+}
+void z_skip_start(const char *reason, ...)
+{
+    NOT_IN_TEST;
+    _z_fmt(&_G.grp.skip_reason, reason);
+    assert_one_liner(_G.grp.skip_reason);
+}
+void z_skip_end(void)
+{
+    NOT_IN_TEST;
+    lstr_copyc(&_G.grp.skip_reason, LSTR_NULL_V);
+}
+
+void _z_step_todo(const char *reason, ...)
+{
+    IN_TEST;
+    _z_fmt(&_G.grp.t_todo_reason, reason);
+    assert_one_liner(_G.grp.t_todo_reason);
+}
+void z_todo_start(const char *reason, ...)
+{
+    NOT_IN_TEST;
+    _z_fmt(&_G.grp.todo_reason, reason);
+    assert_one_liner(_G.grp.todo_reason);
+}
+void z_todo_end(void)
+{
+    NOT_IN_TEST;
+    lstr_copyc(&_G.grp.skip_reason, LSTR_NULL_V);
+}
+
+/* }}} */
+/* assertions {{{ */
+
+#define _z_add_extra(sb, fmt) \
+    ({                                 \
+        if (*fmt) {                    \
+            va_list ap;                \
+                                       \
+            va_start(ap, fmt);         \
+            sb_addvf(&sb, fmt, ap);    \
+            va_end(ap);                \
+            sb_rtrim(&sb);             \
+            sb_addc(&sb, '\n');        \
+        }                              \
+    })
+
+static int int64_ndigits(long long lh, long long rh)
+{
+    int  llh = snprintf(NULL, 0, "%lld", lh);
+    int  lrh = snprintf(NULL, 0, "%lld", rh);
+    return MAX(llh, lrh);
+}
+
+static int int64_nxdigits(long long lh, long long rh)
+{
+    /* computes max number of significant octets */
+    int nocts = DIV_ROUND_UP(bsr64(lh | rh | 1), 8);
+
+    /* returns 2 for 1-2 octets, 4 for 3-4, 8 for 5-8, and 16 else */
+    return 2 * (bsr32(nocts) + 1);
+}
+
+bool _z_assert_cmp(const char *file, int lno, const char *op, bool res,
+                   const char *lhs, long long lh,
+                   const char *rhs, long long rh,
+                   const char *fmt, ...)
+{
+    IN_TEST;
+    _G.grp.t_asserts++;
+
+    if (!res) {
+        SB_1k(sb);
+        int nd = int64_ndigits(lh, rh);
+        int nx = int64_nxdigits(lh, rh);
+
+        sb_addf(&sb, "%s:%d: assertion failed: %s %s %s\n",
+                file, lno, lhs, op, rhs);
+        sb_addf(&sb, " %*lld / %#0*llx (%s)\n", nd, lh, 2 + nx, lh, lhs);
+        sb_addf(&sb, " %*lld / %#0*llx (%s)\n", nd, rh, 2 + nx, rh, rhs);
+        _z_add_extra(sb, fmt);
+        lstr_detach_sb(&_G.grp.t_fail_reason, &sb);
+    }
+    return !res;
+}
+
+static void sb_put_string(sb_t *sb, lstr_t s)
+{
+    for (int i = 0; i < s.len; i++) {
+        if (!isprint((unsigned char)s.s[i])) {
+            sb_adds(sb, "X'");
+            sb_add_hex(sb, s.s, s.len);
+            sb_adds(sb, "'");
+            return;
+        }
+    }
+    sb_add_slashes(sb, s.s, s.len, "\a\b\t\n\v\f\r\\", "abtnvfr\\");
+}
+
+bool _z_assert_lstrequal(const char *file, int lno,
+                         const char *lhs, lstr_t lh,
+                         const char *rhs, lstr_t rh,
+                         const char *fmt, ...)
+{
+    IN_TEST;
+    _G.grp.t_asserts++;
+
+    if (!lstr_equal2(lh, rh)) {
+        SB_1k(sb);
+
+        sb_addf(&sb, "%s:%d: assertion failed: %s == %s\n",
+                file, lno, lhs, rhs);
+        sb_addf(&sb, " %s:\n  ", lhs);
+        sb_put_string(&sb, lh);
+        sb_addf(&sb, "\n %s:\n  ", rhs);
+        sb_put_string(&sb, rh);
+        sb_adds(&sb, "\n");
+        _z_add_extra(sb, fmt);
+        lstr_detach_sb(&_G.grp.t_fail_reason, &sb);
+        return true;
+    }
+    return false;
+}
+
+bool _z_assert(const char *file, int lno, const char *expr,
+               bool res, const char *fmt, ...)
+{
+    IN_TEST;
+    _G.grp.t_asserts++;
+    if (!res) {
+        SB_1k(sb);
+
+        sb_addf(&sb, "%s:%d: assertion failed: %s\n", file, lno, expr);
+        _z_add_extra(sb, fmt);
+        lstr_detach_sb(&_G.grp.t_fail_reason, &sb);
+    }
+    return !res;
+}
+
+/* }}} */
+/* protocol and output {{{ */
+
+static void do_plan(void)
+{
+    printf("1..%d %*pM\n", _G.grp.n_total, LSTR_FMT_ARG(_G.grp.name));
+}
+
+static void do_summary(void)
+{
+#define P(x)  (_G.grp.t_##x * 100 / n)
+    int n = _G.grp.n_total;
+
+    printf("# %d%% skipped  %d%% passed  %d%% failed\n",
+           P(skipped), P(passed), P(failed));
+    if (_G.grp.t_todo_passed || _G.grp.t_todo_failed) {
+        printf("# %d%% fixed  %d%% todo\n", P(todo_passed), P(todo_failed));
+    }
+}
+
+static void do_comment(lstr_t s)
+{
+    pstream_t l, ps = ps_init(s.s, s.len);
+
+    while (ps_get_ps_chr(&ps, '\n', &l) == 0) {
+        printf(": %*pM\n", (int)ps_len(&l), l.s);
+        __ps_skip(&ps, 1);
+    }
+    if (ps_len(&ps))
+        printf(": %*pM\n", (int)ps_len(&ps), ps.s);
+}
+
+static void do_fail_comment(void)
+{
+    t_scope;
+
+    do_comment(t_lstr_fmt("$ %*pM %*pM.%*pM", LSTR_FMT_ARG(_G.arg0),
+           LSTR_FMT_ARG(_G.grp.name), LSTR_FMT_ARG(_G.grp.t_name)));
+    do_comment(LSTR_IMMED_V("\n"));
+    do_comment(_G.grp.t_fail_reason);
+}
+
+static void do_skip(void)
+{
+    _G.grp.t_skipped++;
+    printf("%*d skip %*pM # %*pM\n", _G.grp.n_total_digits, _G.grp.t_idx,
+           LSTR_FMT_ARG(_G.grp.t_name), LSTR_FMT_ARG(_G.grp.t_skip_reason));
+}
+
+static void do_passed(void)
+{
+    _G.grp.t_passed++;
+    printf("%*d pass %*pM\t# %d assertions\n", _G.grp.n_total_digits, _G.grp.t_idx,
+           LSTR_FMT_ARG(_G.grp.t_name), _G.grp.t_asserts);
+}
+
+static void do_failed(void)
+{
+    _G.grp.t_failed++;
+    printf("%*d fail %*pM\n", _G.grp.n_total_digits, _G.grp.t_idx,
+           LSTR_FMT_ARG(_G.grp.t_name));
+    do_fail_comment();
+}
+
+static void do_todo_passed(void)
+{
+    _G.grp.t_todo_passed++;
+    printf("%*d todo-pass %*pM # %*pM\n", _G.grp.n_total_digits, _G.grp.t_idx,
+           LSTR_FMT_ARG(_G.grp.t_name), LSTR_FMT_ARG(_G.grp.t_todo_reason));
+}
+
+static void do_todo_failed(void)
+{
+    _G.grp.t_todo_failed++;
+    printf("%*d todo-fail %*pM # %*pM\n", _G.grp.n_total_digits, _G.grp.t_idx,
+           LSTR_FMT_ARG(_G.grp.t_name), LSTR_FMT_ARG(_G.grp.t_todo_reason));
+    do_fail_comment();
+}
+
+static void do_bail_out_(lstr_t s)
+{
+    if (s.len) {
+        printf("panic # %*pM\n", LSTR_FMT_ARG(s));
+    } else {
+        printf("panic\n");
+    }
+}
+#define do_bail_out(fmt, ...) \
+    ({ t_scope; do_bail_out_(t_lstr_fmt(fmt, ##__VA_ARGS__)); })
+
+
+/* }}} */
+/* state machine {{{ */
+
+static void __z_group_start(lstr_t name)
+{
+    lstr_copyc(&_G.grp.name, name);
+}
+
+void _z_group_start(const char *name)
+{
+    __z_group_start(LSTR_STR_V(name));
+}
+
+static bool _z_is_group_ignored(void)
+{
+    lstr_t g = _G.grp.name;
+
+    if (_G.only.len == 0)
+        return false;
+    for (int i = 0; i < _G.only.len; i++) {
+        lstr_t s = _G.only.tab[i];
+
+        if (lstr_startswith(s, g)) {
+            if (s.len == g.len)
+                return false;
+            if (s.s[g.len] == '.')
+                return false;
+        }
+    }
+    return true;
+}
+
+static bool _z_group_run(void)
+{
+    pid_t pid;
+    int st;
+
+    _G.grp.n_total_digits = snprintf(NULL, 0, "%d", _G.grp.n_total);
+    do_plan();
+
+    fflush(stdout);
+    pid = fork();
+    if (pid == 0) {
+        signal(SIGTERM, SIG_DFL);
+        signal(SIGQUIT, SIG_DFL);
+        signal(SIGINT,  SIG_DFL);
+        return true;
+    }
+    if (pid < 0) {
+        do_bail_out("cannot fork(): %m");
+        return false;
+    }
+    waitpid(pid, &st, 0);
+    if (WIFEXITED(st)) {
+        if (WEXITSTATUS(st))
+            _G.res = -1;
+        return false;
+    }
+    if (WIFSIGNALED(st)) {
+        do_bail_out("exit with signal %d %s", WTERMSIG(st),
+                    sys_siglist[WTERMSIG(st)]);
+    } else {
+        do_bail_out("should not happen");
+    }
+    _G.res = -1;
+    return false;
+}
+
+bool _z_group_process(void)
+{
+    if (_z_is_group_ignored())
+        return false;
+
+    assert (_G.grp.state < Z_CHILD_DIE);
+    switch (++_G.grp.state) {
+      case Z_COUNT:
+        return true;
+      case Z_RUN:
+        if (_G.grp.n_total == 0)
+            return false;
+        return _z_group_run();
+      case Z_CHILD_DIE:
+        if (!_G.grp.n_total == 0)
+            do_summary();
+        exit(_G.grp.t_failed ? -1 : 0);
+      default:
+        e_panic("should not happen");
+    }
+}
+
+void _z_group_done(void)
+{
+    lstr_wipe(&_G.grp.name);
+    lstr_wipe(&_G.grp.skip_reason);
+    lstr_wipe(&_G.grp.todo_reason);
+    lstr_wipe(&_G.grp.t_fail_reason);
+    lstr_wipe(&_G.grp.t_skip_reason);
+    lstr_wipe(&_G.grp.t_todo_reason);
+    p_clear(&_G.grp, 1);
+}
+
+static bool _z_is_step_ignored(lstr_t t)
+{
+    lstr_t g = _G.grp.name;
+
+    if (_G.only.len == 0)
+        return false;
+    for (int i = 0; i < _G.only.len; i++) {
+        lstr_t s = _G.only.tab[i];
+
+        if (lstr_startswith(s, g)) {
+            if (s.len == g.len)
+                return false;
+            if (s.s[g.len] == '.') {
+                lstr_t ss = LSTR_INIT(s.s + g.len + 1, s.len - g.len - 1);
+
+                if (lstr_equal2(ss, t))
+                    return false;
+            }
+        }
+    }
+    return true;
+}
+
+static void _z_step_prepare(lstr_t n)
+{
+    _G.grp.t_idx++;
+    _G.grp.t_running = true;
+    _G.grp.t_asserts = 0;
+    lstr_copyc(&_G.grp.t_name, n);
+    lstr_copyc(&_G.grp.t_skip_reason, _G.grp.skip_reason);
+    lstr_copyc(&_G.grp.t_todo_reason, _G.grp.todo_reason);
+    rmdir_r(z_tmpdir_g.s, true);
+    if (chdir(_G.wd) < 0)
+        e_panic("unable to chdir to original directory '%s': %m", _G.wd);
+}
+
+static void _z_blkgrp_process(struct z_blkgrp *g)
+{
+    t_scope;
+
+    __z_group_start(g->name);
+    if (_z_is_group_ignored())
+        goto end;
+
+    _G.grp.state = Z_COUNT;
+    for (size_t i = 0; i < g->len; i++) {
+        if (_z_is_step_ignored(g->tests[i].name)) {
+            Block_release(g->tests[i].run);
+            g->tests[i].run = NULL;
+            continue;
+        }
+        _G.grp.n_total++;
+    }
+    if (_G.grp.n_total == 0)
+        goto end;
+
+    if (_z_group_run()) {
+        if (g->before && g->before() < 0) {
+            do_bail_out("before failed");
+            exit(1);
+        }
+
+        for (size_t i = 0; i < g->len; i++) {
+            if (!g->tests[i].run)
+                continue;
+            _z_step_prepare(g->name);
+            if (_G.grp.t_skip_reason.s == NULL) {
+                if (g->setup)
+                    g->setup();
+                if (_G.grp.t_fail_reason.s == NULL)
+                    g->tests[i].run();
+                if (g->teardown)
+                    g->teardown();
+            }
+            _z_step_report();
+        }
+
+        if (g->after)
+            g->after();
+        exit(_G.grp.t_failed ? -1 : 0);
+    }
+
+  end:
+    _z_group_done();
+}
+
+int _z_step_run(const char *name)
+{
+    lstr_t n = LSTR_STR_V(name);
+
+    NOT_IN_TEST;
+
+    if (_z_is_step_ignored(n))
+        return 0;
+
+    switch (_G.grp.state) {
+      case Z_COUNT:
+        _G.grp.n_total++;
+        return 0;
+
+      case Z_RUN:
+        _z_step_prepare(n);
+        if (_G.grp.t_skip_reason.s)
+            return 2;
+        return 1;
+
+      default:
+        return 0;
+    }
+}
+
+void _z_step_report(void)
+{
+    IN_TEST;
+    _G.grp.t_running = false;
+
+    if (_G.grp.t_skip_reason.s) {
+        do_skip();
+    } else {
+        if (_G.grp.t_asserts == 0)
+            lstr_copyc(&_G.grp.t_fail_reason, LSTR_IMMED_V("no assertions in test !?"));
+        if (_G.grp.t_skip_reason.s) {
+            if (_G.grp.t_fail_reason.s) {
+                do_todo_failed();
+            } else {
+                do_todo_passed();
+            }
+        } else {
+            if (_G.grp.t_fail_reason.s) {
+                do_failed();
+            } else {
+                do_passed();
+            }
+        }
+    }
+
+    lstr_wipe(&_G.grp.t_fail_reason);
+    lstr_wipe(&_G.grp.t_skip_reason);
+    lstr_wipe(&_G.grp.t_todo_reason);
+}
+
+/* }}} */
+/* public helpers {{{ */
+
+static bool z_is_opt_with_arg(const char *opt, int *i, const char **argv)
+{
+    const char *p;
+
+    if (strequal(opt, argv[*i])) {
+        if (argv[++*i] == NULL)
+            e_fatal("%s takes an argument", opt);
+        return true;
+    }
+    if (strstart(argv[*i], opt, &p)) {
+        if (*p == '=') {
+            argv[*i] = p + 1;
+            return true;
+        }
+    }
+    return false;
+}
+
+int z_setup(int argc, const char **argv)
+{
+    const char *s;
+
+    lstr_copy(&_G.arg0, LSTR_STR_V(argv[0]));
+
+    for (int i = 1; i < argc; i++) {
+        if (strequal(argv[i], "--")) {
+            p_move(argv + 1, argv + i, argc - i);
+            argv[1 + argc - i] = NULL;
+            return 1 + argc - i;
+        }
+
+        if (z_is_opt_with_arg("--z-tag-skip", &i, argv)) {
+            lstr_t arg = LSTR_STR_V(argv[i]);
+
+            qh_add(lstr, &_G.tag_skip, &arg);
+            continue;
+        }
+
+        if (argv[i][0] == '-')
+            e_fatal("%s flag unknown", argv[i]);
+
+        qv_append(lstr, &_G.only, LSTR_STR_V(argv[i]));
+    }
+
+    s = getenv("Z_TAG_SKIP");
+    if (s) {
+        pstream_t ps = ps_initstr(s);
+
+        ps_skipspaces(&ps);
+        while (!ps_done(&ps)) {
+            pstream_t tok = ps_get_cspan(&ps, &ctype_isspace);
+
+            qh_add(lstr, &_G.tag_skip, &LSTR_INIT_V(tok.s, ps_len(&tok)));
+            ps_skipspaces(&ps);
+        }
+    }
+    return 1;
+}
+
+void z_register_group(void (*cb)(void))
+{
+    qv_append(z_cbs, &_G.cbs, cb);
+}
+
+void z_register_exports(const char *prefix)
+{
+    for (struct z_export *ex = z_exports_g; ex; ex = ex->prev) {
+        if (!prefix || strstart(ex->file, prefix, NULL))
+            z_register_group(ex->cb);
+    }
+}
+
+void z_register_blkgroup(struct z_blkgrp const *g)
+{
+    struct z_blkgrp *t = qv_growlen(z_blk, &_G.blks, 1);
+
+    p_clear(t, 1);
+    t->name     = lstr_dup(g->name);
+    t->before   = Block_copy(g->before);
+    t->after    = Block_copy(g->after);
+    t->setup    = Block_copy(g->setup);
+    t->teardown = Block_copy(g->teardown);
+
+    t->len      = g->len;
+    t->tests    = p_new(struct z_blktst, t->len);
+    for (size_t i = 0; i < t->len; i++) {
+        t->tests[i].name = lstr_dup(g->tests[i].name);
+        t->tests[i].run  = Block_copy(g->tests[i].run);
+    }
+}
+
+static void z_on_term(int signum)
+{
+    _G.stopping = true;
+}
+
+int z_run(void)
+{
+    t_scope;
+    lstr_t s;
+
+    signal(SIGTERM, z_on_term);
+    signal(SIGINT,  z_on_term);
+    signal(SIGQUIT, z_on_term);
+
+    _G.wd = getcwd(NULL, 0);
+    s = t_lstr_fmt("%s/z.%d.XXXXXX", _G.wd, 0 + getpid());
+    if (mkdtemp(s.v) == NULL) {
+        s = t_lstr_fmt("/tmp/z.%d.XXXXXX", 0 + getpid());
+        if (mkdtemp(s.v) == NULL)
+            e_panic("unable to setup z_tmpdir_g");
+    }
+    z_tmpdir_g = lstr_fmt("%*pM/", LSTR_FMT_ARG(s));
+
+    _G.res = 0;
+    qv_for_each_pos(z_cbs, i, &_G.cbs) {
+        if (_G.stopping)
+            break;
+        _G.cbs.tab[i]();
+    }
+    qv_for_each_pos(z_blk, i, &_G.blks) {
+        if (_G.stopping)
+            break;
+        _z_blkgrp_process(&_G.blks.tab[i]);
+    }
+
+    signal(SIGTERM, SIG_DFL);
+    signal(SIGQUIT, SIG_DFL);
+    signal(SIGINT,  SIG_DFL);
+    _G.stopping = false;
+    rmdir_r(z_tmpdir_g.s, false);
+    return _G.res;
+}
+
+/* }}} */

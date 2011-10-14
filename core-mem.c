@@ -165,23 +165,3 @@ void *__irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
 }
 
 #include "core-version.c"
-
-TEST_DECL("core: BITMASKS", 0)
-{
-#define CHECK_BITMASK_(e, res)    TEST_FAIL_IF(e != res, #e " == " #res)
-#define CHECK_BITMASK(op, w, res) CHECK_BITMASK_(op(uint32_t, w), res)
-
-    CHECK_BITMASK(BITMASK_GE,  0, 0xffffffff);
-    CHECK_BITMASK(BITMASK_GE, 31, 0x80000000);
-
-    CHECK_BITMASK(BITMASK_GT,  0, 0xfffffffe);
-    CHECK_BITMASK(BITMASK_GT, 31, 0x00000000);
-
-    CHECK_BITMASK(BITMASK_LE,  0, 0x00000001);
-    CHECK_BITMASK(BITMASK_LE, 31, 0xffffffff);
-
-    CHECK_BITMASK(BITMASK_LT,  0, 0x00000000);
-    CHECK_BITMASK(BITMASK_LT, 31, 0x7fffffff);
-
-    TEST_DONE();
-}
