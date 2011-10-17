@@ -191,6 +191,21 @@ bool _z_assert(const char *file, int lno, const char *expr, bool res,
         _z_step_report();                                                 \
         break;                                                            \
     }
+
+/** Trailer to use in a sub-function where you want to use.
+ *
+ * \example
+ *   \code
+ *   static int some_helper(int arg)
+ *   {
+ *       Z_ASSERT(something_with_arg(arg));
+ *       Z_HELPER_END;
+ *   }
+ *   \endcode
+ */
+#define Z_HELPER_END        return 0; _z_step_end: return -1
+#define Z_HELPER_RUN(expr)  ({ if ((expr) < 0) goto _z_step_end; })
+
 #define Z_BLKTEST_END  ({ _z_step_end: return; })
 
 #define Z_SKIP(fmt, ...) \
