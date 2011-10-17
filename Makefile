@@ -193,7 +193,6 @@ ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a
 ztst-lzo_SOURCES = ztst-lzo.c libcommon.a
 
 ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a
-ztst-iprintf-speed_CFLAGS = -UCHECK
 
 ztst-thrjob_SOURCES = \
 	ztst-thrjob.blk \
