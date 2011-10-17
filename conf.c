@@ -11,9 +11,9 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "conf.h"
-
 #include <dirent.h>
+#include "conf.h"
+#include "z.h"
 
 static conf_section_t *conf_section_init(conf_section_t *section)
 {
@@ -419,138 +419,67 @@ int conf_next_section_idx(const conf_t *conf, const char *prefix,
 }
 
 
-#ifdef CHECK /* {{{ */
+/* tests {{{ */
 
-START_TEST(check_conf_load)
+Z_GROUP_EXPORT(conf)
 {
-#define SAMPLE_CONF_FILE "samples/example.conf"
-#define SAMPLE_SECTION1_NAME  "section1"
-#define SAMPLE_SECTION_NB  3
-#define SAMPLE_SECTION1_VAR_NB  2
-#define SAMPLE_SECTION1_VAR1_NAME  "param1"
-#define SAMPLE_SECTION1_VAR2_NAME  "param2[]sdf"
-#define SAMPLE_SECTION1_VAL1 "123 456"
+    static char const * const SAMPLE_CONF_FILE = "samples/example.conf";
 
     conf_t *conf;
-    conf_section_t *s;
     sb_t sb;
-    int prev;
-    int verb;
-    const char *p;
 
-    conf = conf_load(SAMPLE_CONF_FILE);
-    fail_if(conf == NULL,
-            "conf_load failed");
-    fail_if(conf->len != SAMPLE_SECTION_NB,
-            "conf_load did not parse the right number of sections (%d != %d)",
-            conf->len, SAMPLE_SECTION_NB);
+    Z_TEST(load1, "check conf load") {
+#define SAMPLE_SECTION1_NAME       "section1"
+#define SAMPLE_SECTION_NB          3
+#define SAMPLE_SECTION1_VAR_NB     2
+#define SAMPLE_SECTION1_VAR1_NAME  "param1"
+#define SAMPLE_SECTION1_VAR2_NAME  "param2[]sdf"
+#define SAMPLE_SECTION1_VAL1       "123 456"
 
-    s = conf->tab[0];
-    fail_if(!strequal(s->name, SAMPLE_SECTION1_NAME),
-            "bad section name: expected '%s', got '%s'",
-            SAMPLE_SECTION1_NAME, s->name);
-    fail_if(s->vals.len != SAMPLE_SECTION1_VAR_NB,
-            "bad variable number for section '%s': expected %d, got %d",
-            s->name, SAMPLE_SECTION1_VAR_NB, s->vals.len);
-    fail_if(!strequal(s->vals.tab[0]->name, SAMPLE_SECTION1_VAR1_NAME),
-            "bad variable name: expected '%s', got '%s'",
-            SAMPLE_SECTION1_VAR1_NAME, s->vals.tab[0]->name);
-    fail_if(!strequal(s->vals.tab[1]->name, SAMPLE_SECTION1_VAR2_NAME),
-            "bad variable name: expected '%s', got '%s'",
-            SAMPLE_SECTION1_VAR2_NAME, s->vals.tab[1]->name);
-    fail_if(!strequal(s->vals.tab[0]->value, SAMPLE_SECTION1_VAL1),
-            "bad variable value: expected '%s', got '%s'",
-            SAMPLE_SECTION1_VAL1, s->vals.tab[0]->value);
+        conf_section_t *s;
+        const char *p;
 
-    prev = -1;
-    prev = conf_next_section_idx(conf, "section", prev, NULL);
-    fail_if(prev != 0,
-            "bad next section idx: expected %d, got %d",
-            0, prev);
-    prev = conf_next_section_idx(conf, "section", prev, NULL);
-    fail_if(prev != 1,
-            "bad next section idx: expected %d, got %d",
-            1, prev);
-    prev = conf_next_section_idx(conf, "section", prev, &p);
-    fail_if(prev != 2,
-            "bad next section idx: expected %d, got %d",
-            2, prev);
-    fail_if(!strequal(p, "3"),
-            "bad next section suffix: expected '%s', got '%s'",
-            "3", p);
+        sb_init(&sb);
+        Z_ASSERT(conf = conf_load(SAMPLE_CONF_FILE));
+        Z_ASSERT_EQ(conf->len, SAMPLE_SECTION_NB);
 
-    prev = -1;
-    prev = conf_next_section_idx(conf, "section1", prev, NULL);
-    fail_if(prev != 0,
-            "bad next section idx: expected %d, got %d",
-            0, prev);
-    prev = conf_next_section_idx(conf, "section1", prev, &p);
-    fail_if(prev != 1,
-            "bad next section idx: expected %d, got %d",
-            1, prev);
-    fail_if(!strequal(p, "2"),
-            "bad next section suffix: expected '%s', got '%s'",
-            "2", p);
-    prev = conf_next_section_idx(conf, "section1", prev, &p);
-    fail_if(prev != -1,
-            "bad next section idx: expected %d, got %d",
-            -1, prev);
+        s = conf->tab[0];
+        Z_ASSERT_STREQUAL(s->name, SAMPLE_SECTION1_NAME);
+        Z_ASSERT_EQ(s->vals.len, SAMPLE_SECTION1_VAR_NB);
+        Z_ASSERT_STREQUAL(s->vals.tab[0]->name, SAMPLE_SECTION1_VAR1_NAME);
+        Z_ASSERT_STREQUAL(s->vals.tab[1]->name, SAMPLE_SECTION1_VAR2_NAME);
+        Z_ASSERT_STREQUAL(s->vals.tab[0]->value, SAMPLE_SECTION1_VAL1);
 
-    /* Check on conf_get_verbosity */
-    verb = conf_get_verbosity(conf, "section3", "log_verbosity1", 10);
-    fail_if(verb != 10,
-            "bad get verbosity: expected %d, got %d",
-            10, verb);
-    verb = conf_get_verbosity(conf, "section3", "log_verbosity2", 10);
-    fail_if(verb != 2,
-            "bad get verbosity: expected %d, got %d",
-            2, verb);
-    verb = conf_get_verbosity(conf, "section3", "log_verbosity3", 10);
-    fail_if(verb != 2,
-            "bad get verbosity: expected %d, got %d",
-            2, verb);
-    verb = conf_get_verbosity(conf, "section3", "log_verbosity4", 10);
-    fail_if(verb != 6,
-            "bad get verbosity: expected %d, got %d",
-            6, verb);
-    verb = conf_get_verbosity(conf, "section3", "log_verbosity5", 10);
-    fail_if(verb != 10,
-            "bad get verbosity: expected %d, got %d",
-            10, verb);
-    verb = conf_get_verbosity(conf, "section3", "log_verbosity6", 10);
-    fail_if(verb != 10,
-            "bad get verbosity: expected %d, got %d",
-            10, verb);
+        Z_ASSERT_EQ(conf_next_section_idx(conf, "section", -1, NULL), 0);
+        Z_ASSERT_EQ(conf_next_section_idx(conf, "section", 0, NULL), 1);
+        Z_ASSERT_EQ(conf_next_section_idx(conf, "section", 1, &p), 2);
+        Z_ASSERT_STREQUAL(p, "3");
 
-    conf_delete(&conf);
+        Z_ASSERT_EQ(conf_next_section_idx(conf, "section1", -1, NULL), 0);
+        Z_ASSERT_EQ(conf_next_section_idx(conf, "section1", 0, &p), 1);
+        Z_ASSERT_STREQUAL(p, "2");
+        Z_ASSERT_EQ(conf_next_section_idx(conf, "section1", 1, NULL), -1);
 
-    sb_init(&sb);
-    fail_if(sb_read_file(&sb, SAMPLE_CONF_FILE) < 0,
-            "Could not read sample file: %s", SAMPLE_CONF_FILE);
+        /* Check on conf_get_verbosity */
+        Z_ASSERT_EQ(conf_get_verbosity(conf, "section3", "log_verbosity1", 10), 10);
+        Z_ASSERT_EQ(conf_get_verbosity(conf, "section3", "log_verbosity2", 10), 2);
+        Z_ASSERT_EQ(conf_get_verbosity(conf, "section3", "log_verbosity3", 10), 2);
+        Z_ASSERT_EQ(conf_get_verbosity(conf, "section3", "log_verbosity4", 10), 6);
+        Z_ASSERT_EQ(conf_get_verbosity(conf, "section3", "log_verbosity5", 10), 10);
+        Z_ASSERT_EQ(conf_get_verbosity(conf, "section3", "log_verbosity6", 10), 10);
 
-    conf = conf_load_str(sb.data, sb.len);
+        conf_delete(&conf);
+        sb_wipe(&sb);
+    } Z_TEST_END;
 
-    fail_if(conf == NULL,
-            "conf_load_str failed");
-    fail_if(conf->len != SAMPLE_SECTION_NB,
-            "conf_load_str did not parse the right number of sections (%d != %d)",
-            conf->len, SAMPLE_SECTION_NB);
-    conf_delete(&conf);
-    sb_wipe(&sb);
+    Z_TEST(load2, "check conf load") {
+        sb_init(&sb);
+        Z_ASSERT_N(sb_read_file(&sb, SAMPLE_CONF_FILE));
+        Z_ASSERT(conf = conf_load_str(sb.data, sb.len));
+        Z_ASSERT_EQ(conf->len, SAMPLE_SECTION_NB);
+        conf_delete(&conf);
+        sb_wipe(&sb);
+    } Z_TEST_END;
+} Z_GROUP_END
 
-#undef SAMPLE_CONF_FILE
-}
-END_TEST
-
-Suite *check_conf_suite(void)
-{
-    Suite *s  = suite_create("Conf");
-    TCase *tc = tcase_create("Core");
-
-    suite_add_tcase(s, tc);
-    tcase_add_test(tc, check_conf_load);
-
-    return s;
-}
-
-#endif /* }}} */
+/* }}} */

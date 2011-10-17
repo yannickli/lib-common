@@ -148,11 +148,4 @@ int conf_section_get_bool(const conf_section_t *section,
 int conf_next_section_idx(const conf_t *conf, const char *prefix,
                           int prev_idx, const char **suffixp);
 
-#ifdef CHECK
-#include <check.h>
-
-Suite *check_conf_suite(void);
-
-#endif
-
 #endif /* IS_LIB_COMMON_CONF_H */
