@@ -59,7 +59,6 @@ libcommon_SOURCES = \
 	core-mem-fifo.c \
 	core-mem-ring.c \
 	core-mem-stack.c \
-	core-test.c \
 	core-version.c \
 	qpage.c \
 	qtlsf.c \
