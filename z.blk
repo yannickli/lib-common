@@ -68,6 +68,8 @@ static struct {
 };
 
 lstr_t z_tmpdir_g;
+lstr_t z_grpdir_g;
+lstr_t z_cmddir_g;
 
 /* private helpers {{{ */
 
@@ -129,6 +131,8 @@ static void z_shutdown(void)
     lstr_wipe(&_G.arg0);
     p_delete(&_G.wd);
     lstr_wipe(&z_tmpdir_g);
+    lstr_wipe(&z_grpdir_g);
+    lstr_wipe(&z_cmddir_g);
 }
 
 /* }}} */
@@ -403,6 +407,7 @@ static void do_bail_out_(lstr_t s)
 static void __z_group_start(lstr_t name)
 {
     lstr_copyc(&_G.grp.name, name);
+    rmdir_r(z_grpdir_g.s, true);
 }
 
 void _z_group_start(const char *name)
@@ -738,23 +743,34 @@ static void z_on_term(int signum)
     _G.stopping = true;
 }
 
-int z_run(void)
+static lstr_t our_mkdtemp(const char *ns)
 {
     t_scope;
-    lstr_t s;
+
+    lstr_t s = t_lstr_fmt("%s/z.%s.%d.XXXXXX", _G.wd, ns, 0 + getpid());
+    if (mkdtemp(s.v) == NULL) {
+        s = t_lstr_fmt("/tmp/z.%s.%d.XXXXXX", ns, 0 + getpid());
+        if (mkdtemp(s.v) == NULL)
+            e_panic("unable to setup z_tmpdir_g");
+    }
+    return lstr_fmt("%*pM/", LSTR_FMT_ARG(s));
+}
+
+int z_run(void)
+{
+    char path[PATH_MAX];
 
     signal(SIGTERM, z_on_term);
     signal(SIGINT,  z_on_term);
     signal(SIGQUIT, z_on_term);
 
     _G.wd = getcwd(NULL, 0);
-    s = t_lstr_fmt("%s/z.%d.XXXXXX", _G.wd, 0 + getpid());
-    if (mkdtemp(s.v) == NULL) {
-        s = t_lstr_fmt("/tmp/z.%d.XXXXXX", 0 + getpid());
-        if (mkdtemp(s.v) == NULL)
-            e_panic("unable to setup z_tmpdir_g");
-    }
-    z_tmpdir_g = lstr_fmt("%*pM/", LSTR_FMT_ARG(s));
+    path_dirname(path, sizeof(path), _G.arg0.s);
+    z_cmddir_g = lstr_fmt("%s/", path);
+    if (z_cmddir_g.s[z_cmddir_g.len - 2] == '/')
+        z_cmddir_g.v[--z_cmddir_g.len] = '\0';
+    z_tmpdir_g = our_mkdtemp("tst");
+    z_grpdir_g = our_mkdtemp("grp");
 
     _G.res = 0;
     qv_for_each_pos(z_cbs, i, &_G.cbs) {
@@ -768,11 +784,12 @@ int z_run(void)
         _z_blkgrp_process(&_G.blks.tab[i]);
     }
 
+    rmdir_r(z_tmpdir_g.s, false);
+    rmdir_r(z_grpdir_g.s, false);
     signal(SIGTERM, SIG_DFL);
     signal(SIGQUIT, SIG_DFL);
     signal(SIGINT,  SIG_DFL);
     _G.stopping = false;
-    rmdir_r(z_tmpdir_g.s, false);
     return _G.res;
 }
 

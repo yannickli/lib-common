@@ -68,6 +68,11 @@
  * A temporary directory #z_tmpdir_g is created, and emptied before each test
  * run, so that tests don't need to clean-up files.
  *
+ * A temporary directory #z_grpdir_g is created, and emptied before each group
+ * run, but are kept for the whole group run.
+ *
+ * #z_cmddir_g is the path to the directory containing the command being run.
+ *
  * Tests can use chdir() (usually to do Z_ASSERT_N(chdir(z_tmpdir_g.s))),
  * because the current working directory is reset before each test run.
  */
@@ -112,6 +117,8 @@ void z_blkgrp_wipe(struct z_blkgrp *, bool delete_tests);
 
 /** Name of the scratch directory, has a trailing '/' */
 extern lstr_t z_tmpdir_g;
+extern lstr_t z_grpdir_g;
+extern lstr_t z_cmddir_g;
 
 /* private implementations {{{ */
 
