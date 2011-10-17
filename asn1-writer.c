@@ -1408,9 +1408,8 @@ Z_GROUP_EXPORT(asn1_packer)
     uint8_t buf[BUFSIZ];
 
 #define T(pfx, v, exp, txt) \
-    ({  Z_ASSERT_EQ(asn1_pack_##pfx(buf, v) - buf, ssizeof(exp), txt); \
-        Z_ASSERT_EQ(asn1_##pfx##_size(v), sizeof(exp), txt);           \
-        Z_ASSERT(memcmp(buf, exp, sizeof(exp)) == 0, txt); })
+    ({  Z_ASSERT_EQ(asn1_pack_##pfx(buf, v) - buf, ssizeof(exp), txt);    \
+        Z_ASSERT_EQUAL(buf, asn1_##pfx##_size(v), exp, sizeof(exp), txt); })
 
     Z_TEST(i64, "asn1: int64 packer") {
         int64_t i1     = 0xffffffffffffffffLL;
@@ -1474,15 +1473,12 @@ Z_GROUP_EXPORT(asn1_packer)
 
     Z_TEST(len, "asn1: len packer") {
         int32_t const l1     = 127;
-        uint8_t const exp1[] = { 0x7f };
+        uint8_t exp1[] = { 0x7f };
         int32_t const l2     = 128;
-        uint8_t const exp2[] = { 0x81, 0x80 };
+        uint8_t exp2[] = { 0x81, 0x80 };
 
-        Z_ASSERT_EQ(asn1_pack_len(buf, l1) - buf, ssizeof(exp1));
-        Z_ASSERT_ZERO(memcmp(buf, exp1, sizeof(exp1)));
-
-        Z_ASSERT_EQ(asn1_pack_len(buf, l2) - buf, ssizeof(exp2));
-        Z_ASSERT_ZERO(memcmp(buf, exp2, sizeof(exp2)));
+        Z_ASSERT_EQUAL(buf, asn1_pack_len(buf, l1) - buf, exp1, ssizeof(exp1));
+        Z_ASSERT_EQUAL(buf, asn1_pack_len(buf, l2) - buf, exp2, ssizeof(exp2));
     } Z_TEST_END;
 } Z_GROUP_END;
 

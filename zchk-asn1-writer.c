@@ -417,8 +417,7 @@ Z_GROUP_EXPORT(asn1_ber)
         };
 
         len = serialize_test_0(buf, &t0);
-        Z_ASSERT_EQ(len, sizeof(expected));
-        Z_ASSERT_ZERO(memcmp(expected, buf, len));
+        Z_ASSERT_EQUAL(buf, len, expected, sizeof(expected));
     } Z_TEST_END;
 
     Z_TEST(enc1, "asn1: BER encoder/decoder - constructed types") {
@@ -428,8 +427,7 @@ Z_GROUP_EXPORT(asn1_ber)
         };
 
         len = serialize_test_1(buf, &t1);
-        Z_ASSERT_EQ(len, sizeof(expected));
-        Z_ASSERT_ZERO(memcmp(expected, buf, len));
+        Z_ASSERT_EQUAL(buf, len, expected, sizeof(expected));
     } Z_TEST_END;
 
     Z_TEST(enc2, "asn1: BER encoder/decoder - constructed types") {
@@ -446,8 +444,7 @@ Z_GROUP_EXPORT(asn1_ber)
         test_2_t const t2 = { &t0, t1 };
 
         len = serialize_test_2(buf, &t2);
-        Z_ASSERT_EQ(len, sizeof(expected));
-        Z_ASSERT_ZERO(memcmp(expected, buf, len));
+        Z_ASSERT_EQUAL(buf, len, expected, sizeof(expected));
     } Z_TEST_END;
 
     Z_TEST(enc3, "asn1: BER encoder/decoder - constructed types") {
@@ -461,8 +458,7 @@ Z_GROUP_EXPORT(asn1_ber)
         };
 
         len = serialize_test_3(buf, &t3);
-        Z_ASSERT_EQ(len, sizeof(expected));
-        Z_ASSERT_ZERO(memcmp(expected, buf, len));
+        Z_ASSERT_EQUAL(buf, len, expected, sizeof(expected));
     } Z_TEST_END;
 
     Z_TEST(reader, "asn1: BER reader test") {
@@ -471,12 +467,7 @@ Z_GROUP_EXPORT(asn1_ber)
         static int32_t const rdr_vec[] = { 0x1234, 0x8555 };
         static uint8_t const rdr_bstring[] = { 0x12, 0x58 };
 
-        test_reader_t exp_rdr_out;
-        test_reader_t rdr_out;
-
-        p_clear(&exp_rdr_out, 1);
-        p_clear(&rdr_out, 1);
-        exp_rdr_out = (test_reader_t){
+        test_reader_t exp_rdr_out = {
             .i1 = 1234,
             .i2 = 56,
             .str = ASN1_STRSTRING("test"),
@@ -494,7 +485,9 @@ Z_GROUP_EXPORT(asn1_ber)
                 .u32 = 0x87785555
             }
         };
+        test_reader_t rdr_out;
 
+        p_clear(&rdr_out, 1);
         len = asn1_pack_size(test_reader, &exp_rdr_out, &stack);
         asn1_pack(test_reader, buf, &exp_rdr_out, &stack);
         ps = ps_init(buf, len);
@@ -502,8 +495,8 @@ Z_GROUP_EXPORT(asn1_ber)
         Z_ASSERT_N(asn1_unpack(test_reader, &ps, t_pool(), &rdr_out, false));
         Z_ASSERT_EQ(rdr_out.i1, exp_rdr_out.i1);
         Z_ASSERT_EQ(rdr_out.i2, exp_rdr_out.i2);
-        Z_ASSERT_EQ(rdr_out.str.len, exp_rdr_out.str.len);
-        Z_ASSERT_ZERO(memcmp(rdr_out.str.data, exp_rdr_out.str.data, rdr_out.str.len));
+        Z_ASSERT_EQUAL(rdr_out.str.data, rdr_out.str.len,
+                       exp_rdr_out.str.data, exp_rdr_out.str.len);
         Z_ASSERT_EQ(rdr_out.bstr.bit_len, exp_rdr_out.bstr.bit_len);
         Z_ASSERT_ZERO(memcmp(rdr_out.bstr.data, exp_rdr_out.bstr.data,
                              asn1_bit_string_size(&rdr_out.bstr) - 1));
@@ -515,9 +508,8 @@ Z_GROUP_EXPORT(asn1_ber)
             Z_ASSERT_EQ(rdr_out.oi4.v, exp_rdr_out.oi4.v);
         Z_ASSERT_EQ(rdr_out.rec1.b, exp_rdr_out.rec1.b);
         Z_ASSERT_EQ(rdr_out.rec1.u32, exp_rdr_out.rec1.u32);
-        Z_ASSERT_EQ(rdr_out.vec.vec.len, exp_rdr_out.vec.vec.len);
-        Z_ASSERT_ZERO(memcmp(rdr_out.vec.vec.data, exp_rdr_out.vec.vec.data,
-                             rdr_out.vec.vec.len));
+        Z_ASSERT_EQUAL(rdr_out.vec.vec.data, rdr_out.vec.vec.len,
+                       exp_rdr_out.vec.vec.data, exp_rdr_out.vec.vec.len);
     } Z_TEST_END;
 
     Z_TEST(array, "asn1: BER array (un)packing") {
@@ -556,8 +548,7 @@ Z_GROUP_EXPORT(asn1_ber)
 
         len = asn1_pack_size(simple_array, &simple_array, &stack);
         asn1_pack(simple_array, buf, &simple_array, &stack);
-        Z_ASSERT_EQ(len, sizeof(exp_simple_array));
-        Z_ASSERT_ZERO(memcmp(exp_simple_array, buf, len));
+        Z_ASSERT_EQUAL(buf, len, exp_simple_array, sizeof(exp_simple_array));
 
         ps = ps_init(buf, len);
         Z_ASSERT_N(asn1_unpack(simple_array, &ps, t_pool(),
@@ -608,16 +599,14 @@ Z_GROUP_EXPORT(asn1_ber)
 
         len = asn1_pack_size(test_choice, &exp_choice, &stack);
         asn1_pack(test_choice, buf, &exp_choice, &stack);
-        Z_ASSERT_EQ(len, sizeof(exp_choice_no_skip));
-        Z_ASSERT_ZERO(memcmp(exp_choice_no_skip, buf, len));
+        Z_ASSERT_EQUAL(buf, len, exp_choice_no_skip, sizeof(exp_choice_no_skip));
 
         Z_ASSERT_N(asn1_unpack(test_choice, &choice_ps, NULL, &choice, false));
         Z_ASSERT_ZERO(memcmp(&exp_choice, &choice, sizeof(test_choice_t)));
 
         len = asn1_pack_size(test_u_choice, &u_choice, &stack);
         asn1_pack(test_u_choice, buf, &u_choice, &stack);
-        Z_ASSERT_EQ(len, sizeof(exp_u_choice));
-        Z_ASSERT_ZERO(memcmp(exp_u_choice, buf, len));
+        Z_ASSERT_EQUAL(buf, len, exp_u_choice, sizeof(exp_u_choice));
 
         ps = ps_init(buf, len);
         Z_ASSERT_N(asn1_unpack(test_u_choice, &ps, t_pool(),
@@ -668,8 +657,7 @@ Z_GROUP_EXPORT(asn1_ber)
         /* Sequence of untagged choice test (with a vector) */
         len = asn1_pack_size(test_vector, &test_vector_in, &stack);
         asn1_pack(test_vector, buf, &test_vector_in, &stack);
-        Z_ASSERT_EQ(len, sizeof(exp_test_vector));
-        Z_ASSERT_ZERO(memcmp(exp_test_vector, buf, len));
+        Z_ASSERT_EQUAL(buf, len, exp_test_vector, sizeof(exp_test_vector));
 
         ps = ps_init(buf, len);
         Z_ASSERT_N(asn1_unpack(test_vector, &ps, t_pool(), &test_vector, false));
@@ -679,8 +667,7 @@ Z_GROUP_EXPORT(asn1_ber)
         /* Sequence of untagged choice test (with an array) */
         len = asn1_pack_size(test_array, &test_array_in, &stack);
         asn1_pack(test_array, buf, &test_array_in, &stack);
-        Z_ASSERT_EQ(len, sizeof(exp_test_vector));
-        Z_ASSERT_ZERO(memcmp(exp_test_vector, buf, len));
+        Z_ASSERT_EQUAL(buf, len, exp_test_vector, sizeof(exp_test_vector));
 
         ps = ps_init(buf, len);
         Z_ASSERT_N(asn1_unpack(test_array, &ps, t_pool(), &test_array, false));
