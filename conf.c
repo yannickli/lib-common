@@ -439,6 +439,8 @@ Z_GROUP_EXPORT(conf)
         conf_section_t *s;
         const char *p;
 
+        Z_ASSERT_N(chdir(z_cmddir_g.s));
+
         sb_init(&sb);
         Z_ASSERT(conf = conf_load(SAMPLE_CONF_FILE));
         Z_ASSERT_EQ(conf->len, SAMPLE_SECTION_NB);
@@ -473,6 +475,8 @@ Z_GROUP_EXPORT(conf)
     } Z_TEST_END;
 
     Z_TEST(load2, "check conf load") {
+        Z_ASSERT_N(chdir(z_cmddir_g.s));
+
         sb_init(&sb);
         Z_ASSERT_N(sb_read_file(&sb, SAMPLE_CONF_FILE));
         Z_ASSERT(conf = conf_load_str(sb.data, sb.len));

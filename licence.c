@@ -498,6 +498,8 @@ Z_GROUP_EXPORT(licence)
     Z_TEST(signature_ok, "") {
         conf_t *conf;
 
+        Z_ASSERT_N(chdir(z_cmddir_g.s));
+
         Z_ASSERT(conf = conf_load("samples/licence-v1-ok.conf"));
         Z_ASSERT(licence_check_signature_ok(conf));
         conf_delete(&conf);
@@ -509,6 +511,8 @@ Z_GROUP_EXPORT(licence)
 
     Z_TEST(expiration_ok, "") {
         conf_t *conf;
+
+        Z_ASSERT_N(chdir(z_cmddir_g.s));
 
         Z_ASSERT(conf = conf_load("samples/licence-v1-ok.conf"));
         Z_ASSERT(licence_check_expiration_ok(conf), "licence-test-ok failed to pass");
