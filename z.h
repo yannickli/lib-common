@@ -191,6 +191,21 @@ bool _z_assert(const char *file, int lno, const char *expr, bool res,
         _z_step_report();                                                 \
         break;                                                            \
     }
+
+/** Trailer to use in a sub-function where you want to use.
+ *
+ * \example
+ *   \code
+ *   static int some_helper(int arg)
+ *   {
+ *       Z_ASSERT(something_with_arg(arg));
+ *       Z_HELPER_END;
+ *   }
+ *   \endcode
+ */
+#define Z_HELPER_END        return 0; _z_step_end: return -1
+#define Z_HELPER_RUN(expr)  ({ if ((expr) < 0) goto _z_step_end; })
+
 #define Z_BLKTEST_END  ({ _z_step_end: return; })
 
 #define Z_SKIP(fmt, ...) \
@@ -231,6 +246,15 @@ bool _z_assert(const char *file, int lno, const char *expr, bool res,
     ({ if (_z_assert_lstrequal(__FILE__, __LINE__, #lhs,                  \
                                LSTR_STR_V(lhs), #rhs, LSTR_STR_V(rhs),    \
                                ""__VA_ARGS__))                            \
+        goto _z_step_end; })
+
+#define Z_ASSERT_EQUAL(lt, ll, rt, rl, ...) \
+    ({  STATIC_ASSERT(__builtin_types_compatible_p(                       \
+               typeof(*(lt)) const *, typeof(*(rt)) const *));            \
+        if (_z_assert_lstrequal(__FILE__, __LINE__,                       \
+               #lt, LSTR_INIT_V((void *)(lt), sizeof((lt)[0]) * (ll)),    \
+               #rt, LSTR_INIT_V((void *)(rt), sizeof((rt)[0]) * (rl)),    \
+               ""__VA_ARGS__))                                            \
         goto _z_step_end; })
 
 
