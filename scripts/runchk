@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+from __future__ import print_function
+
 import subprocess as S
 import sys, os, re
 
@@ -39,7 +41,7 @@ def parse_lines(file, lines):
     res = 0
     cur = None
     if len(lines) and re.match(r'^\s*\d+\.\.\d+', lines[0]):
-        print "\n".join(lines)
+        print("\n".join(lines))
         return res
 
     for line in lines:
