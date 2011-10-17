@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "core.h"
+#include "z.h"
 #ifndef OS_WINDOWS
 #include <net/if.h>
 #ifdef OS_LINUX
@@ -452,104 +452,73 @@ int list_my_cpus(char *dst, size_t size)
 #endif
 }
 
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-/* {{{*/
-#include <check.h>
+/* tests {{{ */
 
-START_TEST(check_list_my_macs)
+static int find_local_mac(char buf[static 6 * 3])
 {
-    char buf[128];
+    struct if_nameindex *iflist;
+    char *s = NULL;
+    int fd;
 
-    fail_if(list_my_macs(buf, sizeof(buf)), "Non 0 return value");
-//    printf("Found addresses : %s\n", buf);
-}
-END_TEST
+    Z_ASSERT(iflist = if_nameindex());
+    Z_ASSERT_N(fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP));
+    for (int i = 0; iflist[i].if_index; i++) {
+        struct ifreq req;
 
-START_TEST(check_is_my_mac_addr)
-{
-    int j;
-    bool found = false;
-    const char *maclist[] = {
-        /* List your Macaddr here if you want the check to pass */
-        "00:0F:3D:F1:A2:F0", /* exile */
-        "00:11:09:E8:C6:72", /* fle1 */
-        "00:1A:A0:1C:54:B3", /* new fle1 */
-        "00:30:1B:B8:EB:3B", /* mad */
-        "00:0F:1F:F9:29:96", /* mag */
-        "00:30:1B:AC:39:C3", /* ogu21 */
-        "00:11:95:25:A5:66", /* ogu69 */
-        "00:13:72:13:18:c7", /* ogu69 */
-        "00:14:22:0A:F0:FC", /* papyrus */
-        "00:11:95:DC:D1:45", /* suze */
-        "00:0F:B0:4A:98:11", /* tian */
-        "00:13:20:C0:2A:25", /* vodka */
-        "00:18:8B:5B:CB:BF", /* soho */
-        "00:13:77:48:4A:06", /* artemis */
-        "00:18:8B:5B:71:3D", /* gin */
-        "00:1A:A0:1C:53:33", /* tequila */
-        "00:18:8B:D5:89:88", /* curacao */
-    };
-
-    for (j = 0; j < countof(maclist); j++) {
-        if (is_my_mac_addr(maclist[j])) {
-            found = true;
+        p_clear(&req, 1);
+        pstrcpy(req.ifr_ifrn.ifrn_name, IFNAMSIZ, iflist[i].if_name);
+        Z_ASSERT_N(ioctl(fd, SIOCGIFHWADDR, &req));
+        if (req.ifr_hwaddr.sa_family == ARPHRD_ETHER) {
+            s = req.ifr_hwaddr.sa_data;
+            snprintf(buf, 6 * 3, "%02X:%02X:%02X:%02X:%02X:%02X",
+                     s[0], s[1], s[2], s[3], s[4], s[5]);
             break;
         }
     }
+    Z_ASSERT(s, "no local interface ?!");
+    close(fd);
+    if_freenameindex(iflist);
 
-    fail_if(!found, "Did not find any listed mac addr on this machine.");
+    Z_HELPER_END;
 }
-END_TEST
 
-START_TEST(check_licence_check_signature_ok)
+Z_GROUP_EXPORT(licence)
 {
-    conf_t * conf;
+    char buf[128];
 
-    conf = conf_load("samples/licence-v1-ok.conf");
-    fail_if(!conf, "Unable to open test file");
-    fail_if(!licence_check_signature_ok(conf), "licence-test-ok failed to pass");
-    conf_delete(&conf);
+    Z_TEST(list_my_macs, "check_list_my_macs") {
+        Z_ASSERT_ZERO(list_my_macs(buf, sizeof(buf)));
+    } Z_TEST_END;
 
-    conf = conf_load("samples/licence-v1-ko.conf");
-    fail_if(!conf, "Unable to open test file");
-    fail_if(licence_check_signature_ok(conf), "licence-test-ko passed");
-    conf_delete(&conf);
-}
-END_TEST
+    Z_TEST(is_my_mac_addr, "") {
+        Z_HELPER_RUN(find_local_mac(buf));
+        Z_ASSERT(is_my_mac_addr(buf));
+    } Z_TEST_END;
 
-START_TEST(check_licence_check_expiration_ok)
-{
-    conf_t * conf;
+    Z_TEST(signature_ok, "") {
+        conf_t *conf;
 
-    conf = conf_load("samples/licence-v1-ok.conf");
-    fail_if(!conf, "Unable to open test file");
-    fail_if(!licence_check_expiration_ok(conf), "licence-test-ok failed to pass");
-    conf_delete(&conf);
+        Z_ASSERT(conf = conf_load("samples/licence-v1-ok.conf"));
+        Z_ASSERT(licence_check_signature_ok(conf));
+        conf_delete(&conf);
 
-    conf = conf_load("samples/licence-v1-ko.conf");
-    fail_if(!conf, "Unable to open test file");
-    fail_if(licence_check_expiration_ok(conf), "licence-test-ko passed");
-    conf_delete(&conf);
-}
-END_TEST
+        Z_ASSERT(conf = conf_load("samples/licence-v1-ko.conf"));
+        Z_ASSERT(!licence_check_signature_ok(conf));
+        conf_delete(&conf);
+    } Z_TEST_END;
 
-Suite *check_licence_suite(void)
-{
-    Suite *s  = suite_create("Licence");
-    TCase *tc = tcase_create("Core");
+    Z_TEST(expiration_ok, "") {
+        conf_t *conf;
 
-    suite_add_tcase(s, tc);
-#ifndef __CYGWIN__
-    tcase_add_test(tc, check_is_my_mac_addr);
-#endif
-    tcase_add_test(tc, check_list_my_macs);
-    tcase_add_test(tc, check_licence_check_signature_ok);
-    tcase_add_test(tc, check_licence_check_expiration_ok);
-    return s;
-}
+        Z_ASSERT(conf = conf_load("samples/licence-v1-ok.conf"));
+        Z_ASSERT(licence_check_expiration_ok(conf), "licence-test-ok failed to pass");
+        conf_delete(&conf);
 
-/*.....................................................................}}}*/
-#endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
+        Z_ASSERT(conf = conf_load("samples/licence-v1-ko.conf"));
+        Z_ASSERT(!licence_check_expiration_ok(conf), "licence-test-ko passed");
+        conf_delete(&conf);
+    } Z_TEST_END;
+} Z_GROUP_END
+
+/* }}} */
 #endif

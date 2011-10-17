@@ -33,12 +33,4 @@ bool licence_check_host_ok(const conf_t *conf);
  */
 int  licence_do_signature(const conf_t *conf, char dst[65]);
 
-/*[ CHECK ]::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::{{{*/
-#ifdef CHECK
-#include <check.h>
-
-Suite *check_licence_suite(void);
-
-#endif
-/*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::}}}*/
 #endif /* IS_LIB_COMMON_LICENCE_H */
