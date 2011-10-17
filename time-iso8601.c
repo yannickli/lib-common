@@ -184,8 +184,9 @@ int time_parse_iso8601(pstream_t *ps, time_t *res)
     }
     tz_m = ps_geti(ps);
 
-    t.tm_hour += sign * tz_h;
-    t.tm_min  += sign * tz_m;
+    /* subtract the offset from the local time to get UTC time */
+    t.tm_hour -= sign * tz_h;
+    t.tm_min  -= sign * tz_m;
     t.tm_isdst = 0;
     *res = timegm(&t);
     return 0;
