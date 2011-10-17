@@ -279,9 +279,9 @@ bool _z_assert_lstrequal(const char *file, int lno,
 
         sb_addf(&sb, "%s:%d: assertion failed: %s == %s\n",
                 file, lno, lhs, rhs);
-        sb_addf(&sb, " %s:\n  ", lhs);
+        sb_addf(&sb, " %s (len:%d):\n  ", lhs, lh.len);
         sb_put_string(&sb, lh);
-        sb_addf(&sb, "\n %s:\n  ", rhs);
+        sb_addf(&sb, "\n %s (len:%d):\n  ", rhs, lh.len);
         sb_put_string(&sb, rh);
         sb_adds(&sb, "\n");
         _z_add_extra(sb, fmt);

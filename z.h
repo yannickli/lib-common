@@ -233,6 +233,15 @@ bool _z_assert(const char *file, int lno, const char *expr, bool res,
                                ""__VA_ARGS__))                            \
         goto _z_step_end; })
 
+#define Z_ASSERT_EQUAL(lt, ll, rt, rl, ...) \
+    ({  STATIC_ASSERT(__builtin_types_compatible_p(                       \
+               typeof(*(lt)) const *, typeof(*(rt)) const *));            \
+        if (_z_assert_lstrequal(__FILE__, __LINE__,                       \
+               #lt, LSTR_INIT_V((void *)(lt), sizeof((lt)[0]) * (ll)),    \
+               #rt, LSTR_INIT_V((void *)(rt), sizeof((rt)[0]) * (rl)),    \
+               ""__VA_ARGS__))                                            \
+        goto _z_step_end; })
+
 
 /****************************************************************************/
 /* Z helpers                                                                */
