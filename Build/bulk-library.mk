@@ -255,7 +255,7 @@ $(1D)/all:: $1$(EXEEXT)
 $(eval $(call rule/exe,$1,$2,$3))
 $(if $(filter %chk,$1),
 $(1D)/check:: $1$(EXEEXT)
-	$$/lib-common/scripts/runchk $1
+	./$1
 )
 endef
 
