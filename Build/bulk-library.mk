@@ -12,7 +12,7 @@
 ##########################################################################
 
 define fun/common-depends
-$2: $(1D)/Makefile $(var/toolsdir)/* $(var/cfgdir)/*.mk
+$2: $(1D)/Makefile $(var/toolsdir)/* $(var/cfgdir)/*
 $2: $(foreach s,$3,$($s_DEPENDS)) | $($(1D)/_DEPENDS)
 endef
 

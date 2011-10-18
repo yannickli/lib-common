@@ -18,7 +18,7 @@ ifneq (,$(shell ld --help | grep compress-debug-sections))
 endif
 endif
 
-$!clang-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*.mk
+$!clang-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*
 	echo -n "CLANGFLAGS := "                                  >  $@+
 	$(var/cfgdir)/cflags.sh "clang" "rewrite" | tr '\n' ' '   >> $@+
 	echo                                                      >> $@+
@@ -27,13 +27,13 @@ $!clang-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*.mk
 	echo                                                      >> $@+
 	$(MV) $@+ $@
 
-$!cc-$(CC)-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*.mk
+$!cc-$(CC)-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*
 	echo -n "CFLAGS := "                          >  $@+
 	$(var/cfgdir)/cflags.sh "$(CC)" | tr '\n' ' ' >> $@+
 	echo                                          >> $@+
 	$(MV) $@+ $@
 
-$!cxx-$(CXX)-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*.mk
+$!cxx-$(CXX)-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*
 	echo -n "CXXFLAGS := "                         >  $@+
 	$(var/cfgdir)/cflags.sh "$(CXX)" | tr '\n' ' ' >> $@+
 	echo                                           >> $@+
