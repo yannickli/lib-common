@@ -35,7 +35,7 @@ then
 else
     say_color()
     {
-        shift 2
+        shift 1
         echo "$@"
     }
 fi
