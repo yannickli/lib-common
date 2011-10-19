@@ -1,5 +1,7 @@
 *.blk.c
 *.fc.c
+*.pyo
+*.pyc
 
 /Upgrading.html
 /conf-parser.c
