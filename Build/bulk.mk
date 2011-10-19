@@ -57,6 +57,8 @@ distclean::
 	$(call fun/expand-if2,$(RM),$(var/staticlibs:=.a) $(var/staticlibs:=.wa))
 	$(msg/rm) build system
 	$(RM) -r $~
+check::
+	$(var/toolsdir)/_run_checks.sh .
 
 tags: $(var/generated)
 .PHONY: tags
