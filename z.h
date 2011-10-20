@@ -119,6 +119,13 @@ void z_blkgrp_wipe(struct z_blkgrp *, bool delete_tests);
 extern lstr_t z_tmpdir_g;
 extern lstr_t z_grpdir_g;
 extern lstr_t z_cmddir_g;
+extern uint32_t z_modes_g;
+
+enum z_mode {
+    Z_MODE_FAST,
+};
+
+#define Z_HAS_MODE(Name)  TST_BIT(&z_modes_g, Z_MODE_##Name)
 
 /* private implementations {{{ */
 

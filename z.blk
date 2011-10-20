@@ -70,6 +70,7 @@ static struct {
 lstr_t z_tmpdir_g;
 lstr_t z_grpdir_g;
 lstr_t z_cmddir_g;
+uint32_t z_modes_g;
 
 /* private helpers {{{ */
 
@@ -683,6 +684,16 @@ int z_setup(int argc, const char **argv)
 
             qh_add(lstr, &_G.tag_skip, &arg);
             continue;
+        } else
+        if (z_is_opt_with_arg("--z-mode", &i, argv)) {
+            lstr_t arg = LSTR_STR_V(argv[i]);
+
+            if (lstr_equal2(LSTR_IMMED_V("fast"), arg)) {
+                SET_BIT(&z_modes_g, Z_MODE_FAST);
+            } else {
+                e_warning("ignoring unsupported mode: %*pM", LSTR_FMT_ARG(arg));
+            }
+            continue;
         }
 
         if (argv[i][0] == '-')
@@ -701,6 +712,23 @@ int z_setup(int argc, const char **argv)
 
             qh_add(lstr, &_G.tag_skip, &LSTR_INIT_V(tok.s, ps_len(&tok)));
             ps_skipspaces(&ps);
+        }
+    }
+
+    s = getenv("Z_MODE");
+    if (s) {
+        pstream_t ps = ps_initstr(s);
+
+        ps_skipspaces(&ps);
+        while (!ps_done(&ps)) {
+            pstream_t tok  = ps_get_cspan(&ps, &ctype_isspace);
+            lstr_t    stok = LSTR_INIT_V(tok.s, ps_len(&tok));
+
+            if (lstr_equal2(LSTR_IMMED_V("fast"), stok)) {
+                SET_BIT(&z_modes_g, Z_MODE_FAST);
+            } else {
+                e_warning("ignoring unsupported mode: %*pM", LSTR_FMT_ARG(stok));
+            }
         }
     }
     return 1;

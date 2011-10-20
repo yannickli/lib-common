@@ -96,7 +96,9 @@ def ZGroup(cls):
     _groups.append(cls)
     return cls
 
-_flags = set(os.getenv('Z_TAG_SKIP', '').split())
+_z_modes = set(os.getenv('Z_MODE', '').split())
+_flags   = set(os.getenv('Z_TAG_SKIP', '').split())
+
 @public
 def ZFlags(*flags):
     """
@@ -223,6 +225,12 @@ try:
 except ImportError:
     from unittest import *
     __all__ += u.__all__
+
+
+@public
+class TestCase(u.TestCase):
+    def zHasMode(self, mode):
+        return mode in _z_modes
 
 @public
 def expectedFailure(*args, **kwargs):
