@@ -17,6 +17,7 @@ test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-sp
 ifeq (,$(TOOLS_REPOSITORY))
 test_PROGRAMS += ztst-iop ztst-httpd
 endif
+none_SHARED_LIBRARIES = zchk-iop-plugin
 
 DISTCLEANFILES = core-version.c
 core-version.c: scripts/version.sh FORCE
@@ -84,6 +85,7 @@ libcommon_SOURCES = \
 	hash-sha4.c \
 	\
 	iop-cfolder.c \
+	iop-dso.c \
 	iop-json.c \
 	iop-xml-pack.c \
 	iop-xml-unpack.c \
@@ -153,10 +155,13 @@ libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 
 time-lp-simple_SOURCES = time-lp-simple.c
 
+zchk-iop-plugin_SOURCES = ic.iop zchk-iop-plugin.c
+
 zchk_SOURCES = zchk.c \
 	zchk-asn1-writer.c \
 	zchk-bithacks.c \
 	zchk-container.blk \
+	zchk-iop.c \
 	zchk-str.c \
 	zchk-time.c \
 	zchk-unix.c \

@@ -238,5 +238,6 @@ int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc);
 
 #include "iop-xml.h"
 #include "iop-json.h"
+#include "iop-dso.h"
 
 #endif
