@@ -27,6 +27,8 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_N(qm_find(iop_struct, &dso->struct_h,
                            &LSTR_IMMED_V("ic.Hdr")));
 
+        Z_ASSERT_P(iop_dso_find_type(dso, LSTR_IMMED_V("ic.SimpleHdr")));
+
         iop_dso_close(&dso);
     } Z_TEST_END;
 } Z_GROUP_END
