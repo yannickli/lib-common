@@ -98,6 +98,12 @@ Also, `Z_TAG_SKIP` may contain a space separate list of "tags" (that framework
 are free to implement as they want). Any test tagged with one of those tokens
 is automatically skipped. How the tags are used is totally free.
 
+`Z_MODE` may contain a space-separated list of "modes". Modes can be used by
+tests to alter their behavior. For example, the "fast" mode indicates the test
+runner care more about the speed of the tests than about their
+comprehensiveness, thus tests can reduce the size of their dataset in order
+to speed-up the processing (with less guarantees on scalability).
+
 Test groups are meant to be run in a separate environment. For example the C
 backend runs them in a fork()ed process so that the master can control whether
 the subprocess was killed for any reason and report the missing tests.
