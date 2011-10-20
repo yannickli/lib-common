@@ -228,7 +228,7 @@ fi
 # }}}
 # {{{ Kit SIMPA SFR
 
-simpa0="/home/data/projects/kiosque/Doc confidentiel SFR pour NSN 30102009/SIMPA_Kit Marchand_Java_V5.20.02_20091029.zip"
+simpa0="$(dirname "$0")/mcg/modules/gwk/kitmarchand"
 simpa1="/opt/kitmarchand"
 simpa2="/srv/build/kitmarchand"
 
@@ -236,35 +236,17 @@ file_exists() {
     test -e "$1" -a -r "$1"
 }
 
-if file_exists "$simpa1"; then
-    setenv "SIMPA_PATH" "$sympa1";
-elif file_exists "$simpa2"; then
-    setenv "SIMPA_PATH" "$sympa2";
-elif file_exists "$simpa0"; then
-    setenv "SIMPA_PATH" "$sympa0";
-else
-    log "kit SIMPA SFR not found"
+SIMPA_PATH=""
+
+if file_exists "$simpa0"; then
+    setenv "SFR_SIMPA_PATH" "$simpa0"
+elif file_exists "$simpa1"; then
+    setenv "SFR_SIMPA_PATH" "$simpa1"
 fi
 
-# }}}
-# {{{ CCN SDK
-
-ccn0="/home/data/build/ccn"
-ccn1="/opt/ccn"
-ccn2="/srv/build/ccn"
-
-if file_exists "$ccn0"; then
-    setenv "ENABLE_CCN" "1"
-    setenv "WITH_CCN" "1"
-    setenv "CCN_PATH" "$ccn0"
-elif file_exists "$ccn1"; then
-    setenv "ENABLE_CCN" "1"
-    setenv "WITH_CCN" "1"
-    setenv "CCN_PATH" "$ccn1"
-elif file_exists "$ccn2"; then
-    setenv "ENABLE_CCN" "1"
-    setenv "WITH_CCN" "1"
-    setenv "CCN_PATH" "$ccn2" 
+if test -n "$SFR_SIMPA_PATH"; then
+    setenv "ENABLE_SFR_SIMPA" "1"
+    setenv "WITH_SFR_SIMPA" "1"
 else
     setenv "ENABLE_CCN" "0"
     log "CCN SDK not found"
