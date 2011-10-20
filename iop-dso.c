@@ -14,6 +14,12 @@
 #include <dlfcn.h>
 #include "iop.h"
 
+static ALWAYS_INLINE
+void iopdso_register_struct(iop_dso_t *dso, iop_struct_t const *st)
+{
+    qm_add(iop_struct, &dso->struct_h, &st->fullname, st);
+}
+
 static void iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg)
 {
     if (qm_add(iop_pkg, &dso->pkg_h, &pkg->name, pkg) < 0)
@@ -22,10 +28,17 @@ static void iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg)
         qm_add(iop_enum, &dso->enum_h, &(*it)->fullname, *it);
     }
     for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
-        qm_add(iop_struct, &dso->struct_h, &(*it)->fullname, *it);
+        iopdso_register_struct(dso, *it);
     }
     for (const iop_iface_t *const *it = pkg->ifaces; *it; it++) {
         qm_add(iop_iface, &dso->iface_h, &(*it)->fullname, *it);
+        for (int i = 0; i < (*it)->funs_len; i++) {
+            const iop_rpc_t *rpc = &(*it)->funs[i];
+
+            iopdso_register_struct(dso, rpc->args);
+            iopdso_register_struct(dso, rpc->result);
+            iopdso_register_struct(dso, rpc->exn);
+        }
     }
     for (const iop_mod_t *const *it = pkg->mods; *it; it++) {
         qm_add(iop_mod, &dso->mod_h, &(*it)->fullname, *it);
