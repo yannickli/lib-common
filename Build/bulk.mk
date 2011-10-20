@@ -66,10 +66,9 @@ tags: $(var/generated)
 define fun/subdirs-targets
 $(foreach d,$1,
 $(patsubst ./%,%,$(dir $(d:/=)))all::       $(d)all
-$(patsubst ./%,%,$(dir $(d:/=)))check::     $(d)all
 $(patsubst ./%,%,$(dir $(d:/=)))clean::     $(d)clean
 $(d)all::
-$(d)check::
+$(d)check:: $(d)all
 	$(var/toolsdir)/_run_checks.sh $(d)
 $(d)clean::
 	find $~$(d) -type f \! -name vars.mk -print0 | xargs -0 $(RM)
