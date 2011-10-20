@@ -11,6 +11,7 @@
 /httptokens.h
 
 /zchk
+/zchk-iop-plugin.so
 /ztst-asn1-wr
 /ztst-blob-iconv
 /ztst-cfgparser
