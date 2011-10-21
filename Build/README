@@ -117,7 +117,7 @@ All the following work for any kind of goal:
 
 `_SOURCES`::
         This variable has the list of sources.  We support at the time of the
-        writing: .h, .c, .tokens, .fc, .farch, .l, .a, .wa, .ld, .lua.
+        writing: .h, .c, .tokens, .fc, .farch, .l, .a, .wa, .ld
 +
 Note that anything that is put in that variable, in a relative way to the
 current directory, is added to the order only depends chain of your goal even
