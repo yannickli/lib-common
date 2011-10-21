@@ -127,11 +127,16 @@ static void ic_cancel_all(ichannel_t *ic)
     ic->cancel_guard = true;
 #endif
 
-    while ((msg = ic_msg_list_pop(&ic->q))) {
+    while (!htlist_is_empty(&ic->iov_list)) {
+        msg = htlist_pop_entry(&ic->iov_list, ic_msg_t, msg_link);
         if (msg->cmd <= 0 || msg->slot == 0)
             ic_msg_delete(&msg);
     }
-    ic->qv = ic->qend = &ic->q;
+    while (!htlist_is_empty(&ic->msg_list)) {
+        msg = htlist_pop_entry(&ic->msg_list, ic_msg_t, msg_link);
+        if (msg->cmd <= 0 || msg->slot == 0)
+            ic_msg_delete(&msg);
+    }
 
     h = ic->queries;
     qm_init(ic_msg, &ic->queries, false);
@@ -200,39 +205,34 @@ static void ic_msg_abort(ichannel_t *ic, ic_msg_t *msg)
 
 static void ic_msg_filter_on_bye(ichannel_t *ic)
 {
-    ic_msg_t **list = &ic->q;
+    htlist_t l;
 
-    if (ic->is_stream) {
-        list = ic->qv;
-    } else {
-        if (ic->wpos)
-            list = &(*list)->next;
-    }
+    htlist_move(&l, &ic->msg_list);
+    if (!ic->is_stream && ic->wpos)
+        htlist_add_tail(&ic->msg_list, htlist_pop(&l));
 
-    while (*list) {
-        ic_msg_t *msg = *list;
+    while (!htlist_is_empty(&l)) {
+        ic_msg_t *msg = htlist_pop_entry(&l, ic_msg_t, msg_link);
 
         if (msg->cmd > 0) {
-            *list = msg->next;
             ic_msg_abort(ic, msg);
         } else {
-            list = &msg->next;
+            htlist_add_tail(&ic->msg_list, &msg->msg_link);
         }
     }
-    ic->qend = list;
 }
 
 static int ic_write_stream(ichannel_t *ic, int fd)
 {
-    ic_msg_t *msg = *ic->qv;
     bool timer_restarted = false;
 
     do {
-        while (msg && ic->iov_total_len < IC_PKT_MAX) {
+        while (!htlist_is_empty(&ic->msg_list) && ic->iov_total_len < IC_PKT_MAX) {
+            ic_msg_t *msg = htlist_pop_entry(&ic->msg_list, ic_msg_t, msg_link);
+
+            htlist_add_tail(&ic->iov_list, &msg->msg_link);
             qv_append(iovec, &ic->iov, MAKE_IOVEC(msg->data, msg->dlen));
             ic->iov_total_len += msg->dlen;
-            ic->qv = &msg->next;
-            msg    = msg->next;
         }
 
         if (ic->iov_total_len) {
@@ -249,18 +249,15 @@ static int ic_write_stream(ichannel_t *ic, int fd)
             ic->iov_total_len -= res;
 
             while (killed-- > 0) {
-                ic_msg_t *tmp = ic_msg_list_pop(&ic->q);
+                ic_msg_t *tmp = htlist_pop_entry(&ic->iov_list, ic_msg_t, msg_link);
 
                 if (tmp->cmd <= 0 || tmp->slot == 0) {
                     ic_msg_delete(&tmp);
                 }
             }
-            if (ic->iov_total_len == 0)
-                ic->qv = &ic->q;
         }
-    } while (ic->iov_total_len || msg);
+    } while (ic->iov_total_len || !htlist_is_empty(&ic->msg_list));
 
-    ic->qv = ic->qend = &ic->q;
     el_fd_set_mask(ic->elh, POLLIN);
     return 0;
 }
@@ -302,43 +299,46 @@ static int ic_write_seq(ichannel_t *ic, int fd)
     struct msghdr msgh = { .msg_iov = iov, };
 #define iovc  msgh.msg_iovlen
 
-    for (ic_msg_t *msg = ic->q; msg; ) {
-        ssize_t res;
+    while (!htlist_is_empty(&ic->msg_list)) {
+        size_t to_drop = 0;
 
-        if (unlikely(fdc == countof(fdv) && msg->fd >= 0))
-            goto send;
+        htlist_for_each(it, &ic->msg_list) {
+            ic_msg_t *msg = htlist_entry(it, ic_msg_t, msg_link);
 
-        if (unlikely(size + msg->dlen - wpos > IC_PKT_MAX)) {
-            int avail = IC_PKT_MAX - size;
+            if (unlikely(fdc == countof(fdv) && msg->fd >= 0))
+                break;
+
+            if (unlikely(size + msg->dlen - wpos > IC_PKT_MAX)) {
+                int avail = IC_PKT_MAX - size;
+
+                iov[iovc++] = (struct iovec){
+                    .iov_base = (char *)msg->data + wpos,
+                    .iov_len  = avail,
+                };
+                wpos += avail;
+                break;
+            }
 
             iov[iovc++] = (struct iovec){
                 .iov_base = (char *)msg->data + wpos,
-                .iov_len  = avail,
+                .iov_len  = msg->dlen - wpos,
             };
-            wpos += avail;
-            goto send;
+            size += msg->dlen - wpos;
+            wpos  = 0;
+            if (msg->fd >= 0)
+                fdv[fdc++] = msg->fd;
+            to_drop++;
+
+            if (unlikely(iovc >= countof(iov) - 1) || unlikely(size >= IC_PKT_MAX))
+                break;
         }
 
-        iov[iovc++] = (struct iovec){
-            .iov_base = (char *)msg->data + wpos,
-            .iov_len  = msg->dlen - wpos,
-        };
-        size += msg->dlen - wpos;
-        wpos  = 0;
-        if (msg->fd >= 0)
-            fdv[fdc++] = msg->fd;
-
-        msg = msg->next;
-        if (msg && likely(iovc < countof(iov) - 1) && likely(size < IC_PKT_MAX))
-            continue;
-
-      send:
         if (likely(iovc)) {
             char cbuf[CMSG_SPACE(sizeof(int) * countof(fdv)) +
                       CMSG_SPACE(sizeof(struct ucred))];
+
             ic_prepare_cmsg(ic, &msgh, cbuf, sizeof(cbuf), fdc, fdv);
-            res = sendmsg(fd, &msgh, 0);
-            if (res < 0)
+            if (sendmsg(fd, &msgh, 0) < 0)
                 return ERR_RW_RETRIABLE(errno) ? 0 : -1;
 
             if (ic->timer && !timer_restarted) {
@@ -349,8 +349,8 @@ static int ic_write_seq(ichannel_t *ic, int fd)
 
         size = fdc = iovc = 0;
         ic->wpos = wpos;
-        while (ic->q != msg) {
-            ic_msg_t *tmp = ic_msg_list_pop(&ic->q);
+        while (to_drop-- > 0) {
+            ic_msg_t *tmp = htlist_pop_entry(&ic->msg_list, ic_msg_t, msg_link);
 
             if (tmp->cmd <= 0 || tmp->slot == 0) {
                 ic_msg_delete(&tmp);
@@ -358,7 +358,6 @@ static int ic_write_seq(ichannel_t *ic, int fd)
         }
 #undef iovc
     }
-    ic->qend = &ic->q;
     el_fd_set_mask(ic->elh, POLLIN);
     return 0;
 }
@@ -817,20 +816,20 @@ static void ic_queue(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
     hdr[0] = cpu_to_le32(flags);
     hdr[1] = cpu_to_le32(msg->cmd);
     hdr[2] = cpu_to_le32(msg->dlen - IC_MSG_HDR_LEN);
-    if (!ic->q && ic->elh)
+    if (htlist_is_empty(&ic->msg_list) && ic->elh)
         el_fd_set_mask(ic->elh, POLLINOUT);
-    ic_msg_list_tappend(&ic->qend, msg);
+    htlist_add_tail(&ic->msg_list, &msg->msg_link);
 }
 
 static void __ic_flush(ichannel_t *ic, int fd)
 {
     if (ic->is_stream) {
-        while (ic->q) {
+        while (ic->iov_total_len || !htlist_is_empty(&ic->msg_list)) {
             if (ic_write_stream(ic, fd) < 0)
                 goto close;
         }
     } else {
-        while (ic->q) {
+        while (!htlist_is_empty(&ic->msg_list)) {
             if (ic_write_seq(ic, fd) < 0)
                 goto close;
         }
@@ -1030,7 +1029,8 @@ ichannel_t *ic_get_by_id(uint32_t id)
 ichannel_t *ic_init(ichannel_t *ic)
 {
     p_clear(ic, 1);
-    ic->qend = ic->qv = &ic->q;
+    htlist_init(&ic->msg_list);
+    htlist_init(&ic->iov_list);
     ic->current_fd  = -1;
     ic->auto_reconn = true;
     qm_init(ic_msg, &ic->queries, false);
@@ -1057,7 +1057,7 @@ static int ic_mark_connected(ichannel_t *ic, int fd)
         RETHROW((*ic->on_creds)(ic, &ucred));
     }
     /* force an exchange at connect time, so force NOP if queue is empty */
-    if (!ic->q)
+    if (htlist_is_empty(&ic->msg_list))
         ic_nop(ic);
     el_fd_set_mask(ic->elh, POLLINOUT);
     return 0;

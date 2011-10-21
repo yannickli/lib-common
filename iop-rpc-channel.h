@@ -48,7 +48,7 @@ typedef void (ic_msg_cb_f)(ichannel_t *, ic_msg_t *,
                            ic_status_t, void *, void *);
 
 struct ic_msg_t {
-    struct ic_msg_t *next;      /**< private field used by ichannel_t       */
+    htnode_t msg_link;          /**< private field used by ichannel_t       */
     int      fd      : 24;      /**< the fd to send                         */
     flag_t   async   :  1;      /**< whether the RPC is async               */
     unsigned padding :  7;
@@ -69,7 +69,6 @@ ic_msg_t *ic_msg_new_fd(int fd, int len);
 ic_msg_t *ic_msg_proxy_new(int fd, uint64_t slot, const ic__hdr__t *hdr);
 void ic_msg_delete(ic_msg_t **);
 qm_k32_t(ic_msg, ic_msg_t *);
-SLIST_FUNCTIONS(ic_msg_t, ic_msg);
 
 enum ic_cb_entry_type {
     IC_CB_NORMAL,
@@ -148,7 +147,8 @@ struct ichannel_t {
 
     /* private */
     qm_t(ic_msg) queries;      /**< hash of queries waiting for an answer  */
-    ic_msg_t *q, **qv, **qend; /**< list of messages to send               */
+    htlist_t     iov_list;     /**< list of messages to send, in iov       */
+    htlist_t     msg_list;     /**< list of messages to send               */
     int          current_fd;   /**< used to store the current fd           */
     int          pending;
 
@@ -183,7 +183,10 @@ static inline int ic_queue_len(ichannel_t *ic) {
     return qm_len(ic_msg, &ic->queries);
 }
 static inline bool ic_is_empty(ichannel_t *ic) {
-    return !ic->q && ic_queue_len(ic) == 0 && !ic->pending;
+    return htlist_is_empty(&ic->msg_list)
+        && htlist_is_empty(&ic->iov_list)
+        && ic_queue_len(ic) == 0
+        && !ic->pending;
 }
 
 /* XXX be carefull, this function do not mean that the ichannel is actually
