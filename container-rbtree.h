@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CONTAINER_H) && !defined(IS_LIB_COMMON_CORE_MEM_H)
+#if !defined(IS_LIB_COMMON_CONTAINER_H)
 #  error "you must include container.h instead"
 #endif
 #ifndef IS_LIB_COMMON_CONTAINER_RBTREE_H

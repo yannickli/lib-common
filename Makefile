@@ -44,12 +44,10 @@ libcommon_SOURCES = \
 	conf.c  \
 	conf-parser.l \
 	\
-	container-list.c \
 	container-qhash.c \
 	container-qvector.blk \
 	container-rbtree.c \
 	container-ring.c \
-	container-slist.c \
 	\
 	core-debug.c \
 	core-errors.c \
