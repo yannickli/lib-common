@@ -46,6 +46,8 @@ static ALWAYS_INLINE iop_dso_t *iop_dso_dup(iop_dso_t *dso)
 }
 void iop_dso_close(iop_dso_t **dsop);
 
+iop_struct_t const *iop_dso_find_type(iop_dso_t const *dso, lstr_t name);
+
 #define IOP_EXPORT_PACKAGES(...) \
     EXPORT iop_pkg_t const *const iop_packages[];   \
     iop_pkg_t const *const iop_packages[] = { __VA_ARGS__, NULL }
