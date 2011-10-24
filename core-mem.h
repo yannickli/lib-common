@@ -15,7 +15,6 @@
 #  error "you must include core.h instead"
 #else
 #define IS_LIB_COMMON_CORE_MEM_H
-#include "container-rbtree.h"
 
 /**************************************************************************/
 /* Intersec memory pools and APIs core stuff                              */
@@ -308,40 +307,11 @@ static inline void (p_delete)(void **p) {
 /* Memory pools high level APIs                                           */
 /**************************************************************************/
 
-/*
- * Intersec memory allocation wrappers allow people writing pools that are
- * treated transparently through irealloc/ifree. This though requires that
- * those pools register the address ranges they work on.
- *
- * Of course, it's impractical for a general purpose malloc. This clearly
- * assume that your allocator work on a relatively small number of
- * address ranges.
- *
- * The pool is free to either embed the mem_blk_t structure into its block
- * structure, or to allocate new ones. It's not assumed that the mem_blk_t
- * actually reside inside of the block it describes.
- *
- * TODO: interestingly enough, the pool doesn't need to track its blocks,
- * mem_register does it already. So maybe there is something to work on
- * here...
- */
 typedef struct mem_pool_t {
     void *(*malloc) (struct mem_pool_t *, size_t, mem_flags_t);
     void *(*realloc)(struct mem_pool_t *, void *, size_t, size_t, mem_flags_t);
     void  (*free)   (struct mem_pool_t *, void *, mem_flags_t);
 } mem_pool_t;
-
-typedef struct mem_blk_t {
-    mem_pool_t *pool;
-    rb_node_t   node;
-    const void *start;
-    size_t      size;
-} mem_blk_t;
-
-void mem_register(mem_blk_t *);
-void mem_unregister(mem_blk_t *);
-mem_blk_t *mem_blk_find(const void *addr);
-void mem_for_each(mem_pool_t *, void (*)(mem_blk_t *, void *), void *);
 
 __attribute__((malloc, warn_unused_result))
 static inline void *memp_dup(mem_pool_t *mp, const void *src, size_t size)

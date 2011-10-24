@@ -13,63 +13,6 @@
 
 #include "core-mem-valgrind.h"
 
-static rb_t blks_g;
-static spinlock_t lock_g;
-
-static RB_INSERT_I(mem_blk_t, mem_blk, node, start);
-
-void mem_register(mem_blk_t *blk)
-{
-    rb_node_t **n;
-
-    spin_lock(&lock_g);
-    n = mem_blk_insert(&blks_g, blk);
-    assert (!n);
-    spin_unlock(&lock_g);
-    VALGRIND_REG_BLK(blk);
-}
-
-void mem_unregister(mem_blk_t *blk)
-{
-    spin_lock(&lock_g);
-    rb_del_node(&blks_g, &blk->node);
-    spin_unlock(&lock_g);
-    VALGRIND_UNREG_BLK(blk);
-}
-
-mem_blk_t *mem_blk_find(const void *addr)
-{
-    rb_node_t *n;
-
-    spin_lock(&lock_g);
-    n = blks_g.root;
-
-    while (n) {
-        mem_blk_t *e = rb_entry(n, mem_blk_t, node);
-
-        if (addr < e->start) {
-            n = n->left;
-        } else if ((const char *)addr >= (const char *)e->start + e->size) {
-            n = n->right;
-        } else {
-            spin_unlock(&lock_g);
-            return e;
-        }
-    }
-
-    spin_unlock(&lock_g);
-
-    return NULL;
-}
-
-void mem_for_each(mem_pool_t *mp, void (*fn)(mem_blk_t *, void *), void *priv)
-{
-    spin_lock(&lock_g);
-    rb_for_each_safe(it, &blks_g)
-        (*fn)(rb_entry(it, mem_blk_t, node), priv);
-    spin_unlock(&lock_g);
-}
-
 void *libc_malloc(size_t size, mem_flags_t flags)
 {
     void *res;
@@ -119,29 +62,20 @@ void *__imalloc(size_t size, mem_flags_t flags)
 
 void __ifree(void *mem, mem_flags_t flags)
 {
-    mem_blk_t *blk;
-
     switch (flags & MEM_POOL_MASK) {
       case MEM_STATIC:
       case MEM_STACK:
         return;
-      default:
-        blk = mem_blk_find(mem);
-        if (blk) {
-            blk->pool->free(blk->pool, mem, flags);
-            return;
-        }
-        /* FALL THRU */
       case MEM_LIBC:
         libc_free(mem, flags);
         return;
+      default:
+        e_panic("pool memory cannot be deallocated with ifree");
     }
 }
 
 void *__irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
 {
-    mem_blk_t *blk;
-
     if (size == 0) {
         ifree(mem, flags);
         return NULL;
@@ -154,13 +88,10 @@ void *__irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
         e_panic("You cannot realloc alloca-ed memory");
       case MEM_STACK:
         return stack_realloc(mem, oldsize, size, flags);
-      default:
-        blk = mem_blk_find(mem);
-        if (blk)
-            return blk->pool->realloc(blk->pool, mem, oldsize, size, flags);
-        /* FALL THRU */
       case MEM_LIBC:
         return libc_realloc(mem, oldsize, size, flags);
+      default:
+        e_panic("pool memory cannot be reallocated with ifree");
     }
 }
 

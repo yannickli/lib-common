@@ -15,11 +15,12 @@
 #include "core.h"
 
 typedef struct mem_page_t {
-    mem_blk_t page;
-    uint32_t  used_size;
-    uint32_t  used_blocks;
+    void    *start;
+    size_t   size;
+    uint32_t used_size;
+    uint32_t used_blocks;
 
-    void *last;           /* last result of an allocation */
+    void    *last;           /* last result of an allocation */
 
     byte __attribute__((aligned(8))) area[];
 } mem_page_t;
@@ -65,7 +66,7 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
     mem_page_t *page = mfp->freepage;
     uint32_t mapsize;
 
-    if (page && page->page.size >= minsize) {
+    if (page && page->size >= minsize) {
         mfp->freepage = NULL;
         return page;
     }
@@ -82,10 +83,8 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
         e_panic(E_UNIXERR("mmap"));
     }
 
-    page->page.start = page->area;
-    page->page.pool  = &mfp->funcs;
-    page->page.size  = mapsize - sizeof(mem_page_t);
-    mem_register(&page->page);
+    page->start = page->area;
+    page->size  = mapsize - sizeof(mem_page_t);
     mfp->nb_pages++;
     mfp->map_size   += mapsize;
     return page;
@@ -95,7 +94,7 @@ static void mem_page_reset(mem_page_t *page)
 {
     VALGRIND_MAKE_MEM_UNDEFINED(page->area, page->used_size);
     p_clear(page->area, page->used_size);
-    VALGRIND_PROT_BLK(&page->page);
+    VALGRIND_MAKE_MEM_NOACCESS(page->start, page->size);
 
     page->used_size   = 0;
     page->used_blocks = 0;
@@ -108,16 +107,15 @@ static void mem_page_delete(mem_fifo_pool_t *mfp, mem_page_t **pagep)
 
     if (page) {
         mfp->nb_pages--;
-        mfp->map_size -= page->page.size;
-        mem_unregister(&page->page);
-        munmap(page, page->page.size + sizeof(mem_page_t));
+        mfp->map_size -= page->size;
+        munmap(page, page->size + sizeof(mem_page_t));
     }
     *pagep = NULL;
 }
 
 static uint32_t mem_page_size_left(mem_page_t *page)
 {
-    return (page->page.size - page->used_size);
+    return (page->size - page->used_size);
 }
 
 #if __GNUC_PREREQ(4, 6) && !__VALGRIND_PREREQ(3, 7)
@@ -309,6 +307,6 @@ void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
     mem_fifo_pool_t *mfp = (mem_fifo_pool_t *)(mp);
     /* we don't want to account the 'spare' page as allocated, it's an
        optimization that should not leak. */
-    *allocated = mfp->map_size -= mfp->freepage ? mfp->freepage->page.size : 0;
+    *allocated = mfp->map_size -= mfp->freepage ? mfp->freepage->size : 0;
     *used      = mfp->occupied;
 }

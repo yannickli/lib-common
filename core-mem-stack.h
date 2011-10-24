@@ -81,9 +81,10 @@
  */
 
 typedef struct mem_stack_blk_t {
-    mem_blk_t blk;
-    dlist_t   blk_list;
-    uint8_t   area[];
+    const void *start;
+    size_t      size;
+    dlist_t     blk_list;
+    uint8_t     area[];
 } mem_stack_blk_t;
 
 typedef struct mem_stack_frame_t mem_stack_frame_t;
@@ -96,7 +97,8 @@ struct mem_stack_frame_t {
 };
 
 typedef struct mem_stack_pool_t {
-    mem_blk_t            blk;
+    const void          *start;
+    size_t               size;
     dlist_t              blk_list;
 
     /* XXX: kludge: below this point we're the "blk" data */

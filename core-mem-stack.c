@@ -43,11 +43,9 @@ static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
     if (unlikely(blksize > MEM_ALLOC_MAX))
         e_panic("You cannot allocate that amount of memory");
     blk = imalloc(blksize, MEM_RAW | MEM_LIBC);
-    blk->blk.pool  = &sp->funcs;
-    blk->blk.start = blk->area;
-    blk->blk.size  = blksize - sizeof(*blk);
-    sp->stacksize += blk->blk.size;
-    mem_register(&blk->blk);
+    blk->start     = blk->area;
+    blk->size      = blksize - sizeof(*blk);
+    sp->stacksize += blk->size;
     dlist_add_tail(&sp->blk_list, &blk->blk_list);
     sp->nbpages++;
     return blk;
@@ -56,9 +54,8 @@ static mem_stack_blk_t *blk_create(mem_stack_pool_t *sp, size_t size_hint)
 __cold
 static void blk_destroy(mem_stack_pool_t *sp, mem_stack_blk_t *blk)
 {
-    sp->stacksize -= blk->blk.size;
+    sp->stacksize -= blk->size;
     sp->nbpages--;
-    mem_unregister(&blk->blk);
     dlist_remove(&blk->blk_list);
     ifree(blk, MEM_LIBC);
 }
@@ -69,7 +66,7 @@ frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t size)
     mem_stack_blk_t *blk;
 
     dlist_for_each_entry_safe_continue(cur, blk, &sp->blk_list, blk_list) {
-        if (blk->blk.size >= size)
+        if (blk->size >= size)
             return blk;
         blk_destroy(sp, blk);
     }
@@ -79,7 +76,7 @@ frame_get_next_blk(mem_stack_pool_t *sp, mem_stack_blk_t *cur, size_t size)
 static ALWAYS_INLINE uint8_t *frame_end(mem_stack_frame_t *frame)
 {
     mem_stack_blk_t *blk = frame->blk;
-    return blk->area + blk->blk.size;
+    return blk->area + blk->size;
 }
 
 static void *sp_reserve(mem_stack_pool_t *sp, size_t asked,
@@ -204,20 +201,19 @@ mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *sp, int initialsize)
 {
     p_clear(sp, 1);
     dlist_init(&sp->blk_list);
-    sp->blk.pool   = &sp->funcs;
-    sp->blk.start  = blk_entry(&sp->blk_list)->area;
-    sp->blk.size   = sizeof(mem_stack_pool_t) - sizeof(mem_stack_blk_t);
+    sp->start    = blk_entry(&sp->blk_list)->area;
+    sp->size     = sizeof(mem_stack_pool_t) - sizeof(mem_stack_blk_t);
 
-    sp->base.blk   = blk_entry(&sp->blk_list);
-    sp->base.pos   = (void *)(sp + 1);
-    sp->stack      = &sp->base;
+    sp->base.blk = blk_entry(&sp->blk_list);
+    sp->base.pos = (void *)(sp + 1);
+    sp->stack    = &sp->base;
 
     /* 640k should be enough for everybody =) */
     if (initialsize <= 0)
         initialsize = 640 << 10;
-    sp->minsize    = ROUND_UP(MAX(1, initialsize), PAGE_SIZE);
-    sp->funcs      = pool_funcs;
-    sp->alloc_nb   = 1; /* avoid the division by 0 */
+    sp->minsize  = ROUND_UP(MAX(1, initialsize), PAGE_SIZE);
+    sp->funcs    = pool_funcs;
+    sp->alloc_nb = 1; /* avoid the division by 0 */
 
     return sp;
 }
@@ -252,7 +248,7 @@ void mem_stack_protect(mem_stack_pool_t *sp)
 
     (void)VALGRIND_MAKE_MEM_NOACCESS(sp->stack->pos, remainsz);
     dlist_for_each_entry_continue(blk, blk, &sp->blk_list, blk_list) {
-        VALGRIND_PROT_BLK(&blk->blk);
+        (void)(VALGRIND_MAKE_MEM_NOACCESS(blk->start, blk->size));
     }
 }
 #endif

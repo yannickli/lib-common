@@ -798,9 +798,11 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
                 int   blen = DIV_ROUND_UP(ll->b.len * 3, 4);
                 char *buf  = mp_new_raw(ll->mp, char, blen + 1);
 
-                sb_init_full(&sb, buf, 0, blen + 1, MEM_OTHER);
-                if (sb_add_unb64(&sb, ll->b.data, ll->b.len))
+                sb_init_full(&sb, buf, 0, blen + 1, MEM_STATIC);
+                if (sb_add_unb64(&sb, ll->b.data, ll->b.len)) {
+                    mp_delete(ll->mp, &buf);
                     return RJERROR_WARG(IOP_JERR_BAD_VALUE);
+                }
                 data->data = buf;
                 data->len  = sb.len;
             }

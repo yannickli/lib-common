@@ -31,7 +31,8 @@
 typedef struct ring_pool_t ring_pool_t;
 
 typedef struct ring_blk_t {
-    mem_blk_t    mem;
+    void        *start;
+    size_t       size;
     dlist_t      blist;
     byte         area[];
 } ring_blk_t;
@@ -108,11 +109,9 @@ static ring_blk_t *blk_create(ring_pool_t *rp, size_t size_hint)
     if (blksize > MEM_ALLOC_MAX)
         e_panic("You cannot allocate that amount of memory");
     blk = imalloc(blksize, MEM_RAW | MEM_LIBC);
-    blk->mem.pool  = &rp->funcs;
-    blk->mem.start = blk->area;
-    blk->mem.size  = blksize - sizeof(*blk);
-    rp->ringsize += blk->mem.size;
-    mem_register(&blk->mem);
+    blk->start    = blk->area;
+    blk->size     = blksize - sizeof(*blk);
+    rp->ringsize += blk->size;
     if (likely(rp->cblk)) {
         dlist_add_after(&rp->cblk->blist, &blk->blist);
     } else {
@@ -124,22 +123,21 @@ static ring_blk_t *blk_create(ring_pool_t *rp, size_t size_hint)
 
 static void blk_destroy(ring_pool_t *rp, ring_blk_t *blk)
 {
-    rp->ringsize -= blk->mem.size;
+    rp->ringsize -= blk->size;
     rp->nbpages--;
-    mem_unregister(&blk->mem);
     dlist_remove(&blk->blist);
     ifree(blk, MEM_LIBC);
 }
 
 static bool blk_contains(const ring_blk_t *blk, const void *ptr)
 {
-    return (const byte *)ptr >= (const byte *)blk->mem.start
-        && (const byte *)ptr <= (const byte *)blk->mem.start + blk->mem.size;
+    return (const byte *)ptr >= (const byte *)blk->start
+        && (const byte *)ptr <= (const byte *)blk->start + blk->size;
 }
 
 static byte *blk_end(ring_blk_t *blk)
 {
-    return blk->area + blk->mem.size;
+    return blk->area + blk->size;
 }
 
 static ring_blk_t *
@@ -158,7 +156,7 @@ frame_get_next_blk(ring_pool_t *rp, ring_blk_t *cur, size_t size)
         if (blk_contains(blk, start))
             break;
 
-        if (blk->mem.size >= size && blk->mem.size > 8 * rp_alloc_mean(rp))
+        if (blk->size >= size && blk->size > 8 * rp_alloc_mean(rp))
             return blk;
         blk_destroy(rp, blk);
     }
@@ -262,9 +260,9 @@ mem_ring_protect(const ring_pool_t *rp, const ring_blk_t *blk,
     const byte *start = _start;
 
     while (!blk_contains(blk, end)) {
-        (void)VALGRIND_MAKE_MEM_NOACCESS(start, blk->area + blk->mem.size - start);
+        (void)VALGRIND_MAKE_MEM_NOACCESS(start, blk->area + blk->size - start);
         blk   = dlist_next_entry(blk, blist);
-        start = blk->mem.start;
+        start = blk->start;
     }
     (void)VALGRIND_MAKE_MEM_NOACCESS(start, end - start);
 }
@@ -540,10 +538,10 @@ void mem_ring_dump(const mem_pool_t *_rp)
     frame_t *frame;
 
     if (rp->cblk) {
-        bytes += rp->cblk->mem.size;
+        bytes += rp->cblk->size;
         dlist_for_each_safe(e, &rp->cblk->blist) {
             ring_blk_t *blk = blk_entry(e);
-            bytes += blk->mem.size;
+            bytes += blk->size;
         }
     }
 
