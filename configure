@@ -150,7 +150,6 @@ pkg_config_setvar "libxml2" "libxml2-dev"    "libxml-2.0"
 pkg_config_setvar "zlib"    "zlib1g-dev"     "zlib"
 pkg_config_setvar "sqlite"  "libsqlite3-dev" "sqlite3"
 
-pkg_config_setvar "fuse" "libfuse-dev" "fuse"
 pkg_config_setvar "imlib2"  "libimlib2-dev" "imlib2"
 
 # }}}
