@@ -17,13 +17,6 @@
 #ifndef NDEBUG
 #  include <valgrind/valgrind.h>
 #  include <valgrind/memcheck.h>
-#  ifndef VALGRIND_MEMPOOL_CHANGE
-#    define VALGRIND_MEMPOOL_CHANGE(pool, oaddr, naddr, size) \
-        do {                                                  \
-             VALGRIND_MEMPOOL_FREE(pool, oaddr);              \
-             VALGRIND_MEMPOOL_ALLOC(pool, naddr, size);       \
-        } while (0)
-#  endif
 #  define __VALGRIND_PREREQ(x, y)  \
     defined(__VALGRIND_MAJOR__) && defined(__VALGRIND_MINOR__) && \
     (__VALGRIND_MAJOR__ << 16) + __VALGRIND_MINOR__ >= (((x) << 16) + (y))
@@ -34,9 +27,6 @@
 #  define VALGRIND_MAKE_MEM_DEFINED(...)         ((void)0)
 #  define VALGRIND_MAKE_MEM_NOACCESS(...)        ((void)0)
 #  define VALGRIND_MAKE_MEM_UNDEFINED(...)       ((void)0)
-#  define VALGRIND_MEMPOOL_ALLOC(...)            ((void)0)
-#  define VALGRIND_MEMPOOL_CHANGE(...)           ((void)0)
-#  define VALGRIND_MEMPOOL_FREE(...)             ((void)0)
 #  define VALGRIND_MALLOCLIKE_BLOCK(...)         ((void)0)
 #  define VALGRIND_FREELIKE_BLOCK(...)           ((void)0)
 #endif

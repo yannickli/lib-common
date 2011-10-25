@@ -141,7 +141,6 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
 
     blk = (mem_block_t *)(page->area + page->used_size);
     blk_unprotect(blk);
-    VALGRIND_MEMPOOL_ALLOC(page, blk->area, size);
     VALGRIND_MALLOCLIKE_BLOCK(blk->area, size, 0, true);
     blk->page_offs = (uintptr_t)blk - (uintptr_t)page;
     blk->blk_size  = size;
@@ -166,7 +165,6 @@ static void mfp_free(mem_pool_t *_mfp, void *mem, mem_flags_t flags)
     blk_unprotect(blk);
     page = pageof(blk);
     mfp->occupied -= blk->blk_size;
-    VALGRIND_MEMPOOL_FREE(page, blk->area);
     VALGRIND_FREELIKE_BLOCK(mem, 0);
     blk_protect(blk);
 
@@ -222,7 +220,6 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
     assert (oldsize <= blk->blk_size);
     if (size <= blk->blk_size - sizeof(*blk)) {
         VALGRIND_FREELIKE_BLOCK(mem, 0);
-        VALGRIND_MEMPOOL_CHANGE(page, mem, mem, size);
         VALGRIND_MALLOCLIKE_BLOCK(mem, size, 0, false);
         VALGRIND_MAKE_MEM_DEFINED(mem, oldsize);
         if (!(flags & MEM_RAW) && oldsize < size)
@@ -242,7 +239,6 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
         mfp->occupied   += diff;
         page->used_size += diff;
         VALGRIND_FREELIKE_BLOCK(mem, 0);
-        VALGRIND_MEMPOOL_CHANGE(page, mem, mem, size);
         VALGRIND_MALLOCLIKE_BLOCK(mem, size, 0, false);
         VALGRIND_MAKE_MEM_DEFINED(mem, oldsize);
     } else {
