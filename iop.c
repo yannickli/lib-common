@@ -323,6 +323,246 @@ bool iop_equals(const iop_struct_t *st, const void *v1, const void *v2)
 }
 
 /*----- duplicating values -}}}-*/
+/*----- hashing values -{{{-*/
+
+struct iop_hash_ctx {
+    size_t   pos;
+    uint8_t  buf[1024];
+    void   (*hfun)(void *ctx, const void *input, int len);
+    void    *ctx;
+};
+
+static ALWAYS_INLINE
+void iop_hash_update(struct iop_hash_ctx *ctx, const void *d, size_t len)
+{
+    size_t pos = ctx->pos;
+
+    if (pos + len > sizeof(ctx->buf)) {
+        ctx->pos = 0;
+        ctx->hfun(ctx->ctx, ctx->buf, pos);
+        ctx->hfun(ctx->ctx, d, len);
+    } else {
+        memcpy(ctx->buf + pos, d, len);
+        if ((pos += len) > sizeof(ctx->buf) / 2) {
+            ctx->pos = 0;
+            ctx->hfun(ctx->ctx, ctx->buf, pos);
+        } else {
+            ctx->pos = pos;
+        }
+    }
+}
+
+static ALWAYS_INLINE
+void iop_hash_update_u16(struct iop_hash_ctx *ctx, uint16_t i)
+{
+    size_t pos = ctx->pos;
+
+    assert (pos + 2 < sizeof(ctx->buf));
+    put_unaligned_le16(ctx->buf + pos, i);
+    if ((pos += 2) > sizeof(ctx->buf) / 2) {
+        ctx->pos = 0;
+        ctx->hfun(ctx->ctx, ctx->buf, pos);
+    } else {
+        ctx->pos = pos;
+    }
+}
+
+static ALWAYS_INLINE
+void iop_hash_update_u32(struct iop_hash_ctx *ctx, uint32_t i)
+{
+    size_t pos = ctx->pos;
+
+    assert (pos + 4 < sizeof(ctx->buf));
+    put_unaligned_le32(ctx->buf + pos, i);
+    if ((pos += 4) > sizeof(ctx->buf) / 2) {
+        ctx->pos = 0;
+        ctx->hfun(ctx->ctx, ctx->buf, pos);
+    } else {
+        ctx->pos = pos;
+    }
+}
+
+static ALWAYS_INLINE
+void iop_hash_update_i64(struct iop_hash_ctx *ctx, int64_t i)
+{
+    size_t pos = ctx->pos;
+
+    assert (pos + 8 < sizeof(ctx->buf));
+    put_unaligned_le64(ctx->buf + pos, i);
+    if ((pos += 8) > sizeof(ctx->buf) / 2) {
+        ctx->pos = 0;
+        ctx->hfun(ctx->ctx, ctx->buf, pos);
+    } else {
+        ctx->pos = pos;
+    }
+}
+#define iop_hash_update_dbl(ctx, d) \
+    iop_hash_update_i64(ctx, double_bits_cpu(d))
+
+static void
+iop_opt_hash(struct iop_hash_ctx *ctx, const iop_field_t *f, const void *v)
+{
+    switch (f->type) {
+      case IOP_T_I8:
+        iop_hash_update_i64(ctx, ((iop_opt_i8_t *)v)->v);
+        break;
+      case IOP_T_U8:
+        iop_hash_update_i64(ctx, ((iop_opt_u8_t *)v)->v);
+        break;
+      case IOP_T_I16:
+        iop_hash_update_i64(ctx, ((iop_opt_i16_t *)v)->v);
+        break;
+      case IOP_T_U16:
+        iop_hash_update_i64(ctx, ((iop_opt_u16_t *)v)->v);
+        break;
+      case IOP_T_I32: case IOP_T_ENUM:
+        iop_hash_update_i64(ctx, ((iop_opt_i32_t *)v)->v);
+        break;
+      case IOP_T_U32:
+        iop_hash_update_i64(ctx, ((iop_opt_u32_t *)v)->v);
+        break;
+      case IOP_T_I64:
+        iop_hash_update_i64(ctx, ((iop_opt_i64_t *)v)->v);
+        break;
+      case IOP_T_U64:
+        iop_hash_update_i64(ctx, ((iop_opt_u64_t *)v)->v);
+        break;
+      case IOP_T_DOUBLE:
+        iop_hash_update_dbl(ctx, ((iop_opt_double_t *)v)->v);
+        break;
+      default:
+        e_panic("should not happen");
+    }
+}
+
+static void
+__iop_hash(struct iop_hash_ctx *ctx, const iop_struct_t *st, const uint8_t *v)
+{
+    const iop_field_t *fdesc;
+    const iop_field_t *end;
+
+    if (st->is_union) {
+        fdesc = get_union_field(st, v);
+        end   = fdesc + 1;
+    } else {
+        fdesc = st->fields;
+        end   = fdesc + st->fields_len;
+    }
+
+    for (; fdesc < end; fdesc++) {
+        const void *r = v + fdesc->data_offs;
+        int n = 1;
+
+        iop_hash_update_u16(ctx, fdesc->tag);
+        iop_hash_update(ctx, fdesc->name.s, fdesc->name.len);
+
+        if (fdesc->repeat == IOP_R_REPEATED) {
+            n  = ((iop_data_t *)r)->len;
+            r  = ((iop_data_t *)r)->data;
+            iop_hash_update_u32(ctx, n);
+        }
+
+        if (fdesc->repeat == IOP_R_OPTIONAL) {
+            if (!iop_value_has(fdesc, r))
+                continue;
+
+            if ((1 << fdesc->type) & IOP_BLK_OK) {
+                if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
+                    r = *(void **)r;
+                }
+            } else {
+                iop_opt_hash(ctx, fdesc, v);
+                continue;
+            }
+        }
+        switch (fdesc->type) {
+          case IOP_T_I8:
+            for (int i = 0; i < n; i++) {
+                iop_hash_update_i64(ctx, ((int8_t *)v)[i]);
+            }
+            break;
+          case IOP_T_BOOL:
+            for (int i = 0; i < n; i++) {
+                iop_hash_update_i64(ctx, ((bool *)v)[i]);
+            }
+            break;
+          case IOP_T_U8:
+            for (int i = 0; i < n; i++) {
+                iop_hash_update_i64(ctx, ((uint8_t *)v)[i]);
+            }
+            break;
+          case IOP_T_I16:
+            for (int i = 0; i < n; i++) {
+                iop_hash_update_i64(ctx, ((int16_t *)v)[i]);
+            }
+            break;
+          case IOP_T_U16:
+            for (int i = 0; i < n; i++) {
+                iop_hash_update_i64(ctx, ((uint16_t *)v)[i]);
+            }
+            break;
+          case IOP_T_I32: case IOP_T_ENUM:
+            for (int i = 0; i < n; i++) {
+                iop_hash_update_i64(ctx, ((int32_t *)v)[i]);
+            }
+            break;
+          case IOP_T_U32:
+            for (int i = 0; i < n; i++) {
+                iop_hash_update_i64(ctx, ((uint32_t *)v)[i]);
+            }
+            break;
+          case IOP_T_I64:
+            for (int i = 0; i < n; i++) {
+                iop_hash_update_i64(ctx, ((int64_t *)v)[i]);
+            }
+            break;
+          case IOP_T_U64:
+            for (int i = 0; i < n; i++) {
+                iop_hash_update_i64(ctx, ((uint64_t *)v)[i]);
+            }
+            break;
+          case IOP_T_DOUBLE:
+            for (int i = 0; i < n; i++) {
+                iop_hash_update_dbl(ctx, ((double *)v)[i]);
+            }
+            break;
+          case IOP_T_UNION:
+          case IOP_T_STRUCT:
+            for (int i = 0; i < n; i++) {
+                __iop_hash(ctx, fdesc->u1.st_desc,
+                           &IOP_FIELD(const uint8_t, r, i * fdesc->size));
+            }
+            break;
+          case IOP_T_XML:
+          case IOP_T_STRING:
+          case IOP_T_DATA:
+            for (int i = 0; i < n; i++) {
+                const iop_data_t *s = &IOP_FIELD(const iop_data_t, r, i);
+
+                iop_hash_update_u32(ctx, s->len);
+                iop_hash_update(ctx, s->data, s->len);
+            }
+            break;
+          default:
+            e_panic("should not happen");
+        }
+    }
+}
+
+void iop_hash(const iop_struct_t *st, const void *v,
+              void (*hfun)(void *ctx, const void *input, int ilen),
+              void *hctx)
+{
+    struct iop_hash_ctx ctx = {
+        .hfun = hfun,
+        .ctx  = hctx,
+    };
+    __iop_hash(&ctx, st, v);
+    if (ctx.pos)
+        hfun(hctx, ctx.buf, ctx.pos);
+}
+
+/*----- duplicating values -}}}-*/
 /*----- get value encoding size -{{{-*/
 
 int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)

@@ -56,6 +56,8 @@
 #include "hash-sha2.h"
 #include "hash-sha4.h"
 
+#include "hash-iop.h"
+
 uint32_t icrc32(uint32_t crc, const void *data, ssize_t len);
 uint64_t icrc64(uint64_t crc, const void *data, ssize_t len);
 
