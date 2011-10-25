@@ -18,6 +18,16 @@ package tstiop;
 
 /* Types of base */
 
+struct HashV1 {
+    int    i;
+    string s;
+};
+
+struct HashV2 {
+    long   i;
+    string s;
+};
+
 enum MyEnumA {
     A = 0x0,
     B = 0x1,
