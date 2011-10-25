@@ -18,20 +18,21 @@
 
 struct iop_struct_t;
 
+typedef void (*iop_hash_f)(void *ctx, const void *input, int ilen);
+
 void iop_hash(const struct iop_struct_t *st, const void *v,
-              void (*hfun)(void *ctx, const void *input, int ilen),
-              void *ctx);
+              iop_hash_f hfun, void *ctx);
 
 #define HASH(pfx, ...) \
-    ({  pfx##_ctx ctx;                                         \
-        pfx##_starts(&ctx, ##__VA_ARGS__);                     \
-        iop_hash(st, v, (void *)pfx##_update, &ctx);           \
+    ({  pfx##_ctx ctx;                                                 \
+        pfx##_starts(&ctx, ##__VA_ARGS__);                             \
+        iop_hash(st, v, (iop_hash_f)pfx##_update, (void *)&ctx);       \
         pfx##_finish(&ctx, buf); })
 
 #define HMAC(pfx, ...) \
-    ({  pfx##_ctx ctx;                                         \
-        pfx##_hmac_starts(&ctx, k.s, k.len, ##__VA_ARGS__);    \
-        iop_hash(st, v, (void *)pfx##_hmac_update, &ctx);      \
+    ({  pfx##_ctx ctx;                                                 \
+        pfx##_hmac_starts(&ctx, k.s, k.len, ##__VA_ARGS__);            \
+        iop_hash(st, v, (iop_hash_f)pfx##_hmac_update, (void *)&ctx);  \
         pfx##_hmac_finish(&ctx, buf); })
 
 #ifdef __cplusplus
