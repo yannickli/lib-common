@@ -23,7 +23,7 @@
 #define IOP_SBDATA(sb)         (iop_data_t){ .data = (sb)->data,             \
                                              .len  = (sb)->len }
 
-/*----- IOP array initializers (repetead) -----*/
+/*----- IOP array initializers (repeated) -----*/
 #define IOP_ARRAY(_data, _len)  { { .tab = (_data) }, .len = (_len) }
 #define IOP_ARRAY_EMPTY         IOP_ARRAY(NULL, 0)
 #define IOP_ARRAY_TAB(vec)      IOP_ARRAY((vec)->tab, (vec)->len)
