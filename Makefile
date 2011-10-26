@@ -77,7 +77,6 @@ libcommon_SOURCES = \
 	core-mem-ring.c \
 	core-mem-stack.c \
 	core-test.c \
-	core-version.c \
 	qpage.c \
 	qtlsf.c \
 	\
@@ -151,6 +150,7 @@ libcommon_SOURCES = \
 	xmlr.c \
 	\
 	$(end_of_list)
+core-mem.c_DEPENDS = core-version.c
 
 time-lp-simple_SOURCES = time-lp-simple.c
 
