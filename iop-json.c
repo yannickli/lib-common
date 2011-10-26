@@ -88,7 +88,12 @@ enum {
 
 /* Errors throwing with custom, constants args */
 #define RJERROR_EXP(_exp) \
-    rjerror_exp(ll, IOP_JERR_EXP_VAL, (_exp), sizeof(_exp) - 1)
+    rjerror_exp(ll, IOP_JERR_EXP_VAL, (_exp), strlen(_exp))
+#define RJERROR_EXP_FMT(_exp, ...) \
+    ({  char _buf[BUFSIZ];                                                  \
+        int  _len = snprintf(_buf, BUFSIZ, (_exp), __VA_ARGS__);            \
+        rjerror_exp(ll, IOP_JERR_EXP_VAL, _buf, _len);                      \
+    })
 #define RJERROR_EXP_TYPE(_type) \
     rjerror_exp(ll, IOP_JERR_EXP_VAL, iop_type_to_error_str(_type), -1)
 #define RJERROR_SARG(_err, _str) \
@@ -1025,12 +1030,9 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
             if (desc) {
                 int ifield = find_field_by_name(desc, ll->b.data, ll->b.len);
                 if (ifield < 0) {
-                    if (ll->warn_on_unkown_field) {
-                        e_warning("no field named %s in struct %s",
-                                ll->b.data, desc->fullname.s);
-                    } else {
-                        e_trace(0, "no field named %s in struct %s",
-                                ll->b.data, desc->fullname.s);
+                    if (!(ll->flags & IOP_UNPACK_IGNORE_UNKNOWN)) {
+                        return RJERROR_EXP_FMT("field of struct %s",
+                                               desc->fullname.s);
                     }
                 } else {
                     fdesc = desc->fields + ifield;

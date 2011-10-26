@@ -26,10 +26,7 @@
 void iop_xpack(sb_t *sb, const iop_struct_t *, const void *v,
                bool verbose, bool with_enums);
 
-enum iop_xunpack_flags {
-    IOP_XUNPACK_IGNORE_UNKNOWN = (1U << 0),
-};
-
+/* flags is a bitfield of iop_unpack_flags */
 int iop_xunpack_flags(void *xp, mem_pool_t *mp, const iop_struct_t *, void *v,
                       int flags);
 int iop_xunpack(void *xp, mem_pool_t *mp, const iop_struct_t *, void *v);

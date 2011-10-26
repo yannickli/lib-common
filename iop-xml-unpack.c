@@ -249,7 +249,7 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
         void *v;
 
         if (unlikely(fdesc == end)) {
-            if (!(flags & IOP_XUNPACK_IGNORE_UNKNOWN))
+            if (!(flags & IOP_UNPACK_IGNORE_UNKNOWN))
                 return xmlr_fail(xr, "expecting closing tag");
             return xmlr_next_uncle(xr);
         }
@@ -258,7 +258,7 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
         RETHROW(xmlr_node_get_local_name(xr, &name));
         xfdesc = get_field_by_name(desc, fdesc, name.s, name.len);
         if (unlikely(!xfdesc)) {
-            if (!(flags & IOP_XUNPACK_IGNORE_UNKNOWN))
+            if (!(flags & IOP_UNPACK_IGNORE_UNKNOWN))
                 return xmlr_fail(xr, "unknown tag <%*pM>", LSTR_FMT_ARG(name));
             do {
                 RETHROW(xmlr_next_sibling(xr));

@@ -236,6 +236,11 @@ int iop_bskip(const iop_struct_t *desc, pstream_t *ps);
 __must_check__
 int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc);
 
+/* flags for xml/json/... unpacker */
+enum iop_unpack_flags {
+    IOP_UNPACK_IGNORE_UNKNOWN = (1U << 0),
+};
+
 #include "iop-xml.h"
 #include "iop-json.h"
 #include "iop-dso.h"

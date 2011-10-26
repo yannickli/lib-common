@@ -243,7 +243,7 @@ static void test_soap(void)
 
         ret =  xmlr_setup(&xp, sb.data, sb.len)
             ?: iop_xunpack_flags(xp, t_pool(), &tstiop__my_struct_f__s,
-                                 &sf_ret, IOP_XUNPACK_IGNORE_UNKNOWN);
+                                 &sf_ret, IOP_UNPACK_IGNORE_UNKNOWN);
         if (ret < 0) {
             e_info("%s", xmlr_get_err());
             exit(1);
@@ -292,7 +292,7 @@ static void test_soap(void)
 
         ret =  xmlr_setup(&xp, sb.data, sb.len)
             ?: iop_xunpack_flags(xp, t_pool(), &tstiop__my_struct_f__s,
-                                 &sf_ret, IOP_XUNPACK_IGNORE_UNKNOWN);
+                                 &sf_ret, IOP_UNPACK_IGNORE_UNKNOWN);
         if (ret < 0) {
             e_info("unexpected failure using IGNORE_UNKNOWN: %s",
                    xmlr_get_err());

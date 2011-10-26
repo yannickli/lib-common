@@ -54,7 +54,8 @@ typedef struct iop_json_lex_t {
     int col;
     int last;
 
-    bool warn_on_unkown_field;
+    /* bitfield of iop_unpack_flags */
+    int flags;
 
     /* Context storage */
     int       s_line;
