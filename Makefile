@@ -62,7 +62,6 @@ libcommon_SOURCES = \
 	core-mem-ring.c \
 	core-mem-stack.c \
 	core-test.c \
-	core-version.c \
 	qpage.c \
 	qtlsf.c \
 	\
@@ -152,6 +151,7 @@ libcommon_SOURCES = \
 	xmlpp.c \
 	xmlr.c \
 	z.blk
+core-mem.c_DEPENDS = core-version.c
 
 libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 
