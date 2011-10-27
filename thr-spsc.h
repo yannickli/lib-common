@@ -84,8 +84,8 @@ struct spsc_queue_t {
     spsc_node_t *head_copy;
 };
 
-spsc_queue_t *spsc_queue_init(spsc_queue_t *q, size_t v_size);
-void          spsc_queue_wipe(spsc_queue_t *q);
+spsc_queue_t *spsc_queue_init(spsc_queue_t *q, size_t v_size) __leaf;
+void          spsc_queue_wipe(spsc_queue_t *q) __leaf;
 
 static inline spsc_node_t *spsc_queue_alloc_node(spsc_queue_t *q)
 {
