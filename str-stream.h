@@ -311,8 +311,8 @@ ps_get_ps_upto_data_and_skip(pstream_t *ps,
 /* copying helpers                                                          */
 /****************************************************************************/
 
-__attribute__((nonnull(1, 2, 3)))
-int ps_copyv(pstream_t *ps, struct iovec *iov, size_t *iov_len, int *flags);
+int ps_copyv(pstream_t *ps, struct iovec *iov, size_t *iov_len, int *flags)
+    __leaf __attribute__((nonnull(1, 2, 3)));
 
 
 /****************************************************************************/

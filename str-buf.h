@@ -133,8 +133,8 @@ static inline sb_t *t_sb_init(sb_t *sb, int size)
     return sb_init_full(sb, t_new(char, size), 0, size, MEM_STACK);
 }
 
-void sb_reset(sb_t *sb);
-void sb_wipe(sb_t *sb);
+void sb_reset(sb_t *sb) __leaf;
+void sb_wipe(sb_t *sb) __leaf;
 GENERIC_NEW(sb_t, sb);
 GENERIC_DELETE(sb_t, sb);
 #ifdef __cplusplus
@@ -165,7 +165,8 @@ static inline int sb_cmp(const sb_t *sb1, const sb_t *sb2)
     return res ? res : sb1->len - sb2->len;
 }
 
-int sb_search(const sb_t *sb, int pos, const void *what, int wlen);
+int sb_search(const sb_t *sb, int pos, const void *what, int wlen)
+    __leaf;
 
 
 /**************************************************************************/
@@ -181,11 +182,11 @@ static inline int sb_avail(sb_t *sb)
     return sb->size - sb->len - 1;
 }
 
-char *sb_detach(sb_t *sb, int *len);
+char *sb_detach(sb_t *sb, int *len) __leaf;
 
-int  __sb_rewind_adds(sb_t *sb, const sb_t *orig);
-void __sb_grow(sb_t *sb, int extra);
-void __sb_optimize(sb_t *sb, size_t len);
+int  __sb_rewind_adds(sb_t *sb, const sb_t *orig) __leaf;
+void __sb_grow(sb_t *sb, int extra) __leaf;
+void __sb_optimize(sb_t *sb, size_t len) __leaf;
 static inline void __sb_fixlen(sb_t *sb, int len)
 {
     sb->len = len;
@@ -350,8 +351,10 @@ static inline void sb_trim_ctype(sb_t *sb, const ctype_desc_t *desc)
 }
 #define sb_trim(sb)  sb_trim_ctype(sb, &ctype_isspace)
 
-int sb_addvf(sb_t *sb, const char *fmt, va_list ap) __attr_printf__(2, 0);
-int sb_addf(sb_t *sb, const char *fmt, ...)         __attr_printf__(2, 3);
+int sb_addvf(sb_t *sb, const char *fmt, va_list ap)
+    __leaf __attr_printf__(2, 0);
+int sb_addf(sb_t *sb, const char *fmt, ...)
+    __leaf __attr_printf__(2, 3);
 
 #define sb_setvf(sb, fmt, ap) \
     ({ sb_t *__b = (sb); sb_reset(__b); sb_addvf(__b, fmt, ap); })
@@ -409,15 +412,15 @@ struct sockaddr;
  *   0 if at EOF
  *   >0 the number of octets read
  */
-int sb_getline(sb_t *sb, FILE *f);
-int sb_fread(sb_t *sb, int size, int nmemb, FILE *f);
-int sb_read_file(sb_t *sb, const char *filename);
-int sb_write_file(const sb_t *sb, const char *filename);
+int sb_getline(sb_t *sb, FILE *f) __leaf;
+int sb_fread(sb_t *sb, int size, int nmemb, FILE *f) __leaf;
+int sb_read_file(sb_t *sb, const char *filename) __leaf;
+int sb_write_file(const sb_t *sb, const char *filename) __leaf;
 
-int sb_read(sb_t *sb, int fd, int hint);
-int sb_recv(sb_t *sb, int fd, int hint, int flags);
+int sb_read(sb_t *sb, int fd, int hint) __leaf;
+int sb_recv(sb_t *sb, int fd, int hint, int flags) __leaf;
 int sb_recvfrom(sb_t *sb, int fd, int hint, int flags,
-                struct sockaddr *addr, socklen_t *alen);
+                struct sockaddr *addr, socklen_t *alen) __leaf;
 
 
 /**************************************************************************/
@@ -435,42 +438,42 @@ int sb_recvfrom(sb_t *sb, int fd, int hint, int flags,
 
 
 void sb_add_slashes(sb_t *sb, const void *data, int len,
-                    const char *toesc, const char *esc);
+                    const char *toesc, const char *esc) __leaf;
 static inline void
 sb_adds_slashes(sb_t *sb, const char *s, const char *toesc, const char *esc)
 {
     sb_add_slashes(sb, s, strlen(s), toesc, esc);
 }
 void sb_add_unslashes(sb_t *sb, const void *data, int len,
-                      const char *tounesc, const char *unesc);
+                      const char *tounesc, const char *unesc) __leaf;
 static inline void
 sb_adds_unslashes(sb_t *sb, const char *s, const char *tounesc, const char *unesc)
 {
     sb_add_unslashes(sb, s, strlen(s), tounesc, unesc);
 }
 
-void sb_add_unquoted(sb_t *sb, const void *data, int len);
+void sb_add_unquoted(sb_t *sb, const void *data, int len) __leaf;
 __SB_DEFINE_ADDS(unquoted);
 
-void sb_add_urlencode(sb_t *sb, const void *data, int len);
-void sb_add_urldecode(sb_t *sb, const void *data, int len);
-void sb_urldecode(sb_t *sb);
+void sb_add_urlencode(sb_t *sb, const void *data, int len) __leaf;
+void sb_add_urldecode(sb_t *sb, const void *data, int len) __leaf;
+void sb_urldecode(sb_t *sb) __leaf;
 __SB_DEFINE_ADDS(urlencode);
 __SB_DEFINE_ADDS(urldecode);
 
-void sb_add_hex(sb_t *sb, const void *data, int len);
-int  sb_add_unhex(sb_t *sb, const void *data, int len);
+void sb_add_hex(sb_t *sb, const void *data, int len) __leaf;
+int  sb_add_unhex(sb_t *sb, const void *data, int len) __leaf;
 __SB_DEFINE_ADDS(hex);
 __SB_DEFINE_ADDS_ERR(unhex);
 
 /* this all assumes utf8 data ! */
-void sb_add_xmlescape(sb_t *sb, const void *data, int len);
-int  sb_add_xmlunescape(sb_t *sb, const void *data, int len);
+void sb_add_xmlescape(sb_t *sb, const void *data, int len) __leaf;
+int  sb_add_xmlunescape(sb_t *sb, const void *data, int len) __leaf;
 __SB_DEFINE_ADDS(xmlescape);
 __SB_DEFINE_ADDS_ERR(xmlunescape);
 
-void sb_add_qpe(sb_t *sb, const void *data, int len);
-void sb_add_unqpe(sb_t *sb, const void *data, int len);
+void sb_add_qpe(sb_t *sb, const void *data, int len) __leaf;
+void sb_add_unqpe(sb_t *sb, const void *data, int len) __leaf;
 __SB_DEFINE_ADDS(qpe);
 __SB_DEFINE_ADDS(unqpe);
 
@@ -481,12 +484,17 @@ typedef struct sb_b64_ctx_t {
     byte  trail_len;
 } sb_b64_ctx_t;
 
-void sb_add_b64_start(sb_t *sb, int len, int width, sb_b64_ctx_t *ctx);
-void sb_add_b64_update(sb_t *sb, const void *src0, int len, sb_b64_ctx_t *ctx);
-void sb_add_b64_finish(sb_t *sb, sb_b64_ctx_t *ctx);
+void sb_add_b64_start(sb_t *sb, int len, int width, sb_b64_ctx_t *ctx)
+    __leaf;
+void sb_add_b64_update(sb_t *sb, const void *src0, int len, sb_b64_ctx_t *ctx)
+    __leaf;
+void sb_add_b64_finish(sb_t *sb, sb_b64_ctx_t *ctx)
+    __leaf;
 
-void sb_add_b64(sb_t *sb, const void *data, int len, int width);
-int  sb_add_unb64(sb_t *sb, const void *data, int len);
+void sb_add_b64(sb_t *sb, const void *data, int len, int width)
+    __leaf;
+int  sb_add_unb64(sb_t *sb, const void *data, int len)
+    __leaf;
 static inline void sb_adds_b64(sb_t *sb, const char *s, int width)
 {
     sb_add_b64(sb, s, strlen(s), width);
@@ -498,17 +506,26 @@ __SB_DEFINE_ADDS_ERR(unb64);
 /* charset conversions (when implicit, charset is utf8)                   */
 /**************************************************************************/
 
-void sb_conv_from_latin1(sb_t *sb, const void *s, int len);
-void sb_conv_from_latin9(sb_t *sb, const void *s, int len);
-int  sb_conv_to_latin1(sb_t *sb, const void *s, int len, int rep);
-int  sb_conv_from_ebcdic297(sb_t *dst, const char *src, int len);
+void sb_conv_from_latin1(sb_t *sb, const void *s, int len)
+    __leaf;
+void sb_conv_from_latin9(sb_t *sb, const void *s, int len)
+    __leaf;
+int  sb_conv_to_latin1(sb_t *sb, const void *s, int len, int rep)
+    __leaf;
+int  sb_conv_from_ebcdic297(sb_t *dst, const char *src, int len)
+    __leaf;
 
 /* ucs2 */
-int  sb_conv_to_ucs2le(sb_t *sb, const void *s, int len);
-int  sb_conv_to_ucs2be(sb_t *sb, const void *s, int len);
-int  sb_conv_to_ucs2be_hex(sb_t *sb, const void *s, int len);
-int  sb_conv_from_ucs2be_hex(sb_t *sb, const void *s, int slen);
-int  sb_conv_from_ucs2le_hex(sb_t *sb, const void *s, int slen);
+int  sb_conv_to_ucs2le(sb_t *sb, const void *s, int len)
+    __leaf;
+int  sb_conv_to_ucs2be(sb_t *sb, const void *s, int len)
+    __leaf;
+int  sb_conv_to_ucs2be_hex(sb_t *sb, const void *s, int len)
+    __leaf;
+int  sb_conv_from_ucs2be_hex(sb_t *sb, const void *s, int slen)
+    __leaf;
+int  sb_conv_from_ucs2le_hex(sb_t *sb, const void *s, int slen)
+    __leaf;
 
 typedef enum gsm_conv_plan_t {
     GSM_DEFAULT_PLAN = 0,
@@ -516,20 +533,27 @@ typedef enum gsm_conv_plan_t {
     GSM_CIMD_PLAN    = 2,
 } gsm_conv_plan_t;
 
-int  sb_conv_from_gsm_plan(sb_t *sb, const void *src, int len, int plan);
+int  sb_conv_from_gsm_plan(sb_t *sb, const void *src, int len, int plan)
+    __leaf;
 static inline int sb_conv_from_gsm(sb_t *sb, const void *src, int len) {
     return sb_conv_from_gsm_plan(sb, src, len, GSM_LATIN1_PLAN);
 }
 
-int  sb_conv_from_gsm_hex(sb_t *sb, const void *src, int len);
-bool sb_conv_to_gsm_isok(const void *src, int len);
-void sb_conv_to_gsm(sb_t *sb, const void *src, int len);
-void sb_conv_to_gsm_hex(sb_t *sb, const void *src, int len);
+int  sb_conv_from_gsm_hex(sb_t *sb, const void *src, int len)
+    __leaf;
+bool sb_conv_to_gsm_isok(const void *src, int len)
+    __leaf;
+void sb_conv_to_gsm(sb_t *sb, const void *src, int len)
+    __leaf;
+void sb_conv_to_gsm_hex(sb_t *sb, const void *src, int len)
+    __leaf;
 
 /* packed gsm */
-int  gsm7_charlen(int c);
-int  sb_conv_to_gsm7(sb_t *sb, int gsm_start, const char *utf8, int unknown,
-                     gsm_conv_plan_t plan);
-int  sb_conv_from_gsm7(sb_t *sb, const void *src, int gsmlen, int udhlen);
+int  gsm7_charlen(int c)
+    __leaf;
+int  sb_conv_to_gsm7(sb_t *sb, int gsm_start, const char *utf8,
+                     int unknown, gsm_conv_plan_t plan) __leaf;
+int  sb_conv_from_gsm7(sb_t *sb, const void *src, int gsmlen, int udhlen)
+    __leaf;
 
 #endif /* IS_LIB_COMMON_STR_BUF_H */

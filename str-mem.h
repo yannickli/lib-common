@@ -68,7 +68,8 @@ static inline void *mempcpyz(void *dst, const void *src, size_t n) {
  *
  * @return <code>n</code>
  */
-size_t pstrcpymem(char *dest, ssize_t size, const void *src, size_t n);
+size_t pstrcpymem(char *dest, ssize_t size, const void *src, size_t n)
+    __leaf;
 
 /** Copies the string pointed to by <code>src</code> to the buffer
  * <code>dest</code> of <code>size</code> bytes.

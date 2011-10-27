@@ -17,24 +17,24 @@
 #define IS_LIB_COMMON_STR_IPRINTF_H
 
 int iprintf(const char *format, ...)
-        __attr_printf__(1, 2)  __attr_nonnull__((1));
+        __leaf __attr_printf__(1, 2)  __attr_nonnull__((1));
 int ifprintf(FILE *stream, const char *format, ...)
-        __attr_printf__(2, 3)  __attr_nonnull__((1, 2));
+        __leaf __attr_printf__(2, 3)  __attr_nonnull__((1, 2));
 int isnprintf(char *str, size_t size, const char *format, ...)
-        __attr_printf__(3, 4)  __attr_nonnull__((3));
+        __leaf __attr_printf__(3, 4)  __attr_nonnull__((3));
 int ivprintf(const char *format, va_list arglist)
-        __attr_printf__(1, 0)  __attr_nonnull__((1));
+        __leaf __attr_printf__(1, 0)  __attr_nonnull__((1));
 int ivfprintf(FILE *stream, const char *format, va_list arglist)
-        __attr_printf__(2, 0)  __attr_nonnull__((1, 2));
+        __leaf __attr_printf__(2, 0)  __attr_nonnull__((1, 2));
 int ivsnprintf(char *str, size_t size, const char *format, va_list arglist)
-        __attr_printf__(3, 0)  __attr_nonnull__((3));
+        __leaf __attr_printf__(3, 0)  __attr_nonnull__((3));
 int ifputs_hex(FILE *stream, const void *buf, int len)
-        __attr_nonnull__((1, 2));
+        __leaf __attr_nonnull__((1, 2));
 
 int isprintf(char *str, const char *format, ...)
-        __attr_printf__(2, 3)  __attr_nonnull__((2));
+        __leaf __attr_printf__(2, 3)  __attr_nonnull__((2));
 int ivsprintf(char *str, const char *format, va_list arglist)
-        __attr_printf__(2, 0)  __attr_nonnull__((2));
+        __leaf __attr_printf__(2, 0)  __attr_nonnull__((2));
 
 #if defined(IPRINTF_HIDE_STDIO) && IPRINTF_HIDE_STDIO
 #undef sprintf
