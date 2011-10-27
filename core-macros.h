@@ -89,16 +89,6 @@
 #    define ALWAYS_INLINE inline
 #  endif
 #  define NEVER_INLINE __attribute__((noinline))
-#  if __GNUC_PREREQ(4, 3) || __has_attribute(cold)
-#    define __cold __attribute__((cold))
-#  else
-#    define __cold
-#  endif
-#  if __GNUC_PREREQ(4, 1) || __has_attribute(flatten)
-#    define __flatten __attribute__((flatten))
-#  else
-#    define __flatten
-#  endif
 #  if __GNUC_PREREQ(4, 5) || defined(__clang__)
 #    define __deprecated__(msg)    __attribute__((deprecated(msg)))
 #  else
@@ -111,6 +101,24 @@
 #  define HIDDEN    extern
 #  define ALWAYS_INLINE inline
 #  define NEVER_INLINE __attribute__((noinline))
+#endif
+
+#if __GNUC_PREREQ(4, 1) || __has_attribute(flatten)
+#  define __flatten __attribute__((flatten))
+#else
+#  define __flatten
+#endif
+
+#if __GNUC_PREREQ(4, 3) || __has_attribute(cold)
+#  define __cold __attribute__((cold))
+#else
+#  define __cold
+#endif
+
+#if __GNUC_PREREQ(4, 6) || __has_attribute(leaf)
+#  define __leaf __attribute__((leaf))
+#else
+#  define __leaf
 #endif
 
 #ifdef __GNUC__
