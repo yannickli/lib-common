@@ -81,15 +81,15 @@ __attribute__((error("reallocaing alloca()ed memory isn't possible")))
 #endif
 extern void __irealloc_cannot_handle_alloca(void);
 
-__attribute__((warn_unused_result))
-void *stack_malloc(size_t size, mem_flags_t flags);
-__attribute__((warn_unused_result))
-void *stack_realloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags);
+void *stack_malloc(size_t size, mem_flags_t flags)
+    __leaf __attribute__((warn_unused_result,malloc));
+void *stack_realloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
+    __leaf __attribute__((warn_unused_result));
 
-__attribute__((warn_unused_result))
-void *libc_malloc(size_t size, mem_flags_t flags);
-__attribute__((warn_unused_result))
-void *libc_realloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags);
+void *libc_malloc(size_t size, mem_flags_t flags)
+    __leaf __attribute__((warn_unused_result, malloc));
+void *libc_realloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
+    __leaf __attribute__((warn_unused_result));
 static inline void libc_free(void *mem, mem_flags_t flags)
 {
     free(mem);
@@ -114,11 +114,12 @@ static inline void libc_free(void *mem, mem_flags_t flags)
  * imalloc/irealloc/ifree will compile to straight calls to
  * malloc/realloc/free.
  */
-__attribute__((warn_unused_result))
-void *__imalloc(size_t size, mem_flags_t flags) __attribute__((malloc));
-__attribute__((warn_unused_result))
-void *__irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t);
-void __ifree(void *mem, mem_flags_t flags);
+void *__imalloc(size_t size, mem_flags_t flags)
+    __leaf __attribute__((warn_unused_result, malloc));
+void *__irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t)
+    __leaf __attribute__((warn_unused_result));
+void __ifree(void *mem, mem_flags_t flags)
+    __leaf;
 
 __attribute__((malloc, warn_unused_result))
 static ALWAYS_INLINE void *imalloc(size_t size, mem_flags_t flags)
@@ -265,7 +266,8 @@ static inline void *p_dupz(const void *src, size_t len)
     })
 
 #ifndef __cplusplus
-static inline void (p_delete)(void **p) {
+static inline void (p_delete)(void **p)
+{
     p_delete(p);
 }
 #endif
@@ -274,17 +276,16 @@ static inline void (p_delete)(void **p) {
 
 #define DO_INIT(type, prefix) \
     __attr_nonnull__((1))                                   \
-    type * prefix##_init(type *var) {                       \
+    type *prefix##_init(type *var) {                        \
         p_clear(var, 1);                                    \
         return var;                                         \
     }
 #define DO_NEW(type, prefix) \
-    __attribute__((malloc)) type * prefix##_new(void) {     \
+    __attribute__((malloc)) type *prefix##_new(void) {      \
         return prefix##_init(p_new_raw(type, 1));           \
     }
 #define DO_WIPE(type, prefix) \
-    __attr_nonnull__((1))                                   \
-    void prefix##_wipe(type *var __unused__) {}
+    __attr_nonnull__((1)) void prefix##_wipe(type *var) { }
 
 #define DO_DELETE(type, prefix) \
     __attr_nonnull__((1))                                   \
@@ -381,27 +382,32 @@ static inline void *mp_strdup(mem_pool_t *mp, const char *src)
 extern mem_pool_t mem_pool_malloc;
 
 /*----- core-mem-fifo.c -----*/
-mem_pool_t *mem_fifo_pool_new(int page_size_hint);
-void mem_fifo_pool_delete(mem_pool_t **poolp);
-void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used);
+mem_pool_t *mem_fifo_pool_new(int page_size_hint)
+    __leaf __attribute__((malloc));
+void mem_fifo_pool_delete(mem_pool_t **poolp)
+    __leaf;
+void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
+    __leaf;
 
 
 /*----- core-mem-ring.c -----*/
-mem_pool_t *mem_ring_pool_new(int initialsize);
-void mem_ring_pool_delete(mem_pool_t **);
+mem_pool_t *mem_ring_pool_new(int initialsize)
+    __leaf __attribute__((malloc));
+void mem_ring_pool_delete(mem_pool_t **)
+    __leaf;
 
-const void *mem_ring_newframe(mem_pool_t *);
-const void *mem_ring_getframe(mem_pool_t *);
-const void *mem_ring_seal(mem_pool_t *);
+const void *mem_ring_newframe(mem_pool_t *) __leaf;
+const void *mem_ring_getframe(mem_pool_t *) __leaf;
+const void *mem_ring_seal(mem_pool_t *) __leaf;
 
-const void *mem_ring_checkpoint(mem_pool_t *);
-void mem_ring_rewind(mem_pool_t *, const void *);
+const void *mem_ring_checkpoint(mem_pool_t *) __leaf;
+void mem_ring_rewind(mem_pool_t *, const void *) __leaf;
 
-void mem_ring_release(const void *);
-void mem_ring_dump(const mem_pool_t *);
+void mem_ring_release(const void *) __leaf;
+void mem_ring_dump(const mem_pool_t *) __leaf;
 
-mem_pool_t *r_pool(void) __attribute__((pure));
-void r_pool_destroy(void);
+mem_pool_t *r_pool(void) __leaf __attribute__((pure));
+void r_pool_destroy(void) __leaf;
 
 #define r_newframe()                mem_ring_newframe(r_pool())
 #define r_seal()                    mem_ring_seal(r_pool())

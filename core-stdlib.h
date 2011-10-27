@@ -18,10 +18,10 @@
 
 /*----- core-havege.c -----*/
 
-void ha_srand(void);
-uint32_t ha_rand(void);
-int ha_rand_range(int first, int last);
-double ha_rand_ranged(double first, double last);
+void ha_srand(void) __leaf;
+uint32_t ha_rand(void) __leaf;
+int ha_rand_range(int first, int last) __leaf;
+double ha_rand_ranged(double first, double last) __leaf;
 
 
 #endif

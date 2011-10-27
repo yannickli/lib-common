@@ -115,8 +115,10 @@ typedef struct mem_stack_pool_t {
     mem_pool_t           funcs;
 } mem_stack_pool_t;
 
-mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *, int initialsize);
-void              mem_stack_pool_wipe(mem_stack_pool_t *);
+mem_stack_pool_t *mem_stack_pool_init(mem_stack_pool_t *, int initialsize)
+    __leaf;
+void              mem_stack_pool_wipe(mem_stack_pool_t *)
+    __leaf;
 
 #ifndef NDEBUG
 void mem_stack_protect(mem_stack_pool_t *sp);
@@ -141,7 +143,7 @@ static ALWAYS_INLINE bool mem_stack_is_at_top(mem_stack_pool_t *sp)
     return sp->stack == &sp->base;
 }
 
-const void *mem_stack_push(mem_stack_pool_t *);
+const void *mem_stack_push(mem_stack_pool_t *) __leaf;
 static ALWAYS_INLINE const void *mem_stack_pop(mem_stack_pool_t *sp)
 {
     mem_stack_frame_t *frame = sp->stack;
@@ -171,8 +173,8 @@ extern __thread mem_stack_pool_t t_pool_g;
 #define t_pop_and_continue()    __t_pop_and_do(continue)
 #define t_pop_and_goto(lbl)     __t_pop_and_do(goto lbl)
 
-__attr_printf__(2, 3)
-char *t_fmt(int *out, const char *fmt, ...);
+char *t_fmt(int *out, const char *fmt, ...)
+    __leaf __attr_printf__(2, 3);
 
 #define t_new(type_t, n) \
     ((type_t *)stack_malloc((n) * sizeof(type_t), MEM_STACK))

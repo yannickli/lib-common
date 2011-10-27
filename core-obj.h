@@ -29,7 +29,8 @@
  * \brief Objects and Virtual Tables in C (header)
  */
 
-bool cls_inherits(const void *cls, const void *vptr);
+bool cls_inherits(const void *cls, const void *vptr)
+    __leaf __attribute__((pure));
 
 #define obj_is_a(obj, pfx)  \
     cls_inherits((obj)->v.as_obj_cls, pfx##_class())
@@ -81,7 +82,7 @@ bool cls_inherits(const void *cls, const void *vptr);
         methods(pfx##_t);                                                    \
     };                                                                       \
                                                                              \
-    __attribute__((pure)) const pfx##_class_t *pfx##_class(void);            \
+    const pfx##_class_t *pfx##_class(void) __leaf __attribute__((pure));     \
                                                                              \
     __attribute__((pure))                                                    \
     static inline const superclass##_class_t *pfx##_super(void) {            \
@@ -89,7 +90,7 @@ bool cls_inherits(const void *cls, const void *vptr);
     }
 
 #define OBJ_VTABLE(pfx) \
-    __attribute__((pure)) const pfx##_class_t *pfx##_class(void) {           \
+    const pfx##_class_t *pfx##_class(void) {                                 \
         __attribute__((section(".intersec.class")))                          \
         static pfx##_class_t pfx;                                            \
         static pfx##_class_t * const res = &pfx;                             \
