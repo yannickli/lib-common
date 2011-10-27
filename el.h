@@ -67,11 +67,11 @@ typedef int  (BLOCK_CARET el_fd_b)(el_t, int, short);
 typedef void (BLOCK_CARET el_proxy_b)(el_t, short);
 #endif
 
-el_t el_blocker_register(void);
-el_t el_before_register_d(el_cb_f *, el_data_t);
-el_t el_idle_register_d(el_cb_f, el_data_t);
-el_t el_signal_register_d(int signo, el_signal_f *, el_data_t);
-el_t el_child_register_d(pid_t pid, el_child_f *, el_data_t);
+el_t el_blocker_register(void) __leaf;
+el_t el_before_register_d(el_cb_f *, el_data_t) __leaf;
+el_t el_idle_register_d(el_cb_f, el_data_t) __leaf;
+el_t el_signal_register_d(int signo, el_signal_f *, el_data_t) __leaf;
+el_t el_child_register_d(pid_t pid, el_child_f *, el_data_t) __leaf;
 
 #ifdef __has_blocks
 /* The block based API takes a block version of the callback and a second
@@ -83,10 +83,10 @@ el_t el_child_register_d(pid_t pid, el_child_f *, el_data_t);
  * blocks.
  */
 
-el_t el_before_register_blk(el_cb_b, block_t wipe);
-el_t el_idle_register_blk(el_cb_b, block_t wipe);
-el_t el_signal_register_blk(int signo, el_signal_b, block_t);
-el_t el_child_register_blk(pid_t pid, el_child_b, block_t);
+el_t el_before_register_blk(el_cb_b, block_t wipe) __leaf;
+el_t el_idle_register_blk(el_cb_b, block_t wipe) __leaf;
+el_t el_signal_register_blk(int signo, el_signal_b, block_t) __leaf;
+el_t el_child_register_blk(pid_t pid, el_child_b, block_t) __leaf;
 #endif
 
 static inline el_t el_before_register(el_cb_f *f, void *ptr) {
@@ -102,10 +102,10 @@ static inline el_t el_child_register(pid_t pid, el_child_f *f, void *ptr) {
     return el_child_register_d(pid, f, (el_data_t){ ptr });
 }
 
-void el_before_set_hook(el_t, el_cb_f *);
-void el_idle_set_hook(el_t, el_cb_f *);
-void el_signal_set_hook(el_t, el_signal_f *);
-void el_child_set_hook(el_t, el_child_f *);
+void el_before_set_hook(el_t, el_cb_f *) __leaf;
+void el_idle_set_hook(el_t, el_cb_f *) __leaf;
+void el_signal_set_hook(el_t, el_signal_f *) __leaf;
+void el_child_set_hook(el_t, el_child_f *) __leaf;
 
 el_data_t el_before_unregister(el_t *);
 el_data_t el_idle_unregister(el_t *);
@@ -114,45 +114,48 @@ el_data_t el_child_unregister(el_t *);
 void      el_blocker_unregister(el_t *);
 
 /*----- idle related -----*/
-void el_idle_unpark(el_t);
+void el_idle_unpark(el_t) __leaf;
 
 /*----- child related -----*/
-pid_t el_child_getpid(el_t);
+pid_t el_child_getpid(el_t) __leaf __attribute__((pure));
 
 /*----- proxy related -----*/
-el_t el_proxy_register_d(el_proxy_f *, el_data_t);
+el_t el_proxy_register_d(el_proxy_f *, el_data_t) __leaf;
 #ifdef __has_blocks
-el_t el_proxy_register_blk(el_proxy_b, block_t);
+el_t el_proxy_register_blk(el_proxy_b, block_t) __leaf;
 #endif
 static inline el_t el_proxy_register(el_proxy_f *f, void *ptr) {
     return el_proxy_register_d(f, (el_data_t){ ptr });
 }
-void el_proxy_set_hook(el_t, el_proxy_f *);
+void el_proxy_set_hook(el_t, el_proxy_f *) __leaf;
 el_data_t el_proxy_unregister(el_t *);
-short el_proxy_set_event(el_t, short mask);
-short el_proxy_clr_event(el_t, short mask);
-short el_proxy_set_mask(el_t, short mask);
+short el_proxy_set_event(el_t, short mask) __leaf;
+short el_proxy_clr_event(el_t, short mask) __leaf;
+short el_proxy_set_mask(el_t, short mask) __leaf;
 
 /*----- stopper API -----*/
-void el_stopper_register(void);
-bool el_stopper_is_waiting(void);
-void el_stopper_unregister(void);
+void el_stopper_register(void) __leaf;
+bool el_stopper_is_waiting(void) __leaf;
+void el_stopper_unregister(void) __leaf;
 
 /*----- fd related -----*/
-el_t el_fd_register_d(int fd, short events, el_fd_f *, el_data_t);
+el_t el_fd_register_d(int fd, short events, el_fd_f *, el_data_t)
+    __leaf;
 #ifdef __has_blocks
-el_t el_fd_register_blk(int fd, short events, el_fd_b, block_t);
+el_t el_fd_register_blk(int fd, short events, el_fd_b, block_t)
+    __leaf;
 #endif
 static inline el_t el_fd_register(int fd, short events, el_fd_f *f, void *ptr) {
     return el_fd_register_d(fd, events, f, (el_data_t){ ptr });
 }
-void el_fd_set_hook(el_t, el_fd_f *);
+void el_fd_set_hook(el_t, el_fd_f *)
+    __leaf;
 el_data_t el_fd_unregister(el_t *, bool do_close);
 
 int   el_fd_loop(el_t, int timeout);
-short el_fd_get_mask(el_t);
-short el_fd_set_mask(el_t, short events);
-int   el_fd_get_fd(el_t);
+short el_fd_get_mask(el_t) __leaf __attribute__((pure));
+short el_fd_set_mask(el_t, short events) __leaf;
+int   el_fd_get_fd(el_t) __leaf __attribute__((pure));
 
 /*
  * \param[in]  ev       a file descriptor el_t.
@@ -167,7 +170,7 @@ int   el_fd_get_fd(el_t);
  *      descriptor el_t, then this is a no-op.
  */
 #define EL_EVENTS_NOACT  ((short)-1)
-int   el_fd_watch_activity(el_t, short mask, int timeout);
+int   el_fd_watch_activity(el_t, short mask, int timeout) __leaf;
 
 /**
  * \defgroup el_timers Event Loop timers
@@ -188,16 +191,18 @@ enum {
  * \param[in]  priv    private data.
  * \return the timer handler descriptor.
  */
-el_t el_timer_register_d(int next, int repeat, int flags, el_cb_f *, el_data_t);
+el_t el_timer_register_d(int next, int repeat, int flags, el_cb_f *, el_data_t)
+    __leaf;
 #ifdef __has_blocks
-el_t el_timer_register_blk(int next, int repeat, int flags, el_cb_b, block_t);
+el_t el_timer_register_blk(int next, int repeat, int flags, el_cb_b, block_t)
+    __leaf;
 #endif
 static inline
 el_t el_timer_register(int next, int repeat, int flags, el_cb_f *f, void *ptr)
 {
     return el_timer_register_d(next, repeat, flags, f, (el_data_t){ ptr });
 }
-bool el_timer_is_repeated(el_t ev);
+bool el_timer_is_repeated(el_t ev) __leaf __attribute__((pure));
 
 /** \brief restart a single shot timer.
  *
@@ -206,8 +211,8 @@ bool el_timer_is_repeated(el_t ev);
  * \param[in]  el      timer handler descriptor.
  * \param[in]  next    relative time in ms at wich the timers will fire.
  */
-void el_timer_restart(el_t, int next);
-void el_timer_set_hook(el_t, el_cb_f *);
+void el_timer_restart(el_t, int next) __leaf;
+void el_timer_set_hook(el_t, el_cb_f *) __leaf;
 /** \brief unregisters (and cancels) a timer given its index.
  *
  * \param[in]  el      the timer handler descriptor to cancel.
@@ -217,24 +222,24 @@ void el_timer_set_hook(el_t, el_cb_f *);
 el_data_t el_timer_unregister(el_t *);
 /**\}*/
 
-el_t el_ref(el_t);
-el_t el_unref(el_t);
+el_t el_ref(el_t) __leaf;
+el_t el_unref(el_t) __leaf;
 #ifndef NDEBUG
-bool el_set_trace(el_t, bool trace);
+bool el_set_trace(el_t, bool trace) __leaf;
 #else
 #define el_set_trace(ev, trace)
 #endif
-el_data_t el_set_priv(el_t, el_data_t);
+el_data_t el_set_priv(el_t, el_data_t) __leaf;
 
-void el_bl_use(void);
+void el_bl_use(void) __leaf;
 void el_bl_lock(void);
 void el_bl_unlock(void);
 
 void el_cond_wait(pthread_cond_t *);
-void el_cond_signal(pthread_cond_t *);
+void el_cond_signal(pthread_cond_t *) __leaf;
 
 void el_loop(void);
-void el_unloop(void);
+void el_unloop(void) __leaf;
 void el_loop_timeout(int msecs);
 
 /**\}*/
