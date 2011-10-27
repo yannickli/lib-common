@@ -21,7 +21,7 @@ struct iop_struct_t;
 typedef void (*iop_hash_f)(void *ctx, const void *input, int ilen);
 
 void iop_hash(const struct iop_struct_t *st, const void *v,
-              iop_hash_f hfun, void *ctx);
+              iop_hash_f hfun, void *ctx) __leaf;
 
 #define HASH(pfx, ...) \
     ({  pfx##_ctx ctx;                                                 \

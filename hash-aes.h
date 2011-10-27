@@ -27,7 +27,8 @@ extern "C" {
  * \param key      encryption key
  * \param keysize  must be 128, 192 or 256
  */
-void aes_setkey_enc(aes_ctx *ctx, const byte *key, int keysize);
+void aes_setkey_enc(aes_ctx *ctx, const byte *key, int keysize)
+    __leaf;
 
 /**
  * \brief          AES key schedule (decryption)
@@ -36,7 +37,8 @@ void aes_setkey_enc(aes_ctx *ctx, const byte *key, int keysize);
  * \param key      decryption key
  * \param keysize  must be 128, 192 or 256
  */
-void aes_setkey_dec(aes_ctx *ctx, const byte *key, int keysize);
+void aes_setkey_dec(aes_ctx *ctx, const byte *key, int keysize)
+    __leaf;
 
 /**
  * \brief          AES-ECB block encryption/decryption
@@ -47,7 +49,7 @@ void aes_setkey_dec(aes_ctx *ctx, const byte *key, int keysize);
  * \param output   16-byte output block
  */
 void aes_crypt_ecb(aes_ctx *ctx, int mode, const byte input[16],
-                   byte output[16]);
+                   byte output[16]) __leaf;
 
 /**
  * \brief          AES-CBC buffer encryption/decryption
@@ -60,7 +62,8 @@ void aes_crypt_ecb(aes_ctx *ctx, int mode, const byte input[16],
  * \param output   buffer holding the output data
  */
 void aes_crypt_cbc(aes_ctx *ctx, int mode, int length,
-                   byte iv[16], const byte *input, byte *output);
+                   byte iv[16], const byte *input, byte *output)
+    __leaf;
 
 /**
  * \brief          AES-CFB buffer encryption/decryption
@@ -74,7 +77,8 @@ void aes_crypt_cbc(aes_ctx *ctx, int mode, int length,
  * \param output   buffer holding the output data
  */
 void aes_crypt_cfb(aes_ctx *ctx, int mode, int length,
-                   int *iv_off, byte iv[16], const byte *input, byte *output);
+                   int *iv_off, byte iv[16], const byte *input, byte *output)
+    __leaf;
 
 /**
  * \brief          Checkup routine

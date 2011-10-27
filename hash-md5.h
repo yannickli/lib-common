@@ -25,7 +25,7 @@ extern "C" {
  *
  * \param ctx      context to be initialized
  */
-void md5_starts(md5_ctx *ctx);
+void md5_starts(md5_ctx *ctx) __leaf;
 
 /**
  * \brief          MD5 process buffer
@@ -34,7 +34,7 @@ void md5_starts(md5_ctx *ctx);
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void md5_update(md5_ctx *ctx, const void *input, int ilen);
+void md5_update(md5_ctx *ctx, const void *input, int ilen) __leaf;
 
 /**
  * \brief          MD5 final digest
@@ -42,7 +42,7 @@ void md5_update(md5_ctx *ctx, const void *input, int ilen);
  * \param ctx      MD5 context
  * \param output   MD5 checksum result
  */
-void md5_finish(md5_ctx *ctx, byte output[16]);
+void md5_finish(md5_ctx *ctx, byte output[16]) __leaf;
 
 /**
  * \brief          MD5 final digest
@@ -50,7 +50,7 @@ void md5_finish(md5_ctx *ctx, byte output[16]);
  * \param ctx      MD5 context
  * \param output   MD5 checksum result
  */
-void md5_finish_hex(md5_ctx *ctx, char output[33]);
+void md5_finish_hex(md5_ctx *ctx, char output[33]) __leaf;
 
 /**
  * \brief          Output = MD5(input buffer)
@@ -59,7 +59,7 @@ void md5_finish_hex(md5_ctx *ctx, char output[33]);
  * \param ilen     length of the input data
  * \param output   MD5 checksum result
  */
-void md5(const void *input, int ilen, byte output[16]);
+void md5(const void *input, int ilen, byte output[16]) __leaf;
 
 /**
  * \brief          Output = MD5(input buffer)
@@ -68,7 +68,7 @@ void md5(const void *input, int ilen, byte output[16]);
  * \param ilen     length of the input data
  * \param output   MD5 checksum result
  */
-void md5_hex(const void *input, int ilen, char output[33]);
+void md5_hex(const void *input, int ilen, char output[33]) __leaf;
 
 /**
  * \brief          Output = MD5(file contents)
@@ -79,7 +79,7 @@ void md5_hex(const void *input, int ilen, char output[33]);
  * \return         0 if successful, 1 if fopen failed,
  *                 or 2 if fread failed
  */
-int md5_file(char *path, byte output[16]);
+int md5_file(char *path, byte output[16]) __leaf;
 
 /**
  * \brief          MD5 HMAC context setup
@@ -88,7 +88,8 @@ int md5_file(char *path, byte output[16]);
  * \param key      HMAC secret key
  * \param keylen   length of the HMAC key
  */
-void md5_hmac_starts(md5_ctx *ctx, const void *key, int keylen);
+void md5_hmac_starts(md5_ctx *ctx, const void *key, int keylen)
+    __leaf;
 
 /**
  * \brief          MD5 HMAC process buffer
@@ -97,7 +98,8 @@ void md5_hmac_starts(md5_ctx *ctx, const void *key, int keylen);
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void md5_hmac_update(md5_ctx *ctx, const void *input, int ilen);
+void md5_hmac_update(md5_ctx *ctx, const void *input, int ilen)
+    __leaf;
 
 /**
  * \brief          MD5 HMAC final digest
@@ -105,7 +107,8 @@ void md5_hmac_update(md5_ctx *ctx, const void *input, int ilen);
  * \param ctx      HMAC context
  * \param output   MD5 HMAC checksum result
  */
-void md5_hmac_finish(md5_ctx *ctx, byte output[16]);
+void md5_hmac_finish(md5_ctx *ctx, byte output[16])
+    __leaf;
 
 /**
  * \brief          Output = HMAC-MD5(hmac key, input buffer)
@@ -117,7 +120,7 @@ void md5_hmac_finish(md5_ctx *ctx, byte output[16]);
  * \param output   HMAC-MD5 result
  */
 void md5_hmac(const void *key, int keylen, const void *input, int ilen,
-              byte output[16]);
+              byte output[16]) __leaf;
 
 /**
  * \brief          Checkup routine

@@ -27,7 +27,7 @@ extern "C" {
  * \param ctx      context to be initialized
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
-void sha2_starts(sha2_ctx *ctx, int is224);
+void sha2_starts(sha2_ctx *ctx, int is224) __leaf;
 
 /**
  * \brief          SHA-256 process buffer
@@ -36,7 +36,7 @@ void sha2_starts(sha2_ctx *ctx, int is224);
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha2_update(sha2_ctx *ctx, const void *input, int ilen);
+void sha2_update(sha2_ctx *ctx, const void *input, int ilen) __leaf;
 
 /**
  * \brief          SHA-256 final digest
@@ -44,7 +44,7 @@ void sha2_update(sha2_ctx *ctx, const void *input, int ilen);
  * \param ctx      SHA-256 context
  * \param output   SHA-224/256 checksum result
  */
-void sha2_finish(sha2_ctx *ctx, byte output[32]);
+void sha2_finish(sha2_ctx *ctx, byte output[32]) __leaf;
 
 /**
  * \brief          SHA-256 final digest
@@ -52,7 +52,7 @@ void sha2_finish(sha2_ctx *ctx, byte output[32]);
  * \param ctx      SHA-256 context
  * \param output   SHA-224/256 checksum result
  */
-void sha2_finish_hex(sha2_ctx *ctx, char output[65]);
+void sha2_finish_hex(sha2_ctx *ctx, char output[65]) __leaf;
 
 /**
  * \brief          Output = SHA-256(input buffer)
@@ -63,7 +63,7 @@ void sha2_finish_hex(sha2_ctx *ctx, char output[65]);
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
 void sha2(const void *input, int ilen,
-           byte output[32], int is224);
+          byte output[32], int is224) __leaf;
 
 /**
  * \brief          Output = SHA-256(input buffer)
@@ -73,7 +73,8 @@ void sha2(const void *input, int ilen,
  * \param output   SHA-224/256 checksum result
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
-void sha2_hex(const void *input, int ilen, char output[65], int is224);
+void sha2_hex(const void *input, int ilen, char output[65], int is224)
+    __leaf;
 
 /**
  * \brief          Output = SHA-256(file contents)
@@ -85,7 +86,7 @@ void sha2_hex(const void *input, int ilen, char output[65], int is224);
  * \return         0 if successful, 1 if fopen failed,
  *                 or 2 if fread failed
  */
-int sha2_file(const char *path, byte output[32], int is224);
+int sha2_file(const char *path, byte output[32], int is224) __leaf;
 
 /**
  * \brief          SHA-256 HMAC context setup
@@ -96,7 +97,7 @@ int sha2_file(const char *path, byte output[32], int is224);
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
 void sha2_hmac_starts(sha2_ctx *ctx, const void *key, int keylen,
-                       int is224);
+                      int is224) __leaf;
 
 /**
  * \brief          SHA-256 HMAC process buffer
@@ -105,7 +106,8 @@ void sha2_hmac_starts(sha2_ctx *ctx, const void *key, int keylen,
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha2_hmac_update(sha2_ctx *ctx, const void *input, int ilen);
+void sha2_hmac_update(sha2_ctx *ctx, const void *input, int ilen)
+    __leaf;
 
 /**
  * \brief          SHA-256 HMAC final digest
@@ -113,7 +115,8 @@ void sha2_hmac_update(sha2_ctx *ctx, const void *input, int ilen);
  * \param ctx      HMAC context
  * \param output   SHA-224/256 HMAC checksum result
  */
-void sha2_hmac_finish(sha2_ctx *ctx, byte output[32]);
+void sha2_hmac_finish(sha2_ctx *ctx, byte output[32])
+    __leaf;
 
 /**
  * \brief          Output = HMAC-SHA-256(hmac key, input buffer)
@@ -126,7 +129,7 @@ void sha2_hmac_finish(sha2_ctx *ctx, byte output[32]);
  * \param is224    0 = use SHA256, 1 = use SHA224
  */
 void sha2_hmac(const void *key, int keylen, const void *input, int ilen,
-               byte output[32], int is224);
+               byte output[32], int is224) __leaf;
 
 /**
  * \brief          Checkup routine

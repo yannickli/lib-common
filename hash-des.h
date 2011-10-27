@@ -33,7 +33,8 @@ extern "C" {
  * \param ctx      DES context to be initialized
  * \param key      8-byte secret key
  */
-void des_setkey_enc(des_ctx *ctx, const byte key[8]);
+void des_setkey_enc(des_ctx *ctx, const byte key[8])
+    __leaf;
 
 /**
  * \brief          DES key schedule (56-bit, decryption)
@@ -41,7 +42,8 @@ void des_setkey_enc(des_ctx *ctx, const byte key[8]);
  * \param ctx      DES context to be initialized
  * \param key      8-byte secret key
  */
-void des_setkey_dec(des_ctx *ctx, const byte key[8]);
+void des_setkey_dec(des_ctx *ctx, const byte key[8])
+    __leaf;
 
 /**
  * \brief          Triple-DES key schedule (112-bit, encryption)
@@ -49,7 +51,8 @@ void des_setkey_dec(des_ctx *ctx, const byte key[8]);
  * \param ctx      3DES context to be initialized
  * \param key      16-byte secret key
  */
-void des3_set2key_enc(des3_ctx *ctx, const byte key[16]);
+void des3_set2key_enc(des3_ctx *ctx, const byte key[16])
+    __leaf;
 
 /**
  * \brief          Triple-DES key schedule (112-bit, decryption)
@@ -57,7 +60,8 @@ void des3_set2key_enc(des3_ctx *ctx, const byte key[16]);
  * \param ctx      3DES context to be initialized
  * \param key      16-byte secret key
  */
-void des3_set2key_dec(des3_ctx *ctx, const byte key[16]);
+void des3_set2key_dec(des3_ctx *ctx, const byte key[16])
+    __leaf;
 
 /**
  * \brief          Triple-DES key schedule (168-bit, encryption)
@@ -65,7 +69,8 @@ void des3_set2key_dec(des3_ctx *ctx, const byte key[16]);
  * \param ctx      3DES context to be initialized
  * \param key      24-byte secret key
  */
-void des3_set3key_enc(des3_ctx *ctx, const byte key[24]);
+void des3_set3key_enc(des3_ctx *ctx, const byte key[24])
+    __leaf;
 
 /**
  * \brief          Triple-DES key schedule (168-bit, decryption)
@@ -73,7 +78,8 @@ void des3_set3key_enc(des3_ctx *ctx, const byte key[24]);
  * \param ctx      3DES context to be initialized
  * \param key      24-byte secret key
  */
-void des3_set3key_dec(des3_ctx *ctx, const byte key[24]);
+void des3_set3key_dec(des3_ctx *ctx, const byte key[24])
+    __leaf;
 
 /**
  * \brief          DES-ECB block encryption/decryption
@@ -82,7 +88,8 @@ void des3_set3key_dec(des3_ctx *ctx, const byte key[24]);
  * \param input    64-bit input block
  * \param output   64-bit output block
  */
-void des_crypt_ecb(des_ctx *ctx, const byte input[8], byte output[8]);
+void des_crypt_ecb(des_ctx *ctx, const byte input[8], byte output[8])
+    __leaf;
 
 /**
  * \brief          DES-CBC buffer encryption/decryption
@@ -95,7 +102,8 @@ void des_crypt_ecb(des_ctx *ctx, const byte input[8], byte output[8]);
  * \param output   buffer holding the output data
  */
 void des_crypt_cbc(des_ctx *ctx, int mode, int length,
-                   byte iv[8], const byte *input, byte *output);
+                   byte iv[8], const byte *input, byte *output)
+    __leaf;
 
 /**
  * \brief          3DES-ECB block encryption/decryption
@@ -104,7 +112,8 @@ void des_crypt_cbc(des_ctx *ctx, int mode, int length,
  * \param input    64-bit input block
  * \param output   64-bit output block
  */
-void des3_crypt_ecb(des3_ctx *ctx, const byte input[8], byte output[8]);
+void des3_crypt_ecb(des3_ctx *ctx, const byte input[8], byte output[8])
+    __leaf;
 
 /**
  * \brief          3DES-CBC buffer encryption/decryption
@@ -117,7 +126,8 @@ void des3_crypt_ecb(des3_ctx *ctx, const byte input[8], byte output[8]);
  * \param output   buffer holding the output data
  */
 void des3_crypt_cbc(des3_ctx *ctx, int mode, int length,
-                    byte iv[8], const byte *input, byte *output);
+                    byte iv[8], const byte *input, byte *output)
+    __leaf;
 
 /*
  * \brief          Checkup routine

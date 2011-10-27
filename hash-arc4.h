@@ -24,7 +24,8 @@ extern "C" {
  * \param key      the secret key
  * \param keylen   length of the key
  */
-void arc4_setup(arc4_ctx *ctx, const byte *key, int keylen);
+void arc4_setup(arc4_ctx *ctx, const byte *key, int keylen)
+    __leaf;
 
 /**
  * \brief          ARC4 cipher function
@@ -33,7 +34,8 @@ void arc4_setup(arc4_ctx *ctx, const byte *key, int keylen);
  * \param buf      buffer to be processed
  * \param buflen   amount of data in buf
  */
-void arc4_crypt(arc4_ctx *ctx, byte *buf, int buflen);
+void arc4_crypt(arc4_ctx *ctx, byte *buf, int buflen)
+    __leaf;
 
 /*
  * \brief          Checkup routine

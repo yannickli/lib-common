@@ -33,7 +33,7 @@ extern "C" {
  * \param ctx      context to be initialized
  * \param is384    0 = use SHA512, 1 = use SHA384
  */
-void sha4_starts(sha4_ctx *ctx, int is384);
+void sha4_starts(sha4_ctx *ctx, int is384) __leaf;
 
 /**
  * \brief          SHA-512 process buffer
@@ -42,7 +42,7 @@ void sha4_starts(sha4_ctx *ctx, int is384);
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha4_update(sha4_ctx *ctx, const void *input, int ilen);
+void sha4_update(sha4_ctx *ctx, const void *input, int ilen) __leaf;
 
 /**
  * \brief          SHA-512 final digest
@@ -50,7 +50,7 @@ void sha4_update(sha4_ctx *ctx, const void *input, int ilen);
  * \param ctx      SHA-512 context
  * \param output   SHA-384/512 checksum result
  */
-void sha4_finish(sha4_ctx *ctx, byte output[64]);
+void sha4_finish(sha4_ctx *ctx, byte output[64]) __leaf;
 
 /**
  * \brief          Output = SHA-512(input buffer)
@@ -61,7 +61,7 @@ void sha4_finish(sha4_ctx *ctx, byte output[64]);
  * \param is384    0 = use SHA512, 1 = use SHA384
  */
 void sha4(const void *input, int ilen,
-           byte output[64], int is384);
+          byte output[64], int is384) __leaf;
 
 /**
  * \brief          Output = SHA-512(file contents)
@@ -73,7 +73,7 @@ void sha4(const void *input, int ilen,
  * \return         0 if successful, 1 if fopen failed,
  *                 or 2 if fread failed
  */
-int sha4_file(const char *path, byte output[64], int is384);
+int sha4_file(const char *path, byte output[64], int is384) __leaf;
 
 /**
  * \brief          SHA-512 HMAC context setup
@@ -84,7 +84,7 @@ int sha4_file(const char *path, byte output[64], int is384);
  * \param keylen   length of the HMAC key
  */
 void sha4_hmac_starts(sha4_ctx *ctx, const void *key, int keylen,
-                       int is384);
+                      int is384) __leaf;
 
 /**
  * \brief          SHA-512 HMAC process buffer
@@ -93,7 +93,8 @@ void sha4_hmac_starts(sha4_ctx *ctx, const void *key, int keylen,
  * \param input    buffer holding the  data
  * \param ilen     length of the input data
  */
-void sha4_hmac_update(sha4_ctx *ctx, const void *input, int ilen);
+void sha4_hmac_update(sha4_ctx *ctx, const void *input, int ilen)
+    __leaf;
 
 /**
  * \brief          SHA-512 HMAC final digest
@@ -101,7 +102,7 @@ void sha4_hmac_update(sha4_ctx *ctx, const void *input, int ilen);
  * \param ctx      HMAC context
  * \param output   SHA-384/512 HMAC checksum result
  */
-void sha4_hmac_finish(sha4_ctx *ctx, byte output[64]);
+void sha4_hmac_finish(sha4_ctx *ctx, byte output[64]) __leaf;
 
 /**
  * \brief          Output = HMAC-SHA-512(hmac key, input buffer)
@@ -114,7 +115,7 @@ void sha4_hmac_finish(sha4_ctx *ctx, byte output[64]);
  * \param is384    0 = use SHA512, 1 = use SHA384
  */
 void sha4_hmac(const void *key, int keylen, const void *input, int ilen,
-               byte output[64], int is384);
+               byte output[64], int is384) __leaf;
 
 /**
  * \brief          Checkup routine
