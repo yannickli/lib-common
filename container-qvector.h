@@ -43,11 +43,16 @@ __qvector_init(qvector_t *vec, void *buf, int blen, int bsize, int mem_pool)
     return vec;
 }
 
-void  qvector_reset(qvector_t *vec, size_t v_size);
-void  qvector_wipe(qvector_t *vec, size_t v_size);
-void  __qvector_grow(qvector_t *, size_t v_size, int extra);
-void  __qvector_optimize(qvector_t *, size_t v_size, size_t size);
-void *__qvector_splice(qvector_t *, size_t v_size, int pos, int len, int dlen);
+void  qvector_reset(qvector_t *vec, size_t v_size)
+    __leaf;
+void  qvector_wipe(qvector_t *vec, size_t v_size)
+    __leaf;
+void  __qvector_grow(qvector_t *, size_t v_size, int extra)
+    __leaf;
+void  __qvector_optimize(qvector_t *, size_t v_size, size_t size)
+    __leaf;
+void *__qvector_splice(qvector_t *, size_t v_size, int pos, int len, int dlen)
+    __leaf;
 #ifdef __has_blocks
 void __qv_sort32(void *a, size_t n, qvector_cmp_f cmp);
 void __qv_sort64(void *a, size_t n, qvector_cmp_f cmp);

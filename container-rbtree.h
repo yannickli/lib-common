@@ -80,9 +80,8 @@ typedef struct rb_node_t {
 #define	rb_entry(ptr, type, member)  container_of(ptr, type, member)
 #define	rb_entry_of(ptr, n, member)  container_of(ptr, typeof(*n), member)
 
-void rb_add_node(rb_t *, rb_node_t *parent, rb_node_t *node);
-void rb_del_node(rb_t *, rb_node_t *);
-
+void rb_add_node(rb_t *, rb_node_t *parent, rb_node_t *node) __leaf;
+void rb_del_node(rb_t *, rb_node_t *) __leaf;
 
 static inline rb_node_t *rb_first(rb_t *rb)
 {
@@ -105,8 +104,8 @@ static inline rb_node_t *rb_last(rb_t *rb)
     return n;
 }
 
-rb_node_t *rb_next(rb_node_t *);
-rb_node_t *rb_prev(rb_node_t *);
+rb_node_t *rb_next(rb_node_t *) __leaf;
+rb_node_t *rb_prev(rb_node_t *) __leaf;
 
 #define __rb_for_each(it, rb, doit)                             \
     for (rb_node_t *it = rb_first(rb);                          \
