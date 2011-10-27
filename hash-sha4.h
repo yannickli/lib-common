@@ -117,13 +117,6 @@ void sha4_hmac_finish(sha4_ctx *ctx, byte output[64]) __leaf;
 void sha4_hmac(const void *key, int keylen, const void *input, int ilen,
                byte output[64], int is384) __leaf;
 
-/**
- * \brief          Checkup routine
- *
- * \return         0 if successful, or 1 if the test failed
- */
-int sha4_self_test(int verbose);
-
 #ifdef __cplusplus
 }
 #endif

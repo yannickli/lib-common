@@ -113,13 +113,6 @@ void sha1_hmac_finish(sha1_ctx *ctx, byte output[20])
 void sha1_hmac(const void *key, int keylen, const void *input, int ilen,
                byte output[20]) __leaf;
 
-/**
- * \brief          Checkup routine
- *
- * \return         0 if successful, or 1 if the test failed
- */
-int sha1_self_test(int verbose);
-
 #ifdef __cplusplus
 }
 #endif

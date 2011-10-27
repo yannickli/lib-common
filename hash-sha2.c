@@ -34,9 +34,8 @@
  *  http://csrc.nist.gov/publications/fips/fips180-2/fips180-2.pdf
  */
 
+#include "z.h"
 #include "hash.h"
-
-#if defined(XYSSL_SHA2_C)
 
 /*
  * SHA-256 context setup
@@ -435,7 +434,6 @@ void sha2_hmac( const void *key, int keylen,
     memset( &ctx, 0, sizeof( sha2_ctx ) );
 }
 
-#if defined(XYSSL_SELF_TEST)
 /*
  * FIPS-180-2 test vectors
  */
@@ -601,93 +599,61 @@ static const byte sha2_hmac_test_sum[14][32] =
 /*
  * Checkup routine
  */
-int sha2_self_test( int verbose )
+Z_GROUP_EXPORT(sha2)
 {
-    int i, j, k, buflen;
     byte buf[1024];
     byte sha2sum[32];
     sha2_ctx ctx;
+    int len;
 
-    for( i = 0; i < 6; i++ )
-    {
-        j = i % 3;
-        k = i < 3;
+    Z_TEST(hash, "") {
+        for (int i = 0; i < 6; i++) {
+            int j = i % 3;
+            int k = i < 3;
 
-        if( verbose != 0 )
-            printf( "  SHA-%d test #%d: ", 256 - k * 32, j + 1 );
+            sha2_starts( &ctx, k );
 
-        sha2_starts( &ctx, k );
+            if (j == 2) {
+                memset(buf, 'a', 1000);
+                for (int l = 0; l < 1000; l++)
+                    sha2_update(&ctx, buf, 1000);
+            } else {
+                sha2_update(&ctx, sha2_test_buf[j], sha2_test_buflen[j]);
+            }
 
-        if( j == 2 )
-        {
-            memset( buf, 'a', buflen = 1000 );
+            sha2_finish(&ctx, sha2sum);
 
-            for( j = 0; j < 1000; j++ )
-                sha2_update( &ctx, buf, buflen );
+            if (j == 4) {
+                len = 16;
+            } else {
+                len = 32 - k * 4;
+            }
+            Z_ASSERT_EQUAL(sha2sum, len, sha2_test_sum[i], len);
         }
-        else
-            sha2_update( &ctx, sha2_test_buf[j],
-                               sha2_test_buflen[j] );
+    } Z_TEST_END;
 
-        sha2_finish( &ctx, sha2sum );
+    Z_TEST(hmac, "") {
+        for (int i = 0; i < 14; i++) {
+            int j = i % 7;
+            int k = i < 7;
 
-        if( memcmp( sha2sum, sha2_test_sum[i], 32 - k * 4 ) != 0 )
-        {
-            if( verbose != 0 )
-                printf( "failed\n" );
+            if (j == 5 || j == 6) {
+                memset( buf, '\xAA', 131);
+                sha2_hmac_starts(&ctx, buf, 131, k);
+            } else {
+                sha2_hmac_starts(&ctx, sha2_hmac_test_key[j],
+                                 sha2_hmac_test_keylen[j], k);
+            }
+            sha2_hmac_update(&ctx, sha2_hmac_test_buf[j],
+                                    sha2_hmac_test_buflen[j]);
 
-            return( 1 );
+            sha2_hmac_finish(&ctx, sha2sum);
+            if (j == 4) {
+                len = 16;
+            } else {
+                len = 32 - k * 4;
+            }
+            Z_ASSERT_EQUAL(sha2sum, len, sha2_hmac_test_sum[i], len);
         }
-
-        if( verbose != 0 )
-            printf( "passed\n" );
-    }
-
-    if( verbose != 0 )
-        printf( "\n" );
-
-    for( i = 0; i < 14; i++ )
-    {
-        j = i % 7;
-        k = i < 7;
-
-        if( verbose != 0 )
-            printf( "  HMAC-SHA-%d test #%d: ", 256 - k * 32, j + 1 );
-
-        if( j == 5 || j == 6 )
-        {
-            memset( buf, '\xAA', buflen = 131 );
-            sha2_hmac_starts( &ctx, buf, buflen, k );
-        }
-        else
-            sha2_hmac_starts( &ctx, sha2_hmac_test_key[j],
-                                    sha2_hmac_test_keylen[j], k );
-
-        sha2_hmac_update( &ctx, sha2_hmac_test_buf[j],
-                                sha2_hmac_test_buflen[j] );
-
-        sha2_hmac_finish( &ctx, sha2sum );
-
-        buflen = ( j == 4 ) ? 16 : 32 - k * 4;
-
-        if( memcmp( sha2sum, sha2_hmac_test_sum[i], buflen ) != 0 )
-        {
-            if( verbose != 0 )
-                printf( "failed\n" );
-
-            return( 1 );
-        }
-
-        if( verbose != 0 )
-            printf( "passed\n" );
-    }
-
-    if( verbose != 0 )
-        printf( "\n" );
-
-    return( 0 );
-}
-
-#endif
-
-#endif
+    } Z_TEST_END;
+} Z_GROUP_END

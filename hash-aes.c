@@ -35,11 +35,9 @@
  *  http://csrc.nist.gov/publications/fips/fips197/fips-197.pdf
  */
 
+#include "z.h"
 #include "hash.h"
 
-#if defined(XYSSL_AES_C)
-
-#if defined(XYSSL_AES_ROM_TABLES)
 /*
  * Forward S-box
  */
@@ -304,118 +302,6 @@ static const uint32_t RCON[10] =
     0x0000001B, 0x00000036
 };
 
-#else
-
-/*
- * Forward S-box & tables
- */
-static byte FSb[256];
-static uint32_t FT0[256]; 
-static uint32_t FT1[256]; 
-static uint32_t FT2[256]; 
-static uint32_t FT3[256]; 
-
-/*
- * Reverse S-box & tables
- */
-static byte RSb[256];
-static uint32_t RT0[256];
-static uint32_t RT1[256];
-static uint32_t RT2[256];
-static uint32_t RT3[256];
-
-/*
- * Round constants
- */
-static uint32_t RCON[10];
-
-/*
- * Tables generation code
- */
-#define ROTL8(x) ((x << 8) & 0xFFFFFFFF) | (x >> 24)
-#define XTIME(x) ((x << 1) ^ ((x & 0x80) ? 0x1B : 0x00))
-#define MUL(x,y) ((x && y) ? pow[(log[x]+log[y]) % 255] : 0)
-
-static int aes_init_done = 0;
-
-static void aes_gen_tables(void)
-{
-    int i, x, y, z;
-    int pow[256];
-    int log[256];
-
-    /*
-     * compute pow and log tables over GF(2^8)
-     */
-    for (i = 0, x = 1; i < 256; i++)
-    {
-        pow[i] = x;
-        log[x] = i;
-        x = (x ^ XTIME(x)) & 0xFF;
-    }
-
-    /*
-     * calculate the round constants
-     */
-    for (i = 0, x = 1; i < 10; i++)
-    {
-        RCON[i] = (uint32_t) x;
-        x = XTIME(x) & 0xFF;
-    }
-
-    /*
-     * generate the forward and reverse S-boxes
-     */
-    FSb[0x00] = 0x63;
-    RSb[0x63] = 0x00;
-
-    for (i = 1; i < 256; i++)
-    {
-        x = pow[255 - log[i]];
-
-        y  = x; y = ((y << 1) | (y >> 7)) & 0xFF;
-        x ^= y; y = ((y << 1) | (y >> 7)) & 0xFF;
-        x ^= y; y = ((y << 1) | (y >> 7)) & 0xFF;
-        x ^= y; y = ((y << 1) | (y >> 7)) & 0xFF;
-        x ^= y ^ 0x63;
-
-        FSb[i] = (byte) x;
-        RSb[x] = (byte) i;
-    }
-
-    /*
-     * generate the forward and reverse tables
-     */
-    for (i = 0; i < 256; i++)
-    {
-        x = FSb[i];
-        y = XTIME(x) & 0xFF;
-        z =  (y ^ x) & 0xFF;
-
-        FT0[i] = ((uint32_t) y      ) ^
-                 ((uint32_t) x <<  8) ^
-                 ((uint32_t) x << 16) ^
-                 ((uint32_t) z << 24);
-
-        FT1[i] = ROTL8(FT0[i]);
-        FT2[i] = ROTL8(FT1[i]);
-        FT3[i] = ROTL8(FT2[i]);
-
-        x = RSb[i];
-
-        RT0[i] = ((uint32_t) MUL(0x0E, x)      ) ^
-                 ((uint32_t) MUL(0x09, x) <<  8) ^
-                 ((uint32_t) MUL(0x0D, x) << 16) ^
-                 ((uint32_t) MUL(0x0B, x) << 24);
-
-        RT1[i] = ROTL8(RT0[i]);
-        RT2[i] = ROTL8(RT1[i]);
-        RT3[i] = ROTL8(RT2[i]);
-    }
-}
-
-#endif
-
 /*
  * AES key schedule (encryption)
  */
@@ -424,16 +310,7 @@ void aes_setkey_enc(aes_ctx *ctx, const byte *key, int keysize)
     int i;
     uint32_t *RK;
 
-#if !defined(XYSSL_AES_ROM_TABLES)
-    if (aes_init_done == 0)
-    {
-        aes_gen_tables();
-        aes_init_done = 1;
-    }
-#endif
-
-    switch(keysize)
-    {
+    switch (keysize) {
         case 128: ctx->nr = 10; break;
         case 192: ctx->nr = 12; break;
         case 256: ctx->nr = 14; break;
@@ -627,9 +504,8 @@ void aes_crypt_ecb(aes_ctx *ctx, int mode, const byte input[16],
     int i;
     uint32_t *RK, X0, X1, X2, X3, Y0, Y1, Y2, Y3;
 
-#if defined(XYSSL_PADLOCK_C) && defined(XYSSL_HAVE_X86)
-    if (padlock_supports(PADLOCK_ACE))
-    {
+#if defined(XYSSL_HAVE_X86)
+    if (padlock_supports(PADLOCK_ACE)) {
         if (padlock_xcryptecb(ctx, mode, input, output) == 0)
             return;
     }
@@ -718,9 +594,8 @@ void aes_crypt_cbc(aes_ctx *ctx, int mode, int length, byte iv[16],
     int i;
     byte temp[16];
 
-#if defined(XYSSL_PADLOCK_C) && defined(XYSSL_HAVE_X86)
-    if (padlock_supports(PADLOCK_ACE))
-    {
+#if defined(XYSSL_HAVE_X86)
+    if (padlock_supports(PADLOCK_ACE)) {
         if (padlock_xcryptcbc(ctx, mode, length, iv, input, output) == 0)
             return;
     }
@@ -798,8 +673,6 @@ void aes_crypt_cfb(aes_ctx *ctx, int mode, int length, int *iv_off,
     *iv_off = n;
 }
 
-#if defined(XYSSL_SELF_TEST)
-
 /*
  * AES test vectors from:
  *
@@ -868,192 +741,102 @@ static const byte aes_test_cfb_enc[3][16] =
       0x41, 0x78, 0x91, 0xD5, 0x98, 0x78, 0xE1, 0xFA }
 };
 
-/*
- * Checkup routine
- */
-int aes_self_test(int verbose)
+Z_GROUP_EXPORT(aes)
 {
-    int i, j, u, v, offset;
     byte key[32];
     byte buf[16];
     byte prv[16];
     byte iv[16];
     aes_ctx ctx;
 
-    memset(key, 0, 32);
+    Z_TEST(ECB, "ECB mode") {
+        memset(key, 0, 32);
 
-    /*
-     * ECB mode
-     */
-    for (i = 0; i < 6; i++)
-    {
-        u = i >> 1;
-        v = i  & 1;
+        for (int i = 0; i < 6; i++) {
+            int u = i >> 1;
+            int v = i  & 1;
 
-        if (verbose != 0)
-            printf("  AES-ECB-%3d (%s): ", 128 + u * 64,
-                    (v == AES_DECRYPT) ? "dec" : "enc");
+            memset(buf, 0, 16);
+            if (v == AES_DECRYPT) {
+                aes_setkey_dec(&ctx, key, 128 + u * 64);
 
-        memset(buf, 0, 16);
+                for (int j = 0; j < 10000; j++)
+                    aes_crypt_ecb(&ctx, v, buf, buf);
 
-        if (v == AES_DECRYPT)
-        {
-            aes_setkey_dec(&ctx, key, 128 + u * 64);
+                Z_ASSERT_EQUAL(buf, 16, aes_test_ecb_dec[u], 16);
+            } else {
+                aes_setkey_enc(&ctx, key, 128 + u * 64);
 
-            for (j = 0; j < 10000; j++)
-                aes_crypt_ecb(&ctx, v, buf, buf);
+                for (int j = 0; j < 10000; j++)
+                    aes_crypt_ecb(&ctx, v, buf, buf);
 
-            if (memcmp(buf, aes_test_ecb_dec[u], 16) != 0)
-            {
-                if (verbose != 0)
-                    printf("failed\n");
-
-                return 1;
+                Z_ASSERT_EQUAL(buf, 16, aes_test_ecb_enc[u], 16);
             }
         }
-        else
-        {
-            aes_setkey_enc(&ctx, key, 128 + u * 64);
+    } Z_TEST_END;
 
-            for (j = 0; j < 10000; j++)
-                aes_crypt_ecb(&ctx, v, buf, buf);
+    Z_TEST(CBC, "CBC mode") {
+        memset(key, 0, 32);
 
-            if (memcmp(buf, aes_test_ecb_enc[u], 16) != 0)
-            {
-                if (verbose != 0)
-                    printf("failed\n");
+        for (int i = 0; i < 6; i++) {
+            int u = i >> 1;
+            int v = i  & 1;
 
-                return 1;
+            memset(iv , 0, 16);
+            memset(prv, 0, 16);
+            memset(buf, 0, 16);
+
+            if (v == AES_DECRYPT) {
+                aes_setkey_dec(&ctx, key, 128 + u * 64);
+
+                for (int j = 0; j < 10000; j++)
+                    aes_crypt_cbc(&ctx, v, 16, iv, buf, buf);
+
+                Z_ASSERT_EQUAL(buf, 16, aes_test_cbc_dec[u], 16);
+            } else {
+                aes_setkey_enc(&ctx, key, 128 + u * 64);
+
+                for (int j = 0; j < 10000; j++) {
+                    byte tmp[16];
+
+                    aes_crypt_cbc(&ctx, v, 16, iv, buf, buf);
+
+                    memcpy(tmp, prv, 16);
+                    memcpy(prv, buf, 16);
+                    memcpy(buf, tmp, 16);
+                }
+
+                Z_ASSERT_EQUAL(prv, 16, aes_test_cbc_enc[u], 16);
             }
         }
+    } Z_TEST_END;
 
-        if (verbose != 0)
-            printf("passed\n");
-    }
+    Z_TEST(CFB, "CFB mode") {
+        memset(key, 0, 32);
 
-    if (verbose != 0)
-        printf("\n");
+        for (int i = 0; i < 6; i++) {
+            int u = i >> 1;
+            int v = i  & 1;
+            int offset = 0;
 
-    /*
-     * CBC mode
-     */
-    for (i = 0; i < 6; i++)
-    {
-        u = i >> 1;
-        v = i  & 1;
+            memset(iv , 0, 16);
+            memset(buf, 0, 16);
 
-        if (verbose != 0)
-            printf("  AES-CBC-%3d (%s): ", 128 + u * 64,
-                    (v == AES_DECRYPT) ? "dec" : "enc");
+            if (v == AES_DECRYPT) {
+                aes_setkey_dec(&ctx, key, 128 + u * 64);
 
-        memset(iv , 0, 16);
-        memset(prv, 0, 16);
-        memset(buf, 0, 16);
+                for (int j = 0; j < 10000; j++)
+                    aes_crypt_cfb(&ctx, v, 16, &offset, iv, buf, buf);
 
-        if (v == AES_DECRYPT)
-        {
-            aes_setkey_dec(&ctx, key, 128 + u * 64);
+                Z_ASSERT_EQUAL(buf, 16, aes_test_cfb_dec[u], 16);
+            } else {
+                aes_setkey_enc(&ctx, key, 128 + u * 64);
 
-            for (j = 0; j < 10000; j++)
-                aes_crypt_cbc(&ctx, v, 16, iv, buf, buf);
+                for (int j = 0; j < 10000; j++)
+                    aes_crypt_cfb(&ctx, v, 16, &offset, iv, buf, buf);
 
-            if (memcmp(buf, aes_test_cbc_dec[u], 16) != 0)
-            {
-                if (verbose != 0)
-                    printf("failed\n");
-
-                return 1;
+                Z_ASSERT_EQUAL(buf, 16, aes_test_cfb_enc[u], 16);
             }
         }
-        else
-        {
-            aes_setkey_enc(&ctx, key, 128 + u * 64);
-
-            for (j = 0; j < 10000; j++)
-            {
-                byte tmp[16];
-
-                aes_crypt_cbc(&ctx, v, 16, iv, buf, buf);
-
-                memcpy(tmp, prv, 16);
-                memcpy(prv, buf, 16);
-                memcpy(buf, tmp, 16);
-            }
-
-            if (memcmp(prv, aes_test_cbc_enc[u], 16) != 0)
-            {
-                if (verbose != 0)
-                    printf("failed\n");
-
-                return 1;
-            }
-        }
-
-        if (verbose != 0)
-            printf("passed\n");
-    }
-
-    if (verbose != 0)
-        printf("\n");
-
-    /*
-     * CFB mode
-     */
-    for (i = 0; i < 6; i++)
-    {
-        u = i >> 1;
-        v = i  & 1;
-
-        if (verbose != 0)
-            printf("  AES-CFB-%3d (%s): ", 128 + u * 64,
-                    (v == AES_DECRYPT) ? "dec" : "enc");
-
-        memset(iv , 0, 16);
-        memset(buf, 0, 16);
-        offset = 0;
-
-        if (v == AES_DECRYPT)
-        {
-            aes_setkey_dec(&ctx, key, 128 + u * 64);
-
-            for (j = 0; j < 10000; j++)
-                aes_crypt_cfb(&ctx, v, 16, &offset, iv, buf, buf);
-
-            if (memcmp(buf, aes_test_cfb_dec[u], 16) != 0)
-            {
-                if (verbose != 0)
-                    printf("failed\n");
-
-                return 1;
-            }
-        }
-        else
-        {
-            aes_setkey_enc(&ctx, key, 128 + u * 64);
-
-            for (j = 0; j < 10000; j++)
-                aes_crypt_cfb(&ctx, v, 16, &offset, iv, buf, buf);
-
-            if (memcmp(buf, aes_test_cfb_enc[u], 16) != 0)
-            {
-                if (verbose != 0)
-                    printf("failed\n");
-
-                return 1;
-            }
-        }
-
-        if (verbose != 0)
-            printf("passed\n");
-    }
-
-
-    if (verbose != 0)
-        printf("\n");
-
-    return 0;
-}
-
-#endif
-
-#endif
+    } Z_TEST_END;
+} Z_GROUP_END

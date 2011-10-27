@@ -129,13 +129,6 @@ void des3_crypt_cbc(des3_ctx *ctx, int mode, int length,
                     byte iv[8], const byte *input, byte *output)
     __leaf;
 
-/*
- * \brief          Checkup routine
- *
- * \return         0 if successful, or 1 if the test failed
- */
-int des_self_test(int verbose);
-
 #ifdef __cplusplus
 }
 #endif

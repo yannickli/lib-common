@@ -37,13 +37,6 @@ void arc4_setup(arc4_ctx *ctx, const byte *key, int keylen)
 void arc4_crypt(arc4_ctx *ctx, byte *buf, int buflen)
     __leaf;
 
-/*
- * \brief          Checkup routine
- *
- * \return         0 if successful, or 1 if the test failed
- */
-int arc4_self_test(int verbose);
-
 #ifdef __cplusplus
 }
 #endif

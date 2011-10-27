@@ -122,13 +122,6 @@ void md5_hmac_finish(md5_ctx *ctx, byte output[16])
 void md5_hmac(const void *key, int keylen, const void *input, int ilen,
               byte output[16]) __leaf;
 
-/**
- * \brief          Checkup routine
- *
- * \return         0 if successful, or 1 if the test failed
- */
-int md5_self_test(int verbose);
-
 #ifdef __cplusplus
 }
 #endif

@@ -34,9 +34,8 @@
  *  http://www.ietf.org/rfc/rfc1321.txt
  */
 
+#include "z.h"
 #include "hash.h"
-
-#if defined(XYSSL_MD5_C)
 
 /*
  * MD5 context setup
@@ -393,7 +392,6 @@ void md5_hmac( const void *key, int keylen, const void *input, int ilen,
     memset( &ctx, 0, sizeof( md5_ctx ) );
 }
 
-#if defined(XYSSL_SELF_TEST)
 /*
  * RFC 1321 test vectors
  */
@@ -498,74 +496,38 @@ static const byte md5_hmac_test_sum[7][16] =
 /*
  * Checkup routine
  */
-int md5_self_test( int verbose )
+Z_GROUP_EXPORT(md5)
 {
-    int i, buflen;
     byte buf[1024];
     byte md5sum[16];
     md5_ctx ctx;
 
-    for( i = 0; i < 7; i++ )
-    {
-        if( verbose != 0 )
-            printf( "  MD5 test #%d: ", i + 1 );
-
-        md5( md5_test_buf[i], md5_test_buflen[i], md5sum );
-
-        if( memcmp( md5sum, md5_test_sum[i], 16 ) != 0 )
-        {
-            if( verbose != 0 )
-                printf( "failed\n" );
-
-            return( 1 );
+    Z_TEST(hash, "") {
+        for (int i = 0; i < 7; i++) {
+            md5(md5_test_buf[i], md5_test_buflen[i], md5sum);
+            Z_ASSERT_EQUAL(md5sum, 16, md5_test_sum[i], 16);
         }
+    } Z_TEST_END;
 
-        if( verbose != 0 )
-            printf( "passed\n" );
-    }
+    Z_TEST(hmac, "") {
+        for (int i = 0; i < 7; i++) {
+            if (i == 5 || i == 6) {
+                memset(buf, '\xAA', 80);
+                md5_hmac_starts(&ctx, buf, 80);
+            } else {
+                md5_hmac_starts(&ctx, md5_hmac_test_key[i],
+                                md5_hmac_test_keylen[i]);
+            }
 
-    if( verbose != 0 )
-        printf( "\n" );
+            md5_hmac_update(&ctx, md5_hmac_test_buf[i],
+                            md5_hmac_test_buflen[i]);
+            md5_hmac_finish(&ctx, md5sum);
 
-    for( i = 0; i < 7; i++ )
-    {
-        if( verbose != 0 )
-            printf( "  HMAC-MD5 test #%d: ", i + 1 );
-
-        if( i == 5 || i == 6 )
-        {
-            memset( buf, '\xAA', buflen = 80 );
-            md5_hmac_starts( &ctx, buf, buflen );
+            if (i == 4) {
+                Z_ASSERT_EQUAL(md5sum, 12, md5_hmac_test_sum[i], 12);
+            } else {
+                Z_ASSERT_EQUAL(md5sum, 16, md5_hmac_test_sum[i], 16);
+            }
         }
-        else
-            md5_hmac_starts( &ctx, md5_hmac_test_key[i],
-                                   md5_hmac_test_keylen[i] );
-
-        md5_hmac_update( &ctx, md5_hmac_test_buf[i],
-                               md5_hmac_test_buflen[i] );
-
-        md5_hmac_finish( &ctx, md5sum );
-
-        buflen = ( i == 4 ) ? 12 : 16;
-
-        if( memcmp( md5sum, md5_hmac_test_sum[i], buflen ) != 0 )
-        {
-            if( verbose != 0 )
-                printf( "failed\n" );
-
-            return( 1 );
-        }
-
-        if( verbose != 0 )
-            printf( "passed\n" );
-    }
-
-    if( verbose != 0 )
-        printf( "\n" );
-
-    return( 0 );
-}
-
-#endif
-
-#endif
+    } Z_TEST_END;
+} Z_GROUP_END

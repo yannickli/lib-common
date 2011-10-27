@@ -35,9 +35,8 @@
  *  http://www.ietf.org/rfc/rfc1320.txt
  */
 
+#include "z.h"
 #include "hash.h"
-
-#if defined(XYSSL_MD4_C)
 
 /*
  * MD4 context setup
@@ -353,8 +352,6 @@ void md4_hmac( const void *key, int keylen, const void *input, int ilen,
     memset( &ctx, 0, sizeof( md4_ctx ) );
 }
 
-#if defined(XYSSL_SELF_TEST)
-
 /*
  * RFC 1320 test vectors
  */
@@ -391,37 +388,14 @@ static const byte md4_test_sum[7][16] =
 /*
  * Checkup routine
  */
-int md4_self_test( int verbose )
+Z_GROUP_EXPORT(md4)
 {
-    int i;
-    byte md4sum[16];
+    Z_TEST(test, "") {
+        for (int i = 0; i < 7; i++) {
+            byte md4sum[16];
 
-    for( i = 0; i < 7; i++ )
-    {
-        if( verbose != 0 )
-            printf( "  MD4 test #%d: ", i + 1 );
-
-        md4( (byte *) md4_test_str[i],
-             strlen( md4_test_str[i] ), md4sum );
-
-        if( memcmp( md4sum, md4_test_sum[i], 16 ) != 0 )
-        {
-            if( verbose != 0 )
-                printf( "failed\n" );
-
-            return( 1 );
+            md4(md4_test_str[i], strlen(md4_test_str[i]), md4sum);
+            Z_ASSERT_EQUAL(md4sum, 16, md4_test_sum[i], 16);
         }
-
-        if( verbose != 0 )
-            printf( "passed\n" );
-    }
-
-    if( verbose != 0 )
-        printf( "\n" );
-
-    return( 0 );
-}
-
-#endif
-
-#endif
+    } Z_TEST_END;
+} Z_GROUP_END

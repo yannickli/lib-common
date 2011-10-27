@@ -35,9 +35,8 @@
  *  http://www.ietf.org/rfc/rfc1319.txt
  */
 
+#include "z.h"
 #include "hash.h"
-
-#if defined(XYSSL_MD2_C)
 
 static const byte PI_SUBST[256] =
 {
@@ -277,8 +276,6 @@ void md2_hmac( const void *key, int keylen, const void *input, int ilen,
     memset( &ctx, 0, sizeof( md2_ctx ) );
 }
 
-#if defined(XYSSL_SELF_TEST)
-
 /*
  * RFC 1319 test vectors
  */
@@ -315,37 +312,14 @@ static const byte md2_test_sum[7][16] =
 /*
  * Checkup routine
  */
-int md2_self_test( int verbose )
+Z_GROUP_EXPORT(md2)
 {
-    int i;
-    byte md2sum[16];
+    Z_TEST(test, "") {
+        for (int i = 0; i < 7; i++) {
+            byte md2sum[16];
 
-    for( i = 0; i < 7; i++ )
-    {
-        if( verbose != 0 )
-            printf( "  MD2 test #%d: ", i + 1 );
-
-        md2( (byte *) md2_test_str[i],
-             strlen( md2_test_str[i] ), md2sum );
-
-        if( memcmp( md2sum, md2_test_sum[i], 16 ) != 0 )
-        {
-            if( verbose != 0 )
-                printf( "failed\n" );
-
-            return( 1 );
+            md2(md2_test_str[i], strlen(md2_test_str[i]), md2sum);
+            Z_ASSERT_EQUAL(md2sum, 16, md2_test_sum[i], 16);
         }
-
-        if( verbose != 0 )
-            printf( "passed\n" );
-    }
-
-    if( verbose != 0 )
-        printf( "\n" );
-
-    return( 0 );
-}
-
-#endif
-
-#endif
+    } Z_TEST_END;
+} Z_GROUP_END

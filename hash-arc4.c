@@ -34,9 +34,8 @@
  *  http://groups.google.com/group/sci.crypt/msg/10a300c9d21afca0
  */
 
+#include "z.h"
 #include "hash.h"
-
-#if defined(XYSSL_ARC4_C)
 
 /*
  * ARC4 key schedule
@@ -94,8 +93,6 @@ void arc4_crypt(arc4_ctx *ctx, byte *buf, int buflen)
     ctx->y = y;
 }
 
-#if defined(XYSSL_SELF_TEST)
-
 /*
  * ARC4 tests vectors as posted by Eric Rescorla in sep. 1994:
  *
@@ -125,40 +122,17 @@ static const byte arc4_test_ct[3][8] =
 /*
  * Checkup routine
  */
-int arc4_self_test(int verbose)
+Z_GROUP_EXPORT(arc4)
 {
-    int i;
     byte buf[8];
     arc4_ctx ctx;
 
-    for (i = 0; i < 3; i++)
-    {
-        if (verbose != 0)
-            printf("  ARC4 test #%d: ", i + 1);
-
-        memcpy(buf, arc4_test_pt[i], 8);
-
-        arc4_setup(&ctx, (byte *) arc4_test_key[i], 8);
-        arc4_crypt(&ctx, buf, 8);
-
-        if (memcmp(buf, arc4_test_ct[i], 8) != 0)
-        {
-            if (verbose != 0)
-                printf("failed\n");
-
-            return 1;
+    Z_TEST(test, "") {
+        for (int i = 0; i < 3; i++) {
+            memcpy(buf, arc4_test_pt[i], 8);
+            arc4_setup(&ctx, (byte *)arc4_test_key[i], 8);
+            arc4_crypt(&ctx, buf, 8);
+            Z_ASSERT_EQUAL(buf, 8, arc4_test_ct[i], 8);
         }
-
-        if (verbose != 0)
-            printf("passed\n");
-    }
-
-    if (verbose != 0)
-        printf("\n");
-
-    return 0;
-}
-
-#endif
-
-#endif
+    } Z_TEST_END;
+} Z_GROUP_END

@@ -35,9 +35,8 @@
  *  http://csrc.nist.gov/publications/fips/fips46-3/fips46-3.pdf
  */
 
+#include "z.h"
 #include "hash.h"
-
-#if defined(XYSSL_DES_C)
 
 /*
  * Expanded DES S-boxes
@@ -604,8 +603,6 @@ void des3_crypt_cbc(des3_ctx *ctx, int mode, int length, byte iv[8],
     }
 }
 
-#if defined(XYSSL_SELF_TEST)
-
 /*
  * DES and 3DES test vectors from:
  *
@@ -659,9 +656,8 @@ static const byte des3_test_cbc_enc[3][8] =
 /*
  * Checkup routine
  */
-int des_self_test(int verbose)
+Z_GROUP_EXPORT(des)
 {
-    int i, j, u, v;
     des_ctx ctx;
     des3_ctx ctx3;
     byte key[24];
@@ -669,176 +665,121 @@ int des_self_test(int verbose)
     byte prv[8];
     byte iv[8];
 
-    memset(key, 0, 24);
+    Z_TEST(ECB, "") {
+        memset(key, 0, 24);
 
-    /*
-     * ECB mode
-     */
-    for (i = 0; i < 6; i++)
-    {
-        u = i >> 1;
-        v = i  & 1;
+        for (int i = 0; i < 6; i++) {
+            int u = i >> 1;
+            int v = i  & 1;
 
-        if (verbose != 0)
-            printf("  DES%c-ECB-%3d (%s): ",
-                    (u == 0) ? ' ' : '3', 56 + u * 56,
-                    (v == DES_DECRYPT) ? "dec" : "enc");
+            memcpy(buf, des3_test_buf, 8);
 
-        memcpy(buf, des3_test_buf, 8);
-
-        switch(i)
-        {
-        case 0:
-            des_setkey_dec(&ctx, (byte *) des3_test_keys);
-            break;
-
-        case 1:
-            des_setkey_enc(&ctx, (byte *) des3_test_keys);
-            break;
-
-        case 2:
-            des3_set2key_dec(&ctx3, (byte *) des3_test_keys);
-            break;
-
-        case 3:
-            des3_set2key_enc(&ctx3, (byte *) des3_test_keys);
-            break;
-
-        case 4:
-            des3_set3key_dec(&ctx3, (byte *) des3_test_keys);
-            break;
-
-        case 5:
-            des3_set3key_enc(&ctx3, (byte *) des3_test_keys);
-            break;
-
-        default:
-            return 1;
-        }
-
-        for (j = 0; j < 10000; j++)
-        {
-            if (u == 0)
-                des_crypt_ecb(&ctx, buf, buf);
-            else
-                des3_crypt_ecb(&ctx3, buf, buf);
-        }
-
-        if ((v == DES_DECRYPT &&
-                memcmp(buf, des3_test_ecb_dec[u], 8) != 0) ||
-            (v != DES_DECRYPT &&
-                memcmp(buf, des3_test_ecb_enc[u], 8) != 0))
-        {
-            if (verbose != 0)
-                printf("failed\n");
-
-            return 1;
-        }
-
-        if (verbose != 0)
-            printf("passed\n");
-    }
-
-    if (verbose != 0)
-        printf("\n");
-
-    /*
-     * CBC mode
-     */
-    for (i = 0; i < 6; i++)
-    {
-        u = i >> 1;
-        v = i  & 1;
-
-        if (verbose != 0)
-            printf("  DES%c-CBC-%3d (%s): ",
-                    (u == 0) ? ' ' : '3', 56 + u * 56,
-                    (v == DES_DECRYPT) ? "dec" : "enc");
-
-        memcpy(iv,  des3_test_iv,  8);
-        memcpy(prv, des3_test_iv,  8);
-        memcpy(buf, des3_test_buf, 8);
-
-        switch(i)
-        {
-        case 0:
-            des_setkey_dec(&ctx, (byte *) des3_test_keys);
-            break;
-
-        case 1:
-            des_setkey_enc(&ctx, (byte *) des3_test_keys);
-            break;
-
-        case 2:
-            des3_set2key_dec(&ctx3, (byte *) des3_test_keys);
-            break;
-
-        case 3:
-            des3_set2key_enc(&ctx3, (byte *) des3_test_keys);
-            break;
-
-        case 4:
-            des3_set3key_dec(&ctx3, (byte *) des3_test_keys);
-            break;
-
-        case 5:
-            des3_set3key_enc(&ctx3, (byte *) des3_test_keys);
-            break;
-
-        default:
-            return 1;
-        }
-
-        if (v == DES_DECRYPT)
-        {
-            for (j = 0; j < 10000; j++)
+            switch (i)
             {
-                if (u == 0)
-                    des_crypt_cbc(&ctx, v, 8, iv, buf, buf);
-                else
-                    des3_crypt_cbc(&ctx3, v, 8, iv, buf, buf);
-            }
-        }
-        else
-        {
-            for (j = 0; j < 10000; j++)
-            {
-                byte tmp[8];
-
-                if (u == 0)
-                    des_crypt_cbc(&ctx, v, 8, iv, buf, buf);
-                else
-                    des3_crypt_cbc(&ctx3, v, 8, iv, buf, buf);
-
-                memcpy(tmp, prv, 8);
-                memcpy(prv, buf, 8);
-                memcpy(buf, tmp, 8);
+              case 0:
+                des_setkey_dec(&ctx, (byte *) des3_test_keys);
+                break;
+              case 1:
+                des_setkey_enc(&ctx, (byte *) des3_test_keys);
+                break;
+              case 2:
+                des3_set2key_dec(&ctx3, (byte *) des3_test_keys);
+                break;
+              case 3:
+                des3_set2key_enc(&ctx3, (byte *) des3_test_keys);
+                break;
+              case 4:
+                des3_set3key_dec(&ctx3, (byte *) des3_test_keys);
+                break;
+              case 5:
+                des3_set3key_enc(&ctx3, (byte *) des3_test_keys);
+                break;
+              default:
+                Z_ASSERT(false);
             }
 
-            memcpy(buf, prv, 8);
+            for (int j = 0; j < 10000; j++) {
+                if (u == 0) {
+                    des_crypt_ecb(&ctx, buf, buf);
+                } else {
+                    des3_crypt_ecb(&ctx3, buf, buf);
+                }
+            }
+
+            if (v == DES_DECRYPT) {
+                Z_ASSERT_EQUAL(buf, 8, des3_test_ecb_dec[u], 8);
+            } else {
+                Z_ASSERT_EQUAL(buf, 8, des3_test_ecb_enc[u], 8);
+            }
         }
+    } Z_TEST_END;
 
-        if ((v == DES_DECRYPT &&
-                memcmp(buf, des3_test_cbc_dec[u], 8) != 0) ||
-            (v != DES_DECRYPT &&
-                memcmp(buf, des3_test_cbc_enc[u], 8) != 0))
-        {
-            if (verbose != 0)
-                printf("failed\n");
+    Z_TEST(CBC, "") {
+        memset(key, 0, 24);
 
-            return 1;
+        for (int i = 0; i < 6; i++) {
+            int u = i >> 1;
+            int v = i  & 1;
+
+            memcpy(iv,  des3_test_iv,  8);
+            memcpy(prv, des3_test_iv,  8);
+            memcpy(buf, des3_test_buf, 8);
+
+            switch (i)
+            {
+              case 0:
+                des_setkey_dec(&ctx, (byte *) des3_test_keys);
+                break;
+              case 1:
+                des_setkey_enc(&ctx, (byte *) des3_test_keys);
+                break;
+              case 2:
+                des3_set2key_dec(&ctx3, (byte *) des3_test_keys);
+                break;
+              case 3:
+                des3_set2key_enc(&ctx3, (byte *) des3_test_keys);
+                break;
+              case 4:
+                des3_set3key_dec(&ctx3, (byte *) des3_test_keys);
+                break;
+              case 5:
+                des3_set3key_enc(&ctx3, (byte *) des3_test_keys);
+                break;
+              default:
+                Z_ASSERT(false);
+            }
+
+            if (v == DES_DECRYPT) {
+                for (int j = 0; j < 10000; j++) {
+                    if (u == 0) {
+                        des_crypt_cbc(&ctx, v, 8, iv, buf, buf);
+                    } else {
+                        des3_crypt_cbc(&ctx3, v, 8, iv, buf, buf);
+                    }
+                }
+            } else {
+                for (int j = 0; j < 10000; j++) {
+                    byte tmp[8];
+
+                    if (u == 0) {
+                        des_crypt_cbc(&ctx, v, 8, iv, buf, buf);
+                    } else {
+                        des3_crypt_cbc(&ctx3, v, 8, iv, buf, buf);
+                    }
+
+                    memcpy(tmp, prv, 8);
+                    memcpy(prv, buf, 8);
+                    memcpy(buf, tmp, 8);
+                }
+
+                memcpy(buf, prv, 8);
+            }
+
+            if (v == DES_DECRYPT) {
+                Z_ASSERT_EQUAL(buf, 8, des3_test_cbc_dec[u], 8);
+            } else {
+                Z_ASSERT_EQUAL(buf, 8, des3_test_cbc_enc[u], 8);
+            }
         }
-
-        if (verbose != 0)
-            printf("passed\n");
-    }
-
-    if (verbose != 0)
-        printf("\n");
-
-    return 0;
-}
-
-#endif
-
-#endif
+    } Z_TEST_END;
+} Z_GROUP_END

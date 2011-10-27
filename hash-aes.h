@@ -80,13 +80,6 @@ void aes_crypt_cfb(aes_ctx *ctx, int mode, int length,
                    int *iv_off, byte iv[16], const byte *input, byte *output)
     __leaf;
 
-/**
- * \brief          Checkup routine
- *
- * \return         0 if successful, or 1 if the test failed
- */
-int aes_self_test(int verbose);
-
 #ifdef __cplusplus
 }
 #endif

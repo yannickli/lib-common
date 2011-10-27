@@ -37,8 +37,6 @@
 
 #include "hash.h"
 
-#if defined(XYSSL_PADLOCK_C)
-
 #if defined(XYSSL_HAVE_X86)
 
 /*
@@ -153,7 +151,5 @@ int padlock_xcryptcbc(aes_ctx *ctx, int mode, int length,
 
     return 0;
 }
-
-#endif
 
 #endif
