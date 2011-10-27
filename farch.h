@@ -23,13 +23,15 @@ typedef struct farch_entry_t {
     int size;
 } farch_entry_t;
 
-farch_t *farch_new(const farch_entry_t files[], const char *overridedir);
-void farch_add(farch_t *fa, const farch_entry_t files[]);
-void farch_delete(farch_t **fa);
+farch_t *farch_new(const farch_entry_t files[], const char *overridedir)
+    __leaf;
+void farch_add(farch_t *fa, const farch_entry_t files[]) __leaf;
+void farch_delete(farch_t **fa) __leaf;
 
-const farch_entry_t *farch_find(const farch_t *fa, const char *name);
+const farch_entry_t *farch_find(const farch_t *fa, const char *name)
+    __leaf;
 
 int farch_get(farch_t *fa, sb_t *buf, const byte **data, int *size,
-              const char *name);
+              const char *name) __leaf;
 
 #endif /* IS_LIB_COMMON_FARCH_H */
