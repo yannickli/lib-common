@@ -74,8 +74,7 @@ void thr_shutdown(void);
 
 /** \brief returns the id of the current thread in [0 .. thr_parallelism_g[
  */
-__attribute__((pure))
-size_t thr_id(void);
+size_t thr_id(void) __leaf __attribute__((pure));
 
 /** \brief Schedule one job.
  *
@@ -115,8 +114,8 @@ static ALWAYS_INLINE void thr_syn_schedule_b(thr_syn_t *syn, block_t blk)
 }
 #endif
 
-thr_queue_t *thr_queue_create(void);
-void thr_queue_destroy(thr_queue_t *q, bool wait);
+thr_queue_t *thr_queue_create(void) __leaf;
+void thr_queue_destroy(thr_queue_t *q, bool wait) __leaf;
 
 /** \brief Queue one job on a serial queue
  *
