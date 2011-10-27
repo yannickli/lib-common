@@ -28,7 +28,7 @@ typedef struct outbuf_t {
     htlist_t chunks_list;
 } outbuf_t;
 
-void ob_check_invariants(outbuf_t *ob);
+void ob_check_invariants(outbuf_t *ob) __leaf;
 
 static inline outbuf_t *ob_init(outbuf_t *ob)
 {
@@ -41,18 +41,19 @@ static inline outbuf_t *ob_init(outbuf_t *ob)
 #define ob_inita(ob, sb_size) \
     ({ ob_init(ob); sb_inita(&ob->sb, sb_size); })
 
-void ob_wipe(outbuf_t *ob);
+void ob_wipe(outbuf_t *ob) __leaf;
 GENERIC_NEW(outbuf_t, ob);
 GENERIC_DELETE(outbuf_t, ob);
-void ob_merge(outbuf_t *dst, outbuf_t *src);
-void ob_merge_wipe(outbuf_t *dst, outbuf_t *src);
-void ob_merge_delete(outbuf_t *dst, outbuf_t **src);
-static inline bool ob_is_empty(const outbuf_t *ob) {
+void ob_merge(outbuf_t *dst, outbuf_t *src) __leaf;
+void ob_merge_wipe(outbuf_t *dst, outbuf_t *src) __leaf;
+void ob_merge_delete(outbuf_t *dst, outbuf_t **src) __leaf;
+static inline bool ob_is_empty(const outbuf_t *ob)
+{
     return ob->length == 0;
 }
 
-int ob_write(outbuf_t *ob, int fd);
-int ob_xread(outbuf_t *ob, int fd, int size);
+int ob_write(outbuf_t *ob, int fd) __leaf;
+int ob_xread(outbuf_t *ob, int fd, int size) __leaf;
 
 
 /****************************************************************************/
@@ -79,7 +80,7 @@ typedef struct outbuf_chunk_t {
         void          *vp;
     } u;
 } outbuf_chunk_t;
-void ob_chunk_wipe(outbuf_chunk_t *obc);
+void ob_chunk_wipe(outbuf_chunk_t *obc) __leaf;
 GENERIC_DELETE(outbuf_chunk_t, ob_chunk);
 
 static inline void ob_add_chunk(outbuf_t *ob, outbuf_chunk_t *obc)
@@ -90,12 +91,14 @@ static inline void ob_add_chunk(outbuf_t *ob, outbuf_chunk_t *obc)
     ob->sb_trailing = 0;
 }
 
-static inline sb_t *outbuf_sb_start(outbuf_t *ob, int *oldlen) {
+static inline sb_t *outbuf_sb_start(outbuf_t *ob, int *oldlen)
+{
     *oldlen = ob->sb.len;
     return &ob->sb;
 }
 
-static inline void outbuf_sb_end(outbuf_t *ob, int oldlen) {
+static inline void outbuf_sb_end(outbuf_t *ob, int oldlen)
+{
     ob->sb_trailing += ob->sb.len - oldlen;
     ob->length      += ob->sb.len - oldlen;
 }
@@ -162,6 +165,6 @@ static inline void ob_add_memmap(outbuf_t *ob, void *map, int len)
     }
 }
 
-int ob_add_file(outbuf_t *ob, const char *file, int size);
+int ob_add_file(outbuf_t *ob, const char *file, int size) __leaf;
 
 #endif

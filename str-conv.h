@@ -71,8 +71,10 @@ static inline int hexdecode(const char *str)
 }
 
 /* XXX: dest will not be NUL terminated in strconv_hexdecode*/
-int strconv_hexdecode(void *dest, int size, const char *src, int len);
-int strconv_hexencode(char *dest, int size, const void *src, int len);
+int strconv_hexdecode(void *dest, int size, const char *src, int len)
+    __leaf;
+int strconv_hexencode(char *dest, int size, const void *src, int len)
+    __leaf;
 
 /****************************************************************************/
 /* utf-8 and charset conversions                                            */
@@ -207,7 +209,7 @@ static inline const char *utf8_skip_valid(const char *s, const char *end)
  * \param[in] strip trailing spaces are ignored for comparison.
  */
 int utf8_stricmp(const char *str1, int len1,
-                 const char *str2, int len2, bool strip);
+                 const char *str2, int len2, bool strip) __leaf;
 
 static inline
 bool utf8_striequal(const char *str1, int len1,

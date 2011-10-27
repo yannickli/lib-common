@@ -61,14 +61,16 @@ vstrtoull(char *str, char **endp, int base) {
 }
 #define strtoull(str, endp, base)  cstrtoull(str, endp, base)
 
-int strtoip(const char *p, const char **endp)  __attr_nonnull__((1));
+int strtoip(const char *p, const char **endp)
+    __leaf __attr_nonnull__((1));
 static inline int vstrtoip(char *p, char **endp) {
     return strtoip(p, (const char **)endp);
 }
-int memtoip(const void *p, int len, const byte **endp)  __attr_nonnull__((1));
+int memtoip(const void *p, int len, const byte **endp)
+    __leaf __attr_nonnull__((1));
 int64_t memtollp(const void *s, int len, const byte **endp)
-    __attr_nonnull__((1));
-int64_t parse_number(const char *str);
+    __leaf __attr_nonnull__((1));
+int64_t parse_number(const char *str) __leaf;
 
 #define STRTOLP_IGNORE_SPACES  (1 << 0)
 #define STRTOLP_CHECK_END      (1 << 1)
@@ -77,6 +79,6 @@ int64_t parse_number(const char *str);
 #define STRTOLP_CLAMP_RANGE    (1 << 4)
 /* returns 0 if success, negative errno if error */
 int strtolp(const char *p, const char **endp, int base, long *res,
-            int flags, long min, long max);
+            int flags, long min, long max) __leaf;
 
 #endif

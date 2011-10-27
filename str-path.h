@@ -18,35 +18,39 @@
 
 /*----- simple file name splits -----*/
 
-ssize_t path_dirpart(char *dir, ssize_t size, const char *filename);
+ssize_t path_dirpart(char *dir, ssize_t size, const char *filename)
+    __leaf;
 
 __attribute__((nonnull)) const char *path_filepart(const char *filename);
-__attribute__((nonnull)) static inline char *vpath_filepart(char *path) {
+__attribute__((nonnull)) static inline char *vpath_filepart(char *path)
+{
     return (char*)path_filepart(path);
 }
 
 __attribute__((nonnull)) const char *path_extnul(const char *filename);
-__attribute__((nonnull)) static inline char *vpath_extnul(char *path) {
+__attribute__((nonnull)) static inline char *vpath_extnul(char *path)
+{
     return (char*)path_extnul(path);
 }
 const char *path_ext(const char *filename);
-static inline char *vpath_ext(char *path) {
+static inline char *vpath_ext(char *path)
+{
     return (char*)path_ext(path);
 }
 
 /*----- libgen like functions -----*/
 
-int path_dirname(char *buf, int len, const char *path);
-int path_basename(char *buf, int len, const char *path);
+int path_dirname(char *buf, int len, const char *path) __leaf;
+int path_basename(char *buf, int len, const char *path) __leaf;
 
 /*----- path manipulations -----*/
 
-int path_join(char *buf, int len, const char *path);
-int path_simplify2(char *path, bool keep_trailing_slash);
+int path_join(char *buf, int len, const char *path) __leaf;
+int path_simplify2(char *path, bool keep_trailing_slash) __leaf;
 #define path_simplify(path)   path_simplify2(path, false)
-int path_canonify(char *buf, int len, const char *path);
-char *path_expand(char *buf, int len, const char *path);
+int path_canonify(char *buf, int len, const char *path) __leaf;
+char *path_expand(char *buf, int len, const char *path) __leaf;
 
-bool path_is_safe(const char *path);
+bool path_is_safe(const char *path) __leaf;
 
 #endif /* IS_LIB_COMMON_STR_PATH_H */
