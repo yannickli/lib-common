@@ -83,7 +83,8 @@ int cfg_parse(const char *file, cfg_parse_hook *, void *, int opts);
 int cfg_parse_buf(const char *, ssize_t, cfg_parse_hook *, void *, int opts);
 
 __attr_printf__(3, 4)
-int cfg_parse_seterr(void *ctx, int offs, const char *fmt, ...);
+int cfg_parse_seterr(void *ctx, int offs, const char *fmt, ...)
+    __leaf;
 
 
 /****************************************************************************/
@@ -97,20 +98,23 @@ typedef struct conf_section_t {
 qvector_t(conf_section, conf_section_t *);
 typedef qv_t(conf_section) conf_t;
 
-conf_t *conf_load(const char *filename);
-int conf_merge_dir(conf_t *conf, const char *path);
-conf_t *conf_load_str(const char *s, int len);
-void conf_delete(conf_t **);
+conf_t *conf_load(const char *filename) __leaf;
+int conf_merge_dir(conf_t *conf, const char *path) __leaf;
+conf_t *conf_load_str(const char *s, int len) __leaf;
+void conf_delete(conf_t **) __leaf;
 
-int conf_save(const conf_t *conf, const char *filename);
+int conf_save(const conf_t *conf, const char *filename) __leaf;
 
 static inline const conf_section_t *conf_get_section(const conf_t *cfg, int i)
 {
     return (i < 0 || i >= cfg->len) ? NULL : cfg->tab[i];
 }
-const conf_section_t *conf_get_section_by_name(const conf_t *, const char *);
-const char *conf_get_raw(const conf_t *, const char *section, const char *v);
-const char *conf_section_get_raw(const conf_section_t *, const char *v);
+const conf_section_t *conf_get_section_by_name(const conf_t *, const char *)
+    __leaf;
+const char *conf_get_raw(const conf_t *, const char *section, const char *v)
+    __leaf;
+const char *conf_section_get_raw(const conf_section_t *, const char *v)
+    __leaf;
 
 static inline const char *
 conf_get(const conf_t *conf, const char *section,
@@ -130,22 +134,22 @@ conf_section_get(const conf_section_t *section,
 
 
 const char *conf_put(conf_t *conf, const char *section,
-                     const char *var, const char *value);
+                     const char *var, const char *value) __leaf;
 
 int conf_get_int(const conf_t *conf, const char *section,
-                 const char *var, int defval);
+                 const char *var, int defval) __leaf;
 int conf_get_verbosity(const conf_t *conf, const char *section,
-                       const char *var, int defval);
+                       const char *var, int defval) __leaf;
 int conf_get_bool(const conf_t *conf, const char *section,
-                  const char *var, int defval);
+                  const char *var, int defval) __leaf;
 int conf_section_get_int(const conf_section_t *section,
-                         const char *var, int defval);
+                         const char *var, int defval) __leaf;
 int conf_section_get_bool(const conf_section_t *section,
-                          const char *var, int defval);
+                          const char *var, int defval) __leaf;
 
 /* Lookup next section beginning with prefix.
  * Store section name remaining characters in suffix if not NULL */
 int conf_next_section_idx(const conf_t *conf, const char *prefix,
-                          int prev_idx, const char **suffixp);
+                          int prev_idx, const char **suffixp) __leaf;
 
 #endif /* IS_LIB_COMMON_CONF_H */
