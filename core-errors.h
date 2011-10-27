@@ -27,19 +27,26 @@ typedef int (error_f)(const char *, ...) __attr_printf__(1, 2);
 #define E_UNIXERR(funcname)  funcname ": %m"
 
 /* These functions are meant to correspond to the syslog levels.  */
-error_f e_fatal  __attr_noreturn__ __cold;
-error_f e_panic  __attr_noreturn__ __cold;
-error_f e_error  __cold;
-error_f e_warning __cold;
-error_f e_notice;
-error_f e_info;
-error_f e_debug;
+int e_fatal(const char *, ...)
+    __leaf __attr_noreturn__ __cold __attr_printf__(1, 2);
+int e_panic(const char *, ...)
+    __leaf __attr_noreturn__ __cold __attr_printf__(1, 2);
+int e_error(const char *, ...)
+    __leaf __cold __attr_printf__(1, 2);
+int e_warning(const char *, ...)
+    __leaf __cold __attr_printf__(1, 2);
+int e_notice(const char *, ...)
+    __leaf __attr_printf__(1, 2);
+int e_info(const char *, ...)
+    __leaf __attr_printf__(1, 2);
+int e_debug(const char *, ...)
+    __leaf __attr_printf__(1, 2);
 
-__attribute__((format(printf, 2, 3)))
-int e_log(int priority, const char *fmt, ...);
+int e_log(int priority, const char *fmt, ...)
+    __leaf __attribute__((format(printf, 2, 3)));
 
-void e_init_stderr(void);
-void e_set_handler(e_handler_f *handler);
+void e_init_stderr(void) __leaf;
+void e_set_handler(e_handler_f *handler) __leaf;
 
 /**************************************************************************/
 /* Debug part                                                             */
@@ -73,11 +80,11 @@ static ALWAYS_INLINE void assert_ignore(bool cond) { }
 
 #else
 
-void e_set_verbosity(int max_debug_level);
-void e_incr_verbosity(void);
+void e_set_verbosity(int max_debug_level) __leaf;
+void e_incr_verbosity(void) __leaf;
 
 int  e_is_traced_(int level, const char *fname, const char *func,
-                  const char *name);
+                  const char *name) __leaf;
 
 #define e_name_is_traced(lvl, name) \
     ({ static int8_t e_traced;                                               \
@@ -86,9 +93,9 @@ int  e_is_traced_(int level, const char *fname, const char *func,
        likely(e_traced > 0); })
 #define e_is_traced(lvl)  e_name_is_traced(lvl, NULL)
 
-__attr_printf__(6, 7) __cold
 void e_trace_put_(int lvl, const char *fname, int lno, const char *func,
-                  const char *name, const char *fmt, ...);
+                  const char *name, const char *fmt, ...)
+                  __leaf __attr_printf__(6, 7) __cold;
 
 #define e_named_trace_start(lvl, name, fmt, ...) \
     do {                                                                     \
