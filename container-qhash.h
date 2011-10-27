@@ -97,11 +97,16 @@ typedef bool     (qhash_kequ_f)(const qhash_t *, const void *, const void *);
 
 /* helper functions, module functions {{{ */
 
-uint32_t qhash_scan(const qhash_t *qh, uint32_t pos);
-void     qhash_init(qhash_t *qh, uint16_t k_size, uint16_t v_size, bool doh);
-void     qhash_clear(qhash_t *qh);
-void     qhash_set_minsize(qhash_t *qh, uint32_t minsize);
-void     qhash_wipe(qhash_t *qh);
+uint32_t qhash_scan(const qhash_t *qh, uint32_t pos)
+    __leaf;
+void qhash_init(qhash_t *qh, uint16_t k_size, uint16_t v_size, bool doh)
+    __leaf;
+void qhash_clear(qhash_t *qh)
+    __leaf;
+void qhash_set_minsize(qhash_t *qh, uint32_t minsize)
+    __leaf;
+void qhash_wipe(qhash_t *qh)
+    __leaf;
 
 static inline void qhash_slot_inv_flags(size_t *bits, uint32_t pos)
 {
@@ -159,13 +164,19 @@ static inline uint32_t qhash_hash_ptr(const qhash_t *qh, const void *ptr)
 #define qhash_for_each_pos(i, qh)       __qhash_for_each(i, qh, (void)0)
 
 
-int32_t  qhash_safe_get32(const qhash_t *qh, uint32_t h, uint32_t k);
-int32_t  qhash_get32(qhash_t *qh, uint32_t h, uint32_t k);
-uint32_t __qhash_put32(qhash_t *qh, uint32_t h, uint32_t k, uint32_t flags);
+int32_t  qhash_safe_get32(const qhash_t *qh, uint32_t h, uint32_t k)
+    __leaf;
+int32_t  qhash_get32(qhash_t *qh, uint32_t h, uint32_t k)
+    __leaf;
+uint32_t __qhash_put32(qhash_t *qh, uint32_t h, uint32_t k, uint32_t flags)
+    __leaf;
 
-int32_t  qhash_safe_get64(const qhash_t *qh, uint32_t h, uint64_t k);
-int32_t  qhash_get64(qhash_t *qh, uint32_t h, uint64_t k);
-uint32_t __qhash_put64(qhash_t *qh, uint32_t h, uint64_t k, uint32_t flags);
+int32_t  qhash_safe_get64(const qhash_t *qh, uint32_t h, uint64_t k)
+    __leaf;
+int32_t  qhash_get64(qhash_t *qh, uint32_t h, uint64_t k)
+    __leaf;
+uint32_t __qhash_put64(qhash_t *qh, uint32_t h, uint64_t k, uint32_t flags)
+    __leaf;
 
 int32_t  qhash_safe_get_ptr(const qhash_t *qh, uint32_t h, const void *k,
                             qhash_khash_f *hf, qhash_kequ_f *equ);

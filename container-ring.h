@@ -23,7 +23,8 @@
     } pfx##_ring
 RING_TYPE(void, generic);
 
-void generic_ring_ensure(generic_ring *r, int newlen, int el_siz);
+void generic_ring_ensure(generic_ring *r, int newlen, int el_siz)
+    __leaf;
 
 #define RING_MAP(r, f, ...)                                            \
     do {                                                               \
