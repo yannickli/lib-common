@@ -63,24 +63,24 @@ qvector_t(wah, wah_t);
 /* Public API {{{ */
 
 
-wah_t *wah_init(wah_t *map);
-void wah_wipe(wah_t *map);
+wah_t *wah_init(wah_t *map) __leaf;
+void wah_wipe(wah_t *map) __leaf;
 GENERIC_DELETE(wah_t, wah);
 GENERIC_NEW(wah_t, wah);
 
-wah_t *t_wah_new(int expected_size);
-wah_t *t_wah_dup(const wah_t *src);
-void wah_copy(wah_t *map, const wah_t *src);
+wah_t *t_wah_new(int expected_size) __leaf;
+wah_t *t_wah_dup(const wah_t *src) __leaf;
+void wah_copy(wah_t *map, const wah_t *src) __leaf;
 
-void wah_add0s(wah_t *map, uint64_t count);
-void wah_add1s(wah_t *map, uint64_t count);
-void wah_add(wah_t *map, const void *data, uint64_t count);
+void wah_add0s(wah_t *map, uint64_t count) __leaf;
+void wah_add1s(wah_t *map, uint64_t count) __leaf;
+void wah_add(wah_t *map, const void *data, uint64_t count) __leaf;
 
-void wah_and(wah_t *map, const wah_t *other);
-void wah_or(wah_t *map, const wah_t *other);
-void wah_not(wah_t *map);
+void wah_and(wah_t *map, const wah_t *other) __leaf;
+void wah_or(wah_t *map, const wah_t *other) __leaf;
+void wah_not(wah_t *map) __leaf;
 
-__must_check__
+__must_check__ __leaf
 bool wah_get(const wah_t *map, uint64_t pos);
 
 static inline
