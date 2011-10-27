@@ -23,6 +23,7 @@ typedef struct bit_stream_t {
 } bit_stream_t;
 
 /* API {{{ */
+
 static ALWAYS_INLINE bit_stream_t
 bs_init(const uint8_t *data, uint8_t bstart, size_t blen)
 {
@@ -178,6 +179,7 @@ static inline bool bs_equals(bit_stream_t bs1, bit_stream_t bs2)
 
 /* }}} */
 /* Printing helpers {{{ */
+
 static inline char *t_print_bs(bit_stream_t bs, size_t *len)
 {
     char *res;

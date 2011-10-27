@@ -28,6 +28,7 @@ typedef struct bb_t {
 } bb_t;
 
 /* API {{{ */
+
 static ALWAYS_INLINE bb_t *bb_init(bb_t *bb)
 {
     p_clear(bb, 1);
@@ -155,7 +156,7 @@ static inline void bb_align(bb_t *bb)
 }
 
 struct bit_stream_t;
-void bb_add_bs(bb_t *bb, struct bit_stream_t bs);
+void bb_add_bs(bb_t *bb, struct bit_stream_t bs) __leaf;
 
 #ifndef NDEBUG
 static inline void bb_push_mark(bb_t *bb)
@@ -190,8 +191,10 @@ static inline void bb_reset_mark(bb_t *bb)
 
 /* }}} */
 /* Printing helpers {{{ */
-char *t_print_bits(uint8_t bits, uint8_t bstart, uint8_t blen);
-char *t_print_bb(const bb_t *bb, size_t *len);
+char *t_print_bits(uint8_t bits, uint8_t bstart, uint8_t blen)
+    __leaf;
+char *t_print_bb(const bb_t *bb, size_t *len)
+    __leaf;
 
 #define e_trace_bb(lvl, bb, fmt, ...)  \
 {                                                                      \
