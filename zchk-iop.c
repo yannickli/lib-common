@@ -36,18 +36,21 @@ Z_GROUP_EXPORT(iop)
     Z_TEST(hash_sha1, "test wether iop_hash_sha1 is stable wrt ABI change") {
         t_scope;
 
+        int  i_10 = 10, i_11 = 11;
+        long j_10 = 10;
+
         struct tstiop__hash_v1__t v1 = {
-            .i  = 10,
+            .i  = IOP_ARRAY(&i_10, 1),
             .s  = LSTR_IMMED("foo bar baz"),
         };
 
         struct tstiop__hash_v2__t v2 = {
-            .i  = 10,
+            .i  = IOP_ARRAY(&j_10, 1),
             .s  = LSTR_IMMED("foo bar baz"),
         };
 
         struct tstiop__hash_v1__t v1_not_same = {
-            .i  = 11,
+            .i  = IOP_ARRAY(&i_11, 1),
             .s  = LSTR_IMMED("foo bar baz"),
         };
 
