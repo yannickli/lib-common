@@ -471,59 +471,59 @@ __iop_hash(struct iop_hash_ctx *ctx, const iop_struct_t *st, const uint8_t *v)
                     r = *(void **)r;
                 }
             } else {
-                iop_opt_hash(ctx, fdesc, v);
+                iop_opt_hash(ctx, fdesc, r);
                 continue;
             }
         }
         switch (fdesc->type) {
           case IOP_T_I8:
             for (int i = 0; i < n; i++) {
-                iop_hash_update_i64(ctx, ((int8_t *)v)[i]);
+                iop_hash_update_i64(ctx, ((int8_t *)r)[i]);
             }
             break;
           case IOP_T_BOOL:
             for (int i = 0; i < n; i++) {
-                iop_hash_update_i64(ctx, ((bool *)v)[i]);
+                iop_hash_update_i64(ctx, ((bool *)r)[i]);
             }
             break;
           case IOP_T_U8:
             for (int i = 0; i < n; i++) {
-                iop_hash_update_i64(ctx, ((uint8_t *)v)[i]);
+                iop_hash_update_i64(ctx, ((uint8_t *)r)[i]);
             }
             break;
           case IOP_T_I16:
             for (int i = 0; i < n; i++) {
-                iop_hash_update_i64(ctx, ((int16_t *)v)[i]);
+                iop_hash_update_i64(ctx, ((int16_t *)r)[i]);
             }
             break;
           case IOP_T_U16:
             for (int i = 0; i < n; i++) {
-                iop_hash_update_i64(ctx, ((uint16_t *)v)[i]);
+                iop_hash_update_i64(ctx, ((uint16_t *)r)[i]);
             }
             break;
           case IOP_T_I32: case IOP_T_ENUM:
             for (int i = 0; i < n; i++) {
-                iop_hash_update_i64(ctx, ((int32_t *)v)[i]);
+                iop_hash_update_i64(ctx, ((int32_t *)r)[i]);
             }
             break;
           case IOP_T_U32:
             for (int i = 0; i < n; i++) {
-                iop_hash_update_i64(ctx, ((uint32_t *)v)[i]);
+                iop_hash_update_i64(ctx, ((uint32_t *)r)[i]);
             }
             break;
           case IOP_T_I64:
             for (int i = 0; i < n; i++) {
-                iop_hash_update_i64(ctx, ((int64_t *)v)[i]);
+                iop_hash_update_i64(ctx, ((int64_t *)r)[i]);
             }
             break;
           case IOP_T_U64:
             for (int i = 0; i < n; i++) {
-                iop_hash_update_i64(ctx, ((uint64_t *)v)[i]);
+                iop_hash_update_i64(ctx, ((uint64_t *)r)[i]);
             }
             break;
           case IOP_T_DOUBLE:
             for (int i = 0; i < n; i++) {
-                iop_hash_update_dbl(ctx, ((double *)v)[i]);
+                iop_hash_update_dbl(ctx, ((double *)r)[i]);
             }
             break;
           case IOP_T_UNION:
