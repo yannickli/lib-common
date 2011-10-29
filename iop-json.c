@@ -957,17 +957,37 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
         return RJERROR_EXP("a valid member name");
     }
 
-    if (PS_CHECK(iop_json_lex(ll)) != ':')
+    switch (PS_CHECK(iop_json_lex(ll))) {
+      case ':':
+        if (fdesc) {
+            /* Write the selected field */
+            *((uint16_t *)value) = fdesc->tag;
+
+            PS_CHECK(unpack_val(ll, fdesc, (char *)value + fdesc->data_offs,
+                                false));
+        } else {
+            PS_CHECK(skip_val(ll, false));
+        }
+        break;
+
+        /* Extended syntax of union */
+      case '.':
+        if (fdesc) {
+            if (fdesc->type != IOP_T_UNION)
+                return RJERROR(IOP_JERR_UNION_RESERVED);
+
+            /* Write the selected field */
+            *((uint16_t *)value) = fdesc->tag;
+
+            PS_CHECK(unpack_union(ll, fdesc->u1.st_desc,
+                                  (char *)value + fdesc->data_offs, true));
+        } else {
+            PS_CHECK(unpack_union(ll, NULL, NULL, true));
+        }
+        break;
+
+      default:
         return RJERROR_EXP("`:' or `='");
-
-    if (fdesc) {
-        /* Write the selected field */
-        *((uint16_t *)value) = fdesc->tag;
-
-        PS_CHECK(unpack_val(ll, fdesc, (char *)value + fdesc->data_offs,
-                            false));
-    } else {
-        PS_CHECK(skip_val(ll, false));
     }
 
     /* With the json compliant syntax we must check for a `}' */
