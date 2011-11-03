@@ -26,7 +26,12 @@
 void iop_xpack(sb_t *sb, const iop_struct_t *, const void *v,
                bool verbose, bool with_enums);
 
+/* qm of Content-ID -> decoded message parts */
+qm_kptr_t(part, lstr_t, lstr_t, qhash_lstr_hash, qhash_lstr_equal);
+
 /* flags is a bitfield of iop_unpack_flags */
+int iop_xunpack_parts(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
+                      void *value, int flags, qm_t(part) *parts);
 int iop_xunpack_flags(void *xp, mem_pool_t *mp, const iop_struct_t *, void *v,
                       int flags);
 int iop_xunpack(void *xp, mem_pool_t *mp, const iop_struct_t *, void *v);
