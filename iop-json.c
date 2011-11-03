@@ -376,12 +376,7 @@ static int iop_json_lex_number_extensions(iop_json_lex_t *ll)
                 break;
 
       default:
-                /* Only spaces, ',' and ';' are allowed after an integer */
-                if (isspace(READC()) || READC() == ',' || READC() == ';'
-                 || READC() == ']' || READC() == '}') {
-                    return TK(IOP_JSON_INTEGER);
-                }
-                return JERROR_WARG(IOP_JERR_BAD_INT_EXT, 1);
+                return TK(IOP_JSON_INTEGER);
     }
 
     if (u > UINT64_MAX / mult || u * mult < u)
@@ -400,16 +395,20 @@ static int iop_json_lex_number(iop_json_lex_t *ll)
     const char *p, *pd, *pi;
     bool is_hexa = false;
 
+    /* we try to detect where the integer ends (i.e. where strto* functions
+     * will stop reading). it does not matter if we go too far (e.g. with
+     * '2+3+4' it will read the whole expression and not just '2' */
     while (pos < ps_len(PS)) {
         switch (READAT(pos)) {
           case '0'...'9': case 'e': case'E':
           case '.': case '+': case '-':
             pos++;
             continue;
-          case 'x':
+          case 'x': case 'X':
             is_hexa = true;
             pos++;
             continue;
+          case 'p': case 'P':
           case 'a'...'d': case 'f':
           case 'A'...'D': case 'F':
             if (!is_hexa)
@@ -422,7 +421,9 @@ static int iop_json_lex_number(iop_json_lex_t *ll)
         break;
     }
 
-    if (pos == ps_len(PS)) {
+    /* in the unlikely case that the integer reaches the end of the PS, we need
+     * a null-terminated buffer to pass to the strto* functions */
+    if (unlikely(pos == ps_len(PS))) {
         sb_set(&ll->b, PS->b, ps_len(PS));
         p = ll->b.data;
     } else {
@@ -449,22 +450,25 @@ static int iop_json_lex_number(iop_json_lex_t *ll)
         /* FALLTHROUGH */
 
       case 1:
-        if ((unsigned int)(pd - p) != pos)
-            return JERROR_WARG(IOP_JERR_PARSE_NUM, pos);
-        ll->u.d = d;
-        SKIP(pos);
-        /* Only spaces, ',' and ';' are allowed after a number */
-        if (HAS(1) && !isspace(READC()) && READC() != ',' && READC() != ';') {
-            SKIP(1);
-            return RJERROR_WARG(IOP_JERR_PARSE_NUM);
+        if (unlikely((unsigned int)(pd - p) > pos)) {
+            e_trace(0, "strtod read further than us: %*pM vs %*pM",
+                    (unsigned int)(pd - p), PS->s,
+                    pos, PS->s);
         }
+        ll->u.d = d;
+        pos = (unsigned int)(pd - p);
+        SKIP(pos);
         return TK(IOP_JSON_DOUBLE);
 
       case 2:
 prefer_integer:
-        if ((unsigned int)(pi - p) != pos)
-            return JERROR_WARG(IOP_JERR_PARSE_NUM, pos);
+        if (unlikely((unsigned int)(pi - p) > pos)) {
+            e_trace(0, "strtol read further than us: %*pM vs %*pM",
+                    (unsigned int)(pi - p), PS->s,
+                    pos, PS->s);
+        }
         ll->u.i = i;
+        pos = (unsigned int)(pi - p);
         SKIP(pos);
         if (HAS(1))
             return iop_json_lex_number_extensions(ll);
@@ -473,6 +477,80 @@ prefer_integer:
       default:
         return JERROR_WARG(IOP_JERR_PARSE_NUM, pos);
     }
+}
+
+static int iop_json_lex_expr(iop_json_lex_t *ll)
+{
+    uint64_t num = 0;
+    int type = IOP_JSON_INTEGER;
+
+    if (READC() == '+')
+        SKIP(1);
+
+    for(;;) {
+        int c;
+
+        while (!ps_done(PS) && isspace(READC())) {
+            if (EATC() == '\n')
+                NEWLINE();
+        }
+        switch (c = READC()) {
+
+          case '<': case '>':
+            SKIP(1);
+            if (HAS(1) && READC() == c) {
+                switch(c) {
+                  case '<': c = CF_OP_LSHIFT; break;
+                  case '>': c = CF_OP_RSHIFT; break;
+                  default : break;
+                }
+            } else {
+                return RJERROR_EXP("a bitwise shift operator");
+            }
+            /* FALLTHROUGH */
+          case '-': case '+': case '/': case '~':
+          case '&': case '|': case '%': case '^':
+          case '(': case ')': case '*':
+            if (c == '*' && HAS(2) && READAT(1) == '*') {
+                SKIP(1);
+                c = CF_OP_EXP;
+            }
+            e_trace(1, "feed operator %c", c);
+            if (iop_cfolder_feed_operator(ll->cfolder, c) < 0)
+                return RJERROR_WARG(IOP_JERR_PARSE_NUM);
+            SKIP(1);
+            break;
+
+          case '.': case '0' ... '9':
+            type = RETHROW(iop_json_lex_number(ll));
+            if (type == IOP_JSON_DOUBLE) {
+                if (!iop_cfolder_empty(ll->cfolder)) {
+                    e_warning("double value in an expression");
+                    return RJERROR_EXP("a valid integer expression");
+                }
+                e_trace(1, "single double value %f", ll->u.d);
+                return TK(IOP_JSON_DOUBLE);
+            }
+            assert (type == IOP_JSON_INTEGER);
+            e_trace(1, "feed number %jd", ll->u.i);
+            if (iop_cfolder_feed_number(ll->cfolder, ll->u.i, (ll->u.i < 0)) < 0)
+                return RJERROR_WARG(IOP_JERR_PARSE_NUM);
+            break;
+
+          default:
+            goto result;
+        }
+    }
+
+  result:
+    /* Let's try to get a result */
+    if (iop_cfolder_get_result(ll->cfolder, &num) < 0)
+        return RJERROR_WARG(IOP_JERR_PARSE_NUM);
+
+    ll->u.i = num;
+    e_trace(1, "-> result %jd", ll->u.i);
+
+    return TK(IOP_JSON_INTEGER);
 }
 
 static int iop_json_lex_str(iop_json_lex_t *ll, int terminator)
@@ -588,9 +666,10 @@ static int iop_json_lex(iop_json_lex_t *ll)
                 if (ll->last == IOP_JSON_IDENT || ll->last == IOP_JSON_STRING)
                     return EATC();
                 /* FALLTHROUGH */
-      case '-': case '+':
+      case '-': case '+': case '~':
       case '0' ... '9':
-                return iop_json_lex_number(ll);
+      case '(': case ')':
+                return iop_json_lex_expr(ll);
 
       case '\'': case '"':
                 return iop_json_lex_str(ll, EATC());
@@ -635,12 +714,14 @@ iop_json_lex_t *iop_jlex_init(mem_pool_t *mp, iop_json_lex_t *ll)
     p_clear(ll, 1);
     ll->mp = mp;
     sb_init(&ll->b);
+    ll->cfolder = iop_cfolder_new();
     return ll;
 }
 
 void iop_jlex_wipe(iop_json_lex_t *ll)
 {
     sb_wipe(&ll->b);
+    iop_cfolder_delete(&ll->cfolder);
     if (ll->err_str)
         mp_delete(ll->mp, &ll->err_str);
 }

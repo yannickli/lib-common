@@ -65,6 +65,11 @@ GENERIC_DELETE(iop_cfolder_t, iop_cfolder);
 GENERIC_INIT(iop_cfolder_t, iop_cfolder);
 GENERIC_NEW(iop_cfolder_t, iop_cfolder);
 
+static inline bool iop_cfolder_empty(iop_cfolder_t *cfolder)
+{
+    return (cfolder->stack.len == 0 && cfolder->paren_cnt == 0);
+}
+
 int iop_cfolder_feed_number(iop_cfolder_t *, uint64_t, bool is_signed);
 int iop_cfolder_feed_operator(iop_cfolder_t *, iop_cfolder_op_t);
 int iop_cfolder_get_result(iop_cfolder_t *, uint64_t *res);

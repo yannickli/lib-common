@@ -58,9 +58,10 @@ typedef struct iop_json_lex_t {
     int flags;
 
     /* Context storage */
-    int       s_line;
-    int       s_col;
-    pstream_t s_ps;
+    int             s_line;
+    int             s_col;
+    pstream_t       s_ps;
+    iop_cfolder_t  *cfolder;
 
     iop_json_error err;
     char *         err_str;
