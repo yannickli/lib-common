@@ -1386,6 +1386,48 @@ int iop_bskip(const iop_struct_t *desc, pstream_t *ps)
     }
 }
 
+ssize_t iop_get_field_len(pstream_t ps);
+{
+    iop_wire_type_t wt;
+    uint32_t tag, u32, tag_len, len_len;
+
+    if (ps_done(&ps))
+        return 0;
+    wt  = IOP_WIRE_FMT(ps.b[0]);
+    tag = IOP_TAG(ps.b[0]);
+    if (likely(tag < IOP_LONG_TAG(1))) {
+        tag_len = 1;
+    } else {
+        tag_len = 2 + tag - IOP_LONG_TAG(1);
+    }
+    switch (wt) {
+      case IOP_WIRE_BLK1:
+        len_len = 1;
+        break;
+      case IOP_WIRE_BLK2:
+        len_len = 2;
+        break;
+      case IOP_WIRE_BLK4:
+        len_len = 4;
+        break;
+      case IOP_WIRE_REPEAT: /* not supported by this function */
+        return -1;
+      case IOP_WIRE_INT1:
+        return tag_len + 1;
+      case IOP_WIRE_INT2:
+        return tag_len + 2;
+      case IOP_WIRE_INT4:
+        return tag_len + 4;
+      case IOP_WIRE_QUAD:
+        return tag_len + 8;
+    }
+    if (ps_skip(&ps, tag_len) < 0)
+        return 0;
+    if (get_uint32(&ps, len_len, &u32) < 0)
+        return 0;
+    return tag_len + u32;
+}
+
 /*-}}}-*/
 
 iop_struct_t const iop__void__s = {
