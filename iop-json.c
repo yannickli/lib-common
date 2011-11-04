@@ -479,7 +479,29 @@ prefer_integer:
     }
 }
 
-static int iop_json_lex_expr(iop_json_lex_t *ll)
+static int iop_json_lex_enum(iop_json_lex_t *ll, int terminator,
+                             const iop_field_t *fdesc)
+{
+    bool found;
+    const char *end;
+    int len;
+    lstr_t s;
+
+    end = (const char *)memchr(PS->p, terminator, ps_len(PS));
+    if (!end)
+        return JERROR(IOP_JERR_UNCLOSED_STRING);
+    len = end - PS->s;
+    s = LSTR_INIT_V(PS->s, len);
+
+    ll->u.i = iop_enum_from_lstr(fdesc->u1.en_desc, s, &found);
+    if (!found)
+        return JERROR_WARG(IOP_JERR_ENUM_VALUE, len);
+
+    SKIP(len + 1);
+    return IOP_JSON_INTEGER;
+}
+
+static int iop_json_lex_expr(iop_json_lex_t *ll, const iop_field_t *fdesc)
 {
     uint64_t num = 0;
     int type = IOP_JSON_INTEGER;
@@ -532,6 +554,16 @@ static int iop_json_lex_expr(iop_json_lex_t *ll)
                 return TK(IOP_JSON_DOUBLE);
             }
             assert (type == IOP_JSON_INTEGER);
+            e_trace(1, "feed number %jd", ll->u.i);
+            if (iop_cfolder_feed_number(ll->cfolder, ll->u.i, (ll->u.i < 0)) < 0)
+                return RJERROR_WARG(IOP_JERR_PARSE_NUM);
+            break;
+
+          case '\'': case '"':
+            if (!fdesc || fdesc->type != IOP_T_ENUM) {
+                return RJERROR_EXP("an integer");
+            }
+            RETHROW(iop_json_lex_enum(ll, EATC(), fdesc));
             e_trace(1, "feed number %jd", ll->u.i);
             if (iop_cfolder_feed_number(ll->cfolder, ll->u.i, (ll->u.i < 0)) < 0)
                 return RJERROR_WARG(IOP_JERR_PARSE_NUM);
@@ -631,7 +663,7 @@ static int iop_json_lex_str(iop_json_lex_t *ll, int terminator)
     }
 }
 
-static int iop_json_lex(iop_json_lex_t *ll)
+static int iop_json_lex(iop_json_lex_t *ll, const iop_field_t *fdesc)
 {
     if (ll->peek >= 0) {
         int res = ll->peek;
@@ -669,9 +701,12 @@ static int iop_json_lex(iop_json_lex_t *ll)
       case '-': case '+': case '~':
       case '0' ... '9':
       case '(': case ')':
-                return iop_json_lex_expr(ll);
+                return iop_json_lex_expr(ll, fdesc);
 
       case '\'': case '"':
+                if (fdesc && fdesc->type == IOP_T_ENUM) {
+                    return iop_json_lex_expr(ll, fdesc);
+                }
                 return iop_json_lex_str(ll, EATC());
 
       case '/':
@@ -704,7 +739,7 @@ static int iop_json_lex(iop_json_lex_t *ll)
 static int iop_json_lex_peek(iop_json_lex_t *ll)
 {
     if (ll->peek < 0)
-        ll->peek = iop_json_lex(ll);
+        ll->peek = iop_json_lex(ll, NULL);
     return ll->peek;
 }
 
@@ -767,7 +802,7 @@ static int unpack_struct(iop_json_lex_t *, const iop_struct_t *, void *,
 
 static int skip_val(iop_json_lex_t *ll, bool in_arr)
 {
-    switch (PS_CHECK(iop_json_lex(ll))) {
+    switch (PS_CHECK(iop_json_lex(ll, NULL))) {
       case IOP_JSON_IDENT:
         if (IS_TRUE() || IS_FALSE() || IS_NULL())
             return 0;
@@ -802,12 +837,12 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
                       void *value, bool in_arr)
 {
     if (!in_arr && fdesc->repeat == IOP_R_REPEATED) {
-        if (PS_CHECK(iop_json_lex(ll)) != '[')
+        if (PS_CHECK(iop_json_lex(ll, NULL)) != '[')
             return RJERROR_EXP("`['");
         return unpack_arr(ll, fdesc, value);
     }
 
-    switch (PS_CHECK(iop_json_lex(ll))) {
+    switch (PS_CHECK(iop_json_lex(ll, fdesc))) {
       case IOP_JSON_IDENT:
         if (IS_TRUE()) {
             ll->u.i = 1;
@@ -834,7 +869,6 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
 
       case IOP_JSON_STRING:
         switch (fdesc->type) {
-            const iop_enum_t *edesc;
             const char *q;
             iop_data_t *data;
 
@@ -856,16 +890,6 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
             if (errno || q != (const char *)ll->b.data + ll->b.len)
                 return RJERROR_WARG(IOP_JERR_PARSE_NUM);
             goto integer;
-
-          case IOP_T_ENUM:
-            edesc = fdesc->u1.en_desc;
-            for (int i = 0; i < edesc->enum_len; i++) {
-                if (!strcasecmp(edesc->names[i].s, ll->b.data)) {
-                    ll->u.i = edesc->values[i];
-                    goto integer;
-                }
-            }
-            return RJERROR_WARG(IOP_JERR_ENUM_VALUE);
 
           case IOP_T_DOUBLE:
             errno = 0;
@@ -980,7 +1004,7 @@ static int unpack_arr(iop_json_lex_t *ll, const iop_field_t *fdesc,
 
     for (;;) {
         if (PS_CHECK(iop_json_lex_peek(ll)) == ']') {
-            iop_json_lex(ll);
+            iop_json_lex(ll, NULL);
             return 0;
         }
         if (fdesc) {
@@ -996,7 +1020,7 @@ static int unpack_arr(iop_json_lex_t *ll, const iop_field_t *fdesc,
         } else {
             PS_CHECK(skip_val(ll, true));
         }
-        switch(PS_CHECK(iop_json_lex(ll))) {
+        switch(PS_CHECK(iop_json_lex(ll, NULL))) {
           case ',': break;
           case ']': return 0;
           default:  return RJERROR_EXP("`,', `;' or `]'");
@@ -1028,7 +1052,7 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
 {
     const iop_field_t *fdesc = NULL;
 
-    switch (PS_CHECK(iop_json_lex(ll))) {
+    switch (PS_CHECK(iop_json_lex(ll, NULL))) {
       case IOP_JSON_IDENT:
       case IOP_JSON_STRING:
         if (desc) {
@@ -1043,7 +1067,7 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
         return RJERROR_EXP("a valid member name");
     }
 
-    switch (PS_CHECK(iop_json_lex(ll))) {
+    switch (PS_CHECK(iop_json_lex(ll, NULL))) {
       case ':':
         if (fdesc) {
             /* Write the selected field */
@@ -1077,7 +1101,7 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
     }
 
     /* With the json compliant syntax we must check for a `}' */
-    if (!ext_syntax && PS_CHECK(iop_json_lex(ll)) != '}')
+    if (!ext_syntax && PS_CHECK(iop_json_lex(ll, NULL)) != '}')
         return RJERROR_EXP("`}'");
     return 0;
 }
@@ -1101,11 +1125,11 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         fdesc = NULL;
 
         if (PS_CHECK(iop_json_lex_peek(ll)) == '}') {
-            iop_json_lex(ll);
+            iop_json_lex(ll, NULL);
             break;
         }
 
-        switch (PS_CHECK(iop_json_lex(ll))) {
+        switch (PS_CHECK(iop_json_lex(ll, NULL))) {
           case IOP_JSON_IDENT:
           case IOP_JSON_STRING:
             if (desc) {
@@ -1131,7 +1155,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         /* XXX `.' must be kept (using lex_peek) for the unpack_val
          * function */
         if (!prefixed && PS_CHECK(iop_json_lex_peek(ll)) != '.'
-        &&  PS_CHECK(iop_json_lex(ll)) != ':')
+        &&  PS_CHECK(iop_json_lex(ll, NULL)) != ':')
         {
             mp_delete(ll->mp, &seen);
             return RJERROR_EXP("`:' or `='");
@@ -1152,14 +1176,14 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
 
         if (prefixed) {
             /* Special handling of prefixed value */
-            if (PS_CHECK(iop_json_lex(ll)) != '{')
+            if (PS_CHECK(iop_json_lex(ll, NULL)) != '{')
                 return RJERROR_EXP("`{'");
 
             prefixed = false;
             continue;
         }
 
-        switch (PS_CHECK(iop_json_lex(ll))) {
+        switch (PS_CHECK(iop_json_lex(ll, NULL))) {
           case ',':
             break;
           case '}':
@@ -1203,7 +1227,7 @@ int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *desc, void *value,
 {
     const char *src = PS->s;
     iop_jlex_reset(ll);
-    switch (PS_CHECK(iop_json_lex(ll))) {
+    switch (PS_CHECK(iop_json_lex(ll, NULL))) {
       case '{':
         if (desc->is_union) {
             PS_CHECK(unpack_union(ll, desc, value, false));
@@ -1221,7 +1245,7 @@ int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *desc, void *value,
     endcheck:
         /* Skip trailing characters (insignificant characters) */
         for (;;) {
-            switch (PS_CHECK(iop_json_lex(ll))) {
+            switch (PS_CHECK(iop_json_lex(ll, NULL))) {
               case ',':
                 continue;
               case IOP_JSON_EOF:
@@ -1235,7 +1259,7 @@ int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *desc, void *value,
         }
 
         if (single_value) {
-            if (iop_json_lex(ll) == IOP_JSON_EOF)
+            if (iop_json_lex(ll, NULL) == IOP_JSON_EOF)
                 return 0;
             return RJERROR_EXP("nothing at this point but");
         } else {
