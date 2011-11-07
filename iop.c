@@ -1386,7 +1386,7 @@ int iop_bskip(const iop_struct_t *desc, pstream_t *ps)
     }
 }
 
-ssize_t iop_get_field_len(pstream_t ps);
+ssize_t iop_get_field_len(pstream_t ps)
 {
     iop_wire_type_t wt;
     uint32_t tag, u32, tag_len, len_len;
@@ -1420,6 +1420,8 @@ ssize_t iop_get_field_len(pstream_t ps);
         return tag_len + 4;
       case IOP_WIRE_QUAD:
         return tag_len + 8;
+      default:
+        return -1;
     }
     if (ps_skip(&ps, tag_len) < 0)
         return 0;
