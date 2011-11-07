@@ -233,6 +233,18 @@ int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *, void *value,
 __must_check__
 int iop_bskip(const iop_struct_t *desc, pstream_t *ps);
 
+/** returns the length of the field examining the first octets only.
+ *
+ * \warning the field should be a non repeated one.
+ *
+ * This function is meant to know if iop_bunpack{,_multi} will work, hence it
+ * should be applied to stream of IOP unions or IOP fields only.
+ *
+ * Returns 0 if there isn't enough octets to determine the length.
+ * Returns -1 if there is something really wrong.
+ */
+ssize_t iop_get_field_len(pstream_t ps);
+
 __must_check__
 int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc);
 

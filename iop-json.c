@@ -689,14 +689,14 @@ static int iop_json_lex(iop_json_lex_t *ll, const iop_field_t *fdesc)
       case '{': case '}':
       case '[': case ']':
       case '@':
-                return EATC();
+                return TK(EATC());
 
       case 'a' ... 'z': case 'A' ... 'Z':
                 return iop_json_lex_token(ll);
 
       case '.':
                 if (ll->last == IOP_JSON_IDENT || ll->last == IOP_JSON_STRING)
-                    return EATC();
+                    return TK(EATC());
                 /* FALLTHROUGH */
       case '-': case '+': case '~':
       case '0' ... '9':

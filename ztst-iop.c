@@ -365,7 +365,7 @@ static void test_json(void)
 //"            l: {us: \"union value normal\"},\n"
 "            foo: {us: \"union value to skip\"},\n"
 "            bar.us: \"union value to skip\",\n"
-"            \"m\": 10.42\n,"
+"            \"m\": .42\n,"
 "            \"n\": true\n"
 "        };\n"
     ;
