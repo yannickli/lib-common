@@ -16,7 +16,7 @@ test_PROGRAMS += zchk ztst-cfgparser ztst-tpl ztst-lzo ztst-thrjob
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 ifeq (,$(TOOLS_REPOSITORY))
 none_SHARED_LIBRARIES += zchk-tstiop-plugin
-test_PROGRAMS += ztst-iop ztst-httpd
+test_PROGRAMS += ztst-httpd
 endif
 none_SHARED_LIBRARIES += zchk-iop-plugin
 
@@ -172,13 +172,6 @@ zchk_SOURCES = zchk.c \
 zchk_LIBS = $(libxml2_LIBS)
 
 ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
-
-ztst-iop_SOURCES = \
-	ztst-iop.c \
-	$/lib-common/iop/tstiop.a \
-	$/lib-common/libcommon.a \
-	$/lib-common/time-lp-simple.a
-ztst-iop_LIBS = $(libxml2_LIBS)
 
 zchk-tstiop-plugin_SOURCES = \
 	$/lib-common/iop/tstiop-plugin.c \
