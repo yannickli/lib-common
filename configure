@@ -235,12 +235,13 @@ file_exists() {
 SIMPA_PATH=""
 
 if file_exists "$simpa0"; then
-    setenv "SFR_SIMPA_PATH" "$simpa0"
+    SIMPA_PATH="$simpa0"
 elif file_exists "$simpa1"; then
-    setenv "SFR_SIMPA_PATH" "$simpa1"
+    SIMPA_PATH="$simpa1"
 fi
 
-if test -n "$SFR_SIMPA_PATH"; then
+if test -n "$SIMPA_PATH"; then
+    setenv "SFR_SIMPA_PATH" "$SIMPA_PATH"
     setenv "ENABLE_SFR_SIMPA" "1"
     setenv "WITH_SFR_SIMPA" "1"
 else
