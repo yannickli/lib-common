@@ -15,6 +15,8 @@
 #include "iop.h"
 #include "iop-helpers.inl.c"
 
+static __thread qm_t(part) *parts_g;
+
 static int
 xunpack_struct(xml_reader_t, mem_pool_t *, const iop_struct_t *, void *,
                int flags);
@@ -31,11 +33,99 @@ static int parse_int(xml_reader_t xr, const char *s, int64_t *i64p)
     return 0;
 }
 
+/* parse the href attribute (attr) which contains a Content-Id and return the
+ * associated message part found in parts_g qm.
+ * Example: href="cid:12345"
+ */
+static int get_part_from_href(xml_reader_t xr, xmlAttrPtr *attr, lstr_t *part)
+{
+    t_scope;
+
+    lstr_t href, cid;
+    pstream_t ps;
+    int pos;
+
+    if (!parts_g)
+        return xmlr_fail(xr, "found href attribute with no message parts");
+
+    if (t_xmlr_getattr_str(xr, *attr, false, &href) < 0)
+        return xmlr_fail(xr, "failed to read href");
+
+    ps = ps_initlstr(&href);
+    if (ps_skipstr(&ps, "cid:") < 0)
+        return xmlr_fail(xr, "failed to parse href");
+
+    cid = LSTR_INIT_V(ps.s, ps_len(&ps));
+    pos = qm_find(part, parts_g, &cid);
+    if (pos < 0)
+        return xmlr_fail(xr, "unknown cid in href");
+
+    *part = parts_g->values[pos];
+    return 0;
+}
+
+/* unpack a string value, supporting references to message parts */
+static int get_text(xml_reader_t xr, mem_pool_t *mp, bool b64, lstr_t *str)
+{
+    xmlAttrPtr attr;
+    lstr_t part;
+
+    if (RETHROW(xmlr_node_is_empty(xr))) {
+        /* empty element -> check for a href attribute (SOAP package) */
+        if ((attr = xmlr_find_attr_s(xr, "href", false))) {
+            RETHROW(get_part_from_href(xr, &attr, &part));
+            *str = lstr_dupc(part);
+        } else {
+            *str = LSTR_EMPTY_V;
+        }
+        RETHROW(xmlr_next_node(xr));
+        return 0;
+    }
+
+    RETHROW(xmlr_get_cstr_start(xr, true, str));
+    if (str->len == 0) {
+        /* no text -> check for an empty Include element with a href
+         * attribute (XOP package) */
+        if (!RETHROW(xmlr_node_is_closing(xr))) {
+            RETHROW(xmlr_node_want_s(xr, "Include"));
+            if (!RETHROW(xmlr_node_is_empty(xr))) {
+                return xmlr_fail(xr, "Include element must be empty");
+            }
+            RETHROW_PN((attr = xmlr_find_attr_s(xr, "href", true)));
+            RETHROW(get_part_from_href(xr, &attr, &part));
+            *str = lstr_dupc(part);
+            RETHROW(xmlr_node_close(xr));
+        } else {
+            *str = LSTR_EMPTY_V;
+        }
+    } else {
+        /* common case: text not empty */
+        if (!b64) {
+            *str = mp_lstr_dup(mp, *str);
+        } else {
+            sb_t  sb;
+            int   blen = DIV_ROUND_UP(str->len * 3, 4);
+            char *buf  = mp_new_raw(mp, char, blen + 1);
+
+            sb_init_full(&sb, buf, 0, blen + 1, MEM_STATIC);
+            if (sb_add_unb64(&sb, str->s, str->len)) {
+                mp_delete(mp, &buf);
+                return xmlr_fail(xr, "value isn't valid base64");
+            }
+            str->s   = buf;
+            str->len = sb.len;
+        }
+    }
+    RETHROW(xmlr_get_cstr_done(xr));
+    return 0;
+}
+
 static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
                          const iop_field_t *fdesc, void *v, int flags)
 {
     int64_t intval = 0;
     lstr_t xval;
+    lstr_t *str = NULL;
     bool found = false;
 
     switch (fdesc->type) {
@@ -72,33 +162,16 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
         RETHROW(xmlr_get_dbl(xr, (double *)v));
         break;
       case IOP_T_STRING:
-        RETHROW(mp_xmlr_get_strdup(mp, xr, true, (lstr_t *)v));
+        str = v;
+        RETHROW(get_text(xr, mp, false, str));
         break;
       case IOP_T_DATA:
-        {
-            lstr_t *str = v;
-
-            RETHROW(xmlr_get_cstr_start(xr, true, str));
-            if (str->len == 0) {
-                str->s = mp_new(mp, char , 1);
-            } else {
-                sb_t  sb;
-                int   blen = DIV_ROUND_UP(str->len * 3, 4);
-                char *buf  = mp_new_raw(mp, char, blen + 1);
-
-                sb_init_full(&sb, buf, 0, blen + 1, MEM_STATIC);
-                if (sb_add_unb64(&sb, str->s, str->len)) {
-                    mp_delete(mp, &buf);
-                    return xmlr_fail(xr, "value isn't valid base64");
-                }
-                str->s   = buf;
-                str->len = sb.len;
-            }
-            RETHROW(xmlr_get_cstr_done(xr));
-        }
+        str = v;
+        RETHROW(get_text(xr, mp, true, str));
         break;
       case IOP_T_XML:
-        RETHROW(mp_xmlr_get_inner_xml(mp, xr, (lstr_t *)v));
+        str = v;
+        RETHROW(mp_xmlr_get_inner_xml(mp, xr, str));
         break;
       case IOP_T_UNION:
         return xunpack_union(xr, mp, fdesc->u1.st_desc, v, flags);
@@ -345,8 +418,20 @@ int iop_xunpack(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
 int iop_xunpack_flags(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
                       void *value, int flags)
 {
+    return iop_xunpack_parts(xr, mp, desc, value, flags, NULL);
+}
+
+int iop_xunpack_parts(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
+                      void *value, int flags, qm_t(part) *parts)
+{
+    int ret;
+
+    parts_g = parts;
     if (desc->is_union) {
-        return xunpack_union(xr, mp, desc, value, flags);
+        ret = xunpack_union(xr, mp, desc, value, flags);
+    } else {
+        ret = xunpack_struct(xr, mp, desc, value, flags);
     }
-    return xunpack_struct(xr, mp, desc, value, flags);
+    parts_g = NULL;
+    return ret;
 }
