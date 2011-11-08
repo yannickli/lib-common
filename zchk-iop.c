@@ -619,6 +619,8 @@ Z_GROUP_EXPORT(iop)
             "    l.us: \"union value\",\n"
             "    foo: {us: \"union value to skip\"},\n"
             "    bar.us: \"union value to skip\",\n"
+            "    arraytoSkip: [ .blah: \"skip\", .foo: 42, 32; \"skipme\";\n"
+            "                   { foo: 42 } ];"
             "    \"m\": .42\n,"
             "    \"n\": true\n"
             "};\n"
@@ -726,7 +728,6 @@ Z_GROUP_EXPORT(iop)
 
         const iop_struct_t *st_sa, *st_sf;
 
-        Z_TODO("json_sf test is broken!");
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
