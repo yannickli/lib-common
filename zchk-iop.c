@@ -550,7 +550,6 @@ Z_GROUP_EXPORT(iop)
 
         const iop_struct_t *st_se, *st_sa, *st_sf;
 
-        Z_TODO("broken");
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
@@ -583,7 +582,7 @@ Z_GROUP_EXPORT(iop)
 
             iop_init(st_sf, &sf_ret);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
-            Z_ASSERT_NEG(iop_xunpack(&xmlr_g, t_pool(), st_sf, &sf_ret),
+            Z_ASSERT_NEG(iop_xunpack(xmlr_g, t_pool(), st_sf, &sf_ret),
                          "unexpected successful unpacking");
             xmlr_close(xmlr_g);
 
