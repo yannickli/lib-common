@@ -1345,10 +1345,11 @@ static int httpd_on_event(el_t evh, int fd, short events, el_data_t priv)
         httpd_query_t *q;
 
         q = dlist_last_entry(&w->query_list, httpd_query_t, query_link);
-        if (!q->parsed)
+        if (!q->parsed) {
             obj_release(q);
-        if (!q->answered)
-            obj_release(q);
+            if (!q->answered)
+                obj_release(q);
+        }
     }
     httpd_delete(&w);
     return 0;
