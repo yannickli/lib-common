@@ -79,29 +79,8 @@ static int t_parse_soap(ichttp_query_t *iq, ic__simple_hdr__t *hdr,
     /* Initialize the xmlReader object */
     XCHECK(xmlr_setup(&xr, buf, len));
     XCHECK(xmlr_node_open_s(xr, "Envelope"));
-    if (XCHECK(xmlr_node_try_open_s(xr, "Header"))) {
-        do {
-            int res = xmlr_node_enter_s(xr, "callerIdentity",
-                                        XMLR_ENTER_MISSING_OK);
-
-            if (res == 1) {
-                XCHECK(xmlr_node_want_s(xr, "login"));
-                XCHECK(t_xmlr_get_str(xr, false, &hdr->login));
-
-                XCHECK(xmlr_node_want_s(xr, "password"));
-                XCHECK(t_xmlr_get_str(xr, false, &hdr->password));
-
-                XCHECK(xmlr_node_close(xr)); /* </callerIdentity> */
-            } else
-            if (res == 0 || res == XMLR_NOCHILD) {
-                XCHECK(xmlr_next_sibling(xr));
-            } else {
-                XCHECK(res);
-            }
-        } while (!xmlr_node_is_closing(xr));
-        XCHECK(xmlr_node_close(xr)); /* </Header> */
-    }
-
+    if (XCHECK(xmlr_node_is_s(xr, "Header")))
+        XCHECK(xmlr_next_sibling(xr));
     XCHECK(xmlr_node_open_s(xr, "Body"));
     XCHECK(xmlr_node_get_local_name(xr, &s));
     pos = qm_find(ichttp_cbs, &tcb->impl, &s);
