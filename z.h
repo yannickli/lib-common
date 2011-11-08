@@ -225,8 +225,7 @@ bool _z_assert(const char *file, int lno, const char *expr, bool res,
 #define Z_SKIP(fmt, ...) \
     ({ _z_step_skip(fmt, ##__VA_ARGS__); goto _z_step_end; })
 
-#define Z_TODO(fmt, ...) \
-    ({ _z_step_todo(fmt, ##__VA_ARGS__); goto _z_step_end; })
+#define Z_TODO(fmt, ...)  _z_step_todo(fmt, ##__VA_ARGS__)
 
 #define Z_ASSERT(e, ...) \
     ({  if (_z_assert(__FILE__, __LINE__, #e, (e), ""__VA_ARGS__))        \

@@ -683,8 +683,8 @@ static int iop_json_lex(iop_json_lex_t *ll, const iop_field_t *fdesc)
     STORECTX();
     switch (READC()) {
         int c;
-      case '=': SKIP(1); return ':';
-      case ';': SKIP(1); return ',';
+      case '=': SKIP(1); return TK(':');
+      case ';': SKIP(1); return TK(',');
       case ':': case ',':
       case '{': case '}':
       case '[': case ']':
@@ -695,8 +695,11 @@ static int iop_json_lex(iop_json_lex_t *ll, const iop_field_t *fdesc)
                 return iop_json_lex_token(ll);
 
       case '.':
-                if (ll->last == IOP_JSON_IDENT || ll->last == IOP_JSON_STRING)
+                if (ll->last == IOP_JSON_IDENT || ll->last == IOP_JSON_STRING
+                ||  ll->last == '[' || ll->last == ',')
+                {
                     return TK(EATC());
+                }
                 /* FALLTHROUGH */
       case '-': case '+': case '~':
       case '0' ... '9':

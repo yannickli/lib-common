@@ -625,7 +625,7 @@ void _z_step_report(void)
     } else {
         if (_G.grp.t_asserts == 0)
             lstr_copyc(&_G.grp.t_fail_reason, LSTR_IMMED_V("no assertions in test !?"));
-        if (_G.grp.t_skip_reason.s) {
+        if (_G.grp.t_todo_reason.s) {
             if (_G.grp.t_fail_reason.s) {
                 do_todo_failed();
             } else {
