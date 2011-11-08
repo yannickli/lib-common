@@ -102,6 +102,12 @@ void __ichttp_reply_err(uint64_t slot, int err);
 /** \brief internal do not use directly, or know what you're doing. */
 void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const char *err);
 
+/** \brief internal do not use directly, or know what you're doing. */
+int __ichttp_query_on_done_stage1(httpd_query_t *q, ichttp_cb_t **cbe,
+                                  void **value, bool *soap);
+/** \brief internal do not use directly, or know what you're doing. */
+void __ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
+                                   void *value);
 
 /** \brief internal do not use directly, or know what you're doing. */
 ichttp_cb_t *
