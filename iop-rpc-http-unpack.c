@@ -62,7 +62,7 @@ static int t_parse_json(ichttp_query_t *iq, ichttp_cb_t *cbe, void **vout)
     return res;
 }
 
-static int t_parse_soap(ichttp_query_t *iq, ic__simple_hdr__t *hdr,
+static int t_parse_soap(ichttp_query_t *iq,
                         ichttp_cb_t **cbout, void **vout)
 {
 #define xr  xmlr_g
@@ -125,25 +125,17 @@ static int is_ctype_json(const httpd_qinfo_t *info)
     return false;
 }
 
-static void ichttp_query_on_done(httpd_query_t *q)
+int __ichttp_query_on_done_stage1(httpd_query_t *q, ichttp_cb_t **cbe,
+                                  void **value, bool *soap)
 {
     t_scope;
-    ichttp_query_t *iq  = obj_vcast(ichttp_query, q);
+
+    ichttp_query_t      *iq  = obj_vcast(ichttp_query, q);
     httpd_trigger__ic_t *tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
-    ic__hdr__t      hdr = IOP_UNION_VA(ic__hdr, simple,
-       .kind = (tcb->auth_kind ? CLSTR_STR_V(tcb->auth_kind) : CLSTR_NULL_V),
-       .payload = iq->payload.len,
-    );
-    ichttp_cb_t    *cbe = NULL;
-    ic_cb_entry_t  *e;
-    pstream_t       login, pw, url = iq->qinfo->query;
+    pstream_t            url = iq->qinfo->query;
+    int                  res;
 
-    uint64_t    slot = ichttp_query_to_slot(iq);
-    ichannel_t *pxy;
-    ic__hdr__t *pxy_hdr = NULL;
-    void *value;
-    int res;
-
+    *soap = false;
     ps_skipstr(&url, "/");
 
     if (ps_len(&url)) {
@@ -153,7 +145,7 @@ static void ichttp_query_on_done(httpd_query_t *q)
         if (ps_skip_uptochr(&url, '/') < 0) {
           not_found:
             httpd_reject(obj_vcast(httpd_query, iq), NOT_FOUND, "");
-            return;
+            return -1;
         }
         __ps_skip(&url, 1);
         if (ps_skip_uptochr(&url, '/') < 0) {
@@ -164,21 +156,40 @@ static void ichttp_query_on_done(httpd_query_t *q)
         res = qm_find(ichttp_cbs, &tcb->impl, &s);
         if (res < 0)
             goto not_found;
-        iq->cbe = cbe = ichttp_cb_dup(tcb->impl.values[res]);
+        iq->cbe = *cbe = ichttp_cb_dup(tcb->impl.values[res]);
 
         if (is_ctype_json(q->qinfo)) {
             iq->json = true;
-            res = t_parse_json(iq, cbe, &value);
+            res = t_parse_json(iq, *cbe, value);
         } else {
             httpd_reject(obj_vcast(httpd_query, iq), NOT_ACCEPTABLE,
                          "Content-Type must be application/json");
-            return;
+            return -1;
         }
     } else {
-        res = t_parse_soap(iq, &hdr.simple, &cbe, &value);
+        *soap = true;
+        return 0;
     }
     if (unlikely(res < 0))
-        return;
+        return -1;
+    return 0;
+}
+
+void __ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
+                                   void *value)
+{
+    ichttp_query_t      *iq  = obj_vcast(ichttp_query, q);
+    httpd_trigger__ic_t *tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
+    ic__hdr__t           hdr = IOP_UNION_VA(ic__hdr, simple,
+       .kind = (tcb->auth_kind ? CLSTR_STR_V(tcb->auth_kind) : CLSTR_NULL_V),
+       .payload = iq->payload.len,
+    );
+    ic_cb_entry_t       *e;
+
+    pstream_t   login, pw;
+    uint64_t    slot = ichttp_query_to_slot(iq);
+    ichannel_t *pxy;
+    ic__hdr__t *pxy_hdr = NULL;
 
     if (t_httpd_qinfo_get_basic_auth(q->qinfo, &login, &pw) == 0) {
         hdr.simple.login    = CLSTR_INIT_V(login.s, ps_len(&login));
@@ -248,6 +259,26 @@ static void ichttp_query_on_done(httpd_query_t *q)
     } else {
         __ichttp_reply_err(slot, IC_MSG_PROXY_ERROR);
     }
+}
+
+static void ichttp_query_on_done(httpd_query_t *q)
+{
+    ichttp_query_t *iq = obj_vcast(ichttp_query, q);
+
+    int             res;
+    bool            soap = false;
+    ichttp_cb_t    *cbe = NULL;
+    void           *value = NULL;
+
+    res = __ichttp_query_on_done_stage1(q, &cbe, &value, &soap);
+    if (unlikely(res < 0))
+        return;
+    if (soap) {
+        res = t_parse_soap(iq, &cbe, &value);
+        if (unlikely(res < 0))
+            return;
+    }
+    __ichttp_query_on_done_stage2(q, cbe, value);
 }
 
 static void httpd_trigger__ic_destroy(httpd_trigger_t *tcb)
