@@ -1301,7 +1301,8 @@ static int httpd_on_event(el_t evh, int fd, short events, el_data_t priv)
         httpd_query_t *q;
 
         q = dlist_last_entry(&w->query_list, httpd_query_t, query_link);
-        q->refcnt -= !q->parsed + !q->answered;
+        if (!q->parsed)
+            q->refcnt -= 1 + !q->answered;
     }
     httpd_delete(&w);
     return 0;
