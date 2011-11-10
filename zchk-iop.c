@@ -595,6 +595,46 @@ Z_GROUP_EXPORT(iop)
             sb_wipe(&sb);
         }
 
+        {
+            t_scope;
+            tstiop__my_struct_f__t sf_ret;
+            SB_1k(sb);
+            qm_t(part) parts;
+
+            qm_init(part, &parts, true);
+            qm_add(part, &parts, &LSTR_IMMED_V("foo"), LSTR_IMMED_V("part cid foo"));
+            qm_add(part, &parts, &LSTR_IMMED_V("bar"), LSTR_IMMED_V("part cid bar"));
+
+            sb_adds(&sb, "<root "
+                    "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
+                    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+                    ">\n");
+            sb_adds(&sb,
+                    "<a></a><a/><a>foo</a>"
+                    "<a href=\'cid:foo\'/>"
+                    "<a><inc:Include href=\'cid:bar\' xmlns:inc=\"url\" /></a>"
+                    "<b>VGVzdA==</b>"
+                    "<b href=\'cid:foo\'/>");
+            sb_adds(&sb, "</root>\n");
+
+            iop_init(st_sf, &sf_ret);
+            Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
+            Z_ASSERT_NEG(iop_xunpack(xmlr_g, t_pool(), st_sf, &sf_ret),
+                         "unexpected successful unpacking");
+            xmlr_close(xmlr_g);
+
+            iop_init(st_sf, &sf_ret);
+            Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
+            Z_ASSERT_N(iop_xunpack_parts(xmlr_g, t_pool(), st_sf, &sf_ret,
+                                         0, &parts),
+                       "unexpected unpacking failure with parts");
+            xmlr_close(xmlr_g);
+
+            qm_wipe(part, &parts);
+            sb_wipe(&sb);
+        }
+
+
         iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
