@@ -735,10 +735,10 @@ static int iop_json_lex(iop_json_lex_t *ll, const iop_field_t *fdesc)
     }
 }
 
-static int iop_json_lex_peek(iop_json_lex_t *ll)
+static int iop_json_lex_peek(iop_json_lex_t *ll, const iop_field_t *fdesc)
 {
     if (ll->peek < 0)
-        ll->peek = iop_json_lex(ll, NULL);
+        ll->peek = iop_json_lex(ll, fdesc);
     return ll->peek;
 }
 
@@ -1002,7 +1002,7 @@ static int unpack_arr(iop_json_lex_t *ll, const iop_field_t *fdesc,
     void *ptr;
 
     for (;;) {
-        if (PS_CHECK(iop_json_lex_peek(ll)) == ']') {
+        if (PS_CHECK(iop_json_lex_peek(ll, fdesc)) == ']') {
             iop_json_lex(ll, NULL);
             return 0;
         }
@@ -1123,7 +1123,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
     for (;;) {
         fdesc = NULL;
 
-        if (PS_CHECK(iop_json_lex_peek(ll)) == '}') {
+        if (PS_CHECK(iop_json_lex_peek(ll, NULL)) == '}') {
             iop_json_lex(ll, NULL);
             break;
         }
@@ -1153,7 +1153,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         }
         /* XXX `.' must be kept (using lex_peek) for the unpack_val
          * function */
-        if (!prefixed && PS_CHECK(iop_json_lex_peek(ll)) != '.'
+        if (!prefixed && PS_CHECK(iop_json_lex_peek(ll, NULL)) != '.'
         &&  PS_CHECK(iop_json_lex(ll, NULL)) != ':')
         {
             mp_delete(ll->mp, &seen);

@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <math.h>
 #include "z.h"
 #include "iop.h"
 #include "iop/tstiop.iop.h"
@@ -759,10 +760,14 @@ Z_GROUP_EXPORT(iop)
 #define xstr(...) str(__VA_ARGS__)
 #define str(...)  #__VA_ARGS__
 
-#define IVALS -1,0x10,2
-#define DVALS .5, 0.5, 5.5, 0.2e2
-#define EVALS 2,3,4
+#define IVALS -1*10-(-10-1), 0x10|0x11, ((0x1f + 010)- 0X1E -5-8) *(2+2),   \
+    0-1, ((0x1f + 010) - 0X1E - 5 - 8) * (2 +2),                            \
+    ~0xffffff00 + POW(3, 4) - (1 << 2), (2 * 3 + 1) << 2
+#define DVALS .5, 0.5, 5.5, 0.2e2, 0x1P10
+#define EVALS  EC(A), EC(A) | EC(B) | EC(C) | EC(D) | EC(E), (1 << 5) - 1
 
+#define EC(s)       #s
+#define POW(a,b)    a ** b
         const char json_si[] =
             "/* Json example */\n"
             "{\n"
@@ -771,10 +776,16 @@ Z_GROUP_EXPORT(iop)
             "    e = [ " xstr(EVALS) " ];\n"
             "};;;\n"
             ;
+#undef EC
+#undef POW
 
+#define EC(s)       MY_ENUM_C_ ##s
+#define POW(a,b)    (int)pow(a,b)
         int                     i_ivals[] = { IVALS };
         double                  i_dvals[] = { DVALS };
         tstiop__my_enum_c__t    i_evals[] = { EVALS };
+#undef EC
+#undef POW
         const tstiop__my_struct_i__t json_si_res = {
             .i = IOP_ARRAY(i_ivals, countof(i_ivals)),
             .d = IOP_ARRAY(i_dvals, countof(i_dvals)),
