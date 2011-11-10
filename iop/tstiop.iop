@@ -46,6 +46,11 @@ union MyUnionA {
     string us;
 };
 
+union MyUnionB {
+    int         bval;
+    MyUnionA    a;
+};
+
 struct MyStructA {
     int a;
     uint b;
@@ -161,6 +166,16 @@ struct MyStructI {
     int[]       i;
     double[]    d;
     MyEnumC[]   e;
+};
+
+struct MyStructJ {
+    int         cval;
+    MyUnionB    b;
+    MyUnionB[]  btab;
+};
+
+struct MyStructK {
+    MyStructJ   j;
 };
 
 struct MyAException {
