@@ -721,18 +721,45 @@ Z_GROUP_EXPORT(iop)
             .d = IOP_ARRAY(dvals, countof(dvals)),
         };
 
+#define xstr(...) str(__VA_ARGS__)
+#define str(...)  #__VA_ARGS__
+
+#define IVALS -1,0x10,2
+#define DVALS .5, 0.5, 5.5, 0.2e2
+#define EVALS 2,3,4
+
+        const char json_si[] =
+            "/* Json example */\n"
+            "{\n"
+            "    i = [ " xstr(IVALS) " ];\n"
+            "    d = [ " xstr(DVALS) " ];\n"
+            "    e = [ " xstr(EVALS) " ];\n"
+            "};;;\n"
+            ;
+
+        int                     i_ivals[] = { IVALS };
+        double                  i_dvals[] = { DVALS };
+        tstiop__my_enum_c__t    i_evals[] = { EVALS };
+        const tstiop__my_struct_i__t json_si_res = {
+            .i = IOP_ARRAY(i_ivals, countof(i_ivals)),
+            .d = IOP_ARRAY(i_dvals, countof(i_dvals)),
+            .e = IOP_ARRAY(i_evals, countof(i_evals)),
+        };
+
+
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
                                  LSTR_IMMED_V("zchk-tstiop-plugin.so"));
 
 
-        const iop_struct_t *st_sa, *st_sf;
+        const iop_struct_t *st_sa, *st_sf, *st_si;
 
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
         Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructA")));
         Z_ASSERT_P(st_sf = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructF")));
+        Z_ASSERT_P(st_si = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructI")));
 
         /* test packing/unpacking */
         Z_HELPER_RUN(iop_json_test_struct(st_sa, &sa,  "sa"));
@@ -747,6 +774,8 @@ Z_GROUP_EXPORT(iop)
                                         "json_sf"));
         Z_HELPER_RUN(iop_json_test_json(st_sf, json_sf2, &json_sf_res,
                                         "json_sf2"));
+        Z_HELPER_RUN(iop_json_test_json(st_si, json_si,  &json_si_res,
+                                        "json_si"));
 
         iop_dso_close(&dso);
     } Z_TEST_END

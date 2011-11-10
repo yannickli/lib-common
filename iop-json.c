@@ -67,7 +67,6 @@ enum {
                          ll->s_col = ll->col)
 #define RESTORECTX()    (ll->line = ll->s_line, ll->col = ll->s_col,        \
                          *PS = ll->s_ps)
-#define TK(_tk)         (ll->last = (_tk))
 
 /* Errors throwing */
 #define JERROR_MAXLEN   20
@@ -344,7 +343,7 @@ static int iop_json_lex_token(iop_json_lex_t *ll)
     }
 
     sb_set(&ll->b, start, PS->s - start);
-    return TK(IOP_JSON_IDENT);
+    return IOP_JSON_IDENT;
 }
 
 static int iop_json_lex_number_extensions(iop_json_lex_t *ll)
@@ -374,7 +373,7 @@ static int iop_json_lex_number_extensions(iop_json_lex_t *ll)
                 /* Only spaces, ',' and ';' are allowed after an integer */
                 if (isspace(READC()) || READC() == ',' || READC() == ';'
                  || READC() == ']' || READC() == '}') {
-                    return TK(IOP_JSON_INTEGER);
+                    return IOP_JSON_INTEGER;
                 }
                 return JERROR_WARG(IOP_JERR_BAD_INT_EXT, 1);
     }
@@ -383,7 +382,7 @@ static int iop_json_lex_number_extensions(iop_json_lex_t *ll)
         return RJERROR_WARG(IOP_JERR_TOO_BIG_INT);
 
     ll->u.i = u * mult;
-    return TK(IOP_JSON_INTEGER);
+    return IOP_JSON_INTEGER;
 }
 
 static int iop_json_lex_number(iop_json_lex_t *ll)
@@ -453,7 +452,7 @@ static int iop_json_lex_number(iop_json_lex_t *ll)
             SKIP(1);
             return RJERROR_WARG(IOP_JERR_PARSE_NUM);
         }
-        return TK(IOP_JSON_DOUBLE);
+        return IOP_JSON_DOUBLE;
 
       case 2:
 prefer_integer:
@@ -463,7 +462,7 @@ prefer_integer:
         SKIP(pos);
         if (HAS(1))
             return iop_json_lex_number_extensions(ll);
-        return TK(IOP_JSON_INTEGER);
+        return IOP_JSON_INTEGER;
 
       default:
         return JERROR_WARG(IOP_JERR_PARSE_NUM, pos);
@@ -487,7 +486,7 @@ static int iop_json_lex_str(iop_json_lex_t *ll, int terminator)
             if (READAT(i) == terminator) {
                 sb_add(&ll->b, PS->p, i);
                 SKIP(i + 1);
-                return TK(IOP_JSON_STRING);
+                return IOP_JSON_STRING;
             }
         }
         return JERROR(IOP_JERR_UNCLOSED_STRING);
@@ -568,24 +567,23 @@ static int iop_json_lex(iop_json_lex_t *ll)
     STORECTX();
     switch (READC()) {
         int c;
-      case '=': SKIP(1); return TK(':');
-      case ';': SKIP(1); return TK(',');
+      case '=': SKIP(1); return ':';
+      case ';': SKIP(1); return ',';
       case ':': case ',':
       case '{': case '}':
       case '[': case ']':
       case '@':
-                return TK(EATC());
+                return EATC();
 
       case 'a' ... 'z': case 'A' ... 'Z':
                 return iop_json_lex_token(ll);
 
       case '.':
-                if (ll->last == IOP_JSON_IDENT || ll->last == IOP_JSON_STRING
-                ||  ll->last == '[' || ll->last == ',')
-                {
-                    return TK(EATC());
-                }
-                /* FALLTHROUGH */
+                if (HAS(2) && READAT(1) >= '0' && READAT(1) <= '9')
+                    return iop_json_lex_number(ll);
+                else
+                    return EATC();
+
       case '-': case '+':
       case '0' ... '9':
                 return iop_json_lex_number(ll);

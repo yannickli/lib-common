@@ -52,7 +52,6 @@ typedef struct iop_json_lex_t {
     int peek;
     int line;
     int col;
-    int last;
 
     bool warn_on_unkown_field;
 
