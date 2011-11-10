@@ -124,9 +124,9 @@ void iop_jtrace_(int lvl, const char *fname, int lno, const char *func,
         }                                                    \
     } while (0)
 #else
-#define iop_jtrace_(lvl, ...)       e_trace_ignore(lvl, ##__VA_ARGS__)
-#define iop_jtrace(lvl, ...)        e_trace_ignore(lvl, ##__VA_ARGS__)
-#define iop_named_jtrace(lvl, ...)  e_trace_ignore(lvl, ##__VA_ARGS__)
+#define iop_jtrace_(lvl, ...)               e_trace_ignore(lvl, ##__VA_ARGS__)
+#define iop_jtrace(lvl, st, v)              e_trace_ignore(lvl, v)
+#define iop_named_jtrace(lvl, name, st, v)  e_trace_ignore(lvl, name, v)
 #endif
 
 static inline int iop_sb_write(void *_b, const void *buf, int len) {
