@@ -157,6 +157,12 @@ enum MyEnumC {
     E = 1 << 4,
 };
 
+struct MyStructI {
+    int[]       i;
+    double[]    d;
+    MyEnumC[]   e;
+};
+
 struct MyAException {
     int    errcode;
     string desc;
