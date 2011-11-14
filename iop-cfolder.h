@@ -34,6 +34,12 @@ typedef enum iop_cfolder_op_t {
     CF_OP_EXP,
 } iop_cfolder_op_t;
 
+typedef enum iop_cfolder_err_t {
+    CF_OK               =  0,
+    CF_ERR_INVALID      = -1,
+    CF_ERR_OVERFLOW     = -2,
+} iop_cfolder_err_t;
+
 /* Stack object of constant folder elements */
 typedef struct iop_cfolder_elem_t {
 #define CF_ELEM_STACK_EMPTY  (-1)
@@ -70,8 +76,9 @@ static inline bool iop_cfolder_empty(iop_cfolder_t *cfolder)
     return (cfolder->stack.len == 0 && cfolder->paren_cnt == 0);
 }
 
-int iop_cfolder_feed_number(iop_cfolder_t *, uint64_t, bool is_signed);
-int iop_cfolder_feed_operator(iop_cfolder_t *, iop_cfolder_op_t);
-int iop_cfolder_get_result(iop_cfolder_t *, uint64_t *res);
+iop_cfolder_err_t iop_cfolder_feed_number(iop_cfolder_t *, uint64_t,
+                                          bool is_signed);
+iop_cfolder_err_t iop_cfolder_feed_operator(iop_cfolder_t *, iop_cfolder_op_t);
+iop_cfolder_err_t iop_cfolder_get_result(iop_cfolder_t *, uint64_t *res);
 
 #endif

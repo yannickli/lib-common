@@ -13,6 +13,12 @@
 
 #include "iop.h"
 
+#define CF_WANT(e)  \
+    do { assert ((e)); if (unlikely(!(e))) return CF_ERR_INVALID; } while (0)
+#define CF_ERR(c, s,...) \
+    ({ e_error(s, ##__VA_ARGS__); CF_ERR_##c; })
+
+
 #define SIGNED(expr)    ((int64_t)(expr))
 
 static int cf_get_last_type(qv_t(cf_elem) *stack)
@@ -61,7 +67,7 @@ static int cf_op_precedence(iop_cfolder_op_t op, bool unary)
       case CF_OP_XOR:
         return 1;
       default:
-        return -1;
+        return CF_ERR_INVALID;
     }
 }
 
@@ -79,7 +85,7 @@ static void cf_stack_push(qv_t(cf_elem) *stack, iop_cfolder_elem_t elem)
 static int cf_stack_pop(qv_t(cf_elem) *stack, iop_cfolder_elem_t *elem)
 {
     if (stack->len <= 0)
-        return -1;
+        return CF_ERR_INVALID;
     if (elem)
         *elem = stack->tab[stack->len - 1];
     qv_remove(cf_elem, stack, stack->len - 1);
@@ -92,20 +98,20 @@ static int cf_reduce(qv_t(cf_elem) *stack)
     bool unary = false;
     cf_elem_init(&res);
 
-    PS_WANT(stack->len >= 2);
+    CF_WANT(stack->len >= 2);
     cf_stack_pop(stack, &eright);
-    PS_WANT(eright.type == CF_ELEM_NUMBER);
+    CF_WANT(eright.type == CF_ELEM_NUMBER);
     cf_stack_pop(stack, &op);
-    PS_WANT(op.type == CF_ELEM_OP);
+    CF_WANT(op.type == CF_ELEM_OP);
 
     if (op.op == CF_OP_LPAREN || op.op == CF_OP_RPAREN)
-        return -1;
+        return CF_ERR_INVALID;
 
     if (op.unary) {
         unary = true;
     } else {
-        PS_CHECK(cf_stack_pop(stack, &eleft));
-        PS_WANT(eleft.type == CF_ELEM_NUMBER);
+        RETHROW(cf_stack_pop(stack, &eleft));
+        CF_WANT(eleft.type == CF_ELEM_NUMBER);
     }
 
     /* Compute eleft OP eright */
@@ -161,8 +167,8 @@ static int cf_reduce(qv_t(cf_elem) *stack)
       case CF_OP_EXP:
         /* Negative exponent are forbidden */
         if (eright.is_signed)
-            return e_error("negative expressions are forbidden when used as"
-                           " exponent.");
+            return CF_ERR(INVALID, "negative expressions are forbidden when"
+                          " used as exponent.");
 
         res.num = 1;
         res.is_signed = eleft.is_signed && (eright.num % 2 != 0);
@@ -199,7 +205,7 @@ static int cf_reduce(qv_t(cf_elem) *stack)
         res.num = eleft.num >> eright.num;
         break;
       default:
-        return e_error("unknown operator");
+        return CF_ERR(INVALID, "unknown operator");
     }
 
     res.type = CF_ELEM_NUMBER;
@@ -210,7 +216,7 @@ static int cf_reduce(qv_t(cf_elem) *stack)
 static int cf_reduce_all(qv_t(cf_elem) *stack)
 {
     while (stack->len > 1) {
-        PS_CHECK(cf_reduce(stack));
+        RETHROW(cf_reduce(stack));
     }
     return 0;
 }
@@ -225,16 +231,16 @@ static int cf_reduce_until_paren(qv_t(cf_elem) *stack)
         if (sptr->type == CF_ELEM_OP && sptr->op == CF_OP_LPAREN)
             break;
 
-        PS_CHECK(cf_reduce(stack));
+        RETHROW(cf_reduce(stack));
     }
 
     /* Pop the reduced number and the open parentheses */
-    PS_CHECK(cf_stack_pop(stack, &num));
-    PS_WANT(num.type == CF_ELEM_NUMBER);
+    RETHROW(cf_stack_pop(stack, &num));
+    CF_WANT(num.type == CF_ELEM_NUMBER);
 
-    PS_CHECK(cf_stack_pop(stack, &op));
-    PS_WANT(op.type == CF_ELEM_OP);
-    PS_WANT(op.op   == CF_OP_LPAREN);
+    RETHROW(cf_stack_pop(stack, &op));
+    CF_WANT(op.type == CF_ELEM_OP);
+    CF_WANT(op.op   == CF_OP_LPAREN);
 
     /* Replace the number */
     cf_stack_push(stack, num);
@@ -242,23 +248,25 @@ static int cf_reduce_until_paren(qv_t(cf_elem) *stack)
     return 0;
 }
 
-int iop_cfolder_feed_number(iop_cfolder_t *folder, uint64_t num, bool is_signed)
+iop_cfolder_err_t
+iop_cfolder_feed_number(iop_cfolder_t *folder, uint64_t num, bool is_signed)
 {
     iop_cfolder_elem_t elem;
     cf_elem_init(&elem);
 
     if (cf_get_last_type(&folder->stack) == CF_ELEM_NUMBER)
-        return e_error("there is already a number on the stack");
+        return CF_ERR(INVALID, "there is already a number on the stack");
 
     elem.type      = CF_ELEM_NUMBER;
     elem.num       = num;
     elem.is_signed = is_signed && SIGNED(num) < 0;
 
     cf_stack_push(&folder->stack, elem);
-    return 0;
+    return CF_OK;
 }
 
-int iop_cfolder_feed_operator(iop_cfolder_t *folder, iop_cfolder_op_t op)
+iop_cfolder_err_t
+iop_cfolder_feed_operator(iop_cfolder_t *folder, iop_cfolder_op_t op)
 {
     iop_cfolder_elem_t elem;
     int op_prec;
@@ -280,26 +288,26 @@ int iop_cfolder_feed_operator(iop_cfolder_t *folder, iop_cfolder_op_t op)
             folder->paren_cnt++;
             goto shift;
           default:
-            return e_error("an unary operator was expected");
+            return CF_ERR(INVALID, "an unary operator was expected");
         }
     }
 
     /* Number case */
     if (op == CF_OP_NOT || op == CF_OP_LPAREN)
-        return e_error("a binary operator was expected");
+        return CF_ERR(INVALID, "a binary operator was expected");
 
     /* Handle parentheses */
     if (op == CF_OP_RPAREN) {
         folder->paren_cnt--;
         if (folder->paren_cnt < 0)
-            return e_error("there is too many closed parentheses");
+            return CF_ERR(INVALID, "there is too many closed parentheses");
         /* Reduce until we reach an open parentheses */
         if (cf_reduce_until_paren(&folder->stack) < 0)
-            return e_error("invalid closed perentheses position");
-        return 0;
+            return CF_ERR(INVALID, "invalid closed perentheses position");
+        return CF_OK;
     }
 
-    PS_CHECK(op_prec = cf_op_precedence(op, false));
+    RETHROW(op_prec = cf_op_precedence(op, false));
 
     /* Test for reduce */
     for (iop_cfolder_elem_t *pelem; (pelem = cf_get_prev_op(&folder->stack)); ) {
@@ -309,14 +317,14 @@ int iop_cfolder_feed_operator(iop_cfolder_t *folder, iop_cfolder_op_t op)
         if (pop_prec > op_prec) {
             /* The previous operator has a higest priority than the new
              * one, we reduce it before to continue and we check again */
-            PS_CHECK(cf_reduce(&folder->stack));
+            RETHROW(cf_reduce(&folder->stack));
             continue;
         } else
         if (pop_prec == op_prec) {
             /* If precendences are equal, then a right associative operator
              * continue to shift whereas a left associative operator reduce */
             if (!cf_op_is_rassoc(pop, pelem->unary)) {
-                PS_CHECK(cf_reduce(&folder->stack));
+                RETHROW(cf_reduce(&folder->stack));
             }
         }
 
@@ -329,27 +337,28 @@ int iop_cfolder_feed_operator(iop_cfolder_t *folder, iop_cfolder_op_t op)
   shift:
     cf_stack_push(&folder->stack, elem);
 
-    return 0;
+    return CF_OK;
 }
 
-int iop_cfolder_get_result(iop_cfolder_t *folder, uint64_t *res)
+iop_cfolder_err_t
+iop_cfolder_get_result(iop_cfolder_t *folder, uint64_t *res)
 {
     iop_cfolder_elem_t elem;
     if (folder->stack.len == 0)
-        return e_error("there is nothing on the stack");
+        return CF_ERR(INVALID, "there is nothing on the stack");
 
     if (folder->paren_cnt)
-        return e_error("there too many opened parentheses");
+        return CF_ERR(INVALID, "there too many opened parentheses");
 
     /* Reduce until the end */
     if (cf_reduce_all(&folder->stack) < 0)
-        return e_error("can't reduce completly the stack");
+        return CF_ERR(INVALID, "can't reduce completly the stack");
 
     cf_stack_pop(&folder->stack, &elem);
     if (elem.type != CF_ELEM_NUMBER)
-        return e_error("invalid stack content");
+        return CF_ERR(INVALID, "invalid stack content");
 
     *res = elem.num;
 
-    return 0;
+    return CF_OK;
 }
