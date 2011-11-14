@@ -74,7 +74,7 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
 
             /* FIXME handle union of exceptions which are an array of exceptions */
             if (v) {
-                sb_addf(out, "<n:%*pM", LSTR_FMT_ARG(cbe->name_exn));
+                sb_addf(out, "<n:%*pM>", LSTR_FMT_ARG(cbe->name_exn));
                 iop_xpack(out, st, v, false, true);
                 sb_addf(out, "</n:%*pM>", LSTR_FMT_ARG(cbe->name_exn));
             } else {
