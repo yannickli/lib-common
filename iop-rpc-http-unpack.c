@@ -125,11 +125,9 @@ static int is_ctype_json(const httpd_qinfo_t *info)
     return false;
 }
 
-int __ichttp_query_on_done_stage1(httpd_query_t *q, ichttp_cb_t **cbe,
-                                  void **value, bool *soap)
+int __t_ichttp_query_on_done_stage1(httpd_query_t *q, ichttp_cb_t **cbe,
+                                    void **value, bool *soap)
 {
-    t_scope;
-
     ichttp_query_t      *iq  = obj_vcast(ichttp_query, q);
     httpd_trigger__ic_t *tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
     pstream_t            url = iq->qinfo->query;
@@ -175,8 +173,8 @@ int __ichttp_query_on_done_stage1(httpd_query_t *q, ichttp_cb_t **cbe,
     return 0;
 }
 
-void __ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
-                                   void *value)
+void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
+                                     void *value)
 {
     ichttp_query_t      *iq  = obj_vcast(ichttp_query, q);
     httpd_trigger__ic_t *tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
@@ -263,6 +261,8 @@ void __ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
 
 static void ichttp_query_on_done(httpd_query_t *q)
 {
+    t_scope;
+
     ichttp_query_t *iq = obj_vcast(ichttp_query, q);
 
     int             res;
@@ -270,7 +270,7 @@ static void ichttp_query_on_done(httpd_query_t *q)
     ichttp_cb_t    *cbe = NULL;
     void           *value = NULL;
 
-    res = __ichttp_query_on_done_stage1(q, &cbe, &value, &soap);
+    res = __t_ichttp_query_on_done_stage1(q, &cbe, &value, &soap);
     if (unlikely(res < 0))
         return;
     if (soap) {
@@ -278,7 +278,7 @@ static void ichttp_query_on_done(httpd_query_t *q)
         if (unlikely(res < 0))
             return;
     }
-    __ichttp_query_on_done_stage2(q, cbe, value);
+    __t_ichttp_query_on_done_stage2(q, cbe, value);
 }
 
 static void httpd_trigger__ic_destroy(httpd_trigger_t *tcb)
