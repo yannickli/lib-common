@@ -466,6 +466,7 @@ void thr_queue_sync(thr_queue_t *q, thr_job_t *job)
     thr_syn_t syn;
 
     thr_syn_init(&syn);
+    shared_write(syn.unsafe, 1);
     shared_write(syn.pending, 1);
     n = thr_qnode_create();
     n->job = job;
