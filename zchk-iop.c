@@ -230,16 +230,19 @@ Z_GROUP_EXPORT(iop)
         long j_10 = 10;
 
         struct tstiop__hash_v1__t v1 = {
+            .b  = IOP_OPT(true),
             .i  = IOP_ARRAY(&i_10, 1),
             .s  = LSTR_IMMED("foo bar baz"),
         };
 
         struct tstiop__hash_v2__t v2 = {
+            .b  = IOP_OPT(true),
             .i  = IOP_ARRAY(&j_10, 1),
             .s  = LSTR_IMMED("foo bar baz"),
         };
 
         struct tstiop__hash_v1__t v1_not_same = {
+            .b  = IOP_OPT(true),
             .i  = IOP_ARRAY(&i_11, 1),
             .s  = LSTR_IMMED("foo bar baz"),
         };
