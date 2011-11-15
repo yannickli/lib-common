@@ -13,8 +13,10 @@
 
 #include "iop.h"
 
-#define CF_WANT(e)  \
-    do { assert ((e)); if (unlikely(!(e))) return CF_ERR_INVALID; } while (0)
+#define _CF_WANT(e, err)    \
+    do { if (unlikely(!(e))) return err; } while (0)
+#define CF_WANT(e)          _CF_WANT(e, CF_ERR_INVALID)
+#define CF_OVERFLOW(e)      _CF_WANT(e, CF_ERR_OVERFLOW)
 #define CF_ERR(c, s,...) \
     ({ e_error(s, ##__VA_ARGS__); CF_ERR_##c; })
 
@@ -120,6 +122,17 @@ static int cf_reduce(qv_t(cf_elem) *stack)
       case CF_OP_ADD:
         res.num       = eleft.num + eright.num;
         res.is_signed = eleft.is_signed || eright.is_signed;
+
+        if (res.is_signed) {
+            int64_t l = SIGNED(eleft.num);
+            int64_t r = SIGNED(eright.num);
+            if (r < 0)
+                CF_OVERFLOW(INT64_MIN - r <= l);
+            else
+                CF_OVERFLOW(INT64_MAX - r >= l);
+        } else {
+            CF_OVERFLOW(UINT64_MAX - eright.num >= eleft.num);
+        }
         break;
       case CF_OP_SUB:
         if (unary) {
@@ -343,7 +356,9 @@ iop_cfolder_feed_operator(iop_cfolder_t *folder, iop_cfolder_op_t op)
 iop_cfolder_err_t
 iop_cfolder_get_result(iop_cfolder_t *folder, uint64_t *res)
 {
+    int ret;
     iop_cfolder_elem_t elem;
+
     if (folder->stack.len == 0)
         return CF_ERR(INVALID, "there is nothing on the stack");
 
@@ -351,8 +366,12 @@ iop_cfolder_get_result(iop_cfolder_t *folder, uint64_t *res)
         return CF_ERR(INVALID, "there too many opened parentheses");
 
     /* Reduce until the end */
-    if (cf_reduce_all(&folder->stack) < 0)
-        return CF_ERR(INVALID, "can't reduce completly the stack");
+    if ((ret = cf_reduce_all(&folder->stack)) < 0) {
+        if (ret == CF_ERR_OVERFLOW)
+            return CF_ERR(OVERFLOW, "overflow");
+        else
+            return CF_ERR(INVALID, "can't reduce completly the stack");
+    }
 
     cf_stack_pop(&folder->stack, &elem);
     if (elem.type != CF_ELEM_NUMBER)

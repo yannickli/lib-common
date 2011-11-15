@@ -164,6 +164,8 @@ enum MyEnumC {
 
 struct MyStructI {
     int[]       i;
+    long[]      l;
+    ulong[]     u;
     double[]    d;
     MyEnumC[]   e;
 };

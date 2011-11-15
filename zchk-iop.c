@@ -161,6 +161,32 @@ static int iop_json_test_json(const iop_struct_t *st, const char *json, const
     Z_HELPER_END;
 }
 
+static int iop_json_test_unpack(const iop_struct_t *st, const char *json,
+                                const char *info)
+{
+    t_scope;
+    iop_json_lex_t jll;
+    pstream_t ps;
+    byte *res;
+    int ret;
+    SB_1k(sb);
+
+    iop_jlex_init(t_pool(), &jll);
+    jll.flags = IOP_UNPACK_IGNORE_UNKNOWN;
+    res = t_new(byte, ROUND_UP(st->size, 8));
+
+    iop_init(st, res);
+    ps = ps_initstr(json);
+    iop_jlex_attach(&jll, &ps);
+    ret = iop_junpack(&jll, st, res, true);
+    iop_jlex_detach(&jll);
+
+    sb_wipe(&sb);
+    iop_jlex_wipe(&jll);
+
+    return ret;
+}
+
 static int iop_std_test_struct(const iop_struct_t *st, void *v,
                                const char *info)
 {
@@ -816,6 +842,12 @@ Z_GROUP_EXPORT(iop)
             "    e = [ " xstr(EVALS) " ];\n"
             "};;;\n"
             ;
+
+        const char json_si_p1[] = "{l = [ -0x7fffffffffffffff + (-1) ]; };" ;
+        const char json_si_p2[] = "{u = [  0xffffffffffffffff +   0  ]; };" ;
+
+        const char json_si_n1[] = "{l = [ -0x7fffffffffffffff + (-2) ]; };" ;
+        const char json_si_n2[] = "{u = [  0xffffffffffffffff +   1  ]; };" ;
 #undef EC
 #undef POW
 
@@ -891,6 +923,12 @@ Z_GROUP_EXPORT(iop)
                                         "json_si"));
         Z_HELPER_RUN(iop_json_test_json(st_sk, json_sk,  &json_sk_res,
                                         "json_sk"));
+
+        Z_ASSERT_N(iop_json_test_unpack(st_si, json_si_p1, "json_si_p1"));
+        Z_ASSERT_N(iop_json_test_unpack(st_si, json_si_p2, "json_si_p2"));
+
+        Z_ASSERT_NEG(iop_json_test_unpack(st_si, json_si_n1, "json_si_n1"));
+        Z_ASSERT_NEG(iop_json_test_unpack(st_si, json_si_n2, "json_si_n2"));
 
         iop_dso_close(&dso);
     } Z_TEST_END
