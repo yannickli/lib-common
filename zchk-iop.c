@@ -802,7 +802,7 @@ Z_GROUP_EXPORT(iop)
 
 #define IVALS -1*10-(-10-1), 0x10|0x11, ((0x1f + 010)- 0X1E -5-8) *(2+2),   \
     0-1, ((0x1f + 010) - 0X1E - 5 - 8) * (2 +2),                            \
-    ~0xffffff00 + POW(3, 4) - (1 << 2), (2 * 3 + 1) << 2
+    ~0xffffff00 + POW(3, 4) - (1 << 2), (2 * 3 + 1) << 2, POW(2, (5+(-2)))
 #define DVALS .5, 0.5, 5.5, 0.2e2, 0x1P10
 #define EVALS  EC(A), EC(A) | EC(B) | EC(C) | EC(D) | EC(E), (1 << 5) - 1
 

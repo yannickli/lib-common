@@ -166,7 +166,7 @@ static int cf_reduce(qv_t(cf_elem) *stack)
         break;
       case CF_OP_EXP:
         /* Negative exponent are forbidden */
-        if (eright.is_signed)
+        if (eright.is_signed && SIGNED(eright.num) < 0)
             return CF_ERR(INVALID, "negative expressions are forbidden when"
                           " used as exponent.");
 
