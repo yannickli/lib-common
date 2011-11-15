@@ -62,7 +62,7 @@ static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info
                    st->fullname.s, info);
 
     sb_wipe(&sb);
-    xmlr_close(xmlr_g);
+    xmlr_close(&xmlr_g);
     Z_HELPER_END;
 }
 
