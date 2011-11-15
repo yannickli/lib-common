@@ -73,6 +73,7 @@ typedef struct iop_json_lex_t {
         int64_t i;
         double  d;
     } u;
+    bool    is_signed;
 } iop_json_lex_t;
 
 /* json lexer */

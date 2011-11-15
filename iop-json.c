@@ -434,8 +434,10 @@ static int iop_json_lex_number(iop_json_lex_t *ll)
     d_err = errno;
     errno = 0;
     if (*p == '-') {
+        ll->is_signed = true;
         i = strtoll(p, &pi, 0);
     } else {
+        ll->is_signed = false;
         i = strtoull(p, &pi, 0);
     }
     i_err = errno;
@@ -554,7 +556,7 @@ static int iop_json_lex_expr(iop_json_lex_t *ll, const iop_field_t *fdesc)
             }
             assert (type == IOP_JSON_INTEGER);
             e_trace(1, "feed number %jd", ll->u.i);
-            if (iop_cfolder_feed_number(ll->cfolder, ll->u.i, (ll->u.i < 0)) < 0)
+            if (iop_cfolder_feed_number(ll->cfolder, ll->u.i, ll->is_signed) < 0)
                 return RJERROR_WARG(IOP_JERR_PARSE_NUM);
             break;
 
