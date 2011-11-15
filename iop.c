@@ -402,7 +402,13 @@ void iop_hash_update_i64(struct iop_hash_ctx *ctx, int64_t i)
 static void
 iop_opt_hash(struct iop_hash_ctx *ctx, const iop_field_t *f, const void *v)
 {
+    uint8_t b;
+
     switch (f->type) {
+      case IOP_T_BOOL:
+        b = !!((iop_opt_bool_t *)v)->v;
+        iop_hash_update(ctx, &b, 1);
+        break;
       case IOP_T_I8:
         iop_hash_update_i64(ctx, ((iop_opt_i8_t *)v)->v);
         break;
@@ -483,7 +489,7 @@ __iop_hash(struct iop_hash_ctx *ctx, const iop_struct_t *st, const uint8_t *v)
             break;
           case IOP_T_BOOL:
             for (int i = 0; i < n; i++) {
-                iop_hash_update_i64(ctx, ((bool *)r)[i]);
+                iop_hash_update_i64(ctx, !!((bool *)r)[i]);
             }
             break;
           case IOP_T_U8:

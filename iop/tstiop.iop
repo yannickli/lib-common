@@ -19,11 +19,13 @@ package tstiop;
 /* Types of base */
 
 struct HashV1 {
+    bool?  b;
     int[]  i;
     string s;
 };
 
 struct HashV2 {
+    bool?  b;
     long[] i;
     string s;
 };
