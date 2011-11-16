@@ -122,14 +122,14 @@ static int t_parse_soap(ichttp_query_t *iq, ic__simple_hdr__t *hdr,
 
     XCHECK(xmlr_node_close(xr)); /* </Body>     */
     XCHECK(xmlr_node_close(xr)); /* </Envelope> */
-    xmlr_close(xr);
+    xmlr_close(&xr);
     return 0;
 
   xmlerror:
     __ichttp_reply_soap_err(ichttp_query_to_slot(iq), false,
                             xmlr_get_err() ?: "parsing error");
   error:
-    xmlr_close(xr);
+    xmlr_close(&xr);
     return -1;
 
 #undef XCHECK

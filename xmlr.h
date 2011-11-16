@@ -36,11 +36,7 @@ enum xmlr_error {
  * document.
  */
 int xmlr_setup(xml_reader_t *xrp, const void *buf, int len);
-
-static inline void xmlr_close(xml_reader_t xr)
-{
-    xmlTextReaderClose(xr);
-}
+void xmlr_close(xml_reader_t *xrp);
 
 static inline void xmlr_delete(xml_reader_t *xrp)
 {
