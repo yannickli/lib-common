@@ -155,6 +155,10 @@ __attr_printf__(5, 6)
 bool _z_assert(const char *file, int lno, const char *expr, bool res,
                const char *fmt, ...);
 
+__attr_printf__(4, 5)
+void _z_helper_failed(const char *file, int lno, const char *expr,
+                      const char *fmt, ...);
+
 /* }}} */
 
 /****************************************************************************/
@@ -218,7 +222,12 @@ bool _z_assert(const char *file, int lno, const char *expr, bool res,
  *   \endcode
  */
 #define Z_HELPER_END        return 0; _z_step_end: return -1
-#define Z_HELPER_RUN(expr)  ({ if ((expr) < 0) goto _z_step_end; })
+#define Z_HELPER_RUN(expr, ...) \
+    ({  if ((expr) < 0) {                                                 \
+            _z_helper_failed(__FILE__, __LINE__, #expr, ""__VA_ARGS__);   \
+            goto _z_step_end;                                             \
+        }                                                                 \
+    })
 
 #define Z_BLKTEST_END  ({ _z_step_end: return; })
 
