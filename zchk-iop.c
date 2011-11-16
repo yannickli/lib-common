@@ -63,7 +63,7 @@ static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info
                    st->fullname.s, info);
 
     sb_wipe(&sb);
-    xmlr_close(xmlr_g);
+    xmlr_close(&xmlr_g);
     Z_HELPER_END;
 }
 
@@ -614,14 +614,14 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
             Z_ASSERT_NEG(iop_xunpack(xmlr_g, t_pool(), st_sf, &sf_ret),
                          "unexpected successful unpacking");
-            xmlr_close(xmlr_g);
+            xmlr_close(&xmlr_g);
 
             iop_init(st_sf, &sf_ret);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
             Z_ASSERT_N(iop_xunpack_flags(xmlr_g, t_pool(), st_sf, &sf_ret,
                                          IOP_UNPACK_IGNORE_UNKNOWN),
                        "unexpected unpacking failure using IGNORE_UNKNOWN");
-            xmlr_close(xmlr_g);
+            xmlr_close(&xmlr_g);
             sb_wipe(&sb);
         }
 
@@ -651,14 +651,14 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
             Z_ASSERT_NEG(iop_xunpack(xmlr_g, t_pool(), st_sf, &sf_ret),
                          "unexpected successful unpacking");
-            xmlr_close(xmlr_g);
+            xmlr_close(&xmlr_g);
 
             iop_init(st_sf, &sf_ret);
             Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
             Z_ASSERT_N(iop_xunpack_parts(xmlr_g, t_pool(), st_sf, &sf_ret,
                                          0, &parts),
                        "unexpected unpacking failure with parts");
-            xmlr_close(xmlr_g);
+            xmlr_close(&xmlr_g);
 
             qm_wipe(part, &parts);
             sb_wipe(&sb);

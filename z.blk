@@ -311,6 +311,18 @@ bool _z_assert(const char *file, int lno, const char *expr,
     return !res;
 }
 
+void _z_helper_failed(const char *file, int lno, const char *expr,
+                      const char *fmt, ...)
+{
+    SB_1k(sb);
+
+    IN_TEST;
+    sb_addf(&sb, "%*pM%s: %d: helper failed: %s\n",
+            LSTR_FMT_ARG(_G.grp.t_fail_reason), file, lno, expr);
+    _z_add_extra(sb, fmt);
+    lstr_detach_sb(&_G.grp.t_fail_reason, &sb);
+}
+
 /* }}} */
 /* protocol and output {{{ */
 

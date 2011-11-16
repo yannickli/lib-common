@@ -222,6 +222,24 @@ int xmlr_setup(xml_reader_t *xrp, const void *buf, int len)
     return xmlr_scan_node(xr, false);
 }
 
+void xmlr_close(xml_reader_t *xrp)
+{
+    xml_reader_t xr = *xrp;
+
+    /* when the parsing was interrupted, namespace stack isn't reset properly
+     * leading to bugs, so workaround it when we're not sure the parse ended
+     * well
+     */
+    if (xmlTextReaderRead(xr) == 0 &&
+        xmlTextReaderReadState(xr) == XML_TEXTREADER_MODE_EOF)
+    {
+        xmlTextReaderClose(xr);
+    } else {
+        xmlFreeTextReader(xr);
+        *xrp = NULL;
+    }
+}
+
 int xmlr_node_get_local_name(xml_reader_t xr, lstr_t *out)
 {
     const char *s;
