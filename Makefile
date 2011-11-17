@@ -35,6 +35,7 @@ libcommon_SOURCES = \
 	parseopt.c \
 	\
 	arith-bithacks.c \
+	arith-int.c \
 	\
 	asn1.c \
 	asn1-writer.c \

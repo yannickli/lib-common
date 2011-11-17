@@ -22,4 +22,8 @@
 #include "arith-float.h"
 #include "arith-str-stream.h"
 
+unsigned gcd(unsigned a, unsigned b);
+unsigned gcd_euclid(unsigned a, unsigned b);
+unsigned gcd_stein(unsigned a, unsigned b);
+
 #endif
