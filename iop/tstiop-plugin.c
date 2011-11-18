@@ -14,4 +14,10 @@
 #include <lib-common/iop.h>
 #include "tstiop.iop.h"
 
+iop_struct_t const iop__void__s = {
+    .fullname   = LSTR_IMMED("Void"),
+    .fields_len = 0,
+    .size       = 0,
+};
+
 IOP_EXPORT_PACKAGES(&tstiop__pkg);
