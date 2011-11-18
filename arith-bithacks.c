@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include "z.h"
 #include "arith.h"
 
 #define BIT(x, n)   (((x) >> (n)) & 1)
@@ -66,42 +67,208 @@ uint8_t const __bitcount11[1 << 11] = {
 };
 #endif
 
-static size_t membitcount_naive(const uint8_t *p, const uint8_t *end)
+__attribute__((used))
+static size_t membitcount_c(const void *ptr, size_t n)
 {
-    size_t count = 0;
+    size_t c1 = 0, c2 = 0, c3 = 0, c4 = 0;
+    size_t i = 0;
+    const uint8_t *p = ptr;
 
-    while (p < end) {
-        count += bitcount8(*p++);
+    for (; (uintptr_t)(p + i) & 3; i++)
+        c1 += bitcount8(*p++);
+
+    for (; i + 32 <= n; i += 32) {
+        c1 += bitcount32(((uint32_t *)(p + i))[0]);
+        c2 += bitcount32(((uint32_t *)(p + i))[1]);
+        c3 += bitcount32(((uint32_t *)(p + i))[2]);
+        c4 += bitcount32(((uint32_t *)(p + i))[3]);
+        c1 += bitcount32(((uint32_t *)(p + i))[4]);
+        c2 += bitcount32(((uint32_t *)(p + i))[5]);
+        c3 += bitcount32(((uint32_t *)(p + i))[6]);
+        c4 += bitcount32(((uint32_t *)(p + i))[7]);
     }
-    return count;
+    for (; i < n; i++)
+        c1 += bitcount8(*p++);
+    return c1 + c2 + c3 + c4;
 }
 
-static size_t membitcount_aligned(const uint8_t *p, const uint8_t *end)
+#if __GNUC_PREREQ(4, 6) || __has_attribute(ifunc)
+#if defined(__x86_64__) || defined(__i386__)
+#include <cpuid.h>
+#include <x86intrin.h>
+
+__attribute__((target("popcnt")))
+static size_t membitcount_popcnt(const void *ptr, size_t n)
 {
-    size_t count = 0;
+    size_t c1 = 0, c2 = 0, c3 = 0, c4 = 0;
+    const uint8_t *p = ptr;
+    size_t i = 0;
 
-    while ((uintptr_t)p & 31)
-        count += bitcount8(*p++);
-
-    while (p + 32 <= end) {
-        count += bitcount32(((uint32_t *)p)[0]);
-        count += bitcount32(((uint32_t *)p)[1]);
-        count += bitcount32(((uint32_t *)p)[2]);
-        count += bitcount32(((uint32_t *)p)[3]);
-        count += bitcount32(((uint32_t *)p)[4]);
-        count += bitcount32(((uint32_t *)p)[5]);
-        count += bitcount32(((uint32_t *)p)[6]);
-        count += bitcount32(((uint32_t *)p)[7]);
-        p += 32;
+#ifdef __x86_64__
+    for (; i + 64 <= n; i += 64) {
+        c1 += __builtin_popcountll(get_unaligned_cpu64(p + i +  0));
+        c2 += __builtin_popcountll(get_unaligned_cpu64(p + i +  8));
+        c3 += __builtin_popcountll(get_unaligned_cpu64(p + i + 16));
+        c4 += __builtin_popcountll(get_unaligned_cpu64(p + i + 24));
+        c1 += __builtin_popcountll(get_unaligned_cpu64(p + i + 32));
+        c2 += __builtin_popcountll(get_unaligned_cpu64(p + i + 40));
+        c3 += __builtin_popcountll(get_unaligned_cpu64(p + i + 48));
+        c4 += __builtin_popcountll(get_unaligned_cpu64(p + i + 56));
     }
+    for (; i + 8 <= n; i += 8)
+        c1 += __builtin_popcountll(get_unaligned_cpu64(p + i));
+#else
+    for (; i + 32 <= n; i += 32) {
+        c1 += __builtin_popcountll(get_unaligned_cpu32(p + i +  0));
+        c2 += __builtin_popcountll(get_unaligned_cpu32(p + i +  4));
+        c3 += __builtin_popcountll(get_unaligned_cpu32(p + i +  8));
+        c4 += __builtin_popcountll(get_unaligned_cpu32(p + i + 12));
+        c1 += __builtin_popcountll(get_unaligned_cpu32(p + i + 16));
+        c2 += __builtin_popcountll(get_unaligned_cpu32(p + i + 20));
+        c3 += __builtin_popcountll(get_unaligned_cpu32(p + i + 24));
+        c4 += __builtin_popcountll(get_unaligned_cpu32(p + i + 28));
+    }
+#endif
+    for (; i + 4 <= n; i += 4)
+        c1 += __builtin_popcount(get_unaligned_cpu32(p + i));
+    for (; i < n; i++)
+        c1 += bitcount8(p[i]);
+    return c1 + c2 + c3 + c4;
+}
 
-    return count + membitcount_naive(p, end);
+__attribute__((target("ssse3")))
+static size_t membitcount_ssse3(const void *ptr, size_t n)
+{
+    static __v16qi const lo_4bits = {
+        0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf,
+        0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf,
+    };
+    static __v16qi const popcnt_4bits = {
+        0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4,
+    };
+    size_t c = 0;
+    size_t i = 0;
+    const char *p = ptr;
+    __v2di res = { 0, };
+
+    /* lines 1-4:
+     *   xmm_lo/xmm_hi <- the 16 lo/hi 4-bits groups of the 16byte vector
+     * lines 5-6:
+     *   __builtin_ia32_pshufb128(popcnt_4bits, xmm)
+     *   shuffles the "popcnt_4bits" according to the values in xmm.
+     *   in other words it "converts" the xmm 4bits values with their
+     *   popcounts.
+     * line 7:
+     *   combine the popcounts together.
+     */
+#define step(Ptr) \
+    ({  __v16qi xmm_lo = __builtin_ia32_loaddqu(Ptr);                          \
+        __v16qi xmm_hi = (__v16qi)__builtin_ia32_psrlwi128((__v8hi)xmm_lo, 4); \
+                                                                               \
+        xmm_lo &= lo_4bits;                                                    \
+        xmm_hi &= lo_4bits;                                                    \
+        xmm_lo  = __builtin_ia32_pshufb128(popcnt_4bits, xmm_lo);              \
+        xmm_hi  = __builtin_ia32_pshufb128(popcnt_4bits, xmm_hi);              \
+        xmm_lo + xmm_hi;                                                       \
+    })
+
+    for (; i + 64 <= n; i += 64) {
+        __v16qi acc = { 0, };
+
+        acc += step(p + i +  0);
+        acc += step(p + i + 16);
+        acc += step(p + i + 32);
+        acc += step(p + i + 48);
+        res += __builtin_ia32_psadbw128(acc, (__v16qi){ 0, });
+    }
+    for (; i + 16 <= n; i += 16) {
+        res += __builtin_ia32_psadbw128(step(p + i), (__v16qi){ 0, });
+    }
+    res += (__v2di)__builtin_ia32_movhlps((__v4sf)res, (__v4sf)res);
+    for (; i + 4 <= n; i += 4)
+        c += bitcount32(get_unaligned_cpu32(p + i));
+    for (; i < n; i++)
+        c += bitcount8(p[i]);
+    return c + res[0];
+
+#undef step
+}
+
+#endif
+
+static void (*membitcount_resolve(void))(void)
+{
+#if defined(__x86_64__) || defined(__i386__)
+    int eax, ebx, ecx, edx;
+
+    __cpuid(1, eax, ebx, ecx, edx);
+    if (ecx & bit_POPCNT)
+        return (void (*)(void))&membitcount_popcnt;
+    if (ecx & bit_SSSE3)
+        return (void (*)(void))&membitcount_ssse3;
+#endif
+    return (void (*)(void))&membitcount_c;
 }
 
 size_t membitcount(const void *ptr, size_t n)
+    __attribute__((ifunc("membitcount_resolve")));
+
+#else
+
+size_t membitcount(const void *ptr, size_t n)
+    __attribute__((alias("membitcount_c")));
+
+#endif
+
+Z_GROUP_EXPORT(membitcount)
 {
-    const uint8_t *end = (const uint8_t *)ptr + n;
-    if (n < 1024)
-        return membitcount_naive(ptr, end);
-    return membitcount_aligned(ptr, end);
-}
+#define N (1U << 20)
+
+    Z_TEST(popcnt, "") {
+#if __GNUC_PREREQ(4, 6) || __has_attribute(ifunc)
+#if defined(__x86_64__) || defined(__i386__)
+        int eax, ebx, ecx, edx;
+
+        __cpuid(1, eax, ebx, ecx, edx);
+        if (ecx & bit_POPCNT) {
+            t_scope;
+            char *v = t_new_raw(char, N);
+
+            for (size_t i = 0; i < N; i++)
+                v[i] = i;
+            Z_ASSERT_EQ(membitcount_c(v, N), membitcount_popcnt(v, N));
+        } else {
+            Z_SKIP("your CPU doesn't support popcnt");
+        }
+#else
+        Z_SKIP("neither amd64 nor i386");
+#endif
+#else
+        Z_SKIP("unsupported compiler");
+#endif
+    } Z_TEST_END;
+
+    Z_TEST(ssse3, "") {
+#if __GNUC_PREREQ(4, 6) || __has_attribute(ifunc)
+#if defined(__x86_64__) || defined(__i386__)
+        int eax, ebx, ecx, edx;
+
+        __cpuid(1, eax, ebx, ecx, edx);
+        if (ecx & bit_SSSE3) {
+            t_scope;
+            char *v = t_new_raw(char, N);
+
+            for (size_t i = 0; i < N; i++)
+                v[i] = i;
+            Z_ASSERT_EQ(membitcount_c(v, N), membitcount_ssse3(v, N));
+        } else {
+            Z_SKIP("your CPU doesn't support ssse3");
+        }
+#else
+        Z_SKIP("neither amd64 nor i386");
+#endif
+#else
+        Z_SKIP("unsupported compiler");
+#endif
+    } Z_TEST_END;
+} Z_GROUP_END
