@@ -74,8 +74,14 @@ static size_t membitcount_c(const void *ptr, size_t n)
     size_t i = 0;
     const uint8_t *p = ptr;
 
+    if (n < 4) {
+        for (; i < n; i++)
+            c1 += bitcount8(p[i]);
+        return c1;
+    }
+
     for (; (uintptr_t)(p + i) & 3; i++)
-        c1 += bitcount8(*p++);
+        c1 += bitcount8(p[i]);
 
     for (; i + 32 <= n; i += 32) {
         c1 += bitcount32(((uint32_t *)(p + i))[0]);
@@ -88,7 +94,7 @@ static size_t membitcount_c(const void *ptr, size_t n)
         c4 += bitcount32(((uint32_t *)(p + i))[7]);
     }
     for (; i < n; i++)
-        c1 += bitcount8(*p++);
+        c1 += bitcount8(p[i]);
     return c1 + c2 + c3 + c4;
 }
 
