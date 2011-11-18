@@ -158,6 +158,7 @@ libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 time-lp-simple_SOURCES = time-lp-simple.c
 
 zchk-iop-plugin_SOURCES = ic.iop zchk-iop-plugin.c
+zchk-iop-plugin_LDFLAGS = -Wl,-z,defs
 
 zchk_SOURCES = zchk.c \
 	zchk-asn1-writer.c \
@@ -176,6 +177,7 @@ ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
 zchk-tstiop-plugin_SOURCES = \
 	$/lib-common/iop/tstiop-plugin.c \
 	$/lib-common/iop/tstiop.a
+zchk-tstiop-plugin_LDFLAGS = -Wl,-z,defs
 
 ztst-httpd_SOURCES = \
 	ztst-httpd.c \
