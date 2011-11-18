@@ -42,3 +42,52 @@
     ...
     fun:thr_initialize
 }
+
+{
+    # does 4-bytes optimistic loads
+    lib-common/membitcount_c
+    Memcheck:Addr4
+    ...
+    fun:membitcount_c
+}
+{
+    # does 4-bytes optimistic loads on x86
+    lib-common/membitcount_popcnt_4
+    Memcheck:Addr4
+    ...
+    fun:membitcount_popcnt
+}
+{
+    # does 8-bytes optimistic loads on x64
+    lib-common/membitcount_popcnt_8
+    Memcheck:Addr8
+    ...
+    fun:membitcount_popcnt
+}
+{
+    # does 16-bytes optimistic loads
+    lib-common/membitcount_ssse3_16
+    Memcheck:Addr16
+    ...
+    fun:membitcount_ssse3
+}
+
+# 4/8/16 optimistic loads allowed as a general rule for membitcount
+{
+    lib-common/membitcount_4
+    Memcheck:Addr4
+    ...
+    fun:membitcount
+}
+{
+    lib-common/membitcount_8
+    Memcheck:Addr8
+    ...
+    fun:membitcount
+}
+{
+    lib-common/membitcount_16
+    Memcheck:Addr16
+    ...
+    fun:membitcount
+}
