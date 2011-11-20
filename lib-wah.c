@@ -208,22 +208,15 @@ void wah_push_pending(wah_t *map, uint32_t words)
 void wah_add0s(wah_t *map, uint64_t count)
 {
     uint32_t remain = map->len % WAH_BIT_IN_WORD;
-    if (count == 0) {
+
+    if (remain + count < WAH_BIT_IN_WORD) {
+        map->len += count;
         return;
     }
     if (remain > 0) {
-        remain = 32 - remain;
-        if (count < remain) {
-            map->len += count;
-            return;
-        }
-        count    -= remain;
-        map->len += remain;
+        count    -= WAH_BIT_IN_WORD - remain;
+        map->len += WAH_BIT_IN_WORD - remain;
         wah_push_pending(map, 1);
-    }
-
-    if (count == 0) {
-        return;
     }
     if (count >= WAH_BIT_IN_WORD) {
         wah_push_pending(map, count / WAH_BIT_IN_WORD);
@@ -234,38 +227,25 @@ void wah_add0s(wah_t *map, uint64_t count)
 void wah_add1s(wah_t *map, uint64_t count)
 {
     uint64_t remain = map->len % WAH_BIT_IN_WORD;
-    if (count == 0) {
+
+    if (remain + count < WAH_BIT_IN_WORD) {
+        map->pending |= BITMASK_LT(uint32_t, count) << remain;
+        map->len     += count;
+        map->active  += count;
         return;
     }
     if (remain > 0) {
-        remain = 32 - remain;
-        if (count < remain) {
-            uint32_t mask = UINT32_MAX >> (32 - count);
-            mask <<= (32 - remain);
-            map->pending |= mask;
-            map->len     += count;
-            map->active  += count;
-            return;
-        } else {
-            uint32_t mask = UINT32_MAX << (32 - remain);
-            map->pending |= mask;
-            map->len     += remain;
-            map->active  += remain;
-            count -= remain;
-            wah_push_pending(map, 1);
-        }
-    }
-    if (count == 0) {
-        return;
+        map->pending |= BITMASK_GE(uint32_t, remain);
+        map->len     += WAH_BIT_IN_WORD - remain;
+        map->active  += WAH_BIT_IN_WORD - remain;
+        count        -= WAH_BIT_IN_WORD - remain;
+        wah_push_pending(map, 1);
     }
     if (count >= WAH_BIT_IN_WORD) {
         map->pending = UINT32_MAX;
         wah_push_pending(map, count / WAH_BIT_IN_WORD);
-        map->pending = 0;
     }
-    if (count % WAH_BIT_IN_WORD != 0) {
-        map->pending = UINT32_MAX >> (32 - (count % WAH_BIT_IN_WORD));
-    }
+    map->pending = BITMASK_LT(uint32_t, count);
     map->len    += count;
     map->active += count;
 }
@@ -283,7 +263,7 @@ const void *wah_read_word(const uint8_t *src, uint64_t count,
 
     *res  = 0;
     *bits = 0;
-    mask  = UINT64_MAX >> (64 - count);
+    mask  = BITMASK_LT(uint64_t, count);
 #define get_unaligned_le8(src)  (*src)
 #define READ_SIZE(Size)                                                      \
     if (count > (Size - 8)) {                                                \
@@ -620,9 +600,7 @@ void wah_not(wah_t *map)
         }
     }
     if ((map->len % WAH_BIT_IN_WORD) != 0) {
-        uint32_t mask = UINT32_MAX >> (32 - (map->len % WAH_BIT_IN_WORD));
-        map->pending  = ~map->pending;
-        map->pending &= mask;
+        map->pending = ~map->pending & BITMASK_LT(uint32_t, map->len);
     }
     wah_check_invariant(map);
     map->active = map->len - map->active;
