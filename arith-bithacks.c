@@ -113,7 +113,7 @@ static size_t membitcount_c(const void *ptr, size_t n)
     return c1 + c2 + c3 + c4;
 }
 
-#if __GNUC_PREREQ(4, 6) || __has_attribute(ifunc)
+#if !defined(__gcc_has_no_ifunc) && (__GNUC_PREREQ(4, 6) || __has_attribute(ifunc))
 #if defined(__x86_64__) || defined(__i386__)
 #include <cpuid.h>
 #include <x86intrin.h>
@@ -377,7 +377,7 @@ Z_GROUP_EXPORT(membitcount)
     } Z_TEST_END;
 
     Z_TEST(ssse3, "") {
-#if __GNUC_PREREQ(4, 6) || __has_attribute(ifunc)
+#if !defined(__gcc_has_no_ifunc) && (__GNUC_PREREQ(4, 6) || __has_attribute(ifunc))
 #if defined(__x86_64__) || defined(__i386__)
         int eax, ebx, ecx, edx;
 
@@ -397,7 +397,7 @@ Z_GROUP_EXPORT(membitcount)
     } Z_TEST_END;
 
     Z_TEST(popcnt, "") {
-#if __GNUC_PREREQ(4, 6) || __has_attribute(ifunc)
+#if !defined(__gcc_has_no_ifunc) && (__GNUC_PREREQ(4, 6) || __has_attribute(ifunc))
 #if defined(__x86_64__) || defined(__i386__)
         int eax, ebx, ecx, edx;
 
