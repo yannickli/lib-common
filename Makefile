@@ -20,6 +20,8 @@ test_PROGRAMS += ztst-httpd
 endif
 none_SHARED_LIBRARIES += zchk-iop-plugin
 
+bench_PROGRAMS += zgcd-bench
+
 DISTCLEANFILES = core-version.c
 core-version.c: scripts/version.sh FORCE
 	$(msg/generate) $@
@@ -207,6 +209,11 @@ ztst-thrjob_SOURCES = \
 	$/lib-common/libcommon.a \
 	$/lib-common/time-lp-simple.a
 ztst-thrjob_LIBS = -lrt -ldl -lpthread -lm
+
+zgcd-bench_SOURCES = \
+	zgcd-bench.c \
+	$/lib-common/libcommon.a \
+	$/lib-common/time-lp-simple.a
 
 ifneq (SunOS,$(shell uname -s))
 DISTCLEANFILES=Upgrading.html
