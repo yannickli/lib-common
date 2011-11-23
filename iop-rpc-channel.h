@@ -132,13 +132,13 @@ struct ichannel_t {
     flag_t cancel_guard :  1;
     flag_t nextslot     : 24;   /**< next slot id to try                    */
 
-    el_t                elh;
-    el_t                timer;
-    ichannel_t        **owner; /**< content set to NULL on deletion        */
-    void               *priv;  /**< user private data                      */
-    void               *peer;  /**< user field to identify the peer        */
-    const iop_struct_t *desc;  /**< desc of the current unpacked structure */
-    int                 cmd;   /**< cmd of the current unpacked structure */
+    el_t              elh;
+    el_t              timer;
+    ichannel_t      **owner;    /**< content set to NULL on deletion        */
+    void             *priv;     /**< user private data                      */
+    void             *peer;     /**< user field to identify the peer        */
+    const iop_rpc_t  *desc;     /**< desc of the current unpacked RPC       */
+    int               cmd;      /**< cmd of the current unpacked structure  */
 
     int          watch_act;    /**< use in el_fd_watch_activity            */
     int          protocol;     /**< transport layer protocol (0 = default) */

@@ -64,19 +64,19 @@ static inline const char * ic_status_to_string(ic_status_t s)
 #include "iop-rpc-http.h"
 
 
-/** \brief get the description of the currently unpacked structure.
+/** \brief get the description of the currently unpacked RPC.
  *
- * This low-level function allows to retrieve the arguments description of the
- * currently unpacked RPC. You are allowed to call it only inside of the
- * callback of a RPC implementation.
+ * This low-level function allows to retrieve the description of the currently
+ * unpacked RPC. You are allowed to call it only inside of the callback of
+ * a RPC implementation.
  */
-static inline const iop_struct_t *
+static inline const iop_rpc_t *
 __ic_get_current_rpc_desc(const ichannel_t *ic, uint64_t slot)
 {
     if (ic_slot_is_http(slot)) {
         ichttp_query_t *iq = ichttp_slot_to_query(slot);
 
-        return iq->cbe->fun->args;
+        return iq->cbe->fun;
     } else {
         return ic->desc;
     }
