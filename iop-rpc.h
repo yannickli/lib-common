@@ -82,4 +82,22 @@ __ic_get_current_rpc_desc(const ichannel_t *ic, uint64_t slot)
     }
 }
 
+/** \brief get the “command” of the currently unpacked RPC.
+ *
+ * This low-level function allows to retrieve the “command” value of the
+ * currently unpacked RPC. You are allowed to call it only inside of the
+ * callback of a RPC implementation.
+ */
+static inline int
+__ic_get_current_rpc_cmd(const ichannel_t *ic, uint64_t slot)
+{
+    if (ic_slot_is_http(slot)) {
+        ichttp_query_t *iq = ichttp_slot_to_query(slot);
+
+        return iq->cbe->cmd;
+    } else {
+        return ic->cmd;
+    }
+}
+
 #endif

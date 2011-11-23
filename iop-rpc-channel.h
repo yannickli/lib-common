@@ -138,6 +138,7 @@ struct ichannel_t {
     void               *priv;  /**< user private data                      */
     void               *peer;  /**< user field to identify the peer        */
     const iop_struct_t *desc;  /**< desc of the current unpacked structure */
+    int                 cmd;   /**< cmd of the current unpacked structure */
 
     int          watch_act;    /**< use in el_fd_watch_activity            */
     int          protocol;     /**< transport layer protocol (0 = default) */
