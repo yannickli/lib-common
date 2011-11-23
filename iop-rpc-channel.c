@@ -493,7 +493,9 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                     ic_reply_err(ic, MAKE64(ic->id, slot), IC_MSG_INVALID);
             } else {
                 t_seal();
+                ic->desc = st;
                 (*e->u.cb.cb)(ic, MAKE64(ic->id, slot), value, hdr);
+                ic->desc = NULL;
             }
         }
         return;
