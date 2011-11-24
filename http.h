@@ -569,9 +569,15 @@ struct httpc_pool_t {
 
 httpc_pool_t *httpc_pool_init(httpc_pool_t *);
 void httpc_pool_close_clients(httpc_pool_t *);
-void httpc_pool_wipe(httpc_pool_t *);
+void httpc_pool_wipe(httpc_pool_t *, bool wipe_conns);
 GENERIC_NEW(httpc_pool_t, httpc_pool);
-GENERIC_DELETE(httpc_pool_t, httpc_pool);
+static inline void httpc_pool_delete(httpc_pool_t **hpcp, bool wipe_conns)
+{
+    if (*hpcp) {
+        httpc_pool_wipe(*hpcp, wipe_conns);
+        p_delete(hpcp);
+    }
+}
 
 void httpc_pool_detach(httpc_t *w);
 void httpc_pool_attach(httpc_t *w, httpc_pool_t *pool);
