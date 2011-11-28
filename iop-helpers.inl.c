@@ -26,6 +26,8 @@
 #define IOP_BLK_OK    (TO_BIT(STRING) | TO_BIT(DATA) | TO_BIT(STRUCT) \
                        | TO_BIT(UNION) | TO_BIT(XML))
 #define IOP_STRUCTS_OK    (TO_BIT(STRUCT) | TO_BIT(UNION))
+#define IOP_REPEATED_OPTIMIZE_OK  (TO_BIT(I8) | TO_BIT(U8) | TO_BIT(I16) \
+                                   | TO_BIT(U16) | TO_BIT(BOOL))
 
 #define IOP_MAKE_U32(a, b, c, d) \
     ((a) | ((b) << 8) | ((c) << 16) | ((d) << 24))

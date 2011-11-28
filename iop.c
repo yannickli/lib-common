@@ -600,8 +600,16 @@ int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
             ptr = ((iop_data_t *)ptr)->data;
             if (n == 0)
                 continue;
-            if (n > 1)
+            if (n > 1) {
+                if ((1 << fdesc->type) & IOP_REPEATED_OPTIMIZE_OK) {
+                    int32_t i32 = n * fdesc->size;
+
+                    len += 1 + fdesc->tag_len;
+                    len += get_len_len(i32) + i32;
+                    continue;
+                }
                 len += 4 + n;
+            }
         }
 
         len += 1 + fdesc->tag_len;
@@ -733,31 +741,6 @@ static uint8_t *pack_value_vec(uint8_t *dst, const iop_field_t *f,
     uint32_t len;
 
     switch (f->type) {
-      case IOP_T_I8:
-        do {
-            dst    = pack_tag(dst, 0, 0, IOP_WIRE_MASK(INT1));
-            *dst++ = *(int8_t *)v;
-            v      = (char *)v + 1;
-        } while (--n > 0);
-        return dst;
-      case IOP_T_U8:
-        do {
-            dst = pack_int32(dst, 0, 0, *(uint8_t *)v);
-            v   = (char *)v + 1;
-        } while (--n > 0);
-        return dst;
-      case IOP_T_I16:
-        do {
-            dst = pack_int32(dst, 0, 0, *(int16_t *)v);
-            v   = (char *)v + 2;
-        } while (--n > 0);
-        return dst;
-      case IOP_T_U16:
-        do {
-            dst = pack_int32(dst, 0, 0, *(uint16_t *)v);
-            v   = (char *)v + 2;
-        } while (--n > 0);
-        return dst;
       case IOP_T_I32:
       case IOP_T_ENUM:
         do {
@@ -776,14 +759,6 @@ static uint8_t *pack_value_vec(uint8_t *dst, const iop_field_t *f,
         do {
             dst = pack_int64(dst, 0, 0, *(int64_t *)v);
             v   = (char *)v + 8;
-        } while (--n > 0);
-        return dst;
-      case IOP_T_BOOL:
-        do {
-            /* bool are mapped to 0 or 1 */
-            dst    = pack_tag(dst, 0, 0, IOP_WIRE_MASK(INT1));
-            *dst++ = !!*(bool *)v;
-            v      = (bool *)v + 1;
         } while (--n > 0);
         return dst;
       case IOP_T_DOUBLE:
@@ -812,13 +787,15 @@ static uint8_t *pack_value_vec(uint8_t *dst, const iop_field_t *f,
         } while (--n > 0);
         return dst;
       case IOP_T_STRUCT:
-      default:
         do {
             dst = pack_len(dst, 0, 0, *(*szsp)++);
             dst = pack_struct(dst, f->u1.st_desc, v, szsp);
             v   = (char *)v + f->size;
         } while (--n > 0);
         return dst;
+
+      default:
+        e_panic("should not happen");
     }
 }
 
@@ -844,9 +821,20 @@ pack_struct(void *dst, const iop_struct_t *desc, const void *v, const int **szsp
                 continue;
             ptr = data->data;
             if (data->len > 1) {
-                dst = pack_tag(dst, f->tag, f->tag_len, IOP_WIRE_MASK(REPEAT));
-                dst = put_unaligned_le32(dst, data->len);
-                dst = pack_value_vec(dst, f, ptr, data->len, szsp);
+                if ((1 << f->type) & IOP_REPEATED_OPTIMIZE_OK) {
+                    /* When data unit is really small (byte, bool, …) we
+                     * prefer to pack them in one big block */
+                    uint32_t sz = data->len * f->size;
+
+                    assert (f->size <= 2);
+                    dst = pack_len(dst, f->tag, f->tag_len, sz);
+                    dst = mempcpy(dst, data->data, sz);
+                } else {
+                    dst = pack_tag(dst, f->tag, f->tag_len,
+                                   IOP_WIRE_MASK(REPEAT));
+                    dst = put_unaligned_le32(dst, data->len);
+                    dst = pack_value_vec(dst, f, ptr, data->len, szsp);
+                }
                 continue;
             }
         }
@@ -1225,6 +1213,47 @@ static int unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
         if (fdesc->repeat == IOP_R_REPEATED) {
             iop_data_t *data = v;
 
+            if (wt != IOP_WIRE_REPEAT
+            &&  ((1 << fdesc->type) & IOP_REPEATED_OPTIMIZE_OK))
+            {
+                /* optimized version of repeated fields are packed in simples
+                 * IOP blocks */
+                uint32_t len;
+
+                switch (wt) {
+                  case IOP_WIRE_BLK1:
+                    PS_CHECK(get_uint32(ps, 1, &len));
+                    break;
+                  case IOP_WIRE_BLK2:
+                    PS_CHECK(get_uint32(ps, 2, &len));
+                    break;
+                  case IOP_WIRE_BLK4:
+                    PS_CHECK(get_uint32(ps, 4, &len));
+                    break;
+                  default:
+                    /* Here we expect to have a uniq-value packed as a normal
+                     * field (data->len == 1) */
+                    goto unpack_array;
+                }
+                PS_WANT(ps_has(ps, len));
+
+                if (fdesc->size == 1) {
+                    data->len = len;
+                    data->data = (copy ? mp_dup(mp, ps->s, len)
+                                       : (void *)ps->p);
+                } else {
+                    assert (fdesc->size == 2);
+                    PS_WANT(len % 2 == 0);
+                    data->len  = len / 2;
+                    data->data = mp_dup(mp, ps->s, len);
+                }
+
+                __ps_skip(ps, len);
+                fdesc++;
+                continue;
+            }
+
+          unpack_array:
             data->len  = n;
             data->data = v = mp->malloc(mp, n * fdesc->size, MEM_RAW);
 

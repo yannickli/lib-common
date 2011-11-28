@@ -165,6 +165,19 @@ struct MyStructI {
     MyEnumC[]   e;
 };
 
+struct Repeated {
+    /* optimized fields */
+    byte[]   i8;
+    ubyte[]  u8;
+    bool[]   b;
+    short[]  i16;
+    ushort[] u16;
+
+    /* generic repeated values */
+    int[]    i32;
+    string[] s;
+};
+
 struct MyAException {
     int    errcode;
     string desc;
