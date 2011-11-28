@@ -151,7 +151,9 @@ $(sort $(var/generated) $(var/datas)) \
 $(var/programs:=$(EXEEXT))    \
 $(var/sharedlibs:=.so)        \
 $(var/staticlibs:=.a)         \
+$(var/staticlibs:=.pic.a)     \
 $(var/staticlibs:=.wa)        \
+$(var/staticlibs:=.pic.wa)    \
 : FORCE | __setup_buildsys_trampoline
 	$(msg/echo) 'building `$@'\'' ...'
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
