@@ -11,19 +11,24 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_CONTAINER_H
-#define IS_LIB_COMMON_CONTAINER_H
+#ifndef IS_LIB_COMMON_ZCHK_CONTAINER_H
+#define IS_LIB_COMMON_ZCHK_CONTAINER_H
 
-#include "core.h"
+#include "container.h"
 
-#include "container-dlist.h"
-#include "container-htlist.h"
-#include "container-list.h"
-#include "container-qhash.h"
-#include "container-qvector.h"
-#include "container-qheap.h"
-#include "container-rbtree.h"
-#include "container-ring.h"
-#include "container-slist.h"
+typedef struct test_node_t {
+    int pos;
+    int val;
+} test_node_t;
 
-#endif
+#define TEST_NODE_CMP(a, op, b)  ((a)->val op (b)->val)
+
+static ALWAYS_INLINE void test_node_set_pos(test_node_t *node, int pos)
+{
+    node->pos = pos;
+}
+
+qhp_min_t(test_heap, test_node_t *, TEST_NODE_CMP, test_node_set_pos);
+
+
+#endif /* IS_LIB_COMMON_ZCHK_CONTAINER_H */
