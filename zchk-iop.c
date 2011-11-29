@@ -945,7 +945,7 @@ Z_GROUP_EXPORT(iop)
             ps = ps_init(map, sts.st_size);
             while (ps_len(&ps) > 0) {
                 t_scope;
-                uint32_t dlen;
+                uint32_t dlen = 0;
                 tstiop__repeated__t sr_res;
 
                 Z_ASSERT_N(ps_get_cpu32(&ps, &dlen));
