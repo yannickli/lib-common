@@ -129,7 +129,7 @@ struct MyStructG {
     ulong h     = 8;
     bytes i     = "default data value";
     string j    = "fo\"o?cbaré©";
-    MyEnumA k;
+    MyEnumA k   = MY_ENUM_A_C;
     double l    = 10.5;
     bool m      = true;
 };

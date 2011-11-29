@@ -171,8 +171,8 @@ static int iop_std_test_struct(const iop_struct_t *st, void *v,
     t_qv_init(i32, &szs, 1024);
 
     /* packing */
-    Z_ASSERT((len = iop_bpack_size(st, v, &szs)) > 0,
-             "invalid structure size (%s, %s)", st->fullname.s, info);
+    Z_ASSERT_N((len = iop_bpack_size(st, v, &szs)),
+               "invalid structure size (%s, %s)", st->fullname.s, info);
     dst = t_new(byte, len);
     iop_bpack(dst, st, v, szs.tab);
 
@@ -963,6 +963,59 @@ Z_GROUP_EXPORT(iop)
 
         iop_dso_close(&dso);
 #undef SET
+    } Z_TEST_END
+    /* }}} */
+    Z_TEST(defval, "test IOP std: do not pack default values") { /* {{{ */
+        t_scope;
+
+        tstiop__my_struct_g__t sg;
+
+        iop_dso_t *dso;
+        lstr_t path = t_lstr_cat(z_cmddir_g,
+                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+
+
+        const iop_struct_t *st_sg;
+        qv_t(i32) szs;
+        int len;
+
+        if ((dso = iop_dso_open(path.s)) == NULL)
+            Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
+
+        Z_ASSERT_P(st_sg = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructG")));
+
+        t_qv_init(i32, &szs, 1024);
+
+        /* test with all the default values */
+        iop_init(st_sg, &sg);
+        Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 0, "sg-empty");
+        Z_HELPER_RUN(iop_std_test_struct(st_sg, &sg,  "sg-empty"));
+
+        /* test with a different string length */
+        sg.j.len = sg.j.len - 1;
+        Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 15,
+                    "sg-string-len-diff");
+        Z_HELPER_RUN(iop_std_test_struct(st_sg, &sg,  "sg-string-len-diff"));
+
+        /* test with a NULL string */
+        sg.j = LSTR_NULL_V;
+        Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 0,
+                    "sg-string-null");
+
+        /* test with a different string */
+        sg.j = LSTR_IMMED_V("plop");
+        Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 7,
+                    "sg-string-diff");
+        Z_HELPER_RUN(iop_std_test_struct(st_sg, &sg,  "sg-string-diff"));
+
+        /* test with different values at different places */
+        sg.a = 42;
+        sg.f = 12;
+        sg.l = 10.6;
+        Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 20, "sg-diff");
+        Z_HELPER_RUN(iop_std_test_struct(st_sg, &sg,  "sg-diff"));
+
+        iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
 } Z_GROUP_END
