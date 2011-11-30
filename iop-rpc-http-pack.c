@@ -181,7 +181,7 @@ void __ichttp_proxify(uint64_t slot, int cmd, const void *data, int dlen)
     pstream_t ps;
     void *v;
 
-    iq->iop_res_size = dlen;
+    iq->iop_res_size = IC_MSG_HDR_LEN + dlen;
     switch (cmd) {
       case IC_MSG_OK:
         st = rpc->result;
