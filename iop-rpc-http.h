@@ -97,7 +97,9 @@ void __ichttp_proxify(uint64_t slot, int cmd, const void *data, int dlen);
 void __ichttp_reply_err(uint64_t slot, int err);
 /** \brief internal do not use directly, or know what you're doing. */
 void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const char *err);
-
+/** \brief internal do not use directly, or know what you're doing. */
+void __ichttp_forward_reply(uint64_t slot, int cmd, const void *res,
+                            const void *exn);
 
 /** \brief internal do not use directly, or know what you're doing. */
 ichttp_cb_t *

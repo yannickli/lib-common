@@ -790,4 +790,44 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
     ic_reply_throw_p(ic, slot, _mod, _if, _rpc,                             \
                      (&(IOP_RPC_T(_mod, _if, _rpc, exn)){ __VA_ARGS__ }))
 
+/** \brief Bounce an IOP answer to reply to another slot.
+ *
+ * This function may be use to forward an answer to another slot when
+ * implementing a manual proxy. It saves the reply data packing.
+ *
+ * XXX Be really careful because this function supposed that the answer has
+ * been leaved unmodified since is reception. If you want to modify it before
+ * the forwarding, then *don't* use this function and use instead
+ * ic_reply_p/ic_reply_throw_p. If you try to do this, in the best scenario
+ * your chances will be ignored, in the worst you will have a crash…
+ *
+ * Here an example of how to use this function:
+ * <code>
+ *  RPC_IMPL(pkg, foo, bar)
+ *  {
+ *      CHECK_ID_OK(arg->id);
+ *
+ *      // manual proxy
+ *      ic_msg_t *imsg = ic_msg_new(sizeof(uint64_t));
+ *      *(uint64_t *)imsg->priv = slot;
+ *      ic_query_p(remote_ic, imsg, pkg, foo, bar, arg);
+ *  }
+ *
+ *  RPC_CB(pkg, foo, bar)
+ *  {
+ *      uint64_t origin_slot = *(uint64_t *)msg->priv;
+ *
+ *      // automatic and efficient answer forwarding
+ *      __ic_forward_reply_to(origin_slot, status, res, exn);
+ *  }
+ * </code>
+ *
+ * \param[in]  slot   the slot of the query we're answering to.
+ * \param[in]  cmd    the received answer status parameter.
+ * \param[in]  res    the received answer result parameter.
+ * \param[in]  exn    the received answer exception parameter.
+ */
+void __ic_forward_reply_to(uint64_t slot, int cmd, const void *res,
+                           const void *exn);
+
 #endif

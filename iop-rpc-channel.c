@@ -118,6 +118,42 @@ static void ic_proxify(ic_msg_t *msg, int cmd, const void *data, int dlen)
     }
 }
 
+void __ic_forward_reply_to(uint64_t slot, int cmd, const void *res,
+                           const void *exn)
+{
+    ichannel_t *ic;
+
+    if (unlikely(ic_slot_is_http(slot))) {
+        __ichttp_forward_reply(slot, cmd, res, exn);
+        return;
+    }
+
+    if (cmd != IC_MSG_OK && cmd != IC_MSG_EXN) {
+        ic_reply_err(NULL, slot, cmd);
+        return;
+    }
+
+    if (unlikely(!(ic = ic_get_from_slot(slot))))
+        return;
+    if (likely(ic->elh) && likely(ic->id == slot >> 32)) {
+        ic_msg_t *tmp = ic_msg_new_fd(ic_get_fd(ic), 0);
+        pstream_t *ps = ((pstream_t **)(cmd == IC_MSG_OK ? res : exn))[-1];
+
+#ifdef IC_DEBUG_REPLIES
+        int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
+        if (pos < 0)
+            e_panic("answering to slot %d twice or unexpected answer!",
+                    (uint32_t)slot);
+#endif
+        assert (ic->pending > 0);
+        ic->pending--;
+        tmp->slot = slot & IC_MSG_SLOT_MASK;
+        tmp->cmd  = -cmd;
+        memcpy(__ic_get_buf(tmp, ps_len(ps)), ps->p, ps_len(ps));
+        ic_queue(ic, tmp, 0);
+    }
+}
+
 static void ic_cancel_all(ichannel_t *ic)
 {
     ic_msg_t *msg;
@@ -416,8 +452,11 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
     {
         t_scope;
 
-        value = t_new_raw(char, st->size);
+        value = t_new_raw(char, sizeof(pstream_t *) + st->size);
         ps    = ps_init(data, dlen);
+        *(pstream_t **)value = &ps;
+        value = (pstream_t **)value + 1;
+
         if (unlikely(iop_bunpack(t_pool(), st, value, ps, false) < 0)) {
             e_trace(0, "rpc(%04x:%04x):%s: answer with invalid encoding",
                     (tmp->cmd >> 16) & 0x7fff, tmp->cmd & 0x7fff,

@@ -207,3 +207,30 @@ void __ichttp_proxify(uint64_t slot, int cmd, const void *data, int dlen)
         }
     }
 }
+
+void __ichttp_forward_reply(uint64_t slot, int cmd, const void *res,
+                            const void *exn)
+{
+    ichttp_query_t  *iq  = ichttp_slot_to_query(slot);
+    const iop_rpc_t *rpc = iq->cbe->fun;
+    const iop_struct_t *st;
+    const void *v = (cmd == IC_MSG_OK) ? res : exn;
+    pstream_t *ps = ((pstream_t **)v)[-1];
+
+    iq->iop_res_size = IC_MSG_HDR_LEN;
+    switch (cmd) {
+      case IC_MSG_OK:
+        iq->iop_res_size += ps_len(ps);
+        st = rpc->result;
+        break;
+      case IC_MSG_EXN:
+        iq->iop_res_size += ps_len(ps);
+        st = rpc->exn;
+        break;
+      default:
+        __ichttp_reply_err(slot, cmd);
+        return;
+    }
+
+    __ichttp_reply(slot, cmd, st, v);
+}
