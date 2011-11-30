@@ -11,9 +11,12 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include "zchk-container.h"
 #include "container.h"
 #include "z.h"
 
+
+/*{{{1 Qhash */
 
 /* Keep these here, it's to check the macros are used and built */
 qh_k32_t(test);
@@ -122,6 +125,9 @@ Z_GROUP_EXPORT(qhash)
     } Z_TEST_END;
 } Z_GROUP_END
 
+/*1}}}*/
+/*{{{1 Qvectors */
+
 static _Bool qv_sort_tst(void)
 {
     bool ok = true;
@@ -148,3 +154,93 @@ Z_GROUP_EXPORT(qvector)
         Z_ASSERT(qv_sort_tst());
     } Z_TEST_END;
 } Z_GROUP_END;
+
+/*1}}}*/
+/*{{{1 Heap */
+
+Z_GROUP_EXPORT(qhp)
+{
+    Z_TEST(sort, "qhp: sort") {
+        qhp_t(i32_min)  qhp;
+        int32_t         tab[] = { 5, 2, 9, 7, 1, 3, 0, 8, 6, 4 };
+
+        qhp_inita(i32_min, &qhp, countof(tab));
+
+        for (int i = 0; i < countof(tab); i++) {
+            qhp_insert(i32_min, &qhp, tab[i]);
+            Z_ASSERT_EQ(qhp_len(i32_min, &qhp), i + 1, "unexpected length");
+        }
+
+        for (int i = 0; i < countof(tab); i++) {
+            int it;
+
+            Z_ASSERT(!qhp_is_empty(i32_min, &qhp), "qhp is empty");
+            it = qhp_take_first(i32_min, &qhp);
+
+            Z_ASSERT_EQ(it, i, "expected `%d', got `%d'", i, it);
+        }
+    } Z_TEST_END
+
+    Z_TEST(remove, "qhp: remove") {
+        qhp_t(test_heap) qhp;
+        int             tab[]       = { 5, 2, 9, 7, 1, 3, 0, 8, 6, 4 };
+        int             to_remove[] = {       2,          6,       9 };
+        int             expected[]  = {    1, 2, 3,    5, 6, 7, 8,   };
+        test_node_t     nodes[countof(tab)];
+
+        STATIC_ASSERT (countof(expected)
+                    == countof(tab) - countof(to_remove));
+
+        p_clear(nodes, countof(nodes));
+
+        for (int i = 0; i < countof(tab); i++) {
+            nodes[i].val = tab[i];
+            qhp_insert(test_heap, &qhp, &nodes[i]);
+        }
+
+        for (int i = 0; i < countof(to_remove); i++) {
+            test_node_t *node = &nodes[to_remove[i]];
+            test_node_t *removed;
+
+            Z_ASSERT_EQ(qhp_len(test_heap, &qhp), countof(nodes) - i,
+                        "unexpected qhp length");
+            removed = qhp_remove(test_heap, &qhp, node->pos);
+            Z_ASSERT(node == removed, "removed wrong node");
+        }
+
+        Z_ASSERT_EQ(qhp_len(test_heap, &qhp), countof(expected),
+                    "unexpected qhp length");
+
+        for (int i = 0; i < countof(expected); i++) {
+            int val = qhp_take_first(test_heap, &qhp)->val;
+
+            Z_ASSERT_EQ(expected[i], val, "expected `%d', got `%d'",
+                        expected[i], val);
+        }
+
+        Z_ASSERT(qhp_is_empty(test_heap, &qhp), "qhp is not empty");
+    } Z_TEST_END
+
+    Z_TEST(lstr, "qhp: lstr") {
+        t_scope;
+        qhp_t(lstr_min)  qhp;
+        lstr_t           toto = LSTR_IMMED_V("toto");
+        lstr_t           tata = LSTR_IMMED_V("tata");
+        lstr_t           tutu = LSTR_IMMED_V("tutu");
+
+        t_qhp_init(lstr_min, &qhp, 3);
+
+        qhp_insert(lstr_min, &qhp, &toto);
+        qhp_insert(lstr_min, &qhp, &tata);
+        qhp_insert(lstr_min, &qhp, &tutu);
+
+        Z_ASSERT_LSTREQUAL(tata, *qhp_take_first(lstr_min, &qhp),
+                           "expected \"toto\"");
+        Z_ASSERT_LSTREQUAL(toto, *qhp_take_first(lstr_min, &qhp),
+                           "expected \"tata\"");
+        Z_ASSERT_LSTREQUAL(tutu, *qhp_take_first(lstr_min, &qhp),
+                           "expected \"tutu\"");
+    } Z_TEST_END
+} Z_GROUP_END
+
+/*1}}}*/

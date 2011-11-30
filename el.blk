@@ -42,98 +42,25 @@ static bool use_big_lock_g = false;
  *
  */
 
-typedef enum ev_type_t {
-    EV_UNUSED,
-    EV_BLOCKER,
-    EV_BEFORE,
-    EV_SIGNAL,
-    EV_CHILD,
-    EV_FD,
-    EV_TIMER,
-    EV_PROXY,
-    EV_IDLE,
-} ev_type_t;
-
-enum ev_flags_t {
-    EV_FLAG_REFS          = (1U <<  0),
-    EV_FLAG_TRACE         = (1U <<  1),
-    EV_FLAG_IS_BLK        = (1U <<  2),
-
-    EV_FLAG_TIMER_NOMISS  = (1U <<  8),
-    EV_FLAG_TIMER_LOWRES  = (1U <<  9),
-    EV_FLAG_TIMER_UPDATED = (1U << 10),
-
-    EV_FLAG_FD_WATCHED    = (1U <<  8),
-#define EV_FLAG_HAS(ev, f)   ((ev)->flags & EV_FLAG_##f)
-#define EV_FLAG_SET(ev, f)   ((ev)->flags |= EV_FLAG_##f)
-#define EV_FLAG_RST(ev, f)   ((ev)->flags &= ~EV_FLAG_##f)
-
-#ifndef NDEBUG
-#define EV_IS_TRACED(ev)   unlikely(EV_FLAG_HAS(ev, TRACE))
-#else
-#define EV_IS_TRACED(ev)   0
-#endif
-};
-
-typedef struct ev_t {
-    uint8_t   type;             /* ev_type_t */
-    uint8_t   signo;            /* EV_SIGNAL */
-    uint16_t  flags;
-    union {
-        uint16_t  events_avail; /* EV_PROXY */
-        uint16_t  events_act;   /* EV_FD    */
-    };
-    uint16_t  events_wanted;    /* EV_PROXY, EV_FD */
-
-    union {
-        el_cb_f     *cb;
-        el_signal_f *signal;
-        el_child_f  *child;
-        el_fd_f     *fd;
-        el_proxy_f  *prox;
-
-        el_cb_b      cb_blk;
-        el_signal_b  signal_blk;
-        el_child_b   child_blk;
-        el_fd_b      fd_blk;
-        el_proxy_b   proxy_blk;
-    } cb;
-    union {
-        el_data_t priv;
-        block_t   wipe;
-    };
-
-    union {
-        dlist_t ev_list;        /* EV_BEFORE, EV_SIGNAL, EV_PROXY */
-        int     fd;             /* EV_FD */
-        pid_t   pid;            /* EV_CHILD */
-        struct {
-            uint64_t expiry;
-            int      repeat;
-            int      heappos;
-        } timer;                /* EV_TIMER */
-    };
-} ev_t;
-
 qm_k32_t(ev_assoc, ev_t *);
 qm_k64_t(ev, ev_t *);
 
 static struct {
     volatile uint32_t gotsigs;
-    int      active;          /* number of ev_t keeping the el_loop running */
-    uint8_t  unloop;          /* @see el_unloop()                           */
-    uint8_t  has_run;         /* true if we did something during a loop     */
-    uint64_t lp_clk;          /* low precision monotonic clock              */
+    int       active;         /* number of ev_t keeping the el_loop running */
+    uint8_t   unloop;         /* @see el_unloop()                           */
+    uint8_t   has_run;        /* true if we did something during a loop     */
+    uint64_t  lp_clk;         /* low precision monotonic clock              */
 
-    dlist_t  idle;            /* ev_t to run when we're "idle"              */
-    dlist_t  idle_parked;     /* list to hide idle hooks for a while        */
-    dlist_t  before;          /* ev_t to run just before the epoll call     */
-    dlist_t  sigs;            /* signals el_t's                             */
-    dlist_t  proxy, proxy_ready;
-    qv_t(ev) timers;          /* relative timers heap (see comments after)  */
-    qv_t(ev) cache;
+    dlist_t   idle;           /* ev_t to run when we're "idle"              */
+    dlist_t   idle_parked;    /* list to hide idle hooks for a while        */
+    dlist_t   before;         /* ev_t to run just before the epoll call     */
+    dlist_t   sigs;           /* signals el_t's                             */
+    dlist_t   proxy, proxy_ready;
+    qhp_t(timer) timers;      /* relative timers heap (see comments after)  */
+    qv_t(ev)  cache;
     qm_t(ev_assoc) childs;    /* el_t's watching for processes              */
-    qm_t(ev) fd_act;          /* el_t's timers to el_t fds map              */
+    qm_t(ev)  fd_act;         /* el_t's timers to el_t fds map              */
 
     /*----- allocation stuff -----*/
 #define EV_ALLOC_FACTOR  10   /* basic segment is 1024 events               */
@@ -520,94 +447,13 @@ pid_t el_child_getpid(el_t ev)
  * timers.
  */
 
-#define EVT(pos)         _G.timers.tab[pos]
-#define CHILD_L(pos)     (2 * (pos) + 1)
-#define CHILD_R(pos)     (CHILD_L(pos) + 1)
-#define PARENT(pos)      (((pos) - 1) / 2)
-#define EVTSET(pos, ev)  do { EVT(pos) = (ev); \
-                              (ev)->timer.heappos = (pos); } while (0)
-
-static void el_timer_heapdown(int pos)
-{
-    ev_t *ev = EVT(pos);
-
-    while (CHILD_L(pos) < _G.timers.len) {
-        int child = CHILD_L(pos);
-        ev_t *ec = EVT(child);
-
-        if (child + 1 < _G.timers.len) {
-            child += (ec->timer.expiry > EVT(child + 1)->timer.expiry);
-            ec = EVT(child);
-        }
-        if (ev->timer.expiry <= ec->timer.expiry)
-            break;
-
-        EVTSET(pos, ec);
-        pos = child;
-    }
-
-    EVTSET(pos, ev);
-}
-
-static void el_timer_heapup(int pos)
-{
-    ev_t *ev = EVT(pos);
-
-    /* while we are not at the top */
-    while (pos > 0) {
-        int parent = PARENT(pos);
-        ev_t *ep = EVT(parent);
-
-        if (ep->timer.expiry <= ev->timer.expiry)
-            break;
-
-        EVTSET(pos, ep);
-        pos = parent;
-    }
-
-    EVTSET(pos, ev);
-}
-
-static void el_timer_heapinsert(ev_t *ev)
-{
-    qv_append(ev, &_G.timers, ev);
-    ev->timer.heappos = _G.timers.len - 1;
-    el_timer_heapup(_G.timers.len - 1);
-}
-
-static void el_timer_heapfix(ev_t *ev)
-{
-    int pos = ev->timer.heappos;
-
-    if (pos > 0 && EVT(PARENT(pos))->timer.expiry >= ev->timer.expiry) {
-        el_timer_heapup(pos);
-    } else {
-        el_timer_heapdown(pos);
-    }
-}
-
-static el_data_t el_timer_heapremove(ev_t **evp)
-{
-    int   pos = (*evp)->timer.heappos;
-    ev_t *end = *qv_last(ev, &_G.timers);
-
-    qv_shrink(ev, &_G.timers, 1);
-    CHECK_EV_TYPE(*evp, EV_TIMER);
-    if (*evp != end) {
-        EVTSET(pos, end);
-        el_timer_heapfix(end);
-    }
-    (*evp)->timer.heappos = -1;
-    return el_destroy(evp, false);
-}
-
 static void el_timer_process(uint64_t until)
 {
     struct timeval tv;
 
     lp_gettv(&tv);
-    while (_G.timers.len) {
-        ev_t *ev = EVT(0);
+    while (!qhp_is_empty(timer, &_G.timers)) {
+        ev_t *ev = qhp_first(timer, &_G.timers);
 
         ASSERT("should be a timer", ev->type == EV_TIMER);
         if (ev->timer.expiry > until)
@@ -632,10 +478,10 @@ static void el_timer_process(uint64_t until)
 
                 ev->timer.expiry += ROUND_UP(delta, (uint64_t)ev->timer.repeat);
             }
-            el_timer_heapdown(0);
+            __qhp_down(timer, &_G.timers, 0);
         } else
         if (!EV_FLAG_HAS(ev, TIMER_UPDATED)) {
-            el_timer_heapremove(&ev);
+            el_timer_unregister(&ev);
         }
     }
 }
@@ -645,7 +491,7 @@ static uint64_t get_clock(bool lowres)
     struct timespec ts;
     int res;
 
-    if (_G.timers.len > 1 && lowres && likely(_G.lp_clk))
+    if (qhp_len(timer, &_G.timers) > 1 && lowres && likely(_G.lp_clk))
         return _G.lp_clk;
 
 #if   defined(CLOCK_MONOTONIC) /* POSIX   */
@@ -677,7 +523,7 @@ ev_t *el_timer_register_d(int next, int repeat, int flags, el_cb_f *cb, el_data_
         ev->timer.repeat = -next;
     }
     ev->timer.expiry = (uint64_t)next + get_clock(TIMER_IS_LOWRES(ev, next));
-    el_timer_heapinsert(ev);
+    qhp_insert(timer, &_G.timers, ev);
     return ev;
 }
 
@@ -698,7 +544,7 @@ static ALWAYS_INLINE void el_timer_restart_fast(ev_t *ev, uint64_t restart)
 {
     ev->timer.expiry = (uint64_t)restart + get_clock(TIMER_IS_LOWRES(ev, restart));
     EV_FLAG_SET(ev, TIMER_UPDATED);
-    el_timer_heapfix(ev);
+    qhp_fixup(timer, &_G.timers, ev->timer.heappos);
 }
 
 void el_timer_restart(ev_t *ev, int restart)
@@ -715,7 +561,12 @@ void el_timer_restart(ev_t *ev, int restart)
 
 el_data_t el_timer_unregister(ev_t **evp)
 {
-    return *evp ? el_timer_heapremove(evp) : (el_data_t)NULL;
+    if (unlikely(!*evp))
+        return (el_data_t)NULL;
+
+    qhp_remove(timer, &_G.timers, (*evp)->timer.heappos);
+
+    return el_destroy(evp, false);
 }
 
 bool el_timer_is_repeated(el_t ev)
@@ -736,7 +587,7 @@ static ALWAYS_INLINE ev_t *el_fd_act_timer_unregister(ev_t *timer)
     ev = _G.fd_act.values[pos];
     EV_FLAG_RST(ev, FD_WATCHED);
     ev->priv = timer->priv;
-    el_timer_heapremove(&timer);
+    el_timer_unregister(&timer);
     return ev;
 }
 
@@ -849,7 +700,7 @@ int el_fd_loop(ev_t *ev, int timeout)
     CHECK_EV_TYPE(ev, EV_FD);
 
     res = poll(&pfd, 1, timeout);
-    if (_G.timers.len)
+    if (!qhp_is_empty(timer, &_G.timers))
         el_timer_process(get_clock(false));
     if (res == 1 && likely(ev->type == EV_FD))
         el_fd_fire(ev, pfd.revents);
@@ -1007,8 +858,8 @@ void el_loop_timeout(int timeout)
     uint64_t clk = get_clock(false);
 
     el_timer_process(clk);
-    if (_G.timers.len) {
-        uint64_t nxt = EVT(0)->timer.expiry;
+    if (!qhp_is_empty(timer, &_G.timers)) {
+        uint64_t nxt = qhp_first(timer, &_G.timers)->timer.expiry;
         if (nxt < (uint64_t)timeout + clk)
             timeout = nxt - clk;
     }
