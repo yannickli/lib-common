@@ -92,4 +92,14 @@ typedef struct ev_t {
 
 qvector_t(ev, ev_t *);
 
+#define TIMER_CMP(ev1, op, ev2)  \
+    ((ev1)->timer.expiry op (ev2)->timer.expiry)
+
+static ALWAYS_INLINE void ev_set_qhp_pos(ev_t *ev, int pos)
+{
+    ev->timer.heappos = pos;
+}
+
+qhp_min_t(timer, ev_t *, TIMER_CMP, ev_set_qhp_pos);
+
 #endif
