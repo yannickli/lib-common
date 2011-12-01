@@ -1084,9 +1084,11 @@ Z_GROUP_EXPORT(iop)
             struct stat sts;
             pstream_t ps;
 
+            path = t_lstr_cat(z_cmddir_g,
+                              LSTR_IMMED_V("samples/repeated.ibp"));
+
             /* map our data file */
-            Z_ASSERT_N(fd = open("samples/repeated.ibp", O_RDONLY),
-                       "open failed: %m");
+            Z_ASSERT_N(fd = open(path.s, O_RDONLY), "open failed: %m");
             Z_ASSERT_N(fstat(fd, &sts), "fstat failed: %m");
             Z_ASSERT_GT(sts.st_size, 0);
 
