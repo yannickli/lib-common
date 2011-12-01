@@ -134,7 +134,7 @@ struct MyStructG {
     ulong h     = 8;
     bytes i     = "default data value";
     string j    = "fo\"o?cbaré©";
-    MyEnumA k;
+    MyEnumA k   = MY_ENUM_A_C;
     double l    = 10.5;
     bool m      = true;
 };
@@ -180,6 +180,19 @@ struct MyStructJ {
 
 struct MyStructK {
     MyStructJ   j;
+};
+
+struct Repeated {
+    /* optimized fields */
+    byte[]   i8;
+    ubyte[]  u8;
+    bool[]   b;
+    short[]  i16;
+    ushort[] u16;
+
+    /* generic repeated values */
+    int[]    i32;
+    string[] s;
 };
 
 struct MyAException {

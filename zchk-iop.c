@@ -200,8 +200,8 @@ static int iop_std_test_struct(const iop_struct_t *st, void *v,
     t_qv_init(i32, &szs, 1024);
 
     /* packing */
-    Z_ASSERT((len = iop_bpack_size(st, v, &szs)) > 0,
-             "invalid structure size (%s, %s)", st->fullname.s, info);
+    Z_ASSERT_N((len = iop_bpack_size(st, v, &szs)),
+               "invalid structure size (%s, %s)", st->fullname.s, info);
     dst = t_new(byte, len);
     iop_bpack(dst, st, v, szs.tab);
 
@@ -995,6 +995,178 @@ Z_GROUP_EXPORT(iop)
         IOP_OPT_SET(sa_opt.a, 32);
         sa_opt.j = LSTR_IMMED_V("foo");
         Z_HELPER_RUN(iop_std_test_struct(st_sa_opt, &sa_opt, "sa_opt"));
+
+        iop_dso_close(&dso);
+    } Z_TEST_END
+    /* }}} */
+    Z_TEST(roptimized, "test IOP std: optimized repeated fields") { /* {{{ */
+        t_scope;
+
+        tstiop__repeated__t sr;
+        const iop_struct_t *st;
+
+        int8_t   *i8;
+        uint8_t  *u8;
+        bool     *b;
+        int16_t  *i16;
+        uint16_t *u16;
+        int32_t  *i32;
+
+        lstr_t s[] = {
+            LSTR_IMMED("foo"),
+            LSTR_IMMED("bar"),
+            LSTR_IMMED("foobar"),
+        };
+
+        iop_dso_t *dso;
+        lstr_t path = t_lstr_cat(z_cmddir_g,
+                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+        unsigned seed = (unsigned)time(NULL);
+
+
+
+        if ((dso = iop_dso_open(path.s)) == NULL)
+            Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
+
+        Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.Repeated")));
+
+        /* initialize my arrays */
+        {
+            const int sz = 256;
+
+            i8  = t_new_raw(int8_t, sz);
+            u8  = t_new_raw(uint8_t, sz);
+            i16 = t_new_raw(int16_t, sz);
+            u16 = t_new_raw(uint16_t, sz);
+            b   = t_new_raw(bool, sz);
+            i32 = t_new_raw(int32_t, sz);
+
+            for (int i = 0; i < sz; i++) {
+                i8[i]  = (int8_t)i;
+                u8[i]  = (uint8_t)i;
+                i16[i] = (int16_t)i;
+                u16[i] = (uint16_t)i;
+                b[i]   = (bool)i;
+                i32[i] = i;
+            }
+        }
+
+        /* do some tests… */
+#define SET(dst, f, _len)  ({ dst.f.tab = f; dst.f.len = (_len); })
+#define SET_RAND(dst, f)   ({ dst.f.tab = f; dst.f.len = (rand() % 256); })
+        iop_init(st, &sr);
+        SET(sr, i8, 13);
+        Z_HELPER_RUN(iop_std_test_struct(st, &sr,  "sr1"));
+
+        iop_init(st, &sr);
+        SET(sr, i8, 13);
+        SET(sr, i32, 4);
+        Z_HELPER_RUN(iop_std_test_struct(st, &sr,  "sr2"));
+
+        srand(seed);
+        e_trace(1, "rand seed: %u", seed);
+        for (int i = 0; i < 256; i++ ) {
+            iop_init(st, &sr);
+            SET_RAND(sr, i8);
+            SET_RAND(sr, u8);
+            SET_RAND(sr, i16);
+            SET_RAND(sr, u16);
+            SET_RAND(sr, b);
+            SET_RAND(sr, i32);
+            SET(sr, s, rand() % (countof(s) + 1));
+            Z_HELPER_RUN(iop_std_test_struct(st, &sr,  "sr_rand"));
+        }
+
+        /* Check the retro-compatibility */
+        {
+            void *map;
+            int fd;
+            struct stat sts;
+            pstream_t ps;
+
+            /* map our data file */
+            Z_ASSERT_N(fd = open("samples/repeated.ibp", O_RDONLY),
+                       "open failed: %m");
+            Z_ASSERT_N(fstat(fd, &sts), "fstat failed: %m");
+            Z_ASSERT_GT(sts.st_size, 0);
+
+            map = mmap(NULL, sts.st_size, PROT_READ, MAP_SHARED, fd, 0);
+            Z_ASSERT(map != MAP_FAILED, "mmap failed: %m");
+            close(fd);
+
+            /* check the data */
+            ps = ps_init(map, sts.st_size);
+            while (ps_len(&ps) > 0) {
+                t_scope;
+                uint32_t dlen = 0;
+                tstiop__repeated__t sr_res;
+
+                Z_ASSERT_N(ps_get_cpu32(&ps, &dlen));
+                Z_ASSERT(ps_has(&ps, dlen));
+
+                iop_init(st, &sr);
+                Z_ASSERT_N(iop_bunpack(t_pool(), st, &sr_res,
+                                       __ps_get_ps(&ps, dlen), false),
+                           "IOP unpacking error (%s) at offset %zu",
+                           st->fullname.s, ps.b - (byte *)map);
+            }
+
+            munmap(map, sts.st_size);
+        }
+
+        iop_dso_close(&dso);
+#undef SET
+    } Z_TEST_END
+    /* }}} */
+    Z_TEST(defval, "test IOP std: do not pack default values") { /* {{{ */
+        t_scope;
+
+        tstiop__my_struct_g__t sg;
+
+        iop_dso_t *dso;
+        lstr_t path = t_lstr_cat(z_cmddir_g,
+                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+
+
+        const iop_struct_t *st_sg;
+        qv_t(i32) szs;
+        int len;
+
+        if ((dso = iop_dso_open(path.s)) == NULL)
+            Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
+
+        Z_ASSERT_P(st_sg = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructG")));
+
+        t_qv_init(i32, &szs, 1024);
+
+        /* test with all the default values */
+        iop_init(st_sg, &sg);
+        Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 0, "sg-empty");
+        Z_HELPER_RUN(iop_std_test_struct(st_sg, &sg,  "sg-empty"));
+
+        /* test with a different string length */
+        sg.j.len = sg.j.len - 1;
+        Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 15,
+                    "sg-string-len-diff");
+        Z_HELPER_RUN(iop_std_test_struct(st_sg, &sg,  "sg-string-len-diff"));
+
+        /* test with a NULL string */
+        sg.j = LSTR_NULL_V;
+        Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 0,
+                    "sg-string-null");
+
+        /* test with a different string */
+        sg.j = LSTR_IMMED_V("plop");
+        Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 7,
+                    "sg-string-diff");
+        Z_HELPER_RUN(iop_std_test_struct(st_sg, &sg,  "sg-string-diff"));
+
+        /* test with different values at different places */
+        sg.a = 42;
+        sg.f = 12;
+        sg.l = 10.6;
+        Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 20, "sg-diff");
+        Z_HELPER_RUN(iop_std_test_struct(st_sg, &sg,  "sg-diff"));
 
         iop_dso_close(&dso);
     } Z_TEST_END

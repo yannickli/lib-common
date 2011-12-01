@@ -322,6 +322,46 @@ bool iop_equals(const iop_struct_t *st, const void *v1, const void *v2)
     return __iop_equals(st, v1, v2);
 }
 
+static inline bool
+iop_field_is_defval(const iop_field_t *fdesc, const void *ptr)
+{
+    assert (fdesc->repeat == IOP_R_DEFVAL);
+
+    switch (fdesc->type) {
+      case IOP_T_I8: case IOP_T_U8:
+        return *(uint8_t *)ptr == (uint8_t)fdesc->u1.defval_u64;
+      case IOP_T_I16: case IOP_T_U16:
+        return *(uint16_t *)ptr == (uint16_t)fdesc->u1.defval_u64;
+      case IOP_T_ENUM:
+        return *(int *)ptr == fdesc->u0.defval_enum;
+      case IOP_T_I32: case IOP_T_U32:
+        return *(uint32_t *)ptr == (uint32_t)fdesc->u1.defval_u64;
+      case IOP_T_I64: case IOP_T_U64:
+      case IOP_T_DOUBLE:
+        /* XXX double is handled like U64 because we want to compare them as
+         * bit to bit */
+        return *(uint64_t *)ptr == fdesc->u1.defval_u64;
+      case IOP_T_BOOL:
+        return fdesc->u1.defval_u64 ? *(bool *)ptr : !*(bool *)ptr;
+      case IOP_T_STRING:
+      case IOP_T_XML:
+      case IOP_T_DATA:
+        if (!fdesc->u0.defval_len) {
+            /* In this case we don't care about the string pointer. An empty
+             * string is an empty string whatever its pointer is. */
+            return !((iop_data_t *)ptr)->len;
+        } else {
+            /* We consider a NULL string as “take the default value please”
+             * and otherwise we check for the pointer equality. */
+            return !((iop_data_t *)ptr)->data
+                || (((iop_data_t *)ptr)->data == fdesc->u1.defval_data
+                 && ((iop_data_t *)ptr)->len  == fdesc->u0.defval_len);
+        }
+      default:
+        e_panic("unsupported");
+    }
+}
+
 /*----- duplicating values -}}}-*/
 /*----- hashing values -{{{-*/
 
@@ -594,14 +634,27 @@ int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
                 continue;
             if ((1 << fdesc->type) & IOP_STRUCTS_OK)
                 ptr = *(void **)ptr;
-        }
+        } else
         if (fdesc->repeat == IOP_R_REPEATED) {
             n   = ((iop_data_t *)ptr)->len;
             ptr = ((iop_data_t *)ptr)->data;
             if (n == 0)
                 continue;
-            if (n > 1)
+            if (n > 1) {
+                if ((1 << fdesc->type) & IOP_REPEATED_OPTIMIZE_OK) {
+                    int32_t i32 = n * fdesc->size;
+
+                    len += 1 + fdesc->tag_len;
+                    len += get_len_len(i32) + i32;
+                    continue;
+                }
                 len += 4 + n;
+            }
+        } else
+        if (fdesc->repeat == IOP_R_DEFVAL) {
+            /* Skip the field is it's still equal to its default value */
+            if (iop_field_is_defval(fdesc, ptr))
+                continue;
         }
 
         len += 1 + fdesc->tag_len;
@@ -733,31 +786,6 @@ static uint8_t *pack_value_vec(uint8_t *dst, const iop_field_t *f,
     uint32_t len;
 
     switch (f->type) {
-      case IOP_T_I8:
-        do {
-            dst    = pack_tag(dst, 0, 0, IOP_WIRE_MASK(INT1));
-            *dst++ = *(int8_t *)v;
-            v      = (char *)v + 1;
-        } while (--n > 0);
-        return dst;
-      case IOP_T_U8:
-        do {
-            dst = pack_int32(dst, 0, 0, *(uint8_t *)v);
-            v   = (char *)v + 1;
-        } while (--n > 0);
-        return dst;
-      case IOP_T_I16:
-        do {
-            dst = pack_int32(dst, 0, 0, *(int16_t *)v);
-            v   = (char *)v + 2;
-        } while (--n > 0);
-        return dst;
-      case IOP_T_U16:
-        do {
-            dst = pack_int32(dst, 0, 0, *(uint16_t *)v);
-            v   = (char *)v + 2;
-        } while (--n > 0);
-        return dst;
       case IOP_T_I32:
       case IOP_T_ENUM:
         do {
@@ -776,14 +804,6 @@ static uint8_t *pack_value_vec(uint8_t *dst, const iop_field_t *f,
         do {
             dst = pack_int64(dst, 0, 0, *(int64_t *)v);
             v   = (char *)v + 8;
-        } while (--n > 0);
-        return dst;
-      case IOP_T_BOOL:
-        do {
-            /* bool are mapped to 0 or 1 */
-            dst    = pack_tag(dst, 0, 0, IOP_WIRE_MASK(INT1));
-            *dst++ = !!*(bool *)v;
-            v      = (bool *)v + 1;
         } while (--n > 0);
         return dst;
       case IOP_T_DOUBLE:
@@ -812,13 +832,15 @@ static uint8_t *pack_value_vec(uint8_t *dst, const iop_field_t *f,
         } while (--n > 0);
         return dst;
       case IOP_T_STRUCT:
-      default:
         do {
             dst = pack_len(dst, 0, 0, *(*szsp)++);
             dst = pack_struct(dst, f->u1.st_desc, v, szsp);
             v   = (char *)v + f->size;
         } while (--n > 0);
         return dst;
+
+      default:
+        e_panic("should not happen");
     }
 }
 
@@ -836,7 +858,7 @@ pack_struct(void *dst, const iop_struct_t *desc, const void *v, const int **szsp
                 continue;
             if ((1 << f->type) & IOP_STRUCTS_OK)
                 ptr = *(void **)ptr;
-        }
+        } else
         if (f->repeat == IOP_R_REPEATED) {
             const iop_data_t *data = ptr;
 
@@ -844,12 +866,29 @@ pack_struct(void *dst, const iop_struct_t *desc, const void *v, const int **szsp
                 continue;
             ptr = data->data;
             if (data->len > 1) {
-                dst = pack_tag(dst, f->tag, f->tag_len, IOP_WIRE_MASK(REPEAT));
-                dst = put_unaligned_le32(dst, data->len);
-                dst = pack_value_vec(dst, f, ptr, data->len, szsp);
+                if ((1 << f->type) & IOP_REPEATED_OPTIMIZE_OK) {
+                    /* When data unit is really small (byte, bool, …) we
+                     * prefer to pack them in one big block */
+                    uint32_t sz = data->len * f->size;
+
+                    assert (f->size <= 2);
+                    dst = pack_len(dst, f->tag, f->tag_len, sz);
+                    dst = mempcpy(dst, data->data, sz);
+                } else {
+                    dst = pack_tag(dst, f->tag, f->tag_len,
+                                   IOP_WIRE_MASK(REPEAT));
+                    dst = put_unaligned_le32(dst, data->len);
+                    dst = pack_value_vec(dst, f, ptr, data->len, szsp);
+                }
                 continue;
             }
+        } else
+        if (f->repeat == IOP_R_DEFVAL) {
+            /* Skip the field is it's still equal to its default value */
+            if (iop_field_is_defval(f, ptr))
+                continue;
         }
+
         dst = pack_value(dst, f, ptr, szsp);
     }
     return dst;
@@ -1225,6 +1264,47 @@ static int unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
         if (fdesc->repeat == IOP_R_REPEATED) {
             iop_data_t *data = v;
 
+            if (wt != IOP_WIRE_REPEAT
+            &&  ((1 << fdesc->type) & IOP_REPEATED_OPTIMIZE_OK))
+            {
+                /* optimized version of repeated fields are packed in simples
+                 * IOP blocks */
+                uint32_t len;
+
+                switch (wt) {
+                  case IOP_WIRE_BLK1:
+                    PS_CHECK(get_uint32(ps, 1, &len));
+                    break;
+                  case IOP_WIRE_BLK2:
+                    PS_CHECK(get_uint32(ps, 2, &len));
+                    break;
+                  case IOP_WIRE_BLK4:
+                    PS_CHECK(get_uint32(ps, 4, &len));
+                    break;
+                  default:
+                    /* Here we expect to have a uniq-value packed as a normal
+                     * field (data->len == 1) */
+                    goto unpack_array;
+                }
+                PS_WANT(ps_has(ps, len));
+
+                if (fdesc->size == 1) {
+                    data->len = len;
+                    data->data = (copy ? mp_dup(mp, ps->s, len)
+                                       : (void *)ps->p);
+                } else {
+                    assert (fdesc->size == 2);
+                    PS_WANT(len % 2 == 0);
+                    data->len  = len / 2;
+                    data->data = mp_dup(mp, ps->s, len);
+                }
+
+                __ps_skip(ps, len);
+                fdesc++;
+                continue;
+            }
+
+          unpack_array:
             data->len  = n;
             data->data = v = mp->malloc(mp, n * fdesc->size, MEM_RAW);
 

@@ -1748,13 +1748,20 @@ void httpc_pool_close_clients(httpc_pool_t *pool)
     }
 }
 
-void httpc_pool_wipe(httpc_pool_t *pool)
+void httpc_pool_wipe(httpc_pool_t *pool, bool wipe_conns)
 {
-    dlist_for_each_safe(it, &pool->busy_list) {
-        httpc_pool_detach(dlist_entry(it, httpc_t, pool_link));
-    }
-    dlist_for_each_safe(it, &pool->ready_list) {
-        httpc_pool_detach(dlist_entry(it, httpc_t, pool_link));
+    dlist_t l = DLIST_INIT(l);
+
+    dlist_splice(&l, &pool->busy_list);
+    dlist_splice(&l, &pool->ready_list);
+    dlist_for_each_safe(it, &l) {
+        httpc_t *hc = dlist_entry(it, httpc_t, pool_link);
+
+        if (wipe_conns) {
+            httpc_close(&hc);
+        } else {
+            httpc_pool_detach(hc);
+        }
     }
     lstr_wipe(&pool->host);
     httpc_cfg_delete(&pool->cfg);
