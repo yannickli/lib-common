@@ -508,4 +508,10 @@ static inline const void *ps_get_block(pstream_t *ps, size_t len, size_t align) 
 #define ps_get_type8(ps, type_t)    ((type_t *)ps_get_block(ps, sizeof(type_t), 8))
 
 
+/****************************************************************************/
+/* misc helpers                                                             */
+/****************************************************************************/
+
+#define PS_FMT_ARG(ps)  (int)ps_len(ps), (ps)->s
+
 #endif
