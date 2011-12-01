@@ -1755,12 +1755,10 @@ void httpc_pool_wipe(httpc_pool_t *pool, bool wipe_conns)
     dlist_splice(&l, &pool->busy_list);
     dlist_splice(&l, &pool->ready_list);
     dlist_for_each_safe(it, &l) {
-        httpc_t *hc = dlist_entry(it, httpc_t, pool_link);
-
         if (wipe_conns) {
-            httpc_close(&hc);
+            obj_release(dlist_entry(it, httpc_t, pool_link));
         } else {
-            httpc_pool_detach(hc);
+            httpc_pool_detach(dlist_entry(it, httpc_t, pool_link));
         }
     }
     lstr_wipe(&pool->host);
