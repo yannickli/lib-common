@@ -63,5 +63,11 @@ uint64_t icrc64(uint64_t crc, const void *data, ssize_t len);
 
 uint32_t hsieh_hash(const void *s, int len);
 uint32_t jenkins_hash(const void *s, int len);
+static inline uint32_t mem_hash32(const void *data, ssize_t len)
+{
+    if (unlikely(len < 0))
+        len = strlen((const char *)data);
+    return jenkins_hash(data, len);
+}
 
 #endif

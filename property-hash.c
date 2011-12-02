@@ -42,7 +42,7 @@ static uint64_t getkey(const props_hash_t *ph, const char *name, bool insert)
     }
     buf[len] = '\0';
 
-    h   = jenkins_hash(buf, len);
+    h   = mem_hash32(buf, len);
     pos = qh_find_h(str, ph->names, h, buf);
     if (pos >= 0)
         return (uintptr_t)ph->names->keys[pos];
