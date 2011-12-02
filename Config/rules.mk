@@ -116,7 +116,7 @@ $(foreach t,$3,$(eval $3.c_NOCHECK = block))
 $3.c: FL_=$($(1D)/_CFLAGS) $($1_CFLAGS) $($3.c_CFLAGS)
 $3.c: $3 $(CLANG) | _generated_hdr
 	$(msg/COMPILE) " BLK" $3
-	$(CLANG) -cc1 $(CLANGFLAGS) $$(FL_) -rewrite-blocks -o $$@+ $$<
+	$(CLANG) -cc1 -x c $(CLANGREWRITEFLAGS) $$(FL_) -rewrite-blocks -o $$@+ $$<
 	$(MV) $$@+ $$@ && chmod a-w $$@
 endef
 
@@ -135,7 +135,7 @@ $(foreach t,$3,$(eval $3.cc_NOCHECK = block))
 $3.cc: FL_=$($(1D)/_CXXLAGS) $($1_CXXLAGS) $($3.c_CXXLAGS)
 $3.cc: $3 $(CLANGXX) | _generated_hdr
 	$(msg/COMPILE) " BLK" $3
-	$(CLANGXX) -cc1 $(CLANGXXFLAGS) $$(FL_) -rewrite-blocks -o $$@+ $$<
+	$(CLANGXX) -cc1 -x c++ $(CLANGXXREWRITEFLAGS) $$(FL_) -rewrite-blocks -o $$@+ $$<
 	$(MV) $$@+ $$@ && chmod a-w $$@
 endef
 

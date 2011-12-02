@@ -123,6 +123,9 @@ void (*bar(void))(void) __attribute__((ifunc("foo")));
 EOF
 
 fi
+if is_clang; then
+    echo -Wno-gnu-designator
+fi
 
 echo -Wchar-subscripts
 # warn about undefined preprocessor identifiers
@@ -195,3 +198,23 @@ else
 fi
 
 echo -D_GNU_SOURCE $(getconf LFS_CFLAGS)
+
+if test "$2" = rewrite; then
+    get_internal_clang_args()
+    {
+        while test $# != 0; do
+            case "$1" in
+                '"'-internal-*)
+                    echo $1
+                    echo $2
+                    shift 2
+                    ;;
+                *)
+                    shift
+                    ;;
+            esac
+        done
+    }
+
+    get_internal_clang_args $(clang -x c${cc#clang} -'###' /dev/null 2>&1 | grep 'cc1')
+fi

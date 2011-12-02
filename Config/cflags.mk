@@ -20,9 +20,15 @@ endif
 
 $!clang-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*
 	echo -n "CLANGFLAGS := "                                  >  $@+
-	$(var/cfgdir)/cflags.sh "clang" "rewrite" | tr '\n' ' '   >> $@+
+	$(var/cfgdir)/cflags.sh "clang" | tr '\n' ' '             >> $@+
 	echo                                                      >> $@+
 	echo -n "CLANGXXFLAGS := "                                >> $@+
+	$(var/cfgdir)/cflags.sh "clang++" | tr '\n' ' '           >> $@+
+	echo                                                      >> $@+
+	echo -n "CLANGREWRITEFLAGS := "                           >> $@+
+	$(var/cfgdir)/cflags.sh "clang" "rewrite" | tr '\n' ' '   >> $@+
+	echo                                                      >> $@+
+	echo -n "CLANGXXREWRITEFLAGS := "                         >> $@+
 	$(var/cfgdir)/cflags.sh "clang++" "rewrite" | tr '\n' ' ' >> $@+
 	echo                                                      >> $@+
 	$(MV) $@+ $@
@@ -47,6 +53,9 @@ CFLAGS       += -I$/lib-common/compat -I$/
 CXXFLAGS     += -I$/lib-common/compat -I$/
 CXXFLAGS     += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
 
-CLANGFLAGS   += -I$/lib-common/compat -I$/
-CLANGXXFLAGS += -I$/lib-common/compat -I$/
-CLANGXXFLAGS += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
+CLANGFLAGS          += -I$/lib-common/compat -I$/
+CLANGREWRITEFLAGS   += -I$/lib-common/compat -I$/
+CLANGXXFLAGS        += -I$/lib-common/compat -I$/
+CLANGXXFLAGS        += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
+CLANGXXREWRITEFLAGS += -I$/lib-common/compat -I$/
+CLANGXXREWRITEFLAGS += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
