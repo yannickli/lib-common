@@ -234,18 +234,12 @@ file_exists() {
     test -e "$1" -a -r "$1"
 }
 
-SIMPA_PATH=""
-
-if file_exists "$simpa0"; then
-    SIMPA_PATH="$simpa0"
-elif file_exists "$simpa1"; then
-    SIMPA_PATH="$simpa1"
-fi
-
-if test -n "$SIMPA_PATH"; then
-    setenv "SFR_SIMPA_PATH" "$SIMPA_PATH"
-    setenv "ENABLE_SFR_SIMPA" "1"
-    setenv "WITH_SFR_SIMPA" "1"
+if file_exists "$simpa1"; then
+    setenv "SIMPA_PATH" "$simpa1";
+elif file_exists "$simpa2"; then
+    setenv "SIMPA_PATH" "$simpa2";
+elif file_exists "$simpa0"; then
+    setenv "SIMPA_PATH" "$simpa0";
 else
     setenv "ENABLE_SFR_SIMPA" "0"
     echo 2>&1 "*** kit SIMPA SFR not found"
