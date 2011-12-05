@@ -125,11 +125,15 @@ tags: | __setup_buildsys_trampoline
 etags: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile tags
 	@$(if $(shell which etags.emacs),,$(error "etags.emacs not found"))
-	cd $/ && rm TAGS && \
-		find . -name \*.h -or -name \*.hh \
-			-or -name \*.blk -or -name \*.cc \
-			-or \( -name \*.c -and -not -name \*.blk.c \) \
-			-exec etags.emacs -a '{}' \;
+	cd $/ && $(RM) TAGS                                             \
+		&&                                                      \
+		find . -name \*.hh -or -name \*.blkk                    \
+		       -or \( -name \*.cc -and -not -name \*.blkk.cc \) \
+			-print0 | xargs -0 etags.emacs -a -l c++ -      \
+		&&                                                      \
+		find . -name \*.h -or -name \*.blk                      \
+		       -or \( -name \*.c -and -not -name \*.blk.c \)    \
+			-print0 | xargs -0 etags.emacs -a -l c -
 
 ignore:
 	$(foreach v,$(CLEANFILES:/=),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
