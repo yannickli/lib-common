@@ -119,8 +119,14 @@ struct iop_enum_t {
     const lstr_t       *names;
     const int          *values;
     const int          *ranges;
-    int                 enum_len;
+    uint16_t            enum_len;
+    uint16_t            flags;
     int                 ranges_len;
+};
+
+enum iop_enum_flags_t {
+    IOP_ENUM_EXTENDED,      /**< reserved for future use */
+    IOP_ENUM_STRICT,        /**< strict packing/unpacking of enum values */
 };
 
 struct iop_struct_t {
