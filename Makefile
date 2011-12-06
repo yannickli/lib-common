@@ -167,6 +167,7 @@ zchk_SOURCES = zchk.c \
 	zchk-str.c \
 	zchk-time.c \
 	zchk-unix.c \
+	$/lib-common/iop/tstiop.a \
 	$/lib-common/libcommon.wa \
 	$/lib-common/time-lp-simple.a
 zchk_LIBS = $(libxml2_LIBS)

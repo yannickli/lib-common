@@ -182,6 +182,12 @@ struct MyStructK {
     MyStructJ   j;
 };
 
+struct MyStructL {
+    MyEnumA a;
+    MyEnumB b;
+    MyEnumC c;
+};
+
 struct Repeated {
     /* optimized fields */
     byte[]   i8;
