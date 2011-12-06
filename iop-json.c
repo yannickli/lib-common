@@ -953,6 +953,17 @@ do_double:
             *(uint16_t *)value = ll->u.i;
             break;
           case IOP_T_ENUM:
+            {
+                const iop_enum_t *en_desc = fdesc->u1.en_desc;
+
+                if (TST_BIT(&en_desc->flags, IOP_ENUM_STRICT)
+                &&  iop_ranges_search(en_desc->ranges, en_desc->ranges_len,
+                                      ll->u.i) == -1)
+                {
+                    return RJERROR_EXP_TYPE(fdesc->type);
+                }
+            }
+            /* FALLTHROUGH */
           case IOP_T_I32: case IOP_T_U32:
             *(uint32_t *)value = ll->u.i;
             break;

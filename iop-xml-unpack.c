@@ -120,13 +120,37 @@ static int get_text(xml_reader_t xr, mem_pool_t *mp, bool b64, lstr_t *str)
     return 0;
 }
 
+static int get_enum_value(xml_reader_t xr, const iop_enum_t *en_desc,
+                          int64_t *intval)
+{
+    lstr_t xval;
+    bool found = false;
+
+    RETHROW(xmlr_get_cstr_start(xr, false, &xval));
+
+    /* Try to unpack the string value */
+    *intval = iop_enum_from_lstr(en_desc, xval, &found);
+    if (!found) {
+        RETHROW(parse_int(xr, xval.s, intval));
+
+        if (TST_BIT(&en_desc->flags, IOP_ENUM_STRICT)
+        &&  iop_ranges_search(en_desc->ranges, en_desc->ranges_len,
+                              *intval) == -1)
+        {
+            return xmlr_fail(xr, "%jd is not a valid value for enum %*pM",
+                             *intval,
+                             LSTR_FMT_ARG(en_desc->fullname));
+        }
+    }
+    RETHROW(xmlr_get_cstr_done(xr));
+    return 0;
+}
+
 static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
                          const iop_field_t *fdesc, void *v, int flags)
 {
     int64_t intval = 0;
-    lstr_t xval;
     lstr_t *str = NULL;
-    bool found = false;
 
     switch (fdesc->type) {
       case IOP_T_I8: case IOP_T_U8:
@@ -138,14 +162,8 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
         *(uint16_t *)v = intval;
         break;
       case IOP_T_ENUM:
-        RETHROW(xmlr_get_cstr_start(xr, false, &xval));
-
-        /* Try to unpack the string value */
-        intval = iop_enum_from_lstr(fdesc->u1.en_desc, xval, &found);
-        if (!found)
-            RETHROW(parse_int(xr, xval.s, &intval));
+        RETHROW(get_enum_value(xr, fdesc->u1.en_desc, &intval));
         *(uint32_t *)v = intval;
-        RETHROW(xmlr_get_cstr_done(xr));
         break;
       case IOP_T_I32: case IOP_T_U32:
         RETHROW(xmlr_get_i64(xr, &intval));
@@ -194,8 +212,6 @@ static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
 
     do {
         int64_t intval = 0;
-        lstr_t xval;
-        bool found = false;
 
         if (datasize >= bufsize) {
             int size   = p_alloc_nr(bufsize);
@@ -215,14 +231,8 @@ static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
             break;
 
           case IOP_T_ENUM:
-            RETHROW(xmlr_get_cstr_start(xr, false, &xval));
-
-            /* Try to unpack the string value */
-            intval = iop_enum_from_lstr(fdesc->u1.en_desc, xval, &found);
-            if (!found)
-                RETHROW(parse_int(xr, xval.s, &intval));
+            RETHROW(get_enum_value(xr, fdesc->u1.en_desc, &intval));
             ((uint32_t *)data->data)[data->len] = intval;
-            RETHROW(xmlr_get_cstr_done(xr));
             break;
 
           case IOP_T_I32: case IOP_T_U32:
