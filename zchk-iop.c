@@ -988,6 +988,9 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructA")));
         Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructAOpt")));
 
+        Z_ASSERT_N(iop_check_constraints(st_sa, &sa));
+        Z_ASSERT_N(iop_check_constraints(st_sa, &sa2));
+
         Z_HELPER_RUN(iop_std_test_struct(st_sa, &sa,  "sa"));
         Z_HELPER_RUN(iop_std_test_struct(st_sa, &sa2, "sa2"));
 

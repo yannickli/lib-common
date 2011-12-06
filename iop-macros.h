@@ -170,6 +170,9 @@
     pfx##__copy(mem_pool_t *mp, pfx##__t **out, const pfx##__t *v) {         \
         iop_copy(mp, &pfx##__s, (void **)out, (const void *)v);              \
     }                                                                        \
+    static inline int pfx##__check(pfx##__t *v) {                            \
+        return iop_check_constraints(&pfx##__s, (void *)v);                  \
+    }                                                                        \
     static inline int                                                        \
     pfx##__jpack(const pfx##__t *v,                                          \
                  int (*wcb)(void *, const void *, int), void *priv) {        \
