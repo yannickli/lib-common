@@ -184,6 +184,11 @@ char *t_fmt(int *out, const char *fmt, ...)
     ((type_t *)stack_malloc(sizeof(type_t) + (extra), MEM_STACK))
 #define t_new_extra_field(type_t, field, extra) \
     t_new_extra(type_t, fieldsizeof(type_t, field[0]) * (extra))
+#define t_new_extra_raw(type_t, extra) \
+    ((type_t *)stack_malloc(sizeof(type_t) + (extra), MEM_STACK | MEM_RAW))
+#define t_new_extra_field_raw(type_t, field, extra) \
+    t_new_extra_raw(type_t, fieldsizeof(type_t, field[0]) * (extra))
+
 #define t_dup(p, count)    mp_dup(&t_pool_g.funcs, p, count)
 #define t_dupz(p, count)   mp_dupz(&t_pool_g.funcs, p, count)
 
