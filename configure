@@ -48,6 +48,11 @@ setvar() {
     echo "$v" "=" "$@" >> "$out"
 }
 
+
+file_exists() {
+    test -e "$1" -a -r "$1"
+}
+
 check_tool() {
     which "$1" >/dev/null 2>&1 || warn "$1 is missing, apt-get install $2"
 }
@@ -224,26 +229,11 @@ else
 fi
 
 # }}}
-# {{{ Kit SIMPA SFR
+# {{{ Kit Marchand SFR
 
-simpa0="$(dirname "$0")/mcg/modules/gwk/kitmarchand"
-simpa1="/opt/kitmarchand"
-simpa2="/srv/build/kitmarchand"
-
-file_exists() {
-    test -e "$1" -a -r "$1"
-}
-
-if file_exists "$simpa1"; then
-    setenv "SIMPA_PATH" "$simpa1";
-elif file_exists "$simpa2"; then
-    setenv "SIMPA_PATH" "$simpa2";
-elif file_exists "$simpa0"; then
-    setenv "SIMPA_PATH" "$simpa0";
-else
-    setenv "ENABLE_SFR_SIMPA" "0"
-    echo 2>&1 "*** kit SIMPA SFR not found"
-fi
+KITMARCHAND="$("$(dirname "$0")/mcg/modules/gwk/kitmarchand.sh" find)" \
+&& setenv "KITMARCHAND" "$KITMARCHAND" \
+|| log "kit SIMPA SFR not found"
 
 # }}}
 # {{{ CCN SDK
@@ -263,7 +253,7 @@ elif file_exists "$ccn1"; then
 elif file_exists "$ccn2"; then
     setenv "ENABLE_CCN" "1"
     setenv "WITH_CCN" "1"
-    setenv "CCN_PATH" "$ccn2" 
+    setenv "CCN_PATH" "$ccn2"
 else
     setenv "ENABLE_CCN" "0"
     log "CCN SDK not found"
