@@ -240,6 +240,10 @@ static inline void *p_dupz(const void *src, size_t len)
 #define p_new_extra(type, size) ((type *)imalloc(sizeof(type) + (size), MEM_LIBC))
 #define p_new_extra_field(type, field, size) \
     p_new_extra(type, fieldsizeof(type, field[0]) * (size))
+#define p_new_extra_raw(type, size) ((type *)imalloc(sizeof(type) + (size), MEM_RAW | MEM_LIBC))
+#define p_new_extra_field_raw(type, field, size) \
+    p_new_extra_raw(type, fieldsizeof(type, field[0]) * (size))
+
 #define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
 #define p_dup(p, count)         mem_dup((p), sizeof(*(p)) * (count))
 #define p_strdup(p)             mem_strdup(p)
