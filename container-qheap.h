@@ -19,10 +19,10 @@
 #include "str.h"
 #include "core.h"
 
-/* Binary Heap Container
+/* Min/Max Heap Container
  * ----------
  *
- * This container can be used as a binary max heap so as a binary min heap.
+ * This container can be used as a max heap or as a min heap.
  * Its content is stored into a qvector.
  *
  * The nodes are defined by the user. A macro or function that compares
@@ -66,127 +66,134 @@
 
 /*{{{2 Helpers */
 
-#define QHP_CHILD_L(pos)           (2 * (pos) + 1)
-#define QHP_CHILD_R(pos)           (QHP_CHILD_L(pos) + 1)
-#define QHP_PARENT(pos)            (((pos) - 1) / 2)
+#define QHP_FANOUT                   4
+#define QHP_CHILD(pos, i)           (QHP_FANOUT * (pos) + 1 + (i))
+#define QHP_PARENT(pos)             (((pos) - 1) / QHP_FANOUT)
 
 #define QHP_CMP(is_min_heap, cmp, n1, op, n2)  \
     (is_min_heap ? cmp(n1, op, n2) : cmp(n2, op, n1))
 
 /*2}}}*/
 
-#define qhp_funcs_t(n, type_t, is_min_heap, cmp, set_pos)                   \
-                                                                            \
-    static ALWAYS_INLINE int                                                \
-    __qhp_##n##_move(qhp_t(n) *heap, type_t node, int pos)                  \
-    {                                                                       \
-        set_pos(node, pos);                                                 \
-        heap->tab[pos] = node;                                              \
-                                                                            \
-        return pos;                                                         \
-    }                                                                       \
-                                                                            \
-    static inline int __qhp_##n##_down(qhp_t(n) *heap, int pos)             \
-    {                                                                       \
-        type_t node = heap->tab[pos];                                       \
-                                                                            \
-        for (;;) {                                                          \
-            int    child_pos = QHP_CHILD_L(pos);                            \
-            type_t child;                                                   \
-                                                                            \
-            if (child_pos >= heap->len)                                     \
-                break;                                                      \
-                                                                            \
-            child = heap->tab[child_pos];                                   \
-                                                                            \
-            if (child_pos + 1 < heap->len) {                                \
-                type_t r_child = heap->tab[child_pos + 1];                  \
-                                                                            \
-                if (QHP_CMP(is_min_heap, cmp, r_child, <, child)) {         \
-                    child = r_child;                                        \
-                    child_pos++;                                            \
-                }                                                           \
-            }                                                               \
-                                                                            \
-            if (QHP_CMP(is_min_heap, cmp, child, >=, node))                 \
-                break;                                                      \
-                                                                            \
-            __qhp_move(n, heap, child, pos);                                \
-            pos = child_pos;                                                \
-        }                                                                   \
-                                                                            \
-        return __qhp_move(n, heap, node, pos);                              \
-    }                                                                       \
-                                                                            \
-    static inline int __qhp_##n##_up(qhp_t(n) *heap, int pos)               \
-    {                                                                       \
-        type_t node = heap->tab[pos];                                       \
-                                                                            \
-        while (pos > 0) {                                                   \
-            int    parent_pos = QHP_PARENT(pos);                            \
-            type_t parent     = heap->tab[parent_pos];                      \
-                                                                            \
-            if (QHP_CMP(is_min_heap, cmp, node, >=, parent))                \
-                break;                                                      \
-                                                                            \
-            __qhp_move(n, heap, parent, pos);                               \
-            pos = parent_pos;                                               \
-        }                                                                   \
-                                                                            \
-        return __qhp_move(n, heap, node, pos);                              \
-    }                                                                       \
-                                                                            \
-    static inline int qhp_##n##_insert(qhp_t(n) *heap, type_t node)         \
-    {                                                                       \
-        set_pos(node, heap->len);                                           \
-        qv_append(qhp_##n, heap, node);                                     \
-                                                                            \
-        return __qhp_up(n, heap, heap->len - 1);                            \
-    }                                                                       \
-                                                                            \
-    static inline int qhp_##n##_fixup(qhp_t(n) *heap, int pos)              \
-    {                                                                       \
-        type_t node       = heap->tab[pos];                                 \
-        int    parent_pos = QHP_PARENT(pos);                                \
-        type_t parent     = heap->tab[parent_pos];                          \
-                                                                            \
-        if (pos > 0 && QHP_CMP(is_min_heap, cmp, parent, >=, node)) {       \
-            return __qhp_up(n, heap, pos);                                  \
-        } else {                                                            \
-            return __qhp_down(n, heap, pos);                                \
-        }                                                                   \
-    }                                                                       \
-                                                                            \
-    static inline type_t qhp_##n##_remove(qhp_t(n) *heap, int pos)          \
-    {                                                                       \
-        type_t node;                                                        \
-                                                                            \
-        if (unlikely(pos < 0)) {                                            \
-            p_clear(&node, 1);                                              \
-            return node;                                                    \
-        }                                                                   \
-                                                                            \
-        node = heap->tab[pos];                                              \
-        if (pos == heap->len - 1) {                                         \
-            qv_shrink(qhp_##n, heap, 1);                                    \
-        } else {                                                            \
-            type_t last =  *qv_last(qhp_##n, heap);                         \
-                                                                            \
-            qv_shrink(qhp_##n, heap, 1);                                    \
-            __qhp_move(n, heap, last, pos);                                 \
-            qhp_fixup(n, heap, pos);                                        \
-        }                                                                   \
-                                                                            \
-        set_pos(node, -1);                                                  \
-        return node;                                                        \
+#define qhp_funcs_t(n, type_t, is_min_heap, cmp, set_pos)                     \
+                                                                              \
+    static ALWAYS_INLINE int                                                  \
+    __qhp_##n##_set(qhp_t(n) *heap, int pos, type_t node)                     \
+    {                                                                         \
+        set_pos(node, pos);                                                   \
+        heap->tab[pos] = node;                                                \
+                                                                              \
+        return pos;                                                           \
+    }                                                                         \
+                                                                              \
+    static inline int __qhp_##n##_down(qhp_t(n) *heap, int _pos)              \
+    {                                                                         \
+        type_t  node = heap->tab[_pos];                                       \
+        type_t *E    = heap->tab + heap->len;                                 \
+        int     pos  = _pos, child_pos;                                       \
+                                                                              \
+        while ((child_pos = QHP_CHILD(pos, 0)) + QHP_FANOUT <= heap->len) {   \
+            type_t *c = heap->tab + child_pos;                                \
+            int     n = 0; /* pos of the minimum in c[0 .. QHP_FANOUT] */     \
+                                                                              \
+            if (QHP_CMP(is_min_heap, cmp, c[1], <, c[n])) n = 1;              \
+            if (QHP_CMP(is_min_heap, cmp, c[2], <, c[n])) n = 2;              \
+            if (QHP_CMP(is_min_heap, cmp, c[3], <, c[n])) n = 3;              \
+            STATIC_ASSERT(QHP_FANOUT == 4);                                   \
+                                                                              \
+            if (QHP_CMP(is_min_heap, cmp, c[n], >=, node))                    \
+                break;                                                        \
+                                                                              \
+            __qhp_##n##_set(heap, pos, c[n]);                                 \
+            pos = child_pos + n;                                              \
+        }                                                                     \
+        if (child_pos < heap->len) {                                          \
+            type_t *c = heap->tab + child_pos;                                \
+            int     n = 0; /* pos of the minimum in c[0 .. QHP_FANOUT] */     \
+                                                                              \
+            if (c + 1 < E && QHP_CMP(is_min_heap, cmp, c[1], <, c[n])) n = 1; \
+            if (c + 2 < E && QHP_CMP(is_min_heap, cmp, c[2], <, c[n])) n = 2; \
+            if (c + 3 < E && QHP_CMP(is_min_heap, cmp, c[3], <, c[n])) n = 3; \
+            STATIC_ASSERT(QHP_FANOUT == 4);                                   \
+                                                                              \
+            if (QHP_CMP(is_min_heap, cmp, c[n], <, node)) {                   \
+                __qhp_##n##_set(heap, pos, c[n]);                             \
+                pos = child_pos + n;                                          \
+            }                                                                 \
+        }                                                                     \
+                                                                              \
+        return _pos != pos ? __qhp_##n##_set(heap, pos, node) : _pos;         \
+    }                                                                         \
+                                                                              \
+    static inline int __qhp_##n##_up(qhp_t(n) *heap, int _pos)                \
+    {                                                                         \
+        type_t node = heap->tab[_pos];                                        \
+        int    pos  = _pos;                                                   \
+                                                                              \
+        while (pos > 0) {                                                     \
+            int     parent_pos = QHP_PARENT(pos);                             \
+            type_t *parent     = &heap->tab[parent_pos];                      \
+                                                                              \
+            if (QHP_CMP(is_min_heap, cmp, node, >=, *parent))                 \
+                break;                                                        \
+                                                                              \
+            __qhp_##n##_set(heap, pos, *parent);                              \
+            pos = parent_pos;                                                 \
+        }                                                                     \
+                                                                              \
+        return _pos != pos ? __qhp_##n##_set(heap, pos, node) : _pos;         \
+    }                                                                         \
+                                                                              \
+    static inline int qhp_##n##_insert(qhp_t(n) *heap, type_t node)           \
+    {                                                                         \
+        set_pos(node, heap->len);                                             \
+        qv_append(qhp_##n, heap, node);                                       \
+                                                                              \
+        return __qhp_up(n, heap, heap->len - 1);                              \
+    }                                                                         \
+                                                                              \
+    static inline int qhp_##n##_fixup(qhp_t(n) *heap, int pos)                \
+    {                                                                         \
+        type_t *node   = &heap->tab[pos];                                     \
+        type_t *parent = &heap->tab[QHP_PARENT(pos)];                         \
+                                                                              \
+        if (pos > 0 && QHP_CMP(is_min_heap, cmp, *parent, >=, *node)) {       \
+            return __qhp_up(n, heap, pos);                                    \
+        } else {                                                              \
+            return __qhp_down(n, heap, pos);                                  \
+        }                                                                     \
+    }                                                                         \
+                                                                              \
+    static inline type_t qhp_##n##_remove(qhp_t(n) *heap, int pos)            \
+    {                                                                         \
+        type_t node;                                                          \
+                                                                              \
+        if (unlikely(pos < 0)) {                                              \
+            p_clear(&node, 1);                                                \
+            return node;                                                      \
+        }                                                                     \
+                                                                              \
+        node = heap->tab[pos];                                                \
+        if (pos == heap->len - 1) {                                           \
+            qv_shrink(qhp_##n, heap, 1);                                      \
+        } else {                                                              \
+            type_t last =  *qv_last(qhp_##n, heap);                           \
+                                                                              \
+            qv_shrink(qhp_##n, heap, 1);                                      \
+            __qhp_##n##_set(heap, pos, last);                                 \
+            qhp_fixup(n, heap, pos);                                          \
+        }                                                                     \
+                                                                              \
+        set_pos(node, -1);                                                    \
+        return node;                                                          \
     }
 
 /*1}}}*/
 
 /* \macro  qhp_t
- * \brief  Declares a binary heap and its functions
+ * \brief  Declares a heap and its functions
  *
- * \param  name         Name of the binary heap
+ * \param  name         Name of the heap
  *
  * \param  type_t       Node type
  *
@@ -221,7 +228,6 @@
 #define qhp_clear(n, heap)        qv_clear(qhp_##n, heap)
 
 /* Low-level update functions */
-#define __qhp_move(n, heap, node, pos)  __qhp_##n##_move(heap, node, pos)
 #define __qhp_up(n, heap, pos)          __qhp_##n##_up(heap, pos)
 #define __qhp_down(n, heap, pos)        __qhp_##n##_down(heap, pos)
 
@@ -241,7 +247,7 @@
                                     (heap)->tab[pos]; })
 #define qhp_first(n, heap)     qhp_get(n, heap, 0)
 
-/* XXX In qhp_for_each_pos, when using a function that modifies binary heap
+/* XXX In qhp_for_each_pos, when using a function that modifies heap
  *     content, user must absolutly break the loop.
  */
 #define qhp_for_each_pos(n, pos, heap)  qv_for_each_pos(qhp_##n, pos, heap)
