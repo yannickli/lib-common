@@ -1235,36 +1235,45 @@ Z_GROUP_EXPORT(iop)
     Z_TEST(strict_enum, "test IOP strict enum (un)packing") { /* {{{ */
         t_scope;
 
+        tstiop__my_enum_b__t bvals[] = {
+            MY_ENUM_B_A, MY_ENUM_B_B, MY_ENUM_B_C
+        };
+
         tstiop__my_struct_l__t sl1 = {
-            .a = MY_ENUM_A_A,
-            .b = MY_ENUM_B_B,
-            .c = MY_ENUM_C_A | MY_ENUM_C_B,
+            .a      = MY_ENUM_A_A,
+            .b      = MY_ENUM_B_B,
+            .btab   = IOP_ARRAY(bvals, countof(bvals)),
+            .c      = MY_ENUM_C_A | MY_ENUM_C_B,
         };
 
         tstiop__my_struct_l__t sl2 = {
-            .a = 10,
-            .b = MY_ENUM_B_B,
-            .c = MY_ENUM_C_A | MY_ENUM_C_B,
+            .a      = 10,
+            .b      = MY_ENUM_B_B,
+            .btab   = IOP_ARRAY(bvals, countof(bvals)),
+            .c      = MY_ENUM_C_A | MY_ENUM_C_B,
         };
 
         tstiop__my_struct_l__t sl3 = {
-            .a = MY_ENUM_A_A,
-            .b = 10,
-            .c = MY_ENUM_C_A | MY_ENUM_C_B,
+            .a      = MY_ENUM_A_A,
+            .b      = 10,
+            .btab   = IOP_ARRAY(bvals, countof(bvals)),
+            .c      = MY_ENUM_C_A | MY_ENUM_C_B,
         };
 
         const char json_sl_p1[] =
             "{\n"
-            "     a = 1 << \"C\";\n"
-            "     b = \"C\";\n"
-            "     c = 1 << \"C\";\n"
+            "     a     = 1 << \"C\";               \n"
+            "     b     = \"C\";                    \n"
+            "     btab  = [ \"A\", \"B\", \"C\" ];  \n"
+            "     c     = 1 << \"C\";               \n"
             "};\n";
 
         const char json_sl_n1[] =
             "{\n"
-            "     a = 1 << \"C\";\n"
-            "     b = 1 << \"C\";\n"
-            "     c = 1 << \"C\";\n"
+            "     a     = 1 << \"C\";               \n"
+            "     b     = 1 << \"C\";               \n"
+            "     btab  = [ \"A\", \"B\", \"C\" ];  \n"
+            "     c     = 1 << \"C\";               \n"
             "};\n";
 
         iop_dso_t *dso;

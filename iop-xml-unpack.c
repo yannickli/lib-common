@@ -132,15 +132,6 @@ static int get_enum_value(xml_reader_t xr, const iop_enum_t *en_desc,
     *intval = iop_enum_from_lstr(en_desc, xval, &found);
     if (!found) {
         RETHROW(parse_int(xr, xval.s, intval));
-
-        if (TST_BIT(&en_desc->flags, IOP_ENUM_STRICT)
-        &&  iop_ranges_search(en_desc->ranges, en_desc->ranges_len,
-                              *intval) == -1)
-        {
-            return xmlr_fail(xr, "%jd is not a valid value for enum %*pM",
-                             *intval,
-                             LSTR_FMT_ARG(en_desc->fullname));
-        }
     }
     RETHROW(xmlr_get_cstr_done(xr));
     return 0;
@@ -330,6 +321,7 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
         const iop_field_t *xfdesc;
         lstr_t name;
         void *v;
+        int n = 1;
 
         if (unlikely(fdesc == end)) {
             if (!(flags & IOP_UNPACK_IGNORE_UNKNOWN))
@@ -367,19 +359,29 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
         /* Read field value */
         v = (char *)value + fdesc->data_offs;
         if (fdesc->repeat == IOP_R_REPEATED) {
+            iop_data_t *data = v;
+
             if ((1 << fdesc->type) & IOP_BLK_OK) {
                 RETHROW(xunpack_block_vec(xr, mp, fdesc, v, flags));
             } else {
                 RETHROW(xunpack_scalar_vec(xr, mp, fdesc, v));
             }
-            fdesc++;
-            continue;
+            v = data->data;
+            n = data->len;
+            goto next;
         } else
         if (fdesc->repeat == IOP_R_OPTIONAL) {
             v = iop_value_set_here(mp, fdesc, v);
         }
 
         RETHROW(xunpack_value(xr, mp, fdesc, v, flags));
+
+      next:
+        if (unlikely(iop_field_has_constraints(fdesc))) {
+            if (iop_field_check_constraints(fdesc, v, n, false) < 0) {
+                return xmlr_fail(xr, "%s", iop_get_err());
+            }
+        }
         fdesc++;
     } while (!xmlr_node_is_closing(xr));
 

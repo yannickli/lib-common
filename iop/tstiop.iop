@@ -183,9 +183,10 @@ struct MyStructK {
 };
 
 struct MyStructL {
-    MyEnumA a;
-    MyEnumB b;
-    MyEnumC c;
+    MyEnumA     a;
+    MyEnumB     b;
+    MyEnumB[]   btab;
+    MyEnumC     c;
 };
 
 struct Repeated {
