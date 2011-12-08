@@ -13,8 +13,6 @@
 
 #include "arith.h"
 
-#define IOP_FIELD(type_t, v, i)  (((type_t *)v)[i])
-
 #define IOP_WIRE_FMT(o)          ((uint8_t)(o) >> 5)
 #define IOP_WIRE_MASK(m)         (IOP_WIRE_##m << 5)
 #define IOP_TAG(o)               ((o) & ((1 << 5) - 1))

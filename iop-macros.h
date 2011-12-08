@@ -130,6 +130,8 @@
                     true);                                              \
     })
 
+/*----- Field helpers -----*/
+#define IOP_FIELD(type_t, v, i)  (((type_t *)v)[i])
 
 /*----- RPC helpers -----*/
 #define IOP_RPC(_mod, _if, _rpc)          _mod##__##_if(_rpc##__rpc)

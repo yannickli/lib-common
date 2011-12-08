@@ -377,8 +377,8 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
         RETHROW(xunpack_value(xr, mp, fdesc, v, flags));
 
       next:
-        if (unlikely(iop_field_has_constraints(fdesc))) {
-            if (iop_field_check_constraints(fdesc, v, n, false) < 0) {
+        if (unlikely(iop_field_has_constraints(desc, fdesc))) {
+            if (iop_field_check_constraints(desc, fdesc, v, n, false) < 0) {
                 return xmlr_fail(xr, "%s", iop_get_err());
             }
         }

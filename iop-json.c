@@ -1172,16 +1172,17 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                 return RJERROR_EXP("a member with a scalar type");
             PS_CHECK(unpack_val(ll, fdesc, ptr, false));
 
-            if (unlikely(iop_field_has_constraints(fdesc))) {
+            if (unlikely(iop_field_has_constraints(desc, fdesc))) {
                 int ret;
 
                 if (fdesc->repeat == IOP_R_REPEATED) {
                     iop_data_t *arr = ptr;
 
-                    ret = iop_field_check_constraints(fdesc, arr->data,
+                    ret = iop_field_check_constraints(desc, fdesc, arr->data,
                                                       arr->len, false);
                 } else {
-                    ret = iop_field_check_constraints(fdesc, ptr, 1, false);
+                    ret = iop_field_check_constraints(desc, fdesc, ptr, 1,
+                                                      false);
                 }
                 if (ret < 0) {
                     return RJERROR_EXP_FMT("respect of constraints (%s)",
