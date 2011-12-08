@@ -1059,6 +1059,18 @@ int iop_patch_int(const iop_field_t *fdesc, void *ptr, int64_t i64)
         *(int16_t *)ptr = i64;
         break;
       case IOP_T_ENUM:
+        {
+            const iop_enum_t *en_desc = fdesc->u1.en_desc;
+
+            if (TST_BIT(&en_desc->flags, IOP_ENUM_STRICT)
+            &&  iop_ranges_search(en_desc->ranges, en_desc->ranges_len,
+                                  i64) == -1)
+            {
+                return -1;
+            }
+        }
+        *(int32_t *)ptr = i64;
+        break;
       case IOP_T_I32: case IOP_T_U32:
         *(int32_t *)ptr = i64;
         break;
