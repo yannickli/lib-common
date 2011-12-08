@@ -14,6 +14,7 @@
 #include "arith.h"
 #include "iop.h"
 #include "iop-helpers.inl.c"
+#include "thr.h"
 
 static void
 iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
@@ -609,6 +610,113 @@ void iop_hash(const iop_struct_t *st, const void *v,
 }
 
 /*----- duplicating values -}}}-*/
+/*----- check constraints before packing -{{{-*/
+
+static __thread sb_t iop_err_g;
+
+void iop_clear_err(void)
+{
+    if (iop_err_g.size)
+        sb_wipe(&iop_err_g);
+}
+thr_hooks(NULL, iop_clear_err);
+
+const char *iop_get_err(void)
+{
+    if (iop_err_g.len)
+        return iop_err_g.data;
+    return NULL;
+}
+
+int iop_check_constraints(const iop_struct_t *desc, const void *val)
+{
+    const iop_field_t *fdesc;
+    const iop_field_t *end;
+
+    if (unlikely(iop_err_g.size == 0))
+        sb_init(&iop_err_g);
+    sb_reset(&iop_err_g);
+
+    if (desc->is_union) {
+        fdesc = get_union_field(desc, val);
+        end   = fdesc + 1;
+    } else {
+        fdesc = desc->fields;
+        end   = fdesc + desc->fields_len;
+    }
+
+    for (; fdesc < end; fdesc++) {
+        const void *ptr = (char *)val + fdesc->data_offs;
+        int n = 1;
+
+        if (fdesc->repeat == IOP_R_OPTIONAL) {
+            if (!iop_value_has(fdesc, ptr))
+                continue;
+            if ((1 << fdesc->type) & IOP_STRUCTS_OK)
+                ptr = *(void **)ptr;
+        } else
+        if (fdesc->repeat == IOP_R_REPEATED) {
+            n   = ((iop_data_t *)ptr)->len;
+            ptr = ((iop_data_t *)ptr)->data;
+            if (n == 0)
+                continue;
+        } else
+        if (fdesc->repeat == IOP_R_DEFVAL) {
+            /* Skip the field is it's still equal to its default value */
+            if (iop_field_is_defval(fdesc, ptr))
+                continue;
+        }
+
+        switch (fdesc->type) {
+          case IOP_T_ENUM:
+            if (TST_BIT(&fdesc->u1.en_desc->flags, IOP_ENUM_STRICT)) {
+                const iop_enum_t *en_desc = fdesc->u1.en_desc;
+
+                for (int j = 0; j < n; j++) {
+                    int32_t intval = IOP_FIELD(int32_t, ptr, j);
+
+                    if (iop_ranges_search(en_desc->ranges,
+                                          en_desc->ranges_len, intval) != -1)
+                    {
+                        continue;
+                    }
+                    sb_addf(&iop_err_g,
+                            "%d is not a valid value for enum %*pM",
+                            intval, LSTR_FMT_ARG(en_desc->fullname));
+                    return -1;
+                }
+            }
+            break;
+          case IOP_T_I8:
+          case IOP_T_U8:
+          case IOP_T_I16:
+          case IOP_T_U16:
+          case IOP_T_I32:
+          case IOP_T_U32:
+          case IOP_T_I64:
+          case IOP_T_U64:
+          case IOP_T_BOOL:
+          case IOP_T_DOUBLE:
+          case IOP_T_STRING:
+          case IOP_T_DATA:
+          case IOP_T_XML:
+            break;
+          case IOP_T_UNION:
+          case IOP_T_STRUCT:
+          default:
+            for (int j = 0; j < n; j++) {
+                const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
+
+                RETHROW(iop_check_constraints(fdesc->u1.st_desc, v));
+            }
+            break;
+        }
+    }
+
+    return 0;
+}
+
+/*-}}}-*/
 /*----- get value encoding size -{{{-*/
 
 int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)

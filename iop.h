@@ -207,6 +207,10 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *, const void *v);
 void  iop_copy(mem_pool_t *mp, const iop_struct_t *, void **, const void *v);
 int   iop_ranges_search(int const *ranges, int ranges_len, int tag);
 
+void iop_clear_err(void);
+const char *iop_get_err(void);
+int iop_check_constraints(const iop_struct_t *desc, const void *val);
+
 static inline lstr_t iop_enum_to_str(const iop_enum_t *ed, int v) {
     int res = iop_ranges_search(ed->ranges, ed->ranges_len, v);
     return unlikely(res < 0) ? CLSTR_NULL_V : ed->names[res];
