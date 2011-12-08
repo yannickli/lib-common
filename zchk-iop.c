@@ -67,6 +67,33 @@ static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info
     Z_HELPER_END;
 }
 
+static int iop_xml_test_struct_invalid(const iop_struct_t *st, void *v,
+                                       const char *info)
+{
+    byte *res;
+
+    t_scope;
+    SB_8k(sb);
+
+    sb_adds(&sb, "<root xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
+            "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">");
+    iop_xpack(&sb, st, v, false, true);
+    sb_adds(&sb, "</root>");
+
+    /* unpacking */
+    res = t_new(byte, ROUND_UP(st->size, 8));
+    iop_init(st, res);
+
+    Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
+    Z_ASSERT_NEG(iop_xunpack(xmlr_g, t_pool(), st, res),
+                 "XML unpacking unexpected success (%s, %s)", st->fullname.s,
+                 info);
+
+    sb_wipe(&sb);
+    xmlr_close(&xmlr_g);
+    Z_HELPER_END;
+}
+
 static int iop_json_test_struct(const iop_struct_t *st, void *v,
                                 const char *info)
 {
@@ -231,6 +258,35 @@ static int iop_std_test_struct(const iop_struct_t *st, void *v,
 
     Z_HELPER_END;
 }
+
+static int iop_std_test_struct_invalid(const iop_struct_t *st, void *v,
+                                       const char *info)
+{
+    t_scope;
+    byte *res;
+    qv_t(i32) szs;
+    int len;
+    byte *dst;
+
+    t_qv_init(i32, &szs, 1024);
+
+    /* packing */
+    Z_ASSERT_N((len = iop_bpack_size(st, v, &szs)),
+               "invalid structure size (%s, %s)", st->fullname.s, info);
+    dst = t_new(byte, len);
+    iop_bpack(dst, st, v, szs.tab);
+
+    /* unpacking */
+    res = t_new(byte, ROUND_UP(st->size, 8));
+    iop_init(st, res);
+
+    Z_ASSERT_NEG(iop_bunpack(t_pool(), st, res, ps_init(dst, len), false),
+               "IOP unpacking unexpected success (%s, %s)", st->fullname.s,
+               info);
+
+    Z_HELPER_END;
+}
+
 
 /* }}} */
 
@@ -1172,6 +1228,73 @@ Z_GROUP_EXPORT(iop)
         sg.l = 10.6;
         Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 20, "sg-diff");
         Z_HELPER_RUN(iop_std_test_struct(st_sg, &sg,  "sg-diff"));
+
+        iop_dso_close(&dso);
+    } Z_TEST_END
+    /* }}} */
+    Z_TEST(strict_enum, "test IOP strict enum (un)packing") { /* {{{ */
+        t_scope;
+
+        tstiop__my_struct_l__t sl1 = {
+            .a = MY_ENUM_A_A,
+            .b = MY_ENUM_B_B,
+            .c = MY_ENUM_C_A | MY_ENUM_C_B,
+        };
+
+        tstiop__my_struct_l__t sl2 = {
+            .a = 10,
+            .b = MY_ENUM_B_B,
+            .c = MY_ENUM_C_A | MY_ENUM_C_B,
+        };
+
+        tstiop__my_struct_l__t sl3 = {
+            .a = MY_ENUM_A_A,
+            .b = 10,
+            .c = MY_ENUM_C_A | MY_ENUM_C_B,
+        };
+
+        const char json_sl_p1[] =
+            "{\n"
+            "     a = 1 << \"C\";\n"
+            "     b = \"C\";\n"
+            "     c = 1 << \"C\";\n"
+            "};\n";
+
+        const char json_sl_n1[] =
+            "{\n"
+            "     a = 1 << \"C\";\n"
+            "     b = 1 << \"C\";\n"
+            "     c = 1 << \"C\";\n"
+            "};\n";
+
+        iop_dso_t *dso;
+        lstr_t path = t_lstr_cat(z_cmddir_g,
+                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+
+        const iop_struct_t *st_sl;
+
+        if ((dso = iop_dso_open(path.s)) == NULL)
+            Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
+
+        Z_SKIP("need attribute @strict on enum MyEnumB");
+
+        Z_ASSERT_P(st_sl = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructL")));
+
+        Z_ASSERT_N(iop_check_constraints(st_sl, &sl1));
+        Z_ASSERT_N(tstiop__my_struct_l__check(&sl2));
+        Z_ASSERT_NEG(iop_check_constraints(st_sl, &sl3));
+        e_trace(1, "%s", iop_get_err());
+
+        Z_HELPER_RUN(iop_std_test_struct(st_sl, &sl1, "sl1"));
+        Z_HELPER_RUN(iop_std_test_struct(st_sl, &sl2, "sl2"));
+        Z_HELPER_RUN(iop_std_test_struct_invalid(st_sl, &sl3, "sl3"));
+
+        Z_HELPER_RUN(iop_xml_test_struct(st_sl, &sl1, "sl1"));
+        Z_HELPER_RUN(iop_xml_test_struct(st_sl, &sl2, "sl2"));
+        Z_HELPER_RUN(iop_xml_test_struct_invalid(st_sl, &sl3, "sl3"));
+
+        Z_ASSERT_N(iop_json_test_unpack(st_sl, json_sl_p1, "json_sl_p1"));
+        Z_ASSERT_NEG(iop_json_test_unpack(st_sl, json_sl_n1, "json_sl_n1"));
 
         iop_dso_close(&dso);
     } Z_TEST_END
