@@ -124,7 +124,6 @@ define ext/rule/blk
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/blk,$1,$2,$$t,$4))))
 $(eval $(call fun/common-depends,$1,$(3:=.c),$3))
 $(eval $(call ext/rule/c,$1,$2,$(3:=.c),$4))
-_generated: $(3:=.c)
 endef
 
 
@@ -143,7 +142,6 @@ define ext/rule/blkk
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/blkk,$1,$2,$$t,$4))))
 $(eval $(call fun/common-depends,$1,$(3:=.cc),$3))
 $(eval $(call ext/rule/cc,$1,$2,$(3:=.cc),$4))
-_generated: $(3:=.cc)
 endef
 
 #}}}
