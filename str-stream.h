@@ -282,6 +282,14 @@ static inline int ps_get_ps_chr(pstream_t *ps, int c, pstream_t *out) {
     return 0;
 }
 
+static inline int ps_get_ps_chr_and_skip(pstream_t *ps, int c, pstream_t *out) {
+    const void *p = memchr(ps->s, c, ps_len(ps));
+    PS_WANT(p);
+    *out = __ps_get_ps_upto(ps, p);
+    __ps_skip(ps, 1);
+    return 0;
+}
+
 
 /** \brief  Returns the bytes un tp the (\a d, \a len) word
  * \return -1 if the word cannot be found
