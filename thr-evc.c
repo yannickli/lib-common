@@ -43,10 +43,21 @@
 void thr_ec_signal_n(thr_evc_t *ec, int count)
 {
 #if ULONG_MAX == UINT32_MAX
-    int oldcount = ec->count;
-
-    atomic_add(&ec->count, 1);
-    if ((oldcount ^ ec->count) & 0x00010000)
+    /*
+     * We don't know how slow things are between a thr_ec_get() and a
+     * thr_ec_wait. Hence it's not safe to assume the "count" will never
+     * rotate fully between the two.
+     *
+     * In 64bits mode, well, we have 64-bits atomic increments and all is
+     * fine. In 32bits mode, we increment the high word manually every 2^24
+     * low-word increment.
+     *
+     * This assumes that at least one of the 256 threads that will try to
+     * perform the "count2" increment won't be stalled between deciding the
+     * modulo is zero and the increment itself for an almost full cycle
+     * (2^32 - 2^24) of the low word counter.
+     */
+    if (unlikely(atomic_add_and_get(&ec->count, 1) % (1U << 24) == 0))
         atomic_add(&ec->count2, 1);
 #else
     atomic_add(&ec->key, 1);
@@ -71,7 +82,7 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
     /*
      * XXX: futex only works on integers (32bits) so we have to check if the
      *      high 32bits word changed. We can do this in a racy way because we
-     *      assume it's impossible for the low 32bits to overflow between this
+     *      assume it's impossible for the low 32bits to cycle between this
      *      test and the call to futex_wait.
      */
     if (unlikely(
