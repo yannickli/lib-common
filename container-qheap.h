@@ -80,8 +80,8 @@
     static ALWAYS_INLINE int                                                \
     __qhp_##n##_move(qhp_t(n) *heap, type_t node, int pos)                  \
     {                                                                       \
-        set_pos(node, pos);                                                 \
         heap->tab[pos] = node;                                              \
+        set_pos(node, pos);                                                 \
                                                                             \
         return pos;                                                         \
     }                                                                       \

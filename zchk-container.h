@@ -30,15 +30,5 @@ static ALWAYS_INLINE void test_node_set_pos(test_node_t *node, int pos)
 
 qhp_min_t(test_heap, test_node_t *, TEST_NODE_CMP, test_node_set_pos);
 
-typedef struct test_node_inl_t {
-    uint8_t val;
-    int8_t  pos;
-} test_node_inl_t;
-
-#define TEST_NODE_INL_CMP(a, op, b)        ((a).val op (b).val)
-#define TEST_NODE_INL_SET_POS(node, _pos)  ((node).pos = _pos)
-
-qhp_min_t(inl_heap, test_node_inl_t, TEST_NODE_INL_CMP,
-          TEST_NODE_INL_SET_POS);
 
 #endif /* IS_LIB_COMMON_ZCHK_CONTAINER_H */
