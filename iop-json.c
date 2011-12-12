@@ -1466,14 +1466,18 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
 
                 PUTS("\"");
                 while (!ps_done(&ps)) {
+                    /* r:32-127 -s:'\\"' */
+                    static ctype_desc_t const json_safe_chars = { {
+                        0x00000000, 0xfffffffb, 0xefffffff, 0xffffffff,
+                        0x00000000, 0x00000000, 0x00000000, 0x00000000,
+                    } };
+
                     const uint8_t *p = ps.b;
+                    size_t nbchars;
                     int c;
 
-                    while (p < ps.b_end && *p >= ' ' && *p < 127 && *p != '"') {
-                        p++;
-                    }
-                    WRITE(ps.b, p - ps.b);
-                    __ps_skip_upto(&ps, p);
+                    nbchars = ps_skip_span(&ps, &json_safe_chars);
+                    WRITE(p, nbchars);
 
                     if (ps_done(&ps))
                         break;

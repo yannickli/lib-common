@@ -181,6 +181,29 @@ Z_GROUP_EXPORT(qhp)
         }
     } Z_TEST_END
 
+    Z_TEST(inline_struct, "qhp: inline structure") {
+        qhp_t(inl_heap)  qhp;
+        int32_t          tab[] = { 5, 2, 9, 7, 1, 3, 0, 8, 6, 4 };
+
+        qhp_inita(inl_heap, &qhp, countof(tab));
+
+        for (int i = 0; i < countof(tab); i++) {
+            test_node_inl_t node = { .val = tab[i] };
+            int pos;
+
+            pos = qhp_insert(inl_heap, &qhp, node);
+            node = qhp_get(inl_heap, &qhp, pos);
+            Z_ASSERT_EQ(pos, node.pos, "invalid position after insertion: "
+                        "expected `%d', got `%d'", pos, node.pos);
+        }
+
+        qhp_for_each_pos(inl_heap, pos, &qhp) {
+            test_node_inl_t node = qhp_get(inl_heap, &qhp, pos);
+            Z_ASSERT_EQ(pos, node.pos, "invalid position: "
+                        "expected `%d', got `%d'", pos, node.pos);
+        }
+    } Z_TEST_END
+
     Z_TEST(remove, "qhp: remove") {
         qhp_t(test_heap) qhp;
         int             tab[]       = { 5, 2, 9, 7, 1, 3, 0, 8, 6, 4 };

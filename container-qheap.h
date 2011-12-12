@@ -80,8 +80,8 @@
     static ALWAYS_INLINE int                                                \
     __qhp_##n##_move(qhp_t(n) *heap, type_t node, int pos)                  \
     {                                                                       \
-        heap->tab[pos] = node;                                              \
         set_pos(node, pos);                                                 \
+        heap->tab[pos] = node;                                              \
                                                                             \
         return pos;                                                         \
     }                                                                       \
@@ -160,7 +160,6 @@
     static inline type_t qhp_##n##_remove(qhp_t(n) *heap, int pos)          \
     {                                                                       \
         type_t node;                                                        \
-        type_t last;                                                        \
                                                                             \
         if (unlikely(pos < 0)) {                                            \
             p_clear(&node, 1);                                              \
@@ -168,15 +167,17 @@
         }                                                                   \
                                                                             \
         node = heap->tab[pos];                                              \
-        last = *qv_last(qhp_##n, heap);                                     \
-        qv_shrink(qhp_##n, heap, 1);                                        \
-        if (node != last) {                                                 \
+        if (pos == heap->len - 1) {                                         \
+            qv_shrink(qhp_##n, heap, 1);                                    \
+        } else {                                                            \
+            type_t last =  *qv_last(qhp_##n, heap);                         \
+                                                                            \
+            qv_shrink(qhp_##n, heap, 1);                                    \
             __qhp_move(n, heap, last, pos);                                 \
             qhp_fixup(n, heap, pos);                                        \
         }                                                                   \
                                                                             \
         set_pos(node, -1);                                                  \
-                                                                            \
         return node;                                                        \
     }
 
