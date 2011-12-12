@@ -953,17 +953,6 @@ do_double:
             *(uint16_t *)value = ll->u.i;
             break;
           case IOP_T_ENUM:
-            {
-                const iop_enum_t *en_desc = fdesc->u1.en_desc;
-
-                if (TST_BIT(&en_desc->flags, IOP_ENUM_STRICT)
-                &&  iop_ranges_search(en_desc->ranges, en_desc->ranges_len,
-                                      ll->u.i) == -1)
-                {
-                    return RJERROR_EXP_TYPE(fdesc->type);
-                }
-            }
-            /* FALLTHROUGH */
           case IOP_T_I32: case IOP_T_U32:
             *(uint32_t *)value = ll->u.i;
             break;
@@ -1182,6 +1171,23 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                              || fdesc->repeat == IOP_R_REPEATED))
                 return RJERROR_EXP("a member with a scalar type");
             PS_CHECK(unpack_val(ll, fdesc, ptr, false));
+
+            if (unlikely(iop_field_has_constraints(fdesc))) {
+                int ret;
+
+                if (fdesc->repeat == IOP_R_REPEATED) {
+                    iop_data_t *arr = ptr;
+
+                    ret = iop_field_check_constraints(fdesc, arr->data,
+                                                      arr->len, false);
+                } else {
+                    ret = iop_field_check_constraints(fdesc, ptr, 1, false);
+                }
+                if (ret < 0) {
+                    return RJERROR_EXP_FMT("respect of constraints (%s)",
+                                           iop_get_err());
+                }
+            }
         } else {
             PS_CHECK(skip_val(ll, false));
         }

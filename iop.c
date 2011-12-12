@@ -614,12 +614,29 @@ void iop_hash(const iop_struct_t *st, const void *v,
 
 static __thread sb_t iop_err_g;
 
-void iop_clear_err(void)
+__attribute__((constructor))
+static void iop_init_err(void)
+{
+    if (unlikely(iop_err_g.size == 0))
+        sb_init(&iop_err_g);
+}
+
+static void iop_wipe_err(void)
 {
     if (iop_err_g.size)
         sb_wipe(&iop_err_g);
 }
-thr_hooks(NULL, iop_clear_err);
+
+thr_hooks(iop_init_err, iop_wipe_err);
+
+void iop_set_err(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    sb_setvf(&iop_err_g, fmt, ap);
+    va_end(ap);
+}
 
 const char *iop_get_err(void)
 {
@@ -628,14 +645,69 @@ const char *iop_get_err(void)
     return NULL;
 }
 
+bool iop_field_has_constraints(const iop_field_t *fdesc)
+{
+    if (fdesc->type == IOP_T_ENUM && fdesc->u1.en_desc->flags)
+        return true;
+    return false;
+}
+
+int iop_field_check_constraints(const iop_field_t *fdesc, const void *ptr,
+                                int n, bool recurse)
+{
+    switch (fdesc->type) {
+      case IOP_T_ENUM:
+        if (TST_BIT(&fdesc->u1.en_desc->flags, IOP_ENUM_STRICT)) {
+            const iop_enum_t *en_desc = fdesc->u1.en_desc;
+
+            for (int j = 0; j < n; j++) {
+                int32_t intval = IOP_FIELD(int32_t, ptr, j);
+
+                if (iop_ranges_search(en_desc->ranges,
+                                      en_desc->ranges_len, intval) != -1)
+                {
+                    continue;
+                }
+                iop_set_err("%d is not a valid value for enum %*pM",
+                        intval, LSTR_FMT_ARG(en_desc->fullname));
+                return -1;
+            }
+        }
+        break;
+      case IOP_T_I8:
+      case IOP_T_U8:
+      case IOP_T_I16:
+      case IOP_T_U16:
+      case IOP_T_I32:
+      case IOP_T_U32:
+      case IOP_T_I64:
+      case IOP_T_U64:
+      case IOP_T_BOOL:
+      case IOP_T_DOUBLE:
+      case IOP_T_STRING:
+      case IOP_T_DATA:
+      case IOP_T_XML:
+        break;
+      case IOP_T_UNION:
+      case IOP_T_STRUCT:
+      default:
+        if (!recurse)
+            return 0;
+        for (int j = 0; j < n; j++) {
+            const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
+
+            RETHROW(iop_check_constraints(fdesc->u1.st_desc, v));
+        }
+        break;
+    }
+
+    return 0;
+}
+
 int iop_check_constraints(const iop_struct_t *desc, const void *val)
 {
     const iop_field_t *fdesc;
     const iop_field_t *end;
-
-    if (unlikely(iop_err_g.size == 0))
-        sb_init(&iop_err_g);
-    sb_reset(&iop_err_g);
 
     if (desc->is_union) {
         fdesc = get_union_field(desc, val);
@@ -667,50 +739,7 @@ int iop_check_constraints(const iop_struct_t *desc, const void *val)
                 continue;
         }
 
-        switch (fdesc->type) {
-          case IOP_T_ENUM:
-            if (TST_BIT(&fdesc->u1.en_desc->flags, IOP_ENUM_STRICT)) {
-                const iop_enum_t *en_desc = fdesc->u1.en_desc;
-
-                for (int j = 0; j < n; j++) {
-                    int32_t intval = IOP_FIELD(int32_t, ptr, j);
-
-                    if (iop_ranges_search(en_desc->ranges,
-                                          en_desc->ranges_len, intval) != -1)
-                    {
-                        continue;
-                    }
-                    sb_addf(&iop_err_g,
-                            "%d is not a valid value for enum %*pM",
-                            intval, LSTR_FMT_ARG(en_desc->fullname));
-                    return -1;
-                }
-            }
-            break;
-          case IOP_T_I8:
-          case IOP_T_U8:
-          case IOP_T_I16:
-          case IOP_T_U16:
-          case IOP_T_I32:
-          case IOP_T_U32:
-          case IOP_T_I64:
-          case IOP_T_U64:
-          case IOP_T_BOOL:
-          case IOP_T_DOUBLE:
-          case IOP_T_STRING:
-          case IOP_T_DATA:
-          case IOP_T_XML:
-            break;
-          case IOP_T_UNION:
-          case IOP_T_STRUCT:
-          default:
-            for (int j = 0; j < n; j++) {
-                const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
-
-                RETHROW(iop_check_constraints(fdesc->u1.st_desc, v));
-            }
-            break;
-        }
+        RETHROW(iop_field_check_constraints(fdesc, ptr, n, true));
     }
 
     return 0;
@@ -1167,16 +1196,6 @@ int iop_patch_int(const iop_field_t *fdesc, void *ptr, int64_t i64)
         *(int16_t *)ptr = i64;
         break;
       case IOP_T_ENUM:
-        {
-            const iop_enum_t *en_desc = fdesc->u1.en_desc;
-
-            if (TST_BIT(&en_desc->flags, IOP_ENUM_STRICT)
-            &&  iop_ranges_search(en_desc->ranges, en_desc->ranges_len,
-                                  i64) == -1)
-            {
-                return -1;
-            }
-        }
         *(int32_t *)ptr = i64;
         break;
       case IOP_T_I32: case IOP_T_U32:
@@ -1420,8 +1439,9 @@ static int unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                 }
 
                 __ps_skip(ps, len);
-                fdesc++;
-                continue;
+                v = data->data;
+                n = data->len;
+                goto next;
             }
 
           unpack_array:
@@ -1435,6 +1455,8 @@ static int unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                 v  = (char *)v + fdesc->size;
             }
             PS_CHECK(unpack_value(mp, wt, fdesc, v, ps, copy));
+            v = data->data;
+            n = data->len;
         } else {
             if (fdesc->repeat == IOP_R_OPTIONAL) {
                 v = iop_value_set_here(mp, fdesc, v);
@@ -1445,6 +1467,12 @@ static int unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                 wt = IOP_WIRE_FMT(__ps_getc(ps));
             }
             PS_CHECK(unpack_value(mp, wt, fdesc, v, ps, copy));
+            n = 1;
+        }
+
+      next:
+        if (unlikely(iop_field_has_constraints(fdesc))) {
+            RETHROW(iop_field_check_constraints(fdesc, v, n, false));
         }
         fdesc++;
     }
