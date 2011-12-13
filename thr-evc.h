@@ -107,30 +107,28 @@ uint64_t thr_ec_get(thr_evc_t *ec)
 }
 void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout);
 #define thr_ec_wait(ec, key)  thr_ec_timedwait(ec, key, 0)
-void thr_ec_signal_n(thr_evc_t *ec, int count) __leaf;
+int  thr_ec_signal_n(thr_evc_t *ec, int count) __leaf;
 
 static ALWAYS_INLINE
-void thr_ec_signal(thr_evc_t *ec)
+int thr_ec_signal(thr_evc_t *ec)
 {
-    thr_ec_signal_n(ec, 1);
+    return thr_ec_signal_n(ec, 1);
 }
 static ALWAYS_INLINE
-void thr_ec_signal_relaxed(thr_evc_t *ec)
+int thr_ec_signal_relaxed(thr_evc_t *ec)
 {
-    if (ec->waiters)
-        thr_ec_signal(ec);
+    return ec->waiters ? thr_ec_signal(ec) : 0;
 }
 
 static ALWAYS_INLINE
-void thr_ec_broadcast(thr_evc_t *ec)
+int thr_ec_broadcast(thr_evc_t *ec)
 {
-    thr_ec_signal_n(ec, INT_MAX);
+    return thr_ec_signal_n(ec, INT_MAX);
 }
 static ALWAYS_INLINE
-void thr_ec_broadcast_relaxed(thr_evc_t *ec)
+int thr_ec_broadcast_relaxed(thr_evc_t *ec)
 {
-    if (ec->waiters)
-        thr_ec_broadcast(ec);
+    return ec->waiters ? thr_ec_broadcast(ec) : 0;
 }
 
 #endif
