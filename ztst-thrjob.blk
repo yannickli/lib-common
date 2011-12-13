@@ -56,6 +56,7 @@ static void test_contention(void)
         }
         thr_syn_wait(&syn);
         thr_acc_trace(0, "");
+        thr_syn_wipe(&syn);
     }
 }
 
@@ -213,6 +214,7 @@ static void test_qsort(bool use_blocks)
     }
     thr_syn_wait(&syn);
     thr_acc_trace(0, "%s", __func__);
+    thr_syn_wipe(&syn);
 }
 
 static void test_queue(void)

@@ -26,10 +26,33 @@ struct thr_job_t {
     void (*run)(thr_job_t *, thr_syn_t *);
 };
 
+/** \brief Synchronization structure to wait for the completion of a batch.
+ *
+ * It is allowed to add jobs on a thr_syn_t iff you hold a reference on the
+ * thr_syn_t, which can be done:
+ * - using thr_syn__{retain,release} directly (though you must already be sure
+ *   the object is owned for that);
+ * - being inside a job queued on that thr_syn_t;
+ * - being the owner (IOW having done thr_syn_init() and being responsible for
+ *   doing the thr_syn_wipe() later).
+ *
+ * A typical thr_syn_t usage is:
+ *   thr_syn_init(&syn);
+ *   [... queue jobs using for example thr_syn_schedule() ...]
+ *   thr_syn_wait(&syn); // wait for completion
+ *   [... do something with the result ...]
+ *   thr_syn_wipe(&syn); // be sure nobody holds references anymore
+ *
+ * Note that thr_syn_wipe should be done the latest possible since it will
+ * busy loop waiting for thr_syn_t#refcnt holders to disappear.
+ */
 struct thr_syn_t {
-    thr_evc_t    ec;
-    unsigned     pending;
-    unsigned     unsafe;
+    /** number of jobs registered on this thr_syn_t */
+    volatile unsigned pending;
+    /** 1 for the owner + 1 for each people inside a thr_syn_wait() call */
+    volatile unsigned refcnt;
+    /** the eventcount used for the blocking part of the thr_syn_wait() */
+    thr_evc_t         ec;
 } __attribute__((aligned(64)));
 
 #ifdef __has_blocks
@@ -145,6 +168,26 @@ static ALWAYS_INLINE void thr_syn_queue_b(thr_syn_t *syn, thr_queue_t *q, block_
 }
 #endif
 
+/** \brief low level function to retain a refcnt
+ */
+static ALWAYS_INLINE
+void thr_syn__retain(thr_syn_t *syn)
+{
+    unsigned res = atomic_add_and_get(&syn->refcnt, 1);
+
+    assert (res != 1);
+}
+
+/** \brief low level function to release a refcnt
+ */
+static ALWAYS_INLINE
+void thr_syn__release(thr_syn_t *syn)
+{
+    unsigned res = atomic_sub_and_get(&syn->refcnt, 1);
+
+    assert (res != UINT32_MAX);
+}
+
 /** \brief initializes a #thr_syn_t structure.
  *
  * the #thr_syn_t is a simple semaphore-like structure to control if a given
@@ -154,15 +197,19 @@ static ALWAYS_INLINE void thr_syn_queue_b(thr_syn_t *syn, thr_queue_t *q, block_
 static ALWAYS_INLINE thr_syn_t *thr_syn_init(thr_syn_t *syn)
 {
     p_clear(syn, 1);
+    syn->refcnt = 1;
     return syn;
 }
 GENERIC_NEW(thr_syn_t, thr_syn);
 
-static ALWAYS_INLINE void thr_syn_destroy(thr_syn_t *syn)
+static ALWAYS_INLINE void thr_syn_wipe(thr_syn_t *syn)
 {
     assert (syn->pending == 0);
-    p_delete(&syn);
+    thr_syn__release(syn);
+    while (unlikely(syn->refcnt))
+        mb();
 }
+GENERIC_DELETE(thr_syn_t, thr_syn);
 
 /** \brief setup a thr_syn_t to fire an event when finished.
  *
@@ -179,11 +226,15 @@ void thr_syn_notify_b(thr_syn_t *syn, thr_queue_t *q, block_t blk)
 #endif
 
 /** \brief low level function to account for a task
+ *
+ * It's allowed to be called if you know for some reason you hold or someone
+ * else is holding a reference on the thr_syn_t (either through the refcnt or
+ * because you're inside a job that is not yet done and is accounted in this
+ * thr_syn_t.
  */
 static ALWAYS_INLINE
 void thr_syn__job_prepare(thr_syn_t *syn)
 {
-    shared_write(syn->unsafe, 1);
     atomic_add(&syn->pending, 1);
 }
 
@@ -202,13 +253,9 @@ void thr_syn__job_done(thr_syn_t *syn)
 {
     unsigned res = atomic_sub_and_get(&syn->pending, 1);
 
-    if (unlikely(res == UINT_MAX))
-        e_panic("dead-lock detected");
-
-    if (res == 0) {
+    assert (res != UINT_MAX);
+    if (res == 0)
         thr_syn__broacast(syn);
-        shared_write(syn->unsafe, 0);
-    }
 }
 
 /** \brief wait for the completion of a given macro task.

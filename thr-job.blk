@@ -483,6 +483,7 @@ void thr_queue_sync(thr_queue_t *q, thr_job_t *job)
         }
     }
     thr_syn_wait(&syn);
+    thr_syn_wipe(&syn);
 }
 
 void thr_queue(thr_queue_t *q, thr_job_t *job)
@@ -658,8 +659,10 @@ size_t thr_id(void)
 
 void thr_syn_wait(thr_syn_t *syn)
 {
+    thr_syn__retain(syn);
+
     if (self_tid_g == 0) {
-        while (shared_read(syn->pending)) {
+        while (syn->pending) {
             uint64_t key;
 
             if (!mpsc_queue_looks_empty(&thr_queue_main_g->q)) {
@@ -673,7 +676,7 @@ void thr_syn_wait(thr_syn_t *syn)
 
             shared_write(thr0_cur_ec_g, &syn->ec);
             key = thr_ec_get(&syn->ec);
-            if (!shared_read(syn->pending))
+            if (!syn->pending)
                 goto cas;
             if (!mpsc_queue_looks_empty(&thr_queue_main_g->q))
                 goto cas;
@@ -683,13 +686,13 @@ void thr_syn_wait(thr_syn_t *syn)
                 sched_yield();
         }
     } else {
-        while (shared_read(syn->pending)) {
+        while (syn->pending) {
             if (likely(thr_job_dequeue()))
                 continue;
             if (!thr_job_steal()) {
                 uint64_t key = thr_ec_get(&syn->ec);
 
-                if (!shared_read(syn->pending))
+                if (!syn->pending)
                     break;
                 if (thr_job_steal())
                     continue;
@@ -697,8 +700,8 @@ void thr_syn_wait(thr_syn_t *syn)
             }
         }
     }
-    while (shared_read(syn->unsafe))
-        mb();
+
+    thr_syn__release(syn);
 }
 
 void thr_syn_notify(thr_syn_t *syn, thr_queue_t *q, thr_job_t *job)
