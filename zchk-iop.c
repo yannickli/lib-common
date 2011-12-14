@@ -189,7 +189,7 @@ static int iop_json_test_json(const iop_struct_t *st, const char *json, const
 }
 
 static int iop_json_test_unpack(const iop_struct_t *st, const char *json,
-                                const char *info)
+                                bool valid, const char *info)
 {
     t_scope;
     iop_json_lex_t jll;
@@ -205,13 +205,22 @@ static int iop_json_test_unpack(const iop_struct_t *st, const char *json,
     iop_init(st, res);
     ps = ps_initstr(json);
     iop_jlex_attach(&jll, &ps);
-    ret = iop_junpack(&jll, st, res, true);
+
+    if ((ret = iop_junpack(&jll, st, res, true)) < 0)
+        iop_jlex_write_error(&jll, &sb);
+    if (valid) {
+        Z_ASSERT_N(ret, "JSon unpacking error (%s, %s): %s", st->fullname.s,
+                   info, sb.data);
+    } else {
+        Z_ASSERT_NEG(ret, "JSon unpacking unexpected success (%s, %s)",
+                     st->fullname.s, info);
+    }
     iop_jlex_detach(&jll);
 
     sb_wipe(&sb);
     iop_jlex_wipe(&jll);
 
-    return ret;
+    Z_HELPER_END;
 }
 
 static int iop_std_test_struct(const iop_struct_t *st, void *v,
@@ -985,11 +994,15 @@ Z_GROUP_EXPORT(iop)
         Z_HELPER_RUN(iop_json_test_json(st_sk, json_sk,  &json_sk_res,
                                         "json_sk"));
 
-        Z_ASSERT_N(iop_json_test_unpack(st_si, json_si_p1, "json_si_p1"));
-        Z_ASSERT_N(iop_json_test_unpack(st_si, json_si_p2, "json_si_p2"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_p1, true,
+                                          "json_si_p1"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_p2, true,
+                                          "json_si_p2"));
 
-        Z_ASSERT_NEG(iop_json_test_unpack(st_si, json_si_n1, "json_si_n1"));
-        Z_ASSERT_NEG(iop_json_test_unpack(st_si, json_si_n2, "json_si_n2"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_n1, false,
+                                          "json_si_n1"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_n2, false,
+                                          "json_si_n2"));
 
         iop_dso_close(&dso);
     } Z_TEST_END
@@ -1304,8 +1317,10 @@ Z_GROUP_EXPORT(iop)
         Z_HELPER_RUN(iop_xml_test_struct(st_sl, &sl2, "sl2"));
         Z_HELPER_RUN(iop_xml_test_struct_invalid(st_sl, &sl3, "sl3"));
 
-        Z_ASSERT_N(iop_json_test_unpack(st_sl, json_sl_p1, "json_sl_p1"));
-        Z_ASSERT_NEG(iop_json_test_unpack(st_sl, json_sl_n1, "json_sl_n1"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_sl, json_sl_p1, true,
+                                          "json_sl_p1"));
+        Z_HELPER_RUN(iop_json_test_unpack(st_sl, json_sl_n1, true,
+                                          "json_sl_n1"));
 
         iop_dso_close(&dso);
     } Z_TEST_END
