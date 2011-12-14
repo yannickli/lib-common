@@ -645,16 +645,39 @@ const char *iop_get_err(void)
     return NULL;
 }
 
-bool iop_field_has_constraints(const iop_field_t *fdesc)
+static check_constraints_f field_get_constraints_cb(const iop_struct_t *desc,
+                                                    const iop_field_t *fdesc)
 {
+    unsigned desc_flags = desc->flags;
+
+    if (TST_BIT(&desc_flags, IOP_STRUCT_EXTENDED) && desc->fields_attrs) {
+        const iop_field_attrs_t *attrs;
+
+        attrs = &desc->fields_attrs[fdesc - desc->fields];
+        assert (attrs);
+
+        return attrs->check_constraints;
+    }
+    return NULL;
+}
+
+bool iop_field_has_constraints(const iop_struct_t *desc, const iop_field_t
+                               *fdesc)
+{
+    if (field_get_constraints_cb(desc, fdesc))
+        return true;
     if (fdesc->type == IOP_T_ENUM && fdesc->u1.en_desc->flags)
         return true;
     return false;
 }
 
-int iop_field_check_constraints(const iop_field_t *fdesc, const void *ptr,
-                                int n, bool recurse)
+int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
+                                *fdesc, const void *ptr, int n, bool recurse)
 {
+    check_constraints_f check_constraints = NULL;
+    if ((check_constraints = field_get_constraints_cb(desc, fdesc))) {
+        RETHROW(check_constraints(ptr, n));
+    }
     switch (fdesc->type) {
       case IOP_T_ENUM:
         if (TST_BIT(&fdesc->u1.en_desc->flags, IOP_ENUM_STRICT)) {
@@ -739,7 +762,7 @@ int iop_check_constraints(const iop_struct_t *desc, const void *val)
                 continue;
         }
 
-        RETHROW(iop_field_check_constraints(fdesc, ptr, n, true));
+        RETHROW(iop_field_check_constraints(desc, fdesc, ptr, n, true));
     }
 
     return 0;
@@ -1471,8 +1494,8 @@ static int unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
         }
 
       next:
-        if (unlikely(iop_field_has_constraints(fdesc))) {
-            RETHROW(iop_field_check_constraints(fdesc, v, n, false));
+        if (unlikely(iop_field_has_constraints(desc, fdesc))) {
+            RETHROW(iop_field_check_constraints(desc, fdesc, v, n, false));
         }
         fdesc++;
     }

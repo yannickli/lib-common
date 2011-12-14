@@ -129,14 +129,27 @@ enum iop_enum_flags_t {
     IOP_ENUM_STRICT,        /**< strict packing/unpacking of enum values */
 };
 
+enum iop_struct_flags_t {
+    IOP_STRUCT_EXTENDED,    /**< st_attrs and field_attrs exist */
+};
+
+typedef int (*check_constraints_f)(const void *ptr, int n);
+
+typedef struct iop_field_attrs_t {
+    check_constraints_f check_constraints;
+} iop_field_attrs_t;
+
 struct iop_struct_t {
     const lstr_t        fullname;
     const iop_field_t  *fields;
     const int          *ranges;
     uint16_t            ranges_len;
     uint16_t            fields_len;
-    unsigned            size     : 31;  /* sizeof(type);       */
-    unsigned            is_union :  1;  /* struct or union ?   */
+    uint16_t            size;           /**< sizeof(type);                  */
+    unsigned            flags    : 15;  /**< bitfield of iop_struct_flags_t */
+    unsigned            is_union :  1;  /**< struct or union ?              */
+    void               *st_attrs;
+    const iop_field_attrs_t *fields_attrs;
 };
 
 typedef struct iop_rpc_t {
@@ -210,9 +223,10 @@ int   iop_ranges_search(int const *ranges, int ranges_len, int tag);
 __attr_printf__(1, 2)
 void iop_set_err(const char *fmt, ...);
 const char *iop_get_err(void);
-bool iop_field_has_constraints(const iop_field_t *fdesc);
-int iop_field_check_constraints(const iop_field_t *fdesc, const void *ptr,
-                                int n, bool recurse);
+bool iop_field_has_constraints(const iop_struct_t *desc, const iop_field_t
+                               *fdesc);
+int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
+                                *fdesc, const void *ptr, int n, bool recurse);
 int iop_check_constraints(const iop_struct_t *desc, const void *val);
 
 static inline lstr_t iop_enum_to_str(const iop_enum_t *ed, int v) {
