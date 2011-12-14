@@ -218,6 +218,7 @@ static int iop_std_test_struct(const iop_struct_t *st, void *v,
                                const char *info)
 {
     t_scope;
+    int ret;
     byte *res;
     uint8_t buf1[20], buf2[20];
     qv_t(i32) szs;
@@ -236,8 +237,9 @@ static int iop_std_test_struct(const iop_struct_t *st, void *v,
     res = t_new(byte, ROUND_UP(st->size, 8));
     iop_init(st, res);
 
-    Z_ASSERT_N(iop_bunpack(t_pool(), st, res, ps_init(dst, len), false),
-               "IOP unpacking error (%s, %s)", st->fullname.s, info);
+    ret = iop_bunpack(t_pool(), st, res, ps_init(dst, len), false);
+    Z_ASSERT_N(ret, "IOP unpacking error (%s, %s, %s)", st->fullname.s, info,
+               iop_get_err());
 
     /* check hashes equality */
     iop_hash_sha1(st, v,   buf1);

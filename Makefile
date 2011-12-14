@@ -171,6 +171,7 @@ zchk_SOURCES = zchk.c \
 	$/lib-common/libcommon.wa \
 	$/lib-common/time-lp-simple.a
 zchk_LIBS = $(libxml2_LIBS)
+zchk_LDFLAGS = -rdynamic
 
 ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
 

@@ -14,10 +14,6 @@
 #include "iop.h"
 #include "ic.iop.h"
 
-iop_struct_t const iop__void__s = {
-    .fullname   = LSTR_IMMED("Void"),
-    .fields_len = 0,
-    .size       = 0,
-};
+IOP_EXPORT_PACKAGES_COMMON;
 
 IOP_EXPORT_PACKAGES(&ic__pkg);
