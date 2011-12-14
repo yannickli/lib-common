@@ -371,7 +371,7 @@ void ic_flush(ichannel_t *ic);
 /** \brief register a local callback for an rpc.
  * \param[in]  h
  *    the qm_t(ic_cbs) of implementation to register the rpc
- *    implementatin into.
+ *    implementation into.
  * \param[in]  _mod   name of the package+module of the RPC
  * \param[in]  _i     name of the interface of the RPC
  * \param[in]  _r     name of the rpc
@@ -396,6 +396,20 @@ void ic_flush(ichannel_t *ic);
 /** \brief same as #ic_register_ but auto-computes the rpc name. */
 #define ic_register(h, _m, _i, _r) \
     ic_register_(h, _m, _i, _r, IOP_RPC_NAME(_m, _i, _r, impl))
+
+/** \brief unregister a local callback for an rpc.
+ * \param[in]  h
+ *    the qm_t(ic_cbs) of implementation of which you want to unregister the
+ *    rpc implementation.
+ * \param[in]  _mod   name of the package+module of the RPC
+ * \param[in]  _i     name of the interface of the RPC
+ * \param[in]  _r     name of the rpc
+ */
+#define ic_unregister(h, _mod, _if, _rpc) \
+    do {                                                                     \
+        uint32_t cmd = IOP_RPC_CMD(_mod, _if, _rpc);                         \
+        qm_del_key(ic_cbs, h, cmd);                                          \
+    } while (0)
 
 /** \brief register a proxy destination for the given rpc with forced header.
  * \param[in]  h
