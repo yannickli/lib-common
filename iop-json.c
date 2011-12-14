@@ -199,6 +199,10 @@ iop_jlex_werror(iop_json_lex_t *ll, void *buf, int len,
       case IOP_JERR_NOTHING_TO_READ:
         return ESTR("there is nothing to read");
 
+      case IOP_JERR_CONSTRAINT:
+        return ESTR("invalid field (ending at `%s'): %s", ll->err_str,
+                    iop_get_err());
+
       case IOP_JERR_UNKNOWN:
       default:
         return ESTR("unknown error");
@@ -1185,8 +1189,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                                                       false);
                 }
                 if (ret < 0) {
-                    return RJERROR_EXP_FMT("respect of constraints (%s)",
-                                           iop_get_err());
+                    return RJERROR_WARG(IOP_JERR_CONSTRAINT);
                 }
             }
         } else {

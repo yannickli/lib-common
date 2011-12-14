@@ -46,6 +46,8 @@ typedef enum iop_json_error {
     IOP_JERR_UNION_RESERVED                  = -16,
     IOP_JERR_NOTHING_TO_READ                 = -17,
 
+    IOP_JERR_CONSTRAINT                      = -18,
+
 } iop_json_error;
 
 typedef struct iop_json_lex_t {
