@@ -135,8 +135,30 @@ enum iop_struct_flags_t {
 
 typedef int (*check_constraints_f)(const void *ptr, int n);
 
+typedef struct iop_field_attr_arg_t {
+    union {
+        int64_t i64;
+        double  d;
+        lstr_t  s;
+    } v;
+} iop_field_attr_arg_t;
+
+typedef enum iop_field_attr_type_t {
+    IOP_FIELD_MIN_OCCURS,
+    IOP_FIELD_MAX_OCCURS,
+} iop_field_attr_type_t;
+
+typedef struct iop_field_attr_t {
+    iop_field_attr_type_t        type;
+    const iop_field_attr_arg_t  *args;
+} iop_field_attr_t;
+
 typedef struct iop_field_attrs_t {
-    check_constraints_f check_constraints;
+    check_constraints_f      check_constraints;
+    unsigned                 flags;  /**< bitfield of iop_field_attr_type_t */
+    uint16_t                 attrs_len;
+    uint16_t                 padding;
+    const iop_field_attr_t  *attrs;
 } iop_field_attrs_t;
 
 struct iop_struct_t {
