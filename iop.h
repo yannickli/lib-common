@@ -146,6 +146,7 @@ typedef struct iop_field_attr_arg_t {
 typedef enum iop_field_attr_type_t {
     IOP_FIELD_MIN_OCCURS,
     IOP_FIELD_MAX_OCCURS,
+    IOP_FIELD_CDATA,
 } iop_field_attr_type_t;
 
 typedef struct iop_field_attr_t {

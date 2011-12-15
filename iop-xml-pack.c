@@ -19,8 +19,8 @@ static void xpack_struct(sb_t *, const iop_struct_t *, const void *, bool, bool)
 static void xpack_union(sb_t *, const iop_struct_t *, const void *, bool, bool);
 
 static void
-xpack_value(sb_t *sb, const iop_field_t *f, const void *v, bool verbose,
-            bool wenums)
+xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
+            const void *v, bool verbose, bool wenums)
 {
     static clstr_t const types[] = {
         [IOP_T_I8]     = CLSTR_IMMED(" xsi:type=\"xsd:byte\">"),
@@ -41,6 +41,7 @@ xpack_value(sb_t *sb, const iop_field_t *f, const void *v, bool verbose,
         [IOP_T_STRUCT] = CLSTR_IMMED(">"),
     };
     const clstr_t *s;
+    const iop_field_attrs_t *attrs;
 
     sb_grow(sb, 64 + f->name.len * 2);
     sb_addc(sb, '<');
@@ -91,7 +92,16 @@ xpack_value(sb_t *sb, const iop_field_t *f, const void *v, bool verbose,
         break;
       case IOP_T_STRING:
         s = v;
-        sb_add_xmlescape(sb, s->s, s->len);
+        if (s->len) {
+            attrs = iop_field_get_attrs(desc, f);
+            if (attrs && TST_BIT(&attrs->flags, IOP_FIELD_CDATA)) {
+                sb_adds(sb, "<![CDATA[");
+                sb_add(sb, s->s, s->len);
+                sb_adds(sb, "]]>");
+            } else {
+                sb_add_xmlescape(sb, s->s, s->len);
+            }
+        }
         break;
       case IOP_T_DATA:
         s = v;
@@ -137,7 +147,7 @@ xpack_struct(sb_t *sb, const iop_struct_t *desc, const void *v,
         }
 
         while (len-- > 0) {
-            xpack_value(sb, f, ptr, verbose, wenums);
+            xpack_value(sb, desc, f, ptr, verbose, wenums);
             ptr = (const char *)ptr + f->size;
         }
     }
@@ -149,7 +159,7 @@ xpack_union(sb_t *sb, const iop_struct_t *desc, const void *v, bool verbose,
 {
     const iop_field_t *f = get_union_field(desc, v);
 
-    xpack_value(sb, f, (char *)v + f->data_offs, verbose, wenums);
+    xpack_value(sb, desc, f, (char *)v + f->data_offs, verbose, wenums);
 }
 
 void iop_xpack(sb_t *sb, const iop_struct_t *desc, const void *v, bool verbose,
