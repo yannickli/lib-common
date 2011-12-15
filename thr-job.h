@@ -203,7 +203,6 @@ GENERIC_NEW(thr_syn_t, thr_syn);
 
 static ALWAYS_INLINE void thr_syn_wipe(thr_syn_t *syn)
 {
-    assert (syn->pending == 0);
     thr_syn__release(syn);
     while (unlikely(syn->refcnt))
         mb();

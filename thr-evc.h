@@ -94,7 +94,7 @@ typedef struct thr_evc_t {
             unsigned volatile count2;
 #endif
         };
-        uint64_t key;
+        uint64_t volatile key;
     };
     unsigned volatile waiters;
 } thr_evc_t;
