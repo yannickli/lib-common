@@ -662,7 +662,7 @@ void thr_syn_wait(thr_syn_t *syn)
     thr_syn__retain(syn);
 
     if (self_tid_g == 0) {
-        while (syn->pending) {
+        while (shared_read(syn->pending)) {
             uint64_t key;
 
             if (!mpsc_queue_looks_empty(&thr_queue_main_g->q)) {
@@ -676,7 +676,7 @@ void thr_syn_wait(thr_syn_t *syn)
 
             shared_write(thr0_cur_ec_g, &syn->ec);
             key = thr_ec_get(&syn->ec);
-            if (!syn->pending)
+            if (!shared_read(syn->pending))
                 goto cas;
             if (!mpsc_queue_looks_empty(&thr_queue_main_g->q))
                 goto cas;
@@ -686,13 +686,13 @@ void thr_syn_wait(thr_syn_t *syn)
                 sched_yield();
         }
     } else {
-        while (syn->pending) {
+        while (shared_read(syn->pending)) {
             if (likely(thr_job_dequeue()))
                 continue;
             if (!thr_job_steal()) {
                 uint64_t key = thr_ec_get(&syn->ec);
 
-                if (!syn->pending)
+                if (!shared_read(syn->pending))
                     break;
                 if (thr_job_steal())
                     continue;
