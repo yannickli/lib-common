@@ -84,6 +84,55 @@ static void iop_xwsdl_put_enum(wsdlpp_t *wpp, const iop_enum_t *e)
     xmlpp_closentag(&wpp->pp, 4);
 }
 
+static void iop_xwsdl_put_occurs(wsdlpp_t *wpp, const iop_struct_t *st,
+                                 const iop_field_t *f)
+{
+    unsigned st_flags = st->flags;
+
+    if (TST_BIT(&st_flags, IOP_STRUCT_EXTENDED) && st->fields_attrs) {
+        const iop_field_attrs_t *attrs;
+        const iop_field_attr_t *min = NULL, *max = NULL;
+
+        attrs = &st->fields_attrs[f - st->fields];
+        assert (attrs);
+
+        if (TST_BIT(&attrs->flags, IOP_FIELD_MIN_OCCURS)
+        ||  TST_BIT(&attrs->flags, IOP_FIELD_MAX_OCCURS))
+        {
+            for (int i = 0; i < attrs->attrs_len; i++) {
+                const iop_field_attr_t *attr = &attrs->attrs[i];
+
+                if (attr->type == IOP_FIELD_MIN_OCCURS) {
+                    min = attr;
+                } else
+                if (attr->type == IOP_FIELD_MAX_OCCURS) {
+                    max = attr;
+                }
+            }
+        }
+
+        if (TST_BIT(&attrs->flags, IOP_FIELD_MIN_OCCURS)) {
+            assert (min);
+            xmlpp_putattrfmt(&wpp->pp, "minOccurs", "%jd",
+                             min->args[0].v.i64);
+        } else {
+            xmlpp_putattr(&wpp->pp, "minOccurs", "0");
+        }
+
+        if (TST_BIT(&attrs->flags, IOP_FIELD_MAX_OCCURS)) {
+            assert (max);
+            xmlpp_putattrfmt(&wpp->pp, "maxOccurs", "%jd",
+                             max->args[0].v.i64);
+        } else {
+            xmlpp_putattr(&wpp->pp, "maxOccurs", "unbounded");
+        }
+
+    } else {
+        xmlpp_putattr(&wpp->pp, "minOccurs", "0");
+        xmlpp_putattr(&wpp->pp, "maxOccurs", "unbounded");
+    }
+}
+
 static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
 {
     static char const * const types[] = {
@@ -134,8 +183,7 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
             xmlpp_putattr(&wpp->pp, "minOccurs", "0");
             break;
           case IOP_R_REPEATED:
-            xmlpp_putattr(&wpp->pp, "minOccurs", "0");
-            xmlpp_putattr(&wpp->pp, "maxOccurs", "unbounded");
+            iop_xwsdl_put_occurs(wpp, st, f);
             break;
           default:
             break;
