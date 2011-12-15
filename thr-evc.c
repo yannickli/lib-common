@@ -52,7 +52,7 @@ void thr_ec_signal_n(thr_evc_t *ec, int count)
     atomic_add(&ec->key, 1);
 #endif
 
-    if (ec->waiters)
+    if (atomic_get_and_add(&ec->waiters, 0))
         futex_wake(&ec->count, count);
 }
 
