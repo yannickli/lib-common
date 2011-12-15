@@ -1530,6 +1530,7 @@ int iop_bunpack(mem_pool_t *mp, const iop_struct_t *desc, void *value,
 {
     e_named_trace(5, "iop/c/unpacker", "unpacking IOP object %*pM",
                   LSTR_FMT_ARG(desc->fullname));
+    sb_reset(&iop_err_g);
     if (desc->is_union) {
         return unpack_union(mp, desc, value, &ps, copy) ? -1 : 0;
     }
@@ -1550,6 +1551,7 @@ int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *desc, void *value,
 
     e_named_trace(5, "iop/c/unpacker", "unpacking IOP union(s) %*pM",
                   LSTR_FMT_ARG(desc->fullname));
+    sb_reset(&iop_err_g);
     return (unpack_union(mp, desc, value, ps, copy) < 0) ? -1 : 0;
 }
 
