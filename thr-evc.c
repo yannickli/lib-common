@@ -34,11 +34,11 @@
 #  error "this file assumes a strict memory model and is probably buggy on !x86"
 #endif
 
-#define futex_wait(futex, val, ts) \
-        syscall(SYS_futex, (unsigned long)futex, FUTEX_WAIT, val, (unsigned long)ts, 0)
+#define futex_wait_private(futex, val, ts) \
+        syscall(SYS_futex, (unsigned long)futex, FUTEX_WAIT_PRIVATE, val, (unsigned long)ts, 0)
 
-#define futex_wake(futex, nwake) \
-        syscall(SYS_futex, (unsigned long)futex, FUTEX_WAKE, nwake, 0, 0)
+#define futex_wake_private(futex, nwake) \
+        syscall(SYS_futex, (unsigned long)futex, FUTEX_WAKE_PRIVATE, nwake, 0, 0)
 
 void thr_ec_signal_n(thr_evc_t *ec, int count)
 {
@@ -53,7 +53,7 @@ void thr_ec_signal_n(thr_evc_t *ec, int count)
 #endif
 
     if (atomic_get_and_add(&ec->waiters, 0))
-        futex_wake(&ec->count, count);
+        futex_wake_private(&ec->count, count);
 }
 
 static void thr_ec_wait_cleanup(void *arg)
@@ -72,7 +72,7 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
      * XXX: futex only works on integers (32bits) so we have to check if the
      *      high 32bits word changed. We can do this in a racy way because we
      *      assume it's impossible for the low 32bits to overflow between this
-     *      test and the call to futex_wait.
+     *      test and the call to futex_wait_private.
      */
     if (unlikely(
 #if ULONG_MAX == UINT32_MAX
@@ -94,9 +94,9 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
             .tv_sec  = timeout / 1000,
             .tv_nsec = (timeout % 1000) * 1000000,
         };
-        res = futex_wait(&ec->count, (uint32_t)key, &spec);
+        res = futex_wait_private(&ec->count, (uint32_t)key, &spec);
     } else {
-        res = futex_wait(&ec->count, (uint32_t)key, NULL);
+        res = futex_wait_private(&ec->count, (uint32_t)key, NULL);
     }
     if (res == 0)
         sched_yield();
