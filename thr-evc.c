@@ -40,7 +40,7 @@
 #define futex_wake(futex, nwake) \
         syscall(SYS_futex, (unsigned long)futex, FUTEX_WAKE, nwake, 0, 0)
 
-int thr_ec_signal_n(thr_evc_t *ec, int count)
+void thr_ec_signal_n(thr_evc_t *ec, int count)
 {
 #if ULONG_MAX == UINT32_MAX
     /*
@@ -63,14 +63,8 @@ int thr_ec_signal_n(thr_evc_t *ec, int count)
     atomic_add(&ec->key, 1);
 #endif
 
-    if (ec->waiters) {
-        int res = futex_wake(&ec->count, count);
-
-        assert (res >= 0);
-        atomic_sub(&ec->waiters, res);
-        return res;
-    }
-    return 0;
+    if (ec->waiters)
+        futex_wake(&ec->count, count);
 }
 
 static void thr_ec_wait_cleanup(void *arg)
@@ -115,12 +109,9 @@ void thr_ec_timedwait(thr_evc_t *ec, uint64_t key, long timeout)
     } else {
         res = futex_wait(&ec->count, (uint32_t)key, NULL);
     }
-    if (res == 0) {
+    if (res == 0)
         sched_yield();
-    } else {
-        atomic_sub(&ec->waiters, 1);
-    }
 
     pthread_setcanceltype(canceltype, NULL);
-    pthread_cleanup_pop(0);
+    pthread_cleanup_pop(1);
 }
