@@ -1347,8 +1347,6 @@ Z_GROUP_EXPORT(iop)
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
-        Z_SKIP("need attribute @strict on enum MyEnumB");
-
         Z_ASSERT_P(st_sl = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructL")));
 
         Z_ASSERT_N(iop_check_constraints(st_sl, &sl1));
@@ -1366,7 +1364,7 @@ Z_GROUP_EXPORT(iop)
 
         Z_HELPER_RUN(iop_json_test_unpack(st_sl, json_sl_p1, true,
                                           "json_sl_p1"));
-        Z_HELPER_RUN(iop_json_test_unpack(st_sl, json_sl_n1, true,
+        Z_HELPER_RUN(iop_json_test_unpack(st_sl, json_sl_n1, false,
                                           "json_sl_n1"));
 
         iop_dso_close(&dso);

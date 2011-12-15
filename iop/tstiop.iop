@@ -36,6 +36,7 @@ enum MyEnumA {
     C = 0x2,
 };
 
+@strict
 enum MyEnumB {
     A,
     B,
