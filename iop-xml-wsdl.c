@@ -87,14 +87,10 @@ static void iop_xwsdl_put_enum(wsdlpp_t *wpp, const iop_enum_t *e)
 static void iop_xwsdl_put_occurs(wsdlpp_t *wpp, const iop_struct_t *st,
                                  const iop_field_t *f)
 {
-    unsigned st_flags = st->flags;
+    const iop_field_attrs_t *attrs = iop_field_get_attrs(st, f);
 
-    if (TST_BIT(&st_flags, IOP_STRUCT_EXTENDED) && st->fields_attrs) {
-        const iop_field_attrs_t *attrs;
+    if (attrs) {
         const iop_field_attr_t *min = NULL, *max = NULL;
-
-        attrs = &st->fields_attrs[f - st->fields];
-        assert (attrs);
 
         if (TST_BIT(&attrs->flags, IOP_FIELD_MIN_OCCURS)
         ||  TST_BIT(&attrs->flags, IOP_FIELD_MAX_OCCURS))

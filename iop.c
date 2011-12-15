@@ -645,26 +645,10 @@ const char *iop_get_err(void)
     return NULL;
 }
 
-static check_constraints_f field_get_constraints_cb(const iop_struct_t *desc,
-                                                    const iop_field_t *fdesc)
-{
-    unsigned desc_flags = desc->flags;
-
-    if (TST_BIT(&desc_flags, IOP_STRUCT_EXTENDED) && desc->fields_attrs) {
-        const iop_field_attrs_t *attrs;
-
-        attrs = &desc->fields_attrs[fdesc - desc->fields];
-        assert (attrs);
-
-        return attrs->check_constraints;
-    }
-    return NULL;
-}
-
 bool iop_field_has_constraints(const iop_struct_t *desc, const iop_field_t
                                *fdesc)
 {
-    if (field_get_constraints_cb(desc, fdesc))
+    if (iop_field_get_constraints_cb(desc, fdesc))
         return true;
     if (fdesc->type == IOP_T_ENUM && fdesc->u1.en_desc->flags)
         return true;
@@ -675,7 +659,7 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
                                 *fdesc, const void *ptr, int n, bool recurse)
 {
     check_constraints_f check_constraints = NULL;
-    if ((check_constraints = field_get_constraints_cb(desc, fdesc))) {
+    if ((check_constraints = iop_field_get_constraints_cb(desc, fdesc))) {
         RETHROW(check_constraints(ptr, n));
     }
     switch (fdesc->type) {

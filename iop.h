@@ -252,6 +252,34 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
                                 *fdesc, const void *ptr, int n, bool recurse);
 int iop_check_constraints(const iop_struct_t *desc, const void *val);
 
+static inline
+const iop_field_attrs_t *iop_field_get_attrs(const iop_struct_t *desc,
+                                             const iop_field_t *fdesc)
+{
+    unsigned desc_flags = desc->flags;
+
+    if (TST_BIT(&desc_flags, IOP_STRUCT_EXTENDED) && desc->fields_attrs) {
+        const iop_field_attrs_t *attrs;
+
+        attrs = &desc->fields_attrs[fdesc - desc->fields];
+        assert (attrs);
+
+        return attrs;
+    }
+    return NULL;
+}
+
+static inline check_constraints_f
+iop_field_get_constraints_cb(const iop_struct_t *desc,
+                             const iop_field_t *fdesc)
+{
+    const iop_field_attrs_t *attrs = iop_field_get_attrs(desc, fdesc);
+
+    if (attrs)
+        return attrs->check_constraints;
+    return NULL;
+}
+
 static inline lstr_t iop_enum_to_str(const iop_enum_t *ed, int v) {
     int res = iop_ranges_search(ed->ranges, ed->ranges_len, v);
     return unlikely(res < 0) ? CLSTR_NULL_V : ed->names[res];
