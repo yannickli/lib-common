@@ -56,14 +56,19 @@ typedef enum iop_type_t {
 typedef struct iop_struct_t iop_struct_t;
 typedef struct iop_enum_t   iop_enum_t;
 
+enum iop_field_flags_t {
+    IOP_FIELD_CHECK_CONSTRAINTS,    /**< check_constraints function exists  */
+};
+
 typedef struct iop_field_t {
     lstr_t       name;
     uint16_t     tag;
-    uint16_t     tag_len;     /* 0 to 3                   */
-    uint16_t     repeat;      /* iop_repeat_t             */
-    uint16_t     type;        /* iop_type_t               */
-    uint16_t     size;        /* sizeof(type);            */
-    uint16_t     data_offs;   /* offset to the data       */
+    unsigned     tag_len:  2; /**< 0 to 2                                   */
+    unsigned     flags  : 14; /**< bitfield of iop_field_flags_t            */
+    uint16_t     repeat;      /**< iop_repeat_t                             */
+    uint16_t     type;        /**< iop_type_t                               */
+    uint16_t     size;        /**< sizeof(type);                            */
+    uint16_t     data_offs;   /**< offset to the data                       */
     /**
      *   unused for IOP_T_{U,I}{8,16,32,64}, IOP_T_DOUBLE
      *   unused for IOP_T_{UNION,STRUCT}
@@ -276,10 +281,13 @@ static inline check_constraints_f
 iop_field_get_constraints_cb(const iop_struct_t *desc,
                              const iop_field_t *fdesc)
 {
-    const iop_field_attrs_t *attrs = iop_field_get_attrs(desc, fdesc);
+    unsigned fdesc_flags = fdesc->flags;
 
-    if (attrs)
+    if (TST_BIT(&fdesc_flags, IOP_FIELD_CHECK_CONSTRAINTS)) {
+        const iop_field_attrs_t *attrs = iop_field_get_attrs(desc, fdesc);
+
         return attrs->check_constraints;
+    }
     return NULL;
 }
 
