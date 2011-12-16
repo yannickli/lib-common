@@ -130,7 +130,8 @@ enum iop_enum_flags_t {
 };
 
 enum iop_struct_flags_t {
-    IOP_STRUCT_EXTENDED,    /**< st_attrs and field_attrs exist */
+    IOP_STRUCT_EXTENDED,        /**< st_attrs and field_attrs exist */
+    IOP_STRUCT_HAS_CONSTRAINTS, /**< will iop_check_constraints do smth? */
 };
 
 typedef int (*check_constraints_f)(const void *ptr, int n);

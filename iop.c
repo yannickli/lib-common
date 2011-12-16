@@ -715,6 +715,10 @@ int iop_check_constraints(const iop_struct_t *desc, const void *val)
 {
     const iop_field_t *fdesc;
     const iop_field_t *end;
+    unsigned           desc_flags = desc->flags;
+
+    if (!TST_BIT(&desc_flags, IOP_STRUCT_HAS_CONSTRAINTS))
+        return 0;
 
     if (desc->is_union) {
         fdesc = get_union_field(desc, val);
