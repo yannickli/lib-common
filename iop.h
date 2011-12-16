@@ -158,7 +158,8 @@ typedef struct iop_field_attrs_t {
     check_constraints_f      check_constraints;
     unsigned                 flags;  /**< bitfield of iop_field_attr_type_t */
     uint16_t                 attrs_len;
-    uint16_t                 padding;
+    uint8_t                  version;   /**< version 0 */
+    uint8_t                  padding;
     const iop_field_attr_t  *attrs;
 } iop_field_attrs_t;
 
