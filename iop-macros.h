@@ -145,6 +145,9 @@
     static inline const char *pfx##__to_str(pfx##__t v) {                    \
         return iop_enum_to_str(&pfx##__e, v).s;                              \
     }                                                                        \
+    static inline lstr_t pfx##__to_lstr(pfx##__t v) {                        \
+        return iop_enum_to_str(&pfx##__e, v);                                \
+    }                                                                        \
     static inline int pfx##__from_str(const char *s, int len, int err) {     \
         return iop_enum_from_str(&pfx##__e, s, len, err);                    \
     }                                                                        \
