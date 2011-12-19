@@ -251,9 +251,12 @@ void  iop_copy(mem_pool_t *mp, const iop_struct_t *, void **, const void *v);
 int   iop_ranges_search(int const *ranges, int ranges_len, int tag);
 
 EXPORT __cold __attr_printf__(1, 2)
-void iop_set_err(const char *fmt, ...);
+int         iop_set_err(const char *fmt, ...);
+int         iop_set_err2(const lstr_t *s) __cold;
+void        iop_clear_err(void) ;
+const char *iop_get_err(void) __cold;
+lstr_t      iop_get_err_lstr(void) __cold;
 
-const char *iop_get_err(void);
 bool iop_field_has_constraints(const iop_struct_t *desc, const iop_field_t
                                *fdesc);
 int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t

@@ -85,7 +85,8 @@ static int t_parse_soap(ichttp_query_t *iq,
     XCHECK(xmlr_node_get_local_name(xr, &s));
     pos = qm_find(ichttp_cbs, &tcb->impl, &s);
     if (pos < 0) {
-        __ichttp_reply_soap_err(ichttp_query_to_slot(iq), false, "unknown rpc");
+        __ichttp_reply_soap_err_cst(ichttp_query_to_slot(iq), false,
+                                    "unknown rpc");
         goto error;
     }
     iq->cbe = *cbout = cbe = ichttp_cb_dup(tcb->impl.values[pos]);
@@ -100,8 +101,8 @@ static int t_parse_soap(ichttp_query_t *iq,
     return 0;
 
   xmlerror:
-    __ichttp_reply_soap_err(ichttp_query_to_slot(iq), false,
-                            xmlr_get_err() ?: "parsing error");
+    s = LSTR_STR_V(xmlr_get_err() ?: "parsing error");
+    __ichttp_reply_soap_err(ichttp_query_to_slot(iq), false, &s);
   error:
     xmlr_close(&xr);
     return -1;
@@ -255,7 +256,7 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
         if (msg->async)
             httpd_reply_202accepted(q);
     } else {
-        __ichttp_reply_err(slot, IC_MSG_PROXY_ERROR);
+        __ichttp_reply_err(slot, IC_MSG_PROXY_ERROR, NULL);
     }
 }
 

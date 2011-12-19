@@ -629,13 +629,25 @@ static void iop_wipe_err(void)
 
 thr_hooks(iop_init_err, iop_wipe_err);
 
-void iop_set_err(const char *fmt, ...)
+int iop_set_err(const char *fmt, ...)
 {
     va_list ap;
 
     va_start(ap, fmt);
     sb_setvf(&iop_err_g, fmt, ap);
     va_end(ap);
+    return -1;
+}
+
+int iop_set_err2(const lstr_t *s)
+{
+    sb_set(&iop_err_g, s->s, s->len);
+    return -1;
+}
+
+void iop_clear_err(void)
+{
+    sb_reset(&iop_err_g);
 }
 
 const char *iop_get_err(void)
@@ -643,6 +655,13 @@ const char *iop_get_err(void)
     if (iop_err_g.len)
         return iop_err_g.data;
     return NULL;
+}
+
+lstr_t iop_get_err_lstr(void)
+{
+    if (iop_err_g.len)
+        return LSTR_INIT_V(iop_err_g.data, iop_err_g.len);
+    return LSTR_NULL_V;
 }
 
 bool iop_field_has_constraints(const iop_struct_t *desc, const iop_field_t
@@ -675,9 +694,8 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
                 {
                     continue;
                 }
-                iop_set_err("%d is not a valid value for enum %*pM",
-                        intval, LSTR_FMT_ARG(en_desc->fullname));
-                return -1;
+                return iop_set_err("%d is not a valid value for enum %*pM",
+                                   intval, LSTR_FMT_ARG(en_desc->fullname));
             }
         }
         break;

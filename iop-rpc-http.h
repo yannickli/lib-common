@@ -98,12 +98,15 @@ void __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *, const void *);
 /** \brief internal do not use directly, or know what you're doing. */
 void __ichttp_proxify(uint64_t slot, int cmd, const void *data, int dlen);
 /** \brief internal do not use directly, or know what you're doing. */
-void __ichttp_reply_err(uint64_t slot, int err);
+void __ichttp_reply_err(uint64_t slot, int err, const lstr_t *err_str);
 /** \brief internal do not use directly, or know what you're doing. */
-void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const char *err);
+void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const lstr_t *err);
 /** \brief internal do not use directly, or know what you're doing. */
 void __ichttp_forward_reply(uint64_t slot, int cmd, const void *res,
                             const void *exn);
+
+#define __ichttp_reply_soap_err_cst(slot, serverfault, err) \
+    __ichttp_reply_soap_err(slot, serverfault, &LSTR_IMMED_V(err))
 
 /** \brief internal do not use directly, or know what you're doing. */
 int __t_ichttp_query_on_done_stage1(httpd_query_t *q, ichttp_cb_t **cbe,

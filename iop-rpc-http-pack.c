@@ -92,7 +92,7 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
     httpd_reply_done(q);
 }
 
-void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const char *err)
+void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const lstr_t *err)
 {
     ichttp_query_t *iq = ichttp_slot_to_query(slot);
     httpd_query_t  *q  = obj_vcast(httpd_query, iq);
@@ -128,7 +128,7 @@ void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const char *err)
         xmlpp_puts(&pp,"s:Client");
     }
     xmlpp_opensib(&pp, "s:faultstring");
-    xmlpp_puts(&pp,    err);
+    xmlpp_put(&pp, err->s, err->len);
     xmlpp_close(&pp);
     outbuf_sb_end(ob, oldlen);
 
@@ -138,7 +138,7 @@ void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const char *err)
     httpd_reply_done(q);
 }
 
-void __ichttp_reply_err(uint64_t slot, int err)
+void __ichttp_reply_err(uint64_t slot, int err, const lstr_t *err_str)
 {
     ichttp_query_t *iq = ichttp_slot_to_query(slot);
 
@@ -152,22 +152,37 @@ void __ichttp_reply_err(uint64_t slot, int err)
         if (iq->json) {
             httpd_reject(obj_vcast(httpd_query, iq), GATEWAY_TIMEOUT, "");
         } else {
-            __ichttp_reply_soap_err(slot, true, "query temporary refused");
+            __ichttp_reply_soap_err_cst(slot, true,
+                                        "query temporary refused");
         }
         break;
       case IC_MSG_INVALID:
       case IC_MSG_SERVER_ERROR:
-        if (iq->json) {
-            httpd_reject(obj_vcast(httpd_query, iq), INTERNAL_SERVER_ERROR, "");
+        if (err_str && err_str->len) {
+            if (iq->json) {
+                httpd_reject(obj_vcast(httpd_query, iq),
+                             INTERNAL_SERVER_ERROR, "%*pM",
+                             LSTR_FMT_ARG(*err_str));
+            } else {
+                __ichttp_reply_soap_err(slot, true, err_str);
+            }
         } else {
-            __ichttp_reply_soap_err(slot, true, "query refused by server");
+            if (iq->json) {
+                httpd_reject(obj_vcast(httpd_query, iq),
+                             INTERNAL_SERVER_ERROR, "");
+            } else {
+                __ichttp_reply_soap_err_cst(slot, true,
+                                            "query refused by server");
+            }
         }
         break;
       case IC_MSG_UNIMPLEMENTED:
         if (iq->json) {
-            httpd_reject(obj_vcast(httpd_query, iq), INTERNAL_SERVER_ERROR, "");
+            httpd_reject(obj_vcast(httpd_query, iq), INTERNAL_SERVER_ERROR,
+                         "");
         } else {
-            __ichttp_reply_soap_err(slot, true, "query not implemented by server");
+            __ichttp_reply_soap_err_cst(slot, true,
+                                        "query not implemented by server");
         }
         break;
     }
@@ -190,7 +205,7 @@ void __ichttp_proxify(uint64_t slot, int cmd, const void *data, int dlen)
         st = rpc->exn;
         break;
       default:
-        __ichttp_reply_err(slot, cmd);
+        __ichttp_reply_err(slot, cmd, &LSTR_INIT_V(data, dlen));
         return;
     }
 
@@ -200,8 +215,12 @@ void __ichttp_proxify(uint64_t slot, int cmd, const void *data, int dlen)
         v  = t_new_raw(char, st->size);
         ps = ps_init(data, dlen);
         if (unlikely(iop_bunpack(t_pool(), st, v, ps, false) < 0)) {
-            e_trace(0, "%s: answer with invalid encoding", rpc->name.s);
-            __ichttp_reply_err(slot, IC_MSG_INVALID);
+            lstr_t err_str = iop_get_err_lstr();
+#ifndef NDEBUG
+            if (!err_str.s)
+                e_trace(0, "%s: answer with invalid encoding", rpc->name.s);
+#endif
+            __ichttp_reply_err(slot, IC_MSG_INVALID, &err_str);
         } else {
             __ichttp_reply(slot, cmd, st, v);
         }
@@ -228,7 +247,7 @@ void __ichttp_forward_reply(uint64_t slot, int cmd, const void *res,
         st = rpc->exn;
         break;
       default:
-        __ichttp_reply_err(slot, cmd);
+        __ichttp_reply_err(slot, cmd, exn);
         return;
     }
 

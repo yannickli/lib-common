@@ -85,6 +85,8 @@ void ic_msg_delete(ic_msg_t **msgp)
     mp_delete(ic_mp_g, msgp);
 }
 
+static void ic_reply_err2(ichannel_t *ic, uint64_t slot, int err,
+                          const lstr_t *err_str);
 static ichannel_t *ic_get_from_slot(uint64_t slot);
 static void ic_queue(ichannel_t *ic, ic_msg_t *msg, uint32_t flags);
 static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags);
@@ -129,7 +131,8 @@ void __ic_forward_reply_to(uint64_t slot, int cmd, const void *res,
     }
 
     if (cmd != IC_MSG_OK && cmd != IC_MSG_EXN) {
-        ic_reply_err(NULL, slot, cmd);
+        assert (!res);
+        ic_reply_err2(NULL, slot, cmd, exn);
         return;
     }
 
@@ -443,8 +446,15 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
     if (cmd == IC_MSG_EXN) {
         st = tmp->rpc->exn;
     } else {
-        assert (dlen == 0);
-        (*tmp->cb)(ic, tmp, cmd, NULL, NULL);
+        assert (dlen == 0 || cmd == IC_MSG_INVALID);
+        if (dlen > 0) {
+            lstr_t err = LSTR_INIT_V(data, dlen - 1);
+            iop_set_err2(&err);
+            (*tmp->cb)(ic, tmp, cmd, NULL, &err);
+        } else {
+            iop_clear_err();
+            (*tmp->cb)(ic, tmp, cmd, NULL, NULL);
+        }
         ic_msg_delete(&tmp);
         return 0;
     }
@@ -457,9 +467,13 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
         value = (pstream_t **)value + 1;
 
         if (unlikely(iop_bunpack(t_pool(), st, value, ps, false) < 0)) {
-            e_trace(0, "rpc(%04x:%04x):%s: answer with invalid encoding",
-                    (tmp->cmd >> 16) & 0x7fff, tmp->cmd & 0x7fff,
-                    tmp->rpc->name.s);
+#ifndef NDEBUG
+            if (!iop_get_err()) {
+                e_trace(0, "rpc(%04x:%04x):%s: answer with invalid encoding",
+                        (tmp->cmd >> 16) & 0x7fff, tmp->cmd & 0x7fff,
+                        tmp->rpc->name.s);
+            }
+#endif
             t_seal();
             (*tmp->cb)(ic, tmp, IC_MSG_INVALID, NULL, NULL);
         } else
@@ -524,12 +538,20 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             }
 
             if (unlikely(iop_bunpack(t_pool(), st, value, ps, false) < 0)) {
-                e_trace(0, "query %04x:%04x, type %s: invalid encoding",
-                        (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s);
+#ifndef NDEBUG
+                if (!iop_get_err()) {
+                    e_trace(0, "query %04x:%04x, type %s: invalid encoding",
+                            (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s);
+                }
+#endif
               invalid:
                 t_seal();
-                if (slot)
-                    ic_reply_err(ic, MAKE64(ic->id, slot), IC_MSG_INVALID);
+                if (slot) {
+                    lstr_t err_str = iop_get_err_lstr();
+
+                    ic_reply_err2(ic, MAKE64(ic->id, slot), IC_MSG_INVALID,
+                                  &err_str);
+                }
             } else {
                 t_seal();
                 ic->desc = e->u.cb.rpc;
@@ -1001,12 +1023,13 @@ size_t __ic_reply(ichannel_t *ic, uint64_t slot, int cmd, int fd,
     return 0;
 }
 
-void ic_reply_err(ichannel_t *ic, uint64_t slot, int err)
+static void ic_reply_err2(ichannel_t *ic, uint64_t slot, int err,
+                          const lstr_t *err_str)
 {
     assert (slot & IC_MSG_SLOT_MASK);
 
     if (unlikely(ic_slot_is_http(slot))) {
-        __ichttp_reply_err(slot, err);
+        __ichttp_reply_err(slot, err, err_str);
         return;
     }
     assert (!(slot & IC_SLOT_FOREIGN_MASK));
@@ -1029,10 +1052,21 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err)
         ic->pending--;
         msg->slot = slot & IC_MSG_SLOT_MASK;
         msg->cmd  = -err;
-        msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN);
-        msg->dlen = IC_MSG_HDR_LEN;
+        if (err_str && err_str->len) {
+            msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN + err_str->len + 1);
+            msg->dlen = IC_MSG_HDR_LEN + err_str->len + 1;
+            memcpyz((char *)msg->data + IC_MSG_HDR_LEN, err_str->s, err_str->len);
+        } else {
+            msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN);
+            msg->dlen = IC_MSG_HDR_LEN;
+        }
         ic_queue(ic, msg, 0);
     }
+}
+
+void ic_reply_err(ichannel_t *ic, uint64_t slot, int err)
+{
+    ic_reply_err2(ic, slot, err, NULL);
 }
 
 static void ic_sc_do(ichannel_t *ic, int sc_op)
