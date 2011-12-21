@@ -1370,4 +1370,104 @@ Z_GROUP_EXPORT(iop)
         iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
+    Z_TEST(constraints, "test IOP constraints") { /* {{{ */
+        t_scope;
+
+        tstiop__constraint_u__t u;
+        tstiop__constraint_s__t s;
+
+        lstr_t strings[] = {
+            LSTR_IMMED_V("foo1"),
+            LSTR_IMMED_V("foo2"),
+            LSTR_IMMED_V("foo3"),
+            LSTR_IMMED_V("foo4"),
+            LSTR_IMMED_V("foo5"),
+            LSTR_IMMED_V("foo6"),
+        };
+
+        int8_t   i8tab[] = { INT8_MIN,  INT8_MAX,  3, 4, 5, 6 };
+        int16_t i16tab[] = { INT16_MIN, INT16_MAX, 3, 4, 5, 6 };
+        int32_t i32tab[] = { INT32_MIN, INT32_MAX, 3, 4, 5, 6 };
+        int64_t i64tab[] = { INT64_MIN, INT64_MAX, 3, 4, 5, 6 };
+
+        iop_dso_t *dso;
+        lstr_t path = t_lstr_cat(z_cmddir_g,
+                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+
+        const iop_struct_t *st_s, *st_u;
+
+        if ((dso = iop_dso_open(path.s)) == NULL)
+            Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
+
+        Z_ASSERT_P(st_s = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.ConstraintS")));
+        Z_ASSERT_P(st_u = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.ConstraintU")));
+
+        tstiop__constraint_u__init(&u);
+        tstiop__constraint_s__init(&s);
+
+#define CHECK_VALID(st, v, info) \
+        Z_ASSERT_N(iop_check_constraints((st), (v)));                   \
+        Z_HELPER_RUN(iop_std_test_struct((st), (v), (info)));           \
+        Z_HELPER_RUN(iop_xml_test_struct((st), (v), (info)));           \
+        Z_HELPER_RUN(iop_json_test_struct((st), (v), (info)));          \
+
+#define CHECK_INVALID(st, v, info) \
+        Z_ASSERT_NEG(iop_check_constraints((st), (v)));                 \
+        Z_HELPER_RUN(iop_std_test_struct_invalid((st), (v), (info)));   \
+        Z_HELPER_RUN(iop_xml_test_struct_invalid((st), (v), (info)));   \
+        Z_HELPER_RUN(iop_json_test_struct_invalid((st), (v), (info)));  \
+
+#define CHECK_UNION(f, size) \
+        u = IOP_UNION(tstiop__constraint_u, f, 1L << (size - 1));           \
+        CHECK_VALID(st_u, &u, #f);                                          \
+        u = IOP_UNION(tstiop__constraint_u, f, 1 + (1L << (size - 1)));     \
+        CHECK_INVALID(st_u, &u, #f "_max");                                 \
+        u = IOP_UNION(tstiop__constraint_u, f, 0);                          \
+        CHECK_INVALID(st_u, &u, #f "_zero");                                \
+
+        CHECK_UNION(u8,   8);
+        CHECK_UNION(u16, 16);
+        CHECK_UNION(u32, 32);
+        CHECK_UNION(u64, 64);
+
+        u = IOP_UNION(tstiop__constraint_u, s, LSTR_EMPTY_V);
+        CHECK_INVALID(st_u, &u, "s_empty");
+        u = IOP_UNION(tstiop__constraint_u, s, LSTR_NULL_V);
+        CHECK_INVALID(st_u, &u, "s_null");
+        u = IOP_UNION(tstiop__constraint_u, s, LSTR_IMMED_V("foo"));
+        CHECK_VALID(st_u, &u, "s");
+
+        CHECK_INVALID(st_s, &s, "s_minoccurs");
+        s.s.tab = strings;
+        s.s.len = 1;
+        CHECK_INVALID(st_s, &s, "s");
+        s.s.len = countof(strings);
+        CHECK_INVALID(st_s, &s, "s");
+        s.s.len = 2;
+        CHECK_VALID(st_s, &s, "s");
+        s.s.len = 5;
+        CHECK_VALID(st_s, &s, "s");
+
+#define CHECK_TAB(_f, _tab) \
+        s._f.tab = _tab;                  \
+        s._f.len = 6;                    \
+        CHECK_INVALID(st_s, &s, "s");   \
+        s._f.len = 5;                    \
+        CHECK_INVALID(st_s, &s, "s");   \
+        s._f.tab[0]++;                   \
+        CHECK_VALID(st_s, &s, "s");     \
+
+        CHECK_TAB(i8,   i8tab);
+        CHECK_TAB(i16,  i16tab);
+        CHECK_TAB(i32,  i32tab);
+        CHECK_TAB(i64,  i64tab);
+
+#undef CHECK_TAB
+#undef CHECK_UNION
+#undef CHECK_VALID
+#undef CHECK_INVALID
+
+        iop_dso_close(&dso);
+    } Z_TEST_END
+    /* }}} */
 } Z_GROUP_END

@@ -204,6 +204,32 @@ struct Repeated {
     string[] s;
 };
 
+union ConstraintU {
+    @nonZero @max(1 << 7)
+    ubyte   u8;
+    @nonZero @max(1 << 15)
+    ushort  u16;
+    @nonZero @max(1 << 31)
+    uint    u32;
+    @nonZero @max(1 << 63)
+    ulong   u64;
+    @nonEmpty @cdata
+    string  s;
+};
+
+struct ConstraintS {
+    @maxOccurs(5) @min(1-(1 << 7))
+    byte[]      i8;
+    @maxOccurs(5) @min(1-(1 << 15))
+    short[]     i16;
+    @maxOccurs(5) @min(1-(1 << 31))
+    int[]       i32;
+    @maxOccurs(5) @min(1-(1 << 63))
+    long[]      i64;
+    @minOccurs(2) @maxOccurs(5)
+    string[]    s;
+};
+
 struct MyAException {
     int    errcode;
     string desc;
