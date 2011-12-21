@@ -1077,9 +1077,18 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
         if (fdesc) {
             /* Write the selected field */
             *((uint16_t *)value) = fdesc->tag;
+            value = (char *)value + fdesc->data_offs;
 
-            PS_CHECK(unpack_val(ll, fdesc, (char *)value + fdesc->data_offs,
-                                false));
+            PS_CHECK(unpack_val(ll, fdesc, value, false));
+
+            if (unlikely(iop_field_has_constraints(desc, fdesc))) {
+                int ret = iop_field_check_constraints(desc, fdesc, value, 1,
+                                                      false);
+                if (ret < 0) {
+                    return RJERROR_WARG(IOP_JERR_CONSTRAINT);
+                }
+            }
+
         } else {
             PS_CHECK(skip_val(ll, false));
         }

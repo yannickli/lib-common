@@ -1549,11 +1549,15 @@ static int unpack_union(mem_pool_t *mp, const iop_struct_t *desc, void *value,
 
     /* Write the selected field */
     *((uint16_t *)value) = fdesc->tag;
+    value = (char *)value + fdesc->data_offs;
 
     e_named_trace(5, "iop/c/unpacker", "unpacking union %*pM field %*pM",
                   LSTR_FMT_ARG(desc->fullname), LSTR_FMT_ARG(fdesc->name));
-    PS_CHECK(unpack_value(mp, wt, fdesc, (char *)value + fdesc->data_offs, ps,
+    PS_CHECK(unpack_value(mp, wt, fdesc, value, ps,
                           copy));
+    if (unlikely(iop_field_has_constraints(desc, fdesc))) {
+        RETHROW(iop_field_check_constraints(desc, fdesc, value, 1, false));
+    }
     return ps_done(ps) ? 0 : 1;
 }
 
