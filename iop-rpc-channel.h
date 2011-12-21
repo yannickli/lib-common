@@ -849,16 +849,17 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  *      uint64_t origin_slot = *(uint64_t *)msg->priv;
  *
  *      // automatic and efficient answer forwarding
- *      __ic_forward_reply_to(origin_slot, status, res, exn);
+ *      __ic_forward_reply_to(ic, origin_slot, status, res, exn);
  *  }
  * </code>
  *
+ * \param[in]  ic     the ichannel_t the "thing" we proxy comes from.
  * \param[in]  slot   the slot of the query we're answering to.
  * \param[in]  cmd    the received answer status parameter.
  * \param[in]  res    the received answer result parameter.
  * \param[in]  exn    the received answer exception parameter.
  */
-void __ic_forward_reply_to(uint64_t slot, int cmd, const void *res,
-                           const void *exn);
+void __ic_forward_reply_to(ichannel_t *ic, uint64_t slot,
+                           int cmd, const void *res, const void *exn);
 
 #endif
