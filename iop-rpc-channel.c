@@ -90,7 +90,8 @@ static void ic_reply_err2(ichannel_t *ic, uint64_t slot, int err,
 static ichannel_t *ic_get_from_slot(uint64_t slot);
 static void ic_queue(ichannel_t *ic, ic_msg_t *msg, uint32_t flags);
 static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags);
-static void ic_proxify(ic_msg_t *msg, int cmd, const void *data, int dlen)
+static void ic_proxify(ichannel_t *pxy_ic, ic_msg_t *msg, int cmd,
+                       const void *data, int dlen)
 {
     uint64_t slot = *(uint64_t *)msg->priv;
     ichannel_t *ic;
@@ -103,7 +104,7 @@ static void ic_proxify(ic_msg_t *msg, int cmd, const void *data, int dlen)
     if (unlikely(!ic))
         return;
     if (likely(ic->elh) && likely(ic->id == slot >> 32)) {
-        ic_msg_t *tmp = ic_msg_new_fd(ic_get_fd(ic), 0);
+        ic_msg_t *tmp = ic_msg_new_fd(pxy_ic ? ic_get_fd(pxy_ic) : -1, 0);
 
 #ifdef IC_DEBUG_REPLIES
         int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
@@ -120,8 +121,8 @@ static void ic_proxify(ic_msg_t *msg, int cmd, const void *data, int dlen)
     }
 }
 
-void __ic_forward_reply_to(uint64_t slot, int cmd, const void *res,
-                           const void *exn)
+void __ic_forward_reply_to(ichannel_t *pxy_ic, uint64_t slot, int cmd,
+                           const void *res, const void *exn)
 {
     ichannel_t *ic;
 
@@ -139,7 +140,7 @@ void __ic_forward_reply_to(uint64_t slot, int cmd, const void *res,
     if (unlikely(!(ic = ic_get_from_slot(slot))))
         return;
     if (likely(ic->elh) && likely(ic->id == slot >> 32)) {
-        ic_msg_t *tmp = ic_msg_new_fd(ic_get_fd(ic), 0);
+        ic_msg_t *tmp = ic_msg_new_fd(pxy_ic ? ic_get_fd(pxy_ic) : -1, 0);
         pstream_t *ps = ((pstream_t **)(cmd == IC_MSG_OK ? res : exn))[-1];
 
 #ifdef IC_DEBUG_REPLIES
@@ -184,7 +185,7 @@ static void ic_cancel_all(ichannel_t *ic)
 
         msg = h.values[pos];
         if (msg->cb == IC_PROXY_MAGIC_CB) {
-            ic_proxify(msg, -IC_MSG_ABORT, NULL, 0);
+            ic_proxify(ic, msg, -IC_MSG_ABORT, NULL, 0);
         } else {
             (*msg->cb)(ic, msg, IC_MSG_ABORT, NULL, NULL);
         }
@@ -234,7 +235,7 @@ static void ic_msg_abort(ichannel_t *ic, ic_msg_t *msg)
 
         assert (tmp == msg);
         if (msg->cb == IC_PROXY_MAGIC_CB) {
-            ic_proxify(msg, -IC_MSG_RETRY, NULL, 0);
+            ic_proxify(ic, msg, -IC_MSG_RETRY, NULL, 0);
         } else {
             (*msg->cb)(ic, msg, IC_MSG_ABORT, NULL, NULL);
         }
@@ -434,7 +435,7 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
     }
 
     if (tmp->cb == IC_PROXY_MAGIC_CB) {
-        ic_proxify(tmp, cmd, data, dlen);
+        ic_proxify(ic, tmp, cmd, data, dlen);
         ic_msg_delete(&tmp);
         return 0;
     }

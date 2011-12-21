@@ -705,6 +705,23 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
 #define ic_query_proxy(ic, slot, _mod, _if, _rpc, v) \
     ic_query_proxy_hdr(ic, slot, _mod, _if, _rpc, NULL, v)
 
+/** \brief helper to proxy a query to a given ic with an fd.
+ *
+ * It setups the message automatically so that when the reply is received it's
+ * proxied back to the caller without any "human" intervention.
+ *
+ * \param[in]  ic     the #ichannel_t to proxy the query to.
+ * \param[in]  fd     the fd to send.
+ * \param[in]  slot   the slot of the received query.
+ * \param[in]  _mod   name of the package+module of the RPC
+ * \param[in]  _if    name of the interface of the RPC
+ * \param[in]  _rpc   name of the rpc
+ * \param[in]  v      a <tt>${_mod}__${_if}__${_rpc}_args__t *</tt> value.
+ */
+#define ic_query_proxy_fd(ic, fd, slot, _mod, _if, _rpc, v) \
+    ic_query_p(ic, ic_msg_proxy_new(fd, slot, hdr),         \
+               (void *)IC_PROXY_MAGIC_CB, _mod, _if, _rpc, v);
+
 /** \brief helper to reply to a given query (server-side).
  *
  * \param[in]  ic
@@ -837,16 +854,17 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  *      uint64_t origin_slot = *(uint64_t *)msg->priv;
  *
  *      // automatic and efficient answer forwarding
- *      __ic_forward_reply_to(origin_slot, status, res, exn);
+ *      __ic_forward_reply_to(ic, origin_slot, status, res, exn);
  *  }
  * </code>
  *
+ * \param[in]  ic     the ichannel_t the "thing" we proxy comes from.
  * \param[in]  slot   the slot of the query we're answering to.
  * \param[in]  cmd    the received answer status parameter.
  * \param[in]  res    the received answer result parameter.
  * \param[in]  exn    the received answer exception parameter.
  */
-void __ic_forward_reply_to(uint64_t slot, int cmd, const void *res,
-                           const void *exn);
+void __ic_forward_reply_to(ichannel_t *ic, uint64_t slot,
+                           int cmd, const void *res, const void *exn);
 
 #endif
