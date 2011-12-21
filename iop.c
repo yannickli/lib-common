@@ -759,8 +759,14 @@ int iop_check_constraints(const iop_struct_t *desc, const void *val)
         if (fdesc->repeat == IOP_R_REPEATED) {
             n   = ((iop_data_t *)ptr)->len;
             ptr = ((iop_data_t *)ptr)->data;
-            if (n == 0)
+            if (n == 0) {
+                unsigned fdesc_flags = fdesc->flags;
+
+                if (TST_BIT(&fdesc_flags, IOP_FIELD_NO_EMPTY_ARRAY)) {
+                    return iop_set_err("empty array not allowed");
+                }
                 continue;
+            }
         } else
         if (fdesc->repeat == IOP_R_DEFVAL) {
             /* Skip the field is it's still equal to its default value */
@@ -1303,6 +1309,10 @@ int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc)
         }
     } else
     if (fdesc->repeat == IOP_R_REPEATED) {
+        unsigned fdesc_flags = fdesc->flags;
+
+        if (TST_BIT(&fdesc_flags, IOP_FIELD_NO_EMPTY_ARRAY))
+            return iop_set_err("empty array not allowed");
         p_clear((iop_data_t *)ptr, 1);
     } else {
         iop_value_set_absent(fdesc, ptr);
