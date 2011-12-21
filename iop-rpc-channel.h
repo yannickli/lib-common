@@ -700,6 +700,23 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
 #define ic_query_proxy(ic, slot, _mod, _if, _rpc, v) \
     ic_query_proxy_hdr(ic, slot, _mod, _if, _rpc, NULL, v)
 
+/** \brief helper to proxy a query to a given ic with an fd.
+ *
+ * It setups the message automatically so that when the reply is received it's
+ * proxied back to the caller without any "human" intervention.
+ *
+ * \param[in]  ic     the #ichannel_t to proxy the query to.
+ * \param[in]  fd     the fd to send.
+ * \param[in]  slot   the slot of the received query.
+ * \param[in]  _mod   name of the package+module of the RPC
+ * \param[in]  _if    name of the interface of the RPC
+ * \param[in]  _rpc   name of the rpc
+ * \param[in]  v      a <tt>${_mod}__${_if}__${_rpc}_args__t *</tt> value.
+ */
+#define ic_query_proxy_fd(ic, fd, slot, _mod, _if, _rpc, v) \
+    ic_query_p(ic, ic_msg_proxy_new(fd, slot, hdr),         \
+               (void *)IC_PROXY_MAGIC_CB, _mod, _if, _rpc, v);
+
 /** \brief helper to reply to a given query (server-side).
  *
  * \param[in]  ic
