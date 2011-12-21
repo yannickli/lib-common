@@ -25,6 +25,7 @@ static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info
     lstr_t s;
     uint8_t buf1[20], buf2[20];
     byte *res;
+    int ret;
 
     t_scope;
     SB_8k(sb);
@@ -41,10 +42,10 @@ static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info
     res = t_new(byte, ROUND_UP(st->size, 8));
     iop_init(st, res);
 
-    Z_ASSERT_N((xmlr_setup(&xmlr_g, sb.data, sb.len) ?:
-                iop_xunpack(xmlr_g, t_pool(), st, res)),
-               "XML unpacking failure (%s, %s): %s", st->fullname.s, info,
-               xmlr_get_err());
+    Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
+    ret = iop_xunpack(xmlr_g, t_pool(), st, res);
+    Z_ASSERT_N(ret, "XML unpacking failure (%s, %s): %s", st->fullname.s,
+               info, xmlr_get_err());
 
     /* pack again ! */
     sb_reset(&sb);
