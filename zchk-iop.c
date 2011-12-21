@@ -147,6 +147,49 @@ static int iop_json_test_struct(const iop_struct_t *st, void *v,
     Z_HELPER_END;
 }
 
+__unused__
+static int iop_json_test_struct_invalid(const iop_struct_t *st, void *v,
+                                        const char *info)
+{
+    t_scope;
+    byte *res;
+    iop_json_lex_t jll;
+    pstream_t ps;
+    int strict = 0;
+    SB_8k(sb);
+
+    iop_jlex_init(t_pool(), &jll);
+    jll.flags = IOP_UNPACK_IGNORE_UNKNOWN;
+    res = t_new(byte, ROUND_UP(st->size, 8));
+
+    while (strict < 2) {
+        int ret;
+
+        /* packing */
+        sb_reset(&sb);
+        Z_ASSERT_N(iop_jpack(st, v, iop_sb_write, &sb, strict),
+                   "JSon packing failure! (%s, %s)", st->fullname.s, info);
+
+        /* unpacking */
+        iop_init(st, res);
+
+        ps = ps_initsb(&sb);
+        iop_jlex_attach(&jll, &ps);
+        ret = iop_junpack(&jll, st, res, true);
+        Z_ASSERT_NEG(ret, "JSon unpacking unexpected success (%s, %s)",
+                     st->fullname.s, info);
+        iop_jlex_detach(&jll);
+
+        strict++;
+    }
+
+    sb_wipe(&sb);
+    iop_jlex_wipe(&jll);
+
+    Z_HELPER_END;
+}
+
+
 static int iop_json_test_json(const iop_struct_t *st, const char *json, const
                               void *expected, const char *info)
 {
