@@ -58,6 +58,7 @@ typedef struct iop_enum_t   iop_enum_t;
 
 enum iop_field_flags_t {
     IOP_FIELD_CHECK_CONSTRAINTS,    /**< check_constraints function exists  */
+    IOP_FIELD_NO_EMPTY_ARRAY,       /**< indicates presence of @minOccurs   */
 };
 
 typedef struct iop_field_t {
