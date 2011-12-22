@@ -129,9 +129,6 @@ fi
 if is_clang; then
     echo -Wno-gnu-designator
 fi
-if is_clang; then
-    echo -Wno-gnu-designator
-fi
 
 echo -Wchar-subscripts
 # warn about undefined preprocessor identifiers
