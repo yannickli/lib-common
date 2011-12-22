@@ -379,7 +379,7 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
       next:
         if (unlikely(iop_field_has_constraints(desc, fdesc))) {
             if (iop_field_check_constraints(desc, fdesc, v, n, false) < 0) {
-                return xmlr_fail(xr, "%s", iop_get_err());
+                return xmlr_fail(xr, "%*pM", LSTR_FMT_ARG(iop_get_err_lstr()));
             }
         }
         fdesc++;
@@ -411,8 +411,13 @@ xunpack_union(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
 
     /* Write the selected tag */
     *((uint16_t *)value) = fdesc->tag;
-    RETHROW(xunpack_value(xr, mp, fdesc, (char *)value + fdesc->data_offs,
-                          flags));
+    value = (char *)value + fdesc->data_offs;
+    RETHROW(xunpack_value(xr, mp, fdesc, value, flags));
+    if (unlikely(iop_field_has_constraints(desc, fdesc))) {
+        if (iop_field_check_constraints(desc, fdesc, value, 1, false) < 0) {
+            return xmlr_fail(xr, "%*pM", LSTR_FMT_ARG(iop_get_err_lstr()));
+        }
+    }
     return xmlr_node_close(xr);
 }
 
