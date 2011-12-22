@@ -62,6 +62,7 @@ struct MyStructA {
     ushort f;
     long g;
     ulong h;
+    ulong[] htab;
     bytes i;
     string j;
     xml xmlField;
