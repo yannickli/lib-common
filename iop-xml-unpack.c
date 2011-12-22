@@ -36,6 +36,7 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
                          const iop_field_t *fdesc, void *v)
 {
     int64_t intval = 0;
+    uint64_t uintval = 0;
     const char *xval;
     bool found = false;
     int len;
@@ -63,9 +64,13 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
         RETHROW(xmlr_get_i64(xr, &intval));
         *(uint32_t *)v = intval;
         break;
-      case IOP_T_I64: case IOP_T_U64:
+      case IOP_T_I64:
         RETHROW(xmlr_get_i64(xr, &intval));
         *(uint64_t *)v = intval;
+        break;
+      case IOP_T_U64:
+        RETHROW(xmlr_get_u64(xr, &uintval));
+        *(uint64_t *)v = uintval;
         break;
       case IOP_T_BOOL:
         RETHROW(xmlr_get_bool(xr, (bool *)v));
@@ -136,7 +141,8 @@ static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
     int len;
 
     do {
-        int64_t intval = 0;
+        int64_t  intval  = 0;
+        uint64_t uintval = 0;
         const char *xval;
         bool found = false;
 
@@ -173,9 +179,14 @@ static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
             ((uint32_t *)data->data)[data->len] = intval;
             break;
 
-          case IOP_T_I64: case IOP_T_U64:
+          case IOP_T_I64:
             RETHROW(xmlr_get_i64(xr, &intval));
             ((uint64_t *)data->data)[data->len] = intval;
+            break;
+
+          case IOP_T_U64:
+            RETHROW(xmlr_get_u64(xr, &uintval));
+            ((uint64_t *)data->data)[data->len] = uintval;
             break;
 
           case IOP_T_BOOL:

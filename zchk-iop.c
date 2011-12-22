@@ -510,6 +510,8 @@ Z_GROUP_EXPORT(iop)
             .c = { .b = IOP_ARRAY(val, countof(val)), },
         };
 
+        uint64_t uval[] = {UINT64_MAX, INT64_MAX, 0};
+
         tstiop__my_struct_a__t sa = {
             .a = 42,
             .b = 5,
@@ -518,7 +520,8 @@ Z_GROUP_EXPORT(iop)
             .e = 540,
             .f = 2000,
             .g = 10000,
-            .h = 20000,
+            .h = UINT64_MAX,
+            .htab = IOP_ARRAY(uval, countof(uval)),
             .i = IOP_DATA((void *)"foo", 3),
             .j = LSTR_EMPTY,
             .k = MY_ENUM_A_B,
