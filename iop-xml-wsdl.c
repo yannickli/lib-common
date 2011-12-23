@@ -91,7 +91,8 @@ static void iop_xwsdl_put_occurs(wsdlpp_t *wpp, const iop_struct_t *st,
     unsigned min = 0, max = 0;
 
     if (attrs
-    &&  (attrs->flags & (IOP_FIELD_MIN_OCCURS | IOP_FIELD_MAX_OCCURS)))
+    &&  (attrs->flags & (  (1 << IOP_FIELD_MIN_OCCURS)
+                         | (1 << IOP_FIELD_MAX_OCCURS))))
     {
         for (int i = 0; i < attrs->attrs_len; i++) {
             const iop_field_attr_t *attr = &attrs->attrs[i];
@@ -115,7 +116,30 @@ static void iop_xwsdl_put_occurs(wsdlpp_t *wpp, const iop_struct_t *st,
     }
 }
 
-static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
+static void iop_xwsdl_put_attr_value(wsdlpp_t *wpp, const iop_field_t *f,
+                                     const iop_field_attr_t *attr)
+{
+    switch (f->type) {
+      case IOP_T_I8: case IOP_T_I16: case IOP_T_I32: case IOP_T_I64:
+        xmlpp_putattrfmt(&wpp->pp, "value", "%jd", attr->args[0].v.i64);
+        break;
+
+      case IOP_T_U8: case IOP_T_U16: case IOP_T_U32: case IOP_T_U64:
+        xmlpp_putattrfmt(&wpp->pp, "value", "%ju",
+                         (uint64_t)attr->args[0].v.i64);
+        break;
+
+      case IOP_T_DOUBLE:
+        xmlpp_putattrfmt(&wpp->pp, "value", "%.17e", attr->args[0].v.d);
+        break;
+
+      default:
+        e_panic("should not happen");
+    }
+}
+
+static void iop_xwsdl_put_constraints(wsdlpp_t *wpp, const iop_struct_t *st,
+                                      const iop_field_t *f)
 {
     static char const * const types[] = {
         [IOP_T_I8]     = "byte",
@@ -133,6 +157,52 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
         [IOP_T_DATA]   = "base64Binary",
     };
 
+    const iop_field_attrs_t *attrs = iop_field_get_attrs(st, f);
+
+#define ATTR_TOUCH_TYPES  (  (1 << IOP_FIELD_MIN) | (1 << IOP_FIELD_MAX) \
+                           | (1 << IOP_FIELD_NON_EMPTY))
+    if (!attrs || !(attrs->flags & ATTR_TOUCH_TYPES)) {
+        xmlpp_putattr(&wpp->pp, "type", types[f->type]);
+        return;
+    } else {
+        xmlpp_opentag(&wpp->pp, "simpleType");
+        xmlpp_opentag(&wpp->pp, "restriction");
+        xmlpp_putattr(&wpp->pp, "base", types[f->type]);
+
+        for (int i = 0; i < attrs->attrs_len; i++) {
+            const iop_field_attr_t *attr = &attrs->attrs[i];
+
+            switch (attr->type) {
+              case IOP_FIELD_MIN:
+                xmlpp_opentag(&wpp->pp, "minInclusive");
+                iop_xwsdl_put_attr_value(wpp, f, attr);
+                break;
+
+              case IOP_FIELD_MAX:
+                xmlpp_opentag(&wpp->pp, "maxInclusive");
+                iop_xwsdl_put_attr_value(wpp, f, attr);
+                break;
+
+              case IOP_FIELD_NON_EMPTY:
+                xmlpp_opentag(&wpp->pp, "minLength");
+                xmlpp_putattr(&wpp->pp, "value", "1");
+                break;
+
+              default:
+                continue;
+            }
+            xmlpp_closetag(&wpp->pp);
+
+            /* TODO non-zero isn't yet supported in WSDL */
+        }
+        xmlpp_closentag(&wpp->pp, 2);
+    }
+
+#undef ATTR_TOUCH_TYPES
+}
+
+static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
+{
     xmlpp_opentag(&wpp->pp, "complexType");
     xmlpp_putattr(&wpp->pp, "name", st->fullname.s);
     if (st == &iop__void__s) {
@@ -181,7 +251,8 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
             xmlpp_putattrfmt(&wpp->pp, "type", "tns:%s", desc->name.s);
         } else
         if (f->type != IOP_T_XML) {
-            xmlpp_putattr(&wpp->pp, "type", types[f->type]);
+            iop_xwsdl_put_constraints(wpp, st, f);
+
         }
         xmlpp_closetag(&wpp->pp);
         if (f->repeat == IOP_R_DEFVAL) {
@@ -203,7 +274,7 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
                                 f->name.s, f->u1.defval_u64);
                 break;
               case IOP_T_DOUBLE:
-                wpp_add_comment(wpp, "\n", "default: %s=%.22g",
+                wpp_add_comment(wpp, "\n", "default: %s=%.17e",
                                 f->name.s, f->u1.defval_d);
                 break;
               case IOP_T_STRING:
