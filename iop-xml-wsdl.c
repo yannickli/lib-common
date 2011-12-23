@@ -88,43 +88,29 @@ static void iop_xwsdl_put_occurs(wsdlpp_t *wpp, const iop_struct_t *st,
                                  const iop_field_t *f)
 {
     const iop_field_attrs_t *attrs = iop_field_get_attrs(st, f);
+    unsigned min = 0, max = 0;
 
-    if (attrs) {
-        const iop_field_attr_t *min = NULL, *max = NULL;
+    if (attrs
+    &&  (attrs->flags & (IOP_FIELD_MIN_OCCURS | IOP_FIELD_MAX_OCCURS)))
+    {
+        for (int i = 0; i < attrs->attrs_len; i++) {
+            const iop_field_attr_t *attr = &attrs->attrs[i];
 
-        if (TST_BIT(&attrs->flags, IOP_FIELD_MIN_OCCURS)
-        ||  TST_BIT(&attrs->flags, IOP_FIELD_MAX_OCCURS))
-        {
-            for (int i = 0; i < attrs->attrs_len; i++) {
-                const iop_field_attr_t *attr = &attrs->attrs[i];
-
-                if (attr->type == IOP_FIELD_MIN_OCCURS) {
-                    min = attr;
-                } else
-                if (attr->type == IOP_FIELD_MAX_OCCURS) {
-                    max = attr;
-                }
+            if (attr->type == IOP_FIELD_MIN_OCCURS) {
+                assert (attr->args[0].v.i64 >= 0);
+                min = (unsigned)attr->args[0].v.i64;
+            } else
+            if (attr->type == IOP_FIELD_MAX_OCCURS) {
+                assert (attr->args[0].v.i64 > 0);
+                max = (unsigned)attr->args[0].v.i64;
             }
         }
+    }
 
-        if (TST_BIT(&attrs->flags, IOP_FIELD_MIN_OCCURS)) {
-            assert (min);
-            xmlpp_putattrfmt(&wpp->pp, "minOccurs", "%jd",
-                             min->args[0].v.i64);
-        } else {
-            xmlpp_putattr(&wpp->pp, "minOccurs", "0");
-        }
-
-        if (TST_BIT(&attrs->flags, IOP_FIELD_MAX_OCCURS)) {
-            assert (max);
-            xmlpp_putattrfmt(&wpp->pp, "maxOccurs", "%jd",
-                             max->args[0].v.i64);
-        } else {
-            xmlpp_putattr(&wpp->pp, "maxOccurs", "unbounded");
-        }
-
+    xmlpp_putattrfmt(&wpp->pp, "minOccurs", "%u", min);
+    if (max > 0) {
+        xmlpp_putattrfmt(&wpp->pp, "maxOccurs", "%u", max);
     } else {
-        xmlpp_putattr(&wpp->pp, "minOccurs", "0");
         xmlpp_putattr(&wpp->pp, "maxOccurs", "unbounded");
     }
 }
