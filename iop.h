@@ -154,6 +154,10 @@ typedef enum iop_field_attr_type_t {
     IOP_FIELD_MIN_OCCURS,
     IOP_FIELD_MAX_OCCURS,
     IOP_FIELD_CDATA,
+    IOP_FIELD_MIN,
+    IOP_FIELD_MAX,
+    IOP_FIELD_NON_EMPTY,
+    IOP_FIELD_NON_ZERO,
 } iop_field_attr_type_t;
 
 typedef struct iop_field_attr_t {
