@@ -268,8 +268,27 @@ Restrictions
 ^^^^^^^^^^^^
 
 For several technical reasons, optional and repeated fields are forbidden in
-unions. You can't set a default value too, it would be a nonsense.
+unions. You can't set a default value either, it would be a nonsense.
 
+Default values
+^^^^^^^^^^^^^^
+
+When a field is equal to its default value, there is no need to pack it. It
+uses bandwidth for nothing and the unpacker will do the right thing when the
+field is absent (i.e. set the default value).
+
+Be careful that we do a very simple comparison of values equality to be
+efficient. This is especially true for `string`, `bytes` and `xml` types. We
+consider a string equal to its default value only when its data pointer is the
+same as the default value one (set by iop_init) and if their lengths are
+equal. The string content is not compared with the default value one.
+
+We handle another special case. If a `string`/`bytes`/`xml` is equal to
+LSTR_NULL_V then we considerer this as the default value. So a p_clear on a
+string member will do the thing that most users expect.
+
+NOTE: there is no constraint checking on default values, so it is important
+that the default values respect the constraints.
 
 IOP PHP Frontend
 ----------------
