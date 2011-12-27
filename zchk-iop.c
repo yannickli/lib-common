@@ -1434,6 +1434,8 @@ Z_GROUP_EXPORT(iop)
         CHECK_INVALID(st_u, &u, "s_empty");
         u = IOP_UNION(tstiop__constraint_u, s, LSTR_NULL_V);
         CHECK_INVALID(st_u, &u, "s_null");
+        u = IOP_UNION(tstiop__constraint_u, s, LSTR_IMMED_V("way too long"));
+        CHECK_INVALID(st_u, &u, "s_maxlength");
         u = IOP_UNION(tstiop__constraint_u, s, LSTR_IMMED_V("foo"));
         CHECK_VALID(st_u, &u, "s");
 
