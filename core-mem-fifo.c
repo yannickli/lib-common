@@ -129,6 +129,7 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
     mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
     mem_page_t *page;
+    size_t req_size = size;
 
     /* Must round size up to keep proper alignment */
     size = ROUND_UP((unsigned)size + sizeof(mem_block_t), 8);
@@ -143,8 +144,8 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
 
     blk = (mem_block_t *)(page->area + page->used_size);
     blk_unprotect(blk);
-    VALGRIND_MEMPOOL_ALLOC(page, blk->area, size);
-    VALGRIND_MALLOCLIKE_BLOCK(blk->area, size, 0, true);
+    VALGRIND_MEMPOOL_ALLOC(page, blk->area, req_size);
+    VALGRIND_MALLOCLIKE_BLOCK(blk->area, req_size, 0, true);
     blk->page_offs = (uintptr_t)blk - (uintptr_t)page;
     blk->blk_size  = size;
     blk_protect(blk);
@@ -175,17 +176,17 @@ static void mfp_free(mem_pool_t *_mfp, void *mem, mem_flags_t flags)
     if (--page->used_blocks > 0)
         return;
 
-    /* this was the last block, collect this page */
-    if (page == mfp->current) {
-        mem_page_reset(page);
-        return;
-    }
-
     /* specific case for a dying pool */
     if (unlikely(!mfp->alive)) {
         mem_page_delete(mfp, &page);
         if (mfp->nb_pages == 0)
             p_delete(mfp->owner);
+        return;
+    }
+
+    /* this was the last block, collect this page */
+    if (page == mfp->current) {
+        mem_page_reset(page);
         return;
     }
 
@@ -203,6 +204,8 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
     mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
     mem_page_t *page;
+    size_t alloced_size;
+    size_t req_size = size;
 
     if (unlikely(!mfp->alive))
         e_panic("trying to reallocate from a dead pool");
@@ -219,40 +222,42 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
     blk_unprotect(blk);
     page = pageof(blk);
 
+    alloced_size = blk->blk_size - sizeof(*blk);
     if ((flags & MEM_RAW) && oldsize == MEM_UNKNOWN)
-        oldsize = blk->blk_size;
-    assert (oldsize <= blk->blk_size);
-    if (size <= blk->blk_size - sizeof(*blk)) {
+        oldsize = alloced_size;
+    assert (oldsize <= alloced_size);
+    if (req_size <= alloced_size) {
         VALGRIND_FREELIKE_BLOCK(mem, 0);
-        VALGRIND_MEMPOOL_CHANGE(page, mem, mem, size);
-        VALGRIND_MALLOCLIKE_BLOCK(mem, size, 0, false);
-        VALGRIND_MAKE_MEM_DEFINED(mem, oldsize);
-        if (!(flags & MEM_RAW) && oldsize < size)
-            memset(blk->area + oldsize, 0, size - oldsize);
+        VALGRIND_MEMPOOL_CHANGE(page, mem, mem, req_size);
+        VALGRIND_MALLOCLIKE_BLOCK(mem, req_size, 0, false);
+        VALGRIND_MAKE_MEM_DEFINED(mem, MIN(req_size, oldsize));
+        if (!(flags & MEM_RAW) && oldsize < req_size)
+            memset(blk->area + oldsize, 0, req_size - oldsize);
     } else
     /* optimization if it's the last block allocated */
     if (mem == page->last
-    && sizeof(*blk) + size <= mem_page_size_left(page) + blk->blk_size)
+    && req_size - alloced_size <= mem_page_size_left(page))
     {
-        ssize_t diff;
+        size_t diff;
 
-        size = ROUND_UP((size_t)size, 8);
+        size = ROUND_UP((size_t)req_size + sizeof(*blk), 8);
         diff = size - blk->blk_size;
         blk->blk_size    = size;
-        blk_protect(blk);
+        VALGRIND_MEMPOOL_CHANGE(page, blk->area, blk->area, req_size);
 
         mfp->occupied   += diff;
         page->used_size += diff;
         VALGRIND_FREELIKE_BLOCK(mem, 0);
-        VALGRIND_MEMPOOL_CHANGE(page, mem, mem, size);
-        VALGRIND_MALLOCLIKE_BLOCK(mem, size, 0, false);
-        VALGRIND_MAKE_MEM_DEFINED(mem, oldsize);
+        VALGRIND_MEMPOOL_CHANGE(page, mem, mem, req_size);
+        VALGRIND_MALLOCLIKE_BLOCK(mem, req_size, 0, false);
+        VALGRIND_MAKE_MEM_DEFINED(mem, MIN(req_size, oldsize));
     } else {
         void *old = mem;
 
         mem = mfp_alloc(_mfp, size, flags);
         memcpy(mem, old, oldsize);
         mfp_free(_mfp, old, flags);
+        return mem;
     }
 
     blk_protect(blk);
