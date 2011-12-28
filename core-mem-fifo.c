@@ -127,6 +127,7 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
     mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
     mem_page_t *page;
+    size_t req_size = size;
 
     /* Must round size up to keep proper alignment */
     size = ROUND_UP((unsigned)size + sizeof(mem_block_t), 8);
@@ -141,7 +142,7 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
 
     blk = (mem_block_t *)(page->area + page->used_size);
     (void)VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
-    VALGRIND_MEMPOOL_ALLOC(page, blk->area, size);
+    VALGRIND_MEMPOOL_ALLOC(page, blk->area, req_size);
     blk->page_offs = (uintptr_t)blk - (uintptr_t)page;
     blk->blk_size  = size;
     blk_protect(blk);
@@ -170,17 +171,17 @@ static void mfp_free(mem_pool_t *_mfp, void *mem, mem_flags_t flags)
     if (--page->used_blocks > 0)
         return;
 
-    /* this was the last block, collect this page */
-    if (page == mfp->current) {
-        mem_page_reset(page);
-        return;
-    }
-
     /* specific case for a dying pool */
     if (unlikely(!mfp->alive)) {
         mem_page_delete(mfp, &page);
         if (mfp->nb_pages == 0)
             p_delete(mfp->owner);
+        return;
+    }
+
+    /* this was the last block, collect this page */
+    if (page == mfp->current) {
+        mem_page_reset(page);
         return;
     }
 
@@ -198,6 +199,8 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
     mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
     mem_page_t *page;
+    size_t alloced_size;
+    size_t req_size = size;
     void *res;
 
     if (unlikely(!mfp->alive))
@@ -214,27 +217,31 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
     blk  = container_of(mem, mem_block_t, area);
     page = pageof(blk);
 
+    alloced_size = blk->blk_size - sizeof(*blk);
     if ((flags & MEM_RAW) && oldsize == MEM_UNKNOWN)
-        oldsize = blk->blk_size;
-    assert (oldsize <= blk->blk_size);
-    if (size <= blk->blk_size - sizeof(*blk)) {
+        oldsize = alloced_size;
+    assert (oldsize <= alloced_size);
+    if (req_size <= alloced_size) {
         blk_protect(blk);
-        if (!(flags & MEM_RAW) && oldsize < size)
-            memset(blk->area + oldsize, 0, size - oldsize);
+        if (!(flags & MEM_RAW) && oldsize < req_size)
+            memset(blk->area + oldsize, 0, req_size - oldsize);
         return mem;
     }
 
     /* optimization if it's the last block allocated */
     if (mem == page->last
-    && size + ssizeof(*blk) - blk->blk_size <= mem_page_size_left(page))
+    && req_size - alloced_size <= mem_page_size_left(page))
     {
-        size = ROUND_UP((size_t)size, 8);
-        blk->blk_size   += size;
-        VALGRIND_MEMPOOL_CHANGE(page, blk->area, blk->area, size);
+        size_t diff;
+
+        size = ROUND_UP((size_t)req_size + sizeof(*blk), 8);
+        diff = size - blk->blk_size;
+        blk->blk_size    = size;
+        VALGRIND_MEMPOOL_CHANGE(page, blk->area, blk->area, req_size);
         blk_protect(blk);
 
-        mfp->occupied   += size;
-        page->used_size += size;
+        mfp->occupied   += diff;
+        page->used_size += diff;
         return mem;
     }
 
