@@ -129,7 +129,9 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
     mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
     mem_page_t *page;
+#ifndef NDEBUG
     size_t req_size = size;
+#endif
 
     /* Must round size up to keep proper alignment */
     size = ROUND_UP((unsigned)size + sizeof(mem_block_t), 8);
