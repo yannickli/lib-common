@@ -165,6 +165,7 @@ static void iop_xwsdl_put_constraints(wsdlpp_t *wpp, const iop_struct_t *st,
     SET_BIT(&restriction_flags, IOP_FIELD_NON_EMPTY);
     SET_BIT(&restriction_flags, IOP_FIELD_MIN_LENGTH);
     SET_BIT(&restriction_flags, IOP_FIELD_MAX_LENGTH);
+    SET_BIT(&restriction_flags, IOP_FIELD_PATTERN);
 
     if (!attrs || !(attrs->flags & restriction_flags)) {
         xmlpp_putattr(&wpp->pp, "type", types[f->type]);
@@ -203,6 +204,12 @@ static void iop_xwsdl_put_constraints(wsdlpp_t *wpp, const iop_struct_t *st,
                 xmlpp_opentag(&wpp->pp, "maxLength");
                 xmlpp_putattrfmt(&wpp->pp, "value", "%jd",
                                  attr->args[0].v.i64);
+                break;
+
+              case IOP_FIELD_PATTERN:
+                xmlpp_opentag(&wpp->pp, "pattern");
+                xmlpp_putattrfmt(&wpp->pp, "value", "(%*pM)*",
+                                 LSTR_FMT_ARG(attr->args[0].v.s));
                 break;
 
               default:
