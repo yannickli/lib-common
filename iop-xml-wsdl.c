@@ -158,10 +158,15 @@ static void iop_xwsdl_put_constraints(wsdlpp_t *wpp, const iop_struct_t *st,
     };
 
     const iop_field_attrs_t *attrs = iop_field_get_attrs(st, f);
+    unsigned restriction_flags = 0;
 
-#define ATTR_TOUCH_TYPES  (  (1 << IOP_FIELD_MIN) | (1 << IOP_FIELD_MAX) \
-                           | (1 << IOP_FIELD_NON_EMPTY))
-    if (!attrs || !(attrs->flags & ATTR_TOUCH_TYPES)) {
+    SET_BIT(&restriction_flags, IOP_FIELD_MIN);
+    SET_BIT(&restriction_flags, IOP_FIELD_MAX);
+    SET_BIT(&restriction_flags, IOP_FIELD_NON_EMPTY);
+    SET_BIT(&restriction_flags, IOP_FIELD_MIN_LENGTH);
+    SET_BIT(&restriction_flags, IOP_FIELD_MAX_LENGTH);
+
+    if (!attrs || !(attrs->flags & restriction_flags)) {
         xmlpp_putattr(&wpp->pp, "type", types[f->type]);
         return;
     } else {
@@ -186,6 +191,18 @@ static void iop_xwsdl_put_constraints(wsdlpp_t *wpp, const iop_struct_t *st,
               case IOP_FIELD_NON_EMPTY:
                 xmlpp_opentag(&wpp->pp, "minLength");
                 xmlpp_putattr(&wpp->pp, "value", "1");
+                break;
+
+              case IOP_FIELD_MIN_LENGTH:
+                xmlpp_opentag(&wpp->pp, "minLength");
+                xmlpp_putattrfmt(&wpp->pp, "value", "%jd",
+                                 attr->args[0].v.i64);
+                break;
+
+              case IOP_FIELD_MAX_LENGTH:
+                xmlpp_opentag(&wpp->pp, "maxLength");
+                xmlpp_putattrfmt(&wpp->pp, "value", "%jd",
+                                 attr->args[0].v.i64);
                 break;
 
               default:
