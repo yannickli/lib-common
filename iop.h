@@ -160,6 +160,7 @@ typedef enum iop_field_attr_type_t {
     IOP_FIELD_NON_ZERO,
     IOP_FIELD_MIN_LENGTH,
     IOP_FIELD_MAX_LENGTH,
+    IOP_FIELD_PATTERN,
 } iop_field_attr_type_t;
 
 typedef struct iop_field_attr_t {
