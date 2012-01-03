@@ -298,13 +298,11 @@ an IOP XML content into an IOP C structure. You dipose of four functions:
 `iop_xwsdl`::
     which generates the WSDL of an IOP module;
 
-`iop_xparser_new`::
-    which helps you to create a new xmlTextReader with the good options.
-
-The unpacking function assumes that the next node to be read in the xml tree
-is the first field of the structure you want to unpack. In addition this
-function consumes the closing node just after the last field of the structure
-to unpack.
+The unpacking function takes a xml_reader_t as first argument (which needs to
+be initialized with xmlr_setup). And it assumes that the next node to be read
+in the xml tree is the first field of the structure you want to unpack. In
+addition this function consumes the closing node just after the last field of
+the structure to unpack.
 
 IOP JSON Frontend
 -----------------
