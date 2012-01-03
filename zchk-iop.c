@@ -1377,12 +1377,17 @@ Z_GROUP_EXPORT(iop)
         tstiop__constraint_s__t s;
 
         lstr_t strings[] = {
-            LSTR_IMMED_V("foo1"),
-            LSTR_IMMED_V("foo2"),
+            LSTR_IMMED_V("fooBAR_1"),
+            LSTR_IMMED_V("foobar_2"),
             LSTR_IMMED_V("foo3"),
             LSTR_IMMED_V("foo4"),
             LSTR_IMMED_V("foo5"),
             LSTR_IMMED_V("foo6"),
+        };
+
+        lstr_t bad_strings[] = {
+            LSTR_IMMED_V("abcd[]"),
+            LSTR_IMMED_V("a b c"),
         };
 
         int8_t   i8tab[] = { INT8_MIN,  INT8_MAX,  3, 4, 5, 6 };
@@ -1434,17 +1439,24 @@ Z_GROUP_EXPORT(iop)
         CHECK_INVALID(st_u, &u, "s_empty");
         u = IOP_UNION(tstiop__constraint_u, s, LSTR_NULL_V);
         CHECK_INVALID(st_u, &u, "s_null");
-        u = IOP_UNION(tstiop__constraint_u, s, LSTR_IMMED_V("way too long"));
+        u = IOP_UNION(tstiop__constraint_u, s, LSTR_IMMED_V("way_too_long"));
         CHECK_INVALID(st_u, &u, "s_maxlength");
-        u = IOP_UNION(tstiop__constraint_u, s, LSTR_IMMED_V("foo"));
+        u = IOP_UNION(tstiop__constraint_u, s, LSTR_IMMED_V("ab.{}[]"));
+        CHECK_INVALID(st_u, &u, "s_pattern");
+        u = IOP_UNION(tstiop__constraint_u, s, LSTR_IMMED_V("ab.{}()"));
         CHECK_VALID(st_u, &u, "s");
 
         CHECK_INVALID(st_s, &s, "s_minoccurs");
+
+        s.s.tab = bad_strings;
+        s.s.len = countof(bad_strings);
+        CHECK_INVALID(st_s, &s, "s_pattern");
+
         s.s.tab = strings;
         s.s.len = 1;
-        CHECK_INVALID(st_s, &s, "s");
+        CHECK_INVALID(st_s, &s, "s_minoccurs");
         s.s.len = countof(strings);
-        CHECK_INVALID(st_s, &s, "s");
+        CHECK_INVALID(st_s, &s, "s_maxoccurs");
         s.s.len = 2;
         CHECK_VALID(st_s, &s, "s");
         s.s.len = 5;

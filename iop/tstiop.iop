@@ -213,7 +213,7 @@ union ConstraintU {
     uint    u32;
     @nonZero @max(1 << 63)
     ulong   u64;
-    @nonEmpty @cdata @maxLength(10)
+    @nonEmpty @cdata @maxLength(10) @pattern("[^\[\]]*")
     string  s;
 };
 
@@ -226,7 +226,7 @@ struct ConstraintS {
     int[]       i32;
     @maxOccurs(5) @min(1-(1 << 63))
     long[]      i64;
-    @minOccurs(2) @maxOccurs(5) @minLength(4)
+    @minOccurs(2) @maxOccurs(5) @minLength(4) @pattern("[a-zA-Z0-9_\-]*")
     string[]    s;
 };
 
