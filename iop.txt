@@ -80,7 +80,7 @@ INT1, INT2, INT4::
 IOP structure
 -------------
 
-An IOP file have the following structure:
+An IOP file has the following structure:
  
 [source,c]
 ----
@@ -164,11 +164,11 @@ Scalar types usage
 A mandatory scalar member is converted in the most simple way as it would be
 written in C. So `int foo;` becomes `int32_t foo;`.
 
-An optional scalar member is converter in an `iop_opt_xxx_t` structure. You
+An optional scalar member is converted to an `iop_opt_xxx_t` structure. You
 should never access it directly but using the `IOP_OPT*` macros defined in
 `iop-macros.h`.
 
-A repeated scalar member is converter to a structure containing a `len` member
+A repeated scalar member is converted to a structure containing a `len` member
 which gives the number of element and a `tab` member which gives a pointer on
 the first element. To set such a field you should use the `IOP_ARRAY*` macros
 defined in `iop-macros.h`.
@@ -310,8 +310,8 @@ IOP JSON Frontend
 -----------------
 
 The IOP API provides several functions to pack/unpack to/from a json format
-from/to an IOP C structure. The pack generate a standard json format, but the
-unpacker accepts several extensions.
+from/to an IOP C structure. The packer generates a standard json format, but
+the unpacker accepts several extensions.
 
 For the official json format see this RFC: http://tools.ietf.org/html/rfc4627
 
