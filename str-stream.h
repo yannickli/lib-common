@@ -79,7 +79,7 @@ typedef struct pstream_t {
 /****************************************************************************/
 
 #if 0
-#define PS_WANT(c)   \
+#define PS_WANT(c)  \
     do {                                                                    \
         if (unlikely(!(c))) {                                               \
             e_trace(0, "str-stream error on: %s != true", #c);              \
@@ -87,12 +87,13 @@ typedef struct pstream_t {
         }                                                                   \
     } while (0)
 #define PS_CHECK(c) \
-    do {                                                                    \
-        if (unlikely((c) < 0)) {                                            \
-            e_trace(0, "str-stream error on: %s < 0", #c);                  \
-            return -1;                                                      \
-        }                                                                   \
-    } while (0)
+    ({ typeof(c) __res = (c);                                               \
+       if (unlikely(__res < 0)) {                                           \
+           e_trace(0, "str-stream error on: %s < 0", #c);                   \
+           return __res;                                                    \
+       }                                                                    \
+       __res;                                                               \
+    })
 #else
 #define PS_WANT(c)   do { if (unlikely(!(c)))    return -1; } while (0)
 #define PS_CHECK(c)  RETHROW(c)

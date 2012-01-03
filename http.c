@@ -178,7 +178,7 @@ static ALWAYS_INLINE bool http_hdr_equals(pstream_t ps, const char *v)
 
 static bool http_hdr_contains(pstream_t ps, const char *v)
 {
-    pstream_t tmp;
+    pstream_t tmp = ps_initptr(NULL, NULL);
 
     while (ps_get_ps_chr(&ps, ',', &tmp) == 0) {
         ps_trim(&tmp);
@@ -261,6 +261,7 @@ static int t_http_parse_request_line(pstream_t *ps, httpd_qinfo_t *req)
 #undef  CASE
     }
 
+    uri = ps_initptr(NULL, NULL);
     PS_CHECK(ps_get_ps_chr(&line, ' ', &uri));
     __ps_skip(&line, 1);
 
