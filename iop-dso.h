@@ -38,6 +38,12 @@ typedef struct iop_dso_t {
     qm_t(iop_mod)    mod_h;
 } iop_dso_t;
 
+typedef struct iop_dso_vt_t {
+    size_t  vt_size;
+    void  (*iop_set_verr)(const char *fmt, va_list ap)
+        __attribute__((format(printf, 1, 0)));
+} iop_dso_vt_t;
+
 iop_dso_t *iop_dso_open(const char *path);
 static ALWAYS_INLINE iop_dso_t *iop_dso_dup(iop_dso_t *dso)
 {
@@ -51,5 +57,31 @@ iop_struct_t const *iop_dso_find_type(iop_dso_t const *dso, lstr_t name);
 #define IOP_EXPORT_PACKAGES(...) \
     EXPORT iop_pkg_t const *const iop_packages[];   \
     iop_pkg_t const *const iop_packages[] = { __VA_ARGS__, NULL }
+
+#define IOP_EXPORT_PACKAGES_COMMON \
+    EXPORT iop_dso_vt_t iop_vtable;                                     \
+    iop_dso_vt_t iop_vtable = {                                         \
+        .vt_size = sizeof(iop_dso_vt_t),                                \
+        .iop_set_verr = NULL,                                           \
+    };                                                                  \
+    iop_struct_t const iop__void__s = {                                 \
+        .fullname   = LSTR_IMMED("Void"),                               \
+        .fields_len = 0,                                                \
+        .size       = 0,                                                \
+    };                                                                  \
+                                                                        \
+    __attribute__((format(printf, 1, 2)))                               \
+    int iop_set_err(const char *fmt, ...) {                             \
+        va_list ap;                                                     \
+                                                                        \
+        va_start(ap, fmt);                                              \
+        if (NULL == iop_vtable.iop_set_verr) {                          \
+            fputs("iop_vtable.iop_set_verr not defined", stderr);       \
+            exit(1);                                                    \
+        }                                                               \
+        (iop_vtable.iop_set_verr)(fmt, ap);                             \
+        va_end(ap);                                                     \
+        return -1;                                                      \
+    }                                                                   \
 
 #endif

@@ -75,15 +75,25 @@ REFCNT_DELETE(iop_dso_t, iop_dso);
 
 iop_dso_t *iop_dso_open(const char *path)
 {
-    iop_pkg_t **pkgp;
-    void       *handle;
-    iop_dso_t  *dso;
+    iop_pkg_t       **pkgp;
+    void             *handle;
+    iop_dso_vt_t     *dso_vt;
+    iop_dso_t        *dso;
 
     handle = dlopen(path, RTLD_LAZY | RTLD_LOCAL);
     if (handle == NULL) {
         e_error("IOP DSO: unable to dlopen(%s): %s", path, dlerror());
         return NULL;
     }
+
+    dso_vt = (iop_dso_vt_t *) dlsym(handle, "iop_vtable");
+    if (dso_vt == NULL || dso_vt->vt_size == 0) {
+        e_error("IOP DSO: unable to find valid IOP vtable in plugin (%s): %s",
+                path, dlerror());
+        dlclose(handle);
+        return NULL;
+    }
+    dso_vt->iop_set_verr = &iop_set_verr;
 
     pkgp = dlsym(handle, "iop_packages");
     if (pkgp == NULL) {

@@ -258,8 +258,9 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *, const void *v);
 void  iop_copy(mem_pool_t *mp, const iop_struct_t *, void **, const void *v);
 int   iop_ranges_search(int const *ranges, int ranges_len, int tag);
 
-EXPORT __cold __attr_printf__(1, 2)
-int         iop_set_err(const char *fmt, ...);
+int         iop_set_err(const char *fmt, ...) __cold __attr_printf__(1, 2);
+__attribute__((format(printf, 1, 0)))
+void        iop_set_verr(const char *fmt, va_list ap) __cold ;
 int         iop_set_err2(const lstr_t *s) __cold;
 void        iop_clear_err(void) ;
 const char *iop_get_err(void) __cold;
@@ -353,20 +354,6 @@ int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc);
 enum iop_unpack_flags {
     IOP_UNPACK_IGNORE_UNKNOWN = (1U << 0),
 };
-
-#define IOP_EXPORT_PACKAGES_COMMON \
-    __unused__ static void iop_set_err_weak(const char *fmt, ...) {         \
-        fputs("ERROR: executable needs to be linked with -rdynamic\n",      \
-              stderr);                                                      \
-    }                                                                       \
-    typeof(iop_set_err) iop_set_err                                         \
-                        __attribute__((alias("iop_set_err_weak"),weak));    \
-                                                                            \
-    iop_struct_t const iop__void__s = {                                     \
-        .fullname   = LSTR_IMMED("Void"),                                   \
-        .fields_len = 0,                                                    \
-        .size       = 0,                                                    \
-    }
 
 #include "iop-xml.h"
 #include "iop-json.h"
