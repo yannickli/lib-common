@@ -330,7 +330,7 @@ int psinfo_get(pid_t pid, sb_t *output)
     if (pid <= 0) {
         pid = getpid();
     }
-    /* Retrieve /proc/<pid>/status infos */
+    /* Retrieve /proc/<pid>/stat infos */
     res = psinfo_read_proc(pid, output, &buf);
     if (res) {
         sb_wipe(&buf);

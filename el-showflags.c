@@ -159,29 +159,76 @@ static int show_flags(const char *arg, int flags)
     return 0;
 }
 
-#ifdef CHECK_TRACE
-static const char *strace_msg_g;
-
-
-static ALWAYS_INLINE int sb_skip_lines(sb_t *sb, int n)
+static ALWAYS_INLINE int psinfo_skip_lines(pstream_t *ps, int n)
 {
     while (--n >= 0) {
-        const char *p = strchr(sb->data, '\n');
-        if (!p) {
-            strace_msg_g = "Bad status format\n";
-            return -1;
-        }
-        sb_skip_upto(sb, p + 1);
+        if (ps_skip_afterchr(ps, '\n') < 0)
+            return e_error("bad status format");
     }
     return 0;
 }
 
+/* XXX: This function MUST be inlined in check_strace() to avoid appearing
+ * in the stack.
+ */
+static ALWAYS_INLINE int _psinfo_get_tracer_pid(pid_t pid)
+{
+    t_scope;
+    sb_t      buf;
+    pstream_t ps;
+    pid_t     tpid;
+
+    t_sb_init(&buf, (2 << 10));
+
+    if (pid <= 0) {
+        RETHROW(sb_read_file(&buf, "/proc/self/status"));
+    } else {
+        char path[PATH_MAX];
+
+        snprintf(path, sizeof(path), "/proc/%d/status", pid);
+        RETHROW(sb_read_file(&buf, path));
+    }
+
+    ps = ps_initsb(&buf);
+
+    /* skip Name, State */
+    RETHROW(psinfo_skip_lines(&ps, 2));
+
+    /* Skip optional SleepAVG (absent in 2.6.24) */
+    if (ps_startswithstr(&ps, "SleepAVG:")) {
+        RETHROW(psinfo_skip_lines(&ps, 1));
+    }
+
+    /* Tgid, Pid, PPid */
+    RETHROW(psinfo_skip_lines(&ps, 3));
+
+    /* Check for TracerPid: */
+    if (ps_skipstr(&ps, "TracerPid:") < 0)
+        return e_error("bad status format");
+
+    tpid = ps_geti(&ps);
+    return tpid > 0 ? tpid : 0;
+}
+
+/** \brief Get PID of a traced process
+ *
+ * \param pid  PID of the process (0 = current process)
+ *
+ * \return  the PID of the tracer
+ * \return  0 if the process is not traced
+ * \return -1 on error
+ */
+pid_t psinfo_get_tracer_pid(pid_t pid)
+{
+    return _psinfo_get_tracer_pid(pid);
+}
+
+#ifdef CHECK_TRACE
 
 static ALWAYS_INLINE void check_strace(time_t now)
 {
     static time_t next_strace_check;
     const char *p;
-    SB_8k(buf);
 
     if (now < next_strace_check)
         return;
@@ -192,41 +239,10 @@ static ALWAYS_INLINE void check_strace(time_t now)
     if (trace_override)
         return;
 
-    if (sb_read_file(&buf, "/proc/self/status") < 0) {
-        strace_msg_g = "Could not read status\n";
-        goto end;
-    }
+    if (_psinfo_get_tracer_pid(0) == 0)
+        return;
 
-    /* skip Name, State */
-    if (sb_skip_lines(&buf, 2))
-        goto end;
-
-    /* Skip optional SleepAVG (absent in 2.6.24) */
-    if (strstart(buf.data, "SleepAVG:", NULL) && sb_skip_lines(&buf, 1))
-        goto end;
-
-    /* Tgid, Pid, PPid */
-    if (sb_skip_lines(&buf, 3))
-        goto end;
-
-    /* Check for TracerPid: */
-    if (!strstart(buf.data, "TracerPid:", &p)) {
-        strace_msg_g = "Bad status format\n";
-        goto end;
-    }
-
-    if (atoi(p)) {
-        /* Being traced !*/
-        strace_msg_g = "Bad constraint\n";
-        goto end;
-    }
-    sb_wipe(&buf);
-
-end:
-    if (strace_msg_g) {
-        fputs(strace_msg_g, stderr);
-        exit(124);
-    }
+    exit(124);
 }
 #endif
 

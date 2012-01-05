@@ -134,4 +134,7 @@ static inline void getopt_init(void) {
 /* if pid <= 0, retrieve infos for the current process */
 int psinfo_get(pid_t pid, sb_t *output);
 
+/* This function is implemented in el-showflags.c for inlining reasons */
+pid_t psinfo_get_tracer_pid(pid_t pid);
+
 #endif /* IS_LIB_COMMON_UNIX_H */
