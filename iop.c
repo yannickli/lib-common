@@ -629,12 +629,17 @@ static void iop_wipe_err(void)
 
 thr_hooks(iop_init_err, iop_wipe_err);
 
+void iop_set_verr(const char *fmt, va_list ap)
+{
+    sb_setvf(&iop_err_g, fmt, ap);
+}
+
 int iop_set_err(const char *fmt, ...)
 {
     va_list ap;
 
     va_start(ap, fmt);
-    sb_setvf(&iop_err_g, fmt, ap);
+    iop_set_verr(fmt, ap);
     va_end(ap);
     return -1;
 }
