@@ -159,6 +159,8 @@ check_tool luac lua5.1
 
 pkg_config_setvar "imlib2"  "libimlib2-dev" "imlib2"
 
+pkg_config_setvar "xmlsec" "libxmlsec1-dev" "xmlsec1"
+
 # }}}
 # {{{ libv8-dev
 
