@@ -1,0 +1,47 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+#include "qps.h"
+
+int main(int argc, char **argv)
+{
+#define path  argv[1]
+    qps_t *qps;
+    if (argc < 2) {
+        return -1;
+    }
+
+    thr_initialize();
+    qps_initialize(NULL);
+
+    if (qps_exists(path)) {
+        qps = qps_open(path, NULL);
+    } else {
+        qps = qps_create(path, 0755);
+    }
+    if (!qps)
+        e_fatal("unable to open qps");
+
+    {
+        qps_handle_t handle1, handle2;
+        __unused__ void *ptr1 = qps_alloc(qps, &handle1, 36);
+        __unused__ void *ptr2 = qps_alloc(qps, &handle2, 36);
+
+        qps_free(qps, handle1);
+    }
+
+    qps_close(&qps);
+    thr_shutdown();
+    return 0;
+}
+

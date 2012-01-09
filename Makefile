@@ -14,6 +14,7 @@
 none_LIBRARIES = libcommon time-lp-simple
 test_PROGRAMS += ztst-cfgparser ztst-tpl ztst-lzo ztst-thrjob
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
+test_PROGRAMS += ztst-qps
 ifeq (,$(TOOLS_REPOSITORY))
 none_SHARED_LIBRARIES += zchk-tstiop-plugin zchk-iop-plugin
 test_PROGRAMS += zchk ztst-httpd
@@ -107,6 +108,10 @@ libcommon_SOURCES = \
 	qlzo-c.c \
 	qlzo-d.c \
 	\
+	qps.blk \
+	qps-hat.blk \
+	qps-bitmap.c \
+	\
 	sort-32-64.c \
 	\
 	str.c \
@@ -163,6 +168,7 @@ zchk_SOURCES = zchk.c \
 	zchk-asn1-writer.c \
 	zchk-bithacks.c \
 	zchk-container.blk \
+	zchk-hat.blk \
 	zchk-iop.c \
 	zchk-str.c \
 	zchk-time.c \
@@ -205,7 +211,12 @@ ztst-thrjob_SOURCES = \
 	ztst-thrjob.blk \
 	$/lib-common/libcommon.a \
 	$/lib-common/time-lp-simple.a
-ztst-thrjob_LIBS = -lrt -ldl -lpthread -lm
+ztst-thrjob_LIBS = -lm
+
+ztst-qps_SOURCES = \
+	ztst-qps.blk \
+	$/lib-common/libcommon.a \
+	$/lib-common/time-lp-simple.a
 
 zgcd-bench_SOURCES = \
 	zgcd-bench.c \

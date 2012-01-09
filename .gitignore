@@ -13,6 +13,7 @@
 /zchk
 /zchk-iop-plugin.so
 /zchk-tstiop-plugin.so
+/zgcd-bench
 /ztst-asn1-wr
 /ztst-blob-iconv
 /ztst-cfgparser
@@ -22,7 +23,7 @@
 /ztst-iprintf-glibc
 /ztst-iprintf-speed
 /ztst-lzo
+/ztst-qps
 /ztst-sort
-/ztst-tpl
 /ztst-thrjob
-/zgcd-bench
+/ztst-tpl
