@@ -221,6 +221,11 @@ ztst-qps_SOURCES = \
 	$/lib-common/libcommon.a \
 	$/lib-common/time-lp-simple.a
 
+ztst-hattrie_SOURCES = \
+	ztst-hattrie.blk \
+	$/lib-common/libcommon.a \
+	$/lib-common/time-lp-simple.a
+
 zgcd-bench_SOURCES = \
 	zgcd-bench.c \
 	$/lib-common/libcommon.a \
