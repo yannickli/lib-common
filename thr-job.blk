@@ -257,8 +257,6 @@ void thr_syn_schedule(thr_syn_t *syn, thr_job_t *job)
     shared_write(self_g->bot, bot + 1);
 
     thr_ec_signal_relaxed(&_G.ec);
-    if (syn)
-        thr_ec_signal_relaxed(&syn->ec);
 }
 
 void thr_schedule(thr_job_t *job)
