@@ -501,5 +501,10 @@ GENERIC_DELETE(qps_roots_t, qps_roots);
 bool qps_check_leaks(qps_t *qps, qps_roots_t *roots);
 
 /* }}} */
+/* sse utility function {{{ */
+
+ssize_t scan_non_zero16(const uint16_t u16[], size_t pos, size_t len);
+
+/* }}} */
 /** \} */
 #endif

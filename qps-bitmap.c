@@ -98,15 +98,29 @@ void delete_nodes(qps_bitmap_t *map)
 {
     for (int i = 0; i < QPS_BITMAP_ROOTS; i++) {
         const qps_bitmap_dispatch_t *dispatch;
+        const void *buf;
+        int pos = 0;
+
         if (map->root->roots[i] == 0) {
             continue;
         }
         dispatch = qps_pg_deref(map->qps, map->root->roots[i]);
-        for (int j = 0; j < QPS_BITMAP_DISPATCH; j++) {
-            if ((*dispatch)[j].node == 0) {
-                continue;
-            }
-            qps_pg_unmap(map->qps, (*dispatch)[j].node);
+        buf      = *dispatch;
+
+        /* scan_non_zero16 return the first non nul u16 position in range
+         * [pos, len] in given u16 buffer buf.
+         * We're looking for a nul node in qps_bitmap_dispatch_t which is
+         * (u32int_t) node + (uint16_t) active_bits
+         * we assume active_bits == 0 if node == 0
+         */
+        STATIC_ASSERT(sizeof(qps_bitmap_dispatch_t)
+            == QPS_BITMAP_DISPATCH * 3 * sizeof(uint16_t));
+        while ((pos = scan_non_zero16(buf, pos, 3 * QPS_BITMAP_DISPATCH)) >= 0) {
+            int p = pos / 3, r = pos % 3;
+
+            pos += 3 - r;
+            assert ((*dispatch)[p].node != 0);
+            qps_pg_unmap(map->qps, (*dispatch)[p].node);
         }
         qps_pg_unmap(map->qps, map->root->roots[i]);
     }
