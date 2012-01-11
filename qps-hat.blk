@@ -153,6 +153,54 @@ static ALWAYS_INLINE uint32_t sum_epi16(__v8hi xmm)
 }
 #endif
 
+ssize_t scan_non_zero16(const uint16_t u16[], size_t pos, size_t len)
+{
+#if defined(__SSE2__) || defined(__SSE4_1__)
+    if (len - pos >= 8) {
+#ifdef __SSE4_1__
+#define T(x, offs) \
+        if (!_mm_testz_si128(x, x)) {                          \
+            __m128i c = _mm_cmpeq_epi16(x, (__m128i){ 0, });   \
+            int     m = _mm_movemask_epi8(c);                  \
+            return offs + __builtin_ctz(~m) / 2;               \
+        }
+#else
+#define T(x, offs) \
+        ({  __m128i c = _mm_cmpeq_epi16(x, (__m128i){ 0, });   \
+            int     m = _mm_movemask_epi8(c);                  \
+            if (m != 0xffff)                                   \
+                return offs + __builtin_ctz(~m) / 2;           \
+        })
+#endif
+
+        for (; pos + 32 <= len; pos += 32) {
+            T(_mm_loadu_si128((__m128i *)(u16 + pos +  0)), pos +  0);
+            T(_mm_loadu_si128((__m128i *)(u16 + pos +  8)), pos +  8);
+            T(_mm_loadu_si128((__m128i *)(u16 + pos + 16)), pos + 16);
+            T(_mm_loadu_si128((__m128i *)(u16 + pos + 24)), pos + 24);
+        }
+        for (; pos + 8 <= len; pos += 8) {
+            T(_mm_loadu_si128((__m128i *)(u16 + pos)), pos);
+        }
+#undef T
+    }
+#else
+    for (; pos + 4 <= len; pos += 4) {
+        if (u16[pos + 0]) return pos + 0;
+        if (u16[pos + 1]) return pos + 1;
+        if (u16[pos + 2]) return pos + 2;
+        if (u16[pos + 3]) return pos + 3;
+    }
+#endif
+
+    for (; pos < len; pos++) {
+        if (u16[pos]) {
+            return pos;
+        }
+    }
+    return -1;
+}
+
 static ssize_t scan_non_zero32(const uint32_t u32[], size_t pos, size_t len)
 {
 #if defined(__SSE2__) || defined(__SSE4_1__)
@@ -2119,6 +2167,93 @@ void qhat_debug_print(qhat_t *hat, uint32_t flags)
                                    hat->desc->root_node_count);
     fprintf(stderr, "\n");
 }
+
+/* }}} */
+/** \name Tests
+ * \{
+ */
+/* {{{ */
+
+static int test_scan_non_zero16(void)
+{
+    for (int n = 1; n < 140; n++) {
+        uint16_t *buf;
+
+        t_scope;
+
+        buf = t_new(uint16_t, n);
+        Z_ASSERT_P(buf, "cannot allocate");
+        for (int i = 0; i < n; i++) {
+            p_clear(buf, n);
+            buf[i] = 1;
+            for (int j = 0; j < n; j++) {
+                Z_ASSERT_EQ(i < j ? -1 : i, scan_non_zero16(buf, j, n),
+                            "scan_non_zero16 failed for size=%d at index=%d "
+                            "(starting at %d)", n, i, j);
+            }
+            buf[i] = -1;
+            for (int j = 0; j < n; j++) {
+                Z_ASSERT_EQ(i < j ? -1 : i, scan_non_zero16(buf, j, n),
+                            "scan_non_zero16 failed for size=%d at index=%d "
+                            "(starting at %d)", n, i, j);
+            }
+        }
+        p_clear(buf, n);
+        for (int j = 0; j < n; j++) {
+            Z_ASSERT_EQ(-1, scan_non_zero16(buf, 0, n), "scan_non_zero16 "
+                        "failed for zeros buf of size=%d (starting at %d)",
+                        n, j);
+        }
+    }
+    Z_HELPER_END;
+}
+
+static int test_scan_non_zero32(void)
+{
+    for (int n = 1; n < 140; n++) {
+        uint32_t *buf;
+
+        t_scope;
+
+        buf = t_new(uint32_t, n);
+        Z_ASSERT_P(buf, "cannot allocate");
+        for (int i = 0; i < n; i++) {
+            p_clear(buf, n);
+            buf[i] = 1;
+            for (int j = 0; j < n; j++) {
+                Z_ASSERT_EQ(i < j ? -1 : i, scan_non_zero32(buf, j, n),
+                            "scan_non_zero32 failed for size=%d at index=%d "
+                            "(starting at %d)", n, i, j);
+            }
+            buf[i] = -1;
+            for (int j = 0; j < n; j++) {
+                Z_ASSERT_EQ(i < j ? -1 : i, scan_non_zero32(buf, j, n),
+                            "scan_non_zero32 failed for size=%d at index=%d "
+                            "(starting at %d)", n, i, j);
+            }
+        }
+        p_clear(buf, n);
+        for (int j = 0; j < n; j++) {
+            Z_ASSERT_EQ(-1, scan_non_zero32(buf, 0, n), "scan_non_zero32 "
+                        "failed for zeros buf of size=%d (starting at %d)",
+                        n, j);
+        }
+    }
+    Z_HELPER_END;
+}
+
+Z_GROUP_EXPORT(sse_scanner) {
+
+    Z_TEST(scan_non_zero16, "scan_non_zero16") {
+        Z_HELPER_RUN(test_scan_non_zero16());
+    } Z_TEST_END;
+
+    Z_TEST(scan_non_zero32, "scan_non_zero32") {
+        Z_HELPER_RUN(test_scan_non_zero32());
+    } Z_TEST_END;
+
+} Z_GROUP_END
+
 
 /* }}} */
 /** \} */
