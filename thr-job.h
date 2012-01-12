@@ -206,6 +206,10 @@ void thr_syn__job_done(thr_syn_t *syn)
  */
 void thr_syn_wait(thr_syn_t *syn);
 
+static ALWAYS_INLINE void thr_syn_wipe(thr_syn_t *syn)
+{
+}
+
 /** \brief process one job from the main queue.
  */
 void thr_queue_main_drain(void);
