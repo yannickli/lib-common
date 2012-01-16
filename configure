@@ -258,9 +258,9 @@ if test -z "${PHP_VERSION}"; then
     esac
 else
     if file_exists /opt/php-${PHP_VERSION}/bin/php-config; then
-        PHP_CONFIG=/opt/php-${PHP_VERSION}/bin/php-config
+       PHP_CONFIG=/opt/php-${PHP_VERSION}/bin/php-config
     else
-        PHP_CONFIG=/srv/build/php-${PHP_VERSION}/bin/php-config
+       PHP_CONFIG=/srv/build/php-${PHP_VERSION}/bin/php-config
     fi
 fi
 if test -n "$PHP_CONFIG"; then
