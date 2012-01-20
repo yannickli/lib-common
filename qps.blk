@@ -1139,10 +1139,7 @@ struct qps_meta {
 /** means that the map is a tlsf allocator map */
 #define QPS_META_MAP_TLSF    (2U << 16)
 
-/** Write the \p meta.qps file for a QPS.
- *
- * This is the last operation made for a snapshot. The previous \p meta.qps
- * file if any is replaced atomically.
+/** Write the \p meta.qpt file for a QPS.
  *
  * This function is on the safe side and performs calls to fdatasync(). Be
  * careful to use an efficient file-system for QPS !
@@ -1193,9 +1190,6 @@ static void x_write_meta(qps_t *qps, uint32_t generation, const qv_t(u32) t,
     x_write(fd, buf, 20);
     x_fdatasync(fd);
     x_close(fd);
-    x_renameat(qps->dfd, "meta.qpt", qps->dfd, "meta.qps");
-    x_fdatasync(qps->dfd);
-    qps_dir_cleanup(qps, generation);
 }
 
 /** Loads a \p meta.qps file at qps_open() time.
@@ -2481,14 +2475,20 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
         }
     }
 
-
-    thr_syn_notify_b(&qps->snap_syn, thr_queue_main_g, ^{
+    thr_syn_schedule_b(&qps->snap_syn, ^{
         qv_t(u32) tc = t;
         void     *p  = data2;
 
         x_write_meta(qps, generation, tc, data2, dlen);
         qv_wipe(u32, &tc);
         p_delete(&p);
+    });
+
+    thr_syn_notify_b(&qps->snap_syn, thr_queue_main_g, ^{
+        x_fdatasync(qps->dfd); // commit all file creations
+        x_renameat(qps->dfd, "meta.qpt", qps->dfd, "meta.qps");
+        x_fdatasync(qps->dfd); // commit rename
+        qps_dir_cleanup(qps, generation);
 
         e_named_trace(1, "qps", "notify snapshot done");
         notify(generation);
