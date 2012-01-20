@@ -916,6 +916,22 @@ static qps_map_t *qps_pg_map_open(qps_t *qps, uint32_t no, uint32_t gen)
     return NULL;
 }
 
+static void qps_map_m_recycle(qps_t *qps, qps_map_t *map, uint16_t no)
+{
+    int fd;
+    char buf[32];
+
+    assert (!qps_map_is_pg(map));
+
+    map->hdr.generation = 0;
+    snprintf(buf, sizeof(buf), "%08x.qps", no);
+    fd = x_openat(qps->dfd, buf, O_RDWR, 0644);
+    x_ftruncate(fd, sizeof(map->hdr));
+    x_ftruncate(fd, QPS_MAP_SIZE);
+    madvise(map + 1, QPS_MAP_SIZE - QPS_PAGE_SIZE, MADV_DONTNEED);
+    x_close(fd);
+}
+
 static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
 {
     int fd;
@@ -1142,7 +1158,7 @@ static void x_write_meta(qps_t *qps, uint32_t generation, const qv_t(u32) t,
         if (!map || QPS_GEN_CMP(map->hdr.generation, >, generation))
             continue;
         if (!qps_map_is_pg(map) && map->hdr.remaining == 0)
-            map->hdr.generation = 0;
+            qps_map_m_recycle(qps, map, i);
     }
 
     memcpy(m.sig, QPS_META_SIG, sizeof(QPS_META_SIG));
@@ -1304,7 +1320,7 @@ static int qps_load_meta(qps_t *qps, sb_t *out)
                 goto err_unmap;
             }
             if (map->hdr.remaining == 0)
-                map->hdr.generation = 0;
+                qps_map_m_recycle(qps, map, no);
         } else
         if (!(u32[0] & QPS_META_MAP_PAGED)) {
             e_error("QPS(%p:meta): inconsistent meta.qps [6]", qps);
