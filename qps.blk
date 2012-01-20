@@ -1097,8 +1097,16 @@ static void qps_dir_cleanup(qps_t *qps, uint32_t gen)
         }
 
         if (strequal(ext, ".qps")) {
-            if (strcmp(s, "meta.qps") && strlen(s) != 8 + 4)
+            if (strequal(s, "meta.qps"))
+                continue;
+            if (strlen(s) != 8 + 4) {
                 unlinkat(qps->dfd, s, 0);
+            } else {
+                uint32_t no = strtol(s, NULL, 16);
+
+                if (no >= (uint32_t)qps->maps.len || qps->maps.tab[no] == NULL)
+                    unlinkat(qps->dfd, s, 0);
+            }
             continue;
         }
 
@@ -2201,6 +2209,7 @@ qps_t *qps_open(const char *path, sb_t *priv)
         goto out_close;
     e_named_trace(1, "qps", "qps_open() = %p", qps);
     qps_m_check_maps(qps);
+    qps_dir_cleanup(qps, qps->generation - 2);
     return qps;
 
   out_close:
