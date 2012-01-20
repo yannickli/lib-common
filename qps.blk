@@ -916,6 +916,22 @@ static qps_map_t *qps_pg_map_open(qps_t *qps, uint32_t no, uint32_t gen)
     return NULL;
 }
 
+static void qps_map_m_recycle(qps_t *qps, qps_map_t *map, uint16_t no)
+{
+    int fd;
+    char buf[32];
+
+    assert (!qps_map_is_pg(map));
+
+    map->hdr.generation = 0;
+    snprintf(buf, sizeof(buf), "%08x.qps", no);
+    fd = x_openat(qps->dfd, buf, O_RDWR, 0644);
+    x_ftruncate(fd, sizeof(map->hdr));
+    x_ftruncate(fd, QPS_MAP_SIZE);
+    madvise(map + 1, QPS_MAP_SIZE - QPS_PAGE_SIZE, MADV_DONTNEED);
+    x_close(fd);
+}
+
 static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
 {
     int fd;
@@ -1081,8 +1097,16 @@ static void qps_dir_cleanup(qps_t *qps, uint32_t gen)
         }
 
         if (strequal(ext, ".qps")) {
-            if (strcmp(s, "meta.qps") && strlen(s) != 8 + 4)
+            if (strequal(s, "meta.qps"))
+                continue;
+            if (strlen(s) != 8 + 4) {
                 unlinkat(qps->dfd, s, 0);
+            } else {
+                uint32_t no = strtol(s, NULL, 16);
+
+                if (no >= (uint32_t)qps->maps.len || qps->maps.tab[no] == NULL)
+                    unlinkat(qps->dfd, s, 0);
+            }
             continue;
         }
 
@@ -1115,10 +1139,7 @@ struct qps_meta {
 /** means that the map is a tlsf allocator map */
 #define QPS_META_MAP_TLSF    (2U << 16)
 
-/** Write the \p meta.qps file for a QPS.
- *
- * This is the last operation made for a snapshot. The previous \p meta.qps
- * file if any is replaced atomically.
+/** Write the \p meta.qpt file for a QPS.
  *
  * This function is on the safe side and performs calls to fdatasync(). Be
  * careful to use an efficient file-system for QPS !
@@ -1142,7 +1163,7 @@ static void x_write_meta(qps_t *qps, uint32_t generation, const qv_t(u32) t,
         if (!map || QPS_GEN_CMP(map->hdr.generation, >, generation))
             continue;
         if (!qps_map_is_pg(map) && map->hdr.remaining == 0)
-            map->hdr.generation = 0;
+            qps_map_m_recycle(qps, map, i);
     }
 
     memcpy(m.sig, QPS_META_SIG, sizeof(QPS_META_SIG));
@@ -1169,9 +1190,6 @@ static void x_write_meta(qps_t *qps, uint32_t generation, const qv_t(u32) t,
     x_write(fd, buf, 20);
     x_fdatasync(fd);
     x_close(fd);
-    x_renameat(qps->dfd, "meta.qpt", qps->dfd, "meta.qps");
-    x_fdatasync(qps->dfd);
-    qps_dir_cleanup(qps, generation);
 }
 
 /** Loads a \p meta.qps file at qps_open() time.
@@ -1304,7 +1322,7 @@ static int qps_load_meta(qps_t *qps, sb_t *out)
                 goto err_unmap;
             }
             if (map->hdr.remaining == 0)
-                map->hdr.generation = 0;
+                qps_map_m_recycle(qps, map, no);
         } else
         if (!(u32[0] & QPS_META_MAP_PAGED)) {
             e_error("QPS(%p:meta): inconsistent meta.qps [6]", qps);
@@ -2185,6 +2203,7 @@ qps_t *qps_open(const char *path, sb_t *priv)
         goto out_close;
     e_named_trace(1, "qps", "qps_open() = %p", qps);
     qps_m_check_maps(qps);
+    qps_dir_cleanup(qps, qps->generation - 2);
     return qps;
 
   out_close:
@@ -2456,14 +2475,20 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
         }
     }
 
-
-    thr_syn_notify_b(&qps->snap_syn, thr_queue_main_g, ^{
+    thr_syn_schedule_b(&qps->snap_syn, ^{
         qv_t(u32) tc = t;
         void     *p  = data2;
 
         x_write_meta(qps, generation, tc, data2, dlen);
         qv_wipe(u32, &tc);
         p_delete(&p);
+    });
+
+    thr_syn_notify_b(&qps->snap_syn, thr_queue_main_g, ^{
+        x_fdatasync(qps->dfd); // commit all file creations
+        x_renameat(qps->dfd, "meta.qpt", qps->dfd, "meta.qps");
+        x_fdatasync(qps->dfd); // commit rename
+        qps_dir_cleanup(qps, generation);
 
         e_named_trace(1, "qps", "notify snapshot done");
         notify(generation);

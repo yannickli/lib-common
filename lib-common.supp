@@ -91,3 +91,32 @@
     ...
     fun:membitcount
 }
+
+# QPS
+{
+    lib-common/qps/snapshot/unitialized
+    Memcheck:Value8
+    ...
+    fun:gz*
+    ...
+    fun:__qps_snapshot_block_func_3
+}
+
+{
+    lib-common/qps/snapshot/param
+    Memcheck:Param
+    write(buf)
+    ...
+    fun:gz*
+    ...
+    fun:__qps_snapshot_block_func_3
+}
+
+{
+    lib-common/qps/snapshot/cond
+    Memcheck:Cond
+    ...
+    fun:gz*
+    ...
+    fun:__qps_snapshot_block_func_3
+}
