@@ -601,6 +601,7 @@ httpd_trigger_t *httpd_trigger__static_dir_new(const char *path);
 /**************************************************************************/
 
 typedef struct httpc_pool_t httpc_pool_t;
+typedef struct httpc_query_t httpc_query_t;
 
 typedef struct httpc_cfg_t {
     int          refcnt;
@@ -617,22 +618,25 @@ void         httpc_cfg_wipe(httpc_cfg_t *cfg);
 DO_REFCNT(httpc_cfg_t, httpc_cfg);
 
 #define HTTPC_FIELDS(pfx) \
-    OBJECT_FIELDS(pfx);                  \
-    httpc_pool_t *pool;                  \
-    httpc_cfg_t  *cfg;                   \
-    dlist_t       pool_link;             \
-    el_t          ev;                    \
-    sb_t          ibuf;                  \
-                                         \
-    flag_t        connection_close : 1;  \
-    flag_t        busy             : 1;  \
-    uint8_t       state;                 \
-    uint16_t      queries;               \
-    unsigned      chunk_length;          \
-    unsigned      max_queries;           \
-                                         \
-    dlist_t       query_list;            \
-    outbuf_t      ob
+    OBJECT_FIELDS(pfx);                                                      \
+    httpc_pool_t *pool;                                                      \
+    httpc_cfg_t  *cfg;                                                       \
+    dlist_t       pool_link;                                                 \
+    el_t          ev;                                                        \
+    sb_t          ibuf;                                                      \
+                                                                             \
+    flag_t        connection_close : 1;                                      \
+    flag_t        busy             : 1;                                      \
+    uint8_t       state;                                                     \
+    uint16_t      queries;                                                   \
+    unsigned      chunk_length;                                              \
+    unsigned      max_queries;                                               \
+                                                                             \
+    dlist_t       query_list;                                                \
+    outbuf_t      ob;                                                        \
+                                                                             \
+    void         (*on_query_done)(httpc_t *, const httpc_query_t *,          \
+                                  int status);
 
 #define HTTPC_METHODS(type_t) \
     OBJECT_METHODS(type_t);                  \
@@ -706,7 +710,6 @@ typedef struct httpc_qinfo_t {
     http_qhdr_t *hdrs;
 } httpc_qinfo_t;
 
-typedef struct httpc_query_t httpc_query_t;
 struct httpc_query_t {
     httpc_t       *owner;
     dlist_t        query_link;

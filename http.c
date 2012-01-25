@@ -1530,6 +1530,10 @@ static void httpc_query_on_done(httpc_query_t *q, int status)
         q->owner = NULL;
     }
     dlist_remove(&q->query_link);
+    /* XXX: call the httpc_t's notifier first to ensure qinfo is still set */
+    if (w && w->on_query_done) {
+        (*w->on_query_done)(w, q, status);
+    }
     (*q->on_done)(q, status);
 }
 #define httpc_query_abort(q)  httpc_query_on_done(q, HTTPC_STATUS_ABORT)
