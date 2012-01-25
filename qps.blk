@@ -2301,6 +2301,11 @@ qps_t *qps_create(const char *path, mode_t mode)
     return NULL;
 }
 
+static void qps_snapshot_timer_cb(el_t ev, el_data_t priv)
+{
+    e_fatal("snapshot stuck for more than an hour");
+}
+
 /** \brief take a qps snapshot.
  *
  * This function is the most important one to use a QPS. Usually a QPS comes
@@ -2345,6 +2350,7 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
     uint32_t  rec_pos;
     thr_syn_t syn;
     qv_t(u32) t;
+    el_t      timer;
 
     assert (qps->snapshotting == false);
 
@@ -2484,7 +2490,12 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
         p_delete(&p);
     });
 
+    timer = el_timer_register(3600 * 1000, 0, 0, qps_snapshot_timer_cb, qps);
+
     thr_syn_notify_b(&qps->snap_syn, thr_queue_main_g, ^{
+        el_t timer_copy = timer;
+
+        el_timer_unregister(&timer_copy);
         x_fdatasync(qps->dfd); // commit all file creations
         x_renameat(qps->dfd, "meta.qpt", qps->dfd, "meta.qps");
         x_fdatasync(qps->dfd); // commit rename
