@@ -213,22 +213,51 @@ typedef struct httpd_trigger_t      httpd_trigger_t;
 qm_kvec_t(http_path, lstr_t, httpd_trigger_node_t *,
           qhash_lstr_hash, qhash_lstr_equal);
 
+enum httpd_query_status {
+    HTTPD_QUERY_STATUS_CANCEL,
+    HTTPD_QUERY_STATUS_ANSWERED,
+};
+
+/** Type of HTTP server.
+ *
+ * The httpd structure contains callbacks that let you be notified when a
+ * connection is established and when a query is processed.
+ *
+ * - httpd_t#on_accept is called whenever a new connection has been accepted.
+ *   The object passed as argument is the fully-filled connection handler
+ *   (including its configuration and its file descriptor).
+ * - httpd_t#on_status is called whenever the final state of a query is
+ *   reached. This state can be:
+ *     - the query has been answered, then the query object is passed and the
+ *     status is ANSWERED.
+ *     - the query has been detached, then the query object is passed and the
+ *     status is set to CANCEL. Query are detached when the httpd_t get
+ *     disconnected while still having pending queries.
+ * - httpd_t#on_disconnect is called whenever the connection get closed.
+ */
 #define HTTPD_FIELDS(pfx) \
-    OBJECT_FIELDS(pfx);                                    \
-    dlist_t            httpd_link;                         \
-    httpd_cfg_t       *cfg;                                \
-    el_t               ev;                                 \
-    sb_t               ibuf;                               \
-                                                           \
-    flag_t             connection_close   : 1;             \
-    uint8_t            state;                              \
-    uint16_t           queries;                            \
-    uint16_t           queries_done;                       \
-    unsigned           max_queries;                        \
-    unsigned           chunk_length;                       \
-                                                           \
-    dlist_t            query_list;                         \
-    outbuf_t           ob
+    OBJECT_FIELDS(pfx);                                                      \
+    dlist_t            httpd_link;                                           \
+    httpd_cfg_t       *cfg;                                                  \
+    el_t               ev;                                                   \
+    sb_t               ibuf;                                                 \
+                                                                             \
+    flag_t             connection_close   : 1;                               \
+    uint8_t            state;                                                \
+    uint16_t           queries;                                              \
+    uint16_t           queries_done;                                         \
+    unsigned           max_queries;                                          \
+    unsigned           chunk_length;                                         \
+                                                                             \
+    dlist_t            query_list;                                           \
+    outbuf_t           ob;                                                   \
+                                                                             \
+    void             (*on_accept)(httpd_t *w);                               \
+    void             (*on_disconnect)(httpd_t *w);                           \
+                                                                             \
+    __attribute__((format(printf, 4, 0)))                                    \
+    void             (*on_status)(httpd_t *w, const struct httpd_query_t *q, \
+                                  int status, const char *fmt, va_list va);
 
 #define HTTPD_METHODS(type_t) \
     OBJECT_METHODS(type_t)
@@ -449,6 +478,7 @@ struct httpd_qinfo_t {
     flag_t              answered      : 1;                          \
     flag_t              chunked       : 1;                          \
     flag_t              conn_close    : 1;                          \
+    flag_t              status_sent   : 1;                          \
                                                                     \
     uint16_t            answer_code;                                \
     uint16_t            http_version;                               \

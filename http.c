@@ -575,8 +575,14 @@ void httpd_reply_chunk_done_(httpd_query_t *q, outbuf_t *ob)
                      ob->length - q->chunk_prev_length);
 }
 
+
+__attribute__((format(printf, 4, 0)))
+static void httpd_notify_status(httpd_t *w, httpd_query_t *q, int handler,
+                              const char *fmt, va_list va);
+
 void httpd_reply_done(httpd_query_t *q)
 {
+    va_list va;
     outbuf_t *ob = httpd_get_ob(q);
 
     assert (q->hdrs_done && !q->answered && !q->chunk_started);
@@ -587,6 +593,7 @@ void httpd_reply_done(httpd_query_t *q)
                            ob->length - q->chunk_prev_length);
         q->clength_hack = false;
     }
+    httpd_notify_status(q->owner, q, HTTPD_QUERY_STATUS_ANSWERED, "", va);
     httpd_mark_query_answered(q);
 }
 
@@ -648,6 +655,10 @@ void httpd_reject_(httpd_query_t *q, int code, const char *fmt, ...)
     ob_addvf(ob, fmt, ap);
     va_end(ap);
     ob_adds(ob, "</p></body></html>\r\n");
+
+    va_start(ap, fmt);
+    httpd_notify_status(q->owner, q, HTTPD_QUERY_STATUS_ANSWERED, fmt, ap);
+    va_end(ap);
     httpd_reply_done(q);
 }
 
@@ -656,6 +667,7 @@ void httpd_reject_unauthorized(httpd_query_t *q, lstr_t auth_realm)
     const lstr_t body = LSTR_IMMED_V("<html><body>"
                                      "<h1>401 - Authentication required</h1>"
                                      "</body></html>\r\n");
+    va_list va;
     outbuf_t *ob;
 
     if (q->answered || q->hdrs_started)
@@ -667,6 +679,8 @@ void httpd_reject_unauthorized(httpd_query_t *q, lstr_t auth_realm)
             LSTR_FMT_ARG(auth_realm));
     httpd_reply_hdrs_done(q, body.len, false);
     ob_add(ob, body.s, body.len);
+
+    httpd_notify_status(q->owner, q, HTTP_CODE_UNAUTHORIZED, "", va);
     httpd_reply_done(q);
 }
 
@@ -781,6 +795,19 @@ httpd_trigger_resolve(httpd_trigger_node_t *n, httpd_qinfo_t *req)
 /* }}} */
 /* HTTPD Parser {{{ */
 
+__attribute__((format(printf, 4, 0)))
+static void httpd_notify_status(httpd_t *w, httpd_query_t *q, int handler,
+                              const char *fmt, va_list va)
+{
+    if (!q->status_sent) {
+        q->status_sent = true;
+
+        if (w->on_status) {
+            (*w->on_status)(w, q, handler, fmt, va);
+        }
+    }
+}
+
 static void httpd_set_mask(httpd_t *w)
 {
     int mask = POLLIN;
@@ -894,6 +921,7 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
         cb = httpd_trigger_resolve(&w->cfg->roots[req.method], &req);
     q = httpd_query_create(w, cb);
     q->http_version = req.http_version;
+    q->qinfo        = &req;
     buf = __ps_get_ps_upto(ps, p + 2);
     __ps_skip_upto(ps, p + 4);
     switch (req.http_version) {
@@ -1196,6 +1224,17 @@ static httpd_t *httpd_init(httpd_t *w)
 
 static void httpd_wipe(httpd_t *w)
 {
+    if (w->on_status) {
+        va_list va;
+
+        dlist_for_each_safe (it, &w->query_list) {
+            httpd_notify_status(w, dlist_entry(it, httpd_query_t, query_link),
+                              HTTPD_QUERY_STATUS_CANCEL, "Query cancelled", va);
+        }
+    }
+    if (w->on_disconnect) {
+        (*w->on_disconnect)(w);
+    }
     el_fd_unregister(&w->ev, true);
     sb_wipe(&w->ibuf);
     ob_wipe(&w->ob);
@@ -1440,6 +1479,9 @@ httpd_t *httpd_spawn(int fd, httpd_cfg_t *cfg)
     w->max_queries = cfg->max_queries;
     el_fd_watch_activity(w->ev, POLLINOUT, w->cfg->noact_delay);
     dlist_add_tail(&cfg->httpd_list, &w->httpd_link);
+    if (w->on_accept) {
+        (*w->on_accept)(w);
+    }
     return w;
 }
 
