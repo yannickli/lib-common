@@ -138,7 +138,7 @@ if ! prereq "$IOPC_VER" "$(iopc --version)"; then
 fi
 setenv "IOPC" "$(which iopc)"
 
-for tool in clang clang++ flex gperf mtasc swfmill xsltproc scons; do
+for tool in clang clang++ flex gperf mtasc swfmill xsltproc scons eatmydata; do
     check_tool $tool $tool
 done
 setenv "CLANG"   "$(which clang)"
