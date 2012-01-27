@@ -40,6 +40,7 @@ el_t el_fd_register_d(int fd, short events, el_fd_f *cb, el_data_t priv)
     el_fd_initialize();
     ev->fd = fd;
     ev->events_wanted = events;
+    ev->priority = EV_PRIORITY_NORMAL;
     if (unlikely(epoll_ctl(epollfd_g, EPOLL_CTL_ADD, fd, &event)))
         e_panic(E_UNIXERR("epoll_ctl"));
     return ev;
@@ -65,6 +66,25 @@ short el_fd_set_mask(ev_t *ev, short events)
     return old;
 }
 
+ev_priorty_t (el_fd_set_priority)(ev_t *ev, ev_priorty_t priority)
+{
+    ev_priorty_t p = ev->priority;
+
+    if (EV_IS_TRACED(ev)) {
+        static lstr_t priority_str[] = {
+            [EV_PRIORITY_LOW]    = LSTR_IMMED("LOW"),
+            [EV_PRIORITY_NORMAL] = LSTR_IMMED("NORMAL"),
+            [EV_PRIORITY_HIGH]   = LSTR_IMMED("HIGH"),
+        };
+
+        e_trace(0, "ev-fd(%p): set priority to %*pM", ev,
+                LSTR_FMT_ARG(priority_str[priority]));
+    }
+    CHECK_EV_TYPE(ev, EV_FD);
+    ev->priority = priority;
+    return p;
+}
+
 el_data_t el_fd_unregister(ev_t **evp, bool do_close)
 {
     if (*evp) {
@@ -83,15 +103,16 @@ el_data_t el_fd_unregister(ev_t **evp, bool do_close)
 
 static void el_loop_fds(int timeout)
 {
+    ev_priorty_t prio = EV_PRIORITY_LOW;
     struct epoll_event events[FD_SETSIZE];
     uint64_t before, now;
-    int res;
+    int res, res2;
 
     el_fd_initialize();
     el_bl_unlock();
-    before = get_clock(false);
-    res    = epoll_wait(epollfd_g, events, countof(events), timeout);
-    now    = get_clock(false);
+    before     = get_clock(false);
+    res2 = res = epoll_wait(epollfd_g, events, countof(events), timeout);
+    now        = get_clock(false);
     el_bl_lock();
     assert (res >= 0 || ERR_RW_RETRIABLE(errno));
 
@@ -106,6 +127,22 @@ static void el_loop_fds(int timeout)
 
         if (unlikely(ev->type != EV_FD))
             continue;
-        el_fd_fire(ev, evs);
+        if (ev->priority > prio)
+            prio = ev->priority;
+        if (ev->priority == EV_PRIORITY_HIGH)
+            el_fd_fire(ev, evs);
+    }
+
+    if (prio == EV_PRIORITY_HIGH) {
+        return;
+    }
+    while (res2-- > 0) {
+        ev_t *ev = events[res2].data.ptr;
+        int  evs = events[res2].events;
+
+        if (unlikely(ev->type != EV_FD))
+            continue;
+        if (ev->priority == prio)
+            el_fd_fire(ev, evs);
     }
 }

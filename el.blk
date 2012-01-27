@@ -1021,3 +1021,124 @@ static void el_initialize(void)
 }
 
 /**\}*/
+/* Tests {{{ */
+
+#include "z.h"
+#include "net.h"
+
+struct z_el_data {
+    int  calls;
+    bool end;
+};
+
+static int readall(el_t el, int fd, short ev, el_data_t priv)
+{
+    struct z_el_data *d = priv.ptr;
+    byte buf[BUFSIZ];
+
+    while (read(fd, buf, sizeof(buf)) > 0) {
+        continue;
+    }
+    d->calls++;
+    return 0;
+}
+
+static int writeall(el_t el, int fd, short ev, el_data_t priv)
+{
+    t_scope;
+    struct z_el_data *d = priv.ptr;
+    byte *data;
+    socklen_t data_sz = sizeof(size_t);
+    size_t bufsiz;
+
+    assert (ev & POLLOUT);
+
+    if (d->end) {
+        return 0;
+    }
+
+    assert (getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &bufsiz, &data_sz) == 0);
+    data = t_new(byte, bufsiz);
+
+    while (write(fd, data, bufsiz) > 0) {
+        continue;
+    }
+    d->calls++;
+    return 0;
+}
+
+Z_GROUP_EXPORT(el)
+{
+    Z_TEST(fd_priority, "el: priority") {
+        t_scope;
+        el_t *els   = t_new(el_t, 2 *3);
+        struct z_el_data *calls = t_new(struct z_el_data, 3);
+
+        for (int i = 0; i < 3; i++) {
+            int fds[2];
+
+            socketpairx(AF_UNIX, SOCK_STREAM, 0, O_NONBLOCK, fds);
+
+            els[2 * i] = el_fd_register(fds[0], POLLIN, &readall, &calls[i]);
+            els[2 * i + 1] = el_fd_register(fds[1], POLLOUT, &writeall, &calls[i]);
+        }
+
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(1, calls[0].calls);
+        Z_ASSERT_EQ(1, calls[1].calls);
+        Z_ASSERT_EQ(1, calls[2].calls);
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(2, calls[0].calls);
+        Z_ASSERT_EQ(2, calls[1].calls);
+        Z_ASSERT_EQ(2, calls[2].calls);
+
+        el_fd_set_priority(els[2 * 2], HIGH);
+        el_fd_set_priority(els[2 * 2 + 1], HIGH);
+        for (int j = 0; j < 5; j++) {
+            el_loop_timeout(100);
+            Z_ASSERT_EQ(2, calls[0].calls);
+            Z_ASSERT_EQ(2, calls[1].calls);
+            Z_ASSERT_EQ(2 + (2 * j) + 1, calls[2].calls);
+
+            el_loop_timeout(100);
+            Z_ASSERT_EQ(2, calls[0].calls);
+            Z_ASSERT_EQ(2, calls[1].calls);
+            Z_ASSERT_EQ(2 + (2 * j) + 2, calls[2].calls);
+        }
+
+        calls[2].end = true;
+
+        /* writeall will be callsed on 2, since POLLOUT is ok and it has HIGH
+         * priority
+         */
+        Z_ASSERT_EQ(2, calls[0].calls);
+        Z_ASSERT_EQ(2, calls[1].calls);
+        Z_ASSERT_EQ(12, calls[2].calls);
+        el_fd_set_mask(els[2 * 2 + 1], 0);
+
+
+        el_fd_set_priority(els[1 * 2], LOW);
+        el_fd_set_priority(els[1 * 2 + 1], LOW);
+
+        el_loop_timeout(100);
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(4, calls[0].calls);
+        Z_ASSERT_EQ(2, calls[1].calls);
+        Z_ASSERT_EQ(12, calls[2].calls);
+
+        calls[0].end = true;
+        el_fd_set_mask(els[0 * 2 + 1], 0);
+
+        el_loop_timeout(100);
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(4, calls[0].calls);
+        Z_ASSERT_EQ(4, calls[1].calls);
+        Z_ASSERT_EQ(12, calls[2].calls);
+
+        for (int i = 0; i < 6; i++) {
+            el_fd_unregister(&els[i], true);
+        }
+    } Z_TEST_END;
+} Z_GROUP_END;
+
+/* }}} */
