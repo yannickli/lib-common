@@ -1111,6 +1111,7 @@ ichannel_t *ic_init(ichannel_t *ic)
     htlist_init(&ic->iov_list);
     ic->current_fd  = -1;
     ic->auto_reconn = true;
+    ic->priority    = EV_PRIORITY_NORMAL;
     qm_init(ic_msg, &ic->queries, false);
     sb_init(&ic->rbuf);
     ic_choose_id(ic);
@@ -1218,6 +1219,7 @@ static int __ic_connect(ichannel_t *ic, int flags)
         }
         fd_set_features(sock, O_NONBLOCK);
     }
+    (el_fd_set_priority)(ic->elh, ic->priority);
     __ic_watch_activity(ic);
     if (ic->do_el_unref)
         el_unref(ic->elh);
@@ -1228,6 +1230,20 @@ void ic_watch_activity(ichannel_t *ic, int timeout)
 {
     ic->watch_act = timeout;
     __ic_watch_activity(ic);
+}
+
+ev_priority_t ic_set_priority(ichannel_t *ic, ev_priority_t prio)
+{
+    ev_priority_t prev = ic->priority;
+
+    ic->priority = prio;
+
+    if (ic->elh) {
+        ev_priority_t elprev = (el_fd_set_priority)(ic->elh, prio);
+        assert (elprev == prev);
+    }
+
+    return prev;
 }
 
 int ic_connect(ichannel_t *ic)
@@ -1254,6 +1270,7 @@ void ic_spawn(ichannel_t *ic, int fd, ic_creds_f *creds_fn)
     ic->on_creds   = creds_fn;
 
     ic->elh = el_fd_register(fd, POLLIN, &ic_event, ic);
+    (el_fd_set_priority)(ic->elh, ic->priority);
     __ic_watch_activity(ic);
     if (ic->do_el_unref)
         el_unref(ic->elh);

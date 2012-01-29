@@ -139,6 +139,7 @@ struct ichannel_t {
     void             *peer;     /**< user field to identify the peer        */
     const iop_rpc_t  *desc;     /**< desc of the current unpacked RPC       */
     int               cmd;      /**< cmd of the current unpacked structure  */
+    ev_priority_t     priority; /**< priority of the channel                */
 
     int          watch_act;    /**< use in el_fd_watch_activity            */
     int          protocol;     /**< transport layer protocol (0 = default) */
@@ -202,6 +203,7 @@ static inline bool ic_slot_is_async(uint64_t slot) {
 }
 
 void ic_watch_activity(ichannel_t *ic, int timeout);
+ev_priority_t ic_set_priority(ichannel_t *ic, ev_priority_t prio);
 ichannel_t *ic_get_by_id(uint32_t id);
 ichannel_t *ic_init(ichannel_t *);
 void ic_wipe(ichannel_t *);
