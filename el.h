@@ -139,11 +139,11 @@ bool el_stopper_is_waiting(void) __leaf;
 void el_stopper_unregister(void) __leaf;
 
 /*----- fd related -----*/
-typedef enum ev_priorty_t {
+typedef enum ev_priority_t {
     EV_PRIORITY_LOW    = 0,
     EV_PRIORITY_NORMAL = 1,
     EV_PRIORITY_HIGH   = 2
-} ev_priorty_t;
+} ev_priority_t;
 
 el_t el_fd_register_d(int fd, short events, el_fd_f *, el_data_t)
     __leaf;
@@ -163,7 +163,7 @@ short el_fd_get_mask(el_t) __leaf __attribute__((pure));
 short el_fd_set_mask(el_t, short events) __leaf;
 int   el_fd_get_fd(el_t) __leaf __attribute__((pure));
 
-ev_priorty_t el_fd_set_priority(el_t, ev_priorty_t priority);
+ev_priority_t el_fd_set_priority(el_t, ev_priority_t priority);
 #define el_fd_set_priority(el, prio)  \
     (el_fd_set_priority)((el), EV_PRIORITY_##prio)
 

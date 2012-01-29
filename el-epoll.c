@@ -66,9 +66,9 @@ short el_fd_set_mask(ev_t *ev, short events)
     return old;
 }
 
-ev_priorty_t (el_fd_set_priority)(ev_t *ev, ev_priorty_t priority)
+ev_priority_t (el_fd_set_priority)(ev_t *ev, ev_priority_t priority)
 {
-    ev_priorty_t p = ev->priority;
+    ev_priority_t p = ev->priority;
 
     if (EV_IS_TRACED(ev)) {
         static lstr_t priority_str[] = {
@@ -103,7 +103,7 @@ el_data_t el_fd_unregister(ev_t **evp, bool do_close)
 
 static void el_loop_fds(int timeout)
 {
-    ev_priorty_t prio = EV_PRIORITY_LOW;
+    ev_priority_t prio = EV_PRIORITY_LOW;
     struct epoll_event events[FD_SETSIZE];
     uint64_t before, now;
     int res, res2;
