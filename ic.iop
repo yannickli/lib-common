@@ -23,3 +23,9 @@ struct SimpleHdr {
 union Hdr {
     SimpleHdr simple;
 };
+
+enum IcPriority {
+    LOW,
+    NORMAL,
+    HIGH,
+};

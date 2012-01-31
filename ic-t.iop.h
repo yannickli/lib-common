@@ -4,6 +4,18 @@
 
 #include <lib-common/iop.h>
 
+typedef enum ic__ic_priority__t {
+    IC_PRIORITY_LOW,
+    IC_PRIORITY_NORMAL,
+    IC_PRIORITY_HIGH,
+} ic__ic_priority__t;
+extern iop_enum_t const ic__ic_priority__e;
+IOP_ENUM(ic__ic_priority);
+
+#define IC_PRIORITY_count 3
+#define IC_PRIORITY_min   0
+#define IC_PRIORITY_max   2
+
 typedef struct ic__simple_hdr__t {
     lstr_t           login;
     lstr_t           password;

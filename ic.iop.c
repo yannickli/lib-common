@@ -8,6 +8,31 @@
 
 #include "ic.iop.h"
 
+/* Enum ic.IcPriority {{{ */
+
+static int const ic__ic_priority__values[] = {
+ 0, 1, 2,
+};
+static int const iop__ranges__1[] = {
+    0, 0,
+    3,
+};
+static const lstr_t ic__ic_priority__names[] = {
+    LSTR_IMMED("LOW"),
+    LSTR_IMMED("NORMAL"),
+    LSTR_IMMED("HIGH"),
+};
+iop_enum_t const ic__ic_priority__e = {
+    .name       = LSTR_IMMED("IcPriority"),
+    .fullname   = LSTR_IMMED("ic.IcPriority"),
+    .names      = ic__ic_priority__names,
+    .values     = ic__ic_priority__values,
+    .ranges     = iop__ranges__1,
+    .ranges_len = countof(iop__ranges__1) / 2,
+    .enum_len   = 3,
+};
+
+/* }}} */
 /* Structure ic.SimpleHdr {{{ */
 
 static iop_field_t const ic__simple_hdr__desc_fields[] = {
@@ -45,16 +70,16 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .u1        = { .defval_u64 = 0xffffffffffffffff },
     },
 };
-static int const iop__ranges__1[] = {
+static int const iop__ranges__2[] = {
     0, 1,
     4,
 };
 const iop_struct_t ic__simple_hdr__s = {
     .fullname   = LSTR_IMMED("ic.SimpleHdr"),
     .fields     = ic__simple_hdr__desc_fields,
-    .ranges     = iop__ranges__1,
+    .ranges     = iop__ranges__2,
     .fields_len = countof(ic__simple_hdr__desc_fields),
-    .ranges_len = countof(iop__ranges__1) / 2,
+    .ranges_len = countof(iop__ranges__2) / 2,
     .size       = sizeof(ic__simple_hdr__t),
 };
 
@@ -73,16 +98,16 @@ static iop_field_t const ic__hdr__desc_fields[] = {
         .u1        = { .st_desc = &ic__simple_hdr__s },
     },
 };
-static int const iop__ranges__2[] = {
+static int const iop__ranges__3[] = {
     0, 1,
     1,
 };
 const iop_struct_t ic__hdr__s = {
     .fullname   = LSTR_IMMED("ic.Hdr"),
     .fields     = ic__hdr__desc_fields,
-    .ranges     = iop__ranges__2,
+    .ranges     = iop__ranges__3,
     .fields_len = countof(ic__hdr__desc_fields),
-    .ranges_len = countof(iop__ranges__2) / 2,
+    .ranges_len = countof(iop__ranges__3) / 2,
     .size       = sizeof(ic__hdr__t),
     .is_union   = true,
 };
@@ -95,6 +120,7 @@ static const iop_pkg_t *const ic__deps[] = {
 };
 
 static const iop_enum_t *const ic__enums[] = {
+    &ic__ic_priority__e,
     NULL,
 };
 
