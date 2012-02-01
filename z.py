@@ -253,7 +253,7 @@ def main():
         sys.exit(not wasSuccessful)
     else:
         u.TextTestRunner.resultclass = _ZTextTestResult
-        u.main(module = None)
+        u.main()
 
 if __name__ == '__main__':
     u.TextTestRunner.resultclass = _ZTextTestResult
