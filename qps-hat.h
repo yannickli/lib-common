@@ -791,7 +791,11 @@ void qhat_tree_enumeration_find_down_up(qhat_tree_enumerator_t *en, uint32_t key
 
     shift = qhat_depth_shift(hat, en->path.depth);
     if (shift == 32) {
-        en->end = true;
+        if (en->memory.compact->keys[en->memory.compact->count - 1] < key) {
+            en->end = true;
+        } else {
+            qhat_tree_enumeration_find_entry_from(en, key);
+        }
         return;
     }
     if (en->compact) {
