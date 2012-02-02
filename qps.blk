@@ -1434,7 +1434,7 @@ qps_gc_compact(qps_t *qps, uint32_t no, qps_map_t *map, qv_t(qps_gcmap) maps)
             uint32_t   size = qps_m_blk_size(src);
 
             next = qps_m_blk_next(src, size);
-            if (unlikely(shared_read(qps->gc_state) & QPS_GC_CANCELLED))
+            if (unlikely(shared_read(qps->gc_state) != QPS_GC_RUNNING))
                 return -1;
             if (src->flags & QPS_BLK_FREE)
                 continue;
@@ -1526,7 +1526,7 @@ static void qps_gc(qps_t *qps, uint32_t gc_gen)
         return CMP(m1->mark, m2->mark) ?: qps_gen_cmp(m1->gen, m2->gen);
     });
 
-    if (!(shared_read(qps->gc_state) & QPS_GC_CANCELLED)) {
+    if (shared_read(qps->gc_state) == QPS_GC_RUNNING) {
         char buf[32];
         qps_map_t *map;
         uint32_t no;
