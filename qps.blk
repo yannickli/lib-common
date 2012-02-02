@@ -1543,8 +1543,8 @@ static void qps_gc(qps_t *qps, uint32_t gc_gen)
             munmap(map, QPS_MAP_SIZE);
             goto end;
         }
+        return;
     }
-    return;
 
   end:
     e_named_trace(1, "qps/gc", "cancelled gc on %p", qps);
