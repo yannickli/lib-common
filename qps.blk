@@ -1393,6 +1393,14 @@ static qps_t *qps_new(void)
 /** @{ \name Internal: GC Helpers */
 /* {{{ */
 
+static void qps_free_ro(qps_map_t *map, size_t bsz)
+{
+    assert (map->hdr.remaining >= bsz);
+    map->hdr.remaining -= bsz + QPS_MBLK_HDRSZ;
+    if (map->hdr.remaining == 0)
+        madvise(&map[1], QPS_MAP_SIZE - QPS_PAGE_SIZE, MADV_DONTNEED);
+}
+
 static void qps_gc_compact_finish(qps_t *qps, uint32_t no, qps_map_t *map,
                                   qv_t(qps_gcmap) maps, int n)
 {
@@ -1882,14 +1890,6 @@ void qps_pg_unload(qps_t *qps, qps_pg_t blk)
 
 /* }}} */
 /* public: memory allocation {{{ */
-
-static void qps_free_ro(qps_map_t *map, size_t bsz)
-{
-    map->hdr.remaining -= bsz + QPS_MBLK_HDRSZ;
-    assert (map->hdr.remaining <= QPS_MAP_SIZE);
-    if (map->hdr.remaining == 0)
-        madvise(&map[1], QPS_MAP_SIZE - QPS_PAGE_SIZE, MADV_DONTNEED);
-}
 
 static void qps_free_int(qps_t *qps, void *ptr)
 {
