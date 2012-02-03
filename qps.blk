@@ -527,6 +527,9 @@ static void qps_m_check_map(qps_t *qps, qps_map_t *map, bool report_ro_errs)
     qps_mhdr_t *blk_end = container_of(map_end, qps_mhdr_t, data);
     size_t allocated = 0;
 
+    if (qps_is_ro(qps, map) && map->hdr.remaining == 0)
+        return;
+
     assert (blk->flags == (QPS_MBLK_HDRSZ | QPS_BLK_PREV_USED | QPS_BLK_USED));
     assert ((blk_end->flags | QPS_BLK_PREV_FREE) == QPS_BLK_PREV_FREE);
 
@@ -591,7 +594,7 @@ static void qps_m_check_maps(qps_t *qps, bool report_ro_errs)
     for (int i = 0; i < qps->maps.len; i++) {
         qps_map_t *map = qps->maps.tab[i];
 
-        if (!map)
+        if (!map || map->hdr.generation == 0)
             continue;
         if (qps_map_is_pg(map)) {
             qps_pg_check_hdrs_aux(qps, i << 16);
@@ -949,6 +952,7 @@ static void qps_map_m_recycle(qps_t *qps, qps_map_t *map, uint16_t no)
 
     assert (!qps_map_is_pg(map));
 
+    e_named_trace(1, "qps/gc", "map %x recycled on %p", map->hdr.mapno, qps);
     map->hdr.generation = 0;
     snprintf(buf, sizeof(buf), "%08x.qps", no);
     fd = x_openat(qps->dfd, buf, O_RDWR, 0644);
@@ -1186,7 +1190,7 @@ static void x_write_meta(qps_t *qps, uint32_t generation, const qv_t(u32) t,
     for (int i = 0; i < qps->maps.len; i++) {
         qps_map_t *map = qps->maps.tab[i];
 
-        if (!map || QPS_GEN_CMP(map->hdr.generation, >, generation))
+        if (!map || map->hdr.generation == 0 || QPS_GEN_CMP(map->hdr.generation, >, generation))
             continue;
         if (!qps_map_is_pg(map) && map->hdr.remaining == 0)
             qps_map_m_recycle(qps, map, i);
@@ -1404,8 +1408,10 @@ static void qps_free_ro(qps_map_t *map, size_t bsz)
 {
     assert (map->hdr.remaining >= bsz);
     map->hdr.remaining -= bsz + QPS_MBLK_HDRSZ;
-    if (map->hdr.remaining == 0)
+    if (map->hdr.remaining == 0) {
+        e_named_trace(1, "qps/gc", "map %x empty", map->hdr.mapno);
         madvise(&map[1], QPS_MAP_SIZE - QPS_PAGE_SIZE, MADV_DONTNEED);
+    }
 }
 
 static int
@@ -1448,9 +1454,9 @@ qps_gc_compact(qps_t *qps, uint32_t no, qps_map_t *map, qv_t(qps_gcmap) maps)
                  */
                 goto end;
             }
-            dst->flags  = (src->flags & ~QPS_BLK_PREV_FREE);
-            dst->handle = src->handle;
             *hptr       = qps_encode(dst->data);
+            dst->flags  = size | QPS_BLK_USED | QPS_BLK_PREV_USED;
+            dst->handle = src->handle;
             dst         = mempcpy(dst->data, src->data, size);
             map->hdr.allocated += size + QPS_MBLK_HDRSZ;
             qps_free_ro(src_map, size);
@@ -1492,10 +1498,12 @@ static void qps_gc(qps_t *qps, uint32_t gc_gen)
         qps_map_t  *map = qps->maps.tab[i];
         qps_gcmap_t m   = { .map = map };
 
-        if (!map || qps_map_is_pg(map))
+        if (!map || map->hdr.generation == 0 || qps_map_is_pg(map))
             continue;
         /* ignore files that are too recent (less than a generation old) */
         if (qps->generation - map->hdr.generation <= 2)
+            continue;
+        if (map->hdr.remaining == 0)
             continue;
 
         /* ignore files whose footprint on disk has less than 10% waste *and*
