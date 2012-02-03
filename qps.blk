@@ -1401,44 +1401,6 @@ static void qps_free_ro(qps_map_t *map, size_t bsz)
         madvise(&map[1], QPS_MAP_SIZE - QPS_PAGE_SIZE, MADV_DONTNEED);
 }
 
-static void qps_gc_compact_finish(qps_t *qps, uint32_t no, qps_map_t *map,
-                                  qv_t(qps_gcmap) maps, int n)
-{
-    qps_mhdr_t *dst = qps_m_blk_next((qps_mhdr_t *)&map[1], QPS_MBLK_HDRSZ);
-    qps_map_t  *lim = n < maps.len ? maps.tab[n].map : NULL;
-
-    e_named_trace(1, "qps/gc", "flush gc results on %p", qps);
-    qps->handles_gc_gen += 2;
-
-    while (!(dst->flags & QPS_BLK_FREE)) {
-        uint32_t    dsz  = qps_m_blk_size(dst);
-        qps_ptr_t  *ptr  = qps_handle_slot(qps, dst->handle);
-        qps_map_t  *hmap = qps->maps.tab[ptr->pgno >> 16];
-
-        if (hmap->hdr.generation != qps->generation) {
-            if (hmap == lim) {
-                hmap->hdr.remaining -= dsz;
-                assert (hmap->hdr.remaining <= QPS_MAP_SIZE);
-            }
-            *ptr = qps_encode(dst->data);
-        } else {
-            qps_m_blk_insert(qps, dst, dsz);
-        }
-        dst = qps_m_blk_next(dst, dsz);
-    }
-
-    for (int i = 0; i < n; i++) {
-        qps_map_t *src = maps.tab[i].map;
-
-        src->hdr.remaining = 0;
-        madvise(&src[1], QPS_MAP_SIZE - QPS_PAGE_SIZE, MADV_DONTNEED);
-    }
-
-    e_named_trace(1, "qps/gc", "gc flush done on %p", qps);
-    qv_wipe(qps_gcmap, &maps);
-    atomic_sub(&qps->gc_state, 2);
-}
-
 static int
 qps_gc_compact(qps_t *qps, uint32_t no, qps_map_t *map, qv_t(qps_gcmap) maps)
 {
@@ -1459,13 +1421,14 @@ qps_gc_compact(qps_t *qps, uint32_t no, qps_map_t *map, qv_t(qps_gcmap) maps)
 
         for (src = qps_m_blk_next(src, QPS_MBLK_HDRSZ); src < src_end; src = next) {
             uint32_t   size = qps_m_blk_size(src);
+            qps_ptr_t *hptr, bptr;
 
             next = qps_m_blk_next(src, size);
-            if (unlikely(shared_read(qps->gc_state) != QPS_GC_RUNNING))
-                return -1;
             if (src->flags & QPS_BLK_FREE)
                 continue;
-            if (access_once(qps_handle_slot(qps, src->handle)->pgno) != no)
+            hptr = qps_handle_slot(qps, src->handle);
+            bptr = qps_encode(src->data);
+            if (hptr->pgno != bptr.pgno || hptr->addr != bptr.addr)
                 continue;
             if (qps_m_blk_next(dst, size) + sizeof(qps_mhdr_t) > dst_end) {
                 /*
@@ -1476,26 +1439,27 @@ qps_gc_compact(qps_t *qps, uint32_t no, qps_map_t *map, qv_t(qps_gcmap) maps)
                  * to be filled, so don't bother finding a suitable block to
                  * fill that gap.
                  */
-                e_named_trace(1, "qps/gc", "gc compaction done on %p", qps);
-                thr_syn_queue_b(&qps->gc_syn, thr_queue_main_g, ^{
-                    qps_m_blk_insert(qps, dst, (uint8_t *)dst_end - dst->data);
-                    qps_gc_compact_finish(qps, no, map, maps, i);
-                    qps_map_bless(qps, map);
-                });
-                return 0;
+                goto end;
             }
             dst->flags  = (src->flags & ~QPS_BLK_PREV_FREE);
             dst->handle = src->handle;
-            dst = mempcpy(dst->data, src->data, size);
+            *hptr       = qps_encode(dst->data);
+            dst         = mempcpy(dst->data, src->data, size);
+            map->hdr.allocated += size + QPS_MBLK_HDRSZ;
+            qps_free_ro(src_map, size);
         }
+
+        assert (src_map->hdr.remaining == 0);
     }
 
+  end:
+    qps->handles_gc_gen += 2;
+    qps_map_bless(qps, map);
+    qps_m_blk_insert(qps, dst, (uint8_t *)dst_end - dst->data);
+
     e_named_trace(1, "qps/gc", "gc compaction done on %p", qps);
-    thr_syn_queue_b(&qps->gc_syn, thr_queue_main_g, ^{
-        qps_m_blk_insert(qps, dst, (uint8_t *)dst_end - dst->data);
-        qps_gc_compact_finish(qps, no, map, maps, maps.len);
-        qps_map_bless(qps, map);
-    });
+    qv_wipe(qps_gcmap, &maps);
+    atomic_sub(&qps->gc_state, 2);
     return 0;
 }
 
@@ -1589,9 +1553,7 @@ static void qps_gc_on_idle(el_t ev, el_data_t priv)
             uint32_t gc_gen = atomic_add_and_get(&qps->gc_gen, 1);
 
             e_named_trace(1, "qps/gc", "schedule gc on %p", qps);
-            thr_syn_schedule_b(&qps->gc_syn, ^{
-                qps_gc(qps, gc_gen);
-            });
+            qps_gc(qps, gc_gen);
         }
     }
 }
@@ -1611,6 +1573,8 @@ bool qps_gc_enable(qps_t *qps)
     int prev = __sync_fetch_and_or(&qps->gc_state, QPS_GC_ENABLED);
 
     e_named_trace(1, "qps/gc", "enable gc on %p", qps);
+    if (thr_id() == 0)
+        qps_gc_on_idle(NULL, (el_data_t){ .ptr = qps });
     return prev & QPS_GC_ENABLED;
 }
 
