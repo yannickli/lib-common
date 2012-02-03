@@ -531,30 +531,49 @@ static void qps_m_check_map(qps_t *qps, qps_map_t *map)
     assert ((blk_end->flags | QPS_BLK_PREV_FREE) == QPS_BLK_PREV_FREE);
 
     blk = qps_m_blk_next(blk, QPS_MBLK_HDRSZ);
-    while (blk < blk_end) {
-        size_t bsz = qps_m_blk_size(blk);
-        qps_mhdr_t *nxt = qps_m_blk_next(blk, bsz);
-
-        assert (qps_m_blk_next(blk, bsz) <= blk_end);
-        if (blk->flags & QPS_BLK_FREE) {
-            assert (nxt->flags & QPS_BLK_PREV_FREE);
-            assert (!(nxt->flags & QPS_BLK_FREE));
-        } else {
-            assert (!(nxt->flags & QPS_BLK_PREV_FREE));
-            allocated += QPS_MBLK_HDRSZ + bsz;
-        }
-        blk = nxt;
-    }
-
     if (qps_is_ro(qps, map)) {
-        if (map->hdr.remaining > allocated) {
-            e_trace(0, "RO map remaining disparity: delta is %zd",
-                    map->hdr.remaining - allocated);
+        while (blk < blk_end) {
+            size_t      bsz = qps_m_blk_size(blk);
+            qps_mhdr_t *nxt = qps_m_blk_next(blk, bsz);
+            qps_ptr_t  *hptr, bptr;
+
+            assert (qps_m_blk_next(blk, bsz) <= blk_end);
+            if (blk->flags & QPS_BLK_FREE) {
+                assert (nxt->flags & QPS_BLK_PREV_FREE);
+                assert (!(nxt->flags & QPS_BLK_FREE));
+            } else {
+                assert (!(nxt->flags & QPS_BLK_PREV_FREE));
+                assert (blk->handle);
+                hptr = qps_handle_slot(qps, blk->handle);
+                bptr = qps_encode(blk->data);
+                if (hptr->pgno == bptr.pgno && hptr->addr == bptr.addr)
+                    allocated += QPS_MBLK_HDRSZ + bsz;
+            }
+            blk = nxt;
+        }
+        if (map->hdr.remaining != allocated) {
+            e_trace(0, "RO map [%x] remaining disparity: delta is %zd",
+                    map->hdr.mapno, map->hdr.remaining - allocated);
         }
     } else {
+        while (blk < blk_end) {
+            size_t      bsz = qps_m_blk_size(blk);
+            qps_mhdr_t *nxt = qps_m_blk_next(blk, bsz);
+
+            assert (qps_m_blk_next(blk, bsz) <= blk_end);
+            if (blk->flags & QPS_BLK_FREE) {
+                assert (nxt->flags & QPS_BLK_PREV_FREE);
+                assert (!(nxt->flags & QPS_BLK_FREE));
+            } else {
+                assert (!(nxt->flags & QPS_BLK_PREV_FREE));
+                assert (blk->handle);
+                allocated += QPS_MBLK_HDRSZ + bsz;
+            }
+            blk = nxt;
+        }
         if (map->hdr.allocated != allocated) {
-            e_trace(0, "RO map allocated disparity: delta is %zd",
-                    map->hdr.allocated - allocated);
+            e_trace(0, "RW map [%x] allocated disparity: delta is %zd",
+                    map->hdr.mapno, map->hdr.allocated - allocated);
         }
     }
 }
