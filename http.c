@@ -1040,10 +1040,16 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
         httpd_do_any(w, q, &req);
         break;
     }
+    if (q->qinfo == &req) {
+        q->qinfo = NULL;
+    }
     httpd_query_reply_100continue_(q);
     return PARSE_OK;
 
   unrecoverable_error:
+    if (q->qinfo == &req) {
+        q->qinfo = NULL;
+    }
     w->connection_close = true;
     httpd_query_done(w, q);
     return PARSE_OK;
