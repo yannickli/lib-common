@@ -2120,6 +2120,9 @@ void httpc_query_start(httpc_query_t *q, http_method_t m,
         ob_add_urlencode(ob, uri.s, uri.len);
         ob_adds(ob, " HTTP/1.1\r\n");
     } else {
+        /* TODO: this function does not support absolute path */
+        assert (!lstr_startswith(uri, LSTR_IMMED_V("http://"))
+             && !lstr_startswith(uri, LSTR_IMMED_V("https://")));
         ob_add(ob, http_method_str[m].s, http_method_str[m].len);
         ob_adds(ob, " ");
         ob_add_urlencode(ob, uri.s, uri.len);
