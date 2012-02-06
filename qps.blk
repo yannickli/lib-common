@@ -1512,6 +1512,8 @@ static void qps_gc(qps_t *qps, uint32_t gc_gen)
         m.gen        = access_once(map->hdr.generation);
         m.allocated  = access_once(map->hdr.remaining);
         m.disk_usage = access_once(map->hdr.disk_usage);
+        if (m.disk_usage == 0)
+            continue;
         m.mark       = 10UL * m.allocated / m.disk_usage;
         if (m.mark > 9 && m.allocated > QPS_MAP_SIZE / 2)
             continue;
