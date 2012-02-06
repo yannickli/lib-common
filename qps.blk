@@ -1175,7 +1175,7 @@ struct qps_meta {
  * careful to use an efficient file-system for QPS !
  */
 static void x_write_meta(qps_t *qps, uint32_t generation, const qv_t(u32) t,
-                           const void *priv, size_t plen)
+                         const void *priv, size_t plen)
 {
     t_scope;
     size_t csz;
@@ -1186,15 +1186,6 @@ static void x_write_meta(qps_t *qps, uint32_t generation, const qv_t(u32) t,
 
     fd  = x_openat(qps->dfd, "meta.qpt", O_RDWR | O_CREAT | O_TRUNC, 0644);
     buf = t_new_raw(char, LZO_BUF_MEM_SIZE);
-
-    for (int i = 0; i < qps->maps.len; i++) {
-        qps_map_t *map = qps->maps.tab[i];
-
-        if (!map || map->hdr.generation == 0 || QPS_GEN_CMP(map->hdr.generation, >, generation))
-            continue;
-        if (!qps_map_is_pg(map) && map->hdr.remaining == 0)
-            qps_map_m_recycle(qps, map, i);
-    }
 
     memcpy(m.sig, QPS_META_SIG, sizeof(QPS_META_SIG));
 
@@ -1220,6 +1211,27 @@ static void x_write_meta(qps_t *qps, uint32_t generation, const qv_t(u32) t,
     x_write(fd, buf, 20);
     x_fdatasync(fd);
     x_close(fd);
+}
+
+static void x_finalize_meta(qps_t *qps, uint32_t generation)
+{
+    x_fdatasync(qps->dfd); // commit all file creations
+    x_renameat(qps->dfd, "meta.qpt", qps->dfd, "meta.qps");
+    x_fdatasync(qps->dfd); // commit rename
+
+    for (int i = 0; i < qps->maps.len; i++) {
+        qps_map_t *map = qps->maps.tab[i];
+
+        if (!map || qps_map_is_pg(map))
+            continue;
+        if (QPS_GEN_CMP(map->hdr.generation, >, generation))
+            continue;
+        if (map->hdr.remaining == 0)
+            qps_map_m_recycle(qps, map, i);
+    }
+
+    qps_dir_cleanup(qps, generation);
+    e_named_trace(1, "qps", "snapshot commited and notified");
 }
 
 /** Loads a \p meta.qps file at qps_open() time.
@@ -2499,12 +2511,7 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
         el_t timer_copy = timer;
 
         el_timer_unregister(&timer_copy);
-        x_fdatasync(qps->dfd); // commit all file creations
-        x_renameat(qps->dfd, "meta.qpt", qps->dfd, "meta.qps");
-        x_fdatasync(qps->dfd); // commit rename
-        qps_dir_cleanup(qps, generation);
-
-        e_named_trace(1, "qps", "notify snapshot done");
+        x_finalize_meta(qps, generation);
         notify(generation);
         qps->snapshotting = false;
     });
