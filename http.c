@@ -2112,8 +2112,8 @@ void httpc_bufferize(httpc_query_t *q, unsigned maxsize)
     q->on_data          = &httpc_query_on_data_bufferize;
 }
 
-void httpc_query_start(httpc_query_t *q, http_method_t m,
-                       lstr_t host, lstr_t uri)
+void httpc_query_start_flags(httpc_query_t *q, http_method_t m,
+                       lstr_t host, lstr_t uri, bool httpc_encode_url)
 {
     httpc_t  *w  = q->owner;
     outbuf_t *ob = &w->ob;
@@ -2123,7 +2123,11 @@ void httpc_query_start(httpc_query_t *q, http_method_t m,
     if (w->cfg->use_proxy) {
         ob_addf(ob, "%*pM http://%*pM", LSTR_FMT_ARG(http_method_str[m]),
                 LSTR_FMT_ARG(host));
-        ob_add_urlencode(ob, uri.s, uri.len);
+        if (httpc_encode_url) {
+            ob_add_urlencode(ob, uri.s, uri.len);
+        } else {
+            ob_add(ob, uri.s, uri.len);
+        }
         ob_adds(ob, " HTTP/1.1\r\n");
     } else {
         /* TODO: this function does not support absolute path */
@@ -2131,7 +2135,11 @@ void httpc_query_start(httpc_query_t *q, http_method_t m,
              && !lstr_startswith(uri, LSTR_IMMED_V("https://")));
         ob_add(ob, http_method_str[m].s, http_method_str[m].len);
         ob_adds(ob, " ");
-        ob_add_urlencode(ob, uri.s, uri.len);
+        if (httpc_encode_url) {
+            ob_add_urlencode(ob, uri.s, uri.len);
+        } else {
+            ob_add(ob, uri.s, uri.len);
+        }
         ob_addf(ob, " HTTP/1.1\r\n"
                 "Host: %*pM\r\n", LSTR_FMT_ARG(host));
     }
