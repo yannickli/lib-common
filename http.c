@@ -1972,8 +1972,8 @@ void httpc_bufferize(httpc_query_t *q, unsigned maxsize)
     q->on_data          = &httpc_query_on_data_bufferize;
 }
 
-void httpc_query_start(httpc_query_t *q, http_method_t m,
-                       const char *host, const char *uri)
+void httpc_query_start_flags(httpc_query_t *q, http_method_t m,
+                       const char *host, const char *uri, bool httpc_encode_url)
 {
     static char const * const methods[] = {
 #define M(m)  [HTTP_METHOD_##m] = #m" "
@@ -1995,11 +1995,20 @@ void httpc_query_start(httpc_query_t *q, http_method_t m,
 
     if (w->cfg->use_proxy) {
         ob_addf(ob, "%shttp://%s", methods[m], host);
+        if (httpc_encode_url) {
+            ob_adds_urlencode(ob, uri);
+        } else {
+            ob_adds(ob, uri);
+        }
         ob_adds_urlencode(ob, uri);
         ob_adds(ob, " HTTP/1.1\r\n");
     } else {
         ob_adds(ob, methods[m]);
-        ob_adds_urlencode(ob, uri);
+        if (httpc_encode_url) {
+            ob_adds_urlencode(ob, uri);
+        } else {
+            ob_adds(ob, uri);
+        }
         ob_addf(ob, " HTTP/1.1\r\n"
                 "Host: %s\r\n", host);
     }
