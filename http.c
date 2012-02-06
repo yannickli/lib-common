@@ -802,7 +802,7 @@ static void httpd_notify_status(httpd_t *w, httpd_query_t *q, int handler,
     if (!q->status_sent) {
         q->status_sent = true;
 
-        if (w->on_status) {
+        if (w && w->on_status) {
             (*w->on_status)(w, q, handler, fmt, va);
         }
     }
