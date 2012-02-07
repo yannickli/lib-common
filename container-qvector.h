@@ -37,7 +37,7 @@ __qvector_init(qvector_t *vec, void *buf, int blen, int bsize, int mem_pool)
         cast(uint8_t *, buf),
         blen,
         bsize,
-        mem_pool,
+        cast(flag_t, mem_pool),
         0,
     };
     return vec;
