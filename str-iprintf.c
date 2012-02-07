@@ -331,7 +331,8 @@ int fmt_output_chars(FILE *stream, char *str, size_t size,
         if (count + n1 >= size) {
             n1 = count >= size ? 0 : size - count - 1;
         }
-        memset(str + count, c, n1);
+        if (n1)
+            memset(str + count, c, n1);
     }
     return count + n;
 }
