@@ -899,6 +899,20 @@ void qhat_tree_enumeration_go_to(qhat_tree_enumerator_t *en, uint32_t key,
         uint32_t    old_pos  = en->pos;
         qhat_node_t old_node = QHAT_PATH_NODE(&en->path);
 
+        if (unlikely(safe && en->compact)) {
+            en->count = en->memory.compact->count;
+            if (en->pos >= en->count) {
+                en->pos = en->count - 1;
+            }
+            while (en->memory.compact->keys[en->pos] > en->key) {
+                if (en->pos == 0) {
+                    break;
+                }
+                en->pos--;
+            }
+            en->key = en->memory.compact->keys[en->pos];
+        }
+
         if (key == en->key + 1) {
             qhat_tree_enumeration_next(en, false, false);
         } else {
