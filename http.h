@@ -487,6 +487,8 @@ struct httpd_qinfo_t {
     uint16_t            http_version;                               \
     time_t              query_sec;                                  \
     unsigned            query_usec;                                 \
+    unsigned            received_hdr_length;                        \
+    unsigned            received_body_length;                       \
                                                                     \
     int                 chunk_hdr_offs;                             \
     int                 chunk_prev_length;                          \
@@ -636,6 +638,8 @@ DO_REFCNT(httpc_cfg_t, httpc_cfg);
     uint16_t      queries;                                                   \
     unsigned      chunk_length;                                              \
     unsigned      max_queries;                                               \
+    unsigned      received_hdr_length;                                       \
+    unsigned      received_body_length;                                      \
                                                                              \
     dlist_t       query_list;                                                \
     outbuf_t      ob;                                                        \
@@ -721,6 +725,8 @@ struct httpc_query_t {
     httpc_qinfo_t *qinfo;
     sb_t           payload;
     unsigned       payload_max_size;
+    unsigned       received_hdr_length;
+    unsigned       received_body_length;
 
     int            chunk_hdr_offs;
     int            chunk_prev_length;

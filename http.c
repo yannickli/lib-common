@@ -1002,6 +1002,7 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
     if ((unsigned)req.method < countof(w->cfg->roots))
         cb = httpd_trigger_resolve(&w->cfg->roots[req.method], &req);
     q = httpd_query_create(w, cb);
+    q->received_hdr_length = ps_len(&req.hdrs_ps);
     q->http_version = req.http_version;
     q->qinfo        = &req;
     buf = __ps_get_ps_upto(ps, p + 2);
@@ -1154,6 +1155,8 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
 static inline int
 httpd_flush_data(httpd_t *w, httpd_query_t *q, pstream_t *ps, bool done)
 {
+    q->received_body_length += ps_len(ps);
+
     if (q->on_data) {
         if (w->compressed) {
             t_scope;
@@ -1210,6 +1213,7 @@ static int httpd_parse_body(httpd_t *w, pstream_t *ps)
 static int httpd_parse_chunk_hdr(httpd_t *w, pstream_t *ps)
 {
     httpd_query_t *q = dlist_last_entry(&w->query_list, httpd_query_t, query_link);
+    const char *orig = ps->s;
     pstream_t line, hex;
     uint64_t  len = 0;
     int res;
@@ -1231,6 +1235,7 @@ static int httpd_parse_chunk_hdr(httpd_t *w, pstream_t *ps)
         len = (len << 4) | __str_digit_value[*s + 128];
     w->chunk_length = len;
     w->state = len ? HTTP_PARSER_CHUNK : HTTP_PARSER_CHUNK_TRAILER;
+    q->received_body_length += ps->s - orig;
     return PARSE_OK;
 
   cancel_query:
@@ -1266,6 +1271,7 @@ static int httpd_parse_chunk(httpd_t *w, pstream_t *ps)
 static int httpd_parse_chunk_trailer(httpd_t *w, pstream_t *ps)
 {
     httpd_query_t *q = dlist_last_entry(&w->query_list, httpd_query_t, query_link);
+    const char *orig = ps->s;
     pstream_t line;
 
     do {
@@ -1281,6 +1287,7 @@ static int httpd_parse_chunk_trailer(httpd_t *w, pstream_t *ps)
             return res;
     } while (ps_len(&line));
 
+    q->received_body_length += ps->s - orig;
     if (q->on_done)
         q->on_done(q);
     httpd_query_done(w, q);
@@ -1789,6 +1796,7 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
     req.hdrs_len = hdrs.len;
 
     q = dlist_first_entry(&w->query_list, httpc_query_t, query_link);
+    q->received_hdr_length = ps_len(&req.hdrs_ps);
     q->qinfo = httpc_qinfo_dup(&req);
     if (q->on_hdrs)
         RETHROW((*q->on_hdrs)(q));
@@ -1809,6 +1817,8 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
 static inline int
 httpc_flush_data(httpc_t *w, httpc_query_t *q, pstream_t *ps, bool done)
 {
+    q->received_body_length += ps_len(ps);
+
     if (w->compressed) {
         t_scope;
         sb_t zbuf;
@@ -1843,6 +1853,8 @@ static int httpc_parse_body(httpc_t *w, pstream_t *ps)
 
 static int httpc_parse_chunk_hdr(httpc_t *w, pstream_t *ps)
 {
+    httpc_query_t *q = dlist_first_entry(&w->query_list, httpc_query_t, query_link);
+    const char *orig = ps->s;
     pstream_t line, hex;
     uint64_t  len = 0;
     int res;
@@ -1861,6 +1873,7 @@ static int httpc_parse_chunk_hdr(httpc_t *w, pstream_t *ps)
         len = (len << 4) | __str_digit_value[*s + 128];
     w->chunk_length = len;
     w->state = len ? HTTP_PARSER_CHUNK : HTTP_PARSER_CHUNK_TRAILER;
+    q->received_body_length += ps->s - orig;
     return PARSE_OK;
 }
 
@@ -1886,6 +1899,7 @@ static int httpc_parse_chunk(httpc_t *w, pstream_t *ps)
 static int httpc_parse_chunk_trailer(httpc_t *w, pstream_t *ps)
 {
     httpc_query_t *q = dlist_first_entry(&w->query_list, httpc_query_t, query_link);
+    const char *orig = ps->s;
     pstream_t line;
 
     do {
@@ -1894,6 +1908,8 @@ static int httpc_parse_chunk_trailer(httpc_t *w, pstream_t *ps)
         if (res)
             return res;
     } while (ps_len(&line));
+
+    q->received_body_length += ps->s - orig;
     return httpc_query_ok(q);
 }
 
