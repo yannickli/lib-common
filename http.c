@@ -104,6 +104,86 @@ void httpd_trigger_loose(httpd_trigger_t *cb)
     httpd_trigger_destroy(cb, cb->refcnt & 1);
 }
 
+/* zlib helpers {{{ */
+
+#define HTTP_ZLIB_BUFSIZ   (64 << 10)
+
+static void http_zlib_stream_reset(z_stream *s)
+{
+    s->next_in  = s->next_out  = NULL;
+    s->avail_in = s->avail_out = 0;
+}
+
+#define http_zlib_inflate_init(w) \
+    ({  typeof(*(w)) *_w = (w);                                   \
+                                                                  \
+        if (_w->zs.state == NULL) {                               \
+            if (inflateInit2(&_w->zs, MAX_WBITS + 32) != Z_OK)    \
+                e_panic("zlib error");                            \
+        }                                                         \
+        http_zlib_stream_reset(&_w->zs);                          \
+        _w->compressed = true;                                    \
+    })
+
+#define http_zlib_reset(w) \
+    ({  typeof(*(w)) *_w = (w);                                   \
+                                                                  \
+        if (_w->compressed) {                                     \
+            http_zlib_stream_reset(&_w->zs);                      \
+            inflateReset2(&_w->zs, MAX_WBITS + 32);               \
+            _w->compressed = false;                               \
+        }                                                         \
+    })
+
+#define http_zlib_wipe(w) \
+    ({  typeof(*(w)) *_w = (w);                            \
+                                                           \
+        if (_w->zs.state)                                  \
+            inflateEnd(&_w->zs);                           \
+        _w->compressed = false;                            \
+    })
+
+static int http_zlib_inflate(z_stream *s, unsigned *clen,
+                             sb_t *out, pstream_t *in, int flush)
+{
+    int rc;
+
+    s->next_in   = (Bytef *)in->s;
+    s->avail_in  = ps_len(in);
+
+    for (;;) {
+        size_t sz = MAX(HTTP_ZLIB_BUFSIZ, s->avail_in * 4);
+
+        s->next_out  = (Bytef *)sb_grow(out, sz);
+        s->avail_out = sb_avail(out);
+
+        rc = inflate(s, flush ? Z_FINISH : Z_SYNC_FLUSH);
+        switch (rc) {
+          case Z_BUF_ERROR:
+          case Z_OK:
+          case Z_STREAM_END:
+            __sb_fixlen(out, (char *)s->next_out - out->data);
+            *clen -= (char *)s->next_in - in->s;
+            __ps_skip_upto(in, s->next_in);
+            break;
+          default:
+            return rc;
+        }
+
+        if (rc == Z_STREAM_END && ps_len(in))
+            return Z_STREAM_ERROR;
+        if (rc == Z_BUF_ERROR) {
+            if (s->avail_in)
+                continue;
+            if (flush)
+                return Z_STREAM_ERROR;
+            return 0;
+        }
+        return 0;
+    }
+}
+
+/* }}} */
 /* RFC 2616 helpers {{{ */
 
 #define PARSE_RETHROW(e)  ({ int __e = (e); if (unlikely(__e)) return __e; })
@@ -512,6 +592,7 @@ outbuf_t *httpd_reply_hdrs_start(httpd_query_t *q, int code, bool force_uncachea
     ob_addf(ob, "HTTP/1.%d %d %*pM\r\n", HTTP_MINOR(q->http_version),
             code, LSTR_FMT_ARG(http_code_to_str(code)));
     ob_add(ob, date_cache_g.buf, sizeof(date_cache_g.buf) - 1);
+    ob_adds(ob, "Accept-Encoding: identity, gzip, deflate\r\n");
     if (q->owner && q->owner->connection_close) {
         if (!q->conn_close) {
             ob_adds(ob, "Connection: close\r\n");
@@ -910,6 +991,7 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
     if (--w->max_queries == 0)
         w->connection_close = true;
 
+    http_zlib_reset(w);
     req.hdrs_ps = ps_initptr(ps->s, p + 4);
     if (t_http_parse_request_line(ps, &req) < 0) {
         q = httpd_query_create(w, NULL);
@@ -1009,6 +1091,20 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
             }
             break;
 
+          case HTTP_WKHDR_CONTENT_ENCODING:
+            switch (http_get_token_ps(qhdr->val)) {
+              case HTTP_TK_DEFLATE:
+              case HTTP_TK_GZIP:
+              case HTTP_TK_X_GZIP:
+                http_zlib_inflate_init(w);
+                qv_shrink(qhdr, &hdrs, 1);
+                break;
+              default:
+                http_zlib_reset(w);
+                break;
+            }
+            break;
+
           default:
             break;
         }
@@ -1055,6 +1151,33 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
     return PARSE_ERROR;
 }
 
+static inline int
+httpd_flush_data(httpd_t *w, httpd_query_t *q, pstream_t *ps, bool done)
+{
+    if (q->on_data) {
+        if (w->compressed) {
+            t_scope;
+            sb_t zbuf;
+
+            t_sb_init(&zbuf, HTTP_ZLIB_BUFSIZ);
+            if (http_zlib_inflate(&w->zs, &w->chunk_length, &zbuf, ps, done))
+                goto zlib_error;
+            q->on_data(q, ps_initsb(&zbuf));
+            return PARSE_OK;
+        }
+        q->on_data(q, *ps);
+    }
+    w->chunk_length -= ps_len(ps);
+    ps->b = ps->b_end;
+    return PARSE_OK;
+
+  zlib_error:
+    httpd_reject(q, BAD_REQUEST, "Invalid compressed data");
+    w->connection_close = true;
+    httpd_query_done(w, q);
+    return PARSE_ERROR;
+}
+
 static int httpd_parse_body(httpd_t *w, pstream_t *ps)
 {
     httpd_query_t *q = dlist_last_entry(&w->query_list, httpd_query_t, query_link);
@@ -1064,20 +1187,15 @@ static int httpd_parse_body(httpd_t *w, pstream_t *ps)
     if (plen >= w->chunk_length) {
         pstream_t tmp = __ps_get_ps(ps, w->chunk_length);
 
-        if (q->on_data)
-            q->on_data(q, tmp);
+        RETHROW(httpd_flush_data(w, q, &tmp, true));
         if (q->on_done)
             q->on_done(q);
         httpd_query_done(w, q);
         return PARSE_OK;
     }
 
-    if (plen >= w->cfg->on_data_threshold) {
-        if (q->on_data)
-            q->on_data(q, *ps);
-        w->chunk_length -= plen;
-        ps->b = ps->b_end;
-    }
+    if (plen >= w->cfg->on_data_threshold)
+        RETHROW(httpd_flush_data(w, q, ps, false));
     return PARSE_MISSING_DATA;
 }
 
@@ -1136,17 +1254,12 @@ static int httpd_parse_chunk(httpd_t *w, pstream_t *ps)
             httpd_query_done(w, q);
             return PARSE_ERROR;
         }
-        if (q->on_data)
-            q->on_data(q, tmp);
+        RETHROW(httpd_flush_data(w, q, &tmp, false));
         w->state = HTTP_PARSER_CHUNK_HDR;
         return PARSE_OK;
     }
-    if (plen >= w->cfg->on_data_threshold) {
-        if (q->on_data)
-            q->on_data(q, *ps);
-        w->chunk_length -= plen;
-        ps->b = ps->b_end;
-    }
+    if (plen >= w->cfg->on_data_threshold)
+        RETHROW(httpd_flush_data(w, q, ps, false));
     return PARSE_MISSING_DATA;
 }
 
@@ -1245,6 +1358,7 @@ static void httpd_wipe(httpd_t *w)
     el_fd_unregister(&w->ev, true);
     sb_wipe(&w->ibuf);
     ob_wipe(&w->ob);
+    http_zlib_wipe(w);
     dlist_for_each_safe(it, &w->query_list) {
         httpd_query_detach(dlist_entry(it, httpd_query_t, query_link));
     }
@@ -1587,6 +1701,7 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
         return PARSE_MISSING_DATA;
     }
 
+    http_zlib_reset(w);
     req.hdrs_ps = ps_initptr(ps->s, p + 4);
     res = http_parse_status_line(ps, &req);
     if (res)
@@ -1643,6 +1758,20 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
                 return PARSE_ERROR;
             break;
 
+          case HTTP_WKHDR_CONTENT_ENCODING:
+            switch (http_get_token_ps(qhdr->val)) {
+              case HTTP_TK_DEFLATE:
+              case HTTP_TK_GZIP:
+              case HTTP_TK_X_GZIP:
+                http_zlib_inflate_init(w);
+                qv_shrink(qhdr, &hdrs, 1);
+                break;
+              default:
+                http_zlib_reset(w);
+                break;
+            }
+            break;
+
           default:
             break;
         }
@@ -1677,6 +1806,25 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
     return PARSE_OK;
 }
 
+static inline int
+httpc_flush_data(httpc_t *w, httpc_query_t *q, pstream_t *ps, bool done)
+{
+    if (w->compressed) {
+        t_scope;
+        sb_t zbuf;
+
+        t_sb_init(&zbuf, HTTP_ZLIB_BUFSIZ);
+        if (http_zlib_inflate(&w->zs, &w->chunk_length, &zbuf, ps, done))
+            return PARSE_ERROR;
+        q->on_data(q, ps_initsb(&zbuf));
+    } else {
+        q->on_data(q, *ps);
+        w->chunk_length -= ps_len(ps);
+        ps->b = ps->b_end;
+    }
+    return PARSE_OK;
+}
+
 static int httpc_parse_body(httpc_t *w, pstream_t *ps)
 {
     httpc_query_t *q = dlist_first_entry(&w->query_list, httpc_query_t, query_link);
@@ -1685,15 +1833,11 @@ static int httpc_parse_body(httpc_t *w, pstream_t *ps)
     if (plen >= w->chunk_length) {
         pstream_t tmp = __ps_get_ps(ps, w->chunk_length);
 
-        RETHROW((*q->on_data)(q, tmp));
+        RETHROW(httpc_flush_data(w, q, &tmp, true));
         return httpc_query_ok(q);
     }
-
-    if (plen >= w->cfg->on_data_threshold) {
-        RETHROW((*q->on_data)(q, *ps));
-        w->chunk_length -= plen;
-        ps->b = ps->b_end;
-    }
+    if (plen >= w->cfg->on_data_threshold)
+        RETHROW(httpc_flush_data(w, q, ps, false));
     return PARSE_MISSING_DATA;
 }
 
@@ -1730,15 +1874,12 @@ static int httpc_parse_chunk(httpc_t *w, pstream_t *ps)
 
         if (ps_skipstr(ps, "\r\n"))
             return PARSE_ERROR;
-        RETHROW((*q->on_data)(q, tmp));
+        RETHROW(httpc_flush_data(w, q, &tmp, false));
         w->state = HTTP_PARSER_CHUNK_HDR;
         return PARSE_OK;
     }
-    if (plen >= w->cfg->on_data_threshold) {
-        RETHROW((*q->on_data)(q, *ps));
-        w->chunk_length -= plen;
-        ps->b = ps->b_end;
-    }
+    if (plen >= w->cfg->on_data_threshold)
+        RETHROW(httpc_flush_data(w, q, ps, false));
     return PARSE_MISSING_DATA;
 }
 
@@ -1886,6 +2027,7 @@ static void httpc_wipe(httpc_t *w)
     if (w->ev)
         obj_vcall(w, disconnect);
     sb_wipe(&w->ibuf);
+    http_zlib_wipe(w);
     ob_wipe(&w->ob);
     httpc_cfg_delete(&w->cfg);
 }
@@ -2144,6 +2286,7 @@ void httpc_query_start_flags(httpc_query_t *q, http_method_t m,
     }
     http_update_date_cache(&date_cache_g, lp_getsec());
     ob_add(ob, date_cache_g.buf, sizeof(date_cache_g.buf) - 1);
+    ob_adds(ob, "Accept-Encoding: identity, gzip, deflate\r\n");
     if (w->connection_close)
         ob_adds(ob, "Connection: close\r\n");
     q->hdrs_started = true;

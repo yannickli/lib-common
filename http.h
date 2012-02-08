@@ -14,6 +14,7 @@
 #ifndef IS_LIB_INET_HTTP_H
 #define IS_LIB_INET_HTTP_H
 
+#include <zlib.h>
 #include "el.h"
 #include "net.h"
 #include "str-outbuf.h"
@@ -241,8 +242,10 @@ enum httpd_query_status {
     httpd_cfg_t       *cfg;                                                  \
     el_t               ev;                                                   \
     sb_t               ibuf;                                                 \
+    z_stream           zs;                                                   \
                                                                              \
     flag_t             connection_close   : 1;                               \
+    flag_t             compressed         : 1;                               \
     uint8_t            state;                                                \
     uint16_t           queries;                                              \
     uint16_t           queries_done;                                         \
@@ -624,9 +627,11 @@ DO_REFCNT(httpc_cfg_t, httpc_cfg);
     dlist_t       pool_link;                                                 \
     el_t          ev;                                                        \
     sb_t          ibuf;                                                      \
+    z_stream      zs;                                                        \
                                                                              \
     flag_t        connection_close : 1;                                      \
     flag_t        busy             : 1;                                      \
+    flag_t        compressed       : 1;                                      \
     uint8_t       state;                                                     \
     uint16_t      queries;                                                   \
     unsigned      chunk_length;                                              \
