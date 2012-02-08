@@ -1052,7 +1052,7 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
     }
     w->connection_close = true;
     httpd_query_done(w, q);
-    return PARSE_OK;
+    return PARSE_ERROR;
 }
 
 static int httpd_parse_body(httpd_t *w, pstream_t *ps)
@@ -1119,7 +1119,7 @@ static int httpd_parse_chunk_hdr(httpd_t *w, pstream_t *ps)
     httpd_reject(q, BAD_REQUEST, "Chunked header is unparseable");
     w->connection_close = true;
     httpd_query_done(w, q);
-    return PARSE_OK;
+    return PARSE_ERROR;
 }
 
 static int httpd_parse_chunk(httpd_t *w, pstream_t *ps)
@@ -1162,11 +1162,12 @@ static int httpd_parse_chunk_trailer(httpd_t *w, pstream_t *ps)
             httpd_reject(q, BAD_REQUEST, "Trailer headers are unparseable");
             w->connection_close = true;
             httpd_query_done(w, q);
-            return PARSE_OK;
+            return PARSE_ERROR;
         }
         if (res > 0)
             return res;
     } while (ps_len(&line));
+
     if (q->on_done)
         q->on_done(q);
     httpd_query_done(w, q);
