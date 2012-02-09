@@ -72,6 +72,7 @@ Content-Range,       HTTP_WKHDR_CONTENT_RANGE
 Content-Type,        HTTP_WKHDR_CONTENT_TYPE
 Expires,             HTTP_WKHDR_EXPIRES
 Last-Modified,       HTTP_WKHDR_LAST_MODIFIED
+SOAPAction,          HTTP_WKHDR_SOAPACTION
 %%
 
 char const * const http_whdr_str[HTTP_WKHDR__MAX] = {
