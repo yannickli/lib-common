@@ -1809,12 +1809,10 @@ void httpc_close(httpc_t **wp)
 
 static void httpc_set_mask(httpc_t *w)
 {
-    int mask = 0;
+    int mask = POLLIN;
 
     if (!ob_is_empty(&w->ob))
         mask |= POLLOUT;
-    if (!dlist_is_empty(&w->query_list))
-        mask |= POLLIN;
     el_fd_set_mask(w->ev, mask);
 }
 
