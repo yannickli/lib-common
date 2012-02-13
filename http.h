@@ -520,6 +520,17 @@ static inline void httpd_qinfo_delete(httpd_qinfo_t **infop) {
 int t_httpd_qinfo_get_basic_auth(const httpd_qinfo_t *info,
                                  pstream_t *user, pstream_t *pw);
 
+enum {
+    HTTPD_ACCEPT_ENC_GZIP     = 1U << 0,
+    HTTPD_ACCEPT_ENC_DEFLATE  = 1U << 1,
+    HTTPD_ACCEPT_ENC_COMPRESS = 1U << 2,
+
+    HTTPD_ACCEPT_ENC_ANY      = 7U,
+};
+
+/* returns an HTTPD_ACCEPT_ENC* mask, or 0 if not header was preset */
+int httpd_qinfo_accept_enc_get(const httpd_qinfo_t *info);
+
 /*---- low level httpd_query reply functions ----*/
 
 static inline outbuf_t *httpd_get_ob(httpd_query_t *q)

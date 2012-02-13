@@ -1422,6 +1422,126 @@ int t_httpd_qinfo_get_basic_auth(const httpd_qinfo_t *info,
     return 0;
 }
 
+static int parse_qvalue(pstream_t *ps)
+{
+    int res;
+
+    /* is there a ';' ? */
+    if (ps_skipc(ps, ';') < 0)
+        return 1000;
+    ps_skipspaces(ps);
+
+    /* parse q= */
+    RETHROW(ps_skipc(ps, 'q'));
+    ps_skipspaces(ps);
+    RETHROW(ps_skipc(ps, '='));
+    ps_skipspaces(ps);
+
+    /* slopily parse 1[.000] || 0[.nnn] */
+    switch (ps_getc(ps)) {
+      case '0': res = 0; break;
+      case '1': res = 1; break;
+      default:
+        return -1;
+    }
+    if (ps_skipc(ps, '.') == 0) {
+        for (int i = 0; i < 3; i++) {
+            if (ps_has(ps, 1) && isdigit(ps->s[0])) {
+                res  = 10 * res + __ps_getc(ps) - '0';
+            } else {
+                res *= 10;
+            }
+        }
+        if (res > 1000)
+            res = 1000;
+    } else {
+        res *= 1000;
+    }
+    ps_skipspaces(ps);
+    return res;
+}
+
+static int parse_accept_enc(pstream_t ps)
+{
+    int res_valid = 0, res_rej = 0, res_star = 0;
+    int q;
+    pstream_t v;
+
+    ps_skipspaces(&ps);
+    while (!ps_done(&ps)) {
+        bool is_star = false;
+
+        if (*ps.s == '*') {
+            is_star = true;
+            __ps_skip(&ps, 1);
+        } else {
+            v = ps_get_cspan(&ps, &http_non_token);
+        }
+        ps_skipspaces(&ps);
+        q = RETHROW(parse_qvalue(&ps));
+        switch (ps_getc(&ps)) {
+          case ',':
+            ps_skipspaces(&ps);
+            break;
+          case -1:
+            break;
+          default:
+            return -1;
+        }
+
+        if (is_star) {
+            res_star = q ? HTTPD_ACCEPT_ENC_ANY : 0;
+        } else {
+            switch (http_get_token_ps(v)) {
+              case HTTP_TK_X_GZIP:
+              case HTTP_TK_GZIP:
+                if (q) {
+                    res_valid |= HTTPD_ACCEPT_ENC_GZIP;
+                } else {
+                    res_rej   |= HTTPD_ACCEPT_ENC_GZIP;
+                }
+                break;
+              case HTTP_TK_X_COMPRESS:
+              case HTTP_TK_COMPRESS:
+                if (q) {
+                    res_valid |= HTTPD_ACCEPT_ENC_COMPRESS;
+                } else {
+                    res_rej   |= HTTPD_ACCEPT_ENC_COMPRESS;
+                }
+                break;
+              case HTTP_TK_DEFLATE:
+                if (q) {
+                    res_valid |= HTTPD_ACCEPT_ENC_DEFLATE;
+                } else {
+                    res_rej   |= HTTPD_ACCEPT_ENC_DEFLATE;
+                }
+                break;
+              default: /* Ignore "identity" or non RFC Accept-Encodings */
+                break;
+            }
+        }
+    }
+
+    return (res_valid | res_star) & ~res_rej;
+}
+
+int httpd_qinfo_accept_enc_get(const httpd_qinfo_t *info)
+{
+    int res = 0;
+
+    for (int i = info->hdrs_len; i-- > 0; ) {
+        const http_qhdr_t *hdr = info->hdrs + i;
+
+        if (hdr->wkhdr != HTTP_WKHDR_ACCEPT_ENCODING)
+            continue;
+
+        if ((res = parse_accept_enc(hdr->val)) >= 0)
+            return res;
+        /* ignore malformed header */
+    }
+    return 0;
+}
+
 static void httpd_do_any(httpd_t *w, httpd_query_t *q, httpd_qinfo_t *req)
 {
     httpd_trigger_t *cb = q->trig_cb;

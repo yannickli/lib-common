@@ -1,4 +1,5 @@
 chunked
+compress
 connect
 deflate
 delete
@@ -10,4 +11,5 @@ options
 post
 put
 trace
+x-compress
 x-gzip
