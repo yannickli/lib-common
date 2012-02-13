@@ -150,6 +150,10 @@ static inline bool ps_startswithstr(const pstream_t *ps, const char *s)
 {
     return ps_startswith(ps, s, strlen(s));
 }
+static inline bool ps_startswithlstr(const pstream_t *ps, lstr_t s)
+{
+    return ps_startswith(ps, s.s, s.len);
+}
 
 static inline bool ps_memequal(const pstream_t *ps, const void *data, size_t len)
 {
