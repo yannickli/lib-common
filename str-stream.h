@@ -340,6 +340,21 @@ static inline int64_t ps_getlli(pstream_t *ps) {
     return memtollp(ps->b, ps_len(ps), &ps->b);
 }
 
+static inline int __ps_skipc(pstream_t *ps, int c)
+{
+    if (*ps->b == c) {
+        ps->b++;
+        return 0;
+    }
+    return -1;
+}
+
+static inline int ps_skipc(pstream_t *ps, int c)
+{
+    PS_WANT(ps_has(ps, 1));
+    return __ps_skipc(ps, c);
+}
+
 static inline int __ps_getc(pstream_t *ps) {
     int c = *ps->b;
     __ps_skip(ps, 1);
