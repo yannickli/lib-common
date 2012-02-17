@@ -57,15 +57,43 @@ static void stderr_handler(int priority, const char *format, va_list args)
     E_FUNCTION_VF(name, level, action)                     \
     E_FUNCTION(name, level, action)
 
+
+#define E_FUNCTION_SYSLOG_VF(name, level, action)          \
+    __attr_printf__(1,0)                                   \
+    static int name##_vf(const char *fmt, va_list args) {  \
+        va_list ap;                                        \
+        va_copy(ap, args);                                 \
+        (*handler_g)(level, fmt, args);                    \
+        vsyslog(LOG_USER | level, fmt, ap);                \
+        va_end(ap);                                        \
+        action;                                            \
+    }
+
+#define E_FUNCTION_SYSLOG(name, level, action)             \
+    int name(const char *fmt, ...) {                       \
+        va_list ap;                                        \
+        va_start(ap, fmt);                                 \
+        (*handler_g)(level, fmt, ap);                      \
+        va_end(ap);                                        \
+        va_start(ap, fmt);                                 \
+        vsyslog(LOG_USER | level, fmt, ap);                \
+        va_end(ap);                                        \
+        action;                                            \
+    }
+
+#define E_FUNCTIONS_SYSLOG(name, level, action)            \
+    E_FUNCTION_SYSLOG_VF(name, level, action)              \
+    E_FUNCTION_SYSLOG(name, level, action)
+
 /* Error reporting functions */
 
-E_FUNCTION(e_panic,    LOG_CRIT,    abort());
-E_FUNCTIONS(e_fatal,   LOG_CRIT,    exit(127));
-E_FUNCTIONS(e_error,   LOG_ERR,     return -1);
-E_FUNCTIONS(e_warning, LOG_WARNING, return -1);
-E_FUNCTIONS(e_notice,  LOG_NOTICE,  return  0);
-E_FUNCTIONS(e_info,    LOG_INFO,    return  0);
-E_FUNCTIONS(e_debug,   LOG_DEBUG,   return  0);
+E_FUNCTION_SYSLOG (e_panic,   LOG_CRIT,    abort());
+E_FUNCTIONS_SYSLOG(e_fatal,   LOG_CRIT,    exit(127));
+E_FUNCTIONS       (e_error,   LOG_ERR,     return -1);
+E_FUNCTIONS       (e_warning, LOG_WARNING, return -1);
+E_FUNCTIONS       (e_notice,  LOG_NOTICE,  return  0);
+E_FUNCTIONS       (e_info,    LOG_INFO,    return  0);
+E_FUNCTIONS       (e_debug,   LOG_DEBUG,   return  0);
 
 typedef int (error_vf_f)(const char *, va_list) __attr_printf__(1,0);
 
