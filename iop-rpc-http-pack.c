@@ -14,6 +14,78 @@
 #include "xmlpp.h"
 #include "iop-rpc.h"
 
+static void ichttp_serialize_soap(sb_t *sb, ichttp_query_t *iq, int cmd,
+                                  const iop_struct_t *st, const void *v)
+{
+    xmlpp_t pp;
+    httpd_trigger__ic_t *tcb;
+
+    tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
+
+    xmlpp_open_banner(&pp, sb);
+    pp.nospace = true;
+    xmlpp_opentag(&pp, "s:Envelope");
+    xmlpp_putattr(&pp, "xmlns:s", "http://schemas.xmlsoap.org/soap/envelope/");
+    xmlpp_putattr(&pp, "xmlns:n", tcb->schema);
+
+    xmlpp_opentag(&pp, "s:Body");
+    if (cmd == IC_MSG_OK) {
+        ichttp_cb_t *cbe = iq->cbe;
+
+        if (v) {
+            sb_addf(sb, "<n:%*pM>", LSTR_FMT_ARG(cbe->name_res));
+            iop_xpack(sb, st, v, false, true);
+            sb_addf(sb, "</n:%*pM>", LSTR_FMT_ARG(cbe->name_res));
+        } else {
+            sb_addf(sb, "<n:%*pM />", LSTR_FMT_ARG(cbe->name_res));
+        }
+    } else {
+        ichttp_cb_t *cbe = iq->cbe;
+
+        xmlpp_opentag(&pp, "s:Fault");
+        xmlpp_opentag(&pp, "faultcode");
+        xmlpp_puts(&pp,    "s:Server");
+        xmlpp_opensib(&pp, "faultstring");
+        xmlpp_opensib(&pp, "detail");
+
+        /* FIXME handle union of exceptions which are an array of exceptions */
+        if (v) {
+            sb_addf(sb, "<n:%*pM>", LSTR_FMT_ARG(cbe->name_exn));
+            iop_xpack(sb, st, v, false, true);
+            sb_addf(sb, "</n:%*pM>", LSTR_FMT_ARG(cbe->name_exn));
+        } else {
+            sb_addf(sb, "<n:%*pM />", LSTR_FMT_ARG(cbe->name_exn));
+        }
+    }
+    pp.can_do_attr = false;
+    xmlpp_close(&pp);
+}
+
+static int my_compress(sb_t *out, const void *data, size_t dlen,
+                       int level, bool do_gzip, size_t *len)
+{
+    z_stream stream = {
+        .next_in   = (Bytef *)data,
+        .avail_in  = dlen,
+        .next_out  = (Bytef *)(out->data + out->len),
+        .avail_out = sb_avail(out),
+    };
+    int err;
+
+    err = deflateInit2(&stream, level, Z_DEFLATED,
+                       MAX_WBITS + (do_gzip ? 16 : 0),
+                       MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY);
+    if (err != Z_OK)
+        return err;
+    err = deflate(&stream, Z_FINISH);
+    if (err != Z_STREAM_END) {
+        deflateEnd(&stream);
+        return err == Z_OK ? Z_BUF_ERROR : err;
+    }
+    *len = stream.total_out;
+    return deflateEnd(&stream);
+}
+
 void
 __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
 {
@@ -22,20 +94,34 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
     httpd_trigger__ic_t *tcb;
     outbuf_t *ob;
     sb_t *out;
-    int oldlen;
-    xmlpp_t pp;
+    int oldlen, gzenc, is_gzip;
     http_code_t code;
     size_t oblen;
+
+    gzenc = httpd_qinfo_accept_enc_get(q->qinfo);
 
     if (cmd == IC_MSG_OK) {
         ob = httpd_reply_hdrs_start(q, code = HTTP_CODE_OK, true);
     } else {
         ob = httpd_reply_hdrs_start(q, code = HTTP_CODE_INTERNAL_SERVER_ERROR, true);
     }
+
+
     if (iq->json) {
         ob_adds(ob, "Content-Type: application/json; charset=utf-8\r\n");
     } else {
         ob_adds(ob, "Content-Type: text/xml; charset=utf-8\r\n");
+    }
+    if (gzenc & HTTPD_ACCEPT_ENC_GZIP) {
+        ob_adds(ob, "Content-Encoding: gzip\r\n");
+        is_gzip = true;
+    } else
+    if (gzenc & HTTPD_ACCEPT_ENC_DEFLATE) {
+        ob_adds(ob, "Content-Encoding: deflate\r\n");
+        is_gzip = false;
+    } else {
+        /* Ignore compress we don't support it */
+        gzenc = 0;
     }
     httpd_reply_hdrs_done(q, -1, false);
     oblen = ob->length;
@@ -43,46 +129,34 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
     out = outbuf_sb_start(ob, &oldlen);
     tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
 
+    if (gzenc) {
+        t_scope;
+
+        size_t len = 0, bufsize;
+        int ret;
+        sb_t buf;
+
+        t_sb_init(&buf, BUFSIZ);
+        if (iq->json) {
+            iop_jpack(st, v, iop_sb_write, &buf, true);
+        } else {
+            ichttp_serialize_soap(&buf, iq, cmd, st, v);
+        }
+        bufsize = buf.len;
+        do {
+            sb_grow(out, bufsize);
+            ret = my_compress(out, buf.data, buf.len, Z_BEST_COMPRESSION,
+                              is_gzip, &len);
+            bufsize = p_alloc_nr(bufsize);
+        } while (ret == Z_BUF_ERROR);
+        assert (ret == Z_OK);
+
+        __sb_fixlen(out, out->len + len);
+    } else
     if (iq->json) {
         iop_jpack(st, v, iop_sb_write, out, true);
     } else {
-        xmlpp_open_banner(&pp, out);
-        pp.nospace = true;
-        xmlpp_opentag(&pp, "s:Envelope");
-        xmlpp_putattr(&pp, "xmlns:s", "http://schemas.xmlsoap.org/soap/envelope/");
-        xmlpp_putattr(&pp, "xmlns:n", tcb->schema);
-
-        xmlpp_opentag(&pp, "s:Body");
-        if (cmd == IC_MSG_OK) {
-            ichttp_cb_t *cbe = iq->cbe;
-
-            if (v) {
-                sb_addf(out, "<n:%*pM>", LSTR_FMT_ARG(cbe->name_res));
-                iop_xpack(out, st, v, false, true);
-                sb_addf(out, "</n:%*pM>", LSTR_FMT_ARG(cbe->name_res));
-            } else {
-                sb_addf(out, "<n:%*pM />", LSTR_FMT_ARG(cbe->name_res));
-            }
-        } else {
-            ichttp_cb_t *cbe = iq->cbe;
-
-            xmlpp_opentag(&pp, "s:Fault");
-            xmlpp_opentag(&pp, "faultcode");
-            xmlpp_puts(&pp,    "s:Server");
-            xmlpp_opensib(&pp, "faultstring");
-            xmlpp_opensib(&pp, "detail");
-
-            /* FIXME handle union of exceptions which are an array of exceptions */
-            if (v) {
-                sb_addf(out, "<n:%*pM>", LSTR_FMT_ARG(cbe->name_exn));
-                iop_xpack(out, st, v, false, true);
-                sb_addf(out, "</n:%*pM>", LSTR_FMT_ARG(cbe->name_exn));
-            } else {
-                sb_addf(out, "<n:%*pM />", LSTR_FMT_ARG(cbe->name_exn));
-            }
-        }
-        pp.can_do_attr = false;
-        xmlpp_close(&pp);
+        ichttp_serialize_soap(out, iq, cmd, st, v);
     }
     outbuf_sb_end(ob, oldlen);
 
