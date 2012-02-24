@@ -829,4 +829,9 @@ static inline void httpc_query_hdrs_add(httpc_query_t *q, lstr_t hdr)
     ob_adds(ob, "\r\n");
 }
 
+static inline void httpc_query_hdrs_adds(httpc_query_t *q, const char *hdr)
+{
+    httpc_query_hdrs_add(q, LSTR_STR_V(hdr));
+}
+
 #endif
