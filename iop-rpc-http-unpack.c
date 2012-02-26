@@ -181,7 +181,7 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
     httpd_trigger__ic_t *tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
     ic__hdr__t           hdr = IOP_UNION_VA(ic__hdr, simple,
        .kind = (tcb->auth_kind ? CLSTR_STR_V(tcb->auth_kind) : CLSTR_NULL_V),
-       .payload = iq->payload.len,
+       .payload = q->received_body_length,
     );
     ic_cb_entry_t       *e;
 
