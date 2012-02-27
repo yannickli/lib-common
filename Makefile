@@ -62,6 +62,7 @@ libcommon_SOURCES = \
 	core-mem-fifo.c \
 	core-mem-ring.c \
 	core-mem-stack.c \
+	core.iop.c \
 	qpage.c \
 	qtlsf.c \
 	\
@@ -161,7 +162,7 @@ libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 
 time-lp-simple_SOURCES = time-lp-simple.c
 
-zchk-iop-plugin_SOURCES = ic.iop zchk-iop-plugin.c
+zchk-iop-plugin_SOURCES = ic.iop zchk-iop-plugin.c core.iop
 zchk-iop-plugin_LDFLAGS = -Wl,-z,defs
 
 zchk_SOURCES = zchk.c \
