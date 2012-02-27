@@ -61,31 +61,6 @@ static void ichttp_serialize_soap(sb_t *sb, ichttp_query_t *iq, int cmd,
     xmlpp_close(&pp);
 }
 
-static int my_compress(sb_t *out, const void *data, size_t dlen,
-                       int level, bool do_gzip, size_t *len)
-{
-    z_stream stream = {
-        .next_in   = (Bytef *)data,
-        .avail_in  = dlen,
-        .next_out  = (Bytef *)(out->data + out->len),
-        .avail_out = sb_avail(out),
-    };
-    int err;
-
-    err = deflateInit2(&stream, level, Z_DEFLATED,
-                       MAX_WBITS + (do_gzip ? 16 : 0),
-                       MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY);
-    if (err != Z_OK)
-        return err;
-    err = deflate(&stream, Z_FINISH);
-    if (err != Z_STREAM_END) {
-        deflateEnd(&stream);
-        return err == Z_OK ? Z_BUF_ERROR : err;
-    }
-    *len = stream.total_out;
-    return deflateEnd(&stream);
-}
-
 void
 __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
 {
@@ -131,9 +106,6 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
 
     if (gzenc) {
         t_scope;
-
-        size_t len = 0, bufsize;
-        int ret;
         sb_t buf;
 
         t_sb_init(&buf, BUFSIZ);
@@ -142,16 +114,7 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
         } else {
             ichttp_serialize_soap(&buf, iq, cmd, st, v);
         }
-        bufsize = buf.len;
-        do {
-            sb_grow(out, bufsize);
-            ret = my_compress(out, buf.data, buf.len, Z_BEST_COMPRESSION,
-                              is_gzip, &len);
-            bufsize = p_alloc_nr(bufsize);
-        } while (ret == Z_BUF_ERROR);
-        assert (ret == Z_OK);
-
-        __sb_fixlen(out, out->len + len);
+        sb_add_compressed(out, buf.data, buf.len, Z_BEST_COMPRESSION, is_gzip);
     } else
     if (iq->json) {
         iop_jpack(st, v, iop_sb_write, out, true);
