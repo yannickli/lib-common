@@ -130,7 +130,7 @@ static void http_zlib_stream_reset(z_stream *s)
                                                                   \
         if (_w->compressed) {                                     \
             http_zlib_stream_reset(&_w->zs);                      \
-            inflateReset2(&_w->zs, MAX_WBITS + 32);               \
+            inflateReset(&_w->zs);                                \
             _w->compressed = false;                               \
         }                                                         \
     })
