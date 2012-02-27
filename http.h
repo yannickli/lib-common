@@ -589,8 +589,10 @@ static inline void httpd_reply_chunk_start(httpd_query_t *q, outbuf_t *ob)
 void httpd_reply_chunk_done_(httpd_query_t *q, outbuf_t *ob);
 static inline void httpd_reply_chunk_done(httpd_query_t *q, outbuf_t *ob)
 {
-    if (q->chunked)
+    if (q->chunked) {
         httpd_reply_chunk_done_(q, ob);
+        httpd_signal_write(q);
+    }
 }
 
 /*---- high level httpd_query reply functions ----*/
