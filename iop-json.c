@@ -891,6 +891,9 @@ static int unpack_arr(iop_json_lex_t *ll, const iop_field_t *fdesc,
     int size = 0;
     void *ptr;
 
+    if (arr)
+        p_clear(arr, 1);
+
     for (;;) {
         if (PS_CHECK(iop_json_lex_peek(ll)) == ']') {
             iop_json_lex(ll);
