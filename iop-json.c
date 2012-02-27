@@ -975,6 +975,12 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
     return 0;
 }
 
+static ALWAYS_INLINE void seen_free(uint32_t **ptr)
+{
+    if (unlikely(*ptr))
+        free(*ptr);
+}
+
 /* If the prefixed argument is set to true, the function assumes that it has
  * to parse a value with the prefix syntax:
  *      @member value {
@@ -985,10 +991,19 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                          void *value, bool prefixed)
 {
     const iop_field_t *fdesc;
-    bool *seen = NULL;
+    uint32_t  seen_buf[BITS_TO_ARRAY_LEN(uint32_t, 256)];
+    uint32_t *seen_alloc __attribute__((cleanup(seen_free))) = NULL;
+    uint32_t *seen       = seen_buf;
 
-    if (desc)
-        seen = mp_new(ll->mp, bool, desc->fields_len);
+    if (desc) {
+        size_t count = BITS_TO_ARRAY_LEN(uint32_t, desc->fields_len);
+
+        if (unlikely(desc->fields_len > bitsizeof(seen))) {
+            seen = seen_alloc = p_new(uint32_t, count);
+        } else {
+            p_clear(seen, count);
+        }
+    }
 
     for (;;) {
         fdesc = NULL;
@@ -1013,10 +1028,10 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                     }
                 } else {
                     fdesc = desc->fields + ifield;
-                    if (seen[ifield])
+                    if (TST_BIT(seen, ifield))
                         return RJERROR_SARG(IOP_JERR_DUPLICATED_MEMBER,
                                             fdesc->name.s);
-                    seen[ifield] = true;
+                    SET_BIT(seen, ifield);
                 }
             }
             break;
@@ -1029,7 +1044,6 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         if (!prefixed && PS_CHECK(iop_json_lex_peek(ll)) != '.'
         &&  PS_CHECK(iop_json_lex(ll)) != ':')
         {
-            mp_delete(ll->mp, &seen);
             return RJERROR_EXP("`:' or `='");
         }
         if (fdesc) {
@@ -1061,7 +1075,6 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
           case '}':
             goto endcheck;
           default:
-            mp_delete(ll->mp, &seen);
             return RJERROR_EXP("`,', `;' or `}'");
         }
     }
@@ -1070,14 +1083,12 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         return 0;
 
     fdesc = desc->fields;
-    for (int i = 0; i < desc->fields_len; i++) {
-        if (!seen[i] && __iop_skip_absent_field_desc(value, fdesc) < 0) {
-            mp_delete(ll->mp, &seen);
+    for (int i = 0; i < desc->fields_len; i++, fdesc++) {
+        if (TST_BIT(seen, i))
+            continue;
+        if (__iop_skip_absent_field_desc(value, fdesc) < 0)
             return RJERROR_SFIELD(IOP_JERR_MISSING_MEMBER, desc, fdesc);
-        }
-        fdesc++;
     }
-    mp_delete(ll->mp, &seen);
     return 0;
 }
 
