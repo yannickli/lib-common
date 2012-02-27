@@ -166,7 +166,7 @@ class _ZTestResult(u.TestResult):
         super(_ZTestResult, self).__init__(*args, **kwargs)
 
     def _putSt(self, what, test, rest = ""):
-        tid = test._testMethodName
+        tid = getattr(test, '_testMethodName', None)
         sys.stdout.write("%d %s %s" % (self.testsRun, what, tid));
         if len(rest):
             sys.stdout.write(" # ")
