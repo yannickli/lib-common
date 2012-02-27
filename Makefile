@@ -155,6 +155,9 @@ libcommon_SOURCES = \
 	\
 	xmlpp.c \
 	xmlr.c \
+	\
+	zlib-wrapper.c \
+	\
 	z.blk
 core-mem.c_DEPENDS = core-version.c
 
