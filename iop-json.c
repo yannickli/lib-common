@@ -891,6 +891,9 @@ static int unpack_arr(iop_json_lex_t *ll, const iop_field_t *fdesc,
     int size = 0;
     void *ptr;
 
+    if (arr)
+        p_clear(arr, 1);
+
     for (;;) {
         if (PS_CHECK(iop_json_lex_peek(ll)) == ']') {
             iop_json_lex(ll);
@@ -1092,18 +1095,17 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
     return 0;
 }
 
-/** This function unpacks an iop structure from a json format. If you set the
- * flag `single_value` the function returns 0 on success and something < 0 on
- * error.  In particular, it returns IOP_JERR_NOTHING_TO_READ if EOF is
- * reached before reading anything. Reading nothing is not an error if
- * the structure can be empty.
+/** This function unpacks an iop structure from a json format.
  *
  * You should call iop_jlex_new and iop_jlex_attach before calling this
  * function. The pstream which is attached is consumed step by step.
  *
- * @return if the flag `single_value` is set to false, the function returns
- * something < 0 on error, otherwise it returns 0 if it reaches EOF before
- * reading anything or the number of bytes read successfully.
+ * @return if `single_value` is true, the function returns 0 on success and
+ * something < 0 on error. In particular, it returns IOP_JERR_NOTHING_TO_READ
+ * if EOF is reached before reading anything and the structure cannot be
+ * empty.
+ * If `single_value` is false, the function returns the number of bytes read
+ * successfully, or 0 if it reaches EOF before reading anything.
  */
 int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *desc, void *value,
                 bool single_value)
