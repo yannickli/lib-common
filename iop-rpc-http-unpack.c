@@ -40,8 +40,7 @@ static int t_parse_json(ichttp_query_t *iq, ichttp_cb_t *cbe, void **vout)
     SB_8k(buf);
     void *v;
 
-    v = t_new(char, st->size);
-    iop_init(st, v);
+    v = t_new_raw(char, st->size);
     iop_jlex_init(t_pool(), &jll);
     ps = ps_initsb(&iq->payload);
     iop_jlex_attach(&jll, &ps);

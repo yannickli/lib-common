@@ -1007,6 +1007,9 @@ static int unpack_arr(iop_json_lex_t *ll, const iop_field_t *fdesc,
     int size = 0;
     void *ptr;
 
+    if (arr)
+        p_clear(arr, 1);
+
     for (;;) {
         if (PS_CHECK(iop_json_lex_peek(ll, fdesc)) == ']') {
             iop_json_lex(ll, NULL);
@@ -1120,6 +1123,12 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
     return 0;
 }
 
+static ALWAYS_INLINE void seen_free(uint32_t **ptr)
+{
+    if (unlikely(*ptr != NULL))
+        free(*ptr);
+}
+
 /* If the prefixed argument is set to true, the function assumes that it has
  * to parse a value with the prefix syntax:
  *      @member value {
@@ -1130,10 +1139,19 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                          void *value, bool prefixed)
 {
     const iop_field_t *fdesc;
-    bool *seen = NULL;
+    uint32_t  seen_buf[BITS_TO_ARRAY_LEN(uint32_t, 256)];
+    uint32_t *seen_alloc __attribute__((cleanup(seen_free))) = NULL;
+    uint32_t *seen       = seen_buf;
 
-    if (desc)
-        seen = mp_new(ll->mp, bool, desc->fields_len);
+    if (desc) {
+        size_t count = BITS_TO_ARRAY_LEN(uint32_t, desc->fields_len);
+
+        if (unlikely(desc->fields_len > bitsizeof(seen))) {
+            seen = seen_alloc = p_new(uint32_t, count);
+        } else {
+            p_clear(seen, count);
+        }
+    }
 
     for (;;) {
         fdesc = NULL;
@@ -1155,10 +1173,10 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                     }
                 } else {
                     fdesc = desc->fields + ifield;
-                    if (seen[ifield])
+                    if (TST_BIT(seen, ifield))
                         return RJERROR_SARG(IOP_JERR_DUPLICATED_MEMBER,
                                             fdesc->name.s);
-                    seen[ifield] = true;
+                    SET_BIT(seen, ifield);
                 }
             }
             break;
@@ -1171,7 +1189,6 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         if (!prefixed && PS_CHECK(iop_json_lex_peek(ll, NULL)) != '.'
         &&  PS_CHECK(iop_json_lex(ll, NULL)) != ':')
         {
-            mp_delete(ll->mp, &seen);
             return RJERROR_EXP("`:' or `='");
         }
         if (fdesc) {
@@ -1220,7 +1237,6 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
           case '}':
             goto endcheck;
           default:
-            mp_delete(ll->mp, &seen);
             return RJERROR_EXP("`,', `;' or `}'");
         }
     }
@@ -1229,29 +1245,26 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         return 0;
 
     fdesc = desc->fields;
-    for (int i = 0; i < desc->fields_len; i++) {
-        if (!seen[i] && __iop_skip_absent_field_desc(value, fdesc) < 0) {
-            mp_delete(ll->mp, &seen);
+    for (int i = 0; i < desc->fields_len; i++, fdesc++) {
+        if (TST_BIT(seen, i))
+            continue;
+        if (__iop_skip_absent_field_desc(value, fdesc) < 0)
             return RJERROR_SFIELD(IOP_JERR_MISSING_MEMBER, desc, fdesc);
-        }
-        fdesc++;
     }
-    mp_delete(ll->mp, &seen);
     return 0;
 }
 
-/** This function unpacks an iop structure from a json format. If you set the
- * flag `single_value` the function returns 0 on success and something < 0 on
- * error.  In particular, it returns IOP_JERR_NOTHING_TO_READ if EOF is
- * reached before reading anything. Reading nothing is not an error if
- * the structure can be empty.
+/** This function unpacks an iop structure from a json format.
  *
  * You should call iop_jlex_new and iop_jlex_attach before calling this
  * function. The pstream which is attached is consumed step by step.
  *
- * @return if the flag `single_value` is set to false, the function returns
- * something < 0 on error, otherwise it returns 0 if it reaches EOF before
- * reading anything or the number of bytes read successfully.
+ * @return if `single_value` is true, the function returns 0 on success and
+ * something < 0 on error. In particular, it returns IOP_JERR_NOTHING_TO_READ
+ * if EOF is reached before reading anything and the structure cannot be
+ * empty.
+ * If `single_value` is false, the function returns the number of bytes read
+ * successfully, or 0 if it reaches EOF before reading anything.
  */
 int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *desc, void *value,
                 bool single_value)

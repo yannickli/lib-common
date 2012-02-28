@@ -108,7 +108,7 @@ static int iop_json_test_struct(const iop_struct_t *st, void *v,
 
     iop_jlex_init(t_pool(), &jll);
     jll.flags = IOP_UNPACK_IGNORE_UNKNOWN;
-    res = t_new(byte, ROUND_UP(st->size, 8));
+    res = t_new_raw(byte, ROUND_UP(st->size, 8));
 
     while (strict < 2) {
         int ret;
@@ -119,8 +119,6 @@ static int iop_json_test_struct(const iop_struct_t *st, void *v,
                    "JSon packing failure! (%s, %s)", st->fullname.s, info);
 
         /* unpacking */
-        iop_init(st, res);
-
         ps = ps_initsb(&sb);
         iop_jlex_attach(&jll, &ps);
         if ((ret = iop_junpack(&jll, st, res, true)) < 0) {
@@ -204,9 +202,8 @@ static int iop_json_test_json(const iop_struct_t *st, const char *json, const
 
     iop_jlex_init(t_pool(), &jll);
     jll.flags = IOP_UNPACK_IGNORE_UNKNOWN;
-    res = t_new(byte, ROUND_UP(st->size, 8));
+    res = t_new_raw(byte, ROUND_UP(st->size, 8));
 
-    iop_init(st, res);
     ps = ps_initstr(json);
     iop_jlex_attach(&jll, &ps);
     if ((ret = iop_junpack(&jll, st, res, true)) < 0)
