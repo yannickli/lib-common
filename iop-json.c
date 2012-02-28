@@ -980,7 +980,7 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
 
 static ALWAYS_INLINE void seen_free(uint32_t **ptr)
 {
-    if (unlikely(*ptr))
+    if (unlikely(*ptr != NULL))
         free(*ptr);
 }
 
