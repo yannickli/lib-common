@@ -847,6 +847,14 @@ static void qps_map_create(qps_t *qps, bool for_pg)
                   qps, no, for_pg ? "pg" : "mem");
 }
 
+static bool qps_map_pg_is_all_free(const qps_t *qps, const qps_map_t *map)
+{
+    qps_pghdr_t *hdrs = qps->hdrs + map->hdr.mapno * QPS_MAP_PAGES;
+
+    return (hdrs[1].flags & QPS_BLK_FREE)
+        && hdrs[1].size == QPS_MAP_PAGES - 1;
+}
+
 static void qps_map_pg_snapshot(qps_t *qps, qps_map_t *map, uint32_t gen)
 {
     qps_cowhdr_t *hdrs = map->hdr.cow_hdrs;
@@ -2449,6 +2457,11 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
             continue;
         }
 
+        if (qps_map_pg_is_all_free(qps, map)) {
+            madvise(&map[1], QPS_MAP_SIZE - QPS_PAGE_SIZE, MADV_DONTNEED);
+            continue;
+        }
+
         qv_append(u32, &t, i | QPS_META_MAP_PAGED);
         qv_append(u32, &t, 0);
 
@@ -2481,6 +2494,7 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
                     for (int j = 0; j < sz; j++) {
                         cowh[pg + j].flags = QPS_BLK_FREE;
                     }
+                    madvise(&map[pg], sz * QPS_PAGE_SIZE, MADV_DONTNEED);
                 } else {
                     cowh[pg].handle = hdrs[pg].handle;
                 }
