@@ -610,22 +610,70 @@ static void qps_m_check_maps(qps_t *qps, bool report_ro_errs)
 /** @{ \name Internal: file-backed store helpers */
 /* {{{ */
 
+static int qps_smaps_find(qv_t(qpsm) const *tab, const void *addr, bool wantit)
+{
+    const qps_map_t *map = qps_map_of(addr);
+    size_t l = 0, r = tab->len;
+
+    while (l < r) {
+        size_t i = (l + r) / 2;
+
+        if (tab->tab[i] == map)
+            return i;
+        if (tab->tab[i] < map) {
+            l = i + 1;
+        } else {
+            r = i;
+        }
+    }
+    if (wantit)
+        return -1;
+    return l;
+}
+
+static void qps_map_recycle(qps_t *qps, qps_map_t *map, uint16_t no)
+{
+    char buf[32];
+    int pos;
+
+    e_named_trace(1, "qps/gc", "map %x recycled on %p", map->hdr.mapno, qps);
+
+    /* remove it from the allowed maps */
+    qps->maps.tab[no] = NULL;
+    pos = qps_smaps_find(&qps->smaps, map, true);
+    if (pos >= 0)
+        qv_remove(qpsm, &qps->smaps, pos);
+    qv_append(qpsm, &qps->omaps, map);
+
+    /* remove the potential file on disk */
+    snprintf(buf, sizeof(buf), "%08x.qps", no);
+    unlinkat(qps->dfd, buf, 0);
+
+    /* keep the address around */
+    x_mmap(map, QPS_MAP_SIZE, PROT_NONE,
+           MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+}
+
 /** Maps a file of size QPS_MAP_SIZE.
  *
  * This function maps a file of QPS_MAP_SIZE octets at an address aligned to
- * QPS_MAP_SIZE. If \a where is NULL it picks a free virtual address range, if
- * if \a where is set then it reuses this address space.
+ * QPS_MAP_SIZE.
  *
+ * \param[in] qps   the qps
  * \param[in] fd    the file descriptor to map.
- * \param[in] where where one want to map the file.
  * \return  \p NULL if the map failed, the address of the map else.
  */
-static void *qps_map_fd(int fd, void *where, int advice)
+static void *qps_map_fd(qps_t *qps, int fd)
 {
     const uintptr_t sz = QPS_MAP_SIZE;
     const int prot = PROT_READ | PROT_WRITE;
+    void *where;
+    int flags;
 
-    if (!where) {
+    if (qps->omaps.len) {
+        where = *qv_last(qpsm, &qps->omaps);
+        qv_shrink(qpsm, &qps->omaps, 1);
+    } else {
         uint8_t *map, *fix;
 
         map = x_mmap(NULL, 2 * sz, prot, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -638,8 +686,12 @@ static void *qps_map_fd(int fd, void *where, int advice)
     }
     assert (((uintptr_t)where & QPS_MAP_MASK) == 0);
 
-    x_mmap(where, sz, prot, MAP_SHARED | MAP_FIXED, fd, 0);
-    madvise(where, sz, advice);
+    if (fd < 0) {
+        flags = MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS;
+    } else {
+        flags = MAP_SHARED  | MAP_FIXED;
+    }
+    x_mmap(where, sz, prot, flags, fd, 0);
     return where;
 }
 
@@ -668,27 +720,6 @@ static void qps_alloc_hdrs(qps_t *qps, int olen, int no)
     }
 }
 
-static int qps_smaps_find(qv_t(qpsm) const *tab, const void *addr, bool wantit)
-{
-    const qps_map_t *map = qps_map_of(addr);
-    size_t l = 0, r = tab->len;
-
-    while (l < r) {
-        size_t i = (l + r) / 2;
-
-        if (tab->tab[i] == map)
-            return i;
-        if (tab->tab[i] < map) {
-            l = i + 1;
-        } else {
-            r = i;
-        }
-    }
-    if (wantit)
-        return -1;
-    return l;
-}
-
 /** Call mprotect() on a given map.
  *
  * This is a helper function, called by #qps_open only.
@@ -708,16 +739,9 @@ static void qps_map_protect(qps_map_t *map, int prot)
 static uint32_t qps_map_find_no(qps_t *qps)
 {
     int no = qps->maps.len;
-    qps_map_t *map;
 
     qv_for_each_pos(qpsm, i, &qps->maps) {
-        map = qps->maps.tab[i];
-        if (!map) {
-            if (no == qps->maps.len)
-                no = i;
-            continue;
-        }
-        if (map->hdr.generation == 0) {
+        if (qps->maps.tab[i] == NULL) {
             no = i;
             break;
         }
@@ -727,11 +751,13 @@ static uint32_t qps_map_find_no(qps_t *qps)
     return no;
 }
 
-static qps_map_t *qps_map_create_raw(qps_t *qps, uint32_t no, const char *buf)
+static qps_map_t *qps_map_m_create_raw(qps_t *qps, uint32_t no)
 {
     qps_map_t *map;
+    char buf[32];
     int fd;
 
+    snprintf(buf, sizeof(buf), "%08x.qps", no);
     unlinkat(qps->dfd, buf, 0);
     fd = x_openat(qps->dfd, buf, O_RDWR | O_CREAT | O_EXCL, 0644);
     x_ftruncate(fd, QPS_MAP_SIZE);
@@ -750,10 +776,25 @@ static qps_map_t *qps_map_create_raw(qps_t *qps, uint32_t no, const char *buf)
      * This is likely to be very kernel dependant and has to be tested on all
      * kernels we intend to target.
      */
-    map = qps_map_fd(fd, qps->maps.tab[no], MADV_SEQUENTIAL);
+    map = qps_map_fd(qps, fd);
+    madvise(map, QPS_MAP_SIZE, MADV_SEQUENTIAL);
     close(fd);
-    map->hdr.mapno = no;
-    map->hdr.qps   = qps;
+    map->hdr.mapno      = no;
+    map->hdr.qps        = qps;
+    map->hdr.generation = qps->generation;
+    memcpy(map->hdr.sig, QPS_MAP_MEM_SIG, sizeof(QPS_MAP_MEM_SIG));
+    return map;
+}
+
+static qps_map_t *qps_map_pg_create_raw(qps_t *qps, uint32_t no)
+{
+    qps_map_t *map;
+
+    map = qps_map_fd(qps, -1);
+    map->hdr.mapno      = no;
+    map->hdr.qps        = qps;
+    map->hdr.generation = qps->generation;
+    memcpy(map->hdr.sig, QPS_MAP_PG_SIG, sizeof(QPS_MAP_PG_SIG));
     return map;
 }
 
@@ -785,16 +826,11 @@ static void qps_map_create(qps_t *qps, bool for_pg)
 {
     uint32_t no = qps_map_find_no(qps);
     qps_map_t *map;
-    char buf[32];
 
-    snprintf(buf, sizeof(buf), "%08x.qps", no);
-    map = qps_map_create_raw(qps, no, buf);
-    map->hdr.generation = qps->generation;
-    map->hdr.qps        = qps;
     if (for_pg) {
-        memcpy(map->hdr.sig, QPS_MAP_PG_SIG, sizeof(QPS_MAP_PG_SIG));
+        map = qps_map_pg_create_raw(qps, no);
     } else {
-        memcpy(map->hdr.sig, QPS_MAP_MEM_SIG, sizeof(QPS_MAP_MEM_SIG));
+        map = qps_map_m_create_raw(qps, no);
     }
     qps_map_bless(qps, map);
 
@@ -870,15 +906,14 @@ static void qps_map_pg_snapshot(qps_t *qps, qps_map_t *map, uint32_t gen)
 static qps_map_t *qps_pg_map_open(qps_t *qps, uint32_t no, uint32_t gen)
 {
     qps_pghdr_t *hdrs;
-    char buf[32], dst[32];
+    char buf[32];
     qps_map_t *map;
     gzFile zin;
     uint32_t pg;
     int  fd;
 
     snprintf(buf, sizeof(buf), "%08x.%08x.qpz", no, gen);
-    snprintf(dst, sizeof(dst), "%08x.qps", no);
-    map = qps_map_create_raw(qps, no, dst);
+    map = qps_map_pg_create_raw(qps, no);
 
     if ((fd = openat(qps->dfd, buf, O_RDONLY, 0644)) < 0) {
         e_error("QPS(%p:%s): unable to open file: %m", qps, buf);
@@ -887,7 +922,7 @@ static qps_map_t *qps_pg_map_open(qps_t *qps, uint32_t no, uint32_t gen)
 
     zin = gzdopen(fd, "rb9");
     if (zin == NULL) {
-        e_error("QPS(%p:%s): unable to gzdopen", qps, dst);
+        e_error("QPS(%p:%s): unable to gzdopen", qps, buf);
         goto zerror;
     }
 
@@ -940,26 +975,8 @@ static qps_map_t *qps_pg_map_open(qps_t *qps, uint32_t no, uint32_t gen)
                 gzerror(zin, NULL));
         gzclose(zin);
     }
-    unlinkat(qps->dfd, dst, 0);
-    munmap(map, QPS_MAP_SIZE);
+    qps_map_recycle(qps, map, no);
     return NULL;
-}
-
-static void qps_map_m_recycle(qps_t *qps, qps_map_t *map, uint16_t no)
-{
-    int fd;
-    char buf[32];
-
-    assert (!qps_map_is_pg(map));
-
-    e_named_trace(1, "qps/gc", "map %x recycled on %p", map->hdr.mapno, qps);
-    map->hdr.generation = 0;
-    snprintf(buf, sizeof(buf), "%08x.qps", no);
-    fd = x_openat(qps->dfd, buf, O_RDWR, 0644);
-    x_ftruncate(fd, sizeof(map->hdr));
-    x_ftruncate(fd, QPS_MAP_SIZE);
-    madvise(map + 1, QPS_MAP_SIZE - QPS_PAGE_SIZE, MADV_DONTNEED);
-    x_close(fd);
 }
 
 static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
@@ -979,7 +996,8 @@ static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
         goto err_close;
     }
 
-    map = qps_map_fd(fd, NULL, MADV_RANDOM);
+    map = qps_map_fd(qps, fd);
+    madvise(map, QPS_MAP_SIZE, MADV_RANDOM);
     close(fd);
     if (memcmp(map->hdr.sig, QPS_MAP_MEM_SIG, sizeof(QPS_MAP_MEM_SIG))) {
         e_error("QPS(%p:%s): invalid signature", qps, buf);
@@ -994,7 +1012,7 @@ static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
     return map;
 
   err_unmap:
-    munmap(map, QPS_MAP_SIZE);
+    qps_map_recycle(qps, map, no);
     return NULL;
 
   err_close:
@@ -1227,7 +1245,7 @@ static void x_finalize_meta(qps_t *qps, uint32_t generation)
         if (QPS_GEN_CMP(map->hdr.generation, >, generation))
             continue;
         if (map->hdr.remaining == 0)
-            qps_map_m_recycle(qps, map, i);
+            qps_map_recycle(qps, map, i);
     }
 
     qps_dir_cleanup(qps, generation);
@@ -1364,7 +1382,7 @@ static int qps_load_meta(qps_t *qps, sb_t *out)
                 goto err_unmap;
             }
             if (map->hdr.remaining == 0)
-                qps_map_m_recycle(qps, map, no);
+                qps_map_recycle(qps, map, no);
         } else
         if (!(u32[0] & QPS_META_MAP_PAGED)) {
             e_error("QPS(%p:meta): inconsistent meta.qps [6]", qps);
@@ -1549,20 +1567,16 @@ static void qps_gc(qps_t *qps, uint32_t gc_gen)
     });
 
     if (shared_read(qps->gc_state) == QPS_GC_RUNNING) {
-        char buf[32];
         qps_map_t *map;
         uint32_t no;
 
-        no  = qps_map_find_no(qps);
-        snprintf(buf, sizeof(buf), "%08x.qps", no);
-        qps->gc_map = map = qps_map_create_raw(qps, no, buf);
-        memcpy(map->hdr.sig, QPS_MAP_MEM_SIG, sizeof(QPS_MAP_MEM_SIG));
+        no = qps_map_find_no(qps);
+        qps->gc_map = map = qps_map_m_create_raw(qps, no);
         map->hdr.generation = qps->generation;
 
         if (qps_gc_compact(qps, no, map, maps) < 0) {
             qps->gc_map = NULL;
-            unlinkat(qps->dfd, buf, 0);
-            munmap(map, QPS_MAP_SIZE);
+            qps_map_recycle(qps, map, no);
             goto end;
         }
         return;
@@ -2415,7 +2429,7 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
                     /*
                      * XXX /!\ achtung minen /!\ XXX
                      *
-                     * @see comment in #qps_map_create_raw
+                     * @see comment in #qps_map_m_create_raw
                      */
                     madvise(map, QPS_MAP_SIZE, MADV_RANDOM);
                     if (fstatat(qps->dfd, buf, &st, 0) < 0) {
@@ -2563,9 +2577,13 @@ void qps_close(qps_t **qpsp)
                 munmap(map, QPS_MAP_SIZE);
             }
         }
+        qv_for_each_pos(qpsm, i, &qps->omaps) {
+            munmap(qps->omaps.tab[i], QPS_MAP_SIZE);
+        }
         close(qps->dfd);
         qv_wipe(qpsm, &qps->maps);
         qv_wipe(qpsm, &qps->smaps);
+        qv_wipe(qpsm, &qps->omaps);
         p_delete(&qps->handles);
         p_delete(&qps->hdrs);
         dlist_remove(&qps->qps_link);
