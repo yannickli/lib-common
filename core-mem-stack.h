@@ -188,6 +188,7 @@ char *t_fmt(int *out, const char *fmt, ...);
 #define t_dup(p, count)    mp_dup(&t_pool_g.funcs, p, count)
 #define t_dupz(p, count)   mp_dupz(&t_pool_g.funcs, p, count)
 
+#ifndef __cplusplus
 /*
  * t_scope protects all the code after its use up to the end of the block
  * scope with an implicit t_push(), t_pop() pair.
@@ -216,14 +217,7 @@ static ALWAYS_INLINE void t_scope_cleanup(const void **unused)
 }
 #define t_scope__(n)  \
     const void *t_scope_##n __attribute__((unused,cleanup(t_scope_cleanup))) = t_push()
-#define t_scope_(n)  t_scope__(n)
-#ifdef __COUNTER__
-#  define t_scope      t_scope_(__COUNTER__)
 #else
-#  define t_scope      t_scope_(__LINE__)
-#endif
-
-#ifdef __cplusplus
 /*
  * RAII scoped t_push/t_pop
  */
@@ -236,6 +230,15 @@ class TScope {
     void* operator new(size_t);
     void  operator delete(void *, size_t);
 };
+#define t_scope__(n)  \
+    TScope t_scope_because_cpp_sucks_donkeys_##n
+#endif
+
+#define t_scope_(n)  t_scope__(n)
+#ifdef __COUNTER__
+#  define t_scope      t_scope_(__COUNTER__)
+#else
+#  define t_scope      t_scope_(__LINE__)
 #endif
 
 #endif
