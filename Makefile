@@ -15,6 +15,7 @@ none_LIBRARIES = libcommon time-lp-simple
 test_PROGRAMS += zchk ztst-cfgparser ztst-tpl ztst-lzo ztst-thrjob
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 test_PROGRAMS += ztst-qps
+test_PROGRAMS += ztst-hattrie
 ifeq (,$(TOOLS_REPOSITORY))
 none_SHARED_LIBRARIES += zchk-tstiop-plugin
 test_PROGRAMS += ztst-httpd
