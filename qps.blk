@@ -692,6 +692,7 @@ static void *qps_map_fd(qps_t *qps, int fd)
         flags = MAP_SHARED  | MAP_FIXED;
     }
     x_mmap(where, sz, prot, flags, fd, 0);
+    madvise(where, QPS_MAP_SIZE, MADV_RANDOM);
     return where;
 }
 
@@ -761,23 +762,8 @@ static qps_map_t *qps_map_m_create_raw(qps_t *qps, uint32_t no)
     unlinkat(qps->dfd, buf, 0);
     fd = x_openat(qps->dfd, buf, O_RDWR | O_CREAT | O_EXCL, 0644);
     x_ftruncate(fd, QPS_MAP_SIZE);
-    /*
-     * XXX /!\ achtung minen /!\ XXX
-     *
-     * MADV_SEQUENTIAL is chosen because the kernel (as of 2.6.38) has a
-     * slower maps flush-to-disk policy with this setting which is great since
-     * we do msync() when we care about the flush. For the rest the slowest
-     * the better.
-     *
-     * For the rest (when we're not in R/W mode) MADV_RANDOM clearly is what
-     * we want so that when the kernel has decided to flush pages to disk we
-     * don't load them uselessly.
-     *
-     * This is likely to be very kernel dependant and has to be tested on all
-     * kernels we intend to target.
-     */
+
     map = qps_map_fd(qps, fd);
-    madvise(map, QPS_MAP_SIZE, MADV_SEQUENTIAL);
     close(fd);
     map->hdr.mapno      = no;
     map->hdr.qps        = qps;
@@ -1005,7 +991,6 @@ static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
     }
 
     map = qps_map_fd(qps, fd);
-    madvise(map, QPS_MAP_SIZE, MADV_RANDOM);
     close(fd);
     if (memcmp(map->hdr.sig, QPS_MAP_MEM_SIG, sizeof(QPS_MAP_MEM_SIG))) {
         e_error("QPS(%p:%s): invalid signature", qps, buf);
@@ -2434,12 +2419,6 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
 
                     snprintf(buf, sizeof(buf), "%08x.qps", map->hdr.mapno);
                     x_msync(map, QPS_MAP_SIZE, MS_SYNC);
-                    /*
-                     * XXX /!\ achtung minen /!\ XXX
-                     *
-                     * @see comment in #qps_map_m_create_raw
-                     */
-                    madvise(map, QPS_MAP_SIZE, MADV_RANDOM);
                     if (fstatat(qps->dfd, buf, &st, 0) < 0) {
                         e_warning("QPS(%p:%s): unable to fstatat: %m", qps, buf);
                         map->hdr.disk_usage = QPS_MAP_SIZE;
