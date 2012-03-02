@@ -193,8 +193,6 @@ union qps_map_t {
         struct qps_t   *qps;
         uint32_t        remaining;      /* only for memory */
         uint32_t        disk_usage;     /* only for memory */
-        qps_cowhdr_t   *cow_hdrs;       /* only for pages  */
-        pthread_mutex_t snap_mx;        /* only for pages  */
     } hdr;
     uint8_t data[QPS_PAGE_SIZE];
 };
