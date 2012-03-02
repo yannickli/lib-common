@@ -588,6 +588,7 @@ void thr_queue_main_drain(void)
 {
     assert (self_tid_g == 0);
     thr_queue_drain(thr_queue_main_g);
+    thr_ec_signal(&_G.ec);
 }
 
 void thr_initialize(void)

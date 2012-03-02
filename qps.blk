@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <sys/wait.h>
 #include <zlib.h>
 #include <lib-common/core-mem-valgrind.h>
 #ifndef VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE
@@ -24,6 +25,7 @@
 
 static struct {
     dlist_t qps_head;
+    bool    in_snapshot_fork;
     void  (*sighandler)(int, siginfo_t *, void *);
 } qps_store_g = {
 #define _G  qps_store_g
@@ -143,12 +145,6 @@ struct qps_pghdr_t {
             qps_pg_t prev;
         } free;
     };
-};
-struct qps_cowhdr_t {
-    uint16_t flags;
-    uint16_t size;
-    uint32_t handle;
-    void    *cow;
 };
 
 #define QPS_MBLK_HDRSZ    offsetof(qps_mhdr_t, data)
@@ -692,6 +688,7 @@ static void *qps_map_fd(qps_t *qps, int fd)
         flags = MAP_SHARED  | MAP_FIXED;
     }
     x_mmap(where, sz, prot, flags, fd, 0);
+    madvise(where, QPS_MAP_SIZE, MADV_RANDOM);
     return where;
 }
 
@@ -761,23 +758,8 @@ static qps_map_t *qps_map_m_create_raw(qps_t *qps, uint32_t no)
     unlinkat(qps->dfd, buf, 0);
     fd = x_openat(qps->dfd, buf, O_RDWR | O_CREAT | O_EXCL, 0644);
     x_ftruncate(fd, QPS_MAP_SIZE);
-    /*
-     * XXX /!\ achtung minen /!\ XXX
-     *
-     * MADV_SEQUENTIAL is chosen because the kernel (as of 2.6.38) has a
-     * slower maps flush-to-disk policy with this setting which is great since
-     * we do msync() when we care about the flush. For the rest the slowest
-     * the better.
-     *
-     * For the rest (when we're not in R/W mode) MADV_RANDOM clearly is what
-     * we want so that when the kernel has decided to flush pages to disk we
-     * don't load them uselessly.
-     *
-     * This is likely to be very kernel dependant and has to be tested on all
-     * kernels we intend to target.
-     */
+
     map = qps_map_fd(qps, fd);
-    madvise(map, QPS_MAP_SIZE, MADV_SEQUENTIAL);
     close(fd);
     map->hdr.mapno      = no;
     map->hdr.qps        = qps;
@@ -800,8 +782,6 @@ static qps_map_t *qps_map_pg_create_raw(qps_t *qps, uint32_t no)
 
 static void qps_map_bless(qps_t *qps, qps_map_t *map)
 {
-    pthread_mutex_init(&map->hdr.snap_mx, NULL);
-    map->hdr.cow_hdrs = NULL;
     qps->maps.tab[map->hdr.mapno] = map;
     qv_insert(qpsm, &qps->smaps, qps_smaps_find(&qps->smaps, map, false), map);
 }
@@ -857,7 +837,7 @@ static bool qps_map_pg_is_all_free(const qps_t *qps, const qps_map_t *map)
 
 static void qps_map_pg_snapshot(qps_t *qps, qps_map_t *map, uint32_t gen)
 {
-    qps_cowhdr_t *hdrs = map->hdr.cow_hdrs;
+    qps_pghdr_t *hdrs = qps->hdrs + map->hdr.mapno * QPS_MAP_PAGES;
     char buf[32], dst[32];
     gzFile out;
     int  fd;
@@ -866,11 +846,10 @@ static void qps_map_pg_snapshot(qps_t *qps, qps_map_t *map, uint32_t gen)
     snprintf(dst, sizeof(dst), "%08x.%08x.qpz", map->hdr.mapno, gen);
     snprintf(buf, sizeof(buf), "%08x.%08x.qpt", map->hdr.mapno, gen);
     fd  = x_openat(qps->dfd, buf, O_RDWR | O_TRUNC | O_CREAT, 0644);
-    out = gzdopen(dup(fd), "wb5");
+    out = gzdopen(dup(fd), "wb9");
     if (!out)
         qps_enospc("gzdopen");
 
-    pthread_mutex_lock(&map->hdr.snap_mx);
     if (gzwrite(out, &map->hdr, sizeof(qps_map_t)) != sizeof(qps_map_t))
         qps_enospc("gzwrite");
 
@@ -886,19 +865,14 @@ static void qps_map_pg_snapshot(qps_t *qps, qps_map_t *map, uint32_t gen)
             if (gzwrite(out, tmp, sizeof(tmp)) != sizeof(tmp))
                 qps_enospc("gzwrite");
         } else {
+            int sz = tmp[0] * QPS_PAGE_SIZE;
+
             if (gzwrite(out, tmp, sizeof(tmp)) != sizeof(tmp))
                 qps_enospc("gzwrite");
-            for (size_t i = 0; i < tmp[0]; i++) {
-                void *ptr = hdrs[pg + i].cow ?: map + pg + i;
-
-                if (gzwrite(out, ptr, QPS_PAGE_SIZE) != QPS_PAGE_SIZE)
-                    qps_enospc("gzwrite");
-                p_delete(&hdrs[pg + i].cow);
-            }
+            if (gzwrite(out, map + pg, sz) != sz)
+                qps_enospc("gzwrite");
         }
     }
-    p_delete(&map->hdr.cow_hdrs);
-    pthread_mutex_unlock(&map->hdr.snap_mx);
 
     if (gzclose(out)) {
         unlinkat(qps->dfd, buf, 0);
@@ -1005,7 +979,6 @@ static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
     }
 
     map = qps_map_fd(qps, fd);
-    madvise(map, QPS_MAP_SIZE, MADV_RANDOM);
     close(fd);
     if (memcmp(map->hdr.sig, QPS_MAP_MEM_SIG, sizeof(QPS_MAP_MEM_SIG))) {
         e_error("QPS(%p:%s): invalid signature", qps, buf);
@@ -1028,50 +1001,11 @@ static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
     return NULL;
 }
 
-static void unprotect_range(qps_map_t *map, int pg, int sz)
-{
-    e_named_trace(2, "qps/map", "unprotect %p:%d[%d..%d[",
-                  map->hdr.qps, map->hdr.mapno, pg, pg + sz);
-    mprotect(map + pg, sz * QPS_PAGE_SIZE, PROT_READ | PROT_WRITE);
-}
-static int qps_handle_map_fault(qps_t *qps, qps_map_t *map, uint32_t pg)
-{
-    qps_cowhdr_t *cowh;
-
-    if (!qps_map_is_pg(map)) {
-        return e_error("trying to write into RO map %p:"QPS_PG_FMT,
-                       qps, QPS_PG_ARG(map->hdr.mapno));
-    }
-
-    e_named_trace(2, "qps/map", "handle segfault %p:%d", qps, map->hdr.mapno);
-    pthread_mutex_lock(&map->hdr.snap_mx);
-    if ((cowh = map->hdr.cow_hdrs)) {
-        if (cowh[pg].flags & QPS_BLK_FREE) {
-            e_named_trace(1, "qps/map", "page fault: unprotect FREE %p:%d",
-                          qps, map->hdr.mapno);
-            for (size_t i = 1; i < QPS_MAP_PAGES; i += cowh[i].size) {
-                if (cowh[i].flags & QPS_BLK_FREE)
-                    unprotect_range(map, i, cowh[i].size);
-            }
-        } else {
-            e_named_trace(1, "qps/map", "page fault: COW %p:%d:%08x",
-                          qps, map->hdr.mapno, pg);
-            assert (cowh[pg].cow == NULL);
-            cowh[pg].cow = p_dup(map + pg, 1);
-            unprotect_range(map, pg, 1);
-        }
-    } else {
-        e_named_trace(1, "qps/map", "page fault: mark %p:%d dirty",
-                      qps, map->hdr.mapno);
-        qps_map_protect(map, PROT_READ | PROT_WRITE);
-    }
-    map->hdr.generation = qps->generation;
-    pthread_mutex_unlock(&map->hdr.snap_mx);
-    return 0;
-}
-
 void qps_enospc(const char *what)
 {
+    if (_G.in_snapshot_fork)
+        _exit(QPS_EX_ENOSPC);
+
     if (strequal(what, "mmap")) {
         e_error("QPS: unexpected error (%s:%m)", what);
     } else {
@@ -1104,12 +1038,18 @@ static void qps_on_segfault(int signum, siginfo_t *si, void *uc)
         }
 
         if (pos >= 0) {
-            int pg = qps_pg_of(si->si_addr) & 0xffff;
-            if (qps_handle_map_fault(qps, qps->smaps.tab[pos], pg) == 0) {
-                errno = save_errno;
-                return;
+            if (!qps_map_is_pg(map)) {
+                e_error("trying to write into RO map %p:"QPS_PG_FMT,
+                        qps, QPS_PG_ARG(map->hdr.mapno));
+                break;
             }
-            break;
+
+            e_named_trace(1, "qps/map", "page fault: mark %p:%d dirty",
+                          qps, map->hdr.mapno);
+            qps_map_protect(map, PROT_READ | PROT_WRITE);
+            map->hdr.generation = qps->generation;
+            errno = save_errno;
+            return;
         }
     }
 
@@ -1237,27 +1177,6 @@ static void x_write_meta(qps_t *qps, uint32_t generation, const qv_t(u32) t,
     x_write(fd, buf, 20);
     x_fdatasync(fd);
     x_close(fd);
-}
-
-static void x_finalize_meta(qps_t *qps, uint32_t generation)
-{
-    x_fdatasync(qps->dfd); // commit all file creations
-    x_renameat(qps->dfd, "meta.qpt", qps->dfd, "meta.qps");
-    x_fdatasync(qps->dfd); // commit rename
-
-    for (int i = 0; i < qps->maps.len; i++) {
-        qps_map_t *map = qps->maps.tab[i];
-
-        if (!map || qps_map_is_pg(map))
-            continue;
-        if (QPS_GEN_CMP(map->hdr.generation, >, generation))
-            continue;
-        if (map->hdr.remaining == 0)
-            qps_map_recycle(qps, map, i);
-    }
-
-    qps_dir_cleanup(qps, generation);
-    e_named_trace(1, "qps", "snapshot commited and notified");
 }
 
 /** Loads a \p meta.qps file at qps_open() time.
@@ -2338,6 +2257,62 @@ qps_t *qps_create(const char *path, mode_t mode)
     return NULL;
 }
 
+static pid_t
+qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
+                qv_t(u32) t, uint32_t generation)
+{
+    pid_t     pid;
+    thr_syn_t syn;
+
+    pid = fork();
+    if (pid < 0)
+        e_panic("QPS: unable to fork snapshotter in the background, %m");
+    if (pid > 0)
+        return pid;
+    _G.in_snapshot_fork = true;
+
+    setsid();
+    setpriority(PRIO_PROCESS, getpid(), NZERO / 4);
+
+    thr_initialize();
+    thr_syn_init(&syn);
+    for (int i = 0; i < qps->maps.len; i++) {
+        qps_map_t *map = qps->maps.tab[i];
+
+        if (!map)
+            continue;
+
+        if (!qps_map_is_pg(map) || qps_map_pg_is_all_free(qps, map)) {
+            madvise(map, QPS_MAP_SIZE, MADV_DONTNEED);
+            continue;
+        }
+
+        thr_syn_schedule_b(&syn, ^{
+            if (map->hdr.generation == generation) {
+                qps_map_pg_snapshot(qps, map, generation);
+            } else {
+                /* map didn't change, hardlink the previous snapshot */
+                char dst[32], src[32];
+
+                snprintf(src, sizeof(src), "%08x.%08x.qpz",
+                         map->hdr.mapno, map->hdr.generation);
+                snprintf(dst, sizeof(dst), "%08x.%08x.qpz",
+                         map->hdr.mapno, generation);
+                x_linkat(qps->dfd, src, qps->dfd, dst, 0);
+                map->hdr.generation = generation;
+            }
+            madvise(map, QPS_MAP_SIZE, MADV_DONTNEED);
+        });
+    }
+    x_write_meta(qps, generation, t, data, dlen);
+    thr_syn_wait(&syn);
+
+    x_fdatasync(qps->dfd); // commit all file creations
+    x_renameat(qps->dfd, "meta.qpt", qps->dfd, "meta.qps");
+    x_fdatasync(qps->dfd); // commit rename
+    _exit(0);
+}
+
 /** \brief take a qps snapshot.
  *
  * This function is the most important one to use a QPS. Usually a QPS comes
@@ -2377,12 +2352,13 @@ qps_t *qps_create(const char *path, mode_t mode)
 uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
                       void (^notify)(uint32_t))
 {
-    void     *data2      = p_dup((uint8_t *)data, dlen);
+    t_scope;
+
     uint32_t  generation = qps->generation;
     uint32_t  rec_pos;
-    thr_syn_t syn;
     qv_t(u32) t;
     el_t      timer;
+    pid_t     pid;
 
     assert (qps->snapshotting == false);
 
@@ -2391,7 +2367,7 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
     qps->generation  += 2;
 
     e_named_trace(1, "qps", "qps_snapshot(%p)", qps);
-    qv_init(u32, &t);
+    t_qv_init(u32, &t, 1024);
     p_clear(&qps->m, 1);
 
     {
@@ -2409,7 +2385,6 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
     rec_pos = t.len;
     qv_append(u32, &t, 0);
 
-    thr_syn_init(&syn);
     for (int i = 0; i < qps->maps.len; i++) {
         qps_map_t *map = qps->maps.tab[i];
 
@@ -2429,12 +2404,6 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
 
                     snprintf(buf, sizeof(buf), "%08x.qps", map->hdr.mapno);
                     x_msync(map, QPS_MAP_SIZE, MS_SYNC);
-                    /*
-                     * XXX /!\ achtung minen /!\ XXX
-                     *
-                     * @see comment in #qps_map_m_create_raw
-                     */
-                    madvise(map, QPS_MAP_SIZE, MADV_RANDOM);
                     if (fstatat(qps->dfd, buf, &st, 0) < 0) {
                         e_warning("QPS(%p:%s): unable to fstatat: %m", qps, buf);
                         map->hdr.disk_usage = QPS_MAP_SIZE;
@@ -2444,11 +2413,10 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
                 });
             }
 
-            if (map->hdr.remaining == 0)
-                continue;
-
-            qv_append(u32, &t, i | QPS_META_MAP_TLSF);
-            qv_append(u32, &t, map->hdr.remaining);
+            if (map->hdr.remaining) {
+                qv_append(u32, &t, i | QPS_META_MAP_TLSF);
+                qv_append(u32, &t, map->hdr.remaining);
+            }
             continue;
         }
 
@@ -2460,89 +2428,58 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
         qv_append(u32, &t, i | QPS_META_MAP_PAGED);
         qv_append(u32, &t, 0);
 
-        if (map->hdr.generation != generation) {
-            thr_syn_schedule_b(&syn, ^{
-                /* map didn't change, hardlink the previous snapshot */
-                char dst[32], src[32];
-
-                snprintf(src, sizeof(src), "%08x.%08x.qpz",
-                         map->hdr.mapno, map->hdr.generation);
-                snprintf(dst, sizeof(dst), "%08x.%08x.qpz",
-                         map->hdr.mapno, generation);
-                x_linkat(qps->dfd, src, qps->dfd, dst, 0);
-                map->hdr.generation = generation;
-            });
-            continue;
-        }
-
-        thr_syn_schedule_b(&syn, ^{
+        thr_syn_schedule_b(&qps->snap_syn, ^{
             qps_pghdr_t  *hdrs = qps->hdrs + map->hdr.mapno * QPS_MAP_PAGES;
-            qps_cowhdr_t *cowh;
 
-            map->hdr.cow_hdrs = cowh = p_new(qps_cowhdr_t, QPS_MAP_PAGES);
             for (size_t pg = 1; pg < QPS_MAP_PAGES; pg += hdrs[pg].size) {
                 uint16_t sz = hdrs[pg].size;
 
                 assert (sz >= 1 && pg + sz <= QPS_MAP_PAGES);
-                cowh[pg].size = sz;
                 if (hdrs[pg].flags & QPS_BLK_FREE) {
-                    for (int j = 0; j < sz; j++) {
-                        cowh[pg + j].flags = QPS_BLK_FREE;
-                    }
                     madvise(&map[pg], sz * QPS_PAGE_SIZE, MADV_DONTNEED);
-                } else {
-                    cowh[pg].handle = hdrs[pg].handle;
                 }
             }
         });
     }
     t.tab[rec_pos] = (t.len - rec_pos) / 2;
-    thr_syn_wait(&syn);
 
-    {
-        size_t stride = DIV_ROUND_UP(qps->maps.len, 3 * thr_parallelism_g);
-
-        for (int i = 0; i < qps->maps.len; i += stride) {
-            if (i + stride > (size_t)qps->maps.len)
-                stride = qps->maps.len - i;
-            thr_syn_schedule_b(&qps->snap_syn, ^{
-                for (size_t j = i; j < i + stride; j++) {
-                    qps_map_t *map = qps->maps.tab[j];
-
-                    if (map && qps_map_is_pg(map) && map->hdr.cow_hdrs) {
-                        thr_syn_schedule_b(&qps->snap_syn, ^{
-                            qps_map_pg_snapshot(qps, map, generation);
-                        });
-                    }
-                }
-            });
-        }
-    }
-
-    thr_syn_schedule_b(&qps->snap_syn, ^{
-        qv_t(u32) tc = t;
-        void     *p  = data2;
-
-        x_write_meta(qps, generation, tc, data2, dlen);
-        qv_wipe(u32, &tc);
-        p_delete(&p);
-    });
-
+    pid   = qps_snapshot_bg(qps, data, dlen, t, generation);
     timer = el_timer_register_blk(3600 * 1000, 0, 0, ^(el_t ev){
         e_fatal("qps: snapshot (generation %x) stuck for more than an hour",
                 generation);
     }, NULL);
 
-    thr_syn_notify_b(&qps->snap_syn, thr_queue_main_g, ^{
-        el_t timer_copy = timer;
+    thr_schedule_b(^{
+        int status;
 
-        el_timer_unregister(&timer_copy);
-        x_finalize_meta(qps, generation);
-        notify(generation);
-        qps->snapshotting = false;
+        thr_syn_wait(&qps->snap_syn);
+        do { } while (waitpid(pid, &status, 0) != pid);
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+            e_panic("QPS: background snapshot failed");
+
+        thr_queue_b(thr_queue_main_g, ^{
+            el_t timer_copy = timer;
+
+            el_timer_unregister(&timer_copy);
+            e_named_trace(1, "qps", "snapshot commited and notified");
+
+            for (int i = 0; i < qps->maps.len; i++) {
+                qps_map_t *map = qps->maps.tab[i];
+
+                if (!map || qps_map_is_pg(map))
+                    continue;
+                if (QPS_GEN_CMP(map->hdr.generation, >, generation))
+                    continue;
+                if (map->hdr.remaining == 0)
+                    qps_map_recycle(qps, map, i);
+            }
+
+            qps_dir_cleanup(qps, generation);
+            notify(generation);
+            qps->snapshotting = false;
+        });
     });
 
-    thr_syn_wipe(&syn);
     return qps->generation;
 }
 
