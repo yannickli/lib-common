@@ -20,8 +20,6 @@
         e_panic("Assert failed at %s:%d: %s", __FILE__, __LINE__, #Cond);    \
     }
 
-qh_k32_t(u32);
-
 static void (print_time_diff)(const char *str, struct rusage *tstart,
                               struct rusage *tend, struct timeval *start,
                               struct timeval *end, uint64_t count)
