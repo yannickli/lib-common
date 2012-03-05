@@ -243,6 +243,7 @@ KITMARCHAND="$("$(dirname "$0")/mcg/modules/gwk/kitmarchand.sh" find)" \
 ccn0="/home/data/build/ccn"
 ccn1="/opt/ccn"
 ccn2="/srv/build/ccn"
+ccn3="$(dirname "$0")/mcg/modules/charging/ccn"
 
 if file_exists "$ccn0"; then
     setenv "ENABLE_CCN" "1"
@@ -256,6 +257,10 @@ elif file_exists "$ccn2"; then
     setenv "ENABLE_CCN" "1"
     setenv "WITH_CCN" "1"
     setenv "CCN_PATH" "$ccn2"
+elif file_exists "$ccn3"; then
+    setenv "ENABLE_CCN" "1"
+    setenv "WITH_CCN" "1"
+    setenv "CCN_PATH" "$ccn3"
 else
     setenv "ENABLE_CCN" "0"
     log "CCN SDK not found"
