@@ -36,5 +36,6 @@
 #include "net-addr.h"
 #include "net-socket.h"
 #include "net-sctp.h"
+#include "net-rate.h"
 
 #endif
