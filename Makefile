@@ -100,6 +100,7 @@ libcommon_SOURCES = \
 	ic.iop.c \
 	\
 	net-addr.c \
+	net-rate.blk \
 	net-socket.c \
 	net-sctp.c \
 	\

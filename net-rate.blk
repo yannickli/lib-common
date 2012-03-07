@@ -1,0 +1,80 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+#include "el.h"
+#include "net.h"
+
+static void net_rctl_cron_cb(el_t ev, el_data_t priv)
+{
+    net_rctl_t *rctl = priv.ptr;
+    int slot;
+
+    if ((slot = ++rctl->slot) == countof(rctl->rates))
+        slot = rctl->slot = 0;
+    rctl->remains = MIN(rctl->remains + rctl->rates[slot], rctl->slice_max);
+    if (rctl->remains) {
+        if (rctl->is_blk) {
+            block_t blk = rctl->blk;
+
+            blk();
+        } else {
+            rctl->on_ready(rctl);
+        }
+    }
+}
+
+static void net_rctl_init_(net_rctl_t *rctl, int rate)
+{
+    unsigned sum = 0;
+
+    p_clear(rctl, 1);
+    rctl->rate      = rate;
+    rctl->slice_max = DIV_ROUND_UP(rctl->rate * 3, countof(rctl->rates));
+    for (int i = 0; i < countof(rctl->rates); i++) {
+        sum += (rctl->rates[i] = (i + 1) * rctl->rate / countof(rctl->rates) - sum);
+    }
+}
+
+void net_rctl_init(net_rctl_t *rctl, int rate, void (*cb)(net_rctl_t *))
+{
+    net_rctl_init_(rctl, rate);
+    rctl->on_ready = cb;
+}
+
+void net_rctl_init_blk(net_rctl_t *rctl, int rate, block_t blk)
+{
+    net_rctl_init_(rctl, rate);
+    rctl->is_blk = true;
+    rctl->blk = Block_copy(blk);
+}
+
+void net_rctl_start(net_rctl_t *rctl)
+{
+    rctl->cron = el_timer_register(0, 100, 0, net_rctl_cron_cb, rctl);
+    el_unref(rctl->cron);
+}
+
+void net_rctl_stop(net_rctl_t *rctl)
+{
+    el_timer_unregister(&rctl->cron);
+}
+
+void net_rctl_wipe(net_rctl_t *rctl)
+{
+    net_rctl_stop(rctl);
+    if (rctl->is_blk) {
+        Block_release(rctl->blk);
+        rctl->is_blk = false;
+    }
+}
+
