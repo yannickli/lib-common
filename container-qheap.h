@@ -206,7 +206,7 @@
  * \param  set_pos      Position setter function or macro. This setter is
  *                      optional: if user does not need to maintain the
  *                      position of his nodes into the heap, he just have to
- *                      pass QHP_SET_NO_POS for this parameter. This setter is
+ *                      pass QHP_IGNORE for this parameter. This setter is
  *                      useful for users who want to remove or fix up an
  *                      object which is not the first of the heap.
  */
