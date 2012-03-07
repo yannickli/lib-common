@@ -45,13 +45,15 @@ static void thr_hooks_key_setup(void)
     pthread_key_create(&_G.key, thr_hooks_at_exit);
 }
 
-static void thr_hooks_at_init(void)
+void thr_hooks_at_init(void)
 {
     pthread_once(&_G.key_once, thr_hooks_key_setup);
-    pthread_setspecific(_G.key, MAP_FAILED);
+    if (pthread_getspecific(_G.key) == NULL) {
+        pthread_setspecific(_G.key, MAP_FAILED);
 
-    dlist_for_each(it, &thr_hooks_g.init_cbs) {
-        (container_of(it, struct thr_ctor, link)->cb)();
+        dlist_for_each(it, &thr_hooks_g.init_cbs) {
+            (container_of(it, struct thr_ctor, link)->cb)();
+        }
     }
 }
 

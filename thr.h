@@ -63,6 +63,8 @@ struct thr_ctor {
         }));                                                                 \
     }
 
+void thr_hooks_at_init(void);
+
 /** \brief pulls the pthread hook module (forces a dependency upon pthreads).
  *
  * This function has no other side effects than to pull the intersec phtread
