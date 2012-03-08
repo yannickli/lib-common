@@ -84,6 +84,12 @@ uint32_t sockunion_hash(const sockunion_t *su);
 int addr_parse(pstream_t ps, pstream_t *host, in_port_t *port, int defport);
 int addr_info(sockunion_t *, sa_family_t, pstream_t host, in_port_t);
 char *t_addr_fmt(const sockunion_t *su, int *slen);
+static inline lstr_t t_addr_fmt_lstr(const sockunion_t *su)
+{
+    int len;
+    const char *s = t_addr_fmt(su, &len);
+    return lstr_init_(s, len, MEM_STACK);
+}
 
 static inline int
 addr_parse_str(const char *s, pstream_t *host, in_port_t *port, int defport)
