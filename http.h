@@ -374,6 +374,8 @@ GENERIC_INIT(httpd_trigger_t, httpd_trigger);
 GENERIC_NEW(httpd_trigger_t, httpd_trigger);
 void httpd_trigger_persist(httpd_trigger_t *);
 void httpd_trigger_loose(httpd_trigger_t *);
+httpd_trigger_t *httpd_trigger_dup(httpd_trigger_t *cb);
+void httpd_trigger_delete(httpd_trigger_t **cbp);
 
 bool httpd_trigger_register_flags(httpd_trigger_node_t *, const char *path,
                                   httpd_trigger_t *cb, bool overwrite);

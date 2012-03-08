@@ -80,13 +80,13 @@ static void httpd_trigger_destroy(httpd_trigger_t *cb, unsigned delta)
     }
 }
 
-static httpd_trigger_t *httpd_trigger_dup(httpd_trigger_t *cb)
+httpd_trigger_t *httpd_trigger_dup(httpd_trigger_t *cb)
 {
     cb->refcnt += 2;
     return cb;
 }
 
-static void httpd_trigger_delete(httpd_trigger_t **cbp)
+void httpd_trigger_delete(httpd_trigger_t **cbp)
 {
     if (*cbp) {
         httpd_trigger_destroy(*cbp, 2);
