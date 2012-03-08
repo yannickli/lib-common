@@ -77,6 +77,8 @@ static inline socklen_t sockunion_len(const sockunion_t *su)
         return (socklen_t)-1;
     }
 }
+__attribute__((pure))
+uint32_t sockunion_hash(const sockunion_t *su);
 
 /* -1 as defport means port is mandatory */
 int addr_parse(pstream_t ps, pstream_t *host, in_port_t *port, int defport);

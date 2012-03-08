@@ -13,6 +13,7 @@
 
 #include <netdb.h>
 #include "net.h"
+#include "container.h"
 
 bool sockunion_equal(const sockunion_t *a1, const sockunion_t *a2)
 {
@@ -37,6 +38,32 @@ bool sockunion_equal(const sockunion_t *a1, const sockunion_t *a2)
 
       default:
         e_panic("unknown kind of sockaddr: %d", a1->family);
+    }
+}
+
+uint32_t sockunion_hash(const sockunion_t *su)
+{
+    uint64_t u64;
+    uint32_t u32;
+
+    switch (su->family) {
+      case AF_INET:
+        u64 = su->sin.sin_family | (su->sin.sin_port << 16)
+            | ((uint64_t)su->sin.sin_addr.s_addr << 32);
+        return qhash_hash_u64(NULL, u64);
+
+      case AF_INET6:
+        u32 = su->sin6.sin6_family | (su->sin6.sin6_port << 16);
+        return u32 ^ mem_hash32(su->sin6.sin6_addr.s6_addr,
+                                sizeof(su->sin6.sin6_addr.s6_addr));
+
+#ifndef OS_WINDOWS
+      case AF_UNIX:
+        return mem_hash32(&su->sunix, sockunion_len(su));
+#endif
+
+      default:
+        e_panic("unknown kind of sockaddr: %d", su->family);
     }
 }
 
