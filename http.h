@@ -375,9 +375,10 @@ GENERIC_NEW(httpd_trigger_t, httpd_trigger);
 void httpd_trigger_persist(httpd_trigger_t *);
 void httpd_trigger_loose(httpd_trigger_t *);
 
-void httpd_trigger_register_(httpd_trigger_node_t *, const char *path,
-                             httpd_trigger_t *cb);
-void httpd_trigger_unregister_(httpd_trigger_node_t *, const char *path);
+bool httpd_trigger_register_flags(httpd_trigger_node_t *, const char *path,
+                                  httpd_trigger_t *cb, bool overwrite);
+bool httpd_trigger_unregister_(httpd_trigger_node_t *, const char *path,
+                               httpd_trigger_t *cb);
 
 static inline void
 httpd_trigger_set_auth(httpd_trigger_t *cb, httpd_trigger_auth_f *auth,
@@ -390,9 +391,13 @@ httpd_trigger_set_auth(httpd_trigger_t *cb, httpd_trigger_auth_f *auth,
 }
 
 #define httpd_trigger_register(cfg, m, p, cb) \
-    httpd_trigger_register_(&(cfg)->roots[HTTP_METHOD_##m], p, cb)
+    httpd_trigger_register_flags(&(cfg)->roots[HTTP_METHOD_##m], p, cb, true)
+#define httpd_trigger_register2(cfg, m, p, cb, fl) \
+    httpd_trigger_register_flags(&(cfg)->roots[HTTP_METHOD_##m], p, cb, fl)
+#define httpd_trigger_unregister2(cfg, m, p, cb) \
+    httpd_trigger_unregister_(&(cfg)->roots[HTTP_METHOD_##m], p, cb)
 #define httpd_trigger_unregister(cfg, m, p) \
-    httpd_trigger_unregister_(&(cfg)->roots[HTTP_METHOD_##m], p)
+    httpd_trigger_unregister2(cfg, m, p, NULL)
 
 
 /**************************************************************************/

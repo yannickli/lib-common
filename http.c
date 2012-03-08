@@ -798,8 +798,8 @@ static void httpd_trigger_node_wipe(httpd_trigger_node_t *node)
     qm_wipe(http_path, &node->childs);
 }
 
-void httpd_trigger_register_(httpd_trigger_node_t *n, const char *path,
-                             httpd_trigger_t *cb)
+bool httpd_trigger_register_flags(httpd_trigger_node_t *n, const char *path,
+                                  httpd_trigger_t *cb, bool overwrite)
 {
     while (*path == '/')
         path++;
@@ -812,19 +812,28 @@ void httpd_trigger_register_(httpd_trigger_node_t *n, const char *path,
             q++;
         path = q;
     }
+    if (!overwrite && n->cb)
+        return false;
     httpd_trigger_delete(&n->cb);
     n->cb = httpd_trigger_dup(cb);
     if (unlikely(cb->query_cls == NULL))
         cb->query_cls = obj_class(httpd_query);
+    return true;
 }
 
-static bool httpd_trigger_unregister__(httpd_trigger_node_t *n, const char *path)
+static bool httpd_trigger_unregister__(httpd_trigger_node_t *n, const char *path,
+                                       httpd_trigger_t *what, bool *res)
 {
     while (*path == '/')
         path++;
 
     if (!*path) {
-        httpd_trigger_delete(&n->cb);
+        if (!what || n->cb == what) {
+            httpd_trigger_delete(&n->cb);
+            *res = true;
+        } else {
+            *res = false;
+        }
     } else {
         const char *q = strchrnul(path, '/');
         lstr_t      s = LSTR_INIT(path, q - path);
@@ -832,7 +841,7 @@ static bool httpd_trigger_unregister__(httpd_trigger_node_t *n, const char *path
 
         if (pos < 0)
             return false;
-        if (httpd_trigger_unregister__(n->childs.values[pos], q)) {
+        if (httpd_trigger_unregister__(n->childs.values[pos], q, what, res)) {
             httpd_trigger_node_delete(&n->childs.values[pos]);
             qm_del_at(http_path, &n->childs, pos);
         }
@@ -840,9 +849,13 @@ static bool httpd_trigger_unregister__(httpd_trigger_node_t *n, const char *path
     return qm_len(http_path, &n->childs) == 0;
 }
 
-void httpd_trigger_unregister_(httpd_trigger_node_t *n, const char *path)
+bool httpd_trigger_unregister_(httpd_trigger_node_t *n, const char *path,
+                               httpd_trigger_t *what)
 {
-    httpd_trigger_unregister__(n, path);
+    bool res = false;
+
+    httpd_trigger_unregister__(n, path, what, &res);
+    return res;
 }
 
 /* XXX: assumes path is canonical wrt '/' and starts with one */
