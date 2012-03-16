@@ -185,7 +185,7 @@ void qps_bitmap_enumeration_find_dispatch(qps_bitmap_enumerator_t *en,
                                           qps_bitmap_key_t key)
 {
     en->dispatch = NULL;
-    for (int i = key.root; i < QPS_BITMAP_ROOTS; i++) {
+    for (unsigned i = key.root; i < QPS_BITMAP_ROOTS; i++) {
         if (en->map->root->roots[i] != 0) {
             en->key.key  = 0;
             en->key.root = i;
@@ -208,7 +208,7 @@ void qps_bitmap_enumeration_find_leaf(qps_bitmap_enumerator_t *en,
 {
     en->leaf = NULL;
     assert (en->dispatch != NULL);
-    for (int i = key.dispatch; i < QPS_BITMAP_DISPATCH; i++) {
+    for (unsigned i = key.dispatch; i < QPS_BITMAP_DISPATCH; i++) {
         if ((*en->dispatch)[i].node != 0) {
             en->key.word     = 0;
             en->key.bit      = 0;
@@ -238,7 +238,7 @@ void qps_bitmap_enumeration_find_word(qps_bitmap_enumerator_t *en,
 {
     if (en->nullable) {
         assert (en->leaf != NULL);
-        for (int i = key.word_null; i < (int)QPS_BITMAP_WORD; i++) {
+        for (unsigned i = key.word_null; i < QPS_BITMAP_WORD; i++) {
             if (en->leaf[i] != 0) {
                 en->key.bit_null  = 0;
                 en->key.word_null = i;
@@ -254,7 +254,7 @@ void qps_bitmap_enumeration_find_word(qps_bitmap_enumerator_t *en,
 
     } else {
         assert (en->leaf != NULL);
-        for (int i = key.word; i < (int)QPS_BITMAP_WORD; i++) {
+        for (unsigned i = key.word; i < QPS_BITMAP_WORD; i++) {
             if (en->leaf[i] != 0) {
                 en->key.bit  = 0;
                 en->key.word = i;
@@ -447,7 +447,7 @@ void qps_bitmap_enumeration_find_dispatch_nn(qps_bitmap_enumerator_t *en,
                                              qps_bitmap_key_t key)
 {
     en->dispatch = NULL;
-    for (int i = key.root; i < QPS_BITMAP_ROOTS; i++) {
+    for (unsigned i = key.root; i < QPS_BITMAP_ROOTS; i++) {
         if (en->map->root->roots[i] != 0) {
             en->key.key  = 0;
             en->key.root = i;
@@ -470,7 +470,7 @@ void qps_bitmap_enumeration_find_leaf_nn(qps_bitmap_enumerator_t *en,
 {
     en->leaf = NULL;
     assert (en->dispatch != NULL);
-    for (int i = key.dispatch; i < QPS_BITMAP_DISPATCH; i++) {
+    for (unsigned i = key.dispatch; i < QPS_BITMAP_DISPATCH; i++) {
         if ((*en->dispatch)[i].node != 0) {
             en->key.word     = 0;
             en->key.bit      = 0;
@@ -499,7 +499,7 @@ void qps_bitmap_enumeration_find_word_nn(qps_bitmap_enumerator_t *en,
                                          qps_bitmap_key_t key)
 {
     assert (en->leaf != NULL);
-    for (int i = key.word; i < (int)QPS_BITMAP_WORD; i++) {
+    for (unsigned i = key.word; i < QPS_BITMAP_WORD; i++) {
         if (en->leaf[i] != 0) {
             en->key.bit  = 0;
             en->key.word = i;
