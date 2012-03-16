@@ -430,3 +430,45 @@ Z_GROUP_EXPORT(qhp)
 } Z_GROUP_END
 
 /*1}}}*/
+/*{{{1 Red-Black Tree */
+
+typedef struct {
+    rb_node_t link;
+    int       v;
+} rb_test_t;
+GENERIC_FUNCTIONS(rb_test_t, rb_test);
+
+#define RB_TEST_GET_KEY(rb_test)  (rb_test)->v
+
+rb_tree_t(rb_test, rb_test_t, int, link, RB_TEST_GET_KEY, CMP);
+
+Z_GROUP_EXPORT(rbt)
+{
+    Z_TEST(insert, "") {
+        rb_t(rb_test)  rbt;
+        rb_test_t     *t1, *t2;
+
+        rb_init(rb_test, &rbt);
+        t1 = rb_test_new();
+        t2 = rb_test_new();
+
+        t1->v = 2;
+        t2->v = 5;
+
+        Z_ASSERT_NULL(rb_insert(rb_test, &rbt, t1),  "insertion #1");
+        Z_ASSERT_NULL(rb_insert(rb_test, &rbt, t2),  "insertion #2");
+        Z_ASSERT(rb_find(rb_test, &rbt, 2) == t1,  "find #1");
+        Z_ASSERT_NULL(rb_find(rb_test, &rbt, 3), "find #2");
+        Z_ASSERT(rb_find(rb_test, &rbt, 5) == t2,  "find #3");
+        rb_remove(rb_test, &rbt, t1);
+        Z_ASSERT_NULL(rb_find(rb_test, &rbt, 2), "deletion #1");
+        Z_ASSERT(rb_find(rb_test, &rbt, 5) == t2,  "find #4");
+        rb_remove(rb_test, &rbt, t2);
+        Z_ASSERT_NULL(rb_find(rb_test, &rbt, 5), "deletion #2");
+
+        rb_test_delete(&t1);
+        rb_test_delete(&t2);
+    } Z_TEST_END
+} Z_GROUP_END
+
+/*1}}}*/
