@@ -285,10 +285,7 @@ static void httpd_trigger__ic_destroy(httpd_trigger_t *tcb)
 {
     httpd_trigger__ic_t *cb = container_of(tcb, httpd_trigger__ic_t, cb);
 
-    qm_for_each_pos(ichttp_cbs, pos, &cb->impl) {
-        ichttp_cb_delete(&cb->impl.values[pos]);
-    }
-    qm_wipe(ichttp_cbs, &cb->impl);
+    qm_deep_wipe(ichttp_cbs, &cb->impl, IGNORE, ichttp_cb_delete);
     p_delete(&cb);
 }
 
