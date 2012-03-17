@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_MACROS_H)
-#  error "you must include core.h instead"
+# error "you must include core.h instead"
 #else
 #define IS_LIB_COMMON_CORE_MACROS_H
 
@@ -25,43 +25,43 @@
  */
 
 #ifndef __has_feature
-#  define __has_feature(x)  0
+# define __has_feature(x)  0
 #endif
 #ifndef __has_builtin
-#  define __has_builtin(x)  0
+# define __has_builtin(x)  0
 #endif
 #ifndef __has_attribute
-#  define __has_attribute(x)  0
+# define __has_attribute(x)  0
 #endif
 
 /*---------------- GNU extension wrappers ----------------*/
 
 #if defined(__clang__)
-#  undef __GNUC_PREREQ
-#  define __GNUC_PREREQ(maj, min)  0
-#  define __CLANG_PREREQ(maj, min) \
-	((__clang_major__ << 16) + __clang_minor__ >= ((maj) << 16) + (min))
+# undef __GNUC_PREREQ
+# define __GNUC_PREREQ(maj, min)  0
+# define __CLANG_PREREQ(maj, min) \
+    ((__clang_major__ << 16) + __clang_minor__ >= ((maj) << 16) + (min))
 #else
-#  undef __CLANG_PREREQ
-#  define __CLANG_PREREQ(maj, min)  0
-#  if !defined(__GNUC_PREREQ) && defined(__GNUC__) && defined(__GNUC_MINOR__)
-#    define __GNUC_PREREQ(maj, min) \
+# undef __CLANG_PREREQ
+# define __CLANG_PREREQ(maj, min)  0
+# if !defined(__GNUC_PREREQ) && defined(__GNUC__) && defined(__GNUC_MINOR__)
+#   define __GNUC_PREREQ(maj, min) \
         ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
-#  elif !defined(__GNUC_PREREQ)
-#    define __GNUC_PREREQ(maj, min)   0
-#  endif
+# elif !defined(__GNUC_PREREQ)
+#   define __GNUC_PREREQ(maj, min)   0
+# endif
 #endif
 
 #if !defined(__doxygen_mode__)
-#  if !__GNUC_PREREQ(3, 0) && !defined(__clang__)
-#    define __attribute__(attr)
-#  endif
-#  if !defined(__GNUC__) || defined(__cplusplus)
-#    define __must_be_array(a)   0
-#  else
-#    define __must_be_array(a) \
+# if !__GNUC_PREREQ(3, 0) && !defined(__clang__)
+#   define __attribute__(attr)
+# endif
+# if !defined(__GNUC__) || defined(__cplusplus)
+#   define __must_be_array(a)   0
+# else
+#   define __must_be_array(a) \
          (sizeof(char[1 - 2 * __builtin_types_compatible_p(typeof(a), typeof(&(a)[0]))]) - 1)
-#  endif
+# endif
 
 /*
  * __attr_unused__             => unused vars
@@ -69,67 +69,67 @@
  * __attr_printf__(pos_fmt, pos_first_arg) => printf format
  * __attr_scanf__(pos_fmt, pos_first_arg) => scanf format
  */
-#  define __unused__             __attribute__((unused))
-#  define __must_check__         __attribute__((warn_unused_result))
-#  define __attr_noreturn__      __attribute__((noreturn))
-#  define __attr_nonnull__(l)    __attribute__((nonnull l))
-#  define __attr_printf__(a, b)  __attribute__((format(printf, a, b)))
-#  define __attr_scanf__(a, b)   __attribute__((format(scanf, a, b)))
+# define __unused__             __attribute__((unused))
+# define __must_check__         __attribute__((warn_unused_result))
+# define __attr_noreturn__      __attribute__((noreturn))
+# define __attr_nonnull__(l)    __attribute__((nonnull l))
+# define __attr_printf__(a, b)  __attribute__((format(printf, a, b)))
+# define __attr_scanf__(a, b)   __attribute__((format(scanf, a, b)))
 #endif
 
 #ifdef __GNUC__
-#  ifndef EXPORT
-#    define EXPORT  extern __attribute__((visibility("default")))
-#  endif
-#  define HIDDEN    extern __attribute__((visibility("hidden")))
-#  ifdef __OPTIMIZE__
-#    if __GNUC_PREREQ(4, 3) || __has_attribute(artificial)
-#      define ALWAYS_INLINE inline __attribute__((always_inline,artificial))
-#    else
-#      define ALWAYS_INLINE inline __attribute__((always_inline))
-#    endif
-#  else
-#    define ALWAYS_INLINE inline
-#  endif
-#  define NEVER_INLINE __attribute__((noinline))
-#  if __GNUC_PREREQ(4, 5) || defined(__clang__)
-#    define __deprecated__(msg)    __attribute__((deprecated(msg)))
-#  else
-#    define __deprecated__(msg)    __attribute__((deprecated))
-#  endif
+# ifndef EXPORT
+#   define EXPORT  extern __attribute__((visibility("default")))
+# endif
+# define HIDDEN    extern __attribute__((visibility("hidden")))
+# ifdef __OPTIMIZE__
+#   if __GNUC_PREREQ(4, 3) || __has_attribute(artificial)
+#     define ALWAYS_INLINE inline __attribute__((always_inline,artificial))
+#   else
+#     define ALWAYS_INLINE inline __attribute__((always_inline))
+#   endif
+# else
+#   define ALWAYS_INLINE inline
+# endif
+# define NEVER_INLINE __attribute__((noinline))
+# if __GNUC_PREREQ(4, 5) || defined(__clang__)
+#   define __deprecated__(msg)    __attribute__((deprecated(msg)))
+# else
+#   define __deprecated__(msg)    __attribute__((deprecated))
+# endif
 #else
-#  ifndef EXPORT
-#    define EXPORT  extern
-#  endif
-#  define HIDDEN    extern
-#  define ALWAYS_INLINE inline
-#  define NEVER_INLINE __attribute__((noinline))
+# ifndef EXPORT
+#   define EXPORT  extern
+# endif
+# define HIDDEN    extern
+# define ALWAYS_INLINE inline
+# define NEVER_INLINE __attribute__((noinline))
 #endif
 
 #if __GNUC_PREREQ(4, 1) || __has_attribute(flatten)
-#  define __flatten __attribute__((flatten))
+# define __flatten __attribute__((flatten))
 #else
-#  define __flatten
+# define __flatten
 #endif
 
 #if __GNUC_PREREQ(4, 3) || __has_attribute(cold)
-#  define __cold __attribute__((cold))
+# define __cold __attribute__((cold))
 #else
-#  define __cold
+# define __cold
 #endif
 
 #if __GNUC_PREREQ(4, 6) || __has_attribute(leaf)
-#  define __leaf __attribute__((leaf))
+# define __leaf __attribute__((leaf))
 #else
-#  define __leaf
+# define __leaf
 #endif
 
 #ifdef __GNUC__
-#  define likely(expr)     __builtin_expect(!!(expr), 1)
-#  define unlikely(expr)   __builtin_expect((expr), 0)
+# define likely(expr)     __builtin_expect(!!(expr), 1)
+# define unlikely(expr)   __builtin_expect((expr), 0)
 #else
-#  define likely(expr)     (expr)
-#  define unlikely(expr)   (expr)
+# define likely(expr)     (expr)
+# define unlikely(expr)   (expr)
 #endif
 
 
@@ -140,20 +140,20 @@
  *
  */
 #ifndef __cplusplus
-#ifdef __GNUC__
-#  define __error__(msg)          (void)({__asm__(".error \""msg"\"");})
-#  define STATIC_ASSERT(cond) \
-      __builtin_choose_expr(cond, (void)0, \
-                            __error__("static assertion failed: "#cond""))
-#  define ASSERT_COMPATIBLE(e1, e2) \
-    STATIC_ASSERT(__builtin_types_compatible_p(typeof(e1), typeof(e2)))
+# ifdef __GNUC__
+#   define __error__(msg)          (void)({__asm__(".error \""msg"\"");})
+#   define STATIC_ASSERT(cond) \
+       __builtin_choose_expr(cond, (void)0, \
+                             __error__("static assertion failed: "#cond""))
+#   define ASSERT_COMPATIBLE(e1, e2) \
+     STATIC_ASSERT(__builtin_types_compatible_p(typeof(e1), typeof(e2)))
+# else
+#   define __error__(msg)            0
+#   define STATIC_ASSERT(condition)  ((void)sizeof(char[1 - 2 * !(condition)]))
+#   define ASSERT_COMPATIBLE(e1, e2)
+# endif
 #else
-#  define __error__(msg)            0
-#  define STATIC_ASSERT(condition)  ((void)sizeof(char[1 - 2 * !(condition)]))
-#  define ASSERT_COMPATIBLE(e1, e2)
-#endif
-#else
-#  define ASSERT_COMPATIBLE(e1, e2)
+# define ASSERT_COMPATIBLE(e1, e2)
 #endif
 
 /** \brief Forcefully ignore the value of an expression.
@@ -184,17 +184,17 @@
 #endif
 
 #ifdef __SPARSE__
-#  define __bitwise__   __attribute__((bitwise))
-#  define force_cast(type, expr)    (__attribute__((force)) type)(expr)
-#  define __acquires(x)  __attribute__((context(x, 0, 1)))
-#  define __releases(x)  __attribute__((context(x, 1, 0)))
-#  define __needlock(x)  __attribute__((context(x, 1, 1)))
+# define __bitwise__   __attribute__((bitwise))
+# define force_cast(type, expr)    (__attribute__((force)) type)(expr)
+# define __acquires(x)  __attribute__((context(x, 0, 1)))
+# define __releases(x)  __attribute__((context(x, 1, 0)))
+# define __needlock(x)  __attribute__((context(x, 1, 1)))
 #else
-#  define __bitwise__
-#  define force_cast(type, expr)    (expr)
-#  define __acquires(x)
-#  define __releases(x)
-#  define __needlock(x)
+# define __bitwise__
+# define force_cast(type, expr)    (expr)
+# define __acquires(x)
+# define __releases(x)
+# define __needlock(x)
 #endif
 
 /*---------------- useful expressions ----------------*/
@@ -259,10 +259,10 @@
 
 
 #ifdef CMP
-#error CMP already defined
+# error CMP already defined
 #endif
 #ifdef SIGN
-#error SIGN already defined
+# error SIGN already defined
 #endif
 
 enum sign {
@@ -353,11 +353,11 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
 #define XOR_BIT(bits, n)    (void)OP_BIT(bits, n, bitsizeof(*(bits)), ^= )
 
 #ifdef __GNUC__
-#  define container_of(obj, type_t, member) \
+# define container_of(obj, type_t, member) \
       ({ const typeof(cast(type_t *, 0)->member) *__mptr = (obj);              \
          cast(type_t *, cast(char *, __mptr) - offsetof(type_t, member)); })
 #else
-#  define container_of(obj, type_t, member) \
+# define container_of(obj, type_t, member) \
       cast(type_t *, cast(char *, (obj)) - offsetof(type_t, member))
 #endif
 
