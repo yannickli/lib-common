@@ -40,9 +40,15 @@ static void thr_hooks_at_exit(void *unused)
     }
 }
 
+static void thr_hooks_atfork_in_child(void)
+{
+    _G.key_once = PTHREAD_ONCE_INIT;
+}
+
 static void thr_hooks_key_setup(void)
 {
     pthread_key_create(&_G.key, thr_hooks_at_exit);
+    pthread_atfork(NULL, NULL, thr_hooks_atfork_in_child);
 }
 
 static void thr_hooks_at_init(void)
