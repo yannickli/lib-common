@@ -158,6 +158,7 @@ pkg_config_setvar "sqlite"  "libsqlite3-dev" "sqlite3"
 check_tool luac lua5.1
 
 pkg_config_setvar "imlib2"  "libimlib2-dev" "imlib2"
+pkg_config_setvar "pcre"    "libpcre3-dev"  "libpcre"
 
 # }}}
 # {{{ libv8-dev
@@ -333,7 +334,5 @@ if pkg-config --print-errors xmlsec1; then
 else
     warn "libxmlsec1-dev is missing (apt-get install libxmlsec1-dev)"
 fi
-
-#}}}
 
 test -z "$missing_dep" || die "Missing dependencies, please upgrade your system"
