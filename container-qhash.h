@@ -496,6 +496,15 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
        if (likely(__pos >= 0)) qh_del_at(name, qh, __pos);               \
        __pos; })
 
+#define qh_deep_wipe(name, h, wipe)                                      \
+    do {                                                                 \
+        qh_t(name) *__h = (h);                                           \
+        qh_for_each_pos(name, __pos, __h) {                              \
+            wipe(&(__h)->values[__pos]);                                 \
+        }                                                                \
+        qh_wipe(name, __h);                                              \
+    } while (0)
+
 #define qm_for_each_pos(name, pos, h)       qhash_for_each_pos(pos, &(h)->qh)
 #define qm_t(name)                          qm_##name##_t
 #define qm_init(name, qh, chahes)           qm_##name##_init(qh, chahes)
@@ -507,6 +516,16 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qm_find_h(name, qh, h, key)         qm_##name##_find_h(qh, h, key)
 #define qm_find_safe(name, qh, key)         qm_##name##_find_safe(qh, key)
 #define qm_find_safe_h(name, qh, h, key)    qm_##name##_find_safe_h(qh, h, key)
+
+#define qm_deep_wipe(name, h, k_wipe, v_wipe)                            \
+    do {                                                                 \
+        qm_t(name) *__h = (h);                                           \
+        qm_for_each_pos(name, __pos, __h) {                              \
+            k_wipe(&(__h)->keys[__pos]);                                 \
+            v_wipe(&(__h)->values[__pos]);                               \
+        }                                                                \
+        qm_wipe(name, __h);                                              \
+    } while (0)
 
 /** Find-reserve slot to insert {key,v} pair.
  *

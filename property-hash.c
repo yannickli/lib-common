@@ -68,10 +68,7 @@ props_hash_t *props_hash_dup(const props_hash_t *ph)
 
 void props_hash_wipe(props_hash_t *ph)
 {
-    qm_for_each_pos(proph, i, &ph->h) {
-        p_delete(&ph->h.values[i]);
-    }
-    qm_wipe(proph, &ph->h);
+    qm_deep_wipe(proph, &ph->h, IGNORE, p_delete);
     p_delete(&ph->name);
 }
 
