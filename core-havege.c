@@ -247,6 +247,59 @@ double ha_rand_ranged(double first, double last)
     return first + (ha_rand() * (last - first + 1)) / (1ULL << 32);
 }
 
+/*
+ RFC 4122
+      0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                          time_low                             |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |       time_mid                |         time_hi_and_version   |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |clk_seq_hi_res |  clk_seq_low  |         node (0-1)            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                         node (2-5)                            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+ §4.4:
+   +--------+--------+--------+--------+
+   |........|........|........|........|
+   |........|........|0100....|........|
+   |10......|........|........|........|
+   |........|........|........|........|
+   +--------+--------+--------+--------+
+
+  IOW gives a uuid under the form:
+    xxxxxxxx-xxxx-4xxx-[89ab]xxx-xxxxxxxxxxxx
+*/
+void ha_uuid_generate_v4(ha_uuid_t uuid)
+{
+    ((uint32_t *)uuid)[0] = ha_rand();
+    ((uint32_t *)uuid)[1] = ha_rand();
+    ((uint32_t *)uuid)[2] = ha_rand();
+    ((uint32_t *)uuid)[3] = ha_rand();
+
+    uuid[6] = (uuid[6] & 0x0f) | 0x40;
+    uuid[8] = (uuid[8] & 0x3f) | 0x80;
+}
+
+void __ha_uuid_fmt(char buf[static HA_UUID_HEX_LEN], ha_uuid_t uuid)
+{
+    char *p = buf;
+
+    for (int i = 0; i < 16; i++) {
+        if (i == 4 || i == 6 || i == 8 || i == 10)
+            *p++ = '-';
+        *p++ = __str_digits_lower[uuid[i] >> 4];
+        *p++ = __str_digits_lower[uuid[i] & 15];
+    }
+}
+
+void sb_add_uuid(sb_t *sb, ha_uuid_t uuid)
+{
+    __ha_uuid_fmt(sb_growlen(sb, HA_UUID_HEX_LEN), uuid);
+}
+
 #if defined(XYSSL_RAND_TEST)
 
 int main(int argc, char *argv[])
