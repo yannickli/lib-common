@@ -83,8 +83,8 @@ $5: $3 | _generated
 	$$(if $$(NOCHECK_),,clang $(CLANGFLAGS) $$(FLAGS_) \
 	    -O0 -fsyntax-only -o /dev/null $3)
 	$(msg/COMPILE.c) $3
-	$$(C_) $$(F_) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
-	    $(if $(findstring .pic,$4),-fPIC) -g -c -o $5 $3
+	$$(C_) -g $$(F_) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
+	    $(if $(findstring .pic,$4),-fPIC) -c -o $5 $3
 	$(call fun/obj-compress,$5)
 -include $5.d
 endef
@@ -113,8 +113,8 @@ $5: $3 | _generated
 	$$(if $$(NOCHECK_),,clang++ $(CLANGXXFLAGS) $$(FLAGS_) \
 	    -O0 -fsyntax-only -o /dev/null $3)
 	$(msg/COMPILE.C) $3
-	$$(C_) $$(F_) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
-	    $(if $(findstring .pic,$4),-fPIC) -g -c -o $5 $3
+	$$(C_) -g $$(F_) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
+	    $(if $(findstring .pic,$4),-fPIC) -c -o $5 $3
 	$(call fun/obj-compress,$5)
 -include $5.d
 endef

@@ -13,8 +13,8 @@
 
 include $(var/cfgdir)/profile-default.mk
 CFLAGS := $(filter-out -O%,$(CFLAGS))
-CFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions
-CXXFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions
+CFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions -g3
+CXXFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions -g3
 
 ifneq ($(filter %clang,$(CC)),)
 	CFLAGS += -ftrapv -fcatch-undefined-behavior
