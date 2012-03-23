@@ -93,6 +93,9 @@
 
 #define IOP_OPT_ISSET(_v)  ((_v).has_field == true)
 #define IOP_OPT_VAL(_v)    ((_v).v)
+#define IOP_OPT_DEFVAL(_v, _defval)                   \
+    ({ typeof(_v) __v = (_v);                         \
+       (__v).has_field ? (__v).v : (_defval); })
 
 #define IOP_OPT_SET(dst, val)  \
     ({ typeof(dst) *_dst = &(dst); _dst->has_field = true; _dst->v = (val); })
