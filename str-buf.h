@@ -65,6 +65,7 @@ typedef struct sb_t {
     unsigned int skip : 30;
 #ifdef __cplusplus
     inline sb_t();
+    inline sb_t(void *buf, int len, int size, int pool);
     inline ~sb_t();
 
   private:
@@ -108,18 +109,18 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, int mem_pool)
     sb_init_full(sb, memset(alloca(sz), 0, 1), 0, (sz), MEM_STATIC)
 
 #ifdef __cplusplus
-#define SB(name, sz)                                    \
-    STATIC_ASSERT((sz) < (64 << 10));                   \
-    sb_t name;                                          \
-    sb_inita(&name, sz)
+#define SB(name, sz)    sb_t name(alloca(sz), 0, sz, MEM_STATIC)
+#define t_SB(name, sz)  sb_t name(t_new_raw(char, sz), 0, sz, MEM_STACK)
 #else
-#define SB(name, sz) \
-    sb_t name = {                                       \
-        .data = memset(alloca(sz), 0, 1),               \
-        .size = (STATIC_ASSERT((sz) < (64 << 10)), sz), \
-    }
+#define SB_INIT(buf, length, sz, pool) \
+    {   .data = (((char *)(buf))[length] = '\0', (buf)), \
+        .len  = length, .size = sz, .mem_pool = pool }
+#define SB(name, sz)    sb_t name = SB_INIT(alloca(sz), 0, sz, MEM_STATIC)
+#define t_SB(name, sz)  sb_t name = SB_INIT(t_new_raw(char, sz), 0, sz, MEM_STACK)
 #endif
 
+#define t_SB_1k(name)  t_SB(name, 1 << 10)
+#define t_SB_8k(name)  t_SB(name, 8 << 10)
 #define SB_1k(name)    SB(name, 1 << 10)
 #define SB_8k(name)    SB(name, 8 << 10)
 
@@ -145,6 +146,15 @@ sb_t::sb_t() :
     mem_pool(MEM_STATIC),
     skip(0)
 {
+}
+sb_t::sb_t(void *buf, int len_, int size_, int pool) :
+    data(static_cast<char *>(buf)),
+    len(len_),
+    size(size_),
+    mem_pool(pool),
+    skip(0)
+{
+    buf[len] = '\0';
 }
 sb_t::~sb_t() { sb_wipe(this); }
 #endif
