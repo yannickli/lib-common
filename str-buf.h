@@ -154,7 +154,7 @@ sb_t::sb_t(void *buf, int len_, int size_, int pool) :
     mem_pool(pool),
     skip(0)
 {
-    buf[len] = '\0';
+    data[len] = '\0';
 }
 sb_t::~sb_t() { sb_wipe(this); }
 #endif
