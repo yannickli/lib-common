@@ -970,7 +970,7 @@ static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
 
     snprintf(buf, sizeof(buf), "%08x.qps", no);
     if ((fd = openat(qps->dfd, buf, O_RDWR, 0644)) < 0) {
-        e_error("QPS(%p:%s): unable to create: %m", qps, buf);
+        e_error("QPS(%p:%s): unable to open: %m", qps, buf);
         return NULL;
     }
     if (fstat(fd, &st) < 0 || st.st_size != QPS_MAP_SIZE) {
