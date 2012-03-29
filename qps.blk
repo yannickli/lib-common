@@ -22,6 +22,7 @@
 #include <lib-common/el.h>
 #include <dirent.h>
 #include "qps.h"
+#include "sort.h"
 
 static struct {
     dlist_t qps_head;
@@ -627,9 +628,9 @@ static int qps_smaps_find(qv_t(qpsm) const *tab, const void *addr, bool wantit)
     return l;
 }
 
-static void qps_map_recycle(qps_t *qps, qps_map_t *map, uint16_t no)
+static void
+qps_map_recycle(qps_t *qps, qps_map_t *map, uint16_t no, bool quarantine)
 {
-    char buf[32];
     int pos;
 
     e_named_trace(1, "qps/gc", "map %x recycled on %p", map->hdr.mapno, qps);
@@ -641,13 +642,29 @@ static void qps_map_recycle(qps_t *qps, qps_map_t *map, uint16_t no)
         qv_remove(qpsm, &qps->smaps, pos);
     qv_append(qpsm, &qps->omaps, map);
 
-    /* remove the potential file on disk */
-    snprintf(buf, sizeof(buf), "%08x.qps", no);
-    unlinkat(qps->dfd, buf, 0);
+    /* quarantine the map id until the next snapshot */
+    if (quarantine)
+        qv_append(u32, &qps->no_blocked, no);
 
     /* keep the address around */
     x_mmap(map, QPS_MAP_SIZE, PROT_NONE,
            MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+}
+
+static void qps_unquarantine_nos(qps_t *qps)
+{
+    char buf[32];
+
+    qv_splice(u32, &qps->no_free, qps->no_free.len, 0,
+              qps->no_blocked.tab, qps->no_blocked.len);
+    dsort32(qps->no_free.tab, qps->no_free.len);
+
+    for (int i = 0; i < qps->no_blocked.len; i++) {
+         /* remove the potential file on disk */
+         snprintf(buf, sizeof(buf), "%08x.qps", qps->no_blocked.tab[i]);
+         unlinkat(qps->dfd, buf, 0);
+    }
+    qv_clear(u32, &qps->no_blocked);
 }
 
 /** Maps a file of size QPS_MAP_SIZE.
@@ -737,11 +754,9 @@ static uint32_t qps_map_find_no(qps_t *qps)
 {
     int no = qps->maps.len;
 
-    qv_for_each_pos(qpsm, i, &qps->maps) {
-        if (qps->maps.tab[i] == NULL) {
-            no = i;
-            break;
-        }
+    if (qps->no_free.len) {
+        no = *qv_last(u32, &qps->no_free);
+        qv_shrink(u32, &qps->no_free, 1);
     }
 
     qps_alloc_hdrs(qps, qps->maps.len, no);
@@ -755,7 +770,10 @@ static qps_map_t *qps_map_m_create_raw(qps_t *qps, uint32_t no)
     int fd;
 
     snprintf(buf, sizeof(buf), "%08x.qps", no);
-    unlinkat(qps->dfd, buf, 0);
+    if (unlinkat(qps->dfd, buf, 0) < 0) {
+        if (errno != ENOENT)
+            qps_enospc("unlinkat");
+    }
     fd = x_openat(qps->dfd, buf, O_RDWR | O_CREAT | O_EXCL, 0644);
     x_ftruncate(fd, QPS_MAP_SIZE);
 
@@ -957,7 +975,7 @@ static qps_map_t *qps_pg_map_open(qps_t *qps, uint32_t no, uint32_t gen)
                 gzerror(zin, NULL));
         gzclose(zin);
     }
-    qps_map_recycle(qps, map, no);
+    qps_map_recycle(qps, map, no, false);
     return NULL;
 }
 
@@ -970,7 +988,7 @@ static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
 
     snprintf(buf, sizeof(buf), "%08x.qps", no);
     if ((fd = openat(qps->dfd, buf, O_RDWR, 0644)) < 0) {
-        e_error("QPS(%p:%s): unable to create: %m", qps, buf);
+        e_error("QPS(%p:%s): unable to open: %m", qps, buf);
         return NULL;
     }
     if (fstat(fd, &st) < 0 || st.st_size != QPS_MAP_SIZE) {
@@ -993,7 +1011,7 @@ static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
     return map;
 
   err_unmap:
-    qps_map_recycle(qps, map, no);
+    qps_map_recycle(qps, map, no, true);
     return NULL;
 
   err_close:
@@ -1068,6 +1086,13 @@ static void qps_on_segfault(int signum, siginfo_t *si, void *uc)
 /** @{ \name Internal: meta-data helpers */
 /* {{{ */
 
+/* XXX: this is an unsafe operation since it *can* destroy files we don't want
+ * to once a GC has been run, so never run it after a GC has taken place.
+ *
+ * Only safe moments are:
+ *   - just after opening a QPS;
+ *   - after a snapshot has taken place and before any GC has taken place.
+ */
 static void qps_dir_cleanup(qps_t *qps, uint32_t gen)
 {
     struct dirent *de;
@@ -1291,6 +1316,8 @@ static int qps_load_meta(qps_t *qps, sb_t *out)
             e_error("QPS(%p:meta): inconsistent meta.qps [2]", qps);
             goto err_unmap;
         }
+        for (uint32_t i = qps->maps.len; i < no; i++)
+            qv_append(u32, &qps->no_free, i);
 
         qps_alloc_hdrs(qps, qps->maps.len, no);
         if (u32[0] & QPS_META_MAP_TLSF) {
@@ -1309,7 +1336,7 @@ static int qps_load_meta(qps_t *qps, sb_t *out)
                 goto err_unmap;
             }
             if (map->hdr.remaining == 0)
-                qps_map_recycle(qps, map, no);
+                qps_map_recycle(qps, map, no, true);
         } else
         if (!(u32[0] & QPS_META_MAP_PAGED)) {
             e_error("QPS(%p:meta): inconsistent meta.qps [6]", qps);
@@ -1503,7 +1530,7 @@ static void qps_gc(qps_t *qps, uint32_t gc_gen)
 
         if (qps_gc_compact(qps, no, map, maps) < 0) {
             qps->gc_map = NULL;
-            qps_map_recycle(qps, map, no);
+            qps_map_recycle(qps, map, no, true);
             goto end;
         }
         return;
@@ -2471,10 +2498,11 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
                 if (QPS_GEN_CMP(map->hdr.generation, >, generation))
                     continue;
                 if (map->hdr.remaining == 0)
-                    qps_map_recycle(qps, map, i);
+                    qps_map_recycle(qps, map, i, false);
             }
 
             qps_dir_cleanup(qps, generation);
+            qps_unquarantine_nos(qps);
             notify(generation);
             qps->snapshotting = false;
         });
@@ -2533,6 +2561,8 @@ void qps_close(qps_t **qpsp)
         qv_wipe(qpsm, &qps->maps);
         qv_wipe(qpsm, &qps->smaps);
         qv_wipe(qpsm, &qps->omaps);
+        qv_wipe(u32, &qps->no_free);
+        qv_wipe(u32, &qps->no_blocked);
         p_delete(&qps->handles);
         p_delete(&qps->hdrs);
         dlist_remove(&qps->qps_link);

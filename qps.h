@@ -226,6 +226,8 @@ typedef struct qps_t {
     qv_t(qpsm)   maps;
     qv_t(qpsm)   smaps;
     qv_t(qpsm)   omaps;
+    qv_t(u32)    no_free;
+    qv_t(u32)    no_blocked;
     dlist_t      qps_link;
 
 #define QPS_HANDLES_PAGES   (QPS_HANDLES_COUNT * sizeof(qps_ptr_t) / QPS_PAGE_SIZE)
