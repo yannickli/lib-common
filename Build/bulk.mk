@@ -116,6 +116,11 @@ tags: | __setup_buildsys_trampoline
 	cd $/ && ctags -o .tags --recurse=yes --totals=yes --links=no \
 	    --c-kinds=+p --c++-kinds=+p --fields=+iaS --extra=+q \
 	    --langmap=c:+.blk --langmap=c++:+.blkk \
+	    --langdef=iop --langmap=iop:.iop \
+	    --regex-iop='/^struct[ ]*([a-zA-Z]+)/\1/s, struct/' \
+	    --regex-iop='/^union[ ]*([a-zA-Z]+)/\1/u, union/' \
+	    --regex-iop='/^enum[ ]*([a-zA-Z]+)/\1/e, enum/' \
+	    --regex-iop='/^interface[ ]*([a-zA-Z]+)/\1/n, interface/' \
 	    --exclude=".build*" --exclude="Build" --exclude="Config" \
 	    --exclude=".git" --exclude=".svn" --exclude="CVS" \
 	    --exclude="old" --exclude="new" --exclude="ogu" --exclude="xxx" \
