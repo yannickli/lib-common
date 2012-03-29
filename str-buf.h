@@ -532,4 +532,10 @@ int  sb_conv_to_gsm7(sb_t *sb, int gsm_start, const char *utf8, int unknown,
                      gsm_conv_plan_t plan);
 int  sb_conv_from_gsm7(sb_t *sb, const void *src, int gsmlen, int udhlen);
 
+/**************************************************************************/
+/* misc helpers                                                           */
+/**************************************************************************/
+
+#define SB_FMT_ARG(sb)  (sb)->len, (sb)->data
+
 #endif /* IS_LIB_COMMON_STR_BUF_H */
