@@ -2194,6 +2194,36 @@ qps_t *qps_open(const char *path, sb_t *priv)
     return NULL;
 }
 
+int __qps_check_consistency(const char *path)
+{
+    struct stat st;
+    qps_t      *qps;
+    int         fd, res = 0;
+
+    fd  = RETHROW(open(path, O_RDONLY));
+    qps = qps_new();
+    qps->dfd = fd;
+
+    if (fstatat(fd, "meta.qps", &st, 0) < 0) {
+        res = e_error("QPS(%p): unable to stat meta.qps: %m", qps);
+        goto out_close;
+    }
+    /* empty meta.qps means empty qps */
+    if (st.st_size == 0) {
+        e_named_trace(1, "qps", "qps_open() = %p", qps);
+        goto out_close;
+    }
+
+    if ((res = qps_load_meta(qps, NULL)))
+        goto out_close;
+    e_named_trace(1, "qps", "qps_open() = %p", qps);
+    qps_m_check_maps(qps, true);
+
+  out_close:
+    qps_close(&qps);
+    return res;
+}
+
 /** check if the given directory seems to hold a qps store.
  * \param[in]  path   path to the qps spool
  * \return

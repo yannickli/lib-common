@@ -25,6 +25,7 @@
 /ztst-iprintf-speed
 /ztst-lzo
 /ztst-qps
+/ztst-qpscheck
 /ztst-sort
 /ztst-thrjob
 /ztst-tpl

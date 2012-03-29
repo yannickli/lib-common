@@ -277,6 +277,7 @@ struct qps_stats {
 
 qps_t    *qps_create(const char *path, mode_t mode);
 qps_t    *qps_open(const char *path, sb_t *priv);
+int       __qps_check_consistency(const char *path);
 bool      qps_exists(const char *path);
 int       qps_unlink(const char *path);
 void      qps_close(qps_t **qps);

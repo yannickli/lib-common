@@ -1,0 +1,30 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2011 INTERSEC SAS                                  */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+#include "qps.h"
+
+int main(int argc, const char **argv)
+{
+    int res = 0;
+
+    thr_initialize();
+    qps_initialize(NULL);
+
+    for (int i = 1; i < argc; i++) {
+        if (__qps_check_consistency(argv[i]))
+            res = e_error("inconsistent qps: %s", argv[i]);
+    }
+
+    thr_shutdown();
+    return res;
+}
