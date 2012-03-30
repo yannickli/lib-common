@@ -45,7 +45,7 @@ fi
 _err=0
 while read t; do
     say_color info "starting suite $t..."
-    if Z_HARNESS=1 Z_TAG_SKIP="slow upgrade" Z_MODE="fast" ./"$t"; then
+    if Z_HARNESS=1 Z_TAG_SKIP="${Z_TAG_SKIP:-slow upgrade}" Z_MODE="${Z_MODE:-fast}" ./"$t"; then
         say_color pass "done"
     else
         _err=1
