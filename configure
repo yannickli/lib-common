@@ -93,6 +93,10 @@ prereq() {
     return 0
 }
 
+ruby_var() {
+    echo $(ruby -rrbconfig -e "puts(RbConfig::CONFIG['$1'] || RbConfig::CONFIG['$2'] || '')")
+}
+
 # }}}
 
 while test $# != 0; do
@@ -138,7 +142,7 @@ if ! prereq "$IOPC_VER" "$(iopc --version)"; then
 fi
 setenv "IOPC" "$(which iopc)"
 
-for tool in clang clang++ flex gperf mtasc swfmill xsltproc scons; do
+for tool in clang clang++ flex gperf mtasc swfmill xsltproc scons ruby python; do
     check_tool $tool $tool
 done
 setenv "CLANG"   "$(which clang)"
@@ -321,6 +325,73 @@ if which geos-config 1>/dev/null 2>/dev/null; then
 else
     warn "libgeos-dev is missing, apt-get install libgeos-dev"
 fi
+
+ruby_hdrdir="$(ruby_var rubyhdrdir topdir)"
+ruby_arch="$(ruby_var arch)"
+if [ -f "$ruby_hdrdir/ruby.h" ] && [ -d "$ruby_hdrdir/$ruby_arch" ]; then
+    # Ruby >= 1.9
+    setvar "ruby_CFLAGS" "-I$ruby_hdrdir -I$ruby_hdrdir/$ruby_arch -Wno-strict-prototypes -Wno-redundant-decls -DRUBY_19"
+    setvar "ruby_LIBS" "$(ruby_var SOLIBS)"
+elif [ -f "$ruby_hdrdir/ruby.h" ]; then
+    # Ruby >= 1.8
+    setvar "ruby_CFLAGS" "-I$ruby_hdrdir -Wno-strict-prototypes -Wno-redundant-decls -DRUBY_18"
+    setvar "ruby_LIBS" "$(ruby_var SOLIBS)"
+else
+    warn "ruby headers are missing, apt-get install ruby-dev"
+fi
+
+read_py2ver() {
+    pyver="$(python -V 2>&1)"
+    pyver="${pyver#Python }"
+    pyver_major="${pyver:0:1}"
+    pyver_minor="${pyver:2:1}"
+}
+
+python2_bin="python"
+read_py2ver
+
+case "$pyver_major" in
+    "2")
+        python2_bin="python"
+        python3_bin="python3"
+        ;;
+    "3")
+        python2_bin="python2"
+        python3_bin="python"
+        read_py2ver
+        ;;
+esac
+
+# check that python2 is at least a 2.6
+if [ -n "$pyver_minor" ] && [ "$pyver_minor" -lt 6 ]; then
+    if which python2.7-config &> /dev/null; then
+        python2_bin="python2.7"
+    elif which python2.6-config &> /dev/null; then
+        python2_bin="python2.6"
+    else
+        warn "python >= 2.6 headers are missing, apt-get install python-dev"
+    fi
+fi
+
+if which "${python2_bin}-config" &> /dev/null; then
+    python2_ENABLE=1
+    setenv python2_ENABLE  1
+    setenv python2_CFLAGS  "$(${python2_bin}-config --cflags)"
+    setenv python2_LIBS    "$(${python2_bin}-config --ldflags)"
+fi
+
+if which "${python3_bin}-config" &> /dev/null; then
+    python3_ENABLE=1
+    setenv python3_ENABLE  1
+    setenv python3_CFLAGS  "$(${python3_bin}-config --cflags)"
+    setenv python3_LIBS    "$(${python3_bin}-config --ldflags)"
+    setenv python3_SUFFIX  "$(${python3_bin}-config --extension-suffix)"
+fi
+
+if [ -z "${python2_ENABLE}" ] && [ -z "${python3_ENABLE}" ]; then
+    warn "python headers are missing, apt-get install python-dev"
+fi
+
 
 # }}}
 #{{{ xmlsec
