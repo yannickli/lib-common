@@ -330,6 +330,7 @@ static inline lstr_t lstr_trim(lstr_t s)
     while (s.len && isspace((unsigned char)s.s[s.len - 1]))
         s.len--;
 
+    s.mem_pool = MEM_STATIC;
     return s;
 }
 
