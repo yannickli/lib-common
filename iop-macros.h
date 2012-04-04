@@ -190,6 +190,11 @@
                                      bool single)                            \
     {                                                                        \
         return iop_junpack(ll, &pfx##__s, (void *)v, single);                \
+    }                                                                        \
+    static inline int t_##pfx##__junpack_ps(pstream_t *ps, pfx##__t *v,      \
+                                            int flags, sb_t *errb)           \
+    {                                                                        \
+        return t_iop_junpack_ps(ps, &pfx##__s, (void *)v, flags, errb);      \
     }
 
 #endif

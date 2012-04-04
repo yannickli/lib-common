@@ -107,6 +107,10 @@ int iop_jpack(const iop_struct_t *, const void *value,
               bool strict);
 int iop_junpack(iop_json_lex_t *, const iop_struct_t *, void *,
                 bool single_value);
+
+int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *desc, void *v,
+                     int flags, sb_t *errb);
+
 #ifndef NDEBUG
 void iop_jtrace_(int lvl, const char *fname, int lno, const char *func,
                  const char *name, const iop_struct_t *, const void *);
