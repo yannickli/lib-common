@@ -62,6 +62,7 @@ libcommon_SOURCES = \
 	core-mem-fifo.c \
 	core-mem-ring.c \
 	core-mem-stack.c \
+	core-version.c \
 	core.iop.c \
 	qpage.c \
 	qtlsf.c \
@@ -160,7 +161,6 @@ libcommon_SOURCES = \
 	zlib-wrapper.c \
 	\
 	z.blk
-core-mem.c_DEPENDS = core-version.c
 
 libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 

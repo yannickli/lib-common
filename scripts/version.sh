@@ -24,7 +24,7 @@ git_describe() {
 
 git_rcsid() {
     cat <<EOF
-static char const __attribute__((used)) id[] =
+char const $1_id[] =
     "\$Intersec: $1 $(git_describe | tr -d 'n') \$";
 EOF
 }

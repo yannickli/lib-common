@@ -95,4 +95,9 @@ void *__irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
     }
 }
 
-#include "core-version.c"
+extern const char libcommon_id[];
+const char *__libcomon_version(void);
+const char *__libcomon_version(void)
+{
+    return libcommon_id;
+}
