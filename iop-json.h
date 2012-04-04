@@ -137,4 +137,11 @@ static inline int iop_sb_write(void *_b, const void *buf, int len) {
     return len;
 }
 
+static inline int
+iop_sb_jpack(sb_t *sb, const iop_struct_t *desc, const void *value,
+             bool strict)
+{
+    return iop_jpack(desc, value, &iop_sb_write, sb, strict);
+}
+
 #endif
