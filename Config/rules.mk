@@ -109,6 +109,8 @@ endef
 #}}}
 #[ blocks ]###########################################################{{{#
 
+ifeq ($(filter %clang,$(CC)),)
+
 ext/gen/blk = $(call fun/patsubst-filt,%.blk,%.blk.c,$1)
 
 define ext/expand/blk
@@ -143,5 +145,12 @@ $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/blkk,$1,$2,$$
 $(eval $(call fun/common-depends,$1,$(3:=.cc),$3))
 $(eval $(call ext/rule/cc,$1,$2,$(3:=.cc),$4))
 endef
+
+else
+
+ext/rule/blk  = $(ext/rule/c)
+ext/rule/blkk = $(ext/rule/cc)
+
+endif
 
 #}}}
