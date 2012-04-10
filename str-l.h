@@ -49,6 +49,10 @@ typedef struct lstr_t {
 #define LSTR_PS_V(ps)         LSTR_INIT_V((ps)->s, ps_len(ps))
 #define LSTR_FMT_ARG(s_)      (s_).len, (s_).s
 
+#define LSTR_OPT_STR_V(str)       ({ const char *__s = (str);              \
+                                     __s ? LSTR_INIT_V(__s, strlen(__s))   \
+                                         : LSTR_NULL_V; })
+
 /* obsolete stuff, please try not to use anymore */
 #define clstr_t        lstr_t
 #define clstr_equal    lstr_equal
@@ -77,15 +81,15 @@ static ALWAYS_INLINE lstr_t lstr_init_(const void *s, int len, unsigned flags)
 /** \brief lstr_copy_* helper.
  */
 static ALWAYS_INLINE
-void lstr_copy_(mem_pool_t *mp, lstr_t *out,
+void lstr_copy_(mem_pool_t *mp, lstr_t *dst,
                 const void *s, int len, unsigned flags)
 {
-    if (mp && out->mem_pool == MEM_OTHER) {
-        mp_delete(mp, &out->v);
+    if (mp && dst->mem_pool == MEM_OTHER) {
+        mp_delete(mp, &dst->v);
     } else {
-        ifree(out->v, out->mem_pool);
+        ifree(dst->v, dst->mem_pool);
     }
-    *out = lstr_init_(s, len, flags);
+    *dst = lstr_init_(s, len, flags);
 }
 
 
@@ -224,25 +228,33 @@ static inline lstr_t mp_lstr_dup(mem_pool_t *mp, const lstr_t s)
 
 
 /*--------------------------------------------------------------------------*/
-/** \brief copies a constant of \v s into \v out.
+/** \brief copies a constant of \v s into \v dst.
  */
-static inline void lstr_copyc(lstr_t *out, const lstr_t s)
+static inline void lstr_copyc(lstr_t *dst, const lstr_t s)
 {
-    return lstr_copy_(NULL, out, s.s, s.len, MEM_STATIC);
+    lstr_copy_(NULL, dst, s.s, s.len, MEM_STATIC);
 }
 
 /** \brief sets \v dst to a new libc allocated lstr from its arguments.
  */
 static inline void lstr_copys(lstr_t *dst, const char *s, int len)
 {
-    lstr_copy_(NULL, dst, p_dupz(s, len), len, MEM_LIBC);
+    if (s) {
+        lstr_copy_(NULL, dst, p_dupz(s, len), len, MEM_LIBC);
+    } else {
+        lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
+    }
 }
 
 /** \brief sets \v dst to a new libc allocated lstr from its arguments.
  */
 static inline void lstr_copy(lstr_t *dst, const lstr_t src)
 {
-    lstr_copy_(NULL, dst, p_dupz(src.s, src.len), src.len, MEM_LIBC);
+    if (src.s) {
+        lstr_copy_(NULL, dst, p_dupz(src.s, src.len), src.len, MEM_LIBC);
+    } else {
+        lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
+    }
 }
 
 /** \brief sets \v dst to a new \v mp allocated lstr from its arguments.
@@ -250,14 +262,22 @@ static inline void lstr_copy(lstr_t *dst, const lstr_t src)
 static inline
 void mp_lstr_copys(mem_pool_t *mp, lstr_t *dst, const char *s, int len)
 {
-    lstr_copy_(mp, dst, mp_dupz(mp, s, len), len, MEM_OTHER);
+    if (s) {
+        lstr_copy_(mp, dst, mp_dupz(mp, s, len), len, MEM_OTHER);
+    } else {
+        lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
+    }
 }
 
 /** \brief sets \v dst to a new \v mp allocated lstr from its arguments.
  */
 static inline void mp_lstr_copy(mem_pool_t *mp, lstr_t *dst, const lstr_t src)
 {
-    lstr_copy_(mp, dst, mp_dupz(mp, src.s, src.len), src.len, MEM_OTHER);
+    if (src.s) {
+        lstr_copy_(mp, dst, mp_dupz(mp, src.s, src.len), src.len, MEM_OTHER);
+    } else {
+        lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
+    }
 }
 
 
@@ -266,6 +286,8 @@ static inline void mp_lstr_copy(mem_pool_t *mp, lstr_t *dst, const lstr_t src)
  */
 static inline lstr_t t_lstr_dup(const lstr_t s)
 {
+    if (!s.s)
+        return LSTR_NULL_V;
     return lstr_init_(t_dupz(s.s, s.len), s.len, MEM_STACK);
 }
 
@@ -273,31 +295,47 @@ static inline lstr_t t_lstr_dup(const lstr_t s)
  */
 static inline lstr_t t_lstr_dups(const void *s, int len)
 {
+    if (!s)
+        return LSTR_NULL_V;
     return lstr_init_(t_dupz(s, len), len, MEM_STACK);
 }
 
-/** \brief sets \v out to a mem stack allocated copy of its arguments.
+/** \brief sets \v dst to a mem stack allocated copy of its arguments.
  */
-static inline void t_lstr_copys(lstr_t *out, const void *s, int len)
+static inline void t_lstr_copys(lstr_t *dst, const void *s, int len)
 {
-    return lstr_copy_(NULL, out, t_dupz(s, len), len, MEM_STACK);
+    if (s) {
+        lstr_copy_(NULL, dst, t_dupz(s, len), len, MEM_STACK);
+    } else {
+        lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
+    }
 }
 
-/** \brief sets \v out to a mem stack allocated copy of its arguments.
+/** \brief sets \v dst to a mem stack allocated copy of its arguments.
  */
-static inline void t_lstr_copy(lstr_t *out, const lstr_t s)
+static inline void t_lstr_copy(lstr_t *dst, const lstr_t s)
 {
-    return lstr_copy_(NULL, out, t_dupz(s.s, s.len), s.len, MEM_STACK);
+    if (s.s) {
+        lstr_copy_(NULL, dst, t_dupz(s.s, s.len), s.len, MEM_STACK);
+    } else {
+        lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
+    }
 }
 
 /** \brief concatenates its argument to form a new lstr on the mem stack.
  */
 static inline lstr_t t_lstr_cat(const lstr_t s1, const lstr_t s2)
 {
-    int    len = s1.len + s2.len;
-    lstr_t res = lstr_init_(t_new_raw(char, len + 1), len, MEM_STACK);
-    void  *s   = (void *)res.v;
+    int    len;
+    lstr_t res;
+    void  *s;
 
+    if (unlikely(!s1.s && !s2.s))
+        return LSTR_NULL_V;
+
+    len = s1.len + s2.len;
+    res = lstr_init_(t_new_raw(char, len + 1), len, MEM_STACK);
+    s = (void *)res.v;
     s = mempcpy(s, s1.s, s1.len);
     mempcpyz(s, s2.s, s2.len);
     return res;
@@ -307,10 +345,16 @@ static inline lstr_t t_lstr_cat(const lstr_t s1, const lstr_t s2)
  */
 static inline lstr_t t_lstr_cat3(const lstr_t s1, const lstr_t s2, const lstr_t s3)
 {
-    int    len = s1.len + s2.len + s3.len;
-    lstr_t res = lstr_init_(t_new_raw(char, len + 1), len, MEM_STACK);
-    void  *s   = (void *)res.v;
+    int    len;
+    lstr_t res;
+    void  *s;
 
+    if (unlikely(!s1.s && !s2.s && !s3.s))
+        return LSTR_NULL_V;
+
+    len = s1.len + s2.len + s3.len;
+    res = lstr_init_(t_new_raw(char, len + 1), len, MEM_STACK);
+    s = (void *)res.v;
     s = mempcpy(s, s1.s, s1.len);
     s = mempcpy(s, s2.s, s2.len);
     mempcpyz(s, s3.s, s3.len);
@@ -331,6 +375,7 @@ static inline lstr_t lstr_trim(lstr_t s)
     while (s.len && isspace((unsigned char)s.s[s.len - 1]))
         s.len--;
 
+    s.mem_pool = MEM_STATIC;
     return s;
 }
 

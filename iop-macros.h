@@ -23,6 +23,9 @@
 #define IOP_SBDATA(sb)         (iop_data_t){ .data = (sb)->data,             \
                                              .len  = (sb)->len }
 
+/*----- lstr_t initializers (string) -----*/
+#define IOP_OPT_STR_V(str)     LSTR_OPT_STR_V(str)
+
 /*----- IOP array initializers (repeated) -----*/
 #define IOP_ARRAY(_data, _len)  { { .tab = (_data) }, .len = (_len) }
 #define IOP_ARRAY_EMPTY         IOP_ARRAY(NULL, 0)
