@@ -189,6 +189,10 @@
                  int (*wcb)(void *, const void *, int), void *priv) {        \
         return iop_jpack(&pfx##__s, (const void *)v, wcb, priv, false);      \
     }                                                                        \
+    static inline int                                                        \
+    pfx##__sb_jpack(sb_t *sb, const pfx##__t *v,  bool strict) {             \
+        return iop_sb_jpack(sb, &pfx##__s, v, strict);                       \
+    }                                                                        \
     static inline int pfx##__junpack(iop_json_lex_t *ll, pfx##__t *v,        \
                                      bool single)                            \
     {                                                                        \
