@@ -248,22 +248,22 @@ union MyExceptions {
 
 /* Interfaces */
 interface MyIfaceA {
-    funA in (int a, MyStructA b) out (MyUnionA c, int d);
-    funb out (int a, int b);
-    funC in MyStructA out MyStructB;
-    funD out MyStructA;
-    funE in void out (int a);
-    funF in (int a, int b) out MyStructB;
-    funG;
-    funH in void out void;
-    funI out void;
-    funJ in void;
-    funK in MyStructA out (int a, int b);
-    funL in MyUnionA;
-    funM in MyStructA out (int a, int b) throw (int err);
-    funN in MyStructA out (int a, int b) throw MyAException;
-    funO in MyStructA out (int a, int b) throw MyExceptions;
-    funAsync in (int test) out null;
+    funA      in (int a, MyStructA b)  out (MyUnionA c, int d);
+    funb                               out (int a, int b);
+    funC      in MyStructA             out MyStructB;
+    funD                               out MyStructA;
+    funE      in void                  out (int a);
+    funF      in (int a, int b)        out MyStructB;
+    funG                               out void;
+    funH      in void                  out void;
+    funI                               out void;
+    funJ      in void                  out void;
+    funK      in MyStructA             out (int a, int b);
+    funL      in MyUnionA              out void;
+    funM      in MyStructA             out (int a, int b) throw (int err);
+    funN      in MyStructA             out (int a, int b) throw MyAException;
+    funO      in MyStructA             out (int a, int b) throw MyExceptions;
+    funAsync  in (int test)            out null;
 };
 
 module MyModA {
