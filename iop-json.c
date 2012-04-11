@@ -1330,6 +1330,28 @@ int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *desc, void *value,
     }
 }
 
+int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *desc, void *v,
+                     int flags, sb_t *errb)
+{
+    iop_json_lex_t  jll;
+    int             res = 0;
+
+    iop_jlex_init(t_pool(), &jll);
+    iop_jlex_attach(&jll, ps);
+    jll.flags = flags;
+
+    if (iop_junpack(&jll, desc, v, true) < 0) {
+        res = -1;
+        if (errb) {
+            iop_jlex_write_error(&jll, errb);
+        }
+    }
+
+    iop_jlex_detach(&jll);
+    iop_jlex_wipe(&jll);
+    return res;
+}
+
 /*-}}}-*/
 /* {{{ jpack */
 
