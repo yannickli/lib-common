@@ -989,6 +989,7 @@ qhat_enumerator_t qhat_start_enumeration(qhat_t *trie)
 {
     qhat_enumerator_t en;
 
+    qps_hptr_deref(trie->qps, &trie->root_cache);
     if (trie->root->nullable) {
         p_clear(&en, 1);
         en.trie     = qhat_tree_start_enumeration(trie);
