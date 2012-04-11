@@ -3,7 +3,7 @@
 #
 # = z.rb
 #
-# Copyright (C) 2004-2011 INTERSEC SAS
+# Copyright (C) 2004-2012 INTERSEC SAS
 #
 # Should you receive a copy of this source code, you must check you have
 # a proper, written authorization of INTERSEC to hold it. If you don't have
