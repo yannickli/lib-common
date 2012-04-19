@@ -164,6 +164,16 @@
     static inline int pfx##__from_lstr(const lstr_t s, bool *found)          \
     {                                                                        \
         return iop_enum_from_lstr(&pfx##__e, s, found);                      \
+    }                                                                        \
+    static inline bool pfx##__exists(pfx##__t v)                             \
+    {                                                                        \
+        return iop_ranges_search(pfx##__e.ranges, pfx##__e.ranges_len,       \
+                                 v) >= 0;                                    \
+    }                                                                        \
+    static inline int pfx##__check(pfx##__t v)                               \
+    {                                                                        \
+        RETURN_UNLESS(pfx##__e.flags & IOP_ENUM_STRICT, 0);                  \
+        return pfx##__exists(v) ? 0 : -1;                                    \
     }
 
 #define IOP_GENERIC(pfx) \
