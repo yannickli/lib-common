@@ -135,8 +135,9 @@ static ev_t *el_create(ev_type_t type, void *cb, el_data_t priv, bool ref)
     *res = (ev_t){
         .type   = type,
         .cb.cb  = cb,
-        { .priv = priv }
     };
+    res->priv = priv;
+
     return ref ? el_ref(res) : res;
 }
 
