@@ -927,11 +927,23 @@ static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
     assert (ic->cancel_guard == false);
 
     if (!msg->async) {
+        bool start = ic->nextslot;
+
         do {
             if (ic->nextslot == IC_MSG_SLOT_MASK) {
                 ic->nextslot = 1;
             } else {
                 ic->nextslot++;
+            }
+            if (unlikely(ic->nextslot == start)) {
+                /* can't find a free slot, abort this query */
+                if (msg->cb == IC_PROXY_MAGIC_CB) {
+                    ic_proxify(ic, msg, -IC_MSG_ABORT, NULL, 0);
+                } else {
+                    (*msg->cb)(ic, msg, IC_MSG_ABORT, NULL, NULL);
+                }
+                ic_msg_delete(&msg);
+                return;
             }
             msg->slot = ic->nextslot;
         } while (qm_add(ic_msg, &ic->queries, msg->slot, msg));
