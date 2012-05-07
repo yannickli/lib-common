@@ -18,6 +18,14 @@ ifneq (,$(shell ld --help | grep compress-debug-sections))
 endif
 endif
 
+ifeq ($(filter %-analyzer,$(CC)),)
+	CC_BASE  := $(shell basename "$(CC)")
+	CXX_BASE := $(shell basename "$(CXX)")
+else
+	CC_BASE  := clang
+	CXX_BASE := clang++
+endif
+
 $!clang-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*
 	echo -n "CLANGFLAGS := "                                  >  $@+
 	$(var/cfgdir)/cflags.sh "clang" | tr '\n' ' '             >> $@+
@@ -33,21 +41,21 @@ $!clang-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*
 	echo                                                      >> $@+
 	$(MV) $@+ $@
 
-$!cc-$(CC)-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*
+$!cc-$(CC_BASE)-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*
 	echo -n "CFLAGS := "                          >  $@+
 	$(var/cfgdir)/cflags.sh "$(CC)" | tr '\n' ' ' >> $@+
 	echo                                          >> $@+
 	$(MV) $@+ $@
 
-$!cxx-$(CXX)-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*
+$!cxx-$(CXX_BASE)-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*
 	echo -n "CXXFLAGS := "                         >  $@+
 	$(var/cfgdir)/cflags.sh "$(CXX)" | tr '\n' ' ' >> $@+
 	echo                                           >> $@+
 	$(MV) $@+ $@
 
 -include $!clang-flags.mk
--include $!cc-$(CC)-flags.mk
--include $!cxx-$(CXX)-flags.mk
+-include $!cc-$(CC_BASE)-flags.mk
+-include $!cxx-$(CXX_BASE)-flags.mk
 
 CFLAGS       += -I$/lib-common/compat -I$/
 CXXFLAGS     += -I$/lib-common/compat -I$/

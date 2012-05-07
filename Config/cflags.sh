@@ -34,7 +34,7 @@ gcc_prereq()
 is_clang()
 {
     case "$cc" in
-        clang*) return 0;;
+        clang*|c*-analyzer) return 0;;
         *) return 1;;
     esac
 }

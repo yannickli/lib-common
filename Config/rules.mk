@@ -109,7 +109,7 @@ endef
 #}}}
 #[ blocks ]###########################################################{{{#
 
-ifeq ($(filter %clang,$(CC)),)
+ifeq ($(filter %clang,$(CC_BASE)),)
 
 ext/gen/blk = $(call fun/patsubst-filt,%.blk,%.blk.c,$1)
 

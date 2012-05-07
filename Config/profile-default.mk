@@ -20,3 +20,6 @@ ifndef SPARSE
     CFLAGS += $(if $(filter -D_FORTIFY_SOURCE=%,$(ADD_CFLAGS)),,$(FORTIFY_SOURCE))
 endif
 LDFLAGS += -rdynamic
+
+clang-analyzer:
+	MAKELEVEL=0 scan-build --use-cc clang --use-c++ clang++ $(MAKE)
