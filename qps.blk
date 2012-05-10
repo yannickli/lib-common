@@ -2331,7 +2331,6 @@ qps_snapshot_bg(qps_t *qps, const void *data, size_t dlen,
                 snprintf(dst, sizeof(dst), "%08x.%08x.qpz",
                          map->hdr.mapno, generation);
                 x_linkat(qps->dfd, src, qps->dfd, dst, 0);
-                map->hdr.generation = generation;
             }
             madvise(map, QPS_MAP_SIZE, MADV_DONTNEED);
         });
@@ -2496,10 +2495,15 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
             for (int i = 0; i < qps->maps.len; i++) {
                 qps_map_t *map = qps->maps.tab[i];
 
-                if (!map || qps_map_is_pg(map))
+                if (!map)
                     continue;
+
                 if (QPS_GEN_CMP(map->hdr.generation, >, generation))
                     continue;
+                if (qps_map_is_pg(map)) {
+                    map->hdr.generation = generation;
+                    continue;
+                }
                 if (map->hdr.remaining == 0)
                     qps_map_recycle(qps, map, i, false);
             }
