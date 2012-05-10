@@ -255,14 +255,24 @@ qvector_splice(qvector_t *vec, size_t v_size,
     ({ qv_t(n) *__vec = (vec);              \
        p_clear(__vec, 1);                   \
     })
-#define qv_clear(n, vec)                    qvector_reset(&(vec)->qv, __qv_sz(n))
-#define qv_wipe(n, vec)                     qv_##n##_wipe(vec)
+
+#define qv_clear(n, vec)  qvector_reset(&(vec)->qv, __qv_sz(n))
+#define qv_deep_clear(n, vec, wipe) \
+    ({ qv_t(n) *__vec = (vec);              \
+       qv_for_each_pos(n, __i, __vec) {     \
+           wipe(&__vec->tab[__i]);          \
+       }                                    \
+       qv_clear(n, __vec); })
+
+#define qv_wipe(n, vec)  qv_##n##_wipe(vec)
 #define qv_deep_wipe(n, vec, wipe) \
     ({ qv_t(n) *__vec = (vec);              \
        qv_for_each_pos(n, __i, __vec) {     \
            wipe(&__vec->tab[__i]);          \
        }                                    \
        qv_wipe(n, __vec); })
+
+#define qv_delete(n, vec)  qv_##n##_delete(vec)
 #define qv_deep_delete(n, vecp, wipe) \
     ({ qv_t(n) **__vecp = (vecp);              \
        if (likely(*__vecp)) {                  \
@@ -271,8 +281,8 @@ qvector_splice(qvector_t *vec, size_t v_size,
            }                                   \
            qv_delete(n, __vecp);               \
        } })
-#define qv_new(n)                           p_new(qv_t(n), 1)
-#define qv_delete(n, vec)                   qv_##n##_delete(vec)
+
+#define qv_new(n)  p_new(qv_t(n), 1)
 
 #ifdef __has_blocks
 /* You must be in a .blk to use qv_sort, because it expects blocks ! */
