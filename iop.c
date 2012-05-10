@@ -179,6 +179,17 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
 
                 dst = __iop_copy(fdesc->u1.st_desc, dst, wv, rv);
             }
+        } else
+        if (fdesc->type == IOP_T_STRING || fdesc->type == IOP_T_XML) {
+            for (int j = 0; j < n; j++) {
+                lstr_t *orig = &IOP_FIELD(lstr_t, rp, j);
+
+                /* We have to fix the lstr_t mem_pool manually because some
+                 * naughty programmers could have played with it */
+                IOP_FIELD(lstr_t, wp, j).s = (const char *)dst;
+                IOP_FIELD(lstr_t, wp, j).mem_pool = MEM_STATIC;
+                dst = realign(mempcpyz(dst, orig->s, orig->len));
+            }
         } else {
             for (int j = 0; j < n; j++) {
                 iop_data_t *orig = &IOP_FIELD(iop_data_t, rp, j);
