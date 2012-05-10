@@ -1021,8 +1021,10 @@ static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
 
 void qps_enospc(const char *what)
 {
-    if (_G.in_snapshot_fork)
+    if (_G.in_snapshot_fork) {
+        e_error("QPS: snapshotter-child: unexpected I/O error (%s:%m)", what);
         _exit(QPS_EX_ENOSPC);
+    }
 
     if (strequal(what, "mmap")) {
         e_error("QPS: unexpected error (%s:%m)", what);
