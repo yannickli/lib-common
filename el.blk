@@ -1050,7 +1050,7 @@ static int writeall(el_t el, int fd, short ev, el_data_t priv)
     struct z_el_data *d = priv.ptr;
     byte *data;
     socklen_t data_sz = sizeof(size_t);
-    size_t bufsiz;
+    size_t bufsiz = 0;
 
     assert (ev & POLLOUT);
 
