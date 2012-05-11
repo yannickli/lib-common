@@ -110,7 +110,7 @@ static int iop_json_test_struct(const iop_struct_t *st, void *v,
     jll.flags = IOP_UNPACK_IGNORE_UNKNOWN;
     res = t_new_raw(byte, ROUND_UP(st->size, 8));
 
-    while (strict < 2) {
+    while (strict < 3) {
         int ret;
 
         /* packing */
@@ -161,7 +161,7 @@ static int iop_json_test_struct_invalid(const iop_struct_t *st, void *v,
     jll.flags = IOP_UNPACK_IGNORE_UNKNOWN;
     res = t_new(byte, ROUND_UP(st->size, 8));
 
-    while (strict < 2) {
+    while (strict < 3) {
         int ret;
 
         /* packing */

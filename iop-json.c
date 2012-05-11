@@ -1399,7 +1399,7 @@ static int do_indent(int (*writecb)(void *, const void *, int),
 
 static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                     int (*writecb)(void *, const void *buf, int len),
-                    void *priv, bool strict)
+                    void *priv, unsigned flags)
 {
     /* ints:   sign, 20 digits, and NUL -> 22
        double: sign, digit, dot, 17 digits, e, sign, up to 3 digits NUL -> 25
@@ -1410,6 +1410,7 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
 
     const iop_field_t *fdesc = desc->fields;
     const iop_field_t *fend  = desc->fields + desc->fields_len;
+    const bool with_indent = !(flags & IOP_JPACK_COMPACT);
 
 #define WRITE(b, l)    \
     do {                                                                   \
@@ -1419,12 +1420,24 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
         res += __res;                                                      \
     } while (0)
 #define PUTS(s)  WRITE(s, strlen(s))
+#define IPUTS(s_with_indent, s_no_indent) \
+    do {                                                                   \
+        if (with_indent) {                                                 \
+            PUTS(s_with_indent);                                           \
+        } else {                                                           \
+            PUTS(s_no_indent);                                             \
+        }                                                                  \
+    } while (0)
+
 #define INDENT() \
     do {                                                                   \
-        int __res = do_indent(writecb, priv, lvl);                         \
-        if (__res < 0)                                                     \
-            return -1;                                                     \
-        res += __res;                                                      \
+        if (with_indent) {                                                 \
+            int __res = do_indent(writecb, priv, lvl);                     \
+            \
+            if (__res < 0)                                                 \
+                return -1;                                                 \
+            res += __res;                                                  \
+        }                                                                  \
     } while (0)
 #define PUTU(i)  \
     WRITE(ibuf, sprintf(ibuf, "%llu", (unsigned long long)i))
@@ -1434,9 +1447,9 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
     if (desc->is_union) {
         fdesc = get_union_field(desc, value);
         fend  = fdesc + 1;
-        PUTS("{ ");
+        IPUTS("{ ", "{");
     } else {
-        PUTS("{\n");
+        IPUTS("{\n", "{");
         lvl++;
     }
 
@@ -1453,18 +1466,22 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
         if (first) {
             first = false;
         } else {
-            PUTS(",\n");
+            IPUTS(",\n", ",");
         }
 
         if (!desc->is_union)
             INDENT();
         PUTS("\"");
         PUTS(fdesc->name.s);
-        PUTS(repeated ? "\": [ " : "\": ");
+        if (with_indent) {
+            PUTS(repeated ? "\": [ " : "\": ");
+        } else {
+            PUTS(repeated ? "\":[" : "\":");
+        }
 
         for (int j = 0; j < n; j++) {
             if (repeated && j)
-                PUTS(", ");
+                IPUTS(", ", ",");
             switch (fdesc->type) {
                 const void *v;
                 pstream_t ps;
@@ -1509,7 +1526,7 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
               case IOP_T_UNION:
               case IOP_T_STRUCT:
                 v   = &IOP_FIELD(const char, ptr, j * fdesc->size);
-                len = RETHROW(pack_txt(fdesc->u1.st_desc, v, lvl, writecb, priv, strict));
+                len = RETHROW(pack_txt(fdesc->u1.st_desc, v, lvl, writecb, priv, flags));
                 res += len;
                 break;
 
@@ -1567,13 +1584,13 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
             }
         }
         if (repeated)
-            PUTS(" ]");
+            IPUTS(" ]", "]");
     }
 
     if (desc->is_union) {
-        PUTS(" }");
+        IPUTS(" }", "}");
     } else {
-        if (!first)
+        if (!first && with_indent)
             PUTS("\n");
         lvl--;
         INDENT();
@@ -1593,9 +1610,9 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
 
 int iop_jpack(const iop_struct_t *desc, const void *value,
               int (*writecb)(void *, const void *buf, int len),
-              void *priv, bool strict)
+              void *priv, unsigned flags)
 {
-    return pack_txt(desc, value, 0, writecb, priv, strict);
+    return pack_txt(desc, value, 0, writecb, priv, flags);
 }
 
 /* }}} */

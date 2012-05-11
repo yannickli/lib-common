@@ -110,14 +110,14 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
 
         t_sb_init(&buf, BUFSIZ);
         if (iq->json) {
-            iop_jpack(st, v, iop_sb_write, &buf, true);
+            iop_jpack(st, v, iop_sb_write, &buf, IOP_JPACK_COMPACT);
         } else {
             ichttp_serialize_soap(&buf, iq, cmd, st, v);
         }
         sb_add_compressed(out, buf.data, buf.len, Z_BEST_COMPRESSION, is_gzip);
     } else
     if (iq->json) {
-        iop_jpack(st, v, iop_sb_write, out, true);
+        iop_jpack(st, v, iop_sb_write, out, IOP_JPACK_COMPACT);
     } else {
         ichttp_serialize_soap(out, iq, cmd, st, v);
     }

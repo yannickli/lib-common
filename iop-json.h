@@ -102,9 +102,16 @@ void iop_jlex_write_error(iop_json_lex_t *ll, sb_t *sb);
 int  iop_jlex_write_error_buf(iop_json_lex_t *ll, char *buf, int len);
 
 /* IOP to/from json */
+
+enum iop_jpack_flags {
+    IOP_JPACK_STRICT  = (1U << 0), /*< XXX obsolete, kept for backward
+                                     compatibility */
+    IOP_JPACK_COMPACT = (1U << 1),
+};
+
 int iop_jpack(const iop_struct_t *, const void *value,
               int (*)(void *, const void *buf, int len), void *,
-              bool strict);
+              unsigned flags);
 int iop_junpack(iop_json_lex_t *, const iop_struct_t *, void *,
                 bool single_value);
 
@@ -143,9 +150,9 @@ static inline int iop_sb_write(void *_b, const void *buf, int len) {
 
 static inline int
 iop_sb_jpack(sb_t *sb, const iop_struct_t *desc, const void *value,
-             bool strict)
+             unsigned flags)
 {
-    return iop_jpack(desc, value, &iop_sb_write, sb, strict);
+    return iop_jpack(desc, value, &iop_sb_write, sb, flags);
 }
 
 #endif
