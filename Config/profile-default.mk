@@ -21,5 +21,5 @@ ifndef SPARSE
 endif
 LDFLAGS += -rdynamic
 
-clang-analyzer:
+clang-analyzer: __setup_forward
 	MAKELEVEL=0 scan-build --use-cc clang --use-c++ clang++ $(MAKE)

@@ -22,7 +22,7 @@ die() {
     exit 1
 }
 
-grep -E '^ *[^[:space:]$()#=/][^[:space:]$()#=]*:( |$)' | while read target rest
+grep -v '__setup_forward' | grep -E '^ *[^[:space:]$()#=/][^[:space:]$()#=]*:( |$)' | while read target rest
 do
     case "$target" in
         __*:|FORCE:|.*:|Makefile:|%:|"$toolsdir"*:|"$cfgdir"*:)

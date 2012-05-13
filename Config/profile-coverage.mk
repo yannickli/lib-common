@@ -16,7 +16,7 @@ CFLAGS   += -pg -fprofile-arcs -ftest-coverage
 CXXFLAGS += -pg -fprofile-arcs -ftest-coverage
 LDFLAGS  += -lgcov
 
-coverage::
+coverage:: __setup_forward
 	lcov --directory $! --base-directory $/ --zerocounters
 	MAKELEVEL=0 $(MAKE) P=$(var/profile) NOCHECK=1 all
 	-MAKELEVEL=0 $(MAKE) P=$(var/profile) NOCHECK=1 L=1 check

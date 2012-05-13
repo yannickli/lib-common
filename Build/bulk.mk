@@ -197,6 +197,12 @@ __setup_buildsys: $(var/builddir)/Makefile
 
 endif
 # }}}
+# {{{ __setup_forward
+
+__setup_forward:
+.PHONY: __setup_forward
+
+# }}}
 ##########################################################################
 # {{{ __dump_targets
 ifeq (__dump_targets,$(MAKECMDGOALS))
