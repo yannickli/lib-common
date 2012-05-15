@@ -125,6 +125,7 @@ EOF
 fi
 if is_clang; then
     echo -Wno-gnu-designator
+    echo -Wno-return-type-c-linkage
 fi
 
 echo -Wchar-subscripts
