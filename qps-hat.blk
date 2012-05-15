@@ -109,6 +109,12 @@ qhat_128_t  qhat_default_zero_g;
 /* memory scan helpers (SSE optimized) {{{ */
 
 #ifdef __SSE2__
+#if defined(__clang__) && !defined(__builtin_ia32_pcmpeqb128)
+#   define __builtin_ia32_pcmpeqb128(a, b)  ((a) == (b))
+#   define __builtin_ia32_pcmpeqw128(a, b)  ((a) == (b))
+#   define __builtin_ia32_pcmpeqd128(a, b)  ((a) == (b))
+#endif
+
 union xmm {
     __m128i  i;
     __v16qi  b;
