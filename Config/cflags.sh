@@ -132,9 +132,7 @@ EOF
 fi
 if is_clang; then
     echo -Wno-gnu-designator
-    if clang_prereq 3.1; then
-        echo -Wno-return-type-c-linkage
-    fi
+    echo -Wno-return-type-c-linkage
 fi
 
 echo -Wchar-subscripts
