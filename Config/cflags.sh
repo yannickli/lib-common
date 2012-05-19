@@ -190,7 +190,6 @@ if is_cpp; then
     if gcc_prereq 4.2; then
         echo -Wnon-virtual-dtor
         echo -Woverloaded-virtual
-        echo -Weffc++
     else
         echo -Wno-shadow
     fi
