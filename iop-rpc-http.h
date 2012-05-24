@@ -139,7 +139,7 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
  *    it can be the same implementation callback as the one used for an
  *    #ic_register call.
  */
-#define ichttp_register(tcb, _mod, _if, _rpc, _cb) \
+#define ichttp_register_(tcb, _mod, _if, _rpc, _cb) \
     do {                                                                     \
         void (*__cb)(IOP_RPC_IMPL_ARGS(_mod, _if, _rpc)) = _cb;              \
                                                                              \
@@ -151,6 +151,9 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
                 } },                                                         \
         };                                                                   \
     } while (0)
+
+/* \brief submodule compatibility helper */
+#define ichttp_register  ichttp_register_
 
 /** \brief register a proxy for an rpc on the given http iop trigger.
  * \see #ic_register_proxy_hdr
