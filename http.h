@@ -665,8 +665,11 @@ static ALWAYS_INLINE outbuf_t *httpc_get_ob(httpc_query_t *q) {
     return &q->owner->ob;
 }
 
-void httpc_query_start(httpc_query_t *q, http_method_t m,
-                       const char *host, const char *uri);
+void httpc_query_start_flags(httpc_query_t *q, http_method_t m, const char *host,
+                             const char *uri, bool httpc_encode_url);
+#define httpc_query_start(q, m, host, uri) \
+    httpc_query_start_flags(q, m, host, uri, true)
+
 /** Ends the headers, setups for the body streaming.
  *
  * \param[in]  q      the query
