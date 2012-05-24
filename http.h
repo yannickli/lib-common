@@ -154,19 +154,6 @@ typedef enum http_wkhdr_t {
 extern char const * const http_whdr_str[HTTP_WKHDR__MAX];
 http_wkhdr_t http_wkhdr_from_ps(pstream_t ps);
 
-extern struct http_params {
-    unsigned header_line_max;        /**< Maximum line length in headers */
-    unsigned header_size_max;        /**< Maximum total size for headers */
-    unsigned outbuf_max_size;
-    unsigned on_data_threshold;
-    uint16_t pipeline_depth_in;
-    uint16_t pipeline_depth_out;
-    unsigned noact_delay;
-    unsigned max_queries_in;
-    unsigned max_queries_out;
-    unsigned max_conns_in;
-} http_params_g;
-
 #define HTTP_MK_VERSION(M, m)  (((M) << 8) | (m))
 #define HTTP_1_0               HTTP_MK_VERSION(1, 0)
 #define HTTP_1_1               HTTP_MK_VERSION(1, 1)
@@ -350,12 +337,19 @@ struct httpd_cfg_t {
     unsigned noact_delay;
     unsigned max_conns;
     uint16_t pipeline_depth;
+    unsigned header_line_max;
+    unsigned header_size_max;
 
     dlist_t               httpd_list;
     const object_class_t *httpd_cls;
     httpd_trigger_node_t  roots[HTTP_METHOD_DELETE + 1];
 };
+
+struct core__httpd_cfg__t;
+
 httpd_cfg_t *httpd_cfg_init(httpd_cfg_t *cfg);
+void         httpd_cfg_from_iop(httpd_cfg_t *cfg,
+                                const struct core__httpd_cfg__t *iop_cfg);
 void         httpd_cfg_wipe(httpd_cfg_t *cfg);
 DO_REFCNT(httpd_cfg_t, httpd_cfg);
 
@@ -635,9 +629,17 @@ typedef struct httpc_cfg_t {
     unsigned     noact_delay;
     unsigned     max_queries;
     unsigned     on_data_threshold;
+    unsigned     header_line_max;
+    unsigned     header_size_max;
+
     const object_class_t *httpc_cls;
 } httpc_cfg_t;
+
+struct core__httpc_cfg__t;
+
 httpc_cfg_t *httpc_cfg_init(httpc_cfg_t *cfg);
+void         httpc_cfg_from_iop(httpc_cfg_t *cfg,
+                                const struct core__httpc_cfg__t *iop_cfg);
 void         httpc_cfg_wipe(httpc_cfg_t *cfg);
 DO_REFCNT(httpc_cfg_t, httpc_cfg);
 

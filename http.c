@@ -17,6 +17,8 @@
 #include "http.h"
 #include "httptokens.h"
 
+#include "core.iop.h"
+
 /*
  * rfc 2616 TODO list:
  *
@@ -28,20 +30,6 @@
  * Automatically transform chunked-encoding to C-L for HTTP/1.0
  *
  */
-
-struct http_params http_params_g = {
-#define _G  http_params_g
-    .header_line_max    = 1024,
-    .header_size_max    = 64 << 10,
-    .outbuf_max_size    = 32 << 20,
-    .on_data_threshold  = BUFSIZ,
-    .pipeline_depth_in  = 32,
-    .pipeline_depth_out = 32,
-    .noact_delay        = 30 * 1000,
-    .max_queries_in     = 1024,
-    .max_queries_out    = 1024,
-    .max_conns_in       = 1000,
-};
 
 enum http_parse_code {
     PARSE_MISSING_DATA =  1,
@@ -195,13 +183,14 @@ static inline void http_skipspaces(pstream_t *ps)
 }
 
 /* rfc 2616, §2.2: Basic rules */
-static inline int http_getline(pstream_t *ps, pstream_t *out)
+static inline int http_getline(pstream_t *ps, unsigned max_len,
+                               pstream_t *out)
 {
     const char *p = memmem(ps->s, ps_len(ps), "\r\n", 2);
 
     if (unlikely(!p)) {
         *out = ps_initptr(NULL, NULL);
-        if (ps_len(ps) > _G.header_line_max)
+        if (ps_len(ps) > max_len)
             return PARSE_ERROR;
         return PARSE_MISSING_DATA;
     }
@@ -316,11 +305,12 @@ static int ps_get_ver(pstream_t *ps)
     return i;
 }
 
-static int t_http_parse_request_line(pstream_t *ps, httpd_qinfo_t *req)
+static int t_http_parse_request_line(pstream_t *ps, unsigned max_len,
+                                     httpd_qinfo_t *req)
 {
     pstream_t line, method, uri;
 
-    PARSE_RETHROW(http_getline(ps, &line));
+    PARSE_RETHROW(http_getline(ps, max_len, &line));
 
     PS_CHECK(ps_get_ps_chr(&line, ' ', &method));
     __ps_skip(&line, 1);
@@ -365,11 +355,12 @@ static int t_http_parse_request_line(pstream_t *ps, httpd_qinfo_t *req)
 
 /* rfc 2616: §6.1: Status Line */
 
-static inline int http_parse_status_line(pstream_t *ps, httpc_qinfo_t *qi)
+static inline int
+http_parse_status_line(pstream_t *ps, unsigned max_len, httpc_qinfo_t *qi)
 {
     pstream_t line, code;
 
-    PARSE_RETHROW(http_getline(ps, &line));
+    PARSE_RETHROW(http_getline(ps, max_len, &line));
 
     if (ps_skipstr(&line, "HTTP/"))
         return PARSE_ERROR;
@@ -987,10 +978,10 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
     struct timeval now;
 
     if ((p = memmem(ps->s + start, ps_len(ps) - start, "\r\n\r\n", 4)) == NULL) {
-        if (ps_len(ps) > _G.header_size_max) {
+        if (ps_len(ps) > w->cfg->header_size_max) {
             q = httpd_query_create(w, NULL);
             httpd_reject(q, FORBIDDEN, "Headers exceed %d octets",
-                         _G.header_size_max);
+                         w->cfg->header_size_max);
             goto unrecoverable_error;
         }
         w->chunk_length = ps_len(ps);
@@ -1002,7 +993,7 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
 
     http_zlib_reset(w);
     req.hdrs_ps = ps_initptr(ps->s, p + 4);
-    if (t_http_parse_request_line(ps, &req) < 0) {
+    if (t_http_parse_request_line(ps, w->cfg->header_line_max, &req) < 0) {
         q = httpd_query_create(w, NULL);
         httpd_reject(q, BAD_REQUEST, "Invalid request line");
         goto unrecoverable_error;
@@ -1228,7 +1219,7 @@ static int httpd_parse_chunk_hdr(httpd_t *w, pstream_t *ps)
     int res;
 
     q->expect100cont = false;
-    res = http_getline(ps, &line);
+    res = http_getline(ps, w->cfg->header_line_max, &line);
     if (res > 0)
         return res;
     if (res < 0)
@@ -1284,7 +1275,7 @@ static int httpd_parse_chunk_trailer(httpd_t *w, pstream_t *ps)
     pstream_t line;
 
     do {
-        int res = (http_getline(ps, &line));
+        int res = (http_getline(ps, w->cfg->header_line_max, &line));
 
         if (res < 0) {
             httpd_reject(q, BAD_REQUEST, "Trailer headers are unparseable");
@@ -1324,20 +1315,32 @@ static int (*httpd_parsers[])(httpd_t *w, pstream_t *ps) = {
 
 httpd_cfg_t *httpd_cfg_init(httpd_cfg_t *cfg)
 {
+    core__httpd_cfg__t iop_cfg;
+
     p_clear(cfg, 1);
 
     dlist_init(&cfg->httpd_list);
-    cfg->httpd_cls         = obj_class(httpd);
-    cfg->outbuf_max_size   = _G.outbuf_max_size;
-    cfg->on_data_threshold = _G.on_data_threshold;
-    cfg->pipeline_depth    = _G.pipeline_depth_in;
-    cfg->noact_delay       = _G.noact_delay;
-    cfg->max_queries       = _G.max_queries_in;
-    cfg->max_conns         = _G.max_conns_in;
+    cfg->httpd_cls = obj_class(httpd);
+
+    core__httpd_cfg__init(&iop_cfg);
+    httpd_cfg_from_iop(cfg, &iop_cfg);
+
     for (int i = 0; i < countof(cfg->roots); i++) {
         qm_init(http_path, &cfg->roots[i].childs, true);
     }
     return cfg;
+}
+
+void httpd_cfg_from_iop(httpd_cfg_t *cfg, const core__httpd_cfg__t *iop_cfg)
+{
+    cfg->outbuf_max_size    = iop_cfg->outbuf_max_size;
+    cfg->pipeline_depth     = iop_cfg->pipeline_depth;
+    cfg->noact_delay        = iop_cfg->noact_delay;
+    cfg->max_queries        = iop_cfg->max_queries;
+    cfg->max_conns          = iop_cfg->max_conns_in;
+    cfg->on_data_threshold  = iop_cfg->on_data_threshold;
+    cfg->header_line_max    = iop_cfg->header_line_max;
+    cfg->header_size_max    = iop_cfg->header_size_max;
 }
 
 void httpd_cfg_wipe(httpd_cfg_t *cfg)
@@ -1831,7 +1834,7 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
     }
 
     if ((p = memmem(ps->s + start, ps_len(ps) - start, "\r\n\r\n", 4)) == NULL) {
-        if (ps_len(ps) > _G.header_size_max)
+        if (ps_len(ps) > w->cfg->header_size_max)
             return PARSE_ERROR;
         w->chunk_length = ps_len(ps);
         return PARSE_MISSING_DATA;
@@ -1839,7 +1842,7 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
 
     http_zlib_reset(w);
     req.hdrs_ps = ps_initptr(ps->s, p + 4);
-    res = http_parse_status_line(ps, &req);
+    res = http_parse_status_line(ps, w->cfg->header_line_max, &req);
     if (res)
         return res;
 
@@ -1988,7 +1991,7 @@ static int httpc_parse_chunk_hdr(httpc_t *w, pstream_t *ps)
     uint64_t  len = 0;
     int res;
 
-    res = http_getline(ps, &line);
+    res = http_getline(ps, w->cfg->header_line_max, &line);
     if (res)
         return res;
     http_skipspaces(&line);
@@ -2032,7 +2035,7 @@ static int httpc_parse_chunk_trailer(httpc_t *w, pstream_t *ps)
     pstream_t line;
 
     do {
-        int res = http_getline(ps, &line);
+        int res = http_getline(ps, w->cfg->header_line_max, &line);
 
         if (res)
             return res;
@@ -2055,14 +2058,25 @@ static int (*httpc_parsers[])(httpc_t *w, pstream_t *ps) = {
 
 httpc_cfg_t *httpc_cfg_init(httpc_cfg_t *cfg)
 {
+    core__httpc_cfg__t iop_cfg;
+
     p_clear(cfg, 1);
 
-    cfg->on_data_threshold = _G.on_data_threshold;
-    cfg->pipeline_depth    = _G.pipeline_depth_out;
-    cfg->noact_delay       = _G.noact_delay;
-    cfg->max_queries       = _G.max_queries_out;
-    cfg->httpc_cls         = obj_class(httpc);
+    cfg->httpc_cls = obj_class(httpc);
+    core__httpc_cfg__init(&iop_cfg);
+    httpc_cfg_from_iop(cfg, &iop_cfg);
+
     return cfg;
+}
+
+void httpc_cfg_from_iop(httpc_cfg_t *cfg, const core__httpc_cfg__t *iop_cfg)
+{
+    cfg->pipeline_depth    = iop_cfg->pipeline_depth;
+    cfg->noact_delay       = iop_cfg->noact_delay;
+    cfg->max_queries       = iop_cfg->max_queries;
+    cfg->on_data_threshold = iop_cfg->on_data_threshold;
+    cfg->header_line_max   = iop_cfg->header_line_max;
+    cfg->header_size_max   = iop_cfg->header_size_max;
 }
 
 void httpc_cfg_wipe(httpc_cfg_t *cfg)
