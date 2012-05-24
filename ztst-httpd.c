@@ -81,7 +81,7 @@ int main(int argc, char **argv)
     _G.itcb = httpd_trigger__ic_new(&tstiop__t__mod, SCHEMA, 2 << 20);
     _G.itcb->query_max_size = 2 << 20;
     httpd_trigger_register(cfg, POST, "iop", &_G.itcb->cb);
-    ichttp_register(_G.itcb, tstiop__t, iface, f, f_cb);
+    ichttp_register_(_G.itcb, tstiop__t, iface, f, f_cb);
 
     su.sin.sin_port = htons(_G.port);
     _G.httpd   = httpd_listen(&su, cfg);
