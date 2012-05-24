@@ -21,4 +21,28 @@ IOP_ENUM(core__log_level);
 #define LOG_LEVEL_min   0
 #define LOG_LEVEL_max   7
 
+typedef struct core__httpd_cfg__t {
+    uint32_t outbuf_max_size;
+    uint16_t pipeline_depth;
+    uint32_t noact_delay;
+    uint32_t max_queries;
+    uint32_t max_conns_in;
+    uint32_t on_data_threshold;
+    uint32_t header_line_max;
+    uint32_t header_size_max;
+} core__httpd_cfg__t;
+extern iop_struct_t const core__httpd_cfg__s;
+IOP_GENERIC(core__httpd_cfg);
+
+typedef struct core__httpc_cfg__t {
+    uint16_t pipeline_depth;
+    uint32_t noact_delay;
+    uint32_t max_queries;
+    uint32_t on_data_threshold;
+    uint32_t header_line_max;
+    uint32_t header_size_max;
+} core__httpc_cfg__t;
+extern iop_struct_t const core__httpc_cfg__s;
+IOP_GENERIC(core__httpc_cfg);
+
 #endif

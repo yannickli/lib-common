@@ -23,3 +23,37 @@ enum LogLevel {
     INFO    = 6, /* informational */
     DEBUG   = 7, /* debug-level messages */
 };
+
+struct HttpdCfg {
+    /** Maximum size of the output buffer (in octets) */
+    uint    outbufMaxSize    = 32 << 20;
+    /** Maximum number of pending incoming queries */
+    ushort  pipelineDepth    = 32;
+    /** Maximum time of inactivity before connection closing (in ms) */
+    uint    noactDelay       = 30 * 1000;
+    /** Maximum number of incoming queries handled into a connection life */
+    uint    maxQueries       = 1024;
+    /** Maximum number of inbound connections */
+    uint    maxConnsIn       = 1000;
+    /** Amount of data buffered by the body parser before flushing */
+    uint    onDataThreshold  = 16 << 10;
+    /** Maximum line length in headers */
+    uint    headerLineMax    = 1024;
+    /** Maximum total size for headers */
+    uint    headerSizeMax    = 64 << 10;
+};
+
+struct HttpcCfg {
+    /** Maximum number of pending outgoing queries */
+    ushort  pipelineDepth    = 32;
+    /** Maximum time of inactivity before connection closing (in ms) */
+    uint    noactDelay       = 30 * 1000;
+    /** Maximum number of outgoing queries handled into a connection life */
+    uint    maxQueries       = 1024;
+    /** Amount of data buffered by the body parser before flushing */
+    uint    onDataThreshold  = 16 << 10;
+    /** Maximum line length in headers */
+    uint    headerLineMax    = 1024;
+    /** Maximum total size for headers */
+    uint    headerSizeMax    = 64 << 10;
+};

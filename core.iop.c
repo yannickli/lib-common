@@ -38,6 +38,168 @@ iop_enum_t const core__log_level__e = {
 };
 
 /* }}} */
+/* Structure core.HttpdCfg {{{ */
+
+static iop_field_t const core__httpd_cfg__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("outbufMaxSize"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_U32,
+        .data_offs = offsetof(core__httpd_cfg__t, outbuf_max_size),
+        .u1        = { .defval_u64 = 0x2000000 },
+    },
+    {
+        .name      = LSTR_IMMED("pipelineDepth"),
+        .tag       = 2,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_U16,
+        .data_offs = offsetof(core__httpd_cfg__t, pipeline_depth),
+        .u1        = { .defval_u64 = 0x20 },
+    },
+    {
+        .name      = LSTR_IMMED("noactDelay"),
+        .tag       = 3,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_U32,
+        .data_offs = offsetof(core__httpd_cfg__t, noact_delay),
+        .u1        = { .defval_u64 = 0x7530 },
+    },
+    {
+        .name      = LSTR_IMMED("maxQueries"),
+        .tag       = 4,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_U32,
+        .data_offs = offsetof(core__httpd_cfg__t, max_queries),
+        .u1        = { .defval_u64 = 0x400 },
+    },
+    {
+        .name      = LSTR_IMMED("maxConnsIn"),
+        .tag       = 5,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_U32,
+        .data_offs = offsetof(core__httpd_cfg__t, max_conns_in),
+        .u1        = { .defval_u64 = 0x3e8 },
+    },
+    {
+        .name      = LSTR_IMMED("onDataThreshold"),
+        .tag       = 6,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_U32,
+        .data_offs = offsetof(core__httpd_cfg__t, on_data_threshold),
+        .u1        = { .defval_u64 = 0x4000 },
+    },
+    {
+        .name      = LSTR_IMMED("headerLineMax"),
+        .tag       = 7,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_U32,
+        .data_offs = offsetof(core__httpd_cfg__t, header_line_max),
+        .u1        = { .defval_u64 = 0x400 },
+    },
+    {
+        .name      = LSTR_IMMED("headerSizeMax"),
+        .tag       = 8,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_U32,
+        .data_offs = offsetof(core__httpd_cfg__t, header_size_max),
+        .u1        = { .defval_u64 = 0x10000 },
+    },
+};
+static int const iop__ranges__2[] = {
+    0, 1,
+    8,
+};
+const iop_struct_t core__httpd_cfg__s = {
+    .fullname   = LSTR_IMMED("core.HttpdCfg"),
+    .fields     = core__httpd_cfg__desc_fields,
+    .ranges     = iop__ranges__2,
+    .fields_len = countof(core__httpd_cfg__desc_fields),
+    .ranges_len = countof(iop__ranges__2) / 2,
+    .size       = sizeof(core__httpd_cfg__t),
+};
+
+/* }}} */
+/* Structure core.HttpcCfg {{{ */
+
+static iop_field_t const core__httpc_cfg__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("pipelineDepth"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_U16,
+        .data_offs = offsetof(core__httpc_cfg__t, pipeline_depth),
+        .u1        = { .defval_u64 = 0x20 },
+    },
+    {
+        .name      = LSTR_IMMED("noactDelay"),
+        .tag       = 2,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_U32,
+        .data_offs = offsetof(core__httpc_cfg__t, noact_delay),
+        .u1        = { .defval_u64 = 0x7530 },
+    },
+    {
+        .name      = LSTR_IMMED("maxQueries"),
+        .tag       = 3,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_U32,
+        .data_offs = offsetof(core__httpc_cfg__t, max_queries),
+        .u1        = { .defval_u64 = 0x400 },
+    },
+    {
+        .name      = LSTR_IMMED("onDataThreshold"),
+        .tag       = 4,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_U32,
+        .data_offs = offsetof(core__httpc_cfg__t, on_data_threshold),
+        .u1        = { .defval_u64 = 0x4000 },
+    },
+    {
+        .name      = LSTR_IMMED("headerLineMax"),
+        .tag       = 5,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_U32,
+        .data_offs = offsetof(core__httpc_cfg__t, header_line_max),
+        .u1        = { .defval_u64 = 0x400 },
+    },
+    {
+        .name      = LSTR_IMMED("headerSizeMax"),
+        .tag       = 6,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_U32,
+        .data_offs = offsetof(core__httpc_cfg__t, header_size_max),
+        .u1        = { .defval_u64 = 0x10000 },
+    },
+};
+static int const iop__ranges__3[] = {
+    0, 1,
+    6,
+};
+const iop_struct_t core__httpc_cfg__s = {
+    .fullname   = LSTR_IMMED("core.HttpcCfg"),
+    .fields     = core__httpc_cfg__desc_fields,
+    .ranges     = iop__ranges__3,
+    .fields_len = countof(core__httpc_cfg__desc_fields),
+    .ranges_len = countof(iop__ranges__3) / 2,
+    .size       = sizeof(core__httpc_cfg__t),
+};
+
+/* }}} */
 /* Package core {{{ */
 
 static const iop_pkg_t *const core__deps[] = {
@@ -50,6 +212,8 @@ static const iop_enum_t *const core__enums[] = {
 };
 
 static const iop_struct_t *const core__structs[] = {
+    &core__httpd_cfg__s,
+    &core__httpc_cfg__s,
     NULL,
 };
 
