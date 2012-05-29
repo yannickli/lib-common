@@ -702,7 +702,7 @@ void thr_initialize(void)
 __attribute__((destructor))
 void thr_shutdown(void)
 {
-    if (thr_parallelism_g) {
+    if (thr_parallelism_g && self_tid_g == 0) {
         shared_write(_G.stopping, true);
         thr_ec_broadcast(&_G.ec);
 
