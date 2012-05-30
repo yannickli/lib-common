@@ -643,8 +643,14 @@ qps_map_recycle(qps_t *qps, qps_map_t *map, uint16_t no, bool quarantine)
     qv_append(qpsm, &qps->omaps, map);
 
     /* quarantine the map id until the next snapshot */
-    if (quarantine)
+    if (quarantine) {
         qv_append(u32, &qps->no_blocked, no);
+    } else {
+        pos = bisect32(no, qps->no_free.tab, qps->no_free.len);
+
+        assert (pos == qps->no_free.len || qps->no_free.tab[pos] != no);
+        qv_insert(u32, &qps->no_free, pos, no);
+    }
 
     /* keep the address around */
     x_mmap(map, QPS_MAP_SIZE, PROT_NONE,
