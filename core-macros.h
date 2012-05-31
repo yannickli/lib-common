@@ -36,17 +36,20 @@
 
 /*---------------- GNU extension wrappers ----------------*/
 
-#ifndef __GNUC_PREREQ
-#  if defined(__GNUC__) && defined(__GNUC_MINOR__)
+#if defined(__clang__)
+#  undef __GNUC_PREREQ
+#  define __GNUC_PREREQ(maj, min)  0
+#  define __CLANG_PREREQ(maj, min) \
+	((__clang_major__ << 16) + __clang_minor__ >= ((maj) << 16) + (min))
+#else
+#  undef __CLANG_PREREQ
+#  define __CLANG_PREREQ(maj, min)  0
+#  if !defined(__GNUC_PREREQ) && defined(__GNUC__) && defined(__GNUC_MINOR__)
 #    define __GNUC_PREREQ(maj, min) \
-	((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
-#  else
+        ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+#  elif !defined(__GNUC_PREREQ)
 #    define __GNUC_PREREQ(maj, min)   0
 #  endif
-#endif
-#ifdef __clang__
-#  undef  __GNUC_PREREQ
-#  define __GNUC_PREREQ(maj, min)   0
 #endif
 
 #if !defined(__doxygen_mode__)
