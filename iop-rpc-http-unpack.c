@@ -48,7 +48,10 @@ static int t_parse_json(ichttp_query_t *iq, ichttp_cb_t *cbe, void **vout)
     if (iop_junpack(&jll, st, v, true)) {
         sb_reset(&buf);
         iop_jlex_write_error(&jll, &buf);
+
+        __ichttp_err_ctx_set(LSTR_SB_V(&buf));
         httpd_reject(obj_vcast(httpd_query, iq), BAD_REQUEST, "%s", buf.data);
+        __ichttp_err_ctx_clear();
         res = -1;
         goto end;
     }

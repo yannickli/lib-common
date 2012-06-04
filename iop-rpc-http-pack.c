@@ -14,6 +14,24 @@
 #include "xmlpp.h"
 #include "iop-rpc.h"
 
+static __thread lstr_t err_ctx_g = LSTR_NULL;
+
+lstr_t ichttp_err_ctx_get(void)
+{
+    return err_ctx_g;
+}
+
+void __ichttp_err_ctx_set(lstr_t err_ctx)
+{
+    assert (err_ctx_g.s == NULL);
+    err_ctx_g = err_ctx;
+}
+
+void __ichttp_err_ctx_clear(void)
+{
+    err_ctx_g = LSTR_NULL_V;
+}
+
 static void ichttp_serialize_soap(sb_t *sb, ichttp_query_t *iq, int cmd,
                                   const iop_struct_t *st, const void *v)
 {
@@ -59,6 +77,7 @@ static void ichttp_serialize_soap(sb_t *sb, ichttp_query_t *iq, int cmd,
     }
     pp.can_do_attr = false;
     xmlpp_close(&pp);
+    iq->iop_answered = true;
 }
 
 void
@@ -111,6 +130,7 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
         t_sb_init(&buf, BUFSIZ);
         if (iq->json) {
             iop_jpack(st, v, iop_sb_write, &buf, IOP_JPACK_COMPACT);
+            iq->iop_answered = true;
         } else {
             ichttp_serialize_soap(&buf, iq, cmd, st, v);
         }
@@ -118,6 +138,7 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
     } else
     if (iq->json) {
         iop_jpack(st, v, iop_sb_write, out, IOP_JPACK_COMPACT);
+        iq->iop_answered = true;
     } else {
         ichttp_serialize_soap(out, iq, cmd, st, v);
     }
@@ -142,6 +163,7 @@ void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const lstr_t *err)
 
     assert (!iq->json);
 
+    __ichttp_err_ctx_set(*err);
     ob = httpd_reply_hdrs_start(q, HTTP_CODE_INTERNAL_SERVER_ERROR, true);
     ob_adds(ob, "Content-Type: text/xml; charset=utf-8\r\n");
     httpd_reply_hdrs_done(q, -1, false);
@@ -173,6 +195,7 @@ void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const lstr_t *err)
     if (tcb->on_reply)
         (*tcb->on_reply)(tcb, iq, oblen, HTTP_CODE_INTERNAL_SERVER_ERROR);
     httpd_reply_done(q);
+    __ichttp_err_ctx_clear();
 }
 
 void __ichttp_reply_err(uint64_t slot, int err, const lstr_t *err_str)
@@ -197,9 +220,11 @@ void __ichttp_reply_err(uint64_t slot, int err, const lstr_t *err_str)
       case IC_MSG_SERVER_ERROR:
         if (err_str && err_str->len) {
             if (iq->json) {
+                __ichttp_err_ctx_set(*err_str);
                 httpd_reject(obj_vcast(httpd_query, iq),
                              INTERNAL_SERVER_ERROR, "%*pM",
                              LSTR_FMT_ARG(*err_str));
+                __ichttp_err_ctx_clear();
             } else {
                 __ichttp_reply_soap_err(slot, true, err_str);
             }
