@@ -14,6 +14,7 @@
 #include "zchk-container.h"
 #include "container.h"
 #include "z.h"
+#include "sort.h"
 
 
 /*{{{1 Qhash */
@@ -148,10 +149,64 @@ static _Bool qv_sort_tst(void)
     return ok;
 }
 
+static void build_sorted_uniq_vec(qv_t(u32) *vec)
+{
+#define N  1024
+    int size = ha_rand_range(0, N);
+
+    for (int i = 0; i < size; i++) {
+        qv_append(u32, vec, ha_rand_range(0, 4 * N));
+    }
+    dsort32(vec->tab, vec->len);
+    vec->len = uniq32(vec->tab, vec->len);
+}
+
+static _Bool qv_diff_tst(void)
+{
+    t_scope;
+    qv_t(u32) vec1, vec2, res;
+
+    t_qv_init(u32, &vec1, N);
+    t_qv_init(u32, &vec2, N);
+    t_qv_init(u32, &res,  N);
+
+    build_sorted_uniq_vec(&vec1);
+    build_sorted_uniq_vec(&vec2);
+
+    qv_diff(u32)(&vec1, &vec2, &res,
+                 ^int (const uint32_t *v1, const uint32_t *v2) {
+        return CMP(*v1, *v2);
+    });
+
+    RETURN_FALSE_IF(res.len != (int)uniq32(res.tab, res.len));
+
+    qv_for_each_pos(u32, pos, &res) {
+        if (!contains32(res.tab[pos], vec1.tab, vec1.len)
+        ||   contains32(res.tab[pos], vec2.tab, vec2.len))
+        {
+            return false;
+        }
+    }
+    qv_for_each_pos(u32, pos, &vec1) {
+        if (!contains32(vec1.tab[pos], vec2.tab, vec2.len)
+        &&  !contains32(vec1.tab[pos], res.tab,  res.len))
+        {
+            return false;
+        }
+    }
+
+    return true;
+#undef N
+}
+
 Z_GROUP_EXPORT(qvector)
 {
     Z_TEST(qv_sort, "qvector: qv_sort") {
         Z_ASSERT(qv_sort_tst());
+    } Z_TEST_END;
+
+    Z_TEST(qv_diff, "qvector: qv_diff") {
+        Z_ASSERT(qv_diff_tst());
     } Z_TEST_END;
 } Z_GROUP_END;
 
