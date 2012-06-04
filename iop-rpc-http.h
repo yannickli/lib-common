@@ -38,7 +38,8 @@ DO_REFCNT(ichttp_cb_t, ichttp_cb);
     HTTPD_QUERY_FIELDS(pfx);     \
     ichttp_cb_t *cbe;            \
     bool   json;                 \
-    size_t iop_res_size
+    size_t iop_res_size;         \
+    bool   iop_answered
 
 #define ICHTTP_QUERY_METHODS(type_t) \
     HTTPD_QUERY_METHODS(type_t)
@@ -247,5 +248,12 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
             } },                                                             \
         };                                                                   \
     } while (0)
+
+/** when called in HTTPD status hook, get the query error context if some */
+lstr_t ichttp_err_ctx_get(void);
+/** set the error context */
+void __ichttp_err_ctx_set(lstr_t err_ctx);
+/** clear the error context */
+void __ichttp_err_ctx_clear(void);
 
 #endif
