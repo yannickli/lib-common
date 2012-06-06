@@ -288,7 +288,12 @@ static size_t membitcount_ssse3(const void *ptr, size_t n)
         }
     }
     res += ((__v2di)__builtin_ia32_movhlps((__v4sf)res, (__v4sf)res));
-    return res[0];
+
+    {
+        /* GCC 4.4 does not allow taking res[0] directly */
+        union { __v2di q; uint64_t vq[2]; } vres = { .q = res };
+        return vres.vq[0];
+    }
 #undef stepp
 #undef step
 }
