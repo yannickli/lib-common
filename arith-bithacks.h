@@ -99,7 +99,6 @@ static inline uint8_t bitcountsz(size_t n) {
     return DO_SZ(bitcount)(n);
 }
 
-size_t membitcount(const void *ptr, size_t n)
-    __leaf;
+extern size_t (*membitcount)(const void *ptr, size_t n);
 
 #endif
