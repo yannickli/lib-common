@@ -311,7 +311,8 @@ static size_t membitcount_resolve(const void *ptr, size_t n)
         __cpuid(1, eax, ebx, ecx, edx);
         if (ecx & bit_POPCNT) {
             membitcount = &membitcount_popcnt;
-        } else {
+        } else
+        if (ecx & bit_SSSE3) {
             membitcount = &membitcount_ssse3;
         }
     }
