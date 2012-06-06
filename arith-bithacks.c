@@ -52,7 +52,6 @@ uint8_t const __firstbit_rev8[256] = {
 #undef A
 };
 
-#ifndef __POPCNT__
 uint8_t const __bitcount11[1 << 11] = {
 #define X4(n)       BC12(n), BC12(n + 1), BC12(n + 2),  BC12(n + 3)
 #define X16(n)      X4(n),   X4(n + 4),   X4(n + 8),    X4(n + 12)
@@ -65,9 +64,7 @@ uint8_t const __bitcount11[1 << 11] = {
 #undef X16
 #undef X4
 };
-#endif
 
-__attribute__((used))
 static size_t membitcount_c(const void *ptr, size_t n)
 {
     size_t c1 = 0, c2 = 0, c3 = 0, c4 = 0;
@@ -113,8 +110,7 @@ static size_t membitcount_c(const void *ptr, size_t n)
     return c1 + c2 + c3 + c4;
 }
 
-#if !defined(__gcc_has_no_ifunc) && (__GNUC_PREREQ(4, 6) || __has_attribute(ifunc))
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__i386__)) && __GNUC_PREREQ(4, 4)
 #include <cpuid.h>
 #include <x86intrin.h>
 
@@ -299,29 +295,27 @@ static size_t membitcount_ssse3(const void *ptr, size_t n)
 
 #endif
 
-static void (*membitcount_resolve(void))(void)
+static size_t membitcount_resolve(const void *ptr, size_t n)
 {
-#if defined(__x86_64__) || defined(__i386__)
-    int eax, ebx, ecx, edx;
+    membitcount = &membitcount_c;
 
-    __cpuid(1, eax, ebx, ecx, edx);
-    if (ecx & bit_POPCNT)
-        return (void (*)(void))&membitcount_popcnt;
-    if (ecx & bit_SSSE3)
-        return (void (*)(void))&membitcount_ssse3;
+#if (defined(__x86_64__) || defined(__i386__)) && __GNUC_PREREQ(4, 4)
+    {
+        int eax, ebx, ecx, edx;
+
+        __cpuid(1, eax, ebx, ecx, edx);
+        if (ecx & bit_POPCNT) {
+            membitcount = &membitcount_popcnt;
+        } else {
+            membitcount = &membitcount_ssse3;
+        }
+    }
 #endif
-    return (void (*)(void))&membitcount_c;
+
+    return membitcount(ptr, n);
 }
 
-size_t membitcount(const void *ptr, size_t n)
-    __attribute__((ifunc("membitcount_resolve")));
-
-#else
-
-size_t membitcount(const void *ptr, size_t n)
-    __attribute__((alias("membitcount_c")));
-
-#endif
+size_t (*membitcount)(const void *ptr, size_t n) = &membitcount_resolve;
 
 static size_t membitcount_naive(const void *_p, size_t n)
 {
@@ -377,8 +371,7 @@ Z_GROUP_EXPORT(membitcount)
     } Z_TEST_END;
 
     Z_TEST(ssse3, "") {
-#if !defined(__gcc_has_no_ifunc) && (__GNUC_PREREQ(4, 6) || __has_attribute(ifunc))
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__i386__)) && __GNUC_PREREQ(4, 4)
         int eax, ebx, ecx, edx;
 
         __cpuid(1, eax, ebx, ecx, edx);
@@ -389,16 +382,12 @@ Z_GROUP_EXPORT(membitcount)
             Z_SKIP("your CPU doesn't support ssse3");
         }
 #else
-        Z_SKIP("neither amd64 nor i386");
-#endif
-#else
-        Z_SKIP("unsupported compiler");
+        Z_SKIP("neither amd64 nor i386 or unsupported compiler");
 #endif
     } Z_TEST_END;
 
     Z_TEST(popcnt, "") {
-#if !defined(__gcc_has_no_ifunc) && (__GNUC_PREREQ(4, 6) || __has_attribute(ifunc))
-#if defined(__x86_64__) || defined(__i386__)
+#if (defined(__x86_64__) || defined(__i386__)) && __GNUC_PREREQ(4, 4)
         int eax, ebx, ecx, edx;
 
         __cpuid(1, eax, ebx, ecx, edx);
@@ -409,10 +398,7 @@ Z_GROUP_EXPORT(membitcount)
             Z_SKIP("your CPU doesn't support popcnt");
         }
 #else
-        Z_SKIP("neither amd64 nor i386");
-#endif
-#else
-        Z_SKIP("unsupported compiler");
+        Z_SKIP("neither amd64 nor i386 or unsupported compiler");
 #endif
     } Z_TEST_END;
 } Z_GROUP_END
