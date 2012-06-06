@@ -415,15 +415,15 @@ static int t_xmlr_val_str(xml_reader_t xr, const char *s,
 #define ARGS    emptyok, out
 #include "xmlr-get-value.in.c"
 
-static int xmlr_val_int_range(xml_reader_t xr, const char *s,
-                              int minv, int maxv, int *ip)
+static int xmlr_val_int_range_base(xml_reader_t xr, const char *s,
+                                   int minv, int maxv, int base, int *ip)
 {
     int64_t i64;
 
     if (!s)
         return xmlr_fail(xr, "node value is missing");
     errno = 0;
-    i64 = strtoll(s, &s, 10);
+    i64 = strtoll(s, &s, base);
     if (skipspaces(s)[0] || errno)
         return xmlr_fail(xr, "node value is not an integer");
     if (i64 < minv || i64 > maxv)
@@ -431,9 +431,9 @@ static int xmlr_val_int_range(xml_reader_t xr, const char *s,
     *ip = i64;
     return 0;
 }
-#define F(x)    x##_int_range
-#define ARGS_P  int minv, int maxv, int *ip
-#define ARGS    minv, maxv, ip
+#define F(x)    x##_int_range_base
+#define ARGS_P  int minv, int maxv, int base, int *ip
+#define ARGS    minv, maxv, base, ip
 #include "xmlr-get-value.in.c"
 
 static int xmlr_val_bool(xml_reader_t xr, const char *s, bool *bp)
@@ -461,34 +461,36 @@ static int xmlr_val_bool(xml_reader_t xr, const char *s, bool *bp)
 #define ARGS    bp
 #include "xmlr-get-value.in.c"
 
-static int xmlr_val_i64(xml_reader_t xr, const char *s, int64_t *i64p)
+static int xmlr_val_i64_base(xml_reader_t xr, const char *s, int base,
+                             int64_t *i64p)
 {
     if (!s)
         return xmlr_fail(xr, "node value is missing");
     errno = 0;
-    *i64p = strtoll(s, &s, 10);
+    *i64p = strtoll(s, &s, base);
     if (skipspaces(s)[0] || errno)
         return xmlr_fail(xr, "node value is not a valid integer");
     return 0;
 }
-#define F(x)    x##_i64
-#define ARGS_P  int64_t *i64p
-#define ARGS    i64p
+#define F(x)    x##_i64_base
+#define ARGS_P  int base, int64_t *i64p
+#define ARGS    base, i64p
 #include "xmlr-get-value.in.c"
 
-static int xmlr_val_u64(xml_reader_t xr, const char *s, uint64_t *u64p)
+static int xmlr_val_u64_base(xml_reader_t xr, const char *s, int base,
+                             uint64_t *u64p)
 {
     if (!s)
         return xmlr_fail(xr, "node value is missing");
     errno = 0;
-    *u64p = strtoull(s, &s, 10);
+    *u64p = strtoull(s, &s, base);
     if (skipspaces(s)[0] || errno)
         return xmlr_fail(xr, "node value is not a valid integer");
     return 0;
 }
-#define F(x)    x##_u64
-#define ARGS_P  uint64_t *u64p
-#define ARGS    u64p
+#define F(x)    x##_u64_base
+#define ARGS_P  int base, uint64_t *u64p
+#define ARGS    base, u64p
 #include "xmlr-get-value.in.c"
 
 static int xmlr_val_dbl(xml_reader_t xr, const char *s, double *dblp)
@@ -568,15 +570,16 @@ static int t_xmlr_attr_str(xml_reader_t xr, const char *name, const char *s,
 #define ARGS    emptyok, out
 #include "xmlr-get-attr.in.c"
 
-static int xmlr_attr_int_range(xml_reader_t xr, const char *name, const char *s,
-                              int minv, int maxv, int *ip)
+static int
+xmlr_attr_int_range_base(xml_reader_t xr, const char *name, const char *s,
+                         int minv, int maxv, int base, int *ip)
 {
     int64_t i64;
 
     if (!s)
         return xmlr_fail(xr, "[%s] value is missing", name);
     errno = 0;
-    i64 = strtoll(s, &s, 10);
+    i64 = strtoll(s, &s, base);
     if (skipspaces(s)[0] || errno)
         return xmlr_fail(xr, "[%s] value is not an integer", name);
     if (i64 < minv || i64 > maxv)
@@ -584,9 +587,9 @@ static int xmlr_attr_int_range(xml_reader_t xr, const char *name, const char *s,
     *ip = i64;
     return 0;
 }
-#define F(x)    x##_int_range
-#define ARGS_P  int minv, int maxv, int *ip
-#define ARGS    minv, maxv, ip
+#define F(x)    x##_int_range_base
+#define ARGS_P  int minv, int maxv, int base, int *ip
+#define ARGS    minv, maxv, base, ip
 #include "xmlr-get-attr.in.c"
 
 static int xmlr_attr_bool(xml_reader_t xr, const char *name, const char *s, bool *bp)
@@ -614,37 +617,40 @@ static int xmlr_attr_bool(xml_reader_t xr, const char *name, const char *s, bool
 #define ARGS    bp
 #include "xmlr-get-attr.in.c"
 
-static int xmlr_attr_i64(xml_reader_t xr, const char *name, const char *s, int64_t *i64p)
+static int xmlr_attr_i64_base(xml_reader_t xr, const char *name,
+                              const char *s, int base, int64_t *i64p)
 {
     if (!s)
         return xmlr_fail(xr, "[%s] value is missing", name);
     errno = 0;
-    *i64p = strtoll(s, &s, 10);
+    *i64p = strtoll(s, &s, base);
     if (skipspaces(s)[0] || errno)
         return xmlr_fail(xr, "[%s] value is not a valid integer", name);
     return 0;
 }
-#define F(x)    x##_i64
-#define ARGS_P  int64_t *i64p
-#define ARGS    i64p
+#define F(x)    x##_i64_base
+#define ARGS_P  int base, int64_t *i64p
+#define ARGS    base, i64p
 #include "xmlr-get-attr.in.c"
 
-static int xmlr_attr_u64(xml_reader_t xr, const char *name, const char *s, uint64_t *u64p)
+static int xmlr_attr_u64_base(xml_reader_t xr, const char *name,
+                              const char *s, int base, uint64_t *u64p)
 {
     if (!s)
         return xmlr_fail(xr, "[%s] value is missing", name);
     errno = 0;
-    *u64p = strtoull(s, &s, 10);
+    *u64p = strtoull(s, &s, base);
     if (skipspaces(s)[0] || errno)
         return xmlr_fail(xr, "[%s] value is not a valid integer", name);
     return 0;
 }
-#define F(x)    x##_u64
-#define ARGS_P  uint64_t *u64p
-#define ARGS    u64p
+#define F(x)    x##_u64_base
+#define ARGS_P  int base, uint64_t *u64p
+#define ARGS    base, u64p
 #include "xmlr-get-attr.in.c"
 
-static int xmlr_attr_dbl(xml_reader_t xr, const char *name, const char *s, double *dblp)
+static int xmlr_attr_dbl(xml_reader_t xr, const char *name, const char *s,
+                         double *dblp)
 {
     if (!s)
         return xmlr_fail(xr, "[%s] value is missing", name);
