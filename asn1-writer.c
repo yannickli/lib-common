@@ -367,10 +367,6 @@ static int asn1_pack_value_size(const void *dt, const asn1_field_t *spec,
         return -1;
     }
 
-    if (stack->len > 128) {
-       e_trace(0, "Size stack %zd bytes high.", stack->len * sizeof(int32_t));
-    }
-
 
     if (unlikely(!asn1_field_is_tagged(spec))) {
         *len += data_size;
