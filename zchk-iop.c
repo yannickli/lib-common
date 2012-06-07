@@ -689,7 +689,7 @@ Z_GROUP_EXPORT(iop)
             .c = IOP_ARRAY(bvals, countof(bvals)),
         };
 
-        const iop_struct_t *st_se, *st_sa, *st_sf;
+        const iop_struct_t *st_se, *st_sa, *st_sf, *st_sa_opt;
 
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
@@ -697,6 +697,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(st_se = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructE")));
         Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructA")));
         Z_ASSERT_P(st_sf = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructF")));
+        Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructAOpt")));
 
         /* We test that packing and unpacking of XML structures is stable */
         Z_HELPER_RUN(iop_xml_test_struct(st_se, &se, "se"));
@@ -772,6 +773,42 @@ Z_GROUP_EXPORT(iop)
             xmlr_close(&xmlr_g);
 
             qm_wipe(part, &parts);
+            sb_wipe(&sb);
+        }
+
+        { /* Test numeric values */
+            t_scope;
+            tstiop__my_struct_a_opt__t sa_opt;
+            SB_1k(sb);
+
+            sb_adds(&sb, "<root "
+                    "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
+                    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+                    ">\n");
+            sb_adds(&sb,
+                    "<a>42</a>"
+                    "<b>0x10</b>"
+                    "<e>-42</e>"
+                    "<f>0x42</f>");
+            sb_adds(&sb, "</root>\n");
+
+            iop_init(st_sa_opt, &sa_opt);
+            Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
+            Z_ASSERT_N(iop_xunpack(xmlr_g, t_pool(), st_sa_opt, &sa_opt));
+            xmlr_close(&xmlr_g);
+
+            Z_ASSERT(IOP_OPT_ISSET(sa_opt.a));
+            Z_ASSERT_EQ(IOP_OPT_VAL(sa_opt.a), 42);
+
+            Z_ASSERT(IOP_OPT_ISSET(sa_opt.b));
+            Z_ASSERT_EQ(IOP_OPT_VAL(sa_opt.b), 0x10U);
+
+            Z_ASSERT(IOP_OPT_ISSET(sa_opt.e));
+            Z_ASSERT_EQ(IOP_OPT_VAL(sa_opt.e), -42);
+
+            Z_ASSERT(IOP_OPT_ISSET(sa_opt.f));
+            Z_ASSERT_EQ(IOP_OPT_VAL(sa_opt.f), 0x42);
+
             sb_wipe(&sb);
         }
 
