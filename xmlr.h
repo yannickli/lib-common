@@ -163,10 +163,72 @@ int mp_xmlr_get_strdup(mem_pool_t *mp, xml_reader_t xr,
                        bool emptyok, lstr_t *out);
 int t_xmlr_get_str(xml_reader_t xr, bool emptyok, lstr_t *out);
 
-int xmlr_get_int_range(xml_reader_t xr, int minv, int maxv, int *ip);
+/** Get an integer value between minv and maxv.
+ *
+ * This function get the current node value and go to the next node. It
+ * accepts values depending on the base parameter (see man strtol).
+ */
+int xmlr_get_int_range_base(xml_reader_t xr, int minv, int maxv, int base,
+                            int *ip);
+
+/** Get a signed integer value.
+ *
+ * This function get the current node value and go to the next node. It
+ * accepts values depending on the base parameter (see man strtol).
+ */
+int xmlr_get_i64_base(xml_reader_t xr, int base, int64_t *i64p);
+
+/** Get an unsigned integer value.
+ *
+ * This function get the current node value and go to the next node. It
+ * accepts values depending on the base parameter (see man strtol).
+ */
+int xmlr_get_u64_base(xml_reader_t xr, int base, uint64_t *u64p);
+
+/** Get an integer value between minv and maxv.
+ *
+ * This function get the current node value and go to the next node. It
+ * accepts decimal values only.
+ */
+static inline int
+xmlr_get_int_range(xml_reader_t xr, int minv, int maxv, int *ip)
+{
+    return xmlr_get_int_range_base(xr, minv, maxv, 10, ip);
+}
+
+/** Get a signed integer value.
+ *
+ * This function get the current node value and go to the next node. It
+ * accepts decimal values only.
+ */
+static inline int
+xmlr_get_i64(xml_reader_t xr, int64_t *i64p)
+{
+    return xmlr_get_i64_base(xr, 10, i64p);
+}
+
+/** Get an unsigned integer value.
+ *
+ * This function get the current node value and go to the next node. It
+ * accepts decimal values only.
+ */
+static inline int
+xmlr_get_u64(xml_reader_t xr, uint64_t *u64p)
+{
+    return xmlr_get_u64_base(xr, 10, u64p);
+}
+
+/** Get a boolean value.
+ *
+ * This function get the current node value and go to the next node. It
+ * accepts the following values: 0, 1, true, false.
+ */
 int xmlr_get_bool(xml_reader_t xr, bool *bp);
-int xmlr_get_i64(xml_reader_t xr, int64_t *i64p);
-int xmlr_get_u64(xml_reader_t xr, uint64_t *u64p);
+
+/** Get a double value.
+ *
+ * This function get the current node value and go to the next node.
+ */
 int xmlr_get_dbl(xml_reader_t xr, double *dp);
 
 /* XXX: out must be lstr_wipe()d */
@@ -192,11 +254,69 @@ xmlr_find_attr_s(xml_reader_t xr, const char *name, bool needed)
 int t_xmlr_getattr_str(xml_reader_t xr, xmlAttrPtr attr,
                        bool nullok, lstr_t *out);
 
-int xmlr_getattr_int_range(xml_reader_t xr, xmlAttrPtr attr,
-                           int minv, int maxv, int *ip);
+/** Get the current node attribute integer value between minv and maxv.
+ *
+ * This function accepts decimal values depending on the base parameter (see
+ * man strtol).
+ */
+int xmlr_getattr_int_range_base(xml_reader_t xr, xmlAttrPtr attr,
+                                int minv, int maxv, int base, int *ip);
+
+/** Get the current node attribute signed integer value.
+ *
+ * This function accepts decimal values depending on the base parameter (see
+ * man strtol).
+ */
+int xmlr_getattr_i64_base(xml_reader_t xr, xmlAttrPtr attr, int base,
+                          int64_t *i64p);
+
+/** Get the current node attribute unsigned integer value.
+ *
+ * This function accepts decimal values depending on the base parameter (see
+ * man strtol).
+ */
+int xmlr_getattr_u64_base(xml_reader_t xr, xmlAttrPtr attr, int base,
+                          uint64_t *u64p);
+
+/** Get the current node attribute integer value between minv and maxv.
+ *
+ * This function accepts decimal values only.
+ */
+static inline int
+xmlr_getattr_int_range(xml_reader_t xr, xmlAttrPtr attr, int minv, int maxv,
+                       int *ip)
+{
+    return xmlr_getattr_int_range_base(xr, attr, minv, maxv, 10, ip);
+}
+
+/** Get the current node attribute signed integer value.
+ *
+ * This function accepts decimal values only.
+ */
+static inline int
+xmlr_getattr_i64(xml_reader_t xr, xmlAttrPtr attr, int64_t *i64p)
+{
+    return xmlr_getattr_i64_base(xr, attr, 10, i64p);
+}
+
+/** Get the current node attribute unsigned integer value.
+ *
+ * This function accepts decimal values only.
+ */
+static inline int
+xmlr_getattr_u64(xml_reader_t xr, xmlAttrPtr attr, uint64_t *u64p)
+{
+    return xmlr_getattr_u64_base(xr, attr, 10, u64p);
+}
+
+/** Get the current node attribute unsigned integer value.
+ *
+ * This function accepts the following values: 0, 1, true, false.
+ */
 int xmlr_getattr_bool(xml_reader_t xr, xmlAttrPtr attr, bool *bp);
-int xmlr_getattr_i64(xml_reader_t xr, xmlAttrPtr attr, int64_t *i64p);
-int xmlr_getattr_u64(xml_reader_t xr, xmlAttrPtr attr, uint64_t *u64p);
+
+
+/** Get the current node attribute double value. */
 int xmlr_getattr_dbl(xml_reader_t xr, xmlAttrPtr attr, double *dp);
 
 #endif

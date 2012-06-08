@@ -27,7 +27,7 @@ xunpack_union(xml_reader_t, mem_pool_t *, const iop_struct_t *, void *,
 static int parse_int(xml_reader_t xr, const char *s, int64_t *i64p)
 {
     errno = 0;
-    *i64p = strtoll(s, &s, 10);
+    *i64p = strtoll(s, &s, 0);
     if (unlikely(skipspaces(s)[0] || errno))
         return xmlr_fail(xr, "node value is not a valid integer");
     return 0;
@@ -146,11 +146,11 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
 
     switch (fdesc->type) {
       case IOP_T_I8: case IOP_T_U8:
-        RETHROW(xmlr_get_i64(xr, &intval));
+        RETHROW(xmlr_get_i64_base(xr, 0, &intval));
         *(uint8_t *)v = intval;
         break;
       case IOP_T_I16: case IOP_T_U16:
-        RETHROW(xmlr_get_i64(xr, &intval));
+        RETHROW(xmlr_get_i64_base(xr, 0, &intval));
         *(uint16_t *)v = intval;
         break;
       case IOP_T_ENUM:
@@ -158,15 +158,15 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
         *(uint32_t *)v = intval;
         break;
       case IOP_T_I32: case IOP_T_U32:
-        RETHROW(xmlr_get_i64(xr, &intval));
+        RETHROW(xmlr_get_i64_base(xr, 0, &intval));
         *(uint32_t *)v = intval;
         break;
       case IOP_T_I64:
-        RETHROW(xmlr_get_i64(xr, &intval));
+        RETHROW(xmlr_get_i64_base(xr, 0, &intval));
         *(uint64_t *)v = intval;
         break;
       case IOP_T_U64:
-        RETHROW(xmlr_get_u64(xr, &uintval));
+        RETHROW(xmlr_get_u64_base(xr, 0, &uintval));
         *(uint64_t *)v = uintval;
         break;
       case IOP_T_BOOL:
@@ -218,12 +218,12 @@ static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
 
         switch (fdesc->type) {
           case IOP_T_I8: case IOP_T_U8:
-            RETHROW(xmlr_get_i64(xr, &intval));
+            RETHROW(xmlr_get_i64_base(xr, 0, &intval));
             ((uint8_t *)data->data)[data->len] = intval;
             break;
 
           case IOP_T_I16: case IOP_T_U16:
-            RETHROW(xmlr_get_i64(xr, &intval));
+            RETHROW(xmlr_get_i64_base(xr, 0, &intval));
             ((uint16_t *)data->data)[data->len] = intval;
             break;
 
@@ -233,17 +233,17 @@ static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
             break;
 
           case IOP_T_I32: case IOP_T_U32:
-            RETHROW(xmlr_get_i64(xr, &intval));
+            RETHROW(xmlr_get_i64_base(xr, 0, &intval));
             ((uint32_t *)data->data)[data->len] = intval;
             break;
 
           case IOP_T_I64:
-            RETHROW(xmlr_get_i64(xr, &intval));
+            RETHROW(xmlr_get_i64_base(xr, 0, &intval));
             ((uint64_t *)data->data)[data->len] = intval;
             break;
 
           case IOP_T_U64:
-            RETHROW(xmlr_get_u64(xr, &uintval));
+            RETHROW(xmlr_get_u64_base(xr, 0, &uintval));
             ((uint64_t *)data->data)[data->len] = uintval;
             break;
 
