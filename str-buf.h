@@ -253,6 +253,11 @@ static inline void sb_adds(sb_t *sb, const char *s)
     sb_add(sb, s, strlen(s));
 }
 
+static inline void sb_add_lstr(sb_t *sb, lstr_t s)
+{
+    sb_add(sb, s.s, s.len);
+}
+
 /* data == NULL means: please fill with raw data.  */
 char *__sb_splice(sb_t *sb, int pos, int len, int dlen);
 static inline char *
