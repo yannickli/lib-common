@@ -21,6 +21,23 @@ IOP_ENUM(core__log_level);
 #define LOG_LEVEL_min   0
 #define LOG_LEVEL_max   7
 
+typedef enum core__iop_http_method__t {
+    IOP_HTTP_METHOD_OPTIONS,
+    IOP_HTTP_METHOD_GET,
+    IOP_HTTP_METHOD_HEAD,
+    IOP_HTTP_METHOD_POST,
+    IOP_HTTP_METHOD_PUT,
+    IOP_HTTP_METHOD_DELETE,
+    IOP_HTTP_METHOD_TRACE,
+    IOP_HTTP_METHOD_CONNECT,
+} core__iop_http_method__t;
+extern iop_enum_t const core__iop_http_method__e;
+IOP_ENUM(core__iop_http_method);
+
+#define IOP_HTTP_METHOD_count 8
+#define IOP_HTTP_METHOD_min   0
+#define IOP_HTTP_METHOD_max   7
+
 typedef struct core__httpd_cfg__t {
     uint32_t outbuf_max_size;
     uint16_t pipeline_depth;

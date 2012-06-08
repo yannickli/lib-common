@@ -38,6 +38,32 @@ iop_enum_t const core__log_level__e = {
 };
 
 /* }}} */
+/* Enum core.IopHttpMethod {{{ */
+
+static int const core__iop_http_method__values[] = {
+ 0, 1, 2, 3, 4, 5, 6, 7,
+};
+static const lstr_t core__iop_http_method__names[] = {
+    LSTR_IMMED("OPTIONS"),
+    LSTR_IMMED("GET"),
+    LSTR_IMMED("HEAD"),
+    LSTR_IMMED("POST"),
+    LSTR_IMMED("PUT"),
+    LSTR_IMMED("DELETE"),
+    LSTR_IMMED("TRACE"),
+    LSTR_IMMED("CONNECT"),
+};
+iop_enum_t const core__iop_http_method__e = {
+    .name       = LSTR_IMMED("IopHttpMethod"),
+    .fullname   = LSTR_IMMED("core.IopHttpMethod"),
+    .names      = core__iop_http_method__names,
+    .values     = core__iop_http_method__values,
+    .ranges     = iop__ranges__1,
+    .ranges_len = countof(iop__ranges__1) / 2,
+    .enum_len   = 8,
+};
+
+/* }}} */
 /* Structure core.HttpdCfg {{{ */
 
 static iop_field_t const core__httpd_cfg__desc_fields[] = {
@@ -208,6 +234,7 @@ static const iop_pkg_t *const core__deps[] = {
 
 static const iop_enum_t *const core__enums[] = {
     &core__log_level__e,
+    &core__iop_http_method__e,
     NULL,
 };
 
