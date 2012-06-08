@@ -17,4 +17,17 @@ typedef enum core__log_level__t {
 extern iop_enum_t const core__log_level__e;
 IOP_ENUM(core__log_level);
 
+typedef enum core__iop_http_method__t {
+    IOP_HTTP_METHOD_OPTIONS,
+    IOP_HTTP_METHOD_GET,
+    IOP_HTTP_METHOD_HEAD,
+    IOP_HTTP_METHOD_POST,
+    IOP_HTTP_METHOD_PUT,
+    IOP_HTTP_METHOD_DELETE,
+    IOP_HTTP_METHOD_TRACE,
+    IOP_HTTP_METHOD_CONNECT,
+} core__iop_http_method__t;
+extern iop_enum_t const core__iop_http_method__e;
+IOP_ENUM(core__iop_http_method);
+
 #endif
