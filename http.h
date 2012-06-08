@@ -21,6 +21,8 @@
 typedef enum http_method_t {
     HTTP_METHOD_ERROR = -1,
     /* rfc 2616: §5.1.1: Method */
+    /* XXX be careful, this struct is correlated with IopHttpMethod
+     * in core.iop */
     HTTP_METHOD_OPTIONS,
     HTTP_METHOD_GET,
     HTTP_METHOD_HEAD,

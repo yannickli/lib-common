@@ -23,3 +23,17 @@ enum LogLevel {
     INFO    = 6, /* informational */
     DEBUG   = 7, /* debug-level messages */
 };
+
+enum IopHttpMethod {
+    /* rfc 2616: §5.1.1: Method */
+    /* XXX be careful, this struct is correlated with http_method_t
+    in http.h */
+    OPTIONS = 0,
+    GET     = 1,
+    HEAD    = 2,
+    POST    = 3,
+    PUT     = 4,
+    DELETE  = 5,
+    TRACE   = 6,
+    CONNECT = 7,
+};
