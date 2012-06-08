@@ -2259,8 +2259,10 @@ static int httpc_on_event(el_t evh, int fd, short events, el_data_t priv)
     pstream_t ps;
     int res, st = HTTPC_STATUS_INVALID;
 
-    if (events == EL_EVENTS_NOACT)
+    if (events == EL_EVENTS_NOACT) {
+        st = HTTPC_STATUS_TIMEOUT;
         goto close;
+    }
 
     if (events & POLLIN) {
         if (sb_read(&w->ibuf, fd, 0) <= 0)
@@ -2291,8 +2293,9 @@ static int httpc_on_event(el_t evh, int fd, short events, el_data_t priv)
     httpc_pool_detach(w);
     if (!dlist_is_empty(&w->query_list)) {
         q = dlist_first_entry(&w->query_list, httpc_query_t, query_link);
-        if (q->qinfo)
+        if (q->qinfo || st == HTTPC_STATUS_TIMEOUT) {
             httpc_query_on_done(q, st);
+        }
     }
     obj_vcall(w, disconnect);
     obj_delete(&w);

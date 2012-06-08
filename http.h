@@ -728,6 +728,7 @@ typedef enum httpc_status_t {
     HTTPC_STATUS_INVALID  = -1,
     HTTPC_STATUS_ABORT    = -2,
     HTTPC_STATUS_TOOLARGE = -3,
+    HTTPC_STATUS_TIMEOUT  = -4,
 } httpc_status_t;
 
 typedef struct httpc_qinfo_t {
