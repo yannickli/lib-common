@@ -85,6 +85,8 @@ void ic_msg_delete(ic_msg_t **msgp)
     mp_delete(ic_mp_g, msgp);
 }
 
+static void ic_watch_act_soft(el_t ev, el_data_t priv);
+
 static void ic_reply_err2(ichannel_t *ic, uint64_t slot, int err,
                           const lstr_t *err_str);
 static ichannel_t *ic_get_from_slot(uint64_t slot);
@@ -667,6 +669,17 @@ static int ic_read(ichannel_t *ic, short events, int sock)
             return -1;
         }
 
+        if (ic->wa_soft > 0) {
+            if (!ic->wa_soft_timer) {
+                ic->on_event(ic, IC_EVT_ACT);
+                ic->wa_soft_timer = el_timer_register(ic->wa_soft, 0, 0,
+                                                      ic_watch_act_soft, ic);
+                el_unref(ic->wa_soft_timer);
+            } else {
+                el_timer_restart(ic->wa_soft_timer, 0);
+            }
+        }
+
         fdv = NULL;
         fdc = 0;
         if (!ic->is_stream) {
@@ -789,6 +802,7 @@ void ic_disconnect(ichannel_t *ic)
         ic->on_event(ic, IC_EVT_DISCONNECTED);
     }
     el_timer_unregister(&ic->timer);
+    el_timer_unregister(&ic->wa_soft_timer);
     ic_drop_id(ic);
     ic_choose_id(ic);
     qv_clear(iovec, &ic->iov);
@@ -1100,6 +1114,7 @@ void ic_bye(ichannel_t *ic)
         ic_sc_do(ic, IC_SC_BYE);
     } else {
         el_timer_unregister(&ic->timer);
+        el_timer_unregister(&ic->wa_soft_timer);
     }
     ic->is_closing  = true;
     ic->auto_reconn = false;
@@ -1180,6 +1195,14 @@ static int ic_connecting(el_t ev, int fd, short events, el_data_t priv)
     return 0;
 }
 
+static void ic_watch_act_soft(el_t ev, el_data_t priv)
+{
+    ichannel_t *ic = priv.ptr;
+
+    ic->on_event(ic, IC_EVT_NOACT);
+    el_timer_unregister(&ic->wa_soft_timer);
+}
+
 static void ic_watch_act_nop(el_t ev, el_data_t priv)
 {
     ic_nop(priv.ptr);
@@ -1188,16 +1211,26 @@ static void ic_watch_act_nop(el_t ev, el_data_t priv)
 
 static void __ic_watch_activity(ichannel_t *ic)
 {
-    int wa = ic->watch_act;
+    int wa = ic->wa_hard;
 
     if (!ic->elh)
         return;
 
     el_fd_watch_activity(ic->elh, POLLIN, wa);
     el_timer_unregister(&ic->timer);
+    el_timer_unregister(&ic->wa_soft_timer);
+
+    if (ic->wa_soft > 0) {
+        if (wa > 0) {
+            wa = MIN(wa, ic->wa_soft);
+        } else {
+            wa = ic->wa_soft;
+        }
+    }
+
     if (wa <= 0)
         return;
-    assert (ic->timer == NULL);
+
     ic->timer = el_timer_register(wa / 3, 0, 0, ic_watch_act_nop, ic);
     el_unref(ic->timer);
 }
@@ -1238,9 +1271,10 @@ static int __ic_connect(ichannel_t *ic, int flags)
     return 0;
 }
 
-void ic_watch_activity(ichannel_t *ic, int timeout)
+void ic_watch_activity(ichannel_t *ic, int timeout_soft, int timeout_hard)
 {
-    ic->watch_act = timeout;
+    ic->wa_soft = timeout_soft;
+    ic->wa_hard = timeout_hard;
     __ic_watch_activity(ic);
 }
 

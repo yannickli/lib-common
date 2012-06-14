@@ -29,6 +29,8 @@ typedef struct ic_msg_t   ic_msg_t;
 typedef enum ic_event_t {
     IC_EVT_CONNECTED,
     IC_EVT_DISCONNECTED,
+    IC_EVT_ACT,   /* used to notify of first activity when using soft wa */
+    IC_EVT_NOACT, /* used to notify no activity when using soft wa       */
 } ic_event_t;
 
 
@@ -141,7 +143,10 @@ struct ichannel_t {
     int               cmd;      /**< cmd of the current unpacked structure  */
     ev_priority_t     priority; /**< priority of the channel                */
 
-    int          watch_act;    /**< use in el_fd_watch_activity            */
+    el_t wa_soft_timer;
+    int  wa_soft;             /**< to be notified when no activity          */
+    int  wa_hard;             /**< to close the connection when no activity */
+
     int          protocol;     /**< transport layer protocol (0 = default) */
     sockunion_t  su;
     const qm_t(ic_cbs) *impl;
@@ -202,7 +207,25 @@ static inline bool ic_slot_is_async(uint64_t slot) {
     return slot == 0;
 }
 
-void ic_watch_activity(ichannel_t *ic, int timeout);
+/** \brief watch the incoming activity of an ichannel.
+ *
+ * If a positive soft timeout is given, the on_event callback will be called
+ * with IC_EVT_NOACT when an inactivity period of timeout_soft milliseconds
+ * is detected, and with IC_EVT_ACT when an activity occurs after a period
+ * of inactivity.
+ *
+ * If a positive hard timeout is given, the ichannel connection will be
+ * automatically closed if an inactivity period of timeout_hard milliseconds
+ * is detected.
+ *
+ * If one of the two given timeouts is positive, some outgoing traffic will
+ * be generated each timeout / 3 milliseconds.
+ *
+ * In general, this function should be called with the same arguments on both
+ * client and server side.
+ */
+void ic_watch_activity(ichannel_t *ic, int timeout_soft, int timeout_hard);
+
 ev_priority_t ic_set_priority(ichannel_t *ic, ev_priority_t prio);
 ichannel_t *ic_get_by_id(uint32_t id);
 ichannel_t *ic_init(ichannel_t *);
