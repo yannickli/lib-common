@@ -209,6 +209,7 @@ ifeq (__dump_targets,$(MAKECMDGOALS))
 
 __dump_targets: . = $(patsubst $(var/srcdir)/%,%,$(realpath $(CURDIR))/)
 __dump_targets:
+	echo 'ifneq (,$$(realpath $.Makefile))'
 	$(foreach v,$(filter %_DATAS %_PROGRAMS %_LIBRARIES,$(.VARIABLES)),\
 	    echo '$v += $(call fun/msq,$(call fun/rebase,$(CURDIR),$($v)))';)
 	$(foreach v,$(filter %_DEPENDS %_SOURCES,$(.VARIABLES)),\
@@ -221,6 +222,7 @@ __dump_targets:
 	make -nspqr | $(var/toolsdir)/_local_targets.sh \
 	    "$(var/srcdir)" "$." "$(var/toolsdir)" "$(var/cfgdir)" | \
 	    sed -n -e 's~$$~ FORCE ; $$(MAKE) -w$(if $.,C $.) $$(subst $.,,$$@)~p'
+	echo 'endif'
 
 .PHONY: __dump_targets
 
