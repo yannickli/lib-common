@@ -49,7 +49,7 @@ while read t; do
         say_color pass "done"
     else
         _err=1
-        say_color error "TEST STUITE $t FAILED"
+        say_color error "TEST SUITE $t FAILED"
     fi
 done
 exit $_err
