@@ -74,8 +74,8 @@ endef
 # ext/expand/c <PHONY>,<TARGET>,<C>,<NS>,<OBJ>
 define ext/expand/c
 $5: C_=$(or $($3_COMPILER),$(CC))
-$5: F_=$$(if $$(findstring clang,$$(C_)),$$(CLANGFLAGS),$$(CFLAGS))
-$5: NOCHECK_=$$(NOCHECK)$$(findstring clang,$$(C_))$($(1D)/_NOCHECK)$($1_NOCKECK)$$($3_NOCHECK)
+$5: F_=$$(if $$(or $$(findstring -analyzer,$$(C_)),$$(findstring clang,$$(C_))),$$(CLANGFLAGS),$$(CFLAGS))
+$5: NOCHECK_=$$(NOCHECK)$$(or $$(findstring -analyzer,$$(C_)),$$(findstring clang,$$(C_)))$($(1D)/_NOCHECK)$($1_NOCKECK)$$($3_NOCHECK)
 $5: FLAGS_=$($(1D)/_CFLAGS) $($1_CFLAGS) $($3_CFLAGS)
 $5: $3 | _generated
 	mkdir -p $$(@D)
@@ -104,8 +104,8 @@ endef
 # ext/expand/c <PHONY>,<TARGET>,<C>,<NS>,<OBJ>
 define ext/expand/cc
 $5: C_=$(or $($3_COMPILER),$(CXX))
-$5: F_=$(if $(findstring clang,$(C_)),$(CLANGXXFLAGS),$(CXXFLAGS))
-$5: NOCHECK_=$$(NOCHECK)$(findstring clang,$(C_))$($(1D)/_NOCHECK)$($1_NOCKECK)$$($3_NOCHECK)
+$5: F_=$$(if $$(or $$(findstring -analyzer,$$(C_)),$$(findstring clang,$$(C_))),$(CLANGXXFLAGS),$(CXXFLAGS))
+$5: NOCHECK_=$$(NOCHECK)$$(or $$(findstring -analyzer,$$(C_)),$$(findstring clang,$$(C_)))$($(1D)/_NOCHECK)$($1_NOCKECK)$$($3_NOCHECK)
 $5: FLAGS_=$($(1D)/_CXXFLAGS) $($1_CXXFLAGS) $($3_CXXFLAGS)
 $5: $3 | _generated
 	mkdir -p $$(@D)
