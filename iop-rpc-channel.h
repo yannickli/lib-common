@@ -829,11 +829,12 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  * \param[in]  _rpc   name of the rpc
  * \param[in]  v      a <tt>${_mod}__${_if}__${_rpc}_exn__t *</tt> value.
  */
-#define ic_reply_throw_p(ic, slot, _mod, _if, _rpc, v) \
+#define ic_throw_p(ic, slot, _mod, _if, _rpc, v) \
     ({  const IOP_RPC_T(_mod, _if, _rpc, exn) *__v = (v);                   \
         STATIC_ASSERT(_mod##__##_if(_rpc##__rpc__async) == 0);              \
         __ic_reply(ic, slot, IC_MSG_EXN, -1,                                \
                    IOP_RPC(_mod, _if, _rpc)->exn, __v); })
+
 /** \brief helper to reply to a given query (server-side) with an exception.
  *
  * \param[in]  ic
@@ -847,9 +848,9 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  * \param[in]  ...
  *   the initializers of the value on the form <tt>.field = value</tt>
  */
-#define ic_reply_throw(ic, slot, _mod, _if, _rpc, ...) \
-    ic_reply_throw_p(ic, slot, _mod, _if, _rpc,                             \
-                     (&(IOP_RPC_T(_mod, _if, _rpc, exn)){ __VA_ARGS__ }))
+#define ic_throw(ic, slot, _mod, _if, _rpc, ...) \
+    ic_throw_p(ic, slot, _mod, _if, _rpc,                                   \
+               (&(IOP_RPC_T(_mod, _if, _rpc, exn)){ __VA_ARGS__ }))
 
 /** \brief Bounce an IOP answer to reply to another slot.
  *
@@ -859,7 +860,7 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  * XXX Be really careful because this function supposed that the answer has
  * been leaved unmodified since is reception. If you want to modify it before
  * the forwarding, then *don't* use this function and use instead
- * ic_reply_p/ic_reply_throw_p. If you try to do this, in the best scenario
+ * ic_reply_p/ic_throw_p. If you try to do this, in the best scenario
  * your chances will be ignored, in the worst you will have a crash…
  *
  * Here an example of how to use this function:
@@ -891,5 +892,10 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  */
 void __ic_forward_reply_to(ichannel_t *ic, uint64_t slot,
                            int cmd, const void *res, const void *exn);
+
+
+/* Compatibility aliases */
+#define ic_reply_throw_p(...)  ic_throw_p(__VA_ARGS__)
+#define ic_reply_throw(...)    ic_throw(__VA_ARGS__)
 
 #endif

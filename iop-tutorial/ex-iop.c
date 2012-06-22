@@ -12,7 +12,8 @@
 /**************************************************************************/
 
 #include <lib-common/parseopt.h>
-#include "ex-iop.h"
+#include <lib-common/iop-rpc.h>
+#include "exiop.iop.h"
 
 static struct {
     bool is_closing;
@@ -61,7 +62,7 @@ static el_t exiop_ic_listento(clstr_t addr, int (*on_accept)(el_t ev, int fd))
 /* }}} */
 /* {{{ client */
 
-static void HELLO_MOD_RPC_CB(hello_interface, send)
+static void IOP_RPC_CB(exiop__hello_mod, hello_interface, send)
 {
     if (status != IC_MSG_OK) {
         const char *error;
@@ -87,9 +88,9 @@ static void exiop_client_on_event(ichannel_t *ic, ic_event_t evt)
         e_notice("connected to server");
 
         /* send message to server */
-        ic_hello_mod_query(ic, msg, hello_interface, send,
-                           .seqnum = 1,
-                           .msg    = CLSTR_IMMED("From client : Hello (1)"));
+        ic_query2(ic, msg, exiop__hello_mod, hello_interface, send,
+                  .seqnum = 1,
+                  .msg    = LSTR_IMMED("From client : Hello (1)"));
     } else
     if (evt == IC_EVT_DISCONNECTED) {
         e_warning("disconnected from server");
@@ -111,11 +112,11 @@ static void exiop_client_initialize(const char *addr)
 /* }}} */
 /* {{{ Server implementation */
 
-static void HELLO_MOD_RPC_IMPL(hello_interface, send)
+static void IOP_RPC_IMPL(exiop__hello_mod, hello_interface, send)
 {
     e_trace(0, "helloworld: msg = %s, seqnum = %d\n", arg->msg.s,
             arg->seqnum);
-    ic_hello_mod_reply(ic, slot, hello_interface, send, .res = 1);
+    ic_reply(ic, slot, exiop__hello_mod, hello_interface, send, .res = 1);
 }
 
 static void exiop_server_on_event(ichannel_t *ic, ic_event_t evt)
@@ -149,7 +150,7 @@ static void exiop_server_initialize(const char *addr)
     _G.ic_srv = exiop_ic_listento(CLSTR_STR_V(addr), &exiop_on_accept);
 
     /* Register RPCs */
-    HELLO_MOD_REGISTER(&_G.ic_impl, hello_interface, send);
+    ic_register(&_G.ic_impl, exiop__hello_mod, hello_interface, send);
 }
 
 /* }}} */
