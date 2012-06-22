@@ -269,6 +269,28 @@ static inline void *p_dupz(const void *src, size_t len)
         *__ptr = irealloc(*__ptr, sz * (old), sz * (now), MEM_LIBC);         \
     })
 
+#define p_realloc_extra(pp, extra)                                           \
+    ({                                                                       \
+        typeof(**(pp)) **__ptr = (pp);                                       \
+        *__ptr = irealloc(*__ptr, MEM_UNKNOWN, sizeof(**__ptr) + (extra),    \
+                          MEM_LIBC | MEM_RAW);                               \
+    })
+
+#define p_realloc0_extra(pp, old_extra, new_extra)                           \
+    ({                                                                       \
+        typeof(**(pp)) **__ptr = (pp);                                       \
+        *__ptr = irealloc(*__ptr, sizeof(**__ptr) + (old_extra),             \
+                          sizeof(**__ptr) + (new_extra),                     \
+                          MEM_LIBC);                                         \
+    })
+
+#define p_realloc_extra_field(pp, field, count)                              \
+    p_realloc_extra(pp, fieldsizeof(typeof(**pp), field[0]) * (count))
+
+#define p_realloc0_extra_field(pp, field, old_count, new_count)              \
+    p_realloc0_extra(pp, fieldsizeof(typeof(**(pp)), field[0]) * (old_count),\
+                     fieldsizeof(typeof(**(pp)), field[0]) * (new_count))
+
 #ifndef __cplusplus
 static inline void (p_delete)(void **p)
 {
