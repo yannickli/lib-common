@@ -20,7 +20,8 @@ Our HTTP interfaces support:
 -  Basic HTTP Authentication (no Digest support
 footnote:[Digest HTTP Authentication makes life harder for clients wishing to
 use pipelining, hence is not implemented.  If additional security is needed,
-using an HTTPS-enabled reverse proxy is suggested.]).
+using an HTTPS-enabled reverse proxy is suggested.]);
+-  Content encodings (identity, gzip and deflate).
 
 ==== SOAP conformance ====
 
@@ -69,6 +70,11 @@ The Intersec web services can use the following <<XMLSchema>> types:
 -  +base64Binary+;
 -  +any+.
 
+However, because we support the standard hexadecimal and octal notations we
+wrap the numeric types in a union which explicitly indicates it. So the
+following values: '42', '0x42' and '042' will be respectively read as '42',
+'66' and '34'.
+
 In addition to those, some of the APIs use a notion near the C so called
 'enumeration'. In that case, the field can take various string values or an
 integer one. For example, an enumeration with the possibilities ENUM_A, ENUM_B,
@@ -85,7 +91,7 @@ ENUM_C will be described with the following XML Schema description:
             </restriction>
         </simpleType>
         <simpleType>
-            <restriction base=”integer” />
+            <restriction base=”tns:intersec.int” />
         </simpleType>
     </union>
 </simpleType>
