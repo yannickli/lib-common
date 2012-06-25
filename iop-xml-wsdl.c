@@ -79,7 +79,7 @@ static void iop_xwsdl_put_enum(wsdlpp_t *wpp, const iop_enum_t *e)
 
     xmlpp_opentag(&wpp->pp, "simpleType");
     xmlpp_opentag(&wpp->pp, "restriction");
-    xmlpp_putattr(&wpp->pp, "base", "integer");
+    xmlpp_putattr(&wpp->pp, "base", "tns:intersec.int");
 
     xmlpp_closentag(&wpp->pp, 4);
 }
@@ -142,15 +142,15 @@ static void iop_xwsdl_put_constraints(wsdlpp_t *wpp, const iop_struct_t *st,
                                       const iop_field_t *f)
 {
     static char const * const types[] = {
-        [IOP_T_I8]     = "byte",
-        [IOP_T_U8]     = "unsignedByte",
-        [IOP_T_I16]    = "short",
-        [IOP_T_U16]    = "unsignedShort",
-        [IOP_T_I32]    = "int",
-        [IOP_T_ENUM]   = "int",
-        [IOP_T_U32]    = "unsignedInt",
-        [IOP_T_I64]    = "long",
-        [IOP_T_U64]    = "unsignedLong",
+        [IOP_T_I8]     = "tns:intersec.byte",
+        [IOP_T_U8]     = "tns:intersec.unsignedByte",
+        [IOP_T_I16]    = "tns:intersec.short",
+        [IOP_T_U16]    = "tns:intersec.unsignedShort",
+        [IOP_T_I32]    = "tns:intersec.int",
+        [IOP_T_ENUM]   = "tns:intersec.int",
+        [IOP_T_U32]    = "tns:intersec.unsignedInt",
+        [IOP_T_I64]    = "tns:intersec.long",
+        [IOP_T_U64]    = "tns:intersec.unsignedLong",
         [IOP_T_BOOL]   = "boolean",
         [IOP_T_DOUBLE] = "double",
         [IOP_T_STRING] = "string",
@@ -379,6 +379,36 @@ iop_xwsdl_put_types(wsdlpp_t *wpp, const iop_mod_t *mod, const char *ns)
     xmlpp_opentag(&wpp->pp, "schema");
     xmlpp_putattr(&wpp->pp, "targetNamespace", ns);
     xmlpp_putattr(&wpp->pp, "xmlns", "http://www.w3.org/2001/XMLSchema");
+
+    /* Dump the Intersec special types */
+#define dump_int_type(base, pattern) \
+    do {                                                                \
+        xmlpp_opentag(&wpp->pp, "simpleType");                          \
+        xmlpp_putattr(&wpp->pp, "name", "intersec."base);               \
+        xmlpp_opentag(&wpp->pp, "union");                               \
+        xmlpp_opentag(&wpp->pp, "simpleType");                          \
+        xmlpp_opentag(&wpp->pp, "restriction");                         \
+        xmlpp_putattr(&wpp->pp, "base", base);                          \
+        xmlpp_closentag(&wpp->pp, 2);                                   \
+        xmlpp_opentag(&wpp->pp, "simpleType");                          \
+        xmlpp_opentag(&wpp->pp, "restriction");                         \
+        xmlpp_putattr(&wpp->pp, "base", "string");                      \
+        xmlpp_opentag(&wpp->pp, "pattern");                             \
+        xmlpp_putattr(&wpp->pp, "value", pattern);                      \
+        xmlpp_closentag(&wpp->pp, 5);                                   \
+    } while (0)
+
+    dump_int_type("byte",           "0x\\d{1,2}");
+    dump_int_type("unsignedByte",   "0x\\d{1,2}");
+    dump_int_type("short",          "0x\\d{1,4}");
+    dump_int_type("unsignedShort",  "0x\\d{1,4}");
+    dump_int_type("int",            "0x\\d{1,8}");
+    dump_int_type("unsignedInt",    "0x\\d{1,8}");
+    dump_int_type("long",           "0x\\d{1,16}");
+    dump_int_type("unsignedLong",   "0x\\d{1,16}");
+
+#undef dump_int_type
+
     /* Dump the authentification header type */
     if (wpp->wauth) {
         xmlpp_opentag(&wpp->pp, "element");
