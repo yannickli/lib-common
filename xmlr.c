@@ -147,9 +147,7 @@ int xmlr_fail(xml_reader_t xr, const char *fmt, ...)
         va_start(ap, fmt);
         sb_addvf(&xmlr_err_g, fmt, ap);
         va_end(ap);
-#ifndef NDEBUG
-        e_trace(0, "%s", xmlr_err_g.data);
-#endif
+        e_named_trace(1, "xml/reader", "%s", xmlr_err_g.data);
     }
     return XMLR_ERROR;
 }
