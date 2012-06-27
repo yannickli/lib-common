@@ -53,6 +53,7 @@ try:
     import unittest2 as u
 except ImportError:
     import unittest as u
+import time
 
 __all__ = []
 
@@ -146,6 +147,17 @@ def ZTodo(reason):
     return decorator
 
 class _ZTextTestResult(u.TextTestResult):
+    def startTest(self, test):
+        if self.showAll:
+            self.startTime = time.time()
+        super(_ZTextTestResult, self).startTest(test)
+
+    def addSuccess(self, test):
+        if self.showAll:
+            runTime = time.time() - self.startTime
+            self.stream.write("[%.3fs] " % (runTime))
+        super(_ZTextTestResult, self).addSuccess(test)
+
     """
     _ZTextTestResult
 
