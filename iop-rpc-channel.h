@@ -65,6 +65,14 @@ struct ic_msg_t {
     byte              priv[];
 };
 ic_msg_t *ic_msg_new(int len);
+#define ic_msg_p(_t, _v)                                                    \
+    ({                                                                      \
+        ic_msg_t *_msg = ic_msg_new(sizeof(_t));                            \
+        *(_t *)_msg->priv = *(_t *)_v;                                      \
+        _msg;                                                               \
+    })
+#define ic_msg(_t, ...)  ic_msg_p(_t, (&(_t){ __VA_ARGS__ }))
+
 ic_msg_t *ic_msg_new_fd(int fd, int len);
 ic_msg_t *ic_msg_proxy_new(int fd, uint64_t slot, const ic__hdr__t *hdr);
 void ic_msg_delete(ic_msg_t **);
