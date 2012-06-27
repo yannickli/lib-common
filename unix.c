@@ -433,9 +433,9 @@ int fd_set_features(int fd, int flags)
 #ifndef OS_WINDOWS
         int res = fcntl(fd, F_GETFL);
         if (res < 0)
-            return e_error("fcntl failed.");
+            return e_error("fcntl failed: %m");
         if (fcntl(fd, F_SETFL, res | O_NONBLOCK))
-            return e_error("fcntl failed.");
+            return e_error("fcntl failed: %m");
 #else
         unsigned long flags = 1;
         int res = ioctlsocket(fd, FIONBIO, &flags);
@@ -447,9 +447,9 @@ int fd_set_features(int fd, int flags)
     if (flags & O_CLOEXEC) {
         int res = fcntl(fd, F_GETFD);
         if (res < 0)
-            return e_error("fcntl failed.");
+            return e_error("fcntl failed: %m");
         if (fcntl(fd, F_SETFD, res | FD_CLOEXEC))
-            return e_error("fcntl failed.");
+            return e_error("fcntl failed: %m");
     }
     return 0;
 }
@@ -460,23 +460,23 @@ int fd_unset_features(int fd, int flags)
 #ifndef OS_WINDOWS
         int res = fcntl(fd, F_GETFL);
         if (res < 0)
-            return e_error("fcntl failed.");
+            return e_error("fcntl failed: %m");
         if (fcntl(fd, F_SETFL, res & ~O_NONBLOCK))
-            return e_error("fcntl failed.");
+            return e_error("fcntl failed: %m");
 #else
         unsigned long flags = 0;
         int res = ioctlsocket(fd, FIONBIO, &flags);
 
         if (res == SOCKET_ERROR)
-            return e_error("ioctlsocket failed: %d", errno);
+            return e_error("ioctlsocket failed: %d", error);
 #endif
     }
     if (flags & O_CLOEXEC) {
         int res = fcntl(fd, F_GETFD);
         if (res < 0)
-            return e_error("fcntl failed.");
+            return e_error("fcntl failed: %m");
         if (fcntl(fd, F_SETFD, res & ~FD_CLOEXEC))
-            return e_error("fcntl failed.");
+            return e_error("fcntl failed: %m");
     }
     return 0;
 }
