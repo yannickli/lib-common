@@ -1958,9 +1958,9 @@ httpc_flush_data(httpc_t *w, httpc_query_t *q, pstream_t *ps, bool done)
         t_sb_init(&zbuf, HTTP_ZLIB_BUFSIZ);
         if (http_zlib_inflate(&w->zs, &w->chunk_length, &zbuf, ps, done))
             return PARSE_ERROR;
-        q->on_data(q, ps_initsb(&zbuf));
+        RETHROW(q->on_data(q, ps_initsb(&zbuf)));
     } else {
-        q->on_data(q, *ps);
+        RETHROW(q->on_data(q, *ps));
         w->chunk_length -= ps_len(ps);
         ps->b = ps->b_end;
     }
