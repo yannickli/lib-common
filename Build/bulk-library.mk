@@ -149,8 +149,10 @@ $(3:l=c): $3
 	       -e 's/^\t\tint n; \\/		size_t n; \\/' \
 		   -e 's/^int .*get_column.*;//' \
 		   -e 's/^void .*set_column.*;//' \
-		   $$@+
-	$(MV) $$@+ $$@ && chmod a-w $$@
+		   $$@
+	chmod a-w $$@
+__$(1D)_generated: $(3:l=c)
+$$(eval $$(call fun/common-depends,$1,$(3:l=c),$3))
 endef
 
 define ext/rule/l
