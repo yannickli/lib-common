@@ -891,6 +891,9 @@ Z_GROUP_EXPORT(iop)
             "    \"g\": 10d,\n"
             "    \"h\": 1T,\n"
             "    \"i\": \"Zm9v\",\n"
+            "    \"skipMe\": 42,\n"
+            "    \"skipMe2\": null,\n"
+            "    \"skipMe3\": { foo: [1, 2, 3, {bar: \"plop\"}] },\n"
             "    \"xmlField\": \"\",\n"
             "    \"k\": \"B\",\n"
             "    l: {us: \"union value\"},\n"
@@ -1041,13 +1044,19 @@ Z_GROUP_EXPORT(iop)
             },
         };
 
+        const char json_sa_opt[] = "{ a: 42, o: null }";
+
+        tstiop__my_struct_a_opt__t json_sa_opt_res = {
+            .a = IOP_OPT(42),
+        };
+
 
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
                                  LSTR_IMMED_V("zchk-tstiop-plugin.so"));
 
 
-        const iop_struct_t *st_sa, *st_sf, *st_si, *st_sk;
+        const iop_struct_t *st_sa, *st_sf, *st_si, *st_sk, *st_sa_opt;
 
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
@@ -1056,6 +1065,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(st_sf = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructF")));
         Z_ASSERT_P(st_si = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructI")));
         Z_ASSERT_P(st_sk = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructK")));
+        Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructAOpt")));
 
         /* test packing/unpacking */
         Z_HELPER_RUN(iop_json_test_struct(st_sa, &sa,  "sa"));
@@ -1074,6 +1084,8 @@ Z_GROUP_EXPORT(iop)
                                         "json_si"));
         Z_HELPER_RUN(iop_json_test_json(st_sk, json_sk,  &json_sk_res,
                                         "json_sk"));
+        Z_HELPER_RUN(iop_json_test_json(st_sa_opt, json_sa_opt,
+                                        &json_sa_opt_res, "json_sa_opt"));
 
         Z_HELPER_RUN(iop_json_test_unpack(st_si, json_si_p1, true,
                                           "json_si_p1"));

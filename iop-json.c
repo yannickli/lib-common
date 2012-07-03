@@ -55,17 +55,18 @@ enum {
 /* Lexing helpers macros */
 #define PS              ll->ps
 #define SKIP(l) \
-    ({ int tmp = l; ll->col += tmp; __ps_skip(PS, tmp); })
-#define EATC()          (ll->col++, __ps_getc(PS))
+    ({ int tmp = l; ll->ctx->col += tmp; __ps_skip(PS, tmp); })
+#define EATC()          (ll->ctx->col++, __ps_getc(PS))
 #define READC()         (*PS->b)
 #define READAT(off)     PS->b[off]
 #define HAS(l)          ps_has(PS, l)
-#define NEWLINE()       (ll->line++, ll->col = 1)
+#define NEWLINE()       (ll->ctx->line++, ll->ctx->col = 1)
 
 /* Context control */
-#define STORECTX()      (ll->s_ps = *PS, ll->s_line = ll->line,             \
-                         ll->s_col = ll->col)
-#define RESTORECTX()    (ll->line = ll->s_line, ll->col = ll->s_col,        \
+#define STORECTX()      (ll->s_ps = *PS, ll->s_line = ll->ctx->line,        \
+                         ll->s_col = ll->ctx->col)
+#define RESTORECTX()    (ll->ctx->line = ll->s_line,                        \
+                         ll->ctx->col = ll->s_col,                          \
                          *PS = ll->s_ps)
 
 /* Errors throwing */
@@ -77,7 +78,8 @@ enum {
     })
 
 /* Errors throwing with context restoring */
-#define RJERROR(_err)   (ll->line = ll->s_line, ll->col = ll->s_col,        \
+#define RJERROR(_err)   (ll->ctx->line = ll->s_line,                        \
+                         ll->ctx->col = ll->s_col,                          \
                          *PS = ll->s_ps, ll->err = (_err))
 #define RJERROR_WARG(_err) \
     ({ __ps_clip_at(&ll->s_ps, PS->p);                                      \
@@ -111,14 +113,25 @@ enum {
 
 /* Constants checking */
 #define IS_TRUE() \
-    (  (ll->b.len == 4 && !memcmp(ll->b.data, "true", 4))                   \
-    || (ll->b.len == 3 && !memcmp(ll->b.data, "yes", 3)))
+    (  (ll->ctx->b.len == 4 && !memcmp(ll->ctx->b.data, "true", 4))         \
+    || (ll->ctx->b.len == 3 && !memcmp(ll->ctx->b.data, "yes", 3)))
 #define IS_FALSE() \
-    (  (ll->b.len == 5 && !memcmp(ll->b.data, "false", 5))                  \
-    || (ll->b.len == 2 && !memcmp(ll->b.data, "no", 2)))
+    (  (ll->ctx->b.len == 5 && !memcmp(ll->ctx->b.data, "false", 5))        \
+    || (ll->ctx->b.len == 2 && !memcmp(ll->ctx->b.data, "no", 2)))
 #define IS_NULL() \
-    (  (ll->b.len == 4 && !memcmp(ll->b.data, "null", 4))                   \
-    || (ll->b.len == 3 && !memcmp(ll->b.data, "nil", 3)))
+    (  (ll->ctx->b.len == 4 && !memcmp(ll->ctx->b.data, "null", 4))         \
+    || (ll->ctx->b.len == 3 && !memcmp(ll->ctx->b.data, "nil", 3)))
+
+#define DO_IN_CTX(_ctx_tk, expr) \
+    ({ typeof(expr) res;                                                    \
+       iop_json_lex_ctx_t *stored_ctx = ll->ctx;                            \
+                                                                            \
+       ll->ctx = &ll->_ctx_tk##_ctx;                                        \
+       res = (expr);                                                        \
+       ll->ctx = stored_ctx;                                                \
+       res;                                                                 \
+    })
+
 
 static int
 werror_sb(void *sb, int len, const char *fmt, ...) __attr_printf__(3, 4);
@@ -155,7 +168,7 @@ iop_jlex_werror(iop_json_lex_t *ll, void *buf, int len,
                 int (*writecb)(void *buf, int len, const char *fmt, ...))
 {
 #define ESTR(fmt, ...) \
-    (*writecb)(buf, len, "%d:%d: "fmt, ll->line, ll->col, ##__VA_ARGS__)
+    (*writecb)(buf, len, "%d:%d: "fmt, ll->ctx->line, ll->ctx->col, ##__VA_ARGS__)
 
     switch (ll->err) {
       case IOP_JERR_EOF:
@@ -351,14 +364,14 @@ static int iop_json_lex_token(iop_json_lex_t *ll)
         }
     }
 
-    sb_set(&ll->b, start, PS->s - start);
+    sb_set(&ll->ctx->b, start, PS->s - start);
     return IOP_JSON_IDENT;
 }
 
 static int iop_json_lex_number_extensions(iop_json_lex_t *ll)
 {
     uint64_t mult = 1;
-    uint64_t u = ll->u.i;
+    uint64_t u = ll->ctx->u.i;
 
     switch (READC()) {
         /* times */
@@ -385,7 +398,7 @@ static int iop_json_lex_number_extensions(iop_json_lex_t *ll)
     if (u > UINT64_MAX / mult || u * mult < u)
         return RJERROR_WARG(IOP_JERR_TOO_BIG_INT);
 
-    ll->u.i = u * mult;
+    ll->ctx->u.i = u * mult;
     return IOP_JSON_INTEGER;
 }
 
@@ -427,8 +440,8 @@ static int iop_json_lex_number(iop_json_lex_t *ll)
     /* in the unlikely case that the integer reaches the end of the PS, we need
      * a null-terminated buffer to pass to the strto* functions */
     if (unlikely(pos == ps_len(PS))) {
-        sb_set(&ll->b, PS->b, ps_len(PS));
-        p = ll->b.data;
+        sb_set(&ll->ctx->b, PS->b, ps_len(PS));
+        p = ll->ctx->b.data;
     } else {
         p = PS->s;
     }
@@ -438,10 +451,10 @@ static int iop_json_lex_number(iop_json_lex_t *ll)
     d_err = errno;
     errno = 0;
     if (*p == '-') {
-        ll->is_signed = true;
+        ll->ctx->is_signed = true;
         i = strtoll(p, &pi, 0);
     } else {
-        ll->is_signed = false;
+        ll->ctx->is_signed = false;
         i = strtoull(p, &pi, 0);
     }
     i_err = errno;
@@ -460,7 +473,7 @@ static int iop_json_lex_number(iop_json_lex_t *ll)
                     (unsigned int)(pd - p), PS->s,
                     pos, PS->s);
         }
-        ll->u.d = d;
+        ll->ctx->u.d = d;
         pos = (unsigned int)(pd - p);
         SKIP(pos);
         return IOP_JSON_DOUBLE;
@@ -472,7 +485,7 @@ prefer_integer:
                     (unsigned int)(pi - p), PS->s,
                     pos, PS->s);
         }
-        ll->u.i = i;
+        ll->ctx->u.i = i;
         pos = (unsigned int)(pi - p);
         SKIP(pos);
         if (HAS(1))
@@ -498,7 +511,7 @@ static int iop_json_lex_enum(iop_json_lex_t *ll, int terminator,
     len = end - PS->s;
     s = LSTR_INIT_V(PS->s, len);
 
-    ll->u.i = iop_enum_from_lstr(fdesc->u1.en_desc, s, &found);
+    ll->ctx->u.i = iop_enum_from_lstr(fdesc->u1.en_desc, s, &found);
     if (!found)
         return JERROR_WARG(IOP_JERR_ENUM_VALUE, len);
 
@@ -555,13 +568,16 @@ static int iop_json_lex_expr(iop_json_lex_t *ll, const iop_field_t *fdesc)
                     e_warning("double value in an expression");
                     return RJERROR_EXP("a valid integer expression");
                 }
-                e_trace(1, "single double value %f", ll->u.d);
+                e_trace(1, "single double value %f", ll->ctx->u.d);
                 return IOP_JSON_DOUBLE;
             }
             assert (type == IOP_JSON_INTEGER);
-            e_trace(1, "feed number %jd", ll->u.i);
-            if (iop_cfolder_feed_number(ll->cfolder, ll->u.i, ll->is_signed) < 0)
+            e_trace(1, "feed number %jd", ll->ctx->u.i);
+            if (iop_cfolder_feed_number(ll->cfolder, ll->ctx->u.i,
+                                        ll->ctx->is_signed) < 0)
+            {
                 return RJERROR_WARG(IOP_JERR_PARSE_NUM);
+            }
             break;
 
           case '\'': case '"':
@@ -569,9 +585,12 @@ static int iop_json_lex_expr(iop_json_lex_t *ll, const iop_field_t *fdesc)
                 return RJERROR_EXP("an integer");
             }
             RETHROW(iop_json_lex_enum(ll, EATC(), fdesc));
-            e_trace(1, "feed number %jd", ll->u.i);
-            if (iop_cfolder_feed_number(ll->cfolder, ll->u.i, (ll->u.i < 0)) < 0)
+            e_trace(1, "feed number %jd", ll->ctx->u.i);
+            if (iop_cfolder_feed_number(ll->cfolder, ll->ctx->u.i,
+                                        (ll->ctx->u.i < 0)) < 0)
+            {
                 return RJERROR_WARG(IOP_JERR_PARSE_NUM);
+            }
             break;
 
           default:
@@ -584,15 +603,15 @@ static int iop_json_lex_expr(iop_json_lex_t *ll, const iop_field_t *fdesc)
     if (iop_cfolder_get_result(ll->cfolder, &num) < 0)
         return RJERROR_WARG(IOP_JERR_PARSE_NUM);
 
-    ll->u.i = num;
-    e_trace(1, "-> result %jd", ll->u.i);
+    ll->ctx->u.i = num;
+    e_trace(1, "-> result %jd", ll->ctx->u.i);
 
     return IOP_JSON_INTEGER;
 }
 
 static int iop_json_lex_str(iop_json_lex_t *ll, int terminator)
 {
-    sb_reset(&ll->b);
+    sb_reset(&ll->ctx->b);
 
     for (;;) {
         for (unsigned i = 0; i < ps_len(PS); i++) {
@@ -600,12 +619,12 @@ static int iop_json_lex_str(iop_json_lex_t *ll, int terminator)
                 return JERROR(IOP_JERR_UNCLOSED_STRING);
             } else
             if (READAT(i) == '\\') {
-                sb_add(&ll->b, PS->p, i);
+                sb_add(&ll->ctx->b, PS->p, i);
                 SKIP(i);
                 goto parse_bslash;
             } else
             if (READAT(i) == terminator) {
-                sb_add(&ll->b, PS->p, i);
+                sb_add(&ll->ctx->b, PS->p, i);
                 SKIP(i + 1);
                 return IOP_JSON_STRING;
             }
@@ -621,7 +640,7 @@ static int iop_json_lex_str(iop_json_lex_t *ll, int terminator)
 
           case 'a': case 'b': case 'e': case 't': case 'n': case 'v':
           case 'f': case 'r': case '\\': case '"': case '\'':
-            sb_add_unquoted(&ll->b, PS->p, 2);
+            sb_add_unquoted(&ll->ctx->b, PS->p, 2);
             SKIP(2);
             continue;
           case '0' ... '2':
@@ -629,21 +648,21 @@ static int iop_json_lex_str(iop_json_lex_t *ll, int terminator)
                 &&  READAT(2) >= '0' && READAT(2) <= '7'
                 &&  READAT(3) >= '0' && READAT(3) <= '7')
             {
-                sb_addc(&ll->b, ((READAT(1) - '0') << 6)
+                sb_addc(&ll->ctx->b, ((READAT(1) - '0') << 6)
                         | ((READAT(2) - '0') << 3)
                         | (READAT(3) - '0'));
                 SKIP(4);
                 continue;
             }
             if (READAT(1) == '0') {
-                sb_addc(&ll->b, '\0');
+                sb_addc(&ll->ctx->b, '\0');
                 SKIP(2);
                 continue;
             }
             break;
           case 'x':
             if (HAS(4) && (a = hexdecode(PS->s + 2)) >= 0) {
-                sb_addc(&ll->b, a);
+                sb_addc(&ll->ctx->b, a);
                 SKIP(4);
                 continue;
             }
@@ -652,18 +671,18 @@ static int iop_json_lex_str(iop_json_lex_t *ll, int terminator)
             if (HAS(6) && (a = hexdecode(PS->s + 2)) >= 0
                 && (b = hexdecode(PS->s + 4)) >= 0)
             {
-                sb_adduc(&ll->b, (a << 8) | b);
+                sb_adduc(&ll->ctx->b, (a << 8) | b);
                 SKIP(6);
                 continue;
             }
             break;
           case '\n':
-            sb_add(&ll->b, PS->p, 2);
+            sb_add(&ll->ctx->b, PS->p, 2);
             SKIP(2);
             NEWLINE();
             continue;
         }
-        sb_add(&ll->b, PS->p, 2);
+        sb_add(&ll->ctx->b, PS->p, 2);
         SKIP(2);
     }
 }
@@ -673,6 +692,14 @@ static int iop_json_lex(iop_json_lex_t *ll, const iop_field_t *fdesc)
     if (ll->peek >= 0) {
         int res = ll->peek;
         ll->peek = -1;
+
+        /* copy the peeked context */
+        sb_setsb(&ll->cur_ctx.b, &ll->peeked_ctx.b);
+        ll->cur_ctx.line      = ll->peeked_ctx.line;
+        ll->cur_ctx.col       = ll->peeked_ctx.col;
+        ll->cur_ctx.u         = ll->peeked_ctx.u;
+        ll->cur_ctx.is_signed = ll->peeked_ctx.is_signed;
+
         return res;
     }
 
@@ -730,7 +757,7 @@ static int iop_json_lex(iop_json_lex_t *ll, const iop_field_t *fdesc)
                 /* FALLTHROUGH */
       case '#':
                 if (ps_skip_afterchr(PS, '\n') < 0) {
-                    ll->col += ps_len(PS);
+                    ll->ctx->col += ps_len(PS);
                     ps_shrink(PS, 0);
                     return 0;
                 }
@@ -743,8 +770,18 @@ static int iop_json_lex(iop_json_lex_t *ll, const iop_field_t *fdesc)
 
 static int iop_json_lex_peek(iop_json_lex_t *ll, const iop_field_t *fdesc)
 {
-    if (ll->peek < 0)
+    if (ll->peek < 0) {
+        /* Change of parser context */
+        ll->peeked_ctx.line = ll->cur_ctx.line;
+        ll->peeked_ctx.col  = ll->cur_ctx.col;
+        ll->ctx  = &ll->peeked_ctx;
+
+        /* Peek the next token */
         ll->peek = iop_json_lex(ll, fdesc);
+
+        /* Restore parser context */
+        ll->ctx  = &ll->cur_ctx;
+    }
     return ll->peek;
 }
 
@@ -753,14 +790,18 @@ iop_json_lex_t *iop_jlex_init(mem_pool_t *mp, iop_json_lex_t *ll)
 {
     p_clear(ll, 1);
     ll->mp = mp;
-    sb_init(&ll->b);
+    sb_init(&ll->cur_ctx.b);
+    sb_init(&ll->peeked_ctx.b);
     ll->cfolder = iop_cfolder_new();
+    ll->ctx = &ll->cur_ctx;
+
     return ll;
 }
 
 void iop_jlex_wipe(iop_json_lex_t *ll)
 {
-    sb_wipe(&ll->b);
+    sb_wipe(&ll->cur_ctx.b);
+    sb_wipe(&ll->peeked_ctx.b);
     iop_cfolder_delete(&ll->cfolder);
     if (ll->err_str)
         mp_delete(ll->mp, &ll->err_str);
@@ -769,20 +810,21 @@ void iop_jlex_wipe(iop_json_lex_t *ll)
 static void iop_jlex_reset(iop_json_lex_t *ll)
 {
     ll->peek    = -1;
-    ll->s_line  = ll->line;
-    ll->s_col   = ll->col;
+    ll->s_line  = ll->ctx->line;
+    ll->s_col   = ll->ctx->col;
     ll->err     = 0;
     ll->err_str = NULL;
     ll->s_ps    = *ll->ps;
 
-    sb_reset(&ll->b);
+    sb_reset(&ll->cur_ctx.b);
+    sb_reset(&ll->peeked_ctx.b);
 }
 
 void iop_jlex_attach(iop_json_lex_t *ll, pstream_t *ps)
 {
     ll->ps = ps;
-    ll->line = 1;
-    ll->col  = 1;
+    ll->ctx->line = 1;
+    ll->ctx->col  = 1;
 }
 
 /*-}}}-*/
@@ -850,11 +892,11 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
     switch (PS_CHECK(iop_json_lex(ll, fdesc))) {
       case IOP_JSON_IDENT:
         if (IS_TRUE()) {
-            ll->u.i = 1;
+            ll->ctx->u.i = 1;
             goto integer;
         } else
         if (IS_FALSE()) {
-            ll->u.i = 0;
+            ll->ctx->u.i = 0;
             goto integer;
         } else
         if (IS_NULL()) {
@@ -883,38 +925,38 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
           case IOP_T_I64: case IOP_T_U64:
           case IOP_T_BOOL:
             if (IS_TRUE()) {
-                ll->u.i = 1;
+                ll->ctx->u.i = 1;
                 goto integer;
             } else
             if (IS_FALSE()) {
-                ll->u.i = 0;
+                ll->ctx->u.i = 0;
                 goto integer;
             }
             errno = 0;
-            ll->u.i = strtoll(ll->b.data, &q, 0);
-            if (errno || q != (const char *)ll->b.data + ll->b.len)
+            ll->ctx->u.i = strtoll(ll->ctx->b.data, &q, 0);
+            if (errno || q != (const char *)ll->ctx->b.data + ll->ctx->b.len)
                 return RJERROR_WARG(IOP_JERR_PARSE_NUM);
             goto integer;
 
           case IOP_T_DOUBLE:
             errno = 0;
-            ll->u.d = strtod(ll->b.data, (char **)&q);
-            if (errno || q != (const char *)ll->b.data + ll->b.len)
+            ll->ctx->u.d = strtod(ll->ctx->b.data, (char **)&q);
+            if (errno || q != (const char *)ll->ctx->b.data + ll->ctx->b.len)
                 return RJERROR_WARG(IOP_JERR_PARSE_NUM);
             goto do_double;
 
           case IOP_T_DATA:
             data = (iop_data_t *)value;
-            if (ll->b.len == 0) {
+            if (ll->ctx->b.len == 0) {
                 data->data = mp_new(ll->mp, char, 1);
                 data->len  = 0;
             } else {
                 sb_t  sb;
-                int   blen = DIV_ROUND_UP(ll->b.len * 3, 4);
+                int   blen = DIV_ROUND_UP(ll->ctx->b.len * 3, 4);
                 char *buf  = mp_new_raw(ll->mp, char, blen + 1);
 
                 sb_init_full(&sb, buf, 0, blen + 1, MEM_STATIC);
-                if (sb_add_unb64(&sb, ll->b.data, ll->b.len)) {
+                if (sb_add_unb64(&sb, ll->ctx->b.data, ll->ctx->b.len)) {
                     mp_delete(ll->mp, &buf);
                     return RJERROR_WARG(IOP_JERR_BAD_VALUE);
                 }
@@ -926,8 +968,8 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
           case IOP_T_STRING:
           case IOP_T_XML:
             data = (iop_data_t *)value;
-            data->data = mp_dupz(ll->mp, ll->b.data, ll->b.len);
-            data->len  = ll->b.len;
+            data->data = mp_dupz(ll->mp, ll->ctx->b.data, ll->ctx->b.len);
+            data->len  = ll->ctx->b.len;
             return 0;
 
           default:
@@ -938,7 +980,7 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
 do_double:
         switch (fdesc->type) {
           case IOP_T_DOUBLE:
-            *(double *)value = ll->u.d;
+            *(double *)value = ll->ctx->u.d;
             return 0;
           default:
             return RJERROR_EXP_TYPE(fdesc->type);
@@ -948,23 +990,23 @@ do_double:
         integer:
         switch (fdesc->type) {
           case IOP_T_DOUBLE:
-            *(double *)value = ll->u.i;
+            *(double *)value = ll->ctx->u.i;
             return 0;
           case IOP_T_I8: case IOP_T_U8:
-            *(uint8_t *)value = ll->u.i;
+            *(uint8_t *)value = ll->ctx->u.i;
             break;
           case IOP_T_I16: case IOP_T_U16:
-            *(uint16_t *)value = ll->u.i;
+            *(uint16_t *)value = ll->ctx->u.i;
             break;
           case IOP_T_ENUM:
           case IOP_T_I32: case IOP_T_U32:
-            *(uint32_t *)value = ll->u.i;
+            *(uint32_t *)value = ll->ctx->u.i;
             break;
           case IOP_T_I64: case IOP_T_U64:
-            *(uint64_t *)value = ll->u.i;
+            *(uint64_t *)value = ll->ctx->u.i;
             break;
           case IOP_T_BOOL:
-            *(bool *)value     = ll->u.i;
+            *(bool *)value     = ll->ctx->u.i;
             return 0;
           default:
             return RJERROR_EXP_TYPE(fdesc->type);
@@ -1064,7 +1106,8 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
       case IOP_JSON_IDENT:
       case IOP_JSON_STRING:
         if (desc) {
-            int ifield = find_field_by_name(desc, ll->b.data, ll->b.len);
+            int ifield = find_field_by_name(desc, ll->ctx->b.data,
+                                            ll->ctx->b.len);
 
             if (ifield < 0)
                 return RJERROR_EXP("a valid union member name");
@@ -1165,7 +1208,9 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
           case IOP_JSON_IDENT:
           case IOP_JSON_STRING:
             if (desc) {
-                int ifield = find_field_by_name(desc, ll->b.data, ll->b.len);
+                int ifield = find_field_by_name(desc, ll->ctx->b.data,
+                                                ll->ctx->b.len);
+
                 if (ifield < 0) {
                     if (!(ll->flags & IOP_UNPACK_IGNORE_UNKNOWN)) {
                         return RJERROR_EXP_FMT("field of struct %s",
@@ -1194,12 +1239,26 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         if (fdesc) {
             void *ptr = (char *)value + fdesc->data_offs;
             if (fdesc->repeat == IOP_R_OPTIONAL) {
+                /* check if value is different of null */
+                if (PS_CHECK(iop_json_lex_peek(ll, fdesc)) == IOP_JSON_IDENT)
+                {
+                    /* In case of optional field, the member value could be
+                     * null, which is equivalent to an absent member */
+                    if (DO_IN_CTX(peeked, IS_NULL())) {
+                        iop_value_set_absent(fdesc, ptr);
+                        /* consume the “null” token */
+                        iop_json_lex(ll, NULL);
+                        goto nextfield;
+                    }
+                }
                 ptr = iop_value_set_here(ll->mp, fdesc, ptr);
             }
 
             if (prefixed && (((1 << fdesc->type) & IOP_STRUCTS_OK)
                              || fdesc->repeat == IOP_R_REPEATED))
+            {
                 return RJERROR_EXP("a member with a scalar type");
+            }
             PS_CHECK(unpack_val(ll, fdesc, ptr, false));
 
             if (unlikely(iop_field_has_constraints(desc, fdesc))) {
@@ -1222,6 +1281,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
             PS_CHECK(skip_val(ll, false));
         }
 
+      nextfield:
         if (prefixed) {
             /* Special handling of prefixed value */
             if (PS_CHECK(iop_json_lex(ll, NULL)) != '{')

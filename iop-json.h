@@ -50,10 +50,21 @@ typedef enum iop_json_error {
 
 } iop_json_error;
 
-typedef struct iop_json_lex_t {
-    int peek;
+typedef struct iop_json_lex_ctx_t {
     int line;
     int col;
+
+    sb_t b;
+
+    union {
+        int64_t i;
+        double  d;
+    } u;
+    bool is_signed;
+} iop_json_lex_ctx_t;
+
+typedef struct iop_json_lex_t {
+    int peek;
 
     /* bitfield of iop_unpack_flags */
     int flags;
@@ -69,13 +80,10 @@ typedef struct iop_json_lex_t {
 
     mem_pool_t *mp;
     pstream_t  *ps;
-    sb_t b;
 
-    union {
-        int64_t i;
-        double  d;
-    } u;
-    bool    is_signed;
+    iop_json_lex_ctx_t  cur_ctx;
+    iop_json_lex_ctx_t  peeked_ctx;
+    iop_json_lex_ctx_t *ctx;
 } iop_json_lex_t;
 
 /* json lexer */

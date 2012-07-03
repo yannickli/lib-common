@@ -88,6 +88,7 @@ struct MyStructAOpt {
     MyUnionA? l;
     double? m;
     bool? n;
+    MyStructB? o;
 };
 
 struct MyStructB {
