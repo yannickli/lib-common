@@ -511,6 +511,25 @@ struct httpd_qinfo_t {
 
 OBJ_CLASS(httpd_query, object, HTTPD_QUERY_FIELDS, HTTPD_QUERY_METHODS);
 
+/**
+ * XXX: the function can call httpd_reject.
+ *
+ * Setting the query's methods should always be done before calling this
+ * function. The following code is buggy because this might generate two
+ * answers:
+ *
+ *   ...
+ *   httpd_bufferize(q, 10);
+ *   q->on_done = <my function that answers the query>;
+ *   ....
+ *
+ * To avoid errors, the following order should always be respected.
+ *
+ *   ...
+ *   q->on_done = <my function that answers the query>;
+ *   httpd_bufferize(q, 10);
+ *   ... no more method setting for the query ...
+ */
 void httpd_bufferize(httpd_query_t *q, unsigned maxsize);
 
 /*---- headers utils ----*/
