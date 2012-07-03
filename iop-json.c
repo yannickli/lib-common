@@ -122,6 +122,17 @@ enum {
     (  (ll->ctx->b.len == 4 && !memcmp(ll->ctx->b.data, "null", 4))         \
     || (ll->ctx->b.len == 3 && !memcmp(ll->ctx->b.data, "nil", 3)))
 
+#define DO_IN_CTX(_ctx_tk, expr) \
+    ({ typeof(expr) res;                                                    \
+       iop_json_lex_ctx_t *stored_ctx = ll->ctx;                            \
+                                                                            \
+       ll->ctx = &ll->_ctx_tk##_ctx;                                        \
+       res = (expr);                                                        \
+       ll->ctx = stored_ctx;                                                \
+       res;                                                                 \
+    })
+
+
 static int
 werror_sb(void *sb, int len, const char *fmt, ...) __attr_printf__(3, 4);
 static int
@@ -1228,6 +1239,18 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         if (fdesc) {
             void *ptr = (char *)value + fdesc->data_offs;
             if (fdesc->repeat == IOP_R_OPTIONAL) {
+                /* check if value is different of null */
+                if (PS_CHECK(iop_json_lex_peek(ll, fdesc)) == IOP_JSON_IDENT)
+                {
+                    /* In case of optional field, the member value could be
+                     * null, which is equivalent to an absent member */
+                    if (DO_IN_CTX(peeked, IS_NULL())) {
+                        iop_value_set_absent(fdesc, ptr);
+                        /* consume the “null” token */
+                        iop_json_lex(ll, NULL);
+                        goto nextfield;
+                    }
+                }
                 ptr = iop_value_set_here(ll->mp, fdesc, ptr);
             }
 
@@ -1258,6 +1281,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
             PS_CHECK(skip_val(ll, false));
         }
 
+      nextfield:
         if (prefixed) {
             /* Special handling of prefixed value */
             if (PS_CHECK(iop_json_lex(ll, NULL)) != '{')
