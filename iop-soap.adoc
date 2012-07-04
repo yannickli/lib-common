@@ -80,7 +80,8 @@ In addition to those, some of the APIs use a notion near the C so called
 integer one. For example, an enumeration with the possibilities ENUM_A, ENUM_B,
 ENUM_C will be described with the following XML Schema description:
 
-----------------------------------
+[source,xml]
+----
 <simpleType name="MyEnum">
     <union>
         <simpleType>
@@ -91,11 +92,11 @@ ENUM_C will be described with the following XML Schema description:
             </restriction>
         </simpleType>
         <simpleType>
-            <restriction base=”tns:intersec.int” />
+            <restriction base="tns:intersec.int" />
         </simpleType>
     </union>
 </simpleType>
-----------------------------------
+----
 
 ==== Complex types ====
 
@@ -103,22 +104,24 @@ Only the XML Schema 'choice' and 'sequence' are used to build complex types. It
 is to be noted that the XML Schema 'sequence' is ordered. So for the given
 following XML Schema type:
 
-----------------------------------
+[source,xml]
+----
 <complexType name="MyType">
    <sequence>
       <element name="a" type="string">
       <element name="b" type="string">
    </sequence>
 </complexType>
-----------------------------------
+----
 
 The following XML fragment isn't valid, because the tags ``a'' and ``b'' aren't
 in the proper order.
 
-----------------------------------
+[source,xml]
+----
 <b>some value</b>
 <a>some other value</a>
-----------------------------------
+----
 
 [[repeat-optional]]
 ==== Repeated field, optional fields ====
@@ -168,31 +171,35 @@ For example:
 |===
 | Intersec notation | XML Schema
 |
-----------------------------------
+[source,d]
+----
 struct MyType {
     int    i;
     string s;
 };
-----------------------------------
+----
 |
-----------------------------------
+[source,xml]
+----
 <complexType name="MyType">
     <sequence>
         <element name="i" type="int"/>
         <element name="s" type="string"/>
     </sequence>
 </complexType>
-----------------------------------
+----
 
 |
-----------------------------------
+[source,d]
+----
 union OtherType {
     MyType t;
     ulong  ul;
 };
-----------------------------------
+----
 |
-----------------------------------
+[source,xml]
+----
 <complexType name="OtherType">
     <choice>
         <element name="t" type="MyType"/>
@@ -200,7 +207,7 @@ union OtherType {
                  type="unsignedLong"/>
     </choice>
 </complexType>
-----------------------------------
+----
 |===
 
 ==== Additional features ====
@@ -224,46 +231,54 @@ For example:
 
 2+^e|Mandatory string field
 |
-----------------------------------
+[source,d]
+----
 string s;
-----------------------------------
+----
 |
-----------------------------------
+[source,xml]
+----
 <element name="s" type="string" />
-----------------------------------
+----
 
 2+^e|Optional field of type SomeType
 |
-----------------------------------
+[source,d]
+----
 SomeType? t;
-----------------------------------
+----
 |
-----------------------------------
+[source,xml]
+----
 <element name="t" type="SomeType"
          minOccurs="0" maxOccurs"1" />
-----------------------------------
+----
 
 2+^e|Repeated field of type int
 |
-----------------------------------
+[source,d]
+----
 int[] array;
-----------------------------------
+----
 |
-----------------------------------
+[source,xml]
+----
 <element name="array" type="int"
          minOccurs="0" maxOccurs"unbounded" />
-----------------------------------
+----
 
 2+^e|Optional field of type string with default value ``foo''
 |
-----------------------------------
+[source,d]
+----
 string s = "foo";
-----------------------------------
+----
 |
-----------------------------------
+[source,xml]
+----
 <element name="s" type="string"
          minOccurs="0" maxOccurs"1" />
-----------------------------------
+----
 
 Plus the information that an absent field is equivalent as having explicitly
 specified +<s>foo</s>+.
@@ -271,9 +286,10 @@ specified +<s>foo</s>+.
 This semantics is different from the following XML Schema ``default'' element
 attribute. Indeed, the following XML Schema definition:
 
-----------------------------------
+[source,xml]
+----
 <element name="s" type="string" default="foo" />
-----------------------------------
+----
 means that +<s/>+ is equivalent to +<s>foo</s>+, but an absent element is still
 ``absent''.
 
@@ -289,23 +305,25 @@ to get the input and output SOAP Message types from our notation.
 
 The description for a callback is as follows:
 
-----------------------------------
+----
 rpcspec ::= rpcName [in <msgspec>] [out <msgspec>]
 msgspec ::= ComplexTypeName | (elementspec, ...)
-----------------------------------
+----
 
 Here is one example with two alternatives:
 
 [cols="asciidoc,asciidoc"]
 |===
 |
-----------------------------------
+[source,d]
+----
 getSomeInfo
     in ObjTarget
     out (string info, long? date)
-----------------------------------
+----
 |
-----------------------------------
+[source,d]
+----
 struct GetSomeInfoResponse {
     string info;
     long?  date;
@@ -314,7 +332,7 @@ struct GetSomeInfoResponse {
 getSomeInfo
     in ObjTarget
     out GetSomeInfoResponse;
-----------------------------------
+----
 |===
 
 The left form defines a method:
@@ -358,11 +376,12 @@ For each RPC, the message names are constructed this way:
 |===
 | Method definition
 |
-----------------------------------
+[source,d]
+----
 getSomeInfo
     in  ObjTarget
     out (string info, long? date)
-----------------------------------
+----
 
 | Input Message
 |
@@ -373,12 +392,13 @@ getSomeInfo
 +getSomeInfoRes+, and the message type is an anonymous one equivalent to the
 following type:
 
-----------------------------------
+[source,d]
+----
 struct GetSomeInfoResType {
     string info;
     long?  date;
 };
-----------------------------------
+----
 
 | Exception
 |
