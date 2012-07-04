@@ -147,8 +147,8 @@ $(3:l=c): $3
 	flex -R -o $$@+ $$<
 	sed -i -e 's/^extern int isatty.*;//' \
 	       -e 's/^\t\tint n; \\/		size_t n; \\/' \
-		   -e 's/^int yyget_column.*;//' \
-		   -e 's/^void yyset_column.*;//' \
+		   -e 's/^int .*yyget_column.*;//' \
+		   -e 's/^void .*yyset_column.*;//' \
 		   $$@+
 	$(MV) $$@+ $$@ && chmod a-w $$@
 endef
