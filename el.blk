@@ -47,6 +47,7 @@ qm_k64_t(ev, ev_t *);
 
 static struct {
     volatile uint32_t gotsigs;
+    int       inotify_fd;     /* fd for inotify                             */
     int       active;         /* number of ev_t keeping the el_loop running */
     uint8_t   unloop;         /* @see el_unloop()                           */
     uint8_t   has_run;        /* true if we did something during a loop     */
@@ -61,6 +62,8 @@ static struct {
     qv_t(ev)  cache;
     qm_t(ev_assoc) childs;    /* el_t's watching for processes              */
     qm_t(ev)  fd_act;         /* el_t's timers to el_t fds map              */
+    qm_t(ev)  fs_watches;     /* el_t's for fs watch events                 */
+    el_t      fs_watch;       /* inotify el_t                               */
 
     /*----- allocation stuff -----*/
 #define EV_ALLOC_FACTOR  10   /* basic segment is 1024 events               */
@@ -87,6 +90,8 @@ static struct {
     .evs_gc         = DLIST_INIT(_G.evs_gc),
     .childs         = QM_INIT(ev_assoc, _G.childs, false),
     .fd_act         = QM_INIT(ev, _G.fd_act, false),
+    .fs_watches     = QM_INIT(ev, _G.fs_watches, false),
+    .inotify_fd     = -1,
 };
 
 #define ASSERT(msg, expr)  assert (((void)msg, likely(expr)))
@@ -801,6 +806,151 @@ static void el_loop_proxies(void)
     }
 }
 
+
+/*----- fs watch  ------*/
+#ifdef HAVE_SYS_INOTIFY_H
+#include <sys/inotify.h>
+
+static int inotify_cb(el_t el, int fd, short flags, el_data_t data)
+{
+    byte buf[sizeof(struct inotify_event) + NAME_MAX + 1];
+
+    assert (el == _G.fs_watch);
+    assert (fd == _G.inotify_fd);
+
+    if (!(flags & POLLIN)) {
+        return 0;
+    }
+
+    for (;;) {
+        byte *next = buf;
+        int   ret  = read(fd, buf, sizeof(buf));
+
+        if (ret < 0 && errno == EAGAIN) {
+            return 0;
+        }
+        RETHROW(ret);
+
+        while (ret > 0) {
+            struct inotify_event *e = (struct inotify_event *)next;
+            int len = ROUND_UP(sizeof(struct inotify_event) + e->len, sizeof(void *));
+            int pos;
+            el_t wel;
+            lstr_t name = LSTR_NULL;
+
+            next += len;
+            ret  -= len;
+            assert (ret >= 0);
+
+            /* Process event */
+            pos = qm_find(ev, &_G.fs_watches, e->wd);
+            if (pos < 0) {
+                assert (e->mask & IN_IGNORED);
+                continue;
+            }
+
+            if (e->len) {
+                name = LSTR_INIT_V(e->name, e->len - 1);
+            }
+
+            wel = _G.fs_watches.values[pos];
+            assert (wel->fs_watch.wd == e->wd);
+            if (EV_FLAG_HAS(wel, IS_BLK)) {
+                wel->cb.fs_watch_blk(wel, e->mask, e->cookie, name);
+            } else {
+                (*wel->cb.fs_watch)(wel, e->mask, e->cookie, name, wel->priv);
+            }
+        }
+    }
+}
+
+static void inotify_initialize(void)
+{
+    if (unlikely(_G.inotify_fd == -1)) {
+        assert (_G.fs_watch == NULL);
+
+        _G.inotify_fd = inotify_init();
+        if (_G.inotify_fd < 0)
+            e_panic(E_UNIXERR("inotify_init"));
+        fd_set_features(_G.inotify_fd, O_NONBLOCK | O_CLOEXEC);
+
+        _G.fs_watch = el_fd_register(_G.inotify_fd, POLLIN, inotify_cb, NULL);
+        _G.fs_watch = el_unref(_G.fs_watch);
+    }
+}
+
+static void inotify_shutdown(void)
+{
+    assert (qm_len(ev, &_G.fs_watches) == 0);
+
+    if (_G.inotify_fd == -1) {
+        assert (_G.fs_watch == NULL);
+        return;
+    }
+
+    el_fd_unregister(&_G.fs_watch, true);
+    _G.inotify_fd = -1;
+    qm_wipe(ev, &_G.fs_watches);
+    qm_init(ev, &_G.fs_watches, false);
+}
+
+el_t el_fs_watch_register_d(const char *path, uint32_t flags,
+                            el_fs_watch_f *cb, el_data_t priv)
+{
+    int pos;
+    ev_t *ev;
+    int  wd;
+
+    inotify_initialize();
+    wd = RETHROW_NP(inotify_add_watch(_G.inotify_fd, path, flags));
+    pos = __qm_put(ev, &_G.fs_watches, wd, NULL, 0);
+    if (pos & QHASH_COLLISION) {
+        e_panic("you tried to add several watches on %s", path);
+    }
+
+    ev = el_create(EV_FS_WATCH, cb, priv, true);
+    ev->fs_watch.path = p_strdup(path);
+    ev->fs_watch.wd   = wd;
+    _G.fs_watches.keys[pos] = wd;
+    _G.fs_watches.values[pos] = ev;
+    return ev;
+}
+
+el_t el_fs_watch_register_blk(const char *path, uint32_t flags,
+                              el_fs_watch_b blk, block_t wipe)
+{
+    return el_blk_register(el_fs_watch_register(path, flags, NULL, NULL),
+                           blk, wipe);
+}
+
+el_data_t el_fs_watch_unregister(ev_t **evp)
+{
+    if (*evp) {
+        CHECK_EV_TYPE(*evp, EV_FS_WATCH);
+        p_delete(&(*evp)->fs_watch.path);
+        inotify_rm_watch(_G.inotify_fd, (*evp)->fs_watch.wd);
+        qm_del_key(ev, &_G.fs_watches, (*evp)->fs_watch.wd);
+        if (qm_len(ev, &_G.fs_watches) == 0) {
+            inotify_shutdown();
+        }
+        return el_destroy(evp, false);
+    }
+    return (el_data_t)NULL;
+}
+
+int el_fs_watch_change(el_t el, uint32_t flags)
+{
+    int wd;
+
+    CHECK_EV_TYPE(el, EV_FS_WATCH);
+    wd = RETHROW(inotify_add_watch(_G.inotify_fd, el->fs_watch.path, flags));
+    assert (wd == el->fs_watch.wd);
+    return 0;
+}
+
+
+#endif
+
 /*----- generic functions  -----*/
 
 #ifndef NDEBUG
@@ -1068,6 +1218,12 @@ static int writeall(el_t el, int fd, short ev, el_data_t priv)
     return 0;
 }
 
+static void fs_notify(el_t el, uint32_t event, uint32_t cookie,
+                      lstr_t name, el_data_t data)
+{
+    (*(int *)data.ptr)++;
+}
+
 Z_GROUP_EXPORT(el)
 {
     Z_TEST(fd_priority, "el: priority") {
@@ -1139,6 +1295,48 @@ Z_GROUP_EXPORT(el)
         for (int i = 0; i < 6; i++) {
             el_fd_unregister(&els[i], true);
         }
+    } Z_TEST_END;
+
+    Z_TEST(fs_watch, "el: inotify binding") {
+        t_scope;
+        el_t watch;
+        int fd;
+        int called = 0;
+
+        watch = el_fs_watch_register(z_grpdir_g.s, IN_CREATE, fs_notify, &called);
+
+        fd = open(t_fmt(NULL, "%s/blah", z_grpdir_g.s),
+                  O_WRONLY | O_CREAT, 0660);
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(called, 1);
+        close(fd);
+
+        fd = open(t_fmt(NULL, "%s/blah", z_grpdir_g.s),
+                  O_WRONLY | O_CREAT, 0660);
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(called, 1);
+        close(fd);
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(called, 1);
+
+        el_fs_watch_change(watch, IN_OPEN | IN_CLOSE);
+
+
+        fd = open(t_fmt(NULL, "%s/blah2", z_grpdir_g.s),
+                  O_WRONLY | O_CREAT, 0660);
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(called, 2);
+        close(fd);
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(called, 3);
+
+        fd = open(t_fmt(NULL, "%s/blah2", z_grpdir_g.s),
+                  O_WRONLY | O_CREAT, 0660);
+        close(fd);
+        el_loop_timeout(100);
+        Z_ASSERT_EQ(called, 5);
+
+        el_fs_watch_unregister(&watch);
     } Z_TEST_END;
 } Z_GROUP_END;
 

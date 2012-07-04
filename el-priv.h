@@ -27,6 +27,7 @@ typedef enum ev_type_t {
     EV_TIMER,
     EV_PROXY,
     EV_IDLE,
+    EV_FS_WATCH,
 } ev_type_t;
 
 enum ev_flags_t {
@@ -62,17 +63,19 @@ typedef struct ev_t {
     uint16_t  events_wanted;    /* EV_PROXY, EV_FD */
 
     union {
-        el_cb_f     *cb;
-        el_signal_f *signal;
-        el_child_f  *child;
-        el_fd_f     *fd;
-        el_proxy_f  *prox;
+        el_cb_f       *cb;
+        el_signal_f   *signal;
+        el_child_f    *child;
+        el_fd_f       *fd;
+        el_proxy_f    *prox;
+        el_fs_watch_f *fs_watch;
 
-        el_cb_b      cb_blk;
-        el_signal_b  signal_blk;
-        el_child_b   child_blk;
-        el_fd_b      fd_blk;
-        el_proxy_b   proxy_blk;
+        el_cb_b       cb_blk;
+        el_signal_b   signal_blk;
+        el_child_b    child_blk;
+        el_fd_b       fd_blk;
+        el_proxy_b    proxy_blk;
+        el_fs_watch_b fs_watch_blk;
     } cb;
     union {
         el_data_t priv;
@@ -88,6 +91,10 @@ typedef struct ev_t {
             int      repeat;
             int      heappos;
         } timer;                /* EV_TIMER */
+        struct {
+            char *path;
+            int   wd;
+        } fs_watch;             /* EV_FS_WATCH */
     };
 } ev_t;
 
