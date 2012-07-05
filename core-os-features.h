@@ -39,4 +39,11 @@
 # endif
 #endif
 
+/* <sys/inotify.h> availability */
+#ifdef OS_LINUX
+# ifndef HAVE_SYS_INOTIFY_H
+#  define HAVE_SYS_INOTIFY_H
+# endif
+#endif
+
 #endif

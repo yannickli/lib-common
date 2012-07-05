@@ -44,6 +44,10 @@
 # endif
 #endif
 #define POLLINOUT  (POLLIN | POLLOUT)
+#ifdef HAVE_SYS_INOTIFY_H
+#include <sys/inotify.h>
+#endif
+
 
 typedef struct ev_t *el_t;
 
@@ -58,6 +62,8 @@ typedef void (el_signal_f)(el_t, int, el_data_t);
 typedef void (el_child_f)(el_t, pid_t, int, el_data_t);
 typedef int  (el_fd_f)(el_t, int, short, el_data_t);
 typedef void (el_proxy_f)(el_t, short, el_data_t);
+typedef void (el_fs_watch_f)(el_t, uint32_t mask, uint32_t cookie,
+                             lstr_t name, el_data_t);
 
 #ifdef __has_blocks
 typedef void (BLOCK_CARET el_cb_b)(el_t);
@@ -65,6 +71,7 @@ typedef void (BLOCK_CARET el_signal_b)(el_t, int);
 typedef void (BLOCK_CARET el_child_b)(el_t, pid_t, int);
 typedef int  (BLOCK_CARET el_fd_b)(el_t, int, short);
 typedef void (BLOCK_CARET el_proxy_b)(el_t, short);
+typedef void (BLOCK_CARET el_fs_watch_b)(el_t, uint32_t, uint32_t, lstr_t);
 #endif
 
 el_t el_blocker_register(void) __leaf;
@@ -181,6 +188,34 @@ ev_priority_t el_fd_set_priority(el_t, ev_priority_t priority);
  */
 #define EL_EVENTS_NOACT  ((short)-1)
 int   el_fd_watch_activity(el_t, short mask, int timeout) __leaf;
+
+
+#ifdef HAVE_SYS_INOTIFY_H
+/**
+ * \defgroup el_fs_watch FS activity notifications
+ * \{
+ */
+
+/** Register a new watch for a list of events on a given path.
+ *
+ *  \warning you must not add more that one watch for a given path.
+ */
+el_t el_fs_watch_register_d(const char *, uint32_t, el_fs_watch_f *, el_data_t);
+#ifdef __has_blocks
+el_t el_fs_watch_register_blk(const char *, uint32_t, el_fs_watch_b, block_t);
+#endif
+static inline el_t el_fs_watch_register(const char *path, uint32_t flags,
+                                        el_fs_watch_f *f, void *ptr)
+{
+    return el_fs_watch_register_d(path, flags, f, (el_data_t){ ptr });
+}
+
+el_data_t el_fs_watch_unregister(el_t *);
+
+int el_fs_watch_change(el_t el, uint32_t flags);
+
+/** \} */
+#endif
 
 /**
  * \defgroup el_timers Event Loop timers
