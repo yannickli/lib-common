@@ -505,7 +505,7 @@ Z_GROUP_EXPORT(qhat_sse)
                                                                              \
         if (unlikely(!__cond)) {                                             \
             qhat_debug_print(hat, 0);                                        \
-            e_panic("Corrupted tree: %s", #Cond);                            \
+            e_panic("corrupted tree: %s", #Cond);                            \
         }                                                                    \
     } while (0)
 

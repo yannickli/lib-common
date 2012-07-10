@@ -152,7 +152,7 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
         FILE *f = fopen("/proc/stat", "r");
 
         if (!f)
-            e_panic("Cannot open /proc/stat");
+            e_panic("cannot open /proc/stat");
 
         while (fgets(buf, sizeof(buf), f)) {
             if (strstart(buf, "btime", &p)) {
@@ -162,7 +162,7 @@ int pid_get_starttime(pid_t pid, struct timeval *tv)
         }
         p_fclose(&f);
         if (boot_time == 0)
-            e_panic("Could not parse boot time");
+            e_panic("could not parse boot time");
     }
 
     jiffies_to_tv(starttime, tv);

@@ -17,7 +17,7 @@
 
 #undef assert
 #define assert(Cond) if (unlikely(!(Cond))) {                                \
-        e_panic("Assert failed at %s:%d: %s", __FILE__, __LINE__, #Cond);    \
+        e_panic("assert failed at %s:%d: %s", __FILE__, __LINE__, #Cond);    \
     }
 
 static void (print_time_diff)(const char *str, struct rusage *tstart,
@@ -273,10 +273,10 @@ int main(int argc, char **argv)
             e_fatal("cannot create qps");
     }
 
-    e_info("Speed Seq 100000000 in Trie NOT NULL 32bits");
+    e_info("speed Seq 100000000 in Trie NOT NULL 32bits");
     run_seq_test(qps, false, 100000000);
 
-    e_info("Speed Seq 100000000 in Bitmap NOT NULL");
+    e_info("speed Seq 100000000 in Bitmap NOT NULL");
     {
         qps_handle_t hmap = qps_bitmap_create(qps, false);
         qps_bitmap_t map;

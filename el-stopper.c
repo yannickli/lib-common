@@ -30,7 +30,7 @@ static void stopper_handler(el_t ev, int signum, el_data_t priv)
     }
 
     if (stopper_g.stopme == 2) {
-        e_info("^C abort.");
+        e_info("^C abort");
         exit(1);
     }
 

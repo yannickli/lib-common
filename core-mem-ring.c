@@ -107,7 +107,7 @@ static ring_blk_t *blk_create(ring_pool_t *rp, size_t size_hint)
         blksize = 64 * rp_alloc_mean(rp);
     blksize = ROUND_UP(blksize, PAGE_SIZE);
     if (blksize > MEM_ALLOC_MAX)
-        e_panic("You cannot allocate that amount of memory");
+        e_panic("you cannot allocate that amount of memory");
     blk = imalloc(blksize, MEM_RAW | MEM_LIBC);
     blk->start    = blk->area;
     blk->size     = blksize - sizeof(*blk);

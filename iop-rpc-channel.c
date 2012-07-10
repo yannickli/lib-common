@@ -710,7 +710,7 @@ static int ic_read(ichannel_t *ic, short events, int sock)
                 ic->current_fd = NEXTARG(fdc, fdv);
             }
             if (unlikely(ic->current_fd < 0)) {
-                e_warning("File descriptor table overflow.");
+                e_warning("file descriptor table overflow");
             }
             flags &= ~IC_MSG_HAS_FD;
         }

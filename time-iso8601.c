@@ -17,7 +17,7 @@ static int time_parse_iso8601_tok(pstream_t *ps, int *nb, int *type)
 {
     *nb = ps_geti(ps);
     if (!ps_has(ps, 1)) {
-        e_debug("Invalid date tok");
+        e_debug("invalid date tok");
         return -1;
     }
     *type = __ps_getc(ps);
@@ -31,7 +31,7 @@ int time_parse_iso8601(pstream_t *ps, time_t *res)
     int sign, tz_h, tz_m, i;
 
     if (!ps_has(ps, 1)) {
-        e_debug("Invalid date: empty");
+        e_debug("invalid date: empty");
         return -1;
     }
 
@@ -65,7 +65,7 @@ int time_parse_iso8601(pstream_t *ps, time_t *res)
             RETHROW(time_parse_iso8601_tok(ps, &nb, &tok));
         }
         if (tok != 'T') {
-            e_debug("Missing 'T' time mark");
+            e_debug("missing 'T' time mark");
             return -1;
         }
         if (tok == 'H') {
@@ -94,31 +94,31 @@ int time_parse_iso8601(pstream_t *ps, time_t *res)
 
     t.tm_year = ps_geti(ps) - 1900;
     if (t.tm_year <= 0 || t.tm_year > 200) {
-        e_debug("Invalid year in date");
+        e_debug("invalid year in date");
         return -1;
     }
     if (ps_getc(ps) != '-') {
-        e_debug("Invalid date format, missing '-' after year");
+        e_debug("invalid date format, missing '-' after year");
         return -1;
     }
 
     t.tm_mon = ps_geti(ps) - 1;
     if (t.tm_mon < 0 || t.tm_mon > 11) {
-        e_debug("Invalid month in date");
+        e_debug("invalid month in date");
         return -1;
     }
     if (ps_getc(ps) != '-') {
-        e_debug("Invalid date format, missing '-' after month");
+        e_debug("invalid date format, missing '-' after month");
         return -1;
     }
 
     t.tm_mday = ps_geti(ps);
     if (t.tm_mday <= 0 || t.tm_mday > 31) {
-        e_debug("Invalid day in date");
+        e_debug("invalid day in date");
         return -1;
     }
     if (ps_getc(ps) != 'T') {
-        e_debug("Invalid date format, missing 'T' after day");
+        e_debug("invalid date format, missing 'T' after day");
         return -1;
     }
 
@@ -132,13 +132,13 @@ int time_parse_iso8601(pstream_t *ps, time_t *res)
         break;
 
       default:
-        e_debug("Invalid date format, invalid char after hour");
+        e_debug("invalid date format, invalid char after hour");
         return -1;
     }
 
     t.tm_min = ps_geti(ps);
     if (ps_getc(ps) != ':') {
-        e_debug("Invalid date format, missing ':' after minutes");
+        e_debug("invalid date format, missing ':' after minutes");
         return -1;
     }
 
@@ -173,13 +173,13 @@ int time_parse_iso8601(pstream_t *ps, time_t *res)
         return 0;
 
       default:
-        e_debug("Invalid date format, invalid timezone char %i", i);
+        e_debug("invalid date format, invalid timezone char %i", i);
         return -1;
     }
 
     tz_h = ps_geti(ps);
     if (ps_getc(ps) != ':') {
-        e_debug("Invalid date format, missing ':' after TZ hour");
+        e_debug("invalid date format, missing ':' after TZ hour");
         return -1;
     }
     tz_m = ps_geti(ps);

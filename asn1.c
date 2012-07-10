@@ -43,7 +43,7 @@ int ber_decode_len32(pstream_t *ps, uint32_t *_len)
             return 1;
         }
 
-        e_trace(1, "Invalid length encoding");
+        e_trace(1, "invalid length encoding");
 
         return -1;
     }

@@ -47,11 +47,11 @@ void *libc_realloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
 void *__imalloc(size_t size, mem_flags_t flags)
 {
     if (size > MEM_ALLOC_MAX)
-        e_panic("You cannot allocate that amount of memory");
+        e_panic("you cannot allocate that amount of memory");
     switch (flags & MEM_POOL_MASK) {
       case MEM_STATIC:
       default:
-        e_panic("You cannot allocate from pool %d with imalloc",
+        e_panic("you cannot allocate from pool %d with imalloc",
                 flags & MEM_POOL_MASK);
       case MEM_LIBC:
         return libc_malloc(size, flags);
@@ -81,11 +81,11 @@ void *__irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
         return NULL;
     }
     if (size > MEM_ALLOC_MAX)
-        e_panic("You cannot allocate that amount of memory");
+        e_panic("you cannot allocate that amount of memory");
 
     switch (flags & MEM_POOL_MASK) {
       case MEM_STATIC:
-        e_panic("You cannot realloc alloca-ed memory");
+        e_panic("you cannot realloc alloca-ed memory");
       case MEM_STACK:
         return stack_realloc(mem, oldsize, size, flags);
       case MEM_LIBC:

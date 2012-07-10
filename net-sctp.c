@@ -286,7 +286,7 @@ void sctp_dump_notif(char *buf, int len)
         break;
 
       default:
-        e_trace(0, "Unknown type: %u", snp->sn_header.sn_type);
+        e_trace(0, "unknown type: %u", snp->sn_header.sn_type);
         break;
     }
 }

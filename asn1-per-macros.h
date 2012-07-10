@@ -34,13 +34,13 @@ static inline asn1_field_t
     asn1_field_t *field = asn1_desc_get_last_field(desc);
 
     if (field == NULL) {
-        e_panic("No field to set min/max");
+        e_panic("no field to set min/max");
     }
 
     if (field->type < ASN1_OBJ_TYPE(int8_t)
     ||  field->type > ASN1_OBJ_TYPE(uint64_t))
     {
-        e_panic("Field `%s:%s' is not an number field",
+        e_panic("field `%s:%s' is not an number field",
                 field->name, field->oc_t_name);
     }
 
@@ -86,14 +86,14 @@ static inline asn1_field_t
     asn1_field_t *field = asn1_desc_get_last_field(desc);
 
     if (field == NULL) {
-        e_panic("No field to set min/max");
+        e_panic("no field to set min/max");
     }
 
     if (field->type != ASN1_OBJ_TYPE(asn1_data_t)
     &&  field->type != ASN1_OBJ_TYPE(asn1_string_t)
     &&  field->type != ASN1_OBJ_TYPE(asn1_bit_string_t))
     {
-        e_panic("Field `%s:%s' is not an string field",
+        e_panic("field `%s:%s' is not an string field",
                 field->name, field->oc_t_name);
     }
 
@@ -137,15 +137,15 @@ static inline asn1_field_t
     asn1_field_t *field = asn1_desc_get_last_field(desc);
 
     if (field == NULL)
-        e_panic("No field to set min/max");
+        e_panic("no field to set min/max");
 
     if (field->type != ASN1_OBJ_TYPE(SEQUENCE)) {
-        e_panic("Field `%s:%s' is not a SEQUENCE field",
+        e_panic("field `%s:%s' is not a SEQUENCE field",
                 field->name, field->oc_t_name);
     }
 
     if (!field->u.comp->is_seq_of) {
-        e_panic("Field into `%s:%s' is not a SEQUENCE OF field",
+        e_panic("field into `%s:%s' is not a SEQUENCE OF field",
                 field->name, field->oc_t_name);
     }
 
@@ -215,7 +215,7 @@ static inline void
 asn1_set_enum_info(asn1_field_t *field, const asn1_enum_info_t *info)
 {
     if (!field) {
-        e_panic("No field into desc");
+        e_panic("no field into desc");
     }
 
     if (field->type != ASN1_OBJ_TYPE(enum)) {
@@ -224,7 +224,7 @@ asn1_set_enum_info(asn1_field_t *field, const asn1_enum_info_t *info)
     }
 
     if (field->enum_info) {
-        e_panic("Cannot set enum info for %s:%s - info already set",
+        e_panic("cannot set enum info for %s:%s - info already set",
                 field->name, field->oc_t_name);
     }
 
@@ -258,15 +258,15 @@ asn1_set_open_type(asn1_desc_t *desc, size_t buf_len)
     asn1_field_t *field = asn1_desc_get_last_field(desc);
 
     if (!buf_len) {
-        e_panic("Buffer length must be > 0");
+        e_panic("buffer length must be > 0");
     }
 
     if (!field) {
-        e_panic("No field into desc");
+        e_panic("no field into desc");
     }
 
     if (field->is_open_type) {
-        e_panic("Cannot set open type for %s:%s - already set",
+        e_panic("cannot set open type for %s:%s - already set",
                 field->name, field->oc_t_name);
     }
 

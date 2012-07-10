@@ -363,7 +363,7 @@ static int asn1_pack_value_size(const void *dt, const asn1_field_t *spec,
         break;
       case ASN1_OBJ_TYPE(SKIP):
       default:
-        e_panic("Should not happen.");
+        e_panic("should not happen");
         return -1;
     }
 
@@ -476,10 +476,10 @@ static int asn1_pack_size_rec(const void *st, const asn1_desc_t *desc,
       case ASN1_CSTD_TYPE_CHOICE:
         return asn1_pack_choice_size(st, desc, stack);
       case ASN1_CSTD_TYPE_SET:
-        e_panic("Not supported yet.");
+        e_panic("not supported yet");
         return -1;
       default:
-        e_panic("Should not happen.");
+        e_panic("should not happen");
         return -1;
     }
 }
@@ -506,43 +506,43 @@ static uint8_t *asn1_pack_value(uint8_t *dst, const void *dt,
     switch (spec->type) {
       case ASN1_OBJ_TYPE(bool):
         dst = asn1_pack_bool(dst, *(bool *)dt);
-        e_trace(4, "Value : %s", *(bool *)dt ? "true" : "false");
+        e_trace(4, "value: %s", *(bool *)dt ? "true" : "false");
         break;
       case ASN1_OBJ_TYPE(int8_t):
         *dst++ = *(int8_t *)dt;
-        e_trace(4, "Value : %d", *(int8_t *)dt);
+        e_trace(4, "value: %d", *(int8_t *)dt);
         break;
       case ASN1_OBJ_TYPE(uint8_t):
         dst = asn1_pack_int32(dst, *(uint8_t *)dt);
-        e_trace(4, "Value : %u", *(uint8_t *)dt);
+        e_trace(4, "value: %u", *(uint8_t *)dt);
         break;
       case ASN1_OBJ_TYPE(int16_t):
         dst = asn1_pack_int32(dst, *(int16_t *)dt);
-        e_trace(4, "Value : %d", *(int16_t *)dt);
+        e_trace(4, "value: %d", *(int16_t *)dt);
         break;
       case ASN1_OBJ_TYPE(uint16_t):
         dst = asn1_pack_int32(dst, *(uint16_t *)dt);
-        e_trace(4, "Value : %u", *(uint16_t *)dt);
+        e_trace(4, "value: %u", *(uint16_t *)dt);
         break;
       case ASN1_OBJ_TYPE(int32_t):
         dst = asn1_pack_int32(dst, *(int32_t *)dt);
-        e_trace(4, "Value : %d", *(int32_t *)dt);
+        e_trace(4, "value: %d", *(int32_t *)dt);
         break;
       case ASN1_OBJ_TYPE(enum):
         dst = asn1_pack_int32(dst, *(int32_t *)dt);
-        e_trace(4, "Value : %d", *(int32_t *)dt);
+        e_trace(4, "value: %d", *(int32_t *)dt);
         break;
       case ASN1_OBJ_TYPE(uint32_t):
         dst = asn1_pack_uint32(dst, *(uint32_t *)dt);
-        e_trace(4, "Value : %u", *(uint32_t *)dt);
+        e_trace(4, "value: %u", *(uint32_t *)dt);
         break;
       case ASN1_OBJ_TYPE(int64_t):
         dst = asn1_pack_int64(dst, *(int64_t *)dt);
-        e_trace(4, "Value : %jd", *(int64_t *)dt);
+        e_trace(4, "value: %jd", *(int64_t *)dt);
         break;
       case ASN1_OBJ_TYPE(uint64_t):
         dst = asn1_pack_uint64(dst, *(uint64_t *)dt);
-        e_trace(4, "Value : %ju", *(uint64_t *)dt);
+        e_trace(4, "value: %ju", *(uint64_t *)dt);
         break;
       case ASN1_OBJ_TYPE(NULL):
       case ASN1_OBJ_TYPE(OPT_NULL):
@@ -550,7 +550,7 @@ static uint8_t *asn1_pack_value(uint8_t *dst, const void *dt,
       case ASN1_OBJ_TYPE(asn1_data_t): case ASN1_OBJ_TYPE(asn1_string_t):
       case ASN1_OBJ_TYPE(OPEN_TYPE):
         dst = asn1_pack_data(dst, (const asn1_data_t *)dt);
-        e_trace_hex(4, "Value :", ((const asn1_data_t *)dt)->data,
+        e_trace_hex(4, "value:", ((const asn1_data_t *)dt)->data,
                     ((const asn1_data_t *)dt)->len);
         break;
       case ASN1_OBJ_TYPE(asn1_bit_string_t):
@@ -630,7 +630,7 @@ static uint8_t *asn1_pack_sequence(uint8_t *dst, const void *st,
     for (int i = 0; i < desc->vec.len; i++) {
         const asn1_field_t *spec = &desc->vec.tab[i];
 
-        e_trace_desc(1, "Serializing", desc, i, depth);
+        e_trace_desc(1, "serializing", desc, i, depth);
         dst = asn1_pack_field(dst, st, spec, depth, stack);
     }
 
@@ -653,7 +653,7 @@ static uint8_t *asn1_pack_choice(uint8_t *dst, const void *st,
     choice = *GET_DATA_P(st, enum_spec, int);
     choice_spec = &desc->vec.tab[choice];
 
-    e_trace_desc(1, "Serializing", desc, choice, depth);
+    e_trace_desc(1, "serializing", desc, choice, depth);
     return asn1_pack_field(dst, st, choice_spec, depth, stack);
 }
 
@@ -674,8 +674,7 @@ static uint8_t *asn1_pack_rec(uint8_t *dst, const void *st,
       case ASN1_CSTD_TYPE_CHOICE:
         return asn1_pack_choice(dst, st, desc, depth, stack);
       case ASN1_CSTD_TYPE_SET:
-        e_panic("Not supported yet.");
-        return dst;
+        e_panic("not supported yet");
       default:
         return dst;
     }
@@ -690,7 +689,7 @@ void asn1_reg_field(asn1_desc_t *desc, asn1_field_t *field)
      ||  desc->vec.tab[desc->vec.len - 1].mode == ASN1_OBJ_MODE(SEQ_OF)))
     {
         e_fatal("ASN.1 field %s should be explicitly "
-                "tagged as a sequence.", field->name);
+                "tagged as a sequence", field->name);
     }
 
     if (field->mode == ASN1_OBJ_MODE(OPTIONAL)) {
@@ -824,8 +823,7 @@ void *asn1_opt_field_w(void *field, enum obj_type type, bool has_field)
       case ASN1_OBJ_TYPE(SKIP):
         return NULL;
       default:
-        e_panic("Unexpected type.");
-        return NULL;
+        e_panic("unexpected type");
     }
 }
 
@@ -846,7 +844,7 @@ static int asn1_skip_field(pstream_t *ps, bool indef_father,
 
     do {
         if (!ps_has(ps, 2)) {
-            e_trace(1, "Error: stream end.");
+            e_trace(1, "error: stream end");
             return -1;
         }
 
@@ -857,14 +855,14 @@ static int asn1_skip_field(pstream_t *ps, bool indef_father,
                 n_eoc++;
             } else {
                 if (unlikely(ps_skip(ps, data_size) < 0)) {
-                    e_trace(1, "Error: not enough bytes.");
+                    e_trace(1, "error: not enough bytes");
                     return -1;
                 }
             }
         } else {
             if (unlikely(ps->b[1])) {
                 /* See: ITU Fascicle VIII.4 - Rec. X.209 - 23.5.4 */
-                e_trace(1, "Invalid EOC.");
+                e_trace(1, "invalid EOC");
                 return -1;
             }
 
@@ -908,8 +906,8 @@ static int asn1_unpack_value(pstream_t *ps, const asn1_field_t *spec,
 
         if (!RETHROW(ber_decode_len32(ps, &data_size))) {
             if (ps_get_ps(ps, data_size, &field_ps) < 0) {
-                e_trace(1, "P-stream does not have enough bytes "
-                        "(got %zd needed %u).", ps_len(ps), data_size);
+                e_trace(1, "p-stream does not have enough bytes "
+                        "(got %zd needed %u)", ps_len(ps), data_size);
                 return -1;
             }
 
@@ -918,7 +916,7 @@ static int asn1_unpack_value(pstream_t *ps, const asn1_field_t *spec,
             field_ps = *ps;
 
             if (spec->type < ASN1_OBJ_TYPE(asn1_ext_t)) {
-                e_trace(1, "Error: unexpected indefinite length.");
+                e_trace(1, "error: unexpected indefinite length");
                 return -1;
             }
 
@@ -930,47 +928,47 @@ static int asn1_unpack_value(pstream_t *ps, const asn1_field_t *spec,
     switch (spec->type) {
       case ASN1_OBJ_TYPE(bool):
         *(bool *)dt = (ps_getc(&field_ps) ? true : false);
-        e_trace(4, "Value : %s", *(bool *)dt ? "true" : "false");
+        e_trace(4, "value: %s", *(bool *)dt ? "true" : "false");
         break;
       case ASN1_OBJ_TYPE(int8_t):
         *(int8_t *)dt = ps_getc(&field_ps);
-        e_trace(4, "Value : %d", *(int8_t *)dt);
+        e_trace(4, "value: %d", *(int8_t *)dt);
         break;
       case ASN1_OBJ_TYPE(uint8_t):
         if (unlikely(ps_len(&field_ps) == 2)) {
             if (*field_ps.b == 0x00) {
                 __ps_skip(&field_ps, 1);
             } else {
-                e_trace(1, "Wrong uint8 size");
+                e_trace(1, "wrong uint8 size");
                 return -1;
             }
         }
         *(uint8_t *)dt = ps_getc(&field_ps);
-        e_trace(4, "Value : %u", *(uint8_t *)dt);
+        e_trace(4, "value: %u", *(uint8_t *)dt);
         break;
       case ASN1_OBJ_TYPE(int16_t):
         RETHROW(ber_decode_int16(&field_ps, (int16_t *)dt));
-        e_trace(4, "Value : %d", *(int16_t *)dt);
+        e_trace(4, "value: %d", *(int16_t *)dt);
         break;
       case ASN1_OBJ_TYPE(uint16_t):
         RETHROW(ber_decode_uint16(&field_ps, (uint16_t *)dt));
-        e_trace(4, "Value : %u", *(uint16_t *)dt);
+        e_trace(4, "value: %u", *(uint16_t *)dt);
         break;
       case ASN1_OBJ_TYPE(int32_t): case ASN1_OBJ_TYPE(enum):
         RETHROW(ber_decode_int32(&field_ps, (int32_t *)dt));
-        e_trace(4, "Value : %d", *(int32_t *)dt);
+        e_trace(4, "value: %d", *(int32_t *)dt);
         break;
       case ASN1_OBJ_TYPE(uint32_t):
         RETHROW(ber_decode_uint32(&field_ps, (uint32_t *)dt));
-        e_trace(4, "Value : %u", *(uint32_t *)dt);
+        e_trace(4, "value: %u", *(uint32_t *)dt);
         break;
       case ASN1_OBJ_TYPE(int64_t):
         RETHROW(ber_decode_int64(&field_ps, (int64_t *)dt));
-        e_trace(4, "Value : %jd", *(int64_t *)dt);
+        e_trace(4, "value: %jd", *(int64_t *)dt);
         break;
       case ASN1_OBJ_TYPE(uint64_t):
         RETHROW(ber_decode_uint64(&field_ps, (uint64_t *)dt));
-        e_trace(4, "Value : %ju", *(uint64_t *)dt);
+        e_trace(4, "value: %ju", *(uint64_t *)dt);
         break;
       case ASN1_OBJ_TYPE(NULL):
       case ASN1_OBJ_TYPE(OPT_NULL):
@@ -984,7 +982,7 @@ static int asn1_unpack_value(pstream_t *ps, const asn1_field_t *spec,
             ((asn1_data_t *)dt)->data = field_ps.b;
         }
         ((asn1_data_t *)dt)->len = ps_len(&field_ps);
-        e_trace_hex(4, "Value :", field_ps.s, (int)ps_len(&field_ps));
+        e_trace_hex(4, "value:", field_ps.s, (int)ps_len(&field_ps));
         break;
       case ASN1_OBJ_TYPE(asn1_bit_string_t):
         if (copy) {
@@ -1018,14 +1016,14 @@ static int asn1_unpack_value(pstream_t *ps, const asn1_field_t *spec,
         RETHROW((*spec->u.opaque.unpack)(&field_ps, mem_pool, dt));
         break;
       case ASN1_OBJ_TYPE(SKIP):
-        e_panic("Should not happen.");
+        e_panic("should not happen");
         break;
     }
 
     if (indef_len) {
         *ps = field_ps;
         if (!ps_has(ps, 2) || ps->b[0] != 0x00 || ps->b[1] != 0x00) {
-            e_trace(1, "Error: Incorrect EOC.");
+            e_trace(1, "error: Incorrect EOC");
             e_trace_hex(2, "current input stream", ps->b, (int)ps_len(ps));
             return -1;
         }
@@ -1043,7 +1041,7 @@ static int asn1_sequenceof_len(pstream_t ps, uint8_t tag)
     for (len = 0; ps_getc(&ps) == tag; len++) {
         uint32_t data_size;
         if (unlikely(RETHROW(ber_decode_len32(&ps, &data_size)))) {
-            e_trace(1, "Indefinite length not supported in sequences-of yet.");
+            e_trace(1, "indefinite length not supported in sequences-of yet");
             return -1;
         }
         RETHROW(ps_skip(&ps, data_size));
@@ -1078,10 +1076,10 @@ static int asn1_unpack_field(pstream_t *ps, const asn1_field_t *spec,
                                       copy));
         } else {
             if (ps_has(ps, 1)) {
-                e_trace(0, "Mandatory value -- %s -- not found (got tag %x).",
+                e_trace(0, "mandatory value -- %s -- not found (got tag %x)",
                         spec->name, *ps->b);
             } else {
-                e_trace(0, "Mandatory value -- %s -- not found (input end).",
+                e_trace(0, "mandatory value -- %s -- not found (input end)",
                         spec->name);
             }
             return -1;
@@ -1158,7 +1156,7 @@ static int asn1_unpack_choice(pstream_t *ps, const asn1_desc_t *_desc,
     uint8_t tag;
 
     if (ps_done(ps)) {
-        e_trace(1, "No choice element: input stream end.");
+        e_trace(1, "no choice element: input stream end");
         return -1;
     }
 
@@ -1166,13 +1164,13 @@ static int asn1_unpack_choice(pstream_t *ps, const asn1_desc_t *_desc,
     assert (enum_spec->type == ASN1_OBJ_TYPE(enum));
 
     if (!(choice = asn1_find_choice(desc, tag))) {
-        e_trace(1, "No choice element: tag mismatch.");
+        e_trace(1, "no choice element: tag mismatch");
         return -1;
     }
 
     spec = &desc->desc.vec.tab[choice];
     *GET_PTR(st, enum_spec, int) = choice; /* Write enum value */
-    e_trace_desc(1, "Unpacking", &desc->desc, choice, depth);
+    e_trace_desc(1, "unpacking", &desc->desc, choice, depth);
     RETHROW(asn1_unpack_field(ps, spec, mem_pool, depth, st, copy,
                               indef_len));
 
@@ -1195,10 +1193,10 @@ asn1_unpack_u_choice_val(pstream_t *ps, const asn1_field_t *choice_spec,
     ||  !(choice = asn1_find_choice(choice_desc, *ps->b)))
     {
         if (choice_spec->mode == ASN1_OBJ_MODE(MANDATORY)) {
-            e_trace(1, "Missing mandatory choice %s", choice_spec->name);
+            e_trace(1, "missing mandatory choice %s", choice_spec->name);
             return -1;
         } else {
-            e_trace(2, "Nothing found for tag %2x", *ps->b);
+            e_trace(2, "nothing found for tag %2x", *ps->b);
             return 0;
         }
     }
@@ -1210,7 +1208,7 @@ asn1_unpack_u_choice_val(pstream_t *ps, const asn1_field_t *choice_spec,
         choice_st = asn1_alloc_if_pointed(choice_spec, mem_pool, st);
         *GET_PTR(choice_st, enum_spec, int) = choice;
 
-        e_trace_desc(1, "Unpacking", &choice_desc->desc, choice, depth + 1);
+        e_trace_desc(1, "unpacking", &choice_desc->desc, choice, depth + 1);
 
         if (field->type == ASN1_OBJ_TYPE(UNTAGGED_CHOICE)) {
             RETHROW(asn1_unpack_u_choice_val(ps, field, mem_pool, depth + 1,
@@ -1245,8 +1243,8 @@ asn1_unpack_seq_of_u_choice(pstream_t *ps, const asn1_field_t *choice_spec,
     {
         uint32_t data_size;
         if (unlikely(RETHROW(ber_decode_len32(&temp_ps, &data_size)))) {
-            e_trace(1, "Indefinite length not supported in sequences-of "
-                    "untagged choices yet.");
+            e_trace(1, "indefinite length not supported in sequences-of "
+                    "untagged choices yet");
             return -1;
         }
         RETHROW(ps_skip(&temp_ps, data_size));
@@ -1283,7 +1281,7 @@ asn1_unpack_seq_of_u_choice(pstream_t *ps, const asn1_field_t *choice_spec,
         }
 
         *(int *)choice_st = choice;
-        e_trace_desc(1, "Unpacking", &choice_desc->desc, choice, depth + 1);
+        e_trace_desc(1, "unpacking", &choice_desc->desc, choice, depth + 1);
         RETHROW(asn1_unpack_value(ps, spec, mem_pool, depth,
                                   GET_PTR(choice_st, spec, void *),
                                   copy));
@@ -1302,7 +1300,7 @@ asn1_unpack_untagged_choice(pstream_t *ps, const asn1_field_t *choice_spec,
         if (!RETHROW(asn1_unpack_u_choice_val(ps, choice_spec, mem_pool,
                                               depth, st, copy)))
         {
-            e_trace(1, "Mandatory untagged choice absent.");
+            e_trace(1, "mandatory untagged choice absent");
             return -1;
         }
         break;
@@ -1330,7 +1328,7 @@ static int asn1_unpack_sequence(pstream_t *ps, const asn1_desc_t *desc,
     for (int i = 0; i < desc->vec.len; i++) {
         const asn1_field_t *spec = &desc->vec.tab[i];
 
-        e_trace_desc(1, "Unpacking", desc, i, depth);
+        e_trace_desc(1, "unpacking", desc, i, depth);
 
         assert (spec->tag_len == 1);
 
@@ -1360,7 +1358,7 @@ static int asn1_unpack_rec(pstream_t *ps, const asn1_desc_t *desc,
                                    indef_len));
         break;
       case ASN1_CSTD_TYPE_SET:
-        e_panic("Not supported yet.");
+        e_panic("not supported yet");
         break;
     }
 

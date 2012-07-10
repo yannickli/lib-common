@@ -126,7 +126,7 @@
         if (!__builtin_types_compatible_p(typeof(v), const pfx##_t *)        \
         &&  !__builtin_types_compatible_p(typeof(v), pfx##_t *))             \
         {                                                                    \
-            __error__("Incompatible input type for size packing.");          \
+            __error__("incompatible input type for size packing");           \
         }                                                                    \
         asn1_pack_size_(v, ASN1_GET_DESC(pfx), stack);                       \
     })
@@ -136,7 +136,7 @@
         if (!__builtin_types_compatible_p(typeof(v), const pfx##_t *)        \
         &&  !__builtin_types_compatible_p(typeof(v), pfx##_t *))             \
         {                                                                    \
-            __error__("Incompatible input type for packing.");               \
+            __error__("incompatible input type for packing");                \
         }                                                                    \
         asn1_pack_(dst, v, ASN1_GET_DESC(pfx), stack);                       \
     })
@@ -145,7 +145,7 @@
 #define asn1_unpack(pfx, ps, mem_pool, st, cpy) \
     ({                                                                       \
         if (!__builtin_types_compatible_p(typeof(st), pfx##_t *)) {          \
-            __error__("Incompatible output type for unpacking.");            \
+            __error__("incompatible output type for unpacking");             \
         }                                                                    \
         asn1_unpack_(ps, ASN1_GET_DESC(pfx), mem_pool, st, cpy);             \
     })
@@ -359,7 +359,7 @@
             ASN1_REG_ENUM(desc, st_pfx, enum_sfx, field, tag, MANDATORY);    \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #define asn1_reg_opt_enum(desc, st_pfx, enum_sfx, field, tag) \
@@ -369,7 +369,7 @@
             ASN1_REG_ENUM(desc, st_pfx, enum_sfx, field, tag, OPTIONAL);     \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #define asn1_reg_seq_of_enum(desc, st_pfx, enum_sfx, field, tag) \
@@ -381,7 +381,7 @@
             ASN1_REG_ENUM(desc, st_pfx, enum_sfx, field, tag, SEQ_OF);       \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #ifndef NDEBUG
@@ -421,7 +421,7 @@
             asn1_reg_field(desc, &tmp);                                      \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while(0)
 
 /*}}}*/
@@ -453,7 +453,7 @@
             ASN1_REG_STRING(desc, st, asn1_bit_string_t, field, tag, mode); \
             break;                                                          \
         }                                                                   \
-        __error__("Incorrect field type regarding desc.");                  \
+        __error__("incorrect field type regarding desc");                   \
     } while (0)
 
 #define ASN1_REG_SEQ_OF_STRING(desc, st, field, tag) \
@@ -473,7 +473,7 @@
                             SEQ_OF);                                         \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #define ASN1_REG_STRING(desc, st, ctype_t, field, tag, mode) \
@@ -598,7 +598,7 @@
 #define asn1_reg_sequence(desc, st_pfx, pfx, field, tag) \
     do {                                                                     \
         if (!(tag & ASN1_TAG_CONSTRUCTED(0))) {                              \
-            __error__("Sequence tags must be constructed.");                 \
+            __error__("sequence tags must be constructed");                  \
         }                                                                    \
         if (ASN1_IS_FIELD_TYPE(pfx##_t, field, st_pfx##_t)) {                \
             ASN1_REG_SEQUENCE(desc, st_pfx##_t, pfx, field, tag, MANDATORY,  \
@@ -611,13 +611,13 @@
                               true);                                         \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #define asn1_reg_opt_sequence(desc, st_pfx, pfx, field, tag) \
     do {                                                                     \
         if (!(tag & ASN1_TAG_CONSTRUCTED(0))) {                              \
-            __error__("Sequence tags must be constructed.");                 \
+            __error__("sequence tags must be constructed");                  \
         }                                                                    \
         if (ASN1_IS_FIELD_TYPE(pfx##_t *, field, st_pfx##_t)                 \
         ||  ASN1_IS_FIELD_TYPE(const pfx##_t *, field, st_pfx##_t)) {        \
@@ -625,7 +625,7 @@
                               true);                                         \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #define asn1_reg_seq_of_sequence(desc, st_pfx, pfx, field, tag) \
@@ -642,7 +642,7 @@
                               true);                                         \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #define ASN1_REG_SEQUENCE(desc, st, pfx, field, tag, mode, pointed) \
@@ -653,8 +653,8 @@
             .u = { .comp = ASN1_GET_DESC(pfx), },                            \
         };                                                                   \
         if (tmp.u.comp->type != ASN1_CSTD_TYPE_SEQUENCE) {                   \
-            e_panic("Incorrect sub-type for "#st":"#pfx":"#field             \
-                    ", expected SEQUENCE.");                                 \
+            e_panic("incorrect sub-type for "#st":"#pfx":"#field             \
+                    ", expected SEQUENCE");                                  \
         }                                                                    \
         asn1_reg_field(desc, &tmp);                                          \
     } while (0)
@@ -678,7 +678,7 @@
                               true);                                         \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #define asn1_reg_opt_choice(desc, st_pfx, pfx, field, tag) \
@@ -689,7 +689,7 @@
                               true);                                         \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #define asn1_reg_seq_of_choice(desc, st_pfx, pfx, field, tag) \
@@ -706,7 +706,7 @@
                               true);                                         \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #define ASN1_REG_CHOICE(desc, st, pfx, field, tag, mode, pointed) \
@@ -717,8 +717,8 @@
             .u = { .comp = ASN1_GET_DESC(pfx), },                            \
         };                                                                   \
         if (tmp.u.comp->type != ASN1_CSTD_TYPE_CHOICE) {                     \
-            e_panic("Incorrect sub-type for "#st":"#pfx":"#field             \
-                    ", expected CHOICE.");                                   \
+            e_panic("incorrect sub-type for "#st":"#pfx":"#field             \
+                    ", expected CHOICE");                                    \
         }                                                                    \
         asn1_reg_field(desc, &tmp);                                          \
     } while (0)
@@ -742,7 +742,7 @@
                                      MANDATORY, true);                       \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #define asn1_reg_opt_untagged_choice(desc, st_pfx, pfx, field) \
@@ -753,7 +753,7 @@
                                      OPTIONAL, true);                        \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #define asn1_reg_seq_of_untagged_choice(desc, st_pfx, pfx, field) \
@@ -770,7 +770,7 @@
                                      true);                                  \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #define ASN1_REG_UNTAGGED_CHOICE(desc, st, pfx, field, mode, pointed) \
@@ -781,8 +781,8 @@
             .u = { .comp = ASN1_GET_DESC(pfx), },                            \
         };                                                                   \
         if (tmp.u.comp->type != ASN1_CSTD_TYPE_CHOICE) {                     \
-            e_panic("Incorrect sub-type for "#st":"#pfx":"#field             \
-                    ", expected CHOICE.");                                   \
+            e_panic("incorrect sub-type for "#st":"#pfx":"#field             \
+                    ", expected CHOICE");                                    \
         }                                                                    \
         asn1_reg_field(desc, &tmp);                                          \
     } while (0)
@@ -799,7 +799,7 @@
             ASN1_REG_EXT(desc, st_pfx##_t, field, tag, MANDATORY);           \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #define asn1_reg_opt_ext(desc, st_pfx, field, tag) \
@@ -808,7 +808,7 @@
             ASN1_REG_EXT(desc, st_pfx##_t, field, tag, OPTIONAL);            \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #define asn1_reg_seq_of_ext(desc, st_pfx, field, tag) \
@@ -820,7 +820,7 @@
             ASN1_REG_EXT(desc, st_pfx##_t, field, tag, SEQ_OF);              \
             break;                                                           \
         }                                                                    \
-        __error__("Incorrect field type regarding desc.");                   \
+        __error__("incorrect field type regarding desc");                    \
     } while (0)
 
 #define ASN1_REG_EXT(desc, st, field, tag, mode) \

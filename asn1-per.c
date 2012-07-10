@@ -245,17 +245,17 @@ aper_encode_len(bb_t *bb, size_t l, const asn1_cnt_info_t *info)
         if (l < info->min || l > info->max) {
             if (info->extended) {
                 if (l < info->ext_min || l > info->ext_max) {
-                    return e_error("Extended constraint not respected");
+                    return e_error("extended constraint not respected");
                 }
 
                 /* Extension present */
                 bb_add_bit(bb, true);
 
                 if (aper_write_ulen(bb, l) < 0) {
-                    return e_error("Failed to write extended length");
+                    return e_error("failed to write extended length");
                 }
             } else {
-                return e_error("Constraint not respected");
+                return e_error("constraint not respected");
             }
         } else {
             if (info->extended) {
@@ -279,7 +279,7 @@ aper_encode_number(bb_t *bb, int64_t n, const asn1_int_info_t *info)
         if (n < info->min || n > info->max) {
             if (info->extended) {
                 if (n < info->ext_min || n > info->ext_max) {
-                    return e_error("Extended constraint not respected");
+                    return e_error("extended constraint not respected");
                 }
 
                 /* Extension present */
@@ -290,7 +290,7 @@ aper_encode_number(bb_t *bb, int64_t n, const asn1_int_info_t *info)
 
                 return 0;
             } else {
-                e_error("Root constraint not respected: "
+                e_error("root constraint not respected: "
                         "%jd is not in [ %jd, %jd ]",
                         n, info->min, info->max);
 
@@ -325,7 +325,7 @@ aper_encode_enum(bb_t *bb, uint32_t val, const asn1_enum_info_t *e)
 
             return 0;
         } else {
-            e_info("Undeclared enumerated value: %d", val);
+            e_info("undeclared enumerated value: %d", val);
             return -1;
         }
     }
@@ -348,7 +348,7 @@ aper_encode_ostring(bb_t *bb, const asn1_ostring_t *os,
                     const asn1_cnt_info_t *info)
 {
     if (aper_encode_len(bb, os->len, info) < 0) {
-        return e_error("Octet string : failed to encode length");
+        return e_error("octet string: failed to encode length");
     }
 
     if (info && info->max <= 2 && info->min == info->max
@@ -392,7 +392,7 @@ aper_encode_bstring(bb_t *bb, const bit_stream_t *bs,
     size_t len = bs_len(bs);
 
     if (aper_encode_len(bb, len, info) < 0) {
-        return e_error("Octet string : failed to encode length");
+        return e_error("octet string: failed to encode length");
     }
 
     bb_add_bs(bb, *bs);
@@ -459,17 +459,17 @@ aper_encode_value(bb_t *bb, const void *v, const asn1_field_t *field)
         return aper_encode_constructed(bb, v, field->u.comp, field);
       case ASN1_OBJ_TYPE(asn1_ext_t):
         assert (0);
-        e_error("Ext type not supported");
+        e_error("ext type not supported");
         break;
       case ASN1_OBJ_TYPE(OPAQUE):
         assert (0);
-        e_error("Opaque type not supported");
+        e_error("opaque type not supported");
         break;
       case ASN1_OBJ_TYPE(SKIP):
-        e_error("Skip not supported"); /* We cannot stand squirrels */
+        e_error("skip not supported"); /* We cannot stand squirrels */
         break;
       case ASN1_OBJ_TYPE(OPEN_TYPE):
-        e_error("Open type not supported");
+        e_error("open type not supported");
         break;
     }
 
@@ -481,7 +481,7 @@ aper_encode_field(bb_t *bb, const void *v, const asn1_field_t *field)
 {
     int res;
 
-    e_trace(5, "Encoding value %s:%s", field->oc_t_name, field->name);
+    e_trace(5, "encoding value %s:%s", field->oc_t_name, field->name);
 
     bb_push_mark(bb);
 
@@ -517,7 +517,7 @@ aper_encode_sequence(bb_t *bb, const void *st, const asn1_desc_t *desc)
 
     /* Put extension bit */
     if (desc->extended) {
-        e_trace(5, "Sequence is extended");
+        e_trace(5, "sequence is extended");
         bb_add_bit(bb, false);
     }
 
@@ -558,7 +558,7 @@ aper_encode_sequence(bb_t *bb, const void *st, const asn1_desc_t *desc)
         }
 
         if (aper_encode_field(bb, v, field) < 0) {
-            return e_error("Failed to encode value %s:%s",
+            return e_error("failed to encode value %s:%s",
                            field->oc_t_name, field->name);
         }
     }
@@ -576,7 +576,7 @@ aper_encode_choice(bb_t *bb, const void *st, const asn1_desc_t *desc)
 
     /* Put extension bit */
     if (desc->extended) {
-        e_trace(5, "Choice is extended");
+        e_trace(5, "choice is extended");
         bb_add_bit(bb, false);
     }
 
@@ -590,7 +590,7 @@ aper_encode_choice(bb_t *bb, const void *st, const asn1_desc_t *desc)
     assert (choice_field->mode == ASN1_OBJ_MODE(MANDATORY));
 
     if (index < 1) {
-        return e_error("Wrong choice initialization");
+        return e_error("wrong choice initialization");
     }
 
     bb_push_mark(bb);
@@ -605,7 +605,7 @@ aper_encode_choice(bb_t *bb, const void *st, const asn1_desc_t *desc)
     assert (v);
 
     if (aper_encode_field(bb, v, choice_field) < 0) {
-        return e_error("Failed to encode choice element %s:%s",
+        return e_error("failed to encode choice element %s:%s",
                        choice_field->oc_t_name, choice_field->name);
     }
 
@@ -633,7 +633,7 @@ aper_encode_seq_of(bb_t *bb, const void *st, const asn1_field_t *field)
     if (aper_encode_len(bb, elem_cnt, &field->seq_of_info) < 0) {
         bb_pop_mark(bb);
 
-        return e_error("Failed to encode SEQUENCE OF length (n = %zd)",
+        return e_error("failed to encode SEQUENCE OF length (n = %zd)",
                        elem_cnt);
     }
 
@@ -645,7 +645,7 @@ aper_encode_seq_of(bb_t *bb, const void *st, const asn1_field_t *field)
             if (aper_encode_field(bb, ((const void **)tab)[j],
                                   repeated_field) < 0)
             {
-                e_error("Failed to encode array value [%zd] %s:%s",
+                e_error("failed to encode array value [%zd] %s:%s",
                         j, repeated_field->oc_t_name, repeated_field->name);
 
                 return -1;
@@ -656,7 +656,7 @@ aper_encode_seq_of(bb_t *bb, const void *st, const asn1_field_t *field)
             if (aper_encode_field(bb, tab + j * repeated_field->size,
                                   repeated_field) < 0)
             {
-                e_error("Failed to encode vector value [%zd] %s:%s",
+                e_error("failed to encode vector value [%zd] %s:%s",
                         j, repeated_field->oc_t_name, repeated_field->name);
 
                 return -1;
@@ -677,7 +677,7 @@ static int aper_encode_constructed(bb_t *bb, const void *st,
         assert (desc == field->u.comp);
 
         if (aper_encode_seq_of(bb, st, field) < 0) {
-            return e_error("Failed to encode sequence of values");
+            return e_error("failed to encode sequence of values");
         }
 
         return 0;
@@ -741,7 +741,7 @@ aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t *u16)
 
     if (blen < 8) {
         if (!bs_has(bs, blen)) {
-            e_info("Not enough bits to read constrained integer "
+            e_info("not enough bits to read constrained integer "
                    "(got %zd, need %zd)", bs_len(bs), blen);
             return -1;
         }
@@ -754,7 +754,7 @@ aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t *u16)
 
     if (blen == 8) {
         if (ps_done(&bs->ps)) {
-            e_info("Cannot read constrained integer: end of input "
+            e_info("cannot read constrained integer: end of input "
                    "(expected at least one octet left)");
             return -1;
         }
@@ -766,7 +766,7 @@ aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t *u16)
     assert (blen <= 16);
 
     if (!bs_has_bytes(bs, 2)) {
-        e_info("Cannot read constrained integer: input too short "
+        e_info("cannot read constrained integer: input too short "
                "(expected at least two octets left)");
         return -1;
     }
@@ -784,7 +784,7 @@ aper_read_ulen(bit_stream_t *bs, size_t *l)
     bs_align(bs);
 
     if (ps_done(&bs->ps)) {
-        e_info("Cannot read unconstrained length: end of input "
+        e_info("cannot read unconstrained length: end of input "
                "(expected at least one octet left)");
         return -1;
     }
@@ -797,13 +797,13 @@ aper_read_ulen(bit_stream_t *bs, size_t *l)
     }
 
     if (ps_done(&bs->ps)) {
-        e_info("Cannot read unconstrained length: end of input "
+        e_info("cannot read unconstrained length: end of input "
                "(expected at least a second octet left)");
         return -1;
     }
 
     if (u16 & (1 << 6)) {
-        e_info("Cannot read unconstrained length: "
+        e_info("cannot read unconstrained length: "
                "fragmented values are not supported");
         return -1;
     }
@@ -822,14 +822,14 @@ aper_read_2c_number(bit_stream_t *bs, int64_t *v)
     size_t olen;
 
     if (aper_read_ulen(bs, &olen) < 0) {
-        e_info("Cannot read unconstrained whole number length");
+        e_info("cannot read unconstrained whole number length");
         return -1;
     }
 
     bs_align(bs);
 
     if (!bs_has_bytes(bs, olen)) {
-        e_info("Not enough bytes to read unconstrained number "
+        e_info("not enough bytes to read unconstrained number "
                "(got %zd, need %zd)", ps_len(&bs->ps), olen);
         return -1;
     }
@@ -851,7 +851,7 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
             assert (info->max_blen);
 
             if (aper_read_u16_m(bs, info->max_blen, &u16) < 0) {
-                e_info("Cannot read constrained whole number");
+                e_info("cannot read constrained whole number");
                 return -1;
             }
 
@@ -862,7 +862,7 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
             uint16_t u16;
 
             if (aper_read_u16_m(bs, info->max_olen_blen, &u16) < 0) {
-                e_info("Cannot read constrained whole number length");
+                e_info("cannot read constrained whole number length");
                 return -1;
             }
 
@@ -870,20 +870,20 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
         }
     } else {
         if (aper_read_ulen(bs, &olen) < 0) {
-            e_info("Cannot read semi-constrained whole number length");
+            e_info("cannot read semi-constrained whole number length");
             return -1;
         }
     }
 
     if (!olen) {
-        e_info("Forbidden number length value : 0");
+        e_info("forbidden number length value : 0");
         return -1;
     }
 
     bs_align(bs);
 
     if (!bs_has_bytes(bs, olen)) {
-        e_info("Not enough bytes to read number "
+        e_info("not enough bytes to read number "
                "(got %zd, need %zd)", ps_len(&bs->ps), olen);
         return -1;
     }
@@ -899,7 +899,7 @@ static int aper_read_nsnnwn(bit_stream_t *bs, size_t *n)
     uint64_t u64;
 
     if (bs_done(bs)) {
-        e_info("Cannot read NSNNWN: end of input");
+        e_info("cannot read NSNNWN: end of input");
         return -1;
     }
 
@@ -907,7 +907,7 @@ static int aper_read_nsnnwn(bit_stream_t *bs, size_t *n)
 
     if (is_short) {
         if (!bs_has(bs, 6)) {
-            e_info("Cannot read short NSNNWN: not enough bits");
+            e_info("cannot read short NSNNWN: not enough bits");
             return -1;
         }
 
@@ -917,7 +917,7 @@ static int aper_read_nsnnwn(bit_stream_t *bs, size_t *n)
     }
 
     if (aper_read_number(bs, NULL, &u64) < 0) {
-        e_info("Cannot read long form NSNNWN");
+        e_info("cannot read long form NSNNWN");
         return -1;
     }
 
@@ -941,20 +941,20 @@ aper_read_len(bit_stream_t *bs, size_t l_min, size_t l_max, size_t *l)
         }
 
         if (aper_read_u16_m(bs, u16_blen(d_max), &d) < 0) {
-            e_info("Cannot read constrained length");
+            e_info("cannot read constrained length");
             return -1;
         }
 
         *l = l_min + d;
     } else {
         if (aper_read_ulen(bs, l) < 0) {
-            e_info("Cannot read unconstrained length");
+            e_info("cannot read unconstrained length");
             return -1;
         }
     }
 
     if (*l > l_max) {
-        e_info("Length is too high");
+        e_info("length is too high");
         return -1;
     }
 
@@ -974,7 +974,7 @@ aper_decode_len(bit_stream_t *bs, const asn1_cnt_info_t *info, size_t *l)
 
         if (info->extended) {
             if (bs_done(bs)) {
-                e_info("Cannot read extension bit: end of input");
+                e_info("cannot read extension bit: end of input");
                 return -1;
             }
 
@@ -985,28 +985,28 @@ aper_decode_len(bit_stream_t *bs, const asn1_cnt_info_t *info, size_t *l)
 
         if (extension_present) {
             if (aper_read_ulen(bs, l) < 0) {
-                e_info("Cannot read extended length");
+                e_info("cannot read extended length");
                 return -1;
             }
 
             if (*l < info->ext_min || *l > info->ext_max) {
-                e_info("Extended length constraint not respected");
+                e_info("extended length constraint not respected");
                 return -1;
             }
         } else {
             if (aper_read_len(bs, info->min, info->max, l) < 0) {
-                e_info("Cannot read constrained length");
+                e_info("cannot read constrained length");
                 return -1;
             }
 
             if (*l < info->min || *l > info->max) {
-                e_info("Root length constraint not respected");
+                e_info("root length constraint not respected");
                 return -1;
             }
         }
     } else {
         if (aper_read_len(bs, 0, SIZE_MAX, l) < 0) {
-            e_info("Cannot read unconstrained length");
+            e_info("cannot read unconstrained length");
             return -1;
         }
     }
@@ -1023,7 +1023,7 @@ aper_decode_number(bit_stream_t *bs, const asn1_int_info_t *info, int64_t *n)
         bool extension_present;
 
         if (bs_done(bs)) {
-            e_info("Cannot read extension bit: end of input");
+            e_info("cannot read extension bit: end of input");
             return -1;
         }
 
@@ -1031,7 +1031,7 @@ aper_decode_number(bit_stream_t *bs, const asn1_int_info_t *info, int64_t *n)
 
         if (extension_present) {
             if (aper_read_2c_number(bs, n) < 0) {
-                e_info("Cannot read extended unconstrained number");
+                e_info("cannot read extended unconstrained number");
                 return -1;
             }
 
@@ -1050,7 +1050,7 @@ aper_decode_number(bit_stream_t *bs, const asn1_int_info_t *info, int64_t *n)
         }
 
         if (aper_read_number(bs, info, &u64) < 0) {
-            e_info("Cannot read constrained or semi-constrained number");
+            e_info("cannot read constrained or semi-constrained number");
             return -1;
         }
 
@@ -1058,7 +1058,7 @@ aper_decode_number(bit_stream_t *bs, const asn1_int_info_t *info, int64_t *n)
         res += info->min;
 
         if (info && (res < info->min || res > info->max)) {
-            e_error("Root constraint not respected: "
+            e_error("root constraint not respected: "
                     "%jd is not in [ %jd, %jd ]",
                     res, info->min, info->max);
 
@@ -1068,7 +1068,7 @@ aper_decode_number(bit_stream_t *bs, const asn1_int_info_t *info, int64_t *n)
         assert (!info || !info->constrained);
 
         if (aper_read_2c_number(bs, &res) < 0) {
-            e_info("Cannot read unconstrained number");
+            e_info("cannot read unconstrained number");
             return -1;
         }
     }
@@ -1086,7 +1086,7 @@ aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e, uint32_t *val)
 
     if (e->extended) {
         if (bs_done(bs)) {
-            e_info("Cannot read enumerated type: end of input");
+            e_info("cannot read enumerated type: end of input");
             return -1;
         }
 
@@ -1094,7 +1094,7 @@ aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e, uint32_t *val)
             size_t nsnnwn;
 
             if (aper_read_nsnnwn(bs, &nsnnwn) < 0) {
-                e_info("Cannot read extended enumeration");
+                e_info("cannot read extended enumeration");
                 return -1;
             }
 
@@ -1105,14 +1105,14 @@ aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e, uint32_t *val)
     }
 
     if (!bs_has(bs, e->blen)) {
-        e_info("Cannot read enumerated value: not enough bits");
+        e_info("cannot read enumerated value: not enough bits");
         return -1;
     }
 
     pos = __bs_get_bits(bs, e->blen);
 
     if (pos >= e->values.len) {
-        e_info("Cannot read enumerated value: unregistered value");
+        e_info("cannot read enumerated value: unregistered value");
         return -1;
     }
 
@@ -1124,7 +1124,7 @@ aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e, uint32_t *val)
 static ALWAYS_INLINE int aper_decode_bool(bit_stream_t *bs, bool *b)
 {
     if (bs_done(bs)) {
-        e_info("Cannot decode boolean: end of input");
+        e_info("cannot decode boolean: end of input");
         return -1;
     }
 
@@ -1141,7 +1141,7 @@ t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
                       flag_t copy, asn1_ostring_t *os)
 {
     if (aper_decode_len(bs, info, &os->len) < 0) {
-        e_info("Cannot decode octet string length");
+        e_info("cannot decode octet string length");
         return -1;
     }
 
@@ -1151,7 +1151,7 @@ t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
         uint8_t *buf;
 
         if (!bs_has(bs, os->len * 2)) {
-            e_info("Cannot read octet string: not enough bits");
+            e_info("cannot read octet string: not enough bits");
             return -1;
         }
 
@@ -1169,7 +1169,7 @@ t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
     bs_align(bs);
 
     if (!bs_has_bytes(bs, os->len)) {
-        e_info("Cannot read octet string: not enough octets "
+        e_info("cannot read octet string: not enough octets "
                "(want %zd, got %zd)", os->len, bs_len(bs) / 8);
         return -1;
     }
@@ -1220,12 +1220,12 @@ t_aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
     size_t len;
 
     if (aper_decode_len(bs, info, &len) < 0) {
-        e_info("Cannot decode bit string length");
+        e_info("cannot decode bit string length");
         return -1;
     }
 
     if (!bs_has(bs, len)) {
-        e_info("Cannot read bit string: not enough bits");
+        e_info("cannot read bit string: not enough bits");
         return -1;
     }
 
@@ -1283,7 +1283,7 @@ t_aper_decode_value(bit_stream_t *bs, const asn1_field_t *field,
             int64_t i64;                                                  \
                                                                           \
             RETHROW(aper_decode_number(bs, &field->int_info, &i64));      \
-            e_trace(5, "Decoded number value (n = %jd)", i64);            \
+            e_trace(5, "decoded number value (n = %jd)", i64);            \
                                                                           \
             *(type_t *)v = i64;                                           \
                                                                           \
@@ -1300,7 +1300,7 @@ t_aper_decode_value(bit_stream_t *bs, const asn1_field_t *field,
 #undef ASN1_DECODE_INT_CASE
       case ASN1_OBJ_TYPE(enum):
         RETHROW(aper_decode_enum(bs, field->enum_info, (uint32_t *)v));
-        e_trace(5, "Decoded enum value (n = %u)", *(uint32_t *)v);
+        e_trace(5, "decoded enum value (n = %u)", *(uint32_t *)v);
         return 0;
       case ASN1_OBJ_TYPE(NULL):
       case ASN1_OBJ_TYPE(OPT_NULL):
@@ -1319,16 +1319,16 @@ t_aper_decode_value(bit_stream_t *bs, const asn1_field_t *field,
         return t_aper_decode_constructed(bs, field->u.comp, field, copy, v);
       case ASN1_OBJ_TYPE(asn1_ext_t):
         assert (0);
-        e_error("Ext type not supported");
+        e_error("ext type not supported");
         break;
       case ASN1_OBJ_TYPE(OPAQUE):
         assert (0);
-        e_error("Opaque type not supported");
+        e_error("opaque type not supported");
         break;
       case ASN1_OBJ_TYPE(SKIP):
         break;
       case ASN1_OBJ_TYPE(OPEN_TYPE):
-        e_error("Open type not supported");
+        e_error("open type not supported");
         break;
     }
 
@@ -1344,7 +1344,7 @@ t_aper_decode_field(bit_stream_t *bs, const asn1_field_t *field,
         bit_stream_t   open_type_bs;
 
         if (t_aper_decode_ostring(bs, NULL, false, &os) < 0) {
-            e_info("Cannot read OPEN TYPE field");
+            e_info("cannot read OPEN TYPE field");
             return -1;
         }
 
@@ -1375,20 +1375,20 @@ t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
         flag_t extension_present;
 
         if (bs_done(bs)) {
-            e_info("Cannot read extension bit: end of input");
+            e_info("cannot read extension bit: end of input");
             return -1;
         }
 
         extension_present = __bs_get_bit(bs);
 
         if (extension_present) {
-            e_info("Extension are not supported in sequences");
+            e_info("extension are not supported in sequences");
             return -1;
         }
     }
 
     if (!bs_has(bs, desc->opt_fields.len)) {
-        e_info("Cannot read optional fields bit-map: not enough bits");
+        e_info("cannot read optional fields bit-map: not enough bits");
         return -1;
     }
 
@@ -1401,7 +1401,7 @@ t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
         if (field->mode == ASN1_OBJ_MODE(OPTIONAL)) {
             if (unlikely(bs_done(&opt_bitmap))) {
                 assert (0);
-                return e_error("Sequence is broken");
+                return e_error("sequence is broken");
             }
 
             if (!__bs_get_bit(&opt_bitmap)) {
@@ -1417,11 +1417,11 @@ t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
             v = t_alloc_if_pointed(field, st);
         }
 
-        e_trace(5, "Decoding SEQUENCE value %s:%s",
+        e_trace(5, "decoding SEQUENCE value %s:%s",
                 field->oc_t_name, field->name);
 
         if (t_aper_decode_field(bs, field, copy, v) < 0) {
-            e_info("Cannot read sequence field %s:%s",
+            e_info("cannot read sequence field %s:%s",
                    field->oc_t_name, field->name);
             return -1;
         }
@@ -1444,30 +1444,30 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, flag_t copy,
         flag_t extension_present;
 
         if (bs_done(bs)) {
-            e_info("Cannot read extension bit: end of input");
+            e_info("cannot read extension bit: end of input");
             return -1;
         }
 
         extension_present = __bs_get_bit(bs);
 
         if (extension_present) {
-            e_info("Extension are not supported in choices");
+            e_info("extension are not supported in choices");
             return -1;
         }
 
-        e_trace(5, "Extension not present");
+        e_trace(5, "extension not present");
     } else {
-        e_trace(5, "Choice is not extended");
+        e_trace(5, "choice is not extended");
     }
 
     if (aper_read_number(bs, &desc->choice_info, &u64) < 0) {
-        e_info("Cannot read choice index");
+        e_info("cannot read choice index");
         return -1;
     }
 
     index = u64;
 
-    e_trace(5, "Decoded choice index (index = %zd)", index);
+    e_trace(5, "decoded choice index (index = %zd)", index);
 
     enum_field = &desc->vec.tab[0];
     choice_field = &desc->vec.tab[index + 1];     /* XXX Indexes start from 0 */
@@ -1477,11 +1477,11 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, flag_t copy,
     assert (choice_field->mode == ASN1_OBJ_MODE(MANDATORY));
     assert (enum_field->mode == ASN1_OBJ_MODE(MANDATORY));
 
-    e_trace(5, "Decoding CHOICE value %s:%s",
+    e_trace(5, "decoding CHOICE value %s:%s",
             choice_field->oc_t_name, choice_field->name);
 
     if (t_aper_decode_field(bs, choice_field, copy, v) < 0) {
-        e_info("Cannot decode choice value");
+        e_info("cannot decode choice value");
         return -1;
     }
 
@@ -1500,11 +1500,11 @@ t_aper_decode_seq_of(bit_stream_t *bs, const asn1_field_t *field,
     repeated_field = &desc->vec.tab[0];
 
     if (aper_decode_len(bs, &field->seq_of_info, &elem_cnt) < 0) {
-        e_info("Failed to decode SEQUENCE OF length");
+        e_info("failed to decode SEQUENCE OF length");
         return -1;
     }
 
-    e_trace(5, "Decoded element count of SEQUENCE OF %s:%s (n = %zd)",
+    e_trace(5, "decoded element count of SEQUENCE OF %s:%s (n = %zd)",
             repeated_field->oc_t_name, repeated_field->name, elem_cnt);
 
     if (unlikely(!elem_cnt)) {
@@ -1538,11 +1538,11 @@ t_aper_decode_seq_of(bit_stream_t *bs, const asn1_field_t *field,
               + j * repeated_field->size;
         }
 
-        e_trace(5, "Decoding SEQUENCE OF %s:%s value [%zu/%zu]",
+        e_trace(5, "decoding SEQUENCE OF %s:%s value [%zu/%zu]",
                 repeated_field->oc_t_name, repeated_field->name, j, elem_cnt);
 
         if (t_aper_decode_field(bs, repeated_field, copy, v) < 0) {
-            e_info("Failed to decode SEQUENCE OF element");
+            e_info("failed to decode SEQUENCE OF element");
             return -1;
         }
     }
@@ -1570,7 +1570,7 @@ t_aper_decode_constructed(bit_stream_t *bs, const asn1_desc_t *desc,
         RETHROW(t_aper_decode_choice(bs, desc, copy, st));
         break;
       case ASN1_CSTD_TYPE_SET:
-        e_panic("ASN.1 SET is not supported yet. Please use SEQUENCE.");
+        e_panic("ASN.1 SET is not supported yet; please use SEQUENCE");
         break;
     }
 

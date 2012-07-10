@@ -553,7 +553,7 @@ uint32_t qhat_get_key_bits(const qhat_t *hat, uint32_t key, uint32_t depth)
         CASE(128, Memory.compact128, Memory.u128);                 \
       } break;                                                     \
       default:                                                     \
-        e_panic("This should not happen");                         \
+        e_panic("this should not happen");                         \
     }
 
 /* }}} */

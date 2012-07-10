@@ -164,7 +164,7 @@ static void log_file_open_new(log_file_t *log_file, time_t date)
         if (!log_file->_internal
         ||  file_seek(log_file->_internal, 0, SEEK_END) == (off_t)-1)
         {
-            e_trace(1, "Could not open log file: %s (%m)", real_path);
+            e_trace(1, "could not open log file: %s (%m)", real_path);
         }
     }
 
@@ -175,7 +175,7 @@ static void log_file_open_new(log_file_t *log_file, time_t date)
                  log_file->flags & LOG_FILE_USE_LAST ? "_last" : "", log_file->ext);
         unlink(sym_path);
         if (symlink(real_path, sym_path)) {
-            e_trace(1, "Could not symlink %s to %s (%m)", real_path, sym_path);
+            e_trace(1, "could not symlink %s to %s (%m)", real_path, sym_path);
         }
     }
     log_check_invariants(log_file);
@@ -228,7 +228,7 @@ log_file_t *log_file_init(log_file_t *log_file, const char *nametpl, int flags)
     log_file->flags = flags;
 
     if (len + 8 + 1 + 6 + 4 >= ssizeof(log_file->prefix))
-        e_fatal("Path format too long");
+        e_fatal("path format too long");
     if (ext) {
         pstrcpy(log_file->ext, sizeof(log_file->ext), ext + 1);
         len -= strlen(ext);
@@ -249,7 +249,7 @@ int log_file_open(log_file_t *log_file)
     log_file_find_last_date(log_file);
     log_file_open_new(log_file, log_file->open_date);
     if (!log_file->_internal) {
-        e_trace(1, "Could not open first log file");
+        e_trace(1, "could not open first log file");
         return -1;
     }
     return 0;
@@ -313,7 +313,7 @@ static int log_file_rotate_(log_file_t *file, time_t now)
 
     log_file_open_new(file, now);
     if (!file->_internal) {
-        e_trace(1, "Could not rotate");
+        e_trace(1, "could not rotate");
         return -1;
     }
 
