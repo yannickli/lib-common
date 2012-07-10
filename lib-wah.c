@@ -652,7 +652,7 @@ bool wah_get(const wah_t *map, uint64_t pos)
         pos -= count;
         i   += words;
     }
-    e_panic("This should not happen");
+    e_panic("this should not happen");
 }
 
 /* Printer {{{ */
