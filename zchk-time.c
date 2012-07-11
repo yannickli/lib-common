@@ -93,4 +93,51 @@ Z_GROUP_EXPORT(time)
         Z_ASSERT_N(time_parse_iso8601(&ps, &res));
         Z_ASSERT_EQ(res, 1173180853);
     } Z_TEST_END;
+
+    Z_TEST(sb_add_localtime_iso8601, "time: sb_add_localtime_iso8601")
+    {
+        time_t ts = 1342088430; /* 2012-07-12T10:20:30Z */
+        SB_1k(sb);
+
+        sb_add_localtime_iso8601(&sb, ts, ":Indian/Antananarivo");
+        Z_ASSERT_STREQUAL(sb.data, "2012-07-12T13:20:30+03:00");
+
+        sb.len = 0;
+        sb_add_localtime_iso8601(&sb, ts, ":Asia/Katmandu");
+        Z_ASSERT_STREQUAL(sb.data, "2012-07-12T16:05:30+05:45");
+
+        sb.len = 0;
+        sb_add_localtime_iso8601(&sb, ts, ":America/Caracas");
+        Z_ASSERT_STREQUAL(sb.data, "2012-07-12T05:50:30-04:30");
+
+        sb.len = 0;
+        sb_add_localtime_iso8601(&sb, ts, ":Africa/Ouagadougou");
+        Z_ASSERT_STREQUAL(sb.data, "2012-07-12T10:20:30+00:00");
+
+        sb_wipe(&sb);
+    } Z_TEST_END;
+
+    Z_TEST(sb_add_localtime_iso8601_msec,
+           "time: sb_add_localtime_iso8601_msec")
+    {
+        time_t ts = 1342088430; /* 2012-07-12T10:20:30Z */
+        SB_1k(sb);
+
+        sb_add_localtime_iso8601_msec(&sb, ts, 123, ":Indian/Antananarivo");
+        Z_ASSERT_STREQUAL(sb.data, "2012-07-12T13:20:30.123+03:00");
+
+        sb.len = 0;
+        sb_add_localtime_iso8601_msec(&sb, ts, 123, ":Asia/Katmandu");
+        Z_ASSERT_STREQUAL(sb.data, "2012-07-12T16:05:30.123+05:45");
+
+        sb.len = 0;
+        sb_add_localtime_iso8601_msec(&sb, ts, 123, ":America/Caracas");
+        Z_ASSERT_STREQUAL(sb.data, "2012-07-12T05:50:30.123-04:30");
+
+        sb.len = 0;
+        sb_add_localtime_iso8601_msec(&sb, ts, 123, ":Africa/Ouagadougou");
+        Z_ASSERT_STREQUAL(sb.data, "2012-07-12T10:20:30.123+00:00");
+
+        sb_wipe(&sb);
+    } Z_TEST_END;
 } Z_GROUP_END;

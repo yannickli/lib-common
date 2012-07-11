@@ -388,6 +388,36 @@ int strtotm(const char *date, struct tm *t)
     return 0;
 }
 
+struct tm *time_get_localtime(const time_t *p_ts, struct tm *p_tm,
+                              const char *tz)
+{
+    const char *old_tz;
+    bool tz_changed = false;
+
+    if (tz) {
+        old_tz = getenv("TZ");
+
+        if (!old_tz || !strequal(old_tz, tz)) {
+            setenv("TZ", tz, true);
+            tzset();
+            tz_changed = true;
+        }
+    }
+
+    localtime_r(p_ts, p_tm);
+
+    if (tz_changed) {
+        if (old_tz) {
+            setenv("TZ", old_tz, true);
+        } else {
+            unsetenv("TZ");
+        }
+
+        tzset();
+    }
+
+    return p_tm;
+}
 
 /***************************************************************************/
 /* timers for benchmarks                                                   */
