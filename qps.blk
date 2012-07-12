@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include <sys/wait.h>
+#include <sys/resource.h>
 #include <zlib.h>
 #include <lib-common/core-mem-valgrind.h>
 #ifndef VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE
