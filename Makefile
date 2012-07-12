@@ -115,7 +115,7 @@ libcommon_SOURCES = \
 	qlzo-d.c \
 	\
 	qps.blk \
-	qps-hat.blk \
+	qps-hat.c \
 	qps-bitmap.c \
 	\
 	sort-32-64.c \
