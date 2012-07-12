@@ -38,6 +38,7 @@ libcommon_SOURCES = \
 	\
 	arith-bithacks.c \
 	arith-int.c \
+	arith-scan.c \
 	\
 	asn1.c \
 	asn1-writer.c \

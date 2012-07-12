@@ -11,20 +11,25 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_COMMON_ARITH_H
-#define IS_LIB_COMMON_ARITH_H
+#if !defined(IS_LIB_COMMON_ARITH_H) || defined(IS_LIB_COMMON_ARITH_SCAN_H)
+#  error "you must include arith.h instead"
+#else
+#define IS_LIB_COMMON_ARITH_SCAN_H
 
-#include "core.h"
+/* This module implements optimized scans primitives on data. The scans are
+ * optimized with SSE instruction sets, as a consequence, we requires the
+ * memory to be aligned on 128bits
+ */
 
-#include "arith-endianess.h"
-#include "arith-cmp.h"
-#include "arith-bithacks.h"
-#include "arith-float.h"
-#include "arith-str-stream.h"
-#include "arith-scan.h"
+bool is_memory_zero(const void *data, size_t len);
 
-unsigned gcd(unsigned a, unsigned b);
-unsigned gcd_euclid(unsigned a, unsigned b);
-unsigned gcd_stein(unsigned a, unsigned b);
+ssize_t scan_non_zero16(const uint16_t u16[], size_t pos, size_t len);
+ssize_t scan_non_zero32(const uint32_t u32[], size_t pos, size_t len);
+
+size_t count_non_zero8(const uint8_t u8[], size_t len);
+size_t count_non_zero16(const uint16_t u16[], size_t len);
+size_t count_non_zero32(const uint32_t u32[], size_t len);
+extern size_t (*count_non_zero64)(const uint64_t u64[], size_t len);
+size_t count_non_zero128(const void *u128, size_t len);
 
 #endif
