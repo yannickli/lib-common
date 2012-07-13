@@ -43,6 +43,37 @@ time_t lp_getsec(void);
 void lp_gettv(struct timeval *);
 
 /***************************************************************************/
+/* time.h wrappers                                                         */
+/***************************************************************************/
+
+/* Return timestamp of the start of the day which contains
+ * the timestamp 'date'.
+ * If date == 0, 'date' is interpreted as 'now' */
+time_t localtime_curday(time_t date);
+
+/* Return timestamp of the start of the next day which contains
+ * the timestamp 'date'.
+ * If date == 0, 'date' is interpreted as 'now' */
+time_t localtime_nextday(time_t date);
+
+/* Fill struct tm t from date in this format:
+ * DDyyyy-eYY]YY with MMM the abbreviated month in English
+ */
+int strtotm(const char *date, struct tm *t);
+
+/* Get the local time of the timezone specified by the tz parameter.
+ * If not NULL, the string pointed by this parameter will be used to set
+ * the TZ environment variable, otherwise the system local time will be
+ * returned.
+ *
+ * Because this function deals with process environment variables,
+ * you should not call it concurrently to another call of it or to a call
+ * to the localtime_r function.
+ */
+struct tm *time_get_localtime(const time_t *p_ts, struct tm *p_tm,
+                              const char *tz);
+
+/***************************************************************************/
 /* iso8601                                                                 */
 /***************************************************************************/
 
@@ -59,7 +90,29 @@ static inline void time_fmt_iso8601(char buf[static 21], time_t t)
             tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
 
-static inline void time_fmt_iso8601_msec(char buf[static 25], time_t t, int msec)
+/* Format a timestamp into a local ISO 8601 time. This function calls the
+ * time_get_localtime function, so you should not call it concurrently to
+ * another call of it or to a call to the time_get_localtime or to the
+ * localtime_r function. See time_get_localtime for more information.
+ */
+static inline void time_fmt_localtime_iso8601(char buf[static 27], time_t t,
+                                              const char *tz)
+{
+    struct tm tm;
+    int delta_h, delta_m;
+
+    time_get_localtime(&t, &tm, tz);
+
+    delta_h = tm.tm_gmtoff / 3600;
+    delta_m = labs(tm.tm_gmtoff - delta_h * 3600) / 60;
+
+    sprintf(buf, "%04d-%02d-%02dT%02d:%02d:%02d%+03d:%02d",
+            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+            tm.tm_hour, tm.tm_min, tm.tm_sec, delta_h, delta_m);
+}
+
+static inline void time_fmt_iso8601_msec(char buf[static 25], time_t t,
+                                         int msec)
 {
     struct tm tm;
 
@@ -69,16 +122,63 @@ static inline void time_fmt_iso8601_msec(char buf[static 25], time_t t, int msec
             tm.tm_hour, tm.tm_min, tm.tm_sec, msec);
 }
 
+/* Format a timestamp into a local ISO 8601 time. This function calls the
+ * time_get_localtime function, so you should not call it concurrently to
+ * another call of it or to a call to the time_get_localtime or to the
+ * localtime_r function. See time_get_localtime for more information.
+ */
+static inline
+void time_fmt_localtime_iso8601_msec(char buf[static 31], time_t t,
+                                     int msec, const char *tz)
+{
+    struct tm tm;
+    int delta_h, delta_m;
+
+    time_get_localtime(&t, &tm, tz);
+
+    delta_h = tm.tm_gmtoff / 3600;
+    delta_m = labs(tm.tm_gmtoff - delta_h * 3600) / 60;
+
+    sprintf(buf, "%04d-%02d-%02dT%02d:%02d:%02d.%03d%+03d:%02d",
+            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+            tm.tm_hour, tm.tm_min, tm.tm_sec, msec, delta_h, delta_m);
+}
+
 static inline void sb_add_time_iso8601(sb_t *sb, time_t t)
 {
     time_fmt_iso8601(sb_growlen(sb, 20), t);
 }
+
+/* Add an ISO 8601 local time into a sb. This function calls the
+ * time_get_localtime function, so you should not call it concurrently to
+ * another call of it or to a call to the time_get_localtime or to the
+ * localtime_r function. See time_get_localtime for more information.
+ */
+static inline
+void sb_add_localtime_iso8601(sb_t *sb, time_t t, const char *tz)
+{
+    time_fmt_localtime_iso8601(sb_growlen(sb, 26), t, tz);
+}
+
 static inline void sb_add_time_iso8601_msec(sb_t *sb, time_t t, int msec)
 {
     time_fmt_iso8601_msec(sb_growlen(sb, 24), t, msec);
 }
 
+/* Add an ISO 8601 local time into a sb. This function calls the
+ * time_get_localtime function, so you should not call it concurrently to
+ * another call of it or to a call to the time_get_localtime or to the
+ * localtime_r function. See time_get_localtime for more information.
+ */
+static inline
+void sb_add_localtime_iso8601_msec(sb_t *sb, time_t t,
+                                   int msec, const char *tz)
+{
+    time_fmt_localtime_iso8601_msec(sb_growlen(sb, 30), t, msec, tz);
+}
+
 int time_parse_iso8601(pstream_t *ps, time_t *res);
+
 static inline int time_parse_iso8601s(const char *s, time_t *res) {
     pstream_t ps = ps_initstr(s);
     /* FIXME: do we want to err if !ps_done(&ps) at the end ? */
@@ -176,27 +276,6 @@ static inline bool timeval_is_ge0(const struct timeval t) {
 
 bool is_expired(const struct timeval *date, const struct timeval *now,
                 struct timeval *left);
-
-
-/***************************************************************************/
-/* time.h wrappers                                                         */
-/***************************************************************************/
-
-/* Return timestamp of the start of the day which contains
- * the timestamp 'date'.
- * If date == 0, 'date' is interpreted as 'now' */
-time_t localtime_curday(time_t date);
-
-/* Return timestamp of the start of the next day which contains
- * the timestamp 'date'.
- * If date == 0, 'date' is interpreted as 'now' */
-time_t localtime_nextday(time_t date);
-
-/* Fill struct tm t from date in this format:
- * DD-MMM-[YY]YY with MMM the abbreviated month in English
- */
-int strtotm(const char *date, struct tm *t);
-
 
 /***************************************************************************/
 /* timers for benchmarks                                                   */
