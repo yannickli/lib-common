@@ -577,7 +577,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
  *   to overwrite the {key,value} stored in the qmap when there is a
  *   collision.
  * @return
- *   the posistion of the slot is returned in the 31 least significant bits.
+ *   the position of the slot is returned in the 31 least significant bits.
  *   The most significant bit is used to tell if there was a collision.
  *   The constant #QHASH_COLLISION is provided to extract and mask this most
  *   significant bit.
