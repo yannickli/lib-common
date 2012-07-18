@@ -95,7 +95,7 @@ static inline void time_fmt_iso8601(char buf[static 21], time_t t)
  * another call of it or to a call to the time_get_localtime or to the
  * localtime_r function. See time_get_localtime for more information.
  */
-static inline void time_fmt_localtime_iso8601(char buf[static 27], time_t t,
+static inline void time_fmt_localtime_iso8601(char buf[static 26], time_t t,
                                               const char *tz)
 {
     struct tm tm;
@@ -128,7 +128,7 @@ static inline void time_fmt_iso8601_msec(char buf[static 25], time_t t,
  * localtime_r function. See time_get_localtime for more information.
  */
 static inline
-void time_fmt_localtime_iso8601_msec(char buf[static 31], time_t t,
+void time_fmt_localtime_iso8601_msec(char buf[static 30], time_t t,
                                      int msec, const char *tz)
 {
     struct tm tm;
@@ -157,7 +157,7 @@ static inline void sb_add_time_iso8601(sb_t *sb, time_t t)
 static inline
 void sb_add_localtime_iso8601(sb_t *sb, time_t t, const char *tz)
 {
-    time_fmt_localtime_iso8601(sb_growlen(sb, 26), t, tz);
+    time_fmt_localtime_iso8601(sb_growlen(sb, 25), t, tz);
 }
 
 static inline void sb_add_time_iso8601_msec(sb_t *sb, time_t t, int msec)
@@ -174,7 +174,7 @@ static inline
 void sb_add_localtime_iso8601_msec(sb_t *sb, time_t t,
                                    int msec, const char *tz)
 {
-    time_fmt_localtime_iso8601_msec(sb_growlen(sb, 30), t, msec, tz);
+    time_fmt_localtime_iso8601_msec(sb_growlen(sb, 29), t, msec, tz);
 }
 
 int time_parse_iso8601(pstream_t *ps, time_t *res);
