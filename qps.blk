@@ -1223,22 +1223,17 @@ static void x_write_meta(qps_t *qps, uint32_t generation, const qv_t(u32) t,
     x_close(fd);
 }
 
-/** Loads a \p meta.qps file at qps_open() time.
- *
- * This function makes a lot of checks, mostly to help debugging.
- * Note that it will qps_map_unlink() an map that looks empty. Be careful,
- * this can be a destructive operation
- */
-static int qps_load_meta(qps_t *qps, sb_t *out)
+/* XXX: In case of success don't forget to unmap */
+static
+int qps_map_meta(const qps_t *qps, struct qps_meta **_meta, size_t *size)
 {
-    t_scope;
     const ssize_t min_sz = sizeof(struct qps_meta) + 20;
-    struct qps_meta *meta;
-    qps_map_t *map;
-    struct stat st;
-    uint32_t *h_u32, *u32, *uend;
-    uint32_t h_len;
     int fd;
+    struct stat st;
+    struct qps_meta *meta;
+
+    *_meta = NULL;
+    *size = 0;
 
     if ((fd = openat(qps->dfd, "meta.qps", O_RDONLY)) < 0) {
         return e_error("QPS(%p:meta): unable to open: %m", qps);
@@ -1274,12 +1269,43 @@ static int qps_load_meta(qps_t *qps, sb_t *out)
             e_error("QPS(%p:meta): unexpected generation", qps);
             goto err_unmap;
         }
-        if (unlikely(meta->generation % 2 == 0)) {
-            e_trace(0, "should not happen: backward compat for old bug");
-            qps->generation = meta->generation + 3;
-        } else {
-            qps->generation = meta->generation + 2;
-        }
+    }
+
+    *_meta = meta;
+    *size = st.st_size;
+    return 0;
+
+  err_close:
+    close(fd);
+    return -1;
+
+  err_unmap:
+    munmap(meta, st.st_size);
+    return -1;
+}
+
+/** Loads a \p meta.qps file at qps_open() time.
+ *
+ * This function makes a lot of checks, mostly to help debugging.
+ * Note that it will qps_map_unlink() an map that looks empty. Be careful,
+ * this can be a destructive operation
+ */
+static int qps_load_meta(qps_t *qps, sb_t *out)
+{
+    t_scope;
+    struct qps_meta *meta;
+    size_t meta_size;
+    qps_map_t *map;
+    uint32_t *h_u32, *u32, *uend;
+    uint32_t h_len;
+
+    RETHROW(qps_map_meta(qps, &meta, &meta_size);
+
+    if (unlikely(meta->generation % 2 == 0)) {
+        e_trace(0, "should not happen: backward compat for old bug");
+        qps->generation = meta->generation + 3;
+    } else {
+        qps->generation = meta->generation + 2;
     }
 
     {
@@ -1373,15 +1399,11 @@ static int qps_load_meta(qps_t *qps, sb_t *out)
     }
     for (size_t i = 0; i < h_len; i++)
         qps->handles[i] = qps_pg_deref(qps, h_u32[i]);
-    munmap(meta, st.st_size);
+    munmap(meta, meta_size);
     return 0;
 
   err_unmap:
-    munmap(meta, st.st_size);
-    return -1;
-
-  err_close:
-    close(fd);
+    munmap(meta, meta_size);
     return -1;
 }
 
