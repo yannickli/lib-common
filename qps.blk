@@ -1284,6 +1284,22 @@ int qps_map_meta(const qps_t *qps, struct qps_meta **_meta, size_t *size)
     return -1;
 }
 
+/* XXX: out MUST be allocated before calling. */
+static
+int qps_unlzo_data(const void *data, size_t datasz, size_t outsz, void *out)
+{
+    ssize_t   res;
+
+    res  = qlzo1x_decompress(out, outsz, ps_init(data, datasz));
+    if (res < 0) {
+        return e_error("QPS: unable to unLZO: %zd", -res);
+    } else
+    if ((size_t)res != outsz) {
+        return e_error("QPS: unexpected unLZO size: %zd", res);
+    }
+    return 0;
+}
+
 /** Loads a \p meta.qps file at qps_open() time.
  *
  * This function makes a lot of checks, mostly to help debugging.
@@ -1299,7 +1315,7 @@ static int qps_load_meta(qps_t *qps, sb_t *out)
     uint32_t *h_u32, *u32, *uend;
     uint32_t h_len;
 
-    RETHROW(qps_map_meta(qps, &meta, &meta_size);
+    RETHROW(qps_map_meta(qps, &meta, &meta_size));
 
     if (unlikely(meta->generation % 2 == 0)) {
         e_trace(0, "should not happen: backward compat for old bug");
@@ -1308,35 +1324,18 @@ static int qps_load_meta(qps_t *qps, sb_t *out)
         qps->generation = meta->generation + 2;
     }
 
-    {
-        pstream_t in = ps_init(meta->data, meta->csize);
-        ssize_t   res;
-
-        u32  = t_new_raw(uint32_t, meta->osize / 4);
-        uend = u32 + meta->osize / 4;
-        res  = qlzo1x_decompress(u32, meta->osize, in);
-        if (res < 0) {
-            e_error("QPS(%p:meta): unable to unLZO: %zd", qps, -res);
-            goto err_unmap;
-        }
-        if (res != (ssize_t)meta->osize) {
-            e_error("QPS(%p:meta): unexpected unLZO size: %zd", qps, res);
-            goto err_unmap;
-        }
+    u32  = t_new_raw(uint32_t, meta->osize / 4);
+    uend = u32 + meta->osize / 4;
+    if (qps_unlzo_data(meta->data, meta->csize, meta->osize, u32) < 0) {
+        goto err_unmap;
     }
 
     if (out) {
-        pstream_t in  = ps_init(meta->data + meta->csize, meta->pcsize);
-        void     *buf = sb_growlen(out, meta->psize);
-        ssize_t   res;
+        void *buf = sb_growlen(out, meta->psize);
 
-        res = qlzo1x_decompress(buf, meta->psize, in);
-        if (res < 0) {
-            e_error("QPS(%p:meta): unable to unLZO: %zd", qps, -res);
-            goto err_unmap;
-        }
-        if (res != (ssize_t)meta->psize) {
-            e_error("QPS(%p:meta): unexpected unLZO size: %zd", qps, res);
+        if (qps_unlzo_data(meta->data + meta->csize, meta->pcsize,
+                           meta->psize, buf) < 0)
+        {
             goto err_unmap;
         }
     }
