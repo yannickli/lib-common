@@ -301,6 +301,19 @@ uint32_t  qps_snapshot(qps_t *qps, const void *data, size_t dlen,
                        void (BLOCK_CARET notify)(uint32_t gen));
 #endif
 
+/** Backup a qps.
+ * This function shall not be called during a snapshot.
+ *
+ * /param[in] dfd_dst       a descriptor on the destination directory.
+ * /param[in] link_as_copy  if true do a hard link rather than a copy.
+ *
+ * /return 0   if OK
+ *         -1  error with arguments
+ *         -2  call while snapshotting
+ *         -3  error on source
+ *         -4  error on destination
+ */
+int       qps_backup(qps_t *qps, int dfd_dst, bool link_as_copy);
 bool      qps_gc_enable(qps_t *qps);
 bool      qps_gc_disable(qps_t *qps);
 void      qps_snapshot_wait(qps_t *qps);

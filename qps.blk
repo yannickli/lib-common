@@ -2579,6 +2579,107 @@ void qps_snapshot_wait(qps_t *qps)
     }
 }
 
+/** Copy meta.qps, and all the file linked inside.
+ *
+ * The copy is from the current db director, to @dfd_dst.
+ *
+ * The qps MUST not be snapshotting.
+ *
+ */
+int qps_backup(qps_t *qps, int dfd_dst, bool link_as_copy)
+{
+    t_scope;
+    struct qps_meta *meta;
+    size_t meta_size;
+    uint32_t *h_u32, *u32, *uend;
+    uint32_t h_len;
+    int ret = 0;
+
+    RETURN_ERR_IF(!qps || qps->dfd < 0 || dfd_dst < 0);
+    RETURN_ERR_IF(qps->snapshotting);
+
+    /* Step 1: Look for linked files in meta.qps, and copy them. */
+    /* Special case of empty meta.qps */
+    {
+        struct stat st;
+
+        if (fstatat(qps->dfd, "meta.qps", &st, 0) < 0) {
+            ret = e_error("QPS(%p): unable to stat meta.qps: %m", qps);
+            goto error;
+        }
+        if (st.st_size == 0) {
+            int fd = openat(dfd_dst, "meta.qps",
+                            O_CREAT | O_EXCL | O_RDWR, 0644);
+            if (fd < 0) {
+                ret = e_error("QPS(%p): unable to touch meta.qps", qps);
+                goto error;
+            }
+            return 0;
+        }
+    }
+
+    RETHROW(qps_map_meta(qps, &meta, &meta_size));
+
+    u32  = t_new_raw(uint32_t, meta->osize / 4);
+    uend = u32 + meta->osize / 4;
+    if ((ret = qps_unlzo_data(meta->data, meta->csize, meta->osize, u32)) < 0)
+    {
+        goto err_unmap;
+    }
+
+    h_len = DIV_ROUND_UP(u32[0], QPS_HANDLES_COUNT);
+    h_u32 = u32 + 2;
+    u32 = h_u32 + h_len;
+
+    if (u32 + 1 + u32[0] * 2 != uend) {
+        ret = e_error("QPS(%p:backup): inconsistent meta.qps [1]", qps);
+        goto err_unmap;
+    }
+    u32++;
+
+#define COPY_FILE(name)  do {                                               \
+        if (link_as_copy) {                                                 \
+            if (linkat(qps->dfd, name, dfd_dst, name, 0) < 0) {             \
+                ret = e_error("QPS(%p:backup): cannot link %s %m",          \
+                              qps, name);                                   \
+                goto err_unmap;                                             \
+            }                                                               \
+        } else {                                                            \
+            if (filecopyat(qps->dfd, name, dfd_dst, name) < 0) {            \
+                ret = e_error("QPS(%p:backup): cannot copy %s %m",          \
+                              qps, name);                                   \
+                goto err_unmap;                                             \
+            }                                                               \
+        }                                                                   \
+    } while(0);
+
+    for (; u32 < uend; u32 += 2) {
+        uint16_t no = u32[0];
+        char buf[32];
+
+        if (u32[0] & QPS_META_MAP_TLSF) {
+            snprintf(buf, sizeof(buf), "%08x.qps", no);
+        } else
+        if (!(u32[0] & QPS_META_MAP_PAGED)) {
+            ret = e_error("QPS(%p:backup): inconsistent meta.qps [6]", qps);
+            goto err_unmap;
+        } else {
+            snprintf(buf, sizeof(buf), "%08x.%08x.qpz", no, meta->generation);
+        }
+        COPY_FILE(buf);
+    }
+
+    /* Step 2: Write meta.qps */
+    COPY_FILE("meta.qps");
+#undef COPY_FILE
+
+  err_unmap:
+    munmap(meta, meta_size);
+
+  error:
+    return ret;
+}
+
 /** close an allocated qps object.
  *
  * This function never fails. \see #qps_snapshot.
