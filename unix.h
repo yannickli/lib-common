@@ -55,6 +55,8 @@ int rmdir_r(const char *dir, bool only_content);
 int get_mtime(const char *filename, time_t *t);
 
 int filecopy(const char *pathin, const char *pathout);
+off_t filecopyat(int dfd_src, const char* name_src,
+                 int dfd_dst, const char* name_dst);
 
 int p_lockf(int fd, int mode, int cmd, off_t start, off_t len);
 int p_unlockf(int fd, off_t start, off_t len);
