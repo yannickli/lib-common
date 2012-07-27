@@ -13,6 +13,7 @@
 
 #include <endian.h>
 #include "core.h"
+#include "z.h"
 
 /* This code only works on regular architectures: we assume
  *  - integer types are either 32 bit or 64 bit long.
@@ -436,16 +437,16 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             len = strnlen(lp, len);
             goto haslp;
         }
+
         /* also special case %*pM, understand it as "put memory content here"
          */
         if (!memcmp(format, "*pM", 3)) {
             format += 3;
             len = va_arg(ap, int);
             lp  = va_arg(ap, const char *);
-            if (unlikely(isalnum((unsigned char)*format))) {
-                e_trace(0, "trailing garbage after %%p format");
-                do { format++; } while (isalnum((unsigned char)*format));
-            }
+            /* XXX No "trailing garbage" consumption: %*pM format will not
+             *     be extended
+             */
             goto haslp;
         }
 
@@ -763,6 +764,8 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             flags |= FLAG_ALT;
             base = 16;
             if (unlikely(isalnum((unsigned char)*format))) {
+                /* XXX Reserve each %[*]p[0-9a-zA-Z]+ format for our own usage
+                 */
                 e_trace(0, "trailing garbage after %%p format");
                 do { format++; } while (isalnum((unsigned char)*format));
             }
@@ -1403,3 +1406,16 @@ static int exponent(char *p0, int expn, int fmtch)
 }
 
 #endif /* FLOATING_POINT */
+
+Z_GROUP_EXPORT(iprintf) {
+    char buffer[128];
+
+    Z_TEST(pM, "") {
+        isprintf(buffer, "%*pM", 3, "1234");
+        Z_ASSERT_STREQUAL(buffer, "123", "");
+        isprintf(buffer, "%*pM;toto", 3, "123");
+        Z_ASSERT_STREQUAL(buffer, "123;toto", "");
+        isprintf(buffer, "%*pMtrailing", 3, "123");
+        Z_ASSERT_STREQUAL(buffer, "123trailing", "");
+    } Z_TEST_END
+} Z_GROUP_END
