@@ -272,6 +272,9 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 /*----- macros to define QH's -{{{-*/
 
 #define __QH_ADD(sfx, pfx, name, key_t, hashK) \
+    static inline uint32_t pfx##_hash(pfx##_t *qh, key_t key) {              \
+        return hashK(&qh->qh, key);                                          \
+    }                                                                        \
     static inline uint32_t                                                   \
     __##pfx##_put(pfx##_t *qh, key_t key, uint32_t fl) {                     \
         return __##pfx##_put_h(qh, hashK(&qh->qh, key), key, fl);            \
@@ -346,6 +349,9 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 /*----- macros to define QM's -{{{-*/
 
 #define __QM_ADD(sfx, pfx, name, key_t, val_t, hashK) \
+    static inline uint32_t pfx##_hash(pfx##_t *qh, key_t key) {              \
+        return hashK(&qh->qh, key);                                          \
+    }                                                                        \
     static inline uint32_t                                                   \
     __##pfx##_put(pfx##_t *qh, key_t key, val_t v, uint32_t fl) {            \
         return __##pfx##_put_h(qh, hashK(&qh->qh, key), key, v, fl);         \
@@ -474,6 +480,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qh_t(name)                          qh_##name##_t
 #define qh_init(name, qh, chahes)           qh_##name##_init(qh, chahes)
 #define qh_len(name, qh)                    qh_##name##_len(qh)
+#define qh_hash(name, qh, key)              qh_##name##_hash(qh, key)
 #define qh_set_minsize(name, h, sz)         qhash_set_minsize(&(h)->qh, sz)
 #define qh_wipe(name, qh)                   qh_##name##_wipe(qh)
 #define qh_clear(name, qh)                  qh_##name##_clear(qh)
@@ -493,6 +500,10 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qh_del_at(name, qh, pos)            qh_##name##_del_at(qh, pos)
 #define qh_del_key(name, qh, key)  \
     ({ int32_t __pos = qh_find(name, qh, key);                           \
+       if (likely(__pos >= 0)) qh_del_at(name, qh, __pos);               \
+       __pos; })
+#define qh_del_key_h(name, qh, h, key)  \
+    ({ int32_t __pos = qh_find_h(name, qh, h, key);                      \
        if (likely(__pos >= 0)) qh_del_at(name, qh, __pos);               \
        __pos; })
 
@@ -518,6 +529,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qm_t(name)                          qm_##name##_t
 #define qm_init(name, qh, chahes)           qm_##name##_init(qh, chahes)
 #define qm_len(name, qh)                    qm_##name##_len(qh)
+#define qm_hash(name, qh, key)              qm_##name##_hash(qh, key)
 #define qm_set_minsize(name, h, sz)         qhash_set_minsize(&(h)->qh, sz)
 #define qm_wipe(name, qh)                   qm_##name##_wipe(qh)
 #define qm_clear(name, qh)                  qm_##name##_clear(qh)
@@ -617,6 +629,10 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qm_del_at(name, qh, pos)            qm_##name##_del_at(qh, pos)
 #define qm_del_key(name, qh, key)  \
     ({ int32_t __pos = qm_find(name, qh, key);                           \
+       if (likely(__pos >= 0)) qm_del_at(name, qh, __pos);               \
+       __pos; })
+#define qm_del_key_h(name, qh, h, key)  \
+    ({ int32_t __pos = qm_find_h(name, qh, h, key);                      \
        if (likely(__pos >= 0)) qm_del_at(name, qh, __pos);               \
        __pos; })
 

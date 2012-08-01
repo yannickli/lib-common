@@ -124,6 +124,47 @@ Z_GROUP_EXPORT(qhash)
         }
         qh_wipe(test_str, &h);
     } Z_TEST_END;
+
+    Z_TEST(qh_hash , "qhash: qh_hash/qh_del_key_h") {
+        QH(test, h, false);
+
+        for (int i = 0; i < 128; i++) {
+            qh_add(test, &h, i);
+        }
+
+        for (int i = 128; i-- > 0; ) {
+            uint32_t hash = qh_hash(test, &h, i);
+            int32_t  pos;
+
+            pos = qh_del_key_h(test, &h, hash, i);
+            Z_ASSERT(pos >= 0, "qh_find should find %d", i);
+        }
+
+        Z_ASSERT_EQ(h.hdr.len, 0U);
+
+        qh_wipe(test, &h);
+    } Z_TEST_END;
+
+    Z_TEST(qm_hash , "qhash: qm_hash/qh_del_key_h") {
+        QM(test, h, false);
+
+        for (uint32_t i = 0; i < 128; i++) {
+            qm_add(test, &h, i, i);
+        }
+
+        for (uint32_t i = 128; i-- > 0; ) {
+            uint32_t hash = qm_hash(test, &h, i);
+            int32_t  pos;
+
+            pos = qm_del_key_h(test, &h, hash, i);
+            Z_ASSERT(pos >= 0, "qm_find should find %d", i);
+            Z_ASSERT_EQ(h.values[pos], i);
+        }
+
+        Z_ASSERT_EQ(h.hdr.len, 0U);
+
+        qm_wipe(test, &h);
+    } Z_TEST_END;
 } Z_GROUP_END
 
 /*1}}}*/
