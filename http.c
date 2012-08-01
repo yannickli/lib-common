@@ -310,7 +310,9 @@ static int t_http_parse_request_line(pstream_t *ps, unsigned max_len,
 {
     pstream_t line, method, uri;
 
-    PARSE_RETHROW(http_getline(ps, max_len, &line));
+    do {
+        PARSE_RETHROW(http_getline(ps, max_len, &line));
+    } while (ps_len(&line) == 0);
 
     PS_CHECK(ps_get_ps_chr(&line, ' ', &method));
     __ps_skip(&line, 1);
@@ -993,10 +995,18 @@ static int httpd_parse_idle(httpd_t *w, pstream_t *ps)
 
     http_zlib_reset(w);
     req.hdrs_ps = ps_initptr(ps->s, p + 4);
-    if (t_http_parse_request_line(ps, w->cfg->header_line_max, &req) < 0) {
+
+    switch (t_http_parse_request_line(ps, w->cfg->header_line_max, &req)) {
+      case PARSE_ERROR:
         q = httpd_query_create(w, NULL);
         httpd_reject(q, BAD_REQUEST, "Invalid request line");
         goto unrecoverable_error;
+
+      case PARSE_MISSING_DATA:
+        return PARSE_MISSING_DATA;
+
+      default:
+        break;
     }
 
     if ((unsigned)req.method < countof(w->cfg->roots))
