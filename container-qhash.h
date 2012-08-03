@@ -476,7 +476,12 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
  * The difference between the qh_ and qm_ functions is for the `add` and
  * `replace` ones, since maps have to deal with the associated value.
  */
-#define qh_for_each_pos(name, pos, h)       qhash_for_each_pos(pos, &(h)->qh)
+#define qh_for_each_pos(name, pos, h)  \
+    STATIC_ASSERT(__builtin_types_compatible_p(typeof(h), qh_t(name) *)      \
+              ||  __builtin_types_compatible_p(typeof(h),                    \
+                                               const qh_t(name) *));         \
+    qhash_for_each_pos(pos, &(h)->qh)
+
 #define qh_t(name)                          qh_##name##_t
 #define qh_init(name, qh, chahes)           qh_##name##_init(qh, chahes)
 #define qh_len(name, qh)                    qh_##name##_len(qh)
@@ -525,7 +530,11 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         qh_wipe(name, __h);                                              \
     } while (0)
 
-#define qm_for_each_pos(name, pos, h)       qhash_for_each_pos(pos, &(h)->qh)
+#define qm_for_each_pos(name, pos, h)  \
+    STATIC_ASSERT(__builtin_types_compatible_p(typeof(h), qm_t(name) *)      \
+              ||  __builtin_types_compatible_p(typeof(h),                    \
+                                               const qm_t(name) *));         \
+    qhash_for_each_pos(pos, &(h)->qh)
 #define qm_t(name)                          qm_##name##_t
 #define qm_init(name, qh, chahes)           qm_##name##_init(qh, chahes)
 #define qm_len(name, qh)                    qm_##name##_len(qh)
