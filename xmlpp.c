@@ -23,7 +23,7 @@ void xmlpp_open(xmlpp_t *pp, sb_t *buf)
 void xmlpp_open_banner(xmlpp_t *pp, sb_t *buf)
 {
     xmlpp_open(pp, buf);
-    sb_adds(buf, "<?xml version=\"1.0\"?>\n");
+    sb_adds(buf, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 }
 
 void xmlpp_close(xmlpp_t *pp)
