@@ -850,7 +850,10 @@ static int inotify_cb(el_t el, int fd, short flags, el_data_t data)
             }
 
             if (e->len) {
-                name = LSTR_INIT_V(e->name, e->len - 1);
+                /* XXX We cannot use e->len - 1 as the string length because
+                 *     e->name can be padded by several null bytes
+                 */
+                name = LSTR_STR_V(e->name);
             }
 
             wel = _G.fs_watches.values[pos];
