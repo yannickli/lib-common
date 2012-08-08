@@ -307,11 +307,17 @@ qvector_splice(qvector_t *vec, size_t v_size,
 #define __qv_splice(n, vec, pos, l, dl)     __qv_##n##_splice(vec, pos, l, dl)
 #define qv_splice(n, vec, pos, l, tab, dl)  qv_##n##_splice(vec, pos, l, tab, dl)
 #define qv_optimize(n, vec, r1, r2)         qv_##n##_optimize(vec, r1, r2)
+
 #define qv_grow(n, vec, extra)              qv_##n##_grow(vec, extra)
 #define qv_growlen(n, vec, extra)           qv_##n##_growlen(vec, extra)
+
+/** \brief keep only the first len elements */
 #define qv_clip(n, vec, len)                qv_##n##_clip(vec, len)
+/** \brief shrink the vector length by len */
 #define qv_shrink(n, vec, len)              qv_##n##_shrink(vec, len)
+/** \brief skip the first len elements */
 #define qv_skip(n, vec, len)                (void)__qv_splice(n, vec, 0, len, 0)
+
 #define qv_remove(n, vec, i)                (void)__qv_splice(n, vec, i,   1, 0)
 #define qv_pop(n, vec)                      (void)__qv_splice(n, vec, 0,   1, 0)
 
