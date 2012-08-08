@@ -429,12 +429,12 @@ void term_get_size(int *cols, int *rows)
 
 int fd_set_features(int fd, int flags)
 {
-    if (flags & O_NONBLOCK) {
+    if (flags & (O_NONBLOCK | O_DIRECT)) {
 #ifndef OS_WINDOWS
         int res = fcntl(fd, F_GETFL);
         if (res < 0)
             return e_error("fcntl failed: %m");
-        if (fcntl(fd, F_SETFL, res | O_NONBLOCK))
+        if (fcntl(fd, F_SETFL, res | (flags & (O_NONBLOCK | O_DIRECT))))
             return e_error("fcntl failed: %m");
 #else
         unsigned long flags = 1;
@@ -456,12 +456,12 @@ int fd_set_features(int fd, int flags)
 
 int fd_unset_features(int fd, int flags)
 {
-    if (flags & O_NONBLOCK) {
+    if (flags & (O_NONBLOCK | O_DIRECT)) {
 #ifndef OS_WINDOWS
         int res = fcntl(fd, F_GETFL);
         if (res < 0)
             return e_error("fcntl failed: %m");
-        if (fcntl(fd, F_SETFL, res & ~O_NONBLOCK))
+        if (fcntl(fd, F_SETFL, res & ~(flags & (O_NONBLOCK | O_DIRECT))))
             return e_error("fcntl failed: %m");
 #else
         unsigned long flags = 0;
