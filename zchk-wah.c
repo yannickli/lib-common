@@ -271,4 +271,28 @@ Z_GROUP_EXPORT(wah)
         }
         wah_wipe(&map);
     } Z_TEST_END;
+
+    Z_TEST(redmine_9437, "") {
+        const uint32_t data = 0xbfffffff;
+
+        wah_init(&map);
+
+        wah_add0s(&map, 626 * 32);
+        wah_add1s(&map, 32);
+        wah_add(&map, &data, 32);
+
+        for (int i = 0; i < 626; i++) {
+            for (int j = 0; j < 32; j++) {
+                Z_ASSERT(!wah_get(&map, i * 32 + j));
+            }
+        }
+        for (int i = 626 * 32; i < 628 * 32; i++) {
+            if (i != 628 * 32 - 2) {
+                Z_ASSERT(wah_get(&map, i));
+            } else {
+                Z_ASSERT(!wah_get(&map, i));
+            }
+        }
+        wah_wipe(&map);
+    } Z_TEST_END;
 } Z_GROUP_END;

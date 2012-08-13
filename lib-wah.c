@@ -152,7 +152,7 @@ void wah_flatten_last_run(wah_t *map)
     }
     assert (*wah_last_run_count(map) == 0);
 
-    if (map->last_run_pos > 0) {
+    if (map->last_run_pos >= 0) {
         assert (map->data.len == map->last_run_pos + 2);
         map->data.len -= 2;
     } else {
