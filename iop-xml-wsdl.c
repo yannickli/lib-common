@@ -240,6 +240,11 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
     }
     for (int i = 0; i < st->fields_len; i++) {
         const iop_field_t *f   = &st->fields[i];
+        const iop_field_attrs_t *attrs;
+
+        attrs = iop_field_get_attrs(st, f);
+        if (attrs && TST_BIT(&attrs->flags, IOP_FIELD_PRIVATE))
+            continue;
 
         switch (f->type) {
             case IOP_T_XML:
