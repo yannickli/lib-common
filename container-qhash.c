@@ -30,13 +30,13 @@ static uint32_t const prime_list[32] = {
 
 static uint32_t qhash_get_size(uint32_t targetsize)
 {
-    int bsr = bsr32(targetsize);
+    int b = bsr32(targetsize);
 
     if (unlikely(targetsize >= INT32_MAX))
         e_panic("out of memory");
-    while (prime_list[bsr] < targetsize)
-        bsr++;
-    return prime_list[bsr];
+    while (prime_list[b] < targetsize)
+        b++;
+    return prime_list[b];
 }
 
 static void qhash_resize_start(qhash_t *qh)

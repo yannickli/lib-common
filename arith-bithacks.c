@@ -18,6 +18,8 @@
 #define BC4(x)      BIT(x, 0) + BIT(x, 1) + BIT(x, 2) + BIT(x, 3)
 #define BC12(x)     BC4(x) + BC4((x) >> 4) + BC4((x) >> 8)
 
+/* bsf/bsr {{{ */
+
 /* __firstbit8[n] is the index of the least significant non 0 bit in
  * `n' or 8 if n has all bits 0.
  */
@@ -35,6 +37,56 @@ uint8_t const __firstbit_fwd8[256] = {
 #undef A
 };
 
+ssize_t bsr(const void *data, size_t start_bit, size_t len, bool reverse)
+{
+    const uint64_t *pos;
+
+    if (len == 0) {
+        return -1;
+    }
+
+    /* Align the pointer if needed */
+    pos = (const uint64_t *)(((uintptr_t)data) & ~7ul);;
+    if (pos != data) {
+        start_bit += 8 * ((const byte *)data - (const byte *)pos);
+    }
+    if (start_bit >= 64) {
+        pos       += start_bit / 64;
+        start_bit %= 64;
+    }
+    pos += DIV_ROUND_UP(len, 64) - 1;
+
+#define SCAN_WORD(Low, Up)  do {                                             \
+        uint64_t w = reverse ? ~*pos : *pos;                                 \
+                                                                             \
+        if (Low)      w &= BITMASK_GE(uint64_t, Low);                        \
+        if (Up != 64) w &= BITMASK_LT(uint64_t, Up);                         \
+                                                                             \
+        if (w) {                                                             \
+            return len + bsr64(w) - 64;                                      \
+        }                                                                    \
+        len -= (Up) - (Low);                                                 \
+        pos--;                                                               \
+    } while (0)
+
+    if (start_bit + len <= 64) {
+        SCAN_WORD(start_bit, start_bit + len);
+        return -1;
+    }
+    if ((start_bit + len) % 64 != 0) {
+        SCAN_WORD(0, (start_bit + len) % 64);
+    }
+    while (len >= 64) {
+        SCAN_WORD(0, 64);
+    }
+    if (len) {
+        SCAN_WORD(start_bit, 64);
+    }
+    return -1;
+
+#undef SCAN_WORD
+}
+
 /* __firstbit8[n] is the index of the most significant non 0 bit in
  * `n' or 8 if n has all bits 0.
  */
@@ -51,6 +103,134 @@ uint8_t const __firstbit_rev8[256] = {
 #undef B
 #undef A
 };
+
+ssize_t bsf(const void *data, size_t start_bit, size_t len, bool reverse)
+{
+    const uint64_t *pos;
+    size_t off = 0;
+
+    /* Align the pointer if needed */
+    pos = (const uint64_t *)(((uintptr_t)data) & ~7ul);;
+    if (pos != data) {
+        start_bit += 8 * ((const byte *)data - (const byte *)pos);
+    }
+    if (start_bit >= 64) {
+        pos       += start_bit / 64;
+        start_bit %= 64;
+    }
+
+#define SCAN_WORD(Low, Up)  do {                                             \
+        uint64_t w = reverse ? ~*pos : *pos;                                 \
+                                                                             \
+        if (Low)      w &= BITMASK_GE(uint64_t, Low);                        \
+        if (Up != 64) w &= BITMASK_LT(uint64_t, Up);                         \
+                                                                             \
+        if (w) {                                                             \
+            return off + bsf64(w) - Low;                                     \
+        }                                                                    \
+        len -= (Up) - (Low);                                                 \
+        off += (Up) - (Low);                                                 \
+        pos++;                                                               \
+    } while (0)
+
+    if (start_bit + len <= 64) {
+        SCAN_WORD(start_bit, start_bit + len);
+        return -1;
+    }
+    if (start_bit > 0) {
+        SCAN_WORD(start_bit, 64);
+    }
+    while (len >= 64) {
+        SCAN_WORD(0, 64);
+    }
+    if (len) {
+        SCAN_WORD(0, len);
+    }
+    return -1;
+
+#undef SCAN_WORD
+}
+
+Z_GROUP_EXPORT(bsr_bsf)
+{
+    uint8_t data[128];
+
+    Z_TEST(bsf_1, "forward bit scan") {
+        p_clear(&data, 1);
+        Z_ASSERT_NEG(bsf(data, 0, 0, false));
+        Z_ASSERT_NEG(bsf(data, 0, 1024, false));
+
+        SET_BIT(data, 3);
+        SET_BIT(data, 165);
+        Z_ASSERT_EQ(bsf(data, 0, 1024, false), 3);
+        Z_ASSERT_EQ(bsf(data, 1, 1023, false), 2);
+        Z_ASSERT_EQ(bsf(data, 3, 1021, false), 0);
+        Z_ASSERT_EQ(bsf(data, 5, 1019, false), 160);
+        Z_ASSERT_NEG(bsf(data, 5, 150, false));
+        Z_ASSERT_NEG(bsf(data, 5, 33, false));
+
+        Z_ASSERT_EQ(bsf(&data[1], 3, 1013, false), 154);
+    } Z_TEST_END;
+
+    Z_TEST(bsf_0, "forward bit scan, scan of 0") {
+        p_clear(&data, 1);
+        Z_ASSERT_NEG(bsf(data, 0, 0, true));
+        Z_ASSERT_ZERO(bsf(data, 0, 1024, true));
+
+        memset(data, 0xff, 128);
+        RST_BIT(data, 3);
+        RST_BIT(data, 165);
+        Z_ASSERT_EQ(bsf(data, 0, 1024, true), 3);
+        Z_ASSERT_EQ(bsf(data, 1, 1023, true), 2);
+        Z_ASSERT_EQ(bsf(data, 3, 1021, true), 0);
+        Z_ASSERT_EQ(bsf(data, 5, 1019, true), 160);
+        Z_ASSERT_NEG(bsf(data, 5, 150, true));
+        Z_ASSERT_NEG(bsf(data, 5, 33, true));
+
+        Z_ASSERT_EQ(bsf(&data[1], 3, 1013, true), 154);
+    } Z_TEST_END;
+
+
+    Z_TEST(bsr_1, "reverse bit scan") {
+        p_clear(&data, 1);
+        Z_ASSERT_NEG(bsr(data, 0, 0, false));
+        Z_ASSERT_NEG(bsr(data, 0, 1024, false));
+
+        SET_BIT(data, 3);
+        SET_BIT(data, 165);
+        Z_ASSERT_EQ(bsr(data, 0, 1024, false), 165);
+        Z_ASSERT_EQ(bsr(data, 1, 1023, false), 164);
+        Z_ASSERT_EQ(bsr(data, 3, 1021, false), 162);
+        Z_ASSERT_EQ(bsr(data, 1, 100, false), 2);
+        Z_ASSERT_EQ(bsr(data, 3, 100, false), 0);
+        Z_ASSERT_NEG(bsr(data, 5, 150, false));
+        Z_ASSERT_NEG(bsr(data, 5, 33, false));
+
+        Z_ASSERT_EQ(bsr(&data[1], 3, 1013, false), 154);
+    } Z_TEST_END;
+
+    Z_TEST(bsr_0, "reverse bit scan, scan of 0") {
+        p_clear(&data, 1);
+        Z_ASSERT_NEG(bsr(data, 0, 0, true));
+        Z_ASSERT_EQ(bsr(data, 0, 1024, true), 1023);
+
+        memset(data, 0xff, 128);
+        RST_BIT(data, 3);
+        RST_BIT(data, 165);
+        Z_ASSERT_EQ(bsr(data, 0, 1024, true), 165);
+        Z_ASSERT_EQ(bsr(data, 1, 1023, true), 164);
+        Z_ASSERT_EQ(bsr(data, 3, 1021, true), 162);
+        Z_ASSERT_EQ(bsr(data, 1, 100, true), 2);
+        Z_ASSERT_EQ(bsr(data, 3, 100, true), 0);
+        Z_ASSERT_NEG(bsr(data, 5, 150, true));
+        Z_ASSERT_NEG(bsr(data, 5, 33, true));
+
+        Z_ASSERT_EQ(bsr(&data[1], 3, 1013, true), 154);
+    } Z_TEST_END;
+} Z_GROUP_END;
+
+/* }}} */
+/* Bitcount {{{ */
 
 uint8_t const __bitcount11[1 << 11] = {
 #define X4(n)       BC12(n), BC12(n + 1), BC12(n + 2),  BC12(n + 3)
@@ -408,3 +588,5 @@ Z_GROUP_EXPORT(membitcount)
 #endif
     } Z_TEST_END;
 } Z_GROUP_END
+
+/* }}} */

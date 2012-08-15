@@ -35,6 +35,14 @@ static inline size_t bsr32(uint32_t u) { return __builtin_clz(u) ^ 31; }
 static inline size_t bsr64(uint64_t u) { return __builtin_clzll(u) ^ 63; }
 static inline size_t bsrsz(size_t   u) { return DO_SZ(bsr)(u); }
 
+/** Find the last bit at 1 or 0 in a sequence of bits.
+ *
+ * Same as bsf but scan from the end of the stream (bitwise).
+ *
+ * \see bsf.
+ */
+ssize_t bsr(const void *data, size_t start_bit, size_t len, bool reverse);
+
 /* XXX bit scan forward, only defined for u != 0
  * bsf32(0xf10) == 4 because first bit set from the "right" is 2^4
  */
@@ -46,6 +54,17 @@ static inline size_t bsf32(uint32_t u) { return __builtin_ctz(u); }
 static inline size_t bsf64(uint64_t u) { return __builtin_ctzll(u); }
 static inline size_t bsfsz(size_t   u) { return DO_SZ(bsf)(u); }
 
+/** Find the first bit at 1 or 0 in a sequence of bits.
+ *
+ * \param[in] data      the memory to scan
+ * \param[in] start_bit offset of the first bit after data
+ * \param[in] len       maximum number of bits to scan after start_bit
+ * \param[in] reverse   if reverse, look for the first 0 instead of the first 1
+ * \return -1 if no 1 (or 0 if \p reverse was set) was found, else the offset
+ *         of the first bit of the given value relative to start_bit.
+ */
+ssize_t bsf(const void *data, size_t start_bit, size_t len, bool reverse);
+
 #define __SIGN_EXTEND_HELPER(T, x, bits)  (((T)(x) << (bits)) >> (bits))
 #define sign_extend(x, bits) \
     ({ int __bits = (bits);                                                  \
@@ -53,6 +72,7 @@ static inline size_t bsfsz(size_t   u) { return DO_SZ(bsf)(u); }
                              __SIGN_EXTEND_HELPER(int32_t, x, 32 - __bits),  \
                              __SIGN_EXTEND_HELPER(int64_t, x, 64 - __bits)); \
      })
+
 
 /*----- bitcount -----*/
 
