@@ -41,9 +41,9 @@ void bb_add_bs(bb_t *bb, bit_stream_t bs)
     size_t len;
 
     while (bs_has(&bs, 8)) {
-        bb_add_bits(bb, __bs_get_bits(&bs, 8), 8);
+        bb_add_bits(bb, __bs_be_get_bits(&bs, 8), 8);
     }
 
     len = bs_len(&bs);
-    bb_add_bits(bb, __bs_get_bits(&bs, len), len);
+    bb_add_bits(bb, __bs_be_get_bits(&bs, len), len);
 }

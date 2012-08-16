@@ -49,48 +49,45 @@ static ALWAYS_INLINE void write_u16(sb_t *sb, uint16_t u16)
     sb_add(sb, &be16, 2);
 }
 
-static ALWAYS_INLINE uint8_t __read_u8(pstream_t *ps)
+static ALWAYS_INLINE int __read_u8_aligned(bit_stream_t *bs, uint8_t *res)
 {
-    return __ps_getc(ps);
+    uint64_t r64;
+
+    RETHROW(bs_align(bs));
+    RETHROW(bs_be_get_bits(bs, 8, &r64));
+    *res = r64;
+    return 0;
 }
 
-static ALWAYS_INLINE uint16_t __read_u16(pstream_t *ps)
+static ALWAYS_INLINE int __read_u16_aligned(bit_stream_t *bs, uint16_t *res)
 {
-    be16_t be16 = *(const be16_t *)ps->b;
+    uint64_t r64;
 
-    __ps_skip(ps, 2);
-
-    return be_to_cpu16(be16);
+    RETHROW(bs_align(bs));
+    RETHROW(bs_be_get_bits(bs, 16, &r64));
+    *res = r64;
+    return 0;
 }
 
-static ALWAYS_INLINE int64_t __read_i64_o(pstream_t *ps, size_t olen)
+static ALWAYS_INLINE int __read_u64_o_aligned(bit_stream_t *bs, size_t olen,
+                                              uint64_t *res)
 {
-    be64_t be64 = 0ll;
-
-    assert (olen);
-
-    memcpy((byte *)&be64 + 8 - olen, ps->b, olen);
-
-    if (*ps->b & 0x80) { /* Negative number */
-        memset(&be64, 0xff, 8 - olen);
-    }
-
-    __ps_skip(ps, olen);
-
-    return be_to_cpu64(be64);
+    *res = 0;
+    RETHROW(bs_align(bs));
+    RETHROW(bs_be_get_bits(bs, olen * 8, res));
+    return 0;
 }
 
-static ALWAYS_INLINE uint64_t __read_u64_o(pstream_t *ps, size_t olen)
+static ALWAYS_INLINE int __read_i64_o_aligned(bit_stream_t *bs, size_t olen,
+                                              int64_t *res)
 {
-    be64_t be64 = 0ll;
+    uint64_t u;
 
-    assert (olen);
-
-    memcpy((byte *)&be64 + 8 - olen, ps->b, olen);
-    __ps_skip(ps, olen);
-
-    return be_to_cpu64(be64);
+    RETHROW(__read_u64_o_aligned(bs, olen, &u));
+    *res = sign_extend(u, olen * 8);
+    return 0;
 }
+
 
 /* }}} */
 /* Write {{{ */
@@ -737,82 +734,68 @@ void aper_set_decode_log_level(int level)
 static ALWAYS_INLINE int
 aper_read_u16_m(bit_stream_t *bs, size_t blen, uint16_t *u16)
 {
+    uint64_t res;
     assert (blen); /* u16 is given by constraints */
 
     if (blen < 8) {
-        if (!bs_has(bs, blen)) {
+        if (bs_be_get_bits(bs, blen, &res) < 0) {
             e_info("not enough bits to read constrained integer "
                    "(got %zd, need %zd)", bs_len(bs), blen);
             return -1;
         }
 
-        *u16 = __bs_get_bits(bs, blen);
+        *u16 = res;
         return 0;
     }
-
-    bs_align(bs);
 
     if (blen == 8) {
-        if (ps_done(&bs->ps)) {
-            e_info("cannot read constrained integer: end of input "
-                   "(expected at least one octet left)");
+        *u16 = 0;
+        if (__read_u8_aligned(bs, (uint8_t *)u16) < 0) {
+            e_info("cannot read contrained integer: end of input "
+                   "(expected at least one aligned octet)");
             return -1;
         }
-
-        *u16 = __read_u8(&bs->ps); /* We can: bs is aligned */
-        return 0;
-    }
-
-    assert (blen <= 16);
-
-    if (!bs_has_bytes(bs, 2)) {
-        e_info("cannot read constrained integer: input too short "
-               "(expected at least two octets left)");
+    } else
+    if (__read_u16_aligned(bs, u16) < 0) {
+        e_info("cannot read constrained integer: end of input "
+               "(expected at least two aligned octet left)");
         return -1;
     }
-
-    *u16 = __read_u16(&bs->ps); /* We can: bs is aligned */
-
     return 0;
 }
 
 static ALWAYS_INLINE int
 aper_read_ulen(bit_stream_t *bs, size_t *l)
 {
-    uint16_t u16;
+    union {
+        uint8_t  b[2];
+        uint16_t w;
+    } res;
 
-    bs_align(bs);
-
-    if (ps_done(&bs->ps)) {
+    if (__read_u8_aligned(bs, &res.b[1]) < 0) {
         e_info("cannot read unconstrained length: end of input "
-               "(expected at least one octet left)");
+               "(expected at least one aligned octet left)");
         return -1;
     }
 
-    u16 = __read_u8(&bs->ps);
-
-    if (!(u16 & (1 << 7))) {
-        *l = u16;
+    if (!(res.b[1] & (1 << 7))) {
+        *l = res.b[1];
         return 0;
     }
 
-    if (ps_done(&bs->ps)) {
-        e_info("cannot read unconstrained length: end of input "
-               "(expected at least a second octet left)");
-        return -1;
-    }
-
-    if (u16 & (1 << 6)) {
+    if (res.b[1] & (1 << 6)) {
         e_info("cannot read unconstrained length: "
                "fragmented values are not supported");
         return -1;
     }
 
-    u16 =  __read_u8(&bs->ps) | (u16 << 8);
-    u16 &= 0x7fff;
+    if (__read_u8_aligned(bs, &res.b[0]) < 0) {
+        e_info("cannot read unconstrained length: end of input "
+               "(expected at least a second octet left)");
+        return -1;
+    }
 
-    *l = u16;
-
+    *l = res.w & 0x7fff;
     return 0;
 }
 
@@ -826,15 +809,11 @@ aper_read_2c_number(bit_stream_t *bs, int64_t *v)
         return -1;
     }
 
-    bs_align(bs);
-
-    if (!bs_has_bytes(bs, olen)) {
+    if (__read_i64_o_aligned(bs, olen, v) < 0) {
         e_info("not enough bytes to read unconstrained number "
-               "(got %zd, need %zd)", ps_len(&bs->ps), olen);
+               "(got %zd, need %zd)", bs_len(bs) / 8, olen);
         return -1;
     }
-
-    *v = __read_i64_o(&bs->ps, olen);
 
     return 0;
 }
@@ -880,15 +859,11 @@ aper_read_number(bit_stream_t *bs, const asn1_int_info_t *info, uint64_t *v)
         return -1;
     }
 
-    bs_align(bs);
-
-    if (!bs_has_bytes(bs, olen)) {
-        e_info("not enough bytes to read number "
-               "(got %zd, need %zd)", ps_len(&bs->ps), olen);
+    if (__read_u64_o_aligned(bs, olen, v) < 0) {
+        e_info("not enough bytes to read number (got %zd, need %zd)",
+               bs_len(bs) / 8, olen);
         return -1;
     }
-
-    *v = __read_u64_o(&bs->ps, olen);
 
     return 0;
 }
@@ -903,7 +878,7 @@ static int aper_read_nsnnwn(bit_stream_t *bs, size_t *n)
         return -1;
     }
 
-    is_short = !__bs_get_bit(bs);
+    is_short = !__bs_be_get_bit(bs);
 
     if (is_short) {
         if (!bs_has(bs, 6)) {
@@ -911,7 +886,7 @@ static int aper_read_nsnnwn(bit_stream_t *bs, size_t *n)
             return -1;
         }
 
-        *n = __bs_get_bits(bs, 6);
+        *n = __bs_be_get_bits(bs, 6);
 
         return 0;
     }
@@ -978,7 +953,7 @@ aper_decode_len(bit_stream_t *bs, const asn1_cnt_info_t *info, size_t *l)
                 return -1;
             }
 
-            extension_present = __bs_get_bit(bs);
+            extension_present = __bs_be_get_bit(bs);
         } else {
             extension_present = false;
         }
@@ -1017,7 +992,7 @@ aper_decode_len(bit_stream_t *bs, const asn1_cnt_info_t *info, size_t *l)
 static int
 aper_decode_number(bit_stream_t *bs, const asn1_int_info_t *info, int64_t *n)
 {
-    int64_t res;
+    int64_t res = 0;
 
     if (info && info->extended) {
         bool extension_present;
@@ -1027,7 +1002,7 @@ aper_decode_number(bit_stream_t *bs, const asn1_int_info_t *info, int64_t *n)
             return -1;
         }
 
-        extension_present = __bs_get_bit(bs);
+        extension_present = __bs_be_get_bit(bs);
 
         if (extension_present) {
             if (aper_read_2c_number(bs, n) < 0) {
@@ -1090,7 +1065,7 @@ aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e, uint32_t *val)
             return -1;
         }
 
-        if (__bs_get_bit(bs)) {
+        if (__bs_be_get_bit(bs)) {
             size_t nsnnwn;
 
             if (aper_read_nsnnwn(bs, &nsnnwn) < 0) {
@@ -1109,7 +1084,7 @@ aper_decode_enum(bit_stream_t *bs, const asn1_enum_info_t *e, uint32_t *val)
         return -1;
     }
 
-    pos = __bs_get_bits(bs, e->blen);
+    pos = __bs_be_get_bits(bs, e->blen);
 
     if (pos >= e->values.len) {
         e_info("cannot read enumerated value: unregistered value");
@@ -1128,7 +1103,7 @@ static ALWAYS_INLINE int aper_decode_bool(bit_stream_t *bs, bool *b)
         return -1;
     }
 
-    *b = __bs_get_bit(bs);
+    *b = __bs_be_get_bit(bs);
 
     return 0;
 }
@@ -1140,6 +1115,8 @@ static int
 t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
                       flag_t copy, asn1_ostring_t *os)
 {
+    pstream_t ps;
+
     if (aper_decode_len(bs, info, &os->len) < 0) {
         e_info("cannot decode octet string length");
         return -1;
@@ -1158,7 +1135,7 @@ t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
         buf = t_new(uint8_t, os->len + 1);
 
         for (size_t i = 0; i < os->len; i++) {
-            buf[i] = __bs_get_bits(bs, 8);
+            buf[i] = __bs_be_get_bits(bs, 8);
         }
 
         os->data = buf;
@@ -1166,23 +1143,18 @@ t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
         return 0;
     }
 
-    bs_align(bs);
-
-    if (!bs_has_bytes(bs, os->len)) {
+    if (bs_align(bs) < 0 || bs_get_bytes(bs, os->len, &ps) < 0) {
         e_info("cannot read octet string: not enough octets "
                "(want %zd, got %zd)", os->len, bs_len(bs) / 8);
         return -1;
     }
 
+    os->data = ps.b;
     if (copy) {
-        os->data = t_dupz(bs->ps.b, os->len);
-    } else {
-        os->data = bs->ps.b;
+        os->data = t_dupz(os->data, os->len);
     }
 
     e_trace_hex(6, "Decoded OCTET STRING", os->data, (int)os->len);
-
-    __ps_skip(&bs->ps, os->len);
 
     return 0;
 }
@@ -1224,18 +1196,22 @@ t_aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
         return -1;
     }
 
-    if (!bs_has(bs, len)) {
+    if (bs_get_bs(bs, len, str) < 0) {
         e_info("cannot read bit string: not enough bits");
         return -1;
     }
 
-    *str = __bs_get_bs(bs, len);
     e_trace_bs(6, str, "Decoded bit string");
 
     if (copy) {
-        size_t olen = ps_len(&str->ps);
+        size_t olen = str->e.p - str->s.p;
 
-        str->ps = ps_init(t_dup(str->ps.b, olen), olen);
+        if (str->e.offset) {
+            str->s.p = t_dup(str->e.p, olen + 1);
+        } else {
+            str->s.p = t_dup(str->e.p, olen);
+        }
+        str->e.p = str->s.p + olen;
     }
 
     return 0;
@@ -1252,7 +1228,7 @@ t_aper_decode_bit_string(bit_stream_t *bs, const asn1_cnt_info_t *info,
 
     RETHROW(t_aper_decode_bstring(bs, info, false, &bstring));
 
-    size = ps_len(&bstring.ps) + 1;
+    size = DIV_ROUND_UP(bs_len(&bstring), 8);
     bb_inita(&bb, size);
     bb_add_bs(&bb, bstring);
     data = memp_dup(t_pool(), bb.sb.data, size);
@@ -1379,7 +1355,7 @@ t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
             return -1;
         }
 
-        extension_present = __bs_get_bit(bs);
+        extension_present = __bs_be_get_bit(bs);
 
         if (extension_present) {
             e_info("extension are not supported in sequences");
@@ -1404,7 +1380,7 @@ t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
                 return e_error("sequence is broken");
             }
 
-            if (!__bs_get_bit(&opt_bitmap)) {
+            if (!__bs_be_get_bit(&opt_bitmap)) {
                 asn1_opt_field_w(GET_PTR(st, field, void), field->type, false);
                 continue;  /* XXX Field not present */
             }
@@ -1448,7 +1424,7 @@ t_aper_decode_choice(bit_stream_t *bs, const asn1_desc_t *desc, flag_t copy,
             return -1;
         }
 
-        extension_present = __bs_get_bit(bs);
+        extension_present = __bs_be_get_bit(bs);
 
         if (extension_present) {
             e_info("extension are not supported in choices");
@@ -1584,8 +1560,8 @@ int t_aper_decode_desc(pstream_t *ps, const asn1_desc_t *desc,
 
     RETHROW(t_aper_decode_constructed(&bs, desc, NULL, copy, st));
 
-    bs_align(&bs);
-    *ps = bs.ps;
+    RETHROW(bs_align(&bs));
+    *ps = __bs_get_bytes(&bs, bs_len(&bs) / 8);
 
     return 0;
 }
@@ -1626,7 +1602,7 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
                 uint16_t u16 = t[i].d - 1;
 
                 Z_ASSERT_N(aper_read_u16_m(&bs, len, &u16), "[i:%d]", i);
-                Z_ASSERT_EQ(u16, t[i].d, "[i:%d]", i);
+                Z_ASSERT_EQ(u16, t[i].d, "[i:%d] len=%zu", i, len);
             }
             Z_ASSERT_STREQUAL(t[i].s, t_print_bb(&bb, NULL), "[i:%d]", i);
         }

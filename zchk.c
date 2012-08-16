@@ -14,7 +14,7 @@
 #include "z.h"
 #include "bit-stream.h"
 
-Z_GROUP(bit_buf)
+Z_GROUP_EXPORT(bit_buf)
 {
     Z_TEST(full, "bit-buf/bit-stream: full check") {
         t_scope;
@@ -41,20 +41,20 @@ Z_GROUP(bit_buf)
         Z_ASSERT_STREQUAL(".10110001.01001101.0", t_print_bs(bs, NULL));
 
         Z_ASSERT_EQ(bs_len(&bs), 17U, "Check length #2");
-        Z_ASSERT_EQ(__bs_get_bit(&bs), true,  "Check bit #1");
-        Z_ASSERT_EQ(__bs_get_bit(&bs), false, "Check bit #2");
-        Z_ASSERT_EQ(__bs_get_bit(&bs), true,  "Check bit #3");
-        Z_ASSERT_EQ(__bs_get_bit(&bs), true,  "Check bit #4");
-        Z_ASSERT_EQ(__bs_get_bit(&bs), false, "Check bit #5");
-        Z_ASSERT_EQ(__bs_get_bit(&bs), false, "Check bit #6");
-        Z_ASSERT_EQ(__bs_get_bit(&bs), false, "Check bit #7");
-        Z_ASSERT_EQ(__bs_get_bit(&bs), true,  "Check bit #8");
-        Z_ASSERT_EQ(__bs_get_bit(&bs), false, "Check bit #9");
-        Z_ASSERT_EQ(__bs_get_bit(&bs), true,  "Check bit #10");
+        Z_ASSERT_EQ(__bs_be_get_bit(&bs), true,  "Check bit #1");
+        Z_ASSERT_EQ(__bs_be_get_bit(&bs), false, "Check bit #2");
+        Z_ASSERT_EQ(__bs_be_get_bit(&bs), true,  "Check bit #3");
+        Z_ASSERT_EQ(__bs_be_get_bit(&bs), true,  "Check bit #4");
+        Z_ASSERT_EQ(__bs_be_get_bit(&bs), false, "Check bit #5");
+        Z_ASSERT_EQ(__bs_be_get_bit(&bs), false, "Check bit #6");
+        Z_ASSERT_EQ(__bs_be_get_bit(&bs), false, "Check bit #7");
+        Z_ASSERT_EQ(__bs_be_get_bit(&bs), true,  "Check bit #8");
+        Z_ASSERT_EQ(__bs_be_get_bit(&bs), false, "Check bit #9");
+        Z_ASSERT_EQ(__bs_be_get_bit(&bs), true,  "Check bit #10");
     } Z_TEST_END;
 } Z_GROUP_END;
 
-Z_GROUP(endianess)
+Z_GROUP_EXPORT(endianess)
 {
     Z_TEST(unaligned, "put_unaligned/get_unaligned") {
         byte data[BUFSIZ];
@@ -101,7 +101,5 @@ int main(int argc, const char **argv)
 {
     argc = z_setup(argc, argv);
     z_register_exports("lib-common/");
-    z_register_group(z_bit_buf);
-    z_register_group(z_endianess);
     return z_run();
 }
