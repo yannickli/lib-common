@@ -21,20 +21,20 @@ Z_GROUP_EXPORT(bit_buf)
         BB_1k(bb);
         bit_stream_t bs;
 
-        bb_add_bit(&bb, true);
-        bb_add_bit(&bb, false);
-        bb_add_bit(&bb, true);
-        bb_add_bit(&bb, true);
-        bb_add_bit(&bb, false);
-        bb_add_bit(&bb, false);
-        bb_add_bit(&bb, false);
-        bb_add_bit(&bb, true);
-        bb_add_bit(&bb, false);
-        bb_add_bit(&bb, true);
+        bb_be_add_bit(&bb, true);
+        bb_be_add_bit(&bb, false);
+        bb_be_add_bit(&bb, true);
+        bb_be_add_bit(&bb, true);
+        bb_be_add_bit(&bb, false);
+        bb_be_add_bit(&bb, false);
+        bb_be_add_bit(&bb, false);
+        bb_be_add_bit(&bb, true);
+        bb_be_add_bit(&bb, false);
+        bb_be_add_bit(&bb, true);
         bs = bs_init_bb(&bb);
         Z_ASSERT_EQ(bs_len(&bs), 10U, "Check length #1");
 
-        bb_add_bits(&bb, 0x1a, 7); /* 0011010 */
+        bb_be_add_bits(&bb, 0x1a, 7); /* 0011010 */
         Z_ASSERT_STREQUAL("0101100", t_print_bits(0x1a, 0, 7));
 
         bs = bs_init_bb(&bb);

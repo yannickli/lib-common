@@ -101,7 +101,7 @@ static ALWAYS_INLINE size_t bb_len(bb_t *bb)
     return bb->sb.len * 8 - ((8 - bb->wbit) % 8);
 }
 
-static inline void bb_add_bit(bb_t *bb, bool v)
+static inline void bb_be_add_bit(bb_t *bb, bool v)
 {
     sb_t *sb = &bb->sb;
 
@@ -120,7 +120,7 @@ static inline void bb_add_bit(bb_t *bb, bool v)
     }
 }
 
-static inline void bb_add_bits(bb_t *bb, uint8_t bits, uint8_t blen)
+static inline void bb_be_add_bits(bb_t *bb, uint8_t bits, uint8_t blen)
 {
     sb_t *sb = &bb->sb;
 
@@ -145,9 +145,9 @@ static inline void bb_add_bits(bb_t *bb, uint8_t bits, uint8_t blen)
     bb->wbit %= 8;
 }
 
-static inline void bb_add_byte(bb_t *bb, uint8_t b)
+static inline void bb_be_add_byte(bb_t *bb, uint8_t b)
 {
-    bb_add_bits(bb, b, 8);
+    bb_be_add_bits(bb, b, 8);
 }
 
 static inline void bb_align(bb_t *bb)
@@ -156,7 +156,7 @@ static inline void bb_align(bb_t *bb)
 }
 
 struct bit_stream_t;
-void bb_add_bs(bb_t *bb, struct bit_stream_t bs) __leaf;
+void bb_be_add_bs(bb_t *bb, struct bit_stream_t bs) __leaf;
 
 #ifndef NDEBUG
 static inline void bb_push_mark(bb_t *bb)

@@ -104,7 +104,7 @@ aper_write_u16_m(bb_t *bb, uint16_t u16, uint16_t blen)
         goto end;
 
     if (blen < 8) {
-        bb_add_bits(bb, u16, blen);
+        bb_be_add_bits(bb, u16, blen);
         goto end;
     }
 
@@ -203,11 +203,11 @@ aper_write_number(bb_t *bb, uint64_t v, const asn1_int_info_t *info)
 static void aper_write_nsnnwn(bb_t *bb, size_t n)
 {
     if (n <= 63) {
-        bb_add_bits(bb, n, 1 + 6);
+        bb_be_add_bits(bb, n, 1 + 6);
         return;
     }
 
-    bb_add_bit(bb, true);
+    bb_be_add_bit(bb, true);
     aper_write_number(bb, n, NULL);
 }
 
@@ -246,7 +246,7 @@ aper_encode_len(bb_t *bb, size_t l, const asn1_cnt_info_t *info)
                 }
 
                 /* Extension present */
-                bb_add_bit(bb, true);
+                bb_be_add_bit(bb, true);
 
                 if (aper_write_ulen(bb, l) < 0) {
                     return e_error("failed to write extended length");
@@ -257,7 +257,7 @@ aper_encode_len(bb_t *bb, size_t l, const asn1_cnt_info_t *info)
         } else {
             if (info->extended) {
                 /* Extension not present */
-                bb_add_bit(bb, false);
+                bb_be_add_bit(bb, false);
             }
 
             aper_write_len(bb, l, info->min, info->max);
@@ -280,7 +280,7 @@ aper_encode_number(bb_t *bb, int64_t n, const asn1_int_info_t *info)
                 }
 
                 /* Extension present */
-                bb_add_bit(bb, true);
+                bb_be_add_bit(bb, true);
 
                 /* XXX Extension constraints are not PER-visible */
                 aper_write_number(bb, n, NULL);
@@ -296,7 +296,7 @@ aper_encode_number(bb_t *bb, int64_t n, const asn1_int_info_t *info)
         } else {
             if (info->extended) {
                 /* Extension not present */
-                bb_add_bit(bb, false);
+                bb_be_add_bit(bb, false);
             }
         }
     }
@@ -317,7 +317,7 @@ aper_encode_enum(bb_t *bb, uint32_t val, const asn1_enum_info_t *e)
 
     if (pos < 0) {
         if (e->extended) {
-            bb_add_bit(bb, true);
+            bb_be_add_bit(bb, true);
             aper_write_nsnnwn(bb, val);
 
             return 0;
@@ -328,11 +328,11 @@ aper_encode_enum(bb_t *bb, uint32_t val, const asn1_enum_info_t *e)
     }
 
     if (e->extended) {
-        bb_add_bit(bb, false);
+        bb_be_add_bit(bb, false);
     }
 
     /* XXX We suppose that enumerations cannot hold more than 255 values */
-    bb_add_bits(bb, pos, e->blen);
+    bb_be_add_bits(bb, pos, e->blen);
 
     return 0;
 }
@@ -352,7 +352,7 @@ aper_encode_ostring(bb_t *bb, const asn1_ostring_t *os,
     &&  os->len == info->max)
     {
         for (size_t i = 0; i < os->len; i++) {
-            bb_add_bits(bb, os->data[i], 8);
+            bb_be_add_bits(bb, os->data[i], 8);
         }
 
         return 0;
@@ -392,7 +392,7 @@ aper_encode_bstring(bb_t *bb, const bit_stream_t *bs,
         return e_error("octet string: failed to encode length");
     }
 
-    bb_add_bs(bb, *bs);
+    bb_be_add_bs(bb, *bs);
 
     return 0;
 }
@@ -408,7 +408,7 @@ aper_encode_bit_string(bb_t *bb, const asn1_bit_string_t *b,
 
 static ALWAYS_INLINE void aper_encode_bool(bb_t *bb, bool b)
 {
-    bb_add_bit(bb, b);
+    bb_be_add_bit(bb, b);
 }
 
 /* }}} */
@@ -515,7 +515,7 @@ aper_encode_sequence(bb_t *bb, const void *st, const asn1_desc_t *desc)
     /* Put extension bit */
     if (desc->extended) {
         e_trace(5, "sequence is extended");
-        bb_add_bit(bb, false);
+        bb_be_add_bit(bb, false);
     }
 
     bb_push_mark(bb);
@@ -528,9 +528,9 @@ aper_encode_sequence(bb_t *bb, const void *st, const asn1_desc_t *desc)
         const void         *val       = asn1_opt_field(opt, field->type);
 
         if (val) { /* Field present */
-            bb_add_bit(bb, true);
+            bb_be_add_bit(bb, true);
         } else {
-            bb_add_bit(bb, false);
+            bb_be_add_bit(bb, false);
         }
     }
 
@@ -574,7 +574,7 @@ aper_encode_choice(bb_t *bb, const void *st, const asn1_desc_t *desc)
     /* Put extension bit */
     if (desc->extended) {
         e_trace(5, "choice is extended");
-        bb_add_bit(bb, false);
+        bb_be_add_bit(bb, false);
     }
 
     assert (desc->vec.len > 1);
@@ -1230,7 +1230,7 @@ t_aper_decode_bit_string(bit_stream_t *bs, const asn1_cnt_info_t *info,
 
     size = DIV_ROUND_UP(bs_len(&bstring), 8);
     bb_inita(&bb, size);
-    bb_add_bs(&bb, bstring);
+    bb_be_add_bs(&bb, bstring);
     data = memp_dup(t_pool(), bb.sb.data, size);
     *bit_string = ASN1_BIT_STRING(data, bs_len(&bstring));
     bb_wipe(&bb);
@@ -1854,7 +1854,7 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             bb_reset(&src_bb);
             for (const char *s = t[i].bs; *s; s++) {
                 if (*s == '1' || *s == '0') {
-                    bb_add_bit(&src_bb, *s == '1');
+                    bb_be_add_bit(&src_bb, *s == '1');
                 }
             }
             src = bs_init_bb(&src_bb);
