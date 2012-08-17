@@ -41,6 +41,32 @@ typedef struct bit_stream_t {
 
 /* Helpers {{{ */
 
+static inline void bit_ptroff_add(struct bit_ptroff *s, size_t offset)
+{
+    s->offset += offset;
+    if (s->offset >= 64) {
+        s->p      += s->offset / 64;
+        s->offset %= 64;
+    }
+}
+
+static inline void bit_ptroff_sub(struct bit_ptroff *s, size_t offset)
+{
+    ssize_t off = s->offset;
+
+    off -= offset;
+    if (off < 0) {
+        s->p -= DIV_ROUND_UP(-off, 64);
+        if (off % 64) {
+            s->offset = 64 + (off % 64);
+        } else {
+            s->offset = 0;
+        }
+    } else {
+        s->offset = off;
+    }
+}
+
 static inline void bit_ptroff_normalize(struct bit_ptroff *s)
 {
     const byte *p = (const byte *)s->p;
@@ -51,10 +77,7 @@ static inline void bit_ptroff_normalize(struct bit_ptroff *s)
     }
     s->p = (const uint64_t *)a;
 
-    if (s->offset >= 64) {
-        s->p += s->offset / 64;
-        s->offset %= 64;
-    }
+    bit_ptroff_add(s, 0);
 }
 
 #define BIT_PTROFF_INIT(Ptr, Offset)    { .p = (Ptr), .offset = (Offset) }
@@ -156,11 +179,7 @@ static inline bool bs_is_aligned(const bit_stream_t *bs)
 
 static inline ssize_t __bs_skip(bit_stream_t *bs, size_t blen)
 {
-    bs->s.offset += blen;
-    if (bs->s.offset >= 64) {
-        bs->s.p += bs->s.offset / 64;
-        bs->s.offset %= 64;
-    }
+    bit_ptroff_add(&bs->s, blen);
     return blen;
 }
 
@@ -195,19 +214,7 @@ static inline ssize_t bs_skip_upto(bit_stream_t *bs, const void *p, size_t off)
 
 static inline ssize_t __bs_shrink(bit_stream_t *bs, size_t len)
 {
-    ssize_t off = bs->e.offset;
-
-    off -= len;
-    if (off < 0) {
-        bs->e.p -= DIV_ROUND_UP(-off, 64);
-        if (off % 64) {
-            bs->e.offset = 64 + (off % 64);
-        } else {
-            bs->e.offset = 0;
-        }
-    } else {
-        bs->e.offset = off;
-    }
+    bit_ptroff_sub(&bs->e, len);
     return len;
 }
 
@@ -415,6 +422,9 @@ static inline uint64_t __bs_be_get_bits(bit_stream_t *bs, size_t blen)
     if (offset) {
         remain -= 8 - offset;
         res |= ((uint64_t)*b << remain);
+        if (blen != 64) {
+            res &= BITMASK_LT(uint64_t, blen);
+        }
         b++;
     }
     while (remain >= 8) {
