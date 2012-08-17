@@ -448,6 +448,74 @@ static inline int bs_be_get_bits(bit_stream_t *bs, size_t blen, uint64_t *out)
 }
 
 /* }}} */
+/* Scans {{{ */
+
+static inline int __bs_scan_forward(const bit_stream_t *bs, bool b,
+                                    struct bit_ptroff *poff)
+{
+    size_t pos = RETHROW(bsf(bs->s.p, bs->s.offset, bs_len(bs), !b));
+
+    *poff = BIT_PTROFF_NORMALIZED(bs->s.p, bs->s.offset + pos);
+    return 0;
+}
+
+static inline ssize_t bs_skip_upto_bit(bit_stream_t *bs, bool b)
+{
+    struct bit_ptroff poff;
+
+    BS_CHECK(__bs_scan_forward(bs, b, &poff));
+    return __bs_skip_upto(bs, &poff);
+}
+
+static inline ssize_t bs_skip_after_bit(bit_stream_t *bs, bool b)
+{
+    return BS_CHECK(bs_skip_upto_bit(bs, b)) + __bs_skip(bs, 1);
+}
+
+static inline int bs_get_bs_bit(bit_stream_t *bs, bool b, bit_stream_t *out)
+{
+    struct bit_ptroff poff;
+
+    BS_CHECK(__bs_scan_forward(bs, b, &poff));
+    *out = __bs_get_bs_upto(bs, &poff);
+    return 0;
+}
+
+static inline int bs_get_bs_bit_and_skip(bit_stream_t *bs, bool b,
+                                         bit_stream_t *out)
+{
+    return BS_CHECK(bs_get_bs_bit(bs, b, out)) + __bs_skip(bs, 1);
+}
+
+
+
+static inline int __bs_scan_reverse(const bit_stream_t *bs, bool b,
+                                    struct bit_ptroff *poff)
+{
+    size_t pos = BS_CHECK(bsr(bs->s.p, bs->s.offset, bs_len(bs), !b));
+
+    *poff = BIT_PTROFF_NORMALIZED(bs->s.p, bs->s.offset + pos);
+    return 0;
+}
+
+static inline ssize_t bs_shrink_downto_bit(bit_stream_t *bs, bool b)
+{
+    struct bit_ptroff poff;
+
+    BS_CHECK(__bs_scan_reverse(bs, b, &poff));
+    bit_ptroff_add(&poff, 1);
+    return __bs_clip_at(bs, &poff);
+}
+
+static inline ssize_t bs_shrink_before_bit(bit_stream_t *bs, bool b)
+{
+    struct bit_ptroff poff;
+
+    BS_CHECK(__bs_scan_reverse(bs, b, &poff));
+    return __bs_clip_at(bs, &poff);
+}
+
+/* }}} */
 /* Misc {{{ */
 
 /* TODO optimize */
