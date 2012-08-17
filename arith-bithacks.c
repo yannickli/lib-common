@@ -63,7 +63,7 @@ ssize_t bsr(const void *data, size_t start_bit, size_t len, bool reverse)
         if (Up != 64) w &= BITMASK_LT(uint64_t, Up);                         \
                                                                              \
         if (w) {                                                             \
-            return len + bsr64(w) - 64;                                      \
+            return len + bsr64(w) - (Up);                                    \
         }                                                                    \
         len -= (Up) - (Low);                                                 \
         pos--;                                                               \
@@ -166,8 +166,12 @@ Z_GROUP_EXPORT(bsr_bsf)
         Z_ASSERT_EQ(bsf(data, 1, 1023, false), 2);
         Z_ASSERT_EQ(bsf(data, 3, 1021, false), 0);
         Z_ASSERT_EQ(bsf(data, 5, 1019, false), 160);
+        Z_ASSERT_EQ(bsf(data, 5, 161, false), 160);
+        Z_ASSERT_EQ(bsf(data, 0, 4, false), 3);
         Z_ASSERT_NEG(bsf(data, 5, 150, false));
         Z_ASSERT_NEG(bsf(data, 5, 33, false));
+        Z_ASSERT_NEG(bsf(data, 5, 160, false));
+        Z_ASSERT_NEG(bsf(data, 0, 3, false));
 
         Z_ASSERT_EQ(bsf(&data[1], 3, 1013, false), 154);
     } Z_TEST_END;
@@ -184,8 +188,12 @@ Z_GROUP_EXPORT(bsr_bsf)
         Z_ASSERT_EQ(bsf(data, 1, 1023, true), 2);
         Z_ASSERT_EQ(bsf(data, 3, 1021, true), 0);
         Z_ASSERT_EQ(bsf(data, 5, 1019, true), 160);
+        Z_ASSERT_EQ(bsf(data, 5, 161, true), 160);
+        Z_ASSERT_EQ(bsf(data, 0, 4, true), 3);
         Z_ASSERT_NEG(bsf(data, 5, 150, true));
         Z_ASSERT_NEG(bsf(data, 5, 33, true));
+        Z_ASSERT_NEG(bsf(data, 5, 160, true));
+        Z_ASSERT_NEG(bsf(data, 0, 3, true));
 
         Z_ASSERT_EQ(bsf(&data[1], 3, 1013, true), 154);
     } Z_TEST_END;
@@ -203,8 +211,12 @@ Z_GROUP_EXPORT(bsr_bsf)
         Z_ASSERT_EQ(bsr(data, 3, 1021, false), 162);
         Z_ASSERT_EQ(bsr(data, 1, 100, false), 2);
         Z_ASSERT_EQ(bsr(data, 3, 100, false), 0);
+        Z_ASSERT_EQ(bsr(data, 5, 161, false), 160);
+        Z_ASSERT_EQ(bsr(data, 0, 4, false), 3);
         Z_ASSERT_NEG(bsr(data, 5, 150, false));
         Z_ASSERT_NEG(bsr(data, 5, 33, false));
+        Z_ASSERT_NEG(bsr(data, 5, 160, false));
+        Z_ASSERT_NEG(bsr(data, 0, 3, false));
 
         Z_ASSERT_EQ(bsr(&data[1], 3, 1013, false), 154);
     } Z_TEST_END;
@@ -222,8 +234,12 @@ Z_GROUP_EXPORT(bsr_bsf)
         Z_ASSERT_EQ(bsr(data, 3, 1021, true), 162);
         Z_ASSERT_EQ(bsr(data, 1, 100, true), 2);
         Z_ASSERT_EQ(bsr(data, 3, 100, true), 0);
+        Z_ASSERT_EQ(bsr(data, 5, 161, true), 160);
+        Z_ASSERT_EQ(bsr(data, 0, 4, true), 3);
         Z_ASSERT_NEG(bsr(data, 5, 150, true));
         Z_ASSERT_NEG(bsr(data, 5, 33, true));
+        Z_ASSERT_NEG(bsr(data, 5, 160, true));
+        Z_ASSERT_NEG(bsr(data, 0, 3, true));
 
         Z_ASSERT_EQ(bsr(&data[1], 3, 1013, true), 154);
     } Z_TEST_END;
