@@ -101,7 +101,7 @@ Z_GROUP_EXPORT(bit_stream)
 {
     bit_stream_t bs;
     bit_stream_t n;
-    const byte data[128];
+    byte data[128];
 
     /* Multiple of 64 in the range 
         0 64 128 192 256
@@ -111,19 +111,19 @@ Z_GROUP_EXPORT(bit_stream)
     */
 
 #define Z_CHECK_LENGTH(Stream, Len, ...)  do {                               \
-        const bit_stream_t __bs = Stream;                                     \
+        const bit_stream_t __bs = Stream;                                    \
         int         __len;                                                   \
-        Z_ASSERT_EQ((__len = bs_len(&__bs)), Len, ##__VA_ARGS__);            \
+        Z_ASSERT_EQ((__len = bs_len(&__bs)), (Len), ##__VA_ARGS__);          \
         if (__len == 0) {                                                    \
             Z_ASSERT(bs_done(&__bs));                                        \
         } else {                                                             \
             Z_ASSERT(!bs_done(&__bs));                                       \
         }                                                                    \
-        for (int i = __len; i-- > 0;) {                                      \
-            Z_ASSERT(bs_has(&__bs, i));                                      \
+        for (int __i = __len; __i-- > 0;) {                                  \
+            Z_ASSERT(bs_has(&__bs, __i));                                    \
         }                                                                    \
-        for (int i = __len + 1; i < __len * 2 + 2; i++) {                    \
-            Z_ASSERT(!bs_has(&__bs, i));                                     \
+        for (int __i = __len + 1; __i < __len * 2 + 2; __i++) {              \
+            Z_ASSERT(!bs_has(&__bs, __i));                                   \
         }                                                                    \
     } while (0)
 
@@ -135,7 +135,7 @@ Z_GROUP_EXPORT(bit_stream)
         Z_ASSERT_EQ(__bds.s.offset, __bs2.s.offset);                         \
         Z_ASSERT(__bds.e.p == __bs2.e.p);                                    \
         Z_ASSERT_EQ(__bds.e.offset, __bs2.e.offset);                         \
-        Z_CHECK_LENGTH(__bs2, To - From);                                    \
+        Z_CHECK_LENGTH(__bs2, (To) - (From));                                \
     } while (0)
 
     Z_TEST(len, "bit_stream: check length") {
@@ -384,6 +384,76 @@ Z_GROUP_EXPORT(bit_stream)
         Z_ASSERT_N(bs_get_bs(&bs, 128, &n));
         Z_CHECK_BOUNDS(bs, 264, 1024);
         Z_CHECK_BOUNDS(n, 136, 264);
+    } Z_TEST_END;
+
+
+#define Z_CHECK_BIT(bs, pos, Variant, Tst, Be)  do {                         \
+        int b = Variant##peek_bit(&bs);                                      \
+        Z_ASSERT_N(b);                                                       \
+        Z_ASSERT_EQ(!!b, !!Tst(data, pos));                                  \
+        for (int j = 0; j < MIN(65, 1024 - pos); j++) {                      \
+            n = bs;                                                          \
+            Z_ASSERT_N(Variant##get_bits(&n,j, &res));                       \
+            if (j != 64) {                                                   \
+                Z_ASSERT_EQ(res & BITMASK_GE(uint64_t, j), 0ul, "%d %d",     \
+                            pos, j);             \
+            }                                                                \
+            for (int k = 0; k < j; k++) {                                    \
+                if (Be) {                                                    \
+                    Z_ASSERT_EQ(!!TST_BIT(&res, j - k - 1),                  \
+                                !!Tst(data, pos + k),                        \
+                                "%d %d %d %jx", pos, j, k, res);             \
+                } else {                                                     \
+                    Z_ASSERT_EQ(!!TST_BIT(&res, k),                          \
+                                !!Tst(data, pos + k));                       \
+                }                                                            \
+            }                                                                \
+        }                                                                    \
+        if (1024 - pos < 64) {                                               \
+            Z_ASSERT_NEG(Variant##get_bits(&bs, 1024 - pos + 1, &res));      \
+        }                                                                    \
+        Z_ASSERT_NEG(Variant##get_bits(&bs, 65, &res));                      \
+        Z_ASSERT_EQ(b, Variant##get_bit(&bs));                               \
+    } while (0)
+
+    Z_TEST(get_bits, "bit_stream: bs_get_bits") {
+        uint64_t res = 0;
+
+        for (int i = 0; i < countof(data); i++) {
+            data[i] = i;
+        }
+
+        bs = bs_init_ptr(data, &data[128]);
+        for (int i = 0; i < 1024; i++) {
+            Z_CHECK_BIT(bs, i, bs_, TST_BIT, false);
+            Z_CHECK_BOUNDS(bs, i + 1, 1024);
+        }
+        Z_ASSERT_NEG(bs_peek_bit(&bs));
+        Z_ASSERT_NEG(bs_get_bit(&bs));
+        Z_ASSERT_NEG(bs_get_bits(&bs, 1, &res));
+    } Z_TEST_END;
+
+#define TST_BE_BIT(d, pos)  ({                                               \
+        size_t __offset = (pos);                                             \
+        __offset = (__offset & ~7ul) + 7 - (__offset % 8);                   \
+        TST_BIT(d, __offset);                                                \
+    })
+
+    Z_TEST(be_get_bits, "bit_stream: bs_be_get_bits") {
+        uint64_t res = 0;
+
+        for (int i = 0; i < countof(data); i++) {
+            data[i] = i;
+        }
+
+        bs = bs_init_ptr(data, &data[128]);
+        for (int i = 0; i < 1024; i++) {
+            Z_CHECK_BIT(bs, i, bs_be_, TST_BE_BIT, true);
+            Z_CHECK_BOUNDS(bs, i + 1, 1024);
+        }
+        Z_ASSERT_NEG(bs_be_peek_bit(&bs));
+        Z_ASSERT_NEG(bs_be_get_bit(&bs));
+        Z_ASSERT_NEG(bs_be_get_bits(&bs, 1, &res));
     } Z_TEST_END;
 } Z_GROUP_END;
 
