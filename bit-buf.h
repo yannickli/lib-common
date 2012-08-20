@@ -21,7 +21,6 @@
 typedef struct bb_t {
     sb_t        sb;
     uint8_t     wbit;
-    flag_t      not_sb_owner : 1;
 #ifndef NDEBUG
     qv_t(u32)   marks;
 #endif
@@ -32,6 +31,7 @@ typedef struct bb_t {
 static ALWAYS_INLINE bb_t *bb_init(bb_t *bb)
 {
     p_clear(bb, 1);
+    sb_init(&bb->sb);
 #ifndef NDEBUG
     qv_init(u32, &bb->marks);
 #endif
@@ -41,27 +41,43 @@ static ALWAYS_INLINE bb_t *bb_init(bb_t *bb)
 
 static ALWAYS_INLINE void bb_wipe(bb_t *bb)
 {
-    if (likely(!bb->not_sb_owner)) {
-        sb_wipe(&bb->sb);
-    }
+    sb_wipe(&bb->sb);
 
 #ifndef NDEBUG
     qv_wipe(u32, &bb->marks);
 #endif
 }
 
+/** Initialize a bit-buffer from a string-buffer.
+ *
+ * The bit-buffer takes ownership of the memory and reset the sb so we're
+ * guaranteed no dangling pointers will remain in the sb if the bit-buffer
+ * perform a reallocation sometime in the future.
+ */
 static ALWAYS_INLINE bb_t bb_init_sb(sb_t *sb)
 {
     bb_t bb;
 
     p_clear(&bb, 1);
     bb.sb = *sb;
-    bb.not_sb_owner = true;
+    sb_init(sb);
 #ifndef NDEBUG
     qv_init(u32, &bb.marks);
 #endif
 
     return bb;
+}
+
+/** Transfer ownership of the memory to a sb.
+ *
+ * The bit-buffer lose is resetted during the operation and the sb gain full
+ * ownership of the memory.
+ */
+static ALWAYS_INLINE void bb_transfer_to_sb(bb_t *bb, sb_t *sb)
+{
+    sb_wipe(sb);
+    *sb = bb->sb;
+    bb_init(bb);
 }
 
 static inline bb_t *

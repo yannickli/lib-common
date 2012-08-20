@@ -700,8 +700,7 @@ int aper_encode_desc(sb_t *sb, const void *st, const asn1_desc_t *desc)
         return -1;
     }
 
-    *sb = bb.sb;
-    bb_wipe(&bb);
+    bb_transfer_to_sb(&bb, sb);
 
     /* Ref : [1] 10.1.3 */
     if (unlikely(!sb->len)) {
