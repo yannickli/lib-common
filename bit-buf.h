@@ -19,34 +19,61 @@
 #include <lib-common/container.h>
 
 typedef struct bb_t {
-    sb_t        sb;
-    uint8_t     wbit;
-#ifndef NDEBUG
-    qv_t(u32)   marks;
-#endif
+    union {
+        uint64_t   *data;
+        byte       *bytes;
+    };
+    union {
+        struct {
+            unsigned offset : 6;
+            size_t   word   : 58;
+        };
+        struct {
+            unsigned boffset : 3;
+            size_t   b       : 61;
+        };
+        size_t len;  /* Number of bit used */
+    };
+    size_t     size; /* Number of words allocated */
+    flag_t     mem_pool : 2;
 } bb_t;
 
-/* API {{{ */
+/* Initialization/Cleanup {{{ */
 
-static ALWAYS_INLINE bb_t *bb_init(bb_t *bb)
+GENERIC_INIT(bb_t, bb);
+GENERIC_NEW(bb_t, bb);
+
+void bb_wipe(bb_t *bb);
+GENERIC_DELETE(bb_t, bb);
+
+static inline bb_t *
+bb_init_full(bb_t *bb, void *buf, int blen, int bsize, int mem_pool)
 {
-    p_clear(bb, 1);
-    sb_init(&bb->sb);
-#ifndef NDEBUG
-    qv_init(u32, &bb->marks);
-#endif
+    size_t used_bytes = DIV_ROUND_UP(blen, 8);
 
+    bb->data = buf;
+    bb->len = blen;
+    bb->size = bsize;
+    bb->mem_pool = mem_pool;
+
+    bzero(bb->bytes + used_bytes, bsize * 8 - used_bytes);
+    assert (bb->size >= bb->word);
     return bb;
 }
 
-static ALWAYS_INLINE void bb_wipe(bb_t *bb)
-{
-    sb_wipe(&bb->sb);
+#define allocaz(sz)  memset(alloca(sz), 0, (sz))
 
-#ifndef NDEBUG
-    qv_wipe(u32, &bb->marks);
-#endif
-}
+#define bb_inita(bb, sz)  \
+    bb_init_full(bb, allocaz(ROUND_UP(sz, 8)), 0, DIV_ROUND_UP(sz, 8), MEM_STATIC)
+
+#define BB(name, sz) \
+    bb_t name = { .data = allocaz(ROUND_UP(sz, 8)), \
+                  .size = DIV_ROUND_UP(sz, 8) }
+
+#define BB_1k(name)    BB(name, 1 << 10)
+#define BB_8k(name)    BB(name, 8 << 10)
+
+void bb_reset(bb_t *bb);
 
 /** Initialize a bit-buffer from a string-buffer.
  *
@@ -54,111 +81,84 @@ static ALWAYS_INLINE void bb_wipe(bb_t *bb)
  * guaranteed no dangling pointers will remain in the sb if the bit-buffer
  * perform a reallocation sometime in the future.
  */
-static ALWAYS_INLINE bb_t bb_init_sb(sb_t *sb)
-{
-    bb_t bb;
-
-    p_clear(&bb, 1);
-    bb.sb = *sb;
-    sb_init(sb);
-#ifndef NDEBUG
-    qv_init(u32, &bb.marks);
-#endif
-
-    return bb;
-}
+void bb_init_sb(bb_t *bb, sb_t *sb);
 
 /** Transfer ownership of the memory to a sb.
  *
  * The bit-buffer lose is resetted during the operation and the sb gain full
  * ownership of the memory.
  */
-static ALWAYS_INLINE void bb_transfer_to_sb(bb_t *bb, sb_t *sb)
+void bb_transfer_to_sb(bb_t *bb, sb_t *sb);
+
+static inline void bb_align(bb_t *bb)
 {
-    sb_wipe(sb);
-    *sb = bb->sb;
-    bb_init(bb);
+    bb->len = ROUND_UP(bb->len, 8);
 }
 
-static inline bb_t *
-bb_init_full(bb_t *bb, void *buf, int blen, int bsize, int mem_pool)
+void __bb_grow(bb_t *bb, size_t extra);
+
+static inline void bb_grow(bb_t *bb, size_t extra)
 {
-    *bb = (bb_t){
-        .sb = *sb_init_full(&bb->sb, buf, blen, bsize, mem_pool),
-    };
-
-    return bb;
-}
-
-#define bb_inita(bb, sz)  bb_init_full(bb, alloca(sz), 0, (sz), MEM_STATIC)
-
-#define BB(name, sz) \
-    bb_t name = {                                           \
-        .sb = {                                             \
-            .data = alloca(sz),                             \
-            .size = (STATIC_ASSERT((sz) < (64 << 10)), sz), \
-        },                                                  \
+    if (DIV_ROUND_UP(bb->len + extra, 64) >= bb->size) {
+        __bb_grow(bb, extra);
     }
-
-#define BB_1k(name)    BB(name, 1 << 10)
-#define BB_8k(name)    BB(name, 8 << 10)
-
-static ALWAYS_INLINE void bb_reset(bb_t *bb)
-{
-    sb_reset(&bb->sb);
-    bb->wbit = 0;
-#ifndef NDEBUG
-    qv_clear(u32, &bb->marks);
-#endif
 }
 
-static ALWAYS_INLINE size_t bb_len(bb_t *bb)
+static inline void bb_growlen(bb_t *bb, size_t extra)
 {
-    return bb->sb.len * 8 - ((8 - bb->wbit) % 8);
+    bb_grow(bb, extra);
+    bb->len += extra;
 }
+
+
+/* }}} */
+/* BE API {{{ */
 
 static inline void bb_be_add_bit(bb_t *bb, bool v)
 {
-    sb_t *sb = &bb->sb;
-
-    if (!bb->wbit) {
-        sb_addc(sb, 0);
+    if (bb->offset == 0) {
+        bb_grow(bb, 1);
     }
-
     if (v) {
-        sb->data[sb->len - 1] |= (0x80 >> bb->wbit);
+        bb->bytes[bb->b] |= 0x80 >> bb->boffset;
     }
-
-    if (likely(bb->wbit < 7)) {
-        bb->wbit++;
-    } else {
-        bb->wbit = 0;
-    }
+    bb->len++;
 }
 
-static inline void bb_be_add_bits(bb_t *bb, uint8_t bits, uint8_t blen)
+static inline void bb_be_add_bits(bb_t *bb, uint64_t bits, uint8_t blen)
 {
-    sb_t *sb = &bb->sb;
+    byte *b;
+    size_t offset = bb->boffset;
+    size_t byte_no = bb->b;
+    size_t remain = blen;
 
     if (unlikely(!blen))
         return;
 
-    if (unlikely(!bb->wbit)) {
-        sb_addc(sb, bits << (8 - blen));
-    } else {
-        if (bb->wbit + blen <= 8) {
-            sb->data[sb->len - 1] |= (bits << (8 - bb->wbit - blen));
-        } else {
-            uint16_t u16  = (bits << (16 - bb->wbit - blen));
-            be16_t   be16 = cpu_to_be16(u16);
+    bb_growlen(bb, blen);
 
-            sb_addc(sb, 0);
-            *(be16_t *)&sb->data[sb->len - 2] |= be16;
-        }
+    if (blen != 64) {
+        bits &= BITMASK_LT(uint64_t, blen);
     }
+    b = bb->bytes + byte_no;
 
-    bb->wbit += blen;
-    bb->wbit %= 8;
+    if (offset + blen <= 8) {
+        *b |= bits << (8 - (offset + blen));
+        return;
+    }
+    if (offset) {
+        remain -= 8 - offset;
+        *b |= bits >> remain;
+        b++;
+    }
+    while (remain >= 8) {
+        remain -= 8;
+        *b = bits >> remain;
+        b++;
+    }
+    if (remain) {
+        *b = bits << (8 - remain);
+    }
 }
 
 static inline void bb_be_add_byte(bb_t *bb, uint8_t b)
@@ -166,47 +166,33 @@ static inline void bb_be_add_byte(bb_t *bb, uint8_t b)
     bb_be_add_bits(bb, b, 8);
 }
 
-static inline void bb_align(bb_t *bb)
+static inline void bb_be_add_bytes(bb_t *bb, const byte *b, size_t len)
 {
-    bb->wbit = 0;
+    if (bb->boffset == 0) {
+        bb_grow(bb, len * 8);
+        p_copy(bb->bytes + bb->b, b, len);
+        bb->len += len * 8;
+    } else {
+        for (size_t i = 0; i < len; i++) {
+            bb_be_add_byte(bb, b[i]);
+        }
+    }
 }
 
 struct bit_stream_t;
-void bb_be_add_bs(bb_t *bb, struct bit_stream_t bs) __leaf;
+void bb_be_add_bs(bb_t *bb, const struct bit_stream_t *bs) __leaf;
 
-#ifndef NDEBUG
-static inline void bb_push_mark(bb_t *bb)
-{
-    qv_append(u32, &bb->marks, bb_len(bb));
-}
-
-static inline void bb_pop_mark(bb_t *bb)
-{
-    qv_shrink(u32, &bb->marks, 1);
-}
-
-static inline void bb_reset_mark(bb_t *bb)
-{
-    bb->marks.tab[bb->marks.len - 1] = bb_len(bb);
-}
-
-#    define e_trace_bb_tail(lvl, bb, fmt, ...)  \
-    ({                                                                     \
-        bit_stream_t bs = bs_init_bb(bb);                                  \
-                                                                           \
-        __bs_skip(&bs, bb->marks.tab[bb->marks.len - 1]);                  \
-        e_trace_bs(lvl, &bs, fmt, ##__VA_ARGS__);                          \
-    })
-
-#else
-#    define bb_push_mark(...)
-#    define bb_pop_mark(...)
-#    define bb_reset_mark(...)
-#    define e_trace_bb_tail(...)
-#endif
 
 /* }}} */
+/* Marking {{{ */
+
+static ALWAYS_INLINE void bb_push_mark(bb_t *bb) { }
+static ALWAYS_INLINE void bb_pop_mark(bb_t *bb) { }
+static ALWAYS_INLINE void bb_reset_mark(bb_t *bb) { }
+#define e_trace_bb_tail(...)  e_trace_bb(__VA_ARGS__)
+
 /* Printing helpers {{{ */
+
 char *t_print_bits(uint8_t bits, uint8_t bstart, uint8_t blen)
     __leaf;
 char *t_print_bb(const bb_t *bb, size_t *len)

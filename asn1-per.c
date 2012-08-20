@@ -29,24 +29,23 @@ static struct {
 /* Big Endian generic helpers {{{ */
 
 static ALWAYS_INLINE void
-write_i64_o(sb_t *sb, int64_t i64, uint8_t olen)
+write_i64_o_aligned(bb_t *bb, int64_t i64, uint8_t olen)
 {
-    be64_t be64 = cpu_to_be64(i64);
-
+    bb_align(bb);
     assert (olen <= 8);
-    sb_add(sb, (uint8_t *)&be64 + 8 - olen, olen);
+    bb_be_add_bits(bb, i64, olen * 8);
 }
 
-static ALWAYS_INLINE void write_u8(sb_t *sb, uint8_t u8)
+static ALWAYS_INLINE void write_u8_aligned(bb_t *bb, uint8_t u8)
 {
-    sb_addc(sb, u8);
+    bb_align(bb);
+    bb_be_add_bits(bb, u8, 8);
 }
 
-static ALWAYS_INLINE void write_u16(sb_t *sb, uint16_t u16)
+static ALWAYS_INLINE void write_u16_aligned(bb_t *bb, uint16_t u16)
 {
-    be16_t be16 = cpu_to_be16(u16);
-
-    sb_add(sb, &be16, 2);
+    bb_align(bb);
+    bb_be_add_bits(bb, u16, 16);
 }
 
 static ALWAYS_INLINE int __read_u8_aligned(bit_stream_t *bs, uint8_t *res)
@@ -108,16 +107,14 @@ aper_write_u16_m(bb_t *bb, uint16_t u16, uint16_t blen)
         goto end;
     }
 
-    bb_align(bb);
-
     if (blen == 8) {
-        write_u8(&bb->sb, u16); /* We can: bb is aligned */
+        write_u8_aligned(bb, u16);
         goto end;
     }
 
     assert (blen <= 16);
 
-    write_u16(&bb->sb, u16); /* We can: bb is aligned */
+    write_u16_aligned(bb, u16);
     /* FALLTHROUGH */
 
   end:
@@ -136,7 +133,7 @@ aper_write_ulen(bb_t *bb, size_t l) /* Unconstrained length */
     bb_reset_mark(bb);
 
     if (l <= 127) {
-        write_u8(&bb->sb, l); /* we can: bb is aligned */
+        write_u8_aligned(bb, l);
 
         e_trace_bb_tail(5, bb, "Unconstrained length (l = %zd)", l);
         bb_pop_mark(bb);
@@ -147,7 +144,7 @@ aper_write_ulen(bb_t *bb, size_t l) /* Unconstrained length */
     if (l < (1 << 14)) {
         uint16_t u16  = l | (1 << 15);
 
-        write_u16(&bb->sb, u16); /* we can: bb is aligned */
+        write_u16_aligned(bb, u16);
 
         e_trace_bb_tail(5, bb, "Unconstrained length (l = %zd)", l);
         bb_pop_mark(bb);
@@ -166,8 +163,7 @@ static ALWAYS_INLINE void aper_write_2c_number(bb_t *bb, int64_t v)
 
     olen = i64_olen(v);
     aper_write_ulen(bb, olen);
-    bb_align(bb);
-    write_i64_o(&bb->sb, v, olen);
+    write_i64_o_aligned(bb, v, olen);
 }
 
 /* XXX semi-constrained or constrained numbers */
@@ -189,9 +185,7 @@ aper_write_number(bb_t *bb, uint64_t v, const asn1_int_info_t *info)
         aper_write_ulen(bb, olen);
     }
 
-    bb_align(bb);
-
-    write_i64_o(&bb->sb, v, olen);
+    write_i64_o_aligned(bb, v, olen);
 }
 
 /* Normally small non-negative whole number (SIC) */
@@ -359,7 +353,7 @@ aper_encode_ostring(bb_t *bb, const asn1_ostring_t *os,
     }
 
     bb_align(bb);
-    sb_add(&bb->sb, os->data, os->len);
+    bb_be_add_bytes(bb, os->data, os->len);
 
     return 0;
 }
@@ -392,7 +386,7 @@ aper_encode_bstring(bb_t *bb, const bit_stream_t *bs,
         return e_error("octet string: failed to encode length");
     }
 
-    bb_be_add_bs(bb, *bs);
+    bb_be_add_bs(bb, bs);
 
     return 0;
 }
@@ -489,11 +483,11 @@ aper_encode_field(bb_t *bb, const void *v, const asn1_field_t *field)
         bb_inita(&buf, field->open_type_buf_len);
         aper_encode_value(&buf, v, field);
 
-        if (!bb_len(&buf)) {
-            sb_addc(&buf.sb, 0);
+        if (!buf.len) {
+            bb_be_add_byte(&buf, 0);
         }
 
-        os = ASN1_OSTRING((const uint8_t *)buf.sb.data, buf.sb.len);
+        os = ASN1_OSTRING(buf.bytes, DIV_ROUND_UP(buf.len, 8));
         res = aper_encode_ostring(bb, &os, NULL);
         bb_wipe(&buf);
     } else {
@@ -694,7 +688,9 @@ static int aper_encode_constructed(bb_t *bb, const void *st,
 
 int aper_encode_desc(sb_t *sb, const void *st, const asn1_desc_t *desc)
 {
-    bb_t bb = bb_init_sb(sb);
+    bb_t bb;
+
+    bb_init_sb(&bb, sb);
 
     if (aper_encode_constructed(&bb, st, desc, NULL) < 0) {
         return -1;
@@ -1229,8 +1225,8 @@ t_aper_decode_bit_string(bit_stream_t *bs, const asn1_cnt_info_t *info,
 
     size = DIV_ROUND_UP(bs_len(&bstring), 8);
     bb_inita(&bb, size);
-    bb_be_add_bs(&bb, bstring);
-    data = memp_dup(t_pool(), bb.sb.data, size);
+    bb_be_add_bs(&bb, &bstring);
+    data = memp_dup(t_pool(), bb.data, size);
     *bit_string = ASN1_BIT_STRING(data, bs_len(&bstring));
     bb_wipe(&bb);
 

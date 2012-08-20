@@ -125,7 +125,7 @@ bit_stream_t bs_init_ps(const pstream_t *ps, size_t pad)
 
 static inline bit_stream_t bs_init_bb(const bb_t *bb)
 {
-    return bs_init(bb->sb.data, 0, bb->sb.len * 8 - ((8 - bb->wbit) & 7));
+    return bs_init(bb->data, 0, bb->len);
 }
 
 /* }}} */

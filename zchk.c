@@ -31,12 +31,15 @@ Z_GROUP_EXPORT(bit_buf)
         bb_be_add_bit(&bb, true);
         bb_be_add_bit(&bb, false);
         bb_be_add_bit(&bb, true);
+        Z_ASSERT_EQ(bb.len, 10U);
+
         bs = bs_init_bb(&bb);
         Z_ASSERT_EQ(bs_len(&bs), 10U, "Check length #1");
 
         bb_be_add_bits(&bb, 0x1a, 7); /* 0011010 */
         Z_ASSERT_STREQUAL("0101100", t_print_bits(0x1a, 0, 7));
 
+        Z_ASSERT_EQ(bb.len, 17U);
         bs = bs_init_bb(&bb);
         Z_ASSERT_STREQUAL(".10110001.01001101.0", t_print_bs(bs, NULL));
 
