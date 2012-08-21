@@ -317,24 +317,33 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
 }
 
 static void
-iop_xwsdl_scan_types(wsdlpp_t *wpp, const iop_struct_t *st, qh_t(iop_type) *h,
-                     qv_t(iop_type) *a, qv_t(iop_enum) *b)
+iop_xwsdl_scan_types(wsdlpp_t *wpp, const iop_struct_t *st,
+                     qh_t(iop_type) *type_idx,
+                     qv_t(iop_type) *types, qv_t(iop_enum) *enums)
 {
-    if (qh_add(iop_type, h, st))
+    if (qh_add(iop_type, type_idx, st))
         return;
 
     for (int i = 0; i < st->fields_len; i++) {
-        const iop_field_t *f = &st->fields[i];
-        if ((1 << f->type) & IOP_STRUCTS_OK) {
-            iop_xwsdl_scan_types(wpp, f->u1.st_desc, h, a, b);
+        const iop_field_t *field = &st->fields[i];
+        const iop_field_attrs_t *attrs;
+
+        attrs = iop_field_get_attrs(st, field);
+        if (attrs && TST_BIT(&attrs->flags, IOP_FIELD_PRIVATE))
+            continue;
+
+        if ((1 << field->type) & IOP_STRUCTS_OK) {
+            iop_xwsdl_scan_types(wpp, field->u1.st_desc, type_idx, types, enums);
         } else
-        if (f->type == IOP_T_ENUM && wpp->wenums) {
-            if (qh_add(iop_type, h, f->u1.st_desc))
+        if (field->type == IOP_T_ENUM && wpp->wenums) {
+            if (qh_add(iop_type, type_idx, field->u1.st_desc))
                 continue;
-            qv_append(iop_enum, b, f->u1.en_desc);
+
+            qv_append(iop_enum, enums, field->u1.en_desc);
         }
     }
-    qv_append(iop_type, a, st);
+
+    qv_append(iop_type, types, st);
 }
 
 static void
