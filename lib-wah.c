@@ -27,11 +27,16 @@ void wah_wipe(wah_t *map)
     qv_wipe(wah_word, &map->data);
 }
 
+/* WAH copy requires an initialized wah as target
+ */
 void wah_copy(wah_t *map, const wah_t *src)
 {
+    qv_t(wah_word) data = map->data;
+
     p_copy(map, src, 1);
-    qv_init(wah_word, &map->data);
-    qv_splice(wah_word, &map->data, 0, 0, src->data.tab, src->data.len);
+    map->data = data;
+    qv_splice(wah_word, &map->data, 0, map->data.len,
+              src->data.tab, src->data.len);
 }
 
 wah_t *t_wah_new(int size)
