@@ -130,6 +130,10 @@ static inline int xmlr_node_close(xml_reader_t xr)
 {
     if (xmlr_node_is_empty(xr) == 1 || xmlr_node_is_closing(xr) == 1)
         return xmlr_next_node(xr);
+    /* check if next tag is the closing tag */
+    RETHROW(xmlr_next_node(xr));
+    if (xmlr_node_is_closing(xr) == 1)
+        return xmlr_next_node(xr);
     return xmlr_fail(xr, "closing tag expected");
 }
 
