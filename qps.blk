@@ -2515,6 +2515,9 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
             el_timer_unregister(&timer_copy);
             e_named_trace(1, "qps", "snapshot commited and notified");
 
+            qps_dir_cleanup(qps, generation);
+            qps_unquarantine_nos(qps);
+
             for (int i = 0; i < qps->maps.len; i++) {
                 qps_map_t *map = qps->maps.tab[i];
 
@@ -2531,8 +2534,6 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
                     qps_map_recycle(qps, map, i, false);
             }
 
-            qps_dir_cleanup(qps, generation);
-            qps_unquarantine_nos(qps);
             qps->snapshotting = false;
             notify(generation);
         });
