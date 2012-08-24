@@ -669,6 +669,7 @@ static void qps_unquarantine_nos(qps_t *qps)
     for (int i = 0; i < qps->no_blocked.len; i++) {
          /* remove the potential file on disk */
          snprintf(buf, sizeof(buf), "%08x.qps", qps->no_blocked.tab[i]);
+         e_named_trace(1, "qps/unquarantine", "unlinkat(%s)", buf);
          unlinkat(qps->dfd, buf, 0);
     }
     qv_clear(u32, &qps->no_blocked);
@@ -777,10 +778,12 @@ static qps_map_t *qps_map_m_create_raw(qps_t *qps, uint32_t no)
     int fd;
 
     snprintf(buf, sizeof(buf), "%08x.qps", no);
+    e_named_trace(1, "qps/create", "unlinkat(%s)", buf);
     if (unlinkat(qps->dfd, buf, 0) < 0) {
         if (errno != ENOENT)
             qps_enospc("unlinkat");
     }
+    e_named_trace(1, "qps", "openat(%s)", buf);
     fd = x_openat(qps->dfd, buf, O_RDWR | O_CREAT | O_EXCL, 0644);
     x_ftruncate(fd, QPS_MAP_SIZE);
 
@@ -900,6 +903,7 @@ static void qps_map_pg_snapshot(qps_t *qps, qps_map_t *map, uint32_t gen)
     }
 
     if (gzclose(out)) {
+        e_named_trace(1, "qps/snapshot", "unlinkat(%s)", buf);
         unlinkat(qps->dfd, buf, 0);
         close(fd);
         qps_enospc("gzclose");
@@ -994,6 +998,7 @@ static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
     struct stat st = { .st_size = 0 };
 
     snprintf(buf, sizeof(buf), "%08x.qps", no);
+    e_named_trace(1, "qps", "openat(%s)", buf);
     if ((fd = openat(qps->dfd, buf, O_RDWR, 0644)) < 0) {
         e_error("QPS(%p:%s): unable to open: %m", qps, buf);
         return NULL;
@@ -1122,6 +1127,7 @@ static void qps_dir_cleanup(qps_t *qps, uint32_t gen)
         const char *ext = path_extnul(s);
 
         if (strequal(ext, ".qpt")) {
+            e_named_trace(1, "qps/cleanup", "unlinkat(%s)", s);
             unlinkat(qps->dfd, s, 0);
             continue;
         }
@@ -1130,12 +1136,15 @@ static void qps_dir_cleanup(qps_t *qps, uint32_t gen)
             if (strequal(s, "meta.qps"))
                 continue;
             if (strlen(s) != 8 + 4) {
+                e_named_trace(1, "qps/cleanup", "unlinkat(%s)", s);
                 unlinkat(qps->dfd, s, 0);
             } else {
                 uint32_t no = strtol(s, NULL, 16);
 
-                if (no >= (uint32_t)qps->maps.len || qps->maps.tab[no] == NULL)
+                if (no >= (uint32_t)qps->maps.len || qps->maps.tab[no] == NULL) {
+                    e_named_trace(1, "qps/cleanup", "unlinkat(%s)", s);
                     unlinkat(qps->dfd, s, 0);
+                }
             }
             continue;
         }
@@ -1147,6 +1156,7 @@ static void qps_dir_cleanup(qps_t *qps, uint32_t gen)
             {
                 continue;
             }
+            e_named_trace(1, "qps/cleanup", "unlinkat(%s)", s);
             unlinkat(qps->dfd, s, 0);
         }
     }
@@ -2246,6 +2256,7 @@ int qps_unlink(const char *path)
         const char *e = path_extnul(s);
 
         if (strequal(".qps", e) || strequal(".qpz", e) || strequal(".qpt", e)) {
+            e_named_trace(1, "qps/unlink", "unlinkat(%s)", s);
             if (unlinkat(fd, s, 0)) {
                 res = e_error("unable to unlink %s", s);
                 break;
@@ -2567,6 +2578,7 @@ void qps_close(qps_t **qpsp)
             if (map) {
                 if (!qps_is_ro(qps, map)) {
                     snprintf(buf, sizeof(buf), "%08x.qps", i);
+                    e_named_trace(1, "qps/close", "unlinkat(%s)", buf);
                     unlinkat(qps->dfd, buf, 0);
                 }
                 munmap(map, QPS_MAP_SIZE);
@@ -2585,6 +2597,7 @@ void qps_close(qps_t **qpsp)
         p_delete(&qps->hdrs);
         dlist_remove(&qps->qps_link);
         if (qps->lockfd >= 0) {
+            e_named_trace(1, "qps/close", "unlinkat(.lock)");
             unlinkat(qps->dfd, ".lock", 0);
             close(qps->lockfd);
         }
