@@ -2531,7 +2531,7 @@ uint32_t qps_snapshot(qps_t *qps, const void *data, size_t dlen,
                     continue;
                 }
                 if (map->hdr.remaining == 0)
-                    qps_map_recycle(qps, map, i, false);
+                    qps_map_recycle(qps, map, i, true);
             }
 
             qps->snapshotting = false;
