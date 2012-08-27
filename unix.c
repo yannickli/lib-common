@@ -91,42 +91,13 @@ int get_mtime(const char *filename, time_t *t)
     return 0;
 }
 
-/** Copy file pathin to pathout. If pathout already exists, it will
- * be overwritten.
- *
- * Note: Use the same mode bits as the input file.
- * @param  pathin  file to copy
- * @param  pathout destination (created if not exist, else overwritten)
- *
- * @return -1 on error
- * @return n  number of bytes copied
- */
-int filecopy(const char *pathin, const char *pathout)
+static off_t fcopy(int fdin, struct stat *stin, int fdout)
 {
-/* OG: since this function returns the number of bytes copied, the
- * return type should be off_t.
- */
-    int fdin = -1, fdout = -1;
-    struct stat st;
-    char buf[BUFSIZ];
     const char *p;
-    int nread, nwrite, total;
+    int nread, nwrite;
+    char buf[BUFSIZ];
+    off_t total = 0;
 
-    fdin = open(pathin, O_RDONLY | O_BINARY);
-    if (fdin < 0)
-        goto error;
-
-    if (fstat(fdin, &st))
-        goto error;
-
-    /* OG: this will not work if the source file is not writeable ;-) */
-    /* OG: should test if source and destination files are the same
-     * file before truncating destination file ;-) */
-    fdout = open(pathout, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, st.st_mode);
-    if (fdout < 0)
-        goto error;
-
-    total = 0;
     for (;;) {
         nread = read(fdin, buf, sizeof(buf));
         if (nread == 0)
@@ -151,8 +122,7 @@ int filecopy(const char *pathin, const char *pathout)
         total += nread;
     }
 
-    /* OG: total should be an off_t */
-    if (total != st.st_size) {
+    if (total != stin->st_size) {
         /* This should not happen... But who knows ? */
         goto error;
     }
@@ -171,14 +141,54 @@ int filecopy(const char *pathin, const char *pathout)
     {
         struct timeval tvp[2];
 
-        tvp[0] = (struct timeval) { .tv_sec = st.st_atime,
-                                    .tv_usec = st.st_atimensec / 1000 };
-        tvp[1] = (struct timeval) { .tv_sec = st.st_mtime,
-                                    .tv_usec = st.st_mtimensec / 1000 };
+        tvp[0] = (struct timeval) { .tv_sec = stin->st_atime,
+                                    .tv_usec = stin->st_atimensec / 1000 };
+        tvp[1] = (struct timeval) { .tv_sec = stin->st_mtime,
+                                    .tv_usec = stin->st_mtimensec / 1000 };
         futimes(fdout, tvp);
     }
 #endif
 
+    return total;
+
+  error:
+    return -1;
+}
+
+/** Copy file pathin to pathout. If pathout already exists, it will
+ * be overwritten.
+ *
+ * Note: Use the same mode bits as the input file.
+ * @param  pathin  file to copy
+ * @param  pathout destination (created if not exist, else overwritten)
+ *
+ * @return -1 on error
+ * @return n  number of bytes copied
+ */
+int filecopy(const char *pathin, const char *pathout)
+{
+/* OG: since this function returns the number of bytes copied, the
+ * return type should be off_t.
+ */
+    int fdin = -1, fdout = -1;
+    struct stat st;
+    off_t total;
+
+    fdin = open(pathin, O_RDONLY | O_BINARY);
+    if (fdin < 0)
+        goto error;
+
+    if (fstat(fdin, &st))
+        goto error;
+
+    /* OG: this will not work if the source file is not writeable ;-) */
+    /* OG: should test if source and destination files are the same
+     * file before truncating destination file ;-) */
+    fdout = open(pathout, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, st.st_mode);
+    if (fdout < 0)
+        goto error;
+
+    total = fcopy(fdin, &st, fdout);
     close(fdin);
     close(fdout);
 
@@ -187,6 +197,50 @@ int filecopy(const char *pathin, const char *pathout)
   error:
     p_close(&fdin);
     p_close(&fdout);
+
+    /* OG: destination file should be removed upon error ? */
+    return -1;
+}
+
+/** Copy file from a directory descriptor to another. If the file already
+ * exists in the destination directory, it will be overwritten.
+ *
+ * Note: Use the same mode bits as the input file.
+ * @param  dfd_src    source directory descriptor.
+ * @param  name_src   the file to copy.
+ * @param  dfd_dst    destination directory descriptor.
+ * @param  name_dst   the new resulting file.
+ *
+ * @return -1 on error
+ * @return n  number of bytes copied
+ */
+off_t filecopyat(int dfd_src, const char* name_src,
+                 int dfd_dst, const char* name_dst)
+{
+    int fd_src = -1, fd_dst = -1;
+    struct stat st;
+    off_t total;
+
+    fd_src = openat(dfd_src, name_src, O_RDONLY | O_BINARY);
+    if (fd_src < 0)
+        goto error;
+
+    if (fstat(fd_src, &st))
+        goto error;
+
+    fd_dst = openat(dfd_dst, name_dst,
+                    O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, st.st_mode);
+    if (fd_dst < 0)
+        goto error;
+
+    total = fcopy(fd_src, &st, fd_dst);
+    close(fd_src);
+    close(fd_dst);
+    return total;
+
+  error:
+    p_close(&fd_src);
+    p_close(&fd_dst);
 
     /* OG: destination file should be removed upon error ? */
     return -1;

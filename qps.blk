@@ -1223,22 +1223,17 @@ static void x_write_meta(qps_t *qps, uint32_t generation, const qv_t(u32) t,
     x_close(fd);
 }
 
-/** Loads a \p meta.qps file at qps_open() time.
- *
- * This function makes a lot of checks, mostly to help debugging.
- * Note that it will qps_map_unlink() an map that looks empty. Be careful,
- * this can be a destructive operation
- */
-static int qps_load_meta(qps_t *qps, sb_t *out)
+/* XXX: In case of success don't forget to unmap */
+static
+int qps_map_meta(const qps_t *qps, struct qps_meta **_meta, size_t *size)
 {
-    t_scope;
     const ssize_t min_sz = sizeof(struct qps_meta) + 20;
-    struct qps_meta *meta;
-    qps_map_t *map;
-    struct stat st;
-    uint32_t *h_u32, *u32, *uend;
-    uint32_t h_len;
     int fd;
+    struct stat st;
+    struct qps_meta *meta;
+
+    *_meta = NULL;
+    *size = 0;
 
     if ((fd = openat(qps->dfd, "meta.qps", O_RDONLY)) < 0) {
         return e_error("QPS(%p:meta): unable to open: %m", qps);
@@ -1274,43 +1269,73 @@ static int qps_load_meta(qps_t *qps, sb_t *out)
             e_error("QPS(%p:meta): unexpected generation", qps);
             goto err_unmap;
         }
-        if (unlikely(meta->generation % 2 == 0)) {
-            e_trace(0, "should not happen: backward compat for old bug");
-            qps->generation = meta->generation + 3;
-        } else {
-            qps->generation = meta->generation + 2;
-        }
     }
 
-    {
-        pstream_t in = ps_init(meta->data, meta->csize);
-        ssize_t   res;
+    *_meta = meta;
+    *size = st.st_size;
+    return 0;
 
-        u32  = t_new_raw(uint32_t, meta->osize / 4);
-        uend = u32 + meta->osize / 4;
-        res  = qlzo1x_decompress(u32, meta->osize, in);
-        if (res < 0) {
-            e_error("QPS(%p:meta): unable to unLZO: %zd", qps, -res);
-            goto err_unmap;
-        }
-        if (res != (ssize_t)meta->osize) {
-            e_error("QPS(%p:meta): unexpected unLZO size: %zd", qps, res);
-            goto err_unmap;
-        }
+  err_close:
+    close(fd);
+    return -1;
+
+  err_unmap:
+    munmap(meta, st.st_size);
+    return -1;
+}
+
+/* XXX: out MUST be allocated before calling. */
+static
+int qps_unlzo_data(const void *data, size_t datasz, size_t outsz, void *out)
+{
+    ssize_t   res;
+
+    res  = qlzo1x_decompress(out, outsz, ps_init(data, datasz));
+    if (res < 0) {
+        return e_error("QPS: unable to unLZO: %zd", -res);
+    } else
+    if ((size_t)res != outsz) {
+        return e_error("QPS: unexpected unLZO size: %zd", res);
+    }
+    return 0;
+}
+
+/** Loads a \p meta.qps file at qps_open() time.
+ *
+ * This function makes a lot of checks, mostly to help debugging.
+ * Note that it will qps_map_unlink() an map that looks empty. Be careful,
+ * this can be a destructive operation
+ */
+static int qps_load_meta(qps_t *qps, sb_t *out)
+{
+    t_scope;
+    struct qps_meta *meta;
+    size_t meta_size;
+    qps_map_t *map;
+    uint32_t *h_u32, *u32, *uend;
+    uint32_t h_len;
+
+    RETHROW(qps_map_meta(qps, &meta, &meta_size));
+
+    if (unlikely(meta->generation % 2 == 0)) {
+        e_trace(0, "should not happen: backward compat for old bug");
+        qps->generation = meta->generation + 3;
+    } else {
+        qps->generation = meta->generation + 2;
+    }
+
+    u32  = t_new_raw(uint32_t, meta->osize / 4);
+    uend = u32 + meta->osize / 4;
+    if (qps_unlzo_data(meta->data, meta->csize, meta->osize, u32) < 0) {
+        goto err_unmap;
     }
 
     if (out) {
-        pstream_t in  = ps_init(meta->data + meta->csize, meta->pcsize);
-        void     *buf = sb_growlen(out, meta->psize);
-        ssize_t   res;
+        void *buf = sb_growlen(out, meta->psize);
 
-        res = qlzo1x_decompress(buf, meta->psize, in);
-        if (res < 0) {
-            e_error("QPS(%p:meta): unable to unLZO: %zd", qps, -res);
-            goto err_unmap;
-        }
-        if (res != (ssize_t)meta->psize) {
-            e_error("QPS(%p:meta): unexpected unLZO size: %zd", qps, res);
+        if (qps_unlzo_data(meta->data + meta->csize, meta->pcsize,
+                           meta->psize, buf) < 0)
+        {
             goto err_unmap;
         }
     }
@@ -1373,15 +1398,11 @@ static int qps_load_meta(qps_t *qps, sb_t *out)
     }
     for (size_t i = 0; i < h_len; i++)
         qps->handles[i] = qps_pg_deref(qps, h_u32[i]);
-    munmap(meta, st.st_size);
+    munmap(meta, meta_size);
     return 0;
 
   err_unmap:
-    munmap(meta, st.st_size);
-    return -1;
-
-  err_close:
-    close(fd);
+    munmap(meta, meta_size);
     return -1;
 }
 
@@ -2585,6 +2606,107 @@ void qps_snapshot_wait(qps_t *qps)
             thr_queue_main_drain();
         }
     }
+}
+
+/** Copy meta.qps, and all the file linked inside.
+ *
+ * The copy is from the current db director, to @dfd_dst.
+ *
+ * The qps MUST not be snapshotting.
+ *
+ */
+int qps_backup(qps_t *qps, int dfd_dst, bool link_as_copy)
+{
+    t_scope;
+    struct qps_meta *meta;
+    size_t meta_size;
+    uint32_t *h_u32, *u32, *uend;
+    uint32_t h_len;
+    int ret = 0;
+
+    RETURN_ERR_IF(!qps || qps->dfd < 0 || dfd_dst < 0);
+    RETURN_ERR_IF(qps->snapshotting);
+
+    /* Step 1: Look for linked files in meta.qps, and copy them. */
+    /* Special case of empty meta.qps */
+    {
+        struct stat st;
+
+        if (fstatat(qps->dfd, "meta.qps", &st, 0) < 0) {
+            ret = e_error("QPS(%p): unable to stat meta.qps: %m", qps);
+            goto error;
+        }
+        if (st.st_size == 0) {
+            int fd = openat(dfd_dst, "meta.qps",
+                            O_CREAT | O_EXCL | O_RDWR, 0644);
+            if (fd < 0) {
+                ret = e_error("QPS(%p): unable to touch meta.qps", qps);
+                goto error;
+            }
+            return 0;
+        }
+    }
+
+    RETHROW(qps_map_meta(qps, &meta, &meta_size));
+
+    u32  = t_new_raw(uint32_t, meta->osize / 4);
+    uend = u32 + meta->osize / 4;
+    if ((ret = qps_unlzo_data(meta->data, meta->csize, meta->osize, u32)) < 0)
+    {
+        goto err_unmap;
+    }
+
+    h_len = DIV_ROUND_UP(u32[0], QPS_HANDLES_COUNT);
+    h_u32 = u32 + 2;
+    u32 = h_u32 + h_len;
+
+    if (u32 + 1 + u32[0] * 2 != uend) {
+        ret = e_error("QPS(%p:backup): inconsistent meta.qps [1]", qps);
+        goto err_unmap;
+    }
+    u32++;
+
+#define COPY_FILE(name)  do {                                               \
+        if (link_as_copy) {                                                 \
+            if (linkat(qps->dfd, name, dfd_dst, name, 0) < 0) {             \
+                ret = e_error("QPS(%p:backup): cannot link %s %m",          \
+                              qps, name);                                   \
+                goto err_unmap;                                             \
+            }                                                               \
+        } else {                                                            \
+            if (filecopyat(qps->dfd, name, dfd_dst, name) < 0) {            \
+                ret = e_error("QPS(%p:backup): cannot copy %s %m",          \
+                              qps, name);                                   \
+                goto err_unmap;                                             \
+            }                                                               \
+        }                                                                   \
+    } while(0);
+
+    for (; u32 < uend; u32 += 2) {
+        uint16_t no = u32[0];
+        char buf[32];
+
+        if (u32[0] & QPS_META_MAP_TLSF) {
+            snprintf(buf, sizeof(buf), "%08x.qps", no);
+        } else
+        if (!(u32[0] & QPS_META_MAP_PAGED)) {
+            ret = e_error("QPS(%p:backup): inconsistent meta.qps [6]", qps);
+            goto err_unmap;
+        } else {
+            snprintf(buf, sizeof(buf), "%08x.%08x.qpz", no, meta->generation);
+        }
+        COPY_FILE(buf);
+    }
+
+    /* Step 2: Write meta.qps */
+    COPY_FILE("meta.qps");
+#undef COPY_FILE
+
+  err_unmap:
+    munmap(meta, meta_size);
+
+  error:
+    return ret;
 }
 
 /** close an allocated qps object.
