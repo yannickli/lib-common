@@ -375,3 +375,4 @@ qvector_t(clstr,  lstr_t);
 
 qvector_t(cvoid, const void *);
 qvector_t(cstr,  const char *);
+qvector_t(sbp,   sb_t *);
