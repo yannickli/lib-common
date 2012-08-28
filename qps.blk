@@ -2709,11 +2709,7 @@ int qps_backup(qps_t *qps, int dfd_dst, bool link_as_copy)
     return ret;
 }
 
-/** close an allocated qps object.
- *
- * This function never fails. \see #qps_snapshot.
- */
-void qps_close(qps_t **qpsp)
+static void __qps_close(qps_t **qpsp, bool do_cleanup)
 {
     qps_t *qps = *qpsp;
 
@@ -2731,7 +2727,7 @@ void qps_close(qps_t **qpsp)
             char buf[32];
 
             if (map) {
-                if (!qps_is_ro(qps, map)) {
+                if (do_cleanup && !qps_is_ro(qps, map)) {
                     snprintf(buf, sizeof(buf), "%08x.qps", i);
                     e_named_trace(1, "qps/close", "unlinkat(%s)", buf);
                     unlinkat(qps->dfd, buf, 0);
@@ -2759,6 +2755,15 @@ void qps_close(qps_t **qpsp)
         p_delete(qpsp);
         e_named_trace(1, "qps", "qps_close(%p)", qps);
     }
+}
+
+/** close an allocated qps object.
+ *
+ * This function never fails. \see #qps_snapshot.
+ */
+void qps_close(qps_t **qpsp)
+{
+    __qps_close(qpsp, true);
 }
 
 /* }}} */
@@ -2950,3 +2955,239 @@ void qps_initialize(void (*sighandler)(int, siginfo_t *, void *))
 }
 
 /** \} */
+/* Tests {{{ */
+
+#include "z.h"
+
+static int run_snapshot(qps_t *qps)
+{
+    qps_snapshot(qps, NULL, 0, ^(uint32_t i) { });
+    return 0;
+}
+
+Z_GROUP_EXPORT(qps)
+{
+    const char S[] = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQSRT";
+    qps_handle_t handle1, handle2, handle3;
+
+    thr_initialize();
+    qps_initialize(&ps_panic_sighandler);
+
+#define Z_CHECK_ALLOC(handle, size)  ({                                      \
+        char *__data = qps_alloc(qps, &handle, size);                        \
+                                                                             \
+        Z_ASSERT_P(__data);                                                  \
+        Z_ASSERT_GE(qps_sizeof(qps, __data), (size_t)size);                  \
+                                                                             \
+        __data;                                                              \
+    })
+
+#define Z_CHECK_ALLOC_AND_FILL(handle, size)  do {                           \
+        char *__data2 = Z_CHECK_ALLOC(handle, size);                         \
+        int __remain =  qps_sizeof(qps, __data2);                            \
+                                                                             \
+        while (__remain > 0) {                                               \
+            int __to_write = MIN(__remain, countof(S) - 1);                  \
+            memcpy(__data2, S, __to_write);                                  \
+            __remain -= __to_write;                                          \
+            __data2   += __to_write;                                         \
+        }                                                                    \
+    } while (0)
+
+#define Z_CHECK_HANDLE(handle, len)  ({                                      \
+        char *__data = qps_handle_deref(qps, handle);                        \
+                                                                             \
+        Z_ASSERT_GE(qps_sizeof(qps, __data), (size_t)len);                   \
+        __data;                                                              \
+    })
+
+#define Z_CHECK_HANDLE_FILLED(handle, len)  do {                             \
+        const char *__data2 = Z_CHECK_HANDLE(handle, len);                   \
+        size_t __remain = (len);                                             \
+                                                                             \
+        while (__remain > 0) {                                               \
+            int __to_read = MIN(__remain, countof(S) - 1);                   \
+            Z_ASSERT_EQUAL(S, __to_read, __data2, __to_read);                \
+            __remain -= __to_read;                                           \
+            __data2  += __to_read;                                           \
+        }                                                                    \
+    } while (0)
+
+#define Z_CHECK_REOPEN(Cleanup)  do {                                        \
+        __qps_close(&qps, Cleanup);                                          \
+        qps = qps_open(z_tmpdir_g.s, NULL);                                  \
+        Z_ASSERT_P(qps);                                                     \
+    } while (0)
+
+    Z_TEST(nr_20110105, "") {
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+
+        Z_CHECK_ALLOC_AND_FILL(handle1, 24);
+        Z_CHECK_ALLOC_AND_FILL(handle2, 42);
+        Z_CHECK_ALLOC_AND_FILL(handle3, 24);
+
+        Z_CHECK_HANDLE_FILLED(handle1, 24);
+        Z_CHECK_HANDLE_FILLED(handle2, 42);
+        Z_CHECK_HANDLE_FILLED(handle3, 24);
+
+        Z_CHECK_REOPEN(true);
+        qps_close(&qps);
+    } Z_TEST_END;
+
+    Z_TEST(nr_20110107_1, "") {
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+
+        Z_CHECK_ALLOC_AND_FILL(handle1, 24);
+
+        Z_HELPER_RUN(run_snapshot(qps));
+
+        Z_CHECK_ALLOC_AND_FILL(handle2, 42);
+
+        Z_CHECK_HANDLE_FILLED(handle1, 24);
+        Z_CHECK_HANDLE_FILLED(handle2, 42);
+
+        Z_CHECK_REOPEN(true);
+        Z_CHECK_ALLOC_AND_FILL(handle1, 24);
+        qps_close(&qps);
+    } Z_TEST_END;
+
+    Z_TEST(nr_20110107_2, "") {
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+
+        Z_CHECK_ALLOC_AND_FILL(handle1, 24);
+
+        Z_HELPER_RUN(run_snapshot(qps));
+        qps_snapshot_wait(qps);
+
+        Z_CHECK_ALLOC_AND_FILL(handle2, 42);
+
+        Z_CHECK_HANDLE_FILLED(handle1, 24);
+        Z_CHECK_HANDLE_FILLED(handle2, 42);
+
+        Z_CHECK_REOPEN(true);
+        Z_CHECK_HANDLE_FILLED(handle1, 24);
+        qps_close(&qps);
+    } Z_TEST_END;
+
+    Z_TEST(nr_20110107_3, "") {
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+
+        Z_CHECK_ALLOC_AND_FILL(handle1, 24);
+
+        Z_HELPER_RUN(run_snapshot(qps));
+
+        Z_CHECK_ALLOC_AND_FILL(handle2, 42);
+
+        qps_snapshot_wait(qps);
+
+        Z_CHECK_HANDLE_FILLED(handle1, 24);
+        Z_CHECK_HANDLE_FILLED(handle2, 42);
+
+        Z_CHECK_REOPEN(true);
+        Z_CHECK_HANDLE_FILLED(handle1, 24);
+        qps_close(&qps);
+    } Z_TEST_END;
+
+    Z_TEST(nr_20110203, "") {
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+
+        Z_CHECK_ALLOC_AND_FILL(handle1, 120);
+        Z_CHECK_ALLOC_AND_FILL(handle2, 120);
+        qps_free(qps, handle2);
+
+        Z_CHECK_HANDLE_FILLED(handle1, 120);
+
+        Z_HELPER_RUN(run_snapshot(qps));
+
+        Z_CHECK_ALLOC_AND_FILL(handle2, 42);
+        Z_CHECK_HANDLE_FILLED(handle1, 120);
+        Z_CHECK_HANDLE_FILLED(handle2, 42);
+
+        qps_snapshot_wait(qps);
+        Z_CHECK_HANDLE_FILLED(handle1, 120);
+        Z_CHECK_HANDLE_FILLED(handle2, 42);
+
+        Z_HELPER_RUN(run_snapshot(qps));
+        Z_CHECK_HANDLE_FILLED(handle1, 120);
+        Z_CHECK_HANDLE_FILLED(handle2, 42);
+
+        Z_CHECK_REOPEN(true);
+        Z_CHECK_HANDLE_FILLED(handle1, 120);
+        Z_CHECK_HANDLE_FILLED(handle2, 42);
+        qps_close(&qps);
+    } Z_TEST_END;
+
+    Z_TEST(nr_20110302, "") {
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+
+        Z_CHECK_ALLOC_AND_FILL(handle1, 36);
+        Z_CHECK_ALLOC_AND_FILL(handle2, 36);
+
+        qps_free(qps, handle1);
+        Z_CHECK_HANDLE_FILLED(handle2, 36);
+
+        Z_CHECK_REOPEN(true);
+        qps_close(&qps);
+    } Z_TEST_END;
+
+    Z_TEST(nr_20120824_1, "map emptied concurrently to snapshot") {
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+
+        Z_CHECK_ALLOC_AND_FILL(handle1, 36);
+
+        Z_HELPER_RUN(run_snapshot(qps));
+        IGNORE(qps_handle_w_deref(qps, handle1));
+        qps_snapshot_wait(qps);
+
+        Z_CHECK_REOPEN(true);
+        Z_CHECK_HANDLE_FILLED(handle1, 36);
+        qps_close(&qps);
+    } Z_TEST_END;
+
+    Z_TEST(nr_20120824_2, "map emptied concurrently to snapshot") {
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+
+        Z_CHECK_ALLOC_AND_FILL(handle1, 36);
+
+        Z_HELPER_RUN(run_snapshot(qps));
+        qps_free(qps, handle1);
+        qps_snapshot_wait(qps);
+
+        Z_CHECK_REOPEN(true);
+        Z_CHECK_HANDLE_FILLED(handle1, 36);
+        qps_close(&qps);
+    } Z_TEST_END;
+
+    Z_TEST(nr_20120827_1, "map emptied then reused after snapshot") {
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+
+        Z_CHECK_ALLOC_AND_FILL(handle1, 36);
+        Z_HELPER_RUN(run_snapshot(qps));
+        qps_free(qps, handle1);
+        qps_snapshot_wait(qps);
+
+        memset(Z_CHECK_ALLOC(handle1, 24), 0, 24);
+
+        Z_CHECK_REOPEN(true);
+        Z_CHECK_HANDLE_FILLED(handle1, 36);
+        qps_close(&qps);
+    } Z_TEST_END;
+
+    Z_TEST(nr_20120827_2, "map emptied then reused after snapshot") {
+        qps_t *qps = qps_create(z_tmpdir_g.s, 0755);
+
+        Z_CHECK_ALLOC_AND_FILL(handle1, 36);
+        Z_HELPER_RUN(run_snapshot(qps));
+        qps_free(qps, handle1);
+        qps_snapshot_wait(qps);
+
+        memset(Z_CHECK_ALLOC(handle1, 24), 0, 24);
+
+        Z_CHECK_REOPEN(false);
+        Z_CHECK_HANDLE_FILLED(handle1, 36);
+        qps_close(&qps);
+    } Z_TEST_END;
+}
+Z_GROUP_END;
+
+/* }}} */
