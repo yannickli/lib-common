@@ -1726,6 +1726,55 @@ ssize_t iop_get_field_len(pstream_t ps)
 }
 
 /*-}}}-*/
+/*------ introspection -{{{-*/
+
+const iop_iface_t *iop_mod_find_iface(const iop_mod_t *mod, uint32_t tag)
+{
+    size_t l = 0, r = mod->ifaces_len;
+
+    while (l < r) {
+        size_t  i = (l + r) / 2;
+        const iop_iface_alias_t *alias = &mod->ifaces[i];
+
+        if (tag == alias->tag) {
+            return alias->iface;
+        }
+        if (tag < alias->tag) {
+            r = i;
+        } else {
+            l = i + 1;
+        }
+    }
+    return NULL;
+}
+
+const iop_rpc_t *iop_iface_find_rpc(const iop_iface_t *iface, uint32_t tag)
+{
+    size_t l = 0, r = iface->funs_len;
+
+    while (l < r) {
+        size_t i = (l + r) / 2;
+        const iop_rpc_t *rpc = &iface->funs[i];
+
+        if (tag == rpc->tag) {
+            return rpc;
+        }
+        if (tag < rpc->tag) {
+            r = i;
+        } else {
+            l = i + 1;
+        }
+    }
+    return NULL;
+}
+
+const iop_rpc_t *iop_mod_find_rpc(const iop_mod_t *mod, uint32_t cmd)
+{
+    const iop_iface_t *iface = RETHROW_P(iop_mod_find_iface(mod, cmd >> 16));
+    return iop_iface_find_rpc(iface, cmd & 0xffff);
+}
+
+/*------ introspection -}}}-*/
 
 iop_struct_t const iop__void__s = {
     .fullname   = LSTR_IMMED("Void"),

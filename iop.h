@@ -356,6 +356,13 @@ enum iop_unpack_flags {
     IOP_UNPACK_IGNORE_UNKNOWN = (1U << 0),
 };
 
+/*------- IOP introspection -------*/
+
+const iop_iface_t *iop_mod_find_iface(const iop_mod_t *mod, uint32_t tag);
+const iop_rpc_t   *iop_iface_find_rpc(const iop_iface_t *iface, uint32_t tag);
+const iop_rpc_t   *iop_mod_find_rpc(const iop_mod_t *mod, uint32_t cmd);
+
+
 #include "iop-xml.h"
 #include "iop-json.h"
 #include "iop-dso.h"
