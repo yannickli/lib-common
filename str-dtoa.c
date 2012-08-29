@@ -212,7 +212,20 @@ extern void *MALLOC(size_t);
 #define PRIVATE_MEM 2000
 #endif
 #define PRIVATE_mem (int)((PRIVATE_MEM+sizeof(double)-1)/sizeof(double))
-static double private_mem[PRIVATE_mem], *pmem_next = private_mem;
+static __thread double private_mem[PRIVATE_mem];
+static __thread double *pmem_next;
+
+#include "thr.h"
+
+__attribute((constructor))
+static void private_mem_initialize(void)
+{
+    pmem_next = private_mem;
+}
+static void private_mem_shutdown(void)
+{
+}
+thr_hooks(private_mem_initialize, private_mem_shutdown);
 #endif
 
 #undef IEEE_Arith
@@ -459,7 +472,7 @@ struct Bigint {
 
 typedef struct Bigint Bigint;
 
-static Bigint *freelist[Kmax+1];
+static __thread Bigint *freelist[Kmax+1];
 
 static Bigint *
 Balloc
@@ -2214,7 +2227,7 @@ quorem
 }
 
 #ifndef MULTIPLE_THREADS
-static char *dtoa_result;
+static __thread char *dtoa_result;
 #endif
 
 static char *
