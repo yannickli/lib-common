@@ -527,7 +527,8 @@ static void qps_m_register_map(qps_t *qps, qps_map_t *map)
     qps_m_blk_insert(qps, f_blk, (uint8_t *)e_blk - f_blk->data);
 }
 
-static int qps_m_check_map(qps_t *qps, qps_map_t *map, bool fatal)
+static int qps_m_check_map(qps_t *qps, qps_map_t *map, uint32_t remaining,
+                           bool fatal)
 {
     void       *map_end = &map[QPS_MAP_PAGES];
     qps_mhdr_t *blk     = (qps_mhdr_t *)&map[1];
@@ -558,13 +559,13 @@ static int qps_m_check_map(qps_t *qps, qps_map_t *map, bool fatal)
             }
             blk = nxt;
         }
-        if (map->hdr.remaining != allocated) {
+        if (remaining != allocated) {
             if (fatal) {
                 e_panic("RO map [%x] remaining disparity: delta is %zd",
-                        map->hdr.mapno, map->hdr.remaining - allocated);
+                        map->hdr.mapno, remaining - allocated);
             } else {
                 return e_error("RO map [%x] remaining disparity: delta is %zd",
-                               map->hdr.mapno, map->hdr.remaining - allocated);
+                               map->hdr.mapno, remaining - allocated);
             }
         }
     } else {
@@ -606,7 +607,7 @@ int __qps_check_maps(qps_t *qps, bool fatal)
         if (qps_map_is_pg(map)) {
             RETHROW(qps_pg_check_hdrs_aux(qps, i << 16, fatal));
         } else {
-            RETHROW(qps_m_check_map(qps, map, fatal));
+            RETHROW(qps_m_check_map(qps, map, map->hdr.remaining, fatal));
         }
     }
     return 0;
@@ -1316,7 +1317,7 @@ int qps_unlzo_data(const void *data, size_t datasz, size_t outsz, void *out)
  * Note that it will qps_map_unlink() an map that looks empty. Be careful,
  * this can be a destructive operation
  */
-static int qps_load_meta(qps_t *qps, sb_t *out)
+static int qps_load_meta(qps_t *qps, sb_t *out, bool ro)
 {
     t_scope;
     struct qps_meta *meta;
@@ -1384,13 +1385,15 @@ static int qps_load_meta(qps_t *qps, sb_t *out)
                 e_error("QPS(%p:meta): inconsistent meta.qps [4]", qps);
                 goto err_unmap;
             }
-            map->hdr.remaining = u32[1];
-            if (map->hdr.remaining > map->hdr.allocated) {
+            if (u32[1] > map->hdr.allocated) {
                 e_error("QPS(%p:meta): inconsistent meta.qps [5]", qps);
                 goto err_unmap;
             }
-            if (map->hdr.remaining == 0)
-                qps_map_recycle(qps, map, no, true);
+            if (!ro) {
+                map->hdr.remaining = u32[1];
+                if (u32[1] == 0)
+                    qps_map_recycle(qps, map, no, true);
+            }
         } else
         if (!(u32[0] & QPS_META_MAP_PAGED)) {
             e_error("QPS(%p:meta): inconsistent meta.qps [6]", qps);
@@ -1409,6 +1412,26 @@ static int qps_load_meta(qps_t *qps, sb_t *out)
     for (size_t i = 0; i < h_len; i++)
         qps->handles[i] = qps_pg_deref(qps, h_u32[i]);
     munmap(meta, meta_size);
+
+#ifdef NDEBUG
+    if (ro) {
+#endif
+    u32 = h_u32 + h_len;
+    u32++;
+
+    for (; u32 < uend; u32 += 2) {
+        uint16_t no = u32[0];
+
+        if (u32[0] & QPS_META_MAP_TLSF) {
+            map = qps->maps.tab[no];
+            RETHROW(qps_m_check_map(qps, map, u32[1], false));
+        } else {
+            RETHROW(qps_pg_check_hdrs_aux(qps, u32[0] << 16, false));
+        }
+    }
+#ifdef NDEBUG
+    }
+#endif
     return 0;
 
   err_unmap:
@@ -2237,10 +2260,9 @@ qps_t *qps_open(const char *path, sb_t *priv)
         return qps;
     }
 
-    if (qps_load_meta(qps, priv))
+    if (qps_load_meta(qps, priv, false))
         goto out_close;
     e_named_trace(1, "qps", "qps_open() = %p", qps);
-    qps_m_check_maps(qps);
     qps_dir_cleanup(qps, qps->generation - 2);
     return qps;
 
@@ -2269,10 +2291,9 @@ int __qps_check_consistency(const char *path)
         goto out_close;
     }
 
-    if ((res = qps_load_meta(qps, NULL)))
+    if ((res = qps_load_meta(qps, NULL, true)))
         goto out_close;
-    e_named_trace(1, "qps", "qps_open() = %p", qps);
-    qps_m_check_maps(qps);
+    e_named_trace(1, "qps", "__qps_check_consistency() = %p", qps);
 
   out_close:
     qps_close(&qps);
