@@ -44,10 +44,21 @@ static struct {
 
 //#define QPS_CHECK_INVARIANTS
 #ifdef QPS_CHECK_INVARIANTS
-# define QPS_CHECK(expr)  assert(expr)
+# define QPS_CHECK(expr)         assert(expr)
+# define qps_m_check_maps(qps)   __qps_check_maps(qps, true)
 #else
-# define QPS_CHECK(expr)  ((void)0)
+# define QPS_CHECK(expr)         ((void)0)
+# define qps_m_check_maps(qps)   ((void)0)
 #endif
+
+#define CHECK(Expr)  do {                                                    \
+        if (unlikely(!(Expr))) {                                             \
+            if (fatal) {                                                     \
+                e_panic(#Expr);                                              \
+            }                                                                \
+            return -1;                                                       \
+        }                                                                    \
+    } while (0)
 
 #ifndef NDEBUG
 # define VG_DO(what, map, pg, n) \
@@ -307,31 +318,30 @@ static size_t qps_pg_blk_remove(qps_t *qps, qps_pg_t blk)
     return hdr->size;
 }
 
-#ifdef QPS_CHECK_INVARIANTS
-static void qps_pg_check_hdrs_aux(qps_t *qps, qps_pg_t blk)
+static int qps_pg_check_hdrs_aux(qps_t *qps, qps_pg_t blk, bool fatal)
 {
     qps_pghdr_t *hdrs = qps->hdrs + (blk & 0xffff0000);
 
-    assert (!(hdrs[0].flags & QPS_BLK_FREE));
-    assert (hdrs[0].size == 1);
+    CHECK(!(hdrs[0].flags & QPS_BLK_FREE));
+    CHECK(hdrs[0].size == 1);
 
     for (uint32_t pg = 1; pg < QPS_MAP_PAGES; ) {
         uint32_t sz = hdrs[pg].size;
 
-        assert (sz >= 1 && pg + sz <= QPS_MAP_PAGES);
+        CHECK(sz >= 1 && pg + sz <= QPS_MAP_PAGES);
         if (hdrs[pg].flags & QPS_BLK_FREE) {
-            assert (hdrs[pg + sz].flags & QPS_BLK_PREV_FREE);
-            assert (!(hdrs[pg + sz].flags & QPS_BLK_FREE));
+            CHECK(hdrs[pg + sz].flags & QPS_BLK_PREV_FREE);
+            CHECK(!(hdrs[pg + sz].flags & QPS_BLK_FREE));
         } else {
-            assert (!(hdrs[pg + sz].flags & QPS_BLK_PREV_FREE));
+            CHECK(!(hdrs[pg + sz].flags & QPS_BLK_PREV_FREE));
         }
         pg += sz;
     }
 
-    assert (!(hdrs[QPS_MAP_PAGES].flags & QPS_BLK_FREE));
-    assert (hdrs[QPS_MAP_PAGES].size == 1);
+    CHECK(!(hdrs[QPS_MAP_PAGES].flags & QPS_BLK_FREE));
+    CHECK(hdrs[QPS_MAP_PAGES].size == 1);
+    return 0;
 }
-#endif
 
 static void qps_pg_check_hdrs(qps_t *qps)
 {
@@ -340,7 +350,7 @@ static void qps_pg_check_hdrs(qps_t *qps)
         qps_map_t *map = qps->maps.tab[i];
 
         if (map && qps_map_is_pg(map))
-            qps_pg_check_hdrs_aux(qps, i << 16);
+            qps_pg_check_hdrs_aux(qps, i << 16, true);
     }
 #endif
 }
@@ -517,19 +527,15 @@ static void qps_m_register_map(qps_t *qps, qps_map_t *map)
     qps_m_blk_insert(qps, f_blk, (uint8_t *)e_blk - f_blk->data);
 }
 
-#ifdef QPS_CHECK_INVARIANTS
-static void qps_m_check_map(qps_t *qps, qps_map_t *map)
+static int qps_m_check_map(qps_t *qps, qps_map_t *map, bool fatal)
 {
     void       *map_end = &map[QPS_MAP_PAGES];
     qps_mhdr_t *blk     = (qps_mhdr_t *)&map[1];
     qps_mhdr_t *blk_end = container_of(map_end, qps_mhdr_t, data);
     size_t allocated = 0;
 
-    if (qps_is_ro(qps, map) && map->hdr.remaining == 0)
-        return;
-
-    assert (blk->flags == (QPS_MBLK_HDRSZ | QPS_BLK_PREV_USED | QPS_BLK_USED));
-    assert ((blk_end->flags | QPS_BLK_PREV_FREE) == QPS_BLK_PREV_FREE);
+    CHECK(blk->flags == (QPS_MBLK_HDRSZ | QPS_BLK_PREV_USED | QPS_BLK_USED));
+    CHECK((blk_end->flags | QPS_BLK_PREV_FREE) == QPS_BLK_PREV_FREE);
 
     blk = qps_m_blk_next(blk, QPS_MBLK_HDRSZ);
     if (qps_is_ro(qps, map)) {
@@ -538,13 +544,13 @@ static void qps_m_check_map(qps_t *qps, qps_map_t *map)
             qps_mhdr_t *nxt = qps_m_blk_next(blk, bsz);
             qps_ptr_t  *hptr, bptr;
 
-            assert (qps_m_blk_next(blk, bsz) <= blk_end);
+            CHECK(qps_m_blk_next(blk, bsz) <= blk_end);
             if (blk->flags & QPS_BLK_FREE) {
-                assert (nxt->flags & QPS_BLK_PREV_FREE);
-                assert (!(nxt->flags & QPS_BLK_FREE));
+                CHECK(nxt->flags & QPS_BLK_PREV_FREE);
+                CHECK(!(nxt->flags & QPS_BLK_FREE));
             } else {
-                assert (!(nxt->flags & QPS_BLK_PREV_FREE));
-                assert (blk->handle);
+                CHECK(!(nxt->flags & QPS_BLK_PREV_FREE));
+                CHECK(blk->handle);
                 hptr = qps_handle_slot(qps, blk->handle);
                 bptr = qps_encode(blk->data);
                 if (hptr->pgno == bptr.pgno && hptr->addr == bptr.addr)
@@ -553,48 +559,59 @@ static void qps_m_check_map(qps_t *qps, qps_map_t *map)
             blk = nxt;
         }
         if (map->hdr.remaining != allocated) {
-            e_panic("RO map [%x] remaining disparity: delta is %zd",
-                    map->hdr.mapno, map->hdr.remaining - allocated);
+            if (fatal) {
+                e_panic("RO map [%x] remaining disparity: delta is %zd",
+                        map->hdr.mapno, map->hdr.remaining - allocated);
+            } else {
+                return e_error("RO map [%x] remaining disparity: delta is %zd",
+                               map->hdr.mapno, map->hdr.remaining - allocated);
+            }
         }
     } else {
         while (blk < blk_end) {
             size_t      bsz = qps_m_blk_size(blk);
             qps_mhdr_t *nxt = qps_m_blk_next(blk, bsz);
 
-            assert (qps_m_blk_next(blk, bsz) <= blk_end);
+            CHECK(qps_m_blk_next(blk, bsz) <= blk_end);
             if (blk->flags & QPS_BLK_FREE) {
-                assert (nxt->flags & QPS_BLK_PREV_FREE);
-                assert (!(nxt->flags & QPS_BLK_FREE));
+                CHECK(nxt->flags & QPS_BLK_PREV_FREE);
+                CHECK(!(nxt->flags & QPS_BLK_FREE));
             } else {
-                assert (!(nxt->flags & QPS_BLK_PREV_FREE));
-                assert (blk->handle);
+                CHECK(!(nxt->flags & QPS_BLK_PREV_FREE));
+                CHECK(blk->handle);
                 allocated += QPS_MBLK_HDRSZ + bsz;
             }
             blk = nxt;
         }
         if (map->hdr.allocated != allocated) {
-            e_panic("RW map [%x] allocated disparity: delta is %zd",
-                    map->hdr.mapno, map->hdr.allocated - allocated);
+            if (fatal) {
+                e_panic("RW map [%x] allocated disparity: delta is %zd",
+                        map->hdr.mapno, map->hdr.allocated - allocated);
+            } else {
+                return e_error("RW map [%x] allocated disparity: delta is %zd",
+                               map->hdr.mapno, map->hdr.allocated - allocated);
+            }
         }
     }
+    return 0;
 }
-#endif
-static void qps_m_check_maps(qps_t *qps)
+
+int __qps_check_maps(qps_t *qps, bool fatal)
 {
-#ifdef QPS_CHECK_INVARIANTS
     for (int i = 0; i < qps->maps.len; i++) {
         qps_map_t *map = qps->maps.tab[i];
 
         if (!map || map->hdr.generation == 0)
             continue;
         if (qps_map_is_pg(map)) {
-            qps_pg_check_hdrs_aux(qps, i << 16);
+            RETHROW(qps_pg_check_hdrs_aux(qps, i << 16, fatal));
         } else {
-            qps_m_check_map(qps, map);
+            RETHROW(qps_m_check_map(qps, map, fatal));
         }
     }
-#endif
+    return 0;
 }
+
 
 /* }}} */
 /** @} */
