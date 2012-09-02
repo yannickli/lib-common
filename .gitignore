@@ -26,6 +26,7 @@
 /ztst-lzo
 /ztst-qps
 /ztst-qpscheck
+/ztst-qpsstress
 /ztst-sort
 /ztst-thrjob
 /ztst-tpl

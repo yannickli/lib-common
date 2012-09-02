@@ -14,7 +14,7 @@
 none_LIBRARIES = libcommon time-lp-simple
 test_PROGRAMS += ztst-cfgparser ztst-tpl ztst-lzo ztst-thrjob
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
-test_PROGRAMS += ztst-qps ztst-qpscheck ztst-hattrie
+test_PROGRAMS += ztst-qps ztst-qpscheck ztst-qpsstress ztst-hattrie
 ifeq (,$(TOOLS_REPOSITORY))
 none_SHARED_LIBRARIES += zchk-tstiop-plugin zchk-iop-plugin
 test_PROGRAMS += zchk ztst-httpd
@@ -228,6 +228,12 @@ ztst-qpscheck_SOURCES = \
 	ztst-qpscheck.blk \
 	$/lib-common/libcommon.a \
 	$/lib-common/time-lp-simple.a
+
+ztst-qpsstress_SOURCES = \
+	ztst-qpsstress.blk \
+	$/lib-common/libcommon.a \
+	$/lib-common/time-lp-simple.a
+ztst-qpsstress_LIBS = -lm
 
 ztst-hattrie_SOURCES = \
 	ztst-hattrie.blk \
