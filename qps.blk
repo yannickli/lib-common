@@ -1450,6 +1450,7 @@ static qps_t *qps_new(void)
     qps->handles_gc_gen = 1;
     thr_syn_init(&qps->gc_syn);
     thr_syn_init(&qps->snap_syn);
+    qps->hdrs = p_new(qps_pghdr_t, 1);
 
     dlist_add(&_G.qps_head, &qps->qps_link);
     return qps;
