@@ -775,6 +775,9 @@ httpd_trigger_node_new(httpd_trigger_node_t *parent, lstr_t path)
         p_new_extra(httpd_trigger_node_t, path.len + 1);
     qm_init(http_path, &node->childs, true);
     memcpy(node->path, path.s, path.len + 1);
+
+    /* Ensure the key point to a valid string since path may be deallocated */
+    parent->childs.keys[pos] = LSTR_INIT_V(node->path, path.len);
     return node;
 }
 
