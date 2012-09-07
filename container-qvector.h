@@ -71,7 +71,8 @@ __qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_f cmp)
     }
 }
 void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
-                    qvector_t *out, size_t v_size, qvector_cmp_f cmp);
+                    qvector_t *add, qvector_t *del, size_t v_size,
+                    qvector_cmp_f cmp);
 #endif
 
 /** \brief optimize vector for space.
@@ -162,11 +163,13 @@ qvector_splice(qvector_t *vec, size_t v_size,
         __qvector_sort(&vec->qv, sizeof(val_t), (qvector_cmp_f)cmp);        \
     }                                                                       \
     static inline void                                                      \
-    pfx##_diff(const pfx##_t *vec1, const pfx##_t *vec2, pfx##_t *out,      \
+    pfx##_diff(const pfx##_t *vec1, const pfx##_t *vec2,                    \
+               pfx##_t *add, pfx##_t *del,                                  \
                int (BLOCK_CARET cmp)(cval_t *, cval_t *))                   \
     {                                                                       \
-        __qvector_diff(&vec1->qv, &vec2->qv, &out->qv,                      \
-                       sizeof(val_t), (qvector_cmp_f)cmp);                  \
+        __qvector_diff(&vec1->qv, &vec2->qv, add ? &add->qv : NULL,         \
+                       del ? &del->qv : NULL,                               \
+                       sizeof(val_t), (qvector_cmp_f)cmp);        \
     }
 #else
 #define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)
@@ -337,11 +340,11 @@ qvector_splice(qvector_t *vec, size_t v_size,
     for (int pos = (vec)->len; pos-- > 0; )
 
 #ifdef __has_blocks
-/** \brief build a vector by filtering elements of vec2 from vec1
+/** \brief build the difference vectors by comparing elements of vec1 and vec2
  *
  * This generates a qv_diff function which can be used like that, for example:
  *
- *   qv_diff(u32)(&vec1, &vec2, &out,
+ *   qv_diff(u32)(&vec1, &vec2, &add, &del,
  *                ^int (const uint32_t *v1, const uint32_t *v2) {
  *       return CMP(*v1, *v2);
  *   });
@@ -349,7 +352,10 @@ qvector_splice(qvector_t *vec, size_t v_size,
  * \param[in]   vec1  the vector to filter (not modified)
  * \param[in]   vec2  the vector containing the elements to filter
  *                    from vec1 (not modified)
- * \param[out]  out   the output vector
+ * \param[out]  add   the vector of v2 values not in v1 (may be NULL if not
+ *                    interested in added values)
+ * \param[out]  del   the vector of v1 values not in v2 (may be NULL if not
+ *                    interested in deleted values
  * \param[in]   cmp   comparison function for the elements of the vectors
  *
  * You must be in a .blk to use qv_diff, because it expects blocks.
