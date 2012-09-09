@@ -243,7 +243,8 @@ void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_f cmp)
 }
 
 void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
-                    qvector_t *out, size_t v_size, qvector_cmp_f cmp)
+                    qvector_t *add, qvector_t *del, size_t v_size,
+                    qvector_cmp_f cmp)
 {
     int pos1 = 0, pos2 = 0;
     const void *tab1 = vec1->tab;
@@ -251,10 +252,18 @@ void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
     const void *elem1, *elem2;
 
 #define nth(base, i)  ((void *)((uint8_t *)(base) + (i) * v_size))
-#define append(src, len)  \
-    memcpy(qvector_growlen(out, v_size, (len)), src, (len) * v_size)
+#define append_tab(tab, src, len)                            \
+    if ((tab)) memcpy(qvector_growlen((tab), v_size, (len)), \
+                      src, (len) * v_size);
+#define append_add(src, len)  append_tab(add, src, len)
+#define append_del(src, len)  append_tab(del, src, len)
 
-    qvector_grow(out, v_size, vec1->len + out->len);
+    if (add) {
+        qvector_grow(add, v_size, vec1->len + add->len);
+    }
+    if (del) {
+        qvector_grow(del, v_size, vec1->len + del->len);
+    }
 
     elem1 = nth(tab1, 0);
     elem2 = nth(tab2, 0);
@@ -267,16 +276,21 @@ void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
             elem2 = nth(tab2, ++pos2);
         } else
         if (s < 0) {
-            append(elem1, 1);
+            append_del(elem1, 1);
             elem1 = nth(tab1, ++pos1);
         } else {
+            append_add(elem2, 1);
             elem2 = nth(tab2, ++pos2);
         }
     }
     if (pos1 != vec1->len) {
-        append(elem1, vec1->len - pos1);
+        append_del(elem1, vec1->len - pos1);
+    } else {
+        append_add(elem2, vec2->len - pos2);
     }
 
+#undef append_add
+#undef append_del
+#undef append_tab
 #undef nth
-#undef append
 }
