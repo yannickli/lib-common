@@ -227,6 +227,7 @@ int licence_do_signature(const conf_t *conf, char dst[65])
     char c;
     const char *blacklisted[] = {
         "signature",
+        "encryptionKey",
         NULL
     };
     qv_t(props) tosign;

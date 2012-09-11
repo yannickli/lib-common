@@ -276,6 +276,66 @@ int ssl_decrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key,
 }
 
 /* }}} */
+/* {{{ Licensing module */
+
+char *licence_compute_encryption_key(const char *signature, const char *key)
+{
+    /* We encrypt the obfuscation key using the compute signature as a SSL
+     * key. The salt will be 42 and that's all. */
+    ssl_ctx_t ctx;
+    char *encrypted;
+    int len;
+    SB_1k(sb);
+
+    RETHROW_P(ssl_ctx_init_aes256(&ctx, LSTR_STR_V(signature),
+                                  42424242424242ULL, 1024));
+
+    if (ssl_encrypt(&ctx, LSTR_STR_V(key), &sb) < 0) {
+        ssl_ctx_wipe(&ctx);
+        sb_wipe(&sb);
+        return NULL;
+    }
+
+    /* Encode the encrypted key as hex-string */
+    encrypted = sb_detach(&sb, &len);
+    sb_add_hex(&sb, encrypted, len);
+    p_delete(&encrypted);
+
+    ssl_ctx_wipe(&ctx);
+    return sb_detach(&sb, NULL);
+}
+
+int license_resolve_encryption_key(const conf_t *conf, sb_t *out)
+{
+    ssl_ctx_t ctx;
+    const char *signature, *key;
+    int res = -1;
+    SB_1k(sb);
+
+    RETHROW_PN(signature = conf_get_raw(conf, "licence", "signature"));
+    RETHROW_PN(key = conf_get_raw(conf, "licence", "encryptionKey"));
+
+    RETHROW_PN(ssl_ctx_init_aes256(&ctx, LSTR_STR_V(signature),
+                                   42424242424242ULL, 1024));
+    /* Decode the hex-string */
+    if (sb_add_unhex(&sb, key, strlen(key)) < 0) {
+        goto end;
+    }
+
+    /* Decrypt the key */
+    if (ssl_decrypt(&ctx, LSTR_SB_V(&sb), out) < 0) {
+        goto end;
+    }
+
+    res = 0;
+  end:
+    ssl_ctx_wipe(&ctx);
+    sb_wipe(&sb);
+
+    return res;
+}
+
+/* }}} */
 /* {{{ Tests */
 
 Z_GROUP_EXPORT(ssl)
@@ -309,6 +369,30 @@ Z_GROUP_EXPORT(ssl)
         Z_ASSERT_LSTREQUAL(LSTR_IMMED_V("Encrypt me"), LSTR_SB_V(&sb));
 
         ssl_ctx_wipe(&ctx);
+    } Z_TEST_END;
+
+    Z_TEST(license_encryption_key, "") {
+        conf_t *conf;
+        const char *signature;
+        char *encrypted_key;
+        SB_1k(sb);
+
+        Z_ASSERT_N(chdir(z_cmddir_g.s));
+
+        Z_ASSERT(conf = conf_load("samples/licence-v1-ok.conf"));
+        Z_ASSERT(licence_check_signature_ok(conf));
+
+        /* Test encryption key computation */
+        Z_ASSERT_P(signature = conf_get_raw(conf, "licence", "signature"));
+        Z_ASSERT_P(encrypted_key = licence_compute_encryption_key(signature, "plop"));
+        Z_ASSERT(conf_put(conf, "licence", "encryptionKey", encrypted_key));
+
+        /* Test encryption key resolver */
+        Z_ASSERT_N(license_resolve_encryption_key(conf, &sb));
+        Z_ASSERT_STREQUAL("plop", sb.data);
+
+        conf_delete(&conf);
+        sb_wipe(&sb);
     } Z_TEST_END;
 } Z_GROUP_END
 

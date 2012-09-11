@@ -51,6 +51,7 @@
 #include <openssl/evp.h>
 #include <openssl/aes.h>
 #include "core.h"
+#include "licence.h"
 
 enum ssl_ctx_state {
     SSL_CTX_NONE,
@@ -188,5 +189,18 @@ static inline int ssl_decrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 
     return 0;
 }
+
+
+/* ---- misc SSL usages for others modules ---- */
+
+/**
+ * Encrypt the given plaintext encryption key using the license signature.
+ */
+char *licence_compute_encryption_key(const char *signature, const char *key);
+
+/**
+ * Decrypt the encryption key from a license file.
+ */
+int license_resolve_encryption_key(const conf_t *conf, sb_t *out);
 
 #endif
