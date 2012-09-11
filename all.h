@@ -32,5 +32,6 @@
 #include "tpl.h"
 #include "unix.h"
 #include "xmlpp.h"
+#include "ssl.h"
 
 #endif

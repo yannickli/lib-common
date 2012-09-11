@@ -28,7 +28,7 @@ core-version.c: scripts/version.sh FORCE
 	$< rcsid libcommon > $@+
 	$(call fun/update-if-changed,$@+,$@)
 
-_CFLAGS  = $(libxml2_CFLAGS)
+_CFLAGS  = $(libxml2_CFLAGS) $(openssl_CFLAGS)
 _LIBS    = -lz -lrt -ldl -lpthread
 
 libcommon_SOURCES = \
@@ -160,6 +160,7 @@ libcommon_SOURCES = \
 	xmlr.c \
 	\
 	zlib-wrapper.c \
+	ssl.c \
 	\
 	z.blk
 
@@ -182,7 +183,7 @@ zchk_SOURCES = zchk.c \
 	$/lib-common/iop/tstiop.a \
 	$/lib-common/libcommon.wa \
 	$/lib-common/time-lp-simple.a
-zchk_LIBS = $(libxml2_LIBS)
+zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS)
 zchk_LDFLAGS = -rdynamic
 
 ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
