@@ -305,7 +305,7 @@ char *licence_compute_encryption_key(const char *signature, const char *key)
     return sb_detach(&sb, NULL);
 }
 
-int license_resolve_encryption_key(const conf_t *conf, sb_t *out)
+int licence_resolve_encryption_key(const conf_t *conf, sb_t *out)
 {
     ssl_ctx_t ctx;
     const char *signature, *key;
@@ -371,7 +371,7 @@ Z_GROUP_EXPORT(ssl)
         ssl_ctx_wipe(&ctx);
     } Z_TEST_END;
 
-    Z_TEST(license_encryption_key, "") {
+    Z_TEST(licence_encryption_key, "") {
         conf_t *conf;
         const char *signature;
         char *encrypted_key;
@@ -388,7 +388,7 @@ Z_GROUP_EXPORT(ssl)
         Z_ASSERT(conf_put(conf, "licence", "encryptionKey", encrypted_key));
 
         /* Test encryption key resolver */
-        Z_ASSERT_N(license_resolve_encryption_key(conf, &sb));
+        Z_ASSERT_N(licence_resolve_encryption_key(conf, &sb));
         Z_ASSERT_STREQUAL("plop", sb.data);
 
         conf_delete(&conf);
