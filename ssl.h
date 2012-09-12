@@ -194,13 +194,13 @@ static inline int ssl_decrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 /* ---- misc SSL usages for others modules ---- */
 
 /**
- * Encrypt the given plaintext encryption key using the license signature.
+ * Encrypt the given plaintext encryption key using the licence signature.
  */
 char *licence_compute_encryption_key(const char *signature, const char *key);
 
 /**
- * Decrypt the encryption key from a license file.
+ * Decrypt the encryption key from a licence file.
  */
-int license_resolve_encryption_key(const conf_t *conf, sb_t *out);
+int licence_resolve_encryption_key(const conf_t *conf, sb_t *out);
 
 #endif
