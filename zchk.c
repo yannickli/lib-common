@@ -54,10 +54,54 @@ Z_GROUP(bit_buf)
     } Z_TEST_END;
 } Z_GROUP_END;
 
+Z_GROUP(endianess)
+{
+    Z_TEST(unaligned, "put_unaligned/get_unaligned") {
+        byte data[BUFSIZ];
+        uint16_t us;
+        uint32_t u;
+        uint64_t ul;
+
+#define DO_TEST(w, e, x)                                                    \
+        ({                                                                  \
+            void *v1 = data, *v2;                                           \
+            v2 = put_unaligned_##e##w(v1, x);                               \
+            put_unaligned_##e##w(v2, x);                                    \
+            Z_ASSERT_EQ(get_unaligned_##e##w(v1), x, "check 1 " #w #e);     \
+            Z_ASSERT_EQ(get_unaligned_##e##w(v2), x, "check 2 " #w #e);     \
+        })
+        us = 0x0201;
+        DO_TEST(16, cpu, us);
+        DO_TEST(16,  be, us);
+        DO_TEST(16,  le, us);
+
+        u  = 0x030201;
+        DO_TEST(24,  be, u);
+        DO_TEST(24,  le, u);
+
+        u  = 0x04030201;
+        DO_TEST(32, cpu, u);
+        DO_TEST(32,  be, u);
+        DO_TEST(32,  le, u);
+
+        ul = 0x060504030201;
+        DO_TEST(48,  be, ul);
+        DO_TEST(48,  le, ul);
+
+        ul = 0x0807060504030201;
+        DO_TEST(64, cpu, ul);
+        DO_TEST(64,  be, ul);
+        DO_TEST(64,  le, ul);
+
+#undef DO_TEST
+    } Z_TEST_END;
+} Z_GROUP_END;
+
 int main(int argc, const char **argv)
 {
     argc = z_setup(argc, argv);
     z_register_exports("lib-common/");
     z_register_group(z_bit_buf);
+    z_register_group(z_endianess);
     return z_run();
 }
