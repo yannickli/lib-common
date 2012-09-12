@@ -366,6 +366,7 @@ qvector_t(double, double);
 qvector_t(str,    char *);
 qvector_t(lstr,   lstr_t);
 qvector_t(clstr,  lstr_t);
+qvector_t(pstream, pstream_t);
 
 qvector_t(cvoid, const void *);
 qvector_t(cstr,  const char *);
