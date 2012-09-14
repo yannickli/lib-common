@@ -124,33 +124,35 @@ const char *ssl_get_error(void);
 /**
  * Encrypt the given data and put the result in out.
  */
-int ssl_encrypt_update(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
+__must_check__ int ssl_encrypt_update(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
 
 /**
  * Finalize the encrypted buffer.
  */
-int ssl_encrypt_finish(ssl_ctx_t *ctx, sb_t *out);
+__must_check__ int ssl_encrypt_finish(ssl_ctx_t *ctx, sb_t *out);
 
 /**
  * Reset the SSL context for the next data to encrypt using the same salt as
  * preceding. This function will call ssl_encrypt_finish() if needed. The out
  * parameter is mandatory in this case.
  */
-int ssl_encrypt_reset(ssl_ctx_t *ctx, sb_t *out);
+__must_check__ int ssl_encrypt_reset(ssl_ctx_t *ctx, sb_t *out);
 
 /**
  * Just like ssl_encrypt_reset() this function will allow to encrypt a new
  * bunch of data but you can change the key, the salt and the nb_rounds
  * parameters.
  */
-int ssl_encrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key,
-                           uint64_t salt, int nb_rounds);
+__must_check__ int
+ssl_encrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key, uint64_t salt,
+                       int nb_rounds);
 
 /**
  * Encrypt a bunch of data in one operation. The SSL context will be ready to
  * be updated again.
  */
-static inline int ssl_encrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
+__must_check__ static inline int
+ssl_encrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
     RETHROW(ssl_encrypt_update(ctx, data, out));
     RETHROW(ssl_encrypt_reset(ctx, out));
@@ -162,33 +164,35 @@ static inline int ssl_encrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 /**
  * Decrypt the given data and put the result in out.
  */
-int ssl_decrypt_update(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
+__must_check__ int ssl_decrypt_update(ssl_ctx_t *ctx, lstr_t data, sb_t *out);
 
 /**
  * Finalize the decrypted buffer.
  */
-int ssl_decrypt_finish(ssl_ctx_t *ctx, sb_t *out);
+__must_check__ int ssl_decrypt_finish(ssl_ctx_t *ctx, sb_t *out);
 
 /**
  * Reset the SSL context for the next data to decrypt using the same salt as
  * preceding. This function will call ssl_decrypt_finish() if needed. The out
  * parameter is mandatory in this case.
  */
-int ssl_decrypt_reset(ssl_ctx_t *ctx, sb_t *out);
+__must_check__ int ssl_decrypt_reset(ssl_ctx_t *ctx, sb_t *out);
 
 /**
  * Just like ssl_decrypt_reset() this function will allow to decrypt a new
  * bunch of data but you can change the key, the salt and the nb_rounds
  * parameters.
  */
-int ssl_decrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key,
-                           uint64_t salt, int nb_rounds);
+__must_check__ int
+ssl_decrypt_reset_full(ssl_ctx_t *ctx, sb_t *out, lstr_t key, uint64_t salt,
+                       int nb_rounds);
 
 /**
  * Decrypt a bunch of data in one operation. The SSL context will be ready to
  * be updated again.
  */
-static inline int ssl_decrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
+__must_check__ static inline int
+ssl_decrypt(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
 {
     RETHROW(ssl_decrypt_update(ctx, data, out));
     RETHROW(ssl_decrypt_reset(ctx, out));
