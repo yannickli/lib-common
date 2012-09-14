@@ -104,6 +104,18 @@ ssl_ctx_t *ssl_ctx_init_aes256(ssl_ctx_t *ctx, lstr_t key, uint64_t salt,
     return ctx;
 }
 
+int ssl_ctx_reset(ssl_ctx_t *ctx, lstr_t key, uint64_t salt, int nb_rounds)
+{
+    assert (ctx->encrypt_state == SSL_CTX_NONE
+        ||  ctx->encrypt_state == SSL_CTX_INIT
+        ||  ctx->encrypt_state == SSL_CTX_FINISH);
+    assert (ctx->decrypt_state == SSL_CTX_NONE
+        ||  ctx->decrypt_state == SSL_CTX_INIT
+        ||  ctx->decrypt_state == SSL_CTX_FINISH);
+
+    return ssl_ctx_configure(ctx, key, salt, nb_rounds, true, true);
+}
+
 const char *ssl_get_error(void)
 {
     return openssl_errbuf_g;

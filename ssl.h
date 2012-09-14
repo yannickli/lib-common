@@ -111,6 +111,12 @@ ssl_ctx_new_aes256(lstr_t key, uint64_t salt, int nb_rounds)
 }
 
 /**
+ * Reset the whole SSL context changing the key, the salt and the nb_rounds
+ * parameters.
+ */
+int ssl_ctx_reset(ssl_ctx_t *ctx, lstr_t key, uint64_t salt, int nb_rounds);
+
+/**
  * Retrieve the last SSL error in the current thread.
  */
 const char *ssl_get_error(void);
