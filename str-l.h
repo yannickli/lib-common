@@ -28,6 +28,7 @@ typedef struct lstr_t {
     union {
         const char *s;
         char       *v;
+        void       *data;
     };
     int     len;
     flag_t  mem_pool : 2;

@@ -17,11 +17,10 @@
 #define IS_LIB_COMMON_IOP_MACROS_H
 
 /*----- iop_data_t initializers (bytes) -----*/
-#define IOP_DATA(ddata, dlen)  (iop_data_t){ .data = (ddata), .len = (dlen) }
-#define IOP_DATA_NULL          (iop_data_t){ .data = NULL, .len = 0 }
-#define IOP_DATA_EMPTY         (iop_data_t){ .data = (void *) "", .len = 0 }
-#define IOP_SBDATA(sb)         (iop_data_t){ .data = (sb)->data,             \
-                                             .len  = (sb)->len }
+#define IOP_DATA(ddata, dlen)  LSTR_INIT_V((const char *)(ddata), dlen)
+#define IOP_DATA_NULL          LSTR_NULL_V
+#define IOP_DATA_EMPTY         LSTR_EMPTY_V
+#define IOP_SBDATA(sb)         LSTR_SB_V(sb)
 
 /*----- lstr_t initializers (string) -----*/
 #define IOP_OPT_STR_V(str)     LSTR_OPT_STR_V(str)

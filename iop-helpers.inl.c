@@ -65,9 +65,8 @@ static inline bool iop_value_has(const iop_field_t *f, const void *v)
         return ((iop_opt_double_t *)v)->has_field != 0;
       case IOP_T_STRING:
       case IOP_T_XML:
-        return ((lstr_t *)v)->s != NULL;
       case IOP_T_DATA:
-        return ((iop_data_t *)v)->data != NULL;
+        return ((lstr_t *)v)->s != NULL;
       case IOP_T_UNION:
       case IOP_T_STRUCT:
       default:
@@ -130,7 +129,7 @@ static inline void iop_value_set_absent(const iop_field_t *f, void *v)
       case IOP_T_STRING:
       case IOP_T_DATA:
       case IOP_T_XML:
-        p_clear((iop_data_t *)v, 1);
+        p_clear((lstr_t *)v, 1);
         return;
       default:
         /* Structs and unions are handled in the same way */

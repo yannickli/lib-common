@@ -32,8 +32,8 @@ get_n_and_ptr(const iop_field_t *fdesc, const void *value, int *n)
         *n = 1;
         break;
       case IOP_R_REPEATED:
-        *n  = ((iop_data_t *)ptr)->len;
-        ptr = ((iop_data_t *)ptr)->data;
+        *n  = ((lstr_t *)ptr)->len;
+        ptr = ((lstr_t *)ptr)->data;
         break;
       default:
         abort();
@@ -903,10 +903,8 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
             switch (fdesc->type) {
               case IOP_T_STRING:
               case IOP_T_XML:
-                *(lstr_t *)value = LSTR_NULL_V;
-                return 0;
               case IOP_T_DATA:
-                *(iop_data_t *)value = IOP_DATA_NULL;
+                *(lstr_t *)value = LSTR_NULL_V;
                 return 0;
               default:
                 return RJERROR_EXP_TYPE(fdesc->type);
@@ -917,7 +915,7 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
       case IOP_JSON_STRING:
         switch (fdesc->type) {
             const char *q;
-            iop_data_t *data;
+            lstr_t *data;
 
           case IOP_T_I8:  case IOP_T_U8:
           case IOP_T_I16: case IOP_T_U16:
@@ -946,7 +944,7 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
             goto do_double;
 
           case IOP_T_DATA:
-            data = (iop_data_t *)value;
+            data = (lstr_t *)value;
             if (ll->ctx->b.len == 0) {
                 data->data = mp_new(ll->mp, char, 1);
                 data->len  = 0;
@@ -967,7 +965,7 @@ static int unpack_val(iop_json_lex_t *ll, const iop_field_t *fdesc,
 
           case IOP_T_STRING:
           case IOP_T_XML:
-            data = (iop_data_t *)value;
+            data = (lstr_t *)value;
             data->data = mp_dupz(ll->mp, ll->ctx->b.data, ll->ctx->b.len);
             data->len  = ll->ctx->b.len;
             return 0;
@@ -1045,7 +1043,7 @@ do_double:
 static int unpack_arr(iop_json_lex_t *ll, const iop_field_t *fdesc,
                       void *value)
 {
-    iop_data_t *arr = value;
+    lstr_t *arr = value;
     int size = 0;
     void *ptr;
 
@@ -1265,7 +1263,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                 int ret;
 
                 if (fdesc->repeat == IOP_R_REPEATED) {
-                    iop_data_t *arr = ptr;
+                    lstr_t *arr = ptr;
 
                     ret = iop_field_check_constraints(desc, fdesc, arr->data,
                                                       arr->len, false);
@@ -1622,15 +1620,15 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                 break;
 
               case IOP_T_DATA:
-                if (IOP_FIELD(const iop_data_t, ptr, j).len) {
+                if (IOP_FIELD(const lstr_t, ptr, j).len) {
                     t_scope;
-                    int dlen = IOP_FIELD(const iop_data_t, ptr, j).len;
+                    int dlen = IOP_FIELD(const lstr_t, ptr, j).len;
                     int blen = 1 + DIV_ROUND_UP(dlen * 4, 3) + 1 + 1;
                     sb_t sb;
 
                     t_sb_init(&sb, blen);
                     sb_addc(&sb, '"');
-                    sb_add_b64(&sb, IOP_FIELD(const iop_data_t, ptr, j).data,
+                    sb_add_b64(&sb, IOP_FIELD(const lstr_t, ptr, j).data,
                                dlen, -1);
                     sb_addc(&sb, '"');
                     WRITE(sb.data, sb.len);

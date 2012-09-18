@@ -141,7 +141,7 @@ xpack_struct(sb_t *sb, const iop_struct_t *desc, const void *v,
                 ptr = *(void **)ptr;
         }
         if (f->repeat == IOP_R_REPEATED) {
-            const iop_data_t *data = ptr;
+            const lstr_t *data = ptr;
             len = data->len;
             ptr = data->data;
         }
