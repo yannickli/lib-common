@@ -2162,7 +2162,7 @@ httpc_t *httpc_pool_get(httpc_pool_t *pool)
         {
             return NULL;
         }
-        httpc = httpc_connect(&pool->su, pool->cfg, pool);
+        httpc = RETHROW_P(httpc_connect(&pool->su, pool->cfg, pool));
         return httpc->busy ? NULL : httpc;
     }
 
