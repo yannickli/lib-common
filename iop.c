@@ -1367,10 +1367,8 @@ static int unpack_value(mem_pool_t *mp, iop_wire_type_t wt,
           case IOP_T_STRING:
           case IOP_T_DATA:
           case IOP_T_XML:
-            *(lstr_t *)v = (lstr_t){
-                .data = copy ? mp_dup(mp, ps->s, u32) : (void *)ps->p,
-                .len  = u32 - 1,
-            };
+            *(lstr_t *)v = LSTR_INIT_V((copy ? mp_dup(mp, ps->s, u32)
+                                        : ps->p), u32 - 1);
             return __ps_skip(ps, u32);
           case IOP_T_UNION:
             ps_tmp = __ps_get_ps(ps, u32);
