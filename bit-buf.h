@@ -67,7 +67,7 @@ bb_init_full(bb_t *bb, void *buf, int blen, int bsize, int mem_pool)
     bb_init_full(bb, allocaz(ROUND_UP(sz, 8)), 0, DIV_ROUND_UP(sz, 8), MEM_STATIC)
 
 #define BB(name, sz) \
-    bb_t name = { .data = allocaz(ROUND_UP(sz, 8)), \
+    bb_t name = { { .data = allocaz(ROUND_UP(sz, 8)) }, \
                   .size = DIV_ROUND_UP(sz, 8) }
 
 #define BB_1k(name)    BB(name, 1 << 10)
@@ -198,12 +198,16 @@ char *t_print_bits(uint8_t bits, uint8_t bstart, uint8_t blen)
 char *t_print_bb(const bb_t *bb, size_t *len)
     __leaf;
 
-#define e_trace_bb(lvl, bb, fmt, ...)  \
+#ifndef NDEBUG
+#   define e_trace_bb(lvl, bb, fmt, ...)  \
 {                                                                      \
     bit_stream_t __bs = bs_init_bb(bb);                                \
                                                                        \
     e_trace_bs(lvl, &__bs, fmt, ##__VA_ARGS__);                        \
 }
+#else
+#   define e_trace_bb(...)
+#endif
 
 /* }}} */
 #endif
