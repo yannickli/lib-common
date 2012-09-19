@@ -50,7 +50,7 @@ static ALWAYS_INLINE void write_u16_aligned(bb_t *bb, uint16_t u16)
 
 static ALWAYS_INLINE int __read_u8_aligned(bit_stream_t *bs, uint8_t *res)
 {
-    uint64_t r64;
+    uint64_t r64 = 0;
 
     RETHROW(bs_align(bs));
     RETHROW(bs_be_get_bits(bs, 8, &r64));
@@ -60,7 +60,7 @@ static ALWAYS_INLINE int __read_u8_aligned(bit_stream_t *bs, uint8_t *res)
 
 static ALWAYS_INLINE int __read_u16_aligned(bit_stream_t *bs, uint16_t *res)
 {
-    uint64_t r64;
+    uint64_t r64 = 0;
 
     RETHROW(bs_align(bs));
     RETHROW(bs_be_get_bits(bs, 16, &r64));
@@ -80,7 +80,7 @@ static ALWAYS_INLINE int __read_u64_o_aligned(bit_stream_t *bs, size_t olen,
 static ALWAYS_INLINE int __read_i64_o_aligned(bit_stream_t *bs, size_t olen,
                                               int64_t *res)
 {
-    uint64_t u;
+    uint64_t u = 0;
 
     RETHROW(__read_u64_o_aligned(bs, olen, &u));
     *res = sign_extend(u, olen * 8);
