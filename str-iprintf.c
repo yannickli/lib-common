@@ -337,22 +337,75 @@ int fmt_output_chars(FILE *stream, char *str, size_t size,
     return count + n;
 }
 
+enum {
+    OUTPUT_UNKNOWN    = 0,
+    OUTPUT_RAW        = 1,
+    OUTPUT_UPPER_HEX  = 2,
+    OUTPUT_LOWER_HEX  = 3,
+};
+
+static const char put_memory_flags[256] = {
+    ['M'] = OUTPUT_RAW,
+    ['X'] = OUTPUT_UPPER_HEX,
+    ['x'] = OUTPUT_LOWER_HEX,
+};
+
 static ALWAYS_INLINE
 int fmt_output_chunk(FILE *stream, char *str, size_t size,
-                     size_t count, const char *lp, size_t len)
+                     size_t count, const char *lp, size_t len,
+                     int enc)
 {
     size_t len1 = len;
+    bool   half = false;
+    const char *digits = __str_digits_lower;
 
-    if (stream) {
-        for (size_t i = 0; i < len; i++)
-            ISPUTC(lp[i], stream);
-    } else {
-        if (count + len1 >= size) {
-            len1 = count >= size ? 0 : size - count - 1;
+    switch (enc) {
+      case OUTPUT_RAW:
+        if (stream) {
+            for (size_t i = 0; i < len; i++)
+                ISPUTC(lp[i], stream);
+        } else {
+            if (count + len1 >= size) {
+                len1 = count >= size ? 0 : size - count - 1;
+            }
+            memcpy(str + count, lp, len1);
         }
-        memcpy(str + count, lp, len1);
+        return count + len;
+
+      case OUTPUT_UPPER_HEX:
+        digits = __str_digits_upper;
+        /* FALLTHROUGH */
+
+      case OUTPUT_LOWER_HEX:
+        if (stream) {
+            for (size_t i = 0; i < len; i++) {
+                ISPUTC(digits[(lp[i] >> 4) & 0x0f], stream);
+                ISPUTC(digits[(lp[i] >> 0) & 0x0f], stream);
+            }
+        } else {
+            if (count + len1 * 2 >= size) {
+                if (count >= size) {
+                    len1 = 0;
+                    half = false;
+                } else {
+                    len1 = size - count - 1;
+                    half = len1 & 1;
+                    len1 /= 2;
+                }
+            }
+            for (size_t i = 0; i < len1; i++) {
+                str[count + (i * 2)]     = digits[(lp[i] >> 4) & 0x0f];
+                str[count + (i * 2) + 1] = digits[(lp[i] >> 0) & 0x0f];
+            }
+            if (half) {
+                str[count + (len1 * 2)] = digits[(lp[len1] >> 4) & 0x0f];
+            }
+        }
+        return count + len * 2;
+
+      default:
+        e_panic("unkown encoding requested");
     }
-    return count + len;
 }
 
 static int fmt_output(FILE *stream, char *str, size_t size,
@@ -390,11 +443,14 @@ static int fmt_output(FILE *stream, char *str, size_t size,
 #endif
 
     for (;;) {
+        int enc = OUTPUT_RAW;
+
         for (lp = format; *format && *format != '%'; format++)
             continue;
         len = format - lp;
       haslp:
-        count = fmt_output_chunk(stream, str, size, count, lp, len);
+        count = fmt_output_chunk(stream, str, size, count, lp, len, enc);
+        enc   = OUTPUT_RAW;
         if (right_pad) {
             count = fmt_output_chars(stream, str, size, count, ' ', right_pad);
         }
@@ -437,8 +493,12 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             goto haslp;
         }
         /* also special case %*pM, understand it as "put memory content here"
+         * and %*pX, understand as "put hexadecimal content here"
          */
-        if (!memcmp(format, "*pM", 3)) {
+        if (format[0] == '*' && format[1] == 'p'
+        &&  put_memory_flags[(unsigned char)format[2]])
+        {
+            enc     = put_memory_flags[(unsigned char)format[2]];
             format += 3;
             len = va_arg(ap, int);
             lp  = va_arg(ap, const char *);
@@ -915,7 +975,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
             if (prefix_len) {
                 /* prefix_len is 0, 1 or 2 */
                 count = fmt_output_chunk(stream, str, size, count,
-                                         buf, prefix_len);
+                                         buf, prefix_len, enc);
             }
             if (zero_pad) {
                 count = fmt_output_chars(stream, str, size, count,
@@ -1050,7 +1110,7 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                     realsz++;
                 }
 
-#define PRINT(s,n)  count = fmt_output_chunk(stream, str, size, count, s, n)
+#define PRINT(s,n)  count = fmt_output_chunk(stream, str, size, count, s, n, enc)
 #define PAD(n,c)    count = fmt_output_chars(stream, str, size, count, c, n)
 #define zeroes '0'
 #define blanks ' '
