@@ -1478,4 +1478,22 @@ Z_GROUP_EXPORT(iprintf) {
         isprintf(buffer, "%*pMtrailing", 3, "123");
         Z_ASSERT_STREQUAL(buffer, "123trailing", "");
     } Z_TEST_END
+
+    Z_TEST(pX, "") {
+        isprintf(buffer, "%*pX", 4, "1234");
+        Z_ASSERT_STREQUAL(buffer, "31323334");
+        isprintf(buffer, "%*pX world!", 5, "Hello");
+        Z_ASSERT_STREQUAL(buffer, "48656C6C6F world!");
+        isprintf(buffer, "%*pXworld!", 5, "Hello");
+        Z_ASSERT_STREQUAL(buffer, "48656C6C6Fworld!");
+    } Z_TEST_END;
+
+    Z_TEST(px, "") {
+        isprintf(buffer, "%*px", 4, "1234");
+        Z_ASSERT_STREQUAL(buffer, "31323334");
+        isprintf(buffer, "%*px world!", 5, "Hello");
+        Z_ASSERT_STREQUAL(buffer, "48656c6c6f world!");
+        isprintf(buffer, "%*pxworld!", 5, "Hello");
+        Z_ASSERT_STREQUAL(buffer, "48656c6c6fworld!");
+    } Z_TEST_END;
 } Z_GROUP_END
