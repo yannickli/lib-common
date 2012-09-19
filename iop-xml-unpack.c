@@ -203,7 +203,7 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
 static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
                               const iop_field_t *fdesc, void *v)
 {
-    iop_data_t *data = v;
+    lstr_t *data = v;
     int bufsize = 0, datasize = fdesc->size;
 
     do {
@@ -286,7 +286,7 @@ static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
 static int xunpack_block_vec(xml_reader_t xr, mem_pool_t *mp,
                              const iop_field_t *fdesc, void *v, int flags)
 {
-    iop_data_t *data = v;
+    lstr_t *data = v;
     void **prev = NULL, **chain, *ptr;
     int n = 0;
 
@@ -370,7 +370,7 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
         /* Read field value */
         v = (char *)value + fdesc->data_offs;
         if (fdesc->repeat == IOP_R_REPEATED) {
-            iop_data_t *data = v;
+            lstr_t *data = v;
 
             if ((1 << fdesc->type) & IOP_BLK_OK) {
                 RETHROW(xunpack_block_vec(xr, mp, fdesc, v, flags));

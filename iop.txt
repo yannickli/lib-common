@@ -126,7 +126,7 @@ module MyModule {
 
 The different types of base are: `int` (`int32_t`), `uint` (`uint32_t`), `byte`
 (`int8_t`), `ubyte` (`uint8_t`), `short` (`int16_t`), `ushort` (`uint16_t`),
-`long` (`int64_t`), `ulong` (`uint64_t`), `bytes` (`iop_data_t`), `bool`,
+`long` (`int64_t`), `ulong` (`uint64_t`), `bytes` (`lstr_t`), `bool`,
 `double`, `string` (`lstr_t`) and `enum`.
 
 These types are wrapped either in a `struct` type or a `union` type.
@@ -179,10 +179,10 @@ Bytes and strings usage
 `bytes` and `string` types are handled in a similar way, but not converted to
 the same structure.
 
-`bytes`, which contains binary buffer, is converted to a `iop_data_t { .data,
+`bytes`, which contains binary buffer, is converted to a `lstr_t { .data,
 .len }` with the member `len` corresponding to the buffer length and the
 member `data` which is the pointer on the first byte of the buffer. `bytes`
-members should be set using the `IOP_DATA*` macros defined in `iop-macros.h`.
+members should be set using the `LSTR_*` macros defined in `str-l.h`.
 
 `string`, which contains a null terminated string, is converted to a `lstr_t`.
 See `str-l.h` for their documentation.

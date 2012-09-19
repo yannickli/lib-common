@@ -58,9 +58,9 @@ iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
                 *(lstr_t *)ptr = LSTR_INIT_V(fdesc->u1.defval_data, fdesc->u0.defval_len);
                 break;
               case IOP_T_DATA:
-                ((iop_data_t *)ptr)->len  = fdesc->u0.defval_len;
-                ((iop_data_t *)ptr)->data = (void *)fdesc->u1.defval_data;
-                ((iop_data_t *)ptr)->flags = 0;
+                ((lstr_t *)ptr)->len      = fdesc->u0.defval_len;
+                ((lstr_t *)ptr)->data     = (void *)fdesc->u1.defval_data;
+                ((lstr_t *)ptr)->mem_pool = 0;
                 break;
               default:
                 e_panic("unsupported");
@@ -96,8 +96,8 @@ static size_t iop_dup_size(const iop_struct_t *desc, const void *val)
         int n = 1;
 
         if (fdesc->repeat == IOP_R_REPEATED) {
-            n    = ((iop_data_t *)ptr)->len;
-            ptr  = ((iop_data_t *)ptr)->data;
+            n    = ((lstr_t *)ptr)->len;
+            ptr  = ((lstr_t *)ptr)->data;
             len += ROUND_UP(n * fdesc->size, 8);
         }
 
@@ -120,7 +120,7 @@ static size_t iop_dup_size(const iop_struct_t *desc, const void *val)
             }
         } else {
             for (int j = 0; j < n; j++) {
-                len += ROUND_UP(IOP_FIELD(iop_data_t, ptr, j).len + 1, 8);
+                len += ROUND_UP(IOP_FIELD(lstr_t, ptr, j).len + 1, 8);
             }
         }
     }
@@ -153,9 +153,9 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
         int n = 1;
 
         if (fdesc->repeat == IOP_R_REPEATED) {
-            n   = ((iop_data_t *)rp)->len;
-            rp  = ((iop_data_t *)rp)->data;
-            wp  = ((iop_data_t *)wp)->data = dst;
+            n   = ((lstr_t *)rp)->len;
+            rp  = ((lstr_t *)rp)->data;
+            wp  = ((lstr_t *)wp)->data = dst;
             dst = realign(mempcpy(dst, rp, n * fdesc->size));
         }
 
@@ -192,9 +192,9 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
             }
         } else {
             for (int j = 0; j < n; j++) {
-                iop_data_t *orig = &IOP_FIELD(iop_data_t, rp, j);
+                lstr_t *orig = &IOP_FIELD(lstr_t, rp, j);
 
-                IOP_FIELD(iop_data_t, wp, j).data = dst;
+                IOP_FIELD(lstr_t, wp, j).data = dst;
                 dst = realign(mempcpyz(dst, orig->data, orig->len));
             }
         }
@@ -279,11 +279,11 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
         int n = 1;
 
         if (fdesc->repeat == IOP_R_REPEATED) {
-            n   = ((iop_data_t *)r1)->len;
-            if (((iop_data_t *)r2)->len != n)
+            n   = ((lstr_t *)r1)->len;
+            if (((lstr_t *)r2)->len != n)
                 return false;
-            r1  = ((iop_data_t *)r1)->data;
-            r2  = ((iop_data_t *)r2)->data;
+            r1  = ((lstr_t *)r1)->data;
+            r2  = ((lstr_t *)r2)->data;
         }
 
         if (fdesc->repeat == IOP_R_OPTIONAL) {
@@ -314,8 +314,8 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
         } else
         if ((1 << fdesc->type) & IOP_BLK_OK) {
             for (int i = 0; i < n; i++) {
-                const iop_data_t *t1 = &IOP_FIELD(const iop_data_t, r1, i);
-                const iop_data_t *t2 = &IOP_FIELD(const iop_data_t, r2, i);
+                const lstr_t *t1 = &IOP_FIELD(const lstr_t, r1, i);
+                const lstr_t *t2 = &IOP_FIELD(const lstr_t, r2, i);
 
                 if (t1->len != t2->len || memcmp(t1->data, t2->data, t1->len))
                     return false;
@@ -361,13 +361,13 @@ iop_field_is_defval(const iop_field_t *fdesc, const void *ptr)
         if (!fdesc->u0.defval_len) {
             /* In this case we don't care about the string pointer. An empty
              * string is an empty string whatever its pointer is. */
-            return !((iop_data_t *)ptr)->len;
+            return !((lstr_t *)ptr)->len;
         } else {
             /* We consider a NULL string as “take the default value please”
              * and otherwise we check for the pointer equality. */
-            return !((iop_data_t *)ptr)->data
-                || (((iop_data_t *)ptr)->data == fdesc->u1.defval_data
-                 && ((iop_data_t *)ptr)->len  == fdesc->u0.defval_len);
+            return !((lstr_t *)ptr)->data
+                || (((lstr_t *)ptr)->data == fdesc->u1.defval_data
+                 && ((lstr_t *)ptr)->len  == fdesc->u0.defval_len);
         }
       default:
         e_panic("unsupported");
@@ -515,8 +515,8 @@ __iop_hash(struct iop_hash_ctx *ctx, const iop_struct_t *st, const uint8_t *v)
         iop_hash_update(ctx, fdesc->name.s, fdesc->name.len);
 
         if (fdesc->repeat == IOP_R_REPEATED) {
-            n  = ((iop_data_t *)r)->len;
-            r  = ((iop_data_t *)r)->data;
+            n  = ((lstr_t *)r)->len;
+            r  = ((lstr_t *)r)->data;
             iop_hash_update_u32(ctx, n);
         }
 
@@ -595,7 +595,7 @@ __iop_hash(struct iop_hash_ctx *ctx, const iop_struct_t *st, const uint8_t *v)
           case IOP_T_STRING:
           case IOP_T_DATA:
             for (int i = 0; i < n; i++) {
-                const iop_data_t *s = &IOP_FIELD(const iop_data_t, r, i);
+                const lstr_t *s = &IOP_FIELD(const lstr_t, r, i);
 
                 iop_hash_update_u32(ctx, s->len);
                 iop_hash_update(ctx, s->data, s->len);
@@ -773,8 +773,8 @@ int iop_check_constraints(const iop_struct_t *desc, const void *val)
                 ptr = *(void **)ptr;
         } else
         if (fdesc->repeat == IOP_R_REPEATED) {
-            n   = ((iop_data_t *)ptr)->len;
-            ptr = ((iop_data_t *)ptr)->data;
+            n   = ((lstr_t *)ptr)->len;
+            ptr = ((lstr_t *)ptr)->data;
             if (n == 0) {
                 unsigned fdesc_flags = fdesc->flags;
 
@@ -824,8 +824,8 @@ int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
                 ptr = *(void **)ptr;
         } else
         if (fdesc->repeat == IOP_R_REPEATED) {
-            n   = ((iop_data_t *)ptr)->len;
-            ptr = ((iop_data_t *)ptr)->data;
+            n   = ((lstr_t *)ptr)->len;
+            ptr = ((lstr_t *)ptr)->data;
             if (n == 0)
                 continue;
             if (n > 1) {
@@ -887,7 +887,7 @@ int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
           case IOP_T_DATA:
           case IOP_T_XML:
             for (int j = 0; j < n; j++) {
-                int32_t i32 = IOP_FIELD(iop_data_t, ptr, j).len;
+                int32_t i32 = IOP_FIELD(lstr_t, ptr, j).len;
                 len += get_len_len(i32 + 1) + i32 + 1;
             }
             break;
@@ -953,9 +953,9 @@ pack_value(uint8_t *dst, const iop_field_t *f, const void *v, const int **szsp)
       case IOP_T_STRING:
       case IOP_T_DATA:
       case IOP_T_XML:
-        len = ((iop_data_t *)v)->len;
+        len = ((lstr_t *)v)->len;
         dst = pack_len(dst, f->tag, f->tag_len, len + 1);
-        dst = mempcpyz(dst, ((iop_data_t *)v)->data, len);
+        dst = mempcpyz(dst, ((lstr_t *)v)->data, len);
         return dst;
       case IOP_T_UNION:
         dst = pack_len(dst, f->tag, f->tag_len, *(*szsp)++);
@@ -970,7 +970,7 @@ pack_value(uint8_t *dst, const iop_field_t *f, const void *v, const int **szsp)
 static uint8_t *pack_value_vec(uint8_t *dst, const iop_field_t *f,
                                const void *v, uint32_t n, const int **szsp)
 {
-    const iop_data_t *d;
+    const lstr_t *d;
     uint32_t len;
 
     switch (f->type) {
@@ -1048,7 +1048,7 @@ pack_struct(void *dst, const iop_struct_t *desc, const void *v, const int **szsp
                 ptr = *(void **)ptr;
         } else
         if (f->repeat == IOP_R_REPEATED) {
-            const iop_data_t *data = ptr;
+            const lstr_t *data = ptr;
 
             if (data->len == 0)
                 continue;
@@ -1316,9 +1316,9 @@ int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc)
             *(lstr_t *)ptr = LSTR_INIT_V(fdesc->u1.defval_data, fdesc->u0.defval_len);
             break;
           case IOP_T_DATA:
-            ((iop_data_t *)ptr)->len  = fdesc->u0.defval_len;
-            ((iop_data_t *)ptr)->data = (void *)fdesc->u1.defval_data;
-            ((iop_data_t *)ptr)->flags = 0;
+            ((lstr_t *)ptr)->len      = fdesc->u0.defval_len;
+            ((lstr_t *)ptr)->data     = (void *)fdesc->u1.defval_data;
+            ((lstr_t *)ptr)->mem_pool = 0;
             break;
           default:
             return -1;
@@ -1329,7 +1329,7 @@ int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc)
 
         if (TST_BIT(&fdesc_flags, IOP_FIELD_NO_EMPTY_ARRAY))
             return iop_set_err("empty array not allowed");
-        p_clear((iop_data_t *)ptr, 1);
+        p_clear((lstr_t *)ptr, 1);
     } else {
         iop_value_set_absent(fdesc, ptr);
     }
@@ -1367,7 +1367,7 @@ static int unpack_value(mem_pool_t *mp, iop_wire_type_t wt,
           case IOP_T_STRING:
           case IOP_T_DATA:
           case IOP_T_XML:
-            *(iop_data_t *)v = (iop_data_t){
+            *(lstr_t *)v = (lstr_t){
                 .data = copy ? mp_dup(mp, ps->s, u32) : (void *)ps->p,
                 .len  = u32 - 1,
             };
@@ -1456,7 +1456,7 @@ static int unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
 
         v = (char *)value + fdesc->data_offs;
         if (fdesc->repeat == IOP_R_REPEATED) {
-            iop_data_t *data = v;
+            lstr_t *data = v;
 
             if (wt != IOP_WIRE_REPEAT
             &&  ((1 << fdesc->type) & IOP_REPEATED_OPTIMIZE_OK))
