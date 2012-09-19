@@ -766,6 +766,7 @@ aper_read_ulen(bit_stream_t *bs, size_t *l)
         uint8_t  b[2];
         uint16_t w;
     } res;
+    res.w = 0;
 
     if (__read_u8_aligned(bs, &res.b[1]) < 0) {
         e_info("cannot read unconstrained length: end of input "
