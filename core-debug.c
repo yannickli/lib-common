@@ -157,7 +157,7 @@ static void e_trace_put_fancy(int level, const char *name,
     sb_setf(&tmpbuf_g, "%s:%d:%s", module, lno,
             program_invocation_short_name);
     if (tmpbuf_g.len > cols - 2)
-        sb_shrink(&tmpbuf_g, tmpbuf_g.len - cols - 2);
+        sb_clip(&tmpbuf_g, cols - 2);
     len = snprintf(escapes, sizeof(escapes), "\r\e[%dC\e[7m ", cols - 2 - tmpbuf_g.len);
     sb_splice(&tmpbuf_g, 0, 0, escapes, len);
     sb_adds(&tmpbuf_g, " \e[0m\r");
