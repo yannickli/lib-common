@@ -237,6 +237,20 @@ static inline lstr_t lstr_dup(const lstr_t s)
     return lstr_init_(p_dupz(s.s, s.len), s.len, MEM_LIBC);
 }
 
+/** \brief force lstr to be heap-allocated.
+ *
+ * This function ensure the lstr_t is allocated on the heap and thus is
+ * guaranteed to be persistent.
+ */
+static inline void lstr_persists(lstr_t *s)
+{
+    assert (s->mem_pool != MEM_OTHER);
+    if (s->mem_pool != MEM_LIBC) {
+        s->s        = p_dupz(s->s, s->len);
+        s->mem_pool = MEM_LIBC;
+    }
+}
+
 /** \brief returns new \v mp allocated lstr from its arguments.
  */
 static inline lstr_t mp_lstr_dups(mem_pool_t *mp, const char *s, int len)
@@ -253,6 +267,16 @@ static inline lstr_t mp_lstr_dup(mem_pool_t *mp, const lstr_t s)
     if (!s.s)
         return LSTR_NULL_V;
     return lstr_init_(mp_dupz(mp, s.s, s.len), s.len, MEM_OTHER);
+}
+
+/** \brief ensure \p s is \p mp or heap allocated.
+ */
+static inline void mp_lstr_persists(mem_pool_t *mp, lstr_t *s)
+{
+    if (s->mem_pool != MEM_LIBC && s->mem_pool != MEM_OTHER) {
+        s->s        = mp_dupz(mp, s->s, s->len);
+        s->mem_pool = MEM_OTHER;
+    }
 }
 
 
