@@ -30,7 +30,7 @@ typedef struct lstr_t {
         char       *v;
     };
     int     len;
-    flag_t  mem_pool : 2;
+    flag_t  mem_pool : 3;
 } lstr_t;
 
 #define LSTR_INIT(s_, len_)   { { (s_) }, (len_), 0 }
@@ -78,6 +78,19 @@ static ALWAYS_INLINE lstr_t lstr_init_(const void *s, int len, unsigned flags)
     return (lstr_t){ { (const char *)s }, len, flags };
 }
 
+
+/** Initialize a lstr_t from the content of a file.
+ *
+ * The function takes the prot and the flags to be passed to the mmap call.
+ */
+int lstr_init_from_file(lstr_t *dst, const char *path, int prot, int flags);
+
+/** lstr_wipe helper.
+ */
+void lstr_munmap(lstr_t *dst);
+#define lstr_munmap(...)  lstr_munmap_DO_NOT_CALL_DIRECTLY(__VA_ARGS__)
+
+
 /** \brief lstr_copy_* helper.
  */
 static ALWAYS_INLINE
@@ -86,6 +99,9 @@ void lstr_copy_(mem_pool_t *mp, lstr_t *dst,
 {
     if (mp && dst->mem_pool == MEM_OTHER) {
         mp_delete(mp, &dst->v);
+    } else
+    if (dst->mem_pool == MEM_MMAP) {
+        (lstr_munmap)(dst);
     } else {
         ifree(dst->v, dst->mem_pool);
     }
