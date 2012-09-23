@@ -139,6 +139,19 @@ static inline void lstr_transfer(lstr_t *dst, lstr_t *src)
     src->mem_pool = MEM_STATIC;
 }
 
+struct sb_t;
+
+/** \brief copies \p src into \p dst transferring memory ownershipt to \p dst
+ *
+ * The \p src is a string buffer that will get reinitilized by the operation
+ * as it loses ownership to the buffer.
+ *
+ * If \p keep_pool is false, the function ensures the memory will be allocated
+ * on the heap (\ref sb_detach). If \p keep_pool is true, the memory will be
+ * transfered as-is including the allocation pool.
+ */
+void lstr_transfer_sb(lstr_t *dst, struct sb_t *sb, bool keep_pool);
+
 
 /*--------------------------------------------------------------------------*/
 /** \brief returns "memcmp" ordering of \v s1 and \v s2.

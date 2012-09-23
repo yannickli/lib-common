@@ -67,3 +67,19 @@ void (lstr_munmap)(lstr_t *dst)
         e_panic("bad munmap: %m");
     }
 }
+
+void lstr_transfer_sb(lstr_t *dst, sb_t *sb, bool keep_pool)
+{
+    if (keep_pool) {
+        if (sb->mem_pool != MEM_STATIC) {
+            if (sb->skip) {
+                memmove(sb->data - sb->skip, sb->data, sb->len + 1);
+            }
+        }
+        lstr_copy_(NULL, dst, sb->data, sb->len, sb->mem_pool);
+        sb_init(sb);
+    } else {
+        dst->v = sb_detach(sb, &dst->len);
+        dst->mem_pool = MEM_LIBC;
+    }
+}
