@@ -250,7 +250,7 @@ static inline void lstr_persists(lstr_t *s)
 {
     assert (s->mem_pool != MEM_OTHER);
     if (s->mem_pool != MEM_LIBC) {
-        s->s        = p_dupz(s->s, s->len);
+        s->s        = (char *)p_dupz(s->s, s->len);
         s->mem_pool = MEM_LIBC;
     }
 }
@@ -278,7 +278,7 @@ static inline lstr_t mp_lstr_dup(mem_pool_t *mp, const lstr_t s)
 static inline void mp_lstr_persists(mem_pool_t *mp, lstr_t *s)
 {
     if (s->mem_pool != MEM_LIBC && s->mem_pool != MEM_OTHER) {
-        s->s        = mp_dupz(mp, s->s, s->len);
+        s->s        = (char *)mp_dupz(mp, s->s, s->len);
         s->mem_pool = MEM_OTHER;
     }
 }
