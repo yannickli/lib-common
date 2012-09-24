@@ -86,6 +86,10 @@ static ALWAYS_INLINE lstr_t lstr_init_(const void *s, int len, unsigned flags)
  */
 int lstr_init_from_file(lstr_t *dst, const char *path, int prot, int flags);
 
+/** Initialize a lstr_t from the content of a file pointed by a fd.
+ */
+int lstr_init_from_fd(lstr_t *dst, int fd, int prot, int flags);
+
 /** lstr_wipe helper.
  */
 void lstr_munmap(lstr_t *dst);
@@ -247,7 +251,7 @@ static inline void lstr_persists(lstr_t *s)
 {
     assert (s->mem_pool != MEM_OTHER);
     if (s->mem_pool != MEM_LIBC) {
-        s->s        = p_dupz(s->s, s->len);
+        s->s        = (char *)p_dupz(s->s, s->len);
         s->mem_pool = MEM_LIBC;
     }
 }
@@ -275,7 +279,7 @@ static inline lstr_t mp_lstr_dup(mem_pool_t *mp, const lstr_t s)
 static inline void mp_lstr_persists(mem_pool_t *mp, lstr_t *s)
 {
     if (s->mem_pool != MEM_LIBC && s->mem_pool != MEM_OTHER) {
-        s->s        = mp_dupz(mp, s->s, s->len);
+        s->s        = (char *)mp_dupz(mp, s->s, s->len);
         s->mem_pool = MEM_OTHER;
     }
 }
