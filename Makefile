@@ -127,6 +127,7 @@ libcommon_SOURCES = \
 	str-ctype.c \
 	str-dtoa.c \
 	str-iprintf.c \
+	str-l.c \
 	str-num.c \
 	str-outbuf.c \
 	str-path.c \

@@ -31,7 +31,7 @@ typedef struct lstr_t {
         void       *data;
     };
     int     len;
-    flag_t  mem_pool : 2;
+    flag_t  mem_pool : 3;
 } lstr_t;
 
 #define LSTR_INIT(s_, len_)   { { (s_) }, (len_), 0 }
@@ -79,6 +79,19 @@ static ALWAYS_INLINE lstr_t lstr_init_(const void *s, int len, unsigned flags)
     return (lstr_t){ { (const char *)s }, len, flags };
 }
 
+
+/** Initialize a lstr_t from the content of a file.
+ *
+ * The function takes the prot and the flags to be passed to the mmap call.
+ */
+int lstr_init_from_file(lstr_t *dst, const char *path, int prot, int flags);
+
+/** lstr_wipe helper.
+ */
+void lstr_munmap(lstr_t *dst);
+#define lstr_munmap(...)  lstr_munmap_DO_NOT_CALL_DIRECTLY(__VA_ARGS__)
+
+
 /** \brief lstr_copy_* helper.
  */
 static ALWAYS_INLINE
@@ -87,6 +100,9 @@ void lstr_copy_(mem_pool_t *mp, lstr_t *dst,
 {
     if (mp && dst->mem_pool == MEM_OTHER) {
         mp_delete(mp, &dst->v);
+    } else
+    if (dst->mem_pool == MEM_MMAP) {
+        (lstr_munmap)(dst);
     } else {
         ifree(dst->v, dst->mem_pool);
     }
@@ -123,6 +139,19 @@ static inline void lstr_transfer(lstr_t *dst, lstr_t *src)
     lstr_copy_(NULL, dst, src->s, src->len, src->mem_pool);
     src->mem_pool = MEM_STATIC;
 }
+
+struct sb_t;
+
+/** \brief copies \p src into \p dst transferring memory ownershipt to \p dst
+ *
+ * The \p src is a string buffer that will get reinitilized by the operation
+ * as it loses ownership to the buffer.
+ *
+ * If \p keep_pool is false, the function ensures the memory will be allocated
+ * on the heap (\ref sb_detach). If \p keep_pool is true, the memory will be
+ * transfered as-is including the allocation pool.
+ */
+void lstr_transfer_sb(lstr_t *dst, struct sb_t *sb, bool keep_pool);
 
 
 /*--------------------------------------------------------------------------*/
@@ -209,6 +238,20 @@ static inline lstr_t lstr_dup(const lstr_t s)
     return lstr_init_(p_dupz(s.s, s.len), s.len, MEM_LIBC);
 }
 
+/** \brief force lstr to be heap-allocated.
+ *
+ * This function ensure the lstr_t is allocated on the heap and thus is
+ * guaranteed to be persistent.
+ */
+static inline void lstr_persists(lstr_t *s)
+{
+    assert (s->mem_pool != MEM_OTHER);
+    if (s->mem_pool != MEM_LIBC) {
+        s->s        = p_dupz(s->s, s->len);
+        s->mem_pool = MEM_LIBC;
+    }
+}
+
 /** \brief returns new \v mp allocated lstr from its arguments.
  */
 static inline lstr_t mp_lstr_dups(mem_pool_t *mp, const char *s, int len)
@@ -225,6 +268,16 @@ static inline lstr_t mp_lstr_dup(mem_pool_t *mp, const lstr_t s)
     if (!s.s)
         return LSTR_NULL_V;
     return lstr_init_(mp_dupz(mp, s.s, s.len), s.len, MEM_OTHER);
+}
+
+/** \brief ensure \p s is \p mp or heap allocated.
+ */
+static inline void mp_lstr_persists(mem_pool_t *mp, lstr_t *s)
+{
+    if (s->mem_pool != MEM_LIBC && s->mem_pool != MEM_OTHER) {
+        s->s        = mp_dupz(mp, s->s, s->len);
+        s->mem_pool = MEM_OTHER;
+    }
 }
 
 

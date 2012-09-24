@@ -62,6 +62,7 @@ typedef unsigned __bitwise__ mem_flags_t;
 #define MEM_OTHER      force_cast(mem_flags_t, 1)
 #define MEM_LIBC       force_cast(mem_flags_t, 2)
 #define MEM_STACK      force_cast(mem_flags_t, 3)
+#define MEM_MMAP       force_cast(mem_flags_t, 4)
 #define MEM_FLAGS_MASK force_cast(mem_flags_t, 0xff00)
 #define MEM_RAW        force_cast(mem_flags_t, 1 << 8)
 #define MEM_ERRORS_OK  force_cast(mem_flags_t, 1 << 9)
