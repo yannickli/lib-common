@@ -14,11 +14,31 @@
 #include "str.h"
 #include "unix.h"
 
+int lstr_init_from_fd(lstr_t *dst, int fd, int prot, int flags)
+{
+    struct stat st;
+
+    RETHROW(fstat(fd, &st));
+    if (st.st_size == 0) {
+        *dst = LSTR_EMPTY_V;
+        return 0;
+    }
+
+    *dst = lstr_init_(mmap(NULL, st.st_size, prot, flags, fd, 0),
+                      st.st_size, MEM_MMAP);
+
+    if (dst->v == MAP_FAILED) {
+        return -1;
+    }
+    return 0;
+
+}
+
 int lstr_init_from_file(lstr_t *dst, const char *path, int prot, int flags)
 {
     int fd_flags = 0;
-    struct stat st;
     int fd = -1;
+    int ret = 0;
 
     if (flags & MAP_ANONYMOUS) {
         assert (false);
@@ -40,25 +60,9 @@ int lstr_init_from_file(lstr_t *dst, const char *path, int prot, int flags)
     }
 
     fd = RETHROW(open(path, fd_flags));
-    if (fstat(fd, &st)) {
-        PROTECT_ERRNO(p_close(&fd));
-        return -1;
-    }
-
-    if (st.st_size == 0) {
-        PROTECT_ERRNO(p_close(&fd));
-        *dst = LSTR_EMPTY_V;
-        return 0;
-    }
-
-    *dst = lstr_init_(mmap(NULL, st.st_size, prot, flags, fd, 0),
-                      st.st_size, MEM_MMAP);
+    ret = lstr_init_from_fd(dst, fd, prot, flags);
     PROTECT_ERRNO(p_close(&fd));
-
-    if (dst->v == MAP_FAILED) {
-        return -1;
-    }
-    return 0;
+    return ret;
 }
 
 void (lstr_munmap)(lstr_t *dst)
