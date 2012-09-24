@@ -85,6 +85,10 @@ static ALWAYS_INLINE lstr_t lstr_init_(const void *s, int len, unsigned flags)
  */
 int lstr_init_from_file(lstr_t *dst, const char *path, int prot, int flags);
 
+/** Initialize a lstr_t from the content of a file pointed by a fd.
+ */
+int lstr_init_from_fd(lstr_t *dst, int fd, int prot, int flags);
+
 /** lstr_wipe helper.
  */
 void lstr_munmap(lstr_t *dst);
