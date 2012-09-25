@@ -407,4 +407,27 @@ else
     warn "libxmlsec1-dev is missing (apt-get install libxmlsec1-dev)"
 fi
 
+# }}}
+#{{{ ncurses
+
+if pkg-config ncurses; then
+    setvar "ncurses_CFLAGS" "$(pkg-config --cflags ncurses)"
+    setvar "ncurses_LIBS"   "$(pkg-config --libs ncurses)"
+else
+    if [ -r /usr/include/ncurses.h ] && [ -r /usr/include/menu.h ]; then
+        setvar "ncurses_CFLAGS" " "
+    else
+        warn "ncurses headers are missing (apt-get install libncurses5-dev)"
+    fi
+
+    #libmenu might be used optionally
+    if [ -r /usr/lib/libncurses.so ] && [ -r /usr/lib/libmenu.so ]; then
+        setvar "ncurses_LIBS" "-lncurses"
+    else
+        warn "libncurses.so is missing (apt-get install libncurses5-dev)"
+    fi
+fi
+
+# }}}
+
 test -z "$missing_dep" || die "Missing dependencies, please upgrade your system"
