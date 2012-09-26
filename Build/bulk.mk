@@ -116,7 +116,7 @@ all:: toplevel
 all check clean distclean:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
 
-__setup_buildsys_doc:
+__setup_buildsys_doc: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)doc
 
 doc: | __setup_buildsys_doc
