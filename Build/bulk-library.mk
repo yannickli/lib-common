@@ -169,10 +169,15 @@ endef
 # $(eval $(call fun/foreach-ext-rule,<PHONY>,<TARGET>,<SOURCES>,[<NS>]))
 #
 var/exts = $(patsubst ext/rule/%,%,$(filter ext/rule/%,$(.VARIABLES)))
-define fun/foreach-ext-rule
+define fun/foreach-ext-rule-nogen
 $$(foreach e,$(var/exts),$$(if $$(filter %.$$e,$3),$$(eval $$(call ext/rule/$$e,$1,$2,$$(filter %.$$e,$3),$4))))
-$2: | $($1_SOURCES) _generated
+$2: | $($1_SOURCES)
 $(eval $(call fun/common-depends,$1,$2,$1))
+endef
+
+define fun/foreach-ext-rule
+$(call fun/foreach-ext-rule-nogen,$1,$2,$3,$4)
+$2: | _generated
 endef
 
 #
@@ -272,6 +277,8 @@ endef
 #[ _DOCS ]############################################################{{{#
 
 define ext/rule/xml
+$~$1: $/Documentation/dblatex/intersec.specs
+$~$1: $/Documentation/dblatex/highlight.pl $/Documentation/dblatex/asciidoc-dblatex.xsl
 $~$1: $3
 	$(msg/DOC.pdf) $1
 	xmllint --valid $< >/dev/null
@@ -281,7 +288,6 @@ $~$1: $3
 		$(DBLATEXFLAGS) $($(1D)/_DBLATEXFLAGS) $($1_DBLATEXFLAGS) \
 		-I $(1D) -T $/Documentation/dblatex/intersec.specs $3 -o $$@+
 	$(MV) $$@+ $$@ && chmod a-w $$@
-
 endef
 
 define ext/expand/adoc
@@ -305,7 +311,7 @@ define rule/pdf
 $1: $~$1 FORCE
 	$(FASTCP) $$< $$@
 
-$(eval $(call fun/foreach-ext-rule,$1,$~$1,$(if $($1_SOURCES),$($1_SOURCES),$(1:%.pdf=%.adoc)),$4))
+$(eval $(call fun/foreach-ext-rule-nogen,$1,$~$1,$(if $($1_SOURCES),$($1_SOURCES),$(1:%.pdf=%.adoc)),$4))
 
 $(1D)/clean::
 	$(RM) $1
