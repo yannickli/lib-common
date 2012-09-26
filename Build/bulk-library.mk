@@ -270,3 +270,51 @@ $(eval $(call fun/foreach-ext-rule,$1,$1,$($1_SOURCES)))
 endef
 
 #}}}
+#[ _DOCS ]############################################################{{{#
+
+define ext/rule/xml
+$~$1: $3
+	$(msg/DOC.pdf) $1
+	xmllint --valid $< >/dev/null
+	dblatex -q -r $/Documentation/dblatex/highlight.pl \
+		-p $/Documentation/dblatex/asciidoc-dblatex.xsl \
+		--param=doc.lot.show=figure,table \
+		$(DBLATEXFLAGS) $($(1D)/_DBLATEXFLAGS) $($1_DBLATEXFLAGS) \
+		-I $(1D) -T $/Documentation/dblatex/intersec.specs $3 -o $$@+
+	$(MV) $$@+ $$@ && chmod a-w $$@
+
+endef
+
+define ext/expand/adoc
+ifeq ($(filter %.inc.adoc,$3),)
+$~$3.xml: FL_=$($(1D)/_ASCIIDOCFLAGS) $($1_ASCIIDOCFLAGS)
+$~$3.xml: $3 $(3:%.adoc=%-docinfo.xml)
+	$(msg/DOC.adoc) $3
+	asciidoc -b docbook -a docinfo -a toc $$(FL_) -f $/Config/asciidoc.conf \
+		-o $$@+ $$<
+	$(MV) $$@+ $$@ && chmod a-w $$@
+endif
+endef
+
+define ext/rule/adoc
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/adoc,$1,$2,$$t,$4))))
+$(eval $(call fun/common-depends,$1,$(3:%=$~%.xml),$3))
+$(eval $(call ext/rule/xml,$1,$2,$(3:%=$~%.xml),$4))
+endef
+
+define rule/pdf
+$1: $~$1 FORCE
+	$(FASTCP) $$< $$@
+
+$(eval $(call fun/foreach-ext-rule,$1,$~$1,$(if $($1_SOURCES),$($1_SOURCES),$(1:%.pdf=%.adoc)),$4))
+
+$(1D)/clean::
+	$(RM) $1
+endef
+
+define rule/docs
+$(1D)/doc: $1
+$(eval $(call rule/pdf,$1,$2,$3))
+endef
+
+#}}}

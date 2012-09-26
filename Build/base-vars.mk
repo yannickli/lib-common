@@ -78,6 +78,8 @@ msg/LINK.a      := $(msg/color) '1;$(col/magenta)' " AR "
 msg/LINK.c      := $(msg/color) '1;$(col/cyan)'    " LD "
 msg/rm          := $(msg/color) '0;$(col/default)' " RM "
 msg/alert       := $(msg/color) '1;$(col/white)$(col/bg_red)' "***"
+msg/DOC.adoc    := $(msg/color) '0;$(col/red)'     " DOC"
+msg/DOC.pdf     := $(msg/color) '1;$(col/red)'     " PDF"
 
 ##########################################################################
 # Setup make properly
