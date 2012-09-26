@@ -277,8 +277,6 @@ endef
 #[ _DOCS ]############################################################{{{#
 
 define ext/rule/xml
-$~$1: $/Documentation/dblatex/intersec.specs
-$~$1: $/Documentation/dblatex/highlight.pl $/Documentation/dblatex/asciidoc-dblatex.xsl
 $~$1: $3
 	$(msg/DOC.pdf) $1
 	xmllint --valid $< >/dev/null
@@ -288,6 +286,7 @@ $~$1: $3
 		$(DBLATEXFLAGS) $($(1D)/_DBLATEXFLAGS) $($1_DBLATEXFLAGS) \
 		-I $(1D) -T $/Documentation/dblatex/intersec.specs $3 -o $$@+
 	$(MV) $$@+ $$@ && chmod a-w $$@
+
 endef
 
 define ext/expand/adoc
@@ -311,7 +310,7 @@ define rule/pdf
 $1: $~$1 FORCE
 	$(FASTCP) $$< $$@
 
-$(eval $(call fun/foreach-ext-rule-nogen,$1,$~$1,$(if $($1_SOURCES),$($1_SOURCES),$(1:%.pdf=%.adoc)),$4))
+$(eval $(call fun/foreach-ext-rule,$1,$~$1,$(if $($1_SOURCES),$($1_SOURCES),$(1:%.pdf=%.adoc)),$4))
 
 $(1D)/clean::
 	$(RM) $1
