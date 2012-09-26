@@ -101,6 +101,13 @@ The following suffixes are used to define goals of specific kinds:
         and must be derived directly or indirectly from the `_SOURCES` that
         come with it.
 
+`_DOCS`::
+				List of documentations to be generated for this directory. Currently
+				this only handles the generation of `.pdf` files. The generation is
+				derived from the the `_SOURCES` that come with it. If the
+				list of source is empty, the build system will suppose the source file
+				is an asciidoc file with the same name as the generated PDF.
+
 
 The build system doesn't support any other kind of goal yet, though you can
 add local rules (FIXME: add some doc about how to do that).
@@ -117,7 +124,9 @@ All the following work for any kind of goal:
 
 `_SOURCES`::
         This variable has the list of sources.  We support at the time of the
-        writing: .h, .c, .tokens, .fc, .farch, .l, .a, .wa, .ld
+        writing: .h, .c, .tokens, .fc, .farch, .l, .a, .wa, .ld for binary
+				generation, .adoc, .xml for doc generation (only one source per
+				documentation is supported).
 +
 Note that anything that is put in that variable, in a relative way to the
 current directory, is added to the order only depends chain of your goal even
@@ -173,6 +182,13 @@ And the symlinks `libfoo.so.1.2` and `libfoo.so` will be created pointing to
 time).
 
 
+For documentations, (`_DOCS`) you can also use:
+
+`_DBLATEXFLAGS`::
+				This variable holds a list of parameters to be passed to the
+				`dblatex`
+
+
 Per Source Variables
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -196,6 +212,14 @@ Example: `something.c_CFLAGS = -Wno-error`
 
 `_NOCHECK` on `.c` files::
 	To disable checks when building this C file.
+
+
+For documentation sources, (`_DOCS`) you can also use:
+
+`_ASCIIDOCFLAGS`::
+				This variable holds a list of parameters to be passed to the
+				`asciidoc` such as variable definitions (+-a var_name=value+).
+
 
 // }}}
 
@@ -261,6 +285,12 @@ goal.
 The use cases are e.g. to make the target that rebuilds documentation be the
 default when you are running make from the `Documentation/` directory of your
 project.
+
+`doc:`::
+				This target can be used to add specific documentation rules in a
+				Makefile. The build system automatically generate a `doc` goal that
+				build the `_DOCS` target. You can some tasks to that `doc` by adding
+				a `doc:` in your local Makefile.
 
 // }}}
 
