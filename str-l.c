@@ -18,17 +18,24 @@ int lstr_init_from_fd(lstr_t *dst, int fd, int prot, int flags)
 {
     struct stat st;
 
-    RETHROW(fstat(fd, &st));
+    if (unlikely(fstat(fd, &st)) < 0) {
+        return -2;
+    }
     if (st.st_size == 0) {
         *dst = LSTR_EMPTY_V;
         return 0;
+    }
+
+    if (st.st_size > INT_MAX) {
+        errno = ERANGE;
+        return -3;
     }
 
     *dst = lstr_init_(mmap(NULL, st.st_size, prot, flags, fd, 0),
                       st.st_size, MEM_MMAP);
 
     if (dst->v == MAP_FAILED) {
-        return -1;
+        return -3;
     }
     return 0;
 
@@ -42,6 +49,7 @@ int lstr_init_from_file(lstr_t *dst, const char *path, int prot, int flags)
 
     if (flags & MAP_ANONYMOUS) {
         assert (false);
+        errno = EINVAL;
         return -1;
     }
     if (prot & PROT_READ) {
@@ -56,6 +64,7 @@ int lstr_init_from_file(lstr_t *dst, const char *path, int prot, int flags)
     } else {
         assert (false);
         *dst = LSTR_NULL_V;
+        errno = EINVAL;
         return -1;
     }
 
