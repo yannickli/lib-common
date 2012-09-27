@@ -69,10 +69,18 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .data_offs = offsetof(ic__simple_hdr__t, payload),
         .u1        = { .defval_u64 = 0xffffffffffffffff },
     },
+    {
+        .name      = LSTR_IMMED("host"),
+        .tag       = 5,
+        .tag_len   = 0,
+        .repeat    = IOP_R_OPTIONAL,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(ic__simple_hdr__t, host),
+    },
 };
 static int const iop__ranges__2[] = {
     0, 1,
-    4,
+    5,
 };
 const iop_struct_t ic__simple_hdr__s = {
     .fullname   = LSTR_IMMED("ic.SimpleHdr"),

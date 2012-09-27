@@ -492,6 +492,24 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
     return 0;
 }
 
+static lstr_t ic_get_client_addr(ichannel_t *ic)
+{
+    if (!ic->peer_address.s) {
+        t_scope;
+        socklen_t saddr_len = sizeof(ic->su.ss);
+
+        if (getpeername(el_fd_get_fd(ic->elh), (struct sockaddr *)&ic->su.ss,
+                        &saddr_len) < 0)
+        {
+            e_error("unable to get peer name: %m");
+            ic->peer_address = LSTR_EMPTY_V;
+        } else {
+            ic->peer_address = lstr_dup(t_addr_fmt_lstr(&ic->su));
+        }
+    }
+    return ic->peer_address.len ? lstr_dupc(ic->peer_address) : LSTR_NULL_V;
+}
+
 static ALWAYS_INLINE void
 ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                       uint32_t flags, const void *data, int dlen)
@@ -537,6 +555,9 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                     ic__simple_hdr__t *shdr = &hdr->simple;
                     if (shdr->payload < 0)
                         shdr->payload = dlen;
+                    if (!shdr->host.len) {
+                        shdr->host = ic_get_client_addr(ic);
+                    }
                 }
             }
 
@@ -826,6 +847,7 @@ void ic_wipe(ichannel_t *ic)
     qv_wipe(iovec, &ic->iov);
     sb_wipe(&ic->rbuf);
     p_close(&ic->current_fd);
+    lstr_wipe(&ic->peer_address);
     ic->is_wiped   = true;
 }
 
@@ -1148,6 +1170,8 @@ ichannel_t *ic_init(ichannel_t *ic)
 #ifndef NDEBUG
     ic->pending_max = 128;
 #endif
+    ic->peer_address = LSTR_NULL_V;
+
     return ic;
 }
 

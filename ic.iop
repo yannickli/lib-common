@@ -18,6 +18,7 @@ struct SimpleHdr {
     string? password;
     string? kind;
     int     payload = -1;
+    string? host;
 };
 
 union Hdr {

@@ -174,6 +174,7 @@ struct ichannel_t {
     int          wpos;
     sb_t         rbuf;
 
+    lstr_t       peer_address;
 #ifdef IC_DEBUG_REPLIES
     qh_t(ic_replies) dbg_replies;
 #endif
