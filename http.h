@@ -242,6 +242,10 @@ enum httpd_query_status {
                                                                              \
     dlist_t            query_list;                                           \
     outbuf_t           ob;                                                   \
+    lstr_t             peer_address;/* do not use directly. Use the          \
+                                     * httpd_get_peer_address function       \
+                                     * instead */                            \
+    sockunion_t        peer_su;                                              \
                                                                              \
     void             (*on_accept)(httpd_t *w);                               \
     void             (*on_disconnect)(httpd_t *w);                           \
@@ -365,6 +369,9 @@ httpd_t *httpd_spawn(int fd, httpd_cfg_t *);
  * event loop destroys it in its next iteration.
  */
 void     httpd_close_gently(httpd_t *w);
+
+/** retrieve the peer address as a string */
+lstr_t   httpd_get_peer_address(httpd_t * w);
 
 GENERIC_INIT(httpd_trigger_t, httpd_trigger);
 GENERIC_NEW(httpd_trigger_t, httpd_trigger);
