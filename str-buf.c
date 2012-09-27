@@ -201,15 +201,23 @@ int sb_addf(sb_t *sb, const char *fmt, ...)
 
 int sb_getline(sb_t *sb, FILE *f)
 {
+    int64_t start = ftell(f);
     sb_t orig = *sb;
 
     do {
+        int64_t end;
         char *buf = sb_grow(sb, BUFSIZ);
 
         if (!fgets(buf, sb_avail(sb) + 1, f))
             break;
 
-        sb->len += strlen(buf);
+        end = ftell(f);
+        if (start != -1 && end != -1) {
+            sb->len += (end - start);
+        } else {
+            sb->len += strlen(buf);
+        }
+        start = end;
     } while (sb->data[sb->len - 1] != '\n');
 
     if (ferror(f))
