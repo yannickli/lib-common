@@ -157,15 +157,25 @@ int connectx(int sock, const sockunion_t *addrs, int cnt, int type, int proto,
     return -1;
 }
 
-int acceptx(int server_fd, int flags)
+
+int acceptx_get_addr(int server_fd, int flags, sockunion_t *su)
 {
-    int sock = RETHROW(accept(server_fd, NULL, NULL));
+    int sock;
+    socklen_t len = sizeof(su->ss);
+
+    sock = RETHROW(accept(server_fd, su ? (struct sockaddr *)&su->ss : NULL,
+                          su ? &len : NULL));
 
     if (fd_set_features(sock, flags)) {
         PROTECT_ERRNO(close(sock));
         return -1;
     }
     return sock;
+}
+
+int acceptx(int server_fd, int flags)
+{
+    return acceptx_get_addr(server_fd, flags, NULL);
 }
 
 int getsockport(int sock, sa_family_t family)
