@@ -20,7 +20,7 @@ static int16_t const __gsm7_to_unicode[] = {
 #define X(x)     (0x##x)
 #define UNK      (-1)
     /* 0x00,   0x01,   0x02,   0x03,   0x04,   0x05,   0x06,   0x07,    */
-       X(40),  X(A3),  X(24),  X(A5),  X(E8),  X(E9),  X(FA),  X(EC),
+       X(40),  X(A3),  X(24),  X(A5),  X(E8),  X(E9),  X(F9),  X(EC),
     /* 0x08,   0x09,   0x0A,   0x0B,   0x0C,   0x0D,   0x0E,   0x0F,    */
        X(F2),  X(C7),  X(0A),  X(D8),  X(F8),  X(0D),  X(C5),  X(E5),
     /* 0x10,   0x11,   0x12,   0x13,   0x14,   0x15,   0x16,   0x17,    */
