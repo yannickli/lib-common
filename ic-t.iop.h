@@ -21,6 +21,7 @@ typedef struct ic__simple_hdr__t {
     lstr_t           password;
     lstr_t           kind;
     int32_t  payload;
+    lstr_t           host;
 } ic__simple_hdr__t;
 extern iop_struct_t const ic__simple_hdr__s;
 IOP_GENERIC(ic__simple_hdr);

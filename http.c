@@ -1397,6 +1397,7 @@ static void httpd_wipe(httpd_t *w)
     w->cfg->nb_conns--;
     dlist_remove(&w->httpd_link);
     httpd_cfg_delete(&w->cfg);
+    lstr_wipe(&w->peer_address);
 }
 
 OBJ_VTABLE(httpd)
@@ -1714,12 +1715,13 @@ httpd_on_accept(el_t evh, int fd, short events, el_data_t priv)
 {
     httpd_cfg_t *cfg = priv.ptr;
     int sock;
+    sockunion_t su;
 
-    while ((sock = acceptx(fd, O_NONBLOCK)) >= 0) {
+    while ((sock = acceptx_get_addr(fd, O_NONBLOCK, &su)) >= 0) {
         if (cfg->nb_conns >= cfg->max_conns) {
             close(sock);
         } else {
-            httpd_spawn(sock, priv.ptr);
+            httpd_spawn(sock, cfg)->peer_su = su;
         }
     }
     return 0;
@@ -1756,6 +1758,17 @@ httpd_t *httpd_spawn(int fd, httpd_cfg_t *cfg)
         (*w->on_accept)(w);
     }
     return w;
+}
+
+lstr_t   httpd_get_peer_address(httpd_t * w)
+{
+    if (!w->peer_address.len) {
+        t_scope;
+
+        w->peer_address = lstr_dup(t_addr_fmt_lstr(&w->peer_su));
+    }
+
+    return lstr_dupc(w->peer_address);
 }
 
 /* }}} */

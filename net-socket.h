@@ -27,6 +27,7 @@ int listenx(int sock, const sockunion_t *, int cnt,
 int connectx(int sock, const sockunion_t *, int cnt,
              int type, int proto, int flags);
 int acceptx(int server_fd, int flags);
+int acceptx_get_addr(int server_fd, int flags, sockunion_t *su);
 
 int getsockport(int sock, sa_family_t family);
 int getpeerport(int sock, sa_family_t family);
