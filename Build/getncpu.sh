@@ -2,10 +2,8 @@
 
 case "$PATH" in
     *distcc*)
-        if test -n "$DISTCC_HOSTS"; then
-            expr $(distcc -j) + 1
-            exit 0
-        fi
+        expr $(distcc -j) + 1
+        exit 0
         ;;
     *)
         ;;
