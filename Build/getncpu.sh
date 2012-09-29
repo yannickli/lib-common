@@ -2,8 +2,11 @@
 
 case "$PATH" in
     *distcc*)
-        expr $(distcc -j) + 1
-        exit 0
+        res=$(distcc -j 2> /dev/null)
+        if [ -n "$res" ]; then
+            expr $res + 1
+            exit 0
+        fi
         ;;
     *)
         ;;
