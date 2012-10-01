@@ -81,6 +81,39 @@ void __bb_grow(bb_t *bb, size_t extra)
     }
 }
 
+void bb_add_bs(bb_t *bb, const bit_stream_t *b)
+{
+    bit_stream_t bs = *b;
+    pstream_t ps;
+
+    while (!bs_done(&bs) && !bs_is_aligned(&bs)) {
+        bb_add_bit(bb, __bs_get_bit(&bs));
+    }
+
+    ps = __bs_get_bytes(&bs, bs_len(&bs) / 8);
+    bb_add_bytes(bb, ps.b, ps_len(&ps));
+
+    while (!bs_done(&bs)) {
+        bb_add_bit(bb, __bs_get_bit(&bs));
+    }
+}
+
+void bb_be_add_bs(bb_t *bb, const bit_stream_t *b)
+{
+    bit_stream_t bs = *b;
+    pstream_t ps;
+
+    while (!bs_done(&bs) && !bs_is_aligned(&bs)) {
+        bb_be_add_bit(bb, __bs_be_get_bit(&bs));
+    }
+
+    ps = __bs_get_bytes(&bs, bs_len(&bs) / 8);
+    bb_be_add_bytes(bb, ps.b, ps_len(&ps));
+
+    while (!bs_done(&bs)) {
+        bb_be_add_bit(bb, __bs_be_get_bit(&bs));
+    }
+}
 
 char *t_print_bits(uint8_t bits, uint8_t bstart, uint8_t blen)
 {
@@ -101,21 +134,4 @@ char *t_print_bb(const bb_t *bb, size_t *len)
     bit_stream_t bs = bs_init_bb(bb);
 
     return t_print_bs(bs, len);
-}
-
-void bb_be_add_bs(bb_t *bb, const bit_stream_t *b)
-{
-    bit_stream_t bs = *b;
-    pstream_t ps;
-
-    while (!bs_done(&bs) && !bs_is_aligned(&bs)) {
-        bb_be_add_bit(bb, __bs_be_get_bit(&bs));
-    }
-
-    ps = __bs_get_bytes(&bs, bs_len(&bs) / 8);
-    bb_be_add_bytes(bb, ps.b, ps_len(&ps));
-
-    while (!bs_done(&bs)) {
-        bb_be_add_bit(bb, __bs_be_get_bit(&bs));
-    }
 }
