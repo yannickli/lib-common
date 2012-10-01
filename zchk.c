@@ -41,7 +41,7 @@ Z_GROUP_EXPORT(bit_buf)
 
         Z_ASSERT_EQ(bb.len, 17U);
         bs = bs_init_bb(&bb);
-        Z_ASSERT_STREQUAL(".10110001.01001101.0", t_print_bs(bs, NULL));
+        Z_ASSERT_STREQUAL(".10110001.01001101.0", t_print_be_bs(bs, NULL));
 
         Z_ASSERT_EQ(bs_len(&bs), 17U, "Check length #2");
         Z_ASSERT_EQ(__bs_be_get_bit(&bs), true,  "Check bit #1");

@@ -298,25 +298,25 @@ void bb_be_add_bs(bb_t *bb, const struct bit_stream_t *bs) __leaf;
 static ALWAYS_INLINE void bb_push_mark(bb_t *bb) { }
 static ALWAYS_INLINE void bb_pop_mark(bb_t *bb) { }
 static ALWAYS_INLINE void bb_reset_mark(bb_t *bb) { }
-#define e_trace_bb_tail(...)  e_trace_bb(__VA_ARGS__)
+#define e_trace_be_bb_tail(...)  e_trace_be_bb(__VA_ARGS__)
 
 /* }}} */
 /* Printing helpers {{{ */
 
 char *t_print_bits(uint8_t bits, uint8_t bstart, uint8_t blen)
     __leaf;
-char *t_print_bb(const bb_t *bb, size_t *len)
+char *t_print_be_bb(const bb_t *bb, size_t *len)
     __leaf;
 
 #ifndef NDEBUG
-#   define e_trace_bb(lvl, bb, fmt, ...)  \
+#   define e_trace_be_bb(lvl, bb, fmt, ...)  \
 {                                                                      \
     bit_stream_t __bs = bs_init_bb(bb);                                \
                                                                        \
-    e_trace_bs(lvl, &__bs, fmt, ##__VA_ARGS__);                        \
+    e_trace_be_bs(lvl, &__bs, fmt, ##__VA_ARGS__);                     \
 }
 #else
-#   define e_trace_bb(...)
+#   define e_trace_be_bb(...)
 #endif
 
 /* }}} */

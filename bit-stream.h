@@ -538,7 +538,7 @@ static inline bool bs_equals(bit_stream_t bs1, bit_stream_t bs2)
 /* }}} */
 /* Printing helpers {{{ */
 
-static inline char *t_print_bs(bit_stream_t bs, size_t *len)
+static inline char *t_print_be_bs(bit_stream_t bs, size_t *len)
 {
     sb_t sb;
 
@@ -558,7 +558,7 @@ static inline char *t_print_bs(bit_stream_t bs, size_t *len)
 }
 
 #ifndef NDEBUG
-#  define e_trace_bs(lvl, bs, fmt, ...)  \
+#  define e_trace_be_bs(lvl, bs, fmt, ...)  \
     ({                                                                     \
         t_scope;                                                           \
         static const char spaces[] = "         ";                          \
@@ -567,12 +567,12 @@ static inline char *t_print_bs(bit_stream_t bs, size_t *len)
                                                 : ((bs)->s.offset % 8) + 1;\
                                                                            \
         e_trace(lvl, "[ %s%s%s ] --(%2zu) " fmt, spaces + 9 - start_blank, \
-                t_print_bs(*(bs), NULL), spaces + 9 - ((bs)->e.offset % 8),\
+                t_print_be_bs(*(bs), NULL), spaces + 9 - ((bs)->e.offset % 8),\
                 bs_len(bs), ##__VA_ARGS__);                                \
     })
 
 #else
-#  define e_trace_bs(...)
+#  define e_trace_be_bs(...)
 #endif
 
 /* }}} */

@@ -129,9 +129,9 @@ char *t_print_bits(uint8_t bits, uint8_t bstart, uint8_t blen)
     return str;
 }
 
-char *t_print_bb(const bb_t *bb, size_t *len)
+char *t_print_be_bb(const bb_t *bb, size_t *len)
 {
     bit_stream_t bs = bs_init_bb(bb);
 
-    return t_print_bs(bs, len);
+    return t_print_be_bs(bs, len);
 }
