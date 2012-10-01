@@ -11,9 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "bit-buf.h"
-#include "bit-stream.h"
-
+#include "bit.h"
 
 void bb_wipe(bb_t *bb)
 {

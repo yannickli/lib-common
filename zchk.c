@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #include "z.h"
-#include "bit-stream.h"
+#include "bit.h"
 
 Z_GROUP_EXPORT(bit_buf)
 {

@@ -11,12 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_INET_BIT_BUF_H
-#define IS_LIB_INET_BIT_BUF_H
-
-#include <lib-common/arith.h>
-#include <lib-common/str.h>
-#include <lib-common/container.h>
+#if !defined(IS_LIB_COMMON_BIT_H) || defined(IS_LIB_COMMON_BIT_BUF_H)
+#  error "you must include bit.h instead"
+#else
+#define IS_LIB_COMMON_BIT_BUF_H
 
 typedef struct bb_t {
     union {
@@ -191,6 +189,7 @@ static ALWAYS_INLINE void bb_pop_mark(bb_t *bb) { }
 static ALWAYS_INLINE void bb_reset_mark(bb_t *bb) { }
 #define e_trace_bb_tail(...)  e_trace_bb(__VA_ARGS__)
 
+/* }}} */
 /* Printing helpers {{{ */
 
 char *t_print_bits(uint8_t bits, uint8_t bstart, uint8_t blen)

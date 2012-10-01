@@ -11,10 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_INET_BIT_STREAM_H
-#define IS_LIB_INET_BIT_STREAM_H
-
-#include "bit-buf.h"
+#if !defined(IS_LIB_COMMON_BIT_H) || defined(IS_LIB_COMMON_BIT_STREAM_H)
+#  error "you must include bit.h instead"
+#else
+#define IS_LIB_COMMON_BIT_STREAM_H
 
 /*
  * bit_stream_t's are basically the two bit-wise bounds in a memory chunk.
