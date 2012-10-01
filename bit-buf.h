@@ -305,8 +305,13 @@ static ALWAYS_INLINE void bb_reset_mark(bb_t *bb) { }
 
 char *t_print_bits(uint8_t bits, uint8_t bstart, uint8_t blen)
     __leaf;
+
 char *t_print_be_bb(const bb_t *bb, size_t *len)
     __leaf;
+
+char *t_print_bb(const bb_t *bb, size_t *len)
+    __leaf;
+
 
 #ifndef NDEBUG
 #   define e_trace_be_bb(lvl, bb, fmt, ...)  \
@@ -315,8 +320,16 @@ char *t_print_be_bb(const bb_t *bb, size_t *len)
                                                                        \
     e_trace_be_bs(lvl, &__bs, fmt, ##__VA_ARGS__);                     \
 }
+
+#   define e_trace_bb(lvl, bb, fmt, ...)  \
+{                                                                      \
+    bit_stream_t __bs = bs_init_bb(bb);                                \
+                                                                       \
+    e_trace_bs(lvl, &__bs, fmt, ##__VA_ARGS__);                        \
+}
 #else
 #   define e_trace_be_bb(...)
+#   define e_trace_bb(...)
 #endif
 
 /* }}} */
