@@ -171,7 +171,7 @@
     }                                                                        \
     static inline int pfx##__check(pfx##__t v)                               \
     {                                                                        \
-        RETURN_UNLESS(pfx##__e.flags & IOP_ENUM_STRICT, 0);                  \
+        RETURN_UNLESS(TST_BIT(&pfx##__e.flags, IOP_ENUM_STRICT), 0);         \
         return pfx##__exists(v) ? 0 : -1;                                    \
     }
 
