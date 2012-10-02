@@ -363,6 +363,14 @@ const iop_rpc_t   *iop_iface_find_rpc(const iop_iface_t *iface, uint32_t tag);
 const iop_rpc_t   *iop_mod_find_rpc(const iop_mod_t *mod, uint32_t cmd);
 
 
+/*-------- IOP signature ----------*/
+
+lstr_t t_iop_compute_signature(const iop_struct_t *s, const void *v);
+
+__must_check__
+int iop_check_signature(const iop_struct_t *s, const void *v, lstr_t sig);
+
+
 #include "iop-xml.h"
 #include "iop-json.h"
 #include "iop-dso.h"
