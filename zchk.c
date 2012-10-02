@@ -206,6 +206,36 @@ Z_GROUP_EXPORT(endianess)
     } Z_TEST_END;
 } Z_GROUP_END;
 
+static int bs_check_length(const bit_stream_t bs, size_t len)
+{
+    Z_ASSERT_EQ(bs_len(&bs), len);
+    Z_ASSERT_EQ(len == 0, bs_done(&bs));
+
+    for (size_t i = len; i-- > 0;) {
+        Z_ASSERT(bs_has(&bs, i));
+    }
+    for (size_t i = len + 1; i < len * 2 + 2; i++) {
+        Z_ASSERT(!bs_has(&bs, i));
+    }
+
+    Z_HELPER_END;
+}
+
+static int bs_check_bounds(const bit_stream_t bs, const byte data[128],
+                           int from, int to)
+{
+    const bit_stream_t bds = bs_init_ptroff(data, from, data, to);
+
+    Z_ASSERT(bds.s.p == bs.s.p);
+    Z_ASSERT_EQ(bds.s.offset, bs.s.offset);
+    Z_ASSERT(bds.e.p == bs.e.p);
+    Z_ASSERT_EQ(bds.e.offset, bs.e.offset);
+
+    Z_HELPER_RUN(bs_check_length(bs, to - from));
+
+    Z_HELPER_END;
+}
+
 Z_GROUP_EXPORT(bit_stream)
 {
     bit_stream_t bs;
@@ -219,33 +249,11 @@ Z_GROUP_EXPORT(bit_stream)
         832 896 960 1024
     */
 
-#define Z_CHECK_LENGTH(Stream, Len, ...)  do {                               \
-        const bit_stream_t __bs = Stream;                                    \
-        int         __len;                                                   \
-        Z_ASSERT_EQ((__len = bs_len(&__bs)), (Len), ##__VA_ARGS__);          \
-        if (__len == 0) {                                                    \
-            Z_ASSERT(bs_done(&__bs));                                        \
-        } else {                                                             \
-            Z_ASSERT(!bs_done(&__bs));                                       \
-        }                                                                    \
-        for (int __i = __len; __i-- > 0;) {                                  \
-            Z_ASSERT(bs_has(&__bs, __i));                                    \
-        }                                                                    \
-        for (int __i = __len + 1; __i < __len * 2 + 2; __i++) {              \
-            Z_ASSERT(!bs_has(&__bs, __i));                                   \
-        }                                                                    \
-    } while (0)
+#define Z_CHECK_LENGTH(Stream, Len, ...)  \
+        Z_HELPER_RUN(bs_check_length(Stream, Len), ##__VA_ARGS__)
 
-#define Z_CHECK_BOUNDS(Stream, From, To)  do {                               \
-        const bit_stream_t __bs2 = Stream;                                   \
-        const bit_stream_t __bds = bs_init_ptroff(data, From, data, To);     \
-                                                                             \
-        Z_ASSERT(__bds.s.p == __bs2.s.p);                                    \
-        Z_ASSERT_EQ(__bds.s.offset, __bs2.s.offset);                         \
-        Z_ASSERT(__bds.e.p == __bs2.e.p);                                    \
-        Z_ASSERT_EQ(__bds.e.offset, __bs2.e.offset);                         \
-        Z_CHECK_LENGTH(__bs2, (To) - (From));                                \
-    } while (0)
+#define Z_CHECK_BOUNDS(Stream, From, To, ...)  \
+        Z_HELPER_RUN(bs_check_bounds(Stream, data, From, To), ##__VA_ARGS__)
 
     /* Init {{{ */
 
