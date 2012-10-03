@@ -555,6 +555,9 @@ static int iop_json_lex_expr(iop_json_lex_t *ll, const iop_field_t *fdesc)
                 SKIP(1);
                 c = CF_OP_EXP;
             }
+            if (c == '-' && iop_cfolder_empty(ll->cfolder)) {
+                goto feed_number;
+            }
             e_trace(1, "feed operator %c", c);
             if (iop_cfolder_feed_operator(ll->cfolder, c) < 0)
                 return RJERROR_WARG(IOP_JERR_PARSE_NUM);
@@ -562,6 +565,7 @@ static int iop_json_lex_expr(iop_json_lex_t *ll, const iop_field_t *fdesc)
             break;
 
           case '.': case '0' ... '9':
+          feed_number:
             type = RETHROW(iop_json_lex_number(ll));
             if (type == IOP_JSON_DOUBLE) {
                 if (!iop_cfolder_empty(ll->cfolder)) {
