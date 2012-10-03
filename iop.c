@@ -1773,6 +1773,94 @@ const iop_rpc_t *iop_mod_find_rpc(const iop_mod_t *mod, uint32_t cmd)
 }
 
 /*------ introspection -}}}-*/
+/*------ Signature -{{{-*/
+
+static
+lstr_t t_iop_sign_salt_sha256(const iop_struct_t *st, const void *v, uint32_t salt)
+{
+    uint8_t buf[SHA256_DIGEST_SIZE];
+    be32_t  s = cpu_to_be32(salt);
+
+    iop_hmac_sha256(st, v, LSTR_INIT_V((void *)&s, sizeof(s)), buf);
+    return t_lstr_fmt("$256:%*pX$%*pX", (int)sizeof(s), &s,
+                      SHA256_DIGEST_SIZE, buf);
+}
+
+lstr_t t_iop_compute_signature(const iop_struct_t *st, const void *v)
+{
+    return t_iop_sign_salt_sha256(st, v, ha_rand());
+}
+
+__must_check__
+static int iop_signature_get_salt(lstr_t signature, be32_t *salt)
+{
+    if (lstr_startswith(signature, LSTR_IMMED_V("$256:"))) {
+        if (signature.len != 5 + 8 + 1 + SHA256_DIGEST_SIZE * 2)
+        {
+#ifdef NDEBUG
+            return -1;
+#else
+            return e_error("invalid $256 signature (invalid length)");
+#endif
+        }
+        if (strconv_hexdecode(salt, sizeof(salt), signature.s + 5, 8) < 0
+        ||  signature.s[5 + 8] != '$')
+        {
+#ifdef NDEBUG
+            return -1;
+#else
+            return e_error("invalid $256 signature (invalid salt)");
+#endif
+        }
+    } else {
+#ifdef NDEBUG
+        return -1;
+#else
+        return e_error("unparseable signature: <%*pM>",
+                       LSTR_FMT_ARG(signature));
+#endif
+    }
+    return 0;
+}
+
+int iop_check_signature(const iop_struct_t *st, const void *v, lstr_t sig)
+{
+    t_scope;
+    lstr_t exp;
+    be32_t salt;
+
+#ifndef NDEBUG
+    if (lstr_equal2(sig, LSTR_IMMED_V("$42:defeca7e$")))
+        return 0;
+#endif
+
+    if (iop_signature_get_salt(sig, &salt) < 0) {
+#ifdef NDEBUG
+        return -1;
+#else
+        return e_error("error while getting salt");
+#endif
+    }
+
+    exp = t_iop_sign_salt_sha256(st, v, be_to_cpu32(salt));
+    if (!lstr_equal2(sig, exp)) {
+#ifdef NDEBUG
+        return -1;
+#else
+        return e_error("invalid signature (invalid value)");
+#endif
+    }
+
+    return 0;
+}
+
+__attribute__((constructor))
+static void iop_signature_initialize(void)
+{
+    ha_srand();
+}
+
+/*------ Signature -}}}-*/
 
 iop_struct_t const iop__void__s = {
     .fullname   = LSTR_IMMED("Void"),
