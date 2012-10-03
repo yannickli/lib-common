@@ -1181,7 +1181,7 @@ int iop_enum_from_str2(const iop_enum_t *e, const char *s, int len, bool *found)
         len = strlen(s);
     *found = false;
     for (int i = 0; i < e->enum_len; i++) {
-        if (len == e->names[i].len && strcasecmp(e->names[i].s, s) == 0) {
+        if (len == e->names[i].len && !strncasecmp(e->names[i].s, s, len)) {
             *found = true;
             return e->values[i];
         }
