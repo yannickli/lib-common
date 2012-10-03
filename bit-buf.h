@@ -11,12 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_INET_BIT_BUF_H
-#define IS_LIB_INET_BIT_BUF_H
-
-#include <lib-common/arith.h>
-#include <lib-common/str.h>
-#include <lib-common/container.h>
+#if !defined(IS_LIB_COMMON_BIT_H) || defined(IS_LIB_COMMON_BIT_BUF_H)
+#  error "you must include bit.h instead"
+#else
+#define IS_LIB_COMMON_BIT_BUF_H
 
 typedef struct bb_t {
     union {
@@ -37,6 +35,8 @@ typedef struct bb_t {
     size_t     size; /* Number of words allocated */
     flag_t     mem_pool : 2;
 } bb_t;
+
+struct bit_stream_t;
 
 /* Initialization/Cleanup {{{ */
 
@@ -112,7 +112,117 @@ static inline void bb_growlen(bb_t *bb, size_t extra)
 
 
 /* }}} */
-/* BE API {{{ */
+/* Write bit, little endian {{{ */
+
+static inline void bb_add_bit(bb_t *bb, bool v)
+{
+    if (bb->offset == 0) {
+        bb_grow(bb, 1);
+    }
+    if (v) {
+        bb->data[bb->word] |= 1 << bb->offset;
+    }
+    bb->len++;
+}
+
+static inline void bb_add_bits(bb_t *bb, uint64_t bits, uint8_t blen)
+{
+    unsigned offset = bb->offset;
+    size_t   word   = bb->word;
+
+    if (unlikely(!blen)) {
+        return;
+    }
+
+    bb_growlen(bb, blen);
+
+    if (blen != 64) {
+        bits &= BITMASK_LT(uint64_t, blen);
+    }
+    bb->data[word] |= bits << offset;
+
+    if (64 - offset < blen) {
+        bb->data[word + 1] = bits >> (64 - offset);
+    }
+}
+
+static inline void bb_add_byte(bb_t *bb, uint8_t b)
+{
+    bb_add_bits(bb, b, 8);
+}
+
+static inline void bb_add_bytes(bb_t *bb, const byte *b, size_t len)
+{
+    if (bb->boffset == 0) {
+        bb_grow(bb, len * 8);
+        p_copy(bb->bytes + bb->b, b, len);
+        bb->len += len * 8;
+    } else {
+        size_t words;
+
+        /* Align pointer to make arithmetic simpler */
+        while (len && unlikely(((uintptr_t)b) % 8)) {
+            /* TODO: if this is not performant enough, try something using
+             * switch ((uintptr_t)b % 8) { } and get_unaligned_le...
+             */
+            bb_add_byte(bb, *(b++));
+            len--;
+        }
+
+        if (len == 0) {
+            return;
+        }
+
+        words = len / 8;
+        for (size_t i = 0; i < words; i++) {
+            bb_add_bits(bb, *(const uint64_t *)b, 64);
+            b += 8;
+        }
+
+        if (len % 8) {
+            /* XXX: we read out-of-bound, but since the pointer is properly
+             * aligned, we are sure we won't crash.
+             */
+            bb_add_bits(bb, *(const uint64_t *)b, (len % 8) * 8);
+        }
+    }
+}
+
+static inline void bb_add0s(bb_t *bb, size_t len)
+{
+    bb_growlen(bb, len);
+}
+
+static inline void bb_add1s(bb_t *bb, size_t len)
+{
+    unsigned boffset = bb->boffset;
+    size_t   b       = bb->b;
+
+    bb_growlen(bb, len);
+
+    if (boffset != 0) {
+        bb->bytes[b] |= BITMASK_GE(uint64_t, boffset);
+        if (len <= 8 - boffset) {
+            bb->bytes[b] &= BITMASK_LT(uint64_t, boffset + len);
+            return;
+        }
+        len -= 8 - boffset;
+        b++;
+    }
+
+    if (len >= 8) {
+        memset(&bb->bytes[b], 0xff, len / 8);
+    }
+    if (len % 8) {
+        b += len / 8;
+        bb->bytes[b] = BITMASK_LT(uint64_t, len % 8);
+    }
+}
+
+void bb_add_bs(bb_t *bb, const struct bit_stream_t *bs) __leaf;
+
+/* }}} */
+/* Write bit, big endian {{{ */
 
 static inline void bb_be_add_bit(bb_t *bb, bool v)
 {
@@ -179,7 +289,6 @@ static inline void bb_be_add_bytes(bb_t *bb, const byte *b, size_t len)
     }
 }
 
-struct bit_stream_t;
 void bb_be_add_bs(bb_t *bb, const struct bit_stream_t *bs) __leaf;
 
 
@@ -189,16 +298,29 @@ void bb_be_add_bs(bb_t *bb, const struct bit_stream_t *bs) __leaf;
 static ALWAYS_INLINE void bb_push_mark(bb_t *bb) { }
 static ALWAYS_INLINE void bb_pop_mark(bb_t *bb) { }
 static ALWAYS_INLINE void bb_reset_mark(bb_t *bb) { }
-#define e_trace_bb_tail(...)  e_trace_bb(__VA_ARGS__)
+#define e_trace_be_bb_tail(...)  e_trace_be_bb(__VA_ARGS__)
 
+/* }}} */
 /* Printing helpers {{{ */
 
 char *t_print_bits(uint8_t bits, uint8_t bstart, uint8_t blen)
     __leaf;
+
+char *t_print_be_bb(const bb_t *bb, size_t *len)
+    __leaf;
+
 char *t_print_bb(const bb_t *bb, size_t *len)
     __leaf;
 
+
 #ifndef NDEBUG
+#   define e_trace_be_bb(lvl, bb, fmt, ...)  \
+{                                                                      \
+    bit_stream_t __bs = bs_init_bb(bb);                                \
+                                                                       \
+    e_trace_be_bs(lvl, &__bs, fmt, ##__VA_ARGS__);                     \
+}
+
 #   define e_trace_bb(lvl, bb, fmt, ...)  \
 {                                                                      \
     bit_stream_t __bs = bs_init_bb(bb);                                \
@@ -206,6 +328,7 @@ char *t_print_bb(const bb_t *bb, size_t *len)
     e_trace_bs(lvl, &__bs, fmt, ##__VA_ARGS__);                        \
 }
 #else
+#   define e_trace_be_bb(...)
 #   define e_trace_bb(...)
 #endif
 

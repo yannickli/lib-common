@@ -118,7 +118,7 @@ aper_write_u16_m(bb_t *bb, uint16_t u16, uint16_t blen)
     /* FALLTHROUGH */
 
   end:
-    e_trace_bb_tail(5, bb, "Constrained number (n = %u)", u16);
+    e_trace_be_bb_tail(5, bb, "Constrained number (n = %u)", u16);
     bb_pop_mark(bb);
 }
 
@@ -129,13 +129,13 @@ aper_write_ulen(bb_t *bb, size_t l) /* Unconstrained length */
 
     bb_align(bb);
 
-    e_trace_bb_tail(5, bb, "Align");
+    e_trace_be_bb_tail(5, bb, "Align");
     bb_reset_mark(bb);
 
     if (l <= 127) {
         write_u8_aligned(bb, l);
 
-        e_trace_bb_tail(5, bb, "Unconstrained length (l = %zd)", l);
+        e_trace_be_bb_tail(5, bb, "Unconstrained length (l = %zd)", l);
         bb_pop_mark(bb);
 
         return 0;
@@ -146,7 +146,7 @@ aper_write_ulen(bb_t *bb, size_t l) /* Unconstrained length */
 
         write_u16_aligned(bb, u16);
 
-        e_trace_bb_tail(5, bb, "Unconstrained length (l = %zd)", l);
+        e_trace_be_bb_tail(5, bb, "Unconstrained length (l = %zd)", l);
         bb_pop_mark(bb);
 
         return 0;
@@ -494,7 +494,7 @@ aper_encode_field(bb_t *bb, const void *v, const asn1_field_t *field)
         res = aper_encode_value(bb, v, field);
     }
 
-    e_trace_bb_tail(5, bb, "Value encoding for %s:%s",
+    e_trace_be_bb_tail(5, bb, "Value encoding for %s:%s",
                     field->oc_t_name, field->name);
     bb_pop_mark(bb);
 
@@ -528,7 +528,7 @@ aper_encode_sequence(bb_t *bb, const void *st, const asn1_desc_t *desc)
         }
     }
 
-    e_trace_bb_tail(5, bb, "SEQUENCE OPTIONAL fields bit-map");
+    e_trace_be_bb_tail(5, bb, "SEQUENCE OPTIONAL fields bit-map");
     bb_pop_mark(bb);
 
     for (int i = 0; i < desc->vec.len; i++) {
@@ -589,7 +589,7 @@ aper_encode_choice(bb_t *bb, const void *st, const asn1_desc_t *desc)
     /* XXX Indexes start from 0 */
     aper_write_number(bb, index - 1, &desc->choice_info);
 
-    e_trace_bb_tail(5, bb, "CHOICE index");
+    e_trace_be_bb_tail(5, bb, "CHOICE index");
     bb_pop_mark(bb);
 
     v = GET_DATA_P(st, choice_field, uint8_t);
@@ -628,7 +628,7 @@ aper_encode_seq_of(bb_t *bb, const void *st, const asn1_field_t *field)
                        elem_cnt);
     }
 
-    e_trace_bb_tail(5, bb, "SEQUENCE OF length");
+    e_trace_be_bb_tail(5, bb, "SEQUENCE OF length");
     bb_pop_mark(bb);
 
     if (repeated_field->pointed) {
@@ -1197,7 +1197,7 @@ t_aper_decode_bstring(bit_stream_t *bs, const asn1_cnt_info_t *info,
         return -1;
     }
 
-    e_trace_bs(6, str, "Decoded bit string");
+    e_trace_be_bs(6, str, "Decoded bit string");
 
     if (copy) {
         size_t olen = str->e.p - str->s.p;
@@ -1600,7 +1600,7 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
                 Z_ASSERT_N(aper_read_u16_m(&bs, len, &u16), "[i:%d]", i);
                 Z_ASSERT_EQ(u16, t[i].d, "[i:%d] len=%zu", i, len);
             }
-            Z_ASSERT_STREQUAL(t[i].s, t_print_bb(&bb, NULL), "[i:%d]", i);
+            Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
         }
     } Z_TEST_END;
 
@@ -1625,7 +1625,7 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             Z_ASSERT_N(aper_read_len(&bs, t[i].l_min, t[i].l_max, &len),
                        "[i:%d]", i);
             Z_ASSERT_EQ(len, t[i].l, "[i:%d]", i);
-            Z_ASSERT_STREQUAL(t[i].s, t_print_bb(&bb, NULL), "[i:%d]", i);
+            Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
         }
     } Z_TEST_END;
 
@@ -1649,7 +1649,7 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             bs = bs_init_bb(&bb);
             Z_ASSERT_N(aper_read_nsnnwn(&bs, &len), "[i:%d]", i);
             Z_ASSERT_EQ(len, t[i].n, "[i:%d]", i);
-            Z_ASSERT_STREQUAL(t[i].s, t_print_bb(&bb, NULL), "[i:%d]", i);
+            Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
         }
     } Z_TEST_END;
 
@@ -1719,7 +1719,7 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             bs = bs_init_bb(&bb);
             Z_ASSERT_N(aper_decode_number(&bs, t[i].info, &i64), "[i:%d]", i);
             Z_ASSERT_EQ(i64, t[i].i, "[i:%d]", i);
-            Z_ASSERT_STREQUAL(t[i].s, t_print_bb(&bb, NULL), "[i:%d]", i);
+            Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
         }
     } Z_TEST_END;
 
@@ -1782,7 +1782,7 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             bb_reset(&bb);
             aper_encode_ostring(&bb, &src, t[i].info);
             if (src.len < 4) {
-                Z_ASSERT_STREQUAL(t[i].s, t_print_bb(&bb, NULL),"[i:%d]", i);
+                Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL),"[i:%d]", i);
             }
             bs = bs_init_bb(&bb);
             Z_ASSERT_N(t_aper_decode_ostring(&bs, t[i].info, t[i].copy, &dst),
@@ -1855,7 +1855,7 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             }
             src = bs_init_bb(&src_bb);
             aper_encode_bstring(&bb, &src, t[i].info);
-            Z_ASSERT_STREQUAL(t[i].s, t_print_bb(&bb, NULL), "[i:%d]", i);
+            Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
             bs = bs_init_bb(&bb);
             Z_ASSERT_N(t_aper_decode_bstring(&bs, t[i].info, t[i].copy, &dst),
                        "[i:%d]", i);
@@ -1911,7 +1911,7 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
             bs = bs_init_bb(&bb);
             Z_ASSERT_N(aper_decode_enum(&bs, t[i].e, &res), "[i:%d]", i);
             Z_ASSERT_EQ(res, t[i].val, "[i:%d]", i);
-            Z_ASSERT_STREQUAL(t[i].s, t_print_bb(&bb, NULL), "[i:%d]", i);
+            Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL), "[i:%d]", i);
         }
     } Z_TEST_END;
 } Z_GROUP_END

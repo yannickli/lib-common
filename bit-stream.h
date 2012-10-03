@@ -11,10 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef IS_LIB_INET_BIT_STREAM_H
-#define IS_LIB_INET_BIT_STREAM_H
-
-#include "bit-buf.h"
+#if !defined(IS_LIB_COMMON_BIT_H) || defined(IS_LIB_COMMON_BIT_STREAM_H)
+#  error "you must include bit.h instead"
+#else
+#define IS_LIB_COMMON_BIT_STREAM_H
 
 /*
  * bit_stream_t's are basically the two bit-wise bounds in a memory chunk.
@@ -538,7 +538,7 @@ static inline bool bs_equals(bit_stream_t bs1, bit_stream_t bs2)
 /* }}} */
 /* Printing helpers {{{ */
 
-static inline char *t_print_bs(bit_stream_t bs, size_t *len)
+static inline char *t_print_be_bs(bit_stream_t bs, size_t *len)
 {
     sb_t sb;
 
@@ -557,7 +557,39 @@ static inline char *t_print_bs(bit_stream_t bs, size_t *len)
     return sb.data;
 }
 
+static inline char *t_print_bs(bit_stream_t bs, size_t *len)
+{
+    sb_t sb;
+
+    t_sb_init(&sb, 9 * DIV_ROUND_UP(bs_len(&bs), 8) + 1);
+    while (!bs_done(&bs)) {
+        if (bs_is_aligned(&bs)) {
+            sb_addc(&sb, '.');
+        }
+
+        sb_addc(&sb, __bs_get_bit(&bs) ? '1' : '0');
+    }
+
+    if (len) {
+        *len = sb.len;
+    }
+    return sb.data;
+}
+
 #ifndef NDEBUG
+#  define e_trace_be_bs(lvl, bs, fmt, ...)  \
+    ({                                                                     \
+        t_scope;                                                           \
+        static const char spaces[] = "         ";                          \
+                                                                           \
+        uint8_t start_blank = bs_is_aligned(bs) ? 0                        \
+                                                : ((bs)->s.offset % 8) + 1;\
+                                                                           \
+        e_trace(lvl, "[ %s%s%s ] --(%2zu) " fmt, spaces + 9 - start_blank, \
+                t_print_be_bs(*(bs), NULL), spaces + 9 - ((bs)->e.offset % 8),\
+                bs_len(bs), ##__VA_ARGS__);                                \
+    })
+
 #  define e_trace_bs(lvl, bs, fmt, ...)  \
     ({                                                                     \
         t_scope;                                                           \
@@ -572,6 +604,7 @@ static inline char *t_print_bs(bit_stream_t bs, size_t *len)
     })
 
 #else
+#  define e_trace_be_bs(...)
 #  define e_trace_bs(...)
 #endif
 
