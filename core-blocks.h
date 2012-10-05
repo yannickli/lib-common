@@ -39,6 +39,17 @@ static inline void block_run_and_release(void *blk_)
     blk();
     Block_release(blk);
 }
+
+#define Block_release_p(pBlock) \
+    do {                                            \
+        typeof(*(pBlock)) *pp = (pBlock);           \
+        \
+        if (*pp) {                                  \
+            Block_release(*pp);                     \
+            *pp = NULL;                             \
+        }                                           \
+    } while (0)
+
 #endif
 
 #endif
