@@ -54,7 +54,7 @@ size_t uniq(void *data, size_t size, size_t nmemb, cmp_r_t *cmp, void *arg)
 }
 
 size_t bisect(const void *what, const void *data, size_t size, size_t nmemb,
-              cmp_r_t *cmp, void *arg)
+              bool *found, cmp_r_t *cmp, void *arg)
 {
     size_t l = 0, r = nmemb;
 
@@ -62,13 +62,20 @@ size_t bisect(const void *what, const void *data, size_t size, size_t nmemb,
         size_t i = (l + r) / 2;
         int d = cmp(what, t(data, i), arg);
 
-        if (d == 0)
+        if (d == 0) {
+            if (found) {
+                *found = true;
+            }
             return i;
+        }
         if (d < 0) {
             r = i;
         } else {
             l = i + 1;
         }
+    }
+    if (found) {
+        *found = false;
     }
     return r;
 }
@@ -105,9 +112,9 @@ size_t uniq_blk(void *data, size_t size, size_t nmemb, cmp_b cmp)
 }
 
 size_t bisect_blk(const void *what, const void *data, size_t size,
-                  size_t nmemb, cmp_b cmp)
+                  size_t nmemb, bool *found, cmp_b cmp)
 {
-    return bisect(what, data, size, nmemb, &cmp_blk, cmp);
+    return bisect(what, data, size, nmemb, found, &cmp_blk, cmp);
 }
 
 bool contains_blk(const void *what, const void *data, size_t size,
@@ -175,7 +182,8 @@ Z_GROUP_EXPORT(sort) {
             Z_ASSERT_EQUAL(&uniqed[i][1], uniqed[i][0], v, len);
 
             for (uint64_t j = 0; j < 15; j++) {
-                size_t pos = bisect64(j, v, len);
+                bool   found;
+                size_t pos = (bisect64)(j, v, len, &found);
                 size_t scan_pos = 0;
 
                 while (scan_pos < len && v[scan_pos] < j) {
@@ -186,12 +194,14 @@ Z_GROUP_EXPORT(sort) {
                 Z_ASSERT_LE(pos, len);
                 if (pos == len) {
                     Z_ASSERT(!contains64(j, v, len));
+                    Z_ASSERT(!found);
                     if (len != 0) {
                         Z_ASSERT_LT(v[len -1], j);
                     }
                 } else {
                     Z_ASSERT_GE(v[pos], j);
                     Z_ASSERT_EQ(v[pos] == j, contains64(j, v, len));
+                    Z_ASSERT_EQ(v[pos] == j, found);
                 }
             }
         }
@@ -209,7 +219,8 @@ Z_GROUP_EXPORT(sort) {
             Z_ASSERT_EQUAL(&uniqed[i][1], uniqed[i][0], v, len);
 
             for (uint64_t j = 0; j < 15; j++) {
-                size_t pos = bisect(&j, v, 8, len, &u64_cmp, NULL);
+                bool   found;
+                size_t pos = bisect(&j, v, 8, len, &found, &u64_cmp, NULL);
                 size_t scan_pos = 0;
 
                 while (scan_pos < len && v[scan_pos] < j) {
@@ -220,6 +231,7 @@ Z_GROUP_EXPORT(sort) {
                 Z_ASSERT_LE(pos, len);
                 if (pos == len) {
                     Z_ASSERT(!contains(&j, v, 8, len, &u64_cmp, NULL));
+                    Z_ASSERT(!found);
                     if (len != 0) {
                         Z_ASSERT_LT(v[len -1], j);
                     }
@@ -227,6 +239,7 @@ Z_GROUP_EXPORT(sort) {
                     Z_ASSERT_GE(v[pos], j);
                     Z_ASSERT_EQ(v[pos] == j,
                                 contains(&j, v, 8, len, &u64_cmp, NULL));
+                    Z_ASSERT_EQ(v[pos] == j, found);
                 }
             }
         }

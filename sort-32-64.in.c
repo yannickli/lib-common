@@ -102,20 +102,27 @@ size_t uniq(type_t data[], size_t len)
     return len;
 }
 
-size_t bisect(type_t what, const type_t data[], size_t len)
+size_t (bisect)(type_t what, const type_t data[], size_t len, bool *found)
 {
     size_t l = 0, r = len;
 
     while (l < r) {
         size_t i = (l + r) / 2;
 
-        if (what == data[i])
+        if (what == data[i]) {
+            if (found) {
+                *found = true;
+            }
             return i;
+        }
         if (what < data[i]) {
             r = i;
         } else {
             l = i + 1;
         }
+    }
+    if (found) {
+        *found = false;
     }
     return r;
 }
