@@ -27,7 +27,7 @@
 typedef STRUCT_QVECTOR_T(uint8_t) qvector_t;
 
 #ifdef __has_blocks
-typedef int (BLOCK_CARET qvector_cmp_f)(const void *, const void *);
+typedef int (BLOCK_CARET qvector_cmp_b)(const void *, const void *);
 #endif
 
 static inline qvector_t *
@@ -49,12 +49,12 @@ void  __qvector_grow(qvector_t *, size_t v_size, int extra);
 void  __qvector_optimize(qvector_t *, size_t v_size, size_t size);
 void *__qvector_splice(qvector_t *, size_t v_size, int pos, int len, int dlen);
 #ifdef __has_blocks
-void __qv_sort32(void *a, size_t n, qvector_cmp_f cmp);
-void __qv_sort64(void *a, size_t n, qvector_cmp_f cmp);
-void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_f cmp);
+void __qv_sort32(void *a, size_t n, qvector_cmp_b cmp);
+void __qv_sort64(void *a, size_t n, qvector_cmp_b cmp);
+void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp);
 
 static ALWAYS_INLINE void
-__qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_f cmp)
+__qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_b cmp)
 {
     if (v_size == 8) {
         __qv_sort64(vec->tab, vec->len, cmp);
@@ -66,7 +66,7 @@ __qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_f cmp)
     }
 }
 void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
-                    qvector_t *out, size_t v_size, qvector_cmp_f cmp);
+                    qvector_t *out, size_t v_size, qvector_cmp_b cmp);
 #endif
 
 /** \brief optimize vector for space.
@@ -152,16 +152,17 @@ qvector_splice(qvector_t *vec, size_t v_size,
 
 #ifdef __has_blocks
 #define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t) \
-    static inline void pfx##_sort(pfx##_t *vec,                             \
-        int (BLOCK_CARET cmp)(cval_t *, cval_t *)) {                        \
-        __qvector_sort(&vec->qv, sizeof(val_t), (qvector_cmp_f)cmp);        \
+    typedef int (BLOCK_CARET pfx##_cmp_b)(cval_t *a, cval_t *b);            \
+                                                                            \
+    static inline void pfx##_sort(pfx##_t *vec, pfx##_cmp_b cmp) {          \
+        __qvector_sort(&vec->qv, sizeof(val_t), (qvector_cmp_b)cmp);        \
     }                                                                       \
     static inline void                                                      \
     pfx##_diff(const pfx##_t *vec1, const pfx##_t *vec2, pfx##_t *out,      \
-               int (BLOCK_CARET cmp)(cval_t *, cval_t *))                   \
+               pfx##_cmp_b cmp)                                             \
     {                                                                       \
         __qvector_diff(&vec1->qv, &vec2->qv, &out->qv,                      \
-                       sizeof(val_t), (qvector_cmp_f)cmp);                  \
+                       sizeof(val_t), (qvector_cmp_b)cmp);                  \
     }
 #else
 #define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)

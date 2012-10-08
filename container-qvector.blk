@@ -133,7 +133,7 @@ void *__qvector_splice(qvector_t *vec, size_t v_size, int pos, int len, int dlen
     return vec->tab + pos * v_size;
 }
 
-static void ___qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_f cmp)
+static void ___qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp)
 {
     uint8_t tmp[v_size], meantmp[v_size];
     void   *mean, *i, *j;
@@ -225,25 +225,25 @@ static void ___qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_f cmp)
 }
 
 __flatten
-void __qv_sort32(void *a, size_t n, qvector_cmp_f cmp)
+void __qv_sort32(void *a, size_t n, qvector_cmp_b cmp)
 {
     ___qv_sort(a, 4, n, cmp);
 }
 
 __flatten
-void __qv_sort64(void *a, size_t n, qvector_cmp_f cmp)
+void __qv_sort64(void *a, size_t n, qvector_cmp_b cmp)
 {
     ___qv_sort(a, 8, n, cmp);
 }
 
 __flatten
-void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_f cmp)
+void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp)
 {
     ___qv_sort(a, v_size, n, cmp);
 }
 
 void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
-                    qvector_t *out, size_t v_size, qvector_cmp_f cmp)
+                    qvector_t *out, size_t v_size, qvector_cmp_b cmp)
 {
     int pos1 = 0, pos2 = 0;
     const void *tab1 = vec1->tab;
