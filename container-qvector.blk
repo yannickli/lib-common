@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "container.h"
+#include "sort.h"
 
 void qvector_reset(qvector_t *vec, size_t v_size)
 {
@@ -279,4 +280,39 @@ void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
 
 #undef nth
 #undef append
+}
+
+int __qvector_bisect(const qvector_t *vec, size_t v_size, const void *elt,
+                     qvector_cmp_b cmp)
+{
+    bool found = false;
+    size_t pos = bisect_blk(elt, vec->tab, v_size, vec->len, &found, cmp);
+
+    if (!found) {
+        return -1;
+    }
+    return pos;
+}
+
+bool __qvector_contains(const qvector_t *vec, size_t v_size, const void *elt,
+                        bool sorted, qvector_cmp_b cmp)
+{
+    if (!sorted) {
+        const byte *pos = vec->tab;
+        const byte * const end = pos + v_size * vec->len;
+
+        while (pos < end) {
+            if (cmp(elt, pos) == 0) {
+                return true;
+            }
+            pos += v_size;
+        }
+        return false;
+    }
+    return contains_blk(elt, vec->tab, v_size, vec->len, cmp);
+}
+
+void __qvector_uniq(qvector_t *vec, size_t v_size, qvector_cmp_b cmp)
+{
+    vec->len = uniq_blk(vec->tab, v_size, vec->len, cmp);
 }
