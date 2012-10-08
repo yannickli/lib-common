@@ -1,0 +1,249 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2012 INTERSEC SAS                                  */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+#include "sort.h"
+
+#define type_t   uint32_t
+#define dsort    dsort32
+#define uniq     uniq32
+#define bisect   bisect32
+#define contains contains32
+#include "sort-32-64.in.c"
+
+#define type_t   uint64_t
+#define dsort    dsort64
+#define uniq     uniq64
+#define bisect   bisect64
+#define contains contains64
+#include "sort-32-64.in.c"
+
+#define t(ptr, p)  (((byte *)(ptr)) + (size * (p)))
+
+size_t uniq(void *data, size_t size, size_t nmemb, cmp_r_t *cmp, void *arg)
+{
+    for (size_t i = 1; i < nmemb; i++) {
+        if (unlikely(cmp(t(data, i), t(data, i - 1), arg) == 0)) {
+            void *end = t(data, nmemb);
+            void *w   = t(data, i);
+            void *r   = t(data, i + 1);
+
+            for (;;) {
+                while (r < end && cmp(r, t(w, -1), arg) == 0)
+                    r = t(r, 1);
+                if (r == end)
+                    break;
+                memcpy(w, r, size);
+                w = t(w, 1);
+                r = t(r, 1);
+            }
+            nmemb = ((byte *)w - (byte *)data) / size;
+            break;
+        }
+    }
+    return nmemb;
+}
+
+size_t bisect(const void *what, const void *data, size_t size, size_t nmemb,
+              bool *found, cmp_r_t *cmp, void *arg)
+{
+    size_t l = 0, r = nmemb;
+
+    while (l < r) {
+        size_t i = (l + r) / 2;
+        int d = cmp(what, t(data, i), arg);
+
+        if (d == 0) {
+            if (found) {
+                *found = true;
+            }
+            return i;
+        }
+        if (d < 0) {
+            r = i;
+        } else {
+            l = i + 1;
+        }
+    }
+    if (found) {
+        *found = false;
+    }
+    return r;
+}
+
+bool contains(const void *what, const void *data, size_t size, size_t nmemb,
+              cmp_r_t *cmp, void *arg)
+{
+    size_t l = 0, r = nmemb;
+
+    while (l < r) {
+        size_t i = (l + r) / 2;
+        int d = cmp(what, t(data, i), arg);
+
+        if (d == 0)
+            return true;
+        if (d < 0) {
+            r = i;
+        } else {
+            l = i + 1;
+        }
+    }
+    return false;
+}
+
+static int cmp_blk(const void *a, const void *b, void *arg)
+{
+    cmp_b cmp = arg;
+    return cmp(a, b);
+}
+
+size_t uniq_blk(void *data, size_t size, size_t nmemb, cmp_b cmp)
+{
+    return uniq(data, size, nmemb, &cmp_blk, cmp);
+}
+
+size_t bisect_blk(const void *what, const void *data, size_t size,
+                  size_t nmemb, bool *found, cmp_b cmp)
+{
+    return bisect(what, data, size, nmemb, found, &cmp_blk, cmp);
+}
+
+bool contains_blk(const void *what, const void *data, size_t size,
+                  size_t nmemb, cmp_b cmp)
+{
+    return contains(what, data, size, nmemb, &cmp_blk, cmp);
+}
+
+/* Tests {{{ */
+
+#include "z.h"
+
+static int u64_cmp(const void *a, const void *b, void *arg)
+{
+    const uint64_t *ua = a;
+    const uint64_t *ub = b;
+
+    return CMP(*ua, *ub);
+}
+
+Z_GROUP_EXPORT(sort) {
+    const uint64_t vals[] = { 8, 8, 1, 2, 4, 12, 5, 3, 7, 10, 1, 4, 5 };
+    const uint64_t sorted[countof(vals) + 1][countof(vals)] = {
+        {  },
+        { 8 },
+        { 8, 8 },
+        { 1, 8, 8 },
+        { 1, 2, 8, 8 },
+        { 1, 2, 4, 8, 8 },
+        { 1, 2, 4, 8, 8, 12 },
+        { 1, 2, 4, 5, 8, 8, 12 },
+        { 1, 2, 3, 4, 5, 8, 8, 12 },
+        { 1, 2, 3, 4, 5, 7, 8, 8, 12 },
+        { 1, 2, 3, 4, 5, 7, 8, 8, 10, 12 },
+        { 1, 1, 2, 3, 4, 5, 7, 8, 8, 10, 12 },
+        { 1, 1, 2, 3, 4, 4, 5, 7, 8, 8, 10, 12 },
+        { 1, 1, 2, 3, 4, 4, 5, 5, 7, 8, 8, 10, 12 }
+    };
+    const uint64_t uniqed[countof(vals) + 1][countof(vals) + 1] = {
+        { 0 },
+        { 1, 8 },
+        { 1, 8 },
+        { 2, 1, 8 },
+        { 3, 1, 2, 8 },
+        { 4, 1, 2, 4, 8 },
+        { 5, 1, 2, 4, 8, 12 },
+        { 6, 1, 2, 4, 5, 8, 12 },
+        { 7, 1, 2, 3, 4, 5, 8, 12 },
+        { 8, 1, 2, 3, 4, 5, 7, 8, 12 },
+        { 9, 1, 2, 3, 4, 5, 7, 8, 10, 12 },
+        { 9, 1, 2, 3, 4, 5, 7, 8, 10, 12 },
+        { 9, 1, 2, 3, 4, 5, 7, 8, 10, 12 },
+        { 9, 1, 2, 3, 4, 5, 7, 8, 10, 12 }
+    };
+
+    Z_TEST(64, "optimized 64") {
+        for (int i = 0; i < countof(vals); i++) {
+            uint64_t v[countof(vals)];
+            size_t   len = 0;
+
+            p_copy(&v, &vals, 1);
+            dsort64(v, i);
+            Z_ASSERT_EQUAL(sorted[i], i, v, i);
+            len = uniq64(v, i);
+            Z_ASSERT_EQUAL(&uniqed[i][1], uniqed[i][0], v, len);
+
+            for (uint64_t j = 0; j < 15; j++) {
+                bool   found;
+                size_t pos = (bisect64)(j, v, len, &found);
+                size_t scan_pos = 0;
+
+                while (scan_pos < len && v[scan_pos] < j) {
+                    scan_pos++;
+                }
+                Z_ASSERT_EQ(pos, scan_pos);
+
+                Z_ASSERT_LE(pos, len);
+                if (pos == len) {
+                    Z_ASSERT(!contains64(j, v, len));
+                    Z_ASSERT(!found);
+                    if (len != 0) {
+                        Z_ASSERT_LT(v[len -1], j);
+                    }
+                } else {
+                    Z_ASSERT_GE(v[pos], j);
+                    Z_ASSERT_EQ(v[pos] == j, contains64(j, v, len));
+                    Z_ASSERT_EQ(v[pos] == j, found);
+                }
+            }
+        }
+    } Z_TEST_END;
+
+    Z_TEST(generic, "generic implementation") {
+        for (int i = 0; i < countof(vals); i++) {
+            uint64_t v[countof(vals)];
+            size_t   len = 0;
+
+            p_copy(&v, &vals, 1);
+            dsort64(v, i);
+            Z_ASSERT_EQUAL(sorted[i], i, v, i);
+            len = uniq(v, 8, i, &u64_cmp, NULL);
+            Z_ASSERT_EQUAL(&uniqed[i][1], uniqed[i][0], v, len);
+
+            for (uint64_t j = 0; j < 15; j++) {
+                bool   found;
+                size_t pos = bisect(&j, v, 8, len, &found, &u64_cmp, NULL);
+                size_t scan_pos = 0;
+
+                while (scan_pos < len && v[scan_pos] < j) {
+                    scan_pos++;
+                }
+                Z_ASSERT_EQ(pos, scan_pos);
+
+                Z_ASSERT_LE(pos, len);
+                if (pos == len) {
+                    Z_ASSERT(!contains(&j, v, 8, len, &u64_cmp, NULL));
+                    Z_ASSERT(!found);
+                    if (len != 0) {
+                        Z_ASSERT_LT(v[len -1], j);
+                    }
+                } else {
+                    Z_ASSERT_GE(v[pos], j);
+                    Z_ASSERT_EQ(v[pos] == j,
+                                contains(&j, v, 8, len, &u64_cmp, NULL));
+                    Z_ASSERT_EQ(v[pos] == j, found);
+                }
+            }
+        }
+    } Z_TEST_END;
+} Z_GROUP_END;
+
+/* }}} */

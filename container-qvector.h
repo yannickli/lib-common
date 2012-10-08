@@ -27,7 +27,7 @@
 typedef STRUCT_QVECTOR_T(uint8_t) qvector_t;
 
 #ifdef __has_blocks
-typedef int (BLOCK_CARET qvector_cmp_f)(const void *, const void *);
+typedef int (BLOCK_CARET qvector_cmp_b)(const void *, const void *);
 #endif
 
 static inline qvector_t *
@@ -54,12 +54,12 @@ void  __qvector_optimize(qvector_t *, size_t v_size, size_t size)
 void *__qvector_splice(qvector_t *, size_t v_size, int pos, int len, int dlen)
     __leaf;
 #ifdef __has_blocks
-void __qv_sort32(void *a, size_t n, qvector_cmp_f cmp);
-void __qv_sort64(void *a, size_t n, qvector_cmp_f cmp);
-void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_f cmp);
+void __qv_sort32(void *a, size_t n, qvector_cmp_b cmp);
+void __qv_sort64(void *a, size_t n, qvector_cmp_b cmp);
+void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp);
 
 static ALWAYS_INLINE void
-__qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_f cmp)
+__qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_b cmp)
 {
     if (v_size == 8) {
         __qv_sort64(vec->tab, vec->len, cmp);
@@ -72,7 +72,12 @@ __qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_f cmp)
 }
 void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
                     qvector_t *add, qvector_t *del, size_t v_size,
-                    qvector_cmp_f cmp);
+                    qvector_cmp_b cmp);
+int  __qvector_bisect(const qvector_t *vec, size_t v_size, const void *elt,
+                      qvector_cmp_b cmp);
+bool __qvector_contains(const qvector_t *vec, size_t v_size, const void *elt,
+                        bool sorted, qvector_cmp_b cmp);
+void __qvector_uniq(qvector_t *vec, size_t v_size, qvector_cmp_b cmp);
 #endif
 
 /** \brief optimize vector for space.
@@ -158,18 +163,33 @@ qvector_splice(qvector_t *vec, size_t v_size,
 
 #ifdef __has_blocks
 #define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t) \
-    static inline void pfx##_sort(pfx##_t *vec,                             \
-        int (BLOCK_CARET cmp)(cval_t *, cval_t *)) {                        \
-        __qvector_sort(&vec->qv, sizeof(val_t), (qvector_cmp_f)cmp);        \
+    typedef int (BLOCK_CARET pfx##_cmp_b)(cval_t *a, cval_t *b);            \
+                                                                            \
+    static inline void pfx##_sort(pfx##_t *vec, pfx##_cmp_b cmp) {          \
+        __qvector_sort(&vec->qv, sizeof(val_t), (qvector_cmp_b)cmp);        \
     }                                                                       \
     static inline void                                                      \
     pfx##_diff(const pfx##_t *vec1, const pfx##_t *vec2,                    \
-               pfx##_t *add, pfx##_t *del,                                  \
-               int (BLOCK_CARET cmp)(cval_t *, cval_t *))                   \
+               pfx##_t *add, pfx##_t *del, pfx##_cmp_b cmp)                 \
     {                                                                       \
         __qvector_diff(&vec1->qv, &vec2->qv, add ? &add->qv : NULL,         \
                        del ? &del->qv : NULL,                               \
-                       sizeof(val_t), (qvector_cmp_f)cmp);        \
+                       sizeof(val_t), (qvector_cmp_b)cmp);                  \
+    }                                                                       \
+    static inline                                                           \
+    void pfx##_uniq(pfx##_t *vec, pfx##_cmp_b cmp) {                        \
+        __qvector_uniq(&vec->qv, sizeof(val_t), (qvector_cmp_b)cmp);        \
+    }                                                                       \
+    static inline                                                           \
+    int pfx##_bisect(const pfx##_t *vec, cval_t v, pfx##_cmp_b cmp) {       \
+        return __qvector_bisect(&vec->qv, sizeof(val_t), &v,                \
+                                (qvector_cmp_b)cmp);                        \
+    }                                                                       \
+    static inline                                                           \
+    bool pfx##_contains(const pfx##_t *vec, cval_t v, bool sorted,          \
+                        pfx##_cmp_b cmp) {                                  \
+        return __qvector_contains(&vec->qv, sizeof(val_t), &v, sorted,      \
+                                  (qvector_cmp_b)cmp);                      \
     }
 #else
 #define __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)
@@ -363,6 +383,43 @@ qvector_splice(qvector_t *vec, size_t v_size,
  * WARNING: vec1 and vec2 must be sorted and uniq'ed.
  */
 #define qv_diff(n)                          qv_##n##_diff
+
+/** Remove duplicated entries from a vector.
+ *
+ * This takes a sorted vector as input and remove duplicated entries.
+ *
+ * \param[in,out]   vec the vector to filter
+ * \param[in]       cmp comparison callback for the elements of the vector.
+ */
+#define qv_uniq(n)                          qv_##n##_uniq
+
+/** Lookup the position of the entry in a sorted vector.
+ *
+ * This takes an entry and a sorted vector and lookup the entry within the
+ * vector using a binary search.
+ *
+ * \param[in]       vec the vector
+ * \param[in]       v   the value to lookup
+ * \param[in]       cmp comparison callback for the elements of the vector.
+ * \return          -1 if the element has not been found, the position of \p v
+ *                  in \p vec otherwise.
+ */
+#define qv_bisect(n)                        qv_##n##_bisect
+
+/** Check if a vector contains a specific entry.
+ *
+ * This takes an entry and a vector. If the vector is sorted, a binary search
+ * is performed, otherwise a linear scan is performed.
+ *
+ * \param[in]       vec    the vector
+ * \param[in]       v      the value to lookup
+ * \param[in]       sorted if true the vector is considered as being sorted
+ *                         with the ordering of the provided comparator.
+ * \param[in]       cmp    comparison callback for the elements of the vector
+ * \return          true if the element was found in the vector, false
+ *                  otherwise.
+ */
+#define qv_contains(n)                      qv_##n##_contains
 #endif
 
 
