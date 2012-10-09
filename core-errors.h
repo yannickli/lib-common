@@ -41,6 +41,35 @@ int e_log(int priority, const char *fmt, ...);
 void e_init_stderr(void);
 void e_set_handler(e_handler_f *handler);
 
+/** This macro provides assertions that remain activated in production builds.
+ *
+ * \param[in] level The syslog level (fatal, panic, error, warning, notice,
+ *                  info or debug).
+ * \param[in] Cond  The condition to verify
+ * \param[in] fmt   The message to log if the condition is not verified.
+ */
+#define __e_assert(level, Cond, StrCond, fmt, ...)  do {                     \
+        if (unlikely(!(Cond))) {                                             \
+            e_##level(E_PREFIX("assertion failed: \"%s\": "fmt), StrCond,    \
+                      ##__VA_ARGS__);                                        \
+        }                                                                    \
+    } while (0)
+
+#define e_assert(level, Cond, fmt, ...)  \
+    __e_assert(level, (Cond), #Cond, fmt, ##__VA_ARGS__)
+
+#define e_assert_n(level, Expr, fmt, ...)  \
+    e_assert(level, (Expr) >= 0, fmt, ##__VA_ARGS__)
+
+#define e_assert_neg(level, Expr, fmt, ...)  \
+    e_assert(level, (Expr) < 0, fmt, ##__VA_ARGS__)
+
+#define e_assert_p(level, Expr, fmt, ...)  \
+    e_assert(level, (Expr) != NULL, fmt, ##__VA_ARGS__)
+
+#define e_assert_null(level, Expr, fmt, ...)  \
+    e_assert(level, (Expr) == NULL, fmt, ##__VA_ARGS__)
+
 /**************************************************************************/
 /* Debug part                                                             */
 /**************************************************************************/
