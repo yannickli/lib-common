@@ -50,9 +50,7 @@ void bb_init_sb(bb_t *bb, sb_t *sb)
 void bb_transfer_to_sb(bb_t *bb, sb_t *sb)
 {
     sb_wipe(sb);
-    if (bb->b == (bb->size * 8) - 1) {
-        __bb_grow(bb, 8);
-    }
+    bb_grow(bb, 8);
     sb_init_full(sb, bb->data, DIV_ROUND_UP(bb->len, 8),
                  bb->size * 8, bb->mem_pool);
     bb_init(bb);
