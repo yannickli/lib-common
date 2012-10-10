@@ -97,4 +97,21 @@ addr_info_str(sockunion_t *su, const char *host, int port, int af)
 
 int addr_filter_matches(const addr_filter_t *filter, const sockunion_t *peer);
 
+static inline int
+addr_resolve(const char *what, const lstr_t s, sockunion_t *out)
+{
+    pstream_t host;
+    in_port_t port;
+
+    if (addr_parse(ps_init(s.s, s.len), &host, &port, -1) < 0) {
+        return e_error("unable to parse %s address: %*pM", what,
+                       LSTR_FMT_ARG(s));
+    }
+    if (addr_info(out, AF_UNSPEC, host, port) < 0) {
+        return e_error("unable to resolve %s address: %*pM", what,
+                       LSTR_FMT_ARG(s));
+    }
+    return 0;
+}
+
 #endif
