@@ -24,6 +24,8 @@
 #   define __has_blocks
 #   define BLOCK_CARET  *
     typedef void (*block_t)(void);
+#else
+    typedef void * block_t;
 #endif
 
 #ifdef __has_blocks
