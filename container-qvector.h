@@ -74,7 +74,9 @@ void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
                     qvector_t *add, qvector_t *del, size_t v_size,
                     qvector_cmp_b cmp);
 int  __qvector_bisect(const qvector_t *vec, size_t v_size, const void *elt,
-                      qvector_cmp_b cmp);
+                      bool *found, qvector_cmp_b cmp);
+int __qvector_find(const qvector_t *vec, size_t v_size, const void *elt,
+                   bool sorted, qvector_cmp_b cmp);
 bool __qvector_contains(const qvector_t *vec, size_t v_size, const void *elt,
                         bool sorted, qvector_cmp_b cmp);
 void __qvector_uniq(qvector_t *vec, size_t v_size, qvector_cmp_b cmp);
@@ -181,9 +183,18 @@ qvector_splice(qvector_t *vec, size_t v_size,
         __qvector_uniq(&vec->qv, sizeof(val_t), (qvector_cmp_b)cmp);        \
     }                                                                       \
     static inline                                                           \
-    int pfx##_bisect(const pfx##_t *vec, cval_t v, pfx##_cmp_b cmp) {       \
-        return __qvector_bisect(&vec->qv, sizeof(val_t), &v,                \
+    int pfx##_bisect(const pfx##_t *vec, cval_t v, bool *found,             \
+                     pfx##_cmp_b cmp)                                       \
+    {                                                                       \
+        return __qvector_bisect(&vec->qv, sizeof(val_t), &v, found,         \
                                 (qvector_cmp_b)cmp);                        \
+    }                                                                       \
+    static inline                                                           \
+    int pfx##_find(const pfx##_t *vec, cval_t v, bool sorted,               \
+                   pfx##_cmp_b cmp)                                         \
+    {                                                                       \
+        return __qvector_find(&vec->qv, sizeof(val_t), &v, sorted,          \
+                              (qvector_cmp_b)cmp);                          \
     }                                                                       \
     static inline                                                           \
     bool pfx##_contains(const pfx##_t *vec, cval_t v, bool sorted,          \
@@ -319,6 +330,7 @@ qvector_splice(qvector_t *vec, size_t v_size,
 #ifdef __has_blocks
 /* You must be in a .blk to use qv_sort, because it expects blocks ! */
 #define qv_sort(n)                          qv_##n##_sort
+#define qv_cmp_b(n)                         qv_##n##_cmp_b
 #endif
 #define qv_qsort(n, vec, cmp)               qv_##n##_qsort(vec, cmp)
 #define qv_qsort_r(n, vec, cmp, priv)       qv_##n##_qsort_r(vec, cmp, priv)
@@ -405,6 +417,20 @@ qvector_splice(qvector_t *vec, size_t v_size,
  *                  in \p vec otherwise.
  */
 #define qv_bisect(n)                        qv_##n##_bisect
+
+/** Find the position of the entry in a vector.
+ *
+ * This takes an entry and a vector. If the vector is sorted, a binary search
+ * is performed, otherwise a linear scan is performed.
+ *
+ * \param[in]       vec    the vector
+ * \param[in]       v      the value to lookup
+ * \param[in]       sorted if true the vector is considered as being sorted
+ *                         with the ordering of the provided comparator.
+ * \param[in]       cmp    comparison callback for the elements of the vector
+ * \return          index of the element if found in the vector, -1 otherwise.
+ */
+#define qv_find(n)                      qv_##n##_find
 
 /** Check if a vector contains a specific entry.
  *

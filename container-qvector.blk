@@ -297,33 +297,33 @@ void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
 }
 
 int __qvector_bisect(const qvector_t *vec, size_t v_size, const void *elt,
-                     qvector_cmp_b cmp)
+                     bool *found, qvector_cmp_b cmp)
 {
-    bool found = false;
-    size_t pos = bisect_blk(elt, vec->tab, v_size, vec->len, &found, cmp);
+    return bisect_blk(elt, vec->tab, v_size, vec->len, found, cmp);
+}
 
-    if (!found) {
+int __qvector_find(const qvector_t *vec, size_t v_size, const void *elt,
+                   bool sorted, qvector_cmp_b cmp)
+{
+    if (sorted) {
+        bool found = false;
+        int pos = __qvector_bisect(vec, v_size, elt, &found, cmp);
+
+        return found ? pos : -1;
+    } else {
+        for (int i = 0; i < vec->len; i++) {
+            if (cmp(elt, vec->tab + v_size * i) == 0) {
+                return i;
+            }
+        }
         return -1;
     }
-    return pos;
 }
 
 bool __qvector_contains(const qvector_t *vec, size_t v_size, const void *elt,
                         bool sorted, qvector_cmp_b cmp)
 {
-    if (!sorted) {
-        const byte *pos = vec->tab;
-        const byte * const end = pos + v_size * vec->len;
-
-        while (pos < end) {
-            if (cmp(elt, pos) == 0) {
-                return true;
-            }
-            pos += v_size;
-        }
-        return false;
-    }
-    return contains_blk(elt, vec->tab, v_size, vec->len, cmp);
+    return __qvector_find(vec, v_size, elt, sorted, cmp) != -1;
 }
 
 void __qvector_uniq(qvector_t *vec, size_t v_size, qvector_cmp_b cmp)
