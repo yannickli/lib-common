@@ -17,8 +17,10 @@
 #include "core.h"
 #include "arith.h"
 #include "str.h"
+#include "container.h"
 
 #include "bit-buf.h"
 #include "bit-stream.h"
+#include "bit-wah.h"
 
 #endif

@@ -45,6 +45,7 @@ libcommon_SOURCES = \
 	asn1-per.c \
 	\
 	bit-buf.c \
+	bit-wah.c \
 	\
 	conf.c  \
 	conf-parser.l \
