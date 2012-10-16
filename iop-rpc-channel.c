@@ -902,7 +902,7 @@ static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
     assert (ic->cancel_guard == false);
 
     if (!msg->async) {
-        bool start = ic->nextslot;
+        unsigned start = ic->nextslot;
 
         do {
             if (ic->nextslot == IC_MSG_SLOT_MASK) {
