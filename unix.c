@@ -402,6 +402,25 @@ int xwritev(int fd, struct iovec *iov, int iovcnt)
     return 0;
 }
 
+int xpwrite(int fd, const void *data, ssize_t len, off_t offset)
+{
+    const char *s = data;
+
+    while (len > 0) {
+        ssize_t nb = pwrite(fd, s, len, offset);
+
+        if (nb < 0) {
+            if (ERR_RW_RETRIABLE(errno))
+                continue;
+            return -1;
+        }
+        s      += nb;
+        len    -= nb;
+        offset += nb;
+    }
+    return 0;
+}
+
 int xread(int fd, void *data, ssize_t len)
 {
     char *s = data;
@@ -417,6 +436,26 @@ int xread(int fd, void *data, ssize_t len)
             return -1;
         s   += nb;
         len -= nb;
+    }
+    return 0;
+}
+
+int xpread(int fd, void *data, ssize_t len, off_t offset)
+{
+    char *s = data;
+    while (len > 0) {
+        ssize_t nb = pread(fd, s, len, offset);
+
+        if (nb < 0) {
+            if (ERR_RW_RETRIABLE(errno))
+                continue;
+            return -1;
+        }
+        if (nb == 0)
+            return -1;
+        s      += nb;
+        len    -= nb;
+        offset += nb;
     }
     return 0;
 }
