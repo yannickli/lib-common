@@ -243,18 +243,89 @@ static inline void *p_dupz(const void *src, size_t len)
     return memcpyz(res, src, len);
 }
 
+
+/* Aligned pointers allocation helpers */
+
+#define pa_new_raw(type, count, alignment)                                   \
+    ((type *)(imalloc)(sizeof(type) * (count), (alignment), MEM_RAW | MEM_LIBC))
+#define pa_new(type, count, alignment)                                       \
+    ((type *)(imalloc)(sizeof(type) * (count), (alignment), MEM_LIBC))
+#define pa_new_extra(type, size, alignment)                                  \
+    ((type *)(imalloc)(sizeof(type) + (size), (alignment), MEM_LIBC))
+#define pa_new_extra_field(type, field, size, alignment)                     \
+    pa_new_extra(type, fieldsizeof(type, field[0]) * (size), (alignment))
+#define pa_new_extra_raw(type, size, alignment)                              \
+    ((type *)(imalloc)(sizeof(type) + (size), (alignment), MEM_RAW | MEM_LIBC))
+#define pa_new_extra_field_raw(type, field, size, alignment)                 \
+    pa_new_extra_raw(type, fieldsizeof(type, field[0]) * (size), (alignment))
+
+#define pa_realloc(pp, count, alignment)                                     \
+      ({                                                                     \
+          typeof(**(pp)) **__ptr = (pp);                                     \
+          *__ptr = (irealloc)(*__ptr, MEM_UNKNOWN, sizeof(**__ptr) * (count),\
+                              (alignment), MEM_LIBC | MEM_RAW);              \
+      })
+
+#define pa_realloc0(pp, old, now, alignment)                                 \
+    ({                                                                       \
+        typeof(**(pp)) **__ptr = (pp);                                       \
+        size_t sz = sizeof(**__ptr);                                         \
+        *__ptr = (irealloc)(*__ptr, sz * (old), sz * (now), (alignment),     \
+                            MEM_LIBC);                                       \
+    })
+
+#define pa_realloc_extra(pp, extra, alignment)                               \
+    ({                                                                       \
+        typeof(**(pp)) **__ptr = (pp);                                       \
+        *__ptr = (irealloc)(*__ptr, MEM_UNKNOWN, sizeof(**__ptr) + (extra),  \
+                            (alignment), MEM_LIBC | MEM_RAW);                \
+    })
+
+#define pa_realloc0_extra(pp, old_extra, new_extra, alignment)               \
+    ({                                                                       \
+        typeof(**(pp)) **__ptr = (pp);                                       \
+        *__ptr = (irealloc)(*__ptr, sizeof(**__ptr) + (old_extra),           \
+                            sizeof(**__ptr) + (new_extra), (alignment),      \
+                            MEM_LIBC);                                       \
+    })
+
+#define pa_realloc_extra_field(pp, field, count, alignment)                  \
+    pa_realloc_extra(pp, fieldsizeof(typeof(**pp), field[0]) * (count),      \
+                     (alignment))
+
+#define pa_realloc0_extra_field(pp, field, old_count, new_count, alignment)  \
+    pa_realloc0_extra(pp, fieldsizeof(typeof(**(pp)), field[0]) * (old_count),\
+                      fieldsizeof(typeof(**(pp)), field[0]) * (new_count),   \
+                      (alignment))
+
+/* Pointer allocations helpers */
+
+#define p_new_raw(type, count)       pa_new_raw(type, count, 0)
+#define p_new(type, count)           pa_new(type, count, 0)
+#define p_new_extra(type, size)      pa_new_extra(type, size, 0)
+#define p_new_extra_raw(type, size)  pa_new_extra_raw(type, size, 0)
+#define p_new_extra_field(type, field, size)  \
+    pa_new_extra_field(type, field, size, 0)
+#define p_new_extra_field_raw(type, field, size) \
+    pa_new_extra_field_raw(type, field, size, 0)
+
+#define p_realloc(pp, count)        pa_realloc(pp, count, 0)
+#define p_realloc0(pp, old, now)    pa_realloc0(pp, old, now, 0)
+#define p_realloc_extra(pp, extra)  pa_realloc0_extra(pp, extra, 0)
+#define p_realloc0_extra(pp, old_extra, new_extra)  \
+    pa_realloc0_extra(pp, old_extra, new_extra, 0)
+
+#define p_realloc_extra_field(pp, field, count)  \
+    pa_realloc_extra_field(pp, field, count, 0)
+#define p_realloc0_extra_field(pp, field, old_count, new_count)  \
+    pa_realloc0_extra_field(pp, field, old_count, new_count, 0)
+
+
+/* Generic helpers */
+
 #define p_alloca(type, count)                                \
         ((type *)memset(alloca(sizeof(type) * (count)),      \
                         0, sizeof(type) * (count)))
-
-#define p_new_raw(type, count)  ((type *)imalloc(sizeof(type) * (count), MEM_RAW | MEM_LIBC))
-#define p_new(type, count)      ((type *)imalloc(sizeof(type) * (count), MEM_LIBC))
-#define p_new_extra(type, size) ((type *)imalloc(sizeof(type) + (size), MEM_LIBC))
-#define p_new_extra_field(type, field, size) \
-    p_new_extra(type, fieldsizeof(type, field[0]) * (size))
-#define p_new_extra_raw(type, size) ((type *)imalloc(sizeof(type) + (size), MEM_RAW | MEM_LIBC))
-#define p_new_extra_field_raw(type, field, size) \
-    p_new_extra_raw(type, fieldsizeof(type, field[0]) * (size))
 
 #define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
 #define p_dup(p, count)         mem_dup((p), sizeof(*(p)) * (count))
@@ -267,41 +338,6 @@ static inline void *p_dupz(const void *src, size_t len)
         *__ptr = NULL;                    \
     })
 
-#define p_realloc(pp, count) \
-      ({                                                                     \
-          typeof(**(pp)) **__ptr = (pp);                                     \
-          *__ptr = irealloc(*__ptr, MEM_UNKNOWN, sizeof(**__ptr) * (count),  \
-                            MEM_LIBC | MEM_RAW);                             \
-      })
-
-#define p_realloc0(pp, old, now) \
-    ({                                                                       \
-        typeof(**(pp)) **__ptr = (pp);                                       \
-        size_t sz = sizeof(**__ptr);                                         \
-        *__ptr = irealloc(*__ptr, sz * (old), sz * (now), MEM_LIBC);         \
-    })
-
-#define p_realloc_extra(pp, extra)                                           \
-    ({                                                                       \
-        typeof(**(pp)) **__ptr = (pp);                                       \
-        *__ptr = irealloc(*__ptr, MEM_UNKNOWN, sizeof(**__ptr) + (extra),    \
-                          MEM_LIBC | MEM_RAW);                               \
-    })
-
-#define p_realloc0_extra(pp, old_extra, new_extra)                           \
-    ({                                                                       \
-        typeof(**(pp)) **__ptr = (pp);                                       \
-        *__ptr = irealloc(*__ptr, sizeof(**__ptr) + (old_extra),             \
-                          sizeof(**__ptr) + (new_extra),                     \
-                          MEM_LIBC);                                         \
-    })
-
-#define p_realloc_extra_field(pp, field, count)                              \
-    p_realloc_extra(pp, fieldsizeof(typeof(**pp), field[0]) * (count))
-
-#define p_realloc0_extra_field(pp, field, old_count, new_count)              \
-    p_realloc0_extra(pp, fieldsizeof(typeof(**(pp)), field[0]) * (old_count),\
-                     fieldsizeof(typeof(**(pp)), field[0]) * (new_count))
 
 #ifndef __cplusplus
 static inline void (p_delete)(void **p)
@@ -311,6 +347,10 @@ static inline void (p_delete)(void **p)
 #endif
 
 #define p_alloc_nr(x) (((x) + 16) * 3 / 2)
+
+
+
+/* Structure allocation helpers */
 
 #define DO_INIT(type, prefix) \
     __attr_nonnull__((1))                                   \

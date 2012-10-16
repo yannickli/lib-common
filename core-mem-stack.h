@@ -176,18 +176,28 @@ extern __thread mem_stack_pool_t t_pool_g;
 char *t_fmt(int *out, const char *fmt, ...)
     __leaf __attr_printf__(2, 3);
 
-#define t_new(type_t, n) \
-    ((type_t *)stack_malloc((n) * sizeof(type_t), 0, MEM_STACK))
-#define t_new_raw(type_t, n)  \
-    ((type_t *)stack_malloc((n) * sizeof(type_t), 0, MEM_STACK | MEM_RAW))
-#define t_new_extra(type_t, extra) \
-    ((type_t *)stack_malloc(sizeof(type_t) + (extra), 0, MEM_STACK))
-#define t_new_extra_field(type_t, field, extra) \
-    t_new_extra(type_t, fieldsizeof(type_t, field[0]) * (extra))
-#define t_new_extra_raw(type_t, extra) \
-    ((type_t *)stack_malloc(sizeof(type_t) + (extra), 0, MEM_STACK | MEM_RAW))
+#define ta_new(type_t, n, alignment) \
+    ((type_t *)stack_malloc((n) * sizeof(type_t), (alignment), MEM_STACK))
+#define ta_new_raw(type_t, n, alignment)  \
+    ((type_t *)stack_malloc((n) * sizeof(type_t), (alignment), MEM_STACK | MEM_RAW))
+#define ta_new_extra(type_t, extra, alignment) \
+    ((type_t *)stack_malloc(sizeof(type_t) + (extra), (alignment), MEM_STACK))
+#define ta_new_extra_raw(type_t, extra, alignment) \
+    ((type_t *)stack_malloc(sizeof(type_t) + (extra), (alignment), MEM_STACK | MEM_RAW))
+#define ta_new_extra_field(type_t, field, extra, alignment) \
+    ta_new_extra(type_t, fieldsizeof(type_t, field[0]) * (extra), (alignment))
+#define ta_new_extra_field_raw(type_t, field, extra, alignment) \
+    ta_new_extra_raw(type_t, fieldsizeof(type_t, field[0]) * (extra), (alignment))
+
+#define t_new(type_t, n)                ta_new(type_t, n, 0)
+#define t_new_raw(type_t, n)            ta_new_raw(type_t, n, 0)
+#define t_new_extra(type_t, extra)      ta_new_extra(type_t, extra, 0)
+#define t_new_extra_raw(type_t, extra)  ta_new_extra_raw(type_t, extra, 0)
+#define t_new_extra_field(type_t, field, extra)  \
+    ta_new_extra_field(type_t, field, extra, 0)
 #define t_new_extra_field_raw(type_t, field, extra) \
-    t_new_extra_raw(type_t, fieldsizeof(type_t, field[0]) * (extra))
+    ta_new_extra_field_raw(type_t, field, extra, 0)
+
 
 #define t_dup(p, count)    mp_dup(&t_pool_g.funcs, p, count)
 #define t_dupz(p, count)   mp_dupz(&t_pool_g.funcs, p, count)
