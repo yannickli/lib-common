@@ -138,7 +138,9 @@ struct ichannel_t {
     flag_t do_el_unref  :  1;
     flag_t is_wiped     :  1;
     flag_t cancel_guard :  1;
-    flag_t nextslot     : 24;   /**< next slot id to try                    */
+    flag_t queuable     :  1;
+
+    unsigned nextslot;          /**< next slot id to try                    */
 
     el_t              elh;
     el_t              timer;
@@ -201,9 +203,9 @@ static inline bool ic_is_empty(ichannel_t *ic) {
 }
 
 /* XXX be carefull, this function do not mean that the ichannel is actually
- * connected */
+ * connected, just that you are allowed to queue some queries */
 static inline bool ic_is_ready(const ichannel_t *ic) {
-    return ic->elh && !ic->timer && !ic->is_closing;
+    return ic->elh && ic->queuable && !ic->is_closing;
 }
 
 static inline bool ic_slot_is_async(uint64_t slot) {
