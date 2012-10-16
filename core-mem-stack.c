@@ -109,10 +109,14 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, size_t alignment,
         *blkp = blk;
         res   = blk->area;
         res   = (uint8_t *)ROUND_UP((uintptr_t)res, alignment);
+        (void)VALGRIND_MAKE_MEM_NOACCESS(blk->area, res - blk->area);
     } else {
         *blkp = frame->blk;
+        (void)VALGRIND_MAKE_MEM_NOACCESS(frame->pos, res - frame->pos);
     }
     (void)VALGRIND_MAKE_MEM_UNDEFINED(res, asked);
+    (void)VALGRIND_MAKE_MEM_NOACCESS(res + asked, size - asked);
+
     /* compute a progressively forgotten mean of the allocation size.
      *
      * Every 64k allocations, we divide the sum of allocations by four so that
@@ -162,6 +166,7 @@ static void *sp_alloc_aligned(mem_pool_t *_sp, size_t size, size_t alignment,
 #ifndef NDEBUG
     res += alignment;
     ((void **)res)[-1] = sp->stack;
+    (void)VALGRIND_MAKE_MEM_NOACCESS(res - alignment, alignment);
 #endif
     return frame->last = res;
 }
@@ -190,8 +195,10 @@ static void *sp_realloc_aligned(mem_pool_t *_sp, void *mem,
 
     if (frame->prev & 1)
         e_panic("allocation performed on a sealed stack");
+    (void)VALGRIND_MAKE_MEM_DEFINED((byte *)mem - sizeof(void *), sizeof(void *));
     if (mem != NULL && unlikely(((void **)mem)[-1] != sp->stack))
         e_panic("%p wasn't allocated in that frame, realloc is forbidden", mem);
+    (void)VALGRIND_MAKE_MEM_NOACCESS((byte *)mem - sizeof(void *), sizeof(void *));
     if (unlikely(oldsize == MEM_UNKNOWN))
         e_panic("stack pools do not support reallocs with unknown old size");
 #endif
@@ -216,6 +223,8 @@ static void *sp_realloc_aligned(mem_pool_t *_sp, void *mem,
         memcpy(res, mem, oldsize);
         (void)VALGRIND_MAKE_MEM_NOACCESS(mem, oldsize);
     }
+    (void)VALGRIND_MAKE_MEM_NOACCESS(mem + asked, size - asked);
+
     if (!(flags & MEM_RAW))
         p_clear(res + oldsize, asked - oldsize);
     return res;
