@@ -771,6 +771,7 @@ void ic_disconnect(ichannel_t *ic)
     ic->wpos = 0;
     ic->iov_total_len = 0;
     sb_reset(&ic->rbuf);
+    ic->queuable = false;
 }
 
 void ic_wipe(ichannel_t *ic)
@@ -1195,6 +1196,7 @@ static int __ic_connect(ichannel_t *ic, int flags)
     __ic_watch_activity(ic);
     if (ic->do_el_unref)
         el_unref(ic->elh);
+    ic->queuable = true;
     return 0;
 }
 
@@ -1233,6 +1235,8 @@ void ic_spawn(ichannel_t *ic, int fd, ic_creds_f *creds_fn)
         el_unref(ic->elh);
     if (ic_mark_connected(ic, fd)) {
         ic_mark_disconnected(ic);
+    } else {
+        ic->queuable = true;
     }
 }
 
