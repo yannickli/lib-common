@@ -233,9 +233,10 @@ void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp, const void *v
 /*----- duplicating values -}}}-*/
 /*----- comparing values -{{{-*/
 
+/** Compare two optional scalars fields, assuming the field is present */
 static bool iop_opt_equals(const iop_field_t *f, const void *v1, const void *v2)
 {
-#define OPT_EQU(t, v1, v2)  (((t *)(v1))->v != ((t *)(v2))->v)
+#define OPT_EQU(t, v1, v2)  (((t *)(v1))->v == ((t *)(v2))->v)
 
     switch (f->type) {
       case IOP_T_I8:  case IOP_T_U8:
