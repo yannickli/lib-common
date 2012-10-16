@@ -177,15 +177,15 @@ char *t_fmt(int *out, const char *fmt, ...)
     __leaf __attr_printf__(2, 3);
 
 #define t_new(type_t, n) \
-    ((type_t *)stack_malloc((n) * sizeof(type_t), MEM_STACK))
+    ((type_t *)stack_malloc((n) * sizeof(type_t), 0, MEM_STACK))
 #define t_new_raw(type_t, n)  \
-    ((type_t *)stack_malloc((n) * sizeof(type_t), MEM_STACK | MEM_RAW))
+    ((type_t *)stack_malloc((n) * sizeof(type_t), 0, MEM_STACK | MEM_RAW))
 #define t_new_extra(type_t, extra) \
-    ((type_t *)stack_malloc(sizeof(type_t) + (extra), MEM_STACK))
+    ((type_t *)stack_malloc(sizeof(type_t) + (extra), 0, MEM_STACK))
 #define t_new_extra_field(type_t, field, extra) \
     t_new_extra(type_t, fieldsizeof(type_t, field[0]) * (extra))
 #define t_new_extra_raw(type_t, extra) \
-    ((type_t *)stack_malloc(sizeof(type_t) + (extra), MEM_STACK | MEM_RAW))
+    ((type_t *)stack_malloc(sizeof(type_t) + (extra), 0, MEM_STACK | MEM_RAW))
 #define t_new_extra_field_raw(type_t, field, extra) \
     t_new_extra_raw(type_t, fieldsizeof(type_t, field[0]) * (extra))
 

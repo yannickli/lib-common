@@ -82,9 +82,10 @@ __attribute__((error("reallocaing alloca()ed memory isn't possible")))
 #endif
 extern void __irealloc_cannot_handle_alloca(void);
 
-void *stack_malloc(size_t size, mem_flags_t flags)
+void *stack_malloc(size_t size, size_t alignment,  mem_flags_t flags)
     __leaf __attribute__((warn_unused_result,malloc));
-void *stack_realloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
+void *stack_realloc(void *mem, size_t oldsize, size_t size, size_t alignment,
+                    mem_flags_t flags)
     __leaf __attribute__((warn_unused_result));
 
 void *libc_malloc(size_t size, size_t alignment, mem_flags_t flags)
@@ -141,7 +142,7 @@ void *imalloc(size_t size, size_t alignment, mem_flags_t flags)
               case MEM_LIBC:
                 return libc_malloc(size, 0, flags);
               case MEM_STACK:
-                return stack_malloc(size, flags);
+                return stack_malloc(size, 0, flags);
             }
         }
     }
@@ -191,7 +192,7 @@ irealloc(void *mem, size_t oldsize, size_t size, size_t alignment,
               case MEM_LIBC:
                 return libc_realloc(mem, oldsize, size, 0, flags);
               case MEM_STACK:
-                return stack_realloc(mem, oldsize, size, flags);
+                return stack_realloc(mem, oldsize, size, 0, flags);
               default:
                 break;
             }

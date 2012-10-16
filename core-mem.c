@@ -88,7 +88,7 @@ void *__imalloc(size_t size, size_t alignment, mem_flags_t flags)
       case MEM_LIBC:
         return libc_malloc(size, alignment, flags);
       case MEM_STACK:
-        return stack_malloc(size, flags);
+        return stack_malloc(size, alignment, flags);
     }
 }
 
@@ -120,7 +120,7 @@ void *__irealloc(void *mem, size_t oldsize, size_t size, size_t alignment,
       case MEM_STATIC:
         e_panic("you cannot realloc alloca-ed memory");
       case MEM_STACK:
-        return stack_realloc(mem, oldsize, size, flags);
+        return stack_realloc(mem, oldsize, size, alignment, flags);
       case MEM_LIBC:
         return libc_realloc(mem, oldsize, size, alignment, flags);
       default:
