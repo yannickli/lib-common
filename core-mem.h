@@ -87,9 +87,10 @@ void *stack_malloc(size_t size, mem_flags_t flags)
 void *stack_realloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
     __leaf __attribute__((warn_unused_result));
 
-void *libc_malloc(size_t size, mem_flags_t flags)
+void *libc_malloc(size_t size, size_t alignment, mem_flags_t flags)
     __leaf __attribute__((warn_unused_result, malloc));
-void *libc_realloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
+void *libc_realloc(void *mem, size_t oldsize, size_t size, size_t alignment,
+                   mem_flags_t flags)
     __leaf __attribute__((warn_unused_result));
 static inline void libc_free(void *mem, mem_flags_t flags)
 {
@@ -115,33 +116,38 @@ static inline void libc_free(void *mem, mem_flags_t flags)
  * imalloc/irealloc/ifree will compile to straight calls to
  * malloc/realloc/free.
  */
-void *__imalloc(size_t size, mem_flags_t flags)
+void *__imalloc(size_t size, size_t alignment, mem_flags_t flags)
     __leaf __attribute__((warn_unused_result, malloc));
-void *__irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t)
+void *__irealloc(void *mem, size_t oldsize, size_t size, size_t alignemnt,
+                 mem_flags_t)
     __leaf __attribute__((warn_unused_result));
 void __ifree(void *mem, mem_flags_t flags)
     __leaf;
 
 __attribute__((malloc, warn_unused_result))
-static ALWAYS_INLINE void *imalloc(size_t size, mem_flags_t flags)
+static ALWAYS_INLINE
+void *imalloc(size_t size, size_t alignment, mem_flags_t flags)
 {
-    if (__builtin_constant_p(size)) {
-        if (size > MEM_ALLOC_MAX)
-            __imalloc_too_large();
-    }
-    if (__builtin_constant_p(flags)) {
-        switch (flags & MEM_POOL_MASK) {
-          case MEM_STATIC:
-          default:
-            __imalloc_cannot_do_this_pool();
-          case MEM_LIBC:
-            return libc_malloc(size, flags);
-          case MEM_STACK:
-            return stack_malloc(size, flags);
+    if (__builtin_constant_p(alignment) && alignment <= sizeof(void *)) {
+        if (__builtin_constant_p(size)) {
+            if (size > MEM_ALLOC_MAX)
+                __imalloc_too_large();
+        }
+        if (__builtin_constant_p(flags)) {
+            switch (flags & MEM_POOL_MASK) {
+              case MEM_STATIC:
+              default:
+                __imalloc_cannot_do_this_pool();
+              case MEM_LIBC:
+                return libc_malloc(size, 0, flags);
+              case MEM_STACK:
+                return stack_malloc(size, flags);
+            }
         }
     }
-    return __imalloc(size, flags);
+    return __imalloc(size, alignment, flags);
 }
+#define imalloc(size, flags)  (imalloc)((size), 0, (flags))
 
 static ALWAYS_INLINE void ifree(void *mem, mem_flags_t flags)
 {
@@ -166,42 +172,46 @@ static ALWAYS_INLINE void ifree(void *mem, mem_flags_t flags)
 
 __attribute__((warn_unused_result))
 static ALWAYS_INLINE void *
-irealloc(void *mem, size_t oldsize, size_t size, mem_flags_t flags)
+irealloc(void *mem, size_t oldsize, size_t size, size_t alignment,
+         mem_flags_t flags)
 {
-    if (__builtin_constant_p(size)) {
-        if (size == 0) {
-            ifree(mem, flags);
-            return NULL;
+    if (__builtin_constant_p(alignment) && alignment <= sizeof(void *)) {
+        if (__builtin_constant_p(size)) {
+            if (size == 0) {
+                ifree(mem, flags);
+                return NULL;
+            }
+            if (size > MEM_ALLOC_MAX)
+                __imalloc_too_large();
         }
-        if (size > MEM_ALLOC_MAX)
-            __imalloc_too_large();
-    }
-    if (__builtin_constant_p(flags)) {
-        switch (flags & MEM_POOL_MASK) {
-          case MEM_STATIC:
-            __irealloc_cannot_handle_alloca();
-          case MEM_LIBC:
-            return libc_realloc(mem, oldsize, size, flags);
-          case MEM_STACK:
-            return stack_realloc(mem, oldsize, size, flags);
-          default:
-            break;
-        }
+        if (__builtin_constant_p(flags)) {
+            switch (flags & MEM_POOL_MASK) {
+              case MEM_STATIC:
+                __irealloc_cannot_handle_alloca();
+              case MEM_LIBC:
+                return libc_realloc(mem, oldsize, size, 0, flags);
+              case MEM_STACK:
+                return stack_realloc(mem, oldsize, size, flags);
+              default:
+                break;
+            }
 
-        if (__builtin_constant_p(oldsize < size)) {
-            /* Test this condition here to allow for a better expansion
-             * of memset when the compiler can detect correct alignment
-             * and known size for reallocated part.
-             */
-            mem = __irealloc(mem, oldsize, size, flags | MEM_RAW);
-            if (!(flags & MEM_RAW) && oldsize < size)
-                memset((char *)mem + oldsize, 0, size - oldsize);
-            return mem;
+            if (__builtin_constant_p(oldsize < size)) {
+                /* Test this condition here to allow for a better expansion
+                 * of memset when the compiler can detect correct alignment
+                 * and known size for reallocated part.
+                 */
+                mem = __irealloc(mem, oldsize, size, alignment, flags | MEM_RAW);
+                if (!(flags & MEM_RAW) && oldsize < size)
+                    memset((char *)mem + oldsize, 0, size - oldsize);
+                return mem;
+            }
         }
     }
-    return __irealloc(mem, oldsize, size, flags);
+    return __irealloc(mem, oldsize, size, alignment, flags);
 }
-
+#define irealloc(mem, oldsize, size, flags)  \
+    (irealloc)((mem), (oldsize), (size), 0, (flags))
 
 /**************************************************************************/
 /* High Level memory APIs                                                 */
