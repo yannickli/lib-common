@@ -393,19 +393,6 @@ fi
 
 
 # }}}
-#{{{ xmlsec
-
-# call pkg-config directly rather than pkg_config_setvar to workaround stupid
-# upstream bug: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=604828
-
-if pkg-config --print-errors xmlsec1; then
-    setvar "xmlsec_CFLAGS" "$(pkg-config --cflags xmlsec1 | tr -s '\\')"
-    setvar "xmlsec_LIBS"   "$(pkg-config --libs xmlsec1)"
-else
-    warn "libxmlsec1-dev is missing (apt-get install libxmlsec1-dev)"
-fi
-
-# }}}
 #{{{ ncurses
 
 if pkg-config ncurses; then
