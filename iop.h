@@ -261,14 +261,11 @@ __attribute__((format(printf, 1, 0)))
 void        iop_set_verr(const char *fmt, va_list ap) __cold ;
 int         iop_set_err2(const lstr_t *s) __cold;
 void        iop_clear_err(void) ;
-const char *iop_get_err(void) __cold;
-lstr_t      iop_get_err_lstr(void) __cold;
 
 bool iop_field_has_constraints(const iop_struct_t *desc, const iop_field_t
                                *fdesc);
 int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
                                 *fdesc, const void *ptr, int n, bool recurse);
-int iop_check_constraints(const iop_struct_t *desc, const void *val);
 
 static inline
 const iop_field_attrs_t *iop_field_get_attrs(const iop_struct_t *desc,
@@ -309,13 +306,6 @@ int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc);
 const iop_iface_t *iop_mod_find_iface(const iop_mod_t *mod, uint32_t tag);
 const iop_rpc_t   *iop_iface_find_rpc(const iop_iface_t *iface, uint32_t tag);
 const iop_rpc_t   *iop_mod_find_rpc(const iop_mod_t *mod, uint32_t cmd);
-
-/*-------- IOP signature ----------*/
-
-lstr_t t_iop_compute_signature(const iop_struct_t *s, const void *v);
-
-__must_check__
-int iop_check_signature(const iop_struct_t *s, const void *v, lstr_t sig);
 
 /* }}} */
 /* {{{ IOP structures manipulation */
@@ -375,6 +365,53 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v);
  */
 void  iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
                const void *v);
+
+/** Generate a signature of an IOP structure.
+ *
+ * This function generates a salted SHA256 signature of an IOP structure.
+ *
+ * \param[in] st  IOP structure description.
+ * \param[in] v   IOP structure to sign.
+ */
+lstr_t t_iop_compute_signature(const iop_struct_t *st, const void *v);
+
+/** Check the signature of an IOP structure.
+ *
+ * This function checks the signature of an IOP structure.
+ *
+ * \param[in] st   IOP structure description.
+ * \param[in] v    IOP structure to check.
+ * \param[in] sig  Excepted signature.
+ */
+__must_check__
+int iop_check_signature(const iop_struct_t *st, const void *v, lstr_t sig);
+
+/* }}} */
+/* {{{ IOP constraints handling */
+
+/** Get the constraints error buffer.
+ *
+ * When a structure constraints checking fails, the error description is
+ * accessible in a static buffer, accessible with this function.
+ */
+const char *iop_get_err(void) __cold;
+
+/** Same as iop_get_err() but returns a lstr_t. */
+lstr_t iop_get_err_lstr(void) __cold;
+
+/** Check the constraints of an IOP structure.
+ *
+ * This function will check the constraints on an IOP structure and will
+ * return -1 in case of constraint violation. In case of constraint violation,
+ * you can use iop_get_err() to get the error message.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
+ * \param[in] desc  IOP structure description.
+ * \param[in] val   Pointer on the IOP structure to check constraints.
+ */
+int iop_check_constraints(const iop_struct_t *desc, const void *val);
 
 /* }}} */
 /* {{{ IOP enum manipulation */
