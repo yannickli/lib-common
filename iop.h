@@ -15,8 +15,9 @@
 #define IS_LIB_COMMON_IOP_H
 
 #include "container.h"
-#include "iop-macros.h"
 #include "iop-cfolder.h"
+
+/* {{{ IOP library internals */
 
 #define IOP_ABI_VERSION  2
 
@@ -195,43 +196,243 @@ typedef iop_opt_bool_t         iop_opt__Bool_t;
 typedef struct iop__void__t { } iop__void__t;
 extern iop_struct_t const iop__void__s;
 
-void  iop_init(const iop_struct_t *, void *value);
-bool  iop_equals(const iop_struct_t *, const void *v1, const void *v2);
-void *iop_dup(mem_pool_t *mp, const iop_struct_t *, const void *v);
-void  iop_copy(mem_pool_t *mp, const iop_struct_t *, void **, const void *v);
 int   iop_ranges_search(int const *ranges, int ranges_len, int tag);
 
+__must_check__
+int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc);
+
+/* }}} */
+/* {{{ IOP structures manipulation */
+
+/** Initialize an IOP structure with the correct default values.
+ *
+ * You always need to initialize your IOP structure before packing it, however
+ * it is useless when you unpack a structure it will be done for you.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
+ * \param[in] st    The IOP structure definition (__s).
+ * \param[in] value Pointer on the IOP structure to initialize.
+ */
+void  iop_init(const iop_struct_t *st, void *value);
+
+/** Return whether two IOP structures are equals or not.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
+ * \param[in] st  The IOP structures definition (__s).
+ * \param[in] v1  Pointer on the IOP structure to be compared.
+ * \param[in] v2  Pointer on the IOP structure to be compared with.
+ */
+bool  iop_equals(const iop_struct_t *st, const void *v1, const void *v2);
+
+/** Duplicate an IOP structure.
+ *
+ * The resulting IOP structure will fully contained in one block of memory.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
+ * \param[in] mp The memory pool to use for the new allocation. If mp is NULL
+ *               the libc malloc() will be used.
+ * \param[in] st The IOP structure definition (__s).
+ * \param[in] v  The IOP structure to duplicate.
+ */
+void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v);
+
+/** Copy an IOP structure into another one.
+ *
+ * The destination IOP structure will reallocated to handle the source
+ * structure.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
+ * \param[in] mp   The memory pool to use for the reallocation. If mp is NULL
+ *                 the libc realloc() will be used.
+ * \param[in] st   The IOP structure definition (__s).
+ * \param[in] outp Pointer on the destination structure that will be
+ *                 reallocated to retrieve the v IOP structure.
+ * \param[in] v    The IOP structure to copy.
+ */
+void  iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
+               const void *v);
+
+/* }}} */
+/* {{{ IOP enum manipulation */
+
+/** Convert IOP enum integer value to lstr_t representation.
+ *
+ * This function will return NULL if the integer value doesn't exist in the
+ * enum set.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_ENUM
+ * in iop-macros.h).
+ *
+ * \param[in] ed The IOP enum definition (__e).
+ * \param[in] v  Integer value to look for.
+ */
 static inline lstr_t iop_enum_to_str(const iop_enum_t *ed, int v) {
     int res = iop_ranges_search(ed->ranges, ed->ranges_len, v);
     return unlikely(res < 0) ? CLSTR_NULL_V : ed->names[res];
 }
-int iop_enum_from_str(const iop_enum_t *, const char *s, int len, int err);
-int iop_enum_from_str2(const iop_enum_t *, const char *s, int len, bool *found);
-int iop_enum_from_lstr(const iop_enum_t *, const lstr_t s, bool *found);
 
-#define IOP_UNION_TYPE_TO_STR(_data, _type_desc)                        \
-    ({                                                                  \
-        int _res = iop_ranges_search((_type_desc).ranges,               \
-                                     (_type_desc).ranges_len,           \
-                                     (_data)->iop_tag);                 \
-        _res >= 0 ? (_type_desc).fields[_res].name.s : NULL;            \
-    })
+/** Convert a string to its integer value using an IOP enum mapping.
+ *
+ * This function will return `err` if the string value doesn't exist in the
+ * enum set.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_ENUM
+ * in iop-macros.h).
+ *
+ * \param[in] ed  The IOP enum definition (__e).
+ * \param[in] s   String value to look for.
+ * \param[in] len String length (or -1 if unknown).
+ * \param[in] err Value to return in case of conversion error.
+ */
+int iop_enum_from_str(const iop_enum_t *ed, const char *s, int len, int err);
 
-/*----- IOP binary native interfaces -----*/
+/** Convert a string to its integer value using an IOP enum mapping.
+ *
+ * This function will return `-1` if the string value doesn't exist in the
+ * enum set and set the `found` variable to false.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_ENUM
+ * in iop-macros.h).
+ *
+ * \param[in]  ed    The IOP enum definition (__e).
+ * \param[in]  s     String value to look for.
+ * \param[in]  len   String length (or -1 if unknown).
+ * \param[out] found Will be set to false upon failure, true otherwise.
+ */
+int iop_enum_from_str2(const iop_enum_t *ed, const char *s, int len,
+                       bool *found);
+
+/** Convert a lstr_t to its integer value using an IOP enum mapping.
+ *
+ * This function will return `-1` if the string value doesn't exist in the
+ * enum set and set the `found` variable to false.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_ENUM
+ * in iop-macros.h).
+ *
+ * \param[in]  ed    The IOP enum definition (__e).
+ * \param[in]  s     String value to look for.
+ * \param[in]  len   String length (or -1 if unknown).
+ * \param[out] found Will be set to false upon failure, true otherwise.
+ */
+int iop_enum_from_lstr(const iop_enum_t *ed, const lstr_t s, bool *found);
+
+/* }}} */
+/* {{{ IOP binary packing/unpacking */
+
+/** Do some preliminary work to pack an IOP structure into IOP binary format.
+ *
+ * This function _must_ be used before the `iop_bpack` function. It will
+ * compute some necessary informations.
+ *
+ * \param[in]  st   The IOP structure definition (__s).
+ * \param[in]  v    The IOP structure to pack.
+ * \param[out] szs  A qvector of int32 that you have to initialize and give
+ *                  after to `iop_bpack`.
+ * \return
+ *   This function returns the needed buffer size to pack the IOP structure.
+ */
 __must_check__
-int    iop_bpack_size(const iop_struct_t *, const void *v, qv_t(i32) *);
-void   iop_bpack(void *dst, const iop_struct_t *, const void *v, const int *);
+int iop_bpack_size(const iop_struct_t *st, const void *v, qv_t(i32) *szs);
 
-lstr_t t_iop_bpack_struct(const iop_struct_t *, const void *v);
+/** Pack an IOP structure into IOP binary format.
+ *
+ * This structure pack a given IOP structure in an existing buffer that need
+ * to be big enough. The required size will be given by the `iop_bpack_size`.
+ *
+ * Common usage:
+ *
+ * <code>
+ * qv_t(i32) sizes;
+ * int len;
+ * byte *data;
+ *
+ * qv_inita(i32, &sizes, 1024);
+ *
+ * len  = iop_bpack_size(&foo__bar__s, obj, &sizes);
+ * data = p_new_raw(byte, len);
+ *
+ * iop_bpack(data, &foo__bar__s, obj, sizes.tab);
+ * </code>
+ *
+ * \param[in] st  The IOP structure definition (__s).
+ * \param[in] v   The IOP structure to pack.
+ * \param[in] szs The data of the qvector given to the `iop_bpack_size`
+ *                function.
+ */
+void iop_bpack(void *dst, const iop_struct_t *st, const void *v,
+               const int *szs);
 
+/** Pack an IOP structure into IOP binary format using the t_pool().
+ *
+ * This version of `iop_bpack` allows to pack an IOP structure in one
+ * operation and uses the t_pool() to allocate the resulting buffer.
+ *
+ * Prefer the `t_iop_bpack` macro (see iop-macros.h).
+ *
+ * \param[in] st The IOP structure definition (__s).
+ * \param[in] v  The IOP structure to pack.
+ * \return
+ *   The buffer containing the packed structure.
+ */
+lstr_t t_iop_bpack_struct(const iop_struct_t *st, const void *v);
+
+/** Unpack a packed IOP structure.
+ *
+ * This function unpacks a packed IOP structure from a pstream_t. It unpacks
+ * one and only one structure, so the pstream_t must only contains the unique
+ * structure to unpack.
+ *
+ * \param[in] mp    The memory pool to use when memory allocation is needed.
+ * \param[in] st    The IOP structure definition (__s).
+ * \param[in] value Pointer on the destination structure.
+ * \param[in] ps    The pstream_t containing the packed IOP structure.
+ * \param[in] copy  Tell to the unpack whether complex type must be duplicated
+ *                  or not (for example string could be pointers on the
+ *                  pstream_t or duplicated).
+ */
 __must_check__
-int iop_bunpack(mem_pool_t *mp, const iop_struct_t *, void *value,
+int iop_bunpack(mem_pool_t *mp, const iop_struct_t *st, void *value,
                 pstream_t ps, bool copy);
+
+/** Unpack a packed IOP structure.
+ *
+ * This function unpacks a packed IOP structure from a pstream_t. It unpacks
+ * one structure beyonds several other structures and leaves the pstream_t and
+ * the end of the unpacked structure.
+ *
+ * \param[in] mp    The memory pool to use when memory allocation is needed.
+ * \param[in] st    The IOP structure definition (__s).
+ * \param[in] value Pointer on the destination structure.
+ * \param[in] ps    The pstream_t containing the packed IOP structure.
+ * \param[in] copy  Tell to the unpack whether complex type must be duplicated
+ *                  or not (for example string could be pointers on the
+ *                  pstream_t or duplicated).
+ */
 __must_check__
-int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *, void *value,
+int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *st, void *value,
                       pstream_t *ps, bool copy);
+
+/** Skip a packer IOP structure without unpacking it.
+ *
+ * This function skips a packed IOP structure in a pstream_t. It leaves the
+ * pstream_t and the end of the structure. This function is efficient because
+ * it will not fully unpack the structure to skip. But it will not fully check
+ * its validity either.
+ *
+ * \param[in] st    The IOP structure definition (__s).
+ * \param[in] ps    The pstream_t containing the packed IOP structure.
+ */
 __must_check__
-int iop_bskip(const iop_struct_t *desc, pstream_t *ps);
+int iop_bskip(const iop_struct_t *st, pstream_t *ps);
 
 /** returns the length of the field examining the first octets only.
  *
@@ -245,9 +446,9 @@ int iop_bskip(const iop_struct_t *desc, pstream_t *ps);
  */
 ssize_t iop_get_field_len(pstream_t ps);
 
-__must_check__
-int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc);
+/* }}} */
 
+#include "iop-macros.h"
 #include "iop-xml.h"
 #include "iop-json.h"
 #include "iop-dso.h"
