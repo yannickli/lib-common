@@ -51,7 +51,7 @@ bb_init_full(bb_t *bb, void *buf, int blen, int bsize, int mem_pool)
 {
     size_t used_bytes = DIV_ROUND_UP(blen, 8);
 
-    bb->data = buf;
+    bb->data = (uint64_t *)buf;
     bb->len = blen;
     bb->size = bsize;
     bb->mem_pool = mem_pool;
@@ -155,7 +155,7 @@ static inline void bb_add_bytes(bb_t *bb, const byte *b, size_t len)
 {
     if (bb->boffset == 0) {
         bb_grow(bb, len * 8);
-        p_copy(bb->bytes + bb->b, b, len);
+        memcpy(bb->bytes + bb->b, b, len);
         bb->len += len * 8;
     } else {
         size_t words;
@@ -280,7 +280,7 @@ static inline void bb_be_add_bytes(bb_t *bb, const byte *b, size_t len)
 {
     if (bb->boffset == 0) {
         bb_grow(bb, len * 8);
-        p_copy(bb->bytes + bb->b, b, len);
+        memcpy(bb->bytes + bb->b, b, len);
         bb->len += len * 8;
     } else {
         for (size_t i = 0; i < len; i++) {

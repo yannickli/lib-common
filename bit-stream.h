@@ -80,7 +80,7 @@ static inline void bit_ptroff_normalize(struct bit_ptroff *s)
     bit_ptroff_add(s, 0);
 }
 
-#define BIT_PTROFF_INIT(Ptr, Offset)    { .p = (Ptr), .offset = (Offset) }
+#define BIT_PTROFF_INIT(Ptr, Offset)    { (const uint64_t *)(Ptr), (Offset) }
 #define BIT_PTROFF_NORMALIZED(Ptr, Offset) ({                                \
         struct bit_ptroff __poff = BIT_PTROFF_INIT(Ptr, Offset);             \
         bit_ptroff_normalize(&__poff);                                       \
@@ -98,10 +98,11 @@ static inline void bit_ptroff_normalize(struct bit_ptroff *s)
 static inline bit_stream_t bs_init_ptroff(const void *s, size_t s_offset,
                                           const void *e, size_t e_offset)
 {
-    return (bit_stream_t){
-        .s = BIT_PTROFF_NORMALIZED(s, s_offset),
-        .e = BIT_PTROFF_NORMALIZED(e, e_offset),
+    bit_stream_t bs = {
+        BIT_PTROFF_NORMALIZED(s, s_offset),
+        BIT_PTROFF_NORMALIZED(e, e_offset),
     };
+    return bs;
 }
 
 static ALWAYS_INLINE
