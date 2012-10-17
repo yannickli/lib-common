@@ -228,7 +228,6 @@ pid_t psinfo_get_tracer_pid(pid_t pid)
 static ALWAYS_INLINE void check_strace(time_t now)
 {
     static time_t next_strace_check;
-    const char *p;
 
     if (now < next_strace_check)
         return;
