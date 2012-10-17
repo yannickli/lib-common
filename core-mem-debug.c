@@ -15,12 +15,12 @@
 
 static void *debug_malloc(struct mem_pool_t *m, size_t s, mem_flags_t f)
 {
-    return libc_malloc(s, f);
+    return libc_malloc(s, 0, f);
 }
 
 static void *debug_realloc(struct mem_pool_t *m, void *p, size_t o, size_t n, mem_flags_t f)
 {
-    return libc_realloc(p, o, n, f);
+    return libc_realloc(p, o, n, 0, f);
 }
 
 static void debug_free(struct mem_pool_t *m, void *p, mem_flags_t f)

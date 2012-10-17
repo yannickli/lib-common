@@ -92,8 +92,10 @@ int iovec_vector_kill_first(qv_t(iovec) *iovs, ssize_t len);
 __must_check__ int xwrite_file(const char *file, const void *data, ssize_t dlen);
 __must_check__ int xwrite(int fd, const void *data, ssize_t dlen);
 __must_check__ int xwritev(int fd, struct iovec *iov, int iovcnt);
+__must_check__ int xpwrite(int fd, const void *data, ssize_t dlen, off_t offset);
 __must_check__ int xftruncate(int fd, off_t offs);
 __must_check__ int xread(int fd, void *data, ssize_t dlen);
+__must_check__ int xpread(int fd, void *data, ssize_t dlen, off_t offset);
 bool is_fd_open(int fd);
 /* FIXME: Find a better name. */
 int close_fds_higher_than(int fd);
