@@ -16,31 +16,142 @@
 #else
 #define IS_LIB_COMMON_IOP_XML_H
 
-/*----- IOP to SOAP interfaces -----*/
-/* XXX: Assumes xsi points to http://www.w3.org/2001/XMLSchema-instance
- *      and xsd to http://www.w3.org/2001/XMLSchema
- * XXX: Assumes that these options are given to the xml parser:
+/* {{{ Parsing XML */
+
+/** Convert IOP-XML to an IOP C structure.
+ *
+ * This function unpacks an IOP structure encoded in XML format. You have to
+ * provide yourself a xml_reader_t setup on the XML data to unpack.
+ *
+ * iop_xunpack() assumes that the provided xml_reader_t is given with the
+ * following flags:
  *      XML_PARSE_NOENT | XML_PARSE_NOBLANKS | XML_PARSE_NONET
  *      | XML_PARSE_NOCDATA
+ *
+ * Concerning the unpacking flags, the XML unpacker supports the following
+ * ones: IOP_UNPACK_IGNORE_UNKNOWN.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
+ * \param[in] xp     The xml_reader_t setup on the XML data (see xmlr.h).
+ * \param[in] mp     Memory pool to use for memory allocations.
+ * \param[in] st     The IOP structure description.
+ * \param[in] out    Pointer on the IOP structure to write.
+ * \param[in] flags  Bitfield of flags to use (see iop_unpack_flags in iop.h).
  */
-void iop_xpack(sb_t *sb, const iop_struct_t *, const void *v,
-               bool verbose, bool with_enums);
+__must_check__
+int iop_xunpack_flags(void *xp, mem_pool_t *mp, const iop_struct_t *st,
+                      void *out, int flags);
+
+/** Convert IOP-XML to an IOP C structure.
+ *
+ * This function just call iop_xunpack_flags() with flags set to 0.
+ */
+__must_check__ static inline int
+iop_xunpack(void *xp, mem_pool_t *mp, const iop_struct_t *st, void *out)
+{
+    return iop_xunpack_flags(xp, mp, st, out, 0);
+}
 
 /* qm of Content-ID -> decoded message parts */
 qm_kptr_t(part, lstr_t, lstr_t, qhash_lstr_hash, qhash_lstr_equal);
 
-/* flags is a bitfield of iop_unpack_flags */
-int iop_xunpack_parts(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
-                      void *value, int flags, qm_t(part) *parts);
-int iop_xunpack_flags(void *xp, mem_pool_t *mp, const iop_struct_t *, void *v,
-                      int flags);
-int iop_xunpack(void *xp, mem_pool_t *mp, const iop_struct_t *, void *v);
+/** Convert IOP-XML to an IOP C structure with XML parts support.
+ *
+ * This function just works as iop_xunpack_flags() but supports XML parts
+ * additionally. Parts must be given in a hashtable indexed by their
+ * Content-ID.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
+ * \param[in] xp     The xml_reader_t setup on the XML data (see xmlr.h).
+ * \param[in] mp     Memory pool to use for memory allocations.
+ * \param[in] st     The IOP structure description.
+ * \param[in] out    Pointer on the IOP structure to write.
+ * \param[in] flags  Bitfield of flags to use (see iop_unpack_flags in iop.h).
+ * \param[in] parts  Hashtable to retrieve XML parts.
+ */
+__must_check__
+int iop_xunpack_parts(void *xp, mem_pool_t *mp, const iop_struct_t *st,
+                      void *out, int flags, qm_t(part) *parts);
 
+
+/** iop_xunpack_flags() using the t_pool() */
+__must_check__ static inline int
+t_iop_xunpack_flags(void *xp, const iop_struct_t *st, void *out, int flags)
+{
+    return iop_xunpack_flags(xp, t_pool(), st, out, flags);
+}
+
+/** iop_xunpack() using the t_pool() */
+__must_check__ static inline int
+t_iop_xunpack(void *xp, const iop_struct_t *st, void *out)
+{
+    return iop_xunpack(xp, t_pool(), st, out);
+}
+
+/** iop_xunpack_parts() using the t_pool() */
+__must_check__ static inline int
+t_iop_xunpack_parts(void *xp, const iop_struct_t *st, void *out, int flags,
+                    qm_t(part) *parts)
+{
+    return iop_xunpack_parts(xp, t_pool(), st, out, flags, parts);
+}
+
+/* }}} */
+/* {{{ Generating XML */
+
+/** Convert an IOP C structure to IOP-XML.
+ *
+ * This function packs an IOP structure into XML format. It assumes that you
+ * have already written the root node with xsi pointing to
+ * http://www.w3.org/2001/XMLSchema-instance and xsd to
+ * http://www.w3.org/2001/XMLSchema.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
+ * \param[out] sb          Buffer used to write the generated XML.
+ * \param[in]  st          IOP structure definition.
+ * \param[in]  v           Pointer on the IOP structure to pack.
+ * \param[in]  verbose     Generate verbose XML (with XSI types & co).
+ * \param[in]  with_enums  Use enums literal values when possible.
+ *
+ */
+void iop_xpack(sb_t *sb, const iop_struct_t *st, const void *v, bool verbose,
+               bool with_enums);
+
+
+/** RPC set for WSDL generation */
 qh_k32_t(xwsdl_impl);
+
+/** Generate the WSDL corresponding to an IOP module.
+ *
+ * \param[out] sb          Output buffer.
+ * \param[in]  mod         IOP module description.
+ * \param[in]  impl        Optional RPC set if you do not want to export the
+ *                         whole module.
+ * \param[in]  ns          WSDL namespace.
+ * \param[in]  addr        WSDL address location.
+ * \param[in]  with_auth   Add SOAP authentication headers.
+ * \param[in]  with_enums  Dump enums literal representations in WSDL.
+ */
 void iop_xwsdl(sb_t *sb, const iop_mod_t *mod, qh_t(xwsdl_impl) *impl,
                const char *ns, const char *addr, bool with_auth,
                bool with_enums);
+
+/** Register a module RPC in a RPC set.
+ *
+ * \param[in] h     RPC set.
+ * \param[in] _mod  Module name.
+ * \param[in] _if   Interface name.
+ * \param[in] _rpc  RPC name.
+ */
 #define xwsdl_register(h, _mod, _if, _rpc) \
     qh_add(xwsdl_impl, h, IOP_RPC_CMD(_mod, _if, _rpc))
+
+/* }}} */
 
 #endif

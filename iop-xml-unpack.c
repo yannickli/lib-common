@@ -432,17 +432,6 @@ xunpack_union(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
     return xmlr_node_close(xr);
 }
 
-/* Unpack an iop structure from XML.
- * The next element to be read have to be the first elementof the structure to
- * unpack.
- * This function consume the end element just after what it has to unpack.
- */
-int iop_xunpack(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
-                void *value)
-{
-    return iop_xunpack_flags(xr, mp, desc, value, 0);
-}
-
 int iop_xunpack_flags(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
                       void *value, int flags)
 {

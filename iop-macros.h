@@ -344,6 +344,7 @@
 /* {{{ Helpers generated for structures and unions */
 
 #define IOP_GENERIC(pfx) \
+    /* ---- structures ---- */                                               \
     static inline bool pfx##__equals(const pfx##__t *v1, const pfx##__t *v2) \
     {                                                                        \
         return iop_equals(&pfx##__s, (void *)v1, (void *)v2);                \
@@ -361,6 +362,8 @@
     static inline int pfx##__check(pfx##__t *v) {                            \
         return iop_check_constraints(&pfx##__s, (void *)v);                  \
     }                                                                        \
+    \
+    /* ---- JSon ---- */                                                     \
     static inline int                                                        \
     pfx##__jpack(const pfx##__t *v,                                          \
                  int (*wcb)(void *, const void *, int), void *priv,          \
@@ -372,15 +375,56 @@
     pfx##__sb_jpack(sb_t *sb, const pfx##__t *v,  unsigned flags) {          \
         return iop_sb_jpack(sb, &pfx##__s, v, flags);                        \
     }                                                                        \
+    __must_check__                                                           \
     static inline int pfx##__junpack(iop_json_lex_t *ll, pfx##__t *v,        \
                                      bool single)                            \
     {                                                                        \
         return iop_junpack(ll, &pfx##__s, (void *)v, single);                \
     }                                                                        \
+    __must_check__                                                           \
     static inline int t_##pfx##__junpack_ps(pstream_t *ps, pfx##__t *v,      \
                                             int flags, sb_t *errb)           \
     {                                                                        \
         return t_iop_junpack_ps(ps, &pfx##__s, (void *)v, flags, errb);      \
+    }                                                                        \
+    \
+    /* ---- XML ---- */                                                      \
+    __must_check__ static inline int                                         \
+    pfx##__xunpack_flags(void *xp, mem_pool_t *mp, pfx##__t *out, int flags) \
+    {                                                                        \
+        return iop_xunpack_flags(xp, mp, &pfx##__s, out, flags);             \
+    }                                                                        \
+    __must_check__ static inline int                                         \
+    pfx##__xunpack(void *xp, mem_pool_t *mp, pfx##__t *out)                  \
+    {                                                                        \
+        return iop_xunpack(xp, mp, &pfx##__s, out);                          \
+    }                                                                        \
+    __must_check__ static inline int                                         \
+    pfx##__xunpack_parts(void *xp, mem_pool_t *mp, pfx##__t *out, int flags, \
+                         qm_t(part) *parts)                                  \
+    {                                                                        \
+        return iop_xunpack_parts(xp, mp, &pfx##__s, out, flags, parts);      \
+    }                                                                        \
+    __must_check__ static inline int                                         \
+    t_##pfx##__xunpack_flags(void *xp, pfx##__t *out, int flags)             \
+    {                                                                        \
+        return t_iop_xunpack_flags(xp, &pfx##__s, out, flags);               \
+    }                                                                        \
+    __must_check__ static inline int                                         \
+    t_##pfx##__xunpack(void *xp, pfx##__t *out)                              \
+    {                                                                        \
+        return t_iop_xunpack(xp, &pfx##__s, out);                            \
+    }                                                                        \
+    __must_check__ static inline int                                         \
+    t_##pfx##__xunpack_parts(void *xp, pfx##__t *out, int flags,             \
+                             qm_t(part) *parts)                              \
+    {                                                                        \
+        return t_iop_xunpack_parts(xp, &pfx##__s, out, flags, parts);        \
+    }                                                                        \
+    static inline void                                                       \
+    pfx##__xpack(sb_t *sb, const pfx##__t *v, bool verbose, bool with_enums) \
+    {                                                                        \
+        return iop_xpack(sb, &pfx##__s, v, verbose, with_enums);             \
     }
 
 /* }}} */

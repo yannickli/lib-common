@@ -152,7 +152,7 @@ static inline void iop_jlex_set_flags(iop_json_lex_t *ll, int flags)
 
 /** Convert IOP-JSon to an IOP C structure.
  *
- * This function unpack an IOP structure encoded in JSon format. You have to
+ * This function unpacks an IOP structure encoded in JSon format. You have to
  * initialize an iop_json_lex_t structure and iop_jlex_attach() it on the data
  * you want to unpack before calling this function.
  *
@@ -177,6 +177,7 @@ static inline void iop_jlex_set_flags(iop_json_lex_t *ll, int flags)
  *    read successfully, or 0 if it reaches EOF. An empty buffer will not
  *    raise an error.
  */
+__must_check__
 int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *st, void *out,
                 bool single_value);
 
@@ -206,6 +207,7 @@ int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *st, void *out,
  * \return
  *   The iop_junpack() result.
  */
+__must_check__
 int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *st, void *out,
                      int flags, sb_t *errb);
 
@@ -243,7 +245,7 @@ static inline int iop_sb_write(void *_b, const void *buf, int len) {
 
 /** Convert an IOP C structure to IOP-JSon.
  *
- * This function pack an IOP structure into (strict) JSon format.
+ * This function packs an IOP structure into (strict) JSon format.
  *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
