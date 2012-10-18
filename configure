@@ -276,9 +276,6 @@ fi
 
 if test -z "${PHP_VERSION}"; then
     case "$profile" in
-        platon)
-        PHP_CONFIG=/opt/php-5.1.1/bin/php-config
-        ;;
         solaris*)
         PHP_CONFIG=/usr/local/php/bin/php-config
         ;;
