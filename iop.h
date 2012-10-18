@@ -486,6 +486,9 @@ int iop_enum_from_lstr(const iop_enum_t *ed, const lstr_t s, bool *found);
  * This function _must_ be used before the `iop_bpack` function. It will
  * compute some necessary informations.
  *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
  * \param[in]  st   The IOP structure definition (__s).
  * \param[in]  v    The IOP structure to pack.
  * \param[out] szs  A qvector of int32 that you have to initialize and give
@@ -516,6 +519,9 @@ int iop_bpack_size(const iop_struct_t *st, const void *v, qv_t(i32) *szs);
  * iop_bpack(data, &foo__bar__s, obj, sizes.tab);
  * </code>
  *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
  * \param[in] st  The IOP structure definition (__s).
  * \param[in] v   The IOP structure to pack.
  * \param[in] szs The data of the qvector given to the `iop_bpack_size`
@@ -529,7 +535,8 @@ void iop_bpack(void *dst, const iop_struct_t *st, const void *v,
  * This version of `iop_bpack` allows to pack an IOP structure in one
  * operation and uses the t_pool() to allocate the resulting buffer.
  *
- * Prefer the `t_iop_bpack` macro (see iop-macros.h).
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
  *
  * \param[in] st The IOP structure definition (__s).
  * \param[in] v  The IOP structure to pack.
@@ -544,6 +551,9 @@ lstr_t t_iop_bpack_struct(const iop_struct_t *st, const void *v);
  * one and only one structure, so the pstream_t must only contains the unique
  * structure to unpack.
  *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
  * \param[in] mp    The memory pool to use when memory allocation is needed.
  * \param[in] st    The IOP structure definition (__s).
  * \param[in] value Pointer on the destination structure.
@@ -556,11 +566,25 @@ __must_check__
 int iop_bunpack(mem_pool_t *mp, const iop_struct_t *st, void *value,
                 pstream_t ps, bool copy);
 
+/** Unpack a packed IOP structure using the t_pool().
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ */
+__must_check__ static inline int
+t_iop_bunpack_ps(const iop_struct_t *st, void *value, pstream_t ps, bool copy)
+{
+    return iop_bunpack(t_pool(), st, value, ps, copy);
+}
+
 /** Unpack a packed IOP structure.
  *
  * This function unpacks a packed IOP structure from a pstream_t. It unpacks
  * one structure beyonds several other structures and leaves the pstream_t and
  * the end of the unpacked structure.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
  *
  * \param[in] mp    The memory pool to use when memory allocation is needed.
  * \param[in] st    The IOP structure definition (__s).
@@ -574,12 +598,27 @@ __must_check__
 int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *st, void *value,
                       pstream_t *ps, bool copy);
 
+/** Unpack a packed IOP structure using the t_pool().
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ */
+__must_check__ static inline int
+t_iop_bunpack_multi(const iop_struct_t *st, void *value, pstream_t *ps,
+                    bool copy)
+{
+    return iop_bunpack_multi(t_pool(), st, value, ps, copy);
+}
+
 /** Skip a packer IOP structure without unpacking it.
  *
  * This function skips a packed IOP structure in a pstream_t. It leaves the
  * pstream_t and the end of the structure. This function is efficient because
  * it will not fully unpack the structure to skip. But it will not fully check
  * its validity either.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
  *
  * \param[in] st    The IOP structure definition (__s).
  * \param[in] ps    The pstream_t containing the packed IOP structure.

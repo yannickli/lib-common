@@ -254,7 +254,7 @@
         typeof(_str) _str2 = (_str);                                     \
         pstream_t _ps = ps_init(_str2->s, _str2->len);                   \
         \
-        iop_bunpack(t_pool(), &_pkg##__##_type##__s, _tval, _ps, false); \
+        t_iop_bunpack_ps(&_pkg##__##_type##__s, _tval, _ps, false);      \
     })
 
 /** Unpack an IOP structure from IOP binary format using the t_pool().
@@ -276,7 +276,7 @@
         typeof(_str) _str2 = (_str);                                    \
         pstream_t _ps = ps_init(_str2->s, _str2->len);                  \
         \
-        iop_bunpack(t_pool(), &_pkg##__##_type##__s, _tval, _ps, true); \
+        t_iop_bunpack_ps(&_pkg##__##_type##__s, _tval, _ps, true);      \
     })
 
 /* }}} */
@@ -361,6 +361,49 @@
     }                                                                        \
     static inline int pfx##__check(pfx##__t *v) {                            \
         return iop_check_constraints(&pfx##__s, (void *)v);                  \
+    }                                                                        \
+    \
+    /* ---- Binary ---- */                                                   \
+    __must_check__ static inline int                                         \
+    t_##pfx##__bunpack_ps(pfx##__t *value, pstream_t ps, bool copy)          \
+    {                                                                        \
+        return t_iop_bunpack_ps(&pfx##__s, value, ps, copy);                 \
+    }                                                                        \
+    __must_check__ static inline int                                         \
+    t_##pfx##__bunpack_multi(pfx##__t *value, pstream_t *ps, bool copy)      \
+    {                                                                        \
+        return t_iop_bunpack_multi(&pfx##__s, value, ps, copy);              \
+    }                                                                        \
+    \
+    __must_check__ static inline int                                         \
+    t_##pfx##__bunpack(lstr_t *s, pfx##__t *value)                           \
+    {                                                                        \
+        pstream_t ps = ps_init(s->s, s->len);                                \
+        return t_iop_bunpack_ps(&pfx##__s, value, ps, false);                \
+    }                                                                        \
+    __must_check__ static inline int                                         \
+    t_##pfx##__bunpack_dup(lstr_t *s, pfx##__t *value)                       \
+    {                                                                        \
+        pstream_t ps = ps_init(s->s, s->len);                                \
+        return t_iop_bunpack_ps(&pfx##__s, value, ps, true);                 \
+    }                                                                        \
+    \
+    __must_check__ static inline int pfx##__bskip(pstream_t *ps) {           \
+        return iop_bskip(&pfx##__s, ps);                                     \
+    }                                                                        \
+    \
+    __must_check__ static inline int                                         \
+    pfx##__bpack_size(const pfx##__t *v, qv_t(i32) *szs)                     \
+    {                                                                        \
+        return iop_bpack_size(&pfx##__s, v, szs);                            \
+    }                                                                        \
+    static inline void                                                       \
+    pfx##__bpack(void *dst, const pfx##__t *v, const int *szs)               \
+    {                                                                        \
+        return iop_bpack(dst, &pfx##__s, v, szs);                            \
+    }                                                                        \
+    static inline lstr_t t_##pfx##__bpack(const pfx##__t *v) {               \
+        return t_iop_bpack_struct(&pfx##__s, v);                             \
     }                                                                        \
     \
     /* ---- JSon ---- */                                                     \
