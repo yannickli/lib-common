@@ -16,32 +16,7 @@
 #include "iop.h"
 #include "iop-helpers.inl.c"
 
-static inline const void *
-get_n_and_ptr(const iop_field_t *fdesc, const void *value, int *n)
-{
-    void *ptr = (char *)value + fdesc->data_offs;
-
-    switch (fdesc->repeat) {
-      case IOP_R_OPTIONAL:
-        *n = iop_value_has(fdesc, ptr);
-        if (*n && ((1 << fdesc->type) & IOP_STRUCTS_OK))
-            ptr = *(void **)ptr;
-        break;
-      case IOP_R_REQUIRED:
-      case IOP_R_DEFVAL:
-        *n = 1;
-        break;
-      case IOP_R_REPEATED:
-        *n  = ((lstr_t *)ptr)->len;
-        ptr = ((lstr_t *)ptr)->data;
-        break;
-      default:
-        abort();
-    }
-    return ptr;
-}
-
-/*----- lexing json -{{{-*/
+/* {{{ lexing json */
 
 enum {
     IOP_JSON_EOF     = 0,
@@ -832,7 +807,7 @@ void iop_jlex_attach(iop_json_lex_t *ll, pstream_t *ps)
 }
 
 /*-}}}-*/
-/*----- unpacking json way -{{{-*/
+/* {{{ unpacking json way */
 
 static int
 find_field_by_name(const iop_struct_t *desc, const void *s, int len)
@@ -1316,18 +1291,6 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
     return 0;
 }
 
-/** This function unpacks an iop structure from a json format.
- *
- * You should call iop_jlex_new and iop_jlex_attach before calling this
- * function. The pstream which is attached is consumed step by step.
- *
- * @return if `single_value` is true, the function returns 0 on success and
- * something < 0 on error. In particular, it returns IOP_JERR_NOTHING_TO_READ
- * if EOF is reached before reading anything and the structure cannot be
- * empty.
- * If `single_value` is false, the function returns the number of bytes read
- * successfully, or 0 if it reaches EOF before reading anything.
- */
 int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *desc, void *value,
                 bool single_value)
 {
@@ -1396,26 +1359,50 @@ int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *desc, void *v,
                      int flags, sb_t *errb)
 {
     iop_json_lex_t  jll;
-    int             res = 0;
+    int res;
 
     iop_jlex_init(t_pool(), &jll);
     iop_jlex_attach(&jll, ps);
     jll.flags = flags;
 
-    if (iop_junpack(&jll, desc, v, true) < 0) {
-        res = -1;
+    if ((res = iop_junpack(&jll, desc, v, true)) < 0) {
         if (errb) {
             iop_jlex_write_error(&jll, errb);
         }
     }
 
-    iop_jlex_detach(&jll);
     iop_jlex_wipe(&jll);
+
     return res;
 }
 
 /*-}}}-*/
 /* {{{ jpack */
+
+static inline const void *
+get_n_and_ptr(const iop_field_t *fdesc, const void *value, int *n)
+{
+    void *ptr = (char *)value + fdesc->data_offs;
+
+    switch (fdesc->repeat) {
+      case IOP_R_OPTIONAL:
+        *n = iop_value_has(fdesc, ptr);
+        if (*n && ((1 << fdesc->type) & IOP_STRUCTS_OK))
+            ptr = *(void **)ptr;
+        break;
+      case IOP_R_REQUIRED:
+      case IOP_R_DEFVAL:
+        *n = 1;
+        break;
+      case IOP_R_REPEATED:
+        *n  = ((lstr_t *)ptr)->len;
+        ptr = ((lstr_t *)ptr)->data;
+        break;
+      default:
+        abort();
+    }
+    return ptr;
+}
 
 static int do_write(int (*writecb)(void *, const void *, int),
                     void *priv, const void *_buf, int len)

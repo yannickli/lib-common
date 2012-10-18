@@ -16,6 +16,8 @@
 #else
 #define IS_LIB_COMMON_IOP_JSON_H
 
+/* {{{ Private API and definitions */
+
 typedef enum iop_json_error {
     IOP_JERR_EOF                             =   0,
     IOP_JERR_UNKNOWN                         =  -1,
@@ -86,12 +88,29 @@ typedef struct iop_json_lex_t {
     iop_json_lex_ctx_t *ctx;
 } iop_json_lex_t;
 
-/* json lexer */
+/* }}} */
+/* {{{ Parsing JSon */
+
+/** Initialize a JSon parser.
+ *
+ * \param[in] mp  Memory pool to use for memory allocations.
+ * \param[in] ll  JSon parser to initialize.
+ */
 iop_json_lex_t *iop_jlex_init(mem_pool_t *mp, iop_json_lex_t *ll);
+
+/** New JSon parser.
+ *
+ * \param[in] mp  Memory pool to use for memory allocations (including the
+ *                JSon parser).
+ */
 static inline iop_json_lex_t *iop_jlex_new(mem_pool_t *mp) {
     return iop_jlex_init(mp, mp_new(mp, iop_json_lex_t, 1));
 }
+
+/** Wipe a JSon parser */
 void iop_jlex_wipe(iop_json_lex_t *ll);
+
+/** Delete a JSon parser */
 static inline void iop_jlex_delete(iop_json_lex_t **ll) {
     if (*ll) {
         mem_pool_t *mp = (*ll)->mp;
@@ -100,32 +119,160 @@ static inline void iop_jlex_delete(iop_json_lex_t **ll) {
     }
 }
 
+/** Attach the JSon parser on a pstream_t.
+ *
+ * This function setups the JSon parser on the given pstream_t. You must use
+ * this function before to use iop_junpack() & co.
+ *
+ * \param[in] ll  JSon parser.
+ * \param[in] ps  pstream_t containing the JSon to parse.
+ */
 void iop_jlex_attach(iop_json_lex_t *ll, pstream_t *ps);
+
+/** Detach the JSon parser.
+ *
+ * When calling this function the JSon parser forgets its current data stream.
+ * This function is useless in most usages.
+ */
 static inline void iop_jlex_detach(iop_json_lex_t *ll) {
     ll->ps = NULL;
 }
 
-/* errors printing */
+/** Change the unpacker flags.
+ *
+ * The JSon unpacker supports the following flags: IOP_UNPACK_IGNORE_UNKNOWN.
+ *
+ * \param[in] ll     The JSon parser.
+ * \param[in] flags  Bitfield of flags to use (see iop_unpack_flags in iop.h)
+ */
+static inline void iop_jlex_set_flags(iop_json_lex_t *ll, int flags)
+{
+    ll->flags = flags;
+}
+
+/** Convert IOP-JSon to an IOP C structure.
+ *
+ * This function unpack an IOP structure encoded in JSon format. You have to
+ * initialize an iop_json_lex_t structure and iop_jlex_attach() it on the data
+ * you want to unpack before calling this function.
+ *
+ * If you want to set some special flags, you have to set it using
+ * iop_jlex_set_flags() before calling this this function.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
+ * \param[in]  ll            The JSon parser.
+ * \param[in]  st            The IOP structure description.
+ * \param[out] out           Pointer on the IOP structure to write.
+ * \param[in]  single_value  Whether there is one or more structures to unpack
+ *                           in the attached pstream_t.
+ *  \return
+ *    If `single_value` is true, the function returns 0 upon success and
+ *    something < 0 in case of errors (see iop_json_error). Note that it
+ *    returns IOP_JERR_NOTHING_TO_READ if EOF is reached without finding
+ *    a structure to unpack.
+ *
+ *    If `single_value` is false, the function returns the number of bytes
+ *    read successfully, or 0 if it reaches EOF. An empty buffer will not
+ *    raise an error.
+ */
+int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *st, void *out,
+                bool single_value);
+
+/** Convert IOP-JSon to an IOP C structure using the t_pool().
+ *
+ * This function allow to unpack an IOP structure encoded in JSon format in
+ * one call. This is equivalent to:
+ *
+ * <code>
+ * iop_jlex_init(t_pool(), &jll);
+ * iop_jlex_attach(&jll, ps);
+ * jll.flags = <...>;
+ * iop_junpack(&jll, ..., true);
+ * </code>
+ *
+ * Note that the parameter `single_value` is set to true.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
+ * \param[in]  ps    The pstream_t to parse.
+ * \param[in]  st    The IOP structure description.
+ * \param[out] out   Pointer on the IOP structure to write.
+ * \param[in]  flags Unpacker flags to use (see iop_jlex_set_flags).
+ * \param[out] errb  NULL or the buffer to use to write textual error.
+ *
+ * \return
+ *   The iop_junpack() result.
+ */
+int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *st, void *out,
+                     int flags, sb_t *errb);
+
+/** Print a textual error after iop_junpack() failure.
+ *
+ * When iop_junpack() fails, you can print the error textual description in
+ * a sb_t with this function.
+ */
 void iop_jlex_write_error(iop_json_lex_t *ll, sb_t *sb);
+
+/** Print a textual error after iop_junpack() failure.
+ *
+ * When iop_junpack() fails, you can print the error textual description in
+ * a buffer with this function.
+ */
 int  iop_jlex_write_error_buf(iop_json_lex_t *ll, char *buf, int len);
 
-/* IOP to/from json */
 
+/* }}} */
+/* {{{ Generating JSon */
+
+/** JSon packer custom flags */
 enum iop_jpack_flags {
-    IOP_JPACK_STRICT  = (1U << 0), /*< XXX obsolete, kept for backward
-                                     compatibility */
+    /** obsolete, kept for backward compatibility. */
+    IOP_JPACK_STRICT  = (1U << 0),
+    /** generate compact JSon (no indentation, no spaces, …) */
     IOP_JPACK_COMPACT = (1U << 1),
 };
 
-int iop_jpack(const iop_struct_t *, const void *value,
-              int (*)(void *, const void *buf, int len), void *,
+/** Callback to use for writing JSon into a sb_t. */
+static inline int iop_sb_write(void *_b, const void *buf, int len) {
+    sb_add((sb_t *)_b, buf, len);
+    return len;
+}
+
+/** Convert an IOP C structure to IOP-JSon.
+ *
+ * This function pack an IOP structure into (strict) JSon format.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
+ * \param[in] st       IOP structure description.
+ * \param[in] value    Pointer on the IOP structure to pack.
+ * \param[in] writecb  Callback to call when writing (like iop_sb_write).
+ * \param[in] priv     Private data to give to the callback.
+ * \param[in] flags    Packer flags bitfield (see iop_jpack_flags).
+ */
+int iop_jpack(const iop_struct_t *st, const void *value,
+              int (*writecb)(void *, const void *buf, int len), void *priv,
               unsigned flags);
-int iop_junpack(iop_json_lex_t *, const iop_struct_t *, void *,
-                bool single_value);
 
-int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *desc, void *v,
-                     int flags, sb_t *errb);
+/** Pack an IOP C structure to IOP-JSon in a sb_t.
+ *
+ * See iop_jpack().
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ */
+static inline int
+iop_sb_jpack(sb_t *sb, const iop_struct_t *st, const void *value,
+             unsigned flags)
+{
+    return iop_jpack(st, value, &iop_sb_write, sb, flags);
+}
 
+/** Dump IOP structures in JSon format using e_trace */
 #ifndef NDEBUG
 void iop_jtrace_(int lvl, const char *fname, int lno, const char *func,
                  const char *name, const iop_struct_t *, const void *);
@@ -151,16 +298,6 @@ void iop_jtrace_(int lvl, const char *fname, int lno, const char *func,
 #define iop_named_jtrace(lvl, name, st, v)  e_trace_ignore(lvl, name, v)
 #endif
 
-static inline int iop_sb_write(void *_b, const void *buf, int len) {
-    sb_add((sb_t *)_b, buf, len);
-    return len;
-}
-
-static inline int
-iop_sb_jpack(sb_t *sb, const iop_struct_t *desc, const void *value,
-             unsigned flags)
-{
-    return iop_jpack(desc, value, &iop_sb_write, sb, flags);
-}
+/* }}} */
 
 #endif
