@@ -117,8 +117,11 @@ void z_blkgrp_wipe(struct z_blkgrp *, bool delete_tests);
 
 /** Name of the scratch directory, has a trailing '/' */
 extern lstr_t z_tmpdir_g;
+extern int    z_tmpdfd_g;
 extern lstr_t z_grpdir_g;
+extern int    z_grpdfd_g;
 extern lstr_t z_cmddir_g;
+extern int    z_cmddfd_g;
 extern uint32_t z_modes_g;
 
 enum z_mode {
