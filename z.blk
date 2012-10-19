@@ -68,8 +68,11 @@ static struct {
 };
 
 lstr_t z_tmpdir_g;
+int    z_tmpdfd_g = -1;
 lstr_t z_grpdir_g;
+int    z_grpdfd_g = -1;
 lstr_t z_cmddir_g;
+int    z_cmddfd_g = -1;
 uint32_t z_modes_g;
 
 /* private helpers {{{ */
@@ -131,6 +134,9 @@ static void z_shutdown(void)
     qh_wipe(lstr, &_G.tag_skip);
     lstr_wipe(&_G.arg0);
     p_delete(&_G.wd);
+    p_close(&z_tmpdfd_g);
+    p_close(&z_grpdfd_g);
+    p_close(&z_cmddfd_g);
     lstr_wipe(&z_tmpdir_g);
     lstr_wipe(&z_grpdir_g);
     lstr_wipe(&z_cmddir_g);
@@ -783,7 +789,7 @@ static void z_on_term(int signum)
     _G.stopping = true;
 }
 
-static lstr_t our_mkdtemp(const char *ns)
+static void our_mkdtemp(const char *ns, lstr_t *out, int *dfd)
 {
     t_scope;
 
@@ -791,9 +797,14 @@ static lstr_t our_mkdtemp(const char *ns)
     if (mkdtemp(s.v) == NULL) {
         s = t_lstr_fmt("/tmp/z.%s.%d.XXXXXX", ns, 0 + getpid());
         if (mkdtemp(s.v) == NULL)
-            e_panic("unable to setup z_tmpdir_g");
+            e_panic("unable to setup %sdir: %m", ns);
     }
-    return lstr_fmt("%*pM/", LSTR_FMT_ARG(s));
+    *out = lstr_fmt("%*pM/", LSTR_FMT_ARG(s));
+    *dfd = open(out->s, O_RDONLY);
+
+    if (*dfd < 0) {
+        e_panic("unable to open %sdir: %m", ns);
+    }
 }
 
 int z_run(void)
@@ -809,8 +820,12 @@ int z_run(void)
     z_cmddir_g = lstr_fmt("%s/", path);
     if (z_cmddir_g.s[z_cmddir_g.len - 2] == '/')
         z_cmddir_g.v[--z_cmddir_g.len] = '\0';
-    z_tmpdir_g = our_mkdtemp("tst");
-    z_grpdir_g = our_mkdtemp("grp");
+    z_cmddfd_g = open(z_cmddir_g.s, O_RDONLY);
+    if (z_cmddfd_g < 0) {
+        e_panic("unable to open cmddir: %m");
+    }
+    our_mkdtemp("tst", &z_tmpdir_g, &z_tmpdfd_g);
+    our_mkdtemp("grp", &z_grpdir_g, &z_grpdfd_g);
 
     _G.res = 0;
     qv_for_each_pos(z_cbs, i, &_G.cbs) {
@@ -824,6 +839,8 @@ int z_run(void)
         _z_blkgrp_process(&_G.blks.tab[i]);
     }
 
+    p_close(&z_tmpdfd_g);
+    p_close(&z_grpdfd_g);
     rmdir_r(z_tmpdir_g.s, false);
     rmdir_r(z_grpdir_g.s, false);
     signal(SIGTERM, SIG_DFL);
