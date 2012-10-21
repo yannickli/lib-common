@@ -527,8 +527,7 @@ static void qps_m_register_map(qps_t *qps, qps_map_t *map)
     qps_m_blk_insert(qps, f_blk, (uint8_t *)e_blk - f_blk->data);
 }
 
-static int qps_m_check_map(qps_t *qps, qps_map_t *map, uint32_t remaining,
-                           bool fatal)
+static int qps_m_check_map(qps_t *qps, qps_map_t *map, bool fatal)
 {
     void       *map_end = &map[QPS_MAP_PAGES];
     qps_mhdr_t *blk     = (qps_mhdr_t *)&map[1];
@@ -559,13 +558,13 @@ static int qps_m_check_map(qps_t *qps, qps_map_t *map, uint32_t remaining,
             }
             blk = nxt;
         }
-        if (remaining != allocated) {
+        if (map->hdr.remaining != allocated) {
             if (fatal) {
                 e_panic("RO map [%x] remaining disparity: delta is %zd",
-                        map->hdr.mapno, remaining - allocated);
+                        map->hdr.mapno, map->hdr.remaining - allocated);
             } else {
                 return e_error("RO map [%x] remaining disparity: delta is %zd",
-                               map->hdr.mapno, remaining - allocated);
+                               map->hdr.mapno, map->hdr.remaining - allocated);
             }
         }
     } else {
@@ -607,7 +606,7 @@ int __qps_check_maps(qps_t *qps, bool fatal)
         if (qps_map_is_pg(map)) {
             RETHROW(qps_pg_check_hdrs_aux(qps, i << 16, fatal));
         } else {
-            RETHROW(qps_m_check_map(qps, map, map->hdr.remaining, fatal));
+            RETHROW(qps_m_check_map(qps, map, fatal));
         }
     }
     return 0;
@@ -699,9 +698,17 @@ static void qps_unquarantine_nos(qps_t *qps)
 static void *qps_map_fd(qps_t *qps, int fd, void *at)
 {
     const uintptr_t sz = QPS_MAP_SIZE;
-    const int prot = PROT_READ | PROT_WRITE;
+    int prot;
     void *where;
     int flags;
+
+    if (fd < 0) {
+        flags = MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS;
+        prot  = PROT_READ | PROT_WRITE;
+    } else {
+        flags = MAP_SHARED  | MAP_FIXED;
+        prot  = PROT_READ;
+    }
 
     if (at) {
         where = at;
@@ -715,18 +722,13 @@ static void *qps_map_fd(qps_t *qps, int fd, void *at)
         map = x_mmap(NULL, 2 * sz, prot, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         fix = (uint8_t *)ROUND_UP((uintptr_t)map, sz);
         if (fix != map)
-            munmap(map, fix - map);
+            x_munmap(map, fix - map);
         if (fix + sz != map + 2 * sz)
-            munmap(fix + sz, map + sz - fix);
+            x_munmap(fix + sz, map + sz - fix);
         where = fix;
     }
     assert (((uintptr_t)where & QPS_MAP_MASK) == 0);
 
-    if (fd < 0) {
-        flags = MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS;
-    } else {
-        flags = MAP_SHARED  | MAP_FIXED;
-    }
     x_mmap(where, sz, prot, flags, fd, 0);
     madvise(where, QPS_MAP_SIZE, MADV_RANDOM);
     return where;
@@ -867,7 +869,7 @@ static void qps_map_pg_snapshot(qps_t *qps, qps_map_t *map, uint32_t gen)
     assert (qps_map_is_pg(map));
     snprintf(dst, sizeof(dst), "%08x.%08x.qpz", map->hdr.mapno, gen);
     snprintf(buf, sizeof(buf), "%08x.%08x.qpt", map->hdr.mapno, gen);
-    fd  = x_openat(qps->dfd, buf, O_RDWR | O_TRUNC | O_CREAT, 0644);
+    fd  = x_openat(qps->dfd, buf, O_RDWR | O_TRUNC | O_CREAT, 0444);
     out = gzdopen(dup(fd), "wb9");
     if (!out)
         qps_enospc("gzdopen");
@@ -925,7 +927,7 @@ static void qps_map_m_snapshot(qps_t *qps, qps_map_t *map, uint32_t gen)
             qps_enospc("unlinkat");
     }
     e_named_trace(1, "qps/snapshot", "openat(%s)", buf);
-    fd = x_openat(qps->dfd, buf, O_WRONLY | O_CREAT | O_EXCL, 0644);
+    fd = x_openat(qps->dfd, buf, O_WRONLY | O_CREAT | O_EXCL, 0444);
     x_ftruncate(fd, QPS_MAP_SIZE);
 
     x_pwrite(fd, map, sizeof(map->hdr), 0);
@@ -1029,11 +1031,12 @@ static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
     int fd;
     char buf[32];
     qps_map_t *map = NULL;
+    qps_map_t  hdr;
     struct stat st = { .st_size = 0 };
 
     snprintf(buf, sizeof(buf), "%08x.qps", no);
     e_named_trace(1, "qps", "openat(%s)", buf);
-    if ((fd = openat(qps->dfd, buf, O_RDWR, 0644)) < 0) {
+    if ((fd = openat(qps->dfd, buf, O_RDONLY)) < 0) {
         e_error("QPS(%p:%s): unable to open: %m", qps, buf);
         return NULL;
     }
@@ -1055,8 +1058,16 @@ static qps_map_t *qps_m_map_open(qps_t *qps, uint32_t no)
         e_error("QPS(%p:%s): invalid mapno", qps, buf);
         goto err_unmap;
     }
-    map->hdr.qps = qps;
-    map->hdr.disk_usage = st.st_blocks * 512;
+
+    /* The header contains runtime informations, so it must be writable but
+     * we don't care about the result, so put it in an anonymous map.
+     */
+    hdr.hdr = map->hdr;
+    hdr.hdr.qps = qps;
+    hdr.hdr.disk_usage = st.st_blocks * 512;
+    x_mmap(map, sizeof(hdr), PROT_READ | PROT_WRITE,
+           MAP_SHARED | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+    map->hdr = hdr.hdr;
     return map;
 
   err_unmap:
@@ -1231,7 +1242,7 @@ static void x_write_meta(qps_t *qps, uint32_t generation, const qv_t(u32) t,
     sha1_ctx ctx;
     void *o, *p, *buf;
 
-    fd  = x_openat(qps->dfd, "meta.qpt", O_RDWR | O_CREAT | O_TRUNC, 0644);
+    fd  = x_openat(qps->dfd, "meta.qpt", O_RDWR | O_CREAT | O_TRUNC, 0444);
     buf = t_new_raw(char, LZO_BUF_MEM_SIZE);
 
     memcpy(m.sig, QPS_META_SIG, sizeof(QPS_META_SIG));
@@ -1317,7 +1328,7 @@ int qps_map_meta(const qps_t *qps, struct qps_meta **_meta, size_t *size)
     return -1;
 
   err_unmap:
-    munmap(meta, st.st_size);
+    x_munmap(meta, st.st_size);
     return -1;
 }
 
@@ -1415,11 +1426,9 @@ static int qps_load_meta(qps_t *qps, sb_t *out, bool ro)
                 e_error("QPS(%p:meta): inconsistent meta.qps [5]", qps);
                 goto err_unmap;
             }
-            if (!ro) {
-                map->hdr.remaining = u32[1];
-                if (u32[1] == 0)
-                    qps_map_recycle(qps, map, no, true);
-            }
+            map->hdr.remaining = u32[1];
+            if (u32[1] == 0)
+                qps_map_recycle(qps, map, no, true);
         } else
         if (!(u32[0] & QPS_META_MAP_PAGED)) {
             e_error("QPS(%p:meta): inconsistent meta.qps [6]", qps);
@@ -1437,22 +1446,21 @@ static int qps_load_meta(qps_t *qps, sb_t *out, bool ro)
     }
     for (size_t i = 0; i < h_len; i++)
         qps->handles[i] = qps_pg_deref(qps, h_u32[i]);
-    munmap(meta, meta_size);
+    x_munmap(meta, meta_size);
 
 #ifdef NDEBUG
     if (ro) {
 #endif
-    u32 = h_u32 + h_len;
-    u32++;
+    qv_for_each_pos (qpsm, pos, &qps->maps) {
+        qps_map_t *m = qps->maps.tab[pos];
 
-    for (; u32 < uend; u32 += 2) {
-        uint16_t no = u32[0];
-
-        if (u32[0] & QPS_META_MAP_TLSF) {
-            map = qps->maps.tab[no];
-            RETHROW(qps_m_check_map(qps, map, u32[1], false));
+        if (!m) {
+            continue;
+        } else
+        if (qps_map_is_pg(m)) {
+            RETHROW(qps_pg_check_hdrs_aux(qps, m->hdr.mapno << 16, false));
         } else {
-            RETHROW(qps_pg_check_hdrs_aux(qps, u32[0] << 16, false));
+            RETHROW(qps_m_check_map(qps, m, false));
         }
     }
 #ifdef NDEBUG
@@ -1461,7 +1469,7 @@ static int qps_load_meta(qps_t *qps, sb_t *out, bool ro)
     return 0;
 
   err_unmap:
-    munmap(meta, meta_size);
+    x_munmap(meta, meta_size);
     return -1;
 }
 
@@ -2338,7 +2346,7 @@ bool qps_exists(const char *path)
     char tmp[PATH_MAX];
 
     snprintf(tmp, sizeof(tmp), "%s/meta.qps", path);
-    return access(tmp, W_OK) == 0;
+    return access(path, R_OK | W_OK | X_OK) == 0 && access(tmp, R_OK) == 0;
 }
 
 /** \brief destroy a QPS in the given path.
@@ -2404,9 +2412,9 @@ qps_t *qps_create(const char *path, mode_t mode)
     qps->dfd = fd;
     if (qps_lock(qps) < 0)
         goto out_close;
-    fd = openat(qps->dfd, "meta.qps", O_CREAT | O_EXCL | O_RDWR, 0644);
+    fd = openat(qps->dfd, "meta.qps", O_CREAT | O_EXCL | O_RDWR, 0444);
     if (fd < 0) {
-        e_error("QPS(%p): unable to touch meta.qps", qps);
+        e_error("QPS(%p): unable to touch meta.qps: %m", qps);
         goto out_close;
     }
     p_close(&fd);
@@ -2704,7 +2712,7 @@ int qps_backup(qps_t *qps, int dfd_dst, bool link_as_copy)
         }
         if (st.st_size == 0) {
             int fd = openat(dfd_dst, "meta.qps",
-                            O_CREAT | O_EXCL | O_RDWR, 0644);
+                            O_CREAT | O_EXCL | O_RDWR, 0444);
             if (fd < 0) {
                 ret = e_error("QPS(%p): unable to touch meta.qps", qps);
                 goto error;
@@ -2769,7 +2777,7 @@ int qps_backup(qps_t *qps, int dfd_dst, bool link_as_copy)
 #undef COPY_FILE
 
   err_unmap:
-    munmap(meta, meta_size);
+    x_munmap(meta, meta_size);
 
   error:
     return ret;
@@ -2798,11 +2806,11 @@ static void __qps_close(qps_t **qpsp, bool do_cleanup)
                     e_named_trace(1, "qps/close", "unlinkat(%s)", buf);
                     unlinkat(qps->dfd, buf, 0);
                 }
-                munmap(map, QPS_MAP_SIZE);
+                x_munmap(map, QPS_MAP_SIZE);
             }
         }
         qv_for_each_pos(qpsm, i, &qps->omaps) {
-            munmap(qps->omaps.tab[i], QPS_MAP_SIZE);
+            x_munmap(qps->omaps.tab[i], QPS_MAP_SIZE);
         }
         p_close(&qps->dfd);
         qv_wipe(qpsm, &qps->maps);
