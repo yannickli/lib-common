@@ -16,13 +16,20 @@
 
 #include "core.h"
 
-/* 32-64 optimized versions */
+/* Numeric optimized versions */
+void    dsort8(uint8_t base[], size_t n);
+void    dsort16(uint16_t base[], size_t n);
 void    dsort32(uint32_t base[], size_t n);
 void    dsort64(uint64_t base[], size_t n);
 
+size_t  uniq8(uint8_t data[], size_t len);
+size_t  uniq16(uint16_t data[], size_t len);
 size_t  uniq32(uint32_t data[], size_t len);
 size_t  uniq64(uint64_t data[], size_t len);
 
+size_t  bisect8(uint8_t what, const uint8_t data[], size_t len, bool *found);
+size_t  bisect16(uint16_t what, const uint16_t data[], size_t len,
+                 bool *found);
 size_t  bisect32(uint32_t what, const uint32_t data[], size_t len,
                  bool *found);
 #define bisect32(what, data, len)  (bisect32)((what), (data), (len), NULL)
@@ -30,6 +37,8 @@ size_t  bisect64(uint64_t what, const uint64_t data[], size_t len,
                  bool *found);
 #define bisect64(what, data, len)  (bisect64)((what), (data), (len), NULL)
 
+bool    contains8(uint8_t what, const uint8_t data[], size_t len);
+bool    contains16(uint16_t what, const uint16_t data[], size_t len);
 bool    contains32(uint32_t what, const uint32_t data[], size_t len);
 bool    contains64(uint64_t what, const uint64_t data[], size_t len);
 
