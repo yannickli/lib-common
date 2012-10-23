@@ -35,20 +35,21 @@ typedef enum iop_json_error {
     IOP_JERR_EXP_SMTH                        =  -7,
     IOP_JERR_EXP_VAL                         =  -8,
     IOP_JERR_BAD_TOKEN                       =  -9,
+    IOP_JERR_INVALID_FILE                    = -10,
 
     /* unreadable values */
-    IOP_JERR_BAD_IDENT                       = -10,
-    IOP_JERR_BAD_VALUE                       = -11,
-    IOP_JERR_ENUM_VALUE                      = -12,
+    IOP_JERR_BAD_IDENT                       = -11,
+    IOP_JERR_BAD_VALUE                       = -12,
+    IOP_JERR_ENUM_VALUE                      = -13,
 
     /* structure checking */
-    IOP_JERR_DUPLICATED_MEMBER               = -13,
-    IOP_JERR_MISSING_MEMBER                  = -14,
-    IOP_JERR_UNION_ARR                       = -15,
-    IOP_JERR_UNION_RESERVED                  = -16,
-    IOP_JERR_NOTHING_TO_READ                 = -17,
+    IOP_JERR_DUPLICATED_MEMBER               = -14,
+    IOP_JERR_MISSING_MEMBER                  = -15,
+    IOP_JERR_UNION_ARR                       = -16,
+    IOP_JERR_UNION_RESERVED                  = -17,
+    IOP_JERR_NOTHING_TO_READ                 = -18,
 
-    IOP_JERR_CONSTRAINT                      = -18,
+    IOP_JERR_CONSTRAINT                      = -19,
 
 } iop_json_error;
 
@@ -210,6 +211,28 @@ int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *st, void *out,
 __must_check__
 int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *st, void *out,
                      int flags, sb_t *errb);
+
+/** Convert an IOP-JSon structure contained in a file to an IOP C structure.
+ *
+ * This function read a file containing an IOP-JSon structure and set the
+ * fields in an IOP C structure.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
+ * \param[in] filename The file name to read and parse.
+ * \param[in] st       The IOP structure description.
+ * \param[in] out      Pointer on the IOP structure to write.
+ * \param[in] flags    Unpacker flags to use (see iop_jlex_set_flags).
+ * \param[in] errb     NULL or the buffer to use to write textual error.
+ *
+ * \return
+ *   The t_iop_junpack_ps() result,
+ *   or IOP_JERR_INVALID_FILE in case of invalid file.
+ */
+__must_check__
+int t_iop_junpack_file(const char *filename, const iop_struct_t *st,
+                       void *out, int flags, sb_t *errb);
 
 /** Print a textual error after iop_junpack() failure.
  *

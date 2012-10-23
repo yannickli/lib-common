@@ -430,6 +430,13 @@
     {                                                                        \
         return t_iop_junpack_ps(ps, &pfx##__s, (void *)v, flags, errb);      \
     }                                                                        \
+    __must_check__                                                           \
+    static inline int t_##pfx##__junpack_file(const char *filename,          \
+                                              pfx##__t *v, int flags,        \
+                                              sb_t *errb)                    \
+    {                                                                        \
+        return t_iop_junpack_file(filename, &pfx##__s, v, flags, errb);      \
+    }                                                                        \
     \
     /* ---- XML ---- */                                                      \
     __must_check__ static inline int                                         \
