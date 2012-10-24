@@ -11,21 +11,38 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include "arith.h"
 #include "sort.h"
+
+#define SIMPLE_SORT
+#define type_t   uint8_t
+#define dsort    dsort8
+#define uniq     uniq8
+#define bisect   bisect8
+#define contains contains8
+#include "sort-numeric.in.c"
+
+#undef SIMPLE_SORT
+#define type_t   uint16_t
+#define dsort    dsort16
+#define uniq     uniq16
+#define bisect   bisect16
+#define contains contains16
+#include "sort-numeric.in.c"
 
 #define type_t   uint32_t
 #define dsort    dsort32
 #define uniq     uniq32
 #define bisect   bisect32
 #define contains contains32
-#include "sort-32-64.in.c"
+#include "sort-numeric.in.c"
 
 #define type_t   uint64_t
 #define dsort    dsort64
 #define uniq     uniq64
 #define bisect   bisect64
 #define contains contains64
-#include "sort-32-64.in.c"
+#include "sort-numeric.in.c"
 
 #define t(ptr, p)  (((byte *)(ptr)) + (size * (p)))
 
@@ -136,8 +153,8 @@ static int u64_cmp(const void *a, const void *b, void *arg)
 }
 
 Z_GROUP_EXPORT(sort) {
-    const uint64_t vals[] = { 8, 8, 1, 2, 4, 12, 5, 3, 7, 10, 1, 4, 5 };
-    const uint64_t sorted[countof(vals) + 1][countof(vals)] = {
+    const uint64_t vals64[] = { 8, 8, 1, 2, 4, 12, 5, 3, 7, 10, 1, 4, 5 };
+    const uint64_t sorted64[countof(vals64) + 1][countof(vals64)] = {
         {  },
         { 8 },
         { 8, 8 },
@@ -153,7 +170,7 @@ Z_GROUP_EXPORT(sort) {
         { 1, 1, 2, 3, 4, 4, 5, 7, 8, 8, 10, 12 },
         { 1, 1, 2, 3, 4, 4, 5, 5, 7, 8, 8, 10, 12 }
     };
-    const uint64_t uniqed[countof(vals) + 1][countof(vals) + 1] = {
+    const uint64_t uniqed64[countof(vals64) + 1][countof(vals64) + 1] = {
         { 0 },
         { 1, 8 },
         { 1, 8 },
@@ -171,15 +188,15 @@ Z_GROUP_EXPORT(sort) {
     };
 
     Z_TEST(64, "optimized 64") {
-        for (int i = 0; i < countof(vals); i++) {
-            uint64_t v[countof(vals)];
+        for (int i = 0; i < countof(vals64); i++) {
+            uint64_t v[countof(vals64)];
             size_t   len = 0;
 
-            p_copy(&v, &vals, 1);
+            p_copy(&v, &vals64, 1);
             dsort64(v, i);
-            Z_ASSERT_EQUAL(sorted[i], i, v, i);
+            Z_ASSERT_EQUAL(sorted64[i], i, v, i);
             len = uniq64(v, i);
-            Z_ASSERT_EQUAL(&uniqed[i][1], uniqed[i][0], v, len);
+            Z_ASSERT_EQUAL(&uniqed64[i][1], uniqed64[i][0], v, len);
 
             for (uint64_t j = 0; j < 15; j++) {
                 bool   found;
@@ -207,16 +224,166 @@ Z_GROUP_EXPORT(sort) {
         }
     } Z_TEST_END;
 
-    Z_TEST(generic, "generic implementation") {
-        for (int i = 0; i < countof(vals); i++) {
-            uint64_t v[countof(vals)];
+    Z_TEST(32, "optimized 32") {
+        uint32_t vals32[countof(vals64)];
+
+        for (int i = 0; i < countof(vals64); i++) {
+            vals32[i] = vals64[i];
+        }
+
+        for (int i = 0; i < countof(vals32); i++) {
+            uint32_t sorted32[countof(vals64)];
+            uint32_t uniqed32[countof(vals64)];
+            uint32_t v[countof(vals32)];
             size_t   len = 0;
 
-            p_copy(&v, &vals, 1);
+            for (int j = 0; j < countof(vals64); j++) {
+                sorted32[j] = sorted64[i][j];
+                uniqed32[j] = uniqed64[i][j + 1];
+            }
+
+            p_copy(&v, &vals32, 1);
+            dsort32(v, i);
+            Z_ASSERT_EQUAL(sorted32, i, v, i);
+            len = uniq32(v, i);
+            Z_ASSERT_EQUAL(uniqed32, uniqed64[i][0], v, len);
+
+            for (uint64_t j = 0; j < 15; j++) {
+                bool   found;
+                size_t pos = (bisect32)(j, v, len, &found);
+                size_t scan_pos = 0;
+
+                while (scan_pos < len && v[scan_pos] < j) {
+                    scan_pos++;
+                }
+                Z_ASSERT_EQ(pos, scan_pos);
+
+                Z_ASSERT_LE(pos, len);
+                if (pos == len) {
+                    Z_ASSERT(!contains32(j, v, len));
+                    Z_ASSERT(!found);
+                    if (len != 0) {
+                        Z_ASSERT_LT(v[len -1], j);
+                    }
+                } else {
+                    Z_ASSERT_GE(v[pos], j);
+                    Z_ASSERT_EQ(v[pos] == j, contains32(j, v, len));
+                    Z_ASSERT_EQ(v[pos] == j, found);
+                }
+            }
+        }
+    } Z_TEST_END;
+
+    Z_TEST(16, "optimized 16") {
+        uint16_t vals16[countof(vals64)];
+
+        for (int i = 0; i < countof(vals64); i++) {
+            vals16[i] = vals64[i];
+        }
+
+        for (int i = 0; i < countof(vals16); i++) {
+            uint16_t sorted16[countof(vals64)];
+            uint16_t uniqed16[countof(vals64)];
+            uint16_t v[countof(vals16)];
+            size_t   len = 0;
+
+            for (int j = 0; j < countof(vals64); j++) {
+                sorted16[j] = sorted64[i][j];
+                uniqed16[j] = uniqed64[i][j + 1];
+            }
+
+            p_copy(&v, &vals16, 1);
+            dsort16(v, i);
+            Z_ASSERT_EQUAL(sorted16, i, v, i);
+            len = uniq16(v, i);
+            Z_ASSERT_EQUAL(uniqed16, uniqed64[i][0], v, len);
+
+            for (uint64_t j = 0; j < 15; j++) {
+                bool   found;
+                size_t pos = (bisect16)(j, v, len, &found);
+                size_t scan_pos = 0;
+
+                while (scan_pos < len && v[scan_pos] < j) {
+                    scan_pos++;
+                }
+                Z_ASSERT_EQ(pos, scan_pos);
+
+                Z_ASSERT_LE(pos, len);
+                if (pos == len) {
+                    Z_ASSERT(!contains16(j, v, len));
+                    Z_ASSERT(!found);
+                    if (len != 0) {
+                        Z_ASSERT_LT(v[len -1], j);
+                    }
+                } else {
+                    Z_ASSERT_GE(v[pos], j);
+                    Z_ASSERT_EQ(v[pos] == j, contains16(j, v, len));
+                    Z_ASSERT_EQ(v[pos] == j, found);
+                }
+            }
+        }
+    } Z_TEST_END;
+
+    Z_TEST(8, "optimized 8") {
+        uint8_t vals8[countof(vals64)];
+
+        for (int i = 0; i < countof(vals64); i++) {
+            vals8[i] = vals64[i];
+        }
+
+        for (int i = 0; i < countof(vals8); i++) {
+            uint8_t sorted8[countof(vals64)];
+            uint8_t uniqed8[countof(vals64)];
+            uint8_t v[countof(vals8)];
+            size_t   len = 0;
+
+            for (int j = 0; j < countof(vals64); j++) {
+                sorted8[j] = sorted64[i][j];
+                uniqed8[j] = uniqed64[i][j + 1];
+            }
+
+            p_copy(&v, &vals8, 1);
+            dsort8(v, i);
+            Z_ASSERT_EQUAL(sorted8, i, v, i);
+            len = uniq8(v, i);
+            Z_ASSERT_EQUAL(uniqed8, uniqed64[i][0], v, len);
+
+            for (uint64_t j = 0; j < 15; j++) {
+                bool   found;
+                size_t pos = (bisect8)(j, v, len, &found);
+                size_t scan_pos = 0;
+
+                while (scan_pos < len && v[scan_pos] < j) {
+                    scan_pos++;
+                }
+                Z_ASSERT_EQ(pos, scan_pos);
+
+                Z_ASSERT_LE(pos, len);
+                if (pos == len) {
+                    Z_ASSERT(!contains8(j, v, len));
+                    Z_ASSERT(!found);
+                    if (len != 0) {
+                        Z_ASSERT_LT(v[len -1], j);
+                    }
+                } else {
+                    Z_ASSERT_GE(v[pos], j);
+                    Z_ASSERT_EQ(v[pos] == j, contains8(j, v, len));
+                    Z_ASSERT_EQ(v[pos] == j, found);
+                }
+            }
+        }
+    } Z_TEST_END;
+
+    Z_TEST(generic, "generic implementation") {
+        for (int i = 0; i < countof(vals64); i++) {
+            uint64_t v[countof(vals64)];
+            size_t   len = 0;
+
+            p_copy(&v, &vals64, 1);
             dsort64(v, i);
-            Z_ASSERT_EQUAL(sorted[i], i, v, i);
+            Z_ASSERT_EQUAL(sorted64[i], i, v, i);
             len = uniq(v, 8, i, &u64_cmp, NULL);
-            Z_ASSERT_EQUAL(&uniqed[i][1], uniqed[i][0], v, len);
+            Z_ASSERT_EQUAL(&uniqed64[i][1], uniqed64[i][0], v, len);
 
             for (uint64_t j = 0; j < 15; j++) {
                 bool   found;
