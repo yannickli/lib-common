@@ -49,6 +49,15 @@ void ps_install_panic_sighandlers(void);
 /* Filesystem related                                                       */
 /****************************************************************************/
 
+/* XXX man 2 open
+ * NOTES: alignment boundaries on linux 2.6 for direct I/O is 512 bytes
+ */
+#define DIRECT_BITS            9
+#define DIRECT_ALIGN           (1 << DIRECT_BITS)
+#define DIRECT_REMAIN(Val)     ((Val) & BITMASK_LT(typeof(Val), DIRECT_BITS))
+#define DIRECT_TRUNCATE(Val)   ((Val) & BITMASK_GE(typeof(Val), DIRECT_BITS))
+#define DIRECT_IS_ALIGNED(Val) (DIRECT_REMAIN(Val) == 0)
+
 int mkdir_p(const char *dir, mode_t mode);
 int rmdir_r(const char *dir, bool only_content);
 
