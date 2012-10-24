@@ -166,6 +166,8 @@ iop_jlex_werror(iop_json_lex_t *ll, void *buf, int len,
         return ESTR("%s", ll->err_str);
       case IOP_JERR_BAD_TOKEN:
         return ESTR("unexpected token `%s'", ll->err_str);
+      case IOP_JERR_INVALID_FILE:
+        return ESTR("invalid file");
 
       case IOP_JERR_BAD_IDENT:
         return ESTR("invalid identifier `%s'", ll->err_str);
@@ -1373,6 +1375,29 @@ int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *desc, void *v,
 
     iop_jlex_wipe(&jll);
 
+    return res;
+}
+
+int t_iop_junpack_file(const char *filename, const iop_struct_t *st,
+                       void *out, int flags, sb_t *errb)
+{
+    int res;
+    pstream_t ps;
+    lstr_t file = LSTR_NULL_V;
+
+    if (lstr_init_from_file(&file, filename, PROT_READ, MAP_SHARED) < 0) {
+        if (errb) {
+            sb_addf(errb, "cannot read file %s: %m", filename);
+        }
+        res = IOP_JERR_INVALID_FILE;
+        goto end;
+    }
+
+    ps = ps_initlstr(&file);
+    res = t_iop_junpack_ps(&ps, st, out, flags, errb);
+
+ end:
+    lstr_wipe(&file);
     return res;
 }
 
