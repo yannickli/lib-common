@@ -484,6 +484,10 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     ({ int32_t __pos = qh_find(name, qh, key);                           \
        if (likely(__pos >= 0)) qh_del_at(name, qh, __pos);               \
        __pos; })
+#define qh_del_key_safe(name, qh, key)  \
+    ({ int32_t __pos = qh_find_safe(name, qh, key);                      \
+       if (likely(__pos >= 0)) qh_del_at(name, qh, __pos);               \
+       __pos; })
 
 #define qm_for_each_pos(name, pos, h)       qhash_for_each_pos(pos, &(h)->qh)
 #define qm_t(name)                          qm_##name##_t
@@ -568,6 +572,10 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qm_del_at(name, qh, pos)            qm_##name##_del_at(qh, pos)
 #define qm_del_key(name, qh, key)  \
     ({ int32_t __pos = qm_find(name, qh, key);                           \
+       if (likely(__pos >= 0)) qm_del_at(name, qh, __pos);               \
+       __pos; })
+#define qm_del_key_safe(name, qh, key)  \
+    ({ int32_t __pos = qm_find_safe(name, qh, key);                      \
        if (likely(__pos >= 0)) qm_del_at(name, qh, __pos);               \
        __pos; })
 
