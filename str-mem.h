@@ -32,6 +32,10 @@ static inline void *mempcpyz(void *dst, const void *src, size_t n) {
     return (char *)dst + 1;
 }
 
+#ifdef __cplusplus
+#define memcpy_check_types(e1, e2) \
+    STATIC_ASSERT(sizeof(*(e1)) == sizeof(*(e1)))
+#else
 #define memcpy_check_types(e1, e2) \
     STATIC_ASSERT(                                                           \
         __builtin_choose_expr(                                               \
@@ -39,6 +43,7 @@ static inline void *mempcpyz(void *dst, const void *src, size_t n) {
                 __builtin_types_compatible_p(typeof(e2), void *),            \
                 true, sizeof(*(e2)) == 1), true,                             \
             __builtin_types_compatible_p(typeof(*(e1)), typeof(*(e2)))))
+#endif
 
 #define p_move(to, src, n) \
     ({ memcpy_check_types(to, src);                                          \
