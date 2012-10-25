@@ -411,6 +411,9 @@ static inline void *mp_strdup(mem_pool_t *mp, const char *src)
     static inline DO_MP_NEW(mp, type, prefix)
 #define GENERIC_MP_DELETE(mp, type, prefix)   \
     static inline DO_MP_DELETE(mp, type, prefix)
+#define GENERIC_MP_FUNCTIONS(mp, type, prefix) \
+    GENERIC_INIT(type, prefix)    GENERIC_MP_NEW(mp, type, prefix) \
+    GENERIC_WIPE(type, prefix)    GENERIC_MP_DELETE(mp, type, prefix)
 
 /*----- core-mem-debug.c -----*/
 extern mem_pool_t mem_pool_malloc;
