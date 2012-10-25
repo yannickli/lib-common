@@ -516,6 +516,14 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     ({ int32_t __pos = qh_find_h(name, qh, h, key);                      \
        if (likely(__pos >= 0)) qh_del_at(name, qh, __pos);               \
        __pos; })
+#define qh_del_key_safe(name, qh, key)  \
+    ({ int32_t __pos = qh_find_safe(name, qh, key);                      \
+       if (likely(__pos >= 0)) qh_del_at(name, qh, __pos);               \
+       __pos; })
+#define qh_del_key_safe_h(name, qh, h, key)  \
+    ({ int32_t __pos = qh_find_safe_h(name, qh, h, key);                 \
+       if (likely(__pos >= 0)) qh_del_at(name, qh, __pos);               \
+       __pos; })
 
 #define qh_deep_clear(name, h, wipe)                                     \
     do {                                                                 \
@@ -653,6 +661,14 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
        __pos; })
 #define qm_del_key_h(name, qh, h, key)  \
     ({ int32_t __pos = qm_find_h(name, qh, h, key);                      \
+       if (likely(__pos >= 0)) qm_del_at(name, qh, __pos);               \
+       __pos; })
+#define qm_del_key_safe(name, qh, key)  \
+    ({ int32_t __pos = qm_find_safe(name, qh, key);                      \
+       if (likely(__pos >= 0)) qm_del_at(name, qh, __pos);               \
+       __pos; })
+#define qm_del_key_safe_h(name, qh, h, key)  \
+    ({ int32_t __pos = qm_find_safe_h(name, qh, h, key);                 \
        if (likely(__pos >= 0)) qm_del_at(name, qh, __pos);               \
        __pos; })
 
