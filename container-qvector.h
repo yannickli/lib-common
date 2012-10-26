@@ -257,6 +257,13 @@ qvector_splice(qvector_t *vec, size_t v_size,
         qsort(vec->qv.tab, vec->qv.len, sizeof(cval_t),                     \
                 (int (*)(const void *, const void *))cb);                   \
     }                                                                       \
+    static inline pfx##_t *pfx##_copy(pfx##_t *vec_out,                     \
+                                      const pfx##_t *vec_in) {              \
+        vec_out->len = 0;                                                   \
+        p_copy(pfx##_growlen(vec_out, vec_in->len),                         \
+               vec_in->tab, vec_in->len);                                   \
+        return vec_out;                                                     \
+    }                                                                       \
     __QVECTOR_BASE_BLOCKS(pfx, cval_t, val_t)
 
 /** Declare a new vector type.
@@ -362,6 +369,8 @@ qvector_splice(qvector_t *vec, size_t v_size,
 #define qv_insertp(n, vec, i, v)            qv_insert(n, vec, i, *(v))
 #define qv_appendp(n, vec, v)               qv_append(n, vec, *(v))
 #define qv_pushp(n, vec, v)                 qv_push(n, vec, *(v))
+
+#define qv_copy(n, vec_out, vec_in)         qv_##n##_copy(vec_out, vec_in)
 
 #define qv_for_each_pos(n, pos, vec) \
     ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]); \
