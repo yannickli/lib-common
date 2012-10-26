@@ -17,30 +17,35 @@
 #include "core.h"
 
 /* Numeric optimized versions */
-void    dsort8(uint8_t base[], size_t n);
-void    dsort16(uint16_t base[], size_t n);
-void    dsort32(uint32_t base[], size_t n);
-void    dsort64(uint64_t base[], size_t n);
+#define type_t   uint8_t
+#define dsort    dsort8
+#define uniq     uniq8
+#define bisect   bisect8
+#define contains contains8
+#include "sort-numeric.in.h"
 
-size_t  uniq8(uint8_t data[], size_t len);
-size_t  uniq16(uint16_t data[], size_t len);
-size_t  uniq32(uint32_t data[], size_t len);
-size_t  uniq64(uint64_t data[], size_t len);
+#define type_t   uint16_t
+#define dsort    dsort16
+#define uniq     uniq16
+#define bisect   bisect16
+#define contains contains16
+#include "sort-numeric.in.h"
 
-size_t  bisect8(uint8_t what, const uint8_t data[], size_t len, bool *found);
-size_t  bisect16(uint16_t what, const uint16_t data[], size_t len,
-                 bool *found);
-size_t  bisect32(uint32_t what, const uint32_t data[], size_t len,
-                 bool *found);
+#define type_t   uint32_t
+#define dsort    dsort32
+#define uniq     uniq32
+#define bisect   bisect32
+#define contains contains32
+#include "sort-numeric.in.h"
 #define bisect32(what, data, len)  (bisect32)((what), (data), (len), NULL)
-size_t  bisect64(uint64_t what, const uint64_t data[], size_t len,
-                 bool *found);
-#define bisect64(what, data, len)  (bisect64)((what), (data), (len), NULL)
 
-bool    contains8(uint8_t what, const uint8_t data[], size_t len);
-bool    contains16(uint16_t what, const uint16_t data[], size_t len);
-bool    contains32(uint32_t what, const uint32_t data[], size_t len);
-bool    contains64(uint64_t what, const uint64_t data[], size_t len);
+#define type_t   uint64_t
+#define dsort    dsort64
+#define uniq     uniq64
+#define bisect   bisect64
+#define contains contains64
+#include "sort-numeric.in.h"
+#define bisect64(what, data, len)  (bisect64)((what), (data), (len), NULL)
 
 /* Generic implementations */
 typedef int (cmp_r_t)(const void *a, const void *b, void *arg);
