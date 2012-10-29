@@ -212,6 +212,13 @@
            IOP_OPT_CLR(dst);                               \
        }                                                   \
     })
+/** Clear the optional field value if `cond` is fulfilled. */
+#define IOP_OPT_CLR_IF(dst, cond) \
+    do {                                                   \
+        if (cond) {                                        \
+            IOP_OPT_CLR(dst);                              \
+        }                                                  \
+    } while (0)
 
 /* }}} */
 /* {{{ Data packing helpers */
