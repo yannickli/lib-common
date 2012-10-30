@@ -615,7 +615,6 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             memcpy(buf + hlen, data, dlen);
             flags |= IC_MSG_HAS_HDR;
         } else {
-            assert(!pxy_hdr);
             /* XXX We do not support header replacement with proxyfication */
             memcpy(__ic_get_buf(tmp, dlen), data, dlen);
         }
