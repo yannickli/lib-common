@@ -231,10 +231,11 @@ static inline char *mem_strdup(const char *src)
 }
 
 __attribute__((malloc, warn_unused_result))
-static inline void *mem_dup(const void *src, size_t size)
+static inline void *mem_dup(const void *src, size_t size, size_t alignment)
 {
-    return memcpy(imalloc(size, MEM_RAW | MEM_LIBC), src, size);
+    return memcpy((imalloc)(size, alignment, MEM_RAW | MEM_LIBC), src, size);
 }
+#define mem_dup(src, size)  (mem_dup)((src), (size), 0)
 
 __attribute__((malloc, warn_unused_result))
 static inline void *p_dupz(const void *src, size_t len)
@@ -324,15 +325,7 @@ static inline void *p_dupz(const void *src, size_t len)
 #define p_realloc0_extra_field(pp, field, old_count, new_count)  \
     pa_realloc0_extra_field(pp, field, old_count, new_count, alignof(**(pp)))
 
-
-/* Generic helpers */
-
-#define p_alloca(type, count)                                \
-        ((type *)memset(alloca(sizeof(type) * (count)),      \
-                        0, sizeof(type) * (count)))
-
-#define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
-#define p_dup(p, count)         mem_dup((p), sizeof(*(p)) * (count))
+#define p_dup(p, count)         (mem_dup)((p), sizeof(*(p)) * (count), alignof(*(p)))
 #define p_strdup(p)             mem_strdup(p)
 
 #define p_delete(pp) \
@@ -342,7 +335,6 @@ static inline void *p_dupz(const void *src, size_t len)
         *__ptr = NULL;                    \
     })
 
-
 #ifndef __cplusplus
 static inline void (p_delete)(void **p)
 {
@@ -350,8 +342,15 @@ static inline void (p_delete)(void **p)
 }
 #endif
 
-#define p_alloc_nr(x) (((x) + 16) * 3 / 2)
+/* Generic helpers */
 
+#define p_alloca(type, count)                                \
+        ((type *)memset(alloca(sizeof(type) * (count)),      \
+                        0, sizeof(type) * (count)))
+
+#define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
+
+#define p_alloc_nr(x) (((x) + 16) * 3 / 2)
 
 
 /* Structure allocation helpers */
