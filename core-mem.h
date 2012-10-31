@@ -246,6 +246,10 @@ static inline void *p_dupz(const void *src, size_t len)
 
 /* Aligned pointers allocation helpers */
 
+#ifndef alignof
+# define alignof(type)  __alignof__(type)
+#endif
+
 #define pa_new_raw(type, count, alignment)                                   \
     ((type *)(imalloc)(sizeof(type) * (count), (alignment), MEM_RAW | MEM_LIBC))
 #define pa_new(type, count, alignment)                                       \
@@ -300,25 +304,25 @@ static inline void *p_dupz(const void *src, size_t len)
 
 /* Pointer allocations helpers */
 
-#define p_new_raw(type, count)       pa_new_raw(type, count, 0)
-#define p_new(type, count)           pa_new(type, count, 0)
-#define p_new_extra(type, size)      pa_new_extra(type, size, 0)
-#define p_new_extra_raw(type, size)  pa_new_extra_raw(type, size, 0)
+#define p_new_raw(type, count)       pa_new_raw(type, count, alignof(type))
+#define p_new(type, count)           pa_new(type, count, alignof(type))
+#define p_new_extra(type, size)      pa_new_extra(type, size, alignof(type))
+#define p_new_extra_raw(type, size)  pa_new_extra_raw(type, size, alignof(type))
 #define p_new_extra_field(type, field, size)  \
-    pa_new_extra_field(type, field, size, 0)
+    pa_new_extra_field(type, field, size, alignof(type))
 #define p_new_extra_field_raw(type, field, size) \
-    pa_new_extra_field_raw(type, field, size, 0)
+    pa_new_extra_field_raw(type, field, size, alignof(type))
 
-#define p_realloc(pp, count)        pa_realloc(pp, count, 0)
-#define p_realloc0(pp, old, now)    pa_realloc0(pp, old, now, 0)
-#define p_realloc_extra(pp, extra)  pa_realloc0_extra(pp, extra, 0)
+#define p_realloc(pp, count)        pa_realloc(pp, count, alignof(**(pp)))
+#define p_realloc0(pp, old, now)    pa_realloc0(pp, old, now, alignof(**(pp)))
+#define p_realloc_extra(pp, extra)  pa_realloc0_extra(pp, extra, alignof(**(pp)))
 #define p_realloc0_extra(pp, old_extra, new_extra)  \
-    pa_realloc0_extra(pp, old_extra, new_extra, 0)
+    pa_realloc0_extra(pp, old_extra, new_extra, alignof(**(pp)))
 
 #define p_realloc_extra_field(pp, field, count)  \
-    pa_realloc_extra_field(pp, field, count, 0)
+    pa_realloc_extra_field(pp, field, count, alignof(**(pp)))
 #define p_realloc0_extra_field(pp, field, old_count, new_count)  \
-    pa_realloc0_extra_field(pp, field, old_count, new_count, 0)
+    pa_realloc0_extra_field(pp, field, old_count, new_count, alignof(**(pp)))
 
 
 /* Generic helpers */

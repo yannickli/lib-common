@@ -189,14 +189,14 @@ char *t_fmt(int *out, const char *fmt, ...)
 #define ta_new_extra_field_raw(type_t, field, extra, alignment) \
     ta_new_extra_raw(type_t, fieldsizeof(type_t, field[0]) * (extra), (alignment))
 
-#define t_new(type_t, n)                ta_new(type_t, n, 0)
-#define t_new_raw(type_t, n)            ta_new_raw(type_t, n, 0)
-#define t_new_extra(type_t, extra)      ta_new_extra(type_t, extra, 0)
-#define t_new_extra_raw(type_t, extra)  ta_new_extra_raw(type_t, extra, 0)
+#define t_new(type_t, n)                ta_new(type_t, n, alignof(type_t))
+#define t_new_raw(type_t, n)            ta_new_raw(type_t, n, alignof(type_t))
+#define t_new_extra(type_t, extra)      ta_new_extra(type_t, extra, alignof(type_t))
+#define t_new_extra_raw(type_t, extra)  ta_new_extra_raw(type_t, extra, alignof(type_t))
 #define t_new_extra_field(type_t, field, extra)  \
-    ta_new_extra_field(type_t, field, extra, 0)
+    ta_new_extra_field(type_t, field, extra, alignof(type_t))
 #define t_new_extra_field_raw(type_t, field, extra) \
-    ta_new_extra_field_raw(type_t, field, extra, 0)
+    ta_new_extra_field_raw(type_t, field, extra, alignof(type_t))
 
 
 #define t_dup(p, count)    mp_dup(&t_pool_g.funcs, p, count)
