@@ -32,8 +32,7 @@ static const char *asn1_type_name(enum obj_type type)
         CASE(enum);
         case ASN1_OBJ_TYPE(NULL): return "NULL";
         CASE(OPT_NULL);
-        CASE(asn1_data_t);
-        CASE(asn1_string_t);
+        CASE(lstr_t);
         CASE(OPEN_TYPE);
         CASE(asn1_bit_string_t);
         CASE(OPAQUE);
@@ -79,15 +78,15 @@ static void e_trace_desc(int level, const char *txt,
 #   define e_trace_desc(...)
 #endif
 
-const char *t_asn1_oid_print(const asn1_data_t *oid)
+const char *t_asn1_oid_print(lstr_t oid)
 {
     static const char digits[10] = "0123456789";
 
-    char *str = t_new_raw(char, oid->len * 4);
+    char *str = t_new_raw(char, oid.len * 4);
     char *w = str;
 
     for (int i = 0;; i++) {
-        uint8_t u = ((uint8_t *)oid->data)[i];
+        uint8_t u = (uint8_t)oid.s[i];
         uint8_t d = u / 10;
         uint8_t c = d / 10;
 
@@ -102,7 +101,7 @@ const char *t_asn1_oid_print(const asn1_data_t *oid)
 
         *w++ = digits[u];
 
-        if (i >= oid->len)
+        if (i >= oid.len)
             break;
 
         *w++ = '.';
@@ -146,9 +145,9 @@ const void *asn1_opt_field(const void *field, enum obj_type type)
          return NULL;
        case ASN1_OBJ_TYPE(OPT_NULL):
          return *(const bool *)field ? field : NULL;
-       case ASN1_OBJ_TYPE(asn1_data_t): case ASN1_OBJ_TYPE(asn1_string_t):
+       case ASN1_OBJ_TYPE(lstr_t):
        case ASN1_OBJ_TYPE(OPEN_TYPE):   case ASN1_OBJ_TYPE(asn1_bit_string_t):
-         return ((const asn1_data_t *)field)->data ? field : NULL;
+         return ((const lstr_t *)field)->data ? field : NULL;
        case ASN1_OBJ_TYPE(asn1_ext_t):
          return ((const asn1_ext_t *)field)->data ? field : NULL;
        case ASN1_OBJ_TYPE(OPAQUE): case ASN1_OBJ_TYPE(SEQUENCE):
@@ -224,7 +223,7 @@ static uint8_t *asn1_pack_tag(uint8_t *dst, uint32_t tag, uint8_t len)
     return mempcpy(dst, (char *)&be32 + 4 - len, len);
 }
 
-static uint8_t *asn1_pack_data(uint8_t *dst, const asn1_data_t *data)
+static uint8_t *asn1_pack_data(uint8_t *dst, const lstr_t *data)
 {
     return mempcpy(dst, data->data, data->len);
 }
@@ -319,14 +318,14 @@ static int asn1_pack_value_size(const void *dt, const asn1_field_t *spec,
         data_size = 0;
         qv_append(i32, stack, 0);
         break;
-      case ASN1_OBJ_TYPE(asn1_data_t): case ASN1_OBJ_TYPE(asn1_string_t):
+      case ASN1_OBJ_TYPE(lstr_t):
       case ASN1_OBJ_TYPE(OPEN_TYPE):
         /* IF ASSERT: user maybe forgot to declare field as optional */
-        if (!((asn1_data_t *)dt)->data) {
+        if (!((lstr_t *)dt)->data) {
            e_trace(0, "%s", spec->name);
         }
-        assert (((asn1_data_t *)dt)->data);
-        data_size = ((asn1_data_t *)dt)->len;
+        assert (((lstr_t *)dt)->data);
+        data_size = ((lstr_t *)dt)->len;
         qv_append(i32, stack, data_size);
         break;
       case ASN1_OBJ_TYPE(asn1_bit_string_t):
@@ -547,11 +546,11 @@ static uint8_t *asn1_pack_value(uint8_t *dst, const void *dt,
       case ASN1_OBJ_TYPE(NULL):
       case ASN1_OBJ_TYPE(OPT_NULL):
         break;
-      case ASN1_OBJ_TYPE(asn1_data_t): case ASN1_OBJ_TYPE(asn1_string_t):
+      case ASN1_OBJ_TYPE(lstr_t):
       case ASN1_OBJ_TYPE(OPEN_TYPE):
-        dst = asn1_pack_data(dst, (const asn1_data_t *)dt);
-        e_trace_hex(4, "value:", ((const asn1_data_t *)dt)->data,
-                    ((const asn1_data_t *)dt)->len);
+        dst = asn1_pack_data(dst, (const lstr_t *)dt);
+        e_trace_hex(4, "value:", ((const lstr_t *)dt)->data,
+                    ((const lstr_t *)dt)->len);
         break;
       case ASN1_OBJ_TYPE(asn1_bit_string_t):
         dst = asn1_pack_bit_string(dst, (const asn1_bit_string_t *)dt);
@@ -801,11 +800,10 @@ void *asn1_opt_field_w(void *field, enum obj_type type, bool has_field)
       case ASN1_OBJ_TYPE(OPT_NULL):
         *(bool *)field = has_field;
         return field;
-      case ASN1_OBJ_TYPE(asn1_data_t): case ASN1_OBJ_TYPE(asn1_string_t):
+      case ASN1_OBJ_TYPE(lstr_t):
       case ASN1_OBJ_TYPE(OPEN_TYPE):   case ASN1_OBJ_TYPE(asn1_bit_string_t):
         if (!has_field) {
-            ((asn1_data_t *)field)->data = NULL;
-            ((asn1_data_t *)field)->len  = 0;
+            *(lstr_t *)field = LSTR_NULL_V;
         }
         return field;
       case ASN1_OBJ_TYPE(asn1_ext_t):
@@ -973,21 +971,18 @@ static int asn1_unpack_value(pstream_t *ps, const asn1_field_t *spec,
       case ASN1_OBJ_TYPE(NULL):
       case ASN1_OBJ_TYPE(OPT_NULL):
         break;
-      case ASN1_OBJ_TYPE(asn1_data_t): case ASN1_OBJ_TYPE(asn1_string_t):
+      case ASN1_OBJ_TYPE(lstr_t):
       case ASN1_OBJ_TYPE(OPEN_TYPE):
+        *(lstr_t *)dt = LSTR_PS_V(&field_ps);
         if (copy) {
-            ((asn1_data_t *)dt)->data = mp_dup(mem_pool, field_ps.b,
-                                                 ps_len(&field_ps));
-        } else {
-            ((asn1_data_t *)dt)->data = field_ps.b;
+            mp_lstr_persists(mem_pool, (lstr_t *)dt);
         }
-        ((asn1_data_t *)dt)->len = ps_len(&field_ps);
         e_trace_hex(4, "value:", field_ps.s, (int)ps_len(&field_ps));
         break;
       case ASN1_OBJ_TYPE(asn1_bit_string_t):
         if (copy) {
-            ((asn1_data_t *)dt)->data = mp_dup(mem_pool, field_ps.b + 1,
-                                               ps_len(&field_ps) - 1);
+            ((asn1_bit_string_t *)dt)->data = mp_dup(mem_pool, field_ps.b + 1,
+                                                     ps_len(&field_ps) - 1);
         } else {
             ((asn1_bit_string_t *)dt)->data = field_ps.b + 1;
         }
@@ -1050,6 +1045,26 @@ static int asn1_sequenceof_len(pstream_t ps, uint8_t tag)
     return len;
 }
 
+void asn1_alloc_seq_of(void *st, int count, const asn1_field_t *field,
+                       mem_pool_t *mp)
+{
+    if (field->pointed) {
+        asn1_void_array_t *array = GET_PTR(st, field, asn1_void_array_t);
+
+        array->data = mp_new_raw(mp, void *, count);
+        array->len  = count;
+
+        for (int i = 0; i < count; i++) {
+            array->data[i] = mp_new_raw(mp, char, field->size);
+        }
+    } else {
+        asn1_void_vector_t *vector = GET_PTR(st, field, asn1_void_vector_t);
+
+        vector->data = mp_new_raw(mp, char, count * field->size);
+        vector->len  = count;
+    }
+}
+
 static void *asn1_alloc_if_pointed(const asn1_field_t *spec,
                                    mem_pool_t *mem_pool, void *st)
 {
@@ -1108,24 +1123,12 @@ static int asn1_unpack_field(pstream_t *ps, const asn1_field_t *spec,
             RETHROW(count = asn1_sequenceof_len(*ps, spec->tag));
 
             if (unlikely(!count)) {
-                *GET_PTR(st, spec, asn1_data_t) = ASN1_DATA_NULL;
+                p_clear(GET_PTR(st, spec, asn1_void_vector_t), 1);
                 break;
             }
 
-            if (spec->pointed) {
-                asn1_void_array_t *array = GET_PTR(st, spec,
-                                                   asn1_void_array_t);
-                array->data = mp_new_raw(mem_pool, void *,
-                                         count * sizeof(void *));
-                for (int j = 0; j < count; j++) {
-                    array->data[j] = mp_new_raw(mem_pool, char, spec->size);
-                }
-            } else {
-                GET_PTR(st, spec, asn1_data_t)->data =
-                    mp_new_raw(mem_pool, char, count * spec->size);
-            }
+            asn1_alloc_seq_of(st, count, spec, mem_pool);
 
-            GET_PTR(st, spec, asn1_void_vector_t)->len = count;
             for (int j = 0; j < count; j++) {
                 void *st_ptr;
                 if (spec->pointed) {
@@ -1251,23 +1254,12 @@ asn1_unpack_seq_of_u_choice(pstream_t *ps, const asn1_field_t *choice_spec,
     }
 
     if (unlikely(!len)) {
-        *GET_PTR(st, choice_spec, asn1_data_t) = ASN1_DATA_NULL;
+        p_clear(GET_PTR(st, choice_spec, asn1_void_vector_t), 1);
         return 0;
     }
 
-    if (choice_spec->pointed) {
-        asn1_void_array_t *array = GET_PTR(st, choice_spec,
-                                           asn1_void_array_t);
-        array->data = mp_new_raw(mem_pool, void *, len);
-        for (int i = 0; i < len; i++) {
-            array->data[i] = mp_new_raw(mem_pool, char, choice_spec->size);
-        }
-    } else {
-        GET_PTR(st, choice_spec, asn1_data_t)->data =
-            mp_new_raw(mem_pool, char, len * choice_spec->size);
-    }
+    asn1_alloc_seq_of(st, len, choice_spec, mem_pool);
 
-    GET_PTR(st, choice_spec, asn1_void_vector_t)->len = len;
     for (int i = 0; i < len; i++) {
         int choice = asn1_find_choice(choice_desc, *ps->b);
         const asn1_field_t *spec = &choice_desc->desc.vec.tab[choice];

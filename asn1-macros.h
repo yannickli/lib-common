@@ -441,12 +441,8 @@
 
 #define ASN1_REG_MAND_OPT_STRING(desc, st, field, tag, mode) \
     do {                                                                    \
-        if (ASN1_IS_FIELD_TYPE(asn1_data_t, field, st)) {                   \
-            ASN1_REG_STRING(desc, st, asn1_data_t, field, tag, mode);       \
-            break;                                                          \
-        }                                                                   \
-        if (ASN1_IS_FIELD_TYPE(asn1_string_t, field, st)) {                 \
-            ASN1_REG_STRING(desc, st, asn1_string_t, field, tag, mode);     \
+        if (ASN1_IS_FIELD_TYPE(lstr_t, field, st)) {                        \
+            ASN1_REG_STRING(desc, st, lstr_t, field, tag, mode);            \
             break;                                                          \
         }                                                                   \
         if (ASN1_IS_FIELD_TYPE(asn1_bit_string_t, field, st)) {             \
@@ -460,12 +456,8 @@
     do {                                                                     \
         desc->is_seq_of = true;                                              \
                                                                              \
-        if (ASN1_IS_FIELD_TYPE(ASN1_VECTOR_TYPE(data), field, st)) {         \
-            ASN1_REG_STRING(desc, st, asn1_data_t, field, tag, SEQ_OF);      \
-            break;                                                           \
-        }                                                                    \
-        if (ASN1_IS_FIELD_TYPE(ASN1_VECTOR_TYPE(string), field, st)) {       \
-            ASN1_REG_STRING(desc, st, asn1_string_t, field, tag, SEQ_OF);    \
+        if (ASN1_IS_FIELD_TYPE(ASN1_VECTOR_TYPE(lstr), field, st)) {         \
+            ASN1_REG_STRING(desc, st, lstr_t, field, tag, SEQ_OF);           \
             break;                                                           \
         }                                                                    \
         if (ASN1_IS_FIELD_TYPE(ASN1_VECTOR_TYPE(bit_string), field, st)) {   \
@@ -490,24 +482,16 @@
 
 #define asn1_reg_open_type(desc, st_pfx, field)                              \
     do {                                                                     \
-        if (ASN1_IS_FIELD_TYPE(asn1_data_t, field, st_pfx##_t)) {            \
-            ASN1_REG_OPEN_TYPE(desc, st_pfx##_t, asn1_data_t, MANDATORY,     \
-                               field);                                       \
-        }                                                                    \
-        if (ASN1_IS_FIELD_TYPE(asn1_string_t, field, st_pfx##_t)) {          \
-            ASN1_REG_OPEN_TYPE(desc, st_pfx##_t, asn1_string_t, MANDATORY,   \
+        if (ASN1_IS_FIELD_TYPE(lstr_t, field, st_pfx##_t)) {                 \
+            ASN1_REG_OPEN_TYPE(desc, st_pfx##_t, lstr_t, MANDATORY,          \
                                field);                                       \
         }                                                                    \
     } while (0)
 
 #define asn1_reg_opt_open_type(desc, st_pfx, field)                          \
     do {                                                                     \
-        if (ASN1_IS_FIELD_TYPE(asn1_data_t, field, st_pfx##_t)) {            \
-            ASN1_REG_OPEN_TYPE(desc, st_pfx##_t, asn1_data_t, OPTIONAL,      \
-                               field);                                       \
-        }                                                                    \
-        if (ASN1_IS_FIELD_TYPE(asn1_string_t, field, st_pfx##_t)) {          \
-            ASN1_REG_OPEN_TYPE(desc, st_pfx##_t, asn1_string_t, OPTIONAL,    \
+        if (ASN1_IS_FIELD_TYPE(lstr_t, field, st_pfx##_t)) {                 \
+            ASN1_REG_OPEN_TYPE(desc, st_pfx##_t, lstr_t, OPTIONAL,           \
                                field);                                       \
         }                                                                    \
     } while (0)

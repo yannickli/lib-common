@@ -90,8 +90,7 @@ I. Write an ASN1-packable structure.
              |uint64_t          | asn1_opt_uint64_t | asn1_uint64_vector_t
              |< user enum >     | ASN1_OPT_TYPE(...)| ASN1_VECTOR_TYPE(...)
     =========|================================================================
-    String   |asn1_data_t       | asn1_data_t       | asn1_data_vector_t
-             |asn1_string_t     | asn1_string_t     | asn1_string_vector_t
+    String   |lstr_t            | lstr_t            | asn1_lstr_vector_t
              |asn1_bit_string_t | asn1_bit_string_t | asn1_bit_string_vector_t
     =========|================================================================
     Opaque   |void (any)        |                   | ASN1_VECTOR_TYPE(void)

@@ -61,8 +61,7 @@ static ALWAYS_INLINE size_t asn1_bit_string_size(const asn1_bit_string_t *bs)
 }
 
 #define ASN1_VECTOR_OF(ctype_t)       struct { ctype_t *data; int len; }
-typedef ASN1_VECTOR_OF(const void)    asn1_data_t;
-typedef ASN1_VECTOR_OF(const char)    asn1_string_t;
+
 #define ASN1_VECTOR_TYPE(sfx)         asn1_##sfx##_vector_t
 #define ASN1_DEF_VECTOR(sfx, type_t) \
     typedef ASN1_VECTOR_OF(type_t) ASN1_VECTOR_TYPE(sfx)
@@ -75,24 +74,13 @@ ASN1_DEF_VECTOR(int32, const int32_t);
 ASN1_DEF_VECTOR(uint32, const uint32_t);
 ASN1_DEF_VECTOR(int64, const int64_t);
 ASN1_DEF_VECTOR(uint64, const uint64_t);
-ASN1_DEF_VECTOR(data, const asn1_data_t);
-ASN1_DEF_VECTOR(string, const asn1_string_t);
+ASN1_DEF_VECTOR(lstr, const lstr_t);
 ASN1_DEF_VECTOR(bit_string, const asn1_bit_string_t);
 ASN1_DEF_VECTOR(ext, const asn1_ext_t);
 ASN1_DEF_VECTOR(void, void);
 #define ASN1_VECTOR(ctype_t, dt, ln)  (ctype_t){ .data = dt, .len = ln }
 #define ASN1_SVECTOR(ctype_t, dt) \
     ASN1_VECTOR(ctype_t, dt, sizeof(dt) / sizeof(ctype_t))
-
-#define ASN1_DATA(data, len)  ASN1_VECTOR(asn1_data_t, data, len)
-#define ASN1_DATA_NULL        ASN1_DATA(NULL, 0)
-#define ASN1_SDATA(data)      ASN1_SVECTOR(asn1_data_t, data) /* static */
-#define ASN1_STRDATA(data)    ASN1_VECTOR(asn1_data_t, data, sizeof(data) - 1)
-
-#define ASN1_STRING(data, len)  ASN1_VECTOR(asn1_string_t, data, len)
-#define ASN1_STRING_NULL        ASN1_STRING(NULL, 0)
-#define ASN1_SSTRING(str)       ASN1_STRING(str, sizeof(str) - 1)
-#define ASN1_STRSTRING(data)    ASN1_STRING(data, strlen(data)) /* dynamic */
 
 #define ASN1_BIT_STRING(dt, bln) \
     (asn1_bit_string_t){ .data = dt, .bit_len = bln }
@@ -149,8 +137,7 @@ enum obj_type {
     ASN1_OBJ_TYPE(OPT_NULL),
 
     /* String types */
-    ASN1_OBJ_TYPE(asn1_data_t),
-    ASN1_OBJ_TYPE(asn1_string_t),
+    ASN1_OBJ_TYPE(lstr_t),
     ASN1_OBJ_TYPE(OPEN_TYPE),
     ASN1_OBJ_TYPE(asn1_bit_string_t),
 
@@ -399,7 +386,7 @@ int asn1_unpack_(pstream_t *ps, const asn1_desc_t *desc,
 void asn1_reg_field(asn1_desc_t *desc, asn1_field_t *field);
 void asn1_build_choice_table(asn1_choice_desc_t *desc);
 
-const char *t_asn1_oid_print(const asn1_data_t *oid);
+const char *t_asn1_oid_print(lstr_t oid);
 
 /* Private */
 const void *asn1_opt_field(const void *field, enum obj_type type);
