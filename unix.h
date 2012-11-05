@@ -147,7 +147,65 @@ static inline void getopt_init(void) {
 /* if pid <= 0, retrieve infos for the current process */
 int psinfo_get(pid_t pid, sb_t *output);
 
-/* This function is implemented in el-showflags.c for inlining reasons */
+/** \brief Get PID of a traced process
+ *
+ * \param pid  PID of the process (0 = current process)
+ *
+ * \return  the PID of the tracer
+ * \return  0 if the process is not traced
+ * \return -1 on error
+ */
 pid_t psinfo_get_tracer_pid(pid_t pid);
+
+static ALWAYS_INLINE int psinfo_skip_lines(pstream_t *ps, int n)
+{
+    while (--n >= 0) {
+        if (ps_skip_afterchr(ps, '\n') < 0)
+            return e_error("bad status format");
+    }
+    return 0;
+}
+
+/* XXX: This function MUST be inlined in check_strace() to avoid appearing
+ * in the stack.
+ */
+static ALWAYS_INLINE int _psinfo_get_tracer_pid(pid_t pid)
+{
+    t_scope;
+    sb_t      buf;
+    pstream_t ps;
+    pid_t     tpid;
+
+    t_sb_init(&buf, (2 << 10));
+
+    if (pid <= 0) {
+        RETHROW(sb_read_file(&buf, "/proc/self/status"));
+    } else {
+        char path[PATH_MAX];
+
+        snprintf(path, sizeof(path), "/proc/%d/status", pid);
+        RETHROW(sb_read_file(&buf, path));
+    }
+
+    ps = ps_initsb(&buf);
+
+    /* skip Name, State */
+    RETHROW(psinfo_skip_lines(&ps, 2));
+
+    /* Skip optional SleepAVG (absent in 2.6.24) */
+    if (ps_startswithstr(&ps, "SleepAVG:")) {
+        RETHROW(psinfo_skip_lines(&ps, 1));
+    }
+
+    /* Tgid, Pid, PPid */
+    RETHROW(psinfo_skip_lines(&ps, 3));
+
+    /* Check for TracerPid: */
+    if (ps_skipstr(&ps, "TracerPid:") < 0)
+        return e_error("bad status format");
+
+    tpid = ps_geti(&ps);
+    return tpid > 0 ? tpid : 0;
+}
 
 #endif /* IS_LIB_COMMON_UNIX_H */

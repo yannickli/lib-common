@@ -53,6 +53,7 @@ struct z_export *z_exports_g;
 
 static struct {
     bool          stopping;
+    bool          do_fork;
     int           res;
     lstr_t        arg0;
     char         *wd;
@@ -64,6 +65,7 @@ static struct {
     qh_t(lstr)    tag_skip;
 } z_ctx_g = {
 #define _G  z_ctx_g
+    .do_fork  = true,
     .tag_skip = QH_INIT(lstr, _G.tag_skip, true),
 };
 
@@ -462,6 +464,10 @@ static bool _z_group_run(void)
     do_plan();
 
     fflush(stdout);
+    if (!_G.do_fork) {
+        return true;
+    }
+
     pid = fork();
     if (pid == 0) {
         signal(SIGTERM, SIG_DFL);
@@ -489,6 +495,18 @@ static bool _z_group_run(void)
     return false;
 }
 
+static bool _z_group_exit(void)
+{
+    if (_G.do_fork) {
+        exit(_G.grp.t_failed ? -1 : 0);
+    } else {
+        if (_G.grp.t_failed) {
+            _G.res = -1;
+        }
+        return false;
+    }
+}
+
 bool _z_group_process(void)
 {
     if (_z_is_group_ignored())
@@ -505,7 +523,7 @@ bool _z_group_process(void)
       case Z_CHILD_DIE:
         if (!_G.grp.n_total == 0)
             do_summary();
-        exit(_G.grp.t_failed ? -1 : 0);
+        return _z_group_exit();
       default:
         e_panic("should not happen");
     }
@@ -601,7 +619,7 @@ static void _z_blkgrp_process(struct z_blkgrp *g)
 
         if (g->after)
             g->after();
-        exit(_G.grp.t_failed ? -1 : 0);
+        _z_group_exit();
     }
 
   end:
@@ -815,6 +833,10 @@ int z_run(void)
     signal(SIGINT,  z_on_term);
     signal(SIGQUIT, z_on_term);
 
+    _G.do_fork = psinfo_get_tracer_pid(0) <= 0;
+    if (!_G.do_fork) {
+        e_info("running in no-fork mode");
+    }
     _G.wd = getcwd(NULL, 0);
     path_dirname(path, sizeof(path), _G.arg0.s);
     z_cmddir_g = lstr_fmt("%s/", path);

@@ -350,4 +350,9 @@ int psinfo_get(pid_t pid, sb_t *output)
     return 0;
 }
 
+pid_t psinfo_get_tracer_pid(pid_t pid)
+{
+    return _psinfo_get_tracer_pid(pid);
+}
+
 #endif
