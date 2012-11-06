@@ -447,29 +447,29 @@ Z_GROUP_EXPORT(bit_stream)
         SET_BIT(data, 165);
 
         bs = bs_init_ptr(data, &data[128]);
-        Z_ASSERT_EQ(bs_skip_upto_bit(&bs, true), 3);
+        Z_ASSERT_EQ(bs_skip_upto_bit(&bs, true, -1), 3);
         Z_ASSERT_BIT(bs_peek_bit(&bs), true);
         Z_CHECK_BOUNDS(bs, 3, 1024);
 
-        Z_ASSERT_EQ(bs_skip_upto_bit(&bs, true), 0);
+        Z_ASSERT_EQ(bs_skip_upto_bit(&bs, true, -1), 0);
         Z_CHECK_BOUNDS(bs, 3, 1024);
 
-        Z_ASSERT_EQ(bs_skip_upto_bit(&bs, false), 1);
+        Z_ASSERT_EQ(bs_skip_upto_bit(&bs, false, -1), 1);
         Z_ASSERT_BIT(bs_peek_bit(&bs), false);
         Z_CHECK_BOUNDS(bs, 4, 1024);
 
-        Z_ASSERT_EQ(bs_skip_upto_bit(&bs, false), 0);
+        Z_ASSERT_EQ(bs_skip_upto_bit(&bs, false, -1), 0);
         Z_CHECK_BOUNDS(bs, 4, 1024);
 
-        Z_ASSERT_EQ(bs_skip_upto_bit(&bs, true), 161);
+        Z_ASSERT_EQ(bs_skip_upto_bit(&bs, true, -1), 161);
         Z_ASSERT_BIT(bs_peek_bit(&bs), true);
         Z_CHECK_BOUNDS(bs, 165, 1024);
 
-        Z_ASSERT_EQ(bs_skip_upto_bit(&bs, false), 1);
+        Z_ASSERT_EQ(bs_skip_upto_bit(&bs, false, -1), 1);
         Z_ASSERT_BIT(bs_peek_bit(&bs), false);
         Z_CHECK_BOUNDS(bs, 166, 1024);
 
-        Z_ASSERT_NEG(bs_skip_upto_bit(&bs, true));
+        Z_ASSERT_NEG(bs_skip_upto_bit(&bs, true, -1));
         Z_CHECK_BOUNDS(bs, 166, 1024);
     } Z_TEST_END;
 
@@ -479,28 +479,28 @@ Z_GROUP_EXPORT(bit_stream)
         SET_BIT(data, 165);
 
         bs = bs_init_ptr(data, &data[128]);
-        Z_ASSERT_EQ(bs_skip_after_bit(&bs, true), 4);
+        Z_ASSERT_EQ(bs_skip_after_bit(&bs, true, -1), 4);
         Z_ASSERT_BIT(bs_peek_bit(&bs), false);
         Z_CHECK_BOUNDS(bs, 4, 1024);
 
-        Z_ASSERT_EQ(bs_skip_after_bit(&bs, true), 162);
+        Z_ASSERT_EQ(bs_skip_after_bit(&bs, true, -1), 162);
         Z_ASSERT_BIT(bs_peek_bit(&bs), false);
         Z_CHECK_BOUNDS(bs, 166, 1024);
 
-        Z_ASSERT_NEG(bs_skip_after_bit(&bs, true));
+        Z_ASSERT_NEG(bs_skip_after_bit(&bs, true, -1));
         Z_CHECK_BOUNDS(bs, 166, 1024);
 
         bs = bs_init_ptr(data, &data[128]);
-        Z_ASSERT_EQ(bs_skip_after_bit(&bs, false), 1);
+        Z_ASSERT_EQ(bs_skip_after_bit(&bs, false, -1), 1);
         Z_CHECK_BOUNDS(bs, 1, 1024);
 
-        Z_ASSERT_EQ(bs_skip_after_bit(&bs, true), 3);
+        Z_ASSERT_EQ(bs_skip_after_bit(&bs, true, -1), 3);
         Z_CHECK_BOUNDS(bs, 4, 1024);
 
-        Z_ASSERT_EQ(bs_skip_after_bit(&bs, false), 1);
+        Z_ASSERT_EQ(bs_skip_after_bit(&bs, false, -1), 1);
         Z_CHECK_BOUNDS(bs, 5, 1024);
 
-        Z_ASSERT_EQ(bs_skip_after_bit(&bs, false), 1);
+        Z_ASSERT_EQ(bs_skip_after_bit(&bs, false, -1), 1);
         Z_CHECK_BOUNDS(bs, 6, 1024);
     } Z_TEST_END;
 
@@ -592,25 +592,25 @@ Z_GROUP_EXPORT(bit_stream)
         SET_BIT(data, 165);
 
         bs = bs_init_ptr(data, &data[128]);
-        Z_ASSERT_EQ(bs_shrink_downto_bit(&bs, true), 858);
+        Z_ASSERT_EQ(bs_shrink_downto_bit(&bs, true, -1), 858);
         Z_CHECK_BOUNDS(bs, 0, 166);
 
-        Z_ASSERT_EQ(bs_shrink_downto_bit(&bs, true), 0);
+        Z_ASSERT_EQ(bs_shrink_downto_bit(&bs, true, -1), 0);
         Z_CHECK_BOUNDS(bs, 0, 166);
 
-        Z_ASSERT_EQ(bs_shrink_downto_bit(&bs, false), 1);
+        Z_ASSERT_EQ(bs_shrink_downto_bit(&bs, false, -1), 1);
         Z_CHECK_BOUNDS(bs, 0, 165);
 
-        Z_ASSERT_EQ(bs_shrink_downto_bit(&bs, false), 0);
+        Z_ASSERT_EQ(bs_shrink_downto_bit(&bs, false, -1), 0);
         Z_CHECK_BOUNDS(bs, 0, 165);
 
-        Z_ASSERT_EQ(bs_shrink_downto_bit(&bs, true), 161);
+        Z_ASSERT_EQ(bs_shrink_downto_bit(&bs, true, -1), 161);
         Z_CHECK_BOUNDS(bs, 0, 4);
 
-        Z_ASSERT_EQ(bs_shrink_downto_bit(&bs, false), 1);
+        Z_ASSERT_EQ(bs_shrink_downto_bit(&bs, false, -1), 1);
         Z_CHECK_BOUNDS(bs, 0, 3);
 
-        Z_ASSERT_NEG(bs_shrink_downto_bit(&bs, true));
+        Z_ASSERT_NEG(bs_shrink_downto_bit(&bs, true, -1));
         Z_CHECK_BOUNDS(bs, 0, 3);
     } Z_TEST_END;
 
@@ -620,26 +620,26 @@ Z_GROUP_EXPORT(bit_stream)
         SET_BIT(data, 165);
 
         bs = bs_init_ptr(data, &data[128]);
-        Z_ASSERT_EQ(bs_shrink_before_bit(&bs, true), 859);
+        Z_ASSERT_EQ(bs_shrink_before_bit(&bs, true, -1), 859);
         Z_CHECK_BOUNDS(bs, 0, 165);
 
-        Z_ASSERT_EQ(bs_shrink_before_bit(&bs, true), 162);
+        Z_ASSERT_EQ(bs_shrink_before_bit(&bs, true, -1), 162);
         Z_CHECK_BOUNDS(bs, 0, 3);
 
-        Z_ASSERT_NEG(bs_shrink_before_bit(&bs, true));
+        Z_ASSERT_NEG(bs_shrink_before_bit(&bs, true, -1));
         Z_CHECK_BOUNDS(bs, 0, 3);
 
         bs = bs_init_ptr(data, &data[128]);
-        Z_ASSERT_EQ(bs_shrink_before_bit(&bs, false), 1);
+        Z_ASSERT_EQ(bs_shrink_before_bit(&bs, false, -1), 1);
         Z_CHECK_BOUNDS(bs, 0, 1023);
 
-        Z_ASSERT_EQ(bs_shrink_before_bit(&bs, true), 858);
+        Z_ASSERT_EQ(bs_shrink_before_bit(&bs, true, -1), 858);
         Z_CHECK_BOUNDS(bs, 0, 165);
 
-        Z_ASSERT_EQ(bs_shrink_before_bit(&bs, false), 1);;
+        Z_ASSERT_EQ(bs_shrink_before_bit(&bs, false, -1), 1);;
         Z_CHECK_BOUNDS(bs, 0, 164);
 
-        Z_ASSERT_EQ(bs_shrink_before_bit(&bs, false), 1);
+        Z_ASSERT_EQ(bs_shrink_before_bit(&bs, false, -1), 1);
         Z_CHECK_BOUNDS(bs, 0, 163);
     } Z_TEST_END;
 
