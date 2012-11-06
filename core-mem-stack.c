@@ -223,7 +223,7 @@ static void *sp_realloc_aligned(mem_pool_t *_sp, void *mem,
         memcpy(res, mem, oldsize);
         (void)VALGRIND_MAKE_MEM_NOACCESS(mem, oldsize);
     }
-    (void)VALGRIND_MAKE_MEM_NOACCESS(mem + asked, size - asked);
+    (void)VALGRIND_MAKE_MEM_NOACCESS(res + asked, size - asked);
 
     if (!(flags & MEM_RAW))
         p_clear(res + oldsize, asked - oldsize);
