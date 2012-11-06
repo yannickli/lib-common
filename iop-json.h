@@ -220,11 +220,11 @@ int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *st, void *out,
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
  *
- * \param[in] filename The file name to read and parse.
- * \param[in] st       The IOP structure description.
- * \param[in] out      Pointer on the IOP structure to write.
- * \param[in] flags    Unpacker flags to use (see iop_jlex_set_flags).
- * \param[in] errb     NULL or the buffer to use to write textual error.
+ * \param[in]  filename The file name to read and parse.
+ * \param[in]  st       The IOP structure description.
+ * \param[out] out      Pointer on the IOP structure to write.
+ * \param[in]  flags    Unpacker flags to use (see iop_jlex_set_flags).
+ * \param[out] errb     NULL or the buffer to use to write textual error.
  *
  * \return
  *   The t_iop_junpack_ps() result,
