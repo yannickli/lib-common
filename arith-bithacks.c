@@ -54,7 +54,7 @@ ssize_t bsr(const void *data, size_t start_bit, size_t len, bool reverse)
         pos       += start_bit / 64;
         start_bit %= 64;
     }
-    pos += DIV_ROUND_UP(len, 64) - 1;
+    pos += DIV_ROUND_UP(len + start_bit, 64) - 1;
 
 #define SCAN_WORD(Low, Up)  do {                                             \
         uint64_t w = reverse ? ~*pos : *pos;                                 \
@@ -219,6 +219,19 @@ Z_GROUP_EXPORT(bsr_bsf)
         Z_ASSERT_NEG(bsr(data, 0, 3, false));
 
         Z_ASSERT_EQ(bsr(&data[1], 3, 1013, false), 154);
+
+        /* Check that we read inside boundaries */
+        memset(data, 0xff, 8);
+        memset(data + 8, 0, 16);
+        memset(data + 24, 0xff, 8);
+        for (int i = 64; i < 114; i++) {
+            SET_BIT(data, i);
+        }
+        /* --- blank on 40 bits --- */
+        for (int i = 154; i <= 191; i++) {
+            SET_BIT(data, i);
+        }
+        Z_ASSERT_NEG(bsr(data + 8, 50, 40, false));
     } Z_TEST_END;
 
     Z_TEST(bsr_0, "reverse bit scan, scan of 0") {
