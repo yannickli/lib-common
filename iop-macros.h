@@ -356,8 +356,10 @@
     {                                                                        \
         return iop_equals(&pfx##__s, (void *)v1, (void *)v2);                \
     }                                                                        \
-    static inline void pfx##__init(pfx##__t *v) {                            \
+    static inline pfx##__t *pfx##__init(pfx##__t *v) {                       \
         iop_init(&pfx##__s, (void *)v);                                      \
+                                                                             \
+        return v;                                                            \
     }                                                                        \
     static inline pfx##__t *pfx##__dup(mem_pool_t *mp, const pfx##__t *v) {  \
         return (pfx##__t *)iop_dup(mp, &pfx##__s, (const void *)v);          \
