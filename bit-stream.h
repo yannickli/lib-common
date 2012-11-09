@@ -381,6 +381,19 @@ static inline int bs_get_bits(bit_stream_t *bs, size_t blen, uint64_t *out)
     return blen;
 }
 
+static inline int
+bs_get_last_bits(bit_stream_t *bs, size_t blen, uint64_t *out)
+{
+    bit_stream_t tmp = *bs;
+    const size_t orig_len = bs_len(bs);
+
+    BS_CHECK(bs_shrink(bs, blen));
+    __bs_skip(&tmp, orig_len - blen);
+    BS_CHECK(bs_get_bits(&tmp, blen, out));
+
+    return blen;
+}
+
 /* }}} */
 /* Read bit, big endian {{{ */
 
@@ -445,6 +458,19 @@ static inline int bs_be_get_bits(bit_stream_t *bs, size_t blen, uint64_t *out)
     BS_WANT(blen <= 64);
     BS_WANT(bs_has(bs, blen));
     *out = __bs_be_get_bits(bs, blen);
+    return blen;
+}
+
+static inline int
+bs_be_get_last_bits(bit_stream_t *bs, size_t blen, uint64_t *out)
+{
+    bit_stream_t tmp = *bs;
+    const size_t orig_len = bs_len(bs);
+
+    BS_CHECK(bs_shrink(bs, blen));
+    __bs_skip(&tmp, orig_len - blen);
+    BS_CHECK(bs_be_get_bits(&tmp, blen, out));
+
     return blen;
 }
 
