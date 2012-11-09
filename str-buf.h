@@ -161,7 +161,10 @@ sb_t::~sb_t() { sb_wipe(this); }
 
 static inline void sb_wipe_not_needed(sb_t *sb)
 {
-    assert (sb->mem_pool == MEM_STATIC);
+    if (unlikely(sb->mem_pool == MEM_LIBC)) {
+        assert (false);
+        sb_wipe(sb);
+    }
 }
 
 /**************************************************************************/
