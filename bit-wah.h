@@ -46,13 +46,13 @@ typedef struct wah_t {
     uint64_t  len;
     uint64_t  active;
 
-    wah_header_t   first_run_head;
-    uint32_t       first_run_len;
-
     int            previous_run_pos;
     int            last_run_pos;
+
     qv_t(wah_word) data;
+
     uint32_t       pending;
+    uint32_t       padding[3]; /* Ensure sizeof(wah_t) == 64 */
 } wah_t;
 qvector_t(wah, wah_t);
 
@@ -87,12 +87,10 @@ void wah_reset_map(wah_t *map)
 {
     map->len                  = 0;
     map->active               = 0;
-    map->first_run_head.words = 0;
-    map->first_run_head.bit   = 0;
-    map->first_run_len        = 0;
     map->previous_run_pos     = -1;
-    map->last_run_pos         = -1;
+    map->last_run_pos         = 0;
     map->data.len             = 0;
+    p_clear(qv_growlen(wah_word, &map->data, 2), 2);
     map->pending              = 0;
 }
 
@@ -117,21 +115,21 @@ typedef struct wah_word_enum_t {
 static inline
 wah_word_enum_t wah_word_enum_start(const wah_t *map)
 {
-    wah_word_enum_t en = { map, WAH_ENUM_END, -1, 0, 0 };
+    wah_word_enum_t en = { map, WAH_ENUM_END, 0, 0, 0 };
     if (map->len == 0) {
         en.state = WAH_ENUM_END;
         return en;
     }
-    if (map->first_run_head.words > 0) {
+    if (map->data.tab[0].head.words > 0) {
         en.state        = WAH_ENUM_RUN;
-        en.remain_words = map->first_run_head.words;
-        en.current      = 0 - map->first_run_head.bit;
+        en.remain_words = map->data.tab[0].head.words;
+        en.current      = 0 - map->data.tab[0].head.bit;
     } else
-    if (map->first_run_len > 0) {
+    if (map->data.tab[1].count > 0) {
         en.state        = WAH_ENUM_LITERAL;
-        en.pos          = map->first_run_len;
-        en.remain_words = map->first_run_len;
-        en.current      = map->data.tab[0].literal;
+        en.pos          = map->data.tab[1].count + 2;
+        en.remain_words = map->data.tab[1].count;
+        en.current      = map->data.tab[2].literal;
         assert (en.pos <= map->data.len);
         assert ((int)en.remain_words <= en.pos);
     } else {
@@ -163,14 +161,9 @@ bool wah_word_enum_next(wah_word_enum_t *en)
 
       default: /* WAH_ENUM_RUN */
         assert (en->state == WAH_ENUM_RUN);
-        if (en->pos == -1) {
-            en->remain_words = en->map->first_run_len;
-            en->pos          = en->remain_words;
-        } else {
-            en->pos++;
-            en->remain_words = en->map->data.tab[en->pos++].count;
-            en->pos         += en->remain_words;
-        }
+        en->pos++;
+        en->remain_words = en->map->data.tab[en->pos++].count;
+        en->pos         += en->remain_words;
         assert (en->pos <= en->map->data.len);
         assert ((int)en->remain_words <= en->pos);
         en->state = WAH_ENUM_LITERAL;

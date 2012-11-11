@@ -57,23 +57,17 @@ wah_t *t_wah_dup(const wah_t *src)
 }
 
 static ALWAYS_INLINE
-wah_header_t *wah_last_run_header(wah_t *map)
+wah_header_t *wah_last_run_header(const wah_t *map)
 {
-    if (map->last_run_pos < 0) {
-        return &map->first_run_head;
-    } else {
-        return &map->data.tab[map->last_run_pos].head;
-    }
+    assert (map->last_run_pos >= 0);
+    return &map->data.tab[map->last_run_pos].head;
 }
 
 static ALWAYS_INLINE
-uint32_t *wah_last_run_count(wah_t *map)
+uint32_t *wah_last_run_count(const wah_t *map)
 {
-    if (map->last_run_pos < 0) {
-        return &map->first_run_len;
-    } else {
-        return &map->data.tab[map->last_run_pos + 1].count;
-    }
+    assert (map->last_run_pos >= 0);
+    return &map->data.tab[map->last_run_pos + 1].count;
 }
 
 static ALWAYS_INLINE
@@ -95,29 +89,16 @@ void wah_append_literal(wah_t *map, uint32_t val)
 }
 
 static inline
-void wah_check_normalized(wah_t *map)
+void wah_check_normalized(const wah_t *map)
 {
-    uint32_t pos;
+    int pos = 0;
     uint32_t prev_word = 0xcafebabe;
 
-    assert (map->first_run_head.words == 0 || map->first_run_head.words >= 2
-         || map->first_run_len == 0);
-    if (map->first_run_head.words > 0) {
-        prev_word = map->first_run_head.bit ? UINT32_MAX : 0;
-    }
-
-    for (pos = 0; pos < map->first_run_len; pos++) {
-        if (prev_word == UINT32_MAX || prev_word == 0) {
-            assert (prev_word != map->data.tab[pos].literal);
-        }
-        prev_word = map->data.tab[pos].literal;
-    }
-
-    while (pos < (uint32_t)map->data.len) {
+    while (pos < map->data.len) {
         wah_header_t *head  = &map->data.tab[pos++].head;
         uint32_t      count = map->data.tab[pos++].count;
 
-        assert (head->words >= 2 || pos == (uint32_t)map->data.len);
+        assert (head->words >= 2 || pos == map->data.len || pos == 2);
         if (prev_word == UINT32_MAX || prev_word == 0) {
             assert (prev_word != head->bit ? UINT32_MAX : 0);
             prev_word = head->bit ? UINT32_MAX : 0;
@@ -133,13 +114,12 @@ void wah_check_normalized(wah_t *map)
 }
 
 static ALWAYS_INLINE
-void wah_check_invariant(wah_t *map)
+void wah_check_invariant(const wah_t *map)
 {
-    if (map->last_run_pos < 0) {
-        assert ((int)*wah_last_run_count(map) == map->data.len);
-    } else {
-        assert ((int)*wah_last_run_count(map) + map->last_run_pos + 2 == map->data.len);
-    }
+    assert (map->last_run_pos >= 0);
+    assert (map->previous_run_pos >= -1);
+    assert (map->data.len >= 2);
+    assert ((int)*wah_last_run_count(map) + map->last_run_pos + 2 == map->data.len);
     assert (map->len >= map->active);
 #ifdef WAH_CHECK_NORMALIZED
     wah_check_normalized(map);
@@ -157,22 +137,19 @@ void wah_flatten_last_run(wah_t *map)
         return;
     }
     assert (*wah_last_run_count(map) == 0);
+    assert (map->data.len == map->last_run_pos + 2);
 
-    if (map->last_run_pos >= 0) {
-        assert (map->data.len == map->last_run_pos + 2);
+    if (map->last_run_pos > 0) {
         map->data.len -= 2;
+        map->data.tab[map->previous_run_pos + 1].count++;
+        map->last_run_pos     = map->previous_run_pos;
+        map->previous_run_pos = -1;
     } else {
         head->words = 0;
+        map->data.tab[1].count = 1;
     }
-    wah_append_literal(map, head->bit ? UINT32_MAX : 0);
 
-    if (map->previous_run_pos < 0) {
-        map->first_run_len++;
-    } else {
-        map->data.tab[map->previous_run_pos + 1].count++;
-    }
-    map->last_run_pos     = map->previous_run_pos;
-    map->previous_run_pos = -2;
+    wah_append_literal(map, head->bit ? UINT32_MAX : 0);
     wah_check_invariant(map);
 }
 
@@ -599,14 +576,9 @@ void wah_or(wah_t *map, const wah_t *other)
 
 void wah_not(wah_t *map)
 {
-    uint32_t pos;
+    uint32_t pos = 0;
 
     wah_check_invariant(map);
-    map->first_run_head.bit = !map->first_run_head.bit;
-    for (pos = 0; pos < map->first_run_len; pos++) {
-        map->data.tab[pos].literal = ~map->data.tab[pos].literal;
-    }
-
     while (pos < (uint32_t)map->data.len) {
         wah_header_t *head  = &map->data.tab[pos++].head;
         uint32_t      count = map->data.tab[pos++].count;
@@ -636,20 +608,6 @@ bool wah_get(const wah_t *map, uint64_t pos)
         pos %= WAH_BIT_IN_WORD;
         return map->pending & (1 << pos);
     }
-
-    count = map->first_run_head.words * WAH_BIT_IN_WORD;
-    if (pos < count) {
-        return !!map->first_run_head.bit;
-    }
-    pos -= count;
-    count = map->first_run_len * WAH_BIT_IN_WORD;
-    if (pos < count) {
-        i    = pos / WAH_BIT_IN_WORD;
-        pos %= WAH_BIT_IN_WORD;
-        return !!(map->data.tab[i].literal & (1 << pos));
-    }
-    pos -= count;
-    i    = map->first_run_len;
 
     while (i < map->data.len) {
         wah_header_t head  = map->data.tab[i++].head;
@@ -714,8 +672,8 @@ void wah_debug_print_pending(uint64_t pos, const uint32_t pending, int len)
 
 void wah_debug_print(const wah_t *wah, bool print_content)
 {
-    uint64_t pos = wah_debug_print_run(0, wah->first_run_head);
-    uint32_t len = wah->first_run_len;
+    uint64_t pos = 0;
+    uint32_t len = 0;
     int      off = 0;
 
     for (;;) {
@@ -819,21 +777,19 @@ Z_GROUP_EXPORT(wah)
 
         Z_ASSERT_EQ(map.active, bc, "invalid bit count");
         for (int i = 0; i < countof(data); i++) {
-#define CHECK_BIT(p)  (!!(data[i] & (1 << p)) == !!wah_get(&map, i * 8 + p))
             for (int j = 0; j < 8; j++) {
-                Z_ASSERT(CHECK_BIT(j), "invalid byte %d", i);
+                Z_ASSERT_EQ(!!(data[i] & (1 << j)), !!wah_get(&map, i * 8 + j),
+                            "invalid byte %d, bit %d", i, j);
             }
-#undef CHECK_BIT
         }
 
         wah_not(&map);
         Z_ASSERT_EQ(map.active, bitsizeof(data) - bc, "invalid bit count");
         for (int i = 0; i < countof(data); i++) {
-#define CHECK_BIT(p)  (!!(data[i] & (1 << p)) != !!wah_get(&map, i * 8 + p))
             for (int j = 0; j < 8; j++) {
-                Z_ASSERT(CHECK_BIT(j), "invalid byte %d", i);
+                Z_ASSERT_EQ(!(data[i] & (1 << j)), !!wah_get(&map, i * 8 + j),
+                            "invalid byte %d, bit %d", i, j);
             }
-#undef CHECK_BIT
         }
 
         wah_wipe(&map);
@@ -950,11 +906,10 @@ Z_GROUP_EXPORT(wah)
             } else {
                 b = 0;
             }
-#define CHECK_BIT(p)  (!!(b & (1 << p)) == !!wah_get(&map1, i * 8 + p))
             for (int j = 0; j < 8; j++) {
-                Z_ASSERT(CHECK_BIT(j), "invalid byte %d", i);
+                Z_ASSERT_EQ(!!(b & (1 << j)), !!wah_get(&map1, i * 8 + j),
+                            "invalid byte %d, bit %d", i, j);
             }
-#undef CHECK_BIT
         }
 
         wah_reset_map(&map1);
@@ -965,11 +920,10 @@ Z_GROUP_EXPORT(wah)
             if (i < countof(data2)) {
                 b |= data2[i];
             }
-#define CHECK_BIT(p)  (!!(b & (1 << p)) == !!wah_get(&map1, i * 8 + p))
             for (int j = 0; j < 8; j++) {
-                Z_ASSERT(CHECK_BIT(j), "invalid byte %d", i);
+                Z_ASSERT_EQ(!!(b & (1 << j)), !!wah_get(&map1, i * 8 + j),
+                            "invalid byte %d, bit %d", i, j);
             }
-#undef CHECK_BIT
         }
 
         wah_wipe(&map1);
@@ -992,11 +946,10 @@ Z_GROUP_EXPORT(wah)
         wah_add(&map, data, bitsizeof(data));
 
         for (int i = 0; i < countof(data); i++) {
-#define CHECK_BIT(p)  (!!(data[i] & (1 << p)) == !!wah_get(&map, i * 8 + p))
             for (int j = 0; j < 8; j++) {
-                Z_ASSERT(CHECK_BIT(j), "invalid byte %d", i);
+                Z_ASSERT_EQ(!!(data[i] & (1 << j)), !!wah_get(&map, i * 8 + j),
+                            "invalid byte %d, bit %d", i, j);
             }
-#undef CHECK_BIT
         }
         wah_wipe(&map);
     } Z_TEST_END;
