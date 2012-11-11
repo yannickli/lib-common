@@ -640,6 +640,58 @@ bool wah_get(const wah_t *map, uint64_t pos)
     e_panic("this should not happen");
 }
 
+/* Open existing WAH {{{ */
+
+wah_t *wah_init_from_data(wah_t *map, const uint32_t *data, int data_len,
+                          bool scan)
+{
+    int pos = 0;
+
+    p_clear(map, 1);
+    __qv_init(wah_word, &map->data, (wah_word_t *)data,
+              data_len, data_len, MEM_STATIC);
+    map->previous_run_pos = -1;
+    map->last_run_pos = -1;
+
+    RETURN_NULL_IF(data_len < 2);
+    if (!scan) {
+        return map;
+    }
+
+    while (pos < map->data.len - 1) {
+        wah_header_t head  = map->data.tab[pos++].head;
+        uint32_t     words = map->data.tab[pos++].count;
+
+        RETURN_NULL_IF(words > (uint32_t)map->data.len
+                    || (uint32_t)pos > map->data.len - words);
+        if (head.bit) {
+            map->active += WAH_BIT_IN_WORD * head.words;
+        }
+        if (words) {
+            map->active += membitcount(map->data.tab + pos,
+                                       words * sizeof(wah_word_t));
+        }
+        map->len += WAH_BIT_IN_WORD * (head.words + words);
+        pos += words;
+    }
+    RETURN_NULL_IF(pos != map->data.len);
+
+    return map;
+}
+
+wah_t *wah_new_from_data(const uint32_t *data, int data_len, bool scan)
+{
+    wah_t *map = p_new_raw(wah_t, 1);
+    wah_t *ret;
+
+    ret = wah_init_from_data(map, data, data_len, scan);
+    if (!ret) {
+        wah_delete(&map);
+    }
+    return ret;
+}
+
+/* }}} */
 /* Printer {{{ */
 
 static
@@ -712,7 +764,7 @@ void wah_debug_print(const wah_t *wah, bool print_content)
 
 Z_GROUP_EXPORT(wah)
 {
-    wah_t map;
+    wah_t map, map1, map2;
 
     Z_TEST(simple, "") {
         wah_init(&map);
@@ -784,13 +836,24 @@ Z_GROUP_EXPORT(wah)
         wah_add(&map, data, bitsizeof(data));
         bc = membitcount(data, sizeof(data));
 
+        Z_ASSERT_EQ(map.len, bitsizeof(data));
+
+        Z_ASSERT_P(wah_init_from_data(&map2, (uint32_t *)map.data.tab,
+                                      map.data.len, true));
+        Z_ASSERT_EQ(map.len, map2.len);
+
         Z_ASSERT_EQ(map.active, bc, "invalid bit count");
+        Z_ASSERT_EQ(map2.active, bc, "invalid bit count");
         for (int i = 0; i < countof(data); i++) {
             for (int j = 0; j < 8; j++) {
                 Z_ASSERT_EQ(!!(data[i] & (1 << j)), !!wah_get(&map, i * 8 + j),
                             "invalid byte %d, bit %d", i, j);
+                Z_ASSERT_EQ(!!(data[i] & (1 << j)), !!wah_get(&map2, i * 8 + j),
+                            "invalid byte %d, bit %d", i, j);
             }
         }
+
+        wah_wipe(&map2);
 
         wah_not(&map);
         Z_ASSERT_EQ(map.active, bitsizeof(data) - bc, "invalid bit count");
@@ -900,8 +963,6 @@ Z_GROUP_EXPORT(wah)
          * 280, 285                                                        (288)
          */
 
-        wah_t map1;
-        wah_t map2;
         wah_init(&map1);
         wah_init(&map2);
 

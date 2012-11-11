@@ -71,6 +71,15 @@ wah_t *t_wah_new(int expected_size) __leaf;
 wah_t *t_wah_dup(const wah_t *src) __leaf;
 void wah_copy(wah_t *map, const wah_t *src) __leaf;
 
+/* Create a wah structure from existing wah-encoded bitmap
+ *
+ * This generates read-only wah_t structures.
+ */
+wah_t *wah_init_from_data(wah_t *wah, const uint32_t *data,
+                          int data_len, bool scan);
+wah_t *wah_new_from_data(const uint32_t *data, int data_len, bool scan);
+
+
 void wah_add0s(wah_t *map, uint64_t count) __leaf;
 void wah_add1s(wah_t *map, uint64_t count) __leaf;
 void wah_add(wah_t *map, const void *data, uint64_t count) __leaf;
