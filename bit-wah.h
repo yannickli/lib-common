@@ -74,6 +74,7 @@ void wah_copy(wah_t *map, const wah_t *src) __leaf;
 void wah_add0s(wah_t *map, uint64_t count) __leaf;
 void wah_add1s(wah_t *map, uint64_t count) __leaf;
 void wah_add(wah_t *map, const void *data, uint64_t count) __leaf;
+void wah_pad32(wah_t *map) __leaf;
 
 void wah_and(wah_t *map, const wah_t *other) __leaf;
 void wah_or(wah_t *map, const wah_t *other) __leaf;

@@ -209,6 +209,15 @@ void wah_add0s(wah_t *map, uint64_t count)
     wah_check_invariant(map);
 }
 
+void wah_pad32(wah_t *map)
+{
+    uint32_t padding = WAH_BIT_IN_WORD - (map->len % WAH_BIT_IN_WORD);
+
+    if (padding) {
+        wah_add0s(map, padding);
+    }
+}
+
 void wah_add1s(wah_t *map, uint64_t count)
 {
     uint64_t remain = map->len % WAH_BIT_IN_WORD;
