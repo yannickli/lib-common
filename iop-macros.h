@@ -115,6 +115,21 @@
        typeof(u) _tmp = (typeof(u))_tmp0;                                \
        (_tmp->iop_tag == IOP_UNION_TAG(pfx, field)) ? &_tmp->field : NULL; })
 
+/** Select an union field.
+ *
+ * \param[in]    pfx   The union prefix (pkg__name).
+ * \param[inout] u     The union object.
+ * \param[in]    field The union field to select.
+ *
+ * \return
+ *   A pointer on the selected field.
+ */
+#define IOP_UNION_SET(pfx, u, field) \
+    ({ pfx##__t *_tmp = u;                                               \
+       _tmp->iop_tag = IOP_UNION_TAG(pfx, field);                        \
+       &_tmp->field;                                                     \
+    })
+
 /** Extract a value from a union by copying it.
  *
  * \param[out] dst   The variable to put the field value into.
