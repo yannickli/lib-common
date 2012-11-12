@@ -68,8 +68,7 @@ bool cls_inherits(const void *cls, const void *vptr)
 #define cls_call(pfx, o, f, ...) \
     (pfx##_class()->f(obj_vcast(pfx, o), ##__VA_ARGS__))
 
-#define OBJ_CLASS(pfx, superclass, fields, methods) \
-    typedef struct pfx##_t pfx##_t;                                          \
+#define OBJ_CLASS_NO_TYPEDEF(pfx, superclass, fields, methods)               \
     typedef struct pfx##_class_t pfx##_class_t;                              \
                                                                              \
     struct pfx##_t {                                                         \
@@ -88,6 +87,10 @@ bool cls_inherits(const void *cls, const void *vptr)
     static inline const superclass##_class_t *pfx##_super(void) {            \
         return superclass##_class();                                         \
     }
+
+#define OBJ_CLASS(pfx, superclass, fields, methods)                          \
+    typedef struct pfx##_t pfx##_t;                                          \
+    OBJ_CLASS_NO_TYPEDEF(pfx, superclass, fields, methods)
 
 #define OBJ_VTABLE(pfx) \
     const pfx##_class_t *pfx##_class(void) {                                 \
