@@ -54,6 +54,7 @@ struct z_export *z_exports_g;
 static struct {
     bool          stopping;
     bool          do_fork;
+    bool          abort_on_fail;
     int           res;
     lstr_t        arg0;
     char         *wd;
@@ -214,6 +215,8 @@ void z_todo_end(void)
 /* }}} */
 /* assertions {{{ */
 
+static void do_fail_comment(void);
+
 #define _z_add_extra(sb, fmt) \
     ({                                 \
         if (*fmt) {                    \
@@ -262,6 +265,9 @@ bool _z_assert_cmp(const char *file, int lno, const char *op, bool res,
         sb_addf(&sb, " %*lld / %#0*llx (%s)\n", nd, rh, 2 + nx, rh, rhs);
         _z_add_extra(sb, fmt);
         lstr_detach_sb(&_G.grp.t_fail_reason, &sb);
+        if (_G.abort_on_fail) {
+            do_fail_comment();
+        }
     }
     return !res;
 }
@@ -299,6 +305,9 @@ bool _z_assert_lstrequal(const char *file, int lno,
         sb_adds(&sb, "\n");
         _z_add_extra(sb, fmt);
         lstr_detach_sb(&_G.grp.t_fail_reason, &sb);
+        if (_G.abort_on_fail) {
+            do_fail_comment();
+        }
         return true;
     }
     return false;
@@ -315,6 +324,9 @@ bool _z_assert(const char *file, int lno, const char *expr,
         sb_addf(&sb, "%s:%d: assertion failed: %s\n", file, lno, expr);
         _z_add_extra(sb, fmt);
         lstr_detach_sb(&_G.grp.t_fail_reason, &sb);
+        if (_G.abort_on_fail) {
+            do_fail_comment();
+        }
     }
     return !res;
 }
@@ -371,6 +383,9 @@ static void do_fail_comment(void)
            LSTR_FMT_ARG(_G.grp.name), LSTR_FMT_ARG(_G.grp.t_name)));
     do_comment(LSTR_IMMED_V("\n"));
     do_comment(_G.grp.t_fail_reason);
+    if (_G.abort_on_fail) {
+        abort();
+    }
 }
 
 static void do_skip(void)
@@ -729,6 +744,10 @@ int z_setup(int argc, const char **argv)
             } else {
                 e_warning("ignoring unsupported mode: %*pM", LSTR_FMT_ARG(arg));
             }
+            continue;
+        } else
+        if (strequal("--z-abort", argv[i])) {
+            _G.abort_on_fail = true;
             continue;
         }
 
