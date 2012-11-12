@@ -91,6 +91,15 @@ typedef struct {
     };
 } test_choice_t;
 
+typedef struct {
+    uint16_t iop_tag;
+    union {
+        uint8_t  u8;
+        int16_t  i16;
+        uint16_t u16;
+    };
+} test_iop_choice_t;
+
 ASN1_DEF_VECTOR(test_choice, const test_choice_t);
 ASN1_DEF_ARRAY(test_choice, const test_choice_t);
 
@@ -180,6 +189,12 @@ static ASN1_CHOICE_DESC_BEGIN(desc, test_choice, choice_type, type);
     asn1_reg_scalar(desc, test_choice, choice2, 0x34);
     asn1_reg_scalar(desc, test_choice, choice3, 0x45);
     asn1_reg_sequence(desc, test_choice, test_rdr_rec1, rec1, 0xec);
+ASN1_CHOICE_DESC_END(desc);
+
+static __ASN1_IOP_CHOICE_DESC_BEGIN(desc, test_iop_choice);
+    asn1_reg_scalar(desc, test_iop_choice, u8,  0x80);
+    asn1_reg_scalar(desc, test_iop_choice, i16, 0x81);
+    asn1_reg_scalar(desc, test_iop_choice, u16, 0x82);
 ASN1_CHOICE_DESC_END(desc);
 
 static ASN1_DESC_BEGIN(desc, test_u_choice);
@@ -614,6 +629,22 @@ Z_GROUP_EXPORT(asn1_ber)
         Z_ASSERT_EQ(u_choice.i, u_choice_out.i);
         Z_ASSERT_EQ(u_choice.choice->type, u_choice_out.choice->type);
         Z_ASSERT_EQ(u_choice.choice->choice2, u_choice_out.choice->choice2);
+    } Z_TEST_END;
+
+    Z_TEST(iop_choice, "asn1: IOP union/ASN.1 choice interoperability") {
+        lstr_t ber = LSTR_IMMED("\x81\x01\x45");
+        test_iop_choice_t choice;
+        int    blen;
+
+        ps = ps_initlstr(&ber);
+        Z_ASSERT_N(asn1_unpack(test_iop_choice, &ps, NULL, &choice, false) < 0);
+        Z_ASSERT_EQ(choice.iop_tag, 2);
+        Z_ASSERT_EQ(choice.i16,     0x45);
+
+        blen = asn1_pack_size(test_iop_choice, &choice, &stack);
+        Z_ASSERT_EQ(blen, ber.len);
+        asn1_pack(test_iop_choice, buf, &choice, &stack);
+        Z_ASSERT_LSTREQUAL(ber, LSTR_INIT_V((const char *)buf, blen));
     } Z_TEST_END;
 
     Z_TEST(vector_array, "asn1: BER vectors/array") {

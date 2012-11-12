@@ -98,7 +98,7 @@
         return desc;                                                         \
     }
 
-#define ASN1_CHOICE_DESC_BEGIN(desc, pfx, enum_pfx, enum_field) \
+#define __ASN1_CHOICE_DESC_BEGIN(desc, pfx) \
     __attribute__((pure))                                                    \
     ASN1_DESC(pfx)                                                           \
     {                                                                        \
@@ -106,9 +106,19 @@
                                                                              \
         if (unlikely(!desc)) {                                               \
             desc = &p_new(asn1_choice_desc_t, 1)->desc;                      \
-            desc->type = ASN1_CSTD_TYPE_CHOICE;                              \
+            desc->type = ASN1_CSTD_TYPE_CHOICE
+
+#define ASN1_CHOICE_DESC_BEGIN(desc, pfx, enum_pfx, enum_field) \
+    __ASN1_CHOICE_DESC_BEGIN(desc, pfx);                                     \
             asn1_reg_enum(desc, pfx, enum_pfx, enum_field,                   \
                           ASN1_TAG_INVALID)
+
+/* XXX Choices delared using this macro must have incremental tagging
+ *     starting with value 1
+ */
+#define __ASN1_IOP_CHOICE_DESC_BEGIN(desc, pfx) \
+    __ASN1_CHOICE_DESC_BEGIN(desc, pfx);                                     \
+            asn1_reg_scalar(desc, pfx, iop_tag, ASN1_TAG_INVALID)
 
 #define ASN1_CHOICE_DESC_END(desc) \
             assert (desc->type == ASN1_CSTD_TYPE_CHOICE);                    \

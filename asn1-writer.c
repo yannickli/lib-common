@@ -438,20 +438,47 @@ static int asn1_pack_sequence_size(const void *st,
     return len;
 }
 
+static int __asn1_get_int(const void *st, const asn1_field_t *desc)
+{
+    switch (desc->type) {
+#define CASE(type)                             \
+      case ASN1_OBJ_TYPE(type):                \
+        return *GET_DATA_P(st, desc, type)
+
+      CASE(int8_t);
+      CASE(uint8_t);
+      CASE(int16_t);
+      CASE(uint16_t);
+      case ASN1_OBJ_TYPE(enum):
+        /* FALLTHROUGH */
+      CASE(int32_t);
+      CASE(uint32_t);
+      CASE(int64_t);
+      CASE(uint64_t);
+
+#undef CASE
+
+      default:
+        e_assert(panic, false, "get_int: unexpected field type: %d",
+                 desc->type);
+    }
+
+    return 0;
+}
+
 static int asn1_pack_choice_size(const void *st, const asn1_desc_t *desc,
                                  qv_t(i32) *stack)
 {   /* Could be way shorter but far more reader friendly this way */
     int len = 0;
     const asn1_field_t *choice_spec;
-    const asn1_field_t *enum_spec;
+    const asn1_field_t *selector_spec;
     int choice;
 
     assert (desc->vec.len > 1);
 
-    enum_spec = &desc->vec.tab[0];
-    assert (enum_spec->type == ASN1_OBJ_TYPE(enum));
+    selector_spec = &desc->vec.tab[0];
 
-    choice = *GET_DATA_P(st, enum_spec, int);
+    choice = __asn1_get_int(st, selector_spec);
     choice_spec = &desc->vec.tab[choice];
 
     RETHROW(asn1_pack_field_size(st, choice_spec, stack, &len));
@@ -641,15 +668,14 @@ static uint8_t *asn1_pack_choice(uint8_t *dst, const void *st,
                                  qv_t(i32) *stack)
 {   /* Could be way shorter but far more reader friendly this way */
     const asn1_field_t *choice_spec;
-    const asn1_field_t *enum_spec;
+    const asn1_field_t *selector_spec;
     int choice;
 
     assert (desc->vec.len > 1);
 
-    enum_spec = &desc->vec.tab[0];
-    assert (enum_spec->type == ASN1_OBJ_TYPE(enum));
+    selector_spec = &desc->vec.tab[0];
 
-    choice = *GET_DATA_P(st, enum_spec, int);
+    choice = __asn1_get_int(st, selector_spec);
     choice_spec = &desc->vec.tab[choice];
 
     e_trace_desc(1, "serializing", desc, choice, depth);
@@ -822,6 +848,33 @@ void *asn1_opt_field_w(void *field, enum obj_type type, bool has_field)
         return NULL;
       default:
         e_panic("unexpected type");
+    }
+}
+
+static void __asn1_set_int(void *st, const asn1_field_t *desc, int v)
+{
+    switch (desc->type) {
+#define CASE(type)                             \
+      case ASN1_OBJ_TYPE(type):                \
+        *GET_PTR(st, desc, type) = v;          \
+        break;
+
+      CASE(int8_t);
+      CASE(uint8_t);
+      CASE(int16_t);
+      CASE(uint16_t);
+      case ASN1_OBJ_TYPE(enum):
+        /* FALLTHROUGH */
+      CASE(int32_t);
+      CASE(uint32_t);
+      CASE(int64_t);
+      CASE(uint64_t);
+
+#undef CASE
+
+      default:
+        e_assert(panic, false, "set_int: unexpected field type: %d",
+                 desc->type);
     }
 }
 
@@ -1154,7 +1207,7 @@ static int asn1_unpack_choice(pstream_t *ps, const asn1_desc_t *_desc,
     const asn1_choice_desc_t *desc =
         container_of(_desc, asn1_choice_desc_t, desc);
     const asn1_field_t *spec;
-    const asn1_field_t *enum_spec = &desc->desc.vec.tab[0];
+    const asn1_field_t *selector_spec = &desc->desc.vec.tab[0];
     int choice;
     uint8_t tag;
 
@@ -1164,7 +1217,6 @@ static int asn1_unpack_choice(pstream_t *ps, const asn1_desc_t *_desc,
     }
 
     tag = *ps->b;
-    assert (enum_spec->type == ASN1_OBJ_TYPE(enum));
 
     if (!(choice = asn1_find_choice(desc, tag))) {
         e_trace(1, "no choice element: tag mismatch");
@@ -1172,7 +1224,7 @@ static int asn1_unpack_choice(pstream_t *ps, const asn1_desc_t *_desc,
     }
 
     spec = &desc->desc.vec.tab[choice];
-    *GET_PTR(st, enum_spec, int) = choice; /* Write enum value */
+    __asn1_set_int(st, selector_spec, choice);
     e_trace_desc(1, "unpacking", &desc->desc, choice, depth);
     RETHROW(asn1_unpack_field(ps, spec, mem_pool, depth, st, copy,
                               indef_len));
@@ -1190,7 +1242,7 @@ asn1_unpack_u_choice_val(pstream_t *ps, const asn1_field_t *choice_spec,
     const asn1_choice_desc_t *choice_desc =
         container_of(choice_spec->u.comp, asn1_choice_desc_t, desc);
     const qv_t(asn1_field) *vec = &choice_desc->desc.vec;
-    const asn1_field_t *enum_spec = &vec->tab[0];
+    const asn1_field_t *selector_spec = &vec->tab[0];
 
     if (ps_done(ps)
     ||  !(choice = asn1_find_choice(choice_desc, *ps->b)))
@@ -1209,7 +1261,7 @@ asn1_unpack_u_choice_val(pstream_t *ps, const asn1_field_t *choice_spec,
         void  *choice_st;
 
         choice_st = asn1_alloc_if_pointed(choice_spec, mem_pool, st);
-        *GET_PTR(choice_st, enum_spec, int) = choice;
+        __asn1_set_int(choice_st, selector_spec, choice);
 
         e_trace_desc(1, "unpacking", &choice_desc->desc, choice, depth + 1);
 
