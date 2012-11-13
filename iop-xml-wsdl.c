@@ -59,6 +59,134 @@ typedef struct wsdlpp_t {
         }                                                                   \
     })
 
+static void iop_xwsdl_put_attr_value(wsdlpp_t *wpp, iop_type_t type,
+                                     const iop_field_attr_t *attr)
+{
+    switch (type) {
+      case IOP_T_I8: case IOP_T_I16: case IOP_T_I32: case IOP_T_I64:
+        xmlpp_putattrfmt(&wpp->pp, "value", "%jd", attr->args[0].v.i64);
+        break;
+
+      case IOP_T_U8: case IOP_T_U16: case IOP_T_U32: case IOP_T_U64:
+        xmlpp_putattrfmt(&wpp->pp, "value", "%ju",
+                         (uint64_t)attr->args[0].v.i64);
+        break;
+
+      case IOP_T_DOUBLE:
+        xmlpp_putattrfmt(&wpp->pp, "value", "%.17e", attr->args[0].v.d);
+        break;
+
+      default:
+        e_panic("should not happen");
+    }
+}
+
+static void put_type_constraints(wsdlpp_t *wpp, iop_type_t type,
+                                 const iop_field_attrs_t *attrs)
+{
+    for (int i = 0; i < attrs->attrs_len; i++) {
+        const iop_field_attr_t *attr = &attrs->attrs[i];
+
+        switch (attr->type) {
+          case IOP_FIELD_MIN:
+            xmlpp_opentag(&wpp->pp, "minInclusive");
+            iop_xwsdl_put_attr_value(wpp, type, attr);
+            break;
+
+          case IOP_FIELD_MAX:
+            xmlpp_opentag(&wpp->pp, "maxInclusive");
+            iop_xwsdl_put_attr_value(wpp, type, attr);
+            break;
+
+          case IOP_FIELD_NON_EMPTY:
+            xmlpp_opentag(&wpp->pp, "minLength");
+            xmlpp_putattr(&wpp->pp, "value", "1");
+            break;
+
+          case IOP_FIELD_MIN_LENGTH:
+            xmlpp_opentag(&wpp->pp, "minLength");
+            xmlpp_putattrfmt(&wpp->pp, "value", "%jd",
+                             attr->args[0].v.i64);
+            break;
+
+          case IOP_FIELD_MAX_LENGTH:
+            xmlpp_opentag(&wpp->pp, "maxLength");
+            xmlpp_putattrfmt(&wpp->pp, "value", "%jd",
+                             attr->args[0].v.i64);
+            break;
+
+          case IOP_FIELD_PATTERN:
+            xmlpp_opentag(&wpp->pp, "pattern");
+            xmlpp_putattrfmt(&wpp->pp, "value", "(%*pM)*",
+                             LSTR_FMT_ARG(attr->args[0].v.s));
+            break;
+
+          default:
+            continue;
+        }
+        xmlpp_closetag(&wpp->pp);
+
+        /* TODO non-zero isn't yet supported in WSDL */
+    }
+}
+
+static void put_int_type(wsdlpp_t *wpp, iop_type_t type, const char *name,
+                         const iop_field_attrs_t *attrs)
+{
+    static char const * const xs_types[] = {
+        [IOP_T_I8]   = "byte",
+        [IOP_T_U8]   = "unsignedByte",
+        [IOP_T_I16]  = "short",
+        [IOP_T_U16]  = "unsignedShort",
+        [IOP_T_I32]  = "int",
+        [IOP_T_ENUM] = "int",
+        [IOP_T_U32]  = "unsignedInt",
+        [IOP_T_I64]  = "long",
+        [IOP_T_U64]  = "unsignedLong",
+    };
+
+#define mk_pattern(sz)  "0x0*[0-9a-fA-F]{1,"#sz"}"
+    static char const * const hex_patterns[] = {
+        [IOP_T_I8]   = mk_pattern(2),
+        [IOP_T_U8]   = mk_pattern(2),
+        [IOP_T_I16]  = mk_pattern(4),
+        [IOP_T_U16]  = mk_pattern(4),
+        [IOP_T_I32]  = mk_pattern(8),
+        [IOP_T_ENUM] = mk_pattern(8),
+        [IOP_T_U32]  = mk_pattern(8),
+        [IOP_T_I64]  = mk_pattern(16),
+        [IOP_T_U64]  = mk_pattern(16),
+    };
+#undef mk_pattern
+
+    xmlpp_t *pp = &wpp->pp;
+
+    xmlpp_opentag(pp, "simpleType");
+    if (name) {
+        xmlpp_putattr(pp, "name", name);
+    }
+    xmlpp_opentag(pp, "union");
+    xmlpp_opentag(pp, "simpleType");
+    xmlpp_opentag(pp, "restriction");
+    xmlpp_putattr(pp, "base", xs_types[type]);
+
+    if (attrs) {
+        /* If given, constraints are applied only on the “integer” part of the
+         * type, not on the hexadecimal pattern. */
+        put_type_constraints(wpp, type, attrs);
+    }
+
+    xmlpp_closentag(pp, 2);
+    xmlpp_opentag(pp, "simpleType");
+    xmlpp_opentag(pp, "restriction");
+    xmlpp_putattr(pp, "base", "string");
+    xmlpp_opentag(pp, "pattern");
+    xmlpp_putattr(pp, "value", hex_patterns[type]);
+    /* TODO support constraints on hexadecimal pattern */
+
+    xmlpp_closentag(pp, 5);
+}
+
 static void iop_xwsdl_put_enum(wsdlpp_t *wpp, const iop_enum_t *e)
 {
     xmlpp_opentag(&wpp->pp, "simpleType");
@@ -116,28 +244,6 @@ static void iop_xwsdl_put_occurs(wsdlpp_t *wpp, const iop_struct_t *st,
     }
 }
 
-static void iop_xwsdl_put_attr_value(wsdlpp_t *wpp, const iop_field_t *f,
-                                     const iop_field_attr_t *attr)
-{
-    switch (f->type) {
-      case IOP_T_I8: case IOP_T_I16: case IOP_T_I32: case IOP_T_I64:
-        xmlpp_putattrfmt(&wpp->pp, "value", "%jd", attr->args[0].v.i64);
-        break;
-
-      case IOP_T_U8: case IOP_T_U16: case IOP_T_U32: case IOP_T_U64:
-        xmlpp_putattrfmt(&wpp->pp, "value", "%ju",
-                         (uint64_t)attr->args[0].v.i64);
-        break;
-
-      case IOP_T_DOUBLE:
-        xmlpp_putattrfmt(&wpp->pp, "value", "%.17e", attr->args[0].v.d);
-        break;
-
-      default:
-        e_panic("should not happen");
-    }
-}
-
 static void iop_xwsdl_put_constraints(wsdlpp_t *wpp, const iop_struct_t *st,
                                       const iop_field_t *f)
 {
@@ -168,58 +274,36 @@ static void iop_xwsdl_put_constraints(wsdlpp_t *wpp, const iop_struct_t *st,
     SET_BIT(&restriction_flags, IOP_FIELD_PATTERN);
 
     if (!attrs || !(attrs->flags & restriction_flags)) {
+        /* No specific restrictions, so we just use the generic types */
         xmlpp_putattr(&wpp->pp, "type", types[f->type]);
         return;
     } else {
-        xmlpp_opentag(&wpp->pp, "simpleType");
-        xmlpp_opentag(&wpp->pp, "restriction");
-        xmlpp_putattr(&wpp->pp, "base", types[f->type]);
+        /* When we have have constraints, we need to dump a custom type */
+        switch (f->type) {
+          case IOP_T_I8:  case IOP_T_U8:
+          case IOP_T_I16: case IOP_T_U16:
+          case IOP_T_I32: case IOP_T_U32:
+          case IOP_T_ENUM:
+          case IOP_T_I64: case IOP_T_U64:
+            /* Integer values are handled separately */
+            put_int_type(wpp, f->type, NULL, attrs);
+            return;
 
-        for (int i = 0; i < attrs->attrs_len; i++) {
-            const iop_field_attr_t *attr = &attrs->attrs[i];
+          case IOP_T_DOUBLE:
+          case IOP_T_STRING:
+          case IOP_T_DATA:
+            xmlpp_opentag(&wpp->pp, "simpleType");
+            xmlpp_opentag(&wpp->pp, "restriction");
+            xmlpp_putattr(&wpp->pp, "base", types[f->type]);
 
-            switch (attr->type) {
-              case IOP_FIELD_MIN:
-                xmlpp_opentag(&wpp->pp, "minInclusive");
-                iop_xwsdl_put_attr_value(wpp, f, attr);
-                break;
+            put_type_constraints(wpp, f->type, attrs);
 
-              case IOP_FIELD_MAX:
-                xmlpp_opentag(&wpp->pp, "maxInclusive");
-                iop_xwsdl_put_attr_value(wpp, f, attr);
-                break;
+            xmlpp_closentag(&wpp->pp, 2);
+            break;
 
-              case IOP_FIELD_NON_EMPTY:
-                xmlpp_opentag(&wpp->pp, "minLength");
-                xmlpp_putattr(&wpp->pp, "value", "1");
-                break;
-
-              case IOP_FIELD_MIN_LENGTH:
-                xmlpp_opentag(&wpp->pp, "minLength");
-                xmlpp_putattrfmt(&wpp->pp, "value", "%jd",
-                                 attr->args[0].v.i64);
-                break;
-
-              case IOP_FIELD_MAX_LENGTH:
-                xmlpp_opentag(&wpp->pp, "maxLength");
-                xmlpp_putattrfmt(&wpp->pp, "value", "%jd",
-                                 attr->args[0].v.i64);
-                break;
-
-              case IOP_FIELD_PATTERN:
-                xmlpp_opentag(&wpp->pp, "pattern");
-                xmlpp_putattrfmt(&wpp->pp, "value", "(%*pM)*",
-                                 LSTR_FMT_ARG(attr->args[0].v.s));
-                break;
-
-              default:
-                continue;
-            }
-            xmlpp_closetag(&wpp->pp);
-
-            /* TODO non-zero isn't yet supported in WSDL */
+          default:
+            e_panic("unsupported type with constraints: %d", f->type);
         }
-        xmlpp_closentag(&wpp->pp, 2);
     }
 
 #undef ATTR_TOUCH_TYPES
@@ -380,34 +464,15 @@ iop_xwsdl_put_types(wsdlpp_t *wpp, const iop_mod_t *mod, const char *ns)
     xmlpp_putattr(&wpp->pp, "targetNamespace", ns);
     xmlpp_putattr(&wpp->pp, "xmlns", "http://www.w3.org/2001/XMLSchema");
 
-    /* Dump the Intersec special types */
-#define dump_int_type(base, pattern) \
-    do {                                                                \
-        xmlpp_opentag(&wpp->pp, "simpleType");                          \
-        xmlpp_putattr(&wpp->pp, "name", "intersec."base);               \
-        xmlpp_opentag(&wpp->pp, "union");                               \
-        xmlpp_opentag(&wpp->pp, "simpleType");                          \
-        xmlpp_opentag(&wpp->pp, "restriction");                         \
-        xmlpp_putattr(&wpp->pp, "base", base);                          \
-        xmlpp_closentag(&wpp->pp, 2);                                   \
-        xmlpp_opentag(&wpp->pp, "simpleType");                          \
-        xmlpp_opentag(&wpp->pp, "restriction");                         \
-        xmlpp_putattr(&wpp->pp, "base", "string");                      \
-        xmlpp_opentag(&wpp->pp, "pattern");                             \
-        xmlpp_putattr(&wpp->pp, "value", pattern);                      \
-        xmlpp_closentag(&wpp->pp, 5);                                   \
-    } while (0)
-
-    dump_int_type("byte",           "0x\\d{1,2}");
-    dump_int_type("unsignedByte",   "0x\\d{1,2}");
-    dump_int_type("short",          "0x\\d{1,4}");
-    dump_int_type("unsignedShort",  "0x\\d{1,4}");
-    dump_int_type("int",            "0x\\d{1,8}");
-    dump_int_type("unsignedInt",    "0x\\d{1,8}");
-    dump_int_type("long",           "0x\\d{1,16}");
-    dump_int_type("unsignedLong",   "0x\\d{1,16}");
-
-#undef dump_int_type
+    /* Dump the generic Intersec integer types */
+    put_int_type(wpp, IOP_T_I8,  "intersec.byte",          NULL);
+    put_int_type(wpp, IOP_T_U8,  "intersec.unsignedByte",  NULL);
+    put_int_type(wpp, IOP_T_I16, "intersec.short",         NULL);
+    put_int_type(wpp, IOP_T_U16, "intersec.unsignedShort", NULL);
+    put_int_type(wpp, IOP_T_I32, "intersec.int",           NULL);
+    put_int_type(wpp, IOP_T_U32, "intersec.unsignedInt",   NULL);
+    put_int_type(wpp, IOP_T_I64, "intersec.long",          NULL);
+    put_int_type(wpp, IOP_T_U64, "intersec.unsignedLong",  NULL);
 
     /* Dump the authentification header type */
     if (wpp->wauth) {
