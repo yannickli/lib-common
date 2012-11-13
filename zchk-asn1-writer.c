@@ -32,8 +32,8 @@ typedef struct {
 } test_0_t;
 
 typedef struct {
-    asn1_data_t        opt;
-    asn1_string_t      string;
+    lstr_t             opt;
+    lstr_t             string;
     asn1_bit_string_t  bs;
 } test_1_t;
 
@@ -66,7 +66,7 @@ typedef struct {
 typedef struct {
     int32_t i1;
     int32_t i2;
-    asn1_string_t str;
+    lstr_t str;
     asn1_opt_int32_t oi3;
     asn1_bit_string_t bstr;
     test_rdr_rec2_t vec;
@@ -348,8 +348,8 @@ Z_GROUP_EXPORT(asn1_ber)
 
     static uint8_t const bs_content[] = { 0xF };
     static test_1_t const t1 = {
-        .opt = { NULL, 42 },
-        .string = { "string", sizeof("string") - 1 },
+        .opt = LSTR_NULL,
+        .string = LSTR_IMMED("string"),
         .bs = { bs_content, 4 },
     };
 
@@ -470,7 +470,7 @@ Z_GROUP_EXPORT(asn1_ber)
         test_reader_t exp_rdr_out = {
             .i1 = 1234,
             .i2 = 56,
-            .str = ASN1_STRSTRING("test"),
+            .str = LSTR_IMMED("test"),
             .bstr = ASN1_BIT_STRING(rdr_bstring, 13),
             .oi3 = ASN1_OPT_SET(int32, -0xabcd),
             .oi4 = ASN1_OPT_CLEAR(int32),
@@ -495,8 +495,8 @@ Z_GROUP_EXPORT(asn1_ber)
         Z_ASSERT_N(asn1_unpack(test_reader, &ps, t_pool(), &rdr_out, false));
         Z_ASSERT_EQ(rdr_out.i1, exp_rdr_out.i1);
         Z_ASSERT_EQ(rdr_out.i2, exp_rdr_out.i2);
-        Z_ASSERT_EQUAL(rdr_out.str.data, rdr_out.str.len,
-                       exp_rdr_out.str.data, exp_rdr_out.str.len);
+        Z_ASSERT_EQUAL(rdr_out.str.s, rdr_out.str.len,
+                       exp_rdr_out.str.s, exp_rdr_out.str.len);
         Z_ASSERT_EQ(rdr_out.bstr.bit_len, exp_rdr_out.bstr.bit_len);
         Z_ASSERT_ZERO(memcmp(rdr_out.bstr.data, exp_rdr_out.bstr.data,
                              asn1_bit_string_size(&rdr_out.bstr) - 1));
@@ -684,9 +684,9 @@ Z_GROUP_EXPORT(asn1_ber)
 } Z_GROUP_END
 
 typedef struct open_type_t {
-    asn1_data_t ot1;
-    asn1_string_t ot2;
-    asn1_data_t ot3;
+    lstr_t ot1;
+    lstr_t ot2;
+    lstr_t ot3;
 } open_type_t;
 
 static ASN1_SEQUENCE_DESC_BEGIN(desc, open_type);

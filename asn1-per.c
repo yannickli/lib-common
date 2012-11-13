@@ -334,46 +334,26 @@ aper_encode_enum(bb_t *bb, uint32_t val, const asn1_enum_info_t *e)
 /* }}} */
 /* String types {{{ */
 
-static int
-aper_encode_ostring(bb_t *bb, const asn1_ostring_t *os,
-                    const asn1_cnt_info_t *info)
+static int aper_encode_data(bb_t *bb, lstr_t os, const asn1_cnt_info_t *info)
 {
-    if (aper_encode_len(bb, os->len, info) < 0) {
+    if (aper_encode_len(bb, os.len, info) < 0) {
         return e_error("octet string: failed to encode length");
     }
 
     if (info && info->max <= 2 && info->min == info->max
-    &&  os->len == info->max)
+    &&  os.len == (int)info->max)
     {
-        for (size_t i = 0; i < os->len; i++) {
-            bb_be_add_bits(bb, os->data[i], 8);
+        for (int i = 0; i < os.len; i++) {
+            bb_be_add_bits(bb, (uint8_t)os.s[i], 8);
         }
 
         return 0;
     }
 
     bb_align(bb);
-    bb_be_add_bytes(bb, os->data, os->len);
+    bb_be_add_bytes(bb, os.data, os.len);
 
     return 0;
-}
-
-static int
-aper_encode_data(bb_t *bb, const asn1_data_t *data,
-                 const asn1_cnt_info_t *info)
-{
-    asn1_ostring_t os = ASN1_OSTRING(data->data, data->len);
-
-    return aper_encode_ostring(bb, &os, info);
-}
-
-static int
-aper_encode_string(bb_t *bb, const asn1_string_t *str,
-                 const asn1_cnt_info_t *info)
-{
-    asn1_ostring_t os = ASN1_OSTRING((const uint8_t *)str->data, str->len);
-
-    return aper_encode_ostring(bb, &os, info);
 }
 
 static int
@@ -436,12 +416,8 @@ aper_encode_value(bb_t *bb, const void *v, const asn1_field_t *field)
       case ASN1_OBJ_TYPE(NULL):
       case ASN1_OBJ_TYPE(OPT_NULL):
         break;
-      case ASN1_OBJ_TYPE(asn1_data_t):
-        return aper_encode_data(bb, (const asn1_data_t *)v, &field->str_info);
-        break;
-      case ASN1_OBJ_TYPE(asn1_string_t):
-        return aper_encode_string(bb, (const asn1_string_t *)v, &field->str_info);
-        break;
+      case ASN1_OBJ_TYPE(lstr_t):
+        return aper_encode_data(bb, *(const lstr_t *)v, &field->str_info);
       case ASN1_OBJ_TYPE(asn1_bit_string_t):
         return aper_encode_bit_string(bb, (const asn1_bit_string_t *)v,
                                       &field->str_info);
@@ -477,8 +453,8 @@ aper_encode_field(bb_t *bb, const void *v, const asn1_field_t *field)
     bb_push_mark(bb);
 
     if (field->is_open_type) {
-        asn1_ostring_t  os;
-        bb_t            buf;
+        lstr_t  os;
+        bb_t    buf;
 
         bb_inita(&buf, field->open_type_buf_len);
         aper_encode_value(&buf, v, field);
@@ -487,8 +463,8 @@ aper_encode_field(bb_t *bb, const void *v, const asn1_field_t *field)
             bb_be_add_byte(&buf, 0);
         }
 
-        os = ASN1_OSTRING(buf.bytes, DIV_ROUND_UP(buf.len, 8));
-        res = aper_encode_ostring(bb, &os, NULL);
+        os = LSTR_INIT_V((const char *)buf.bytes, DIV_ROUND_UP(buf.len, 8));
+        res = aper_encode_data(bb, os, NULL);
         bb_wipe(&buf);
     } else {
         res = aper_encode_value(bb, v, field);
@@ -1109,17 +1085,20 @@ static ALWAYS_INLINE int aper_decode_bool(bit_stream_t *bs, bool *b)
 
 static int
 t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
-                      flag_t copy, asn1_ostring_t *os)
+                      flag_t copy, lstr_t *os)
 {
+    size_t    len;
     pstream_t ps;
 
-    if (aper_decode_len(bs, info, &os->len) < 0) {
+    if (aper_decode_len(bs, info, &len) < 0) {
         e_info("cannot decode octet string length");
         return -1;
     }
 
+    *os = LSTR_INIT_V(NULL, len);
+
     if (info && info->max <= 2 && info->min == info->max
-    &&  os->len == info->max)
+    &&  len == info->max)
     {
         uint8_t *buf;
 
@@ -1130,24 +1109,26 @@ t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
 
         buf = t_new(uint8_t, os->len + 1);
 
-        for (size_t i = 0; i < os->len; i++) {
+        for (int i = 0; i < os->len; i++) {
             buf[i] = __bs_be_get_bits(bs, 8);
         }
 
         os->data = buf;
+        os->mem_pool = MEM_STACK;
 
         return 0;
     }
 
     if (bs_align(bs) < 0 || bs_get_bytes(bs, os->len, &ps) < 0) {
         e_info("cannot read octet string: not enough octets "
-               "(want %zd, got %zd)", os->len, bs_len(bs) / 8);
+               "(want %d, got %zd)", os->len, bs_len(bs) / 8);
         return -1;
     }
 
-    os->data = ps.b;
+    os->s = ps.s;
     if (copy) {
-        os->data = t_dupz(os->data, os->len);
+        mp_lstr_persists(t_pool(), os);
+        os->mem_pool = MEM_STACK;
     }
 
     e_trace_hex(6, "Decoded OCTET STRING", os->data, (int)os->len);
@@ -1157,26 +1138,13 @@ t_aper_decode_ostring(bit_stream_t *bs, const asn1_cnt_info_t *info,
 
 static int
 t_aper_decode_data(bit_stream_t *bs, const asn1_cnt_info_t *info,
-                   flag_t copy, asn1_data_t *data)
+                   flag_t copy, lstr_t *data)
 {
-    asn1_ostring_t os;
+    lstr_t os;
 
     RETHROW(t_aper_decode_ostring(bs, info, copy, &os));
 
-    *data = ASN1_DATA(os.data, os.len);
-
-    return 0;
-}
-
-static int
-t_aper_decode_string(bit_stream_t *bs, const asn1_cnt_info_t *info,
-                   flag_t copy, asn1_string_t *str)
-{
-    asn1_ostring_t os;
-
-    RETHROW(t_aper_decode_ostring(bs, info, copy, &os));
-
-    *str = ASN1_STRING((const char *)os.data, os.len);
+    *data = os;
 
     return 0;
 }
@@ -1277,12 +1245,9 @@ t_aper_decode_value(bit_stream_t *bs, const asn1_field_t *field,
       case ASN1_OBJ_TYPE(NULL):
       case ASN1_OBJ_TYPE(OPT_NULL):
         break;
-      case ASN1_OBJ_TYPE(asn1_data_t):
+      case ASN1_OBJ_TYPE(lstr_t):
         return t_aper_decode_data(bs, &field->str_info, copy,
-                                  (asn1_data_t *)v);
-      case ASN1_OBJ_TYPE(asn1_string_t):
-        return t_aper_decode_string(bs, &field->str_info, copy,
-                                    (asn1_string_t *)v);
+                                  (lstr_t *)v);
       case ASN1_OBJ_TYPE(asn1_bit_string_t):
         return t_aper_decode_bit_string(bs, &field->str_info,
                                         (asn1_bit_string_t *)v);
@@ -1312,8 +1277,8 @@ t_aper_decode_field(bit_stream_t *bs, const asn1_field_t *field,
                     flag_t copy, void *v)
 {
     if (field->is_open_type) {
-        asn1_ostring_t os;
-        bit_stream_t   open_type_bs;
+        lstr_t        os;
+        bit_stream_t  open_type_bs;
 
         if (t_aper_decode_ostring(bs, NULL, false, &os) < 0) {
             e_info("cannot read OPEN TYPE field");
@@ -1480,23 +1445,11 @@ t_aper_decode_seq_of(bit_stream_t *bs, const asn1_field_t *field,
             repeated_field->oc_t_name, repeated_field->name, elem_cnt);
 
     if (unlikely(!elem_cnt)) {
-        *GET_PTR(st, repeated_field, asn1_data_t) = ASN1_DATA_NULL;
+        *GET_PTR(st, repeated_field, lstr_t) = LSTR_NULL_V;
         return 0;
     }
 
-    if (repeated_field->pointed) {
-        asn1_void_array_t *array;
-
-        array = GET_PTR(st, repeated_field, asn1_void_array_t);
-        array->data = t_new_raw(void *, elem_cnt * sizeof(void *));
-
-        for (size_t j = 0; j < elem_cnt; j++) { /* Alloc array pointers */
-            array->data[j] = t_new_raw(char, repeated_field->size);
-        }
-    } else {
-        GET_PTR(st, repeated_field, asn1_data_t)->data =
-            t_new_raw(char, elem_cnt * repeated_field->size);
-    }
+    asn1_alloc_seq_of(st, elem_cnt, repeated_field, t_pool());
 
     GET_PTR(st, repeated_field, asn1_void_vector_t)->len = elem_cnt;
 
@@ -1773,14 +1726,11 @@ Z_GROUP_EXPORT(asn1_aligned_per) {
         };
 
         for (int i = 0; i < countof(t); i++) {
-            asn1_ostring_t src = {
-                .data = (const uint8_t *)t[i].os,
-                .len = strlen(t[i].os),
-            };
-            asn1_ostring_t dst;
+            lstr_t src = LSTR_STR_V(t[i].os);
+            lstr_t dst;
 
             bb_reset(&bb);
-            aper_encode_ostring(&bb, &src, t[i].info);
+            aper_encode_data(&bb, src, t[i].info);
             if (src.len < 4) {
                 Z_ASSERT_STREQUAL(t[i].s, t_print_be_bb(&bb, NULL),"[i:%d]", i);
             }

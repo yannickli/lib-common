@@ -89,8 +89,7 @@ static inline asn1_field_t
         e_panic("no field to set min/max");
     }
 
-    if (field->type != ASN1_OBJ_TYPE(asn1_data_t)
-    &&  field->type != ASN1_OBJ_TYPE(asn1_string_t)
+    if (field->type != ASN1_OBJ_TYPE(lstr_t)
     &&  field->type != ASN1_OBJ_TYPE(asn1_bit_string_t))
     {
         e_panic("field `%s:%s' is not an string field",

@@ -28,7 +28,7 @@
  *         - int8_t uint8_t int16_t uint16_t int32_t uint32_t int64_t
  *         - enum
  *         - bool
- *         - asn1_string_t asn1_data_t
+ *         - lstr_t
  *
  *  - Supported ASN.1 types
  *         - INTEGER
@@ -94,14 +94,6 @@
 #include "asn1-per-macros.h"
 
 #define ASN1_MAX_LEN  SIZE_MAX /* FIXME put real ASN1_MAX_LEN instead */
-
-#define ASN1_OSTRING(d, l)  (asn1_ostring_t){ .data = d, .len = l }
-#define ASN1_OSTRING_NULL   (asn1_ostring_t){ .data = NULL, .len = 0 }
-
-typedef struct asn1_ostring_t {
-    const uint8_t  *data;
-    size_t          len;
-} asn1_ostring_t;
 
 /* TODO optimize */
 static inline int asn1_enum_pos(const asn1_enum_info_t *e, uint32_t val)
