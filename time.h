@@ -73,6 +73,16 @@ int strtotm(const char *date, struct tm *t);
 struct tm *time_get_localtime(const time_t *p_ts, struct tm *p_tm,
                               const char *tz);
 
+/* Format a timestamp according to given locale and format.
+ * locale should be a string similar to the output of the locale (unix)
+ * command. If empty the system locale will be used.
+ * The format of fmt is the one described in strftime manpage.
+ * XXX: This function is costly (it may call setlocale twice) and NOT thread
+ *      safe if locale != NULL.
+ */
+int format_timestamp(const char *fmt, time_t ts, const char *locale,
+                     char out[], int out_size)__attr_nonnull__((1));
+
 /***************************************************************************/
 /* iso8601                                                                 */
 /***************************************************************************/
