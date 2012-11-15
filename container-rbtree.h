@@ -17,190 +17,159 @@
 #ifndef IS_LIB_COMMON_CONTAINER_RBTREE_H
 #define IS_LIB_COMMON_CONTAINER_RBTREE_H
 
-typedef struct rb_t {
-    struct rb_node_t *root;
-} rb_t;
+
+/** Red-Back Trees.
+ *
+ * \section rbtree_principles Principles
+ *
+ * This module provides a generic Red-Black Tree implementation. Red-Black
+ * Tree are an automatically balanced variant of the Binary Search Tree
+ * providing properly bounded complexity for both modification and lookup
+ * (the complexitiy is always O(log n)).
+ *
+ * In order to use it, you need to inline a rb_node_t structure in you own
+ * structure and then use the \ref rb_tree_t macro in order to declare the
+ * tree type and the associated helper.
+ *
+ * \code
+ * typedef struct my_node_t {
+ *     // A node need a key. That key is retrieved using the get_key
+ *     // macro/function passed to rb_tree_t. So, it can be either
+ *     // in the structure or fetched using informations contained
+ *     // in the structure.
+ *     int key;
+ *
+ *     // You can use the name of you choice for the inlined node, you'll
+ *     // just have to provide this name when invoking rb_tree_t.
+ *     // That structure is the glue of the tree.
+ *     rb_node_t node;
+ * } my_node_t;
+ * #define MY_NODE_GET_KEY(node)  ((node)->key)
+ * rb_tree_t(my, my_node_t, int, node, MY_NODE_GET_KEY, CMP)
+ * \endcode
+ *
+ * A Structure can be in serveral trees at once, but each tree must use a
+ * different rb_node_t inlined in the structure.
+ *
+ * It is highly adviced that both the comparison and the get_key callback are
+ * inlinable.
+ *
+ *
+ * \section rbtree_insertion Insertion
+ *
+ * Insertion prototype may be misleading. It returns NULL if the node get
+ * inserted or the previously inserted entry in case of collision.
+ *
+ * Since you are requested to provide the new entry as parameter, you must
+ * take care not leaking the provided entry if the insertion detects a
+ * collision.
+ *
+ * If you want to avoid the useless allocation, you can also use rb_find_slot
+ * to find out if there's a collision or not and get the pointer to the slot
+ * where the new entry should be allocated:
+ *
+ * \code
+ * bool collision;
+ * rb_node_t *parent;
+ * rb_node_t **slot = rb_find_slot(my, rb, key, &parent, &collision);
+ *
+ * if (!collision) {
+ *     // Allocate the new entry
+ *     my_node_t *new_node = my_node_new();
+ *     new_node->key = key;
+ *     rb_insert_at(my, rb, parent, slot, new_node);
+ * } else {
+ *     // Collision, retrieve existing entry
+ *     my_node_t *old_node = rb_entry(n, *slot);
+ * }
+ * \endcode
+ *
+ *
+ * \section rbtree_by_hand Do it by hand
+ *
+ * You can provide you own implementation for rb_find() and rb_find_slot() if
+ * you want a more complex behavior than the default one. In that case, you
+ * must not rb_tree_t but invoke __RBTREE_TYPE and __RBTREE_HELPERS by hand.
+ *
+ * The rb_find_slot() prototype should conform to the default one in order to
+ * be compatible with rb_insert() implementation provided by __RBTREE_HELPERS.
+ */
 
 typedef struct rb_node_t {
     uintptr_t __parent;
     struct rb_node_t *left, *right;
 } rb_node_t;
 
-/*
- * Do-it-yourself rbtree:
- *
- *   for performance reasons, inlining the comparison is a huge win, you have
- *   to write the searches and insertion procedure this way with the helpers
- *   container-rbtree provides.
- *
- *   entry_t *rb_entry_search(rb_t *rb, key_t *key)
- *   {
- *        rb_node_t *n = rb->root;
- *
- *        while (n) {
- *            entry_t *e = rb_entry(n, entry_t, some_member);
- *
- *            if (key < e->key) {
- *                n = n->left;
- *            } else
- *            if (key > e->key) {
- *                n = n->right;
- *            } else {
- *                return e;
- *            }
- *        }
- *        return NULL;
- *   }
- *
- *
- *   void rb_entry_insert(rb_t *rb, entry_t *e)
- *   {
- *        rb_node_t **slot = &rb->root;
- *        rb_node_t *parent = NULL;
- *
- *        while (*slot) {
- *            entry_t *slot_e = rb_entry(*slot, entry_t, some_member);
- *
- *            parent = *slot;
- *            if (e->key < slot_e->key) {
- *                slot = &(*slot)->left;
- *            } else
- *            if (e->ken > slot_e->key) {
- *                slot = &(*slot)->right;
- *            } else {
- *                // treat key duplicates here
- *            }
- *        }
- *        rb_add_node(rb, parent, *slot = &e->some_member);
- *    }
- *
- */
+void rb_add_node(rb_node_t **root, rb_node_t *parent, rb_node_t *node) __leaf;
+void rb_del_node(rb_node_t **root, rb_node_t *) __leaf;
 
-#define rb_parent(n)                 ((rb_node_t *)((n)->__parent & ~1))
-#define	rb_entry(ptr, type, member)  container_of(ptr, type, member)
-#define	rb_entry_of(ptr, n, member)  container_of(ptr, typeof(*n), member)
-
-void rb_add_node(rb_t *, rb_node_t *parent, rb_node_t *node) __leaf;
-void rb_del_node(rb_t *, rb_node_t *) __leaf;
-
-static inline rb_node_t *rb_first(rb_t *rb)
+static inline rb_node_t *__rb_first_node(rb_node_t *root)
 {
-    struct rb_node_t *n = rb->root;
-
-    if (!n)
+    if (!root)
         return NULL;
-    while (n->left)
-        n = n->left;
-    return n;
-}
-static inline rb_node_t *rb_last(rb_t *rb)
-{
-    struct rb_node_t *n = rb->root;
-
-    if (!n)
-        return NULL;
-    while (n->right)
-        n = n->right;
-    return n;
+    while (root->left)
+        root = root->left;
+    return root;
 }
 
-rb_node_t *rb_next(rb_node_t *) __leaf;
-rb_node_t *rb_prev(rb_node_t *) __leaf;
+static inline rb_node_t *__rb_last_node(rb_node_t *root)
+{
+    if (!root)
+        return NULL;
+    while (root->right)
+        root = root->right;
+    return root;
+}
 
-#define __rb_for_each(it, rb, doit)                             \
-    for (rb_node_t *it = rb_first(rb);                          \
-         it && ({ doit; 1; }); it = rb_next(it))
+rb_node_t *__rb_next(rb_node_t *) __leaf;
+rb_node_t *__rb_prev(rb_node_t *) __leaf;
 
-#define __rb_for_each_safe(it, __next, rb, doit)                \
-    for (rb_node_t *it = rb_first(rb), *__next;                 \
-         it && ({ __next = rb_next(it); doit; 1; });            \
-         it = __next)
-
-#define rb_for_each(it, rb)       __rb_for_each(it, rb, )
-#define rb_for_each_safe(it, rb)  __rb_for_each_safe(it, __next_##it, rb, )
-
-#define rb_for_each_entry(it, rb, member)                       \
-    __rb_for_each(__real_##it, rb,                              \
-                  it = rb_entry_of(__real_##it, it, member))
-
-#define rb_for_each_entry_safe(it, rb, member)                    \
-    __rb_for_each_safe(__real_##it, __next_##it, rb,              \
-                       it = rb_entry_of(__real_##it, it, member))
-
-
-#define RB_SEARCH_I(entry_t, pfx, node_member, key_member) \
-    entry_t *pfx##_search(rb_t rb, fieldtypeof(entry_t, key_member) key)     \
+#define __RBTREE_TYPE(n, entry_t, link)                                      \
+    /* This is the exact same structure for all instance, but keep it here   \
+     * for type-safety.                                                      \
+     */                                                                      \
+    typedef struct {                                                         \
+       struct rb_node_t *root;                                               \
+    } rb_t(n);                                                               \
+    typedef entry_t rb_##n##_entry_t;                                        \
+    GENERIC_FUNCTIONS(rb_##n##_t, rb_##n)                                    \
+                                                                             \
+    static ALWAYS_INLINE entry_t *rb_##n##_entry(rb_node_t *node)            \
     {                                                                        \
-        rb_node_t *n = rb.root;                                              \
-                                                                             \
-        while (n) {                                                          \
-            entry_t *e = rb_entry(n, entry_t, node_member);                  \
-                                                                             \
-            if (key < e->key_member) {                                       \
-                n = n->left;                                                 \
-            } else                                                           \
-            if (key > e->key_member) {                                       \
-                n = n->right;                                                \
-            } else {                                                         \
-                return e;                                                    \
-            }                                                                \
-        }                                                                    \
-        return NULL;                                                         \
+        return container_of(node, entry_t, link);                            \
     }
 
-#define RB_SEARCH_P(entry_t, pfx, node_member, key_member, cmp_f) \
-    entry_t *pfx##_search(rb_t rb, fieldtypeof(entry_t, key_member) *key)    \
+#define __RBTREE_LOOKUP(n, entry_t, key_t, link, get_key, compare)           \
+    static inline entry_t *rb_##n##_find(const rb_t(n) *rb, key_t k)         \
     {                                                                        \
-        rb_node_t *n = rb.root;                                              \
+        rb_node_t *node = rb->root;                                          \
                                                                              \
-        while (n) {                                                          \
-            entry_t *e = rb_entry(n, entry_t, node_member);                  \
-            int cmp = cmp_f(key, &e->key_member);                            \
+        while (node) {                                                       \
+            entry_t *e = rb_entry(n, node);                                  \
+            int cmp = compare(k, get_key(e));                                \
                                                                              \
             if (cmp < 0) {                                                   \
-                n = n->left;                                                 \
+                node = node->left;                                           \
             } else                                                           \
             if (cmp > 0) {                                                   \
-                n = n->right;                                                \
+                node = node->right;                                          \
             } else {                                                         \
                 return e;                                                    \
             }                                                                \
         }                                                                    \
         return NULL;                                                         \
-    }
-
-#define RB_INSERT_I(entry_t, pfx, node_member, key_member) \
-    rb_node_t **pfx##_insert(rb_t *rb, entry_t *e)                           \
+    }                                                                        \
+                                                                             \
+    static inline rb_node_t **rb_##n##_find_slot(rb_t(n) *rb, key_t k,       \
+                                                 rb_node_t **out_parent,     \
+                                                 bool *collision)            \
     {                                                                        \
         rb_node_t **slot = &rb->root;                                        \
         rb_node_t *parent = NULL;                                            \
                                                                              \
         while (*slot) {                                                      \
-            entry_t *slot_e = rb_entry(*slot, entry_t, node_member);         \
-                                                                             \
-            parent = *slot;                                                  \
-            if (e->key_member < slot_e->key_member) {                        \
-                slot = &(*slot)->left;                                       \
-            } else                                                           \
-            if (e->key_member > slot_e->key_member) {                        \
-                slot = &(*slot)->right;                                      \
-            } else {                                                         \
-                return slot;                                                 \
-            }                                                                \
-        }                                                                    \
-        rb_add_node(rb, parent, *slot = &e->node_member);                    \
-        return NULL;                                                         \
-    }
-
-#define RB_INSERT_P(entry_t, pfx, node_member, key_member, cmp_f) \
-    rb_node_t **pfx##_insert(rb_t *rb, entry_t *e)                           \
-    {                                                                        \
-        rb_node_t **slot = &rb->root;                                        \
-        rb_node_t *parent = NULL;                                            \
-                                                                             \
-        while (*slot) {                                                      \
-            entry_t *slot_e = rb_entry(*slot, entry_t, node_member);         \
-            int cmp = cmp_f(&e->key_member, &slot_e->key_member);            \
+            entry_t *slot_e = rb_entry(n, *slot);                            \
+            int cmp = compare(k, get_key(slot_e));                           \
                                                                              \
             parent = *slot;                                                  \
             if (cmp < 0) {                                                   \
@@ -209,11 +178,102 @@ rb_node_t *rb_prev(rb_node_t *) __leaf;
             if (cmp > 0) {                                                   \
                 slot = &(*slot)->right;                                      \
             } else {                                                         \
+                *out_parent = NULL;                                          \
+                *collision  = true;                                          \
                 return slot;                                                 \
             }                                                                \
         }                                                                    \
-        rb_add_node(rb, parent, *slot = &e->node_member);                    \
+        *out_parent = parent;                                                \
+        *collision  = false;                                                 \
+        return slot;                                                         \
+    }
+
+#define __RBTREE_HELPERS(n, entry_t, key_t, link, get_key, compare)          \
+    static ALWAYS_INLINE entry_t *rb_##n##_first(rb_t(n) *rb)                \
+    {                                                                        \
+        return rb_##n##_entry(__rb_first_node(rb->root));                    \
+    }                                                                        \
+                                                                             \
+    static ALWAYS_INLINE entry_t *rb_##n##_last(rb_t(n) *rb)                 \
+    {                                                                        \
+        return rb_##n##_entry(__rb_last_node(rb->root));                     \
+    }                                                                        \
+                                                                             \
+    static ALWAYS_INLINE entry_t *rb_##n##_next(entry_t *entry)              \
+    {                                                                        \
+        return rb_##n##_entry(__rb_next(&entry->link));                      \
+    }                                                                        \
+                                                                             \
+    static ALWAYS_INLINE entry_t *rb_##n##_prev(entry_t *entry)              \
+    {                                                                        \
+        return rb_##n##_entry(__rb_prev(&entry->link));                      \
+    }                                                                        \
+                                                                             \
+    static inline void rb_##n##_insert_at(rb_t(n) *rb, rb_node_t *parent,    \
+                                          rb_node_t **slot, entry_t *e)      \
+    {                                                                        \
+        rb_add_node(&rb->root, parent, *slot = &e->link);                    \
+    }                                                                        \
+                                                                             \
+    static inline entry_t *rb_##n##_insert(rb_t(n) *rb, entry_t *e)          \
+    {                                                                        \
+        bool c;                                                              \
+        rb_node_t *parent;                                                   \
+        rb_node_t **slot = rb_find_slot(n, rb, get_key(e), &parent, &c);     \
+                                                                             \
+        if (c) {                                                             \
+            return rb_entry(n, *slot);                                       \
+        }                                                                    \
+        rb_insert_at(n, rb, parent, slot, e);                                \
         return NULL;                                                         \
+    }                                                                        \
+                                                                             \
+    static inline void rb_##n##_remove(rb_t(n) *rb, entry_t *e)              \
+    {                                                                        \
+        rb_del_node(&rb->root, &e->link);                                    \
+    }                                                                        \
+                                                                             \
+    static inline entry_t *rb_##n##_remove_key(rb_t(n) *rb, key_t k)         \
+    {                                                                        \
+        entry_t *e = rb_find(n, rb, k);                                      \
+                                                                             \
+        if (e) {                                                             \
+            rb_remove(n, rb, e);                                             \
+        }                                                                    \
+        return e;                                                            \
+    }
+
+#define rb_tree_t(n, entry_t, key_t, link, get_key, compare)                 \
+    __RBTREE_TYPE(n, entry_t, link)                                          \
+    __RBTREE_LOOKUP(n, entry_t, key_t, link, get_key, compare)               \
+    __RBTREE_HELPERS(n, entry_t, key_t, link, get_key, compare)
+
+#define rb_t(n)                       rb_##n##_t
+#define rb_entry_t(n)                 rb_##n##_entry_t
+#define rb_entry(n, s)                rb_##n##_entry(s)
+#define rb_init(n, rb)                rb_##n##_init(rb)
+#define rb_wipe(n, rb)                rb_##n##_wipe(rb)
+#define rb_first(n, rb)               rb_##n##_first(rb)
+#define rb_last(n, rb)                rb_##n##_last(rb)
+#define rb_next(n, entry)             rb_##n##_next(entry)
+#define rb_prev(n, entry)             rb_##n##_prev(entry)
+#define rb_find(n, rb, v)             rb_##n##_find(rb, v)
+#define rb_find_slot(n, rb, k, p, c)  rb_##n##_find_slot(rb, k, p, c)
+#define rb_insert(n, rb, e)           rb_##n##_insert(rb, e)
+#define rb_insert_at(n, rb, p, s, e)  rb_##n##_insert_at(rb, p, s, e)
+#define rb_remove(n, rb, e)           rb_##n##_remove(rb, e)
+
+#define rb_for_each(n, rb, it)                                               \
+    for (rb_entry_t(n) *it = rb_first(n, rb); it; it = rb_next(n, it))
+
+#define rb_for_each_safe(n, rb, it)                                          \
+    for (rb_entry_t(n) *it = rb_first(n, rb), *__next;                       \
+         it && ({ __next = rb_next(n, it); 1; }); it = __next)
+
+#define rb_deep_wipe(n, rb, wipe)                                            \
+    rb_for_each_safe(n, rb, __it) {                                          \
+        rb_remove(n, rb, __it);                                              \
+        wipe(&__it);                                                         \
     }
 
 #endif
