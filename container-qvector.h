@@ -459,6 +459,8 @@ qvector_splice(qvector_t *vec, size_t v_size,
 
 
 /* Define several common types */
+qvector_t(i8,     int8_t);
+qvector_t(u8,     uint8_t);
 qvector_t(i16,    int16_t);
 qvector_t(u16,    uint16_t);
 qvector_t(i32,    int32_t);
