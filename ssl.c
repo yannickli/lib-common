@@ -131,6 +131,13 @@ int ssl_encrypt_update(ssl_ctx_t *ctx, lstr_t data, sb_t *out)
     assert (ctx->encrypt_state == SSL_CTX_INIT
         ||  ctx->encrypt_state == SSL_CTX_UPDATE);
 
+    if (unlikely(data.len <= 0)) {
+        /* XXX with openssl < 1.0, EVP_EncryptUpdate will abort() with empty
+         * data. */
+        ctx->encrypt_state = SSL_CTX_UPDATE;
+        return 0;
+    }
+
     if (unlikely(!EVP_EncryptUpdate(&ctx->encrypt,
                                     (unsigned char *)sb_grow(out, clen),
                                     &clen, (unsigned char *)data.s,
@@ -364,6 +371,20 @@ Z_GROUP_EXPORT(ssl)
         Z_ASSERT_N(ssl_encrypt(&ctx, text, &sb));
 
         Z_ASSERT_LSTREQUAL(res, LSTR_SB_V(&sb));
+
+        /* Non regression of #11267: check that encrypt with empty content to
+         * not abort with openssl < v1.0 */
+        {
+            SB_1k(sb_dec);
+
+            /* check that encrypt to not abort */
+            sb_reset(&sb);
+            Z_ASSERT_N(ssl_encrypt(&ctx, LSTR_EMPTY_V, &sb));
+
+            /* check that decrypt will correctly decrypt the empty string */
+            Z_ASSERT_N(ssl_decrypt(&ctx, LSTR_SB_V(&sb), &sb_dec));
+            Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb_dec), LSTR_EMPTY_V);
+        }
 
         ssl_ctx_wipe(&ctx);
     } Z_TEST_END;

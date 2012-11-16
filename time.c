@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <locale.h>
+
 #include "time.h"
 
 /*
@@ -418,6 +420,37 @@ struct tm *time_get_localtime(const time_t *p_ts, struct tm *p_tm,
 
     return p_tm;
 }
+
+#if __GNUC_PREREQ(4, 2)
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
+int format_timestamp(const char *fmt, time_t ts, const char *locale,
+                     char out[], int out_size)
+{
+    struct tm ts_tm;
+    const char *lc_time = NULL;
+    int len;
+
+    if (strequal(fmt, "%s")) {
+        len = snprintf(out, out_size, "%ld", ts);
+        return len;
+    }
+    if (locale) {
+        lc_time = setlocale(LC_TIME, NULL);
+        RETHROW_PN(setlocale(LC_TIME, locale));
+    }
+
+    localtime_r(&ts, &ts_tm);
+    len = strftime(out, out_size, fmt, &ts_tm);
+
+    if (locale) {
+        setlocale(LC_TIME, lc_time);
+    }
+    return len ?:-1;
+}
+#if __GNUC_PREREQ(4, 2)
+#pragma GCC diagnostic warning "-Wformat-nonliteral"
+#endif
 
 /***************************************************************************/
 /* timers for benchmarks                                                   */
