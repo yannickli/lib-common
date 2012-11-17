@@ -23,7 +23,7 @@
  * \section rbtree_principles Principles
  *
  * This module provides a generic Red-Black Tree implementation. Red-Black
- * Tree are an automatically balanced variant of the Binary Search Tree
+ * Trees are an automatically balanced variant of Binary Search Trees
  * providing properly bounded complexity for both modification and lookup
  * (the complexitiy is always O(log n)).
  *
@@ -57,7 +57,7 @@
  *
  * \section rbtree_insertion Insertion
  *
- * Insertion prototype may be misleading. It returns NULL if the node get
+ * Insertion prototype may be misleading. It returns NULL if the node gets
  * inserted or the previously inserted entry in case of collision.
  *
  * Since you are requested to provide the new entry as parameter, you must
@@ -89,7 +89,8 @@
  *
  * You can provide you own implementation for rb_find() and rb_find_slot() if
  * you want a more complex behavior than the default one. In that case, you
- * must not rb_tree_t but invoke __RBTREE_TYPE and __RBTREE_HELPERS by hand.
+ * cannot use rb_tree_t and have to invoke __RBTREE_TYPE and __RBTREE_HELPERS
+ * by hand.
  *
  * The rb_find_slot() prototype should conform to the default one in order to
  * be compatible with rb_insert() implementation provided by __RBTREE_HELPERS.
@@ -263,15 +264,15 @@ rb_node_t *__rb_prev(rb_node_t *) __leaf;
 #define rb_insert_at(n, rb, p, s, e)  rb_##n##_insert_at(rb, p, s, e)
 #define rb_remove(n, rb, e)           rb_##n##_remove(rb, e)
 
-#define rb_for_each(n, rb, it)                                               \
+#define rb_for_each(n, it, rb)                                               \
     for (rb_entry_t(n) *it = rb_first(n, rb); it; it = rb_next(n, it))
 
-#define rb_for_each_safe(n, rb, it)                                          \
+#define rb_for_each_safe(n, it, rb)                                          \
     for (rb_entry_t(n) *it = rb_first(n, rb), *__next;                       \
          it && ({ __next = rb_next(n, it); 1; }); it = __next)
 
 #define rb_deep_wipe(n, rb, wipe)                                            \
-    rb_for_each_safe(n, rb, __it) {                                          \
+    rb_for_each_safe(n, __it, rb) {                                          \
         rb_remove(n, rb, __it);                                              \
         wipe(&__it);                                                         \
     }
