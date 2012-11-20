@@ -311,7 +311,7 @@ static inline void *p_dupz(const void *src, size_t len)
     ({                                                                       \
         typeof(**(pp)) **__ptr = (pp);                                       \
         *__ptr = (irealloc)(*__ptr, MEM_UNKNOWN,                             \
-                            extra_field_size(typeof(**ptr), field, (count)), \
+                            extra_field_size(typeof(**pp), field, (count)),  \
                             (alignment), MEM_LIBC | MEM_RAW);                \
     })
 
@@ -319,8 +319,8 @@ static inline void *p_dupz(const void *src, size_t len)
     ({                                                                       \
         typeof(**(pp)) **__ptr = (pp);                                       \
         *__ptr = (irealloc)(*__ptr,                                          \
-                            extra_field_size(typeof(**ptr), field, (old_count)),\
-                            extra_field_size(typeof(**ptr), field, (new_count)),\
+                            extra_field_size(typeof(**pp), field, (old_count)),\
+                            extra_field_size(typeof(**pp), field, (new_count)),\
                             (alignment), MEM_LIBC);                          \
     })
 
