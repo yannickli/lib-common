@@ -185,9 +185,11 @@ char *t_fmt(int *out, const char *fmt, ...)
 #define ta_new_extra_raw(type_t, extra, alignment) \
     ((type_t *)stack_malloc(sizeof(type_t) + (extra), (alignment), MEM_STACK | MEM_RAW))
 #define ta_new_extra_field(type_t, field, extra, alignment) \
-    ta_new_extra(type_t, fieldsizeof(type_t, field[0]) * (extra), (alignment))
+    ((type_t *)stack_malloc(extra_field_size(type_t, field, extra), \
+                            (alignment), MEM_STACK))
 #define ta_new_extra_field_raw(type_t, field, extra, alignment) \
-    ta_new_extra_raw(type_t, fieldsizeof(type_t, field[0]) * (extra), (alignment))
+    ((type_t *)stack_malloc(extra_field_size(type_t, field, extra), \
+                            (alignment), MEM_STACK | MEM_RAW))
 
 #define t_new(type_t, n)                ta_new(type_t, n, alignof(type_t))
 #define t_new_raw(type_t, n)            ta_new_raw(type_t, n, alignof(type_t))

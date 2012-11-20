@@ -251,6 +251,17 @@ static inline void *p_dupz(const void *src, size_t len)
 # define alignof(type)  __alignof__(type)
 #endif
 
+#define extra_field_size(type, field, size)  ({                              \
+        size_t __efz = offsetof(type, field);                                \
+                                                                             \
+        __efz += fieldsizeof(type, field[0]) * (size);                       \
+                                                                             \
+        /* Allocate at least sizeof(type) so that p_clear() works properly   \
+         * on the result of a new_extra_field allocation.                    \
+         */                                                                  \
+        MAX(sizeof(type), __efz);                                            \
+    })
+
 #define pa_new_raw(type, count, alignment)                                   \
     ((type *)(imalloc)(sizeof(type) * (count), (alignment), MEM_RAW | MEM_LIBC))
 #define pa_new(type, count, alignment)                                       \
@@ -258,11 +269,13 @@ static inline void *p_dupz(const void *src, size_t len)
 #define pa_new_extra(type, size, alignment)                                  \
     ((type *)(imalloc)(sizeof(type) + (size), (alignment), MEM_LIBC))
 #define pa_new_extra_field(type, field, size, alignment)                     \
-    pa_new_extra(type, fieldsizeof(type, field[0]) * (size), (alignment))
+    ((type *)(imalloc)(extra_field_size(type, field, size),                  \
+                       (alignment), MEM_LIBC))
 #define pa_new_extra_raw(type, size, alignment)                              \
     ((type *)(imalloc)(sizeof(type) + (size), (alignment), MEM_RAW | MEM_LIBC))
 #define pa_new_extra_field_raw(type, field, size, alignment)                 \
-    pa_new_extra_raw(type, fieldsizeof(type, field[0]) * (size), (alignment))
+    ((type *)(imalloc)(extra_field_size(type, field, size),                  \
+                       (alignment), MEM_RAW | MEM_LIBC))
 
 #define pa_realloc(pp, count, alignment)                                     \
       ({                                                                     \
@@ -295,13 +308,21 @@ static inline void *p_dupz(const void *src, size_t len)
     })
 
 #define pa_realloc_extra_field(pp, field, count, alignment)                  \
-    pa_realloc_extra(pp, fieldsizeof(typeof(**pp), field[0]) * (count),      \
-                     (alignment))
+    ({                                                                       \
+        typeof(**(pp)) **__ptr = (pp);                                       \
+        *__ptr = (irealloc)(*__ptr, MEM_UNKNOWN,                             \
+                            extra_field_size(typeof(**ptr), field, (count)), \
+                            (alignment), MEM_LIBC | MEM_RAW);                \
+    })
 
 #define pa_realloc0_extra_field(pp, field, old_count, new_count, alignment)  \
-    pa_realloc0_extra(pp, fieldsizeof(typeof(**(pp)), field[0]) * (old_count),\
-                      fieldsizeof(typeof(**(pp)), field[0]) * (new_count),   \
-                      (alignment))
+    ({                                                                       \
+        typeof(**(pp)) **__ptr = (pp);                                       \
+        *__ptr = (irealloc)(*__ptr,                                          \
+                            extra_field_size(typeof(**ptr), field, (old_count)),\
+                            extra_field_size(typeof(**ptr), field, (new_count)),\
+                            (alignment), MEM_LIBC);                          \
+    })
 
 /* Pointer allocations helpers */
 
@@ -421,7 +442,7 @@ static inline void *mp_strdup(mem_pool_t *mp, const char *src)
 #define mp_new_extra(mp, type, size) \
         ((type *)(mp)->malloc((mp), sizeof(type) + (size), 0))
 #define mp_new_extra_field(mp, type, field, size) \
-        mp_new_extra(mp, type, fieldsizeof(type, field[0]) * (size))
+        ((type *)(mp)->malloc((mp), extra_field_size(type, field, size), 0))
 #define mp_dup(mp, p, count)        \
         memp_dup((mp), (p), sizeof(*(p)) * (count))
 
