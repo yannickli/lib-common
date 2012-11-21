@@ -73,7 +73,8 @@
         static asn1_desc_t *desc = NULL;                                     \
                                                                              \
         if (unlikely(!desc)) {                                               \
-            desc = asn1_desc_new();
+            desc = asn1_desc_new();                                          \
+            desc->size = sizeof(pfx##_t);
 
 #define ASN1_DESC_END(desc) \
             if (desc->is_seq_of) {                                           \
