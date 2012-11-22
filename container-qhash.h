@@ -454,12 +454,20 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qm_kptr_t(name, key_t, val_t, hf, ef)  __QM_PKEY(qm_##name, name, key_t const, key_t, val_t, hf, ef)
 #define qm_kptr_ckey_t(name, key_t, val_t, hf, ef)  __QM_PKEY(qm_##name, name, key_t const, key_t const, val_t, hf, ef)
 
+/** Statis QH initializer.
+ *
+ * \see qh_init
+ */
 #define QH_INIT(name, var, cacheh) \
     { .qh = {                                   \
         .k_size = sizeof((var).keys[0]),        \
         .h_size = !!(cacheh),                   \
     } }
 
+/** Static QM initializer.
+ *
+ * \see qm_init
+ */
 #define QM_INIT(name, var, cacheh) \
     { .qh = {                                   \
         .k_size = sizeof((var).keys[0]),        \
@@ -486,6 +494,35 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #endif
 
 #define qh_t(name)                          qh_##name##_t
+
+/** Initialize a Hash-Set.
+ *
+ * \param[in] name The type of the hash set.
+ * \param[in] qh   A pointer to the hash set to initialize.
+ * \param[in] chahes If true, enables caching of hashes.
+ *
+ * When \p chahes is true, the table cache, in addition to the keys, the hash
+ * of those keys. This has two consequences:
+ *  - first, in memory usage: 4 bytes is reserved per slot of the of qh (the
+ *    number of slot being larger than the number of keys actually inserted in
+ *    the qh).
+ *  - secondly, in CPU time: the caching of hashes allow both a marginally
+ *    faster lookup (the hashes are compared before checking the key equality)
+ *    and a much faster resizing procedure (since the hashes does not need to
+ *    be recomputed for each key in order to find its new position in the
+ *    resized table).
+ *
+ * As a consequence, the hash caching should be reserved to use cases in which
+ * the hash or equality operation is expensive or in case the hash table will
+ * get frequently resized. In a general fashion, if you have any doubt, don't
+ * put \p chahes at true a priori, and change the parameter afterward if you
+ * identify a bottleneck in the hashing function (you may even try using \ref
+ * qh_set_minsize before change \p chahes if you trigger too many resizes
+ * of you table).
+ *
+ * Never set \p chahes to true if the qh is issued from a qh_k32_t or a
+ * qh_k64_t.
+ */
 #define qh_init(name, qh, chahes)           qh_##name##_init(qh, chahes)
 #define qh_len(name, qh)                    qh_##name##_len(qh)
 #define qh_hash(name, qh, key)              qh_##name##_hash(qh, key)
@@ -553,6 +590,18 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #endif
 
 #define qm_t(name)                          qm_##name##_t
+
+/** Initialize a hash-map.
+ *
+ * \param[in] name   The type of the map.
+ * \param[in] qh     A pointer to the map to initialize.
+ * \param[in] chahes If true, enables caching of hashes.
+ *
+ * A discussion about the \p chahes parameter is available in \ref qh_init
+ * documentation.
+ *
+ * \note You can also use the static initializer \ref QM_INIT
+ */
 #define qm_init(name, qh, chahes)           qm_##name##_init(qh, chahes)
 #define qm_len(name, qh)                    qm_##name##_len(qh)
 #define qm_hash(name, qh, key)              qm_##name##_hash(qh, key)

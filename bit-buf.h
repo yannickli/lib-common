@@ -32,8 +32,8 @@ typedef struct bb_t {
         };
         size_t len;  /* Number of bit used */
     };
-    size_t     size; /* Number of words allocated */
-    flag_t     mem_pool : 2;
+    size_t     size     : 62; /* Number of words allocated */
+    flag_t     mem_pool :  2;
 } bb_t;
 
 struct bit_stream_t;
@@ -61,17 +61,22 @@ bb_init_full(bb_t *bb, void *buf, int blen, int bsize, int mem_pool)
     return bb;
 }
 
-#define allocaz(sz)  memset(alloca(sz), 0, (sz))
-
 #define bb_inita(bb, sz)  \
-    bb_init_full(bb, allocaz(ROUND_UP(sz, 8)), 0, DIV_ROUND_UP(sz, 8), MEM_STATIC)
+    bb_init_full(bb, p_alloca(uint64_t, DIV_ROUND_UP(sz, 8)), \
+                 0, DIV_ROUND_UP(sz, 8), MEM_STATIC)
 
 #define BB(name, sz) \
-    bb_t name = { { .data = allocaz(ROUND_UP(sz, 8)) }, \
-                  .size = DIV_ROUND_UP(sz, 8) }
+    bb_t name = { { .data = p_alloca(uint64_t, DIV_ROUND_UP(sz, 8)) }, \
+                    .size = DIV_ROUND_UP(sz, 8) }
+#define t_BB(name, sz) \
+    bb_t name = { { .data = t_new(uint64_t, DIV_ROUND_UP(sz, 8)) }, \
+                    .size = DIV_ROUND_UP(sz, 8),                    \
+                    .mem_pool = MEM_STACK }
 
 #define BB_1k(name)    BB(name, 1 << 10)
 #define BB_8k(name)    BB(name, 8 << 10)
+#define t_BB_1k(name)  t_BB(name, 1 << 10)
+#define t_BB_8k(name)  t_BB(name, 8 << 10)
 
 void bb_reset(bb_t *bb);
 
