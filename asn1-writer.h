@@ -345,6 +345,7 @@ qvector_t(asn1_field, asn1_field_t);
   */
 typedef struct asn1_desc_t {
     qv_t(asn1_field)      vec;
+    size_t                size;
     enum asn1_cstd_type   type;
 
     /* TODO add SEQUENCE OF into constructed type enum */
@@ -380,8 +381,21 @@ int asn1_pack_size_(const void *st, const asn1_desc_t *desc,
                     qv_t(i32) *stack);
 uint8_t *asn1_pack_(uint8_t *dst, const void *st, const asn1_desc_t *desc,
                     qv_t(i32) *stack);
+
 int asn1_unpack_(pstream_t *ps, const asn1_desc_t *desc,
                  mem_pool_t *mem_pool, void *st, bool copy);
+
+static inline int t_asn1_unpack(pstream_t *ps, const asn1_desc_t *desc,
+                                void **out)
+{
+    void *v;
+
+    v = t_new(byte, desc->size);
+    RETHROW(asn1_unpack_(ps, desc, t_pool(), v, false));
+    *out = v;
+
+    return 0;
+}
 
 void asn1_reg_field(asn1_desc_t *desc, asn1_field_t *field);
 void asn1_build_choice_table(asn1_choice_desc_t *desc);
