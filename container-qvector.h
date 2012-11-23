@@ -386,8 +386,14 @@ qvector_splice(qvector_t *vec, size_t v_size,
     ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]);       \
     for (typeof(*(vec)->tab) e,                                              \
                             *e##__ptr = ({                                   \
-                                if ((vec)->len) {                            \
+                                if ((vec)->size) {                           \
+                                   /* If (vec)->len == 0, e may not be       \
+                                    * initialized, but we don't care since   \
+                                    * it won't be read */                    \
                                     e = *(vec)->tab;                         \
+                                } else {                                     \
+                                    /* Avoid warnings with old gcc's */      \
+                                    p_clear(&e, 1);                          \
                                 }                                            \
                                 (vec)->tab;                                  \
                             });                                              \
