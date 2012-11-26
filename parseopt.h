@@ -23,6 +23,7 @@ enum popt_kind {
     OPTION_STR,
     OPTION_GROUP,
     OPTION_CHAR,
+    OPTION_VERSION,
 };
 
 enum popt_options {
@@ -45,9 +46,15 @@ typedef struct popt_t {
 #define OPT_GROUP(h)           { OPTION_GROUP, 0, NULL, NULL, 0, (h) }
 #define OPT_END()              { OPTION_END, 0, NULL, NULL, 0, NULL }
 
+#define OPT_VERSION(name, f)   { OPTION_VERSION, 'V', "version",             \
+                                 (void *)(name), (intptr_t)(f),              \
+                                 "show version information" }
+
 int parseopt(int argc, char **argv, popt_t *opts, int flags);
 __attribute__((noreturn))
 void makeusage(int ret, const char *arg0, const char *usage,
                const char * const text[], popt_t *opts);
+__attribute__((noreturn))
+void makeversion(int ret, const char *name, const char *(*get_version)(void));
 
 #endif
