@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <sysexits.h>
+
 #include "parseopt.h"
 
 #define FLAG_SHORT 1
@@ -99,6 +101,12 @@ static int get_value(popt_state_t *st, popt_t *opt, int flags)
                 return opterror(opt, "expects a numerical value", flags);
         }
         return 0;
+
+      case OPTION_VERSION:
+        if (flags & FLAG_UNSET) {
+            return opterror(opt, "takes no value", flags);
+        }
+        makeversion(EX_OK, opt->value, (void *)opt->init);
 
       default:
         e_panic("should not happen, programmer is a moron");
@@ -242,5 +250,16 @@ void makeusage(int ret, const char *arg0, const char *usage,
             printf("\n%*s%s\n", OPTS_WIDTH + OPTS_GAP, "", opts->help);
         }
     }
+    exit(ret);
+}
+
+void makeversion(int ret, const char *name, const char *(*get_version)(void))
+{
+    printf("Intersec %s\n"
+           "Revision: %s\n"
+           "\n"
+           "See http://www.intersec.com/ for more details about our\n"
+           "line of products for telecommunications operators\n",
+           name, (*get_version)());
     exit(ret);
 }
