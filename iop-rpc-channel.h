@@ -68,7 +68,7 @@ ic_msg_t *ic_msg_new(int len);
 #define ic_msg_p(_t, _v)                                                    \
     ({                                                                      \
         ic_msg_t *_msg = ic_msg_new(sizeof(_t));                            \
-        *(_t *)_msg->priv = *(_t *)_v;                                      \
+        *(_t *)_msg->priv = *(_v);                                          \
         _msg;                                                               \
     })
 #define ic_msg(_t, ...)  ic_msg_p(_t, (&(_t){ __VA_ARGS__ }))
