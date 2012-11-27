@@ -28,6 +28,9 @@ qm_k64_t(test_qh_64, uint32_t);
 
 qh_kptr_t(test_str, const char, qhash_str_hash, qhash_str_equal);
 
+qm_kvec_t(test_lstr, lstr_t, uint32_t, qhash_lstr_hash, qhash_lstr_equal);
+qm_kptr_t(test_ptr,  void,   uint32_t, qhash_hash_ptr,  qhash_ptr_equal);
+
 Z_GROUP_EXPORT(qhash)
 {
     Z_TEST(insertion, "qhash: insertion") {
@@ -165,6 +168,39 @@ Z_GROUP_EXPORT(qhash)
 
         qm_wipe(test, &h);
     } Z_TEST_END;
+
+    Z_TEST(__qm_put , "qhash: __qm_put") {
+        lstr_t str;
+
+#define CHECK(type, key)  \
+        do {                                                                \
+            uint32_t pos;                                                   \
+                                                                            \
+            QM(type, h, true);                                              \
+            pos = __qm_put(type, &h, (key), 1, 0);                          \
+            Z_ASSERT_EQ(pos & QHASH_COLLISION, 0u);                         \
+            pos = __qm_put(type, &h, (key), 2, 0);                          \
+            Z_ASSERT_NE(pos & QHASH_COLLISION, 0u);                         \
+            Z_ASSERT_EQ(h.values[pos & ~QHASH_COLLISION], 1u);              \
+            pos = __qm_put(type, &h, (key), 2, QHASH_OVERWRITE);            \
+            Z_ASSERT_NE(pos & QHASH_COLLISION, 0u);                         \
+            Z_ASSERT_EQ(h.values[pos & ~QHASH_COLLISION], 2u);              \
+        } while (0)
+
+        /* IKEY */
+        CHECK(test, 1);
+
+        /* VKEY */
+        str = LSTR_IMMED_V("foo");
+        CHECK(test_lstr, &str);
+
+        /* PKEY */
+        CHECK(test_ptr, (void *)0xf00);
+
+#undef CHECK
+
+    } Z_TEST_END
+
 } Z_GROUP_END
 
 /*1}}}*/

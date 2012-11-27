@@ -353,6 +353,10 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
         return hashK(&qh->qh, key);                                          \
     }                                                                        \
     static inline uint32_t                                                   \
+    __##pfx##_reserve(pfx##_t *qh, key_t key, uint32_t fl) {                 \
+        return __##pfx##_reserve_h(qh, hashK(&qh->qh, key), key, fl);        \
+    }                                                                        \
+    static inline uint32_t                                                   \
     __##pfx##_put(pfx##_t *qh, key_t key, val_t v, uint32_t fl) {            \
         return __##pfx##_put_h(qh, hashK(&qh->qh, key), key, v, fl);         \
     }                                                                        \
@@ -377,12 +381,20 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     __QH_FIND(sfx, pfx, name, key_t const, key_t, qhash_hash_u##sfx);        \
                                                                              \
     static inline uint32_t                                                   \
-    __##pfx##_put_h(pfx##_t *qh, uint32_t h,                                 \
-                    key_t key, val_t v, uint32_t fl) {                       \
+    __##pfx##_reserve_h(pfx##_t *qh, uint32_t h, key_t key, uint32_t fl) {   \
         uint32_t pos = __qhash_put##sfx(&qh->qh, h, key, fl);                \
                                                                              \
         if ((fl & QHASH_OVERWRITE) || !(pos & QHASH_COLLISION)) {            \
             qh->keys[pos & ~QHASH_COLLISION] = key;                          \
+        }                                                                    \
+        return pos;                                                          \
+    }                                                                        \
+    static inline uint32_t                                                   \
+    __##pfx##_put_h(pfx##_t *qh, uint32_t h,                                 \
+                    key_t key, val_t v, uint32_t fl) {                       \
+        uint32_t pos = __##pfx##_reserve_h(qh, h, key, fl);                  \
+                                                                             \
+        if ((fl & QHASH_OVERWRITE) || !(pos & QHASH_COLLISION)) {            \
             qh->values[pos & ~QHASH_COLLISION] = v;                          \
         }                                                                    \
         return pos;                                                          \
@@ -394,15 +406,23 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     __QH_FIND2(_ptr, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
                                                                              \
     static inline uint32_t                                                   \
-    __##pfx##_put_h(pfx##_t *qh, uint32_t h,                                 \
-                    key_t *key, val_t v, uint32_t fl) {                      \
+    __##pfx##_reserve_h(pfx##_t *qh, uint32_t h, key_t *key, uint32_t fl) {  \
         uint32_t (*hf)(const qhash_t *, ckey_t*) = &hashK;                   \
         bool     (*ef)(const qhash_t *, ckey_t*, ckey_t*) = &iseqK;          \
         uint32_t pos = __qhash_put_ptr(&qh->qh, h, key, fl,                  \
                               (qhash_khash_f *)hf, (qhash_kequ_f *)ef);      \
                                                                              \
         if ((fl & QHASH_OVERWRITE) || !(pos & QHASH_COLLISION)) {            \
-            qh->keys[pos & ~QHASH_COLLISION]   = key;                        \
+            qh->keys[pos & ~QHASH_COLLISION] = key;                          \
+        }                                                                    \
+        return pos;                                                          \
+    }                                                                        \
+    static inline uint32_t                                                   \
+    __##pfx##_put_h(pfx##_t *qh, uint32_t h,                                 \
+                    key_t *key, val_t v, uint32_t fl) {                      \
+        uint32_t pos = __##pfx##_reserve_h(qh, h, key, fl);                  \
+                                                                             \
+        if ((fl & QHASH_OVERWRITE) || !(pos & QHASH_COLLISION)) {            \
             qh->values[pos & ~QHASH_COLLISION] = v;                          \
         }                                                                    \
         return pos;                                                          \
@@ -413,8 +433,7 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
     __QH_BASE(_vec, pfx, name, key_t, val_t, sizeof(val_t));                 \
     __QH_FIND2(_vec, pfx, name, ckey_t *, key_t *, hashK, iseqK);            \
     static inline uint32_t                                                   \
-    __##pfx##_put_h(pfx##_t *qh, uint32_t h,                                 \
-                    ckey_t *key, val_t v, uint32_t fl) {                     \
+    __##pfx##_reserve_h(pfx##_t *qh, uint32_t h, ckey_t *key, uint32_t fl) { \
         uint32_t (*hf)(const qhash_t *, ckey_t*) = &hashK;                   \
         bool     (*ef)(const qhash_t *, ckey_t*, ckey_t*) = &iseqK;          \
         uint32_t pos = __qhash_put_vec(&qh->qh, h, key, fl,                  \
@@ -422,7 +441,16 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
                                        (qhash_kequ_f *)ef);                  \
                                                                              \
         if ((fl & QHASH_OVERWRITE) || !(pos & QHASH_COLLISION)) {            \
-            qh->keys[pos & ~QHASH_COLLISION]   = *key;                       \
+            qh->keys[pos & ~QHASH_COLLISION] = *key;                         \
+        }                                                                    \
+        return pos;                                                          \
+    }                                                                        \
+    static inline uint32_t                                                   \
+    __##pfx##_put_h(pfx##_t *qh, uint32_t h,                                 \
+                    ckey_t *key, val_t v, uint32_t fl) {                     \
+        uint32_t pos = __##pfx##_reserve_h(qh, h, key, fl);                  \
+                                                                             \
+        if ((fl & QHASH_OVERWRITE) || !(pos & QHASH_COLLISION)) {            \
             qh->values[pos & ~QHASH_COLLISION] = v;                          \
         }                                                                    \
         return pos;                                                          \
@@ -635,12 +663,24 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 
 /** Find-reserve slot to insert {key,v} pair.
  *
- * This function finds the slot where to insert {\a key, \a v} in the qmap.
+ * These functions finds the slot where to insert {\a key, \a v} in the qmap.
+ *
+ * __qm_reserve[_h]():
+ *
+ * If there is no collision, the slot is reserved and the key slot is filled,
+ * the user still have to fill the value slot.
+ * If there is a collision, the key slot is overwritten or not, depending on
+ * the \a fl argument.
+ * In both cases, the value slot is left unchanged and its update is up to the
+ * caller.
+ *
+ * __qm_put[_h]():
+ *
  * If there is no collision, the slot is reserved and filled with
  * {\a key, \a v}, else the behavior depends upon the \a fl argument.
  *
- * This function is useful to write efficient code (spare one lookup) in code
- * that could naively be written:
+ * These functions are useful to write efficient code (spare one lookup) in
+ * code that could naively be written:
  * <code>
  * if (qm_find(..., qh, key) < 0) {
  *     // prepare 'v'
@@ -650,6 +690,13 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
  * and can instead be written:
  * <code>
  * pos = __qm_put(..., qh, key, v, 0);
+ * if (!(pos & QHASH_COLLISION)) {
+ *     // fixup qh->{keys,values}[pos];
+ * }
+ * </code>
+ * or:
+ * <code>
+ * pos = __qm_reserve(..., qh, key, 0);
  * if (!(pos & QHASH_COLLISION)) {
  *     // fixup qh->{keys,values}[pos];
  * }
@@ -669,6 +716,10 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
  *   The constant #QHASH_COLLISION is provided to extract and mask this most
  *   significant bit.
  */
+
+#define __qm_reserve(name, qh, key, fl)      __qm_##name##_reserve(qh, key, fl)
+#define __qm_reserve_h(name, qh, h, key, fl) __qm_##name##_reserve_h(qh, h, key, fl)
+
 #define __qm_put(name, qh, key, v, fl)      __qm_##name##_put(qh, key, v, fl)
 #define __qm_put_h(name, qh, h, key, v, fl) __qm_##name##_put_h(qh, h, key, v, fl)
 
