@@ -156,6 +156,39 @@ static inline void bb_add_byte(bb_t *bb, uint8_t b)
     bb_add_bits(bb, b, 8);
 }
 
+static inline void
+__bb_add_unaligned_bytes(bb_t *bb, const byte *b, size_t len)
+{
+    switch (len % 8) {
+      case 7:
+        bb_add_bits(bb, get_unaligned_cpu32(b), 32);
+        bb_add_bits(bb, get_unaligned_cpu16(b + 4), 16);
+        bb_add_bits(bb, *(b + 6), 8);
+        break;
+      case 6:
+        bb_add_bits(bb, get_unaligned_cpu32(b), 32);
+        bb_add_bits(bb, get_unaligned_cpu16(b + 4), 16);
+        break;
+      case 5:
+        bb_add_bits(bb, get_unaligned_cpu32(b), 32);
+        bb_add_bits(bb, *(b + 4), 8);
+        break;
+      case 4:
+        bb_add_bits(bb, get_unaligned_cpu32(b), 32);
+        break;
+      case 3:
+        bb_add_bits(bb, get_unaligned_cpu16(b), 16);
+        bb_add_bits(bb, *(b + 2), 8);
+        break;
+      case 2:
+        bb_add_bits(bb, get_unaligned_cpu16(b), 16);
+        break;
+      case 1:
+        bb_add_bits(bb, *b, 8);
+        break;
+    }
+}
+
 static inline void bb_add_bytes(bb_t *bb, const byte *b, size_t len)
 {
     if (bb->boffset == 0) {
@@ -163,19 +196,13 @@ static inline void bb_add_bytes(bb_t *bb, const byte *b, size_t len)
         memcpy(bb->bytes + bb->b, b, len);
         bb->len += len * 8;
     } else {
-        size_t words;
+        size_t words, align = (uintptr_t)b % 8;
 
         /* Align pointer to make arithmetic simpler */
-        while (len && unlikely(((uintptr_t)b) % 8)) {
-            /* TODO: if this is not performant enough, try something using
-             * switch ((uintptr_t)b % 8) { } and get_unaligned_le...
-             */
-            bb_add_byte(bb, *(b++));
-            len--;
-        }
-
-        if (len == 0) {
-            return;
+        if (unlikely(align != 0)) {
+            align = 8 - align;
+            __bb_add_unaligned_bytes(bb, b, align);
+            len -= align;
         }
 
         words = len / 8;
@@ -184,12 +211,7 @@ static inline void bb_add_bytes(bb_t *bb, const byte *b, size_t len)
             b += 8;
         }
 
-        if (len % 8) {
-            /* XXX: we read out-of-bound, but since the pointer is properly
-             * aligned, we are sure we won't crash.
-             */
-            bb_add_bits(bb, *(const uint64_t *)b, (len % 8) * 8);
-        }
+        __bb_add_unaligned_bytes(bb, b, len % 8);
     }
 }
 
