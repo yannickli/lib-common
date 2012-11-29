@@ -574,6 +574,44 @@ int fd_unset_features(int fd, int flags)
     return 0;
 }
 
+ssize_t fd_get_path(int fd, char buf[], size_t buf_len)
+{
+#ifndef __linux__
+# error "fd_get_path not implemented on your platform"
+#endif
+    char proc[PATH_MAX];
+    size_t path_len;
+    struct stat fdst;
+    struct stat pathst;
+
+    snprintf(proc, sizeof(proc), "/proc/self/fd/%d", fd);
+    path_len = RETHROW(readlink(proc, buf, buf_len));
+
+    if (path_len == buf_len) {
+        /* Path to long to append a nul byte */
+        errno = ENAMETOOLONG;
+        return -1;
+    }
+    buf[path_len] = '\0';
+
+    RETHROW(fstat(fd, &fdst));
+    RETHROW(stat(buf, &pathst));
+
+    /* This is neither a file or a directory */
+    if (!S_ISREG(pathst.st_mode) && !S_ISDIR(pathst.st_mode)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    /* The file is not the one we were expected */
+    if (fdst.st_dev != pathst.st_dev || fdst.st_ino != pathst.st_ino) {
+        errno = ENOENT;
+        return -1;
+    }
+
+    return path_len;
+}
+
 
 #ifndef __linux__
 int close_fds_higher_than(int fd)

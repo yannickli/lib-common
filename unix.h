@@ -114,6 +114,24 @@ void term_get_size(int *cols, int *rows);
 int fd_set_features(int fd, int flags);
 int fd_unset_features(int fd, int flags);
 
+/** Get the path of the file opened by that file descriptor.
+ *
+ * In case of success this function guarantees the buffer is terminated by a
+ * nul byte. It only works if the fd points to a regular file or a directory
+ * that hasn't been moved or renamed since it was opened.
+ *
+ * @param fd  The filedescriptor to inspect.
+ * @param buf A buffer that will receive the path.
+ * @param buf_len The size of buf.
+ *
+ * @return A negative value if the filename cannot be retrieved or if the
+ *         buffer is too short. Or the size of the string stored in the buffer
+ *         in case of success (not counting the trailing nul byte).
+ *
+ * @warning this function is expensive. It performs up to 3 system calls.
+ */
+ssize_t fd_get_path(int fd, char buf[], size_t buf_len);
+
 __attr_nonnull__((1))
 static inline int p_fclose(FILE **fpp) {
     FILE *fp = *fpp;
