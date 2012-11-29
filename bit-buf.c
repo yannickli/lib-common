@@ -220,35 +220,37 @@ Z_GROUP_EXPORT(bit_buf)
 
     Z_TEST(le_add_bytes, "") {
         BB_1k(bb);
-        byte b[16];
+        byte b[32];
 
         for (int i = 0; i < countof(b); i++) {
             b[i] = i;
         }
 
-        for (int i = 0; i < countof(b); i++) {
-            for (int j = 0; j < 64; j++) {
-                bit_stream_t bs;
-                bit_stream_t bs2;
+        for (int i = 0; i < countof(b) / 2; i++) {
+            for (int j = 0; j < countof(b) / 2; j++) {
+                for (int k = 0; k < 64; k++) {
+                    bit_stream_t bs;
+                    bit_stream_t bs2;
 
-                bb_reset(&bb);
+                    bb_reset(&bb);
 
-                bb_add1s(&bb, j);
-                bb_add_bytes(&bb, b, i);
+                    bb_add1s(&bb, k);
+                    bb_add_bytes(&bb, b + j, i);
 
-                bs = bs_init_bb(&bb);
-                for (int k = 0; k < j; k++) {
-                    int bit = bs_get_bit(&bs);
+                    bs = bs_init_bb(&bb);
+                    for (int l = 0; l < k; l++) {
+                        int bit = bs_get_bit(&bs);
 
-                    Z_ASSERT_N(bit, "buffer too short %d-%d-%d", i, j, k);
-                    Z_ASSERT(bit, "bad bit %d-%d-%d", i, j, k);
+                        Z_ASSERT_N(bit, "buffer too short %d-%d-%d", i, k, l);
+                        Z_ASSERT(bit, "bad bit %d-%d-%d", i, k, l);
+                    }
+
+                    bs2 = bs_init(b + j, 0, i * 8);
+                    while (!bs_done(&bs2)) {
+                        Z_ASSERT_EQ(bs_get_bit(&bs), bs_get_bit(&bs2));
+                    }
+                    Z_ASSERT(bs_done(&bs));
                 }
-
-                bs2 = bs_init(b, 0, i * 8);
-                while (!bs_done(&bs2)) {
-                    Z_ASSERT_EQ(bs_get_bit(&bs), bs_get_bit(&bs2));
-                }
-                Z_ASSERT(bs_done(&bs));
             }
         }
     } Z_TEST_END;
