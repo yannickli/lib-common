@@ -196,13 +196,20 @@ static inline void bb_add_bytes(bb_t *bb, const byte *b, size_t len)
         memcpy(bb->bytes + bb->b, b, len);
         bb->len += len * 8;
     } else {
-        size_t words, align = (uintptr_t)b % 8;
+        size_t words;
+        const size_t unaligned = ROUND_UP((intptr_t)b, 8) - (intptr_t)b;
 
         /* Align pointer to make arithmetic simpler */
-        if (unlikely(align != 0)) {
-            align = 8 - align;
-            __bb_add_unaligned_bytes(bb, b, align);
-            len -= align;
+        if (unlikely(unaligned)) {
+            if (len < 8) {
+                /* Don't waste time to align the buffer, there is nothing to
+                 * align. */
+                __bb_add_unaligned_bytes(bb, b, len);
+                return;
+            }
+            __bb_add_unaligned_bytes(bb, b, unaligned);
+            len -= unaligned;
+            b   += unaligned;
         }
 
         words = len / 8;
