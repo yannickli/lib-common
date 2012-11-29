@@ -17,16 +17,17 @@
 #include "unix.h"
 #include "time.h"
 
-/** Create a directory path as mkdir -p
+/** Create a subdirectory path as mkdir -p.
  *
- * @param dir   directory to create
- * @param mode  initial mode of directory, and parent directories if required
+ * @param dfd  parent directory (see man 2 mkdirat)
+ * @param path the path within the parent directory
+ * @param mode initial mode of the directory
  *
  * @return 0 if directory exists,
  * @return 1 if directory was created
  * @return -1 in case an error occurred.
  */
-int mkdir_p(const char *dir, mode_t mode)
+int mkdirat_p(int dfd, const char *dir, mode_t mode)
 {
     char path[PATH_MAX + 1], *p;
     int atoms = 0, res;
@@ -61,7 +62,7 @@ int mkdir_p(const char *dir, mode_t mode)
         p += strlen(p);
         *p = '/';
       make_everything:
-        if (mkdir(path, mode) < 0) {
+        if (mkdirat(dfd, path, mode) < 0) {
             if (errno != EEXIST)
                 return -1;
             res = 0;
@@ -72,6 +73,21 @@ int mkdir_p(const char *dir, mode_t mode)
             return res;
     }
 }
+
+/** Create a directory path as mkdir -p
+ *
+ * @param dir   directory to create
+ * @param mode  initial mode of directory, and parent directories if required
+ *
+ * @return 0 if directory exists,
+ * @return 1 if directory was created
+ * @return -1 in case an error occurred.
+ */
+int mkdir_p(const char *dir, mode_t mode)
+{
+    return mkdirat_p(AT_FDCWD, dir, mode);
+}
+
 
 /** Retrieve time of last modification
  *

@@ -59,7 +59,9 @@ void ps_install_panic_sighandlers(void);
 #define DIRECT_IS_ALIGNED(Val) (DIRECT_REMAIN(Val) == 0)
 
 int mkdir_p(const char *dir, mode_t mode);
+int mkdirat_p(int dfd, const char *dir, mode_t mode);
 int rmdir_r(const char *dir, bool only_content);
+int rmdirat_r(int dfd, const char *dir, bool only_content);
 
 int get_mtime(const char *filename, time_t *t);
 

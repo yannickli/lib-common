@@ -55,3 +55,21 @@ int rmdir_r(const char *dir, bool only_content)
         res = -1;
     return res;
 }
+
+int rmdirat_r(int dfd, const char *dir, bool only_content)
+{
+    char path[PATH_MAX];
+    int  dir_len;
+    int  path_len;
+
+    if (dfd == AT_FDCWD || *dir == '/') {
+        return rmdir_r(dir, only_content);
+    }
+
+    dir_len = strlen(dir);
+    path_len = RETHROW(fd_get_path(dfd, path, sizeof(path) - dir_len - 1));
+
+    path[path_len++] = '/';
+    p_copy(&path[path_len], dir, dir_len + 1);
+    return rmdir_r(path, only_content);
+}
