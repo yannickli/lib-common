@@ -84,6 +84,7 @@ static struct {
 
     thr_info_t       *threads;
     el_t              before;
+    el_t              sigchld;
     thr_queue_t       main_queue;
     uint64_t          reset_time;
     proctimer_t       st;
@@ -574,12 +575,18 @@ static void *thr_job_main(void *arg)
 static void thr_job_atfork(void)
 {
     el_before_unregister(&_G.before);
+    el_signal_unregister(&_G.sigchld);
     p_delete(&_G.threads);
     p_clear(&_G, 1);
     thr_parallelism_g = 0;
 }
 
 static void thr_before(el_t ev, el_data_t priv)
+{
+    thr_queue_drain(thr_queue_main_g);
+}
+
+static void thr_sigchld(el_t ev, int signum, el_data_t priv)
 {
     thr_queue_drain(thr_queue_main_g);
 }
@@ -621,7 +628,8 @@ void thr_initialize(void)
         pthread_sigmask(SIG_SETMASK, &old, NULL);
         pthread_attr_destroy(&attr);
         thr_queue_init(thr_queue_main_g);
-        _G.before = el_unref(el_before_register(thr_before, NULL));
+        _G.before  = el_unref(el_before_register(&thr_before, NULL));
+        _G.sigchld = el_signal_register(SIGCHLD, &thr_sigchld, NULL);
     }
 }
 
