@@ -328,6 +328,9 @@ void  iop_init(const iop_struct_t *st, void *value);
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
  *
+ * v1 and v2 can be NULL. If both v1 and v2 are NULL they are considered as
+ * equals.
+ *
  * \param[in] st  The IOP structures definition (__s).
  * \param[in] v1  Pointer on the IOP structure to be compared.
  * \param[in] v2  Pointer on the IOP structure to be compared with.
