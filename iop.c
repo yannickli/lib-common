@@ -207,6 +207,8 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v)
     size_t sz = ROUND_UP(st->size, 8) + iop_dup_size(st, v);
     uint8_t *dst, *res;
 
+    RETHROW_P(v);
+
     res = mp ? mp->malloc(mp, sz, MEM_RAW) : imalloc(sz, MEM_LIBC | MEM_RAW);
     dst = realign(mempcpy(res, v, st->size));
     dst = __iop_copy(st, dst, res, v);
@@ -218,6 +220,11 @@ void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp, const void *v
 {
     size_t sz = ROUND_UP(st->size, 8) + iop_dup_size(st, v);
     uint8_t *dst, *res = *outp;
+
+    if (unlikely(!v)) {
+        *outp = NULL;
+        return;
+    }
 
     if (mp) {
         res = mp->realloc(mp, res, 0, sz, MEM_RAW);
@@ -331,7 +338,11 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
 
 bool iop_equals(const iop_struct_t *st, const void *v1, const void *v2)
 {
-    return __iop_equals(st, v1, v2);
+    if (v1 && v2) {
+        return __iop_equals(st, v1, v2);
+    } else {
+        return v1 == v2;
+    }
 }
 
 static inline bool
