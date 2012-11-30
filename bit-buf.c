@@ -185,6 +185,31 @@ Z_GROUP_EXPORT(bit_buf)
         Z_ASSERT_EQ(__bs_get_bit(&bs), true,  "Check bit #8");
         Z_ASSERT_EQ(__bs_get_bit(&bs), false, "Check bit #9");
         Z_ASSERT_EQ(__bs_get_bit(&bs), true,  "Check bit #10");
+
+        /* Reverse check */
+        bs = bs_init_bb(&bb);
+        Z_ASSERT_N(bs_shrink(&bs, 7), "Shrink #1");
+        Z_ASSERT_EQ(bs_len(&bs), 10U, "Check length #2");
+        Z_ASSERT_EQ(__bs_peek_last_bit(&bs), true,  "Check bit #10");
+        Z_ASSERT_EQ(__bs_get_last_bit(&bs), true,  "Check bit #10");
+        Z_ASSERT_EQ(__bs_peek_last_bit(&bs), false, "Check bit #9");
+        Z_ASSERT_EQ(__bs_get_last_bit(&bs), false, "Check bit #9");
+        Z_ASSERT_EQ(__bs_peek_last_bit(&bs), true,  "Check bit #8");
+        Z_ASSERT_EQ(__bs_get_last_bit(&bs), true,  "Check bit #8");
+        Z_ASSERT_EQ(__bs_peek_last_bit(&bs), false, "Check bit #7");
+        Z_ASSERT_EQ(__bs_get_last_bit(&bs), false, "Check bit #7");
+        Z_ASSERT_EQ(__bs_peek_last_bit(&bs), false, "Check bit #6");
+        Z_ASSERT_EQ(__bs_get_last_bit(&bs), false, "Check bit #6");
+        Z_ASSERT_EQ(__bs_peek_last_bit(&bs), false, "Check bit #5");
+        Z_ASSERT_EQ(__bs_get_last_bit(&bs), false, "Check bit #5");
+        Z_ASSERT_EQ(__bs_peek_last_bit(&bs), true,  "Check bit #4");
+        Z_ASSERT_EQ(__bs_get_last_bit(&bs), true,  "Check bit #4");
+        Z_ASSERT_EQ(__bs_peek_last_bit(&bs), true,  "Check bit #3");
+        Z_ASSERT_EQ(__bs_get_last_bit(&bs), true,  "Check bit #3");
+        Z_ASSERT_EQ(__bs_peek_last_bit(&bs), false, "Check bit #2");
+        Z_ASSERT_EQ(__bs_get_last_bit(&bs), false, "Check bit #2");
+        Z_ASSERT_EQ(__bs_peek_last_bit(&bs), true,  "Check bit #1");
+        Z_ASSERT_EQ(__bs_get_last_bit(&bs), true,  "Check bit #1");
     } Z_TEST_END;
 
     Z_TEST(le_add_0_1, "") {
@@ -293,6 +318,31 @@ Z_GROUP_EXPORT(bit_buf)
         Z_ASSERT_EQ(__bs_be_get_bit(&bs), true,  "Check bit #8");
         Z_ASSERT_EQ(__bs_be_get_bit(&bs), false, "Check bit #9");
         Z_ASSERT_EQ(__bs_be_get_bit(&bs), true,  "Check bit #10");
+
+        /* Reverse check */
+        bs = bs_init_bb(&bb);
+        Z_ASSERT_N(bs_shrink(&bs, 7), "Shrink #1");
+        Z_ASSERT_EQ(bs_len(&bs), 10U, "Check length #2");
+        Z_ASSERT_EQ(__bs_be_peek_last_bit(&bs), true,  "Check bit #10");
+        Z_ASSERT_EQ(__bs_be_get_last_bit(&bs), true,  "Check bit #10");
+        Z_ASSERT_EQ(__bs_be_peek_last_bit(&bs), false, "Check bit #9");
+        Z_ASSERT_EQ(__bs_be_get_last_bit(&bs), false, "Check bit #9");
+        Z_ASSERT_EQ(__bs_be_peek_last_bit(&bs), true,  "Check bit #8");
+        Z_ASSERT_EQ(__bs_be_get_last_bit(&bs), true,  "Check bit #8");
+        Z_ASSERT_EQ(__bs_be_peek_last_bit(&bs), false, "Check bit #7");
+        Z_ASSERT_EQ(__bs_be_get_last_bit(&bs), false, "Check bit #7");
+        Z_ASSERT_EQ(__bs_be_peek_last_bit(&bs), false, "Check bit #6");
+        Z_ASSERT_EQ(__bs_be_get_last_bit(&bs), false, "Check bit #6");
+        Z_ASSERT_EQ(__bs_be_peek_last_bit(&bs), false, "Check bit #5");
+        Z_ASSERT_EQ(__bs_be_get_last_bit(&bs), false, "Check bit #5");
+        Z_ASSERT_EQ(__bs_be_peek_last_bit(&bs), true,  "Check bit #4");
+        Z_ASSERT_EQ(__bs_be_get_last_bit(&bs), true,  "Check bit #4");
+        Z_ASSERT_EQ(__bs_be_peek_last_bit(&bs), true,  "Check bit #3");
+        Z_ASSERT_EQ(__bs_be_get_last_bit(&bs), true,  "Check bit #3");
+        Z_ASSERT_EQ(__bs_be_peek_last_bit(&bs), false, "Check bit #2");
+        Z_ASSERT_EQ(__bs_be_get_last_bit(&bs), false, "Check bit #2");
+        Z_ASSERT_EQ(__bs_be_peek_last_bit(&bs), true,  "Check bit #1");
+        Z_ASSERT_EQ(__bs_be_get_last_bit(&bs), true,  "Check bit #1");
     } Z_TEST_END;
 } Z_GROUP_END;
 

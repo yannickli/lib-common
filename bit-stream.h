@@ -381,6 +381,31 @@ static inline int bs_get_bits(bit_stream_t *bs, size_t blen, uint64_t *out)
     return blen;
 }
 
+static inline int __bs_peek_last_bit(const bit_stream_t *bs)
+{
+    if (bs->e.offset) {
+        return (*bs->e.p >> (bs->e.offset - 1)) & 1;
+    } else {
+        return (*(bs->e.p - 1) >> 63) & 1;
+    }
+}
+
+static inline int bs_peek_last_bit(const bit_stream_t *bs)
+{
+    return unlikely(bs_done(bs)) ? -1 : __bs_peek_last_bit(bs);
+}
+
+static inline int __bs_get_last_bit(bit_stream_t *bs)
+{
+    __bs_shrink(bs, 1);
+    return (*bs->e.p >> bs->e.offset) & 1;
+}
+
+static inline int bs_get_last_bit(bit_stream_t *bs)
+{
+    return unlikely(bs_done(bs)) ? -1 : __bs_get_last_bit(bs);
+}
+
 static inline int
 bs_get_last_bits(bit_stream_t *bs, size_t blen, uint64_t *out)
 {
@@ -459,6 +484,37 @@ static inline int bs_be_get_bits(bit_stream_t *bs, size_t blen, uint64_t *out)
     BS_WANT(bs_has(bs, blen));
     *out = __bs_be_get_bits(bs, blen);
     return blen;
+}
+
+static inline int __bs_be_peek_last_bit(const bit_stream_t *bs)
+{
+    if (bs->e.offset) {
+        int offset = ((bs->e.offset - 1) & ~7ul) + 7
+            - ((bs->e.offset - 1) % 8);
+
+        return (*bs->e.p >> offset) & 1;
+    } else {
+        return (*(bs->e.p - 1) >> 56) & 1;
+    }
+}
+
+static inline int bs_be_peek_last_bit(const bit_stream_t *bs)
+{
+    return unlikely(bs_done(bs)) ? -1 : __bs_be_peek_last_bit(bs);
+}
+
+static inline int __bs_be_get_last_bit(bit_stream_t *bs)
+{
+    int offset;
+
+    __bs_shrink(bs, 1);
+    offset = (bs->e.offset & ~7ul) + 7 - (bs->e.offset % 8);
+    return (*bs->e.p >> offset) & 1;
+}
+
+static inline int bs_be_get_last_bit(bit_stream_t *bs)
+{
+    return unlikely(bs_done(bs)) ? -1 : __bs_be_get_last_bit(bs);
 }
 
 static inline int
