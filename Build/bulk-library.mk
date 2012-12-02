@@ -12,7 +12,8 @@
 ##########################################################################
 
 define fun/common-depends
-$2: $(1D)/Makefile $(var/toolsdir)/* $(var/cfgdir)/*
+$2: $(1D)/Makefile $(var/toolsdir)/*.mk $(var/toolsdir)/_local_targets.sh
+$2: $(var/cfgdir)/*.mk $(var/cfgdir)/cflags.sh
 $2: $(foreach s,$3,$($s_DEPENDS)) | $($(1D)/_DEPENDS)
 endef
 
