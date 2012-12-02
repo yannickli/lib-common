@@ -145,8 +145,6 @@ setenv "IOPC" "$(which iopc)"
 for tool in clang clang++ flex gperf mtasc swfmill xsltproc scons ruby python; do
     check_tool $tool $tool
 done
-setenv "CLANG"   "$(which clang)"
-setenv "CLANGXX" "$(which clang++)"
 
 if ! test -f /usr/include/sys/capability.h; then
     warn "mising libcap-dev (for <sys/capability.h>)"

@@ -26,36 +26,46 @@ else
 	CXX_BASE := clang++
 endif
 
-$!clang-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*
-	echo -n "CLANGFLAGS := "                                  >  $@+
-	$(var/cfgdir)/cflags.sh "clang" | tr '\n' ' '             >> $@+
-	echo                                                      >> $@+
-	echo -n "CLANGXXFLAGS := "                                >> $@+
-	$(var/cfgdir)/cflags.sh "clang++" | tr '\n' ' '           >> $@+
-	echo                                                      >> $@+
-	echo -n "CLANGREWRITEFLAGS := "                           >> $@+
-	$(var/cfgdir)/cflags.sh "clang" "rewrite" | tr '\n' ' '   >> $@+
-	echo                                                      >> $@+
-	echo -n "CLANGXXREWRITEFLAGS := "                         >> $@+
-	$(var/cfgdir)/cflags.sh "clang++" "rewrite" | tr '\n' ' ' >> $@+
-	echo                                                      >> $@+
-	$(MV) $@+ $@
+CLANG   := $(shell which "clang")
+CLANGXX := $(shell which "clang++")
+CC      := $(shell which "$(CC)")
+CXX     := $(shell which "$(CXX)")
 
-$!cc-$(CC_BASE)-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*
-	echo -n "CFLAGS := "                          >  $@+
-	$(var/cfgdir)/cflags.sh "$(CC)" | tr '\n' ' ' >> $@+
+$!clang-flags.mk: $(CLANG) $(var/cfgdir)/cflags.sh
+	$(RM) $@
+	echo -n "CLANGFLAGS := "                      >  $@+
+	$(var/cfgdir)/cflags.sh "clang"               >> $@+
+	echo                                          >> $@+
+	echo -n "CLANGXXFLAGS := "                    >> $@+
+	$(var/cfgdir)/cflags.sh "clang++"             >> $@+
+	echo                                          >> $@+
+	echo -n "CLANGREWRITEFLAGS := "               >> $@+
+	$(var/cfgdir)/cflags.sh "clang" "rewrite"     >> $@+
+	echo                                          >> $@+
+	echo -n "CLANGXXREWRITEFLAGS := "             >> $@+
+	$(var/cfgdir)/cflags.sh "clang++" "rewrite"   >> $@+
 	echo                                          >> $@+
 	$(MV) $@+ $@
 
-$!cxx-$(CXX_BASE)-flags.mk: $(var/toolsdir)/* $(var/cfgdir)/*
-	echo -n "CXXFLAGS := "                         >  $@+
-	$(var/cfgdir)/cflags.sh "$(CXX)" | tr '\n' ' ' >> $@+
-	echo                                           >> $@+
+$!cc-$(CC_BASE)-flags.mk: $(CC) $(var/cfgdir)/cflags.sh
+	$(RM) $@
+	echo -n "CFLAGS := "                          >  $@+
+	$(var/cfgdir)/cflags.sh "$(CC)"               >> $@+
+	echo                                          >> $@+
 	$(MV) $@+ $@
 
--include $!clang-flags.mk
--include $!cc-$(CC_BASE)-flags.mk
--include $!cxx-$(CXX_BASE)-flags.mk
+$!cxx-$(CXX_BASE)-flags.mk: $(CXX) $(var/cfgdir)/cflags.sh
+	$(RM) $@
+	echo -n "CXXFLAGS := "                        >  $@+
+	$(var/cfgdir)/cflags.sh "$(CXX)"              >> $@+
+	echo                                          >> $@+
+	$(MV) $@+ $@
+
+ifeq ($(filter %clang,$(CC_BASE)),)
+include $!clang-flags.mk
+endif
+include $!cc-$(CC_BASE)-flags.mk
+include $!cxx-$(CXX_BASE)-flags.mk
 
 CFLAGS       += -I$/lib-common/compat -I$/
 CXXFLAGS     += -I$/lib-common/compat -I$/
