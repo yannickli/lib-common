@@ -12,127 +12,7 @@
 #                                                                        #
 ##########################################################################
 
-missing_dep=
-profile=
-out=/dev/stdout
-
-# {{{ library
-
-log_() {
-    echo 2>&1 "$@"
-}
-
-die() {
-    log_ '/!\' "$@" '/!\'
-    exit 1
-}
-
-log() {
-    log_ "..." "$@"
-}
-
-warn() {
-    log_ "***" "$@"
-    missing_dep=t
-}
-
-setenv() {
-    v="$1"
-    shift
-    echo "export $v" "=" "$@" >> "$out"
-}
-
-setvar() {
-    v="$1"
-    shift
-    echo "$v" "=" "$@" >> "$out"
-}
-
-
-file_exists() {
-    test -e "$1" -a -r "$1"
-}
-
-check_tool() {
-    which "$1" >/dev/null 2>&1 || warn "$1 is missing, apt-get install $2"
-}
-
-pkg_config_setvar() {
-    pfx="$1"; shift
-    deb="$1"; shift
-
-
-    while test $# != 0; do
-        pkg="$1"
-        if pkg-config --print-errors "$pkg"; then
-            setvar "${pfx}_CFLAGS" "$(pkg-config --cflags "$pkg")"
-            setvar "${pfx}_LIBS"   "$(pkg-config --libs "$pkg")"
-            return 0
-        fi
-        shift
-    done
-    warn "$deb is missing (apt-get install $deb)"
-}
-
-prereq() {
-    want="$1"
-    has="$2"
-
-    test "$want" = "$has" && return 0
-    while test -n "$want"; do
-        test -z "$has" && return 1
-        w="${want%%.*}"
-        h="${has%%.*}"
-        case "$want" in *.*) want="${want#*.}";; *) want=""; esac
-        case "$has" in *.*)  has="${has#*.}";;   *) has=""; esac
-
-        test "$w" -lt "$h" && return 0
-        test "$w" -gt "$h" && return 1
-    done
-
-    return 0
-}
-
-ruby_var() {
-    echo $(ruby -rrbconfig -e "puts(RbConfig::CONFIG['$1'] || RbConfig::CONFIG['$2'] || '')")
-}
-
-# }}}
-
-while test $# != 0; do
-    case "$1" in
-        -p)
-            shift
-            test $# != 0 || die "missing -p argument"
-            profile="$1"
-            shift
-            ;;
-        -o)
-            shift
-            test $# != 0 || die "missing -o argument"
-            out="$1"
-            shift
-            ;;
-        *) die "unknown argument $1";;
-    esac
-done
-
-log "start configure"
-test -n "$out" -a "$out" != "/dev/stdout" && rm -f "$out"
-
-
-if test -n "$profile" -a -d /opt/intersec/${profile}; then
-    export BUILDFOR_PREFIX="/opt/intersec/${profile}"
-    export PKG_CONFIG_LIBDIR="${BUILDFOR_PREFIX}/usr/lib/pkgconfig"
-    export PKG_CONFIG_LIBDIR="/usr/lib64/pkgconfig:${PKG_CONFIG_LIBDIR}"
-    export PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1
-    export PKG_CONFIG_ALLOW_SYSTEM_LIBS=1
-else
-    export PKG_CONFIG_LIBDIR="/usr/lib64/pkgconfig:$(pkg-config --variable pc_path pkg-config)"
-    if test "$(uname -s)" = "SunOS"; then
-        export PKG_CONFIG_LIBDIR="/opt/csw/lib/pkgconfig:${PKG_CONFIG_LIBDIR}"
-    fi
-fi
+. Build/configure.inc.sh
 
 # {{{ tools
 
@@ -142,22 +22,10 @@ if ! prereq "$IOPC_VER" "$(iopc --version)"; then
 fi
 setenv "IOPC" "$(which iopc)"
 
-for tool in clang clang++ flex gperf mtasc swfmill xsltproc scons ruby python; do
-    check_tool $tool $tool
-done
-
-if ! test -f /usr/include/sys/capability.h; then
-    warn "mising libcap-dev (for <sys/capability.h>)"
-fi
-
 # }}}
 # {{{ pkg-config packages
 
-pkg_config_setvar "libxml2" "libxml2-dev"    "libxml-2.0"
-pkg_config_setvar "zlib"    "zlib1g-dev"     "zlib"
 pkg_config_setvar "sqlite"  "libsqlite3-dev" "sqlite3"
-pkg_config_setvar "openssl" "libssl-dev"     "openssl"
-
 pkg_config_setvar "imlib2"  "libimlib2-dev" "imlib2"
 pkg_config_setvar "pcre"    "libpcre3-dev"  "libpcre"
 
@@ -165,19 +33,6 @@ pkg_config_setvar "pcre"    "libpcre3-dev"  "libpcre"
 # {{{ libv8-dev
 
 setvar "v8_LIBS"    "$(dirname "$0")/js/v8/libv8.a"
-
-# }}}
-# {{{ libpcap-dev
-
-if test -r /usr/include/pcap.h; then
-    setvar "libpcap_CFLAGS"
-    setvar "libpcap_LIBS" "-lpcap"
-    if ! test -r /usr/include/pcap/pcap.h; then
-        setenv "libpcap_OUTDATED" "1"
-    fi
-else
-    warn "missing libpcap, apt-get install libpcap-dev"
-fi
 
 # }}}
 # {{{ libreadline-dev

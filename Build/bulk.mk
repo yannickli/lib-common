@@ -99,7 +99,7 @@ __setup_buildsys_doc:
 
 ifeq (0,$(MAKELEVEL))
 
-$!deps.mk: $/configure
+$!deps.mk: $/configure $(var/toolsdir)/configure.inc.sh
 	mkdir -p $(@D)
 	$< -p $(var/profile) -o $@ || ($(RM) $@; $(msg/alert) 'configure failed')
 
