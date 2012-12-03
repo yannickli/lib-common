@@ -20,4 +20,4 @@ str-ctype-maker_SOURCES = \
 	$/lib-common/time-lp-simple.a
 str-ctype-maker_LIBS = -lrt
 
-include ../../Build/base.mk
+include ../Build/base.mk
