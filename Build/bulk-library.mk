@@ -146,13 +146,11 @@ $(3:l=c): $3
 	$(msg/COMPILE.l) $3
 	flex -R -o $$@+ $$<
 	sed -i -e 's/^extern int isatty.*;//' \
-	       -e 's/^\t\tint n; \\/		size_t n; \\/' \
-		   -e 's/^int .*get_column.*;//' \
-		   -e 's/^void .*set_column.*;//' \
-		   $$@
-	chmod a-w $$@
-__$(1D)_generated: $(3:l=c)
-$$(eval $$(call fun/common-depends,$1,$(3:l=c),$3))
+	       -e 's/^\t\tint n; \\/            size_t n; \\/' \
+	           -e 's/^int .*get_column.*;//' \
+	           -e 's/^void .*set_column.*;//' \
+	           $$@+
+	$(MV) $$@+ $$@ && chmod a-w $$@
 endef
 
 define ext/rule/l

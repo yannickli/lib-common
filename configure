@@ -200,15 +200,6 @@ test -r /usr/include/netinet/sctp.h || warn "missing libsctp, apt-get install li
 # {{{ JNI
 
 if test -z ${JAVA_HOME}; then
-    warn "*** JAVA_HOME not set, JNI disabled"
-else
-    setvar "jni_CFLAGS" "-I${JAVA_HOME}/include -I${JAVA_HOME}/include/linux"
-fi
-
-# }}}
-# {{{ JNI
-
-if test -z ${JAVA_HOME}; then
     JAVA_HOME=$(ls -1 -d /usr/lib/jvm/java*sun*/include 2>/dev/null | head -1)
     JAVA_HOME=${JAVA_HOME%/*}
 fi
@@ -291,7 +282,7 @@ else
     if file_exists /opt/php-${PHP_VERSION}/bin/php-config; then
        PHP_CONFIG=/opt/php-${PHP_VERSION}/bin/php-config
     else
-       PHP_CONFIG=/srv/build/php-${PHP_VERSION}/bin/php-config
+	PHP_CONFIG=/srv/build/php-${PHP_VERSION}/bin/php-config
     fi
 fi
 if test -n "$PHP_CONFIG"; then
@@ -388,6 +379,19 @@ if [ -z "${python2_ENABLE}" ] && [ -z "${python3_ENABLE}" ]; then
     warn "python headers are missing, apt-get install python-dev"
 fi
 
+
+# }}}
+#{{{ xmlsec
+
+# call pkg-config directly rather than pkg_config_setvar to workaround stupid
+# upstream bug: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=604828
+
+if pkg-config --print-errors xmlsec1; then
+    setvar "xmlsec_CFLAGS" "$(pkg-config --cflags xmlsec1 | tr -s '\\')"
+    setvar "xmlsec_LIBS"   "$(pkg-config --libs xmlsec1)"
+else
+    warn "libxmlsec1-dev is missing (apt-get install libxmlsec1-dev)"
+fi
 
 # }}}
 #{{{ ncurses
