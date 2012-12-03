@@ -17,4 +17,4 @@ endif
 
 tstiop_SOURCES = tstiop.iop
 
-include ../../Build/base.mk
+include ../Build/base.mk

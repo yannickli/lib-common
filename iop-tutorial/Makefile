@@ -24,4 +24,4 @@ ex-iop_SOURCES = \
 	$/lib-common/libcommon.a \
 	$/lib-common/time-lp-simple.a
 
-include ../../Build/base.mk
+include ../Build/base.mk
