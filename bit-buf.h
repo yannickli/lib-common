@@ -125,7 +125,7 @@ static inline void bb_add_bit(bb_t *bb, bool v)
         bb_grow(bb, 1);
     }
     if (v) {
-        bb->data[bb->word] |= 1 << bb->offset;
+        bb->data[bb->word] |= 1ULL << bb->offset;
     }
     bb->len++;
 }
