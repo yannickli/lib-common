@@ -222,7 +222,12 @@ void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp, const void *v
     uint8_t *dst, *res = *outp;
 
     if (unlikely(!v)) {
-        *outp = NULL;
+        if (mp) {
+            mp_delete(mp, outp);
+        } else {
+            p_delete(outp);
+        }
+
         return;
     }
 
