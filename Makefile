@@ -249,4 +249,4 @@ Upgrading.html: Upgrading.txt Config/asciidoc.conf
 	@dos2unix $@
 endif
 
-include ../Build/base.mk
+include Build/base.mk
