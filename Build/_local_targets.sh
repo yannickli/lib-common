@@ -25,7 +25,7 @@ die() {
 grep -v '__setup_forward' | grep -E '^ *[^[:space:]$()#=/][^[:space:]$()#=]*:( |$)' | while read target rest
 do
     case "$target" in
-        __*:|FORCE:|.*:|Makefile:|%:|"$toolsdir"*:|"$cfgdir"*:)
+        __*:|FORCE:|.*:|Makefile:|%:|*/Build/*:|*/Config/*:)
             : "ignore some internal stuff";;
         /*:)
             : "ignore absolute stuff, likely to be includes";;
