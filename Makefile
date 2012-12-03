@@ -251,10 +251,10 @@ zgcd-bench_SOURCES = \
 ifneq (SunOS,$(shell uname -s))
 DISTCLEANFILES=Upgrading.html
 all:: Upgrading.html
-Upgrading.html: Upgrading.txt ../Config/asciidoc.conf
+Upgrading.html: Upgrading.txt Config/asciidoc.conf
 	@echo " DOC $(@F)"
 	@$(RM) $@
-	@asciidoc -f ../Config/asciidoc.conf -b xhtml11 -o $@ $<
+	@asciidoc -f Config/asciidoc.conf -b xhtml11 -o $@ $<
 	@dos2unix $@
 endif
 
