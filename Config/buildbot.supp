@@ -1,0 +1,7 @@
+# IOP Compiler warnings
+.*mcg/iop/cfg.iop                 : .*new is a keyword in some languages.*
+.*mcg/iop/mcg.iop                 : .*delete is a keyword in some languages.*
+.*mcg/iop/msg.iop                 : .*delete is a keyword in some languages.*
+.*mcg/iop/msg.iop                 : .*new is a keyword in some languages.*
+.*mcg/modules/routing/routing.iop : .*class is a keyword in some languages.*
+.*lib-common/iop/tstiop.iop       : .*function .* may be a candidate for async-ness.*
