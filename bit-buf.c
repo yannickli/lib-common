@@ -294,6 +294,16 @@ Z_GROUP_EXPORT(bit_buf)
         Z_ASSERT_EQ(__bs_be_get_bit(&bs), false, "Check bit #9");
         Z_ASSERT_EQ(__bs_be_get_bit(&bs), true,  "Check bit #10");
     } Z_TEST_END;
+
+    Z_TEST(le_bug, "bit-buf: add 64nth bit") {
+        t_scope;
+        t_BB_1k(bb);
+
+        bb_add0s(&bb, 63);
+        bb_add_bit(&bb, true);
+        bb_add0s(&bb, 8);
+        Z_ASSERT_STREQUAL(".00000000.00000000.00000000.00000000.00000000.00000000.00000000.00000001.00000000", t_print_bb(&bb, NULL));
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 /* }}} */
