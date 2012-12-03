@@ -22,10 +22,10 @@ include $!deps.mk
 endif
 endif
 
-doc:
+
 all check clean distclean::
 FORCE: ;
-.PHONY: all check clean distclean doc FORCE
+.PHONY: all check clean distclean FORCE
 
 var/sources    = $(sort $(foreach v,$(filter %_SOURCES,$(.VARIABLES)),$($v)))
 var/cleanfiles = $(sort $(foreach v,$(filter %_CLEANFILES,$(.VARIABLES)),$($v)))
@@ -35,7 +35,6 @@ var/staticlibs = $(foreach v,$(filter %_LIBRARIES,$(filter-out %_SHARED_LIBRARIE
 var/sharedlibs = $(foreach v,$(filter %_SHARED_LIBRARIES,$(.VARIABLES)),$($v))
 var/programs   = $(foreach v,$(filter %_PROGRAMS,$(.VARIABLES)),$($v))
 var/datas      = $(foreach v,$(filter %_DATAS,$(.VARIABLES)),$($v))
-var/docs       = $(foreach v,$(filter %_DOCS,$(.VARIABLES)),$($v))
 
 ifeq ($(realpath $(firstword $(MAKEFILE_LIST))),$!Makefile)
 ##########################################################################
@@ -52,7 +51,6 @@ distclean::
 	$(RM) $(filter-out %/,$(DISTCLEANFILES))
 	$(RM) -r $(filter %/,$(DISTCLEANFILES))
 	$(msg/rm) copied targets
-	$(call fun/expand-if2,$(RM),$(var/docs))
 	$(call fun/expand-if2,$(RM),$(var/datas))
 	$(call fun/expand-if2,$(RM),$(var/programs:=$(EXEEXT)))
 	$(call fun/expand-if2,$(RM),$(var/sharedlibs:=.so*))
@@ -68,10 +66,8 @@ tags: $(var/generated)
 define fun/subdirs-targets
 $(foreach d,$1,
 $(patsubst ./%,%,$(dir $(d:/=)))all::       $(d)all
-$(patsubst ./%,%,$(dir $(d:/=)))doc:       $(d)doc
 $(patsubst ./%,%,$(dir $(d:/=)))clean::     $(d)clean
 $(d)all::
-$(d)doc:
 $(d)check:: $(d)all
 	$(var/toolsdir)/_run_checks.sh $(d)
 $(d)clean::
@@ -87,15 +83,13 @@ $(foreach p,$(var/staticlibs),$(eval $(call rule/staticlib,$p)))
 $(foreach p,$(var/sharedlibs),$(eval $(call rule/sharedlib,$p)))
 $(foreach p,$(var/programs),$(eval $(call rule/program,$p)))
 $(foreach p,$(var/datas),$(eval $(call rule/datas,$p)))
-$(foreach p,$(var/docs),$(eval $(call rule/docs,$p)))
 # }}}
 else
 ##########################################################################
 # {{{ Only at toplevel
 
 __setup_buildsys_trampoline:
-__setup_buildsys_doc:
-.PHONY: __setup_buildsys_trampoline __setup_buildsys_doc
+.PHONY: __setup_buildsys_trampoline
 
 ifeq (0,$(MAKELEVEL))
 
@@ -115,11 +109,6 @@ toplevel:
 all:: toplevel
 all check clean distclean:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
-
-__setup_buildsys_doc:
-	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)doc
-
-doc: | __setup_buildsys_doc
 
 tags: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile tags
@@ -155,7 +144,6 @@ ignore:
 	$(foreach v,$(CLEANFILES:/=),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/generated),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/datas),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
-	$(foreach v,$(var/docs),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/programs:=$(EXEEXT)),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
 	$(foreach v,$(var/sharedlibs:=.so),grep -q '^/$v[*]$$' .gitignore || echo '/$v*' >> .gitignore;)
 endif
@@ -169,7 +157,6 @@ _generated: _generated_hdr
 ifeq (,$(findstring p,$(MAKEFLAGS)))
 
 $(sort $(var/generated) $(var/datas)) \
-$(var/docs)                   \
 $(var/programs:=$(EXEEXT))    \
 $(var/sharedlibs:=.so)        \
 $(var/staticlibs:=.a)         \
@@ -223,7 +210,7 @@ ifeq (__dump_targets,$(MAKECMDGOALS))
 __dump_targets: . = $(patsubst $(var/srcdir)/%,%,$(realpath $(CURDIR))/)
 __dump_targets:
 	echo 'ifneq (,$$(realpath $.Makefile))'
-	$(foreach v,$(filter %_DOCS %_DATAS %_PROGRAMS %_LIBRARIES,$(.VARIABLES)),\
+	$(foreach v,$(filter %_DATAS %_PROGRAMS %_LIBRARIES,$(.VARIABLES)),\
 	    echo '$v += $(call fun/msq,$(call fun/rebase,$(CURDIR),$($v)))';)
 	$(foreach v,$(filter %_DEPENDS %_SOURCES,$(.VARIABLES)),\
 	    echo '$.$v += $(call fun/msq,$(call fun/rebase,$(CURDIR),$($v)))';)
