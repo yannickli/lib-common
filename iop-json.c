@@ -1671,7 +1671,7 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
         PUTS("}");
     }
 
-    if (lvl == 0)
+    if (lvl == 0 && !(flags & IOP_JPACK_NO_TRAILING_EOL))
         PUTS("\n");
 
     return res;

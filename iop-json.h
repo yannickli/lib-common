@@ -258,6 +258,8 @@ enum iop_jpack_flags {
     IOP_JPACK_STRICT  = (1U << 0),
     /** generate compact JSon (no indentation, no spaces, …) */
     IOP_JPACK_COMPACT = (1U << 1),
+    /** do not append '\n' when done */
+    IOP_JPACK_NO_TRAILING_EOL = (1U << 2),
 };
 
 /** Callback to use for writing JSon into a sb_t. */
