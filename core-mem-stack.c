@@ -151,7 +151,7 @@ static void *sp_alloc_aligned(mem_pool_t *_sp, size_t size, size_t alignment,
     mem_stack_frame_t *frame = sp->stack;
     uint8_t *res;
 
-    RETURN_NULL_IF(size == 0);
+    THROW_NULL_IF(size == 0);
 
 #ifndef NDEBUG
     if (unlikely(frame == &sp->base))

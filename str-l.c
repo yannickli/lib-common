@@ -35,6 +35,7 @@ int lstr_init_from_fd(lstr_t *dst, int fd, int prot, int flags)
                       st.st_size, MEM_MMAP);
 
     if (dst->v == MAP_FAILED) {
+        *dst = LSTR_NULL_V;
         return -3;
     }
     return 0;
