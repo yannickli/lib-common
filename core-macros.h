@@ -243,19 +243,32 @@
        __res;                                          \
     })
 
-#define RETURN_IF(e, val)                              \
+#define THROW_IF(e, val)                               \
     do {                                               \
         if (unlikely(e))                               \
             return (val);                              \
     } while (0)
-#define RETURN_UNLESS(e, val)   RETURN_IF(!(e), val)
+#define THROW_UNLESS(e, val)    THROW_IF(!(e), (val))
 
-#define RETURN_NULL_IF(e)       RETURN_IF(e, NULL)
-#define RETURN_NULL_UNLESS(e)   RETURN_UNLESS(e, NULL)
-#define RETURN_ERR_IF(e)        RETURN_IF(e, -1)
-#define RETURN_ERR_UNLESS(e)    RETURN_UNLESS(e, -1)
-#define RETURN_FALSE_IF(e)      RETURN_IF(e, false)
-#define RETURN_FALSE_UNLESS(e)  RETURN_UNLESS(e, false)
+#define THROW_NULL_IF(e)        THROW_IF((e), NULL)
+#define THROW_NULL_UNLESS(e)    THROW_UNLESS((e), NULL)
+#define THROW_ERR_IF(e)         THROW_IF((e), -1)
+#define THROW_ERR_UNLESS(e)     THROW_UNLESS((e), -1)
+#define THROW_FALSE_IF(e)       THROW_IF((e), false)
+#define THROW_FALSE_UNLESS(e)   THROW_UNLESS((e), false)
+
+/* XXX RETURN_*_IF()/RETURN_*_UNLESS() function are deprecated and will be
+ * removed in a near future version of lib-common. Don't use them in new code.
+ */
+
+#define RETURN_IF(e, val)       THROW_IF((e), (val))
+#define RETURN_UNLESS(e, val)   THROW_UNLESS((e), (val))
+#define RETURN_NULL_IF(e)       THROW_NULL_IF(e)
+#define RETURN_NULL_UNLESS(e)   THROW_NULL_UNLESS(e)
+#define RETURN_ERR_IF(e)        THROW_ERR_IF(e)
+#define RETURN_ERR_UNLESS(e)    THROW_ERR_UNLESS(e)
+#define RETURN_FALSE_IF(e)      THROW_FALSE_IF(e)
+#define RETURN_FALSE_UNLESS(e)  THROW_FALSE_UNLESS(e)
 
 
 #ifdef CMP
