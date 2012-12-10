@@ -2625,8 +2625,8 @@ int qps_backup(qps_t *qps, int dfd_dst, bool link_as_copy)
     uint32_t h_len;
     int ret = 0;
 
-    RETURN_ERR_IF(!qps || qps->dfd < 0 || dfd_dst < 0);
-    RETURN_ERR_IF(qps->snapshotting);
+    THROW_ERR_IF(!qps || qps->dfd < 0 || dfd_dst < 0);
+    THROW_ERR_IF(qps->snapshotting);
 
     /* Step 1: Look for linked files in meta.qps, and copy them. */
     /* Special case of empty meta.qps */

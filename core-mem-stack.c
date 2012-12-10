@@ -128,7 +128,7 @@ static void *sp_alloc(mem_pool_t *_sp, size_t size, mem_flags_t flags)
     mem_stack_frame_t *frame = sp->stack;
     uint8_t *res;
 
-    RETURN_NULL_IF(size == 0);
+    THROW_NULL_IF(size == 0);
 
 #ifndef NDEBUG
     if (unlikely(frame == &sp->base))
