@@ -653,7 +653,7 @@ wah_t *wah_init_from_data(wah_t *map, const uint32_t *data, int data_len,
     map->previous_run_pos = -1;
     map->last_run_pos = -1;
 
-    RETURN_NULL_IF(data_len < 2);
+    THROW_NULL_IF(data_len < 2);
     if (!scan) {
         return map;
     }
@@ -662,7 +662,7 @@ wah_t *wah_init_from_data(wah_t *map, const uint32_t *data, int data_len,
         wah_header_t head  = map->data.tab[pos++].head;
         uint32_t     words = map->data.tab[pos++].count;
 
-        RETURN_NULL_IF(words > (uint32_t)map->data.len
+        THROW_NULL_IF(words > (uint32_t)map->data.len
                     || (uint32_t)pos > map->data.len - words);
         if (head.bit) {
             map->active += WAH_BIT_IN_WORD * head.words;
@@ -674,7 +674,7 @@ wah_t *wah_init_from_data(wah_t *map, const uint32_t *data, int data_len,
         map->len += WAH_BIT_IN_WORD * (head.words + words);
         pos += words;
     }
-    RETURN_NULL_IF(pos != map->data.len);
+    THROW_NULL_IF(pos != map->data.len);
 
     return map;
 }
