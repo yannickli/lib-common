@@ -689,7 +689,7 @@ Z_GROUP_EXPORT(iop)
             .c = IOP_ARRAY(bvals, countof(bvals)),
         };
 
-        const iop_struct_t *st_se, *st_sa, *st_sf, *st_sa_opt;
+        const iop_struct_t *st_se, *st_sa, *st_sf, *st_cs, *st_sa_opt;
 
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
@@ -697,6 +697,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(st_se = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructE")));
         Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructA")));
         Z_ASSERT_P(st_sf = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructF")));
+        Z_ASSERT_P(st_cs = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.ConstraintS")));
         Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructAOpt")));
 
         /* We test that packing and unpacking of XML structures is stable */
@@ -812,6 +813,101 @@ Z_GROUP_EXPORT(iop)
             sb_wipe(&sb);
         }
 
+        { /* Test PRIVATE */
+            t_scope;
+            tstiop__constraint_s__t cs;
+            SB_1k(sb);
+            byte *res;
+            int ret;
+            lstr_t strings[] = {
+                LSTR_IMMED_V("foo5"),
+                LSTR_IMMED_V("foo6"),
+            };
+
+            iop_init(st_cs, &cs);
+            cs.s.tab = strings;
+            cs.s.len = 2;
+            Z_HELPER_RUN(iop_xml_test_struct(st_cs, &cs, "cs"));
+
+            IOP_OPT_SET(cs.priv, true);
+            cs.priv2 = false;
+            Z_HELPER_RUN(iop_xml_test_struct(st_cs, &cs, "cs"));
+
+            /* packing (private values should be skipped) */
+            sb_adds(&sb, "<root xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
+                    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">");
+            iop_xpack_flags(&sb, st_cs, &cs, IOP_XPACK_SKIP_PRIVATE);
+            sb_adds(&sb, "</root>");
+
+            Z_ASSERT_NULL(strstr(sb.data, "<priv>"));
+            Z_ASSERT_NULL(strstr(sb.data, "<priv2>"));
+
+            /* unpacking should work (private values are gone) */
+            res = t_new(byte, ROUND_UP(st_cs->size, 8));
+            iop_init(st_cs, res);
+
+            Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
+            ret = iop_xunpack_flags(xmlr_g, t_pool(), st_cs, &cs,
+                                    IOP_UNPACK_FORBID_PRIVATE);
+            Z_ASSERT_N(ret, "XML unpacking failure (%s, %s): %s",
+                       st_cs->fullname.s, "st_cs", xmlr_get_err());
+            Z_ASSERT(!IOP_OPT_ISSET(cs.priv));
+            Z_ASSERT(cs.priv2);
+
+            /* now test that unpacking only works when private values are not
+             * specified */
+            sb_reset(&sb);
+            sb_adds(&sb, "<root "
+                    "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
+                    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+                    ">\n");
+            sb_adds(&sb,
+                    "<s>abcd</s>"
+                    "<s>abcd</s>");
+            sb_adds(&sb, "</root>\n");
+
+            iop_init(st_cs, &cs);
+            Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
+            Z_ASSERT_N(iop_xunpack_flags(xmlr_g, t_pool(), st_cs, &cs,
+                                         IOP_UNPACK_FORBID_PRIVATE));
+            xmlr_close(&xmlr_g);
+
+            sb_reset(&sb);
+            sb_adds(&sb, "<root "
+                    "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
+                    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+                    ">\n");
+            sb_adds(&sb,
+                    "<s>abcd</s>"
+                    "<s>abcd</s>"
+                    "<priv>true</priv>");
+            sb_adds(&sb, "</root>\n");
+
+            iop_init(st_cs, &cs);
+            Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
+            Z_ASSERT_NEG(iop_xunpack_flags(xmlr_g, t_pool(), st_cs, &cs,
+                                           IOP_UNPACK_FORBID_PRIVATE));
+            xmlr_close(&xmlr_g);
+
+            sb_reset(&sb);
+            sb_adds(&sb, "<root "
+                    "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
+                    "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+                    ">\n");
+            sb_adds(&sb,
+                    "<s>abcd</s>"
+                    "<s>abcd</s>"
+                    "<priv2>true</priv2>");
+            sb_adds(&sb, "</root>\n");
+
+            iop_init(st_cs, &cs);
+            Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
+            Z_ASSERT_NEG(iop_xunpack_flags(xmlr_g, t_pool(), st_cs, &cs,
+                                           IOP_UNPACK_FORBID_PRIVATE));
+            xmlr_close(&xmlr_g);
+
+            sb_wipe(&sb);
+        }
 
         iop_dso_close(&dso);
     } Z_TEST_END

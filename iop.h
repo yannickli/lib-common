@@ -642,10 +642,12 @@ int iop_bskip(const iop_struct_t *st, pstream_t *ps);
 ssize_t iop_get_field_len(pstream_t ps);
 
 
-/** Flags for IOP unpackers. */
+/** Flags for IOP (un)packers. */
 enum iop_unpack_flags {
     /* Allow the unpacker to skip unknown fields */
     IOP_UNPACK_IGNORE_UNKNOWN = (1U << 0),
+    /* Make the unpacker reject private fields */
+    IOP_UNPACK_FORBID_PRIVATE = (1U << 1),
 };
 
 /* }}} */

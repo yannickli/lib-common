@@ -358,6 +358,13 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
             return xmlr_fail(xr, "unknown tag <%*pM>", LSTR_FMT_ARG(name));
         }
 
+        if (flags & IOP_UNPACK_FORBID_PRIVATE) {
+            const iop_field_attrs_t *attrs = iop_field_get_attrs(desc, xfdesc);
+            if (attrs && TST_BIT(&attrs->flags, IOP_FIELD_PRIVATE)) {
+                return xmlr_fail(xr, "private tag <%*pM>", LSTR_FMT_ARG(name));
+            }
+        }
+
         /* Handle optional fields */
         while (unlikely(xfdesc != fdesc)) {
             if (__iop_skip_absent_field_desc(value, fdesc) < 0) {

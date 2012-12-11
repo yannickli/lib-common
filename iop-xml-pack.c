@@ -15,12 +15,12 @@
 #include "iop.h"
 #include "iop-helpers.inl.c"
 
-static void xpack_struct(sb_t *, const iop_struct_t *, const void *, bool, bool);
-static void xpack_union(sb_t *, const iop_struct_t *, const void *, bool, bool);
+static void xpack_struct(sb_t *, const iop_struct_t *, const void *, unsigned);
+static void xpack_union(sb_t *, const iop_struct_t *, const void *, unsigned);
 
 static void
 xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
-            const void *v, bool verbose, bool wenums)
+            const void *v, unsigned flags)
 {
     static clstr_t const types[] = {
         [IOP_T_I8]     = CLSTR_IMMED(" xsi:type=\"xsd:byte\">"),
@@ -46,7 +46,9 @@ xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
     sb_grow(sb, 64 + f->name.len * 2);
     sb_addc(sb, '<');
     sb_add(sb, f->name.s, f->name.len);
-    if (verbose && !(wenums && f->type == IOP_T_ENUM)) {
+    if ((flags & IOP_XPACK_VERBOSE)
+    &&  !((flags & IOP_XPACK_LITERAL_ENUMS) && f->type == IOP_T_ENUM))
+    {
         sb_add(sb, types[f->type].s, types[f->type].len);
     } else {
         sb_addc(sb, '>');
@@ -61,7 +63,7 @@ xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
       case IOP_T_U16:    sb_addf(sb, "%u",      *(uint16_t *)v); break;
       case IOP_T_I32:    sb_addf(sb, "%i",      *( int32_t *)v); break;
       case IOP_T_ENUM:
-        if (!wenums) {
+        if (!(flags & IOP_XPACK_LITERAL_ENUMS)) {
             sb_addf(sb, "%i",      *( int32_t *)v);
         } else {
             clstr_t str = iop_enum_to_str(f->u1.en_desc, *(int32_t *)v);
@@ -113,11 +115,11 @@ xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
         sb_add(sb, s->s, s->len);
         break;
       case IOP_T_UNION:
-        xpack_union(sb, f->u1.st_desc, v, verbose, wenums);
+        xpack_union(sb, f->u1.st_desc, v, flags);
         break;
       case IOP_T_STRUCT:
       default:
-        xpack_struct(sb, f->u1.st_desc, v, verbose, wenums);
+        xpack_struct(sb, f->u1.st_desc, v, flags);
         break;
     }
     sb_adds(sb, "</");
@@ -127,12 +129,18 @@ xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
 
 static void
 xpack_struct(sb_t *sb, const iop_struct_t *desc, const void *v,
-             bool verbose, bool wenums)
+             unsigned flags)
 {
     for (int i = 0; i < desc->fields_len; i++) {
         const iop_field_t *f = desc->fields + i;
         const void *ptr = (char *)v + f->data_offs;
         int len = 1;
+
+        if (flags & IOP_XPACK_SKIP_PRIVATE) {
+            const iop_field_attrs_t *attrs = iop_field_get_attrs(desc, f);
+            if (attrs && TST_BIT(&attrs->flags, IOP_FIELD_PRIVATE))
+                continue;
+        }
 
         if (f->repeat == IOP_R_OPTIONAL) {
             if (!iop_value_has(f, ptr))
@@ -147,27 +155,38 @@ xpack_struct(sb_t *sb, const iop_struct_t *desc, const void *v,
         }
 
         while (len-- > 0) {
-            xpack_value(sb, desc, f, ptr, verbose, wenums);
+            xpack_value(sb, desc, f, ptr, flags);
             ptr = (const char *)ptr + f->size;
         }
     }
 }
 
 static void
-xpack_union(sb_t *sb, const iop_struct_t *desc, const void *v, bool verbose,
-            bool wenums)
+xpack_union(sb_t *sb, const iop_struct_t *desc, const void *v,
+            unsigned flags)
 {
     const iop_field_t *f = get_union_field(desc, v);
 
-    xpack_value(sb, desc, f, (char *)v + f->data_offs, verbose, wenums);
+    xpack_value(sb, desc, f, (char *)v + f->data_offs, flags);
 }
 
-void iop_xpack(sb_t *sb, const iop_struct_t *desc, const void *v, bool verbose,
-               bool with_enums)
+void iop_xpack_flags(sb_t *sb, const iop_struct_t *desc, const void *v,
+                     unsigned flags)
 {
     if (desc->is_union) {
-        xpack_union(sb, desc, v, verbose, with_enums);
+        xpack_union(sb, desc, v, flags);
     } else {
-        xpack_struct(sb, desc, v, verbose, with_enums);
+        xpack_struct(sb, desc, v, flags);
     }
+}
+
+void iop_xpack(sb_t *sb, const iop_struct_t *desc, const void *v,
+               bool verbose, bool with_enums)
+{
+    unsigned flags = 0;
+    if (verbose)
+        flags |= IOP_XPACK_VERBOSE;
+    if (with_enums)
+        flags |= IOP_XPACK_LITERAL_ENUMS;
+    iop_xpack_flags(sb, desc, v, flags);
 }
