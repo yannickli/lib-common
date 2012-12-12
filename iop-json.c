@@ -1208,6 +1208,14 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
           default:
             return RJERROR_EXP("a valid member name");
         }
+
+        if (fdesc && ll->flags & IOP_UNPACK_FORBID_PRIVATE) {
+            const iop_field_attrs_t *attrs = iop_field_get_attrs(desc, fdesc);
+            if (attrs && TST_BIT(&attrs->flags, IOP_FIELD_PRIVATE)) {
+                return RJERROR_EXP("a valid member name");
+            }
+        }
+
         /* XXX `.' must be kept (using lex_peek) for the unpack_val
          * function */
         if (!prefixed && PS_CHECK(iop_json_lex_peek(ll, NULL)) != '.'
@@ -1217,14 +1225,6 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         }
         if (fdesc) {
             void *ptr = (char *)value + fdesc->data_offs;
-
-            if (ll->flags & IOP_UNPACK_FORBID_PRIVATE) {
-                const iop_field_attrs_t *attrs = iop_field_get_attrs(desc,
-                                                                     fdesc);
-                if (attrs && TST_BIT(&attrs->flags, IOP_FIELD_PRIVATE)) {
-                    return RJERROR_EXP("a valid member name");
-                }
-            }
 
             if (fdesc->repeat == IOP_R_OPTIONAL) {
                 /* check if value is different of null */
