@@ -62,6 +62,9 @@ typedef struct httpd_trigger__ic_t {
     const char              *auth_kind;
     const iop_iface_alias_t *mod;
     qm_t(ichttp_cbs)         impl;
+    unsigned                 xpack_flags;
+    unsigned                 jpack_flags;
+    unsigned                 unpack_flags;
 
     void (*on_reply)(const struct httpd_trigger__ic_t *,
                      const ichttp_query_t *, size_t res_size,
@@ -80,6 +83,15 @@ typedef struct httpd_trigger__ic_t {
 httpd_trigger__ic_t *
 httpd_trigger__ic_new(const iop_mod_t *mod, const char *schema,
                       unsigned szmax);
+
+/* helper for public interface: reject private fields in queries, and skip
+ * private fields in answers */
+static inline void httpd_trigger__ic_set_public(httpd_trigger__ic_t *tcb)
+{
+    tcb->unpack_flags |= IOP_UNPACK_FORBID_PRIVATE;
+    tcb->xpack_flags  |= IOP_XPACK_SKIP_PRIVATE;
+    tcb->jpack_flags  |= IOP_JPACK_SKIP_PRIVATE;
+}
 
 /** \brief internal do not use directly, or know what you're doing. */
 static inline ichttp_query_t *ichttp_slot_to_query(uint64_t slot)

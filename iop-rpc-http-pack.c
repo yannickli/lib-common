@@ -52,7 +52,7 @@ static void ichttp_serialize_soap(sb_t *sb, ichttp_query_t *iq, int cmd,
 
         if (v) {
             sb_addf(sb, "<n:%*pM>", LSTR_FMT_ARG(cbe->name_res));
-            iop_xpack(sb, st, v, false, true);
+            iop_xpack_flags(sb, st, v, tcb->xpack_flags);
             sb_addf(sb, "</n:%*pM>", LSTR_FMT_ARG(cbe->name_res));
         } else {
             sb_addf(sb, "<n:%*pM />", LSTR_FMT_ARG(cbe->name_res));
@@ -69,7 +69,7 @@ static void ichttp_serialize_soap(sb_t *sb, ichttp_query_t *iq, int cmd,
         /* FIXME handle union of exceptions which are an array of exceptions */
         if (v) {
             sb_addf(sb, "<n:%*pM>", LSTR_FMT_ARG(cbe->name_exn));
-            iop_xpack(sb, st, v, false, true);
+            iop_xpack_flags(sb, st, v, tcb->xpack_flags);
             sb_addf(sb, "</n:%*pM>", LSTR_FMT_ARG(cbe->name_exn));
         } else {
             sb_addf(sb, "<n:%*pM />", LSTR_FMT_ARG(cbe->name_exn));
@@ -129,7 +129,7 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
 
         t_sb_init(&buf, BUFSIZ);
         if (iq->json) {
-            iop_jpack(st, v, iop_sb_write, &buf, IOP_JPACK_COMPACT);
+            iop_jpack(st, v, iop_sb_write, &buf, tcb->jpack_flags);
             iq->iop_answered = true;
         } else {
             ichttp_serialize_soap(&buf, iq, cmd, st, v);
@@ -137,7 +137,7 @@ __ichttp_reply(uint64_t slot, int cmd, const iop_struct_t *st, const void *v)
         sb_add_compressed(out, buf.data, buf.len, Z_BEST_COMPRESSION, is_gzip);
     } else
     if (iq->json) {
-        iop_jpack(st, v, iop_sb_write, out, IOP_JPACK_COMPACT);
+        iop_jpack(st, v, iop_sb_write, out, tcb->jpack_flags);
         iq->iop_answered = true;
     } else {
         ichttp_serialize_soap(out, iq, cmd, st, v);

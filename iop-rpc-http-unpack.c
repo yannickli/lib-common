@@ -33,6 +33,7 @@ OBJ_VTABLE_END()
 
 static int t_parse_json(ichttp_query_t *iq, ichttp_cb_t *cbe, void **vout)
 {
+    httpd_trigger__ic_t *tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
     const iop_struct_t  *st = cbe->fun->args;
     pstream_t      ps;
     iop_json_lex_t jll;
@@ -44,6 +45,8 @@ static int t_parse_json(ichttp_query_t *iq, ichttp_cb_t *cbe, void **vout)
     iop_jlex_init(t_pool(), &jll);
     ps = ps_initsb(&iq->payload);
     iop_jlex_attach(&jll, &ps);
+
+    jll.flags = tcb->unpack_flags;
 
     if (iop_junpack(&jll, st, v, true)) {
         sb_reset(&buf);
@@ -94,7 +97,8 @@ static int t_parse_soap(ichttp_query_t *iq,
     iq->cbe = *cbout = cbe = ichttp_cb_dup(tcb->impl.values[pos]);
 
     *vout = t_new(byte, cbe->fun->args->size);
-    XCHECK(iop_xunpack(xr, t_pool(), cbe->fun->args, *vout));
+    XCHECK(iop_xunpack_flags(xr, t_pool(), cbe->fun->args, *vout,
+                             tcb->unpack_flags));
     /* Close opened elements */
 
     XCHECK(xmlr_node_close(xr)); /* </Body>     */
@@ -316,6 +320,8 @@ httpd_trigger__ic_new(const iop_mod_t *mod, const char *schema,
     cb->schema         = schema;
     cb->mod            = mod->ifaces;
     cb->query_max_size = szmax;
+    cb->jpack_flags    = IOP_JPACK_COMPACT;
+    cb->xpack_flags    = IOP_XPACK_LITERAL_ENUMS;
     qm_init(ichttp_cbs, &cb->impl, true);
     return cb;
 }
