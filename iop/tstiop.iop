@@ -229,6 +229,10 @@ struct ConstraintS {
     long[]      i64;
     @minOccurs(2) @maxOccurs(5) @minLength(4) @pattern("[a-zA-Z0-9_\-]*")
     string[]    s;
+    @private
+    bool?       priv;
+    @private
+    bool        priv2 = true;
 };
 
 struct MyAException {

@@ -255,11 +255,13 @@ int  iop_jlex_write_error_buf(iop_json_lex_t *ll, char *buf, int len);
 /** JSon packer custom flags */
 enum iop_jpack_flags {
     /** obsolete, kept for backward compatibility. */
-    IOP_JPACK_STRICT  = (1U << 0),
+    IOP_JPACK_STRICT        = (1U << 0),
     /** generate compact JSon (no indentation, no spaces, …) */
     IOP_JPACK_COMPACT = (1U << 1),
     /** do not append '\n' when done */
     IOP_JPACK_NO_TRAILING_EOL = (1U << 2),
+    /** skip PRIVATE fields */
+    IOP_JPACK_SKIP_PRIVATE  = (1U << 3),
 };
 
 /** Callback to use for writing JSon into a sb_t. */

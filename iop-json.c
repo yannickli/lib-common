@@ -1208,6 +1208,14 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
           default:
             return RJERROR_EXP("a valid member name");
         }
+
+        if (fdesc && ll->flags & IOP_UNPACK_FORBID_PRIVATE) {
+            const iop_field_attrs_t *attrs = iop_field_get_attrs(desc, fdesc);
+            if (attrs && TST_BIT(&attrs->flags, IOP_FIELD_PRIVATE)) {
+                return RJERROR_EXP("a valid member name");
+            }
+        }
+
         /* XXX `.' must be kept (using lex_peek) for the unpack_val
          * function */
         if (!prefixed && PS_CHECK(iop_json_lex_peek(ll, NULL)) != '.'
@@ -1217,6 +1225,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         }
         if (fdesc) {
             void *ptr = (char *)value + fdesc->data_offs;
+
             if (fdesc->repeat == IOP_R_OPTIONAL) {
                 /* check if value is different of null */
                 if (PS_CHECK(iop_json_lex_peek(ll, fdesc)) == IOP_JSON_IDENT)
@@ -1533,6 +1542,11 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
         bool repeated = fdesc->repeat == IOP_R_REPEATED;
         int n;
 
+        if (flags & IOP_JPACK_SKIP_PRIVATE) {
+            const iop_field_attrs_t *attrs = iop_field_get_attrs(desc, fdesc);
+            if (attrs && TST_BIT(&attrs->flags, IOP_FIELD_PRIVATE))
+                continue;
+        }
         ptr = get_n_and_ptr(fdesc, value, &n);
         if (!n && !repeated)
             continue;

@@ -103,6 +103,16 @@ t_iop_xunpack_parts(void *xp, const iop_struct_t *st, void *out, int flags,
 /* }}} */
 /* {{{ Generating XML */
 
+enum iop_xpack_flags {
+    /* Generate verbose XML (with XSI types & co) */
+    IOP_XPACK_VERBOSE           = (1U << 0),
+    /* Use enums literal values when possible */
+    IOP_XPACK_LITERAL_ENUMS     = (1U << 1),
+    /** skip PRIVATE fields */
+    IOP_XPACK_SKIP_PRIVATE      = (1U << 2),
+};
+
+
 /** Convert an IOP C structure to IOP-XML.
  *
  * This function packs an IOP structure into XML format. It assumes that you
@@ -116,9 +126,15 @@ t_iop_xunpack_parts(void *xp, const iop_struct_t *st, void *out, int flags,
  * \param[out] sb          Buffer used to write the generated XML.
  * \param[in]  st          IOP structure definition.
  * \param[in]  v           Pointer on the IOP structure to pack.
- * \param[in]  verbose     Generate verbose XML (with XSI types & co).
- * \param[in]  with_enums  Use enums literal values when possible.
+ * \param[in]  flags       Bitfield of iop_pack_flags.
  *
+ */
+void iop_xpack_flags(sb_t *sb, const iop_struct_t *st, const void *v,
+                     unsigned flags);
+
+/** Convert an IOP C structure to IOP-XML.
+ *
+ * simpler interface for iop_xpack_flags
  */
 void iop_xpack(sb_t *sb, const iop_struct_t *st, const void *v, bool verbose,
                bool with_enums);
