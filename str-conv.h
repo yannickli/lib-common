@@ -28,6 +28,7 @@ extern uint8_t  const __utf8_char_len[32];
 extern uint16_t const __str_unicode_upper[512];
 extern uint16_t const __str_unicode_lower[512];
 extern uint32_t const __str_unicode_general_ci[512];
+extern uint32_t const __str_unicode_general_cs[512];
 
 #define STR_COLLATE_MASK      0xffff
 #define STR_COLLATE_SHIFT(c)  ((unsigned)(c) >> 16)
@@ -204,18 +205,32 @@ static inline const char *utf8_skip_valid(const char *s, const char *end)
     return end;
 }
 
-/** Return utf8 case-independent collating comparison as -1, 0, 1.
+/** Return utf8 case-insensitive collating comparison as -1, 0, 1.
  *
  * \param[in] strip trailing spaces are ignored for comparison.
  */
 int utf8_stricmp(const char *str1, int len1,
                  const char *str2, int len2, bool strip) __leaf;
 
+/** Return utf8 case-senstive collating comparison as -1, 0 or 1.
+ *
+ * \param[in] strip trailing spaces are ignored for comparison.
+ */
+int utf8_strcmp(const char *str1, int len1,
+                const char *str2, int len2, bool strip) __leaf;
+
 static inline
 bool utf8_striequal(const char *str1, int len1,
                     const char *str2, int len2, bool strip)
 {
     return utf8_stricmp(str1, len1, str2, len2, strip) == 0;
+}
+
+static inline
+bool utf8_strequal(const char *str1, int len1,
+                   const char *str2, int len2, bool strip)
+{
+    return utf8_strcmp(str1, len1, str2, len2, strip) == 0;
 }
 
 #endif /* IS_LIB_COMMON_STR_CONV_H */

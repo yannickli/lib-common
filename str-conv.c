@@ -296,6 +296,120 @@ uint32_t const __str_unicode_general_ci[512] = {
 #undef Z
 
 
+#define A  'A'
+#define D  'D'
+#define E  'E'
+#define I  'I'
+#define J  'J'
+#define L  'L'
+#define N  'N'
+#define O  'O'
+#define S  'S'
+#define Z  'Z'
+#define a  'a'
+#define d  'd'
+#define e  'e'
+#define i  'i'
+#define j  'j'
+#define l  'l'
+#define n  'n'
+#define o  'o'
+#define s  's'
+#define z  'z'
+#define P(a,b)  ((a)+((b)<<16))
+uint32_t const __str_unicode_general_cs[512] = {
+    0x0000,0x0001,0x0002,0x0003,0x0004,0x0005,0x0006,0x0007, // 0000
+    0x0008,0x0009,0x000A,0x000B,0x000C,0x000D,0x000E,0x000F, // 0008
+    0x0010,0x0011,0x0012,0x0013,0x0014,0x0015,0x0016,0x0017, // 0010
+    0x0018,0x0019,0x001A,0x001B,0x001C,0x001D,0x001E,0x001F, // 0018
+    0x0020,0x0021,0x0022,0x0023,0x0024,0x0025,0x0026,0x0027, // 0020
+    0x0028,0x0029,0x002A,0x002B,0x002C,0x002D,0x002E,0x002F, // 0028
+    0x0030,0x0031,0x0032,0x0033,0x0034,0x0035,0x0036,0x0037, // 0030
+    0x0038,0x0039,0x003A,0x003B,0x003C,0x003D,0x003E,0x003F, // 0038
+    0x0040,0x0041,0x0042,0x0043,0x0044,0x0045,0x0046,0x0047, // 0040
+    0x0048,0x0049,0x004A,0x004B,0x004C,0x004D,0x004E,0x004F, // 0048
+    0x0050,0x0051,0x0052,0x0053,0x0054,0x0055,0x0056,0x0057, // 0050
+    0x0058,0x0059,0x005A,0x005B,0x005C,0x005D,0x005E,0x005F, // 0058
+    0x0060,0x0061,0x0062,0x0063,0x0064,0x0065,0x0066,0x0067, // 0060
+    0x0068,0x0069,0x006A,0x006B,0x006C,0x006D,0x006E,0x006F, // 0068
+    0x0070,0x0071,0x0072,0x0073,0x0074,0x0075,0x0076,0x0077, // 0070
+    0x0078,0x0079,0x007A,0x007B,0x007C,0x007D,0x007E,0x007F, // 0078
+
+    0x0080,0x0081,0x0082,0x0083,0x0084,0x0085,0x0086,0x0087, // 0080
+    0x0088,0x0089,0x008A,0x008B,0x008C,0x008D,0x008E,0x008F, // 0088
+    0x0090,0x0091,0x0092,0x0093,0x0094,0x0095,0x0096,0x0097, // 0090
+    0x0098,0x0099,0x009A,0x009B,0x009C,0x009D,0x009E,0x009F, // 0098
+    0x00A0,0x00A1,0x00A2,0x00A3,0x00A4,0x00A5,0x00A6,0x00A7, // 00A0
+    0x00A8,0x00A9,0x00AA,0x00AB,0x00AC,0x00AD,0x00AE,0x00AF, // 00A8
+    0x00B0,0x00B1,0x00B2,0x00B3,0x00B4,0x00B5,0x00B6,0x00B7, // 00B0
+    0x00B8,0x00B9,0x00BA,0x00BB,0x00BC,0x00BD,0x00BE,0x00BF, // 00B8
+
+       'A',   'A',   'A',   'A',   'A',   'A',P(A,E),   'C', // 00C0
+       'E',   'E',   'E',   'E',   'I',   'I',   'I',   'I', // 00C8
+    0x00D0,   'N',   'O',   'O',   'O',   'O',   'O',0x00D7, // 00D0
+       'O',   'U',   'U',   'U',   'U',   'Y',0x00DE,P(s,s), // 00D8
+       'a',   'a',   'a',   'a',   'a',   'a',P(a,e),   'c', // 00E0
+       'e',   'e',   'e',   'e',   'i',   'i',   'i',   'i', // 00E8
+    0x00F0,   'n',   'o',   'o',   'o',   'o',   'o',0x00F7, // 00F0
+       'o',   'u',   'u',   'u',   'u',   'y',0x00FE,   'y', // 00F8
+
+       'A',   'a',   'A',   'a',   'A',   'a',   'C',   'c',
+       'C',   'c',   'C',   'c',   'C',   'c',   'D',   'd',
+       'D',   'd',   'E',   'e',   'E',   'e',   'E',   'e',
+       'E',   'e',   'E',   'e',   'G',   'g',   'G',   'g',
+       'G',   'g',   'G',   'g',   'H',   'h',   'H',   'h',
+       'I',   'i',   'I',   'i',   'I',   'i',   'I',   'i',
+       'I',   'i',P(I,J),P(i,j),   'J',   'j',   'K',   'k',
+    0x0138,   'L',   'l',   'L',   'l',   'L',   'l',   'L',
+       'l',   'L',   'l',   'N',   'n',   'N',   'n',   'N',
+       'n',   'n',   'N',   'n',   'O',   'o',   'O',   'o',
+       'O',   'o',P(O,E),P(o,e),   'R',   'r',   'R',   'r',
+       'R',   'r',   'S',   's',   'S',   's',   'S',   's',
+       'S',   's',   'T',   't',   'T',   't',   'T',   't',
+       'U',   'u',   'U',   'u',   'U',   'u',   'U',   'u',
+       'U',   'u',   'U',   'u',   'W',   'w',   'Y',   'y',
+       'Y',   'Z',   'z',   'Z',   'z',   'Z',   'z',   's',
+
+       'b',   'B',0x0182,0x0183,0x0184,0x0185,0x0186,   'C', // 0180
+       'c',   'D',   'D',0x018B,0x018C,0x018D,0x018E,0x018F, // 0188
+    0x0190,0x0191,0x0192,   'G',0x0194,0x0195,0x0196,0x0197, // 0190
+    0x0198,0x0199,0x019A,0x019B,0x019C,0x019D,0x019E,0x019F, // 0198
+       'O',   'o',0x01A2,0x01A3,0x01A4,0x01A5,0x01A6,0x01A7, // 01A0
+    0x01A8,0x01A9,0x01AA,0x01AB,0x01AC,0x01AD,0x01AE,0x01AF, // 01A8
+    0x01B0,0x01B1,0x01B2,0x01B3,0x01B4,   'Z',   'z',0x01B7, // 01B0
+    0x01B8,0x01B9,0x01BA,0x01BB,0x01BC,0x01BD,0x01BE,0x01BF, // 01B8
+    0x01C0,0x01C1,0x01C2,0x01C3,P(D,Z),P(D,z),P(d,z),P(L,J), // 01C0
+    P(L,j),P(l,j),P(N,J),P(N,j),P(n,j),   'A',   'a',   'I', // 01C8
+       'i',   'O',   'o',   'U',   'u',   'U',   'u',   'U', // 01D0
+       'u',   'U',   'u',   'U',   'u',0x018E,   'A',   'a', // 01D8
+       'A',   'a',P(A,E),P(a,e),   'G',   'g',   'G',   'g', // 01E0
+       'K',   'k',   'O',   'o',   'O',   'o',0x01EE,0x01EF, // 01E8
+       'j',P(D,Z),P(D,z),P(d,z),   'G',   'g',0x01F6,0x01F7, // 01F0
+       'N',   'n',   'A',   'a',P(A,E),P(A,e),   'O',   'o', // 01F8
+};
+#undef p
+#undef a
+#undef d
+#undef e
+#undef i
+#undef j
+#undef l
+#undef n
+#undef o
+#undef s
+#undef z
+#undef P
+#undef A
+#undef D
+#undef E
+#undef I
+#undef J
+#undef L
+#undef N
+#undef O
+#undef S
+#undef Z
+
 /* XXX: strconv_hexdecode does not check source correcness beyond
  * dest size, not a big issue for current uses.
  */
@@ -334,8 +448,8 @@ int strconv_hexencode(char *dest, int size, const void *src, int len)
     return len * 2;
 }
 
-int utf8_stricmp(const char *str1, int len1,
-                 const char *str2, int len2, bool strip)
+static int utf8_strcmp_(const char *str1, int len1, const char *str2, int len2,
+                        bool strip, uint32_t const str_conv[], int str_conv_len)
 {
     int c1, c2, cc1, cc2;
     int off1 = 0, off2 = 0;
@@ -365,12 +479,12 @@ int utf8_stricmp(const char *str1, int len1,
             continue;
         }
 
-        if ((c1 | c2) >= countof(__str_unicode_general_ci)) {
+        if ((c1 | c2) >= str_conv_len) {
             /* large characters require exact match */
             break;
         }
-        cc1 = __str_unicode_general_ci[c1];
-        cc2 = __str_unicode_general_ci[c2];
+        cc1 = str_conv[c1];
+        cc2 = str_conv[c2];
 
       again:
         if (cc1 == cc2) {
@@ -391,17 +505,17 @@ int utf8_stricmp(const char *str1, int len1,
             c1 = GET_CHAR(1);
             if (c1 < 0)
                 c1 = 0;
-            if (c1 >= countof(__str_unicode_general_ci))
+            if (c1 >= str_conv_len)
                 break;
-            cc1 = __str_unicode_general_ci[c1];
+            cc1 = str_conv[c1];
         } else
         if (cc2 == 0) {
             c2 = GET_CHAR(2);
             if (c2 < 0)
                 c2 = 0;
-            if (c2 >= countof(__str_unicode_general_ci))
+            if (c2 >= str_conv_len)
                 break;
-            cc2 = __str_unicode_general_ci[c2];
+            cc2 = str_conv[c2];
         }
         goto again;
     }
@@ -428,6 +542,22 @@ int utf8_stricmp(const char *str1, int len1,
     return c1 < 0 ? 0 : 1;
 
 #undef GET_CHAR
+}
+
+int utf8_stricmp(const char *str1, int len1,
+                 const char *str2, int len2, bool strip)
+{
+    return utf8_strcmp_(str1, len1, str2, len2, strip,
+                        __str_unicode_general_ci,
+                        countof(__str_unicode_general_ci));
+}
+
+int utf8_strcmp(const char *str1, int len1,
+                const char *str2, int len2, bool strip)
+{
+    return utf8_strcmp_(str1, len1, str2, len2, strip,
+                        __str_unicode_general_cs,
+                        countof(__str_unicode_general_cs));
 }
 
 /****************************************************************************/

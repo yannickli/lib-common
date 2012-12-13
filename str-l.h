@@ -202,6 +202,13 @@ static ALWAYS_INLINE int lstr_utf8_icmp(const lstr_t *s1, const lstr_t *s2)
     return utf8_stricmp(s1->s, s1->len, s2->s, s2->len, false);
 }
 
+/** \brief performs utf8-aware, case-sensitive comparison.
+ */
+static ALWAYS_INLINE int lstr_utf8_cmp(const lstr_t *s1, const lstr_t *s2)
+{
+    return utf8_strcmp(s1->s, s1->len, s2->s, s2->len, false);
+}
+
 /** \brief performs utf8-aware, case-insensitive equality check.
  */
 static ALWAYS_INLINE bool lstr_utf8_iequal(const lstr_t *s1, const lstr_t *s2)
@@ -214,6 +221,20 @@ static ALWAYS_INLINE bool lstr_utf8_iequal(const lstr_t *s1, const lstr_t *s2)
 static ALWAYS_INLINE bool lstr_utf8_iequal2(const lstr_t s1, const lstr_t s2)
 {
     return lstr_utf8_iequal(&s1, &s2);
+}
+
+/** \brief performs utf8-aware, case-sensitive equality check.
+ */
+static ALWAYS_INLINE bool lstr_utf8_equal(const lstr_t *s1, const lstr_t *s2)
+{
+    return utf8_strequal(s1->s, s1->len, s2->s, s2->len, false);
+}
+
+/** \brief performs utf8-aware, case-sensitive equality check.
+ */
+static ALWAYS_INLINE bool lstr_utf8_equal2(const lstr_t s1, const lstr_t s2)
+{
+    return lstr_utf8_equal(&s1, &s2);
 }
 
 /*--------------------------------------------------------------------------*/

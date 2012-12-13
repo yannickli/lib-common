@@ -108,6 +108,60 @@ Z_GROUP_EXPORT(str)
 #undef RUN_UTF8_TEST
     } Z_TEST_END;
 
+    Z_TEST(utf8_strcmp, "str: utf8_strcmp test") {
+
+#define RUN_UTF8_TEST_(Str1, Str2, Strip, Val) \
+        ({  int len1 = strlen(Str1);                                         \
+            int len2 = strlen(Str2);                                         \
+            int cmp  = utf8_strcmp(Str1, len1, Str2, len2, Strip);           \
+                                                                             \
+            Z_ASSERT_EQ(cmp, Val, "utf8_strcmp(\"%.*s\", \"%.*s\", %d) "     \
+                        "returned bad value: %d, expected %d",               \
+                        len1, Str1, len2, Str2, Strip, cmp, Val);            \
+        })
+
+#define RUN_UTF8_TEST(Str1, Str2, Val) \
+        ({  RUN_UTF8_TEST_(Str1, Str2, false, Val);                          \
+            RUN_UTF8_TEST_(Str2, Str1, false, -(Val));                       \
+            RUN_UTF8_TEST_(Str1, Str2, true, Val);                           \
+            RUN_UTF8_TEST_(Str2, Str1, true, -(Val));                        \
+            RUN_UTF8_TEST_(Str1"   ", Str2, true, Val);                      \
+            RUN_UTF8_TEST_(Str1, Str2"    ", true, Val);                     \
+            RUN_UTF8_TEST_(Str1"     ", Str2"  ", true, Val);                \
+            if (Val == 0) {                                                  \
+                RUN_UTF8_TEST_(Str1"   ", Str2, false, 1);                   \
+                RUN_UTF8_TEST_(Str1, Str2"   ", false, -1);                  \
+                RUN_UTF8_TEST_(Str1"  ", Str2"    ", false, -1);             \
+            }                                                                \
+        })
+
+        /* Basic tests and case tests */
+        RUN_UTF8_TEST("abcdef", "abcdef", 0);
+        RUN_UTF8_TEST("AbCdEf", "abcdef", -1);
+        RUN_UTF8_TEST("abcdef", "abbdef", 1);
+        RUN_UTF8_TEST("aBCdef", "abbdef", -1);
+
+        /* Accentuation tests */
+        RUN_UTF8_TEST("abcdéf", "abcdef", 0);
+        RUN_UTF8_TEST("abcdÉf", "abcdef", -1);
+        RUN_UTF8_TEST("àbcdèf", "abcdef", 0);
+
+        /* Collation tests */
+        RUN_UTF8_TEST("æbcdef", "aebcdef", 0);
+        RUN_UTF8_TEST("æbcdef", "aébcdef", 0);
+        RUN_UTF8_TEST("abcdœf", "abcdoef", 0);
+        RUN_UTF8_TEST("abcdŒf", "abcdoef", -1);
+
+        RUN_UTF8_TEST("æ", "a", 1);
+        RUN_UTF8_TEST("æ", "ae", 0);
+        RUN_UTF8_TEST("ß", "ss", 0);
+        RUN_UTF8_TEST("ßß", "ssss", 0);
+        RUN_UTF8_TEST("ßß", "sßs", 0); /* Overlapping collations */
+
+#undef RUN_UTF8_TEST_
+#undef RUN_UTF8_TEST
+    } Z_TEST_END;
+
     Z_TEST(path_simplify, "str-path: path_simplify") {
 #define T(s0, s1)  \
         ({ pstrcpy(buf, sizeof(buf), s0);    \
@@ -359,5 +413,31 @@ Z_GROUP_EXPORT(str)
         T("123456789012345678901234567890",  STRTOLP_CLAMP_RANGE, 0, 100, 100, 0, -1);
         T("123456789012345678901234567890 ", STRTOLP_CLAMP_RANGE, 0, 100, 100, 0, 30);
 #undef T
+    } Z_TEST_END;
+
+    Z_TEST(str_tables, "str: test conversion tables") {
+        for (int i = 0; i < countof(__str_unicode_lower); i++) {
+            /* Check idempotence */
+            if (__str_unicode_lower[i] < countof(__str_unicode_lower)) {
+                Z_ASSERT_EQ(__str_unicode_lower[i],
+                            __str_unicode_lower[__str_unicode_lower[i]],
+                            "%x", i);
+            }
+            if (__str_unicode_upper[i] < countof(__str_unicode_upper)) {
+                Z_ASSERT_EQ(__str_unicode_upper[i],
+                            __str_unicode_upper[__str_unicode_upper[i]],
+                            "%x", i);
+            }
+        }
+
+        for (int i = 0; i < countof(__str_unicode_general_ci); i++) {
+            uint32_t ci = __str_unicode_general_ci[i];
+            uint32_t cs = __str_unicode_general_cs[i];
+
+            cs = (__str_unicode_upper[cs >> 16] << 16)
+               |  __str_unicode_upper[cs & 0xffff];
+
+            Z_ASSERT_EQ(ci, cs);
+        }
     } Z_TEST_END;
 } Z_GROUP_END;
