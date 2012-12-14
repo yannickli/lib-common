@@ -400,7 +400,7 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
 {
     const byte *p = data, *end = p + slen;
     char *w, *wend;
-    sb_t orig = *sb;
+    int nb_invalid = 0;
 
     w    = sb_grow(sb, slen + 4);
     wend = sb->data + sb_avail(sb);
@@ -409,28 +409,34 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
         int c = *p++;
 
         if (c & 0x80)
-            goto error;
+            goto invalid;
 
         if (c == 0x1b) {
             if (unlikely(plan != GSM_LATIN1_PLAN))
-                goto error;
+                goto invalid;
             if (unlikely(p == end))
-                goto error;
+                goto invalid;
             c = *p++;
             if (c & 0x80)
-                goto error;
+                goto invalid;
             c |= 0x80;
         }
         if (plan == GSM_CIMD_PLAN) {
             if (c == '_') {
                 c = cimd_to_unicode(p, end, &p);
                 if (unlikely(c < 0))
-                    goto error;
+                    goto invalid;
             }
         } else {
             c = gsm7_to_unicode(c, '.');
         }
+        goto next;
 
+      invalid:
+        nb_invalid++;
+        c = '.';
+
+      next:
         if (wend - w < 4) {
             __sb_fixlen(sb, w - sb->data);
             w    = sb_grow(sb, (end - p) / 2 + 4);
@@ -439,10 +445,7 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
         w += __pstrputuc(w, c);
     }
     __sb_fixlen(sb, w - sb->data);
-    return 0;
-
-  error:
-    return __sb_rewind_adds(sb, &orig);
+    return nb_invalid;
 }
 
 int gsm7_charlen(int c)
@@ -705,6 +708,10 @@ Z_GROUP_EXPORT(conv)
           "\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f"
           "\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f",
           "UTF-8 from default table GSM conversion");
+
+        T("\x80\x20\x81\x20\x82",
+          "\x2e\x20\x2e\x20\x2e",
+          "conversion with invalid characters");
 
         sb_wipe(&tmp);
         sb_wipe(&out);
