@@ -440,4 +440,26 @@ Z_GROUP_EXPORT(str)
             Z_ASSERT_EQ(ci, cs);
         }
     } Z_TEST_END;
+
+    Z_TEST(str_normalize, "str: utf8 normalizer") {
+        SB_1k(sb);
+
+#define T(from, ci, cs)  do {                                                \
+        sb_reset(&sb);                                                       \
+        Z_ASSERT_N(sb_normalize_utf8(&sb, from, sizeof(from) - 1, true));    \
+        Z_ASSERT_EQUAL(sb.data, sb.len, ci, sizeof(ci) - 1);                 \
+        sb_reset(&sb);                                                       \
+        Z_ASSERT_N(sb_normalize_utf8(&sb, from, sizeof(from) - 1, false));   \
+        Z_ASSERT_EQUAL(sb.data, sb.len, cs, sizeof(cs) - 1);                 \
+    } while (0)
+
+        T("toto", "TOTO", "toto");
+        T("ToTo", "TOTO", "ToTo");
+        T("électron", "ELECTRON", "electron");
+        T("Électron", "ELECTRON", "Electron");
+
+        T("Blisßs", "BLISSSS", "Blissss");
+        T("Œœ", "OEOE", "OEoe");
+#undef T
+    } Z_TEST_END;
 } Z_GROUP_END;

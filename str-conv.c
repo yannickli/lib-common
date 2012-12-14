@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "core.h"
+#include "arith.h"
 
 uint8_t const __utf8_mark[7] = { 0x00, 0x00, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc };
 
@@ -800,4 +801,73 @@ int sb_conv_from_ucs2be_hex(sb_t *sb, const void *s, int slen)
 int sb_conv_from_ucs2le_hex(sb_t *sb, const void *s, int slen)
 {
     return sb_conv_from_ucs2_hex(sb, s, slen, false);
+}
+
+/****************************************************************************/
+/* Unicode normalization                                                    */
+/****************************************************************************/
+
+static int sb_normalize_utf8_(sb_t *sb, const char *s, int len,
+                              uint32_t const str_conv[], int str_conv_len)
+{
+    sb_t orig = *sb;
+    int off = 0;
+    char *pos;
+    char *end;
+
+    pos = sb_grow(sb, len);
+    end = pos + sb_avail(sb);
+
+    for (;;) {
+        int c = utf8_ngetc_at(s, len, &off);
+        uint32_t conv;
+        uint32_t hconv;
+        int bytes;
+
+        if (c < 0) {
+            if (likely(off >= len)) {
+                break;
+            }
+            c = s[off++];
+        }
+        if (c > 0xffff) {
+            return __sb_rewind_adds(sb, &orig);
+        }
+
+        if (c < str_conv_len) {
+            conv = str_conv[c];
+        } else {
+            conv = c;
+        }
+        hconv = conv >> 16;
+        conv &= 0xffff;
+
+        bytes = __utf8_clz_to_charlen[bsr16(conv | 1)];
+        if (hconv) {
+            bytes += __utf8_clz_to_charlen[bsr16(hconv)];
+        }
+
+        if (end - pos < bytes) {
+            __sb_fixlen(sb, pos - sb->data);
+            pos = sb_grow(sb, len - off + bytes);
+            end = pos + sb_avail(sb);
+        }
+        pos += __pstrputuc(pos, conv);
+        if (hconv) {
+            pos += __pstrputuc(pos, hconv);
+        }
+    }
+    __sb_fixlen(sb, pos - sb->data);
+    return 0;
+}
+
+int sb_normalize_utf8(sb_t *sb, const char *s, int len, bool ci)
+{
+    if (ci) {
+        return sb_normalize_utf8_(sb, s, len, __str_unicode_general_ci,
+                                  countof(__str_unicode_general_ci));
+    } else {
+        return sb_normalize_utf8_(sb, s, len, __str_unicode_general_cs,
+                                  countof(__str_unicode_general_cs));
+    }
 }

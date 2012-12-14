@@ -574,6 +574,9 @@ int  sb_conv_to_gsm7(sb_t *sb, int gsm_start, const char *utf8,
 int  sb_conv_from_gsm7(sb_t *sb, const void *src, int gsmlen, int udhlen)
     __leaf;
 
+/* normalisation */
+int sb_normalize_utf8(sb_t *sb, const char *s, int len, bool ci) __leaf;
+
 /**************************************************************************/
 /* misc helpers                                                           */
 /**************************************************************************/
