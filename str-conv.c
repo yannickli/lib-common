@@ -660,7 +660,7 @@ static int sb_conv_from_ucs2_hex(sb_t *sb, const void *s, int slen, bool is_be)
         return -1;
 
     w    = sb_grow(sb, slen / 2);
-    wend = sb->data + sb_avail(sb);
+    wend = w + sb_avail(sb);
 
     while (p < end) {
         int ch, cl, c;
@@ -680,7 +680,7 @@ static int sb_conv_from_ucs2_hex(sb_t *sb, const void *s, int slen, bool is_be)
         if (wend - w < 4) {
             __sb_fixlen(sb, w - sb->data);
             w    = sb_grow(sb, (end - p) / 2 + 4);
-            wend = sb->data + sb_avail(sb);
+            wend = w + sb_avail(sb);
         }
         w += __pstrputuc(w, c);
     }
