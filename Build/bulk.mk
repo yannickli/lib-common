@@ -63,7 +63,8 @@ check:: all
 	$(var/toolsdir)/_run_checks.sh .
 
 tags: $(var/generated)
-.PHONY: tags
+syntastic:
+.PHONY: tags syntastic
 
 define fun/subdirs-targets
 $(foreach d,$1,
@@ -150,6 +151,10 @@ etags: | __setup_buildsys_trampoline
 		find . -name \*.h -or -name \*.blk                      \
 		       -or \( -name \*.c -and -not -name \*.blk.c \)    \
 			-print0 | xargs -0 etags.emacs -a -l c -
+
+syntastic: | __setup_buildsys_trampoline
+	echo '$(CLANGFLAGS) -I$/lib-common/compat -I$/ $(libxml2_CFLAGS) $(openssl_CFLAGS)' > $/.syntastic_c_config
+	echo '$(CLANGXXFLAGS) -I$/lib-common/compat -I$/ $(libxml2_CFLAGS) $(openssl_CFLAGS)' > $/.syntastic_cpp_config
 
 ignore:
 	$(foreach v,$(CLEANFILES:/=),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
