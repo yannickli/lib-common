@@ -397,28 +397,17 @@ qvector_splice(qvector_t *vec, size_t v_size,
                                 }                                            \
                                 (vec)->tab;                                  \
                             });                                              \
-         e##__ptr < (vec)->tab + (vec)->len;                                 \
-         e = *(++e##__ptr))
+         ({                                                                  \
+             bool e##__res = e##__ptr < (vec)->tab + (vec)->len;             \
+             if (e##__res) {                                                 \
+                 e = *(e##__ptr++);                                          \
+             }                                                               \
+             e##__res;                                                       \
+         });)
 
 #define qv_for_each_pos_safe(n, pos, vec) \
     ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]); \
     for (int pos = (vec)->len; pos-- > 0; )
-
-#define qv_for_each_ptr_safe(n, ptr, vec)                                    \
-    ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]);       \
-    for (typeof(*(vec)->tab) *ptr = (vec)->tab + (vec)->len;                 \
-         ptr-- > (vec)->tab;)
-
-#define qv_for_each_entry_safe(n, e, vec)                                    \
-    ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]);       \
-    for (typeof(*(vec)->tab) e, *e##__ptr = (vec)->tab + (vec)->len;         \
-         ({                                                                  \
-             bool e##__res = e##__ptr-- > (vec)->tab;                        \
-             if (e##__res) {                                                 \
-                 e = *e##__ptr;                                              \
-             }                                                               \
-             e##__res;                                                       \
-         });)
 
 #ifdef __has_blocks
 /** \brief build the difference vectors by comparing elements of vec1 and vec2

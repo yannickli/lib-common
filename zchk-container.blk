@@ -321,17 +321,8 @@ Z_GROUP_EXPORT(qvector)
             it++;
         }
         Z_ASSERT_ZERO(it);
-        qv_for_each_ptr_safe(u32, ptr, &vec) {
-            it++;
-        }
-        Z_ASSERT_ZERO(it);
 
         qv_for_each_entry(u32, e, &vec) {
-            IGNORE(e);
-            it++;
-        }
-        Z_ASSERT_ZERO(it);
-        qv_for_each_entry_safe(u32, e, &vec) {
             IGNORE(e);
             it++;
         }
@@ -350,27 +341,19 @@ Z_GROUP_EXPORT(qvector)
         }
         Z_ASSERT_ZERO(it);
 
+        it = 0;
         qv_for_each_ptr(u32, ptr, &vec) {
             Z_ASSERT_EQ(*ptr, table[it]);
             it++;
         }
         Z_ASSERT_EQ(it, vec.len);
-        qv_for_each_ptr_safe(u32, ptr, &vec) {
-            it--;
-            Z_ASSERT_EQ(*ptr, table[it]);
-        }
-        Z_ASSERT_ZERO(it);
 
+        it = 0;
         qv_for_each_entry(u32, e, &vec) {
             Z_ASSERT_EQ(e, table[it]);
             it++;
         }
         Z_ASSERT_EQ(it, vec.len);
-        qv_for_each_entry_safe(u32, e, &vec) {
-            it--;
-            Z_ASSERT_EQ(e, table[it]);
-        }
-        Z_ASSERT_ZERO(it);
     } Z_TEST_END;
 
     Z_TEST(qv_sort, "qvector: qv_sort") {
