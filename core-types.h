@@ -11,10 +11,10 @@
 /*                                                                        */
 /**************************************************************************/
 
-#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_REFCOUNT_H)
+#if !defined(IS_LIB_COMMON_CORE_H) || defined(IS_LIB_COMMON_CORE_TYPES_H)
 #  error "you must include core.h instead"
 #else
-#define IS_LIB_COMMON_CORE_REFCOUNT_H
+#define IS_LIB_COMMON_CORE_TYPES_H
 
 #define REFCNT_NEW(type, pfx)                                             \
     static inline type *pfx##_new(void) {                                 \
