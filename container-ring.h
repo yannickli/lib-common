@@ -54,6 +54,7 @@ void generic_ring_ensure(generic_ring *r, int newlen, int el_siz);
     GENERIC_INIT(pfx##_ring, pfx##_ring);                              \
     static inline void pfx##_ring_wipe(pfx##_ring *r) {                \
         RING_MAP(r, wipe);                                             \
+        p_delete(&r->tab);                                             \
     }                                                                  \
                                                                        \
     static inline int pfx##_ring_pos(pfx##_ring *r, int idx) {         \
