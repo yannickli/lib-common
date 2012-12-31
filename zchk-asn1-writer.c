@@ -22,8 +22,8 @@ enum test_tf {
 typedef struct {
     int8_t x;
     uint32_t y;
-    asn1_opt_int32_t z;
-    asn1_opt_uint32_t t;
+    opt_i32_t z;
+    opt_u32_t t;
     uint64_t u64_1;
     uint64_t u64_2;
     uint64_t u64_3;
@@ -67,10 +67,10 @@ typedef struct {
     int32_t i1;
     int32_t i2;
     lstr_t str;
-    asn1_opt_int32_t oi3;
+    opt_i32_t oi3;
     asn1_bit_string_t bstr;
     test_rdr_rec2_t vec;
-    asn1_opt_int32_t oi4;
+    opt_i32_t oi4;
     test_rdr_rec1_t rec1;
 } test_reader_t;
 

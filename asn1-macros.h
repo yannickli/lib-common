@@ -267,39 +267,39 @@
             ASN1_REG_SCALAR(desc, st_pfx##_t, uint64_t, field, tag);         \
             break;                                                           \
         }                                                                    \
-        if (ASN1_IS_FIELD_TYPE(asn1_opt_bool_t, field, st_pfx##_t)) {        \
+        if (ASN1_IS_FIELD_TYPE(opt_bool_t, field, st_pfx##_t)) {             \
             ASN1_REG_OPT_SCALAR(desc, st_pfx##_t, bool, field, tag);         \
             break;                                                           \
         }                                                                    \
-        if (ASN1_IS_FIELD_TYPE(asn1_opt_int8_t, field, st_pfx##_t)) {        \
+        if (ASN1_IS_FIELD_TYPE(opt_i8_t, field, st_pfx##_t)) {               \
             ASN1_REG_OPT_SCALAR(desc, st_pfx##_t, int8_t, field, tag);       \
             break;                                                           \
         }                                                                    \
-        if (ASN1_IS_FIELD_TYPE(asn1_opt_uint8_t, field, st_pfx##_t)) {       \
+        if (ASN1_IS_FIELD_TYPE(opt_u8_t, field, st_pfx##_t)) {               \
             ASN1_REG_OPT_SCALAR(desc, st_pfx##_t, uint8_t, field, tag);      \
             break;                                                           \
         }                                                                    \
-        if (ASN1_IS_FIELD_TYPE(asn1_opt_int16_t, field, st_pfx##_t)) {       \
+        if (ASN1_IS_FIELD_TYPE(opt_i16_t, field, st_pfx##_t)) {              \
             ASN1_REG_OPT_SCALAR(desc, st_pfx##_t, int16_t, field, tag);      \
             break;                                                           \
         }                                                                    \
-        if (ASN1_IS_FIELD_TYPE(asn1_opt_uint16_t, field, st_pfx##_t)) {      \
+        if (ASN1_IS_FIELD_TYPE(opt_u16_t, field, st_pfx##_t)) {              \
             ASN1_REG_OPT_SCALAR(desc, st_pfx##_t, uint16_t, field, tag);     \
             break;                                                           \
         }                                                                    \
-        if (ASN1_IS_FIELD_TYPE(asn1_opt_int32_t, field, st_pfx##_t)) {       \
+        if (ASN1_IS_FIELD_TYPE(opt_i32_t, field, st_pfx##_t)) {              \
             ASN1_REG_OPT_SCALAR(desc, st_pfx##_t, int32_t, field, tag);      \
             break;                                                           \
         }                                                                    \
-        if (ASN1_IS_FIELD_TYPE(asn1_opt_uint32_t, field, st_pfx##_t)) {      \
+        if (ASN1_IS_FIELD_TYPE(opt_u32_t, field, st_pfx##_t)) {              \
             ASN1_REG_OPT_SCALAR(desc, st_pfx##_t, uint32_t, field, tag);     \
             break;                                                           \
         }                                                                    \
-        if (ASN1_IS_FIELD_TYPE(asn1_opt_int64_t, field, st_pfx##_t)) {       \
+        if (ASN1_IS_FIELD_TYPE(opt_i64_t, field, st_pfx##_t)) {              \
             ASN1_REG_OPT_SCALAR(desc, st_pfx##_t, int64_t, field, tag);      \
             break;                                                           \
         }                                                                    \
-        if (ASN1_IS_FIELD_TYPE(asn1_opt_uint64_t, field, st_pfx##_t)) {      \
+        if (ASN1_IS_FIELD_TYPE(opt_u64_t, field, st_pfx##_t)) {              \
             ASN1_REG_OPT_SCALAR(desc, st_pfx##_t, uint64_t, field, tag);     \
             break;                                                           \
         }                                                                    \
