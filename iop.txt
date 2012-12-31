@@ -164,9 +164,9 @@ Scalar types usage
 A mandatory scalar member is converted in the most simple way as it would be
 written in C. So `int foo;` becomes `int32_t foo;`.
 
-An optional scalar member is converted to an `iop_opt_xxx_t` structure. You
-should never access it directly but using the `IOP_OPT*` macros defined in
-`iop-macros.h`.
+An optional scalar member is converted to an `opt_xxx_t` structure. You
+should never access it directly but using the `OPT*` macros defined in
+`core-types.h`.
 
 A repeated scalar member is converted to a structure containing a `len` member
 which gives the number of element and a `tab` member which gives a pointer on

@@ -16,6 +16,8 @@
 #else
 #define IS_LIB_COMMON_CORE_TYPES_H
 
+/* {{{1 Refcount */
+
 #define REFCNT_NEW(type, pfx)                                             \
     static inline type *pfx##_new(void) {                                 \
         type *res = pfx##_init(p_new_raw(type, 1));                       \
@@ -72,5 +74,60 @@
             }                                                             \
         }                                                                 \
     }
+
+/* 1}}} */
+/* {{{ Optional scalar types */
+
+#define OPT_OF(type_t)     struct { type_t v; bool has_field; }
+typedef OPT_OF(int8_t)     opt_i8_t;
+typedef OPT_OF(uint8_t)    opt_u8_t;
+typedef OPT_OF(int16_t)    opt_i16_t;
+typedef OPT_OF(uint16_t)   opt_u16_t;
+typedef OPT_OF(int32_t)    opt_i32_t;
+typedef OPT_OF(uint32_t)   opt_u32_t;
+typedef OPT_OF(int64_t)    opt_i64_t;
+typedef OPT_OF(uint64_t)   opt_u64_t;
+typedef OPT_OF(int)        opt_enum_t;
+typedef OPT_OF(bool)       opt_bool_t;
+typedef OPT_OF(double)     opt_double_t;
+typedef opt_bool_t         opt__Bool_t;
+
+/** Initialize an optional field. */
+#define OPT(val)           { .v = (val), .has_field = true }
+/** Initialize an optional field to “absent”. */
+#define OPT_NONE           { .has_field = false }
+/** Initialize an optional field if `cond` is fulfilled. */
+#define OPT_IF(cond, val)  { .has_field = (cond), .v = (cond) ? (val) : 0 }
+
+/** Tell whether the optional field is set or not. */
+#define OPT_ISSET(_v)  ((_v).has_field == true)
+/** Get the optional field value. */
+#define OPT_VAL(_v)    ((_v).v)
+#define OPT_DEFVAL(_v, _defval)                       \
+    ({ typeof(_v) __v = (_v);                         \
+       (__v).has_field ? (__v).v : (_defval); })
+
+/** Set the optional field value. */
+#define OPT_SET(dst, val)  \
+    ({ typeof(dst) *_dst = &(dst); _dst->has_field = true; _dst->v = (val); })
+/** Clear the optional field value. */
+#define OPT_CLR(dst)   (void)((dst).has_field = false)
+/** Set the optional field value if `cond` is fulfilled. */
+#define OPT_SET_IF(dst, cond, val) \
+    ({ if (cond) {                                         \
+           OPT_SET(dst, val);                              \
+       } else {                                            \
+           OPT_CLR(dst);                                   \
+       }                                                   \
+    })
+/** Clear the optional field value if `cond` is fulfilled. */
+#define OPT_CLR_IF(dst, cond) \
+    do {                                                   \
+        if (cond) {                                        \
+            OPT_CLR(dst);                                  \
+        }                                                  \
+    } while (0)
+
+/* 1}}} */
 
 #endif

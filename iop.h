@@ -237,19 +237,20 @@ struct iop_pkg_t {
     }
 typedef lstr_t iop_data_t;
 
-#define IOP_OPT_OF(type_t)     struct { type_t v; bool has_field; }
-typedef IOP_OPT_OF(int8_t)     iop_opt_i8_t;
-typedef IOP_OPT_OF(uint8_t)    iop_opt_u8_t;
-typedef IOP_OPT_OF(int16_t)    iop_opt_i16_t;
-typedef IOP_OPT_OF(uint16_t)   iop_opt_u16_t;
-typedef IOP_OPT_OF(int32_t)    iop_opt_i32_t;
-typedef IOP_OPT_OF(uint32_t)   iop_opt_u32_t;
-typedef IOP_OPT_OF(int64_t)    iop_opt_i64_t;
-typedef IOP_OPT_OF(uint64_t)   iop_opt_u64_t;
-typedef IOP_OPT_OF(int)        iop_opt_enum_t;
-typedef IOP_OPT_OF(bool)       iop_opt_bool_t;
-typedef IOP_OPT_OF(double)     iop_opt_double_t;
-typedef iop_opt_bool_t         iop_opt__Bool_t;
+/* XXX Deprecated please use opt_XXX_t types */
+#define IOP_OPT_OF(...)  OPT_OF(__VA_ARGS__)
+typedef opt_i8_t     iop_opt_i8_t;
+typedef opt_u8_t     iop_opt_u8_t;
+typedef opt_i16_t    iop_opt_i16_t;
+typedef opt_u16_t    iop_opt_u16_t;
+typedef opt_i32_t    iop_opt_i32_t;
+typedef opt_u32_t    iop_opt_u32_t;
+typedef opt_i64_t    iop_opt_i64_t;
+typedef opt_u64_t    iop_opt_u64_t;
+typedef opt_enum_t   iop_opt_enum_t;
+typedef opt_bool_t   iop_opt_bool_t;
+typedef opt_double_t iop_opt_double_t;
+typedef opt__Bool_t  iop_opt__Bool_t;
 
 typedef struct iop__void__t { } iop__void__t;
 extern iop_struct_t const iop__void__s;
