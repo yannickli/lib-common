@@ -199,43 +199,19 @@
 
 
 /* }}} */
-/* {{{ Optional scalar fields usage */
+/* {{{ Optional scalar fields usage (Deprecated) */
 
-/** Initialize an optional field. */
-#define IOP_OPT(val)           { .v = (val), .has_field = true }
-/** Initialize an optional field to “absent”. */
-#define IOP_OPT_NONE           { .has_field = false }
-/** Initialize an optional field if `cond` is fulfilled. */
-#define IOP_OPT_IF(cond, val)  { .has_field = (cond), .v = (cond) ? (val) : 0 }
-
-/** Tell whether the optional field is set or not. */
-#define IOP_OPT_ISSET(_v)  ((_v).has_field == true)
-/** Get the optional field value. */
-#define IOP_OPT_VAL(_v)    ((_v).v)
-#define IOP_OPT_DEFVAL(_v, _defval)                   \
-    ({ typeof(_v) __v = (_v);                         \
-       (__v).has_field ? (__v).v : (_defval); })
-
-/** Set the optional field value. */
-#define IOP_OPT_SET(dst, val)  \
-    ({ typeof(dst) *_dst = &(dst); _dst->has_field = true; _dst->v = (val); })
-/** Clear the optional field value. */
-#define IOP_OPT_CLR(dst)   (void)((dst).has_field = false)
-/** Set the optional field value if `cond` is fulfilled. */
-#define IOP_OPT_SET_IF(dst, cond, val) \
-    ({ if (cond) {                                         \
-           IOP_OPT_SET(dst, val);                          \
-       } else {                                            \
-           IOP_OPT_CLR(dst);                               \
-       }                                                   \
-    })
-/** Clear the optional field value if `cond` is fulfilled. */
-#define IOP_OPT_CLR_IF(dst, cond) \
-    do {                                                   \
-        if (cond) {                                        \
-            IOP_OPT_CLR(dst);                              \
-        }                                                  \
-    } while (0)
+/* XXX Deprecated, please use OPT_XXX macros  */
+#define IOP_OPT(...)         OPT(__VA_ARGS__)
+#define IOP_OPT_NONE         OPT_NONE
+#define IOP_OPT_IF(...)      OPT_IF(__VA_ARGS__)
+#define IOP_OPT_ISSET(...)   OPT_ISSET(__VA_ARGS__)
+#define IOP_OPT_VAL(...)     OPT_VAL(__VA_ARGS__)
+#define IOP_OPT_DEFVAL(...)  OPT_DEFVAL(__VA_ARGS__)
+#define IOP_OPT_SET(...)     OPT_SET(__VA_ARGS__)
+#define IOP_OPT_CLR(...)     OPT_CLR(__VA_ARGS__)
+#define IOP_OPT_SET_IF(...)  OPT_SET_IF(__VA_ARGS__)
+#define IOP_OPT_CLR_IF(...)  OPT_CLR_IF(__VA_ARGS__)
 
 /* }}} */
 /* {{{ Data packing helpers */

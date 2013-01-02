@@ -367,19 +367,19 @@ Z_GROUP_EXPORT(iop)
         long j_10 = 10;
 
         struct tstiop__hash_v1__t v1 = {
-            .b  = IOP_OPT(true),
+            .b  = OPT(true),
             .i  = IOP_ARRAY(&i_10, 1),
             .s  = LSTR_IMMED("foo bar baz"),
         };
 
         struct tstiop__hash_v2__t v2 = {
-            .b  = IOP_OPT(true),
+            .b  = OPT(true),
             .i  = IOP_ARRAY(&j_10, 1),
             .s  = LSTR_IMMED("foo bar baz"),
         };
 
         struct tstiop__hash_v1__t v1_not_same = {
-            .b  = IOP_OPT(true),
+            .b  = OPT(true),
             .i  = IOP_ARRAY(&i_11, 1),
             .s  = LSTR_IMMED("foo bar baz"),
         };
@@ -680,7 +680,7 @@ Z_GROUP_EXPORT(iop)
 
         tstiop__my_struct_b__t bvals[] = {
             { .b = IOP_ARRAY(NULL, 0), },
-            { .a = IOP_OPT(55), .b = IOP_ARRAY(NULL, 0), }
+            { .a = OPT(55), .b = IOP_ARRAY(NULL, 0), }
         };
 
         tstiop__my_struct_f__t sf = {
@@ -798,17 +798,17 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT_N(iop_xunpack(xmlr_g, t_pool(), st_sa_opt, &sa_opt));
             xmlr_close(&xmlr_g);
 
-            Z_ASSERT(IOP_OPT_ISSET(sa_opt.a));
-            Z_ASSERT_EQ(IOP_OPT_VAL(sa_opt.a), 42);
+            Z_ASSERT(OPT_ISSET(sa_opt.a));
+            Z_ASSERT_EQ(OPT_VAL(sa_opt.a), 42);
 
-            Z_ASSERT(IOP_OPT_ISSET(sa_opt.b));
-            Z_ASSERT_EQ(IOP_OPT_VAL(sa_opt.b), 0x10U);
+            Z_ASSERT(OPT_ISSET(sa_opt.b));
+            Z_ASSERT_EQ(OPT_VAL(sa_opt.b), 0x10U);
 
-            Z_ASSERT(IOP_OPT_ISSET(sa_opt.e));
-            Z_ASSERT_EQ(IOP_OPT_VAL(sa_opt.e), -42);
+            Z_ASSERT(OPT_ISSET(sa_opt.e));
+            Z_ASSERT_EQ(OPT_VAL(sa_opt.e), -42);
 
-            Z_ASSERT(IOP_OPT_ISSET(sa_opt.f));
-            Z_ASSERT_EQ(IOP_OPT_VAL(sa_opt.f), 0x42);
+            Z_ASSERT(OPT_ISSET(sa_opt.f));
+            Z_ASSERT_EQ(OPT_VAL(sa_opt.f), 0x42);
 
             sb_wipe(&sb);
         }
@@ -829,7 +829,7 @@ Z_GROUP_EXPORT(iop)
             cs.s.len = 2;
             Z_HELPER_RUN(iop_xml_test_struct(st_cs, &cs, "cs"));
 
-            IOP_OPT_SET(cs.priv, true);
+            OPT_SET(cs.priv, true);
             cs.priv2 = false;
             Z_HELPER_RUN(iop_xml_test_struct(st_cs, &cs, "cs"));
 
@@ -851,7 +851,7 @@ Z_GROUP_EXPORT(iop)
                                     IOP_UNPACK_FORBID_PRIVATE);
             Z_ASSERT_N(ret, "XML unpacking failure (%s, %s): %s",
                        st_cs->fullname.s, "st_cs", xmlr_get_err());
-            Z_ASSERT(!IOP_OPT_ISSET(cs.priv));
+            Z_ASSERT(!OPT_ISSET(cs.priv));
             Z_ASSERT(cs.priv2);
 
             /* now test that unpacking only works when private values are not
@@ -1056,7 +1056,7 @@ Z_GROUP_EXPORT(iop)
 
         tstiop__my_struct_b__t cvals[] = {
             {
-                .a = IOP_OPT(10),
+                .a = OPT(10),
                 .b = IOP_ARRAY(b2vals, countof(b2vals)),
             }
         };
@@ -1144,7 +1144,7 @@ Z_GROUP_EXPORT(iop)
         const char json_sa_opt[] = "{ a: 42, o: null }";
 
         tstiop__my_struct_a_opt__t json_sa_opt_res = {
-            .a = IOP_OPT(42),
+            .a = OPT(42),
         };
 
 
@@ -1256,7 +1256,7 @@ Z_GROUP_EXPORT(iop)
         Z_HELPER_RUN(iop_std_test_struct(st_sa, &sa2, "sa2"));
 
         iop_init(st_sa_opt, &sa_opt);
-        IOP_OPT_SET(sa_opt.a, 32);
+        OPT_SET(sa_opt.a, 32);
         sa_opt.j = LSTR_IMMED_V("foo");
         Z_HELPER_RUN(iop_std_test_struct(st_sa_opt, &sa_opt, "sa_opt"));
 

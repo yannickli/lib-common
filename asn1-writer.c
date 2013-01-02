@@ -131,16 +131,16 @@ const void *asn1_opt_field(const void *field, enum obj_type type)
 {
      switch (type) {
        case ASN1_OBJ_TYPE(bool):
-         return ((const asn1_opt_bool_t *)field)->has_field ? field : NULL;
+         return ((const opt_bool_t *)field)->has_field ? field : NULL;
        case ASN1_OBJ_TYPE(int8_t): case ASN1_OBJ_TYPE(uint8_t):
-         return ((const asn1_opt_int8_t *)field)->has_field ? field : NULL;
+         return ((const opt_i8_t *)field)->has_field ? field : NULL;
        case ASN1_OBJ_TYPE(int16_t): case ASN1_OBJ_TYPE(uint16_t):
-         return ((const asn1_opt_int16_t *)field)->has_field ? field : NULL;
+         return ((const opt_i16_t *)field)->has_field ? field : NULL;
        case ASN1_OBJ_TYPE(int32_t): case ASN1_OBJ_TYPE(uint32_t):
        case ASN1_OBJ_TYPE(enum):
-         return ((const asn1_opt_int32_t *)field)->has_field ? field : NULL;
+         return ((const opt_i32_t *)field)->has_field ? field : NULL;
        case ASN1_OBJ_TYPE(int64_t): case ASN1_OBJ_TYPE(uint64_t):
-         return ((const asn1_opt_int64_t *)field)->has_field ? field : NULL;
+         return ((const opt_i64_t *)field)->has_field ? field : NULL;
        case ASN1_OBJ_TYPE(NULL): /* Should not happen. */
          return NULL;
        case ASN1_OBJ_TYPE(OPT_NULL):
@@ -796,31 +796,31 @@ void *asn1_opt_field_w(void *field, enum obj_type type, bool has_field)
 {
     switch (type) {
       case ASN1_OBJ_TYPE(bool):
-        if (!(((asn1_opt_bool_t *)field)->has_field = has_field)) {
-           ((asn1_opt_bool_t *)field)->v = false;
+        if (!(((opt_bool_t *)field)->has_field = has_field)) {
+           ((opt_bool_t *)field)->v = false;
         }
-        return (uint8_t *)field + offsetof(asn1_opt_bool_t, v);
+        return (uint8_t *)field + offsetof(opt_bool_t, v);
       case ASN1_OBJ_TYPE(int8_t): case ASN1_OBJ_TYPE(uint8_t):
-        if (!(((asn1_opt_int8_t *)field)->has_field = has_field)) {
-            ((asn1_opt_int8_t *)field)->v = 0;
+        if (!(((opt_i8_t *)field)->has_field = has_field)) {
+            ((opt_i8_t *)field)->v = 0;
         }
-        return (uint8_t *)field + offsetof(asn1_opt_int8_t, v);
+        return (uint8_t *)field + offsetof(opt_i8_t, v);
       case ASN1_OBJ_TYPE(int16_t): case ASN1_OBJ_TYPE(uint16_t):
-        if (!(((asn1_opt_int16_t *)field)->has_field = has_field)) {
-            ((asn1_opt_int16_t *)field)->v = 0;
+        if (!(((opt_i16_t *)field)->has_field = has_field)) {
+            ((opt_i16_t *)field)->v = 0;
         }
-        return (uint16_t *)field + offsetof(asn1_opt_int16_t, v);
+        return (uint16_t *)field + offsetof(opt_i16_t, v);
       case ASN1_OBJ_TYPE(int32_t): case ASN1_OBJ_TYPE(uint32_t):
       case ASN1_OBJ_TYPE(enum):
-        if (!(((asn1_opt_int32_t *)field)->has_field = has_field)) {
-            ((asn1_opt_int32_t *)field)->v = 0;
+        if (!(((opt_i32_t *)field)->has_field = has_field)) {
+            ((opt_i32_t *)field)->v = 0;
         }
-        return (uint32_t *)field + offsetof(asn1_opt_int32_t, v);
+        return (uint32_t *)field + offsetof(opt_i32_t, v);
       case ASN1_OBJ_TYPE(int64_t): case ASN1_OBJ_TYPE(uint64_t):
-        if (!(((asn1_opt_int64_t *)field)->has_field = has_field)) {
-            ((asn1_opt_int64_t *)field)->v = 0;
+        if (!(((opt_i64_t *)field)->has_field = has_field)) {
+            ((opt_i64_t *)field)->v = 0;
         }
-        return (uint64_t *)field + offsetof(asn1_opt_int64_t, v);
+        return (uint64_t *)field + offsetof(opt_i64_t, v);
       case ASN1_OBJ_TYPE(NULL): /* Should not happen. */
         return NULL;
       case ASN1_OBJ_TYPE(OPT_NULL):

@@ -35,16 +35,17 @@ typedef struct asn1_ext_t {
 } asn1_ext_t;
 
 /* Optional scalar types. */
-#define ASN1_OPT_OF(ctype_t)    struct { ctype_t v; bool has_field; }
-typedef ASN1_OPT_OF(bool)       asn1_opt_bool_t;
-typedef ASN1_OPT_OF(int8_t)     asn1_opt_int8_t;
-typedef ASN1_OPT_OF(uint8_t)    asn1_opt_uint8_t;
-typedef ASN1_OPT_OF(int16_t)    asn1_opt_int16_t;
-typedef ASN1_OPT_OF(uint16_t)   asn1_opt_uint16_t;
-typedef ASN1_OPT_OF(int32_t)    asn1_opt_int32_t;
-typedef ASN1_OPT_OF(uint32_t)   asn1_opt_uint32_t;
-typedef ASN1_OPT_OF(int64_t)    asn1_opt_int64_t;
-typedef ASN1_OPT_OF(uint64_t)   asn1_opt_uint64_t;
+/* XXX Deprecated. Please use opt_XXX_t types and OPT_XXX macros */
+#define ASN1_OPT_OF(...)  OPT_OF(__VA_ARGS__)
+typedef opt_bool_t asn1_opt_bool_t;
+typedef opt_i8_t   asn1_opt_int8_t;
+typedef opt_u8_t   asn1_opt_uint8_t;
+typedef opt_i16_t  asn1_opt_int16_t;
+typedef opt_u16_t  asn1_opt_uint16_t;
+typedef opt_i32_t  asn1_opt_int32_t;
+typedef opt_u32_t  asn1_opt_uint32_t;
+typedef opt_i64_t  asn1_opt_int64_t;
+typedef opt_u64_t  asn1_opt_uint64_t;
 #define ASN1_OPT_SET(pfx, val)  \
     (asn1_opt_##pfx##_t){ .v = (val), .has_field = true }
 #define ASN1_OPT_TYPE(pfx)      asn1_opt_##pfx##_t
