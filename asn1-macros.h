@@ -184,15 +184,10 @@
     .size      = sizeof(ctype_t),                                            \
     .pointed   = ptd
 
-#ifndef NDEBUG
 #define ASN1_COMMON_FIELDS(ctype_t, st, field, tg, typ, mod, ptd)  \
     .name      = #field,                                                     \
     .oc_t_name = #ctype_t,                                                   \
     ASN1_COMMON_FIELDS_NO_NAME(ctype_t, st, field, tg, typ, mod, ptd)
-#else
-#define ASN1_COMMON_FIELDS(ctype_t, st, field, tg, typ, mod, ptd)  \
-    ASN1_COMMON_FIELDS_NO_NAME(ctype_t, st, field, tg, typ, mod, ptd)
-#endif
 
 /*}}}*/
 /*{{{ Scalar types registering macros */
