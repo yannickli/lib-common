@@ -268,7 +268,7 @@ static inline int http_parse_status_line(pstream_t *ps, httpc_qinfo_t *qi)
     __ps_skip(&line, 1);
 
     qi->code = ps_geti(&code);
-    if (qi->code < 100 || qi->code >= 600)
+    if ((int)qi->code < 100 || (int)qi->code >= 600)
         return PARSE_ERROR;
     qi->reason = line;
     return PARSE_OK;
