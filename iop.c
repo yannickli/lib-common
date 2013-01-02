@@ -1247,7 +1247,7 @@ static int iop_skip_field(pstream_t *ps, iop_wire_type_t wt)
         u32 = 8;
         break;
       default:
-        PS_CHECK(-1);
+        return -1;
     }
 
     return ps_skip(ps, u32);
