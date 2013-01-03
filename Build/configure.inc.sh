@@ -249,14 +249,14 @@ fi
 if which "${python2_bin}-config" &> /dev/null; then
     python2_ENABLE=1
     setenv python2_ENABLE  1
-    setenv python2_CFLAGS  "$(${python2_bin}-config --cflags | sed 's/-O.//')"
+    setenv python2_CFLAGS  "$(${python2_bin}-config --cflags | sed 's/\( \|^\)-[^I][^ ]*//g')"
     setenv python2_LIBS    "$(${python2_bin}-config --ldflags)"
 fi
 
 if which "${python3_bin}-config" &> /dev/null; then
     python3_ENABLE=1
     setenv python3_ENABLE  1
-    setenv python3_CFLAGS  "$(${python3_bin}-config --cflags | sed 's/-O.//')"
+    setenv python3_CFLAGS  "$(${python3_bin}-config --cflags | sed 's/\( \|^\)-[^I][^ ]*//g')"
     setenv python3_LIBS    "$(${python3_bin}-config --ldflags)"
     setenv python3_SUFFIX  "$(${python3_bin}-config --extension-suffix)"
 fi
