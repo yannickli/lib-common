@@ -391,8 +391,8 @@ static int asn1_pack_field_size(const void *st, const asn1_field_t *spec,
     switch (spec->mode) {
       case ASN1_OBJ_MODE(MANDATORY):
         /* IF ASSERT: user maybe forgot to declare field as optional */
-        assert (GET_DATA_P(st, spec, const void));
-        RETHROW(asn1_pack_value_size(GET_DATA_P(st, spec, const void),
+        assert (GET_DATA_P(st, spec, void));
+        RETHROW(asn1_pack_value_size(GET_DATA_P(st, spec, void),
                                      spec, stack, len));
         break;
       case ASN1_OBJ_MODE(OPTIONAL):
@@ -590,7 +590,7 @@ static uint8_t *asn1_pack_field(uint8_t *dst, const void *st,
 
     switch (spec->mode) {
       case ASN1_OBJ_MODE(MANDATORY):
-        dst = asn1_pack_value(dst, GET_DATA_P(st, spec, const void),
+        dst = asn1_pack_value(dst, GET_DATA_P(st, spec, void),
                               spec, depth, stack);
         break;
       case ASN1_OBJ_MODE(OPTIONAL):
