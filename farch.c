@@ -14,8 +14,8 @@
 #include "container.h"
 #include "farch.h"
 
-qm_kptr_t(fe, const char, const farch_entry_t *,
-          qhash_str_hash, qhash_str_equal);
+qm_kptr_ckey_t(fe, char, const farch_entry_t *,
+               qhash_str_hash, qhash_str_equal);
 
 struct farch_t {
     flag_t   use_dir     : 1;

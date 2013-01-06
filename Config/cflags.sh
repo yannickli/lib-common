@@ -153,9 +153,6 @@ EOF
         if clang_prereq 3.1; then
             echo -Wno-return-type-c-linkage
         fi
-        if clang_prereq 3.2; then
-            echo -Wno-duplicate-decl-specifier
-        fi
     fi
 
     echo -Wchar-subscripts
