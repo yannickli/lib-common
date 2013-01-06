@@ -26,7 +26,7 @@ qh_k64_t(test_qh_64);
 qm_k32_t(test, uint32_t);
 qm_k64_t(test_qh_64, uint32_t);
 
-qh_kptr_t(test_str, const char, qhash_str_hash, qhash_str_equal);
+qh_kptr_ckey_t(test_str, char, qhash_str_hash, qhash_str_equal);
 
 qm_kvec_t(test_lstr, lstr_t, uint32_t, qhash_lstr_hash, qhash_lstr_equal);
 qm_kptr_t(test_ptr,  void,   uint32_t, qhash_hash_ptr,  qhash_ptr_equal);
