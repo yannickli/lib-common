@@ -30,8 +30,8 @@ qhash_iop_type_equal(const qhash_t *qh,
 
 qvector_t(iop_type, const iop_struct_t *);
 qvector_t(iop_enum, const iop_enum_t *);
-qh_kptr_t(iop_type, const iop_struct_t,
-          qhash_iop_type_hash, qhash_iop_type_equal);
+qh_kptr_ckey_t(iop_type, iop_struct_t,
+               qhash_iop_type_hash, qhash_iop_type_equal);
 
 
 typedef struct wsdlpp_t {
