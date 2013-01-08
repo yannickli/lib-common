@@ -143,6 +143,14 @@ static inline int p_fclose(FILE **fpp) {
 }
 
 __attr_nonnull__((1))
+static inline int p_closedir(DIR **dirp) {
+    DIR *dir = *dirp;
+
+    *dirp = NULL;
+    return dir ? closedir(dir) : 0;
+}
+
+__attr_nonnull__((1))
 static inline int p_close(int *hdp) {
     int hd = *hdp;
     *hdp = -1;
