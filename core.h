@@ -20,6 +20,7 @@
 #include <ctype.h>
 #include <endian.h>
 #include <errno.h>
+#include <dirent.h>
 #include <fcntl.h>
 #include <glob.h>
 #include <inttypes.h>
