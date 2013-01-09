@@ -75,6 +75,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .type      = IOP_T_U32,
         .data_offs = offsetof(core__httpd_cfg__t, outbuf_max_size),
         .u1        = { .defval_u64 = 0x2000000 },
+        .size      = fieldsizeof(core__httpd_cfg__t, outbuf_max_size),
     },
     {
         .name      = LSTR_IMMED("pipelineDepth"),
@@ -84,6 +85,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .type      = IOP_T_U16,
         .data_offs = offsetof(core__httpd_cfg__t, pipeline_depth),
         .u1        = { .defval_u64 = 0x20 },
+        .size      = fieldsizeof(core__httpd_cfg__t, pipeline_depth),
     },
     {
         .name      = LSTR_IMMED("noactDelay"),
@@ -93,6 +95,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .type      = IOP_T_U32,
         .data_offs = offsetof(core__httpd_cfg__t, noact_delay),
         .u1        = { .defval_u64 = 0x7530 },
+        .size      = fieldsizeof(core__httpd_cfg__t, noact_delay),
     },
     {
         .name      = LSTR_IMMED("maxQueries"),
@@ -102,6 +105,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .type      = IOP_T_U32,
         .data_offs = offsetof(core__httpd_cfg__t, max_queries),
         .u1        = { .defval_u64 = 0x400 },
+        .size      = fieldsizeof(core__httpd_cfg__t, max_queries),
     },
     {
         .name      = LSTR_IMMED("maxConnsIn"),
@@ -111,6 +115,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .type      = IOP_T_U32,
         .data_offs = offsetof(core__httpd_cfg__t, max_conns_in),
         .u1        = { .defval_u64 = 0x3e8 },
+        .size      = fieldsizeof(core__httpd_cfg__t, max_conns_in),
     },
     {
         .name      = LSTR_IMMED("onDataThreshold"),
@@ -120,6 +125,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .type      = IOP_T_U32,
         .data_offs = offsetof(core__httpd_cfg__t, on_data_threshold),
         .u1        = { .defval_u64 = 0x4000 },
+        .size      = fieldsizeof(core__httpd_cfg__t, on_data_threshold),
     },
     {
         .name      = LSTR_IMMED("headerLineMax"),
@@ -129,6 +135,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .type      = IOP_T_U32,
         .data_offs = offsetof(core__httpd_cfg__t, header_line_max),
         .u1        = { .defval_u64 = 0x400 },
+        .size      = fieldsizeof(core__httpd_cfg__t, header_line_max),
     },
     {
         .name      = LSTR_IMMED("headerSizeMax"),
@@ -138,6 +145,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .type      = IOP_T_U32,
         .data_offs = offsetof(core__httpd_cfg__t, header_size_max),
         .u1        = { .defval_u64 = 0x10000 },
+        .size      = fieldsizeof(core__httpd_cfg__t, header_size_max),
     },
 };
 static int const iop__ranges__2[] = {
@@ -165,6 +173,7 @@ static iop_field_t const core__httpc_cfg__desc_fields[] = {
         .type      = IOP_T_U16,
         .data_offs = offsetof(core__httpc_cfg__t, pipeline_depth),
         .u1        = { .defval_u64 = 0x20 },
+        .size      = fieldsizeof(core__httpc_cfg__t, pipeline_depth),
     },
     {
         .name      = LSTR_IMMED("noactDelay"),
@@ -174,6 +183,7 @@ static iop_field_t const core__httpc_cfg__desc_fields[] = {
         .type      = IOP_T_U32,
         .data_offs = offsetof(core__httpc_cfg__t, noact_delay),
         .u1        = { .defval_u64 = 0x7530 },
+        .size      = fieldsizeof(core__httpc_cfg__t, noact_delay),
     },
     {
         .name      = LSTR_IMMED("maxQueries"),
@@ -183,6 +193,7 @@ static iop_field_t const core__httpc_cfg__desc_fields[] = {
         .type      = IOP_T_U32,
         .data_offs = offsetof(core__httpc_cfg__t, max_queries),
         .u1        = { .defval_u64 = 0x400 },
+        .size      = fieldsizeof(core__httpc_cfg__t, max_queries),
     },
     {
         .name      = LSTR_IMMED("onDataThreshold"),
@@ -192,6 +203,7 @@ static iop_field_t const core__httpc_cfg__desc_fields[] = {
         .type      = IOP_T_U32,
         .data_offs = offsetof(core__httpc_cfg__t, on_data_threshold),
         .u1        = { .defval_u64 = 0x4000 },
+        .size      = fieldsizeof(core__httpc_cfg__t, on_data_threshold),
     },
     {
         .name      = LSTR_IMMED("headerLineMax"),
@@ -201,6 +213,7 @@ static iop_field_t const core__httpc_cfg__desc_fields[] = {
         .type      = IOP_T_U32,
         .data_offs = offsetof(core__httpc_cfg__t, header_line_max),
         .u1        = { .defval_u64 = 0x400 },
+        .size      = fieldsizeof(core__httpc_cfg__t, header_line_max),
     },
     {
         .name      = LSTR_IMMED("headerSizeMax"),
@@ -210,6 +223,7 @@ static iop_field_t const core__httpc_cfg__desc_fields[] = {
         .type      = IOP_T_U32,
         .data_offs = offsetof(core__httpc_cfg__t, header_size_max),
         .u1        = { .defval_u64 = 0x10000 },
+        .size      = fieldsizeof(core__httpc_cfg__t, header_size_max),
     },
 };
 static int const iop__ranges__3[] = {
