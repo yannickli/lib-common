@@ -43,6 +43,7 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .repeat    = IOP_R_OPTIONAL,
         .type      = IOP_T_STRING,
         .data_offs = offsetof(ic__simple_hdr__t, login),
+        .size      = fieldsizeof(ic__simple_hdr__t, login),
     },
     {
         .name      = LSTR_IMMED("password"),
@@ -51,6 +52,7 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .repeat    = IOP_R_OPTIONAL,
         .type      = IOP_T_STRING,
         .data_offs = offsetof(ic__simple_hdr__t, password),
+        .size      = fieldsizeof(ic__simple_hdr__t, password),
     },
     {
         .name      = LSTR_IMMED("kind"),
@@ -59,6 +61,7 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .repeat    = IOP_R_OPTIONAL,
         .type      = IOP_T_STRING,
         .data_offs = offsetof(ic__simple_hdr__t, kind),
+        .size      = fieldsizeof(ic__simple_hdr__t, kind),
     },
     {
         .name      = LSTR_IMMED("payload"),
@@ -68,6 +71,7 @@ static iop_field_t const ic__simple_hdr__desc_fields[] = {
         .type      = IOP_T_I32,
         .data_offs = offsetof(ic__simple_hdr__t, payload),
         .u1        = { .defval_u64 = 0xffffffffffffffff },
+        .size      = fieldsizeof(ic__simple_hdr__t, payload),
     },
 };
 static int const iop__ranges__2[] = {

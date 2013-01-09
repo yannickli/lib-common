@@ -246,30 +246,6 @@ void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp, const void *v
 /*----- duplicating values -}}}-*/
 /*----- comparing values -{{{-*/
 
-/** Compare two optional scalars fields, assuming the field is present */
-static bool iop_opt_equals(const iop_field_t *f, const void *v1, const void *v2)
-{
-#define OPT_EQU(t, v1, v2)  (((t *)(v1))->v == ((t *)(v2))->v)
-
-    switch (f->type) {
-      case IOP_T_I8:  case IOP_T_U8:
-        return OPT_EQU(iop_opt_u8_t, v1, v2);
-      case IOP_T_I16: case IOP_T_U16:
-        return OPT_EQU(iop_opt_u16_t, v1, v2);
-      case IOP_T_I32: case IOP_T_U32: case IOP_T_ENUM:
-        return OPT_EQU(iop_opt_u32_t, v1, v2);
-      case IOP_T_I64: case IOP_T_U64:
-        return OPT_EQU(iop_opt_u64_t, v1, v2);
-      case IOP_T_BOOL:
-        return OPT_EQU(iop_opt_bool_t, v1, v2);
-      case IOP_T_DOUBLE:
-        return OPT_EQU(iop_opt_double_t, v1, v2);
-      default:
-        e_panic("should not happen");
-    }
-#undef OPT_EQU
-}
-
 static bool
 __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
 {
@@ -292,6 +268,8 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
         int n = 1;
 
         if (fdesc->repeat == IOP_R_REPEATED) {
+            /* Here we just check the length of the repeated field, then we
+             * position our pointers on values to compare them later. */
             n   = ((iop_data_t *)r1)->len;
             if (((iop_data_t *)r2)->len != n)
                 return false;
@@ -299,24 +277,26 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
             r2  = ((iop_data_t *)r2)->data;
         }
 
-        if (fdesc->repeat == IOP_R_OPTIONAL) {
+        if (fdesc->repeat == IOP_R_OPTIONAL
+        &&  ((1 << fdesc->type) & IOP_BLK_OK))
+        {
+            /* Optional blocks types cannot be compared using a single memcmp
+             * we need to handle absent values first. */
             bool has = iop_value_has(fdesc, r1);
 
             if (has != iop_value_has(fdesc, r2))
                 return false;
             if (!has)
                 continue;
-            if (!((1 << fdesc->type) & IOP_BLK_OK)) {
-                if (!iop_opt_equals(fdesc, r1, r2))
-                    return false;
-                continue;
-            }
             if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
+                /* Structures & unions must be dereferenced */
                 r1  = *(void **)r1;
                 r2  = *(void **)r2;
             }
         }
+
         if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
+            /* We need to recurse to compare structures & unions. */
             for (int i = 0; i < n; i++) {
                 const void *t1 = &IOP_FIELD(const uint8_t, r1, i * fdesc->size);
                 const void *t2 = &IOP_FIELD(const uint8_t, r2, i * fdesc->size);
@@ -326,6 +306,7 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
             }
         } else
         if ((1 << fdesc->type) & IOP_BLK_OK) {
+            /* Blocks (string & co) must be compared one by one */
             for (int i = 0; i < n; i++) {
                 const iop_data_t *t1 = &IOP_FIELD(const iop_data_t, r1, i);
                 const iop_data_t *t2 = &IOP_FIELD(const iop_data_t, r2, i);
@@ -334,6 +315,9 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
                     return false;
             }
         } else {
+            /* Scalar types (even repeated) could be compared with one big
+             * memcmp */
+            assert (fdesc->size > 0 && "IOPC is probably outdated");
             if (memcmp(r1, r2, fdesc->size * n))
                 return false;
         }

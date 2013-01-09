@@ -1341,6 +1341,108 @@ Z_GROUP_EXPORT(iop)
         iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
+    Z_TEST(equals, "test iop_equals()") { /* {{{ */
+        t_scope;
+
+        tstiop__my_struct_g__t sg_a, sg_b;
+        tstiop__my_struct_a_opt__t sa_opt_a, sa_opt_b;
+        tstiop__my_union_a__t ua_a, ua_b;
+        tstiop__repeated__t sr_a, sr_b;
+
+        iop_dso_t *dso;
+        lstr_t path = t_lstr_cat(z_cmddir_g,
+                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+
+
+        const iop_struct_t *st_sg, *st_sa_opt, *st_ua, *st_sr;
+
+        if ((dso = iop_dso_open(path.s)) == NULL)
+            Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
+
+        Z_ASSERT_P(st_sg = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructG")));
+        Z_ASSERT_P(st_sr = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.Repeated")));
+        Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructAOpt")));
+        Z_ASSERT_P(st_ua = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyUnionA")));
+
+        /* Test with all the default values */
+        iop_init(st_sg, &sg_a);
+        iop_init(st_sg, &sg_b);
+        Z_ASSERT(iop_equals(st_sg, &sg_a, &sg_b));
+
+        /* Change some fields and test */
+        sg_a.b++;
+        Z_ASSERT(!iop_equals(st_sg, &sg_a, &sg_b));
+
+        sg_a.b--;
+        sg_b.j = LSTR_IMMED_V("not equal");
+        Z_ASSERT(!iop_equals(st_sg, &sg_a, &sg_b));
+
+        /* Use a more complex structure */
+        iop_init(st_sa_opt, &sa_opt_a);
+        iop_init(st_sa_opt, &sa_opt_b);
+        Z_ASSERT(iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+
+        IOP_OPT_SET(sa_opt_a.a, 42);
+        IOP_OPT_SET(sa_opt_b.a, 42);
+        sa_opt_a.j = LSTR_IMMED_V("plop");
+        sa_opt_b.j = LSTR_IMMED_V("plop");
+        Z_ASSERT(iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+
+        IOP_OPT_CLR(sa_opt_b.a);
+        Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+
+        IOP_OPT_SET(sa_opt_b.a, 42);
+        sa_opt_b.j = LSTR_NULL_V;
+        Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+
+        sa_opt_b.j = LSTR_IMMED_V("plop2");
+        Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+
+        sa_opt_b.j = LSTR_IMMED_V("plop");
+        ua_a = IOP_UNION(tstiop__my_union_a, ua, 1);
+        ua_b = IOP_UNION(tstiop__my_union_a, ua, 1);
+        sa_opt_a.l = &ua_a;
+        sa_opt_b.l = &ua_b;
+        Z_ASSERT(iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+
+        sa_opt_b.l = NULL;
+        Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+
+        ua_b = IOP_UNION(tstiop__my_union_a, ub, 1);
+        sa_opt_b.l = &ua_b;
+        Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+
+        /* Now test with some arrays */
+        {
+            lstr_t strs[] = { LSTR_IMMED("a"), LSTR_IMMED("b") };
+            uint8_t uints[] = { 1, 2, 3, 4 };
+            uint8_t uints2[] = { 1, 2, 4, 4 };
+
+            iop_init(st_sr, &sr_a);
+            iop_init(st_sr, &sr_b);
+            Z_ASSERT(iop_equals(st_sr, &sr_a, &sr_b));
+
+            sr_a.s.tab = strs, sr_a.s.len = countof(strs);
+            sr_b.s.tab = strs, sr_b.s.len = countof(strs);
+            sr_a.u8.tab = uints, sr_a.u8.len = countof(uints);
+            sr_b.u8.tab = uints, sr_b.u8.len = countof(uints);
+            Z_ASSERT(iop_equals(st_sr, &sr_a, &sr_b));
+
+            sr_b.s.len--;
+            Z_ASSERT(!iop_equals(st_sr, &sr_a, &sr_b));
+            sr_b.s.len++;
+
+            sr_b.u8.len--;
+            Z_ASSERT(!iop_equals(st_sr, &sr_a, &sr_b));
+            sr_b.u8.len++;
+
+            sr_b.u8.tab = uints2;
+            Z_ASSERT(!iop_equals(st_sr, &sr_a, &sr_b));
+        }
+
+        iop_dso_close(&dso);
+    } Z_TEST_END
+    /* }}} */
     Z_TEST(strict_enum, "test IOP strict enum (un)packing") { /* {{{ */
         t_scope;
 
