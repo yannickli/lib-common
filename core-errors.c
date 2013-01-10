@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include "core.h"
+#include "unix.h"
 
 static void stderr_handler(int priority, const char *format, va_list args)
     __attr_printf__(2,0);
@@ -87,8 +88,17 @@ static void stderr_handler(int priority, const char *format, va_list args)
 
 /* Error reporting functions */
 
+__attr_noreturn__
+static void fatality(void)
+{
+    if (psinfo_get_tracer_pid(0) > 0) {
+        abort();
+    }
+    exit(127);
+}
+
 E_FUNCTION_SYSLOG (e_panic,   LOG_CRIT,    abort());
-E_FUNCTIONS_SYSLOG(e_fatal,   LOG_CRIT,    exit(127));
+E_FUNCTIONS_SYSLOG(e_fatal,   LOG_CRIT,    fatality());
 E_FUNCTIONS       (e_error,   LOG_ERR,     return -1);
 E_FUNCTIONS       (e_warning, LOG_WARNING, return -1);
 E_FUNCTIONS       (e_notice,  LOG_NOTICE,  return  0);
