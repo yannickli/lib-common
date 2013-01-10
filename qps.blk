@@ -56,7 +56,7 @@ static struct {
             if (fatal) {                                                     \
                 e_panic(#Expr);                                              \
             }                                                                \
-            return -1;                                                       \
+            return e_error(#Expr);                                           \
         }                                                                    \
     } while (0)
 
@@ -1362,6 +1362,7 @@ static int qps_load_meta(qps_t *qps, sb_t *out, bool ro)
     qps_map_t *map;
     uint32_t *h_u32, *u32, *uend;
     uint32_t h_len;
+    int ret_val = 0;
 
     RETHROW(qps_map_meta(qps, &meta, &meta_size));
 
@@ -1453,20 +1454,26 @@ static int qps_load_meta(qps_t *qps, sb_t *out, bool ro)
 #endif
     qv_for_each_pos (qpsm, pos, &qps->maps) {
         qps_map_t *m = qps->maps.tab[pos];
+        int ret;
 
         if (!m) {
             continue;
         } else
         if (qps_map_is_pg(m)) {
-            RETHROW(qps_pg_check_hdrs_aux(qps, m->hdr.mapno << 16, false));
+            ret = qps_pg_check_hdrs_aux(qps, m->hdr.mapno << 16, false);
         } else {
-            RETHROW(qps_m_check_map(qps, m, false));
+            ret = qps_m_check_map(qps, m, false);
+        }
+        if (ret < 0) {
+            ret_val = -1;
+            e_error("QPS(%p:meta): inconsistent meta.qps [8]:"
+                    " map %08x is invalid", qps, pos);
         }
     }
 #ifdef NDEBUG
     }
 #endif
-    return 0;
+    return ret_val;
 
   err_unmap:
     x_munmap(meta, meta_size);
