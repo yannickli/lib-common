@@ -26,6 +26,9 @@
 
 #define O_ISWRITE(m)      (((m) & (O_RDONLY|O_WRONLY|O_RDWR)) != O_RDONLY)
 
+#define PROTECT_ERRNO(expr) \
+    ({ int save_errno__ = errno; expr; errno = save_errno__; })
+
 /****************************************************************************/
 /* process related                                                          */
 /****************************************************************************/
@@ -57,7 +60,7 @@ typedef struct dir_lock_t {
  * -1.
  */
 #define DIR_LOCK_INIT    { .dfd = -1, .lockfd = -1 }
-#define DIR_LOCK_INIT_V  (dir_lock_t)LOCK_FD_INIT
+#define DIR_LOCK_INIT_V  (dir_lock_t)DIR_LOCK_INIT
 
 /** Lock a directory
  * \param  dfd    directory file descriptor

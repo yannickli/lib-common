@@ -285,7 +285,7 @@ int p_unlockf(int fd, off_t start, off_t len)
 
 int lockdir(int dfd, dir_lock_t *dlock)
 {
-    dlock->dlock  = DIR_LOCK_INIT_V;
+    *dlock        = DIR_LOCK_INIT_V;
     dlock->lockfd = RETHROW(openat(dfd, ".lock", O_WRONLY | O_CREAT,
                                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
 
