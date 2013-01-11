@@ -59,6 +59,53 @@ int filecopy(const char *pathin, const char *pathout);
 int p_lockf(int fd, int mode, int cmd, off_t start, off_t len);
 int p_unlockf(int fd, off_t start, off_t len);
 
+/** Directory lock */
+typedef struct dir_lock_t {
+    int dfd;    /**< Directory file descriptor */
+    int lockfd; /**< Lock file descriptor      */
+} dir_lock_t;
+
+/** Directory lock initializer
+ *
+ * Since 0 is a valid file descriptor, dir_lock_t fds must be initialiazed to
+ * -1.
+ */
+#define DIR_LOCK_INIT    { .dfd = -1, .lockfd = -1 }
+#define DIR_LOCK_INIT_V  (dir_lock_t)LOCK_FD_INIT
+
+/** Lock a directory
+ * \param  dfd    directory file descriptor
+ * \param  dlock  directory lock
+ * \retval  0 on success
+ * \retval -1 on error
+ * \see    unlockdir
+ *
+ * Try to create a .lock file (with u+rw,g+r,o+r permissions) into the given
+ * directory and lock it.
+ *
+ * An error is returned if the directory is already locked (.lock exists and
+ * is locked) or if the directory cannot be written. In this case, errno is
+ * set appropriately.
+ *
+ * After a sucessful call to lockdir(), the directory file descriptor (dfd) is
+ * duplicated for internal usage. The file descriptors of the dir_lock_t
+ * should not be used by the application.
+ *
+ * Use unlockdir() to unlock a directory locked with unlock().
+ */
+int lockdir(int dfd, dir_lock_t *dlock);
+
+/** Unlock a directory
+ * \param  dlock  directory lock
+ * \see    lockdir
+ *
+ * Unlock the .lock file and delete it. unlockdir() be called on a file
+ * descriptor returned by lockdir().
+ *
+ * To be safe, this function resets the file descriptors to -1.
+ */
+void unlockdir(dir_lock_t *dlock);
+
 int tmpfd(void);
 void devnull_dup(int fd);
 
