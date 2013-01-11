@@ -84,7 +84,7 @@ typedef struct dir_lock_t {
  * -1.
  */
 #define DIR_LOCK_INIT    { .dfd = -1, .lockfd = -1 }
-#define DIR_LOCK_INIT_V  (dir_lock_t)LOCK_FD_INIT
+#define DIR_LOCK_INIT_V  (dir_lock_t)DIR_LOCK_INIT
 
 /** Lock a directory
  * \param  dfd    directory file descriptor
