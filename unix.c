@@ -339,6 +339,30 @@ int p_unlockf(int fd, off_t start, off_t len)
     return fcntl(fd, F_SETLK, &lock);
 }
 
+int lockdir(int dfd, dir_lock_t *dlock)
+{
+    dlock->dlock  = DIR_LOCK_INIT_V;
+    dlock->lockfd = RETHROW(openat(dfd, ".lock", O_WRONLY | O_CREAT,
+                                   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
+
+    if (p_lockf(dlock->lockfd, O_WRONLY, F_TLOCK, 0, 0) < 0) {
+        PROTECT_ERRNO(p_close(&dlock->lockfd));
+        return -1;
+    }
+
+    dlock->dfd = dup(dfd);
+    return 0;
+}
+
+void unlockdir(dir_lock_t *dlock)
+{
+    unlinkat(dlock->dfd, ".lock", 0);
+
+    /* XXX: The file gets unlocked after close() */
+    p_close(&dlock->lockfd);
+    p_close(&dlock->dfd);
+}
+
 int tmpfd(void)
 {
     char path[PATH_MAX] = "/tmp/XXXXXX";
