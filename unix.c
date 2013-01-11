@@ -14,8 +14,10 @@
 #include <sys/ioctl.h>
 #include <sys/resource.h>
 #include <termios.h>
+#include <sys/wait.h>
 #include "unix.h"
 #include "time.h"
+#include "z.h"
 
 /** Create a directory path as mkdir -p
  *
@@ -590,3 +592,58 @@ int iovec_vector_kill_first(qv_t(iovec) *iovs, ssize_t len)
     return i;
 }
 
+/* {{{ Tests */
+
+Z_GROUP_EXPORT(Unix) {
+    Z_TEST(lockdir, "directory locking/unlocking") {
+        dir_lock_t dlock1 = DIR_LOCK_INIT;
+        int fd;
+        pid_t pid;
+        int res;
+
+        /* A takes the lock */
+        fd = open(".", O_RDONLY);
+        res = lockdir(fd, &dlock1);
+        p_close(&fd);
+        Z_ASSERT_N(res);
+
+        pid = fork();
+        if (pid == 0) {
+            dir_lock_t dlock2 = DIR_LOCK_INIT;
+
+            /* B tries to take the lock */
+            fd = open(".", O_RDONLY);
+            res = lockdir(fd, &dlock2);
+            p_close(&fd);
+            unlockdir(&dlock2);
+
+            /* Failure is expected */
+            _exit(res < 0 ? 0 : 1);
+        }
+
+        waitpid(pid, &res, 0);
+        Z_ASSERT_EQ(res, 0);
+
+        /* A releases the lock */
+        unlockdir(&dlock1);
+
+        pid = fork();
+        if (pid == 0) {
+            dir_lock_t dlock2 = DIR_LOCK_INIT;
+
+            /* B tries to take the lock */
+            fd = open(".", O_RDONLY);
+            res = lockdir(fd, &dlock2);
+            p_close(&fd);
+            unlockdir(&dlock2);
+
+            /* Success is expected */
+            _exit(res < 0 ? 1 : 0);
+        }
+
+        waitpid(pid, &res, 0);
+        Z_ASSERT_EQ(res, 0);
+    } Z_TEST_END;
+} Z_GROUP_END;
+
+/* }}} */
