@@ -1412,7 +1412,7 @@ static qps_t *qps_new(void)
     qps_t *qps = p_new(qps_t, 1);
 
     qps->dfd = -1;
-    qps->lockfd = -1;
+    qps->lock = DIR_LOCK_INIT_V;
     qps->generation = 1;
     qps->handles_gc_gen = 1;
     thr_syn_init(&qps->gc_syn);
@@ -2180,9 +2180,9 @@ void *qps_w_deref_(qps_t *qps, uint32_t h, void *pptr)
 
 static int qps_lock(qps_t *qps)
 {
-    qps->lockfd = openat(qps->dfd, ".lock", O_WRONLY | O_CREAT, 0644);
-    if (qps->lockfd < 0 || p_lockf(qps->lockfd, O_WRONLY, F_TLOCK, 0, 0) < 0)
+    if (lockdir(qps->dfd, &qps->lock) < 0) {
         return e_error("QPS(%p): unable to lock: %m", qps);
+    }
     return 0;
 }
 
@@ -2719,11 +2719,8 @@ static void __qps_close(qps_t **qpsp, bool do_cleanup)
         p_delete(&qps->handles);
         p_delete(&qps->hdrs);
         dlist_remove(&qps->qps_link);
-        if (qps->lockfd >= 0) {
-            e_named_trace(1, "qps/close", "unlinkat(.lock)");
-            unlinkat(qps->dfd, ".lock", 0);
-            close(qps->lockfd);
-        }
+        e_named_trace(1, "qps/close", "unlockdir(.lock)");
+        unlockdir(&qps->lock);
         p_delete(qpsp);
         e_named_trace(1, "qps", "qps_close(%p)", qps);
     }
