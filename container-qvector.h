@@ -374,40 +374,19 @@ qvector_splice(qvector_t *vec, size_t v_size,
 
 #define qv_for_each_pos(n, pos, vec)                                         \
     ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]);       \
-    for (int pos = 0; pos < (vec)->len; pos++)
+    tab_for_each_pos(pos, vec)
 
 #define qv_for_each_ptr(n, ptr, vec)                                         \
     ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]);       \
-    for (typeof(*(vec)->tab) *ptr = (vec)->tab;                              \
-         ptr < (vec)->tab + (vec)->len;                                      \
-         ptr++)
+    tab_for_each_ptr(ptr, vec)
 
 #define qv_for_each_entry(n, e, vec)                                         \
     ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]);       \
-    for (typeof(*(vec)->tab) e,                                              \
-                            *e##__ptr = ({                                   \
-                                if ((vec)->size) {                           \
-                                   /* If (vec)->len == 0, e may not be       \
-                                    * initialized, but we don't care since   \
-                                    * it won't be read */                    \
-                                    e = *(vec)->tab;                         \
-                                } else {                                     \
-                                    /* Avoid warnings with old gcc's */      \
-                                    p_clear(&e, 1);                          \
-                                }                                            \
-                                (vec)->tab;                                  \
-                            });                                              \
-         ({                                                                  \
-             bool e##__res = e##__ptr < (vec)->tab + (vec)->len;             \
-             if (e##__res) {                                                 \
-                 e = *(e##__ptr++);                                          \
-             }                                                               \
-             e##__res;                                                       \
-         });)
+    tab_for_each_entry(e, vec)
 
-#define qv_for_each_pos_safe(n, pos, vec) \
-    ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]); \
-    for (int pos = (vec)->len; pos-- > 0; )
+#define qv_for_each_pos_safe(n, pos, vec)                                    \
+    ASSERT_COMPATIBLE((vec)->tab[0], ((const qv_t(n) *)NULL)->tab[0]);       \
+    tab_for_each_pos_safe(pos, vec)
 
 #ifdef __has_blocks
 /** \brief build the difference vectors by comparing elements of vec1 and vec2

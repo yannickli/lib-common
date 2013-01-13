@@ -375,6 +375,43 @@ typedef unsigned int flag_t;    /* for 1 bit bitfields */
 #endif
 
 
+/*---------------- Loops -------------------------*/
+
+/* Standard loops for structures of the form struct { type_t *tab; int len; }.
+ */
+
+#define tab_for_each_pos(pos, vec)                                           \
+    for (int pos = 0; pos < (vec)->len; pos++)
+
+#define tab_for_each_ptr(ptr, vec)                                           \
+    for (typeof(*(vec)->tab) *ptr = (vec)->tab;                              \
+         ptr < (vec)->tab + (vec)->len;                                      \
+         ptr++)
+
+#define tab_for_each_entry(e, vec)                                           \
+    for (typeof(*(vec)->tab) e,                                              \
+                            *e##__ptr = ({                                   \
+                                if ((vec)->len) {                            \
+                                    e = *(vec)->tab;                         \
+                                } else {                                     \
+                                    /* Avoid warnings with old gcc's */      \
+                                    p_clear(&e, 1);                          \
+                                }                                            \
+                                (vec)->tab;                                  \
+                            });                                              \
+         ({                                                                  \
+             bool e##__res = e##__ptr < (vec)->tab + (vec)->len;             \
+             if (e##__res) {                                                 \
+                 e = *(e##__ptr++);                                          \
+             }                                                               \
+             e##__res;                                                       \
+         });)
+
+#define tab_for_each_pos_safe(pos, vec)                                      \
+    for (int pos = (vec)->len; pos-- > 0; )
+
+
+
 /*---------------- Dangerous APIs ----------------*/
 
 #undef sprintf
