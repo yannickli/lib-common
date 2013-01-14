@@ -107,7 +107,8 @@
                                                                              \
         if (unlikely(!desc)) {                                               \
             desc = &p_new(asn1_choice_desc_t, 1)->desc;                      \
-            desc->type = ASN1_CSTD_TYPE_CHOICE
+            desc->type = ASN1_CSTD_TYPE_CHOICE;                              \
+            desc->size = sizeof(pfx##_t);
 
 #define ASN1_CHOICE_DESC_BEGIN(desc, pfx, enum_pfx, enum_field) \
     __ASN1_CHOICE_DESC_BEGIN(desc, pfx);                                     \
