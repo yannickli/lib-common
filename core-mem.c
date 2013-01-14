@@ -128,6 +128,31 @@ void *__irealloc(void *mem, size_t oldsize, size_t size, size_t alignment,
     }
 }
 
+char *mp_fmt(mem_pool_t *mp, int *out, const char *fmt, ...)
+{
+#define MP_FMT_LEN   1024
+    va_list ap;
+    char *res;
+    int len;
+
+    res = mp_new_raw(mp, char, MP_FMT_LEN);
+    va_start(ap, fmt);
+    len = vsnprintf(res, MP_FMT_LEN, fmt, ap);
+    va_end(ap);
+    if (likely(len < MP_FMT_LEN)) {
+        res = (*mp->realloc)(mp, res, MP_FMT_LEN, len + 1, MEM_RAW);
+    } else {
+        res = (*mp->realloc)(mp, res, 0, len + 1, MEM_RAW);
+        va_start(ap, fmt);
+        len = vsnprintf(res, len + 1, fmt, ap);
+        va_end(ap);
+    }
+    if (out)
+        *out = len;
+    return res;
+#undef MP_FMT_LEN
+}
+
 extern const char libcommon_id[];
 const char *__libcomon_version(void);
 const char *__libcomon_version(void)
