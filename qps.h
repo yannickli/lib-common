@@ -15,6 +15,7 @@
 #define IS_LIB_COMMON_QPS_H
 
 #include <sysexits.h>
+#include "unix.h"
 #include "thr.h"
 
 #define QPS_EX_ENOSPC   EX_IOERR
@@ -220,8 +221,8 @@ enum {
 };
 
 typedef struct qps_t {
+    dir_lock_t   lock;
     int          dfd;
-    int          lockfd;
     uint16_t     gc_state;   /* QPS_GC_* mask */
     uint16_t     snapshotting;
     uint32_t     generation;
