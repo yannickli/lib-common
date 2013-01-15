@@ -500,22 +500,82 @@ void mem_fifo_pool_stats(mem_pool_t *mp, ssize_t *allocated, ssize_t *used)
 
 
 /*----- core-mem-ring.c -----*/
+
+/** Create a new memory ring-pool.
+ *
+ * The memory ring-pool is an allocator working with frames of memory which
+ * rotates on a extending ring.
+ *
+ * This is quite a fifo-pool with the oldest frames always re-appended at the
+ * head of the pool.
+ *
+ * \param[initialsize]  First memory block size.
+ */
 mem_pool_t *mem_ring_pool_new(int initialsize)
     __leaf __attribute__((malloc));
-void mem_ring_pool_delete(mem_pool_t **)
-    __leaf;
 
+/** Delete the given memory ring-pool */
+void mem_ring_pool_delete(mem_pool_t **) __leaf;
+
+/** Create a new frame of memory in the ring.
+ *
+ * This function push a new extensible page of memory in the ring. You need to
+ * call it before allocating memory. But be careful, you cannot push a new
+ * frame if you haven't sealed the previous one.
+ *
+ * \return Frame cookie (needed to release the frame later).
+ */
 const void *mem_ring_newframe(mem_pool_t *) __leaf;
+
+/** Get the active frame cookie. */
 const void *mem_ring_getframe(mem_pool_t *) __leaf;
+
+/** Seal the active frame.
+ *
+ * When you seal the active frame, you cannot performed new allocations in it
+ * but the allocated data are still accessible. Do not forget to release it
+ * later!
+ *
+ * \return Frame cookie (needed to release the frame later).
+ */
 const void *mem_ring_seal(mem_pool_t *) __leaf;
 
-const void *mem_ring_checkpoint(mem_pool_t *) __leaf;
-void mem_ring_rewind(mem_pool_t *, const void *) __leaf;
+/** Release the frame identified by the given cookie.
+ *
+ * This function will free an existing frame using the given cookie. Be
+ * careful that the cookie will be invalidated after the frame release.
+ */
+void mem_ring_release(const void *cookie) __leaf;
 
-void mem_ring_release(const void *) __leaf;
+/** Seal the ring-pool and return a checkpoint.
+ *
+ * The returned check point will allow you to restore later the ring-pool at
+ * this current state.
+ */
+const void *mem_ring_checkpoint(mem_pool_t *) __leaf;
+
+
+/** Rewind the ring-pool at a given checkpoint.
+ *
+ * The rewind procedure will release all the framed created between the
+ * current active frame and the checkpoint. Then it will unseal the frame
+ * which was sealed when mem_ring_checkpoint() was called.
+ *
+ * Be careful that it will not restore the frames released after the
+ * checkpoint.
+ *
+ * The checkpoint cannot be reused after this call.
+ */
+void mem_ring_rewind(mem_pool_t *, const void *ckpoint) __leaf;
+
+/** Dump the ring structure on stdout (debug) */
 void mem_ring_dump(const mem_pool_t *) __leaf;
 
+
+/** Just like the t_pool() we have the corresponding r_pool() */
 mem_pool_t *r_pool(void) __leaf __attribute__((pure));
+
+/** Destroy the r_pool() */
 void r_pool_destroy(void) __leaf;
 
 #define r_newframe()                mem_ring_newframe(r_pool())

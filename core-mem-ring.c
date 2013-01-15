@@ -357,12 +357,19 @@ void mem_ring_pool_delete(mem_pool_t **rpp)
     }
 }
 
+/**
+ * Unlike the public documentation claims, this function allocates nothing.
+ * The ring implementation ensures that we always have an active frame. Here
+ * we just check that the programmer is really where he thinks he is and we
+ * “enable” the active frame.
+ */
 const void *mem_ring_newframe(mem_pool_t *_rp)
 {
     ring_pool_t *rp = container_of(_rp, ring_pool_t, funcs);
 
-    assert (rp->pos == NULL);
+    e_assert_null(panic, rp->pos, "previous memory frame not released!");
     rp->pos = &rp->ring[1];
+
     return rp->ring;
 }
 
@@ -381,13 +388,10 @@ const void *mem_ring_seal(mem_pool_t *_rp)
     /* Makes a new frame */
     frame = rp_reserve(rp, sizeof(frame_t), &blk);
     ring_setup_frame(rp, blk, frame);
+
     return last;
 }
 
-/* This function release a frame of memory in the mempool. You can release
- * a frame by passing its cookie (returned by mem_ring_(get|seal))
- * or release the last started frame if cookie is NULL.
- */
 void mem_ring_release(const void *cookie)
 {
     frame_t *frame  = (frame_t *)cookie;
@@ -469,6 +473,7 @@ const void *mem_ring_checkpoint(mem_pool_t *_rp)
 
     res = memcpy(rp_alloc(_rp, sizeof(cp), MEM_RAW), &cp, sizeof(cp));
     mem_ring_seal(_rp);
+
     return res;
 }
 
