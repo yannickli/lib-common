@@ -13,6 +13,7 @@
 
 #include <sys/wait.h>
 #include <fnmatch.h>
+#include "core-mem-valgrind.h"
 #include "unix.h"
 #include "z.h"
 
@@ -720,6 +721,10 @@ static bool z_is_opt_with_arg(const char *opt, int *i, const char **argv)
 int z_setup(int argc, const char **argv)
 {
     const char *s;
+    bool is_traced = psinfo_get_tracer_pid(0) > 0;
+
+    _G.do_fork       = !is_traced && !RUNNING_ON_VALGRIND;
+    _G.abort_on_fail = is_traced;
 
     lstr_copy(&_G.arg0, LSTR_STR_V(argv[0]));
 
@@ -748,6 +753,18 @@ int z_setup(int argc, const char **argv)
         } else
         if (strequal("--z-abort", argv[i])) {
             _G.abort_on_fail = true;
+            continue;
+        } else
+        if (strequal("--z-no-abort", argv[i])) {
+            _G.abort_on_fail = false;
+            continue;
+        } else
+        if (strequal("--z-fork", argv[i])) {
+            _G.do_fork = true;
+            continue;
+        } else
+        if (strequal("--z-no-fork", argv[i])) {
+            _G.do_fork = false;
             continue;
         }
 
@@ -852,7 +869,6 @@ int z_run(void)
     signal(SIGINT,  z_on_term);
     signal(SIGQUIT, z_on_term);
 
-    _G.do_fork = psinfo_get_tracer_pid(0) <= 0;
     if (!_G.do_fork) {
         e_info("running in no-fork mode");
     }
