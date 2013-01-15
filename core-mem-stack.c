@@ -324,29 +324,4 @@ void *stack_realloc(void *mem, size_t oldsize, size_t size, size_t alignment,
                               MAX(__BIGGEST_ALIGNMENT__, alignment), flags);
 }
 
-char *t_fmt(int *out, const char *fmt, ...)
-{
-#define T_FMT_LEN   1024
-    va_list ap;
-    char *res;
-    int len;
-
-    res = sp_alloc(t_pool(), T_FMT_LEN, MEM_RAW);
-    va_start(ap, fmt);
-    len = vsnprintf(res, T_FMT_LEN, fmt, ap);
-    va_end(ap);
-    if (likely(len < T_FMT_LEN)) {
-        sp_realloc(t_pool(), res, T_FMT_LEN, len + 1, MEM_RAW);
-    } else {
-        res = sp_realloc(t_pool(), res, 0, len + 1, MEM_RAW);
-        va_start(ap, fmt);
-        len = vsnprintf(res, len + 1, fmt, ap);
-        va_end(ap);
-    }
-    if (out)
-        *out = len;
-    return res;
-#undef T_FMT_LEN
-}
-
 __thread mem_stack_pool_t t_pool_g;

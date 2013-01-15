@@ -173,8 +173,7 @@ extern __thread mem_stack_pool_t t_pool_g;
 #define t_pop_and_continue()    __t_pop_and_do(continue)
 #define t_pop_and_goto(lbl)     __t_pop_and_do(goto lbl)
 
-char *t_fmt(int *out, const char *fmt, ...)
-    __leaf __attr_printf__(2, 3);
+#define t_fmt(fmt, ...)  mp_fmt(&t_pool_g.funcs, (fmt), ##__VA_ARGS__)
 
 #define ta_new(type_t, n, alignment) \
     ((type_t *)stack_malloc((n) * sizeof(type_t), (alignment), MEM_STACK))

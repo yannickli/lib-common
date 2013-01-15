@@ -460,7 +460,11 @@ static inline void *mp_strdup(mem_pool_t *mp, const char *src)
             (mp)->free((mp), *(void **)__ptr, 0);   \
             *(void **)__ptr = NULL;                 \
         } while (0)
+
 #endif
+
+char *mp_fmt(mem_pool_t *mp, int *out, const char *fmt, ...)
+    __leaf __attr_printf__(3, 4);
 
 #define DO_MP_NEW(mp, type, prefix)                     \
     __attribute__((malloc)) type * prefix##_new(void) { \

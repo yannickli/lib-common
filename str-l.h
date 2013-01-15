@@ -483,4 +483,8 @@ static inline void lstr_ascii_toupper(lstr_t *s)
     ({ int __len; const char *__s = t_fmt(&__len, fmt, ##__VA_ARGS__); \
        lstr_init_(__s, __len, MEM_STACK); })
 
+#define mp_lstr_fmt(mp, fmt, ...) \
+    ({ int __len; const char *__s = mp_fmt(mp, &__len, fmt, ##__VA_ARGS__); \
+       lstr_init_(__s, __len, MEM_OTHER); })
+
 #endif
