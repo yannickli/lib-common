@@ -242,9 +242,9 @@ static void build_sorted_uniq_vec(qv_t(u32) *vec)
 /* XXX: qv_diff performed in a separate function as block rewriting inside
  * Z_GROUP_EXPORT breaks compilation */
 static void do_qv_diff(qv_t(u32) *vec1, qv_t(u32) *vec2,
-                       qv_t(u32) *add, qv_t(u32) *del)
+                       qv_t(u32) *add, qv_t(u32) *del, qv_t(u32) *inter)
 {
-    qv_diff(u32)(vec1, vec2, add, del,
+    qv_diff(u32)(vec1, vec2, add, del, inter,
                  ^int (const uint32_t *v1, const uint32_t *v2) {
                      return CMP(*v1, *v2);
                  });
@@ -364,20 +364,22 @@ Z_GROUP_EXPORT(qvector)
         /* {{{ */
 #define N  1024
         t_scope;
-        qv_t(u32) vec1, vec2, add, del;
+        qv_t(u32) vec1, vec2, add, del, inter;
 
-        t_qv_init(u32, &vec1, N);
-        t_qv_init(u32, &vec2, N);
-        t_qv_init(u32, &add,  N);
-        t_qv_init(u32, &del,  N);
+        t_qv_init(u32, &vec1,  N);
+        t_qv_init(u32, &vec2,  N);
+        t_qv_init(u32, &add,   N);
+        t_qv_init(u32, &del,   N);
+        t_qv_init(u32, &inter, N);
 
         build_sorted_uniq_vec(&vec1);
         build_sorted_uniq_vec(&vec2);
 
-        do_qv_diff(&vec1, &vec2, &add, &del);
+        do_qv_diff(&vec1, &vec2, &add, &del, &inter);
 
-        Z_ASSERT(add.len == (int)uniq32(add.tab, add.len));
-        Z_ASSERT(del.len == (int)uniq32(del.tab, del.len));
+        Z_ASSERT(add.len   == (int)uniq32(add.tab,   add.len));
+        Z_ASSERT(del.len   == (int)uniq32(del.tab,   del.len));
+        Z_ASSERT(inter.len == (int)uniq32(inter.tab, inter.len));
 
         qv_for_each_pos(u32, pos, &add) {
             Z_ASSERT(!contains32(add.tab[pos], vec1.tab, vec1.len)
@@ -387,17 +389,25 @@ Z_GROUP_EXPORT(qvector)
             Z_ASSERT(contains32(del.tab[pos], vec1.tab, vec1.len)
                      && !contains32(del.tab[pos], vec2.tab, vec2.len));
         }
+        qv_for_each_pos(u32, pos, &inter) {
+            Z_ASSERT(contains32(inter.tab[pos], vec1.tab, vec1.len)
+                     && contains32(inter.tab[pos], vec2.tab, vec2.len));
+        }
         qv_for_each_pos(u32, pos, &vec1) {
             Z_ASSERT(contains32(vec1.tab[pos], vec2.tab, vec2.len)
                      || contains32(vec1.tab[pos], del.tab,  del.len));
+            Z_ASSERT(!contains32(vec1.tab[pos], vec2.tab, vec2.len)
+                     || contains32(vec1.tab[pos], inter.tab, inter.len));
         }
         qv_for_each_pos(u32, pos, &vec2) {
             Z_ASSERT(contains32(vec2.tab[pos], vec1.tab, vec1.len)
                      || contains32(vec2.tab[pos], add.tab,  add.len));
+            Z_ASSERT(!contains32(vec2.tab[pos], vec1.tab, vec1.len)
+                     || contains32(vec2.tab[pos], inter.tab, inter.len));
         }
 
-        /* Test that passing NULL to add and del doesn't segfault */
-        do_qv_diff(&vec1, &vec2, NULL, NULL);
+        /* Test that passing NULL to add, del and inter doesn't segfault */
+        do_qv_diff(&vec1, &vec2, NULL, NULL, NULL);
 #undef N
         /* }}} */
     } Z_TEST_END;
