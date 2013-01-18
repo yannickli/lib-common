@@ -71,8 +71,8 @@ __qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_b cmp)
     }
 }
 void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
-                    qvector_t *add, qvector_t *del, size_t v_size,
-                    qvector_cmp_b cmp);
+                    qvector_t *add, qvector_t *del, qvector_t *inter,
+                    size_t v_size, qvector_cmp_b cmp);
 int  __qvector_bisect(const qvector_t *vec, size_t v_size, const void *elt,
                       bool *found, qvector_cmp_b cmp);
 int __qvector_find(const qvector_t *vec, size_t v_size, const void *elt,
@@ -172,10 +172,10 @@ qvector_splice(qvector_t *vec, size_t v_size,
     }                                                                       \
     static inline void                                                      \
     pfx##_diff(const pfx##_t *vec1, const pfx##_t *vec2,                    \
-               pfx##_t *add, pfx##_t *del, pfx##_cmp_b cmp)                 \
+               pfx##_t *add, pfx##_t *del, pfx##_t *inter, pfx##_cmp_b cmp) \
     {                                                                       \
         __qvector_diff(&vec1->qv, &vec2->qv, add ? &add->qv : NULL,         \
-                       del ? &del->qv : NULL,                               \
+                       del ? &del->qv : NULL, inter ? &inter->qv : NULL,    \
                        sizeof(val_t), (qvector_cmp_b)cmp);                  \
     }                                                                       \
     static inline                                                           \
@@ -389,11 +389,12 @@ qvector_splice(qvector_t *vec, size_t v_size,
     tab_for_each_pos_safe(pos, vec)
 
 #ifdef __has_blocks
-/** \brief build the difference vectors by comparing elements of vec1 and vec2
+/** \brief build the difference and intersection vectors by comparing elements
+ *         of vec1 and vec2
  *
  * This generates a qv_diff function which can be used like that, for example:
  *
- *   qv_diff(u32)(&vec1, &vec2, &add, &del,
+ *   qv_diff(u32)(&vec1, &vec2, &add, &del, &inter,
  *                ^int (const uint32_t *v1, const uint32_t *v2) {
  *       return CMP(*v1, *v2);
  *   });
@@ -404,7 +405,9 @@ qvector_splice(qvector_t *vec, size_t v_size,
  * \param[out]  add   the vector of v2 values not in v1 (may be NULL if not
  *                    interested in added values)
  * \param[out]  del   the vector of v1 values not in v2 (may be NULL if not
- *                    interested in deleted values
+ *                    interested in deleted values)
+ * \param[out]  inter the vector of v1 values also in v2 (may be NULL if not
+ *                    interested in intersection values)
  * \param[in]   cmp   comparison function for the elements of the vectors
  *
  * You must be in a .blk to use qv_diff, because it expects blocks.
