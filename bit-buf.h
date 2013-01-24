@@ -34,20 +34,34 @@ typedef struct bb_t {
     };
     size_t     size     : 62; /* Number of words allocated */
     flag_t     mem_pool :  2;
+
+    /** Memory alignment (in bytes) */
+    size_t     alignment;
 } bb_t;
 
 struct bit_stream_t;
 
 /* Initialization/Cleanup {{{ */
 
-GENERIC_INIT(bb_t, bb);
+bb_t *bb_init(bb_t *bb);
 GENERIC_NEW(bb_t, bb);
 
 void bb_wipe(bb_t *bb);
 GENERIC_DELETE(bb_t, bb);
 
+/** Initialize a bit-buffer.
+ *
+ * \param[bb]        The buffer to initialize.
+ * \param[buf]       The data buffer to used as the backend. Should be aligned on
+ *                   “alignement”.
+ * \param[blen]      Number of already used bits in buffer.
+ * \param[bsize]     Buffer size given in number of 64bit words.
+ * \param[mem_pool]  Buffer memory pool.
+ * \param[alignment] Memory alignment to maintain given in bytes.
+ */
 static inline bb_t *
-bb_init_full(bb_t *bb, void *buf, int blen, int bsize, int mem_pool)
+bb_init_full(bb_t *bb, void *buf, int blen, int bsize, int mem_pool,
+             size_t alignment)
 {
     size_t used_bytes = DIV_ROUND_UP(blen, 8);
 
@@ -55,23 +69,28 @@ bb_init_full(bb_t *bb, void *buf, int blen, int bsize, int mem_pool)
     bb->len = blen;
     bb->size = bsize;
     bb->mem_pool = mem_pool;
+    bb->alignment = alignment;
+
+    assert (alignment >= 8 && alignment % 8 == 0);
+    assert (((intptr_t)buf) % alignment == 0 && (bsize * 8) % alignment == 0);
 
     bzero(bb->bytes + used_bytes, bsize * 8 - used_bytes);
     assert (bb->size >= bb->word);
+
     return bb;
 }
 
 #define bb_inita(bb, sz)  \
     bb_init_full(bb, p_alloca(uint64_t, DIV_ROUND_UP(sz, 8)), \
-                 0, DIV_ROUND_UP(sz, 8), MEM_STATIC)
+                 0, DIV_ROUND_UP(sz, 8), MEM_STATIC, 8)
 
 #define BB(name, sz) \
     bb_t name = { { .data = p_alloca(uint64_t, DIV_ROUND_UP(sz, 8)) }, \
-                    .size = DIV_ROUND_UP(sz, 8) }
+                    .size = DIV_ROUND_UP(sz, 8), .alignment = 8 }
 #define t_BB(name, sz) \
     bb_t name = { { .data = t_new(uint64_t, DIV_ROUND_UP(sz, 8)) }, \
                     .size = DIV_ROUND_UP(sz, 8),                    \
-                    .mem_pool = MEM_STACK }
+                    .mem_pool = MEM_STACK, .alignment = 8 }
 
 #define BB_1k(name)    BB(name, 1 << 10)
 #define BB_8k(name)    BB(name, 8 << 10)
@@ -92,6 +111,9 @@ void bb_init_sb(bb_t *bb, sb_t *sb);
  *
  * The bit-buffer lose is resetted during the operation and the sb gain full
  * ownership of the memory.
+ *
+ * This operation do not preserve the bit-buffer alignment since sb don't
+ * support custom alignment.
  */
 void bb_transfer_to_sb(bb_t *bb, sb_t *sb);
 

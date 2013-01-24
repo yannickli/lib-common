@@ -13,6 +13,15 @@
 
 #include "bit.h"
 
+bb_t *bb_init(bb_t *bb)
+{
+    p_clear(bb, 1);
+
+    bb->alignment = 8;
+
+    return bb;
+}
+
 void bb_wipe(bb_t *bb)
 {
     switch (bb->mem_pool & MEM_POOL_MASK) {
@@ -27,9 +36,12 @@ void bb_wipe(bb_t *bb)
 
 void bb_reset(bb_t *bb)
 {
+    const size_t alignment = bb->alignment;
+
     if (bb->mem_pool == MEM_LIBC && bb->size > (16 << 10)) {
         bb_wipe(bb);
         bb_init(bb);
+        bb->alignment = alignment;
     } else {
         bzero(bb->data, DIV_ROUND_UP(bb->len, 8));
         bb->len = 0;
@@ -40,7 +52,7 @@ void bb_init_sb(bb_t *bb, sb_t *sb)
 {
     sb_grow(sb, ROUND_UP(sb->len, 8) - sb->len);
     bb_init_full(bb, sb->data, sb->len * 8, DIV_ROUND_UP(sb->size, 8),
-                 sb->mem_pool);
+                 sb->mem_pool, 8);
 
     /* We took ownership of the memory so ensure clear the sb */
     sb_init(sb);
@@ -65,15 +77,18 @@ void __bb_grow(bb_t *bb, size_t extra)
     if (newsz < newlen) {
         newsz = newlen;
     }
+    assert (bb->alignment && bb->alignment % 8 == 0);
+    newsz = ROUND_UP(newsz, bb->alignment / 8);
+
     if (bb->mem_pool == MEM_STATIC) {
-        uint64_t *d = p_new_raw(uint64_t, newsz);
+        uint64_t *d = pa_new_raw(uint64_t, newsz, bb->alignment);
 
         p_copy(d, bb->data, bb->size);
         bzero(d + bb->size, (newsz - bb->size) * 8);
-        bb_init_full(bb, d, bb->len, newsz, MEM_LIBC);
+        bb_init_full(bb, d, bb->len, newsz, MEM_LIBC, bb->alignment);
     } else {
-        bb->data = irealloc(bb->data, bb->size * 8, newsz * 8,
-                            bb->mem_pool | MEM_RAW);
+        bb->data = (irealloc)(bb->data, bb->size * 8, newsz * 8,
+                            bb->alignment, bb->mem_pool | MEM_RAW);
         bzero(bb->data + bb->size, (newsz - bb->size) * 8);
         bb->size = newsz;
     }
@@ -353,6 +368,23 @@ Z_GROUP_EXPORT(bit_buf)
         bb_add_bit(&bb, true);
         bb_add0s(&bb, 8);
         Z_ASSERT_STREQUAL(".00000000.00000000.00000000.00000000.00000000.00000000.00000000.00000001.00000000", t_print_bb(&bb, NULL));
+    } Z_TEST_END;
+
+    Z_TEST(align, "bit-buf: alignment on 512 bytes") {
+        bb_t bb;
+
+        bb_init(&bb);
+        bb.alignment = 512;
+
+        bb_add0s(&bb, 42);
+        Z_ASSERT((bb.size * 8) % 512 == 0);
+        Z_ASSERT(((intptr_t)bb.bytes) % 512 == 0);
+
+        bb_add0s(&bb, 8 * 520);
+        Z_ASSERT((bb.size * 8) % 512 == 0);
+        Z_ASSERT(((intptr_t)bb.bytes) % 512 == 0);
+
+        bb_wipe(&bb);
     } Z_TEST_END;
 } Z_GROUP_END;
 
