@@ -247,6 +247,25 @@ void wah_add1s(wah_t *map, uint64_t count)
     wah_check_invariant(map);
 }
 
+void wah_add1_at(wah_t *map, uint64_t pos)
+{
+    assert (pos >= map->len);
+
+    if (unlikely(pos < map->len)) {
+        t_scope;
+        wah_t *tmp = t_wah_new(4);
+
+        wah_add1_at(tmp, pos);
+        wah_or(map, tmp);
+        return;
+    }
+
+    if (pos != map->len) {
+        wah_add0s(map, pos - map->len);
+    }
+    wah_add1s(map, 1);
+}
+
 static
 const void *wah_read_word(const uint8_t *src, uint64_t count,
                           uint64_t *res, int *bits)
