@@ -11,12 +11,13 @@
 #                                                                        #
 ##########################################################################
 
-none_LIBRARIES = libcommon time-lp-simple
+none_LIBRARIES = libcommon python time-lp-simple
+python_SHARED_LIBRARIES += common
 test_PROGRAMS += ztst-cfgparser ztst-tpl ztst-lzo ztst-thrjob
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 test_PROGRAMS += ztst-qps ztst-qpscheck ztst-qpsstress ztst-hattrie
 ifeq (,$(TOOLS_REPOSITORY))
-none_SHARED_LIBRARIES += zchk-tstiop-plugin zchk-iop-plugin
+none_SHARED_LIBRARIES += zchk-tstiop-plugin zchk-iop-plugin core-iop-plugin
 test_PROGRAMS += zchk ztst-httpd
 endif
 
@@ -168,9 +169,20 @@ libcommon_SOURCES = \
 
 libcommon_SOURCES += compat/compat.c compat/data.c compat/runtime.c
 
+python_SOURCES = python-common.c
+python_CFLAGS = $(python2_CFLAGS)
+python_LIBS = $(python2_LIBS)
+
+common_SOURCES = python-module.c python.a libcommon.a time-lp-simple.a
+common_CFLAGS = $(python2_CFLAGS)
+common_LIBS = $(python2_LIBS)
+
 time-lp-simple_SOURCES = time-lp-simple.c
 
-zchk-iop-plugin_SOURCES = ic.iop zchk-iop-plugin.c core.iop
+core-iop-plugin_SOURCES = core.iop core-iop-plugin.c
+core-iop-plugin_LDFLAGS = -Wl,-z,defs
+
+zchk-iop-plugin_SOURCES = ic.iop zchk-iop-plugin.c 
 zchk-iop-plugin_LDFLAGS = -Wl,-z,defs
 
 zchk_SOURCES = zchk.c \

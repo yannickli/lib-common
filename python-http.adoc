@@ -1,0 +1,90 @@
+== HTTP module ==
+The goal of this module is to bind lib-common http API to python.
+
+It works asynchronously. At API initialization, 3 python callbacks were passed
+as argument. One to build http request headers, a second to build http request
+body and a last to parse server answer.
+The request method take as argument a python object. When this method is
+called, the API had the request into a list. When the API processes the
+request, it calls the 2 callbacks to build the request with python object as
+argument and send it. When the answer is received, the API calls the last
+callback with the server answer.
+
+This API is based on the lib-common event loop. If there is no active loop
+request are not processed.
+
+There are 2 uses case, depending on the use of lib-common event loop in the
+programm which import http_module.
+- no use of lib-common event loop:
+http_loop creates a lib-common event called blocker. It creates an event loop 
+and block the calling function.
+- use of python lib-common event loop:
+You have to:
+link lib-common/python.a to your programm.
+Declare a PyMethodDef array with the method you want to use in python
+call python_common_initialize in your module init function
+(see lms/enabler-bonus-python.blk as example)
+
+This module declares 4 methods and 2 exceptions.
+
+=== http_initialize ===
+parameters:
+-  httpc_cfg: http client configuration serialized in hexadecimal.
+              IOPY type : package core HttpcCfg
+[source,python]
+----
+core = iopy.Plugin("path-to-my-libcommon-iop-core.so")
+#default values
+my_httpc_cfg = core.core.HttpcCfg(pipelineDepth = 32,
+                                  noactDelay = 30000,
+                                  maxQueries = 1024,
+                                  onDataThreshold = 16384,
+                                  headerLineMax = 1024,
+                                  headerSizeMax = 65536)
+cfg_hex = my_httpc_cfg().__hex__()
+----
+
+-  cb_build_headers:
+   Python function which builds http request headers. It must return http
+   headers as string. Receives the python object passed to http_query.
+-  cb_build_body:
+   Python function which build http request body. It must return http body as
+   string. Receives the python object passed to http_query.
+-  cb_parse_answer:
+   Python function which parse the server answer. return 0 on success and -1
+   on fail (see below http_query callback argument). Receives the server
+   string answer as parameter.
+-  url: string.
+-  url_arg: string
+-  port: int
+-  http_method: methode http. type IOPY: package core.
+-  maxconn: max connection number.
+-  maxrate: request per second maximun number.
+-  user: string.
+-  password: string.
+
+=== http_loop ===
+Creates a lib-common event named blocker. Call is blocking.
+No parameter.
+
+=== http_shutdown ===
+Wipes and closes the API.
+No parameter.
+
+=== http_query ===
+Creates a http request.
+parameters:
+-  ctx:
+   any kind of python object. This object will passed to the build headers
+   and build body callback.
+-  cb_query_done:
+   this callback is called when the http request has been processed.
+   parameters:
+   -  ctx: python object passed to http_query.
+   -  status: 0 means success to send request  and answer processed/
+             -1 means fails to send request.
+             -2 means that your parse answer callback does not return 0.
+
+
+   -  err_msg: if status is -1 an error message is set.
+-  url: string
