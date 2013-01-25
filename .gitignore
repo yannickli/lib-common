@@ -30,3 +30,6 @@
 /ztst-sort
 /ztst-thrjob
 /ztst-tpl
+
+/common.so
+/core-iop-plugin.so
