@@ -47,11 +47,12 @@ void  qvector_reset(qvector_t *vec, size_t v_size)
     __leaf;
 void  qvector_wipe(qvector_t *vec, size_t v_size)
     __leaf;
-void  __qvector_grow(qvector_t *, size_t v_size, int extra)
+void  __qvector_grow(qvector_t *, size_t v_size, size_t v_align, int extra)
     __leaf;
-void  __qvector_optimize(qvector_t *, size_t v_size, size_t size)
+void  __qvector_optimize(qvector_t *, size_t v_size, size_t size, size_t v_align)
     __leaf;
-void *__qvector_splice(qvector_t *, size_t v_size, int pos, int len, int dlen)
+void *__qvector_splice(qvector_t *, size_t v_size, size_t v_align,
+                       int pos, int len, int dlen)
     __leaf;
 #ifdef __has_blocks
 void __qv_sort32(void *a, size_t n, qvector_cmp_b cmp);
@@ -72,7 +73,7 @@ __qvector_sort(qvector_t *vec, size_t v_size, qvector_cmp_b cmp)
 }
 void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
                     qvector_t *add, qvector_t *del, qvector_t *inter,
-                    size_t v_size, qvector_cmp_b cmp);
+                    size_t v_size, size_t v_align, qvector_cmp_b cmp);
 int  __qvector_bisect(const qvector_t *vec, size_t v_size, const void *elt,
                       bool *found, qvector_cmp_b cmp);
 int __qvector_find(const qvector_t *vec, size_t v_size, const void *elt,
@@ -96,42 +97,46 @@ void __qvector_uniq(qvector_t *vec, size_t v_size, qvector_cmp_b cmp);
  * allocation to have no waste.
  */
 static inline void
-qvector_optimize(qvector_t *vec, size_t v_size, size_t ratio, size_t extra_ratio)
+qvector_optimize(qvector_t *vec, size_t v_size, size_t v_align,
+                 size_t ratio, size_t extra_ratio)
 {
     size_t cur_waste = vec->size + vec->skip - vec->len;
 
     if (vec->len * ratio < 100 * cur_waste)
-        __qvector_optimize(vec, v_size, vec->len + vec->len * extra_ratio / 100);
+        __qvector_optimize(vec, v_size, v_align,
+                           vec->len + vec->len * extra_ratio / 100);
 }
 
-static inline void *qvector_grow(qvector_t *vec, size_t v_size, int extra)
+static inline
+void *qvector_grow(qvector_t *vec, size_t v_size, size_t v_align, int extra)
 {
     ssize_t size = vec->len + extra;
 
     if (size > vec->size) {
-        __qvector_grow(vec, v_size, extra);
+        __qvector_grow(vec, v_size, v_align, extra);
     } else {
         ssize_t cursz = vec->size + vec->skip;
 
         if (unlikely(cursz * v_size > BUFSIZ && size * 8 < cursz))
-            __qvector_optimize(vec, v_size, p_alloc_nr(size));
+            __qvector_optimize(vec, v_size, v_align, p_alloc_nr(size));
     }
     return vec->tab + vec->len * v_size;
 }
 
-static inline void *qvector_growlen(qvector_t *vec, size_t v_size, int extra)
+static inline
+void *qvector_growlen(qvector_t *vec, size_t v_size, size_t v_align, int extra)
 {
     void *res;
 
     if (vec->len + extra > vec->size)
-        __qvector_grow(vec, v_size, extra);
+        __qvector_grow(vec, v_size, v_align, extra);
     res = vec->tab + vec->len * v_size;
     vec->len += extra;
     return res;
 }
 
 static inline void *
-qvector_splice(qvector_t *vec, size_t v_size,
+qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
                int pos, int len, const void *tab, int dlen)
 {
     void *res;
@@ -150,9 +155,9 @@ qvector_splice(qvector_t *vec, size_t v_size,
         }
     }
     if (__builtin_constant_p(len) && len == 0 && pos == vec->len) {
-        res = qvector_growlen(vec, v_size, dlen);
+        res = qvector_growlen(vec, v_size, v_align, dlen);
     } else {
-        res = __qvector_splice(vec, v_size, pos, len, dlen);
+        res = __qvector_splice(vec, v_size, v_align, pos, len, dlen);
     }
     return tab ? memcpy(res, tab, dlen * v_size) : res;
 }
@@ -176,7 +181,7 @@ qvector_splice(qvector_t *vec, size_t v_size,
     {                                                                       \
         __qvector_diff(&vec1->qv, &vec2->qv, add ? &add->qv : NULL,         \
                        del ? &del->qv : NULL, inter ? &inter->qv : NULL,    \
-                       sizeof(val_t), (qvector_cmp_b)cmp);                  \
+                       sizeof(val_t), alignof(val_t), (qvector_cmp_b)cmp);  \
     }                                                                       \
     static inline                                                           \
     void pfx##_uniq(pfx##_t *vec, pfx##_cmp_b cmp) {                        \
@@ -225,7 +230,7 @@ qvector_splice(qvector_t *vec, size_t v_size,
     static inline val_t *                                                   \
     __##pfx##_splice(pfx##_t *vec, int pos, int len, int dlen) {            \
         return (val_t *)__qvector_splice(&vec->qv, sizeof(val_t),           \
-                                         pos, len, dlen);                   \
+                                         alignof(val_t), pos, len, dlen);   \
     }                                                                       \
     static inline void pfx##_clip(pfx##_t *vec, int at) {                   \
         assert (0 <= at && at <= vec->len);                                 \
@@ -237,19 +242,21 @@ qvector_splice(qvector_t *vec, size_t v_size,
     }                                                                       \
     static inline val_t *                                                   \
     pfx##_splice(pfx##_t *vec, int pos, int len, cval_t *tab, int dlen) {   \
-        void *res = qvector_splice(&vec->qv, sizeof(val_t), pos, len,       \
-                                   tab, dlen);                              \
+        void *res = qvector_splice(&vec->qv, sizeof(val_t), alignof(val_t), \
+                                   pos, len, tab, dlen);                    \
         return cast(val_t *, res);                                          \
     }                                                                       \
     static inline void pfx##_optimize(pfx##_t *vec, size_t r1, size_t r2) { \
-        qvector_optimize(&vec->qv, sizeof(val_t), r1, r2);                  \
+        qvector_optimize(&vec->qv, sizeof(val_t), alignof(val_t), r1, r2);  \
     }                                                                       \
     static inline val_t *pfx##_grow(pfx##_t *vec, int extra) {              \
-        void *res = qvector_grow(&vec->qv, sizeof(val_t), extra);           \
+        void *res = qvector_grow(&vec->qv, sizeof(val_t), alignof(val_t),   \
+                                 extra);                                    \
         return cast(val_t *, res);                                          \
     }                                                                       \
     static inline val_t *pfx##_growlen(pfx##_t *vec, int extra) {           \
-        void *res = qvector_growlen(&vec->qv, sizeof(val_t), extra);        \
+        void *res = qvector_growlen(&vec->qv, sizeof(val_t), alignof(val_t),\
+                                    extra);                                 \
         return cast(val_t *, res);                                          \
     }                                                                       \
     static inline void pfx##_qsort(pfx##_t *vec,                            \

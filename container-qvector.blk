@@ -49,7 +49,7 @@ static void qvector_destroy_skip(qvector_t *vec, size_t v_size)
     vec->skip  = 0;
 }
 
-void __qvector_grow(qvector_t *vec, size_t v_size, int extra)
+void __qvector_grow(qvector_t *vec, size_t v_size, size_t v_align, int extra)
 {
     int newlen = vec->len + extra;
     int newsz;
@@ -76,7 +76,7 @@ void __qvector_grow(qvector_t *vec, size_t v_size, int extra)
     if (newsz < newlen)
         newsz = newlen;
     if (vec->mem_pool == MEM_STATIC || vec->skip) {
-        uint8_t *s = p_new_raw(uint8_t, newsz * v_size);
+        uint8_t *s = pa_new_raw(uint8_t, newsz * v_size, v_align);
 
         memcpy(s, vec->tab, vec->len * v_size);
         if (vec->mem_pool != MEM_STATIC) {
@@ -85,13 +85,14 @@ void __qvector_grow(qvector_t *vec, size_t v_size, int extra)
         }
         __qvector_init(vec, s, vec->len, newsz, MEM_LIBC);
     } else {
-        vec->tab = irealloc(vec->tab, vec->len * v_size, newsz * v_size,
-                             vec->mem_pool | MEM_RAW);
+        vec->tab = (irealloc)(vec->tab, vec->len * v_size, newsz * v_size,
+                              v_align, vec->mem_pool | MEM_RAW);
         vec->size = newsz;
     }
 }
 
-void __qvector_optimize(qvector_t *vec, size_t v_size, size_t size)
+void __qvector_optimize(qvector_t *vec, size_t v_size, size_t v_align,
+                        size_t size)
 {
     char *buf;
 
@@ -101,13 +102,14 @@ void __qvector_optimize(qvector_t *vec, size_t v_size, size_t size)
     }
     if (vec->mem_pool != MEM_LIBC)
         return;
-    buf = p_new_raw(char, size * v_size);
+    buf = pa_new_raw(char, size * v_size, v_align);
     memcpy(buf, vec->tab, vec->len * v_size);
     libc_free(vec->tab - vec->skip, 0);
     __qvector_init(vec, buf, vec->len, size, MEM_LIBC);
 }
 
-void *__qvector_splice(qvector_t *vec, size_t v_size, int pos, int len, int dlen)
+void *__qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
+                       int pos, int len, int dlen)
 {
     assert (pos >= 0 && len >= 0 && dlen >= 0);
     assert (pos <= vec->len && pos + len <= vec->len);
@@ -116,16 +118,16 @@ void *__qvector_splice(qvector_t *vec, size_t v_size, int pos, int len, int dlen
         memmove(vec->tab + v_size * (pos + dlen),
                 vec->tab + v_size * (pos + len),
                 v_size * (vec->len - pos - len));
-        qvector_grow(vec, v_size, 0);
+        qvector_grow(vec, v_size, v_align, 0);
     } else
     if (len + vec->skip >= dlen) {
         vec->skip -= dlen - len;
         vec->tab -= (dlen - len) * v_size;
         vec->size += dlen - len;
         memmove(vec->tab, vec->tab + v_size * (dlen - len), pos * v_size);
-        qvector_grow(vec, v_size, 0);
+        qvector_grow(vec, v_size, v_align, 0);
     } else {
-        qvector_grow(vec, v_size, dlen - len);
+        qvector_grow(vec, v_size, v_align, dlen - len);
         memmove(vec->tab + v_size * (pos + dlen),
                 vec->tab + v_size * (pos + len),
                 v_size * (vec->len - pos - len));
@@ -245,7 +247,7 @@ void __qv_sort(void *a, size_t v_size, size_t n, qvector_cmp_b cmp)
 
 void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
                     qvector_t *add, qvector_t *del, qvector_t *inter,
-                    size_t v_size, qvector_cmp_b cmp)
+                    size_t v_size, size_t v_align, qvector_cmp_b cmp)
 {
     int pos1 = 0, pos2 = 0;
     const void *tab1 = vec1->tab;
@@ -253,18 +255,19 @@ void __qvector_diff(const qvector_t *vec1, const qvector_t *vec2,
     const void *elem1, *elem2;
 
 #define nth(base, i)  ((void *)((uint8_t *)(base) + (i) * v_size))
-#define append_tab(tab, src, len)                            \
-    if ((tab)) memcpy(qvector_growlen((tab), v_size, (len)), \
-                      src, (len) * v_size);
+#define append_tab(tab, src, len)                                            \
+    if ((tab))                                                               \
+        memcpy(qvector_growlen((tab), v_size, v_align, (len)),               \
+               src, (len) * v_size);
 #define append_add(src, len)    append_tab(add, src, len)
 #define append_del(src, len)    append_tab(del, src, len)
 #define append_inter(src, len)  append_tab(inter, src, len)
 
     if (add) {
-        qvector_grow(add, v_size, vec1->len + add->len);
+        qvector_grow(add, v_size, v_align, vec1->len + add->len);
     }
     if (del) {
-        qvector_grow(del, v_size, vec1->len + del->len);
+        qvector_grow(del, v_size, v_align, vec1->len + del->len);
     }
 
     elem1 = nth(tab1, 0);
