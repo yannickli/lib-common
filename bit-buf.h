@@ -349,6 +349,12 @@ void bb_be_add_bs(bb_t *bb, const struct bit_stream_t *bs) __leaf;
 
 
 /* }}} */
+/* {{{ Moving bits */
+
+/** Shift the bit-buffer of “shift” bits to the left */
+void bb_shift_left(bb_t *bb, size_t shift);
+
+/* }}} */
 /* Marking {{{ */
 
 static ALWAYS_INLINE void bb_push_mark(bb_t *bb) { }

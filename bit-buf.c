@@ -128,6 +128,38 @@ void bb_be_add_bs(bb_t *bb, const bit_stream_t *b)
     }
 }
 
+void bb_shift_left(bb_t *bb, size_t shift)
+{
+    if (shift >= bb->len) {
+        bb->len = 0;
+    } else
+    if (shift % 8 == 0) {
+        /* Shift is nicely aligned */
+        const size_t bshift = shift / 8;
+
+        p_move(bb->bytes, (bb->bytes + bshift), (bb->b + 1) - bshift);
+        bb->len -= shift;
+    } else {
+        const size_t nwords = shift / 64, wshift = shift % 64;
+        const size_t rwshift = 64 - wshift;
+        size_t src = nwords, dst = 0;
+
+        /* We have to shift the bit-buffer word per word… Here we are allowed
+         * to overflow a little because we know that we are always aligned on
+         * 8 bytes. */
+        while (src < bb->word) {
+            bb->data[dst++] = ((bb->data[src] >> wshift)
+                               | (bb->data[src + 1] << rwshift));
+            src++;
+        }
+
+        /* Handle last word */
+        bb->data[dst] = (bb->data[src] >> wshift);
+
+        bb->len -= shift;
+    }
+}
+
 char *t_print_bits(uint8_t bits, uint8_t bstart, uint8_t blen)
 {
     char *str = t_new(char, blen + 1);
@@ -385,6 +417,52 @@ Z_GROUP_EXPORT(bit_buf)
         Z_ASSERT(((intptr_t)bb.bytes) % 512 == 0);
 
         bb_wipe(&bb);
+    } Z_TEST_END;
+
+    Z_TEST(left_shit, "bit-buf: left shift") {
+        t_scope;
+        t_BB_1k(bb);
+        bit_stream_t bs;
+
+        bb_add_bits(&bb, 0x2aa, 10); /* 1010101010 */
+        Z_ASSERT_EQ(bb.len, 10U);
+        bs = bs_init_bb(&bb);
+        Z_ASSERT_STREQUAL(".01010101.01", t_print_bs(bs, NULL));
+
+        bb_shift_left(&bb, 32);
+        Z_ASSERT_EQ(bb.len, 0U);
+
+        bb_add_bits(&bb, 0x2aa, 10); /* 1010101010 */
+        bb_shift_left(&bb, 8);
+        Z_ASSERT_EQ(bb.len, 2U);
+        bs = bs_init_bb(&bb);
+        Z_ASSERT_STREQUAL(".01", t_print_bs(bs, NULL));
+
+        bb_reset(&bb);
+        bb_add_bits(&bb, 0x2aa, 10); /* 1010101010 */
+        bb_shift_left(&bb, 3);
+        Z_ASSERT_EQ(bb.len, 7U);
+        bs = bs_init_bb(&bb);
+        Z_ASSERT_STREQUAL(".1010101", t_print_bs(bs, NULL));
+
+        /* Tests with a big buffer now */
+        bb_reset(&bb);
+        for (int i = 0; i < 100; i++) {
+            /* add a lot of 100 */
+            bb_add_bit(&bb, true);
+            bb_add_bit(&bb, false);
+            bb_add_bit(&bb, false);
+        }
+        bs = bs_init_bb(&bb);
+        Z_ASSERT_STREQUAL(".10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.0100", t_print_bs(bs, NULL));
+
+        bb_shift_left(&bb, 16);
+        bs = bs_init_bb(&bb);
+        Z_ASSERT_STREQUAL(".00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.0100", t_print_bs(bs, NULL));
+
+        bb_shift_left(&bb, 79);
+        bs = bs_init_bb(&bb);
+        Z_ASSERT_STREQUAL(".01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100100.10010010.01001001.00100", t_print_bs(bs, NULL));
     } Z_TEST_END;
 } Z_GROUP_END;
 
