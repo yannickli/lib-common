@@ -474,6 +474,64 @@ static inline void lstr_ascii_toupper(lstr_t *s)
         s->v[i] = toupper((unsigned char)s->v[i]);
 }
 
+/** \brief  convert a lstr into an int.
+ *
+ *  \param  lstr the string to convert
+ *  \param  out  pointer to the memory to store the result of the conversion
+ *
+ *  \result int
+ *
+ *  \retval  0   success
+ *  \retval -1   failure (errno set)
+ */
+static inline int lstr_to_int(lstr_t lstr, int *out)
+{
+    int         tmp = errno;
+    const byte *endp;
+
+    lstr_trim(lstr);
+
+    errno = 0;
+    *out = memtoip(lstr.s, lstr.len, &endp);
+
+    if (errno != 0 || endp != (const byte *)lstr.s + lstr.len) {
+        return -1;
+    }
+
+    errno = tmp;
+
+    return 0;
+}
+
+/** \brief  convert a lstr into an int64.
+ *
+ *  \param  lstr the string to convert
+ *  \param  out  pointer to the memory to store the result of the conversion
+ *
+ *  \result int
+ *
+ *  \retval  0   success
+ *  \retval -1   failure (errno set)
+ */
+static inline int lstr_to_int64(lstr_t lstr, int64_t *out)
+{
+    int         tmp = errno;
+    const byte *endp;
+
+    lstr_trim(lstr);
+
+    errno = 0;
+    *out = memtollp(lstr.s, lstr.len, &endp);
+
+    if (errno != 0 || endp != (const byte *)lstr.s + lstr.len) {
+        return -1;
+    }
+
+    errno = tmp;
+
+    return 0;
+}
+
 /*--------------------------------------------------------------------------*/
 #define lstr_fmt(fmt, ...) \
     ({ const char *__s = asprintf(fmt, ##__VA_ARGS__); \
