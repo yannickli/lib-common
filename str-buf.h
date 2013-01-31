@@ -374,6 +374,22 @@ int sb_addvf(sb_t *sb, const char *fmt, va_list ap)
 int sb_addf(sb_t *sb, const char *fmt, ...)
     __leaf __attr_printf__(2, 3);
 
+/** Appends content to a string buffer, filtering out characters that are not
+ *  part of a given character set
+ * \param[inout] sb Buffer to be updated
+ * \param[in]    s  String to be filtered and added
+ * \param[in]    d  Character set
+ */
+void sb_add_filtered(sb_t *sb, lstr_t s, const ctype_desc_t *d);
+
+/** Appends content to a string buffer, filtering out characters that are part
+ *  of a given character set
+ * \param[inout] sb Buffer to be updated
+ * \param[in]    s  String to be filtered and added
+ * \param[in]    d  Character set
+ */
+void sb_add_filtered_out(sb_t *sb, lstr_t s, const ctype_desc_t *d);
+
 #define sb_setvf(sb, fmt, ap) \
     ({ sb_t *__b = (sb); sb_reset(__b); sb_addvf(__b, fmt, ap); })
 #define sb_setf(sb, fmt, ...) \
