@@ -1060,4 +1060,29 @@ static void el_initialize(void)
     }
 }
 
+__attribute__((destructor))
+static void el_shutdown(void)
+{
+    /* Wipe all containers in order to remove traces in valgrind, however
+     * ensure they remain valid in case some other destructor perform el
+     * registrations/unregistrations.
+     */
+
+    if (_G.timers.len == 0) {
+        qv_wipe(ev, &_G.timers);
+        qv_init(ev, &_G.timers);
+    }
+    if (qm_len(ev_assoc, &_G.childs) == 0) {
+        qm_wipe(ev_assoc, &_G.childs);
+        qm_init(ev_assoc, &_G.childs, false);
+    }
+    if (qm_len(ev, &_G.fd_act) == 0) {
+        qm_wipe(ev, &_G.fd_act);
+        qm_init(ev, &_G.fd_act, false);
+    }
+
+    qv_wipe(ev, &_G.cache);
+    qv_init(ev, &_G.cache);
+}
+
 /**\}*/
