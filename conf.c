@@ -28,14 +28,13 @@ static void conf_section_wipe(conf_section_t *section)
 GENERIC_NEW(conf_section_t, conf_section);
 GENERIC_DELETE(conf_section_t, conf_section);
 
-GENERIC_INIT(conf_t, conf);
+GENERIC_NEW_INIT(conf_t, conf);
 static void conf_wipe(conf_t *conf)
 {
     qv_for_each_pos_safe(conf_section, pos, conf)
         conf_section_delete(&conf->tab[pos]);
     qv_wipe(conf_section, conf);
 }
-GENERIC_NEW(conf_t, conf);
 DO_DELETE(conf_t, conf);
 
 static int conf_parse_hook(void *_conf, cfg_parse_evt evt,

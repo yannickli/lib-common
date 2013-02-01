@@ -372,8 +372,7 @@ httpd_t *httpd_spawn(int fd, httpd_cfg_t *);
  */
 void     httpd_close_gently(httpd_t *w);
 
-GENERIC_INIT(httpd_trigger_t, httpd_trigger);
-GENERIC_NEW(httpd_trigger_t, httpd_trigger);
+GENERIC_NEW_INIT(httpd_trigger_t, httpd_trigger);
 void httpd_trigger_persist(httpd_trigger_t *);
 void httpd_trigger_loose(httpd_trigger_t *);
 httpd_trigger_t *httpd_trigger_dup(httpd_trigger_t *cb);
