@@ -42,8 +42,8 @@ void wah_copy(wah_t *map, const wah_t *src)
 wah_t *t_wah_new(int size)
 {
     wah_t *map = t_new(wah_t, 1);
-    wah_reset_map(map);
     t_qv_init(wah_word, &map->data, size);
+    wah_reset_map(map);
     return map;
 }
 
