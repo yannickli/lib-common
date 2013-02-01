@@ -285,8 +285,7 @@ el_t     httpd_listen(sockunion_t *su, httpd_cfg_t *);
 void     httpd_unlisten(el_t *ev);
 httpd_t *httpd_spawn(int fd, httpd_cfg_t *);
 
-GENERIC_INIT(httpd_trigger_cb_t, httpd_trigger_cb);
-GENERIC_NEW(httpd_trigger_cb_t, httpd_trigger_cb);
+GENERIC_NEW_INIT(httpd_trigger_cb_t, httpd_trigger_cb);
 void httpd_trigger_cb_destroy(httpd_trigger_cb_t *cb);
 
 httpd_trigger_cb_t *

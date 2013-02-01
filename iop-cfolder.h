@@ -62,8 +62,7 @@ static inline void iop_cfolder_wipe(iop_cfolder_t *folder)
 }
 GENERIC_DELETE(iop_cfolder_t, iop_cfolder);
 
-GENERIC_INIT(iop_cfolder_t, iop_cfolder);
-GENERIC_NEW(iop_cfolder_t, iop_cfolder);
+GENERIC_NEW_INIT(iop_cfolder_t, iop_cfolder);
 
 int iop_cfolder_feed_number(iop_cfolder_t *, uint64_t, bool is_signed);
 int iop_cfolder_feed_operator(iop_cfolder_t *, iop_cfolder_op_t);
