@@ -8,14 +8,6 @@
 }
 
 {
-    lib-common/el
-    Memcheck:Leak
-    ...
-    fun:__qvector_grow
-    fun:ev_cache_list
-}
-
-{
     lib-common/pthread-hook/dlsym_leak
     Memcheck:Leak
     fun:calloc
