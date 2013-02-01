@@ -25,8 +25,7 @@ static inline void property_wipe(property_t *property) {
     p_delete(&property->name);
     p_delete(&property->value);
 }
-GENERIC_INIT(property_t, property);
-GENERIC_NEW(property_t, property);
+GENERIC_NEW_INIT(property_t, property);
 GENERIC_DELETE(property_t, property);
 qvector_t(props, property_t *);
 

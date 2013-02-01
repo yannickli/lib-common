@@ -506,8 +506,7 @@ typedef struct qps_roots_t {
     qv_t(qps_handle) handles;
     qv_t(qps_pg)     pages;
 } qps_roots_t;
-GENERIC_INIT(qps_roots_t, qps_roots);
-GENERIC_NEW(qps_roots_t, qps_roots);
+GENERIC_NEW_INIT(qps_roots_t, qps_roots);
 
 static inline
 void qps_roots_wipe(qps_roots_t *roots)

@@ -68,8 +68,7 @@ static inline void iop_cfolder_wipe(iop_cfolder_t *folder)
 }
 GENERIC_DELETE(iop_cfolder_t, iop_cfolder);
 
-GENERIC_INIT(iop_cfolder_t, iop_cfolder);
-GENERIC_NEW(iop_cfolder_t, iop_cfolder);
+GENERIC_NEW_INIT(iop_cfolder_t, iop_cfolder);
 
 static inline bool iop_cfolder_empty(iop_cfolder_t *cfolder)
 {

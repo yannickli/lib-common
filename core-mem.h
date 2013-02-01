@@ -386,6 +386,11 @@ static inline void (p_delete)(void **p)
     __attribute__((malloc)) type *prefix##_new(void) {      \
         return prefix##_init(p_new_raw(type, 1));           \
     }
+#define DO_NEW0(type, prefix) \
+    __attribute__((malloc)) type *prefix##_new(void) {      \
+        return p_new(type, 1);                              \
+    }
+
 #define DO_WIPE(type, prefix) \
     __attr_nonnull__((1)) void prefix##_wipe(type *var) { }
 
@@ -398,13 +403,23 @@ static inline void (p_delete)(void **p)
         }                                                   \
     }
 
+
 #define GENERIC_INIT(type, prefix)    static inline DO_INIT(type, prefix)
 #define GENERIC_NEW(type, prefix)     static inline DO_NEW(type, prefix)
+#define GENERIC_NEW_INIT(type, prefix)                      \
+    GENERIC_INIT(type, prefix)                              \
+    static inline DO_NEW0(type, prefix)
+
 #define GENERIC_WIPE(type, prefix)    static inline DO_WIPE(type, prefix)
 #define GENERIC_DELETE(type, prefix)  static inline DO_DELETE(type, prefix)
+#define GENERIC_WIPE_DELETE(type, prefix)                   \
+    GENERIC_WIPE(type, prefix)                              \
+    GENERIC_DELETE(type, prefix)
+
 #define GENERIC_FUNCTIONS(type, prefix) \
-    GENERIC_INIT(type, prefix)    GENERIC_NEW(type, prefix) \
-    GENERIC_WIPE(type, prefix)    GENERIC_DELETE(type, prefix)
+    GENERIC_NEW_INIT(type, prefix)      \
+    GENERIC_WIPE_DELETE(type, prefix)
+
 
 /**************************************************************************/
 /* Memory pools high level APIs                                           */
@@ -470,6 +485,10 @@ char *mp_fmt(mem_pool_t *mp, int *out, const char *fmt, ...)
     __attribute__((malloc)) type * prefix##_new(void) { \
         return prefix##_init(mp_new_raw(mp, type, 1));  \
     }
+#define DO_MP_NEW0(mp, type, prefix)                    \
+    __attribute__((malloc)) type * prefix##_new(void) { \
+        return mp_new(mp, type, 1);                     \
+    }
 
 #define DO_MP_DELETE(mp, type, prefix)   \
     void prefix##_delete(type **var) {   \
@@ -481,11 +500,19 @@ char *mp_fmt(mem_pool_t *mp, int *out, const char *fmt, ...)
 
 #define GENERIC_MP_NEW(mp, type, prefix)      \
     static inline DO_MP_NEW(mp, type, prefix)
+#define GENERIC_MP_NEW_INIT(mp, type, prefix) \
+    GENERIC_INIT(type, prefix)                \
+    static inline DO_MP_NEW0(mp, type, prefix)
+
 #define GENERIC_MP_DELETE(mp, type, prefix)   \
     static inline DO_MP_DELETE(mp, type, prefix)
+#define GENERIC_MP_WIPE_DELETE(mp, type, prefix) \
+    GENERIC_WIPE(type, prefix)                   \
+    GENERIC_MP_DELETE(mp, type, prefix)
+
 #define GENERIC_MP_FUNCTIONS(mp, type, prefix) \
-    GENERIC_INIT(type, prefix)    GENERIC_MP_NEW(mp, type, prefix) \
-    GENERIC_WIPE(type, prefix)    GENERIC_MP_DELETE(mp, type, prefix)
+    GENERIC_MP_NEW_INIT(mp, type, prefix)      \
+    GENERIC_MP_WIPE_DELETE(mp, type, prefix)
 
 /*----- core-mem-debug.c -----*/
 extern mem_pool_t mem_pool_malloc;
