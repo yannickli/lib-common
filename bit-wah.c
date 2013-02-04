@@ -467,8 +467,7 @@ void wah_and(wah_t *map, const wah_t *other)
           case WAH_ENUM_END     | (WAH_ENUM_PENDING << 2):
           case WAH_ENUM_PENDING | (WAH_ENUM_END     << 2):
           case WAH_ENUM_PENDING | (WAH_ENUM_PENDING << 2):
-            map->len += MAX(other->len % WAH_BIT_IN_WORD,
-                            src->len % WAH_BIT_IN_WORD);
+            map->len     = MAX(other->len, src->len);
             map->pending = src_en.current & other_en.current;
             map->active += bitcount32(map->pending);
             wah_word_enum_next(&src_en);
@@ -537,8 +536,7 @@ void wah_or(wah_t *map, const wah_t *other)
           case WAH_ENUM_END     | (WAH_ENUM_PENDING << 2):
           case WAH_ENUM_PENDING | (WAH_ENUM_END     << 2):
           case WAH_ENUM_PENDING | (WAH_ENUM_PENDING << 2):
-            map->len += MAX(other->len % WAH_BIT_IN_WORD,
-                            src->len % WAH_BIT_IN_WORD);
+            map->len     = MAX(other->len, src->len);
             map->pending = src_en.current | other_en.current;
             map->active += bitcount32(map->pending);
             wah_word_enum_next(&src_en);
