@@ -35,6 +35,7 @@ extern ctype_desc_t const ctype_isspace;
 extern ctype_desc_t const ctype_ishexdigit;
 extern ctype_desc_t const ctype_isbindigit;
 extern ctype_desc_t const ctype_iswordpart;
+extern ctype_desc_t const ctype_iscvar;
 
 /* @func ctype_desc_reset
  * @param[in] d

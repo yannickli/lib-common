@@ -224,6 +224,28 @@ int sb_addf(sb_t *sb, const char *fmt, ...)
     return res;
 }
 
+void sb_add_filtered(sb_t *sb, lstr_t s, const ctype_desc_t *d)
+{
+    pstream_t w, r = ps_initlstr(&s);
+
+    while (!ps_done(&r)) {
+        w = ps_get_span(&r, d);
+        sb_add(sb, w.s, ps_len(&w));
+        ps_skip_cspan(&r, d);
+    }
+}
+
+void sb_add_filtered_out(sb_t *sb, lstr_t s, const ctype_desc_t *d)
+{
+    pstream_t w, r = ps_initlstr(&s);
+
+    while (!ps_done(&r)) {
+        w = ps_get_cspan(&r, d);
+        sb_add(sb, w.s, ps_len(&w));
+        ps_skip_span(&r, d);
+    }
+}
+
 /**************************************************************************/
 /* FILE *                                                                 */
 /**************************************************************************/

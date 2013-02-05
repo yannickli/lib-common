@@ -462,4 +462,24 @@ Z_GROUP_EXPORT(str)
         T("Œœ", "OEOE", "OEoe");
 #undef T
     } Z_TEST_END;
+
+    Z_TEST(str_span, "str: filtering") {
+        SB_1k(sb);
+
+#define T(f, d, from, to) do {                                               \
+        f(&sb, LSTR_IMMED_V(from), d);                                       \
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V(to));                \
+        sb_reset(&sb);                                                       \
+    } while (0)
+
+        T(sb_add_filtered, &ctype_isdigit, "1a2b3C4D5e6f7", "1234567");
+        T(sb_add_filtered, &ctype_islower, "1a2b3C4D5e6f7", "abef");
+        T(sb_add_filtered, &ctype_isupper, "1a2b3C4D5e6f7", "CD");
+
+        T(sb_add_filtered_out, &ctype_isdigit, "1a2b3C4D5e6f7", "abCDef");
+        T(sb_add_filtered_out, &ctype_islower, "1a2b3C4D5e6f7", "123C4D567");
+        T(sb_add_filtered_out, &ctype_isupper, "1a2b3C4D5e6f7", "1a2b345e6f7");
+
+#undef T
+    } Z_TEST_END;
 } Z_GROUP_END;
