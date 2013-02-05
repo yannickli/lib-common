@@ -70,6 +70,7 @@ GENERIC_NEW(wah_t, wah);
 wah_t *t_wah_new(int expected_size) __leaf;
 wah_t *t_wah_dup(const wah_t *src) __leaf;
 void wah_copy(wah_t *map, const wah_t *src) __leaf;
+wah_t *wah_dup(const wah_t *src) __leaf;
 
 /* Create a wah structure from existing wah-encoded bitmap
  *
