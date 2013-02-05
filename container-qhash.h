@@ -816,4 +816,7 @@ qh_kvec_t(lstr,  lstr_t,  qhash_lstr_hash, qhash_lstr_equal);
 qh_kvec_t(clstr, lstr_t,  qhash_lstr_hash, qhash_lstr_equal);
 qh_kptr_t(ptr,   void,    qhash_hash_ptr,  qhash_ptr_equal);
 
+qh_kptr_ckey_t(cstr, char, qhash_str_hash, qhash_str_equal);
+qh_kptr_ckey_t(cptr, void, qhash_hash_ptr, qhash_ptr_equal);
+
 #endif
