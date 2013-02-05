@@ -91,6 +91,24 @@ ctype_desc_t const ctype_ishexdigit = {
     }
 };
 
+/* XXX Valid C variable name should match this span *and* should not begin
+ *     with a numeric character
+ */
+/* ctype description for tokens "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_" */
+ctype_desc_t const ctype_iscvar = {
+    {
+        0x00000000,
+        0x03ff0000,
+        0x87fffffe,
+        0x07fffffe,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+        0x00000000,
+    }
+};
+
+
 /* ctype description for tokens "01" */
 ctype_desc_t const ctype_isbindigit = {
     {
