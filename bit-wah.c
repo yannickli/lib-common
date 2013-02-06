@@ -39,6 +39,14 @@ void wah_copy(wah_t *map, const wah_t *src)
               src->data.tab, src->data.len);
 }
 
+wah_t *wah_dup(const wah_t *src)
+{
+    wah_t *wah = wah_new();
+
+    wah_copy(wah, src);
+    return wah;
+}
+
 wah_t *t_wah_new(int size)
 {
     wah_t *map = t_new(wah_t, 1);
