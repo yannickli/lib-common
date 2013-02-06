@@ -256,7 +256,7 @@ struct cimd_esc_table const cimd_esc_map[256] = {
 #undef E
 };
 
-static int unicode_to_gsm7(int c, int unknown, gsm_conv_plan_t plan)
+int unicode_to_gsm7(int c, int unknown, gsm_conv_plan_t plan)
 {
     assert (plan != GSM_CIMD_PLAN);
 
@@ -291,7 +291,7 @@ static int unicode_to_gsm7(int c, int unknown, gsm_conv_plan_t plan)
     }
 }
 
-static ALWAYS_INLINE int gsm7_to_unicode(uint8_t u8, int unknown)
+int gsm7_to_unicode(uint8_t u8, int unknown)
 {
     int c = __gsm7_to_unicode[u8];
     return unlikely(c < 0) ? unknown : c;
