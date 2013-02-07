@@ -458,8 +458,14 @@ void wah_copy_run(wah_t *map, wah_word_enum_t *run, wah_word_enum_t *data)
         wah_flatten_last_run(map);
         *wah_last_run_count(map) += count;
         qv_splice(wah_word, &map->data, map->data.len, 0, words, count);
+        if (data->reverse) {
+            for (int i = map->data.len - count; i < map->data.len; i++) {
+                map->data.tab[i].literal = ~map->data.tab[i].literal;
+            }
+        }
         map->len    += count * WAH_BIT_IN_WORD;
-        map->active += membitcount(words, count * sizeof(wah_word_t));
+        map->active += membitcount(&map->data.tab[map->data.len - count],
+                                   count * sizeof(wah_word_t));
     }
 }
 
@@ -468,12 +474,13 @@ void wah_copy_run(wah_t *map, wah_word_enum_t *run, wah_word_enum_t *data)
 #define REMAIN_WORDS(Long, Ended)  \
     (((Long)->len - ROUND_UP((Ended)->len, WAH_BIT_IN_WORD)) / WAH_BIT_IN_WORD)
 
-void wah_and(wah_t *map, const wah_t *other)
+static
+void wah_and_(wah_t *map, const wah_t *other, bool map_not, bool other_not)
 {
     t_scope;
     const wah_t *src = t_wah_dup(map);
-    wah_word_enum_t src_en   = wah_word_enum_start(src);
-    wah_word_enum_t other_en = wah_word_enum_start(other);
+    wah_word_enum_t src_en   = wah_word_enum_start(src, map_not);
+    wah_word_enum_t other_en = wah_word_enum_start(other, other_not);
 
     wah_check_invariant(map);
     wah_reset_map(map);
@@ -545,15 +552,41 @@ void wah_and(wah_t *map, const wah_t *other)
     wah_check_invariant(map);
 
     assert (map->len == MAX(src->len, other->len));
-    assert (map->active <= MIN(src->active, other->active));
+    {
+        uint64_t src_active = src->active;
+        uint64_t other_active = other->active;
+
+        if (map_not) {
+            src_active = src->len - src->active;
+        }
+        if (other_not) {
+            other_active = other->len - other->active;
+        }
+        assert (map->active <= MIN(src_active, other_active));
+    }
+}
+
+void wah_and(wah_t *map, const wah_t *other)
+{
+    wah_and_(map, other, false, false);
+}
+
+void wah_and_not(wah_t *map, const wah_t *other)
+{
+    wah_and_(map, other, false, true);
+}
+
+void wah_not_and(wah_t *map, const wah_t *other)
+{
+    wah_and_(map, other, true, false);
 }
 
 void wah_or(wah_t *map, const wah_t *other)
 {
     t_scope;
     const wah_t *src = t_wah_dup(map);
-    wah_word_enum_t src_en   = wah_word_enum_start(src);
-    wah_word_enum_t other_en = wah_word_enum_start(other);
+    wah_word_enum_t src_en   = wah_word_enum_start(src, false);
+    wah_word_enum_t other_en = wah_word_enum_start(other, false);
 
     wah_check_invariant(map);
     wah_reset_map(map);
@@ -1012,6 +1045,26 @@ Z_GROUP_EXPORT(wah)
          * 280, 285                                                        (288)
          */
 
+        /* And-Not result
+         * 0, 1, 2, 3, 4, 26, 27, 31                                       (32)
+         * 32 -> 62                                                        (64)
+         * 64 -> 75, 77 -> 84, 86 -> 95                                    (96)
+         *                                                                 (128)
+         *                                                                 (160)
+         *                                                                 (192)
+         *                                                                 (224)
+         *                                                                 (256)
+         * 280, 285                                                        (288)
+         */
+
+        /* Not-And result
+         *                                                                 (32)
+         *                                                                 (64)
+         *                                                                 (96)
+         * 125                                                             (128)
+         * 128 -> 135, 138, 139, 141 -> 149, 151, 153, 156                 (160)
+         */
+
         wah_init(&map1);
         wah_init(&map2);
 
@@ -1038,6 +1091,36 @@ Z_GROUP_EXPORT(wah)
             byte b = data1[i];
             if (i < countof(data2)) {
                 b |= data2[i];
+            }
+            for (int j = 0; j < 8; j++) {
+                Z_ASSERT_EQ(!!(b & (1 << j)), !!wah_get(&map1, i * 8 + j),
+                            "invalid byte %d, bit %d", i, j);
+            }
+        }
+
+        wah_reset_map(&map1);
+        wah_add(&map1, data1, bitsizeof(data1));
+        wah_and_not(&map1, &map2);
+        for (int i = 0; i < countof(data1); i++) {
+            byte b = data1[i];
+            if (i < countof(data2)) {
+                b &= ~data2[i];
+            }
+            for (int j = 0; j < 8; j++) {
+                Z_ASSERT_EQ(!!(b & (1 << j)), !!wah_get(&map1, i * 8 + j),
+                            "invalid byte %d, bit %d", i, j);
+            }
+        }
+
+        wah_reset_map(&map1);
+        wah_add(&map1, data1, bitsizeof(data1));
+        wah_not_and(&map1, &map2);
+        for (int i = 0; i < countof(data1); i++) {
+            byte b = ~data1[i];
+            if (i < countof(data2)) {
+                b &= data2[i];
+            } else {
+                b  = 0;
             }
             for (int j = 0; j < 8; j++) {
                 Z_ASSERT_EQ(!!(b & (1 << j)), !!wah_get(&map1, i * 8 + j),
