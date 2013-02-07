@@ -123,6 +123,25 @@ static ALWAYS_INLINE bool asn1_field_is_tagged(const asn1_field_t *field)
     }
 }
 
+asn1_bit_string_t
+t_asn1_bstring_from_bf64(uint64_t bit_field, int min_bit_len)
+{
+    int len, bit_len;
+    be64_t be;
+
+    assert (min_bit_len <= 64);
+    bit_len = bit_field ? bsr64(bit_field) + 1 : 0;
+    bit_len = MAX(bit_len, min_bit_len);
+    len = DIV_ROUND_UP(bit_len, 8);
+
+    be = cpu_to_be64(bit_reverse64(bit_field));
+
+    return (asn1_bit_string_t){
+        .bit_len = bit_len,
+        .data = t_dup((const byte *)&be, len),
+    };
+}
+
 /* }}} */
 /*----- PACKER -{{{- */
 #define ASN1_BOOL_TRUE_VALUE 0x01

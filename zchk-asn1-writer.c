@@ -749,3 +749,28 @@ Z_GROUP_EXPORT(asn1_open_type)
                            LSTR_INIT_V((char *)want_ot, sizeof(want_ot)));
     } Z_TEST_END;
 } Z_GROUP_END
+
+Z_GROUP_EXPORT(asn1_bit_string) {
+    Z_TEST(make, "asn1: bit_string") {
+        t_scope;
+        asn1_bit_string_t bs;
+
+        bs = t_asn1_bstring_from_bf64(0xb, 0);
+        Z_ASSERT_EQ(bs.bit_len, 4);
+        Z_ASSERT_EQ(*bs.data, 0xd0);
+
+        bs = t_asn1_bstring_from_bf64(0xd0, 0);
+        Z_ASSERT_EQ(bs.bit_len, 8);
+        Z_ASSERT_EQ(*bs.data, 0xb);
+
+        bs = t_asn1_bstring_from_bf64(0x0b01, 0);
+        Z_ASSERT_EQ(bs.bit_len, 12);
+        Z_ASSERT_EQ(bs.data[0], 0x80);
+        Z_ASSERT_EQ(bs.data[1], 0xd0);
+
+        /* TCAP version */
+        bs = t_asn1_bstring_from_bf64(0x1, 0);
+        Z_ASSERT_EQ(bs.bit_len, 1);
+        Z_ASSERT_EQ(*bs.data, 0x80);
+    } Z_TEST_END;
+} Z_GROUP_END

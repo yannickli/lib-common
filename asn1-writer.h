@@ -61,6 +61,42 @@ static ALWAYS_INLINE size_t asn1_bit_string_size(const asn1_bit_string_t *bs)
     return bs->bit_len / 8 + (bs->bit_len % 8 ? 1 : 0) + 1;
 }
 
+/**
+ * \brief Converts a C bit field to an ASN.1 bit string
+ *
+ * In ASN.1:
+ *
+ * BoolVec ::= BIT STRING { b1(0), b2(1), b3(2), b4(3), b5(4), b6(5) }
+ *             (SIZE(2..6));
+ *
+ * In C:
+ *
+ * enum bool_vec_masks {
+ *     B1 = (1 << 0),
+ *     B2 = (1 << 1),
+ *     B3 = (1 << 2),
+ *     B4 = (1 << 3),
+ *     B5 = (1 << 4),
+ *     B6 = (1 << 5),
+ * };
+ * #define BOOL_VEC_MASKS_MIN_LEN  2
+ *
+ * void foo(void) {
+ *     asn1_bit_string_t bs;
+ *
+ *     bs = t_asn1_bstring_from_bf64(B2 | B4, BOOL_VEC_MASKS_MIN_LEN);
+ *     // Do things
+ * }
+ *
+ * \param[in] bit_field    Bit field value
+ * \param[in] min_bit_len  Minimum bit string length, given in ASN.1
+ *                         specification.
+ *                         Example: (SIZE(2..16)) -> min_bit_len = 2
+ * \return ASN.1 bit string
+ */
+asn1_bit_string_t
+t_asn1_bstring_from_bf64(uint64_t bit_field, int min_bit_len);
+
 #define ASN1_VECTOR_OF(ctype_t)       struct { ctype_t *data; int len; }
 
 #define ASN1_VECTOR_TYPE(sfx)         asn1_##sfx##_vector_t
