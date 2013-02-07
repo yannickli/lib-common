@@ -74,6 +74,32 @@ ssize_t bsf(const void *data, size_t start_bit, size_t len, bool reverse);
      })
 
 
+/*----- bit_reverse --------*/
+
+/** Reverses the bit order of any unsigned integer:
+ *  16 bits example:
+ *     0x3445           -> 0xa22c
+ *     0011010001000101 -> 1010001000101100
+ */
+
+extern uint8_t const __bit_reverse8[];
+
+static ALWAYS_INLINE uint8_t bit_reverse8(uint8_t u8) {
+    return __bit_reverse8[u8];
+}
+
+static ALWAYS_INLINE uint16_t bit_reverse16(uint16_t u16) {
+    return ((uint16_t)bit_reverse8(u16) << 8) | bit_reverse8(u16 >> 8);
+}
+
+static ALWAYS_INLINE uint32_t bit_reverse32(uint32_t u32) {
+    return ((uint32_t)bit_reverse16(u32) << 16) | bit_reverse16(u32 >> 16);
+}
+
+static ALWAYS_INLINE uint64_t bit_reverse64(uint64_t u64) {
+    return ((uint64_t)bit_reverse32(u64) << 32) | bit_reverse32(u64 >> 32);
+}
+
 /*----- bitcount -----*/
 
 #ifdef __POPCNT__
