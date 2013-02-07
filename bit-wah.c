@@ -465,6 +465,8 @@ void wah_copy_run(wah_t *map, wah_word_enum_t *run, wah_word_enum_t *data)
 
 #define PUSH_COPY(Run, Data)  wah_copy_run(map, &(Run), &(Data))
 
+#define REMAIN_WORDS(Long, Ended)  \
+    (((Long)->len - ROUND_UP((Ended)->len, WAH_BIT_IN_WORD)) / WAH_BIT_IN_WORD)
 
 void wah_and(wah_t *map, const wah_t *other)
 {
@@ -476,6 +478,13 @@ void wah_and(wah_t *map, const wah_t *other)
     wah_check_invariant(map);
     wah_reset_map(map);
     while (src_en.state != WAH_ENUM_END || other_en.state != WAH_ENUM_END) {
+        if (src_en.state == WAH_ENUM_END) {
+            src_en.remain_words = REMAIN_WORDS(other, src);
+        } else
+        if (other_en.state == WAH_ENUM_END) {
+            other_en.remain_words = REMAIN_WORDS(src, other);
+        }
+
         switch (src_en.state | (other_en.state << 2)) {
           case WAH_ENUM_END     | (WAH_ENUM_PENDING << 2):
           case WAH_ENUM_PENDING | (WAH_ENUM_END     << 2):
@@ -488,6 +497,7 @@ void wah_and(wah_t *map, const wah_t *other)
             break;
 
           case WAH_ENUM_RUN     | (WAH_ENUM_LITERAL << 2):
+          case WAH_ENUM_END     | (WAH_ENUM_LITERAL << 2):
             if (src_en.current) {
                 PUSH_COPY(src_en, other_en);
             } else {
@@ -496,6 +506,7 @@ void wah_and(wah_t *map, const wah_t *other)
             break;
 
           case WAH_ENUM_LITERAL | (WAH_ENUM_RUN     << 2):
+          case WAH_ENUM_LITERAL | (WAH_ENUM_END     << 2):
             if (other_en.current) {
                 PUSH_COPY(other_en, src_en);
             } else {
@@ -504,6 +515,8 @@ void wah_and(wah_t *map, const wah_t *other)
             break;
 
           case WAH_ENUM_RUN     | (WAH_ENUM_RUN     << 2):
+          case WAH_ENUM_END     | (WAH_ENUM_RUN     << 2):
+          case WAH_ENUM_RUN     | (WAH_ENUM_END     << 2):
             if (!other_en.current || !src_en.current) {
                 uint32_t run = 0;
 
@@ -545,6 +558,13 @@ void wah_or(wah_t *map, const wah_t *other)
     wah_check_invariant(map);
     wah_reset_map(map);
     while (src_en.state != WAH_ENUM_END || other_en.state != WAH_ENUM_END) {
+        if (src_en.state == WAH_ENUM_END) {
+            src_en.remain_words = REMAIN_WORDS(other, src);
+        } else
+        if (other_en.state == WAH_ENUM_END) {
+            other_en.remain_words = REMAIN_WORDS(src, other);
+        }
+
         switch (src_en.state | (other_en.state << 2)) {
           case WAH_ENUM_END     | (WAH_ENUM_PENDING << 2):
           case WAH_ENUM_PENDING | (WAH_ENUM_END     << 2):
@@ -557,6 +577,7 @@ void wah_or(wah_t *map, const wah_t *other)
             break;
 
           case WAH_ENUM_RUN     | (WAH_ENUM_LITERAL << 2):
+          case WAH_ENUM_END     | (WAH_ENUM_LITERAL << 2):
             if (!src_en.current) {
                 PUSH_COPY(src_en, other_en);
             } else {
@@ -565,6 +586,7 @@ void wah_or(wah_t *map, const wah_t *other)
             break;
 
           case WAH_ENUM_LITERAL | (WAH_ENUM_RUN     << 2):
+          case WAH_ENUM_LITERAL | (WAH_ENUM_END     << 2):
             if (!other_en.current) {
                 PUSH_COPY(other_en, src_en);
             } else {
@@ -573,6 +595,8 @@ void wah_or(wah_t *map, const wah_t *other)
             break;
 
           case WAH_ENUM_RUN     | (WAH_ENUM_RUN     << 2):
+          case WAH_ENUM_END     | (WAH_ENUM_RUN     << 2):
+          case WAH_ENUM_RUN     | (WAH_ENUM_END     << 2):
             if (other_en.current || src_en.current) {
                 uint32_t run = 0;
 
