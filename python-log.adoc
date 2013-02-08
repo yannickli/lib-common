@@ -1,0 +1,53 @@
+<<<
+== LOG module ==
+
+The goal of this module is to bind intersec log API to Python.
+It is composed of a Python module and a Python source file.
+
+It uses the Python standart logging module, redefines the logging.Logger class
+and creates an Intersec specific handler. It instantiates as global variable
+the modified logging.Logger class and addis to it the specific handler. The
+variable name is +logger+.
+
+You could add a handler to do specific treatment like automatically log into
+a file by adding a handler to the logger.
+(see Python official web documentation at docs.python.org).
+
+=== Functions ===
+
+Intersec log API uses different severity levels:
+
+-  +debug+
+-  +info+
+-  +notice+
+-  +warning+
+-  +error+
+-  +critical+
+-  +panic+
+
++panic+ and +critical+ level have a special behaviour. They both make the
+program to exit. +panic+ generates a core.
+
+=== Deployment ===
+
+To use this functionnality, the shared library +common.so+ and the source file
++log.py+ have to be in your python path. You have to import the global
+variable named +logger+ from the Python source file +log.py+.
+It is a good practice to create a folder named "intersec" in your python path,
+to add the source file log.py and to create an empty file named
+__init__.py into.
+
+=== Example ===
+
+[source,python]
+----
+from intersec.log import logger
+
+logger.error("error log")
+logger.debug("debug log")
+logger.notice("notice log")
+logger.info("info log")
+logger.warning("warning log")
+logger.panic("panic log => program is exited and a core is generated")
+...
+----
