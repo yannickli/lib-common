@@ -41,7 +41,7 @@ typedef struct frame_t {
     ring_blk_t  *blk;
     uintptr_t    rp;
 } frame_t;
-#define FRAME_IS_FREE   (1U << 0)
+#define FRAME_IS_FREE   (1ULL << 0)
 
 struct ring_pool_t {
     dlist_t      fhead;
