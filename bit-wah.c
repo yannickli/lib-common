@@ -471,8 +471,7 @@ void wah_copy_run(wah_t *map, wah_word_enum_t *run, wah_word_enum_t *data)
 
 #define PUSH_COPY(Run, Data)  wah_copy_run(map, &(Run), &(Data))
 
-#define REMAIN_WORDS(Long, Ended)  \
-    (((Long)->len - ROUND_UP((Ended)->len, WAH_BIT_IN_WORD)) / WAH_BIT_IN_WORD)
+#define REMAIN_WORDS(Long, Map) (((Long)->len - (Map)->len) / WAH_BIT_IN_WORD)
 
 static
 void wah_and_(wah_t *map, const wah_t *other, bool map_not, bool other_not)
@@ -486,10 +485,10 @@ void wah_and_(wah_t *map, const wah_t *other, bool map_not, bool other_not)
     wah_reset_map(map);
     while (src_en.state != WAH_ENUM_END || other_en.state != WAH_ENUM_END) {
         if (src_en.state == WAH_ENUM_END) {
-            src_en.remain_words = REMAIN_WORDS(other, src);
+            src_en.remain_words = REMAIN_WORDS(other, map);
         } else
         if (other_en.state == WAH_ENUM_END) {
-            other_en.remain_words = REMAIN_WORDS(src, other);
+            other_en.remain_words = REMAIN_WORDS(src, map);
         }
 
         switch (src_en.state | (other_en.state << 2)) {
@@ -592,10 +591,10 @@ void wah_or(wah_t *map, const wah_t *other)
     wah_reset_map(map);
     while (src_en.state != WAH_ENUM_END || other_en.state != WAH_ENUM_END) {
         if (src_en.state == WAH_ENUM_END) {
-            src_en.remain_words = REMAIN_WORDS(other, src);
+            src_en.remain_words = REMAIN_WORDS(other, map);
         } else
         if (other_en.state == WAH_ENUM_END) {
-            other_en.remain_words = REMAIN_WORDS(src, other);
+            other_en.remain_words = REMAIN_WORDS(src, map);
         }
 
         switch (src_en.state | (other_en.state << 2)) {
