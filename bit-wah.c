@@ -1179,6 +1179,36 @@ Z_GROUP_EXPORT(wah)
         }
         wah_wipe(&map);
     } Z_TEST_END;
+
+    Z_TEST(non_reg_and, "") {
+        uint32_t src_data[] = { 0x00000519,      0x00000000,      0x80000101,      0x00000000 };
+        uint32_t other_data[] = { 0x00000000,      0x00000002,      0x80000010,      0x00000003,
+                                  0x0000001d,      0x00000001,      0x00007e00,      0x0000001e,
+                                  0x00000000 };
+
+        wah_t src;
+        wah_t other;
+        wah_t res;
+
+        wah_init_from_data(&src, src_data, countof(src_data), true);
+        src.pending = 0x1ffff;
+        src.active  = 8241;
+        src.len     = 50001;
+
+        wah_init_from_data(&other, other_data, countof(other_data), true);
+        other.pending = 0x600000;
+        other.active  = 12;
+        other.len     = 2007;
+
+        wah_init(&res);
+        wah_copy(&res, &src);
+        wah_and(&res, &other);
+
+        Z_ASSERT_EQ(res.len, 50001u);
+        Z_ASSERT_LE(res.active, 12u);
+
+        wah_wipe(&res);
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 /* }}} */
