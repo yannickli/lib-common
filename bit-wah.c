@@ -746,6 +746,8 @@ wah_t *wah_init_from_data(wah_t *map, const uint32_t *data, int data_len,
 
         THROW_NULL_IF(words > (uint32_t)map->data.len
                     || (uint32_t)pos > map->data.len - words);
+        map->previous_run_pos = map->last_run_pos;
+        map->last_run_pos     = pos - 2;
         if (head.bit) {
             map->active += WAH_BIT_IN_WORD * head.words;
         }
