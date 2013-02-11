@@ -556,10 +556,10 @@ void wah_and_(wah_t *map, const wah_t *other, bool map_not, bool other_not)
         uint64_t other_active = other->active;
 
         if (map_not) {
-            src_active = src->len - src->active;
+            src_active = MAX(other->len, src->len) - src->active;
         }
         if (other_not) {
-            other_active = other->len - other->active;
+            other_active = MAX(other->len, src->len) - other->active;
         }
         assert (map->active <= MIN(src_active, other_active));
     }
