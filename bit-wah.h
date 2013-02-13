@@ -109,6 +109,12 @@ void wah_reset_map(wah_t *map)
 }
 
 /* }}} */
+/* WAH pools {{{ */
+
+wah_t *wah_pool_acquire(void);
+void wah_pool_release(wah_t **wah);
+
+/* }}} */
 /* Enumeration {{{ */
 
 typedef enum wah_enum_state_t {

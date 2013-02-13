@@ -11,6 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include "thr.h"
 #include "bit.h"
 
 //#define WAH_CHECK_NORMALIZED  1
@@ -771,6 +772,52 @@ wah_t *wah_new_from_data(const uint32_t *data, int data_len, bool scan)
         wah_delete(&map);
     }
     return ret;
+}
+
+/* }}} */
+/* Pool {{{ */
+
+static __thread struct {
+    wah_t    *pool[16];
+    int       count;
+} pool_g;
+
+__attribute__((constructor))
+static void wah_pool_initialize(void)
+{
+}
+
+static void wah_pool_shutdown(void)
+{
+    for (int i = 0; i < pool_g.count; i++) {
+        wah_delete(&pool_g.pool[i]);
+    }
+}
+thr_hooks(wah_pool_initialize, wah_pool_shutdown);
+
+
+wah_t *wah_pool_acquire(void)
+{
+    if (pool_g.count == 0) {
+        return wah_new();
+    }
+    return pool_g.pool[--pool_g.count];
+}
+
+void wah_pool_release(wah_t **wah)
+{
+    if (!*wah) {
+        return;
+    }
+    if (pool_g.count == countof(pool_g.pool)
+    || (*wah)->data.mem_pool != MEM_LIBC)
+    {
+        wah_delete(wah);
+        return;
+    }
+
+    pool_g.pool[pool_g.count++] = *wah;
+    *wah = NULL;
 }
 
 /* }}} */
