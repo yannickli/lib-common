@@ -374,7 +374,7 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
         PyErr_SetString(http_initialize_error,
                         "http initialize build_body argument is not"
                         " a callable PyObject (callback function))");
-        return Py_BuildValue("i", -2);
+        return NULL;
     }
     if (!PyCallable_Check(cb_parse)) {
         PyErr_SetString(http_initialize_error,
