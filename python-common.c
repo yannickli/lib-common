@@ -223,24 +223,23 @@ static void python_http_launch_query(httpc_t *w, python_ctx_t *ctx)
     SB_1k(sb);
     python_query_t *q = python_query_new();
 
-
     q->ctx = ctx;
     httpc_query_attach(&q->q, w);
 
     if (ctx->path) {
         sb_add_urlencode(&sb, ctx->path, strlen(ctx->path));
     } else {
-        sb_add_urlencode(&sb, _G.url.s, python_http_g.url.len);
+        sb_addc(&sb, '/');
     }
 
     if (_G.url_args.s)
-        sb_add(&sb, _G.url_args.s, python_http_g.url_args.len);
+        sb_add_lstr(&sb, _G.url_args);
 
-    httpc_query_start_flags(&q->q, (int)_G.http_method, python_http_g.m->host,
+    httpc_query_start_flags(&q->q, (int)_G.http_method, _G.m->host,
                             LSTR_SB_V(&sb), false);
 
-    if (_G.user.len && python_http_g.password.len)
-        httpc_query_hdrs_add_auth(&q->q, _G.user, python_http_g.password);
+    if (_G.user.len && _G.password.len)
+        httpc_query_hdrs_add_auth(&q->q, _G.user, _G.password);
 
     python_prepare_query(&q->q, q->ctx);
     sb_wipe(&sb);
@@ -254,7 +253,7 @@ static void process_queries(httpc_pool_t *m, httpc_t *w)
         return;
     }
 
-    while (_G.nb_pending && net_rctl_can_fire(&python_http_g.rctl)) {
+    while (_G.nb_pending && net_rctl_can_fire(&_G.rctl)) {
         python_ctx_t *ctx;
 
         if (dlist_is_empty(&_G.pending)) {
@@ -557,12 +556,15 @@ static PyObject *python_log(PyObject *self, PyObject *args)
 /* python module {{{ */
 
 PyDoc_STRVAR(commonmodule_doc,
-"The goal of this module is to bind lib-common http API to python.\n"
-"It works asynchronously. At API initialization, 3 python callbacks were passed\n"
-"as argument. One to build http request headers, a second to build http request\n"
-"body and a last to parse server answer.\n"
-"The request method take as argument a python object. When this method is\n"
-"called, the API had the request into a list. When the API processes the\n"
+"The goal of this module is to bind lib-common http and log API to python.\n"
+"Http: \n"
+"It works asynchronously. At API initialization, 3 python callbacks are passed\n"
+"as argument:\n"
+"- One to build http request headers,\n"
+"- a second to build http request body,\n"
+"- a last to parse server answer.\n"
+"The request method takes as argument a python object. When this method is\n"
+"called, the API adds the request into a list. When the API processes the\n"
 "request, it calls the 2 callbacks to build the request with python object as\n"
 "argument and send it. When the answer is received, the API calls the last\n"
 "callback with the server answer.");
