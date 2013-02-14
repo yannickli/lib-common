@@ -52,7 +52,7 @@ typedef struct wah_t {
     qv_t(wah_word) data;
 
     uint32_t       pending;
-    uint32_t       padding[3]; /* Ensure sizeof(wah_t) == 64 */
+    wah_word_t     padding[3]; /* Ensure sizeof(wah_t) == 64 */
 } wah_t;
 qvector_t(wah, wah_t);
 
@@ -63,9 +63,9 @@ qvector_t(wah, wah_t);
 
 
 wah_t *wah_init(wah_t *map) __leaf;
+wah_t *wah_new(void) __leaf;
 void wah_wipe(wah_t *map) __leaf;
 GENERIC_DELETE(wah_t, wah);
-GENERIC_NEW(wah_t, wah);
 
 wah_t *t_wah_new(int expected_size) __leaf;
 wah_t *t_wah_dup(const wah_t *src) __leaf;
@@ -103,7 +103,7 @@ void wah_reset_map(wah_t *map)
     map->active               = 0;
     map->previous_run_pos     = -1;
     map->last_run_pos         = 0;
-    map->data.len             = 0;
+    qv_clear(wah_word, &map->data);
     p_clear(qv_growlen(wah_word, &map->data, 2), 2);
     map->pending              = 0;
 }

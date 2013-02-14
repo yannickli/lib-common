@@ -23,6 +23,15 @@ wah_t *wah_init(wah_t *map)
     return map;
 }
 
+wah_t *wah_new(void)
+{
+    wah_t *map = p_new_raw(wah_t, 1);
+
+    __qv_init(wah_word, &map->data, map->padding, 0, 3, MEM_STATIC);
+    wah_reset_map(map);
+    return map;
+}
+
 void wah_wipe(wah_t *map)
 {
     qv_wipe(wah_word, &map->data);
@@ -804,20 +813,22 @@ wah_t *wah_pool_acquire(void)
     return pool_g.pool[--pool_g.count];
 }
 
-void wah_pool_release(wah_t **wah)
+void wah_pool_release(wah_t **pmap)
 {
-    if (!*wah) {
+    wah_t *map = *pmap;
+
+    if (!map) {
         return;
     }
     if (pool_g.count == countof(pool_g.pool)
-    || (*wah)->data.mem_pool != MEM_LIBC)
+    || (map->data.mem_pool != MEM_LIBC && map->data.tab != map->padding))
     {
-        wah_delete(wah);
+        wah_delete(pmap);
         return;
     }
 
-    pool_g.pool[pool_g.count++] = *wah;
-    *wah = NULL;
+    pool_g.pool[pool_g.count++] = map;
+    *pmap = NULL;
 }
 
 /* }}} */
