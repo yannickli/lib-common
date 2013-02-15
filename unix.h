@@ -132,6 +132,8 @@ void devnull_dup(int fd);
  */
 #define MAKE_IOVEC(data, len)  \
      (struct iovec){ .iov_base = (void *)(data), .iov_len = (len) }
+#define MAKE_IOVEC_TAB(Tab) \
+     MAKE_IOVEC((Tab)->tab, sizeof((Tab)->tab[0]) * (Tab)->len)
 
 qvector_t(iovec, struct iovec);
 
