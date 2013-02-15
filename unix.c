@@ -380,9 +380,10 @@ int tmpfd(void)
 /* file descriptor related                                                  */
 /****************************************************************************/
 
-int xwrite(int fd, const void *data, ssize_t len)
+ssize_t xwrite(int fd, const void *data, ssize_t len)
 {
     const char *s = data;
+    ssize_t to_write = len;
 
     while (len > 0) {
         ssize_t nb = write(fd, s, len);
@@ -395,10 +396,10 @@ int xwrite(int fd, const void *data, ssize_t len)
         s   += nb;
         len -= nb;
     }
-    return 0;
+    return to_write;
 }
 
-int xwrite_file(const char *path, const void *data, ssize_t dlen)
+ssize_t xwrite_file(const char *path, const void *data, ssize_t dlen)
 {
     int fd, res;
 
@@ -415,8 +416,10 @@ int xwrite_file(const char *path, const void *data, ssize_t dlen)
     return dlen;
 }
 
-int xwritev(int fd, struct iovec *iov, int iovcnt)
+ssize_t xwritev(int fd, struct iovec *iov, int iovcnt)
 {
+    ssize_t written = 0;
+
     while (iovcnt) {
         ssize_t nb = writev(fd, iov, iovcnt);
 
@@ -425,6 +428,7 @@ int xwritev(int fd, struct iovec *iov, int iovcnt)
                 continue;
             return -1;
         }
+        written += nb;
         while (nb) {
             if ((size_t)nb >= iov->iov_len) {
                 nb -= iov->iov_len;
@@ -441,12 +445,13 @@ int xwritev(int fd, struct iovec *iov, int iovcnt)
             iov++;
         }
     }
-    return 0;
+    return written;
 }
 
-int xpwrite(int fd, const void *data, ssize_t len, off_t offset)
+ssize_t xpwrite(int fd, const void *data, ssize_t len, off_t offset)
 {
     const char *s = data;
+    ssize_t to_write = len;
 
     while (len > 0) {
         ssize_t nb = pwrite(fd, s, len, offset);
@@ -460,7 +465,7 @@ int xpwrite(int fd, const void *data, ssize_t len, off_t offset)
         len    -= nb;
         offset += nb;
     }
-    return 0;
+    return to_write;
 }
 
 int xread(int fd, void *data, ssize_t len)
