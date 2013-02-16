@@ -135,7 +135,21 @@ static inline sb_t *t_sb_init(sb_t *sb, int size)
 }
 
 void sb_reset(sb_t *sb) __leaf;
-void sb_wipe(sb_t *sb) __leaf;
+
+static inline void sb_wipe(sb_t *sb)
+{
+    switch (sb->mem_pool & MEM_POOL_MASK) {
+      case MEM_STATIC:
+      case MEM_STACK:
+        sb_reset(sb);
+        return;
+      default:
+        ifree(sb->data - sb->skip, sb->mem_pool);
+        sb_init(sb);
+        return;
+    }
+}
+
 GENERIC_NEW(sb_t, sb);
 GENERIC_DELETE(sb_t, sb);
 #ifdef __cplusplus
@@ -161,10 +175,8 @@ sb_t::~sb_t() { sb_wipe(this); }
 
 static inline void sb_wipe_not_needed(sb_t *sb)
 {
-    if (unlikely(sb->mem_pool == MEM_LIBC)) {
-        assert (false);
-        sb_wipe(sb);
-    }
+    assert (likely(sb->mem_pool != MEM_LIBC));
+    sb_wipe(sb);
 }
 
 /**************************************************************************/
