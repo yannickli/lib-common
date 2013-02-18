@@ -52,7 +52,7 @@ cfg_hex = my_httpc_cfg().__hex__()
 -  url: string.
 -  url_arg: string
 -  port: int
--  http_method: type IOPY: package corei HttpMethod.
+-  http_method: type IOPY: package core HttpMethod.
 -  maxconn: max connection number.
 -  maxrate: request per second maximum number.
 -  user: string.

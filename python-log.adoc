@@ -6,7 +6,7 @@ It is composed of a Python module and a Python source file.
 
 It uses the Python standart logging module, redefines the logging.Logger class
 and creates an Intersec specific handler. It instantiates as global variable
-the modified logging.Logger class and addis to it the specific handler. The
+the modified logging.Logger class and adds to it the specific handler. The
 variable name is +logger+.
 
 You could add a handler to do specific treatment like automatically log into
