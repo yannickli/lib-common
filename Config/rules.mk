@@ -118,8 +118,12 @@ $(foreach t,$3,$(eval $3.c_NOCHECK = block))
 $3.c: FL_=$($(1D)/_CFLAGS) $($1_CFLAGS) $($3.c_CFLAGS)
 $3.c: $3 $(CLANG) | _generated_hdr
 	$(msg/COMPILE) " BLK" $3
+	$(CLANG) $$(CLANGFLAGS_) $$(filter-out -D_FORTIFY_SOURCE=%,$$(FLAGS_)) \
+		-x c -O0 -fblocks -fsyntax-only -D_FORTIFY_SOURCE=0 \
+		-MP -MMD -MT $3.c -MF $~$3.d -o /dev/null $3
 	$(CLANG) -cc1 -x c $(CLANGREWRITEFLAGS) $$(FL_) -rewrite-blocks -o $$@+ $$<
 	$(MV) $$@+ $$@ && chmod a-w $$@
+-include $~$3.d
 endef
 
 define ext/rule/blk
@@ -136,8 +140,12 @@ $(foreach t,$3,$(eval $3.cc_NOCHECK = block))
 $3.cc: FL_=$($(1D)/_CXXLAGS) $($1_CXXLAGS) $($3.c_CXXLAGS)
 $3.cc: $3 $(CLANGXX) | _generated_hdr
 	$(msg/COMPILE) " BLK" $3
+	$(CLANGXX) $$(CLANGXXFLAGS_) $$(filter-out -D_FORTIFY_SOURCE=%,$$(FLAGS_)) \
+		-x c -O0 -fblocks -fsyntax-only -D_FORTIFY_SOURCE=0 \
+		-MP -MMD -MT $3.cc -MF $~$3.d -o /dev/null $3
 	$(CLANGXX) -cc1 -x c++ $(CLANGXXREWRITEFLAGS) $$(FL_) -rewrite-blocks -o $$@+ $$<
 	$(MV) $$@+ $$@ && chmod a-w $$@
+-include $~$3.d
 endef
 
 define ext/rule/blkk
