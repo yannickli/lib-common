@@ -330,9 +330,10 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
     PyObject   *cb_parse         = NULL;
 
     struct core__httpc_cfg__t iop_cfg;
-    httpc_cfg_t               *cfg     = NULL;
-    char                      *cfg_hex = NULL;
-    lstr_t                     cfg_lstr;
+    httpc_cfg_t              *cfg     = NULL;
+    char                     *cfg_hex = NULL;
+    lstr_t                    cfg_lstr;
+    size_t                    cfg_str_len;
 
     sockunion_t su;
     int         http_method;
@@ -387,9 +388,17 @@ static PyObject *python_http_initialize(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    cfg_lstr = LSTR_STR_V(cfg_hex);
-    if( t_iop_bunpack(&cfg_lstr, core, httpc_cfg, &iop_cfg) < 0) {
-        PyErr_SetString(http_initialize_error, "failed to unpack http cfg");
+    cfg_str_len = strlen(cfg_hex) / 2;
+    cfg_lstr = LSTR_INIT_V(t_new_raw(char, cfg_str_len), cfg_str_len);
+    if (strconv_hexdecode((void *)cfg_lstr.s, cfg_lstr.len,
+                           cfg_hex, strlen(cfg_hex)) < 0)
+    {
+        PyErr_SetString(http_initialize_error,
+                        "failed to hex decode httpc cfg");
+        return NULL;
+    }
+    if (t_iop_bunpack(&cfg_lstr, core, httpc_cfg, &iop_cfg) < 0) {
+        PyErr_SetString(http_initialize_error, "failed to unpack httpc cfg");
         return NULL;
     }
 
