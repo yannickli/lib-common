@@ -828,6 +828,7 @@ void wah_pool_release(wah_t **pmap)
         return;
     }
 
+    wah_reset_map(map);
     pool_g.pool[pool_g.count++] = map;
     *pmap = NULL;
 }
