@@ -81,6 +81,10 @@ static inline void sb_add_time_iso8601_msec(sb_t *sb, time_t t, int msec)
 int time_parse_iso8601(pstream_t *ps, time_t *res);
 static inline int time_parse_iso8601s(const char *s, time_t *res) {
     pstream_t ps = ps_initstr(s);
+
+    /* Trim the ps_stream before getting the date */
+    ps_trim(ps);
+
     /* FIXME: do we want to err if !ps_done(&ps) at the end ? */
     return time_parse_iso8601(&ps, res);
 }
