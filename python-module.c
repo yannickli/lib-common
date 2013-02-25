@@ -12,7 +12,9 @@
 /**************************************************************************/
 
 #include "python-common.h"
+#include <lib-common/core.h>
 
+EXPORT
 void initcommon(void);
 
 static PyMethodDef methods[] = {
