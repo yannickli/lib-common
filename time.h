@@ -193,7 +193,7 @@ static inline int time_parse_iso8601s(const char *s, time_t *res) {
     pstream_t ps = ps_initstr(s);
 
     /* Trim the ps_stream before getting the date */
-    ps_trim(ps);
+    ps_trim(&ps);
 
     /* FIXME: do we want to err if !ps_done(&ps) at the end ? */
     return time_parse_iso8601(&ps, res);
