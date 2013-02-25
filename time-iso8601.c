@@ -68,6 +68,7 @@ int time_parse_iso8601(pstream_t *ps, time_t *res)
             e_debug("missing 'T' time mark");
             return -1;
         }
+        RETHROW(time_parse_iso8601_tok(ps, &nb, &tok));
         if (tok == 'H') {
             t.tm_hour += nb;
             if (ps_done(ps))
