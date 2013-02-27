@@ -2644,6 +2644,7 @@ int qps_backup(qps_t *qps, int dfd_dst, bool link_as_copy)
                 ret = e_error("QPS(%p): unable to touch meta.qps", qps);
                 goto error;
             }
+            p_close(&fd);
             return 0;
         }
     }
