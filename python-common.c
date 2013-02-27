@@ -128,15 +128,13 @@ python_http_query_end(python_ctx_t **_ctx, int status, lstr_t err_msg,
                       bool restore_Thread)
 {
     python_ctx_t *ctx = *_ctx;
-    PyObject     *arg = NULL;
     PyObject     *res = NULL;
 
     if (restore_Thread)
        PyEval_RestoreThread(python_state_g);
 
-    arg = Py_BuildValue("Ois", ctx->data, status, err_msg.s);;
-    res = PyObject_CallObject(ctx->cb_query_done, arg);
-    Py_XDECREF(arg);
+    res = PyObject_CallFunction(ctx->cb_query_done, (char *)"Ois",
+                                ctx->data, status, err_msg.s);
 
     Py_XDECREF(res);
     python_ctx_delete(&ctx);
@@ -152,8 +150,6 @@ static void python_http_process_answer(python_query_t *q)
     int res = q->q.qinfo->code;
 
     PyObject *cbk_res = NULL;
-    PyObject *arg     = NULL;
-    PyObject *answer  = NULL;
 
     if (res != HTTP_CODE_OK) {
        python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_ERROR,
@@ -163,11 +159,9 @@ static void python_http_process_answer(python_query_t *q)
 
     PyEval_RestoreThread(python_state_g);
 
-    answer = PyString_FromString(q->q.payload.data);
-    arg = PyTuple_New(1);
-    PyTuple_SetItem(arg, 0, answer);
-    cbk_res = PyObject_CallObject(_G.cb_parse_answer, arg);
-    Py_XDECREF(arg);
+    cbk_res = PyObject_CallFunction(_G.cb_parse_answer, (char *)"z#O",
+                                    q->q.payload.data, q->q.payload.len,
+                                    q->ctx->data);
 
     if (!cbk_res || !PyInt_Check(cbk_res) || PyInt_AsLong(cbk_res) != 0l) {
        python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_USERERROR,
