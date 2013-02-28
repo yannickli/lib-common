@@ -61,7 +61,6 @@ static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info
                    "XML packing/unpacking hashes don't match! (%s, %s)",
                    st->fullname.s, info);
 
-    sb_wipe(&sb);
     xmlr_close(&xmlr_g);
     Z_HELPER_END;
 }
@@ -110,7 +109,6 @@ static int iop_json_test_struct(const iop_struct_t *st, void *v,
         strict++;
     }
 
-    sb_wipe(&sb);
     iop_jlex_wipe(&jll);
 
     Z_HELPER_END;
@@ -149,7 +147,6 @@ static int iop_json_test_json(const iop_struct_t *st, const char *json, const
                    "JSON unpacking hashes don't match! (%s, %s)",
                    st->fullname.s, info);
 
-    sb_wipe(&sb);
     iop_jlex_wipe(&jll);
 
     Z_HELPER_END;

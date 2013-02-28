@@ -107,6 +107,8 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, int mem_pool)
 #define sb_inita(sb, sz)                                \
     sb_init_full(sb, memset(alloca(sz), 0, 1), 0, (sz), MEM_STATIC)
 
+/** SB() macro declare a sb using alloca. It will be automatically wiped when
+ * leaving the current scope. */
 #ifdef __cplusplus
 #define SB(name, sz)                                    \
     STATIC_ASSERT((sz) < (64 << 10));                   \
@@ -114,7 +116,7 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, int mem_pool)
     sb_inita(&name, sz)
 #else
 #define SB(name, sz) \
-    sb_t name = {                                       \
+    sb_t name __attribute__((cleanup(sb_wipe))) = {     \
         .data = memset(alloca(sz), 0, 1),               \
         .size = (STATIC_ASSERT((sz) < (64 << 10)), sz), \
     }

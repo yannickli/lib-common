@@ -113,7 +113,6 @@ void xmlpp_putattrfmt(xmlpp_t *pp, const char *key, const char *fmt, ...)
     sb_addf(pp->buf, " %s=\"", key);
     sb_add_xmlescape(pp->buf, tmp.data, tmp.len);
     sb_adds(pp->buf, "\">");
-    sb_wipe(&tmp);
 }
 
 void xmlpp_put_cdata(xmlpp_t *pp, const char *s, size_t len)
@@ -149,5 +148,4 @@ void xmlpp_putf(xmlpp_t *pp, const char *fmt, ...)
     sb_addvf(&tmp, fmt, ap);
     va_end(ap);
     xmlpp_put(pp, tmp.data, tmp.len);
-    sb_wipe(&tmp);
 }
