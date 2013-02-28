@@ -199,7 +199,6 @@ static inline char *t_print_bs(bit_stream_t bs, size_t *len)
 
     res = t_dupz(sb.data, sb.len);
 
-    sb_wipe(&sb);
     return res;
 }
 

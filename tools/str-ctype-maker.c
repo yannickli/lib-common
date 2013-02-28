@@ -27,7 +27,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    sb_init(&buf);
     for (int i = 2; i < argc; i++) {
         const char *s = argv[i];
         sb_t *sb = (argv[i][0] == '-') ? &buf_del : &buf;
@@ -84,6 +83,5 @@ int main(int argc, char **argv)
         puts("} };");
     }
 
-    sb_wipe(&buf);
     return 0;
 }

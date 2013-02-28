@@ -1475,6 +1475,7 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
     const iop_field_t *fdesc = desc->fields;
     const iop_field_t *fend  = desc->fields + desc->fields_len;
     const bool with_indent = !(flags & IOP_JPACK_COMPACT);
+    SB_8k(sb);
 
 #define WRITE(b, l)    \
     do {                                                                   \
@@ -1627,12 +1628,9 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
 
               case IOP_T_DATA:
                 if (IOP_FIELD(const iop_data_t, ptr, j).len) {
-                    t_scope;
                     int dlen = IOP_FIELD(const iop_data_t, ptr, j).len;
-                    int blen = 1 + DIV_ROUND_UP(dlen * 4, 3) + 1 + 1;
-                    sb_t sb;
 
-                    t_sb_init(&sb, blen);
+                    sb_reset(&sb);
                     sb_addc(&sb, '"');
                     sb_add_b64(&sb, IOP_FIELD(const iop_data_t, ptr, j).data,
                                dlen, -1);
