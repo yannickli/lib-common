@@ -113,8 +113,6 @@ Z_GROUP_EXPORT(time)
         sb.len = 0;
         sb_add_localtime_iso8601(&sb, ts, ":Africa/Ouagadougou");
         Z_ASSERT_STREQUAL(sb.data, "2012-07-12T10:20:30+00:00");
-
-        sb_wipe(&sb);
     } Z_TEST_END;
 
     Z_TEST(sb_add_localtime_iso8601_msec,
@@ -137,7 +135,5 @@ Z_GROUP_EXPORT(time)
         sb.len = 0;
         sb_add_localtime_iso8601_msec(&sb, ts, 123, ":Africa/Ouagadougou");
         Z_ASSERT_STREQUAL(sb.data, "2012-07-12T10:20:30.123+00:00");
-
-        sb_wipe(&sb);
     } Z_TEST_END;
 } Z_GROUP_END;

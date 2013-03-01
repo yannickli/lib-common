@@ -63,7 +63,6 @@ static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info
                    "XML packing/unpacking hashes don't match! (%s, %s)",
                    st->fullname.s, info);
 
-    sb_wipe(&sb);
     xmlr_close(&xmlr_g);
     Z_HELPER_END;
 }
@@ -90,7 +89,6 @@ static int iop_xml_test_struct_invalid(const iop_struct_t *st, void *v,
                  "XML unpacking unexpected success (%s, %s)", st->fullname.s,
                  info);
 
-    sb_wipe(&sb);
     xmlr_close(&xmlr_g);
     Z_HELPER_END;
 }
@@ -140,7 +138,6 @@ static int iop_json_test_struct(const iop_struct_t *st, void *v,
         strict++;
     }
 
-    sb_wipe(&sb);
     iop_jlex_wipe(&jll);
 
     Z_HELPER_END;
@@ -182,7 +179,6 @@ static int iop_json_test_struct_invalid(const iop_struct_t *st, void *v,
         strict++;
     }
 
-    sb_wipe(&sb);
     iop_jlex_wipe(&jll);
 
     Z_HELPER_END;
@@ -223,7 +219,6 @@ static int iop_json_test_json(const iop_struct_t *st, const char *json, const
                    "JSON unpacking hashes don't match! (%s, %s)",
                    st->fullname.s, info);
 
-    sb_wipe(&sb);
     iop_jlex_wipe(&jll);
 
     Z_HELPER_END;
@@ -258,7 +253,6 @@ static int iop_json_test_unpack(const iop_struct_t *st, const char *json,
     }
     iop_jlex_detach(&jll);
 
-    sb_wipe(&sb);
     iop_jlex_wipe(&jll);
 
     Z_HELPER_END;
@@ -735,7 +729,6 @@ Z_GROUP_EXPORT(iop)
                                          IOP_UNPACK_IGNORE_UNKNOWN),
                        "unexpected unpacking failure using IGNORE_UNKNOWN");
             xmlr_close(&xmlr_g);
-            sb_wipe(&sb);
         }
 
         {
@@ -774,7 +767,6 @@ Z_GROUP_EXPORT(iop)
             xmlr_close(&xmlr_g);
 
             qm_wipe(part, &parts);
-            sb_wipe(&sb);
         }
 
         { /* Test numeric values */
@@ -809,8 +801,6 @@ Z_GROUP_EXPORT(iop)
 
             Z_ASSERT(IOP_OPT_ISSET(sa_opt.f));
             Z_ASSERT_EQ(IOP_OPT_VAL(sa_opt.f), 0x42);
-
-            sb_wipe(&sb);
         }
 
         { /* Test PRIVATE */
@@ -905,8 +895,6 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT_NEG(iop_xunpack_flags(xmlr_g, t_pool(), st_cs, &cs,
                                            IOP_UNPACK_FORBID_PRIVATE));
             xmlr_close(&xmlr_g);
-
-            sb_wipe(&sb);
         }
 
         iop_dso_close(&dso);

@@ -32,7 +32,6 @@ Z_GROUP_EXPORT(str)
 
         Z_ASSERT_N(sb_conv_from_ebcdic297(&sb, ebcdic, sizeof(ebcdic) - 1));
         Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), utf8s);
-        sb_wipe(&sb);
     } Z_TEST_END;
 
     Z_TEST(strconv_hexdecode, "str: strconv_hexdecode") {
