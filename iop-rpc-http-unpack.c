@@ -62,7 +62,6 @@ static int t_parse_json(ichttp_query_t *iq, ichttp_cb_t *cbe, void **vout)
     *vout = v;
 
   end:
-    sb_wipe(&buf);
     iop_jlex_wipe(&jll);
     return res;
 }

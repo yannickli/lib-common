@@ -324,30 +324,18 @@ static int psinfo_read_maps(pid_t pid, sb_t *output, sb_t *buf)
 
 int psinfo_get(pid_t pid, sb_t *output)
 {
-    int res;
     SB_8k(buf);
 
     if (pid <= 0) {
         pid = getpid();
     }
     /* Retrieve /proc/<pid>/stat infos */
-    res = psinfo_read_proc(pid, output, &buf);
-    if (res) {
-        sb_wipe(&buf);
-        return res;
-    }
+    RETHROW(psinfo_read_proc(pid, output, &buf));
 
     sb_reset(&buf);
 
     /* Retrieve maps information */
-    res = psinfo_read_maps(pid, output, &buf);
-    if (res) {
-        sb_wipe(&buf);
-        return res;
-    }
-
-    sb_wipe(&buf);
-    return 0;
+    return psinfo_read_maps(pid, output, &buf);
 }
 
 pid_t psinfo_get_tracer_pid(pid_t pid)

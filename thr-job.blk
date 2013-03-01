@@ -165,7 +165,6 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
     }
 
     e_trace(lvl, "----- %*pM", sb.len, sb.data);
-    sb_wipe(&sb);
 
     if (total.jobs_run == 0) {
         e_trace(lvl, "----- No jobs since last reset");
@@ -174,6 +173,7 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
 
 #define TIME_FMT_ARG(t)   (int)width.time, (int)((t) / 1000000)
 
+    sb_reset(&sb);
     for (size_t i = 0; i < thr_parallelism_g; i++) {
         struct thr_acc *acc = &_G.threads[i].acc;
 
@@ -201,7 +201,6 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
     e_trace(lvl, "cost %*jd cycles of overhead per job", (int)width.time,
             (wall * thr_parallelism_g - total.time) / total.jobs_run);
     e_trace(lvl, "     %s", proctimer_report(&_G.st, NULL));
-    sb_wipe(&sb);
 #undef TIME_FMT_ARG
 }
 

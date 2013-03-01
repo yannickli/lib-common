@@ -236,7 +236,6 @@ static void python_http_launch_query(httpc_t *w, python_ctx_t *ctx)
         httpc_query_hdrs_add_auth(&q->q, _G.user, _G.password);
 
     python_prepare_query(&q->q, q->ctx);
-    sb_wipe(&sb);
 }
 
 static void process_queries(httpc_pool_t *m, httpc_t *w)

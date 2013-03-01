@@ -61,7 +61,6 @@ Z_GROUP_EXPORT(file)
         Z_ASSERT_N(sb_read_file(&buf, path));
         Z_ASSERT_EQ(buf.len, 2 * BUFSIZ + 45);
 
-        sb_wipe(&buf);
         IGNORE(file_close(&f));
         unlink(path);
     } Z_TEST_END;

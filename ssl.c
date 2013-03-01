@@ -311,7 +311,6 @@ char *licence_compute_encryption_key(const char *signature, const char *key)
 
     if (ssl_encrypt(&ctx, LSTR_STR_V(key), &sb) < 0) {
         ssl_ctx_wipe(&ctx);
-        sb_wipe(&sb);
         return NULL;
     }
 
@@ -349,7 +348,6 @@ int licence_resolve_encryption_key(const conf_t *conf, sb_t *out)
     res = 0;
   end:
     ssl_ctx_wipe(&ctx);
-    sb_wipe(&sb);
 
     return res;
 }
@@ -425,7 +423,6 @@ Z_GROUP_EXPORT(ssl)
         Z_ASSERT_STREQUAL("plop", sb.data);
 
         conf_delete(&conf);
-        sb_wipe(&sb);
     } Z_TEST_END;
 } Z_GROUP_END
 
