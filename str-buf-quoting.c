@@ -593,6 +593,29 @@ void sb_add_unqpe(sb_t *sb, const void *data, int len)
     }
 }
 
+
+void sb_add_csvescape(sb_t *sb, const void *data, int len)
+{
+    const char *str = data;
+    const char *end = str + len;
+
+    sb_grow(sb, len);
+    while (str < end) {
+        const char *pos = memchr(str, '"', end - str);
+
+        if (pos == NULL) {
+            sb_add(sb, str, len);
+            str = end;
+        } else {
+            pos++;
+            sb_add(sb, str, pos - str);
+            sb_addc(sb, '"');
+            str = pos;
+        }
+    }
+}
+
+
 /* computes a slightly overestimated size to write srclen bytes with `ppline`
  * packs per line, not knowing if we start at column 0 or not.
  *

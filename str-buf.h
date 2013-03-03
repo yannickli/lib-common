@@ -526,6 +526,9 @@ void sb_add_unqpe(sb_t *sb, const void *data, int len) __leaf;
 __SB_DEFINE_ADDS(qpe);
 __SB_DEFINE_ADDS(unqpe);
 
+void sb_add_csvescape(sb_t *sb, const void *data, int len) __leaf;
+__SB_DEFINE_ADDS(csvescape);
+
 typedef struct sb_b64_ctx_t {
     short packs_per_line;
     short pack_num;
