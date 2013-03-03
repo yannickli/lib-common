@@ -476,13 +476,19 @@ int sb_recvfrom(sb_t *sb, int fd, int hint, int flags,
 /* usual quoting mechanisms (base64, addslashes, ...)                     */
 /**************************************************************************/
 
-#define __SB_DEFINE_ADDS(sfx) \
-    static inline void sb_adds_##sfx(sb_t *sb, const char *s) { \
-        sb_add_##sfx(sb, s, strlen(s));                         \
+#define __SB_DEFINE_ADDS(sfx)                                                \
+    static inline void sb_adds_##sfx(sb_t *sb, const char *s) {              \
+        sb_add_##sfx(sb, s, strlen(s));                                      \
+    }                                                                        \
+    static inline void sb_add_lstr_##sfx(sb_t *sb, lstr_t s) {               \
+        sb_add_##sfx(sb, s.s, s.len);                                        \
     }
 #define __SB_DEFINE_ADDS_ERR(sfx) \
-    static inline int sb_adds_##sfx(sb_t *sb, const char *s) {  \
-        return sb_add_##sfx(sb, s, strlen(s));                  \
+    static inline int sb_adds_##sfx(sb_t *sb, const char *s) {               \
+        return sb_add_##sfx(sb, s, strlen(s));                               \
+    }                                                                        \
+    static inline int sb_add_lstr_##sfx(sb_t *sb, lstr_t s) {                \
+        return sb_add_##sfx(sb, s.s, s.len);                                 \
     }
 
 
