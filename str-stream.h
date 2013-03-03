@@ -490,6 +490,38 @@ static inline size_t ps_trim(pstream_t *ps)
     return ps_ltrim(ps) + ps_rtrim(ps);
 }
 
+union qv_lstr_t;
+
+/** Read a CSV line from the pstream.
+ *
+ * The CSV is parsed according to RFC 4180 with the following relaxed rules:
+ *  - TEXTDATA is set to all that is neither a separator nor \r or \n. Which
+ *    mean a field can contain a quotation mark.
+ *  - \n alone is allowed as a line break.
+ *
+ * The result of the parsing is put in a vector of strings. Copies of data are
+ * avoided as much as possible, which mean that unquoted field will be direct
+ * references to the content of the pstream and thus will have the same
+ * lifetime. Fields that must be copied (those containing escaped quotation
+ * marks) are allocated in the provided memory pool (which may be NULL if you
+ * want allocations on the heap).
+ *
+ * In case of error, the pstream is placed where it encountered the error.
+ * In case of success it is placed at the beginning of the next line.
+ *
+ * \param mp The pool on which data that must be copied is allocated (NULL to
+ *           allocate data on the heap).
+ * \param ps The stream from which data is read.
+ * \param sep The separator (usually comma or semi-colon)
+ * \param quote The quoting character (usually double quote), can be -1 if
+ *              quoting is disallowed.
+ * \param fields A vector that will be filled with the fields.
+ * \return -1 if the content of the pstream does not starts with a valid CSV
+ *            record.
+ */
+int ps_get_csv_line(mem_pool_t *mp, pstream_t *ps, int sep, int quote,
+                    union qv_lstr_t *fields);
+
 
 /****************************************************************************/
 /* binary parsing helpers                                                   */

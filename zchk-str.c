@@ -482,3 +482,262 @@ Z_GROUP_EXPORT(str)
 #undef T
     } Z_TEST_END;
 } Z_GROUP_END;
+
+
+#define CSV_TEST_START(_str, _separator, _qchar)                             \
+        __unused__ int quoting_character = (_qchar);                         \
+        __unused__ int separator = (_separator);                             \
+        qv_t(lstr) fields;                                                   \
+        pstream_t str = ps_initstr(_str);                                    \
+                                                                             \
+        qv_init(lstr, &fields)
+
+
+#define CSV_TEST_END()                                                       \
+        qv_deep_wipe(lstr, &fields, lstr_wipe)
+
+#define CSV_TEST_GET_ROW()                                                   \
+    qv_deep_clear(lstr, &fields, lstr_wipe);                                 \
+    Z_ASSERT_N(ps_get_csv_line(NULL, &str, separator,                        \
+                               quoting_character, &fields))
+
+#define CSV_TEST_FAIL_ROW() \
+    qv_deep_clear(lstr, &fields, lstr_wipe);                                 \
+    Z_ASSERT_NEG(ps_get_csv_line(NULL, &str, separator, quoting_character,   \
+                                 &fields))
+
+#define CSV_TEST_CHECK_EOF()  Z_ASSERT(ps_done(&str))
+
+#define CSV_TEST_CHECK_NB_FIELDS(_n) \
+    Z_ASSERT_EQ(fields.len, _n, "field count mismatch");
+
+#define CSV_TEST_CHECK_FIELD(_n, _str)                                       \
+    if (_str == NULL) {                                                      \
+        Z_ASSERT_NULL(fields.tab[_n].s);                                     \
+    } else {                                                                 \
+        Z_ASSERT_P(fields.tab[_n].s);                                        \
+        Z_ASSERT_LSTREQUAL(fields.tab[_n], LSTR_STR_V(_str), "field value"); \
+    }
+
+Z_GROUP_EXPORT(csv) {
+    Z_TEST(row1, "no row") {
+        /* No row */
+        CSV_TEST_START("", ',', '"');
+        CSV_TEST_CHECK_EOF();
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(row2, "Single row") {
+        CSV_TEST_START("foo,bar,baz\r\n", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(row3, "Several rows") {
+        CSV_TEST_START("foo,bar,baz\r\n"
+                       "truc,machin,bidule\r\n",
+                       ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_GET_ROW();
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(row4, "Mixed line terminators") {
+        CSV_TEST_START("foo,bar,baz\n"
+                       "truc,machin,bidule\r\n",
+                       ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_GET_ROW();
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(row5, "No line terminator") {
+        CSV_TEST_START("foo,bar,baz", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(base1, "Base") {
+        CSV_TEST_START("foo", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(1);
+        CSV_TEST_CHECK_FIELD(0, "foo");
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(base2, "Base 2") {
+        CSV_TEST_START("foo,bar", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(2);
+        CSV_TEST_CHECK_FIELD(0, "foo");
+        CSV_TEST_CHECK_FIELD(1, "bar");
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(base3, "Base 3") {
+        CSV_TEST_START("foo,bar,baz", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(3);
+        CSV_TEST_CHECK_FIELD(0, "foo");
+        CSV_TEST_CHECK_FIELD(1, "bar");
+        CSV_TEST_CHECK_FIELD(2, "baz");
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(allowed1, "Invalid but allowed fields 1") {
+        CSV_TEST_START("foo,bar\"baz", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(2);
+        CSV_TEST_CHECK_FIELD(0, "foo");
+        CSV_TEST_CHECK_FIELD(1, "bar\"baz");
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(invalid1, "Invalid fields 2") {
+        CSV_TEST_START("foo,\"ba\"z", ',', '"');
+        CSV_TEST_FAIL_ROW();
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(empty1, "Empty fields 1") {
+        CSV_TEST_START("foo,,baz", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(3);
+        CSV_TEST_CHECK_FIELD(0, "foo");
+        CSV_TEST_CHECK_FIELD(1, NULL);
+        CSV_TEST_CHECK_FIELD(2, "baz");
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(empty2, "Empty fields 2") {
+        CSV_TEST_START("foo,bar,", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(3);
+        CSV_TEST_CHECK_FIELD(0, "foo");
+        CSV_TEST_CHECK_FIELD(1, "bar");
+        CSV_TEST_CHECK_FIELD(2, NULL);
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(empty3, "Empty fields 3") {
+        CSV_TEST_START(",bar,baz", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(3);
+        CSV_TEST_CHECK_FIELD(0, NULL);
+        CSV_TEST_CHECK_FIELD(1, "bar");
+        CSV_TEST_CHECK_FIELD(2, "baz");
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(empty4, "Empty fields 4") {
+        CSV_TEST_START(",,", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(3);
+        CSV_TEST_CHECK_FIELD(0, NULL);
+        CSV_TEST_CHECK_FIELD(1, NULL);
+        CSV_TEST_CHECK_FIELD(2, NULL);
+        CSV_TEST_END();
+    } Z_TEST_END;
+    Z_TEST(empty4, "Empty fields 4") {
+        CSV_TEST_START(",,", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(3);
+        CSV_TEST_CHECK_FIELD(0, NULL);
+        CSV_TEST_CHECK_FIELD(1, NULL);
+        CSV_TEST_CHECK_FIELD(2, NULL);
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+
+    Z_TEST(quoted1, "Quoted fields 1") {
+        CSV_TEST_START("foo,\"bar\",baz", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(3);
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(quoted2, "Quoted fields 2") {
+        CSV_TEST_START("foo,bar,\"baz\"", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(3);
+        CSV_TEST_CHECK_FIELD(0, "foo");
+        CSV_TEST_CHECK_FIELD(1, "bar");
+        CSV_TEST_CHECK_FIELD(2, "baz");
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(quoted3, "Quoted fields 3") {
+        CSV_TEST_START("\"foo\",bar,baz", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(3);
+        CSV_TEST_CHECK_FIELD(0, "foo");
+        CSV_TEST_CHECK_FIELD(1, "bar");
+        CSV_TEST_CHECK_FIELD(2, "baz");
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(quoted4, "Quoted fields 4") {
+        CSV_TEST_START("\"foo,bar\",baz", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(2);
+        CSV_TEST_CHECK_FIELD(0, "foo,bar");
+        CSV_TEST_CHECK_FIELD(1, "baz");
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(quoted5, "Quoted fields 5") {
+        CSV_TEST_START("\"foo,\"\"\"", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(1);
+        CSV_TEST_CHECK_FIELD(0, "foo,\"");
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(quoted6, "Quoted fields 6") {
+        CSV_TEST_START("\"foo\n"
+                       "bar\",baz", ',', '"');
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(2);
+        CSV_TEST_CHECK_FIELD(0, "foo\nbar");
+        CSV_TEST_CHECK_FIELD(1, "baz");
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(quoted7, "Quoted fields 7") {
+        CSV_TEST_START("\"foo,\"\"", ',', '"');
+        CSV_TEST_FAIL_ROW();
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(quoted8, "Quoted fields 8") {
+        CSV_TEST_START("\"foo,\"bar\"", ',', '"');
+        CSV_TEST_FAIL_ROW();
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(noquoting1, "No quoting character 1") {
+        CSV_TEST_START("foo,bar", ',', -1);
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(2);
+        CSV_TEST_CHECK_FIELD(0, "foo");
+        CSV_TEST_CHECK_FIELD(1, "bar");
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(noquoting2, "No quoting character 2") {
+        CSV_TEST_START("foo,\"bar\"", ',', -1);
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(2);
+        CSV_TEST_CHECK_FIELD(0, "foo");
+        CSV_TEST_CHECK_FIELD(1, "\"bar\"");
+        CSV_TEST_END();
+    } Z_TEST_END;
+
+    Z_TEST(noquoting3, "No quoting character 3") {
+        CSV_TEST_START("fo\"o", ',', -1);
+        CSV_TEST_GET_ROW();
+        CSV_TEST_CHECK_NB_FIELDS(1);
+        CSV_TEST_CHECK_FIELD(0, "fo\"o");
+        CSV_TEST_END();
+    } Z_TEST_END;
+} Z_GROUP_END;
