@@ -141,7 +141,6 @@ build_flags()
         echo -Wno-deprecated-declarations
     fi
     if gcc_prereq 4.6; then
-        echo -Wno-error=unused-but-set-variable
         cat <<EOF | $cc -c -x c -o /dev/null - >/dev/null 2>/dev/null || echo -D__gcc_has_no_ifunc
 static int foo(void) { };
 void (*bar(void))(void) __attribute__((ifunc("foo")));
