@@ -582,7 +582,7 @@ static inline int sb_conv_from_gsm(sb_t *sb, const void *src, int len) {
 
 int  sb_conv_from_gsm_hex(sb_t *sb, const void *src, int len)
     __leaf;
-bool sb_conv_to_gsm_isok(const void *src, int len)
+bool sb_conv_to_gsm_isok(const void *data, int len, gsm_conv_plan_t plan)
     __leaf;
 void sb_conv_to_gsm(sb_t *sb, const void *src, int len)
     __leaf;
