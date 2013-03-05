@@ -565,15 +565,19 @@ int  sb_conv_from_ucs2le_hex(sb_t *sb, const void *s, int slen)
     __leaf;
 
 typedef enum gsm_conv_plan_t {
-    GSM_DEFAULT_PLAN = 0,
-    GSM_LATIN1_PLAN  = 1,
-    GSM_CIMD_PLAN    = 2,
+    /* use only default gsm7 alphabet */
+    GSM_DEFAULT_PLAN    = 0,
+    /* use default gsm7 alphabet + extension table (escape mechanism) */
+    GSM_EXTENSION_PLAN  = 1,
+
+    GSM_CIMD_PLAN       = 2,
 } gsm_conv_plan_t;
+#define GSM_LATIN1_PLAN GSM_EXTENSION_PLAN
 
 int  sb_conv_from_gsm_plan(sb_t *sb, const void *src, int len, int plan)
     __leaf;
 static inline int sb_conv_from_gsm(sb_t *sb, const void *src, int len) {
-    return sb_conv_from_gsm_plan(sb, src, len, GSM_LATIN1_PLAN);
+    return sb_conv_from_gsm_plan(sb, src, len, GSM_EXTENSION_PLAN);
 }
 
 int  sb_conv_from_gsm_hex(sb_t *sb, const void *src, int len)

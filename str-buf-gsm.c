@@ -14,9 +14,14 @@
 #include "core.h"
 #include "z.h"
 
-/* TODO: support other shift pages than latin1 ! */
 
-/* Convert GSM charset to Unicode */
+/* Convert GSM charset to Unicode.
+ * This supports gsm7 default alphabet + default alphabet extension table,
+ * using the 0x1B escape. c.f. 3GPP TS 23.038
+ *
+ * TODO: support other single shift and locking shift tables
+ * (lib-inet/gsm-encoding.c supports turkish, spanish and portuguese) !
+ */
 static int16_t const __gsm7_to_unicode[] = {
 #define X(x)     (0x##x)
 #define UNK      (-1)
@@ -269,7 +274,7 @@ int unicode_to_gsm7(int c, int unknown, gsm_conv_plan_t plan)
         return c;
     }
 
-    if (plan == GSM_LATIN1_PLAN) {
+    if (plan == GSM_EXTENSION_PLAN) {
         switch (c) {
           case 0x20AC:  return 0x1B65;  /* EURO */
           default:      break;
@@ -412,7 +417,7 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
             goto invalid;
 
         if (c == 0x1b) {
-            if (unlikely(plan != GSM_LATIN1_PLAN))
+            if (unlikely(plan != GSM_EXTENSION_PLAN))
                 goto invalid;
             if (unlikely(p == end))
                 goto invalid;
@@ -450,7 +455,7 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
 
 int gsm7_charlen(int c)
 {
-    c = RETHROW(unicode_to_gsm7(c, -1, GSM_LATIN1_PLAN));
+    c = RETHROW(unicode_to_gsm7(c, -1, GSM_EXTENSION_PLAN));
     return 1 + (c > 0xff);
 }
 
@@ -463,7 +468,7 @@ bool sb_conv_to_gsm_isok(const void *data, int len)
 
         if (c & 0x80) {
             int u = utf8_ngetc(p - 1, end - p + 1, &p);
-            if (unicode_to_gsm7(u < 0 ? c : u, -1, GSM_LATIN1_PLAN) < 0)
+            if (unicode_to_gsm7(u < 0 ? c : u, -1, GSM_EXTENSION_PLAN) < 0)
                 return false;
         }
     }
@@ -485,7 +490,7 @@ void sb_conv_to_gsm(sb_t *sb, const void *data, int len)
             if (u >= 0)
                 c = u;
         }
-        c = unicode_to_gsm7(c, '.', GSM_LATIN1_PLAN);
+        c = unicode_to_gsm7(c, '.', GSM_EXTENSION_PLAN);
 
         if (wend - w < 2) {
             __sb_fixlen(sb, w - sb->data);
@@ -514,7 +519,7 @@ void sb_conv_to_gsm_hex(sb_t *sb, const void *data, int len)
             if (u >= 0)
                 c = u;
         }
-        c = unicode_to_gsm7(c, '.', GSM_LATIN1_PLAN);
+        c = unicode_to_gsm7(c, '.', GSM_EXTENSION_PLAN);
 
         if (wend - w < 2) {
             __sb_fixlen(sb, w - sb->data);
