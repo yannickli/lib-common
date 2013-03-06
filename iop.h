@@ -192,13 +192,19 @@ struct iop_struct_t {
     const iop_field_attrs_t *fields_attrs;
 };
 
+enum iop_rpc_flags_t {
+    IOP_RPC_IS_ALIAS,
+    IOP_RPC_HAS_ALIAS,
+};
+
 typedef struct iop_rpc_t {
     const lstr_t        name;
     const iop_struct_t *args;
     const iop_struct_t *result;
     const iop_struct_t *exn;
     uint32_t            tag;
-    bool                async;
+    unsigned            async : 1;
+    unsigned            flags : 31;
 } iop_rpc_t;
 
 typedef struct iop_iface_t {
