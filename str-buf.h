@@ -114,12 +114,12 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, int mem_pool)
 #define SB(name, sz)    sb_t name(alloca(sz), 0, sz, MEM_STATIC)
 #define t_SB(name, sz)  sb_t name(t_new_raw(char, sz), 0, sz, MEM_STACK)
 #else
-#define SB_INIT(buf, length, sz, pool) \
-    {   .data = (((char *)(buf))[length] = '\0', (buf)), \
-        .len  = length, .size = sz, .mem_pool = pool }
+#define SB_INIT(buf, sz, pool)                                               \
+    {   .data = memset(buf, 0, 1),                                           \
+        .size = sz, .mem_pool = pool }
 #define SB(name, sz)    sb_t name __attribute__((cleanup(sb_wipe))) \
-                                  = SB_INIT(alloca(sz), 0, sz, MEM_STATIC)
-#define t_SB(name, sz)  sb_t name = SB_INIT(t_new_raw(char, sz), 0, sz, MEM_STACK)
+                                  = SB_INIT(alloca(sz), sz, MEM_STATIC)
+#define t_SB(name, sz)  sb_t name = SB_INIT(t_new_raw(char, sz), sz, MEM_STACK)
 #endif
 
 #define t_SB_1k(name)  t_SB(name, 1 << 10)
