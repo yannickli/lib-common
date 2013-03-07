@@ -396,6 +396,34 @@ static inline void sb_sets(sb_t *sb, const char *s)
     sb_set(sb, s, strlen(s));
 }
 
+/** Appends a pretty-formated number to a string buffer.
+ *
+ * Here are some examples with dec_sep = '.' and thousand_sep = ',':
+ *
+ *   1234.1234 nb_max_decimals 0 ->  '1,234'
+ *   1234.1234 nb_max_decimals 1 ->  '1,234.1'
+ *   1234.1234 nb_max_decimals 5 ->  '1,234.12340'
+ *  -1234.1234 nb_max_decimals 5 -> '-1,234.12340'
+ *   1234      nb_max_decimals 3 ->  '1,234'
+ *
+ * And with thousand_sep = -1:
+ *
+ *   1234.1234 nb_max_decimals 0 ->  '1234'
+ *
+ * \param[inout] sb              Buffer to be updated.
+ * \param[in]    val             Double value to be added in the buffer.
+ * \param[in]    nb_max_decimals Max number of decimals to be printed.
+ *                               If all the decimals of the number are 0s,
+ *                               none are pinted (and the decimal separator
+ *                               is not printed neither). Otherwise, they are
+ *                               right-padded with 0s.
+ * \param[in]    dec_sep         Character used as decimal separator.
+ * \param[in]    thousand_sep    Character used as thousand separator for
+ *                               integer part. Use -1 for none.
+ */
+void sb_add_double_fmt(sb_t *sb, double val, uint8_t nb_max_decimals,
+                       int dec_sep, int thousand_sep);
+
 
 /**************************************************************************/
 /* syscall/system wrappers                                                */

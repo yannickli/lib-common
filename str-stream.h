@@ -355,6 +355,21 @@ static inline int ps_skipc(pstream_t *ps, int c)
     return __ps_skipc(ps, c);
 }
 
+static inline int __ps_shrinkc(pstream_t *ps, int c)
+{
+    if (*(ps->b_end - 1) == c) {
+        ps->b_end--;
+        return 0;
+    }
+    return -1;
+}
+
+static inline int ps_shrinkc(pstream_t *ps, int c)
+{
+    PS_WANT(ps_has(ps, 1));
+    return __ps_shrinkc(ps, c);
+}
+
 static inline int __ps_getc(pstream_t *ps) {
     int c = *ps->b;
     __ps_skip(ps, 1);

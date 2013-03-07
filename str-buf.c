@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <math.h>
+
 #include "net.h"
 #include "unix.h"
 
@@ -222,6 +224,54 @@ int sb_addf(sb_t *sb, const char *fmt, ...)
     va_end(args);
 
     return res;
+}
+
+void sb_add_double_fmt(sb_t *sb, double val, uint8_t nb_max_decimals,
+                       int dec_sep, int thousand_sep)
+{
+    char buf[BUFSIZ];
+    pstream_t ps, integer_part = ps_init(NULL, 0);
+
+    if (isnan(val) || isinf(val)) {
+        sb_addf(sb, "%f", val);
+        return;
+    }
+
+    ps = ps_init(buf, snprintf(buf, sizeof(buf), "%.*f",
+                               MAX(1, nb_max_decimals), val));
+
+    /* Sign */
+    if (ps_skipc(&ps, '-') == 0) {
+        sb_addc(sb, '-');
+    }
+
+    /* Integer part  */
+    ps_get_ps_chr_and_skip(&ps, '.', &integer_part);
+    if (thousand_sep >= 0) {
+        while (!ps_done(&integer_part)) {
+            int len = ps_len(&integer_part) % 3 ?: 3;
+
+            sb_add(sb, integer_part.s, len);
+            __ps_skip(&integer_part, len);
+            if (!ps_done(&integer_part)) {
+                sb_addc(sb, thousand_sep);
+            }
+        }
+    } else {
+        sb_add(sb, integer_part.s, ps_len(&integer_part));
+    }
+
+    /* Decimal part */
+    if (nb_max_decimals > 0) {
+        pstream_t decimal_part = ps;
+
+        while (ps_shrinkc(&decimal_part, '0') == 0);
+
+        if (ps_len(&decimal_part)) {
+            sb_addc(sb, dec_sep);
+            sb_add(sb, ps.s, ps_len(&ps));
+        }
+    }
 }
 
 /**************************************************************************/
