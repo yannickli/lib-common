@@ -11,6 +11,8 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <math.h>
+
 #include "z.h"
 
 Z_GROUP_EXPORT(str)
@@ -459,6 +461,33 @@ Z_GROUP_EXPORT(str)
 
         T("Blisßs", "BLISSSS", "Blissss");
         T("Œœ", "OEOE", "OEoe");
+#undef T
+    } Z_TEST_END;
+
+    Z_TEST(sb_add_double_fmt, "str: sb_add_double_fmt") {
+#define T(val, nb_max_decimals, dec_sep, thousand_sep, res) \
+    ({  SB_1k(sb);                                                           \
+                                                                             \
+        sb_add_double_fmt(&sb, val, nb_max_decimals, dec_sep, thousand_sep); \
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_IMMED_V(res));               \
+    })
+
+        T(    0,          5, '.', ',',  "0");
+        T(   -0,          5, '.', ',',  "0");
+        T(    1,          5, '.', ',',  "1");
+        T(   12,          5, '.', ',',  "12");
+        T(  123,          5, '.', ',',  "123");
+        T( 1234,          5, '.', ',',  "1,234");
+        T( 1234.123,      0, '.', ',',  "1,234");
+        T( 1234.123,      1, '.', ',',  "1,234.1");
+        T( 1234.123,      2, '.', ',',  "1,234.12");
+        T( 1234.123,      3, '.', ',',  "1,234.123");
+        T( 1234.123,      4, '.', ',',  "1,234.1230");
+        T(-1234.123,      5, ',', ' ', "-1 234,12300");
+        T(-1234.123,      5, '.',  -1, "-1234.12300");
+        T( 1234.00000001, 2, '.', ',', "1,234");
+        T(NAN,       5, '.',  -1, "NaN");
+        T(INFINITY,  5, '.',  -1, "Inf");
 #undef T
     } Z_TEST_END;
 

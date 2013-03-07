@@ -114,12 +114,12 @@ sb_init_full(sb_t *sb, void *buf, int blen, int bsize, int mem_pool)
 #define SB(name, sz)    sb_t name(alloca(sz), 0, sz, MEM_STATIC)
 #define t_SB(name, sz)  sb_t name(t_new_raw(char, sz), 0, sz, MEM_STACK)
 #else
-#define SB_INIT(buf, length, sz, pool) \
-    {   .data = (((char *)(buf))[length] = '\0', (buf)), \
-        .len  = length, .size = sz, .mem_pool = pool }
+#define SB_INIT(buf, sz, pool)                                               \
+    {   .data = memset(buf, 0, 1),                                           \
+        .size = sz, .mem_pool = pool }
 #define SB(name, sz)    sb_t name __attribute__((cleanup(sb_wipe))) \
-                                  = SB_INIT(alloca(sz), 0, sz, MEM_STATIC)
-#define t_SB(name, sz)  sb_t name = SB_INIT(t_new_raw(char, sz), 0, sz, MEM_STACK)
+                                  = SB_INIT(alloca(sz), sz, MEM_STATIC)
+#define t_SB(name, sz)  sb_t name = SB_INIT(t_new_raw(char, sz), sz, MEM_STACK)
 #endif
 
 #define t_SB_1k(name)  t_SB(name, 1 << 10)
@@ -424,6 +424,34 @@ static inline void sb_sets(sb_t *sb, const char *s)
     sb_set(sb, s, strlen(s));
 }
 
+/** Appends a pretty-formated number to a string buffer.
+ *
+ * Here are some examples with dec_sep = '.' and thousand_sep = ',':
+ *
+ *   1234.1234 nb_max_decimals 0 ->  '1,234'
+ *   1234.1234 nb_max_decimals 1 ->  '1,234.1'
+ *   1234.1234 nb_max_decimals 5 ->  '1,234.12340'
+ *  -1234.1234 nb_max_decimals 5 -> '-1,234.12340'
+ *   1234      nb_max_decimals 3 ->  '1,234'
+ *
+ * And with thousand_sep = -1:
+ *
+ *   1234.1234 nb_max_decimals 0 ->  '1234'
+ *
+ * \param[inout] sb              Buffer to be updated.
+ * \param[in]    val             Double value to be added in the buffer.
+ * \param[in]    nb_max_decimals Max number of decimals to be printed.
+ *                               If all the decimals of the number are 0s,
+ *                               none are pinted (and the decimal separator
+ *                               is not printed neither). Otherwise, they are
+ *                               right-padded with 0s.
+ * \param[in]    dec_sep         Character used as decimal separator.
+ * \param[in]    thousand_sep    Character used as thousand separator for
+ *                               integer part. Use -1 for none.
+ */
+void sb_add_double_fmt(sb_t *sb, double val, uint8_t nb_max_decimals,
+                       int dec_sep, int thousand_sep);
+
 
 /**************************************************************************/
 /* syscall/system wrappers                                                */
@@ -586,20 +614,24 @@ int  sb_conv_from_ucs2le_hex(sb_t *sb, const void *s, int slen)
     __leaf;
 
 typedef enum gsm_conv_plan_t {
-    GSM_DEFAULT_PLAN = 0,
-    GSM_LATIN1_PLAN  = 1,
-    GSM_CIMD_PLAN    = 2,
+    /* use only default gsm7 alphabet */
+    GSM_DEFAULT_PLAN    = 0,
+    /* use default gsm7 alphabet + extension table (escape mechanism) */
+    GSM_EXTENSION_PLAN  = 1,
+
+    GSM_CIMD_PLAN       = 2,
 } gsm_conv_plan_t;
+#define GSM_LATIN1_PLAN GSM_EXTENSION_PLAN
 
 int  sb_conv_from_gsm_plan(sb_t *sb, const void *src, int len, int plan)
     __leaf;
 static inline int sb_conv_from_gsm(sb_t *sb, const void *src, int len) {
-    return sb_conv_from_gsm_plan(sb, src, len, GSM_LATIN1_PLAN);
+    return sb_conv_from_gsm_plan(sb, src, len, GSM_EXTENSION_PLAN);
 }
 
 int  sb_conv_from_gsm_hex(sb_t *sb, const void *src, int len)
     __leaf;
-bool sb_conv_to_gsm_isok(const void *src, int len)
+bool sb_conv_to_gsm_isok(const void *data, int len, gsm_conv_plan_t plan)
     __leaf;
 void sb_conv_to_gsm(sb_t *sb, const void *src, int len)
     __leaf;
