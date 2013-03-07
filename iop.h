@@ -141,13 +141,18 @@ enum iop_struct_flags_t {
     IOP_STRUCT_HAS_CONSTRAINTS, /**< will iop_check_constraints do smth? */
 };
 
+enum iop_iface_flags_t {
+    IOP_IFACE_EXTENDED,
+};
+
 typedef int (*check_constraints_f)(const void *ptr, int n);
 
 typedef struct iop_field_attr_arg_t {
     union {
-        int64_t i64;
-        double  d;
-        lstr_t  s;
+        int64_t     i64;
+        double      d;
+        lstr_t      s;
+        const void *p;
     } v;
 } iop_field_attr_arg_t;
 
@@ -197,6 +202,25 @@ enum iop_rpc_flags_t {
     IOP_RPC_HAS_ALIAS,
 };
 
+typedef iop_field_attr_arg_t iop_rpc_attr_arg_t;
+
+typedef enum iop_rpc_attr_type_t {
+    IOP_RPC_ALIAS,
+} iop_rpc_attr_type_t;
+
+typedef struct iop_rpc_attr_t {
+    iop_rpc_attr_type_t type;
+    const iop_rpc_attr_arg_t *args;
+} iop_rpc_attr_t;
+
+typedef struct iop_rpc_attrs_t {
+    unsigned                 flags;  /**< bitfield of iop_rpc_attr_type_t */
+    uint16_t                 attrs_len;
+    uint8_t                  version;   /**< version 0 */
+    uint8_t                  padding;
+    const iop_rpc_attr_t    *attrs;
+} iop_rpc_attrs_t;
+
 typedef struct iop_rpc_t {
     const lstr_t        name;
     const iop_struct_t *args;
@@ -208,9 +232,11 @@ typedef struct iop_rpc_t {
 } iop_rpc_t;
 
 typedef struct iop_iface_t {
-    const lstr_t        fullname;
-    const iop_rpc_t    *funs;
-    int                 funs_len;
+    const lstr_t           fullname;
+    const iop_rpc_t       *funs;
+    uint16_t               funs_len;
+    uint16_t               flags;
+    const iop_rpc_attrs_t *rpc_attrs;
 } iop_iface_t;
 
 typedef struct iop_iface_alias_t {
