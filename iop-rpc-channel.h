@@ -431,7 +431,8 @@ void ic_flush(ichannel_t *ic);
                 .cb  = (void *)__cb,                                         \
             } },                                                             \
         };                                                                   \
-        qm_add(ic_cbs, h, cmd, e);                                           \
+        e_assert_n(panic, qm_add(ic_cbs, h, cmd, e),                         \
+                   "collision in RPC registering");                          \
     } while (0)
 
 /** \brief same as #ic_register_ but auto-computes the rpc name. */

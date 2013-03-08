@@ -331,16 +331,45 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
                   const iop_rpc_t *fun,
                   int32_t cmd)
 {
-    ichttp_cb_t *cb = ichttp_cb_new();
+    ichttp_cb_t *cb= ichttp_cb_new();
+    const unsigned fun_flags = fun->flags;
 
-    cb->cmd      = cmd;
-    cb->fun      = fun;
-    cb->name     = lstr_fmt("%s.%sReq",    alias->name.s, fun->name.s);
-    cb->name_uri = lstr_fmt("%s/%s",       alias->name.s, fun->name.s);
-    cb->name_res = lstr_fmt("%s.%sRes",    alias->name.s, fun->name.s);
-    cb->name_exn = lstr_fmt("%s.%s.Fault", alias->name.s, fun->name.s);
-    if (qm_add(ichttp_cbs, &tcb->impl, &cb->name, cb))
-        e_panic("programming error");
-    qm_add(ichttp_cbs, &tcb->impl, &cb->name_uri, ichttp_cb_dup(cb));
+    #define REGISTER_FUN(_f)                                                 \
+        do {                                                                 \
+            cb->cmd      = cmd;                                              \
+            cb->fun      = _f;                                               \
+            cb->name     = lstr_fmt("%s.%sReq",                              \
+                                    alias->name.s, _f->name.s);              \
+            cb->name_uri = lstr_fmt("%s/%s",                                 \
+                                    alias->name.s, _f->name.s);              \
+            cb->name_res = lstr_fmt("%s.%sRes",                              \
+                                    alias->name.s, _f->name.s);              \
+            cb->name_exn = lstr_fmt("%s.%s.Fault",                           \
+                                    alias->name.s, _f->name.s);              \
+            e_assert_n(panic,                                                \
+                       qm_add(ichttp_cbs, &tcb->impl, &cb->name, cb),        \
+                       "programming error");                                 \
+            e_assert_n(panic,                                                \
+                       qm_add(ichttp_cbs, &tcb->impl, &cb->name_uri,         \
+                              ichttp_cb_dup(cb)),                            \
+                       "programming error");                                 \
+        } while(0)
+    if (TST_BIT(&fun_flags, IOP_RPC_HAS_ALIAS)) {
+        const iop_rpc_attrs_t *attrs = iop_rpc_get_attrs(alias->iface, fun);
+
+        for (int i = 0; i < attrs->attrs_len; i++) {
+            const iop_rpc_attr_t attr = attrs->attrs[i];
+
+            if (attr.type == IOP_RPC_ALIAS) {
+                const iop_rpc_attr_arg_t arg = attr.args[0];
+                const iop_rpc_t *fun_alias = (const iop_rpc_t *)arg.v.p;
+
+                REGISTER_FUN(fun_alias);
+            }
+        }
+    }
+    REGISTER_FUN(fun);
+
+    #undef REGISTER_FUN
     return cb;
 }

@@ -317,6 +317,22 @@ const iop_field_attrs_t *iop_field_get_attrs(const iop_struct_t *desc,
     return NULL;
 }
 
+static inline
+const iop_rpc_attrs_t *iop_rpc_get_attrs(const iop_iface_t *desc,
+                                         const iop_rpc_t *fdesc)
+{
+    unsigned desc_flags = desc->flags;
+
+    if (TST_BIT(&desc_flags, IOP_STRUCT_EXTENDED) && desc->rpc_attrs) {
+        const iop_rpc_attrs_t *attrs;
+
+        attrs = &desc->rpc_attrs[fdesc - desc->funs];
+        return attrs;
+    }
+    return NULL;
+}
+
+
 static inline check_constraints_f
 iop_field_get_constraints_cb(const iop_struct_t *desc,
                              const iop_field_t *fdesc)
