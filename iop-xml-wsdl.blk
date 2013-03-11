@@ -430,47 +430,68 @@ iop_xwsdl_scan_types(wsdlpp_t *wpp, const iop_struct_t *st,
     qv_append(iop_type, types, st);
 }
 
+typedef void (^iop_rpc_loop_body_b)(const iop_iface_alias_t *, const iop_rpc_t *);
+static void iop_xwsdl_rpc_loop(wsdlpp_t *wpp, const iop_mod_t *mod,
+                               iop_rpc_loop_body_b loop_body)
+{
+    for (int i = 0; i < mod->ifaces_len; i++) {
+        const iop_iface_alias_t *alias = &mod->ifaces[i];
+
+        for (int j = 0; j < alias->iface->funs_len; j++) {
+            const iop_rpc_t *rpc = &alias->iface->funs[j];
+
+            /* Check implementation table */
+            WSDL_CHECK_SKIP(wpp, alias, rpc);
+
+            loop_body(alias, rpc);
+        }
+    }
+}
+
+/* XXX this struct is to avoid issue while mixing __block and macros */
+typedef struct iop_xwsdl_put_types_t {
+    qh_t(iop_type) *h;
+    qv_t(iop_type) *a;
+    qv_t(iop_enum) *b;
+} iop_xwsdl_put_types_t;
+
 static void
 iop_xwsdl_put_types(wsdlpp_t *wpp, const iop_mod_t *mod, const char *ns)
 {
     qh_t(iop_type) h;
     qv_t(iop_type) a;
     qv_t(iop_enum) b;
+    __block iop_xwsdl_put_types_t p = {.h = &h, .a = &a, .b = &b};
+    iop_rpc_loop_body_b scan_types, dump_alias;
 
     qh_init(iop_type,  &h, false);
     qv_inita(iop_type, &a, 1024);
     qv_inita(iop_enum, &b, 1024);
 
-    for (int i = 0; i < mod->ifaces_len; i++) {
-        const iop_iface_alias_t *alias = &mod->ifaces[i];
+    scan_types = ^(const iop_iface_alias_t *alias, const iop_rpc_t *rpc) {
+        const iop_struct_t *st;
 
-        for (int j = 0; j < alias->iface->funs_len; j++) {
-            const iop_rpc_t *rpc = &alias->iface->funs[j];
-            const iop_struct_t *st;
-
-            /* Check implementation table */
-            WSDL_CHECK_SKIP(wpp, alias, rpc);
-
-            iop_xwsdl_scan_types(wpp, rpc->args, &h, &a, &b);
-            if (!rpc->async) {
-                iop_xwsdl_scan_types(wpp, rpc->result, &h, &a, &b);
-            }
-
-            if (rpc->exn == &iop__void__s)
-                continue;
-            st = rpc->exn;
-            if (st->is_union) {
-                /* XXX An union is understood as a sequence of exceptions */
-                for (int k = 0; k < st->fields_len; k++) {
-                    const iop_field_t *f = st->fields + k;
-                    assert(f->type == IOP_T_STRUCT);
-                    iop_xwsdl_scan_types(wpp, f->u1.st_desc, &h, &a, &b);
-                }
-            } else {
-                iop_xwsdl_scan_types(wpp, st, &h, &a, &b);
-            }
+        iop_xwsdl_scan_types(wpp, rpc->args, p.h, p.a, p.b);
+        if (!rpc->async) {
+            iop_xwsdl_scan_types(wpp, rpc->result, p.h, p.a, p.b);
         }
-    }
+
+        if (rpc->exn == &iop__void__s)
+            return;
+        st = rpc->exn;
+        if (st->is_union) {
+            /* XXX An union is understood as a sequence of exceptions */
+            for (int k = 0; k < st->fields_len; k++) {
+                const iop_field_t *f = st->fields + k;
+                assert(f->type == IOP_T_STRUCT);
+                iop_xwsdl_scan_types(wpp, f->u1.st_desc, p.h, p.a, p.b);
+            }
+        } else {
+            iop_xwsdl_scan_types(wpp, st, p.h, p.a, p.b);
+        }
+    };
+
+    iop_xwsdl_rpc_loop(wpp, mod, scan_types);
 
     wpp_add_comment(wpp, "\n\n", "WSDL types");
     xmlpp_opentag(&wpp->pp, "types");
@@ -516,56 +537,50 @@ iop_xwsdl_put_types(wsdlpp_t *wpp, const iop_mod_t *mod, const char *ns)
 
     /* For each function dump the alias for Args/Res */
     wpp_add_comment(wpp, "\n\n", "RPC arguments types");
-    for (int i = 0; i < mod->ifaces_len; i++) {
-        const iop_iface_alias_t *alias = &mod->ifaces[i];
+    dump_alias = ^(const iop_iface_alias_t *alias, const iop_rpc_t *rpc) {
+        xmlpp_opentag(&wpp->pp, "element");
+        xmlpp_putattrfmt(&wpp->pp, "name", "%s.%sReq", alias->name.s,
+                         rpc->name.s);
+        xmlpp_putattrfmt(&wpp->pp, "type", "tns:%s",
+                         rpc->args->fullname.s);
+        xmlpp_closetag(&wpp->pp);
 
-        for (int j = 0; j < alias->iface->funs_len; j++) {
-            const iop_rpc_t *rpc = &alias->iface->funs[j];
-
-            /* Check implementation table */
-            WSDL_CHECK_SKIP(wpp, alias, rpc);
-
+        if (!rpc->async) {
             xmlpp_opentag(&wpp->pp, "element");
-            xmlpp_putattrfmt(&wpp->pp, "name", "%s.%sReq", alias->name.s,
+            xmlpp_putattrfmt(&wpp->pp, "name", "%s.%sRes", alias->name.s,
                              rpc->name.s);
             xmlpp_putattrfmt(&wpp->pp, "type", "tns:%s",
-                             rpc->args->fullname.s);
+                             rpc->result->fullname.s);
             xmlpp_closetag(&wpp->pp);
-
-            if (!rpc->async) {
-                xmlpp_opentag(&wpp->pp, "element");
-                xmlpp_putattrfmt(&wpp->pp, "name", "%s.%sRes", alias->name.s,
-                                 rpc->name.s);
-                xmlpp_putattrfmt(&wpp->pp, "type", "tns:%s",
-                                 rpc->result->fullname.s);
-                xmlpp_closetag(&wpp->pp);
-            }
-
-            if (rpc->exn == &iop__void__s)
-                continue;
-            if (rpc->exn->is_union) {
-                /* XXX An union is understood as a sequence of exceptions */
-                for (int k = 0; k < rpc->exn->fields_len; k++) {
-                    const iop_field_t *f   = rpc->exn->fields + k;
-                    const iop_struct_t *st = f->u1.st_desc;
-                    assert(f->type == IOP_T_STRUCT);
-                    xmlpp_opentag(&wpp->pp, "element");
-                    xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.%sFault",
-                                     alias->name.s, rpc->name.s, f->name.s);
-                    xmlpp_putattrfmt(&wpp->pp, "type", "tns:%s",
-                                     st->fullname.s);
-                    xmlpp_closetag(&wpp->pp);
-                }
-            } else {
-                xmlpp_opentag(&wpp->pp, "element");
-                xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.Fault",
-                                 alias->name.s, rpc->name.s);
-                xmlpp_putattrfmt(&wpp->pp, "type", "tns:%s",
-                                 rpc->exn->fullname.s);
-                xmlpp_closetag(&wpp->pp);
-            }
         }
-    }
+
+        if (rpc->exn == &iop__void__s)
+            return;
+        if (rpc->exn->is_union) {
+            /* XXX An union is understood as a sequence of exceptions */
+            for (int k = 0; k < rpc->exn->fields_len; k++) {
+                const iop_field_t *f   = rpc->exn->fields + k;
+                const iop_struct_t *st = f->u1.st_desc;
+                assert(f->type == IOP_T_STRUCT);
+                xmlpp_opentag(&wpp->pp, "element");
+                xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.%sFault",
+                                 alias->name.s, rpc->name.s, f->name.s);
+                xmlpp_putattrfmt(&wpp->pp, "type", "tns:%s",
+                                 st->fullname.s);
+                xmlpp_closetag(&wpp->pp);
+            }
+        } else {
+            xmlpp_opentag(&wpp->pp, "element");
+            xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.Fault",
+                             alias->name.s, rpc->name.s);
+            xmlpp_putattrfmt(&wpp->pp, "type", "tns:%s",
+                             rpc->exn->fullname.s);
+            xmlpp_closetag(&wpp->pp);
+        }
+    };
+
+    iop_xwsdl_rpc_loop(wpp, mod, dump_alias);
+
     xmlpp_closentag(&wpp->pp, 2);
 
     qv_wipe(iop_type, &a);
@@ -586,6 +601,8 @@ static void iop_xwsdl_put_msg(wsdlpp_t *wpp, const char *iname,
 
 static void iop_xwsdl_put_msgs(wsdlpp_t *wpp, const iop_mod_t *mod)
 {
+    iop_rpc_loop_body_b loop_body;
+
     wpp_add_comment(wpp, "\n\n", "WSDL Messages");
     /* Dump the authentification header message */
     if (wpp->wauth) {
@@ -596,103 +613,90 @@ static void iop_xwsdl_put_msgs(wsdlpp_t *wpp, const iop_mod_t *mod)
         xmlpp_putattr(&wpp->pp, "element", "tns:callerIdentity");
         xmlpp_closentag(&wpp->pp, 2);
     }
-    for (int i = 0; i < mod->ifaces_len; i++) {
-        const iop_iface_alias_t *alias = &mod->ifaces[i];
-        const iop_iface_t *iface = mod->ifaces[i].iface;
 
-        for (int j = 0; j < iface->funs_len; j++) {
-            const iop_rpc_t *rpc = &iface->funs[j];
-
-            /* Check implementation table */
-            WSDL_CHECK_SKIP(wpp, alias, rpc);
-
-            iop_xwsdl_put_msg(wpp, mod->ifaces[i].name.s, rpc->name.s, "Req");
-
-            if (!rpc->async) {
-                iop_xwsdl_put_msg(wpp, mod->ifaces[i].name.s, rpc->name.s,
-                                  "Res");
-            }
-
-            if (rpc->exn == &iop__void__s)
-                continue;
-            if (rpc->exn->is_union) {
-                /* XXX An union is understood as a sequence of exceptions */
-                for (int k = 0; k < rpc->exn->fields_len; k++) {
-                    const iop_field_t *f   = rpc->exn->fields + k;
-                    char suffix[32];
-                    assert(f->type == IOP_T_STRUCT);
-
-                    snprintf(suffix, sizeof(suffix), ".%sFault", f->name.s);
-                    iop_xwsdl_put_msg(wpp, mod->ifaces[i].name.s, rpc->name.s,
-                                      suffix);
-                }
-            } else {
-                iop_xwsdl_put_msg(wpp, mod->ifaces[i].name.s, rpc->name.s,
-                                  ".Fault");
-            }
+    loop_body = ^(const iop_iface_alias_t *alias, const iop_rpc_t *rpc) {
+        iop_xwsdl_put_msg(wpp, alias->name.s, rpc->name.s, "Req");
+        if (!rpc->async) {
+            iop_xwsdl_put_msg(wpp, alias->name.s, rpc->name.s, "Res");
         }
-    }
+
+        if (rpc->exn == &iop__void__s)
+            return;
+        if (rpc->exn->is_union) {
+            /* XXX An union is understood as a sequence of exceptions */
+            for (int k = 0; k < rpc->exn->fields_len; k++) {
+                const iop_field_t *f   = rpc->exn->fields + k;
+                char suffix[32];
+                assert(f->type == IOP_T_STRUCT);
+
+                snprintf(suffix, sizeof(suffix), ".%sFault", f->name.s);
+                iop_xwsdl_put_msg(wpp, alias->name.s, rpc->name.s, suffix);
+            }
+        } else {
+            iop_xwsdl_put_msg(wpp, alias->name.s, rpc->name.s, ".Fault");
+        }
+    };
+
+    iop_xwsdl_rpc_loop(wpp, mod, loop_body);
+
 }
 
 static void iop_xwsdl_put_ports(wsdlpp_t *wpp, const iop_mod_t *mod)
 {
+    iop_rpc_loop_body_b loop_body;
+
     wpp_add_comment(wpp, "\n\n", "WSDL Ports");
 
     xmlpp_opentag(&wpp->pp, "portType");
     xmlpp_putattrfmt(&wpp->pp, "name", "%sPortType", mod->fullname.s);
 
-    for (int i = 0; i < mod->ifaces_len; i++) {
-        const iop_iface_alias_t *alias = &mod->ifaces[i];
-
-        for (int j = 0; j < alias->iface->funs_len; j++) {
-            const iop_rpc_t *rpc = &alias->iface->funs[j];
-
-            /* Check implementation table */
-            WSDL_CHECK_SKIP(wpp, alias, rpc);
-
-            xmlpp_opentag(&wpp->pp, "operation");
-            xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s", alias->name.s,
-                             rpc->name.s);
-            xmlpp_opentag(&wpp->pp, "input");
-            xmlpp_putattrfmt(&wpp->pp, "message", "tns:%s.%sReq",
+    loop_body = ^(const iop_iface_alias_t *alias, const iop_rpc_t *rpc) {
+        xmlpp_opentag(&wpp->pp, "operation");
+        xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s", alias->name.s,
+                         rpc->name.s);
+        xmlpp_opentag(&wpp->pp, "input");
+        xmlpp_putattrfmt(&wpp->pp, "message", "tns:%s.%sReq",
+                         alias->name.s, rpc->name.s);
+        if (!rpc->async) {
+            xmlpp_opensib(&wpp->pp, "output");
+            xmlpp_putattrfmt(&wpp->pp, "message", "tns:%s.%sRes",
                              alias->name.s, rpc->name.s);
-            if (!rpc->async) {
-                xmlpp_opensib(&wpp->pp, "output");
-                xmlpp_putattrfmt(&wpp->pp, "message", "tns:%s.%sRes",
-                                 alias->name.s, rpc->name.s);
-            }
-
-            if (rpc->exn == &iop__void__s) {
-                xmlpp_closentag(&wpp->pp, 2);
-                continue;
-            }
-            if (rpc->exn->is_union) {
-                /* XXX An union is understood as a sequence of exceptions */
-                for (int k = 0; k < rpc->exn->fields_len; k++) {
-                    const iop_field_t *f   = rpc->exn->fields + k;
-                    assert(f->type == IOP_T_STRUCT);
-
-                    xmlpp_opensib(&wpp->pp, "fault");
-                    xmlpp_putattrfmt(&wpp->pp, "message", "tns:%s.%s.%sFault",
-                                     alias->name.s, rpc->name.s, f->name.s);
-                    xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.%sFault",
-                                     alias->name.s, rpc->name.s, f->name.s);
-                }
-            } else {
-                xmlpp_opensib(&wpp->pp, "fault");
-                xmlpp_putattrfmt(&wpp->pp, "message", "tns:%s.%s.Fault",
-                                 alias->name.s, rpc->name.s);
-                xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.Fault", alias->name.s,
-                                 rpc->name.s);
-            }
-            xmlpp_closentag(&wpp->pp, 2);
         }
-    }
+
+        if (rpc->exn == &iop__void__s) {
+            xmlpp_closentag(&wpp->pp, 2);
+            return;
+        }
+        if (rpc->exn->is_union) {
+            /* XXX An union is understood as a sequence of exceptions */
+            for (int k = 0; k < rpc->exn->fields_len; k++) {
+                const iop_field_t *f   = rpc->exn->fields + k;
+                assert(f->type == IOP_T_STRUCT);
+
+                xmlpp_opensib(&wpp->pp, "fault");
+                xmlpp_putattrfmt(&wpp->pp, "message", "tns:%s.%s.%sFault",
+                                 alias->name.s, rpc->name.s, f->name.s);
+                xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.%sFault",
+                                 alias->name.s, rpc->name.s, f->name.s);
+            }
+        } else {
+            xmlpp_opensib(&wpp->pp, "fault");
+            xmlpp_putattrfmt(&wpp->pp, "message", "tns:%s.%s.Fault",
+                             alias->name.s, rpc->name.s);
+            xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.Fault", alias->name.s,
+                             rpc->name.s);
+        }
+        xmlpp_closentag(&wpp->pp, 2);
+    };
+    iop_xwsdl_rpc_loop(wpp, mod, loop_body);
+
     xmlpp_closetag(&wpp->pp);
 }
 
 static void iop_xwsdl_put_bindings(wsdlpp_t *wpp, const iop_mod_t *mod)
 {
+    iop_rpc_loop_body_b loop_body;
+
     wpp_add_comment(wpp, "\n\n", "WSDL Bindings");
     xmlpp_opentag(&wpp->pp, "binding");
     xmlpp_putattrfmt(&wpp->pp, "name", "%sBinding", mod->fullname.s);
@@ -703,72 +707,65 @@ static void iop_xwsdl_put_bindings(wsdlpp_t *wpp, const iop_mod_t *mod)
     xmlpp_putattr(&wpp->pp, "transport", "http://schemas.xmlsoap.org/soap/http");
     xmlpp_closetag(&wpp->pp);
 
-    for (int i = 0; i < mod->ifaces_len; i++) {
-        const iop_iface_alias_t *alias = &mod->ifaces[i];
+    loop_body = ^(const iop_iface_alias_t *alias, const iop_rpc_t *rpc) {
+        xmlpp_opentag(&wpp->pp, "operation");
+        xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s", alias->name.s,
+                         rpc->name.s);
 
-        for (int j = 0; j < alias->iface->funs_len; j++) {
-            const iop_rpc_t *rpc = &alias->iface->funs[j];
-
-            /* Check implementation table */
-            WSDL_CHECK_SKIP(wpp, alias, rpc);
-
-            xmlpp_opentag(&wpp->pp, "operation");
-            xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s", alias->name.s,
-                             rpc->name.s);
-
-            xmlpp_opentag(&wpp->pp, "soap:operation");
-            xmlpp_putattr(&wpp->pp, "soapAction", "");
-            xmlpp_opensib(&wpp->pp, "input");
-            /* Dump the authentification header binding */
-            if (wpp->wauth) {
-                xmlpp_opentag(&wpp->pp, "soap:header");
-                xmlpp_putattr(&wpp->pp, "use", "literal");
-                xmlpp_putattr(&wpp->pp, "message", "tns:identityHeader");
-                xmlpp_putattr(&wpp->pp, "part", "requestHeader");
-                xmlpp_closetag(&wpp->pp);
-            }
+        xmlpp_opentag(&wpp->pp, "soap:operation");
+        xmlpp_putattr(&wpp->pp, "soapAction", "");
+        xmlpp_opensib(&wpp->pp, "input");
+        /* Dump the authentification header binding */
+        if (wpp->wauth) {
+            xmlpp_opentag(&wpp->pp, "soap:header");
+            xmlpp_putattr(&wpp->pp, "use", "literal");
+            xmlpp_putattr(&wpp->pp, "message", "tns:identityHeader");
+            xmlpp_putattr(&wpp->pp, "part", "requestHeader");
+            xmlpp_closetag(&wpp->pp);
+        }
+        xmlpp_opentag(&wpp->pp, "soap:body");
+        xmlpp_putattr(&wpp->pp, "use", "literal");
+        xmlpp_closetag(&wpp->pp);
+        if (!rpc->async) {
+            xmlpp_opensib(&wpp->pp, "output");
             xmlpp_opentag(&wpp->pp, "soap:body");
             xmlpp_putattr(&wpp->pp, "use", "literal");
             xmlpp_closetag(&wpp->pp);
-            if (!rpc->async) {
-                xmlpp_opensib(&wpp->pp, "output");
-                xmlpp_opentag(&wpp->pp, "soap:body");
-                xmlpp_putattr(&wpp->pp, "use", "literal");
-                xmlpp_closetag(&wpp->pp);
-            }
+        }
 
-            if (rpc->exn == &iop__void__s) {
-                xmlpp_closentag(&wpp->pp, 2);
-                continue;
-            }
-            if (rpc->exn->is_union) {
-                /* XXX An union is understood as a sequence of exceptions */
-                for (int k = 0; k < rpc->exn->fields_len; k++) {
-                    const iop_field_t *f   = rpc->exn->fields + k;
-                    assert(f->type == IOP_T_STRUCT);
-                    xmlpp_opensib(&wpp->pp, "fault");
-                    xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.%sFault",
-                                     alias->name.s, rpc->name.s, f->name.s);
-                    xmlpp_opentag(&wpp->pp, "soap:fault");
-                    xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.%sFault",
-                                     alias->name.s, rpc->name.s, f->name.s);
-                    xmlpp_putattr(&wpp->pp, "use", "literal");
-                    xmlpp_closetag(&wpp->pp);
-                }
-                xmlpp_closetag(&wpp->pp);
-            } else {
+        if (rpc->exn == &iop__void__s) {
+            xmlpp_closentag(&wpp->pp, 2);
+            return;
+        }
+        if (rpc->exn->is_union) {
+            /* XXX An union is understood as a sequence of exceptions */
+            for (int k = 0; k < rpc->exn->fields_len; k++) {
+                const iop_field_t *f   = rpc->exn->fields + k;
+                assert(f->type == IOP_T_STRUCT);
                 xmlpp_opensib(&wpp->pp, "fault");
-                xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.Fault",
-                                 alias->name.s, rpc->name.s);
+                xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.%sFault",
+                                 alias->name.s, rpc->name.s, f->name.s);
                 xmlpp_opentag(&wpp->pp, "soap:fault");
-                xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.Fault",
-                                 alias->name.s, rpc->name.s);
+                xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.%sFault",
+                                 alias->name.s, rpc->name.s, f->name.s);
                 xmlpp_putattr(&wpp->pp, "use", "literal");
-                xmlpp_closentag(&wpp->pp, 2);
+                xmlpp_closetag(&wpp->pp);
             }
             xmlpp_closetag(&wpp->pp);
+        } else {
+            xmlpp_opensib(&wpp->pp, "fault");
+            xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.Fault",
+                             alias->name.s, rpc->name.s);
+            xmlpp_opentag(&wpp->pp, "soap:fault");
+            xmlpp_putattrfmt(&wpp->pp, "name", "%s.%s.Fault",
+                             alias->name.s, rpc->name.s);
+            xmlpp_putattr(&wpp->pp, "use", "literal");
+            xmlpp_closentag(&wpp->pp, 2);
         }
-    }
+        xmlpp_closetag(&wpp->pp);
+    };
+    iop_xwsdl_rpc_loop(wpp, mod, loop_body);
+
     xmlpp_closetag(&wpp->pp);
 }
 
