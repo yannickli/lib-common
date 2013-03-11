@@ -438,12 +438,32 @@ static void iop_xwsdl_rpc_loop(wsdlpp_t *wpp, const iop_mod_t *mod,
         const iop_iface_alias_t *alias = &mod->ifaces[i];
 
         for (int j = 0; j < alias->iface->funs_len; j++) {
-            const iop_rpc_t *rpc = &alias->iface->funs[j];
+            const iop_rpc_t *fun = &alias->iface->funs[j];
+            const unsigned fun_flags = fun->flags;
+            const iop_rpc_attrs_t *attrs;
 
             /* Check implementation table */
-            WSDL_CHECK_SKIP(wpp, alias, rpc);
+            WSDL_CHECK_SKIP(wpp, alias, fun);
+            if (TST_BIT(&fun_flags, IOP_RPC_IS_ALIAS)) {
+                continue;
+            }
 
-            loop_body(alias, rpc);
+            loop_body(alias, fun);
+
+            /* loop on rpc aliases */
+            if (TST_BIT(&fun_flags, IOP_RPC_HAS_ALIAS)) {
+                attrs = iop_rpc_get_attrs(alias->iface, fun);
+                for (int k = 0; k < attrs->attrs_len; k++) {
+                    const iop_rpc_attr_t attr = attrs->attrs[k];
+
+                    if (attr.type == IOP_RPC_ALIAS) {
+                        const iop_rpc_attr_arg_t arg = attr.args[0];
+                        const iop_rpc_t *falias = (const iop_rpc_t *)arg.v.p;
+
+                        loop_body(alias, falias);
+                    }
+                }
+            }
         }
     }
 }
