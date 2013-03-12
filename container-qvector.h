@@ -350,7 +350,6 @@ qvector_splice(qvector_t *vec, size_t v_size, size_t v_align,
 #define qv_cmp_b(n)                         qv_##n##_cmp_b
 #endif
 #define qv_qsort(n, vec, cmp)               qv_##n##_qsort(vec, cmp)
-#define qv_qsort_r(n, vec, cmp, priv)       qv_##n##_qsort_r(vec, cmp, priv)
 
 #define qv_last(n, vec)                     ({ const qv_t(n) *__vec = (vec); \
                                                assert (__vec->len > 0);      \
