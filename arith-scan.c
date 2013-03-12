@@ -300,7 +300,7 @@ size_t count_non_zero128(const void *_data, size_t n)
 /* Tests {{{ */
 
 #include <lib-common/z.h>
-#include <lib-common/time.h>
+#include <lib-common/datetime.h>
 
 typedef struct { uint64_t h; uint64_t l; } uint128_t;
 

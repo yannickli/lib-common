@@ -16,7 +16,7 @@
 #include <termios.h>
 #include <sys/wait.h>
 #include "unix.h"
-#include "time.h"
+#include "datetime.h"
 #include "z.h"
 
 /** Create a subdirectory path as mkdir -p.

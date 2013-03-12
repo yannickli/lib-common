@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "time.h"
+#include "datetime.h"
 
 static struct {
     char sec_str[24];

@@ -13,7 +13,7 @@
 
 #include <locale.h>
 
-#include "time.h"
+#include "datetime.h"
 
 /*
  *  Portable interface to the CPU cycle counter

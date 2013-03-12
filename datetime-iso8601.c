@@ -11,7 +11,7 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "time.h"
+#include "datetime.h"
 
 static int time_parse_iso8601_tok(pstream_t *ps, int *nb, int *type)
 {

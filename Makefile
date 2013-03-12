@@ -141,8 +141,8 @@ libcommon_SOURCES = \
 	thr-job.blk \
 	thr-spsc.c \
 	\
-	time.c \
-	time-iso8601.c \
+	datetime.c \
+	datetime-iso8601.c \
 	\
 	tpl.c \
 	tpl-funcs.c \

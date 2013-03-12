@@ -12,7 +12,7 @@
 /**************************************************************************/
 
 #include "unix.h"
-#include "time.h"
+#include "datetime.h"
 
 typedef struct mcms_event_t {
     int stamp;

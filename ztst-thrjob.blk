@@ -14,7 +14,7 @@
 #include <sysexits.h>
 #include <math.h>
 #include <lib-common/parseopt.h>
-#include <lib-common/time.h>
+#include <lib-common/datetime.h>
 #include <lib-common/el.h>
 #include "thr.h"
 
