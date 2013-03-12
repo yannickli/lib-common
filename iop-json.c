@@ -811,18 +811,6 @@ void iop_jlex_attach(iop_json_lex_t *ll, pstream_t *ps)
 /*-}}}-*/
 /* {{{ unpacking json way */
 
-static int
-find_field_by_name(const iop_struct_t *desc, const void *s, int len)
-{
-    const iop_field_t *field = desc->fields;
-    for (int i = 0; i < desc->fields_len; i++) {
-        if (len == field->name.len && !memcmp(field->name.s, s, len))
-            return i;
-        field++;
-    }
-    return -1;
-}
-
 static int unpack_arr(iop_json_lex_t *, const iop_field_t *, void *);
 static int unpack_union(iop_json_lex_t *, const iop_struct_t *, void *, bool);
 static int unpack_struct(iop_json_lex_t *, const iop_struct_t *, void *,
@@ -1085,8 +1073,8 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
       case IOP_JSON_IDENT:
       case IOP_JSON_STRING:
         if (desc) {
-            int ifield = find_field_by_name(desc, ll->ctx->b.data,
-                                            ll->ctx->b.len);
+            int ifield = __iop_field_find_by_name(desc, ll->ctx->b.data,
+                                                  ll->ctx->b.len);
 
             if (ifield < 0)
                 return RJERROR_EXP("a valid union member name");
@@ -1187,8 +1175,8 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
           case IOP_JSON_IDENT:
           case IOP_JSON_STRING:
             if (desc) {
-                int ifield = find_field_by_name(desc, ll->ctx->b.data,
-                                                ll->ctx->b.len);
+                int ifield = __iop_field_find_by_name(desc, ll->ctx->b.data,
+                                                      ll->ctx->b.len);
 
                 if (ifield < 0) {
                     if (!(ll->flags & IOP_UNPACK_IGNORE_UNKNOWN)) {

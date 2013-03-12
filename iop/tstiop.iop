@@ -192,6 +192,17 @@ struct MyStructL {
     MyEnumC     c;
 };
 
+struct MyStructM {
+    MyStructK   k;
+};
+
+%C{
+    qvector_t(my_struct_a, tstiop__my_struct_a__t);
+    qvector_t(my_struct_a_opt, tstiop__my_struct_a_opt__t);
+    qvector_t(my_struct_m, tstiop__my_struct_m__t);
+%}
+
+
 struct Repeated {
     /* optimized fields */
     byte[]   i8;
