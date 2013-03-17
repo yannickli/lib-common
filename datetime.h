@@ -189,7 +189,8 @@ void sb_add_localtime_iso8601_msec(sb_t *sb, time_t t,
 
 int time_parse_iso8601(pstream_t *ps, time_t *res);
 
-static inline int time_parse_iso8601s(const char *s, time_t *res) {
+static inline int time_parse_iso8601s(const char *s, time_t *res)
+{
     pstream_t ps = ps_initstr(s);
 
     /* Trim the ps_stream before getting the date */
@@ -197,6 +198,35 @@ static inline int time_parse_iso8601s(const char *s, time_t *res) {
 
     /* FIXME: do we want to err if !ps_done(&ps) at the end ? */
     return time_parse_iso8601(&ps, res);
+}
+
+/** Parse a string as a date and builds the corresponding unix timestamp.
+ *
+ * That function parses a string from one of those three formats:
+ * - ISO8601: YYYY-MM-DDThh:mm:ss[TZ]
+ * - RFC822: [Day, ]D month YYYY hh:mm:ss[ TZ]
+ * - Unix timestamp in decimal
+ *
+ * The parsing is done case insensitively. The timezone is optional, when
+ * omitted, the local timezone is used. When present it must have one of the
+ * following format:
+ * - literal name (e.g. DST, CEST, UTC, Z, GMT, ...)
+ * - +/-hh:mm
+ * - +/-hhmm
+ * - +/-hh
+ *
+ * \param[in,out] ps the stream from which the date should be parsed.
+ * \param[out]    res the timestamp.
+ * \return a negative value in case of error.
+ */
+int time_parse(pstream_t *ps, time_t *res);
+
+static inline int time_parse_str(const char *s, time_t *res)
+{
+    pstream_t ps = ps_initstr(s);
+
+    ps_trim(&ps);
+    return time_parse(&ps, res);
 }
 
 #endif
