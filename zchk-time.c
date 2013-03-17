@@ -56,42 +56,85 @@ Z_GROUP_EXPORT(time)
 
     Z_TEST(iso8601_tz, "check that we grok timezone offsets properly")
     {
-        pstream_t ps;
-        time_t res;
+#define CHECK_DATE(str, res)  do {                                           \
+            time_t ts;                                                       \
+            Z_ASSERT_N(time_parse_iso8601s(str, &ts));                       \
+            Z_ASSERT_EQ(ts, res);                                            \
+        } while (0)
 
-        ps = ps_initstr("2007-03-06T11:34:13Z");
-        Z_ASSERT_N(time_parse_iso8601(&ps, &res));
-        Z_ASSERT_EQ(res, 1173180853);
-
-        ps = ps_initstr("2007-03-06T11:34:13+00:00");
-        Z_ASSERT_N(time_parse_iso8601(&ps, &res));
-        Z_ASSERT_EQ(res, 1173180853);
-
-        ps = ps_initstr("2007-03-06T11:34:13-00:00");
-        Z_ASSERT_N(time_parse_iso8601(&ps, &res));
-        Z_ASSERT_EQ(res, 1173180853);
-
-        ps = ps_initstr("2007-03-06T16:34:13+05:00");
-        Z_ASSERT_N(time_parse_iso8601(&ps, &res));
-        Z_ASSERT_EQ(res, 1173180853);
-
-        ps = ps_initstr("2007-03-07T01:34:13+14:00");
-        Z_ASSERT_N(time_parse_iso8601(&ps, &res));
-        Z_ASSERT_EQ(res, 1173180853);
-
-        ps = ps_initstr("2007-03-06T01:04:13-10:30");
-        Z_ASSERT_N(time_parse_iso8601(&ps, &res));
-        Z_ASSERT_EQ(res, 1173180853);
+        CHECK_DATE("2007-03-06T11:34:13Z", 1173180853);
+        CHECK_DATE("2007-03-06T11:34:13+00:00", 1173180853);
+        CHECK_DATE("2007-03-06T11:34:13-00:00", 1173180853);
+        CHECK_DATE("2007-03-06T16:34:13+05:00", 1173180853);
+        CHECK_DATE("2007-03-07T01:34:13+14:00", 1173180853);
+        CHECK_DATE("2007-03-06T01:04:13-10:30", 1173180853);
 
         /* hours/minutes underflow */
-        ps = ps_initstr("2007-03-07T00:04:13+12:30");
-        Z_ASSERT_N(time_parse_iso8601(&ps, &res));
-        Z_ASSERT_EQ(res, 1173180853);
+        CHECK_DATE("2007-03-07T00:04:13+12:30", 1173180853);
 
         /* hours/minutes overflow */
-        ps = ps_initstr("2007-03-05T23:54:13-11:40");
-        Z_ASSERT_N(time_parse_iso8601(&ps, &res));
-        Z_ASSERT_EQ(res, 1173180853);
+        CHECK_DATE("2007-03-05T23:54:13-11:40", 1173180853);
+#undef CHECK_DATE
+    } Z_TEST_END;
+
+    Z_TEST(parse_tz, "check time parser")
+    {
+#define CHECK_DATE(str, res)  do {                                           \
+            time_t ts;                                                       \
+            Z_ASSERT_N(time_parse_str(str, &ts));                            \
+            Z_ASSERT_EQ(ts, res);                                            \
+        } while (0)
+
+        /* ISO 8601 */
+        CHECK_DATE("2007-03-06T11:34:13", 1173180853 + timezone);
+        CHECK_DATE("2007-03-06T11:34:13Z", 1173180853);
+        CHECK_DATE("2007-03-06t11:34:13z", 1173180853);
+        CHECK_DATE("2007-03-06T11:34:13+00:00", 1173180853);
+        CHECK_DATE("2007-03-06T11:34:13-00:00", 1173180853);
+        CHECK_DATE("2007-03-06T16:34:13+05:00", 1173180853);
+        CHECK_DATE("2007-03-07T01:34:13+14:00", 1173180853);
+        CHECK_DATE("2007-03-06T01:04:13-10:30", 1173180853);
+
+        /* hours/minutes underflow */
+        CHECK_DATE("2007-03-07T00:04:13+12:30", 1173180853);
+
+        /* hours/minutes overflow */
+        CHECK_DATE("2007-03-05T23:54:13-11:40", 1173180853);
+
+        /* RFC 822 */
+        CHECK_DATE("6 Mar 2007 11:34:13", 1173180853 + timezone);
+        CHECK_DATE("6 Mar 2007 11:34:13 GMT", 1173180853);
+        CHECK_DATE("6 Mar 2007 11:34:13 +0000", 1173180853);
+        CHECK_DATE("6 Mar 2007 11:34:13 -0000", 1173180853);
+        CHECK_DATE("6 Mar 2007 16:34:13 +0500", 1173180853);
+        CHECK_DATE("7 Mar 2007 01:34:13 +1400", 1173180853);
+        CHECK_DATE("6 Mar 2007 01:04:13 -1030", 1173180853);
+
+        /* hours/minutes underflow */
+        CHECK_DATE("7 Mar 2007 00:04:13 +1230", 1173180853);
+
+        /* hours/minutes overflow */
+        CHECK_DATE("5 Mar 2007 23:54:13 -1140", 1173180853);
+
+
+        CHECK_DATE("Tue, 6 Mar 2007 11:34:13", 1173180853 + timezone);
+        CHECK_DATE("tUE, 6 MAr 2007 11:34:13", 1173180853 + timezone);
+        CHECK_DATE("Tue, 6 Mar 2007 11:34:13 GMT", 1173180853);
+        CHECK_DATE("Tue, 6 Mar 2007 11:34:13 +0000", 1173180853);
+        CHECK_DATE("Tue, 6 Mar 2007 11:34:13 -0000", 1173180853);
+        CHECK_DATE("Tue, 6 Mar 2007 16:34:13 +0500", 1173180853);
+        CHECK_DATE("Wed, 7 Mar 2007 01:34:13 +1400", 1173180853);
+        CHECK_DATE("Tue, 6 Mar 2007 01:04:13 -1030", 1173180853);
+
+        /* hours/minutes underflow */
+        CHECK_DATE("Wed, 7 Mar 2007 00:04:13 +1230", 1173180853);
+
+        /* hours/minutes overflow */
+        CHECK_DATE("Mon, 5 Mar 2007 23:54:13 -1140", 1173180853);
+
+        /* Timestamp */
+        CHECK_DATE("1173180853", 1173180853);
+#undef CHECK_DATE
     } Z_TEST_END;
 
     Z_TEST(sb_add_localtime_iso8601, "time: sb_add_localtime_iso8601")
