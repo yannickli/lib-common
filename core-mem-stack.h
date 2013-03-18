@@ -239,10 +239,6 @@ class TScope {
 #endif
 
 #define t_scope_(n)  t_scope__(n)
-#ifdef __COUNTER__
-#  define t_scope      t_scope_(__COUNTER__)
-#else
-#  define t_scope      t_scope_(__LINE__)
-#endif
+#define t_scope      t_scope_(__LINE__)
 
 #endif
