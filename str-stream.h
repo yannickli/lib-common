@@ -163,6 +163,25 @@ static inline bool ps_strequal(const pstream_t *ps, const char *s) {
     return ps_memequal(ps, s, strlen(s));
 }
 
+static inline bool ps_memcaseequal(const pstream_t *ps, const char *s, size_t len)
+{
+    if (ps_len(ps) != len) {
+        return false;
+    }
+    for (size_t i = 0; i < len; i++) {
+        if (tolower(ps->b[i]) != tolower((unsigned char)s[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static inline bool ps_strcaseequal(const pstream_t *ps, const char *s)
+{
+    return ps_memcaseequal(ps, s, strlen(s));
+}
+
+
 /****************************************************************************/
 /* skipping/trimming helpers                                                */
 /****************************************************************************/
