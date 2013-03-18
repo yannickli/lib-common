@@ -124,7 +124,7 @@ void              mem_stack_pool_wipe(mem_stack_pool_t *)
 void mem_stack_protect(mem_stack_pool_t *sp);
 /*
  * sealing a stack frame ensures that people wanting to allocate in that stack
- * use a t_push/t_pop or a t_scope first.
+ * use a mem_stack_push/mem_stack_pop or a t_scope first.
  *
  * It's not necessary to unseal before a pop().
  */
@@ -161,17 +161,8 @@ static ALWAYS_INLINE const void *mem_stack_pop(mem_stack_pool_t *sp)
 extern __thread mem_stack_pool_t t_pool_g;
 #define t_pool()  (&t_pool_g.funcs)
 
-#define t_push()      mem_stack_push(&t_pool_g)
-#define t_pop()       mem_stack_pop(&t_pool_g)
 #define t_seal()      mem_stack_seal(&t_pool_g)
 #define t_unseal()    mem_stack_unseal(&t_pool_g)
-
-/* Deprecated: do not use */
-#define __t_pop_and_do(expr)    ({ t_pop(); expr; })
-#define t_pop_and_return(expr)  __t_pop_and_do(return expr)
-#define t_pop_and_break()       __t_pop_and_do(break)
-#define t_pop_and_continue()    __t_pop_and_do(continue)
-#define t_pop_and_goto(lbl)     __t_pop_and_do(goto lbl)
 
 #define t_fmt(fmt, ...)  mp_fmt(&t_pool_g.funcs, (fmt), ##__VA_ARGS__)
 
@@ -206,7 +197,7 @@ extern __thread mem_stack_pool_t t_pool_g;
 #ifndef __cplusplus
 /*
  * t_scope protects all the code after its use up to the end of the block
- * scope with an implicit t_push(), t_pop() pair.
+ * scope with an implicit mem_stack_push(), mem_stack_pop() pair.
  *
  * It works using the same principle as C++ RAII, see the C++ TScope class
  * below, but for C.
@@ -224,22 +215,23 @@ extern __thread mem_stack_pool_t t_pool_g;
 static ALWAYS_INLINE void t_scope_cleanup(const void **unused)
 {
 #ifndef NDEBUG
-    if (unlikely(*unused != t_pop()))
+    if (unlikely(*unused != mem_stack_pop(&t_pool_g)))
         e_panic("unbalanced t_stack");
 #else
-    t_pop();
+    mem_stack_pop(&t_pool_g);
 #endif
 }
 #define t_scope__(n)  \
-    const void *t_scope_##n __attribute__((unused,cleanup(t_scope_cleanup))) = t_push()
+    const void *t_scope_##n __attribute__((unused,cleanup(t_scope_cleanup))) \
+        = mem_stack_push(&t_pool_g)
 #else
 /*
- * RAII scoped t_push/t_pop
+ * RAII scoped mem_stask_push/mem_stack_pop
  */
 class TScope {
   public:
-    inline TScope() { t_push(); };
-    inline ~TScope() { t_pop(); };
+    inline TScope() { mem_stack_push(&t_pool_g); };
+    inline ~TScope() { mem_stack_pop(&t_pool_g); };
   private:
     DISALLOW_COPY_AND_ASSIGN(TScope);
     void* operator new(size_t);
