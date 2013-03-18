@@ -435,6 +435,8 @@ uint32_t __qhash_put_vec(qhash_t *qh, uint32_t h, const void *k,
 #define qm_k64_t(name, val_t)                  __QM_IKEY(64, qm_##name, name, uint64_t, val_t)
 #define qm_kvec_t(name, key_t, val_t, hf, ef)  __QM_VKEY(qm_##name, name, key_t, val_t, hf, ef)
 #define qm_kptr_t(name, key_t, val_t, hf, ef)  __QM_PKEY(qm_##name, name, key_t, val_t, hf, ef)
+#define qm_kptr_ckey_t(name, key_t, val_t, hf, ef) \
+    qm_kptr_t(name, key_t const, val_t, hf, ef)
 
 #define QH_INIT(name, var, cacheh) \
     { .qh = {                                   \
