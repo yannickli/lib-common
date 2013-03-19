@@ -52,7 +52,16 @@ BLOCK_EXPORT void _Block_release(const void *aBlock);
 
 /* Type correct macros. */
 
+
+#if !defined(__cplusplus) && defined(__clang__)
+static inline void *Block_copy(const void *blk)
+{
+    return _Block_copy(blk);
+}
+#else
 #define Block_copy(...) ((__typeof(__VA_ARGS__))_Block_copy((const void *)(__VA_ARGS__)))
+#endif
+
 #define Block_release(...) _Block_release((const void *)(__VA_ARGS__))
 
 
