@@ -161,6 +161,50 @@ rb_node_t *__rb_prev(rb_node_t *) __leaf;
         return NULL;                                                         \
     }                                                                        \
                                                                              \
+    static inline entry_t *rb_##n##_find_upper(const rb_t(n) *rb, key_t k)   \
+    {                                                                        \
+        entry_t *upper = NULL;                                               \
+        rb_node_t *node = rb->root;                                          \
+                                                                             \
+        while (node) {                                                       \
+            entry_t *e = rb_entry(n, node);                                  \
+            int cmp = compare(k, get_key(e));                                \
+                                                                             \
+            if (cmp < 0) {                                                   \
+                node = node->left;                                           \
+                upper = e;                                                   \
+            } else                                                           \
+            if (cmp > 0) {                                                   \
+                node = node->right;                                          \
+            } else {                                                         \
+                return e;                                                    \
+            }                                                                \
+        }                                                                    \
+        return upper;                                                        \
+    }                                                                        \
+                                                                             \
+    static inline entry_t *rb_##n##_find_lower(const rb_t(n) *rb, key_t k)   \
+    {                                                                        \
+        entry_t *lower = NULL;                                               \
+        rb_node_t *node = rb->root;                                          \
+                                                                             \
+        while (node) {                                                       \
+            entry_t *e = rb_entry(n, node);                                  \
+            int cmp = compare(k, get_key(e));                                \
+                                                                             \
+            if (cmp < 0) {                                                   \
+                node = node->left;                                           \
+            } else                                                           \
+            if (cmp > 0) {                                                   \
+                node  = node->right;                                         \
+                lower = e;                                                   \
+            } else {                                                         \
+                return e;                                                    \
+            }                                                                \
+        }                                                                    \
+        return lower;                                                        \
+    }                                                                        \
+                                                                             \
     static inline rb_node_t **rb_##n##_find_slot(rb_t(n) *rb, key_t k,       \
                                                  rb_node_t **out_parent,     \
                                                  bool *collision)            \
@@ -259,6 +303,8 @@ rb_node_t *__rb_prev(rb_node_t *) __leaf;
 #define rb_next(n, entry)             rb_##n##_next(entry)
 #define rb_prev(n, entry)             rb_##n##_prev(entry)
 #define rb_find(n, rb, v)             rb_##n##_find(rb, v)
+#define rb_find_lower(n, rb, v)       rb_##n##_find_lower(rb, v)
+#define rb_find_upper(n, rb, v)       rb_##n##_find_upper(rb, v)
 #define rb_find_slot(n, rb, k, p, c)  rb_##n##_find_slot(rb, k, p, c)
 #define rb_insert(n, rb, e)           rb_##n##_insert(rb, e)
 #define rb_insert_at(n, rb, p, s, e)  rb_##n##_insert_at(rb, p, s, e)
