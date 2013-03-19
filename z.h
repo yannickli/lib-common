@@ -169,7 +169,7 @@ void _z_helper_failed(const char *file, int lno, const char *expr,
 /****************************************************************************/
 
 #define Z_GROUP(name) \
-    static void z_##name(void) \
+    __cold static void z_##name(void)                                     \
     {                                                                     \
         _z_group_start(#name);                                            \
         while (_z_group_process()) {
