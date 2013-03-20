@@ -176,12 +176,6 @@ sb_t::sb_t(void *buf, int len_, int size_, int pool) :
 sb_t::~sb_t() { sb_wipe(this); }
 #endif
 
-static inline void sb_wipe_not_needed(sb_t *sb)
-{
-    assert (likely(sb->mem_pool != MEM_LIBC));
-    sb_wipe(sb);
-}
-
 /**************************************************************************/
 /* str/mem-functions wrappers                                             */
 /**************************************************************************/
