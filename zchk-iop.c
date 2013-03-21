@@ -582,6 +582,11 @@ Z_GROUP_EXPORT(iop)
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),
             .m = 3.14159265,
             .n = true,
+            .o = '.',
+            .p = '!',
+            .q = '*',
+            .r = '+',
+            .s = '\t',
         };
 
         tstiop__my_struct_a__t sa2 = {
@@ -600,6 +605,11 @@ Z_GROUP_EXPORT(iop)
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),
             .m = 3.14159265,
             .n = true,
+            .o = '.',
+            .p = '!',
+            .q = '*',
+            .r = '+',
+            .s = '\t',
         };
 
         const char json_sa[] =
@@ -621,8 +631,13 @@ Z_GROUP_EXPORT(iop)
             "    bar.us: \"union value to skip\",\n"
             "    arraytoSkip: [ .blah: \"skip\", .foo: 42, 32; \"skipme\";\n"
             "                   { foo: 42 } ];"
-            "    \"m\": .42\n,"
-            "    \"n\": true\n"
+            "    \"m\": .42,\n"
+            "    \"n\": true,\n"
+            "    \"o\": c\'.\',\n"
+            "    \"p\": c\'\\041\',\n"
+            "    \"q\": c\'\\x2A\',\n"
+            "    \"r\": c\'\\u002B\',\n"
+            "    \"s\": c\'\\t\'\n"
             "};\n"
             ;
 
@@ -644,7 +659,12 @@ Z_GROUP_EXPORT(iop)
             "    foo: {us: \"union value to skip\"},\n"
             "    bar.us: \"union value to skip\",\n"
             "    \"m\": 0.42\n,"
-            "    \"n\": true\n"
+            "    \"n\": true,\n"
+            "    \"o\": c\'.\',\n"
+            "    \"p\": c\'\\041\',\n"
+            "    \"q\": c\'\\x2A\',\n"
+            "    \"r\": c\'\\u002B\',\n"
+            "    \"s\": c\'\\t\'\n"
             "};\n"
             ;
 
@@ -664,6 +684,11 @@ Z_GROUP_EXPORT(iop)
             .l = IOP_UNION(tstiop__my_union_a, us, LSTR_IMMED("union value")),
             .m = 0.42,
             .n = true,
+            .o = '.',
+            .p = '!',
+            .q = '*',
+            .r = '+',
+            .s = '\t',
         };
 
         const char json_sf[] =
