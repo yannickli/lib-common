@@ -12,15 +12,29 @@
 /**************************************************************************/
 
 #include <valgrind/valgrind.h>
+#include <sys/syscall.h>
 #include <lib-common/arith.h>
 #include <lib-common/time.h>
 #include <lib-common/container.h>
 #include <lib-common/el.h>
+#include <lib-common/unix.h>
 #include "thr.h"
 
 #if !defined(__x86_64__) && !defined(__i386__)
 #  error "this file assumes a strict memory model and is probably buggy on !x86"
 #endif
+
+#ifndef SYS_eventfd
+#  error "this file assumes a glibc that knows about the eventfd syscall"
+#endif
+
+static int eventfd(int initialvalue, int flags)
+{
+    int fd = RETHROW(syscall(SYS_eventfd, initialvalue));
+
+    fd_set_features(fd, flags);
+    return fd;
+}
 
 #define CACHE_LINE_SIZE   64
 
@@ -84,12 +98,16 @@ static struct {
 
     thr_info_t       *threads;
     el_t              before;
-    el_t              sigchld;
+    el_t              eventel;
+    int               efd;
+    bool              use_eventfd;
     thr_queue_t       main_queue;
     uint64_t          reset_time;
     proctimer_t       st;
-} thr_job_g;
+} thr_job_g = {
 #define _G  thr_job_g
+    .efd = -1
+};
 
 static __thread int self_tid_g = (-1);
 static __thread thr_info_t *self_g;
@@ -504,7 +522,9 @@ static void thr_wakeup_thr0(void)
             thr_ec_broadcast(ec);
             shared_write(thr0_cur_ec_g, ec);
         } else {
-            pthread_kill(_G.threads[0].thr, SIGCHLD);
+            uint64_t val = 1;
+
+            IGNORE(xwrite(_G.efd, &val, sizeof(val)));
         }
     }
 }
@@ -648,7 +668,10 @@ static void *thr_job_main(void *arg)
 static void thr_job_atfork(void)
 {
     el_before_unregister(&_G.before);
-    el_signal_unregister(&_G.sigchld);
+    el_fd_unregister(&_G.eventel, true);
+    if (!_G.use_eventfd) {
+        p_close(&_G.efd);
+    }
     p_delete(&_G.threads);
     p_clear(&_G, 1);
     thr_parallelism_g = 0;
@@ -659,9 +682,18 @@ static void thr_before(el_t ev, el_data_t priv)
     thr_queue_drain(thr_queue_main_g);
 }
 
-static void thr_sigchld(el_t ev, int signum, el_data_t priv)
+static int thr_event(el_t ev, int fd, short evt, el_data_t priv)
 {
+    uint64_t val[16];
+
+    if (_G.use_eventfd) {
+        RETHROW(read(fd, val, sizeof(uint64_t)));
+    } else {
+        while (RETHROW(read(fd, val, sizeof(val))) == sizeof(val));
+    }
+
     thr_queue_drain(thr_queue_main_g);
+    return 0;
 }
 
 void thr_queue_main_drain(void)
@@ -701,8 +733,30 @@ void thr_initialize(void)
         pthread_sigmask(SIG_SETMASK, &old, NULL);
         pthread_attr_destroy(&attr);
         thr_queue_init(thr_queue_main_g);
-        _G.before  = el_unref(el_before_register(&thr_before, NULL));
-        _G.sigchld = el_signal_register(SIGCHLD, &thr_sigchld, NULL);
+        _G.before = el_unref(el_before_register(thr_before, NULL));
+
+        /* Use eventfd if available, since it's much more efficient than
+         * the pipe alternative. (Benches show that eventfd wake up the main
+         * thread in 7 micro-seconds while a pipe wake up the main thread in
+         * 11 micro-seconds)
+         */
+        _G.efd = eventfd(0, O_NONBLOCK | O_CLOEXEC);
+        if (_G.efd >= 0) {
+            _G.eventel = el_fd_register(_G.efd, POLLIN, &thr_event, NULL);
+            _G.use_eventfd = true;
+        } else {
+            int fd[2] = { -1, -1 };
+
+            if (pipe(fd) < 0) {
+                e_panic("cannot create pipe: %m");
+            }
+
+            fd_set_features(fd[0], O_NONBLOCK | O_CLOEXEC);
+            fd_set_features(fd[1], O_NONBLOCK | O_CLOEXEC);
+            _G.eventel = el_fd_register(fd[0], POLLIN, &thr_event, NULL);
+            _G.efd = fd[1];
+        }
+        el_unref(_G.eventel);
     }
 }
 
@@ -723,10 +777,7 @@ void thr_shutdown(void)
 
         thr_info_cleanup(NULL);
 
-        el_before_unregister(&_G.before);
-        p_delete(&_G.threads);
-        p_clear(&_G, 1);
-        thr_parallelism_g = 0;
+        thr_job_atfork();
     }
 }
 
