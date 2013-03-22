@@ -63,7 +63,8 @@ check:: all
 	$(var/toolsdir)/_run_checks.sh .
 
 tags: $(var/generated)
-.PHONY: tags
+jshint:
+.PHONY: tags jshint
 
 define fun/subdirs-targets
 $(foreach d,$1,
@@ -150,6 +151,11 @@ etags: | __setup_buildsys_trampoline
 		find . -name \*.h -or -name \*.blk                      \
 		       -or \( -name \*.c -and -not -name \*.blk.c \)    \
 			-print0 | xargs -0 etags.emacs -a -l c -
+
+jshint: | __setup_buildsys_trampoline
+	$(MAKEPARALLEL) -C $/ -f $!Makefile jshint
+	@$(if $(shell which jshint),,$(error "Please install jshint: npm install -g jshint"))
+	git ls-files -- '*.js' | xargs jshint
 
 ignore:
 	$(foreach v,$(CLEANFILES:/=),grep -q '^/$v$$' .gitignore || echo '/$v' >> .gitignore;)
