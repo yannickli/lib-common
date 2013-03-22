@@ -13,7 +13,7 @@
 
 none_LIBRARIES = libcommon python time-lp-simple
 python_SHARED_LIBRARIES += common
-test_PROGRAMS += ztst-cfgparser ztst-tpl ztst-lzo ztst-thrjob
+test_PROGRAMS += ztst-cfgparser ztst-tpl ztst-lzo
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
 test_PROGRAMS += ztst-qps ztst-qpscheck ztst-qpsstress ztst-hattrie
 ifeq (,$(TOOLS_REPOSITORY))
@@ -227,12 +227,6 @@ ztst-iprintf-glibc_SOURCES = ztst-iprintf-glibc.c libcommon.a
 ztst-lzo_SOURCES = ztst-lzo.c libcommon.a
 
 ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a
-
-ztst-thrjob_SOURCES = \
-	ztst-thrjob.blk \
-	$/lib-common/libcommon.a \
-	$/lib-common/time-lp-simple.a
-ztst-thrjob_LIBS = -lm
 
 ztst-qps_SOURCES = \
 	ztst-qps.blk \

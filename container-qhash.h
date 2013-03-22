@@ -792,17 +792,6 @@ qhash_lstr_equal(const qhash_t *qh, const lstr_t *s1, const lstr_t *s2)
     return lstr_equal(s1, s2);
 }
 
-static inline uint32_t qhash_clstr_hash(const qhash_t *qh, const lstr_t *ls)
-{
-    return mem_hash32(ls->s, ls->len);
-}
-
-static inline bool
-qhash_clstr_equal(const qhash_t *qh, const lstr_t *s1, const lstr_t *s2)
-{
-    return lstr_equal(s1, s2);
-}
-
 static inline bool
 qhash_ptr_equal(const qhash_t *qh, const void *ptr1, const void *ptr2)
 {
@@ -813,7 +802,6 @@ qh_k32_t(u32);
 qh_k64_t(u64);
 qh_kptr_t(str,   char,    qhash_str_hash,  qhash_str_equal);
 qh_kvec_t(lstr,  lstr_t,  qhash_lstr_hash, qhash_lstr_equal);
-qh_kvec_t(clstr, lstr_t,  qhash_lstr_hash, qhash_lstr_equal);
 qh_kptr_t(ptr,   void,    qhash_hash_ptr,  qhash_ptr_equal);
 
 qh_kptr_ckey_t(cstr, char, qhash_str_hash, qhash_str_equal);

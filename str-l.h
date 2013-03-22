@@ -54,22 +54,6 @@ typedef struct lstr_t {
                                      __s ? LSTR_INIT_V(__s, strlen(__s))   \
                                          : LSTR_NULL_V; })
 
-/* obsolete stuff, please try not to use anymore */
-#define clstr_t        lstr_t
-#define clstr_equal    lstr_equal
-#define clstr_equal2   lstr_equal2
-#define CLSTR_INIT     LSTR_INIT
-#define CLSTR_INIT_V   LSTR_INIT_V
-#define CLSTR_IMMED    LSTR_IMMED
-#define CLSTR_IMMED_V  LSTR_IMMED_V
-#define CLSTR_STR_V    LSTR_STR_V
-#define CLSTR_NULL     LSTR_NULL
-#define CLSTR_NULL_V   LSTR_NULL_V
-#define CLSTR_EMPTY    LSTR_EMPTY
-#define CLSTR_EMPTY_V  LSTR_EMPTY_V
-#define CLSTR_SB       LSTR_SB
-#define CLSTR_SB_V     LSTR_SB_V
-
 
 /*--------------------------------------------------------------------------*/
 /** \brief lstr_dup_* helper.

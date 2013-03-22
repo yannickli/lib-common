@@ -481,7 +481,7 @@ int iop_check_constraints(const iop_struct_t *desc, const void *val);
  */
 static inline lstr_t iop_enum_to_str(const iop_enum_t *ed, int v) {
     int res = iop_ranges_search(ed->ranges, ed->ranges_len, v);
-    return unlikely(res < 0) ? CLSTR_NULL_V : ed->names[res];
+    return unlikely(res < 0) ? LSTR_NULL_V : ed->names[res];
 }
 
 /** Convert a string to its integer value using an IOP enum mapping.

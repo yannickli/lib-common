@@ -185,7 +185,7 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
     ichttp_query_t      *iq  = obj_vcast(ichttp_query, q);
     httpd_trigger__ic_t *tcb = container_of(iq->trig_cb, httpd_trigger__ic_t, cb);
     ic__hdr__t           hdr = IOP_UNION_VA(ic__hdr, simple,
-       .kind = (tcb->auth_kind ? CLSTR_STR_V(tcb->auth_kind) : CLSTR_NULL_V),
+       .kind = LSTR_OPT_STR_V(tcb->auth_kind),
        .payload = q->received_body_length,
     );
     ic_cb_entry_t       *e;
@@ -196,8 +196,8 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
     ic__hdr__t *pxy_hdr = NULL;
 
     if (t_httpd_qinfo_get_basic_auth(q->qinfo, &login, &pw) == 0) {
-        hdr.simple.login    = CLSTR_INIT_V(login.s, ps_len(&login));
-        hdr.simple.password = CLSTR_INIT_V(pw.s,    ps_len(&pw));
+        hdr.simple.login    = LSTR_PS_V(&login);
+        hdr.simple.password = LSTR_PS_V(&pw);
     }
     hdr.simple.host = httpd_get_peer_address(q->owner);
 

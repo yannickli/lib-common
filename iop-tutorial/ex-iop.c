@@ -35,18 +35,18 @@ static struct {
 
 /* {{{ utils */
 
-static void exiop_addr_resolve(const clstr_t s, sockunion_t *out)
+static void exiop_addr_resolve(const lstr_t s, sockunion_t *out)
 {
     pstream_t host;
     in_port_t port;
 
-    if (addr_parse(ps_init(s.s, s.len), &host, &port, -1))
-        e_fatal("unable to parse address: %s", s.s);
+    if (addr_parse(ps_initlstr(&s), &host, &port, -1))
+        e_fatal("unable to parse address: %*pM", LSTR_FMT_ARG(s));
     if (addr_info(out, AF_UNSPEC, host, port))
-        e_fatal("unable to resolve address: %s", s.s);
+        e_fatal("unable to resolve address: %*pM", LSTR_FMT_ARG(s));
 }
 
-static el_t exiop_ic_listento(clstr_t addr, int (*on_accept)(el_t ev, int fd))
+static el_t exiop_ic_listento(lstr_t addr, int (*on_accept)(el_t ev, int fd))
 {
     sockunion_t su;
     el_t ev;
@@ -54,7 +54,7 @@ static el_t exiop_ic_listento(clstr_t addr, int (*on_accept)(el_t ev, int fd))
     exiop_addr_resolve(addr, &su);
 
     if (!(ev = ic_listento(&su, SOCK_STREAM, IPPROTO_TCP, on_accept)))
-        e_fatal("cannot bind on %s", addr.s);
+        e_fatal("cannot bind on %*pM", LSTR_FMT_ARG(addr));
 
     return ev;
 }
@@ -103,7 +103,7 @@ static void exiop_client_initialize(const char *addr)
     _G.remote_ic.on_event = exiop_client_on_event;
     _G.remote_ic.impl     = &ic_no_impl;
 
-    exiop_addr_resolve(CLSTR_STR_V(addr), &_G.remote_ic.su);
+    exiop_addr_resolve(LSTR_STR_V(addr), &_G.remote_ic.su);
 
     if (ic_connect(&_G.remote_ic) < 0)
         e_fatal("cannot connect to %s", addr);
@@ -147,7 +147,7 @@ static int exiop_on_accept(el_t ev, int fd)
 static void exiop_server_initialize(const char *addr)
 {
     /* Start listening */
-    _G.ic_srv = exiop_ic_listento(CLSTR_STR_V(addr), &exiop_on_accept);
+    _G.ic_srv = exiop_ic_listento(LSTR_STR_V(addr), &exiop_on_accept);
 
     /* Register RPCs */
     ic_register(&_G.ic_impl, exiop__hello_mod, hello_interface, send);
