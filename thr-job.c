@@ -455,7 +455,7 @@ static void thr_wakeup_thr0(void)
         } else {
             uint64_t val = 1;
 
-            IGNORE(xwrite(_G.efd, &val, sizeof(val)));
+            IGNORE(write(_G.efd, &val, sizeof(val)));
         }
     }
 }
