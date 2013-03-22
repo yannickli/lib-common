@@ -469,6 +469,92 @@ prefer_integer:
     }
 }
 
+static int iop_json_lex_char(iop_json_lex_t *ll, int terminator)
+{
+    if (!HAS(2)) {
+        return RJERROR_WARG(IOP_JERR_EXP_SMTH);
+    }
+    if (READAT(1) == terminator) {
+        /* single character */
+        ll->u.i = READAT(0);
+        SKIP(2);
+        return IOP_JSON_INTEGER;
+    } else
+    /* escape sequence */
+    if (READAT(0) == '\\') {
+#define OCTAL -1
+#define UNICODE -2
+#define HEXADECIMAL -3
+        static int escaped[256] = {
+            ['a'] = '\a',
+            ['b'] = '\b',
+            ['e'] = '\e',
+            ['t'] = '\t',
+            ['n'] = '\n',
+            ['v'] = '\v',
+            ['f'] = '\f',
+            ['r'] = '\r',
+            ['\\'] = '\\',
+            ['"'] = '\"',
+            ['\''] = '\'',
+            ['0'] = OCTAL,
+            ['1'] = OCTAL,
+            ['2'] = OCTAL,
+            ['u'] = UNICODE,
+            ['x'] = HEXADECIMAL,
+        };
+        int c = escaped[READAT(1)];
+
+        if (!HAS(2))
+            return RJERROR_WARG(IOP_JERR_EXP_SMTH);
+        switch (c) {
+            int a, b;
+          case OCTAL:
+            if (HAS(4)
+            &&  READAT(2) >= '0' && READAT(2) <= '7'
+            &&  READAT(3) >= '0' && READAT(3) <= '7')
+            {
+                ll->u.i = ((READAT(1) - '0') << 6) |
+                    ((READAT(2) - '0') << 3) | (READAT(3) - '0');
+                SKIP(2);
+            } else
+            /* null */
+            if (READAT(1) == '0') {
+                ll->u.i = '\0';
+            }
+            break;
+          case HEXADECIMAL:
+            if (HAS(4) && (a = hexdecode(PS->s + 2)) >= 0) {
+                ll->u.i = a;
+                SKIP(2);
+            }
+            break;
+          case UNICODE:
+            if (HAS(6)
+            &&  (a = hexdecode(PS->s + 2)) >= 0
+            &&  (b = hexdecode(PS->s + 4)) >= 0)
+            {
+                ll->u.i = a << 8 | b;
+                SKIP(4);
+            }
+            break;
+          case 0:
+            return RJERROR_WARG(IOP_JERR_EXP_SMTH);
+          default:
+            ll->u.i = c;
+            break;
+        }
+        SKIP(2);
+        if (READC() != terminator) {
+            return RJERROR_WARG(IOP_JERR_EXP_SMTH);
+        }
+        SKIP(1);
+        return IOP_JSON_INTEGER;
+    } else {
+        return RJERROR_WARG(IOP_JERR_EXP_SMTH);
+    }
+}
+
 static int iop_json_lex_str(iop_json_lex_t *ll, int terminator)
 {
     sb_reset(&ll->b);
@@ -575,7 +661,14 @@ static int iop_json_lex(iop_json_lex_t *ll)
       case '@':
                 return EATC();
 
-      case 'a' ... 'z': case 'A' ... 'Z':
+      case 'c': /* string character prefix */
+                c = READAT(1);
+                if (c == '\'' || c == '"') {
+                    SKIP(2);
+                    return iop_json_lex_char(ll, c);
+                }
+                /* FALLTHROUGH */
+      case 'a' ... 'b': case 'd' ... 'z': case 'A' ... 'Z':
                 return iop_json_lex_token(ll);
 
       case '.':
