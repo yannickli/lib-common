@@ -64,7 +64,8 @@ check:: all
 
 tags: $(var/generated)
 syntastic:
-.PHONY: tags syntastic
+jshint:
+.PHONY: tags jshint syntastic
 
 define fun/subdirs-targets
 $(foreach d,$1,
@@ -151,6 +152,11 @@ etags: | __setup_buildsys_trampoline
 		find . -name \*.h -or -name \*.blk                      \
 		       -or \( -name \*.c -and -not -name \*.blk.c \)    \
 			-print0 | xargs -0 etags.emacs -a -l c -
+
+jshint: | __setup_buildsys_trampoline
+	$(MAKEPARALLEL) -C $/ -f $!Makefile jshint
+	@$(if $(shell which jshint),,$(error "Please install jshint: npm install -g jshint"))
+	git ls-files -- '*.js' | xargs jshint
 
 syntastic: | __setup_buildsys_trampoline
 	echo '$(CLANGFLAGS) -I$/lib-common/compat -I$/ $(libxml2_CFLAGS) $(openssl_CFLAGS)' > $/.syntastic_c_config

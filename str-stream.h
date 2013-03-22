@@ -433,6 +433,12 @@ static inline const char *ps_gets(pstream_t *ps, int *len) {
     return res;
 }
 
+static inline lstr_t ps_get_lstr(pstream_t *ps) {
+    int len = 0;
+    const char *s = ps_gets(ps, &len);
+    return LSTR_INIT_V(s, len);
+}
+
 static inline int ps_skipcasedata(pstream_t *ps, const char *s, int len)
 {
     PS_WANT(ps_has(ps, len));
