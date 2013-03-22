@@ -422,6 +422,15 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
     while (p < end) {
         int c = *p++;
 
+        if (plan == GSM_CIMD_PLAN) {
+            if (c == '_') {
+                c = cimd_to_unicode(p, end, &p);
+                if (unlikely(c < 0))
+                    goto invalid;
+            }
+            goto next;
+        }
+
         if (c & 0x80)
             goto invalid;
 
@@ -435,15 +444,7 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
                 goto invalid;
             c |= 0x80;
         }
-        if (plan == GSM_CIMD_PLAN) {
-            if (c == '_') {
-                c = cimd_to_unicode(p, end, &p);
-                if (unlikely(c < 0))
-                    goto invalid;
-            }
-        } else {
-            c = gsm7_to_unicode(c, '.');
-        }
+        c = gsm7_to_unicode(c, '.');
         goto next;
 
       invalid:
@@ -738,6 +739,35 @@ Z_GROUP_EXPORT(conv)
           "conversion with invalid characters");
 
         sb_wipe(&tmp);
+        sb_wipe(&out);
+
+#undef T
+    } Z_TEST_END
+
+    Z_TEST(sb_conv_cimd, "sb conv from cimd") {
+#define T(input, expected, description)      \
+        ({  lstr_t exp = LSTR_IMMED(expected);                               \
+            lstr_t in  = LSTR_IMMED(input);                                  \
+                                                                             \
+            sb_reset(&out);                                                  \
+            sb_conv_from_gsm_plan(&out, in.s, in.len, GSM_CIMD_PLAN);        \
+            Z_ASSERT_LSTREQUAL(exp, LSTR_SB_V(&out), description);           \
+        })
+
+        sb_init(&out);
+
+        /* Example 1 from the spec @£$¥èéùìòç */
+        T("\x40\xA3\x24\xA5\xE8\xE9\xF9\xEC\xF2\xE7",
+          "\x40\xc2\xa3\x24\xc2\xa5\xc3\xa8\xc3\xa9\xc3\xb9\xc3\xac\xc3\xb2"
+          "\xc3\xa7",
+          "Default character conversion over 8-bit wide link");
+
+        /* Example 2 from the spec @£$¥èéùìòç */
+        T("_Oa_L-$_Y-_e`_e'_u`_i`_o`_C,",
+          "\x40\xc2\xa3\x24\xc2\xa5\xc3\xa8\xc3\xa9\xc3\xb9\xc3\xac\xc3\xb2"
+          "\xc3\xa7",
+          "Default character conversion over 7-bit link");
+
         sb_wipe(&out);
 
 #undef T
