@@ -71,11 +71,11 @@ struct MyStructA {
     MyUnionA l;
     double m;
     bool n;
-    int o;
     int p;
     int q;
     int r;
     int s;
+    int t;
 };
 
 struct MyStructAOpt {
@@ -94,11 +94,11 @@ struct MyStructAOpt {
     double? m;
     bool? n;
     MyStructB? o;
-    int? o;
     int? p;
     int? q;
     int? r;
     int? s;
+    int? t;
 };
 
 struct MyStructB {

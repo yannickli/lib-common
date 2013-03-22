@@ -919,11 +919,11 @@ Z_GROUP_EXPORT(iop)
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),
             .m = 3.14159265,
             .n = true,
-            .o = '.',
-            .p = '!',
-            .q = '*',
-            .r = '+',
-            .s = '\t',
+            .p = '.',
+            .q = '!',
+            .r = '*',
+            .s = '+',
+            .t = '\t',
         };
 
         tstiop__my_struct_a__t sa2 = {
@@ -942,11 +942,11 @@ Z_GROUP_EXPORT(iop)
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),
             .m = 3.14159265,
             .n = true,
-            .o = '.',
-            .p = '!',
-            .q = '*',
-            .r = '+',
-            .s = '\t',
+            .p = '.',
+            .q = '!',
+            .r = '*',
+            .s = '+',
+            .t = '\t',
         };
 
         const char json_sa[] =
@@ -970,11 +970,11 @@ Z_GROUP_EXPORT(iop)
             "                   { foo: 42 } ];"
             "    \"m\": .42,\n"
             "    \"n\": true,\n"
-            "    \"o\": c\'.\',\n"
-            "    \"p\": c\'\\041\',\n"
-            "    \"q\": c\'\\x2A\',\n"
-            "    \"r\": c\'\\u002B\',\n"
-            "    \"s\": c\'\\t\'\n"
+            "    \"p\": c\'.\',\n"
+            "    \"q\": c\'\\041\',\n"
+            "    \"r\": c\'\\x2A\',\n"
+            "    \"s\": c\'\\u002B\',\n"
+            "    \"t\": c\'\\t\'\n"
             "};\n"
             ;
 
@@ -1000,11 +1000,11 @@ Z_GROUP_EXPORT(iop)
             "    bar.us: \"union value to skip\",\n"
             "    \"m\": 0.42\n,"
             "    \"n\": true,\n"
-            "    \"o\": c\'.\',\n"
-            "    \"p\": c\'\\041\',\n"
-            "    \"q\": c\'\\x2A\',\n"
-            "    \"r\": c\'\\u002B\',\n"
-            "    \"s\": c\'\\t\'\n"
+            "    \"p\": c\'.\',\n"
+            "    \"q\": c\'\\041\',\n"
+            "    \"r\": c\'\\x2A\',\n"
+            "    \"s\": c\'\\u002B\',\n"
+            "    \"t\": c\'\\t\'\n"
             "};\n"
             ;
 
@@ -1024,11 +1024,11 @@ Z_GROUP_EXPORT(iop)
             .l = IOP_UNION(tstiop__my_union_a, us, LSTR_IMMED("union value")),
             .m = 0.42,
             .n = true,
-            .o = '.',
-            .p = '!',
-            .q = '*',
-            .r = '+',
-            .s = '\t',
+            .p = '.',
+            .q = '!',
+            .r = '*',
+            .s = '+',
+            .t = '\t',
         };
 
         const char json_sf[] =
