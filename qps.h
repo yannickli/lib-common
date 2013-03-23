@@ -39,6 +39,8 @@ extern void qps_enospc(const char *what);
 #define x_writev(...)     qps_io_wrap(xwritev, __VA_ARGS__)
 #define x_pwrite(...)     qps_io_wrap(xpwrite, __VA_ARGS__)
 #define x_munmap(...)     qps_io_wrap(munmap, __VA_ARGS__)
+#define x_fchmodat(...)   qps_io_wrap(fchmodat, __VA_ARGS__)
+#define x_fchmod(...)     qps_io_wrap(fchmod, __VA_ARGS__)
 
 #define x_mmap(...) \
     ({  void *_ptr = mmap(__VA_ARGS__);                      \
