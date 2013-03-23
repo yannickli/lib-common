@@ -1102,12 +1102,12 @@ static void par_qsort_run(thr_job_t *job, thr_syn_t *syn)
 static int test_qsort(bool use_blocks)
 {
     t_scope;
-    const size_t len = Z_HAS_MODE(FAST) ? (8 << 15) : (8 << 20);
+    const size_t len = Z_HAS_MODE(FAST) ? (8 << 10) : (8 << 15);
     uint32_t *vec[thr_parallelism_g];
     thr_syn_t syn;
 
     for (size_t j = 0; j < thr_parallelism_g; j++) {
-        vec[j] = t_new_raw(uint32_t, len);
+        vec[j] = p_new_raw(uint32_t, len);
         srand(0);
         for (size_t i = 0; i < len; i++) {
             vec[j][i] = (rand() << 16) | rand();
@@ -1145,6 +1145,7 @@ static int test_qsort(bool use_blocks)
         for (size_t i = 1; i < len; i++) {
             Z_ASSERT_LE(vec[j][i - 1], vec[j][i]);
         }
+        p_delete(&vec[j]);
     }
 
     Z_HELPER_END;
@@ -1212,10 +1213,10 @@ Z_GROUP_EXPORT(thrjobs) {
 
     Z_TEST(contention, "test contention behavior") {
         struct contention_job jobs[2 * thr_parallelism_g * THR_JOB_MAX];
-        int iterations = 32 << 10;
+        int iterations = 1 << 10;
 
         if (Z_HAS_MODE(FAST)) {
-            iterations = 32 << 5;
+            iterations = 1 << 5;
         }
         if (RUNNING_ON_VALGRIND) {
             iterations /= 10;
