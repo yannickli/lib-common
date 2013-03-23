@@ -618,6 +618,17 @@ int __qps_check_maps(qps_t *qps, bool fatal)
 /** @{ \name Internal: file-backed store helpers */
 /* {{{ */
 
+static int qps_open_temp(qps_t *qps, const char *path)
+{
+    e_named_trace(1, "qps/snapshot", "unlinkat(%s)", path);
+    if (unlinkat(qps->dfd, path, 0) < 0) {
+        if (errno != ENOENT)
+            qps_enospc("unlinkat");
+    }
+    e_named_trace(1, "qps/snapshot", "openat(%s)", path);
+    return x_openat(qps->dfd, path, O_RDWR | O_CREAT | O_EXCL, 0444);
+}
+
 static int qps_smaps_find(qv_t(qpsm) const *tab, const void *addr, bool wantit)
 {
     const qps_map_t *map = qps_map_of(addr);
@@ -869,7 +880,7 @@ static void qps_map_pg_snapshot(qps_t *qps, qps_map_t *map, uint32_t gen)
     assert (qps_map_is_pg(map));
     snprintf(dst, sizeof(dst), "%08x.%08x.qpz", map->hdr.mapno, gen);
     snprintf(buf, sizeof(buf), "%08x.%08x.qpt", map->hdr.mapno, gen);
-    fd  = x_openat(qps->dfd, buf, O_RDWR | O_TRUNC | O_CREAT, 0444);
+    fd = qps_open_temp(qps, buf);
     out = gzdopen(dup(fd), "wb9");
     if (!out)
         qps_enospc("gzdopen");
@@ -918,16 +929,9 @@ static void qps_map_m_snapshot(qps_t *qps, qps_map_t *map, uint32_t gen)
     qps_mhdr_t *blk     = (qps_mhdr_t *)&map[1];
     qps_mhdr_t *blk_end = container_of(map_end, qps_mhdr_t, data);
 
-
     snprintf(buf, sizeof(buf), "%08x.qpt", map->hdr.mapno);
     snprintf(dst, sizeof(dst), "%08x.qps", map->hdr.mapno);
-    e_named_trace(1, "qps/snapshot", "unlinkat(%s)", buf);
-    if (unlinkat(qps->dfd, buf, 0) < 0) {
-        if (errno != ENOENT)
-            qps_enospc("unlinkat");
-    }
-    e_named_trace(1, "qps/snapshot", "openat(%s)", buf);
-    fd = x_openat(qps->dfd, buf, O_WRONLY | O_CREAT | O_EXCL, 0444);
+    fd = qps_open_temp(qps, buf);
     x_ftruncate(fd, QPS_MAP_SIZE);
 
     x_pwrite(fd, map, sizeof(map->hdr), 0);
@@ -1242,7 +1246,7 @@ static void x_write_meta(qps_t *qps, uint32_t generation, const qv_t(u32) t,
     sha1_ctx ctx;
     void *o, *p, *buf;
 
-    fd  = x_openat(qps->dfd, "meta.qpt", O_RDWR | O_CREAT | O_TRUNC, 0444);
+    fd = qps_open_temp(qps, "meta.qpt");
     buf = t_new_raw(char, LZO_BUF_MEM_SIZE);
 
     memcpy(m.sig, QPS_META_SIG, sizeof(QPS_META_SIG));
