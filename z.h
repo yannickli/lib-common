@@ -240,8 +240,11 @@ void _z_helper_failed(const char *file, int lno, const char *expr,
 #define Z_TODO(fmt, ...)  _z_step_todo(fmt, ##__VA_ARGS__)
 
 #define Z_ASSERT(e, ...) \
-    ({  if (_z_assert(__FILE__, __LINE__, #e, (e), ""__VA_ARGS__))        \
-            goto _z_step_end;  })
+    ({  bool _res = (e);                                                  \
+        if (_z_assert(__FILE__, __LINE__, #e, _res, ""__VA_ARGS__))       \
+            goto _z_step_end;                                             \
+        assert (_res);                                                    \
+    })
 
 #define Z_ASSERT_N(e, ...)     Z_ASSERT((e) >= 0, ##__VA_ARGS__)
 #define Z_ASSERT_P(e, ...)     Z_ASSERT((e) != NULL, ##__VA_ARGS__)
@@ -251,9 +254,11 @@ void _z_helper_failed(const char *file, int lno, const char *expr,
 #define Z_ASSERT_CMP(lhs, op, rhs, ...) \
     ({  typeof(lhs) _l = (lhs);                                           \
         typeof(rhs) _r = (rhs);                                           \
-        if (_z_assert_cmp(__FILE__, __LINE__, #op, _l op _r, #lhs,        \
+        bool _res = _l op _r;                                             \
+        if (_z_assert_cmp(__FILE__, __LINE__, #op, _res, #lhs,            \
                           _l, #rhs, _r, ""__VA_ARGS__))                   \
             goto _z_step_end;                                             \
+        assert (_res); /* avoid false positive in clang-analyzer */       \
     })
 #define Z_ASSERT_EQ(lhs, rhs, ...)  Z_ASSERT_CMP(lhs, ==, rhs, ##__VA_ARGS__)
 #define Z_ASSERT_NE(lhs, rhs, ...)  Z_ASSERT_CMP(lhs, !=, rhs, ##__VA_ARGS__)
