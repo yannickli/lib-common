@@ -1798,7 +1798,7 @@ void qhat_tree_enumeration_find_node(qhat_tree_enumerator_t *en, uint32_t key)
     en->path.depth--;
 
     shift   = qhat_depth_shift(hat, en->path.depth);
-    new_key = key + (1U << shift);
+    new_key = key + (1UL << shift);
     if (shift == 32) {
         en->end   = true;
         en->value = NULL;
