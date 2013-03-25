@@ -114,7 +114,11 @@ static void ic_proxify(ichannel_t *pxy_ic, ic_msg_t *msg, int cmd,
         ic->pending--;
         tmp->slot = slot & IC_MSG_SLOT_MASK;
         tmp->cmd  = cmd;
-        memcpy(__ic_get_buf(tmp, dlen), data, dlen);
+        if (data) {
+            memcpy(__ic_get_buf(tmp, dlen), data, dlen);
+        } else {
+            assert (dlen == 0);
+        }
         ic_queue(ic, tmp, 0);
     }
 }
