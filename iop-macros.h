@@ -204,6 +204,8 @@
 /** Set the optional field value. */
 #define IOP_OPT_SET(dst, val)  \
     ({ typeof(dst) *_dst = &(dst); _dst->has_field = true; _dst->v = (val); })
+#define IOP_OPT_GET(_v)  \
+    ({ typeof(_v) __v = (_v); __v->has_field ? &__v->v : NULL; })
 /** Clear the optional field value. */
 #define IOP_OPT_CLR(dst)   (void)((dst).has_field = false)
 /** Set the optional field value if `cond` is fulfilled. */
@@ -372,6 +374,10 @@
     }                                                                        \
     static inline int pfx##__check(pfx##__t *v) {                            \
         return iop_check_constraints(&pfx##__s, (void *)v);                  \
+    }                                                                        \
+    static inline int pfx##__sort(pfx##__t *vec, int len, lstr_t path,       \
+                                  int flags) {                               \
+        return iop_sort(&pfx##__s, (void *)vec, len, path, flags);           \
     }                                                                        \
     \
     /* ---- Binary ---- */                                                   \

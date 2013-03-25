@@ -298,6 +298,18 @@ iop_field_get_constraints_cb(const iop_struct_t *desc,
     return NULL;
 }
 
+static inline int
+__iop_field_find_by_name(const iop_struct_t *desc, const void *s, int len)
+{
+    const iop_field_t *field = desc->fields;
+    for (int i = 0; i < desc->fields_len; i++) {
+        if (len == field->name.len && !memcmp(field->name.s, s, len))
+            return i;
+        field++;
+    }
+    return -1;
+}
+
 __must_check__
 int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc);
 
@@ -336,6 +348,36 @@ void  iop_init(const iop_struct_t *st, void *value);
  * \param[in] v2  Pointer on the IOP structure to be compared with.
  */
 bool  iop_equals(const iop_struct_t *st, const void *v1, const void *v2);
+
+/** Flags for IOP sorter. */
+enum iop_sort_flags {
+    /* Perform a reversed sort */
+    IOP_SORT_REVERSE = (1U << 0),
+    /* Let the IOP objects that do not contain the sorting field at the
+     * beginning of the vector (otherwise they are left at the end)
+     */
+    IOP_SORT_NULL_FIRST = (1U << 1),
+};
+
+/** Sort a vector of IOP structures or unions based on a given field or
+ *  subfield of reference. The comparison function is the canonical comparison
+ *  associated to the type of field.
+ *
+ * Prefer the generated version instead of this low-level API (see IOP_GENERIC
+ * in iop-macros.h).
+ *
+ *  \param[in] st          The IOP structure definition (__s).
+ *  \param[in] vec         Array of objects to sort
+ *  \param[in] len         Length of the array
+ *  \param[in] field_path  Path of the field of reference for sorting,
+ *                         containing the names of the fields and subfield,
+ *                         separated by dots
+ *                         Example: "field.subfield1.subfield2"
+ *  \param[in] flags       Binary combination of sorting flags (see enum
+ *                         iop_sort_flags)
+ */
+int iop_sort(const iop_struct_t *st, void *vec, int len,
+             lstr_t field_path, int flags);
 
 /** Duplicate an IOP structure.
  *
