@@ -99,7 +99,7 @@ Z_GROUP(endianess)
 
 int main(int argc, const char **argv)
 {
-    argc = z_setup(argc, argv);
+    z_setup(argc, argv);
     z_register_exports("lib-common/");
     z_register_group(z_bit_buf);
     z_register_group(z_endianess);
