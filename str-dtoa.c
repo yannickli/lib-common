@@ -491,7 +491,7 @@ Balloc
             pmem_next += len;
         }
         else
-            rv = (Bigint*)MALLOC(len*sizeof(double));
+            rv = (Bigint*)MALLOC(len*sizeof(Bigint));
 #endif
         rv->k = k;
         rv->maxwds = x;
