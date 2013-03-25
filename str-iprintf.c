@@ -629,7 +629,6 @@ static int fmt_output(FILE *stream, char *str, size_t size,
 
         case 'd':
         case 'i':
-            sign = 0;
             switch (type_flags) {
                 int int_value;
 
@@ -958,10 +957,17 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                     goto has_string_len;
                 }
                 if (!finite(fpvalue)) {
-                    if (fpvalue < 0)
-                        sign = '-';
-                    lp = "Inf";
-                    len = 3;
+                    if (fpvalue < 0) {
+                        lp  = "-Inf";
+                        len = 4;
+                    } else
+                    if (flags & FLAG_PLUS) {
+                        lp  = "+Inf";
+                        len = 4;
+                    } else {
+                        lp = "Inf";
+                        len = 3;
+                    }
                     goto has_string_len;
                 }
 
