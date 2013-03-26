@@ -29,22 +29,9 @@ GENERIC_NEW_INIT(property_t, property);
 GENERIC_DELETE(property_t, property);
 qvector_t(props, property_t *);
 
-static inline void props_array_wipe(qv_t(props) *arr)
-{
-    qv_for_each_pos(props, pos, arr)
-        property_delete(&arr->tab[pos]);
-    qv_wipe(props, arr);
-}
-GENERIC_DELETE(qv_t(props), props_array);
-
 const char *
 property_findval(const qv_t(props) *arr, const char *k, const char *def);
 
-void props_array_qsort(qv_t(props) *arr);
-void props_array_filterout(qv_t(props) *arr, const char **blacklisted);
-
 int props_from_fmtv1_cstr(const char *buf, qv_t(props) *props);
-
-void props_array_dup(qv_t(props) *to, const qv_t(props) *from);
 
 #endif /* IS_LIB_COMMON_PROPERTY_H */

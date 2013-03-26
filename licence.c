@@ -219,6 +219,11 @@ int read_cpu_signature(uint32_t *dst)
     }
 }
 
+static int property_cmp(property_t * const *a, property_t * const *b)
+{
+    return strcmp((*a)->name, (*b)->name);
+}
+
 int licence_do_signature(const conf_t *conf, char dst[65])
 {
     int version;
@@ -247,9 +252,19 @@ int licence_do_signature(const conf_t *conf, char dst[65])
     }
 
     qv_init(props, &tosign);
-    props_array_dup(&tosign, &s->vals);
-    props_array_filterout(&tosign, blacklisted);
-    props_array_qsort(&tosign);
+    qv_copy(props, &tosign, &s->vals);
+
+    qv_for_each_pos_safe(props, i, &tosign) {
+        property_t *prop = tosign.tab[i];
+
+        for (const char **bl = blacklisted; *bl; bl++) {
+            if (strequal(prop->name, *bl)) {
+                qv_remove(props, &tosign, i);
+                break;
+            }
+        }
+    }
+    qv_qsort(props, &tosign, property_cmp);
 
     /* XXX: version 1 is weak.
      */
@@ -296,7 +311,7 @@ int licence_do_signature(const conf_t *conf, char dst[65])
     len = snprintf(buf, sizeof(buf), "%04X%04X%04X%04X", k0, k1, k2, k3);
     sha2_update(&ctx, buf, len);
     sha2_finish_hex(&ctx, dst);
-    props_array_wipe(&tosign);
+    qv_wipe(props, &tosign);
 //    printf("signature = %s\n", dst);
     return 0;
 }
