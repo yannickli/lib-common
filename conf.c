@@ -23,7 +23,7 @@ static conf_section_t *conf_section_init(conf_section_t *section)
 static void conf_section_wipe(conf_section_t *section)
 {
     p_delete(&section->name);
-    props_array_wipe(&section->vals);
+    qv_deep_wipe(props, &section->vals, property_delete);
 }
 GENERIC_NEW(conf_section_t, conf_section);
 GENERIC_DELETE(conf_section_t, conf_section);
@@ -31,9 +31,7 @@ GENERIC_DELETE(conf_section_t, conf_section);
 GENERIC_NEW_INIT(conf_t, conf);
 static void conf_wipe(conf_t *conf)
 {
-    qv_for_each_pos_safe(conf_section, pos, conf)
-        conf_section_delete(&conf->tab[pos]);
-    qv_wipe(conf_section, conf);
+    qv_deep_wipe(conf_section, conf, conf_section_delete);
 }
 DO_DELETE(conf_t, conf);
 
