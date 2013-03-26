@@ -16,6 +16,16 @@
 
 #include <Python.h>
 
+#if PY_MAJOR_VERSION >= 3
+#define IS_PY3K
+#endif
+
+#ifdef IS_PY3K
+#define py_INITERROR return NULL
+#else
+#define py_INITERROR return
+#endif
+
 extern PyThreadState *python_state_g;
 
 PyObject *python_common_initialize(const char *name, PyMethodDef methods[]);

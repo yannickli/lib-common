@@ -1742,4 +1742,202 @@ Z_GROUP_EXPORT(iop)
         iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
+    Z_TEST(iop_sort, "test IOP structures/unions sorting") { /* {{{ */
+        qv_t(my_struct_a) vec;
+        tstiop__my_struct_a__t a;
+        qv_t(my_struct_a_opt) vec2;
+        tstiop__my_struct_a_opt__t a2;
+        tstiop__my_struct_b__t b1, b2;
+        tstiop__my_struct_m__t m;
+        qv_t(my_struct_m)  mvec;
+
+        qv_init(my_struct_a, &vec);
+        tstiop__my_struct_a__init(&a);
+
+        a.e = 1;
+        a.j = LSTR_IMMED_V("xyz");
+        a.l = IOP_UNION(tstiop__my_union_a, ua, 111);
+        qv_append(my_struct_a, &vec, a);
+        a.e = 2;
+        a.j = LSTR_IMMED_V("abc");
+        a.l = IOP_UNION(tstiop__my_union_a, ua, 666);
+        qv_append(my_struct_a, &vec, a);
+        a.e = 3;
+        a.j = LSTR_IMMED_V("Jkl");
+        a.l = IOP_UNION(tstiop__my_union_a, ua, 222);
+        qv_append(my_struct_a, &vec, a);
+        a.e = 3;
+        a.j = LSTR_IMMED_V("jKl");
+        a.l = IOP_UNION(tstiop__my_union_a, ub, 23);
+        qv_append(my_struct_a, &vec, a);
+        a.e = 3;
+        a.j = LSTR_IMMED_V("jkL");
+        a.l = IOP_UNION(tstiop__my_union_a, ub, 42);
+        qv_append(my_struct_a, &vec, a);
+
+#define TST_SORT_VEC(p, f)  tstiop__my_struct_a__sort(vec.tab, vec.len, p, f)
+
+        /* reverse sort on short e */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("e"), IOP_SORT_REVERSE));
+        Z_ASSERT_EQ(vec.tab[0].e, 3);
+        Z_ASSERT_EQ(vec.tab[4].e, 1);
+
+        /* sort on string j */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("j"), 0));
+        Z_ASSERT_LSTREQUAL(vec.tab[0].j, LSTR_IMMED_V("abc"));
+        Z_ASSERT_LSTREQUAL(vec.tab[4].j, LSTR_IMMED_V("xyz"));
+
+        /* sort on union l */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("l"), 0));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[0].l, ua));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[4].l, ub));
+
+        /* sort on int ua, member of union l */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("l.ua"), 0));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[0].l, ua));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[1].l, ua));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[2].l, ua));
+        Z_ASSERT_EQ(vec.tab[0].l.ua, 111);
+        Z_ASSERT_EQ(vec.tab[1].l.ua, 222);
+        Z_ASSERT_EQ(vec.tab[2].l.ua, 666);
+
+        /* reverse sort on int ua, member of union l */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("l.ua"), IOP_SORT_REVERSE));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[0].l, ua));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[1].l, ua));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[2].l, ua));
+        Z_ASSERT_EQ(vec.tab[0].l.ua, 666);
+        Z_ASSERT_EQ(vec.tab[1].l.ua, 222);
+        Z_ASSERT_EQ(vec.tab[2].l.ua, 111);
+
+        /* sort on int ua, member of union l, put other union members first */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("l.ua"), IOP_SORT_NULL_FIRST));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[0].l, ub));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[1].l, ub));
+        Z_ASSERT_EQ(vec.tab[2].l.ua, 111);
+        Z_ASSERT_EQ(vec.tab[3].l.ua, 222);
+        Z_ASSERT_EQ(vec.tab[4].l.ua, 666);
+
+        /* reverse sort on int ua, member of union l, put other union members
+         * first */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("l.ua"),
+                                IOP_SORT_NULL_FIRST | IOP_SORT_REVERSE));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[0].l, ub));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[1].l, ub));
+        Z_ASSERT_EQ(vec.tab[2].l.ua, 666);
+        Z_ASSERT_EQ(vec.tab[3].l.ua, 222);
+        Z_ASSERT_EQ(vec.tab[4].l.ua, 111);
+
+        /* sort on byte ub, member of union l, put other union members first */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("l.ub"), IOP_SORT_NULL_FIRST));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[0].l, ua));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[1].l, ua));
+        Z_ASSERT_P(IOP_UNION_GET(tstiop__my_union_a, &vec.tab[2].l, ua));
+        Z_ASSERT_EQ(vec.tab[3].l.ua, 23);
+        Z_ASSERT_EQ(vec.tab[4].l.ua, 42);
+
+        /* error: empty field path */
+        Z_ASSERT_NEG(TST_SORT_VEC(LSTR_IMMED_V(""), 0));
+        /* error: invalid field path */
+        Z_ASSERT_NEG(TST_SORT_VEC(LSTR_IMMED_V("."), 0));
+        /* error: bar field does not exist */
+        Z_ASSERT_NEG(TST_SORT_VEC(LSTR_IMMED_V("bar"), 0));
+        /* error: htab is a repeated field */
+        Z_ASSERT_NEG(TST_SORT_VEC(LSTR_IMMED_V("htab"), 0));
+
+        qv_wipe(my_struct_a, &vec);
+#undef TST_SORT_VEC
+
+        qv_init(my_struct_a_opt, &vec2);
+        tstiop__my_struct_a_opt__init(&a2);
+
+        qv_append(my_struct_a_opt, &vec2, a2);
+        IOP_OPT_SET(a2.a, 42);
+        qv_append(my_struct_a_opt, &vec2, a2);
+        IOP_OPT_SET(a2.a, 43);
+        qv_append(my_struct_a_opt, &vec2, a2);
+        IOP_OPT_CLR(a2.a);
+        a2.j = LSTR_IMMED_V("abc");
+        a2.l = &IOP_UNION(tstiop__my_union_a, ua, 222);
+        qv_append(my_struct_a_opt, &vec2, a2);
+        a2.j = LSTR_IMMED_V("def");
+        a2.l = &IOP_UNION(tstiop__my_union_a, ub, 222);
+        qv_append(my_struct_a_opt, &vec2, a2);
+        a2.l = &IOP_UNION(tstiop__my_union_a, us, LSTR_IMMED_V("xyz"));
+        qv_append(my_struct_a_opt, &vec2, a2);
+
+        tstiop__my_struct_b__init(&b1);
+        IOP_OPT_SET(b1.a, 42);
+        a2.o = &b1;
+        qv_append(my_struct_a_opt, &vec2, a2);
+
+        tstiop__my_struct_b__init(&b2);
+        IOP_OPT_SET(b2.a, 72);
+        a2.o = &b2;
+        qv_append(my_struct_a_opt, &vec2, a2);
+
+#define TST_SORT_VEC(p, f)  tstiop__my_struct_a_opt__sort(vec2.tab, vec2.len, p, f)
+
+        /* sort on optional int a */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("a"), 0));
+        Z_ASSERT_EQ(IOP_OPT_VAL(vec2.tab[0].a), 42);
+        Z_ASSERT_EQ(IOP_OPT_VAL(vec2.tab[1].a), 43);
+        Z_ASSERT(!IOP_OPT_ISSET(vec2.tab[2].a));
+        Z_ASSERT(!IOP_OPT_ISSET(vec2.tab[3].a));
+        Z_ASSERT(!IOP_OPT_ISSET(vec2.tab[4].a));
+        Z_ASSERT(!IOP_OPT_ISSET(vec2.tab[5].a));
+
+        /* sort on optional string j */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("j"), 0));
+        Z_ASSERT_LSTREQUAL(vec2.tab[0].j, LSTR_IMMED_V("abc"));
+        Z_ASSERT_LSTREQUAL(vec2.tab[1].j, LSTR_IMMED_V("def"));
+
+        /* sort on optional union l */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("l"), 0));
+        Z_ASSERT_EQ(vec2.tab[0].l->ua, 222);
+
+        /* sort on optional int a, member of optional struct MyStructB o */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("o.a"), 0));
+        Z_ASSERT_EQ(IOP_OPT_VAL(vec2.tab[0].o->a), 42);
+        Z_ASSERT_EQ(IOP_OPT_VAL(vec2.tab[1].o->a), 72);
+
+        /* error: cannot sort on struct */
+        Z_ASSERT_NEG(TST_SORT_VEC(LSTR_IMMED_V("o"), 0));
+
+        qv_wipe(my_struct_a_opt, &vec2);
+#undef TST_SORT_VEC
+
+        qv_init(my_struct_m, &mvec);
+        tstiop__my_struct_m__init(&m);
+
+        m.k.j.cval = 5;
+        m.k.j.b = IOP_UNION(tstiop__my_union_b, bval, 55);
+        qv_append(my_struct_m, &mvec, m);
+        m.k.j.cval = 4;
+        m.k.j.b = IOP_UNION(tstiop__my_union_b, bval, 44);
+        qv_append(my_struct_m, &mvec, m);
+        m.k.j.cval = 3;
+        m.k.j.b = IOP_UNION(tstiop__my_union_b, bval, 33);
+        qv_append(my_struct_m, &mvec, m);
+
+#define TST_SORT_VEC(p, f)  tstiop__my_struct_m__sort(mvec.tab, mvec.len, p, f)
+
+        /* sort on int cval from MyStructJ j from MyStructK k */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("k.j.cval"), 0));
+        Z_ASSERT_EQ(mvec.tab[0].k.j.cval, 3);
+        Z_ASSERT_EQ(mvec.tab[1].k.j.cval, 4);
+        Z_ASSERT_EQ(mvec.tab[2].k.j.cval, 5);
+
+        /* sort on int bval from MyUnionB b from MyStructJ j from MyStructK k
+         */
+        Z_ASSERT_N(TST_SORT_VEC(LSTR_IMMED_V("k.j.b.bval"), 0));
+        Z_ASSERT_EQ(mvec.tab[0].k.j.b.bval, 33);
+        Z_ASSERT_EQ(mvec.tab[1].k.j.b.bval, 44);
+        Z_ASSERT_EQ(mvec.tab[2].k.j.b.bval, 55);
+
+        qv_wipe(my_struct_m, &mvec);
+#undef TST_SORT_VEC
+
+    } Z_TEST_END;
+    /* }}} */
 } Z_GROUP_END
