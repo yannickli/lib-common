@@ -833,13 +833,12 @@ void *asn1_opt_field_w(void *field, enum obj_type type, bool has_field)
     }
 }
 
-/** \brief Skip an ASN.1 field recursively supporting indefinite lengths.
+/** \brief Get an ASN.1 field recursively supporting indefinite lengths.
  *  \note This function is designed for ASN.1 fields without description.
  *  XXX No support of exact field size constraint, this type of field
  *      would cause unpacking fail or very unlikely fantasist data.
  */
-static int asn1_skip_field(pstream_t *ps, bool indef_father,
-                           pstream_t *sub_ps)
+static int asn1_get_field(pstream_t *ps, bool indef_father, pstream_t *sub_ps)
 {
     uint32_t data_size;
     int n_eoc = indef_father ? 1: 0;
@@ -887,6 +886,11 @@ static int asn1_skip_field(pstream_t *ps, bool indef_father,
     return 0;
 }
 
+int asn1_skip_field(pstream_t *ps)
+{
+    return asn1_get_field(ps, false, NULL);
+}
+
 static int asn1_unpack_rec(pstream_t *ps, const asn1_desc_t *desc,
                            mem_pool_t *mem_pool, int depth, void *st,
                            bool copy, bool indef_len);
@@ -901,9 +905,9 @@ static int asn1_unpack_value(pstream_t *ps, const asn1_field_t *spec,
 
     switch (spec->type) {
       case ASN1_OBJ_TYPE(SKIP):
-        return asn1_skip_field(ps, false, NULL);
+        return asn1_get_field(ps, false, NULL);
       case ASN1_OBJ_TYPE(OPEN_TYPE):
-        RETHROW(asn1_skip_field(ps, false, &field_ps));
+        RETHROW(asn1_get_field(ps, false, &field_ps));
         data_size = ps_len(&field_ps);
         indef_len = false;
         break;
@@ -1012,7 +1016,7 @@ static int asn1_unpack_value(pstream_t *ps, const asn1_field_t *spec,
         ((asn1_ext_t *)dt)->has_value = true;
 
         if (indef_len) {
-            RETHROW(asn1_skip_field(&field_ps, true,
+            RETHROW(asn1_get_field(&field_ps, true,
                                     &((asn1_ext_t *)dt)->value));
         } else {
             ((asn1_ext_t *)dt)->value = field_ps;

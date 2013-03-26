@@ -680,6 +680,43 @@ Z_GROUP_EXPORT(asn1_ber)
         Z_ASSERT_EQ(il.t.i2, 0x0);
     } Z_TEST_END;
 
+    Z_TEST(asn1_skip_field, "asn1: asn1_skip_field()") {
+        t_scope;
+
+        static const uint8_t fields[] = {
+            0x01, 0x02, 0xab, 0xcd,
+            0xa1, 0x80, 0x01, 0x01, 0x02,
+                        0x01, 0x02, 0xfe, 0xdc,
+                        0x00, 0x00,
+            0x04, 0x81, 0xa2, 0x01,
+        };
+        byte *long_field;
+        int vlen;
+
+        ps = ps_init(fields, sizeof(fields));
+
+        /* Normal field */
+        Z_ASSERT_N(asn1_skip_field(&ps));
+        Z_ASSERT(ps.b == &fields[4]);
+
+        /* Indefinite length */
+        Z_ASSERT_N(asn1_skip_field(&ps));
+        Z_ASSERT(ps.b == &fields[15]);
+
+        /* Value length > 127 - Error: stream end */
+        Z_ASSERT_NEG(asn1_skip_field(&ps));
+
+        /* Value length > 127 */
+        vlen = 0xa2;
+        long_field = t_new(byte, 3 + vlen);
+        long_field[0] = 0x04;
+        long_field[1] = 0x81;
+        long_field[2] = vlen;
+        ps = ps_init(long_field, 3 + vlen);
+        Z_ASSERT_N(asn1_skip_field(&ps));
+        Z_ASSERT(ps_done(&ps));
+    } Z_TEST_END;
+
     qv_wipe(i32, &stack);
 } Z_GROUP_END
 

@@ -401,6 +401,9 @@ void asn1_build_choice_table(asn1_choice_desc_t *desc);
 
 const char *t_asn1_oid_print(const asn1_data_t *oid);
 
+/** \brief Skips an ASN.1 BER field */
+int asn1_skip_field(pstream_t *ps);
+
 /* Private */
 const void *asn1_opt_field(const void *field, enum obj_type type);
 void *asn1_opt_field_w(void *field, enum obj_type type, bool has_field);
