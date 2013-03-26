@@ -188,8 +188,10 @@ static void *sp_realloc(mem_pool_t *_sp, void *mem,
         res = mem;
     } else {
         res = sp_alloc(_sp, size, flags | MEM_RAW);
-        memcpy(res, mem, oldsize);
-        (void)VALGRIND_MAKE_MEM_NOACCESS(mem, oldsize);
+        if (mem != NULL) {
+            memcpy(res, mem, oldsize);
+            (void)VALGRIND_MAKE_MEM_NOACCESS(mem, oldsize);
+        }
     }
     if (!(flags & MEM_RAW))
         p_clear(res + oldsize, asked - oldsize);
