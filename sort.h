@@ -66,4 +66,34 @@ bool    contains_blk(const void *what, const void *data, size_t size,
                      size_t nmemb, cmp_b cmp);
 #endif
 
+typedef int (*cmp_f)(const void *a, const void *b);
+
+#define SORT_DEF(sfx, type_t, cmp)                                          \
+static inline int cmp_##sfx(const void *p1, const void *p2) {               \
+    return cmp(*(const type_t *)p1, *(const type_t *)p2);                   \
+}                                                                           \
+static inline int cmp_rev_##sfx(const void *p1, const void *p2) {           \
+    return cmp(*(const type_t *)p2, *(const type_t *)p1);                   \
+}
+
+SORT_DEF(i8,     int8_t,   CMP);
+SORT_DEF(u8,     uint8_t,  CMP);
+SORT_DEF(i16,    int16_t,  CMP);
+SORT_DEF(u16,    uint16_t, CMP);
+SORT_DEF(i32,    int32_t,  CMP);
+SORT_DEF(u32,    uint32_t, CMP);
+SORT_DEF(i64,    int64_t,  CMP);
+SORT_DEF(u64,    uint64_t, CMP);
+SORT_DEF(bool,   bool,     CMP);
+SORT_DEF(double, double,   CMP);
+
+#undef SORT_DEF
+
+static inline int cmp_lstr_iutf8(const void *s1, const void *s2) {
+    return lstr_utf8_icmp((const lstr_t *)s1, (const lstr_t *)s2);
+}
+static inline int cmp_rev_lstr_iutf8(const void *s1, const void *s2) {
+    return lstr_utf8_icmp((const lstr_t *)s2, (const lstr_t *)s1);
+}
+
 #endif

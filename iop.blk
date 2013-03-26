@@ -15,6 +15,8 @@
 #include "iop.h"
 #include "iop-helpers.inl.c"
 #include "thr.h"
+#include "container.h"
+#include "sort.h"
 
 static void
 iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
@@ -375,7 +377,246 @@ iop_field_is_defval(const iop_field_t *fdesc, const void *ptr)
     }
 }
 
-/*----- duplicating values -}}}-*/
+/*----- comparing values -}}}-*/
+/*----- sorting values -{{{-*/
+
+/* {{{ Field path */
+
+typedef struct field_step_t {
+    uint16_t offset;
+    uint16_t union_tag;
+    flag_t   is_union   : 1;
+} field_step_t;
+GENERIC_INIT(field_step_t, field_step);
+
+qvector_t(field_step, field_step_t);
+
+typedef struct field_path_t {
+    qv_t(field_step)    steps;
+    const iop_field_t  *fdesc;
+} field_path_t;
+GENERIC_FUNCTIONS(field_path_t, field_path);
+
+/* {{{ Get */
+
+static const void *
+iop_get_fieldp(const void *data, const field_path_t *field_path)
+{
+    const qv_t(field_step)  *steps = &field_path->steps;
+    const iop_field_t       *fdesc = field_path->fdesc;
+
+    RETHROW_P(data);
+
+    for (int i = 0; i < steps->len - 1; i++) {
+        field_step_t *step = &steps->tab[i];
+
+        data = ((const byte *)data) + step->offset;
+
+        if (step->is_union) {
+            /* Check if the selected member of the union is the one we want
+             * (the one specified in field_path), and if not this object is
+             * considered as NULL in the sort */
+            if (*(const uint16_t *)data != step->union_tag) {
+                return NULL;
+            }
+        } else {
+            /* Pointed structure or union (optional) */
+            data = RETHROW_P(*((void **)data));
+        }
+    }
+
+    data = ((const byte *)data) + qv_last(field_step, steps)->offset;
+
+    /* XXX we sort union based on the union tag */
+    if (fdesc->type == IOP_T_UNION) {
+        return (const uint16_t *)data;
+    }
+
+    if (fdesc->repeat != IOP_R_OPTIONAL) {
+        return data;
+    }
+
+    switch (fdesc->type) {
+      case IOP_T_I8:
+      case IOP_T_U8:
+        return IOP_OPT_GET((const iop_opt_u8_t *)data);
+      case IOP_T_I16:
+      case IOP_T_U16:
+        return IOP_OPT_GET((const iop_opt_u16_t *)data);
+      case IOP_T_ENUM:
+      case IOP_T_I32:
+      case IOP_T_U32:
+        return IOP_OPT_GET((const iop_opt_u32_t *)data);
+      case IOP_T_I64:
+      case IOP_T_U64:
+        return IOP_OPT_GET((const iop_opt_u64_t *)data);
+      case IOP_T_BOOL:
+        return IOP_OPT_GET((const iop_opt_bool_t *)data);
+      case IOP_T_DOUBLE:
+        return IOP_OPT_GET((const iop_opt_double_t *)data);
+      case IOP_T_STRING:
+      case IOP_T_XML:
+      case IOP_T_DATA:
+        return ((const lstr_t *)data)->s ? data : NULL;
+      default:
+        assert (false);
+        return NULL;
+    }
+}
+
+/* }}} */
+/* {{{ Compile */
+
+static int
+t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
+                         field_path_t *fp)
+{
+    const iop_field_t *fdesc = NULL;
+    pstream_t field_path_ps = ps_initlstr(&field_path_s);
+    const iop_struct_t *it = st;
+    field_step_t *step;
+
+    if (ps_done(&field_path_ps)) {
+        return e_error("iop_sort: cannot process empty field path");
+    }
+    step = field_step_init(qv_growlen(field_step, &fp->steps, 1));
+    while (!ps_done(&field_path_ps)) {
+        pstream_t fname;
+        int ifield;
+
+        if (ps_get_ps_chr_and_skip(&field_path_ps, '.', &fname) < 0) {
+            fname = field_path_ps;
+            __ps_skip_upto(&field_path_ps, field_path_ps.p_end);
+        }
+
+        if (ps_done(&fname)) {
+            return e_error("iop_sort: cannot process field path `%*pM', "
+                           "abnormal termination",
+                           LSTR_FMT_ARG(field_path_s));
+        }
+
+        ifield = __iop_field_find_by_name(it, fname.s, ps_len(&fname));
+        if (ifield < 0) {
+            return e_error("iop_sort: cannot process field path `%*pM', "
+                           "field `%*pM' is unknown",
+                           LSTR_FMT_ARG(field_path_s), PS_FMT_ARG(&fname));
+        }
+
+        fdesc = it->fields + ifield;
+        if (fdesc->repeat == IOP_R_REPEATED) {
+            /* XXX we could also sort the repeated fields based on their
+             * number of elements
+             */
+            return e_error("iop_sort: cannot process field path `%*pM', "
+                           "field `%*pM' is repeated",
+                           LSTR_FMT_ARG(field_path_s), PS_FMT_ARG(&fname));
+        }
+        if (it->is_union) {
+            step->is_union = true;
+            step->union_tag = fdesc->tag;
+            step = field_step_init(qv_growlen(field_step, &fp->steps, 1));
+        }
+
+        step->offset += fdesc->data_offs;
+        if (fdesc->type == IOP_T_STRUCT || fdesc->type == IOP_T_UNION) {
+            it = fdesc->u1.st_desc;
+
+            if (fdesc->repeat == IOP_R_OPTIONAL) {
+                step = field_step_init(qv_growlen(field_step, &fp->steps, 1));
+            }
+        }
+    }
+
+    fp->fdesc = fdesc;
+
+    return 0;
+}
+
+/* }}} */
+
+/* }}} */
+/* {{{ cmp functions */
+
+static cmp_f const iop_cmp_funs[] = {
+    [IOP_T_I8]          = &cmp_i8,
+    [IOP_T_U8]          = &cmp_u8,
+    [IOP_T_I16]         = &cmp_i16,
+    [IOP_T_U16]         = &cmp_u16,
+    [IOP_T_ENUM]        = &cmp_i32,
+    [IOP_T_I32]         = &cmp_i32,
+    [IOP_T_U32]         = &cmp_u32,
+    [IOP_T_I64]         = &cmp_i64,
+    [IOP_T_U64]         = &cmp_u64,
+    [IOP_T_BOOL]        = &cmp_bool,
+    [IOP_T_DOUBLE]      = &cmp_double,
+    [IOP_T_UNION]       = &cmp_u16,
+    [IOP_T_STRING]      = &cmp_lstr_iutf8,
+    [IOP_T_XML]         = &cmp_lstr_iutf8,
+    [IOP_T_DATA]        = &cmp_lstr_iutf8,
+};
+static cmp_f const iop_cmp_rev_funs[] = {
+    [IOP_T_I8]          = &cmp_rev_i8,
+    [IOP_T_U8]          = &cmp_rev_u8,
+    [IOP_T_I16]         = &cmp_rev_i16,
+    [IOP_T_U16]         = &cmp_rev_u16,
+    [IOP_T_ENUM]        = &cmp_rev_i32,
+    [IOP_T_I32]         = &cmp_rev_i32,
+    [IOP_T_U32]         = &cmp_rev_u32,
+    [IOP_T_I64]         = &cmp_rev_i64,
+    [IOP_T_U64]         = &cmp_rev_u64,
+    [IOP_T_BOOL]        = &cmp_rev_bool,
+    [IOP_T_DOUBLE]      = &cmp_rev_double,
+    [IOP_T_UNION]       = &cmp_rev_u16,
+    [IOP_T_STRING]      = &cmp_rev_lstr_iutf8,
+    [IOP_T_XML]         = &cmp_rev_lstr_iutf8,
+    [IOP_T_DATA]        = &cmp_rev_lstr_iutf8,
+};
+
+/*}}}*/
+
+int iop_sort(const iop_struct_t *st, void *vec, int len,
+             lstr_t field_path_s, int flags)
+{
+    t_scope;
+    field_path_t fp;
+    cmp_f cmp;
+
+    field_path_init(&fp);
+    t_qv_init(field_step, &fp.steps, 16);
+    if (t_iop_compile_field_path(st, field_path_s, &fp) < 0) {
+        return -1;
+    }
+
+    if (fp.fdesc == NULL) {
+        return e_error("iop_sort: no field specified");
+    }
+    if (fp.fdesc->type == IOP_T_STRUCT) {
+        return e_error("iop_sort: cannot sort on struct");
+    }
+
+    if (flags & IOP_SORT_REVERSE) {
+        cmp = iop_cmp_rev_funs[fp.fdesc->type];
+    } else {
+        cmp = iop_cmp_funs[fp.fdesc->type];
+    }
+
+    __qv_sort(vec, st->size, len,
+    ^int (const void *d1, const void *d2) {
+        d1 = iop_get_fieldp(d1, &fp);
+        d2 = iop_get_fieldp(d2, &fp);
+        if (d1 == d2)
+            return 0;
+        if (d1 == NULL)
+            return (flags & IOP_SORT_NULL_FIRST) ? -1 : 1;
+        if (d2 == NULL)
+            return (flags & IOP_SORT_NULL_FIRST) ? 1 : -1;
+        return (*cmp)(d1, d2);
+    });
+
+    return 0;
+}
+
+/* }}} */
 /*----- hashing values -{{{-*/
 
 struct iop_hash_ctx {

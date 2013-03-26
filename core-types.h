@@ -106,6 +106,8 @@ typedef opt_bool_t         opt__Bool_t;
 #define OPT_DEFVAL(_v, _defval)                       \
     ({ typeof(_v) __v = (_v);                         \
        (__v).has_field ? (__v).v : (_defval); })
+#define OPT_GET(_v)  \
+    ({ typeof(_v) __v = (_v); __v->has_field ? &__v->v : NULL; })
 
 /** Set the optional field value. */
 #define OPT_SET(dst, val)  \

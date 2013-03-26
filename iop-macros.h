@@ -208,6 +208,7 @@
 #define IOP_OPT_ISSET(...)   OPT_ISSET(__VA_ARGS__)
 #define IOP_OPT_VAL(...)     OPT_VAL(__VA_ARGS__)
 #define IOP_OPT_DEFVAL(...)  OPT_DEFVAL(__VA_ARGS__)
+#define IOP_OPT_GET(...)     OPT_GET(__VA_ARGS__)
 #define IOP_OPT_SET(...)     OPT_SET(__VA_ARGS__)
 #define IOP_OPT_CLR(...)     OPT_CLR(__VA_ARGS__)
 #define IOP_OPT_SET_IF(...)  OPT_SET_IF(__VA_ARGS__)
@@ -363,6 +364,10 @@
     }                                                                        \
     static inline int pfx##__check(pfx##__t *v) {                            \
         return iop_check_constraints(&pfx##__s, (void *)v);                  \
+    }                                                                        \
+    static inline int pfx##__sort(pfx##__t *vec, int len, lstr_t path,       \
+                                  int flags) {                               \
+        return iop_sort(&pfx##__s, (void *)vec, len, path, flags);           \
     }                                                                        \
     \
     /* ---- Binary ---- */                                                   \
