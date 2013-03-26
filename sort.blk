@@ -192,7 +192,7 @@ Z_GROUP_EXPORT(sort) {
             uint64_t v[countof(vals64)];
             size_t   len = 0;
 
-            p_copy(&v, &vals64, 1);
+            p_copy(v, vals64, countof(vals64));
             dsort64(v, i);
             Z_ASSERT_EQUAL(sorted64[i], i, v, i);
             len = uniq64(v, i);
@@ -379,7 +379,7 @@ Z_GROUP_EXPORT(sort) {
             uint64_t v[countof(vals64)];
             size_t   len = 0;
 
-            p_copy(&v, &vals64, 1);
+            p_copy(v, vals64, countof(vals64));
             dsort64(v, i);
             Z_ASSERT_EQUAL(sorted64[i], i, v, i);
             len = uniq(v, 8, i, &u64_cmp, NULL);

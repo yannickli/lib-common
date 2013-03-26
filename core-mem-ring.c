@@ -236,8 +236,10 @@ static void *rp_realloc(mem_pool_t *_rp, void *mem,
         res = mem;
     } else {
         res = rp_alloc(_rp, size, flags | MEM_RAW);
-        memcpy(res, mem, oldsize);
-        (void)VALGRIND_MAKE_MEM_UNDEFINED(mem, oldsize);
+        if (mem != NULL) {
+            memcpy(res, mem, oldsize);
+            (void)VALGRIND_MAKE_MEM_UNDEFINED(mem, oldsize);
+        }
     }
     if (!(flags & MEM_RAW))
         memset(res + oldsize, 0, size - oldsize);
