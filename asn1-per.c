@@ -1410,7 +1410,7 @@ t_aper_decode_sequence(bit_stream_t *bs, const asn1_desc_t *desc,
             }
 
             v = t_alloc_if_pointed(field, st);
-            v = asn1_opt_field_w(v, field->type, true);
+            v = asn1_opt_field_w(GET_PTR(st, field, void), field->type, true);
         } else {
             assert (field->mode != ASN1_OBJ_MODE(SEQ_OF));
 
