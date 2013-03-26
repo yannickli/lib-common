@@ -1177,9 +1177,11 @@ static int asn1_unpack_field(pstream_t *ps, const asn1_field_t *spec,
         if (!ps_done(ps)
         &&  (!asn1_field_is_tagged(spec) || *ps->b == spec->tag))
         {
+            /* FIXME, wtf with value ? */
             void *value = asn1_alloc_if_pointed(spec, mem_pool, st);
 
-            value = asn1_opt_field_w(value, spec->type, true);
+            value = asn1_opt_field_w(GET_PTR(st, spec, void), spec->type,
+                                     true);
             RETHROW(asn1_unpack_value(ps, spec, mem_pool, depth, value,
                                       copy));
         } else {
