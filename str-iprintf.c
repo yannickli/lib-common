@@ -703,7 +703,6 @@ static int fmt_output(FILE *stream, char *str, size_t size,
 
         case 'd':
         case 'i':
-            sign = 0;
             switch (type_flags) {
                 int int_value;
 
@@ -1039,11 +1038,16 @@ static int fmt_output(FILE *stream, char *str, size_t size,
                 }
                 if (!finite(fpvalue)) {
                     if (fpvalue < 0) {
-                        /* FIXME: clang reports this is never used */
-                        sign = '-';
+                        lp  = "-Inf";
+                        len = 4;
+                    } else
+                    if (flags & FLAG_PLUS) {
+                        lp  = "+Inf";
+                        len = 4;
+                    } else {
+                        lp = "Inf";
+                        len = 3;
                     }
-                    lp = "Inf";
-                    len = 3;
                     goto has_string_len;
                 }
 
@@ -1469,6 +1473,15 @@ static int exponent(char *p0, int expn, int fmtch)
 
 Z_GROUP_EXPORT(iprintf) {
     char buffer[128];
+
+    Z_TEST(double, "") {
+        isprintf(buffer, "%g", -INFINITY);
+        Z_ASSERT_STREQUAL(buffer, "-Inf");
+        isprintf(buffer, "%g", INFINITY);
+        Z_ASSERT_STREQUAL(buffer, "Inf");
+        isprintf(buffer, "%+g", INFINITY);
+        Z_ASSERT_STREQUAL(buffer, "+Inf");
+    } Z_TEST_END;
 
     Z_TEST(pM, "") {
         isprintf(buffer, "%*pM", 3, "1234");

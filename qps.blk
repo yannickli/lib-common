@@ -1961,6 +1961,7 @@ static void *qps_alloc_int(qps_t *qps, uint32_t id, size_t asked)
     if (unlikely(!blk)) {
         qps_map_create(qps, false);
         blk = qps_m_find_blk(qps, size, &l1, &l2);
+        assert (blk);
     }
 
     /* remove the block from the free-list and update bitfields */
