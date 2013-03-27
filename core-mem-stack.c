@@ -155,7 +155,7 @@ static void *sp_alloc_aligned(mem_pool_t *_sp, size_t size, size_t alignment,
 
 #ifndef NDEBUG
     if (unlikely(frame == &sp->base))
-        e_panic("allocation performed without a t_scope/t_push");
+        e_panic("allocation performed without a t_scope");
     if (frame->prev & 1)
         e_panic("allocation performed on a sealed stack");
     size += alignment;

@@ -570,6 +570,51 @@ Z_GROUP_EXPORT(rbt)
         rb_test_delete(&t1);
         rb_test_delete(&t2);
     } Z_TEST_END
+
+    Z_TEST(upper_lower, "") {
+        rb_t(rb_test) rbt;
+
+        rb_init(rb_test, &rbt);
+        for (int i = 0; i <= 10; i++) {
+            rb_test_t *t = rb_test_new();
+
+            t->v = 2 * i;
+            Z_ASSERT_NULL(rb_insert(rb_test, &rbt, t), "%d", i);
+        }
+
+        for (int i = -1; i < 22; i++) {
+            rb_test_t *t;
+
+            if (!(i % 2)) {
+                Z_ASSERT(t = rb_find(rb_test, &rbt, i), "%d", i);
+                Z_ASSERT_EQ(i, t->v, "%d", i);
+
+                Z_ASSERT(t = rb_find_upper(rb_test, &rbt, i), "%d", i);
+                Z_ASSERT_EQ(i, t->v, "%d", i);
+
+                Z_ASSERT(t = rb_find_lower(rb_test, &rbt, i), "%d", i);
+                Z_ASSERT_EQ(i, t->v, "%d", i);
+            } else {
+                Z_ASSERT_NULL(rb_find(rb_test, &rbt, i), "%d", i);
+
+                if (i < 20) {
+                    Z_ASSERT(t = rb_find_upper(rb_test, &rbt, i), "%d", i);
+                    Z_ASSERT_EQ(i + 1, t->v, "%d", i);
+                } else {
+                    Z_ASSERT_NULL(rb_find_upper(rb_test, &rbt, i), "%d", i);
+                }
+
+                if (i > 0) {
+                    Z_ASSERT(t = rb_find_lower(rb_test, &rbt, i), "%d", i);
+                    Z_ASSERT_EQ(i - 1, t->v, "%d", i);
+                } else {
+                    Z_ASSERT_NULL(rb_find_lower(rb_test, &rbt, i), "%d", i);
+                }
+            }
+        }
+
+        rb_deep_wipe(rb_test, &rbt, rb_test_delete);
+    } Z_TEST_END;
 } Z_GROUP_END
 
 /*1}}}*/

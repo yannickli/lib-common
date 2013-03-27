@@ -13,6 +13,89 @@
 
 #include "datetime.h"
 
+static int time_parse_timezone(pstream_t *ps, int *tz_h, int *tz_m)
+{
+    *tz_m = 0;
+    *tz_h = 0;
+
+    if (ps_strcaseequal(ps, "ut") || ps_strcaseequal(ps, "gmt")
+    ||  ps_strcaseequal(ps, "z"))
+    {
+        return 0;
+    } else
+    if (ps_strcaseequal(ps, "edt")) {
+        *tz_h = -4;
+        return 0;
+    } else
+    if (ps_strcaseequal(ps, "est") || ps_strcaseequal(ps, "cdt")) {
+        *tz_h = -5;
+        return 0;
+    } else
+    if (ps_strcaseequal(ps, "cst") || ps_strcaseequal(ps, "mdt")) {
+        *tz_h = -6;
+        return 0;
+    } else
+    if (ps_strcaseequal(ps, "mst") || ps_strcaseequal(ps, "pdt")) {
+        *tz_h = -7;
+        return 0;
+    } else
+    if (ps_strcaseequal(ps, "pst")) {
+        *tz_h = -8;
+        return 0;
+    } else
+    if (ps_strcaseequal(ps, "a")) {
+        *tz_h = -1;
+        return 0;
+    } else
+    if (ps_strcaseequal(ps, "m")) {
+        *tz_h = -12;
+        return 0;
+    } else
+    if (ps_strcaseequal(ps, "n")) {
+        *tz_h = +1;
+        return 0;
+    } else
+    if (ps_strcaseequal(ps, "y")) {
+        *tz_h = +12;
+        return 0;
+    } else {
+        int sgn = ps_getc(ps);
+
+        PS_WANT(sgn == '+' || sgn == '-');
+
+        errno = 0;
+        PS_WANT(isdigit(ps->b[0]));
+        if (ps_len(ps) == 5) {
+            *tz_h = ps_geti(ps);
+            PS_WANT(errno == 0 && ps_len(ps) == 3);
+            PS_CHECK(ps_skipc(ps, ':'));
+            PS_WANT(isdigit(ps->b[0]));
+            *tz_m = ps_geti(ps);
+            PS_WANT(errno == 0 && ps_done(ps));
+        } else
+        if (ps_len(ps) == 4) {
+            uint32_t raw = ps_geti(ps);
+
+            PS_WANT(errno == 0 && ps_done(ps));
+            *tz_h = raw / 100;
+            *tz_m = raw % 100;
+        } else
+        if (ps_len(ps) == 2) {
+            *tz_h = ps_geti(ps);
+            PS_WANT(errno == 0 && ps_done(ps));
+        } else {
+            return -1;
+        }
+
+        if (sgn == '-') {
+            *tz_h = -1 * *tz_h;
+            *tz_m = -1 * *tz_m;
+        }
+        return 0;
+    }
+    return -1;
+}
+
 static int time_parse_iso8601_tok(pstream_t *ps, int *nb, int *type)
 {
     *nb = ps_geti(ps);
@@ -20,7 +103,7 @@ static int time_parse_iso8601_tok(pstream_t *ps, int *nb, int *type)
         e_debug("invalid date tok");
         return -1;
     }
-    *type = __ps_getc(ps);
+    *type = toupper(__ps_getc(ps));
     return 0;
 }
 
@@ -28,7 +111,7 @@ int time_parse_iso8601(pstream_t *ps, time_t *res)
 {
     struct tm t;
     bool local = false;
-    int sign, tz_h, tz_m, i;
+    int tz_h, tz_m;
 
     if (!ps_has(ps, 1)) {
         e_debug("invalid date: empty");
@@ -118,7 +201,7 @@ int time_parse_iso8601(pstream_t *ps, time_t *res)
         e_debug("invalid day in date");
         return -1;
     }
-    if (ps_getc(ps) != 'T') {
+    if (toupper(ps_getc(ps)) != 'T') {
         e_debug("invalid date format, missing 'T' after day");
         return -1;
     }
@@ -126,6 +209,7 @@ int time_parse_iso8601(pstream_t *ps, time_t *res)
     t.tm_hour = ps_geti(ps);
     switch (ps_getc(ps)) {
       case 'L':
+      case 'l':
         local = true;
         break;
 
@@ -154,41 +238,75 @@ int time_parse_iso8601(pstream_t *ps, time_t *res)
         *res = mktime(&t);
         return 0;
     }
-    switch ((i = ps_getc(ps))) {
-      case 'Z':
-        t.tm_isdst = 0;
-        *res = timegm(&t);
-        return 0;
 
-      case '-':
-        sign = -1;
-        break;
-
-      case '+':
-        sign = 1;
-        break;
-
-      case -1:
+    if (ps_done(ps)) {
         t.tm_isdst = -1;
         *res = mktime(&t);
         return 0;
-
-      default:
-        e_debug("invalid date format, invalid timezone char %i", i);
-        return -1;
     }
 
-    tz_h = ps_geti(ps);
-    if (ps_getc(ps) != ':') {
-        e_debug("invalid date format, missing ':' after TZ hour");
-        return -1;
-    }
-    tz_m = ps_geti(ps);
+    RETHROW(time_parse_timezone(ps, &tz_h, &tz_m));
 
     /* subtract the offset from the local time to get UTC time */
-    t.tm_hour -= sign * tz_h;
-    t.tm_min  -= sign * tz_m;
+    t.tm_hour -= tz_h;
+    t.tm_min  -= tz_m;
     t.tm_isdst = 0;
     *res = timegm(&t);
     return 0;
+}
+
+int time_parse(pstream_t *ps, time_t *d)
+{
+    struct tm date;
+    int len = ps_len(ps);
+
+    p_clear(&date, 1);
+    date.tm_isdst = -1;
+
+#define PARSE_FORMAT(format, skip_space)                                     \
+    do {                                                                     \
+        t_scope;                                                             \
+        char *end = strptime(t_dupz(ps->s, len), format, &date);             \
+                                                                             \
+        if (end == NULL) {                                                   \
+            return -1;                                                       \
+        } else                                                               \
+        if (*end != '\0') {                                                  \
+            pstream_t ts = ps_initstr(end);                                  \
+            int tz_h, tz_m;                                                  \
+                                                                             \
+            if (skip_space) {                                                \
+                ps_ltrim(&ts);                                               \
+            }                                                                \
+            RETHROW(time_parse_timezone(&ts, &tz_h, &tz_m));                 \
+            date.tm_hour -= tz_h;                                            \
+            date.tm_min  -= tz_m;                                            \
+            *d = timegm(&date);                                              \
+            return 0;                                                        \
+        }                                                                    \
+        *d = mktime(&date);                                                  \
+        return 0;                                                            \
+    } while (0);
+
+    if (len > 4 && (ps->s[0] == 'P' || ps->s[4] == '-')) {
+        /* ISO8601: YYYY-MM-DDThh:mm:ss */
+        return time_parse_iso8601(ps, d);
+    } else
+    if (len > 3 && (ps->s[1] == ' ' || ps->s[2] == ' ')) {
+        /* RFC822: D month YYYY hh:mm:ss tz */
+        PARSE_FORMAT("%d%n%h%n%Y%n%T", true);
+    } else
+    if (len > 4 && ps->s[3] == ',') {
+        /* RFC822: Day, D month YYYY hh:mm:ss tz */
+        PARSE_FORMAT("%a,%n%d%n%h%n%Y%n%T", true);
+    } else {
+        /* Unix timestamp */
+        errno = 0;
+        *d = ps_getlli(ps);
+        if (errno || !ps_done(ps)) {
+            return -1;
+        }
+        return 0;
+    }
+#undef PARSE_FORMAT
 }

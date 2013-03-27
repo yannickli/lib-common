@@ -22,25 +22,25 @@ static void
 xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
             const void *v, unsigned flags)
 {
-    static clstr_t const types[] = {
-        [IOP_T_I8]     = CLSTR_IMMED(" xsi:type=\"xsd:byte\">"),
-        [IOP_T_U8]     = CLSTR_IMMED(" xsi:type=\"xsd:unsignedByte\">"),
-        [IOP_T_I16]    = CLSTR_IMMED(" xsi:type=\"xsd:short\">"),
-        [IOP_T_U16]    = CLSTR_IMMED(" xsi:type=\"xsd:unsignedShort\">"),
-        [IOP_T_I32]    = CLSTR_IMMED(" xsi:type=\"xsd:int\">"),
-        [IOP_T_ENUM]   = CLSTR_IMMED(" xsi:type=\"xsd:int\">"),
-        [IOP_T_U32]    = CLSTR_IMMED(" xsi:type=\"xsd:unsignedInt\">"),
-        [IOP_T_I64]    = CLSTR_IMMED(" xsi:type=\"xsd:long\">"),
-        [IOP_T_U64]    = CLSTR_IMMED(" xsi:type=\"xsd:unsignedLong\">"),
-        [IOP_T_BOOL]   = CLSTR_IMMED(" xsi:type=\"xsd:boolean\">"),
-        [IOP_T_DOUBLE] = CLSTR_IMMED(" xsi:type=\"xsd:double\">"),
-        [IOP_T_STRING] = CLSTR_IMMED(" xsi:type=\"xsd:string\">"),
-        [IOP_T_DATA]   = CLSTR_IMMED(" xsi:type=\"xsd:base64Binary\">"),
-        [IOP_T_XML]    = CLSTR_IMMED(">"),
-        [IOP_T_UNION]  = CLSTR_IMMED(">"),
-        [IOP_T_STRUCT] = CLSTR_IMMED(">"),
+    static lstr_t const types[] = {
+        [IOP_T_I8]     = LSTR_IMMED(" xsi:type=\"xsd:byte\">"),
+        [IOP_T_U8]     = LSTR_IMMED(" xsi:type=\"xsd:unsignedByte\">"),
+        [IOP_T_I16]    = LSTR_IMMED(" xsi:type=\"xsd:short\">"),
+        [IOP_T_U16]    = LSTR_IMMED(" xsi:type=\"xsd:unsignedShort\">"),
+        [IOP_T_I32]    = LSTR_IMMED(" xsi:type=\"xsd:int\">"),
+        [IOP_T_ENUM]   = LSTR_IMMED(" xsi:type=\"xsd:int\">"),
+        [IOP_T_U32]    = LSTR_IMMED(" xsi:type=\"xsd:unsignedInt\">"),
+        [IOP_T_I64]    = LSTR_IMMED(" xsi:type=\"xsd:long\">"),
+        [IOP_T_U64]    = LSTR_IMMED(" xsi:type=\"xsd:unsignedLong\">"),
+        [IOP_T_BOOL]   = LSTR_IMMED(" xsi:type=\"xsd:boolean\">"),
+        [IOP_T_DOUBLE] = LSTR_IMMED(" xsi:type=\"xsd:double\">"),
+        [IOP_T_STRING] = LSTR_IMMED(" xsi:type=\"xsd:string\">"),
+        [IOP_T_DATA]   = LSTR_IMMED(" xsi:type=\"xsd:base64Binary\">"),
+        [IOP_T_XML]    = LSTR_IMMED(">"),
+        [IOP_T_UNION]  = LSTR_IMMED(">"),
+        [IOP_T_STRUCT] = LSTR_IMMED(">"),
     };
-    const clstr_t *s;
+    const lstr_t *s;
     const iop_field_attrs_t *attrs;
 
     sb_grow(sb, 64 + f->name.len * 2);
@@ -66,11 +66,11 @@ xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
         if (!(flags & IOP_XPACK_LITERAL_ENUMS)) {
             sb_addf(sb, "%i",      *( int32_t *)v);
         } else {
-            clstr_t str = iop_enum_to_str(f->u1.en_desc, *(int32_t *)v);
+            lstr_t str = iop_enum_to_str(f->u1.en_desc, *(int32_t *)v);
             if (!str.s) {
                 sb_addf(sb, "%i",      *( int32_t *)v);
             } else {
-                sb_add(sb, str.s, str.len);
+                sb_add_lstr(sb, str);
             }
         }
         break;

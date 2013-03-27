@@ -675,7 +675,7 @@ Z_GROUP_EXPORT(iop)
                                     "attr=\"value\">toto</foobar></foo>"),
         };
 
-        clstr_t svals[] = {
+        lstr_t svals[] = {
             LSTR_IMMED("foo"), LSTR_IMMED("bar"), LSTR_IMMED("foobar"),
         };
 
@@ -1235,7 +1235,7 @@ Z_GROUP_EXPORT(iop)
             .g = 10000,
             .h = 20000,
             .i = IOP_DATA((void *)"foo", 3),
-            .j = CLSTR_IMMED("baré© \" foo ."),
+            .j = LSTR_IMMED("baré© \" foo ."),
             .k = MY_ENUM_A_B,
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),
             .m = 3.14159265,
@@ -1252,7 +1252,7 @@ Z_GROUP_EXPORT(iop)
             .g = 10000,
             .h = 20000,
             .i = IOP_DATA_EMPTY,
-            .j = CLSTR_EMPTY,
+            .j = LSTR_EMPTY,
             .k = MY_ENUM_A_B,
             .l = IOP_UNION(tstiop__my_union_a, ub, 42),
             .m = 3.14159265,
