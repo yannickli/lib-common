@@ -21,9 +21,9 @@
 #endif
 
 #ifdef IS_PY3K
-#define py_INITERROR return NULL
+#define Py_INITERROR return NULL
 #else
-#define py_INITERROR return
+#define Py_INITERROR return
 #endif
 
 extern PyThreadState *python_state_g;
