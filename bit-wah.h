@@ -21,6 +21,42 @@
  * \brief Word Aligned Hybrid bitmaps.
  *
  * \{
+ *
+ * WAH are a form of compressed bitmap highly compact in case the bitmap
+ * contains a lot of successive bits at the same value (1 or 0). In that case,
+ * the sequence is compressed as a single integer containing the number of
+ * words (32bits) of the sequence.
+ *
+ * \section format WAH format
+ *
+ * A WAH is a sequence of chunks each one composed of two parts:
+ * - a header of two words with:
+ *   - a bit value (0 or 1)
+ *   - the number M of successive words with that bit value (called a run)
+ *   - the number N of following words that were not compressed
+ * - N uncompressed words.
+ *
+ * As a consequence, each chunk encodes M + N words in 2 + N words. This means
+ * the maximum overhead of the WAH is when M is zero, in which case, the
+ * overhead is 2 words (8 bytes). As a consequence, it is always at least as
+ * efficient as an uncompressed stored in term of memory usage.
+ *
+ * It's Hybrid because it contains both compressed and uncompressed data, and
+ * aligned since everything is done at the work level: the header only
+ * references a integral number of words of 32 bits.
+ *
+ *
+ * \section usage Use cases
+ *
+ * A WAH does not support efficient random accesses (reading / writing at a
+ * specific bit position) because the chunks encode a variable amount of words
+ * in a variable amount of memory. However, it efficiently support both
+ * sequential reader / writing.
+ *
+ * Bitwise operations are also supported but, with the exception of the
+ * negation operator,  they are not in place (they always require either a
+ * brand new bitmap or a copy of one of the operands). Those operations are
+ * efficient since they can deal with long runs with a single word read.
  */
 
 /* Structures {{{ */
@@ -72,14 +108,13 @@ wah_t *t_wah_dup(const wah_t *src) __leaf;
 void wah_copy(wah_t *map, const wah_t *src) __leaf;
 wah_t *wah_dup(const wah_t *src) __leaf;
 
-/* Create a wah structure from existing wah-encoded bitmap
+/* Create a wah structure from existing wah-encoded bitmap.
  *
- * This generates read-only wah_t structures.
+ * This generates read-only wah_t structures
  */
 wah_t *wah_init_from_data(wah_t *wah, const uint32_t *data,
                           int data_len, bool scan);
 wah_t *wah_new_from_data(const uint32_t *data, int data_len, bool scan);
-
 
 void wah_add0s(wah_t *map, uint64_t count) __leaf;
 void wah_add1s(wah_t *map, uint64_t count) __leaf;
@@ -133,9 +168,9 @@ typedef struct wah_word_enum_t {
     uint32_t         reverse;
 } wah_word_enum_t;
 
-wah_word_enum_t wah_word_enum_start(const wah_t *map, bool reverse);
-bool wah_word_enum_next(wah_word_enum_t *en);
-uint32_t wah_word_enum_skip0(wah_word_enum_t *en);
+wah_word_enum_t wah_word_enum_start(const wah_t *map, bool reverse) __leaf;
+bool wah_word_enum_next(wah_word_enum_t *en) __leaf;
+uint32_t wah_word_enum_skip0(wah_word_enum_t *en) __leaf;
 
 /*
  * invariants for an enumerator not a WAH_ENUM_END:
@@ -152,7 +187,7 @@ typedef struct wah_bit_enum_t {
     uint32_t        current_word;
 } wah_bit_enum_t;
 
-bool wah_bit_enum_scan_word(wah_bit_enum_t *en);
+bool wah_bit_enum_scan_word(wah_bit_enum_t *en) __leaf;
 
 static ALWAYS_INLINE void wah_bit_enum_scan(wah_bit_enum_t *en)
 {
@@ -179,8 +214,8 @@ static ALWAYS_INLINE void wah_bit_enum_next(wah_bit_enum_t *en)
     wah_bit_enum_scan(en);
 }
 
-wah_bit_enum_t wah_bit_enum_start(const wah_t *wah, bool reverse);
-void wah_bit_enum_skip1s(wah_bit_enum_t *en, uint64_t to_skip);
+wah_bit_enum_t wah_bit_enum_start(const wah_t *wah, bool reverse) __leaf;
+void wah_bit_enum_skip1s(wah_bit_enum_t *en, uint64_t to_skip) __leaf;
 
 #define wah_for_each_1(en, map)                                              \
     for (wah_bit_enum_t en = wah_bit_enum_start(map, false);                 \
