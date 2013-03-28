@@ -16,6 +16,212 @@
 
 //#define WAH_CHECK_NORMALIZED  1
 
+/* Word enumerator {{{ */
+
+wah_word_enum_t wah_word_enum_start(const wah_t *map, bool reverse)
+{
+    wah_word_enum_t en = { map, WAH_ENUM_END, 0, 0, 0, (uint32_t)0 - reverse };
+
+    if (map->len == 0) {
+        en.state   = WAH_ENUM_END;
+        en.current = en.reverse;
+        return en;
+    }
+    if (map->data.tab[0].head.words > 0) {
+        en.state        = WAH_ENUM_RUN;
+        en.remain_words = map->data.tab[0].head.words;
+        en.current      = 0 - map->data.tab[0].head.bit;
+    } else
+    if (map->data.tab[1].count > 0) {
+        en.state        = WAH_ENUM_LITERAL;
+        en.pos          = map->data.tab[1].count + 2;
+        en.remain_words = map->data.tab[1].count;
+        en.current      = map->data.tab[2].literal;
+        assert (en.pos <= map->data.len);
+        assert ((int)en.remain_words <= en.pos);
+    } else {
+        en.state        = WAH_ENUM_PENDING;
+        en.remain_words = 1;
+        en.current      = map->pending;
+    }
+    en.current ^= en.reverse;
+    return en;
+}
+
+bool wah_word_enum_next(wah_word_enum_t *en)
+{
+    if (en->remain_words != 1) {
+        en->remain_words--;
+        if (en->state == WAH_ENUM_LITERAL) {
+            en->current  = en->map->data.tab[en->pos - en->remain_words].literal;
+            en->current ^= en->reverse;
+        }
+        return true;
+    }
+    switch (__builtin_expect(en->state, WAH_ENUM_RUN)) {
+      case WAH_ENUM_END:
+        return false;
+
+      case WAH_ENUM_PENDING:
+        en->state    = WAH_ENUM_END;
+        en->current  = en->reverse;
+        return false;
+
+      default: /* WAH_ENUM_RUN */
+        assert (en->state == WAH_ENUM_RUN);
+        en->pos++;
+        en->remain_words = en->map->data.tab[en->pos++].count;
+        en->pos         += en->remain_words;
+        assert (en->pos <= en->map->data.len);
+        assert ((int)en->remain_words <= en->pos);
+        en->state = WAH_ENUM_LITERAL;
+        if (en->remain_words != 0) {
+            en->current  = en->map->data.tab[en->pos - en->remain_words].literal;
+            en->current ^= en->reverse;
+            return true;
+        }
+
+        /* Transition to literal, so don't break here */
+
+      case WAH_ENUM_LITERAL:
+        if (en->pos == en->map->data.len) {
+            if ((en->map->len % WAH_BIT_IN_WORD)) {
+                en->state = WAH_ENUM_PENDING;
+                en->remain_words = 1;
+                en->current  = en->map->pending;
+                en->current ^= en->reverse;
+                return true;
+            } else {
+                en->state   = WAH_ENUM_END;
+                en->current = en->reverse;
+                return false;
+            }
+        }
+        en->state = WAH_ENUM_RUN;
+        en->remain_words = en->map->data.tab[en->pos].head.words;
+        en->current  = 0 - en->map->data.tab[en->pos].head.bit;
+        en->current ^= en->reverse;
+        return true;
+    }
+}
+
+static bool wah_word_enum_skip(wah_word_enum_t *en, uint32_t skip)
+{
+    uint32_t skippable = 0;
+
+    while (skip != 0) {
+        switch (__builtin_expect(en->state, WAH_ENUM_RUN)) {
+          case WAH_ENUM_END:
+            return false;
+
+          case WAH_ENUM_PENDING:
+            return wah_word_enum_next(en);
+
+          default:
+            skippable = MIN(skip, en->remain_words);
+            skip -= skippable;
+
+            /* XXX: Use next to skip the last word because:
+             *  - if we reach the end of a run, this will automatically select
+             *    the next run
+             *  - if we end within a run of literal, this will properly update
+             *    'en->current' with the next literal word
+             */
+            en->remain_words -= skippable - 1;
+            wah_word_enum_next(en);
+            break;
+        }
+    }
+    return true;
+}
+
+uint32_t wah_word_enum_skip0(wah_word_enum_t *en)
+{
+    uint32_t skipped = 0;
+
+    while (en->current == 0) {
+        switch (__builtin_expect(en->state, WAH_ENUM_RUN)) {
+          case WAH_ENUM_END:
+            return skipped;
+
+          case WAH_ENUM_PENDING:
+            skipped++;
+            wah_word_enum_next(en);
+            return skipped;
+
+          case WAH_ENUM_RUN:
+            skipped += en->remain_words;
+            en->remain_words = 1;
+            wah_word_enum_next(en);
+            break;
+
+          case WAH_ENUM_LITERAL:
+            skipped++;
+            wah_word_enum_next(en);
+            break;
+        }
+    }
+    return skipped;
+}
+
+/* }}} */
+/* Bit enumerator {{{ */
+
+bool wah_bit_enum_scan_word(wah_bit_enum_t *en)
+{
+    /* realign to a word boundary */
+    assert (en->current_word == 0);
+    en->key += en->remain_bits;
+    assert (en->word_en.state <= WAH_ENUM_PENDING ||
+            (en->key % WAH_BIT_IN_WORD) == 0);
+
+    while (wah_word_enum_next(&en->word_en)) {
+        en->current_word = en->word_en.current;
+        if (en->word_en.state == WAH_ENUM_RUN) {
+            if (en->current_word) {
+                en->remain_bits  = en->word_en.remain_words * WAH_BIT_IN_WORD;
+                en->word_en.remain_words = 1;
+                return true;
+            }
+            en->key += en->word_en.remain_words * WAH_BIT_IN_WORD;
+            en->word_en.remain_words = 1;
+        } else {
+            if (unlikely(en->word_en.state == WAH_ENUM_PENDING)) {
+                en->remain_bits  = en->word_en.map->len % WAH_BIT_IN_WORD;
+                en->current_word &= BITMASK_LT(uint32_t, en->remain_bits);
+            } else {
+                en->remain_bits  = WAH_BIT_IN_WORD;
+            }
+            if (likely(en->current_word)) {
+                return true;
+            }
+            en->key += WAH_BIT_IN_WORD;
+        }
+    }
+    return false;
+}
+
+wah_bit_enum_t wah_bit_enum_start(const wah_t *wah, bool reverse)
+{
+    wah_bit_enum_t en;
+
+    p_clear(&en, 1);
+    en.word_en = wah_word_enum_start(wah, reverse);
+    if (en.word_en.state != WAH_ENUM_END) {
+        en.current_word = en.word_en.current;
+        en.remain_bits  = WAH_BIT_IN_WORD;
+        if (en.word_en.state == WAH_ENUM_PENDING) {
+            en.remain_bits   = en.word_en.map->len % WAH_BIT_IN_WORD;
+            en.current_word &= BITMASK_LT(uint32_t, en.remain_bits);
+        }
+        wah_bit_enum_scan(&en);
+    }
+    return en;
+}
+
+/* }}} */
+/* Administrativia {{{ */
+
 wah_t *wah_init(wah_t *map)
 {
     qv_init(wah_word, &map->data);
@@ -73,6 +279,9 @@ wah_t *t_wah_dup(const wah_t *src)
     qv_splice(wah_word, &map->data, 0, 0, src->data.tab, src->data.len);
     return map;
 }
+
+/* }}} */
+/* Operations {{{ */
 
 static ALWAYS_INLINE
 wah_header_t *wah_last_run_header(const wah_t *map)
@@ -731,6 +940,7 @@ bool wah_get(const wah_t *map, uint64_t pos)
     e_panic("this should not happen");
 }
 
+/* }}} */
 /* Open existing WAH {{{ */
 
 wah_t *wah_init_from_data(wah_t *map, const uint32_t *data, int data_len,
