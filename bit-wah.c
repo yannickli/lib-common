@@ -219,6 +219,58 @@ wah_bit_enum_t wah_bit_enum_start(const wah_t *wah, bool reverse)
     return en;
 }
 
+void wah_bit_enum_skip1s(wah_bit_enum_t *en, uint64_t to_skip)
+{
+    if (to_skip == 0) {
+        return;
+    }
+
+    while (to_skip) {
+        uint64_t bits;
+
+        switch (en->word_en.state) {
+          case WAH_ENUM_PENDING:
+          case WAH_ENUM_LITERAL:
+            bits = bitcount32(en->current_word);
+
+            if (bits > to_skip) {
+                goto end;
+            }
+
+            to_skip -= bits;
+            en->current_word = 0;
+            break;
+
+          case WAH_ENUM_RUN:
+            bits = MIN(to_skip, en->remain_bits);
+            en->key         += bits;
+            en->remain_bits -= bits;
+            to_skip         -= bits;
+            if (en->remain_bits < WAH_BIT_IN_WORD) {
+                en->current_word = BITMASK_LT(uint32_t, en->remain_bits);
+            }
+            if (en->current_word) {
+                return;
+            }
+            break;
+
+          case WAH_ENUM_END:
+            return;
+        }
+
+        if (!wah_bit_enum_scan_word(en)) {
+            return;
+        }
+    }
+
+  end:
+    wah_bit_enum_scan(en);
+    while (to_skip > 0 && en->word_en.state != WAH_ENUM_END) {
+        wah_bit_enum_next(en);
+        to_skip--;
+    }
+}
+
 /* }}} */
 /* Administrativia {{{ */
 
@@ -1478,6 +1530,47 @@ Z_GROUP_EXPORT(wah)
         Z_ASSERT_LE(res.active, 12u);
 
         wah_wipe(&res);
+    } Z_TEST_END;
+
+    Z_TEST(skip1s, "") {
+        uint64_t pos = 0;
+        uint64_t bc;
+        const byte data[] = {
+            0x1f, 0x00, 0x00, 0x8c, /* 0, 1, 2, 3, 4, 26, 27, 31 (8  - 32) */
+            0xff, 0xff, 0xff, 0xff, /* 32 -> 63                  (32 - 64) */
+            0xff, 0xff, 0xff, 0xff, /* 64 -> 95                  (32 - 96) */
+            0xff, 0xff, 0xff, 0x80, /* 96 -> 119, 127            (25 - 128)*/
+            0x00, 0x10, 0x40, 0x00, /* 140, 150                  (2  - 160)*/
+            0x00, 0x00, 0x00, 0x00, /*                           (0  - 192)*/
+            0x00, 0x00, 0x00, 0x00, /*                           (0  - 224)*/
+            0x00, 0x00, 0x00, 0x00, /*                           (0  - 256)*/
+            0x00, 0x00, 0x00, 0x21, /* 280, 285                  (2  - 288)*/
+            0x12, 0x00, 0x10,       /* 289, 292, 308             (3) */
+        };
+
+        wah_init(&map);
+        wah_add(&map, data, bitsizeof(data));
+        bc = membitcount(data, sizeof(data));
+
+        wah_for_each_1(en, &map) {
+            for (uint64_t i = pos; i < bc; i++) {
+                wah_bit_enum_t en_skip = en;
+                wah_bit_enum_t en_incr = en;
+
+                for (uint64_t j = pos; j < i; j++) {
+                    wah_bit_enum_next(&en_incr);
+                }
+                wah_bit_enum_skip1s(&en_skip, i - pos);
+                Z_ASSERT_EQ(en_skip.word_en.state, en_incr.word_en.state,
+                            "%ju %ju %ju", en.key, pos, i);
+                if (en_skip.word_en.state != WAH_ENUM_END) {
+                    Z_ASSERT_EQ(en_skip.key, en_incr.key);
+                }
+            }
+            pos++;
+        }
+
+        wah_wipe(&map);
     } Z_TEST_END;
 } Z_GROUP_END;
 

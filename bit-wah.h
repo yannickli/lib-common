@@ -180,6 +180,7 @@ static ALWAYS_INLINE void wah_bit_enum_next(wah_bit_enum_t *en)
 }
 
 wah_bit_enum_t wah_bit_enum_start(const wah_t *wah, bool reverse);
+void wah_bit_enum_skip1s(wah_bit_enum_t *en, uint64_t to_skip);
 
 #define wah_for_each_1(en, map)                                              \
     for (wah_bit_enum_t en = wah_bit_enum_start(map, false);                 \
