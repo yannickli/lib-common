@@ -41,11 +41,38 @@ else
 fi
 
 
+for bin in "python2.7" "python2.6"; do
+    if $bin -V &> /dev/null ; then
+        pybin="$bin"
+        break
+    fi
+done
+
+if [ -z "$pybin" ] ; then
+    say_color error "python 2.6 or 2.7 required to run tests"
+    exit 1
+fi
+
 "$(dirname "$0")"/_list_checks.sh "$where" | (
 _err=0
+export Z_HARNESS=1
+export Z_TAG_SKIP="${Z_TAG_SKIP:-slow upgrade}"
+export Z_MODE="${Z_MODE:-fast}"
 while read t; do
     say_color info "starting suite $t..."
-    if Z_HARNESS=1 Z_TAG_SKIP="${Z_TAG_SKIP:-slow upgrade}" Z_MODE="${Z_MODE:-fast}" ./"$t"; then
+    case ./"$t" in
+        */behave)
+            res="$pybin $(which behave) --tags=-web --tags=-slow --tags=-upgrade $(dirname "./$t")/ci/features"
+            ;;
+        *.py)
+            res="$pybin ./$t"
+            ;;
+        *)
+            res="./$t"
+            ;;
+    esac
+
+    if $res ; then
         say_color pass "done"
     else
         _err=1
