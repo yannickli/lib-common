@@ -34,20 +34,23 @@ typedef struct lstr_t {
     flag_t  mem_pool : 3;
 } lstr_t;
 
-#define LSTR_INIT(s_, len_)   { { (s_) }, (len_), 0 }
-#define LSTR_INIT_V(s, len)   (lstr_t)LSTR_INIT(s, len)
-#define LSTR_IMMED(str)       LSTR_INIT(""str, sizeof(str) - 1)
-#define LSTR_IMMED_V(str)     LSTR_INIT_V(""str, sizeof(str) - 1)
-#define LSTR_STR_V(str)       ({ const char *__s = (str); \
-                                 LSTR_INIT_V(__s, (int)strlen(__s)); })
-#define LSTR_NULL             LSTR_INIT(NULL, 0)
-#define LSTR_NULL_V           LSTR_INIT_V(NULL, 0)
-#define LSTR_EMPTY            LSTR_INIT("", 0)
-#define LSTR_EMPTY_V          LSTR_INIT_V("", 0)
-#define LSTR_SB(sb)           LSTR_INIT((sb)->data, (sb)->len)
-#define LSTR_SB_V(sb)         LSTR_INIT_V((sb)->data, (sb)->len)
-#define LSTR_PS(ps)           LSTR_INIT((ps)->s, ps_len(ps))
-#define LSTR_PS_V(ps)         LSTR_INIT_V((ps)->s, ps_len(ps))
+#define LSTR_INIT(s_, len_)     { { (s_) }, (len_), 0 }
+#define LSTR_INIT_V(s, len)     (lstr_t)LSTR_INIT(s, len)
+#define LSTR_IMMED(str)         LSTR_INIT(""str, sizeof(str) - 1)
+#define LSTR_IMMED_V(str)       LSTR_INIT_V(""str, sizeof(str) - 1)
+#define LSTR_STR_V(str)         ({ const char *__s = (str); \
+                                   LSTR_INIT_V(__s, (int)strlen(__s)); })
+#define LSTR_NULL               LSTR_INIT(NULL, 0)
+#define LSTR_NULL_V             LSTR_INIT_V(NULL, 0)
+#define LSTR_EMPTY              LSTR_INIT("", 0)
+#define LSTR_EMPTY_V            LSTR_INIT_V("", 0)
+#define LSTR_SB(sb)             LSTR_INIT((sb)->data, (sb)->len)
+#define LSTR_SB_V(sb)           LSTR_INIT_V((sb)->data, (sb)->len)
+#define LSTR_PS(ps)             LSTR_INIT((ps)->s, ps_len(ps))
+#define LSTR_PS_V(ps)           LSTR_INIT_V((ps)->s, ps_len(ps))
+#define LSTR_PTR(start, end)    LSTR_INIT((start), (end) - (start))
+#define LSTR_PTR_V(start, end)  LSTR_INIT_V((start), (end) - (start))
+
 #define LSTR_FMT_ARG(s_)      (s_).len, (s_).s
 
 #define LSTR_OPT_STR_V(str)       ({ const char *__s = (str);              \
@@ -165,6 +168,27 @@ static ALWAYS_INLINE bool lstr_equal2(const lstr_t s1, const lstr_t s2)
     return lstr_equal(&s1, &s2);
 }
 
+/** \brief returns whether \p s1 and \p s2 contents are case-insentively equal.
+ *
+ * This function should only be used in case you have a small number of
+ * comparison to perform. If you need to perform a lot of checks with the
+ * exact same string, you should first lowercase (or uppercase) both string
+ * and use the case-sensitive equality that will be much more efficient.
+ *
+ * This function is not unicode-aware.
+ */
+static inline bool lstr_ascii_iequal(const lstr_t s1, const lstr_t s2)
+{
+    if (s1.len != s2.len) {
+        return false;
+    }
+    for (int i = 0; i < s1.len; i++) {
+        if (tolower((unsigned char)s1.s[i]) != tolower((unsigned char)s2.s[i]))
+            return false;
+    }
+    return true;
+}
+
 /** \brief returns whether \v s starts with \v p
  */
 static ALWAYS_INLINE bool lstr_startswith(const lstr_t s, const lstr_t p)
@@ -177,6 +201,33 @@ static ALWAYS_INLINE bool lstr_startswith(const lstr_t s, const lstr_t p)
 static ALWAYS_INLINE bool lstr_endswith(const lstr_t s, const lstr_t p)
 {
     return s.len >= p.len && memcmp(s.s + s.len - p.len, p.s, p.len) == 0;
+}
+
+/** \brief returns whether \p s starts with \p p case-insenstively.
+ *
+ * \sa lstr_iequal, lstr_startswith
+ *
+ * This function is not unicode-aware.
+ */
+static inline bool lstr_ascii_istartswith(const lstr_t s, const lstr_t p)
+{
+    if (s.len < p.len) {
+        return false;
+    }
+    return lstr_ascii_iequal(LSTR_INIT_V(s.s, p.len), p);
+}
+
+/** \brief returns whether \p s ends with \p p case-insenstively.
+ *
+ * \sa lstr_iequal, lstr_endswith
+ * This function is not unicode-aware.
+ */
+static inline bool lstr_ascii_iendswith(const lstr_t s, const lstr_t p)
+{
+    if (s.len < p.len) {
+        return false;
+    }
+    return lstr_ascii_iequal(LSTR_INIT_V(s.s + s.len - p.len, p.len), p);
 }
 
 /** \brief performs utf8-aware, case-insensitive comparison.
@@ -385,6 +436,28 @@ static inline void t_lstr_copy(lstr_t *dst, const lstr_t s)
     }
 }
 
+/** \brief duplicates \p v on the t_stack and reverse its content.
+ *
+ * This function is not unicode-aware.
+ */
+static inline lstr_t t_lstr_dup_ascii_reversed(const lstr_t v)
+{
+    char *str;
+
+    if (!v.s) {
+        return v;
+    }
+
+    str = t_new_raw(char, v.len + 1);
+
+    for (int i = 0; i < v.len; i++) {
+        str[i] = v.s[v.len - i - 1];
+    }
+    str[v.len] = '\0';
+
+    return lstr_init_(str, v.len, MEM_STACK);
+}
+
 /** \brief concatenates its argument to form a new lstr on the mem stack.
  */
 static inline lstr_t t_lstr_cat(const lstr_t s1, const lstr_t s2)
@@ -456,6 +529,17 @@ static inline void lstr_ascii_toupper(lstr_t *s)
 {
     for (int i = 0; i < s->len; i++)
         s->v[i] = toupper((unsigned char)s->v[i]);
+}
+
+/** \brief in-place reversing of the lstr.
+ *
+ * This function is not unicode aware.
+ */
+static inline void lstr_ascii_reverse(lstr_t *s)
+{
+    for (int i = 0; i < s->len / 2; i++) {
+        SWAP(char, s->v[i], s->v[s->len - i - 1]);
+    }
 }
 
 /** \brief  convert a lstr into an int.

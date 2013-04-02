@@ -614,4 +614,9 @@ static inline const void *ps_get_block(pstream_t *ps, size_t len, size_t align) 
 
 #define PS_FMT_ARG(ps)  (int)ps_len(ps), (ps)->s
 
+static inline void sb_add_ps(sb_t *sb, pstream_t ps)
+{
+    sb_add(sb, ps.s, ps_len(&ps));
+}
+
 #endif

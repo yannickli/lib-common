@@ -510,6 +510,24 @@ Z_GROUP_EXPORT(str)
 
 #undef T
     } Z_TEST_END;
+
+    Z_TEST(lstr_reverse, "str: reverse a lstr") {
+        t_scope;
+#define T(f, t) do {                                                         \
+        lstr_t a = t_lstr_dup(f);                                            \
+        lstr_t b = t_lstr_dup_ascii_reversed(a);                             \
+        lstr_ascii_reverse(&a);                                              \
+        Z_ASSERT_LSTREQUAL(a, (t));                                          \
+        Z_ASSERT_LSTREQUAL(b, (t));                                          \
+    } while (0)
+        T(LSTR_NULL_V, LSTR_NULL_V);
+        T(LSTR_EMPTY_V, LSTR_EMPTY_V);
+        T(LSTR_IMMED_V("a"), LSTR_IMMED_V("a"));
+        T(LSTR_IMMED_V("ab"), LSTR_IMMED_V("ba"));
+        T(LSTR_IMMED_V("abc"), LSTR_IMMED_V("cba"));
+        T(LSTR_IMMED_V("abcd"), LSTR_IMMED_V("dcba"));
+#undef T
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 
