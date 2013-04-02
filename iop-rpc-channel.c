@@ -105,6 +105,7 @@ static void ic_proxify(ichannel_t *pxy_ic, ic_msg_t *msg, int cmd,
         return;
     if (likely(ic->elh) && likely(ic->id == slot >> 32)) {
         ic_msg_t *tmp = ic_msg_new_fd(pxy_ic ? ic_get_fd(pxy_ic) : -1, 0);
+        void *buf;
 
 #ifdef IC_DEBUG_REPLIES
         int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
@@ -116,8 +117,9 @@ static void ic_proxify(ichannel_t *pxy_ic, ic_msg_t *msg, int cmd,
         ic->pending--;
         tmp->slot = slot & IC_MSG_SLOT_MASK;
         tmp->cmd  = cmd;
+        buf = __ic_get_buf(tmp, dlen);
         if (data) {
-            memcpy(__ic_get_buf(tmp, dlen), data, dlen);
+            memcpy(buf, data, dlen);
         } else {
             assert (dlen == 0);
         }
