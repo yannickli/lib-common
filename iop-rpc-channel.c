@@ -116,7 +116,7 @@ static void ic_proxify(ichannel_t *pxy_ic, ic_msg_t *msg, int cmd,
         tmp->slot = slot & IC_MSG_SLOT_MASK;
         tmp->cmd  = cmd;
         buf = __ic_get_buf(tmp, dlen);
-        if (buf) {
+        if (data) {
             memcpy(buf, data, dlen);
         } else {
             assert (dlen == 0);
