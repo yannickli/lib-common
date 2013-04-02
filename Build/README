@@ -350,6 +350,14 @@ forced to `-O0 -fno-inlines -Wno-uninitialized`.
 	The build-system doesn't run "CHECK" targets (mostly clang at the
         time).
 
+`NOASSERT`::
+	The build-system enable the assertions in compiled code if that variable
+	is set to 1 and disable them is set to any other value. Note that by
+	default, assertions are enabled in profiles `default` and `debug` and
+	disabled in profile `release`. Disabling assertion is done using the
+	insertion of the `DNDEBUG` flag. As a consequence, `NOASSERT` also
+	enable/disable all the code conditionally built based on `NDEBUG` value.
+
 `NOCOMPRESS`::
 	The build-system doesn't compress the debug section of binaries
 	leading to larger binary files. This can be used if you have to work

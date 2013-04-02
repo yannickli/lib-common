@@ -93,10 +93,10 @@ endef
 
 define ext/rule/c
 tmp/$2/ns   := $(if $($(1D)/_CFLAGS)$($1_CFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))$4
-tmp/$2/objs := $$(patsubst %,$~%$$(tmp/$2/ns).o,$3)
+tmp/$2/objs := $$(patsubst %,$~%$$(tmp/$2/ns)$(OBJECTEXT).o,$3)
 $2: $$(tmp/$2/objs)
 $$(foreach c,$3,$$(eval $$(call fun/do-once,ext/expand/c/$$c$$(tmp/$2/ns),\
-    $$(call ext/expand/c,$1,$2,$$c,$4,$~$$c$$(tmp/$2/ns).o))))
+    $$(call ext/expand/c,$1,$2,$$c,$4,$~$$c$$(tmp/$2/ns)$(OBJECTEXT).o))))
 $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/objs),$3))
 endef
 
@@ -124,10 +124,10 @@ endef
 
 define ext/rule/cc
 tmp/$2/ns   := $$(if $($(1D)/_CXXFLAGS)$($1_CXXFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))$4
-tmp/$2/objs := $$(patsubst %,$~%$$(tmp/$2/ns).o,$3)
+tmp/$2/objs := $$(patsubst %,$~%$$(tmp/$2/ns)$(OBJECTEXT).o,$3)
 $2: $$(tmp/$2/objs)
 $$(foreach c,$3,$$(eval $$(call fun/do-once,ext/expand/c/$$c$$(tmp/$2/ns),\
-    $$(call ext/expand/cc,$1,$2,$$c,$4,$~$$c$$(tmp/$2/ns).o))))
+    $$(call ext/expand/cc,$1,$2,$$c,$4,$~$$c$$(tmp/$2/ns)$(OBJECTEXT).o))))
 $$(eval $$(call fun/common-depends,$1,$$(tmp/$2/objs),$3))
 endef
 
