@@ -182,6 +182,7 @@ static inline bool ps_strcaseequal(const pstream_t *ps, const char *s)
 /****************************************************************************/
 
 static inline int __ps_skip(pstream_t *ps, size_t len) {
+    assert (ps_has(ps, len));
     ps->s += len;
     return 0;
 }
@@ -189,6 +190,7 @@ static inline int ps_skip(pstream_t *ps, size_t len) {
     return unlikely(!ps_has(ps, len)) ? -1 : __ps_skip(ps, len);
 }
 static inline int __ps_skip_upto(pstream_t *ps, const void *p) {
+    assert (ps_contains(ps, p));
     ps->p = p;
     return 0;
 }
@@ -198,6 +200,7 @@ static inline int ps_skip_upto(pstream_t *ps, const void *p) {
 }
 
 static inline int __ps_shrink(pstream_t *ps, size_t len) {
+    assert (ps_has(ps, len));
     ps->s_end -= len;
     return 0;
 }
@@ -206,6 +209,7 @@ static inline int ps_shrink(pstream_t *ps, size_t len) {
 }
 
 static inline int __ps_clip(pstream_t *ps, size_t len) {
+    assert (ps_has(ps, len));
     ps->s_end = ps->s + len;
     return 0;
 }
@@ -213,6 +217,7 @@ static inline int ps_clip(pstream_t *ps, size_t len) {
     return unlikely(!ps_has(ps, len)) ? -1 : __ps_clip(ps, len);
 }
 static inline int __ps_clip_at(pstream_t *ps, const void *p) {
+    assert (ps_contains(ps, p));
     ps->p_end = p;
     return 0;
 }
@@ -266,6 +271,7 @@ int ps_skip_after_data(pstream_t *ps, const void *data, size_t len)
  *
  */
 static inline pstream_t __ps_extract_after(const pstream_t *ps, const void *p) {
+    assert (ps_contains(ps, p));
     return ps_initptr(p, ps->p_end);
 }
 static inline int ps_extract_after(pstream_t *ps, const void *p, pstream_t *out) {
@@ -276,6 +282,7 @@ static inline int ps_extract_after(pstream_t *ps, const void *p, pstream_t *out)
 
 static inline pstream_t __ps_get_ps_upto(pstream_t *ps, const void *p) {
     const void *old = ps->p;
+    assert (ps_contains(ps, p));
     return ps_initptr(old, ps->p = p);
 }
 static inline int ps_get_ps_upto(pstream_t *ps, const void *p, pstream_t *out) {
@@ -286,6 +293,7 @@ static inline int ps_get_ps_upto(pstream_t *ps, const void *p, pstream_t *out) {
 
 static inline pstream_t __ps_get_ps(pstream_t *ps, size_t len) {
     const void *old = ps->b;
+    assert (ps_has(ps, len));
     return ps_initptr(old, ps->b += len);
 }
 static inline int ps_get_ps(pstream_t *ps, size_t len, pstream_t *out) {
@@ -356,6 +364,7 @@ static inline int64_t ps_getlli(pstream_t *ps) {
 
 static inline int __ps_skipc(pstream_t *ps, int c)
 {
+    assert (ps_has(ps, 1));
     if (*ps->b == c) {
         ps->b++;
         return 0;
@@ -371,6 +380,7 @@ static inline int ps_skipc(pstream_t *ps, int c)
 
 static inline int __ps_shrinkc(pstream_t *ps, int c)
 {
+    assert (ps_has(ps, 1));
     if (*(ps->b_end - 1) == c) {
         ps->b_end--;
         return 0;
