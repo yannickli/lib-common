@@ -13,12 +13,30 @@
 
 #include "z.h"
 #include "arith.h"
+#include "core-mem-valgrind.h"
 
 #define BIT(x, n)   (((x) >> (n)) & 1)
 #define BC4(x)      BIT(x, 0) + BIT(x, 1) + BIT(x, 2) + BIT(x, 3)
 #define BC12(x)     BC4(x) + BC4((x) >> 4) + BC4((x) >> 8)
 
 /* bsf/bsr {{{ */
+
+#ifndef NDEBUG
+/** Allow to access to a byte as an uint64_t without valgrind warnings. We
+ * only defined the bytes that aren't really read.
+ */
+static inline void
+MAKE_U64_ACCESSIBLE(const uint64_t *pos, size_t start_bit, size_t len)
+{
+    size_t vpos = 1 + ((start_bit + len) / 8);
+
+    if (vpos < 8) {
+        VALGRIND_MAKE_MEM_DEFINED((const byte *)pos + vpos, 8 - vpos);
+    }
+}
+#else
+# define MAKE_U64_ACCESSIBLE(...)  ((void)0)
+#endif
 
 /* __firstbit8[n] is the index of the least significant non 0 bit in
  * `n' or 8 if n has all bits 0.
@@ -70,10 +88,12 @@ ssize_t bsr(const void *data, size_t start_bit, size_t len, bool reverse)
     } while (0)
 
     if (start_bit + len <= 64) {
+        MAKE_U64_ACCESSIBLE(pos, start_bit, len);
         SCAN_WORD(start_bit, start_bit + len);
         return -1;
     }
     if ((start_bit + len) % 64 != 0) {
+        MAKE_U64_ACCESSIBLE(pos, 0, (start_bit + len) % 64);
         SCAN_WORD(0, (start_bit + len) % 64);
     }
     while (len >= 64) {
@@ -134,6 +154,7 @@ ssize_t bsf(const void *data, size_t start_bit, size_t len, bool reverse)
     } while (0)
 
     if (start_bit + len <= 64) {
+        MAKE_U64_ACCESSIBLE(pos, start_bit, len);
         SCAN_WORD(start_bit, start_bit + len);
         return -1;
     }
@@ -144,6 +165,7 @@ ssize_t bsf(const void *data, size_t start_bit, size_t len, bool reverse)
         SCAN_WORD(0, 64);
     }
     if (len) {
+        MAKE_U64_ACCESSIBLE(pos, 0, len);
         SCAN_WORD(0, len);
     }
     return -1;
