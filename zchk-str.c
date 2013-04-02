@@ -511,7 +511,7 @@ Z_GROUP_EXPORT(str)
 #undef T
     } Z_TEST_END;
 
-    Z_TEST(lstr_reverse, "str: reverse a lstr") {
+    Z_TEST(lstr_ascii_reverse, "str: reverse a lstr") {
         t_scope;
 #define T(f, t) do {                                                         \
         lstr_t a = t_lstr_dup(f);                                            \
@@ -526,6 +526,25 @@ Z_GROUP_EXPORT(str)
         T(LSTR_IMMED_V("ab"), LSTR_IMMED_V("ba"));
         T(LSTR_IMMED_V("abc"), LSTR_IMMED_V("cba"));
         T(LSTR_IMMED_V("abcd"), LSTR_IMMED_V("dcba"));
+#undef T
+    } Z_TEST_END;
+
+    Z_TEST(lstr_utf8_reverse, "str: reverse a lstr") {
+        t_scope;
+#define T(f, t) do {                                                         \
+        lstr_t a = t_lstr_dup_utf8_reversed(f);                              \
+        Z_ASSERT_LSTREQUAL(a, (t));                                          \
+    } while (0)
+        T(LSTR_NULL_V, LSTR_NULL_V);
+        T(LSTR_EMPTY_V, LSTR_EMPTY_V);
+        T(LSTR_IMMED_V("a"), LSTR_IMMED_V("a"));
+        T(LSTR_IMMED_V("ab"), LSTR_IMMED_V("ba"));
+        T(LSTR_IMMED_V("abc"), LSTR_IMMED_V("cba"));
+        T(LSTR_IMMED_V("abcd"), LSTR_IMMED_V("dcba"));
+        T(LSTR_IMMED_V("aé"), LSTR_IMMED_V("éa"));
+        T(LSTR_IMMED_V("é"), LSTR_IMMED_V("é"));
+        T(LSTR_IMMED_V("éa"), LSTR_IMMED_V("aé"));
+        T(LSTR_IMMED_V("béa"), LSTR_IMMED_V("aéb"));
 #undef T
     } Z_TEST_END;
 

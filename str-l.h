@@ -458,6 +458,38 @@ static inline lstr_t t_lstr_dup_ascii_reversed(const lstr_t v)
     return lstr_init_(str, v.len, MEM_STACK);
 }
 
+/** \brief duplicates \p v on the t_stack and reverse its content.
+ *
+ * This function reverse character by character, which means that the result
+ * contains the same characters in the reversed order but each character is
+ * preserved in it's origin byte-wise order. This guarantees that both the
+ * source and the destination are valid utf8 strings.
+ *
+ * In case of error, LSTR_NULL_V is returned.
+ */
+static inline lstr_t t_lstr_dup_utf8_reversed(const lstr_t v)
+{
+    int prev_off = 0;
+    char *str;
+
+    if (!v.s) {
+        return v;
+    }
+
+    str = t_new_raw(char, v.len + 1);
+    while (prev_off < v.len) {
+        int off = prev_off;
+        int c = utf8_ngetc_at(v.s, v.len, &off);
+
+        if (unlikely(c < 0)) {
+            return LSTR_NULL_V;
+        }
+        memcpy(str + v.len - off, v.s + prev_off, off - prev_off);
+        prev_off = off;
+    }
+    return lstr_init_(str, v.len, MEM_STACK);
+}
+
 /** \brief concatenates its argument to form a new lstr on the mem stack.
  */
 static inline lstr_t t_lstr_cat(const lstr_t s1, const lstr_t s2)
