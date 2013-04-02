@@ -401,8 +401,16 @@ static inline int ps_getc(pstream_t *ps) {
     return __ps_getc(ps);
 }
 
+static inline int ps_peekc(pstream_t ps) {
+    return ps_getc(&ps);
+}
+
 static inline int ps_getuc(pstream_t *ps) {
     return utf8_ngetc(ps->s, ps_len(ps), &ps->s);
+}
+
+static inline int ps_peekuc(pstream_t ps) {
+    return ps_getuc(&ps);
 }
 
 static inline int __ps_hexdigit(pstream_t *ps) {
@@ -411,6 +419,23 @@ static inline int __ps_hexdigit(pstream_t *ps) {
 static inline int ps_hexdigit(pstream_t *ps) {
     PS_WANT(ps_has(ps, 1));
     return __ps_hexdigit(ps);
+}
+
+static inline int ps_hex16(pstream_t *ps, int len, uint16_t *res)
+{
+    const byte *b = ps->b;
+
+    PS_WANT(len <= 4);
+    PS_WANT(ps_has(ps, len));
+
+    *res = 0;
+    while (b < ps->b + len) {
+        PS_WANT(ctype_desc_contains(&ctype_ishexdigit, *b));
+        *res <<= 4;
+        *res |= hexdigit(*b);
+        b++;
+    }
+    return __ps_skip(ps, len);
 }
 
 static inline int ps_hexdecode(pstream_t *ps) {
@@ -562,6 +587,20 @@ union qv_lstr_t;
 int ps_get_csv_line(mem_pool_t *mp, pstream_t *ps, int sep, int quote,
                     union qv_lstr_t *fields);
 
+/** Split a stream based on a set of separator.
+ *
+ * The line is parsed and each time one of the separators is encountered, it
+ * a new chunk is added in the result vector. The results do not contain the
+ * separator and may contain empty strings.
+ *
+ * Strings appended are not copied, they point to the content of the origin
+ * pstream.
+ *
+ * \param ps The input stream. It will be completely consumed.
+ * \param sep The separating characters.
+ * \param res A vector that get filled with the content of the ps.
+ */
+void ps_split(pstream_t ps, const ctype_desc_t *sep, union qv_lstr_t *res);
 
 /****************************************************************************/
 /* binary parsing helpers                                                   */

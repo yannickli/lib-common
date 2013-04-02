@@ -528,6 +528,37 @@ Z_GROUP_EXPORT(str)
         T(LSTR_IMMED_V("abcd"), LSTR_IMMED_V("dcba"));
 #undef T
     } Z_TEST_END;
+
+    Z_TEST(ps_split, "str-array: str_explode") {
+        qv_t(lstr) arr;
+
+        qv_init(lstr, &arr);
+
+#define T(str1, str2, str3, sep, seps) \
+        ({  pstream_t ps = ps_initstr(str1 sep str2 sep str3);               \
+            ctype_desc_t desc;                                               \
+                                                                             \
+                                                                             \
+            ctype_desc_build(&desc, seps);                                   \
+            qv_deep_clear(lstr, &arr, lstr_wipe);                            \
+            ps_split(ps, &desc, &arr);                                       \
+            Z_ASSERT_EQ(arr.len, 3);                                         \
+            Z_ASSERT_LSTREQUAL(arr.tab[0], LSTR_IMMED_V(str1));              \
+            Z_ASSERT_LSTREQUAL(arr.tab[1], LSTR_IMMED_V(str2));              \
+            Z_ASSERT_LSTREQUAL(arr.tab[2], LSTR_IMMED_V(str3)); })
+
+        T("123", "abc", "!%*", "/", "/");
+        T("123", "abc", "!%*", " ", " ");
+        T("123", "abc", "!%*", "$", "$");
+        T("   ", ":::", "!!!", ",", ",");
+
+        T("secret1", "secret2" , "secret3", " ", " ,;");
+        T("secret1", "secret2" , "secret3", ",", " ,;");
+        T("secret1", "secret2" , "secret3", ";", " ,;");
+
+        qv_deep_wipe(lstr, &arr, lstr_wipe);
+#undef T
+    } Z_TEST_END;
 } Z_GROUP_END;
 
 
