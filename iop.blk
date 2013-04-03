@@ -442,21 +442,21 @@ iop_get_fieldp(const void *data, const field_path_t *field_path)
     switch (fdesc->type) {
       case IOP_T_I8:
       case IOP_T_U8:
-        return IOP_OPT_GET((const iop_opt_u8_t *)data);
+        return OPT_GET((const iop_opt_u8_t *)data);
       case IOP_T_I16:
       case IOP_T_U16:
-        return IOP_OPT_GET((const iop_opt_u16_t *)data);
+        return OPT_GET((const iop_opt_u16_t *)data);
       case IOP_T_ENUM:
       case IOP_T_I32:
       case IOP_T_U32:
-        return IOP_OPT_GET((const iop_opt_u32_t *)data);
+        return OPT_GET((const iop_opt_u32_t *)data);
       case IOP_T_I64:
       case IOP_T_U64:
-        return IOP_OPT_GET((const iop_opt_u64_t *)data);
+        return OPT_GET((const iop_opt_u64_t *)data);
       case IOP_T_BOOL:
-        return IOP_OPT_GET((const iop_opt_bool_t *)data);
+        return OPT_GET((const iop_opt_bool_t *)data);
       case IOP_T_DOUBLE:
-        return IOP_OPT_GET((const iop_opt_double_t *)data);
+        return OPT_GET((const iop_opt_double_t *)data);
       case IOP_T_STRING:
       case IOP_T_XML:
       case IOP_T_DATA:
