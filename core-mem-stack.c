@@ -96,8 +96,8 @@ static ALWAYS_INLINE uint8_t *frame_end(mem_stack_frame_t *frame)
 static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, size_t alignment,
                         mem_stack_blk_t **blkp, uint8_t **end)
 {
+    uint8_t           *res;
     mem_stack_frame_t *frame = sp->stack;
-    uint8_t           *res   = frame->pos;
     size_t             size  = ROUND_UP(asked, alignment);
 
     res = (uint8_t *)ROUND_UP((uintptr_t)frame->pos, alignment);
@@ -220,8 +220,10 @@ static void *sp_realloc_aligned(mem_pool_t *_sp, void *mem,
         res = mem;
     } else {
         res = sp_alloc_aligned(_sp, size, alignment, flags | MEM_RAW);
-        memcpy(res, mem, oldsize);
-        (void)VALGRIND_MAKE_MEM_NOACCESS(mem, oldsize);
+        if (mem) {
+            memcpy(res, mem, oldsize);
+            (void)VALGRIND_MAKE_MEM_NOACCESS(mem, oldsize);
+        }
     }
     (void)VALGRIND_MAKE_MEM_NOACCESS(res + asked, size - asked);
 

@@ -22,4 +22,4 @@ endif
 LDFLAGS += -rdynamic
 
 clang-analyzer: __setup_forward
-	MAKELEVEL=0 scan-build --use-cc clang --use-c++ clang++ $(MAKE)
+	MAKELEVEL=0 scan-build --use-analyzer $(shell which clang) --use-cc $(shell which clang) --use-c++ $(shell which clang++) $(MAKE)

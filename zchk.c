@@ -648,7 +648,7 @@ Z_GROUP_EXPORT(bit_stream)
 
 int main(int argc, const char **argv)
 {
-    argc = z_setup(argc, argv);
+    z_setup(argc, argv);
     z_register_exports("lib-common/");
     return z_run();
 }
