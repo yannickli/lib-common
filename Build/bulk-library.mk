@@ -74,9 +74,7 @@ endef
 
 # ext/expand/c <PHONY>,<TARGET>,<C>,<NS>,<OBJ>
 define ext/expand/c
-$5: C_=$(or $($3_COMPILER),$(CC))
-$5: F_=$$(if $$(or $$(findstring -analyzer,$$(C_)),$$(findstring clang,$$(C_))),$$(CLANGFLAGS),$$(CFLAGS))
-$5: NOCHECK_=$$(NOCHECK)$$(or $$(findstring -analyzer,$$(C_)),$$(findstring clang,$$(C_)))$($(1D)/_NOCHECK)$($1_NOCKECK)$$($3_NOCHECK)
+$5: NOCHECK_=$$(NOCHECK)$(or $(findstring -analyzer,$(CC)),$(findstring clang,$(CC)))$($(1D)/_NOCHECK)$($1_NOCKECK)$$($3_NOCHECK)
 $5: FLAGS_=$($(1D)/_CFLAGS) $($1_CFLAGS) $($3_CFLAGS)
 $5: CLANGFLAGS_=$($(1D)/_CLANGFLAGS) $($1_CLANGFLAGS) $($3_CLANGFLAGS) $$(CLANGFLAGS)
 $5: $3 | _generated
@@ -85,7 +83,7 @@ $5: $3 | _generated
 	$$(if $$(NOCHECK_),,clang $$(CLANGFLAGS_) $$(filter-out -D_FORTIFY_SOURCE=%,$$(FLAGS_)) \
 	    -x c -O0 -fsyntax-only -D_FORTIFY_SOURCE=0 -o /dev/null $3)
 	$(msg/COMPILE.c) $3
-	$$(C_) $(if $(filter %.c,$3),,-x c) -g $$(F_) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
+	$(CC) $(if $(filter %.c,$3),,-x c) -g $(CFLAGS) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
 	    $(if $(findstring .pic,$4),-fPIC) -c -o $5 $3
 	$(call fun/obj-compress,$5)
 -include $5.d
@@ -105,9 +103,7 @@ endef
 
 # ext/expand/c <PHONY>,<TARGET>,<C>,<NS>,<OBJ>
 define ext/expand/cc
-$5: C_=$(or $($3_COMPILER),$(CXX))
-$5: F_=$$(if $$(or $$(findstring -analyzer,$$(C_)),$$(findstring clang,$$(C_))),$(CLANGXXFLAGS),$(CXXFLAGS))
-$5: NOCHECK_=$$(NOCHECK)$$(or $$(findstring -analyzer,$$(C_)),$$(findstring clang,$$(C_)))$($(1D)/_NOCHECK)$($1_NOCKECK)$$($3_NOCHECK)
+$5: NOCHECK_=$$(NOCHECK)$(or $(findstring -analyzer,$(CXX)),$(findstring clang,$(CXX)))$($(1D)/_NOCHECK)$($1_NOCKECK)$$($3_NOCHECK)
 $5: FLAGS_=$($(1D)/_CXXFLAGS) $($1_CXXFLAGS) $($3_CXXFLAGS)
 $5: CLANGXXFLAGS_=$($(1D)/_CLANGXXFLAGS) $($1_CLANGXXFLAGS) $($3_CLANGXXFLAGS) $$(CLANGXXFLAGS)
 $5: $3 | _generated
@@ -116,7 +112,7 @@ $5: $3 | _generated
 	$$(if $$(NOCHECK_),,clang++ $$(CLANGXXFLAGS_) $$(filter-out -D_FORTIFY_SOURCE=%,$$(FLAGS_)) \
 	    -x c++ -O0 -fsyntax-only -D_FORTIFY_SOURCE=0 -o /dev/null $3)
 	$(msg/COMPILE.C) $3
-	$$(C_) $(if $(filter %.cc %.cpp,$3),,-x c++) -g $$(F_) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
+	$(CXX) $(if $(filter %.cc %.cpp,$3),,-x c++) -g $(CXXFLAGS) $$(FLAGS_) -MP -MMD -MT $5 -MF $5.d \
 	    $(if $(findstring .pic,$4),-fPIC) -c -o $5 $3
 	$(call fun/obj-compress,$5)
 -include $5.d
