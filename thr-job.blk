@@ -46,10 +46,9 @@ struct thr_qnode_t {
 } __attribute__((aligned(CACHE_LINE_SIZE)));
 
 struct thr_queue_t {
-    thr_job_t             run;
-    thr_job_t             destroy;
-    mpsc_queue_t          q;
-    unsigned volatile     closing;
+    thr_job_t    run;
+    thr_job_t    destroy;
+    mpsc_queue_t q;
 } __attribute__((aligned(CACHE_LINE_SIZE)));
 
 typedef struct thr_info_t {
@@ -457,6 +456,7 @@ GENERIC_DELETE(thr_queue_t, thr_queue);
 
 static void thr_queue_drain(thr_queue_t *q)
 {
+    bool wipe = false;
     mpsc_it_t it;
 
     if (unlikely(mpsc_queue_looks_empty(&q->q))) {
@@ -479,12 +479,14 @@ static void thr_queue_drain(thr_queue_t *q)
     do {
         thr_qnode_t *n = thr_qnode_of(mpsc_queue_drain_fast(&it, doit));
         job_run(n->job, n->syn);
+        wipe = (n->job == &q->destroy);
     } while (!__mpsc_queue_drain_end(&it, thr_qnode_destroy,
                                      ({ thr_job_dequeue() ?: thr_job_steal(); })));
 #undef doit
 
-    if (q->closing)
+    if (wipe) {
         thr_queue_delete(&q);
+    }
 }
 
 static void thr_queue_run(thr_job_t *job, thr_syn_t *syn)
@@ -496,12 +498,9 @@ static void thr_queue_finalize(thr_job_t *job, thr_syn_t *syn)
 {
     /*
      * Do nothing in the finalize, thr_queue_drain will perform the deletion
-     * itself.
-     *
-     * The mb() is here so that the test if (q->closing) in thr_queue_drain
-     * works properly.
+     * itself. This function serves as a marker that we reached the end of the
+     * queue.
      */
-    mb();
 }
 
 static thr_queue_t *thr_queue_init(thr_queue_t *q)
@@ -539,7 +538,6 @@ void thr_syn_queue(thr_syn_t *syn, thr_queue_t *q, thr_job_t *job)
         if (syn)
             thr_syn__job_prepare(syn);
 
-        assert (!q->closing || job == &q->destroy);
         if (mpsc_queue_push(&q->q, &n->qnode)) {
             if (q == thr_queue_main_g) {
                 thr_wakeup_thr0();
@@ -565,7 +563,6 @@ void thr_queue_sync(thr_queue_t *q, thr_job_t *job)
     /*
      * if mpsc_queue_push returns 1, then we're alone !
      */
-    assert (!q->closing || job == &q->destroy);
     if (mpsc_queue_push(&q->q, &n->qnode)) {
         if (q == thr_queue_main_g && self_tid_g != 0) {
             thr_wakeup_thr0();
@@ -593,14 +590,10 @@ thr_queue_t *thr_queue_create(void)
 void thr_queue_destroy(thr_queue_t *q, bool wait)
 {
     assert (q != thr_queue_main_g);
-    if (atomic_bool_cas(&q->closing, 0, 1)) {
-        if (wait) {
-            thr_queue_sync(q, &q->destroy);
-        } else {
-            thr_queue(q, &q->destroy);
-        }
+    if (wait) {
+        thr_queue_sync(q, &q->destroy);
     } else {
-        e_panic("destroying queue %p twice !", q);
+        thr_queue(q, &q->destroy);
     }
 }
 
