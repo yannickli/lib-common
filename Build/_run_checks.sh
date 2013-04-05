@@ -38,6 +38,7 @@ else
         shift 1
         echo "$@"
     }
+    BEHAVE_FLAGS="--no-color"
 fi
 
 
@@ -62,7 +63,7 @@ while read t; do
     say_color info "starting suite $t..."
     case ./"$t" in
         */behave)
-            res="$pybin $(which behave) --tags=-web --tags=-slow --tags=-upgrade $(dirname "./$t")/ci/features"
+            res="$pybin $(which behave) $BEHAVE_FLAGS --tags=-web --tags=-slow --tags=-upgrade $(dirname "./$t")/ci/features"
             ;;
         *.py)
             res="$pybin ./$t"
