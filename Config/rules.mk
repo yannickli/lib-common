@@ -70,11 +70,11 @@ $3.h: $3.c
 $~$3.dep: $3 $(IOPC)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$(IOPC) -2 --c-resolve-includes --Wextra -d$~$$<.dep -I$/lib-common:$/lib-inet:$/qrrd/iop $$<
+	$(IOPC) -2 --c-resolve-includes --Wextra -d$~$$<.dep -I$/lib-common:$/lib-inet:$/qrrd/iop:$/qts $$<
 $3.c: $3 $(IOPC)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$(IOPC) -2 --c-resolve-includes --Wextra -d$~$$<.dep -I$/lib-common:$/lib-inet:$/qrrd/iop $$<
+	$(IOPC) -2 --c-resolve-includes --Wextra -d$~$$<.dep -I$/lib-common:$/lib-inet:$/qrrd/iop:$/qts $$<
 -include $~$3.dep
 endef
 
