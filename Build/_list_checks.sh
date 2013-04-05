@@ -40,7 +40,20 @@ dump_zf()
             IFS=''
             # $line is unquoted because IFS='', hence it's safe, yuck
             for f in "$zd/"$line; do
-                test -x "$f" || continue
+                case ./"$f" in
+                    */behave)
+                        has_match=b
+                        echo "${f#$CURDIR/}"
+                        continue
+                        ;;
+                    *.py)
+                        test -f "$f" || continue
+                        ;;
+                    *)
+                        test -x "$f" || continue
+                        ;;
+                esac
+
                 has_match=t
                 f="$(readlink -e "$f")"
                 echo "${f#$CURDIR/}"
