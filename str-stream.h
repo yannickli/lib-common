@@ -224,6 +224,14 @@ static inline int __ps_clip_at(pstream_t *ps, const void *p) {
 static inline int ps_clip_at(pstream_t *ps, const void *p) {
     return unlikely(!ps_contains(ps, p)) ? -1 : __ps_clip_at(ps, p);
 }
+static inline int ps_clip_atchr(pstream_t *ps, int c) {
+    const char *p = (const char *)memchr(ps->p, c, ps_len(ps));
+    return likely(p) ? __ps_clip_at(ps, p) : -1;
+}
+static inline int ps_clip_afterchr(pstream_t *ps, int c) {
+    const char *p = (const char *)memchr(ps->p, c, ps_len(ps));
+    return likely(p) ? __ps_clip_at(ps, p + 1) : -1;
+}
 
 static inline int ps_skipdata(pstream_t *ps, const void *data, size_t len) {
     PS_WANT(ps_startswith(ps, data, len));
@@ -318,7 +326,7 @@ static inline int ps_get_ps_chr_and_skip(pstream_t *ps, int c, pstream_t *out) {
 }
 
 
-/** \brief  Returns the bytes un tp the (\a d, \a len) word
+/** \brief  Returns the bytes up to the (\a d, \a len) word
  * \return -1 if the word cannot be found
  */
 static inline int
@@ -329,7 +337,7 @@ ps_get_ps_upto_data(pstream_t *ps, const void *d, size_t len, pstream_t *out)
     return 0;
 }
 
-/** \brief  Returns the bytes un tp the (\a data, \a len) word, and skip it.
+/** \brief  Returns the bytes up to the (\a data, \a len) word, and skip it.
  * \return -1 if the word cannot be found
  */
 static inline int
