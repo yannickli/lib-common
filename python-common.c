@@ -31,11 +31,13 @@ static void python_http_on_done(httpc_query_t *q, httpc_status_t status);
 
 static PyObject *http_initialize_error = NULL;
 static PyObject *http_query_error      = NULL;
+static PyObject *http_build_part_error = NULL;
 
 enum {
     PYTHON_HTTP_STATUS_OK = 0,
     PYTHON_HTTP_STATUS_ERROR = -1,
     PYTHON_HTTP_STATUS_USERERROR = -2,
+    PYTHON_HTTP_STATUS_BUILD_QUERY_ERROR = -3,
 };
 
 /* module structure {{{*/
@@ -131,7 +133,7 @@ python_http_query_end(python_ctx_t **_ctx, int status, lstr_t err_msg,
     PyObject     *res = NULL;
 
     if (restore_Thread)
-       PyEval_RestoreThread(python_state_g);
+        PyEval_RestoreThread(python_state_g);
 
     res = PyObject_CallFunction(ctx->cb_query_done, (char *)"Ois",
                                 ctx->data, status, err_msg.s);
@@ -140,7 +142,7 @@ python_http_query_end(python_ctx_t **_ctx, int status, lstr_t err_msg,
     python_ctx_delete(&ctx);
 
     if (restore_Thread)
-       python_state_g = PyEval_SaveThread();
+        python_state_g = PyEval_SaveThread();
 }
 
 static void python_http_process_answer(python_query_t *q)
@@ -152,9 +154,9 @@ static void python_http_process_answer(python_query_t *q)
     PyObject *cbk_res = NULL;
 
     if (res != HTTP_CODE_OK) {
-       python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_ERROR,
+        python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_ERROR,
                              http_code_to_str(res), true);
-       return;
+        return;
     }
 
     PyEval_RestoreThread(python_state_g);
@@ -164,10 +166,10 @@ static void python_http_process_answer(python_query_t *q)
                                     q->ctx->data);
 
     if (!cbk_res || !PyInt_Check(cbk_res) || PyInt_AsLong(cbk_res) != 0l) {
-       python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_USERERROR,
+        python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_USERERROR,
                              LSTR_NULL_V, false);
     } else {
-       python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_OK,
+        python_http_query_end(&q->ctx, PYTHON_HTTP_STATUS_OK,
                              LSTR_NULL_V, false);
     }
 
@@ -176,48 +178,65 @@ static void python_http_process_answer(python_query_t *q)
     python_state_g = PyEval_SaveThread();
 }
 
-static void python_prepare_query(httpc_query_t *q, python_ctx_t *ctx)
+static void python_http_launch_query(httpc_t *w, python_ctx_t *ctx)
 {
-    PyObject *data   = NULL;
-    PyObject *cb_arg = NULL;
+    PyObject *headers   = NULL;
+    PyObject *body      = NULL;
+    PyObject *cb_arg    = NULL;
+    PyObject *exc_type  = NULL;
+    PyObject *exc_value = NULL;
+    PyObject *exc_tb    = NULL;
+    python_query_t *q   = NULL;
     outbuf_t *ob;
+    SB_1k(sb);
 
+
+    /* build headers and body data */
     PyEval_RestoreThread(python_state_g);
 
     cb_arg = PyTuple_New(1);
     PyTuple_SetItem(cb_arg, 0, ctx->data);
     Py_XINCREF(ctx->data);
 
-    ob = httpc_get_ob(q);
+    PyErr_Clear();
+#define PYTHON_HTTP_BUILD_PART(obj, cbk, part)                               \
+    obj = PyObject_CallObject(cbk, cb_arg);                                  \
+    PyErr_Fetch(&exc_type, &exc_value, &exc_tb);                             \
+    if (exc_type                                                             \
+    &&  PyErr_GivenExceptionMatches(exc_type, http_build_part_error))        \
+    {                                                                        \
+        t_scope;                                                             \
+        PyObject *exc_str;                                                   \
+        lstr_t errmsg;                                                       \
+                                                                             \
+        exc_str = exc_value ? PyObject_Str(exc_value) :                      \
+                              PyString_FromString("undefined");              \
+        errmsg = t_lstr_fmt("build %s cbk raises buildPartError: %s",        \
+                             part, PyString_AsString(exc_str));              \
+        python_http_query_end(&ctx, PYTHON_HTTP_STATUS_BUILD_QUERY_ERROR,    \
+                              errmsg, false);                                \
+        Py_XDECREF(cb_arg);                                                  \
+        Py_XDECREF(headers);                                                 \
+        Py_XDECREF(body);                                                    \
+        Py_XDECREF(exc_str);                                                 \
+        Py_XDECREF(exc_type);                                                \
+        Py_XDECREF(exc_value);                                               \
+        Py_XDECREF(exc_tb);                                                  \
+        python_state_g = PyEval_SaveThread();                                \
+        return;                                                              \
+    }                                                                        \
+    PyErr_Restore(exc_type, exc_value, exc_tb);
 
-    data = PyObject_CallObject(_G.cb_build_headers, cb_arg);
-    if (data != NULL && PyString_Check(data) && PyString_Size(data) > 0) {
-        ob_adds(ob, PyString_AsString(data));
-    }
-    Py_XDECREF(data);
-
-    httpc_query_hdrs_done(q, -1, false);
-
-    data = PyObject_CallObject(_G.cb_build_body, cb_arg);
-    if (data != NULL && PyString_Check(data) && PyString_Size(data) > 0) {
-        const char *body_str = PyString_AsString(data);
-        ob_adds(ob, body_str);
-    }
-    Py_XDECREF(data);
-
-    httpc_query_done(q);
+    PYTHON_HTTP_BUILD_PART(headers, _G.cb_build_headers, "headers");
+    PYTHON_HTTP_BUILD_PART(body, _G.cb_build_body, "body");
+#undef PYTHON_HTTP_BUILD_PART
 
     Py_XDECREF(cb_arg);
 
-    python_state_g = PyEval_SaveThread();
-}
-
-static void python_http_launch_query(httpc_t *w, python_ctx_t *ctx)
-{
-    SB_1k(sb);
-    python_query_t *q = python_query_new();
-
+    /* launch query */
+    q = python_query_new();
     q->ctx = ctx;
+
     httpc_query_attach(&q->q, w);
 
     if (ctx->path) {
@@ -235,7 +254,21 @@ static void python_http_launch_query(httpc_t *w, python_ctx_t *ctx)
     if (_G.user.len && _G.password.len)
         httpc_query_hdrs_add_auth(&q->q, _G.user, _G.password);
 
-    python_prepare_query(&q->q, q->ctx);
+    ob = httpc_get_ob(&q->q);
+    if (headers && PyString_Check(headers) && PyString_Size(headers) > 0) {
+        ob_adds(ob, PyString_AsString(headers));
+    }
+    Py_XDECREF(headers);
+    httpc_query_hdrs_done(&q->q, -1, false);
+
+    if (body && PyString_Check(body) && PyString_Size(body) > 0) {
+        const char *body_str = PyString_AsString(body);
+        ob_adds(ob, body_str);
+    }
+    Py_XDECREF(body);
+    python_state_g = PyEval_SaveThread();
+
+    httpc_query_done(&q->q);
 }
 
 static void process_queries(httpc_pool_t *m, httpc_t *w)
@@ -445,6 +478,7 @@ static PyObject *python_http_shutdown(PyObject *self, PyObject *arg)
     lstr_wipe(&_G.user);
     lstr_wipe(&_G.url);
     lstr_wipe(&_G.url_args);
+    PyEval_RestoreThread(python_state_g);
     Py_XDECREF(_G.cb_parse_answer);
     Py_XDECREF(_G.cb_build_body);
     Py_XDECREF(_G.cb_build_headers);
@@ -515,20 +549,20 @@ static PyObject *python_log(PyObject *self, PyObject *args)
     int         log_level;
 
     if (args == NULL) {
-       e_error("no arguments passed to python log");
-       return Py_BuildValue("i", -1);
+        e_error("no arguments passed to python log");
+        return Py_BuildValue("i", -1);
     }
 
     args_len = PyTuple_Size(args);
     if (args_len != 2) {
-       e_error("not exactly two arguments passed to python log: %zd",
+        e_error("not exactly two arguments passed to python log: %zd",
                args_len);
-       return Py_BuildValue("i", -2);
+        return Py_BuildValue("i", -2);
     }
 
     if (!PyArg_ParseTuple(args, "is", &log_level, &str)) {
-       e_error("failed to parse python log arguments");
-       return Py_BuildValue("i", -3);
+        e_error("failed to parse python log arguments");
+        return Py_BuildValue("i", -3);
     }
 
     switch (log_level) {
@@ -639,6 +673,10 @@ PyObject *python_common_initialize(const char *name, PyMethodDef methods[])
                                           NULL, NULL);
     Py_XINCREF(http_query_error);
     PyModule_AddObject(common_module, "queryError", http_query_error);
+    http_build_part_error = PyErr_NewException((char *) "http.buildPartError",
+                                               NULL, NULL);
+    Py_XINCREF(http_build_part_error);
+    PyModule_AddObject(common_module, "buildPartError", http_build_part_error);
 
     add_module_constant(common_module, "LOG_CRIT", LOG_CRIT);
     add_module_constant(common_module, "LOG_ERR", LOG_ERR);
@@ -654,6 +692,8 @@ PyObject *python_common_initialize(const char *name, PyMethodDef methods[])
                         PYTHON_HTTP_STATUS_ERROR);
     add_module_constant(common_module, "HTTP_USERERROR",
                         PYTHON_HTTP_STATUS_USERERROR);
+    add_module_constant(common_module, "HTTP_BUILD_QUERY_ERROR",
+                        PYTHON_HTTP_STATUS_BUILD_QUERY_ERROR);
 
     return common_module;
 }
