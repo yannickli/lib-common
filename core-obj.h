@@ -81,9 +81,8 @@ bool cls_inherits(const void *cls, const void *vptr)
         methods(pfx##_t);                                                    \
     };                                                                       \
                                                                              \
-    const pfx##_class_t *pfx##_class(void) __leaf __attribute__((pure));     \
+    const pfx##_class_t *pfx##_class(void) __leaf;                           \
                                                                              \
-    __attribute__((pure))                                                    \
     static inline const superclass##_class_t *pfx##_super(void) {            \
         return superclass##_class();                                         \
     }
