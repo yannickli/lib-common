@@ -448,7 +448,7 @@ const void *mem_stack_push(mem_pool_t *);
 const void *mem_stack_pop(mem_pool_t *);
 void mem_stack_rewind(mem_pool_t *, const void *);
 
-mem_pool_t *t_pool(void) __attribute__((pure));
+mem_pool_t *t_pool(void);
 
 #define t_push()      mem_stack_push(t_pool())
 #define t_pop()       mem_stack_pop(t_pool())
