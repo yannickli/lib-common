@@ -16,7 +16,7 @@ request, it calls the 2 callbacks to build the request with Python object as
 argument and send it. When the answer is received, the API calls the last
 callback with the server answer.
 
-This module declares 4 methods and 2 exceptions.
+This module declares 4 methods, 2 exceptions and 4 constants.
 
 === Details ===
 
@@ -58,6 +58,8 @@ cfg_hex = my_httpc_cfg().__hex__()
 -  user: string.
 -  password: string.
 
+This function throws an initializeError exception if there is an error.
+
 ==== http_loop ====
 
 Creates a lib-common event named blocker. Call is blocking.
@@ -89,9 +91,13 @@ cb_query_done parameters:
 
 status meaning:
 
--  0 means success to send request and answer processed.
--  -1 means fails to send request.
--  -2 means that your parse answer callback does not return 0.
+-  HTTP_OK means success to send request and answer processed.
+-  HTTP_ERROR means fails to send request.
+-  HTTP_USERERROR means that your parse answer callback does not return 0.
+-  HTTP_BUILD_QUERY_ERROR means that your build headers callback or your
+   build body callback returns None.
+
+This function throws an queryError exception if there is an error.
 
 === example ===
 [source,python]
@@ -111,10 +117,18 @@ def query_end(arg, status, err_str):
   return 0
 
 core = iopy.Plugin("path-to-my-libcommon-iop-core.so")
-http_initialize(core.core.HttpcCfg().__hex__(), build_header, build_body, parse_answer, "www.google.fr", "", 80, 1, 5, 5000, "", "")
-cbk_arg = "I m a http cbk arg. I could be any kind of python object"
+try:
+  http_initialize(core.core.HttpcCfg().__hex__(), build_header, build_body, parse_answer, "www.google.fr", "", 80, 1, 5, 5000, "", "")
+except lms_eb.initializeError as e:
+  print "http initialize error: %s" % e.args
+  exit()
 
-http_query(cbk_arg, query_end, "/")
+cbk_arg = "I m a http cbk arg. I could be any kind of python object"
+try:
+  http_query(cbk_arg, query_end, "/")
+except lms_eb.queryError as e:
+  print "http query error: %s" % e.args
+  exit()
 http_loop()
 http_shutdown()
 ----
