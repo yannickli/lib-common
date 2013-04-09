@@ -36,7 +36,6 @@
 
 /* Registers ASN.1 sequences implicitly. */
 #define ASN1_DESC_BEGIN(desc, pfx) \
-    __attribute__((pure))                                                    \
     ASN1_DESC(pfx)                                                           \
     {                                                                        \
         static asn1_desc_t *desc;                                            \
@@ -59,7 +58,6 @@
 #define ASN1_SEQUENCE_DESC_END(desc)  ASN1_DESC_END(desc)
 
 #define ASN1_CHOICE_DESC_BEGIN(desc, pfx, enum_pfx, enum_field) \
-    __attribute__((pure))                                                    \
     ASN1_DESC(pfx)                                                           \
     {                                                                        \
         static asn1_desc_t *desc;                                            \
