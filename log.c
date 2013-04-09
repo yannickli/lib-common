@@ -37,6 +37,12 @@ struct trace_spec_t {
 qvector_t(spec, struct trace_spec_t);
 
 
+#ifndef NDEBUG
+#define LOG_DEFAULT  LOG_TRACE
+#else
+#define LOG_DEFAULT  LOG_DEBUG
+#endif
+
 static struct {
     logger_t root_logger;
     e_handler_f   *e_handler;
@@ -55,9 +61,9 @@ static struct {
 } log_g = {
 #define _G  log_g
     .root_logger = {
-        .level         = LOG_TRACE,
+        .level         = LOG_DEFAULT,
         .defined_level = LOG_UNDEFINED,
-        .default_level = LOG_TRACE,
+        .default_level = LOG_DEFAULT,
         .name          = LSTR_EMPTY,
         .full_name     = LSTR_EMPTY,
         .parent        = NULL,
@@ -98,6 +104,7 @@ void logger_wipe(logger_t *logger)
 {
     assert (dlist_is_empty(&logger->children));
 
+    dlist_remove(&logger->siblings);
     lstr_wipe(&logger->name);
     lstr_wipe(&logger->full_name);
 }
@@ -705,5 +712,103 @@ static void log_shutdown(void)
 {
     qm_deep_wipe(level, &_G.pending_levels, lstr_wipe, IGNORE);
 }
+
+/* }}} */
+/* Tests {{{ */
+
+#include <lib-common/z.h>
+
+Z_GROUP_EXPORT(log) {
+    Z_TEST(log_level, "log") {
+        logger_t a = LOGGER_INIT_INHERITS(NULL, "a");
+        logger_t b = LOGGER_INIT_INHERITS(&a, "b");
+        logger_t c = LOGGER_INIT(&b, "c", LOG_ERR);
+        logger_t d;
+
+        logger_init(&d, &c, LSTR_IMMED_V("d"), LOG_INHERITS);
+
+        Z_ASSERT_EQ(LOG_ERR, logger_get_level(&d));
+        Z_ASSERT_EQ(LOG_ERR, logger_get_level(&c));
+        Z_ASSERT_EQ(log_g.root_logger.default_level, logger_get_level(&b));
+        Z_ASSERT_EQ(log_g.root_logger.default_level, logger_get_level(&a));
+        Z_ASSERT_EQ(log_g.root_logger.default_level,
+                    logger_get_level(&log_g.root_logger));
+
+        logger_set_level(LSTR_EMPTY_V, LOG_WARNING, 0);
+        Z_ASSERT_EQ(LOG_ERR, logger_get_level(&d));
+        Z_ASSERT_EQ(LOG_ERR, logger_get_level(&c));
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&b));
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&a));
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&log_g.root_logger));
+
+        logger_reset_level(LSTR_EMPTY_V);
+        Z_ASSERT_EQ(LOG_ERR, logger_get_level(&d));
+        Z_ASSERT_EQ(LOG_ERR, logger_get_level(&c));
+        Z_ASSERT_EQ(log_g.root_logger.default_level, logger_get_level(&b));
+        Z_ASSERT_EQ(log_g.root_logger.default_level, logger_get_level(&a));
+        Z_ASSERT_EQ(log_g.root_logger.default_level,
+                    logger_get_level(&log_g.root_logger));
+
+        logger_set_level(LSTR_EMPTY_V, LOG_WARNING, LOG_RECURSIVE);
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&d));
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&c));
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&b));
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&a));
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&log_g.root_logger));
+
+        logger_reset_level(LSTR_EMPTY_V);
+        Z_ASSERT_EQ(LOG_ERR, logger_get_level(&d));
+        Z_ASSERT_EQ(LOG_ERR, logger_get_level(&c));
+        Z_ASSERT_EQ(log_g.root_logger.default_level, logger_get_level(&b));
+        Z_ASSERT_EQ(log_g.root_logger.default_level, logger_get_level(&a));
+        Z_ASSERT_EQ(log_g.root_logger.default_level,
+                    logger_get_level(&log_g.root_logger));
+
+        logger_set_level(LSTR_IMMED_V("a"), LOG_WARNING, 0);
+        Z_ASSERT_EQ(LOG_ERR, logger_get_level(&d));
+        Z_ASSERT_EQ(LOG_ERR, logger_get_level(&c));
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&b));
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&a));
+        Z_ASSERT_EQ(log_g.root_logger.default_level,
+                    logger_get_level(&log_g.root_logger));
+
+        logger_set_level(LSTR_IMMED_V("a"), LOG_WARNING, LOG_RECURSIVE);
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&d));
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&c));
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&b));
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&a));
+        Z_ASSERT_EQ(log_g.root_logger.default_level,
+                    logger_get_level(&log_g.root_logger));
+
+        logger_set_level(LSTR_IMMED_V("a/b/c"), LOG_TRACE, 0);
+        Z_ASSERT_EQ(LOG_TRACE, logger_get_level(&d));
+        Z_ASSERT_EQ(LOG_TRACE, logger_get_level(&c));
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&b));
+        Z_ASSERT_EQ(LOG_WARNING, logger_get_level(&a));
+        Z_ASSERT_EQ(log_g.root_logger.default_level,
+                    logger_get_level(&log_g.root_logger));
+
+        logger_reset_level(LSTR_IMMED_V("a"));
+        Z_ASSERT_EQ(LOG_TRACE, logger_get_level(&d));
+        Z_ASSERT_EQ(LOG_TRACE, logger_get_level(&c));
+        Z_ASSERT_EQ(log_g.root_logger.default_level, logger_get_level(&b));
+        Z_ASSERT_EQ(log_g.root_logger.default_level, logger_get_level(&a));
+        Z_ASSERT_EQ(log_g.root_logger.default_level,
+                    logger_get_level(&log_g.root_logger));
+
+        logger_reset_level(LSTR_IMMED_V("a/b/c"));
+        Z_ASSERT_EQ(LOG_ERR, logger_get_level(&d));
+        Z_ASSERT_EQ(LOG_ERR, logger_get_level(&c));
+        Z_ASSERT_EQ(log_g.root_logger.default_level, logger_get_level(&b));
+        Z_ASSERT_EQ(log_g.root_logger.default_level, logger_get_level(&a));
+        Z_ASSERT_EQ(log_g.root_logger.default_level,
+                    logger_get_level(&log_g.root_logger));
+
+        logger_wipe(&d);
+        logger_wipe(&c);
+        logger_wipe(&b);
+        logger_wipe(&a);
+    } Z_TEST_END;
+} Z_GROUP_END;
 
 /* }}} */
