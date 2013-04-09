@@ -598,9 +598,8 @@ void mem_ring_rewind(mem_pool_t *, const void *ckpoint) __leaf;
 /** Dump the ring structure on stdout (debug) */
 void mem_ring_dump(const mem_pool_t *) __leaf;
 
-
 /** Just like the t_pool() we have the corresponding r_pool() */
-mem_pool_t *r_pool(void) __leaf __attribute__((pure));
+mem_pool_t *r_pool(void) __leaf;
 
 /** Destroy the r_pool() */
 void r_pool_destroy(void) __leaf;

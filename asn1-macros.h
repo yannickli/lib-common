@@ -67,7 +67,6 @@
 
 /* Registers ASN.1 sequences implicitly. */
 #define ASN1_DESC_BEGIN(desc, pfx) \
-    __attribute__((pure))                                                    \
     ASN1_DESC(pfx)                                                           \
     {                                                                        \
         static asn1_desc_t *desc = NULL;                                     \
@@ -100,7 +99,6 @@
     }
 
 #define __ASN1_CHOICE_DESC_BEGIN(desc, pfx) \
-    __attribute__((pure))                                                    \
     ASN1_DESC(pfx)                                                           \
     {                                                                        \
         static asn1_desc_t *desc;                                            \
