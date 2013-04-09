@@ -381,9 +381,11 @@ qvector_splice(qvector_t *vec, size_t v_size,
  *
  * \param[in]       vec the vector
  * \param[in]       v   the value to lookup
+ * \param[out]      found a pointer to a boolean that is set to true if the
+ *                  value is found in the vector, false if not. Can be NULL.
  * \param[in]       cmp comparison callback for the elements of the vector.
- * \return          -1 if the element has not been found, the position of \p v
- *                  in \p vec otherwise.
+ * \return          the position of \p v if found, the position where to
+ *                  insert \p v if not already present in the vector.
  */
 #define qv_bisect(n)                        qv_##n##_bisect
 
