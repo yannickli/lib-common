@@ -102,6 +102,7 @@ libcommon_SOURCES = \
 	ic.iop.c \
 	\
 	log.c \
+	log-iop.c \
 	\
 	net-addr.c \
 	net-rate.blk \

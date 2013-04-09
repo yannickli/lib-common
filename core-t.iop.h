@@ -13,13 +13,16 @@ typedef enum core__log_level__t {
     LOG_LEVEL_NOTICE,
     LOG_LEVEL_INFO,
     LOG_LEVEL_DEBUG,
+    LOG_LEVEL_TRACE,
+    LOG_LEVEL_INHERITS = -1,
+    LOG_LEVEL_DEFAULT = -2,
 } core__log_level__t;
 extern iop_enum_t const core__log_level__e;
 IOP_ENUM(core__log_level);
 
-#define LOG_LEVEL_count 8
-#define LOG_LEVEL_min   0
-#define LOG_LEVEL_max   7
+#define LOG_LEVEL_count 11
+#define LOG_LEVEL_min   -2
+#define LOG_LEVEL_max   8
 
 typedef enum core__iop_http_method__t {
     IOP_HTTP_METHOD_OPTIONS,
@@ -37,6 +40,22 @@ IOP_ENUM(core__iop_http_method);
 #define IOP_HTTP_METHOD_count 8
 #define IOP_HTTP_METHOD_min   0
 #define IOP_HTTP_METHOD_max   7
+
+typedef struct core__logger_configuration__t {
+    lstr_t   full_name;
+    core__log_level__t level;
+    bool     force_all;
+} core__logger_configuration__t;
+extern iop_struct_t const core__logger_configuration__s;
+IOP_GENERIC(core__logger_configuration);
+
+typedef struct core__log_configuration__t {
+    core__log_level__t root_level;
+    bool     force_all;
+    IOP_ARRAY_OF(struct core__logger_configuration__t) specific;
+} core__log_configuration__t;
+extern iop_struct_t const core__log_configuration__s;
+IOP_GENERIC(core__log_configuration);
 
 typedef struct core__httpd_cfg__t {
     uint32_t outbuf_max_size;

@@ -16,6 +16,8 @@
 
 #include "container.h"
 #include "core.h"
+#include "core.iop.h"
+#include "iop-rpc.h"
 
 /** \defgroup log Logging facility.
  * \ingroup log
@@ -285,6 +287,18 @@ int logger_set_level(lstr_t name, int level, unsigned flags) __leaf;
  */
 int logger_reset_level(lstr_t name) __leaf;
 
+
+/** Set the configuration of the logging system.
+ */
+void logger_configure(const core__log_configuration__t *conf);
+
+/** IOP configuration interface.
+ */
+
+void IOP_RPC_IMPL(core__core, log, set_root_level);
+void IOP_RPC_IMPL(core__core, log, reset_root_level);
+void IOP_RPC_IMPL(core__core, log, set_logger_level);
+void IOP_RPC_IMPL(core__core, log, reset_logger_level);
 
 /* }}} */
 /* Handlers {{{ */
