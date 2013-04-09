@@ -187,7 +187,6 @@ asn1_seq_of_set_extended(asn1_desc_t *desc)
 #define ASN1_GET_ENUM(pfx)  ASN1_ENUM(pfx)()
 
 #define ASN1_ENUM_BEGIN(pfx)  \
-    __attribute__((pure))                                                 \
     const asn1_enum_info_t *ASN1_ENUM(pfx)(void)                          \
     {                                                                     \
         static asn1_enum_info_t *info = NULL;                             \

@@ -441,7 +441,7 @@ void mem_ring_rewind(mem_pool_t *, const void *) __leaf;
 void mem_ring_release(const void *) __leaf;
 void mem_ring_dump(const mem_pool_t *) __leaf;
 
-mem_pool_t *r_pool(void) __leaf __attribute__((pure));
+mem_pool_t *r_pool(void) __leaf;
 void r_pool_destroy(void) __leaf;
 
 #define r_newframe()                mem_ring_newframe(r_pool())
