@@ -465,7 +465,7 @@ void mem_ring_rewind(mem_pool_t *, const void *);
 void mem_ring_release(const void *);
 void mem_ring_dump(const mem_pool_t *);
 
-mem_pool_t *r_pool(void) __attribute__((pure));
+mem_pool_t *r_pool(void);
 void r_pool_destroy(void);
 
 #define r_newframe()                mem_ring_newframe(r_pool())
