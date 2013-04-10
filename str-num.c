@@ -244,3 +244,178 @@ int strtolp(const char *p, const char **endp, int base, long *res,
     }
     return 0;
 }
+
+/*{{{ integer extraction with iop extensions */
+
+static
+int str_read_number_extension(const void **p, int len, uint64_t *out)
+{
+    uint64_t mult = 1;
+    const char *s = *(const char **)p;
+    int res = 0;
+
+    if (!len)
+        goto end;
+
+    switch (*s) {
+      /* times */
+      case 'w':
+        mult *= 7;
+      case 'd':
+        mult *= 24;
+      case 'h':
+        mult *= 60;
+      case 'm':
+        mult *= 60;
+      case 's':
+        mult *= 1;
+        res = 1;
+        break;
+
+      /* sizes */
+      case 'T':
+        mult *= 1024;
+      case 'G':
+        mult *= 1024;
+      case 'M':
+        mult *= 1024;
+      case 'K':
+        mult *= 1024;
+        res = 1;
+        break;
+
+      default:
+        if (isalpha(*s))
+            return -1;
+        goto end;
+    }
+
+    *p = ++s;
+
+    if (--len && isalnum(*s))
+        return -1;
+
+  end:
+    *out = mult;
+    return res;
+}
+
+static int
+str_apply_number_extension(uint64_t mult, bool is_signed, uint64_t *number)
+{
+    if (is_signed) {
+        int64_t signed_number = *(int64_t *)number;
+
+        /* XXX: here mult <= INT64_MAX by implementation */
+
+        if (signed_number > INT64_MAX / (int64_t)mult) {
+            *number = INT64_MAX;
+            return -1;
+        }
+
+        if (signed_number < INT64_MIN / (int64_t)mult) {
+            *number = INT64_MIN;
+            return -1;
+        }
+    } else
+    if (*number > UINT64_MAX / mult) {
+        *number = UINT64_MAX;
+        return -1;
+    }
+
+    *number *= mult;
+
+    return 0;
+}
+
+static int
+memtoxll_ext(const void *p, int len, bool is_signed, uint64_t *out,
+             const void **endp, int base, bool use_len)
+{
+    t_scope;
+    uint64_t mult = 1;
+    int ext_count;
+    const char *s = p;
+    const char *tail;
+    const void *local_endp;
+    int res;
+
+    if (!endp)
+        endp = &local_endp;
+
+    *endp = p;
+    errno = 0;
+
+    if (use_len) {
+        char last_char;
+
+        if (len < 0) {
+            errno = EINVAL;
+            return -1;
+        }
+        if (!len) {
+            *out = 0;
+            return 0;
+        }
+
+        last_char = s[len - 1];
+        if (isalnum(last_char) || last_char == '+' || last_char == '-') {
+            s = t_dupz(p, len);
+        }
+    } else {
+        len = INT_MAX;
+    }
+
+    if (is_signed) {
+        *out = strtoll(s, &tail, base);
+    } else {
+        *out = strtoull(s, &tail, base);
+    }
+
+    res = tail - s;
+    *endp = (const char *)p + res;
+
+    if (errno)
+        return -1;
+
+    len -= res;
+
+    if ((ext_count = str_read_number_extension(endp, len, &mult)) < 0) {
+        errno = EDOM;
+        return -1;
+    }
+    res += ext_count;
+
+    if (str_apply_number_extension(mult, is_signed, out) < 0) {
+        errno = ERANGE;
+        return -1;
+    }
+
+    return res;
+}
+
+int
+memtoll_ext(const void *p, int len, int64_t *out, const void **endp, int base)
+{
+    return memtoxll_ext(p, len, true, (uint64_t *)out, endp, base, true);
+}
+
+int
+memtoull_ext(const void *p, int len, uint64_t *out, const void **endp,
+             int base)
+{
+    return memtoxll_ext(p, len, false, out, endp, base, true);
+}
+
+int strtoll_ext(const char *s, int64_t *out, const char **tail, int base)
+{
+    return memtoxll_ext(s, 0, true, (uint64_t *)out, (const void **)tail,
+                        base, false);
+}
+
+int strtoull_ext(const char *s, uint64_t *out, const char **tail, int base)
+{
+    return memtoxll_ext(s, 0, false, out, (const void **)tail, base, false);
+}
+
+/*}}} */

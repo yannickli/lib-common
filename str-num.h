@@ -81,4 +81,31 @@ int64_t parse_number(const char *str) __leaf;
 int strtolp(const char *p, const char **endp, int base, long *res,
             int flags, long min, long max) __leaf;
 
+/* The four following functions read an integer followed by an
+ * extension from a string
+ * @param p    start address of the first character to read
+ * @param len  maximum number of characters to read
+ * @param out  pointer to the value read by the function
+ * @param endp if not null, pointer to address of the first character
+ *             after the last character read by the function
+ * @param base specify the base of the representation of the number
+ *             0 is for same syntax as integer constants in C
+ *             otherwise between 2 and 36
+ *
+ * @param s    start address of the null terminated string to be read
+ * @param tail if not null, pointer to address of the first character
+ *             after the last character read by the function
+ */
+int
+memtoll_ext(const void *p, int len, int64_t *out, const void **endp,
+            int base);
+
+int
+memtoull_ext(const void *p, int len, uint64_t *out, const void **endp,
+             int base);
+
+int strtoll_ext(const char *s, int64_t *out, const char **tail, int base);
+
+int strtoull_ext(const char *s, uint64_t *out, const char **tail, int base);
+
 #endif

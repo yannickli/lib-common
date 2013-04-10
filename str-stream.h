@@ -375,6 +375,22 @@ static inline int64_t ps_getlli(pstream_t *ps) {
     return memtollp(ps->b, ps_len(ps), &ps->b);
 }
 
+static inline int64_t ps_get_ll_ext(pstream_t *ps, int base)
+{
+    int64_t res;
+
+    memtoll_ext(ps->p, ps_len(ps), &res, &ps->p, base);
+    return res;
+}
+
+static inline uint64_t ps_get_ull_ext(pstream_t *ps, int base)
+{
+    uint64_t res;
+
+    memtoull_ext(ps->p, ps_len(ps), &res, &ps->p, base);
+    return res;
+}
+
 static inline int __ps_skipc(pstream_t *ps, int c)
 {
     assert (ps_has(ps, 1));
