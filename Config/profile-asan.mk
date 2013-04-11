@@ -1,6 +1,6 @@
 ##########################################################################
 #                                                                        #
-#  Copyright (C) 2004-2012 INTERSEC SAS                                  #
+#  Copyright (C) 2004-2013 INTERSEC SA                                   #
 #                                                                        #
 #  Should you receive a copy of this source code, you must check you     #
 #  have a proper, written authorization of INTERSEC to hold it. If you   #
@@ -11,8 +11,9 @@
 #                                                                        #
 ##########################################################################
 
-FORTIFY_SOURCE=
-include $(var/cfgdir)/profile-default.mk
-CFLAGS := $(filter-out -O%,$(CFLAGS))
-CFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions -g3
-CXXFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions -g3
+CC=clang
+CXX=clang
+include $(var/cfgdir)/profile-debug.mk
+CNOPICFLAGS += -g3 -fsanitize=address -fno-omit-frame-pointer
+CXXNOPICFLAGS += -g3 -fsanitize=address -fno-omit-frame-pointer
+LDFLAGS += -g3 -fsanitize=address
