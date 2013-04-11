@@ -56,8 +56,6 @@ libcommon_SOURCES = \
 	container-rbtree.c \
 	container-ring.c \
 	\
-	core-debug.c \
-	core-errors.c \
 	core-obj.c \
 	core-havege.c \
 	core-mem.c \
@@ -102,6 +100,9 @@ libcommon_SOURCES = \
 	iop-rpc-http-pack.c \
 	iop-rpc-http-unpack.c \
 	ic.iop.c \
+	\
+	log.c \
+	log-iop.c \
 	\
 	net-addr.c \
 	net-rate.blk \

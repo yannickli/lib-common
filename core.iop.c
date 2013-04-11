@@ -11,13 +11,15 @@
 /* Enum core.LogLevel {{{ */
 
 static int const core__log_level__values[] = {
- 0, 1, 2, 3, 4, 5, 6, 7,
+ -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8,
 };
 static int const iop__ranges__1[] = {
-    0, 0,
-    8,
+    0, -2,
+    11,
 };
 static const lstr_t core__log_level__names[] = {
+    LSTR_IMMED("DEFAULT"),
+    LSTR_IMMED("INHERITS"),
     LSTR_IMMED("EMERG"),
     LSTR_IMMED("ALERT"),
     LSTR_IMMED("CRIT"),
@@ -26,6 +28,7 @@ static const lstr_t core__log_level__names[] = {
     LSTR_IMMED("NOTICE"),
     LSTR_IMMED("INFO"),
     LSTR_IMMED("DEBUG"),
+    LSTR_IMMED("TRACE"),
 };
 iop_enum_t const core__log_level__e = {
     .name       = LSTR_IMMED("LogLevel"),
@@ -34,7 +37,7 @@ iop_enum_t const core__log_level__e = {
     .values     = core__log_level__values,
     .ranges     = iop__ranges__1,
     .ranges_len = countof(iop__ranges__1) / 2,
-    .enum_len   = 8,
+    .enum_len   = 11,
 };
 
 /* }}} */
@@ -42,6 +45,10 @@ iop_enum_t const core__log_level__e = {
 
 static int const core__iop_http_method__values[] = {
  0, 1, 2, 3, 4, 5, 6, 7,
+};
+static int const iop__ranges__2[] = {
+    0, 0,
+    8,
 };
 static const lstr_t core__iop_http_method__names[] = {
     LSTR_IMMED("OPTIONS"),
@@ -58,9 +65,140 @@ iop_enum_t const core__iop_http_method__e = {
     .fullname   = LSTR_IMMED("core.IopHttpMethod"),
     .names      = core__iop_http_method__names,
     .values     = core__iop_http_method__values,
-    .ranges     = iop__ranges__1,
-    .ranges_len = countof(iop__ranges__1) / 2,
+    .ranges     = iop__ranges__2,
+    .ranges_len = countof(iop__ranges__2) / 2,
     .enum_len   = 8,
+};
+
+/* }}} */
+/* Structure core.LoggerConfiguration {{{ */
+
+static int core__logger_configuration__full_name__check(const void *ptr, int n)
+{
+    for (int j = 0; j < n; j++) {
+        lstr_t    val = IOP_FIELD(lstr_t   , ptr, j);
+
+        if (val.len < 1) {
+            iop_set_err("violation of constraint %s (%d) on field %s: length=%d",
+                        "minLength", 1, "fullName", val.len);
+            return -1;
+        }
+    }
+    return 0;
+}
+static iop_field_attr_t const core__logger_configuration__full_name__attrs[] = {
+    {
+        .type = 7,
+        .args = (iop_field_attr_arg_t[]){ { .v.i64 = 1LL } },
+    },
+};
+static iop_field_attrs_t const core__logger_configuration__desc_fields_attrs[] = {
+    {
+        .flags             = 128,
+        .attrs_len         = 1,
+        .check_constraints = &core__logger_configuration__full_name__check,
+        .attrs             = core__logger_configuration__full_name__attrs,
+    },
+    {
+        .flags             = 0,
+        .attrs_len         = 0,
+    },
+    {
+        .flags             = 0,
+        .attrs_len         = 0,
+    },
+};
+static iop_field_t const core__logger_configuration__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("fullName"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__logger_configuration__t, full_name),
+        .flags     = 1,
+        .size      = fieldsizeof(core__logger_configuration__t, full_name),
+    },
+    {
+        .name      = LSTR_IMMED("level"),
+        .tag       = 2,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_ENUM,
+        .data_offs = offsetof(core__logger_configuration__t, level),
+        .size      = fieldsizeof(core__logger_configuration__t, level),
+        .u1        = { .en_desc = &core__log_level__e },
+    },
+    {
+        .name      = LSTR_IMMED("forceAll"),
+        .tag       = 3,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_BOOL,
+        .data_offs = offsetof(core__logger_configuration__t, force_all),
+        .u1        = { .defval_u64 = false },
+        .size      = fieldsizeof(core__logger_configuration__t, force_all),
+    },
+};
+static int const iop__ranges__3[] = {
+    0, 1,
+    3,
+};
+const iop_struct_t core__logger_configuration__s = {
+    .fullname   = LSTR_IMMED("core.LoggerConfiguration"),
+    .fields     = core__logger_configuration__desc_fields,
+    .ranges     = iop__ranges__3,
+    .fields_len = countof(core__logger_configuration__desc_fields),
+    .ranges_len = countof(iop__ranges__3) / 2,
+    .size       = sizeof(core__logger_configuration__t),
+    .flags      = 3,
+    .fields_attrs = core__logger_configuration__desc_fields_attrs,
+};
+
+/* }}} */
+/* Structure core.LogConfiguration {{{ */
+
+static iop_field_t const core__log_configuration__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("rootLevel"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_ENUM,
+        .data_offs = offsetof(core__log_configuration__t, root_level),
+        .u0        = { .defval_enum = -2 },
+        .size      = fieldsizeof(core__log_configuration__t, root_level),
+        .u1        = { .en_desc = &core__log_level__e },
+    },
+    {
+        .name      = LSTR_IMMED("forceAll"),
+        .tag       = 2,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_BOOL,
+        .data_offs = offsetof(core__log_configuration__t, force_all),
+        .u1        = { .defval_u64 = false },
+        .size      = fieldsizeof(core__log_configuration__t, force_all),
+    },
+    {
+        .name      = LSTR_IMMED("specific"),
+        .tag       = 3,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REPEATED,
+        .type      = IOP_T_STRUCT,
+        .data_offs = offsetof(core__log_configuration__t, specific),
+        .size      = sizeof(core__logger_configuration__t),
+        .u1        = { .st_desc = &core__logger_configuration__s },
+    },
+};
+const iop_struct_t core__log_configuration__s = {
+    .fullname   = LSTR_IMMED("core.LogConfiguration"),
+    .fields     = core__log_configuration__desc_fields,
+    .ranges     = iop__ranges__3,
+    .fields_len = countof(core__log_configuration__desc_fields),
+    .ranges_len = countof(iop__ranges__3) / 2,
+    .size       = sizeof(core__log_configuration__t),
+    .flags      = 2,
 };
 
 /* }}} */
@@ -148,16 +286,16 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .size      = fieldsizeof(core__httpd_cfg__t, header_size_max),
     },
 };
-static int const iop__ranges__2[] = {
+static int const iop__ranges__4[] = {
     0, 1,
     8,
 };
 const iop_struct_t core__httpd_cfg__s = {
     .fullname   = LSTR_IMMED("core.HttpdCfg"),
     .fields     = core__httpd_cfg__desc_fields,
-    .ranges     = iop__ranges__2,
+    .ranges     = iop__ranges__4,
     .fields_len = countof(core__httpd_cfg__desc_fields),
-    .ranges_len = countof(iop__ranges__2) / 2,
+    .ranges_len = countof(iop__ranges__4) / 2,
     .size       = sizeof(core__httpd_cfg__t),
 };
 
@@ -226,17 +364,245 @@ static iop_field_t const core__httpc_cfg__desc_fields[] = {
         .size      = fieldsizeof(core__httpc_cfg__t, header_size_max),
     },
 };
-static int const iop__ranges__3[] = {
+static int const iop__ranges__5[] = {
     0, 1,
     6,
 };
 const iop_struct_t core__httpc_cfg__s = {
     .fullname   = LSTR_IMMED("core.HttpcCfg"),
     .fields     = core__httpc_cfg__desc_fields,
-    .ranges     = iop__ranges__3,
+    .ranges     = iop__ranges__5,
     .fields_len = countof(core__httpc_cfg__desc_fields),
-    .ranges_len = countof(iop__ranges__3) / 2,
+    .ranges_len = countof(iop__ranges__5) / 2,
     .size       = sizeof(core__httpc_cfg__t),
+};
+
+/* }}} */
+/* Interface core.Log {{{ */
+/* Structure core.Log.setRootLevelArgs {{{ */
+
+static iop_field_t const core__log__set_root_level_args__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("level"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_ENUM,
+        .data_offs = offsetof(core__log__set_root_level_args__t, level),
+        .size      = fieldsizeof(core__log__set_root_level_args__t, level),
+        .u1        = { .en_desc = &core__log_level__e },
+    },
+    {
+        .name      = LSTR_IMMED("forceAll"),
+        .tag       = 2,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_BOOL,
+        .data_offs = offsetof(core__log__set_root_level_args__t, force_all),
+        .u1        = { .defval_u64 = false },
+        .size      = fieldsizeof(core__log__set_root_level_args__t, force_all),
+    },
+};
+static int const iop__ranges__6[] = {
+    0, 1,
+    2,
+};
+const iop_struct_t core__log__set_root_level_args__s = {
+    .fullname   = LSTR_IMMED("core.Log.setRootLevelArgs"),
+    .fields     = core__log__set_root_level_args__desc_fields,
+    .ranges     = iop__ranges__6,
+    .fields_len = countof(core__log__set_root_level_args__desc_fields),
+    .ranges_len = countof(iop__ranges__6) / 2,
+    .size       = sizeof(core__log__set_root_level_args__t),
+};
+
+/* }}} */
+/* Structure core.Log.setRootLevelRes {{{ */
+
+static iop_field_t const core__log__set_root_level_res__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("level"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_ENUM,
+        .data_offs = offsetof(core__log__set_root_level_res__t, level),
+        .size      = fieldsizeof(core__log__set_root_level_res__t, level),
+        .u1        = { .en_desc = &core__log_level__e },
+    },
+};
+static int const iop__ranges__7[] = {
+    0, 1,
+    1,
+};
+const iop_struct_t core__log__set_root_level_res__s = {
+    .fullname   = LSTR_IMMED("core.Log.setRootLevelRes"),
+    .fields     = core__log__set_root_level_res__desc_fields,
+    .ranges     = iop__ranges__7,
+    .fields_len = countof(core__log__set_root_level_res__desc_fields),
+    .ranges_len = countof(iop__ranges__7) / 2,
+    .size       = sizeof(core__log__set_root_level_res__t),
+};
+
+/* }}} */
+/* Structure core.Log.resetRootLevelRes {{{ */
+
+/* same as core.Log.setRootLevelRes */
+
+const iop_struct_t core__log__reset_root_level_res__s = {
+    .fullname   = LSTR_IMMED("core.Log.resetRootLevelRes"),
+    .fields     = core__log__set_root_level_res__desc_fields,
+    .ranges     = iop__ranges__7,
+    .fields_len = countof(core__log__set_root_level_res__desc_fields),
+    .ranges_len = countof(iop__ranges__7) / 2,
+    .size       = sizeof(core__log__reset_root_level_res__t),
+};
+
+/* }}} */
+/* Structure core.Log.setLoggerLevelArgs {{{ */
+
+static iop_field_t const core__log__set_logger_level_args__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("fullName"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__log__set_logger_level_args__t, full_name),
+        .size      = fieldsizeof(core__log__set_logger_level_args__t, full_name),
+    },
+    {
+        .name      = LSTR_IMMED("level"),
+        .tag       = 2,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_ENUM,
+        .data_offs = offsetof(core__log__set_logger_level_args__t, level),
+        .size      = fieldsizeof(core__log__set_logger_level_args__t, level),
+        .u1        = { .en_desc = &core__log_level__e },
+    },
+    {
+        .name      = LSTR_IMMED("forceAll"),
+        .tag       = 3,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_BOOL,
+        .data_offs = offsetof(core__log__set_logger_level_args__t, force_all),
+        .u1        = { .defval_u64 = false },
+        .size      = fieldsizeof(core__log__set_logger_level_args__t, force_all),
+    },
+};
+const iop_struct_t core__log__set_logger_level_args__s = {
+    .fullname   = LSTR_IMMED("core.Log.setLoggerLevelArgs"),
+    .fields     = core__log__set_logger_level_args__desc_fields,
+    .ranges     = iop__ranges__3,
+    .fields_len = countof(core__log__set_logger_level_args__desc_fields),
+    .ranges_len = countof(iop__ranges__3) / 2,
+    .size       = sizeof(core__log__set_logger_level_args__t),
+};
+
+/* }}} */
+/* Structure core.Log.setLoggerLevelRes {{{ */
+
+/* same as core.Log.setRootLevelRes */
+
+const iop_struct_t core__log__set_logger_level_res__s = {
+    .fullname   = LSTR_IMMED("core.Log.setLoggerLevelRes"),
+    .fields     = core__log__set_root_level_res__desc_fields,
+    .ranges     = iop__ranges__7,
+    .fields_len = countof(core__log__set_root_level_res__desc_fields),
+    .ranges_len = countof(iop__ranges__7) / 2,
+    .size       = sizeof(core__log__set_logger_level_res__t),
+};
+
+/* }}} */
+/* Structure core.Log.resetLoggerLevelArgs {{{ */
+
+static iop_field_t const core__log__reset_logger_level_args__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("fullName"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__log__reset_logger_level_args__t, full_name),
+        .size      = fieldsizeof(core__log__reset_logger_level_args__t, full_name),
+    },
+};
+const iop_struct_t core__log__reset_logger_level_args__s = {
+    .fullname   = LSTR_IMMED("core.Log.resetLoggerLevelArgs"),
+    .fields     = core__log__reset_logger_level_args__desc_fields,
+    .ranges     = iop__ranges__7,
+    .fields_len = countof(core__log__reset_logger_level_args__desc_fields),
+    .ranges_len = countof(iop__ranges__7) / 2,
+    .size       = sizeof(core__log__reset_logger_level_args__t),
+};
+
+/* }}} */
+/* Structure core.Log.resetLoggerLevelRes {{{ */
+
+/* same as core.Log.setRootLevelRes */
+
+const iop_struct_t core__log__reset_logger_level_res__s = {
+    .fullname   = LSTR_IMMED("core.Log.resetLoggerLevelRes"),
+    .fields     = core__log__set_root_level_res__desc_fields,
+    .ranges     = iop__ranges__7,
+    .fields_len = countof(core__log__set_root_level_res__desc_fields),
+    .ranges_len = countof(iop__ranges__7) / 2,
+    .size       = sizeof(core__log__reset_logger_level_res__t),
+};
+
+/* }}} */
+static iop_rpc_t const core__log__if_funs[] = {
+    {
+        .name      = LSTR_IMMED("setRootLevel"),
+        .tag       = 1,
+        .args      = &core__log__set_root_level_args__s,
+        .result    = &core__log__set_root_level_res__s,
+        .exn       = &iop__void__s,
+    },
+    {
+        .name      = LSTR_IMMED("resetRootLevel"),
+        .tag       = 2,
+        .args      = &iop__void__s,
+        .result    = &core__log__reset_root_level_res__s,
+        .exn       = &iop__void__s,
+    },
+    {
+        .name      = LSTR_IMMED("setLoggerLevel"),
+        .tag       = 3,
+        .args      = &core__log__set_logger_level_args__s,
+        .result    = &core__log__set_logger_level_res__s,
+        .exn       = &iop__void__s,
+    },
+    {
+        .name      = LSTR_IMMED("resetLoggerLevel"),
+        .tag       = 4,
+        .args      = &core__log__reset_logger_level_args__s,
+        .result    = &core__log__reset_logger_level_res__s,
+        .exn       = &iop__void__s,
+    },
+};
+const iop_iface_t core__log__if = {
+    .fullname   = LSTR_IMMED("core.Log"),
+    .funs       = core__log__if_funs,
+    .funs_len   = countof(core__log__if_funs),
+};
+
+/* }}} */
+/* Module core.Core {{{ */
+
+static iop_iface_alias_t const core__core__aliases[] = {
+    {
+        .name  = LSTR_IMMED("log"),
+        .iface = &core__log__if,
+        .tag   = 16384,
+    },
+};
+iop_mod_t const core__core__mod = {
+    .fullname   = LSTR_IMMED("core.Core"),
+    .ifaces     = core__core__aliases,
+    .ifaces_len = countof(core__core__aliases),
 };
 
 /* }}} */
@@ -253,16 +619,20 @@ static const iop_enum_t *const core__enums[] = {
 };
 
 static const iop_struct_t *const core__structs[] = {
+    &core__logger_configuration__s,
+    &core__log_configuration__s,
     &core__httpd_cfg__s,
     &core__httpc_cfg__s,
     NULL,
 };
 
 static const iop_iface_t *const core__ifaces[] = {
+    &core__log__if,
     NULL,
 };
 
 static const iop_mod_t *const core__mods[] = {
+    &core__core__mod,
     NULL,
 };
 

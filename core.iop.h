@@ -4,6 +4,83 @@
 
 #include "core-t.iop.h"
 
+/*----- interface core.Log -----*/
+typedef struct core__log__set_root_level_args__t {
+    core__log_level__t level;
+    bool     force_all;
+} core__log__set_root_level_args__t;
+extern iop_struct_t const core__log__set_root_level_args__s;
+IOP_GENERIC(core__log__set_root_level_args);
+
+typedef struct core__log__set_root_level_res__t {
+    core__log_level__t level;
+} core__log__set_root_level_res__t;
+extern iop_struct_t const core__log__set_root_level_res__s;
+IOP_GENERIC(core__log__set_root_level_res);
+
+typedef iop__void__t core__log__set_root_level_exn__t;
+#define core__log__set_root_level__rpc__tag    0x0001
+#define core__log__set_root_level__rpc__async  0
+#define core__log__set_root_level__rpc         (core__log__if.funs + 0)
+
+typedef iop__void__t core__log__reset_root_level_args__t;
+typedef struct core__log__reset_root_level_res__t {
+    core__log_level__t level;
+} core__log__reset_root_level_res__t;
+extern iop_struct_t const core__log__reset_root_level_res__s;
+IOP_GENERIC(core__log__reset_root_level_res);
+
+typedef iop__void__t core__log__reset_root_level_exn__t;
+#define core__log__reset_root_level__rpc__tag    0x0002
+#define core__log__reset_root_level__rpc__async  0
+#define core__log__reset_root_level__rpc         (core__log__if.funs + 1)
+
+typedef struct core__log__set_logger_level_args__t {
+    lstr_t   full_name;
+    core__log_level__t level;
+    bool     force_all;
+} core__log__set_logger_level_args__t;
+extern iop_struct_t const core__log__set_logger_level_args__s;
+IOP_GENERIC(core__log__set_logger_level_args);
+
+typedef struct core__log__set_logger_level_res__t {
+    core__log_level__t level;
+} core__log__set_logger_level_res__t;
+extern iop_struct_t const core__log__set_logger_level_res__s;
+IOP_GENERIC(core__log__set_logger_level_res);
+
+typedef iop__void__t core__log__set_logger_level_exn__t;
+#define core__log__set_logger_level__rpc__tag    0x0003
+#define core__log__set_logger_level__rpc__async  0
+#define core__log__set_logger_level__rpc         (core__log__if.funs + 2)
+
+typedef struct core__log__reset_logger_level_args__t {
+    lstr_t   full_name;
+} core__log__reset_logger_level_args__t;
+extern iop_struct_t const core__log__reset_logger_level_args__s;
+IOP_GENERIC(core__log__reset_logger_level_args);
+
+typedef struct core__log__reset_logger_level_res__t {
+    core__log_level__t level;
+} core__log__reset_logger_level_res__t;
+extern iop_struct_t const core__log__reset_logger_level_res__s;
+IOP_GENERIC(core__log__reset_logger_level_res);
+
+typedef iop__void__t core__log__reset_logger_level_exn__t;
+#define core__log__reset_logger_level__rpc__tag    0x0004
+#define core__log__reset_logger_level__rpc__async  0
+#define core__log__reset_logger_level__rpc         (core__log__if.funs + 3)
+
+extern iop_iface_t const core__log__if;
+
+
+/*----- module core.Core -----*/
+#define core__core__log__TAG    0x4000
+#define core__core__log(a)      core__log__##a
+#define core__core__log__alias  (core__core__mod.ifaces + 0)
+
+extern iop_mod_t const core__core__mod;
+
 
 /*----- package core -----*/
 extern iop_pkg_t const core__pkg;

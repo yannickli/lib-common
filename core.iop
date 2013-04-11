@@ -13,16 +13,97 @@
 
 package core;
 
+/** List of supported log levels.
+ */
 enum LogLevel {
-    EMERG   = 0, /* system is unusable */
-    ALERT   = 1, /* action must be taken immediately */
-    CRIT    = 2, /* critical conditions */
-    ERR     = 3, /* error conditions */
-    WARNING = 4, /* warning conditions */
-    NOTICE  = 5, /* normal but significant condition */
-    INFO    = 6, /* informational */
-    DEBUG   = 7, /* debug-level messages */
+    EMERG   = 0, /**< system is unusable */
+    ALERT   = 1, /**< action must be taken immediately */
+    CRIT    = 2, /**< critical conditions */
+    ERR     = 3, /**< error conditions */
+    WARNING = 4, /**< warning conditions */
+    NOTICE  = 5, /**< normal but significant condition */
+    INFO    = 6, /**< informational */
+    DEBUG   = 7, /**< debug-level messages */
+    TRACE   = 8, /**< trace-level messages */
+
+    INHERITS = -1, /**< inherits the level of the parent logger */
+    DEFAULT  = -2, /**< use default configuration */
 };
+
+/** Configuration of a specific logger.
+ */
+struct LoggerConfiguration {
+    /** Name of the logger to configure.
+     */
+    @minLength(1)
+    string fullName;
+
+    /** Logging level.
+     *
+     * This will be the logging level for this logger and all inheriting
+     * loggers that were not explicitly configured.
+     */
+    LogLevel level;
+
+    /** Force the use of logging level for child loggers.
+     *
+     * If this flag is set, the level of that logger is propagated to all
+     * child loggers that were not explicitly configured, even those that
+     * were not supposed to inherit from that level.
+     */
+    bool forceAll = false;
+};
+
+/** Interface providing the basis for configuring the logging system.
+ */
+interface Log {
+    setRootLevel
+        in (LogLevel level, bool forceAll = false)
+        out (LogLevel level);
+
+    resetRootLevel
+        in void
+        out (LogLevel level);
+
+    setLoggerLevel
+        in (string fullName, LogLevel level, bool forceAll = false)
+        out (LogLevel level);
+
+    resetLoggerLevel
+        in (string fullName)
+        out (LogLevel level);
+};
+
+/** Configuration of the logging system.
+ */
+struct LogConfiguration {
+    /** Root logging level.
+     *
+     * This will be the logging level for all the logger inherits from
+     * root logging level and that were not configured to another value
+     * separately.
+     *
+     * The default configuration is to enable TRACE in development builds,
+     * and to enable only DEBUG in release builds.
+     */
+    LogLevel rootLevel = LOG_LEVEL_DEFAULT;
+
+    /** Force the use of the root level.
+     *
+     * If this flag is set, the root level is propagated to all logger
+     * that were not explicitly configured, even those that were not
+     * supposed to inherit from the root level.
+     */
+    bool     forceAll = false;
+
+    /** Independent configuration of specific loggers.
+     *
+     * This can be used to perform a fine-grained configuration of the
+     * logging level of specific code modules.
+     */
+    LoggerConfiguration[] specific;
+};
+
 
 struct HttpdCfg {
     /** Maximum size of the output buffer (in octets) */
@@ -70,4 +151,12 @@ enum IopHttpMethod {
     DELETE  = 5,
     TRACE   = 6,
     CONNECT = 7,
+};
+
+
+/** Module exporting interfaces provided by lib-common.
+ */
+module Core {
+16384:
+    Log log;
 };
