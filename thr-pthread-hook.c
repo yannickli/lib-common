@@ -73,17 +73,21 @@ static void *thr_hooks_wrapper(void *data)
     return fn(arg);
 }
 
-__attribute__((visibility("default")))
-int pthread_create(pthread_t *restrict thread,
-                   const pthread_attr_t *restrict attr,
-                   void *(*fn)(void *), void *restrict arg)
+int thr_create(pthread_t *restrict thread,
+               const pthread_attr_t *restrict attr,
+               void *(*fn)(void *), void *restrict arg)
 {
     static typeof(pthread_create) *real_pthread_create;
     void **pair = p_new(void *, 2);
     int res;
 
+#ifndef __has_asan
     if (unlikely(!real_pthread_create))
         real_pthread_create = dlsym(RTLD_NEXT, "pthread_create");
+#else
+    if (unlikely(!real_pthread_create))
+        real_pthread_create = dlsym(RTLD_DEFAULT, "pthread_create");
+#endif
     pair[0] = fn;
     pair[1] = arg;
     res = (*real_pthread_create)(thread, attr, &thr_hooks_wrapper, pair);
@@ -91,6 +95,16 @@ int pthread_create(pthread_t *restrict thread,
         p_delete(&pair);
     return res;
 }
+
+#ifndef __has_asan
+__attribute__((visibility("default")))
+int pthread_create(pthread_t *restrict thread,
+                   const pthread_attr_t *restrict attr,
+                   void *(*fn)(void *), void *restrict arg)
+{
+    return thr_create(thread, attr, fn, arg);
+}
+#endif
 
 void pthread_force_use(void)
 {
