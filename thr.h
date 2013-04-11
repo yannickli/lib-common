@@ -55,11 +55,15 @@ struct thr_ctor {
     static __attribute__((constructor)) void PT_##fn##_exit(void) {          \
         __builtin_choose_expr(__builtin_constant_p(init), (void)0, ({        \
             static struct thr_ctor ctor = { .cb = (init) };                  \
-            dlist_add_tail(&thr_hooks_g.init_cbs, &ctor.link);               \
+            if (ctor.cb) {                                                   \
+                dlist_add_tail(&thr_hooks_g.init_cbs, &ctor.link);           \
+            }                                                                \
         }));                                                                 \
         __builtin_choose_expr(__builtin_constant_p(exit), (void)0, ({        \
             static struct thr_ctor ctor = { .cb = (exit) };                  \
-            dlist_add(&thr_hooks_g.exit_cbs, &ctor.link);                    \
+            if (ctor.cb) {                                                   \
+                dlist_add(&thr_hooks_g.exit_cbs, &ctor.link);                \
+            }                                                                \
         }));                                                                 \
     }
 
