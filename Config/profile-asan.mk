@@ -12,8 +12,8 @@
 ##########################################################################
 
 CC=clang
-CXX=clang
+CXX=clang++
 include $(var/cfgdir)/profile-debug.mk
-CNOPICFLAGS += -g3 -fsanitize=address -fno-omit-frame-pointer
-CXXNOPICFLAGS += -g3 -fsanitize=address -fno-omit-frame-pointer
-LDFLAGS += -g3 -fsanitize=address
+CNOPICFLAGS += -fsanitize=address -fno-omit-frame-pointer
+CXXNOPICFLAGS += -fsanitize=address -fno-omit-frame-pointer
+LDFLAGS += -fsanitize=address
