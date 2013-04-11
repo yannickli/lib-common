@@ -214,14 +214,16 @@ $1.so: $~$1.so$$(tmp/$1/build) FORCE
 	$$(if $$(tmp/$1/sover),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F)$$(tmp/$1/sover))
 
 $$(eval $$(call fun/foreach-ext-rule,$1,$~$1.so$$(tmp/$1/build),$$($1_SOURCES),.pic))
+$~$1.so$$(tmp/$1/build): _L=$(or $($1_LINKER),$(CC))
 $~$1.so$$(tmp/$1/build):
 	$(msg/LINK.c) $$(@R)
-	$$(if $$(NOLINK),:,$(or $($1_LINKER),$(CC)) $(CFLAGS) $($(1D)/_CFLAGS) $($1_CFLAGS) \
+	$$(if $$(NOLINK),:,$$(_L) $(CFLAGS) $($(1D)/_CFLAGS) $($1_CFLAGS) \
 	    -fPIC -shared -o $$@ $$(filter %.o %.oo,$$^) \
 	    $$(addprefix -Wl$$(var/comma)--version-script$$(var/comma),$$(filter %.ld,$$^)) \
 	    $$(LDFLAGS) $$($(1D)/_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) \
+		$$(if $$(filter clang++,$$(_L)),-lstdc++) \
 	    $(LIBS) $($(1D)/_LIBS) $($(1D)_LIBS) $($1_LIBS) \
 	    -Wl,-soname,$(1F).so$$(tmp/$1/sover))
 	$$(if $$(NOLINK),:,$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so))
@@ -239,13 +241,15 @@ $1$(EXEEXT): $~$1.exe FORCE
 	$$(if $$(NOLINK),:,$(FASTCP) $$< $$@)
 
 $(eval $(call fun/foreach-ext-rule,$1,$~$1.exe,$($1_SOURCES),$4))
+$~$1.exe: _L=$(or $($1_LINKER),$(CC))
 $~$1.exe:
 	$(msg/LINK.c) $$(@R)
-	$$(if $$(NOLINK),:,$(or $($1_LINKER),$(CC)) $(CFLAGS) $($(1D)/_CFLAGS) $($1_CFLAGS) \
+	$$(if $$(NOLINK),:,$$(_L) $(CFLAGS) $($(1D)/_CFLAGS) $($1_CFLAGS) \
 	    -o $$@ $$(filter %.o %.oo %.ld,$$^) \
 	    $$(LDFLAGS) $$($(1D)/_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) \
+		$$(if $$(filter clang++,$$(_L)),-lstdc++) \
 	    $(LIBS) $($(1D)/_LIBS) $($(1D)_LIBS) $($1_LIBS))
 	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
 $(1D)/clean::
