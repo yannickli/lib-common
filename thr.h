@@ -75,4 +75,9 @@ struct thr_ctor {
  */
 void pthread_force_use(void);
 
+
+int thr_create(pthread_t *restrict thread,
+               const pthread_attr_t *restrict attr,
+               void *(*fn)(void *), void *restrict arg);
+
 #endif
