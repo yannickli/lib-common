@@ -388,9 +388,21 @@ static size_t membitcount_c(const void *ptr, size_t n)
     for (; i < n / 4; i++)
         c1 += bitcount32(p32[i]);
     if (n % 4) {
-        /* if valgrinds cringes here, tell hum to STFU */
-        c1 += bitcount32(cpu_to_le32(p32[i])
-                         & BITMASK_LT(uint32_t, 8 * (n % 4)));
+        const uint8_t *p = (const uint8_t *)&p32[i];
+
+        switch (n % 4) {
+          case 1:
+            c1 += bitcount8(*p);
+            break;
+
+          case 2:
+            c1 += bitcount16(*(const uint16_t *)p);
+            break;
+
+          case 3:
+            c1 += bitcount8(*p) + bitcount16(*(const uint16_t *)(p + 1));
+            break;
+        }
     }
     return c1 + c2 + c3 + c4;
 }

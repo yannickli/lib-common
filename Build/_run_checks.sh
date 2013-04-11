@@ -59,6 +59,7 @@ _err=0
 export Z_HARNESS=1
 export Z_TAG_SKIP="${Z_TAG_SKIP:-slow upgrade}"
 export Z_MODE="${Z_MODE:-fast}"
+export ASAN_OPTIONS="${ASAN_OPTIONS:-handle_segv=0}"
 while read t; do
     say_color info "starting suite $t..."
     case ./"$t" in

@@ -11,8 +11,9 @@
 #                                                                        #
 ##########################################################################
 
-FORTIFY_SOURCE=
-include $(var/cfgdir)/profile-default.mk
-CFLAGS := $(filter-out -O%,$(CFLAGS))
-CFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions -g3
-CXXFLAGS += -O0 -Wno-uninitialized -fno-inline -fno-inline-functions -g3
+CC=clang
+CXX=clang
+include $(var/cfgdir)/profile-debug.mk
+CNOPICFLAGS += -g3 -fsanitize=address -fno-omit-frame-pointer
+CXXNOPICFLAGS += -g3 -fsanitize=address -fno-omit-frame-pointer
+LDFLAGS += -g3 -fsanitize=address
