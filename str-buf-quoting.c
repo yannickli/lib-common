@@ -604,7 +604,7 @@ void sb_add_csvescape(sb_t *sb, const void *data, int len)
         const char *pos = memchr(str, '"', end - str);
 
         if (pos == NULL) {
-            sb_add(sb, str, len);
+            sb_add(sb, str, end - str);
             str = end;
         } else {
             pos++;
