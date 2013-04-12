@@ -263,7 +263,7 @@ int __logger_is_traced(logger_t *logger, int level, const char *file,
 #else
 
 #define logger_trace(Logger, Level, Fmt, ...)                                \
-    __LOGGER_LOG(Logger, LOG_TRACE + (Level,, Fmt, ##__VA_ARGS__)
+    __LOGGER_LOG(Logger, LOG_TRACE + (Level),, Fmt, ##__VA_ARGS__)
 
 #endif
 
