@@ -425,7 +425,7 @@ static void log_stderr_fancy_handler(const log_ctx_t *ctx, const char *fmt,
         sb_adds(sb, "\e[39;3m");
         break;
       case LOG_WARNING:
-        sb_adds(sb, "\[33;1m");
+        sb_adds(sb, "\e[33;1m");
         break;
       case LOG_CRIT:
       case LOG_ALERT:
