@@ -114,6 +114,15 @@ static void logger_compute_fullname(logger_t *logger)
         lstr_t name = logger->name;
         lstr_t full_name;
 
+        /* The name of a logger must be a non-empty printable string
+         * without any '/'
+         */
+        assert (memchr(logger->name.s, '/', logger->name.len) == NULL);
+        assert (logger->name.len);
+        for (int i = 0; i < logger->name.len; i++) {
+            assert (isprint((unsigned char)logger->name.s[i]));
+        }
+
         full_name = lstr_fmt("%*pM/%*pM",
                              LSTR_FMT_ARG(logger->parent->full_name),
                              LSTR_FMT_ARG(logger->name));
@@ -145,11 +154,18 @@ void __logger_refresh(logger_t *logger)
 
     if (!logger->full_name.s) {
         int pos = 0;
-
-        dlist_add(&logger->parent->children, &logger->siblings);
-        dlist_init(&logger->children);
+        logger_t *sibbling;
 
         logger_compute_fullname(logger);
+
+        assert (logger->level >= LOG_UNDEFINED);
+        assert (logger->default_level >= LOG_INHERITS);
+        assert (logger->defined_level >= LOG_UNDEFINED);
+        dlist_for_each_entry(sibbling, &logger->parent->children, siblings) {
+            assert (!lstr_equal2(sibbling->name, logger->name));
+        }
+        dlist_add(&logger->parent->children, &logger->siblings);
+        dlist_init(&logger->children);
 
         pos = qm_del_key(level, &_G.pending_levels, &logger->full_name);
         if (pos >= 0) {
@@ -210,6 +226,9 @@ int logger_set_level(lstr_t name, int level, unsigned flags)
 {
     logger_t *logger = logger_get_by_name(name);
 
+    assert (level >= LOG_UNDEFINED);
+    assert ((flags & LOG_RECURSIVE) == flags);
+    assert (!(flags & LOG_RECURSIVE) || level >= 0);
     if (!logger) {
         int pos;
 
