@@ -49,7 +49,6 @@ static struct {
     log_handler_f *handler;
 
     qm_t(level)    pending_levels;
-    int            max_trace_level;
 
     bool fancy;
     char fancy_prefix[64];
@@ -318,9 +317,6 @@ int __logger_is_traced(logger_t *logger, int lvl, const char *modname,
     int level;
 
     lvl += LOG_TRACE;
-    if (lvl > _G.max_trace_level)
-        return -1;
-
     level = logger->level;
 
     for (int i = 0; i < _G.specs.len; i++) {
@@ -526,7 +522,11 @@ E_FUNCTION(e_debug,   LOG_DEBUG)
 __attr_printf__(2, 0)
 static void e_handler(const log_ctx_t *ctx, const char *fmt, va_list va)
 {
-    (*_G.e_handler)(ctx->level, fmt, va);
+    if (ctx->level >= LOG_TRACE) {
+        (*log_stderr_handler_g)(ctx, fmt, va);
+    } else {
+        (*_G.e_handler)(ctx->level, fmt, va);
+    }
 }
 
 void e_set_handler(e_handler_f *handler)
@@ -696,10 +696,8 @@ static void log_initialize(void)
             if (*p)
                 *p++ = '\0';
 
-            _G.max_trace_level = MAX(_G.max_trace_level, spec.level);
-
-            if (spec.name && !spec.func && !spec.path) {
-                logger_set_level(LSTR_STR_V(spec.name), spec.level, 0);
+            if (!spec.func && !spec.path) {
+                logger_set_level(LSTR_OPT_STR_V(spec.name), spec.level, 0);
             }
             qv_append(spec, &_G.specs, spec);
         }
