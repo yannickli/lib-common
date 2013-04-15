@@ -131,8 +131,10 @@ static void logger_compute_fullname(logger_t *logger)
         logger->name = LSTR_INIT_V(full_name.s + full_name.len - name.len,
                                    name.len);
         lstr_wipe(&name);
-    } else {
-        logger->full_name = lstr_dupc(logger->name);
+    } else
+    if (logger->name.len) {
+        logger->full_name = lstr_dup(logger->name);
+        logger->name      = lstr_dupc(logger->full_name);
     }
 }
 
