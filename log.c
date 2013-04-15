@@ -86,6 +86,8 @@ logger_t *logger_init(logger_t *logger, logger_t *parent, lstr_t name,
     logger->level = LOG_UNDEFINED;
     logger->defined_level = LOG_UNDEFINED;
     logger->default_level = default_level;
+    dlist_init(&logger->siblings);
+    dlist_init(&logger->children);
 
     logger->parent = parent;
     logger->name   = lstr_dupc(name);
@@ -101,9 +103,11 @@ logger_t *logger_new(logger_t *parent, lstr_t name, int default_level)
 
 void logger_wipe(logger_t *logger)
 {
-    assert (dlist_is_empty(&logger->children));
+    assert (dlist_is_empty(&logger->children) || !logger->children.next);
 
-    dlist_remove(&logger->siblings);
+    if (logger->siblings.next) {
+        dlist_remove(&logger->siblings);
+    }
     lstr_wipe(&logger->name);
     lstr_wipe(&logger->full_name);
 }
