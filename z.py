@@ -239,6 +239,89 @@ def expectedFailure(*args, **kwargs):
     """
     raise Exception("Do not use expectedFailure but ZTodo instead")
 
+try:
+    from behave.formatter.base import Formatter
+    from behave.formatter.formatters import register as __behave_register
+
+    class ZFormatter(Formatter):
+        """
+        Provide a behave formatter that support the z format
+        """
+
+        status = {
+            "passed":    "pass",
+            "failed":    "fail",
+            "error":     "fail",
+            "skipped":   "skip",
+            "untested":  "skip",
+            "undefined": "skip",
+        }
+
+        name = "z"
+
+        def __init__(self, stream, config):
+            self.__count = -1
+            self.__success = 0
+            self.__skipped = 0
+            self.__failed  = 0
+            self.__scenario = None
+            self.__status   = None
+            Formatter.__init__(self, stream, config)
+
+        def flush(self):
+            if not self.__scenario is None:
+                if self.__status == "pass":
+                    self.__success += 1
+                elif self.__status == "fail":
+                    self.__failed += 1
+                elif self.__status == "skip":
+                    self.__skipped += 1
+                self.stream.write("%d %s %s   # %d steps\n" %
+                        (self.__count, self.__status,
+                            self.__scenario.name, self.__steps))
+                self.__count += 1
+            self.__scenario = None
+            self.__steps    = 0
+            self.__status   = None
+
+        def feature(self, feature):
+            self.flush()
+            self.stream.write("1..%d %s\n" % (len(feature.scenarios), feature.name))
+            self.__count = 1
+            self.__steps = 0
+
+        def scenario(self, scenario):
+            self.flush()
+            self.__scenario = scenario
+            self.__status = "skip"
+
+        def result(self, step_result):
+            self.__steps += 1
+            status = self.status.get(step_result.status, "skip")
+            if self.__status == "skip":
+                self.__status = status
+            elif status == "fail":
+                self.__status = "fail"
+
+        def eof(self):
+            self.flush()
+            if self.__count != 1:
+                total = self.__success + self.__skipped + self.__failed
+                self.stream.write("# %d%% skipped  %d%% passed  %d%% failed\n" %
+                        ((100 * self.__skipped) / total,
+                         (100 * self.__success) / total,
+                         (100 * self.__failed)  / total))
+
+
+    def behave_main():
+        __behave_register(ZFormatter)
+        from behave.__main__ import main as __behave_main
+        __behave_main()
+
+except ImportError:
+    def behave_main():
+        sys.stderr.write("behave not installed\n")
+
 @public
 def main():
     if os.getenv('Z_HARNESS'):
@@ -256,5 +339,8 @@ def main():
         u.main(module = None)
 
 if __name__ == '__main__':
-    u.TextTestRunner.resultclass = _ZTextTestResult
-    u.main(module = None)
+    if os.getenv("Z_BEHAVE"):
+        behave_main()
+    else:
+        u.TextTestRunner.resultclass = _ZTextTestResult
+        u.main(module = None)
