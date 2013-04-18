@@ -356,14 +356,12 @@ static int cimd_to_unicode(const byte *p, const byte *end, const byte **out)
 int sb_conv_from_gsm_hex(sb_t *sb, const void *data, int slen)
 {
     const char *p = data, *end = p + slen;
-    char *w, *wend;
     sb_t orig = *sb;
 
     if (slen & 1)
         return -1;
 
-    w    = sb_grow(sb, slen / 2 + 4);
-    wend = w + sb_avail(sb);
+    sb_grow(sb, slen / 2 + 4);
 
     while (p < end) {
         int c = hexdecode(p);
@@ -382,15 +380,8 @@ int sb_conv_from_gsm_hex(sb_t *sb, const void *data, int slen)
             c |= 0x80;
         }
         c = gsm7_to_unicode(c, '.');
-        if (wend - w < 4) {
-            __sb_fixlen(sb, w - sb->data);
-            w    = sb_grow(sb, (end - p) / 2 + 4);
-            wend = w + sb_avail(sb);
-        }
-        assert (wend - w >= 4);
-        w += __pstrputuc(w, c);
+        sb_adduc(sb, c);
     }
-    __sb_fixlen(sb, w - sb->data);
     return 0;
 
   error:
@@ -400,11 +391,9 @@ int sb_conv_from_gsm_hex(sb_t *sb, const void *data, int slen)
 int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
 {
     const byte *p = data, *end = p + slen;
-    char *w, *wend;
     sb_t orig = *sb;
 
-    w    = sb_grow(sb, slen + 4);
-    wend = w + sb_avail(sb);
+    sb_grow(sb, slen + 4);
 
     while (p < end) {
         int c = *p++;
@@ -432,15 +421,8 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
             c = gsm7_to_unicode(c, '.');
         }
 
-        if (wend - w < 4) {
-            __sb_fixlen(sb, w - sb->data);
-            w    = sb_grow(sb, (end - p) / 2 + 4);
-            wend = w + sb_avail(sb);
-        }
-        assert (wend - w >= 4);
-        w += __pstrputuc(w, c);
+        sb_adduc(sb, c);
     }
-    __sb_fixlen(sb, w - sb->data);
     return 0;
 
   error:
@@ -472,10 +454,8 @@ bool sb_conv_to_gsm_isok(const void *data, int len)
 void sb_conv_to_gsm(sb_t *sb, const void *data, int len)
 {
     const char *p = data, *end = p + len;
-    char *w, *wend;
 
-    w    = sb_grow(sb, len + 2);
-    wend = w + sb_avail(sb);
+    sb_grow(sb, 2 * len + 2);
     while (p < end) {
         int c = (unsigned char)*p++;
 
@@ -486,28 +466,18 @@ void sb_conv_to_gsm(sb_t *sb, const void *data, int len)
         }
         c = unicode_to_gsm7(c, '.', GSM_LATIN1_PLAN);
 
-        if (wend - w < 2) {
-            __sb_fixlen(sb, w - sb->data);
-            w    = sb_grow(sb, len + 2);
-            wend = w + sb_avail(sb);
-        }
         if (c > 0xff) {
-            assert (wend - w >= 1);
-            *w++ = (c >> 8);
+            sb_addc(sb, c >> 8);
         }
-        assert (wend - w >= 1);
-        *w++ = c;
+        sb_addc(sb, c);
     }
-    __sb_fixlen(sb, w - sb->data);
 }
 
 void sb_conv_to_gsm_hex(sb_t *sb, const void *data, int len)
 {
     const char *p = data, *end = p + len;
-    char *w, *wend;
 
-    w    = sb_grow(sb, 2 * len + 4);
-    wend = w + sb_avail(sb);
+    sb_grow(sb, 4 * len + 4);
     while (p < end) {
         int c = (unsigned char)*p++;
 
@@ -518,21 +488,13 @@ void sb_conv_to_gsm_hex(sb_t *sb, const void *data, int len)
         }
         c = unicode_to_gsm7(c, '.', GSM_LATIN1_PLAN);
 
-        if (wend - w < 4) {
-            __sb_fixlen(sb, w - sb->data);
-            w    = sb_grow(sb, 2 * len + 4);
-            wend = w + sb_avail(sb);
-        }
         if (c > 0xff) {
-            assert (wend - w >= 2);
-            *w++ = __str_digits_upper[(c >> 12) & 0xf];
-            *w++ = __str_digits_upper[(c >>  8) & 0xf];
+            sb_addc(sb, __str_digits_upper[(c >> 12) & 0xf]);
+            sb_addc(sb, __str_digits_upper[(c >>  8) & 0xf]);
         }
-        assert (wend - w >= 2);
-        *w++ = __str_digits_upper[(c >> 4) & 0xf];
-        *w++ = __str_digits_upper[(c >> 0) & 0xf];
+        sb_addc(sb, __str_digits_upper[(c >> 4) & 0xf]);
+        sb_addc(sb, __str_digits_upper[(c >> 0) & 0xf]);
     }
-    __sb_fixlen(sb, w - sb->data);
 }
 
 /*
@@ -615,7 +577,7 @@ int sb_conv_to_gsm7(sb_t *out, int gsm_start, const char *utf8, int unknown,
 
 static int decode_gsm7_pack(sb_t *out, uint64_t pack, int nbchars, int c)
 {
-    char *p = sb_grow(out, 8 * 3); /* XXX: no gsm char takes 4 bytes in utf8 */
+    sb_grow(out, 8 * 3); /* XXX: no gsm char takes 4 bytes in utf8 */
 
     for (int i = 0; i < nbchars; i++) {
         c |= pack & 0x7f;
@@ -624,11 +586,10 @@ static int decode_gsm7_pack(sb_t *out, uint64_t pack, int nbchars, int c)
             c = 0x80;
         } else {
             c  = gsm7_to_unicode(c, '.');
-            p += __pstrputuc(p, c);
+            sb_adduc(out, c);
             c  = 0;
         }
     }
-    __sb_fixlen(out, p - out->data);
     return c;
 }
 
