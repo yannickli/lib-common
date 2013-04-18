@@ -337,7 +337,7 @@ void __logger_fatal(logger_t *logger, const char *file, const char *func,
 #ifndef NDEBUG
 
 int __logger_is_traced(logger_t *logger, int lvl, const char *modname,
-                       const char *func)
+                       const char *func, const char *name)
 {
     int level;
 
@@ -352,9 +352,8 @@ int __logger_is_traced(logger_t *logger, int lvl, const char *modname,
         if (spec->func && fnmatch(spec->func, func, 0) != 0)
             continue;
         if (spec->name
-        && (logger->full_name.len == 0
-            || fnmatch(spec->name, logger->full_name.s,
-                       FNM_PATHNAME | FNM_LEADING_DIR) != 0))
+        &&  (name == NULL
+         ||  fnmatch(spec->name, name, FNM_PATHNAME | FNM_LEADING_DIR) != 0))
         {
             continue;
         }
@@ -583,7 +582,7 @@ int e_is_traced_(int lvl, const char *modname, const char *func,
     logger_t *logger;
 
     logger = logger_get_by_name(LSTR_OPT_STR_V(name)) ?: &log_g.root_logger;
-    return __logger_is_traced(logger, lvl, modname, func);
+    return __logger_is_traced(logger, lvl, modname, func, name);
 }
 
 __attr_printf__(2, 3)

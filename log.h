@@ -229,7 +229,7 @@ void __logger_fatal(logger_t *logger, const char *file, const char *func,
 #ifndef NDEBUG
 
 int __logger_is_traced(logger_t *logger, int level, const char *file,
-                       const char *func);
+                       const char *func, const char *name);
 
 #define logger_is_traced(Logger, Level)  ({                                  \
         static int8_t __traced;                                              \
@@ -240,7 +240,8 @@ int __logger_is_traced(logger_t *logger, int level, const char *file,
         if (!__h_level) {                                                    \
             if (unlikely(__traced == 0)) {                                   \
                 __traced = __logger_is_traced(__i_logger, __i_level,         \
-                                              __FILE__, __func__);           \
+                                              __FILE__, __func__,            \
+                                              __i_logger->full_name.s);      \
             }                                                                \
         }                                                                    \
         __h_level || __traced > 0;                                           \
