@@ -345,77 +345,31 @@ static int iop_json_lex_token(iop_json_lex_t *ll)
     return IOP_JSON_IDENT;
 }
 
-static int iop_json_lex_number_extensions(iop_json_lex_t *ll)
-{
-    uint64_t mult = 1;
-    uint64_t u = ll->ctx->u.i;
-
-    switch (READC()) {
-        /* times */
-      case 'w': mult *= 7;
-      case 'd': mult *= 24;
-      case 'h': mult *= 60;
-      case 'm': mult *= 60;
-      case 's': mult *= 1;
-                SKIP(1);
-                break;
-
-                /* sizes */
-      case 'T': mult *= 1024;
-      case 'G': mult *= 1024;
-      case 'M': mult *= 1024;
-      case 'K': mult *= 1024;
-                SKIP(1);
-                break;
-
-      default:
-                return IOP_JSON_INTEGER;
-    }
-
-    if (u > UINT64_MAX / mult || u * mult < u)
-        return RJERROR_WARG(IOP_JERR_TOO_BIG_INT);
-
-    ll->ctx->u.i = u * mult;
-    return IOP_JSON_INTEGER;
-}
-
 static int iop_json_lex_number(iop_json_lex_t *ll)
 {
-    unsigned int pos = 0;
-    int d_err, i_err;
-    long long i;
+    unsigned int pos;
+    bool is_d_err;
+    int i_res;
+    uint64_t i;
     double d;
     const char *p, *pd, *pi;
-    bool is_hexa = false;
+    unsigned int d_count, i_count;
 
     /* we try to detect where the integer ends (i.e. where strto* functions
      * will stop reading). it does not matter if we go too far (e.g. with
      * '2+3+4' it will read the whole expression and not just '2' */
-    while (pos < ps_len(PS)) {
+    for (pos = 0; pos < ps_len(PS); pos++) {
+        if (isalnum(READAT(pos)))
+            continue;
         switch (READAT(pos)) {
-          case '0'...'9': case 'e': case'E':
           case '.': case '+': case '-':
-            pos++;
             continue;
-          case 'x': case 'X':
-            is_hexa = true;
-            pos++;
-            continue;
-          case 'p': case 'P':
-          case 'a'...'d': case 'f':
-          case 'A'...'D': case 'F':
-            if (!is_hexa)
-                break;
-            pos++;
-            continue;
-          default:
-            break;
         }
         break;
     }
 
-    /* in the unlikely case that the integer reaches the end of the PS, we need
-     * a null-terminated buffer to pass to the strto* functions */
+    /* in the unlikely case that the integer reaches the end of the PS,
+     * we need a null-terminated buffer to pass to the strto* functions */
     if (unlikely(pos == ps_len(PS))) {
         sb_set(&ll->ctx->b, PS->b, ps_len(PS));
         p = ll->ctx->b.data;
@@ -425,53 +379,56 @@ static int iop_json_lex_number(iop_json_lex_t *ll)
 
     errno = 0;
     d = strtod(p, (char **)&pd);
-    d_err = errno;
-    errno = 0;
+    is_d_err = errno;
+    d_count = pd - p;
+
     if (*p == '-') {
         ll->ctx->is_signed = true;
-        i = strtoll(p, &pi, 0);
+        i_res = strtoll_ext(p, (int64_t *)&i, &pi, 0);
     } else {
         ll->ctx->is_signed = false;
-        i = strtoull(p, &pi, 0);
+        i_res = strtoull_ext(p, &i, &pi, 0);
     }
-    i_err = errno;
 
-    switch ((i_err != 0) | ((d_err != 0) << 1)) {
+    i_count = pi - p;
+
+    /* rationale: if we parse to the same point, it was an integer
+     * and double _may_ lose precision on 64bits ints
+     * and if i_count is more important than d_count in case of error
+     * we return an integer error */
+    if (d_count <= i_count) {
+        is_d_err = true;
+    }
+
+    switch (is_d_err << 1 | (i_res < 0)) {
       case 0:
-        /* rationale: if we parse to the same point, it was an integer
-           and double _may_ lose precision on 64bits ints */
-        if (pd <= pi)
-            goto prefer_integer;
         /* FALLTHROUGH */
 
       case 1:
-        if (unlikely((unsigned int)(pd - p) > pos)) {
+        if (unlikely(d_count > pos)) {
             e_trace(0, "strtod read further than us: %*pM vs %*pM",
-                    (unsigned int)(pd - p), PS->s,
-                    pos, PS->s);
+                    d_count, PS->s, pos, PS->s);
         }
         ll->ctx->u.d = d;
-        pos = (unsigned int)(pd - p);
-        SKIP(pos);
+        SKIP(d_count);
         return IOP_JSON_DOUBLE;
 
       case 2:
-prefer_integer:
-        if (unlikely((unsigned int)(pi - p) > pos)) {
-            e_trace(0, "strtol read further than us: %*pM vs %*pM",
-                    (unsigned int)(pi - p), PS->s,
-                    pos, PS->s);
+        if (unlikely(i_count > pos)) {
+            e_trace(0, "strtoxll_ext read further than us: %*pM vs %*pM",
+                    i_count , PS->s, pos, PS->s);
         }
         ll->ctx->u.i = i;
-        pos = (unsigned int)(pi - p);
-        SKIP(pos);
-        if (HAS(1))
-            return iop_json_lex_number_extensions(ll);
+        SKIP(i_count);
         return IOP_JSON_INTEGER;
 
       default:
-        return JERROR_WARG(IOP_JERR_PARSE_NUM, pos);
+        if (errno == ERANGE)
+            return JERROR_WARG(IOP_JERR_TOO_BIG_INT, pos);
+        if (errno == EDOM)
+            return JERROR_WARG(IOP_JERR_BAD_INT_EXT, pos);
     }
+    return JERROR_WARG(IOP_JERR_PARSE_NUM, pos);
 }
 
 static int iop_json_lex_enum(iop_json_lex_t *ll, int terminator,
