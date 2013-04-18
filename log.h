@@ -235,7 +235,7 @@ int __logger_is_traced(logger_t *logger, int level, const char *file,
         static int8_t __traced;                                              \
         logger_t *__i_logger = (logger_t *)(Logger);                         \
         const int __i_level = (Level);                                       \
-        bool __h_level = logger_has_level(__logger, LOG_TRACE + __i_level);  \
+        bool __h_level = logger_has_level(__i_logger, LOG_TRACE + __i_level);\
                                                                              \
         if (!__h_level) {                                                    \
             if (unlikely(__traced == 0)) {                                   \
