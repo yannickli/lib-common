@@ -387,6 +387,7 @@ int sb_conv_from_gsm_hex(sb_t *sb, const void *data, int slen)
             w    = sb_grow(sb, (end - p) / 2 + 4);
             wend = w + sb_avail(sb);
         }
+        assert (wend - w >= 4);
         w += __pstrputuc(w, c);
     }
     __sb_fixlen(sb, w - sb->data);
@@ -436,6 +437,7 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
             w    = sb_grow(sb, (end - p) / 2 + 4);
             wend = w + sb_avail(sb);
         }
+        assert (wend - w >= 4);
         w += __pstrputuc(w, c);
     }
     __sb_fixlen(sb, w - sb->data);
@@ -489,8 +491,11 @@ void sb_conv_to_gsm(sb_t *sb, const void *data, int len)
             w    = sb_grow(sb, len + 2);
             wend = w + sb_avail(sb);
         }
-        if (c > 0xff)
+        if (c > 0xff) {
+            assert (wend - w >= 1);
             *w++ = (c >> 8);
+        }
+        assert (wend - w >= 1);
         *w++ = c;
     }
     __sb_fixlen(sb, w - sb->data);
@@ -513,15 +518,17 @@ void sb_conv_to_gsm_hex(sb_t *sb, const void *data, int len)
         }
         c = unicode_to_gsm7(c, '.', GSM_LATIN1_PLAN);
 
-        if (wend - w < 2) {
+        if (wend - w < 4) {
             __sb_fixlen(sb, w - sb->data);
             w    = sb_grow(sb, 2 * len + 4);
             wend = w + sb_avail(sb);
         }
         if (c > 0xff) {
+            assert (wend - w >= 2);
             *w++ = __str_digits_upper[(c >> 12) & 0xf];
             *w++ = __str_digits_upper[(c >>  8) & 0xf];
         }
+        assert (wend - w >= 2);
         *w++ = __str_digits_upper[(c >> 4) & 0xf];
         *w++ = __str_digits_upper[(c >> 0) & 0xf];
     }
