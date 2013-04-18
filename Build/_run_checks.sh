@@ -56,6 +56,7 @@ fi
 
 "$(dirname "$0")"/_list_checks.sh "$where" | (
 _err=0
+export Z_BEHAVE=1
 export Z_HARNESS=1
 export Z_TAG_SKIP="${Z_TAG_SKIP:-slow upgrade}"
 export Z_MODE="${Z_MODE:-fast}"
@@ -64,7 +65,7 @@ while read t; do
     say_color info "starting suite $t..."
     case ./"$t" in
         */behave)
-            res="$pybin $(which behave) $BEHAVE_FLAGS --tags=-web --tags=-slow --tags=-upgrade $(dirname "./$t")/ci/features"
+            res="$pybin -m z  $BEHAVE_FLAGS --format z --no-summary --tags=-web --tags=-slow --tags=-upgrade $(dirname "./$t")/ci/features"
             ;;
         *.py)
             res="$pybin ./$t"
