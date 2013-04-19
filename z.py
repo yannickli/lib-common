@@ -338,9 +338,90 @@ def main():
         u.TextTestRunner.resultclass = _ZTextTestResult
         u.main(module = None)
 
+
+group_RE = re.compile(r"^1\.\.(\d+) (.*)$")
+test_RE  = re.compile(r"^(\d+) (pass|fail|skip|todo-pass|todo-fail) (.*)$")
+
+def z_report():
+    errors = []
+    failed_count  = 0
+    success_count = 0
+    skipped_count = 0
+
+    group_name = ""
+    group_len = 0
+    group_pos = 0
+
+    last_failed = False
+    for line in sys.stdin:
+        if line[0] == ':':
+            if last_failed:
+                error, test, ctx = errors[-1]
+                errors[-1] = (error, test, ctx + ":  " + line[1:])
+            continue
+
+        line = line.split('#', 1)[0].strip()
+        if len(line) == 0:
+            continue
+
+        group = group_RE.match(line)
+        if group:
+            if group_len != group_pos:
+                errors.extend([ ("missing", "%s.%d(unknown)" % (group_name, x), '') \
+                        for x in xrange(group_pos + 1, group_len) ])
+                failed_count += group_len - group_pos
+            group_pos = 0
+            group_len = int(group.group(1))
+            group_name = group.group(2)
+            continue
+
+        group = test_RE.match(line)
+        if group:
+            last_failed = False
+            n = int(group.group(1))
+            if n < group_pos + 1:
+                errors.append(("bad-number", "%s.%s" % (group_name, group.group(3)), ''))
+                failed_count += 1
+                continue
+            elif n > group_pos + 1:
+                errors.extend([ ("missing", "%s.%d(unknown)" % (group_name, x), '') \
+                        for x in xrange(group_pos + 1, n) ])
+                failed_count += n - group_pos - 1
+            if group.group(2).endswith('fail'):
+                errors.append(("fail", "%s.%s" % (group_name, group.group(3)), ''))
+                failed_count += 1
+                last_failed   = True
+            elif group.group(2) == 'skip':
+                skipped_count += 1
+            else:
+                success_count += 1
+            group_pos = n
+
+    total = failed_count + skipped_count + success_count
+    if total == 0:
+        print "# NO TESTS FOUND"
+        sys.exit(0)
+    print "#"
+    print "#"
+    print "# TOTAL"
+    print "# Skipped %d%%" % (skipped_count * 100 / total)
+    print "# Failed  %d%%" % (failed_count * 100 / total)
+    print "# Success %d%%" % (success_count * 100 / total)
+
+    if len(errors):
+        print "#"
+        print ": ERRORS"
+        for error, test, ctx in errors:
+            print ": - %s: %s" % (test, error)
+            if len(ctx) > 0:
+                print ctx
+        sys.exit(-1)
+    sys.exit(0)
+
+
 if __name__ == '__main__':
     if os.getenv("Z_BEHAVE"):
         behave_main()
     else:
-        u.TextTestRunner.resultclass = _ZTextTestResult
-        u.main(module = None)
+        z_report()
+
