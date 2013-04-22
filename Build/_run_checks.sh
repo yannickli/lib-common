@@ -32,6 +32,17 @@ then
         tput sgr0
         echo
     }
+
+    post_process()
+    {
+        sed -e "s/ pass / \x1B[1;32mpass\x1B[0m /" \
+            -e "s/ todo-pass / \x1B[1;33mtodo-pass\x1B[0m /" \
+            -e "s/ fail / \x1B[1;31mfail\x1B[0m /" \
+            -e "s/ todo-fail / \x1B[1;35mtodo-fail\x1B[0m /" \
+            -e "s/ skip / \x1B[1;30mskip\x1B[0m /" \
+            -e "s/#.*$/\x1B[1;30m\0\x1B[0m/" \
+            -e "s/^:\(.*\)/\x1B[1;31m: \x1B[1;33m\1\x1B[0m/"
+    }
 else
     say_color()
     {
@@ -39,6 +50,11 @@ else
         echo "$@"
     }
     BEHAVE_FLAGS="--no-color"
+
+    post_process()
+    {
+        cat
+    }
 fi
 
 
@@ -54,8 +70,11 @@ if [ -z "$pybin" ] ; then
     exit 1
 fi
 
+tmp=$(mktemp)
+tmp2=$(mktemp)
+trap "rm $tmp $tmp2" 0
+
 "$(dirname "$0")"/_list_checks.sh "$where" | (
-_err=0
 export Z_BEHAVE=1
 export Z_HARNESS=1
 export Z_TAG_SKIP="${Z_TAG_SKIP:-slow upgrade}"
@@ -78,9 +97,14 @@ while read t; do
     if $res ; then
         say_color pass "done"
     else
-        _err=1
         say_color error "TEST SUITE $t FAILED"
     fi
 done
-exit $_err
-)
+) | tee $tmp | post_process
+
+res=1
+if $pybin -m z < $tmp > $tmp2; then
+    res=0
+fi
+cat $tmp2 | post_process
+exit $res
