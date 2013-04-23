@@ -388,7 +388,7 @@ def z_report():
                         for x in xrange(group_pos + 1, n) ])
                 failed_count += n - group_pos - 1
             if group.group(2).endswith('fail'):
-                errors.append(("fail", "%s.%s" % (group_name, group.group(3)), ''))
+                errors.append((group.group(2), "%s.%s" % (group_name, group.group(3)), ''))
                 failed_count += 1
                 last_failed   = True
             elif group.group(2) == 'skip':
@@ -409,13 +409,16 @@ def z_report():
     print "# Success %d%%" % (success_count * 100 / total)
 
     if len(errors):
+        code = 0
         print "#"
         print ": ERRORS"
         for error, test, ctx in errors:
             print ": - %s: %s" % (test, error)
             if len(ctx) > 0:
                 print ctx
-        sys.exit(-1)
+            if error == 'fail':
+                code = -1
+        sys.exit(code)
     sys.exit(0)
 
 
