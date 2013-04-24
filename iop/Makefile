@@ -13,8 +13,8 @@
 
 ifeq (,$(TOOLS_REPOSITORY))
 examples_LIBRARIES = tstiop
-endif
 
 tstiop_SOURCES = tstiop.iop
+endif
 
 include ../Build/base.mk

@@ -180,6 +180,9 @@ common_LIBS = $(python2_LIBS)
 
 time-lp-simple_SOURCES = time-lp-simple.c
 
+ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
+
+ifeq (,$(TOOLS_REPOSITORY))
 core-iop-plugin_SOURCES = core.iop core-iop-plugin.c
 core-iop-plugin_LDFLAGS = -Wl,-z,defs
 
@@ -201,8 +204,6 @@ zchk_SOURCES = zchk.c \
 zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS)
 zchk_LDFLAGS = -rdynamic
 
-ztst-cfgparser_SOURCES = ztst-cfgparser.c libcommon.a
-
 zchk-tstiop-plugin_SOURCES = \
 	$/lib-common/iop/tstiop-plugin.c \
 	$/lib-common/iop/tstiop.a
@@ -214,6 +215,7 @@ ztst-httpd_SOURCES = \
 	$/lib-common/libcommon.a \
 	$/lib-common/time-lp-simple.a
 ztst-httpd_LIBS = $(libxml2_LIBS)
+endif
 
 ztst-tpl_SOURCES = ztst-tpl.c libcommon.a
 

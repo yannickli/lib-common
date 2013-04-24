@@ -13,7 +13,6 @@
 
 ifeq (,$(TOOLS_REPOSITORY))
 examples_PROGRAMS = ex-iop
-endif
 
 _LIBS = -lm -lz -lrt -ldl -lpthread
 
@@ -23,5 +22,6 @@ ex-iop_SOURCES = \
 	\
 	$/lib-common/libcommon.a \
 	$/lib-common/time-lp-simple.a
+endif
 
 include ../Build/base.mk
