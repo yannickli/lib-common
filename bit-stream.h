@@ -30,7 +30,10 @@
  */
 
 struct bit_ptroff {
-    const  uint64_t *p;
+    union {
+        const byte     *b;
+        const uint64_t *p;
+    };
     size_t offset;
 };
 
@@ -80,7 +83,7 @@ static inline void bit_ptroff_normalize(struct bit_ptroff *s)
     bit_ptroff_add(s, 0);
 }
 
-#define BIT_PTROFF_INIT(Ptr, Offset)    { (const uint64_t *)(Ptr), (Offset) }
+#define BIT_PTROFF_INIT(Ptr, Offset)    { { (const byte *)(Ptr) }, (Offset) }
 #define BIT_PTROFF_NORMALIZED(Ptr, Offset) ({                                \
         struct bit_ptroff __poff = BIT_PTROFF_INIT(Ptr, Offset);             \
         bit_ptroff_normalize(&__poff);                                       \
@@ -426,7 +429,7 @@ static inline int __bs_be_peek_bit(const bit_stream_t *bs)
 {
     int offset = (bs->s.offset & ~7ul) + 7 - (bs->s.offset % 8);
 
-    return (*bs->s.p >> offset) & 1;
+    return (bs->s.b[offset / 8] >> (offset % 8)) & 1;
 }
 
 static inline int bs_be_peek_bit(const bit_stream_t *bs)
@@ -549,7 +552,7 @@ static inline int __bs_scan_forward(const bit_stream_t *bs, bool b,
 static inline ssize_t
 bs_skip_upto_bit(bit_stream_t *bs, bool b, ssize_t max_len)
 {
-    struct bit_ptroff poff = { NULL, 0 };
+    struct bit_ptroff poff = { { NULL }, 0 };
 
     BS_CHECK(__bs_scan_forward(bs, b, &poff, max_len));
     return __bs_skip_upto(bs, &poff);
@@ -563,7 +566,7 @@ bs_skip_after_bit(bit_stream_t *bs, bool b, ssize_t max_len)
 
 static inline int bs_get_bs_bit(bit_stream_t *bs, bool b, bit_stream_t *out)
 {
-    struct bit_ptroff poff = { NULL, 0 };
+    struct bit_ptroff poff = { { NULL }, 0 };
 
     BS_CHECK(__bs_scan_forward(bs, b, &poff, -1));
     *out = __bs_get_bs_upto(bs, &poff);
@@ -598,7 +601,7 @@ static inline int __bs_scan_reverse(const bit_stream_t *bs, bool b,
 static inline ssize_t
 bs_shrink_downto_bit(bit_stream_t *bs, bool b, ssize_t max_len)
 {
-    struct bit_ptroff poff = { NULL, 0 };
+    struct bit_ptroff poff = { { NULL }, 0 };
 
     BS_CHECK(__bs_scan_reverse(bs, b, &poff, max_len));
     bit_ptroff_add(&poff, 1);
@@ -608,7 +611,7 @@ bs_shrink_downto_bit(bit_stream_t *bs, bool b, ssize_t max_len)
 static inline ssize_t
 bs_shrink_before_bit(bit_stream_t *bs, bool b, ssize_t max_len)
 {
-    struct bit_ptroff poff = { NULL, 0 };
+    struct bit_ptroff poff = { { NULL }, 0 };
 
     BS_CHECK(__bs_scan_reverse(bs, b, &poff, max_len));
     return __bs_clip_at(bs, &poff);
