@@ -18,7 +18,6 @@
 #include "arith.h"
 #include "container.h"
 #include "qtlsf.h"
-#include "core-mem-valgrind.h"
 
 /*
  * Set this to 1 if you want malloc of sizes < BLK_SIZE_MIN to be allocated
@@ -198,7 +197,7 @@ static ALWAYS_INLINE void blk_set_prev(blk_hdr_t *blk, blk_hdr_t *prev)
 {
     blk_hdr_t **ptr = (blk_hdr_t **)blk - 1;
 
-    VALGRIND_MAKE_MEM_UNDEFINED(ptr, sizeof(ptr));
+    mem_tool_allow_memory(ptr, sizeof(*ptr), false);
     *ptr = prev;
 }
 
@@ -235,7 +234,7 @@ static inline void blk_insert(tlsf_pool_t *mp, blk_hdr_t *blk, size_t bsz)
 {
     uint32_t fl, sl;
 
-    VALGRIND_MAKE_MEM_UNDEFINED(blk, offsetof(blk_hdr_t, prev_hdr));
+    mem_tool_allow_memory(blk, offsetof(blk_hdr_t, prev_hdr), false);
     blk->flags = bsz | BLK_PREV_USED | BLK_FREE;
 #if QTLSF_CONFIG_TINY_BLOCKS
     if (likely(bsz >= BLK_SIZE_MIN))
@@ -317,7 +316,7 @@ static ALWAYS_INLINE void arena_insert(tlsf_pool_t *mp, arena_t *a)
 {
     blk_hdr_t *blk = blk_of(a);
 
-    VALGRIND_MALLOCLIKE_BLOCK(blk_next(blk, blk_size(blk))->data, 0, 0, 0);
+    mem_tool_malloclike(blk_next(blk, blk_size(blk))->data, 0, 0, 0);
     tlsf_free(&mp->pool, blk_next(blk, blk_size(blk))->data, 0);
 }
 
@@ -371,7 +370,7 @@ ssize_t NEVER_INLINE tlsf_pool_add_arena(mem_pool_t *_mp, void *ptr, size_t size
     }
 
     dlist_add(&mp->arena_head, &a0->arena_list);
-    VALGRIND_MALLOCLIKE_BLOCK(blk0->data, 0, 0, 0);
+    mem_tool_malloclike(blk0->data, 0, 0, false);
     tlsf_free(&mp->pool, blk0->data, 0);
     return blk_size(blk0);
 }
@@ -437,8 +436,8 @@ void *tlsf_malloc(mem_pool_t *_mp, size_t size, mem_flags_t flags)
         blk->flags  &= ~BLK_FREE;
     }
 
-    VALGRIND_MAKE_MEM_NOACCESS(blk->data, size);
-    VALGRIND_MALLOCLIKE_BLOCK(blk->data, asked, 0, false);
+    mem_tool_disallow_memory(blk->data, size);
+    mem_tool_malloclike(blk->data, asked, 0, false);
     if (!(flags & MEM_RAW))
         memset(blk->data, 0, asked);
     blk->asked = asked;
@@ -484,9 +483,9 @@ void *tlsf_realloc(mem_pool_t *_mp, void *ptr,
             goto split;
         blk->asked = asked;
         res = blk->data;
-        VALGRIND_FREELIKE_BLOCK(ptr, 0);
-        VALGRIND_MALLOCLIKE_BLOCK(ptr, asked, 0, false);
-        VALGRIND_MAKE_MEM_DEFINED(ptr, asked);
+        mem_tool_freelike(ptr, oldsize, 0);
+        mem_tool_malloclike(ptr, asked, 0, false);
+        mem_tool_allow_memory(ptr, asked, true);
     } else
     if ((next->flags & BLK_FREE) && newsize <= tsize + blk_size(next)) {
         size_t nsz = blk_remove(mp, next);
@@ -506,9 +505,9 @@ void *tlsf_realloc(mem_pool_t *_mp, void *ptr,
         }
         blk->asked = asked;
         res = blk->data;
-        VALGRIND_FREELIKE_BLOCK(ptr, 0);
-        VALGRIND_MALLOCLIKE_BLOCK(ptr, asked, 0, false);
-        VALGRIND_MAKE_MEM_DEFINED(ptr, asked);
+        mem_tool_freelike(ptr, oldsize, 0);
+        mem_tool_malloclike(ptr, asked, 0, false);
+        mem_tool_allow_memory(ptr, asked, true);
     } else {
         res = tlsf_malloc(&mp->pool, newsize, 0);
         if (!res)
@@ -532,7 +531,7 @@ void tlsf_free(mem_pool_t *_mp, void *ptr, mem_flags_t flags)
     if (unlikely(PTR_IS_EMPTY(ptr)))
         return;
 
-    VALGRIND_FREELIKE_BLOCK(ptr, 0);
+    mem_tool_freelike(ptr, 0, 0);
 
     blk = blk_of(ptr);
     bsz = blk_size(blk);

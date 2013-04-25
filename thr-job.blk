@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include <valgrind/valgrind.h>
 #include <sys/syscall.h>
 #include <lib-common/arith.h>
 #include <lib-common/datetime.h>
@@ -707,7 +706,7 @@ void thr_initialize(void)
         pthread_atfork(NULL, NULL, thr_job_atfork);
 
         thr_parallelism_g = MAX(sysconf(_SC_NPROCESSORS_CONF), 2);
-        if (unlikely(RUNNING_ON_VALGRIND))
+        if (unlikely(mem_tool_is_running(MEM_TOOL_VALGRIND)))
             thr_parallelism_g = MIN(2, thr_parallelism_g);
         _G.threads = p_new(thr_info_t, thr_parallelism_g);
 
@@ -857,7 +856,7 @@ static int z_wake_up(void)
     if (Z_HAS_MODE(FAST)) {
         iterations = 10000;
     }
-    if (RUNNING_ON_VALGRIND) {
+    if (mem_tool_is_running(MEM_TOOL_VALGRIND)) {
         iterations /= 10;
     }
 
@@ -1211,7 +1210,7 @@ Z_GROUP_EXPORT(thrjobs) {
         if (Z_HAS_MODE(FAST)) {
             iterations = 1 << 5;
         }
-        if (RUNNING_ON_VALGRIND) {
+        if (mem_tool_is_running(MEM_TOOL_VALGRIND)) {
             iterations /= 10;
         }
 
@@ -1271,7 +1270,7 @@ Z_GROUP_EXPORT(thrjobs) {
         if (Z_HAS_MODE(FAST)) {
             iterations = 50000;
         }
-        if (RUNNING_ON_VALGRIND) {
+        if (mem_tool_is_running(MEM_TOOL_VALGRIND)) {
             iterations /= 10;
         }
 

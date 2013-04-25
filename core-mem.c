@@ -11,7 +11,21 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "core-mem-valgrind.h"
+#ifndef NDEBUG
+#  include <valgrind/valgrind.h>
+#  include <valgrind/memcheck.h>
+#else
+#  define VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE(...) ((void)0)
+#  define VALGRIND_CREATE_MEMPOOL(...)           ((void)0)
+#  define VALGRIND_DESTROY_MEMPOOL(...)          ((void)0)
+#  define VALGRIND_MAKE_MEM_DEFINED(...)         ((void)0)
+#  define VALGRIND_MAKE_MEM_NOACCESS(...)        ((void)0)
+#  define VALGRIND_MAKE_MEM_UNDEFINED(...)       ((void)0)
+#  define VALGRIND_MALLOCLIKE_BLOCK(...)         ((void)0)
+#  define VALGRIND_FREELIKE_BLOCK(...)           ((void)0)
+#endif
+
+#include "core.h"
 
 void *libc_malloc(size_t size, size_t alignment, mem_flags_t flags)
 {
@@ -152,6 +166,125 @@ char *mp_fmt(mem_pool_t *mp, int *out, const char *fmt, ...)
     return res;
 #undef MP_FMT_LEN
 }
+
+/* Instrumentation {{{ */
+
+bool mem_tool_is_running(unsigned tools)
+{
+    if (tools & MEM_TOOL_VALGRIND && RUNNING_ON_VALGRIND) {
+        return true;
+    }
+#ifdef __has_asan
+    if (tools & MEM_TOOL_ASAN) {
+        return true;
+    }
+#endif
+    return false;
+}
+
+#if __GNUC_PREREQ(4, 6) && !__VALGRIND_PREREQ(3, 7)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#endif
+
+#if !__VALGRIND_PREREQ(3, 7)
+# define IGNORE_RET(expr)  ({ (expr); })
+#else
+# define IGNORE_RET(expr)  expr
+#endif
+
+#ifdef __has_asan
+
+// Marks memory region [addr, addr+size) as unaddressable.
+// This memory must be previously allocated by the user program. Accessing
+// addresses in this region from instrumented code is forbidden until
+// this region is unpoisoned. This function is not guaranteed to poison
+// the whole region - it may poison only subregion of [addr, addr+size) due
+// to ASan alignment restrictions.
+// Method is NOT thread-safe in the sense that no two threads can
+// (un)poison memory in the same memory region simultaneously.
+void __asan_poison_memory_region(void const volatile *addr, size_t size);
+// Marks memory region [addr, addr+size) as addressable.
+// This memory must be previously allocated by the user program. Accessing
+// addresses in this region is allowed until this region is poisoned again.
+// This function may unpoison a superregion of [addr, addr+size) due to
+// ASan alignment restrictions.
+// Method is NOT thread-safe in the sense that no two threads can
+// (un)poison memory in the same memory region simultaneously.
+void __asan_unpoison_memory_region(void const volatile *addr, size_t size);
+
+#else
+# define __asan_poison_memory_region(...)
+# define __asan_unpoison_memory_region(...)
+#endif
+
+void mem_tool_allow_memory(const void *mem, size_t len, bool defined)
+{
+    if (!mem || !len) {
+        return;
+    }
+
+    if (defined) {
+        (void)VALGRIND_MAKE_MEM_DEFINED(mem, len);
+    } else {
+        (void)VALGRIND_MAKE_MEM_UNDEFINED(mem, len);
+    }
+    __asan_unpoison_memory_region(mem, len);
+}
+
+void mem_tool_allow_memory_if_addressable(const void *mem, size_t len,
+                                          bool defined)
+{
+    if (!mem || !len) {
+        return;
+    }
+
+    if (defined) {
+        (void)VALGRIND_MAKE_MEM_DEFINED_IF_ADDRESSABLE(mem, len);
+    }
+    __asan_unpoison_memory_region(mem, len);
+}
+
+void mem_tool_disallow_memory(const void *mem, size_t len)
+{
+    if (!mem || !len) {
+        return;
+    }
+
+    __asan_poison_memory_region(mem, len);
+    VALGRIND_MAKE_MEM_NOACCESS(mem, len);
+}
+
+void mem_tool_malloclike(const void *mem, size_t len, size_t rz, bool zeroed)
+{
+    if (!mem || !len) {
+        return;
+    }
+
+    VALGRIND_MALLOCLIKE_BLOCK(mem, len, rz, zeroed);
+    __asan_unpoison_memory_region(mem, len);
+    if (rz) {
+        __asan_poison_memory_region((const byte *)mem - rz, rz);
+        __asan_poison_memory_region((const byte *)mem + len, rz);
+    }
+}
+
+void mem_tool_freelike(const void *mem, size_t len, size_t rz)
+{
+    if (!mem) {
+        return;
+    }
+    if (len > 0) {
+        __asan_poison_memory_region(mem, len);
+    }
+    VALGRIND_FREELIKE_BLOCK(mem, rz);
+}
+
+#if __GNUC_PREREQ(4, 6) && !__VALGRIND_PREREQ(3, 7)
+#  pragma GCC diagnostic pop
+#endif
+
+/* }}} */
 
 extern const char libcommon_id[];
 const char *__libcomon_version(void);

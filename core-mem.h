@@ -617,4 +617,42 @@ void r_pool_destroy(void) __leaf;
 #define r_dup(p, count)             mp_dup(r_pool(), p, count)
 #define r_dupz(p, count)            mp_dupz(r_pool(), p, count)
 
+
+/* Instrumentation */
+
+enum mem_tool {
+    MEM_TOOL_VALGRIND = 1 << 0,
+    MEM_TOOL_ASAN     = 1 << 1,
+
+    MEM_TOOL_ANY      = 0xffffffff,
+};
+
+#ifndef NDEBUG
+#  define __VALGRIND_PREREQ(x, y)  \
+    defined(__VALGRIND_MAJOR__) && defined(__VALGRIND_MINOR__) && \
+    (__VALGRIND_MAJOR__ << 16) + __VALGRIND_MINOR__ >= (((x) << 16) + (y))
+#else
+#  define __VALGRIND_PREREQ(x, y)   0
+#  define RUNNING_ON_VALGRIND       false
+#endif
+
+__leaf __attribute__((const))
+bool mem_tool_is_running(unsigned tools);
+
+__leaf
+void mem_tool_allow_memory(const void *mem, size_t len, bool defined);
+
+__leaf
+void mem_tool_allow_memory_if_addressable(const void *mem, size_t len,
+                                          bool defined);
+
+__leaf
+void mem_tool_disallow_memory(const void *mem, size_t len);
+
+__leaf
+void mem_tool_malloclike(const void *mem, size_t len, size_t rz, bool zeroed);
+
+__leaf
+void mem_tool_freelike(const void *mem, size_t len, size_t rz);
+
 #endif

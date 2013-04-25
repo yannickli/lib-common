@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "core-mem-valgrind.h"
 #include "container.h"
 #include "thr.h"
 
@@ -109,13 +108,13 @@ static void *sp_reserve(mem_stack_pool_t *sp, size_t asked, size_t alignment,
         *blkp = blk;
         res   = blk->area;
         res   = (uint8_t *)ROUND_UP((uintptr_t)res, alignment);
-        (void)VALGRIND_MAKE_MEM_NOACCESS(blk->area, res - blk->area);
+        mem_tool_disallow_memory(blk->area, res - blk->area);
     } else {
         *blkp = frame->blk;
-        (void)VALGRIND_MAKE_MEM_NOACCESS(frame->pos, res - frame->pos);
+        mem_tool_disallow_memory(frame->pos, res - frame->pos);
     }
-    (void)VALGRIND_MAKE_MEM_UNDEFINED(res, asked);
-    (void)VALGRIND_MAKE_MEM_NOACCESS(res + asked, size - asked);
+    mem_tool_allow_memory(res, asked, false);
+    mem_tool_disallow_memory(res + asked, size - asked);
 
     /* compute a progressively forgotten mean of the allocation size.
      *
@@ -166,7 +165,7 @@ static void *sp_alloc_aligned(mem_pool_t *_sp, size_t size, size_t alignment,
 #ifndef NDEBUG
     res += alignment;
     ((void **)res)[-1] = sp->stack;
-    (void)VALGRIND_MAKE_MEM_NOACCESS(res - alignment, alignment);
+    mem_tool_disallow_memory(res - alignment, alignment);
 #endif
     return frame->last = res;
 }
@@ -195,10 +194,12 @@ static void *sp_realloc_aligned(mem_pool_t *_sp, void *mem,
 
     if (frame->prev & 1)
         e_panic("allocation performed on a sealed stack");
-    (void)VALGRIND_MAKE_MEM_DEFINED((byte *)mem - sizeof(void *), sizeof(void *));
-    if (mem != NULL && unlikely(((void **)mem)[-1] != sp->stack))
-        e_panic("%p wasn't allocated in that frame, realloc is forbidden", mem);
-    (void)VALGRIND_MAKE_MEM_NOACCESS((byte *)mem - sizeof(void *), sizeof(void *));
+    if (mem != NULL) {
+        mem_tool_allow_memory((byte *)mem - sizeof(void *), sizeof(void *), true);
+        if (unlikely(((void **)mem)[-1] != sp->stack))
+            e_panic("%p wasn't allocated in that frame, realloc is forbidden", mem);
+        mem_tool_disallow_memory((byte *)mem - sizeof(void *), sizeof(void *));
+    }
     if (unlikely(oldsize == MEM_UNKNOWN))
         e_panic("stack pools do not support reallocs with unknown old size");
 #endif
@@ -207,7 +208,7 @@ static void *sp_realloc_aligned(mem_pool_t *_sp, void *mem,
         if (mem == frame->last) {
             sp->stack->pos = (uint8_t *)mem + size;
         }
-        (void)VALGRIND_MAKE_MEM_NOACCESS((uint8_t *)mem + asked, oldsize - asked);
+        mem_tool_disallow_memory((byte *)mem + asked, oldsize - asked);
         return size ? mem : NULL;
     }
 
@@ -216,16 +217,16 @@ static void *sp_realloc_aligned(mem_pool_t *_sp, void *mem,
     {
         sp->stack->pos = frame->last + size;
         sp->alloc_sz  += size - oldsize;
-        (void)VALGRIND_MAKE_MEM_UNDEFINED(mem + oldsize, asked - oldsize);
+        mem_tool_allow_memory((byte *)mem + oldsize, asked - oldsize, false);
         res = mem;
     } else {
         res = sp_alloc_aligned(_sp, size, alignment, flags | MEM_RAW);
         if (mem) {
             memcpy(res, mem, oldsize);
-            (void)VALGRIND_MAKE_MEM_NOACCESS(mem, oldsize);
+            mem_tool_disallow_memory(mem, oldsize);
         }
     }
-    (void)VALGRIND_MAKE_MEM_NOACCESS(res + asked, size - asked);
+    mem_tool_disallow_memory(res + asked, size - asked);
 
     if (!(flags & MEM_RAW))
         p_clear(res + oldsize, asked - oldsize);
@@ -295,9 +296,9 @@ void mem_stack_protect(mem_stack_pool_t *sp)
     mem_stack_blk_t *blk = sp->stack->blk;
     size_t remainsz = frame_end(sp->stack) - sp->stack->pos;
 
-    (void)VALGRIND_MAKE_MEM_NOACCESS(sp->stack->pos, remainsz);
+    mem_tool_disallow_memory(sp->stack->pos, remainsz);
     dlist_for_each_entry_continue(blk, blk, &sp->blk_list, blk_list) {
-        (void)(VALGRIND_MAKE_MEM_NOACCESS(blk->start, blk->size));
+        mem_tool_disallow_memory(blk->start, blk->size);
     }
 }
 #endif

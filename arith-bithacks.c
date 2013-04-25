@@ -13,7 +13,6 @@
 
 #include "z.h"
 #include "arith.h"
-#include "core-mem-valgrind.h"
 
 #define BIT(x, n)   (((x) >> (n)) & 1)
 #define BC4(x)      BIT(x, 0) + BIT(x, 1) + BIT(x, 2) + BIT(x, 3)
@@ -31,7 +30,7 @@ MAKE_U64_ACCESSIBLE(const uint64_t *pos, size_t start_bit, size_t len)
     size_t vpos = 1 + ((start_bit + len) / 8);
 
     if (vpos < 8) {
-        VALGRIND_MAKE_MEM_DEFINED((const byte *)pos + vpos, 8 - vpos);
+        mem_tool_allow_memory((const byte *)pos + vpos, 8 - vpos, true);
     }
 }
 #else

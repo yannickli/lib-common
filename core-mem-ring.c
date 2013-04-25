@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "core-mem-valgrind.h"
 #include "arith.h"
 #include "container.h"
 #include "thr.h"
@@ -180,7 +179,7 @@ static void *rp_reserve(ring_pool_t *rp, size_t size, ring_blk_t **blkp)
     } else {
         *blkp = rp->cblk;
     }
-    (void)VALGRIND_MAKE_MEM_UNDEFINED(res, size);
+    mem_tool_allow_memory(res, size, false);
     if (unlikely(rp->alloc_sz + size < rp->alloc_sz)
     ||  unlikely(rp->alloc_nb == UINT32_MAX))
     {
@@ -222,7 +221,7 @@ static void *rp_realloc(mem_pool_t *_rp, void *mem,
         if (mem == rp->last) {
             rp->pos = (byte *)mem + size;
         }
-        (void)VALGRIND_MAKE_MEM_NOACCESS((byte *)mem + size, oldsize - size);
+        mem_tool_disallow_memory((byte *)mem + size, oldsize - size);
         return size ? mem : NULL;
     }
 
@@ -232,13 +231,13 @@ static void *rp_realloc(mem_pool_t *_rp, void *mem,
     {
         rp->pos = (byte *)rp->last + size;
         rp->alloc_sz  += size - oldsize;
-        (void)VALGRIND_MAKE_MEM_DEFINED(mem, size);
+        mem_tool_allow_memory(mem, size, true);
         res = mem;
     } else {
         res = rp_alloc(_rp, size, flags | MEM_RAW);
         if (mem != NULL) {
             memcpy(res, mem, oldsize);
-            (void)VALGRIND_MAKE_MEM_UNDEFINED(mem, oldsize);
+            mem_tool_allow_memory(mem, oldsize, false);
         }
     }
     if (!(flags & MEM_RAW))
@@ -262,11 +261,11 @@ mem_ring_protect(const ring_pool_t *rp, const ring_blk_t *blk,
     const byte *start = _start;
 
     while (!blk_contains(blk, end)) {
-        (void)VALGRIND_MAKE_MEM_NOACCESS(start, blk->area + blk->size - start);
+        mem_tool_disallow_memory(start, blk->area + blk->size - start);
         blk   = dlist_next_entry(blk, blist);
         start = blk->start;
     }
-    (void)VALGRIND_MAKE_MEM_NOACCESS(start, end - start);
+    mem_tool_disallow_memory(start, end - start);
 }
 #else
 #define mem_ring_protect(...)  ((void)0)
@@ -294,7 +293,7 @@ static ALWAYS_INLINE
 void frame_unregister(frame_t *frame)
 {
     dlist_remove(&frame->flist);
-    (void)VALGRIND_MAKE_MEM_NOACCESS(frame, sizeof(frame));
+    mem_tool_disallow_memory(frame, sizeof(frame));
 }
 
 static ALWAYS_INLINE
@@ -339,7 +338,7 @@ mem_pool_t *mem_ring_pool_new(int initialsize)
 
     /* Makes the first frame */
     blk = blk_create(rp, sizeof(frame_t));
-    (void)VALGRIND_MAKE_MEM_UNDEFINED(blk->area, sizeof(frame_t));
+    mem_tool_allow_memory(blk->area, sizeof(frame_t), false);
     ring_setup_frame(rp, blk, (frame_t *)blk->area);
 
     return &rp->funcs;

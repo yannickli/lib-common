@@ -11,11 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef NDEBUG
-#  include <valgrind/valgrind.h>
-#else
-#  define RUNNING_ON_VALGRIND  false
-#endif
 #include "arith.h"
 #include "qlzo.h"
 
@@ -181,7 +176,7 @@ size_t qlzo1x_compress(void *orig_out, size_t outlen, pstream_t in, void *buf)
      *
      *      but having valgrind complain sucks during debugging.
      */
-    if (RUNNING_ON_VALGRIND)
+    if (mem_tool_is_running(MEM_TOOL_VALGRIND))
         memset(buf, 0, LZO_BUF_MEM_SIZE);
 
     if (likely(ps_has(&in, LZO_M2_MAX_LEN + 5)))

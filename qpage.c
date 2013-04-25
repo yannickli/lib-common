@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "core-mem-valgrind.h"
 #include "container.h"
 #include "arith.h"
 #include "qpage.h"

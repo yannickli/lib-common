@@ -11,7 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#include "core-mem-valgrind.h"
 #include "core.h"
 
 typedef struct mem_page_t {
@@ -45,16 +44,6 @@ typedef struct mem_fifo_pool_t {
     mem_pool_t **owner;
 } mem_fifo_pool_t;
 
-
-static ALWAYS_INLINE void blk_unprotect(mem_block_t *blk)
-{
-    (void)VALGRIND_MAKE_MEM_DEFINED(blk, sizeof(*blk));
-}
-
-static ALWAYS_INLINE void blk_protect(mem_block_t *blk)
-{
-    (void)VALGRIND_MAKE_MEM_NOACCESS(blk, sizeof(*blk));
-}
 
 static ALWAYS_INLINE mem_page_t *pageof(mem_block_t *blk)
 {
@@ -92,9 +81,9 @@ static mem_page_t *mem_page_new(mem_fifo_pool_t *mfp, uint32_t minsize)
 
 static void mem_page_reset(mem_page_t *page)
 {
-    VALGRIND_MAKE_MEM_UNDEFINED(page->area, page->used_size);
+    mem_tool_allow_memory(page->area, page->used_size, false);
     p_clear(page->area, page->used_size);
-    VALGRIND_MAKE_MEM_NOACCESS(page->start, page->size);
+    mem_tool_disallow_memory(page->area, page->size);
 
     page->used_size   = 0;
     page->used_blocks = 0;
@@ -108,6 +97,7 @@ static void mem_page_delete(mem_fifo_pool_t *mfp, mem_page_t **pagep)
     if (page) {
         mfp->nb_pages--;
         mfp->map_size -= page->size;
+        mem_tool_allow_memory(page, page->size + sizeof(mem_page_t), false);
         munmap(page, page->size + sizeof(mem_page_t));
     }
     *pagep = NULL;
@@ -118,18 +108,12 @@ static uint32_t mem_page_size_left(mem_page_t *page)
     return (page->size - page->used_size);
 }
 
-#if __GNUC_PREREQ(4, 6) && !__VALGRIND_PREREQ(3, 7)
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wunused-but-set-variable"
-#endif
 static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
 {
     mem_fifo_pool_t *mfp = container_of(_mfp, mem_fifo_pool_t, funcs);
     mem_block_t *blk;
     mem_page_t *page;
-#ifndef NDEBUG
     size_t req_size = size;
-#endif
 
     /* Must round size up to keep proper alignment */
     size = ROUND_UP((unsigned)size + sizeof(mem_block_t), 8);
@@ -143,11 +127,11 @@ static void *mfp_alloc(mem_pool_t *_mfp, size_t size, mem_flags_t flags)
     }
 
     blk = (mem_block_t *)(page->area + page->used_size);
-    blk_unprotect(blk);
-    VALGRIND_MALLOCLIKE_BLOCK(blk->area, req_size, 0, true);
+    mem_tool_allow_memory(blk, sizeof(*blk), true);
+    mem_tool_malloclike(blk->area, req_size, 0, true);
     blk->page_offs = (uintptr_t)blk - (uintptr_t)page;
     blk->blk_size  = size;
-    blk_protect(blk);
+    mem_tool_disallow_memory(blk, sizeof(*blk));
 
     mfp->occupied   += size;
     page->used_size += size;
@@ -165,11 +149,11 @@ static void mfp_free(mem_pool_t *_mfp, void *mem, mem_flags_t flags)
         return;
 
     blk  = container_of(mem, mem_block_t, area);
-    blk_unprotect(blk);
+    mem_tool_allow_memory(blk, sizeof(*blk), true);
     page = pageof(blk);
     mfp->occupied -= blk->blk_size;
-    VALGRIND_FREELIKE_BLOCK(mem, 0);
-    blk_protect(blk);
+    mem_tool_freelike(mem, blk->blk_size, 0);
+    mem_tool_disallow_memory(blk, sizeof(*blk));
 
     if (--page->used_blocks > 0)
         return;
@@ -217,7 +201,7 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
         return mfp_alloc(_mfp, size, flags);
 
     blk  = container_of(mem, mem_block_t, area);
-    blk_unprotect(blk);
+    mem_tool_allow_memory(blk, sizeof(*blk), true);
     page = pageof(blk);
 
     alloced_size = blk->blk_size - sizeof(*blk);
@@ -225,9 +209,9 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
         oldsize = alloced_size;
     assert (oldsize <= alloced_size);
     if (req_size <= alloced_size) {
-        VALGRIND_FREELIKE_BLOCK(mem, 0);
-        VALGRIND_MALLOCLIKE_BLOCK(mem, req_size, 0, false);
-        VALGRIND_MAKE_MEM_DEFINED(mem, MIN(req_size, oldsize));
+        mem_tool_freelike(mem, oldsize, 0);
+        mem_tool_malloclike(mem, req_size, 0, false);
+        mem_tool_allow_memory(mem, MIN(req_size, oldsize), true);
         if (!(flags & MEM_RAW) && oldsize < req_size)
             memset(blk->area + oldsize, 0, req_size - oldsize);
     } else
@@ -243,9 +227,9 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
 
         mfp->occupied   += diff;
         page->used_size += diff;
-        VALGRIND_FREELIKE_BLOCK(mem, 0);
-        VALGRIND_MALLOCLIKE_BLOCK(mem, req_size, 0, false);
-        VALGRIND_MAKE_MEM_DEFINED(mem, MIN(req_size, oldsize));
+        mem_tool_freelike(mem, oldsize, 0);
+        mem_tool_malloclike(mem, req_size, 0, false);
+        mem_tool_allow_memory(mem, MIN(req_size, oldsize), true);
     } else {
         void *old = mem;
 
@@ -255,12 +239,9 @@ static void *mfp_realloc(mem_pool_t *_mfp, void *mem, size_t oldsize, size_t siz
         return mem;
     }
 
-    blk_protect(blk);
+    mem_tool_disallow_memory(blk, sizeof(*blk));
     return mem;
 }
-#if __GNUC_PREREQ(4, 6) && !__VALGRIND_PREREQ(3, 7)
-#  pragma GCC diagnostic pop
-#endif
 
 static mem_pool_t const mem_fifo_pool_funcs = {
     .malloc  = &mfp_alloc,

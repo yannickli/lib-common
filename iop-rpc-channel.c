@@ -11,12 +11,6 @@
 /*                                                                        */
 /**************************************************************************/
 
-#ifndef NDEBUG
-#  include <valgrind/valgrind.h>
-#else
-#  define RUNNING_ON_VALGRIND  false
-#endif
-
 #include "unix.h"
 #include "iop-rpc.h"
 
@@ -328,7 +322,7 @@ static void ic_prepare_cmsg(ichannel_t *ic, struct msghdr *msgh,
         memcpy(CMSG_DATA(cmsg), fdv, sizeof(int) * fdc);
 
         /* XXX: Erase padding to avoid Valgrind warning */
-        if (RUNNING_ON_VALGRIND) {
+        if (mem_tool_is_running(MEM_TOOL_VALGRIND)) {
             p_clear(CMSG_DATA(cmsg) + sizeof(int) * fdc,
                     CMSG_ALIGN(cmsg->cmsg_len) - sizeof(int) * fdc);
         }
