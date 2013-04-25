@@ -427,19 +427,24 @@ Z_GROUP_EXPORT(str)
                                                                              \
         if (str) {                                                           \
             ret = (sgn) ? strtoll_ext(p, (int64_t *)&val,                    \
-                                      (const char **)_endp, base)            \
-                        : strtoull_ext(p, &val, (const char **)_endp, base); \
+                                      _endp ? (const char **)&endp : NULL,   \
+                                      base)                                  \
+                        : strtoull_ext(p, &val,                              \
+                                       _endp ? (const char **)&endp : NULL,  \
+                                       base);                                \
         } else {                                                             \
-            ret = (sgn) ? memtoll_ext(p, _len, (int64_t *)&val, _endp, base) \
-                        : memtoull_ext(p, _len, &val, _endp, base);          \
+            ret = (sgn) ? memtoll_ext(p, _len, (int64_t *)&val,              \
+                                      _endp ? &endp : NULL, base)            \
+                        : memtoull_ext(p, _len, &val, _endp ? &endp : NULL,  \
+                                       base);                                \
         }                                                                    \
                                                                              \
         Z_ASSERT_EQ(_ret_exp, ret);                                          \
         if (errno != EINVAL)                                                 \
             Z_ASSERT_EQ((uint64_t)(val_exp), val);                           \
         Z_ASSERT_EQ(err_exp, errno);                                         \
-        if (_endp != NULL)                                                   \
-            Z_ASSERT_EQ(_end_exp, *(const char **)_endp - (const char *)p);  \
+        if (_endp)                                                           \
+            Z_ASSERT_EQ(_end_exp, (const char *)endp - (const char *)p);     \
     } while (0)
 
 #define TT_MEM(p, len, _endp, base, val_exp, ret_exp, end_exp, err_exp)      \
@@ -468,80 +473,80 @@ Z_GROUP_EXPORT(str)
 
         const void *endp;
 
-        TT_ALL("123",           3, &endp, 0, 123,  3, 0, 0);
-        TT_ALL("123.456", INT_MAX, &endp, 0, 123,  3, 0, 0);
+        TT_ALL("123",           3, true, 0, 123,  3, 0, 0);
+        TT_ALL("123.456", INT_MAX, true, 0, 123,  3, 0, 0);
 
         /* different len */
-        TT_MEM("123",  2, &endp, 0,  12,  2, 0, 0);
-        TT_MEM("123;", 4, &endp, 0, 123,  3, 0, 0);
-        TT_MEM("123k", 3, &endp, 0, 123,  3, 0, 0);
-        TT_MEM("123",  0, &endp, 0,   0,  0, 0, 0);
-        TT_MEM("123", -1, &endp, 0,   0, -1, 0, EINVAL);
+        TT_MEM("123",  2, true, 0,  12,  2, 0, 0);
+        TT_MEM("123;", 4, true, 0, 123,  3, 0, 0);
+        TT_MEM("123k", 3, true, 0, 123,  3, 0, 0);
+        TT_MEM("123",  0, true, 0,   0,  0, 0, 0);
+        TT_MEM("123", -1, true, 0,   0, -1, 0, EINVAL);
 
         /* argument endp NULL */
-        TT_ALL("123", INT_MAX, NULL, 0, 123, INT_MAX, 0, 0);
+        TT_ALL("123", INT_MAX, false, 0, 123, INT_MAX, 0, 0);
 
         /* spaces and sign char */
-        TT_ALL("  123  ", INT_MAX, &endp, 0,  123, 5, 0, 0);
-        TT_ALL("+123",    INT_MAX, &endp, 0,  123, INT_MAX, 0, 0);
-        TT_SGN("-123",    INT_MAX, &endp, 0, -123, INT_MAX, 0, 0);
-        TT_ALL("  +",     INT_MAX, &endp, 0,  0, 0, 0, 0);
-        TT_ALL("  -",     INT_MAX, &endp, 0,  0, 0, 0, 0);
+        TT_ALL("  123  ", INT_MAX, true, 0,  123, 5, 0, 0);
+        TT_ALL("+123",    INT_MAX, true, 0,  123, INT_MAX, 0, 0);
+        TT_SGN("-123",    INT_MAX, true, 0, -123, INT_MAX, 0, 0);
+        TT_ALL("  +",     INT_MAX, true, 0,  0, 0, 0, 0);
+        TT_ALL("  -",     INT_MAX, true, 0,  0, 0, 0, 0);
 
         /* other bases than 10 */
-        TT_ALL("0x123", INT_MAX, &endp,  0, 0x123, INT_MAX, 0, 0);
-        TT_ALL("0123",  INT_MAX, &endp,  0,  0123, INT_MAX, 0, 0);
-        TT_ALL("123",   INT_MAX, &endp, 20,   443, INT_MAX, 0, 0);
+        TT_ALL("0x123", INT_MAX, true,  0, 0x123, INT_MAX, 0, 0);
+        TT_ALL("0123",  INT_MAX, true,  0,  0123, INT_MAX, 0, 0);
+        TT_ALL("123",   INT_MAX, true, 20,   443, INT_MAX, 0, 0);
 
         /* extensions */
-        TT_ALL("100w",  INT_MAX, &endp, 0,   60480000, INT_MAX, 0, 0);
-        TT_ALL("100d",  INT_MAX, &endp, 0,    8640000, INT_MAX, 0, 0);
-        TT_ALL("100h",  INT_MAX, &endp, 0,     360000, INT_MAX, 0, 0);
-        TT_ALL("100m",  INT_MAX, &endp, 0,       6000, INT_MAX, 0, 0);
-        TT_ALL("100s",  INT_MAX, &endp, 0,        100, INT_MAX, 0, 0);
-        TT_ALL("100T",  INT_MAX, &endp, 0, 100L << 40, INT_MAX, 0, 0);
-        TT_ALL("100G",  INT_MAX, &endp, 0, 100L << 30, INT_MAX, 0, 0);
-        TT_ALL("100M",  INT_MAX, &endp, 0, 100  << 20, INT_MAX, 0, 0);
-        TT_ALL("100K",  INT_MAX, &endp, 0,     102400, INT_MAX, 0, 0);
-        TT_ALL("100K;", INT_MAX, &endp, 0,     102400,       4, 0, 0);
-        TT_MEM("100Ki",       4, &endp, 0,     102400,       4, 0, 0);
+        TT_ALL("100w",  INT_MAX, true, 0,   60480000, INT_MAX, 0, 0);
+        TT_ALL("100d",  INT_MAX, true, 0,    8640000, INT_MAX, 0, 0);
+        TT_ALL("100h",  INT_MAX, true, 0,     360000, INT_MAX, 0, 0);
+        TT_ALL("100m",  INT_MAX, true, 0,       6000, INT_MAX, 0, 0);
+        TT_ALL("100s",  INT_MAX, true, 0,        100, INT_MAX, 0, 0);
+        TT_ALL("100T",  INT_MAX, true, 0, 100L << 40, INT_MAX, 0, 0);
+        TT_ALL("100G",  INT_MAX, true, 0, 100L << 30, INT_MAX, 0, 0);
+        TT_ALL("100M",  INT_MAX, true, 0, 100  << 20, INT_MAX, 0, 0);
+        TT_ALL("100K",  INT_MAX, true, 0,     102400, INT_MAX, 0, 0);
+        TT_ALL("100K;", INT_MAX, true, 0,     102400,       4, 0, 0);
+        TT_MEM("100Ki",       4, true, 0,     102400,       4, 0, 0);
 
         /* extension with octal number */
-        TT_ALL("012K",  INT_MAX, &endp, 0, 10240, INT_MAX, 0, 0);
+        TT_ALL("012K",  INT_MAX, true, 0, 10240, INT_MAX, 0, 0);
 
         /* negative number with extension */
-        TT_SGN("-100K", INT_MAX, &endp, 0, -102400, INT_MAX, 0, 0);
+        TT_SGN("-100K", INT_MAX, true, 0, -102400, INT_MAX, 0, 0);
 
         /* invalid extensions */
-        TT_ALL("100k",  INT_MAX, &endp, 0, 100, -1, 3, EDOM);
-        TT_ALL("100Ki", INT_MAX, &endp, 0, 100, -1, 4, EDOM);
+        TT_ALL("100k",  INT_MAX, true, 0, 100, -1, 3, EDOM);
+        TT_ALL("100Ki", INT_MAX, true, 0, 100, -1, 4, EDOM);
 
         /* values at limits for unsigned */
-        TT_USGN("18446744073709551615s", INT_MAX, &endp, 0, UINT64_MAX,
+        TT_USGN("18446744073709551615s", INT_MAX, true, 0, UINT64_MAX,
                 INT_MAX, 0, 0);
-        TT_USGN("18446744073709551616s", INT_MAX, &endp, 0, UINT64_MAX,
+        TT_USGN("18446744073709551616s", INT_MAX, true, 0, UINT64_MAX,
                 -1, 20, ERANGE);
-        TT_USGN("16777215T", INT_MAX, &endp, 0, 16777215 * (1UL << 40),
+        TT_USGN("16777215T", INT_MAX, true, 0, 16777215 * (1UL << 40),
                 INT_MAX, 0, 0);
-        TT_USGN("16777216T", INT_MAX, &endp, 0, UINT64_MAX, -1, 9, ERANGE);
+        TT_USGN("16777216T", INT_MAX, true, 0, UINT64_MAX, -1, 9, ERANGE);
 
         /* positives values at limits for signed */
-        TT_SGN("9223372036854775807s", INT_MAX, &endp, 0, INT64_MAX,
+        TT_SGN("9223372036854775807s", INT_MAX, true, 0, INT64_MAX,
                INT_MAX, 0, 0);
-        TT_SGN("9223372036854775808s", INT_MAX, &endp, 0, INT64_MAX,
+        TT_SGN("9223372036854775808s", INT_MAX, true, 0, INT64_MAX,
                -1, 19, ERANGE);
-        TT_SGN("8388607T", INT_MAX, &endp, 0, 8388607 * (1L << 40),
+        TT_SGN("8388607T", INT_MAX, true, 0, 8388607 * (1L << 40),
                INT_MAX, 0, 0);
-        TT_SGN("8388608T", INT_MAX, &endp, 0, INT64_MAX, -1, 8, ERANGE);
+        TT_SGN("8388608T", INT_MAX, true, 0, INT64_MAX, -1, 8, ERANGE);
 
         /* negatives values at limits for signed */
-        TT_SGN("-9223372036854775808s", INT_MAX, &endp, 0, INT64_MIN,
+        TT_SGN("-9223372036854775808s", INT_MAX, true, 0, INT64_MIN,
                INT_MAX, 0, 0);
-        TT_SGN("-9223372036854775809s", INT_MAX, &endp, 0, INT64_MIN,
+        TT_SGN("-9223372036854775809s", INT_MAX, true, 0, INT64_MIN,
                -1, 20, ERANGE);
-        TT_SGN("-8388608T", INT_MAX, &endp, 0, -8388608 * (1L << 40),
+        TT_SGN("-8388608T", INT_MAX, true, 0, -8388608 * (1L << 40),
                INT_MAX, 0, 0);
-        TT_SGN("-8388609T", INT_MAX, &endp, 0, INT64_MIN, -1, 9, ERANGE);
+        TT_SGN("-8388609T", INT_MAX, true, 0, INT64_MIN, -1, 9, ERANGE);
 
 #undef T
 #undef TT_MEM
