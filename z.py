@@ -50,10 +50,11 @@ import sys, os, re, traceback
 from functools import wraps
 
 try:
-    import unittest2 as u
+    import unittest2
+    u = unittest2
 except ImportError:
-    import unittest as u
-import time
+    import unittest
+    u = unittest
 
 __all__ = []
 
@@ -233,11 +234,9 @@ class _ZTestResult(u.TestResult):
 
 try:
     from unittest2 import *
-    __all__ += u.__all__
 except ImportError:
     from unittest import *
-    __all__ += u.__all__
-
+__all__ += u.__all__
 
 @public
 class TestCase(u.TestCase):
@@ -325,14 +324,18 @@ try:
                          (100 * self.__failed)  / total))
 
 
-    def behave_main():
+    def run_behave():
         __behave_register(ZFormatter)
         from behave.__main__ import main as __behave_main
         __behave_main()
 
+    behave_main = run_behave
+
 except ImportError:
-    def behave_main():
+    def fake_behave():
         sys.stderr.write("behave not installed\n")
+
+    behave_main = fake_behave
 
 @public
 def main():
@@ -344,7 +347,25 @@ def main():
             s = u.TestSuite(loader.loadTestsFromTestCase(group))
             sys.stdout.write("1..%d %s\n" % (s.countTestCases(), group.__name__))
             sys.stdout.flush()
-            wasSuccessful = s.run(_ZTestResult()).wasSuccessful() and wasSuccessful
+            all_skipped = getattr(group, "__unittest_skip__", False)
+            if not all_skipped:
+                for t in s:
+                    t = getattr(t, t._testMethodName)
+                    if not getattr(t, "__unittest_skip__", False):
+                        all_skipped = True
+                        break
+                all_skipped = not all_skipped
+            res = _ZTestResult()
+            if all_skipped:
+                for m in s:
+                    t = getattr(m, m._testMethodName)
+                    skip_why = (getattr(group, '__unittest_skip_why__', '')
+                                or getattr(t, '__unittest_skip_why__', ''))
+                    res.startTest(t)
+                    res.addSkip(m, skip_why)
+                    res.stopTest(t)
+            else:
+                wasSuccessful = s.run(res).wasSuccessful() and wasSuccessful
         sys.exit(not wasSuccessful)
     else:
         u.TextTestRunner.resultclass = _ZTextTestResult
@@ -428,7 +449,7 @@ def z_report():
             print ": - %s: %s" % (test, error)
             if len(ctx) > 0:
                 print ctx
-            if error == 'fail':
+            if not error.startswith('todo'):
                 code = -1
         sys.exit(code)
     sys.exit(0)
