@@ -132,13 +132,14 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
 ichttp_cb_t *
 __ichttp_register(httpd_trigger__ic_t *tcb,
                   const iop_iface_alias_t *alias,
-                  const iop_rpc_t *fun, int32_t cmd);
+                  const iop_rpc_t *fun, int32_t cmd,
+                  void *cb);
 
 /** \brief internal do not use directly, or know what you're doing. */
-#define ___ichttp_register(tcb, _mod, _if, _rpc) \
+#define ___ichttp_register(tcb, _mod, _if, _rpc, _cb)                        \
     __ichttp_register(tcb, _mod##__##_if##__alias,                           \
                       IOP_RPC(_mod, _if, _rpc),                              \
-                      IOP_RPC_CMD(_mod, _if, _rpc))
+                      IOP_RPC_CMD(_mod, _if, _rpc), _cb)
 
 /** \brief register a local callback for an rpc on the given http iop trigger.
  * \param[in]  tcb
@@ -156,13 +157,7 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
     do {                                                                     \
         void (*__cb)(IOP_RPC_IMPL_ARGS(_mod, _if, _rpc)) = _cb;              \
                                                                              \
-        ___ichttp_register(tcb, _mod, _if, _rpc)->e = (ic_cb_entry_t) {      \
-                .cb_type = IC_CB_NORMAL,                                     \
-                .u = { .cb = {                                               \
-                    .rpc = IOP_RPC(_mod, _if, _rpc),                         \
-                    .cb  = (void *)__cb,                                     \
-                } },                                                         \
-        };                                                                   \
+        ___ichttp_register(tcb, _mod, _if, _rpc, (void *)__cb);              \
     } while (0)
 
 /** \brief same as #ichttp_register_ but auto-computes the rpc name. */
