@@ -400,8 +400,7 @@ def z_report():
         group = group_RE.match(line)
         if group:
             if group_len != group_pos:
-                errors.extend([ ("missing", "%s.%d(unknown)" % (group_name, x), '') \
-                        for x in xrange(group_pos + 1, group_len) ])
+                errors.append(("missing", "%s.(%d->%d)(unknown)" % (group_name, group_pos + 1, group_len), ''))
                 failed_count += group_len - group_pos
             group_pos = 0
             group_len = int(group.group(1))
@@ -417,8 +416,7 @@ def z_report():
                 failed_count += 1
                 continue
             elif n > group_pos + 1:
-                errors.extend([ ("missing", "%s.%d(unknown)" % (group_name, x), '') \
-                        for x in xrange(group_pos + 1, n) ])
+                errors.append(("missing", "%s.(%d->%d)(unknown)" % (group_name, group_pos + 1, n), ''))
                 failed_count += n - group_pos - 1
             if group.group(2).endswith('fail'):
                 errors.append((group.group(2), "%s.%s" % (group_name, group.group(3)), ''))
@@ -430,6 +428,10 @@ def z_report():
                 success_count += 1
             group_pos = n
 
+    if group_len != group_pos:
+        errors.append(("missing", "%s.(%d->%d)(unknown)" % (group_name, group_pos + 1, group_len), ''))
+        failed_count += group_len - group_pos
+
     total = failed_count + skipped_count + success_count
     if total == 0:
         print "# NO TESTS FOUND"
@@ -437,9 +439,9 @@ def z_report():
     print "#"
     print "#"
     print "# TOTAL"
-    print "# Skipped %d%%" % (skipped_count * 100 / total)
-    print "# Failed  %d%%" % (failed_count * 100 / total)
-    print "# Success %d%%" % (success_count * 100 / total)
+    print "# Skipped %d (%d%%)" % (skipped_count, skipped_count * 100 / total)
+    print "# Failed  %d (%d%%)" % (failed_count,  failed_count * 100 / total)
+    print "# Success %d (%d%%)" % (success_count, success_count * 100 / total)
 
     if len(errors):
         code = 0
