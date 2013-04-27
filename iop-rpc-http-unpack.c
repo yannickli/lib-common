@@ -328,7 +328,7 @@ httpd_trigger__ic_new(const iop_mod_t *mod, const char *schema,
 static ichttp_cb_t *
 ichttp_register_function(httpd_trigger__ic_t *tcb,
                          const iop_iface_alias_t *alias, const iop_rpc_t *fun,
-                         int32_t cmd)
+                         int32_t cmd, void *_cb)
 {
     ichttp_cb_t *cb = ichttp_cb_new();
 
@@ -338,6 +338,15 @@ ichttp_register_function(httpd_trigger__ic_t *tcb,
     cb->name_uri = lstr_fmt("%s/%s",       alias->name.s, fun->name.s);
     cb->name_res = lstr_fmt("%s.%sRes",    alias->name.s, fun->name.s);
     cb->name_exn = lstr_fmt("%s.%s.Fault", alias->name.s, fun->name.s);
+    cb->e = (ic_cb_entry_t) {
+        .cb_type = IC_CB_NORMAL,
+        .u = {
+            .cb = {
+                .rpc = fun,
+                .cb  = _cb,
+            }
+        }
+    };
 
     /* Register RPC name (takes ownership of "cb") */
     e_assert_n(panic, qm_add(ichttp_cbs, &tcb->impl, &cb->name, cb),
@@ -352,7 +361,7 @@ ichttp_register_function(httpd_trigger__ic_t *tcb,
 
 ichttp_cb_t *
 __ichttp_register(httpd_trigger__ic_t *tcb, const iop_iface_alias_t *alias,
-                  const iop_rpc_t *fun, int32_t cmd)
+                  const iop_rpc_t *fun, int32_t cmd, void *cb)
 {
     const unsigned fun_flags = fun->flags;
 
@@ -368,10 +377,10 @@ __ichttp_register(httpd_trigger__ic_t *tcb, const iop_iface_alias_t *alias,
 
                 /* The alias callback will never leave the trigger hashtable
                  * and will be destroyed with it. */
-                ichttp_register_function(tcb, alias, fun_alias, cmd);
+                ichttp_register_function(tcb, alias, fun_alias, cmd, cb);
             }
         }
     }
 
-    return ichttp_register_function(tcb, alias, fun, cmd);;
+    return ichttp_register_function(tcb, alias, fun, cmd, cb);
 }
