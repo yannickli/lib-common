@@ -390,7 +390,7 @@ def z_report():
         if group:
             if group_len != group_pos:
                 errors.extend([ ("missing", "%s.%d(unknown)" % (group_name, x), '') \
-                        for x in xrange(group_pos + 1, group_len) ])
+                        for x in xrange(group_pos + 1, group_len + 1) ])
                 failed_count += group_len - group_pos
             group_pos = 0
             group_len = int(group.group(1))
@@ -407,7 +407,7 @@ def z_report():
                 continue
             elif n > group_pos + 1:
                 errors.extend([ ("missing", "%s.%d(unknown)" % (group_name, x), '') \
-                        for x in xrange(group_pos + 1, n) ])
+                        for x in xrange(group_pos + 1, n + 1) ])
                 failed_count += n - group_pos - 1
             if group.group(2).endswith('fail'):
                 errors.append((group.group(2), "%s.%s" % (group_name, group.group(3)), ''))
