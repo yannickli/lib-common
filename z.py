@@ -428,7 +428,7 @@ def z_report():
                 success_count += 1
             group_pos = n
 
-    if group_len != group_pos:
+    if group_len > group_pos:
         errors.append(("missing", "%s.(%d->%d)(unknown)" % (group_name, group_pos + 1, group_len), ''))
         failed_count += group_len - group_pos
 
