@@ -7,7 +7,7 @@ $(3:.tokens=tokens.h): $3 $(var/cfgdir)/_tokens.sh
 	$(msg/generate) $3
 	cd $$(<D) && $(var/cfgdir)/_tokens.sh $$(<F) $$(@F) || ($(RM) $$(@F) && exit 1)
 
-$(3:.tokens=tokens.c): $3 $(var/cfgdir)/_tokens.sh
+$(3:.tokens=tokens.c): $3 $(var/cfgdir)/_tokens.sh | $(3:.tokens=tokens.h)
 	$(msg/generate) $3
 	cd $$(<D) && $(var/cfgdir)/_tokens.sh $$(<F) $$(@F) || ($(RM) $$(@F) && exit 1)
 endef
