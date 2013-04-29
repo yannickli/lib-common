@@ -485,6 +485,40 @@
     }
 
 /* }}} */
+/* {{{ Helpers for classes manipulation */
+
+#ifndef NDEBUG
+#  define iop_obj_cast_debug(pfx, o)  \
+    ({                                                                       \
+        if (!iop_obj_is_a((void *)(o), pfx)) {                               \
+            e_panic("cannot cast %p to type " TOSTR(pfx), (o));              \
+        }                                                                    \
+        (o);                                                                 \
+    })
+#else
+#  define iop_obj_cast_debug(pfx, o)  (o)
+#endif
+
+/** Cast an IOP class object to the wanted type.
+ *
+ * In debug mode, this macro checks if the wanted type is compatible with the
+ * actual type of the object (ie. if iop_obj_is_a returns true).
+ * In release mode, no check will be made.
+ *
+ * \param[in]  pfx  Prefix of the destination type.
+ * \param[in]  o    Pointer on the class object to cast.
+ *
+ * \return  a pointer equal to \p o, of the \p pfx type.
+ */
+#define iop_obj_vcast(pfx, o)  ((pfx##__t *)iop_obj_cast_debug(pfx, o))
+
+/** Cast an IOP class object to the wanted type.
+ *
+ * Same as iop_obj_vcast, but returns a const pointer.
+ */
+#define iop_obj_ccast(pfx, o)  ((const pfx##__t *)iop_obj_cast_debug(pfx, o))
+
+/* }}} */
 /* {{{ Private helpers */
 
 #define IOP_FIELD(type_t, v, i)  (((type_t *)v)[i])

@@ -488,24 +488,6 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v);
 void  iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
                const void *v);
 
-/** Gets the value of a class variable (static field).
- *
- * This takes a class instance pointer and a class variable name, and returns
- * a pointer of the value of this class variable for the given object type.
- *
- * If the wanted static field does not exist in the given class, this
- * function will return NULL.
- *
- * It also assumes that the given pointer is a valid pointer on a valid class
- * instance. If not, it will probably crash...
- *
- * \param[in]  obj   Pointer on a class instance.
- * \param[in]  name  Name of the wanted class variable.
- */
-const iop_value_t *iop_get_cvar(const void *obj, lstr_t name);
-
-#define iop_get_cvar_cst(obj, name)  iop_get_cvar(obj, LSTR_IMMED_V(name))
-
 /** Generate a signature of an IOP structure.
  *
  * This function generates a salted SHA256 signature of an IOP structure.
@@ -525,6 +507,56 @@ lstr_t t_iop_compute_signature(const iop_struct_t *st, const void *v);
  */
 __must_check__
 int iop_check_signature(const iop_struct_t *st, const void *v, lstr_t sig);
+
+/* }}} */
+/* {{{ IOP class manipulation */
+
+/** Gets the value of a class variable (static field).
+ *
+ * This takes a class instance pointer and a class variable name, and returns
+ * a pointer of the value of this class variable for the given object type.
+ *
+ * If the wanted static field does not exist in the given class, this
+ * function will return NULL.
+ *
+ * It also assumes that the given pointer is a valid pointer on a valid class
+ * instance. If not, it will probably crash...
+ *
+ * \param[in]  obj   Pointer on a class instance.
+ * \param[in]  name  Name of the wanted class variable.
+ */
+const iop_value_t *iop_get_cvar(const void *obj, lstr_t name);
+
+#define iop_get_cvar_cst(obj, name)  iop_get_cvar(obj, LSTR_IMMED_V(name))
+
+
+/** Checks if a class has another class in its parents.
+ *
+ * \param[in]  cls1  Pointer on the first class descriptor.
+ * \param[in]  cls2  Pointer on the second class descriptor.
+ *
+ * \return  true if \p cls1 is equal to \p cls2, or has \p cls2 in its parents
+ */
+bool iop_class_is_a(const iop_struct_t *cls1, const iop_struct_t *cls2);
+
+/** Checks if an object is of a given class or has it in its parents.
+ *
+ * If the result of this check is true, then this object can be cast to the
+ * given type using iop_obj_vcast or iop_obj_ccast.
+ *
+ * \param[in]  obj   Pointer on a class instance.
+ * \param[in]  desc  Pointer on a class descriptor.
+ *
+ * \return  true if \p obj is an object of class \p desc, or has \p desc in
+ *          its parents.
+ */
+static inline bool
+iop_obj_is_a_desc(const void *obj, const iop_struct_t *desc)
+{
+    return iop_class_is_a(*(const iop_struct_t **)obj, desc);
+}
+
+#define iop_obj_is_a(obj, pfx)  iop_obj_is_a_desc((void *)(obj), &pfx##__s)
 
 /* }}} */
 /* {{{ IOP constraints handling */

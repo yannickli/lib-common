@@ -2063,42 +2063,6 @@ const iop_rpc_t *iop_mod_find_rpc(const iop_mod_t *mod, uint32_t cmd)
 }
 
 /*------ introspection -}}}-*/
-/*------ class variables -{{{-*/
-
-iop_value_t const *iop_get_cvar(const void *obj, lstr_t name)
-{
-    const iop_struct_t *desc = *(iop_struct_t **)obj;
-    iop_static_field_t _search = { .name = name };
-    iop_static_field_t *search = &_search;
-
-    while (desc) {
-        const iop_class_attrs_t *cls = desc->class_attrs;
-        bool found;
-        int pos;
-        cmp_b cmp = ^int (const void *a, const void *b) {
-            const iop_static_field_t **v1 = (const iop_static_field_t **)a;
-            const iop_static_field_t **v2 = (const iop_static_field_t **)b;
-
-            return lstr_cmp(&(*v1)->name, &(*v2)->name);
-        };
-
-        pos = bisect_blk(&search, cls->static_fields,
-                         sizeof(iop_static_field_t *),
-                         cls->static_fields_len, &found, cmp);
-        if (found) {
-            const iop_static_field_t *f;
-
-            f = desc->class_attrs->static_fields[pos];
-            return &f->value;
-        }
-
-        desc = cls->parent;
-    };
-
-    return NULL;
-}
-
-/*------ class variables -}}}-*/
 /*------ Signature -{{{-*/
 
 static
@@ -2187,6 +2151,63 @@ static void iop_signature_initialize(void)
 }
 
 /*------ Signature -}}}-*/
+/*------ class manipulation -{{{-*/
+
+iop_value_t const *iop_get_cvar(const void *obj, lstr_t name)
+{
+    const iop_struct_t *desc = *(iop_struct_t **)obj;
+    iop_static_field_t _search = { .name = name };
+    iop_static_field_t *search = &_search;
+
+    while (desc) {
+        const iop_class_attrs_t *cls = desc->class_attrs;
+        bool found;
+        int pos;
+        cmp_b cmp = ^int (const void *a, const void *b) {
+            const iop_static_field_t **v1 = (const iop_static_field_t **)a;
+            const iop_static_field_t **v2 = (const iop_static_field_t **)b;
+
+            return lstr_cmp(&(*v1)->name, &(*v2)->name);
+        };
+
+        pos = bisect_blk(&search, cls->static_fields,
+                         sizeof(iop_static_field_t *),
+                         cls->static_fields_len, &found, cmp);
+        if (found) {
+            const iop_static_field_t *f;
+
+            f = desc->class_attrs->static_fields[pos];
+            return &f->value;
+        }
+
+        desc = cls->parent;
+    };
+
+    return NULL;
+}
+
+bool iop_class_is_a(const iop_struct_t *cls1, const iop_struct_t *cls2)
+{
+    unsigned flags1 = cls1->flags;
+    unsigned flags2 = cls2->flags;
+
+    if (!TST_BIT(&flags1, IOP_STRUCT_IS_CLASS)
+    ||  !TST_BIT(&flags2, IOP_STRUCT_IS_CLASS))
+    {
+        assert (false);
+        return false;
+    }
+
+    do {
+        if (cls1 == cls2) {
+            return true;
+        }
+    } while ((cls1 = cls1->class_attrs->parent));
+
+    return false;
+}
+
+/*------ class manipulation -}}}-*/
 /*------ Packages registration -{{{-*/
 
 static void iop_register_class(const iop_struct_t *desc)
