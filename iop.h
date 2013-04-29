@@ -488,6 +488,24 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v);
 void  iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
                const void *v);
 
+/** Gets the value of a class variable (static field).
+ *
+ * This takes a class instance pointer and a class variable name, and returns
+ * a pointer of the value of this class variable for the given object type.
+ *
+ * If the wanted static field does not exist in the given class, this
+ * function will return NULL.
+ *
+ * It also assumes that the given pointer is a valid pointer on a valid class
+ * instance. If not, it will probably crash...
+ *
+ * \param[in]  obj   Pointer on a class instance.
+ * \param[in]  name  Name of the wanted class variable.
+ */
+const iop_value_t *iop_get_cvar(const void *obj, lstr_t name);
+
+#define iop_get_cvar_cst(obj, name)  iop_get_cvar(obj, LSTR_IMMED_V(name))
+
 /** Generate a signature of an IOP structure.
  *
  * This function generates a salted SHA256 signature of an IOP structure.
