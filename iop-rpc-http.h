@@ -132,13 +132,14 @@ void __t_ichttp_query_on_done_stage2(httpd_query_t *q, ichttp_cb_t *cbe,
 ichttp_cb_t *
 __ichttp_register(httpd_trigger__ic_t *tcb,
                   const iop_iface_alias_t *alias,
-                  const iop_rpc_t *fun, int32_t cmd);
+                  const iop_rpc_t *fun, int32_t cmd,
+                  const ic_cb_entry_t *entry);
 
 /** \brief internal do not use directly, or know what you're doing. */
-#define ___ichttp_register(tcb, _mod, _if, _rpc) \
+#define ___ichttp_register(tcb, _mod, _if, _rpc, _cb)                        \
     __ichttp_register(tcb, _mod##__##_if##__alias,                           \
                       IOP_RPC(_mod, _if, _rpc),                              \
-                      IOP_RPC_CMD(_mod, _if, _rpc))
+                      IOP_RPC_CMD(_mod, _if, _rpc), _cb)
 
 /** \brief register a local callback for an rpc on the given http iop trigger.
  * \param[in]  tcb
@@ -155,14 +156,15 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
 #define ichttp_register_(tcb, _mod, _if, _rpc, _cb) \
     do {                                                                     \
         void (*__cb)(IOP_RPC_IMPL_ARGS(_mod, _if, _rpc)) = _cb;              \
-                                                                             \
-        ___ichttp_register(tcb, _mod, _if, _rpc)->e = (ic_cb_entry_t) {      \
-                .cb_type = IC_CB_NORMAL,                                     \
-                .u = { .cb = {                                               \
-                    .rpc = IOP_RPC(_mod, _if, _rpc),                         \
-                    .cb  = (void *)__cb,                                     \
-                } },                                                         \
+        ic_cb_entry_t __cb_e = {                                             \
+            .cb_type = IC_CB_NORMAL,                                         \
+            .u = { .cb = {                                                   \
+                .rpc = IOP_RPC(_mod, _if, _rpc),                             \
+                .cb  = (void *)__cb,                                         \
+            } },                                                             \
         };                                                                   \
+                                                                             \
+        ___ichttp_register(tcb, _mod, _if, _rpc, &__cb_e);                   \
     } while (0)
 
 /** \brief same as #ichttp_register_ but auto-computes the rpc name. */
@@ -183,10 +185,12 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
  */
 #define ichttp_register_proxy_hdr(tcb, _mod, _if, _rpc, ic, hdr) \
     do {                                                                     \
-        ___ichttp_register(tcb, _mod, _if, _rpc)->e = (ic_cb_entry_t) {      \
+        ic_cb_entry_t __cb_e = {                                             \
             .cb_type = IC_CB_PROXY_P,                                        \
             .u = { .proxy_p = { .ic_p = ic, .hdr_p = hdr } },                \
         };                                                                   \
+                                                                             \
+        ___ichttp_register(tcb, _mod, _if, _rpc, &__cb_e);                   \
     } while (0)
 /** \brief register a proxy for an rpc on the given http iop trigger.
  * \see #ic_register_proxy
@@ -216,10 +220,12 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
  */
 #define ichttp_register_proxy_hdr_p(tcb, _mod, _if, _rpc, ic, hdr) \
     do {                                                                     \
-        ___ichttp_register(tcb, _mod, _if, _rpc)->e = (ic_cb_entry_t) {      \
+        ic_cb_entry_t __cb_e = {                                             \
             .cb_type = IC_CB_PROXY_PP,                                       \
             .u = { .proxy_pp = { .ic_pp = ic, .hdr_pp = hdr } },             \
         };                                                                   \
+                                                                             \
+        ___ichttp_register(tcb, _mod, _if, _rpc, &__cb_e);                   \
     } while (0)
 /** \brief register a pointed proxy for an rpc on the given http iop trigger.
  * \see #ic_register_proxy_p
@@ -254,13 +260,15 @@ __ichttp_register(httpd_trigger__ic_t *tcb,
  */
 #define ichttp_register_dynproxy(tcb, _mod, _if, _rpc, cb, priv_) \
     do {                                                                     \
-        ___ichttp_register(tcb, _mod, _if, _rpc)->e = (ic_cb_entry_t) {      \
+        ic_cb_entry_t __cb_e = {                                             \
             .cb_type = IC_CB_DYNAMIC_PROXY,                                  \
             .u = { .dynproxy = {                                             \
                 .get_ic = cb,                                                \
                 .priv   = priv_,                                             \
             } },                                                             \
         };                                                                   \
+                                                                             \
+        ___ichttp_register(tcb, _mod, _if, _rpc, &__cb_e);                   \
     } while (0)
 
 /** when called in HTTPD status hook, get the query error context if some */
