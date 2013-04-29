@@ -1,0 +1,88 @@
+/**************************************************************************/
+/*                                                                        */
+/*  Copyright (C) 2004-2013 INTERSEC SA                                   */
+/*                                                                        */
+/*  Should you receive a copy of this source code, you must check you     */
+/*  have a proper, written authorization of INTERSEC to hold it. If you   */
+/*  don't have such an authorization, you must DELETE all source code     */
+/*  files in your possession, and inform INTERSEC of the fact you obtain  */
+/*  these files. Should you not comply to these terms, you can be         */
+/*  prosecuted in the extent permitted by applicable law.                 */
+/*                                                                        */
+/**************************************************************************/
+
+/* This file is used to test the IOPs inheritance and act as a
+ * non-regression test. This file should always compile correctly */
+package tstiop_inheritance;
+
+/*  +- A1 ---+           A2
+ *  |        |           |
+ *  B1   +- B2 -+     +- B3 -+
+ *       |      |     |      |
+ *       C1     C2   C3      C4
+ */
+
+class A1 {
+    static string staticStr = "a1";
+    @nonZero
+    int a = 1;
+    int a2;
+};
+
+class B1 : 1 : A1 {
+    static int staticInt = 12;
+    @maxLength(3)
+    string b = "b";
+};
+class B2 : 2 : A1 {
+    static bool staticBool = true;
+    bool b = true;
+};
+
+class C1 : 3 : B2 {
+    static bool staticBool = false;
+    @nonZero
+    uint c = 3;
+};
+class C2 : 4 : B2 {
+    static string staticStr  = "c2";
+
+    /* Fields to test sorting */
+    static string staticStr6 = "staticStr6";
+    static string staticStr2 = "staticStr2";
+    static string staticStr1 = "staticStr1";
+    static string staticStr5 = "staticStr5";
+    static string staticStr3 = "staticStr3";
+    static string staticStr4 = "staticStr4";
+
+    long c = 4;
+};
+
+/* --------------------------------- */
+
+class A2 {
+    string a = "A2";
+};
+
+class B3 : 1 : A2 {
+    static double staticDouble = 23.0;
+    long b = 5;
+};
+
+class C3 : 2 : B3 {
+    static string staticStr = "c3";
+    static double staticDouble = 33.0;
+    int c = 6;
+};
+class C4 : 3 : B3 {
+    static ulong staticInt = 44;
+    bool c;
+};
+
+/* --------------------------------- */
+
+struct ClassContainer {
+    A1   a1;
+    B2?  b2;
+    C2[] c2;
+};

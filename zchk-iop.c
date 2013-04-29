@@ -16,23 +16,35 @@
 #include "iop.h"
 #include "iop/tstiop.iop.h"
 #include "ic.iop.h"
+#include "iop/tstiop_inheritance.iop.h"
 #include "xmlr.h"
 
 /* {{{ IOP testing helpers */
 
 static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info)
 {
+    t_scope;
     int len;
     lstr_t s;
     uint8_t buf1[20], buf2[20];
-    byte *res;
+    void *res = NULL;
     int ret;
+    sb_t sb;
 
-    t_scope;
-    SB_8k(sb);
+    /* XXX: Use a small t_sb here to force a realloc during (un)packing and
+     *      detect possible illegal usage of the t_pool in the (un)packing
+     *      functions. */
+    t_sb_init(&sb, 100);
 
     sb_adds(&sb, "<root xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
-            "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">");
+            "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
+    if (iop_struct_is_class(st)) {
+        const iop_struct_t *real_st = *(const iop_struct_t **)v;
+
+        sb_addf(&sb, " xsi:type=\"tns:%*pM\"",
+                LSTR_FMT_ARG(real_st->fullname));
+    }
+    sb_addc(&sb, '>');
     len = sb.len;
     iop_xpack(&sb, st, v, false, true);
     sb_adds(&sb, "</root>");
@@ -40,15 +52,13 @@ static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info
     s = t_lstr_dups(sb.data + len, sb.len - len - 7);
 
     /* unpacking */
-    res = t_new_raw(byte, ROUND_UP(st->size, 8));
-
     Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
-    ret = iop_xunpack(xmlr_g, t_pool(), st, res);
+    ret = iop_xunpack_ptr(xmlr_g, t_pool(), st, &res);
     Z_ASSERT_N(ret, "XML unpacking failure (%s, %s): %s", st->fullname.s,
                info, xmlr_get_err());
 
     /* pack again ! */
-    sb_reset(&sb);
+    t_sb_init(&sb, 10);
     iop_xpack(&sb, st, res, false, true);
 
     /* check packing equality */
@@ -70,22 +80,30 @@ static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info
 static int iop_xml_test_struct_invalid(const iop_struct_t *st, void *v,
                                        const char *info)
 {
-    byte *res;
-
     t_scope;
-    SB_8k(sb);
+    void *res = NULL;
+    sb_t sb;
+
+    /* XXX: Use a small t_sb here to force a realloc during (un)packing and
+     *      detect possible illegal usage of the t_pool in the (un)packing
+     *      functions. */
+    t_sb_init(&sb, 100);
 
     sb_adds(&sb, "<root xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "
-            "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">");
+            "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
+    if (iop_struct_is_class(st)) {
+        const iop_struct_t *real_st = *(const iop_struct_t **)v;
+
+        sb_addf(&sb, " xsi:type=\"tns:%*pM\"",
+                LSTR_FMT_ARG(real_st->fullname));
+    }
+    sb_addc(&sb, '>');
     iop_xpack(&sb, st, v, false, true);
     sb_adds(&sb, "</root>");
 
     /* unpacking */
-    res = t_new(byte, ROUND_UP(st->size, 8));
-    iop_init(st, res);
-
     Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
-    Z_ASSERT_NEG(iop_xunpack(xmlr_g, t_pool(), st, res),
+    Z_ASSERT_NEG(iop_xunpack_ptr(xmlr_g, t_pool(), st, &res),
                  "XML unpacking unexpected success (%s, %s)", st->fullname.s,
                  info);
 
@@ -96,31 +114,34 @@ static int iop_xml_test_struct_invalid(const iop_struct_t *st, void *v,
 static int iop_json_test_struct(const iop_struct_t *st, void *v,
                                 const char *info)
 {
-    t_scope;
-    byte *res;
     iop_json_lex_t jll;
     pstream_t ps;
     int strict = 0;
     uint8_t buf1[20], buf2[20];
-    SB_8k(sb);
 
     iop_jlex_init(t_pool(), &jll);
     jll.flags = IOP_UNPACK_IGNORE_UNKNOWN;
-    res = t_new_raw(byte, ROUND_UP(st->size, 8));
 
     while (strict < 3) {
+        t_scope;
+        sb_t sb;
+        void *res = NULL;
         int ret;
 
+        /* XXX: Use a small t_sb here to force a realloc during (un)packing
+         *      and detect possible illegal usage of the t_pool in the
+         *      (un)packing functions. */
+        t_sb_init(&sb, 10);
+
         /* packing */
-        sb_reset(&sb);
         Z_ASSERT_N(iop_jpack(st, v, iop_sb_write, &sb, strict),
                    "JSon packing failure! (%s, %s)", st->fullname.s, info);
 
         /* unpacking */
         ps = ps_initsb(&sb);
         iop_jlex_attach(&jll, &ps);
-        if ((ret = iop_junpack(&jll, st, res, true)) < 0) {
-            sb_reset(&sb);
+        if ((ret = iop_junpack_ptr(&jll, st, &res, true)) < 0) {
+            t_sb_init(&sb, 10);
             iop_jlex_write_error(&jll, &sb);
         }
         Z_ASSERT_N(ret, "JSon unpacking error (%s, %s): %s", st->fullname.s,
@@ -146,31 +167,32 @@ static int iop_json_test_struct(const iop_struct_t *st, void *v,
 static int iop_json_test_struct_invalid(const iop_struct_t *st, void *v,
                                         const char *info)
 {
-    t_scope;
-    byte *res;
     iop_json_lex_t jll;
     pstream_t ps;
     int strict = 0;
-    SB_8k(sb);
 
     iop_jlex_init(t_pool(), &jll);
     jll.flags = IOP_UNPACK_IGNORE_UNKNOWN;
-    res = t_new(byte, ROUND_UP(st->size, 8));
 
     while (strict < 3) {
+        t_scope;
+        sb_t sb;
+        void *res = NULL;
         int ret;
 
+        /* XXX: Use a small t_sb here to force a realloc during (un)packing
+         *      and detect possible illegal usage of the t_pool in the
+         *      (un)packing functions. */
+        t_sb_init(&sb, 10);
+
         /* packing */
-        sb_reset(&sb);
         Z_ASSERT_N(iop_jpack(st, v, iop_sb_write, &sb, strict),
                    "JSon packing failure! (%s, %s)", st->fullname.s, info);
 
         /* unpacking */
-        iop_init(st, res);
-
         ps = ps_initsb(&sb);
         iop_jlex_attach(&jll, &ps);
-        ret = iop_junpack(&jll, st, res, true);
+        ret = iop_junpack_ptr(&jll, st, &res, true);
         Z_ASSERT_NEG(ret, "JSon unpacking unexpected success (%s, %s)",
                      st->fullname.s, info);
         iop_jlex_detach(&jll);
@@ -190,18 +212,22 @@ static int iop_json_test_json(const iop_struct_t *st, const char *json, const
     t_scope;
     iop_json_lex_t jll;
     pstream_t ps;
-    byte *res;
+    void *res = NULL;
     int ret;
     uint8_t buf1[20], buf2[20];
-    SB_1k(sb);
+    sb_t sb;
+
+    /* XXX: Use a small t_sb here to force a realloc during (un)packing and
+     *      detect possible illegal usage of the t_pool in the (un)packing
+     *      functions. */
+    t_sb_init(&sb, 10);
 
     iop_jlex_init(t_pool(), &jll);
     jll.flags = IOP_UNPACK_IGNORE_UNKNOWN;
-    res = t_new_raw(byte, ROUND_UP(st->size, 8));
 
     ps = ps_initstr(json);
     iop_jlex_attach(&jll, &ps);
-    if ((ret = iop_junpack(&jll, st, res, true)) < 0)
+    if ((ret = iop_junpack_ptr(&jll, st, &res, true)) < 0)
         iop_jlex_write_error(&jll, &sb);
     Z_ASSERT_N(ret, "JSon unpacking error (%s, %s): %s", st->fullname.s, info,
                sb.data);
@@ -229,19 +255,22 @@ static int iop_json_test_unpack(const iop_struct_t *st, const char *json,
     t_scope;
     iop_json_lex_t jll;
     pstream_t ps;
-    byte *res;
+    void *res = NULL;
     int ret;
-    SB_1k(sb);
+    sb_t sb;
+
+    /* XXX: Use a small t_sb here to force a realloc during (un)packing and
+     *      detect possible illegal usage of the t_pool in the (un)packing
+     *      functions. */
+    t_sb_init(&sb, 10);
 
     iop_jlex_init(t_pool(), &jll);
     jll.flags = IOP_UNPACK_IGNORE_UNKNOWN;
-    res = t_new(byte, ROUND_UP(st->size, 8));
 
-    iop_init(st, res);
     ps = ps_initstr(json);
     iop_jlex_attach(&jll, &ps);
 
-    if ((ret = iop_junpack(&jll, st, res, true)) < 0)
+    if ((ret = iop_junpack_ptr(&jll, st, &res, true)) < 0)
         iop_jlex_write_error(&jll, &sb);
     if (valid) {
         Z_ASSERT_N(ret, "JSon unpacking error (%s, %s): %s", st->fullname.s,
@@ -262,13 +291,16 @@ static int iop_std_test_struct(const iop_struct_t *st, void *v,
 {
     t_scope;
     int ret;
-    byte *res;
+    void *res = NULL;
     uint8_t buf1[20], buf2[20];
     qv_t(i32) szs;
     int len;
     byte *dst;
 
-    t_qv_init(i32, &szs, 1024);
+    /* XXX: Use a small t_qv here to force a realloc during (un)packing and
+     *      detect possible illegal usage of the t_pool in the (un)packing
+     *      functions. */
+    t_qv_init(i32, &szs, 2);
 
     /* packing */
     Z_ASSERT_N((len = iop_bpack_size(st, v, &szs)),
@@ -277,12 +309,9 @@ static int iop_std_test_struct(const iop_struct_t *st, void *v,
     iop_bpack(dst, st, v, szs.tab);
 
     /* unpacking */
-    res = t_new(byte, ROUND_UP(st->size, 8));
-    iop_init(st, res);
-
-    ret = iop_bunpack(t_pool(), st, res, ps_init(dst, len), false);
-    Z_ASSERT_N(ret, "IOP unpacking error (%s, %s, %s)", st->fullname.s, info,
-               iop_get_err());
+    ret = iop_bunpack_ptr(t_pool(), st, &res, ps_init(dst, len), false);
+    Z_ASSERT_N(ret, "IOP unpacking error (%s, %s, %s)",
+               st->fullname.s, info, iop_get_err());
 
     /* check hashes equality */
     iop_hash_sha1(st, v,   buf1);
@@ -326,12 +355,15 @@ static int iop_std_test_struct_invalid(const iop_struct_t *st, void *v,
                                        const char *info)
 {
     t_scope;
-    byte *res;
+    void *res = NULL;
     qv_t(i32) szs;
-    int len;
+    int len, ret;
     byte *dst;
 
-    t_qv_init(i32, &szs, 1024);
+    /* XXX: Use a small t_qv here to force a realloc during (un)packing and
+     *      detect possible illegal usage of the t_pool in the (un)packing
+     *      functions. */
+    t_qv_init(i32, &szs, 2);
 
     /* packing */
     Z_ASSERT_N((len = iop_bpack_size(st, v, &szs)),
@@ -340,12 +372,9 @@ static int iop_std_test_struct_invalid(const iop_struct_t *st, void *v,
     iop_bpack(dst, st, v, szs.tab);
 
     /* unpacking */
-    res = t_new(byte, ROUND_UP(st->size, 8));
-    iop_init(st, res);
-
-    Z_ASSERT_NEG(iop_bunpack(t_pool(), st, res, ps_init(dst, len), false),
-               "IOP unpacking unexpected success (%s, %s)", st->fullname.s,
-               info);
+    ret = iop_bunpack_ptr(t_pool(), st, &res, ps_init(dst, len), false);
+    Z_ASSERT_NEG(ret, "IOP unpacking unexpected success (%s, %s)",
+                 st->fullname.s, info);
 
     Z_HELPER_END;
 }
@@ -1567,7 +1596,6 @@ Z_GROUP_EXPORT(iop)
             sr_b.u8.tab = uints2;
             Z_ASSERT(!iop_equals(st_sr, &sr_a, &sr_b));
         }
-
         iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
@@ -1652,6 +1680,7 @@ Z_GROUP_EXPORT(iop)
 
         tstiop__constraint_u__t u;
         tstiop__constraint_s__t s;
+        tstiop_inheritance__c1__t c;
 
         lstr_t strings[] = {
             LSTR_IMMED_V("fooBAR_1"),
@@ -1678,11 +1707,15 @@ Z_GROUP_EXPORT(iop)
 
         const iop_struct_t *st_s, *st_u;
 
+        IOP_REGISTER_PACKAGES(&tstiop_inheritance__pkg);
+
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
 
-        Z_ASSERT_P(st_s = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.ConstraintS")));
-        Z_ASSERT_P(st_u = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.ConstraintU")));
+        Z_ASSERT_P(st_s = iop_dso_find_type(dso,
+                              LSTR_IMMED_V("tstiop.ConstraintS")));
+        Z_ASSERT_P(st_u = iop_dso_find_type(dso,
+                              LSTR_IMMED_V("tstiop.ConstraintU")));
 
         tstiop__constraint_u__init(&u);
         tstiop__constraint_s__init(&s);
@@ -1691,13 +1724,13 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_N(iop_check_constraints((st), (v)));                   \
         Z_HELPER_RUN(iop_std_test_struct((st), (v), (info)));           \
         Z_HELPER_RUN(iop_xml_test_struct((st), (v), (info)));           \
-        Z_HELPER_RUN(iop_json_test_struct((st), (v), (info)));          \
+        Z_HELPER_RUN(iop_json_test_struct((st), (v), (info)));
 
 #define CHECK_INVALID(st, v, info) \
         Z_ASSERT_NEG(iop_check_constraints((st), (v)));                 \
         Z_HELPER_RUN(iop_std_test_struct_invalid((st), (v), (info)));   \
         Z_HELPER_RUN(iop_xml_test_struct_invalid((st), (v), (info)));   \
-        Z_HELPER_RUN(iop_json_test_struct_invalid((st), (v), (info)));  \
+        Z_HELPER_RUN(iop_json_test_struct_invalid((st), (v), (info)));
 
 #define CHECK_UNION(f, size) \
         u = IOP_UNION(tstiop__constraint_u, f, 1L << (size - 1));           \
@@ -1752,6 +1785,17 @@ Z_GROUP_EXPORT(iop)
         CHECK_TAB(i16,  i16tab);
         CHECK_TAB(i32,  i32tab);
         CHECK_TAB(i64,  i64tab);
+
+        /* With inheritance */
+        tstiop_inheritance__c1__init(&c);
+        CHECK_VALID(&tstiop_inheritance__c1__s, &c, "c");
+        c.a = 0;
+        CHECK_INVALID(&tstiop_inheritance__c1__s, &c, "c");
+        c.a = 2;
+        c.c = 0;
+        CHECK_INVALID(&tstiop_inheritance__c1__s, &c, "c");
+        c.c = 3;
+        CHECK_VALID(&tstiop_inheritance__c1__s, &c, "c");
 
 #undef CHECK_TAB
 #undef CHECK_UNION
@@ -1958,5 +2002,489 @@ Z_GROUP_EXPORT(iop)
 #undef TST_SORT_VEC
 
     } Z_TEST_END;
+    /* }}} */
+
+    Z_TEST(inheritance_basics, "test inheritance basic properties") { /* {{{ */
+#define CHECK_PARENT(_type, _class_id)  \
+        do {                                                                 \
+            const iop_class_attrs_t *attrs;                                  \
+                                                                             \
+            attrs = tstiop_inheritance__##_type##__s.class_attrs;            \
+            Z_ASSERT_P(attrs);                                               \
+            Z_ASSERT_EQ(attrs->class_id, _class_id);                         \
+            Z_ASSERT_NULL(attrs->parent);                                    \
+        } while (0)
+
+#define CHECK_CHILD(_type, _class_id, _parent)  \
+        do {                                                                 \
+            const iop_class_attrs_t *attrs;                                  \
+                                                                             \
+            attrs = tstiop_inheritance__##_type##__s.class_attrs;            \
+            Z_ASSERT_EQ(attrs->class_id, _class_id);                         \
+            Z_ASSERT(attrs->parent ==  &tstiop_inheritance__##_parent##__s); \
+        } while (0)
+
+        CHECK_PARENT(a1, 0);
+        CHECK_CHILD(b1,  1, a1);
+        CHECK_CHILD(b2,  2, a1);
+        CHECK_CHILD(c1,  3, b2);
+        CHECK_CHILD(c2,  4, b2);
+
+        CHECK_PARENT(a2, 0);
+        CHECK_CHILD(b3,  1, a2);
+        CHECK_CHILD(c3,  2, b3);
+        CHECK_CHILD(c4,  3, b3);
+#undef CHECK_PARENT
+#undef CHECK_CHILD
+    } Z_TEST_END
+    /* }}} */
+    Z_TEST(inheritance_fields_init, "test fields initialization") { /* {{{ */
+        {
+            tstiop_inheritance__b1__t b1;
+
+            tstiop_inheritance__b1__init(&b1);
+            Z_ASSERT_EQ(b1.a, 1);
+            Z_ASSERT_LSTREQUAL(b1.b, LSTR_IMMED_V("b"));
+        }
+        {
+            tstiop_inheritance__c1__t c1;
+
+            tstiop_inheritance__c1__init(&c1);
+            Z_ASSERT_EQ(c1.a, 1);
+            Z_ASSERT_EQ(c1.b, true);
+            Z_ASSERT_EQ(c1.c, (uint32_t)3);
+        }
+        {
+            tstiop_inheritance__c2__t c2;
+
+            tstiop_inheritance__c2__init(&c2);
+            Z_ASSERT_EQ(c2.a, 1);
+            Z_ASSERT_EQ(c2.b, true);
+            Z_ASSERT_EQ(c2.c, 4);
+        }
+        {
+            tstiop_inheritance__c3__t c3;
+
+            tstiop_inheritance__c3__init(&c3);
+            Z_ASSERT_LSTREQUAL(c3.a, LSTR_IMMED_V("A2"));
+            Z_ASSERT_EQ(c3.b, 5);
+            Z_ASSERT_EQ(c3.c, 6);
+        }
+        {
+            tstiop_inheritance__c4__t c4;
+
+            tstiop_inheritance__c4__init(&c4);
+            Z_ASSERT_LSTREQUAL(c4.a, LSTR_IMMED_V("A2"));
+            Z_ASSERT_EQ(c4.b, 5);
+            Z_ASSERT_EQ(c4.c, false);
+        }
+    } Z_TEST_END
+    /* }}} */
+    Z_TEST(inheritance_casts, "test inheritance casts") { /* {{{ */
+        tstiop_inheritance__c2__t  c2;
+        tstiop_inheritance__c2__t *c2p;
+        tstiop_inheritance__b2__t *b2p;
+        uint8_t buf_b2p[20], buf_c2p[20];
+
+        IOP_REGISTER_PACKAGES(&tstiop_inheritance__pkg);
+
+#define CHECK_IS_A(_type1, _type2, _res)  \
+        do {                                                                 \
+            tstiop_inheritance__##_type1##__t obj;                           \
+                                                                             \
+            tstiop_inheritance__##_type1##__init(&obj);                      \
+            Z_ASSERT(iop_obj_is_a(&obj,                                      \
+                                  tstiop_inheritance__##_type2) == _res);    \
+        } while (0)
+
+        CHECK_IS_A(a1, a1, true);
+        CHECK_IS_A(b1, a1, true);
+        CHECK_IS_A(b1, b1, true);
+        CHECK_IS_A(b2, a1, true);
+        CHECK_IS_A(c1, b2, true);
+        CHECK_IS_A(c1, a1, true);
+        CHECK_IS_A(c2, b2, true);
+        CHECK_IS_A(c2, a1, true);
+        CHECK_IS_A(c3, b3, true);
+        CHECK_IS_A(c3, a2, true);
+        CHECK_IS_A(c4, b3, true);
+        CHECK_IS_A(c4, a2, true);
+
+        CHECK_IS_A(a1, b1, false);
+        CHECK_IS_A(a1, a2, false);
+        CHECK_IS_A(c1, c2, false);
+#undef CHECK_IS_A
+
+        /* Initialize a C2 class */
+        tstiop_inheritance__c2__init(&c2);
+        c2.a = 11111;
+        c2.c = 500;
+
+        /* Cast it in B2, and change some values */
+        b2p = iop_obj_vcast(tstiop_inheritance__b2, &c2);
+        Z_ASSERT(iop_equals(&tstiop_inheritance__b2__s, b2p, &c2));
+        Z_HELPER_RUN(iop_std_test_struct(&tstiop_inheritance__b2__s, b2p,
+                                         "b2p"));
+        Z_ASSERT_EQ(b2p->a, 11111);
+        Z_ASSERT_EQ(b2p->b, true);
+        b2p->a = 22222;
+        b2p->b = false;
+
+        /* Re-cast it in C2, and check fields equality */
+        c2p = iop_obj_vcast(tstiop_inheritance__c2, b2p);
+        Z_ASSERT(iop_equals(&tstiop_inheritance__b2__s, b2p, &c2));
+        Z_HELPER_RUN(iop_std_test_struct(&tstiop_inheritance__c2__s, c2p,
+                                         "c2p"));
+        Z_ASSERT_EQ(c2p->a, 22222);
+        Z_ASSERT_EQ(c2p->b, false);
+        Z_ASSERT_EQ(c2p->c, 500);
+
+        /* Test that hashes of b2p and c2p are the sames */
+        iop_hash_sha1(&tstiop_inheritance__b2__s, b2p, buf_b2p);
+        iop_hash_sha1(&tstiop_inheritance__c2__s, c2p, buf_c2p);
+        Z_ASSERT_EQUAL(buf_b2p, sizeof(buf_b2p), buf_c2p, sizeof(buf_c2p));
+    } Z_TEST_END
+    /* }}} */
+    Z_TEST(inheritance_static, "test static class members") { /* {{{ */
+        const iop_value_t *cvar;
+
+#define CHECK_STATIC_STR(_type, _varname, _value)  \
+        do {                                                                 \
+            tstiop_inheritance__##_type##__t obj;                            \
+                                                                             \
+            tstiop_inheritance__##_type##__init(&obj);                       \
+            cvar = iop_get_cvar_cst(&obj, _varname);                         \
+            Z_ASSERT_P(cvar);                                                \
+            Z_ASSERT_LSTREQUAL(cvar->s, LSTR_IMMED_V(_value));               \
+        } while (0)
+
+        CHECK_STATIC_STR(a1, "staticStr",  "a1");
+        CHECK_STATIC_STR(b1, "staticStr",  "a1");
+        CHECK_STATIC_STR(b2, "staticStr",  "a1");
+        CHECK_STATIC_STR(c1, "staticStr",  "a1");
+        CHECK_STATIC_STR(c2, "staticStr",  "c2");
+        CHECK_STATIC_STR(c2, "staticStr1", "staticStr1");
+        CHECK_STATIC_STR(c2, "staticStr2", "staticStr2");
+        CHECK_STATIC_STR(c2, "staticStr3", "staticStr3");
+        CHECK_STATIC_STR(c2, "staticStr4", "staticStr4");
+        CHECK_STATIC_STR(c2, "staticStr5", "staticStr5");
+        CHECK_STATIC_STR(c2, "staticStr6", "staticStr6");
+        CHECK_STATIC_STR(c3, "staticStr",  "c3");
+#undef CHECK_STATIC_STR
+
+#define CHECK_STATIC(_type, _varname, _field, _value)  \
+        do {                                                                 \
+            tstiop_inheritance__##_type##__t obj;                            \
+                                                                             \
+            tstiop_inheritance__##_type##__init(&obj);                       \
+            cvar = iop_get_cvar_cst(&obj, _varname);                         \
+            Z_ASSERT_P(cvar);                                                \
+            Z_ASSERT_EQ(cvar->_field, _value);                               \
+        } while (0)
+
+        CHECK_STATIC(b1, "staticInt", i, 12);
+        CHECK_STATIC(c4, "staticInt", u, (uint64_t)44);
+
+        CHECK_STATIC(b2, "staticBool", b, true);
+        CHECK_STATIC(c1, "staticBool", b, false);
+        CHECK_STATIC(c2, "staticBool", b, true);
+
+        CHECK_STATIC(b3, "staticDouble", d, 23.0);
+        CHECK_STATIC(c3, "staticDouble", d, 33.0);
+        CHECK_STATIC(c4, "staticDouble", d, 23.0);
+#undef CHECK_STATIC
+
+#define CHECK_STATIC_UNDEFINED(_type, _varname)  \
+        do {                                                                 \
+            tstiop_inheritance__##_type##__t obj;                            \
+                                                                             \
+            tstiop_inheritance__##_type##__init(&obj);                       \
+            Z_ASSERT_NULL(iop_get_cvar_cst(&obj, _varname));                 \
+        } while (0)
+
+        CHECK_STATIC_UNDEFINED(a1, "undefined");
+        CHECK_STATIC_UNDEFINED(a1, "staticInt");
+        CHECK_STATIC_UNDEFINED(a1, "staticBool");
+        CHECK_STATIC_UNDEFINED(a1, "staticDouble");
+        CHECK_STATIC_UNDEFINED(b1, "staticBool");
+        CHECK_STATIC_UNDEFINED(b3, "staticBool");
+#undef CHECK_STATIC_UNDEFINED
+    } Z_TEST_END
+    /* }}} */
+    Z_TEST(inheritance_equals, "test iop_equals/hash with inheritance") { /* {{{ */
+        t_scope;
+        tstiop_inheritance__c2__t c2_1_1, c2_1_2, c2_1_3;
+        tstiop_inheritance__c2__t c2_2_1, c2_2_2, c2_2_3;
+        tstiop_inheritance__b2__t b2_1, b2_2;
+        tstiop_inheritance__class_container__t cc_1, cc_2;
+
+        IOP_REGISTER_PACKAGES(&tstiop_inheritance__pkg);
+
+        tstiop_inheritance__c2__init(&c2_1_1);
+        tstiop_inheritance__c2__init(&c2_1_2);
+        tstiop_inheritance__c2__init(&c2_1_3);
+        tstiop_inheritance__c2__init(&c2_2_1);
+        tstiop_inheritance__c2__init(&c2_2_2);
+        tstiop_inheritance__c2__init(&c2_2_3);
+
+        tstiop_inheritance__b2__init(&b2_1);
+        tstiop_inheritance__b2__init(&b2_2);
+
+        tstiop_inheritance__class_container__init(&cc_1);
+        tstiop_inheritance__class_container__init(&cc_2);
+
+        /* These tests rely on the fact that there are no hash collisions in
+         * the test samples, which is the case.
+         *
+         * They are actually doing much more than just testing
+         * iop_equals/hash: packing/unpacking in binary/json/xml is also
+         * tested.
+         */
+#define CHECK_EQUALS(_type, _v1, _v2, _res)  \
+        do {                                                                 \
+            uint8_t buf1[20], buf2[20];                                      \
+                                                                             \
+            Z_ASSERT(iop_equals(&tstiop_inheritance__##_type##__s,           \
+                                _v1, _v2) == _res);                          \
+            iop_hash_sha1(&tstiop_inheritance__##_type##__s, _v1, buf1);     \
+            iop_hash_sha1(&tstiop_inheritance__##_type##__s, _v2, buf2);     \
+            Z_ASSERT(lstr_equal2(                                            \
+                LSTR_INIT_V((const char *)buf1, sizeof(buf1)),               \
+                LSTR_INIT_V((const char *)buf2, sizeof(buf2))) == _res);     \
+            Z_HELPER_RUN(iop_std_test_struct(                                \
+                &tstiop_inheritance__##_type##__s, _v1, TOSTR(_v1)));        \
+            Z_HELPER_RUN(iop_std_test_struct(                                \
+                &tstiop_inheritance__##_type##__s, _v2, TOSTR(_v2)));        \
+            Z_HELPER_RUN(iop_json_test_struct(                               \
+                &tstiop_inheritance__##_type##__s, _v1, TOSTR(_v1)));        \
+            Z_HELPER_RUN(iop_json_test_struct(                               \
+                &tstiop_inheritance__##_type##__s, _v2, TOSTR(_v2)));        \
+            Z_HELPER_RUN(iop_xml_test_struct(                                \
+                &tstiop_inheritance__##_type##__s, _v1, TOSTR(_v1)));        \
+            Z_HELPER_RUN(iop_xml_test_struct(                                \
+                &tstiop_inheritance__##_type##__s, _v2, TOSTR(_v2)));        \
+        } while (0)
+
+        /* ---- Tests with "simple" classes --- */
+        CHECK_EQUALS(c2, &c2_1_1, &c2_2_1, true);
+
+        /* Modify a field of "level A1" */
+        c2_1_1.a = 2;
+        CHECK_EQUALS(c2, &c2_1_1, &c2_2_1, false);
+        c2_2_1.a = 2;
+        CHECK_EQUALS(c2, &c2_1_1, &c2_2_1, true);
+
+        /* Modify a field of "level B2" */
+        c2_1_1.b = false;
+        CHECK_EQUALS(c2, &c2_1_1, &c2_2_1, false);
+        c2_2_1.b = false;
+        CHECK_EQUALS(c2, &c2_1_1, &c2_2_1, true);
+
+        /* Modify a field of "level C2" */
+        c2_1_1.c = 8;
+        CHECK_EQUALS(c2, &c2_1_1, &c2_2_1, false);
+        c2_2_1.c = 8;
+        CHECK_EQUALS(c2, &c2_1_1, &c2_2_1, true);
+
+
+        /* ---- Tests with a class container --- */
+        cc_1.a1 = iop_obj_vcast(tstiop_inheritance__a1, &c2_1_1);
+        cc_2.a1 = iop_obj_vcast(tstiop_inheritance__a1, &c2_2_1);
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, true);
+
+        /* Test mandatory field a1 */
+        cc_1.a1->a = 3;
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, false);
+        cc_2.a1->a = 3;
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, true);
+
+        /* Test optional field b2 */
+        cc_1.b2 = &b2_1;
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, false);
+        cc_2.b2 = &b2_2;
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, true);
+        cc_1.b2->a = 4;
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, false);
+        cc_2.b2->a = 4;
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, true);
+        cc_2.b2 = iop_obj_vcast(tstiop_inheritance__b2, &c2_2_1);
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, false);
+        cc_2.b2 = &b2_2;
+
+        /* Test repeated field c2 */
+        cc_1.c2.tab = t_new(tstiop_inheritance__c2__t *, 2);
+        cc_1.c2.tab[0] = &c2_1_2;
+        cc_1.c2.len = 1;
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, false);
+        cc_2.c2.tab = t_new(tstiop_inheritance__c2__t *, 2);
+        cc_2.c2.tab[0] = &c2_2_2;
+        cc_2.c2.len = 1;
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, true);
+        c2_1_2.b = false;
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, false);
+        c2_2_2.b = false;
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, true);
+        cc_1.c2.tab[1] = &c2_1_3;
+        cc_1.c2.len = 2;
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, false);
+        cc_2.c2.tab[1] = &c2_2_3;
+        cc_2.c2.len = 2;
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, true);
+        c2_1_3.a = 5;
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, false);
+        c2_2_3.a = 5;
+        CHECK_EQUALS(class_container, &cc_1, &cc_2, true);
+#undef CHECK_EQUALS
+
+    } Z_TEST_END
+    /* }}} */
+    Z_TEST(inheritance_json, "test json unpacking inheritance") { /* {{{ */
+        /* These tests are meant to check json unpacking in some unusual
+         * conditions.
+         * Packing and unpacking in usual conditions (ie. valid json packed by
+         * our packer) is already stressed by the other tests.
+         */
+        t_scope;
+        tstiop_inheritance__c1__t *c1 = NULL;
+        SB_1k(err);
+
+        IOP_REGISTER_PACKAGES(&tstiop_inheritance__pkg);
+
+        /* Test that fields can be in any order */
+        Z_ASSERT_N(t_tstiop_inheritance__c1__junpack_ptr_file(
+                       t_fmt(NULL, "%*pM/iop/tstiop_inheritance_valid1.json",
+                             LSTR_FMT_ARG(z_cmddir_g)), &c1, 0, &err));
+        Z_ASSERT(c1->_vptr == &tstiop_inheritance__c1__s);
+        Z_ASSERT_EQ(c1->a,   2);
+        Z_ASSERT_EQ(c1->a2, 12);
+        Z_ASSERT_EQ(c1->b,  false);
+        Z_ASSERT_EQ(c1->c,  (uint32_t)5);
+
+        /* Test with missing optional fields */
+        Z_ASSERT_N(t_tstiop_inheritance__c1__junpack_ptr_file(
+                       t_fmt(NULL, "%*pM/iop/tstiop_inheritance_valid2.json",
+                             LSTR_FMT_ARG(z_cmddir_g)), &c1, 0, &err));
+        Z_ASSERT(c1->_vptr == &tstiop_inheritance__c1__s);
+        Z_ASSERT_EQ(c1->a,   1);
+        Z_ASSERT_EQ(c1->a2, 12);
+        Z_ASSERT_EQ(c1->b,  true);
+        Z_ASSERT_EQ(c1->c,  (uint32_t)3);
+
+#define CHECK_FAIL(_filename, _err)  \
+        do {                                                                 \
+            sb_reset(&err);                                                  \
+            Z_ASSERT_NEG(t_tstiop_inheritance__c1__junpack_ptr_file(         \
+                         t_fmt(NULL, "%*pM/iop/" _filename,                  \
+                               LSTR_FMT_ARG(z_cmddir_g)), &c1, 0, &err));    \
+            Z_ASSERT(strstr(err.data, _err));                                \
+        } while (0)
+
+        /* Test that the "_class" field is mandatory */
+        CHECK_FAIL("tstiop_inheritance_invalid1.json",
+                   "expected `_class' field, got `}'");
+
+        /* Test with an unknown "_class" */
+        CHECK_FAIL("tstiop_inheritance_invalid2.json",
+                   "expected a child of `tstiop_inheritance.C1'");
+
+        /* Test with an incompatible "_class" */
+        CHECK_FAIL("tstiop_inheritance_invalid3.json",
+                   "expected a child of `tstiop_inheritance.C1'");
+
+        /* Test with a missing mandatory field */
+        CHECK_FAIL("tstiop_inheritance_invalid4.json",
+                   "member `tstiop_inheritance.A1:a2' is missing");
+#undef CHECK_FAIL
+    } Z_TEST_END
+    /* }}} */
+    Z_TEST(inheritance_xml, "test inheritance and xml") { /* {{{ */
+        /* These tests are meant to check XML unpacking in some unusual
+         * conditions.
+         * Packing and unpacking in usual conditions (ie. valid XML packed by
+         * our packer) is already stressed by the other tests.
+         */
+        t_scope;
+        lstr_t file;
+        tstiop_inheritance__c2__t *c2 = NULL;
+        tstiop_inheritance__c3__t *c3 = NULL;
+
+        IOP_REGISTER_PACKAGES(&tstiop_inheritance__pkg);
+
+#define MAP(_filename)  \
+        do {                                                                 \
+            Z_ASSERT_N(lstr_init_from_file(&file,                            \
+                           t_fmt(NULL, "%*pM/iop/" _filename,                \
+                                 LSTR_FMT_ARG(z_cmddir_g)),                  \
+                           PROT_READ, MAP_SHARED));                          \
+        } while (0)
+
+#define UNPACK_OK(_filename, _type)  \
+        do {                                                                 \
+            MAP(_filename);                                                  \
+            Z_ASSERT_N(xmlr_setup(&xmlr_g, file.s, file.len));               \
+            Z_ASSERT_N(t_tstiop_inheritance__##_type##__xunpack_ptr(         \
+                           xmlr_g, &_type),                                  \
+                       "XML unpacking failure: %s", xmlr_get_err());         \
+            lstr_wipe(&file);                                                \
+        } while (0)
+
+#define UNPACK_FAIL(_filename, _type, _err)  \
+        do {                                                                 \
+            MAP(_filename);                                                  \
+            Z_ASSERT_N(xmlr_setup(&xmlr_g, file.s, file.len));               \
+            Z_ASSERT_NEG(t_tstiop_inheritance__##_type##__xunpack_ptr(       \
+                             xmlr_g, &_type));                               \
+            Z_ASSERT(strstr(xmlr_get_err(), _err));                          \
+            lstr_wipe(&file);                                                \
+        } while (0)
+
+        /* Test that 'xsi:type' can be missing, if the packed object is of
+         * the expected type. */
+        UNPACK_OK("tstiop_inheritance_valid1.xml", c2);
+        Z_ASSERT(c2->_vptr == &tstiop_inheritance__c2__s);
+        Z_ASSERT_EQ(c2->a,  15);
+        Z_ASSERT_EQ(c2->a2, 16);
+        Z_ASSERT_EQ(c2->b,  false);
+        Z_ASSERT_EQ(c2->c,  18);
+
+        /* Test with missing optional fields */
+        UNPACK_OK("tstiop_inheritance_valid2.xml", c3);
+        Z_ASSERT(c3->_vptr == &tstiop_inheritance__c3__s);
+        Z_ASSERT_LSTREQUAL(c3->a, LSTR_IMMED_V("I am the only field"));
+        Z_ASSERT_EQ(c3->b, 5);
+        Z_ASSERT_EQ(c3->c, 6);
+
+        /* Test with no field at all (all are optional) */
+        UNPACK_OK("tstiop_inheritance_valid3.xml", c3);
+        Z_ASSERT(c3->_vptr == &tstiop_inheritance__c3__s);
+        Z_ASSERT_LSTREQUAL(c3->a, LSTR_IMMED_V("A2"));
+        Z_ASSERT_EQ(c3->b, 5);
+        Z_ASSERT_EQ(c3->c, 6);
+
+        /* Test with fields in bad order */
+        UNPACK_FAIL("tstiop_inheritance_invalid1.xml", c2,
+                    "near /root/a: unknown tag <a>");
+        UNPACK_FAIL("tstiop_inheritance_invalid2.xml", c2,
+                    "near /root/b: missing mandatory tag <a2>");
+
+        /* Test with an unknown field */
+        UNPACK_FAIL("tstiop_inheritance_invalid3.xml", c2,
+                    "near /root/toto: unknown tag <toto>");
+
+        /* Test with a missing mandatory field */
+        UNPACK_FAIL("tstiop_inheritance_invalid4.xml", c2,
+                    "near /root: missing mandatory tag <a2>");
+
+        /* Test with an unknown/incompatible class */
+        UNPACK_FAIL("tstiop_inheritance_invalid5.xml", c2,
+                    "near /root: class `tstiop_inheritance.Toto' not found");
+        UNPACK_FAIL("tstiop_inheritance_invalid6.xml", c2,
+                    "near /root: class `tstiop_inheritance.C1' is not a "
+                    "child of `tstiop_inheritance.C2'");
+
+#undef UNPACK_OK
+#undef UNPACK_FAIL
+#undef MAP
+    } Z_TEST_END
     /* }}} */
 } Z_GROUP_END
