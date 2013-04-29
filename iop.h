@@ -139,6 +139,7 @@ enum iop_enum_flags_t {
 enum iop_struct_flags_t {
     IOP_STRUCT_EXTENDED,        /**< st_attrs and field_attrs exist */
     IOP_STRUCT_HAS_CONSTRAINTS, /**< will iop_check_constraints do smth? */
+    IOP_STRUCT_IS_CLASS,        /**< is it a class? */
 };
 
 enum iop_iface_flags_t {
@@ -195,6 +196,10 @@ struct iop_struct_t {
     unsigned            is_union :  1;  /**< struct or union ?              */
     void               *st_attrs;
     const iop_field_attrs_t *fields_attrs;
+
+    /* Class attributes */
+    const iop_struct_t *parent;   /**< NULL for "master" classes            */
+    uint16_t            class_id;
 };
 
 enum iop_rpc_flags_t {
