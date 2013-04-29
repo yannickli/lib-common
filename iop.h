@@ -185,10 +185,26 @@ typedef struct iop_field_attrs_t {
     const iop_field_attr_t  *attrs;
 } iop_field_attrs_t;
 
+typedef union iop_value_t {
+    int64_t  i;
+    uint64_t u;
+    double   d;
+    lstr_t   s;
+    bool     b;
+} iop_value_t;
+
+typedef struct iop_static_field_t {
+    lstr_t      name;
+    iop_value_t value;
+} iop_static_field_t;
+
 /* Class attributes */
 typedef struct iop_class_attrs_t {
-    const iop_struct_t *parent;   /**< NULL for "master" classes            */
-    uint16_t            class_id;
+    const iop_struct_t        *parent; /**< NULL for "master" classes       */
+    const iop_static_field_t **static_fields; /**< NULL if there are none   */
+    uint8_t                    static_fields_len;
+    uint8_t                    padding;
+    uint16_t                   class_id;
 } iop_class_attrs_t;
 
 struct iop_struct_t {
