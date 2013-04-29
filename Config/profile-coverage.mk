@@ -21,12 +21,12 @@ coverage:: __setup_forward
 	lcov --directory $! --base-directory $/ --zerocounters
 	MAKELEVEL=0 $(MAKE) P=$(var/profile) NOCHECK=1 all
 	-MAKELEVEL=0 $(MAKE) P=$(var/profile) NOCHECK=1 L=1 check
-	find $! -name "*.gcno" | while read line ; do \
+	find $! -name "*.gcno" | grep -v '\.pic\.' | while read line ; do \
 	    gcda=`echo $$line | sed 's/\.gcno$$/.gcda/'` ; \
 	    if [ \! -e $$gcda ]  ; then \
 	        touch $$gcda && echo created empty $$gcda; \
 	    fi ; \
 	done
-	lcov --directory $! --base-directory $/ --capture --output-file $!all.info
+	lcov --directory $! --ignore-errors gcov,source --base-directory $/ --capture --output-file $!all.info
 	lcov  --remove $!all.info '/usr/*' --output $!lcov.info
 	rm $!all.info
