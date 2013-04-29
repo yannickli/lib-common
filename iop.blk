@@ -73,7 +73,22 @@ iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
 }
 void iop_init(const iop_struct_t *desc, void *value)
 {
+    unsigned desc_flags = desc->flags;
+
     memset(value, 0, desc->size);
+
+    if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+        const iop_struct_t **_vptr = value;
+        const iop_struct_t *parent = desc;
+
+        *_vptr = desc;
+
+        while ((parent = parent->class_attrs->parent)) {
+            iop_init_fields(value, parent->fields,
+                            parent->fields + parent->fields_len);
+        }
+    }
+
     iop_init_fields(value, desc->fields, desc->fields + desc->fields_len);
 }
 
