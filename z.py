@@ -253,6 +253,7 @@ def expectedFailure(*args, **kwargs):
 try:
     from behave.formatter.base import Formatter
     from behave.formatter.formatters import register as __behave_register
+    import behave.model
 
     class ZFormatter(Formatter):
         """
@@ -297,7 +298,13 @@ try:
 
         def feature(self, feature):
             self.flush()
-            self.stream.write("1..%d %s\n" % (len(feature.scenarios), feature.name))
+            count = 0
+            for sc in feature.scenarios:
+                if isinstance(sc, behave.model.ScenarioOutline):
+                    count += len(sc.scenarios)
+                else:
+                    count += 1
+            self.stream.write("1..%d %s\n" % (count, feature.name))
             self.__count = 1
             self.__steps = 0
 
@@ -399,7 +406,7 @@ def z_report():
 
         group = group_RE.match(line)
         if group:
-            if group_len != group_pos:
+            if group_len > group_pos:
                 errors.append(("missing", "%s.(%d->%d)(unknown)" % (group_name, group_pos + 1, group_len), ''))
                 failed_count += group_len - group_pos
             group_pos = 0
