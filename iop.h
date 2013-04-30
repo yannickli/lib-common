@@ -185,6 +185,12 @@ typedef struct iop_field_attrs_t {
     const iop_field_attr_t  *attrs;
 } iop_field_attrs_t;
 
+/* Class attributes */
+typedef struct iop_class_attrs_t {
+    const iop_struct_t *parent;   /**< NULL for "master" classes            */
+    uint16_t            class_id;
+} iop_class_attrs_t;
+
 struct iop_struct_t {
     const lstr_t        fullname;
     const iop_field_t  *fields;
@@ -194,12 +200,13 @@ struct iop_struct_t {
     uint16_t            size;           /**< sizeof(type);                  */
     unsigned            flags    : 15;  /**< bitfield of iop_struct_flags_t */
     unsigned            is_union :  1;  /**< struct or union ?              */
+    /* XXX do not dereference the following members without checking
+     * (this->flags & IOP_STRUCT_EXTENDED) first */
     void               *st_attrs;
     const iop_field_attrs_t *fields_attrs;
-
-    /* Class attributes */
-    const iop_struct_t *parent;   /**< NULL for "master" classes            */
-    uint16_t            class_id;
+    /* XXX do not dereference the following members without checking
+     * (this->flags & IOP_STRUCT_IS_CLASS) first */
+    const iop_class_attrs_t *class;
 };
 
 enum iop_rpc_flags_t {
