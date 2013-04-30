@@ -206,7 +206,7 @@ struct iop_struct_t {
     const iop_field_attrs_t *fields_attrs;
     /* XXX do not dereference the following members without checking
      * (this->flags & IOP_STRUCT_IS_CLASS) first */
-    const iop_class_attrs_t *class;
+    const iop_class_attrs_t *class_attrs;
 };
 
 enum iop_rpc_flags_t {
