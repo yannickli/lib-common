@@ -851,84 +851,235 @@ void wah_not_and(wah_t *map, const wah_t *other)
     wah_and_(map, other, true, false);
 }
 
-void wah_or(wah_t *map, const wah_t *other)
+qvector_t(wah_word_enum, wah_word_enum_t *);
+
+wah_t *wah_multi_or(const wah_t *src[], int len, wah_t * restrict dest)
 {
     t_scope;
-    const wah_t *src = t_wah_dup(map);
-    wah_word_enum_t src_en   = wah_word_enum_start(src, false);
-    wah_word_enum_t other_en = wah_word_enum_start(other, false);
+    qv_t(wah_word_enum) enums;
+    uint32_t buffer[1024];
+    uint64_t exp_len = 0;
+    uint64_t exp_act = 0;
 
-    wah_check_invariant(map);
-    wah_reset_map(map);
-    while (src_en.state != WAH_ENUM_END || other_en.state != WAH_ENUM_END) {
-        if (src_en.state == WAH_ENUM_END) {
-            src_en.remain_words = REMAIN_WORDS(other, map);
-        } else
-        if (other_en.state == WAH_ENUM_END) {
-            other_en.remain_words = REMAIN_WORDS(src, map);
+    ssize_t literal_length = -1;
+    ssize_t run_0_length   = -1;
+    size_t run_1_length   = 0;
+    size_t pending_length = 0;
+
+
+    if (!dest) {
+        dest = wah_pool_acquire();
+    } else {
+        wah_reset_map(dest);
+    }
+
+    t_qv_init(wah_word_enum, &enums, len);
+    for (int i = 0; i < len; i++) {
+        wah_word_enum_t *en = t_new_raw(wah_word_enum_t, 1);
+
+        exp_len = MAX(exp_len, src[i]->len);
+        exp_act = MAX(exp_act, src[i]->active);
+        wah_check_invariant(src[i]);
+        *en = wah_word_enum_start(src[i], false);
+        if (en->state != WAH_ENUM_END) {
+            qv_append(wah_word_enum, &enums, en);
         }
 
-        switch (src_en.state | (other_en.state << 2)) {
-          case WAH_ENUM_END     | (WAH_ENUM_PENDING << 2):
-          case WAH_ENUM_PENDING | (WAH_ENUM_END     << 2):
-          case WAH_ENUM_PENDING | (WAH_ENUM_PENDING << 2):
-            map->len     = MAX(other->len, src->len);
-            map->pending = src_en.current | other_en.current;
-            map->active += bitcount32(map->pending);
-            wah_word_enum_next(&src_en);
-            wah_word_enum_next(&other_en);
-            break;
-
-          case WAH_ENUM_RUN     | (WAH_ENUM_LITERAL << 2):
-          case WAH_ENUM_END     | (WAH_ENUM_LITERAL << 2):
-            if (!src_en.current) {
-                PUSH_COPY(src_en, other_en);
-            } else {
-                PUSH_1RUN(src_en.remain_words);
+        /* Identify the currently limiting stream:
+         * - runs of 1 can be integrally consumed
+         * - the shortest literal array can be consumed.
+         * - the shortest runs of 0 can be consumed
+         *
+         * Pending are treated as literal arrays of infinit size.
+         */
+        switch (en->state) {
+          case WAH_ENUM_LITERAL:
+            if (literal_length < 0
+            || (uint32_t)literal_length > en->remain_words)
+            {
+                literal_length = en->remain_words;
             }
             break;
 
-          case WAH_ENUM_LITERAL | (WAH_ENUM_RUN     << 2):
-          case WAH_ENUM_LITERAL | (WAH_ENUM_END     << 2):
-            if (!other_en.current) {
-                PUSH_COPY(other_en, src_en);
+          case WAH_ENUM_PENDING:
+            pending_length = MAX(pending_length,
+                                 en->map->len % WAH_BIT_IN_WORD);
+            break;
+
+          case WAH_ENUM_RUN:
+            if (en->current) {
+                run_1_length = MAX(en->remain_words, run_1_length);
+            } else
+            if (run_0_length < 0) {
+                run_0_length = en->remain_words;
             } else {
-                PUSH_1RUN(other_en.remain_words);
+                run_0_length = MIN(en->remain_words, run_0_length);
             }
             break;
 
-          case WAH_ENUM_RUN     | (WAH_ENUM_RUN     << 2):
-          case WAH_ENUM_END     | (WAH_ENUM_RUN     << 2):
-          case WAH_ENUM_RUN     | (WAH_ENUM_END     << 2):
-            if (other_en.current || src_en.current) {
-                uint32_t run = 0;
-
-                if (other_en.current) {
-                    run = other_en.remain_words;
-                }
-                if (src_en.current) {
-                    run = MAX(run, src_en.remain_words);
-                }
-                PUSH_1RUN(run);
-            } else {
-                PUSH_0RUN(MIN(other_en.remain_words, src_en.remain_words));
-            }
-            break;
-
-          default:
-            map->len    += WAH_BIT_IN_WORD;
-            map->pending = src_en.current | other_en.current;
-            map->active += bitcount32(map->pending);
-            wah_push_pending(map, 1);
-            wah_word_enum_next(&src_en);
-            wah_word_enum_next(&other_en);
+          case WAH_ENUM_END:
             break;
         }
     }
-    wah_check_invariant(map);
 
-    assert (map->len == MAX(src->len, other->len));
-    assert (map->active >= MAX(src->active, other->active));
+    while (enums.len > 0) {
+        bool first   = true;
+        bool literal = false;
+        bool pending = false;
+        size_t prev_run_1_length   = 0;
+        size_t prev_pending_length = 0;
+        uint64_t consumed = 0;
+
+        /* Compute the number of words to consume
+         */
+        if (run_1_length > 0) {
+            consumed = run_1_length;
+        } else
+        if (literal_length > 0) {
+            if (run_0_length < 0) {
+                consumed = literal_length;
+            } else {
+                consumed = MIN(run_0_length, literal_length);
+            }
+
+            literal  = true;
+        } else
+        if (pending_length > 0) {
+            literal  = true;
+
+            if (run_0_length < 0) {
+                pending  = true;
+                consumed = 1;
+            } else {
+                consumed = run_0_length;
+            }
+        } else {
+            assert (run_0_length > 0);
+            consumed = run_0_length;
+        }
+        if (literal) {
+            consumed = MIN(consumed, countof(buffer));
+        }
+        assert (consumed <= DIV_ROUND_UP(exp_len, 32));
+        assert (consumed != 0);
+
+        prev_run_1_length = run_1_length;
+        prev_pending_length = pending_length;
+        literal_length = -1;
+        run_0_length   = -1;
+        run_1_length   = 0;
+        pending_length = 0;
+
+        /* Build the literal values and consume the words from each
+         * enumerator, move the enumerators forward and compute starts the
+         * computing of the length for the next loop.
+         */
+        qv_for_each_pos_safe(wah_word_enum, pos, &enums) {
+            wah_word_enum_t *en = enums.tab[pos];
+
+            switch (en->state) {
+              case WAH_ENUM_PENDING:
+                if (literal) {
+                    if (first) {
+                        buffer[0] = en->current;
+                        if (consumed > 1) {
+                            p_clear(&buffer[1], consumed - 1);
+                        }
+                        first = false;
+                    } else {
+                        buffer[0] |= en->current;
+                    }
+                }
+                break;
+
+              case WAH_ENUM_LITERAL:
+                if (literal) {
+                    const uint32_t *data = (const uint32_t *)en->map->data.tab;
+
+                    data = &data[en->pos - en->remain_words];
+                    if (first) {
+                        p_copy(buffer, data, consumed);
+                        first = false;
+                    } else {
+                        for (uint32_t i = 0; i < consumed; i++) {
+                            buffer[i] |= data[i];
+                        }
+                    }
+                }
+                break;
+
+              case WAH_ENUM_RUN:
+                assert (!en->current || !literal);
+                break;
+
+              case WAH_ENUM_END:
+                assert (false);
+                break;
+            }
+            wah_word_enum_skip(en, consumed);
+
+            switch (en->state) {
+              case WAH_ENUM_LITERAL:
+                if (literal_length < 0
+                || (uint32_t)literal_length > en->remain_words)
+                {
+                    literal_length = en->remain_words;
+                }
+                break;
+
+              case WAH_ENUM_PENDING:
+                pending_length = MAX(pending_length,
+                                     en->map->len % WAH_BIT_IN_WORD);
+                break;
+
+              case WAH_ENUM_RUN:
+                if (en->current) {
+                    run_1_length = MAX(en->remain_words, run_1_length);
+                } else
+                if (run_0_length < 0) {
+                    run_0_length = en->remain_words;
+                } else {
+                    run_0_length = MIN(en->remain_words, run_0_length);
+                }
+                break;
+
+              case WAH_ENUM_END:
+                qv_remove(wah_word_enum, &enums, pos);
+                break;
+            }
+        }
+
+        if (pending) {
+            assert (prev_pending_length > 0);
+            wah_add_aligned(dest, (const uint8_t *)buffer, prev_pending_length);
+            assert (enums.len == 0);
+            assert (dest->len == exp_len);
+        } else
+        if (literal) {
+            wah_add_aligned(dest, (const uint8_t *)buffer, consumed * 32);
+            assert (dest->len <= exp_len);
+        } else
+        if (prev_run_1_length) {
+            wah_add1s(dest, 32 * consumed);
+            assert (dest->len <= exp_len);
+        } else {
+            wah_add0s(dest, 32 * consumed);
+            assert (dest->len <= exp_len);
+        }
+    }
+
+    wah_check_invariant(dest);
+    assert (dest->len    == exp_len);
+    assert (dest->active >= exp_act);
+    return dest;
+}
+
+void wah_or(wah_t *map, const wah_t *other)
+{
+    t_scope;
+    const wah_t *srcs[] = { t_wah_dup(map), other };
+
+    wah_multi_or(srcs, countof(srcs), map);
 }
 
 #undef PUSH_COPY
@@ -1168,7 +1319,7 @@ void wah_debug_print(const wah_t *wah, bool print_content)
 
 Z_GROUP_EXPORT(wah)
 {
-    wah_t map, map1, map2;
+    wah_t map, map1, map2, map3;
 
     Z_TEST(simple, "") {
         wah_init(&map);
@@ -1327,6 +1478,8 @@ Z_GROUP_EXPORT(wah)
     } Z_TEST_END;
 
     Z_TEST(binop, "") {
+        const wah_t *vec[] = { &map1, &map2 };
+
         const byte data1[] = {
             0x1f, 0x00, 0x00, 0x8c, /* 0, 1, 2, 3, 4, 26, 27, 31 (32) */
             0xff, 0xff, 0xff, 0xff, /* 32 -> 63                  (64) */
@@ -1389,6 +1542,7 @@ Z_GROUP_EXPORT(wah)
 
         wah_init(&map1);
         wah_init(&map2);
+        wah_init(&map3);
 
         wah_add(&map1, data1, bitsizeof(data1));
         wah_add(&map2, data2, bitsizeof(data2));
@@ -1408,6 +1562,7 @@ Z_GROUP_EXPORT(wah)
 
         wah_reset_map(&map1);
         wah_add(&map1, data1, bitsizeof(data1));
+        wah_multi_or(vec, countof(vec), &map3);
         wah_or(&map1, &map2);
         for (int i = 0; i < countof(data1); i++) {
             byte b = data1[i];
@@ -1416,6 +1571,8 @@ Z_GROUP_EXPORT(wah)
             }
             for (int j = 0; j < 8; j++) {
                 Z_ASSERT_EQ(!!(b & (1 << j)), !!wah_get(&map1, i * 8 + j),
+                            "invalid byte %d, bit %d", i, j);
+                Z_ASSERT_EQ(!!(b & (1 << j)), !!wah_get(&map3, i * 8 + j),
                             "invalid byte %d, bit %d", i, j);
             }
         }

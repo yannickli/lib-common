@@ -128,6 +128,8 @@ void wah_not_and(wah_t *map, const wah_t *other) __leaf;
 void wah_or(wah_t *map, const wah_t *other) __leaf;
 void wah_not(wah_t *map) __leaf;
 
+wah_t *wah_multi_or(const wah_t *src[], int len, wah_t * __restrict dest) __leaf;
+
 __must_check__ __leaf
 bool wah_get(const wah_t *map, uint64_t pos);
 
