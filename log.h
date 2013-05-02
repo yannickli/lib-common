@@ -199,7 +199,8 @@ void __logger_fatal(logger_t *logger, const char *file, const char *func,
 
 
 #define __LOGGER_LOG(Logger, Level, Mark, Fmt, ...)  ({                      \
-        logger_t *__logger = (logger_t *)(Logger);                           \
+        const logger_t *__clogger = (Logger);                                \
+        logger_t *__logger = (logger_t *)__clogger;                          \
         const int __level = (Level);                                         \
                                                                              \
         Mark;                                                                \
@@ -233,7 +234,8 @@ int __logger_is_traced(logger_t *logger, int level, const char *file,
 
 #define logger_is_traced(Logger, Level)  ({                                  \
         static int8_t __traced;                                              \
-        logger_t *__i_logger = (logger_t *)(Logger);                         \
+        const logger_t *__i_clogger = (Logger);                              \
+        logger_t *__i_logger = (logger_t *)__i_clogger;                      \
         const int __i_level = (Level);                                       \
         bool __h_level = logger_has_level(__i_logger, LOG_TRACE + __i_level);\
                                                                              \
@@ -248,7 +250,8 @@ int __logger_is_traced(logger_t *logger, int level, const char *file,
     })
 
 #define __LOGGER_TRACE(Logger, Level, Fmt, ...)  ({                          \
-        logger_t *__logger = (logger_t *)(Logger);                           \
+        const logger_t *__clogger = (Logger);                                \
+        logger_t *__logger = (logger_t *)__clogger;                          \
         const int __level = (Level);                                         \
                                                                              \
         if (logger_is_traced(__logger, __level)) {                           \
