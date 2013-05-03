@@ -46,7 +46,7 @@ Note that 'z' extends the unittest module, so you just need to import z and
 use z.* as you would use unittest instead
 """
 
-import sys, os, re, traceback
+import sys, os, re, traceback, time
 from functools import wraps
 
 try:
