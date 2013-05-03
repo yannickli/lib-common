@@ -106,7 +106,9 @@ void logger_wipe(logger_t *logger)
     assert (dlist_is_empty(&logger->children) || !logger->children.next);
 
     if (logger->siblings.next) {
+        spin_lock(&logger->parent->children_lock);
         dlist_remove(&logger->siblings);
+        spin_unlock(&logger->parent->children_lock);
     }
     lstr_wipe(&logger->name);
     lstr_wipe(&logger->full_name);
@@ -167,11 +169,14 @@ void __logger_refresh(logger_t *logger)
         assert (logger->level >= LOG_UNDEFINED);
         assert (logger->default_level >= LOG_INHERITS);
         assert (logger->defined_level >= LOG_UNDEFINED);
+
+        spin_lock(&logger->parent->children_lock);
         dlist_for_each_entry(sibbling, &logger->parent->children, siblings) {
             assert (!lstr_equal2(sibbling->name, logger->name));
         }
         dlist_add(&logger->parent->children, &logger->siblings);
         dlist_init(&logger->children);
+        spin_unlock(&logger->parent->children_lock);
 
         pos = qm_del_key(level, &_G.pending_levels, &logger->full_name);
         if (pos >= 0) {

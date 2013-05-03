@@ -103,6 +103,8 @@ typedef struct logger_t {
     int default_level;
     unsigned level_flags;
 
+    spinlock_t children_lock;
+
     lstr_t name;
     lstr_t full_name;
     struct logger_t *parent;
