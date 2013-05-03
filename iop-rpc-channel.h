@@ -158,6 +158,7 @@ struct ichannel_t {
     int  wa_hard;             /**< to close the connection when no activity */
 
     int          protocol;     /**< transport layer protocol (0 = default) */
+    int          retry_delay;  /**< delay before a reconnection attempt (ms) */
     sockunion_t  su;
     const qm_t(ic_cbs) *impl;
     ic_hook_f   *on_event;

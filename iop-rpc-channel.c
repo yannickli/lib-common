@@ -805,7 +805,8 @@ static void ic_reconnect(el_t ev, el_data_t priv)
      */
     el_timer_unregister(&ic->timer);
     if (ic_connect(ic) < 0) {
-        ic->timer = el_timer_register(1000, 0, 0, ic_reconnect, ic);
+        ic->timer = el_timer_register(ic->retry_delay, 0, 0, ic_reconnect,
+                                      ic);
         el_unref(ic->timer);
     }
 }
@@ -1171,6 +1172,7 @@ ichannel_t *ic_init(ichannel_t *ic)
     ic->pending_max = 128;
 #endif
     ic->peer_address = LSTR_NULL_V;
+    ic->retry_delay = 1000;
 
     return ic;
 }
@@ -1198,7 +1200,8 @@ static void ic_mark_disconnected(ichannel_t *ic)
     ic_disconnect(ic);
     if (!ic->is_spawned && ic->auto_reconn) {
         assert (ic->timer == NULL);
-        ic->timer = el_timer_register(1000, 0, 0, ic_reconnect, ic);
+        ic->timer = el_timer_register(ic->retry_delay, 0, 0, ic_reconnect,
+                                      ic);
         el_unref(ic->timer);
     }
 }
