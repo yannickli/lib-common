@@ -18,6 +18,39 @@
 #include "container.h"
 #include "sort.h"
 
+/*------ Local declarations -{{{-*/
+
+typedef struct class_id_key_t {
+    const iop_struct_t *master;
+    uint16_t            child_id;
+} class_id_key_t;
+
+static inline uint32_t
+class_id_key_hash(const qhash_t *h, const class_id_key_t *key)
+{
+    return mem_hash32(key, offsetof(class_id_key_t, child_id) + 2);
+}
+static inline bool
+class_id_key_equal(const qhash_t *h, const class_id_key_t *k1,
+                   const class_id_key_t *k2)
+{
+    return (k1->master == k2->master) && (k1->child_id == k2->child_id);
+}
+
+qm_kvec_t(class_id, class_id_key_t, const iop_struct_t *,
+          class_id_key_hash, class_id_key_equal);
+
+/*------ Local declarations -}}}-*/
+
+static struct {
+    qm_t(class_id) classes_by_id;
+} iop_g = {
+#define _G  iop_g
+    .classes_by_id = QM_INIT(class_id, _G.classes_by_id,      false),
+};
+
+/*------ iop_init -{{{-*/
+
 static void
 iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
 {
@@ -92,6 +125,7 @@ void iop_init(const iop_struct_t *desc, void *value)
     iop_init_fields(value, desc->fields, desc->fields + desc->fields_len);
 }
 
+/*------ iop_init -}}}-*/
 /*----- duplicating values -{{{-*/
 
 static size_t iop_dup_size(const iop_struct_t *desc, const void *val)
@@ -2153,6 +2187,60 @@ static void iop_signature_initialize(void)
 }
 
 /*------ Signature -}}}-*/
+/*------ Packages registration -{{{-*/
+
+static void iop_register_class(const iop_struct_t *desc)
+{
+    class_id_key_t key;
+    uint32_t pos;
+
+    p_clear(&key, 1);
+    key.master = desc;
+    key.child_id = desc->class_attrs->class_id;
+
+    while (key.master->class_attrs->parent) {
+        key.master = key.master->class_attrs->parent;
+    }
+
+    pos = __qm_put(class_id, &_G.classes_by_id, &key, desc, 0);
+    if (pos & QHASH_COLLISION) {
+        pos ^= QHASH_COLLISION;
+        if (_G.classes_by_id.values[pos] != desc) {
+            e_panic("conflicting class id %d: used by both '%*pM' and '%*pM'",
+                    desc->class_attrs->class_id, LSTR_FMT_ARG(desc->fullname),
+                    LSTR_FMT_ARG(_G.classes_by_id.values[pos]->fullname));
+        }
+    } else
+    if (desc->class_attrs->parent) {
+        /* Register the parent only if the structure was not registered yet,
+         * because if it is, we are sure the parent is already registered. */
+        iop_register_class(desc->class_attrs->parent);
+    }
+}
+
+void iop_register_packages(const iop_pkg_t **pkgs, int len)
+{
+    for (int i = 0; i < len; i++) {
+        const iop_pkg_t *pkg = pkgs[i];
+
+        for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
+            const iop_struct_t *desc = *it;
+            unsigned desc_flags = desc->flags;
+
+            if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+                iop_register_class(desc);
+            }
+        }
+    }
+}
+
+/*------ Packages registration -}}}-*/
+
+__attribute__((destructor))
+static void iop_shutdown(void)
+{
+    qm_wipe(class_id, &_G.classes_by_id);
+}
 
 iop_struct_t const iop__void__s = {
     .fullname   = LSTR_IMMED("Void"),

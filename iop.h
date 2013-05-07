@@ -787,6 +787,31 @@ enum iop_unpack_flags {
 };
 
 /* }}} */
+/* {{{ IOP packages registration */
+
+/** Register a list of packages.
+ *
+ * Registering a package is necessary if it contains classes; this should be
+ * done before trying to pack/unpack any class.
+ * This will also perform collision checks on class ids, which cannot be made
+ * at compile time.
+ *
+ * You can use IOP_REGISTER_PACKAGES to avoid the array construction.
+ */
+void iop_register_packages(const iop_pkg_t **pkgs, int len);
+
+/** Helper to register a list of packages.
+ *
+ * Just an helper to call iop_register_packages without having to build an
+ * array.
+ */
+#define IOP_REGISTER_PACKAGES(...)  \
+    do {                                                                     \
+        const iop_pkg_t *__pkgs[] = { __VA_ARGS__ };                         \
+        iop_register_packages(__pkgs, countof(__pkgs));                      \
+    } while (0)
+
+/* }}} */
 
 #include "iop-macros.h"
 #include "iop-xml.h"
