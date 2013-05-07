@@ -19,6 +19,8 @@ FORTIFY_SOURCE?=-D_FORTIFY_SOURCE=2
 ifndef SPARSE
     CFLAGS += $(if $(filter -D_FORTIFY_SOURCE=%,$(ADD_CFLAGS)),,$(FORTIFY_SOURCE))
 endif
+CFLAGS += -fno-omit-frame-pointer
+CXXFLAGS += -fno-omit-frame-pointer
 LDFLAGS += -rdynamic
 
 clang-analyzer: __setup_forward
