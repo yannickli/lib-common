@@ -624,44 +624,95 @@ const void *wah_add_unaligned(wah_t *map, const uint8_t *src, uint64_t count)
 }
 
 static
+void wah_add_literal(wah_t *map, const uint8_t *src, uint64_t count)
+{
+    void *data;
+
+    wah_flatten_last_run(map);
+    *wah_last_run_count(map) += count / 4;
+
+    data = qv_growlen(wah_word, &map->data, count / 4);
+    memcpy(data, src, count);
+    map->len    += count * 8;
+    map->active += membitcount(src, count);
+}
+
+static
 void wah_add_aligned(wah_t *map, const uint8_t *src, uint64_t count)
 {
-    map->len += count;
-    while (count > 0) {
-        int bits;
-        union {
-            struct {
-#if __BYTE_ORDER == __BIG_ENDIAN
-                uint32_t high;
-                uint32_t low;
-#else
-                uint32_t low;
-                uint32_t high;
-#endif
-            };
-            uint64_t val;
-        } word;
-        src = wah_read_word(src, count, &word.val, &bits);
-        count -= bits;
-        map->active += bitcount64(word.val);
-        map->pending = word.low;
-        if (bits == 64) {
-            if (word.low == word.high) {
-                wah_push_pending(map, 2);
-            } else {
-                wah_push_pending(map, 1);
-                map->pending = word.high;
-                wah_push_pending(map, 1);
-            }
-        } else
-        if (bits >= 32) {
-            wah_push_pending(map, 1);
-            map->pending = word.high;
-        } else {
-            assert (count == 0);
+    bool literal = false;
+    bool val     = false;
+    const uint8_t *from = src;
+    uint64_t exp_len = map->len + count;
+
+    while (count >= 32) {
+        bool previous_literal = literal;
+        bool previous_val     = val;
+
+        switch (get_unaligned_le32(src)) {
+          case 0:
+            literal = false;
+            val     = false;
+            break;
+
+          case UINT32_MAX:
+            literal = false;
+            val     = true;
+            break;
+
+          default:
+            literal = true;
+            val     = false;
+            break;
         }
+
+        if (src != from
+        &&  (literal != previous_literal || val != previous_val))
+        {
+            if (previous_literal) {
+                wah_add_literal(map, from, src - from);
+            } else
+            if (previous_val) {
+                wah_add1s(map, 8 * (src - from));
+            } else {
+                wah_add0s(map, 8 * (src - from));
+            }
+            wah_check_invariant(map);
+            assert (map->len == exp_len - count);
+            from = src;
+        }
+        src   += 4;
+        count -= 32;
     }
+    if (src != from) {
+        if (literal) {
+            wah_add_literal(map, from, src - from);
+        } else
+        if (val) {
+            wah_add1s(map, 8 * (src - from));
+        } else {
+            wah_add0s(map, 8 * (src - from));
+        }
+        wah_check_invariant(map);
+        assert (map->len == exp_len - count);
+        from = src;
+    }
+    map->pending = 0;
+
+    if (count > 0) {
+        uint64_t word = 0;
+        int bits;
+
+        wah_read_word(src, count, &word, &bits);
+        assert ((size_t)bits == count);
+        map->pending = word;
+        map->len    += bits;
+        map->active += bitcount32(map->pending);
+        wah_check_invariant(map);
+    }
+    assert (map->len == exp_len);
 }
+
 
 void wah_add(wah_t *map, const void *data, uint64_t count)
 {
