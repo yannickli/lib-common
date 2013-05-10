@@ -268,6 +268,13 @@ int __logger_is_traced(logger_t *logger, int level, const char *file,
 
 #else
 
+#define logger_is_traced(Logger, Level)  ({                                  \
+        const logger_t *__i_clogger = (Logger);                              \
+        logger_t *__i_logger = (logger_t *)__i_clogger;                      \
+                                                                             \
+        logger_has_level(__i_logger, (Level) + LOG_TRACE);                   \
+    })
+
 #define logger_trace(Logger, Level, Fmt, ...)                                \
     __LOGGER_LOG(Logger, LOG_TRACE + (Level),, Fmt, ##__VA_ARGS__)
 
