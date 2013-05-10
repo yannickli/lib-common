@@ -296,6 +296,9 @@ static int iop_std_test_struct(const iop_struct_t *st, void *v,
     Z_ASSERT_P(res = iop_dup(t_pool(), st, v),
                "IOP duplication error! (%s, %s)", st->fullname.s, info);
 
+    /* check equality */
+    Z_ASSERT(iop_equals(st, v, res));
+
     /* check hashes equality */
     iop_hash_sha1(st, res, buf2);
     Z_ASSERT_EQUAL(buf1, sizeof(buf1), buf2, sizeof(buf2),
@@ -306,6 +309,9 @@ static int iop_std_test_struct(const iop_struct_t *st, void *v,
     iop_copy(t_pool(), st, (void **)&res, NULL);
     Z_ASSERT_NULL(res);
     iop_copy(t_pool(), st, (void **)&res, v);
+
+    /* check equality */
+    Z_ASSERT(iop_equals(st, v, res));
 
     /* check hashes equality */
     iop_hash_sha1(st, res, buf2);
