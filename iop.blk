@@ -357,13 +357,29 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
         }
 
         if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
+            bool is_class = iop_field_is_class(fdesc);
+
             /* We need to recurse to compare structures & unions. */
             for (int i = 0; i < n; i++) {
-                const void *t1 = &IOP_FIELD(const uint8_t, r1, i * fdesc->size);
-                const void *t2 = &IOP_FIELD(const uint8_t, r2, i * fdesc->size);
+                const void *t1, *t2;
 
-                if (!__iop_equals(fdesc->u1.st_desc, t1, t2))
-                    return false;
+                if (is_class) {
+                    t1 = &IOP_FIELD(const uint8_t, r1, i * sizeof(void *));
+                    t2 = &IOP_FIELD(const uint8_t, r2, i * sizeof(void *));
+                    /* Non-optional class fields have to be dereferenced
+                     * (dereferencing of optional fields was already done just
+                     *  above).
+                     */
+                    if (fdesc->repeat != IOP_R_OPTIONAL) {
+                        t1  = *(void **)t1;
+                        t2  = *(void **)t2;
+                    }
+                    THROW_IF(!iop_equals(fdesc->u1.st_desc, t1, t2), false);
+                } else {
+                    t1 = &IOP_FIELD(const uint8_t, r1, i * fdesc->size);
+                    t2 = &IOP_FIELD(const uint8_t, r2, i * fdesc->size);
+                    THROW_IF(!__iop_equals(fdesc->u1.st_desc, t1, t2), false);
+                }
             }
         } else
         if ((1 << fdesc->type) & IOP_BLK_OK) {
@@ -390,6 +406,25 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
 bool iop_equals(const iop_struct_t *st, const void *v1, const void *v2)
 {
     if (v1 && v2) {
+        unsigned desc_flags = st->flags;
+
+        if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+            const iop_struct_t *st2 = *(const iop_struct_t **)v2;
+
+            st = *(const iop_struct_t **)v1;
+            if (st != st2) {
+                return false;
+            }
+
+            do {
+                if (!__iop_equals(st, v1, v2)) {
+                    return false;
+                }
+            } while ((st = st->class_attrs->parent));
+
+            return true;
+        }
+
         return __iop_equals(st, v1, v2);
     } else {
         return v1 == v2;
