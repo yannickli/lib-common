@@ -61,6 +61,13 @@ iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
             /* We can't handle the unions here since we don't know which field
              * has been selected */
             const iop_struct_t *desc = fdesc->u1.st_desc;
+            unsigned desc_flags = desc->flags;
+
+            if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+                /* Field is a mandatory class instance, and should be init as
+                 * an optional field: NULL pointer. */
+                continue;
+            }
 
             iop_init_fields(ptr, desc->fields, desc->fields +
                             desc->fields_len);
