@@ -143,7 +143,6 @@ static int iop_json_test_struct(const iop_struct_t *st, void *v,
     Z_HELPER_END;
 }
 
-__unused__
 static int iop_json_test_struct_invalid(const iop_struct_t *st, void *v,
                                         const char *info)
 {
