@@ -257,11 +257,15 @@ void mem_tool_disallow_memory(const void *mem, size_t len)
 
 void mem_tool_malloclike(const void *mem, size_t len, size_t rz, bool zeroed)
 {
-    if (!mem || !len) {
+    if (!mem) {
         return;
     }
 
     VALGRIND_MALLOCLIKE_BLOCK(mem, len, rz, zeroed);
+    if (!len) {
+        return;
+    }
+
     __asan_unpoison_memory_region(mem, len);
     if (rz) {
         __asan_poison_memory_region((const byte *)mem - rz, rz);
