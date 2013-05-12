@@ -125,6 +125,7 @@ static void blk_destroy(ring_pool_t *rp, ring_blk_t *blk)
     rp->ringsize -= blk->size;
     rp->nbpages--;
     dlist_remove(&blk->blist);
+    mem_tool_allow_memory(blk, blk->size + sizeof(*blk), false);
     ifree(blk, MEM_LIBC);
 }
 

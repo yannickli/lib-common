@@ -663,6 +663,7 @@ static void tlsf_pool_wipe(tlsf_pool_t *mp)
         dlist_remove(&a->arena_list);
         if (blk_of(a) == &mp->blk)
             continue;
+        mem_tool_allow_memory(blk_of(a), arena_size(a), true);
         munmap(blk_of(a), arena_size(a));
     }
 }
@@ -673,6 +674,7 @@ void tlsf_pool_delete(mem_pool_t **_mpp)
         tlsf_pool_t *mp = container_of(*_mpp, tlsf_pool_t, pool);
 
         tlsf_pool_wipe(mp);
+        mem_tool_allow_memory(mp, mp->pool_size, true);
         munmap(mp, mp->pool_size);
         *_mpp = NULL;
     }
