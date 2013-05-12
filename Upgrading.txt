@@ -73,7 +73,7 @@ Memory pools (Wed, 30 Jul 2008)
 -------------------------------
 
 * `mem-fifo-pool.h` is removed, merged into `mem-pool.h`.
-  You must replace your includes with `<lib-common/mem-pool.h>`.
+  You must replace your includes with `"mem-pool.h"`.
 * `mem_pool` is renamed `mem_pool_t`.
 * consistentely use `int` instead of `ssize_t` for memory pools, like we did
   with `malloc.
@@ -90,7 +90,7 @@ Error handling overhaul  (Thu, 10 Jul 2008)
 
 * File renamings:
   - `mem.h`, `macros.h`, `err_report.h` have disappeared. You must replace
-    your includes with `<lib-common/core.h>`
+    your includes with `"core.h"`
 
 * e_trace updates:
   - `e_verbosity_maxwatch` optimization was removed to allow simpler refactor.

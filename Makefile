@@ -30,6 +30,7 @@ core-version.c: scripts/version.sh FORCE
 	$(call fun/update-if-changed,$@+,$@)
 
 _CFLAGS  = $(libxml2_CFLAGS) $(openssl_CFLAGS)
+_CFLAGS += $(if $(LIBCOMMON_REPOSITORY),-DLIBCOMMON_REPOSITORY)
 _LIBS    = -lz -lrt -ldl -lpthread
 
 libcommon_SOURCES = \
@@ -198,22 +199,22 @@ zchk_SOURCES = zchk.c \
 	zchk-str.c \
 	zchk-time.c \
 	zchk-unix.c \
-	$/lib-common/iop/tstiop.a \
-	$/lib-common/libcommon.wa \
-	$/lib-common/time-lp-simple.a
+	$liop/tstiop.a \
+	$llibcommon.wa \
+	$ltime-lp-simple.a
 zchk_LIBS = $(libxml2_LIBS) $(openssl_LIBS)
 zchk_LDFLAGS = -rdynamic
 
 zchk-tstiop-plugin_SOURCES = \
-	$/lib-common/iop/tstiop-plugin.c \
-	$/lib-common/iop/tstiop.a
+	$liop/tstiop-plugin.c \
+	$liop/tstiop.a
 zchk-tstiop-plugin_LDFLAGS = -Wl,-z,defs
 
 ztst-httpd_SOURCES = \
 	ztst-httpd.c \
-	$/lib-common/iop/tstiop.a \
-	$/lib-common/libcommon.a \
-	$/lib-common/time-lp-simple.a
+	$liop/tstiop.a \
+	$llibcommon.a \
+	$ltime-lp-simple.a
 ztst-httpd_LIBS = $(libxml2_LIBS)
 endif
 
@@ -233,29 +234,29 @@ ztst-iprintf-speed_SOURCES = ztst-iprintf-speed.c libcommon.a
 
 ztst-qps_SOURCES = \
 	ztst-qps.blk \
-	$/lib-common/libcommon.a \
-	$/lib-common/time-lp-simple.a
+	$llibcommon.a \
+	$ltime-lp-simple.a
 
 ztst-qpscheck_SOURCES = \
 	ztst-qpscheck.blk \
-	$/lib-common/libcommon.a \
-	$/lib-common/time-lp-simple.a
+	$llibcommon.a \
+	$ltime-lp-simple.a
 
 ztst-qpsstress_SOURCES = \
 	ztst-qpsstress.blk \
-	$/lib-common/libcommon.a \
-	$/lib-common/time-lp-simple.a
+	$llibcommon.a \
+	$ltime-lp-simple.a
 ztst-qpsstress_LIBS = -lm
 
 ztst-hattrie_SOURCES = \
 	ztst-hattrie.blk \
-	$/lib-common/libcommon.a \
-	$/lib-common/time-lp-simple.a
+	$llibcommon.a \
+	$ltime-lp-simple.a
 
 zgcd-bench_SOURCES = \
 	zgcd-bench.c \
-	$/lib-common/libcommon.a \
-	$/lib-common/time-lp-simple.a
+	$llibcommon.a \
+	$ltime-lp-simple.a
 
 ifneq (SunOS,$(shell uname -s))
 DISTCLEANFILES=Upgrading.html

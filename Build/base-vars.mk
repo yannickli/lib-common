@@ -16,7 +16,15 @@ ifndef .FEATURES
 endif
 
 var/toolsdir  := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
-var/srcdir    := $(realpath $(var/toolsdir)/../..)
+
+# Quite hacky way to detect if we are a subdirectory or not.
+ifneq ($(shell grep 'base\.mk' $(var/toolsdir)/../../Makefile 2>/dev/null),)
+	var/srcdir := $(realpath $(var/toolsdir)/../..)
+	var/libcommon := $(var/srcdir)/lib-common
+else
+	var/srcdir := $(realpath $(var/toolsdir)/..)
+	var/libcommon := $(var/srcdir)
+endif
 var/cfgdir    ?= $(realpath $(var/toolsdir)/../Config)
 var/profile   := $(or $(P),$(PROFILE),$(BUILDFOR),default)
 var/hostname  ?= $(shell hostname)
@@ -24,6 +32,7 @@ var/builddir  ?= $(var/srcdir)/.build-$(var/profile)-$(var/hostname)
 /             := $(var/srcdir)/
 !             := $(var/builddir)/
 ~             := .build-$(var/profile)-$(var/hostname)/
+l             := $(var/libcommon)/
 export var/hostname
 
 var/verbose   := $(V)$(VERBOSE)
@@ -103,6 +112,10 @@ endif
 
 1D = $(patsubst %/,%,$(dir $1))
 2D = $(patsubst %/,%,$(dir $1))
+
+# 1V is the prefix to use for the directory variables
+1DV = $(if $(patsubst .%,%,$(1D)),$(1D)/,)
+2DV = $(if $(patsubst .%,%,$(2D)),$(2D)/,)
 
 1F = $(notdir $1)
 2F = $(notdir $1)

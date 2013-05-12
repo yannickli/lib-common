@@ -14,7 +14,7 @@
 define fun/common-depends
 $2: $(1D)/Makefile $(var/toolsdir)/*.mk $(var/toolsdir)/_local_targets.sh
 $2: $(var/cfgdir)/*.mk $(var/cfgdir)/cflags.sh
-$2: $(foreach s,$3,$($s_DEPENDS)) | $($(1D)/_DEPENDS)
+$2: $(foreach s,$3,$($s_DEPENDS)) | $($(1DV)_DEPENDS)
 endef
 
 ifeq (,$(NOCOMPRESS))
@@ -74,9 +74,9 @@ endef
 
 # ext/expand/c <PHONY>,<TARGET>,<C>,<NS>,<OBJ>
 define ext/expand/c
-$5: NOCHECK_=$$(NOCHECK)$(or $(findstring -analyzer,$(CC)),$(findstring clang,$(CC)))$($(1D)/_NOCHECK)$($1_NOCKECK)$$($3_NOCHECK)
-$5: FLAGS_=$($(1D)/_CFLAGS) $($1_CFLAGS) $($3_CFLAGS)
-$5: CLANGFLAGS_=$($(1D)/_CLANGFLAGS) $($1_CLANGFLAGS) $($3_CLANGFLAGS) $$(CLANGFLAGS)
+$5: NOCHECK_=$$(NOCHECK)$(or $(findstring -analyzer,$(CC)),$(findstring clang,$(CC)))$($(1DV)_NOCHECK)$($1_NOCKECK)$$($3_NOCHECK)
+$5: FLAGS_=$($(1DV)_CFLAGS) $($1_CFLAGS) $($3_CFLAGS)
+$5: CLANGFLAGS_=$($(1DV)_CLANGFLAGS) $($1_CLANGFLAGS) $($3_CLANGFLAGS) $$(CLANGFLAGS)
 $5: $3 | _generated
 	mkdir -p $$(@D)
 	$$(if $$(NOCHECK_),,$(msg/CHECK.c) $3)
@@ -90,7 +90,7 @@ $5: $3 | _generated
 endef
 
 define ext/rule/c
-tmp/$2/ns   := $(if $($(1D)/_CFLAGS)$($1_CFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))$4
+tmp/$2/ns   := $(if $($(1DV)_CFLAGS)$($1_CFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))$4
 tmp/$2/objs := $$(patsubst %,$~%$$(tmp/$2/ns)$(OBJECTEXT).o,$3)
 $2: $$(tmp/$2/objs)
 $$(foreach c,$3,$$(eval $$(call fun/do-once,ext/expand/c/$$c$$(tmp/$2/ns),\
@@ -103,9 +103,9 @@ endef
 
 # ext/expand/c <PHONY>,<TARGET>,<C>,<NS>,<OBJ>
 define ext/expand/cc
-$5: NOCHECK_=$$(NOCHECK)$(or $(findstring -analyzer,$(CXX)),$(findstring clang,$(CXX)))$($(1D)/_NOCHECK)$($1_NOCKECK)$$($3_NOCHECK)
-$5: FLAGS_=$($(1D)/_CXXFLAGS) $($1_CXXFLAGS) $($3_CXXFLAGS)
-$5: CLANGXXFLAGS_=$($(1D)/_CLANGXXFLAGS) $($1_CLANGXXFLAGS) $($3_CLANGXXFLAGS) $$(CLANGXXFLAGS)
+$5: NOCHECK_=$$(NOCHECK)$(or $(findstring -analyzer,$(CXX)),$(findstring clang,$(CXX)))$($(1DV)_NOCHECK)$($1_NOCKECK)$$($3_NOCHECK)
+$5: FLAGS_=$($(1DV)_CXXFLAGS) $($1_CXXFLAGS) $($3_CXXFLAGS)
+$5: CLANGXXFLAGS_=$($(1DV)_CLANGXXFLAGS) $($1_CLANGXXFLAGS) $($3_CLANGXXFLAGS) $$(CLANGXXFLAGS)
 $5: $3 | _generated
 	mkdir -p $$(@D)
 	$$(if $$(NOCHECK_),,$(msg/CHECK.C) $3)
@@ -119,7 +119,7 @@ $5: $3 | _generated
 endef
 
 define ext/rule/cc
-tmp/$2/ns   := $$(if $($(1D)/_CXXFLAGS)$($1_CXXFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))$4
+tmp/$2/ns   := $$(if $($(1DV)_CXXFLAGS)$($1_CXXFLAGS),.$(2F)).$(call fun/path-mangle,$(1D))$4
 tmp/$2/objs := $$(patsubst %,$~%$$(tmp/$2/ns)$(OBJECTEXT).o,$3)
 $2: $$(tmp/$2/objs)
 $$(foreach c,$3,$$(eval $$(call fun/do-once,ext/expand/c/$$c$$(tmp/$2/ns),\
@@ -194,7 +194,7 @@ $1.pic.a:  $~$1.pic.a
 $1.pic.wa: $~$1.pic.wa
 .PHONY: $1.a $1.wa $1.pic.a $1.pic.wa
 
-$(1D)/all:: $~$1.a
+$(1DV)all:: $~$1.a
 $(eval $(call fun/foreach-ext-rule,$1,$~$1.a,$($1_SOURCES)))
 $~$1.a:
 	$(msg/LINK.a) $$(@R)
@@ -213,7 +213,7 @@ define rule/sharedlib
 tmp/$1/sover := $$(if $$(word 1,$$($1_SOVERSION)),.$$(word 1,$$($1_SOVERSION)))
 tmp/$1/build := $$(tmp/$1/sover)$$(if $$(word 2,$$($1_SOVERSION)),.$$(word 2,$$($1_SOVERSION)))
 
-$(1D)/all:: $1.so
+$(1DV)all:: $1.so
 $1.so: $~$1.so$$(tmp/$1/build) FORCE
 	$$(if $$(NOLINK),:,$(FASTCP) $$< $/$$@$$(tmp/$1/build))
 	$$(if $$(tmp/$1/build),cd $/$$(@D) && ln -sf $$(@F)$$(tmp/$1/build) $$(@F))
@@ -223,19 +223,19 @@ $$(eval $$(call fun/foreach-ext-rule,$1,$~$1.so$$(tmp/$1/build),$$($1_SOURCES),.
 $~$1.so$$(tmp/$1/build): _L=$(or $($1_LINKER),$(CC))
 $~$1.so$$(tmp/$1/build):
 	$(msg/LINK.c) $$(@R)
-	$$(if $$(NOLINK),:,$$(_L) $(CFLAGS) $($(1D)/_CFLAGS) $($1_CFLAGS) \
+	$$(if $$(NOLINK),:,$$(_L) $(CFLAGS) $($(1DV)_CFLAGS) $($1_CFLAGS) \
 	    -fPIC -shared -o $$@ $$(filter %.o %.oo,$$^) \
 	    $$(addprefix -Wl$$(var/comma)--version-script$$(var/comma),$$(filter %.ld,$$^)) \
-	    $$(LDFLAGS) $$($(1D)/_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
+	    $$(LDFLAGS) $$($(1DV)_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) \
 		$$(if $$(filter clang++,$$(_L)),-lstdc++) \
-	    $(LIBS) $($(1D)/_LIBS) $($(1D)_LIBS) $($1_LIBS) \
+	    $(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS) \
 	    -Wl,-soname,$(1F).so$$(tmp/$1/sover))
 	$$(if $$(NOLINK),:,$$(if $$(tmp/$1/build),ln -sf $/$$@ $~$1.so))
 	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
 
-$(1D)/clean::
+$(1DV)clean::
 	$(RM) $1.so*
 endef
 
@@ -250,20 +250,20 @@ $(eval $(call fun/foreach-ext-rule,$1,$~$1.exe,$($1_SOURCES),$4))
 $~$1.exe: _L=$(or $($1_LINKER),$(CC))
 $~$1.exe:
 	$(msg/LINK.c) $$(@R)
-	$$(if $$(NOLINK),:,$$(_L) $(CFLAGS) $($(1D)/_CFLAGS) $($1_CFLAGS) \
+	$$(if $$(NOLINK),:,$$(_L) $(CFLAGS) $($(1DV)_CFLAGS) $($1_CFLAGS) \
 	    -o $$@ $$(filter %.o %.oo %.ld,$$^) \
-	    $$(LDFLAGS) $$($(1D)/_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
+	    $$(LDFLAGS) $$($(1DV)_LDFLAGS) $$($(1D)_LDFLAGS) $$($1_LDFLAGS) \
 	    -Wl,--whole-archive $$(filter %.wa,$$^) \
 	    -Wl,--no-whole-archive $$(filter %.a,$$^) \
 		$$(if $$(filter clang++,$$(_L)),-lstdc++) \
-	    $(LIBS) $($(1D)/_LIBS) $($(1D)_LIBS) $($1_LIBS))
+	    $(LIBS) $($(1DV)_LIBS) $($(1D)_LIBS) $($1_LIBS))
 	$$(if $$(NOLINK),:,$$(call fun/bin-compress,$$@))
-$(1D)/clean::
+$(1DV)clean::
 	$(RM) $1$(EXEEXT)
 endef
 
 define rule/program
-$(1D)/all:: $1$(EXEEXT)
+$(1DV)all:: $1$(EXEEXT)
 $(eval $(call rule/exe,$1,$2,$3))
 endef
 
@@ -271,7 +271,7 @@ endef
 #[ _DATAS ]###########################################################{{{#
 
 define rule/datas
-$(1D)/all:: $1
+$(1DV)all:: $1
 $(eval $(call fun/foreach-ext-rule,$1,$1,$($1_SOURCES)))
 endef
 
@@ -287,14 +287,14 @@ $~$1: $3
 	dblatex -q -r $/Documentation/dblatex/highlight.pl \
 		-p $/Documentation/dblatex/asciidoc-dblatex.xsl \
 		--param=doc.lot.show=figure,table \
-		$(DBLATEXFLAGS) $($(1D)/_DBLATEXFLAGS) $($1_DBLATEXFLAGS) \
+		$(DBLATEXFLAGS) $($(1DV)_DBLATEXFLAGS) $($1_DBLATEXFLAGS) \
 		-I $(1D) -T $/Documentation/dblatex/intersec.specs $3 -o $$@+
 	$(MV) $$@+ $$@ && chmod a-w $$@
 endef
 
 define ext/expand/adoc
 ifeq ($(filter %.inc.adoc,$3),)
-$~$3.xml: FL_=$($(1D)/_ASCIIDOCFLAGS) $($1_ASCIIDOCFLAGS)
+$~$3.xml: FL_=$($(1DV)_ASCIIDOCFLAGS) $($1_ASCIIDOCFLAGS)
 $~$3.xml: $3 $(3:%.adoc=%-docinfo.xml)
 	$(msg/DOC.adoc) $3
 	asciidoc -b docbook -a docinfo -a toc $$(FL_) -f $(var/cfgdir)/asciidoc.conf \
@@ -315,12 +315,12 @@ $1: $~$1 FORCE
 
 $(eval $(call fun/foreach-ext-rule-nogen,$1,$~$1,$(if $($1_SOURCES),$($1_SOURCES),$(1:%.pdf=%.adoc)),$4))
 
-$(1D)/clean::
+$(1DV)clean::
 	$(RM) $1
 endef
 
 define rule/docs
-$(1D)/doc: $1
+$(1DV)doc: $1
 $(eval $(call rule/pdf,$1,$2,$3))
 endef
 

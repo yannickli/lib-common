@@ -32,3 +32,5 @@
 
 /common.so
 /core-iop-plugin.so
+
+/.build*

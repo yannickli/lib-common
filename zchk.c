@@ -649,6 +649,10 @@ Z_GROUP_EXPORT(bit_stream)
 int main(int argc, const char **argv)
 {
     z_setup(argc, argv);
+#ifdef LIBCOMMON_REPOSITORY
+    z_register_exports("");
+#else
     z_register_exports("lib-common/");
+#endif
     return z_run();
 }
