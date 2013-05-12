@@ -829,6 +829,19 @@ iop_opt_hash(struct iop_hash_ctx *ctx, const iop_field_t *f, const void *v)
     }
 }
 
+static void __iop_hash(struct iop_hash_ctx *ctx, const iop_struct_t *st,
+                       const uint8_t *v);
+
+static inline void
+__iop_hash_class(struct iop_hash_ctx *ctx, const iop_struct_t *st,
+                 const uint8_t *v)
+{
+    st = *(const iop_struct_t **)v;
+    do {
+        __iop_hash(ctx, st, v);
+    } while ((st = st->class_attrs->parent));
+}
+
 static void
 __iop_hash(struct iop_hash_ctx *ctx, const iop_struct_t *st, const uint8_t *v)
 {
@@ -845,6 +858,7 @@ __iop_hash(struct iop_hash_ctx *ctx, const iop_struct_t *st, const uint8_t *v)
 
     for (; fdesc < end; fdesc++) {
         const void *r = v + fdesc->data_offs;
+        bool is_class = false;
         int n = 1;
 
         iop_hash_update_u16(ctx, fdesc->tag);
@@ -922,9 +936,24 @@ __iop_hash(struct iop_hash_ctx *ctx, const iop_struct_t *st, const uint8_t *v)
             break;
           case IOP_T_UNION:
           case IOP_T_STRUCT:
+            is_class = iop_field_is_class(fdesc);
             for (int i = 0; i < n; i++) {
-                __iop_hash(ctx, fdesc->u1.st_desc,
-                           &IOP_FIELD(const uint8_t, r, i * fdesc->size));
+                if (is_class) {
+                    const uint8_t *v2;
+
+                    v2 = &IOP_FIELD(const uint8_t, r, i * sizeof(void *));
+                    /* Non-optional class fields have to be dereferenced
+                     * (dereferencing of optional fields was already done just
+                     *  above).
+                     */
+                    if (fdesc->repeat != IOP_R_OPTIONAL) {
+                        v2  = *(void **)v2;
+                    }
+                    __iop_hash_class(ctx, fdesc->u1.st_desc, v2);
+                } else {
+                    __iop_hash(ctx, fdesc->u1.st_desc,
+                               &IOP_FIELD(const uint8_t, r, i * fdesc->size));
+                }
             }
             break;
           case IOP_T_XML:
@@ -951,7 +980,13 @@ void iop_hash(const iop_struct_t *st, const void *v,
         .hfun = hfun,
         .ctx  = hctx,
     };
-    __iop_hash(&ctx, st, v);
+    unsigned desc_flags = st->flags;
+
+    if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+        __iop_hash_class(&ctx, st, v);
+    } else {
+        __iop_hash(&ctx, st, v);
+    }
     if (ctx.pos)
         hfun(hctx, ctx.buf, ctx.pos);
 }
