@@ -97,7 +97,7 @@ static void mem_page_delete(mem_fifo_pool_t *mfp, mem_page_t **pagep)
     if (page) {
         mfp->nb_pages--;
         mfp->map_size -= page->size;
-        mem_tool_allow_memory(page, page->size + sizeof(mem_page_t), false);
+        mem_tool_allow_memory(page, page->size + sizeof(mem_page_t), true);
         munmap(page, page->size + sizeof(mem_page_t));
     }
     *pagep = NULL;

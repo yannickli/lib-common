@@ -56,6 +56,7 @@ static void blk_destroy(mem_stack_pool_t *sp, mem_stack_blk_t *blk)
     sp->stacksize -= blk->size;
     sp->nbpages--;
     dlist_remove(&blk->blk_list);
+    mem_tool_allow_memory(blk, blk->size + sizeof(*blk), false);
     ifree(blk, MEM_LIBC);
 }
 

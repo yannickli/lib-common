@@ -103,7 +103,18 @@ logger_t *logger_new(logger_t *parent, lstr_t name, int default_level)
 
 void logger_wipe(logger_t *logger)
 {
-    assert (dlist_is_empty(&logger->children) || !logger->children.next);
+#ifndef NDEBUG
+    if (!dlist_is_empty(&logger->children) && logger->children.next) {
+        logger_t *child;
+
+        dlist_for_each_entry(child, &logger->children, siblings) {
+            logger_error(&_G.root_logger, "leaked logger %*pM",
+                         LSTR_FMT_ARG(child->full_name));
+        }
+        logger_panic(&_G.root_logger, "cannot wipe logger %*pM",
+                     LSTR_FMT_ARG(logger->full_name));
+    }
+#endif
 
     if (logger->siblings.next) {
         spin_lock(&logger->parent->children_lock);
