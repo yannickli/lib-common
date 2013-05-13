@@ -97,6 +97,14 @@ ruby_var() {
     echo $(ruby -rrbconfig -e "puts(RbConfig::CONFIG['$1'] || RbConfig::CONFIG['$2'] || '')")
 }
 
+check_iopc() {
+    IOPC_VER=2.4.3
+    if ! prereq "$IOPC_VER" "$(iopc --version)"; then
+        warn "iopc version $IOPC_VER required, update your tools"
+    fi
+    setenv "IOPC" "$(which iopc)"
+}
+
 # }}}
 
 while test $# != 0; do

@@ -115,9 +115,9 @@ ext/gen/blk = $(call fun/patsubst-filt,%.blk,%.blk.c,$1)
 
 define ext/expand/blk
 $(foreach t,$3,$(eval $3.c_NOCHECK = block))
-$3.c: FL_=$($(1D)/_CFLAGS) $($1_CFLAGS) $($3.c_CFLAGS)
-$3.c: FLAGS_=$($(1D)/_CFLAGS) $($1_CFLAGS) $($3_CFLAGS)
-$3.c: CLANGFLAGS_=$($(1D)/_CLANGFLAGS) $($1_CLANGFLAGS) $($3_CLANGFLAGS) $$(CLANGFLAGS)
+$3.c: FL_=$($(1DV)_CFLAGS) $($1_CFLAGS) $($3.c_CFLAGS)
+$3.c: FLAGS_=$($(1DV)_CFLAGS) $($1_CFLAGS) $($3_CFLAGS)
+$3.c: CLANGFLAGS_=$($(1DV)_CLANGFLAGS) $($1_CLANGFLAGS) $($3_CLANGFLAGS) $$(CLANGFLAGS)
 $3.c: $3 $(CLANG) | _generated_hdr
 	$(msg/COMPILE) " BLK" $3
 	$(CLANG) $$(CLANGFLAGS_) $$(filter-out -D_FORTIFY_SOURCE=%,$$(FLAGS_)) \
@@ -139,9 +139,9 @@ ext/gen/blkk = $(call fun/patsubst-filt,%.blkk,%.blkk.cc,$1)
 
 define ext/expand/blkk
 $(foreach t,$3,$(eval $3.cc_NOCHECK = block))
-$3.cc: FL_=$($(1D)/_CXXLAGS) $($1_CXXLAGS) $($3.c_CXXLAGS)
-$3.cc: FLAGS_=$($(1D)/_CXXFLAGS) $($1_CXXFLAGS) $($3_CXXFLAGS)
-$3.cc: CLANGXXFLAGS_=$($(1D)/_CLANGXXFLAGS) $($1_CLANGXXFLAGS) $($3_CLANGXXFLAGS) $$(CLANGXXFLAGS)
+$3.cc: FL_=$($(1DV)_CXXLAGS) $($1_CXXLAGS) $($3.c_CXXLAGS)
+$3.cc: FLAGS_=$($(1DV)_CXXFLAGS) $($1_CXXFLAGS) $($3_CXXFLAGS)
+$3.cc: CLANGXXFLAGS_=$($(1DV)_CLANGXXFLAGS) $($1_CLANGXXFLAGS) $($3_CLANGXXFLAGS) $$(CLANGXXFLAGS)
 $3.cc: $3 $(CLANGXX) | _generated_hdr
 	$(msg/COMPILE) " BLK" $3
 	$(CLANGXX) $$(CLANGXXFLAGS_) $$(filter-out -D_FORTIFY_SOURCE=%,$$(FLAGS_)) \

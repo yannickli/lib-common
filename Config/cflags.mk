@@ -67,15 +67,15 @@ endif
 include $!cc-$(CC_BASE)-flags.mk
 include $!cxx-$(CXX_BASE)-flags.mk
 
-CFLAGS       += -I$/lib-common/compat -I$/
-CXXFLAGS     += -I$/lib-common/compat -I$/
+CFLAGS       += -I$lcompat -I$/
+CXXFLAGS     += -I$lcompat -I$/
 CXXFLAGS     += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
 
-CLANGFLAGS          += -I$/lib-common/compat -I$/
-CLANGREWRITEFLAGS   += -I$/lib-common/compat -I$/
-CLANGXXFLAGS        += -I$/lib-common/compat -I$/
+CLANGFLAGS          += -I$lcompat -I$/
+CLANGREWRITEFLAGS   += -I$lcompat -I$/
+CLANGXXFLAGS        += -I$lcompat -I$/
 CLANGXXFLAGS        += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
-CLANGXXREWRITEFLAGS += -I$/lib-common/compat -I$/
+CLANGXXREWRITEFLAGS += -I$lcompat -I$/
 CLANGXXREWRITEFLAGS += -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS
 
 ifeq ($(NOASSERT),1)
