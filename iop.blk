@@ -135,7 +135,9 @@ void iop_init(const iop_struct_t *desc, void *value)
 /*------ iop_init -}}}-*/
 /*----- duplicating values -{{{-*/
 
-static size_t iop_dup_size(const iop_struct_t *desc, const void *val)
+static size_t iop_dup_size(const iop_struct_t *desc, const void *val);
+
+static size_t __iop_dup_size(const iop_struct_t *desc, const void *val)
 {
     const iop_field_t *fdesc;
     const iop_field_t *end;
@@ -151,12 +153,18 @@ static size_t iop_dup_size(const iop_struct_t *desc, const void *val)
 
     for (; fdesc < end; fdesc++) {
         const void *ptr = (char *)val + fdesc->data_offs;
+        bool is_class = iop_field_is_class(fdesc);
         int n = 1;
 
         if (fdesc->repeat == IOP_R_REPEATED) {
             n    = ((lstr_t *)ptr)->len;
             ptr  = ((lstr_t *)ptr)->data;
-            len += ROUND_UP(n * fdesc->size, 8);
+            if (is_class) {
+                /* Repeated fields of type class are double-pointed */
+                len += ROUND_UP(n * sizeof(void *), 8);
+            } else {
+                len += ROUND_UP(n * fdesc->size, 8);
+            }
         }
 
         if (!((1 << fdesc->type) & IOP_BLK_OK)) /* DATA,STRING,STRUCT,UNION */
@@ -166,15 +174,36 @@ static size_t iop_dup_size(const iop_struct_t *desc, const void *val)
             if (!iop_value_has(fdesc, ptr))
                 continue;
             if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
-                ptr  = *(void **)ptr;
-                len += ROUND_UP(fdesc->size, 8);
+                ptr = *(void **)ptr;
+                if (is_class) {
+                    /* Do not take the field size, but the size of the
+                     * actually instanciated class */
+                    len += ROUND_UP((*(const iop_struct_t **)ptr)->size, 8);
+                } else {
+                    len += ROUND_UP(fdesc->size, 8);
+                }
             }
         }
 
         if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
             for (int j = 0; j < n; j++) {
-                const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
-                len += iop_dup_size(fdesc->u1.st_desc, v);
+                const void *v;
+
+                if (is_class) {
+                    v = &IOP_FIELD(const char, ptr, j * sizeof(void *));
+                    if (fdesc->repeat != IOP_R_OPTIONAL) {
+                        /* Non-optional class fields have to be dereferenced
+                         * (dereferencing of optional fields was already done
+                         *  just above).
+                         */
+                        v = *(void **)v;
+                        len += ROUND_UP((*(const iop_struct_t **)v)->size, 8);
+                    }
+                    len += iop_dup_size(fdesc->u1.st_desc, v);
+                } else {
+                    v = &IOP_FIELD(const char, ptr, j * fdesc->size);
+                    len += __iop_dup_size(fdesc->u1.st_desc, v);
+                }
             }
         } else {
             for (int j = 0; j < n; j++) {
@@ -186,10 +215,31 @@ static size_t iop_dup_size(const iop_struct_t *desc, const void *val)
     return len;
 }
 
+static size_t iop_dup_size(const iop_struct_t *desc, const void *val)
+{
+    unsigned desc_flags = desc->flags;
+
+    if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+        size_t len = 0;
+
+        desc = *(const iop_struct_t **)val;
+        do {
+            len += __iop_dup_size(desc, val);
+        } while ((desc = desc->class_attrs->parent));
+
+        return len;
+    } else {
+        return __iop_dup_size(desc, val);
+    }
+}
+
 static uint8_t *realign(uint8_t *ptr)
 {
     return (uint8_t *)ROUND_UP((uintptr_t)ptr, 8);
 }
+
+static uint8_t *__iop_copy_class(const iop_struct_t *st, uint8_t *dst,
+                                 void *wval, const void *rval);
 
 static uint8_t *
 __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
@@ -208,13 +258,19 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
     for (; fdesc < end; fdesc++) {
         const void *rp = (char *)rval + fdesc->data_offs;
         const void *wp = (char *)wval + fdesc->data_offs;
+        bool is_class = iop_field_is_class(fdesc);
         int n = 1;
 
         if (fdesc->repeat == IOP_R_REPEATED) {
             n   = ((lstr_t *)rp)->len;
             rp  = ((lstr_t *)rp)->data;
             wp  = ((lstr_t *)wp)->data = dst;
-            dst = realign(mempcpy(dst, rp, n * fdesc->size));
+            if (is_class) {
+                /* Repeated fields of type class are double-pointed */
+                dst = realign(dst + n * sizeof(void *));
+            } else {
+                dst = realign(mempcpy(dst, rp, n * fdesc->size));
+            }
         }
 
         if (!((1 << fdesc->type) & IOP_BLK_OK)) /* DATA,STRING,STRUCT,UNION */
@@ -224,18 +280,37 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
             if (!iop_value_has(fdesc, rp))
                 continue;
             if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
-                rp  = *(void **)rp;
-                wp  = *(void **)wp = dst;
-                dst = realign(mempcpy(dst, rp, fdesc->size));
+                rp = *(void **)rp;
+                wp = *(void **)wp = dst;
+                if (!is_class) {
+                    /* Will be done in __iop_copy_class for classes */
+                    dst = realign(mempcpy(dst, rp, fdesc->size));
+                }
             }
         }
 
         if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
             for (int j = 0; j < n; j++) {
-                const void *rv = &IOP_FIELD(const char, rp, j * fdesc->size);
-                void *wv = &IOP_FIELD(char, wp, j * fdesc->size);
+                const void *rv;
+                void *wv;
 
-                dst = __iop_copy(fdesc->u1.st_desc, dst, wv, rv);
+                if (is_class) {
+                    rv = &IOP_FIELD(const char, rp, j * sizeof(void *));
+                    wv = &IOP_FIELD(char, wp, j * sizeof(void *));
+                    if (fdesc->repeat != IOP_R_OPTIONAL) {
+                        /* Non-optional class fields have to be dereferenced
+                         * (dereferencing of optional fields was already done
+                         *  just above).
+                         */
+                        rv = *(void **)rv;
+                        wv = *(void **)wv = dst;
+                    }
+                    dst = __iop_copy_class(fdesc->u1.st_desc, dst, wv, rv);
+                } else {
+                    rv = &IOP_FIELD(const char, rp, j * fdesc->size);
+                    wv = &IOP_FIELD(char, wp, j * fdesc->size);
+                    dst = __iop_copy(fdesc->u1.st_desc, dst, wv, rv);
+                }
             }
         } else
         if (fdesc->type == IOP_T_STRING || fdesc->type == IOP_T_XML) {
@@ -261,14 +336,32 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
     return dst;
 }
 
+static uint8_t *__iop_copy_class(const iop_struct_t *st, uint8_t *dst,
+                                 void *wval, const void *rval)
+{
+    st = *(const iop_struct_t **)rval;
+    dst = realign(mempcpy(dst, rval, st->size));
+
+    do {
+        dst = __iop_copy(st, dst, wval, rval);
+    } while ((st = st->class_attrs->parent));
+
+    return dst;
+}
+
 void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v)
 {
     size_t sz;
     uint8_t *dst, *res;
+    unsigned desc_flags = st->flags;
 
     RETHROW_P(v);
 
-    sz = ROUND_UP(st->size, 8) + iop_dup_size(st, v);
+    if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+        st = *(const iop_struct_t **)v;
+    }
+
+    sz = ROUND_UP(st->size, 8) + __iop_dup_size(st, v);
     res = mp ? mp->malloc(mp, sz, MEM_RAW) : imalloc(sz, MEM_LIBC | MEM_RAW);
     dst = realign(mempcpy(res, v, st->size));
     dst = __iop_copy(st, dst, res, v);
@@ -280,6 +373,7 @@ void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp, const void *v
 {
     size_t sz;
     uint8_t *dst, *res = *outp;
+    unsigned desc_flags = st->flags;
 
     if (unlikely(!v)) {
         if (mp) {
@@ -291,7 +385,11 @@ void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp, const void *v
         return;
     }
 
-    sz = ROUND_UP(st->size, 8) + iop_dup_size(st, v);
+    if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+        st = *(const iop_struct_t **)v;
+    }
+
+    sz = ROUND_UP(st->size, 8) + __iop_dup_size(st, v);
 
     if (mp) {
         res = mp->realloc(mp, res, 0, sz, MEM_RAW);
