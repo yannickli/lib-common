@@ -80,11 +80,19 @@ export Z_HARNESS=1
 export Z_TAG_SKIP="${Z_TAG_SKIP:-slow upgrade}"
 export Z_MODE="${Z_MODE:-fast}"
 export ASAN_OPTIONS="${ASAN_OPTIONS:-handle_segv=0}"
+
+TAGS=($Z_TAG_SKIP)
+for TAG in ${TAGS[@]}
+do
+     BEHAVE_FLAGS="${BEHAVE_FLAGS} --tags=-$TAG"
+done
+export BEHAVE_FLAGS=$BEHAVE_FLAGS
+
 while read t; do
     say_color info "starting suite $t..."
     case ./"$t" in
         */behave)
-            res="$pybin -m z  $BEHAVE_FLAGS --format z --no-summary --tags=-web --tags=-slow --tags=-upgrade $(dirname "./$t")/ci/features"
+            res="$pybin -m z $BEHAVE_FLAGS --format z --no-summary --tags=-web $(dirname "./$t")/ci/features"
             ;;
         *.py)
             res="$pybin ./$t"
