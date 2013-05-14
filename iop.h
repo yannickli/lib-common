@@ -225,16 +225,19 @@ struct iop_struct_t {
     const iop_class_attrs_t *class_attrs;
 };
 
+static inline bool iop_struct_is_class(const iop_struct_t *st)
+{
+    unsigned st_flags = st->flags;
+
+    return TST_BIT(&st_flags, IOP_STRUCT_IS_CLASS);
+}
+
 static inline bool iop_field_is_class(const iop_field_t *f)
 {
-    unsigned desc_flags;
-
     if (f->type != IOP_T_STRUCT) {
         return false;
     }
-
-    desc_flags = f->u1.st_desc->flags;
-    return TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS);
+    return iop_struct_is_class(f->u1.st_desc);
 }
 
 enum iop_rpc_flags_t {

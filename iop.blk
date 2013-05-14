@@ -61,9 +61,8 @@ iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
             /* We can't handle the unions here since we don't know which field
              * has been selected */
             const iop_struct_t *desc = fdesc->u1.st_desc;
-            unsigned desc_flags = desc->flags;
 
-            if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+            if (iop_struct_is_class(desc)) {
                 /* Field is a mandatory class instance, and should be init as
                  * an optional field: NULL pointer. */
                 continue;
@@ -113,11 +112,9 @@ iop_init_fields(void *value, const iop_field_t *fdesc, const iop_field_t *end)
 }
 void iop_init(const iop_struct_t *desc, void *value)
 {
-    unsigned desc_flags = desc->flags;
-
     memset(value, 0, desc->size);
 
-    if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+    if (iop_struct_is_class(desc)) {
         const iop_struct_t **_vptr = value;
         const iop_struct_t *parent = desc;
 
@@ -217,9 +214,7 @@ static size_t __iop_dup_size(const iop_struct_t *desc, const void *val)
 
 static size_t iop_dup_size(const iop_struct_t *desc, const void *val)
 {
-    unsigned desc_flags = desc->flags;
-
-    if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+    if (iop_struct_is_class(desc)) {
         size_t len = 0;
 
         desc = *(const iop_struct_t **)val;
@@ -353,11 +348,10 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v)
 {
     size_t sz;
     uint8_t *dst, *res;
-    unsigned desc_flags = st->flags;
 
     RETHROW_P(v);
 
-    if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+    if (iop_struct_is_class(st)) {
         st = *(const iop_struct_t **)v;
     }
 
@@ -373,7 +367,6 @@ void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp, const void *v
 {
     size_t sz;
     uint8_t *dst, *res = *outp;
-    unsigned desc_flags = st->flags;
 
     if (unlikely(!v)) {
         if (mp) {
@@ -385,7 +378,7 @@ void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp, const void *v
         return;
     }
 
-    if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+    if (iop_struct_is_class(st)) {
         st = *(const iop_struct_t **)v;
     }
 
@@ -504,9 +497,7 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
 bool iop_equals(const iop_struct_t *st, const void *v1, const void *v2)
 {
     if (v1 && v2) {
-        unsigned desc_flags = st->flags;
-
-        if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+        if (iop_struct_is_class(st)) {
             const iop_struct_t *st2 = *(const iop_struct_t **)v2;
 
             st = *(const iop_struct_t **)v1;
@@ -1078,9 +1069,8 @@ void iop_hash(const iop_struct_t *st, const void *v,
         .hfun = hfun,
         .ctx  = hctx,
     };
-    unsigned desc_flags = st->flags;
 
-    if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+    if (iop_struct_is_class(st)) {
         __iop_hash_class(&ctx, st, v);
     } else {
         __iop_hash(&ctx, st, v);
@@ -2363,12 +2353,7 @@ iop_value_t const *iop_get_cvar(const void *obj, lstr_t name)
 
 bool iop_class_is_a(const iop_struct_t *cls1, const iop_struct_t *cls2)
 {
-    unsigned flags1 = cls1->flags;
-    unsigned flags2 = cls2->flags;
-
-    if (!TST_BIT(&flags1, IOP_STRUCT_IS_CLASS)
-    ||  !TST_BIT(&flags2, IOP_STRUCT_IS_CLASS))
-    {
+    if (!iop_struct_is_class(cls1) || !iop_struct_is_class(cls2)) {
         assert (false);
         return false;
     }
@@ -2421,9 +2406,8 @@ void iop_register_packages(const iop_pkg_t **pkgs, int len)
 
         for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
             const iop_struct_t *desc = *it;
-            unsigned desc_flags = desc->flags;
 
-            if (TST_BIT(&desc_flags, IOP_STRUCT_IS_CLASS)) {
+            if (iop_struct_is_class(desc)) {
                 iop_register_class(desc);
             }
         }
