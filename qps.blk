@@ -36,8 +36,6 @@ static struct {
 #  define TRACE_ALLOC(...)  ((void)0)
 #endif
 
-#define QPS_USE_REDZONES 0
-
 //#define QPS_CHECK_INVARIANTS
 #ifdef QPS_CHECK_INVARIANTS
 # define QPS_CHECK(expr)         assert(expr)
@@ -164,6 +162,7 @@ struct qps_pghdr_t {
 struct qps_mhdr_t {
 #if QPS_USE_REDZONES
     uint64_t rz_after_block;
+    uint64_t rz_alloc_size;
 #endif
     uint32_t flags;
     uint32_t handle;
@@ -466,6 +465,9 @@ static void qps_m_blk_set_prev_free(qps_mhdr_t *blk, qps_mhdr_t *prev)
     qps_mhdr_t **ptr = (qps_mhdr_t **)blk - 1;
 
     blk->flags |= QPS_BLK_PREV_FREE;
+#if QPS_USE_REDZONES
+    mem_tool_allow_memory(ptr, sizeof(qps_mhdr_t *), false);
+#endif
     *ptr = prev;
 }
 
@@ -478,6 +480,9 @@ static void qps_m_blk_insert(qps_t *qps, qps_mhdr_t *blk, size_t n)
 {
     uint32_t l1, l2;
 
+#if QPS_USE_REDZONES
+    mem_tool_allow_memory(blk, sizeof(qps_mhdr_t), false);
+#endif
     blk->flags = n | QPS_BLK_PREV_USED | QPS_BLK_FREE;
     qps_m_insert_search(n, &l1, &l2);
     if ((blk->free.next = qps->m.blks[l1][l2])) {
@@ -508,6 +513,9 @@ static size_t qps_m_blk_remove(qps_t *qps, qps_mhdr_t *blk)
             RST_BIT(&qps->m.l1_bitmap, l1);
     }
 
+#if QPS_USE_REDZONES
+    mem_tool_disallow_memory(blk, sizeof(qps_mhdr_t));
+#endif
     return bsz;
 }
 
@@ -525,6 +533,49 @@ static void qps_m_register_map(qps_t *qps, qps_map_t *map)
     e_blk->flags = 0 | QPS_BLK_USED;
 
     qps_m_blk_insert(qps, f_blk, (uint8_t *)e_blk - f_blk->data);
+}
+
+static void qps_m_malloclike_map(qps_t *qps, qps_map_t *map)
+{
+#if QPS_USE_REDZONES
+    void       *map_end = &map[QPS_MAP_PAGES];
+    qps_mhdr_t *blk     = (qps_mhdr_t *)&map[1];
+    qps_mhdr_t *blk_end = container_of(map_end, qps_mhdr_t, data);
+
+    blk = qps_m_blk_next(blk, QPS_MBLK_HDRSZ);
+    if (qps_is_ro(qps, map)) {
+        while (blk < blk_end) {
+            size_t      bsz = qps_m_blk_size(blk);
+            qps_mhdr_t *nxt = qps_m_blk_next(blk, bsz);
+            qps_ptr_t  *hptr, bptr;
+            void       *ptr;
+
+            if (bsz && !(blk->flags & QPS_BLK_FREE)) {
+                hptr = qps_handle_slot(qps, blk->handle);
+                bptr = qps_encode(blk->data);
+                if (hptr->pgno == bptr.pgno && hptr->addr == bptr.addr) {
+                    ptr = (uint8_t *)qps_pg_deref(qps, hptr->pgno) + hptr->addr;
+                    mem_tool_malloclike(ptr, blk->rz_alloc_size, 8, false);
+                    mem_tool_allow_memory(ptr, blk->rz_alloc_size, true);
+                }
+            }
+            blk = nxt;
+        }
+    } else {
+        while (blk < blk_end) {
+            size_t      bsz = qps_m_blk_size(blk);
+            qps_mhdr_t *nxt = qps_m_blk_next(blk, bsz);
+
+            if (bsz && !(blk->flags & QPS_BLK_FREE)) {
+                assert (blk->rz_alloc_size <= bsz);
+                mem_tool_malloclike(blk->data, blk->rz_alloc_size, 8, false);
+                e_info("malloclike(h:%d, sz:%zd)", blk->handle, bsz);
+                mem_tool_allow_memory(blk->data, blk->rz_alloc_size, true);
+            }
+            blk = nxt;
+        }
+    }
+#endif
 }
 
 static int qps_m_check_map(qps_t *qps, qps_map_t *map, bool fatal)
@@ -1363,7 +1414,7 @@ static int qps_load_meta(qps_t *qps, sb_t *out, bool ro)
     t_scope;
     struct qps_meta *meta;
     size_t meta_size;
-    qps_map_t *map;
+    qps_map_t *map = NULL;
     uint32_t *h_u32, *u32, *uend;
     uint32_t h_len;
     int ret_val = 0;
@@ -1467,6 +1518,7 @@ static int qps_load_meta(qps_t *qps, sb_t *out, bool ro)
             ret = qps_pg_check_hdrs_aux(qps, m->hdr.mapno << 16, false);
         } else {
             ret = qps_m_check_map(qps, m, false);
+            qps_m_malloclike_map(qps, map);
         }
         if (ret < 0) {
             ret_val = -1;
@@ -1782,6 +1834,20 @@ size_t qps_sizeof(qps_t *qps, const void *ptr)
     return qps_m_blk_size(container_of((void *)ptr, qps_mhdr_t, data));
 }
 
+/* only used by qps_handle_deref to tag memory */
+void qps_handle_allow_memory(qps_t *qps, qps_handle_t id, qps_ptr_t *ptr)
+{
+#if QPS_USE_REDZONES
+    void *res = (uint8_t *)qps_pg_deref(qps, ptr->pgno) + ptr->addr;
+    qps_mhdr_t *blk  = container_of(res, qps_mhdr_t, data);
+
+    assert (blk->handle == id);
+    assert (blk->rz_alloc_size);
+
+    mem_tool_allow_memory(res, blk->rz_alloc_size, true);
+#endif
+}
+
 /* }}} */
 /* public: paged allocation {{{ */
 
@@ -1991,13 +2057,15 @@ static void qps_free_int(qps_t *qps, void *ptr)
     blk = container_of(ptr, qps_mhdr_t, data);
     bsz = qps_m_blk_size(blk);
 #if QPS_USE_REDZONES
-    mem_tool_freelike(ptr, bsz, 8);
-    mem_tool_allow_memory(blk, QPS_MBLK_HDRSZ + bsz, true);
+    mem_tool_freelike(ptr, blk->rz_alloc_size, 8);
 #endif
 
     if (!qps_is_ro(qps, map)) {
         qps_mhdr_t *tmp = qps_m_blk_next(blk, bsz);
 
+#if QPS_USE_REDZONES
+        blk->rz_alloc_size = 0;
+#endif
         map->hdr.allocated -= bsz + QPS_MBLK_HDRSZ;
         if (tmp->flags & QPS_BLK_FREE) {
             bsz += qps_m_blk_remove(qps, tmp) + QPS_MBLK_HDRSZ;
@@ -2054,7 +2122,12 @@ static void *qps_alloc_int(qps_t *qps, uint32_t id, size_t asked)
     if (tmp >= sizeof(qps_mhdr_t)) {
         split = qps_m_blk_next(blk, size);
         qps_m_blk_insert(qps, split, tmp - QPS_MBLK_HDRSZ);
+        assert (qps_m_blk_get_prev(next) == split);
         qps_m_blk_set_prev_free(next, split);
+#if QPS_USE_REDZONES
+        split->rz_alloc_size = 0;
+#endif
+        assert (!(blk->flags & QPS_BLK_PREV_FREE));
         blk->flags = size;
     } else {
         next->flags &= ~QPS_BLK_PREV_FREE;
@@ -2067,6 +2140,9 @@ static void *qps_alloc_int(qps_t *qps, uint32_t id, size_t asked)
     *qps_handle_slot(qps, id) = res = qps_encode(blk->data);
 #if QPS_USE_REDZONES
     mem_tool_malloclike(blk->data, asked, 8, false);
+    mem_tool_allow_memory(blk->data, asked, false);
+    mem_tool_allow_memory(&blk->rz_alloc_size, 8, true);
+    blk->rz_alloc_size = asked;
 #endif
     return blk->data;
 }
@@ -2113,9 +2189,9 @@ static void *qps_realloc_int(qps_t *qps, uint32_t id, void *ptr, size_t asked)
             }
 #if QPS_USE_REDZONES
             mem_tool_freelike(blk->data, osz, 8);
-            mem_tool_allow_memory(blk, QPS_MBLK_HDRSZ + osz, true);
             mem_tool_malloclike(blk->data, asked, 8, false);
-            mem_tool_allow_memory(blk, asked, true);
+            mem_tool_allow_memory(blk->data, asked, true);
+            blk->rz_alloc_size = asked;
 #endif
             return blk->data;
         }
@@ -2145,6 +2221,7 @@ static void *qps_realloc_int(qps_t *qps, uint32_t id, void *ptr, size_t asked)
         mem_tool_freelike(blk->data, osz, 8);
         mem_tool_malloclike(blk->data, asked, 8, false);
         mem_tool_allow_memory(blk->data, osz, true);
+        blk->rz_alloc_size = asked;
 #endif
         return blk->data;
     }
@@ -2156,6 +2233,35 @@ static void *qps_realloc_int(qps_t *qps, uint32_t id, void *ptr, size_t asked)
         if (likely(dst)) {
             size_t sz = qps_sizeof(qps, ptr);
 
+#if QPS_USE_REDZONES
+            if (!qps_map_is_pg(map)) {
+                /* The 'asked' value of the previous alloc of ptr is lost
+                 * during alloc. Only rounded upper value have been used to
+                 * do the alloc, and should be sz if all went well. As we will
+                 * copy the entire data[] array, we might possibly read data
+                 * after 'asked' bytes, whihc is tagged as unaddressable.
+                 * Copying this extra data is fine, and we should not report
+                 * any memory error here. To avoid this cas, we have stored
+                 * this 'asked' value in the rz_alloc_size field (only in this
+                 * mode of course). Then, we can mark the trailing data
+                 * ]asked, sz] as defined, just for the memcpy call */
+                qps_mhdr_t *blko = container_of(ptr, qps_mhdr_t, data);
+                qps_mhdr_t *blkn = container_of(dst, qps_mhdr_t, data);
+
+                assert (blko->rz_alloc_size <= sz);
+                assert (blkn->rz_alloc_size == nsz);
+                if (asked != nsz) {
+                    /* reajust this size as we know original asked value */
+                    mem_tool_freelike(blkn->data, nsz, 8);
+                    mem_tool_malloclike(blkn->data, asked, 8, false);
+                    mem_tool_allow_memory(blkn->data, asked, true);
+                    blkn->rz_alloc_size = asked;
+                }
+                memcpy(dst, ptr, MIN(asked, blko->rz_alloc_size));
+                qps_free_int(qps, ptr);
+                return dst;
+            }
+#endif
             if (sz > nsz)
                 sz = nsz;
             memcpy(dst, ptr, sz);
@@ -2241,12 +2347,16 @@ void qps_free(qps_t *qps, uint32_t id)
 void *qps_w_deref_(qps_t *qps, uint32_t h, void *pptr)
 {
     void     *rptr = NULL;
-    size_t    sz   = qps_m_blk_size(container_of(pptr, qps_mhdr_t, data));
+    qps_mhdr_t *blk = container_of(pptr, qps_mhdr_t, data);
+    size_t    sz   = qps_m_blk_size(blk);
 
     qps_m_check_maps(qps);
     TRACE_ALLOC("frag", "w_deref(%p, %d, "QPS_PTR_FMT") = ...",
                 qps, h, QPS_PTR_ARG(qps_encode(pptr)));
     rptr = qps_alloc_int(qps, h, sz);
+#if QPS_USE_REDZONES
+    sz = MIN(sz, blk->rz_alloc_size);
+#endif
     memcpy(rptr, pptr, sz);
     qps_free_ro(qps_map_of(pptr), sz);
     TRACE_ALLOC("frag", "w_deref(%p, %d, "QPS_PTR_FMT") = "QPS_PTR_FMT,

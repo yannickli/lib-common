@@ -22,6 +22,11 @@
 __attribute__((noreturn))
 extern void qps_enospc(const char *what);
 
+/* define this flag to 1 to allow valgrind/asan to potentially detect incorect
+ * QPS API usage (WARNING: the QPS spool storage format is not compatible with
+ * the standard one) */
+#define QPS_USE_REDZONES 0
+
 #define qps_io_wrap(what, ...) \
     ({  typeof(what(__VA_ARGS__)) _res = what(__VA_ARGS__);  \
         if (unlikely(_res < 0))                              \
@@ -416,12 +421,17 @@ qps_ptr_t *qps_handle_slot(qps_t *qps, qps_handle_t id)
     return &qps->handles[id / QPS_HANDLES_COUNT][id % QPS_HANDLES_COUNT];
 }
 
+void qps_handle_allow_memory(qps_t *qps, qps_handle_t id, qps_ptr_t *ptr);
+
 static ALWAYS_INLINE
 void *qps_handle_deref(qps_t *qps, qps_handle_t id)
 {
     qps_ptr_t *ptr = qps_handle_slot(qps, id);
 
     assert ((ptr->addr & ~QPS_PAGE_MASK) == 0);
+#if QPS_USE_REDZONES
+    qps_handle_allow_memory(qps, id, ptr);
+#endif
     return (uint8_t *)qps_pg_deref(qps, ptr->pgno) + ptr->addr;
 }
 
