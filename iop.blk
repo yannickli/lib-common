@@ -1847,11 +1847,7 @@ int iop_bunpack(mem_pool_t *mp, const iop_struct_t *desc, void *value,
     return unpack_struct(mp, desc, value, &ps, copy);
 }
 
-/* This function act like `iop_bunpack` but consume the pstream and doesn't
- * check that the pstream has been fully consumed. This allows to unpack
- * a suite of union.
- *
- * XXX: this function can unpack only union because the struct can't be
+/* XXX: this function can unpack only union because the struct can't be
  * delimited in a stream.
  * */
 int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *desc, void *value,

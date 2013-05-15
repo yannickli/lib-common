@@ -688,7 +688,7 @@ lstr_t t_iop_bpack_struct(const iop_struct_t *st, const void *v);
 /** Unpack a packed IOP structure.
  *
  * This function unpacks a packed IOP structure from a pstream_t. It unpacks
- * one and only one structure, so the pstream_t must only contains the unique
+ * one and only one structure, so the pstream_t must only contain the unique
  * structure to unpack.
  *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
@@ -717,19 +717,19 @@ t_iop_bunpack_ps(const iop_struct_t *st, void *value, pstream_t ps, bool copy)
     return iop_bunpack(t_pool(), st, value, ps, copy);
 }
 
-/** Unpack a packed IOP structure.
+/** Unpack a packed IOP union.
  *
- * This function unpacks a packed IOP structure from a pstream_t. It unpacks
- * one structure beyonds several other structures and leaves the pstream_t and
- * the end of the unpacked structure.
+ * This function act like `iop_bunpack` but consume the pstream and doesn't
+ * check that the pstream has been fully consumed. This allows to unpack
+ * a suite of unions.
  *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
  *
  * \param[in] mp    The memory pool to use when memory allocation is needed.
  * \param[in] st    The IOP structure definition (__s).
- * \param[in] value Pointer on the destination structure.
- * \param[in] ps    The pstream_t containing the packed IOP structure.
+ * \param[in] value Pointer on the destination unpacked IOP union.
+ * \param[in] ps    The pstream_t containing the packed IOP union.
  * \param[in] copy  Tell to the unpack whether complex type must be duplicated
  *                  or not (for example string could be pointers on the
  *                  pstream_t or duplicated).
@@ -738,7 +738,7 @@ __must_check__
 int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *st, void *value,
                       pstream_t *ps, bool copy);
 
-/** Unpack a packed IOP structure using the t_pool().
+/** Unpack a packed IOP union using the t_pool().
  *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
@@ -750,18 +750,17 @@ t_iop_bunpack_multi(const iop_struct_t *st, void *value, pstream_t *ps,
     return iop_bunpack_multi(t_pool(), st, value, ps, copy);
 }
 
-/** Skip a packer IOP structure without unpacking it.
+/** Skip a packed IOP union without unpacking it.
  *
- * This function skips a packed IOP structure in a pstream_t. It leaves the
- * pstream_t and the end of the structure. This function is efficient because
- * it will not fully unpack the structure to skip. But it will not fully check
- * its validity either.
+ * This function skips a packed IOP union in a pstream_t.
+ * This function is efficient because it will not fully unpack the union to
+ * skip. But it will not fully check its validity either.
  *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
  *
- * \param[in] st    The IOP structure definition (__s).
- * \param[in] ps    The pstream_t containing the packed IOP structure.
+ * \param[in] st    The IOP union definition (__s).
+ * \param[in] ps    The pstream_t containing the packed IOP union.
  */
 __must_check__
 int iop_bskip(const iop_struct_t *st, pstream_t *ps);
