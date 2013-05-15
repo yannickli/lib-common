@@ -738,6 +738,9 @@ lstr_t t_iop_bpack_struct(const iop_struct_t *st, const void *v);
  * one and only one structure, so the pstream_t must only contain the unique
  * structure to unpack.
  *
+ * This function cannot be used to unpack a class; use `iop_bunpack_ptr`
+ * instead.
+ *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
  *
@@ -763,6 +766,32 @@ t_iop_bunpack_ps(const iop_struct_t *st, void *value, pstream_t ps, bool copy)
 {
     return iop_bunpack(t_pool(), st, value, ps, copy);
 }
+
+/** Unpack a packed IOP object and (re)allocates the destination structure.
+ *
+ * This function acts as `iop_bunpack` but allocates (or reallocates) the
+ * destination structure.
+ *
+ * This function MUST be used to unpack a class instead of `iop_bunpack`,
+ * because the size of a class is not known before unpacking it (this could be
+ * a child).
+ *
+ * Prefer the generated version instead of this low-level API (TODO).
+ *
+ * \param[in] mp    The memory pool to use when memory allocation is needed;
+ *                  will be used at least to allocate the destination
+ *                  structure.
+ * \param[in] st    The IOP structure/class definition (__s).
+ * \param[in] value Double pointer on the destination structure.
+ *                  If *value is not NULL, it is reallocated.
+ * \param[in] ps    The pstream_t containing the packed IOP object.
+ * \param[in] copy  Tell to the unpack whether complex type must be duplicated
+ *                  or not (for example string could be pointers on the
+ *                  pstream_t or duplicated).
+ */
+__must_check__
+int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *st, void **value,
+                    pstream_t ps, bool copy);
 
 /** Unpack a packed IOP union.
  *

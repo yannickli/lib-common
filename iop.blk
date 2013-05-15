@@ -1291,7 +1291,11 @@ int iop_check_constraints(const iop_struct_t *desc, const void *val)
 /*-}}}-*/
 /*----- get value encoding size -{{{-*/
 
-int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
+static int __iop_bpack_size_class(const iop_struct_t *desc, const void *val,
+                                  qv_t(i32) *szs);
+
+static int
+__iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
 {
     const iop_field_t *fdesc;
     const iop_field_t *end;
@@ -1328,17 +1332,23 @@ int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
                     len += get_len_len(i32) + i32;
                     continue;
                 }
+                /* Add:
+                 * - 4 to encode the len on 32 bits,
+                 * - n because there will be n tags 0 to separate elements.
+                 */
                 len += 4 + n;
             }
         } else
         if (fdesc->repeat == IOP_R_DEFVAL) {
-            /* Skip the field is it's still equal to its default value */
+            /* Skip the field if still equal to its default value */
             if (iop_field_is_defval(fdesc, ptr))
                 continue;
         }
 
         len += 1 + fdesc->tag_len;
         switch (fdesc->type) {
+            bool is_class;
+
           case IOP_T_I8:
             len += n;
             break;
@@ -1385,13 +1395,30 @@ int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
             break;
           case IOP_T_UNION:
           case IOP_T_STRUCT:
+
           default:
+            is_class = iop_field_is_class(fdesc);
             for (int j = 0; j < n; j++) {
-                const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
+                const void *v;
                 int32_t offs = szs->len, i32;
 
                 qv_growlen(i32, szs, 1);
-                i32  = iop_bpack_size(fdesc->u1.st_desc, v, szs);
+
+                if (is_class) {
+                    v = &IOP_FIELD(const char, ptr, j * sizeof(void *));
+                    /* Non-optional class fields have to be dereferenced
+                     * (dereferencing of optional fields was already done
+                     *  just above).
+                     */
+                    if (fdesc->repeat != IOP_R_OPTIONAL) {
+                        v = *(void **)v;
+                    }
+                    i32 = __iop_bpack_size_class(fdesc->u1.st_desc, v, szs);
+                } else {
+                    v = &IOP_FIELD(const char, ptr, j * fdesc->size);
+                    i32 = __iop_bpack_size(fdesc->u1.st_desc, v, szs);
+                }
+
                 szs->tab[offs] = i32;
                 len += get_len_len(i32) + i32;
             }
@@ -1402,11 +1429,47 @@ int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
     return len;
 }
 
+static int __iop_bpack_size_class(const iop_struct_t *desc, const void *val,
+                                  qv_t(i32) *szs)
+{
+    int size = 0, level_size;
+    bool first = true;
+
+    desc = *(const iop_struct_t **)val;
+
+    do {
+        int szs_pos = szs->len;
+
+        qv_growlen(i32, szs, 1);
+        level_size = __iop_bpack_size(desc, val, szs);
+        szs->tab[szs_pos] = level_size;
+        size += level_size;
+        if (first || level_size) {
+            /* Add 1 for tag 0, followed by the class id */
+            size += 1 + get_vint32_len(desc->class_attrs->class_id);
+            first = false;
+        }
+    } while ((desc = desc->class_attrs->parent));
+
+    return size;
+}
+
+int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
+{
+    if (iop_struct_is_class(desc)) {
+        return __iop_bpack_size_class(desc, val, szs);
+    } else {
+        return __iop_bpack_size(desc, val, szs);
+    }
+}
+
 /*-}}}-*/
 /*----- packing -{{{-*/
 
 static uint8_t *
 pack_struct(void *dst, const iop_struct_t *, const void *, const int **);
+static uint8_t *
+pack_class(void *dst, const iop_struct_t *, const void *, const int **);
 static uint8_t *
 pack_union(void *dst, const iop_struct_t *, const void *, const int **);
 
@@ -1455,7 +1518,17 @@ pack_value(uint8_t *dst, const iop_field_t *f, const void *v, const int **szsp)
       case IOP_T_STRUCT:
       default:
         dst = pack_len(dst, f->tag, f->tag_len, *(*szsp)++);
-        return pack_struct(dst, f->u1.st_desc, v, szsp);
+        if (iop_field_is_class(f)) {
+            /* Non-optional class fields have to be dereferenced
+             * (dereferencing of optional fields was done in pack_struct).
+             */
+            if (f->repeat != IOP_R_OPTIONAL) {
+                v = *(void **)v;
+            }
+            return pack_class(dst, f->u1.st_desc, v, szsp);
+        } else {
+            return pack_struct(dst, f->u1.st_desc, v, szsp);
+        }
     }
 }
 
@@ -1464,6 +1537,7 @@ static uint8_t *pack_value_vec(uint8_t *dst, const iop_field_t *f,
 {
     const lstr_t *d;
     uint32_t len;
+    bool is_class;
 
     switch (f->type) {
       case IOP_T_I32:
@@ -1512,10 +1586,16 @@ static uint8_t *pack_value_vec(uint8_t *dst, const iop_field_t *f,
         } while (--n > 0);
         return dst;
       case IOP_T_STRUCT:
+        is_class = iop_field_is_class(f);
         do {
             dst = pack_len(dst, 0, 0, *(*szsp)++);
-            dst = pack_struct(dst, f->u1.st_desc, v, szsp);
-            v   = (char *)v + f->size;
+            if (is_class) {
+                dst = pack_class(dst, f->u1.st_desc, *(void **)v, szsp);
+                v   = (char *)v + sizeof(void *);
+            } else {
+                dst = pack_struct(dst, f->u1.st_desc, v, szsp);
+                v   = (char *)v + f->size;
+            }
         } while (--n > 0);
         return dst;
 
@@ -1575,6 +1655,34 @@ pack_struct(void *dst, const iop_struct_t *desc, const void *v, const int **szsp
 }
 
 static uint8_t *
+pack_class(void *dst, const iop_struct_t *desc, const void *v,
+           const int **szsp)
+{
+    bool first = true;
+
+    desc = *(const iop_struct_t **)v;
+
+    do {
+        int level_size = *(*szsp)++;
+
+        if (first || level_size) {
+            /* We write the class id in a tag 0 only if:
+             *  - this is the first level, because we always want to write the
+             *    real class id of the packed object,
+             *  - if there is actually something to pack.
+             */
+            dst = pack_int32(dst, 0, 0, desc->class_attrs->class_id);
+            first = false;
+        }
+        if (level_size) {
+            dst = pack_struct(dst, desc, v, szsp);
+        }
+    } while ((desc = desc->class_attrs->parent));
+
+    return dst;
+}
+
+static uint8_t *
 pack_union(void *dst, const iop_struct_t *desc, const void *v,
            const int **szsp)
 {
@@ -1589,6 +1697,9 @@ iop_bpack(void *dst, const iop_struct_t *desc, const void *v, const int *szs)
 {
     if (desc->is_union) {
         pack_union(dst, desc, v, &szs);
+    } else
+    if (iop_struct_is_class(desc)) {
+        pack_class(dst, desc, v, &szs);
     } else {
         pack_struct(dst, desc, v, &szs);
     }
@@ -1766,6 +1877,25 @@ __get_tag_wt(pstream_t *ps, uint32_t *tag, iop_wire_type_t *wt)
     return get_uint32(ps, 2, tag);
 }
 
+static ALWAYS_INLINE int
+__get_class_id(pstream_t *ps, iop_wire_type_t wt, uint16_t *class_id)
+{
+    switch (wt) {
+      case IOP_WIRE_INT1:
+        PS_WANT(ps_has(ps, 1));
+        *class_id = (int8_t)__ps_getc(ps);
+        return 0;
+
+      case IOP_WIRE_INT2:
+        PS_WANT(ps_has(ps, 2));
+        *class_id = (int16_t)__ps_get_le16(ps);
+        return 0;
+
+      default:
+        return -1;
+    }
+}
+
 int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc)
 {
     void *ptr = (char *)value + fdesc->data_offs;
@@ -1828,8 +1958,11 @@ int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc)
     return 0;
 }
 
-static int unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
-                         pstream_t *ps, bool copy);
+static int
+unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
+              pstream_t *ps, bool copy, iop_wire_type_t *class_id_wt);
+static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
+                        void **value, pstream_t *ps, bool copy);
 static int unpack_union(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                         pstream_t *ps, bool copy);
 
@@ -1867,7 +2000,13 @@ static int unpack_value(mem_pool_t *mp, iop_wire_type_t wt,
             return unpack_union(mp, fdesc->u1.st_desc, v, &ps_tmp, copy);
           case IOP_T_STRUCT:
             ps_tmp = __ps_get_ps(ps, u32);
-            return unpack_struct(mp, fdesc->u1.st_desc, v, &ps_tmp, copy);
+            if (iop_field_is_class(fdesc)) {
+                *(void **)v = NULL;
+                return unpack_class(mp, fdesc->u1.st_desc, v, &ps_tmp, copy);
+            } else {
+                return unpack_struct(mp, fdesc->u1.st_desc, v, &ps_tmp, copy,
+                                     NULL);
+            }
         }
         return -1;
 
@@ -1902,18 +2041,40 @@ static int unpack_value(mem_pool_t *mp, iop_wire_type_t wt,
     }
 }
 
-static int unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
-                         pstream_t *ps, bool copy)
+/* Returns:
+ * * 1 when "change of level" (used for classes) tag was seen; in that case,
+ *   the wire type associated to this tag is written in class_id_wt.
+ * * 0 otherwise on success.
+ * * a negative value on error.
+ */
+static int
+unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
+              pstream_t *ps, bool copy, iop_wire_type_t *class_id_wt)
 {
+    bool is_class = iop_struct_is_class(desc);
     const iop_field_t *fdesc = desc->fields;
     const iop_field_t *end   = desc->fields + desc->fields_len;
+    iop_wire_type_t wt;
+    uint32_t tag;
 
     while (fdesc < end && !ps_done(ps)) {
-        iop_wire_type_t wt;
-        uint32_t tag, n = 1;
+        uint32_t n = 1;
         void *v;
 
         PS_CHECK(__get_tag_wt(ps, &tag, &wt));
+        if (tag == 0) {
+            /* This is a "change of level" tag in a packed class; check that
+             * all the remaining fields at this level are optional. */
+            PS_WANT(is_class);
+            e_named_trace(5, "iop/c/unpacker",
+                          "unpacking class %*pM, got change of level tag",
+                          LSTR_FMT_ARG(desc->fullname));
+            do {
+                PS_CHECK(__iop_skip_absent_field_desc(value, fdesc));
+            } while (++fdesc != end);
+            *class_id_wt = wt;
+            return 1;
+        }
         while (unlikely(tag > fdesc->tag)) {
             e_named_trace(5, "iop/c/unpacker",
                           "unpacking struct %*pM, skipping %*pM field",
@@ -1947,6 +2108,7 @@ static int unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
         v = (char *)value + fdesc->data_offs;
         if (fdesc->repeat == IOP_R_REPEATED) {
             lstr_t *data = v;
+            size_t step;
 
             if (wt != IOP_WIRE_REPEAT
             &&  ((1 << fdesc->type) & IOP_REPEATED_OPTIMIZE_OK))
@@ -1990,26 +2152,34 @@ static int unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
             }
 
           unpack_array:
+            if (iop_field_is_class(fdesc)) {
+                step = sizeof(void *);
+            } else {
+                step = fdesc->size;
+            }
+
             data->len  = n;
-            data->data = v = mp->malloc(mp, n * fdesc->size, MEM_RAW);
+            data->data = v = mp->malloc(mp, n * step, MEM_RAW);
 
             while (n-- > 1) {
                 PS_CHECK(unpack_value(mp, wt, fdesc, v, ps, copy));
                 PS_WANT(ps_has(ps, 1) && IOP_TAG(ps->b[0]) == 0);
                 wt = IOP_WIRE_FMT(__ps_getc(ps));
-                v  = (char *)v + fdesc->size;
+                v  = (char *)v + step;
             }
             PS_CHECK(unpack_value(mp, wt, fdesc, v, ps, copy));
             v = data->data;
             n = data->len;
         } else {
-            if (fdesc->repeat == IOP_R_OPTIONAL) {
-                v = iop_value_set_here(mp, fdesc, v);
-            }
             while (n-- > 1) {
                 PS_CHECK(iop_skip_field(ps, wt));
                 PS_WANT(ps_has(ps, 1) && IOP_TAG(ps->b[0]) == 0);
                 wt = IOP_WIRE_FMT(__ps_getc(ps));
+            }
+            if (fdesc->repeat == IOP_R_OPTIONAL
+            &&  !iop_field_is_class(fdesc))
+            {
+                v = iop_value_set_here(mp, fdesc, v);
             }
             PS_CHECK(unpack_value(mp, wt, fdesc, v, ps, copy));
             n = 1;
@@ -2029,6 +2199,109 @@ static int unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                       LSTR_FMT_ARG(fdesc->name));
         PS_CHECK(__iop_skip_absent_field_desc(value, fdesc));
     }
+
+    return 0;
+}
+
+static inline int
+unpack_skip_all_fields(const iop_struct_t *desc, void *value)
+{
+    const iop_field_t *fdesc = desc->fields;
+    const iop_field_t *end   = fdesc + desc->fields_len;
+
+    for ( ; fdesc < end; fdesc++) {
+        PS_CHECK(__iop_skip_absent_field_desc(value, fdesc));
+    }
+    return 0;
+}
+
+static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
+                        void **value, pstream_t *ps, bool copy)
+{
+    const iop_struct_t *real_desc;
+    class_id_key_t key;
+    iop_wire_type_t wt;
+    uint32_t tag;
+    int pos;
+
+    PS_WANT(!ps_done(ps));
+    p_clear(&key, 1);
+
+    /* Get the class id of the packed class instance */
+    PS_CHECK(__get_tag_wt(ps, &tag, &wt));
+    PS_WANT(tag == 0);
+    PS_CHECK(__get_class_id(ps, wt, &key.child_id));
+
+    if (key.child_id == desc->class_attrs->class_id) {
+        real_desc = desc;
+        goto unpack;
+    }
+
+    /* Get the iop_struct_t of the instanciated class from its class_id */
+    key.master = desc;
+    while (key.master->class_attrs->parent) {
+        key.master = key.master->class_attrs->parent;
+    }
+    if ((pos = qm_find(class_id, &_G.classes_by_id, &key)) < 0) {
+        return -1;
+    }
+    real_desc = _G.classes_by_id.values[pos];
+
+    /* We are trying to unpack a class of type "desc", and the packed
+     * class is of type "real_desc". Check that this is authorized. */
+    PS_WANT(iop_class_is_a(real_desc, desc));
+
+    e_named_trace(5, "iop/c/unpacker",
+                  "unpacking a class of type %*pM, real type %*pM",
+                  LSTR_FMT_ARG(desc->fullname),
+                  LSTR_FMT_ARG(real_desc->fullname));
+
+  unpack:
+    if (*value) {
+        *value = mp->realloc(mp, *value, 0, real_desc->size, MEM_RAW);
+    } else {
+        *value = mp->malloc(mp, real_desc->size, MEM_RAW);
+    }
+
+    /* Set the _vprt pointer */
+    *(const iop_struct_t **)(*value) = real_desc;
+
+    /* Unpack the several levels */
+    do {
+        uint16_t class_id = 0;
+        int res;
+
+        PS_CHECK((res = unpack_struct(mp, real_desc, *value, ps, copy, &wt)));
+
+        if (!(real_desc = real_desc->class_attrs->parent)) {
+            return 0;
+        }
+
+        if (res != 1) {
+            /* "Change of level" tag was not seen yet */
+            if (ps_done(ps)) {
+                /* Such a tag won't be there because pstream is finished. This
+                 * is possible if all the remaining levels have only optional
+                 * fields. */
+                do {
+                    PS_CHECK(unpack_skip_all_fields(real_desc, *value));
+                } while ((real_desc = real_desc->class_attrs->parent));
+                return 0;
+            }
+            /* Read it */
+            PS_CHECK(__get_tag_wt(ps, &tag, &wt));
+            PS_WANT(tag == 0);
+        }
+
+        /* Get the next class id, and run the tree up to it; the skipped
+         * classes must have only optional fields. */
+        PS_CHECK(__get_class_id(ps, wt, &class_id));
+        while (class_id != real_desc->class_attrs->class_id) {
+            PS_CHECK(unpack_skip_all_fields(real_desc, *value));
+            PS_WANT((real_desc = real_desc->class_attrs->parent));
+        }
+    } while (real_desc);
+
     return 0;
 }
 
@@ -2070,13 +2343,33 @@ static int unpack_union(mem_pool_t *mp, const iop_struct_t *desc, void *value,
 int iop_bunpack(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                 pstream_t ps, bool copy)
 {
+    assert (!iop_struct_is_class(desc));
     e_named_trace(5, "iop/c/unpacker", "unpacking IOP object %*pM",
                   LSTR_FMT_ARG(desc->fullname));
     sb_reset(&iop_err_g);
     if (desc->is_union) {
         return unpack_union(mp, desc, value, &ps, copy) ? -1 : 0;
     }
-    return unpack_struct(mp, desc, value, &ps, copy);
+    return unpack_struct(mp, desc, value, &ps, copy, NULL);
+}
+
+int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *desc, void **value,
+                    pstream_t ps, bool copy)
+{
+    e_named_trace(5, "iop/c/unpacker", "unpacking IOP object %*pM",
+                  LSTR_FMT_ARG(desc->fullname));
+    sb_reset(&iop_err_g);
+
+    if (!iop_struct_is_class(desc)) {
+        if (*value) {
+            *value = mp->realloc(mp, *value, 0, desc->size, MEM_RAW);
+        } else {
+            *value = mp->malloc(mp, desc->size, MEM_RAW);
+        }
+        return iop_bunpack(mp, desc, *value, ps, copy);
+    }
+
+    return unpack_class(mp, desc, value, &ps, copy);
 }
 
 /* XXX: this function can unpack only union because the struct can't be
