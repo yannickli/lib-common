@@ -776,7 +776,8 @@ t_iop_bunpack_ps(const iop_struct_t *st, void *value, pstream_t ps, bool copy)
  * because the size of a class is not known before unpacking it (this could be
  * a child).
  *
- * Prefer the generated version instead of this low-level API (TODO).
+ * Prefer the generated version instead of this low-level API
+ * (see IOP_GENERIC/IOP_CLASS in iop-macros.h).
  *
  * \param[in] mp    The memory pool to use when memory allocation is needed;
  *                  will be used at least to allocate the destination
