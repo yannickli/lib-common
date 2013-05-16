@@ -1,0 +1,53 @@
+{
+	"name": "ic",
+
+	"objects": [
+		{
+			"name": "IcPriority",
+			"fullName": "ic.IcPriority",
+			"type": "enum",
+			"values": {
+				"LOW": 0,
+				"NORMAL": 1,
+				"HIGH": 2
+			}
+		},
+		{
+			"name": "SimpleHdr",
+			"fullName": "ic.SimpleHdr",
+			"type": "struct",
+			"fields": {
+				"login": {
+					"type": "string",
+					"optional": true
+				},
+				"password": {
+					"type": "string",
+					"optional": true
+				},
+				"kind": {
+					"type": "string",
+					"optional": true
+				},
+				"payload": {
+					"type": "int",
+					"default": -1
+				},
+				"host": {
+					"type": "string",
+					"optional": true
+				}
+			}
+		},
+		{
+			"name": "Hdr",
+			"fullName": "ic.Hdr",
+			"type": "union",
+			"fields": {
+				"simple": {
+					"type": "ic.SimpleHdr"
+				}
+			}
+		}
+	]
+}

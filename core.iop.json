@@ -1,0 +1,223 @@
+{
+	"name": "core",
+
+	"objects": [
+		{
+			"name": "LogLevel",
+			"fullName": "core.LogLevel",
+			"type": "enum",
+			"values": {
+				"DEFAULT": -2,
+				"INHERITS": -1,
+				"EMERG": 0,
+				"ALERT": 1,
+				"CRIT": 2,
+				"ERR": 3,
+				"WARNING": 4,
+				"NOTICE": 5,
+				"INFO": 6,
+				"DEBUG": 7,
+				"TRACE": 8
+			}
+		},
+		{
+			"name": "IopHttpMethod",
+			"fullName": "core.IopHttpMethod",
+			"type": "enum",
+			"values": {
+				"OPTIONS": 0,
+				"GET": 1,
+				"HEAD": 2,
+				"POST": 3,
+				"PUT": 4,
+				"DELETE": 5,
+				"TRACE": 6,
+				"CONNECT": 7
+			}
+		},
+		{
+			"name": "LoggerConfiguration",
+			"fullName": "core.LoggerConfiguration",
+			"type": "struct",
+			"fields": {
+				"fullName": {
+					"type": "string",
+					"constraints": {
+						"minLength": 1
+					}
+				},
+				"level": {
+					"type": "core.LogLevel"
+				},
+				"forceAll": {
+					"type": "boolean",
+					"default": false
+				}
+			}
+		},
+		{
+			"name": "LogConfiguration",
+			"fullName": "core.LogConfiguration",
+			"type": "struct",
+			"fields": {
+				"rootLevel": {
+					"type": "core.LogLevel",
+					"default": -2
+				},
+				"forceAll": {
+					"type": "boolean",
+					"default": false
+				},
+				"specific": {
+					"type": "core.LoggerConfiguration",
+					"repeated": true
+				}
+			}
+		},
+		{
+			"name": "HttpdCfg",
+			"fullName": "core.HttpdCfg",
+			"type": "struct",
+			"fields": {
+				"outbufMaxSize": {
+					"type": "uint",
+					"default": 33554432
+				},
+				"pipelineDepth": {
+					"type": "ushort",
+					"default": 32
+				},
+				"noactDelay": {
+					"type": "uint",
+					"default": 30000
+				},
+				"maxQueries": {
+					"type": "uint",
+					"default": 1024
+				},
+				"maxConnsIn": {
+					"type": "uint",
+					"default": 1000
+				},
+				"onDataThreshold": {
+					"type": "uint",
+					"default": 16384
+				},
+				"headerLineMax": {
+					"type": "uint",
+					"default": 1024
+				},
+				"headerSizeMax": {
+					"type": "uint",
+					"default": 65536
+				}
+			}
+		},
+		{
+			"name": "HttpcCfg",
+			"fullName": "core.HttpcCfg",
+			"type": "struct",
+			"fields": {
+				"pipelineDepth": {
+					"type": "ushort",
+					"default": 32
+				},
+				"noactDelay": {
+					"type": "uint",
+					"default": 30000
+				},
+				"maxQueries": {
+					"type": "uint",
+					"default": 1024
+				},
+				"onDataThreshold": {
+					"type": "uint",
+					"default": 16384
+				},
+				"headerLineMax": {
+					"type": "uint",
+					"default": 1024
+				},
+				"headerSizeMax": {
+					"type": "uint",
+					"default": 65536
+				}
+			}
+		}
+	],
+
+	"interfaces": [
+		{
+			"name": "Log",
+			"fullName": "core.Log",
+			"rpcs": {
+				"setRootLevel": {
+					"in": {
+						"level": {
+							"type": "core.LogLevel"
+						},
+						"forceAll": {
+							"type": "boolean",
+							"default": false
+						}
+					},
+					"out": {
+						"level": {
+							"type": "core.LogLevel"
+						}
+					}
+				},
+				"resetRootLevel": {
+					"out": {
+						"level": {
+							"type": "core.LogLevel"
+						}
+					}
+				},
+				"setLoggerLevel": {
+					"in": {
+						"fullName": {
+							"type": "string"
+						},
+						"level": {
+							"type": "core.LogLevel"
+						},
+						"forceAll": {
+							"type": "boolean",
+							"default": false
+						}
+					},
+					"out": {
+						"level": {
+							"type": "core.LogLevel"
+						}
+					}
+				},
+				"resetLoggerLevel": {
+					"in": {
+						"fullName": {
+							"type": "string"
+						}
+					},
+					"out": {
+						"level": {
+							"type": "core.LogLevel"
+						}
+					}
+				}
+			}
+		}
+	],
+
+	"modules": [
+		{
+			"name": "Core",
+			"fullName": "core.Core",
+			"interfaces": {
+				"log": {
+					"type": "core.Log"
+				}
+			}
+		}
+	]
+}

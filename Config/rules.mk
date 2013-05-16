@@ -63,18 +63,20 @@ endef
 #[ iop ]##############################################################{{{#
 
 ext/gen/iop = $(call fun/patsubst-filt,%.iop,%.iop.c,$1) \
-    $(call fun/patsubst-filt,%.iop,%.iop.h,$1)
+    $(call fun/patsubst-filt,%.iop,%.iop.h,$1) \
+    $(call fun/patsubst-filt,%.iop,%.iop.json,$1)
 
 define ext/expand/iop
 $3.h: $3.c
+$3.json: $3.c
 $~$3.dep: $3 $(IOPC)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$(IOPC) -2 --c-resolve-includes --Wextra -d$~$$<.dep -I$/lib-common:$/lib-inet:$/qrrd/iop:$/qts $$<
+	$(IOPC) -2 --c-resolve-includes --Wextra -l c,json -d$~$$<.dep -I$/lib-common:$/lib-inet:$/qrrd/iop:$/qts $$<
 $3.c: $3 $(IOPC)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$(IOPC) -2 --c-resolve-includes --Wextra -d$~$$<.dep -I$/lib-common:$/lib-inet:$/qrrd/iop:$/qts $$<
+	$(IOPC) -2 --c-resolve-includes --Wextra -l c,json -d$~$$<.dep -I$/lib-common:$/lib-inet:$/qrrd/iop:$/qts $$<
 -include $~$3.dep
 endef
 
