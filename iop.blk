@@ -1149,10 +1149,14 @@ bool iop_field_has_constraints(const iop_struct_t *desc, const iop_field_t
     return false;
 }
 
+int __iop_check_constraints(const iop_struct_t *desc, const void *val);
+
 int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
                                 *fdesc, const void *ptr, int n, bool recurse)
 {
+    bool is_class;
     check_constraints_f check_constraints = NULL;
+
     if ((check_constraints = iop_field_get_constraints_cb(desc, fdesc))) {
         RETHROW(check_constraints(ptr, n));
     }
@@ -1193,10 +1197,24 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
       default:
         if (!recurse)
             return 0;
+        is_class = iop_field_is_class(fdesc);
         for (int j = 0; j < n; j++) {
-            const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
+            const void *v;
 
-            RETHROW(iop_check_constraints(fdesc->u1.st_desc, v));
+            if (is_class) {
+                v = &IOP_FIELD(const char, ptr, j * sizeof(void *));
+                /* Non-optional class fields have to be dereferenced
+                 * (dereferencing of optional fields was already done
+                 *  by the caller).
+                 */
+                if (fdesc->repeat != IOP_R_OPTIONAL) {
+                    v = *(void **)v;
+                }
+                RETHROW(iop_check_constraints(fdesc->u1.st_desc, v));
+            } else {
+                v = &IOP_FIELD(const char, ptr, j * fdesc->size);
+                RETHROW(__iop_check_constraints(fdesc->u1.st_desc, v));
+            }
         }
         break;
     }
@@ -1204,7 +1222,7 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
     return 0;
 }
 
-int iop_check_constraints(const iop_struct_t *desc, const void *val)
+int __iop_check_constraints(const iop_struct_t *desc, const void *val)
 {
     const iop_field_t *fdesc;
     const iop_field_t *end;
@@ -1253,6 +1271,21 @@ int iop_check_constraints(const iop_struct_t *desc, const void *val)
     }
 
     return 0;
+}
+
+int iop_check_constraints(const iop_struct_t *desc, const void *val)
+{
+    if (iop_struct_is_class(desc)) {
+        desc = *(const iop_struct_t **)val;
+
+        do {
+            RETHROW(__iop_check_constraints(desc, val));
+        } while ((desc = desc->class_attrs->parent));
+
+        return 0;
+    } else {
+        return __iop_check_constraints(desc, val);
+    }
 }
 
 /*-}}}-*/
