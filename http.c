@@ -1954,6 +1954,40 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
     req.hdrs_len = hdrs.len;
 
     q = dlist_first_entry(&w->query_list, httpc_query_t, query_link);
+
+    if (req.code >= 100 && req.code < 200) {
+        w->state = HTTP_PARSER_IDLE;
+
+        /* rfc 2616: §10.1: A client MUST be prepared to accept one or more
+         * 1xx status responses prior to a regular response.
+         *
+         * Since HTTP/1.0 did not define any 1xx status codes, servers MUST
+         * NOT send a 1xx response to an HTTP/1.0 client except under
+         * experimental conditions
+         */
+        if (req.http_version == HTTP_1_0) {
+            return PARSE_ERROR;
+        } else
+        if (req.code != HTTP_CODE_CONTINUE) {
+            return PARSE_OK;
+        }
+
+        if (q->expect100cont) {
+            /* Temporary set the qinfo to the 100 Continue header.
+             */
+            q->qinfo = &req;
+            (*q->on_100cont)(q);
+            q->qinfo = NULL;
+        }
+        q->expect100cont = false;
+
+        return PARSE_OK;
+    }
+
+    if (q->expect100cont && (req.code >= 200 && req.code < 300)) {
+        return HTTPC_STATUS_EXP100CONT;
+    }
+
     q->received_hdr_length = ps_len(&req.hdrs_ps);
     q->qinfo = httpc_qinfo_dup(&req);
     if (q->on_hdrs)
@@ -2286,7 +2320,18 @@ static int httpc_on_event(el_t evh, int fd, short events, el_data_t priv)
     int res, st = HTTPC_STATUS_INVALID;
 
     if (events == EL_EVENTS_NOACT) {
-        st = HTTPC_STATUS_TIMEOUT;
+        if (!dlist_is_empty(&w->query_list)) {
+            q = dlist_first_entry(&w->query_list, httpc_query_t, query_link);
+            if (q->expect100cont) {
+                /* rfc 2616: §8.2.3: the client SHOULD NOT wait
+                 * for an indefinite period before sending the request body
+                 */
+                (*q->on_100cont)(q);
+                q->expect100cont = false;
+                el_fd_watch_activity(evh, POLLINOUT, w->cfg->noact_delay);
+                return 0;
+            }
+        }
         goto close;
     }
 
@@ -2487,6 +2532,9 @@ void httpc_query_hdrs_done(httpc_query_t *q, int clen, bool chunked)
     assert (!q->hdrs_done);
     q->hdrs_done = true;
 
+    if (q->expect100cont) {
+        ob_adds(ob, "Expect: 100-continue\r\n");
+    }
     if (clen >= 0) {
         ob_addf(ob, "Content-Length: %d\r\n\r\n", clen);
         return;
@@ -2549,5 +2597,106 @@ void httpc_query_hdrs_add_auth(httpc_query_t *q, lstr_t login, lstr_t passwd)
 
     outbuf_sb_end(ob, oldlen);
 }
+
+/* }}} */
+/* Tests {{{ */
+
+#include <lib-common/z.h>
+
+static int z_reply_100(el_t el, int fd, short mask, el_data_t data)
+{
+    SB_1k(buf);
+
+    if (sb_read(&buf, fd, 1000) > 0) {
+        char reply[] = "HTTP/1.1 100 Continue\r\n\r\n"
+                       "HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\n"
+                       "Coucou";
+
+        IGNORE(xwrite(fd, reply, sizeof(reply) - 1));
+    }
+    return 0;
+}
+
+static int z_accept(el_t el, int fd, short mask, el_data_t data)
+{
+    el_t *el_client = data.ptr;
+    int client = acceptx(fd, 0);
+
+    if (client >= 0) {
+        *el_client = el_fd_register(client, POLLIN, &z_reply_100, NULL);
+    }
+    return 0;
+}
+
+static bool has_reply_g = false;
+static http_code_t code_g = HTTP_CODE_INTERNAL_SERVER_ERROR;
+static lstr_t body_g;
+
+static int z_query_on_hdrs(httpc_query_t *q)
+{
+    code_g = q->qinfo->code;
+    return 0;
+}
+
+static int z_query_on_data(httpc_query_t *q, pstream_t ps)
+{
+    body_g = lstr_dups(ps.s, ps_len(&ps));
+    return 0;
+}
+
+static void z_query_on_done(httpc_query_t *q, httpc_status_t status)
+{
+    has_reply_g = true;
+}
+
+Z_GROUP_EXPORT(httpc) {
+    Z_TEST(unexpected_100_continue, "test behavior when receiving 100") {
+        sockunion_t su;
+        int server;
+        el_t el_server;
+        el_t el_client;
+        httpc_t *httpc;
+        httpc_cfg_t cfg;
+        httpc_query_t query;
+
+        Z_ASSERT_N(addr_resolve("test", LSTR_IMMED_V("127.0.0.1:1"), &su));
+        sockunion_setport(&su, 0);
+
+        server = listenx(-1, &su, 1, SOCK_STREAM, IPPROTO_TCP, 0);
+        Z_ASSERT_N(server);
+        el_server = el_fd_register(server, POLLIN, &z_accept, &el_client);
+
+        sockunion_setport(&su, getsockport(server, AF_INET));
+
+        httpc_cfg_init(&cfg);
+        cfg.refcnt++;
+        httpc = httpc_connect(&su, &cfg, NULL);
+        Z_ASSERT_P(httpc);
+
+        httpc_query_init(&query);
+        httpc_bufferize(&query, 1024);
+        query.on_hdrs = &z_query_on_hdrs;
+        query.on_data = &z_query_on_data;
+        query.on_done = &z_query_on_done;
+
+        httpc_query_attach(&query, httpc);
+        httpc_query_start(&query, HTTP_METHOD_GET, LSTR_IMMED_V("localhost"),
+                          LSTR_IMMED_V("/"));
+        httpc_query_hdrs_done(&query, 0, false);
+        httpc_query_done(&query);
+
+        while (!has_reply_g) {
+            el_loop_timeout(10);
+        }
+
+        Z_ASSERT_EQ((http_code_t)HTTP_CODE_OK , code_g);
+        Z_ASSERT_LSTREQUAL(body_g, LSTR_IMMED_V("Coucou"));
+        httpc_query_wipe(&query);
+        el_fd_unregister(&el_server, true);
+        el_fd_unregister(&el_client, true);
+        el_loop_timeout(10);
+        lstr_wipe(&body_g);
+    } Z_TEST_END;
+} Z_GROUP_END;
 
 /* }}} */

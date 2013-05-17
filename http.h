@@ -752,10 +752,11 @@ httpc_t *httpc_pool_get(httpc_pool_t *pool);
 
 typedef enum httpc_status_t {
     HTTPC_STATUS_OK,
-    HTTPC_STATUS_INVALID  = -1,
-    HTTPC_STATUS_ABORT    = -2,
-    HTTPC_STATUS_TOOLARGE = -3,
-    HTTPC_STATUS_TIMEOUT  = -4,
+    HTTPC_STATUS_INVALID    = -1,
+    HTTPC_STATUS_ABORT      = -2,
+    HTTPC_STATUS_TOOLARGE   = -3,
+    HTTPC_STATUS_TIMEOUT    = -4,
+    HTTPC_STATUS_EXP100CONT = -5,
 } httpc_status_t;
 
 typedef struct httpc_qinfo_t {
@@ -785,7 +786,9 @@ struct httpc_query_t {
     flag_t         chunk_started : 1;
     flag_t         clength_hack  : 1;
     flag_t         query_done    : 1;
+    flag_t         expect100cont : 1;
 
+    void         (*on_100cont)(httpc_query_t *q);
     int          (*on_hdrs)(httpc_query_t *q);
     int          (*on_data)(httpc_query_t *q, pstream_t ps);
     void         (*on_done)(httpc_query_t *q, httpc_status_t status);
