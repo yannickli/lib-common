@@ -1518,19 +1518,22 @@ static int do_indent(int (*writecb)(void *, const void *, int),
     return lvl;
 }
 
-static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
-                    int (*writecb)(void *, const void *buf, int len),
-                    void *priv, unsigned flags)
+static int
+pack_txt(const iop_struct_t *desc, const void *value, int lvl,
+         int (*writecb)(void *, const void *buf, int len),
+         void *priv, unsigned flags);
+
+static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
+                      int (*writecb)(void *, const void *buf, int len),
+                      void *priv, unsigned flags, bool *first)
 {
     /* ints:   sign, 20 digits, and NUL -> 22
        double: sign, digit, dot, 17 digits, e, sign, up to 3 digits NUL -> 25
      */
     char ibuf[25];
     int res = 0;
-    bool first = true;
 
-    const iop_field_t *fdesc = desc->fields;
-    const iop_field_t *fend  = desc->fields + desc->fields_len;
+    const iop_field_t *fdesc, *fend;
     const bool with_indent = !(flags & IOP_JPACK_COMPACT);
     SB_8k(sb);
 
@@ -1569,12 +1572,10 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
     if (desc->is_union) {
         fdesc = get_union_field(desc, value);
         fend  = fdesc + 1;
-        IPUTS("{ ", "{");
     } else {
-        IPUTS("{\n", "{");
-        lvl++;
+        fdesc = desc->fields;
+        fend  = desc->fields + desc->fields_len;
     }
-
 
     for (; fdesc < fend; fdesc++) {
         const void *ptr;
@@ -1590,8 +1591,8 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
         if (!n && !repeated)
             continue;
 
-        if (first) {
-            first = false;
+        if (*first) {
+            *first = false;
         } else {
             IPUTS(",\n", ",");
         }
@@ -1652,7 +1653,18 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
 
               case IOP_T_UNION:
               case IOP_T_STRUCT:
-                v   = &IOP_FIELD(const char, ptr, j * fdesc->size);
+                if (iop_field_is_class(fdesc)) {
+                    v = &IOP_FIELD(const char, ptr, j * sizeof(void *));
+                    /* Non-optional class fields have to be dereferenced
+                     * (dereferencing of optional fields was already done just
+                     *  above).
+                     */
+                    if (fdesc->repeat != IOP_R_OPTIONAL) {
+                        v = *(void **)v;
+                    }
+                } else {
+                    v = &IOP_FIELD(const char, ptr, j * fdesc->size);
+                }
                 len = RETHROW(pack_txt(fdesc->u1.st_desc, v, lvl, writecb, priv, flags));
                 res += len;
                 break;
@@ -1711,26 +1723,82 @@ static int pack_txt(const iop_struct_t *desc, const void *value, int lvl,
             IPUTS(" ]", "]");
     }
 
+    return res;
+}
+
+qvector_t(iop_struct, const iop_struct_t *);
+
+static int
+pack_txt(const iop_struct_t *desc, const void *value, int lvl,
+         int (*writecb)(void *, const void *buf, int len),
+         void *priv, unsigned flags)
+{
+    int res = 0;
+    bool first = true;
+    const bool with_indent = !(flags & IOP_JPACK_COMPACT);
+
+    if (desc->is_union) {
+        IPUTS("{ ", "{");
+    } else {
+        IPUTS("{\n", "{");
+        lvl++;
+    }
+
+    if (iop_struct_is_class(desc)) {
+        qv_t(iop_struct) parents;
+        const iop_struct_t *real_desc = *(const iop_struct_t **)value;
+
+        /* Write type of class */
+        INDENT();
+        IPUTS("\"_class\": ", "\"_class\":");
+        PUTS("\"");
+        PUTS(real_desc->fullname.s);
+        PUTS("\"");
+        first = false;
+
+        /* We want to write the fields in the order "master -> children", and
+         * not "children -> master", so first build a qvector of the parents.
+         */
+        qv_inita(iop_struct, &parents, 8);
+        do {
+            qv_append(iop_struct, &parents, real_desc);
+        } while ((real_desc = real_desc->class_attrs->parent));
+
+        /* Write fields of different levels */
+        for (int pos = parents.len; pos-- > 0; ) {
+            res += RETHROW(__pack_txt(parents.tab[pos], value, lvl, writecb,
+                                      priv, flags, &first));
+        }
+        qv_wipe(iop_struct, &parents);
+
+    } else {
+        res += RETHROW(__pack_txt(desc, value, lvl, writecb, priv, flags,
+                                  &first));
+    }
+
     if (desc->is_union) {
         IPUTS(" }", "}");
     } else {
-        if (!first && with_indent)
+        if (!first && with_indent) {
             PUTS("\n");
+        }
         lvl--;
         INDENT();
         PUTS("}");
     }
 
-    if (lvl == 0 && !(flags & IOP_JPACK_NO_TRAILING_EOL))
+    if (lvl == 0 && !(flags & IOP_JPACK_NO_TRAILING_EOL)) {
         PUTS("\n");
+    }
 
     return res;
+}
+
 #undef WRITE
 #undef PUTS
 #undef INDENT
 #undef PUTU
 #undef PUTI
-}
 
 int iop_jpack(const iop_struct_t *desc, const void *value,
               int (*writecb)(void *, const void *buf, int len),
