@@ -142,6 +142,7 @@ static struct {
     int       active;         /* number of ev_t keeping the el_loop running */
     uint8_t   unloop;         /* @see el_unloop()                           */
     uint8_t   has_run;        /* true if we did something during a loop     */
+    bool      worker_running; /* true if the worker is currently running    */
     uint64_t  lp_clk;         /* low precision monotonic clock              */
 
     dlist_t   idle;           /* ev_t to run when we're "idle"              */
@@ -155,6 +156,8 @@ static struct {
     qm_t(ev)  fd_act;         /* el_t's timers to el_t fds map              */
     qm_t(ev)  fs_watches;     /* el_t's for fs watch events                 */
     el_t      fs_watch;       /* inotify el_t                               */
+    el_worker_f *worker;      /* worker callback                            */
+    uint64_t     worker_end;  /* worker end time                            */
 
     /*----- allocation stuff -----*/
 #define EV_ALLOC_FACTOR  10   /* basic segment is 1024 events               */
@@ -424,6 +427,11 @@ static void el_signal_process(void)
     }
 }
 
+static bool el_signal_has_pending_events(void)
+{
+    return _G.gotsigs;
+}
+
 void el_signal_set_hook(el_t ev, el_signal_f *cb)
 {
     CHECK_EV_TYPE(ev, EV_SIGNAL);
@@ -601,6 +609,30 @@ static uint64_t get_clock(bool lowres)
     assert (res == 0);
     return _G.lp_clk = 1000ull * ts.tv_sec + ts.tv_nsec / 1000000;
 }
+
+static bool el_timer_has_pending_events(void)
+{
+    ev_t *ev;
+    uint64_t now = 0;
+
+    if (!qhp_is_empty(timer, &_G.timers) || _G.worker_running) {
+        now = get_clock(false);
+    }
+
+    if (_G.worker_running) {
+        if (_G.worker_end <= now) {
+            return true;
+        }
+    }
+
+    if (qhp_is_empty(timer, &_G.timers)) {
+        return false;
+    }
+
+    ev = qhp_first(timer, &_G.timers);
+    return ev->timer.expiry <= now;
+}
+
 
 /* XXX: if we reschedule in more than half a second, don't care about
         the high precision */
@@ -1047,6 +1079,11 @@ int el_fs_watch_change(el_t el, uint32_t flags)
 
 /*----- generic functions  -----*/
 
+void el_set_worker(el_worker_f *worker)
+{
+    _G.worker = worker;
+}
+
 #ifndef NDEBUG
 bool el_set_trace(el_t ev, bool trace)
 {
@@ -1115,6 +1152,24 @@ void el_loop_timeout(int timeout)
     el_idle_process(clk);
     if (!dlist_is_empty(&_G.proxy_ready) || !dlist_is_empty(&_G.idle))
         timeout = 0;
+    if (_G.worker) {
+        uint64_t start, end;
+        int diff;
+
+        start = get_clock(false);
+        _G.worker_running = true;
+        _G.worker_end     = start + timeout;
+        (*_G.worker)(el_has_pending_events() ? 0 : timeout);
+        _G.worker_running = false;;
+        end = get_clock(false);
+
+        diff = end - start;
+        if (diff / 3 > timeout / 2) {
+            e_warning("worker is too long: %dms while expecting %dms",
+                      diff, timeout);
+        }
+        timeout = MAX(0, timeout - diff);
+    }
     el_loop_fds(timeout);
     el_loop_proxies();
     el_signal_process();
@@ -1169,6 +1224,13 @@ void el_loop(void)
 void el_unloop(void)
 {
     _G.unloop = true;
+}
+
+bool el_has_pending_events(void)
+{
+    return el_signal_has_pending_events()
+        || el_timer_has_pending_events()
+        || el_fds_has_pending_events();
 }
 
 #ifndef NDEBUG
