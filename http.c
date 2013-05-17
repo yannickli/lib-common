@@ -1518,6 +1518,40 @@ static int httpc_parse_idle(httpc_t *w, pstream_t *ps)
     req.hdrs_len = hdrs.len;
 
     q = dlist_first_entry(&w->query_list, httpc_query_t, query_link);
+
+    if (req.code >= 100 && req.code < 200) {
+        w->state = HTTP_PARSER_IDLE;
+
+        /* rfc 2616: §10.1: A client MUST be prepared to accept one or more
+         * 1xx status responses prior to a regular response.
+         *
+         * Since HTTP/1.0 did not define any 1xx status codes, servers MUST
+         * NOT send a 1xx response to an HTTP/1.0 client except under
+         * experimental conditions
+         */
+        if (req.http_version == HTTP_1_0) {
+            return PARSE_ERROR;
+        } else
+        if (req.code != HTTP_CODE_CONTINUE) {
+            return PARSE_OK;
+        }
+
+        if (q->expect100cont) {
+            /* Temporary set the qinfo to the 100 Continue header.
+             */
+            q->qinfo = &req;
+            (*q->on_100cont)(q);
+            q->qinfo = NULL;
+        }
+        q->expect100cont = false;
+
+        return PARSE_OK;
+    }
+
+    if (q->expect100cont && (req.code >= 200 && req.code < 300)) {
+        return HTTPC_STATUS_EXP100CONT;
+    }
+
     q->qinfo = httpc_qinfo_dup(&req);
     if (q->on_hdrs)
         RETHROW((*q->on_hdrs)(q));
@@ -1777,8 +1811,21 @@ static int httpc_on_event(el_t evh, int fd, short events, el_data_t priv)
     pstream_t ps;
     int res, st = HTTPC_STATUS_INVALID;
 
-    if (events == EL_EVENTS_NOACT)
+    if (events == EL_EVENTS_NOACT) {
+        if (!dlist_is_empty(&w->query_list)) {
+            q = dlist_first_entry(&w->query_list, httpc_query_t, query_link);
+            if (q->expect100cont) {
+                /* rfc 2616: §8.2.3: the client SHOULD NOT wait
+                 * for an indefinite period before sending the request body
+                 */
+                (*q->on_100cont)(q);
+                q->expect100cont = false;
+                el_fd_watch_activity(evh, POLLINOUT, w->cfg->noact_delay);
+                return 0;
+            }
+        }
         goto close;
+    }
 
     if (events & POLLIN) {
         if ((res = sb_read(&w->ibuf, fd, 0)) <= 0)
@@ -1971,6 +2018,9 @@ void httpc_query_hdrs_done(httpc_query_t *q, int clen, bool chunked)
     assert (!q->hdrs_done);
     q->hdrs_done = true;
 
+    if (q->expect100cont) {
+        ob_adds(ob, "Expect: 100-continue\r\n");
+    }
     if (clen >= 0)
         ob_addf(ob, "Content-Length: %d\r\n", clen);
     if (chunked) {
