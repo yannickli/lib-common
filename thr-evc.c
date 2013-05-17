@@ -34,11 +34,40 @@
 #  error "this file assumes a strict memory model and is probably buggy on !x86"
 #endif
 
-#define futex_wait(futex, val, ts) \
-        syscall(SYS_futex, (unsigned long)futex, FUTEX_WAIT, val, (unsigned long)ts, 0)
+#define futex_wait(futex, val, ts)                                          \
+({                                                                          \
+    typeof(futex) __futex = (futex);                                        \
+    typeof(val)   __val   = (val);                                          \
+    typeof(ts)    __ts    = (ts);                                           \
+    int __res;                                                              \
+                                                                            \
+    for(;;) {                                                               \
+        __res = syscall(SYS_futex, (unsigned long)__futex, FUTEX_WAIT,      \
+                        __val, (unsigned long)__ts, 0);                     \
+        if (__res < 0 && errno == EINTR) {                                  \
+            continue;                                                       \
+        }                                                                   \
+        break;                                                              \
+    }                                                                       \
+    __res;                                                                  \
+})
 
-#define futex_wake(futex, nwake) \
-        syscall(SYS_futex, (unsigned long)futex, FUTEX_WAKE, nwake, 0, 0)
+#define futex_wake(futex, nwake)                                            \
+({                                                                          \
+    typeof(futex) __futex = (futex);                                        \
+    typeof(nwake) __nwake = (nwake);                                        \
+    int __res;                                                              \
+                                                                            \
+    for(;;) {                                                               \
+        __res = syscall(SYS_futex, (unsigned long)__futex,                  \
+                        FUTEX_WAKE, __nwake, 0, 0);                         \
+        if (__res < 0 && errno == EINTR) {                                  \
+            continue;                                                       \
+        }                                                                   \
+        break;                                                              \
+    }                                                                       \
+    __res;                                                                  \
+})
 
 void thr_ec_signal_n(thr_evc_t *ec, int count)
 {
