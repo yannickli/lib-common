@@ -64,6 +64,7 @@ typedef int  (el_fd_f)(el_t, int, short, el_data_t);
 typedef void (el_proxy_f)(el_t, short, el_data_t);
 typedef void (el_fs_watch_f)(el_t, uint32_t mask, uint32_t cookie,
                              lstr_t name, el_data_t);
+typedef void (el_worker_f)(int timeout);
 
 #ifdef __has_blocks
 typedef void (BLOCK_CARET el_cb_b)(el_t);
@@ -280,12 +281,26 @@ void el_bl_use(void) __leaf;
 void el_bl_lock(void);
 void el_bl_unlock(void);
 
+/** Define the worker function.
+ *
+ * The worker is a unique function that get called whenever the el_loop would
+ * get block waiting for activity. The worker can handle any workload it
+ * wants, but it must ensure that:
+ *  - it returns after the given timeout.
+ *  - it returns when the event loop has new activity (pollable using
+ *    \ref el_has_pending_events.
+ *
+ * \param[in] worker The new worker (NULL to unset the current worker)
+ */
+void el_set_worker(el_worker_f *worker);
+
 void el_cond_wait(pthread_cond_t *);
 void el_cond_signal(pthread_cond_t *) __leaf;
 
 void el_loop(void);
 void el_unloop(void) __leaf;
 void el_loop_timeout(int msecs);
+bool el_has_pending_events(void);
 
 /**\}*/
 #endif

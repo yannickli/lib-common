@@ -14,18 +14,24 @@
 #include <sys/epoll.h>
 #include "unix.h"
 
-static int epollfd_g = -1;
+static struct {
+    int fd;
+    int pending;
+    struct epoll_event events[FD_SETSIZE];
+} el_epoll_g = {
+    .fd = -1,
+};
 
 static void el_fd_initialize(void)
 {
-    if (unlikely(epollfd_g == -1)) {
+    if (unlikely(el_epoll_g.fd == -1)) {
 #ifdef SIGPIPE
         signal(SIGPIPE, SIG_IGN);
 #endif
-        epollfd_g = epoll_create(1024);
-        if (epollfd_g < 0)
+        el_epoll_g.fd = epoll_create(1024);
+        if (el_epoll_g.fd < 0)
             e_panic(E_UNIXERR("epoll_create"));
-        fd_set_features(epollfd_g, O_CLOEXEC);
+        fd_set_features(el_epoll_g.fd, O_CLOEXEC);
     }
 }
 
@@ -41,7 +47,7 @@ el_t el_fd_register_d(int fd, short events, el_fd_f *cb, el_data_t priv)
     ev->fd = fd;
     ev->events_wanted = events;
     ev->priority = EV_PRIORITY_NORMAL;
-    if (unlikely(epoll_ctl(epollfd_g, EPOLL_CTL_ADD, fd, &event)))
+    if (unlikely(epoll_ctl(el_epoll_g.fd, EPOLL_CTL_ADD, fd, &event)))
         e_panic(E_UNIXERR("epoll_ctl"));
     return ev;
 }
@@ -60,7 +66,7 @@ short el_fd_set_mask(ev_t *ev, short events)
             .data.ptr = ev,
             .events   = ev->events_wanted = events,
         };
-        if (unlikely(epoll_ctl(epollfd_g, EPOLL_CTL_MOD, ev->fd, &event)))
+        if (unlikely(epoll_ctl(el_epoll_g.fd, EPOLL_CTL_MOD, ev->fd, &event)))
             e_panic(E_UNIXERR("epoll_ctl"));
     }
     return old;
@@ -91,7 +97,7 @@ el_data_t el_fd_unregister(ev_t **evp, bool do_close)
         ev_t *ev = *evp;
 
         CHECK_EV_TYPE(ev, EV_FD);
-        epoll_ctl(epollfd_g, EPOLL_CTL_DEL, ev->fd, NULL);
+        epoll_ctl(el_epoll_g.fd, EPOLL_CTL_DEL, ev->fd, NULL);
         if (likely(do_close))
             close(ev->fd);
         if (EV_FLAG_HAS(ev, FD_WATCHED))
@@ -101,30 +107,50 @@ el_data_t el_fd_unregister(ev_t **evp, bool do_close)
     return (el_data_t)NULL;
 }
 
+static void el_loop_fds_poll(int timeout)
+{
+    el_bl_unlock();
+    timeout = el_signal_has_pending_events() ? 0 : timeout;
+    el_epoll_g.pending = epoll_wait(el_epoll_g.fd, el_epoll_g.events,
+                                    countof(el_epoll_g.events), timeout);
+    el_bl_lock();
+    assert (el_epoll_g.pending >= 0 || ERR_RW_RETRIABLE(errno));
+}
+
+static bool el_fds_has_pending_events(void)
+{
+    if (el_epoll_g.pending == 0) {
+        el_loop_fds_poll(0);
+    }
+    return el_epoll_g.pending != 0;
+}
+
 static void el_loop_fds(int timeout)
 {
     ev_priority_t prio = EV_PRIORITY_LOW;
-    struct epoll_event events[FD_SETSIZE];
-    uint64_t before, now;
     int res, res2;
+    uint64_t before, now;
 
     el_fd_initialize();
-    el_bl_unlock();
-    before     = get_clock(false);
-    res2 = res = epoll_wait(epollfd_g, events, countof(events),
-                            _G.gotsigs ? 0 : timeout);
-    now        = get_clock(false);
-    el_bl_lock();
-    assert (res >= 0 || ERR_RW_RETRIABLE(errno));
+    if (el_epoll_g.pending == 0) {
+        before = get_clock(false);
+        el_loop_fds_poll(timeout);
+        now    = get_clock(false);
+        if (now - before > 100) {
+            dlist_splice_tail(&_G.idle, &_G.idle_parked);
+        }
+    } else {
+        now = get_clock(false);
+    }
 
-    if (now - before > 100)
-        dlist_splice_tail(&_G.idle, &_G.idle_parked);
+    res = res2 = el_epoll_g.pending;
+    el_epoll_g.pending = 0;
 
     _G.has_run = false;
     el_timer_process(now);
     while (res-- > 0) {
-        ev_t *ev = events[res].data.ptr;
-        int  evs = events[res].events;
+        ev_t *ev = el_epoll_g.events[res].data.ptr;
+        int  evs = el_epoll_g.events[res].events;
 
         if (unlikely(ev->type != EV_FD))
             continue;
@@ -138,8 +164,8 @@ static void el_loop_fds(int timeout)
         return;
     }
     while (res2-- > 0) {
-        ev_t *ev = events[res2].data.ptr;
-        int  evs = events[res2].events;
+        ev_t *ev = el_epoll_g.events[res2].data.ptr;
+        int  evs = el_epoll_g.events[res2].events;
 
         if (unlikely(ev->type != EV_FD))
             continue;
