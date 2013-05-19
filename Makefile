@@ -11,6 +11,7 @@
 #                                                                        #
 ##########################################################################
 
+
 none_LIBRARIES = libcommon time-lp-simple
 test_PROGRAMS += zchk ztst-cfgparser ztst-tpl ztst-lzo ztst-thrjob
 test_PROGRAMS += ztst-iprintf ztst-iprintf-fp ztst-iprintf-glibc ztst-iprintf-speed
