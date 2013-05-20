@@ -40,13 +40,37 @@ class_id_key_equal(const qhash_t *h, const class_id_key_t *k1,
 qm_kvec_t(class_id, class_id_key_t, const iop_struct_t *,
           class_id_key_hash, class_id_key_equal);
 
+typedef struct class_name_key_t {
+    const iop_struct_t *master;
+    const lstr_t       *child_fullname;
+} class_name_key_t;
+
+static inline uint32_t
+class_name_key_hash(const qhash_t *h, const class_name_key_t *key)
+{
+    return qhash_hash_ptr(h, key->master)
+         ^ qhash_lstr_hash(h, key->child_fullname);
+}
+static inline bool
+class_name_key_equal(const qhash_t *h, const class_name_key_t *k1,
+                   const class_name_key_t *k2)
+{
+    return (k1->master == k2->master)
+         && lstr_equal(k1->child_fullname, k2->child_fullname);
+}
+
+qm_kvec_t(class_name, class_name_key_t, const iop_struct_t *,
+          class_name_key_hash, class_name_key_equal);
+
 /*------ Local declarations -}}}-*/
 
 static struct {
-    qm_t(class_id) classes_by_id;
+    qm_t(class_id)   classes_by_id;
+    qm_t(class_name) classes_by_name;
 } iop_g = {
 #define _G  iop_g
-    .classes_by_id = QM_INIT(class_id, _G.classes_by_id,      false),
+    .classes_by_id   = QM_INIT(class_id,   _G.classes_by_id,   false),
+    .classes_by_name = QM_INIT(class_name, _G.classes_by_name, false),
 };
 
 /*------ iop_init -{{{-*/
@@ -2670,30 +2694,44 @@ bool iop_class_is_a(const iop_struct_t *cls1, const iop_struct_t *cls2)
 
 static void iop_register_class(const iop_struct_t *desc)
 {
-    class_id_key_t key;
+    class_id_key_t key = {
+        .master   = desc,
+        .child_id = desc->class_attrs->class_id,
+    };
     uint32_t pos;
-
-    p_clear(&key, 1);
-    key.master = desc;
-    key.child_id = desc->class_attrs->class_id;
 
     while (key.master->class_attrs->parent) {
         key.master = key.master->class_attrs->parent;
     }
 
+    /* Register in classes_by_id hash table */
     pos = __qm_put(class_id, &_G.classes_by_id, &key, desc, 0);
     if (pos & QHASH_COLLISION) {
         pos ^= QHASH_COLLISION;
         if (_G.classes_by_id.values[pos] != desc) {
-            e_panic("conflicting class id %d: used by both '%*pM' and '%*pM'",
+            e_fatal("conflicting class id %d: used by both '%*pM' and '%*pM'",
                     desc->class_attrs->class_id, LSTR_FMT_ARG(desc->fullname),
                     LSTR_FMT_ARG(_G.classes_by_id.values[pos]->fullname));
         }
-    } else
-    if (desc->class_attrs->parent) {
-        /* Register the parent only if the structure was not registered yet,
-         * because if it is, we are sure the parent is already registered. */
-        iop_register_class(desc->class_attrs->parent);
+    } else {
+        class_name_key_t key2 = {
+            .master         = key.master,
+            .child_fullname = &desc->fullname,
+        };
+
+        /* Register in classes_by_name hash table */
+        if (qm_add(class_name, &_G.classes_by_name, &key2, desc) < 0) {
+            e_fatal("conflicting class name '%*pM' as a child of '%*pM'",
+                    LSTR_FMT_ARG(desc->fullname),
+                    LSTR_FMT_ARG(key.master->fullname));
+        }
+
+        if (desc->class_attrs->parent) {
+            /* Register the parent only if the class was not registered
+             * yet, because if it is, we are sure the parent is already
+             * registered. */
+            iop_register_class(desc->class_attrs->parent);
+        }
     }
 }
 
@@ -2717,7 +2755,8 @@ void iop_register_packages(const iop_pkg_t **pkgs, int len)
 __attribute__((destructor))
 static void iop_shutdown(void)
 {
-    qm_wipe(class_id, &_G.classes_by_id);
+    qm_wipe(class_id,   &_G.classes_by_id);
+    qm_wipe(class_name, &_G.classes_by_name);
 }
 
 iop_struct_t const iop__void__s = {
