@@ -381,6 +381,7 @@ def main():
 
 group_RE = re.compile(r"^1\.\.(\d+) (.*)$")
 test_RE  = re.compile(r"^(\d+) (pass|fail|skip|todo-pass|todo-fail) (.*)$")
+suite_RE = re.compile(r".*TEST SUITE (.*) FAILED.*") # cannot anchor due to shell colors
 
 def z_report():
     errors = []
@@ -434,6 +435,12 @@ def z_report():
             else:
                 success_count += 1
             group_pos = n
+            continue
+
+        group = suite_RE.match(line)
+        print line, group
+        if group:
+            errors.append(('error', group.group(1), ''))
 
     if group_len > group_pos:
         errors.append(("missing", "%s.(%d->%d)(unknown)" % (group_name, group_pos + 1, group_len), ''))
@@ -442,13 +449,13 @@ def z_report():
     total = failed_count + skipped_count + success_count
     if total == 0:
         print "# NO TESTS FOUND"
-        sys.exit(0)
-    print "#"
-    print "#"
-    print "# TOTAL"
-    print "# Skipped %d (%d%%)" % (skipped_count, skipped_count * 100 / total)
-    print "# Failed  %d (%d%%)" % (failed_count,  failed_count * 100 / total)
-    print "# Success %d (%d%%)" % (success_count, success_count * 100 / total)
+    else:
+        print "#"
+        print "#"
+        print "# TOTAL"
+        print "# Skipped %d (%d%%)" % (skipped_count, skipped_count * 100 / total)
+        print "# Failed  %d (%d%%)" % (failed_count,  failed_count * 100 / total)
+        print "# Success %d (%d%%)" % (success_count, success_count * 100 / total)
 
     if len(errors):
         code = 0
