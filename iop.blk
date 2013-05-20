@@ -2689,6 +2689,23 @@ bool iop_class_is_a(const iop_struct_t *cls1, const iop_struct_t *cls2)
     return false;
 }
 
+const iop_struct_t *
+iop_get_class_by_fullname(const iop_struct_t *st, lstr_t fullname)
+{
+    class_name_key_t key = {
+        .master = st,
+        .child_fullname = &fullname,
+    };
+    int pos;
+
+    while (key.master->class_attrs->parent) {
+        key.master = key.master->class_attrs->parent;
+    }
+
+    pos = RETHROW_NP(qm_find(class_name, &_G.classes_by_name, &key));
+    return _G.classes_by_name.values[pos];
+}
+
 /*------ class manipulation -}}}-*/
 /*------ Packages registration -{{{-*/
 

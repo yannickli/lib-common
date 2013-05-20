@@ -573,6 +573,14 @@ iop_obj_is_a_desc(const void *obj, const iop_struct_t *desc)
 
 #define iop_obj_is_a(obj, pfx)  iop_obj_is_a_desc((void *)(obj), &pfx##__s)
 
+/** Get the descriptor of a class from its fullname.
+ *
+ * The wanted class must have the same master class than the given class
+ * descriptor.
+ */
+const iop_struct_t *
+iop_get_class_by_fullname(const iop_struct_t *st, lstr_t fullname);
+
 /* }}} */
 /* {{{ IOP constraints handling */
 
