@@ -77,7 +77,7 @@ trap "rm $tmp $tmp2" 0
 "$(dirname "$0")"/_list_checks.sh "$where" | (
 export Z_BEHAVE=1
 export Z_HARNESS=1
-export Z_TAG_SKIP="${Z_TAG_SKIP:-slow upgrade}"
+export Z_TAG_SKIP="${Z_TAG_SKIP:-wip slow upgrade}"
 export Z_MODE="${Z_MODE:-fast}"
 export ASAN_OPTIONS="${ASAN_OPTIONS:-handle_segv=0}"
 

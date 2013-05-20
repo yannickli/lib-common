@@ -23,9 +23,9 @@ endif
 endif
 
 doc:
-all check clean distclean::
+all check fast-check clean distclean::
 FORCE: ;
-.PHONY: all check clean distclean doc FORCE
+.PHONY: all check fast-check clean distclean doc FORCE
 
 var/sources    = $(sort $(foreach v,$(filter %_SOURCES,$(.VARIABLES)),$($v)))
 var/cleanfiles = $(sort $(foreach v,$(filter %_CLEANFILES,$(.VARIABLES)),$($v)))
@@ -61,6 +61,8 @@ distclean::
 	$(RM) -r $~
 check:: all
 	$(var/toolsdir)/_run_checks.sh .
+fast-check:: all
+	Z_MODE=fast Z_TAG_SKIP='upgrade slow' $(var/toolsdir)/_run_checks.sh .
 
 tags: $(var/generated)
 syntastic:
@@ -76,6 +78,8 @@ $(d)all::
 $(d)doc:
 $(d)check:: $(d)all
 	$(var/toolsdir)/_run_checks.sh $(d)
+$(d)fast-check:: $(d)all
+	Z_MODE=fast Z_TAG_SKIP='upgrade slow' $(var/toolsdir)/_run_checks.sh $(d)
 $(d)clean::
 	find $~$(d) -type f \! -name vars.mk -print0 | xargs -0 $(RM)
 	$(call fun/expand-if2,$(RM),$(filter-out %/,$($(d)_CLEANFILES)))
@@ -115,7 +119,7 @@ toplevel:
 .PHONY: toplevel
 
 all:: toplevel
-all check clean distclean:: | __setup_buildsys_trampoline
+all check fast-check clean distclean:: | __setup_buildsys_trampoline
 	$(MAKEPARALLEL) -C $/ -f $!Makefile $(patsubst $/%,%,$(CURDIR)/)$@
 
 __setup_buildsys_doc: | __setup_buildsys_trampoline
