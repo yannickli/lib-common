@@ -453,6 +453,28 @@
         return iop_sb_jpack(sb, &pfx##__s, v, flags);                        \
     }
 
+#define IOP_GENERIC_JSON_UNPACK(pfx)  \
+    __must_check__                                                           \
+    static inline int pfx##__junpack_ptr(iop_json_lex_t *ll, pfx##__t **v,   \
+                                         bool single)                        \
+    {                                                                        \
+        return iop_junpack_ptr(ll, &pfx##__s, (void **)v, single);           \
+    }                                                                        \
+    __must_check__                                                           \
+    static inline int t_##pfx##__junpack_ptr_ps(pstream_t *ps, pfx##__t **v, \
+                                                int flags, sb_t *errb)       \
+    {                                                                        \
+        return t_iop_junpack_ptr_ps(ps, &pfx##__s, (void **)v, flags, errb); \
+    }                                                                        \
+    __must_check__                                                           \
+    static inline int t_##pfx##__junpack_ptr_file(const char *filename,      \
+                                                  pfx##__t **v, int flags,   \
+                                                  sb_t *errb)                \
+    {                                                                        \
+        return t_iop_junpack_ptr_file(filename, &pfx##__s, (void **)v,       \
+                                      flags, errb);                          \
+    }
+
 #define IOP_GENERIC_JSON_UNPACK_STRUCT_UNION(pfx)  \
     __must_check__                                                           \
     static inline int pfx##__junpack(iop_json_lex_t *ll, pfx##__t *v,        \
@@ -529,6 +551,7 @@
     IOP_GENERIC_BINARY_UNPACK_STRUCT_UNION(pfx)                              \
     /* ---- JSon ---- */                                                     \
     IOP_GENERIC_JSON_PACK(pfx)                                               \
+    IOP_GENERIC_JSON_UNPACK(pfx)                                             \
     IOP_GENERIC_JSON_UNPACK_STRUCT_UNION(pfx)                                \
     /* ---- XML ---- */                                                      \
     IOP_GENERIC_XML_PACK(pfx)                                                \
@@ -544,6 +567,7 @@
     IOP_GENERIC_BINARY_UNPACK(pfx)                                           \
     /* ---- JSon ---- */                                                     \
     IOP_GENERIC_JSON_PACK(pfx)                                               \
+    IOP_GENERIC_JSON_UNPACK(pfx)                                             \
     /* ---- XML ---- */                                                      \
     IOP_GENERIC_XML_PACK(pfx)
 

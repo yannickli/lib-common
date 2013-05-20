@@ -1340,6 +1340,12 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
     return 0;
 }
 
+/* If "desc" is a structure or a union, "value" is a pointer on the structure
+ * to fill.
+ * If "desc" is a class, "value" is a double-pointer on the structure to fill.
+ * It will be (re)allocated when the size of the real class to unpack will be
+ * known.
+ */
 int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *desc, void *value,
                 bool single_value)
 {
@@ -1404,49 +1410,76 @@ int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *desc, void *value,
     }
 }
 
-int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *desc, void *v,
-                     int flags, sb_t *errb)
+int iop_junpack_ptr(iop_json_lex_t *ll, const iop_struct_t *st, void **out,
+                    bool single_value)
 {
-    iop_json_lex_t  jll;
-    int res;
-
-    iop_jlex_init(t_pool(), &jll);
-    iop_jlex_attach(&jll, ps);
-    jll.flags = flags;
-
-    if ((res = iop_junpack(&jll, desc, v, true)) < 0) {
-        if (errb) {
-            iop_jlex_write_error(&jll, errb);
-        }
+    if (iop_struct_is_class(st)) {
+        /* "out" will be (re)allocated after, when the real packed class type
+         * will be known. */
+        return iop_junpack(ll, st, out, single_value);
     }
 
-    iop_jlex_wipe(&jll);
-
-    return res;
-}
-
-int t_iop_junpack_file(const char *filename, const iop_struct_t *st,
-                       void *out, int flags, sb_t *errb)
-{
-    int res;
-    pstream_t ps;
-    lstr_t file = LSTR_NULL_V;
-
-    if (lstr_init_from_file(&file, filename, PROT_READ, MAP_SHARED) < 0) {
-        if (errb) {
-            sb_addf(errb, "cannot read file %s: %m", filename);
-        }
-        res = IOP_JERR_INVALID_FILE;
-        goto end;
+    if (*out) {
+        *out = ll->mp->realloc(ll->mp, *out, 0, st->size, MEM_RAW);
+    } else {
+        *out = ll->mp->malloc(ll->mp, st->size, MEM_RAW);
     }
-
-    ps = ps_initlstr(&file);
-    res = t_iop_junpack_ps(&ps, st, out, flags, errb);
-
- end:
-    lstr_wipe(&file);
-    return res;
+    return iop_junpack(ll, st, *out, single_value);
 }
+
+#define CREATE_JUNPACK_PS(_fun, _data_type, _fun_to_call)  \
+int _fun(pstream_t *ps, const iop_struct_t *desc, _data_type v,              \
+         int flags, sb_t *errb)                                              \
+{                                                                            \
+    iop_json_lex_t  jll;                                                     \
+    int res;                                                                 \
+                                                                             \
+    iop_jlex_init(t_pool(), &jll);                                           \
+    iop_jlex_attach(&jll, ps);                                               \
+    jll.flags = flags;                                                       \
+                                                                             \
+    if ((res = iop_junpack(&jll, desc, v, true)) < 0) {                      \
+        if (errb) {                                                          \
+            iop_jlex_write_error(&jll, errb);                                \
+        }                                                                    \
+    }                                                                        \
+                                                                             \
+    iop_jlex_wipe(&jll);                                                     \
+                                                                             \
+    return res;                                                              \
+}
+
+CREATE_JUNPACK_PS(t_iop_junpack_ps,     void *,  iop_junpack)
+CREATE_JUNPACK_PS(t_iop_junpack_ptr_ps, void **, iop_junpack_ptr)
+#undef CREATE_JUNPACK_PS
+
+#define CREATE_JUNPACK_FILE(_fun, _data_type, _fun_to_call)  \
+int _fun(const char *filename, const iop_struct_t *st, _data_type out,       \
+         int flags, sb_t *errb)                                              \
+{                                                                            \
+    int res;                                                                 \
+    pstream_t ps;                                                            \
+    lstr_t file = LSTR_NULL_V;                                               \
+                                                                             \
+    if (lstr_init_from_file(&file, filename, PROT_READ, MAP_SHARED) < 0) {   \
+        if (errb) {                                                          \
+            sb_addf(errb, "cannot read file %s: %m", filename);              \
+        }                                                                    \
+        res = IOP_JERR_INVALID_FILE;                                         \
+        goto end;                                                            \
+    }                                                                        \
+                                                                             \
+    ps = ps_initlstr(&file);                                                 \
+    res = _fun_to_call(&ps, st, out, flags, errb);                           \
+                                                                             \
+ end:                                                                        \
+    lstr_wipe(&file);                                                        \
+    return res;                                                              \
+}
+
+CREATE_JUNPACK_FILE(t_iop_junpack_file,     void *,  t_iop_junpack_ps)
+CREATE_JUNPACK_FILE(t_iop_junpack_ptr_file, void **, t_iop_junpack_ptr_ps)
+#undef CREATE_JUNPACK_FILE
 
 /*-}}}-*/
 /* {{{ jpack */

@@ -160,6 +160,9 @@ static inline void iop_jlex_set_flags(iop_json_lex_t *ll, int flags)
  * If you want to set some special flags, you have to set it using
  * iop_jlex_set_flags() before calling this this function.
  *
+ * This function cannot be used to unpack a class; use `iop_junpack_ptr`
+ * instead.
+ *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
  *
@@ -182,6 +185,22 @@ __must_check__
 int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *st, void *out,
                 bool single_value);
 
+/** Convert IOP-JSon to an IOP C structure.
+ *
+ * This function acts exactly as `iop_junpack` but allocates (or reallocates)
+ * the destination structure.
+ *
+ * This function MUST be used to unpack a class instead of `iop_junpack`,
+ * because the size of a class is not known before unpacking it (this could be
+ * a child).
+ *
+ * Prefer the generated version instead of this low-level API
+ * (see IOP_GENERIC/IOP_CLASS in iop-macros.h).
+ */
+__must_check__
+int iop_junpack_ptr(iop_json_lex_t *ll, const iop_struct_t *st, void **out,
+                    bool single_value);
+
 /** Convert IOP-JSon to an IOP C structure using the t_pool().
  *
  * This function allow to unpack an IOP structure encoded in JSon format in
@@ -195,6 +214,9 @@ int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *st, void *out,
  * </code>
  *
  * Note that the parameter `single_value` is set to true.
+ *
+ * This function cannot be used to unpack a class; use `t_iop_junpack_ptr_ps`
+ * instead.
  *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
@@ -212,10 +234,29 @@ __must_check__
 int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *st, void *out,
                      int flags, sb_t *errb);
 
+/** Convert IOP-JSon to an IOP C structure using the t_pool().
+ *
+ * This function acts exactly as `t_iop_junpack_ps` but allocates
+ * (or reallocates) the destination structure.
+ *
+ * This function MUST be used to unpack a class instead of `t_iop_junpack_ps`,
+ * because the size of a class is not known before unpacking it (this could be
+ * a child).
+ *
+ * Prefer the generated version instead of this low-level API
+ * (see IOP_GENERIC/IOP_CLASS in iop-macros.h).
+ */
+__must_check__
+int t_iop_junpack_ptr_ps(pstream_t *ps, const iop_struct_t *st, void **out,
+                         int flags, sb_t *errb);
+
 /** Convert an IOP-JSon structure contained in a file to an IOP C structure.
  *
  * This function read a file containing an IOP-JSon structure and set the
  * fields in an IOP C structure.
+ *
+ * This function cannot be used to unpack a class; use `t_iop_junpack_ptr_file`
+ * instead.
  *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
@@ -233,6 +274,22 @@ int t_iop_junpack_ps(pstream_t *ps, const iop_struct_t *st, void *out,
 __must_check__
 int t_iop_junpack_file(const char *filename, const iop_struct_t *st,
                        void *out, int flags, sb_t *errb);
+
+/** Convert an IOP-JSon structure contained in a file to an IOP C structure.
+ *
+ * This function acts exactly as `t_iop_junpack_file` but allocates
+ * (or reallocates) the destination structure.
+ *
+ * This function MUST be used to unpack a class instead of
+ * `t_iop_junpack_file`, because the size of a class is not known before
+ * unpacking it (this could be a child).
+ *
+ * Prefer the generated version instead of this low-level API
+ * (see IOP_GENERIC/IOP_CLASS in iop-macros.h).
+ */
+__must_check__
+int t_iop_junpack_ptr_file(const char *filename, const iop_struct_t *st,
+                           void **out, int flags, sb_t *errb);
 
 /** Print a textual error after iop_junpack() failure.
  *
