@@ -249,11 +249,14 @@ void thr_syn__broacast(thr_syn_t *syn)
 static ALWAYS_INLINE
 void thr_syn__job_done(thr_syn_t *syn)
 {
-    unsigned res = atomic_sub_and_get(&syn->pending, 1);
+    unsigned res;
 
+    thr_syn__retain(syn);
+    res = atomic_sub_and_get(&syn->pending, 1);
     assert (res != UINT_MAX);
     if (res == 0)
         thr_syn__broacast(syn);
+    thr_syn__release(syn);
 }
 
 /** \brief wait for the completion of a given macro task.
