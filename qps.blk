@@ -2806,6 +2806,7 @@ static void __qps_close(qps_t **qpsp, bool do_cleanup)
         qps_gc_disable(qps);
         thr_syn_wait(&qps->gc_syn);
         qps_snapshot_wait(qps);
+        thr_syn_wait(&qps->snap_syn);
         thr_syn_wipe(&qps->gc_syn);
         thr_syn_wipe(&qps->snap_syn);
 
