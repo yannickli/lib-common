@@ -861,6 +861,27 @@ void iop_jlex_attach(iop_json_lex_t *ll, pstream_t *ps)
 /*-}}}-*/
 /* {{{ unpacking json way */
 
+static int
+__iop_field_find_by_name_class(const iop_struct_t *st, const void *s, int len,
+                               const iop_struct_t **found_st,
+                               const iop_field_t  **found_fdesc)
+{
+    int acc = 0;
+
+    do {
+        int pos = __iop_field_find_by_name(st, s, len);
+
+        if (pos >= 0) {
+            *found_st    = st;
+            *found_fdesc = st->fields + pos;
+            return acc + pos;
+        }
+        acc += st->fields_len;
+    } while ((st = st->class_attrs->parent));
+
+    return -1;
+}
+
 static int unpack_arr(iop_json_lex_t *, const iop_field_t *, void *);
 static int unpack_union(iop_json_lex_t *, const iop_struct_t *, void *, bool);
 static int unpack_struct(iop_json_lex_t *, const iop_struct_t *, void *,
@@ -1032,6 +1053,9 @@ do_double:
 
       case '{':
         if (fdesc->type == IOP_T_STRUCT) {
+            if (iop_field_is_class(fdesc)) {
+                *(void **)value = NULL;
+            }
             return unpack_struct(ll, fdesc->u1.st_desc, value, false);
         } else
         if (fdesc->type == IOP_T_UNION) {
@@ -1183,6 +1207,57 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
     return 0;
 }
 
+static int
+unpack_struct_prepare_class(iop_json_lex_t *ll, const iop_struct_t *desc,
+                            const iop_struct_t **real_desc, void **value)
+{
+    const iop_struct_t *desc_it = desc;
+    int nb_fields = desc->fields_len;
+
+    /* Get the value of the "_class" field */
+    if (PS_CHECK(iop_json_lex(ll, NULL)) != IOP_JSON_STRING) {
+        RJERROR_EXP_TYPE(IOP_T_STRING);
+        return -1;
+    }
+
+    /* Get the iop_struct_t of the instanciated class from its fullname */
+    while (desc_it->class_attrs->parent) {
+        desc_it = desc_it->class_attrs->parent;
+        nb_fields += desc_it->fields_len;
+    }
+    *real_desc = iop_get_class_by_fullname(desc_it, LSTR_SB_V(&ll->ctx->b));
+    if (!*real_desc) {
+        return RJERROR_EXP_FMT("a child of `%*pM'",
+                               LSTR_FMT_ARG(desc->fullname));
+    }
+
+    /* We are trying to unpack a class of type "desc", and the packed
+     * class is of type "real_desc". Check that this is authorized, and count
+     * the total number of fields of "real_desc". */
+    desc_it = *real_desc;
+    while (desc_it && desc_it != desc) {
+        nb_fields += desc_it->fields_len;
+        desc_it = desc_it->class_attrs->parent;
+    }
+    if (!desc_it) {
+        return RJERROR_EXP_FMT("a child of `%*pM'",
+                               LSTR_FMT_ARG(desc->fullname));
+    }
+
+    /* Allocate output value */
+    if (*value) {
+        *value = ll->mp->realloc(ll->mp, *value, 0, (*real_desc)->size,
+                                 MEM_RAW);
+    } else {
+        *value = ll->mp->malloc(ll->mp, (*real_desc)->size, MEM_RAW);
+    }
+
+    /* Set the _vprt pointer */
+    *(const iop_struct_t **)(*value) = *real_desc;
+
+    return nb_fields;
+}
+
 static ALWAYS_INLINE void seen_free(uint32_t **ptr)
 {
     if (unlikely(*ptr != NULL))
@@ -1202,18 +1277,45 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
     uint32_t  seen_buf[BITS_TO_ARRAY_LEN(uint32_t, 256)];
     uint32_t *seen_alloc __attribute__((cleanup(seen_free))) = NULL;
     uint32_t *seen       = seen_buf;
+    const iop_struct_t *real_desc = desc;
+    bool is_class = false;
+
+    pstream_t ctx_ps;
+    int       ctx_line = 0, ctx_col = 0;
+
+#define INIT_SEEN(_len)  \
+    do {                                                                     \
+        size_t _count = BITS_TO_ARRAY_LEN(uint32_t, _len);                   \
+                                                                             \
+        if (unlikely(_len > bitsizeof(seen))) {                              \
+            seen = seen_alloc = p_new(uint32_t, _count);                     \
+        } else {                                                             \
+            p_clear(seen, _count);                                           \
+        }                                                                    \
+    } while (0)
 
     if (desc) {
-        size_t count = BITS_TO_ARRAY_LEN(uint32_t, desc->fields_len);
-
-        if (unlikely(desc->fields_len > bitsizeof(seen))) {
-            seen = seen_alloc = p_new(uint32_t, count);
+        if ((is_class = iop_struct_is_class(desc))) {
+            /* We are unpacking a class; first of all, we have to know its
+             * real type, that is finding the "_class" field.
+             * This will be done in the loop below. Store context so that we
+             * can loop again of fields once the "_class" will be found.
+             */
+            real_desc = NULL;
+            ctx_ps = *PS;
+            ctx_line = ll->ctx->line;
+            ctx_col  = ll->ctx->col;
         } else {
-            p_clear(seen, count);
+            /* We are unpacking a struct or a union, so we already know the
+             * list of expected fields. */
+            INIT_SEEN(desc->fields_len);
         }
     }
 
     for (;;) {
+        bool found_class_field = false;
+        bool skip_field        = false;
+
         fdesc = NULL;
 
         if (PS_CHECK(iop_json_lex_peek(ll, NULL)) == '}') {
@@ -1224,22 +1326,56 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         switch (PS_CHECK(iop_json_lex(ll, NULL))) {
           case IOP_JSON_IDENT:
           case IOP_JSON_STRING:
-            if (desc) {
-                int ifield = __iop_field_find_by_name(desc, ll->ctx->b.data,
-                                                      ll->ctx->b.len);
+            if (!desc) {
+                break;
+            }
+            if (real_desc) {
+                int ifield;
 
-                if (ifield < 0) {
-                    if (!(ll->flags & IOP_UNPACK_IGNORE_UNKNOWN)) {
-                        return RJERROR_EXP_FMT("field of struct %s",
-                                               desc->fullname.s);
+                if (is_class) {
+                    /* We are looping on the fields of a class and we
+                     * already found the "_class" field. We have to skip
+                     * it when reading it again. */
+                    if (lstr_equal2(LSTR_SB_V(&ll->ctx->b),
+                                    LSTR_IMMED_V("_class")))
+                    {
+                        skip_field = true;
+                        break;
                     }
+                    ifield = __iop_field_find_by_name_class(real_desc,
+                                                            ll->ctx->b.data,
+                                                            ll->ctx->b.len,
+                                                            &desc, &fdesc);
                 } else {
-                    fdesc = desc->fields + ifield;
-                    if (TST_BIT(seen, ifield))
+                    ifield = __iop_field_find_by_name(real_desc,
+                                                      ll->ctx->b.data,
+                                                      ll->ctx->b.len);
+                    if (ifield >= 0) {
+                        fdesc = real_desc->fields + ifield;
+                    }
+                }
+                if (fdesc) {
+                    if (TST_BIT(seen, ifield)) {
                         return RJERROR_SARG(IOP_JERR_DUPLICATED_MEMBER,
                                             fdesc->name.s);
+                    }
                     SET_BIT(seen, ifield);
+                } else {
+                    if (!(ll->flags & IOP_UNPACK_IGNORE_UNKNOWN)) {
+                        return RJERROR_EXP_FMT("field of struct %s",
+                                               real_desc->fullname.s);
+                    }
                 }
+            } else {
+                /* We are looping on the fields of a class, looking for
+                 * the "_class" one, which determines the real class type.
+                 */
+                if (lstr_equal2(LSTR_SB_V(&ll->ctx->b),
+                                LSTR_IMMED_V("_class")))
+                {
+                    found_class_field = true;
+                }
+                skip_field = true;
             }
             break;
 
@@ -1261,7 +1397,20 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         {
             return RJERROR_EXP("`:' or `='");
         }
-        if (fdesc) {
+        if (found_class_field) {
+            int count = unpack_struct_prepare_class(ll, desc, &real_desc,
+                                                    (void **)value);
+
+            PS_CHECK(count);
+            INIT_SEEN((size_t)count);
+            value = *(void **)value;
+            /* The real class is now known; re-loop on the fields */
+            *PS = ctx_ps;
+            ll->ctx->line = ctx_line;
+            ll->ctx->col  = ctx_col;
+            continue;
+        } else
+        if (fdesc && !skip_field) {
             void *ptr = (char *)value + fdesc->data_offs;
 
             if (fdesc->repeat == IOP_R_OPTIONAL) {
@@ -1277,7 +1426,9 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                         goto nextfield;
                     }
                 }
-                ptr = iop_value_set_here(ll->mp, fdesc, ptr);
+                if (!iop_field_is_class(fdesc)) {
+                    ptr = iop_value_set_here(ll->mp, fdesc, ptr);
+                }
             }
 
             if (prefixed && (((1 << fdesc->type) & IOP_STRUCTS_OK)
@@ -1327,16 +1478,35 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         }
     }
   endcheck:
-    if (!desc)
+    if (!desc) {
         return 0;
-
-    fdesc = desc->fields;
-    for (int i = 0; i < desc->fields_len; i++, fdesc++) {
-        if (TST_BIT(seen, i))
-            continue;
-        if (__iop_skip_absent_field_desc(value, fdesc) < 0)
-            return RJERROR_SFIELD(IOP_JERR_MISSING_MEMBER, desc, fdesc);
     }
+    if (!real_desc) {
+        /* Class field not found */
+        return RJERROR_EXP("`_class' field");
+    }
+
+    /* Scan remaining fields */
+    for (int i = 0;;) {
+        int acc = i;
+
+        fdesc = real_desc->fields;
+        for (; i < acc + real_desc->fields_len; i++, fdesc++) {
+            if (TST_BIT(seen, i))
+                continue;
+            if (__iop_skip_absent_field_desc(value, fdesc) < 0)
+                return RJERROR_SFIELD(IOP_JERR_MISSING_MEMBER, real_desc,
+                                      fdesc);
+        }
+        if (!is_class) {
+            break;
+        }
+        if (!(real_desc = real_desc->class_attrs->parent)) {
+            break;
+        }
+    }
+
+#undef INIT_SEEN
     return 0;
 }
 
@@ -1394,8 +1564,8 @@ int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *desc, void *value,
       case IOP_JSON_EOF:
         if (!single_value)
             return 0;
-        /* A union can't be empty */
-        if (desc->is_union)
+        /* A union or a class can't be empty */
+        if (desc->is_union || iop_struct_is_class(desc))
             return JERROR(IOP_JERR_NOTHING_TO_READ);
 
         /* At this point we check for any required field */
@@ -1686,8 +1856,8 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
 
               case IOP_T_UNION:
               case IOP_T_STRUCT:
+                v = &IOP_FIELD(const char, ptr, j * fdesc->size);
                 if (iop_field_is_class(fdesc)) {
-                    v = &IOP_FIELD(const char, ptr, j * sizeof(void *));
                     /* Non-optional class fields have to be dereferenced
                      * (dereferencing of optional fields was already done just
                      *  above).
@@ -1695,8 +1865,6 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
                     if (fdesc->repeat != IOP_R_OPTIONAL) {
                         v = *(void **)v;
                     }
-                } else {
-                    v = &IOP_FIELD(const char, ptr, j * fdesc->size);
                 }
                 len = RETHROW(pack_txt(fdesc->u1.st_desc, v, lvl, writecb, priv, flags));
                 res += len;
