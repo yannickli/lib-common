@@ -225,6 +225,21 @@ struct iop_struct_t {
     const iop_class_attrs_t *class_attrs;
 };
 
+static inline bool iop_struct_is_class(const iop_struct_t *st)
+{
+    unsigned st_flags = st->flags;
+
+    return TST_BIT(&st_flags, IOP_STRUCT_IS_CLASS);
+}
+
+static inline bool iop_field_is_class(const iop_field_t *f)
+{
+    if (f->type != IOP_T_STRUCT) {
+        return false;
+    }
+    return iop_struct_is_class(f->u1.st_desc);
+}
+
 enum iop_rpc_flags_t {
     IOP_RPC_IS_ALIAS,
     IOP_RPC_HAS_ALIAS,
@@ -488,24 +503,6 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v);
 void  iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
                const void *v);
 
-/** Gets the value of a class variable (static field).
- *
- * This takes a class instance pointer and a class variable name, and returns
- * a pointer of the value of this class variable for the given object type.
- *
- * If the wanted static field does not exist in the given class, this
- * function will return NULL.
- *
- * It also assumes that the given pointer is a valid pointer on a valid class
- * instance. If not, it will probably crash...
- *
- * \param[in]  obj   Pointer on a class instance.
- * \param[in]  name  Name of the wanted class variable.
- */
-const iop_value_t *iop_get_cvar(const void *obj, lstr_t name);
-
-#define iop_get_cvar_cst(obj, name)  iop_get_cvar(obj, LSTR_IMMED_V(name))
-
 /** Generate a signature of an IOP structure.
  *
  * This function generates a salted SHA256 signature of an IOP structure.
@@ -525,6 +522,56 @@ lstr_t t_iop_compute_signature(const iop_struct_t *st, const void *v);
  */
 __must_check__
 int iop_check_signature(const iop_struct_t *st, const void *v, lstr_t sig);
+
+/* }}} */
+/* {{{ IOP class manipulation */
+
+/** Gets the value of a class variable (static field).
+ *
+ * This takes a class instance pointer and a class variable name, and returns
+ * a pointer of the value of this class variable for the given object type.
+ *
+ * If the wanted static field does not exist in the given class, this
+ * function will return NULL.
+ *
+ * It also assumes that the given pointer is a valid pointer on a valid class
+ * instance. If not, it will probably crash...
+ *
+ * \param[in]  obj   Pointer on a class instance.
+ * \param[in]  name  Name of the wanted class variable.
+ */
+const iop_value_t *iop_get_cvar(const void *obj, lstr_t name);
+
+#define iop_get_cvar_cst(obj, name)  iop_get_cvar(obj, LSTR_IMMED_V(name))
+
+
+/** Checks if a class has another class in its parents.
+ *
+ * \param[in]  cls1  Pointer on the first class descriptor.
+ * \param[in]  cls2  Pointer on the second class descriptor.
+ *
+ * \return  true if \p cls1 is equal to \p cls2, or has \p cls2 in its parents
+ */
+bool iop_class_is_a(const iop_struct_t *cls1, const iop_struct_t *cls2);
+
+/** Checks if an object is of a given class or has it in its parents.
+ *
+ * If the result of this check is true, then this object can be cast to the
+ * given type using iop_obj_vcast or iop_obj_ccast.
+ *
+ * \param[in]  obj   Pointer on a class instance.
+ * \param[in]  desc  Pointer on a class descriptor.
+ *
+ * \return  true if \p obj is an object of class \p desc, or has \p desc in
+ *          its parents.
+ */
+static inline bool
+iop_obj_is_a_desc(const void *obj, const iop_struct_t *desc)
+{
+    return iop_class_is_a(*(const iop_struct_t **)obj, desc);
+}
+
+#define iop_obj_is_a(obj, pfx)  iop_obj_is_a_desc((void *)(obj), &pfx##__s)
 
 /* }}} */
 /* {{{ IOP constraints handling */
@@ -688,8 +735,11 @@ lstr_t t_iop_bpack_struct(const iop_struct_t *st, const void *v);
 /** Unpack a packed IOP structure.
  *
  * This function unpacks a packed IOP structure from a pstream_t. It unpacks
- * one and only one structure, so the pstream_t must only contains the unique
+ * one and only one structure, so the pstream_t must only contain the unique
  * structure to unpack.
+ *
+ * This function cannot be used to unpack a class; use `iop_bunpack_ptr`
+ * instead.
  *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
@@ -717,19 +767,46 @@ t_iop_bunpack_ps(const iop_struct_t *st, void *value, pstream_t ps, bool copy)
     return iop_bunpack(t_pool(), st, value, ps, copy);
 }
 
-/** Unpack a packed IOP structure.
+/** Unpack a packed IOP object and (re)allocates the destination structure.
  *
- * This function unpacks a packed IOP structure from a pstream_t. It unpacks
- * one structure beyonds several other structures and leaves the pstream_t and
- * the end of the unpacked structure.
+ * This function acts as `iop_bunpack` but allocates (or reallocates) the
+ * destination structure.
+ *
+ * This function MUST be used to unpack a class instead of `iop_bunpack`,
+ * because the size of a class is not known before unpacking it (this could be
+ * a child).
+ *
+ * Prefer the generated version instead of this low-level API
+ * (see IOP_GENERIC/IOP_CLASS in iop-macros.h).
+ *
+ * \param[in] mp    The memory pool to use when memory allocation is needed;
+ *                  will be used at least to allocate the destination
+ *                  structure.
+ * \param[in] st    The IOP structure/class definition (__s).
+ * \param[in] value Double pointer on the destination structure.
+ *                  If *value is not NULL, it is reallocated.
+ * \param[in] ps    The pstream_t containing the packed IOP object.
+ * \param[in] copy  Tell to the unpack whether complex type must be duplicated
+ *                  or not (for example string could be pointers on the
+ *                  pstream_t or duplicated).
+ */
+__must_check__
+int iop_bunpack_ptr(mem_pool_t *mp, const iop_struct_t *st, void **value,
+                    pstream_t ps, bool copy);
+
+/** Unpack a packed IOP union.
+ *
+ * This function act like `iop_bunpack` but consume the pstream and doesn't
+ * check that the pstream has been fully consumed. This allows to unpack
+ * a suite of unions.
  *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
  *
  * \param[in] mp    The memory pool to use when memory allocation is needed.
  * \param[in] st    The IOP structure definition (__s).
- * \param[in] value Pointer on the destination structure.
- * \param[in] ps    The pstream_t containing the packed IOP structure.
+ * \param[in] value Pointer on the destination unpacked IOP union.
+ * \param[in] ps    The pstream_t containing the packed IOP union.
  * \param[in] copy  Tell to the unpack whether complex type must be duplicated
  *                  or not (for example string could be pointers on the
  *                  pstream_t or duplicated).
@@ -738,7 +815,7 @@ __must_check__
 int iop_bunpack_multi(mem_pool_t *mp, const iop_struct_t *st, void *value,
                       pstream_t *ps, bool copy);
 
-/** Unpack a packed IOP structure using the t_pool().
+/** Unpack a packed IOP union using the t_pool().
  *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
@@ -750,18 +827,17 @@ t_iop_bunpack_multi(const iop_struct_t *st, void *value, pstream_t *ps,
     return iop_bunpack_multi(t_pool(), st, value, ps, copy);
 }
 
-/** Skip a packer IOP structure without unpacking it.
+/** Skip a packed IOP union without unpacking it.
  *
- * This function skips a packed IOP structure in a pstream_t. It leaves the
- * pstream_t and the end of the structure. This function is efficient because
- * it will not fully unpack the structure to skip. But it will not fully check
- * its validity either.
+ * This function skips a packed IOP union in a pstream_t.
+ * This function is efficient because it will not fully unpack the union to
+ * skip. But it will not fully check its validity either.
  *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
  *
- * \param[in] st    The IOP structure definition (__s).
- * \param[in] ps    The pstream_t containing the packed IOP structure.
+ * \param[in] st    The IOP union definition (__s).
+ * \param[in] ps    The pstream_t containing the packed IOP union.
  */
 __must_check__
 int iop_bskip(const iop_struct_t *st, pstream_t *ps);
@@ -786,6 +862,31 @@ enum iop_unpack_flags {
     /* Make the unpacker reject private fields */
     IOP_UNPACK_FORBID_PRIVATE = (1U << 1),
 };
+
+/* }}} */
+/* {{{ IOP packages registration */
+
+/** Register a list of packages.
+ *
+ * Registering a package is necessary if it contains classes; this should be
+ * done before trying to pack/unpack any class.
+ * This will also perform collision checks on class ids, which cannot be made
+ * at compile time.
+ *
+ * You can use IOP_REGISTER_PACKAGES to avoid the array construction.
+ */
+void iop_register_packages(const iop_pkg_t **pkgs, int len);
+
+/** Helper to register a list of packages.
+ *
+ * Just an helper to call iop_register_packages without having to build an
+ * array.
+ */
+#define IOP_REGISTER_PACKAGES(...)  \
+    do {                                                                     \
+        const iop_pkg_t *__pkgs[] = { __VA_ARGS__ };                         \
+        iop_register_packages(__pkgs, countof(__pkgs));                      \
+    } while (0)
 
 /* }}} */
 

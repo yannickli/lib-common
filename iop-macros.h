@@ -344,8 +344,7 @@
 /* }}} */
 /* {{{ Helpers generated for structures and unions */
 
-#define IOP_GENERIC(pfx) \
-    /* ---- structures ---- */                                               \
+#define IOP_GENERIC_STRUCTURES(pfx)  \
     static inline bool pfx##__equals(const pfx##__t *v1, const pfx##__t *v2) \
     {                                                                        \
         return iop_equals(&pfx##__s, (void *)v1, (void *)v2);                \
@@ -368,37 +367,21 @@
     static inline int pfx##__sort(pfx##__t *vec, int len, lstr_t path,       \
                                   int flags) {                               \
         return iop_sort(&pfx##__s, (void *)vec, len, path, flags);           \
-    }                                                                        \
-    \
-    /* ---- Binary ---- */                                                   \
-    __must_check__ static inline int                                         \
-    t_##pfx##__bunpack_ps(pfx##__t *value, pstream_t ps, bool copy)          \
-    {                                                                        \
-        return t_iop_bunpack_ps(&pfx##__s, value, ps, copy);                 \
+    }
+
+/* {{{ Binary helpers */
+
+#define IOP_GENERIC_BINARY_UNION(pfx)  \
+    __must_check__ static inline int pfx##__bskip(pstream_t *ps) {           \
+        return iop_bskip(&pfx##__s, ps);                                     \
     }                                                                        \
     __must_check__ static inline int                                         \
     t_##pfx##__bunpack_multi(pfx##__t *value, pstream_t *ps, bool copy)      \
     {                                                                        \
         return t_iop_bunpack_multi(&pfx##__s, value, ps, copy);              \
-    }                                                                        \
-    \
-    __must_check__ static inline int                                         \
-    t_##pfx##__bunpack(lstr_t *s, pfx##__t *value)                           \
-    {                                                                        \
-        pstream_t ps = ps_init(s->s, s->len);                                \
-        return t_iop_bunpack_ps(&pfx##__s, value, ps, false);                \
-    }                                                                        \
-    __must_check__ static inline int                                         \
-    t_##pfx##__bunpack_dup(lstr_t *s, pfx##__t *value)                       \
-    {                                                                        \
-        pstream_t ps = ps_init(s->s, s->len);                                \
-        return t_iop_bunpack_ps(&pfx##__s, value, ps, true);                 \
-    }                                                                        \
-    \
-    __must_check__ static inline int pfx##__bskip(pstream_t *ps) {           \
-        return iop_bskip(&pfx##__s, ps);                                     \
-    }                                                                        \
-    \
+    }
+
+#define IOP_GENERIC_BINARY_PACK(pfx)  \
     __must_check__ static inline int                                         \
     pfx##__bpack_size(const pfx##__t *v, qv_t(i32) *szs)                     \
     {                                                                        \
@@ -411,9 +394,53 @@
     }                                                                        \
     static inline lstr_t t_##pfx##__bpack(const pfx##__t *v) {               \
         return t_iop_bpack_struct(&pfx##__s, v);                             \
+    }
+
+#define IOP_GENERIC_BINARY_UNPACK(pfx)  \
+    __must_check__ static inline int                                         \
+    t_##pfx##__bunpack_ptr_ps(pfx##__t **value, pstream_t ps, bool copy)     \
+    {                                                                        \
+        return iop_bunpack_ptr(t_pool(), &pfx##__s, (void **)value,          \
+                                 ps, copy);                                  \
     }                                                                        \
-    \
-    /* ---- JSon ---- */                                                     \
+    __must_check__ static inline int                                         \
+    t_##pfx##__bunpack_ptr(lstr_t *s, pfx##__t **value)                      \
+    {                                                                        \
+        pstream_t ps = ps_init(s->s, s->len);                                \
+        return iop_bunpack_ptr(t_pool(), &pfx##__s, (void **)value,          \
+                               ps, false);                                   \
+    }                                                                        \
+    __must_check__ static inline int                                         \
+    t_##pfx##__bunpack_ptr_dup(lstr_t *s, pfx##__t **value)                  \
+    {                                                                        \
+        pstream_t ps = ps_init(s->s, s->len);                                \
+        return iop_bunpack_ptr(t_pool(), &pfx##__s, (void **)value,          \
+                                 ps, true);                                  \
+    }                                                                        \
+
+#define IOP_GENERIC_BINARY_UNPACK_STRUCT_UNION(pfx)  \
+    __must_check__ static inline int                                         \
+    t_##pfx##__bunpack_ps(pfx##__t *value, pstream_t ps, bool copy)          \
+    {                                                                        \
+        return t_iop_bunpack_ps(&pfx##__s, value, ps, copy);                 \
+    }                                                                        \
+    __must_check__ static inline int                                         \
+    t_##pfx##__bunpack(lstr_t *s, pfx##__t *value)                           \
+    {                                                                        \
+        pstream_t ps = ps_init(s->s, s->len);                                \
+        return t_iop_bunpack_ps(&pfx##__s, value, ps, false);                \
+    }                                                                        \
+    __must_check__ static inline int                                         \
+    t_##pfx##__bunpack_dup(lstr_t *s, pfx##__t *value)                       \
+    {                                                                        \
+        pstream_t ps = ps_init(s->s, s->len);                                \
+        return t_iop_bunpack_ps(&pfx##__s, value, ps, true);                 \
+    }
+
+/* }}} */
+/* {{{ Json helpers */
+
+#define IOP_GENERIC_JSON_PACK(pfx)  \
     static inline int                                                        \
     pfx##__jpack(const pfx##__t *v,                                          \
                  int (*wcb)(void *, const void *, int), void *priv,          \
@@ -424,7 +451,9 @@
     static inline int                                                        \
     pfx##__sb_jpack(sb_t *sb, const pfx##__t *v,  unsigned flags) {          \
         return iop_sb_jpack(sb, &pfx##__s, v, flags);                        \
-    }                                                                        \
+    }
+
+#define IOP_GENERIC_JSON_UNPACK_STRUCT_UNION(pfx)  \
     __must_check__                                                           \
     static inline int pfx##__junpack(iop_json_lex_t *ll, pfx##__t *v,        \
                                      bool single)                            \
@@ -443,9 +472,19 @@
                                               sb_t *errb)                    \
     {                                                                        \
         return t_iop_junpack_file(filename, &pfx##__s, v, flags, errb);      \
-    }                                                                        \
-    \
-    /* ---- XML ---- */                                                      \
+    }
+
+/* }}} */
+/* {{{ Xml helpers */
+
+#define IOP_GENERIC_XML_PACK(pfx)  \
+    static inline void                                                       \
+    pfx##__xpack(sb_t *sb, const pfx##__t *v, bool verbose, bool with_enums) \
+    {                                                                        \
+        return iop_xpack(sb, &pfx##__s, v, verbose, with_enums);             \
+    }
+
+#define IOP_GENERIC_XML_UNPACK_STRUCT_UNION(pfx)  \
     __must_check__ static inline int                                         \
     pfx##__xunpack_flags(void *xp, mem_pool_t *mp, pfx##__t *out, int flags) \
     {                                                                        \
@@ -477,12 +516,70 @@
                              qm_t(part) *parts)                              \
     {                                                                        \
         return t_iop_xunpack_parts(xp, &pfx##__s, out, flags, parts);        \
-    }                                                                        \
-    static inline void                                                       \
-    pfx##__xpack(sb_t *sb, const pfx##__t *v, bool verbose, bool with_enums) \
-    {                                                                        \
-        return iop_xpack(sb, &pfx##__s, v, verbose, with_enums);             \
     }
+
+/* }}} */
+
+#define IOP_GENERIC(pfx) \
+    IOP_GENERIC_STRUCTURES(pfx)                                              \
+    /* ---- Binary ---- */                                                   \
+    IOP_GENERIC_BINARY_UNION(pfx)                                            \
+    IOP_GENERIC_BINARY_PACK(pfx)                                             \
+    IOP_GENERIC_BINARY_UNPACK(pfx)                                           \
+    IOP_GENERIC_BINARY_UNPACK_STRUCT_UNION(pfx)                              \
+    /* ---- JSon ---- */                                                     \
+    IOP_GENERIC_JSON_PACK(pfx)                                               \
+    IOP_GENERIC_JSON_UNPACK_STRUCT_UNION(pfx)                                \
+    /* ---- XML ---- */                                                      \
+    IOP_GENERIC_XML_PACK(pfx)                                                \
+    IOP_GENERIC_XML_UNPACK_STRUCT_UNION(pfx)
+
+/* }}} */
+/* {{{ Helpers generated for classes */
+
+#define IOP_CLASS(pfx) \
+    IOP_GENERIC_STRUCTURES(pfx)                                              \
+    /* ---- Binary ---- */                                                   \
+    IOP_GENERIC_BINARY_PACK(pfx)                                             \
+    IOP_GENERIC_BINARY_UNPACK(pfx)                                           \
+    /* ---- JSon ---- */                                                     \
+    IOP_GENERIC_JSON_PACK(pfx)                                               \
+    /* ---- XML ---- */                                                      \
+    IOP_GENERIC_XML_PACK(pfx)
+
+/* }}} */
+/* {{{ Helpers for classes manipulation */
+
+#ifndef NDEBUG
+#  define iop_obj_cast_debug(pfx, o)  \
+    ({                                                                       \
+        if (!iop_obj_is_a((void *)(o), pfx)) {                               \
+            e_panic("cannot cast %p to type " TOSTR(pfx), (o));              \
+        }                                                                    \
+        (o);                                                                 \
+    })
+#else
+#  define iop_obj_cast_debug(pfx, o)  (o)
+#endif
+
+/** Cast an IOP class object to the wanted type.
+ *
+ * In debug mode, this macro checks if the wanted type is compatible with the
+ * actual type of the object (ie. if iop_obj_is_a returns true).
+ * In release mode, no check will be made.
+ *
+ * \param[in]  pfx  Prefix of the destination type.
+ * \param[in]  o    Pointer on the class object to cast.
+ *
+ * \return  a pointer equal to \p o, of the \p pfx type.
+ */
+#define iop_obj_vcast(pfx, o)  ((pfx##__t *)iop_obj_cast_debug(pfx, o))
+
+/** Cast an IOP class object to the wanted type.
+ *
+ * Same as iop_obj_vcast, but returns a const pointer.
+ */
+#define iop_obj_ccast(pfx, o)  ((const pfx##__t *)iop_obj_cast_debug(pfx, o))
 
 /* }}} */
 /* {{{ Private helpers */

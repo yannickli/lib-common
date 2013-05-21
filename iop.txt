@@ -44,6 +44,9 @@ Tags cannot exceed 16 bits and the value 0 is special.
   In other words when you recurse inside a new block for a complex structure
   the first tag cannot be 0. This can be used only after a `REPEAT` tag has
   been seen.
+  This special tag is also used at the beginning of a packed class with the
+  wire type `INT1` or `INT2`, to announce the class id of the packed object,
+  and to mark a change of level in the inheritance tree.
 
 * Tags between 1 and 29 included are encoded in the least significant 5 bits
   of the first octet.
