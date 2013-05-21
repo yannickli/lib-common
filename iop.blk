@@ -156,12 +156,7 @@ static size_t __iop_dup_size(const iop_struct_t *desc, const void *val)
         if (fdesc->repeat == IOP_R_REPEATED) {
             n    = ((lstr_t *)ptr)->len;
             ptr  = ((lstr_t *)ptr)->data;
-            if (is_class) {
-                /* Repeated fields of type class are double-pointed */
-                len += ROUND_UP(n * sizeof(void *), 8);
-            } else {
-                len += ROUND_UP(n * fdesc->size, 8);
-            }
+            len += ROUND_UP(n * fdesc->size, 8);
         }
 
         if (!((1 << fdesc->type) & IOP_BLK_OK)) /* DATA,STRING,STRUCT,UNION */
@@ -184,10 +179,9 @@ static size_t __iop_dup_size(const iop_struct_t *desc, const void *val)
 
         if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
             for (int j = 0; j < n; j++) {
-                const void *v;
+                const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
 
                 if (is_class) {
-                    v = &IOP_FIELD(const char, ptr, j * sizeof(void *));
                     if (fdesc->repeat != IOP_R_OPTIONAL) {
                         /* Non-optional class fields have to be dereferenced
                          * (dereferencing of optional fields was already done
@@ -198,7 +192,6 @@ static size_t __iop_dup_size(const iop_struct_t *desc, const void *val)
                     }
                     len += iop_dup_size(fdesc->u1.st_desc, v);
                 } else {
-                    v = &IOP_FIELD(const char, ptr, j * fdesc->size);
                     len += __iop_dup_size(fdesc->u1.st_desc, v);
                 }
             }
@@ -253,19 +246,13 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
     for (; fdesc < end; fdesc++) {
         const void *rp = (char *)rval + fdesc->data_offs;
         const void *wp = (char *)wval + fdesc->data_offs;
-        bool is_class = iop_field_is_class(fdesc);
         int n = 1;
 
         if (fdesc->repeat == IOP_R_REPEATED) {
             n   = ((lstr_t *)rp)->len;
             rp  = ((lstr_t *)rp)->data;
             wp  = ((lstr_t *)wp)->data = dst;
-            if (is_class) {
-                /* Repeated fields of type class are double-pointed */
-                dst = realign(dst + n * sizeof(void *));
-            } else {
-                dst = realign(mempcpy(dst, rp, n * fdesc->size));
-            }
+            dst = realign(mempcpy(dst, rp, n * fdesc->size));
         }
 
         if (!((1 << fdesc->type) & IOP_BLK_OK)) /* DATA,STRING,STRUCT,UNION */
@@ -277,7 +264,7 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
             if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
                 rp = *(void **)rp;
                 wp = *(void **)wp = dst;
-                if (!is_class) {
+                if (!iop_field_is_class(fdesc)) {
                     /* Will be done in __iop_copy_class for classes */
                     dst = realign(mempcpy(dst, rp, fdesc->size));
                 }
@@ -285,13 +272,13 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
         }
 
         if ((1 << fdesc->type) & IOP_STRUCTS_OK) {
+            bool is_class = iop_field_is_class(fdesc);
+
             for (int j = 0; j < n; j++) {
-                const void *rv;
-                void *wv;
+                const void *rv = &IOP_FIELD(const char, rp, j * fdesc->size);
+                void       *wv = &IOP_FIELD(char,       wp, j * fdesc->size);
 
                 if (is_class) {
-                    rv = &IOP_FIELD(const char, rp, j * sizeof(void *));
-                    wv = &IOP_FIELD(char, wp, j * sizeof(void *));
                     if (fdesc->repeat != IOP_R_OPTIONAL) {
                         /* Non-optional class fields have to be dereferenced
                          * (dereferencing of optional fields was already done
@@ -302,8 +289,6 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
                     }
                     dst = __iop_copy_class(fdesc->u1.st_desc, dst, wv, rv);
                 } else {
-                    rv = &IOP_FIELD(const char, rp, j * fdesc->size);
-                    wv = &IOP_FIELD(char, wp, j * fdesc->size);
                     dst = __iop_copy(fdesc->u1.st_desc, dst, wv, rv);
                 }
             }
@@ -454,9 +439,10 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
             for (int i = 0; i < n; i++) {
                 const void *t1, *t2;
 
+                t1 = &IOP_FIELD(const uint8_t, r1, i * fdesc->size);
+                t2 = &IOP_FIELD(const uint8_t, r2, i * fdesc->size);
+
                 if (is_class) {
-                    t1 = &IOP_FIELD(const uint8_t, r1, i * sizeof(void *));
-                    t2 = &IOP_FIELD(const uint8_t, r2, i * sizeof(void *));
                     /* Non-optional class fields have to be dereferenced
                      * (dereferencing of optional fields was already done just
                      *  above).
@@ -467,8 +453,6 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
                     }
                     THROW_IF(!iop_equals(fdesc->u1.st_desc, t1, t2), false);
                 } else {
-                    t1 = &IOP_FIELD(const uint8_t, r1, i * fdesc->size);
-                    t2 = &IOP_FIELD(const uint8_t, r2, i * fdesc->size);
                     THROW_IF(!__iop_equals(fdesc->u1.st_desc, t1, t2), false);
                 }
             }
@@ -1027,21 +1011,21 @@ __iop_hash(struct iop_hash_ctx *ctx, const iop_struct_t *st, const uint8_t *v)
           case IOP_T_STRUCT:
             is_class = iop_field_is_class(fdesc);
             for (int i = 0; i < n; i++) {
-                if (is_class) {
-                    const uint8_t *v2;
+                const uint8_t *v2;
 
-                    v2 = &IOP_FIELD(const uint8_t, r, i * sizeof(void *));
+                v2 = &IOP_FIELD(const uint8_t, r, i * fdesc->size);
+
+                if (is_class) {
                     /* Non-optional class fields have to be dereferenced
                      * (dereferencing of optional fields was already done just
                      *  above).
                      */
                     if (fdesc->repeat != IOP_R_OPTIONAL) {
-                        v2  = *(void **)v2;
+                        v2 = *(void **)v2;
                     }
                     __iop_hash_class(ctx, fdesc->u1.st_desc, v2);
                 } else {
-                    __iop_hash(ctx, fdesc->u1.st_desc,
-                               &IOP_FIELD(const uint8_t, r, i * fdesc->size));
+                    __iop_hash(ctx, fdesc->u1.st_desc, v2);
                 }
             }
             break;
@@ -1199,10 +1183,9 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
             return 0;
         is_class = iop_field_is_class(fdesc);
         for (int j = 0; j < n; j++) {
-            const void *v;
+            const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
 
             if (is_class) {
-                v = &IOP_FIELD(const char, ptr, j * sizeof(void *));
                 /* Non-optional class fields have to be dereferenced
                  * (dereferencing of optional fields was already done
                  *  by the caller).
@@ -1212,7 +1195,6 @@ int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
                 }
                 RETHROW(iop_check_constraints(fdesc->u1.st_desc, v));
             } else {
-                v = &IOP_FIELD(const char, ptr, j * fdesc->size);
                 RETHROW(__iop_check_constraints(fdesc->u1.st_desc, v));
             }
         }
@@ -1399,13 +1381,12 @@ __iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
           default:
             is_class = iop_field_is_class(fdesc);
             for (int j = 0; j < n; j++) {
-                const void *v;
+                const void *v = &IOP_FIELD(const char, ptr, j * fdesc->size);
                 int32_t offs = szs->len, i32;
 
                 qv_growlen(i32, szs, 1);
 
                 if (is_class) {
-                    v = &IOP_FIELD(const char, ptr, j * sizeof(void *));
                     /* Non-optional class fields have to be dereferenced
                      * (dereferencing of optional fields was already done
                      *  just above).
@@ -1415,7 +1396,6 @@ __iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
                     }
                     i32 = __iop_bpack_size_class(fdesc->u1.st_desc, v, szs);
                 } else {
-                    v = &IOP_FIELD(const char, ptr, j * fdesc->size);
                     i32 = __iop_bpack_size(fdesc->u1.st_desc, v, szs);
                 }
 
@@ -1591,11 +1571,10 @@ static uint8_t *pack_value_vec(uint8_t *dst, const iop_field_t *f,
             dst = pack_len(dst, 0, 0, *(*szsp)++);
             if (is_class) {
                 dst = pack_class(dst, f->u1.st_desc, *(void **)v, szsp);
-                v   = (char *)v + sizeof(void *);
             } else {
                 dst = pack_struct(dst, f->u1.st_desc, v, szsp);
-                v   = (char *)v + f->size;
             }
+            v = (char *)v + f->size;
         } while (--n > 0);
         return dst;
 
@@ -2108,7 +2087,6 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
         v = (char *)value + fdesc->data_offs;
         if (fdesc->repeat == IOP_R_REPEATED) {
             lstr_t *data = v;
-            size_t step;
 
             if (wt != IOP_WIRE_REPEAT
             &&  ((1 << fdesc->type) & IOP_REPEATED_OPTIMIZE_OK))
@@ -2152,20 +2130,14 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
             }
 
           unpack_array:
-            if (iop_field_is_class(fdesc)) {
-                step = sizeof(void *);
-            } else {
-                step = fdesc->size;
-            }
-
             data->len  = n;
-            data->data = v = mp->malloc(mp, n * step, MEM_RAW);
+            data->data = v = mp->malloc(mp, n * fdesc->size, MEM_RAW);
 
             while (n-- > 1) {
                 PS_CHECK(unpack_value(mp, wt, fdesc, v, ps, copy));
                 PS_WANT(ps_has(ps, 1) && IOP_TAG(ps->b[0]) == 0);
                 wt = IOP_WIRE_FMT(__ps_getc(ps));
-                v  = (char *)v + step;
+                v  = (char *)v + fdesc->size;
             }
             PS_CHECK(unpack_value(mp, wt, fdesc, v, ps, copy));
             v = data->data;
