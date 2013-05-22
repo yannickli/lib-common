@@ -39,8 +39,7 @@ static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info
     s = t_lstr_dups(sb.data + len, sb.len - len - 7);
 
     /* unpacking */
-    res = t_new(byte, ROUND_UP(st->size, 8));
-    iop_init(st, res);
+    res = t_new_raw(byte, ROUND_UP(st->size, 8));
 
     Z_ASSERT_N(xmlr_setup(&xmlr_g, sb.data, sb.len));
     ret = iop_xunpack(xmlr_g, t_pool(), st, res);
