@@ -581,6 +581,14 @@ iop_obj_is_a_desc(const void *obj, const iop_struct_t *desc)
 const iop_struct_t *
 iop_get_class_by_fullname(const iop_struct_t *st, lstr_t fullname);
 
+#ifdef __has_blocks
+typedef void (BLOCK_CARET iop_for_each_class_b)(const iop_struct_t *);
+
+/** Loop on all the classes registered by `iop_register_packages`.
+ */
+void iop_for_each_registered_classes(iop_for_each_class_b cb);
+#endif
+
 /* }}} */
 /* {{{ IOP constraints handling */
 

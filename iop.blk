@@ -2706,6 +2706,13 @@ iop_get_class_by_fullname(const iop_struct_t *st, lstr_t fullname)
     return _G.classes_by_name.values[pos];
 }
 
+void iop_for_each_registered_classes(iop_for_each_class_b cb)
+{
+    qm_for_each_pos(class_id, pos, &_G.classes_by_id) {
+        cb(_G.classes_by_id.values[pos]);
+    }
+}
+
 /*------ class manipulation -}}}-*/
 /*------ Packages registration -{{{-*/
 
