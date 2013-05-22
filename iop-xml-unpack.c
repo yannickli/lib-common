@@ -206,6 +206,8 @@ static int xunpack_scalar_vec(xml_reader_t xr, mem_pool_t *mp,
     iop_data_t *data = v;
     int bufsize = 0, datasize = fdesc->size;
 
+    p_clear(data, 1);
+
     do {
         int64_t intval = 0;
         uint64_t uintval = 0;
