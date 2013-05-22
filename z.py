@@ -427,7 +427,6 @@ def z_report():
             continue
 
         group = suite_RE.match(line)
-        print line, group
         if group:
             errors.append(('error', group.group(1), ''))
 
