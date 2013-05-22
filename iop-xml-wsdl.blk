@@ -311,6 +311,8 @@ static void iop_xwsdl_put_constraints(wsdlpp_t *wpp, const iop_struct_t *st,
 
 static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
 {
+    bool is_extended = iop_struct_is_class(st) && st->class_attrs->parent;
+
     xmlpp_opentag(&wpp->pp, "complexType");
     xmlpp_putattr(&wpp->pp, "name", st->fullname.s);
     if (st == &iop__void__s) {
@@ -320,6 +322,12 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
     if (st->is_union) {
         xmlpp_opentag(&wpp->pp, "choice");
     } else {
+        if (is_extended) {
+            xmlpp_opentag(&wpp->pp, "complexContent");
+            xmlpp_opentag(&wpp->pp, "extension");
+            xmlpp_putattrfmt(&wpp->pp, "base", "tns:%s",
+                             st->class_attrs->parent->fullname.s);
+        }
         xmlpp_opentag(&wpp->pp, "sequence");
     }
     for (int i = 0; i < st->fields_len; i++) {
@@ -397,7 +405,7 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
             }
         }
     }
-    xmlpp_closentag(&wpp->pp, 2);
+    xmlpp_closentag(&wpp->pp, is_extended ? 4 : 2);
 }
 
 static void
@@ -425,6 +433,11 @@ iop_xwsdl_scan_types(wsdlpp_t *wpp, const iop_struct_t *st,
 
             qv_append(iop_enum, enums, field->u1.en_desc);
         }
+    }
+
+    if (iop_struct_is_class(st) && st->class_attrs->parent) {
+        iop_xwsdl_scan_types(wpp, st->class_attrs->parent, type_idx,
+                             types, enums);
     }
 
     qv_append(iop_type, types, st);
@@ -510,8 +523,24 @@ iop_xwsdl_put_types(wsdlpp_t *wpp, const iop_mod_t *mod, const char *ns)
             iop_xwsdl_scan_types(wpp, st, p.h, p.a, p.b);
         }
     };
-
     iop_xwsdl_rpc_loop(wpp, mod, scan_types);
+
+    iop_for_each_registered_classes(^(const iop_struct_t *st) {
+        /* A class should appear in the WSDL if one of its parents appears in
+         * the WSDL. */
+        const iop_struct_t *parent = st;
+        qh_t(iop_type) *types = p.h;
+
+        if (qh_find(iop_type, types, st) >= 0) {
+            return;
+        }
+        while ((parent = parent->class_attrs->parent)) {
+            if (qh_find(iop_type, types, parent) >= 0) {
+                iop_xwsdl_scan_types(wpp, st, p.h, p.a, p.b);
+                return;
+            }
+        }
+    });
 
     wpp_add_comment(wpp, "\n\n", "WSDL types");
     xmlpp_opentag(&wpp->pp, "types");
