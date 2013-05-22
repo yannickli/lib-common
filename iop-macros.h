@@ -506,6 +506,44 @@
         return iop_xpack(sb, &pfx##__s, v, verbose, with_enums);             \
     }
 
+#define IOP_GENERIC_XML_UNPACK(pfx)  \
+    __must_check__ static inline int                                         \
+    pfx##__xunpack_ptr_flags(void *xp, mem_pool_t *mp, pfx##__t **out,       \
+                             int flags)                                      \
+    {                                                                        \
+        return iop_xunpack_ptr_flags(xp, mp, &pfx##__s, (void **)out,        \
+                                     flags);                                 \
+    }                                                                        \
+    __must_check__ static inline int                                         \
+    pfx##__xunpack_ptr(void *xp, mem_pool_t *mp, pfx##__t **out)             \
+    {                                                                        \
+        return iop_xunpack_ptr(xp, mp, &pfx##__s, (void **)out);             \
+    }                                                                        \
+    __must_check__ static inline int                                         \
+    pfx##__xunpack_ptr_parts(void *xp, mem_pool_t *mp, pfx##__t **out,       \
+                             int flags, qm_t(part) *parts)                   \
+    {                                                                        \
+        return iop_xunpack_ptr_parts(xp, mp, &pfx##__s, (void **)out, flags, \
+                                     parts);                                 \
+    }                                                                        \
+    __must_check__ static inline int                                         \
+    t_##pfx##__xunpack_ptr_flags(void *xp, pfx##__t **out, int flags)        \
+    {                                                                        \
+        return t_iop_xunpack_ptr_flags(xp, &pfx##__s, (void **)out, flags);  \
+    }                                                                        \
+    __must_check__ static inline int                                         \
+    t_##pfx##__xunpack_ptr(void *xp, pfx##__t **out)                         \
+    {                                                                        \
+        return t_iop_xunpack_ptr(xp, &pfx##__s, (void **)out);               \
+    }                                                                        \
+    __must_check__ static inline int                                         \
+    t_##pfx##__xunpack_ptr_parts(void *xp, pfx##__t **out, int flags,        \
+                                 qm_t(part) *parts)                          \
+    {                                                                        \
+        return t_iop_xunpack_ptr_parts(xp, &pfx##__s, (void **)out, flags,   \
+                                       parts);                               \
+    }
+
 #define IOP_GENERIC_XML_UNPACK_STRUCT_UNION(pfx)  \
     __must_check__ static inline int                                         \
     pfx##__xunpack_flags(void *xp, mem_pool_t *mp, pfx##__t *out, int flags) \
@@ -555,6 +593,7 @@
     IOP_GENERIC_JSON_UNPACK_STRUCT_UNION(pfx)                                \
     /* ---- XML ---- */                                                      \
     IOP_GENERIC_XML_PACK(pfx)                                                \
+    IOP_GENERIC_XML_UNPACK(pfx)                                              \
     IOP_GENERIC_XML_UNPACK_STRUCT_UNION(pfx)
 
 /* }}} */
@@ -569,7 +608,8 @@
     IOP_GENERIC_JSON_PACK(pfx)                                               \
     IOP_GENERIC_JSON_UNPACK(pfx)                                             \
     /* ---- XML ---- */                                                      \
-    IOP_GENERIC_XML_PACK(pfx)
+    IOP_GENERIC_XML_PACK(pfx)                                                \
+    IOP_GENERIC_XML_UNPACK(pfx)
 
 /* }}} */
 /* {{{ Helpers for classes manipulation */

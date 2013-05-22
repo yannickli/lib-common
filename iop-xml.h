@@ -31,6 +31,9 @@
  * Concerning the unpacking flags, the XML unpacker supports the following
  * ones: IOP_UNPACK_IGNORE_UNKNOWN.
  *
+ * This function cannot be used to unpack a class; use `iop_xunpack_ptr_flags`
+ * instead.
+ *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
  *
@@ -46,12 +49,38 @@ int iop_xunpack_flags(void *xp, mem_pool_t *mp, const iop_struct_t *st,
 
 /** Convert IOP-XML to an IOP C structure.
  *
+ * This function acts exactly as `iop_xunpack_flags` but allocates (or
+ * reallocates) the destination structure.
+ *
+ * This function MUST be used to unpack a class instead of
+ * `iop_xunpack_flags`, because the size of a class is not known before
+ * unpacking it (this could be a child).
+ *
+ * Prefer the generated version instead of this low-level API
+ * (see IOP_GENERIC/IOP_CLASS in iop-macros.h).
+ */
+__must_check__
+int iop_xunpack_ptr_flags(void *xp, mem_pool_t *mp, const iop_struct_t *st,
+                          void **out, int flags);
+
+/** Convert IOP-XML to an IOP C structure.
+ *
  * This function just call iop_xunpack_flags() with flags set to 0.
  */
 __must_check__ static inline int
 iop_xunpack(void *xp, mem_pool_t *mp, const iop_struct_t *st, void *out)
 {
     return iop_xunpack_flags(xp, mp, st, out, 0);
+}
+
+/** Convert IOP-XML to an IOP C structure.
+ *
+ * This function just call iop_xunpack_ptr_flags() with flags set to 0.
+ */
+__must_check__ static inline int
+iop_xunpack_ptr(void *xp, mem_pool_t *mp, const iop_struct_t *st, void **out)
+{
+    return iop_xunpack_ptr_flags(xp, mp, st, out, 0);
 }
 
 /* qm of Content-ID -> decoded message parts */
@@ -62,6 +91,9 @@ qm_kptr_t(part, lstr_t, lstr_t, qhash_lstr_hash, qhash_lstr_equal);
  * This function just works as iop_xunpack_flags() but supports XML parts
  * additionally. Parts must be given in a hashtable indexed by their
  * Content-ID.
+ *
+ * This function cannot be used to unpack a class; use `iop_xunpack_ptr_parts`
+ * instead.
  *
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
@@ -76,6 +108,22 @@ qm_kptr_t(part, lstr_t, lstr_t, qhash_lstr_hash, qhash_lstr_equal);
 __must_check__
 int iop_xunpack_parts(void *xp, mem_pool_t *mp, const iop_struct_t *st,
                       void *out, int flags, qm_t(part) *parts);
+
+/** Convert IOP-XML to an IOP C structure with XML parts support.
+ *
+ * This function acts exactly as `iop_xunpack_parts` but allocates (or
+ * reallocates) the destination structure.
+ *
+ * This function MUST be used to unpack a class instead of
+ * `iop_xunpack_parts`, because the size of a class is not known before
+ * unpacking it (this could be a child).
+ *
+ * Prefer the generated version instead of this low-level API
+ * (see IOP_GENERIC/IOP_CLASS in iop-macros.h).
+ */
+__must_check__
+int iop_xunpack_ptr_parts(void *xp, mem_pool_t *mp, const iop_struct_t *st,
+                          void **out, int flags, qm_t(part) *parts);
 
 
 /** iop_xunpack_flags() using the t_pool() */
@@ -98,6 +146,29 @@ t_iop_xunpack_parts(void *xp, const iop_struct_t *st, void *out, int flags,
                     qm_t(part) *parts)
 {
     return iop_xunpack_parts(xp, t_pool(), st, out, flags, parts);
+}
+
+/** iop_xunpack_ptr_flags() using the t_pool() */
+__must_check__ static inline int
+t_iop_xunpack_ptr_flags(void *xp, const iop_struct_t *st, void **out,
+                        int flags)
+{
+    return iop_xunpack_ptr_flags(xp, t_pool(), st, out, flags);
+}
+
+/** iop_xunpack_ptr() using the t_pool() */
+__must_check__ static inline int
+t_iop_xunpack_ptr(void *xp, const iop_struct_t *st, void **out)
+{
+    return iop_xunpack_ptr(xp, t_pool(), st, out);
+}
+
+/** iop_xunpack_ptr_parts() using the t_pool() */
+__must_check__ static inline int
+t_iop_xunpack_ptr_parts(void *xp, const iop_struct_t *st, void **out,
+                        int flags, qm_t(part) *parts)
+{
+    return iop_xunpack_ptr_parts(xp, t_pool(), st, out, flags, parts);
 }
 
 /* }}} */

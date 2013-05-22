@@ -441,14 +441,15 @@ xunpack_union(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
     return xmlr_node_close(xr);
 }
 
-int iop_xunpack_flags(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
-                      void *value, int flags)
-{
-    return iop_xunpack_parts(xr, mp, desc, value, flags, NULL);
-}
-
-int iop_xunpack_parts(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
-                      void *value, int flags, qm_t(part) *parts)
+/* If "desc" is a structure or a union, "value" is a pointer on the structure
+ * to fill.
+ * If "desc" is a class, "value" is a double-pointer on the structure to fill.
+ * It will be (re)allocated when the size of the real class to unpack will be
+ * known.
+ */
+static inline int
+__iop_xunpack_parts(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
+                    void *value, int flags, qm_t(part) *parts)
 {
     int ret;
 
@@ -460,4 +461,52 @@ int iop_xunpack_parts(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
     }
     parts_g = NULL;
     return ret;
+}
+
+int iop_xunpack_flags(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
+                      void *value, int flags)
+{
+    assert (!iop_struct_is_class(desc));
+    return __iop_xunpack_parts(xr, mp, desc, value, flags, NULL);
+}
+
+int iop_xunpack_ptr_flags(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
+                          void **value, int flags)
+{
+    if (iop_struct_is_class(desc)) {
+        /* "value" will be (re)allocated after, when the real packed class
+         * type will be known. */
+        return __iop_xunpack_parts(xr, mp, desc, value, flags, NULL);
+    }
+
+    if (*value) {
+        *value = mp->realloc(mp, *value, 0, desc->size, MEM_RAW);
+    } else {
+        *value = mp->malloc(mp, desc->size, MEM_RAW);
+    }
+    return __iop_xunpack_parts(xr, mp, desc, *value, flags, NULL);
+}
+
+int iop_xunpack_parts(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
+                      void *value, int flags, qm_t(part) *parts)
+{
+    assert (!iop_struct_is_class(desc));
+    return __iop_xunpack_parts(xr, mp, desc, value, flags, parts);
+}
+
+int iop_xunpack_ptr_parts(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
+                          void **value, int flags, qm_t(part) *parts)
+{
+    if (iop_struct_is_class(desc)) {
+        /* "value" will be (re)allocated after, when the real packed class
+         * type will be known. */
+        return __iop_xunpack_parts(xr, mp, desc, value, flags, parts);
+    }
+
+    if (*value) {
+        *value = mp->realloc(mp, *value, 0, desc->size, MEM_RAW);
+    } else {
+        *value = mp->malloc(mp, desc->size, MEM_RAW);
+    }
+    return __iop_xunpack_parts(xr, mp, desc, *value, flags, parts);
 }
