@@ -1927,8 +1927,6 @@ static int __pack_txt(const iop_struct_t *desc, const void *value, int lvl,
     return res;
 }
 
-qvector_t(iop_struct, const iop_struct_t *);
-
 static int
 pack_txt(const iop_struct_t *desc, const void *value, int lvl,
          int (*writecb)(void *, const void *buf, int len),

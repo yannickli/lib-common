@@ -16,6 +16,7 @@
 #include "iop-helpers.inl.c"
 
 static void xpack_struct(sb_t *, const iop_struct_t *, const void *, unsigned);
+static void xpack_class(sb_t *, const iop_struct_t *, const void *, unsigned);
 static void xpack_union(sb_t *, const iop_struct_t *, const void *, unsigned);
 
 static void
@@ -42,10 +43,28 @@ xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
     };
     const lstr_t *s;
     const iop_field_attrs_t *attrs;
+    bool is_class = iop_field_is_class(f);
 
     sb_grow(sb, 64 + f->name.len * 2);
     sb_addc(sb, '<');
     sb_add(sb, f->name.s, f->name.len);
+
+    if (is_class) {
+        const iop_struct_t *real_desc;
+
+        if (f->repeat != IOP_R_OPTIONAL) {
+            /* Non-optional class fields have to be dereferenced
+             * (dereferencing of optional fields was already done by
+             * caller).
+             */
+            v = *(void **)v;
+        }
+        real_desc = *(const iop_struct_t **)v;
+        /* The "n" namespace is used here because it's the one used in
+         * ichttp_serialize_soap. */
+        sb_addf(sb, " xsi:type=\"n:%*pM\">",
+                LSTR_FMT_ARG(real_desc->fullname));
+    } else
     if ((flags & IOP_XPACK_VERBOSE)
     &&  !((flags & IOP_XPACK_LITERAL_ENUMS) && f->type == IOP_T_ENUM))
     {
@@ -119,7 +138,11 @@ xpack_value(sb_t *sb, const iop_struct_t *desc, const iop_field_t *f,
         break;
       case IOP_T_STRUCT:
       default:
-        xpack_struct(sb, f->u1.st_desc, v, flags);
+        if (is_class) {
+            xpack_class(sb, f->u1.st_desc, v, flags);
+        } else {
+            xpack_struct(sb, f->u1.st_desc, v, flags);
+        }
         break;
     }
     sb_adds(sb, "</");
@@ -161,6 +184,27 @@ xpack_struct(sb_t *sb, const iop_struct_t *desc, const void *v,
     }
 }
 
+static void xpack_class(sb_t *sb, const iop_struct_t *desc, const void *v,
+                        unsigned flags)
+{
+    qv_t(iop_struct) parents;
+    const iop_struct_t *real_desc = *(const iop_struct_t **)v;
+
+    /* We want to write the fields in the order "master -> children", and
+     * not "children -> master", so first build a qvector of the parents.
+     */
+    qv_inita(iop_struct, &parents, 8);
+    do {
+        qv_append(iop_struct, &parents, real_desc);
+    } while ((real_desc = real_desc->class_attrs->parent));
+
+    /* Write fields of different levels */
+    for (int pos = parents.len; pos-- > 0; ) {
+        xpack_struct(sb, parents.tab[pos], v, flags);
+    }
+    qv_wipe(iop_struct, &parents);
+}
+
 static void
 xpack_union(sb_t *sb, const iop_struct_t *desc, const void *v,
             unsigned flags)
@@ -175,6 +219,9 @@ void iop_xpack_flags(sb_t *sb, const iop_struct_t *desc, const void *v,
 {
     if (desc->is_union) {
         xpack_union(sb, desc, v, flags);
+    } else
+    if (iop_struct_is_class(desc)) {
+        xpack_class(sb, desc, v, flags);
     } else {
         xpack_struct(sb, desc, v, flags);
     }

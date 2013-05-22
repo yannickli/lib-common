@@ -225,6 +225,8 @@ struct iop_struct_t {
     const iop_class_attrs_t *class_attrs;
 };
 
+qvector_t(iop_struct, const iop_struct_t *);
+
 static inline bool iop_struct_is_class(const iop_struct_t *st)
 {
     unsigned st_flags = st->flags;
