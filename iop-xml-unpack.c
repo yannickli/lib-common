@@ -21,6 +21,9 @@ static int
 xunpack_struct(xml_reader_t, mem_pool_t *, const iop_struct_t *, void *,
                int flags);
 static int
+xunpack_class(xml_reader_t, mem_pool_t *, const iop_struct_t *, void **,
+              int flags);
+static int
 xunpack_union(xml_reader_t, mem_pool_t *, const iop_struct_t *, void *,
               int flags);
 
@@ -190,7 +193,12 @@ static int xunpack_value(xml_reader_t xr, mem_pool_t *mp,
       case IOP_T_UNION:
         return xunpack_union(xr, mp, fdesc->u1.st_desc, v, flags);
       case IOP_T_STRUCT:
-        return xunpack_struct(xr, mp, fdesc->u1.st_desc, v, flags);
+        if (iop_field_is_class(fdesc)) {
+            *(void **)v = NULL;
+            return xunpack_class(xr, mp, fdesc->u1.st_desc, v, flags);
+        } else {
+            return xunpack_struct(xr, mp, fdesc->u1.st_desc, v, flags);
+        }
       default:
         e_panic("should not happen");
     }
@@ -317,12 +325,33 @@ static int xunpack_block_vec(xml_reader_t xr, mem_pool_t *mp,
     return 0;
 }
 
-static int
-xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
-               void *value, int flags)
+typedef struct iop_xfield_t {
+    const iop_field_t  *fdesc;
+    const iop_struct_t *desc;
+} iop_xfield_t;
+
+qvector_t(iop_xfield, iop_xfield_t);
+
+static inline const iop_xfield_t *
+get_xfield_by_name(const iop_xfield_t *start, const iop_xfield_t *end,
+                   lstr_t name)
 {
-    const iop_field_t *fdesc = desc->fields;
-    const iop_field_t *end   = desc->fields + desc->fields_len;
+    while (start < end) {
+        if (lstr_equal2(start->fdesc->name, name)) {
+            return start;
+        }
+        start++;
+    }
+
+    return NULL;
+}
+
+static int
+__xunpack_struct(xml_reader_t xr, mem_pool_t *mp, void *value, int flags,
+                 qv_t(iop_xfield) *fields)
+{
+    const iop_xfield_t *fdesc = fields->tab;
+    const iop_xfield_t *end   = fields->tab + fields->len;
     int res = xmlr_next_child(xr);
 
     /* No children */
@@ -331,7 +360,7 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
     if (res < 0)
         return res;
     do {
-        const iop_field_t *xfdesc;
+        const iop_xfield_t *xfdesc;
         lstr_t name;
         void *v;
         int n = 1;
@@ -344,7 +373,7 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
 
         /* Find the field description by the tag name */
         RETHROW(xmlr_node_get_local_name(xr, &name));
-        xfdesc = get_field_by_name(desc, fdesc, name.s, name.len);
+        xfdesc = get_xfield_by_name(fdesc, end, name);
         if (unlikely(!xfdesc)) {
             if (!(flags & IOP_UNPACK_IGNORE_UNKNOWN))
                 return xmlr_fail(xr, "unknown tag <%*pM>", LSTR_FMT_ARG(name));
@@ -353,15 +382,14 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
                 if (RETHROW(xmlr_node_is_closing(xr)))
                     goto end;
                 RETHROW(xmlr_node_get_local_name(xr, &name));
-                xfdesc = get_field_by_name(desc, fdesc, name.s, name.len);
+                xfdesc = get_xfield_by_name(fdesc, end, name);
             } while (!xfdesc);
-        }
-        if (unlikely(xfdesc->tag < fdesc->tag)) {
-            return xmlr_fail(xr, "unknown tag <%*pM>", LSTR_FMT_ARG(name));
         }
 
         if (flags & IOP_UNPACK_FORBID_PRIVATE) {
-            const iop_field_attrs_t *attrs = iop_field_get_attrs(desc, xfdesc);
+            const iop_field_attrs_t *attrs;
+
+            attrs = iop_field_get_attrs(xfdesc->desc, xfdesc->fdesc);
             if (attrs && TST_BIT(&attrs->flags, IOP_FIELD_PRIVATE)) {
                 return xmlr_fail(xr, "private tag <%*pM>", LSTR_FMT_ARG(name));
             }
@@ -369,36 +397,40 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
 
         /* Handle optional fields */
         while (unlikely(xfdesc != fdesc)) {
-            if (__iop_skip_absent_field_desc(value, fdesc) < 0) {
+            if (__iop_skip_absent_field_desc(value, fdesc->fdesc) < 0) {
                 return xmlr_fail(xr, "missing mandatory tag <%*pM>",
-                                 LSTR_FMT_ARG(fdesc->name));
+                                 LSTR_FMT_ARG(fdesc->fdesc->name));
             }
             fdesc++;
         }
 
         /* Read field value */
-        v = (char *)value + fdesc->data_offs;
-        if (fdesc->repeat == IOP_R_REPEATED) {
+        v = (char *)value + fdesc->fdesc->data_offs;
+        if (fdesc->fdesc->repeat == IOP_R_REPEATED) {
             lstr_t *data = v;
 
-            if ((1 << fdesc->type) & IOP_BLK_OK) {
-                RETHROW(xunpack_block_vec(xr, mp, fdesc, v, flags));
+            if ((1 << fdesc->fdesc->type) & IOP_BLK_OK) {
+                RETHROW(xunpack_block_vec(xr, mp, fdesc->fdesc, v, flags));
             } else {
-                RETHROW(xunpack_scalar_vec(xr, mp, fdesc, v));
+                RETHROW(xunpack_scalar_vec(xr, mp, fdesc->fdesc, v));
             }
             v = data->data;
             n = data->len;
             goto next;
         } else
-        if (fdesc->repeat == IOP_R_OPTIONAL) {
-            v = iop_value_set_here(mp, fdesc, v);
+        if (fdesc->fdesc->repeat == IOP_R_OPTIONAL
+        &&  !iop_field_is_class(fdesc->fdesc))
+        {
+            v = iop_value_set_here(mp, fdesc->fdesc, v);
         }
 
-        RETHROW(xunpack_value(xr, mp, fdesc, v, flags));
+        RETHROW(xunpack_value(xr, mp, fdesc->fdesc, v, flags));
 
       next:
-        if (unlikely(iop_field_has_constraints(desc, fdesc))) {
-            if (iop_field_check_constraints(desc, fdesc, v, n, false) < 0) {
+        if (unlikely(iop_field_has_constraints(fdesc->desc, fdesc->fdesc))) {
+            if (iop_field_check_constraints(fdesc->desc, fdesc->fdesc, v, n,
+                                            false) < 0)
+            {
                 return xmlr_fail(xr, "%*pM", LSTR_FMT_ARG(iop_get_err_lstr()));
             }
         }
@@ -408,12 +440,115 @@ xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
     /* Check for absent fields */
   end:
     for (; fdesc < end; fdesc++) {
-        if (__iop_skip_absent_field_desc(value, fdesc) < 0) {
+        if (__iop_skip_absent_field_desc(value, fdesc->fdesc) < 0) {
             return xmlr_fail(xr, "missing mandatory tag <%*pM>",
-                             LSTR_FMT_ARG(fdesc->name));
+                             LSTR_FMT_ARG(fdesc->fdesc->name));
         }
     }
     return xmlr_node_close(xr);
+}
+
+static inline void
+qv_append_struct_xfields(qv_t(iop_xfield) *fields, const iop_struct_t *desc)
+{
+    const iop_field_t *fdesc = desc->fields;
+    const iop_field_t *end   = desc->fields + desc->fields_len;
+    iop_xfield_t xfield = { .desc = desc };
+
+    while (fdesc != end) {
+        xfield.fdesc = fdesc++;
+        qv_append(iop_xfield, fields, xfield);
+    }
+}
+
+static int
+xunpack_struct(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
+               void *value, int flags)
+{
+    qv_t(iop_xfield) fields;
+
+    qv_inita(iop_xfield, &fields, desc->fields_len);
+    qv_append_struct_xfields(&fields, desc);
+
+    return __xunpack_struct(xr, mp, value, flags, &fields);
+}
+
+static int
+xunpack_class(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
+              void **value, int flags)
+{
+    const iop_struct_t *real_desc, *desc_it;
+    qv_t(iop_struct) parents;
+    qv_t(iop_xfield) fields;
+    bool found_desc = false;
+    int res;
+
+    /* Get the real class type. Create a t_scope here because mp could be (and
+     * is most of time) t_pool(). */
+    {
+        t_scope;
+        xmlAttrPtr attr = xmlr_find_attr_s(xr, "type", false);
+        lstr_t    real_type_str;
+        pstream_t ps;
+
+        if (!attr) {
+            /* If type attribute is not present, consider we are unpacking a
+             * class of the expected type. */
+            real_desc = desc;
+            goto build_parents;
+        }
+
+        RETHROW(t_xmlr_getattr_str(xr, attr, false, &real_type_str));
+        ps = ps_initlstr(&real_type_str);
+        /* Skip mandatory namespace */
+        ps_skip_afterchr(&ps, ':');
+        if (!(real_desc = iop_get_class_by_fullname(desc, LSTR_PS_V(&ps)))) {
+            return xmlr_fail(xr, "class `%*pM' not found",
+                             PS_FMT_ARG(&ps));
+        }
+    }
+
+    /* The fields will be present in the order "master -> children", not
+     * "children -> master", so build a qvector of the parents.
+     * Also check this the types are compatible. */
+  build_parents:
+    qv_inita(iop_struct, &parents, 8);
+    desc_it = real_desc;
+    do {
+        qv_append(iop_struct, &parents, desc_it);
+        if (desc_it == desc) {
+            found_desc = true;
+        }
+    } while ((desc_it = desc_it->class_attrs->parent));
+    if (!found_desc) {
+        xmlr_fail(xr, "class `%*pM' is not a child of `%*pM'",
+                  LSTR_FMT_ARG(real_desc->fullname),
+                  LSTR_FMT_ARG(desc->fullname));
+        qv_wipe(iop_struct, &parents);
+        return -1;
+    }
+
+    /* Allocate output value */
+    if (*value) {
+        *value = mp->realloc(mp, *value, 0, real_desc->size, MEM_RAW);
+    } else {
+        *value = mp->malloc(mp, real_desc->size, MEM_RAW);
+    }
+
+    /* Set the _vprt pointer */
+    *(const iop_struct_t **)(*value) = real_desc;
+
+    /* Build fields vector, and unpack fields */
+    qv_inita(iop_xfield, &fields, 32);
+    for (int pos = parents.len; pos-- > 0; ) {
+        qv_append_struct_xfields(&fields, parents.tab[pos]);
+    }
+    qv_wipe(iop_struct, &parents);
+
+    res = __xunpack_struct(xr, mp, *value, flags, &fields);
+
+    qv_wipe(iop_xfield, &fields);
+    return res;
 }
 
 static int
@@ -456,6 +591,9 @@ __iop_xunpack_parts(void *xr, mem_pool_t *mp, const iop_struct_t *desc,
     parts_g = parts;
     if (desc->is_union) {
         ret = xunpack_union(xr, mp, desc, value, flags);
+    } else
+    if (iop_struct_is_class(desc)) {
+        ret = xunpack_class(xr, mp, desc, value, flags);
     } else {
         ret = xunpack_struct(xr, mp, desc, value, flags);
     }
