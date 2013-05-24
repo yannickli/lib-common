@@ -466,10 +466,10 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
     }
     {
         t_scope;
-        void *value = t_new_raw(char, st->size);
+        void *value = NULL;
         pstream_t ps = ps_init(data, dlen);
 
-        if (unlikely(iop_bunpack(t_pool(), st, value, ps, false) < 0)) {
+        if (unlikely(iop_bunpack_ptr(t_pool(), st, &value, ps, false) < 0)) {
 #ifndef NDEBUG
             if (!iop_get_err()) {
                 e_trace(0, "rpc(%04x:%04x):%s: answer with invalid encoding",
@@ -518,7 +518,6 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
     const iop_struct_t *st;
     ichannel_t *pxy;
     ic__hdr__t *hdr = NULL, *pxy_hdr = NULL;
-    void *value;
     pstream_t ps;
     int pos;
 
@@ -537,10 +536,10 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
       case IC_CB_WS_SHARED:
         {
             t_scope;
+            void *value = NULL;
 
             /* XXX works for both IC_CB_NORMAL & IC_CB_WS_SHARED */
             st    = e->u.cb.rpc->args;
-            value = t_new_raw(char, st->size);
             ps    = ps_init(data, dlen);
             if (unlikely(flags & IC_MSG_HAS_HDR)) {
                 hdr = t_new_raw(ic__hdr__t, 1);
@@ -561,7 +560,9 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
                 }
             }
 
-            if (unlikely(iop_bunpack(t_pool(), st, value, ps, false) < 0)) {
+            if (unlikely(iop_bunpack_ptr(t_pool(), st, &value, ps,
+                                         false) < 0))
+            {
 #ifndef NDEBUG
                 if (!iop_get_err()) {
                     e_trace(0, "query %04x:%04x, type %s: invalid encoding",
