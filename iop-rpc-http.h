@@ -115,8 +115,8 @@ void __ichttp_reply_err(uint64_t slot, int err, const lstr_t *err_str);
 /** \brief internal do not use directly, or know what you're doing. */
 void __ichttp_reply_soap_err(uint64_t slot, bool serverfault, const lstr_t *err);
 /** \brief internal do not use directly, or know what you're doing. */
-void __ichttp_forward_reply(uint64_t slot, int cmd, const void *res,
-                            const void *exn);
+void __ichttp_forward_reply(ichannel_t *pxy_ic, uint64_t slot, int cmd,
+                            const void *res, const void *exn);
 
 #define __ichttp_reply_soap_err_cst(slot, serverfault, err) \
     __ichttp_reply_soap_err(slot, serverfault, &LSTR_IMMED_V(err))

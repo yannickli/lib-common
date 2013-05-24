@@ -35,6 +35,8 @@ typedef enum ic_event_t {
 
 
 #define IC_MSG_HDR_LEN             12
+#define IC_MSG_CMD_OFFSET           4
+#define IC_MSG_DLEN_OFFSET          8
 #define IC_PKT_MAX              65536
 
 #define IC_ID_MAX               BITMASK_LE(uint32_t, 30)
@@ -867,14 +869,18 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
 
 /** \brief Bounce an IOP answer to reply to another slot.
  *
- * This function may be use to forward an answer to another slot when
+ * This function may be used to forward an answer to another slot when
  * implementing a manual proxy. It saves the reply data packing.
  *
- * XXX Be really careful because this function supposed that the answer has
- * been leaved unmodified since is reception. If you want to modify it before
- * the forwarding, then *don't* use this function and use instead
- * ic_reply_p/ic_throw_p. If you try to do this, in the best scenario
- * your chances will be ignored, in the worst you will have a crash…
+ * WARNINGS:
+ *  - this function MUST be used before leaving the RPC callback scope.
+ *  - you cannot use this function to forward a webservices answer; this is
+ *    not implemented.
+ *  - be really careful because this function suppose that the answer has
+ *    been left unmodified since its reception. If you want to modify it
+ *    before the forwarding, then *don't* use this function and use instead
+ *    ic_reply_p/ic_throw_p. If you try to do this, in the best scenario
+ *    your changes will be ignored, in the worst you will have a crash…
  *
  * Here an example of how to use this function:
  * <code>

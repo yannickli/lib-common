@@ -128,8 +128,11 @@ void __ic_forward_reply_to(ichannel_t *pxy_ic, uint64_t slot, int cmd,
 {
     ichannel_t *ic;
 
+    e_assert_p(panic, pxy_ic,
+               "are you trying to forward a webservices answer?");
+
     if (unlikely(ic_slot_is_http(slot))) {
-        __ichttp_forward_reply(slot, cmd, res, exn);
+        __ichttp_forward_reply(pxy_ic, slot, cmd, res, exn);
         return;
     }
 
@@ -142,8 +145,10 @@ void __ic_forward_reply_to(ichannel_t *pxy_ic, uint64_t slot, int cmd,
     if (unlikely(!(ic = ic_get_from_slot(slot))))
         return;
     if (likely(ic->elh) && likely(ic->id == slot >> 32)) {
-        ic_msg_t *tmp = ic_msg_new_fd(pxy_ic ? ic_get_fd(pxy_ic) : -1, 0);
-        pstream_t *ps = ((pstream_t **)(cmd == IC_MSG_OK ? res : exn))[-1];
+        ic_msg_t *tmp = ic_msg_new_fd(ic_get_fd(pxy_ic), 0);
+        sb_t *buf  = &pxy_ic->rbuf;
+        void *data = buf->data + IC_MSG_HDR_LEN;
+        int   dlen = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
 
 #ifdef IC_DEBUG_REPLIES
         int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
@@ -155,7 +160,7 @@ void __ic_forward_reply_to(ichannel_t *pxy_ic, uint64_t slot, int cmd,
         ic->pending--;
         tmp->slot = slot & IC_MSG_SLOT_MASK;
         tmp->cmd  = -cmd;
-        memcpy(__ic_get_buf(tmp, ps_len(ps)), ps->p, ps_len(ps));
+        memcpy(__ic_get_buf(tmp, dlen), data, dlen);
         ic_queue(ic, tmp, 0);
     }
 }
@@ -428,8 +433,6 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
 {
     ic_msg_t *tmp = ic_query_take(ic, slot);
     const iop_struct_t *st;
-    void *value;
-    pstream_t ps;
 
     if (unlikely(!tmp)) {
         errno = 0;
@@ -463,11 +466,8 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
     }
     {
         t_scope;
-
-        value = t_new_raw(char, sizeof(pstream_t *) + st->size);
-        ps    = ps_init(data, dlen);
-        *(pstream_t **)value = &ps;
-        value = (pstream_t **)value + 1;
+        void *value = t_new_raw(char, st->size);
+        pstream_t ps = ps_init(data, dlen);
 
         if (unlikely(iop_bunpack(t_pool(), st, value, ps, false) < 0)) {
 #ifndef NDEBUG
@@ -717,8 +717,8 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         slot  = get_unaligned_cpu32(buf->data);
         flags = slot & ~IC_MSG_SLOT_MASK;
         slot &= IC_MSG_SLOT_MASK;
-        cmd   = get_unaligned_cpu32(buf->data + 4);
-        dlen  = get_unaligned_cpu32(buf->data + 8);
+        cmd   = get_unaligned_cpu32(buf->data + IC_MSG_CMD_OFFSET);
+        dlen  = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
 
         if (IC_MSG_HDR_LEN + dlen > buf->len)
             break;
