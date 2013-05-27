@@ -79,7 +79,7 @@ iop_dso_t *iop_dso_open(const char *path)
     void       *handle;
     iop_dso_t  *dso;
 
-    handle = dlopen(path, RTLD_LAZY | RTLD_LOCAL);
+    handle = dlopen(path, RTLD_LAZY | RTLD_LOCAL | RTLD_DEEPBIND);
     if (handle == NULL) {
         e_error("IOP DSO: unable to dlopen(%s): %s", path, dlerror());
         return NULL;
