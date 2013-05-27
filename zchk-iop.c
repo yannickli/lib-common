@@ -1705,9 +1705,7 @@ Z_GROUP_EXPORT(iop)
         lstr_t path = t_lstr_cat(z_cmddir_g,
                                  LSTR_IMMED_V("zchk-tstiop-plugin.so"));
 
-        const iop_struct_t *st_s, *st_u;
-
-        IOP_REGISTER_PACKAGES(&tstiop_inheritance__pkg);
+        const iop_struct_t *st_s, *st_u, *st_c;
 
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
@@ -1716,9 +1714,11 @@ Z_GROUP_EXPORT(iop)
                               LSTR_IMMED_V("tstiop.ConstraintS")));
         Z_ASSERT_P(st_u = iop_dso_find_type(dso,
                               LSTR_IMMED_V("tstiop.ConstraintU")));
+        Z_ASSERT_P(st_c = iop_dso_find_type(dso,
+                              LSTR_IMMED_V("tstiop_inheritance.C1")));
 
-        tstiop__constraint_u__init(&u);
-        tstiop__constraint_s__init(&s);
+        iop_init(st_u, &u);
+        iop_init(st_s, &s);
 
 #define CHECK_VALID(st, v, info) \
         Z_ASSERT_N(iop_check_constraints((st), (v)));                   \
@@ -1787,15 +1787,15 @@ Z_GROUP_EXPORT(iop)
         CHECK_TAB(i64,  i64tab);
 
         /* With inheritance */
-        tstiop_inheritance__c1__init(&c);
-        CHECK_VALID(&tstiop_inheritance__c1__s, &c, "c");
+        iop_init(st_c, &c);
+        CHECK_VALID(st_c, &c, "c");
         c.a = 0;
-        CHECK_INVALID(&tstiop_inheritance__c1__s, &c, "c");
+        CHECK_INVALID(st_c, &c, "c");
         c.a = 2;
         c.c = 0;
-        CHECK_INVALID(&tstiop_inheritance__c1__s, &c, "c");
+        CHECK_INVALID(st_c, &c, "c");
         c.c = 3;
-        CHECK_VALID(&tstiop_inheritance__c1__s, &c, "c");
+        CHECK_VALID(st_c, &c, "c");
 
 #undef CHECK_TAB
 #undef CHECK_UNION

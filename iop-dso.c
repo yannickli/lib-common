@@ -24,6 +24,7 @@ static void iopdso_register_pkg(iop_dso_t *dso, iop_pkg_t const *pkg)
 {
     if (qm_add(iop_pkg, &dso->pkg_h, &pkg->name, pkg) < 0)
         return;
+    iop_register_packages(&pkg, 1);
     for (const iop_enum_t *const *it = pkg->enums; *it; it++) {
         qm_add(iop_enum, &dso->enum_h, &(*it)->fullname, *it);
     }
@@ -112,6 +113,11 @@ iop_dso_t *iop_dso_open(const char *path)
 
 void iop_dso_close(iop_dso_t **dsop)
 {
+    const iop_dso_t *dso = *dsop;
+
+    qm_for_each_pos(iop_pkg, pos, &dso->pkg_h) {
+        iop_unregister_packages(&dso->pkg_h.values[pos], 1);
+    }
     iop_dso_delete(dsop);
 }
 
