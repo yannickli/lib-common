@@ -45,13 +45,23 @@ static void ichttp_serialize_soap(sb_t *sb, ichttp_query_t *iq, int cmd,
     xmlpp_opentag(&pp, "s:Envelope");
     xmlpp_putattr(&pp, "xmlns:s", "http://schemas.xmlsoap.org/soap/envelope/");
     xmlpp_putattr(&pp, "xmlns:n", tcb->schema);
+    xmlpp_putattr(&pp, "xmlns:xsi",
+                  "http://www.w3.org/2001/XMLSchema-instance");
 
     xmlpp_opentag(&pp, "s:Body");
     if (cmd == IC_MSG_OK) {
         ichttp_cb_t *cbe = iq->cbe;
 
         if (v) {
-            sb_addf(sb, "<n:%*pM>", LSTR_FMT_ARG(cbe->name_res));
+            if (iop_struct_is_class(st)) {
+                const iop_struct_t *real_st = *(const iop_struct_t **)v;
+
+                sb_addf(sb, "<n:%*pM xsi:type=\"n:%*pM\">",
+                        LSTR_FMT_ARG(cbe->name_res),
+                        LSTR_FMT_ARG(real_st->fullname));
+            } else {
+                sb_addf(sb, "<n:%*pM>", LSTR_FMT_ARG(cbe->name_res));
+            }
             iop_xpack_flags(sb, st, v, tcb->xpack_flags);
             sb_addf(sb, "</n:%*pM>", LSTR_FMT_ARG(cbe->name_res));
         } else {
@@ -68,7 +78,15 @@ static void ichttp_serialize_soap(sb_t *sb, ichttp_query_t *iq, int cmd,
 
         /* FIXME handle union of exceptions which are an array of exceptions */
         if (v) {
-            sb_addf(sb, "<n:%*pM>", LSTR_FMT_ARG(cbe->name_exn));
+            if (iop_struct_is_class(st)) {
+                const iop_struct_t *real_st = *(const iop_struct_t **)v;
+
+                sb_addf(sb, "<n:%*pM xsi:type=\"n:%*pM\">",
+                        LSTR_FMT_ARG(cbe->name_exn),
+                        LSTR_FMT_ARG(real_st->fullname));
+            } else {
+                sb_addf(sb, "<n:%*pM>", LSTR_FMT_ARG(cbe->name_exn));
+            }
             iop_xpack_flags(sb, st, v, tcb->xpack_flags);
             sb_addf(sb, "</n:%*pM>", LSTR_FMT_ARG(cbe->name_exn));
         } else {

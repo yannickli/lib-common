@@ -95,9 +95,8 @@ static int t_parse_soap(ichttp_query_t *iq,
     }
     iq->cbe = *cbout = cbe = ichttp_cb_dup(tcb->impl.values[pos]);
 
-    *vout = t_new(byte, cbe->fun->args->size);
-    XCHECK(iop_xunpack_flags(xr, t_pool(), cbe->fun->args, *vout,
-                             tcb->unpack_flags));
+    XCHECK(iop_xunpack_ptr_flags(xr, t_pool(), cbe->fun->args, vout,
+                                 tcb->unpack_flags));
     /* Close opened elements */
 
     XCHECK(xmlr_node_close(xr)); /* </Body>     */
