@@ -123,6 +123,22 @@ in the proper order.
 <a>some other value</a>
 ----
 
+The XML Schema 'complexContent' is also used for inheritance. Here is an example
+of a sequence inheriting from ``MyType'':
+
+[source,xml]
+----
+<complexType name="MyTypeInherited">
+   <complexContent>
+      <extension base="MyType">
+         <sequence>
+            <element name="c" type="string">
+         </sequence>
+      </extension>
+   </complexContent>
+</complexType>
+----
+
 [[repeat-optional]]
 ==== Repeated field, optional fields ====
 
@@ -162,8 +178,9 @@ say Java-like] descriptive language. Basic XML types are mapped as follows:
 | +any+             | +xml+
 |===
 
-The XML 'sequence' is mapped to the keyword 'struct', the XML 'choice' to the keyword
-'union', and the XML 'enumeration' to the keyword 'enum'.
+The XML 'sequence' is mapped to the keyword 'struct' (or 'class' to use
+inheritance), the XML 'choice' to the keyword 'union', and the XML
+'enumeration' to the keyword 'enum'.
 
 For example:
 
@@ -186,6 +203,39 @@ struct MyType {
         <element name="i" type="int"/>
         <element name="s" type="string"/>
     </sequence>
+</complexType>
+----
+
+|
+[source,d]
+----
+class Father : 0 {
+    int    i;
+    string s;
+};
+
+class Child : 1 : Father {
+    double d;
+};
+----
+|
+[source,xml]
+----
+<complexType name="Father">
+    <sequence>
+        <element name="i" type="int"/>
+        <element name="s" type="string"/>
+    </sequence>
+</complexType>
+
+<complexType name="Child">
+   <complexContent>
+      <extension base="Father">
+         <sequence>
+            <element name="d" type="double">
+         </sequence>
+      </extension>
+   </complexContent>
 </complexType>
 ----
 
