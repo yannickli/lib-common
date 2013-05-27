@@ -2774,6 +2774,48 @@ void iop_register_packages(const iop_pkg_t **pkgs, int len)
     }
 }
 
+static void iop_unregister_class(const iop_struct_t *desc)
+{
+    class_id_key_t key = {
+        .master   = desc,
+        .child_id = desc->class_attrs->class_id,
+    };
+
+    while (key.master->class_attrs->parent) {
+        key.master = key.master->class_attrs->parent;
+    }
+
+    if (qm_del_key(class_id, &_G.classes_by_id, &key) >= 0) {
+        class_name_key_t key2 = {
+            .master         = key.master,
+            .child_fullname = &desc->fullname,
+        };
+
+        qm_del_key(class_name, &_G.classes_by_name, &key2);
+
+        if (desc->class_attrs->parent) {
+            /* Unregister the parent only if the class was registered,
+             * because if not we are sure the parent won't be. */
+            iop_unregister_class(desc->class_attrs->parent);
+        }
+    }
+}
+
+void iop_unregister_packages(const iop_pkg_t **pkgs, int len)
+{
+    for (int i = 0; i < len; i++) {
+        const iop_pkg_t *pkg = pkgs[i];
+
+        for (const iop_struct_t *const *it = pkg->structs; *it; it++) {
+            const iop_struct_t *desc = *it;
+
+            if (iop_struct_is_class(desc)) {
+                iop_unregister_class(desc);
+            }
+        }
+    }
+}
+
 /*------ Packages registration -}}}-*/
 
 __attribute__((destructor))

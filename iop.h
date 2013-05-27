@@ -906,6 +906,27 @@ void iop_register_packages(const iop_pkg_t **pkgs, int len);
         iop_register_packages(__pkgs, countof(__pkgs));                      \
     } while (0)
 
+/** Unregister a list of packages.
+ *
+ * Note that unregistering a package at shutdown is NOT necessary.
+ * This function is used by the DSO module, and there is no reason to use it
+ * somewhere else.
+ *
+ * You can use IOP_UNREGISTER_PACKAGES to avoid the array construction.
+ */
+void iop_unregister_packages(const iop_pkg_t **pkgs, int len);
+
+/** Helper to unregister a list of packages.
+ *
+ * Just an helper to call iop_unregister_packages without having to build an
+ * array.
+ */
+#define IOP_UNREGISTER_PACKAGES(...)  \
+    do {                                                                     \
+        const iop_pkg_t *__pkgs[] = { __VA_ARGS__ };                         \
+        iop_unregister_packages(__pkgs, countof(__pkgs));                    \
+    } while (0)
+
 /* }}} */
 
 #include "iop-macros.h"
