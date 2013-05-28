@@ -15,6 +15,7 @@
 #include "z.h"
 #include "iop.h"
 #include "iop/tstiop.iop.h"
+#include "ic.iop.h"
 #include "xmlr.h"
 
 /* {{{ IOP testing helpers */
@@ -358,6 +359,7 @@ Z_GROUP_EXPORT(iop)
         t_scope;
 
         iop_dso_t *dso;
+        const iop_struct_t *st;
         lstr_t path = t_lstr_cat(z_cmddir_g,
                                  LSTR_IMMED_V("zchk-iop-plugin.so"));
 
@@ -365,7 +367,8 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_N(qm_find(iop_struct, &dso->struct_h,
                            &LSTR_IMMED_V("ic.Hdr")));
 
-        Z_ASSERT_P(iop_dso_find_type(dso, LSTR_IMMED_V("ic.SimpleHdr")));
+        Z_ASSERT_P(st = iop_dso_find_type(dso, LSTR_IMMED_V("ic.SimpleHdr")));
+        Z_ASSERT(st != &ic__simple_hdr__s);
 
         iop_dso_close(&dso);
     } Z_TEST_END;
