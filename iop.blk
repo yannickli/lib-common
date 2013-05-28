@@ -139,10 +139,10 @@ void iop_init(const iop_struct_t *desc, void *value)
     memset(value, 0, desc->size);
 
     if (iop_struct_is_class(desc)) {
-        const iop_struct_t **_vptr = value;
+        const iop_struct_t **__vptr = value;
         const iop_struct_t *parent = desc;
 
-        *_vptr = desc;
+        *__vptr = desc;
 
         while ((parent = parent->class_attrs->parent)) {
             iop_init_fields(value, parent->fields,

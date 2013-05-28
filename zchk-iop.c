@@ -2354,7 +2354,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_N(t_tstiop_inheritance__c1__junpack_ptr_file(
                        t_fmt(NULL, "%*pM/iop/tstiop_inheritance_valid1.json",
                              LSTR_FMT_ARG(z_cmddir_g)), &c1, 0, &err));
-        Z_ASSERT(c1->_vptr == &tstiop_inheritance__c1__s);
+        Z_ASSERT(c1->__vptr == &tstiop_inheritance__c1__s);
         Z_ASSERT_EQ(c1->a,   2);
         Z_ASSERT_EQ(c1->a2, 12);
         Z_ASSERT_EQ(c1->b,  false);
@@ -2364,7 +2364,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_N(t_tstiop_inheritance__c1__junpack_ptr_file(
                        t_fmt(NULL, "%*pM/iop/tstiop_inheritance_valid2.json",
                              LSTR_FMT_ARG(z_cmddir_g)), &c1, 0, &err));
-        Z_ASSERT(c1->_vptr == &tstiop_inheritance__c1__s);
+        Z_ASSERT(c1->__vptr == &tstiop_inheritance__c1__s);
         Z_ASSERT_EQ(c1->a,   1);
         Z_ASSERT_EQ(c1->a2, 12);
         Z_ASSERT_EQ(c1->b,  true);
@@ -2441,7 +2441,7 @@ Z_GROUP_EXPORT(iop)
         /* Test that 'xsi:type' can be missing, if the packed object is of
          * the expected type. */
         UNPACK_OK("tstiop_inheritance_valid1.xml", c2);
-        Z_ASSERT(c2->_vptr == &tstiop_inheritance__c2__s);
+        Z_ASSERT(c2->__vptr == &tstiop_inheritance__c2__s);
         Z_ASSERT_EQ(c2->a,  15);
         Z_ASSERT_EQ(c2->a2, 16);
         Z_ASSERT_EQ(c2->b,  false);
@@ -2449,14 +2449,14 @@ Z_GROUP_EXPORT(iop)
 
         /* Test with missing optional fields */
         UNPACK_OK("tstiop_inheritance_valid2.xml", c3);
-        Z_ASSERT(c3->_vptr == &tstiop_inheritance__c3__s);
+        Z_ASSERT(c3->__vptr == &tstiop_inheritance__c3__s);
         Z_ASSERT_LSTREQUAL(c3->a, LSTR_IMMED_V("I am the only field"));
         Z_ASSERT_EQ(c3->b, 5);
         Z_ASSERT_EQ(c3->c, 6);
 
         /* Test with no field at all (all are optional) */
         UNPACK_OK("tstiop_inheritance_valid3.xml", c3);
-        Z_ASSERT(c3->_vptr == &tstiop_inheritance__c3__s);
+        Z_ASSERT(c3->__vptr == &tstiop_inheritance__c3__s);
         Z_ASSERT_LSTREQUAL(c3->a, LSTR_IMMED_V("A2"));
         Z_ASSERT_EQ(c3->b, 5);
         Z_ASSERT_EQ(c3->c, 6);
