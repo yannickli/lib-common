@@ -294,19 +294,34 @@ endef
 
 define ext/expand/adoc
 ifeq ($(filter %.inc.adoc,$3),)
-$~$3.xml: FL_=$($(1DV)_ASCIIDOCFLAGS) $($1_ASCIIDOCFLAGS)
-$~$3.xml: $3 $(3:%.adoc=%-docinfo.xml)
+$~$1.xml: FL_=$($(1DV)_ASCIIDOCFLAGS) $($1_ASCIIDOCFLAGS)
+$~$1.xml: $3 $(3:%.adoc=%-docinfo.xml)
 	$(msg/DOC.adoc) $3
 	asciidoc -b docbook -a docinfo -a toc $$(FL_) -f $(var/cfgdir)/asciidoc.conf \
 		-o $$@+ $$<
 	$(MV) $$@+ $$@ && chmod a-w $$@
+else
+$~$1.xml: $3
 endif
 endef
 
 define ext/rule/adoc
 $$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/adoc,$1,$2,$$t,$4))))
 $(eval $(call fun/common-depends,$1,$(3:%=$~%.xml),$3))
-$(eval $(call ext/rule/xml,$1,$2,$(3:%=$~%.xml),$4))
+$(eval $(call ext/rule/xml,$1,$2,$(1:%=$~%.xml),$4))
+endef
+
+define ext/expand/sdf
+$~$3.inc.adoc: $3 $~qrrd/sdf2adoc.exe
+	mkdir -p $$(@D)
+	$(msg/DOC.sdf) $3
+	$~qrrd/sdf2adoc.exe -o $$@+ $$<
+	$(MV) $$@+ $$@ && chmod a-w $$@
+$(call ext/expand/adoc,$1,$2,$~$3.inc.adoc,$4)
+endef
+
+define ext/rule/sdf
+$$(foreach t,$3,$$(eval $$(call fun/do-once,$$t,$$(call ext/expand/sdf,$1,$2,$$t,$4))))
 endef
 
 define rule/pdf
