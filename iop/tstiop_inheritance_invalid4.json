@@ -1,4 +1,4 @@
 /* Test with a missing mandatory field */
 {
-     "_class": "tstiop_inheritance.C1",
+     "_class": "tstiop_inheritance.C1"
 }
