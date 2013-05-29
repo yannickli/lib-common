@@ -1907,8 +1907,9 @@ int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc)
         const iop_struct_t *desc = fdesc->u1.st_desc;
 
         /* For a required field, only structs can be absents, be careful that
-         * union must be presents */
+         * union and class must be presents */
         PS_WANT(fdesc->type == IOP_T_STRUCT);
+        PS_WANT(!iop_field_is_class(fdesc));
         for (int i = 0; i < desc->fields_len; i++)
             PS_CHECK(__iop_skip_absent_field_desc(ptr, desc->fields + i));
         return 0;

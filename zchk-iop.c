@@ -2346,6 +2346,8 @@ Z_GROUP_EXPORT(iop)
          */
         t_scope;
         tstiop_inheritance__c1__t *c1 = NULL;
+        tstiop_inheritance__class_container__t  *class_container  = NULL;
+        tstiop_inheritance__class_container2__t *class_container2 = NULL;
         SB_1k(err);
 
         IOP_REGISTER_PACKAGES(&tstiop_inheritance__pkg);
@@ -2370,30 +2372,34 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(c1->b,  true);
         Z_ASSERT_EQ(c1->c,  (uint32_t)3);
 
-#define CHECK_FAIL(_filename, _err)  \
+#define CHECK_FAIL(_type, _filename, _err)  \
         do {                                                                 \
             sb_reset(&err);                                                  \
-            Z_ASSERT_NEG(t_tstiop_inheritance__c1__junpack_ptr_file(         \
+            Z_ASSERT_NEG(t_tstiop_inheritance__##_type##__junpack_ptr_file(  \
                          t_fmt(NULL, "%*pM/iop/" _filename,                  \
-                               LSTR_FMT_ARG(z_cmddir_g)), &c1, 0, &err));    \
+                               LSTR_FMT_ARG(z_cmddir_g)), &_type, 0, &err)); \
             Z_ASSERT(strstr(err.data, _err));                                \
         } while (0)
 
         /* Test that the "_class" field is mandatory */
-        CHECK_FAIL("tstiop_inheritance_invalid1.json",
+        CHECK_FAIL(c1, "tstiop_inheritance_invalid1.json",
                    "expected `_class' field, got `}'");
 
         /* Test with an unknown "_class" */
-        CHECK_FAIL("tstiop_inheritance_invalid2.json",
+        CHECK_FAIL(c1, "tstiop_inheritance_invalid2.json",
                    "expected a child of `tstiop_inheritance.C1'");
 
         /* Test with an incompatible "_class" */
-        CHECK_FAIL("tstiop_inheritance_invalid3.json",
+        CHECK_FAIL(c1, "tstiop_inheritance_invalid3.json",
                    "expected a child of `tstiop_inheritance.C1'");
 
         /* Test with a missing mandatory field */
-        CHECK_FAIL("tstiop_inheritance_invalid4.json",
+        CHECK_FAIL(c1, "tstiop_inheritance_invalid4.json",
                    "member `tstiop_inheritance.A1:a2' is missing");
+        CHECK_FAIL(class_container, "tstiop_inheritance_invalid5.json",
+                   "member `tstiop_inheritance.ClassContainer:a1' is missing");
+        CHECK_FAIL(class_container2, "tstiop_inheritance_invalid6.json",
+                   "member `tstiop_inheritance.ClassContainer2:b3' is missing");
 #undef CHECK_FAIL
     } Z_TEST_END
     /* }}} */

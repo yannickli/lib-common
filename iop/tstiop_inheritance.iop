@@ -86,3 +86,8 @@ struct ClassContainer {
     B2?  b2;
     C2[] c2;
 };
+
+struct ClassContainer2 {
+    A1 a1;
+    B3 b3;
+};

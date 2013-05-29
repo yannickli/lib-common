@@ -1,0 +1,8 @@
+/* Test with a missing mandatory class field having only optional fields.
+ * This is OK for structs, but not for classes. */
+{
+     "a1": {
+         "_class": "tstiop_inheritance.A1",
+         "a2": 10
+     }
+}
