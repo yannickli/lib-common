@@ -1608,7 +1608,7 @@ int _fun(pstream_t *ps, const iop_struct_t *desc, _data_type v,              \
     iop_jlex_attach(&jll, ps);                                               \
     jll.flags = flags;                                                       \
                                                                              \
-    if ((res = iop_junpack(&jll, desc, v, true)) < 0) {                      \
+    if ((res = _fun_to_call(&jll, desc, v, true)) < 0) {                     \
         if (errb) {                                                          \
             iop_jlex_write_error(&jll, errb);                                \
         }                                                                    \
