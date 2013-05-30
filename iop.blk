@@ -2240,6 +2240,8 @@ static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
         key.master = key.master->class_attrs->parent;
     }
     if ((pos = qm_find(class_id, &_G.classes_by_id, &key)) < 0) {
+        e_trace(0, "cannot find child %d of class '%*pM' (%p)",
+                key.child_id, LSTR_FMT_ARG(key.master->fullname), key.master);
         return -1;
     }
     real_desc = _G.classes_by_id.values[pos];
@@ -2743,6 +2745,11 @@ static void iop_register_class(const iop_struct_t *desc)
             .master         = key.master,
             .child_fullname = &desc->fullname,
         };
+
+        e_named_trace(5, "iop/package_registration",
+                      "registering class '%*pM' as a child of '%*pM' (%p)",
+                      LSTR_FMT_ARG(desc->fullname),
+                      LSTR_FMT_ARG(key.master->fullname), key.master);
 
         /* Register in classes_by_name hash table */
         if (qm_add(class_name, &_G.classes_by_name, &key2, desc) < 0) {
