@@ -1198,6 +1198,39 @@ static int test_queue(void)
 }
 
 /* }}} */
+/* Queue Sync {{{ */
+
+static size_t queue_sync_g;
+
+static int test_queue_sync(void)
+{
+    t_scope;
+    thr_syn_t *syn = t_new_raw(thr_syn_t, 1);
+    thr_queue_t *q = thr_queue_create();
+
+    queue_sync_g = 0;
+    thr_syn_init(syn);
+    for (size_t i = 0; i < thr_parallelism_g; i++) {
+        thr_syn_schedule_b(syn, ^{
+            for (int j = 0; j < 10; j++) {
+                thr_syn_schedule_b(syn, ^{
+                    for (int k = 0; k < 100; k++) {
+                        thr_queue_sync_b(q, ^{
+                            queue_sync_g++;
+                        });
+                    }
+                });
+            }
+        });
+    }
+    thr_syn_wait(syn);
+    thr_syn_wipe(syn);
+
+    Z_ASSERT_EQ(queue_sync_g, 10 * thr_parallelism_g * 100);
+    Z_HELPER_END;
+}
+
+/* }}} */
 
 Z_GROUP_EXPORT(thrjobs) {
     thr_initialize();
@@ -1253,6 +1286,12 @@ Z_GROUP_EXPORT(thrjobs) {
 
     Z_TEST(queue, "test queues") {
         Z_HELPER_RUN(test_queue());
+    } Z_TEST_END;
+
+    Z_TEST(queue_syn, "tests queue sync") {
+        for (int i = 0; i < (Z_HAS_MODE(FAST) ? 100 : 10000); i++) {
+            Z_HELPER_RUN(test_queue_sync());
+        }
     } Z_TEST_END;
 
     Z_TEST(wake_up_thr0, "test the main thread wake up procedure") {
