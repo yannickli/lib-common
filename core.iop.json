@@ -143,6 +143,87 @@
 					"default": 65536
 				}
 			}
+		},
+		{
+			"name": "setRootLevelArgs",
+			"fullName": "core.Log.setRootLevelArgs",
+			"type": "struct",
+			"fields": {
+				"level": {
+					"type": "core.LogLevel"
+				},
+				"forceAll": {
+					"type": "boolean",
+					"default": false
+				}
+			}
+		},
+		{
+			"name": "setRootLevelRes",
+			"fullName": "core.Log.setRootLevelRes",
+			"type": "struct",
+			"fields": {
+				"level": {
+					"type": "core.LogLevel"
+				}
+			}
+		},
+		{
+			"name": "resetRootLevelRes",
+			"fullName": "core.Log.resetRootLevelRes",
+			"type": "struct",
+			"fields": {
+				"level": {
+					"type": "core.LogLevel"
+				}
+			}
+		},
+		{
+			"name": "setLoggerLevelArgs",
+			"fullName": "core.Log.setLoggerLevelArgs",
+			"type": "struct",
+			"fields": {
+				"fullName": {
+					"type": "string"
+				},
+				"level": {
+					"type": "core.LogLevel"
+				},
+				"forceAll": {
+					"type": "boolean",
+					"default": false
+				}
+			}
+		},
+		{
+			"name": "setLoggerLevelRes",
+			"fullName": "core.Log.setLoggerLevelRes",
+			"type": "struct",
+			"fields": {
+				"level": {
+					"type": "core.LogLevel"
+				}
+			}
+		},
+		{
+			"name": "resetLoggerLevelArgs",
+			"fullName": "core.Log.resetLoggerLevelArgs",
+			"type": "struct",
+			"fields": {
+				"fullName": {
+					"type": "string"
+				}
+			}
+		},
+		{
+			"name": "resetLoggerLevelRes",
+			"fullName": "core.Log.resetLoggerLevelRes",
+			"type": "struct",
+			"fields": {
+				"level": {
+					"type": "core.LogLevel"
+				}
+			}
 		}
 	],
 
@@ -152,58 +233,19 @@
 			"fullName": "core.Log",
 			"rpcs": {
 				"setRootLevel": {
-					"in": {
-						"level": {
-							"type": "core.LogLevel"
-						},
-						"forceAll": {
-							"type": "boolean",
-							"default": false
-						}
-					},
-					"out": {
-						"level": {
-							"type": "core.LogLevel"
-						}
-					}
+					"in": "core.Log.setRootLevelArgs",
+					"out": "core.Log.setRootLevelRes"
 				},
 				"resetRootLevel": {
-					"out": {
-						"level": {
-							"type": "core.LogLevel"
-						}
-					}
+					"out": "core.Log.resetRootLevelRes"
 				},
 				"setLoggerLevel": {
-					"in": {
-						"fullName": {
-							"type": "string"
-						},
-						"level": {
-							"type": "core.LogLevel"
-						},
-						"forceAll": {
-							"type": "boolean",
-							"default": false
-						}
-					},
-					"out": {
-						"level": {
-							"type": "core.LogLevel"
-						}
-					}
+					"in": "core.Log.setLoggerLevelArgs",
+					"out": "core.Log.setLoggerLevelRes"
 				},
 				"resetLoggerLevel": {
-					"in": {
-						"fullName": {
-							"type": "string"
-						}
-					},
-					"out": {
-						"level": {
-							"type": "core.LogLevel"
-						}
-					}
+					"in": "core.Log.resetLoggerLevelArgs",
+					"out": "core.Log.resetLoggerLevelRes"
 				}
 			}
 		}
