@@ -652,7 +652,7 @@ iop_get_fieldp(const void *data, const field_path_t *field_path)
                 return NULL;
             }
         } else {
-            /* Pointed structure or union (optional) */
+            /* Pointed structure or union (optional), or classes */
             data = RETHROW_P(*((void **)data));
         }
     }
@@ -752,7 +752,8 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
         if (fdesc->type == IOP_T_STRUCT || fdesc->type == IOP_T_UNION) {
             it = fdesc->u1.st_desc;
 
-            if (fdesc->repeat == IOP_R_OPTIONAL) {
+            if (fdesc->repeat == IOP_R_OPTIONAL || iop_field_is_class(fdesc))
+            {
                 step = field_step_init(qv_growlen(field_step, &fp->steps, 1));
             }
         }
@@ -809,6 +810,7 @@ int iop_sort(const iop_struct_t *st, void *vec, int len,
              lstr_t field_path_s, int flags)
 {
     t_scope;
+    bool is_class = iop_struct_is_class(st);
     field_path_t fp;
     cmp_f cmp;
 
@@ -831,8 +833,12 @@ int iop_sort(const iop_struct_t *st, void *vec, int len,
         cmp = iop_cmp_funs[fp.fdesc->type];
     }
 
-    __qv_sort(vec, st->size, len,
+    __qv_sort(vec, is_class ? sizeof(void *) : st->size, len,
     ^int (const void *d1, const void *d2) {
+        if (is_class) {
+            d1 = *(void **)d1;
+            d2 = *(void **)d2;
+        }
         d1 = iop_get_fieldp(d1, &fp);
         d2 = iop_get_fieldp(d2, &fp);
         if (d1 == d2)

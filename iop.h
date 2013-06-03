@@ -453,7 +453,9 @@ enum iop_sort_flags {
  * in iop-macros.h).
  *
  *  \param[in] st          The IOP structure definition (__s).
- *  \param[in] vec         Array of objects to sort
+ *  \param[in] vec         Array of objects to sort. If st is a class, this
+ *                         must be an array of pointers on the elements, and
+ *                         not an array of elements.
  *  \param[in] len         Length of the array
  *  \param[in] field_path  Path of the field of reference for sorting,
  *                         containing the names of the fields and subfield,

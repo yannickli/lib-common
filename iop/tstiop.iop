@@ -224,6 +224,7 @@ struct MyStructM {
     qvector_t(my_struct_a, tstiop__my_struct_a__t);
     qvector_t(my_struct_a_opt, tstiop__my_struct_a_opt__t);
     qvector_t(my_struct_m, tstiop__my_struct_m__t);
+    qvector_t(my_class2, tstiop__my_class2__t *);
 %}
 
 
