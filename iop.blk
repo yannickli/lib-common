@@ -73,6 +73,47 @@ static struct {
     .classes_by_name = QM_INIT(class_name, _G.classes_by_name, false),
 };
 
+/*------ various helpers -{{{-*/
+
+static inline int
+__iop_field_find_by_name2(const iop_struct_t *desc, const void *s, int len)
+{
+    const iop_field_t *field = desc->fields;
+
+    for (int i = 0; i < desc->fields_len; i++) {
+        if (len == field->name.len && !memcmp(field->name.s, s, len))
+            return i;
+        field++;
+    }
+    return -1;
+}
+
+int __iop_field_find_by_name(const iop_struct_t *st, const void *s, int len,
+                             const iop_struct_t **found_st,
+                             const iop_field_t  **found_fdesc)
+{
+    int acc = 0;
+    bool is_class = iop_struct_is_class(st);
+
+    do {
+        int pos = __iop_field_find_by_name2(st, s, len);
+
+        if (pos >= 0) {
+            if (found_st) {
+                *found_st = st;
+            }
+            if (found_fdesc) {
+                *found_fdesc = st->fields + pos;
+            }
+            return acc + pos;
+        }
+        acc += st->fields_len;
+    } while (is_class && (st = st->class_attrs->parent));
+
+    return -1;
+}
+
+/*------ various helpers -}}}-*/
 /*------ iop_init -{{{-*/
 
 static void
@@ -673,7 +714,6 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
     step = field_step_init(qv_growlen(field_step, &fp->steps, 1));
     while (!ps_done(&field_path_ps)) {
         pstream_t fname;
-        int ifield;
 
         if (ps_get_ps_chr_and_skip(&field_path_ps, '.', &fname) < 0) {
             fname = field_path_ps;
@@ -686,14 +726,14 @@ t_iop_compile_field_path(const iop_struct_t *st, lstr_t field_path_s,
                            LSTR_FMT_ARG(field_path_s));
         }
 
-        ifield = __iop_field_find_by_name(it, fname.s, ps_len(&fname));
-        if (ifield < 0) {
+        if (__iop_field_find_by_name(it, fname.s, ps_len(&fname),
+                                     NULL, &fdesc) < 0)
+        {
             return e_error("iop_sort: cannot process field path `%*pM', "
                            "field `%*pM' is unknown",
                            LSTR_FMT_ARG(field_path_s), PS_FMT_ARG(&fname));
         }
 
-        fdesc = it->fields + ifield;
         if (fdesc->repeat == IOP_R_REPEATED) {
             /* XXX we could also sort the repeated fields based on their
              * number of elements

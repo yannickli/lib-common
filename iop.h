@@ -392,17 +392,9 @@ iop_field_get_constraints_cb(const iop_struct_t *desc,
     return NULL;
 }
 
-static inline int
-__iop_field_find_by_name(const iop_struct_t *desc, const void *s, int len)
-{
-    const iop_field_t *field = desc->fields;
-    for (int i = 0; i < desc->fields_len; i++) {
-        if (len == field->name.len && !memcmp(field->name.s, s, len))
-            return i;
-        field++;
-    }
-    return -1;
-}
+int __iop_field_find_by_name(const iop_struct_t *st, const void *s, int len,
+                             const iop_struct_t **found_st,
+                             const iop_field_t  **found_fdesc);
 
 __must_check__
 int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc);
