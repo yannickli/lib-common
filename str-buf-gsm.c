@@ -248,7 +248,7 @@ struct cimd_esc_table const cimd_esc_map[256] = {
 
     E('O', 'a',  '@'),    E('L', '-',  0x00A3), E('Y', '-', 0x00A5 ),
     E('e', '`',  0x00E8), E('e', '\'', 0x00E9), E('u', '`', 0x00F9 ),
-    E('i', '`',  0x00EC), E('o', '`',  0x00F2), E('C', ',', 0x00E7 ),
+    E('i', '`',  0x00EC), E('o', '`',  0x00F2), E('C', ',', 0x00C7 ),
     E('O', '/',  0x00D8), E('o', '/',  0x00F8), E('A', '*', 0x00C5 ),
     E('a', '*',  0x00E5), E('g', 'd',  0x0394), E('-', '-', '_'),
     E('g', 'f',  0x03A6), E('g', 'g',  0x0393), E('g', 'l', 0x039B),
@@ -311,7 +311,8 @@ int gsm7_to_unicode(uint8_t u8, int unknown)
     return unlikely(c < 0) ? unknown : c;
 }
 
-static int cimd_to_unicode(const byte *p, const byte *end, const byte **out)
+static int
+cimd_special_to_unicode(const byte *p, const byte *end, const byte **out)
 {
     uint8_t hash;
     struct cimd_esc_table const *esc;
@@ -366,6 +367,40 @@ static int cimd_to_unicode(const byte *p, const byte *end, const byte **out)
     return -1;
 }
 
+static int cimd_to_unicode(uint8_t u8, int unknown)
+{
+    switch (u8) {
+      case '@':
+      case '$':
+      case 10:
+      case 13:
+      case 32 ... 35:
+      case 37 ... 63:
+      case 65 ... 90:
+      case 97 ... 122:
+        return u8;
+      case ']':
+        return 0x00C5;
+      case '}':
+        return 0x00E5;
+      case '[':
+        return 0x00C4;
+      case '\\':
+        return 0x00D6;
+      case '^':
+        return 0x00DC;
+      case '{':
+        return 0x00E4;
+      case '|':
+        return 0x00F6;
+      case '~':
+        return 0x00FC;
+
+      default:
+        return unknown;
+    }
+}
+
 /* Decode a hex encoded (IRA) char array into UTF-8 at end of sb */
 int sb_conv_from_gsm_hex(sb_t *sb, const void *data, int slen)
 {
@@ -414,9 +449,11 @@ int sb_conv_from_gsm_plan(sb_t *sb, const void *data, int slen, int plan)
 
         if (plan == GSM_CIMD_PLAN) {
             if (c == '_') {
-                c = cimd_to_unicode(p, end, &p);
+                c = cimd_special_to_unicode(p, end, &p);
                 if (unlikely(c < 0))
                     goto invalid;
+            } else {
+                c = cimd_to_unicode(c, '.');
             }
             goto next;
         }
@@ -747,6 +784,8 @@ Z_GROUP_EXPORT(conv)
     } Z_TEST_END
 
     Z_TEST(sb_conv_cimd, "sb conv from cimd") {
+        SB_1k(sb);
+
 #define T(input, expected, description)      \
         ({  lstr_t exp = LSTR_IMMED(expected);                               \
             lstr_t in  = LSTR_IMMED(input);                                  \
@@ -758,17 +797,32 @@ Z_GROUP_EXPORT(conv)
 
         sb_init(&out);
 
-        /* Example 1 from the spec @£$¥èéùìòç */
-        T("\x40\xA3\x24\xA5\xE8\xE9\xF9\xEC\xF2\xE7",
-          "\x40\xc2\xa3\x24\xc2\xa5\xc3\xa8\xc3\xa9\xc3\xb9\xc3\xac\xc3\xb2"
-          "\xc3\xa7",
-          "Default character conversion over 8-bit wide link");
-
-        /* Example 2 from the spec @£$¥èéùìòç */
+        /* Example 22 from CIMD spec 8.0 (@£$¥èéùìòç) */
         T("_Oa_L-$_Y-_e`_e'_u`_i`_o`_C,",
           "\x40\xc2\xa3\x24\xc2\xa5\xc3\xa8\xc3\xa9\xc3\xb9\xc3\xac\xc3\xb2"
-          "\xc3\xa7",
+          "\xc3\x87",
           "Default character conversion over 7-bit link");
+
+        /* A few characters can be encoded either using one latin1 char or a
+         * special combination of ascii char */
+        T("_Oa_A*_a*_qq_A\"_O\"_U\"_a\"_o\"_u\"",
+          "\x40\xC3\x85\xC3\xA5\x22\xC3\x84\xC3\x96\xC3\x9C\xC3\xA4\xC3"
+          "\xB6\xC3\xBC",
+          "special combination");
+        T("@]}\"[\\^{|~",
+          "\x40\xC3\x85\xC3\xA5\x22\xC3\x84\xC3\x96\xC3\x9C\xC3\xA4\xC3"
+          "\xB6\xC3\xBC",
+          "iso-latin");
+
+        for (int c = 1; c < 256; c++) {
+            sb_addc(&sb, c);
+        }
+        sb_reset(&out);
+        Z_ASSERT_N(sb_conv_from_gsm_plan(&out, sb.data, sb.len,
+                                         GSM_DEFAULT_PLAN));
+        sb_reset(&out);
+        Z_ASSERT_N(sb_conv_from_gsm_plan(&out, sb.data, sb.len,
+                                         GSM_CIMD_PLAN));
 
         sb_wipe(&out);
 
