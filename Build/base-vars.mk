@@ -18,6 +18,7 @@ endif
 var/toolsdir  := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 var/srcdir    := $(realpath $(var/toolsdir)/../..)
 var/cfgdir    ?= $(realpath $(var/toolsdir)/../Config)
+var/docdir    ?= $(realpath $(var/toolsdir)/../Documentation)
 var/profile   := $(or $(P),$(PROFILE),$(BUILDFOR),default)
 var/hostname  ?= $(shell hostname)
 var/builddir  ?= $(var/srcdir)/.build-$(var/profile)-$(var/hostname)
