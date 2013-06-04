@@ -631,6 +631,8 @@ void sb_conv_to_gsm(sb_t *sb, const void *src, int len)
     __leaf;
 void sb_conv_to_gsm_hex(sb_t *sb, const void *src, int len)
     __leaf;
+void sb_conv_to_cimd(sb_t *sb, const void *src, int len)
+    __leaf;
 
 /* packed gsm */
 int  gsm7_charlen(int c)

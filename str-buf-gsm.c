@@ -401,6 +401,112 @@ static int cimd_to_unicode(uint8_t u8, int unknown)
     }
 }
 
+static const char *unicode_to_cimd_special(int c)
+{
+    switch (c) {
+      case '@':         return "_Oa";
+      case 0x00A3:      return "_L-";
+      case 0x00A5:      return "_Y-";
+      case 0x00E8:      return "_e`";
+      case 0x00E9:      return "_e\'";
+      case 0x00F9:      return "_u`";
+      case 0x00EC:      return "_i`";
+      case 0x00F2:      return "_o`";
+      case 0x00C7:      return "_C,";
+      case 0x00D8:      return "_O/";
+      case 0x00F8:      return "_o/";
+      case 0x00C5:      return "_A*";
+      case 0x00E5:      return "_a*";
+
+      case 0x0394:      return "_gd";
+      case '_':         return "_--";
+      case 0x03A6:      return "_gf";
+      case 0x0393:      return "_gg";
+      case 0x039B:      return "_gl";
+      case 0x03A9:      return "_go";
+      case 0x03A0:      return "_gp";
+      case 0x03A8:      return "_gi";
+      case 0x03A3:      return "_gs";
+      case 0x0398:      return "_gt";
+      case 0x039E:      return "_gx";
+
+      case 0x00C6:      return "_AE";
+      case 0x00E6:      return "_ae";
+      case 0x00DF:      return "_ss";
+      case 0x00C9:      return "_E\'";
+      case '"':         return "_qq";
+      case 0x00A4:      return "_ox";
+      case 0x00A1:      return "_!!";
+
+      case 0x00C4:      return "_A\"";
+      case 0x00D6:      return "_O\"";
+      case 0x00D1:      return "_N~";
+      case 0x00DC:      return "_U\"";
+      case 0x00A7:      return "_so";
+      case 0x00BF:      return "_??";
+      case 0x00E4:      return "_a\"";
+      case 0x00F6:      return "_o\"";
+      case 0x00F1:      return "_n~";
+      case 0x00FC:      return "_u\"";
+      case 0x00E0:      return "_a`";
+
+      case 0x007C:      return "_XX_!!";
+      case 0x005E:      return "_XX_gl";
+      case 0x20AC:      return "_XXe";
+      case 0x007B:      return "_XX(";
+      case 0x007D:      return "_XX)";
+      case 0x005B:      return "_XX<";
+      case 0x005D:      return "_XX>";
+      case 0x007E:      return "_XX=";
+      case 0x005C:      return "_XX/";
+
+      default:          return NULL;
+    }
+}
+
+static int unicode_to_cimd(int c, int unknown)
+{
+    switch (c) {
+      case '@':
+      case '$':
+      case 10:
+      case 13:
+      case 32 ... 35:
+      case 37 ... 63:
+      case 65 ... 90:
+      case 97 ... 122:
+        return c;
+
+      default:
+        return unknown;
+    }
+}
+
+void sb_conv_to_cimd(sb_t *sb, const void *data, int slen)
+{
+    const char *p = data, *end = p + slen;
+
+    while (p < end) {
+        int c = utf8_ngetc(p, end - p, &p);
+        const char *esc;
+
+        if (c < 0) {
+            p++;
+            continue;
+        }
+
+        /* some characters (such as @) have two possible representations, in
+         * that case we prefer the special combination */
+        esc = unicode_to_cimd_special(c);
+        if (esc) {
+            sb_adds(sb, esc);
+        } else {
+            c = unicode_to_cimd(c, '.');
+            sb_addc(sb, c);
+        }
+    }
+}
+
 /* Decode a hex encoded (IRA) char array into UTF-8 at end of sb */
 int sb_conv_from_gsm_hex(sb_t *sb, const void *data, int slen)
 {
@@ -783,7 +889,7 @@ Z_GROUP_EXPORT(conv)
 #undef TLHEX
     } Z_TEST_END
 
-    Z_TEST(sb_conv_cimd, "sb conv from cimd") {
+    Z_TEST(sb_conv_cimd, "sb conv from/to cimd") {
         SB_1k(sb);
 
 #define T(input, expected, description)      \
@@ -823,6 +929,19 @@ Z_GROUP_EXPORT(conv)
         sb_reset(&out);
         Z_ASSERT_N(sb_conv_from_gsm_plan(&out, sb.data, sb.len,
                                          GSM_CIMD_PLAN));
+
+        sb_reset(&sb);
+        for (int c = 0; c < 128; c++) {
+            sb_adduc(&sb, gsm7_to_unicode(c, '.'));
+        }
+
+        sb_reset(&tmp);
+        sb_conv_to_cimd(&tmp, sb.data, sb.len);
+
+        sb_reset(&out);
+        Z_ASSERT_N(sb_conv_from_gsm_plan(&out, tmp.data, tmp.len,
+                                         GSM_CIMD_PLAN));
+        Z_ASSERT_LSTREQUAL(LSTR_SB_V(&sb), LSTR_SB_V(&out));
 
         sb_wipe(&out);
 
