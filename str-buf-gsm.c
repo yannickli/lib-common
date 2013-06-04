@@ -248,7 +248,7 @@ struct cimd_esc_table const cimd_esc_map[256] = {
 
     E('O', 'a',  '@'),    E('L', '-',  0x00A3), E('Y', '-', 0x00A5 ),
     E('e', '`',  0x00E8), E('e', '\'', 0x00E9), E('u', '`', 0x00F9 ),
-    E('i', '`',  0x00EC), E('o', '`',  0x00F2), E('C', ',', 0x00E7 ),
+    E('i', '`',  0x00EC), E('o', '`',  0x00F2), E('C', ',', 0x00C7 ),
     E('O', '/',  0x00D8), E('o', '/',  0x00F8), E('A', '*', 0x00C5 ),
     E('a', '*',  0x00E5), E('g', 'd',  0x0394), E('-', '-', '_'),
     E('g', 'f',  0x03A6), E('g', 'g',  0x0393), E('g', 'l', 0x039B),
@@ -800,7 +800,7 @@ Z_GROUP_EXPORT(conv)
         /* Example 22 from CIMD spec 8.0 (@£$¥èéùìòç) */
         T("_Oa_L-$_Y-_e`_e'_u`_i`_o`_C,",
           "\x40\xc2\xa3\x24\xc2\xa5\xc3\xa8\xc3\xa9\xc3\xb9\xc3\xac\xc3\xb2"
-          "\xc3\xa7",
+          "\xc3\x87",
           "Default character conversion over 7-bit link");
 
         /* A few characters can be encoded either using one latin1 char or a
