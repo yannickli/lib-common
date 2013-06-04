@@ -75,6 +75,33 @@
 			}
 		},
 		{
+			"name": "LogFileConfiguration",
+			"fullName": "core.LogFileConfiguration",
+			"type": "class",
+			"fields": {
+				"maxSize": {
+					"type": "int",
+					"default": 536870912
+				},
+				"maxTime": {
+					"type": "ulong",
+					"default": 86400
+				},
+				"maxFiles": {
+					"type": "int",
+					"default": 0
+				},
+				"totalMaxSize": {
+					"type": "long",
+					"default": 1073741824
+				},
+				"compress": {
+					"type": "boolean",
+					"default": true
+				}
+			}
+		},
+		{
 			"name": "HttpdCfg",
 			"fullName": "core.HttpdCfg",
 			"type": "struct",

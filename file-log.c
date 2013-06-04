@@ -17,6 +17,7 @@
 
 #include "file-log.h"
 #include "el.h"
+#include "unix.h"
 
 /* log file names should depend on rotation scheme: slower rotation
  * scheme should shorten log filename so reopening it yields the same
@@ -242,6 +243,41 @@ log_file_t *log_file_init(log_file_t *log_file, const char *nametpl, int flags)
 log_file_t *log_file_new(const char *nametpl, int flags)
 {
     return log_file_init(p_new_raw(log_file_t, 1), nametpl, flags);
+}
+
+log_file_t *
+log_file_create_from_iop(const char *nametpl,
+                         const core__log_file_configuration__t *conf,
+                         int flags)
+{
+    log_file_t *log_file;
+
+    if (conf->compress) {
+        flags |= LOG_FILE_COMPRESS;
+    }
+
+    log_file = log_file_new(nametpl, flags);
+
+    log_file_set_maxtotalsize(log_file, conf->total_max_size / 1024);
+    log_file_set_maxfiles(log_file, conf->max_files);
+    log_file_set_maxsize(log_file, conf->max_size);
+    log_file_set_rotate_delay(log_file, conf->max_time);
+
+    if (log_file_open(log_file)) {
+        e_error("cannot open log file %s: %m", nametpl);
+        PROTECT_ERRNO(IGNORE(log_file_close(&log_file)));
+        return NULL;
+    }
+
+    if (e_name_is_traced(1, "file-log")) {
+        SB_1k(sb);
+
+        core__log_file_configuration__sb_jpack(&sb, conf, IOP_JPACK_COMPACT);
+        e_named_trace(1, "file-log", "opening %s, flags %x, json %*pM",
+                      nametpl, flags, SB_FMT_ARG(&sb));
+    }
+
+    return log_file;
 }
 
 int log_file_open(log_file_t *log_file)
