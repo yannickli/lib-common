@@ -26,6 +26,7 @@ else
 	var/libcommon := $(var/srcdir)
 endif
 var/cfgdir    ?= $(realpath $(var/toolsdir)/../Config)
+var/docdir    ?= $(realpath $(var/toolsdir)/../Documentation)
 var/profile   := $(or $(P),$(PROFILE),$(BUILDFOR),default)
 var/hostname  ?= $(shell hostname)
 var/builddir  ?= $(var/srcdir)/.build-$(var/profile)-$(var/hostname)

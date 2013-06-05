@@ -279,16 +279,16 @@ endef
 #[ _DOCS ]############################################################{{{#
 
 define ext/rule/xml
-$~$1: $/Documentation/dblatex/intersec.specs
-$~$1: $/Documentation/dblatex/highlight.pl $/Documentation/dblatex/asciidoc-dblatex.xsl
+$~$1: $(var/docdir)/dblatex/intersec.specs
+$~$1: $(var/docdir)/dblatex/highlight.pl $(var/docdir)/dblatex/asciidoc-dblatex.xsl
 $~$1: $3
 	$(msg/DOC.pdf) $1
 	xmllint --valid $< >/dev/null
-	dblatex -q -r $/Documentation/dblatex/highlight.pl \
-		-p $/Documentation/dblatex/asciidoc-dblatex.xsl \
+	dblatex -q -r $(var/docdir)/dblatex/highlight.pl \
+		-p $(var/docdir)/dblatex/asciidoc-dblatex.xsl \
 		--param=doc.lot.show=figure,table \
-		$(DBLATEXFLAGS) $($(1DV)_DBLATEXFLAGS) $($1_DBLATEXFLAGS) \
-		-I $(1D) -T $/Documentation/dblatex/intersec.specs $3 -o $$@+
+		$(DBLATEXFLAGS) $($(1DV)/_DBLATEXFLAGS) $($1_DBLATEXFLAGS) \
+		-I $(1D) -T $(var/docdir)/dblatex/intersec.specs $3 -o $$@+
 	$(MV) $$@+ $$@ && chmod a-w $$@
 endef
 
