@@ -397,7 +397,8 @@ int __iop_field_find_by_name(const iop_struct_t *st, const void *s, int len,
                              const iop_field_t  **found_fdesc);
 
 __must_check__
-int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc);
+int __iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
+                                 const iop_field_t *fdesc);
 
 /*------- IOP introspection -------*/
 

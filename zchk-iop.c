@@ -2454,10 +2454,15 @@ Z_GROUP_EXPORT(iop)
 
         IOP_REGISTER_PACKAGES(&tstiop_inheritance__pkg);
 
+#define CHECK_OK(_type, _filename)  \
+        do {                                                                 \
+            Z_ASSERT_N(t_tstiop_inheritance__##_type##__junpack_ptr_file(    \
+                       t_fmt(NULL, "%*pM/iop/" _filename,                    \
+                             LSTR_FMT_ARG(z_cmddir_g)), &_type, 0, &err));   \
+        } while (0)
+
         /* Test that fields can be in any order */
-        Z_ASSERT_N(t_tstiop_inheritance__c1__junpack_ptr_file(
-                       t_fmt(NULL, "%*pM/iop/tstiop_inheritance_valid1.json",
-                             LSTR_FMT_ARG(z_cmddir_g)), &c1, 0, &err));
+        CHECK_OK(c1, "tstiop_inheritance_valid1.json");
         Z_ASSERT(c1->__vptr == &tstiop_inheritance__c1__s);
         Z_ASSERT_EQ(c1->a,   2);
         Z_ASSERT_EQ(c1->a2, 12);
@@ -2465,9 +2470,7 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(c1->c,  (uint32_t)5);
 
         /* Test with missing optional fields */
-        Z_ASSERT_N(t_tstiop_inheritance__c1__junpack_ptr_file(
-                       t_fmt(NULL, "%*pM/iop/tstiop_inheritance_valid2.json",
-                             LSTR_FMT_ARG(z_cmddir_g)), &c1, 0, &err));
+        CHECK_OK(c1, "tstiop_inheritance_valid2.json");
         Z_ASSERT(c1->__vptr == &tstiop_inheritance__c1__s);
         Z_ASSERT_EQ(c1->a,   1);
         Z_ASSERT_EQ(c1->a2, 12);
@@ -2475,14 +2478,21 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(c1->c,  (uint32_t)3);
 
         /* Test that "_class" field can be missing */
-        Z_ASSERT_N(t_tstiop_inheritance__c1__junpack_ptr_file(
-                       t_fmt(NULL, "%*pM/iop/tstiop_inheritance_valid3.json",
-                             LSTR_FMT_ARG(z_cmddir_g)), &c1, 0, &err));
+        CHECK_OK(c1, "tstiop_inheritance_valid3.json");
         Z_ASSERT(c1->__vptr == &tstiop_inheritance__c1__s);
         Z_ASSERT_EQ(c1->a,  -12);
         Z_ASSERT_EQ(c1->a2, -15);
         Z_ASSERT_EQ(c1->b,  true);
         Z_ASSERT_EQ(c1->c,  (uint32_t)153);
+
+        /* Test that missing mandatory class fields are OK if this class have
+         * only optional fields */
+        CHECK_OK(class_container2, "tstiop_inheritance_valid4.json");
+        Z_ASSERT_P(class_container2->b3);
+        Z_ASSERT(class_container2->b3->__vptr == &tstiop_inheritance__b3__s);
+        Z_ASSERT_LSTREQUAL(class_container2->b3->a, LSTR_IMMED_V("A2"));
+        Z_ASSERT_EQ(class_container2->b3->b, 5);
+#undef CHECK_OK
 
 #define CHECK_FAIL(_type, _filename, _err)  \
         do {                                                                 \
@@ -2512,8 +2522,8 @@ Z_GROUP_EXPORT(iop)
                    "member `tstiop_inheritance.A1:a2' is missing");
         CHECK_FAIL(class_container, "tstiop_inheritance_invalid5.json",
                    "member `tstiop_inheritance.ClassContainer:a1' is missing");
-        CHECK_FAIL(class_container2, "tstiop_inheritance_invalid6.json",
-                   "member `tstiop_inheritance.ClassContainer2:b3' is missing");
+        CHECK_FAIL(class_container, "tstiop_inheritance_invalid6.json",
+                   "member `tstiop_inheritance.ClassContainer:a1' is missing");
 #undef CHECK_FAIL
     } Z_TEST_END
     /* }}} */

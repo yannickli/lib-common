@@ -1945,20 +1945,35 @@ __get_class_id(pstream_t *ps, iop_wire_type_t wt, uint16_t *class_id)
     }
 }
 
-int __iop_skip_absent_field_desc(void *value, const iop_field_t *fdesc)
+int __iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
+                                 const iop_field_t *fdesc)
 {
     void *ptr = (char *)value + fdesc->data_offs;
 
     if (fdesc->repeat == IOP_R_REQUIRED) {
         const iop_struct_t *desc = fdesc->u1.st_desc;
+        bool is_class;
 
         /* For a required field, only structs can be absents, be careful that
-         * union and class must be presents */
+         * union must be present */
         PS_WANT(fdesc->type == IOP_T_STRUCT);
-        PS_WANT(!iop_field_is_class(fdesc));
-        for (int i = 0; i < desc->fields_len; i++)
-            PS_CHECK(__iop_skip_absent_field_desc(ptr, desc->fields + i));
+
+        if ((is_class = iop_field_is_class(fdesc))) {
+            /* For classes, we consider that the absent object is of the
+             * expected type, and not a child.
+             * We have to allocate it since it's pointed. */
+            *(void **)ptr = mp->malloc(mp, desc->size, MEM_RAW);
+            ptr = *(void **)ptr;
+            *(const iop_struct_t **)ptr = desc;
+        }
+        do {
+            for (int i = 0; i < desc->fields_len; i++) {
+                PS_CHECK(__iop_skip_absent_field_desc(mp, ptr,
+                                                      desc->fields + i));
+            }
+        } while (is_class && (desc = desc->class_attrs->parent));
         return 0;
+
     } else
     if (fdesc->repeat == IOP_R_DEFVAL) {
         switch (fdesc->type) {
@@ -2120,7 +2135,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                           "unpacking class %*pM, got change of level tag",
                           LSTR_FMT_ARG(desc->fullname));
             do {
-                PS_CHECK(__iop_skip_absent_field_desc(value, fdesc));
+                PS_CHECK(__iop_skip_absent_field_desc(mp, value, fdesc));
             } while (++fdesc != end);
             *class_id_wt = wt;
             return 1;
@@ -2130,7 +2145,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                           "unpacking struct %*pM, skipping %*pM field",
                           LSTR_FMT_ARG(desc->fullname),
                           LSTR_FMT_ARG(fdesc->name));
-            PS_CHECK(__iop_skip_absent_field_desc(value, fdesc));
+            PS_CHECK(__iop_skip_absent_field_desc(mp, value, fdesc));
             if (++fdesc == end)
                 return 0;
         }
@@ -2240,20 +2255,20 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
                       "unpacking struct %*pM, skipping %*pM field",
                       LSTR_FMT_ARG(desc->fullname),
                       LSTR_FMT_ARG(fdesc->name));
-        PS_CHECK(__iop_skip_absent_field_desc(value, fdesc));
+        PS_CHECK(__iop_skip_absent_field_desc(mp, value, fdesc));
     }
 
     return 0;
 }
 
 static inline int
-unpack_skip_all_fields(const iop_struct_t *desc, void *value)
+unpack_skip_all_fields(mem_pool_t *mp, const iop_struct_t *desc, void *value)
 {
     const iop_field_t *fdesc = desc->fields;
     const iop_field_t *end   = fdesc + desc->fields_len;
 
     for ( ; fdesc < end; fdesc++) {
-        PS_CHECK(__iop_skip_absent_field_desc(value, fdesc));
+        PS_CHECK(__iop_skip_absent_field_desc(mp, value, fdesc));
     }
     return 0;
 }
@@ -2329,7 +2344,7 @@ static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
                  * is possible if all the remaining levels have only optional
                  * fields. */
                 do {
-                    PS_CHECK(unpack_skip_all_fields(real_desc, *value));
+                    PS_CHECK(unpack_skip_all_fields(mp, real_desc, *value));
                 } while ((real_desc = real_desc->class_attrs->parent));
                 return 0;
             }
@@ -2342,7 +2357,7 @@ static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
          * classes must have only optional fields. */
         PS_CHECK(__get_class_id(ps, wt, &class_id));
         while (class_id != real_desc->class_attrs->class_id) {
-            PS_CHECK(unpack_skip_all_fields(real_desc, *value));
+            PS_CHECK(unpack_skip_all_fields(mp, real_desc, *value));
             PS_WANT((real_desc = real_desc->class_attrs->parent));
         }
     } while (real_desc);

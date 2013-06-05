@@ -1,8 +1,7 @@
-/* Test with a missing mandatory class field having only optional fields.
- * This is OK for structs, but not for classes. */
+/* Test with a missing mandatory class field not having only optional fields;
+ * Field "a1" is missing but field "a2" of class A1 is mandatory. */
 {
-     "a1": {
-         "_class": "tstiop_inheritance.A1",
-         "a2": 10
+     "b2": {
+         "a2": 12
      }
 }
