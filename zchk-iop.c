@@ -2447,6 +2447,7 @@ Z_GROUP_EXPORT(iop)
          */
         t_scope;
         tstiop_inheritance__c1__t *c1 = NULL;
+        tstiop_inheritance__b2__t *b2 = NULL;
         tstiop_inheritance__class_container__t  *class_container  = NULL;
         tstiop_inheritance__class_container2__t *class_container2 = NULL;
         SB_1k(err);
@@ -2473,6 +2474,16 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(c1->b,  true);
         Z_ASSERT_EQ(c1->c,  (uint32_t)3);
 
+        /* Test that "_class" field can be missing */
+        Z_ASSERT_N(t_tstiop_inheritance__c1__junpack_ptr_file(
+                       t_fmt(NULL, "%*pM/iop/tstiop_inheritance_valid3.json",
+                             LSTR_FMT_ARG(z_cmddir_g)), &c1, 0, &err));
+        Z_ASSERT(c1->__vptr == &tstiop_inheritance__c1__s);
+        Z_ASSERT_EQ(c1->a,  -12);
+        Z_ASSERT_EQ(c1->a2, -15);
+        Z_ASSERT_EQ(c1->b,  true);
+        Z_ASSERT_EQ(c1->c,  (uint32_t)153);
+
 #define CHECK_FAIL(_type, _filename, _err)  \
         do {                                                                 \
             sb_reset(&err);                                                  \
@@ -2482,9 +2493,11 @@ Z_GROUP_EXPORT(iop)
             Z_ASSERT(strstr(err.data, _err));                                \
         } while (0)
 
-        /* Test that the "_class" field is mandatory */
-        CHECK_FAIL(c1, "tstiop_inheritance_invalid1.json",
-                   "expected `_class' field, got `}'");
+        /* Test that when the "_class" is missing, the expected type is the
+         * wanted one */
+        CHECK_FAIL(b2, "tstiop_inheritance_invalid1.json",
+                   "expected field of struct tstiop_inheritance.B2, got "
+                   "`\"c\"'");
 
         /* Test with an unknown "_class" */
         CHECK_FAIL(c1, "tstiop_inheritance_invalid2.json",
