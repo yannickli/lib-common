@@ -97,6 +97,66 @@ typedef struct iop_field_t {
     } u1;
 } iop_field_t;
 
+typedef struct iop_help_t {
+    lstr_t brief;
+    lstr_t details;
+    lstr_t warning;
+} iop_help_t;
+
+typedef union iop_value_t {
+    int64_t     i;
+    int64_t     i64;
+    uint64_t    u;
+    uint64_t    u64;
+    double      d;
+    lstr_t      s;
+    bool        b;
+    const void *p;
+    void       *v;
+} iop_value_t;
+
+typedef struct iop_generic_attr_arg_t {
+    iop_value_t v;
+} iop_generic_attr_arg_t;
+
+typedef enum iop_enum_value_attr_type_t {
+    IOP_ENUM_VALUE_ATTR_HELP,
+} iop_enum_value_attr_type_t;
+
+typedef iop_generic_attr_arg_t iop_enum_value_attr_arg_t;
+
+typedef struct iop_enum_value_attr_t {
+    iop_enum_value_attr_type_t       type;
+    const iop_enum_value_attr_arg_t *args;
+} iop_enum_value_attr_t;
+
+typedef struct iop_enum_value_attrs_t {
+    unsigned                     flags;     /**< reserved for future use */
+    uint16_t                     attrs_len;
+    uint8_t                      version;   /**< version 0 */
+    uint8_t                      padding;
+    const iop_enum_value_attr_t *attrs;
+} iop_enum_value_attrs_t;
+
+typedef enum iop_enum_attr_type_t {
+    IOP_ENUM_ATTR_HELP,
+} iop_enum_attr_type_t;
+
+typedef iop_generic_attr_arg_t iop_enum_attr_arg_t;
+
+typedef struct iop_enum_attr_t {
+    iop_enum_attr_type_t       type;
+    const iop_enum_attr_arg_t *args;
+} iop_enum_attr_t;
+
+typedef struct iop_enum_attrs_t {
+    unsigned               flags;     /**< reserved for future use */
+    uint16_t               attrs_len;
+    uint8_t                version;   /**< version 0 */
+    uint8_t                padding;
+    const iop_enum_attr_t *attrs;
+} iop_enum_attrs_t;
+
 /*
  * .ranges helps finding tags into .fields.
  * ----------------------------------------
@@ -121,18 +181,22 @@ typedef struct iop_field_t {
  *
  */
 struct iop_enum_t {
-    const lstr_t        name;
-    const lstr_t        fullname;
-    const lstr_t       *names;
-    const int          *values;
-    const int          *ranges;
-    uint16_t            enum_len;
-    uint16_t            flags;
-    int                 ranges_len;
+    const lstr_t                  name;
+    const lstr_t                  fullname;
+    const lstr_t                 *names;
+    const int                    *values;
+    const int                    *ranges;
+    uint16_t                      enum_len;
+    uint16_t                      flags;
+    int                           ranges_len;
+    /* XXX do not dereference the following 2 members without checking
+     * TST_BIT(this->flags, IOP_ENUM_EXTENDED) first */
+    const iop_enum_attrs_t       *en_attrs;
+    const iop_enum_value_attrs_t *values_attrs;
 };
 
 enum iop_enum_flags_t {
-    IOP_ENUM_EXTENDED,      /**< reserved for future use */
+    IOP_ENUM_EXTENDED,      /**< to access en_attrs and values_attrs */
     IOP_ENUM_STRICT,        /**< strict packing/unpacking of enum values */
 };
 
@@ -144,18 +208,12 @@ enum iop_struct_flags_t {
 
 enum iop_iface_flags_t {
     IOP_IFACE_EXTENDED,
+    IOP_IFACE_HAS_ATTRS,
 };
 
 typedef int (*check_constraints_f)(const void *ptr, int n);
 
-typedef struct iop_field_attr_arg_t {
-    union {
-        int64_t     i64;
-        double      d;
-        lstr_t      s;
-        const void *p;
-    } v;
-} iop_field_attr_arg_t;
+typedef iop_generic_attr_arg_t iop_field_attr_arg_t;
 
 typedef enum iop_field_attr_type_t {
     IOP_FIELD_MIN_OCCURS,
@@ -169,6 +227,7 @@ typedef enum iop_field_attr_type_t {
     IOP_FIELD_MAX_LENGTH,
     IOP_FIELD_PATTERN,
     IOP_FIELD_PRIVATE,
+    IOP_FIELD_ATTR_HELP,
 } iop_field_attr_type_t;
 
 typedef struct iop_field_attr_t {
@@ -185,17 +244,29 @@ typedef struct iop_field_attrs_t {
     const iop_field_attr_t  *attrs;
 } iop_field_attrs_t;
 
-typedef union iop_value_t {
-    int64_t  i;
-    uint64_t u;
-    double   d;
-    lstr_t   s;
-    bool     b;
-} iop_value_t;
+typedef enum iop_struct_attr_type_t {
+    IOP_STRUCT_ATTR_HELP,
+} iop_struct_attr_type_t;
+
+typedef iop_generic_attr_arg_t iop_struct_attr_arg_t;
+
+typedef struct iop_struct_attr_t {
+    iop_struct_attr_type_t       type;
+    const iop_struct_attr_arg_t *args;
+} iop_struct_attr_t;
+
+typedef struct iop_struct_attrs_t {
+    unsigned                 flags;     /**< reserved for future use */
+    uint16_t                 attrs_len;
+    uint8_t                  version;   /**< version 0 */
+    uint8_t                  padding;
+    const iop_struct_attr_t *attrs;
+} iop_struct_attrs_t;
 
 typedef struct iop_static_field_t {
-    lstr_t      name;
-    iop_value_t value;
+    lstr_t                   name;
+    iop_value_t              value;
+    const iop_field_attrs_t *attrs; /**< NULL if there are none */
 } iop_static_field_t;
 
 /* Class attributes */
@@ -218,11 +289,11 @@ struct iop_struct_t {
     unsigned            is_union :  1;  /**< struct or union ?              */
     /* XXX do not dereference the following members without checking
      * (this->flags & IOP_STRUCT_EXTENDED) first */
-    void               *st_attrs;
-    const iop_field_attrs_t *fields_attrs;
+    const iop_struct_attrs_t *st_attrs;
+    const iop_field_attrs_t  *fields_attrs;
     /* XXX do not dereference the following members without checking
      * (this->flags & IOP_STRUCT_IS_CLASS) first */
-    const iop_class_attrs_t *class_attrs;
+    const iop_class_attrs_t  *class_attrs;
 };
 
 qvector_t(iop_struct, const iop_struct_t *);
@@ -251,6 +322,10 @@ typedef iop_field_attr_arg_t iop_rpc_attr_arg_t;
 
 typedef enum iop_rpc_attr_type_t {
     IOP_RPC_ALIAS,
+    IOP_RPC_ATTR_HELP,
+    IOP_RPC_ATTR_ARG_HELP,
+    IOP_RPC_ATTR_RES_HELP,
+    IOP_RPC_ATTR_EXN_HELP,
 } iop_rpc_attr_type_t;
 
 typedef struct iop_rpc_attr_t {
@@ -276,12 +351,34 @@ typedef struct iop_rpc_t {
     unsigned            flags : 31;
 } iop_rpc_t;
 
+typedef enum iop_iface_attr_type_t {
+    IOP_IFACE_ATTR_HELP,
+} iop_iface_attr_type_t;
+
+typedef iop_generic_attr_arg_t iop_iface_attr_arg_t;
+
+typedef struct iop_iface_attr_t {
+    iop_iface_attr_type_t       type;
+    const iop_iface_attr_arg_t *args;
+} iop_iface_attr_t;
+
+typedef struct iop_iface_attrs_t {
+    unsigned                flags;     /**< reserved for future use */
+    uint16_t                attrs_len;
+    uint8_t                 version;   /**< version 0 */
+    uint8_t                 padding;
+    const iop_iface_attr_t *attrs;
+} iop_iface_attrs_t;
+
 typedef struct iop_iface_t {
-    const lstr_t           fullname;
-    const iop_rpc_t       *funs;
-    uint16_t               funs_len;
-    uint16_t               flags;
-    const iop_rpc_attrs_t *rpc_attrs;
+    const lstr_t             fullname;
+    const iop_rpc_t         *funs;
+    uint16_t                 funs_len;
+    uint16_t                 flags;
+    const iop_rpc_attrs_t   *rpc_attrs;
+    /** check TST_BIT(flags, IOP_IFACE_HAS_ATTRS)
+     *  before accessing iface_attrs */
+    const iop_iface_attrs_t *iface_attrs;
 } iop_iface_t;
 
 typedef struct iop_iface_alias_t {
@@ -290,10 +387,37 @@ typedef struct iop_iface_alias_t {
     uint32_t            tag;
 } iop_iface_alias_t;
 
+typedef enum iop_mod_attr_type_t {
+    IOP_MOD_ATTR_HELP,
+} iop_mod_attr_type_t;
+
+typedef iop_generic_attr_arg_t iop_mod_attr_arg_t;
+
+typedef struct iop_mod_attr_t {
+    iop_mod_attr_type_t       type;
+    const iop_mod_attr_arg_t *args;
+} iop_mod_attr_t;
+
+typedef struct iop_mod_attrs_t {
+    unsigned              flags;     /**< reserved for future use */
+    uint16_t              attrs_len;
+    uint8_t               version;   /**< version 0 */
+    uint8_t               padding;
+    const iop_mod_attr_t *attrs;
+} iop_mod_attrs_t;
+
+enum iop_mod_flags_t {
+    IOP_MOD_EXTENDED,
+};
+
 typedef struct iop_mod_t {
     const lstr_t fullname;
     const iop_iface_alias_t *ifaces;
-    int ifaces_len;
+    uint16_t ifaces_len;
+    uint16_t flags;
+    /** check TST_BIT(flags, IOP_MOD_EXTENDED)
+     *  before accessing mod_attrs */
+    const iop_mod_attrs_t *mod_attrs;
 } iop_mod_t;
 
 typedef struct iop_pkg_t iop_pkg_t;
