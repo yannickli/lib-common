@@ -28,7 +28,7 @@ static uint32_t const prime_list[32] = {
     402653189,  805306457,  1610612741, 3221225473,
 };
 
-static uint32_t qhash_get_size(uint32_t targetsize)
+static uint32_t qhash_get_size(uint64_t targetsize)
 {
     int b = bsr32(targetsize);
 
@@ -98,7 +98,7 @@ void qhash_init(qhash_t *qh, uint16_t k_size, uint16_t v_size, bool doh)
 void qhash_set_minsize(qhash_t *qh, uint32_t minsize)
 {
     if (minsize) {
-        qh->minsize = qhash_get_size((minsize >> 31) ? minsize : 2 * minsize);
+        qh->minsize = qhash_get_size(2 * (uint64_t)minsize);
         if (!qh->old && qh->hdr.size < qh->minsize)
             qhash_resize_start(qh);
     } else {
