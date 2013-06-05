@@ -55,24 +55,39 @@ int ivsprintf(char *str, const char *format, va_list arglist)
 #define vsnprintf(...)  ivsnprintf(__VA_ARGS__)
 #undef asprintf
 #define asprintf(...)   iasprintf(__VA_ARGS__)
+#undef vasprintf
+#define vasprintf(...)  ivasprintf(__VA_ARGS__)
 #endif
+
+__attr_printf__(1, 0)  __attr_nonnull__((1))
+static inline char *ivasprintf(const char *fmt, va_list ap)
+
+{
+    char buf[BUFSIZ], *s;
+    int len;
+    va_list ap2;
+
+    va_copy(ap2, ap);
+    len = ivsnprintf(buf, ssizeof(buf), fmt, ap2);
+    va_end(ap2);
+
+    if (len < ssizeof(buf))
+        return (char *)p_dupz(buf, len);
+
+    ivsnprintf(s = p_new(char, len + 1), len + 1, fmt, ap);
+    return s;
+}
 
 __attr_printf__(1, 2)  __attr_nonnull__((1))
 static inline char *iasprintf(const char *fmt, ...)
 {
-    char buf[BUFSIZ], *s;
-    int len;
+    char *s;
     va_list ap;
 
     va_start(ap, fmt);
-    len = ivsnprintf(buf, ssizeof(buf), fmt, ap);
+    s = ivasprintf(fmt, ap);
     va_end(ap);
 
-    if (len < ssizeof(buf))
-        return (char *)p_dupz(buf, len);
-    va_start(ap, fmt);
-    ivsnprintf(s = p_new(char, len + 1), len + 1, fmt, ap);
-    va_end(ap);
     return s;
 }
 
