@@ -44,10 +44,11 @@ static uint32_t qhash_get_size(uint32_t targetsize)
 static void qhash_resize_start(qhash_t *qh)
 {
     qhash_hdr_t *hdr = &qh->hdr;
-    uint32_t newsize = qh->minsize;
+    uint64_t newsize = qh->minsize;
+    uint64_t len = hdr->len;
 
-    if (newsize < 2 * (hdr->len + 1))
-        newsize = 2 * (hdr->len + 1);
+    if (newsize < 2 * (len + 1))
+        newsize = 2 * (len + 1);
     if (newsize < hdr->size / 4)
         newsize = hdr->size;
 
@@ -74,13 +75,14 @@ static void qhash_resize_start(qhash_t *qh)
 static void qhash_resize_done(qhash_t *qh)
 {
     qhash_hdr_t *hdr = &qh->hdr;
+    uint64_t size = hdr->size;
 
-    if (qh->old->size > hdr->size) {
-        p_realloc(&qh->keys, hdr->size * qh->k_size);
+    if (qh->old->size > size) {
+        p_realloc(&qh->keys, size * qh->k_size);
         if (qh->v_size)
-            p_realloc(&qh->values, hdr->size * qh->v_size);
+            p_realloc(&qh->values, size * qh->v_size);
         if (qh->h_size)
-            p_realloc(&qh->hashes, hdr->size);
+            p_realloc(&qh->hashes, size);
     }
 
     p_delete(&qh->old->bits);
@@ -98,7 +100,7 @@ void qhash_init(qhash_t *qh, uint16_t k_size, uint16_t v_size, bool doh)
 void qhash_set_minsize(qhash_t *qh, uint32_t minsize)
 {
     if (minsize) {
-        qh->minsize = qhash_get_size(2 * minsize);
+        qh->minsize = qhash_get_size((minsize >> 31) ? minsize : 2 * minsize);
         if (!qh->old && qh->hdr.size < qh->minsize)
             qhash_resize_start(qh);
     } else {
@@ -125,8 +127,10 @@ void qhash_clear(qhash_t *qh)
         p_delete(&qh->old);
     }
     if (qh->hdr.bits) {
-        p_clear(qh->hdr.bits, BITS_TO_ARRAY_LEN(size_t, 2 * qh->hdr.size));
-        SET_BIT(qh->hdr.bits, 2 * qh->hdr.size);
+        uint64_t size = qh->hdr.size;
+
+        p_clear(qh->hdr.bits, BITS_TO_ARRAY_LEN(size_t, 2 * size));
+        SET_BIT(qh->hdr.bits, 2 * size);
     }
     qh->hdr.len = 0;
 }
@@ -136,19 +140,23 @@ uint32_t qhash_scan(const qhash_t *qh, uint32_t pos)
     const qhash_hdr_t *hdr = &qh->hdr;
     const qhash_hdr_t *old = qh->old;
 
-    size_t  maxsize = 2 * hdr->size;
+    size_t  maxsize = hdr->size;
     size_t *maxbits = hdr->bits;
 
+    maxsize = 2 * maxsize;
     pos = 2 * pos;
 
     if (unlikely(old != NULL)) {
-        size_t  minsize = 2 * old->len;
+        size_t  minsize = old->len;
         size_t *minbits = old->bits;
 
+        minsize = 2 * minsize;
         if (hdr->size < old->len) {
-            minsize = 2 * hdr->size;
+            minsize = hdr->size;
+            minsize = 2 * minsize;
             minbits = hdr->bits;
-            maxsize = 2 * old->len;
+            maxsize = old->len;
+            maxsize = 2 * maxsize;
             maxbits = old->bits;
         }
 
