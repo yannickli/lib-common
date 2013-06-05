@@ -1052,6 +1052,9 @@ do_double:
       case '@':
         if (fdesc->type != IOP_T_STRUCT)
             return RJERROR_EXP_TYPE(fdesc->type);
+        if (iop_field_is_class(fdesc)) {
+            *(void **)value = NULL;
+        }
         return unpack_struct(ll, fdesc->u1.st_desc, value, true);
 
       case IOP_JSON_EOF:
@@ -1267,6 +1270,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
 
     pstream_t ctx_ps;
     int       ctx_line = 0, ctx_col = 0;
+    bool      ctx_prefixed = prefixed;
 
 #define INIT_SEEN(_len)  \
     do {                                                                     \
@@ -1388,6 +1392,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
             *PS = ctx_ps;
             ll->ctx->line = ctx_line;
             ll->ctx->col  = ctx_col;
+            prefixed = ctx_prefixed;
             continue;
         } else
         if (fdesc && !skip_field) {

@@ -2458,7 +2458,8 @@ Z_GROUP_EXPORT(iop)
         do {                                                                 \
             Z_ASSERT_N(t_tstiop_inheritance__##_type##__junpack_ptr_file(    \
                        t_fmt(NULL, "%*pM/iop/" _filename,                    \
-                             LSTR_FMT_ARG(z_cmddir_g)), &_type, 0, &err));   \
+                             LSTR_FMT_ARG(z_cmddir_g)), &_type, 0, &err),    \
+                       "junpack failed: %s", err.data);                      \
         } while (0)
 
         /* Test that fields can be in any order */
@@ -2486,12 +2487,24 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(c1->c,  (uint32_t)153);
 
         /* Test that missing mandatory class fields are OK if this class have
-         * only optional fields */
+         * only optional fields.
+         * Also check prefixed syntax on a class field. */
         CHECK_OK(class_container2, "tstiop_inheritance_valid4.json");
+        Z_ASSERT_P(class_container2->a1);
+        Z_ASSERT(class_container2->a1->__vptr == &tstiop_inheritance__a1__s);
+        Z_ASSERT_EQ(class_container2->a1->a2, 10);
         Z_ASSERT_P(class_container2->b3);
         Z_ASSERT(class_container2->b3->__vptr == &tstiop_inheritance__b3__s);
         Z_ASSERT_LSTREQUAL(class_container2->b3->a, LSTR_IMMED_V("A2"));
         Z_ASSERT_EQ(class_container2->b3->b, 5);
+
+        /* Test that "_class" field can be given using prefixed syntax */
+        CHECK_OK(c1, "tstiop_inheritance_valid5.json");
+        Z_ASSERT(c1->__vptr == &tstiop_inheritance__c1__s);
+        Z_ASSERT_EQ(c1->a,  -480);
+        Z_ASSERT_EQ(c1->a2, -479);
+        Z_ASSERT_EQ(c1->b,  false);
+        Z_ASSERT_EQ(c1->c,  (uint32_t)478);
 #undef CHECK_OK
 
 #define CHECK_FAIL(_type, _filename, _err)  \
