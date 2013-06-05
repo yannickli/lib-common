@@ -1,0 +1,31 @@
+body {
+    background: #fef7de;
+    margin: 0px;
+}
+
+div.footer {
+    /* background: url("bandeau_mirror.png") left bottom no-repeat; */
+    height: 75px;
+    margin: 0px;
+}
+
+div.header {
+    background: url("intersec-bandeau.png") left top no-repeat;
+    height: 128px;
+    margin: 0px 0px 0px 10px;
+}
+
+div.main {
+    min-height: 600px;
+    max-width: 1024px;
+    margin: auto;
+}
+
+div.logo {
+    background: url("intersec-logo.png") left bottom no-repeat;
+    height: 128px;
+    width: 180px;
+    float: left;
+    clear: both;
+    margin: 0px 0px 0px 10px;
+}
