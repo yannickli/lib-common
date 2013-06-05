@@ -1509,4 +1509,19 @@ Z_GROUP_EXPORT(iprintf) {
         isprintf(buffer, "%*pxworld!", 5, "Hello");
         Z_ASSERT_STREQUAL(buffer, "48656c6c6fworld!");
     } Z_TEST_END;
+
+    Z_TEST(ivasprintf, "") {
+        char *formatted = iasprintf("%*pM", 4, "1234");
+        int len = 2 * BUFSIZ;
+        char big[len + 1];
+
+        Z_ASSERT_STREQUAL(formatted, "1234");
+        p_delete(&formatted);
+
+        memset(big, 'a', len);
+        big[2*BUFSIZ] = 0;
+        formatted = iasprintf("%*pM", len, big);
+        Z_ASSERT_STREQUAL(formatted, big);
+        p_delete(&formatted);
+    } Z_TEST_END;
 } Z_GROUP_END
