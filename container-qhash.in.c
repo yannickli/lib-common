@@ -20,13 +20,14 @@
 #endif
 
 static void
-F(qhash_move)(qhash_t *qh, qhash_hdr_t *old, uint32_t pos __F_PROTO);
+F(qhash_move)(qhash_t *qh, qhash_hdr_t *old, uint64_t pos __F_PROTO);
 
 static inline uint32_t
 F(qhash_put_ll)(qhash_t *qh, qhash_hdr_t *old, bool check_collision,
-                uint32_t h, const key_t k, uint32_t *out __F_PROTO)
+                uint32_t h, const key_t k, uint64_t *out __F_PROTO)
 {
-    uint32_t pos, inc, ghost = UINT32_MAX;
+    uint32_t inc, ghost = UINT32_MAX;
+    uint64_t pos;
     qhash_hdr_t *hdr = &qh->hdr;
 
     pos = h % hdr->size;
@@ -99,13 +100,13 @@ F(qhash_get_ll)(const qhash_t *qh, const qhash_hdr_t *hdr,
 }
 
 static void
-F(qhash_move)(qhash_t *qh, qhash_hdr_t *old, uint32_t pos __F_PROTO)
+F(qhash_move)(qhash_t *qh, qhash_hdr_t *old, uint64_t pos __F_PROTO)
 {
-    uint32_t v_size = qh->v_size;
+    uint64_t v_size = qh->v_size;
     qv_t(u32) moves;
 
 #ifdef QH_DEEP_COPY
-    uint32_t k_size = qh->k_size;
+    uint64_t k_size = qh->k_size;
     uint8_t  cycle_k[k_size];
 #else
     key_t    cycle_k  = 0;
@@ -153,7 +154,7 @@ F(qhash_move)(qhash_t *qh, qhash_hdr_t *old, uint32_t pos __F_PROTO)
         memcpy(cycle_v, qh->values + v_size * pos, v_size);
     }
     for (int i = moves.len; i-- > has_loop; ) {
-        uint32_t newpos = pos;
+        uint64_t newpos = pos;
 
         pos = moves.tab[i];
         putK(qh, newpos, getK(qh, pos));
@@ -198,9 +199,9 @@ static void F(qhash_resize_do)(qhash_t *qh, qhash_hdr_t *old __F_PROTO)
 {
     size_t  *bits, *end;
     size_t   word, mask;
-    uint32_t pos;
+    uint64_t pos;
 
-    pos  = 2 * old->len - 1;
+    pos  = 2 * (uint64_t)old->len - 1;
     bits = old->bits + pos / bitsizeof(size_t);
     /* rehash upto (16 * (bitsizeof(size_t) / 2)) slots */
     end  = bits - 16;
@@ -248,10 +249,10 @@ int32_t F(qhash_safe_get)(const qhash_t *qh, uint32_t h, const key_t k __F_PROTO
 uint32_t F(__qhash_put)(qhash_t *qh, uint32_t h, const key_t k, uint32_t flags __F_PROTO)
 {
     qhash_hdr_t *hdr = &qh->hdr;
-    uint32_t pos, collision;
+    uint64_t pos, collision;
 
     if (likely(qh->old == NULL)) {
-        if (unlikely((hdr->len + qh->ghosts) * 3 >= hdr->size * 2)
+        if (unlikely((uint64_t)(hdr->len + qh->ghosts) * 3 >= (uint64_t)hdr->size * 2)
         ||  unlikely(hdr->size > qh->minsize && hdr->len < hdr->size / 16))
         {
             qhash_resize_start(qh);
