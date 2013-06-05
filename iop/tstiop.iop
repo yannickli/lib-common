@@ -54,6 +54,18 @@ union MyUnionB {
     MyUnionA    a;
 };
 
+class MyClass1 : 1 {
+    int int1;
+};
+
+class MyClass2 : 2 :MyClass1 {
+    int int2;
+};
+
+class MyClass3 : 3 : MyClass2 {
+    int int3;
+};
+
 struct MyStructA {
     int a;
     uint b;
@@ -69,6 +81,7 @@ struct MyStructA {
     xml xmlField;
     MyEnumA k;
     MyUnionA l;
+    MyClass2 cls2;
     double m;
     bool n;
     int p;
@@ -94,6 +107,7 @@ struct MyStructAOpt {
     double? m;
     bool? n;
     MyStructB? o;
+    MyClass2? cls2;
     int? p;
     int? q;
     int? r;
@@ -210,6 +224,7 @@ struct MyStructM {
     qvector_t(my_struct_a, tstiop__my_struct_a__t);
     qvector_t(my_struct_a_opt, tstiop__my_struct_a_opt__t);
     qvector_t(my_struct_m, tstiop__my_struct_m__t);
+    qvector_t(my_class2, tstiop__my_class2__t *);
 %}
 
 

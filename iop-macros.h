@@ -344,7 +344,7 @@
 /* }}} */
 /* {{{ Helpers generated for structures and unions */
 
-#define IOP_GENERIC_STRUCTURES(pfx)  \
+#define IOP_GENERIC_BASICS(pfx)  \
     static inline bool pfx##__equals(const pfx##__t *v1, const pfx##__t *v2) \
     {                                                                        \
         return iop_equals(&pfx##__s, (void *)v1, (void *)v2);                \
@@ -363,7 +363,9 @@
     }                                                                        \
     static inline int pfx##__check(pfx##__t *v) {                            \
         return iop_check_constraints(&pfx##__s, (void *)v);                  \
-    }                                                                        \
+    }
+
+#define IOP_GENERIC_BASICS_STRUCT_UNION(pfx)  \
     static inline int pfx##__sort(pfx##__t *vec, int len, lstr_t path,       \
                                   int flags) {                               \
         return iop_sort(&pfx##__s, (void *)vec, len, path, flags);           \
@@ -581,7 +583,8 @@
 /* }}} */
 
 #define IOP_GENERIC(pfx) \
-    IOP_GENERIC_STRUCTURES(pfx)                                              \
+    IOP_GENERIC_BASICS(pfx)                                                  \
+    IOP_GENERIC_BASICS_STRUCT_UNION(pfx)                                     \
     /* ---- Binary ---- */                                                   \
     IOP_GENERIC_BINARY_UNION(pfx)                                            \
     IOP_GENERIC_BINARY_PACK(pfx)                                             \
@@ -599,8 +602,15 @@
 /* }}} */
 /* {{{ Helpers generated for classes */
 
+#define IOP_GENERIC_BASICS_CLASS(pfx)  \
+    static inline int pfx##__sort(pfx##__t **vec, int len, lstr_t path,      \
+                                  int flags) {                               \
+        return iop_sort(&pfx##__s, (void *)vec, len, path, flags);           \
+    }
+
 #define IOP_CLASS(pfx) \
-    IOP_GENERIC_STRUCTURES(pfx)                                              \
+    IOP_GENERIC_BASICS(pfx)                                                  \
+    IOP_GENERIC_BASICS_CLASS(pfx)                                            \
     /* ---- Binary ---- */                                                   \
     IOP_GENERIC_BINARY_PACK(pfx)                                             \
     IOP_GENERIC_BINARY_UNPACK(pfx)                                           \

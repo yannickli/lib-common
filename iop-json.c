@@ -861,27 +861,6 @@ void iop_jlex_attach(iop_json_lex_t *ll, pstream_t *ps)
 /*-}}}-*/
 /* {{{ unpacking json way */
 
-static int
-__iop_field_find_by_name_class(const iop_struct_t *st, const void *s, int len,
-                               const iop_struct_t **found_st,
-                               const iop_field_t  **found_fdesc)
-{
-    int acc = 0;
-
-    do {
-        int pos = __iop_field_find_by_name(st, s, len);
-
-        if (pos >= 0) {
-            *found_st    = st;
-            *found_fdesc = st->fields + pos;
-            return acc + pos;
-        }
-        acc += st->fields_len;
-    } while ((st = st->class_attrs->parent));
-
-    return -1;
-}
-
 static int unpack_arr(iop_json_lex_t *, const iop_field_t *, void *);
 static int unpack_union(iop_json_lex_t *, const iop_struct_t *, void *, bool);
 static int unpack_struct(iop_json_lex_t *, const iop_struct_t *, void *,
@@ -1147,12 +1126,11 @@ static int unpack_union(iop_json_lex_t *ll, const iop_struct_t *desc,
       case IOP_JSON_IDENT:
       case IOP_JSON_STRING:
         if (desc) {
-            int ifield = __iop_field_find_by_name(desc, ll->ctx->b.data,
-                                                  ll->ctx->b.len);
-
-            if (ifield < 0)
+            if (__iop_field_find_by_name(desc, ll->ctx->b.data,
+                                         ll->ctx->b.len, NULL, &fdesc) < 0)
+            {
                 return RJERROR_EXP("a valid union member name");
-            fdesc = desc->fields + ifield;
+            }
         }
         break;
       default:
@@ -1342,18 +1320,11 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
                         skip_field = true;
                         break;
                     }
-                    ifield = __iop_field_find_by_name_class(real_desc,
-                                                            ll->ctx->b.data,
-                                                            ll->ctx->b.len,
-                                                            &desc, &fdesc);
-                } else {
-                    ifield = __iop_field_find_by_name(real_desc,
-                                                      ll->ctx->b.data,
-                                                      ll->ctx->b.len);
-                    if (ifield >= 0) {
-                        fdesc = real_desc->fields + ifield;
-                    }
                 }
+                ifield = __iop_field_find_by_name(real_desc,
+                                                  ll->ctx->b.data,
+                                                  ll->ctx->b.len,
+                                                  &desc, &fdesc);
                 if (fdesc) {
                     if (TST_BIT(seen, ifield)) {
                         return RJERROR_SARG(IOP_JERR_DUPLICATED_MEMBER,
