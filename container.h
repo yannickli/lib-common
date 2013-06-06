@@ -19,6 +19,7 @@
 #include "container-dlist.h"
 #include "container-htlist.h"
 #include "container-qhash.h"
+#include "container-qhugehash.h"
 #include "container-qvector.h"
 #include "container-qheap.h"
 #include "container-rbtree.h"
