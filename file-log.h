@@ -15,6 +15,7 @@
 #define IS_LIB_COMMON_LOG_FILE_H
 
 #include "file.h"
+#include "core.iop.h"
 
 /* This module provides auto rotating log files: log files are rotated
  * automatically depending on file size or data, or both.
@@ -68,6 +69,12 @@ log_file_t *log_file_new(const char *nametpl, int flags);
 __must_check__ int log_file_open(log_file_t *log_file);
 __must_check__ int log_file_close(log_file_t **log_file);
 __must_check__ int log_file_rotate(log_file_t *log_file);
+
+/** Creates a log file from a configuration object, and opens it. */
+log_file_t *
+log_file_create_from_iop(const char *nametpl,
+                         const core__log_file_configuration__t *conf,
+                         int flags);
 
 void log_file_set_maxsize(log_file_t *file, int max);
 void log_file_set_rotate_delay(log_file_t *file, time_t delay);

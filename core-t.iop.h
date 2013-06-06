@@ -57,6 +57,17 @@ typedef struct core__log_configuration__t {
 extern iop_struct_t const core__log_configuration__s;
 IOP_GENERIC(core__log_configuration);
 
+typedef struct core__log_file_configuration__t {
+    const iop_struct_t *__vptr;
+    int32_t  max_size;
+    uint64_t max_time;
+    int32_t  max_files;
+    int64_t  total_max_size;
+    bool     compress;
+} core__log_file_configuration__t;
+extern iop_struct_t const core__log_file_configuration__s;
+IOP_CLASS(core__log_file_configuration);
+
 typedef struct core__httpd_cfg__t {
     uint32_t outbuf_max_size;
     uint16_t pipeline_depth;

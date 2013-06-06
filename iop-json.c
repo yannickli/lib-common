@@ -1052,6 +1052,9 @@ do_double:
       case '@':
         if (fdesc->type != IOP_T_STRUCT)
             return RJERROR_EXP_TYPE(fdesc->type);
+        if (iop_field_is_class(fdesc)) {
+            *(void **)value = NULL;
+        }
         return unpack_struct(ll, fdesc->u1.st_desc, value, true);
 
       case IOP_JSON_EOF:
@@ -1192,6 +1195,12 @@ unpack_struct_prepare_class(iop_json_lex_t *ll, const iop_struct_t *desc,
     const iop_struct_t *desc_it = desc;
     int nb_fields = desc->fields_len;
 
+    if (*real_desc) {
+        /* Real class type is already known (because "_class" field was not
+         * found). */
+        goto count_fields;
+    }
+
     /* Get the value of the "_class" field */
     if (PS_CHECK(iop_json_lex(ll, NULL)) != IOP_JSON_STRING) {
         RJERROR_EXP_TYPE(IOP_T_STRING);
@@ -1212,6 +1221,7 @@ unpack_struct_prepare_class(iop_json_lex_t *ll, const iop_struct_t *desc,
     /* We are trying to unpack a class of type "desc", and the packed
      * class is of type "real_desc". Check that this is authorized, and count
      * the total number of fields of "real_desc". */
+  count_fields:
     desc_it = *real_desc;
     while (desc_it && desc_it != desc) {
         nb_fields += desc_it->fields_len;
@@ -1260,6 +1270,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
 
     pstream_t ctx_ps;
     int       ctx_line = 0, ctx_col = 0;
+    bool      ctx_prefixed = prefixed;
 
 #define INIT_SEEN(_len)  \
     do {                                                                     \
@@ -1369,9 +1380,11 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
             return RJERROR_EXP("`:' or `='");
         }
         if (found_class_field) {
-            int count = unpack_struct_prepare_class(ll, desc, &real_desc,
-                                                    (void **)value);
+            int count;
 
+          prepare_class:
+            count = unpack_struct_prepare_class(ll, desc, &real_desc,
+                                                (void **)value);
             PS_CHECK(count);
             INIT_SEEN((size_t)count);
             value = *(void **)value;
@@ -1379,6 +1392,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
             *PS = ctx_ps;
             ll->ctx->line = ctx_line;
             ll->ctx->col  = ctx_col;
+            prefixed = ctx_prefixed;
             continue;
         } else
         if (fdesc && !skip_field) {
@@ -1453,8 +1467,9 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         return 0;
     }
     if (!real_desc) {
-        /* Class field not found */
-        return RJERROR_EXP("`_class' field");
+        /* Class field not found; consider it's of the expected type */
+        real_desc = desc;
+        goto prepare_class;
     }
 
     /* Scan remaining fields */
@@ -1465,7 +1480,7 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         for (; i < acc + real_desc->fields_len; i++, fdesc++) {
             if (TST_BIT(seen, i))
                 continue;
-            if (__iop_skip_absent_field_desc(value, fdesc) < 0)
+            if (__iop_skip_absent_field_desc(ll->mp, value, fdesc) < 0)
                 return RJERROR_SFIELD(IOP_JERR_MISSING_MEMBER, real_desc,
                                       fdesc);
         }
@@ -1541,9 +1556,12 @@ int iop_junpack(iop_json_lex_t *ll, const iop_struct_t *desc, void *value,
 
         /* At this point we check for any required field */
         for (int i = 0; i < desc->fields_len; i++) {
-            if (__iop_skip_absent_field_desc(value, desc->fields + i) < 0)
+            if (__iop_skip_absent_field_desc(ll->mp, value,
+                                             desc->fields + i) < 0)
+            {
                 return RJERROR_SFIELD(IOP_JERR_MISSING_MEMBER,
                                       desc, desc->fields + i);
+            }
         }
         return 0;
       default:

@@ -202,6 +202,79 @@ const iop_struct_t core__log_configuration__s = {
 };
 
 /* }}} */
+/* Class core.LogFileConfiguration {{{ */
+
+static iop_field_t const core__log_file_configuration__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("maxSize"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_I32,
+        .data_offs = offsetof(core__log_file_configuration__t, max_size),
+        .u1        = { .defval_u64 = 0x20000000 },
+        .size      = fieldsizeof(core__log_file_configuration__t, max_size),
+    },
+    {
+        .name      = LSTR_IMMED("maxTime"),
+        .tag       = 2,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_U64,
+        .data_offs = offsetof(core__log_file_configuration__t, max_time),
+        .u1        = { .defval_u64 = 0x15180 },
+        .size      = fieldsizeof(core__log_file_configuration__t, max_time),
+    },
+    {
+        .name      = LSTR_IMMED("maxFiles"),
+        .tag       = 3,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_I32,
+        .data_offs = offsetof(core__log_file_configuration__t, max_files),
+        .u1        = { .defval_u64 = 0x0 },
+        .size      = fieldsizeof(core__log_file_configuration__t, max_files),
+    },
+    {
+        .name      = LSTR_IMMED("totalMaxSize"),
+        .tag       = 4,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_I64,
+        .data_offs = offsetof(core__log_file_configuration__t, total_max_size),
+        .u1        = { .defval_u64 = 0x40000000 },
+        .size      = fieldsizeof(core__log_file_configuration__t, total_max_size),
+    },
+    {
+        .name      = LSTR_IMMED("compress"),
+        .tag       = 5,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_BOOL,
+        .data_offs = offsetof(core__log_file_configuration__t, compress),
+        .u1        = { .defval_u64 = true },
+        .size      = fieldsizeof(core__log_file_configuration__t, compress),
+    },
+};
+static int const iop__ranges__4[] = {
+    0, 1,
+    5,
+};
+static const iop_class_attrs_t core__log_file_configuration__class_s = {
+    .class_id          = 0,
+};
+const iop_struct_t core__log_file_configuration__s = {
+    .fullname   = LSTR_IMMED("core.LogFileConfiguration"),
+    .fields     = core__log_file_configuration__desc_fields,
+    .ranges     = iop__ranges__4,
+    .fields_len = countof(core__log_file_configuration__desc_fields),
+    .ranges_len = countof(iop__ranges__4) / 2,
+    .size       = sizeof(core__log_file_configuration__t),
+    .flags      = 5,
+    .class_attrs  = &core__log_file_configuration__class_s,
+};
+
+/* }}} */
 /* Structure core.HttpdCfg {{{ */
 
 static iop_field_t const core__httpd_cfg__desc_fields[] = {
@@ -286,16 +359,16 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .size      = fieldsizeof(core__httpd_cfg__t, header_size_max),
     },
 };
-static int const iop__ranges__4[] = {
+static int const iop__ranges__5[] = {
     0, 1,
     8,
 };
 const iop_struct_t core__httpd_cfg__s = {
     .fullname   = LSTR_IMMED("core.HttpdCfg"),
     .fields     = core__httpd_cfg__desc_fields,
-    .ranges     = iop__ranges__4,
+    .ranges     = iop__ranges__5,
     .fields_len = countof(core__httpd_cfg__desc_fields),
-    .ranges_len = countof(iop__ranges__4) / 2,
+    .ranges_len = countof(iop__ranges__5) / 2,
     .size       = sizeof(core__httpd_cfg__t),
 };
 
@@ -364,16 +437,16 @@ static iop_field_t const core__httpc_cfg__desc_fields[] = {
         .size      = fieldsizeof(core__httpc_cfg__t, header_size_max),
     },
 };
-static int const iop__ranges__5[] = {
+static int const iop__ranges__6[] = {
     0, 1,
     6,
 };
 const iop_struct_t core__httpc_cfg__s = {
     .fullname   = LSTR_IMMED("core.HttpcCfg"),
     .fields     = core__httpc_cfg__desc_fields,
-    .ranges     = iop__ranges__5,
+    .ranges     = iop__ranges__6,
     .fields_len = countof(core__httpc_cfg__desc_fields),
-    .ranges_len = countof(iop__ranges__5) / 2,
+    .ranges_len = countof(iop__ranges__6) / 2,
     .size       = sizeof(core__httpc_cfg__t),
 };
 
@@ -403,16 +476,16 @@ static iop_field_t const core__log__set_root_level_args__desc_fields[] = {
         .size      = fieldsizeof(core__log__set_root_level_args__t, force_all),
     },
 };
-static int const iop__ranges__6[] = {
+static int const iop__ranges__7[] = {
     0, 1,
     2,
 };
 const iop_struct_t core__log__set_root_level_args__s = {
     .fullname   = LSTR_IMMED("core.Log.setRootLevelArgs"),
     .fields     = core__log__set_root_level_args__desc_fields,
-    .ranges     = iop__ranges__6,
+    .ranges     = iop__ranges__7,
     .fields_len = countof(core__log__set_root_level_args__desc_fields),
-    .ranges_len = countof(iop__ranges__6) / 2,
+    .ranges_len = countof(iop__ranges__7) / 2,
     .size       = sizeof(core__log__set_root_level_args__t),
 };
 
@@ -431,16 +504,16 @@ static iop_field_t const core__log__set_root_level_res__desc_fields[] = {
         .u1        = { .en_desc = &core__log_level__e },
     },
 };
-static int const iop__ranges__7[] = {
+static int const iop__ranges__8[] = {
     0, 1,
     1,
 };
 const iop_struct_t core__log__set_root_level_res__s = {
     .fullname   = LSTR_IMMED("core.Log.setRootLevelRes"),
     .fields     = core__log__set_root_level_res__desc_fields,
-    .ranges     = iop__ranges__7,
+    .ranges     = iop__ranges__8,
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
-    .ranges_len = countof(iop__ranges__7) / 2,
+    .ranges_len = countof(iop__ranges__8) / 2,
     .size       = sizeof(core__log__set_root_level_res__t),
 };
 
@@ -452,9 +525,9 @@ const iop_struct_t core__log__set_root_level_res__s = {
 const iop_struct_t core__log__reset_root_level_res__s = {
     .fullname   = LSTR_IMMED("core.Log.resetRootLevelRes"),
     .fields     = core__log__set_root_level_res__desc_fields,
-    .ranges     = iop__ranges__7,
+    .ranges     = iop__ranges__8,
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
-    .ranges_len = countof(iop__ranges__7) / 2,
+    .ranges_len = countof(iop__ranges__8) / 2,
     .size       = sizeof(core__log__reset_root_level_res__t),
 };
 
@@ -509,9 +582,9 @@ const iop_struct_t core__log__set_logger_level_args__s = {
 const iop_struct_t core__log__set_logger_level_res__s = {
     .fullname   = LSTR_IMMED("core.Log.setLoggerLevelRes"),
     .fields     = core__log__set_root_level_res__desc_fields,
-    .ranges     = iop__ranges__7,
+    .ranges     = iop__ranges__8,
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
-    .ranges_len = countof(iop__ranges__7) / 2,
+    .ranges_len = countof(iop__ranges__8) / 2,
     .size       = sizeof(core__log__set_logger_level_res__t),
 };
 
@@ -532,9 +605,9 @@ static iop_field_t const core__log__reset_logger_level_args__desc_fields[] = {
 const iop_struct_t core__log__reset_logger_level_args__s = {
     .fullname   = LSTR_IMMED("core.Log.resetLoggerLevelArgs"),
     .fields     = core__log__reset_logger_level_args__desc_fields,
-    .ranges     = iop__ranges__7,
+    .ranges     = iop__ranges__8,
     .fields_len = countof(core__log__reset_logger_level_args__desc_fields),
-    .ranges_len = countof(iop__ranges__7) / 2,
+    .ranges_len = countof(iop__ranges__8) / 2,
     .size       = sizeof(core__log__reset_logger_level_args__t),
 };
 
@@ -546,9 +619,9 @@ const iop_struct_t core__log__reset_logger_level_args__s = {
 const iop_struct_t core__log__reset_logger_level_res__s = {
     .fullname   = LSTR_IMMED("core.Log.resetLoggerLevelRes"),
     .fields     = core__log__set_root_level_res__desc_fields,
-    .ranges     = iop__ranges__7,
+    .ranges     = iop__ranges__8,
     .fields_len = countof(core__log__set_root_level_res__desc_fields),
-    .ranges_len = countof(iop__ranges__7) / 2,
+    .ranges_len = countof(iop__ranges__8) / 2,
     .size       = sizeof(core__log__reset_logger_level_res__t),
 };
 
@@ -621,6 +694,7 @@ static const iop_enum_t *const core__enums[] = {
 static const iop_struct_t *const core__structs[] = {
     &core__logger_configuration__s,
     &core__log_configuration__s,
+    &core__log_file_configuration__s,
     &core__httpd_cfg__s,
     &core__httpc_cfg__s,
     NULL,

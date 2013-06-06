@@ -104,6 +104,24 @@ struct LogConfiguration {
     LoggerConfiguration[] specific;
 };
 
+/** Configuration of a log_file_t.
+ *
+ * This class defines how a log_file_t is opened.
+ */
+class LogFileConfiguration {
+    /** Log file max size before rotation (in bytes) */
+    int maxSize       = 512M;
+    /** Log file max age before rotation (in seconds) */
+    ulong maxTime     = 1d;
+    /** Maximum number of log files - <= 0 means no limit */
+    int maxFiles      = 0;
+    /** Maximum total size of the log files (in bytes)
+      * <= 0 means no limit */
+    long totalMaxSize = 1G;
+    /** Activate log file compression */
+    bool compress     = true;
+};
+
 
 struct HttpdCfg {
     /** Maximum size of the output buffer (in octets) */
