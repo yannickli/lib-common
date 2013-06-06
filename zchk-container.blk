@@ -168,6 +168,214 @@ Z_GROUP_EXPORT(qhash)
 } Z_GROUP_END
 
 /*1}}}*/
+/*{{{1 QHhash */
+
+/* Keep these here, it's to check the macros are used and built */
+qhh_k32_t(test, 16);
+qhh_k64_t(test_qh_64, 16);
+
+qhm_k32_t(test, 16, uint32_t);
+qhm_k64_t(test_qh_64, 16, uint32_t);
+
+qhh_kptr_ckey_t(test_str, 16, char, qhhash_str_hash, qhhash_str_equal);
+
+qhm_kvec_t(test_lstr, 16, lstr_t, uint32_t, qhhash_lstr_hash, qhhash_lstr_equal);
+qhm_kptr_t(test_ptr,  16, void,   uint32_t, qhhash_hash_ptr,  qhhash_ptr_equal);
+
+Z_GROUP_EXPORT(qhugehash)
+{
+    Z_TEST(insertion, "qhhash: insertion") {
+        qhh_t(test) h;
+        uint64_t bits[2] = { 0, 0 };
+
+        qhh_init(test, &h, false);
+
+        for (int i = 0; i < 128; i++) {
+            Z_ASSERT_N(qhh_add(test, &h, i));
+            SET_BIT(bits, i);
+        }
+        Z_ASSERT_EQ(h.hdr.len, 128U);
+
+        qhh_for_each_pos(test, pos, &h) {
+            uint32_t v = *qhh_key_p(test, &h, pos);
+
+            Z_ASSERT(v < bitsizeof(bits) && TST_BIT(bits, v));
+            CLR_BIT(bits, v);
+        }
+
+        Z_ASSERT(bits[0] == 0, "all values should have been seen");
+        Z_ASSERT(bits[1] == 0, "all values should have been seen");
+        qhh_wipe(test, &h);
+    } Z_TEST_END;
+
+    Z_TEST(collision, "qhhash: collision") {
+        qhh_t(test) h;
+
+        qhh_init(test, &h, false);
+
+        for (int i = 0; i < 128; i++) {
+            Z_ASSERT_N(qhh_add(test, &h, i));
+        }
+
+        for (int i = 0; i < 128; i++) {
+            Z_ASSERT(qhh_add(test, &h, i), "double insertion of %d", i);
+        }
+
+        qhh_clear(test, &h);
+        Z_ASSERT_ZERO(qhh_len(test, &h));
+
+        qhh_wipe(test, &h);
+    } Z_TEST_END;
+
+    Z_TEST(self, "qhhash: self search") {
+        qhh_t(test) h;
+
+        qhh_init(test, &h, false);
+
+        for (int i = 0; i < 128; i++) {
+            Z_ASSERT_N(qhh_add(test, &h, i));
+        }
+        Z_ASSERT_EQ(qhh_len(test, &h), 128ul);
+
+        for (int i = 128; i-- > 0; ) {
+            int64_t pos = qhh_find(test, &h, i);
+
+            Z_ASSERT(pos >= 0, "qh_find should find %d", i);
+            qhh_del_at(test, &h, pos);
+        }
+
+        Z_ASSERT_ZERO(qhh_len(test, &h));
+
+        qhh_wipe(test, &h);
+    } Z_TEST_END;
+
+    Z_TEST(string, "qhhash: string") {
+        const char *t1 = "test1";
+        const char *t2 = "test2";
+        int64_t pos;
+        qhh_t(test_str) h;
+
+        qhh_init(test_str, &h, false);
+
+        Z_ASSERT_N(qhh_add(test_str, &h, t1));
+        Z_ASSERT_N(qhh_add(test_str, &h, t2));
+
+        pos = qhh_find(test_str, &h, t1);
+        Z_ASSERT(pos >= 0, "qh_find should find %s", t1);
+        Z_ASSERT_STREQUAL(*qhh_key_p(test_str, &h, pos), t1);
+
+        pos = qhh_find(test_str, &h, t2);
+        Z_ASSERT(pos >= 0, "qh_find should find %s", t2);
+
+        Z_ASSERT_EQ(qhh_len(test_str, &h), 2ul);
+
+        qhh_del_at(test_str, &h, pos);
+        Z_ASSERT_EQ(qhh_len(test_str, &h), 1ul);
+        qhh_for_each_pos(test_str, i, &h) {
+            Z_ASSERT_STREQUAL(*qhh_key_p(test_str, &h, i), t1,
+                              "qh_for_each_pos has failed");
+        }
+
+        /* Remove t1 */
+        pos = qhh_find(test_str, &h, t1);
+        Z_ASSERT(pos >= 0, "can't find t1 ('%s')", t1);
+        qhh_del_at(test_str, &h, pos);
+        Z_ASSERT_ZERO(qhh_len(test_str, &h));
+
+        qhh_add(test_str, &h, t1);
+        Z_ASSERT_EQ(qhh_len(test_str, &h), 1ul);
+
+        pos = qhh_find(test_str, &h, t1);
+        Z_ASSERT(pos >= 0, "can't find t1 ('%s')", t1);
+        qhh_for_each_pos(test_str, i, &h) {
+            Z_ASSERT_STREQUAL(*qhh_key_p(test_str, &h, i), t1,
+                              "2nd qh_for_each_pos has failed");
+        }
+        qhh_wipe(test_str, &h);
+    } Z_TEST_END;
+
+    Z_TEST(qhh_hash, "qhhash: qhh_hash/qhh_del_key_h") {
+        qhh_t(test) h;
+
+        qhh_init(test, &h, false);
+
+        for (int i = 0; i < 128; i++) {
+            Z_ASSERT_N(qhh_add(test, &h, i));
+        }
+
+        for (int i = 128; i-- > 0; ) {
+            uint32_t hash = qhh_hash(test, &h, i);
+            int64_t  pos;
+
+            pos = qhh_del_key_h(test, &h, hash, i);
+            Z_ASSERT(pos >= 0, "qh_find should find %d", i);
+        }
+
+        Z_ASSERT_ZERO(qhh_len(test, &h));
+
+        qhh_wipe(test, &h);
+    } Z_TEST_END;
+
+    Z_TEST(qhm_hash, "qhhash: qhm_hash/qhm_del_key_h") {
+        qhm_t(test) h;
+
+        qhm_init(test, &h, false);
+
+        for (uint32_t i = 0; i < 128; i++) {
+            Z_ASSERT_N(qhm_add(test, &h, i, i));
+        }
+
+        for (uint32_t i = 128; i-- > 0; ) {
+            uint32_t hash = qhm_hash(test, &h, i);
+            int64_t  pos;
+
+            pos = qhm_del_key_h(test, &h, hash, i);
+            Z_ASSERT(pos >= 0, "qm_find should find %d", i);
+            Z_ASSERT_EQ(*qhm_value_p(test, &h, pos), i);
+        }
+
+        Z_ASSERT_ZERO(qhm_len(test, &h));
+
+        qhm_wipe(test, &h);
+    } Z_TEST_END;
+
+    Z_TEST(__qhm_put , "qhhash: __qhm_put") {
+        lstr_t str;
+
+#define CHECK(type, key)  \
+        do {                                                                \
+            uint64_t pos;                                                   \
+            qhm_t(type) h;                                                  \
+                                                                            \
+            qhm_init(type, &h, true);                                       \
+            pos = __qhm_put(type, &h, (key), 1, 0);                         \
+            Z_ASSERT_EQ(pos & QHASH_COLLISION, 0u);                         \
+            pos = __qhm_put(type, &h, (key), 2, 0);                         \
+            Z_ASSERT_NE(pos & QHASH_COLLISION, 0u);                         \
+            Z_ASSERT_EQ(*qhm_value_p(type, &h, pos), 1u);                   \
+            pos = __qhm_put(type, &h, (key), 2, QHASH_OVERWRITE);           \
+            Z_ASSERT_NE(pos & QHASH_COLLISION, 0u);                         \
+            Z_ASSERT_EQ(*qhm_value_p(type, &h, pos), 2u);                   \
+            qhm_wipe(type, &h);                                             \
+        } while (0)
+
+        /* IKEY */
+        CHECK(test, 1);
+
+        /* VKEY */
+        str = LSTR_IMMED_V("foo");
+        CHECK(test_lstr, &str);
+
+        /* PKEY */
+        CHECK(test_ptr, (void *)0xf00);
+
+#undef CHECK
+
+    } Z_TEST_END
+
+} Z_GROUP_END
+
+/*1}}}*/
 /*{{{1 Qvectors */
 
 static _Bool qv_sort_tst(void)
