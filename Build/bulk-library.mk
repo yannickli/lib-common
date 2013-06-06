@@ -297,8 +297,8 @@ ifeq ($(filter %.inc.adoc,$3),)
 $~$1.xml: FL_=$($(1DV)_ASCIIDOCFLAGS) $($1_ASCIIDOCFLAGS)
 $~$1.xml: $3 $(3:%.adoc=%-docinfo.xml)
 	$(msg/DOC.adoc) $3
-	asciidoc -b docbook -a docinfo -a toc $$(FL_) -f $(var/cfgdir)/asciidoc.conf \
-		-o $$@+ $$<
+	asciidoc -b docbook -a docinfo -a toc -a ascii-ids $$(FL_) \
+		-f $(var/cfgdir)/asciidoc.conf -o $$@+ $$<
 	$(MV) $$@+ $$@ && chmod a-w $$@
 else
 $~$1.xml: $3
