@@ -279,8 +279,17 @@ const iop_struct_t core__log_file_configuration__s = {
 
 static iop_field_t const core__httpd_cfg__desc_fields[] = {
     {
-        .name      = LSTR_IMMED("outbufMaxSize"),
+        .name      = LSTR_IMMED("bindAddr"),
         .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__httpd_cfg__t, bind_addr),
+        .size      = fieldsizeof(core__httpd_cfg__t, bind_addr),
+    },
+    {
+        .name      = LSTR_IMMED("outbufMaxSize"),
+        .tag       = 2,
         .tag_len   = 0,
         .repeat    = IOP_R_DEFVAL,
         .type      = IOP_T_U32,
@@ -290,7 +299,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
     },
     {
         .name      = LSTR_IMMED("pipelineDepth"),
-        .tag       = 2,
+        .tag       = 3,
         .tag_len   = 0,
         .repeat    = IOP_R_DEFVAL,
         .type      = IOP_T_U16,
@@ -300,7 +309,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
     },
     {
         .name      = LSTR_IMMED("noactDelay"),
-        .tag       = 3,
+        .tag       = 4,
         .tag_len   = 0,
         .repeat    = IOP_R_DEFVAL,
         .type      = IOP_T_U32,
@@ -310,7 +319,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
     },
     {
         .name      = LSTR_IMMED("maxQueries"),
-        .tag       = 4,
+        .tag       = 5,
         .tag_len   = 0,
         .repeat    = IOP_R_DEFVAL,
         .type      = IOP_T_U32,
@@ -320,7 +329,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
     },
     {
         .name      = LSTR_IMMED("maxConnsIn"),
-        .tag       = 5,
+        .tag       = 6,
         .tag_len   = 0,
         .repeat    = IOP_R_DEFVAL,
         .type      = IOP_T_U32,
@@ -330,7 +339,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
     },
     {
         .name      = LSTR_IMMED("onDataThreshold"),
-        .tag       = 6,
+        .tag       = 7,
         .tag_len   = 0,
         .repeat    = IOP_R_DEFVAL,
         .type      = IOP_T_U32,
@@ -340,7 +349,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
     },
     {
         .name      = LSTR_IMMED("headerLineMax"),
-        .tag       = 7,
+        .tag       = 8,
         .tag_len   = 0,
         .repeat    = IOP_R_DEFVAL,
         .type      = IOP_T_U32,
@@ -350,7 +359,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
     },
     {
         .name      = LSTR_IMMED("headerSizeMax"),
-        .tag       = 8,
+        .tag       = 9,
         .tag_len   = 0,
         .repeat    = IOP_R_DEFVAL,
         .type      = IOP_T_U32,
@@ -361,7 +370,7 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
 };
 static int const iop__ranges__5[] = {
     0, 1,
-    8,
+    9,
 };
 const iop_struct_t core__httpd_cfg__s = {
     .fullname   = LSTR_IMMED("core.HttpdCfg"),

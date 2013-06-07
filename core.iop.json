@@ -106,6 +106,9 @@
 			"fullName": "core.HttpdCfg",
 			"type": "struct",
 			"fields": {
+				"bindAddr": {
+					"type": "string"
+				},
 				"outbufMaxSize": {
 					"type": "uint",
 					"default": 33554432
