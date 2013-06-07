@@ -653,6 +653,15 @@ static int ic_read(ichannel_t *ic, short events, int sock)
     int *fdv, fdc;
     bool fd_overflow = false;
     ssize_t seqpkt_at_least = IC_PKT_MAX;
+    int to_read = IC_PKT_MAX;
+    bool starves = false;
+
+    if (buf->len >= IC_MSG_HDR_LEN) {
+        to_read  = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
+        to_read += IC_MSG_HDR_LEN;
+        assert (to_read > buf->len);
+        to_read -= buf->len;
+    }
 
   again:
     {
@@ -667,12 +676,14 @@ static int ic_read(ichannel_t *ic, short events, int sock)
 
         ssize_t res;
 
+        to_read = MAX(to_read, IC_PKT_MAX);
         if (ic->is_stream) {
-            res = sb_read(buf, sock, IC_PKT_MAX);
+            res = sb_read(buf, sock, to_read);
+            starves = sb_avail(buf) == 0;
         } else {
             iov = (struct iovec){
-                .iov_base = sb_grow(buf, IC_PKT_MAX),
-                .iov_len  = IC_PKT_MAX,
+                .iov_base = sb_grow(buf, to_read),
+                .iov_len  = to_read,
             };
             res = recvmsg(sock, &msgh, 0);
             seqpkt_at_least -= res;
@@ -721,9 +732,12 @@ static int ic_read(ichannel_t *ic, short events, int sock)
         cmd   = get_unaligned_cpu32(buf->data + IC_MSG_CMD_OFFSET);
         dlen  = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
 
-        if (IC_MSG_HDR_LEN + dlen > buf->len)
+        if (IC_MSG_HDR_LEN + dlen > buf->len) {
+            to_read = IC_MSG_HDR_LEN + dlen - buf->len;
             break;
+        }
 
+        starves = true;
         if (unlikely(flags & IC_MSG_HAS_FD)) {
             if (fdc < 1) {
                 assert (fd_overflow); /* see #664 */
@@ -785,6 +799,8 @@ static int ic_read(ichannel_t *ic, short events, int sock)
 
     if (likely(fdc == 0)) {
         if (!ic->is_stream && seqpkt_at_least > 0)
+            goto again;
+        if (ic->is_stream && !starves)
             goto again;
         return 0;
     }
