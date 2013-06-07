@@ -258,7 +258,7 @@ log_file_create_from_iop(const char *nametpl,
 
     log_file = log_file_new(nametpl, flags);
 
-    log_file_set_maxtotalsize(log_file, conf->total_max_size / 1024);
+    log_file_set_maxtotalsize(log_file, conf->total_max_size / (1024 * 1024));
     log_file_set_maxfiles(log_file, conf->max_files);
     log_file_set_maxsize(log_file, conf->max_size);
     log_file_set_rotate_delay(log_file, conf->max_time);
