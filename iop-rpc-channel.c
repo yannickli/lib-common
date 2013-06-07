@@ -439,6 +439,7 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
         return -1;
     }
 
+    tmp->raw_res = ps_init(data, dlen);
     if (tmp->cb == IC_PROXY_MAGIC_CB) {
         ic_proxify(ic, tmp, cmd, data, dlen);
         ic_msg_delete(&tmp);
@@ -464,10 +465,10 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
         ic_msg_delete(&tmp);
         return 0;
     }
-    {
+    if (!tmp->raw) {
         t_scope;
         void *value = NULL;
-        pstream_t ps = ps_init(data, dlen);
+        pstream_t ps = tmp->raw_res;
 
         if (unlikely(iop_bunpack_ptr(t_pool(), st, &value, ps, false) < 0)) {
 #ifndef NDEBUG
@@ -487,6 +488,8 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
             t_seal();
             (*tmp->cb)(ic, tmp, cmd, NULL, value);
         }
+    } else {
+        (*tmp->cb)(ic, tmp, cmd, NULL, NULL);
     }
     ic_msg_delete(&tmp);
     return 0;
