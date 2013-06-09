@@ -124,6 +124,8 @@ class LogFileConfiguration {
 
 
 struct HttpdCfg {
+    /** Address (host:port) to listen on */
+    string  bindAddr;
     /** Maximum size of the output buffer (in octets) */
     uint    outbufMaxSize    = 32 << 20;
     /** Maximum number of pending incoming queries */

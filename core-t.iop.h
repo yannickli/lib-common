@@ -69,6 +69,7 @@ extern iop_struct_t const core__log_file_configuration__s;
 IOP_CLASS(core__log_file_configuration);
 
 typedef struct core__httpd_cfg__t {
+    lstr_t   bind_addr;
     uint32_t outbuf_max_size;
     uint16_t pipeline_depth;
     uint32_t noact_delay;
