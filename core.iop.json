@@ -78,6 +78,7 @@
 			"name": "LogFileConfiguration",
 			"fullName": "core.LogFileConfiguration",
 			"type": "class",
+			"isAbstract": false,
 			"fields": {
 				"maxSize": {
 					"type": "int",

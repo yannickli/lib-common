@@ -190,6 +190,10 @@ static void xpack_class(sb_t *sb, const iop_struct_t *desc, const void *v,
     qv_t(iop_struct) parents;
     const iop_struct_t *real_desc = *(const iop_struct_t **)v;
 
+    e_assert(panic, !real_desc->class_attrs->is_abstract,
+             "packing of abstract class '%*pM' is forbidden",
+             LSTR_FMT_ARG(real_desc->fullname));
+
     /* We want to write the fields in the order "master -> children", and
      * not "children -> master", so first build a qvector of the parents.
      */

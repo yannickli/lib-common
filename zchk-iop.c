@@ -2135,6 +2135,9 @@ Z_GROUP_EXPORT(iop)
         CHECK_CHILD(b3,  1, a2);
         CHECK_CHILD(c3,  2, b3);
         CHECK_CHILD(c4,  3, b3);
+
+        CHECK_PARENT(a3, 0);
+        CHECK_CHILD(b4,  1, a3);
 #undef CHECK_PARENT
 #undef CHECK_CHILD
     } Z_TEST_END
@@ -2285,6 +2288,7 @@ Z_GROUP_EXPORT(iop)
 
         CHECK_STATIC(b1, "staticInt", i, 12);
         CHECK_STATIC(c4, "staticInt", u, (uint64_t)44);
+        CHECK_STATIC(b4, "staticInt", u, (uint64_t)4);
 
         CHECK_STATIC(b2, "staticBool", b, true);
         CHECK_STATIC(c1, "staticBool", b, false);
@@ -2310,6 +2314,13 @@ Z_GROUP_EXPORT(iop)
         CHECK_STATIC_UNDEFINED(b1, "staticBool");
         CHECK_STATIC_UNDEFINED(b3, "staticBool");
 #undef CHECK_STATIC_UNDEFINED
+
+        {
+            tstiop_inheritance__a3__t a3;
+
+            a3.__vptr = &tstiop_inheritance__a3__s;
+            Z_ASSERT_NULL(iop_get_cvar_cst(&a3, "staticInt"));
+        }
     } Z_TEST_END
     /* }}} */
     Z_TEST(inheritance_equals, "test iop_equals/hash with inheritance") { /* {{{ */
@@ -2448,6 +2459,8 @@ Z_GROUP_EXPORT(iop)
         t_scope;
         tstiop_inheritance__c1__t *c1 = NULL;
         tstiop_inheritance__b2__t *b2 = NULL;
+        tstiop_inheritance__a3__t *a3 = NULL;
+        tstiop_inheritance__b4__t *b4 = NULL;
         tstiop_inheritance__class_container__t  *class_container  = NULL;
         tstiop_inheritance__class_container2__t *class_container2 = NULL;
         SB_1k(err);
@@ -2497,6 +2510,10 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT(class_container2->b3->__vptr == &tstiop_inheritance__b3__s);
         Z_ASSERT_LSTREQUAL(class_container2->b3->a, LSTR_IMMED_V("A2"));
         Z_ASSERT_EQ(class_container2->b3->b, 5);
+        Z_ASSERT(class_container2->a3->__vptr == &tstiop_inheritance__b4__s);
+        b4 = iop_obj_vcast(tstiop_inheritance__b4, class_container2->a3);
+        Z_ASSERT_EQ(b4->a3, 6);
+        Z_ASSERT_EQ(b4->b4, 7);
 
         /* Test that "_class" field can be given using prefixed syntax */
         CHECK_OK(c1, "tstiop_inheritance_valid5.json");
@@ -2522,6 +2539,10 @@ Z_GROUP_EXPORT(iop)
                    "expected field of struct tstiop_inheritance.B2, got "
                    "`\"c\"'");
 
+        /* Test that the "_class" field is mandatory for abstract classes */
+        CHECK_FAIL(a3, "tstiop_inheritance_invalid1.json",
+                   "expected `_class' field, got `}'");
+
         /* Test with an unknown "_class" */
         CHECK_FAIL(c1, "tstiop_inheritance_invalid2.json",
                    "expected a child of `tstiop_inheritance.C1'");
@@ -2537,6 +2558,18 @@ Z_GROUP_EXPORT(iop)
                    "member `tstiop_inheritance.ClassContainer:a1' is missing");
         CHECK_FAIL(class_container, "tstiop_inheritance_invalid6.json",
                    "member `tstiop_inheritance.ClassContainer:a1' is missing");
+
+        /* Unpacking of abstract classes is forbidden */
+        CHECK_FAIL(a3, "tstiop_inheritance_invalid7.json",
+                   "expected a non-abstract class");
+
+        /* Check that missing mandatory class fields, for classes having only
+         * optional fields, is KO if this class is abstract (while it's ok if
+         * it's not abstract, cf. test above).
+         */
+        CHECK_FAIL(class_container2, "tstiop_inheritance_invalid8.json",
+                   "member `tstiop_inheritance.ClassContainer2:a3' is "
+                   "missing");
 #undef CHECK_FAIL
     } Z_TEST_END
     /* }}} */
@@ -2550,6 +2583,7 @@ Z_GROUP_EXPORT(iop)
         lstr_t file;
         tstiop_inheritance__c2__t *c2 = NULL;
         tstiop_inheritance__c3__t *c3 = NULL;
+        tstiop_inheritance__a3__t *a3 = NULL;
 
         IOP_REGISTER_PACKAGES(&tstiop_inheritance__pkg);
 
@@ -2624,7 +2658,14 @@ Z_GROUP_EXPORT(iop)
         UNPACK_FAIL("tstiop_inheritance_invalid6.xml", c2,
                     "near /root: class `tstiop_inheritance.C1' is not a "
                     "child of `tstiop_inheritance.C2'");
+        UNPACK_FAIL("tstiop_inheritance_invalid7.xml", a3,
+                    "near /root: class `tstiop_inheritance.A3' is an "
+                    "abstract class");
 
+        /* 'xsi:type' is mandatory for abstract classes */
+        UNPACK_FAIL("tstiop_inheritance_invalid8.xml", a3,
+                    "near /root: type attribute not found (mandatory for "
+                    "abstract classes)");
 #undef UNPACK_OK
 #undef UNPACK_FAIL
 #undef MAP

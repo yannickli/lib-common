@@ -1198,7 +1198,7 @@ unpack_struct_prepare_class(iop_json_lex_t *ll, const iop_struct_t *desc,
     if (*real_desc) {
         /* Real class type is already known (because "_class" field was not
          * found). */
-        goto count_fields;
+        goto check;
     }
 
     /* Get the value of the "_class" field */
@@ -1221,7 +1221,10 @@ unpack_struct_prepare_class(iop_json_lex_t *ll, const iop_struct_t *desc,
     /* We are trying to unpack a class of type "desc", and the packed
      * class is of type "real_desc". Check that this is authorized, and count
      * the total number of fields of "real_desc". */
-  count_fields:
+  check:
+    if ((*real_desc)->class_attrs->is_abstract) {
+        return RJERROR_EXP("a non-abstract class");
+    }
     desc_it = *real_desc;
     while (desc_it && desc_it != desc) {
         nb_fields += desc_it->fields_len;
@@ -1467,9 +1470,15 @@ static int unpack_struct(iop_json_lex_t *ll, const iop_struct_t *desc,
         return 0;
     }
     if (!real_desc) {
-        /* Class field not found; consider it's of the expected type */
-        real_desc = desc;
-        goto prepare_class;
+        /* "_class" field not found */
+        if (desc->class_attrs->is_abstract) {
+            /* This is mandatory for abstract classes */
+            return RJERROR_EXP("`_class' field");
+        } else {
+            /* Consider it's of the expected type */
+            real_desc = desc;
+            goto prepare_class;
+        }
     }
 
     /* Scan remaining fields */
@@ -1935,6 +1944,10 @@ pack_txt(const iop_struct_t *desc, const void *value, int lvl,
     if (iop_struct_is_class(desc)) {
         qv_t(iop_struct) parents;
         const iop_struct_t *real_desc = *(const iop_struct_t **)value;
+
+        e_assert(panic, !real_desc->class_attrs->is_abstract,
+                 "packing of abstract class '%*pM' is forbidden",
+                 LSTR_FMT_ARG(real_desc->fullname));
 
         /* Write type of class */
         INDENT();
