@@ -311,7 +311,8 @@ static void iop_xwsdl_put_constraints(wsdlpp_t *wpp, const iop_struct_t *st,
 
 static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
 {
-    bool is_extended = iop_struct_is_class(st) && st->class_attrs->parent;
+    bool is_class = iop_struct_is_class(st);
+    bool is_extended = is_class && st->class_attrs->parent;
 
     xmlpp_opentag(&wpp->pp, "complexType");
     xmlpp_putattr(&wpp->pp, "name", st->fullname.s);
@@ -322,6 +323,9 @@ static void iop_xwsdl_put_type(wsdlpp_t *wpp, const iop_struct_t *st)
     if (st->is_union) {
         xmlpp_opentag(&wpp->pp, "choice");
     } else {
+        if (is_class && st->class_attrs->is_abstract) {
+            xmlpp_putattr(&wpp->pp, "abstract", "true");
+        }
         if (is_extended) {
             xmlpp_opentag(&wpp->pp, "complexContent");
             xmlpp_opentag(&wpp->pp, "extension");
