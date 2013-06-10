@@ -20,9 +20,10 @@
 
 #ifdef __linux__
 
+#define XWRITE(s)  IGNORE(xwrite(fd, s, strlen(s)))
+
 void ps_dump_backtrace(int signum, const char *prog, int fd, bool full)
 {
-#define XWRITE(s)  IGNORE(xwrite(fd, s, strlen(s)))
     char  buf[256];
     void *arr[256];
     int   bt, n;
@@ -57,7 +58,18 @@ void ps_dump_backtrace(int signum, const char *prog, int fd, bool full)
     } else {
         XWRITE("\n");
     }
-#undef XWRITE
+}
+
+static void
+ps_panic_sighandler_print_version(int fd, const core_version_t *version)
+{
+    XWRITE(version->name);
+    XWRITE(" version: ");
+    XWRITE(version->version);
+    XWRITE(" (");
+    XWRITE(version->git_revision);
+    XWRITE(")");
+    XWRITE("\n");
 }
 
 void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
@@ -77,6 +89,28 @@ void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
     fd = open(path, O_EXCL | O_CREAT | O_WRONLY | O_TRUNC, 0600);
 
     if (fd >= 0) {
+        int main_versions_printed = 0;
+
+        for (int i = 0; i < core_versions_nb_g; i++) {
+            const core_version_t *version = &core_versions_g[i];
+
+            if (version->is_main_version) {
+                ps_panic_sighandler_print_version(fd, version);
+                main_versions_printed++;
+            }
+        }
+        if (main_versions_printed > 0) {
+            XWRITE("\n");
+        }
+        for (int i = 0; i < core_versions_nb_g; i++) {
+            const core_version_t *version = &core_versions_g[i];
+
+            if (!version->is_main_version) {
+                ps_panic_sighandler_print_version(fd, version);
+            }
+        }
+        XWRITE("\n");
+
         ps_dump_backtrace(signum, program_invocation_short_name, fd, true);
         close(fd);
     }
@@ -86,6 +120,7 @@ void ps_panic_sighandler(int signum, siginfo_t *si, void *addr)
 #endif
     raise(signum);
 }
+#undef XWRITE
 
 void ps_install_panic_sighandlers(void)
 {

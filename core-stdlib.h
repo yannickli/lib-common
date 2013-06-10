@@ -35,4 +35,19 @@ void __ha_uuid_fmt(char buf[], ha_uuid_t uuid);
 #endif
 void sb_add_uuid(struct sb_t *sb, ha_uuid_t uuid);
 
+
+/*----- versions -----*/
+
+typedef struct core_version_t {
+    bool        is_main_version; /* Main versions are printed first */
+    const char *name;
+    const char *version;
+    const char *git_revision;
+} core_version_t;
+extern core_version_t core_versions_g[8];
+extern int core_versions_nb_g;
+
+void core_push_version(bool is_main_version, const char *name,
+                       const char *version, const char *git_revision);
+
 #endif

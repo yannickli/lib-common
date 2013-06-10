@@ -255,11 +255,40 @@ void makeusage(int ret, const char *arg0, const char *usage,
 
 void makeversion(int ret, const char *name, const char *(*get_version)(void))
 {
-    printf("Intersec %s\n"
-           "Revision: %s\n"
-           "\n"
+    if (name && get_version) {
+        printf("Intersec %s\n"
+               "Revision: %s\n",
+               name, (*get_version)());
+    } else {
+        int main_versions_printed = 0;
+
+        for (int i = 0; i < core_versions_nb_g; i++) {
+            const core_version_t *version = &core_versions_g[i];
+
+            if (version->is_main_version) {
+                printf("Intersec %s %s\n"
+                       "Revision: %s\n",
+                       version->name, version->version,
+                       version->git_revision);
+                main_versions_printed++;
+            }
+        }
+        if (main_versions_printed > 0) {
+            printf("\n");
+        }
+        for (int i = 0; i < core_versions_nb_g; i++) {
+            const core_version_t *version = &core_versions_g[i];
+
+            if (!version->is_main_version) {
+                printf("%s %s (%s)\n",
+                       version->name, version->version,
+                       version->git_revision);
+            }
+        }
+    }
+
+    printf("\n"
            "See http://www.intersec.com/ for more details about our\n"
-           "line of products for telecommunications operators\n",
-           name, (*get_version)());
+           "line of products for telecommunications operators\n");
     exit(ret);
 }
