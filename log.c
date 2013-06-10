@@ -297,7 +297,7 @@ int logger_vlog(logger_t *logger, int level, const char *prog, int pid,
         va_end(cpy);
     }
 
-    if (logger_has_level(logger, level)) {
+    if (logger_has_level(logger, level) || level >= LOG_TRACE) {
         log_ctx_t ctx = {
             .logger_name = lstr_dupc(logger->full_name),
             .level       = level,

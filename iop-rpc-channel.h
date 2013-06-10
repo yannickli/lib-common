@@ -55,11 +55,14 @@ struct ic_msg_t {
     htnode_t msg_link;          /**< private field used by ichannel_t       */
     int      fd      : 24;      /**< the fd to send                         */
     flag_t   async   :  1;      /**< whether the RPC is async               */
-    unsigned padding :  7;
+    flag_t   raw     :  1;      /**< whether the answer should be decoded or
+                                     not. */
+    unsigned padding :  6;
     int32_t  cmd;               /**< automatically filled by ic_query/reply */
     uint32_t slot;              /**< automatically filled by ic_query/reply */
     unsigned dlen;
     void    *data;
+    pstream_t raw_res;
 
     /* user provided fields */
     const iop_rpc_t  *rpc;
