@@ -357,7 +357,7 @@ static inline int bs_get_bit(bit_stream_t *bs)
     return unlikely(bs_done(bs)) ? -1 : __bs_get_bit(bs);
 }
 
-static inline uint64_t __bs_get_bits(bit_stream_t *bs, size_t blen)
+static inline uint64_t __bs_peek_bits(const bit_stream_t *bs, size_t blen)
 {
     uint64_t res;
 
@@ -372,6 +372,12 @@ static inline uint64_t __bs_get_bits(bit_stream_t *bs, size_t blen)
     if (blen != 64) {
         res &= BITMASK_LT(uint64_t, blen);
     }
+    return res;
+}
+
+static inline uint64_t __bs_get_bits(bit_stream_t *bs, size_t blen)
+{
+    uint64_t res = __bs_peek_bits(bs, blen);
     __bs_skip(bs, blen);
     return res;
 }
@@ -449,7 +455,7 @@ static inline int bs_be_get_bit(bit_stream_t *bs)
     return unlikely(bs_done(bs)) ? -1 : __bs_be_get_bit(bs);
 }
 
-static inline uint64_t __bs_be_get_bits(bit_stream_t *bs, size_t blen)
+static inline uint64_t __bs_be_peek_bits(const bit_stream_t *bs, size_t blen)
 {
     const byte *b = &((const byte *)bs->s.p)[bs->s.offset / 8];
     size_t offset = bs->s.offset % 8;
@@ -458,7 +464,6 @@ static inline uint64_t __bs_be_get_bits(bit_stream_t *bs, size_t blen)
 
     if (offset + blen <= 8) {
         res = (*b >> (8 - (offset + blen))) & BITMASK_LT(uint64_t, blen);
-        __bs_skip(bs, blen);
         return res;
     }
     if (offset) {
@@ -477,6 +482,12 @@ static inline uint64_t __bs_be_get_bits(bit_stream_t *bs, size_t blen)
     if (remain) {
         res |= (*b >> (8 - remain)) & BITMASK_LT(uint64_t, remain);
     }
+    return res;
+}
+
+static inline uint64_t __bs_be_get_bits(bit_stream_t *bs, size_t blen)
+{
+    uint64_t res = __bs_be_peek_bits(bs, blen);
     __bs_skip(bs, blen);
     return res;
 }
