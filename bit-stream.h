@@ -365,8 +365,16 @@ static inline uint64_t __bs_peek_bits(const bit_stream_t *bs, size_t blen)
     if (unlikely(!blen))
         return 0;
 
+    assert (bs_has(bs, blen));
+
+    if (bs->e.p == bs->s.p) {
+        mem_tool_allow_memory(bs->s.p, 8, true);
+    }
     res = *bs->s.p >> bs->s.offset;
     if (bs->s.offset + blen > 64) {
+        if (bs->e.p == &bs->s.p[1]) {
+            mem_tool_allow_memory(&bs->s.p[1], 8, true);
+        }
         res |= bs->s.p[1] << (64 - bs->s.offset);
     }
     if (blen != 64) {
