@@ -675,6 +675,15 @@ const iop_value_t *iop_get_cvar(const void *obj, lstr_t name);
 
 #define iop_get_cvar_cst(obj, name)  iop_get_cvar(obj, LSTR_IMMED_V(name))
 
+/** Gets the value of a class variable (static field) from a class descriptor.
+ *
+ * Same as iop_get_cvar, but directly takes a class descriptor.
+ */
+const iop_value_t *iop_get_cvar_desc(const iop_struct_t *desc, lstr_t name);
+
+#define iop_get_cvar_desc_cst(desc, name)  \
+    iop_get_cvar_desc(desc, LSTR_IMMED_V(name))
+
 
 /** Checks if a class has another class in its parents.
  *
