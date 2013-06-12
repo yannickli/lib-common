@@ -83,6 +83,23 @@ uint32_t sockunion_hash(const sockunion_t *su);
 /* -1 as defport means port is mandatory */
 int addr_parse(pstream_t ps, pstream_t *host, in_port_t *port, int defport);
 int addr_info(sockunion_t *, sa_family_t, pstream_t host, in_port_t);
+
+/** Convert TCP/IPv4 and TCP/IPv6 into a string
+ *
+ * String is formatted with the IP address and the TCP port using the
+ * following convention:
+ *
+ * IPv4:
+ *    x.x.x.x:port
+ *
+ * IPv6:
+ *    [x:x:x:x:x:x:x:x]:port
+ *
+ * \param[in]  su    sockunion filled with a network address
+ * \param[out] slen  length of the formatted string
+ *
+ * \return string allocated in t_stack
+ */
 char *t_addr_fmt(const sockunion_t *su, int *slen);
 static inline lstr_t t_addr_fmt_lstr(const sockunion_t *su)
 {
