@@ -465,8 +465,6 @@ void        iop_set_verr(const char *fmt, va_list ap) __cold ;
 int         iop_set_err2(const lstr_t *s) __cold;
 void        iop_clear_err(void) ;
 
-bool iop_field_has_constraints(const iop_struct_t *desc, const iop_field_t
-                               *fdesc);
 int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
                                 *fdesc, const void *ptr, int n, bool recurse);
 
@@ -515,6 +513,17 @@ iop_field_get_constraints_cb(const iop_struct_t *desc,
         return attrs->check_constraints;
     }
     return NULL;
+}
+
+static inline
+bool iop_field_has_constraints(const iop_struct_t *desc,
+                               const iop_field_t *fdesc)
+{
+    if (iop_field_get_constraints_cb(desc, fdesc))
+        return true;
+    if (fdesc->type == IOP_T_ENUM && fdesc->u1.en_desc->flags)
+        return true;
+    return false;
 }
 
 int __iop_field_find_by_name(const iop_struct_t *st, const void *s, int len,

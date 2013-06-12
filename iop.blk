@@ -1193,16 +1193,6 @@ lstr_t iop_get_err_lstr(void)
     return LSTR_NULL_V;
 }
 
-bool iop_field_has_constraints(const iop_struct_t *desc, const iop_field_t
-                               *fdesc)
-{
-    if (iop_field_get_constraints_cb(desc, fdesc))
-        return true;
-    if (fdesc->type == IOP_T_ENUM && fdesc->u1.en_desc->flags)
-        return true;
-    return false;
-}
-
 int __iop_check_constraints(const iop_struct_t *desc, const void *val);
 
 int iop_field_check_constraints(const iop_struct_t *desc, const iop_field_t
@@ -1958,7 +1948,8 @@ int __iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
 {
     void *ptr = (char *)value + fdesc->data_offs;
 
-    if (fdesc->repeat == IOP_R_REQUIRED) {
+    switch (fdesc->repeat) {
+      case IOP_R_REQUIRED: {
         const iop_struct_t *desc = fdesc->u1.st_desc;
         bool is_class;
 
@@ -1980,10 +1971,9 @@ int __iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
                                                       desc->fields + i));
             }
         } while (is_class && (desc = desc->class_attrs->parent));
-        return 0;
+      } return 0;
 
-    } else
-    if (fdesc->repeat == IOP_R_DEFVAL) {
+      case IOP_R_DEFVAL:
         switch (fdesc->type) {
           case IOP_T_I8: case IOP_T_U8:
             *(uint8_t *)ptr  = fdesc->u1.defval_u64;
@@ -2013,20 +2003,24 @@ int __iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
           case IOP_T_DATA:
             ((lstr_t *)ptr)->len      = fdesc->u0.defval_len;
             ((lstr_t *)ptr)->data     = (void *)fdesc->u1.defval_data;
-            ((lstr_t *)ptr)->mem_pool = 0;
+            ((lstr_t *)ptr)->mem_pool = MEM_STATIC;
             break;
           default:
             return -1;
         }
-    } else
-    if (fdesc->repeat == IOP_R_REPEATED) {
+        break;
+
+      case IOP_R_REPEATED: {
         unsigned fdesc_flags = fdesc->flags;
 
         if (TST_BIT(&fdesc_flags, IOP_FIELD_NO_EMPTY_ARRAY))
             return iop_set_err("empty array not allowed");
         p_clear((lstr_t *)ptr, 1);
-    } else {
+      } break;
+
+      case IOP_R_OPTIONAL:
         iop_value_set_absent(fdesc, ptr);
+        break;
     }
     return 0;
 }
