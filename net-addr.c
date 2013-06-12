@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include <netdb.h>
+#include "z.h"
 #include "net.h"
 #include "container.h"
 
@@ -65,6 +66,39 @@ uint32_t sockunion_hash(const sockunion_t *su)
       default:
         e_panic("unknown kind of sockaddr: %d", su->family);
     }
+}
+
+int sockunion_gethost(const sockunion_t *su, char *buf, int size)
+{
+    switch (su->family) {
+      case AF_INET:
+        RETHROW_PN(inet_ntop(AF_INET, &su->sin.sin_addr.s_addr, buf, size));
+        break;
+
+      case AF_INET6:
+        RETHROW_PN(inet_ntop(AF_INET6, &su->sin6.sin6_addr.s6_addr, buf,
+                             size));
+        break;
+
+      default:
+        return -1;
+    }
+    return strlen(buf);
+}
+
+lstr_t t_sockunion_gethost_lstr(const sockunion_t *su)
+{
+    int size = MAX(INET_ADDRSTRLEN, 2 + INET6_ADDRSTRLEN);
+    char *buf;
+    int len;
+
+    buf = t_new(char, size);
+    len = sockunion_gethost(su, buf, size);
+    if (len < 0) {
+        return LSTR_NULL_V;
+    }
+
+    return lstr_init_(buf, len, MEM_STACK);
 }
 
 int addr_parse(pstream_t ps, pstream_t *host, in_port_t *port, int defport)
@@ -166,3 +200,37 @@ int addr_filter_matches(const addr_filter_t *filter, const sockunion_t *peer)
 
     return 0;
 }
+
+Z_GROUP_EXPORT(net_addr)
+{
+    t_scope;
+#define NET_ADDR_IPV4  "1.1.1.1"
+#define NET_ADDR_IPV6  "1:1:1:1:1:1:1:1"
+#define NET_ADDR_PORT  4242
+
+    lstr_t ipv4 = LSTR_IMMED(NET_ADDR_IPV4);
+    lstr_t ipv6 = LSTR_IMMED(NET_ADDR_IPV6);
+    lstr_t tcp_ipv4 = LSTR_IMMED(NET_ADDR_IPV4 ":" TOSTR(NET_ADDR_PORT));
+    lstr_t tcp_ipv6 = LSTR_IMMED("[" NET_ADDR_IPV6 "]:" TOSTR(NET_ADDR_PORT));
+    sockunion_t su;
+
+    Z_TEST(ipv4, "IPv4") {
+        Z_ASSERT_N(addr_info(&su, AF_INET, ps_initlstr(&ipv4),
+                             NET_ADDR_PORT));
+        Z_ASSERT_LSTREQUAL(ipv4, t_sockunion_gethost_lstr(&su));
+        Z_ASSERT_EQ(NET_ADDR_PORT, sockunion_getport(&su));
+        Z_ASSERT_LSTREQUAL(t_addr_fmt_lstr(&su), tcp_ipv4);
+    } Z_TEST_END;
+
+    Z_TEST(ipv6, "IPv6") {
+        Z_ASSERT_N(addr_info(&su, AF_INET6, ps_initlstr(&ipv6),
+                             NET_ADDR_PORT));
+        Z_ASSERT_LSTREQUAL(ipv6, t_sockunion_gethost_lstr(&su));
+        Z_ASSERT_EQ(NET_ADDR_PORT, sockunion_getport(&su));
+        Z_ASSERT_LSTREQUAL(t_addr_fmt_lstr(&su), tcp_ipv6);
+    } Z_TEST_END;
+
+#undef NET_ADDR_PORT
+#undef NET_ADDR_IPV6
+#undef NET_ADDR_IPV4
+} Z_GROUP_END;
