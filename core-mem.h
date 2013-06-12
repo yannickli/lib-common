@@ -636,6 +636,8 @@ enum mem_tool {
 #  define RUNNING_ON_VALGRIND       false
 #endif
 
+#ifndef NDEBUG
+
 __leaf __attribute__((const))
 bool mem_tool_is_running(unsigned tools);
 
@@ -654,5 +656,16 @@ void mem_tool_malloclike(const void *mem, size_t len, size_t rz, bool zeroed);
 
 __leaf
 void mem_tool_freelike(const void *mem, size_t len, size_t rz);
+
+#else
+
+#define mem_tool_is_running(...)                   (false)
+#define mem_tool_allow_memory(...)                 e_trace_ignore(0, ##__VA_ARGS__)
+#define mem_tool_allow_memory_if_addressable(...)  e_trace_ignore(0, ##__VA_ARGS__)
+#define mem_tool_disallow_memory(...)              e_trace_ignore(0, ##__VA_ARGS__)
+#define mem_tool_malloclike(...)                   e_trace_ignore(0, ##__VA_ARGS__)
+#define mem_tool_freelike(...)                     e_trace_ignore(0, ##__VA_ARGS__)
+
+#endif
 
 #endif

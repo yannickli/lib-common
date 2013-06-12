@@ -169,6 +169,8 @@ char *mp_fmt(mem_pool_t *mp, int *out, const char *fmt, ...)
 
 /* Instrumentation {{{ */
 
+#ifndef NDEBUG
+
 bool mem_tool_is_running(unsigned tools)
 {
     if (tools & MEM_TOOL_VALGRIND && RUNNING_ON_VALGRIND) {
@@ -286,6 +288,8 @@ void mem_tool_freelike(const void *mem, size_t len, size_t rz)
 
 #if __GNUC_PREREQ(4, 6) && !__VALGRIND_PREREQ(3, 7)
 #  pragma GCC diagnostic pop
+#endif
+
 #endif
 
 /* }}} */
