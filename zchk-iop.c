@@ -1535,6 +1535,12 @@ Z_GROUP_EXPORT(iop)
         sa_opt_b.l = &ua_b;
         Z_ASSERT(!iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
 
+        /* test with non initialized optional fields values */
+        iop_init(st_sa_opt, &sa_opt_a);
+        iop_init(st_sa_opt, &sa_opt_b);
+        sa_opt_a.a.v = 42;
+        Z_ASSERT(iop_equals(st_sa_opt, &sa_opt_a, &sa_opt_b));
+
         /* Now test with some arrays */
         {
             lstr_t strs[] = { LSTR_IMMED("a"), LSTR_IMMED("b") };
