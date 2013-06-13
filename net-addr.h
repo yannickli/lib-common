@@ -60,6 +60,31 @@ static inline void sockunion_setport(sockunion_t *su, int port)
       default:       e_panic("should not happen");
     }
 }
+
+/** Convert IPv4 and IPv6 addresses into a string
+ *
+ * This function is a helper that call inet_ntop() with appropriate arguments
+ * according to "su->family" value.
+ *
+ * On error, "errno" is set appropriately. See inet_ntop(3) for more details.
+ *
+ * \return length of string written in "buf"
+ * \retval -1 on error
+ */
+int sockunion_gethost(const sockunion_t *su, char *buf, int size);
+
+/** Convert IPv4 and IPv6 addresses into a string.
+ *
+ * This helper is a wrapper around sockunion_gethost() that allocates memory
+ * into the t_stack.
+ *
+ * \see sockunion_gethost()
+ *
+ * \return network address as a lstr_t
+ * \return LSTR_NULL_V on error
+ */
+lstr_t t_sockunion_gethost_lstr(const sockunion_t *su);
+
 static inline socklen_t sockunion_len(const sockunion_t *su)
 {
     switch (su->family) {
@@ -83,6 +108,23 @@ uint32_t sockunion_hash(const sockunion_t *su);
 /* -1 as defport means port is mandatory */
 int addr_parse(pstream_t ps, pstream_t *host, in_port_t *port, int defport);
 int addr_info(sockunion_t *, sa_family_t, pstream_t host, in_port_t);
+
+/** Convert TCP/IPv4 and TCP/IPv6 into a string
+ *
+ * String is formatted with the IP address and the TCP port using the
+ * following convention:
+ *
+ * IPv4:
+ *    x.x.x.x:port
+ *
+ * IPv6:
+ *    [x:x:x:x:x:x:x:x]:port
+ *
+ * \param[in]  su    sockunion filled with a network address
+ * \param[out] slen  length of the formatted string
+ *
+ * \return string allocated in t_stack
+ */
 char *t_addr_fmt(const sockunion_t *su, int *slen);
 static inline lstr_t t_addr_fmt_lstr(const sockunion_t *su)
 {
