@@ -971,6 +971,9 @@ void ic_flush(ichannel_t *ic)
 {
     int fd = el_fd_get_fd(ic->elh);
 
+    if (ic_is_local(ic))
+        return;
+
     fd_unset_features(fd, O_NONBLOCK);
     __ic_flush(ic, fd);
     fd_set_features(fd, O_NONBLOCK);
@@ -1141,7 +1144,7 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err)
 
 static void ic_sc_do(ichannel_t *ic, int sc_op)
 {
-    if (!ic->is_closing) {
+    if (!ic->is_closing && !ic_is_local(ic)) {
         ic_msg_t *msg = ic_msg_new(0);
         msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN);
         msg->dlen = IC_MSG_HDR_LEN;
@@ -1286,6 +1289,9 @@ static int __ic_connect(ichannel_t *ic, int flags)
 {
     int type, sock;
 
+    if (unlikely(ic_is_local(ic)))
+        e_fatal("cannot connect a local ic");
+
     assert (!ic->elh);
 
     ic->is_spawned = false;
@@ -1321,6 +1327,9 @@ static int __ic_connect(ichannel_t *ic, int flags)
 
 void ic_watch_activity(ichannel_t *ic, int timeout_soft, int timeout_hard)
 {
+    if (ic_is_local(ic))
+        return;
+
     ic->wa_soft = timeout_soft;
     ic->wa_hard = timeout_hard;
     __ic_watch_activity(ic);
@@ -1354,6 +1363,10 @@ void ic_spawn(ichannel_t *ic, int fd, ic_creds_f *creds_fn)
 {
     int type = 0;
     socklen_t len = sizeof(type);
+
+    assert (!ic_is_local(ic));
+    if (unlikely(ic_is_local(ic)))
+        return;
 
     if (getsockopt(fd, SOL_SOCKET, SO_TYPE, (void *)&type, &len))
         e_panic(E_UNIXERR("getsockopt"));

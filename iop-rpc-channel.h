@@ -146,6 +146,7 @@ struct ichannel_t {
     flag_t is_wiped     :  1;
     flag_t cancel_guard :  1;
     flag_t queuable     :  1;
+    flag_t is_local     :  1;
 
     unsigned nextslot;          /**< next slot id to try                    */
 
@@ -199,6 +200,15 @@ void ic_shutdown(void);
 
 /*----- ichannel handling -----*/
 
+static inline bool ic_is_local(const ichannel_t *ic) {
+    return ic->is_local;
+}
+
+static inline void ic_set_local(ichannel_t *ic) {
+    ic->is_local = true;
+    ic->peer_address = LSTR_IMMED_V("127.0.0.1");
+}
+
 static inline int ic_get_fd(ichannel_t *ic) {
     int res = ic->current_fd;
     ic->current_fd = -1;
@@ -217,7 +227,8 @@ static inline bool ic_is_empty(ichannel_t *ic) {
 /* XXX be carefull, this function do not mean that the ichannel is actually
  * connected, just that you are allowed to queue some queries */
 static inline bool ic_is_ready(const ichannel_t *ic) {
-    return ic->elh && ic->queuable && !ic->is_closing;
+    return (ic_is_local(ic) && ic->impl)
+        || (ic->elh && ic->queuable && !ic->is_closing);
 }
 
 static inline bool ic_slot_is_async(uint64_t slot) {
