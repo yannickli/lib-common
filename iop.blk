@@ -1772,7 +1772,7 @@ static inline int get_uint32(pstream_t *ps, int ilen, uint32_t *u32)
         return 0;
 
       case 2: {
-        uint16_t u16;
+        uint16_t u16 = 0;
         RETHROW(ps_get_le16(ps, &u16));
         *u32 = u16;
       } return 0;
