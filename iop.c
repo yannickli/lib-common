@@ -315,10 +315,8 @@ __iop_equals(const iop_struct_t *st, const uint8_t *v1, const uint8_t *v2)
                     return false;
             }
         } else {
-            /* Scalar types (even repeated) could be compared with one big
-             * memcmp */
             assert (fdesc->size > 0 && "IOPC is probably outdated");
-            if (memcmp(r1, r2, fdesc->size * n))
+            if (!iop_scalar_equals(fdesc, r1, r2, n))
                 return false;
         }
     }
