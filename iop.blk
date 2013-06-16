@@ -1862,7 +1862,7 @@ int iop_enum_from_lstr(const iop_enum_t *e, const lstr_t s, bool *found)
 
 static int iop_skip_field(pstream_t *ps, iop_wire_type_t wt)
 {
-    uint32_t u32;
+    uint32_t u32 = 0;
 
     switch (wt) {
       case IOP_WIRE_BLK1: PS_CHECK(get_uint32(ps, 1, &u32)); break;
@@ -2035,7 +2035,7 @@ static int unpack_value(mem_pool_t *mp, iop_wire_type_t wt,
                         const iop_field_t *fdesc, void *v,
                         pstream_t *ps, bool copy)
 {
-    uint32_t u32;
+    uint32_t u32 = 0;
     pstream_t ps_tmp;
 
     switch (wt) {
@@ -2179,7 +2179,7 @@ unpack_struct(mem_pool_t *mp, const iop_struct_t *desc, void *value,
             {
                 /* optimized version of repeated fields are packed in simples
                  * IOP blocks */
-                uint32_t len;
+                uint32_t len = 0;
 
                 switch (wt) {
                   case IOP_WIRE_BLK1:
@@ -2453,7 +2453,7 @@ int iop_bskip(const iop_struct_t *desc, pstream_t *ps)
 {
     const iop_field_t *fdesc = desc->fields;
     iop_wire_type_t wt;
-    uint32_t tag, u32;
+    uint32_t tag, u32 = 0;
     int ifield;
 
     assert(desc->is_union);
