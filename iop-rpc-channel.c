@@ -75,7 +75,10 @@ void ic_msg_delete(ic_msg_t **msgp)
         (*msg->fini)(msg->priv);
     if (msg->fd >= 0)
         close(msg->fd);
-    mp_delete(ic_mp_g, &msg->data);
+    if (msg->dlen) {
+        assert (msg->dlen >= IC_MSG_HDR_LEN);
+        mp_delete(ic_mp_g, &msg->data);
+    }
     mp_delete(ic_mp_g, msgp);
 }
 
@@ -513,18 +516,121 @@ static lstr_t ic_get_client_addr(ichannel_t *ic)
     return ic->peer_address.len ? lstr_dupc(ic->peer_address) : LSTR_NULL_V;
 }
 
+static inline void ic_update_pending(ichannel_t *ic, uint32_t slot)
+{
+    if (slot) {
+        ic->pending++;
+#ifndef NDEBUG
+        /*
+         * This code prints a warning when the amount of pending
+         * request peaks more than 10% higher than before.
+         *
+         * If 10% is too low, feel free to make it higher, though keep
+         * it low enough so that real bugs can be seen, even for
+         * queries made only once per second.
+         *
+         */
+        if (ic->pending >= ic->pending_max * 9 / 8) {
+            e_trace(0, "warning: %p peaked at %d pending requests (cb %p)",
+                    ic, ic->pending, ic->on_event);
+            ic->pending_max = ic->pending;
+        }
+#endif
+#ifdef IC_DEBUG_REPLIES
+        qh_add(ic_replies, &ic->dbg_replies, MAKE64(ic->id, slot));
+#endif
+    }
+}
+
+static int
+t_get_hdr_of_query(const ic_msg_t *unpacked_msg, pstream_t *ps,
+                   ic__hdr__t **hdr)
+{
+    if (unpacked_msg) {
+        RETHROW(ic__hdr__check((ic__hdr__t *)unpacked_msg->hdr));
+        if (unpacked_msg->force_dup) {
+            *hdr = ic__hdr__dup(t_pool(), unpacked_msg->hdr);
+        } else {
+            *hdr = (ic__hdr__t *)unpacked_msg->hdr;
+        }
+    } else {
+        *hdr = t_new_raw(ic__hdr__t, 1);
+        RETHROW(t_ic__hdr__bunpack_multi(*hdr, ps, false));
+    }
+    return 0;
+}
+
+static int
+t_get_value_of_st(const iop_struct_t *st, const ic_msg_t *unpacked_msg,
+                  pstream_t ps, void **value)
+{
+    if (unpacked_msg) {
+        RETHROW(iop_check_constraints(st, unpacked_msg->data));
+        if (unpacked_msg->force_dup) {
+            *value = iop_dup(t_pool(), st, unpacked_msg->data);
+        } else {
+            *value = unpacked_msg->data;
+        }
+    } else {
+        RETHROW(iop_bunpack_ptr(t_pool(), st, value, ps, false));
+    }
+    return 0;
+}
+
+static int
+t_get_hdr_value_of_query(ichannel_t *ic, int cmd, uint32_t flags,
+                         const void *data, int dlen,
+                         const ic_msg_t *unpacked_msg, const iop_struct_t *st,
+                         ic__hdr__t **hdr, void **value)
+{
+    pstream_t ps = ps_init(data, dlen);
+
+#define TRACE_INVALID(X)                                         \
+    e_trace(0, "query %04x:%04x, type %s: invalid " X,           \
+            (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s)
+
+    if (unlikely(flags & IC_MSG_HAS_HDR)) {
+        if (unlikely(t_get_hdr_of_query(unpacked_msg, &ps, hdr) < 0)) {
+            TRACE_INVALID("header encoding");
+            return -1;
+        }
+        /* XXX on simple header we write the payload size of the iop query */
+        if (unlikely((*hdr)->iop_tag == IOP_UNION_TAG(ic__hdr, simple))) {
+            ic__simple_hdr__t *shdr = &(*hdr)->simple;
+
+            if (shdr->payload < 0)
+                shdr->payload = dlen;
+            if (!shdr->host.len) {
+                shdr->host = ic_get_client_addr(ic);
+            }
+        }
+    }
+
+    if (unlikely(t_get_value_of_st(st, unpacked_msg, ps, value) < 0)) {
+#ifndef NDEBUG
+        if (!iop_get_err()) {
+            TRACE_INVALID("encoding");
+        }
+#endif
+        return -1;
+    }
+
+    return 0;
+#undef TRACE_INVALID
+}
+
 static ALWAYS_INLINE void
 ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
-                      uint32_t flags, const void *data, int dlen)
+                      uint32_t flags, const void *data, int dlen,
+                      const ic_msg_t *unpacked_msg)
 {
     const ic_cb_entry_t *e;
     const iop_struct_t *st;
     ichannel_t *pxy;
-    ic__hdr__t *hdr = NULL, *pxy_hdr = NULL;
-    pstream_t ps;
+    ic__hdr__t *pxy_hdr = NULL;
     int pos;
 
-    pos = qm_find_safe(ic_cbs, ic->impl, cmd);
+    pos = likely(ic->impl) ? qm_find_safe(ic_cbs, ic->impl, cmd) : -1;
     if (unlikely(pos < 0)) {
         e_trace(1, "received query for unimplemented RPC (%04x:%04x)",
                 (cmd >> 16) & 0x7fff, cmd & 0x7fff);
@@ -533,63 +639,32 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         return;
     }
     e = ic->impl->values + pos;
+    st = e->u.cb.rpc->args;
 
     switch (e->cb_type) {
       case IC_CB_NORMAL:
-      case IC_CB_WS_SHARED:
+      case IC_CB_WS_SHARED: {
+        t_scope;
+        ic__hdr__t *hdr = NULL;
+        void *value = NULL;
+
+        if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen, unpacked_msg,
+                                     st, &hdr, &value) >= 0)
         {
-            t_scope;
-            void *value = NULL;
+            t_seal();
+            ic->desc = e->u.cb.rpc;
+            ic->cmd  = cmd;
+            (*e->u.cb.cb)(ic, MAKE64(ic->id, slot), value, hdr);
+            ic->desc = NULL;
+            ic->cmd  = 0;
+        } else
+        if (slot) {
+            lstr_t err_str = iop_get_err_lstr();
 
-            /* XXX works for both IC_CB_NORMAL & IC_CB_WS_SHARED */
-            st    = e->u.cb.rpc->args;
-            ps    = ps_init(data, dlen);
-            if (unlikely(flags & IC_MSG_HAS_HDR)) {
-                hdr = t_new_raw(ic__hdr__t, 1);
-                if (unlikely(iop_bunpack_multi(t_pool(), &ic__hdr__s, hdr, &ps, false)) < 0)
-                {
-                    e_trace(0, "query %04x:%04x, type %s: invalid header encoding",
-                            (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s);
-                    goto invalid;
-                }
-                /* XXX on simple header we write the payload size of the iop query */
-                if (unlikely(hdr->iop_tag == IOP_UNION_TAG(ic__hdr, simple))) {
-                    ic__simple_hdr__t *shdr = &hdr->simple;
-                    if (shdr->payload < 0)
-                        shdr->payload = dlen;
-                    if (!shdr->host.len) {
-                        shdr->host = ic_get_client_addr(ic);
-                    }
-                }
-            }
-
-            if (unlikely(iop_bunpack_ptr(t_pool(), st, &value, ps,
-                                         false) < 0))
-            {
-#ifndef NDEBUG
-                if (!iop_get_err()) {
-                    e_trace(0, "query %04x:%04x, type %s: invalid encoding",
-                            (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s);
-                }
-#endif
-              invalid:
-                t_seal();
-                if (slot) {
-                    lstr_t err_str = iop_get_err_lstr();
-
-                    ic_reply_err2(ic, MAKE64(ic->id, slot), IC_MSG_INVALID,
-                                  &err_str);
-                }
-            } else {
-                t_seal();
-                ic->desc = e->u.cb.rpc;
-                ic->cmd  = cmd;
-                (*e->u.cb.cb)(ic, MAKE64(ic->id, slot), value, hdr);
-                ic->desc = NULL;
-                ic->cmd  = 0;
-            }
+            ic_reply_err2(ic, MAKE64(ic->id, slot), IC_MSG_INVALID, &err_str);
         }
         return;
+      }
 
       case IC_CB_PROXY_P:
         pxy     = e->u.proxy_p.ic_p;
@@ -618,6 +693,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             ic_reply_err(ic, MAKE64(ic->id, slot), IC_MSG_PROXY_ERROR);
     } else {
         ic_msg_t *tmp = ic_msg_proxy_new(ic_get_fd(ic), slot, NULL);
+        bool take_pxy_hdr = !(flags & IC_MSG_HAS_HDR) && pxy_hdr;
 
         if (slot) {
             tmp->cb = IC_PROXY_MAGIC_CB;
@@ -627,25 +703,35 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         tmp->cmd = cmd;
         *(uint64_t *)tmp->priv = MAKE64(ic->id, slot);
 
-        if (!(flags & IC_MSG_HAS_HDR) && pxy_hdr) {
-            qv_t(i32) szs;
-            uint8_t *buf;
-            int hlen;
+        /* XXX We do not support header replacement with proxyfication */
 
-            /* Pack the given header in proxyfied request */
-            qv_inita(i32, &szs, 128);
-            hlen = iop_bpack_size(&ic__hdr__s, pxy_hdr, &szs);
-            buf = __ic_get_buf(tmp, hlen + dlen);
-            qv_wipe(i32, &szs);
-
-            iop_bpack(buf, &ic__hdr__s, pxy_hdr, szs.tab);
-            memcpy(buf + hlen, data, dlen);
-            flags |= IC_MSG_HAS_HDR;
+        if (unpacked_msg) {
+            tmp->hdr = take_pxy_hdr ? pxy_hdr : unpacked_msg->hdr;
+            __ic_msg_build(tmp, st, unpacked_msg->data, !ic_is_local(pxy));
         } else {
-            /* XXX We do not support header replacement with proxyfication */
-            memcpy(__ic_get_buf(tmp, dlen), data, dlen);
+            if (ic_is_local(pxy))
+                tmp->force_pack = true;
+
+            if (take_pxy_hdr) {
+                qv_t(i32) szs;
+                uint8_t *buf;
+                int hlen;
+
+                /* Pack the given header in proxyfied request */
+                qv_inita(i32, &szs, 128);
+                hlen = iop_bpack_size(&ic__hdr__s, pxy_hdr, &szs);
+                buf = __ic_get_buf(tmp, hlen + dlen);
+                iop_bpack(buf, &ic__hdr__s, pxy_hdr, szs.tab);
+                qv_wipe(i32, &szs);
+                memcpy(buf + hlen, data, dlen);
+            } else {
+                memcpy(__ic_get_buf(tmp, dlen), data, dlen);
+            }
         }
 
+        if (take_pxy_hdr) {
+            flags |= IC_MSG_HAS_HDR;
+        }
         ___ic_query_flags(pxy, tmp, flags);
     }
 }
@@ -761,34 +847,13 @@ static int ic_read(ichannel_t *ic, short events, int sock)
                 goto close_and_error_out;
         } else {
             /* deal with queries */
-            if (slot) {
-                ic->pending++;
-#ifndef NDEBUG
-                /*
-                 * This code prints a warning when the amount of pending
-                 * request peaks more than 10% higher than before.
-                 *
-                 * If 10% is too low, feel free to make it higher, though keep
-                 * it low enough so that real bugs can be seen, even for
-                 * queries made only once per second.
-                 *
-                 */
-                if (ic->pending >= ic->pending_max * 9 / 8) {
-                    e_trace(0, "warning: %p peaked at %d pending requests (cb %p)",
-                            ic, ic->pending, ic->on_event);
-                    ic->pending_max = ic->pending;
-                }
-#endif
-#ifdef IC_DEBUG_REPLIES
-                qh_add(ic_replies, &ic->dbg_replies, MAKE64(ic->id, slot));
-#endif
-            }
+            ic_update_pending(ic, slot);
 
             if (unlikely(ic->is_closing)) {
                 if (slot)
                     ic_reply_err(ic, MAKE64(ic->id, slot), IC_MSG_RETRY);
             } else {
-                ic_read_process_query(ic, cmd, slot, flags, data, dlen);
+                ic_read_process_query(ic, cmd, slot, flags, data, dlen, NULL);
             }
         }
 
@@ -924,6 +989,14 @@ void *__ic_get_buf(ic_msg_t *msg, int len)
     return (char *)msg->data + IC_MSG_HDR_LEN;
 }
 
+static void ic_msg_update_flags(const ic_msg_t *msg, uint32_t *flags)
+{
+    if (msg->fd >= 0)
+        *flags |= IC_MSG_HAS_FD;
+    if (msg->hdr)
+        *flags |= IC_MSG_HAS_HDR;
+}
+
 static void ic_queue(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
 {
     uint32_t *hdr = (uint32_t *)msg->data;
@@ -932,10 +1005,7 @@ static void ic_queue(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
     assert (msg->dlen >= IC_MSG_HDR_LEN && msg->data);
 
     flags |= msg->slot;
-    if (msg->fd >= 0)
-        flags |= IC_MSG_HAS_FD;
-    if (msg->hdr)
-        flags |= IC_MSG_HAS_HDR;
+    ic_msg_update_flags(msg, &flags);
     hdr[0] = cpu_to_le32(flags);
     hdr[1] = cpu_to_le32(msg->cmd);
     hdr[2] = cpu_to_le32(msg->dlen - IC_MSG_HDR_LEN);
@@ -1008,7 +1078,29 @@ static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
             msg->slot = ic->nextslot;
         } while (qm_add(ic_msg, &ic->queries, msg->slot, msg));
     }
-    ic_queue(ic, msg, flags);
+    if (ic_is_local(ic)) {
+        const void *data;
+        int dlen;
+        const ic_msg_t *unpacked_msg;
+
+        ic_msg_update_flags(msg, &flags);
+        ic_update_pending(ic, msg->slot);
+        assert (msg->force_pack == !!msg->dlen);
+        if (msg->force_pack) {
+            data = (char *)msg->data + IC_MSG_HDR_LEN;
+            dlen = msg->dlen - IC_MSG_HDR_LEN;
+            assert (dlen >= 0);
+            unpacked_msg = NULL;
+        } else {
+            data = NULL;
+            dlen = 0;
+            unpacked_msg = msg;
+        }
+        ic_read_process_query(ic, msg->cmd, msg->slot, flags, data, dlen,
+                              unpacked_msg);
+    } else {
+        ic_queue(ic, msg, flags);
+    }
 }
 
 void __ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
@@ -1056,6 +1148,18 @@ void __ic_bpack(ic_msg_t *msg, const iop_struct_t *st, const void *arg)
         iop_bpack(buf, st, arg, szs.tab);
     }
     qv_wipe(i32, &szs);
+}
+
+void
+__ic_msg_build(ic_msg_t *msg, const iop_struct_t *st, const void *arg,
+               bool do_bpack)
+{
+    if (do_bpack) {
+        __ic_bpack(msg, st, arg);
+    } else {
+        msg->dlen = 0;
+        msg->data = (void *)arg;
+    }
 }
 
 size_t __ic_reply(ichannel_t *ic, uint64_t slot, int cmd, int fd,
