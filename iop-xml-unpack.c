@@ -492,6 +492,10 @@ xunpack_class(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
         pstream_t ps;
 
         if (!attr) {
+            if (desc->class_attrs->is_abstract) {
+                return xmlr_fail(xr, "type attribute not found (mandatory "
+                                 "for abstract classes)");
+            }
             /* If type attribute is not present, consider we are unpacking a
              * class of the expected type. */
             real_desc = desc;
@@ -506,6 +510,11 @@ xunpack_class(xml_reader_t xr, mem_pool_t *mp, const iop_struct_t *desc,
             return xmlr_fail(xr, "class `%*pM' not found",
                              PS_FMT_ARG(&ps));
         }
+    }
+
+    if (real_desc->class_attrs->is_abstract) {
+        return xmlr_fail(xr, "class `%*pM' is an abstract class",
+                         LSTR_FMT_ARG(real_desc->fullname));
     }
 
     /* The fields will be present in the order "master -> children", not

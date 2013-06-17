@@ -183,6 +183,10 @@ void iop_init(const iop_struct_t *desc, void *value)
         const iop_struct_t **__vptr = value;
         const iop_struct_t *parent = desc;
 
+        e_assert(panic, !desc->class_attrs->is_abstract,
+                 "initialization of abstract class '%*pM' is forbidden",
+                 LSTR_FMT_ARG(desc->fullname));
+
         *__vptr = desc;
 
         while ((parent = parent->class_attrs->parent)) {
@@ -1318,6 +1322,11 @@ int iop_check_constraints(const iop_struct_t *desc, const void *val)
     if (iop_struct_is_class(desc)) {
         desc = *(const iop_struct_t **)val;
 
+        if (unlikely(desc->class_attrs->is_abstract)) {
+            return iop_set_err("'%*pM' is an abstract class",
+                               LSTR_FMT_ARG(desc->fullname));
+        }
+
         do {
             RETHROW(__iop_check_constraints(desc, val));
         } while ((desc = desc->class_attrs->parent));
@@ -1474,6 +1483,10 @@ static int __iop_bpack_size_class(const iop_struct_t *desc, const void *val,
     bool first = true;
 
     desc = *(const iop_struct_t **)val;
+
+    e_assert(panic, !desc->class_attrs->is_abstract,
+             "packing of abstract class '%*pM' is forbidden",
+             LSTR_FMT_ARG(desc->fullname));
 
     do {
         int szs_pos = szs->len;
@@ -1959,6 +1972,7 @@ int __iop_skip_absent_field_desc(mem_pool_t *mp, void *value,
             /* For classes, we consider that the absent object is of the
              * expected type, and not a child.
              * We have to allocate it since it's pointed. */
+            PS_WANT(!desc->class_attrs->is_abstract);
             *(void **)ptr = mp->malloc(mp, desc->size, MEM_RAW);
             ptr = *(void **)ptr;
             *(const iop_struct_t **)ptr = desc;
@@ -2317,6 +2331,7 @@ static int unpack_class(mem_pool_t *mp, const iop_struct_t *desc,
                   LSTR_FMT_ARG(real_desc->fullname));
 
   unpack:
+    PS_WANT(!real_desc->class_attrs->is_abstract);
     if (*value) {
         *value = mp->realloc(mp, *value, 0, real_desc->size, MEM_RAW);
     } else {

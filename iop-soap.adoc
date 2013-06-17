@@ -209,7 +209,7 @@ struct MyType {
 |
 [source,d]
 ----
-class Father : 0 {
+abstract class Father : 0 {
     int    i;
     string s;
 };
@@ -221,7 +221,7 @@ class Child : 1 : Father {
 |
 [source,xml]
 ----
-<complexType name="Father">
+<complexType name="Father" abstract="true">
     <sequence>
         <element name="i" type="int"/>
         <element name="s" type="string"/>
