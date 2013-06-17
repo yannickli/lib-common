@@ -388,6 +388,25 @@ typedef struct iop_iface_alias_t {
     uint32_t            tag;
 } iop_iface_alias_t;
 
+typedef enum iop_mod_iface_attr_type_t {
+    IOP_MOD_IFACE_ATTR_HELP,
+} iop_mod_iface_attr_type_t;
+
+typedef iop_generic_attr_arg_t iop_mod_iface_attr_arg_t;
+
+typedef struct iop_mod_iface_attr_t {
+    iop_mod_iface_attr_type_t       type;
+    const iop_mod_iface_attr_arg_t *args;
+} iop_mod_iface_attr_t;
+
+typedef struct iop_mod_iface_attrs_t {
+    unsigned                flags;
+    uint16_t                attrs_len;
+    uint8_t                 version;   /**< version 0 */
+    uint8_t                 padding;
+    const iop_mod_iface_attr_t *attrs;
+} iop_mod_iface_attrs_t;
+
 typedef enum iop_mod_attr_type_t {
     IOP_MOD_ATTR_HELP,
 } iop_mod_attr_type_t;
@@ -417,8 +436,9 @@ typedef struct iop_mod_t {
     uint16_t ifaces_len;
     uint16_t flags;
     /** check TST_BIT(flags, IOP_MOD_EXTENDED)
-     *  before accessing mod_attrs */
-    const iop_mod_attrs_t *mod_attrs;
+     *  before accessing mod_attrs and ifaces_attrs */
+    const iop_mod_attrs_t       *mod_attrs;
+    const iop_mod_iface_attrs_t *ifaces_attrs;
 } iop_mod_t;
 
 typedef struct iop_pkg_t iop_pkg_t;
