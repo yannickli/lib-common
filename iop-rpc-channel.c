@@ -82,6 +82,25 @@ void ic_msg_delete(ic_msg_t **msgp)
     mp_delete(ic_mp_g, msgp);
 }
 
+static void
+ic_msg_init_for_reply(ichannel_t *ic, ic_msg_t *msg, uint64_t slot, int cmd)
+{
+#ifdef IC_DEBUG_REPLIES
+    int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
+    if (pos < 0)
+        e_panic("answering to slot %d twice or unexpected answer!",
+                (uint32_t)slot);
+#endif
+    assert (ic->pending > 0);
+    ic->pending--;
+    msg->slot = slot & IC_MSG_SLOT_MASK;
+    msg->cmd  = -cmd;
+}
+
+static inline bool ic_can_reply(const ichannel_t *ic, uint64_t slot) {
+    return likely(ic->elh) && likely(ic->id == slot >> 32);
+}
+
 static void ic_watch_act_soft(el_t ev, el_data_t priv);
 
 static void ic_reply_err2(ichannel_t *ic, uint64_t slot, int err,
@@ -102,20 +121,11 @@ static void ic_proxify(ichannel_t *pxy_ic, ic_msg_t *msg, int cmd,
     ic = ic_get_from_slot(slot);
     if (unlikely(!ic))
         return;
-    if (likely(ic->elh) && likely(ic->id == slot >> 32)) {
+    if (likely(ic_can_reply(ic, slot))) {
         ic_msg_t *tmp = ic_msg_new_fd(pxy_ic ? ic_get_fd(pxy_ic) : -1, 0);
         void *buf;
 
-#ifdef IC_DEBUG_REPLIES
-        int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
-        if (pos < 0)
-            e_panic("answering to slot %d twice or unexpected answer!",
-                    (uint32_t)slot);
-#endif
-        assert (ic->pending > 0);
-        ic->pending--;
-        tmp->slot = slot & IC_MSG_SLOT_MASK;
-        tmp->cmd  = cmd;
+        ic_msg_init_for_reply(ic, tmp, slot, -cmd);
         buf = __ic_get_buf(tmp, dlen);
         if (data) {
             memcpy(buf, data, dlen);
@@ -147,22 +157,13 @@ void __ic_forward_reply_to(ichannel_t *pxy_ic, uint64_t slot, int cmd,
 
     if (unlikely(!(ic = ic_get_from_slot(slot))))
         return;
-    if (likely(ic->elh) && likely(ic->id == slot >> 32)) {
+    if (likely(ic_can_reply(ic, slot))) {
         ic_msg_t *tmp = ic_msg_new_fd(ic_get_fd(pxy_ic), 0);
         sb_t *buf  = &pxy_ic->rbuf;
         void *data = buf->data + IC_MSG_HDR_LEN;
         int   dlen = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
 
-#ifdef IC_DEBUG_REPLIES
-        int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
-        if (pos < 0)
-            e_panic("answering to slot %d twice or unexpected answer!",
-                    (uint32_t)slot);
-#endif
-        assert (ic->pending > 0);
-        ic->pending--;
-        tmp->slot = slot & IC_MSG_SLOT_MASK;
-        tmp->cmd  = -cmd;
+        ic_msg_init_for_reply(ic, tmp, slot, cmd);
         memcpy(__ic_get_buf(tmp, dlen), data, dlen);
         ic_queue(ic, tmp, 0);
     }
@@ -1162,9 +1163,30 @@ __ic_msg_build(ic_msg_t *msg, const iop_struct_t *st, const void *arg,
     }
 }
 
+static ic_msg_t *
+ic_msg_new_for_reply(ichannel_t **ic, uint64_t slot, int cmd)
+{
+    assert (!(slot & IC_SLOT_FOREIGN_MASK));
+
+    if (unlikely(!*ic)) {
+        *ic = ic_get_from_slot(slot);
+        if (unlikely(!*ic))
+            return NULL;
+    }
+    if (likely(ic_can_reply(*ic, slot))) {
+        ic_msg_t *msg = ic_msg_new(0);
+
+        ic_msg_init_for_reply(*ic, msg, slot, cmd);
+        return msg;
+    }
+    return NULL;
+}
+
 size_t __ic_reply(ichannel_t *ic, uint64_t slot, int cmd, int fd,
                   const iop_struct_t *st, const void *arg)
 {
+    ic_msg_t *msg;
+
     assert (slot & IC_MSG_SLOT_MASK);
 
     if (unlikely(ic_slot_is_http(slot))) {
@@ -1172,73 +1194,42 @@ size_t __ic_reply(ichannel_t *ic, uint64_t slot, int cmd, int fd,
         __ichttp_reply(slot, cmd, st, arg);
         return 0;
     }
-    assert (!(slot & IC_SLOT_FOREIGN_MASK));
 
-    if (unlikely(!ic)) {
-        ic = ic_get_from_slot(slot);
-        if (unlikely(!ic))
-            return 0;
-    }
-    if (likely(ic->elh) && likely(ic->id == slot >> 32)) {
-        ic_msg_t *msg = ic_msg_new(0);
+    msg = ic_msg_new_for_reply(&ic, slot, cmd);
+    if (!msg)
+        return 0;
 
-#ifdef IC_DEBUG_REPLIES
-        int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
-        if (pos < 0)
-            e_panic("answering to slot %d twice or unexpected answer!",
-                    (uint32_t)slot);
-#endif
-        assert (ic->pending > 0);
-        ic->pending--;
-        msg->slot = slot & IC_MSG_SLOT_MASK;
-        msg->fd   = fd;
-        msg->cmd  = -cmd;
-        __ic_bpack(msg, st, arg);
-        ic_queue(ic, msg, 0);
-        return msg->dlen;
-    }
-    return 0;
+    msg->fd = fd;
+    __ic_bpack(msg, st, arg);
+    ic_queue(ic, msg, 0);
+    return msg->dlen;
 }
 
 static void ic_reply_err2(ichannel_t *ic, uint64_t slot, int err,
                           const lstr_t *err_str)
 {
+    ic_msg_t *msg;
+
     assert (slot & IC_MSG_SLOT_MASK);
 
     if (unlikely(ic_slot_is_http(slot))) {
         __ichttp_reply_err(slot, err, err_str);
         return;
     }
-    assert (!(slot & IC_SLOT_FOREIGN_MASK));
 
-    if (unlikely(!ic)) {
-        ic = ic_get_from_slot(slot);
-        if (unlikely(!ic))
-            return;
-    }
-    if (likely(ic->elh) && likely(ic->id == slot >> 32)) {
-        ic_msg_t *msg = ic_msg_new(0);
+    msg = ic_msg_new_for_reply(&ic, slot, err);
+    if (!msg)
+        return;
 
-#ifdef IC_DEBUG_REPLIES
-        int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
-        if (pos < 0)
-            e_panic("answering to slot %d twice or unexpected answer!",
-                    (uint32_t)slot);
-#endif
-        assert (ic->pending > 0);
-        ic->pending--;
-        msg->slot = slot & IC_MSG_SLOT_MASK;
-        msg->cmd  = -err;
-        if (err_str && err_str->len) {
-            msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN + err_str->len + 1);
-            msg->dlen = IC_MSG_HDR_LEN + err_str->len + 1;
-            memcpyz((char *)msg->data + IC_MSG_HDR_LEN, err_str->s, err_str->len);
-        } else {
-            msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN);
-            msg->dlen = IC_MSG_HDR_LEN;
-        }
-        ic_queue(ic, msg, 0);
+    if (err_str && err_str->len) {
+        msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN + err_str->len + 1);
+        msg->dlen = IC_MSG_HDR_LEN + err_str->len + 1;
+        memcpyz((char *)msg->data + IC_MSG_HDR_LEN, err_str->s, err_str->len);
+    } else {
+        msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN);
+        msg->dlen = IC_MSG_HDR_LEN;
     }
+    ic_queue(ic, msg, 0);
 }
 
 void ic_reply_err(ichannel_t *ic, uint64_t slot, int err)
