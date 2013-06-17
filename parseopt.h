@@ -46,6 +46,8 @@ typedef struct popt_t {
 #define OPT_GROUP(h)           { OPTION_GROUP, 0, NULL, NULL, 0, (h) }
 #define OPT_END()              { OPTION_END, 0, NULL, NULL, 0, NULL }
 
+/* If "name" or "f" is NULL, then the core versions are printed
+ * (cf. core-stdlib.h). */
 #define OPT_VERSION(name, f)   { OPTION_VERSION, 'V', "version",             \
                                  (void *)(name), (intptr_t)(f),              \
                                  "show version information" }

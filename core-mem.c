@@ -293,10 +293,37 @@ void mem_tool_freelike(const void *mem, size_t len, size_t rz)
 #endif
 
 /* }}} */
+/*{{{ Versions */
 
+/* This version will be visible using the "ident" command */
 extern const char libcommon_id[];
 const char *__libcomon_version(void);
 const char *__libcomon_version(void)
 {
     return libcommon_id;
 }
+
+core_version_t core_versions_g[8];
+int core_versions_nb_g;
+
+void core_push_version(bool is_main_version, const char *name,
+                       const char *version, const char *git_revision)
+{
+    int ind = core_versions_nb_g++;
+
+    assert (ind < countof(core_versions_g));
+    core_versions_g[ind].is_main_version = is_main_version;
+    core_versions_g[ind].name            = name;
+    core_versions_g[ind].version         = version;
+    core_versions_g[ind].git_revision    = git_revision;
+}
+
+extern const char libcommon_git_revision[];
+__attribute__((constructor))
+static void core_versions_initialize(void)
+{
+    core_push_version(false, "lib-common", LIB_COMMON_VERSION,
+                      libcommon_git_revision);
+}
+
+/*}}} */
