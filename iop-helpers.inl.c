@@ -75,6 +75,29 @@ static inline bool iop_value_has(const iop_field_t *f, const void *v)
     }
 }
 
+static inline bool
+iop_scalar_equals(const iop_field_t *f, const void *v1, const void *v2, int n)
+{
+    /* Scalar types (even repeated) could be compared with one big
+     * memcmp*/
+    switch (f->type) {
+      case IOP_T_I8:  case IOP_T_U8:
+        return (!memcmp(v1, v2, sizeof(uint8_t) * n));
+      case IOP_T_I16: case IOP_T_U16:
+        return (!memcmp(v1, v2, sizeof(uint16_t) * n));
+      case IOP_T_I32: case IOP_T_U32: case IOP_T_ENUM:
+        return (!memcmp(v1, v2, sizeof(uint32_t) * n));
+      case IOP_T_I64: case IOP_T_U64:
+        return (!memcmp(v1, v2, sizeof(uint64_t) * n));
+      case IOP_T_BOOL:
+        return (!memcmp(v1, v2, sizeof(bool) * n));
+      case IOP_T_DOUBLE:
+        return (!memcmp(v1, v2, sizeof(double) * n));
+      default:
+        return false;
+    }
+}
+
 static inline
 void *iop_value_set_here(mem_pool_t *mp, const iop_field_t *f, void *v)
 {
