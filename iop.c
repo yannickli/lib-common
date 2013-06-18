@@ -153,10 +153,16 @@ __iop_copy(const iop_struct_t *st, uint8_t *dst, void *wval, const void *rval)
         int n = 1;
 
         if (fdesc->repeat == IOP_R_REPEATED) {
-            n   = ((iop_data_t *)rp)->len;
-            rp  = ((iop_data_t *)rp)->data;
-            wp  = ((iop_data_t *)wp)->data = dst;
-            dst = realign(mempcpy(dst, rp, n * fdesc->size));
+            n = ((iop_data_t *)rp)->len;
+            if (n) {
+                rp  = ((iop_data_t *)rp)->data;
+                wp  = ((iop_data_t *)wp)->data = dst;
+                dst = realign(mempcpy(dst, rp, n * fdesc->size));
+            } else {
+                ((iop_data_t *)wp)->data = NULL;
+                wp  = dst;
+                dst = realign(dst);
+            }
         }
 
         if (!((1 << fdesc->type) & IOP_BLK_OK)) /* DATA,STRING,STRUCT,UNION */
