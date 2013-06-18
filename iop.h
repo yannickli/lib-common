@@ -658,21 +658,29 @@ void  iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
  *
  * This function generates a salted SHA256 signature of an IOP structure.
  *
- * \param[in] st  IOP structure description.
- * \param[in] v   IOP structure to sign.
+ * \param[in] st     IOP structure description.
+ * \param[in] v      IOP structure to sign.
+ * \param[in] flags  Flags modifying the hashing algorithm. The same flags
+ *                   must be used when computing and checking the signature.
  */
-lstr_t t_iop_compute_signature(const iop_struct_t *st, const void *v);
+lstr_t t_iop_compute_signature(const iop_struct_t *st, const void *v,
+                               unsigned flags);
+#define t_iop_compute_signature(...) (t_iop_compute_signature)(__VA_ARGS__, 0)
 
 /** Check the signature of an IOP structure.
  *
  * This function checks the signature of an IOP structure.
  *
- * \param[in] st   IOP structure description.
- * \param[in] v    IOP structure to check.
- * \param[in] sig  Excepted signature.
+ * \param[in] st     IOP structure description.
+ * \param[in] v      IOP structure to check.
+ * \param[in] sig    Excepted signature.
+ * \param[in] flags  Flags modifying the hashing algorithm. The same flags
+ *                   must be used when computing and checking the signature.
  */
 __must_check__
-int iop_check_signature(const iop_struct_t *st, const void *v, lstr_t sig);
+int iop_check_signature(const iop_struct_t *st, const void *v, lstr_t sig,
+                        unsigned flags);
+#define iop_check_signature(...) (iop_check_signature)(__VA_ARGS__, 0)
 
 /* }}} */
 /* {{{ IOP class manipulation */

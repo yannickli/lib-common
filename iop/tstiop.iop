@@ -287,6 +287,16 @@ union MyExceptions {
     MyBException b;
 };
 
+struct MyHashed {
+    int a;
+};
+
+struct MyHashedExtended {
+    int a;
+    int? b;
+    int[] c;
+};
+
 /* Interfaces */
 interface MyIfaceA {
     funA      in (int a, MyStructA b)  out (MyUnionA c, int d);

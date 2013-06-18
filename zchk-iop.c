@@ -2140,6 +2140,49 @@ Z_GROUP_EXPORT(iop)
         iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
+    Z_TEST(iop_signature, "iop_compute/check_signature()") { /* {{{ */
+        t_scope;
+        tstiop__my_hashed__t a;
+        tstiop__my_hashed_extended__t b;
+
+        tstiop__my_hashed__init(&a);
+        tstiop__my_hashed_extended__init(&b);
+
+        Z_ASSERT_N((iop_check_signature)(&tstiop__my_hashed__s, &a,
+            (t_iop_compute_signature)(&tstiop__my_hashed__s, &a, 0), 0));
+        Z_ASSERT_N((iop_check_signature)(&tstiop__my_hashed__s, &a,
+            (t_iop_compute_signature)(&tstiop__my_hashed__s, &a,
+                                      IOP_HASH_SKIP_MISSING),
+            IOP_HASH_SKIP_MISSING));
+        Z_ASSERT_N((iop_check_signature)(&tstiop__my_hashed__s, &a,
+            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
+                                      IOP_HASH_SKIP_MISSING),
+            IOP_HASH_SKIP_MISSING));
+        Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
+            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b, 0),
+            0));
+
+        OPT_SET(b.b, 0);
+        Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
+            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
+                                      IOP_HASH_SKIP_MISSING),
+            IOP_HASH_SKIP_MISSING));
+
+        OPT_CLR(b.b);
+        b.c.tab = t_new(int, 1);
+        b.c.len = 1;
+        Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
+            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
+                                      IOP_HASH_SKIP_MISSING),
+            IOP_HASH_SKIP_MISSING));
+
+        b.c.len = 0;
+        Z_ASSERT_N((iop_check_signature)(&tstiop__my_hashed__s, &a,
+            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
+                                      IOP_HASH_SKIP_MISSING),
+            IOP_HASH_SKIP_MISSING));
+    } Z_TEST_END;
+    /* }}} */
     Z_TEST(inheritance_basics, "test inheritance basic properties") { /* {{{ */
 #define CHECK_PARENT(_type, _class_id)  \
         do {                                                                 \
