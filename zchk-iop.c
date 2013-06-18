@@ -292,6 +292,9 @@ static int iop_std_test_struct(const iop_struct_t *st, void *v,
                    "IOP packing/unpacking hashes don't match! (%s, %s)",
                    st->fullname.s, info);
 
+    /* check equality */
+    Z_ASSERT(iop_equals(st, v, res));
+
     /* test duplication */
     Z_ASSERT_NULL(iop_dup(NULL, st, NULL));
     Z_ASSERT_P(res = iop_dup(t_pool(), st, v),
