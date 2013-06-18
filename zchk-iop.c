@@ -2110,7 +2110,36 @@ Z_GROUP_EXPORT(iop)
 
     } Z_TEST_END;
     /* }}} */
+    Z_TEST(iop_copy_inv_tab, "iop_copy(): invalid tab pointer when len == 0") { /* {{{ */
+        t_scope;
 
+        tstiop__my_struct_b__t sb, *sb_dup;
+
+        iop_dso_t *dso;
+        lstr_t path = t_lstr_cat(z_cmddir_g,
+                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+
+
+        const iop_struct_t *st_sb;
+
+        if ((dso = iop_dso_open(path.s)) == NULL)
+            Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
+
+        Z_ASSERT_P(st_sb = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructB")));
+
+        iop_init(st_sb, &sb);
+        sb.b.tab = (void *)0x42;
+        sb.b.len = 0;
+
+        sb_dup = iop_dup(NULL, st_sb, &sb);
+        Z_ASSERT_NULL(sb_dup->b.tab);
+        Z_ASSERT_ZERO(sb_dup->b.len);
+
+        p_delete(&sb_dup);
+
+        iop_dso_close(&dso);
+    } Z_TEST_END
+    /* }}} */
     Z_TEST(inheritance_basics, "test inheritance basic properties") { /* {{{ */
 #define CHECK_PARENT(_type, _class_id)  \
         do {                                                                 \
