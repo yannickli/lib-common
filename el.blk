@@ -444,6 +444,7 @@ ev_t *el_signal_register_d(int signo, el_signal_f *cb, el_data_t priv)
     struct sigaction sa;
     ev_t *ev;
 
+    p_clear(&sa, 1);
     sa.sa_handler = el_sighandler;
     sigfillset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
@@ -1079,9 +1080,10 @@ int el_fs_watch_change(el_t el, uint32_t flags)
 
 /*----- generic functions  -----*/
 
-void el_set_worker(el_worker_f *worker)
+el_worker_f *el_set_worker(el_worker_f *worker)
 {
-    _G.worker = worker;
+    SWAP(el_worker_f *, _G.worker, worker);
+    return worker;
 }
 
 #ifndef NDEBUG
@@ -1152,14 +1154,14 @@ void el_loop_timeout(int timeout)
     el_idle_process(clk);
     if (!dlist_is_empty(&_G.proxy_ready) || !dlist_is_empty(&_G.idle))
         timeout = 0;
-    if (_G.worker) {
+    if (_G.worker && timeout && !el_has_pending_events()) {
         uint64_t start, end;
         int diff;
 
         start = get_clock(false);
         _G.worker_running = true;
         _G.worker_end     = start + timeout;
-        (*_G.worker)(el_has_pending_events() ? 0 : timeout);
+        (*_G.worker)(timeout);
         _G.worker_running = false;;
         end = get_clock(false);
 

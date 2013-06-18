@@ -291,8 +291,9 @@ void el_bl_unlock(void);
  *    \ref el_has_pending_events.
  *
  * \param[in] worker The new worker (NULL to unset the current worker)
+ * \return The previous worker (NULL if there were no worker)
  */
-void el_set_worker(el_worker_f *worker);
+el_worker_f *el_set_worker(el_worker_f *worker);
 
 void el_cond_wait(pthread_cond_t *);
 void el_cond_signal(pthread_cond_t *) __leaf;
