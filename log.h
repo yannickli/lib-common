@@ -77,8 +77,10 @@ extern uint32_t log_conf_gen_g;
 /** No level defined from the logger.
  *
  * This is a private value, used only internally.
+ * Note that -2 is not used because this is the value for DEFAULT in the IOP
+ * enum LogLevel.
  */
-#define LOG_UNDEFINED    (-2)
+#define LOG_UNDEFINED    (-3)
 
 enum {
     LOG_RECURSIVE = 1 << 0, /**< Force level to be set recursively. */

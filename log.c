@@ -251,6 +251,11 @@ int logger_set_level(lstr_t name, int level, unsigned flags)
     assert (level >= LOG_UNDEFINED);
     assert ((flags & LOG_RECURSIVE) == flags);
     assert (!(flags & LOG_RECURSIVE) || level >= 0);
+
+    if (level == LOG_LEVEL_DEFAULT) {
+        level = LOG_DEFAULT;
+    }
+
     if (!logger) {
         int pos;
 
