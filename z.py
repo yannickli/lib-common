@@ -278,6 +278,7 @@ try:
             self.__failed  = 0
             self.__scenario = None
             self.__status   = None
+            self.__exn      = None
             Formatter.__init__(self, stream, config)
 
         def flush(self):
@@ -291,10 +292,14 @@ try:
                 self.stream.write("%d %s %s   # %d steps\n" %
                         (self.__count, self.__status,
                             self.__scenario.name, self.__steps))
+                if self.__exn:
+                    for line in self.__exn.split('\n'):
+                        print ":", line
                 self.__count += 1
             self.__scenario = None
             self.__steps    = 0
             self.__status   = None
+            self.__exn      = None
 
         def feature(self, feature):
             self.flush()
@@ -318,8 +323,10 @@ try:
             status = self.status.get(step_result.status, "skip")
             if self.__status == "skip":
                 self.__status = status
-            elif status == "fail":
+            if status == "fail":
+                self.__exn    = step_result.error_message
                 self.__status = "fail"
+
 
         def eof(self):
             self.flush()
