@@ -278,6 +278,9 @@ struct qps_stats {
     size_t n_pages;
     size_t ro_allocs;
     size_t rw_allocs;
+    size_t n_pages_free;
+    int pages;
+    int pages_free;
 };
 
 qps_t    *qps_create(const char *path, mode_t mode);

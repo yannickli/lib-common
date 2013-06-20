@@ -3005,8 +3005,13 @@ void qps_get_usage(const qps_t *qps, struct qps_stats *st)
             qps_pghdr_t *hdrs = qps->hdrs + (i << 16);
 
             for (uint32_t pg = 1; pg < QPS_MAP_PAGES; pg += hdrs[pg].size) {
-                if (!(hdrs[pg].flags & QPS_BLK_FREE))
+                if (!(hdrs[pg].flags & QPS_BLK_FREE)) {
+                    st->pages++;
                     st->n_pages += hdrs[pg].size;
+                } else {
+                    st->pages_free++;
+                    st->n_pages_free += hdrs[pg].size;
+                }
             }
         } else
         if (qps_is_ro(qps, map)) {
