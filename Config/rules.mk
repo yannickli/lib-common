@@ -72,11 +72,11 @@ $3.json: $3.c
 $~$3.dep: $3 $(IOPC)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$(IOPC) -2 --c-resolve-includes --Wextra -l c,json -d$~$$<.dep -I$/lib-common:$/lib-inet:$/qrrd/iop:$/qts:$/platform $$<
+	$(IOPC) -3 --c-resolve-includes --Wextra -l c,json -d$~$$<.dep -I$/lib-common:$/lib-inet:$/qrrd/iop:$/qts:$/platform $$<
 $3.c: $3 $(IOPC)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$(IOPC) -2 --c-resolve-includes --Wextra -l c,json -d$~$$<.dep -I$/lib-common:$/lib-inet:$/qrrd/iop:$/qts:$/platform $$<
+	$(IOPC) -3 --c-resolve-includes --Wextra -l c,json -d$~$$<.dep -I$/lib-common:$/lib-inet:$/qrrd/iop:$/qts:$/platform $$<
 -include $~$3.dep
 endef
 
