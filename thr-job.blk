@@ -81,10 +81,14 @@ typedef struct thr_info_t {
 #ifndef NDEBUG
     struct thr_acc {
         uint64_t time;
+        uint64_t ec_wait_time;
+        uint64_t ec_steal_time;
+
         unsigned jobs_queued;
         unsigned jobs_run;
         unsigned ec_gets;
         unsigned ec_waits;
+        unsigned jobs_steals;
     } acc;
 #endif
 } thr_info_t;
@@ -172,12 +176,16 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
         total.jobs_run    += acc->jobs_run;
         total.ec_gets     += acc->ec_gets;
         total.ec_waits    += acc->ec_waits;
+        total.ec_wait_time += acc->ec_wait_time;
+        total.jobs_steals   += acc->jobs_steals;
 
         width.time         = MAX(width.time,        int_width(acc->time / 1000000));
         width.jobs_queued  = MAX(width.jobs_queued, int_width(acc->jobs_queued));
         width.jobs_run     = MAX(width.jobs_run,    int_width(acc->jobs_run));
         width.ec_gets      = MAX(width.ec_gets,     int_width(acc->ec_gets));
         width.ec_waits     = MAX(width.ec_waits,    int_width(acc->ec_waits));
+        width.ec_wait_time = MAX(width.ec_wait_time, int_width(acc->ec_wait_time / 1000000));
+        width.jobs_steals    = MAX(width.jobs_steals,   int_width(acc->jobs_steals));
     }
 
     e_trace(lvl, "----- %*pM", sb.len, sb.data);
@@ -193,19 +201,23 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
     for (size_t i = 0; i < thr_parallelism_g; i++) {
         struct thr_acc *acc = &_G.threads[i].acc;
 
-        e_trace(lvl, " %2zd: %*uM, %*u queued, %*u run, "
-                "%*u gets, %*u waits", i, TIME_FMT_ARG(acc->time),
+        e_trace(lvl, " %2zd: %*uM, %*u queued, %*u run, %*u steals, "
+                "%*u gets, %*u waits (%*uM)", i, TIME_FMT_ARG(acc->time),
                 width.jobs_queued, acc->jobs_queued,
                 width.jobs_run,    acc->jobs_run,
+                width.jobs_steals, acc->jobs_steals,
                 width.ec_gets,     acc->ec_gets,
-                width.ec_waits,    acc->ec_waits);
+                width.ec_waits,    acc->ec_waits,
+                TIME_FMT_ARG(acc->ec_wait_time));
     }
-    e_trace(lvl, "wall %*uM, %*u queued, %*u run, "
-            "%*u gets, %*u waits", TIME_FMT_ARG(wall),
+    e_trace(lvl, "wall %*uM, %*u queued, %*u run, %*u steals, "
+            "%*u gets, %*u waits (%*uM)", TIME_FMT_ARG(wall),
             width.jobs_queued, total.jobs_queued,
             width.jobs_run,    total.jobs_run,
+            width.jobs_steals, total.jobs_steals,
             width.ec_gets,     total.ec_gets,
-            width.ec_waits,    total.ec_waits);
+            width.ec_waits,    total.ec_waits,
+            TIME_FMT_ARG(total.ec_wait_time));
     avg     = (uint64_t)(total.time / thr_parallelism_g);
     waste   = (uint64_t)(wall - avg) * 10000 / wall;
     speedup = total.time * 100 / wall;
@@ -406,12 +418,20 @@ static bool thr_job_try_steal(thr_info_t *ti)
 static bool thr_job_steal(void)
 {
     for (size_t i = self_tid_g; i-- > 0; ) {
-        if (thr_job_try_steal(&_G.threads[i]))
+        if (thr_job_try_steal(&_G.threads[i])) {
+#ifndef NDEBUG
+            self_g->acc.jobs_steals++;
+#endif
             return true;
+        }
     }
     for (size_t i = self_tid_g; ++i < thr_parallelism_g; ) {
-        if (thr_job_try_steal(&_G.threads[i]))
+        if (thr_job_try_steal(&_G.threads[i])) {
+#ifndef NDEBUG
+            self_g->acc.jobs_steals++;
+#endif
             return true;
+        }
     }
     return false;
 }
@@ -643,9 +663,15 @@ static void *thr_job_main(void *arg)
                 continue;
             if (!shared_read(_G.stopping)) {
 #ifndef NDEBUG
+                unsigned long start = hardclock();
+
                 self_g->acc.ec_waits++;
 #endif
                 thr_ec_wait(&_G.ec, key);
+
+#ifndef NDEBUG
+                self_g->acc.ec_wait_time += (hardclock() - start);
+#endif
             }
         }
     }
@@ -782,6 +808,10 @@ size_t thr_id(void)
 
 void thr_syn_wait(thr_syn_t *syn)
 {
+#ifndef NDEBUG
+    unsigned long start;
+#endif
+
     thr_syn__retain(syn);
 
     if (self_tid_g == 0) {
@@ -799,11 +829,22 @@ void thr_syn_wait(thr_syn_t *syn)
 
             shared_write(thr0_cur_ec_g, &syn->ec);
             key = thr_ec_get(&syn->ec);
+#ifndef NDEBUG
+            self_g->acc.ec_gets++;
+#endif
             if (!shared_read(syn->pending))
                 goto cas;
             if (!mpsc_queue_looks_empty(&thr_queue_main_g->q))
                 goto cas;
+
+#ifndef NDEBUG
+            self_g->acc.ec_waits++;
+            start = hardclock();
+#endif
             thr_ec_wait(&syn->ec, key);
+#ifndef NDEBUG
+            self_g->acc.ec_wait_time += (hardclock() - start);
+#endif
           cas:
             while (unlikely(!atomic_bool_cas(&thr0_cur_ec_g, &syn->ec, NULL)))
                 sched_yield();
@@ -815,11 +856,21 @@ void thr_syn_wait(thr_syn_t *syn)
             if (!thr_job_steal()) {
                 uint64_t key = thr_ec_get(&syn->ec);
 
+#ifndef NDEBUG
+                self_g->acc.ec_gets++;
+#endif
                 if (!shared_read(syn->pending))
                     break;
                 if (thr_job_steal())
                     continue;
+#ifndef NDEBUG
+                self_g->acc.ec_waits++;
+                start = hardclock();
+#endif
                 thr_ec_timedwait(&syn->ec, key, 100);
+#ifndef NDEBUG
+                self_g->acc.ec_wait_time += (hardclock() - start);
+#endif
             }
         }
     }
