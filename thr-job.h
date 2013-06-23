@@ -233,6 +233,7 @@ void thr_syn_notify_b(thr_syn_t *syn, thr_queue_t *q, block_t blk)
 static ALWAYS_INLINE
 void thr_syn__job_prepare(thr_syn_t *syn)
 {
+    thr_syn__retain(syn);
     atomic_add(&syn->pending, 1);
 }
 
@@ -249,10 +250,8 @@ void thr_syn__broacast(thr_syn_t *syn)
 static ALWAYS_INLINE
 void thr_syn__job_done(thr_syn_t *syn)
 {
-    unsigned res;
+    unsigned res = atomic_sub_and_get(&syn->pending, 1);
 
-    thr_syn__retain(syn);
-    res = atomic_sub_and_get(&syn->pending, 1);
     assert (res != UINT_MAX);
     if (res == 0)
         thr_syn__broacast(syn);
