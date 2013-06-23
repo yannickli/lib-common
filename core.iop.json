@@ -6,6 +6,9 @@
 			"name": "LogLevel",
 			"fullName": "core.LogLevel",
 			"type": "enum",
+			"help": {
+				"brief": "List of supported log levels."
+			},
 			"values": {
 				"DEFAULT": -2,
 				"INHERITS": -1,
@@ -18,6 +21,41 @@
 				"INFO": 6,
 				"DEBUG": 7,
 				"TRACE": 8
+			},
+			"valuesHelp": {
+				"DEFAULT": {
+					"brief": "use default configuration"
+				},
+				"INHERITS": {
+					"brief": "inherits the level of the parent logger"
+				},
+				"EMERG": {
+					"brief": "system is unusable"
+				},
+				"ALERT": {
+					"brief": "action must be taken immediately"
+				},
+				"CRIT": {
+					"brief": "critical conditions"
+				},
+				"ERR": {
+					"brief": "error conditions"
+				},
+				"WARNING": {
+					"brief": "warning conditions"
+				},
+				"NOTICE": {
+					"brief": "normal but significant condition"
+				},
+				"INFO": {
+					"brief": "informational"
+				},
+				"DEBUG": {
+					"brief": "debug-level messages"
+				},
+				"TRACE": {
+					"brief": "trace-level messages"
+				}
 			}
 		},
 		{
@@ -39,19 +77,33 @@
 			"name": "LoggerConfiguration",
 			"fullName": "core.LoggerConfiguration",
 			"type": "struct",
+			"help": {
+				"brief": "Configuration of a specific logger."
+			},
 			"fields": {
 				"fullName": {
 					"type": "string",
+					"help": {
+						"brief": "Name of the logger to configure."
+					},
 					"constraints": {
 						"minLength": 1
 					}
 				},
 				"level": {
-					"type": "core.LogLevel"
+					"type": "core.LogLevel",
+					"help": {
+						"brief": "Logging level.",
+						"details": "This will be the logging level for this logger and all inheriting loggers that were not explicitly configured."
+					}
 				},
 				"forceAll": {
 					"type": "boolean",
-					"default": false
+					"default": false,
+					"help": {
+						"brief": "Force the use of logging level for child loggers.",
+						"details": "If this flag is set, the level of that logger is propagated to all child loggers that were not explicitly configured, even those that were not supposed to inherit from that level."
+					}
 				}
 			}
 		},
@@ -59,18 +111,33 @@
 			"name": "LogConfiguration",
 			"fullName": "core.LogConfiguration",
 			"type": "struct",
+			"help": {
+				"brief": "Configuration of the logging system."
+			},
 			"fields": {
 				"rootLevel": {
 					"type": "core.LogLevel",
-					"default": -2
+					"default": -2,
+					"help": {
+						"brief": "Root logging level.",
+						"details": "This will be the logging level for all the logger inherits from root logging level and that were not configured to another value separately.\x0a""The default configuration is to enable TRACE in development builds, and to enable only DEBUG in release builds."
+					}
 				},
 				"forceAll": {
 					"type": "boolean",
-					"default": false
+					"default": false,
+					"help": {
+						"brief": "Force the use of the root level.",
+						"details": "If this flag is set, the root level is propagated to all logger that were not explicitly configured, even those that were not supposed to inherit from the root level."
+					}
 				},
 				"specific": {
 					"type": "core.LoggerConfiguration",
-					"repeated": true
+					"repeated": true,
+					"help": {
+						"brief": "Independent configuration of specific loggers.",
+						"details": "This can be used to perform a fine-grained configuration of the logging level of specific code modules."
+					}
 				}
 			}
 		},
@@ -79,26 +146,45 @@
 			"fullName": "core.LogFileConfiguration",
 			"type": "class",
 			"isAbstract": false,
+			"help": {
+				"brief": "Configuration of a log_file_t.",
+				"details": "This class defines how a log_file_t is opened."
+			},
 			"fields": {
 				"maxSize": {
 					"type": "int",
-					"default": 536870912
+					"default": 536870912,
+					"help": {
+						"brief": "Log file max size before rotation (in bytes)"
+					}
 				},
 				"maxTime": {
 					"type": "ulong",
-					"default": 86400
+					"default": 86400,
+					"help": {
+						"brief": "Log file max age before rotation (in seconds)"
+					}
 				},
 				"maxFiles": {
 					"type": "int",
-					"default": 0
+					"default": 0,
+					"help": {
+						"brief": "Maximum number of log files - <= 0 means no limit"
+					}
 				},
 				"totalMaxSize": {
 					"type": "long",
-					"default": 1073741824
+					"default": 1073741824,
+					"help": {
+						"brief": "Maximum total size of the log files (in bytes) <= 0 means no limit"
+					}
 				},
 				"compress": {
 					"type": "boolean",
-					"default": true
+					"default": true,
+					"help": {
+						"brief": "Activate log file compression"
+					}
 				}
 			}
 		},
@@ -108,39 +194,66 @@
 			"type": "struct",
 			"fields": {
 				"bindAddr": {
-					"type": "string"
+					"type": "string",
+					"help": {
+						"brief": "Address (host:port) to listen on"
+					}
 				},
 				"outbufMaxSize": {
 					"type": "uint",
-					"default": 33554432
+					"default": 33554432,
+					"help": {
+						"brief": "Maximum size of the output buffer (in octets)"
+					}
 				},
 				"pipelineDepth": {
 					"type": "ushort",
-					"default": 32
+					"default": 32,
+					"help": {
+						"brief": "Maximum number of pending incoming queries"
+					}
 				},
 				"noactDelay": {
 					"type": "uint",
-					"default": 30000
+					"default": 30000,
+					"help": {
+						"brief": "Maximum time of inactivity before connection closing (in ms)"
+					}
 				},
 				"maxQueries": {
 					"type": "uint",
-					"default": 1024
+					"default": 1024,
+					"help": {
+						"brief": "Maximum number of incoming queries handled into a connection life"
+					}
 				},
 				"maxConnsIn": {
 					"type": "uint",
-					"default": 1000
+					"default": 1000,
+					"help": {
+						"brief": "Maximum number of inbound connections"
+					}
 				},
 				"onDataThreshold": {
 					"type": "uint",
-					"default": 16384
+					"default": 16384,
+					"help": {
+						"brief": "Amount of data buffered by the body parser before flushing"
+					}
 				},
 				"headerLineMax": {
 					"type": "uint",
-					"default": 1024
+					"default": 1024,
+					"help": {
+						"brief": "Maximum line length in headers"
+					}
 				},
 				"headerSizeMax": {
 					"type": "uint",
-					"default": 65536
+					"default": 65536,
+					"help": {
+						"brief": "Maximum total size for headers"
+					}
 				}
 			}
 		},
@@ -151,27 +264,45 @@
 			"fields": {
 				"pipelineDepth": {
 					"type": "ushort",
-					"default": 32
+					"default": 32,
+					"help": {
+						"brief": "Maximum number of pending outgoing queries"
+					}
 				},
 				"noactDelay": {
 					"type": "uint",
-					"default": 30000
+					"default": 30000,
+					"help": {
+						"brief": "Maximum time of inactivity before connection closing (in ms)"
+					}
 				},
 				"maxQueries": {
 					"type": "uint",
-					"default": 1024
+					"default": 1024,
+					"help": {
+						"brief": "Maximum number of outgoing queries handled into a connection life"
+					}
 				},
 				"onDataThreshold": {
 					"type": "uint",
-					"default": 16384
+					"default": 16384,
+					"help": {
+						"brief": "Amount of data buffered by the body parser before flushing"
+					}
 				},
 				"headerLineMax": {
 					"type": "uint",
-					"default": 1024
+					"default": 1024,
+					"help": {
+						"brief": "Maximum line length in headers"
+					}
 				},
 				"headerSizeMax": {
 					"type": "uint",
-					"default": 65536
+					"default": 65536,
+					"help": {
+						"brief": "Maximum total size for headers"
+					}
 				}
 			}
 		},
@@ -262,6 +393,9 @@
 		{
 			"name": "Log",
 			"fullName": "core.Log",
+			"help": {
+				"brief": "Interface providing the basis for configuring the logging system."
+			},
 			"rpcs": {
 				"setRootLevel": {
 					"in": "core.Log.setRootLevelArgs",
@@ -286,6 +420,9 @@
 		{
 			"name": "Core",
 			"fullName": "core.Core",
+			"help": {
+				"brief": "Module exporting interfaces provided by lib-common."
+			},
 			"interfaces": {
 				"log": {
 					"type": "core.Log"

@@ -30,14 +30,187 @@ static const lstr_t core__log_level__names[] = {
     LSTR_IMMED("DEBUG"),
     LSTR_IMMED("TRACE"),
 };
+static const iop_help_t core__log_level__default__v_help = {
+    .brief = LSTR_IMMED("use default configuration"),
+};
+static const iop_enum_value_attr_t core__log_level__default__v_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__default__v_help } },
+    },
+};
+static const iop_help_t core__log_level__inherits__v_help = {
+    .brief = LSTR_IMMED("inherits the level of the parent logger"),
+};
+static const iop_enum_value_attr_t core__log_level__inherits__v_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__inherits__v_help } },
+    },
+};
+static const iop_help_t core__log_level__emerg__v_help = {
+    .brief = LSTR_IMMED("system is unusable"),
+};
+static const iop_enum_value_attr_t core__log_level__emerg__v_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__emerg__v_help } },
+    },
+};
+static const iop_help_t core__log_level__alert__v_help = {
+    .brief = LSTR_IMMED("action must be taken immediately"),
+};
+static const iop_enum_value_attr_t core__log_level__alert__v_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__alert__v_help } },
+    },
+};
+static const iop_help_t core__log_level__crit__v_help = {
+    .brief = LSTR_IMMED("critical conditions"),
+};
+static const iop_enum_value_attr_t core__log_level__crit__v_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__crit__v_help } },
+    },
+};
+static const iop_help_t core__log_level__err__v_help = {
+    .brief = LSTR_IMMED("error conditions"),
+};
+static const iop_enum_value_attr_t core__log_level__err__v_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__err__v_help } },
+    },
+};
+static const iop_help_t core__log_level__warning__v_help = {
+    .brief = LSTR_IMMED("warning conditions"),
+};
+static const iop_enum_value_attr_t core__log_level__warning__v_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__warning__v_help } },
+    },
+};
+static const iop_help_t core__log_level__notice__v_help = {
+    .brief = LSTR_IMMED("normal but significant condition"),
+};
+static const iop_enum_value_attr_t core__log_level__notice__v_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__notice__v_help } },
+    },
+};
+static const iop_help_t core__log_level__info__v_help = {
+    .brief = LSTR_IMMED("informational"),
+};
+static const iop_enum_value_attr_t core__log_level__info__v_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__info__v_help } },
+    },
+};
+static const iop_help_t core__log_level__debug__v_help = {
+    .brief = LSTR_IMMED("debug-level messages"),
+};
+static const iop_enum_value_attr_t core__log_level__debug__v_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__debug__v_help } },
+    },
+};
+static const iop_help_t core__log_level__trace__v_help = {
+    .brief = LSTR_IMMED("trace-level messages"),
+};
+static const iop_enum_value_attr_t core__log_level__trace__v_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_enum_value_attr_arg_t[]){ { .v.p = &core__log_level__trace__v_help } },
+    },
+};
+static const iop_enum_value_attrs_t core__log_level__e_desc_values_attrs[] = {
+    {
+        .flags     = 1,
+        .attrs_len = 1,
+        .attrs     = core__log_level__default__v_attrs,
+    },
+    {
+        .flags     = 1,
+        .attrs_len = 1,
+        .attrs     = core__log_level__inherits__v_attrs,
+    },
+    {
+        .flags     = 1,
+        .attrs_len = 1,
+        .attrs     = core__log_level__emerg__v_attrs,
+    },
+    {
+        .flags     = 1,
+        .attrs_len = 1,
+        .attrs     = core__log_level__alert__v_attrs,
+    },
+    {
+        .flags     = 1,
+        .attrs_len = 1,
+        .attrs     = core__log_level__crit__v_attrs,
+    },
+    {
+        .flags     = 1,
+        .attrs_len = 1,
+        .attrs     = core__log_level__err__v_attrs,
+    },
+    {
+        .flags     = 1,
+        .attrs_len = 1,
+        .attrs     = core__log_level__warning__v_attrs,
+    },
+    {
+        .flags     = 1,
+        .attrs_len = 1,
+        .attrs     = core__log_level__notice__v_attrs,
+    },
+    {
+        .flags     = 1,
+        .attrs_len = 1,
+        .attrs     = core__log_level__info__v_attrs,
+    },
+    {
+        .flags     = 1,
+        .attrs_len = 1,
+        .attrs     = core__log_level__debug__v_attrs,
+    },
+    {
+        .flags     = 1,
+        .attrs_len = 1,
+        .attrs     = core__log_level__trace__v_attrs,
+    },
+};
+static const iop_help_t core__log_level__e_help = {
+    .brief = LSTR_IMMED("List of supported log levels."),
+};
+static const iop_enum_attr_t core__log_level__e_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_enum_attr_arg_t[]){ { .v.p = &core__log_level__e_help } },
+    },
+};
+static const iop_enum_attrs_t core__log_level__e_desc_attrs = {
+    .flags     = 1,
+    .attrs_len = 1,
+    .attrs     = core__log_level__e_attrs,
+};
 iop_enum_t const core__log_level__e = {
-    .name       = LSTR_IMMED("LogLevel"),
-    .fullname   = LSTR_IMMED("core.LogLevel"),
-    .names      = core__log_level__names,
-    .values     = core__log_level__values,
-    .ranges     = iop__ranges__1,
-    .ranges_len = countof(iop__ranges__1) / 2,
-    .enum_len   = 11,
+    .name         = LSTR_IMMED("LogLevel"),
+    .fullname     = LSTR_IMMED("core.LogLevel"),
+    .names        = core__log_level__names,
+    .values       = core__log_level__values,
+    .ranges       = iop__ranges__1,
+    .ranges_len   = countof(iop__ranges__1) / 2,
+    .enum_len     = 11,
+    .flags        = 1,
+    .en_attrs     = &core__log_level__e_desc_attrs,
+    .values_attrs = core__log_level__e_desc_values_attrs,
 };
 
 /* }}} */
@@ -61,18 +234,21 @@ static const lstr_t core__iop_http_method__names[] = {
     LSTR_IMMED("CONNECT"),
 };
 iop_enum_t const core__iop_http_method__e = {
-    .name       = LSTR_IMMED("IopHttpMethod"),
-    .fullname   = LSTR_IMMED("core.IopHttpMethod"),
-    .names      = core__iop_http_method__names,
-    .values     = core__iop_http_method__values,
-    .ranges     = iop__ranges__2,
-    .ranges_len = countof(iop__ranges__2) / 2,
-    .enum_len   = 8,
+    .name         = LSTR_IMMED("IopHttpMethod"),
+    .fullname     = LSTR_IMMED("core.IopHttpMethod"),
+    .names        = core__iop_http_method__names,
+    .values       = core__iop_http_method__values,
+    .ranges       = iop__ranges__2,
+    .ranges_len   = countof(iop__ranges__2) / 2,
+    .enum_len     = 8,
 };
 
 /* }}} */
 /* Structure core.LoggerConfiguration {{{ */
 
+static const iop_help_t core__logger_configuration__full_name__f_help = {
+    .brief = LSTR_IMMED("Name of the logger to configure."),
+};
 static int core__logger_configuration__full_name__check(const void *ptr, int n)
 {
     for (int j = 0; j < n; j++) {
@@ -88,24 +264,50 @@ static int core__logger_configuration__full_name__check(const void *ptr, int n)
 }
 static iop_field_attr_t const core__logger_configuration__full_name__attrs[] = {
     {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__logger_configuration__full_name__f_help } },
+    },
+    {
         .type = 7,
         .args = (iop_field_attr_arg_t[]){ { .v.i64 = 1LL } },
     },
 };
+static const iop_help_t core__logger_configuration__level__f_help = {
+    .brief = LSTR_IMMED("Logging level."),
+    .details = LSTR_IMMED("This will be the logging level for this logger and all inheriting loggers that were not explicitly configured."),
+};
+static iop_field_attr_t const core__logger_configuration__level__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__logger_configuration__level__f_help } },
+    },
+};
+static const iop_help_t core__logger_configuration__force_all__f_help = {
+    .brief = LSTR_IMMED("Force the use of logging level for child loggers."),
+    .details = LSTR_IMMED("If this flag is set, the level of that logger is propagated to all child loggers that were not explicitly configured, even those that were not supposed to inherit from that level."),
+};
+static iop_field_attr_t const core__logger_configuration__force_all__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__logger_configuration__force_all__f_help } },
+    },
+};
 static iop_field_attrs_t const core__logger_configuration__desc_fields_attrs[] = {
     {
-        .flags             = 128,
-        .attrs_len         = 1,
+        .flags             = 2176,
+        .attrs_len         = 2,
         .check_constraints = &core__logger_configuration__full_name__check,
         .attrs             = core__logger_configuration__full_name__attrs,
     },
     {
-        .flags             = 0,
-        .attrs_len         = 0,
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__logger_configuration__level__attrs,
     },
     {
-        .flags             = 0,
-        .attrs_len         = 0,
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__logger_configuration__force_all__attrs,
     },
 };
 static iop_field_t const core__logger_configuration__desc_fields[] = {
@@ -144,6 +346,20 @@ static int const iop__ranges__3[] = {
     0, 1,
     3,
 };
+static const iop_help_t core__logger_configuration__s_help = {
+    .brief = LSTR_IMMED("Configuration of a specific logger."),
+};
+static const iop_struct_attr_t core__logger_configuration__s_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_struct_attr_arg_t[]){ { .v.p = &core__logger_configuration__s_help } },
+    },
+};
+static const iop_struct_attrs_t core__logger_configuration__s_desc_attrs = {
+    .flags     = 1,
+    .attrs_len = 1,
+    .attrs     = core__logger_configuration__s_attrs,
+};
 const iop_struct_t core__logger_configuration__s = {
     .fullname   = LSTR_IMMED("core.LoggerConfiguration"),
     .fields     = core__logger_configuration__desc_fields,
@@ -152,12 +368,60 @@ const iop_struct_t core__logger_configuration__s = {
     .ranges_len = countof(iop__ranges__3) / 2,
     .size       = sizeof(core__logger_configuration__t),
     .flags      = 3,
+    .st_attrs   = &core__logger_configuration__s_desc_attrs,
     .fields_attrs = core__logger_configuration__desc_fields_attrs,
 };
 
 /* }}} */
 /* Structure core.LogConfiguration {{{ */
 
+static const iop_help_t core__log_configuration__root_level__f_help = {
+    .brief = LSTR_IMMED("Root logging level."),
+    .details = LSTR_IMMED("This will be the logging level for all the logger inherits from root logging level and that were not configured to another value separately.\x0a""The default configuration is to enable TRACE in development builds, and to enable only DEBUG in release builds."),
+};
+static iop_field_attr_t const core__log_configuration__root_level__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_configuration__root_level__f_help } },
+    },
+};
+static const iop_help_t core__log_configuration__force_all__f_help = {
+    .brief = LSTR_IMMED("Force the use of the root level."),
+    .details = LSTR_IMMED("If this flag is set, the root level is propagated to all logger that were not explicitly configured, even those that were not supposed to inherit from the root level."),
+};
+static iop_field_attr_t const core__log_configuration__force_all__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_configuration__force_all__f_help } },
+    },
+};
+static const iop_help_t core__log_configuration__specific__f_help = {
+    .brief = LSTR_IMMED("Independent configuration of specific loggers."),
+    .details = LSTR_IMMED("This can be used to perform a fine-grained configuration of the logging level of specific code modules."),
+};
+static iop_field_attr_t const core__log_configuration__specific__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_configuration__specific__f_help } },
+    },
+};
+static iop_field_attrs_t const core__log_configuration__desc_fields_attrs[] = {
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__log_configuration__root_level__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__log_configuration__force_all__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__log_configuration__specific__attrs,
+    },
+};
 static iop_field_t const core__log_configuration__desc_fields[] = {
     {
         .name      = LSTR_IMMED("rootLevel"),
@@ -191,6 +455,20 @@ static iop_field_t const core__log_configuration__desc_fields[] = {
         .u1        = { .st_desc = &core__logger_configuration__s },
     },
 };
+static const iop_help_t core__log_configuration__s_help = {
+    .brief = LSTR_IMMED("Configuration of the logging system."),
+};
+static const iop_struct_attr_t core__log_configuration__s_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_struct_attr_arg_t[]){ { .v.p = &core__log_configuration__s_help } },
+    },
+};
+static const iop_struct_attrs_t core__log_configuration__s_desc_attrs = {
+    .flags     = 1,
+    .attrs_len = 1,
+    .attrs     = core__log_configuration__s_attrs,
+};
 const iop_struct_t core__log_configuration__s = {
     .fullname   = LSTR_IMMED("core.LogConfiguration"),
     .fields     = core__log_configuration__desc_fields,
@@ -198,12 +476,86 @@ const iop_struct_t core__log_configuration__s = {
     .fields_len = countof(core__log_configuration__desc_fields),
     .ranges_len = countof(iop__ranges__3) / 2,
     .size       = sizeof(core__log_configuration__t),
-    .flags      = 2,
+    .flags      = 3,
+    .st_attrs   = &core__log_configuration__s_desc_attrs,
+    .fields_attrs = core__log_configuration__desc_fields_attrs,
 };
 
 /* }}} */
 /* Class core.LogFileConfiguration {{{ */
 
+static const iop_help_t core__log_file_configuration__max_size__f_help = {
+    .brief = LSTR_IMMED("Log file max size before rotation (in bytes)"),
+};
+static iop_field_attr_t const core__log_file_configuration__max_size__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_file_configuration__max_size__f_help } },
+    },
+};
+static const iop_help_t core__log_file_configuration__max_time__f_help = {
+    .brief = LSTR_IMMED("Log file max age before rotation (in seconds)"),
+};
+static iop_field_attr_t const core__log_file_configuration__max_time__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_file_configuration__max_time__f_help } },
+    },
+};
+static const iop_help_t core__log_file_configuration__max_files__f_help = {
+    .brief = LSTR_IMMED("Maximum number of log files - <= 0 means no limit"),
+};
+static iop_field_attr_t const core__log_file_configuration__max_files__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_file_configuration__max_files__f_help } },
+    },
+};
+static const iop_help_t core__log_file_configuration__total_max_size__f_help = {
+    .brief = LSTR_IMMED("Maximum total size of the log files (in bytes) <= 0 means no limit"),
+};
+static iop_field_attr_t const core__log_file_configuration__total_max_size__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_file_configuration__total_max_size__f_help } },
+    },
+};
+static const iop_help_t core__log_file_configuration__compress__f_help = {
+    .brief = LSTR_IMMED("Activate log file compression"),
+};
+static iop_field_attr_t const core__log_file_configuration__compress__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__log_file_configuration__compress__f_help } },
+    },
+};
+static iop_field_attrs_t const core__log_file_configuration__desc_fields_attrs[] = {
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__log_file_configuration__max_size__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__log_file_configuration__max_time__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__log_file_configuration__max_files__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__log_file_configuration__total_max_size__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__log_file_configuration__compress__attrs,
+    },
+};
 static iop_field_t const core__log_file_configuration__desc_fields[] = {
     {
         .name      = LSTR_IMMED("maxSize"),
@@ -260,6 +612,21 @@ static int const iop__ranges__4[] = {
     0, 1,
     5,
 };
+static const iop_help_t core__log_file_configuration__s_help = {
+    .brief = LSTR_IMMED("Configuration of a log_file_t."),
+    .details = LSTR_IMMED("This class defines how a log_file_t is opened."),
+};
+static const iop_struct_attr_t core__log_file_configuration__s_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_struct_attr_arg_t[]){ { .v.p = &core__log_file_configuration__s_help } },
+    },
+};
+static const iop_struct_attrs_t core__log_file_configuration__s_desc_attrs = {
+    .flags     = 1,
+    .attrs_len = 1,
+    .attrs     = core__log_file_configuration__s_attrs,
+};
 static const iop_class_attrs_t core__log_file_configuration__class_s = {
     .class_id          = 0,
 };
@@ -271,12 +638,142 @@ const iop_struct_t core__log_file_configuration__s = {
     .ranges_len = countof(iop__ranges__4) / 2,
     .size       = sizeof(core__log_file_configuration__t),
     .flags      = 5,
+    .st_attrs   = &core__log_file_configuration__s_desc_attrs,
+    .fields_attrs = core__log_file_configuration__desc_fields_attrs,
     .class_attrs  = &core__log_file_configuration__class_s,
 };
 
 /* }}} */
 /* Structure core.HttpdCfg {{{ */
 
+static const iop_help_t core__httpd_cfg__bind_addr__f_help = {
+    .brief = LSTR_IMMED("Address (host:port) to listen on"),
+};
+static iop_field_attr_t const core__httpd_cfg__bind_addr__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__bind_addr__f_help } },
+    },
+};
+static const iop_help_t core__httpd_cfg__outbuf_max_size__f_help = {
+    .brief = LSTR_IMMED("Maximum size of the output buffer (in octets)"),
+};
+static iop_field_attr_t const core__httpd_cfg__outbuf_max_size__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__outbuf_max_size__f_help } },
+    },
+};
+static const iop_help_t core__httpd_cfg__pipeline_depth__f_help = {
+    .brief = LSTR_IMMED("Maximum number of pending incoming queries"),
+};
+static iop_field_attr_t const core__httpd_cfg__pipeline_depth__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__pipeline_depth__f_help } },
+    },
+};
+static const iop_help_t core__httpd_cfg__noact_delay__f_help = {
+    .brief = LSTR_IMMED("Maximum time of inactivity before connection closing (in ms)"),
+};
+static iop_field_attr_t const core__httpd_cfg__noact_delay__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__noact_delay__f_help } },
+    },
+};
+static const iop_help_t core__httpd_cfg__max_queries__f_help = {
+    .brief = LSTR_IMMED("Maximum number of incoming queries handled into a connection life"),
+};
+static iop_field_attr_t const core__httpd_cfg__max_queries__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__max_queries__f_help } },
+    },
+};
+static const iop_help_t core__httpd_cfg__max_conns_in__f_help = {
+    .brief = LSTR_IMMED("Maximum number of inbound connections"),
+};
+static iop_field_attr_t const core__httpd_cfg__max_conns_in__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__max_conns_in__f_help } },
+    },
+};
+static const iop_help_t core__httpd_cfg__on_data_threshold__f_help = {
+    .brief = LSTR_IMMED("Amount of data buffered by the body parser before flushing"),
+};
+static iop_field_attr_t const core__httpd_cfg__on_data_threshold__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__on_data_threshold__f_help } },
+    },
+};
+static const iop_help_t core__httpd_cfg__header_line_max__f_help = {
+    .brief = LSTR_IMMED("Maximum line length in headers"),
+};
+static iop_field_attr_t const core__httpd_cfg__header_line_max__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__header_line_max__f_help } },
+    },
+};
+static const iop_help_t core__httpd_cfg__header_size_max__f_help = {
+    .brief = LSTR_IMMED("Maximum total size for headers"),
+};
+static iop_field_attr_t const core__httpd_cfg__header_size_max__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpd_cfg__header_size_max__f_help } },
+    },
+};
+static iop_field_attrs_t const core__httpd_cfg__desc_fields_attrs[] = {
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__httpd_cfg__bind_addr__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__httpd_cfg__outbuf_max_size__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__httpd_cfg__pipeline_depth__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__httpd_cfg__noact_delay__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__httpd_cfg__max_queries__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__httpd_cfg__max_conns_in__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__httpd_cfg__on_data_threshold__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__httpd_cfg__header_line_max__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__httpd_cfg__header_size_max__attrs,
+    },
+};
 static iop_field_t const core__httpd_cfg__desc_fields[] = {
     {
         .name      = LSTR_IMMED("bindAddr"),
@@ -379,11 +876,99 @@ const iop_struct_t core__httpd_cfg__s = {
     .fields_len = countof(core__httpd_cfg__desc_fields),
     .ranges_len = countof(iop__ranges__5) / 2,
     .size       = sizeof(core__httpd_cfg__t),
+    .flags      = 1,
+    .fields_attrs = core__httpd_cfg__desc_fields_attrs,
 };
 
 /* }}} */
 /* Structure core.HttpcCfg {{{ */
 
+static const iop_help_t core__httpc_cfg__pipeline_depth__f_help = {
+    .brief = LSTR_IMMED("Maximum number of pending outgoing queries"),
+};
+static iop_field_attr_t const core__httpc_cfg__pipeline_depth__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpc_cfg__pipeline_depth__f_help } },
+    },
+};
+static const iop_help_t core__httpc_cfg__noact_delay__f_help = {
+    .brief = LSTR_IMMED("Maximum time of inactivity before connection closing (in ms)"),
+};
+static iop_field_attr_t const core__httpc_cfg__noact_delay__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpc_cfg__noact_delay__f_help } },
+    },
+};
+static const iop_help_t core__httpc_cfg__max_queries__f_help = {
+    .brief = LSTR_IMMED("Maximum number of outgoing queries handled into a connection life"),
+};
+static iop_field_attr_t const core__httpc_cfg__max_queries__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpc_cfg__max_queries__f_help } },
+    },
+};
+static const iop_help_t core__httpc_cfg__on_data_threshold__f_help = {
+    .brief = LSTR_IMMED("Amount of data buffered by the body parser before flushing"),
+};
+static iop_field_attr_t const core__httpc_cfg__on_data_threshold__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpc_cfg__on_data_threshold__f_help } },
+    },
+};
+static const iop_help_t core__httpc_cfg__header_line_max__f_help = {
+    .brief = LSTR_IMMED("Maximum line length in headers"),
+};
+static iop_field_attr_t const core__httpc_cfg__header_line_max__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpc_cfg__header_line_max__f_help } },
+    },
+};
+static const iop_help_t core__httpc_cfg__header_size_max__f_help = {
+    .brief = LSTR_IMMED("Maximum total size for headers"),
+};
+static iop_field_attr_t const core__httpc_cfg__header_size_max__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__httpc_cfg__header_size_max__f_help } },
+    },
+};
+static iop_field_attrs_t const core__httpc_cfg__desc_fields_attrs[] = {
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__httpc_cfg__pipeline_depth__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__httpc_cfg__noact_delay__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__httpc_cfg__max_queries__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__httpc_cfg__on_data_threshold__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__httpc_cfg__header_line_max__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__httpc_cfg__header_size_max__attrs,
+    },
+};
 static iop_field_t const core__httpc_cfg__desc_fields[] = {
     {
         .name      = LSTR_IMMED("pipelineDepth"),
@@ -457,6 +1042,8 @@ const iop_struct_t core__httpc_cfg__s = {
     .fields_len = countof(core__httpc_cfg__desc_fields),
     .ranges_len = countof(iop__ranges__6) / 2,
     .size       = sizeof(core__httpc_cfg__t),
+    .flags      = 1,
+    .fields_attrs = core__httpc_cfg__desc_fields_attrs,
 };
 
 /* }}} */
@@ -665,10 +1252,26 @@ static iop_rpc_t const core__log__if_funs[] = {
         .exn       = &iop__void__s,
     },
 };
+static const iop_help_t core__log__if_help = {
+    .brief = LSTR_IMMED("Interface providing the basis for configuring the logging system."),
+};
+static const iop_iface_attr_t core__log__if_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_iface_attr_arg_t[]){ { .v.p = &core__log__if_help } },
+    },
+};
+static const iop_iface_attrs_t core__log__desc_if_attrs = {
+    .flags     = 1,
+    .attrs_len = 1,
+    .attrs     = core__log__if_attrs,
+};
 const iop_iface_t core__log__if = {
     .fullname   = LSTR_IMMED("core.Log"),
     .funs       = core__log__if_funs,
     .funs_len   = countof(core__log__if_funs),
+    .flags      = 2,
+    .iface_attrs  = &core__log__desc_if_attrs,
 };
 
 /* }}} */
@@ -681,10 +1284,26 @@ static iop_iface_alias_t const core__core__aliases[] = {
         .tag   = 16384,
     },
 };
+static const iop_help_t core__core__m_help = {
+    .brief = LSTR_IMMED("Module exporting interfaces provided by lib-common."),
+};
+static const iop_mod_attr_t core__core__m_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_mod_attr_arg_t[]){ { .v.p = &core__core__m_help } },
+    },
+};
+static const iop_mod_attrs_t core__core__m_desc_attrs = {
+    .flags     = 1,
+    .attrs_len = 1,
+    .attrs     = core__core__m_attrs,
+};
 iop_mod_t const core__core__mod = {
     .fullname   = LSTR_IMMED("core.Core"),
     .ifaces     = core__core__aliases,
     .ifaces_len = countof(core__core__aliases),
+    .flags      = 1,
+    .mod_attrs  = &core__core__m_desc_attrs,
 };
 
 /* }}} */
