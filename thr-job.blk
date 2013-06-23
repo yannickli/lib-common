@@ -346,19 +346,13 @@ static bool thr_job_dequeue(void)
 {
     struct deque_entry *e;
     unsigned top, bot;
-    thr_job_t *job;
-    thr_syn_t *syn;
 
     /* Read the bottom job and update the mark to mark that job as consumed.
      * The remaining of the function will ensure we were effectively the first
      * to reclaim the ownership of that job.
      */
     bot = shared_read(self_g->bot) - 1;
-    e   = &self_g->q[bot % THR_JOB_MAX];
-    job = shared_read(e->job);
-    syn = shared_read(e->syn);
     shared_write(self_g->bot, bot);
-
     mb();
 
     /* Read the top line. The memory barrier ensure that the read is effectively
@@ -372,8 +366,10 @@ static bool thr_job_dequeue(void)
      * trysteal,  we're sure 'top' cannot have reached 'bot', and thus
      * we are the owner of the job we fetched, run it.
      */
-    if (likely((int)(bot - top) > 0))
-        return job_run(job, syn);
+    if (likely((int)(bot - top) > 0)) {
+        e = &self_g->q[bot % THR_JOB_MAX];
+        return job_run(e->job, e->syn);
+    }
 
     /* 'bot' and 'top' are equal, that mean that either we're consuming the
      * last job of the queue or another thread did it. To know if the job
@@ -385,7 +381,8 @@ static bool thr_job_dequeue(void)
     if (likely(bot == top)) {
         if (cas_top(self_g, top, 1)) {
             shared_write(self_g->bot, top + 1);
-            return job_run(job, syn);
+            e = &self_g->q[bot % THR_JOB_MAX];
+            return job_run(e->job, e->syn);
         } else {
 #ifndef NDEBUG
             self_g->acc.jobs_failed_dequeues++;
