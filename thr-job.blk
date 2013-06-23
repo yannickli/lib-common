@@ -89,6 +89,9 @@ typedef struct thr_info_t {
         unsigned ec_gets;
         unsigned ec_waits;
         unsigned jobs_steals;
+        unsigned jobs_stealed;
+        unsigned jobs_failed_steals;
+        unsigned jobs_failed_dequeues;
     } acc;
 #endif
 } thr_info_t;
@@ -178,6 +181,9 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
         total.ec_waits    += acc->ec_waits;
         total.ec_wait_time += acc->ec_wait_time;
         total.jobs_steals   += acc->jobs_steals;
+        total.jobs_stealed  += acc->jobs_stealed;
+        total.jobs_failed_steals += acc->jobs_failed_steals;
+        total.jobs_failed_dequeues += acc->jobs_failed_dequeues;
 
         width.time         = MAX(width.time,        int_width(acc->time / 1000000));
         width.jobs_queued  = MAX(width.jobs_queued, int_width(acc->jobs_queued));
@@ -186,6 +192,11 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
         width.ec_waits     = MAX(width.ec_waits,    int_width(acc->ec_waits));
         width.ec_wait_time = MAX(width.ec_wait_time, int_width(acc->ec_wait_time / 1000000));
         width.jobs_steals    = MAX(width.jobs_steals,   int_width(acc->jobs_steals));
+        width.jobs_stealed   = MAX(width.jobs_stealed,   int_width(acc->jobs_stealed));
+        width.jobs_failed_steals = MAX(width.jobs_failed_steals,
+                                       int_width(acc->jobs_failed_steals));
+        width.jobs_failed_dequeues = MAX(width.jobs_failed_dequeues,
+                                       int_width(acc->jobs_failed_dequeues));
     }
 
     e_trace(lvl, "----- %*pM", sb.len, sb.data);
@@ -201,20 +212,27 @@ void thr_acc_trace(int lvl, const char *fmt, ...)
     for (size_t i = 0; i < thr_parallelism_g; i++) {
         struct thr_acc *acc = &_G.threads[i].acc;
 
-        e_trace(lvl, " %2zd: %*uM, %*u queued, %*u run, %*u steals, "
-                "%*u gets, %*u waits (%*uM)", i, TIME_FMT_ARG(acc->time),
+        e_trace(lvl, " %2zd: %*uM, %*u queued, %*u run, %*u steals (%*u jobs, %*u failed), "
+                "%*u failed dequeues, %*u gets, %*u waits (%*uM)", i,
+                TIME_FMT_ARG(acc->time),
                 width.jobs_queued, acc->jobs_queued,
                 width.jobs_run,    acc->jobs_run,
                 width.jobs_steals, acc->jobs_steals,
+                width.jobs_stealed, acc->jobs_stealed,
+                width.jobs_failed_steals, acc->jobs_failed_steals,
+                width.jobs_failed_dequeues, acc->jobs_failed_dequeues,
                 width.ec_gets,     acc->ec_gets,
                 width.ec_waits,    acc->ec_waits,
                 TIME_FMT_ARG(acc->ec_wait_time));
     }
-    e_trace(lvl, "wall %*uM, %*u queued, %*u run, %*u steals, "
-            "%*u gets, %*u waits (%*uM)", TIME_FMT_ARG(wall),
+    e_trace(lvl, "wall %*uM, %*u queued, %*u run, %*u steals (%*u jobs, %*u failed), "
+            "%*u failed dequeues, %*u gets, %*u waits (%*uM)", TIME_FMT_ARG(wall),
             width.jobs_queued, total.jobs_queued,
             width.jobs_run,    total.jobs_run,
             width.jobs_steals, total.jobs_steals,
+            width.jobs_stealed, total.jobs_stealed,
+            width.jobs_failed_steals, total.jobs_failed_steals,
+            width.jobs_failed_dequeues, total.jobs_failed_dequeues,
             width.ec_gets,     total.ec_gets,
             width.ec_waits,    total.ec_waits,
             TIME_FMT_ARG(total.ec_wait_time));
@@ -316,8 +334,8 @@ void thr_schedule(thr_job_t *job)
  * @return true in case of success, false if another thread already fetched
  *         the top element.
  */
-#define cas_top(ti, top__) \
-    likely(atomic_bool_cas(&(ti)->top, top__, top__ + 1))
+#define cas_top(ti, top__, count__) \
+    likely(atomic_bool_cas(&(ti)->top, top__, top__ + count__))
 
 
 /** Run the 'bottom' job of the queue of the current thread.
@@ -364,9 +382,15 @@ static bool thr_job_dequeue(void)
      * move it to ensure nobody else will do it, then, move back 'bot' and
      * 'top' to the same point since the queue is empty.
      */
-    if (likely(bot == top) && cas_top(self_g, top)) {
-        shared_write(self_g->bot, top + 1);
-        return job_run(job, syn);
+    if (likely(bot == top)) {
+        if (cas_top(self_g, top, 1)) {
+            shared_write(self_g->bot, top + 1);
+            return job_run(job, syn);
+        } else {
+#ifndef NDEBUG
+            self_g->acc.jobs_failed_dequeues++;
+#endif
+        }
     }
 
     /* 'top' has been moved to the previous value of bot, this means the job
@@ -384,21 +408,15 @@ static bool thr_job_dequeue(void)
  * @param ti  The thread info structure of another thread.
  * @return true if a job has been stolen.
  */
-static bool thr_job_try_steal(thr_info_t *ti)
+static bool thr_job_try_steal(thr_info_t *ti, int depth)
 {
-    struct deque_entry *e;
     unsigned top, bot;
-    thr_job_t *job;
-    thr_syn_t *syn;
 
     /* Read the limits of the queue of the thread and fetch the top 'job' of
      * the queue.
      */
     top = shared_read(ti->top);
     bot = shared_read(ti->bot);
-    e   = &ti->q[top % THR_JOB_MAX];
-    job = shared_read(e->job);
-    syn = shared_read(e->syn);
 
     /* If the queue does not seem to be empty, then we know we own the job if
      * and only if we can CAS top. This works because a concurrent
@@ -407,8 +425,34 @@ static bool thr_job_try_steal(thr_info_t *ti)
      * solved by the fact we'll always move 'bot' and 'top' in dequeue when
      * emptying the queue.
      */
-    if ((int)(bot - top) > 0 && cas_top(ti, top))
-        return job_run(job, syn);
+    if ((int)(bot - top) > 0) {
+        unsigned to_read = DIV_ROUND_UP(bot - top, (1 << (depth + 1)));
+        unsigned my_bot = shared_read(self_g->bot);
+        struct deque_entry e;
+
+        rmc();
+        e = access_once(ti->q[top % THR_JOB_MAX]);
+        for (unsigned i = 1; i < to_read; i++) {
+            access_once(self_g->q[(my_bot + i - 1) % THR_JOB_MAX])
+                = access_once(ti->q[(top + i) % THR_JOB_MAX]);
+        }
+        wmc();
+
+        if (cas_top(ti, top, to_read)) {
+            if (to_read > 1) {
+                shared_write(self_g->bot, my_bot + to_read - 1);
+            }
+#ifndef NDEBUG
+            self_g->acc.jobs_stealed += to_read;
+            self_g->acc.jobs_steals++;
+#endif
+            return job_run(e.job, e.syn);
+        } else {
+#ifndef NDEBUG
+            self_g->acc.jobs_failed_steals++;
+#endif
+        }
+    }
     return false;
 }
 
@@ -417,19 +461,10 @@ static bool thr_job_try_steal(thr_info_t *ti)
 /* FIXME: optimize for large number of threads, with a loopless fastpath */
 static bool thr_job_steal(void)
 {
-    for (size_t i = self_tid_g; i-- > 0; ) {
-        if (thr_job_try_steal(&_G.threads[i])) {
-#ifndef NDEBUG
-            self_g->acc.jobs_steals++;
-#endif
-            return true;
-        }
-    }
-    for (size_t i = self_tid_g; ++i < thr_parallelism_g; ) {
-        if (thr_job_try_steal(&_G.threads[i])) {
-#ifndef NDEBUG
-            self_g->acc.jobs_steals++;
-#endif
+    for (size_t i = 1; i < thr_parallelism_g; i++) {
+        size_t tid = (i + self_tid_g) % thr_parallelism_g;
+
+        if (thr_job_try_steal(&_G.threads[tid], i)) {
             return true;
         }
     }
