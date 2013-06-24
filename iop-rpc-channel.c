@@ -31,8 +31,9 @@ const QM(ic_cbs, ic_no_impl, false);
 
 void ic_initialize(void)
 {
-    assert (!ic_mp_g);
-    ic_mp_g = mem_fifo_pool_new(1 << 20);
+    if (!ic_mp_g) {
+        ic_mp_g = mem_fifo_pool_new(1 << 20);
+    }
 }
 void ic_shutdown(void)
 {
