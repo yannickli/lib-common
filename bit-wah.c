@@ -943,19 +943,42 @@ static void wah_add_en(wah_t *dest, wah_word_enum_t *en, uint64_t words)
     assert (exp_len == dest->len);
 }
 
+enum {
+    FLAG_RUN_0    = 0,
+    FLAG_LITTERAL = 1,
+    FLAG_RUN_1    = 0xff,
+};
+
+static uint64_t wah_word_enum_weight(const wah_word_enum_t *a)
+{
+    switch (a->state) {
+      case WAH_ENUM_RUN:
+        if (a->current) {
+            return 0xff00000000UL | a->remain_words;
+        } else {
+            return 0xffffffff - a->remain_words;
+        }
+
+      case WAH_ENUM_LITERAL:
+      case WAH_ENUM_PENDING:
+        return 0x0100000000UL | a->remain_words;
+
+      case WAH_ENUM_END:
+        break;
+    }
+
+    return 0;
+}
+
 wah_t *wah_multi_or(const wah_t *src[], int len, wah_t * restrict dest)
 {
     t_scope;
     qv_t(wah_word_enum) enums;
     uint32_t buffer[1024];
+    byte     buffer_flags[countof(buffer)];
     uint64_t exp_len = 0;
-    uint64_t exp_act = 0;
-
-    ssize_t literal_length = -1;
-    ssize_t run_0_length   = -1;
-    size_t run_1_length   = 0;
-    size_t pending_length = 0;
-    int    non_0 = 0;
+    uint64_t min_act = 0;
+    uint64_t max_act = 0;
 
     if (!dest) {
         dest = wah_pool_acquire();
@@ -963,218 +986,206 @@ wah_t *wah_multi_or(const wah_t *src[], int len, wah_t * restrict dest)
         wah_reset_map(dest);
     }
 
-#define PROCESS_EN(en)                                                       \
-        /* Identify the currently limiting stream:                           \
-         * - runs of 1 can be integrally consumed                            \
-         * - the shortest literal array can be consumed.                     \
-         * - the shortest runs of 0 can be consumed                          \
-         *                                                                   \
-         * Pending are treated as literal arrays of infinit size.            \
-         */                                                                  \
-        switch ((en)->state) {                                               \
-          case WAH_ENUM_LITERAL:                                             \
-            non_0++;                                                         \
-            if (literal_length < 0                                           \
-            || (uint32_t)literal_length > en->remain_words)                  \
-            {                                                                \
-                literal_length = en->remain_words;                           \
-            }                                                                \
-            break;                                                           \
-                                                                             \
-          case WAH_ENUM_PENDING:                                             \
-            non_0++;                                                         \
-            pending_length = MAX(pending_length,                             \
-                                 en->map->len % WAH_BIT_IN_WORD);            \
-            break;                                                           \
-                                                                             \
-          case WAH_ENUM_RUN:                                                 \
-            if (en->current) {                                               \
-                non_0++;                                                     \
-                run_1_length = MAX(en->remain_words, run_1_length);          \
-            } else                                                           \
-            if (run_0_length < 0) {                                          \
-                run_0_length = en->remain_words;                             \
-            } else {                                                         \
-                run_0_length = MIN(en->remain_words, run_0_length);          \
-            }                                                                \
-            break;                                                           \
-                                                                             \
-          case WAH_ENUM_END:                                                 \
-            break;                                                           \
-        }
-
     t_qv_init(wah_word_enum, &enums, len);
     for (int i = 0; i < len; i++) {
         wah_word_enum_t *en = t_new_raw(wah_word_enum_t, 1);
 
         exp_len = MAX(exp_len, src[i]->len);
-        exp_act = MAX(exp_act, src[i]->active);
+        min_act = MAX(min_act, src[i]->active);
+        max_act += src[i]->active;
         wah_check_invariant(src[i]);
         *en = wah_word_enum_start(src[i], false);
         if (en->state != WAH_ENUM_END) {
             qv_append(wah_word_enum, &enums, en);
         }
+    }
+    max_act = MIN(exp_len, max_act);
 
-        PROCESS_EN(en);
+    if (enums.len == 1) {
+        wah_copy(dest, enums.tab[0]->map);
+        return dest;
     }
 
-    while (enums.len > 0) {
-        bool first   = true;
-        size_t prev_pending_length = 0;
-        uint64_t consumed = 0;
-        enum {
-            WAH_OR_RUN0,
-            WAH_OR_RUN1,
-            WAH_OR_LITERAL,
-            WAH_OR_PENDING,
-            WAH_OR_EN,
-        } state;
+#define CONSUME_ALL(amount, skip_first)  do {                                \
+        const uint64_t __amount = (amount);                                  \
+        const bool __skip_first = (skip_first);                              \
+                                                                             \
+        qv_for_each_pos_safe(wah_word_enum, pos, &enums) {                   \
+            wah_word_enum_t *en = enums.tab[pos];                            \
+                                                                             \
+            if (!__skip_first || en != first) {                              \
+                wah_word_enum_skip(en, __amount);                            \
+            }                                                                \
+            if (en->state == WAH_ENUM_END) {                                 \
+                if (pos != enums.len - 1) {                                  \
+                    enums.tab[pos] = enums.tab[enums.len - 1];               \
+                }                                                            \
+                enums.len--;                                                 \
+            }                                                                \
+        }                                                                    \
+    } while (0)
 
+    while (enums.len) {
+        uint32_t bits = 0;
+        uint32_t buf_pos = 0;
+        uint32_t end_pos = 0;
+        uint64_t first_weight  = 0;
+        uint64_t second_weight = 0;
+        wah_word_enum_t *first = NULL;
+        wah_word_enum_t *second = NULL;
 
-        /* Compute the number of words to consume
-         */
-        if (non_0 == 1
-        && (run_0_length >= 0 || enums.tab[0]->map->len - dest->len > 32))
-        {
-            if (run_0_length < 0) {
-                assert (enums.len == 1);
-                consumed = (enums.tab[0]->map->len - dest->len) / 32;
-            } else {
-                consumed = run_0_length;
-            }
-            state = WAH_OR_EN;
-        } else
-        if (run_1_length > 0) {
-            consumed = run_1_length;
-            state = WAH_OR_RUN1;
-        } else
-        if (literal_length > 0) {
-            if (run_0_length < 0) {
-                consumed = literal_length;
-            } else {
-                consumed = MIN(run_0_length, literal_length);
-            }
+        qv_for_each_entry(wah_word_enum, e, &enums) {
+            uint64_t w = wah_word_enum_weight(e);
 
-            state = WAH_OR_LITERAL;
-        } else
-        if (pending_length > 0) {
-            if (run_0_length < 0) {
-                consumed = 1;
-                state = WAH_OR_PENDING;
-            } else {
-                consumed = run_0_length;
-                state = WAH_OR_LITERAL;
+            if (w > first_weight || !first) {
+                second        = first;
+                second_weight = first_weight;
+                first = e;
+                first_weight = w;
+            } else
+            if (w > second_weight || !second) {
+                second        = e;
+                second_weight = w;
             }
-        } else {
-            assert (run_0_length > 0);
-            consumed = run_0_length;
-            state = WAH_OR_RUN0;
         }
-        if (state == WAH_OR_LITERAL) {
-            consumed = MIN(consumed, countof(buffer));
+        assert (first);
+        assert (second || enums.len == 1);
+
+        if (second && second->state == WAH_ENUM_RUN && !second->current) {
+            wah_add_en(dest, first, second->remain_words);
+            CONSUME_ALL(second->remain_words, true);
+            continue;
+        } else
+        if (enums.len == 1 && first->state != WAH_ENUM_PENDING) {
+            uint64_t to_consume = (first->map->len - dest->len) / 32;
+            wah_add_en(dest, first, to_consume);
+            if (first->state == WAH_ENUM_END) {
+                enums.len--;
+            }
+            continue;
+        } else
+        if (first->state == WAH_ENUM_RUN) {
+            if (first->current) {
+                wah_add1s(dest, (uint64_t)first->remain_words * 32);
+            } else {
+                wah_add0s(dest, (uint64_t)first->remain_words * 32);
+            }
+            CONSUME_ALL(first->remain_words, false);
+            continue;
         }
-        assert (consumed <= DIV_ROUND_UP(exp_len, 32));
-        assert (consumed != 0);
 
-        prev_pending_length = pending_length;
-        literal_length = -1;
-        run_0_length   = -1;
-        run_1_length   = 0;
-        pending_length = 0;
-        non_0 = 0;
-
-        /* Build the literal values and consume the words from each
-         * enumerator, move the enumerators forward and compute starts the
-         * computing of the length for the next loop.
-         */
+        p_clear(&buffer_flags, 1);
         qv_for_each_pos_safe(wah_word_enum, pos, &enums) {
+            uint32_t     remain  = countof(buffer);
+            uint32_t     en_bits = 0;
             wah_word_enum_t *en = enums.tab[pos];
 
-            switch (en->state) {
-              case WAH_ENUM_PENDING:
-                if (state == WAH_OR_LITERAL || state == WAH_OR_PENDING) {
-                    if (first) {
-                        buffer[0] = en->current;
-                        if (consumed > 1) {
-                            p_clear(&buffer[1], consumed - 1);
-                        }
-                        first = false;
-                    } else {
-                        buffer[0] |= en->current;
-                    }
-                }
-                break;
+            buf_pos = 0;
+            while (en->state != WAH_ENUM_END && remain > 0) {
+                uint32_t to_consume = MIN(remain, en->remain_words);
 
-              case WAH_ENUM_LITERAL:
-                if (state == WAH_OR_LITERAL) {
+                switch (en->state) {
+                  case WAH_ENUM_LITERAL: {
                     const uint32_t *data = (const uint32_t *)en->map->data.tab;
 
                     data = &data[en->pos - en->remain_words];
-                    if (first) {
-                        p_copy(buffer, data, consumed);
-                        first = false;
-                    } else {
-                        for (uint32_t i = 0; i < consumed; i++) {
-                            buffer[i] |= data[i];
+                    for (uint32_t i = 0; i < to_consume; i++) {
+                        if (buffer_flags[buf_pos + i] != FLAG_RUN_1) {
+                            if (buffer_flags[buf_pos + i] == FLAG_RUN_0) {
+                                buffer[buf_pos + i]  = data[i];
+                                buffer_flags[buf_pos + i] = FLAG_LITTERAL;
+                            } else {
+                                buffer[buf_pos + i] |= data[i];
+                            }
+                            if (buffer[buf_pos + i] == 0xffffffff) {
+                                buffer_flags[buf_pos + i] = FLAG_RUN_1;
+                            }
                         }
                     }
+                    en_bits += to_consume * 32;
+                  } break;
+
+                  case WAH_ENUM_RUN:
+                    if (en->current) {
+                        memset(&buffer_flags[buf_pos], 0xff, to_consume);
+                    }
+                    en_bits += to_consume * 32;
+                    break;
+
+                  case WAH_ENUM_PENDING:
+                    if (buffer_flags[buf_pos] != FLAG_RUN_1) {
+                        if (buffer_flags[buf_pos] == FLAG_RUN_0) {
+                            buffer[buf_pos] = en->current;
+                            buffer_flags[buf_pos] = FLAG_LITTERAL;
+                        } else {
+                            buffer[buf_pos] |= en->current;
+                            if (buffer[buf_pos] == 0xffffffff) {
+                                buffer_flags[buf_pos] = FLAG_RUN_1;
+                            }
+                        }
+                    }
+                    en_bits += en->map->len % 32;
+                    break;
+
+                  case WAH_ENUM_END:
+                    e_panic("this should not happen");
                 }
-                break;
-
-              case WAH_ENUM_RUN:
-                assert (!en->current
-                    || (state != WAH_OR_PENDING && state != WAH_OR_LITERAL));
-                break;
-
-              case WAH_ENUM_END:
-                assert (false);
-                break;
+                wah_word_enum_skip(en, to_consume);
+                buf_pos += to_consume;
+                remain  -= to_consume;
             }
-            if (state == WAH_OR_EN && (en->state != WAH_ENUM_RUN || en->current)) {
-                wah_add_en(dest, en, consumed);
-                assert (dest->len <= exp_len);
-            } else {
-                wah_word_enum_skip(en, consumed);
-            }
-
-            PROCESS_EN(en);
+            bits = MAX(bits, en_bits);
             if (en->state == WAH_ENUM_END) {
-                qv_remove(wah_word_enum, &enums, pos);
+                if (pos != enums.len - 1) {
+                    enums.tab[pos] = enums.tab[enums.len - 1];
+                }
+                enums.len--;
             }
         }
+        assert (!enums.len || (bits % 32) == 0);
 
-        switch (state) {
-          case WAH_OR_PENDING:
-            assert (prev_pending_length > 0);
-            wah_add_aligned(dest, (const uint8_t *)buffer, prev_pending_length);
-            assert (enums.len == 0);
-            assert (dest->len == exp_len);
-            break;
+        buf_pos = 0;
+        end_pos = DIV_ROUND_UP(bits, 32);
+        while (buf_pos < end_pos) {
+            byte val = buffer_flags[buf_pos];
+            uint32_t end = buf_pos + 1;
 
-          case WAH_OR_LITERAL:
-            wah_add_aligned(dest, (const uint8_t *)buffer, consumed * 32);
-            assert (dest->len <= exp_len);
-            break;
+            while (end < end_pos) {
+                if (buffer_flags[end] != val) {
+                    break;
+                }
+                end++;
+            }
 
-          case WAH_OR_RUN1:
-            wah_add1s(dest, 32 * consumed);
-            assert (dest->len <= exp_len);
-            break;
+            switch (val) {
+              case FLAG_RUN_1:
+                wah_add1s(dest, 32 * (end - buf_pos));
+                break;
 
-          case WAH_OR_RUN0:
-            wah_add0s(dest, 32 * consumed);
-            assert (dest->len <= exp_len);
-            break;
+              case FLAG_RUN_0:
+                wah_add0s(dest, 32 * (end - buf_pos));
+                break;
 
-          case WAH_OR_EN:
-            break;
+              case FLAG_LITTERAL:
+                if (32 * (end - buf_pos) > bits) {
+                    wah_add_aligned(dest,  (const uint8_t *)&buffer[buf_pos],
+                                    bits);
+                } else {
+                    wah_add_literal(dest, (const uint8_t *)&buffer[buf_pos],
+                                    4 * (end - buf_pos));
+                }
+                break;
+            }
+
+            bits -= 32 * (end - buf_pos);
+            buf_pos = end;
         }
     }
 
-#undef PROCESS_EN
     wah_check_invariant(dest);
     assert (dest->len    == exp_len);
-    assert (dest->active >= exp_act);
+    assert (dest->active >= min_act);
+    assert (dest->active <= max_act);
     return dest;
 }
 
