@@ -464,6 +464,7 @@ static bool thr_job_steal(void)
         if (thr_job_try_steal(&_G.threads[tid], i)) {
             return true;
         }
+        sched_yield();
     }
     return false;
 }
