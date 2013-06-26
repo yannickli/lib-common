@@ -423,7 +423,7 @@ static bool thr_job_try_steal(thr_info_t *ti, int depth)
      * emptying the queue.
      */
     if ((int)(bot - top) > 0) {
-        unsigned to_read = DIV_ROUND_UP(bot - top, (1 << (depth + 1)));
+        unsigned to_read = 1; // DIV_ROUND_UP(bot - top, (1 << (depth + 1)));
         unsigned my_bot = shared_read(self_g->bot);
         struct deque_entry e;
 
