@@ -25,6 +25,9 @@
 #include "datetime.h"
 #include "hash.h"
 #include "property.h"
+#include "core.iop.h"
+
+/* Conf Licences {{{ */
 
 int trace_override;
 
@@ -468,6 +471,111 @@ int list_my_cpus(char *dst, size_t size)
 #endif
 }
 
+/* }}} */
+/* IOP Licences {{{ */
+
+static __must_check__
+int licence_check_iop_host(const core__licence__t *licence)
+{
+    if (!licence->cpu_signatures.len && !licence->mac_addresses.len) {
+#ifdef NDEBUG
+        return -1;
+#else
+        e_warning("unrestricted licence");
+#endif
+    }
+
+    /* check optional CPU Signatures */
+    if (licence->cpu_signatures.len) {
+        uint32_t cpusig;
+
+        if (read_cpu_signature(&cpusig)) {
+#ifdef NDEBUG
+            return -1;
+#else
+            return e_error("unable to get CPU signature");
+#endif
+        }
+        tab_for_each_entry(id, &licence->cpu_signatures) {
+            if (cpusig == id) {
+                goto cpu_ok;
+            }
+        }
+#ifdef NDEBUG
+        return -1;
+#else
+        return e_error("invalid cpuSignature");
+#endif
+    }
+  cpu_ok:
+
+    /* check optional MAC addresses */
+    if (licence->mac_addresses.len) {
+        tab_for_each_entry(mac, &licence->mac_addresses) {
+            if (is_my_mac_addr(mac.s)) {
+                goto mac_ok;
+            }
+        }
+#ifdef NDEBUG
+        return -1;
+#else
+        return e_error("invalid macAddresses");
+#endif
+    }
+  mac_ok:
+
+    return 0;
+}
+
+static __must_check__
+int licence_check_iop_expiry(const core__licence__t *licence)
+{
+    struct tm t;
+
+    if (licence->expires.len != 11) {
+        return e_error("invalid expiry date");
+    }
+
+    p_clear(&t, 1);
+    t.tm_isdst = -1;
+
+    if (strtotm(licence->expires.s, &t) < 0) {
+        return e_error("invalid expiry date");
+    }
+    if (mktime(&t) < time(NULL)) {
+        return e_error("licence is expired");
+    }
+
+    return 0;
+}
+
+int licence_check_iop(const core__signed_licence__t *signed_licence,
+                      const iop_struct_t *licence_st, lstr_t version,
+                      unsigned flags)
+{
+    const core__licence__t *licence = signed_licence->licence;
+
+    if (!iop_obj_is_a_desc(licence, licence_st)) {
+#ifdef NDEBUG
+        e_fatal("wrong licence type");
+#else
+        e_fatal("wrong licence type, expected %*pM, got %*pM",
+                LSTR_FMT_ARG(licence_st->fullname),
+                LSTR_FMT_ARG(licence->__vptr->fullname));
+#endif
+    }
+
+    RETHROW((iop_check_signature)(&core__licence__s, licence,
+                                  signed_licence->signature, flags));
+    if (version.s && !lstr_equal2(version, licence->version)) {
+        return e_error("licence does not support that product version");
+    }
+    RETHROW(licence_check_iop_expiry(licence));
+    RETHROW(licence_check_iop_host(licence));
+    return 0;
+}
+
+/* }}} */
 /* tests {{{ */
 
 static int find_local_mac(char buf[static 6 * 3])
@@ -537,6 +645,30 @@ Z_GROUP_EXPORT(licence)
         Z_ASSERT(conf = conf_load("samples/licence-v1-ko.conf"));
         Z_ASSERT(!licence_check_expiration_ok(conf), "licence-test-ko passed");
         conf_delete(&conf);
+    } Z_TEST_END;
+
+    Z_TEST(iop, "") {
+        t_scope;
+        SB_1k(tmp);
+        core__signed_licence__t lic;
+
+        Z_ASSERT_N(chdir(z_cmddir_g.s));
+        Z_ASSERT_N(t_core__signed_licence__junpack_file("samples/licence-iop-ok.cf",
+                                                        &lic, 0, &tmp));
+        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s,
+                                     LSTR_IMMED_V("1.0"), 0));
+        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
+                                       LSTR_IMMED_V("2.0"), 0));
+
+        Z_ASSERT_N(t_core__signed_licence__junpack_file("samples/licence-iop-sig-ko.cf",
+                                                        &lic, 0, &tmp));
+        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
+                                       LSTR_IMMED_V("1.0"), 0));
+
+        Z_ASSERT_N(t_core__signed_licence__junpack_file("samples/licence-iop-exp-ko.cf",
+                                                        &lic, 0, &tmp));
+        Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
+                                       LSTR_IMMED_V("1.0"), 0));
     } Z_TEST_END;
 } Z_GROUP_END
 

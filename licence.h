@@ -14,7 +14,10 @@
 #ifndef IS_LIB_COMMON_LICENCE_H
 #define IS_LIB_COMMON_LICENCE_H
 
+#include "iop.h"
 #include "conf.h"
+
+/* Conf Licences {{{ */
 
 extern int trace_override;
 #define trace_override  trace_override
@@ -32,5 +35,26 @@ bool licence_check_host_ok(const conf_t *conf);
  * not enforce this check, no matter what the prototype looks like.
  */
 int  licence_do_signature(const conf_t *conf, char dst[65]);
+
+/* }}} */
+/* IOP Licences {{{ */
+
+struct core__signed_licence__t;
+
+/** Check an IOP Licence.
+ *
+ * \param[in] licence     The signed licence structure.
+ * \param[in] licence_st  The class the licence is expected to be a child of
+ *                        (should be a descendant of core__licence__t).
+ * \param[in] version     The version of the product we're running on,
+ *                        LSTR_NULL if the version should not be checked.
+ * \param[in] flags       Flags to use to compute the signature.
+ */
+__must_check__
+int licence_check_iop(const struct core__signed_licence__t *licence,
+                      const iop_struct_t *licence_st, lstr_t version,
+                      unsigned flags);
+
+/* }}} */
 
 #endif /* IS_LIB_COMMON_LICENCE_H */

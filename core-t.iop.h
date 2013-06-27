@@ -68,6 +68,25 @@ typedef struct core__log_file_configuration__t {
 extern iop_struct_t const core__log_file_configuration__s;
 IOP_CLASS(core__log_file_configuration);
 
+typedef struct core__licence__t {
+    const iop_struct_t *__vptr;
+    lstr_t   expires;
+    lstr_t   registered_to;
+    lstr_t   version;
+    bool     production_use;
+    IOP_ARRAY_OF(int64_t)  cpu_signatures;
+    IOP_ARRAY_OF(lstr_t)   mac_addresses;
+} core__licence__t;
+extern iop_struct_t const core__licence__s;
+IOP_CLASS(core__licence);
+
+typedef struct core__signed_licence__t {
+    struct core__licence__t *licence;
+    lstr_t   signature;
+} core__signed_licence__t;
+extern iop_struct_t const core__signed_licence__s;
+IOP_GENERIC(core__signed_licence);
+
 typedef struct core__httpd_cfg__t {
     lstr_t   bind_addr;
     uint32_t outbuf_max_size;

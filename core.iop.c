@@ -644,6 +644,317 @@ const iop_struct_t core__log_file_configuration__s = {
 };
 
 /* }}} */
+/* Class core.Licence {{{ */
+
+static const iop_help_t core__licence__expires__f_help = {
+    .brief = LSTR_IMMED("Expiration date of the licence."),
+};
+static int core__licence__expires__check(const void *ptr, int n)
+{
+    for (int j = 0; j < n; j++) {
+        lstr_t    val = IOP_FIELD(lstr_t   , ptr, j);
+
+        if (val.len < 11) {
+            iop_set_err("violation of constraint %s (%d) on field %s: length=%d",
+                        "minLength", 11, "expires", val.len);
+            return -1;
+        }
+        if (val.len > 11) {
+            iop_set_err("violation of constraint %s (%d) on field %s: length=%d",
+                        "maxLength", 11, "expires", val.len);
+            return -1;
+        }
+        for (int c = 0; c < val.len; c++) {
+            switch (val.s[c]) {
+                case 'a' ... 'z':
+                case 'A' ... 'Z':
+                case '0' ... '9':
+                case '-':
+                    break;
+                default:
+                    iop_set_err("violation of constraint %s (%s) on field %s: %*pM",
+                                "pattern", "[a-zA-Z0-9\\-]*", "expires", LSTR_FMT_ARG(val));
+                    return -1;
+            }
+        }
+    }
+    return 0;
+}
+static iop_field_attr_t const core__licence__expires__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__expires__f_help } },
+    },
+    {
+        .type = 7,
+        .args = (iop_field_attr_arg_t[]){ { .v.i64 = 11LL } },
+    },
+    {
+        .type = 8,
+        .args = (iop_field_attr_arg_t[]){ { .v.i64 = 11LL } },
+    },
+    {
+        .type = 9,
+        .args = (iop_field_attr_arg_t[]){ { .v.s = LSTR_IMMED("[a-zA-Z0-9\\-]*") } },
+    },
+};
+static const iop_help_t core__licence__registered_to__f_help = {
+    .brief = LSTR_IMMED("Licencee identification."),
+};
+static iop_field_attr_t const core__licence__registered_to__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__registered_to__f_help } },
+    },
+};
+static const iop_help_t core__licence__version__f_help = {
+    .brief = LSTR_IMMED("Version of the product licenced."),
+};
+static iop_field_attr_t const core__licence__version__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__version__f_help } },
+    },
+};
+static const iop_help_t core__licence__production_use__f_help = {
+    .brief = LSTR_IMMED("If true, the licencee is allowed to use the product for production."),
+};
+static iop_field_attr_t const core__licence__production_use__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__production_use__f_help } },
+    },
+};
+static const iop_help_t core__licence__cpu_signatures__f_help = {
+    .brief = LSTR_IMMED("Hardware limitation: CPU."),
+};
+static iop_field_attr_t const core__licence__cpu_signatures__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__cpu_signatures__f_help } },
+    },
+};
+static const iop_help_t core__licence__mac_addresses__f_help = {
+    .brief = LSTR_IMMED("Hardware limitation: MAC Address."),
+};
+static iop_field_attr_t const core__licence__mac_addresses__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__licence__mac_addresses__f_help } },
+    },
+};
+static iop_field_attrs_t const core__licence__desc_fields_attrs[] = {
+    {
+        .flags             = 2944,
+        .attrs_len         = 4,
+        .check_constraints = &core__licence__expires__check,
+        .attrs             = core__licence__expires__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__licence__registered_to__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__licence__version__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__licence__production_use__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__licence__cpu_signatures__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__licence__mac_addresses__attrs,
+    },
+};
+static iop_field_t const core__licence__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("expires"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_DEFVAL,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__licence__t, expires),
+        .flags     = 1,
+        .u0        = { .defval_len  = 11 },
+        .u1        = { .defval_data = "31-dec-2035" },
+        .size      = fieldsizeof(core__licence__t, expires),
+    },
+    {
+        .name      = LSTR_IMMED("registeredTo"),
+        .tag       = 2,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__licence__t, registered_to),
+        .size      = fieldsizeof(core__licence__t, registered_to),
+    },
+    {
+        .name      = LSTR_IMMED("version"),
+        .tag       = 3,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__licence__t, version),
+        .size      = fieldsizeof(core__licence__t, version),
+    },
+    {
+        .name      = LSTR_IMMED("productionUse"),
+        .tag       = 4,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_BOOL,
+        .data_offs = offsetof(core__licence__t, production_use),
+        .size      = fieldsizeof(core__licence__t, production_use),
+    },
+    {
+        .name      = LSTR_IMMED("cpuSignatures"),
+        .tag       = 5,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REPEATED,
+        .type      = IOP_T_I64,
+        .data_offs = offsetof(core__licence__t, cpu_signatures),
+        .size      = fieldsizeof(core__licence__t, cpu_signatures.tab[0]),
+    },
+    {
+        .name      = LSTR_IMMED("macAddresses"),
+        .tag       = 6,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REPEATED,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__licence__t, mac_addresses),
+        .size      = fieldsizeof(core__licence__t, mac_addresses.tab[0]),
+    },
+};
+static int const iop__ranges__5[] = {
+    0, 1,
+    6,
+};
+static const iop_help_t core__licence__s_help = {
+    .brief = LSTR_IMMED("Product licence."),
+    .details = LSTR_IMMED("This class provides the base for a product licence format."),
+};
+static const iop_struct_attr_t core__licence__s_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_struct_attr_arg_t[]){ { .v.p = &core__licence__s_help } },
+    },
+};
+static const iop_struct_attrs_t core__licence__s_desc_attrs = {
+    .flags     = 1,
+    .attrs_len = 1,
+    .attrs     = core__licence__s_attrs,
+};
+static const iop_class_attrs_t core__licence__class_s = {
+    .class_id          = 0,
+};
+const iop_struct_t core__licence__s = {
+    .fullname   = LSTR_IMMED("core.Licence"),
+    .fields     = core__licence__desc_fields,
+    .ranges     = iop__ranges__5,
+    .fields_len = countof(core__licence__desc_fields),
+    .ranges_len = countof(iop__ranges__5) / 2,
+    .size       = sizeof(core__licence__t),
+    .flags      = 7,
+    .st_attrs   = &core__licence__s_desc_attrs,
+    .fields_attrs = core__licence__desc_fields_attrs,
+    .class_attrs  = &core__licence__class_s,
+};
+
+/* }}} */
+/* Structure core.SignedLicence {{{ */
+
+static const iop_help_t core__signed_licence__licence__f_help = {
+    .brief = LSTR_IMMED("The licence structure."),
+};
+static iop_field_attr_t const core__signed_licence__licence__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__signed_licence__licence__f_help } },
+    },
+};
+static const iop_help_t core__signed_licence__signature__f_help = {
+    .brief = LSTR_IMMED("The signature of the previously defined licence."),
+};
+static iop_field_attr_t const core__signed_licence__signature__attrs[] = {
+    {
+        .type = 11,
+        .args = (iop_field_attr_arg_t[]){ { .v.p = &core__signed_licence__signature__f_help } },
+    },
+};
+static iop_field_attrs_t const core__signed_licence__desc_fields_attrs[] = {
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__signed_licence__licence__attrs,
+    },
+    {
+        .flags             = 2048,
+        .attrs_len         = 1,
+        .attrs             = core__signed_licence__signature__attrs,
+    },
+};
+static iop_field_t const core__signed_licence__desc_fields[] = {
+    {
+        .name      = LSTR_IMMED("licence"),
+        .tag       = 1,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_STRUCT,
+        .data_offs = offsetof(core__signed_licence__t, licence),
+        .size      = sizeof(core__licence__t *),
+        .u1        = { .st_desc = &core__licence__s },
+    },
+    {
+        .name      = LSTR_IMMED("signature"),
+        .tag       = 2,
+        .tag_len   = 0,
+        .repeat    = IOP_R_REQUIRED,
+        .type      = IOP_T_STRING,
+        .data_offs = offsetof(core__signed_licence__t, signature),
+        .size      = fieldsizeof(core__signed_licence__t, signature),
+    },
+};
+static int const iop__ranges__6[] = {
+    0, 1,
+    2,
+};
+static const iop_help_t core__signed_licence__s_help = {
+    .brief = LSTR_IMMED("Signed licence."),
+};
+static const iop_struct_attr_t core__signed_licence__s_attrs[] = {
+    {
+        .type = 0,
+        .args = (iop_struct_attr_arg_t[]){ { .v.p = &core__signed_licence__s_help } },
+    },
+};
+static const iop_struct_attrs_t core__signed_licence__s_desc_attrs = {
+    .flags     = 1,
+    .attrs_len = 1,
+    .attrs     = core__signed_licence__s_attrs,
+};
+const iop_struct_t core__signed_licence__s = {
+    .fullname   = LSTR_IMMED("core.SignedLicence"),
+    .fields     = core__signed_licence__desc_fields,
+    .ranges     = iop__ranges__6,
+    .fields_len = countof(core__signed_licence__desc_fields),
+    .ranges_len = countof(iop__ranges__6) / 2,
+    .size       = sizeof(core__signed_licence__t),
+    .flags      = 3,
+    .st_attrs   = &core__signed_licence__s_desc_attrs,
+    .fields_attrs = core__signed_licence__desc_fields_attrs,
+};
+
+/* }}} */
 /* Structure core.HttpdCfg {{{ */
 
 static const iop_help_t core__httpd_cfg__bind_addr__f_help = {
@@ -865,16 +1176,16 @@ static iop_field_t const core__httpd_cfg__desc_fields[] = {
         .size      = fieldsizeof(core__httpd_cfg__t, header_size_max),
     },
 };
-static int const iop__ranges__5[] = {
+static int const iop__ranges__7[] = {
     0, 1,
     9,
 };
 const iop_struct_t core__httpd_cfg__s = {
     .fullname   = LSTR_IMMED("core.HttpdCfg"),
     .fields     = core__httpd_cfg__desc_fields,
-    .ranges     = iop__ranges__5,
+    .ranges     = iop__ranges__7,
     .fields_len = countof(core__httpd_cfg__desc_fields),
-    .ranges_len = countof(iop__ranges__5) / 2,
+    .ranges_len = countof(iop__ranges__7) / 2,
     .size       = sizeof(core__httpd_cfg__t),
     .flags      = 1,
     .fields_attrs = core__httpd_cfg__desc_fields_attrs,
@@ -1031,16 +1342,12 @@ static iop_field_t const core__httpc_cfg__desc_fields[] = {
         .size      = fieldsizeof(core__httpc_cfg__t, header_size_max),
     },
 };
-static int const iop__ranges__6[] = {
-    0, 1,
-    6,
-};
 const iop_struct_t core__httpc_cfg__s = {
     .fullname   = LSTR_IMMED("core.HttpcCfg"),
     .fields     = core__httpc_cfg__desc_fields,
-    .ranges     = iop__ranges__6,
+    .ranges     = iop__ranges__5,
     .fields_len = countof(core__httpc_cfg__desc_fields),
-    .ranges_len = countof(iop__ranges__6) / 2,
+    .ranges_len = countof(iop__ranges__5) / 2,
     .size       = sizeof(core__httpc_cfg__t),
     .flags      = 1,
     .fields_attrs = core__httpc_cfg__desc_fields_attrs,
@@ -1072,16 +1379,12 @@ static iop_field_t const core__log__set_root_level_args__desc_fields[] = {
         .size      = fieldsizeof(core__log__set_root_level_args__t, force_all),
     },
 };
-static int const iop__ranges__7[] = {
-    0, 1,
-    2,
-};
 const iop_struct_t core__log__set_root_level_args__s = {
     .fullname   = LSTR_IMMED("core.Log.setRootLevelArgs"),
     .fields     = core__log__set_root_level_args__desc_fields,
-    .ranges     = iop__ranges__7,
+    .ranges     = iop__ranges__6,
     .fields_len = countof(core__log__set_root_level_args__desc_fields),
-    .ranges_len = countof(iop__ranges__7) / 2,
+    .ranges_len = countof(iop__ranges__6) / 2,
     .size       = sizeof(core__log__set_root_level_args__t),
 };
 
@@ -1323,6 +1626,8 @@ static const iop_struct_t *const core__structs[] = {
     &core__logger_configuration__s,
     &core__log_configuration__s,
     &core__log_file_configuration__s,
+    &core__licence__s,
+    &core__signed_licence__s,
     &core__httpd_cfg__s,
     &core__httpc_cfg__s,
     NULL,
