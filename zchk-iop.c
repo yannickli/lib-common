@@ -2479,6 +2479,31 @@ Z_GROUP_EXPORT(iop)
         c2_2_1.c = 8;
         CHECK_EQUALS(c2, &c2_1_1, &c2_2_1, true);
 
+        /* ---- Test when modifying a non-scalar field ---- */
+        {
+            t_scope;
+            tstiop_inheritance__c2__t *c2_1_4;
+
+            /* With iop_dup */
+            c2_1_1.a3 = t_lstr_fmt("a");
+            c2_1_4 = tstiop_inheritance__c2__dup(t_pool(), &c2_1_1);
+            CHECK_EQUALS(c2, &c2_1_1, c2_1_4, true);
+            c2_1_1.a3.v[0] = 'b';
+            CHECK_EQUALS(c2, &c2_1_1, c2_1_4, false);
+            c2_1_4->a3.v[0] = 'b';
+            CHECK_EQUALS(c2, &c2_1_1, c2_1_4, true);
+
+            /* And with iop_copy */
+            c2_1_1.a3 = t_lstr_fmt("c");
+            tstiop_inheritance__c2__copy(t_pool(), &c2_1_4, &c2_1_1);
+            CHECK_EQUALS(c2, &c2_1_1, c2_1_4, true);
+            c2_1_1.a3.v[0] = 'd';
+            CHECK_EQUALS(c2, &c2_1_1, c2_1_4, false);
+            c2_1_4->a3.v[0] = 'd';
+            CHECK_EQUALS(c2, &c2_1_1, c2_1_4, true);
+
+            c2_1_1.a3 = LSTR_NULL_V;
+        }
 
         /* ---- Tests with a class container --- */
         cc_1.a1 = iop_obj_vcast(tstiop_inheritance__a1, &c2_1_1);

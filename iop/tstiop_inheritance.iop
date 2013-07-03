@@ -27,6 +27,7 @@ class A1 {
     @nonZero
     int a = 1;
     int a2;
+    string? a3;
 };
 
 class B1 : 1 : A1 {

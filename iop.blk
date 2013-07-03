@@ -406,25 +406,37 @@ static uint8_t *__iop_copy_class(const iop_struct_t *st, uint8_t *dst,
 
 void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v)
 {
+    bool is_class;
     size_t sz;
     uint8_t *dst, *res;
 
     RETHROW_P(v);
 
-    if (iop_struct_is_class(st)) {
+    if ((is_class = iop_struct_is_class(st))) {
         st = *(const iop_struct_t **)v;
+        sz = ROUND_UP(st->size, 8) + iop_dup_size(st, v);
+    } else {
+        sz = ROUND_UP(st->size, 8) + __iop_dup_size(st, v);
     }
 
-    sz = ROUND_UP(st->size, 8) + __iop_dup_size(st, v);
     res = mp ? mp->malloc(mp, sz, MEM_RAW) : imalloc(sz, MEM_LIBC | MEM_RAW);
     dst = realign(mempcpy(res, v, st->size));
-    dst = __iop_copy(st, dst, res, v);
+
+    if (is_class) {
+        do {
+            dst = __iop_copy(st, dst, res, v);
+        } while ((st = st->class_attrs->parent));
+    } else {
+        dst = __iop_copy(st, dst, res, v);
+    }
+
     assert (dst == res + sz);
     return res;
 }
 
 void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp, const void *v)
 {
+    bool is_class;
     size_t sz;
     uint8_t *dst, *res = *outp;
 
@@ -438,11 +450,12 @@ void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp, const void *v
         return;
     }
 
-    if (iop_struct_is_class(st)) {
+    if ((is_class = iop_struct_is_class(st))) {
         st = *(const iop_struct_t **)v;
+        sz = ROUND_UP(st->size, 8) + iop_dup_size(st, v);
+    } else {
+        sz = ROUND_UP(st->size, 8) + __iop_dup_size(st, v);
     }
-
-    sz = ROUND_UP(st->size, 8) + __iop_dup_size(st, v);
 
     if (mp) {
         res = mp->realloc(mp, res, 0, sz, MEM_RAW);
@@ -450,7 +463,15 @@ void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp, const void *v
         res = irealloc(res, 0, sz, MEM_LIBC | MEM_RAW);
     }
     dst = realign(mempcpy(res, v, st->size));
-    dst = __iop_copy(st, dst, res, v);
+
+    if (is_class) {
+        do {
+            dst = __iop_copy(st, dst, res, v);
+        } while ((st = st->class_attrs->parent));
+    } else {
+        dst = __iop_copy(st, dst, res, v);
+    }
+
     assert (dst == res + sz);
     *outp = res;
 }
