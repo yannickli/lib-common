@@ -286,6 +286,8 @@ static inline lstr_t lstr_dups(const char *s, int len)
 {
     if (!s)
         return LSTR_NULL_V;
+    if (len < 0)
+        len = strlen(s);
     return lstr_init_(p_dupz(s, len), len, MEM_LIBC);
 }
 
@@ -318,6 +320,8 @@ static inline lstr_t mp_lstr_dups(mem_pool_t *mp, const char *s, int len)
 {
     if (!s)
         return LSTR_NULL_V;
+    if (len < 0)
+        len = strlen(s);
     return lstr_init_(mp_dupz(mp, s, len), len, MEM_OTHER);
 }
 
@@ -354,6 +358,8 @@ static inline void lstr_copyc(lstr_t *dst, const lstr_t s)
 static inline void lstr_copys(lstr_t *dst, const char *s, int len)
 {
     if (s) {
+        if (len < 0)
+            len = strlen(s);
         lstr_copy_(NULL, dst, p_dupz(s, len), len, MEM_LIBC);
     } else {
         lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
@@ -377,6 +383,8 @@ static inline
 void mp_lstr_copys(mem_pool_t *mp, lstr_t *dst, const char *s, int len)
 {
     if (s) {
+        if (len < 0)
+            len = strlen(s);
         lstr_copy_(mp, dst, mp_dupz(mp, s, len), len, MEM_OTHER);
     } else {
         lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
@@ -411,6 +419,8 @@ static inline lstr_t t_lstr_dups(const void *s, int len)
 {
     if (!s)
         return LSTR_NULL_V;
+    if (len < 0)
+        len = strlen(s);
     return lstr_init_(t_dupz(s, len), len, MEM_STACK);
 }
 
@@ -419,6 +429,8 @@ static inline lstr_t t_lstr_dups(const void *s, int len)
 static inline void t_lstr_copys(lstr_t *dst, const void *s, int len)
 {
     if (s) {
+        if (len < 0)
+            len = strlen(s);
         lstr_copy_(NULL, dst, t_dupz(s, len), len, MEM_STACK);
     } else {
         lstr_copy_(NULL, dst, NULL, 0, MEM_STATIC);
