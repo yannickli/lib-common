@@ -1728,7 +1728,7 @@ ssize_t iop_get_field_len(pstream_t ps)
         return 0;
     if (get_uint32(&ps, len_len, &u32) < 0)
         return 0;
-    return tag_len + u32;
+    return tag_len + len_len + u32;
 }
 
 /*-}}}-*/

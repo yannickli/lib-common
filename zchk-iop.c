@@ -1701,4 +1701,55 @@ Z_GROUP_EXPORT(iop)
         iop_dso_close(&dso);
     } Z_TEST_END
     /* }}} */
+    Z_TEST(iop_get_field_len, "test iop_get_field_len") { /* {{{ */
+        t_scope;
+
+        tstiop__my_struct_a__t sa = {
+            .a = 42,
+            .b = 5,
+            .c_of_my_struct_a = 120,
+            .d = 230,
+            .e = 540,
+            .f = 2000,
+            .g = 10000,
+            .h = 20000,
+            .i = IOP_DATA((void *)"foo", 3),
+            .j = CLSTR_IMMED("baré© \" foo ."),
+            .k = MY_ENUM_A_B,
+            .l = IOP_UNION(tstiop__my_union_a, ub, 42),
+            .m = 3.14159265,
+            .n = true,
+        };
+
+        iop_dso_t *dso;
+        lstr_t path = t_lstr_cat(z_cmddir_g,
+                                 LSTR_IMMED_V("zchk-tstiop-plugin.so"));
+        const iop_struct_t *st_sa;
+        qv_t(i32) szs;
+        int len;
+        byte *dst;
+        pstream_t ps;
+
+        if ((dso = iop_dso_open(path.s)) == NULL)
+            Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
+
+        Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructA")));
+
+        t_qv_init(i32, &szs, 1024);
+
+        /* packing */
+        Z_ASSERT_N((len = iop_bpack_size(st_sa, &sa, &szs)),
+                   "invalid structure size (%s)", st_sa->fullname.s);
+        dst = t_new(byte, len);
+        iop_bpack(dst, st_sa, &sa, szs.tab);
+
+        ps = ps_init(dst, len);
+        while (!ps_done(&ps)) {
+            Z_ASSERT_GT(len = iop_get_field_len(ps), 0);
+            Z_ASSERT_N(ps_skip(&ps, len));
+        }
+
+        iop_dso_close(&dso);
+    } Z_TEST_END
+    /* }}} */
 } Z_GROUP_END
