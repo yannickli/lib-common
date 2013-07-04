@@ -192,7 +192,7 @@ void __logger_fatal(logger_t *logger, const char *file, const char *func,
 
 
 #define logger_log(Logger, Level, Fmt, ...)                                  \
-    __logger_log((Logger), (Level), __FILE__, __func__, __LINE__,            \
+    __logger_log((Logger), (Level), NULL, -1, __FILE__, __func__, __LINE__,  \
                  (Fmt), ##__VA_ARGS__)
 
 #define logger_panic(Logger, Fmt, ...)                                       \
