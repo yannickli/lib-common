@@ -415,7 +415,7 @@ static inline lstr_t t_lstr_dup(const lstr_t s)
 
 /** \brief returns a duplicated lstr from the mem stack.
  */
-static inline lstr_t t_lstr_dups(const void *s, int len)
+static inline lstr_t t_lstr_dups(const char *s, int len)
 {
     if (!s)
         return LSTR_NULL_V;
@@ -426,7 +426,7 @@ static inline lstr_t t_lstr_dups(const void *s, int len)
 
 /** \brief sets \v dst to a mem stack allocated copy of its arguments.
  */
-static inline void t_lstr_copys(lstr_t *dst, const void *s, int len)
+static inline void t_lstr_copys(lstr_t *dst, const char *s, int len)
 {
     if (s) {
         if (len < 0)
