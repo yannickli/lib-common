@@ -69,14 +69,16 @@ ext/gen/iop = $(call fun/patsubst-filt,%.iop,%.iop.c,$1) \
 define ext/expand/iop
 $3.h: $3.c
 $3.json: $3.c
+$~$3.dep: IOPINCPATH_=$l $/lib-inet $/qrrd/iop $($(1DV)_IOPINCPATH) $($1_IOPINCPATH) $($3_IOPINCPATH)
 $~$3.dep: $3 $(IOPC)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$(IOPC) -3 --c-resolve-includes --Wextra -l c,json -d$~$$<.dep -I$/lib-common:$/lib-inet:$/qrrd/iop:$/qts:$/platform $$<
+	$(IOPC) -3 --c-resolve-includes --Wextra -l c,json -d$~$$<.dep -I$$(call fun/join,:,$$(IOPINCPATH_)) $$<
+$3.c: IOPINCPATH_=$l $/lib-inet $/qrrd/iop $($(1DV)_IOPINCPATH) $($1_IOPINCPATH) $($3_IOPINCPATH)
 $3.c: $3 $(IOPC)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$(IOPC) -3 --c-resolve-includes --Wextra -l c,json -d$~$$<.dep -I$/lib-common:$/lib-inet:$/qrrd/iop:$/qts:$/platform $$<
+	$(IOPC) -3 --c-resolve-includes --Wextra -l c,json -d$~$$<.dep -I$$(call fun/join,:,$$(IOPINCPATH_)) $$<
 -include $~$3.dep
 endef
 

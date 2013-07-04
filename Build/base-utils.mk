@@ -70,3 +70,14 @@ fun/patsubst-filt = $(patsubst $1,$2,$(filter $1,$3))
 # Expand to $1 $2 $3 if $2 isn't empty.
 #
 fun/expand-if2 = $(if $2,$1 $2 $3)
+
+# a space
+#
+var/space :=
+var/space += 
+
+# join with separator
+#
+# $1 separator
+# $2 list
+fun/join = $(subst $(var/space),$1,$(strip $2))

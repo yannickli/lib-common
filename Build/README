@@ -61,6 +61,9 @@ At the moment, the following set of variables are used at the directory level:
 `_LDFLAGS`::
         To force some `LDFLAGS` to the local directory goals.
 
+`_IOPINCPATH`::
+        To add some path in the include path of the IOPC.
+
 `_NOCHECK`::
         To disable checks to the local directory goals.
 
@@ -144,6 +147,10 @@ to do anything special about it.
         This variable holds the additional C compilation flags to use for
         this goal.
 
+`_IOPINCPATH`::
+        This variable adds additional directories to the include path
+        of the IOPC.
+
 `_NOCHECK`::
 	To disable checks when building this target.
 
@@ -209,6 +216,9 @@ Example: `something.c_CFLAGS = -Wno-error`
 `_NOCHECK` on `.c` files::
 	To disable checks when building this C file.
 
+
+`_IOPINCPATH` on `.iop` files:
+        To add directories to the include path of the IOPC.
 
 For documentation sources, (`_DOCS`) you can also use:
 
