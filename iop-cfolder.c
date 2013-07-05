@@ -292,10 +292,10 @@ int iop_cfolder_feed_operator(iop_cfolder_t *folder, iop_cfolder_op_t op)
     if (op == CF_OP_RPAREN) {
         folder->paren_cnt--;
         if (folder->paren_cnt < 0)
-            return e_error("there is too many closed parentheses");
+            return e_error("there are too many closed parentheses");
         /* Reduce until we reach an open parentheses */
         if (cf_reduce_until_paren(&folder->stack) < 0)
-            return e_error("invalid closed perentheses position");
+            return e_error("invalid closed parentheses position");
         return 0;
     }
 
