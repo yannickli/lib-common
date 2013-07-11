@@ -317,6 +317,7 @@ $~$3.inc.adoc: $3 $~qrrd/sdf2adoc.exe
 	$(msg/DOC.sdf) $3
 	$~qrrd/sdf2adoc.exe -o $$@+ $$<
 	$(MV) $$@+ $$@ && chmod a-w $$@
+	$(FASTCP) $$@ $3.inc.adoc
 $(call ext/expand/adoc,$1,$2,$~$3.inc.adoc,$4)
 endef
 
