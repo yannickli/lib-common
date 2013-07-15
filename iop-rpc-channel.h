@@ -462,7 +462,7 @@ void ic_flush(ichannel_t *ic);
 /** \brief register a proxy destination for the given rpc with forced header.
  * \param[in]  h
  *    the qm_t(ic_cbs) of implementation to register the rpc
- *    implementatin into.
+ *    implementation into.
  * \param[in]  _mod   name of the package+module of the RPC
  * \param[in]  _i     name of the interface of the RPC
  * \param[in]  _r     name of the rpc
@@ -483,7 +483,7 @@ void ic_flush(ichannel_t *ic);
 /** \brief register a proxy destination for the given rpc.
  * \param[in]  h
  *    the qm_t(ic_cbs) of implementation to register the rpc
- *    implementatin into.
+ *    implementation into.
  * \param[in]  _mod   name of the package+module of the RPC
  * \param[in]  _i     name of the interface of the RPC
  * \param[in]  _r     name of the rpc
@@ -496,7 +496,7 @@ void ic_flush(ichannel_t *ic);
 /** \brief register a pointed proxy destination for the given rpc with header.
  * \param[in]  h
  *    the qm_t(ic_cbs) of implementation to register the rpc
- *    implementatin into.
+ *    implementation into.
  * \param[in]  _mod   name of the package+module of the RPC
  * \param[in]  _i     name of the interface of the RPC
  * \param[in]  _r     name of the rpc
@@ -519,7 +519,7 @@ void ic_flush(ichannel_t *ic);
 /** \brief register a pointed proxy destination for the given rpc.
  * \param[in]  h
  *    the qm_t(ic_cbs) of implementation to register the rpc
- *    implementatin into.
+ *    implementation into.
  * \param[in]  _mod   name of the package+module of the RPC
  * \param[in]  _i     name of the interface of the RPC
  * \param[in]  _r     name of the rpc
@@ -534,7 +534,7 @@ void ic_flush(ichannel_t *ic);
 /** \brief register a dynamic proxy destination for the given rpc.
  * \param[in]  h
  *    the qm_t(ic_cbs) of implementation to register the rpc
- *    implementatin into.
+ *    implementation into.
  * \param[in]  _mod   name of the package+module of the RPC
  * \param[in]  _i     name of the interface of the RPC
  * \param[in]  _r     name of the rpc
