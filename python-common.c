@@ -72,10 +72,10 @@ PyThreadState *python_state_g;
 /* python_ctx_t {{{*/
 
 typedef struct python_ctx_t {
-    PyObject     *data;
-    char         *path;
-    PyObject     *cb_query_done;
-    dlist_t       list;
+    PyObject *data;
+    lstr_t    path;
+    PyObject *cb_query_done;
+    dlist_t   list;
 } python_ctx_t;
 
 static python_ctx_t *python_ctx_init(python_ctx_t *ctx)
@@ -89,7 +89,7 @@ DO_MP_NEW(_G.pool, python_ctx_t, python_ctx);
 
 static void python_ctx_wipe(python_ctx_t *ctx)
 {
-    p_delete(&ctx->path);
+    lstr_wipe(&ctx->path);
     dlist_remove(&ctx->list);
     Py_XDECREF(ctx->data);
     Py_XDECREF(ctx->cb_query_done);
@@ -239,8 +239,8 @@ static void python_http_launch_query(httpc_t *w, python_ctx_t *ctx)
 
     httpc_query_attach(&q->q, w);
 
-    if (ctx->path) {
-        sb_add_urlencode(&sb, ctx->path, strlen(ctx->path));
+    if (ctx->path.s) {
+        sb_add_urlencode(&sb, ctx->path.s, ctx->path.len);
     } else {
         sb_addc(&sb, '/');
     }
@@ -493,7 +493,7 @@ static PyObject *python_http_query(PyObject *self, PyObject *arg)
     char         *path = NULL;
     python_ctx_t *ctx;
 
-    if (!PyArg_ParseTuple(arg, "OOs",
+    if (!PyArg_ParseTuple(arg, "OOz",
                           &data,
                           &cb_query_done,
                           &path)) {
@@ -513,7 +513,7 @@ static PyObject *python_http_query(PyObject *self, PyObject *arg)
     ctx->data = data;
     Py_XINCREF(cb_query_done);
     ctx->cb_query_done = cb_query_done;
-    ctx->path = p_strdup(path);
+    ctx->path = path? lstr_dups(path, strlen(path)) : LSTR_NULL_V;
 
     if (_G.nb_pending > PYTHON_HTTP_MAX_PENDING) {
         python_http_query_end(&ctx, PYTHON_HTTP_STATUS_ERROR,
