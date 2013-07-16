@@ -41,10 +41,13 @@ cfg_hex = my_httpc_cfg().__hex__()
 
 -  cb_build_headers:
    Python function which builds http request headers. It must return http
-   headers as string. Receives the Python object passed to http_query.
+   headers as string. Receives the Python object passed to http_query.If
+   an buildPartError exception is thrown inside this function, query is not
+   sent.
 -  cb_build_body:
    Python function which builds http request body. It must return http body as
-   string. Receives the Python object passed to http_query.
+   string. Receives the Python object passed to http_query. If an buildPartError
+   exception is thrown inside this function, query is not sent.
 -  cb_parse_answer:
    Python function which parses the server answer. return 0 on success and -1
    on fail (see below http_query callback argument). Receives the server
@@ -81,7 +84,7 @@ parameters:
 -  cb_query_done:
    this callback is called when the http request has been processed (see
    below).
--  url: string.
+-  path: string.
 
 cb_query_done parameters:
 
@@ -95,7 +98,7 @@ status meaning:
 -  HTTP_ERROR means fails to send request.
 -  HTTP_USERERROR means that your parse answer callback does not return 0.
 -  HTTP_BUILD_QUERY_ERROR means that your build headers callback or your
-   build body callback returns None.
+   build body callback returns None or thrown an buildPartError exception.
 
 This function throws an queryError exception if there is an error.
 
