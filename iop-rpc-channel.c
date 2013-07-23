@@ -24,7 +24,7 @@ enum ic_msg_sc_slots {
 qm_k32_t(ic, ichannel_t *);
 
 static mem_pool_t *ic_mp_g;
-static QM(ic,    ic_h_g,     false);
+static qm_t(ic)    ic_h_g;
 const QM(ic_cbs, ic_no_impl, false);
 
 /*----- messages stuff -----*/
@@ -33,6 +33,7 @@ void ic_initialize(void)
 {
     if (!ic_mp_g) {
         ic_mp_g = mem_fifo_pool_new(1 << 20);
+        qm_init(ic, &ic_h_g, false);
     }
 }
 void ic_shutdown(void)
