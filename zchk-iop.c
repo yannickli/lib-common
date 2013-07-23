@@ -1019,6 +1019,7 @@ Z_GROUP_EXPORT(iop)
         const iop_struct_t *st_sg;
         qv_t(i32) szs;
         int len;
+        lstr_t s;
 
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
@@ -1031,6 +1032,11 @@ Z_GROUP_EXPORT(iop)
         iop_init(st_sg, &sg);
         Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 0, "sg-empty");
         Z_HELPER_RUN(iop_std_test_struct(st_sg, &sg,  "sg-empty"));
+
+        /* check that t_iop_bpack returns LSTR_EMPTY_V and not LSTR_NULL_V */
+        s = t_iop_bpack_struct(st_sg, &sg);
+        Z_ASSERT_P(s.s);
+        Z_ASSERT_ZERO(s.len);
 
         /* test with a different string length */
         sg.j.len = sg.j.len - 1;
