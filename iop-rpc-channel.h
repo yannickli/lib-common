@@ -53,11 +53,17 @@ typedef void (ic_msg_cb_f)(ichannel_t *, ic_msg_t *,
 
 struct ic_msg_t {
     htnode_t msg_link;          /**< private field used by ichannel_t       */
-    int      fd      : 24;      /**< the fd to send                         */
-    flag_t   async   :  1;      /**< whether the RPC is async               */
-    flag_t   raw     :  1;      /**< whether the answer should be decoded or
+    int      fd         : 24;   /**< the fd to send                         */
+    flag_t   async      :  1;   /**< whether the RPC is async               */
+    flag_t   raw        :  1;   /**< whether the answer should be decoded or
                                      not. */
-    unsigned padding :  6;
+    flag_t   force_pack :  1;   /**< if set then msg is packed even if it is
+                                     used with a local ic */
+    flag_t   force_dup  :  1;   /**< if set when ic is local and force_pack is
+                                     false then hdr and arg are duplicated
+                                     before being used in rpc implementation
+                                */
+    unsigned padding    :  4;
     int32_t  cmd;               /**< automatically filled by ic_query/reply */
     uint32_t slot;              /**< automatically filled by ic_query/reply */
     unsigned dlen;
@@ -146,6 +152,7 @@ struct ichannel_t {
     flag_t is_wiped     :  1;
     flag_t cancel_guard :  1;
     flag_t queuable     :  1;
+    flag_t is_local     :  1;
 
     unsigned nextslot;          /**< next slot id to try                    */
 
@@ -199,6 +206,15 @@ void ic_shutdown(void);
 
 /*----- ichannel handling -----*/
 
+static inline bool ic_is_local(const ichannel_t *ic) {
+    return ic->is_local;
+}
+
+static inline void ic_set_local(ichannel_t *ic) {
+    ic->is_local = true;
+    ic->peer_address = LSTR_IMMED_V("127.0.0.1");
+}
+
 static inline int ic_get_fd(ichannel_t *ic) {
     int res = ic->current_fd;
     ic->current_fd = -1;
@@ -217,7 +233,8 @@ static inline bool ic_is_empty(ichannel_t *ic) {
 /* XXX be carefull, this function do not mean that the ichannel is actually
  * connected, just that you are allowed to queue some queries */
 static inline bool ic_is_ready(const ichannel_t *ic) {
-    return ic->elh && ic->queuable && !ic->is_closing;
+    return (ic_is_local(ic) && ic->impl)
+        || (ic->elh && ic->queuable && !ic->is_closing);
 }
 
 static inline bool ic_slot_is_async(uint64_t slot) {
@@ -567,6 +584,8 @@ void *__ic_get_buf(ic_msg_t *msg, int len);
 /** \brief internal do not use directly, or know what you're doing. */
 void  __ic_bpack(ic_msg_t *, const iop_struct_t *, const void *);
 /** \brief internal do not use directly, or know what you're doing. */
+void  __ic_msg_build(ic_msg_t *, const iop_struct_t *, const void *, bool);
+/** \brief internal do not use directly, or know what you're doing. */
 void  __ic_query_flags(ichannel_t *, ic_msg_t *, uint32_t flags);
 /** \brief internal do not use directly, or know what you're doing. */
 void  __ic_query(ichannel_t *, ic_msg_t *);
@@ -596,7 +615,7 @@ size_t __ic_reply(ichannel_t *, uint64_t slot, int cmd, int fd,
 void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
 
 /** \brief helper to build a typed query message.
- *
+ * \param[in]  _ich   the #ichannel_t to send the query to.
  * \param[in]  _msg   the #ic_msg_t to fill.
  * \param[in]  _cb    the rpc reply callback to use
  * \param[in]  _mod   name of the package+module of the RPC
@@ -604,21 +623,24 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  * \param[in]  _rpc   name of the rpc
  * \param[in]  v      a <tt>${_mod}__${_if}__${_rpc}_args__t *</tt> value.
  */
-#define ic_build_query_p(_msg, _cb, _mod, _if, _rpc, v) \
+#define ic_build_query_p(_ich, _msg, _cb, _mod, _if, _rpc, v) \
     ({                                                                      \
         const IOP_RPC_T(_mod, _if, _rpc, args) *__v = (v);                  \
         ic_msg_t *__msg = (_msg);                                           \
+        const ichannel_t *__ich = (_ich);                                   \
         void (*__cb)(IOP_RPC_CB_ARGS(_mod, _if, _rpc)) = _cb;               \
         __msg->cb = __cb != NULL ? (ic_msg_cb_f *)__cb : &ic_drop_ans_cb;   \
         __msg->rpc = IOP_RPC(_mod, _if, _rpc);                              \
         __msg->async = __msg->rpc->async;                                   \
         __msg->cmd = IOP_RPC_CMD(_mod, _if, _rpc);                          \
-        __ic_bpack(__msg, IOP_RPC(_mod, _if, _rpc)->args, __v);             \
+        __ic_msg_build(__msg, IOP_RPC(_mod, _if, _rpc)->args, __v,          \
+                       !ic_is_local(__ich) || __msg->force_pack);           \
         __msg;                                                              \
     })
 
 /** \brief helper to build a typed query message.
  *
+ * \param[in]  _ic    the #ichannel_t to send the query to.
  * \param[in]  _msg   the #ic_msg_t to fill.
  * \param[in]  _cb    the rpc reply callback to use
  * \param[in]  _mod   name of the package+module of the RPC
@@ -627,13 +649,13 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  * \param[in]  ...
  *   the initializers of the value on the form <tt>.field = value</tt>
  */
-#define ic_build_query(_msg, _cb, _mod, _if, _rpc, ...) \
-    ic_build_query_p(_msg, _cb, _mod, _if, _rpc,                            \
+#define ic_build_query(_ic, _msg, _cb, _mod, _if, _rpc, ...) \
+    ic_build_query_p(_ic, _msg, _cb, _mod, _if, _rpc,                       \
                      (&(IOP_RPC_T(_mod, _if, _rpc, args)){ __VA_ARGS__ }))
 
 /** \brief helper to send a query to a given ic.
  *
- * \param[in]  ic     the #ichannel_t to send the query to.
+ * \param[in]  _ic    the #ichannel_t to send the query to.
  * \param[in]  _msg   the #ic_msg_t to fill.
  * \param[in]  _cb    the rpc reply callback to use
  * \param[in]  _mod   name of the package+module of the RPC
@@ -642,11 +664,15 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  * \param[in]  ...
  *   the initializers of the value on the form <tt>.field = value</tt>
  */
-#define ic_query(ic, _msg, _cb, _mod, _if, _rpc, ...) \
-    __ic_query(ic, ic_build_query(_msg, _cb, _mod, _if, _rpc, __VA_ARGS__))
+#define ic_query(_ic, _msg, _cb, _mod, _if, _rpc, ...) \
+    ({  ichannel_t *_ich = (_ic);                                         \
+        __ic_query(_ich, ic_build_query(_ich, _msg, _cb, _mod, _if, _rpc, \
+                                        __VA_ARGS__));                    \
+    })
+
 /** \brief helper to send a query to a given ic.
  *
- * \param[in]  ic     the #ichannel_t to send the query to.
+ * \param[in]  _ic    the #ichannel_t to send the query to.
  * \param[in]  _msg   the #ic_msg_t to fill.
  * \param[in]  _cb    the rpc reply callback to use
  * \param[in]  _mod   name of the package+module of the RPC
@@ -654,12 +680,15 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  * \param[in]  _rpc   name of the rpc
  * \param[in]  v      a <tt>${_mod}__${_if}__${_rpc}_args__t *</tt> value.
  */
-#define ic_query_p(ic, _msg, _cb, _mod, _if, _rpc, v) \
-    __ic_query(ic, ic_build_query_p(_msg, _cb, _mod, _if, _rpc, v))
+#define ic_query_p(_ic, _msg, _cb, _mod, _if, _rpc, v) \
+    ({  ichannel_t *_ich = (_ic);                                           \
+        __ic_query(_ich, ic_build_query_p(_ich, _msg, _cb, _mod, _if, _rpc, \
+                                          v));                              \
+    })
 
 /** \brief helper to send a query to a given ic, computes callback name.
  *
- * \param[in]  ic     the #ichannel_t to send the query to.
+ * \param[in]  _ic    the #ichannel_t to send the query to.
  * \param[in]  _msg   the #ic_msg_t to fill.
  * \param[in]  _mod   name of the package+module of the RPC
  * \param[in]  _if    name of the interface of the RPC
@@ -667,12 +696,15 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  * \param[in]  ...
  *   the initializers of the value on the form <tt>.field = value</tt>
  */
-#define ic_query2(ic, _msg, _mod, _if, _rpc, ...) \
-    __ic_query(ic, ic_build_query(_msg, IOP_RPC_CB_REF(_mod, _if, _rpc), \
-                                  _mod, _if, _rpc, __VA_ARGS__))
+#define ic_query2(_ic, _msg, _mod, _if, _rpc, ...) \
+    ({  ichannel_t *_ich = (_ic);                                            \
+        __ic_query(_ich, ic_build_query(_ich, _msg,                          \
+            IOP_RPC_CB_REF(_mod, _if, _rpc), _mod, _if, _rpc, __VA_ARGS__)); \
+    })
+
 /** \brief helper to send a query to a given ic, computes callback name.
  *
- * \param[in]  ic     the #ichannel_t to send the query to.
+ * \param[in]  _ic    the #ichannel_t to send the query to.
  * \param[in]  _msg   the #ic_msg_t to fill.
  * \param[in]  _cb    the rpc reply callback to use
  * \param[in]  _mod   name of the package+module of the RPC
@@ -680,16 +712,18 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  * \param[in]  _rpc   name of the rpc
  * \param[in]  v      a <tt>${_mod}__${_if}__${_rpc}_args__t *</tt> value.
  */
-#define ic_query2_p(ic, _msg, _mod, _if, _rpc, v) \
-    __ic_query(ic, ic_build_query_p(_msg, IOP_RPC_CB_REF(_mod, _if, _rpc), \
-                                    _mod, _if, _rpc, v))
+#define ic_query2_p(_ic, _msg, _mod, _if, _rpc, v) \
+    ({  ichannel_t *_ich = (_ic);                                  \
+        __ic_query(_ich, ic_build_query_p(_ich, _msg,              \
+            IOP_RPC_CB_REF(_mod, _if, _rpc), _mod, _if, _rpc, v)); \
+    })
 
 /** \brief helper to send a query to a given ic.
  *
  * Same as #ic_query but waits for the query to be sent before the call
  * returns. DO NOT USE unless you have a really good reason.
  *
- * \param[in]  ic     the #ichannel_t to send the query to.
+ * \param[in]  _ic    the #ichannel_t to send the query to.
  * \param[in]  _msg   the #ic_msg_t to fill.
  * \param[in]  _cb    the rpc reply callback to use
  * \param[in]  _mod   name of the package+module of the RPC
@@ -698,14 +732,18 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  * \param[in]  ...
  *   the initializers of the value on the form <tt>.field = value</tt>
  */
-#define ic_query_sync(ic, _msg, _cb, _mod, _if, _rpc, ...) \
-    __ic_query_sync(ic, ic_build_query(_msg, _cb, _mod, _if, _rpc, __VA_ARGS__))
+#define ic_query_sync(_ic, _msg, _cb, _mod, _if, _rpc, ...) \
+    ({  ichannel_t *_ich = (_ic);                                         \
+        __ic_query_sync(_ich, _ic_build_query(_ich, _msg, _cb, _mod, _if, \
+                                              _rpc, __VA_ARGS__));        \
+    })
+
 /** \brief helper to send a query to a given ic.
  *
  * Same as #ic_query_p but waits for the query to be sent before the call
  * returns. DO NOT USE unless you have a really good reason.
  *
- * \param[in]  ic     the #ichannel_t to send the query to.
+ * \param[in]  _ic    the #ichannel_t to send the query to.
  * \param[in]  _msg   the #ic_msg_t to fill.
  * \param[in]  _cb    the rpc reply callback to use
  * \param[in]  _mod   name of the package+module of the RPC
@@ -713,8 +751,11 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  * \param[in]  _rpc   name of the rpc
  * \param[in]  v      a <tt>${_mod}__${_if}__${_rpc}_args__t *</tt> value.
  */
-#define ic_query_sync_p(ic, _msg, _cb, _mod, _if, _rpc, v) \
-    __ic_query_sync(ic, ic_build_query_p(_msg, _cb, _mod, _if, _rpc, v))
+#define ic_query_sync_p(_ic, _msg, _cb, _mod, _if, _rpc, v) \
+    ({  ichannel_t *_ich = (_ic);                                          \
+        __ic_query_sync(_ich, ic_build_query_p(_ich, _msg, _cb, _mod, _if, \
+                                               _rpc, v));                  \
+    })
 
 /** \brief helper to proxy a query to a given ic with header.
  *

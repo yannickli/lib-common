@@ -77,8 +77,30 @@ void ic_msg_delete(ic_msg_t **msgp)
         (*msg->fini)(msg->priv);
     if (msg->fd >= 0)
         close(msg->fd);
-    mp_delete(ic_mp_g, &msg->data);
+    if (msg->dlen) {
+        assert (msg->dlen >= IC_MSG_HDR_LEN);
+        mp_delete(ic_mp_g, &msg->data);
+    }
     mp_delete(ic_mp_g, msgp);
+}
+
+static void
+ic_msg_init_for_reply(ichannel_t *ic, ic_msg_t *msg, uint64_t slot, int cmd)
+{
+#ifdef IC_DEBUG_REPLIES
+    int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
+    if (pos < 0)
+        e_panic("answering to slot %d twice or unexpected answer!",
+                (uint32_t)slot);
+#endif
+    assert (ic->pending > 0);
+    ic->pending--;
+    msg->slot = slot & IC_MSG_SLOT_MASK;
+    msg->cmd  = -cmd;
+}
+
+static inline bool ic_can_reply(const ichannel_t *ic, uint64_t slot) {
+    return likely(ic->elh || ic_is_local(ic)) && likely(ic->id == slot >> 32);
 }
 
 static void ic_watch_act_soft(el_t ev, el_data_t priv);
@@ -87,41 +109,51 @@ static void ic_reply_err2(ichannel_t *ic, uint64_t slot, int err,
                           const lstr_t *err_str);
 static ichannel_t *ic_get_from_slot(uint64_t slot);
 static void ic_queue(ichannel_t *ic, ic_msg_t *msg, uint32_t flags);
+static void ic_queue_for_reply(ichannel_t *ic, ic_msg_t *msg);
 static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags);
 static void ic_proxify(ichannel_t *pxy_ic, ic_msg_t *msg, int cmd,
-                       const void *data, int dlen)
+                       const void *data, int dlen,
+                       const ic_msg_t *unpacked_msg)
 {
     uint64_t slot = *(uint64_t *)msg->priv;
     ichannel_t *ic;
 
+    cmd = -cmd;
+
     if (unlikely(ic_slot_is_http(slot))) {
-        __ichttp_proxify(slot, -cmd, data, dlen);
+        __ichttp_proxify(slot, cmd, data, dlen);
         return;
     }
     ic = ic_get_from_slot(slot);
     if (unlikely(!ic))
         return;
-    if (likely(ic->elh) && likely(ic->id == slot >> 32)) {
+    if (likely(ic_can_reply(ic, slot))) {
         ic_msg_t *tmp = ic_msg_new_fd(pxy_ic ? ic_get_fd(pxy_ic) : -1, 0);
-        void *buf;
 
-#ifdef IC_DEBUG_REPLIES
-        int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
-        if (pos < 0)
-            e_panic("answering to slot %d twice or unexpected answer!",
-                    (uint32_t)slot);
-#endif
-        assert (ic->pending > 0);
-        ic->pending--;
-        tmp->slot = slot & IC_MSG_SLOT_MASK;
-        tmp->cmd  = cmd;
-        buf = __ic_get_buf(tmp, dlen);
-        if (data) {
-            memcpy(buf, data, dlen);
+        ic_msg_init_for_reply(ic, tmp, slot, cmd);
+        if (unpacked_msg && (likely(cmd == IC_MSG_OK) || cmd == IC_MSG_EXN)) {
+            const iop_struct_t *st;
+
+            assert (msg->rpc);
+            st = likely(cmd == IC_MSG_OK) ? msg->rpc->result : msg->rpc->exn;
+            tmp->force_dup = msg->force_dup;
+            __ic_msg_build(tmp, st, unpacked_msg->data, !ic_is_local(ic));
         } else {
-            assert (dlen == 0);
+            void *buf;
+
+            assert (!unpacked_msg || dlen == 0 || cmd == IC_MSG_INVALID);
+
+            if (ic_is_local(ic))
+                tmp->force_pack = !unpacked_msg;
+
+            buf = __ic_get_buf(tmp, dlen);
+            if (data) {
+                memcpy(buf, data, dlen);
+            } else {
+                assert (dlen == 0);
+            }
         }
-        ic_queue(ic, tmp, 0);
+        ic_queue_for_reply(ic, tmp);
     }
 }
 
@@ -146,24 +178,35 @@ void __ic_forward_reply_to(ichannel_t *pxy_ic, uint64_t slot, int cmd,
 
     if (unlikely(!(ic = ic_get_from_slot(slot))))
         return;
-    if (likely(ic->elh) && likely(ic->id == slot >> 32)) {
+    if (likely(ic_can_reply(ic, slot))) {
         ic_msg_t *tmp = ic_msg_new_fd(ic_get_fd(pxy_ic), 0);
-        sb_t *buf  = &pxy_ic->rbuf;
-        void *data = buf->data + IC_MSG_HDR_LEN;
-        int   dlen = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
+        const sb_t *buf = &pxy_ic->rbuf;
+        const void *data = buf->data + IC_MSG_HDR_LEN;
+        int dlen = get_unaligned_cpu32(buf->data + IC_MSG_DLEN_OFFSET);
 
-#ifdef IC_DEBUG_REPLIES
-        int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
-        if (pos < 0)
-            e_panic("answering to slot %d twice or unexpected answer!",
-                    (uint32_t)slot);
-#endif
-        assert (ic->pending > 0);
-        ic->pending--;
-        tmp->slot = slot & IC_MSG_SLOT_MASK;
-        tmp->cmd  = -cmd;
-        memcpy(__ic_get_buf(tmp, dlen), data, dlen);
-        ic_queue(ic, tmp, 0);
+        ic_msg_init_for_reply(ic, tmp, slot, cmd);
+        if (ic_is_local(pxy_ic) && !get_unaligned_cpu32(buf->data)) {
+            const ic_msg_t *msg_org = data;
+            const iop_struct_t *st;
+
+            assert (dlen == sizeof(ic_msg_t) && msg_org->rpc);
+
+            if (likely(cmd == IC_MSG_OK)) {
+                st = msg_org->rpc->result;
+                data = res;
+            } else {
+                st = msg_org->rpc->exn;
+                data = exn;
+            }
+            tmp->force_dup = msg_org->force_dup;
+            __ic_msg_build(tmp, st, data, !ic_is_local(ic));
+        } else {
+            if (ic_is_local(ic))
+                tmp->force_pack = true;
+
+            memcpy(__ic_get_buf(tmp, dlen), data, dlen);
+        }
+        ic_queue_for_reply(ic, tmp);
     }
 }
 
@@ -194,7 +237,7 @@ static void ic_cancel_all(ichannel_t *ic)
 
         msg = h.values[pos];
         if (msg->cb == IC_PROXY_MAGIC_CB) {
-            ic_proxify(ic, msg, -IC_MSG_ABORT, NULL, 0);
+            ic_proxify(ic, msg, -IC_MSG_ABORT, NULL, 0, NULL);
         } else {
             (*msg->cb)(ic, msg, IC_MSG_ABORT, NULL, NULL);
         }
@@ -244,7 +287,7 @@ static void ic_msg_abort(ichannel_t *ic, ic_msg_t *msg)
 
         assert (tmp == msg);
         if (msg->cb == IC_PROXY_MAGIC_CB) {
-            ic_proxify(ic, msg, -IC_MSG_RETRY, NULL, 0);
+            ic_proxify(ic, msg, -IC_MSG_RETRY, NULL, 0, NULL);
         } else {
             (*msg->cb)(ic, msg, IC_MSG_ABORT, NULL, NULL);
         }
@@ -429,9 +472,14 @@ ic_parse_cmsg(ichannel_t *ic, struct msghdr *msgh, int *fdcp, int **fdvp)
     }
 }
 
+static int
+t_get_value_of_st(const iop_struct_t *, const ic_msg_t *unpacked_msg,
+                  pstream_t, void **value);
+
 static ALWAYS_INLINE int
 ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
-                       const void *data, int dlen)
+                       const void *data, int dlen,
+                       const ic_msg_t *unpacked_msg)
 {
     ic_msg_t *tmp = ic_query_take(ic, slot);
     const iop_struct_t *st;
@@ -441,11 +489,27 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
         return -1;
     }
 
+    if (ic_is_local(ic)) {
+        sb_reset(&ic->rbuf);
+        sb_addnc(&ic->rbuf, IC_MSG_HDR_LEN, 0);
+        put_unaligned_cpu32(ic->rbuf.data + IC_MSG_CMD_OFFSET, cmd);
+        if (data) {
+            put_unaligned_cpu32(ic->rbuf.data, slot);
+            put_unaligned_cpu32(ic->rbuf.data + IC_MSG_DLEN_OFFSET, dlen);
+            sb_add(&ic->rbuf, data, dlen);
+        } else
+        if (unpacked_msg) {
+            put_unaligned_cpu32(ic->rbuf.data + IC_MSG_DLEN_OFFSET,
+                                sizeof(ic_msg_t));
+            sb_add(&ic->rbuf, unpacked_msg, sizeof(ic_msg_t));
+            ((ic_msg_t *)(ic->rbuf.data + IC_MSG_HDR_LEN))->rpc = tmp->rpc;
+        }
+    }
+
     tmp->raw_res = ps_init(data, dlen);
     if (tmp->cb == IC_PROXY_MAGIC_CB) {
-        ic_proxify(ic, tmp, cmd, data, dlen);
-        ic_msg_delete(&tmp);
-        return 0;
+        ic_proxify(ic, tmp, cmd, data, dlen, unpacked_msg);
+        goto wipe;
     }
 
     cmd = -cmd;
@@ -464,15 +528,14 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
             iop_clear_err();
             (*tmp->cb)(ic, tmp, cmd, NULL, NULL);
         }
-        ic_msg_delete(&tmp);
-        return 0;
+        goto wipe;
     }
     if (!tmp->raw) {
         t_scope;
         void *value = NULL;
         pstream_t ps = tmp->raw_res;
 
-        if (unlikely(iop_bunpack_ptr(t_pool(), st, &value, ps, false) < 0)) {
+        if (unlikely(t_get_value_of_st(st, unpacked_msg, ps, &value) < 0)) {
 #ifndef NDEBUG
             if (!iop_get_err()) {
                 e_trace(0, "rpc(%04x:%04x):%s: answer with invalid encoding",
@@ -493,7 +556,12 @@ ic_read_process_answer(ichannel_t *ic, int cmd, uint32_t slot,
     } else {
         (*tmp->cb)(ic, tmp, cmd, NULL, NULL);
     }
+
+  wipe:
     ic_msg_delete(&tmp);
+    if (ic_is_local(ic)) {
+        sb_reset(&ic->rbuf);
+    }
     return 0;
 }
 
@@ -515,18 +583,121 @@ static lstr_t ic_get_client_addr(ichannel_t *ic)
     return ic->peer_address.len ? lstr_dupc(ic->peer_address) : LSTR_NULL_V;
 }
 
+static inline void ic_update_pending(ichannel_t *ic, uint32_t slot)
+{
+    if (slot) {
+        ic->pending++;
+#ifndef NDEBUG
+        /*
+         * This code prints a warning when the amount of pending
+         * request peaks more than 10% higher than before.
+         *
+         * If 10% is too low, feel free to make it higher, though keep
+         * it low enough so that real bugs can be seen, even for
+         * queries made only once per second.
+         *
+         */
+        if (ic->pending >= ic->pending_max * 9 / 8) {
+            e_trace(0, "warning: %p peaked at %d pending requests (cb %p)",
+                    ic, ic->pending, ic->on_event);
+            ic->pending_max = ic->pending;
+        }
+#endif
+#ifdef IC_DEBUG_REPLIES
+        qh_add(ic_replies, &ic->dbg_replies, MAKE64(ic->id, slot));
+#endif
+    }
+}
+
+static int
+t_get_hdr_of_query(const ic_msg_t *unpacked_msg, pstream_t *ps,
+                   ic__hdr__t **hdr)
+{
+    if (unpacked_msg) {
+        RETHROW(ic__hdr__check((ic__hdr__t *)unpacked_msg->hdr));
+        if (unpacked_msg->force_dup) {
+            *hdr = ic__hdr__dup(t_pool(), unpacked_msg->hdr);
+        } else {
+            *hdr = (ic__hdr__t *)unpacked_msg->hdr;
+        }
+    } else {
+        *hdr = t_new_raw(ic__hdr__t, 1);
+        RETHROW(t_ic__hdr__bunpack_multi(*hdr, ps, false));
+    }
+    return 0;
+}
+
+static int
+t_get_value_of_st(const iop_struct_t *st, const ic_msg_t *unpacked_msg,
+                  pstream_t ps, void **value)
+{
+    if (unpacked_msg) {
+        RETHROW(iop_check_constraints(st, unpacked_msg->data));
+        if (unpacked_msg->force_dup) {
+            *value = iop_dup(t_pool(), st, unpacked_msg->data);
+        } else {
+            *value = unpacked_msg->data;
+        }
+    } else {
+        RETHROW(iop_bunpack_ptr(t_pool(), st, value, ps, false));
+    }
+    return 0;
+}
+
+static int
+t_get_hdr_value_of_query(ichannel_t *ic, int cmd, uint32_t flags,
+                         const void *data, int dlen,
+                         const ic_msg_t *unpacked_msg, const iop_struct_t *st,
+                         ic__hdr__t **hdr, void **value)
+{
+    pstream_t ps = ps_init(data, dlen);
+
+#define TRACE_INVALID(X)                                         \
+    e_trace(0, "query %04x:%04x, type %s: invalid " X,           \
+            (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s)
+
+    if (unlikely(flags & IC_MSG_HAS_HDR)) {
+        if (unlikely(t_get_hdr_of_query(unpacked_msg, &ps, hdr) < 0)) {
+            TRACE_INVALID("header encoding");
+            return -1;
+        }
+        /* XXX on simple header we write the payload size of the iop query */
+        if (unlikely((*hdr)->iop_tag == IOP_UNION_TAG(ic__hdr, simple))) {
+            ic__simple_hdr__t *shdr = &(*hdr)->simple;
+
+            if (shdr->payload < 0)
+                shdr->payload = dlen;
+            if (!shdr->host.len) {
+                shdr->host = ic_get_client_addr(ic);
+            }
+        }
+    }
+
+    if (unlikely(t_get_value_of_st(st, unpacked_msg, ps, value) < 0)) {
+#ifndef NDEBUG
+        if (!iop_get_err()) {
+            TRACE_INVALID("encoding");
+        }
+#endif
+        return -1;
+    }
+
+    return 0;
+#undef TRACE_INVALID
+}
+
 static ALWAYS_INLINE void
 ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
-                      uint32_t flags, const void *data, int dlen)
+                      uint32_t flags, const void *data, int dlen,
+                      const ic_msg_t *unpacked_msg)
 {
     const ic_cb_entry_t *e;
     const iop_struct_t *st;
     ichannel_t *pxy;
-    ic__hdr__t *hdr = NULL, *pxy_hdr = NULL;
-    pstream_t ps;
+    ic__hdr__t *pxy_hdr = NULL;
     int pos;
 
-    pos = qm_find_safe(ic_cbs, ic->impl, cmd);
+    pos = likely(ic->impl) ? qm_find_safe(ic_cbs, ic->impl, cmd) : -1;
     if (unlikely(pos < 0)) {
         e_trace(1, "received query for unimplemented RPC (%04x:%04x)",
                 (cmd >> 16) & 0x7fff, cmd & 0x7fff);
@@ -535,63 +706,32 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         return;
     }
     e = ic->impl->values + pos;
+    st = e->u.cb.rpc->args;
 
     switch (e->cb_type) {
       case IC_CB_NORMAL:
-      case IC_CB_WS_SHARED:
+      case IC_CB_WS_SHARED: {
+        t_scope;
+        ic__hdr__t *hdr = NULL;
+        void *value = NULL;
+
+        if (t_get_hdr_value_of_query(ic, cmd, flags, data, dlen, unpacked_msg,
+                                     st, &hdr, &value) >= 0)
         {
-            t_scope;
-            void *value = NULL;
+            t_seal();
+            ic->desc = e->u.cb.rpc;
+            ic->cmd  = cmd;
+            (*e->u.cb.cb)(ic, MAKE64(ic->id, slot), value, hdr);
+            ic->desc = NULL;
+            ic->cmd  = 0;
+        } else
+        if (slot) {
+            lstr_t err_str = iop_get_err_lstr();
 
-            /* XXX works for both IC_CB_NORMAL & IC_CB_WS_SHARED */
-            st    = e->u.cb.rpc->args;
-            ps    = ps_init(data, dlen);
-            if (unlikely(flags & IC_MSG_HAS_HDR)) {
-                hdr = t_new_raw(ic__hdr__t, 1);
-                if (unlikely(iop_bunpack_multi(t_pool(), &ic__hdr__s, hdr, &ps, false)) < 0)
-                {
-                    e_trace(0, "query %04x:%04x, type %s: invalid header encoding",
-                            (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s);
-                    goto invalid;
-                }
-                /* XXX on simple header we write the payload size of the iop query */
-                if (unlikely(hdr->iop_tag == IOP_UNION_TAG(ic__hdr, simple))) {
-                    ic__simple_hdr__t *shdr = &hdr->simple;
-                    if (shdr->payload < 0)
-                        shdr->payload = dlen;
-                    if (!shdr->host.len) {
-                        shdr->host = ic_get_client_addr(ic);
-                    }
-                }
-            }
-
-            if (unlikely(iop_bunpack_ptr(t_pool(), st, &value, ps,
-                                         false) < 0))
-            {
-#ifndef NDEBUG
-                if (!iop_get_err()) {
-                    e_trace(0, "query %04x:%04x, type %s: invalid encoding",
-                            (cmd >> 16) & 0x7fff, cmd & 0x7fff, st->fullname.s);
-                }
-#endif
-              invalid:
-                t_seal();
-                if (slot) {
-                    lstr_t err_str = iop_get_err_lstr();
-
-                    ic_reply_err2(ic, MAKE64(ic->id, slot), IC_MSG_INVALID,
-                                  &err_str);
-                }
-            } else {
-                t_seal();
-                ic->desc = e->u.cb.rpc;
-                ic->cmd  = cmd;
-                (*e->u.cb.cb)(ic, MAKE64(ic->id, slot), value, hdr);
-                ic->desc = NULL;
-                ic->cmd  = 0;
-            }
+            ic_reply_err2(ic, MAKE64(ic->id, slot), IC_MSG_INVALID, &err_str);
         }
         return;
+      }
 
       case IC_CB_PROXY_P:
         pxy     = e->u.proxy_p.ic_p;
@@ -620,6 +760,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             ic_reply_err(ic, MAKE64(ic->id, slot), IC_MSG_PROXY_ERROR);
     } else {
         ic_msg_t *tmp = ic_msg_proxy_new(ic_get_fd(ic), slot, NULL);
+        bool take_pxy_hdr = !(flags & IC_MSG_HAS_HDR) && pxy_hdr;
 
         if (slot) {
             tmp->cb = IC_PROXY_MAGIC_CB;
@@ -629,25 +770,39 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         tmp->cmd = cmd;
         *(uint64_t *)tmp->priv = MAKE64(ic->id, slot);
 
-        if (!(flags & IC_MSG_HAS_HDR) && pxy_hdr) {
-            qv_t(i32) szs;
-            uint8_t *buf;
-            int hlen;
+        /* XXX We do not support header replacement with proxyfication */
 
-            /* Pack the given header in proxyfied request */
-            qv_inita(i32, &szs, 128);
-            hlen = iop_bpack_size(&ic__hdr__s, pxy_hdr, &szs);
-            buf = __ic_get_buf(tmp, hlen + dlen);
-            qv_wipe(i32, &szs);
-
-            iop_bpack(buf, &ic__hdr__s, pxy_hdr, szs.tab);
-            memcpy(buf + hlen, data, dlen);
-            flags |= IC_MSG_HAS_HDR;
+        if (unpacked_msg) {
+            tmp->hdr = take_pxy_hdr ? pxy_hdr : unpacked_msg->hdr;
+            if (ic_is_local(pxy)) {
+                tmp->force_dup = unpacked_msg->force_dup;
+                tmp->rpc = unpacked_msg->rpc;
+            }
+            __ic_msg_build(tmp, st, unpacked_msg->data, !ic_is_local(pxy));
         } else {
-            /* XXX We do not support header replacement with proxyfication */
-            memcpy(__ic_get_buf(tmp, dlen), data, dlen);
+            if (ic_is_local(pxy))
+                tmp->force_pack = true;
+
+            if (take_pxy_hdr) {
+                qv_t(i32) szs;
+                uint8_t *buf;
+                int hlen;
+
+                /* Pack the given header in proxyfied request */
+                qv_inita(i32, &szs, 128);
+                hlen = iop_bpack_size(&ic__hdr__s, pxy_hdr, &szs);
+                buf = __ic_get_buf(tmp, hlen + dlen);
+                iop_bpack(buf, &ic__hdr__s, pxy_hdr, szs.tab);
+                qv_wipe(i32, &szs);
+                memcpy(buf + hlen, data, dlen);
+            } else {
+                memcpy(__ic_get_buf(tmp, dlen), data, dlen);
+            }
         }
 
+        if (take_pxy_hdr) {
+            flags |= IC_MSG_HAS_HDR;
+        }
         ___ic_query_flags(pxy, tmp, flags);
     }
 }
@@ -759,38 +914,17 @@ static int ic_read(ichannel_t *ic, short events, int sock)
             ic->is_closing |= slot == IC_SC_BYE;
         } else
         if (cmd <= 0) {
-            if (ic_read_process_answer(ic, cmd, slot, data, dlen) < 0)
+            if (ic_read_process_answer(ic, cmd, slot, data, dlen, NULL) < 0)
                 goto close_and_error_out;
         } else {
             /* deal with queries */
-            if (slot) {
-                ic->pending++;
-#ifndef NDEBUG
-                /*
-                 * This code prints a warning when the amount of pending
-                 * request peaks more than 10% higher than before.
-                 *
-                 * If 10% is too low, feel free to make it higher, though keep
-                 * it low enough so that real bugs can be seen, even for
-                 * queries made only once per second.
-                 *
-                 */
-                if (ic->pending >= ic->pending_max * 9 / 8) {
-                    e_trace(0, "warning: %p peaked at %d pending requests (cb %p)",
-                            ic, ic->pending, ic->on_event);
-                    ic->pending_max = ic->pending;
-                }
-#endif
-#ifdef IC_DEBUG_REPLIES
-                qh_add(ic_replies, &ic->dbg_replies, MAKE64(ic->id, slot));
-#endif
-            }
+            ic_update_pending(ic, slot);
 
             if (unlikely(ic->is_closing)) {
                 if (slot)
                     ic_reply_err(ic, MAKE64(ic->id, slot), IC_MSG_RETRY);
             } else {
-                ic_read_process_query(ic, cmd, slot, flags, data, dlen);
+                ic_read_process_query(ic, cmd, slot, flags, data, dlen, NULL);
             }
         }
 
@@ -926,6 +1060,14 @@ void *__ic_get_buf(ic_msg_t *msg, int len)
     return (char *)msg->data + IC_MSG_HDR_LEN;
 }
 
+static void ic_msg_update_flags(const ic_msg_t *msg, uint32_t *flags)
+{
+    if (msg->fd >= 0)
+        *flags |= IC_MSG_HAS_FD;
+    if (msg->hdr)
+        *flags |= IC_MSG_HAS_HDR;
+}
+
 static void ic_queue(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
 {
     uint32_t *hdr = (uint32_t *)msg->data;
@@ -934,10 +1076,7 @@ static void ic_queue(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
     assert (msg->dlen >= IC_MSG_HDR_LEN && msg->data);
 
     flags |= msg->slot;
-    if (msg->fd >= 0)
-        flags |= IC_MSG_HAS_FD;
-    if (msg->hdr)
-        flags |= IC_MSG_HAS_HDR;
+    ic_msg_update_flags(msg, &flags);
     hdr[0] = cpu_to_le32(flags);
     hdr[1] = cpu_to_le32(msg->cmd);
     hdr[2] = cpu_to_le32(msg->dlen - IC_MSG_HDR_LEN);
@@ -973,6 +1112,9 @@ void ic_flush(ichannel_t *ic)
 {
     int fd = el_fd_get_fd(ic->elh);
 
+    if (ic_is_local(ic))
+        return;
+
     fd_unset_features(fd, O_NONBLOCK);
     __ic_flush(ic, fd);
     fd_set_features(fd, O_NONBLOCK);
@@ -997,7 +1139,7 @@ static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
             if (unlikely(ic->nextslot == start)) {
                 /* can't find a free slot, abort this query */
                 if (msg->cb == IC_PROXY_MAGIC_CB) {
-                    ic_proxify(ic, msg, -IC_MSG_ABORT, NULL, 0);
+                    ic_proxify(ic, msg, -IC_MSG_ABORT, NULL, 0, NULL);
                 } else {
                     (*msg->cb)(ic, msg, IC_MSG_ABORT, NULL, NULL);
                 }
@@ -1007,7 +1149,29 @@ static void ___ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
             msg->slot = ic->nextslot;
         } while (qm_add(ic_msg, &ic->queries, msg->slot, msg));
     }
-    ic_queue(ic, msg, flags);
+    if (ic_is_local(ic)) {
+        const void *data;
+        int dlen;
+        const ic_msg_t *unpacked_msg;
+
+        ic_msg_update_flags(msg, &flags);
+        ic_update_pending(ic, msg->slot);
+        assert (msg->force_pack == !!msg->dlen);
+        if (msg->force_pack) {
+            data = (char *)msg->data + IC_MSG_HDR_LEN;
+            dlen = msg->dlen - IC_MSG_HDR_LEN;
+            assert (dlen >= 0);
+            unpacked_msg = NULL;
+        } else {
+            data = NULL;
+            dlen = 0;
+            unpacked_msg = msg;
+        }
+        ic_read_process_query(ic, msg->cmd, msg->slot, flags, data, dlen,
+                              unpacked_msg);
+    } else {
+        ic_queue(ic, msg, flags);
+    }
 }
 
 void __ic_query_flags(ichannel_t *ic, ic_msg_t *msg, uint32_t flags)
@@ -1057,9 +1221,65 @@ void __ic_bpack(ic_msg_t *msg, const iop_struct_t *st, const void *arg)
     qv_wipe(i32, &szs);
 }
 
+void
+__ic_msg_build(ic_msg_t *msg, const iop_struct_t *st, const void *arg,
+               bool do_bpack)
+{
+    if (do_bpack) {
+        __ic_bpack(msg, st, arg);
+    } else {
+        msg->dlen = 0;
+        msg->data = (void *)arg;
+    }
+}
+
+static ic_msg_t *
+ic_msg_new_for_reply(ichannel_t **ic, uint64_t slot, int cmd)
+{
+    assert (!(slot & IC_SLOT_FOREIGN_MASK));
+
+    if (unlikely(!*ic)) {
+        *ic = ic_get_from_slot(slot);
+        if (unlikely(!*ic))
+            return NULL;
+    }
+    if (likely(ic_can_reply(*ic, slot))) {
+        ic_msg_t *msg = ic_msg_new(0);
+
+        ic_msg_init_for_reply(*ic, msg, slot, cmd);
+        return msg;
+    }
+    return NULL;
+}
+
+static void ic_queue_for_reply(ichannel_t *ic, ic_msg_t *msg)
+{
+    if (ic_is_local(ic)) {
+        const void *data = NULL;
+        int dlen = 0;
+
+        if (msg->dlen) {
+            assert (msg->force_pack
+                    || (-msg->cmd != IC_MSG_OK && -msg->cmd != IC_MSG_EXN));
+
+            data = (char *)msg->data + IC_MSG_HDR_LEN;
+            dlen = msg->dlen - IC_MSG_HDR_LEN;
+            assert (dlen >= 0);
+        }
+        ic_read_process_answer(ic, msg->cmd, msg->slot, data, dlen,
+                               msg->force_pack ? NULL : msg);
+        ic_msg_delete(&msg);
+    } else {
+        ic_queue(ic, msg, 0);
+    }
+}
+
 size_t __ic_reply(ichannel_t *ic, uint64_t slot, int cmd, int fd,
                   const iop_struct_t *st, const void *arg)
 {
+    ic_msg_t *msg;
+    int res;
+
     assert (slot & IC_MSG_SLOT_MASK);
 
     if (unlikely(ic_slot_is_http(slot))) {
@@ -1067,73 +1287,54 @@ size_t __ic_reply(ichannel_t *ic, uint64_t slot, int cmd, int fd,
         __ichttp_reply(slot, cmd, st, arg);
         return 0;
     }
-    assert (!(slot & IC_SLOT_FOREIGN_MASK));
 
-    if (unlikely(!ic)) {
-        ic = ic_get_from_slot(slot);
-        if (unlikely(!ic))
-            return 0;
-    }
-    if (likely(ic->elh) && likely(ic->id == slot >> 32)) {
-        ic_msg_t *msg = ic_msg_new(0);
+    msg = ic_msg_new_for_reply(&ic, slot, cmd);
+    if (!msg)
+        return 0;
 
-#ifdef IC_DEBUG_REPLIES
-        int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
-        if (pos < 0)
-            e_panic("answering to slot %d twice or unexpected answer!",
-                    (uint32_t)slot);
-#endif
-        assert (ic->pending > 0);
-        ic->pending--;
-        msg->slot = slot & IC_MSG_SLOT_MASK;
-        msg->fd   = fd;
-        msg->cmd  = -cmd;
-        __ic_bpack(msg, st, arg);
-        ic_queue(ic, msg, 0);
-        return msg->dlen;
+    if (ic_is_local(ic)) {
+        int32_t pos = qm_find(ic_msg, &ic->queries, slot & IC_MSG_SLOT_MASK);
+
+        if (likely(pos >= 0)) {
+            if (unlikely(ic->queries.values[pos]->force_pack)) {
+                msg->force_pack = true;
+            } else {
+                msg->force_dup = unlikely(ic->queries.values[pos]->force_dup);
+            }
+        }
     }
-    return 0;
+    msg->fd = fd;
+    __ic_msg_build(msg, st, arg, !ic_is_local(ic) || msg->force_pack);
+    res = msg->dlen;
+    ic_queue_for_reply(ic, msg);
+    return res;
 }
 
 static void ic_reply_err2(ichannel_t *ic, uint64_t slot, int err,
                           const lstr_t *err_str)
 {
+    ic_msg_t *msg;
+
     assert (slot & IC_MSG_SLOT_MASK);
 
     if (unlikely(ic_slot_is_http(slot))) {
         __ichttp_reply_err(slot, err, err_str);
         return;
     }
-    assert (!(slot & IC_SLOT_FOREIGN_MASK));
 
-    if (unlikely(!ic)) {
-        ic = ic_get_from_slot(slot);
-        if (unlikely(!ic))
-            return;
-    }
-    if (likely(ic->elh) && likely(ic->id == slot >> 32)) {
-        ic_msg_t *msg = ic_msg_new(0);
+    msg = ic_msg_new_for_reply(&ic, slot, err);
+    if (!msg)
+        return;
 
-#ifdef IC_DEBUG_REPLIES
-        int32_t pos = qh_del_key(ic_replies, &ic->dbg_replies, slot);
-        if (pos < 0)
-            e_panic("answering to slot %d twice or unexpected answer!",
-                    (uint32_t)slot);
-#endif
-        assert (ic->pending > 0);
-        ic->pending--;
-        msg->slot = slot & IC_MSG_SLOT_MASK;
-        msg->cmd  = -err;
-        if (err_str && err_str->len) {
-            msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN + err_str->len + 1);
-            msg->dlen = IC_MSG_HDR_LEN + err_str->len + 1;
-            memcpyz((char *)msg->data + IC_MSG_HDR_LEN, err_str->s, err_str->len);
-        } else {
-            msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN);
-            msg->dlen = IC_MSG_HDR_LEN;
-        }
-        ic_queue(ic, msg, 0);
+    if (err_str && err_str->len) {
+        msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN + err_str->len + 1);
+        msg->dlen = IC_MSG_HDR_LEN + err_str->len + 1;
+        memcpyz((char *)msg->data + IC_MSG_HDR_LEN, err_str->s, err_str->len);
+    } else {
+        msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN);
+        msg->dlen = IC_MSG_HDR_LEN;
     }
+    ic_queue_for_reply(ic, msg);
 }
 
 void ic_reply_err(ichannel_t *ic, uint64_t slot, int err)
@@ -1143,7 +1344,7 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err)
 
 static void ic_sc_do(ichannel_t *ic, int sc_op)
 {
-    if (!ic->is_closing) {
+    if (!ic->is_closing && !ic_is_local(ic)) {
         ic_msg_t *msg = ic_msg_new(0);
         msg->data = mp_new_raw(ic_mp_g, char, IC_MSG_HDR_LEN);
         msg->dlen = IC_MSG_HDR_LEN;
@@ -1288,6 +1489,9 @@ static int __ic_connect(ichannel_t *ic, int flags)
 {
     int type, sock;
 
+    if (unlikely(ic_is_local(ic)))
+        e_fatal("cannot connect a local ic");
+
     assert (!ic->elh);
 
     ic->is_spawned = false;
@@ -1323,6 +1527,9 @@ static int __ic_connect(ichannel_t *ic, int flags)
 
 void ic_watch_activity(ichannel_t *ic, int timeout_soft, int timeout_hard)
 {
+    if (ic_is_local(ic))
+        return;
+
     ic->wa_soft = timeout_soft;
     ic->wa_hard = timeout_hard;
     __ic_watch_activity(ic);
@@ -1356,6 +1563,10 @@ void ic_spawn(ichannel_t *ic, int fd, ic_creds_f *creds_fn)
 {
     int type = 0;
     socklen_t len = sizeof(type);
+
+    assert (!ic_is_local(ic));
+    if (unlikely(ic_is_local(ic)))
+        return;
 
     if (getsockopt(fd, SOL_SOCKET, SO_TYPE, (void *)&type, &len))
         e_panic(E_UNIXERR("getsockopt"));
