@@ -734,7 +734,7 @@ void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
  */
 #define ic_query_sync(_ic, _msg, _cb, _mod, _if, _rpc, ...) \
     ({  ichannel_t *_ich = (_ic);                                         \
-        __ic_query_sync(_ich, _ic_build_query(_ich, _msg, _cb, _mod, _if, \
+        __ic_query_sync(_ich, ic_build_query(_ich, _msg, _cb, _mod, _if,  \
                                               _rpc, __VA_ARGS__));        \
     })
 
