@@ -152,8 +152,8 @@ static int iop_json_test_json(const iop_struct_t *st, const char *json, const
     Z_HELPER_END;
 }
 
-static int iop_std_test_struct(const iop_struct_t *st, void *v,
-                               const char *info)
+static int iop_std_test_struct_flags(const iop_struct_t *st, void *v,
+                                     const unsigned flags, const char *info)
 {
     t_scope;
     byte *res;
@@ -165,7 +165,7 @@ static int iop_std_test_struct(const iop_struct_t *st, void *v,
     t_qv_init(i32, &szs, 1024);
 
     /* packing */
-    Z_ASSERT_N((len = iop_bpack_size(st, v, &szs)),
+    Z_ASSERT_N((len = iop_bpack_size_flags(st, v, flags, &szs)),
                "invalid structure size (%s, %s)", st->fullname.s, info);
     dst = t_new(byte, len);
     iop_bpack(dst, st, v, szs.tab);
@@ -211,6 +211,8 @@ static int iop_std_test_struct(const iop_struct_t *st, void *v,
 
     Z_HELPER_END;
 }
+#define iop_std_test_struct(st, v, info) \
+    iop_std_test_struct_flags(st, v, 0, info)
 
 /* }}} */
 
@@ -1020,6 +1022,7 @@ Z_GROUP_EXPORT(iop)
         qv_t(i32) szs;
         int len;
         lstr_t s;
+        const unsigned flags = IOP_BPACK_SKIP_DEFVAL;
 
         if ((dso = iop_dso_open(path.s)) == NULL)
             Z_SKIP("unable to load zchk-tstiop-plugin, TOOLS repo?");
@@ -1030,37 +1033,42 @@ Z_GROUP_EXPORT(iop)
 
         /* test with all the default values */
         iop_init(st_sg, &sg);
-        Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 0, "sg-empty");
-        Z_HELPER_RUN(iop_std_test_struct(st_sg, &sg,  "sg-empty"));
+        Z_ASSERT_EQ((len = iop_bpack_size_flags(st_sg, &sg, flags, &szs)), 0,
+                    "sg-empty");
+        Z_HELPER_RUN(iop_std_test_struct_flags(st_sg, &sg, flags,
+                                               "sg-empty"));
 
         /* check that t_iop_bpack returns LSTR_EMPTY_V and not LSTR_NULL_V */
-        s = t_iop_bpack_struct(st_sg, &sg);
+        s = t_iop_bpack_struct_flags(st_sg, &sg, flags);
         Z_ASSERT_P(s.s);
         Z_ASSERT_ZERO(s.len);
 
         /* test with a different string length */
         sg.j.len = sg.j.len - 1;
-        Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 15,
+        Z_ASSERT_EQ((len = iop_bpack_size_flags(st_sg, &sg, flags, &szs)), 15,
                     "sg-string-len-diff");
-        Z_HELPER_RUN(iop_std_test_struct(st_sg, &sg,  "sg-string-len-diff"));
+        Z_HELPER_RUN(iop_std_test_struct_flags(st_sg, &sg, flags,
+                                               "sg-string-len-diff"));
 
         /* test with a NULL string */
         sg.j = LSTR_NULL_V;
-        Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 0,
+        Z_ASSERT_EQ((len = iop_bpack_size_flags(st_sg, &sg, flags, &szs)), 0,
                     "sg-string-null");
 
         /* test with a different string */
         sg.j = LSTR_IMMED_V("plop");
-        Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 7,
+        Z_ASSERT_EQ((len = iop_bpack_size_flags(st_sg, &sg, flags, &szs)), 7,
                     "sg-string-diff");
-        Z_HELPER_RUN(iop_std_test_struct(st_sg, &sg,  "sg-string-diff"));
+        Z_HELPER_RUN(iop_std_test_struct_flags(st_sg, &sg, flags,
+                                               "sg-string-diff"));
 
         /* test with different values at different places */
         sg.a = 42;
         sg.f = 12;
         sg.l = 10.6;
-        Z_ASSERT_EQ((len = iop_bpack_size(st_sg, &sg, &szs)), 20, "sg-diff");
-        Z_HELPER_RUN(iop_std_test_struct(st_sg, &sg,  "sg-diff"));
+        Z_ASSERT_EQ((len = iop_bpack_size_flags(st_sg, &sg, flags, &szs)), 20,
+                    "sg-diff");
+        Z_HELPER_RUN(iop_std_test_struct_flags(st_sg, &sg, flags, "sg-diff"));
 
         iop_dso_close(&dso);
     } Z_TEST_END

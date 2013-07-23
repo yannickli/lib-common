@@ -966,13 +966,13 @@ void __ic_bpack(ic_msg_t *msg, const iop_struct_t *st, const void *arg)
 
         hlen  = iop_bpack_size(&ic__hdr__s, msg->hdr, &szs);
         szpos = szs.len;
-        len   = iop_bpack_size(st, arg, &szs);
+        len   = iop_bpack_size_flags(st, arg, IOP_BPACK_SKIP_DEFVAL, &szs);
         buf   = __ic_get_buf(msg, hlen + len);
 
         iop_bpack(buf, &ic__hdr__s, msg->hdr, szs.tab);
         iop_bpack(buf + hlen, st, arg, szs.tab + szpos);
     } else {
-        len   = iop_bpack_size(st, arg, &szs);
+        len   = iop_bpack_size_flags(st, arg, IOP_BPACK_SKIP_DEFVAL, &szs);
         buf   = __ic_get_buf(msg, len);
         iop_bpack(buf, st, arg, szs.tab);
     }
