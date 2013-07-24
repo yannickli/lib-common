@@ -1379,6 +1379,9 @@ ichannel_t *ic_get_by_id(uint32_t id)
 
 ichannel_t *ic_init(ichannel_t *ic)
 {
+    /* ic_initialize() should be called before ic_init() */
+    assert (ic_h_g.k_size);
+
     p_clear(ic, 1);
     htlist_init(&ic->msg_list);
     htlist_init(&ic->iov_list);
