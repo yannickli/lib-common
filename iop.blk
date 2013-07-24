@@ -1046,11 +1046,17 @@ int iop_check_constraints(const iop_struct_t *desc, const void *val)
 /*-}}}-*/
 /*----- get value encoding size -{{{-*/
 
-int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
+int iop_bpack_size_flags(const iop_struct_t *desc, const void *val,
+                         const unsigned flags, qv_t(i32) *szs)
 {
     const iop_field_t *fdesc;
     const iop_field_t *end;
     int len = 0;
+
+    if (!szs->len) {
+        /* Put the packer flags in first to reuse them when packing */
+        qv_append(i32, szs, flags);
+    }
 
     if (desc->is_union) {
         fdesc = get_union_field(desc, val);
@@ -1088,8 +1094,11 @@ int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
         } else
         if (fdesc->repeat == IOP_R_DEFVAL) {
             /* Skip the field is it's still equal to its default value */
-            if (iop_field_is_defval(fdesc, ptr))
+            if ((flags & IOP_BPACK_SKIP_DEFVAL)
+            &&   iop_field_is_defval(fdesc, ptr))
+            {
                 continue;
+            }
         }
 
         len += 1 + fdesc->tag_len;
@@ -1146,7 +1155,7 @@ int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
                 int32_t offs = szs->len, i32;
 
                 qv_growlen(i32, szs, 1);
-                i32  = iop_bpack_size(fdesc->u1.st_desc, v, szs);
+                i32  = iop_bpack_size_flags(fdesc->u1.st_desc, v, flags, szs);
                 szs->tab[offs] = i32;
                 len += get_len_len(i32) + i32;
             }
@@ -1160,13 +1169,14 @@ int iop_bpack_size(const iop_struct_t *desc, const void *val, qv_t(i32) *szs)
 /*-}}}-*/
 /*----- packing -{{{-*/
 
-static uint8_t *
-pack_struct(void *dst, const iop_struct_t *, const void *, const int **);
-static uint8_t *
-pack_union(void *dst, const iop_struct_t *, const void *, const int **);
+static uint8_t *pack_struct(void *dst, const iop_struct_t *, const void *,
+                            const unsigned, const int **);
+static uint8_t *pack_union(void *dst, const iop_struct_t *, const void *,
+                           const unsigned, const int **);
 
 static uint8_t *
-pack_value(uint8_t *dst, const iop_field_t *f, const void *v, const int **szsp)
+pack_value(uint8_t *dst, const iop_field_t *f, const void *v,
+           const unsigned flags, const int **szsp)
 {
     uint32_t len;
 
@@ -1206,16 +1216,17 @@ pack_value(uint8_t *dst, const iop_field_t *f, const void *v, const int **szsp)
         return dst;
       case IOP_T_UNION:
         dst = pack_len(dst, f->tag, f->tag_len, *(*szsp)++);
-        return pack_union(dst, f->u1.st_desc, v, szsp);
+        return pack_union(dst, f->u1.st_desc, v, flags, szsp);
       case IOP_T_STRUCT:
       default:
         dst = pack_len(dst, f->tag, f->tag_len, *(*szsp)++);
-        return pack_struct(dst, f->u1.st_desc, v, szsp);
+        return pack_struct(dst, f->u1.st_desc, v, flags, szsp);
     }
 }
 
-static uint8_t *pack_value_vec(uint8_t *dst, const iop_field_t *f,
-                               const void *v, uint32_t n, const int **szsp)
+static uint8_t *
+pack_value_vec(uint8_t *dst, const iop_field_t *f, const void *v, uint32_t n,
+               const unsigned flags, const int **szsp)
 {
     const lstr_t *d;
     uint32_t len;
@@ -1262,14 +1273,14 @@ static uint8_t *pack_value_vec(uint8_t *dst, const iop_field_t *f,
       case IOP_T_UNION:
         do {
             dst = pack_len(dst, 0, 0, *(*szsp)++);
-            dst = pack_union(dst, f->u1.st_desc, v, szsp);
+            dst = pack_union(dst, f->u1.st_desc, v, flags, szsp);
             v   = (char *)v + f->size;
         } while (--n > 0);
         return dst;
       case IOP_T_STRUCT:
         do {
             dst = pack_len(dst, 0, 0, *(*szsp)++);
-            dst = pack_struct(dst, f->u1.st_desc, v, szsp);
+            dst = pack_struct(dst, f->u1.st_desc, v, flags, szsp);
             v   = (char *)v + f->size;
         } while (--n > 0);
         return dst;
@@ -1280,7 +1291,8 @@ static uint8_t *pack_value_vec(uint8_t *dst, const iop_field_t *f,
 }
 
 static uint8_t *
-pack_struct(void *dst, const iop_struct_t *desc, const void *v, const int **szsp)
+pack_struct(void *dst, const iop_struct_t *desc, const void *v,
+            const unsigned flags, const int **szsp)
 {
     assert(!desc->is_union); /* We don't want a union here */
 
@@ -1313,46 +1325,53 @@ pack_struct(void *dst, const iop_struct_t *desc, const void *v, const int **szsp
                     dst = pack_tag(dst, f->tag, f->tag_len,
                                    IOP_WIRE_MASK(REPEAT));
                     dst = put_unaligned_le32(dst, data->len);
-                    dst = pack_value_vec(dst, f, ptr, data->len, szsp);
+                    dst = pack_value_vec(dst, f, ptr, data->len, flags, szsp);
                 }
                 continue;
             }
         } else
         if (f->repeat == IOP_R_DEFVAL) {
             /* Skip the field is it's still equal to its default value */
-            if (iop_field_is_defval(f, ptr))
+            if ((flags & IOP_BPACK_SKIP_DEFVAL)
+            &&  iop_field_is_defval(f, ptr))
+            {
                 continue;
+            }
         }
 
-        dst = pack_value(dst, f, ptr, szsp);
+        dst = pack_value(dst, f, ptr, flags, szsp);
     }
     return dst;
 }
 
 static uint8_t *
 pack_union(void *dst, const iop_struct_t *desc, const void *v,
-           const int **szsp)
+           const unsigned flags, const int **szsp)
 {
     const iop_field_t *f = get_union_field(desc, v);
     assert(f->repeat == IOP_R_REQUIRED);
 
-    return pack_value(dst, f, (char *)v + f->data_offs, szsp);
+    return pack_value(dst, f, (char *)v + f->data_offs, flags, szsp);
 }
 
-void
-iop_bpack(void *dst, const iop_struct_t *desc, const void *v, const int *szs)
+void iop_bpack(void *dst, const iop_struct_t *desc, const void *v,
+               const int *szs)
 {
+    /* Read packing flags from first `szs' value */
+    const unsigned flags = *szs++;
+
     if (desc->is_union) {
-        pack_union(dst, desc, v, &szs);
+        pack_union(dst, desc, v, flags, &szs);
     } else {
-        pack_struct(dst, desc, v, &szs);
+        pack_struct(dst, desc, v, flags, &szs);
     }
 }
 
-lstr_t t_iop_bpack_struct(const iop_struct_t *st, const void *v)
+lstr_t t_iop_bpack_struct_flags(const iop_struct_t *st, const void *v,
+                                const unsigned flags)
 {
     qv_t(i32) sizes;
-    void *data;
+    byte *data;
     int len;
 
     if (!v)
@@ -1360,8 +1379,9 @@ lstr_t t_iop_bpack_struct(const iop_struct_t *st, const void *v)
 
     qv_inita(i32, &sizes, 1024);
 
-    len  = iop_bpack_size(st, v, &sizes);
-    data = t_new_raw(char, len);
+    len  = iop_bpack_size_flags(st, v, flags, &sizes);
+    data = t_new_raw(byte, len + 1);
+    data[len] = '\0';
 
     iop_bpack(data, st, v, sizes.tab);
     qv_wipe(i32, &sizes);
