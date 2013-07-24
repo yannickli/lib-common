@@ -28,13 +28,13 @@ static const lstr_t core__log_level__names[] = {
     LSTR_IMMED("DEBUG"),
 };
 iop_enum_t const core__log_level__e = {
-    .name       = LSTR_IMMED("LogLevel"),
-    .fullname   = LSTR_IMMED("core.LogLevel"),
-    .names      = core__log_level__names,
-    .values     = core__log_level__values,
-    .ranges     = iop__ranges__1,
-    .ranges_len = countof(iop__ranges__1) / 2,
-    .enum_len   = 8,
+    .name         = LSTR_IMMED("LogLevel"),
+    .fullname     = LSTR_IMMED("core.LogLevel"),
+    .names        = core__log_level__names,
+    .values       = core__log_level__values,
+    .ranges       = iop__ranges__1,
+    .ranges_len   = countof(iop__ranges__1) / 2,
+    .enum_len     = 8,
 };
 
 /* }}} */
@@ -54,13 +54,13 @@ static const lstr_t core__iop_http_method__names[] = {
     LSTR_IMMED("CONNECT"),
 };
 iop_enum_t const core__iop_http_method__e = {
-    .name       = LSTR_IMMED("IopHttpMethod"),
-    .fullname   = LSTR_IMMED("core.IopHttpMethod"),
-    .names      = core__iop_http_method__names,
-    .values     = core__iop_http_method__values,
-    .ranges     = iop__ranges__1,
-    .ranges_len = countof(iop__ranges__1) / 2,
-    .enum_len   = 8,
+    .name         = LSTR_IMMED("IopHttpMethod"),
+    .fullname     = LSTR_IMMED("core.IopHttpMethod"),
+    .names        = core__iop_http_method__names,
+    .values       = core__iop_http_method__values,
+    .ranges       = iop__ranges__1,
+    .ranges_len   = countof(iop__ranges__1) / 2,
+    .enum_len     = 8,
 };
 
 /* }}} */

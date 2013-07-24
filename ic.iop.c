@@ -23,13 +23,13 @@ static const lstr_t ic__ic_priority__names[] = {
     LSTR_IMMED("HIGH"),
 };
 iop_enum_t const ic__ic_priority__e = {
-    .name       = LSTR_IMMED("IcPriority"),
-    .fullname   = LSTR_IMMED("ic.IcPriority"),
-    .names      = ic__ic_priority__names,
-    .values     = ic__ic_priority__values,
-    .ranges     = iop__ranges__1,
-    .ranges_len = countof(iop__ranges__1) / 2,
-    .enum_len   = 3,
+    .name         = LSTR_IMMED("IcPriority"),
+    .fullname     = LSTR_IMMED("ic.IcPriority"),
+    .names        = ic__ic_priority__names,
+    .values       = ic__ic_priority__values,
+    .ranges       = iop__ranges__1,
+    .ranges_len   = countof(iop__ranges__1) / 2,
+    .enum_len     = 3,
 };
 
 /* }}} */
