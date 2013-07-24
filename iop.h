@@ -852,6 +852,14 @@ int iop_enum_from_lstr(const iop_enum_t *ed, const lstr_t s, bool *found);
 /* }}} */
 /* {{{ IOP binary packing/unpacking */
 
+/** IOP binary packer modifiers. */
+enum iop_bpack_flags {
+    /** With this flag on, the values still equal to their default will not be
+     * packed. This is good to save bandwidth but dangerous for backward
+     * compatibility */
+    IOP_BPACK_SKIP_DEFVAL   = (1U << 0),
+};
+
 /** Do some preliminary work to pack an IOP structure into IOP binary format.
  *
  * This function _must_ be used before the `iop_bpack` function. It will
@@ -860,15 +868,25 @@ int iop_enum_from_lstr(const iop_enum_t *ed, const lstr_t s, bool *found);
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
  *
- * \param[in]  st   The IOP structure definition (__s).
- * \param[in]  v    The IOP structure to pack.
- * \param[out] szs  A qvector of int32 that you have to initialize and give
- *                  after to `iop_bpack`.
+ * \param[in]  st    The IOP structure definition (__s).
+ * \param[in]  v     The IOP structure to pack.
+ * \param[in]  flags Packer modifiers (see iop_bpack_flags).
+ * \param[out] szs   A qvector of int32 that you have to initialize and give
+ *                   after to `iop_bpack`.
  * \return
  *   This function returns the needed buffer size to pack the IOP structure.
  */
 __must_check__
-int iop_bpack_size(const iop_struct_t *st, const void *v, qv_t(i32) *szs);
+int iop_bpack_size_flags(const iop_struct_t *st, const void *v,
+                         unsigned flags, qv_t(i32) *szs);
+
+__must_check__
+static inline int
+iop_bpack_size(const iop_struct_t *st, const void *v, qv_t(i32) *szs)
+{
+    return iop_bpack_size_flags(st, v, 0, szs);
+}
+
 
 /** Pack an IOP structure into IOP binary format.
  *
@@ -909,12 +927,19 @@ void iop_bpack(void *dst, const iop_struct_t *st, const void *v,
  * Prefer the generated version instead of this low-level API (see IOP_GENERIC
  * in iop-macros.h).
  *
- * \param[in] st The IOP structure definition (__s).
- * \param[in] v  The IOP structure to pack.
+ * \param[in] st    The IOP structure definition (__s).
+ * \param[in] v     The IOP structure to pack.
+ * \param[in] flags Packer modifiers (see iop_bpack_flags).
  * \return
  *   The buffer containing the packed structure.
  */
-lstr_t t_iop_bpack_struct(const iop_struct_t *st, const void *v);
+lstr_t t_iop_bpack_struct_flags(const iop_struct_t *st, const void *v,
+                                const unsigned flags);
+
+static inline lstr_t t_iop_bpack_struct(const iop_struct_t *st, const void *v)
+{
+    return t_iop_bpack_struct_flags(st, v, 0);
+}
 
 /** Unpack a packed IOP structure.
  *
