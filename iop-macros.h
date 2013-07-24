@@ -231,8 +231,26 @@
  * This version of `iop_bpack` allows to pack an IOP structure in one
  * operation and uses the t_pool() to allocate the resulting buffer.
  *
- * \param[in] _pkg  The IOP structure package name.
- * \param[in] _type The IOP structure type name.
+ * \param[in] _pkg   The IOP structure package name.
+ * \param[in] _type  The IOP structure type name.
+ * \param[in] _flags Packer modifiers (see iop_bpack_flags).
+ * \return
+ *   The buffer containing the packed structure.
+ */
+#define t_iop_bpack_flags(_pkg, _type, _val, _flags)                     \
+    ({                                                                   \
+        const _pkg##__##_type##__t *_tval = (_val);                      \
+        \
+        t_iop_bpack_struct_flags(&_pkg##__##_type##__s, _tval, _flags);  \
+    })
+
+/** Pack an IOP structure into IOP binary format using the t_pool().
+ *
+ * This version of `iop_bpack` allows to pack an IOP structure in one
+ * operation and uses the t_pool() to allocate the resulting buffer.
+ *
+ * \param[in] _pkg   The IOP structure package name.
+ * \param[in] _type  The IOP structure type name.
  * \return
  *   The buffer containing the packed structure.
  */
