@@ -1382,18 +1382,12 @@ int iop_check_constraints(const iop_struct_t *desc, const void *val)
 static int __iop_bpack_size_class(const iop_struct_t *desc, const void *val,
                                   const unsigned flags, qv_t(i32) *szs);
 
-static int
-__iop_bpack_size(const iop_struct_t *desc, const void *val,
-                 const unsigned flags, qv_t(i32) *szs)
+static int __iop_bpack_size(const iop_struct_t *desc, const void *val,
+                            const unsigned flags, qv_t(i32) *szs)
 {
     const iop_field_t *fdesc;
     const iop_field_t *end;
     int len = 0;
-
-    if (!szs->len) {
-        /* Put the packer flags in first to reuse them when packing */
-        qv_append(i32, szs, flags);
-    }
 
     if (desc->is_union) {
         fdesc = get_union_field(desc, val);
@@ -1557,6 +1551,9 @@ static int __iop_bpack_size_class(const iop_struct_t *desc, const void *val,
 int iop_bpack_size_flags(const iop_struct_t *desc, const void *val,
                          const unsigned flags, qv_t(i32) *szs)
 {
+    /* Put the packer flags in first to reuse them when packing */
+    qv_append(i32, szs, flags);
+
     if (iop_struct_is_class(desc)) {
         return __iop_bpack_size_class(desc, val, flags, szs);
     } else {
