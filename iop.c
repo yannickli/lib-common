@@ -628,17 +628,12 @@ void iop_hash(const iop_struct_t *st, const void *v,
 /*----- duplicating values -}}}-*/
 /*----- get value encoding size -{{{-*/
 
-int iop_bpack_size_flags(const iop_struct_t *desc, const void *val,
-                         const unsigned flags, qv_t(i32) *szs)
+static int __iop_bpack_size(const iop_struct_t *desc, const void *val,
+                            const unsigned flags, qv_t(i32) *szs)
 {
     const iop_field_t *fdesc;
     const iop_field_t *end;
     int len = 0;
-
-    if (!szs->len) {
-        /* Put the packer flags in first to reuse them when packing */
-        qv_append(i32, szs, flags);
-    }
 
     if (desc->is_union) {
         fdesc = get_union_field(desc, val);
@@ -737,7 +732,7 @@ int iop_bpack_size_flags(const iop_struct_t *desc, const void *val,
                 int32_t offs = szs->len, i32;
 
                 qv_growlen(i32, szs, 1);
-                i32  = iop_bpack_size_flags(fdesc->u1.st_desc, v, flags, szs);
+                i32  = __iop_bpack_size(fdesc->u1.st_desc, v, flags, szs);
                 szs->tab[offs] = i32;
                 len += get_len_len(i32) + i32;
             }
@@ -746,6 +741,15 @@ int iop_bpack_size_flags(const iop_struct_t *desc, const void *val,
     }
 
     return len;
+}
+
+int iop_bpack_size_flags(const iop_struct_t *desc, const void *val,
+                         const unsigned flags, qv_t(i32) *szs)
+{
+    /* Put the packer flags in first to reuse them when packing */
+    qv_append(i32, szs, flags);
+
+    return __iop_bpack_size(desc, val, flags, szs);
 }
 
 /*-}}}-*/
