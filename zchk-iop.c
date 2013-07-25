@@ -1173,12 +1173,19 @@ Z_GROUP_EXPORT(iop)
         };
         tstiop__my_struct_a_opt__t sa_opt;
 
+        int32_t val[] = {15, 30, 45};
+        tstiop__my_struct_e__t se = {
+            .a = 10,
+            .b = IOP_UNION(tstiop__my_union_a, ua, 42),
+            .c = { .b = IOP_ARRAY(val, countof(val)), },
+        };
+
         iop_dso_t *dso;
         lstr_t path = t_lstr_cat(z_cmddir_g,
                                  LSTR_IMMED_V("zchk-tstiop-plugin.so"));
 
 
-        const iop_struct_t *st_sa, *st_sa_opt;
+        const iop_struct_t *st_sa, *st_sa_opt, *st_se;
 
 
         if ((dso = iop_dso_open(path.s)) == NULL)
@@ -1186,12 +1193,14 @@ Z_GROUP_EXPORT(iop)
 
         Z_ASSERT_P(st_sa = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructA")));
         Z_ASSERT_P(st_sa_opt = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructAOpt")));
+        Z_ASSERT_P(st_se = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.MyStructE")));
 
         Z_ASSERT_N(iop_check_constraints(st_sa, &sa));
         Z_ASSERT_N(iop_check_constraints(st_sa, &sa2));
 
         Z_HELPER_RUN(iop_std_test_struct(st_sa, &sa,  "sa"));
         Z_HELPER_RUN(iop_std_test_struct(st_sa, &sa2, "sa2"));
+        Z_HELPER_RUN(iop_std_test_struct(st_se, &se, "se"));
 
         iop_init(st_sa_opt, &sa_opt);
         IOP_OPT_SET(sa_opt.a, 32);
