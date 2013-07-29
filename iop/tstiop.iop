@@ -295,6 +295,7 @@ struct MyHashedExtended {
     int a;
     int? b;
     int[] c;
+    int d = 12;
 };
 
 /* Interfaces */

@@ -2181,12 +2181,29 @@ Z_GROUP_EXPORT(iop)
                                       IOP_HASH_SKIP_MISSING),
             IOP_HASH_SKIP_MISSING));
         Z_ASSERT_N((iop_check_signature)(&tstiop__my_hashed__s, &a,
+            (t_iop_compute_signature)(&tstiop__my_hashed__s, &a,
+                                      IOP_HASH_SKIP_DEFAULT),
+            IOP_HASH_SKIP_DEFAULT));
+
+        Z_ASSERT_N((iop_check_signature)(&tstiop__my_hashed__s, &a,
             (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
-                                      IOP_HASH_SKIP_MISSING),
-            IOP_HASH_SKIP_MISSING));
+                                      IOP_HASH_SKIP_MISSING |
+                                      IOP_HASH_SKIP_DEFAULT),
+            IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT));
+
         Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
             (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b, 0),
             0));
+
+        Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
+            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
+                                      IOP_HASH_SKIP_MISSING),
+            IOP_HASH_SKIP_MISSING));
+
+        Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
+            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
+                                      IOP_HASH_SKIP_DEFAULT),
+            IOP_HASH_SKIP_DEFAULT));
 
         OPT_SET(b.b, 0);
         Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
@@ -2199,14 +2216,26 @@ Z_GROUP_EXPORT(iop)
         b.c.len = 1;
         Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
             (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
-                                      IOP_HASH_SKIP_MISSING),
-            IOP_HASH_SKIP_MISSING));
+                                      IOP_HASH_SKIP_MISSING |
+                                      IOP_HASH_SKIP_DEFAULT),
+            IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT));
 
         b.c.len = 0;
         Z_ASSERT_N((iop_check_signature)(&tstiop__my_hashed__s, &a,
             (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
-                                      IOP_HASH_SKIP_MISSING),
-            IOP_HASH_SKIP_MISSING));
+                                      IOP_HASH_SKIP_MISSING |
+                                      IOP_HASH_SKIP_DEFAULT),
+            IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT));
+
+        b.d = 11;
+        Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
+            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
+                                      IOP_HASH_SKIP_MISSING |
+                                      IOP_HASH_SKIP_DEFAULT),
+            IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT));
+        Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
+            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b, 0),
+            0));
     } Z_TEST_END;
     /* }}} */
     Z_TEST(inheritance_basics, "test inheritance basic properties") { /* {{{ */

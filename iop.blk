@@ -1045,6 +1045,11 @@ __iop_hash(struct iop_hash_ctx *ctx, const iop_struct_t *st, const uint8_t *v,
         {
             continue;
         }
+        if (fdesc->repeat == IOP_R_DEFVAL && (flags & IOP_HASH_SKIP_DEFAULT)
+        &&  iop_field_is_defval(fdesc, r))
+        {
+            continue;
+        }
 
         iop_hash_update_u16(ctx, fdesc->tag);
         iop_hash_update(ctx, fdesc->name.s, fdesc->name.len);
@@ -1345,7 +1350,7 @@ int __iop_check_constraints(const iop_struct_t *desc, const void *val)
             }
         } else
         if (fdesc->repeat == IOP_R_DEFVAL) {
-            /* Skip the field is it's still equal to its default value */
+            /* Skip the field if it's still equal to its default value */
             if (iop_field_is_defval(fdesc, ptr))
                 continue;
         }
@@ -1745,7 +1750,7 @@ pack_struct(void *dst, const iop_struct_t *desc, const void *v,
             }
         } else
         if (f->repeat == IOP_R_DEFVAL) {
-            /* Skip the field is it's still equal to its default value */
+            /* Skip the field if it's still equal to its default value */
             if ((flags & IOP_BPACK_SKIP_DEFVAL)
             &&  iop_field_is_defval(f, ptr))
             {
