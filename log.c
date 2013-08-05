@@ -20,6 +20,7 @@
 
 uint32_t log_conf_gen_g = 1;
 log_handler_f *log_stderr_handler_g;
+int log_stderr_handler_teefd_g = -1;
 
 struct level {
     int level;
@@ -466,6 +467,9 @@ static void log_stderr_fancy_handler(const log_ctx_t *ctx, const char *fmt,
     sb_adds(sb, "\e[0m\n");
 
     fputs(sb->data, stderr);
+    if (log_stderr_handler_teefd_g >= 0) {
+        IGNORE(xwrite(log_stderr_handler_teefd_g, sb->data, sb->len));
+    }
     sb_reset(sb);
 }
 
@@ -498,6 +502,9 @@ static void log_stderr_raw_handler(const log_ctx_t *ctx, const char *fmt,
     sb_addc(sb, '\n');
 
     fputs(sb->data, stderr);
+    if (log_stderr_handler_teefd_g >= 0) {
+        IGNORE(xwrite(log_stderr_handler_teefd_g, sb->data, sb->len));
+    }
     sb_reset(sb);
 }
 

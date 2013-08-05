@@ -339,6 +339,12 @@ typedef void (log_handler_f)(const log_ctx_t *ctx, const char *fmt, va_list va)
  */
 extern log_handler_f *log_stderr_handler_g;
 
+/** Default log handler tee fd.
+ *
+ * If set, the default log handler will also print on this fd.
+ */
+extern int log_stderr_handler_teefd_g;
+
 /** Change the handler.
  *
  * This also returns the previous handler.
