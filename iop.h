@@ -633,8 +633,11 @@ int iop_sort(const iop_struct_t *st, void *vec, int len,
  *               the libc malloc() will be used.
  * \param[in] st The IOP structure definition (__s).
  * \param[in] v  The IOP structure to duplicate.
+ * \param[out] sz If set, filled with the size of the allocated buffer.
  */
-void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v);
+void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v,
+              size_t *sz);
+#define iop_dup(...) (iop_dup)(__VA_ARGS__, NULL)
 
 /** Copy an IOP structure into another one.
  *
@@ -650,9 +653,11 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v);
  * \param[in] outp Pointer on the destination structure that will be
  *                 reallocated to retrieve the v IOP structure.
  * \param[in] v    The IOP structure to copy.
+ * \param[out] sz If set, filled with the size of the allocated buffer.
  */
 void  iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
-               const void *v);
+               const void *v, size_t *sz);
+#define iop_copy(...) (iop_copy)(__VA_ARGS__, NULL)
 
 /** Generate a signature of an IOP structure.
  *

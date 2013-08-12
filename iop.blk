@@ -404,7 +404,8 @@ static uint8_t *__iop_copy_class(const iop_struct_t *st, uint8_t *dst,
     return dst;
 }
 
-void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v)
+void *(iop_dup)(mem_pool_t *mp, const iop_struct_t *st, const void *v,
+                size_t *psz)
 {
     bool is_class;
     size_t sz;
@@ -417,6 +418,9 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v)
         sz = ROUND_UP(st->size, 8) + iop_dup_size(st, v);
     } else {
         sz = ROUND_UP(st->size, 8) + __iop_dup_size(st, v);
+    }
+    if (psz) {
+        *psz = sz;
     }
 
     res = mp ? mp->malloc(mp, sz, MEM_RAW) : imalloc(sz, MEM_LIBC | MEM_RAW);
@@ -434,7 +438,8 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v)
     return res;
 }
 
-void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp, const void *v)
+void (iop_copy)(mem_pool_t *mp, const iop_struct_t *st, void **outp,
+                const void *v, size_t *psz)
 {
     bool is_class;
     size_t sz;
@@ -455,6 +460,10 @@ void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp, const void *v
         sz = ROUND_UP(st->size, 8) + iop_dup_size(st, v);
     } else {
         sz = ROUND_UP(st->size, 8) + __iop_dup_size(st, v);
+    }
+
+    if (psz) {
+        *psz = sz;
     }
 
     if (mp) {
