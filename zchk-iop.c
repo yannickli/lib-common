@@ -931,6 +931,7 @@ Z_GROUP_EXPORT(iop)
             "    \"s\": c\'\\u002B\',\n"
             "    \"t\": c\'\\t\'\n"
             "};\n"
+            "// last line contains a comment and no \\n"
             ;
 
         tstiop__my_struct_a__t json_sa_res = {
