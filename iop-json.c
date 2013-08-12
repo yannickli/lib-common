@@ -701,7 +701,7 @@ static int iop_json_lex(iop_json_lex_t *ll)
       case '#':
                 if (ps_skip_afterchr(PS, '\n') < 0) {
                     ll->col += ps_len(PS);
-                    ps_shrink(PS, 0);
+                    ps_skip(PS, ps_len(PS));
                     return 0;
                 }
                 NEWLINE();
