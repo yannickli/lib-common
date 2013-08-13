@@ -107,11 +107,12 @@ static int time_parse_iso8601_tok(pstream_t *ps, int *nb, int *type)
     return 0;
 }
 
-int time_parse_iso8601(pstream_t *ps, time_t *res)
+int time_parse_iso8601_flags(pstream_t *ps, time_t *res, unsigned flags)
 {
     struct tm t;
-    bool local = false;
+    bool local = false, syslog_format = false;
     int tz_h, tz_m;
+    char c;
 
     if (!ps_has(ps, 1)) {
         e_debug("invalid date: empty");
@@ -201,9 +202,15 @@ int time_parse_iso8601(pstream_t *ps, time_t *res)
         e_debug("invalid day in date");
         return -1;
     }
-    if (toupper(ps_getc(ps)) != 'T') {
-        e_debug("invalid date format, missing 'T' after day");
-        return -1;
+
+    c = ps_getc(ps);
+    if (toupper(c) != 'T') {
+        if ((flags & ISO8601_ALLOW_SYSLOG_FORMAT) && c == ' ') {
+            syslog_format = true;
+        } else {
+            e_debug("invalid date format, missing 'T' after day");
+            return -1;
+        }
     }
 
     t.tm_hour = ps_geti(ps);
@@ -245,6 +252,9 @@ int time_parse_iso8601(pstream_t *ps, time_t *res)
         return 0;
     }
 
+    if (syslog_format) {
+        RETHROW(ps_skipc(ps, ' '));
+    }
     RETHROW(time_parse_timezone(ps, &tz_h, &tz_m));
 
     /* subtract the offset from the local time to get UTC time */
@@ -290,7 +300,7 @@ int time_parse(pstream_t *ps, time_t *d)
 
     if (len > 4 && (ps->s[0] == 'P' || ps->s[4] == '-')) {
         /* ISO8601: YYYY-MM-DDThh:mm:ss */
-        return time_parse_iso8601(ps, d);
+        return time_parse_iso8601_flags(ps, d, ISO8601_ALLOW_SYSLOG_FORMAT);
     } else
     if (len > 3 && (ps->s[1] == ' ' || ps->s[2] == ' ')) {
         /* RFC822: D month YYYY hh:mm:ss tz */

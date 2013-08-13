@@ -95,6 +95,10 @@ Z_GROUP_EXPORT(time)
         CHECK_DATE("2007-03-07T01:34:13+14:00", 1173180853);
         CHECK_DATE("2007-03-06T01:04:13-10:30", 1173180853);
 
+        /* Format of our syslogs */
+        CHECK_DATE("2007-03-06 11:34:13 +0000", 1173180853);
+        CHECK_DATE("2007-03-07 01:34:13 +1400", 1173180853);
+
         /* hours/minutes underflow */
         CHECK_DATE("2007-03-07T00:04:13+12:30", 1173180853);
 

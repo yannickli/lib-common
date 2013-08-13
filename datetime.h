@@ -187,7 +187,20 @@ void sb_add_localtime_iso8601_msec(sb_t *sb, time_t t,
     time_fmt_localtime_iso8601_msec(sb_growlen(sb, 29), t, msec, tz);
 }
 
-int time_parse_iso8601(pstream_t *ps, time_t *res);
+/** Flags to use with time_parse_iso8601_flags. */
+enum iso8601_flags {
+    /** Allow the parsing of our syslog date format.
+     *
+     * If set, then time formated like in our syslog files are accepted.
+     * Format is: YYYY-MM-DD hh:mm:ss +zzzz.
+     */
+    ISO8601_ALLOW_SYSLOG_FORMAT = (1U << 1),
+};
+
+int time_parse_iso8601_flags(pstream_t *ps, time_t *res, unsigned flags);
+static inline int time_parse_iso8601(pstream_t *ps, time_t *res) {
+    return time_parse_iso8601_flags(ps, res, 0);
+}
 
 static inline int time_parse_iso8601s(const char *s, time_t *res)
 {
