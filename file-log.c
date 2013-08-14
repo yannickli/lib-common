@@ -184,36 +184,15 @@ static void log_file_find_last_date(log_file_t *log_file)
 {
     char buf[PATH_MAX];
     glob_t globbuf;
-    time_t res = -1;
+
+    log_file->open_date = time(NULL);
 
     snprintf(buf, sizeof(buf), "%s_????????_??????.%s",
              log_file->prefix, log_file->ext);
     if (!glob(buf, 0, NULL, &globbuf) && globbuf.gl_pathc) {
-        const byte *d = (const byte *)globbuf.gl_pathv[globbuf.gl_pathc - 1];
-        struct tm tm;
-
-        d += strlen(log_file->prefix) + 1;
-        /* %04d%02d%02d_%02d%02d%02d */
-        p_clear(&tm, 1);
-        tm.tm_isdst = -1; /* We don't know current dst */
-        tm.tm_year = memtoip(d, 4, &d) - 1900;
-        tm.tm_mon  = memtoip(d, 2, &d) - 1;
-        tm.tm_mday = memtoip(d, 2, &d);
-        if (*d++ != '_')
-            goto not_found;
-        tm.tm_hour = memtoip(d, 2, &d);
-        tm.tm_min  = memtoip(d, 2, &d);
-        tm.tm_sec  = memtoip(d, 2, &d);
-        if (log_file->flags & LOG_FILE_UTCSTAMP) {
-            res = timegm(&tm);
-        } else {
-            res = mktime(&tm);
-        }
-
-        log_file->open_date = res;
-    } else {
-      not_found:
-        log_file->open_date = time(NULL);
+        log_file_get_file_stamp(log_file,
+                                globbuf.gl_pathv[globbuf.gl_pathc - 1],
+                                &log_file->open_date);
     }
     globfree(&globbuf);
 }
@@ -405,5 +384,38 @@ int log_file_flush(log_file_t *log_file)
 {
     if (log_file->_internal)
         return file_flush(log_file->_internal);
+    return 0;
+}
+
+int log_file_get_file_stamp(const log_file_t *file, const char *path,
+                            time_t *out)
+{
+    struct tm tm;
+    const byte *d;
+    int prefix_len = strlen(file->prefix);
+
+
+    if (strlen(path) < prefix_len + strlen("YYYYMMDD_hhmmss")) {
+        return -1;
+    }
+    d = (const byte *)path + prefix_len + 1;
+
+    p_clear(&tm, 1);
+    tm.tm_isdst = -1; /* We don't know current dst */
+    tm.tm_year = memtoip(d, 4, &d) - 1900;
+    tm.tm_mon  = memtoip(d, 2, &d) - 1;
+    tm.tm_mday = memtoip(d, 2, &d);
+    if (*d++ != '_') {
+        return -1;
+    }
+    tm.tm_hour = memtoip(d, 2, &d);
+    tm.tm_min  = memtoip(d, 2, &d);
+    tm.tm_sec  = memtoip(d, 2, &d);
+    if (file->flags & LOG_FILE_UTCSTAMP) {
+        *out = timegm(&tm);
+    } else {
+        *out = mktime(&tm);
+    }
+
     return 0;
 }

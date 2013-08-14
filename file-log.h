@@ -97,6 +97,17 @@ int log_fprintf(log_file_t *log_file, const char *format, ...)
 
 int log_file_flush(log_file_t *log_file);
 
+/** Get the creation timestamp of a log file from his full path.
+ *
+ * \param[in]  file  The log_file_t.
+ * \param[in]  path  The full path of the log file we want the date.
+ * \param[out] out   Pointer to the creation date timestamp to fill.
+ *
+ * \return 0 on success, a negative value on failure.
+ */
+int log_file_get_file_stamp(const log_file_t *file, const char *path,
+                            time_t *out);
+
 static inline off_t log_file_tell(log_file_t *log_file)
 {
     if (log_file->_internal)
