@@ -21,6 +21,12 @@
  * automatically depending on file size or data, or both.
  */
 
+#define LOG_FILE_DATE_FMT  "%04d%02d%02d_%02d%02d%02d"
+#define LOG_FILE_DATE_FMT_ARG(tm)  \
+    (tm).tm_year + 1900, (tm).tm_mon + 1, (tm).tm_mday, (tm).tm_hour,        \
+    (tm).tm_min, (tm).tm_sec
+
+
 enum log_file_flags {
     LOG_FILE_USE_LAST  = (1U << 0),
     LOG_FILE_COMPRESS  = (1U << 1), /* Use gzip on results */

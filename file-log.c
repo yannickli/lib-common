@@ -33,10 +33,8 @@ static const char *t_build_real_path(int *size, log_file_t *log_file,
     } else {
         localtime_r(&date, &tm);
     }
-    return t_fmt(size, "%s_%04d%02d%02d_%02d%02d%02d.%s",
-                 log_file->prefix, tm.tm_year + 1900, tm.tm_mon + 1,
-                 tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec,
-                 log_file->ext);
+    return t_fmt(size, "%s_" LOG_FILE_DATE_FMT ".%s",
+                 log_file->prefix, LOG_FILE_DATE_FMT_ARG(tm), log_file->ext);
 }
 
 static void
