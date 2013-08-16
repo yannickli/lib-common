@@ -85,6 +85,7 @@ parameters:
    this callback is called when the http request has been processed (see
    below).
 -  path: string.
+-  url_arg: string (optional).
 
 cb_query_done parameters:
 
@@ -128,7 +129,7 @@ except lms_eb.initializeError as e:
 
 cbk_arg = "I m a http cbk arg. I could be any kind of python object"
 try:
-  http_query(cbk_arg, query_end, "/")
+  http_query(cbk_arg, query_end, "/", "?arg1=val1")
 except lms_eb.queryError as e:
   print "http query error: %s" % e.args
   exit()
