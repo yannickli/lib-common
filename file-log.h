@@ -30,7 +30,7 @@ enum log_file_flags {
 enum log_file_event {
     LOG_FILE_CREATE, /* just after a new file creation */
     LOG_FILE_CLOSE,  /* called before file_close is called */
-    LOG_FILE_DELETE, /* called before a log file is deleted. */
+    LOG_FILE_DELETE, /* called after a log file is deleted. */
 #if 0
     LOG_FILE_ROTATE, /* TODO: just before rotation, to allow writing a
                         footer or similar */
