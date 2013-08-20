@@ -27,8 +27,7 @@ int socketpairx(int d, int type, int protocol, int flags, int sv[2])
     if (!(flags & O_NONBLOCK))
         return 0;
     if (fd_set_features(sv[0], flags) || fd_set_features(sv[1], flags)) {
-        PROTECT_ERRNO(({ close(sv[0]); close(sv[1]); }));
-        sv[0] = sv[1] = -1;
+        PROTECT_ERRNO(({ p_close(&sv[0]); p_close(&sv[1]); }));
         return -1;
     }
     return 0;
@@ -85,7 +84,7 @@ int bindx(int sock, const sockunion_t *addrs, int cnt,
     return sock;
 
   error:
-    close(to_close);
+    p_close(&to_close);
     return -1;
 }
 
@@ -100,7 +99,7 @@ int listenx(int sock, const sockunion_t *addrs, int cnt,
 
     if (listen(sock, SOMAXCONN) < 0) {
         if (to_close >= 0)
-            PROTECT_ERRNO(close(to_close));
+            PROTECT_ERRNO(p_close(&to_close));
         return -1;
     }
     return sock;
@@ -153,7 +152,7 @@ int connectx(int sock, const sockunion_t *addrs, int cnt, int type, int proto,
     return sock;
 
   error:
-    PROTECT_ERRNO(close(to_close));
+    PROTECT_ERRNO(p_close(&to_close));
     return -1;
 }
 
@@ -162,7 +161,7 @@ int acceptx(int server_fd, int flags)
     int sock = RETHROW(accept(server_fd, NULL, NULL));
 
     if (fd_set_features(sock, flags)) {
-        PROTECT_ERRNO(close(sock));
+        PROTECT_ERRNO(p_close(&sock));
         return -1;
     }
     return sock;
