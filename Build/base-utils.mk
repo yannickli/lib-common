@@ -53,6 +53,16 @@ define fun/rebase
 $(patsubst $(var/srcdir)/%,%,$(call fun/abspath,$(addprefix $1/,$(filter-out /%,$2)) $(filter /%,$2)))
 endef
 
+# build list of exported parameter
+#
+# Rebase and escape paths
+# Preserve variables expansion
+#
+# $(call fun/exportvars,<PATH>,<LIST>)
+define fun/exportvars
+$(call fun/msq,$(call fun/rebase,$1,$(filter-out $$%,$2))) $(filter $$%,$2)
+endef
+
 # call something once only
 #
 # $(call fun/do-once,<GUARD>,<CALL>)

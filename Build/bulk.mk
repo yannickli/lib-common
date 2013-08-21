@@ -239,9 +239,12 @@ __dump_targets: . = $(patsubst $(var/srcdir)/%,%,$(realpath $(CURDIR))/)
 __dump_targets:
 	echo 'ifneq (,$$(realpath $.Makefile))'
 	$(foreach v,$(filter %_DOCS %_DATAS %_PROGRAMS %_LIBRARIES,$(.VARIABLES)),\
-	    echo '$v += $(call fun/msq,$(call fun/rebase,$(CURDIR),$($v)))';)
+	    echo '$v += $(call fun/exportvars,$(CURDIR),$($v))';)
 	$(foreach v,$(filter %_DEPENDS %_SOURCES,$(.VARIABLES)),\
-	    echo '$.$v += $(call fun/msq,$(call fun/rebase,$(CURDIR),$($v)))';)
+	    echo '$.$v += $(call fun/exportvars,$(CURDIR),$($v))';)
+	$(foreach v,$(filter %_EXPORT,$(.VARIABLES)),\
+		$(foreach vv,$($v),\
+			echo '$.$(vv) += $(call fun/exportvars,$(CURDIR),$($(vv)))';))
 	$(foreach v,$(filter %LINKER %LIBS %COMPILER %FLAGS %INCPATH %_SOVERSION %_NOCHECK,$(filter-out MAKE%,$(.VARIABLES))),\
 	    echo '$.$v += $(call fun/msq,$($v))';)
 	echo '$._CLEANFILES += $(call fun/msq,$(call fun/rebase,$(CURDIR),$(CLEANFILES)))'

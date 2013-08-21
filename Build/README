@@ -13,6 +13,39 @@ About Variables
 ---------------
 // {{{
 
+Standard Variables
+~~~~~~~~~~~~~~~~~~
+
+Makefiles are standard Makefiles in which you can define variables as you
+could do in any Makefile:
++
+----------------------------------
+libs = libcommon.a \
+       time-lp-simple.a
+----------------------------------
+
+By default, variables are file local and can only be used in the current
+Makefile. However, you can define a set of variables to be exported using the
+`_EXPORT` variables:
++
+----------------------------------
+_EXPORT = libs
+----------------------------------
++
+In this example, `myvar` becomes accessible from other files as `path/myvar`
+to be used in magic variables (such as `_SOURCES` variables) and is subject to
+double expansion. As a consequence it must be written with a double `$`:
++
+----------------------------------
+_EXPORT = libs
+
+libs = lmsbase.a \
+       $$(libcommon/libs)
+
+lms-ep_SOURCES = ep-main.blk \
+                 $$(lms/libs)
+----------------------------------
+
 Magic Variables
 ~~~~~~~~~~~~~~~
 
@@ -101,12 +134,11 @@ The following suffixes are used to define goals of specific kinds:
         come with it.
 
 `_DOCS`::
-				List of documentations to be generated for this directory. Currently
-				this only handles the generation of `.pdf` files. The generation is
-				derived from the the `_SOURCES` that come with it. If the
-				list of source is empty, the build system will suppose the source file
-				is an asciidoc file with the same name as the generated PDF.
-
+        List of documentations to be generated for this directory. Currently
+        this only handles the generation of `.pdf` files. The generation is
+        derived from the the `_SOURCES` that come with it. If the
+        list of source is empty, the build system will suppose the source file
+        is an asciidoc file with the same name as the generated PDF.
 
 The build system doesn't support any other kind of goal yet, though you can
 add local rules (FIXME: add some doc about how to do that).
@@ -124,8 +156,8 @@ All the following work for any kind of goal:
 `_SOURCES`::
         This variable has the list of sources.  We support at the time of the
         writing: .h, .c, .tokens, .fc, .farch, .l, .a, .wa, .ld for binary
-				generation, .adoc, .xml for doc generation (only one source per
-				documentation is supported).
+        generation, .adoc, .xml for doc generation (only one source per
+        documentation is supported).
 +
 Note that anything that is put in that variable, in a relative way to the
 current directory, is added to the order only depends chain of your goal even
@@ -136,7 +168,7 @@ Also, in-tree generated files are built first for this target, you don't need
 to do anything special about it.
 
 `_LINKER`::
-	This variable allow to override the command used to link. Usually this
+        This variable allow to override the command used to link. Usually this
         variable is set to `$(CXX)` when the program or library is a c++ one.
 
 `_LDFLAGS`::
@@ -152,7 +184,7 @@ to do anything special about it.
         of the IOPC.
 
 `_NOCHECK`::
-	To disable checks when building this target.
+        To disable checks when building this target.
 
 `_DEPENDS`::
         This variable holds a number of other goals (relative to the
@@ -188,8 +220,8 @@ time).
 For documentations, (`_DOCS`) you can also use:
 
 `_DBLATEXFLAGS`::
-				This variable holds a list of parameters to be passed to the
-				`dblatex`
+        This variable holds a list of parameters to be passed to the
+        `dblatex`
 
 
 Per Source Variables
@@ -214,7 +246,7 @@ that are remade before the lexer is compiled.
 Example: `something.c_CFLAGS = -Wno-error`
 
 `_NOCHECK` on `.c` files::
-	To disable checks when building this C file.
+        To disable checks when building this C file.
 
 
 `_IOPINCPATH` on `.iop` files:
@@ -223,9 +255,10 @@ Example: `something.c_CFLAGS = -Wno-error`
 For documentation sources, (`_DOCS`) you can also use:
 
 `_ASCIIDOCFLAGS`::
-				This variable holds a list of parameters to be passed to the
-				`asciidoc` such as variable definitions (+-a var_name=value+).
+        This variable holds a list of parameters to be passed to the
+        `asciidoc` such as variable definitions (+-a var_name=value+).
 
+Exported variables
 
 // }}}
 
@@ -293,10 +326,10 @@ default when you are running make from the `Documentation/` directory of your
 project.
 
 `doc:`::
-				This target can be used to add specific documentation rules in a
-				Makefile. The build system automatically generate a `doc` goal that
-				build the `_DOCS` target. You can some tasks to that `doc` by adding
-				a `doc:` in your local Makefile.
+        This target can be used to add specific documentation rules in a
+        Makefile. The build system automatically generate a `doc` goal that
+        build the `_DOCS` target. You can some tasks to that `doc` by adding
+        a `doc:` in your local Makefile.
 
 // }}}
 
@@ -353,25 +386,25 @@ forced to `-O0 -fno-inlines -Wno-uninitialized`.
         disables that.
 
 `NOCHECK`::
-	The build-system doesn't run "CHECK" targets (mostly clang at the
+        The build-system doesn't run "CHECK" targets (mostly clang at the
         time).
 
 `NOASSERT`::
-	The build-system enable the assertions in compiled code if that variable
-	is set to 1 and disable them is set to any other value. Note that by
-	default, assertions are enabled in profiles `default` and `debug` and
-	disabled in profile `release`. Disabling assertion is done using the
-	insertion of the `DNDEBUG` flag. As a consequence, `NOASSERT` also
-	enable/disable all the code conditionally built based on `NDEBUG` value.
+        The build-system enable the assertions in compiled code if that variable
+        is set to 1 and disable them is set to any other value. Note that by
+        default, assertions are enabled in profiles `default` and `debug` and
+        disabled in profile `release`. Disabling assertion is done using the
+        insertion of the `DNDEBUG` flag. As a consequence, `NOASSERT` also
+        enable/disable all the code conditionally built based on `NDEBUG` value.
 
 `NOCOMPRESS`::
-	The build-system doesn't compress the debug section of binaries
-	leading to larger binary files. This can be used if you have to work
-	with tools that does not support compressed-debug sections (like
-	valgrind, pahole or some old version of gdb).
+        The build-system doesn't compress the debug section of binaries
+        leading to larger binary files. This can be used if you have to work
+        with tools that does not support compressed-debug sections (like
+        valgrind, pahole or some old version of gdb).
 
 `NOLINK`::
-	Do not perform links (to gain speed on some builds).
+        Do not perform links (to gain speed on some builds).
 
 // }}}
 
