@@ -94,6 +94,15 @@ static void log_file_call_cb(log_file_t *l, enum log_file_event evt,
     }
 }
 
+static void log_delete_file(log_file_t *log_file, const char *path)
+{
+    if (unlink(path) < 0) {
+        e_error("cannot delete log file '%s': %m", path);
+    } else {
+        log_file_call_cb(log_file, LOG_FILE_DELETE, path);
+    }
+}
+
 static void log_check_invariants(log_file_t *log_file)
 {
     glob_t globbuf;
@@ -112,8 +121,7 @@ static void log_check_invariants(log_file_t *log_file)
     qsort(fv, fc, sizeof(fv[0]), qsort_strcmp);
     if (log_file->max_files) {
         for (; fc > log_file->max_files; fc--, fv++) {
-            log_file_call_cb(log_file, LOG_FILE_DELETE, fv[0]);
-            unlink(fv[0]);
+            log_delete_file(log_file, fv[0]);
         }
     }
     if (log_file->max_total_size) {
@@ -125,8 +133,7 @@ static void log_check_invariants(log_file_t *log_file)
                 totalsize -= st.st_size;
             if (totalsize < 0) {
                 for (int j = 0; j <= i; j++) {
-                    log_file_call_cb(log_file, LOG_FILE_DELETE, fv[j]);
-                    unlink(fv[j]);
+                    log_delete_file(log_file, fv[j]);
                 }
                 fv += i + 1;
                 fc -= i + 1;
