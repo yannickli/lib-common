@@ -266,7 +266,8 @@ static int t_urldecode(httpd_qinfo_t *rq, pstream_t ps)
 {
     char *buf  = t_new_raw(char, ps_len(&ps) + 1);
     char *p    = buf;
-    char *vars = NULL;
+
+    rq->vars = ps_initptr(NULL, NULL);
 
     while (!ps_done(&ps)) {
         int c = __ps_getc(&ps);
@@ -279,8 +280,8 @@ static int t_urldecode(httpd_qinfo_t *rq, pstream_t ps)
         }
         if (c == '?') {
             *p++ = '\0';
-            vars = p;
-            continue;
+            rq->vars = ps;
+            break;
         }
         *p++ = c;
     }
@@ -289,11 +290,6 @@ static int t_urldecode(httpd_qinfo_t *rq, pstream_t ps)
     path_simplify2(buf, true);
     rq->prefix = ps_initptr(NULL, NULL);
     rq->query  = ps_initstr(buf);
-    if (vars) {
-        rq->vars = ps_initptr(vars, p - 1);
-    } else {
-        rq->vars = ps_initptr(NULL, NULL);
-    }
     return 0;
 }
 
