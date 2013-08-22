@@ -13,6 +13,7 @@
 
 #include <math.h>
 
+#include "http.h"
 #include "z.h"
 
 Z_GROUP_EXPORT(str)
@@ -716,6 +717,37 @@ Z_GROUP_EXPORT(str)
 
         qv_deep_wipe(lstr, &arr, lstr_wipe);
 #undef T
+    } Z_TEST_END;
+
+    Z_TEST(t_ps_get_http_var, "str: t_ps_get_http_var") {
+        t_scope;
+        pstream_t ps;
+        lstr_t    key, value;
+
+#define TST_INVALID(_text)  \
+        do {                                                                 \
+            ps = ps_initstr(_text);                                          \
+            Z_ASSERT_NEG(t_ps_get_http_var(&ps, &key, &value));              \
+        } while (0)
+
+        TST_INVALID("");
+        TST_INVALID("key");
+        TST_INVALID("=value");
+        TST_INVALID("=&");
+#undef TST_INVALID
+
+        ps = ps_initstr("cid1%3d1%26cid2=2&cid3=3&cid4=");
+        Z_ASSERT_N(t_ps_get_http_var(&ps, &key, &value));
+        Z_ASSERT_LSTREQUAL(key,   LSTR_IMMED_V("cid1=1&cid2"));
+        Z_ASSERT_LSTREQUAL(value, LSTR_IMMED_V("2"));
+        Z_ASSERT_N(t_ps_get_http_var(&ps, &key, &value));
+        Z_ASSERT_LSTREQUAL(key,   LSTR_IMMED_V("cid3"));
+        Z_ASSERT_LSTREQUAL(value, LSTR_IMMED_V("3"));
+        Z_ASSERT_N(t_ps_get_http_var(&ps, &key, &value));
+        Z_ASSERT_LSTREQUAL(key,   LSTR_IMMED_V("cid4"));
+        Z_ASSERT_LSTREQUAL(value, LSTR_IMMED_V(""));
+        Z_ASSERT(ps_done(&ps));
+        Z_ASSERT_NEG(t_ps_get_http_var(&ps, &key, &value));
     } Z_TEST_END;
 } Z_GROUP_END;
 

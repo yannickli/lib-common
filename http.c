@@ -877,6 +877,36 @@ httpd_trigger_resolve(httpd_trigger_node_t *n, httpd_qinfo_t *req)
 /* }}} */
 /* HTTPD Parser {{{ */
 
+static inline void t_ps_get_http_var_parse_elem(pstream_t elem, lstr_t *out)
+{
+    if (memchr(elem.p, '%', ps_len(&elem))) {
+        sb_t sb;
+
+        t_sb_init(&sb, ps_len(&elem));
+        sb_add_urldecode(&sb, elem.p, ps_len(&elem));
+        *out = lstr_init_(sb.data, sb.len, MEM_STACK);
+    } else {
+        *out = LSTR_PS_V(&elem);
+    }
+}
+
+int t_ps_get_http_var(pstream_t *ps, lstr_t *key, lstr_t *value)
+{
+    pstream_t key_ps, value_ps;
+
+    RETHROW(ps_get_ps_chr_and_skip(ps, '=', &key_ps));
+    THROW_ERR_IF(ps_done(&key_ps));
+
+    if (ps_get_ps_chr_and_skip(ps, '&', &value_ps) < 0) {
+        RETHROW(ps_get_ps(ps, ps_len(ps), &value_ps));
+    }
+
+    t_ps_get_http_var_parse_elem(key_ps,   key);
+    t_ps_get_http_var_parse_elem(value_ps, value);
+
+    return 0;
+}
+
 __attribute__((format(printf, 4, 0)))
 static void httpd_notify_status(httpd_t *w, httpd_query_t *q, int handler,
                               const char *fmt, va_list va)

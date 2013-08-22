@@ -622,6 +622,36 @@ static inline void httpd_reply_chunk_done(httpd_query_t *q, outbuf_t *ob)
     }
 }
 
+/** Read a key/value pair of the "vars" part of an URL, from a p_stream.
+ *
+ * This functions reads a key/value pair from a pstream containing the "vars"
+ * part of an URL.
+ *
+ * The result of the parsing is put in the two lstr_t given as argument.
+ * Keys and values are URL-decoded; that's why the strings are t-allocated.
+ *
+ * In case of error, the pstream is placed where it encountered the error.
+ * In case of success it is placed at the beginning of the next key/value
+ * pair.
+ *
+ * For example, if the input pstream contains "cid1%3d1%26cid2=2&cid3=3",
+ * the first call will read (key: "cid1=1&cid2", value: "2"), and the
+ * second call will read (key: "cid3", value: "3") and entirely read the
+ * pstream.
+ * If called a third time, it will fail.
+ *
+ * \param[in] ps     The stream from which the vars are read. Should usually
+ *                   be a copy of the 'vars' field of httpd_qinfo_t.
+ * \param[out] key   A pointer on a lstr_t in which the URL-decoded key will
+ *                   be t-allocated.
+ * \param[out] value A pointer on a lstr_t in which the URL-decoded value will
+ *                   be t-allocated.
+ *
+ * \return 0 on success, -1 if the content of the pstream does not starts with
+ *         a valid URL key/value pair.
+ */
+int t_ps_get_http_var(pstream_t *ps, lstr_t *key, lstr_t *value);
+
 /*---- high level httpd_query reply functions ----*/
 
 void httpd_reply_100continue(httpd_query_t *q);
