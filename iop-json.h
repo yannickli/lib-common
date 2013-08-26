@@ -26,27 +26,29 @@ typedef enum iop_json_error {
 
     /* numerical conversion */
     IOP_JERR_TOO_BIG_INT                     =  -4,
-    IOP_JERR_PARSE_NUM                       =  -5,
-    IOP_JERR_BAD_INT_EXT                     =  -6,
+    IOP_JERR_OUT_OF_RANGE                    =  -5,
+    IOP_JERR_PARSE_NUM                       =  -6,
+    IOP_JERR_BAD_INT_EXT                     =  -7,
 
     /* (un)expected things */
-    IOP_JERR_EXP_SMTH                        =  -7,
-    IOP_JERR_EXP_VAL                         =  -8,
-    IOP_JERR_BAD_TOKEN                       =  -9,
+    IOP_JERR_EXP_SMTH                        =  -8,
+    IOP_JERR_EXP_VAL                         =  -9,
+    IOP_JERR_BAD_TOKEN                       = -10,
+    IOP_JERR_INVALID_FILE                    = -11,
 
     /* unreadable values */
-    IOP_JERR_BAD_IDENT                       = -10,
-    IOP_JERR_BAD_VALUE                       = -11,
-    IOP_JERR_ENUM_VALUE                      = -12,
+    IOP_JERR_BAD_IDENT                       = -12,
+    IOP_JERR_BAD_VALUE                       = -13,
+    IOP_JERR_ENUM_VALUE                      = -14,
 
     /* structure checking */
-    IOP_JERR_DUPLICATED_MEMBER               = -13,
-    IOP_JERR_MISSING_MEMBER                  = -14,
-    IOP_JERR_UNION_ARR                       = -15,
-    IOP_JERR_UNION_RESERVED                  = -16,
-    IOP_JERR_NOTHING_TO_READ                 = -17,
+    IOP_JERR_DUPLICATED_MEMBER               = -15,
+    IOP_JERR_MISSING_MEMBER                  = -16,
+    IOP_JERR_UNION_ARR                       = -17,
+    IOP_JERR_UNION_RESERVED                  = -18,
+    IOP_JERR_NOTHING_TO_READ                 = -19,
 
-    IOP_JERR_CONSTRAINT                      = -18,
+    IOP_JERR_CONSTRAINT                      = -20,
 
 } iop_json_error;
 
