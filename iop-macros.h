@@ -350,13 +350,6 @@
     {                                                                        \
         return iop_ranges_search(pfx##__e.ranges, pfx##__e.ranges_len,       \
                                  v) >= 0;                                    \
-    }                                                                        \
-    static inline int pfx##__check(pfx##__t v)                               \
-    {                                                                        \
-        if (!TST_BIT(&pfx##__e.flags, IOP_ENUM_STRICT)) {                    \
-            return 0;                                                        \
-        }                                                                    \
-        return pfx##__exists(v) ? 0 : -1;                                    \
     }
 
 /* }}} */
@@ -392,9 +385,6 @@
 /* {{{ Binary helpers */
 
 #define IOP_GENERIC_BINARY_UNION(pfx)  \
-    __must_check__ static inline int pfx##__bskip(pstream_t *ps) {           \
-        return iop_bskip(&pfx##__s, ps);                                     \
-    }                                                                        \
     __must_check__ static inline int                                         \
     t_##pfx##__bunpack_multi(pfx##__t *value, pstream_t *ps, bool copy)      \
     {                                                                        \
@@ -429,14 +419,7 @@
         pstream_t ps = ps_init(s->s, s->len);                                \
         return iop_bunpack_ptr(t_pool(), &pfx##__s, (void **)value,          \
                                ps, false);                                   \
-    }                                                                        \
-    __must_check__ static inline int                                         \
-    t_##pfx##__bunpack_ptr_dup(lstr_t *s, pfx##__t **value)                  \
-    {                                                                        \
-        pstream_t ps = ps_init(s->s, s->len);                                \
-        return iop_bunpack_ptr(t_pool(), &pfx##__s, (void **)value,          \
-                                 ps, true);                                  \
-    }                                                                        \
+    }
 
 #define IOP_GENERIC_BINARY_UNPACK_STRUCT_UNION(pfx)  \
     __must_check__ static inline int                                         \
@@ -449,12 +432,6 @@
     {                                                                        \
         pstream_t ps = ps_init(s->s, s->len);                                \
         return t_iop_bunpack_ps(&pfx##__s, value, ps, false);                \
-    }                                                                        \
-    __must_check__ static inline int                                         \
-    t_##pfx##__bunpack_dup(lstr_t *s, pfx##__t *value)                       \
-    {                                                                        \
-        pstream_t ps = ps_init(s->s, s->len);                                \
-        return t_iop_bunpack_ps(&pfx##__s, value, ps, true);                 \
     }
 
 /* }}} */
@@ -517,88 +494,6 @@
     }
 
 /* }}} */
-/* {{{ Xml helpers */
-
-#define IOP_GENERIC_XML_PACK(pfx)  \
-    static inline void                                                       \
-    pfx##__xpack(sb_t *sb, const pfx##__t *v, bool verbose, bool with_enums) \
-    {                                                                        \
-        return iop_xpack(sb, &pfx##__s, v, verbose, with_enums);             \
-    }
-
-#define IOP_GENERIC_XML_UNPACK(pfx)  \
-    __must_check__ static inline int                                         \
-    pfx##__xunpack_ptr_flags(void *xp, mem_pool_t *mp, pfx##__t **out,       \
-                             int flags)                                      \
-    {                                                                        \
-        return iop_xunpack_ptr_flags(xp, mp, &pfx##__s, (void **)out,        \
-                                     flags);                                 \
-    }                                                                        \
-    __must_check__ static inline int                                         \
-    pfx##__xunpack_ptr(void *xp, mem_pool_t *mp, pfx##__t **out)             \
-    {                                                                        \
-        return iop_xunpack_ptr(xp, mp, &pfx##__s, (void **)out);             \
-    }                                                                        \
-    __must_check__ static inline int                                         \
-    pfx##__xunpack_ptr_parts(void *xp, mem_pool_t *mp, pfx##__t **out,       \
-                             int flags, qm_t(part) *parts)                   \
-    {                                                                        \
-        return iop_xunpack_ptr_parts(xp, mp, &pfx##__s, (void **)out, flags, \
-                                     parts);                                 \
-    }                                                                        \
-    __must_check__ static inline int                                         \
-    t_##pfx##__xunpack_ptr_flags(void *xp, pfx##__t **out, int flags)        \
-    {                                                                        \
-        return t_iop_xunpack_ptr_flags(xp, &pfx##__s, (void **)out, flags);  \
-    }                                                                        \
-    __must_check__ static inline int                                         \
-    t_##pfx##__xunpack_ptr(void *xp, pfx##__t **out)                         \
-    {                                                                        \
-        return t_iop_xunpack_ptr(xp, &pfx##__s, (void **)out);               \
-    }                                                                        \
-    __must_check__ static inline int                                         \
-    t_##pfx##__xunpack_ptr_parts(void *xp, pfx##__t **out, int flags,        \
-                                 qm_t(part) *parts)                          \
-    {                                                                        \
-        return t_iop_xunpack_ptr_parts(xp, &pfx##__s, (void **)out, flags,   \
-                                       parts);                               \
-    }
-
-#define IOP_GENERIC_XML_UNPACK_STRUCT_UNION(pfx)  \
-    __must_check__ static inline int                                         \
-    pfx##__xunpack_flags(void *xp, mem_pool_t *mp, pfx##__t *out, int flags) \
-    {                                                                        \
-        return iop_xunpack_flags(xp, mp, &pfx##__s, out, flags);             \
-    }                                                                        \
-    __must_check__ static inline int                                         \
-    pfx##__xunpack(void *xp, mem_pool_t *mp, pfx##__t *out)                  \
-    {                                                                        \
-        return iop_xunpack(xp, mp, &pfx##__s, out);                          \
-    }                                                                        \
-    __must_check__ static inline int                                         \
-    pfx##__xunpack_parts(void *xp, mem_pool_t *mp, pfx##__t *out, int flags, \
-                         qm_t(part) *parts)                                  \
-    {                                                                        \
-        return iop_xunpack_parts(xp, mp, &pfx##__s, out, flags, parts);      \
-    }                                                                        \
-    __must_check__ static inline int                                         \
-    t_##pfx##__xunpack_flags(void *xp, pfx##__t *out, int flags)             \
-    {                                                                        \
-        return t_iop_xunpack_flags(xp, &pfx##__s, out, flags);               \
-    }                                                                        \
-    __must_check__ static inline int                                         \
-    t_##pfx##__xunpack(void *xp, pfx##__t *out)                              \
-    {                                                                        \
-        return t_iop_xunpack(xp, &pfx##__s, out);                            \
-    }                                                                        \
-    __must_check__ static inline int                                         \
-    t_##pfx##__xunpack_parts(void *xp, pfx##__t *out, int flags,             \
-                             qm_t(part) *parts)                              \
-    {                                                                        \
-        return t_iop_xunpack_parts(xp, &pfx##__s, out, flags, parts);        \
-    }
-
-/* }}} */
 
 #define IOP_GENERIC(pfx) \
     IOP_GENERIC_BASICS(pfx)                                                  \
@@ -611,11 +506,7 @@
     /* ---- JSon ---- */                                                     \
     IOP_GENERIC_JSON_PACK(pfx)                                               \
     IOP_GENERIC_JSON_UNPACK(pfx)                                             \
-    IOP_GENERIC_JSON_UNPACK_STRUCT_UNION(pfx)                                \
-    /* ---- XML ---- */                                                      \
-    IOP_GENERIC_XML_PACK(pfx)                                                \
-    IOP_GENERIC_XML_UNPACK(pfx)                                              \
-    IOP_GENERIC_XML_UNPACK_STRUCT_UNION(pfx)
+    IOP_GENERIC_JSON_UNPACK_STRUCT_UNION(pfx)
 
 /* }}} */
 /* {{{ Helpers generated for classes */
@@ -634,10 +525,7 @@
     IOP_GENERIC_BINARY_UNPACK(pfx)                                           \
     /* ---- JSon ---- */                                                     \
     IOP_GENERIC_JSON_PACK(pfx)                                               \
-    IOP_GENERIC_JSON_UNPACK(pfx)                                             \
-    /* ---- XML ---- */                                                      \
-    IOP_GENERIC_XML_PACK(pfx)                                                \
-    IOP_GENERIC_XML_UNPACK(pfx)
+    IOP_GENERIC_JSON_UNPACK(pfx)
 
 /* }}} */
 /* {{{ Helpers for classes manipulation */

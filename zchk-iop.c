@@ -2758,8 +2758,9 @@ Z_GROUP_EXPORT(iop)
         do {                                                                 \
             MAP(_filename);                                                  \
             Z_ASSERT_N(xmlr_setup(&xmlr_g, file.s, file.len));               \
-            Z_ASSERT_N(t_tstiop_inheritance__##_type##__xunpack_ptr(         \
-                           xmlr_g, &_type),                                  \
+            Z_ASSERT_N(t_iop_xunpack_ptr(xmlr_g,                             \
+                                         &tstiop_inheritance__##_type##__s,  \
+                                         (void **)&_type),                   \
                        "XML unpacking failure: %s", xmlr_get_err());         \
             lstr_wipe(&file);                                                \
         } while (0)
@@ -2768,8 +2769,9 @@ Z_GROUP_EXPORT(iop)
         do {                                                                 \
             MAP(_filename);                                                  \
             Z_ASSERT_N(xmlr_setup(&xmlr_g, file.s, file.len));               \
-            Z_ASSERT_NEG(t_tstiop_inheritance__##_type##__xunpack_ptr(       \
-                             xmlr_g, &_type));                               \
+            Z_ASSERT_NEG(t_iop_xunpack_ptr(xmlr_g,                           \
+                                &tstiop_inheritance__##_type##__s,           \
+                                (void **)&_type));                           \
             Z_ASSERT(strstr(xmlr_get_err(), _err));                          \
             lstr_wipe(&file);                                                \
         } while (0)
