@@ -1765,12 +1765,14 @@ el_t httpd_listen(sockunion_t *su, httpd_cfg_t *cfg)
 
 void httpd_unlisten(el_t *ev)
 {
-    httpd_cfg_t *cfg = el_fd_unregister(ev, true).ptr;
+    if (*ev) {
+        httpd_cfg_t *cfg = el_fd_unregister(ev, true).ptr;
 
-    dlist_for_each_safe(it, &cfg->httpd_list) {
-        httpd_close_gently(dlist_entry(it, httpd_t, httpd_link));
+        dlist_for_each_safe(it, &cfg->httpd_list) {
+            httpd_close_gently(dlist_entry(it, httpd_t, httpd_link));
+        }
+        httpd_cfg_delete(&cfg);
     }
-    httpd_cfg_delete(&cfg);
 }
 
 httpd_t *httpd_spawn(int fd, httpd_cfg_t *cfg)
