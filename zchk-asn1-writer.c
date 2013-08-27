@@ -607,10 +607,8 @@ Z_GROUP_EXPORT(asn1_ber)
         p_clear(&exp_choice, 1);
         p_clear(&choice, 1);
         exp_choice.type = CHOICE_TYPE_REC1;
-        exp_choice.rec1 = (test_rdr_rec1_t){
-            .b = true,
-            .u32 = 0x3456
-        };
+        exp_choice.rec1.b = true;
+        exp_choice.rec1.u32 = 0x3456;
 
         len = asn1_pack_size(test_choice, &exp_choice, &stack);
         asn1_pack(test_choice, buf, &exp_choice, &stack);
