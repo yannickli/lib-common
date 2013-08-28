@@ -90,6 +90,8 @@ export BEHAVE_FLAGS=$BEHAVE_FLAGS
 
 while read t; do
     say_color info "starting suite $t..."
+
+    start=$(date '+%s')
     case ./"$t" in
         */behave)
             res="$pybin -m z $BEHAVE_FLAGS --format z --no-summary --tags=-web $(dirname "./$t")/ci/features"
@@ -103,9 +105,11 @@ while read t; do
     esac
 
     if $res ; then
-        say_color pass "done"
+        end=$(date '+%s')
+        say_color pass "done ($((end - start)) seconds)"
     else
-        say_color error "TEST SUITE $t FAILED"
+        end=$(date '+%s')
+        say_color error "TEST SUITE $t FAILED ($((end - start)) seconds)"
     fi
 done
 ) | tee $tmp | post_process
