@@ -35,7 +35,7 @@ class B1 : 1 : A1 {
     @maxLength(3)
     string b = "b";
 };
-class B2 : 2 : A1 {
+class B2 : 65535 : A1 {
     static bool staticBool = true;
     bool b = true;
 };

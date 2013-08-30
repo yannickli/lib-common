@@ -2021,6 +2021,11 @@ __get_class_id(pstream_t *ps, iop_wire_type_t wt, uint16_t *class_id)
         *class_id = (int16_t)__ps_get_le16(ps);
         return 0;
 
+      case IOP_WIRE_INT4:
+        PS_WANT(ps_has(ps, 4));
+        *class_id = (int16_t)__ps_get_le32(ps);
+        return 0;
+
       default:
         return -1;
     }

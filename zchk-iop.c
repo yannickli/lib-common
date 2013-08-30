@@ -2261,7 +2261,7 @@ Z_GROUP_EXPORT(iop)
 
         CHECK_PARENT(a1, 0);
         CHECK_CHILD(b1,  1, a1);
-        CHECK_CHILD(b2,  2, a1);
+        CHECK_CHILD(b2,  65535, a1);
         CHECK_CHILD(c1,  3, b2);
         CHECK_CHILD(c2,  4, b2);
 
