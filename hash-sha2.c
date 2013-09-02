@@ -434,6 +434,177 @@ void sha2_hmac( const void *key, int keylen,
     memset( &ctx, 0, sizeof( sha2_ctx ) );
 }
 
+/* {{{ SHA-256 Crypt */
+
+/* Based on Ulrich Drepper's Unix crypt with SHA256, version 0.4 2008-4-3,
+ * released by Ulrich Drepper in public domain */
+
+void sha2_crypt(const void *input, size_t ilen, const void *salt,
+                size_t slen, uint32_t rounds, sb_t *output)
+{
+    /* Table used for base64 transformation */
+    const char base64char[64] =
+        "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+    uint32_t i;
+    unsigned char alt_result[32];
+    unsigned char tmp_result[32];
+    sha2_ctx ctx;
+    sha2_ctx alt_ctx;
+    SB_1k(buf);
+    SB_1k(alt_buf);
+
+    slen = MIN(slen, SHA256_CRYPT_SALT_LEN_MAX);
+    rounds = (rounds > 0) ? rounds : SHA256_CRYPT_DEFAULT_ROUNDS;
+    rounds = MAX(rounds, SHA256_CRYPT_MIN_ROUNDS);
+    rounds = MIN(rounds, SHA256_CRYPT_MAX_ROUNDS);
+
+    /* Let's begin */
+    sha2_starts(&ctx, false);
+
+    /* Add the input string */
+    sha2_update(&ctx, input, ilen);
+
+    /* Add the salt */
+    sha2_update(&ctx, salt, slen);
+
+    /* Alternate hash with INPUT-SALT-INPUT */
+    sha2_starts(&alt_ctx, false);
+    sha2_update(&alt_ctx, input, ilen);
+    sha2_update(&alt_ctx, salt, slen);
+    sha2_update(&alt_ctx, input, ilen);
+    sha2_finish(&alt_ctx, alt_result);
+
+    for (i = ilen; i > 32; i -= 32) {
+        sha2_update(&ctx, alt_result, 32);
+    }
+    sha2_update(&ctx, alt_result, i);
+
+    /* For every 1 in the binary representation of ilen add alt,
+     * for every 0 add the input
+     */
+    for (i = ilen; i > 0; i >>= 1) {
+        if ((i & 1) != 0) {
+            sha2_update(&ctx, alt_result, 32);
+        } else {
+            sha2_update(&ctx, input, ilen);
+        }
+    }
+
+    /* Intermediate result */
+    sha2_finish(&ctx, alt_result);
+
+    /* New alternate hash */
+    sha2_starts(&alt_ctx, false);
+
+    /* For every character in the input add the entire input */
+    for (i = 0; i < ilen; i++) {
+        sha2_update(&alt_ctx, input, ilen);
+    }
+
+    /* Get temp result */
+    sha2_finish(&alt_ctx, tmp_result);
+
+    for (i = ilen; i >= 32; i -= 32) {
+        sb_add(&buf, tmp_result, 32);
+    }
+    sb_add(&buf, tmp_result, i);
+
+    sha2_starts(&alt_ctx, false);
+
+    /* For each character in the input, add input */
+    for (i = 0; i < 16U + alt_result[0]; i++) {
+        sha2_update(&alt_ctx, salt, slen);
+    }
+
+    sha2_finish(&alt_ctx, tmp_result);
+
+    for (i = slen; i >= 32; i -= 32) {
+        sb_add(&alt_buf, tmp_result, 32);
+    }
+    sb_add(&alt_buf, tmp_result, i);
+
+    /* The loop */
+    for (i = 0; i < rounds; i++) {
+        sha2_starts(&ctx, false);
+
+        /* Add input or last result */
+        if ((i & 1) != 0) {
+            sha2_update(&ctx, buf.data, buf.len);
+        } else {
+            sha2_update(&ctx, alt_result, 32);
+        }
+
+        /* Add salt for numbers not divisible by 3 */
+        if (i % 3 != 0) {
+            sha2_update(&ctx, alt_buf.data, alt_buf.len);
+        }
+
+        /* Add input for numbers not divisible by 7 */
+        if (i % 7 != 0) {
+            sha2_update(&ctx, buf.data, buf.len);
+        }
+
+        /* Add intput or last result */
+        if ((i & 1) != 0) {
+            sha2_update(&ctx, alt_result, 32);
+        } else {
+            sha2_update(&ctx, buf.data, buf.len);
+        }
+
+        /* Create intermediate result */
+        sha2_finish(&ctx, alt_result);
+    }
+
+    /* Construction of the result */
+    sb_reset(output);
+    sb_addf(output, SHA256_PREFIX "$");
+
+    /* Here, we ALWAYS put the round prefix and round number in the result
+     * string, not only if round number != default number.
+     * This seems very less dangerous for compatibility between
+     * encryption version used in our products. It is still compliant with
+     * the specifications, even if the implementation given as example by
+     * Drepper does not follow this precept.
+     */
+    sb_addf(output, SHA256_ROUNDS_PREFIX);
+    sb_addf(output, "%d$", rounds);
+    sb_add(output, salt, slen);
+    sb_addf(output, "$");
+
+#define b64_from_24bits(b2_, b1_, b0_, n_)                                  \
+    do {                                                                    \
+        unsigned int w = cpu_to_le32(((b2_) << 16) | ((b1_) << 8) | (b0_)); \
+        for (int i_ = n_; i_-- > 0; w >>= 6) {                              \
+            sb_add(output, &base64char[w & 0x3f], 1);                       \
+        }                                                                   \
+    } while (0)
+
+    b64_from_24bits(alt_result[0],   alt_result[10],  alt_result[20], 4);
+    b64_from_24bits(alt_result[21],  alt_result[1],   alt_result[11], 4);
+    b64_from_24bits(alt_result[12],  alt_result[22],  alt_result[2],  4);
+    b64_from_24bits(alt_result[3],   alt_result[13],  alt_result[23], 4);
+    b64_from_24bits(alt_result[24],  alt_result[4],   alt_result[14], 4);
+    b64_from_24bits(alt_result[15],  alt_result[25],  alt_result[5],  4);
+    b64_from_24bits(alt_result[6],   alt_result[16],  alt_result[26], 4);
+    b64_from_24bits(alt_result[27],  alt_result[7],   alt_result[17], 4);
+    b64_from_24bits(alt_result[18],  alt_result[28],  alt_result[8],  4);
+    b64_from_24bits(alt_result[9],   alt_result[19],  alt_result[29], 4);
+    b64_from_24bits(0,               alt_result[31],  alt_result[30], 3);
+
+#undef b64_from_24bits
+
+    /* Clearing datas to avoid core dump attacks */
+    sha2_starts(&ctx, false);
+    sha2_finish(&ctx, alt_result);
+
+    p_clear(&tmp_result, 1);
+    p_clear(&ctx, 1);
+    p_clear(&alt_ctx, 1);
+}
+
+/* }}} */
+
 /*
  * FIPS-180-2 test vectors
  */
@@ -655,5 +826,54 @@ Z_GROUP_EXPORT(sha2)
             }
             Z_ASSERT_EQUAL(sha2sum, len, sha2_hmac_test_sum[i], len);
         }
+    } Z_TEST_END;
+
+    Z_TEST(crypt, "") {
+
+        /* Those are extracted from Ulrich Drepper's
+         * "Unix crypt using SHA-256" specifications v0.4 2008-4-3
+         */
+        static const struct {
+            const char *input;
+            const int   rounds;
+            const char *salt;
+            const char *expected;
+        } tests_crypt[] =
+        {
+            {"Hello world!", 10000, "saltstringsaltstring",
+             "$5$rounds=10000$saltstringsaltst$3xv.VbSHBb41AL9AvLeujZkZRB"
+             "AwqFMz2.opqey6IcA"},
+            {"This is just a test", 5000, "toolongsaltstring",
+             "$5$rounds=5000$toolongsaltstrin$Un/5jzAHMgOGZ5.mWJpuVolil07"
+             "guHPvOW8mGRcvxa5"},
+            {"a very much longer text to encrypt.  This one even stretche"
+             "s over morethan one line.", 1400, "anotherlongsaltstring",
+             "$5$rounds=1400$anotherlongsalts$Rx.j8H.h8HjEDGomFU8bDkXm3XI"
+             "Unzyxf12oP84Bnq1"},
+            {"we have a short salt string but not a short password", 77777,
+             "short",
+             "$5$rounds=77777$short$JiO1O3ZpDAxGJeaDIuqCoEFysAe1mZNJRs3pw"
+             "0KQRd/"},
+            {"a short string", 123456, "asaltof16chars..",
+             "$5$rounds=123456$asaltof16chars..$gP3VQ/6X7UUEW3HkBn2w1/Ptq"
+             "2jxPyzV/cZKmF/wJvD"},
+            {"the minimum number is still observed", 10, "roundstoolow",
+             "$5$rounds=1000$roundstoolow$yfvwcWrQ8l/K0DAWyuPMDNHpIVlTQeb"
+             "Y9l/gL972bIC"},
+        };
+
+#define N_CRYPT_TEST (int)(sizeof (tests_crypt) / sizeof (tests_crypt[0]))
+
+        SB_1k(crypt_buf);
+
+        for (int i = 0; i < N_CRYPT_TEST; ++i) {
+            sha2_crypt(tests_crypt[i].input, strlen(tests_crypt[i].input),
+                       tests_crypt[i].salt, strlen(tests_crypt[i].salt),
+                       tests_crypt[i].rounds, &crypt_buf);
+
+            Z_ASSERT_LSTREQUAL(LSTR_SB_V(&crypt_buf),
+                               LSTR_STR_V(tests_crypt[i].expected));
+        }
+
     } Z_TEST_END;
 } Z_GROUP_END

@@ -4,6 +4,9 @@
 #ifndef XYSSL_SHA2_H
 #define XYSSL_SHA2_H
 
+#define SHA256_PREFIX  "$5"
+#define SHA256_ROUNDS_PREFIX  "rounds="
+
 /**
  * \brief          SHA-256 context structure
  */
@@ -130,6 +133,26 @@ void sha2_hmac_finish(sha2_ctx *ctx, byte output[32])
  */
 void sha2_hmac(const void *key, int keylen, const void *input, int ilen,
                byte output[32], int is224) __leaf;
+
+#define SHA256_CRYPT_SALT_LEN_MAX    16
+#define SHA256_CRYPT_DEFAULT_ROUNDS  5000
+#define SHA256_CRYPT_MIN_ROUNDS      1000
+#define SHA256_CRYPT_MAX_ROUNDS      999999999
+
+/**
+ * \brief          Implementation of Ulrich Drepper's SHA256-Crypt
+ *
+ * \param intput   buffer holding the data
+ * \param ilen     length of the input data
+ * \param salt     buffer holding the salt string
+ * \param slen     length of the salt string
+ *                 (should be <= SHA256_CRYPT_SALT_LEN_MAX)
+ * \param rounds   number of iteration. SHA256_CRYPT_DEFAULT_ROUNDS if
+ *                 rounds <= 0.
+ * \param output   the SHA256-Crypt result
+ */
+void sha2_crypt(const void *input, size_t ilen, const void *salt, size_t slen,
+                uint32_t rounds, sb_t *output);
 
 #ifdef __cplusplus
 }
