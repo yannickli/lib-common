@@ -592,7 +592,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         break;
     }
 
-    if (unlikely(!pxy)) {
+    if (unlikely(!pxy || !ic_is_ready(pxy))) {
         if (slot)
             ic_reply_err(ic, MAKE64(ic->id, slot), IC_MSG_PROXY_ERROR);
     } else {
