@@ -148,17 +148,6 @@ def ZTodo(reason):
     return decorator
 
 class _ZTextTestResult(u.TextTestResult):
-    def startTest(self, test):
-        if self.showAll:
-            self.startTime = time.time()
-        super(_ZTextTestResult, self).startTest(test)
-
-    def addSuccess(self, test):
-        if self.showAll:
-            runTime = time.time() - self.startTime
-            self.stream.write("[%.3fs] " % (runTime))
-        super(_ZTextTestResult, self).addSuccess(test)
-
     """
     _ZTextTestResult
 
@@ -178,11 +167,16 @@ class _ZTestResult(u.TestResult):
     def __init__(self, *args, **kwargs):
         super(_ZTestResult, self).__init__(*args, **kwargs)
 
+    def startTest(self, test):
+        self.startTime = time.time()
+        super(_ZTestResult, self).startTest(test)
+
     def _putSt(self, what, test, rest = ""):
+        runTime = time.time() - self.startTime
         tid = getattr(test, '_testMethodName', None)
-        sys.stdout.write("%d %s %s" % (self.testsRun, what, tid));
+        sys.stdout.write("%d %s %s # (%.3fs)" % \
+                (self.testsRun, what, tid, runTime));
         if len(rest):
-            sys.stdout.write(" # ")
             sys.stdout.write(rest)
         sys.stdout.write("\n")
 
@@ -279,6 +273,7 @@ try:
             self.__scenario = None
             self.__status   = None
             self.__exn      = None
+            self.__start    = None
             Formatter.__init__(self, stream, config)
 
         def flush(self):
@@ -289,9 +284,10 @@ try:
                     self.__failed += 1
                 elif self.__status == "skip":
                     self.__skipped += 1
-                self.stream.write("%d %s %s   # %d steps\n" %
+                runTime = time.time() - self.__start
+                self.stream.write("%d %s %s   # (%.3f) %d steps\n" %
                         (self.__count, self.__status,
-                            self.__scenario.name, self.__steps))
+                            self.__scenario.name, runTime, self.__steps))
                 if self.__exn:
                     for line in self.__exn.split('\n'):
                         print ":", line
@@ -317,6 +313,7 @@ try:
             self.flush()
             self.__scenario = scenario
             self.__status = "skip"
+            self.__start  = time.time()
 
         def result(self, step_result):
             self.__steps += 1
