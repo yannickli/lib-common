@@ -159,6 +159,8 @@ iop_jlex_werror(iop_json_lex_t *ll, void *buf, int len,
         return ESTR("cannot parse number `%s'", ll->err_str);
       case IOP_JERR_BAD_INT_EXT:
         return ESTR("bad integer extension `%s'", ll->err_str);
+      case IOP_JERR_OUT_OF_RANGE:
+        return ESTR("number `%s' is out of range", ll->err_str);
 
       case IOP_JERR_EXP_SMTH:
         return ESTR("something was expected after `%s'", ll->err_str);
@@ -1049,25 +1051,49 @@ do_double:
       case IOP_JSON_INTEGER:
         integer:
         switch (fdesc->type) {
+#define CHECK_RANGE(_min, _max)  \
+            do {                                                             \
+                if (ll->ctx->u.i < _min || ll->ctx->u.i > _max) {            \
+                    return RJERROR_WARG(IOP_JERR_OUT_OF_RANGE);              \
+                }                                                            \
+            } while (0)
+
           case IOP_T_DOUBLE:
             *(double *)value = ll->ctx->u.i;
             return 0;
-          case IOP_T_I8: case IOP_T_U8:
+          case IOP_T_I8:
+            CHECK_RANGE(INT8_MIN, INT8_MAX);
+            *(int8_t *)value = ll->ctx->u.i;
+            break;
+          case IOP_T_U8:
+            CHECK_RANGE(0, UINT8_MAX);
             *(uint8_t *)value = ll->ctx->u.i;
             break;
-          case IOP_T_I16: case IOP_T_U16:
+          case IOP_T_I16:
+            CHECK_RANGE(INT16_MIN, INT16_MAX);
+            *(int16_t *)value = ll->ctx->u.i;
+            break;
+          case IOP_T_U16:
+            CHECK_RANGE(0, UINT16_MAX);
             *(uint16_t *)value = ll->ctx->u.i;
             break;
           case IOP_T_ENUM:
-          case IOP_T_I32: case IOP_T_U32:
+          case IOP_T_I32:
+            CHECK_RANGE(INT32_MIN, INT32_MAX);
+            *(int32_t *)value = ll->ctx->u.i;
+            break;
+          case IOP_T_U32:
+            CHECK_RANGE(0, UINT32_MAX);
             *(uint32_t *)value = ll->ctx->u.i;
             break;
           case IOP_T_I64: case IOP_T_U64:
             *(uint64_t *)value = ll->ctx->u.i;
             break;
           case IOP_T_BOOL:
+            CHECK_RANGE(0, 1);
             *(bool *)value     = ll->ctx->u.i;
             return 0;
+#undef CHECK_RANGE
           default:
             return RJERROR_EXP_TYPE(fdesc->type);
         }
