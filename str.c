@@ -276,29 +276,54 @@ int buffer_increment_hex(char *buf, int len)
     return 1;
 }
 
+/** Put random characters from alphabet in destination buffer, and
+ *  terminate with a '\0' character.
+ *  If no alphabet given, a 64 bytes alphabet will be used.
+ *
+ * @param dest the output buffer.
+ *
+ * @param size the size of the buffer
+ *
+ * @param alphabet a pointer to a lstr_t containing the alphabet we want
+ * to use. If LSTR_NULL a default b64 alphabet will be used
+ *
+ * @return the number of bytes (excluding '\0') written in the buffer
+ */
+size_t strrand(char dest[], size_t dest_size, lstr_t alphabet)
+{
+    char *p = dest;
+    char *last = p + dest_size - 1;
+
+    if (!alphabet.s && alphabet.len == 0) {
+        alphabet = LSTR_IMMED_V("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnop"
+                                "qrstuvwxyz0123456789+/");
+    }
+
+    assert (alphabet.len > 0);
+    THROW_ERR_IF(alphabet.len <= 0);
+
+    for (; p < last; p++) {
+        *p = *(alphabet.s + ha_rand_range(0, alphabet.len - 1));
+    }
+
+    *p = '\0';
+    return dest_size - 1;
+}
+
 /** Put random hexadecimal digits in destination buffer
  *
  * @return the number of digits set.
  */
 ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t n)
 {
-    char *p;
-    const char *last;
-    static const char hex[16] = "0123456789ABCDEF";
-
-    n = MIN(size - offset - 1, n);
+    n = MIN(size - offset, n + 1);
     if (n < 0) {
         return -1;
     }
 
     /* RFE: This is very naive. Should at least call ha_rand() only every 4
      * bytes. */
-    last = dest + offset + n;
-    for (p = dest + offset; p < last; p++) {
-        *p = hex[ha_rand_range(0, 15)];
-    }
-    *p = '\0';
-    return n;
+    return strrand(dest + offset, n, LSTR_IMMED_V("0123456789ABCDEF"));
 }
 
 int str_replace(const char search, const char replace, char *subject)

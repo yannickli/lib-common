@@ -90,6 +90,7 @@ bool strfind(const char *keytable, const char *str, int sep);
 int buffer_increment(char *buf, int len);
 int buffer_increment_hex(char *buf, int len);
 ssize_t pstrrand(char *dest, ssize_t size, int offset, ssize_t len);
+size_t strrand(char dest[], size_t dest_size, lstr_t alphabet);
 
 /* Return the number of occurences replaced */
 /* OG: need more general API */
