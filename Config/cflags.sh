@@ -151,6 +151,19 @@ EOF
         echo -Wno-gnu-designator
         if clang_prereq 3.1; then
             echo -Wno-return-type-c-linkage
+            echo -Wbool-conversion
+            echo -Wempty-body
+            echo -Wloop-analysis
+            echo -Wsizeof-array-argument
+            echo -Wstring-conversion
+            echo -Wparentheses
+        fi
+        if clang_prereq 3.3; then
+            echo -Wduplicate-enum
+        fi
+        if clang_prereq 3.4; then
+            echo -Wheader-guard
+            echo -Wlogical-not-parentheses
         fi
     fi
 
