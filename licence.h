@@ -41,6 +41,11 @@ int  licence_do_signature(const conf_t *conf, char dst[65]);
 
 struct core__signed_licence__t;
 
+enum {
+    /* XXX: must not conflict with IOP_HASH_SKIP_* enum */
+    LICENCE_SKIP_VERSION = 1 << 31
+};
+
 /** Check an IOP Licence.
  *
  * \param[in] licence     The signed licence structure.

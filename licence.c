@@ -567,7 +567,9 @@ int licence_check_iop(const core__signed_licence__t *signed_licence,
 
     RETHROW((iop_check_signature)(&core__licence__s, licence,
                                   signed_licence->signature, flags));
-    if (version.s && !lstr_equal2(version, licence->version)) {
+    if (!(flags & LICENCE_SKIP_VERSION) && version.s
+    &&  !lstr_equal2(version, licence->version))
+    {
         return e_error("licence does not support that product version");
     }
     RETHROW(licence_check_iop_expiry(licence));
@@ -659,6 +661,9 @@ Z_GROUP_EXPORT(licence)
                                      LSTR_IMMED_V("1.0"), 0));
         Z_ASSERT_NEG(licence_check_iop(&lic, &core__licence__s,
                                        LSTR_IMMED_V("2.0"), 0));
+        Z_ASSERT_N(licence_check_iop(&lic, &core__licence__s,
+                                     LSTR_IMMED_V("2.0"),
+                                     LICENCE_SKIP_VERSION));
 
         Z_ASSERT_N(t_core__signed_licence__junpack_file("samples/licence-iop-sig-ko.cf",
                                                         &lic, 0, &tmp));
