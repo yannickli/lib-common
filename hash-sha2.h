@@ -138,6 +138,7 @@ void sha2_hmac(const void *key, int keylen, const void *input, int ilen,
 #define SHA256_CRYPT_DEFAULT_ROUNDS  5000
 #define SHA256_CRYPT_MIN_ROUNDS      1000
 #define SHA256_CRYPT_MAX_ROUNDS      999999999
+#define SHA256_CRYPT_DIGEST_SIZE     43
 
 /**
  * \brief          Implementation of Ulrich Drepper's SHA256-Crypt
@@ -153,6 +154,21 @@ void sha2_hmac(const void *key, int keylen, const void *input, int ilen,
  */
 void sha2_crypt(const void *input, size_t ilen, const void *salt, size_t slen,
                 uint32_t rounds, sb_t *output);
+
+/**
+ * \brief          Parse a SHA256-Crypt result
+ *
+ * \param input    the input to parse
+ * \param rounds   the integer where the rounds number will be put. Could be
+ *                 NULL if useless.
+ * \param salt     the pstream where the salt will be put. Could be NULL if
+ *                 useless.
+ * \param hash     the pstream where the hash part will be put. Could be
+ *                 NULL if useless.
+ * \return         0 if successful, -1 if the hash has a bad format.
+ */
+int sha2_crypt_parse(lstr_t input, int *rounds, pstream_t *salt,
+                     pstream_t *hash);
 
 #ifdef __cplusplus
 }

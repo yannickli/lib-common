@@ -439,13 +439,13 @@ void sha2_hmac( const void *key, int keylen,
 /* Based on Ulrich Drepper's Unix crypt with SHA256, version 0.4 2008-4-3,
  * released by Ulrich Drepper in public domain */
 
+/* Table used for base64 transformation */
+static const char sha2_crypt_base64char_g[64] =
+    "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
 void sha2_crypt(const void *input, size_t ilen, const void *salt,
                 size_t slen, uint32_t rounds, sb_t *output)
 {
-    /* Table used for base64 transformation */
-    const char base64char[64] =
-        "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-
     uint32_t i;
     unsigned char alt_result[32];
     unsigned char tmp_result[32];
@@ -576,7 +576,7 @@ void sha2_crypt(const void *input, size_t ilen, const void *salt,
     do {                                                                    \
         unsigned int w = cpu_to_le32(((b2_) << 16) | ((b1_) << 8) | (b0_)); \
         for (int i_ = n_; i_-- > 0; w >>= 6) {                              \
-            sb_add(output, &base64char[w & 0x3f], 1);                       \
+            sb_add(output, &sha2_crypt_base64char_g[w & 0x3f], 1);          \
         }                                                                   \
     } while (0)
 
@@ -601,6 +601,53 @@ void sha2_crypt(const void *input, size_t ilen, const void *salt,
     p_clear(&tmp_result, 1);
     p_clear(&ctx, 1);
     p_clear(&alt_ctx, 1);
+}
+
+int sha2_crypt_parse(lstr_t input, int *out_rounds, pstream_t *out_salt,
+                     pstream_t *out_hash)
+{
+    /* Correct format for SHA256-crypt is
+     * $5$rounds=2000$salt$hash */
+
+    pstream_t ps = ps_initlstr(&input);
+    pstream_t salt;
+    pstream_t hash;
+    int rounds;
+    static bool first_call = true;
+    static ctype_desc_t sha2_crypt_ctype;
+
+    out_salt = out_salt ?: &salt;
+    out_hash = out_hash ?: &hash;
+    out_rounds = out_rounds ?: &rounds;
+
+    /* Check prefix */
+    RETHROW(ps_skipstr(&ps, "$5$rounds="));
+
+    /* Check rounds */
+    errno = 0;
+    *out_rounds = ps_geti(&ps);
+    THROW_ERR_IF(errno != 0);
+    THROW_ERR_IF(*out_rounds < SHA256_CRYPT_MIN_ROUNDS);
+    THROW_ERR_IF(*out_rounds > SHA256_CRYPT_MAX_ROUNDS);
+
+    /* Check salt */
+    RETHROW(ps_skipc(&ps, '$'));
+    RETHROW(ps_get_ps_chr_and_skip(&ps, '$', out_salt));
+    THROW_ERR_IF(ps_done(out_salt));
+    THROW_ERR_IF(ps_len(out_salt) > SHA256_CRYPT_SALT_LEN_MAX);
+
+    /* Check hash-part */
+    if (unlikely(first_call)) {
+        first_call = false;
+        ctype_desc_build2(&sha2_crypt_ctype, sha2_crypt_base64char_g,
+                          sizeof(sha2_crypt_base64char_g));
+    }
+    THROW_ERR_IF(ps_len(&ps) != SHA256_CRYPT_DIGEST_SIZE);
+    *out_hash = ps;
+    ps_skip_span(&ps, &sha2_crypt_ctype);
+    THROW_ERR_IF(!ps_done(&ps));
+
+    return 0;
 }
 
 /* }}} */
@@ -837,43 +884,99 @@ Z_GROUP_EXPORT(sha2)
             const char *input;
             const int   rounds;
             const char *salt;
-            const char *expected;
+            const int   expected_rounds;
+            const char *expected_salt;
+            const char *expected_hash;
         } tests_crypt[] =
         {
-            {"Hello world!", 10000, "saltstringsaltstring",
-             "$5$rounds=10000$saltstringsaltst$3xv.VbSHBb41AL9AvLeujZkZRB"
-             "AwqFMz2.opqey6IcA"},
+            {"Hello world!", 10000, "saltstringsaltstring", 10000,
+             "saltstringsaltst",
+             "3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA"},
             {"This is just a test", 5000, "toolongsaltstring",
-             "$5$rounds=5000$toolongsaltstrin$Un/5jzAHMgOGZ5.mWJpuVolil07"
-             "guHPvOW8mGRcvxa5"},
+             5000, "toolongsaltstrin",
+             "Un/5jzAHMgOGZ5.mWJpuVolil07guHPvOW8mGRcvxa5"},
             {"a very much longer text to encrypt.  This one even stretche"
              "s over morethan one line.", 1400, "anotherlongsaltstring",
-             "$5$rounds=1400$anotherlongsalts$Rx.j8H.h8HjEDGomFU8bDkXm3XI"
-             "Unzyxf12oP84Bnq1"},
+             1400, "anotherlongsalts",
+             "Rx.j8H.h8HjEDGomFU8bDkXm3XIUnzyxf12oP84Bnq1"},
             {"we have a short salt string but not a short password", 77777,
-             "short",
-             "$5$rounds=77777$short$JiO1O3ZpDAxGJeaDIuqCoEFysAe1mZNJRs3pw"
-             "0KQRd/"},
+             "short", 77777, "short",
+             "JiO1O3ZpDAxGJeaDIuqCoEFysAe1mZNJRs3pw0KQRd/"},
             {"a short string", 123456, "asaltof16chars..",
-             "$5$rounds=123456$asaltof16chars..$gP3VQ/6X7UUEW3HkBn2w1/Ptq"
-             "2jxPyzV/cZKmF/wJvD"},
+             123456, "asaltof16chars..",
+             "gP3VQ/6X7UUEW3HkBn2w1/Ptq2jxPyzV/cZKmF/wJvD"},
             {"the minimum number is still observed", 10, "roundstoolow",
-             "$5$rounds=1000$roundstoolow$yfvwcWrQ8l/K0DAWyuPMDNHpIVlTQeb"
-             "Y9l/gL972bIC"},
+             1000, "roundstoolow",
+             "yfvwcWrQ8l/K0DAWyuPMDNHpIVlTQebY9l/gL972bIC"},
         };
-
-#define N_CRYPT_TEST (int)(sizeof (tests_crypt) / sizeof (tests_crypt[0]))
 
         SB_1k(crypt_buf);
 
-        for (int i = 0; i < N_CRYPT_TEST; ++i) {
+        for (int i = 0; i < countof(tests_crypt); ++i) {
+            t_scope;
+            lstr_t expected;
+            int rounds;
+            pstream_t salt;
+            pstream_t hash;
+
             sha2_crypt(tests_crypt[i].input, strlen(tests_crypt[i].input),
                        tests_crypt[i].salt, strlen(tests_crypt[i].salt),
                        tests_crypt[i].rounds, &crypt_buf);
 
+            expected = t_lstr_fmt("$5$rounds=%d$%s$%s",
+                                  tests_crypt[i].expected_rounds,
+                                  tests_crypt[i].expected_salt,
+                                  tests_crypt[i].expected_hash);
             Z_ASSERT_LSTREQUAL(LSTR_SB_V(&crypt_buf),
-                               LSTR_STR_V(tests_crypt[i].expected));
+                               expected);
+
+            Z_ASSERT_N(sha2_crypt_parse(LSTR_SB_V(&crypt_buf),
+                                             &rounds, &salt, &hash));
+            Z_ASSERT_EQ(rounds, tests_crypt[i].expected_rounds);
+            Z_ASSERT_LSTREQUAL(LSTR_PS_V(&salt),
+                               LSTR_STR_V(tests_crypt[i].expected_salt));
+            Z_ASSERT_LSTREQUAL(LSTR_PS_V(&hash),
+                               LSTR_STR_V(tests_crypt[i].expected_hash));
+
         }
+
+        /* Check the parse function on bad cases */
+
+#define CHECK_FAIL(str)                \
+    Z_ASSERT_NEG(sha2_crypt_parse(LSTR_IMMED_V(str), NULL, NULL, NULL))
+
+        /* Wrong algorithm code */
+        CHECK_FAIL("$6$rounds=10000$salt"
+                   "$3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA");
+        /* Wrong rounds format */
+        CHECK_FAIL("$5$rounds=a10000$salt"
+                   "$3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA");
+        /* Rounds count too low */
+        CHECK_FAIL("$5$rounds=999$salt"
+                   "$3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA");
+        /* Rounds count too high */
+        CHECK_FAIL("$5$rounds=1000000000$salt"
+                   "$3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA");
+        /* Wrong rounds format */
+        CHECK_FAIL("$5$rounds=10000a$salt"
+                   "$3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA");
+        /* No separator between salt and hash */
+        CHECK_FAIL("$5$rounds=10000$salt"
+                   "3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA");
+        /* Empty salt */
+        CHECK_FAIL("$5$rounds=10000$"
+                   "$3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA");
+        /* Salt string too long */
+        CHECK_FAIL("$5$rounds=10000$toolongsaltstring"
+                   "$3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA");
+        /* Bad character in hash */
+        CHECK_FAIL("$5$rounds=10000$salt"
+                   "$3xv.=bSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcA");
+        /* Hash too long */
+        CHECK_FAIL("$5$rounds=10000$salt"
+                   "$3xv.VbSHBb41AL9AvLeujZkZRBAwqFMz2.opqey6IcAa");
+
+#undef CHECK_FAIL
 
     } Z_TEST_END;
 } Z_GROUP_END
