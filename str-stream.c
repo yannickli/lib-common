@@ -122,12 +122,20 @@ int ps_get_csv_line(mem_pool_t *mp, pstream_t *ps, int sep, int quote,
     return 0;
 }
 
-void ps_split(pstream_t ps, const ctype_desc_t *desc, qv_t(lstr) *res)
+void ps_split(pstream_t ps, const ctype_desc_t *sep, unsigned flags,
+              qv_t(lstr) *res)
 {
+    if (flags & PS_SPLIT_SKIP_EMPTY) {
+        ps_skip_span(&ps, sep);
+    }
     while (!ps_done(&ps)) {
-        pstream_t n = ps_get_cspan(&ps, desc);
+        pstream_t n = ps_get_cspan(&ps, sep);
 
         qv_append(lstr, res, LSTR_PS_V(&n));
-        ps_skip(&ps, 1);
+        if (flags & PS_SPLIT_SKIP_EMPTY) {
+            ps_skip_span(&ps, sep);
+        } else {
+            ps_skip(&ps, 1);
+        }
     }
 }

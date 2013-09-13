@@ -694,13 +694,23 @@ Z_GROUP_EXPORT(str)
         qv_init(lstr, &arr);
 
 #define T(str1, str2, str3, sep, seps) \
-        ({  pstream_t ps = ps_initstr(str1 sep str2 sep str3);               \
+        TST_MAIN(NULL, str1, str2, str3, sep, seps, 0)
+
+#define T_SKIP(str_main, str1, str2, str3, seps) \
+        TST_MAIN(str_main, str1, str2, str3, "\0", seps, PS_SPLIT_SKIP_EMPTY)
+
+#define TST_MAIN(str_main, str1, str2, str3, sep, seps, flags)               \
+        ({  pstream_t ps;                                                    \
             ctype_desc_t desc;                                               \
                                                                              \
-                                                                             \
+            if (flags & PS_SPLIT_SKIP_EMPTY) {                               \
+                ps = ps_initstr(str_main);                                   \
+            } else {                                                         \
+                ps = ps_initstr(str1 sep str2 sep str3);                     \
+            }                                                                \
             ctype_desc_build(&desc, seps);                                   \
             qv_deep_clear(lstr, &arr, lstr_wipe);                            \
-            ps_split(ps, &desc, &arr);                                       \
+            ps_split(ps, &desc, flags, &arr);                                \
             Z_ASSERT_EQ(arr.len, 3);                                         \
             Z_ASSERT_LSTREQUAL(arr.tab[0], LSTR_IMMED_V(str1));              \
             Z_ASSERT_LSTREQUAL(arr.tab[1], LSTR_IMMED_V(str2));              \
@@ -711,12 +721,27 @@ Z_GROUP_EXPORT(str)
         T("123", "abc", "!%*", "$", "$");
         T("   ", ":::", "!!!", ",", ",");
 
-        T("secret1", "secret2" , "secret3", " ", " ,;");
-        T("secret1", "secret2" , "secret3", ",", " ,;");
-        T("secret1", "secret2" , "secret3", ";", " ,;");
+        T("secret1", "secret2", "secret3", " ", " ,;");
+        T("secret1", "secret2", "secret3", ",", " ,;");
+        T("secret1", "secret2", "secret3", ";", " ,;");
+
+        qv_deep_wipe(lstr, &arr, lstr_wipe);
+
+        T_SKIP("//123//abc/!%*", "123", "abc", "!%*", "/");
+        T_SKIP("$123$$$abc$!%*", "123", "abc", "!%*", "$");
+        T_SKIP(",   ,:::,!!!,,", "   ", ":::", "!!!", ",");
+
+        T_SKIP(" secret1 secret2   secret3", "secret1",
+               "secret2" , "secret3", " ,;");
+        T_SKIP(",secret1;secret2,,secret3,;,,", "secret1", "secret2",
+               "secret3", " ,;");
+        T_SKIP("secret1;;,,secret2; ;secret3;;", "secret1", "secret2",
+               "secret3", " ,;");
 
         qv_deep_wipe(lstr, &arr, lstr_wipe);
 #undef T
+#undef TST_MAIN
+#undef T_SKIP
     } Z_TEST_END;
 
     Z_TEST(t_ps_get_http_var, "str: t_ps_get_http_var") {
