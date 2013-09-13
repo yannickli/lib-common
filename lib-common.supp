@@ -112,3 +112,20 @@
     ...
     fun:__qps_snapshot_block_func_3
 }
+
+# Logs
+{
+    lib-common/log/is_debug
+    Memcheck:Leak
+    fun:malloc
+    fun:strdup
+    fun:mem_strdup
+    fun:log_initialize
+}
+{
+    lib-common/log/specs
+    Memcheck:Leak
+    ...
+    fun:qv_spec_growlen
+    fun:log_initialize
+}
