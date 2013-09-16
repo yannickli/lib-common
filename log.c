@@ -326,6 +326,14 @@ int __logger_log(logger_t *logger, int level, const char *prog, int pid,
     int res;
     va_list va;
 
+#ifndef NDEBUG
+    if (unlikely(level >= LOG_TRACE
+              && !logger_is_traced(logger, level - LOG_TRACE)))
+    {
+        return 0;
+    }
+#endif
+
     va_start(va, fmt);
     res = logger_vlog(logger, level, prog, pid, file, func, line, fmt, va);
     va_end(va);
