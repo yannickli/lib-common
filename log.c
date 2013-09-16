@@ -329,6 +329,14 @@ int __logger_log(logger_t *logger, int level, const char *prog, int pid,
     va_start(va, fmt);
     res = logger_vlog(logger, level, prog, pid, file, func, line, fmt, va);
     va_end(va);
+
+    if (unlikely(level <= LOG_CRIT)) {
+        if (psinfo_get_tracer_pid(0) > 0) {
+            abort();
+        }
+        exit(127);
+    }
+
     return res;
 }
 
