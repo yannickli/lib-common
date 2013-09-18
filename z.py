@@ -288,10 +288,12 @@ try:
                 self.stream.write("%d %s %s   # (%.3f) %d steps\n" %
                         (self.__count, self.__status,
                             self.__scenario.name, runTime, self.__steps))
+                self.stream.flush()
                 if self.__exn:
                     for line in self.__exn.split('\n'):
                         print ":", line
                 self.__count += 1
+
             self.__scenario = None
             self.__steps    = 0
             self.__status   = None
@@ -306,6 +308,7 @@ try:
                 else:
                     count += 1
             self.stream.write("1..%d %s\n" % (count, feature.name))
+            self.stream.flush()
             self.__count = 1
             self.__steps = 0
 
@@ -324,7 +327,6 @@ try:
                 self.__exn    = step_result.error_message
                 self.__status = "fail"
 
-
         def eof(self):
             self.flush()
             if self.__count != 1:
@@ -333,6 +335,7 @@ try:
                         ((100 * self.__skipped) / total,
                          (100 * self.__success) / total,
                          (100 * self.__failed)  / total))
+                self.stream.flush()
 
 
     def run_behave():
