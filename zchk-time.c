@@ -38,6 +38,64 @@ Z_GROUP_EXPORT(time)
         Z_ASSERT_EQ(localtime_nextday(0), localtime_nextday(time(NULL)));
     } Z_TEST_END;
 
+    Z_TEST(curweek, "time: localtime_curweek") {
+        /* Normal case */
+        /* date -d '09/20/2013 14:31:33' +'%s' -> 1379680293 = friday */
+        /* date -d "09/15/2013 00:00:00" +"%s" -> 1379196000 = sunday */
+        /* date -d "09/16/2013 00:00:00" +"%s" -> 1379282400 = monday */
+        Z_ASSERT_EQ(localtime_curweek(1379680293, 0), 1379196000);
+        Z_ASSERT_EQ(localtime_curweek(1379680293, 1), 1379282400);
+
+        /* wday < first_day_of_week */
+        /* date -d '09/22/2013 14:31:33' +'%s' -> 1379853093 = sunday */
+        /* date -d "09/22/2013 00:00:00" +"%s" -> 1379800800 = sunday */
+        /* date -d "09/16/2013 00:00:00" +"%s" -> 1379282400 = monday */
+        Z_ASSERT_EQ(localtime_curweek(1379853093, 0), 1379800800);
+        Z_ASSERT_EQ(localtime_curweek(1379853093, 1), 1379282400);
+
+        /* month/year transition */
+        /* date -d '01/04/2014 14:38:21' +'%s' -> 1388842711 = saturday */
+        /* date -d "12/29/2013 00:00:00" +"%s" -> 1388271600 = sunday */
+        /* date -d "12/30/2013 00:00:00" +"%s" -> 1388358000 = monday */
+        Z_ASSERT_EQ(localtime_curweek(1388842711, 0), 1388271600);
+        Z_ASSERT_EQ(localtime_curweek(1388842711, 1), 1388358000);
+
+        /* The following test may fail if we are ***very*** unlucky, call
+         * it the midnight bug!
+         */
+        Z_ASSERT_EQ(localtime_curweek(0, 0),
+                    localtime_curweek(time(NULL), 0));
+    } Z_TEST_END;
+
+    Z_TEST(nextweek, "time: localtime_nextweek") {
+        /* Normal case */
+        /* date -d '09/20/2013 14:31:33' +'%s' -> 1379680293 = friday */
+        /* date -d "09/22/2013 00:00:00" +"%s" -> 1379800800 = sunday */
+        /* date -d "09/23/2013 00:00:00" +"%s" -> 1379887200 = monday */
+        Z_ASSERT_EQ(localtime_nextweek(1379680293, 0), 1379800800);
+        Z_ASSERT_EQ(localtime_nextweek(1379680293, 1), 1379887200);
+
+        /* wday < first_day_of_week */
+        /* date -d '09/22/2013 14:31:33' +'%s' -> 1379853093 = sunday */
+        /* date -d "09/29/2013 00:00:00" +"%s" -> 1380405600 = sunday */
+        /* date -d "09/23/2013 00:00:00" +"%s" -> 1379887200 = monday */
+        Z_ASSERT_EQ(localtime_nextweek(1379853093, 0), 1380405600);
+        Z_ASSERT_EQ(localtime_nextweek(1379853093, 1), 1379887200);
+
+        /* month/year transition */
+        /* date -d '12/31/2013 14:38:21' +'%s' -> 1388497111 = tuesday */
+        /* date -d "01/05/2014 00:00:00" +"%s" -> 1388876400 = sunday */
+        /* date -d "01/06/2014 00:00:00" +"%s" -> 1388962800 = monday */
+        Z_ASSERT_EQ(localtime_nextweek(1388497111, 0), 1388876400);
+        Z_ASSERT_EQ(localtime_nextweek(1388497111, 1), 1388962800);
+
+        /* The following test may fail if we are ***very*** unlucky, call
+         * it the midnight bug!
+         */
+        Z_ASSERT_EQ(localtime_nextweek(0, 0),
+                    localtime_nextweek(time(NULL), 0));
+    } Z_TEST_END;
+
     Z_TEST(strtom, "time: strtom") {
         struct tm t;
 

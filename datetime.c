@@ -235,17 +235,23 @@ bool is_expired(const struct timeval *date,
     return timeval_is_le0(timeval_sub(*date, *now));
 }
 
-time_t localtime_curday(time_t date)
+static int localtime_(time_t date, struct tm *t)
 {
-    struct tm t;
-
     if (date == 0) {
         date = time(NULL);
     }
 
-    if (!localtime_r(&date, &t)) {
+    if (!localtime_r(&date, t)) {
         return -1;
     }
+    return 0;
+}
+
+time_t localtime_curday(time_t date)
+{
+    struct tm t;
+
+    RETHROW(localtime_(date, &t));
 
     t.tm_sec = 0;
     t.tm_min = 0;
@@ -258,13 +264,7 @@ time_t localtime_nextday(time_t date)
 {
     struct tm t;
 
-    if (date == 0) {
-        date = time(NULL);
-    }
-
-    if (!localtime_r(&date, &t)) {
-        return -1;
-    }
+    RETHROW(localtime_(date, &t));
 
     /* To avoid complex calculations, we rely on mktime() to normalize
      * the tm structure as specified in the man page:
@@ -288,6 +288,64 @@ time_t localtime_nextday(time_t date)
     t.tm_min = 0;
     t.tm_hour = 0;
     t.tm_mday += 1;
+
+    return mktime(&t);
+}
+
+time_t localtime_curweek(time_t date, int first_day_of_week)
+{
+    struct tm t;
+
+    RETHROW(localtime_(date, &t));
+
+    t.tm_sec   = 0;
+    t.tm_min   = 0;
+    t.tm_hour  = 0;
+    t.tm_mday -= (7 + t.tm_wday - first_day_of_week) % 7;
+
+    return mktime(&t);
+}
+
+time_t localtime_nextweek(time_t date, int first_day_of_week)
+{
+    struct tm t;
+
+    RETHROW(localtime_(date, &t));
+
+    t.tm_sec  = 0;
+    t.tm_min  = 0;
+    t.tm_hour = 0;
+    t.tm_mday -= (7 + t.tm_wday - first_day_of_week) % 7;
+    t.tm_mday += 7;
+
+    return mktime(&t);
+}
+
+time_t localtime_curmonth(time_t date)
+{
+    struct tm t;
+
+    RETHROW(localtime_(date, &t));
+
+    t.tm_sec = 0;
+    t.tm_min = 0;
+    t.tm_hour = 0;
+    t.tm_mday = 1;
+
+    return mktime(&t);
+}
+
+time_t localtime_nextmonth(time_t date)
+{
+    struct tm t;
+
+    RETHROW(localtime_(date, &t));
+
+    t.tm_sec  = 0;
+    t.tm_min  = 0;
+    t.tm_hour = 0;
+    t.tm_mday = 1;
+    t.tm_mon += 1;
 
     return mktime(&t);
 }

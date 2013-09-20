@@ -46,15 +46,49 @@ void lp_gettv(struct timeval *);
 /* time.h wrappers                                                         */
 /***************************************************************************/
 
-/* Return timestamp of the start of the day which contains
- * the timestamp 'date'.
- * If date == 0, 'date' is interpreted as 'now' */
+/** Return timestamp of the start of the day which contains
+ * the timestamp \p date.
+ *
+ * If date == 0, 'date' is interpreted as 'now'
+ */
 time_t localtime_curday(time_t date);
 
-/* Return timestamp of the start of the next day which contains
- * the timestamp 'date'.
- * If date == 0, 'date' is interpreted as 'now' */
+/** Return timestamp of the start of the day that follows the one which
+ * contains the timestamp \p date.
+ *
+ * If date == 0, 'date' is interpreted as 'now'
+ */
 time_t localtime_nextday(time_t date);
+
+/** Return timestamp of the start of the week which contains
+ * the timestamp \p date.
+ *
+ * If date == 0, 'date' is interpreted as 'now'.
+ * \param[in] first_day_of_week 0 for sunday, 1 for monday, ... 6 for saturday
+ */
+time_t localtime_curweek(time_t date, int first_day_of_week);
+
+/** Return timestamp of the start of the week that follows the one which
+ * contains the timestamp \p date.
+ *
+ * If date == 0, 'date' is interpreted as 'now'
+ * \param[in] first_day_of_week 0 for sunday, 1 for monday, ... 6 for saturday
+ */
+time_t localtime_nextweek(time_t date, int first_day_of_week);
+
+/** Return timestamp of the start of the month which contains
+ * the timestamp \p date.
+ *
+ * If date == 0, 'date' is interpreted as 'now'
+ */
+time_t localtime_curmonth(time_t date);
+
+/** Return timestamp of the start of the month that follows the one which
+ * contains the timestamp \p date.
+ *
+ * If date == 0, 'date' is interpreted as 'now'
+ */
+time_t localtime_nextmonth(time_t date);
 
 /* Fill struct tm t from date in this format:
  * DDyyyy-eYY]YY with MMM the abbreviated month in English
