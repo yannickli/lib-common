@@ -165,6 +165,7 @@ class _ZTestResult(u.TestResult):
     Only used when Z_HARNESS is set
     """
     def __init__(self, *args, **kwargs):
+        self.startTime = time.time()
         super(_ZTestResult, self).__init__(*args, **kwargs)
 
     def startTest(self, test):
