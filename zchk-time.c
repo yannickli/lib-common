@@ -16,6 +16,38 @@
 
 Z_GROUP_EXPORT(time)
 {
+    Z_TEST(curminute, "time: localtime_curminute") {
+        /* date -d "03/06/2007 12:34:13" +"%s" -> 1173180853 */
+        /* date -d "03/06/2007 12:34:00" +"%s" -> 1173180840 */
+        Z_ASSERT_EQ(localtime_curminute(1173180853), 1173180840);
+    } Z_TEST_END;
+
+    Z_TEST(nextminute, "time: localtime_nextminute") {
+        /* date -d "03/06/2007 12:34:13" +"%s" -> 1173180853 */
+        /* date -d "03/06/2007 12:35:00" +"%s" -> 1173180900 */
+        Z_ASSERT_EQ(localtime_nextminute(1173180853), 1173180900);
+
+        /* date -d "03/06/2007 23:59:13" +"%s" -> 1173221953 */
+        /* date -d "03/07/2007 00:00:00" +"%s" -> 1173222000 */
+        Z_ASSERT_EQ(localtime_nextminute(1173221953), 1173222000);
+    } Z_TEST_END;
+
+    Z_TEST(curhour, "time: localtime_curhour") {
+        /* date -d "03/06/2007 12:34:13" +"%s" -> 1173180853 */
+        /* date -d "03/06/2007 12:00:00" +"%s" -> 1173178800 */
+        Z_ASSERT_EQ(localtime_curhour(1173180853), 1173178800);
+    } Z_TEST_END;
+
+    Z_TEST(nexthour, "time: localtime_nexthour") {
+        /* date -d "03/06/2007 12:34:13" +"%s" -> 1173180853 */
+        /* date -d "03/06/2007 13:00:00" +"%s" -> 1173182400 */
+        Z_ASSERT_EQ(localtime_nexthour(1173180853), 1173182400);
+
+        /* date -d "03/06/2007 23:59:13" +"%s" -> 1173221953 */
+        /* date -d "03/07/2007 00:00:00" +"%s" -> 1173222000 */
+        Z_ASSERT_EQ(localtime_nexthour(1173221953), 1173222000);
+    } Z_TEST_END;
+
     Z_TEST(curday, "time: localtime_curday") {
         /* date -d "03/06/2007 12:34:13" +"%s" -> 1173180853 */
         /* date -d "03/06/2007 00:00:00" +"%s" -> 1173135600 */

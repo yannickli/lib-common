@@ -46,6 +46,34 @@ void lp_gettv(struct timeval *);
 /* time.h wrappers                                                         */
 /***************************************************************************/
 
+/** Return timestamp of the start of the minute which contains
+ * the timestamp \p date.
+ *
+ * If date == 0, 'date' is interpreted as 'now'
+ */
+time_t localtime_curminute(time_t date);
+
+/** Return timestamp of the start of the minute that follows the one which
+ * contains the timestamp \p date.
+ *
+ * If date == 0, 'date' is interpreted as 'now'
+ */
+time_t localtime_nextminute(time_t date);
+
+/** Return timestamp of the start of the hour which contains
+ * the timestamp \p date.
+ *
+ * If date == 0, 'date' is interpreted as 'now'
+ */
+time_t localtime_curhour(time_t date);
+
+/** Return timestamp of the start of the hour that follows the one which
+ * contains the timestamp \p date.
+ *
+ * If date == 0, 'date' is interpreted as 'now'
+ */
+time_t localtime_nexthour(time_t date);
+
 /** Return timestamp of the start of the day which contains
  * the timestamp \p date.
  *

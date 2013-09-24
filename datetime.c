@@ -247,6 +247,54 @@ static int localtime_(time_t date, struct tm *t)
     return 0;
 }
 
+time_t localtime_curminute(time_t date)
+{
+    struct tm t;
+
+    RETHROW(localtime_(date, &t));
+
+    t.tm_sec = 0;
+
+    return mktime(&t);
+}
+
+time_t localtime_nextminute(time_t date)
+{
+    struct tm t;
+
+    RETHROW(localtime_(date, &t));
+
+    t.tm_sec  = 0;
+    t.tm_min  += 1;
+
+    return mktime(&t);
+}
+
+time_t localtime_curhour(time_t date)
+{
+    struct tm t;
+
+    RETHROW(localtime_(date, &t));
+
+    t.tm_sec = 0;
+    t.tm_min = 0;
+
+    return mktime(&t);
+}
+
+time_t localtime_nexthour(time_t date)
+{
+    struct tm t;
+
+    RETHROW(localtime_(date, &t));
+
+    t.tm_sec  = 0;
+    t.tm_min  = 0;
+    t.tm_hour += 1;
+
+    return mktime(&t);
+}
+
 time_t localtime_curday(time_t date)
 {
     struct tm t;
