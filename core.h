@@ -14,7 +14,7 @@
 #ifndef IS_LIB_COMMON_CORE_H
 #define IS_LIB_COMMON_CORE_H
 
-#define LIB_COMMON_VERSION  "master"
+#define LIB_COMMON_VERSION  "2013.3"
 
 #include <Block.h>
 #include <alloca.h>
