@@ -637,7 +637,6 @@ int iop_sort(const iop_struct_t *st, void *vec, int len,
  */
 void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v,
               size_t *sz);
-#define iop_dup(...) (iop_dup)(__VA_ARGS__, NULL)
 
 /** Copy an IOP structure into another one.
  *
@@ -657,7 +656,6 @@ void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v,
  */
 void  iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
                const void *v, size_t *sz);
-#define iop_copy(...) (iop_copy)(__VA_ARGS__, NULL)
 
 /** Generate a signature of an IOP structure.
  *
@@ -670,7 +668,6 @@ void  iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
  */
 lstr_t t_iop_compute_signature(const iop_struct_t *st, const void *v,
                                unsigned flags);
-#define t_iop_compute_signature(...) (t_iop_compute_signature)(__VA_ARGS__, 0)
 
 /** Check the signature of an IOP structure.
  *
@@ -685,7 +682,6 @@ lstr_t t_iop_compute_signature(const iop_struct_t *st, const void *v,
 __must_check__
 int iop_check_signature(const iop_struct_t *st, const void *v, lstr_t sig,
                         unsigned flags);
-#define iop_check_signature(...) (iop_check_signature)(__VA_ARGS__, 0)
 
 /* }}} */
 /* {{{ IOP class manipulation */

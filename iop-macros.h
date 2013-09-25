@@ -366,11 +366,11 @@
         return v;                                                            \
     }                                                                        \
     static inline pfx##__t *pfx##__dup(mem_pool_t *mp, const pfx##__t *v) {  \
-        return (pfx##__t *)iop_dup(mp, &pfx##__s, (const void *)v);          \
+        return (pfx##__t *)iop_dup(mp, &pfx##__s, (const void *)v, NULL);    \
     }                                                                        \
     static inline void                                                       \
     pfx##__copy(mem_pool_t *mp, pfx##__t **out, const pfx##__t *v) {         \
-        iop_copy(mp, &pfx##__s, (void **)out, (const void *)v);              \
+        iop_copy(mp, &pfx##__s, (void **)out, (const void *)v, NULL);        \
     }                                                                        \
     static inline int pfx##__check(pfx##__t *v) {                            \
         return iop_check_constraints(&pfx##__s, (void *)v);                  \

@@ -37,7 +37,6 @@
 #define bisect   bisect32
 #define contains contains32
 #include "sort-numeric.in.h"
-#define bisect32(what, data, len)  (bisect32)((what), (data), (len), NULL)
 
 #define type_t   uint64_t
 #define dsort    dsort64
@@ -45,7 +44,6 @@
 #define bisect   bisect64
 #define contains contains64
 #include "sort-numeric.in.h"
-#define bisect64(what, data, len)  (bisect64)((what), (data), (len), NULL)
 
 /* Generic implementations */
 typedef int (cmp_r_t)(const void *a, const void *b, void *arg);

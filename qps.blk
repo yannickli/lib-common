@@ -719,7 +719,7 @@ qps_map_recycle(qps_t *qps, qps_map_t *map, uint16_t no, bool quarantine)
     if (quarantine) {
         qv_append(u32, &qps->no_blocked, no);
     } else {
-        pos = bisect32(no, qps->no_free.tab, qps->no_free.len);
+        pos = bisect32(no, qps->no_free.tab, qps->no_free.len, NULL);
 
         assert (pos == qps->no_free.len || qps->no_free.tab[pos] != no);
         qv_insert(u32, &qps->no_free, pos, no);

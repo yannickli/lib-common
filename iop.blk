@@ -404,8 +404,8 @@ static uint8_t *__iop_copy_class(const iop_struct_t *st, uint8_t *dst,
     return dst;
 }
 
-void *(iop_dup)(mem_pool_t *mp, const iop_struct_t *st, const void *v,
-                size_t *psz)
+void *iop_dup(mem_pool_t *mp, const iop_struct_t *st, const void *v,
+              size_t *psz)
 {
     bool is_class;
     size_t sz;
@@ -423,7 +423,7 @@ void *(iop_dup)(mem_pool_t *mp, const iop_struct_t *st, const void *v,
         *psz = sz;
     }
 
-    res = mp ? mp->malloc(mp, sz, MEM_RAW) : imalloc(sz, MEM_LIBC | MEM_RAW);
+    res = mp ? mp->malloc(mp, sz, MEM_RAW) : imalloc(sz, 0, MEM_LIBC | MEM_RAW);
     dst = realign(mempcpy(res, v, st->size));
 
     if (is_class) {
@@ -438,8 +438,8 @@ void *(iop_dup)(mem_pool_t *mp, const iop_struct_t *st, const void *v,
     return res;
 }
 
-void (iop_copy)(mem_pool_t *mp, const iop_struct_t *st, void **outp,
-                const void *v, size_t *psz)
+void iop_copy(mem_pool_t *mp, const iop_struct_t *st, void **outp,
+              const void *v, size_t *psz)
 {
     bool is_class;
     size_t sz;
@@ -469,7 +469,7 @@ void (iop_copy)(mem_pool_t *mp, const iop_struct_t *st, void **outp,
     if (mp) {
         res = mp->realloc(mp, res, 0, sz, MEM_RAW);
     } else {
-        res = irealloc(res, 0, sz, MEM_LIBC | MEM_RAW);
+        res = irealloc(res, 0, sz, 0, MEM_LIBC | MEM_RAW);
     }
     dst = realign(mempcpy(res, v, st->size));
 
@@ -2721,8 +2721,8 @@ lstr_t t_iop_sign_salt_sha256(const iop_struct_t *st, const void *v,
                       SHA256_DIGEST_SIZE, buf);
 }
 
-lstr_t (t_iop_compute_signature)(const iop_struct_t *st, const void *v,
-                                 unsigned flags)
+lstr_t t_iop_compute_signature(const iop_struct_t *st, const void *v,
+                               unsigned flags)
 {
     return t_iop_sign_salt_sha256(st, v, ha_rand(), flags);
 }
@@ -2759,8 +2759,8 @@ static int iop_signature_get_salt(lstr_t signature, be32_t *salt)
     return 0;
 }
 
-int (iop_check_signature)(const iop_struct_t *st, const void *v, lstr_t sig,
-                          unsigned flags)
+int iop_check_signature(const iop_struct_t *st, const void *v, lstr_t sig,
+                        unsigned flags)
 {
     t_scope;
     lstr_t exp;

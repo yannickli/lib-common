@@ -67,8 +67,8 @@ static int iop_xml_test_struct(const iop_struct_t *st, void *v, const char *info
                        st->fullname.s, info);
 
     /* In case of, check hashes equality */
-    iop_hash_sha1(st, v,   buf1);
-    iop_hash_sha1(st, res, buf2);
+    iop_hash_sha1(st, v,   buf1, 0);
+    iop_hash_sha1(st, res, buf2, 0);
     Z_ASSERT_EQUAL(buf1, sizeof(buf1), buf2, sizeof(buf2),
                    "XML packing/unpacking hashes don't match! (%s, %s)",
                    st->fullname.s, info);
@@ -149,8 +149,8 @@ static int iop_json_test_struct(const iop_struct_t *st, void *v,
         iop_jlex_detach(&jll);
 
         /* check hashes equality */
-        iop_hash_sha1(st, v,   buf1);
-        iop_hash_sha1(st, res, buf2);
+        iop_hash_sha1(st, v,   buf1, 0);
+        iop_hash_sha1(st, res, buf2, 0);
         Z_ASSERT_EQUAL(buf1, sizeof(buf1), buf2, sizeof(buf2),
                        "JSON %spacking/unpacking hashes don't match! (%s, %s)",
                        (strict ? "strict " : ""),
@@ -238,8 +238,8 @@ static int iop_json_test_json(const iop_struct_t *st, const char *json, const
         iop_jtrace_(1, __FILE__, __LINE__, __func__, NULL, st, res);
 
     /* check hashes equality */
-    iop_hash_sha1(st, res,      buf1);
-    iop_hash_sha1(st, expected, buf2);
+    iop_hash_sha1(st, res,      buf1, 0);
+    iop_hash_sha1(st, expected, buf2, 0);
     Z_ASSERT_EQUAL(buf1, sizeof(buf1), buf2, sizeof(buf2),
                    "JSON unpacking hashes don't match! (%s, %s)",
                    st->fullname.s, info);
@@ -314,8 +314,8 @@ static int iop_std_test_struct_flags(const iop_struct_t *st, void *v,
                st->fullname.s, info, iop_get_err());
 
     /* check hashes equality */
-    iop_hash_sha1(st, v,   buf1);
-    iop_hash_sha1(st, res, buf2);
+    iop_hash_sha1(st, v,   buf1, 0);
+    iop_hash_sha1(st, res, buf2, 0);
     Z_ASSERT_EQUAL(buf1, sizeof(buf1), buf2, sizeof(buf2),
                    "IOP packing/unpacking hashes don't match! (%s, %s)",
                    st->fullname.s, info);
@@ -324,29 +324,29 @@ static int iop_std_test_struct_flags(const iop_struct_t *st, void *v,
     Z_ASSERT(iop_equals(st, v, res));
 
     /* test duplication */
-    Z_ASSERT_NULL(iop_dup(NULL, st, NULL));
-    Z_ASSERT_P(res = iop_dup(t_pool(), st, v),
+    Z_ASSERT_NULL(iop_dup(NULL, st, NULL, NULL));
+    Z_ASSERT_P(res = iop_dup(t_pool(), st, v, NULL),
                "IOP duplication error! (%s, %s)", st->fullname.s, info);
 
     /* check equality */
     Z_ASSERT(iop_equals(st, v, res));
 
     /* check hashes equality */
-    iop_hash_sha1(st, res, buf2);
+    iop_hash_sha1(st, res, buf2, 0);
     Z_ASSERT_EQUAL(buf1, sizeof(buf1), buf2, sizeof(buf2),
                    "IOP duplication hashes don't match! (%s, %s)",
                    st->fullname.s, info);
 
     /* test copy */
-    iop_copy(t_pool(), st, (void **)&res, NULL);
+    iop_copy(t_pool(), st, (void **)&res, NULL, NULL);
     Z_ASSERT_NULL(res);
-    iop_copy(t_pool(), st, (void **)&res, v);
+    iop_copy(t_pool(), st, (void **)&res, v, NULL);
 
     /* check equality */
     Z_ASSERT(iop_equals(st, v, res));
 
     /* check hashes equality */
-    iop_hash_sha1(st, res, buf2);
+    iop_hash_sha1(st, res, buf2, 0);
     Z_ASSERT_EQUAL(buf1, sizeof(buf1), buf2, sizeof(buf2),
                    "IOP copy hashes don't match! (%s, %s)",
                    st->fullname.s, info);
@@ -446,11 +446,11 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_P(stv1 = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.HashV1")));
         Z_ASSERT_P(stv2 = iop_dso_find_type(dso, LSTR_IMMED_V("tstiop.HashV2")));
 
-        iop_hash_sha1(stv1, &v1, buf1);
-        iop_hash_sha1(stv2, &v2, buf2);
+        iop_hash_sha1(stv1, &v1, buf1, 0);
+        iop_hash_sha1(stv2, &v2, buf2, 0);
         Z_ASSERT_EQUAL(buf1, sizeof(buf1), buf2, sizeof(buf2));
 
-        iop_hash_sha1(stv1, &v1_not_same, buf2);
+        iop_hash_sha1(stv1, &v1_not_same, buf2, 0);
         Z_ASSERT(memcmp(buf1, buf2, sizeof(buf1)) != 0);
         iop_dso_close(&dso);
     } Z_TEST_END;
@@ -2158,7 +2158,7 @@ Z_GROUP_EXPORT(iop)
         sb.b.tab = (void *)0x42;
         sb.b.len = 0;
 
-        sb_dup = iop_dup(NULL, st_sb, &sb);
+        sb_dup = iop_dup(NULL, st_sb, &sb, NULL);
         Z_ASSERT_NULL(sb_dup->b.tab);
         Z_ASSERT_ZERO(sb_dup->b.len);
 
@@ -2175,67 +2175,67 @@ Z_GROUP_EXPORT(iop)
         tstiop__my_hashed__init(&a);
         tstiop__my_hashed_extended__init(&b);
 
-        Z_ASSERT_N((iop_check_signature)(&tstiop__my_hashed__s, &a,
-            (t_iop_compute_signature)(&tstiop__my_hashed__s, &a, 0), 0));
-        Z_ASSERT_N((iop_check_signature)(&tstiop__my_hashed__s, &a,
-            (t_iop_compute_signature)(&tstiop__my_hashed__s, &a,
+        Z_ASSERT_N(iop_check_signature(&tstiop__my_hashed__s, &a,
+            t_iop_compute_signature(&tstiop__my_hashed__s, &a, 0), 0));
+        Z_ASSERT_N(iop_check_signature(&tstiop__my_hashed__s, &a,
+            t_iop_compute_signature(&tstiop__my_hashed__s, &a,
                                       IOP_HASH_SKIP_MISSING),
             IOP_HASH_SKIP_MISSING));
-        Z_ASSERT_N((iop_check_signature)(&tstiop__my_hashed__s, &a,
-            (t_iop_compute_signature)(&tstiop__my_hashed__s, &a,
+        Z_ASSERT_N(iop_check_signature(&tstiop__my_hashed__s, &a,
+            t_iop_compute_signature(&tstiop__my_hashed__s, &a,
                                       IOP_HASH_SKIP_DEFAULT),
             IOP_HASH_SKIP_DEFAULT));
 
-        Z_ASSERT_N((iop_check_signature)(&tstiop__my_hashed__s, &a,
-            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
+        Z_ASSERT_N(iop_check_signature(&tstiop__my_hashed__s, &a,
+            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
                                       IOP_HASH_SKIP_MISSING |
                                       IOP_HASH_SKIP_DEFAULT),
             IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT));
 
-        Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
-            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b, 0),
+        Z_ASSERT_NEG(iop_check_signature(&tstiop__my_hashed__s, &a,
+            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b, 0),
             0));
 
-        Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
-            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
+        Z_ASSERT_NEG(iop_check_signature(&tstiop__my_hashed__s, &a,
+            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
                                       IOP_HASH_SKIP_MISSING),
             IOP_HASH_SKIP_MISSING));
 
-        Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
-            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
+        Z_ASSERT_NEG(iop_check_signature(&tstiop__my_hashed__s, &a,
+            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
                                       IOP_HASH_SKIP_DEFAULT),
             IOP_HASH_SKIP_DEFAULT));
 
         OPT_SET(b.b, 0);
-        Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
-            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
+        Z_ASSERT_NEG(iop_check_signature(&tstiop__my_hashed__s, &a,
+            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
                                       IOP_HASH_SKIP_MISSING),
             IOP_HASH_SKIP_MISSING));
 
         OPT_CLR(b.b);
         b.c.tab = t_new(int, 1);
         b.c.len = 1;
-        Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
-            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
+        Z_ASSERT_NEG(iop_check_signature(&tstiop__my_hashed__s, &a,
+            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
                                       IOP_HASH_SKIP_MISSING |
                                       IOP_HASH_SKIP_DEFAULT),
             IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT));
 
         b.c.len = 0;
-        Z_ASSERT_N((iop_check_signature)(&tstiop__my_hashed__s, &a,
-            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
+        Z_ASSERT_N(iop_check_signature(&tstiop__my_hashed__s, &a,
+            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
                                       IOP_HASH_SKIP_MISSING |
                                       IOP_HASH_SKIP_DEFAULT),
             IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT));
 
         b.d = 11;
-        Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
-            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b,
+        Z_ASSERT_NEG(iop_check_signature(&tstiop__my_hashed__s, &a,
+            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b,
                                       IOP_HASH_SKIP_MISSING |
                                       IOP_HASH_SKIP_DEFAULT),
             IOP_HASH_SKIP_MISSING | IOP_HASH_SKIP_DEFAULT));
-        Z_ASSERT_NEG((iop_check_signature)(&tstiop__my_hashed__s, &a,
-            (t_iop_compute_signature)(&tstiop__my_hashed_extended__s, &b, 0),
+        Z_ASSERT_NEG(iop_check_signature(&tstiop__my_hashed__s, &a,
+            t_iop_compute_signature(&tstiop__my_hashed_extended__s, &b, 0),
             0));
     } Z_TEST_END;
     /* }}} */
@@ -2378,8 +2378,8 @@ Z_GROUP_EXPORT(iop)
         Z_ASSERT_EQ(c2p->c, 500);
 
         /* Test that hashes of b2p and c2p are the sames */
-        iop_hash_sha1(&tstiop_inheritance__b2__s, b2p, buf_b2p);
-        iop_hash_sha1(&tstiop_inheritance__c2__s, c2p, buf_c2p);
+        iop_hash_sha1(&tstiop_inheritance__b2__s, b2p, buf_b2p, 0);
+        iop_hash_sha1(&tstiop_inheritance__c2__s, c2p, buf_c2p, 0);
         Z_ASSERT_EQUAL(buf_b2p, sizeof(buf_b2p), buf_c2p, sizeof(buf_c2p));
     } Z_TEST_END
     /* }}} */
@@ -2492,8 +2492,8 @@ Z_GROUP_EXPORT(iop)
                                                                              \
             Z_ASSERT(iop_equals(&tstiop_inheritance__##_type##__s,           \
                                 _v1, _v2) == _res);                          \
-            iop_hash_sha1(&tstiop_inheritance__##_type##__s, _v1, buf1);     \
-            iop_hash_sha1(&tstiop_inheritance__##_type##__s, _v2, buf2);     \
+            iop_hash_sha1(&tstiop_inheritance__##_type##__s, _v1, buf1, 0);  \
+            iop_hash_sha1(&tstiop_inheritance__##_type##__s, _v2, buf2, 0);  \
             Z_ASSERT(lstr_equal2(                                            \
                 LSTR_INIT_V((const char *)buf1, sizeof(buf1)),               \
                 LSTR_INIT_V((const char *)buf2, sizeof(buf2))) == _res);     \

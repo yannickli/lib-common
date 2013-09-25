@@ -634,7 +634,7 @@ t_get_value_of_st(const iop_struct_t *st, const ic_msg_t *unpacked_msg,
     if (unpacked_msg) {
         RETHROW(iop_check_constraints(st, unpacked_msg->data));
         if (unpacked_msg->force_dup) {
-            *value = iop_dup(t_pool(), st, unpacked_msg->data);
+            *value = iop_dup(t_pool(), st, unpacked_msg->data, NULL);
         } else {
             *value = unpacked_msg->data;
         }

@@ -138,7 +138,7 @@ void __sb_grow(sb_t *sb, int extra)
         }
         sb_init_full(sb, s, sb->len, newsz, MEM_LIBC);
     } else {
-        sb->data = irealloc(sb->data, sb->len + 1, newsz,
+        sb->data = irealloc(sb->data, sb->len + 1, newsz, 0,
                             sb->mem_pool | MEM_RAW);
         sb->size = newsz;
     }

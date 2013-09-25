@@ -148,7 +148,6 @@ void *imalloc(size_t size, size_t alignment, mem_flags_t flags)
     }
     return __imalloc(size, alignment, flags);
 }
-#define imalloc(size, flags)  (imalloc)((size), 0, (flags))
 
 static ALWAYS_INLINE void ifree(void *mem, mem_flags_t flags)
 {
@@ -211,8 +210,6 @@ irealloc(void *mem, size_t oldsize, size_t size, size_t alignment,
     }
     return __irealloc(mem, oldsize, size, alignment, flags);
 }
-#define irealloc(mem, oldsize, size, flags)  \
-    (irealloc)((mem), (oldsize), (size), 0, (flags))
 
 /**************************************************************************/
 /* High Level memory APIs                                                 */
@@ -235,12 +232,11 @@ static inline void *mem_dup(const void *src, size_t size, size_t alignment)
 {
     return memcpy((imalloc)(size, alignment, MEM_RAW | MEM_LIBC), src, size);
 }
-#define mem_dup(src, size)  (mem_dup)((src), (size), 0)
 
 __attribute__((malloc, warn_unused_result))
 static inline void *p_dupz(const void *src, size_t len)
 {
-    void *res = imalloc(len + 1, MEM_RAW | MEM_LIBC);
+    void *res = imalloc(len + 1, 0, MEM_RAW | MEM_LIBC);
     return memcpyz(res, src, len);
 }
 

@@ -482,7 +482,7 @@ uint32_t qhat_compact_lookup(const qhat_compacthdr_t *header, uint32_t from,
         }
         return header->count;
     }
-    return from + bisect32(key, header->keys + from, count);
+    return from + bisect32(key, header->keys + from, count, NULL);
 }
 
 static ALWAYS_INLINE

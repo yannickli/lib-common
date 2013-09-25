@@ -1434,7 +1434,7 @@ static int asn1_unpack_rec(pstream_t *ps, const asn1_desc_t *desc,
 
 static void *asn1_default_malloc(mem_pool_t *mp, size_t siz, mem_flags_t flags)
 {
-    return imalloc(siz, MEM_LIBC);
+    return imalloc(siz, 0, MEM_LIBC);
 }
 
 

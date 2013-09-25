@@ -565,8 +565,8 @@ int licence_check_iop(const core__signed_licence__t *signed_licence,
 #endif
     }
 
-    RETHROW((iop_check_signature)(&core__licence__s, licence,
-                                  signed_licence->signature, flags));
+    RETHROW(iop_check_signature(&core__licence__s, licence,
+                                signed_licence->signature, flags));
     if (!(flags & LICENCE_SKIP_VERSION) && version.s
     &&  !lstr_equal2(version, licence->version))
     {

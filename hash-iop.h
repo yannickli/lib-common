@@ -59,43 +59,27 @@ void iop_hash(const struct iop_struct_t *st, const void *v,
 
 static inline void iop_hash_md2(HASH_ARGS(16))    { HASH(md2); }
 static inline void iop_hmac_md2(HMAC_ARGS(16))    { HMAC(md2); }
-#define iop_hash_md2(...) (iop_hash_md2)(__VA_ARGS__, 0)
-#define iop_hmac_md2(...) (iop_hmac_md2)(__VA_ARGS__, 0)
 
 static inline void iop_hash_md4(HASH_ARGS(16))    { HASH(md4); }
 static inline void iop_hmac_md4(HMAC_ARGS(16))    { HMAC(md4); }
-#define iop_hash_md4(...) (iop_hash_md4)(__VA_ARGS__, 0)
-#define iop_hmac_md4(...) (iop_hmac_md4)(__VA_ARGS__, 0)
 
 static inline void iop_hash_md5(HASH_ARGS(16))    { HASH(md5); }
 static inline void iop_hmac_md5(HMAC_ARGS(16))    { HMAC(md5); }
-#define iop_hash_md5(...) (iop_hash_md5)(__VA_ARGS__, 0)
-#define iop_hmac_md5(...) (iop_hmac_md5)(__VA_ARGS__, 0)
 
 static inline void iop_hash_sha1(HASH_ARGS(20))   { HASH(sha1); }
 static inline void iop_hmac_sha1(HMAC_ARGS(20))   { HMAC(sha1); }
-#define iop_hash_sha1(...) (iop_hash_sha1)(__VA_ARGS__, 0)
-#define iop_hmac_sha1(...) (iop_hmac_sha1)(__VA_ARGS__, 0)
 
 static inline void iop_hash_sha224(HASH_ARGS(28)) { HASH(sha2, true); }
 static inline void iop_hmac_sha224(HMAC_ARGS(28)) { HMAC(sha2, true); }
-#define iop_hash_sha224(...) (iop_hash_sha224)(__VA_ARGS__, 0)
-#define iop_hmac_sha224(...) (iop_hmac_sha224)(__VA_ARGS__, 0)
 
 static inline void iop_hash_sha256(HASH_ARGS(32)) { HASH(sha2, false); }
 static inline void iop_hmac_sha256(HMAC_ARGS(32)) { HMAC(sha2, false); }
-#define iop_hash_sha256(...) (iop_hash_sha256)(__VA_ARGS__, 0)
-#define iop_hmac_sha256(...) (iop_hmac_sha256)(__VA_ARGS__, 0)
 
 static inline void iop_hash_sha384(HASH_ARGS(48)) { HASH(sha4, true); }
 static inline void iop_hmac_sha384(HMAC_ARGS(48)) { HMAC(sha4, true); }
-#define iop_hash_sha384(...) (iop_hash_sha384)(__VA_ARGS__, 0)
-#define iop_hmac_sha384(...) (iop_hmac_sha384)(__VA_ARGS__, 0)
 
 static inline void iop_hash_sha512(HASH_ARGS(64)) { HASH(sha4, false); }
 static inline void iop_hmac_sha512(HMAC_ARGS(64)) { HMAC(sha4, false); }
-#define iop_hash_sha512(...) (iop_hash_sha512)(__VA_ARGS__, 0)
-#define iop_hmac_sha512(...) (iop_hmac_sha512)(__VA_ARGS__, 0)
 
 #undef HMAC_ARGS
 #undef HASH_ARGS
