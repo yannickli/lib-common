@@ -70,15 +70,19 @@ define ext/expand/iop
 $3.h: $3.c
 $3.json: $3.c
 $~$3.dep: IOPINCPATH_=$l $/lib-inet $/qrrd/iop $($(1DV)_IOPINCPATH) $($1_IOPINCPATH) $($3_IOPINCPATH)
+$~$3.dep: IOPJSONPATH_=$(firstword $($(1DV)_IOPJSONPATH) $($1_IOPJSONPATH) $($3_IOPJSONPATH) .)
 $~$3.dep: $3 $(IOPC)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$(IOPC) -3 --c-resolve-includes --Wextra -l c,json -d$~$$<.dep -I$$(call fun/join,:,$$(IOPINCPATH_)) $$<
+	$(IOPC) -3 --c-resolve-includes --Wextra -l c,json -d$~$$<.dep -I$$(call fun/join,:,$$(IOPINCPATH_)) \
+		--json-output-path $$(IOPJSONPATH_) $$<
 $3.c: IOPINCPATH_=$l $/lib-inet $/qrrd/iop $($(1DV)_IOPINCPATH) $($1_IOPINCPATH) $($3_IOPINCPATH)
+$3.c: IOPJSONPATH_=$(firstword $($(1DV)_IOPJSONPATH) $($1_IOPJSONPATH) $($3_IOPJSONPATH) .)
 $3.c: $3 $(IOPC)
 	$(msg/COMPILE.iop) $3
 	$(RM) $$@
-	$(IOPC) -3 --c-resolve-includes --Wextra -l c,json -d$~$$<.dep -I$$(call fun/join,:,$$(IOPINCPATH_)) $$<
+	$(IOPC) -3 --c-resolve-includes --Wextra -l c,json -d$~$$<.dep -I$$(call fun/join,:,$$(IOPINCPATH_)) \
+		--json-output-path $$(IOPJSONPATH_) $$<
 -include $~$3.dep
 endef
 
