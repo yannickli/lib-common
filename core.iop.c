@@ -377,7 +377,7 @@ const iop_struct_t core__logger_configuration__s = {
 
 static const iop_help_t core__log_configuration__root_level__f_help = {
     .brief = LSTR_IMMED("Root logging level."),
-    .details = LSTR_IMMED("This will be the logging level for all the logger inherits from root logging level and that were not configured to another value separately.\x0a""The default configuration is to enable TRACE in development builds, and to enable only DEBUG in release builds."),
+    .details = LSTR_IMMED("This will be the logging level for all the logger inherits from root logging level and that were not configured to another value separately.\012The default configuration is to enable TRACE in development builds, and to enable only DEBUG in release builds."),
 };
 static iop_field_attr_t const core__log_configuration__root_level__attrs[] = {
     {
