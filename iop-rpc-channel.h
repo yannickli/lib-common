@@ -662,6 +662,14 @@ size_t __ic_reply(ichannel_t *, uint64_t slot, int cmd, int fd,
  */
 void ic_reply_err(ichannel_t *ic, uint64_t slot, int err);
 
+/** \brief helper to get and execute the post hook of the query.
+ *
+ * \param[in]  ic      the #ichannel_t to send the query to.
+ * \param[in]  status  the received answer status parameter.
+ * \param[in]  slot    the slot of the received query.
+ */
+void ic_query_do_post_hook(ichannel_t *ic, ic_status_t status, uint64_t slot);
+
 /** \brief helper to build a typed query message.
  * \param[in]  _ich   the #ichannel_t to send the query to.
  * \param[in]  _msg   the #ic_msg_t to fill.
