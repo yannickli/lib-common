@@ -118,6 +118,7 @@ ic_hook_ctx_t *ic_hook_ctx_new(uint64_t slot, ssize_t extra)
     ic_hook_flow_g.ic_hook_ctx = mp_new_extra_field(ic_mp_g, ic_hook_ctx_t,
                                                     data, extra);
     ic_hook_flow_g.ic_hook_ctx->slot = slot;
+    ic_hook_flow_g.ic_hook_ctx->post_hook = ic_hook_flow_g.post_hook;
 
     return ic_hook_flow_g.ic_hook_ctx;
 }
@@ -774,6 +775,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
             t_seal();
             ic->desc = e->u.cb.rpc;
             ic->cmd  = cmd;
+            /* TODO: add pre_hook call */
             (*e->u.cb.cb)(ic, MAKE64(ic->id, slot), value, hdr);
             ic->desc = NULL;
             ic->cmd  = 0;
@@ -856,6 +858,7 @@ ic_read_process_query(ichannel_t *ic, int cmd, uint32_t slot,
         if (take_pxy_hdr) {
             flags |= IC_MSG_HAS_HDR;
         }
+        /* TODO: shachimi add pre_hook for proxy */
         ___ic_query_flags(pxy, tmp, flags);
     }
 }
